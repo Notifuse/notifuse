@@ -13,6 +13,7 @@ import {
 import dayjs, { Dayjs } from 'dayjs'
 import { InputDimensionFilters } from './input_dimension_filters'
 import Messages from './messages'
+import { useLingui } from '@lingui/react/macro'
 
 export type LeafFormProps = {
   value?: TreeNode
@@ -27,6 +28,7 @@ export type LeafFormProps = {
 }
 
 export const LeafContactForm = (props: LeafFormProps) => {
+  const { t } = useLingui()
   const [form] = useForm()
 
   const onSubmit = () => {
@@ -66,7 +68,7 @@ export const LeafContactForm = (props: LeafFormProps) => {
             {props.schema.icon && (
               <FontAwesomeIcon icon={props.schema.icon} style={{ marginRight: 8 }} />
             )}
-            Contact property
+            {t`Contact property`}
           </Tag>
         }
       >
@@ -94,7 +96,7 @@ export const LeafContactForm = (props: LeafFormProps) => {
                 </Button>
                 {filters && filters.length > 0 && (
                   <Button type="primary" size="small" onClick={onSubmit}>
-                    Confirm
+                    {t`Confirm`}
                   </Button>
                 )}
               </Space>
@@ -107,6 +109,7 @@ export const LeafContactForm = (props: LeafFormProps) => {
 }
 
 export const LeafContactListForm = (props: LeafFormProps) => {
+  const { t } = useLingui()
   const [form] = useForm()
 
   const onSubmit = () => {
@@ -136,7 +139,7 @@ export const LeafContactListForm = (props: LeafFormProps) => {
         {props.schema.icon && (
           <FontAwesomeIcon icon={props.schema.icon} style={{ marginRight: 8 }} />
         )}
-        List subscription
+        {t`List subscription`}
       </Tag>
       <Form component="div" layout="inline" form={form} initialValues={props.editingNodeLeaf.leaf}>
         <Form.Item name="source" noStyle>
@@ -151,8 +154,8 @@ export const LeafContactListForm = (props: LeafFormProps) => {
           rules={[{ required: true, message: Messages.RequiredField }]}
         >
           <Select style={{ width: 120 }} size="small">
-            <Select.Option value="in">is in</Select.Option>
-            <Select.Option value="not_in">is not in</Select.Option>
+            <Select.Option value="in">{t`is in`}</Select.Option>
+            <Select.Option value="not_in">{t`is not in`}</Select.Option>
           </Select>
         </Form.Item>
 
@@ -160,9 +163,9 @@ export const LeafContactListForm = (props: LeafFormProps) => {
         <Form.Item
           style={{ marginBottom: 0 }}
           name={['contact_list', 'list_id']}
-          rules={[{ required: true, message: 'Please select a list' }]}
+          rules={[{ required: true, message: t`Please select a list` }]}
         >
-          <Select style={{ width: 190 }} size="small" placeholder="Select a list" showSearch>
+          <Select style={{ width: 190 }} size="small" placeholder={t`Select a list`} showSearch>
             {props.lists?.map((list) => (
               <Select.Option key={list.id} value={list.id}>
                 {list.name}
@@ -183,15 +186,15 @@ export const LeafContactListForm = (props: LeafFormProps) => {
             return (
               <>
                 <span className="opacity-60" style={{ marginRight: 8, lineHeight: '32px' }}>
-                  with status
+                  {t`with status`}
                 </span>
                 <Form.Item
                   style={{ marginBottom: 0 }}
                   name={['contact_list', 'status']}
-                  rules={[{ required: true, message: 'Please select a status' }]}
+                  rules={[{ required: true, message: t`Please select a status` }]}
                   dependencies={[['contact_list', 'operator']]}
                 >
-                  <Select style={{ width: 130 }} size="small" placeholder="Select status">
+                  <Select style={{ width: 130 }} size="small" placeholder={t`Select status`}>
                     {statusField?.options?.map((option) => (
                       <Select.Option key={option.value} value={option.value}>
                         {option.label}
@@ -210,7 +213,7 @@ export const LeafContactListForm = (props: LeafFormProps) => {
             <FontAwesomeIcon icon={faClose} />
           </Button>
           <Button type="primary" size="small" onClick={onSubmit}>
-            Confirm
+            {t`Confirm`}
           </Button>
         </Space>
       </Form>
@@ -219,6 +222,7 @@ export const LeafContactListForm = (props: LeafFormProps) => {
 }
 
 export const LeafActionForm = (props: LeafFormProps) => {
+  const { t } = useLingui()
   const [form] = useForm()
 
   const onSubmit = () => {
@@ -255,7 +259,7 @@ export const LeafActionForm = (props: LeafFormProps) => {
         {props.schema.icon && (
           <FontAwesomeIcon icon={props.schema.icon} style={{ marginRight: 8 }} />
         )}
-        Activity
+        {t`Activity`}
       </Tag>
       <Form
         component="div"
@@ -271,25 +275,25 @@ export const LeafActionForm = (props: LeafFormProps) => {
         <div className="mb-2">
           <Space>
             <span className="opacity-60" style={{ lineHeight: '32px' }}>
-              type
+              {t`type`}
             </span>
             <Form.Item
               noStyle
               name={['contact_timeline', 'kind']}
               colon={false}
-              rules={[{ required: true, message: 'Please select an event type' }]}
+              rules={[{ required: true, message: t`Please select an event type` }]}
             >
               <Select
                 style={{ width: 200 }}
                 size="small"
-                placeholder="Select event"
+                placeholder={t`Select event`}
                 options={[
-                  { value: 'insert_message_history', label: 'New message (email...)' },
-                  { value: 'open_email', label: 'Open email' },
-                  { value: 'click_email', label: 'Click email' },
-                  { value: 'bounce_email', label: 'Bounce email' },
-                  { value: 'complain_email', label: 'Complain email' },
-                  { value: 'unsubscribe_email', label: 'Unsubscribe from list' }
+                  { value: 'insert_message_history', label: t`New message (email...)` },
+                  { value: 'open_email', label: t`Open email` },
+                  { value: 'click_email', label: t`Click email` },
+                  { value: 'bounce_email', label: t`Bounce email` },
+                  { value: 'complain_email', label: t`Complain email` },
+                  { value: 'unsubscribe_email', label: t`Unsubscribe from list` }
                 ]}
               />
             </Form.Item>
@@ -298,16 +302,16 @@ export const LeafActionForm = (props: LeafFormProps) => {
 
         <Space>
           <span className="opacity-60" style={{ lineHeight: '32px' }}>
-            happened
+            {t`happened`}
           </span>
           <Form.Item noStyle name={['contact_timeline', 'count_operator']} colon={false}>
             <Select
               style={{}}
               size="small"
               options={[
-                { value: 'at_least', label: 'at least' },
-                { value: 'at_most', label: 'at most' },
-                { value: 'exactly', label: 'exactly' }
+                { value: 'at_least', label: t`at least` },
+                { value: 'at_most', label: t`at most` },
+                { value: 'exactly', label: t`exactly` }
               ]}
             />
           </Form.Item>
@@ -320,25 +324,25 @@ export const LeafActionForm = (props: LeafFormProps) => {
             <InputNumber style={{ width: 70 }} size="small" />
           </Form.Item>
           <span className="opacity-60" style={{ lineHeight: '32px' }}>
-            times
+            {t`times`}
           </span>
         </Space>
 
         <div className="mt-2">
           <Space>
             <span className="opacity-60" style={{ lineHeight: '32px' }}>
-              timeframe
+              {t`timeframe`}
             </span>
             <Form.Item noStyle name={['contact_timeline', 'timeframe_operator']} colon={false}>
               <Select
                 style={{ width: 130 }}
                 size="small"
                 options={[
-                  { value: 'anytime', label: 'anytime' },
-                  { value: 'in_date_range', label: 'in date range' },
-                  { value: 'before_date', label: 'before date' },
-                  { value: 'after_date', label: 'after date' },
-                  { value: 'in_the_last_days', label: 'in the last' }
+                  { value: 'anytime', label: t`anytime` },
+                  { value: 'in_date_range', label: t`in date range` },
+                  { value: 'before_date', label: t`before date` },
+                  { value: 'after_date', label: t`after date` },
+                  { value: 'in_the_last_days', label: t`in the last` }
                 ]}
               />
             </Form.Item>
@@ -374,7 +378,7 @@ export const LeafActionForm = (props: LeafFormProps) => {
                         <InputNumber step={1} size="small" />
                       </Form.Item>
                       <span className="opacity-60" style={{ lineHeight: '32px' }}>
-                        days
+                        {t`days`}
                       </span>
                     </Space>
                   )
@@ -451,7 +455,7 @@ export const LeafActionForm = (props: LeafFormProps) => {
           <div className="mt-2">
             <Space style={{ alignItems: 'start' }}>
               <span className="opacity-60" style={{ lineHeight: '32px' }}>
-                with filters
+                {t`with filters`}
               </span>
               <Form.Item
                 name={['contact_timeline', 'filters']}
@@ -479,7 +483,7 @@ export const LeafActionForm = (props: LeafFormProps) => {
             <FontAwesomeIcon icon={faClose} />
           </Button>
           <Button type="primary" size="small" onClick={onSubmit}>
-            Confirm
+            {t`Confirm`}
           </Button>
         </Space>
       </Form>
@@ -488,6 +492,7 @@ export const LeafActionForm = (props: LeafFormProps) => {
 }
 
 export const LeafCustomEventsGoalForm = (props: LeafFormProps) => {
+  const { t } = useLingui()
   const [form] = useForm()
 
   const onSubmit = () => {
@@ -519,7 +524,7 @@ export const LeafCustomEventsGoalForm = (props: LeafFormProps) => {
         {props.schema.icon && (
           <FontAwesomeIcon icon={props.schema.icon} style={{ marginRight: 8 }} />
         )}
-        Goal
+        {t`Goal`}
       </Tag>
       <Form
         component="div"
@@ -535,14 +540,14 @@ export const LeafCustomEventsGoalForm = (props: LeafFormProps) => {
         <div className="mb-2">
           <Space>
             <span className="opacity-60" style={{ lineHeight: '32px' }}>
-              type
+              {t`type`}
             </span>
             <Form.Item
               noStyle
               name={['custom_events_goal', 'goal_type']}
-              rules={[{ required: true, message: 'Please select a goal type' }]}
+              rules={[{ required: true, message: t`Please select a goal type` }]}
             >
-              <Select style={{ width: 150 }} size="small" placeholder="Select type">
+              <Select style={{ width: 150 }} size="small" placeholder={t`Select type`}>
                 {goalTypeField?.options?.map((option) => (
                   <Select.Option key={option.value} value={option.value}>
                     {option.label}
@@ -559,9 +564,9 @@ export const LeafCustomEventsGoalForm = (props: LeafFormProps) => {
             <Form.Item
               noStyle
               name={['custom_events_goal', 'aggregate_operator']}
-              rules={[{ required: true, message: 'Please select aggregate' }]}
+              rules={[{ required: true, message: t`Please select aggregate` }]}
             >
-              <Select style={{ width: 100 }} size="small" placeholder="Aggregate">
+              <Select style={{ width: 100 }} size="small" placeholder={t`Aggregate`}>
                 {aggregateField?.options?.map((option) => (
                   <Select.Option key={option.value} value={option.value}>
                     {option.label}
@@ -570,14 +575,14 @@ export const LeafCustomEventsGoalForm = (props: LeafFormProps) => {
               </Select>
             </Form.Item>
             <span className="opacity-60" style={{ lineHeight: '32px' }}>
-              is
+              {t`is`}
             </span>
             <Form.Item
               noStyle
               name={['custom_events_goal', 'operator']}
-              rules={[{ required: true, message: 'Please select operator' }]}
+              rules={[{ required: true, message: t`Please select operator` }]}
             >
-              <Select style={{ width: 170 }} size="small" placeholder="Comparison">
+              <Select style={{ width: 170 }} size="small" placeholder={t`Comparison`}>
                 {operatorField?.options?.map((option) => (
                   <Select.Option key={option.value} value={option.value}>
                     {option.label}
@@ -590,7 +595,7 @@ export const LeafCustomEventsGoalForm = (props: LeafFormProps) => {
               name={['custom_events_goal', 'value']}
               rules={[{ required: true, type: 'number', message: Messages.RequiredField }]}
             >
-              <InputNumber style={{ width: 100 }} size="small" placeholder="Value" />
+              <InputNumber style={{ width: 100 }} size="small" placeholder={t`Value`} />
             </Form.Item>
 
             {/* Show second value for "between" operator */}
@@ -601,7 +606,7 @@ export const LeafCustomEventsGoalForm = (props: LeafFormProps) => {
                   return (
                     <>
                       <span className="opacity-60" style={{ lineHeight: '32px' }}>
-                        and
+                        {t`and`}
                       </span>
                       <Form.Item
                         noStyle
@@ -612,7 +617,7 @@ export const LeafCustomEventsGoalForm = (props: LeafFormProps) => {
                             validator(_, value) {
                               const value1 = getFieldValue(['custom_events_goal', 'value'])
                               if (value !== undefined && value1 !== undefined && value <= value1) {
-                                return Promise.reject(new Error('Second value must be greater than first value'))
+                                return Promise.reject(new Error(t`Second value must be greater than first value`))
                               }
                               return Promise.resolve()
                             }
@@ -620,7 +625,7 @@ export const LeafCustomEventsGoalForm = (props: LeafFormProps) => {
                         ]}
                         dependencies={[['custom_events_goal', 'operator'], ['custom_events_goal', 'value']]}
                       >
-                        <InputNumber style={{ width: 100 }} size="small" placeholder="Value 2" />
+                        <InputNumber style={{ width: 100 }} size="small" placeholder={t`Value 2`} />
                       </Form.Item>
                     </>
                   )
@@ -635,18 +640,18 @@ export const LeafCustomEventsGoalForm = (props: LeafFormProps) => {
         <div className="mt-2">
           <Space>
             <span className="opacity-60" style={{ lineHeight: '32px' }}>
-              timeframe
+              {t`timeframe`}
             </span>
             <Form.Item noStyle name={['custom_events_goal', 'timeframe_operator']} colon={false}>
               <Select
                 style={{ width: 130 }}
                 size="small"
                 options={[
-                  { value: 'anytime', label: 'anytime' },
-                  { value: 'in_date_range', label: 'in date range' },
-                  { value: 'before_date', label: 'before date' },
-                  { value: 'after_date', label: 'after date' },
-                  { value: 'in_the_last_days', label: 'in the last' }
+                  { value: 'anytime', label: t`anytime` },
+                  { value: 'in_date_range', label: t`in date range` },
+                  { value: 'before_date', label: t`before date` },
+                  { value: 'after_date', label: t`after date` },
+                  { value: 'in_the_last_days', label: t`in the last` }
                 ]}
               />
             </Form.Item>
@@ -680,7 +685,7 @@ export const LeafCustomEventsGoalForm = (props: LeafFormProps) => {
                         <InputNumber step={1} size="small" />
                       </Form.Item>
                       <span className="opacity-60" style={{ lineHeight: '32px' }}>
-                        days
+                        {t`days`}
                       </span>
                     </Space>
                   )
@@ -751,7 +756,7 @@ export const LeafCustomEventsGoalForm = (props: LeafFormProps) => {
             <FontAwesomeIcon icon={faClose} />
           </Button>
           <Button type="primary" size="small" onClick={onSubmit}>
-            Confirm
+            {t`Confirm`}
           </Button>
         </Space>
       </Form>

@@ -3,6 +3,7 @@ import { Layout, Button, Empty, App } from 'antd'
 import { useParams, useNavigate, useSearch } from '@tanstack/react-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { PlusOutlined } from '@ant-design/icons'
+import { useLingui } from '@lingui/react/macro'
 import { PostsTable } from '../components/blog/PostsTable'
 import { BlogSidebar } from '../components/blog/BlogSidebar'
 import { CategoryDrawer } from '../components/blog/CategoryDrawer'
@@ -18,6 +19,7 @@ interface BlogSearch {
 }
 
 export function BlogPage() {
+  const { t } = useLingui()
   const { workspaceId } = useParams({ from: '/console/workspace/$workspaceId/blog' })
   const navigate = useNavigate({ from: '/console/workspace/$workspaceId/blog' })
   const search = useSearch({ from: '/console/workspace/$workspaceId/blog' }) as BlogSearch
@@ -53,7 +55,7 @@ export function BlogPage() {
   const deleteCategoryMutation = useMutation({
     mutationFn: (id: string) => blogCategoriesApi.delete(workspaceId, { id }),
     onSuccess: () => {
-      message.success('Category deleted successfully')
+      message.success(t`Category deleted successfully`)
       queryClient.invalidateQueries({ queryKey: ['blog-categories', workspaceId] })
       setDeleteCategoryModalOpen(false)
       setCategoryToDelete(null)
@@ -65,7 +67,7 @@ export function BlogPage() {
       }
     },
     onError: (error: unknown) => {
-      const errorMsg = error instanceof Error ? error.message : 'Failed to delete category'
+      const errorMsg = error instanceof Error ? error.message : t`Failed to delete category`
       message.error(errorMsg)
     }
   })
@@ -133,18 +135,18 @@ export function BlogPage() {
         <Content>
           <div style={{ padding: '24px' }}>
             {!hasCategories ? (
-              <Empty description="No categories yet" style={{ marginTop: '100px' }}>
+              <Empty description={t`No categories yet`} style={{ marginTop: '100px' }}>
                 <Button type="primary" icon={<PlusOutlined />} onClick={handleNewCategory}>
-                  Create Your First Category
+                  {t`Create Your First Category`}
                 </Button>
               </Empty>
             ) : !hasPosts && !activeCategoryId ? (
               <Empty
-                description="Create your first blog post to get started"
+                description={t`Create your first blog post to get started`}
                 style={{ marginTop: '100px' }}
               >
                 <Button type="primary" icon={<PlusOutlined />} onClick={handleCreatePost}>
-                  Create Your First Post
+                  {t`Create Your First Post`}
                 </Button>
               </Empty>
             ) : (

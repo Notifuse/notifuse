@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useLingui } from '@lingui/react/macro'
 import { Drawer, Tabs, Button, Space } from 'antd'
 import { ThemePreset } from './themePresets'
 import { ThemePreview } from './ThemePreview'
@@ -19,6 +20,7 @@ export function ThemePresetPreviewDrawer({
   workspace,
   onSelectTheme
 }: ThemePresetPreviewDrawerProps) {
+  const { t } = useLingui()
   const [activeTab, setActiveTab] = useState<'home' | 'category' | 'post'>('post')
 
   if (!preset) return null
@@ -32,13 +34,13 @@ export function ThemePresetPreviewDrawer({
     <Drawer
       title={
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span>Preview: {preset.name}</span>
+          <span>{t`Preview`}: {preset.name}</span>
           <Space>
             <Button type="text" onClick={onClose}>
-              Close
+              {t`Close`}
             </Button>
             <Button type="primary" onClick={handleUseTheme}>
-              Use This Theme
+              {t`Use This Theme`}
             </Button>
           </Space>
         </div>
@@ -57,7 +59,7 @@ export function ThemePresetPreviewDrawer({
         items={[
           {
             key: 'home',
-            label: 'Home',
+            label: t`Home`,
             children: (
               <div style={{ height: 'calc(100vh - 110px)', overflow: 'auto' }}>
                 <ThemePreview
@@ -70,7 +72,7 @@ export function ThemePresetPreviewDrawer({
           },
           {
             key: 'category',
-            label: 'Category',
+            label: t`Category`,
             children: (
               <div style={{ height: 'calc(100vh - 110px)', overflow: 'auto' }}>
                 <ThemePreview
@@ -83,7 +85,7 @@ export function ThemePresetPreviewDrawer({
           },
           {
             key: 'post',
-            label: 'Post',
+            label: t`Post`,
             children: (
               <div style={{ height: 'calc(100vh - 110px)', overflow: 'auto' }}>
                 <ThemePreview

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { App } from 'antd'
+import { useLingui } from '@lingui/react/macro'
 import { FileManager } from '../components/file_manager/fileManager'
 import { FileManagerProps } from '../components/file_manager/interfaces'
 import { StorageObject } from '../components/file_manager/interfaces'
@@ -11,6 +12,7 @@ import { useWorkspacePermissions } from '../contexts/AuthContext'
 import { workspaceFileManagerRoute } from '../router'
 
 export function FileManagerPage() {
+  const { t } = useLingui()
   const { workspaceId } = useParams({ from: '/console/workspace/$workspaceId' })
   const search = useSearch({ from: workspaceFileManagerRoute.id })
   const navigate = useNavigate()
@@ -32,7 +34,7 @@ export function FileManagerPage() {
 
   const handleError = (error: Error) => {
     console.error('File manager error:', error)
-    message.error('An error occurred with the file manager')
+    message.error(t`An error occurred with the file manager`)
   }
 
   const handleSelect = (items: StorageObject[]) => {
@@ -51,7 +53,7 @@ export function FileManagerPage() {
   const handleUpdateSettings = async (newSettings: FileManagerSettings) => {
     try {
       if (!currentWorkspace || !workspaceId) {
-        message.error('Workspace not found')
+        message.error(t`Workspace not found`)
         return
       }
 
@@ -76,10 +78,10 @@ export function FileManagerPage() {
       // Refresh workspaces to get the updated data
       await refreshWorkspaces()
 
-      message.success('File manager settings updated successfully')
+      message.success(t`File manager settings updated successfully`)
     } catch (error) {
       console.error('Error updating settings:', error)
-      message.error('Failed to update file manager settings')
+      message.error(t`Failed to update file manager settings`)
     }
   }
 
@@ -114,7 +116,7 @@ export function FileManagerPage() {
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
-        <div className="text-2xl font-medium">File Manager</div>
+        <div className="text-2xl font-medium">{t`File Manager`}</div>
       </div>
 
       <div className="border border-gray-200 rounded-md p-4">

@@ -15,6 +15,8 @@ import {
   OperatorInTheLastDays
 } from './operator_time'
 
+// Note: This class contains string labels that cannot use useLingui as they are class properties.
+// The placeholder 'select a value' and error messages should be translated at the point of use if needed.
 export class FieldTypeTime implements FieldTypeRenderer {
   operators: IOperator[] = [
     new OperatorSet(),

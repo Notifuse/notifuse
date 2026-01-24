@@ -5,6 +5,7 @@ import { faCopy } from '@fortawesome/free-solid-svg-icons'
 import { Highlight, themes } from 'prism-react-renderer'
 import { TransactionalNotification } from '../../services/api/transactional_notifications'
 import { message } from 'antd'
+import { useLingui } from '@lingui/react/macro'
 
 interface ApiCommandModalProps {
   open: boolean
@@ -19,6 +20,7 @@ export const ApiCommandModal: React.FC<ApiCommandModalProps> = ({
   notification,
   workspaceId
 }) => {
+  const { t } = useLingui()
   const generateCurlCommand = () => {
     if (!notification) return ''
 
@@ -518,49 +520,46 @@ func main() {
     return (
       <div className="space-y-6">
         <div>
-          <h3 className="text-base font-semibold mb-3">Connection Details</h3>
+          <h3 className="text-base font-semibold mb-3">{t`Connection Details`}</h3>
           <Descriptions column={1} size="small" bordered>
-            <Descriptions.Item label="Host">{smtpHost}</Descriptions.Item>
-            <Descriptions.Item label="Port">{smtpPort}</Descriptions.Item>
-            <Descriptions.Item label="Security">
-              {tlsEnabled ? 'STARTTLS required' : 'Plain text (not recommended for production)'}
+            <Descriptions.Item label={t`Host`}>{smtpHost}</Descriptions.Item>
+            <Descriptions.Item label={t`Port`}>{smtpPort}</Descriptions.Item>
+            <Descriptions.Item label={t`Security`}>
+              {tlsEnabled ? t`STARTTLS required` : t`Plain text (not recommended for production)`}
             </Descriptions.Item>
-            <Descriptions.Item label="Username">
-              Your workspace API email (the email associated with your API key)
+            <Descriptions.Item label={t`Username`}>
+              {t`Your workspace API email (the email associated with your API key)`}
             </Descriptions.Item>
-            <Descriptions.Item label="Password">Your workspace API key</Descriptions.Item>
+            <Descriptions.Item label={t`Password`}>{t`Your workspace API key`}</Descriptions.Item>
           </Descriptions>
         </div>
 
         <div>
-          <h3 className="text-base font-semibold mb-3">Email Body Payload</h3>
+          <h3 className="text-base font-semibold mb-3">{t`Email Body Payload`}</h3>
           <p className="mb-3 text-sm">
-            The email body must contain a JSON payload with your notification data. The SMTP
-            envelope To/From addresses are ignored - the actual recipient is determined by{' '}
-            <code>contact.email</code> in the payload.
+            {t`The email body must contain a JSON payload with your notification data. The SMTP envelope To/From addresses are ignored - the actual recipient is determined by`}{' '}
+            <code>contact.email</code> {t`in the payload.`}
           </p>
           <CodeBlock code={generateSMTPPayload()} language="json" />
         </div>
 
         <div>
-          <h3 className="text-base font-semibold mb-3">Important Notes</h3>
+          <h3 className="text-base font-semibold mb-3">{t`Important Notes`}</h3>
           <ul className="list-disc list-inside space-y-1 text-sm">
             <li>
-              <strong>JSON Payload Required:</strong> The email body must contain valid JSON
-              matching the format above
+              <strong>{t`JSON Payload Required:`}</strong> {t`The email body must contain valid JSON matching the format above`}
             </li>
             <li>
-              <strong>Contact Email:</strong> The <code>contact.email</code> field is required
+              <strong>{t`Contact Email:`}</strong> {t`The`} <code>contact.email</code> {t`field is required`}
             </li>
             <li>
-              <strong>Deduplication:</strong> Use <code>external_id</code> to prevent duplicate
-              sends
+              <strong>{t`Deduplication:`}</strong> {t`Use`} <code>external_id</code> {t`to prevent duplicate sends`}
             </li>
             <li>
-              <strong>Template Variables:</strong> Use <code>data</code> for template variables
+              <strong>{t`Template Variables:`}</strong> {t`Use`} <code>data</code> {t`for template variables`}
             </li>
             <li>
-              <strong>Email Options:</strong> Supports reply_to, cc, bcc, and attachments
+              <strong>{t`Email Options:`}</strong> {t`Supports reply_to, cc, bcc, and attachments`}
             </li>
           </ul>
         </div>
@@ -811,10 +810,10 @@ public class NotificationSender {
     navigator.clipboard
       .writeText(code)
       .then(() => {
-        message.success(`${language} code copied to clipboard!`)
+        message.success(t`${language} code copied to clipboard!`)
       })
       .catch(() => {
-        message.error('Failed to copy to clipboard')
+        message.error(t`Failed to copy to clipboard`)
       })
   }
 
@@ -861,7 +860,7 @@ public class NotificationSender {
       children: (
         <div>
           <p className="mb-4">
-            Use this curl command to send a transactional notification via API:
+            {t`Use this curl command to send a transactional notification via API:`}
           </p>
           <CodeBlock code={generateCurlCommand()} language="bash" />
         </div>
@@ -872,7 +871,7 @@ public class NotificationSender {
       label: 'TypeScript',
       children: (
         <div>
-          <p className="mb-4">Send a transactional notification using TypeScript/JavaScript:</p>
+          <p className="mb-4">{t`Send a transactional notification using TypeScript/JavaScript:`}</p>
           <CodeBlock code={generateTypeScriptCode()} language="typescript" />
         </div>
       )
@@ -882,7 +881,7 @@ public class NotificationSender {
       label: 'Python',
       children: (
         <div>
-          <p className="mb-4">Send a transactional notification using Python:</p>
+          <p className="mb-4">{t`Send a transactional notification using Python:`}</p>
           <CodeBlock code={generatePythonCode()} language="python" />
         </div>
       )
@@ -892,7 +891,7 @@ public class NotificationSender {
       label: 'Go',
       children: (
         <div>
-          <p className="mb-4">Send a transactional notification using Go:</p>
+          <p className="mb-4">{t`Send a transactional notification using Go:`}</p>
           <CodeBlock code={generateGolangCode()} language="go" />
         </div>
       )
@@ -902,7 +901,7 @@ public class NotificationSender {
       label: 'Java',
       children: (
         <div>
-          <p className="mb-4">Send a transactional notification using Java:</p>
+          <p className="mb-4">{t`Send a transactional notification using Java:`}</p>
           <CodeBlock code={generateJavaCode()} language="java" />
         </div>
       )
@@ -916,8 +915,7 @@ public class NotificationSender {
               <div>
                 <div className="mb-4">
                   <p className="text-sm">
-                    Send transactional notifications using SMTP relay. Perfect for integrating with
-                    existing email systems or applications that support SMTP.
+                    {t`Send transactional notifications using SMTP relay. Perfect for integrating with existing email systems or applications that support SMTP.`}
                   </p>
                 </div>
                 {renderSMTPInstructions()}
@@ -970,7 +968,7 @@ public class NotificationSender {
 
   return (
     <Modal
-      title="API Command"
+      title={t`API Command`}
       open={open}
       onCancel={onClose}
       footer={[
@@ -981,10 +979,10 @@ public class NotificationSender {
           icon={<FontAwesomeIcon icon={faCopy} />}
           onClick={() => handleCopyCommand(getCurrentCode(), getCurrentLanguage())}
         >
-          Copy {getCurrentLanguage()} Code
+          {t`Copy ${getCurrentLanguage()} Code`}
         </Button>,
         <Button key="close" onClick={onClose}>
-          Close
+          {t`Close`}
         </Button>
       ]}
       width={900}
@@ -996,17 +994,14 @@ public class NotificationSender {
             message={
               <div>
                 <div>
-                  • If the contact email doesn't exist in your workspace, it will be automatically
-                  created.
+                  {t`If the contact email doesn't exist in your workspace, it will be automatically created.`}
                 </div>
                 <div>
-                  • Use <code>external_id</code> for deduplication - notifications with the same
-                  external_id won't be sent twice.
+                  {t`Use`} <code>external_id</code> {t`for deduplication - notifications with the same external_id won't be sent twice.`}
                 </div>
-                <div>• All contact fields are optional except email.</div>
+                <div>{t`All contact fields are optional except email.`}</div>
                 <div>
-                  • Use <code>data</code> for template variables, <code>metadata</code> for tracking
-                  (not available in templates).
+                  {t`Use`} <code>data</code> {t`for template variables,`} <code>metadata</code> {t`for tracking (not available in templates).`}
                 </div>
               </div>
             }

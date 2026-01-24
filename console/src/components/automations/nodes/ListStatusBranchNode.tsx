@@ -1,6 +1,7 @@
 import React from 'react'
 import { Handle, Position, useConnection, type NodeProps } from '@xyflow/react'
 import { ListChecks } from 'lucide-react'
+import { useLingui } from '@lingui/react/macro'
 import { BaseNode } from './BaseNode'
 import { nodeTypeColors } from './constants'
 import { useAutomation } from '../context'
@@ -10,6 +11,7 @@ import type { ListStatusBranchNodeConfig } from '../../../services/api/automatio
 type ListStatusBranchNodeProps = NodeProps<AutomationNodeData>
 
 export const ListStatusBranchNode: React.FC<ListStatusBranchNodeProps> = ({ data, selected }) => {
+  const { t } = useLingui()
   const { lists } = useAutomation()
   const config = data.config as ListStatusBranchNodeConfig
   const listName = lists.find((l) => l.id === config?.list_id)?.name
@@ -33,7 +35,7 @@ export const ListStatusBranchNode: React.FC<ListStatusBranchNodeProps> = ({ data
       />
       <BaseNode
         type="list_status_branch"
-        label="List Status"
+        label={t`List Status`}
         icon={
           <ListChecks
             size={14}
@@ -45,17 +47,17 @@ export const ListStatusBranchNode: React.FC<ListStatusBranchNodeProps> = ({ data
         onDelete={data.onDelete}
       >
         {!config?.list_id ? (
-          <div className="text-orange-500 text-xs">Select a list</div>
+          <div className="text-orange-500 text-xs">{t`Select a list`}</div>
         ) : (
           <div className="text-xs text-gray-600 truncate max-w-[180px]">
-            Check: {listName || config.list_id}
+            {t`Check`}: {listName || config.list_id}
           </div>
         )}
         {/* Branch labels */}
         <div className="flex justify-between text-xs mt-2 px-1">
-          <span className="text-gray-500 font-medium">Not in List</span>
-          <span className="text-green-600 font-medium">Active</span>
-          <span className="text-orange-500 font-medium">Non-Active</span>
+          <span className="text-gray-500 font-medium">{t`Not in List`}</span>
+          <span className="text-green-600 font-medium">{t`Active`}</span>
+          <span className="text-orange-500 font-medium">{t`Non-Active`}</span>
         </div>
       </BaseNode>
       {/* Three source handles */}

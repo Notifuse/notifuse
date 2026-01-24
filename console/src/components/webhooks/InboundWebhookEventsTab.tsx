@@ -20,40 +20,9 @@ import { faCircleCheck, faCircleXmark } from '@fortawesome/free-regular-svg-icon
 import { faTriangleExclamation, faRefresh } from '@fortawesome/free-solid-svg-icons'
 import dayjs from '../../lib/dayjs'
 import { getProviderIcon, getProviderName } from '../integrations/EmailProviders'
+import { useLingui } from '@lingui/react/macro'
 
 const { Title, Text } = Typography
-
-// Define event type icon and color mappings
-const eventTypeConfig: Record<
-  EmailEventType,
-  { icon: React.ReactNode; color: string; label: string }
-> = {
-  delivered: {
-    icon: <FontAwesomeIcon className="!mr-1 opacity-70" icon={faCircleCheck} />,
-    color: 'green',
-    label: 'Delivered'
-  },
-  bounce: {
-    icon: <FontAwesomeIcon className="!mr-1 opacity-70" icon={faTriangleExclamation} />,
-    color: 'orange',
-    label: 'Bounce'
-  },
-  complaint: {
-    icon: <FontAwesomeIcon className="!mr-1 opacity-70" icon={faCircleXmark} />,
-    color: 'red',
-    label: 'Complaint'
-  },
-  auth_email: {
-    icon: null,
-    color: 'blue',
-    label: 'Auth Email'
-  },
-  before_user_created: {
-    icon: null,
-    color: 'cyan',
-    label: 'User Created'
-  }
-}
 
 // Simple filter field type
 interface FilterOption {
@@ -61,22 +30,6 @@ interface FilterOption {
   label: string
   options?: { value: string; label: string }[]
 }
-
-// Define filter fields for webhook events
-const filterOptions: FilterOption[] = [
-  {
-    key: 'event_type',
-    label: 'Event Type',
-    options: Object.entries(eventTypeConfig).map(([value, { label }]) => ({
-      value,
-      label
-    }))
-  },
-  { key: 'recipient_email', label: 'Recipient Email' },
-  { key: 'message_id', label: 'Message ID' },
-  { key: 'transactional_id', label: 'Transactional ID' },
-  { key: 'broadcast_id', label: 'Broadcast ID' }
-]
 
 // Simple filter interface
 interface Filter {
@@ -91,6 +44,7 @@ interface InboundWebhookEventsTabProps {
 }
 
 export const InboundWebhookEventsTab: React.FC<InboundWebhookEventsTabProps> = ({ workspaceId, onRefresh }) => {
+  const { t } = useLingui()
   const { workspaces } = useAuth()
   const [currentCursor, setCurrentCursor] = useState<string | undefined>(undefined)
   const [allEvents, setAllEvents] = useState<InboundWebhookEvent[]>([])
@@ -101,6 +55,54 @@ export const InboundWebhookEventsTab: React.FC<InboundWebhookEventsTabProps> = (
   const [activeFilters, setActiveFilters] = useState<Filter[]>([])
   const [openPopovers, setOpenPopovers] = useState<Record<string, boolean>>({})
   const [tempFilterValues, setTempFilterValues] = useState<Record<string, string>>({})
+
+  // Define event type icon and color mappings (inside component to use t)
+  const eventTypeConfig: Record<
+    EmailEventType,
+    { icon: React.ReactNode; color: string; label: string }
+  > = useMemo(() => ({
+    delivered: {
+      icon: <FontAwesomeIcon className="!mr-1 opacity-70" icon={faCircleCheck} />,
+      color: 'green',
+      label: t`Delivered`
+    },
+    bounce: {
+      icon: <FontAwesomeIcon className="!mr-1 opacity-70" icon={faTriangleExclamation} />,
+      color: 'orange',
+      label: t`Bounce`
+    },
+    complaint: {
+      icon: <FontAwesomeIcon className="!mr-1 opacity-70" icon={faCircleXmark} />,
+      color: 'red',
+      label: t`Complaint`
+    },
+    auth_email: {
+      icon: null,
+      color: 'blue',
+      label: t`Auth Email`
+    },
+    before_user_created: {
+      icon: null,
+      color: 'cyan',
+      label: t`User Created`
+    }
+  }), [t])
+
+  // Define filter fields for webhook events (inside component to use t)
+  const filterOptions: FilterOption[] = useMemo(() => [
+    {
+      key: 'event_type',
+      label: t`Event Type`,
+      options: Object.entries(eventTypeConfig).map(([value, { label }]) => ({
+        value,
+        label
+      }))
+    },
+    { key: 'recipient_email', label: t`Recipient Email` },
+    { key: 'message_id', label: t`Message ID` },
+    { key: 'transactional_id', label: t`Transactional ID` },
+    { key: 'broadcast_id', label: t`Broadcast ID` }
+  ], [t, eventTypeConfig])
 
   // Create API filters from active filters
   const apiFilters = useMemo(() => {
@@ -137,7 +139,7 @@ export const InboundWebhookEventsTab: React.FC<InboundWebhookEventsTabProps> = (
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setActiveFilters(initialFilters)
     }
-  }, [])
+  }, [filterOptions])
 
   // Update URL when filters change
   React.useEffect(() => {
@@ -270,7 +272,7 @@ export const InboundWebhookEventsTab: React.FC<InboundWebhookEventsTabProps> = (
                   {option.options ? (
                     <Select
                       style={{ width: '100%', marginBottom: 8 }}
-                      placeholder={`Select ${option.label}`}
+                      placeholder={t`Select ${option.label}`}
                       value={tempFilterValues[option.key] || undefined}
                       onChange={(value) =>
                         setTempFilterValues({
@@ -283,7 +285,7 @@ export const InboundWebhookEventsTab: React.FC<InboundWebhookEventsTabProps> = (
                     />
                   ) : (
                     <Input
-                      placeholder={`Enter ${option.label}`}
+                      placeholder={t`Enter ${option.label}`}
                       value={tempFilterValues[option.key] || ''}
                       onChange={(e) =>
                         setTempFilterValues({
@@ -302,12 +304,12 @@ export const InboundWebhookEventsTab: React.FC<InboundWebhookEventsTabProps> = (
                       style={{ flex: 1 }}
                       onClick={() => applyFilter(option.key, tempFilterValues[option.key] || '')}
                     >
-                      Apply
+                      {t`Apply`}
                     </Button>
 
                     {isActive && (
                       <Button danger size="small" onClick={() => clearFilter(option.key)}>
-                        Clear
+                        {t`Clear`}
                       </Button>
                     )}
                   </div>
@@ -323,7 +325,7 @@ export const InboundWebhookEventsTab: React.FC<InboundWebhookEventsTabProps> = (
 
         {activeFilters.length > 0 && (
           <Button size="small" onClick={clearAllFilters}>
-            Clear All
+            {t`Clear All`}
           </Button>
         )}
       </Space>
@@ -333,13 +335,13 @@ export const InboundWebhookEventsTab: React.FC<InboundWebhookEventsTabProps> = (
   // Format date using dayjs
   const formatDate = (dateString: string | undefined): string => {
     if (!dateString) return '-'
-    return `${dayjs(dateString).format('lll')} in ${currentWorkspace?.settings.timezone || 'UTC'}`
+    return t`${dayjs(dateString).format('lll')} in ${currentWorkspace?.settings.timezone || 'UTC'}`
   }
 
   // Define table columns
   const columns = [
     {
-      title: 'Provider',
+      title: t`Provider`,
       dataIndex: 'source',
       key: 'source',
       width: 80,
@@ -350,7 +352,7 @@ export const InboundWebhookEventsTab: React.FC<InboundWebhookEventsTabProps> = (
       )
     },
     {
-      title: 'ID',
+      title: t`ID`,
       dataIndex: 'id',
       key: 'id',
       render: (id: string) => (
@@ -360,7 +362,7 @@ export const InboundWebhookEventsTab: React.FC<InboundWebhookEventsTabProps> = (
       )
     },
     {
-      title: 'Type',
+      title: t`Type`,
       dataIndex: 'type',
       key: 'type',
       render: (type: EmailEventType) => {
@@ -373,16 +375,16 @@ export const InboundWebhookEventsTab: React.FC<InboundWebhookEventsTabProps> = (
       }
     },
     {
-      title: 'Recipient',
+      title: t`Recipient`,
       dataIndex: 'recipient_email',
       key: 'recipient_email',
       render: (email: string) => <span className="text-xs">{email}</span>
     },
     {
-      title: 'Message ID',
+      title: t`Message ID`,
       dataIndex: 'message_id',
       key: 'message_id',
-      render: (id: string | undefined) => 
+      render: (id: string | undefined) =>
         id ? (
           <Tooltip title={id}>
             <span className="text-xs text-gray-500">{id.substring(0, 8) + '...'}</span>
@@ -392,7 +394,7 @@ export const InboundWebhookEventsTab: React.FC<InboundWebhookEventsTabProps> = (
         )
     },
     {
-      title: 'Broadcast',
+      title: t`Broadcast`,
       dataIndex: 'broadcast_id',
       key: 'broadcast_id',
       render: (id: string) =>
@@ -403,7 +405,7 @@ export const InboundWebhookEventsTab: React.FC<InboundWebhookEventsTabProps> = (
         )
     },
     {
-      title: 'Transactional',
+      title: t`Transactional`,
       dataIndex: 'transactional_id',
       key: 'transactional_id',
       render: (id: string) =>
@@ -414,7 +416,7 @@ export const InboundWebhookEventsTab: React.FC<InboundWebhookEventsTabProps> = (
         )
     },
     {
-      title: 'Timestamp',
+      title: t`Timestamp`,
       dataIndex: 'timestamp',
       key: 'timestamp',
       render: (date: string) => <Tooltip title={formatDate(date)}>{dayjs(date).fromNow()}</Tooltip>
@@ -424,7 +426,7 @@ export const InboundWebhookEventsTab: React.FC<InboundWebhookEventsTabProps> = (
   const actionColumn = {
     title: (
       <>
-        <Tooltip title="Refresh">
+        <Tooltip title={t`Refresh`}>
           <Button
             type="text"
             size="small"
@@ -443,13 +445,13 @@ export const InboundWebhookEventsTab: React.FC<InboundWebhookEventsTabProps> = (
   // Additional bounce-specific columns
   const bounceColumns = [
     {
-      title: 'Bounce Type',
+      title: t`Bounce Type`,
       dataIndex: 'bounce_type',
       key: 'bounce_type',
       render: (type: string) => type && <span className="text-xs">{type}</span>
     },
     {
-      title: 'Bounce Category',
+      title: t`Bounce Category`,
       dataIndex: 'bounce_category',
       key: 'bounce_category',
       render: (category: string) => category && <span className="text-xs">{category}</span>
@@ -459,7 +461,7 @@ export const InboundWebhookEventsTab: React.FC<InboundWebhookEventsTabProps> = (
   // Additional complaint-specific columns
   const complaintColumns = [
     {
-      title: 'Feedback Type',
+      title: t`Feedback Type`,
       dataIndex: 'complaint_feedback_type',
       key: 'complaint_feedback_type',
       render: (type: string) => type && <span className="text-xs">{type}</span>
@@ -487,14 +489,14 @@ export const InboundWebhookEventsTab: React.FC<InboundWebhookEventsTabProps> = (
   if (error) {
     return (
       <div>
-        <Title level={4}>Error loading data</Title>
+        <Title level={4}>{t`Error loading data`}</Title>
         <Text type="danger">{(error as Error)?.message}</Text>
       </div>
     )
   }
 
   if (!currentWorkspace) {
-    return <div>Loading...</div>
+    return <div>{t`Loading...`}</div>
   }
 
   // Determine if we should show additional columns
@@ -507,12 +509,12 @@ export const InboundWebhookEventsTab: React.FC<InboundWebhookEventsTabProps> = (
       {isLoading && !isLoadingMore ? (
         <div className="loading-container" style={{ padding: '40px 0', textAlign: 'center' }}>
           <Spin size="large" />
-          <div style={{ marginTop: 16 }}>Loading webhook events...</div>
+          <div style={{ marginTop: 16 }}>{t`Loading webhook events...`}</div>
         </div>
       ) : allEvents.length === 0 ? (
         <Empty
           image={Empty.PRESENTED_IMAGE_SIMPLE}
-          description="No webhook events found"
+          description={t`No webhook events found`}
           style={{ margin: '40px 0' }}
         />
       ) : (
@@ -528,15 +530,15 @@ export const InboundWebhookEventsTab: React.FC<InboundWebhookEventsTabProps> = (
               expandedRowRender: (record) => (
                 <div className="px-4 py-2">
                   <div className="text-xs mb-2">
-                    <strong>Integration ID:</strong> {record.integration_id}
+                    <strong>{t`Integration ID:`}</strong> {record.integration_id}
                   </div>
                   {record.bounce_diagnostic && (
                     <div className="text-xs mb-2">
-                      <strong>Bounce Diagnostic:</strong> {record.bounce_diagnostic}
+                      <strong>{t`Bounce Diagnostic:`}</strong> {record.bounce_diagnostic}
                     </div>
                   )}
                   <div className="text-xs mb-2">
-                    <strong>Raw Payload:</strong>
+                    <strong>{t`Raw Payload:`}</strong>
                     <pre className="mt-1 p-2 bg-gray-100 rounded text-xs overflow-auto">
                       {JSON.stringify(JSON.parse(record.raw_payload), null, 2)}
                     </pre>
@@ -549,7 +551,7 @@ export const InboundWebhookEventsTab: React.FC<InboundWebhookEventsTabProps> = (
           {eventsData?.next_cursor && (
             <div className="flex justify-center mt-4 mb-8">
               <Button size="small" onClick={handleLoadMore} loading={isLoadingMore}>
-                Load More
+                {t`Load More`}
               </Button>
             </div>
           )}

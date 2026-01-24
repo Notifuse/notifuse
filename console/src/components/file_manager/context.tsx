@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState } from 'react'
 import { Modal, App, Button } from 'antd'
 import { FileManager } from './fileManager'
 import type { FileManagerSettings, StorageObject } from './interfaces'
+import { useLingui } from '@lingui/react/macro'
 
 interface FileManagerContextValue {
   SelectFileButton: React.FC<SelectFileButtonProps>
@@ -38,6 +39,7 @@ export const FileManagerProvider: React.FC<FileManagerProviderProps> = ({
   settingsInfo,
   readOnly = false
 }) => {
+  const { t } = useLingui()
   const { message } = App.useApp()
 
   const [isModalVisible, setIsModalVisible] = useState(false)
@@ -72,7 +74,7 @@ export const FileManagerProvider: React.FC<FileManagerProviderProps> = ({
 
         // File is under threshold, proceed normally
         currentOptions.onSelect(selectedFile.file_info.url)
-        message.success(`Selected: ${selectedFile.name}`)
+        message.success(t`Selected: ${selectedFile.name}`)
         closeModal()
       }
     }
@@ -82,7 +84,7 @@ export const FileManagerProvider: React.FC<FileManagerProviderProps> = ({
   const handleConfirmLargeFile = () => {
     if (pendingFile && currentOptions?.onSelect) {
       currentOptions.onSelect(pendingFile.file_info.url)
-      message.success(`Selected: ${pendingFile.name}`)
+      message.success(t`Selected: ${pendingFile.name}`)
     }
     setWarningModalVisible(false)
     setPendingFile(null)
@@ -98,7 +100,7 @@ export const FileManagerProvider: React.FC<FileManagerProviderProps> = ({
   // Handle file manager errors
   const handleFileManagerError = (error: Error) => {
     console.error('File manager error:', error)
-    message.error('File manager error: ' + error.toString())
+    message.error(t`File manager error: ` + error.toString())
   }
 
   // SelectFileButton component
@@ -150,7 +152,7 @@ export const FileManagerProvider: React.FC<FileManagerProviderProps> = ({
 
       {/* File Manager Modal */}
       <Modal
-        title="File Manager"
+        title={t`File Manager`}
         open={isModalVisible}
         onCancel={closeModal}
         footer={null}
@@ -182,28 +184,27 @@ export const FileManagerProvider: React.FC<FileManagerProviderProps> = ({
 
       {/* Large File Warning Modal */}
       <Modal
-        title="Large File Warning"
+        title={t`Large File Warning`}
         open={warningModalVisible}
         onCancel={handleCancelLargeFile}
         footer={[
           <Button key="cancel" onClick={handleCancelLargeFile}>
-            Cancel
+            {t`Cancel`}
           </Button>,
           <Button key="confirm" type="primary" onClick={handleConfirmLargeFile}>
-            Use Anyway
+            {t`Use Anyway`}
           </Button>
         ]}
         zIndex={1400}
       >
         <p>
-          The selected file <strong>{pendingFile?.name}</strong> is{' '}
+          {t`The selected file`} <strong>{pendingFile?.name}</strong> {t`is`}{' '}
           <strong>{pendingFile?.file_info?.size_human}</strong>.
         </p>
         <p>
-          Large images can significantly slow down email loading times for recipients,
-          especially on mobile devices or slow connections.
+          {t`Large images can significantly slow down email loading times for recipients, especially on mobile devices or slow connections.`}
         </p>
-        <p>Are you sure you want to use this file?</p>
+        <p>{t`Are you sure you want to use this file?`}</p>
       </Modal>
     </FileManagerContext.Provider>
   )

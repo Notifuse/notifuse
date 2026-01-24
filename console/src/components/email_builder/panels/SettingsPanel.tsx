@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react'
+import { useLingui } from '@lingui/react/macro'
 import { Empty } from 'antd'
 import type { EmailBlock } from '../types'
 import { EmailBlockFactory } from '../blocks/EmailBlockFactory'
@@ -18,6 +19,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
   attributeDefaults,
   emailTree
 }) => {
+  const { t } = useLingui()
   const [currentBlockId, setCurrentBlockId] = useState<string | null>(null)
 
   // Update current block ID and force re-render when selected block changes
@@ -61,7 +63,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
     return (
       <div style={{ padding: '24px' }}>
         <Empty
-          description="Select a block to edit its attributes"
+          description={t`Select a block to edit its attributes`}
           image={
             <>
               <svg

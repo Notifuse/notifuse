@@ -13,6 +13,9 @@ import { OperatorNumber } from './operator_number'
 import { OperatorInArray } from './operator_array'
 import { JSONPathInput } from './input_json_path'
 
+// Note: This class contains string labels that cannot use useLingui as they are class properties.
+// The labels like 'JSON Path', 'Value Type', 'String', 'Number', 'Date', placeholder 'select an operator',
+// and error messages should be translated at the point of use if needed.
 export class FieldTypeJSON implements FieldTypeRenderer {
   operators: IOperator[] = [
     new OperatorSet(),

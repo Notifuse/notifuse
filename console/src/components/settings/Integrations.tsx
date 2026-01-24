@@ -23,6 +23,7 @@ import {
   Col,
   Table
 } from 'antd'
+import { useLingui } from '@lingui/react/macro'
 
 import {
   EmailProvider,
@@ -129,6 +130,7 @@ const EmailIntegration = ({
   setIntegrationAsDefault,
   deleteIntegration
 }: EmailIntegrationProps) => {
+  const { t } = useLingui()
   const provider = integration.email_provider
   const purposes = getIntegrationPurpose(integration.id)
   const [webhookStatus, setWebhookStatus] = useState<WebhookRegistrationStatus | null>(null)
@@ -179,10 +181,10 @@ const EmailIntegration = ({
 
       // Use the status from the registration response directly
       setWebhookStatus(response.status)
-      message.success('Webhooks registered successfully')
+      message.success(t`Webhooks registered successfully`)
     } catch (error) {
       console.error('Failed to register webhooks:', error)
-      const errorMessage = error instanceof Error ? error.message : 'Failed to register webhooks'
+      const errorMessage = error instanceof Error ? error.message : t`Failed to register webhooks`
       message.error(errorMessage)
     } finally {
       setRegistrationInProgress(false)
@@ -193,27 +195,27 @@ const EmailIntegration = ({
   const renderWebhookStatus = () => {
     if (loadingWebhooks) {
       return (
-        <Descriptions.Item label="Webhooks">
-          <Spin size="small" /> Loading webhook status...
+        <Descriptions.Item label={t`Webhooks`}>
+          <Spin size="small" /> {t`Loading webhook status...`}
         </Descriptions.Item>
       )
     }
 
     if (!webhookStatus || !webhookStatus.is_registered) {
       return (
-        <Descriptions.Item label="Webhooks">
+        <Descriptions.Item label={t`Webhooks`}>
           <div className="mb-2">
             <Tag bordered={false} color="orange">
               <FontAwesomeIcon icon={faExclamationTriangle} className="text-yellow-500 mr-1" />
-              delivered
+              {t`delivered`}
             </Tag>
             <Tag bordered={false} color="orange">
               <FontAwesomeIcon icon={faExclamationTriangle} className="text-yellow-500 mr-1" />
-              bounce
+              {t`bounce`}
             </Tag>
             <Tag bordered={false} color="orange">
               <FontAwesomeIcon icon={faExclamationTriangle} className="text-yellow-500 mr-1" />
-              complaint
+              {t`complaint`}
             </Tag>
           </div>
           {isOwner && (
@@ -224,7 +226,7 @@ const EmailIntegration = ({
               onClick={handleRegisterWebhooks}
               loading={registrationInProgress}
             >
-              Register Webhooks
+              {t`Register Webhooks`}
             </Button>
           )}
         </Descriptions.Item>
@@ -232,7 +234,7 @@ const EmailIntegration = ({
     }
 
     return (
-      <Descriptions.Item label="Webhooks">
+      <Descriptions.Item label={t`Webhooks`}>
         <div>
           {webhookStatus.endpoints && webhookStatus.endpoints.length > 0 && (
             <div className="mb-2">
@@ -259,11 +261,11 @@ const EmailIntegration = ({
           <div className="mb-2">
             {isOwner && (
               <Popconfirm
-                title="Register webhooks?"
-                description="This will register or update webhook endpoints for this email provider."
+                title={t`Register webhooks?`}
+                description={t`This will register or update webhook endpoints for this email provider.`}
                 onConfirm={handleRegisterWebhooks}
-                okText="Yes"
-                cancelText="No"
+                okText={t`Yes`}
+                cancelText={t`No`}
               >
                 <Button
                   size="small"
@@ -271,7 +273,7 @@ const EmailIntegration = ({
                   type={webhookStatus.is_registered ? undefined : 'primary'}
                   loading={registrationInProgress}
                 >
-                  {webhookStatus.is_registered ? 'Re-register' : 'Register Webhooks'}
+                  {webhookStatus.is_registered ? t`Re-register` : t`Register Webhooks`}
                 </Button>
               </Popconfirm>
             )}
@@ -291,7 +293,7 @@ const EmailIntegration = ({
           <div className="float-right">
             {isOwner ? (
               <Space>
-                <Tooltip title="Edit">
+                <Tooltip title={t`Edit`}>
                   <Button
                     type="text"
                     onClick={() => startEditEmailProvider(integration)}
@@ -301,20 +303,20 @@ const EmailIntegration = ({
                   </Button>
                 </Tooltip>
                 <Popconfirm
-                  title="Delete this integration?"
-                  description="This action cannot be undone."
+                  title={t`Delete this integration?`}
+                  description={t`This action cannot be undone.`}
                   onConfirm={() => deleteIntegration(integration.id)}
-                  okText="Yes"
-                  cancelText="No"
+                  okText={t`Yes`}
+                  cancelText={t`No`}
                 >
-                  <Tooltip title="Delete">
+                  <Tooltip title={t`Delete`}>
                     <Button size="small" type="text">
                       <FontAwesomeIcon icon={faTrashCan} />
                     </Button>
                   </Tooltip>
                 </Popconfirm>
                 <Button onClick={() => startTestEmailProvider(integration.id)} size="small">
-                  Test
+                  {t`Test`}
                 </Button>
               </Space>
             ) : null}
@@ -328,8 +330,8 @@ const EmailIntegration = ({
       }
     >
       <Descriptions bordered size="small" column={1} className="mt-2">
-        <Descriptions.Item label="Name">{integration.name}</Descriptions.Item>
-        <Descriptions.Item label="Senders">
+        <Descriptions.Item label={t`Name`}>{integration.name}</Descriptions.Item>
+        <Descriptions.Item label={t`Senders`}>
           {provider.senders && provider.senders.length > 0 ? (
             <div>
               {provider.senders.map((sender, index) => (
@@ -337,39 +339,39 @@ const EmailIntegration = ({
                   {sender.name} &lt;{sender.email}&gt;
                   {sender.is_default && (
                     <Tag bordered={false} color="blue" className="!ml-2">
-                      Default
+                      {t`Default`}
                     </Tag>
                   )}
                 </div>
               ))}
             </div>
           ) : (
-            <span>No senders configured</span>
+            <span>{t`No senders configured`}</span>
           )}
         </Descriptions.Item>
-        <Descriptions.Item label="Used for">
+        <Descriptions.Item label={t`Used for`}>
           <Space>
             {isIntegrationInUse(integration.id) ? (
               <>
                 {purposes.includes('Marketing Emails') && (
                   <Tag bordered={false} color="blue">
-                    <FontAwesomeIcon icon={faPaperPlane} className="mr-1" /> Marketing Emails
+                    <FontAwesomeIcon icon={faPaperPlane} className="mr-1" /> {t`Marketing Emails`}
                   </Tag>
                 )}
                 {purposes.includes('Transactional Emails') && (
                   <Tag bordered={false} color="purple">
-                    <FontAwesomeIcon icon={faTerminal} className="mr-1" /> Transactional Emails
+                    <FontAwesomeIcon icon={faTerminal} className="mr-1" /> {t`Transactional Emails`}
                   </Tag>
                 )}
                 {purposes.length === 0 && (
                   <Tag bordered={false} color="red">
-                    Not assigned
+                    {t`Not assigned`}
                   </Tag>
                 )}
               </>
             ) : (
               <Tag bordered={false} color="red">
-                Not assigned
+                {t`Not assigned`}
               </Tag>
             )}
             {isOwner && (
@@ -377,11 +379,11 @@ const EmailIntegration = ({
                 {!purposes.includes('Marketing Emails') &&
                   !transactionalEmailOnly.includes(provider.kind) && (
                     <Popconfirm
-                      title="Set as marketing email provider?"
-                      description="All marketing emails (broadcasts, campaigns) will be sent through this provider from now on."
+                      title={t`Set as marketing email provider?`}
+                      description={t`All marketing emails (broadcasts, campaigns) will be sent through this provider from now on.`}
                       onConfirm={() => setIntegrationAsDefault(integration.id, 'marketing')}
-                      okText="Yes"
-                      cancelText="No"
+                      okText={t`Yes`}
+                      cancelText={t`No`}
                     >
                       <Button
                         size="small"
@@ -390,17 +392,17 @@ const EmailIntegration = ({
                           !workspace?.settings.marketing_email_provider_id ? 'primary' : undefined
                         }
                       >
-                        Use for Marketing
+                        {t`Use for Marketing`}
                       </Button>
                     </Popconfirm>
                   )}
                 {!purposes.includes('Transactional Emails') && (
                   <Popconfirm
-                    title="Set as transactional email provider?"
-                    description="All transactional emails (notifications, password resets, etc.) will be sent through this provider from now on."
+                    title={t`Set as transactional email provider?`}
+                    description={t`All transactional emails (notifications, password resets, etc.) will be sent through this provider from now on.`}
                     onConfirm={() => setIntegrationAsDefault(integration.id, 'transactional')}
-                    okText="Yes"
-                    cancelText="No"
+                    okText={t`Yes`}
+                    cancelText={t`No`}
                   >
                     <Button
                       size="small"
@@ -409,7 +411,7 @@ const EmailIntegration = ({
                         !workspace?.settings.transactional_email_provider_id ? 'primary' : undefined
                       }
                     >
-                      Use for Transactional
+                      {t`Use for Transactional`}
                     </Button>
                   </Popconfirm>
                 )}
@@ -469,6 +471,7 @@ const constructProviderFromForm = (formValues: EmailProviderFormValues): EmailPr
 
 // Main Integrations component
 export function Integrations({ workspace, onSave, loading, isOwner }: IntegrationsProps) {
+  const { t } = useLingui()
   // State for providers
   const [emailProviderForm] = Form.useForm()
   const rateLimitPerMinute = Form.useWatch('rate_limit_per_minute', emailProviderForm)
@@ -579,10 +582,10 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
       const response = await workspaceService.get(workspace.id)
       await onSave(response.workspace)
 
-      message.success(`Set as default ${purpose} email provider`)
+      message.success(purpose === 'marketing' ? t`Set as default marketing email provider` : t`Set as default transactional email provider`)
     } catch (error) {
       console.error('Error setting default provider', error)
-      message.error('Failed to set default provider')
+      message.error(t`Failed to set default provider`)
     }
   }
 
@@ -684,7 +687,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
   const startTestEmailProvider = (integrationId: string) => {
     const integration = getIntegrationById(integrationId)
     if (!integration || integration.type !== 'email' || !integration.email_provider) {
-      message.error('Integration not found or not an email provider')
+      message.error(t`Integration not found or not an email provider`)
       return
     }
 
@@ -753,10 +756,10 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
 
       setSupabaseDrawerVisible(false)
       setEditingSupabaseIntegration(null)
-      message.success('Supabase integration saved successfully')
+      message.success(t`Supabase integration saved successfully`)
     } catch (error) {
       console.error('Error saving Supabase integration:', error)
-      message.error('Failed to save Supabase integration')
+      message.error(t`Failed to save Supabase integration`)
       throw error
     } finally {
       setSupabaseSaving(false)
@@ -806,10 +809,10 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
       setLLMDrawerVisible(false)
       setEditingLLMIntegration(null)
       setSelectedLLMProvider(null)
-      message.success('LLM integration saved successfully')
+      message.success(t`LLM integration saved successfully`)
     } catch (error) {
       console.error('Error saving LLM integration:', error)
-      message.error('Failed to save LLM integration')
+      message.error(t`Failed to save LLM integration`)
       throw error
     } finally {
       setLLMSaving(false)
@@ -856,10 +859,10 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
 
       setFirecrawlDrawerVisible(false)
       setEditingFirecrawlIntegration(null)
-      message.success('Firecrawl integration saved successfully')
+      message.success(t`Firecrawl integration saved successfully`)
     } catch (error) {
       console.error('Error saving Firecrawl integration:', error)
-      message.error('Failed to save Firecrawl integration')
+      message.error(t`Failed to save Firecrawl integration`)
       throw error
     } finally {
       setFirecrawlSaving(false)
@@ -880,7 +883,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
 
     // Make sure we have at least one sender
     if (!values.senders || values.senders.length === 0) {
-      message.error('Please add at least one sender before saving')
+      message.error(t`Please add at least one sender before saving`)
       return
     }
 
@@ -904,7 +907,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
         }
 
         await workspaceService.updateIntegration(updateRequest)
-        message.success('Integration updated successfully')
+        message.success(t`Integration updated successfully`)
       }
       // Creating a new integration
       else {
@@ -916,7 +919,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
         }
 
         await workspaceService.createIntegration(createRequest)
-        message.success('Integration created successfully')
+        message.success(t`Integration created successfully`)
       }
 
       // Refresh workspace data
@@ -927,7 +930,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
       cancelEmailProviderOperation()
     } catch (error) {
       console.error('Error saving integration', error)
-      message.error('Failed to save integration')
+      message.error(t`Failed to save integration`)
     }
   }
 
@@ -947,10 +950,10 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
       const response = await workspaceService.get(workspace.id)
       await onSave(response.workspace)
 
-      message.success('Integration deleted successfully')
+      message.success(t`Integration deleted successfully`)
     } catch (error) {
       console.error('Error deleting integration', error)
-      message.error('Failed to delete integration')
+      message.error(t`Failed to delete integration`)
     }
   }
 
@@ -967,14 +970,14 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
       if (testingIntegrationId) {
         const integration = getIntegrationById(testingIntegrationId)
         if (!integration || integration.type !== 'email' || !integration.email_provider) {
-          message.error('Integration not found or not an email provider')
+          message.error(t`Integration not found or not an email provider`)
           return
         }
         providerToTest = integration.email_provider
       } else {
         // Testing a provider that hasn't been saved yet
         if (!testingProvider) {
-          message.error('No provider configured for testing')
+          message.error(t`No provider configured for testing`)
           return
         }
         providerToTest = testingProvider
@@ -987,14 +990,14 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
       )
 
       if (response.success) {
-        message.success('Test email sent successfully')
+        message.success(t`Test email sent successfully`)
         setTestModalVisible(false)
       } else {
-        message.error(`Failed to send test email: ${response.error}`)
+        message.error(t`Failed to send test email: ${response.error}`)
       }
     } catch (error) {
       console.error('Error testing email provider', error)
-      message.error('Failed to test email provider')
+      message.error(t`Failed to test email provider`)
     } finally {
       setTestingEmailLoading(false)
     }
@@ -1023,7 +1026,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
                 handleSelectProviderType(provider.kind)
               }}
             >
-              Configure
+              {t`Configure`}
             </Button>
           </div>
         ))}
@@ -1071,7 +1074,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
                 handleSelectLLMProvider(provider.kind)
               }}
             >
-              Configure
+              {t`Configure`}
             </Button>
           </div>
         ))}
@@ -1161,7 +1164,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
                       <div className="float-right">
                         {isOwner && (
                           <Space>
-                            <Tooltip title="Edit">
+                            <Tooltip title={t`Edit`}>
                               <Button
                                 type="text"
                                 onClick={() => startEditSupabaseIntegration(integration)}
@@ -1171,13 +1174,13 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
                               </Button>
                             </Tooltip>
                             <Popconfirm
-                              title="Delete this integration?"
-                              description="This action cannot be undone."
+                              title={t`Delete this integration?`}
+                              description={t`This action cannot be undone.`}
                               onConfirm={() => deleteIntegration(integration.id)}
-                              okText="Yes"
-                              cancelText="No"
+                              okText={t`Yes`}
+                              cancelText={t`No`}
                             >
-                              <Tooltip title="Delete">
+                              <Tooltip title={t`Delete`}>
                                 <Button size="small" type="text">
                                   <FontAwesomeIcon icon={faTrashCan} />
                                 </Button>
@@ -1193,14 +1196,14 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
                   }
                 >
                   <Descriptions bordered size="small" column={1} className="mt-2">
-                    <Descriptions.Item label="Name">{integration.name}</Descriptions.Item>
-                    <Descriptions.Item label="Auth Email Hook">
+                    <Descriptions.Item label={t`Name`}>{integration.name}</Descriptions.Item>
+                    <Descriptions.Item label={t`Auth Email Hook`}>
                       {hasAuthEmailHook ? (
                         <Space direction="vertical">
                           <Tag bordered={false} color="green" className="mb-2">
-                            <FontAwesomeIcon icon={faCheck} className="mr-1" /> Configured
+                            <FontAwesomeIcon icon={faCheck} className="mr-1" /> {t`Configured`}
                           </Tag>
-                          <div className="mt-2 text-xs text-gray-500">Webhook endpoint:</div>
+                          <div className="mt-2 text-xs text-gray-500">{t`Webhook endpoint:`}</div>
 
                           <Input
                             value={authEmailWebhookURL}
@@ -1208,18 +1211,18 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
                             size="small"
                             variant="filled"
                             suffix={
-                              <Tooltip title="Copy Webhook endpoint">
+                              <Tooltip title={t`Copy Webhook endpoint`}>
                                 <Button
                                   type="link"
                                   size="small"
                                   onClick={() => {
                                     navigator.clipboard.writeText(authEmailWebhookURL)
-                                    message.success('Webhook endpoint copied to clipboard')
+                                    message.success(t`Webhook endpoint copied to clipboard`)
                                   }}
                                   icon={<FontAwesomeIcon icon={faCopy} />}
                                   className="mt-1"
                                 >
-                                  Copy
+                                  {t`Copy`}
                                 </Button>
                               </Tooltip>
                             }
@@ -1227,17 +1230,17 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
                         </Space>
                       ) : (
                         <Tag bordered={false} color="default">
-                          Not configured
+                          {t`Not configured`}
                         </Tag>
                       )}
                     </Descriptions.Item>
-                    <Descriptions.Item label="Before User Created Hook">
+                    <Descriptions.Item label={t`Before User Created Hook`}>
                       {hasBeforeUserCreatedHook ? (
                         <Space direction="vertical">
                           <Tag bordered={false} color="green" className="mb-2">
-                            <FontAwesomeIcon icon={faCheck} className="mr-1" /> Configured
+                            <FontAwesomeIcon icon={faCheck} className="mr-1" /> {t`Configured`}
                           </Tag>
-                          <div className="mt-2 text-xs text-gray-500">Webhook endpoint:</div>
+                          <div className="mt-2 text-xs text-gray-500">{t`Webhook endpoint:`}</div>
 
                           <Input
                             value={beforeUserCreatedWebhookURL}
@@ -1245,18 +1248,18 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
                             size="small"
                             variant="filled"
                             suffix={
-                              <Tooltip title="Copy Webhook endpoint">
+                              <Tooltip title={t`Copy Webhook endpoint`}>
                                 <Button
                                   type="link"
                                   size="small"
                                   onClick={() => {
                                     navigator.clipboard.writeText(beforeUserCreatedWebhookURL)
-                                    message.success('Webhook endpoint copied to clipboard')
+                                    message.success(t`Webhook endpoint copied to clipboard`)
                                   }}
                                   icon={<FontAwesomeIcon icon={faCopy} />}
                                   className="mt-1"
                                 >
-                                  Copy
+                                  {t`Copy`}
                                 </Button>
                               </Tooltip>
                             }
@@ -1264,12 +1267,12 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
                         </Space>
                       ) : (
                         <Tag bordered={false} color="default">
-                          Not configured
+                          {t`Not configured`}
                         </Tag>
                       )}
                     </Descriptions.Item>
                     {hasBeforeUserCreatedHook && addToLists.length > 0 && (
-                      <Descriptions.Item label="Auto-subscribe to Lists">
+                      <Descriptions.Item label={t`Auto-subscribe to Lists`}>
                         {addToLists.map((listId) => {
                           const list = lists.find((l) => l.id === listId)
                           return (
@@ -1281,7 +1284,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
                       </Descriptions.Item>
                     )}
                     {hasBeforeUserCreatedHook && customJsonField && (
-                      <Descriptions.Item label="User Metadata Field">
+                      <Descriptions.Item label={t`User Metadata Field`}>
                         <Tag bordered={false} color="purple">
                           {workspace.settings?.custom_field_labels?.[customJsonField] ||
                             customJsonField}
@@ -1289,15 +1292,15 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
                       </Descriptions.Item>
                     )}
                     {hasBeforeUserCreatedHook && (
-                      <Descriptions.Item label="Reject Disposable Email">
+                      <Descriptions.Item label={t`Reject Disposable Email`}>
                         <Tag bordered={false} color={rejectDisposableEmail ? 'green' : 'default'}>
                           {rejectDisposableEmail ? (
                             <>
-                              <FontAwesomeIcon icon={faCheck} className="mr-1" /> Enabled
+                              <FontAwesomeIcon icon={faCheck} className="mr-1" /> {t`Enabled`}
                             </>
                           ) : (
                             <>
-                              <FontAwesomeIcon icon={faTimes} className="mr-1" /> Disabled
+                              <FontAwesomeIcon icon={faTimes} className="mr-1" /> {t`Disabled`}
                             </>
                           )}
                         </Tag>
@@ -1320,7 +1323,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
                       <div className="float-right">
                         {isOwner && (
                           <Space>
-                            <Tooltip title="Edit">
+                            <Tooltip title={t`Edit`}>
                               <Button
                                 type="text"
                                 onClick={() => startEditLLMIntegration(integration)}
@@ -1330,13 +1333,13 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
                               </Button>
                             </Tooltip>
                             <Popconfirm
-                              title="Delete this integration?"
-                              description="This action cannot be undone."
+                              title={t`Delete this integration?`}
+                              description={t`This action cannot be undone.`}
                               onConfirm={() => deleteIntegration(integration.id)}
-                              okText="Yes"
-                              cancelText="No"
+                              okText={t`Yes`}
+                              cancelText={t`No`}
                             >
-                              <Tooltip title="Delete">
+                              <Tooltip title={t`Delete`}>
                                 <Button size="small" type="text">
                                   <FontAwesomeIcon icon={faTrashCan} />
                                 </Button>
@@ -1352,15 +1355,15 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
                   }
                 >
                   <Descriptions bordered size="small" column={1} className="mt-2">
-                    <Descriptions.Item label="Name">{integration.name}</Descriptions.Item>
-                    <Descriptions.Item label="Model">
+                    <Descriptions.Item label={t`Name`}>{integration.name}</Descriptions.Item>
+                    <Descriptions.Item label={t`Model`}>
                       <Tag bordered={false} color="purple">
                         {provider.anthropic?.model || 'Not configured'}
                       </Tag>
                     </Descriptions.Item>
-                    <Descriptions.Item label="API Key">
+                    <Descriptions.Item label={t`API Key`}>
                       <Tag bordered={false} color="green">
-                        <FontAwesomeIcon icon={faCheck} className="mr-1" /> Configured
+                        <FontAwesomeIcon icon={faCheck} className="mr-1" /> {t`Configured`}
                       </Tag>
                     </Descriptions.Item>
                   </Descriptions>
@@ -1378,7 +1381,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
                       <div className="float-right">
                         {isOwner && (
                           <Space>
-                            <Tooltip title="Edit">
+                            <Tooltip title={t`Edit`}>
                               <Button
                                 type="text"
                                 onClick={() => startEditFirecrawlIntegration(integration)}
@@ -1388,13 +1391,13 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
                               </Button>
                             </Tooltip>
                             <Popconfirm
-                              title="Delete this integration?"
-                              description="This action cannot be undone."
+                              title={t`Delete this integration?`}
+                              description={t`This action cannot be undone.`}
                               onConfirm={() => deleteIntegration(integration.id)}
-                              okText="Yes"
-                              cancelText="No"
+                              okText={t`Yes`}
+                              cancelText={t`No`}
                             >
-                              <Tooltip title="Delete">
+                              <Tooltip title={t`Delete`}>
                                 <Button size="small" type="text">
                                   <FontAwesomeIcon icon={faTrashCan} />
                                 </Button>
@@ -1408,13 +1411,13 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
                   }
                 >
                   <Descriptions bordered size="small" column={1} className="mt-2">
-                    <Descriptions.Item label="Name">{integration.name}</Descriptions.Item>
-                    <Descriptions.Item label="API Key">
+                    <Descriptions.Item label={t`Name`}>{integration.name}</Descriptions.Item>
+                    <Descriptions.Item label={t`API Key`}>
                       <Tag bordered={false} color="green">
-                        <FontAwesomeIcon icon={faCheck} className="mr-1" /> Configured
+                        <FontAwesomeIcon icon={faCheck} className="mr-1" /> {t`Configured`}
                       </Tag>
                     </Descriptions.Item>
-                    <Descriptions.Item label="Tools">
+                    <Descriptions.Item label={t`Tools`}>
                       <Space>
                         <Tag bordered={false} color="blue">
                           scrape_url
@@ -1445,14 +1448,14 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
   const renderEmailProviderForm = (providerType: EmailProviderKind) => {
     return (
       <>
-        <Form.Item name="name" label="Integration Name" rules={[{ required: true }]}>
-          <Input placeholder="Enter a name for this integration" disabled={!isOwner} />
+        <Form.Item name="name" label={t`Integration Name`} rules={[{ required: true }]}>
+          <Input placeholder={t`Enter a name for this integration`} disabled={!isOwner} />
         </Form.Item>
 
         {providerType === 'ses' && (
           <>
-            <Form.Item name={['ses', 'region']} label="AWS Region" rules={[{ required: true }]}>
-              <Select placeholder="Select AWS Region" disabled={!isOwner}>
+            <Form.Item name={['ses', 'region']} label={t`AWS Region`} rules={[{ required: true }]}>
+              <Select placeholder={t`Select AWS Region`} disabled={!isOwner}>
                 <Select.Option value="us-east-2">US East (Ohio) - us-east-2</Select.Option>
                 <Select.Option value="us-east-1">US East (N. Virginia) - us-east-1</Select.Option>
                 <Select.Option value="us-west-1">US West (N. California) - us-west-1</Select.Option>
@@ -1501,13 +1504,13 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
             </Form.Item>
             <Form.Item
               name={['ses', 'access_key']}
-              label="AWS Access Key"
+              label={t`AWS Access Key`}
               rules={[{ required: true }]}
             >
-              <Input placeholder="Access Key" disabled={!isOwner} />
+              <Input placeholder={t`Access Key`} disabled={!isOwner} />
             </Form.Item>
-            <Form.Item name={['ses', 'secret_key']} label="AWS Secret Key">
-              <Input.Password placeholder="Secret Key" disabled={!isOwner} />
+            <Form.Item name={['ses', 'secret_key']} label={t`AWS Secret Key`}>
+              <Input.Password placeholder={t`Secret Key`} disabled={!isOwner} />
             </Form.Item>
           </>
         )}
@@ -1516,12 +1519,12 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
           <>
             <Row gutter={16}>
               <Col span={12}>
-                <Form.Item name={['smtp', 'host']} label="SMTP Host" rules={[{ required: true }]}>
+                <Form.Item name={['smtp', 'host']} label={t`SMTP Host`} rules={[{ required: true }]}>
                   <Input placeholder="smtp.yourdomain.com" disabled={!isOwner} />
                 </Form.Item>
               </Col>
               <Col span={6}>
-                <Form.Item name={['smtp', 'port']} label="SMTP Port" rules={[{ required: true }]}>
+                <Form.Item name={['smtp', 'port']} label={t`SMTP Port`} rules={[{ required: true }]}>
                   <InputNumber min={1} max={65535} placeholder="587" disabled={!isOwner} />
                 </Form.Item>
               </Col>
@@ -1529,7 +1532,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
                 <Form.Item
                   name={['smtp', 'use_tls']}
                   valuePropName="checked"
-                  label="Use TLS"
+                  label={t`Use TLS`}
                   initialValue={true}
                 >
                   <Switch defaultChecked disabled={!isOwner} />
@@ -1539,14 +1542,14 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
 
             <Form.Item
               name={['smtp', 'auth_type']}
-              label="Authentication Type"
+              label={t`Authentication Type`}
               initialValue="basic"
             >
               <Select disabled={!isOwner}>
                 <Select.Option value="basic">
-                  Basic Authentication (Username/Password)
+                  {t`Basic Authentication (Username/Password)`}
                 </Select.Option>
-                <Select.Option value="oauth2">OAuth2 (Microsoft 365 / Google)</Select.Option>
+                <Select.Option value="oauth2">{t`OAuth2 (Microsoft 365 / Google)`}</Select.Option>
               </Select>
             </Form.Item>
 
@@ -1562,24 +1565,24 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
                     <>
                       <Form.Item
                         name={['smtp', 'oauth2_provider']}
-                        label="OAuth2 Provider"
-                        rules={[{ required: true, message: 'Please select an OAuth2 provider' }]}
+                        label={t`OAuth2 Provider`}
+                        rules={[{ required: true, message: t`Please select an OAuth2 provider` }]}
                       >
-                        <Select placeholder="Select OAuth2 Provider" disabled={!isOwner}>
+                        <Select placeholder={t`Select OAuth2 Provider`} disabled={!isOwner}>
                           <Select.Option value="microsoft">
-                            Microsoft 365 / Office 365
+                            {t`Microsoft 365 / Office 365`}
                           </Select.Option>
-                          <Select.Option value="google">Google Workspace / Gmail</Select.Option>
+                          <Select.Option value="google">{t`Google Workspace / Gmail`}</Select.Option>
                         </Select>
                       </Form.Item>
 
                       <Form.Item
                         name={['smtp', 'username']}
-                        label="Email Address"
+                        label={t`Email Address`}
                         rules={[
-                          { required: true, message: 'Email address is required for OAuth2' }
+                          { required: true, message: t`Email address is required for OAuth2` }
                         ]}
-                        tooltip="The email address that will be used as the SMTP user for authentication"
+                        tooltip={t`The email address that will be used as the SMTP user for authentication`}
                       >
                         <Input placeholder="user@yourdomain.com" disabled={!isOwner} />
                       </Form.Item>
@@ -1605,7 +1608,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
                                       message: 'Tenant ID is required for Microsoft'
                                     }
                                   ]}
-                                  tooltip="Find this in Azure Portal > Azure Active Directory > Overview"
+                                  tooltip={t`Find this in Azure Portal > Azure Active Directory > Overview`}
                                 >
                                   <Input
                                     placeholder="00000000-0000-0000-0000-000000000000"
@@ -1616,7 +1619,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
                                   name={['smtp', 'oauth2_client_id']}
                                   label="Application (Client) ID"
                                   rules={[{ required: true, message: 'Client ID is required' }]}
-                                  tooltip="Find this in Azure Portal > App registrations > Your App > Overview"
+                                  tooltip={t`Find this in Azure Portal > App registrations > Your App > Overview`}
                                 >
                                   <Input
                                     placeholder="Application (Client) ID"
@@ -1627,7 +1630,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
                                   name={['smtp', 'oauth2_client_secret']}
                                   label="Client Secret"
                                   rules={[{ required: true, message: 'Client Secret is required' }]}
-                                  tooltip="Create this in Azure Portal > App registrations > Your App > Certificates & secrets"
+                                  tooltip={t`Create this in Azure Portal > App registrations > Your App > Certificates & secrets`}
                                 >
                                   <Input.Password
                                     placeholder="Client Secret Value"
@@ -1645,7 +1648,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
                                   name={['smtp', 'oauth2_client_id']}
                                   label="Client ID"
                                   rules={[{ required: true, message: 'Client ID is required' }]}
-                                  tooltip="Find this in Google Cloud Console > APIs & Services > Credentials"
+                                  tooltip={t`Find this in Google Cloud Console > APIs & Services > Credentials`}
                                 >
                                   <Input placeholder="Client ID" disabled={!isOwner} />
                                 </Form.Item>
@@ -1653,7 +1656,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
                                   name={['smtp', 'oauth2_client_secret']}
                                   label="Client Secret"
                                   rules={[{ required: true, message: 'Client Secret is required' }]}
-                                  tooltip="Find this in Google Cloud Console > APIs & Services > Credentials"
+                                  tooltip={t`Find this in Google Cloud Console > APIs & Services > Credentials`}
                                 >
                                   <Input.Password placeholder="Client Secret" disabled={!isOwner} />
                                 </Form.Item>
@@ -1666,7 +1669,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
                                       message: 'Refresh Token is required for Google'
                                     }
                                   ]}
-                                  tooltip="Obtain this using the OAuth2 playground or your own OAuth flow"
+                                  tooltip={t`Obtain this using the OAuth2 playground or your own OAuth flow`}
                                 >
                                   <Input.Password placeholder="Refresh Token" disabled={!isOwner} />
                                 </Form.Item>
@@ -1685,12 +1688,12 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
                 return (
                   <Row gutter={16}>
                     <Col span={12}>
-                      <Form.Item name={['smtp', 'username']} label="SMTP Username">
+                      <Form.Item name={['smtp', 'username']} label={t`SMTP Username`}>
                         <Input placeholder="Username (optional)" disabled={!isOwner} />
                       </Form.Item>
                     </Col>
                     <Col span={12}>
-                      <Form.Item name={['smtp', 'password']} label="SMTP Password">
+                      <Form.Item name={['smtp', 'password']} label={t`SMTP Password`}>
                         <Input.Password placeholder="Password (optional)" disabled={!isOwner} />
                       </Form.Item>
                     </Col>
@@ -1705,7 +1708,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
           <>
             <Form.Item
               name={['sparkpost', 'endpoint']}
-              label="API Endpoint"
+              label={t`API Endpoint`}
               rules={[{ required: true }]}
             >
               <Select
@@ -1717,13 +1720,13 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
                 ]}
               />
             </Form.Item>
-            <Form.Item name={['sparkpost', 'api_key']} label="SparkPost API Key">
+            <Form.Item name={['sparkpost', 'api_key']} label={t`SparkPost API Key`}>
               <Input.Password placeholder="API Key" disabled={!isOwner} />
             </Form.Item>
             <Form.Item
               name={['sparkpost', 'sandbox_mode']}
               valuePropName="checked"
-              label="Sandbox Mode"
+              label={t`Sandbox Mode`}
               initialValue={false}
             >
               <Switch disabled={!isOwner} />
@@ -1734,7 +1737,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
         {providerType === 'postmark' && (
           <Form.Item
             name={['postmark', 'server_token']}
-            label="Server Token"
+            label={t`Server Token`}
             rules={[{ required: true }]}
           >
             <Input.Password placeholder="Server Token" disabled={!isOwner} />
@@ -1743,13 +1746,13 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
 
         {providerType === 'mailgun' && (
           <>
-            <Form.Item name={['mailgun', 'domain']} label="Domain" rules={[{ required: true }]}>
+            <Form.Item name={['mailgun', 'domain']} label={t`Domain`} rules={[{ required: true }]}>
               <Input placeholder="mail.yourdomain.com" disabled={!isOwner} />
             </Form.Item>
-            <Form.Item name={['mailgun', 'api_key']} label="API Key" rules={[{ required: true }]}>
+            <Form.Item name={['mailgun', 'api_key']} label={t`API Key`} rules={[{ required: true }]}>
               <Input.Password placeholder="API Key" disabled={!isOwner} />
             </Form.Item>
-            <Form.Item name={['mailgun', 'region']} label="Region" initialValue="US">
+            <Form.Item name={['mailgun', 'region']} label={t`Region`} initialValue="US">
               <Select
                 placeholder="Select Mailgun Region"
                 disabled={!isOwner}
@@ -1764,12 +1767,12 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
 
         {providerType === 'mailjet' && (
           <>
-            <Form.Item name={['mailjet', 'api_key']} label="API Key" rules={[{ required: true }]}>
+            <Form.Item name={['mailjet', 'api_key']} label={t`API Key`} rules={[{ required: true }]}>
               <Input.Password placeholder="API Key" disabled={!isOwner} />
             </Form.Item>
             <Form.Item
               name={['mailjet', 'secret_key']}
-              label="Secret Key"
+              label={t`Secret Key`}
               rules={[{ required: true }]}
             >
               <Input.Password placeholder="Secret Key" disabled={!isOwner} />
@@ -1777,7 +1780,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
             <Form.Item
               name={['mailjet', 'sandbox_mode']}
               valuePropName="checked"
-              label="Sandbox Mode"
+              label={t`Sandbox Mode`}
               initialValue={false}
             >
               <Switch disabled={!isOwner} />
@@ -1786,14 +1789,14 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
         )}
 
         {providerType === 'sendgrid' && (
-          <Form.Item name={['sendgrid', 'api_key']} label="API Key" rules={[{ required: true }]}>
+          <Form.Item name={['sendgrid', 'api_key']} label={t`API Key`} rules={[{ required: true }]}>
             <Input.Password placeholder="API Key (starts with SG.)" disabled={!isOwner} />
           </Form.Item>
         )}
 
         <Form.Item
           name="rate_limit_per_minute"
-          label="Rate limit for marketing emails (emails per minute)"
+          label={t`Rate limit for marketing emails (emails per minute)`}
           rules={[
             { required: true, message: 'Please enter a rate limit' },
             { type: 'number', min: 1, message: 'Rate limit must be at least 1' }
@@ -1805,8 +1808,8 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
 
         {(rateLimitPerMinute || 25) > 0 && (
           <div className="text-xs text-gray-600 -mt-4 mb-4">
-            <div>≈ {((rateLimitPerMinute || 25) * 60).toLocaleString()} emails per hour</div>
-            <div>≈ {((rateLimitPerMinute || 25) * 60 * 24).toLocaleString()} emails per day</div>
+            <div>≈ {((rateLimitPerMinute || 25) * 60).toLocaleString()} {t`emails per hour`}</div>
+            <div>≈ {((rateLimitPerMinute || 25) * 60 * 24).toLocaleString()} {t`emails per day`}</div>
           </div>
         )}
 
@@ -1842,7 +1845,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
         title: (
           <div className="flex justify-end">
             <Button type="primary" ghost size="small" onClick={addSender} disabled={!isOwner}>
-              Add Sender
+              {t`Add Sender`}
             </Button>
           </div>
         ),
@@ -1851,7 +1854,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
           <div className="flex justify-end">
             <Space>
               {!record.is_default && (
-                <Tooltip title="Set as default sender">
+                <Tooltip title={t`Set as default sender`}>
                   <Button size="small" type="text" onClick={() => setDefaultSender(index)}>
                     <span className="text-blue-500">Default</span>
                   </Button>
@@ -1862,8 +1865,8 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
               </Button>
               {senders.length > 1 && (
                 <Popconfirm
-                  title="Delete this sender?"
-                  description="Templates using this sender will need to be updated to use a different sender."
+                  title={t`Delete this sender?`}
+                  description={t`Templates using this sender will need to be updated to use a different sender.`}
                   onConfirm={() => deleteSender(index)}
                   okText="Yes"
                   cancelText="No"
@@ -1881,9 +1884,9 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
 
     return (
       <Form.Item
-        label="Senders"
+        label={t`Senders`}
         required
-        tooltip="Add one or more email senders. The first sender will be used as the default."
+        tooltip={t`Add one or more email senders. The first sender will be used as the default.`}
       >
         {senders.length > 0 ? (
           <div className="border border-gray-200 rounded-md p-4 mb-4">
@@ -1898,7 +1901,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
         ) : (
           <div className="flex justify-center py-6">
             <Button type="primary" onClick={addSender} disabled={!isOwner}>
-              <FontAwesomeIcon icon={faPlus} className="mr-1" /> Add Sender
+              <FontAwesomeIcon icon={faPlus} className="mr-1" /> {t`Add Sender`}
             </Button>
           </div>
         )}
@@ -1915,16 +1918,16 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
 
     if (provider.kind === 'smtp' && provider.smtp) {
       items.push(
-        <Descriptions.Item key="host" label="SMTP Host">
+        <Descriptions.Item key="host" label={t`SMTP Host`}>
           {provider.smtp.host}:{provider.smtp.port}
         </Descriptions.Item>,
-        <Descriptions.Item key="username" label="SMTP User">
+        <Descriptions.Item key="username" label={t`SMTP User`}>
           {provider.smtp.username}
         </Descriptions.Item>,
-        <Descriptions.Item key="tls" label="TLS Enabled">
+        <Descriptions.Item key="tls" label={t`TLS Enabled`}>
           {provider.smtp.use_tls ? 'Yes' : 'No'}
         </Descriptions.Item>,
-        <Descriptions.Item key="auth" label="Authentication">
+        <Descriptions.Item key="auth" label={t`Authentication`}>
           {provider.smtp.auth_type === 'oauth2' ? (
             <span>
               OAuth2 ({provider.smtp.oauth2_provider === 'microsoft' ? 'Microsoft 365' : 'Google'})
@@ -1936,31 +1939,31 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
       )
     } else if (provider.kind === 'ses' && provider.ses) {
       items.push(
-        <Descriptions.Item key="region" label="AWS Region">
+        <Descriptions.Item key="region" label={t`AWS Region`}>
           {provider.ses.region}
         </Descriptions.Item>
       )
     } else if (provider.kind === 'sparkpost' && provider.sparkpost) {
       items.push(
-        <Descriptions.Item key="endpoint" label="API Endpoint">
+        <Descriptions.Item key="endpoint" label={t`API Endpoint`}>
           {provider.sparkpost.endpoint}
         </Descriptions.Item>,
-        <Descriptions.Item key="sandbox" label="Sandbox Mode">
+        <Descriptions.Item key="sandbox" label={t`Sandbox Mode`}>
           {provider.sparkpost.sandbox_mode ? 'Enabled' : 'Disabled'}
         </Descriptions.Item>
       )
     } else if (provider.kind === 'mailgun' && provider.mailgun) {
       items.push(
-        <Descriptions.Item key="domain" label="Domain">
+        <Descriptions.Item key="domain" label={t`Domain`}>
           {provider.mailgun.domain}
         </Descriptions.Item>,
-        <Descriptions.Item key="region" label="Region">
+        <Descriptions.Item key="region" label={t`Region`}>
           {provider.mailgun.region || 'US'}
         </Descriptions.Item>
       )
     } else if (provider.kind === 'mailjet' && provider.mailjet) {
       items.push(
-        <Descriptions.Item key="sandbox" label="Sandbox Mode">
+        <Descriptions.Item key="sandbox" label={t`Sandbox Mode`}>
           {provider.mailjet.sandbox_mode ? 'Enabled' : 'Disabled'}
         </Descriptions.Item>
       )
@@ -1968,11 +1971,11 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
 
     // Add rate limit for all providers
     items.push(
-      <Descriptions.Item key="rate_limit" label="Rate Limit for Marketing">
+      <Descriptions.Item key="rate_limit" label={t`Rate Limit for Marketing`}>
         <div>{provider.rate_limit_per_minute} emails/min</div>
         <div className="text-xs text-gray-600 mt-1">
-          <div>≈ {(provider.rate_limit_per_minute * 60).toLocaleString()} emails per hour</div>
-          <div>≈ {(provider.rate_limit_per_minute * 60 * 24).toLocaleString()} emails per day</div>
+          <div>≈ {(provider.rate_limit_per_minute * 60).toLocaleString()} {t`emails per hour`}</div>
+          <div>≈ {(provider.rate_limit_per_minute * 60 * 24).toLocaleString()} {t`emails per day`}</div>
         </div>
       </Descriptions.Item>
     )
@@ -2017,10 +2020,10 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
         footer={
           <div style={{ textAlign: 'right' }}>
             <Space>
-              <Button onClick={closeProviderDrawer}>Cancel</Button>
-              <Button onClick={handleTestFromDrawer}>Test Integration</Button>
+              <Button onClick={closeProviderDrawer}>{t`Cancel`}</Button>
+              <Button onClick={handleTestFromDrawer}>{t`Test Integration`}</Button>
               <Button type="primary" onClick={() => emailProviderForm.submit()} loading={loading}>
-                Save
+                {t`Save`}
               </Button>
             </Space>
           </div>
@@ -2083,15 +2086,15 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
   return (
     <>
       <SettingsSectionHeader
-        title="Integrations"
-        description="Connect and manage external services"
+        title={t`Integrations`}
+        description={t`Connect and manage external services`}
       />
 
       {isOwner && (workspace?.integrations?.length ?? 0) > 0 && (
         <div style={{ textAlign: 'right', marginBottom: 16 }}>
           <Dropdown menu={{ items: integrationMenuItems }} trigger={['click']}>
             <Button type="primary" size="small" ghost>
-              Add Integration <FontAwesomeIcon icon={faChevronDown} />
+              {t`Add Integration`} <FontAwesomeIcon icon={faChevronDown} />
             </Button>
           </Dropdown>
         </div>
@@ -2103,20 +2106,17 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
           {(!workspace.settings.transactional_email_provider_id ||
             !workspace.settings.marketing_email_provider_id) && (
             <Alert
-              message="Email Provider Configuration Needed"
+              message={t`Email Provider Configuration Needed`}
               description={
                 <div>
                   {!workspace.settings.transactional_email_provider_id && (
                     <p>
-                      Consider connecting a transactional email provider to be able to use
-                      transactional emails for account notifications, password resets, and other
-                      important system messages.
+                      {t`Consider connecting a transactional email provider to be able to use transactional emails for account notifications, password resets, and other important system messages.`}
                     </p>
                   )}
                   {!workspace.settings.marketing_email_provider_id && (
                     <p>
-                      Consider connecting a marketing email provider to send newsletters,
-                      promotional campaigns, and announcements to engage with your audience.
+                      {t`Consider connecting a marketing email provider to send newsletters, promotional campaigns, and announcements to engage with your audience.`}
                     </p>
                   )}
                 </div>
@@ -2138,22 +2138,22 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
 
       {/* Sender Form Modal */}
       <Modal
-        title={editingSenderIndex !== null ? 'Edit Sender' : 'Add Sender'}
+        title={editingSenderIndex !== null ? t`Edit Sender` : t`Add Sender`}
         open={senderFormVisible}
         onCancel={() => setSenderFormVisible(false)}
         footer={[
           <Button key="cancel" onClick={() => setSenderFormVisible(false)}>
-            Cancel
+            {t`Cancel`}
           </Button>,
           <Button key="save" type="primary" onClick={handleSaveSender}>
-            Save
+            {t`Save`}
           </Button>
         ]}
       >
         <Form form={senderForm} layout="vertical">
           <Form.Item
             name="email"
-            label="Email"
+            label={t`Email`}
             rules={[
               { required: true, message: 'Email is required' },
               { type: 'email', message: 'Please enter a valid email' }
@@ -2163,7 +2163,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
           </Form.Item>
           <Form.Item
             name="name"
-            label="Name"
+            label={t`Name`}
             rules={[{ required: true, message: 'Name is required' }]}
           >
             <Input placeholder="Sender Name" disabled={!isOwner} />
@@ -2173,12 +2173,12 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
 
       {/* Test email modal */}
       <Modal
-        title="Test Email Provider"
+        title={t`Test Email Provider`}
         open={testModalVisible}
         onCancel={() => setTestModalVisible(false)}
         footer={[
           <Button key="cancel" onClick={() => setTestModalVisible(false)}>
-            Cancel
+            {t`Cancel`}
           </Button>,
           <Button
             key="submit"
@@ -2187,11 +2187,11 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
             onClick={handleTestProvider}
             disabled={!testEmailAddress}
           >
-            Send Test Email
+            {t`Send Test Email`}
           </Button>
         ]}
       >
-        <p>Enter an email address to receive a test email:</p>
+        <p>{t`Enter an email address to receive a test email:`}</p>
         <Input
           placeholder="recipient@example.com"
           value={testEmailAddress}
@@ -2199,7 +2199,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
           style={{ marginBottom: 16 }}
         />
         <Alert
-          message="This will send a real test email to the address provided."
+          message={t`This will send a real test email to the address provided.`}
           type="info"
           showIcon
         />
@@ -2225,7 +2225,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
                   setEditingSupabaseIntegration(null)
                 }}
               >
-                Cancel
+                {t`Cancel`}
               </Button>
               <Button
                 type="primary"
@@ -2233,7 +2233,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
                 loading={supabaseSaving}
                 disabled={!isOwner}
               >
-                Save
+                {t`Save`}
               </Button>
             </Space>
           </div>
@@ -2273,7 +2273,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
                   setSelectedLLMProvider(null)
                 }}
               >
-                Cancel
+                {t`Cancel`}
               </Button>
               <Button
                 type="primary"
@@ -2281,7 +2281,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
                 loading={llmSaving}
                 disabled={!isOwner}
               >
-                Save
+                {t`Save`}
               </Button>
             </Space>
           </div>
@@ -2320,7 +2320,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
                   setEditingFirecrawlIntegration(null)
                 }}
               >
-                Cancel
+                {t`Cancel`}
               </Button>
               <Button
                 type="primary"
@@ -2328,7 +2328,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
                 loading={firecrawlSaving}
                 disabled={!isOwner}
               >
-                Save
+                {t`Save`}
               </Button>
             </Space>
           </div>

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { InputNumber, Segmented } from 'antd'
+import { useLingui } from '@lingui/react/macro'
 
 interface LineHeightInputProps {
   value?: string
@@ -10,9 +11,11 @@ interface LineHeightInputProps {
 const LineHeightInput: React.FC<LineHeightInputProps> = ({
   value,
   onChange,
-  placeholder = 'Enter height'
+  placeholder
 }) => {
+  const { t } = useLingui()
   const [numericValue, setNumericValue] = useState<number | undefined>()
+  const resolvedPlaceholder = placeholder || t`Enter height`
   const [unit, setUnit] = useState<'px' | '%'>('%')
 
   // Parse incoming value to extract number and unit
@@ -64,7 +67,7 @@ const LineHeightInput: React.FC<LineHeightInputProps> = ({
         size="small"
         value={numericValue}
         onChange={handleNumberChange}
-        placeholder={placeholder}
+        placeholder={resolvedPlaceholder}
         min={0}
         step={unit === '%' ? 10 : 1}
         className="flex-1"

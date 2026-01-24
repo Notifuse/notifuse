@@ -4,9 +4,10 @@ import { Plus, UserPlus, UserMinus, Filter, Globe, ListChecks } from 'lucide-rea
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faHourglass, faEnvelope } from '@fortawesome/free-regular-svg-icons'
 import { faFlask } from '@fortawesome/free-solid-svg-icons'
+import { useLingui } from '@lingui/react/macro'
 import type { NodeType } from '../../services/api/automation'
 
-// Single source of truth for menu items
+// Menu items structure without labels (labels are added inside component for i18n)
 // eslint-disable-next-line react-refresh/only-export-components -- Menu items intentionally co-located with button
 export const ADD_NODE_MENU_ITEMS: { key: NodeType; label: string; icon: React.ReactNode }[] = [
   { key: 'delay', label: 'Delay', icon: <FontAwesomeIcon icon={faHourglass} style={{ color: '#faad14' }} /> },
@@ -18,6 +19,23 @@ export const ADD_NODE_MENU_ITEMS: { key: NodeType; label: string; icon: React.Re
   { key: 'remove_from_list', label: 'Remove from List', icon: <UserMinus size={14} style={{ color: '#fa541c' }} /> },
   { key: 'webhook', label: 'Webhook', icon: <Globe size={14} style={{ color: '#9254de' }} /> }
 ]
+
+// Helper to get translated label for a node type
+export const getNodeTypeLabel = (key: NodeType, t: (str: TemplateStringsArray) => string): string => {
+  const labels: Record<NodeType, string> = {
+    trigger: t`Trigger`,
+    delay: t`Delay`,
+    email: t`Email`,
+    filter: t`Filter`,
+    ab_test: t`A/B Test`,
+    list_status_branch: t`List Status`,
+    add_to_list: t`Add to List`,
+    remove_from_list: t`Remove from List`,
+    webhook: t`Webhook`,
+    branch: t`Branch`
+  }
+  return labels[key] || key
+}
 
 interface AddNodeButtonProps {
   onSelectNodeType: (nodeType: NodeType) => void
@@ -40,6 +58,7 @@ export const AddNodeButton: React.FC<AddNodeButtonProps> = ({
   tooltipPlacement = 'top',
   className = ''
 }) => {
+  const { t } = useLingui()
   // Use controlled or uncontrolled menu state
   const [internalMenuOpen, setInternalMenuOpen] = useState(false)
   const isControlled = controlledMenuOpen !== undefined
@@ -71,6 +90,7 @@ export const AddNodeButton: React.FC<AddNodeButtonProps> = ({
     <div className="py-1 min-w-[180px]">
       {ADD_NODE_MENU_ITEMS.map((item) => {
         const isDisabled = item.key === 'email' && !hasListSelected
+        const translatedLabel = getNodeTypeLabel(item.key, t)
         const button = (
           <button
             key={item.key}
@@ -85,11 +105,11 @@ export const AddNodeButton: React.FC<AddNodeButtonProps> = ({
             }}
           >
             {item.icon}
-            {item.label}
+            {translatedLabel}
           </button>
         )
         return isDisabled ? (
-          <Tooltip key={item.key} title="Select a list to enable email nodes" placement="right">
+          <Tooltip key={item.key} title={t`Select a list to enable email nodes`} placement="right">
             {button}
           </Tooltip>
         ) : (
@@ -101,7 +121,7 @@ export const AddNodeButton: React.FC<AddNodeButtonProps> = ({
 
   return (
     <div className={`relative ${className}`}>
-      <Tooltip title={menuOpen ? '' : 'Add node'} placement={tooltipPlacement}>
+      <Tooltip title={menuOpen ? '' : t`Add node`} placement={tooltipPlacement}>
         <Popover
           content={menuContent}
           trigger="click"

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useLingui } from '@lingui/react/macro'
 import { Spin, Alert } from 'antd'
 import { BlogThemeFiles } from '../../services/api/blog'
 import { renderBlogPage, RenderResult } from '../../utils/liquidRenderer'
@@ -14,6 +15,7 @@ interface ThemePreviewProps {
 type ViewType = 'home' | 'category' | 'post'
 
 export function ThemePreview({ files, workspace, view }: ThemePreviewProps) {
+  const { t } = useLingui()
   const [renderResult, setRenderResult] = useState<RenderResult | null>(null)
   const [isRendering, setIsRendering] = useState(false)
 
@@ -46,7 +48,7 @@ export function ThemePreview({ files, workspace, view }: ThemePreviewProps) {
         console.error('Preview rendering failed:', error)
         setRenderResult({
           success: false,
-          error: 'Failed to render preview'
+          error: t`Failed to render preview`
         })
       } finally {
         setIsRendering(false)
@@ -54,7 +56,7 @@ export function ThemePreview({ files, workspace, view }: ThemePreviewProps) {
     }
 
     renderPreview()
-  }, [files, view, workspace])
+  }, [files, view, workspace, t])
 
   return (
     <div
@@ -75,18 +77,18 @@ export function ThemePreview({ files, workspace, view }: ThemePreviewProps) {
             zIndex: 10
           }}
         >
-          <Spin size="large" tip="Rendering preview..." />
+          <Spin size="large" tip={t`Rendering preview...`} />
         </div>
       )}
 
       {!isRendering && renderResult && !renderResult.success && (
         <div style={{ padding: 24 }}>
           <Alert
-            message="Template Error"
+            message={t`Template Error`}
             description={
               <div>
                 <p>{renderResult.error}</p>
-                {renderResult.errorLine && <p>Line: {renderResult.errorLine}</p>}
+                {renderResult.errorLine && <p>{t`Line`}: {renderResult.errorLine}</p>}
               </div>
             }
             type="error"

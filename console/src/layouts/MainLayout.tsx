@@ -1,4 +1,5 @@
 import { Layout } from 'antd'
+import { useLingui } from '@lingui/react/macro'
 import { ReactNode } from 'react'
 
 const { Content } = Layout
@@ -8,6 +9,8 @@ interface MainLayoutProps {
 }
 
 export function MainLayout({ children }: MainLayoutProps) {
+  const { t } = useLingui()
+
   return (
     <Layout
       style={{
@@ -25,7 +28,7 @@ export function MainLayout({ children }: MainLayoutProps) {
           rel="noopener noreferrer"
           className="!text-gray-400 no-underline"
         >
-          Photo by Zetong Li
+          {t`Photo by Zetong Li`}
         </a>
       </div>
     </Layout>

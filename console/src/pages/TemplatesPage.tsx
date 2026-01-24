@@ -30,6 +30,7 @@ import { useAuth, useWorkspacePermissions } from '../contexts/AuthContext'
 import dayjs from '../lib/dayjs'
 import TemplatePreviewDrawer from '../components/templates/TemplatePreviewDrawer'
 import SendTemplateModal from '../components/templates/SendTemplateModal'
+import { useLingui } from '@lingui/react/macro'
 
 const { Title, Paragraph, Text } = Typography
 
@@ -49,6 +50,7 @@ interface TemplatesSearch {
 }
 
 export function TemplatesPage() {
+  const { t } = useLingui()
   const { workspaceId } = useParams({ from: '/console/workspace/$workspaceId/templates' })
   // Use useSearch to get query params
   const search = useSearch({ from: '/console/workspace/$workspaceId/templates' }) as TemplatesSearch
@@ -72,15 +74,15 @@ export function TemplatesPage() {
 
   // Backend categories + All
   const categories = [
-    { label: 'All', value: 'all' },
-    { label: 'Marketing', value: 'marketing' },
-    { label: 'Transactional', value: 'transactional' },
-    { label: 'Welcome', value: 'welcome' },
-    { label: 'Opt-in', value: 'opt_in' },
-    { label: 'Unsubscribe', value: 'unsubscribe' },
-    { label: 'Bounce', value: 'bounce' },
-    { label: 'Blocklist', value: 'blocklist' },
-    { label: 'Other', value: 'other' }
+    { label: t`All`, value: 'all' },
+    { label: t`Marketing`, value: 'marketing' },
+    { label: t`Transactional`, value: 'transactional' },
+    { label: t`Welcome`, value: 'welcome' },
+    { label: t`Opt-in`, value: 'opt_in' },
+    { label: t`Unsubscribe`, value: 'unsubscribe' },
+    { label: t`Bounce`, value: 'bounce' },
+    { label: t`Blocklist`, value: 'blocklist' },
+    { label: t`Other`, value: 'other' }
   ]
 
   // current workspace from workspaceId
@@ -112,13 +114,13 @@ export function TemplatesPage() {
   const deleteMutation = useMutation({
     mutationFn: templatesApi.delete,
     onSuccess: () => {
-      message.success('Template deleted successfully')
+      message.success(t`Template deleted successfully`)
       // Use selectedCategory from search params in invalidation
       queryClient.invalidateQueries({ queryKey: ['templates', workspaceId, selectedCategory] })
     },
     onError: (error: Error & { response?: { data?: { error?: string } } }) => {
       const errorMsg = error?.response?.data?.error || error.message
-      message.error(`Failed to delete template: ${errorMsg}`)
+      message.error(t`Failed to delete template: ${errorMsg}`)
     }
   })
 
@@ -142,12 +144,12 @@ export function TemplatesPage() {
   )
 
   if (!workspace) {
-    return <div>Loading...</div>
+    return <div>{t`Loading...`}</div>
   }
 
   const columns: TableColumnType<Template>[] = [
     {
-      title: 'Template',
+      title: t`Template`,
       dataIndex: 'name',
       key: 'name',
       render: (text: string, record: Template) => {
@@ -159,7 +161,7 @@ export function TemplatesPage() {
                 {getIntegrationIcon(integration.type)}
               </Tooltip>
             )}
-            <Tooltip title={'ID for API: ' + record.id}>
+            <Tooltip title={t`ID for API:` + ' ' + record.id}>
               <Text strong>{text}</Text>
             </Tooltip>
           </Space>
@@ -167,13 +169,13 @@ export function TemplatesPage() {
       }
     },
     {
-      title: 'Category',
+      title: t`Category`,
       dataIndex: 'category',
       key: 'category',
       render: (category: string) => renderCategoryTag(category)
     },
     {
-      title: 'Sender',
+      title: t`Sender`,
       key: 'sender',
       render: (_: unknown, record: Template) => {
         if (workspace && record.email?.sender_id) {
@@ -188,13 +190,13 @@ export function TemplatesPage() {
         }
         return (
           <Tag bordered={false} color="blue">
-            default
+            {t`default`}
           </Tag>
         )
       }
     },
     {
-      title: 'Subject',
+      title: t`Subject`,
       dataIndex: ['email', 'subject'],
       key: 'subject',
       render: (subject: string, record: Template) => (
@@ -211,7 +213,7 @@ export function TemplatesPage() {
       )
     },
     {
-      title: 'Created',
+      title: t`Created`,
       dataIndex: 'created_at',
       key: 'created_at',
       render: (date: string) => (
@@ -235,8 +237,8 @@ export function TemplatesPage() {
             <Tooltip
               title={
                 !permissions?.templates?.write
-                  ? "You don't have write permission for templates"
-                  : 'Edit Template'
+                  ? t`You don't have write permission for templates`
+                  : t`Edit Template`
               }
             >
               <div>
@@ -257,8 +259,8 @@ export function TemplatesPage() {
             <Tooltip
               title={
                 !permissions?.templates?.write
-                  ? "You don't have write permission for templates"
-                  : 'Clone Template'
+                  ? t`You don't have write permission for templates`
+                  : t`Clone Template`
               }
             >
               <div>
@@ -278,10 +280,10 @@ export function TemplatesPage() {
           <Tooltip
             title={
               record.integration_id
-                ? `This template is managed by an integration and cannot be deleted`
+                ? t`This template is managed by an integration and cannot be deleted`
                 : !permissions?.templates?.write
-                  ? "You don't have write permission for templates"
-                  : 'Delete Template'
+                  ? t`You don't have write permission for templates`
+                  : t`Delete Template`
             }
           >
             <Button
@@ -291,20 +293,18 @@ export function TemplatesPage() {
               disabled={!permissions?.templates?.write || !!record.integration_id}
               onClick={() => {
                 Modal.confirm({
-                  title: 'Delete template?',
+                  title: t`Delete template?`,
                   content: (
                     <div>
-                      <p>Are you sure you want to delete this template?</p>
+                      <p>{t`Are you sure you want to delete this template?`}</p>
                       <p className="mt-2 text-gray-600">
-                        Note: The template will be hidden from your workspace but preserved to
-                        maintain the ability to preview previously sent broadcasts and messages that
-                        used this template.
+                        {t`Note: The template will be hidden from your workspace but preserved to maintain the ability to preview previously sent broadcasts and messages that used this template.`}
                       </p>
                     </div>
                   ),
-                  okText: 'Yes, Delete',
+                  okText: t`Yes, Delete`,
                   okType: 'danger',
-                  cancelText: 'Cancel',
+                  cancelText: t`Cancel`,
                   onOk: () => handleDelete(record.id)
                 })
               }}
@@ -313,8 +313,8 @@ export function TemplatesPage() {
           <Tooltip
             title={
               !(permissions?.templates?.read && permissions?.contacts?.write)
-                ? 'You need read template and write contact permissions to send test emails'
-                : 'Send Test Email'
+                ? t`You need read template and write contact permissions to send test emails`
+                : t`Send Test Email`
             }
           >
             <Button
@@ -324,7 +324,7 @@ export function TemplatesPage() {
               disabled={!(permissions?.templates?.read && permissions?.contacts?.write)}
             />
           </Tooltip>
-          <Tooltip title="Preview Template">
+          <Tooltip title={t`Preview Template`}>
             <>
               <TemplatePreviewDrawer record={record} workspace={workspace}>
                 <Button
@@ -342,12 +342,12 @@ export function TemplatesPage() {
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
-        <div className="text-2xl font-medium">Templates</div>
+        <div className="text-2xl font-medium">{t`Templates`}</div>
         {workspace && data?.templates && data.templates.length > 0 && (
           <Tooltip
             title={
               !permissions?.templates?.write
-                ? "You don't have write permission for templates"
+                ? t`You don't have write permission for templates`
                 : undefined
             }
           >
@@ -388,9 +388,9 @@ export function TemplatesPage() {
           {selectedCategory === 'all' ? (
             <>
               <Title level={4} type="secondary">
-                No templates found
+                {t`No templates found`}
               </Title>
-              <Paragraph type="secondary">Create your first template to get started</Paragraph>
+              <Paragraph type="secondary">{t`Create your first template to get started`}</Paragraph>
               <div className="mt-4">
                 {workspace && (
                   <Tooltip
@@ -416,12 +416,12 @@ export function TemplatesPage() {
           ) : (
             <>
               <Title level={4} type="secondary">
-                No templates found for category "{selectedCategory}"
+                {t`No templates found for category "${selectedCategory}"`}
               </Title>
               <Paragraph type="secondary">
-                Try selecting a different category or{' '}
+                {t`Try selecting a different category or`}{' '}
                 <Button type="link" onClick={() => setSelectedCategory('all')} className="p-0">
-                  reset the filter
+                  {t`reset the filter`}
                 </Button>
                 .
               </Paragraph>

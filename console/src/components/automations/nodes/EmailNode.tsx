@@ -1,6 +1,7 @@
 import React from 'react'
 import { Handle, Position, useConnection, type NodeProps } from '@xyflow/react'
 import { Mail } from 'lucide-react'
+import { useLingui } from '@lingui/react/macro'
 import { BaseNode } from './BaseNode'
 import { nodeTypeColors } from './constants'
 import { useAutomation } from '../context'
@@ -10,10 +11,11 @@ import type { EmailNodeConfig } from '../../../services/api/automation'
 type EmailNodeProps = NodeProps<AutomationNodeData>
 
 export const EmailNode: React.FC<EmailNodeProps> = ({ data, selected }) => {
+  const { t } = useLingui()
   const { templates } = useAutomation()
   const config = data.config as EmailNodeConfig
   const hasTemplate = !!config?.template_id
-  const templateName = config?.template_id ? templates.find(t => t.id === config.template_id)?.name : undefined
+  const templateName = config?.template_id ? templates.find(tmpl => tmpl.id === config.template_id)?.name : undefined
   const connection = useConnection()
   const isConnecting = connection.inProgress
   const targetHandleSize = isConnecting ? 16 : 10
@@ -34,16 +36,16 @@ export const EmailNode: React.FC<EmailNodeProps> = ({ data, selected }) => {
       />
       <BaseNode
         type="email"
-        label="Email"
+        label={t`Email`}
         icon={<Mail size={16} color={selected ? undefined : nodeTypeColors.email} />}
         selected={selected}
         isOrphan={data.isOrphan}
         onDelete={data.onDelete}
       >
         {hasTemplate ? (
-          <div>{templateName || 'Template set'}</div>
+          <div>{templateName || t`Template set`}</div>
         ) : (
-          <div className="text-orange-500">Select</div>
+          <div className="text-orange-500">{t`Select`}</div>
         )}
       </BaseNode>
       <Handle

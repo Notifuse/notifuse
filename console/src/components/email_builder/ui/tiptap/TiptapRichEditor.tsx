@@ -1,5 +1,6 @@
 import React, { useEffect, useCallback, useRef } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
+import { useLingui } from '@lingui/react/macro'
 import type { TiptapRichEditorProps } from './shared/types'
 import { createRichExtensions } from './shared/extensions'
 import { injectTiptapStyles } from './shared/styles'
@@ -10,12 +11,14 @@ export const TiptapRichEditor: React.FC<TiptapRichEditorProps> = ({
   content = '',
   onChange,
   readOnly = false,
-  placeholder = 'Start writing...',
+  placeholder,
   autoFocus = false,
   buttons,
   containerStyle
 }) => {
+  const { t } = useLingui()
   const isUpdatingFromProps = useRef(false)
+  const resolvedPlaceholder = placeholder || t`Start writing...`
 
   // Inject CSS styles
   useEffect(() => {
@@ -39,7 +42,7 @@ export const TiptapRichEditor: React.FC<TiptapRichEditorProps> = ({
       editable: !readOnly,
       editorProps: {
         attributes: {
-          'data-placeholder': placeholder
+          'data-placeholder': resolvedPlaceholder
         }
       },
       onUpdate: ({ editor }) => {
@@ -47,7 +50,7 @@ export const TiptapRichEditor: React.FC<TiptapRichEditorProps> = ({
         handleContentChange(htmlContent)
       }
     },
-    [handleContentChange, readOnly, placeholder]
+    [handleContentChange, readOnly, resolvedPlaceholder]
   )
 
   // Update content when prop changes (but avoid loops)

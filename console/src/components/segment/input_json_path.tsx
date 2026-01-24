@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Tag, Input, Space, Tooltip, Button } from 'antd'
 import { PlusOutlined } from '@ant-design/icons'
+import { useLingui } from '@lingui/react/macro'
 
 interface JSONPathInputProps {
   value?: string[] // Array of path segments (keys or numeric indices)
@@ -8,6 +9,7 @@ interface JSONPathInputProps {
 }
 
 export function JSONPathInput(props: JSONPathInputProps) {
+  const { t } = useLingui()
   const [inputValue, setInputValue] = useState('')
   const [inputVisible, setInputVisible] = useState(false)
 
@@ -49,7 +51,7 @@ export function JSONPathInput(props: JSONPathInputProps) {
       {path.map((segment, index) => {
         const isIndex = isNumeric(segment)
         const tagColor = isIndex ? 'purple' : 'cyan'
-        const tooltip = isIndex ? `Array index: ${segment}` : `Object key: ${segment}`
+        const tooltip = isIndex ? t`Array index: ${segment}` : t`Object key: ${segment}`
 
         return (
           <Tooltip key={index} title={tooltip}>
@@ -83,7 +85,7 @@ export function JSONPathInput(props: JSONPathInputProps) {
           onChange={(e) => setInputValue(e.target.value)}
           onBlur={handleAddSegment}
           onKeyDown={handleInputKeyDown}
-          placeholder="key or index"
+          placeholder={t`key or index`}
           autoFocus
           suffix={
             <Button
@@ -93,7 +95,7 @@ export function JSONPathInput(props: JSONPathInputProps) {
               disabled={!inputValue.trim()}
               style={{ paddingLeft: 4, paddingRight: 4, height: 22, lineHeight: 1 }}
             >
-              Add
+              {t`Add`}
             </Button>
           }
         />
@@ -105,7 +107,7 @@ export function JSONPathInput(props: JSONPathInputProps) {
           onClick={() => setInputVisible(true)}
           icon={<PlusOutlined />}
         >
-          Add path
+          {t`Add path`}
         </Button>
       )}
     </Space>

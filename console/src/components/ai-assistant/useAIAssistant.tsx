@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { Search, Globe } from 'lucide-react'
+import { useLingui } from '@lingui/react/macro'
 import { llmApi, LLMChatEvent, LLMMessage } from '../../services/api/llm'
 import type {
   ChatMessage,
@@ -16,6 +17,7 @@ const SERVER_TOOLS = {
 
 export function useAIAssistant(options: UseAIAssistantOptions): UseAIAssistantReturn {
   const { workspace, config, tools, toolHandlers, buildSystemPrompt } = options
+  const { t } = useLingui()
 
   const [open, setOpen] = useState(false)
   const [messages, setMessages] = useState<ChatMessage[]>([])
@@ -42,7 +44,7 @@ export function useAIAssistant(options: UseAIAssistantOptions): UseAIAssistantRe
     setIsStreaming(false)
     setMessages((prev) =>
       prev
-        .map((m) => (m.loading ? { ...m, loading: false, content: m.content || '(Cancelled)' } : m))
+        .map((m) => (m.loading ? { ...m, loading: false, content: m.content || t`(Cancelled)` } : m))
         .filter((m) => m.content.trim())
     )
   }
@@ -92,11 +94,11 @@ export function useAIAssistant(options: UseAIAssistantOptions): UseAIAssistantRe
 
   const handleServerToolStart = (event: LLMChatEvent, assistantKey: string) => {
     const toolInput = event.tool_input || {}
-    let displayText = `Using ${event.tool_name}...`
+    let displayText = t`Using ${event.tool_name}...`
     if (event.tool_name === SERVER_TOOLS.SCRAPE_URL && toolInput.url) {
-      displayText = `Fetching: ${toolInput.url}`
+      displayText = t`Fetching: ${toolInput.url}`
     } else if (event.tool_name === SERVER_TOOLS.SEARCH_WEB && toolInput.query) {
-      displayText = `Searching: "${toolInput.query}"`
+      displayText = t`Searching: "${toolInput.query}"`
     }
     insertToolMessage(assistantKey, displayText, event.tool_name || '', true)
   }
@@ -110,7 +112,7 @@ export function useAIAssistant(options: UseAIAssistantOptions): UseAIAssistantRe
       const actualIndex = prev.length - 1 - lastToolIndex
       const currentMessage = prev[actualIndex]
       let statusText = currentMessage.content.replace('...', '')
-      statusText += event.error ? ' - Failed' : ' - Done'
+      statusText += event.error ? t` - Failed` : t` - Done`
       return prev.map((m, i) =>
         i === actualIndex ? { ...m, content: statusText, loading: false } : m
       )
@@ -132,7 +134,7 @@ export function useAIAssistant(options: UseAIAssistantOptions): UseAIAssistantRe
   const handleErrorEvent = (event: LLMChatEvent, assistantKey: string) => {
     setMessages((prev) =>
       prev.map((m) =>
-        m.key === assistantKey ? { ...m, content: `Error: ${event.error}`, loading: false } : m
+        m.key === assistantKey ? { ...m, content: t`Error: ${event.error}`, loading: false } : m
       )
     )
     setIsStreaming(false)

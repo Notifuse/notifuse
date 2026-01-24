@@ -1,4 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useLingui } from '@lingui/react/macro'
 import { Typography, Space, Button, Select, Input, Popover, Tooltip, Radio } from 'antd'
 import { listMessages, MessageHistory } from '../../services/api/messages_history'
 import { useAuth } from '../../contexts/AuthContext'
@@ -43,141 +44,25 @@ interface FilterOption {
   options?: { value: string; label: string }[]
 }
 
-// Define status filter fields (first line)
-const statusFilterOptions: FilterOption[] = [
-  {
-    key: 'is_sent',
-    label: (
-      <Tooltip title="Sent">
-        <FontAwesomeIcon className="!mr-1 opacity-70 text-blue-500" icon={faPaperPlane} /> Sent
-      </Tooltip>
-    ),
-    options: [
-      { value: 'true', label: 'Yes' },
-      { value: 'false', label: 'No' }
-    ]
-  },
-  {
-    key: 'is_delivered',
-    label: (
-      <Tooltip title="Delivered">
-        <FontAwesomeIcon className="!mr-1 opacity-70 text-green-500" icon={faCircleCheck} />{' '}
-        Delivered
-      </Tooltip>
-    ),
-    options: [
-      { value: 'true', label: 'Yes' },
-      { value: 'false', label: 'No' }
-    ]
-  },
-  {
-    key: 'is_failed',
-    label: (
-      <Tooltip title="Failed">
-        <FontAwesomeIcon className="!mr-1 opacity-70 text-red-500" icon={faCircleXmark} /> Failed
-      </Tooltip>
-    ),
-    options: [
-      { value: 'true', label: 'Yes' },
-      { value: 'false', label: 'No' }
-    ]
-  },
-  {
-    key: 'is_opened',
-    label: (
-      <Tooltip title="Opened">
-        <FontAwesomeIcon className="!mr-1 opacity-70 text-purple-500" icon={faEye} /> Opened
-      </Tooltip>
-    ),
-    options: [
-      { value: 'true', label: 'Yes' },
-      { value: 'false', label: 'No' }
-    ]
-  },
-  {
-    key: 'is_clicked',
-    label: (
-      <Tooltip title="Clicked">
-        <FontAwesomeIcon className="!mr-1 opacity-70 text-blue-500" icon={faHandPointer} /> Clicked
-      </Tooltip>
-    ),
-    options: [
-      { value: 'true', label: 'Yes' },
-      { value: 'false', label: 'No' }
-    ]
-  },
-  {
-    key: 'is_bounced',
-    label: (
-      <Tooltip title="Bounced">
-        <FontAwesomeIcon
-          className="!mr-1 opacity-70 text-orange-500"
-          icon={faTriangleExclamation}
-        />{' '}
-        Bounced
-      </Tooltip>
-    ),
-    options: [
-      { value: 'true', label: 'Yes' },
-      { value: 'false', label: 'No' }
-    ]
-  },
-  {
-    key: 'is_complained',
-    label: (
-      <Tooltip title="Complained">
-        <FontAwesomeIcon className="!mr-1 opacity-70 text-red-500" icon={faBan} /> Complained
-      </Tooltip>
-    ),
-    options: [
-      { value: 'true', label: 'Yes' },
-      { value: 'false', label: 'No' }
-    ]
-  },
-  {
-    key: 'is_unsubscribed',
-    label: (
-      <Tooltip title="Unsubscribed">
-        <FontAwesomeIcon className="!mr-1 opacity-70 text-red-500" icon={faArrowRightFromBracket} />{' '}
-        Unsubscribed
-      </Tooltip>
-    ),
-    options: [
-      { value: 'true', label: 'Yes' },
-      { value: 'false', label: 'No' }
-    ]
-  }
+// Filter keys for URL parsing (defined outside component)
+const filterKeys = [
+  'is_sent',
+  'is_delivered',
+  'is_failed',
+  'is_opened',
+  'is_clicked',
+  'is_bounced',
+  'is_complained',
+  'is_unsubscribed',
+  'channel',
+  'contact_email',
+  'id',
+  'external_id',
+  'list_id',
+  'template_id',
+  'broadcast_id',
+  'has_error'
 ]
-
-// Define other filter fields (second line)
-const otherFilterOptions: FilterOption[] = [
-  {
-    key: 'channel',
-    label: 'Channel',
-    options: [
-      { value: 'email', label: 'Email' },
-      { value: 'sms', label: 'SMS' },
-      { value: 'push', label: 'Push' }
-    ]
-  },
-  { key: 'contact_email', label: 'Contact Email' },
-  { key: 'id', label: 'Message ID' },
-  { key: 'external_id', label: 'External ID' },
-  { key: 'list_id', label: 'List ID' },
-  { key: 'template_id', label: 'Template ID' },
-  { key: 'broadcast_id', label: 'Broadcast ID' },
-  {
-    key: 'has_error',
-    label: 'Has Error',
-    options: [
-      { value: 'true', label: 'With Errors' },
-      { value: 'false', label: 'No Errors' }
-    ]
-  }
-]
-
-// Combined filter options for lookups
-const filterOptions: FilterOption[] = [...statusFilterOptions, ...otherFilterOptions]
 
 // Simple filter interface
 interface Filter {
@@ -191,6 +76,7 @@ interface MessageHistoryTabProps {
 }
 
 export const MessageHistoryTab: React.FC<MessageHistoryTabProps> = ({ workspaceId }) => {
+  const { t } = useLingui()
   const { workspaces } = useAuth()
   const [currentCursor, setCurrentCursor] = useState<string | undefined>(undefined)
   const [allMessages, setAllMessages] = useState<MessageHistory[]>([])
@@ -205,6 +91,159 @@ export const MessageHistoryTab: React.FC<MessageHistoryTabProps> = ({ workspaceI
   // State for column visibility
   const [visibleColumns, setVisibleColumns] =
     useState<Record<string, boolean>>(DEFAULT_VISIBLE_COLUMNS)
+
+  // Define status filter fields (first line)
+  const statusFilterOptions: FilterOption[] = useMemo(
+    () => [
+      {
+        key: 'is_sent',
+        label: (
+          <Tooltip title={t`Sent`}>
+            <FontAwesomeIcon className="!mr-1 opacity-70 text-blue-500" icon={faPaperPlane} />{' '}
+            {t`Sent`}
+          </Tooltip>
+        ),
+        options: [
+          { value: 'true', label: t`Yes` },
+          { value: 'false', label: t`No` }
+        ]
+      },
+      {
+        key: 'is_delivered',
+        label: (
+          <Tooltip title={t`Delivered`}>
+            <FontAwesomeIcon className="!mr-1 opacity-70 text-green-500" icon={faCircleCheck} />{' '}
+            {t`Delivered`}
+          </Tooltip>
+        ),
+        options: [
+          { value: 'true', label: t`Yes` },
+          { value: 'false', label: t`No` }
+        ]
+      },
+      {
+        key: 'is_failed',
+        label: (
+          <Tooltip title={t`Failed`}>
+            <FontAwesomeIcon className="!mr-1 opacity-70 text-red-500" icon={faCircleXmark} />{' '}
+            {t`Failed`}
+          </Tooltip>
+        ),
+        options: [
+          { value: 'true', label: t`Yes` },
+          { value: 'false', label: t`No` }
+        ]
+      },
+      {
+        key: 'is_opened',
+        label: (
+          <Tooltip title={t`Opened`}>
+            <FontAwesomeIcon className="!mr-1 opacity-70 text-purple-500" icon={faEye} />{' '}
+            {t`Opened`}
+          </Tooltip>
+        ),
+        options: [
+          { value: 'true', label: t`Yes` },
+          { value: 'false', label: t`No` }
+        ]
+      },
+      {
+        key: 'is_clicked',
+        label: (
+          <Tooltip title={t`Clicked`}>
+            <FontAwesomeIcon className="!mr-1 opacity-70 text-blue-500" icon={faHandPointer} />{' '}
+            {t`Clicked`}
+          </Tooltip>
+        ),
+        options: [
+          { value: 'true', label: t`Yes` },
+          { value: 'false', label: t`No` }
+        ]
+      },
+      {
+        key: 'is_bounced',
+        label: (
+          <Tooltip title={t`Bounced`}>
+            <FontAwesomeIcon
+              className="!mr-1 opacity-70 text-orange-500"
+              icon={faTriangleExclamation}
+            />{' '}
+            {t`Bounced`}
+          </Tooltip>
+        ),
+        options: [
+          { value: 'true', label: t`Yes` },
+          { value: 'false', label: t`No` }
+        ]
+      },
+      {
+        key: 'is_complained',
+        label: (
+          <Tooltip title={t`Complained`}>
+            <FontAwesomeIcon className="!mr-1 opacity-70 text-red-500" icon={faBan} />{' '}
+            {t`Complained`}
+          </Tooltip>
+        ),
+        options: [
+          { value: 'true', label: t`Yes` },
+          { value: 'false', label: t`No` }
+        ]
+      },
+      {
+        key: 'is_unsubscribed',
+        label: (
+          <Tooltip title={t`Unsubscribed`}>
+            <FontAwesomeIcon
+              className="!mr-1 opacity-70 text-red-500"
+              icon={faArrowRightFromBracket}
+            />{' '}
+            {t`Unsubscribed`}
+          </Tooltip>
+        ),
+        options: [
+          { value: 'true', label: t`Yes` },
+          { value: 'false', label: t`No` }
+        ]
+      }
+    ],
+    [t]
+  )
+
+  // Define other filter fields (second line)
+  const otherFilterOptions: FilterOption[] = useMemo(
+    () => [
+      {
+        key: 'channel',
+        label: t`Channel`,
+        options: [
+          { value: 'email', label: t`Email` },
+          { value: 'sms', label: t`SMS` },
+          { value: 'push', label: t`Push` }
+        ]
+      },
+      { key: 'contact_email', label: t`Contact Email` },
+      { key: 'id', label: t`Message ID` },
+      { key: 'external_id', label: t`External ID` },
+      { key: 'list_id', label: t`List ID` },
+      { key: 'template_id', label: t`Template ID` },
+      { key: 'broadcast_id', label: t`Broadcast ID` },
+      {
+        key: 'has_error',
+        label: t`Has Error`,
+        options: [
+          { value: 'true', label: t`With Errors` },
+          { value: 'false', label: t`No Errors` }
+        ]
+      }
+    ],
+    [t]
+  )
+
+  // Combined filter options for lookups
+  const filterOptions: FilterOption[] = useMemo(
+    () => [...statusFilterOptions, ...otherFilterOptions],
+    [statusFilterOptions, otherFilterOptions]
+  )
 
   // Fetch broadcasts for the workspace
   const { data: broadcastsData } = useQuery({
@@ -305,11 +344,11 @@ export const MessageHistoryTab: React.FC<MessageHistoryTabProps> = ({ workspaceI
     const searchParams = new URLSearchParams(window.location.search)
     const initialFilters: Filter[] = []
 
-    filterOptions.forEach((option) => {
-      const value = searchParams.get(option.key)
+    filterKeys.forEach((key) => {
+      const value = searchParams.get(key)
       if (value) {
         initialFilters.push({
-          field: option.key,
+          field: key,
           value,
           label: '' // Convert ReactNode to string
         })
@@ -506,12 +545,12 @@ export const MessageHistoryTab: React.FC<MessageHistoryTabProps> = ({ workspaceI
                   style={{ flex: 1 }}
                   onClick={() => applyFilter(option.key, tempFilterValues[option.key] || '')}
                 >
-                  Apply
+                  {t`Apply`}
                 </Button>
 
                 {isActive && (
                   <Button danger size="small" onClick={() => clearFilter(option.key)}>
-                    Clear
+                    {t`Clear`}
                   </Button>
                 )}
               </div>
@@ -538,18 +577,18 @@ export const MessageHistoryTab: React.FC<MessageHistoryTabProps> = ({ workspaceI
       <div className="flex flex-col gap-2">
         {/* First line: Status filters */}
         <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-gray-600">Status:</span>
+          <span className="text-sm font-medium text-gray-600">{t`Status`}:</span>
           <Space wrap>{renderFilterGroup(statusFilterOptions)}</Space>
         </div>
 
         {/* Second line: Other filters */}
         <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-gray-600">Filters:</span>
+          <span className="text-sm font-medium text-gray-600">{t`Filters`}:</span>
           <Space wrap>
             {renderFilterGroup(otherFilterOptions)}
             {activeFilters.length > 0 && (
               <Button size="small" onClick={clearAllFilters}>
-                Clear All
+                {t`Clear All`}
               </Button>
             )}
           </Space>
@@ -561,14 +600,14 @@ export const MessageHistoryTab: React.FC<MessageHistoryTabProps> = ({ workspaceI
   if (error) {
     return (
       <div>
-        <Title level={4}>Error loading data</Title>
+        <Title level={4}>{t`Error loading data`}</Title>
         <Text type="danger">{(error as Error)?.message}</Text>
       </div>
     )
   }
 
   if (!currentWorkspace) {
-    return <div>Loading...</div>
+    return <div>{t`Loading...`}</div>
   }
 
   return (

@@ -1,6 +1,7 @@
 import React from 'react'
 import { Handle, Position, useConnection, type NodeProps } from '@xyflow/react'
 import { Filter } from 'lucide-react'
+import { useLingui } from '@lingui/react/macro'
 import { BaseNode } from './BaseNode'
 import { nodeTypeColors } from './constants'
 import type { AutomationNodeData } from '../utils/flowConverter'
@@ -9,6 +10,7 @@ import type { FilterNodeConfig } from '../../../services/api/automation'
 type FilterNodeProps = NodeProps<AutomationNodeData>
 
 export const FilterNode: React.FC<FilterNodeProps> = ({ data, selected }) => {
+  const { t } = useLingui()
   const config = data.config as FilterNodeConfig
   const hasConditions = config?.conditions !== undefined
 
@@ -43,7 +45,7 @@ export const FilterNode: React.FC<FilterNodeProps> = ({ data, selected }) => {
       />
       <BaseNode
         type="filter"
-        label="Filter"
+        label={t`Filter`}
         icon={
           <Filter
             size={14}
@@ -55,13 +57,13 @@ export const FilterNode: React.FC<FilterNodeProps> = ({ data, selected }) => {
         onDelete={data.onDelete}
       >
         {!hasConditions ? (
-          <div className="text-orange-500 text-xs">No conditions</div>
+          <div className="text-orange-500 text-xs">{t`No conditions`}</div>
         ) : (
           <div
             className="text-xs text-gray-600 truncate max-w-[180px]"
             title={
               config.description
-                ? `${config.description} (${conditionCount} condition${conditionCount !== 1 ? 's' : ''})`
+                ? `${config.description} (${conditionCount} ${conditionCount !== 1 ? t`conditions` : t`condition`})`
                 : undefined
             }
           >
@@ -71,14 +73,14 @@ export const FilterNode: React.FC<FilterNodeProps> = ({ data, selected }) => {
                 <span className="text-gray-400 ml-1">({conditionCount})</span>
               </>
             ) : (
-              `${conditionCount} condition${conditionCount !== 1 ? 's' : ''}`
+              `${conditionCount} ${conditionCount !== 1 ? t`conditions` : t`condition`}`
             )}
           </div>
         )}
         {/* Yes/No labels for handles */}
         <div className="flex justify-between text-xs mt-2 px-4">
-          <span className="text-green-600 font-medium">Yes</span>
-          <span className="text-red-500 font-medium">No</span>
+          <span className="text-green-600 font-medium">{t`Yes`}</span>
+          <span className="text-red-500 font-medium">{t`No`}</span>
         </div>
       </BaseNode>
       {/* Two fixed source handles: continue (Yes) and exit (No) */}

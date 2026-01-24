@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useLingui } from '@lingui/react/macro'
 import { Table, Button, Space, Tooltip, App, Empty, Badge } from 'antd'
 import {
   EditOutlined,
@@ -27,6 +28,7 @@ interface RecentThemesTableProps {
 }
 
 export function RecentThemesTable({ workspaceId, workspace }: RecentThemesTableProps) {
+  const { t } = useLingui()
   const { message, modal } = App.useApp()
   const queryClient = useQueryClient()
   const [limit, setLimit] = useState(3)
@@ -49,11 +51,11 @@ export function RecentThemesTable({ workspaceId, workspace }: RecentThemesTableP
   const publishMutation = useMutation({
     mutationFn: (version: number) => blogThemesApi.publish(workspaceId, { version }),
     onSuccess: () => {
-      message.success('Theme published successfully')
+      message.success(t`Theme published successfully`)
       queryClient.invalidateQueries({ queryKey: ['blog-themes', workspaceId] })
     },
     onError: (error: Error) => {
-      message.error(error?.message || 'Failed to publish theme')
+      message.error(error?.message || t`Failed to publish theme`)
     }
   })
 
@@ -72,7 +74,7 @@ export function RecentThemesTable({ workspaceId, workspace }: RecentThemesTableP
 
   const handlePreview = (theme: BlogTheme) => {
     if (!workspace?.settings?.custom_endpoint_url) {
-      message.warning('Blog custom endpoint URL is not configured')
+      message.warning(t`Blog custom endpoint URL is not configured`)
       return
     }
 
@@ -83,22 +85,21 @@ export function RecentThemesTable({ workspaceId, workspace }: RecentThemesTableP
 
   const handlePublish = (theme: BlogTheme) => {
     modal.confirm({
-      title: 'Publish Theme',
+      title: t`Publish Theme`,
       icon: <ExclamationCircleOutlined />,
       content: (
         <div>
           <p>
-            Are you sure you want to publish theme v{theme.version}? This will make it live on your
-            blog.
+            {t`Are you sure you want to publish theme v${theme.version}? This will make it live on your blog.`}
           </p>
           <p style={{ marginTop: 8, color: '#8c8c8c' }}>
-            The currently published theme will be unpublished automatically.
+            {t`The currently published theme will be unpublished automatically.`}
           </p>
         </div>
       ),
-      okText: 'Publish',
+      okText: t`Publish`,
       okType: 'primary',
-      cancelText: 'Cancel',
+      cancelText: t`Cancel`,
       onOk: () => publishMutation.mutate(theme.version)
     })
   }
@@ -109,7 +110,7 @@ export function RecentThemesTable({ workspaceId, workspace }: RecentThemesTableP
 
   const columns = [
     {
-      title: 'Version',
+      title: t`Version`,
       dataIndex: 'version',
       key: 'version',
       width: 60,
@@ -118,20 +119,20 @@ export function RecentThemesTable({ workspaceId, workspace }: RecentThemesTableP
       }
     },
     {
-      title: 'Status',
+      title: t`Status`,
       key: 'status',
       width: 140,
       render: (record: BlogTheme) => {
         const isPublished = record.published_at !== null && record.published_at !== undefined
         if (isPublished) {
-          return <Badge status="success" text="Live" />
+          return <Badge status="success" text={t`Live`} />
         }
         // Find the most recent version (highest version number)
         const mostRecentVersion =
           themes.length > 0 ? Math.max(...themes.map((t) => t.version)) : record.version
         const isMostRecent = record.version === mostRecentVersion
         return (
-          <Tooltip title="Publish this theme">
+          <Tooltip title={t`Publish this theme`}>
             <Button
               type="primary"
               size="small"
@@ -140,19 +141,19 @@ export function RecentThemesTable({ workspaceId, workspace }: RecentThemesTableP
               onClick={() => handlePublish(record)}
               loading={publishMutation.isPending}
             >
-              Publish
+              {t`Publish`}
             </Button>
           </Tooltip>
         )
       }
     },
     {
-      title: 'Notes',
+      title: t`Notes`,
       dataIndex: 'notes',
       key: 'notes',
       ellipsis: true,
       render: (notes: string) => {
-        if (!notes) return <span style={{ color: '#8c8c8c' }}>No notes</span>
+        if (!notes) return <span style={{ color: '#8c8c8c' }}>{t`No notes`}</span>
         return (
           <Tooltip title={notes}>
             <span>{notes}</span>
@@ -161,7 +162,7 @@ export function RecentThemesTable({ workspaceId, workspace }: RecentThemesTableP
       }
     },
     {
-      title: 'Last Edited',
+      title: t`Last Edited`,
       dataIndex: 'updated_at',
       key: 'updated_at',
       width: 160,
@@ -175,14 +176,14 @@ export function RecentThemesTable({ workspaceId, workspace }: RecentThemesTableP
       }
     },
     {
-      title: 'Actions',
+      title: t`Actions`,
       key: 'actions',
       width: 120,
       align: 'right' as const,
       render: (record: BlogTheme) => {
         return (
           <Space size="small">
-            <Tooltip title="Edit theme">
+            <Tooltip title={t`Edit theme`}>
               <Button
                 type="text"
                 size="small"
@@ -190,7 +191,7 @@ export function RecentThemesTable({ workspaceId, workspace }: RecentThemesTableP
                 onClick={() => handleEdit(record)}
               />
             </Tooltip>
-            <Tooltip title="Preview this theme in a new tab">
+            <Tooltip title={t`Preview this theme in a new tab`}>
               <Button
                 type="text"
                 size="small"
@@ -207,9 +208,9 @@ export function RecentThemesTable({ workspaceId, workspace }: RecentThemesTableP
   if (themes.length === 0 && !isLoading) {
     return (
       <div style={{ marginTop: 24 }}>
-        <Empty description="No themes yet" image={Empty.PRESENTED_IMAGE_SIMPLE}>
+        <Empty description={t`No themes yet`} image={Empty.PRESENTED_IMAGE_SIMPLE}>
           <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
-            Create First Theme
+            {t`Create First Theme`}
           </Button>
         </Empty>
 
@@ -238,14 +239,14 @@ export function RecentThemesTable({ workspaceId, workspace }: RecentThemesTableP
           marginBottom: 16
         }}
       >
-        <h3 style={{ margin: 0 }}>Theme Versions</h3>
+        <h3 style={{ margin: 0 }}>{t`Theme Versions`}</h3>
         <Button
           type="primary"
           ghost={hasPublishedTheme}
           icon={<PlusOutlined />}
           onClick={handleCreate}
         >
-          New Theme
+          {t`New Theme`}
         </Button>
       </div>
 
@@ -260,7 +261,7 @@ export function RecentThemesTable({ workspaceId, workspace }: RecentThemesTableP
 
       {hasMore && (
         <div style={{ textAlign: 'center', marginTop: 16 }}>
-          <Button onClick={handleLoadMore}>Show More ({totalCount - limit} remaining)</Button>
+          <Button onClick={handleLoadMore}>{t`Show More (${totalCount - limit} remaining)`}</Button>
         </div>
       )}
 

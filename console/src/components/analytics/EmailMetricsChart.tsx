@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Segmented, Alert, Row, Col, Statistic, Space, Tooltip, Spin, Card } from 'antd'
+import { useLingui } from '@lingui/react/macro'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faPaperPlane,
@@ -26,6 +27,7 @@ export const EmailMetricsChart: React.FC<EmailMetricsChartProps> = ({
   timeRange = ['2024-01-01', '2024-12-31'],
   timezone
 }) => {
+  const { t } = useLingui()
   const [messageTypeFilter, setMessageTypeFilter] = useState<MessageTypeFilter>('all')
   const [data, setData] = useState<AnalyticsResponse | null>(null)
   const [statsData, setStatsData] = useState<AnalyticsResponse | null>(null)
@@ -159,7 +161,7 @@ export const EmailMetricsChart: React.FC<EmailMetricsChartProps> = ({
       setStatsData(statsResponse)
     } catch (err) {
       console.error('Failed to fetch email metrics:', err)
-      setError(err instanceof Error ? err.message : 'Failed to fetch email metrics')
+      setError(err instanceof Error ? err.message : t`Failed to fetch email metrics`)
     } finally {
       setLoading(false)
       setStatsLoading(false)
@@ -261,27 +263,27 @@ export const EmailMetricsChart: React.FC<EmailMetricsChartProps> = ({
 
   // Define measure titles for tooltip display
   const measureTitles = {
-    count_sent: 'Sent',
-    count_delivered: 'Delivered',
-    count_opened: 'Opens',
-    count_clicked: 'Clicks',
-    count_bounced: 'Bounced',
-    count_complained: 'Complaints',
-    count_unsubscribed: 'Unsubscribes',
-    count_failed: 'Failed'
+    count_sent: t`Sent`,
+    count_delivered: t`Delivered`,
+    count_opened: t`Opens`,
+    count_clicked: t`Clicks`,
+    count_bounced: t`Bounced`,
+    count_complained: t`Complaints`,
+    count_unsubscribed: t`Unsubscribes`,
+    count_failed: t`Failed`
   }
 
   return (
     <Card
-      title="Email Metrics"
+      title={t`Email Metrics`}
       extra={
         <Segmented
           value={messageTypeFilter}
           onChange={handleFilterChange}
           options={[
-            { label: 'All', value: 'all' },
-            { label: 'Broadcasts', value: 'broadcasts' },
-            { label: 'Transactional', value: 'transactional' }
+            { label: t`All`, value: 'all' },
+            { label: t`Broadcasts`, value: 'broadcasts' },
+            { label: t`Transactional`, value: 'transactional' }
           ]}
         />
       }
@@ -289,7 +291,7 @@ export const EmailMetricsChart: React.FC<EmailMetricsChartProps> = ({
       {/* Error Alert */}
       {error && (
         <Alert
-          message="Error"
+          message={t`Error`}
           description={error}
           type="error"
           showIcon
@@ -301,7 +303,7 @@ export const EmailMetricsChart: React.FC<EmailMetricsChartProps> = ({
       <Row gutter={[16, 16]} wrap className="flex-nowrap overflow-x-auto">
         <Col span={3}>
           <Tooltip
-            title={`${stats.count_sent} total emails sent${!visibleLines.count_sent ? ' (hidden from chart)' : ''}`}
+            title={!visibleLines.count_sent ? t`${stats.count_sent} total emails sent (hidden from chart)` : t`${stats.count_sent} total emails sent`}
           >
             <div
               className="p-2 cursor-pointer hover:bg-gray-50 rounded transition-colors"
@@ -316,7 +318,7 @@ export const EmailMetricsChart: React.FC<EmailMetricsChartProps> = ({
                       style={{ opacity: 0.7 }}
                       className="text-blue-500"
                     />{' '}
-                    Sent
+                    {t`Sent`}
                   </Space>
                 }
                 value={stats.count_sent}
@@ -328,7 +330,7 @@ export const EmailMetricsChart: React.FC<EmailMetricsChartProps> = ({
         </Col>
         <Col span={3}>
           <Tooltip
-            title={`${stats.count_delivered} emails successfully delivered${!visibleLines.count_delivered ? ' (hidden from chart)' : ''}`}
+            title={!visibleLines.count_delivered ? t`${stats.count_delivered} emails successfully delivered (hidden from chart)` : t`${stats.count_delivered} emails successfully delivered`}
           >
             <div
               className="p-2 cursor-pointer hover:bg-gray-50 rounded transition-colors"
@@ -343,7 +345,7 @@ export const EmailMetricsChart: React.FC<EmailMetricsChartProps> = ({
                       style={{ opacity: 0.7 }}
                       className="text-green-500"
                     />{' '}
-                    Delivered
+                    {t`Delivered`}
                   </Space>
                 }
                 value={getRate(stats.count_delivered, stats.count_sent)}
@@ -355,7 +357,7 @@ export const EmailMetricsChart: React.FC<EmailMetricsChartProps> = ({
         </Col>
         <Col span={3}>
           <Tooltip
-            title={`${stats.count_opened} total opens${!visibleLines.count_opened ? ' (hidden from chart)' : ''}`}
+            title={!visibleLines.count_opened ? t`${stats.count_opened} total opens (hidden from chart)` : t`${stats.count_opened} total opens`}
           >
             <div
               className="p-2 cursor-pointer hover:bg-gray-50 rounded transition-colors"
@@ -370,7 +372,7 @@ export const EmailMetricsChart: React.FC<EmailMetricsChartProps> = ({
                       style={{ opacity: 0.7 }}
                       className="text-purple-500"
                     />{' '}
-                    Opens
+                    {t`Opens`}
                   </Space>
                 }
                 value={getRate(stats.count_opened, stats.count_sent)}
@@ -382,7 +384,7 @@ export const EmailMetricsChart: React.FC<EmailMetricsChartProps> = ({
         </Col>
         <Col span={3}>
           <Tooltip
-            title={`${stats.count_clicked} total clicks${!visibleLines.count_clicked ? ' (hidden from chart)' : ''}`}
+            title={!visibleLines.count_clicked ? t`${stats.count_clicked} total clicks (hidden from chart)` : t`${stats.count_clicked} total clicks`}
           >
             <div
               className="p-2 cursor-pointer hover:bg-gray-50 rounded transition-colors"
@@ -397,7 +399,7 @@ export const EmailMetricsChart: React.FC<EmailMetricsChartProps> = ({
                       style={{ opacity: 0.7 }}
                       className="text-cyan-500 mr-1"
                     />{' '}
-                    Clicks
+                    {t`Clicks`}
                   </Space>
                 }
                 value={getRate(stats.count_clicked, stats.count_sent)}
@@ -409,7 +411,7 @@ export const EmailMetricsChart: React.FC<EmailMetricsChartProps> = ({
         </Col>
         <Col span={3}>
           <Tooltip
-            title={`${stats.count_bounced} emails bounced back${!visibleLines.count_bounced ? ' (hidden from chart)' : ''}`}
+            title={!visibleLines.count_bounced ? t`${stats.count_bounced} emails bounced back (hidden from chart)` : t`${stats.count_bounced} emails bounced back`}
           >
             <div
               className="p-2 cursor-pointer hover:bg-gray-50 rounded transition-colors"
@@ -424,7 +426,7 @@ export const EmailMetricsChart: React.FC<EmailMetricsChartProps> = ({
                       style={{ opacity: 0.7 }}
                       className="text-orange-500"
                     />{' '}
-                    Bounced
+                    {t`Bounced`}
                   </Space>
                 }
                 value={getRate(stats.count_bounced, stats.count_sent)}
@@ -436,7 +438,7 @@ export const EmailMetricsChart: React.FC<EmailMetricsChartProps> = ({
         </Col>
         <Col span={3}>
           <Tooltip
-            title={`${stats.count_complained} total complaints${!visibleLines.count_complained ? ' (hidden from chart)' : ''}`}
+            title={!visibleLines.count_complained ? t`${stats.count_complained} total complaints (hidden from chart)` : t`${stats.count_complained} total complaints`}
           >
             <div
               className="p-2 cursor-pointer hover:bg-gray-50 rounded transition-colors"
@@ -451,7 +453,7 @@ export const EmailMetricsChart: React.FC<EmailMetricsChartProps> = ({
                       style={{ opacity: 0.7 }}
                       className="text-orange-500"
                     />{' '}
-                    Complaints
+                    {t`Complaints`}
                   </Space>
                 }
                 value={getRate(stats.count_complained, stats.count_sent)}
@@ -463,7 +465,7 @@ export const EmailMetricsChart: React.FC<EmailMetricsChartProps> = ({
         </Col>
         <Col span={3}>
           <Tooltip
-            title={`${stats.count_unsubscribed} total unsubscribes${!visibleLines.count_unsubscribed ? ' (hidden from chart)' : ''}`}
+            title={!visibleLines.count_unsubscribed ? t`${stats.count_unsubscribed} total unsubscribes (hidden from chart)` : t`${stats.count_unsubscribed} total unsubscribes`}
           >
             <div
               className="p-2 cursor-pointer hover:bg-gray-50 rounded transition-colors"
@@ -478,7 +480,7 @@ export const EmailMetricsChart: React.FC<EmailMetricsChartProps> = ({
                       style={{ opacity: 0.7 }}
                       className="text-orange-500"
                     />{' '}
-                    Unsub.
+                    {t`Unsub.`}
                   </Space>
                 }
                 value={getRate(stats.count_unsubscribed, stats.count_sent)}
@@ -490,7 +492,7 @@ export const EmailMetricsChart: React.FC<EmailMetricsChartProps> = ({
         </Col>
         <Col span={3}>
           <Tooltip
-            title={`${stats.count_failed} emails failed to send${!visibleLines.count_failed ? ' (hidden from chart)' : ''}`}
+            title={!visibleLines.count_failed ? t`${stats.count_failed} emails failed to send (hidden from chart)` : t`${stats.count_failed} emails failed to send`}
           >
             <div
               className="p-2 cursor-pointer hover:bg-gray-50 rounded transition-colors"
@@ -505,7 +507,7 @@ export const EmailMetricsChart: React.FC<EmailMetricsChartProps> = ({
                       style={{ opacity: 0.7 }}
                       className="text-red-500"
                     />{' '}
-                    Failed
+                    {t`Failed`}
                   </Space>
                 }
                 value={getRate(stats.count_failed, stats.count_sent)}

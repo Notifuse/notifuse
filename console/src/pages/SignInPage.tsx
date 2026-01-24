@@ -5,8 +5,10 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { authService } from '../services/api/auth'
 import { SignInRequest, VerifyCodeRequest } from '../services/api/types'
 import { MainLayout } from '../layouts/MainLayout'
+import { useLingui } from '@lingui/react/macro'
 
 export function SignInPage() {
+  const { t } = useLingui()
   const { signin } = useAuth()
   const navigate = useNavigate()
   const search = useSearch({ from: '/console/signin' })
@@ -32,14 +34,14 @@ export function SignInPage() {
         // Use the existing signin function for now
         // This might need to be updated in AuthContext
         await signin(token)
-        message.success('Successfully signed in')
+        message.success(t`Successfully signed in`)
 
         // Add a small delay to ensure auth state is updated before navigation
         setTimeout(() => {
           navigate({ to: '/console' })
         }, 100)
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Failed to verify code'
+        const errorMessage = error instanceof Error ? error.message : t`Failed to verify code`
         message.error(errorMessage)
       } finally {
         setLoading(false)
@@ -66,9 +68,9 @@ export function SignInPage() {
 
         setEmail(values.email)
         setShowCodeInput(true)
-        message.success('Magic code sent to your email')
+        message.success(t`Magic code sent to your email`)
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Failed to send magic code'
+        const errorMessage = error instanceof Error ? error.message : t`Failed to send magic code`
         message.error(errorMessage)
       } finally {
         setLoading(false)
@@ -115,9 +117,9 @@ export function SignInPage() {
         return
       }
 
-      message.success('New magic code sent to your email')
+      message.success(t`New magic code sent to your email`)
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to resend magic code'
+      const errorMessage = error instanceof Error ? error.message : t`Failed to resend magic code`
       message.error(errorMessage)
     } finally {
       setResendLoading(false)
@@ -127,7 +129,7 @@ export function SignInPage() {
   return (
     <MainLayout>
       <div className="flex items-center justify-center h-[calc(100vh-48px)]">
-        <Card title="Sign In" style={{ width: 400 }}>
+        <Card title={t`Sign In`} style={{ width: 400 }}>
           {!showCodeInput ? (
             <Form
               form={form}
@@ -137,33 +139,33 @@ export function SignInPage() {
               initialValues={{ email }}
             >
               <Form.Item
-                label="Email"
+                label={t`Email`}
                 name="email"
                 rules={[
-                  { required: true, message: 'Please input your email!' },
-                  { type: 'email', message: 'Please enter a valid email!' }
+                  { required: true, message: t`Please input your email!` },
+                  { type: 'email', message: t`Please enter a valid email!` }
                 ]}
               >
-                <Input placeholder="Email" type="email" />
+                <Input placeholder={t`Email`} type="email" />
               </Form.Item>
 
               <Form.Item>
                 <Button type="primary" htmlType="submit" block loading={loading}>
-                  Send Magic Code
+                  {t`Send Magic Code`}
                 </Button>
               </Form.Item>
             </Form>
           ) : (
             <>
-              <p style={{ marginBottom: 24 }}>Enter the 6-digit code sent to {email}</p>
+              <p style={{ marginBottom: 24 }}>{t`Enter the 6-digit code sent to ${email}`}</p>
               <Form name="code" onFinish={handleCodeSubmit} layout="vertical">
                 <Form.Item
                   name="code"
                   rules={[
-                    { required: true, message: 'Please input the magic code!' },
+                    { required: true, message: t`Please input the magic code!` },
                     {
                       pattern: /^\d{6}$/,
-                      message: 'Please enter a valid 6-digit code!'
+                      message: t`Please enter a valid 6-digit code!`
                     }
                   ]}
                 >
@@ -176,7 +178,7 @@ export function SignInPage() {
 
                 <Form.Item>
                   <Button type="primary" htmlType="submit" block loading={loading}>
-                    Verify Code
+                    {t`Verify Code`}
                   </Button>
                 </Form.Item>
 
@@ -186,7 +188,7 @@ export function SignInPage() {
                     onClick={() => setShowCodeInput(false)}
                     style={{ padding: 0 }}
                   >
-                    Use a different email
+                    {t`Use a different email`}
                   </Button>
                   <Button
                     type="link"
@@ -194,7 +196,7 @@ export function SignInPage() {
                     loading={resendLoading}
                     style={{ padding: 0 }}
                   >
-                    Resend code
+                    {t`Resend code`}
                   </Button>
                 </Space>
               </Form>

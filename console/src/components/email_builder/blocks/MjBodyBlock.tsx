@@ -1,4 +1,5 @@
 import React from 'react'
+import { useLingui } from '@lingui/react/macro'
 import { Alert } from 'antd'
 import type { MJMLComponentType, MJBodyAttributes, MergedBlockAttributes } from '../types'
 import {
@@ -13,6 +14,70 @@ import InputLayout from '../ui/InputLayout'
 import ColorPickerWithPresets from '../ui/ColorPickerWithPresets'
 import StringPopoverInput from '../ui/StringPopoverInput'
 import WidthPxInput from '../ui/WidthPxInput'
+
+// Functional component for settings panel with i18n support
+interface MjBodySettingsPanelProps {
+  currentAttributes: MJBodyAttributes
+  blockDefaults: MergedBlockAttributes
+  onUpdate: OnUpdateAttributesFunction
+}
+
+const MjBodySettingsPanel: React.FC<MjBodySettingsPanelProps> = ({
+  currentAttributes,
+  blockDefaults,
+  onUpdate
+}) => {
+  const { t } = useLingui()
+
+  // Parse width to check if it exceeds 650px
+  const parseWidth = (width?: string): number | undefined => {
+    if (!width) return undefined
+    const match = width.match(/^(\d+(?:\.\d+)?)px?$/)
+    return match ? parseFloat(match[1]) : undefined
+  }
+
+  const widthValue = parseWidth(currentAttributes.width || blockDefaults.width)
+  const showWarning = widthValue !== undefined && widthValue > 650
+
+  return (
+    <PanelLayout title={t`Body Attributes`}>
+      <InputLayout label={t`Width`}>
+        <WidthPxInput
+          value={currentAttributes.width}
+          onChange={(value) => onUpdate({ width: value })}
+          placeholder={blockDefaults.width || '600px'}
+          max={999}
+        />
+      </InputLayout>
+
+      {showWarning && (
+        <Alert
+          message={t`Email widths above 650px may not display correctly in some email clients`}
+          type="warning"
+          style={{ marginTop: '8px' }}
+        />
+      )}
+      <InputLayout label={t`Background Color`}>
+        <ColorPickerWithPresets
+          value={currentAttributes.backgroundColor || undefined}
+          onChange={(color) => {
+            onUpdate({ backgroundColor: color || undefined })
+          }}
+          placeholder={t`None`}
+        />
+      </InputLayout>
+
+      <InputLayout label={t`CSS Class`}>
+        <StringPopoverInput
+          value={currentAttributes.cssClass || ''}
+          onChange={(value) => onUpdate({ cssClass: value || undefined })}
+          placeholder={t`Enter CSS class name`}
+          buttonText={t`Set class`}
+        />
+      </InputLayout>
+    </PanelLayout>
+  )
+}
 
 /**
  * Implementation for mj-body blocks
@@ -55,53 +120,12 @@ export class MjBodyBlock extends BaseEmailBlock {
   ): React.ReactNode {
     const currentAttributes = this.block.attributes as MJBodyAttributes
 
-    // Parse width to check if it exceeds 650px
-    const parseWidth = (width?: string): number | undefined => {
-      if (!width) return undefined
-      const match = width.match(/^(\d+(?:\.\d+)?)px?$/)
-      return match ? parseFloat(match[1]) : undefined
-    }
-
-    const widthValue = parseWidth(currentAttributes.width || blockDefaults.width)
-    const showWarning = widthValue !== undefined && widthValue > 650
-
     return (
-      <PanelLayout title="Body Attributes">
-        <InputLayout label="Width">
-          <WidthPxInput
-            value={currentAttributes.width}
-            onChange={(value) => onUpdate({ width: value })}
-            placeholder={blockDefaults.width || '600px'}
-            max={999}
-          />
-        </InputLayout>
-
-        {showWarning && (
-          <Alert
-            message="Email widths above 650px may not display correctly in some email clients"
-            type="warning"
-            style={{ marginTop: '8px' }}
-          />
-        )}
-        <InputLayout label="Background Color">
-          <ColorPickerWithPresets
-            value={currentAttributes.backgroundColor || undefined}
-            onChange={(color) => {
-              onUpdate({ backgroundColor: color || undefined })
-            }}
-            placeholder="None"
-          />
-        </InputLayout>
-
-        <InputLayout label="CSS Class">
-          <StringPopoverInput
-            value={currentAttributes.cssClass || ''}
-            onChange={(value) => onUpdate({ cssClass: value || undefined })}
-            placeholder="Enter CSS class name"
-            buttonText="Set class"
-          />
-        </InputLayout>
-      </PanelLayout>
+      <MjBodySettingsPanel
+        currentAttributes={currentAttributes}
+        blockDefaults={blockDefaults}
+        onUpdate={onUpdate}
+      />
     )
   }
 

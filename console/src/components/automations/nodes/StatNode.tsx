@@ -12,6 +12,7 @@ import {
   FlaskConical,
   Webhook
 } from 'lucide-react'
+import { useLingui } from '@lingui/react/macro'
 import { nodeTypeColors } from './constants'
 import type { NodeType, AutomationNodeStats, ABTestNodeConfig } from '../../../services/api/automation'
 
@@ -28,18 +29,7 @@ const nodeIcons: Record<NodeType, React.ReactNode> = {
   webhook: <Webhook size={16} />
 }
 
-// Labels for each node type
-const nodeLabels: Record<NodeType, string> = {
-  trigger: 'Trigger',
-  delay: 'Delay',
-  email: 'Email',
-  branch: 'Branch',
-  filter: 'Filter',
-  add_to_list: 'Add to List',
-  remove_from_list: 'Remove from List',
-  ab_test: 'A/B Test',
-  webhook: 'Webhook'
-}
+// Labels are generated inside component for i18n support
 
 export interface StatNodeData {
   nodeType: NodeType
@@ -51,9 +41,24 @@ export interface StatNodeData {
 type StatNodeProps = NodeProps<StatNodeData>
 
 export const StatNode: React.FC<StatNodeProps> = ({ data }) => {
+  const { t } = useLingui()
   const { nodeType, label, stats } = data
   const color = nodeTypeColors[nodeType] || '#6b7280'
   const icon = nodeIcons[nodeType]
+
+  // Labels for each node type
+  const nodeLabels: Record<NodeType, string> = {
+    trigger: t`Trigger`,
+    delay: t`Delay`,
+    email: t`Email`,
+    branch: t`Branch`,
+    filter: t`Filter`,
+    add_to_list: t`Add to List`,
+    remove_from_list: t`Remove from List`,
+    ab_test: t`A/B Test`,
+    webhook: t`Webhook`
+  }
+
   const nodeLabel = label || nodeLabels[nodeType]
 
   // Use 0 values when no stats available
@@ -95,18 +100,18 @@ export const StatNode: React.FC<StatNodeProps> = ({ data }) => {
         <div className="px-3 py-2 bg-gray-50">
           <div className="flex items-center justify-between">
             <Statistic
-              title="Inflight"
+              title={t`Inflight`}
               value={nodeStats.entered}
               valueStyle={{ fontSize: 14, color: '#374151' }}
             />
             <Statistic
-              title="Completed"
+              title={t`Completed`}
               value={nodeStats.completed}
               valueStyle={{ fontSize: 14, color: '#16a34a' }}
             />
             {showFailedRate && (
               <Statistic
-                title="Failed"
+                title={t`Failed`}
                 value={nodeStats.failed}
                 valueStyle={{ fontSize: 14, color: '#dc2626' }}
               />
@@ -125,6 +130,7 @@ export const StatNode: React.FC<StatNodeProps> = ({ data }) => {
 
 // For filter nodes that have multiple outputs
 export const FilterStatNode: React.FC<StatNodeProps> = ({ data }) => {
+  const { t } = useLingui()
   const { stats } = data
   const color = nodeTypeColors.filter
 
@@ -152,24 +158,24 @@ export const FilterStatNode: React.FC<StatNodeProps> = ({ data }) => {
           style={{ borderBottom: `1px solid ${color}20` }}
         >
           <span style={{ color }}><Filter size={16} /></span>
-          <span className="text-sm font-medium text-gray-800">Filter</span>
+          <span className="text-sm font-medium text-gray-800">{t`Filter`}</span>
         </div>
 
         {/* Stats */}
         <div className="px-3 py-2 bg-gray-50">
           <div className="flex items-center justify-between">
             <Statistic
-              title="Inflight"
+              title={t`Inflight`}
               value={nodeStats.entered}
               valueStyle={{ fontSize: 14, color: '#374151' }}
             />
             <Statistic
-              title="Completed"
+              title={t`Completed`}
               value={nodeStats.completed}
               valueStyle={{ fontSize: 14, color: '#16a34a' }}
             />
             <Statistic
-              title="Failed"
+              title={t`Failed`}
               value={nodeStats.skipped}
               valueStyle={{ fontSize: 14, color: '#ea580c' }}
             />
@@ -195,6 +201,7 @@ export const FilterStatNode: React.FC<StatNodeProps> = ({ data }) => {
 
 // For A/B test nodes that have multiple variant outputs
 export const ABTestStatNode: React.FC<StatNodeProps> = ({ data }) => {
+  const { t } = useLingui()
   const { stats, config } = data
   const color = nodeTypeColors.ab_test
 
@@ -233,25 +240,25 @@ export const ABTestStatNode: React.FC<StatNodeProps> = ({ data }) => {
           style={{ borderBottom: `1px solid ${color}20` }}
         >
           <span style={{ color }}><FlaskConical size={16} /></span>
-          <span className="text-sm font-medium text-gray-800">A/B Test</span>
+          <span className="text-sm font-medium text-gray-800">{t`A/B Test`}</span>
         </div>
 
         {/* Stats */}
         <div className="px-3 py-2 bg-gray-50">
           <div className="flex items-center justify-between">
             <Statistic
-              title="Inflight"
+              title={t`Inflight`}
               value={nodeStats.entered}
               valueStyle={{ fontSize: 14, color: '#374151' }}
             />
             <Statistic
-              title="Completed"
+              title={t`Completed`}
               value={nodeStats.completed}
               valueStyle={{ fontSize: 14, color: '#16a34a' }}
             />
             {nodeStats.failed > 0 && (
               <Statistic
-                title="Failed"
+                title={t`Failed`}
                 value={nodeStats.failed}
                 valueStyle={{ fontSize: 14, color: '#dc2626' }}
               />

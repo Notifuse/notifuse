@@ -1,5 +1,6 @@
 import React, { useState, useEffect, memo } from 'react'
 import { Radio, Select, Row, Col, InputNumber } from 'antd'
+import { useLingui } from '@lingui/react/macro'
 import ColorPickerWithPresets from './ColorPickerWithPresets'
 import InputLayout from './InputLayout'
 import FileSrc from './FileSrc'
@@ -29,6 +30,7 @@ interface BackgroundInputProps {
 
 const BackgroundInput: React.FC<BackgroundInputProps> = memo(
   ({ value = {}, onChange, showBackgroundColor = true, showBackgroundImage = true }) => {
+    const { t } = useLingui()
     // Determine background type based on whether backgroundUrl is set
     const [backgroundType, setBackgroundType] = useState<'color' | 'image'>(
       value.backgroundUrl ? 'image' : 'color'
@@ -80,35 +82,35 @@ const BackgroundInput: React.FC<BackgroundInputProps> = memo(
 
     // Background size options
     const backgroundSizeOptions = [
-      { value: 'auto', label: 'Auto' },
-      { value: 'cover', label: 'Cover' },
-      { value: 'contain', label: 'Contain' },
-      { value: 'custom-px', label: 'Custom (px)' },
-      { value: 'custom-percent', label: 'Custom (%)' }
+      { value: 'auto', label: t`Auto` },
+      { value: 'cover', label: t`Cover` },
+      { value: 'contain', label: t`Contain` },
+      { value: 'custom-px', label: t`Custom (px)` },
+      { value: 'custom-percent', label: t`Custom (%)` }
     ]
 
     // Background repeat options
     const backgroundRepeatOptions = [
-      { value: 'repeat', label: 'Repeat' },
-      { value: 'repeat-x', label: 'Repeat X' },
-      { value: 'repeat-y', label: 'Repeat Y' },
-      { value: 'no-repeat', label: 'No Repeat' },
-      { value: 'space', label: 'Space' },
-      { value: 'round', label: 'Round' }
+      { value: 'repeat', label: t`Repeat` },
+      { value: 'repeat-x', label: t`Repeat X` },
+      { value: 'repeat-y', label: t`Repeat Y` },
+      { value: 'no-repeat', label: t`No Repeat` },
+      { value: 'space', label: t`Space` },
+      { value: 'round', label: t`Round` }
     ]
 
     // Background position options
     const backgroundPositionOptions = [
-      { value: 'top left', label: 'Top Left' },
-      { value: 'top center', label: 'Top Center' },
-      { value: 'top right', label: 'Top Right' },
-      { value: 'center left', label: 'Center Left' },
-      { value: 'center center', label: 'Center Center' },
-      { value: 'center right', label: 'Center Right' },
-      { value: 'bottom left', label: 'Bottom Left' },
-      { value: 'bottom center', label: 'Bottom Center' },
-      { value: 'bottom right', label: 'Bottom Right' },
-      { value: 'custom', label: 'Custom' }
+      { value: 'top left', label: t`Top Left` },
+      { value: 'top center', label: t`Top Center` },
+      { value: 'top right', label: t`Top Right` },
+      { value: 'center left', label: t`Center Left` },
+      { value: 'center center', label: t`Center Center` },
+      { value: 'center right', label: t`Center Right` },
+      { value: 'bottom left', label: t`Bottom Left` },
+      { value: 'bottom center', label: t`Bottom Center` },
+      { value: 'bottom right', label: t`Bottom Right` },
+      { value: 'custom', label: t`Custom` }
     ]
 
     const renderBackgroundSizeInput = () => {
@@ -245,21 +247,21 @@ const BackgroundInput: React.FC<BackgroundInputProps> = memo(
     return (
       <div>
         {showTypeSelector && (
-          <InputLayout label="Background Type">
+          <InputLayout label={t`Background Type`}>
             <Radio.Group
               size="small"
               value={backgroundType}
               onChange={(e) => handleBackgroundTypeChange(e.target.value)}
               style={{ width: '100%' }}
             >
-              <Radio.Button value="color">Color</Radio.Button>
-              <Radio.Button value="image">Image</Radio.Button>
+              <Radio.Button value="color">{t`Color`}</Radio.Button>
+              <Radio.Button value="image">{t`Image`}</Radio.Button>
             </Radio.Group>
           </InputLayout>
         )}
 
         {backgroundType === 'color' && showBackgroundColor && (
-          <InputLayout label="Background Color">
+          <InputLayout label={t`Background Color`}>
             <ColorPickerWithPresets
               value={value.backgroundColor}
               onChange={(color) => handlePropertyChange('backgroundColor', color)}
@@ -269,23 +271,23 @@ const BackgroundInput: React.FC<BackgroundInputProps> = memo(
 
         {backgroundType === 'image' && showBackgroundImage && (
           <>
-            <InputLayout label="Background Image" layout="vertical">
+            <InputLayout label={t`Background Image`} layout="vertical">
               <FileSrc
                 size="small"
                 value={value.backgroundUrl || ''}
                 onChange={(newValue) => handlePropertyChange('backgroundUrl', newValue)}
-                placeholder="Enter background image URL"
+                placeholder={t`Enter background image URL`}
                 acceptFileType="image/*"
                 acceptItem={(item) =>
                   !item.is_folder && (item.file_info?.content_type?.startsWith('image/') ?? false)
                 }
-                buttonText="Browse Images"
+                buttonText={t`Browse Images`}
               />
             </InputLayout>
 
-            <InputLayout label="Background Size">{renderBackgroundSizeInput()}</InputLayout>
+            <InputLayout label={t`Background Size`}>{renderBackgroundSizeInput()}</InputLayout>
 
-            <InputLayout label="Background Repeat">
+            <InputLayout label={t`Background Repeat`}>
               <Select
                 size="small"
                 value={value.backgroundRepeat || 'no-repeat'}
@@ -295,7 +297,7 @@ const BackgroundInput: React.FC<BackgroundInputProps> = memo(
               />
             </InputLayout>
 
-            <InputLayout label="Background Position">
+            <InputLayout label={t`Background Position`}>
               {renderBackgroundPositionInputs()}
             </InputLayout>
           </>

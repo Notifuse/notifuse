@@ -1,4 +1,5 @@
 import React from 'react'
+import { useLingui } from '@lingui/react/macro'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faLock, faArrowLeft, faArrowRight } from '@fortawesome/free-solid-svg-icons'
 import { Select, Radio, Tooltip } from 'antd'
@@ -15,6 +16,135 @@ import BackgroundInput from '../ui/BackgroundInput'
 import StringPopoverInput from '../ui/StringPopoverInput'
 import WidthInput from '../ui/WidthInput'
 import PanelLayout from '../panels/PanelLayout'
+
+// Functional component for settings panel with i18n support
+interface MjGroupSettingsPanelProps {
+  currentAttributes: MJGroupAttributes
+  blockDefaults: MergedBlockAttributes
+  onUpdate: OnUpdateAttributesFunction
+}
+
+const MjGroupSettingsPanel: React.FC<MjGroupSettingsPanelProps> = ({
+  currentAttributes,
+  blockDefaults,
+  onUpdate
+}) => {
+  const { t } = useLingui()
+
+  const handleAttributeChange = (key: string, value: unknown) => {
+    onUpdate({ [key]: value })
+  }
+
+  const handleBackgroundChange = (backgroundValues: Record<string, unknown>) => {
+    onUpdate(backgroundValues)
+  }
+
+  return (
+    <PanelLayout title={t`Group Attributes`}>
+      <div className="space-y-4">
+        {/* Layout Settings */}
+        <InputLayout label={t`Width`}>
+          <WidthInput
+            value={currentAttributes.width}
+            onChange={(value) => onUpdate({ width: value })}
+            placeholder={blockDefaults.width || '100%'}
+          />
+        </InputLayout>
+
+        <InputLayout label={t`Vertical Align`}>
+          <Select
+            size="small"
+            value={currentAttributes.verticalAlign || blockDefaults.verticalAlign || 'top'}
+            onChange={(value) => handleAttributeChange('verticalAlign', value)}
+            options={[
+              { value: 'top', label: t`Top` },
+              { value: 'middle', label: t`Middle` },
+              { value: 'bottom', label: t`Bottom` }
+            ]}
+            style={{ width: '100%' }}
+          />
+        </InputLayout>
+
+        <InputLayout label={t`Height`}>
+          <StringPopoverInput
+            value={currentAttributes.height || ''}
+            onChange={(value) => handleAttributeChange('height', value || undefined)}
+            placeholder={t`auto`}
+            buttonText={t`Set height`}
+          />
+        </InputLayout>
+
+        {/* Background Settings */}
+        <BackgroundInput
+          value={{
+            backgroundColor: currentAttributes.backgroundColor,
+            backgroundUrl: currentAttributes.backgroundUrl,
+            backgroundSize: currentAttributes.backgroundSize,
+            backgroundRepeat: currentAttributes.backgroundRepeat,
+            backgroundPosition: currentAttributes.backgroundPosition,
+            backgroundPositionX: currentAttributes.backgroundPositionX,
+            backgroundPositionY: currentAttributes.backgroundPositionY
+          }}
+          onChange={handleBackgroundChange}
+        />
+
+        {/* Direction Settings */}
+        <InputLayout label={t`Text Direction`}>
+          <Radio.Group
+            size="small"
+            value={currentAttributes.direction || blockDefaults.direction || 'ltr'}
+            onChange={(e) => handleAttributeChange('direction', e.target.value)}
+          >
+            <Radio.Button value="ltr">
+              <Tooltip title={t`Left to Right`}>
+                <FontAwesomeIcon icon={faArrowRight} style={{ marginRight: 4 }} />
+                LTR
+              </Tooltip>
+            </Radio.Button>
+            <Radio.Button value="rtl">
+              <Tooltip title={t`Right to Left`}>
+                <FontAwesomeIcon icon={faArrowLeft} style={{ marginRight: 4 }} />
+                RTL
+              </Tooltip>
+            </Radio.Button>
+          </Radio.Group>
+        </InputLayout>
+
+        {/* Advanced Settings */}
+        <InputLayout label={t`CSS Class`} help={t`Custom CSS class for styling`}>
+          <StringPopoverInput
+            value={currentAttributes.cssClass}
+            onChange={(value) => handleAttributeChange('cssClass', value)}
+            placeholder={t`my-custom-class`}
+            buttonText={t`Set Value`}
+          />
+        </InputLayout>
+      </div>
+    </PanelLayout>
+  )
+}
+
+// Functional component for empty group placeholder with i18n support
+const MjGroupEmptyPlaceholder: React.FC = () => {
+  const { t } = useLingui()
+
+  return (
+    <div
+      style={{
+        width: '100%',
+        height: '40px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: '#722ed1',
+        fontSize: '12px',
+        fontStyle: 'italic'
+      }}
+    >
+      {t`Group (drag columns here)`}
+    </div>
+  )
+}
 
 /**
  * Implementation for mj-group blocks
@@ -115,96 +245,12 @@ export class MjGroupBlock extends BaseEmailBlock {
   ): React.ReactNode {
     const currentAttributes = this.block.attributes as MJGroupAttributes
 
-    const handleAttributeChange = (key: string, value: unknown) => {
-      onUpdate({ [key]: value })
-    }
-
-    const handleBackgroundChange = (backgroundValues: Record<string, unknown>) => {
-      onUpdate(backgroundValues)
-    }
-
     return (
-      <PanelLayout title="Group Attributes">
-        <div className="space-y-4">
-          {/* Layout Settings */}
-          <InputLayout label="Width">
-            <WidthInput
-              value={currentAttributes.width}
-              onChange={(value) => onUpdate({ width: value })}
-              placeholder={blockDefaults.width || '100%'}
-            />
-          </InputLayout>
-
-          <InputLayout label="Vertical Align">
-            <Select
-              size="small"
-              value={currentAttributes.verticalAlign || blockDefaults.verticalAlign || 'top'}
-              onChange={(value) => handleAttributeChange('verticalAlign', value)}
-              options={[
-                { value: 'top', label: 'Top' },
-                { value: 'middle', label: 'Middle' },
-                { value: 'bottom', label: 'Bottom' }
-              ]}
-              style={{ width: '100%' }}
-            />
-          </InputLayout>
-
-          <InputLayout label="Height">
-            <StringPopoverInput
-              value={currentAttributes.height || ''}
-              onChange={(value) => handleAttributeChange('height', value || undefined)}
-              placeholder="auto"
-              buttonText="Set height"
-            />
-          </InputLayout>
-
-          {/* Background Settings */}
-          <BackgroundInput
-            value={{
-              backgroundColor: currentAttributes.backgroundColor,
-              backgroundUrl: currentAttributes.backgroundUrl,
-              backgroundSize: currentAttributes.backgroundSize,
-              backgroundRepeat: currentAttributes.backgroundRepeat,
-              backgroundPosition: currentAttributes.backgroundPosition,
-              backgroundPositionX: currentAttributes.backgroundPositionX,
-              backgroundPositionY: currentAttributes.backgroundPositionY
-            }}
-            onChange={handleBackgroundChange}
-          />
-
-          {/* Direction Settings */}
-          <InputLayout label="Text Direction">
-            <Radio.Group
-              size="small"
-              value={currentAttributes.direction || blockDefaults.direction || 'ltr'}
-              onChange={(e) => handleAttributeChange('direction', e.target.value)}
-            >
-              <Radio.Button value="ltr">
-                <Tooltip title="Left to Right">
-                  <FontAwesomeIcon icon={faArrowRight} style={{ marginRight: 4 }} />
-                  LTR
-                </Tooltip>
-              </Radio.Button>
-              <Radio.Button value="rtl">
-                <Tooltip title="Right to Left">
-                  <FontAwesomeIcon icon={faArrowLeft} style={{ marginRight: 4 }} />
-                  RTL
-                </Tooltip>
-              </Radio.Button>
-            </Radio.Group>
-          </InputLayout>
-
-          {/* Advanced Settings */}
-          <InputLayout label="CSS Class" help="Custom CSS class for styling">
-            <StringPopoverInput
-              value={currentAttributes.cssClass}
-              onChange={(value) => handleAttributeChange('cssClass', value)}
-              placeholder="my-custom-class"
-              buttonText="Set Value"
-            />
-          </InputLayout>
-        </div>
-      </PanelLayout>
+      <MjGroupSettingsPanel
+        currentAttributes={currentAttributes}
+        blockDefaults={blockDefaults}
+        onUpdate={onUpdate}
+      />
     )
   }
 
@@ -267,20 +313,7 @@ export class MjGroupBlock extends BaseEmailBlock {
         data-block-id={this.block.id}
       >
         {children.length === 0 ? (
-          <div
-            style={{
-              width: '100%',
-              height: '40px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#722ed1',
-              fontSize: '12px',
-              fontStyle: 'italic'
-            }}
-          >
-            Group (drag columns here)
-          </div>
+          <MjGroupEmptyPlaceholder />
         ) : (
           children.map((child) => (
             <React.Fragment key={child.id}>

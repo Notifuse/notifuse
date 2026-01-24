@@ -1,3 +1,9 @@
+// Note: These validation messages are used as static strings in Form validation rules.
+// Since they're used outside of React component context (in validation rules), they cannot
+// use useLingui directly. These messages will be extracted by lingui extract and can be
+// translated, but the translation needs to happen at the component level where possible.
+// For Form validation messages, Ant Design displays these strings as-is.
+// Consider creating a useMessages() hook for components that need translated validation messages.
 const Messages = {
   RequiredField: 'This field is required',
   ServiceAccountPasswordInvalidFormat: 'The password should contain 16 charaters minimum.',

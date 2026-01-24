@@ -1,4 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react'
+import { useLingui } from '@lingui/react/macro'
 import type { MJMLComponentType, EmailBlock, MJRawAttributes } from '../types'
 import {
   BaseEmailBlock,
@@ -214,6 +215,84 @@ const SandboxedIframe: React.FC<{
   )
 }
 
+// Functional component for settings panel with i18n support
+interface MjRawSettingsPanelProps {
+  currentAttributes: MJRawAttributes
+  htmlContent: string
+  onUpdate: OnUpdateAttributesFunction
+}
+
+const MjRawSettingsPanel: React.FC<MjRawSettingsPanelProps> = ({
+  currentAttributes,
+  htmlContent,
+  onUpdate
+}) => {
+  const { t } = useLingui()
+  const hasContent = htmlContent.trim().length > 0
+
+  const handleContentChange = (content: string | undefined) => {
+    onUpdate({ content })
+  }
+
+  const handleCssClassChange = (cssClass: string | undefined) => {
+    onUpdate({ cssClass })
+  }
+
+  return (
+    <PanelLayout title={t`Raw HTML Block`}>
+      <div className="space-y-4">
+        {/* HTML Content */}
+        <InputLayout
+          label={t`HTML Content`}
+          help={t`Enter custom HTML code. When placed in mj-head, use for CSS styles, meta tags, or head elements. When placed in mj-body, use for body-level HTML structures, tracking pixels, or template logic.`}
+          layout="vertical"
+        >
+          <div className="flex flex-col gap-3">
+            {hasContent && (
+              <CodePreview
+                code={htmlContent}
+                language="html"
+                maxHeight={120}
+                onExpand={() => {}}
+                showExpandButton={false}
+              />
+            )}
+
+            <CodeDrawerInput
+              value={htmlContent}
+              onChange={handleContentChange}
+              buttonText={hasContent ? t`Edit HTML Content` : t`Set HTML Content`}
+              title={t`HTML Content Editor`}
+              language="html"
+            />
+          </div>
+        </InputLayout>
+
+        {/* CSS Class */}
+        <InputLayout label={t`CSS Class`} help={t`Custom CSS class for styling`}>
+          <StringPopoverInput
+            value={currentAttributes.cssClass || ''}
+            onChange={(value) => handleCssClassChange(value)}
+            placeholder={t`my-custom-class`}
+            buttonText={t`Set Value`}
+          />
+        </InputLayout>
+      </div>
+    </PanelLayout>
+  )
+}
+
+// Functional component for empty raw block placeholder with i18n support
+const MjRawEmptyPlaceholder: React.FC = () => {
+  const { t } = useLingui()
+
+  return (
+    <>
+      {t`Raw HTML block - Click to add custom HTML content`}
+    </>
+  )
+}
+
 /**
  * Implementation for mj-raw blocks
  * A raw HTML block that allows inserting custom HTML content directly into the email
@@ -269,61 +348,17 @@ export class MjRawBlock extends BaseEmailBlock {
   renderSettingsPanel(onUpdate: OnUpdateAttributesFunction): React.ReactNode {
     const currentAttributes = this.block.attributes as MJRawAttributes
 
-    const handleContentChange = (content: string | undefined) => {
-      onUpdate({ content })
-    }
-
-    const handleCssClassChange = (cssClass: string | undefined) => {
-      onUpdate({ cssClass })
-    }
-
     // Content is stored on the block itself, not in attributes
     const blockWithContent = this.block as unknown as Record<string, unknown>
     const htmlContent =
       typeof blockWithContent.content === 'string' ? blockWithContent.content : ''
-    const hasContent = htmlContent.trim().length > 0
 
     return (
-      <PanelLayout title="Raw HTML Block">
-        <div className="space-y-4">
-          {/* HTML Content */}
-          <InputLayout
-            label="HTML Content"
-            help="Enter custom HTML code. When placed in mj-head, use for CSS styles, meta tags, or head elements. When placed in mj-body, use for body-level HTML structures, tracking pixels, or template logic."
-            layout="vertical"
-          >
-            <div className="flex flex-col gap-3">
-              {hasContent && (
-                <CodePreview
-                  code={htmlContent}
-                  language="html"
-                  maxHeight={120}
-                  onExpand={() => {}}
-                  showExpandButton={false}
-                />
-              )}
-
-              <CodeDrawerInput
-                value={htmlContent}
-                onChange={handleContentChange}
-                buttonText={hasContent ? 'Edit HTML Content' : 'Set HTML Content'}
-                title="HTML Content Editor"
-                language="html"
-              />
-            </div>
-          </InputLayout>
-
-          {/* CSS Class */}
-          <InputLayout label="CSS Class" help="Custom CSS class for styling">
-            <StringPopoverInput
-              value={currentAttributes.cssClass || ''}
-              onChange={(value) => handleCssClassChange(value)}
-              placeholder="my-custom-class"
-              buttonText="Set Value"
-            />
-          </InputLayout>
-        </div>
-      </PanelLayout>
+      <MjRawSettingsPanel
+        currentAttributes={currentAttributes}
+        htmlContent={htmlContent}
+        onUpdate={onUpdate}
+      />
     )
   }
 
@@ -375,7 +410,7 @@ export class MjRawBlock extends BaseEmailBlock {
             ...selectionStyle
           }}
         >
-          Raw HTML block - Click to add custom HTML content
+          <MjRawEmptyPlaceholder />
         </div>
       )
     }

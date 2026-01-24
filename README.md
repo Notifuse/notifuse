@@ -100,6 +100,10 @@ We welcome contributions!
 4. Add tests
 5. Submit a pull request
 
+**Note:** We prefer well-described issues over pull requests. If you have a feature idea or found a bug, please open an issue first with a clear description of the problem or enhancement. This allows for discussion before implementation.
+
+By submitting a pull request to this repository, you agree to transfer all intellectual property rights of your contribution to the repository owner. Your contribution will be licensed under the same terms as the project.
+
 ## 📄 License
 
 Notifuse is released under the [GNU Affero General Public License v3.0](LICENSE).

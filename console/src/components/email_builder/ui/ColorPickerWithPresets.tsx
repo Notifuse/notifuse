@@ -1,6 +1,7 @@
 import React, { useCallback } from 'react'
 import { ColorPicker, Row, Col, Divider } from 'antd'
 import type { ColorPickerProps } from 'antd'
+import { useLingui } from '@lingui/react/macro'
 
 interface ColorPickerWithPresetsProps {
   value?: string
@@ -23,9 +24,11 @@ const ColorPickerWithPresets: React.FC<ColorPickerWithPresetsProps> = ({
   size = 'small',
   allowClear = true,
   disabled = false,
-  placeholder = 'None',
+  placeholder,
   showText = true
 }) => {
+  const { t } = useLingui()
+  const resolvedPlaceholder = placeholder || t`None`
   const handleChangeComplete = useCallback(
     (color: unknown) => {
       const hexValue = (color as { toHexString?: () => string })?.toHexString?.()
@@ -97,7 +100,7 @@ const ColorPickerWithPresets: React.FC<ColorPickerWithPresetsProps> = ({
                 <span style={{ fontSize: '12px' }}>
                   {color && value !== 'transparent' && value !== undefined
                     ? color.toHexString()
-                    : placeholder}
+                    : resolvedPlaceholder}
                 </span>
               )
             : false

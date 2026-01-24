@@ -14,6 +14,7 @@ import {
 } from '@xyflow/react'
 import { LayoutGrid } from 'lucide-react'
 import { Tooltip } from 'antd'
+import { useLingui } from '@lingui/react/macro'
 import { TriggerNode, DelayNode, EmailNode, ABTestNode, AddToListNode, RemoveFromListNode, FilterNode, WebhookNode, ListStatusBranchNode } from './nodes'
 import { PlaceholderNode } from './nodes/PlaceholderNode'
 import { NodeConfigPanel } from './NodeConfigPanel'
@@ -81,6 +82,7 @@ const FloatingAddButton: React.FC<{
 
 // Inner component that uses useReactFlow hook
 const AutomationFlowEditorInner: React.FC = () => {
+  const { t } = useLingui()
   const reactFlowWrapper = useRef<HTMLDivElement>(null)
   const [buttonPositions, setButtonPositions] = useState<Map<string, { x: number; y: number }>>(new Map())
   const [openMenuKey, setOpenMenuKey] = useState<string | null>(null)
@@ -392,7 +394,7 @@ const AutomationFlowEditorInner: React.FC = () => {
         <Controls position="top-left" showInteractive={false} />
         <Panel position="top-left" style={{ marginTop: 120 }}>
           <div className="bg-white border border-gray-200 rounded shadow-sm">
-            <Tooltip title="Reorganize layout" placement="right">
+            <Tooltip title={t`Reorganize layout`} placement="right">
               <button
                 className="flex items-center justify-center w-7 h-7 hover:bg-gray-100 cursor-pointer"
                 onClick={handleReorganize}
@@ -404,7 +406,7 @@ const AutomationFlowEditorInner: React.FC = () => {
         </Panel>
         <Panel position="bottom-left">
           <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
-            <div className="text-xs text-gray-500 px-2 py-2 border-b border-gray-200">Minimap</div>
+            <div className="text-xs text-gray-500 px-2 py-2 border-b border-gray-200">{t`Minimap`}</div>
             <MiniMap position="top-left" bgColor="white" maskColor="transparent" style={{ position: 'relative', margin: 0 }} />
           </div>
         </Panel>

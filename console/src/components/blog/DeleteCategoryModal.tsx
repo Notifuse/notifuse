@@ -1,3 +1,4 @@
+import { useLingui } from '@lingui/react/macro'
 import { Modal, Typography } from 'antd'
 import type { BlogCategory } from '../../services/api/blog'
 
@@ -18,21 +19,22 @@ export function DeleteCategoryModal({
   onCancel,
   loading
 }: DeleteCategoryModalProps) {
+  const { t } = useLingui()
   return (
     <Modal
-      title="Delete Category"
+      title={t`Delete Category`}
       open={open}
       onOk={onConfirm}
       onCancel={onCancel}
-      okText="Delete"
+      okText={t`Delete`}
       okButtonProps={{ danger: true, loading }}
       cancelButtonProps={{ disabled: loading }}
     >
       <Paragraph>
-        Are you sure you want to delete the category <strong>{category?.settings.name}</strong>?
+        {t`Are you sure you want to delete the category`} <strong>{category?.settings.name}</strong>?
       </Paragraph>
       <Paragraph type="secondary">
-        Both the category and all its associated posts will be unpublished from the web.
+        {t`Both the category and all its associated posts will be unpublished from the web.`}
       </Paragraph>
     </Modal>
   )

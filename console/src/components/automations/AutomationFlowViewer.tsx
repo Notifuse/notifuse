@@ -10,6 +10,7 @@ import {
   BackgroundVariant
 } from '@xyflow/react'
 import { Spin } from 'antd'
+import { useLingui } from '@lingui/react/macro'
 import { StatNode, FilterStatNode, ABTestStatNode, type StatNodeData } from './nodes/StatNode'
 import { layoutNodes } from './utils/layoutNodes'
 import type {
@@ -200,6 +201,7 @@ const AutomationFlowViewerInner: React.FC<AutomationFlowViewerProps> = ({
   loading,
   onHeightCalculated
 }) => {
+  const { t } = useLingui()
   const { nodes, edges } = useMemo(
     () => automationToViewerFlow(automation, nodeStats),
     [automation, nodeStats]
@@ -218,7 +220,7 @@ const AutomationFlowViewerInner: React.FC<AutomationFlowViewerProps> = ({
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
-        <Spin tip="Loading stats..." />
+        <Spin tip={t`Loading stats...`} />
       </div>
     )
   }
@@ -226,7 +228,7 @@ const AutomationFlowViewerInner: React.FC<AutomationFlowViewerProps> = ({
   if (nodes.length === 0) {
     return (
       <div className="flex items-center justify-center h-full text-gray-400">
-        No nodes in this automation
+        {t`No nodes in this automation`}
       </div>
     )
   }

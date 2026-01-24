@@ -1,6 +1,7 @@
 import React from 'react'
 import { Handle, Position, type NodeProps } from '@xyflow/react'
 import { Zap } from 'lucide-react'
+import { useLingui } from '@lingui/react/macro'
 import { BaseNode } from './BaseNode'
 import { nodeTypeColors } from './constants'
 import { useAutomation } from '../context'
@@ -16,18 +17,19 @@ interface TriggerConfig {
   custom_event_name?: string
 }
 
-// Format event kind for display (e.g., "list.subscribed" -> "List Subscribed")
-const formatEventKind = (eventKind: string): string => {
-  if (eventKind === 'custom_event') return 'Custom Event'
-  const parts = eventKind.split('.')
-  return parts.map(part => part.charAt(0).toUpperCase() + part.slice(1)).join(' ')
-}
-
 export const TriggerNode: React.FC<TriggerNodeProps> = ({ data, selected }) => {
+  const { t } = useLingui()
   const { lists, segments } = useAutomation()
   const config = data.config as TriggerConfig
   const hasEventKind = !!config.event_kind
-  const frequency = config.frequency === 'every_time' ? 'Every time' : 'Once'
+  const frequency = config.frequency === 'every_time' ? t`Every time` : t`Once`
+
+  // Format event kind for display (e.g., "list.subscribed" -> "List Subscribed")
+  const formatEventKind = (eventKind: string): string => {
+    if (eventKind === 'custom_event') return t`Custom Event`
+    const parts = eventKind.split('.')
+    return parts.map(part => part.charAt(0).toUpperCase() + part.slice(1)).join(' ')
+  }
 
   // Look up list/segment names
   const listName = config.list_id ? lists.find(l => l.id === config.list_id)?.name : undefined
@@ -49,7 +51,7 @@ export const TriggerNode: React.FC<TriggerNodeProps> = ({ data, selected }) => {
   // Build event display string
   const getEventDisplay = () => {
     if (config.event_kind === 'custom_event' && config.custom_event_name) {
-      return `Custom Event: ${config.custom_event_name}`
+      return t`Custom Event: ${config.custom_event_name}`
     }
     return formatEventKind(config.event_kind!)
   }
@@ -58,7 +60,7 @@ export const TriggerNode: React.FC<TriggerNodeProps> = ({ data, selected }) => {
     <>
       <BaseNode
         type="trigger"
-        label="Trigger"
+        label={t`Trigger`}
         icon={<Zap size={16} color={selected ? undefined : nodeTypeColors.trigger} />}
         selected={selected}
       >
@@ -69,7 +71,7 @@ export const TriggerNode: React.FC<TriggerNodeProps> = ({ data, selected }) => {
             <div className="text-gray-400">{frequency}</div>
           </div>
         ) : (
-          <div className="text-orange-500">Configure</div>
+          <div className="text-orange-500">{t`Configure`}</div>
         )}
       </BaseNode>
       <Handle

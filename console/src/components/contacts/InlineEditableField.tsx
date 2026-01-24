@@ -1,6 +1,7 @@
 import React from 'react'
 import { Input, InputNumber, DatePicker, Select, Button, Space, App, Popconfirm } from 'antd'
 import { EditOutlined } from '@ant-design/icons'
+import { useLingui } from '@lingui/react/macro'
 import type { DefaultOptionType } from 'antd/es/select'
 import { CountriesFormOptions } from '../../lib/countries_timezones'
 import { Languages } from '../../lib/languages'
@@ -39,6 +40,7 @@ export function InlineEditableField({
   isLoading = false,
   disabled = false
 }: InlineEditableFieldProps) {
+  const { t } = useLingui()
   const [isEditing, setIsEditing] = React.useState(false)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [editValue, setEditValue] = React.useState<any>(value)
@@ -89,7 +91,7 @@ export function InlineEditableField({
             valueToSave = JSON.parse(editValue)
             setJsonError(null)
           } catch {
-            setJsonError('Invalid JSON format')
+            setJsonError(t`Invalid JSON format`)
             setIsSaving(false)
             return
           }
@@ -116,7 +118,7 @@ export function InlineEditableField({
       setIsEditing(false)
     } catch (error) {
       console.error('Failed to save field:', error)
-      message.error('Failed to save field')
+      message.error(t`Failed to save field`)
     } finally {
       setIsSaving(false)
     }
@@ -130,7 +132,7 @@ export function InlineEditableField({
       setIsEditing(false)
     } catch (error) {
       console.error('Failed to clear field:', error)
-      message.error('Failed to clear field')
+      message.error(t`Failed to clear field`)
     } finally {
       setIsSaving(false)
     }
@@ -139,7 +141,7 @@ export function InlineEditableField({
   // Format display value
   const formatDisplayValue = () => {
     if (value === null || value === undefined || value === '') {
-      return <span className="text-gray-400 italic">Not set</span>
+      return <span className="text-gray-400 italic">{t`Not set`}</span>
     }
 
     if (fieldType === 'json') {
@@ -178,7 +180,7 @@ export function InlineEditableField({
               }}
               rows={4}
               style={{ fontFamily: 'monospace', fontSize: '11px' }}
-              placeholder="Enter JSON..."
+              placeholder={t`Enter JSON...`}
               status={jsonError ? 'error' : undefined}
             />
             {jsonError && <div className="text-red-500 text-xs mt-1">{jsonError}</div>}
@@ -192,7 +194,7 @@ export function InlineEditableField({
             value={editValue}
             onChange={(val) => setEditValue(val)}
             style={{ width: '100%' }}
-            placeholder="Enter number..."
+            placeholder={t`Enter number...`}
           />
         )
 
@@ -222,7 +224,7 @@ export function InlineEditableField({
                 .includes(input.toLowerCase())
             }
             style={{ width: '100%' }}
-            placeholder="Select timezone..."
+            placeholder={t`Select timezone...`}
           />
         )
 
@@ -240,7 +242,7 @@ export function InlineEditableField({
                 .includes(input.toLowerCase())
             }
             style={{ width: '100%' }}
-            placeholder="Select language..."
+            placeholder={t`Select language...`}
           />
         )
 
@@ -258,7 +260,7 @@ export function InlineEditableField({
                 .includes(input.toLowerCase())
             }
             style={{ width: '100%' }}
-            placeholder="Select country..."
+            placeholder={t`Select country...`}
           />
         )
 
@@ -286,15 +288,15 @@ export function InlineEditableField({
         <div className="flex justify-end">
           <Space size="small">
             <Button size="small" type="link" onClick={handleCancel} disabled={isSaving}>
-              Cancel
+              {t`Cancel`}
             </Button>
             {value !== null && value !== undefined && value !== '' && (
               <Popconfirm
-                title="Clear field"
-                description="This will set the value to NULL. Are you sure?"
+                title={t`Clear field`}
+                description={t`This will set the value to NULL. Are you sure?`}
                 onConfirm={handleSetNull}
-                okText="Yes, clear it"
-                cancelText="Cancel"
+                okText={t`Yes, clear it`}
+                cancelText={t`Cancel`}
                 okButtonProps={{ danger: true }}
               >
                 <Button
@@ -303,7 +305,7 @@ export function InlineEditableField({
                   danger
                   disabled={isSaving}
                 >
-                  Clear
+                  {t`Clear`}
                 </Button>
               </Popconfirm>
             )}
@@ -313,7 +315,7 @@ export function InlineEditableField({
               onClick={handleSave}
               loading={isSaving}
             >
-              Save
+              {t`Save`}
             </Button>
           </Space>
         </div>

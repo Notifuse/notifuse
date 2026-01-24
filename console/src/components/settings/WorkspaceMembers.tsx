@@ -19,6 +19,7 @@ import {
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faTrashCan } from '@fortawesome/free-regular-svg-icons'
 import { faRefresh, faUserCog } from '@fortawesome/free-solid-svg-icons'
+import { useLingui } from '@lingui/react/macro'
 import { WorkspaceMember, UserPermissions } from '../../services/api/types'
 import { workspaceService } from '../../services/api/workspace'
 import { EditPermissionsModal } from './EditPermissionsModal'
@@ -41,6 +42,7 @@ export function WorkspaceMembers({
   onMembersChange,
   isOwner
 }: WorkspaceMembersProps) {
+  const { t } = useLingui()
   const [inviteModalVisible, setInviteModalVisible] = useState(false)
   const [inviteEmail, setInviteEmail] = useState('')
   const [inviting, setInviting] = useState(false)
@@ -72,7 +74,7 @@ export function WorkspaceMembers({
 
   const columns = [
     {
-      title: 'Email',
+      title: t`Email`,
       dataIndex: 'email',
       key: 'email',
       render: (email: string) => {
@@ -80,19 +82,19 @@ export function WorkspaceMembers({
       }
     },
     {
-      title: 'Role',
+      title: t`Role`,
       dataIndex: 'role',
       key: 'role',
       render: (role: string, record: WorkspaceMember) => {
         if (record.type === 'api_key') {
           return (
             <Tag bordered={false} color="purple">
-              API Key
+              {t`API Key`}
             </Tag>
           )
         }
         const roleDisplay = record.invitation_expires_at
-          ? `Invitation sent`
+          ? t`Invitation sent`
           : role.charAt(0).toUpperCase() + role.slice(1)
 
         return (
@@ -103,14 +105,14 @@ export function WorkspaceMembers({
       }
     },
     {
-      title: 'Permissions',
+      title: t`Permissions`,
       key: 'permissions',
       render: (record: WorkspaceMember) => {
         if (record.type === 'api_key') {
-          return <Tag color="purple">Full Access</Tag>
+          return <Tag color="purple">{t`Full Access`}</Tag>
         }
         if (record.invitation_expires_at) {
-          return <Tag color="orange">Pending</Tag>
+          return <Tag color="orange">{t`Pending`}</Tag>
         }
 
         // Count permissions
@@ -124,22 +126,22 @@ export function WorkspaceMembers({
           return (
             <Popover
               content={createPermissionsPopoverContent(record.permissions)}
-              title="Permission Details"
+              title={t`Permission Details`}
               trigger="hover"
             >
               <Tag color="red" className="cursor-pointer">
-                No Access
+                {t`No Access`}
               </Tag>
             </Popover>
           )
         }
         if (activePermissions === totalPermissions) {
-          return <Tag color="green">Full Access</Tag>
+          return <Tag color="green">{t`Full Access`}</Tag>
         }
         return (
           <Popover
             content={createPermissionsPopoverContent(record.permissions)}
-            title="Permission Details"
+            title={t`Permission Details`}
             trigger="hover"
           >
             <Tag color="blue" className="cursor-pointer">
@@ -150,7 +152,7 @@ export function WorkspaceMembers({
       }
     },
     {
-      title: 'Since',
+      title: t`Since`,
       dataIndex: 'created_at',
       key: 'created_at',
       render: (date: string) => new Date(date).toLocaleDateString()
@@ -173,7 +175,7 @@ export function WorkspaceMembers({
               return (
                 <Space size="small">
                   {!isInvitation && record.type !== 'api_key' && record.role !== 'owner' && (
-                    <Tooltip title="Edit permissions" placement="left">
+                    <Tooltip title={t`Edit permissions`} placement="left">
                       <Button
                         icon={<FontAwesomeIcon icon={faUserCog} />}
                         size="small"
@@ -184,14 +186,14 @@ export function WorkspaceMembers({
                   )}
                   {!isInvitation && (
                     <Popconfirm
-                      title="Remove member"
-                      description={`Are you sure you want to remove ${record.email}?${record.type === 'api_key' ? ' This API key will be permanently deleted.' : ''}`}
+                      title={t`Remove member`}
+                      description={t`Are you sure you want to remove ${record.email}?${record.type === 'api_key' ? ' This API key will be permanently deleted.' : ''}`}
                       onConfirm={() => handleRemoveMember(record.user_id)}
-                      okText="Yes"
-                      cancelText="No"
+                      okText={t`Yes`}
+                      cancelText={t`No`}
                       okButtonProps={{ danger: true, loading: removingMember }}
                     >
-                      <Tooltip title="Remove member" placement="left">
+                      <Tooltip title={t`Remove member`} placement="left">
                         <Button
                           icon={<FontAwesomeIcon icon={faTrashCan} />}
                           size="small"
@@ -204,14 +206,14 @@ export function WorkspaceMembers({
                   {isInvitation && (
                     <>
                       <Popconfirm
-                        title="Delete invitation"
-                        description={`Are you sure you want to delete the invitation for ${record.email}?`}
+                        title={t`Delete invitation`}
+                        description={t`Are you sure you want to delete the invitation for ${record.email}?`}
                         onConfirm={() => handleDeleteInvitation(record.invitation_id!)}
-                        okText="Yes"
-                        cancelText="No"
+                        okText={t`Yes`}
+                        cancelText={t`No`}
                         okButtonProps={{ danger: true, loading: removingMember }}
                       >
-                        <Tooltip title="Delete invitation" placement="left">
+                        <Tooltip title={t`Delete invitation`} placement="left">
                           <Button
                             icon={<FontAwesomeIcon icon={faTrashCan} />}
                             size="small"
@@ -219,7 +221,7 @@ export function WorkspaceMembers({
                             loading={removingMember}
                           />
                         </Tooltip>
-                        <Tooltip title="Resend invitation" placement="left">
+                        <Tooltip title={t`Resend invitation`} placement="left">
                           <Button
                             icon={<FontAwesomeIcon icon={faRefresh} />}
                             size="small"
@@ -241,7 +243,7 @@ export function WorkspaceMembers({
 
   const handleInvite = async () => {
     if (!inviteEmail.trim()) {
-      message.error('Please enter an email address')
+      message.error(t`Please enter an email address`)
       return
     }
 
@@ -254,7 +256,7 @@ export function WorkspaceMembers({
         permissions: invitePermissions
       })
 
-      message.success(`Invitation sent to ${inviteEmail}`)
+      message.success(t`Invitation sent to ${inviteEmail}`)
       setInviteModalVisible(false)
       setInviteEmail('')
 
@@ -262,7 +264,7 @@ export function WorkspaceMembers({
       onMembersChange()
     } catch (error) {
       console.error('Failed to invite member', error)
-      message.error('Failed to invite member')
+      message.error(t`Failed to invite member`)
     } finally {
       setInviting(false)
     }
@@ -270,7 +272,7 @@ export function WorkspaceMembers({
 
   const handleCreateApiKey = async () => {
     if (!apiKeyName.trim()) {
-      message.error('Please enter an API key name')
+      message.error(t`Please enter an API key name`)
       return
     }
 
@@ -289,13 +291,13 @@ export function WorkspaceMembers({
       })
 
       setApiKeyToken(response.token)
-      message.success('API key created successfully')
+      message.success(t`API key created successfully`)
 
       // Refresh the members list
       onMembersChange()
     } catch (error: unknown) {
       console.error('Failed to create API key', error)
-      message.error((error as Error).message || 'Failed to create API key')
+      message.error((error as Error).message || t`Failed to create API key`)
     } finally {
       setCreatingApiKey(false)
     }
@@ -321,11 +323,11 @@ export function WorkspaceMembers({
         user_id: userId
       })
 
-      message.success('Member removed successfully')
+      message.success(t`Member removed successfully`)
       onMembersChange()
     } catch (error) {
       console.error('Failed to remove member', error)
-      message.error('Failed to remove member')
+      message.error(t`Failed to remove member`)
     } finally {
       setRemovingMember(false)
     }
@@ -340,11 +342,11 @@ export function WorkspaceMembers({
         invitation_id: invitationId
       })
 
-      message.success('Invitation deleted successfully')
+      message.success(t`Invitation deleted successfully`)
       onMembersChange()
     } catch (error) {
       console.error('Failed to delete invitation', error)
-      message.error('Failed to delete invitation')
+      message.error(t`Failed to delete invitation`)
     } finally {
       setRemovingMember(false)
     }
@@ -376,11 +378,11 @@ export function WorkspaceMembers({
         permissions: defaultPermissions
       })
 
-      message.success(`Invitation resent to ${email}`)
+      message.success(t`Invitation resent to ${email}`)
       onMembersChange()
     } catch (error) {
       console.error('Failed to resend invitation', error)
-      message.error('Failed to resend invitation')
+      message.error(t`Failed to resend invitation`)
     } finally {
       setResendingInvitation(false)
     }
@@ -420,7 +422,7 @@ export function WorkspaceMembers({
         key: 'read',
         width: 60,
         render: (value: boolean) => (
-          <Tag color={value ? 'green' : 'red'}>{value ? 'Read' : 'No'}</Tag>
+          <Tag color={value ? 'green' : 'red'}>{value ? t`Read` : t`No`}</Tag>
         )
       },
       {
@@ -428,7 +430,7 @@ export function WorkspaceMembers({
         key: 'write',
         width: 60,
         render: (value: boolean) => (
-          <Tag color={value ? 'green' : 'red'}>{value ? 'Write' : 'No'}</Tag>
+          <Tag color={value ? 'green' : 'red'}>{value ? t`Write` : t`No`}</Tag>
         )
       }
     ]
@@ -468,13 +470,13 @@ export function WorkspaceMembers({
   // Permissions table columns for invite modal
   const invitePermissionsColumns = [
     {
-      title: 'Resource',
+      title: t`Resource`,
       dataIndex: 'resource',
       key: 'resource',
       width: '40%'
     },
     {
-      title: 'Read',
+      title: t`Read`,
       dataIndex: 'read',
       key: 'read',
       width: '30%',
@@ -487,7 +489,7 @@ export function WorkspaceMembers({
       )
     },
     {
-      title: 'Write',
+      title: t`Write`,
       dataIndex: 'write',
       key: 'write',
       width: '30%',
@@ -503,16 +505,16 @@ export function WorkspaceMembers({
 
   return (
     <>
-      <SettingsSectionHeader title="Team" description="Manage your workspace members" />
+      <SettingsSectionHeader title={t`Team`} description={t`Manage your workspace members`} />
 
       {isOwner && (
         <div className="flex justify-end mb-4">
           <Space size="middle">
             <Button type="primary" size="small" ghost onClick={() => setApiKeyModalVisible(true)}>
-              Create API Key
+              {t`Create API Key`}
             </Button>
             <Button type="primary" size="small" ghost onClick={() => setInviteModalVisible(true)}>
-              Invite Member
+              {t`Invite Member`}
             </Button>
           </Space>
         </div>
@@ -528,39 +530,39 @@ export function WorkspaceMembers({
           columns={columns}
           rowKey="user_id"
           pagination={false}
-          locale={{ emptyText: 'No members found' }}
+          locale={{ emptyText: t`No members found` }}
           className="border border-gray-200 rounded-md"
         />
       )}
 
       <Modal
-        title="Invite Member"
+        title={t`Invite Member`}
         open={inviteModalVisible}
         onCancel={() => setInviteModalVisible(false)}
         width={600}
         footer={[
           <Button key="cancel" onClick={() => setInviteModalVisible(false)}>
-            Cancel
+            {t`Cancel`}
           </Button>,
           <Button key="invite" type="primary" onClick={handleInvite} loading={inviting}>
-            Send Invitation
+            {t`Send Invitation`}
           </Button>
         ]}
       >
         <Form layout="vertical">
           <Form.Item
-            label="Email Address"
+            label={t`Email Address`}
             required
-            rules={[{ required: true, message: 'Please enter an email address' }]}
+            rules={[{ required: true, message: t`Please enter an email address` }]}
           >
             <Input
-              placeholder="Enter email address"
+              placeholder={t`Enter email address`}
               value={inviteEmail}
               onChange={(e) => setInviteEmail(e.target.value)}
             />
           </Form.Item>
 
-          <Form.Item label="Permissions">
+          <Form.Item label={t`Permissions`}>
             <Table
               dataSource={createInvitePermissionsTableData(invitePermissions)}
               columns={invitePermissionsColumns}
@@ -573,19 +575,19 @@ export function WorkspaceMembers({
       </Modal>
 
       <Modal
-        title="Create API Key"
+        title={t`Create API Key`}
         open={apiKeyModalVisible}
         onCancel={resetApiKeyModal}
         footer={
           apiKeyToken
             ? [
                 <Button key="close" type="primary" onClick={resetApiKeyModal}>
-                  Close
+                  {t`Close`}
                 </Button>
               ]
             : [
                 <Button key="cancel" onClick={resetApiKeyModal}>
-                  Cancel
+                  {t`Cancel`}
                 </Button>,
                 <Button
                   key="create"
@@ -593,7 +595,7 @@ export function WorkspaceMembers({
                   onClick={handleCreateApiKey}
                   loading={creatingApiKey}
                 >
-                  Create API Key
+                  {t`Create API Key`}
                 </Button>
               ]
         }
@@ -601,9 +603,9 @@ export function WorkspaceMembers({
         {!apiKeyToken ? (
           <Form layout="vertical">
             <Form.Item
-              label="API Key Name"
+              label={t`API Key Name`}
               required
-              rules={[{ required: true, message: 'Please enter an API key name' }]}
+              rules={[{ required: true, message: t`Please enter an API key name` }]}
             >
               <Space.Compact style={{ width: '100%' }}>
                 <Input
@@ -627,14 +629,14 @@ export function WorkspaceMembers({
         ) : (
           <>
             <Alert
-              message="API Key Created Successfully"
-              description="This token will only be displayed once. Please save it in a secure location. It cannot be retrieved again."
+              message={t`API Key Created Successfully`}
+              description={t`This token will only be displayed once. Please save it in a secure location. It cannot be retrieved again.`}
               type="warning"
               showIcon
               style={{ marginBottom: 16 }}
             />
             <Form layout="vertical">
-              <Form.Item label="API Token">
+              <Form.Item label={t`API Token`}>
                 <Input.TextArea
                   value={apiKeyToken}
                   autoSize={{ minRows: 3, maxRows: 5 }}

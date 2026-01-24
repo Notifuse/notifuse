@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Button, Form, Input, Image, App, Space } from 'antd'
 import { SearchOutlined } from '@ant-design/icons'
+import { useLingui } from '@lingui/react/macro'
 import { workspaceService } from '../../services/api/workspace'
 
 interface LogoInputProps {
@@ -12,13 +13,18 @@ interface LogoInputProps {
 
 export function LogoInput({
   name = 'logo_url',
-  label = 'Logo URL',
-  placeholder = 'https://example.com/logo.png',
-  rules = [{ type: 'url' as const, message: 'Please enter a valid URL' }]
+  label,
+  placeholder,
+  rules
 }: LogoInputProps) {
+  const { t } = useLingui()
   const [isDetectingIcon, setIsDetectingIcon] = useState(false)
   const { message } = App.useApp()
   const [form] = Form.useForm()
+
+  const finalLabel = label ?? t`Logo URL`
+  const finalPlaceholder = placeholder ?? 'https://example.com/logo.png'
+  const finalRules = rules ?? [{ type: 'url' as const, message: t`Please enter a valid URL` }]
 
   // Get the form from context
   const formInstance = Form.useFormInstance() || form
@@ -26,7 +32,7 @@ export function LogoInput({
   const handleDetectIcon = async () => {
     const website = formInstance.getFieldValue('website_url')
     if (!website) {
-      message.error('Please enter a website URL first')
+      message.error(t`Please enter a website URL first`)
       return
     }
 
@@ -36,20 +42,20 @@ export function LogoInput({
 
       if (iconUrl) {
         formInstance.setFieldsValue({ [name]: iconUrl })
-        message.success('Icon detected successfully')
+        message.success(t`Icon detected successfully`)
       } else {
-        message.warning('No icon found')
+        message.warning(t`No icon found`)
       }
     } catch (error: unknown) {
       console.error('Error detecting icon:', error)
-      message.error('Failed to detect icon: ' + ((error as Error).message || error))
+      message.error(t`Failed to detect icon: ${(error as Error).message || error}`)
     } finally {
       setIsDetectingIcon(false)
     }
   }
 
   return (
-    <Form.Item label={label}>
+    <Form.Item label={finalLabel}>
       <Space.Compact style={{ width: '100%' }}>
         <Form.Item noStyle shouldUpdate={(prev, current) => prev[name] !== current[name]}>
           {() => {
@@ -68,20 +74,20 @@ export function LogoInput({
                   background: '#fafafa'
                 }}
               >
-                <Image src={logoUrl} alt="Logo Preview" height={24} preview={false} />
+                <Image src={logoUrl} alt={t`Logo Preview`} height={24} preview={false} />
               </div>
             ) : null
           }}
         </Form.Item>
-        <Form.Item name={name} noStyle rules={rules}>
-          <Input placeholder={placeholder} style={{ flex: 1 }} />
+        <Form.Item name={name} noStyle rules={finalRules}>
+          <Input placeholder={finalPlaceholder} style={{ flex: 1 }} />
         </Form.Item>
         <Button
           icon={<SearchOutlined />}
           onClick={handleDetectIcon}
           loading={isDetectingIcon}
         >
-          Detect from website URL
+          {t`Detect from website URL`}
         </Button>
       </Space.Compact>
     </Form.Item>

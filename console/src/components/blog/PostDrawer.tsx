@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo, useRef } from 'react'
+import { useLingui } from '@lingui/react/macro'
 import {
   Button,
   Drawer,
@@ -73,6 +74,7 @@ interface PostDrawerProps {
 const HEADER_HEIGHT = 66
 
 export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }: PostDrawerProps) {
+  const { t } = useLingui()
   const [form] = Form.useForm()
   const queryClient = useQueryClient()
   const { message, modal } = App.useApp()
@@ -265,10 +267,10 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
           try {
             const { content, formValues, savedAt } = JSON.parse(savedDraft)
             modal.confirm({
-              title: 'Restore Draft?',
-              content: `Found unsaved changes from ${new Date(savedAt).toLocaleString()}`,
-              okText: 'Yes',
-              cancelText: 'No',
+              title: t`Restore Draft?`,
+              content: t`Found unsaved changes from ${new Date(savedAt).toLocaleString()}`,
+              okText: t`Yes`,
+              cancelText: t`No`,
               onOk: () => {
                 // Restore editor content
                 setBlogContent(content)
@@ -372,13 +374,13 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
       return blogPostsApi.create(workspace.id, createRequest)
     },
     onSuccess: () => {
-      message.success('Post created successfully')
+      message.success(t`Post created successfully`)
       localStorage.removeItem(draftKey)
       queryClient.invalidateQueries({ queryKey: ['blog-posts', workspace.id] })
       handleClose()
     },
     onError: (error: Error) => {
-      message.error(`Failed to create post: ${error.message}`)
+      message.error(t`Failed to create post: ${error.message}`)
       setLoading(false)
     }
   })
@@ -429,13 +431,13 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
       return blogPostsApi.update(workspace.id, updateRequest)
     },
     onSuccess: () => {
-      message.success('Post updated successfully')
+      message.success(t`Post updated successfully`)
       localStorage.removeItem(draftKey)
       queryClient.invalidateQueries({ queryKey: ['blog-posts', workspace.id] })
       handleClose()
     },
     onError: (error: Error) => {
-      message.error(`Failed to update post: ${error.message}`)
+      message.error(t`Failed to update post: ${error.message}`)
       setLoading(false)
     }
   })
@@ -480,10 +482,10 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
   const handleClose = () => {
     if (formTouched && !loading && !createMutation.isPending && !updateMutation.isPending) {
       modal.confirm({
-        title: 'Unsaved changes',
-        content: 'You have unsaved changes. Are you sure you want to close this drawer?',
-        okText: 'Yes',
-        cancelText: 'No',
+        title: t`Unsaved changes`,
+        content: t`You have unsaved changes. Are you sure you want to close this drawer?`,
+        okText: t`Yes`,
+        cancelText: t`No`,
         onOk: () => {
           closeDrawer()
         }
@@ -576,7 +578,7 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
 
   return (
     <Drawer
-      title={isEditMode ? 'Edit Post' : 'Create New Post'}
+      title={isEditMode ? t`Edit Post` : t`Create New Post`}
       width="100%"
       onClose={handleClose}
       open={open}
@@ -591,19 +593,19 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
               icon={<Undo size={16} />}
               onClick={() => editorRef.current?.undo()}
               disabled={!canUndo}
-              title="Undo"
+              title={t`Undo`}
             />
             <Button
               type="text"
               icon={<Redo size={16} />}
               onClick={() => editorRef.current?.redo()}
               disabled={!canRedo}
-              title="Redo"
+              title={t`Redo`}
             />
             {/* add vertical separator */}
             <div className="h-4 w-px bg-gray-200" />
             <Button type="link" loading={loading} onClick={handleClose}>
-              Cancel
+              {t`Cancel`}
             </Button>
             <Button
               loading={loading || createMutation.isPending || updateMutation.isPending}
@@ -612,7 +614,7 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
               }}
               type="primary"
             >
-              {isEditMode ? 'Save' : 'Create'}
+              {isEditMode ? t`Save` : t`Create`}
             </Button>
           </Space>
         </div>
@@ -624,7 +626,7 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
         onFinish={onFinish}
         onFinishFailed={(info) => {
           if (info.errorFields && info.errorFields.length > 0) {
-            message.error('Please check the form for errors.')
+            message.error(t`Please check the form for errors.`)
           }
           setLoading(false)
         }}
@@ -665,7 +667,7 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
                       }}
                     >
                       <Typography.Text strong style={{ fontSize: '13px' }}>
-                        Table of Contents
+                        {t`Table of Contents`}
                       </Typography.Text>
                     </div>
                     <nav>
@@ -722,27 +724,27 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
               <div style={{ width: '100%', maxWidth: '768px', padding: '24px' }}>
                 <Form.Item
                   name="title"
-                  label="Title"
+                  label={t`Title`}
                   rules={[
-                    { required: true, message: 'Please enter a post title' },
-                    { max: 500, message: 'Title must be less than 500 characters' }
+                    { required: true, message: t`Please enter a post title` },
+                    { max: 500, message: t`Title must be less than 500 characters` }
                   ]}
                   style={{ marginBottom: '16px' }}
                 >
-                  <Input placeholder="Post title" onChange={handleTitleChange} size="large" />
+                  <Input placeholder={t`Post title`} onChange={handleTitleChange} size="large" />
                 </Form.Item>
 
                 {templateLoading || (post && !blogContent) ? (
                   <div className="flex items-center justify-center h-full">
                     <Space direction="vertical" align="center">
-                      <div>Loading template...</div>
+                      <div>{t`Loading template...`}</div>
                     </Space>
                   </div>
                 ) : (
                   <NotifuseEditor
                     key={`editor-${post?.id || 'new'}-${post?.settings.template.template_id || 'no-template'}-${post?.settings.template.template_version || 0}-${editorKeyCounter}`}
                     ref={editorRef}
-                    placeholder="Start writing your blog post..."
+                    placeholder={t`Start writing your blog post...`}
                     initialContent={
                       blogContent
                         ? jsonToHtml(blogContent)
@@ -773,14 +775,14 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
           >
             <Form.Item
               name="slug"
-              label="Slug"
+              label={t`Slug`}
               rules={[
-                { required: true, message: 'Please enter a slug' },
+                { required: true, message: t`Please enter a slug` },
                 {
                   pattern: /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
-                  message: 'Slug must contain only lowercase letters, numbers, and hyphens'
+                  message: t`Slug must contain only lowercase letters, numbers, and hyphens`
                 },
-                { max: 100, message: 'Slug must be less than 100 characters' }
+                { max: 100, message: t`Slug must be less than 100 characters` }
               ]}
               extra={getFullPostUrl()}
             >
@@ -791,11 +793,11 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
               <Col span={16}>
                 <Form.Item
                   name="category_id"
-                  label="Category"
-                  rules={[{ required: true, message: 'Please select a category' }]}
+                  label={t`Category`}
+                  rules={[{ required: true, message: t`Please select a category` }]}
                 >
                   <Select
-                    placeholder="Select a category"
+                    placeholder={t`Select a category`}
                     options={(categoriesData?.categories ?? []).map((cat) => ({
                       label: cat.settings.name,
                       value: cat.id
@@ -806,22 +808,22 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
               <Col span={8}>
                 <Form.Item
                   name="reading_time_minutes"
-                  label="Reading Time"
-                  rules={[{ required: true, message: 'Please enter reading time' }]}
+                  label={t`Reading Time`}
+                  rules={[{ required: true, message: t`Please enter reading time` }]}
                 >
-                  <InputNumber style={{ width: '100%' }} min={1} max={120} suffix="min" />
+                  <InputNumber style={{ width: '100%' }} min={1} max={120} suffix={t`min`} />
                 </Form.Item>
               </Col>
             </Row>
 
             <Form.Item
               name="authors"
-              label="Authors"
+              label={t`Authors`}
               required
               rules={[
                 {
                   required: true,
-                  message: 'Please add at least one author',
+                  message: t`Please add at least one author`,
                   type: 'array',
                   min: 1
                 }
@@ -832,18 +834,18 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
 
             <Form.Item
               name="excerpt"
-              label="Excerpt"
-              extra="Brief summary shown in post listings and previews"
+              label={t`Excerpt`}
+              extra={t`Brief summary shown in post listings and previews`}
             >
               <TextArea
                 rows={3}
-                placeholder="Brief summary of the post"
+                placeholder={t`Brief summary of the post`}
                 showCount
                 maxLength={500}
               />
             </Form.Item>
 
-            <Form.Item name="featured_image_url" label="Featured Image URL">
+            <Form.Item name="featured_image_url" label={t`Featured Image URL`}>
               <ImageURLInput />
             </Form.Item>
 

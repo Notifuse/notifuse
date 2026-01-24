@@ -34,6 +34,7 @@ import { PlusOutlined, DownloadOutlined, UploadOutlined } from '@ant-design/icon
 import { ExportContactsModal } from '../components/contacts/ExportContactsModal'
 import { useContactsCsvUpload } from '../components/contacts/ContactsCsvUploadProvider'
 import { getCustomFieldLabel } from '../hooks/useCustomFieldLabel'
+import { useLingui } from '@lingui/react/macro'
 
 const STORAGE_KEY = 'contact_columns_visibility'
 
@@ -73,6 +74,7 @@ const DEFAULT_VISIBLE_COLUMNS = {
 }
 
 export function ContactsPage() {
+  const { t } = useLingui()
   const { workspaceId } = useParams({ from: '/console/workspace/$workspaceId/contacts' })
   const search = useSearch({ from: workspaceContactsRoute.id })
   const navigate = useNavigate()
@@ -134,7 +136,7 @@ export function ContactsPage() {
         email: email
       }),
     onSuccess: (_, deletedEmail) => {
-      message.success('Contact deleted successfully')
+      message.success(t`Contact deleted successfully`)
       // Remove the deleted contact from the local state
       setAllContacts((prev) => prev.filter((contact) => contact.email !== deletedEmail))
       // Invalidate and refetch the contacts query to ensure data consistency
@@ -146,7 +148,7 @@ export function ContactsPage() {
       setContactToDelete(null)
     },
     onError: (error: Error) => {
-      message.error(error?.message || 'Failed to delete contact')
+      message.error(error?.message || t`Failed to delete contact`)
     }
   })
 
@@ -187,17 +189,17 @@ export function ContactsPage() {
   }
 
   const filterFields: FilterField[] = React.useMemo(() => [
-    { key: 'email', label: 'Email', type: 'string' as const },
-    { key: 'external_id', label: 'External ID', type: 'string' as const },
-    { key: 'first_name', label: 'First Name', type: 'string' as const },
-    { key: 'last_name', label: 'Last Name', type: 'string' as const },
-    { key: 'full_name', label: 'Full Name', type: 'string' as const },
-    { key: 'phone', label: 'Phone', type: 'string' as const },
-    { key: 'language', label: 'Language', type: 'string' as const, options: Languages },
-    { key: 'country', label: 'Country', type: 'string' as const, options: CountriesFormOptions },
+    { key: 'email', label: t`Email`, type: 'string' as const },
+    { key: 'external_id', label: t`External ID`, type: 'string' as const },
+    { key: 'first_name', label: t`First Name`, type: 'string' as const },
+    { key: 'last_name', label: t`Last Name`, type: 'string' as const },
+    { key: 'full_name', label: t`Full Name`, type: 'string' as const },
+    { key: 'phone', label: t`Phone`, type: 'string' as const },
+    { key: 'language', label: t`Language`, type: 'string' as const, options: Languages },
+    { key: 'country', label: t`Country`, type: 'string' as const, options: CountriesFormOptions },
     {
       key: 'list_id',
-      label: 'List',
+      label: t`List`,
       type: 'string' as const,
       options:
         listsData?.lists?.map((list: { id: string; name: string }) => ({
@@ -207,17 +209,17 @@ export function ContactsPage() {
     },
     {
       key: 'contact_list_status',
-      label: 'List Status',
+      label: t`List Status`,
       type: 'string' as const,
       options: [
-        { value: 'active', label: 'Active' },
-        { value: 'pending', label: 'Pending' },
-        { value: 'unsubscribed', label: 'Unsubscribed' },
-        { value: 'bounced', label: 'Bounced' },
-        { value: 'complained', label: 'Complained' }
+        { value: 'active', label: t`Active` },
+        { value: 'pending', label: t`Pending` },
+        { value: 'unsubscribed', label: t`Unsubscribed` },
+        { value: 'bounced', label: t`Bounced` },
+        { value: 'complained', label: t`Complained` }
       ]
     }
-  ], [listsData?.lists])
+  ], [listsData?.lists, t])
 
   // Load saved state from localStorage on mount
   React.useEffect(() => {
@@ -242,18 +244,18 @@ export function ContactsPage() {
   }
 
   const allColumns: { key: string; title: string }[] = [
-    { key: 'lists', title: 'Lists' },
-    { key: 'segments', title: 'Segments' },
-    { key: 'first_name', title: 'First Name' },
-    { key: 'last_name', title: 'Last Name' },
-    { key: 'full_name', title: 'Full Name' },
-    { key: 'phone', title: 'Phone' },
-    { key: 'country', title: 'Country' },
-    { key: 'language', title: 'Language' },
-    { key: 'timezone', title: 'Timezone' },
-    { key: 'address', title: 'Address' },
-    { key: 'job_title', title: 'Job Title' },
-    { key: 'created_at', title: 'Created At' },
+    { key: 'lists', title: t`Lists` },
+    { key: 'segments', title: t`Segments` },
+    { key: 'first_name', title: t`First Name` },
+    { key: 'last_name', title: t`Last Name` },
+    { key: 'full_name', title: t`Full Name` },
+    { key: 'phone', title: t`Phone` },
+    { key: 'country', title: t`Country` },
+    { key: 'language', title: t`Language` },
+    { key: 'timezone', title: t`Timezone` },
+    { key: 'address', title: t`Address` },
+    { key: 'job_title', title: t`Job Title` },
+    { key: 'created_at', title: t`Created At` },
     { key: 'custom_string_1', title: getCustomFieldLabel('custom_string_1', currentWorkspace) },
     { key: 'custom_string_2', title: getCustomFieldLabel('custom_string_2', currentWorkspace) },
     { key: 'custom_string_3', title: getCustomFieldLabel('custom_string_3', currentWorkspace) },
@@ -397,12 +399,12 @@ export function ContactsPage() {
   }
 
   if (!currentWorkspace) {
-    return <div>Loading...</div>
+    return <div>{t`Loading...`}</div>
   }
 
   const columns: ColumnsType<Contact> = [
     {
-      title: 'Email',
+      title: t`Email`,
       dataIndex: 'email',
       key: 'email',
       fixed: 'left' as const,
@@ -414,7 +416,7 @@ export function ContactsPage() {
       })
     },
     {
-      title: 'Lists',
+      title: t`Lists`,
       key: 'lists',
       render: (_: unknown, record: Contact) => (
         <Space direction="vertical" size={2}>
@@ -429,33 +431,33 @@ export function ContactsPage() {
                 case 'active':
                   color = 'green'
                   icon = <FontAwesomeIcon icon={faCircleCheck} style={{ marginRight: '4px' }} />
-                  statusText = 'Active subscriber'
+                  statusText = t`Active subscriber`
                   break
                 case 'pending':
                   color = 'blue'
                   icon = <FontAwesomeIcon icon={faHourglass} style={{ marginRight: '4px' }} />
-                  statusText = 'Pending confirmation'
+                  statusText = t`Pending confirmation`
                   break
                 case 'unsubscribed':
                   color = 'gray'
                   icon = <FontAwesomeIcon icon={faBan} style={{ marginRight: '4px' }} />
-                  statusText = 'Unsubscribed from list'
+                  statusText = t`Unsubscribed from list`
                   break
                 case 'bounced':
                   color = 'orange'
                   icon = (
                     <FontAwesomeIcon icon={faTriangleExclamation} style={{ marginRight: '4px' }} />
                   )
-                  statusText = 'Email bounced'
+                  statusText = t`Email bounced`
                   break
                 case 'complained':
                   color = 'red'
                   icon = <FontAwesomeIcon icon={faFaceFrown} style={{ marginRight: '4px' }} />
-                  statusText = 'Marked as spam'
+                  statusText = t`Marked as spam`
                   break
                 default:
                   color = 'blue'
-                  statusText = 'Status unknown'
+                  statusText = t`Status unknown`
                   break
               }
 
@@ -466,16 +468,16 @@ export function ContactsPage() {
               // Format creation date if available using workspace timezone
               const creationDate = list.created_at
                 ? dayjs(list.created_at).tz(workspaceTimezone).format('LL - HH:mm')
-                : 'Unknown date'
+                : t`Unknown date`
 
               const tooltipTitle = (
                 <>
                   <div>
                     <strong>{statusText}</strong>
                   </div>
-                  <div>Subscribed on: {creationDate}</div>
+                  <div>{t`Subscribed on:`} {creationDate}</div>
                   <div>
-                    <small>Timezone: {workspaceTimezone}</small>
+                    <small>{t`Timezone:`} {workspaceTimezone}</small>
                   </div>
                 </>
               )
@@ -495,7 +497,7 @@ export function ContactsPage() {
       hidden: !visibleColumns.lists
     },
     {
-      title: 'Segments',
+      title: t`Segments`,
       key: 'segments',
       render: (_: unknown, record: Contact) => (
         <Space direction="vertical" size={2}>
@@ -514,17 +516,17 @@ export function ContactsPage() {
               // Format matched date if available using workspace timezone
               const matchedDate = segment.matched_at
                 ? dayjs(segment.matched_at).tz(workspaceTimezone).format('LL - HH:mm')
-                : 'Unknown date'
+                : t`Unknown date`
 
               const tooltipTitle = (
                 <>
                   <div>
                     <strong>{segmentName}</strong>
                   </div>
-                  <div>Matched on: {matchedDate}</div>
-                  {segment.version && <div>Version: {segment.version}</div>}
+                  <div>{t`Matched on:`} {matchedDate}</div>
+                  {segment.version && <div>{t`Version:`} {segment.version}</div>}
                   <div>
-                    <small>Timezone: {workspaceTimezone}</small>
+                    <small>{t`Timezone:`} {workspaceTimezone}</small>
                   </div>
                 </>
               )
@@ -543,52 +545,52 @@ export function ContactsPage() {
       hidden: !visibleColumns.segments
     },
     {
-      title: 'First Name',
+      title: t`First Name`,
       dataIndex: 'first_name',
       key: 'first_name',
       render: (_: unknown, record: Contact) => record.first_name || '-',
       hidden: !visibleColumns.first_name
     },
     {
-      title: 'Last Name',
+      title: t`Last Name`,
       dataIndex: 'last_name',
       key: 'last_name',
       render: (_: unknown, record: Contact) => record.last_name || '-',
       hidden: !visibleColumns.last_name
     },
     {
-      title: 'Full Name',
+      title: t`Full Name`,
       dataIndex: 'full_name',
       key: 'full_name',
       render: (_: unknown, record: Contact) => record.full_name || '-',
       hidden: !visibleColumns.full_name
     },
     {
-      title: 'Phone',
+      title: t`Phone`,
       dataIndex: 'phone',
       key: 'phone',
       hidden: !visibleColumns.phone
     },
     {
-      title: 'Country',
+      title: t`Country`,
       dataIndex: 'country',
       key: 'country',
       hidden: !visibleColumns.country
     },
     {
-      title: 'Language',
+      title: t`Language`,
       dataIndex: 'language',
       key: 'language',
       hidden: !visibleColumns.language
     },
     {
-      title: 'Timezone',
+      title: t`Timezone`,
       dataIndex: 'timezone',
       key: 'timezone',
       hidden: !visibleColumns.timezone
     },
     {
-      title: 'Address',
+      title: t`Address`,
       key: 'address',
       render: (_: unknown, record: Contact) => {
         const parts = [
@@ -602,13 +604,13 @@ export function ContactsPage() {
       hidden: !visibleColumns.address
     },
     {
-      title: 'Job Title',
+      title: t`Job Title`,
       dataIndex: 'job_title',
       key: 'job_title',
       hidden: !visibleColumns.job_title
     },
     {
-      title: 'Created At',
+      title: t`Created At`,
       dataIndex: 'created_at',
       key: 'created_at',
       render: (_: unknown, record: Contact) =>
@@ -780,7 +782,7 @@ export function ContactsPage() {
     {
       title: (
         <Space size="small">
-          <Tooltip title="Refresh">
+          <Tooltip title={t`Refresh`}>
             <Button
               type="text"
               size="small"
@@ -812,13 +814,13 @@ export function ContactsPage() {
         const menuItems: MenuProps['items'] = [
           {
             key: 'edit',
-            label: 'Edit',
+            label: t`Edit`,
             disabled: !permissions?.contacts?.write,
             onClick: () => handleEditClick(record)
           },
           {
             key: 'delete',
-            label: 'Delete',
+            label: t`Delete`,
             disabled: !permissions?.contacts?.write,
             onClick: () => handleDeleteClick(record.email)
           }
@@ -872,7 +874,7 @@ export function ContactsPage() {
       {/* Header with title and actions */}
       <div className="flex justify-between items-center mb-6">
         <div className="flex items-center gap-3">
-          <div className="text-2xl font-medium">Contacts</div>
+          <div className="text-2xl font-medium">{t`Contacts`}</div>
           {totalContactsData?.total_contacts !== undefined && (
             <Tag bordered={false} color="blue">
               {numbro(totalContactsData.total_contacts).format({
@@ -888,14 +890,14 @@ export function ContactsPage() {
               items: [
                 {
                   key: 'import',
-                  label: 'Import',
+                  label: t`Import`,
                   icon: <UploadOutlined />,
                   disabled: !permissions?.contacts?.write,
                   onClick: () => openImportDrawer(workspaceId, listsData?.lists || [], true)
                 },
                 {
                   key: 'export',
-                  label: 'Export',
+                  label: t`Export`,
                   icon: <DownloadOutlined />,
                   onClick: () => setExportModalVisible(true)
                 }
@@ -907,7 +909,7 @@ export function ContactsPage() {
           <Tooltip
             title={
               !permissions?.contacts?.write
-                ? "You don't have write permission for contacts"
+                ? t`You don't have write permission for contacts`
                 : undefined
             }
           >
@@ -917,7 +919,7 @@ export function ContactsPage() {
                 lists={listsData?.lists || []}
                 buttonProps={{
                   type: 'text',
-                  children: 'Bulk Update',
+                  children: t`Bulk Update`,
                   disabled: !permissions?.contacts?.write
                 }}
               />
@@ -926,7 +928,7 @@ export function ContactsPage() {
           <Tooltip
             title={
               !permissions?.contacts?.write
-                ? "You don't have write permission for contacts"
+                ? t`You don't have write permission for contacts`
                 : undefined
             }
           >
@@ -936,7 +938,7 @@ export function ContactsPage() {
                 buttonProps={{
                   buttonContent: (
                     <>
-                      <PlusOutlined /> Add
+                      <PlusOutlined /> {t`Add`}
                     </>
                   ),
                   disabled: !permissions?.contacts?.write
@@ -949,7 +951,7 @@ export function ContactsPage() {
 
       {/* Filters */}
       <div className="flex items-center gap-2 mb-4">
-        <div className="text-sm font-medium">Filters:</div>
+        <div className="text-sm font-medium">{t`Filters:`}</div>
         <Filter fields={filterFields} activeFilters={activeFilters} />
       </div>
 
@@ -987,8 +989,8 @@ export function ContactsPage() {
         style={{ minWidth: 800 }}
         locale={{
           emptyText: showEmptyState
-            ? 'No contacts found. Add some contacts to get started.'
-            : 'Loading...'
+            ? t`No contacts found. Add some contacts to get started.`
+            : t`Loading...`
         }}
         className="border border-gray-200 rounded-md"
       />
@@ -996,7 +998,7 @@ export function ContactsPage() {
       {data?.next_cursor && (
         <div className="flex justify-center mt-4">
           <Button onClick={handleLoadMore} loading={isLoading || isFetching}>
-            Load More
+            {t`Load More`}
           </Button>
         </div>
       )}

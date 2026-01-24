@@ -14,6 +14,7 @@ import {
   Tooltip
 } from 'antd'
 import { EditOutlined, DeleteOutlined } from '@ant-design/icons'
+import { useLingui } from '@lingui/react/macro'
 import { Workspace } from '../../services/api/types'
 import { workspaceService } from '../../services/api/workspace'
 import { SettingsSectionHeader } from './SettingsSectionHeader'
@@ -50,6 +51,7 @@ export function CustomFieldsConfiguration({
   onWorkspaceUpdate,
   isOwner
 }: CustomFieldsConfigurationProps) {
+  const { t } = useLingui()
   const [modalVisible, setModalVisible] = useState(false)
   const [editingField, setEditingField] = useState<string | null>(null)
   const [form] = Form.useForm()
@@ -117,11 +119,11 @@ export function CustomFieldsConfiguration({
       const response = await workspaceService.get(workspace.id)
       onWorkspaceUpdate(response.workspace)
 
-      message.success('Custom field label saved successfully')
+      message.success(t`Custom field label saved successfully`)
       handleCloseModal()
     } catch (error) {
       console.error('Failed to update custom field label', error)
-      message.error('Failed to update custom field label')
+      message.error(t`Failed to update custom field label`)
     } finally {
       setSaving(false)
     }
@@ -146,24 +148,24 @@ export function CustomFieldsConfiguration({
       const response = await workspaceService.get(workspace.id)
       onWorkspaceUpdate(response.workspace)
 
-      message.success('Custom field label removed successfully')
+      message.success(t`Custom field label removed successfully`)
     } catch (error) {
       console.error('Failed to remove custom field label', error)
-      message.error('Failed to remove custom field label')
+      message.error(t`Failed to remove custom field label`)
     }
   }
 
   return (
     <>
       <SettingsSectionHeader
-        title="Custom Fields"
-        description="Set friendly display names for contact custom fields."
+        title={t`Custom Fields`}
+        description={t`Set friendly display names for contact custom fields.`}
       />
 
       {isOwner && (
         <div style={{ textAlign: 'right', marginBottom: 16 }}>
           <Button type="primary" ghost size="small" onClick={() => handleOpenModal()}>
-            Add Label
+            {t`Add Label`}
           </Button>
         </div>
       )}
@@ -193,11 +195,11 @@ export function CustomFieldsConfiguration({
                       onClick={() => handleOpenModal(field.fieldKey)}
                     />
                     <Popconfirm
-                      title="Remove custom field label"
-                      description="Are you sure you want to remove this custom field label?"
+                      title={t`Remove custom field label`}
+                      description={t`Are you sure you want to remove this custom field label?`}
                       onConfirm={() => handleDelete(field.fieldKey)}
-                      okText="Yes"
-                      cancelText="No"
+                      okText={t`Yes`}
+                      cancelText={t`No`}
                     >
                       <Button type="text" size="small" icon={<DeleteOutlined />} />
                     </Popconfirm>
@@ -210,7 +212,7 @@ export function CustomFieldsConfiguration({
       )}
 
       <Modal
-        title={editingField ? 'Edit Custom Field Label' : 'Add Custom Field Label'}
+        title={editingField ? t`Edit Custom Field Label` : t`Add Custom Field Label`}
         open={modalVisible}
         onCancel={handleCloseModal}
         footer={null}
@@ -220,7 +222,7 @@ export function CustomFieldsConfiguration({
           <Form form={form} onFinish={handleSave} layout="vertical">
             <Form.Item
               name="fieldKey"
-              rules={[{ required: true, message: 'Please select a custom field' }]}
+              rules={[{ required: true, message: t`Please select a custom field` }]}
             >
               <Radio.Group disabled={!!editingField} style={{ width: '100%' }}>
                 <Row gutter={[24, 24]}>
@@ -240,7 +242,7 @@ export function CustomFieldsConfiguration({
 
                           if (!isAvailable) {
                             return (
-                              <Tooltip key={fieldKey} title="already set">
+                              <Tooltip key={fieldKey} title={t`already set`}>
                                 {radioButton}
                               </Tooltip>
                             )
@@ -257,20 +259,20 @@ export function CustomFieldsConfiguration({
 
             <Form.Item
               name="label"
-              label="Custom Label"
+              label={t`Custom Label`}
               rules={[
-                { required: true, message: 'Please enter a custom label' },
-                { max: 100, message: 'Label must be at most 100 characters' }
+                { required: true, message: t`Please enter a custom label` },
+                { max: 100, message: t`Label must be at most 100 characters` }
               ]}
             >
-              <Input placeholder="e.g., Company Name, Industry, etc." maxLength={100} />
+              <Input placeholder={t`e.g., Company Name, Industry, etc.`} maxLength={100} />
             </Form.Item>
 
             <Form.Item style={{ marginBottom: 0, textAlign: 'right' }}>
               <Space>
-                <Button onClick={handleCloseModal}>Cancel</Button>
+                <Button onClick={handleCloseModal}>{t`Cancel`}</Button>
                 <Button type="primary" htmlType="submit" loading={saving}>
-                  Save
+                  {t`Save`}
                 </Button>
               </Space>
             </Form.Item>

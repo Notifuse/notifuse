@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { useLingui } from '@lingui/react/macro'
 import { Button, Drawer, Form, Input, App } from 'antd'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { blogCategoriesApi, normalizeSlug, BlogCategory } from '../../services/api/blog'
@@ -15,6 +16,7 @@ interface CategoryDrawerProps {
 }
 
 export function CategoryDrawer({ open, onClose, category, workspaceId }: CategoryDrawerProps) {
+  const { t } = useLingui()
   const [form] = Form.useForm()
   const queryClient = useQueryClient()
   const { message } = App.useApp()
@@ -37,26 +39,26 @@ export function CategoryDrawer({ open, onClose, category, workspaceId }: Categor
   const createMutation = useMutation({
     mutationFn: (data: CreateBlogCategoryRequest) => blogCategoriesApi.create(workspaceId, data),
     onSuccess: () => {
-      message.success('Category created successfully')
+      message.success(t`Category created successfully`)
       queryClient.invalidateQueries({ queryKey: ['blog-categories', workspaceId] })
       onClose()
       form.resetFields()
     },
     onError: (error: Error) => {
-      message.error(`Failed to create category: ${error.message}`)
+      message.error(t`Failed to create category: ${error.message}`)
     }
   })
 
   const updateMutation = useMutation({
     mutationFn: (data: UpdateBlogCategoryRequest) => blogCategoriesApi.update(workspaceId, data),
     onSuccess: () => {
-      message.success('Category updated successfully')
+      message.success(t`Category updated successfully`)
       queryClient.invalidateQueries({ queryKey: ['blog-categories', workspaceId] })
       onClose()
       form.resetFields()
     },
     onError: (error: Error) => {
-      message.error(`Failed to update category: ${error.message}`)
+      message.error(t`Failed to update category: ${error.message}`)
     }
   })
 
@@ -96,7 +98,7 @@ export function CategoryDrawer({ open, onClose, category, workspaceId }: Categor
 
   return (
     <Drawer
-      title={isEditMode ? 'Edit Category' : 'Create New Category'}
+      title={isEditMode ? t`Edit Category` : t`Create New Category`}
       width={500}
       onClose={handleClose}
       open={open}
@@ -109,7 +111,7 @@ export function CategoryDrawer({ open, onClose, category, workspaceId }: Categor
           onClick={() => form.submit()}
           loading={isEditMode ? updateMutation.isPending : createMutation.isPending}
         >
-          {isEditMode ? 'Save' : 'Create'}
+          {isEditMode ? t`Save` : t`Create`}
         </Button>
       }
     >
@@ -125,35 +127,35 @@ export function CategoryDrawer({ open, onClose, category, workspaceId }: Categor
       >
         <Form.Item
           name="name"
-          label="Name"
+          label={t`Name`}
           rules={[
-            { required: true, message: 'Please enter a category name' },
-            { max: 255, message: 'Name must be less than 255 characters' }
+            { required: true, message: t`Please enter a category name` },
+            { max: 255, message: t`Name must be less than 255 characters` }
           ]}
         >
-          <Input placeholder="e.g., Product Updates" onChange={handleNameChange} />
+          <Input placeholder={t`e.g., Product Updates`} onChange={handleNameChange} />
         </Form.Item>
 
         <Form.Item
           name="slug"
-          label="Slug"
+          label={t`Slug`}
           rules={[
-            { required: true, message: 'Please enter a slug' },
+            { required: true, message: t`Please enter a slug` },
             {
               pattern: /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
-              message: 'Slug must contain only lowercase letters, numbers, and hyphens'
+              message: t`Slug must contain only lowercase letters, numbers, and hyphens`
             },
-            { max: 100, message: 'Slug must be less than 100 characters' }
+            { max: 100, message: t`Slug must be less than 100 characters` }
           ]}
-          extra="URL-friendly identifier (lowercase, hyphens only)"
+          extra={t`URL-friendly identifier (lowercase, hyphens only)`}
         >
           <Input placeholder="product-updates" disabled={isEditMode} />
         </Form.Item>
 
-        <Form.Item name="description" label="Description">
+        <Form.Item name="description" label={t`Description`}>
           <TextArea
             rows={3}
-            placeholder="Brief description of this category"
+            placeholder={t`Brief description of this category`}
             showCount
             maxLength={500}
           />

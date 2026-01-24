@@ -1,5 +1,6 @@
 import React from 'react'
 import { Table, Spin, Alert } from 'antd'
+import { useLingui } from '@lingui/react/macro'
 import * as echarts from 'echarts/core'
 import { LineChart, BarChart, PieChart } from 'echarts/charts'
 import {
@@ -47,6 +48,7 @@ export const ChartVisualization: React.FC<ChartVisualizationProps> = ({
   colors = {},
   measureTitles = {}
 }) => {
+  const { t } = useLingui()
   // Helper function to format dates from ISO format to readable format
   const formatDate = (dateString: string) => {
     if (!dateString) return dateString
@@ -385,12 +387,12 @@ export const ChartVisualization: React.FC<ChartVisualizationProps> = ({
   }
 
   if (error) {
-    return <Alert message="Error" description={error} type="error" showIcon />
+    return <Alert message={t`Error`} description={error} type="error" showIcon />
   }
 
   if (!data || !data.data.length) {
     return (
-      <div style={{ textAlign: 'center', padding: '50px', color: '#999' }}>No data available</div>
+      <div style={{ textAlign: 'center', padding: '50px', color: '#999' }}>{t`No data available`}</div>
     )
   }
 

@@ -17,6 +17,7 @@ import {
   Tabs,
   Tooltip
 } from 'antd'
+import { useLingui } from '@lingui/react/macro'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   broadcastApi,
@@ -33,6 +34,7 @@ import type { List } from '../../services/api/list'
 
 // Custom component to handle A/B testing configuration
 const ABTestingConfig = ({ form }: { form: ReturnType<typeof Form.useForm>[0] }) => {
+  const { t } = useLingui()
   const autoSendWinner = Form.useWatch(['test_settings', 'auto_send_winner'], form)
 
   if (!autoSendWinner) return null
@@ -42,13 +44,13 @@ const ABTestingConfig = ({ form }: { form: ReturnType<typeof Form.useForm>[0] })
       <Col span={12}>
         <Form.Item
           name={['test_settings', 'auto_send_winner_metric']}
-          label="Winning metric"
+          label={t`Winning metric`}
           rules={[{ required: true }]}
         >
           <Select
             options={[
-              { value: 'open_rate', label: 'Open Rate' },
-              { value: 'click_rate', label: 'Click Rate' }
+              { value: 'open_rate', label: t`Open Rate` },
+              { value: 'click_rate', label: t`Click Rate` }
             ]}
           />
         </Form.Item>
@@ -56,7 +58,7 @@ const ABTestingConfig = ({ form }: { form: ReturnType<typeof Form.useForm>[0] })
       <Col span={12}>
         <Form.Item
           name={['test_settings', 'test_duration_hours']}
-          label="Test duration (hours)"
+          label={t`Test duration (hours)`}
           rules={[{ required: true }]}
         >
           <InputNumber min={1} />
@@ -85,6 +87,7 @@ export function UpsertBroadcastDrawer({
   lists = [],
   segments = []
 }: UpsertBroadcastDrawerProps) {
+  const { t } = useLingui()
   const [isOpen, setIsOpen] = useState(false)
   const [form] = Form.useForm()
   const queryClient = useQueryClient()
@@ -140,13 +143,13 @@ export function UpsertBroadcastDrawer({
       }
     },
     onSuccess: () => {
-      message.success(`Broadcast ${broadcast ? 'updated' : 'created'} successfully`)
+      message.success(broadcast ? t`Broadcast updated successfully` : t`Broadcast created successfully`)
       handleClose()
       queryClient.invalidateQueries({ queryKey: ['broadcasts', workspace.id] })
       setLoading(false)
     },
     onError: (error) => {
-      message.error(`Failed to ${broadcast ? 'update' : 'create'} broadcast: ${error.message}`)
+      message.error(broadcast ? t`Failed to update broadcast: ${error.message}` : t`Failed to create broadcast: ${error.message}`)
       setLoading(false)
     }
   })
@@ -203,10 +206,10 @@ export function UpsertBroadcastDrawer({
   const handleClose = () => {
     if (formTouched && !loading && !upsertBroadcastMutation.isPending) {
       modal.confirm({
-        title: 'Unsaved changes',
-        content: 'You have unsaved changes. Are you sure you want to close this drawer?',
-        okText: 'Yes',
-        cancelText: 'No',
+        title: t`Unsaved changes`,
+        content: t`You have unsaved changes. Are you sure you want to close this drawer?`,
+        okText: t`Yes`,
+        cancelText: t`No`,
         onOk: () => {
           setIsOpen(false)
           form.resetFields()
@@ -284,22 +287,22 @@ export function UpsertBroadcastDrawer({
       <div className="text-right">
         <Space>
           <Button type="link" loading={loading} onClick={handleClose}>
-            Cancel
+            {t`Cancel`}
           </Button>
 
           {tab === 'audience' && (
             <Button type="primary" onClick={goNext}>
-              Next
+              {t`Next`}
             </Button>
           )}
 
           {tab === 'email' && (
             <>
               <Button type="primary" ghost onClick={() => handleTabChange('audience')}>
-                Previous
+                {t`Previous`}
               </Button>
               <Button type="primary" onClick={goNext}>
-                Next
+                {t`Next`}
               </Button>
             </>
           )}
@@ -307,7 +310,7 @@ export function UpsertBroadcastDrawer({
           {tab === 'content' && (
             <>
               <Button type="primary" ghost onClick={() => handleTabChange('email')}>
-                Previous
+                {t`Previous`}
               </Button>
               <Button
                 loading={loading || upsertBroadcastMutation.isPending}
@@ -316,7 +319,7 @@ export function UpsertBroadcastDrawer({
                 }}
                 type="primary"
               >
-                Save
+                {t`Save`}
               </Button>
             </>
           )}
@@ -328,11 +331,11 @@ export function UpsertBroadcastDrawer({
   return (
     <>
       <Button type="primary" onClick={showDrawer} {...buttonProps}>
-        {buttonContent || (broadcast ? 'Edit Broadcast' : 'Create Broadcast')}
+        {buttonContent || (broadcast ? t`Edit Broadcast` : t`Create Broadcast`)}
       </Button>
       {isOpen && (
         <Drawer
-          title={<>{broadcast ? 'Edit broadcast' : 'Create a broadcast'}</>}
+          title={<>{broadcast ? t`Edit broadcast` : t`Create a broadcast`}</>}
           closable={true}
           keyboard={false}
           maskClosable={false}
@@ -397,7 +400,7 @@ export function UpsertBroadcastDrawer({
                   setTab('content')
                 }
 
-                message.error(`Please check the form for errors.`)
+                message.error(t`Please check the form for errors.`)
               }
               setLoading(false)
             }}
@@ -415,15 +418,15 @@ export function UpsertBroadcastDrawer({
                 items={[
                   {
                     key: 'audience',
-                    label: '1. Audience'
+                    label: t`1. Audience`
                   },
                   {
                     key: 'email',
-                    label: '2. Web Analytics'
+                    label: t`2. Web Analytics`
                   },
                   {
                     key: 'content',
-                    label: '3. Content'
+                    label: t`3. Content`
                   }
                 ]}
               />
@@ -432,25 +435,25 @@ export function UpsertBroadcastDrawer({
                   <div className="pt-8 pr-8">
                     <Form.Item
                       name="name"
-                      label="Broadcast name"
-                      rules={[{ required: true, message: 'Please enter a broadcast name' }]}
+                      label={t`Broadcast name`}
+                      rules={[{ required: true, message: t`Please enter a broadcast name` }]}
                     >
-                      <Input placeholder="E.g. Weekly Newsletter - May 2023" />
+                      <Input placeholder={t`E.g. Weekly Newsletter - May 2023`} />
                     </Form.Item>
 
                     <Form.Item
                       name={['audience', 'list']}
-                      label="List"
+                      label={t`List`}
                       rules={[
                         {
                           required: true,
                           type: 'string',
-                          message: 'Please select a list'
+                          message: t`Please select a list`
                         }
                       ]}
                     >
                       <Select
-                        placeholder="Select a list"
+                        placeholder={t`Select a list`}
                         options={lists.map((list) => ({
                           value: list.id,
                           label: list.name
@@ -462,9 +465,9 @@ export function UpsertBroadcastDrawer({
                       name={['audience', 'segments']}
                       label={
                         <span>
-                          Belonging to at least one of the following segments{' '}
+                          {t`Belonging to at least one of the following segments`}{' '}
                           <Tooltip
-                            title="Optionally filter contacts by segments within the selected lists"
+                            title={t`Optionally filter contacts by segments within the selected lists`}
                             className="ml-1"
                           >
                             <InfoCircleOutlined style={{ color: '#999' }} />
@@ -474,7 +477,7 @@ export function UpsertBroadcastDrawer({
                     >
                       <Select
                         mode="multiple"
-                        placeholder="Select segments (optional)"
+                        placeholder={t`Select segments (optional)`}
                         options={segments.map((segment) => ({
                           value: segment.id,
                           label: segment.name
@@ -520,7 +523,7 @@ export function UpsertBroadcastDrawer({
 
                     <Form.Item
                       name={['audience', 'exclude_unsubscribed']}
-                      label="Exclude unsubscribed recipients"
+                      label={t`Exclude unsubscribed recipients`}
                       valuePropName="checked"
                       initialValue={true}
                     >
@@ -532,19 +535,19 @@ export function UpsertBroadcastDrawer({
                 <div style={{ display: tab === 'email' ? 'block' : 'none' }}>
                   <div className="pt-8 pr-8">
                     <Alert
-                      description="These parameters are automatically added to the URL of the broadcast. They are used by web analytics tools to analyze the performance of your campaign."
+                      description={t`These parameters are automatically added to the URL of the broadcast. They are used by web analytics tools to analyze the performance of your campaign.`}
                       type="info"
                       className="!mb-4"
                     />
                     <Form.Item name={['utm_parameters', 'source']} label="utm_source">
-                      <Input placeholder="Your website or company name" />
+                      <Input placeholder={t`Your website or company name`} />
                     </Form.Item>
                     <Form.Item
                       name={['utm_parameters', 'medium']}
                       label="utm_medium"
                       initialValue="email"
                     >
-                      <Input placeholder="email" />
+                      <Input placeholder={t`email`} />
                     </Form.Item>
                     <Form.Item name={['utm_parameters', 'campaign']} label="utm_campaign">
                       <Input />
@@ -556,7 +559,7 @@ export function UpsertBroadcastDrawer({
                   <div className="pt-8 pr-8">
                     {!workspace.settings?.email_tracking_enabled && (
                       <Alert
-                        description="Tracking (opens & clicks) must be enabled in workspace settings to use A/B testing features."
+                        description={t`Tracking (opens & clicks) must be enabled in workspace settings to use A/B testing features.`}
                         type="info"
                         showIcon
                         className="!mb-4"
@@ -565,7 +568,7 @@ export function UpsertBroadcastDrawer({
 
                     <Form.Item
                       name={['test_settings', 'enabled']}
-                      label="Enable A/B Testing"
+                      label={t`Enable A/B Testing`}
                       valuePropName="checked"
                     >
                       <Switch disabled={!workspace.settings?.email_tracking_enabled} />
@@ -589,7 +592,7 @@ export function UpsertBroadcastDrawer({
                                 <Col span={12}>
                                   <Form.Item
                                     name={['test_settings', 'sample_percentage']}
-                                    label="Test sample size (%)"
+                                    label={t`Test sample size (%)`}
                                     rules={[{ required: true }]}
                                   >
                                     <InputNumber min={1} max={100} />
@@ -598,11 +601,11 @@ export function UpsertBroadcastDrawer({
                                 <Col span={12}>
                                   <Form.Item
                                     name={['test_settings', 'auto_send_winner']}
-                                    label="Automatically send winner"
+                                    label={t`Automatically send winner`}
                                     valuePropName="checked"
                                     tooltip={
                                       <Tooltip
-                                        title="Tracking (opens & clicks) should be enabled in your workspace settings to use this feature"
+                                        title={t`Tracking (opens & clicks) should be enabled in your workspace settings to use this feature`}
                                         className="ml-1"
                                       >
                                         <InfoCircleOutlined style={{ color: '#999' }} />
@@ -620,7 +623,7 @@ export function UpsertBroadcastDrawer({
 
                               {/* Variations management will be added here */}
                               <div className="text-xs mt-4 mb-4 font-bold border-b border-solid pb-2 border-gray-400 text-gray-900">
-                                Variations
+                                {t`Variations`}
                               </div>
 
                               <Form.List name={['test_settings', 'variations']}>
@@ -633,7 +636,7 @@ export function UpsertBroadcastDrawer({
                                             <Form.Item
                                               key={`template-${field.key}`}
                                               name={[field.name, 'template_id']}
-                                              label={`Template ${field.key + 1}`}
+                                              label={t`Template ${field.key + 1}`}
                                               rules={[
                                                 { required: true },
                                                 ({ getFieldsValue }) => ({
@@ -654,7 +657,7 @@ export function UpsertBroadcastDrawer({
                                                     if (duplicates.length > 0) {
                                                       return Promise.reject(
                                                         new Error(
-                                                          'This template is already used in another variation'
+                                                          t`This template is already used in another variation`
                                                         )
                                                       )
                                                     }
@@ -666,7 +669,7 @@ export function UpsertBroadcastDrawer({
                                             >
                                               <TemplateSelectorInput
                                                 workspaceId={workspace.id}
-                                                placeholder="Select template"
+                                                placeholder={t`Select template`}
                                                 category="marketing"
                                               />
                                             </Form.Item>
@@ -678,11 +681,11 @@ export function UpsertBroadcastDrawer({
                                             >
                                               <Form.Item label=" ">
                                                 <Popconfirm
-                                                  title="Remove variation"
-                                                  description="Are you sure you want to remove this variation?"
+                                                  title={t`Remove variation`}
+                                                  description={t`Are you sure you want to remove this variation?`}
                                                   onConfirm={() => remove(field.name)}
-                                                  okText="Yes"
-                                                  cancelText="No"
+                                                  okText={t`Yes`}
+                                                  cancelText={t`No`}
                                                 >
                                                   <Button
                                                     type="text"
@@ -709,7 +712,7 @@ export function UpsertBroadcastDrawer({
                                         }
                                         block
                                       >
-                                        + Add variation
+                                        {t`+ Add variation`}
                                       </Button>
                                     )}
                                   </>
@@ -724,12 +727,12 @@ export function UpsertBroadcastDrawer({
                           <div>
                             <Form.Item
                               name={['test_settings', 'variations', 0, 'template_id']}
-                              label="Template"
+                              label={t`Template`}
                               rules={[{ required: true }]}
                             >
                               <TemplateSelectorInput
                                 workspaceId={workspace.id}
-                                placeholder="Select template"
+                                placeholder={t`Select template`}
                                 category="marketing"
                               />
                             </Form.Item>

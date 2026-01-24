@@ -19,6 +19,8 @@ export type OperatorEqualsProps = {
   value: string | undefined
 }
 
+// Note: This class contains string labels that cannot use useLingui as they are class properties.
+// The labels 'equals', placeholders, and option labels should be translated at the point of use if needed.
 export class OperatorEquals implements IOperator {
   type: Operator = 'equals'
   label = 'equals'

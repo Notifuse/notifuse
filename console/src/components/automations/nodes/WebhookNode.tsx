@@ -1,6 +1,7 @@
 import React from 'react'
 import { Handle, Position, useConnection, type NodeProps } from '@xyflow/react'
 import { Globe } from 'lucide-react'
+import { useLingui } from '@lingui/react/macro'
 import { BaseNode } from './BaseNode'
 import { nodeTypeColors } from './constants'
 import type { AutomationNodeData } from '../utils/flowConverter'
@@ -9,6 +10,7 @@ import type { WebhookNodeConfig } from '../../../services/api/automation'
 type WebhookNodeProps = NodeProps<AutomationNodeData>
 
 export const WebhookNode: React.FC<WebhookNodeProps> = ({ data, selected }) => {
+  const { t } = useLingui()
   const config = data.config as WebhookNodeConfig
   const hasUrl = !!config?.url
   const connection = useConnection()
@@ -38,7 +40,7 @@ export const WebhookNode: React.FC<WebhookNodeProps> = ({ data, selected }) => {
       />
       <BaseNode
         type="webhook"
-        label="Webhook"
+        label={t`Webhook`}
         icon={<Globe size={16} color={selected ? undefined : nodeTypeColors.webhook} />}
         selected={selected}
         isOrphan={data.isOrphan}
@@ -49,7 +51,7 @@ export const WebhookNode: React.FC<WebhookNodeProps> = ({ data, selected }) => {
             {displayUrl}
           </div>
         ) : (
-          <div className="text-orange-500">Configure</div>
+          <div className="text-orange-500">{t`Configure`}</div>
         )}
       </BaseNode>
       <Handle

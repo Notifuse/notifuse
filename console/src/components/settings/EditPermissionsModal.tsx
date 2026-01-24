@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Modal, Button, Table, Switch, App } from 'antd'
+import { useLingui } from '@lingui/react/macro'
 import { WorkspaceMember, UserPermissions } from '../../services/api/types'
 import { workspaceService } from '../../services/api/workspace'
 
@@ -18,6 +19,7 @@ export function EditPermissionsModal({
   onClose,
   onSuccess
 }: EditPermissionsModalProps) {
+  const { t } = useLingui()
   const [permissions, setPermissions] = useState<UserPermissions>({} as UserPermissions)
   const [saving, setSaving] = useState(false)
   const { message } = App.useApp()
@@ -41,12 +43,12 @@ export function EditPermissionsModal({
         permissions: permissions
       })
 
-      message.success('Permissions updated successfully')
+      message.success(t`Permissions updated successfully`)
       onSuccess()
       onClose()
     } catch (error) {
       console.error('Failed to update permissions', error)
-      message.error('Failed to update permissions')
+      message.error(t`Failed to update permissions`)
     } finally {
       setSaving(false)
     }
@@ -75,13 +77,13 @@ export function EditPermissionsModal({
   // Permissions table columns
   const permissionsColumns = [
     {
-      title: 'Resource',
+      title: t`Resource`,
       dataIndex: 'resource',
       key: 'resource',
       width: '40%'
     },
     {
-      title: 'Read',
+      title: t`Read`,
       dataIndex: 'read',
       key: 'read',
       width: '30%',
@@ -94,7 +96,7 @@ export function EditPermissionsModal({
       )
     },
     {
-      title: 'Write',
+      title: t`Write`,
       dataIndex: 'write',
       key: 'write',
       width: '30%',
@@ -110,16 +112,16 @@ export function EditPermissionsModal({
 
   return (
     <Modal
-      title={`Edit Permissions for ${member?.email}`}
+      title={t`Edit Permissions for ${member?.email}`}
       open={visible}
       onCancel={onClose}
       width={600}
       footer={[
         <Button key="cancel" onClick={onClose}>
-          Cancel
+          {t`Cancel`}
         </Button>,
         <Button key="save" type="primary" onClick={handleSavePermissions} loading={saving}>
-          Save Permissions
+          {t`Save Permissions`}
         </Button>
       ]}
     >

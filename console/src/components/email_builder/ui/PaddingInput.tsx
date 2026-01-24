@@ -1,5 +1,6 @@
 import React, { useState, useEffect, memo, useCallback } from 'react'
 import { InputNumber, Row, Col } from 'antd'
+import { useLingui } from '@lingui/react/macro'
 
 interface PaddingValues {
   top: string | undefined
@@ -34,6 +35,7 @@ const isIndividualPadding = (props: PaddingInputProps): props is IndividualPaddi
  * Automatically detects format based on value prop type
  */
 const PaddingInput: React.FC<PaddingInputProps> = memo((props) => {
+  const { t } = useLingui()
   const isIndividual = isIndividualPadding(props)
 
   /**
@@ -152,7 +154,7 @@ const PaddingInput: React.FC<PaddingInputProps> = memo((props) => {
     <div>
       <Row gutter={16}>
         <Col span={5}>
-          <span className="text-xs text-gray-500">Top</span>
+          <span className="text-xs text-gray-500">{t`Top`}</span>
         </Col>
         <Col span={7}>
           <InputNumber
@@ -164,7 +166,7 @@ const PaddingInput: React.FC<PaddingInputProps> = memo((props) => {
           />
         </Col>
         <Col span={5}>
-          <span className="text-xs text-gray-500">Right</span>
+          <span className="text-xs text-gray-500">{t`Right`}</span>
         </Col>
         <Col span={7}>
           <InputNumber
@@ -179,7 +181,7 @@ const PaddingInput: React.FC<PaddingInputProps> = memo((props) => {
 
       <Row gutter={16} className="mt-4">
         <Col span={5}>
-          <span className="text-xs text-gray-500">Bottom</span>
+          <span className="text-xs text-gray-500">{t`Bottom`}</span>
         </Col>
         <Col span={7}>
           <InputNumber
@@ -191,7 +193,7 @@ const PaddingInput: React.FC<PaddingInputProps> = memo((props) => {
           />
         </Col>
         <Col span={5}>
-          <span className="text-xs text-gray-500">Left</span>
+          <span className="text-xs text-gray-500">{t`Left`}</span>
         </Col>
         <Col span={7}>
           <InputNumber

@@ -47,6 +47,10 @@ const formItemDatetimeRange = (
   </Form.Item>
 )
 
+// Note: These classes contain string labels that cannot use useLingui as they are class properties.
+// The labels like 'before date', 'after date', 'in date range', 'not in date range', 'in the last', 'days'
+// should be translated at the point of use if needed.
+
 export class OperatorBeforeDate implements IOperator {
   type: Operator = 'before_date'
   label = 'before date'

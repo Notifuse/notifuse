@@ -1,5 +1,6 @@
 import React, { useEffect, useCallback, useRef } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
+import { useLingui } from '@lingui/react/macro'
 import type { TiptapInlineEditorProps } from './shared/types'
 import { createInlineExtensions } from './shared/extensions'
 import { injectTiptapStyles } from './shared/styles'
@@ -10,12 +11,14 @@ export const TiptapInlineEditor: React.FC<TiptapInlineEditorProps> = ({
   content = '',
   onChange,
   readOnly = false,
-  placeholder = 'Start typing...',
+  placeholder,
   autoFocus = false,
   buttons,
   containerStyle
 }) => {
+  const { t } = useLingui()
   const isUpdatingFromProps = useRef(false)
+  const resolvedPlaceholder = placeholder || t`Start typing...`
 
   // Inject CSS styles
   useEffect(() => {
@@ -40,7 +43,7 @@ export const TiptapInlineEditor: React.FC<TiptapInlineEditorProps> = ({
       editable: !readOnly,
       editorProps: {
         attributes: {
-          'data-placeholder': placeholder,
+          'data-placeholder': resolvedPlaceholder,
           'data-inline-mode': 'true'
         }
       },
@@ -49,7 +52,7 @@ export const TiptapInlineEditor: React.FC<TiptapInlineEditorProps> = ({
         handleContentChange(htmlContent)
       }
     },
-    [handleContentChange, readOnly, placeholder]
+    [handleContentChange, readOnly, resolvedPlaceholder]
   )
 
   // Update content when prop changes (but avoid loops)

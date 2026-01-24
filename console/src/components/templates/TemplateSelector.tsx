@@ -1,4 +1,5 @@
 import React from 'react'
+import { useLingui } from '@lingui/react/macro'
 import { Form } from 'antd'
 import TemplateSelectorInput from './TemplateSelectorInput'
 import { Rule } from 'antd/es/form'
@@ -30,7 +31,8 @@ const TemplateSelector: React.FC<TemplateSelectorProps> = ({
   required = false,
   rules = []
 }) => {
-  const defaultRules = required ? [{ required: true, message: `Please select a template` }] : []
+  const { t } = useLingui()
+  const defaultRules = required ? [{ required: true, message: t`Please select a template` }] : []
   const combinedRules = [...defaultRules, ...rules]
 
   return (

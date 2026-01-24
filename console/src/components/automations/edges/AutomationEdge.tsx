@@ -2,6 +2,7 @@ import React from 'react'
 import { BaseEdge, EdgeLabelRenderer, getBezierPath, type EdgeProps } from '@xyflow/react'
 import { Tooltip } from 'antd'
 import { X } from 'lucide-react'
+import { useLingui } from '@lingui/react/macro'
 import { AddNodeButton } from '../AddNodeButton'
 import type { NodeType } from '../../../services/api/automation'
 
@@ -22,6 +23,7 @@ export const AutomationEdge: React.FC<EdgeProps<AutomationEdgeData>> = ({
   markerEnd,
   data
 }) => {
+  const { t } = useLingui()
   const [edgePath, labelX, labelY] = getBezierPath({
     sourceX,
     sourceY,
@@ -64,7 +66,7 @@ export const AutomationEdge: React.FC<EdgeProps<AutomationEdgeData>> = ({
 
               {/* Delete button */}
               {data?.onDelete && (
-                <Tooltip title="Delete edge" placement="right">
+                <Tooltip title={t`Delete edge`} placement="right">
                   <button
                     className="flex items-center justify-center w-6 h-6 rounded-full bg-white hover:bg-red-50 shadow-md border border-gray-200 cursor-pointer transition-transform hover:scale-110"
                     onClick={() => data.onDelete?.()}

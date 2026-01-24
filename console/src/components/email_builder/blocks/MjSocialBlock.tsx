@@ -1,4 +1,5 @@
 import React from 'react'
+import { useLingui } from '@lingui/react/macro'
 import type { MJMLComponentType, MJSocialAttributes } from '../types'
 import { BaseEmailBlock, type OnUpdateAttributesFunction, type PreviewProps } from './BaseEmailBlock'
 import { MJML_COMPONENT_DEFAULTS } from '../mjml-defaults'
@@ -12,6 +13,106 @@ import PanelLayout from '../panels/PanelLayout'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faInstagram } from '@fortawesome/free-brands-svg-icons'
 import FontStyleInput from '../ui/FontStyleInput'
+
+// Functional component for settings panel with i18n support
+interface MjSocialSettingsPanelProps {
+  currentAttributes: MJSocialAttributes
+  blockDefaults: MJSocialAttributes
+  onUpdate: OnUpdateAttributesFunction
+}
+
+const MjSocialSettingsPanel: React.FC<MjSocialSettingsPanelProps> = ({
+  currentAttributes,
+  blockDefaults,
+  onUpdate
+}) => {
+  const { t } = useLingui()
+
+  return (
+    <PanelLayout title={t`Social Attributes`}>
+      <InputLayout label={t`Container color`}>
+        <ColorPickerWithPresets
+          value={currentAttributes.containerBackgroundColor || undefined}
+          onChange={(color) => onUpdate({ containerBackgroundColor: color || undefined })}
+          placeholder={t`None`}
+        />
+      </InputLayout>
+
+      <InputLayout label={t`Font Styling`} layout="vertical">
+        <FontStyleInput
+          value={{
+            fontFamily: undefined,
+            fontSize: undefined,
+            fontWeight: undefined,
+            fontStyle: undefined,
+            textTransform: undefined,
+            textDecoration: undefined,
+            lineHeight: currentAttributes.lineHeight,
+            letterSpacing: undefined,
+            textAlign: currentAttributes.align
+          }}
+          defaultValue={{
+            fontFamily: undefined,
+            fontSize: undefined,
+            fontWeight: undefined,
+            fontStyle: undefined,
+            textTransform: undefined,
+            textDecoration: undefined,
+            lineHeight: blockDefaults.lineHeight,
+            letterSpacing: undefined,
+            textAlign: blockDefaults.align
+          }}
+          onChange={(values) => {
+            onUpdate({
+              lineHeight: values.lineHeight,
+              align: values.textAlign
+            })
+          }}
+          importedFonts={[]}
+        />
+      </InputLayout>
+
+      <InputLayout label={t`Padding`} layout="vertical">
+        <PaddingInput
+          value={currentAttributes.innerPadding}
+          defaultValue={blockDefaults.innerPadding}
+          onChange={(value: string | undefined) => {
+            onUpdate({
+              innerPadding: value
+            })
+          }}
+        />
+      </InputLayout>
+
+      <InputLayout label={t`CSS Class`}>
+        <StringPopoverInput
+          value={currentAttributes.cssClass || ''}
+          onChange={(value) => onUpdate({ cssClass: value || undefined })}
+          placeholder={t`Enter CSS class name`}
+        />
+      </InputLayout>
+    </PanelLayout>
+  )
+}
+
+// Functional component for social placeholder with i18n support
+const MjSocialPlaceholder: React.FC = () => {
+  const { t } = useLingui()
+
+  return (
+    <div
+      style={{
+        color: '#999',
+        fontSize: '14px',
+        fontFamily: 'Arial, sans-serif',
+        padding: '20px',
+        fontStyle: 'italic'
+      }}
+    >
+      {t`Add social elements to this social block`}
+    </div>
+  )
+}
 
 /**
  * Implementation for mj-social blocks
@@ -53,81 +154,11 @@ export class MjSocialBlock extends BaseEmailBlock {
     const blockDefaults = this.getDefaults() as MJSocialAttributes
 
     return (
-      <PanelLayout title="Social Attributes">
-        <InputLayout label="Container color">
-          <ColorPickerWithPresets
-            value={currentAttributes.containerBackgroundColor || undefined}
-            onChange={(color) => onUpdate({ containerBackgroundColor: color || undefined })}
-            placeholder="None"
-          />
-        </InputLayout>
-
-        <InputLayout label="Font Styling" layout="vertical">
-          <FontStyleInput
-            value={{
-              fontFamily: undefined,
-              fontSize: undefined,
-              fontWeight: undefined,
-              fontStyle: undefined,
-              textTransform: undefined,
-              textDecoration: undefined,
-              lineHeight: currentAttributes.lineHeight,
-              letterSpacing: undefined,
-              textAlign: currentAttributes.align
-            }}
-            defaultValue={{
-              fontFamily: undefined,
-              fontSize: undefined,
-              fontWeight: undefined,
-              fontStyle: undefined,
-              textTransform: undefined,
-              textDecoration: undefined,
-              lineHeight: blockDefaults.lineHeight,
-              letterSpacing: undefined,
-              textAlign: blockDefaults.align
-            }}
-            onChange={(values) => {
-              onUpdate({
-                lineHeight: values.lineHeight,
-                align: values.textAlign
-              })
-            }}
-            importedFonts={[]}
-          />
-        </InputLayout>
-
-        <InputLayout label="Padding" layout="vertical">
-          <PaddingInput
-            value={currentAttributes.innerPadding}
-            defaultValue={blockDefaults.innerPadding}
-            onChange={(value: string | undefined) => {
-              onUpdate({
-                innerPadding: value
-              })
-            }}
-          />
-        </InputLayout>
-
-        {/* Missing inputs for MjSocialAttributes that don't have equivalents in MjTextBlock: */}
-        {/* missing input for attribute borderRadius */}
-        {/* missing input for attribute iconHeight */}
-        {/* missing input for attribute iconSize */}
-        {/* missing input for attribute mode */}
-        {/* missing input for attribute tableLayout */}
-        {/* missing input for attribute textPadding */}
-        {/* missing input for attribute paddingTop */}
-        {/* missing input for attribute paddingRight */}
-        {/* missing input for attribute paddingBottom */}
-        {/* missing input for attribute paddingLeft */}
-
-        <InputLayout label="CSS Class">
-          <StringPopoverInput
-            value={currentAttributes.cssClass || ''}
-            onChange={(value) => onUpdate({ cssClass: value || undefined })}
-            placeholder="Enter CSS class name"
-          />
-        </InputLayout>
-      </PanelLayout>
+      <MjSocialSettingsPanel
+        currentAttributes={currentAttributes}
+        blockDefaults={blockDefaults}
+        onUpdate={onUpdate}
+      />
     )
   }
 
@@ -238,19 +269,7 @@ export class MjSocialBlock extends BaseEmailBlock {
       }
     } else {
       // Show placeholder when no children exist (shouldn't happen normally since mj-social gets default children)
-      socialContent = (
-        <div
-          style={{
-            color: '#999',
-            fontSize: '14px',
-            fontFamily: 'Arial, sans-serif',
-            padding: '20px',
-            fontStyle: 'italic'
-          }}
-        >
-          Add social elements to this social block
-        </div>
-      )
+      socialContent = <MjSocialPlaceholder />
     }
 
     // Return the complete table structure that simulates MJML output

@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react'
 import { Form, Input } from 'antd'
+import { useLingui } from '@lingui/react/macro'
 import { TreeNodeInput } from '../../segment/input'
 import { TableSchemas } from '../../segment/table_schemas'
 import { useAutomation } from '../context'
@@ -21,6 +22,7 @@ const EMPTY_TREE: TreeNode = {
 }
 
 export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({ config, onChange }) => {
+  const { t } = useLingui()
   const { lists } = useAutomation()
   const initializedRef = useRef(false)
 
@@ -44,19 +46,19 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({ config, onCh
 
   return (
     <Form layout="vertical" className="nodrag">
-      <Form.Item label="Description">
+      <Form.Item label={t`Description`}>
         <Input
           value={config.description || ''}
           onChange={handleDescriptionChange}
-          placeholder="e.g., Active users only"
+          placeholder={t`e.g., Active users only`}
           maxLength={100}
         />
       </Form.Item>
 
       <Form.Item
-        label={<span>Filter Conditions <span className="text-red-500">*</span></span>}
+        label={<span>{t`Filter Conditions`} <span className="text-red-500">*</span></span>}
         required={false}
-        extra="Contacts matching these conditions will follow the 'Yes' path. Others will follow 'No'."
+        extra={t`Contacts matching these conditions will follow the 'Yes' path. Others will follow 'No'.`}
       >
         <TreeNodeInput
           value={conditions}

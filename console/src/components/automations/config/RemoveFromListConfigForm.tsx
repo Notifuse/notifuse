@@ -1,5 +1,6 @@
 import React from 'react'
 import { Form, Select } from 'antd'
+import { useLingui } from '@lingui/react/macro'
 import { useAutomation } from '../context'
 import type { RemoveFromListNodeConfig } from '../../../services/api/automation'
 
@@ -12,6 +13,7 @@ export const RemoveFromListConfigForm: React.FC<RemoveFromListConfigFormProps> =
   config,
   onChange
 }) => {
+  const { t } = useLingui()
   const { lists } = useAutomation()
 
   const handleListChange = (value: string) => {
@@ -21,12 +23,12 @@ export const RemoveFromListConfigForm: React.FC<RemoveFromListConfigFormProps> =
   return (
     <Form layout="vertical" className="nodrag">
       <Form.Item
-        label="List"
+        label={t`List`}
         required
-        extra="Select which list to remove the contact from"
+        extra={t`Select which list to remove the contact from`}
       >
         <Select
-          placeholder="Select a list..."
+          placeholder={t`Select a list...`}
           value={config.list_id || undefined}
           onChange={handleListChange}
           style={{ width: '100%' }}

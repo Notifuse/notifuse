@@ -1,5 +1,6 @@
 import React from 'react'
 import { Form, InputNumber, Select, Space } from 'antd'
+import { useLingui } from '@lingui/react/macro'
 import type { DelayNodeConfig } from '../../../services/api/automation'
 
 interface DelayConfigFormProps {
@@ -7,13 +8,14 @@ interface DelayConfigFormProps {
   onChange: (config: DelayNodeConfig) => void
 }
 
-const UNIT_OPTIONS = [
-  { label: 'Minutes', value: 'minutes' },
-  { label: 'Hours', value: 'hours' },
-  { label: 'Days', value: 'days' }
-]
-
 export const DelayConfigForm: React.FC<DelayConfigFormProps> = ({ config, onChange }) => {
+  const { t } = useLingui()
+
+  const UNIT_OPTIONS = [
+    { label: t`Minutes`, value: 'minutes' },
+    { label: t`Hours`, value: 'hours' },
+    { label: t`Days`, value: 'days' }
+  ]
   const handleDurationChange = (value: number | null) => {
     onChange({ ...config, duration: value || 0 })
   }
@@ -25,9 +27,9 @@ export const DelayConfigForm: React.FC<DelayConfigFormProps> = ({ config, onChan
   return (
     <Form layout="vertical" className="nodrag">
       <Form.Item
-        label="Wait Duration"
+        label={t`Wait Duration`}
         required
-        extra="How long to wait before proceeding to the next step"
+        extra={t`How long to wait before proceeding to the next step`}
       >
         <Space.Compact style={{ width: '100%' }}>
           <InputNumber
@@ -35,7 +37,7 @@ export const DelayConfigForm: React.FC<DelayConfigFormProps> = ({ config, onChan
             max={365}
             value={config.duration || undefined}
             onChange={handleDurationChange}
-            placeholder="Enter duration"
+            placeholder={t`Enter duration`}
             style={{ width: '60%' }}
           />
           <Select

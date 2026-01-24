@@ -12,6 +12,7 @@ import {
   Space,
   Alert
 } from 'antd'
+import { useLingui } from '@lingui/react/macro'
 import { Broadcast } from '../../services/api/broadcast'
 import { broadcastApi } from '../../services/api/broadcast'
 import type { Workspace } from '../../services/api/types'
@@ -38,6 +39,7 @@ export function SendOrScheduleModal({
   workspace,
   onSuccess
 }: SendOrScheduleModalProps) {
+  const { t } = useLingui()
   const [form] = Form.useForm()
   const [isScheduled, setIsScheduled] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -91,12 +93,12 @@ export function SendOrScheduleModal({
         id: broadcast.id,
         send_now: true
       })
-      message.success(`Broadcast "${broadcast.name}" sending started`)
+      message.success(t`Broadcast "${broadcast.name}" sending started`)
       onSuccess()
       onClose()
     } catch (error) {
       console.error(error)
-      const errorMessage = getErrorMessage(error, 'Failed to send broadcast')
+      const errorMessage = getErrorMessage(error, t`Failed to send broadcast`)
       message.error(errorMessage)
     } finally {
       setLoading(false)
@@ -139,17 +141,17 @@ export function SendOrScheduleModal({
           use_recipient_timezone: values.use_recipient_timezone
         })
 
-        message.success(`Broadcast "${broadcast.name}" scheduled successfully`)
+        message.success(t`Broadcast "${broadcast.name}" scheduled successfully`)
         onSuccess()
         onClose()
       } catch (error) {
         console.error(error)
-        const errorMessage = getErrorMessage(error, 'Failed to schedule broadcast')
+        const errorMessage = getErrorMessage(error, t`Failed to schedule broadcast`)
         message.error(errorMessage)
       }
     } catch (error) {
       console.error(error)
-      message.error('Please check the form for errors')
+      message.error(t`Please check the form for errors`)
     } finally {
       setLoading(false)
     }
@@ -159,7 +161,7 @@ export function SendOrScheduleModal({
 
   return (
     <Modal
-      title="Send or Schedule Broadcast"
+      title={t`Send or Schedule Broadcast`}
       open={visible}
       onCancel={onClose}
       footer={null}
@@ -171,8 +173,8 @@ export function SendOrScheduleModal({
       <Form form={form} layout="vertical" onFinish={handleSubmit}>
         {!hasMarketingEmailProvider && (
           <Alert
-            message="Marketing Email Provider Required"
-            description="You don't have a marketing email provider configured. Please set up an email provider in your workspace settings to send broadcasts."
+            message={t`Marketing Email Provider Required`}
+            description={t`You don't have a marketing email provider configured. Please set up an email provider in your workspace settings to send broadcasts.`}
             type="warning"
             showIcon
             className="!mb-4"
@@ -182,17 +184,17 @@ export function SendOrScheduleModal({
                 size="small"
                 href={`/console/workspace/${workspaceId}/settings/integrations`}
               >
-                Configure Provider
+                {t`Configure Provider`}
               </Button>
             }
           />
         )}
 
         <div className="mb-4">
-          <p>Do you want to send "{broadcast.name}" immediately or schedule it for later?</p>
+          <p>{t`Do you want to send "${broadcast.name}" immediately or schedule it for later?`}</p>
         </div>
 
-        <Form.Item name="is_scheduled" valuePropName="checked" label="Schedule for later delivery">
+        <Form.Item name="is_scheduled" valuePropName="checked" label={t`Schedule for later delivery`}>
           <Switch onChange={(checked) => setIsScheduled(checked)} />
         </Form.Item>
 
@@ -202,11 +204,11 @@ export function SendOrScheduleModal({
               <Col span={12}>
                 <Form.Item
                   name="scheduled_date"
-                  label="Date"
+                  label={t`Date`}
                   rules={[
                     {
                       required: isScheduled,
-                      message: 'Please select a date'
+                      message: t`Please select a date`
                     }
                   ]}
                 >
@@ -223,18 +225,18 @@ export function SendOrScheduleModal({
               <Col span={12}>
                 <Form.Item
                   name="scheduled_time"
-                  label="Time"
+                  label={t`Time`}
                   rules={[
                     {
                       required: isScheduled,
-                      message: 'Please select a time'
+                      message: t`Please select a time`
                     }
                   ]}
                 >
                   <Select
                     showSearch
                     style={{ width: '100%' }}
-                    placeholder="Select time"
+                    placeholder={t`Select time`}
                     optionFilterProp="children"
                   >
                     {Array.from({ length: 24 * 4 }, (_, i) => {
@@ -260,18 +262,18 @@ export function SendOrScheduleModal({
               <Col span={12}>
                 <Form.Item
                   name="timezone"
-                  label="Timezone"
+                  label={t`Timezone`}
                   rules={[
                     {
                       required: isScheduled,
-                      message: 'Please select a timezone'
+                      message: t`Please select a timezone`
                     }
                   ]}
                 >
                   <Select
                     showSearch
                     style={{ width: '100%' }}
-                    placeholder="Select timezone"
+                    placeholder={t`Select timezone`}
                     optionFilterProp="label"
                     options={TIMEZONE_OPTIONS}
                   />
@@ -283,8 +285,8 @@ export function SendOrScheduleModal({
                   <Form.Item
                     name="use_recipient_timezone"
                     valuePropName="checked"
-                    label="Use recipient timezone"
-                    tooltip="If enabled, the broadcast will be sent according to each recipient's timezone"
+                    label={t`Use recipient timezone`}
+                    tooltip={t`If enabled, the broadcast will be sent according to each recipient's timezone`}
                   >
                     <Switch />
                   </Form.Item>
@@ -296,14 +298,14 @@ export function SendOrScheduleModal({
 
         <div className="flex justify-end space-x-2 mt-6">
           <Space>
-            <Button onClick={onClose}>Cancel</Button>
+            <Button onClick={onClose}>{t`Cancel`}</Button>
             <Button
               type="primary"
               loading={loading}
               htmlType="submit"
               disabled={!hasMarketingEmailProvider}
             >
-              {isScheduled ? 'Schedule' : 'Send Now'}
+              {isScheduled ? t`Schedule` : t`Send Now`}
             </Button>
           </Space>
         </div>

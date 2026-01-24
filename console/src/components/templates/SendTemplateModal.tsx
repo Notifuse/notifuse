@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { useLingui } from '@lingui/react/macro'
 import { Modal, Button, Input, Select, Typography, Form, App, Upload, Space, Tag } from 'antd'
 import { UploadOutlined, DeleteOutlined } from '@ant-design/icons'
 import { Workspace, Template, Integration } from '../../services/api/types'
@@ -28,6 +29,7 @@ export default function SendTemplateModal({
   loading = false,
   withCCAndBCC = false
 }: SendTemplateModalProps) {
+  const { t } = useLingui()
   const [email, setEmail] = useState('')
   const [selectedIntegrationId, setSelectedIntegrationId] = useState<string>('')
   const [selectedSenderId, setSelectedSenderId] = useState<string>('')
@@ -106,10 +108,10 @@ export default function SendTemplateModal({
       )
 
       if (response.success) {
-        message.success('Test email sent successfully')
+        message.success(t`Test email sent successfully`)
         onClose()
       } else {
-        message.error(`Failed to send test email: ${response.error || 'Unknown error'}`)
+        message.error(t`Failed to send test email: ${response.error || 'Unknown error'}`)
       }
     } catch (error) {
       const err = error as {
@@ -119,8 +121,8 @@ export default function SendTemplateModal({
       const errorMessage =
         err?.response?.status === 400 && err?.response?.data?.message
           ? err.response.data.message
-          : err?.message || 'Something went wrong'
-      message.error(`Error: ${errorMessage}`)
+          : err?.message || t`Something went wrong`
+      message.error(t`Error: ${errorMessage}`)
     } finally {
       setSendLoading(false)
     }
@@ -147,7 +149,7 @@ export default function SendTemplateModal({
       // Check file size (3MB limit per file)
       const maxSize = 3 * 1024 * 1024
       if (file.size > maxSize) {
-        message.error(`File ${file.name} exceeds 3MB limit`)
+        message.error(t`File ${file.name} exceeds 3MB limit`)
         return false
       }
 
@@ -161,14 +163,14 @@ export default function SendTemplateModal({
         }, 0)
 
         if (totalSize + file.size > 10 * 1024 * 1024) {
-          message.error('Total attachments size exceeds 10MB limit')
+          message.error(t`Total attachments size exceeds 10MB limit`)
           shouldAbort = true
           return currentAttachments
         }
 
         // Check maximum number of attachments
         if (currentAttachments.length >= 20) {
-          message.error('Maximum 20 attachments allowed')
+          message.error(t`Maximum 20 attachments allowed`)
           shouldAbort = true
           return currentAttachments
         }
@@ -191,10 +193,10 @@ export default function SendTemplateModal({
 
       // Use functional form to ensure we're working with the latest state
       setAttachments((prev) => [...prev, newAttachment])
-      message.success(`File ${file.name} added`)
+      message.success(t`File ${file.name} added`)
       return false // Prevent default upload behavior
     } catch {
-      message.error(`Failed to process file ${file.name}`)
+      message.error(t`Failed to process file ${file.name}`)
       return false
     }
   }
@@ -232,12 +234,12 @@ export default function SendTemplateModal({
 
   return (
     <Modal
-      title="Send Test Email"
+      title={t`Send Test Email`}
       open={isOpen}
       onCancel={onClose}
       footer={[
         <Button key="cancel" onClick={onClose}>
-          Cancel
+          {t`Cancel`}
         </Button>,
         <Button
           key="send"
@@ -246,19 +248,19 @@ export default function SendTemplateModal({
           disabled={!email || !selectedIntegrationId || loading || sendLoading}
           loading={loading || sendLoading}
         >
-          Send Test Email
+          {t`Send Test Email`}
         </Button>
       ]}
       width={showAdvancedOptions ? 600 : 520}
     >
       <Form form={form} layout="vertical">
         <div className="py-2 space-y-4">
-          <p>Send a test email using this template to verify how it will look.</p>
+          <p>{t`Send a test email using this template to verify how it will look.`}</p>
 
-          <Form.Item label="Email Integration">
+          <Form.Item label={t`Email Integration`}>
             <Select
               className="w-full"
-              placeholder="Select an email integration"
+              placeholder={t`Select an email integration`}
               value={selectedIntegrationId}
               onChange={setSelectedIntegrationId}
               disabled={emailIntegrations.length === 0}
@@ -267,15 +269,15 @@ export default function SendTemplateModal({
             </Select>
             {emailIntegrations.length === 0 && (
               <Text type="warning" className="mt-1 block">
-                No email integrations available. Please configure one in Settings.
+                {t`No email integrations available. Please configure one in Settings.`}
               </Text>
             )}
           </Form.Item>
 
-          <Form.Item label="Sender">
+          <Form.Item label={t`Sender`}>
             <Select
               className="w-full"
-              placeholder="Select a sender"
+              placeholder={t`Select a sender`}
               value={selectedSenderId}
               onChange={setSelectedSenderId}
               options={selectedIntegration?.email_provider?.senders.map((sender) => ({
@@ -285,9 +287,9 @@ export default function SendTemplateModal({
             />
           </Form.Item>
 
-          <Form.Item label="Recipient Email" required>
+          <Form.Item label={t`Recipient Email`} required>
             <Input
-              placeholder="recipient@example.com"
+              placeholder={t`recipient@example.com`}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               type="email"
@@ -296,28 +298,28 @@ export default function SendTemplateModal({
 
           {!showAdvancedOptions && (
             <Button type="link" onClick={() => setShowAdvancedOptions(true)} className="!p-0">
-              + add from name, CC, BCC, reply-to, attachments
+              {t`+ add from name, CC, BCC, reply-to, attachments`}
             </Button>
           )}
 
           {showAdvancedOptions && (
             <>
-              <Form.Item label="From Name (override)">
+              <Form.Item label={t`From Name (override)`}>
                 <Input
-                  placeholder="Custom sender name (optional)"
+                  placeholder={t`Custom sender name (optional)`}
                   value={fromName}
                   onChange={(e) => setFromName(e.target.value)}
                   allowClear
                 />
                 <Text type="secondary" className="text-xs mt-1 block">
-                  Override the default sender name for this test email
+                  {t`Override the default sender name for this test email`}
                 </Text>
               </Form.Item>
 
-              <Form.Item label="CC Recipients">
+              <Form.Item label={t`CC Recipients`}>
                 <Select
                   mode="tags"
-                  placeholder="Enter CC email addresses"
+                  placeholder={t`Enter CC email addresses`}
                   value={ccEmails}
                   onChange={setCcEmails}
                   tokenSeparators={[',', ' ']}
@@ -325,10 +327,10 @@ export default function SendTemplateModal({
                 />
               </Form.Item>
 
-              <Form.Item label="BCC Recipients">
+              <Form.Item label={t`BCC Recipients`}>
                 <Select
                   mode="tags"
-                  placeholder="Enter BCC email addresses"
+                  placeholder={t`Enter BCC email addresses`}
                   value={bccEmails}
                   onChange={setBccEmails}
                   tokenSeparators={[',', ' ']}
@@ -336,23 +338,23 @@ export default function SendTemplateModal({
                 />
               </Form.Item>
 
-              <Form.Item label="Reply-To">
+              <Form.Item label={t`Reply-To`}>
                 <Input
-                  placeholder="Enter Reply-To email address"
+                  placeholder={t`Enter Reply-To email address`}
                   value={replyTo}
                   onChange={(e) => setReplyTo(e.target.value)}
                   allowClear
                 />
               </Form.Item>
 
-              <Form.Item label="Attachments">
+              <Form.Item label={t`Attachments`}>
                 <Upload beforeUpload={handleFileUpload} showUploadList={false} multiple>
                   <Button icon={<UploadOutlined />} disabled={attachments.length >= 20}>
-                    Upload Files
+                    {t`Upload Files`}
                   </Button>
                 </Upload>
                 <Text type="secondary" className="text-xs mt-1 block">
-                  Max 3MB per file, 10MB total, 20 files maximum
+                  {t`Max 3MB per file, 10MB total, 20 files maximum`}
                 </Text>
                 {attachments.length > 0 && (
                   <Space direction="vertical" className="mt-2 w-full">

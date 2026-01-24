@@ -1,5 +1,6 @@
 import React from 'react'
 import { Tooltip } from 'antd'
+import { useLingui } from '@lingui/react/macro'
 import { ADD_NODE_MENU_ITEMS } from './AddNodeButton'
 import type { NodeType } from '../../services/api/automation'
 
@@ -8,6 +9,8 @@ interface NodePaletteProps {
 }
 
 export const NodePalette: React.FC<NodePaletteProps> = ({ hasListSelected }) => {
+  const { t } = useLingui()
+
   const onDragStart = (event: React.DragEvent, nodeType: NodeType) => {
     event.dataTransfer.setData('application/reactflow', nodeType)
     event.dataTransfer.effectAllowed = 'move'
@@ -15,7 +18,7 @@ export const NodePalette: React.FC<NodePaletteProps> = ({ hasListSelected }) => 
 
   return (
     <div className="w-48 bg-white border-r border-gray-200 p-3 flex flex-col gap-2">
-      <div className="text-xs font-medium text-gray-500 uppercase mb-2">Nodes</div>
+      <div className="text-xs font-medium text-gray-500 uppercase mb-2">{t`Nodes`}</div>
       {ADD_NODE_MENU_ITEMS.map((item) => {
         const isDisabled = item.key === 'email' && !hasListSelected
         const nodeItem = (
@@ -34,7 +37,7 @@ export const NodePalette: React.FC<NodePaletteProps> = ({ hasListSelected }) => 
           </div>
         )
         return isDisabled ? (
-          <Tooltip key={item.key} title="Select a list to enable email nodes" placement="right">
+          <Tooltip key={item.key} title={t`Select a list to enable email nodes`} placement="right">
             {nodeItem}
           </Tooltip>
         ) : (

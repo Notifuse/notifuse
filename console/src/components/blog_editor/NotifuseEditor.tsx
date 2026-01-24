@@ -1,6 +1,7 @@
 'use client'
 
 import { useContext, forwardRef, useImperativeHandle } from 'react'
+import { useLingui } from '@lingui/react/macro'
 import { EditorContent, EditorContext, useEditor } from '@tiptap/react'
 import type { Editor } from '@tiptap/core'
 
@@ -361,8 +362,9 @@ export function EditorContentArea() {
  * Component that creates and provides the editor instance
  */
 export const EditorProvider = forwardRef<NotifuseEditorRef, EditorProviderProps>((props, ref) => {
+  const { t } = useLingui()
   const {
-    placeholder = 'Start writing...',
+    placeholder = t`Start writing...`,
     initialContent = '',
     styleConfig = defaultEditorStyles,
     disableH1 = false,
@@ -473,7 +475,7 @@ export const EditorProvider = forwardRef<NotifuseEditorRef, EditorProviderProps>
   )
 
   if (!editor) {
-    return 'Loading...'
+    return t`Loading...`
   }
 
   return (

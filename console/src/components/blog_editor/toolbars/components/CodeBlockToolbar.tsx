@@ -1,4 +1,5 @@
 import { useCallback, useContext, useEffect, useState } from 'react'
+import { useLingui } from '@lingui/react/macro'
 import { EditorContext } from '@tiptap/react'
 import { Select, InputNumber, Button, Tooltip, Space } from 'antd'
 import { MessageSquare } from 'lucide-react'
@@ -136,6 +137,7 @@ function getShowCaption(editor: Editor): boolean {
  * Shows language selector and max-height input
  */
 export function CodeBlockToolbar() {
+  const { t } = useLingui()
   const { editor } = useContext(EditorContext)!
   const { isDragging } = useControls(editor)
   const [shouldShow, setShouldShow] = useState(false)
@@ -216,7 +218,7 @@ export function CodeBlockToolbar() {
           style={{ width: 140 }}
           size="small"
           showSearch
-          placeholder="Language"
+          placeholder={t`Language`}
           optionFilterProp="label"
           options={LANGUAGES}
         />
@@ -231,7 +233,7 @@ export function CodeBlockToolbar() {
             step={50}
             size="small"
             style={{ width: 70 }}
-            placeholder="Height"
+            placeholder={t`Height`}
           />
           <Button size="small" disabled style={{ pointerEvents: 'none' }}>
             px
@@ -239,7 +241,7 @@ export function CodeBlockToolbar() {
         </Space.Compact>
 
         {/* Caption Toggle */}
-        <Tooltip title="Toggle caption">
+        <Tooltip title={t`Toggle caption`}>
           <Button
             size="small"
             icon={

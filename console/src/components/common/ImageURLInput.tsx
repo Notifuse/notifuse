@@ -1,5 +1,6 @@
 import React from 'react'
 import { Input, Avatar, Popover } from 'antd'
+import { useLingui } from '@lingui/react/macro'
 import { useFileManager } from '../file_manager/context'
 import type { StorageObject } from '../file_manager/interfaces'
 
@@ -17,14 +18,18 @@ interface ImageURLInputProps {
 export const ImageURLInput: React.FC<ImageURLInputProps> = ({
   value,
   onChange,
-  placeholder = 'https://example.com/image.jpg',
+  placeholder,
   disabled = false,
   size = 'middle',
   acceptFileType = 'image/*',
   acceptItem = (item) => !item.is_folder && item.file_info?.content_type?.startsWith('image/'),
-  buttonText = 'Select Image'
+  buttonText
 }) => {
+  const { t } = useLingui()
   const { SelectFileButton } = useFileManager()
+
+  const defaultPlaceholder = placeholder ?? 'https://example.com/image.jpg'
+  const defaultButtonText = buttonText ?? t`Select Image`
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     onChange?.(e.target.value)
@@ -38,13 +43,13 @@ export const ImageURLInput: React.FC<ImageURLInputProps> = ({
     <Input
       value={value}
       onChange={handleInputChange}
-      placeholder={placeholder}
+      placeholder={defaultPlaceholder}
       disabled={disabled}
       size={size}
       prefix={
         value ? (
           <Popover
-            content={<img src={value} alt="Preview" style={{ maxWidth: 400, maxHeight: 400 }} />}
+            content={<img src={value} alt={t`Preview`} style={{ maxWidth: 400, maxHeight: 400 }} />}
           >
             <Avatar
               src={value}
@@ -60,7 +65,7 @@ export const ImageURLInput: React.FC<ImageURLInputProps> = ({
           onSelect={handleFileSelect}
           acceptFileType={acceptFileType}
           acceptItem={acceptItem}
-          buttonText={buttonText}
+          buttonText={defaultButtonText}
           disabled={disabled}
           size="small"
           type="link"

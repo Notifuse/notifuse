@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Button, Form, Input, Select, App, Switch, Descriptions } from 'antd'
 import { CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons'
+import { useLingui } from '@lingui/react/macro'
 import { Workspace } from '../../services/api/types'
 import { workspaceService } from '../../services/api/workspace'
 import { TIMEZONE_OPTIONS } from '../../lib/timezones'
@@ -14,6 +15,7 @@ interface GeneralSettingsProps {
 }
 
 export function GeneralSettings({ workspace, onWorkspaceUpdate, isOwner }: GeneralSettingsProps) {
+  const { t } = useLingui()
   const [savingSettings, setSavingSettings] = useState(false)
   const [formTouched, setFormTouched] = useState(false)
   const [form] = Form.useForm()
@@ -68,11 +70,11 @@ export function GeneralSettings({ workspace, onWorkspaceUpdate, isOwner }: Gener
       onWorkspaceUpdate(response.workspace)
 
       setFormTouched(false)
-      message.success('Workspace settings updated successfully')
+      message.success(t`Workspace settings updated successfully`)
     } catch (error: unknown) {
       console.error('Failed to update workspace settings', error)
       // Extract the actual error message from the API response
-      const errorMessage = (error as Error)?.message || 'Failed to update workspace settings'
+      const errorMessage = (error as Error)?.message || t`Failed to update workspace settings`
       message.error(errorMessage)
     } finally {
       setSavingSettings(false)
@@ -88,8 +90,8 @@ export function GeneralSettings({ workspace, onWorkspaceUpdate, isOwner }: Gener
     return (
       <>
         <SettingsSectionHeader
-          title="General Settings"
-          description="General settings for your workspace"
+          title={t`General Settings`}
+          description={t`General settings for your workspace`}
         />
 
         <Descriptions
@@ -98,46 +100,46 @@ export function GeneralSettings({ workspace, onWorkspaceUpdate, isOwner }: Gener
           size="small"
           styles={{ label: { width: '200px', fontWeight: '500' } }}
         >
-          <Descriptions.Item label="Workspace Name">
-            {workspace?.name || 'Not set'}
+          <Descriptions.Item label={t`Workspace Name`}>
+            {workspace?.name || t`Not set`}
           </Descriptions.Item>
 
-          <Descriptions.Item label="Website URL">
-            {workspace?.settings.website_url || 'Not set'}
+          <Descriptions.Item label={t`Website URL`}>
+            {workspace?.settings.website_url || t`Not set`}
           </Descriptions.Item>
 
-          <Descriptions.Item label="Logo">
+          <Descriptions.Item label={t`Logo`}>
             {workspace?.settings.logo_url ? (
               <img
                 src={workspace.settings.logo_url}
-                alt="Workspace logo"
+                alt={t`Workspace logo`}
                 style={{ height: '24px', width: 'auto', objectFit: 'contain' }}
               />
             ) : (
-              'Not set'
+              t`Not set`
             )}
           </Descriptions.Item>
 
-          <Descriptions.Item label="Timezone">
+          <Descriptions.Item label={t`Timezone`}>
             {workspace?.settings.timezone || 'UTC'}
           </Descriptions.Item>
 
-          <Descriptions.Item label="Email Opens and Clicks Tracking">
+          <Descriptions.Item label={t`Email Opens and Clicks Tracking`}>
             {workspace?.settings.email_tracking_enabled ? (
               <span style={{ color: '#52c41a' }}>
                 <CheckCircleOutlined style={{ marginRight: '8px' }} />
-                Enabled
+                {t`Enabled`}
               </span>
             ) : (
               <span style={{ color: '#ff4d4f' }}>
                 <CloseCircleOutlined style={{ marginRight: '8px' }} />
-                Disabled
+                {t`Disabled`}
               </span>
             )}
           </Descriptions.Item>
 
-          <Descriptions.Item label="Custom Endpoint URL">
-            <div>{workspace?.settings.custom_endpoint_url || 'Default (API endpoint)'}</div>
+          <Descriptions.Item label={t`Custom Endpoint URL`}>
+            <div>{workspace?.settings.custom_endpoint_url || t`Default (API endpoint)`}</div>
           </Descriptions.Item>
         </Descriptions>
       </>
@@ -147,8 +149,8 @@ export function GeneralSettings({ workspace, onWorkspaceUpdate, isOwner }: Gener
   return (
     <>
       <SettingsSectionHeader
-        title="General Settings"
-        description="General settings for your workspace"
+        title={t`General Settings`}
+        description={t`General settings for your workspace`}
       />
 
       <Form
@@ -159,16 +161,16 @@ export function GeneralSettings({ workspace, onWorkspaceUpdate, isOwner }: Gener
       >
         <Form.Item
           name="name"
-          label="Workspace Name"
-          rules={[{ required: true, message: 'Please enter workspace name' }]}
+          label={t`Workspace Name`}
+          rules={[{ required: true, message: t`Please enter workspace name` }]}
         >
-          <Input placeholder="Enter workspace name" />
+          <Input placeholder={t`Enter workspace name`} />
         </Form.Item>
 
         <Form.Item
           name="website_url"
-          label="Website URL"
-          rules={[{ type: 'url' as const, message: 'Please enter a valid URL' }]}
+          label={t`Website URL`}
+          rules={[{ type: 'url' as const, message: t`Please enter a valid URL` }]}
         >
           <Input placeholder="https://example.com" />
         </Form.Item>
@@ -177,16 +179,16 @@ export function GeneralSettings({ workspace, onWorkspaceUpdate, isOwner }: Gener
 
         <Form.Item
           name="timezone"
-          label="Timezone"
-          rules={[{ required: true, message: 'Please select a timezone' }]}
+          label={t`Timezone`}
+          rules={[{ required: true, message: t`Please select a timezone` }]}
         >
           <Select options={TIMEZONE_OPTIONS} showSearch optionFilterProp="label" />
         </Form.Item>
 
         <Form.Item
           name="email_tracking_enabled"
-          label="Email Opens and Clicks Tracking"
-          tooltip="When enabled, links in the email will be tracked for opens and clicks"
+          label={t`Email Opens and Clicks Tracking`}
+          tooltip={t`When enabled, links in the email will be tracked for opens and clicks`}
           valuePropName="checked"
         >
           <Switch />
@@ -194,15 +196,13 @@ export function GeneralSettings({ workspace, onWorkspaceUpdate, isOwner }: Gener
 
         <Form.Item
           name="custom_endpoint_url"
-          label="Custom Endpoint URL"
-          tooltip="Custom domain for email links (unsubscribe, tracking, notification center). By default, the config API endpoint is used. Leave empty to use the default."
-          rules={[{ type: 'url' as const, message: 'Please enter a valid URL' }]}
+          label={t`Custom Endpoint URL`}
+          tooltip={t`Custom domain for email links (unsubscribe, tracking, notification center). By default, the config API endpoint is used. Leave empty to use the default.`}
+          rules={[{ type: 'url' as const, message: t`Please enter a valid URL` }]}
           help={
             <div className="mb-4">
               <div>
-                Configure a custom domain for email links, notification center, and web
-                publications. DNS verification will be performed before saving to ensure you control
-                this domain.
+                {t`Configure a custom domain for email links, notification center, and web publications. DNS verification will be performed before saving to ensure you control this domain.`}
               </div>
               <div
                 style={{
@@ -214,11 +214,11 @@ export function GeneralSettings({ workspace, onWorkspaceUpdate, isOwner }: Gener
                   borderRadius: '4px'
                 }}
               >
-                <strong>DNS Record Required:</strong>
+                <strong>{t`DNS Record Required:`}</strong>
                 <br />
-                Type: CNAME
+                {t`Type:`} CNAME
                 <br />
-                Name:{' '}
+                {t`Name:`}{' '}
                 {(() => {
                   try {
                     const customUrl = form.getFieldValue('custom_endpoint_url')
@@ -231,7 +231,7 @@ export function GeneralSettings({ workspace, onWorkspaceUpdate, isOwner }: Gener
                   }
                 })()}
                 <br />
-                Value:{' '}
+                {t`Value:`}{' '}
                 {(() => {
                   try {
                     const apiEndpoint = window.API_ENDPOINT || 'http://localhost:3000'
@@ -242,7 +242,7 @@ export function GeneralSettings({ workspace, onWorkspaceUpdate, isOwner }: Gener
                 })()}
                 <br />
                 <span style={{ color: '#999', fontSize: '11px' }}>
-                  DNS verification prevents domain squatting
+                  {t`DNS verification prevents domain squatting`}
                 </span>
               </div>
             </div>
@@ -253,7 +253,7 @@ export function GeneralSettings({ workspace, onWorkspaceUpdate, isOwner }: Gener
 
         <Form.Item>
           <Button type="primary" htmlType="submit" loading={savingSettings} disabled={!formTouched}>
-            Save Changes
+            {t`Save Changes`}
           </Button>
         </Form.Item>
       </Form>

@@ -1,4 +1,5 @@
 import React from 'react'
+import { useLingui } from '@lingui/react/macro'
 import { Tree, Tooltip, Popconfirm } from 'antd'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faChevronRight, faChevronDown, faPlus } from '@fortawesome/free-solid-svg-icons'
@@ -71,20 +72,6 @@ const BLOCKS_WITH_INLINE_ADD_BUTTONS: MJMLComponentType[] = [
   'mj-group'
 ]
 
-// Helper functions
-const getAddButtonTitle = (parentType: MJMLComponentType): string => {
-  const titles: Partial<Record<MJMLComponentType, string>> = {
-    'mj-head': 'Add block in header',
-    'mj-body': 'Add block in body',
-    'mj-wrapper': 'Add block in wrapper',
-    'mj-section': 'Add block in section',
-    'mj-column': 'Add block in column',
-    'mj-social': 'Add social element',
-    'mj-group': 'Add column in group'
-  }
-  return titles[parentType] || 'Add block'
-}
-
 const shouldShowInlineAddButton = (blockType: MJMLComponentType): boolean => {
   return BLOCKS_WITH_INLINE_ADD_BUTTONS.includes(blockType)
 }
@@ -98,10 +85,12 @@ const shouldPreventAddBlocks = (emailTree: EmailBlock, blockId: string): boolean
 // Add Block Button Component
 const AddBlockButton: React.FC<{ onClick?: () => void; title?: string }> = ({
   onClick,
-  title = 'Add Block'
+  title
 }) => {
+  const { t } = useLingui()
+  const displayTitle = title || t`Add Block`
   return (
-    <Tooltip title={title}>
+    <Tooltip title={displayTitle}>
       <div
         className="inline-flex items-center text-[11px] h-5 border border-dashed rounded-xs border-primary text-primary cursor-pointer px-1"
         onClick={onClick}
@@ -132,7 +121,31 @@ const AddContentButton: React.FC<{
   savedBlocks,
   hiddenBlocks
 }) => {
-  const buttonTitle = getAddButtonTitle(parentType)
+  const { t } = useLingui()
+
+  // Get translated title based on parent type
+  const getButtonTitle = (): string => {
+    switch (parentType) {
+      case 'mj-head':
+        return t`Add block in header`
+      case 'mj-body':
+        return t`Add block in body`
+      case 'mj-wrapper':
+        return t`Add block in wrapper`
+      case 'mj-section':
+        return t`Add block in section`
+      case 'mj-column':
+        return t`Add block in column`
+      case 'mj-social':
+        return t`Add social element`
+      case 'mj-group':
+        return t`Add column in group`
+      default:
+        return t`Add block`
+    }
+  }
+
+  const buttonTitle = getButtonTitle()
   const mode = parentType === 'mj-head' ? 'header' : 'content'
   const WrapperComponent = parentType === 'mj-head' ? 'span' : 'div'
 
@@ -156,54 +169,60 @@ const AddContentButton: React.FC<{
 }
 
 // Drag Handle Component
-const DragHandle: React.FC = () => (
-  <span className="inline-block ml-2">
-    <Tooltip
-      title="Drag to move this block in the tree"
-      trigger={['hover']}
-      onOpenChange={() => {
-        // Tooltip will close automatically on click due to trigger configuration
-      }}
-    >
-      <span className="opacity-50">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="svg-inline--fa inline-block"
-        >
-          <circle cx="9" cy="12" r="1" />
-          <circle cx="9" cy="5" r="1" />
-          <circle cx="9" cy="19" r="1" />
-          <circle cx="15" cy="12" r="1" />
-          <circle cx="15" cy="5" r="1" />
-          <circle cx="15" cy="19" r="1" />
-        </svg>
-      </span>
-    </Tooltip>
-  </span>
-)
+const DragHandle: React.FC = () => {
+  const { t } = useLingui()
+  return (
+    <span className="inline-block ml-2">
+      <Tooltip
+        title={t`Drag to move this block in the tree`}
+        trigger={['hover']}
+        onOpenChange={() => {
+          // Tooltip will close automatically on click due to trigger configuration
+        }}
+      >
+        <span className="opacity-50">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="svg-inline--fa inline-block"
+          >
+            <circle cx="9" cy="12" r="1" />
+            <circle cx="9" cy="5" r="1" />
+            <circle cx="9" cy="19" r="1" />
+            <circle cx="15" cy="12" r="1" />
+            <circle cx="15" cy="5" r="1" />
+            <circle cx="15" cy="19" r="1" />
+          </svg>
+        </span>
+      </Tooltip>
+    </span>
+  )
+}
 
 // Delete Button Component
-const DeleteButton: React.FC<{ onDelete: () => void }> = ({ onDelete }) => (
-  <Popconfirm
-    title="Are you sure you want to delete this block?"
-    onConfirm={onDelete}
-    onCancel={(e) => e?.stopPropagation()}
-  >
-    <Tooltip title="Delete block" placement="right">
-      <span className="inline-flex items-center justify-center h-7 pr-2 opacity-50 hover:opacity-100 cursor-pointer ml-1 align-middle">
-        <FontAwesomeIcon icon={faTrashAlt} size="sm" />
-      </span>
-    </Tooltip>
-  </Popconfirm>
-)
+const DeleteButton: React.FC<{ onDelete: () => void }> = ({ onDelete }) => {
+  const { t } = useLingui()
+  return (
+    <Popconfirm
+      title={t`Are you sure you want to delete this block?`}
+      onConfirm={onDelete}
+      onCancel={(e) => e?.stopPropagation()}
+    >
+      <Tooltip title={t`Delete block`} placement="right">
+        <span className="inline-flex items-center justify-center h-7 pr-2 opacity-50 hover:opacity-100 cursor-pointer ml-1 align-middle">
+          <FontAwesomeIcon icon={faTrashAlt} size="sm" />
+        </span>
+      </Tooltip>
+    </Popconfirm>
+  )
+}
 
 // Tree Node Title Component
 const TreeNodeTitle: React.FC<{

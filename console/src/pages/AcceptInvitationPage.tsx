@@ -5,10 +5,12 @@ import { useState, useEffect } from 'react'
 import { workspaceService } from '../services/api/workspace'
 import { MainLayout } from '../layouts/MainLayout'
 import type { VerifyInvitationTokenResponse } from '../services/api/types'
+import { useLingui } from '@lingui/react/macro'
 
 const { Title, Text } = Typography
 
 export function AcceptInvitationPage() {
+  const { t } = useLingui()
   const { signin, signout, user } = useAuth()
   const navigate = useNavigate()
   const search = useSearch({ from: '/console/accept-invitation' })
@@ -29,7 +31,7 @@ export function AcceptInvitationPage() {
     }
 
     if (!token) {
-      setError('Invalid invitation link: missing token')
+      setError(t`Invalid invitation link: missing token`)
       setLoading(false)
       return
     }
@@ -48,7 +50,7 @@ export function AcceptInvitationPage() {
         setError(null)
       } catch (error: unknown) {
         const errorMessage =
-          error instanceof Error ? error.message : 'Invalid or expired invitation token'
+          error instanceof Error ? error.message : t`Invalid or expired invitation token`
         setError(errorMessage)
         message.error(errorMessage)
       } finally {
@@ -72,14 +74,14 @@ export function AcceptInvitationPage() {
       // Sign in the user with the returned token
       await signin(response.token)
 
-      message.success('Invitation accepted successfully! Welcome to the workspace.')
+      message.success(t`Invitation accepted successfully! Welcome to the workspace.`)
 
       // Navigate to the dashboard
       setTimeout(() => {
         navigate({ to: '/console' })
       }, 100)
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to accept invitation'
+      const errorMessage = error instanceof Error ? error.message : t`Failed to accept invitation`
       message.error(errorMessage)
       setError(errorMessage)
     } finally {
@@ -98,7 +100,7 @@ export function AcceptInvitationPage() {
           <Card style={{ width: 500, textAlign: 'center' }}>
             <Spin size="large" />
             <div style={{ marginTop: 16 }}>
-              <Text>Verifying invitation...</Text>
+              <Text>{t`Verifying invitation...`}</Text>
             </div>
           </Card>
         </div>
@@ -113,14 +115,14 @@ export function AcceptInvitationPage() {
           <Card style={{ width: 500 }}>
             <div style={{ textAlign: 'center', marginBottom: 24 }}>
               <Title level={3} type="danger">
-                Invalid Invitation
+                {t`Invalid Invitation`}
               </Title>
               <Text type="secondary">
-                {error || 'This invitation link is invalid or has expired.'}
+                {error || t`This invitation link is invalid or has expired.`}
               </Text>
             </div>
             <Button type="primary" block onClick={() => navigate({ to: '/console/signin' })}>
-              Go to Sign In
+              {t`Go to Sign In`}
             </Button>
           </Card>
         </div>
@@ -133,9 +135,9 @@ export function AcceptInvitationPage() {
       <div className="flex items-center justify-center h-[calc(100vh-48px)]">
         <Card style={{ width: 500 }}>
           <div style={{ textAlign: 'center', marginBottom: 24 }}>
-            <Title level={3}>Workspace Invitation</Title>
+            <Title level={3}>{t`Workspace Invitation`}</Title>
             <Text type="secondary">
-              You've been invited to join <strong>{invitationData.workspace.name}</strong>
+              {t`You've been invited to join`} <strong>{invitationData.workspace.name}</strong>
             </Text>
           </div>
 
@@ -143,13 +145,13 @@ export function AcceptInvitationPage() {
             style={{ marginBottom: 24, padding: 16, backgroundColor: '#f5f5f5', borderRadius: 8 }}
           >
             <div style={{ marginBottom: 8 }}>
-              <Text strong>Workspace:</Text> {invitationData.workspace.name}
+              <Text strong>{t`Workspace:`}</Text> {invitationData.workspace.name}
             </div>
             <div style={{ marginBottom: 8 }}>
-              <Text strong>Email:</Text> {invitationData.invitation.email}
+              <Text strong>{t`Email:`}</Text> {invitationData.invitation.email}
             </div>
             <div>
-              <Text strong>Expires:</Text>{' '}
+              <Text strong>{t`Expires:`}</Text>{' '}
               {new Date(invitationData.invitation.expires_at).toLocaleDateString()}
             </div>
           </div>
@@ -163,12 +165,12 @@ export function AcceptInvitationPage() {
                 loading={accepting}
                 onClick={handleAcceptInvitation}
               >
-                Accept Invitation
+                {t`Accept Invitation`}
               </Button>
             </Form.Item>
             <Form.Item style={{ marginBottom: 0 }}>
               <Button block onClick={handleDecline} disabled={accepting}>
-                Decline
+                {t`Decline`}
               </Button>
             </Form.Item>
           </Form>

@@ -1,5 +1,6 @@
 import React from 'react'
 import { Progress, Typography, Space } from 'antd'
+import { useLingui } from '@lingui/react/macro'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faPaperPlane } from '@fortawesome/free-regular-svg-icons'
 
@@ -37,6 +38,7 @@ export function SendingProgress({
   failedCount,
   startedAt
 }: SendingProgressProps) {
+  const { t } = useLingui()
   const processed = sentCount + failedCount
   const remaining = Math.max(0, enqueuedCount - processed)
   const percent = enqueuedCount > 0 ? Math.round((processed / enqueuedCount) * 100) : 0
@@ -51,10 +53,10 @@ export function SendingProgress({
       <div className="flex justify-between items-center mb-1">
         <Space>
           <FontAwesomeIcon icon={faPaperPlane} className="text-amber-500" />
-          <span className="font-medium text-gray-700">Sending emails...</span>
+          <span className="font-medium text-gray-700">{t`Sending emails...`}</span>
         </Space>
         <Text type="secondary">
-          {processed.toLocaleString()} of {enqueuedCount.toLocaleString()}
+          {t`${processed.toLocaleString()} of ${enqueuedCount.toLocaleString()}`}
           {eta && <span className="ml-2">(~{eta})</span>}
         </Text>
       </div>

@@ -2,8 +2,10 @@ import { useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { useNavigate } from '@tanstack/react-router'
 import { Spin } from 'antd'
+import { useLingui } from '@lingui/react/macro'
 
 export function LogoutPage() {
+  const { t } = useLingui()
   const { signout } = useAuth()
   const navigate = useNavigate()
 
@@ -24,7 +26,7 @@ export function LogoutPage() {
         minHeight: '100vh'
       }}
     >
-      <Spin size="large" tip="Signing out..." fullscreen />
+      <Spin size="large" tip={t`Signing out...`} fullscreen />
     </div>
   )
 }

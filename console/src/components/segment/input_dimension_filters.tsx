@@ -13,6 +13,7 @@ import { FieldTypeString } from './type_string'
 import { FieldTypeTime } from './type_time'
 import { FieldTypeNumber } from './type_number'
 import { FieldTypeJSON } from './type_json'
+import { useLingui } from '@lingui/react/macro'
 
 const typeIcon = {
   width: '25px',
@@ -42,6 +43,7 @@ export const InputDimensionFilters = (props: {
   btnGhost?: boolean
   customFieldLabels?: Record<string, string>
 }) => {
+  const { t } = useLingui()
   const hasFilter = props.value && props.value.length > 0 ? true : false
 
   return (
@@ -62,12 +64,12 @@ export const InputDimensionFilters = (props: {
                     {!fieldTypeRenderer && (
                       <Alert
                         type="error"
-                        message={'type ' + filter.field_type + ' is not implemented'}
+                        message={t`type ${filter.field_type} is not implemented`}
                       />
                     )}
                     {fieldTypeRenderer && (
                       <Space>
-                        <Popover title={'field: ' + filter.field_name} content={field.description}>
+                        <Popover title={t`field: ${filter.field_name}`} content={field.description}>
                           <b>{props.customFieldLabels?.[filter.field_name] || field.title}</b>
                         </Popover>
                         {fieldTypeRenderer.render(filter, field, props.customFieldLabels)}
@@ -77,7 +79,7 @@ export const InputDimensionFilters = (props: {
                   <td>
                     <Space.Compact>
                       <Popconfirm
-                        title="Do you really want to remove this filter?"
+                        title={t`Do you really want to remove this filter?`}
                         onConfirm={() => {
                           if (!props.onChange) return
                           const clonedValue = props.value ? [...props.value] : []
@@ -123,6 +125,7 @@ const AddFilterButton = (props: {
   btnGhost?: boolean
   customFieldLabels?: Record<string, string>
 }) => {
+  const { t } = useLingui()
   const [form] = Form.useForm()
   const [modalVisible, setModalVisible] = useState(false)
 
@@ -147,16 +150,16 @@ const AddFilterButton = (props: {
         onClick={onClicked}
         size="small"
       >
-        + Add filter
+        {t`+ Add filter`}
       </Button>
 
       {modalVisible && (
         <Modal
           open={true}
-          title="Add a filter"
-          okText="Confirm"
+          title={t`Add a filter`}
+          okText={t`Confirm`}
           width={400}
-          cancelText="Cancel"
+          cancelText={t`Cancel`}
           onCancel={() => {
             form.resetFields()
             setModalVisible(false)
@@ -183,14 +186,14 @@ const AddFilterButton = (props: {
             <Form form={form} name="form_add_filter" layout="vertical">
               <Form.Item
                 name="field_name"
-                rules={[{ required: true, type: 'string', message: 'Please select a field' }]}
+                rules={[{ required: true, type: 'string', message: t`Please select a field` }]}
               >
                 <Select
                   // style={{ width: 200 }}
                   listHeight={500}
                   showSearch
                   dropdownMatchSelectWidth={false}
-                  placeholder="Select a field"
+                  placeholder={t`Select a field`}
                   options={map(availableFields, (field, fieldName) => {
                     // console.log('field', field)
 
@@ -250,7 +253,7 @@ const AddFilterButton = (props: {
                     return (
                       <Alert
                         type="error"
-                        message={'type ' + selectedField.type + ' is not implemented'}
+                        message={t`type ${selectedField.type} is not implemented`}
                       />
                     )
 

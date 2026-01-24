@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { useLingui } from '@lingui/react/macro'
 import { Switch, Drawer, Button } from 'antd'
 import { Editor } from '@monaco-editor/react'
 import type { MJMLComponentType, MJStyleAttributes, MergedBlockAttributes, EmailBlock } from '../types'
@@ -12,6 +13,167 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import PanelLayout from '../panels/PanelLayout'
 import InputLayout from '../ui/InputLayout'
 import CSSPreview from '../ui/CodePreview'
+
+// Functional component for settings panel with i18n support
+interface MjStyleSettingsPanelProps {
+  currentAttributes: MJStyleAttributes
+  blockContent: string
+  onUpdate: OnUpdateAttributesFunction
+}
+
+const MjStyleSettingsPanel: React.FC<MjStyleSettingsPanelProps> = ({
+  currentAttributes,
+  blockContent,
+  onUpdate
+}) => {
+  const { t } = useLingui()
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false)
+  const [tempCssContent, setTempCssContent] = useState(blockContent || '')
+
+  const handleEditClick = () => {
+    setTempCssContent(blockContent || '')
+    setIsDrawerOpen(true)
+  }
+
+  const handleDrawerSave = () => {
+    onUpdate({ content: tempCssContent })
+    setIsDrawerOpen(false)
+  }
+
+  const handleDrawerCancel = () => {
+    setTempCssContent(blockContent || '')
+    setIsDrawerOpen(false)
+  }
+
+  const editorOptions = {
+    minimap: { enabled: true },
+    fontSize: 14,
+    lineNumbers: 'on' as const,
+    roundedSelection: false,
+    scrollBeyondLastLine: false,
+    readOnly: false,
+    automaticLayout: true,
+    wordWrap: 'on' as const,
+    folding: true,
+    lineDecorationsWidth: 0,
+    lineNumbersMinChars: 3,
+    renderLineHighlight: 'line' as const,
+    selectOnLineNumbers: true,
+    scrollbar: {
+      vertical: 'visible' as const,
+      horizontal: 'visible' as const,
+      verticalScrollbarSize: 12,
+      horizontalScrollbarSize: 12
+    }
+  }
+
+  const beforeMount = (monaco: unknown) => {
+    const monacoInstance = monaco as {
+      languages: {
+        css: {
+          cssDefaults: {
+            setOptions: (options: Record<string, unknown>) => void
+          }
+        }
+      }
+    }
+    monacoInstance.languages.css.cssDefaults.setOptions({
+      validate: true,
+      lint: {
+        compatibleVendorPrefixes: 'ignore',
+        vendorPrefix: 'warning',
+        duplicateProperties: 'warning',
+        emptyRules: 'warning',
+        importStatement: 'ignore',
+        boxModel: 'ignore',
+        universalSelector: 'ignore',
+        zeroUnits: 'ignore',
+        fontFaceProperties: 'warning',
+        hexColorLength: 'error',
+        argumentsInColorFunction: 'error',
+        unknownProperties: 'warning',
+        ieHack: 'ignore',
+        unknownVendorSpecificProperties: 'ignore',
+        propertyIgnoredDueToDisplay: 'warning',
+        important: 'ignore',
+        float: 'ignore',
+        idSelector: 'ignore'
+      }
+    })
+  }
+
+  const hasContent = blockContent.trim().length > 0
+
+  return (
+    <PanelLayout title={t`Style Attributes`}>
+      <InputLayout
+        label={t`Inline Styles`}
+        help={t`When enabled, these styles will be added as inline style attributes to every matching HTML element in the email. This is important for maximum email client compatibility since many email clients strip out non-inline styles.`}
+      >
+        <Switch
+          size="small"
+          checked={currentAttributes['inline'] === 'inline'}
+          onChange={(checked) => onUpdate({ inline: checked ? 'inline' : undefined })}
+        />
+      </InputLayout>
+
+      <InputLayout label={t`CSS Content`} layout="vertical">
+        <div className="flex flex-col gap-3">
+          {hasContent && (
+            <CSSPreview
+              code={blockContent}
+              maxHeight={120}
+              onExpand={handleEditClick}
+              showExpandButton={true}
+            />
+          )}
+
+          <Button
+            type="primary"
+            ghost
+            size="small"
+            block
+            onClick={handleEditClick}
+            className="self-start"
+          >
+            {hasContent ? t`Edit CSS` : t`Add CSS`}
+          </Button>
+        </div>
+
+        <Drawer
+          title={t`CSS Style Editor`}
+          placement="right"
+          open={isDrawerOpen}
+          onClose={handleDrawerCancel}
+          width="60vw"
+          styles={{
+            body: { padding: 0 }
+          }}
+          extra={
+            <div className="flex gap-2">
+              <Button size="small" onClick={handleDrawerCancel}>
+                {t`Cancel`}
+              </Button>
+              <Button size="small" type="primary" onClick={handleDrawerSave}>
+                {t`Save Changes`}
+              </Button>
+            </div>
+          }
+        >
+          <Editor
+            height="calc(100vh - 64px)"
+            language="css"
+            theme="vs"
+            value={tempCssContent}
+            onChange={(value) => setTempCssContent(value || '')}
+            options={editorOptions}
+            beforeMount={beforeMount}
+          />
+        </Drawer>
+      </InputLayout>
+    </PanelLayout>
+  )
+}
 
 /**
  * Implementation for mj-style blocks (custom CSS styles)
@@ -61,163 +223,14 @@ export class MjStyleBlock extends BaseEmailBlock {
     _emailTree?: EmailBlock
   ): React.ReactNode {
     const currentAttributes = (this.block.attributes ?? {}) as MJStyleAttributes
-    const CSSEditorComponent = () => {
-      const [isDrawerOpen, setIsDrawerOpen] = useState(false)
-      const blockContent = 'content' in this.block ? (this.block.content as string) : ''
-      const [tempCssContent, setTempCssContent] = useState(blockContent || '')
-
-      const handleEditClick = () => {
-        const blockContent = 'content' in this.block ? (this.block.content as string) : ''
-        setTempCssContent(blockContent || '')
-        setIsDrawerOpen(true)
-      }
-
-      const handleDrawerSave = () => {
-        onUpdate({ content: tempCssContent })
-        setIsDrawerOpen(false)
-      }
-
-      const handleDrawerCancel = () => {
-        const blockContent = 'content' in this.block ? (this.block.content as string) : ''
-        setTempCssContent(blockContent || '')
-        setIsDrawerOpen(false)
-      }
-
-      const editorOptions = {
-        minimap: { enabled: true },
-        fontSize: 14,
-        lineNumbers: 'on' as const,
-        roundedSelection: false,
-        scrollBeyondLastLine: false,
-        readOnly: false,
-        automaticLayout: true,
-        wordWrap: 'on' as const,
-        folding: true,
-        lineDecorationsWidth: 0,
-        lineNumbersMinChars: 3,
-        renderLineHighlight: 'line' as const,
-        selectOnLineNumbers: true,
-        scrollbar: {
-          vertical: 'visible' as const,
-          horizontal: 'visible' as const,
-          verticalScrollbarSize: 12,
-          horizontalScrollbarSize: 12
-        }
-      }
-
-      const beforeMount = (monaco: unknown) => {
-        const monacoInstance = monaco as {
-          languages: {
-            css: {
-              cssDefaults: {
-                setOptions: (options: Record<string, unknown>) => void
-              }
-            }
-          }
-        }
-        monacoInstance.languages.css.cssDefaults.setOptions({
-          validate: true,
-          lint: {
-            compatibleVendorPrefixes: 'ignore',
-            vendorPrefix: 'warning',
-            duplicateProperties: 'warning',
-            emptyRules: 'warning',
-            importStatement: 'ignore',
-            boxModel: 'ignore',
-            universalSelector: 'ignore',
-            zeroUnits: 'ignore',
-            fontFaceProperties: 'warning',
-            hexColorLength: 'error',
-            argumentsInColorFunction: 'error',
-            unknownProperties: 'warning',
-            ieHack: 'ignore',
-            unknownVendorSpecificProperties: 'ignore',
-            propertyIgnoredDueToDisplay: 'warning',
-            important: 'ignore',
-            float: 'ignore',
-            idSelector: 'ignore'
-          }
-        })
-      }
-
-      const cssContent = 'content' in this.block ? (this.block.content as string) : ''
-      const hasContent = cssContent.trim().length > 0
-
-      return (
-        <>
-          <div className="flex flex-col gap-3">
-            {hasContent && (
-              <CSSPreview
-                code={cssContent}
-                maxHeight={120}
-                onExpand={handleEditClick}
-                showExpandButton={true}
-              />
-            )}
-
-            <Button
-              type="primary"
-              ghost
-              size="small"
-              block
-              onClick={handleEditClick}
-              className="self-start"
-            >
-              {hasContent ? 'Edit CSS' : 'Add CSS'}
-            </Button>
-          </div>
-
-          <Drawer
-            title="CSS Style Editor"
-            placement="right"
-            open={isDrawerOpen}
-            onClose={handleDrawerCancel}
-            width="60vw"
-            styles={{
-              body: { padding: 0 }
-            }}
-            extra={
-              <div className="flex gap-2">
-                <Button size="small" onClick={handleDrawerCancel}>
-                  Cancel
-                </Button>
-                <Button size="small" type="primary" onClick={handleDrawerSave}>
-                  Save Changes
-                </Button>
-              </div>
-            }
-          >
-            <Editor
-              height="calc(100vh - 64px)"
-              language="css"
-              theme="vs"
-              value={tempCssContent}
-              onChange={(value) => setTempCssContent(value || '')}
-              options={editorOptions}
-              beforeMount={beforeMount}
-            />
-          </Drawer>
-        </>
-      )
-    }
+    const blockContent = 'content' in this.block ? (this.block.content as string) : ''
 
     return (
-      <PanelLayout title="Style Attributes">
-        <InputLayout
-          label="Inline Styles"
-          help="When enabled, these styles will be added as inline style attributes to every matching HTML element in the email. This is important for maximum email client compatibility since many email clients strip out non-inline styles."
-        >
-          <Switch
-            size="small"
-            checked={currentAttributes['inline'] === 'inline'}
-            onChange={(checked) => onUpdate({ inline: checked ? 'inline' : undefined })}
-          />
-        </InputLayout>
-
-        <InputLayout label="CSS Content" layout="vertical">
-          <CSSEditorComponent />
-        </InputLayout>
-      </PanelLayout>
+      <MjStyleSettingsPanel
+        currentAttributes={currentAttributes}
+        blockContent={blockContent}
+        onUpdate={onUpdate}
+      />
     )
   }
 }

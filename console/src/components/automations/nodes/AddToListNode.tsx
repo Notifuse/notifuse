@@ -2,6 +2,7 @@ import React from 'react'
 import { Handle, Position, useConnection, type NodeProps } from '@xyflow/react'
 import { UserPlus } from 'lucide-react'
 import { Tag } from 'antd'
+import { useLingui } from '@lingui/react/macro'
 import { BaseNode } from './BaseNode'
 import { nodeTypeColors } from './constants'
 import { useAutomation } from '../context'
@@ -11,6 +12,7 @@ import type { AddToListNodeConfig } from '../../../services/api/automation'
 type AddToListNodeProps = NodeProps<AutomationNodeData>
 
 export const AddToListNode: React.FC<AddToListNodeProps> = ({ data, selected }) => {
+  const { t } = useLingui()
   const { lists } = useAutomation()
   const config = data.config as AddToListNodeConfig
   const listName = lists.find((l) => l.id === config?.list_id)?.name
@@ -36,7 +38,7 @@ export const AddToListNode: React.FC<AddToListNodeProps> = ({ data, selected }) 
       />
       <BaseNode
         type="add_to_list"
-        label="Add to List"
+        label={t`Add to List`}
         icon={
           <UserPlus
             size={16}
@@ -48,10 +50,10 @@ export const AddToListNode: React.FC<AddToListNodeProps> = ({ data, selected }) 
         onDelete={data.onDelete}
       >
         {!config?.list_id ? (
-          <div className="text-orange-500">Configure</div>
+          <div className="text-orange-500">{t`Configure`}</div>
         ) : (
           <div className="flex items-center gap-2">
-            <span className="text-sm truncate max-w-[180px]">{listName || 'Unknown list'}</span>
+            <span className="text-sm truncate max-w-[180px]">{listName || t`Unknown list`}</span>
             <Tag color={status === 'subscribed' ? 'green' : 'orange'} className="m-0">
               {status}
             </Tag>

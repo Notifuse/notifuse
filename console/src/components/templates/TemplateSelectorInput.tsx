@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { useLingui } from '@lingui/react/macro'
 import { Input, Drawer, List, Empty, Spin, Button, Space } from 'antd'
 import { EyeOutlined, SearchOutlined, PlusOutlined } from '@ant-design/icons'
 import { useQuery } from '@tanstack/react-query'
@@ -31,10 +32,12 @@ const TemplateSelectorInput: React.FC<TemplateSelectorInputProps> = ({
   onChange,
   workspaceId,
   category,
-  placeholder = 'Select a template',
+  placeholder,
   clearable = true,
   disabled = false
 }) => {
+  const { t } = useLingui()
+  const defaultPlaceholder = placeholder || t`Select a template`
   const [open, setOpen] = useState<boolean>(false)
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null)
   const [searchQuery, setSearchQuery] = useState<string>('')
@@ -123,7 +126,7 @@ const TemplateSelectorInput: React.FC<TemplateSelectorInputProps> = ({
   }
 
   if (!currentWorkspace) {
-    return <div>Loading...</div>
+    return <div>{t`Loading...`}</div>
   }
 
   return (
@@ -131,7 +134,7 @@ const TemplateSelectorInput: React.FC<TemplateSelectorInputProps> = ({
       <Space.Compact style={{ width: '100%' }}>
         <Input
           value={selectedTemplate?.name || ''}
-          placeholder={placeholder}
+          placeholder={defaultPlaceholder}
           readOnly={!clearable}
           disabled={disabled}
           onClick={showDrawer}
@@ -150,7 +153,7 @@ const TemplateSelectorInput: React.FC<TemplateSelectorInputProps> = ({
       </Space.Compact>
 
       <Drawer
-        title="Select Template"
+        title={t`Select Template`}
         width={600}
         onClose={onClose}
         open={open}
@@ -160,7 +163,7 @@ const TemplateSelectorInput: React.FC<TemplateSelectorInputProps> = ({
       >
         <div style={{ marginBottom: 16, display: 'flex', gap: 8 }}>
           <Input
-            placeholder="Search templates..."
+            placeholder={t`Search templates...`}
             prefix={<SearchOutlined />}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -208,14 +211,14 @@ const TemplateSelectorInput: React.FC<TemplateSelectorInputProps> = ({
                       forceCategory={category}
                       buttonProps={{
                         type: 'link',
-                        title: 'Clone'
+                        title: t`Clone`
                       }}
-                      buttonContent="Clone"
+                      buttonContent={t`Clone`}
                       onClose={handleTemplateCloned}
                     />
                   ),
                   <Button key="select" type="link" onClick={() => handleSelect(template)}>
-                    Select
+                    {t`Select`}
                   </Button>
                 ]}
               >
@@ -225,7 +228,7 @@ const TemplateSelectorInput: React.FC<TemplateSelectorInputProps> = ({
                       {template.name}
                     </a>
                   }
-                  description={template.category || 'No category'}
+                  description={template.category || t`No category`}
                 />
               </List.Item>
             )}
@@ -234,8 +237,8 @@ const TemplateSelectorInput: React.FC<TemplateSelectorInputProps> = ({
           <Empty
             description={
               category
-                ? `No templates found for ${category.replace('_', ' ')} category`
-                : 'No templates found'
+                ? t`No templates found for ${category.replace('_', ' ')} category`
+                : t`No templates found`
             }
             image={Empty.PRESENTED_IMAGE_SIMPLE}
           >
@@ -247,8 +250,8 @@ const TemplateSelectorInput: React.FC<TemplateSelectorInputProps> = ({
                   type: 'primary',
                   icon: <PlusOutlined />,
                   children: category
-                    ? `Create New ${category.charAt(0).toUpperCase() + category.slice(1).replace('_', ' ')} Template`
-                    : 'Create New Template'
+                    ? t`Create New ${category.charAt(0).toUpperCase() + category.slice(1).replace('_', ' ')} Template`
+                    : t`Create New Template`
                 }}
                 onClose={handleTemplateCreated}
               />

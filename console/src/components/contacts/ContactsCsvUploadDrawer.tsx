@@ -19,6 +19,7 @@ import {
   CloseCircleOutlined,
   UserAddOutlined
 } from '@ant-design/icons'
+import { useLingui } from '@lingui/react/macro'
 import type { UploadProps } from 'antd'
 import Papa from 'papaparse'
 import type { ParseResult } from 'papaparse'
@@ -78,25 +79,26 @@ export function ContactsCsvUploadDrawer({
   isVisible,
   onClose
 }: ContactsCsvUploadDrawerProps) {
+  const { t } = useLingui()
   // Get workspace for custom field labels
   const { workspaces } = useAuth()
   const currentWorkspace = workspaces.find((workspace) => workspace.id === workspaceId)
 
   // Define contact fields for mapping with custom labels
   const contactFields = [
-    { key: 'email', label: 'Email', required: true },
-    { key: 'external_id', label: 'External ID' },
-    { key: 'first_name', label: 'First Name' },
-    { key: 'last_name', label: 'Last Name' },
-    { key: 'phone', label: 'Phone' },
-    { key: 'country', label: 'Country' },
-    { key: 'timezone', label: 'Timezone' },
-    { key: 'language', label: 'Language' },
-    { key: 'address_line_1', label: 'Address Line 1' },
-    { key: 'address_line_2', label: 'Address Line 2' },
-    { key: 'postcode', label: 'Postcode' },
-    { key: 'state', label: 'State' },
-    { key: 'job_title', label: 'Job Title' },
+    { key: 'email', label: t`Email`, required: true },
+    { key: 'external_id', label: t`External ID` },
+    { key: 'first_name', label: t`First Name` },
+    { key: 'last_name', label: t`Last Name` },
+    { key: 'phone', label: t`Phone` },
+    { key: 'country', label: t`Country` },
+    { key: 'timezone', label: t`Timezone` },
+    { key: 'language', label: t`Language` },
+    { key: 'address_line_1', label: t`Address Line 1` },
+    { key: 'address_line_2', label: t`Address Line 2` },
+    { key: 'postcode', label: t`Postcode` },
+    { key: 'state', label: t`State` },
+    { key: 'job_title', label: t`Job Title` },
     { key: 'custom_string_1', label: getCustomFieldLabel('custom_string_1', currentWorkspace) },
     { key: 'custom_string_2', label: getCustomFieldLabel('custom_string_2', currentWorkspace) },
     { key: 'custom_string_3', label: getCustomFieldLabel('custom_string_3', currentWorkspace) },
@@ -237,7 +239,7 @@ export function ContactsCsvUploadDrawer({
     // Safety check
     if (!dataToUse) {
       console.error('Cannot restore progress: CSV data is not available from any source')
-      message.error('Cannot restore progress: CSV data is not available')
+      message.error(t`Cannot restore progress: CSV data is not available`)
       return
     }
 
@@ -260,7 +262,7 @@ export function ContactsCsvUploadDrawer({
     // Ensure email mapping is still valid
     if (!validMappings.email) {
       message.warning(
-        'Email mapping from previous session is invalid for this CSV. Please map fields manually.'
+        t`Email mapping from previous session is invalid for this CSV. Please map fields manually.`
       )
       // Set minimal valid state for continuation
       setCurrentRow(0)
@@ -288,15 +290,15 @@ export function ContactsCsvUploadDrawer({
     setTotalBatches(Math.ceil(dataToUse.rows.length / BATCH_SIZE))
     setUploadProgress(Math.round((startRow / dataToUse.rows.length) * 100))
 
-    message.success('Previous upload progress restored')
+    message.success(t`Previous upload progress restored`)
   }
 
   const handleCloseDrawer = () => {
     if (uploading) {
       Modal.confirm({
-        title: 'Cancel Upload?',
+        title: t`Cancel Upload?`,
         content:
-          'Are you sure you want to cancel the upload process? Progress will be saved and you can resume later.',
+          t`Are you sure you want to cancel the upload process? Progress will be saved and you can resume later.`,
         onOk: () => {
           if (uploading && !processingCancelled) {
             saveProgress()
@@ -317,7 +319,7 @@ export function ContactsCsvUploadDrawer({
   const beforeUpload = (file: File) => {
     const isCsv = file.type === 'text/csv' || file.name.endsWith('.csv')
     if (!isCsv) {
-      message.error('You can only upload CSV files!')
+      message.error(t`You can only upload CSV files!`)
       return Upload.LIST_IGNORE
     }
 
@@ -368,10 +370,10 @@ export function ContactsCsvUploadDrawer({
           // If there's saved progress, show modal to ask user
           if (savedProgress && !savedProgressExists) {
             Modal.confirm({
-              title: 'Resume Previous Upload',
-              content: `A previous upload for "${file.name}" was found (${new Date(savedProgress.timestamp).toLocaleString()}). Would you like to resume from where you left off?`,
-              okText: 'Resume',
-              cancelText: 'Start New',
+              title: t`Resume Previous Upload`,
+              content: t`A previous upload for "${file.name}" was found (${new Date(savedProgress.timestamp).toLocaleString()}). Would you like to resume from where you left off?`,
+              okText: t`Resume`,
+              cancelText: t`Start New`,
               onOk: () => {
                 if (savedProgress) {
                   handleRestoreProgress(savedProgress, csvDataObj)
@@ -390,11 +392,11 @@ export function ContactsCsvUploadDrawer({
             })
           }
         } else {
-          message.error('The CSV file appears to be empty or invalid.')
+          message.error(t`The CSV file appears to be empty or invalid.`)
         }
       },
       error: (error: Error) => {
-        message.error(`Error parsing CSV: ${error.message}`)
+        message.error(t`Error parsing CSV: ${error.message}`)
       }
     })
 
@@ -450,7 +452,7 @@ export function ContactsCsvUploadDrawer({
     try {
       // Validate email mapping is set
       if (!mappings.email) {
-        message.error('Email field mapping is required')
+        message.error(t`Email field mapping is required`)
         return
       }
 
@@ -458,7 +460,7 @@ export function ContactsCsvUploadDrawer({
       const dataToUse = csvData || parsedCsvDataRef.current
 
       if (!dataToUse) {
-        message.error('No CSV data available')
+        message.error(t`No CSV data available`)
         return
       }
 
@@ -472,7 +474,7 @@ export function ContactsCsvUploadDrawer({
 
       // Check if email mapping is still valid
       if (!validMappings.email) {
-        message.error('Email mapping is missing or invalid')
+        message.error(t`Email mapping is missing or invalid`)
         return
       }
 
@@ -526,11 +528,9 @@ export function ContactsCsvUploadDrawer({
           }
 
           message.success(
-            `Imported ${successCount.toLocaleString()} contacts${
-              failureCount > 0
-                ? ` (${failureCount.toLocaleString()} failed, see details below)`
-                : ''
-            }`
+            failureCount > 0
+              ? t`Imported ${successCount.toLocaleString()} contacts (${failureCount.toLocaleString()} failed, see details below)`
+              : t`Imported ${successCount.toLocaleString()} contacts`
           )
           return
         }
@@ -687,11 +687,9 @@ export function ContactsCsvUploadDrawer({
           }
 
           message.success(
-            `Imported ${successCount.toLocaleString()} contacts${
-              failureCount > 0
-                ? ` (${failureCount.toLocaleString()} failed, see details below)`
-                : ''
-            }`
+            failureCount > 0
+              ? t`Imported ${successCount.toLocaleString()} contacts (${failureCount.toLocaleString()} failed, see details below)`
+              : t`Imported ${successCount.toLocaleString()} contacts`
           )
         }
       }
@@ -723,8 +721,8 @@ export function ContactsCsvUploadDrawer({
       console.error('CSV upload failed:', error)
       stopProgressSaveInterval()
       setUploading(false)
-      setUploadError(`Upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
-      message.error('Upload failed. Please try again.')
+      setUploadError(t`Upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      message.error(t`Upload failed. Please try again.`)
     }
   }
 
@@ -781,7 +779,7 @@ export function ContactsCsvUploadDrawer({
 
   return (
     <Drawer
-      title="Import Contacts from CSV"
+      title={t`Import Contacts from CSV`}
       placement="right"
       onClose={handleCloseDrawer}
       open={isVisible}
@@ -796,22 +794,22 @@ export function ContactsCsvUploadDrawer({
         <Space>
           {!uploading && !uploadComplete && csvData && (
             <Button type="primary" onClick={startUpload}>
-              {currentRow > 0 ? 'Resume Upload' : 'Start Upload'}
+              {currentRow > 0 ? t`Resume Upload` : t`Start Upload`}
             </Button>
           )}
           {uploading && !paused && (
             <Button icon={<PauseCircleOutlined />} onClick={pauseUpload}>
-              Pause
+              {t`Pause`}
             </Button>
           )}
           {uploading && paused && (
             <Button icon={<PlayCircleOutlined />} onClick={resumeUpload}>
-              Resume
+              {t`Resume`}
             </Button>
           )}
           {uploading && (
             <Button danger icon={<CloseCircleOutlined />} onClick={cancelUpload}>
-              Cancel
+              {t`Cancel`}
             </Button>
           )}
           {uploadComplete && (
@@ -824,7 +822,7 @@ export function ContactsCsvUploadDrawer({
                 onClose()
               }}
             >
-              Close
+              {t`Close`}
             </Button>
           )}
         </Space>
@@ -836,14 +834,14 @@ export function ContactsCsvUploadDrawer({
           <p className="ant-upload-drag-icon">
             <UploadOutlined />
           </p>
-          <p className="ant-upload-text">Click or drag a CSV file to this area to upload</p>
-          <p className="ant-upload-hint">The CSV file should have headers in the first row.</p>
+          <p className="ant-upload-text">{t`Click or drag a CSV file to this area to upload`}</p>
+          <p className="ant-upload-hint">{t`The CSV file should have headers in the first row.`}</p>
         </Dragger>
       )}
 
       {savedProgressExists && csvData && !uploading && !uploadComplete && (
         <Alert
-          description={`You're continuing a previous upload session of "${fileName}". The upload will resume from row ${currentRow + 1} of ${totalRows}.`}
+          description={t`You're continuing a previous upload session of "${fileName}". The upload will resume from row ${currentRow + 1} of ${totalRows}.`}
           type="info"
           showIcon
           style={{ marginBottom: 24 }}
@@ -855,7 +853,7 @@ export function ContactsCsvUploadDrawer({
                 clearSavedProgress()
               }}
             >
-              Start Fresh
+              {t`Start Fresh`}
             </Button>
           }
         />
@@ -866,9 +864,8 @@ export function ContactsCsvUploadDrawer({
           <Progress percent={uploadProgress} status={paused ? 'exception' : undefined} />
           <div style={{ marginTop: 12, textAlign: 'center' }}>
             <Text>
-              Processing batch {currentBatch} of {totalBatches} ({currentRow.toLocaleString()} of{' '}
-              {totalRows.toLocaleString()} rows)
-              {paused && ' (Paused)'}
+              {t`Processing batch ${currentBatch} of ${totalBatches} (${currentRow.toLocaleString()} of ${totalRows.toLocaleString()} rows)`}
+              {paused && t` (Paused)`}
             </Text>
           </div>
         </div>
@@ -876,7 +873,7 @@ export function ContactsCsvUploadDrawer({
 
       {uploadError && (
         <Alert
-          message="Upload Error"
+          message={t`Upload Error`}
           description={uploadError}
           type="error"
           style={{ marginTop: 16, marginBottom: 24 }}
@@ -886,8 +883,8 @@ export function ContactsCsvUploadDrawer({
       {uploadComplete && (
         <div style={{ marginTop: 24, marginBottom: 24 }}>
           <Alert
-            message="Upload Complete"
-            description={`Processed ${totalRows.toLocaleString()} contacts: ${successCount.toLocaleString()} successful, ${failureCount.toLocaleString()} failed`}
+            message={t`Upload Complete`}
+            description={t`Processed ${totalRows.toLocaleString()} contacts: ${successCount.toLocaleString()} successful, ${failureCount.toLocaleString()} failed`}
             type={failureCount === 0 ? 'success' : 'warning'}
             showIcon
             style={{ marginBottom: 24 }}
@@ -896,7 +893,7 @@ export function ContactsCsvUploadDrawer({
           {failureCount > 0 && (
             <>
               <Typography.Title level={4}>
-                Errors ({Math.min(failureCount, 100)} of {failureCount.toLocaleString()} shown)
+                {t`Errors (${Math.min(failureCount, 100)} of ${failureCount.toLocaleString()} shown)`}
               </Typography.Title>
               <div style={{ overflowY: 'auto', maxHeight: '400px' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -910,7 +907,7 @@ export function ContactsCsvUploadDrawer({
                           textAlign: 'left'
                         }}
                       >
-                        Line
+                        {t`Line`}
                       </th>
                       <th
                         style={{
@@ -920,7 +917,7 @@ export function ContactsCsvUploadDrawer({
                           textAlign: 'left'
                         }}
                       >
-                        Email
+                        {t`Email`}
                       </th>
                       <th
                         style={{
@@ -930,7 +927,7 @@ export function ContactsCsvUploadDrawer({
                           textAlign: 'left'
                         }}
                       >
-                        Error
+                        {t`Error`}
                       </th>
                     </tr>
                   </thead>
@@ -967,12 +964,12 @@ export function ContactsCsvUploadDrawer({
         >
           {fileName && (
             <div style={{ marginBottom: 24 }}>
-              <Text strong>File: </Text>
+              <Text strong>{t`File`}: </Text>
               <Text>{fileName}</Text>
-              <Text style={{ marginLeft: 8 }}>({csvData.rows.length.toLocaleString()} rows)</Text>
+              <Text style={{ marginLeft: 8 }}>({csvData.rows.length.toLocaleString()} {t`rows`})</Text>
               {currentRow > 0 && (
                 <Text type="success" style={{ marginLeft: 8 }}>
-                  Will resume from row {currentRow.toLocaleString()}
+                  {t`Will resume from row ${currentRow.toLocaleString()}`}
                 </Text>
               )}
             </div>
@@ -995,11 +992,11 @@ export function ContactsCsvUploadDrawer({
                     fontWeight: 500
                   }}
                 >
-                  <UserAddOutlined /> Add to Lists
+                  <UserAddOutlined /> {t`Add to Lists`}
                 </label>
                 <Select
                   mode="multiple"
-                  placeholder="Select lists to add contacts to"
+                  placeholder={t`Select lists to add contacts to`}
                   style={{ width: '100%' }}
                   allowClear
                   value={selectedListIds}
@@ -1026,7 +1023,7 @@ export function ContactsCsvUploadDrawer({
                   ))}
                 </Select>
                 <div style={{ fontSize: '12px', color: '#8c8c8c', marginTop: '4px' }}>
-                  Contacts will be added to these lists on import (optional)
+                  {t`Contacts will be added to these lists on import (optional)`}
                 </div>
               </div>
             </div>
@@ -1042,14 +1039,13 @@ export function ContactsCsvUploadDrawer({
           >
             <p style={{ marginBottom: '16px' }}>
               <Text>
-                Map your CSV columns to contact fields. The <Text strong>Email</Text> field is
-                required.
+                {t`Map your CSV columns to contact fields. The`} <Text strong>{t`Email`}</Text> {t`field is required.`}
               </Text>
             </p>
 
             {/* Validation indicator for email field */}
             {!mappings.email && (
-              <Alert message="Email mapping required" type="warning" showIcon className="!mb-4" />
+              <Alert message={t`Email mapping required`} type="warning" showIcon className="!mb-4" />
             )}
 
             {csvData.headers.map((header, headerIndex) => {
@@ -1080,7 +1076,7 @@ export function ContactsCsvUploadDrawer({
                       <Text strong>{header}</Text>
                       {isEmailMapped && (
                         <Tag bordered={false} color="red" style={{ marginLeft: 8 }}>
-                          Email (Required)
+                          {t`Email (Required)`}
                         </Tag>
                       )}
                     </label>
@@ -1088,7 +1084,7 @@ export function ContactsCsvUploadDrawer({
                       style={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-start' }}
                     >
                       <Select
-                        placeholder="Select field to map to"
+                        placeholder={t`Select field to map to`}
                         value={mappedToField}
                         style={{ width: '200px', marginRight: '12px' }}
                         status={header === mappings.email ? '' : ''}
@@ -1111,17 +1107,17 @@ export function ContactsCsvUploadDrawer({
                         }}
                         allowClear
                       >
-                        <Select.OptGroup label="Required Fields">
+                        <Select.OptGroup label={t`Required Fields`}>
                           <Option
                             key="email"
                             value="email"
                             disabled={mappings.email && mappings.email !== header}
                           >
-                            Email
+                            {t`Email`}
                           </Option>
                         </Select.OptGroup>
 
-                        <Select.OptGroup label="Basic Information">
+                        <Select.OptGroup label={t`Basic Information`}>
                           {contactFields
                             .filter(
                               (field) => field.key !== 'email' && !field.key.startsWith('custom_')
@@ -1137,7 +1133,7 @@ export function ContactsCsvUploadDrawer({
                             ))}
                         </Select.OptGroup>
 
-                        <Select.OptGroup label="Custom Fields">
+                        <Select.OptGroup label={t`Custom Fields`}>
                           {contactFields
                             .filter((field) => field.key.startsWith('custom_'))
                             .map((field) => (
@@ -1167,7 +1163,7 @@ export function ContactsCsvUploadDrawer({
                               type="secondary"
                               style={{ fontSize: '12px', display: 'block', marginBottom: '4px' }}
                             >
-                              Sample values:
+                              {t`Sample values`}:
                             </Text>
                             {sampleValues.map((value, i) => (
                               <div
@@ -1188,7 +1184,7 @@ export function ContactsCsvUploadDrawer({
                           </>
                         ) : (
                           <Text type="secondary" style={{ fontSize: '12px' }}>
-                            No sample values available
+                            {t`No sample values available`}
                           </Text>
                         )}
                       </div>

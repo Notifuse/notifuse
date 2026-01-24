@@ -2,6 +2,7 @@ import React, { useState, useEffect, memo } from 'react'
 import { Select, Row, Col, InputNumber } from 'antd'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faFont, faDesktop } from '@fortawesome/free-solid-svg-icons'
+import { useLingui } from '@lingui/react/macro'
 import LetterSpacingInput from './LetterSpacingInput'
 import LineHeightInput from './LineHeightInput'
 
@@ -26,6 +27,7 @@ interface FontStyleInputProps {
 
 const FontStyleInput: React.FC<FontStyleInputProps> = memo(
   ({ value, defaultValue, onChange, importedFonts = [] }) => {
+    const { t } = useLingui()
     const [localValue, setLocalValue] = useState<FontStyleValues>(value || defaultValue)
 
     useEffect(() => {
@@ -82,7 +84,7 @@ const FontStyleInput: React.FC<FontStyleInputProps> = memo(
         label: (
           <span>
             <FontAwesomeIcon icon={faFont} className="mr-2" />
-            Imported Fonts
+            {t`Imported Fonts`}
           </span>
         ),
         options: importedFonts.map((font) => ({
@@ -97,62 +99,62 @@ const FontStyleInput: React.FC<FontStyleInputProps> = memo(
       label: (
         <span>
           <FontAwesomeIcon icon={faDesktop} className="mr-2" />
-          System Fonts
+          {t`System Fonts`}
         </span>
       ),
       options: systemFonts
     })
 
     const fontWeightOptions = [
-      { value: 'normal', label: <span className="font-normal">Normal</span> },
-      { value: 'bold', label: <span className="font-bold">Bold</span> },
-      { value: '100', label: <span className="font-thin">100 - Thin</span> },
-      { value: '200', label: <span className="font-extralight">200 - Extra Light</span> },
-      { value: '300', label: <span className="font-light">300 - Light</span> },
-      { value: '400', label: <span className="font-normal">400 - Normal</span> },
-      { value: '500', label: <span className="font-medium">500 - Medium</span> },
-      { value: '600', label: <span className="font-semibold">600 - Semi Bold</span> },
-      { value: '700', label: <span className="font-bold">700 - Bold</span> },
-      { value: '800', label: <span className="font-extrabold">800 - Extra Bold</span> },
-      { value: '900', label: <span className="font-black">900 - Black</span> }
+      { value: 'normal', label: <span className="font-normal">{t`Normal`}</span> },
+      { value: 'bold', label: <span className="font-bold">{t`Bold`}</span> },
+      { value: '100', label: <span className="font-thin">{t`100 - Thin`}</span> },
+      { value: '200', label: <span className="font-extralight">{t`200 - Extra Light`}</span> },
+      { value: '300', label: <span className="font-light">{t`300 - Light`}</span> },
+      { value: '400', label: <span className="font-normal">{t`400 - Normal`}</span> },
+      { value: '500', label: <span className="font-medium">{t`500 - Medium`}</span> },
+      { value: '600', label: <span className="font-semibold">{t`600 - Semi Bold`}</span> },
+      { value: '700', label: <span className="font-bold">{t`700 - Bold`}</span> },
+      { value: '800', label: <span className="font-extrabold">{t`800 - Extra Bold`}</span> },
+      { value: '900', label: <span className="font-black">{t`900 - Black`}</span> }
     ]
 
     const fontStyleOptions = [
-      { value: 'normal', label: <span className="not-italic">Normal</span> },
-      { value: 'italic', label: <span className="italic">Italic</span> },
-      { value: 'oblique', label: <span className="italic">Oblique</span> }
+      { value: 'normal', label: <span className="not-italic">{t`Normal`}</span> },
+      { value: 'italic', label: <span className="italic">{t`Italic`}</span> },
+      { value: 'oblique', label: <span className="italic">{t`Oblique`}</span> }
     ]
 
     const textTransformOptions = [
-      { value: 'none', label: 'None' },
-      { value: 'uppercase', label: 'UPPERCASE' },
-      { value: 'lowercase', label: 'lowercase' },
-      { value: 'capitalize', label: 'Capitalize' }
+      { value: 'none', label: t`None` },
+      { value: 'uppercase', label: t`UPPERCASE` },
+      { value: 'lowercase', label: t`lowercase` },
+      { value: 'capitalize', label: t`Capitalize` }
     ]
 
     const textDecorationOptions = [
-      { value: 'none', label: <span className="no-underline">None</span> },
-      { value: 'underline', label: <span className="underline">Underline</span> },
-      { value: 'line-through', label: <span className="line-through">Line Through</span> },
-      { value: 'overline', label: <span style={{ textDecoration: 'overline' }}>Overline</span> }
+      { value: 'none', label: <span className="no-underline">{t`None`}</span> },
+      { value: 'underline', label: <span className="underline">{t`Underline`}</span> },
+      { value: 'line-through', label: <span className="line-through">{t`Line Through`}</span> },
+      { value: 'overline', label: <span style={{ textDecoration: 'overline' }}>{t`Overline`}</span> }
     ]
 
     const textAlignOptions = [
       {
         value: 'left',
-        label: 'Left'
+        label: t`Left`
       },
       {
         value: 'center',
-        label: 'Center'
+        label: t`Center`
       },
       {
         value: 'right',
-        label: 'Right'
+        label: t`Right`
       },
       {
         value: 'justify',
-        label: 'Justify'
+        label: t`Justify`
       }
     ]
 
@@ -161,7 +163,7 @@ const FontStyleInput: React.FC<FontStyleInputProps> = memo(
         <Row gutter={16}>
           <Col span={12}>
             <div className="mb-2">
-              <span className="text-xs text-gray-500">Font Family</span>
+              <span className="text-xs text-gray-500">{t`Font Family`}</span>
               <Select
                 size="small"
                 value={localValue.fontFamily || defaultValue.fontFamily}
@@ -174,7 +176,7 @@ const FontStyleInput: React.FC<FontStyleInputProps> = memo(
           </Col>
           <Col span={12}>
             <div className="mb-2">
-              <span className="text-xs text-gray-500">Size</span>
+              <span className="text-xs text-gray-500">{t`Size`}</span>
               <InputNumber
                 size="small"
                 value={getFontSizeNumber(localValue.fontSize)}
@@ -193,7 +195,7 @@ const FontStyleInput: React.FC<FontStyleInputProps> = memo(
         <Row gutter={16}>
           <Col span={12}>
             <div className="mb-2">
-              <span className="text-xs text-gray-500">Weight</span>
+              <span className="text-xs text-gray-500">{t`Weight`}</span>
               <Select
                 size="small"
                 value={localValue.fontWeight || defaultValue.fontWeight}
@@ -205,7 +207,7 @@ const FontStyleInput: React.FC<FontStyleInputProps> = memo(
           </Col>
           <Col span={12}>
             <div className="mb-2">
-              <span className="text-xs text-gray-500">Style</span>
+              <span className="text-xs text-gray-500">{t`Style`}</span>
               <Select
                 size="small"
                 value={localValue.fontStyle || defaultValue.fontStyle || 'normal'}
@@ -220,20 +222,20 @@ const FontStyleInput: React.FC<FontStyleInputProps> = memo(
         <Row gutter={16}>
           <Col span={12}>
             <div className="mb-2">
-              <span className="text-xs text-gray-500">Text Align</span>
+              <span className="text-xs text-gray-500">{t`Text Align`}</span>
               <Select
                 size="small"
                 value={localValue.textAlign || defaultValue.textAlign}
                 onChange={(value) => handleValueChange('textAlign', value)}
                 options={textAlignOptions}
                 style={{ width: '100%', marginTop: '4px' }}
-                placeholder="Default"
+                placeholder={t`Default`}
               />
             </div>
           </Col>
           <Col span={12}>
             <div className="mb-2">
-              <span className="text-xs text-gray-500">Text Transform</span>
+              <span className="text-xs text-gray-500">{t`Text Transform`}</span>
               <Select
                 size="small"
                 value={localValue.textTransform || 'none'}
@@ -248,7 +250,7 @@ const FontStyleInput: React.FC<FontStyleInputProps> = memo(
         <Row gutter={16}>
           <Col span={12}>
             <div className="mb-2">
-              <span className="text-xs text-gray-500">Line Height</span>
+              <span className="text-xs text-gray-500">{t`Line Height`}</span>
               <div style={{ marginTop: '4px' }}>
                 <LineHeightInput
                   value={localValue.lineHeight || ''}
@@ -260,7 +262,7 @@ const FontStyleInput: React.FC<FontStyleInputProps> = memo(
           </Col>
           <Col span={12}>
             <div className="mb-2">
-              <span className="text-xs text-gray-500">Letter Spacing</span>
+              <span className="text-xs text-gray-500">{t`Letter Spacing`}</span>
               <div style={{ marginTop: '4px' }}>
                 <LetterSpacingInput
                   value={localValue.letterSpacing || ''}
@@ -275,7 +277,7 @@ const FontStyleInput: React.FC<FontStyleInputProps> = memo(
         <Row gutter={16}>
           <Col span={12}>
             <div className="mb-2">
-              <span className="text-xs text-gray-500">Text Decoration</span>
+              <span className="text-xs text-gray-500">{t`Text Decoration`}</span>
               <Select
                 size="small"
                 value={localValue.textDecoration || defaultValue.textDecoration || 'none'}

@@ -35,6 +35,7 @@ import {
 } from '../../services/api/segment'
 import { TIMEZONE_OPTIONS } from '../../lib/timezones'
 import { TableSchemas } from './table_schemas'
+import { useLingui } from '@lingui/react/macro'
 
 // Helper function to check if a tree contains relative date filters
 const treeHasRelativeDates = (tree: TreeNode | null | undefined): boolean => {
@@ -78,6 +79,7 @@ const ButtonUpsertSegment = (props: {
   onSuccess?: () => void
   children?: React.ReactNode
 }) => {
+  const { t } = useLingui()
   const [drawserVisible, setDrawserVisible] = useState(false)
 
   // but the drawer in a separate component to make sure the
@@ -94,7 +96,7 @@ const ButtonUpsertSegment = (props: {
           icon={!props.segment ? <FontAwesomeIcon icon={faPlus} /> : undefined}
           onClick={() => setDrawserVisible(!drawserVisible)}
         >
-          {props.segment ? 'Edit segment' : 'Segment'}
+          {props.segment ? t`Edit segment` : t`Segment`}
         </Button>
       )}
       {drawserVisible && (
@@ -115,6 +117,7 @@ const DrawerSegment = (props: {
   setDrawserVisible: (visible: boolean) => void
   onSuccess?: () => void
 }) => {
+  const { t } = useLingui()
   const { workspaceId } = useParams({ from: '/console/workspace/$workspaceId' })
   const { workspaces } = useAuth()
   const [form] = Form.useForm()
@@ -185,7 +188,7 @@ const DrawerSegment = (props: {
       setLoadingPreview(false)
     } catch (error) {
       console.error('Preview error:', error)
-      message.error('Failed to preview segment')
+      message.error(t`Failed to preview segment`)
       setLoadingPreview(false)
     }
   }
@@ -222,7 +225,7 @@ const DrawerSegment = (props: {
           timezone: values.timezone
         }
         await updateSegment(requestData)
-        message.success('The segment has been updated!')
+        message.success(t`The segment has been updated!`)
       } else {
         // Create new segment
         // Generate snake_case ID: lowercase, replace spaces/hyphens with underscores, remove invalid chars
@@ -242,7 +245,7 @@ const DrawerSegment = (props: {
           timezone: values.timezone
         }
         await createSegment(requestData)
-        message.success('The segment has been created!')
+        message.success(t`The segment has been created!`)
       }
 
       form.resetFields()
@@ -255,7 +258,7 @@ const DrawerSegment = (props: {
       }
     } catch (error) {
       console.error('Segment operation error:', error)
-      message.error(`Failed to ${props.segment ? 'update' : 'create'} segment`)
+      message.error(props.segment ? t`Failed to update segment` : t`Failed to create segment`)
       setLoading(false)
     }
   }
@@ -271,7 +274,7 @@ const DrawerSegment = (props: {
 
   return (
     <Drawer
-      title={props.segment ? 'Update segment' : 'New segment'}
+      title={props.segment ? t`Update segment` : t`New segment`}
       open={true}
       width={'90%'}
       onClose={() => props.setDrawserVisible(false)}
@@ -279,7 +282,7 @@ const DrawerSegment = (props: {
       extra={
         <Space>
           <Button loading={loading} onClick={() => props.setDrawserVisible(false)}>
-            Cancel
+            {t`Cancel`}
           </Button>
           <Button
             loading={loading}
@@ -288,7 +291,7 @@ const DrawerSegment = (props: {
             }}
             type="primary"
           >
-            Confirm
+            {t`Confirm`}
           </Button>
         </Space>
       }
@@ -304,10 +307,10 @@ const DrawerSegment = (props: {
         >
           <Row gutter={24}>
             <Col span={18}>
-              <Form.Item label="Name" required>
+              <Form.Item label={t`Name`} required>
                 <Space.Compact style={{ width: '100%' }}>
                   <Form.Item name="name" noStyle rules={[{ required: true, type: 'string' }]}>
-                    <Input placeholder="i.e: Big spenders..." style={{ flex: 1 }} />
+                    <Input placeholder={t`i.e: Big spenders...`} style={{ flex: 1 }} />
                   </Form.Item>
                   <Form.Item noStyle name="color">
                     <Select
@@ -417,12 +420,12 @@ const DrawerSegment = (props: {
 
               <Form.Item
                 name="timezone"
-                label="Timezone used for dates"
+                label={t`Timezone used for dates`}
                 rules={[{ required: true, type: 'string' }]}
                 className="mb-12"
               >
                 <Select
-                  placeholder="Select a time zone"
+                  placeholder={t`Select a time zone`}
                   allowClear={false}
                   showSearch={true}
                   filterOption={(input: string, option) => {
@@ -447,7 +450,7 @@ const DrawerSegment = (props: {
                       <Alert
                         type="info"
                         showIcon
-                        message={`This segment uses relative date filters and will be automatically recomputed daily at 5:00 AM (${timezone})`}
+                        message={t`This segment uses relative date filters and will be automatically recomputed daily at 5:00 AM (${timezone})`}
                         style={{ marginBottom: 16 }}
                       />
                     )
@@ -464,7 +467,7 @@ const DrawerSegment = (props: {
                       <Progress
                         format={() => (
                           <Button type="primary" ghost loading={true}>
-                            Preview
+                            {t`Preview`}
                           </Button>
                         )}
                         type="circle"
@@ -503,7 +506,7 @@ const DrawerSegment = (props: {
                             onClick={preview}
                             disabled={HasLeaf(values.tree) ? false : true}
                           >
-                            Preview
+                            {t`Preview`}
                           </Button>
                         )}
                         type="circle"
@@ -514,9 +517,9 @@ const DrawerSegment = (props: {
                   } else if (previewResponse && previewResponse.total_count >= 0) {
                     const content =
                       previewResponse.total_count === 0 ? (
-                        <>0 contacts</>
+                        <>{t`0 contacts`}</>
                       ) : (
-                        <span className="text-base">{previewResponse.total_count} contacts</span>
+                        <span className="text-base">{t`${previewResponse.total_count} contacts`}</span>
                       )
 
                     // Calculate percentage based on total contacts
@@ -546,17 +549,17 @@ const DrawerSegment = (props: {
                           }}
                         />
                         <Popover
-                          title="Preview Results"
+                          title={t`Preview Results`}
                           placement="left"
                           content={
                             <div style={{ width: 600, maxHeight: 600, overflow: 'auto' }}>
                               <p>
-                                <strong>Matching contacts:</strong> {previewResponse.total_count}
+                                <strong>{t`Matching contacts:`}</strong> {previewResponse.total_count}
                               </p>
                               {previewResponse.generated_sql && (
                                 <>
                                   <p>
-                                    <strong>Generated SQL:</strong>
+                                    <strong>{t`Generated SQL:`}</strong>
                                   </p>
                                   <pre
                                     style={{
@@ -575,7 +578,7 @@ const DrawerSegment = (props: {
                               {previewResponse.sql_args && previewResponse.sql_args.length > 0 && (
                                 <>
                                   <p>
-                                    <strong>SQL Arguments:</strong>
+                                    <strong>{t`SQL Arguments:`}</strong>
                                   </p>
                                   <pre
                                     style={{
@@ -610,7 +613,7 @@ const DrawerSegment = (props: {
                     )
                   }
 
-                  return 'No preview available...'
+                  return t`No preview available...`
                 }}
               </Form.Item>
             </Col>
@@ -628,7 +631,7 @@ const DrawerSegment = (props: {
                     if (HasLeaf(value)) {
                       return resolve(undefined)
                     }
-                    return reject(new Error('A tree is required'))
+                    return reject(new Error(t`A tree is required`))
                   })
                 }
                 // message: Messages.RequiredField

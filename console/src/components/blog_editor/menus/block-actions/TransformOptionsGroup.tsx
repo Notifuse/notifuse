@@ -1,3 +1,4 @@
+import { useLingui } from '@lingui/react/macro'
 import type { MenuProps } from 'antd'
 import {
   canResetFormatting,
@@ -14,6 +15,7 @@ import { useBlockColorPopover } from './BlockColorPopover'
  * Returns menu items configuration for Antd Menu
  */
 export function useTransformOptionsGroup(onCloseMenu: () => void): MenuProps['items'] {
+  const { t } = useLingui()
   const { editor } = useNotifuseEditor()
   const transformPopover = useBlockTransformPopover(onCloseMenu)
   const colorPopover = useBlockColorPopover(onCloseMenu)
@@ -41,7 +43,7 @@ export function useTransformOptionsGroup(onCloseMenu: () => void): MenuProps['it
     items.push(
       createActionMenuItem({
         icon: RotateCcw,
-        label: 'Reset formatting',
+        label: t`Reset formatting`,
         action: handleResetFormatting,
         disabled: !canReset
       })

@@ -10,6 +10,7 @@ import {
   WebhookSubscription,
   WebhookDelivery
 } from '../../services/api/webhook_subscription'
+import { useLingui } from '@lingui/react/macro'
 
 interface FilterOption {
   key: string
@@ -28,6 +29,7 @@ interface OutgoingWebhooksTabProps {
 }
 
 export function OutgoingWebhooksTab({ workspaceId }: OutgoingWebhooksTabProps) {
+  const { t } = useLingui()
   const { workspaces } = useAuth()
   const queryClient = useQueryClient()
   const [currentPage, setCurrentPage] = useState(1)
@@ -63,7 +65,7 @@ export function OutgoingWebhooksTab({ workspaceId }: OutgoingWebhooksTabProps) {
     const options: FilterOption[] = [
       {
         key: 'subscription_id',
-        label: 'Subscription',
+        label: t`Subscription`,
         options: subscriptionsData?.subscriptions?.map((s) => ({
           value: s.id,
           label: s.name
@@ -71,16 +73,16 @@ export function OutgoingWebhooksTab({ workspaceId }: OutgoingWebhooksTabProps) {
       },
       {
         key: 'status',
-        label: 'Status',
+        label: t`Status`,
         options: [
-          { value: 'delivered', label: 'Delivered' },
-          { value: 'pending', label: 'Pending' },
-          { value: 'failed', label: 'Failed' }
+          { value: 'delivered', label: t`Delivered` },
+          { value: 'pending', label: t`Pending` },
+          { value: 'failed', label: t`Failed` }
         ]
       }
     ]
     return options
-  }, [subscriptionsData])
+  }, [subscriptionsData, t])
 
   // Create API filters from active filters
   const apiFilters = useMemo(() => {
@@ -153,7 +155,7 @@ export function OutgoingWebhooksTab({ workspaceId }: OutgoingWebhooksTabProps) {
   // Reset page and accumulated deliveries when filters change
   useEffect(() => {
     setAllDeliveries([]) // eslint-disable-line react-hooks/set-state-in-effect -- Required to reset pagination
-    setCurrentPage(1)  
+    setCurrentPage(1)
     queryClient.resetQueries({ queryKey: ['webhook-deliveries', workspaceId] })
   }, [apiFilters, workspaceId, queryClient])
 
@@ -165,11 +167,11 @@ export function OutgoingWebhooksTab({ workspaceId }: OutgoingWebhooksTabProps) {
       if (currentPage === 1) {
         setAllDeliveries(deliveriesData.deliveries) // eslint-disable-line react-hooks/set-state-in-effect -- Syncing query data
       } else if (deliveriesData.deliveries.length > 0) {
-        setAllDeliveries((prev) => [...prev, ...deliveriesData.deliveries])  
+        setAllDeliveries((prev) => [...prev, ...deliveriesData.deliveries])
       }
     }
 
-    setIsLoadingMore(false)  
+    setIsLoadingMore(false)
   }, [deliveriesData, currentPage, isLoading, isFetching])
 
   // Load more deliveries
@@ -225,19 +227,19 @@ export function OutgoingWebhooksTab({ workspaceId }: OutgoingWebhooksTabProps) {
       case 'delivered':
         return (
           <Tag color="green" bordered={false}>
-            <FontAwesomeIcon icon={faCheck} className="mr-1 opacity-70" /> Delivered
+            <FontAwesomeIcon icon={faCheck} className="mr-1 opacity-70" /> {t`Delivered`}
           </Tag>
         )
       case 'pending':
         return (
           <Tag color="blue" bordered={false}>
-            <FontAwesomeIcon icon={faClock} className="mr-1 opacity-70" /> Pending
+            <FontAwesomeIcon icon={faClock} className="mr-1 opacity-70" /> {t`Pending`}
           </Tag>
         )
       case 'failed':
         return (
           <Tag color="red" bordered={false}>
-            <FontAwesomeIcon icon={faTimes} className="mr-1 opacity-70" /> Failed
+            <FontAwesomeIcon icon={faTimes} className="mr-1 opacity-70" /> {t`Failed`}
           </Tag>
         )
       default:
@@ -254,7 +256,7 @@ export function OutgoingWebhooksTab({ workspaceId }: OutgoingWebhooksTabProps) {
   // Format date
   const formatDate = (dateString: string | undefined): string => {
     if (!dateString) return '-'
-    return `${dayjs(dateString).format('lll')} in ${currentWorkspace?.settings.timezone || 'UTC'}`
+    return t`${dayjs(dateString).format('lll')} in ${currentWorkspace?.settings.timezone || 'UTC'}`
   }
 
   // Render filter buttons
@@ -293,7 +295,7 @@ export function OutgoingWebhooksTab({ workspaceId }: OutgoingWebhooksTabProps) {
                 <div style={{ width: 200 }}>
                   <Select
                     style={{ width: '100%', marginBottom: 8 }}
-                    placeholder={`Select ${option.label}`}
+                    placeholder={t`Select ${option.label}`}
                     value={tempFilterValues[option.key] || undefined}
                     onChange={(value) =>
                       setTempFilterValues({
@@ -312,12 +314,12 @@ export function OutgoingWebhooksTab({ workspaceId }: OutgoingWebhooksTabProps) {
                       style={{ flex: 1 }}
                       onClick={() => applyFilter(option.key, tempFilterValues[option.key] || '')}
                     >
-                      Apply
+                      {t`Apply`}
                     </Button>
 
                     {isActive && (
                       <Button danger size="small" onClick={() => clearFilter(option.key)}>
-                        Clear
+                        {t`Clear`}
                       </Button>
                     )}
                   </div>
@@ -333,7 +335,7 @@ export function OutgoingWebhooksTab({ workspaceId }: OutgoingWebhooksTabProps) {
 
         {activeFilters.length > 0 && (
           <Button size="small" onClick={clearAllFilters}>
-            Clear All
+            {t`Clear All`}
           </Button>
         )}
       </Space>
@@ -342,13 +344,13 @@ export function OutgoingWebhooksTab({ workspaceId }: OutgoingWebhooksTabProps) {
 
   const columns = [
     {
-      title: 'Event',
+      title: t`Event`,
       dataIndex: 'event_type',
       key: 'event_type',
       render: (type: string) => <Tag color="green" bordered={false}>{type}</Tag>
     },
     {
-      title: 'Subscription',
+      title: t`Subscription`,
       dataIndex: 'subscription_id',
       key: 'subscription_id',
       render: (subscriptionId: string) => (
@@ -358,13 +360,13 @@ export function OutgoingWebhooksTab({ workspaceId }: OutgoingWebhooksTabProps) {
       )
     },
     {
-      title: 'Status',
+      title: t`Status`,
       dataIndex: 'status',
       key: 'status',
       render: (status: string) => getStatusTag(status)
     },
     {
-      title: 'Attempts',
+      title: t`Attempts`,
       key: 'attempts',
       render: (_: unknown, record: WebhookDelivery) => (
         <span>
@@ -373,7 +375,7 @@ export function OutgoingWebhooksTab({ workspaceId }: OutgoingWebhooksTabProps) {
       )
     },
     {
-      title: 'Response',
+      title: t`Response`,
       key: 'response',
       render: (_: unknown, record: WebhookDelivery) => (
         <div className="text-xs">
@@ -398,7 +400,7 @@ export function OutgoingWebhooksTab({ workspaceId }: OutgoingWebhooksTabProps) {
       )
     },
     {
-      title: 'Created',
+      title: t`Created`,
       dataIndex: 'created_at',
       key: 'created_at',
       render: (date: string) => (
@@ -409,7 +411,7 @@ export function OutgoingWebhooksTab({ workspaceId }: OutgoingWebhooksTabProps) {
     },
     {
       title: (
-        <Tooltip title="Refresh">
+        <Tooltip title={t`Refresh`}>
           <Button
             type="text"
             size="small"
@@ -428,14 +430,14 @@ export function OutgoingWebhooksTab({ workspaceId }: OutgoingWebhooksTabProps) {
   if (error) {
     return (
       <div>
-        <div className="text-lg font-medium">Error loading data</div>
+        <div className="text-lg font-medium">{t`Error loading data`}</div>
         <div className="text-red-500">{(error as Error)?.message}</div>
       </div>
     )
   }
 
   if (!currentWorkspace) {
-    return <div>Loading...</div>
+    return <div>{t`Loading...`}</div>
   }
 
   const hasMore = deliveriesData ? allDeliveries.length < deliveriesData.total : false
@@ -447,12 +449,12 @@ export function OutgoingWebhooksTab({ workspaceId }: OutgoingWebhooksTabProps) {
       {(isLoading || (isFetching && allDeliveries.length === 0)) && !isLoadingMore ? (
         <div className="loading-container" style={{ padding: '40px 0', textAlign: 'center' }}>
           <Spin size="large" />
-          <div style={{ marginTop: 16 }}>Loading webhook deliveries...</div>
+          <div style={{ marginTop: 16 }}>{t`Loading webhook deliveries...`}</div>
         </div>
       ) : allDeliveries.length === 0 ? (
         <Empty
           image={Empty.PRESENTED_IMAGE_SIMPLE}
-          description="No webhook deliveries found"
+          description={t`No webhook deliveries found`}
           style={{ margin: '40px 0' }}
         />
       ) : (
@@ -468,27 +470,27 @@ export function OutgoingWebhooksTab({ workspaceId }: OutgoingWebhooksTabProps) {
               expandedRowRender: (record) => (
                 <div className="px-4 py-2">
                   <div className="text-xs mb-2">
-                    <strong>Delivery ID:</strong> {record.id}
+                    <strong>{t`Delivery ID:`}</strong> {record.id}
                   </div>
                   <div className="text-xs mb-2">
-                    <strong>Subscription ID:</strong> {record.subscription_id}
+                    <strong>{t`Subscription ID:`}</strong> {record.subscription_id}
                   </div>
                   {record.last_error && (
                     <div className="text-xs mb-2">
-                      <strong>Error:</strong>{' '}
+                      <strong>{t`Error:`}</strong>{' '}
                       <span className="text-red-500">{record.last_error}</span>
                     </div>
                   )}
                   {record.last_response_body && (
                     <div className="text-xs mb-2">
-                      <strong>Response Body:</strong>
+                      <strong>{t`Response Body:`}</strong>
                       <pre className="mt-1 p-2 bg-gray-100 rounded text-xs overflow-auto max-h-40">
                         {record.last_response_body}
                       </pre>
                     </div>
                   )}
                   <div className="text-xs mb-2">
-                    <strong>Payload:</strong>
+                    <strong>{t`Payload:`}</strong>
                     <pre className="mt-1 p-2 bg-gray-100 rounded text-xs overflow-auto max-h-40">
                       {JSON.stringify(record.payload, null, 2)}
                     </pre>
@@ -501,7 +503,7 @@ export function OutgoingWebhooksTab({ workspaceId }: OutgoingWebhooksTabProps) {
           {hasMore && (
             <div className="flex justify-center mt-4 mb-8">
               <Button size="small" onClick={handleLoadMore} loading={isLoadingMore}>
-                Load More
+                {t`Load More`}
               </Button>
             </div>
           )}

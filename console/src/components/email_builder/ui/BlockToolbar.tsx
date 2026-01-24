@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { Button, Popconfirm, Tooltip, Modal, Input, Radio, Select, App } from 'antd'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faClone, faFloppyDisk, faTrashAlt } from '@fortawesome/free-regular-svg-icons'
+import { useLingui } from '@lingui/react/macro'
 import type { EmailBlock, SaveOperation, SavedBlock } from '../types'
 
 interface BlockToolbarProps {
@@ -25,6 +26,7 @@ export const BlockToolbar: React.FC<BlockToolbarProps> = ({
   savedBlocks,
   style
 }) => {
+  const { t } = useLingui()
   const { message } = App.useApp()
   const [saveModalVisible, setSaveModalVisible] = useState(false)
   const [saveBlockName, setSaveBlockName] = useState('')
@@ -109,12 +111,12 @@ export const BlockToolbar: React.FC<BlockToolbarProps> = ({
       if (saveMode === 'new') {
         if (!saveBlockName.trim()) return
         onSave(block, 'create', saveBlockName.trim())
-        message.success(`Block saved as "${saveBlockName.trim()}"`)
+        message.success(t`Block saved as "${saveBlockName.trim()}"`)
       } else {
         if (!selectedSavedBlockId) return
         onSave(block, 'update', selectedSavedBlockId)
         const selectedBlock = savedBlocks?.find((b) => b.id === selectedSavedBlockId)
-        message.success(`Block "${selectedBlock?.name}" updated`)
+        message.success(t`Block "${selectedBlock?.name}" updated`)
       }
 
       setSaveModalVisible(false)
@@ -177,7 +179,7 @@ export const BlockToolbar: React.FC<BlockToolbarProps> = ({
         onClick={(e) => e.stopPropagation()}
         onMouseDown={(e) => e.stopPropagation()}
       >
-        <Tooltip title="Clone Block" placement="left">
+        <Tooltip title={t`Clone Block`} placement="left">
           <Button
             type="text"
             size="small"
@@ -193,7 +195,7 @@ export const BlockToolbar: React.FC<BlockToolbarProps> = ({
             }}
           />
         </Tooltip>
-        <Tooltip title="Save Block" placement="left">
+        <Tooltip title={t`Save Block`} placement="left">
           <Button
             type="text"
             size="small"
@@ -209,8 +211,8 @@ export const BlockToolbar: React.FC<BlockToolbarProps> = ({
             }}
           />
         </Tooltip>
-        <Tooltip title="Delete Block" placement="left">
-          <Popconfirm title="Are you sure you want to delete this block?" onConfirm={handleDelete}>
+        <Tooltip title={t`Delete Block`} placement="left">
+          <Popconfirm title={t`Are you sure you want to delete this block?`} onConfirm={handleDelete}>
             <Button
               type="text"
               size="small"
@@ -230,12 +232,12 @@ export const BlockToolbar: React.FC<BlockToolbarProps> = ({
 
       {/* Save Block Modal */}
       <Modal
-        title="Save Block"
+        title={t`Save Block`}
         open={saveModalVisible}
         onOk={handleSaveBlock}
         onCancel={handleCancelSave}
-        okText={saveMode === 'new' ? 'Save' : 'Update'}
-        cancelText="Cancel"
+        okText={saveMode === 'new' ? t`Save` : t`Update`}
+        cancelText={t`Cancel`}
         okButtonProps={{
           disabled: saveMode === 'new' ? !saveBlockName.trim() : !selectedSavedBlockId,
           loading: saving
@@ -243,25 +245,25 @@ export const BlockToolbar: React.FC<BlockToolbarProps> = ({
       >
         {block && (
           <div style={{ marginBottom: 16, fontSize: 12, color: '#666' }}>
-            Block type: <strong>{block.type}</strong>
+            {t`Block type:`} <strong>{block.type}</strong>
           </div>
         )}
 
         <div style={{ marginBottom: 16 }}>
-          <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>Save Mode</label>
+          <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>{t`Save Mode`}</label>
           <Radio.Group value={saveMode} onChange={(e) => setSaveMode(e.target.value)}>
-            <Radio value="new">Save as new block</Radio>
+            <Radio value="new">{t`Save as new block`}</Radio>
             <Radio value="update" disabled={!savedBlocks || savedBlocks.length === 0}>
-              Update existing block
+              {t`Update existing block`}
             </Radio>
           </Radio.Group>
         </div>
 
         {saveMode === 'new' ? (
           <div style={{ marginBottom: 16 }}>
-            <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>Block Name</label>
+            <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>{t`Block Name`}</label>
             <Input
-              placeholder="Enter a name for this block"
+              placeholder={t`Enter a name for this block`}
               value={saveBlockName}
               onChange={(e) => setSaveBlockName(e.target.value)}
               onPressEnter={handleSaveBlock}
@@ -270,11 +272,11 @@ export const BlockToolbar: React.FC<BlockToolbarProps> = ({
         ) : (
           <div style={{ marginBottom: 16 }}>
             <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>
-              Select Block to Update
+              {t`Select Block to Update`}
             </label>
             <Select
               style={{ width: '100%' }}
-              placeholder="Choose a saved block to update"
+              placeholder={t`Choose a saved block to update`}
               value={selectedSavedBlockId}
               onChange={setSelectedSavedBlockId}
               showSearch

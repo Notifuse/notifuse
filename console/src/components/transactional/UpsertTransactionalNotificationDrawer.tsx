@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Button, Drawer, Form, Input, Space, App, Row, Col } from 'antd'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useLingui } from '@lingui/react/macro'
 import {
   transactionalNotificationsApi,
   TransactionalNotification,
@@ -39,6 +40,7 @@ export function UpsertTransactionalNotificationDrawer({
   buttonContent,
   onClose
 }: UpsertTransactionalNotificationDrawerProps) {
+  const { t } = useLingui()
   const [isOpen, setIsOpen] = useState(false)
   const [form] = Form.useForm()
   const queryClient = useQueryClient()
@@ -81,14 +83,20 @@ export function UpsertTransactionalNotificationDrawer({
       }
     },
     onSuccess: () => {
-      message.success(`Notification ${notification ? 'updated' : 'created'} successfully`)
+      message.success(
+        notification
+          ? t`Notification updated successfully`
+          : t`Notification created successfully`
+      )
       handleClose()
       queryClient.invalidateQueries({ queryKey: ['transactional-notifications', workspace.id] })
       setLoading(false)
     },
     onError: (error) => {
       message.error(
-        `Failed to ${notification ? 'update' : 'create'} notification: ${error.message}`
+        notification
+          ? t`Failed to update notification: ${error.message}`
+          : t`Failed to create notification: ${error.message}`
       )
       setLoading(false)
     }
@@ -134,10 +142,10 @@ export function UpsertTransactionalNotificationDrawer({
   const handleClose = () => {
     if (formTouched && !loading && !upsertNotificationMutation.isPending) {
       modal.confirm({
-        title: 'Unsaved changes',
-        content: 'You have unsaved changes. Are you sure you want to close this drawer?',
-        okText: 'Yes',
-        cancelText: 'No',
+        title: t`Unsaved changes`,
+        content: t`You have unsaved changes. Are you sure you want to close this drawer?`,
+        okText: t`Yes`,
+        cancelText: t`No`,
         onOk: () => {
           setIsOpen(false)
           form.resetFields()
@@ -162,7 +170,7 @@ export function UpsertTransactionalNotificationDrawer({
       <div className="text-right">
         <Space>
           <Button type="link" loading={loading} onClick={handleClose}>
-            Cancel
+            {t`Cancel`}
           </Button>
           <Button
             loading={loading || upsertNotificationMutation.isPending}
@@ -171,7 +179,7 @@ export function UpsertTransactionalNotificationDrawer({
             }}
             type="primary"
           >
-            Save
+            {t`Save`}
           </Button>
         </Space>
       </div>
@@ -181,11 +189,11 @@ export function UpsertTransactionalNotificationDrawer({
   return (
     <>
       <Button onClick={showDrawer} {...buttonProps}>
-        {buttonContent || (notification ? 'Edit Notification' : 'Create Notification')}
+        {buttonContent || (notification ? t`Edit Notification` : t`Create Notification`)}
       </Button>
       {isOpen && (
         <Drawer
-          title={<>{notification ? 'Edit notification' : 'Create a notification'}</>}
+          title={<>{notification ? t`Edit notification` : t`Create a notification`}</>}
           closable={true}
           width={600}
           keyboard={false}
@@ -233,7 +241,7 @@ export function UpsertTransactionalNotificationDrawer({
             }}
             onFinishFailed={(info) => {
               if (info.errorFields) {
-                message.error(`Please check the form for errors.`)
+                message.error(t`Please check the form for errors.`)
               }
               setLoading(false)
             }}
@@ -244,59 +252,59 @@ export function UpsertTransactionalNotificationDrawer({
             <div className="p-8">
               <Form.Item
                 name="name"
-                label="Notification name"
-                rules={[{ required: true, message: 'Please enter a notification name' }]}
+                label={t`Notification name`}
+                rules={[{ required: true, message: t`Please enter a notification name` }]}
                 tooltip={
                   isIntegrationManaged
-                    ? 'This notification is managed by an integration and cannot be renamed'
+                    ? t`This notification is managed by an integration and cannot be renamed`
                     : undefined
                 }
               >
-                <Input placeholder="E.g. Password Reset Email" disabled={isIntegrationManaged} />
+                <Input placeholder={t`E.g. Password Reset Email`} disabled={isIntegrationManaged} />
               </Form.Item>
 
               <Form.Item
                 name="id"
-                label="API Identifier"
-                tooltip="This ID will be used when triggering the notification via API"
+                label={t`API Identifier`}
+                tooltip={t`This ID will be used when triggering the notification via API`}
                 rules={[
-                  { required: true, message: 'Please enter an API identifier' },
+                  { required: true, message: t`Please enter an API identifier` },
                   {
                     pattern: /^[a-z0-9_]+$/,
-                    message: 'ID can only contain lowercase letters, numbers, and underscores'
+                    message: t`ID can only contain lowercase letters, numbers, and underscores`
                   }
                 ]}
               >
-                <Input placeholder="E.g. password_reset" disabled={!!notification} />
+                <Input placeholder={t`E.g. password_reset`} disabled={!!notification} />
               </Form.Item>
 
               <Form.Item
                 name={['channels', 'email', 'template_id']}
-                label="Email Template"
-                rules={[{ required: true, message: 'Please select an email template' }]}
+                label={t`Email Template`}
+                rules={[{ required: true, message: t`Please select an email template` }]}
                 tooltip={
                   isIntegrationManaged
-                    ? 'This notification is managed by an integration and the template cannot be changed'
+                    ? t`This notification is managed by an integration and the template cannot be changed`
                     : undefined
                 }
               >
                 <TemplateSelectorInput
                   workspaceId={workspace.id}
-                  placeholder="Select email template"
+                  placeholder={t`Select email template`}
                   category="transactional"
                   disabled={isIntegrationManaged}
                 />
               </Form.Item>
 
-              <Form.Item name="description" label="Description">
+              <Form.Item name="description" label={t`Description`}>
                 <Input.TextArea
                   rows={3}
-                  placeholder="A brief description of this notification's purpose"
+                  placeholder={t`A brief description of this notification's purpose`}
                 />
               </Form.Item>
 
               <p className="text-sm text-gray-500 pt-8">
-                Define UTM parameters for links in your email for better campaign tracking.
+                {t`Define UTM parameters for links in your email for better campaign tracking.`}
               </p>
 
               <Row gutter={16}>
@@ -304,17 +312,17 @@ export function UpsertTransactionalNotificationDrawer({
                   <Form.Item
                     name={['tracking_settings', 'utm_source']}
                     label="utm_source"
-                    tooltip="Identifies which site sent the traffic (e.g. google, newsletter)"
+                    tooltip={t`Identifies which site sent the traffic (e.g. google, newsletter)`}
                   >
-                    <Input placeholder="e.g. notifuse" />
+                    <Input placeholder={t`e.g. notifuse`} />
                   </Form.Item>
 
                   <Form.Item
                     name={['tracking_settings', 'utm_medium']}
                     label="utm_medium"
-                    tooltip="Identifies what type of link was used (e.g. email, cpc, banner)"
+                    tooltip={t`Identifies what type of link was used (e.g. email, cpc, banner)`}
                   >
-                    <Input placeholder="e.g. email" />
+                    <Input placeholder={t`e.g. email`} />
                   </Form.Item>
                 </Col>
 
@@ -322,17 +330,17 @@ export function UpsertTransactionalNotificationDrawer({
                   <Form.Item
                     name={['tracking_settings', 'utm_campaign']}
                     label="utm_campaign"
-                    tooltip="Identifies a specific product promotion or strategic campaign"
+                    tooltip={t`Identifies a specific product promotion or strategic campaign`}
                   >
-                    <Input placeholder="e.g. welcome_series" />
+                    <Input placeholder={t`e.g. welcome_series`} />
                   </Form.Item>
 
                   <Form.Item
                     name={['tracking_settings', 'utm_content']}
                     label="utm_content"
-                    tooltip="Identifies what specifically was clicked (e.g. header_link, body_link)"
+                    tooltip={t`Identifies what specifically was clicked (e.g. header_link, body_link)`}
                   >
-                    <Input placeholder="e.g. cta_button" />
+                    <Input placeholder={t`e.g. cta_button`} />
                   </Form.Item>
                 </Col>
               </Row>

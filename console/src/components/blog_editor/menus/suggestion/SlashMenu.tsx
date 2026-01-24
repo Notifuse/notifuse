@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useLingui } from '@lingui/react/macro'
 import { flip, offset, shift, size } from '@floating-ui/react'
 import { PluginKey } from '@tiptap/pm/state'
 import { Suggestion } from '@tiptap/suggestion'
@@ -28,6 +29,7 @@ interface SlashMenuProps {
  * Triggered by '/' character
  */
 export const SlashMenu = ({ editor: providedEditor }: SlashMenuProps) => {
+  const { t } = useLingui()
   const { editor } = useNotifuseEditor(providedEditor)
 
   const [show, setShow] = useState<boolean>(false)
@@ -223,7 +225,7 @@ export const SlashMenu = ({ editor: providedEditor }: SlashMenuProps) => {
       data-selector="slash-menu"
       className="tiptap-suggestion-menu"
       role="listbox"
-      aria-label="Slash Commands"
+      aria-label={t`Slash Commands`}
       onPointerDown={(e) => e.preventDefault()}
     >
       <SlashPopoverContent

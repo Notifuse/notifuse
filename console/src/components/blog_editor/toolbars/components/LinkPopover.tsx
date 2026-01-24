@@ -1,4 +1,5 @@
 import { useContext, useEffect, useState } from 'react'
+import { useLingui } from '@lingui/react/macro'
 import { EditorContext } from '@tiptap/react'
 import { Button, Input, Popover, Tooltip } from 'antd'
 import { Link2 } from 'lucide-react'
@@ -23,6 +24,7 @@ export interface LinkPopoverProps {
  * LinkPopover - Button with popover for adding/editing/removing links
  */
 export function LinkPopover({ hideWhenUnavailable = false }: LinkPopoverProps) {
+  const { t } = useLingui()
   const { editor } = useContext(EditorContext)!
   const [open, setOpen] = useState(false)
   const [linkValue, setLinkValue] = useState('')
@@ -98,7 +100,7 @@ export function LinkPopover({ hideWhenUnavailable = false }: LinkPopoverProps) {
         <label
           style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}
         >
-          Link URL
+          {t`Link URL`}
         </label>
         <Input
           value={linkValue}
@@ -110,15 +112,15 @@ export function LinkPopover({ hideWhenUnavailable = false }: LinkPopoverProps) {
       </div>
       <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
         <Button size="small" onClick={() => setOpen(false)}>
-          Cancel
+          {t`Cancel`}
         </Button>
         {isActive && (
           <Button size="small" onClick={handleRemoveLink} danger>
-            Remove
+            {t`Remove`}
           </Button>
         )}
         <Button size="small" type="primary" onClick={handleInsertLink}>
-          {isActive ? 'Update' : 'Insert'}
+          {isActive ? t`Update` : t`Insert`}
         </Button>
       </div>
     </div>
@@ -126,7 +128,7 @@ export function LinkPopover({ hideWhenUnavailable = false }: LinkPopoverProps) {
 
   const tooltipTitle = (
     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-      <span>Link</span>
+      <span>{t`Link`}</span>
       <ShortcutBadge shortcutKeys="mod+k" />
     </div>
   )
@@ -134,7 +136,7 @@ export function LinkPopover({ hideWhenUnavailable = false }: LinkPopoverProps) {
   return (
     <Popover
       content={popoverContent}
-      title="Insert Link"
+      title={t`Insert Link`}
       trigger="click"
       open={open}
       onOpenChange={handleOpenChange}

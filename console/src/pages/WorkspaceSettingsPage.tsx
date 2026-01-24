@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from '@tanstack/react-router'
 import { Layout } from 'antd'
+import { useLingui } from '@lingui/react/macro'
 import { workspaceService } from '../services/api/workspace'
 import { Workspace, WorkspaceMember } from '../services/api/types'
 import { WorkspaceMembers } from '../components/settings/WorkspaceMembers'
@@ -17,6 +18,7 @@ import { SettingsSidebar, SettingsSection } from '../components/settings/Setting
 const { Sider, Content } = Layout
 
 export function WorkspaceSettingsPage() {
+  const { t } = useLingui()
   const { workspaceId, section } = useParams({
     from: '/console/workspace/$workspaceId/settings/$section'
   })
@@ -77,7 +79,7 @@ export function WorkspaceSettingsPage() {
         setIsOwner(currentUserMember?.role === 'owner')
       }
     } catch (error) {
-      console.error('Failed to fetch workspace members', error)
+      console.error(t`Failed to fetch workspace members`, error)
     } finally {
       setLoadingMembers(false)
     }

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useLingui } from '@lingui/react/macro'
 import { Modal, Button, Form, Radio, DatePicker, Select, Row, Col, Space, message } from 'antd'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { blogPostsApi, BlogPost } from '../../services/api/blog'
@@ -17,6 +18,7 @@ interface PublishModalProps {
 type PublishMode = 'now' | 'custom'
 
 export function PublishModal({ post, visible, onClose, workspaceId, workspace }: PublishModalProps) {
+  const { t } = useLingui()
   const [form] = Form.useForm()
   const [publishMode, setPublishMode] = useState<PublishMode>('now')
   const queryClient = useQueryClient()
@@ -26,13 +28,13 @@ export function PublishModal({ post, visible, onClose, workspaceId, workspace }:
       return blogPostsApi.publish(workspaceId, params)
     },
     onSuccess: () => {
-      message.success('Post published successfully')
+      message.success(t`Post published successfully`)
       queryClient.invalidateQueries({ queryKey: ['blog-posts', workspaceId] })
       onClose()
       form.resetFields()
     },
     onError: (error: Error) => {
-      const errorMsg = error?.message || 'Failed to publish post'
+      const errorMsg = error?.message || t`Failed to publish post`
       message.error(errorMsg)
     }
   })
@@ -51,7 +53,6 @@ export function PublishModal({ post, visible, onClose, workspaceId, workspace }:
     }
     // Reset publish mode to 'now' when modal opens - this is intentional initial state setup
     if (visible) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setPublishMode('now')
     }
   }, [visible, form, workspace])
@@ -97,7 +98,7 @@ export function PublishModal({ post, visible, onClose, workspaceId, workspace }:
 
   return (
     <Modal
-      title="Publish Post"
+      title={t`Publish Post`}
       open={visible}
       onCancel={onClose}
       footer={null}
@@ -106,17 +107,17 @@ export function PublishModal({ post, visible, onClose, workspaceId, workspace }:
     >
       <Form form={form} layout="vertical" onFinish={handleSubmit}>
         <div className="mb-4">
-          <p>Choose when to publish "{post.settings.title}"</p>
+          <p>{t`Choose when to publish "${post.settings.title}"`}</p>
         </div>
 
-        <Form.Item name="publish_mode" label="Publication">
+        <Form.Item name="publish_mode" label={t`Publication`}>
           <Radio.Group
             onChange={(e) => setPublishMode(e.target.value)}
             className="w-full"
           >
             <Space direction="vertical" className="w-full">
-              <Radio value="now">Publish Now</Radio>
-              <Radio value="custom">Set Publication Date</Radio>
+              <Radio value="now">{t`Publish Now`}</Radio>
+              <Radio value="custom">{t`Set Publication Date`}</Radio>
             </Space>
           </Radio.Group>
         </Form.Item>
@@ -127,36 +128,36 @@ export function PublishModal({ post, visible, onClose, workspaceId, workspace }:
               <Col span={12}>
                 <Form.Item
                   name="publication_date"
-                  label="Date"
+                  label={t`Date`}
                   rules={[
                     {
                       required: publishMode === 'custom',
-                      message: 'Please select a date'
+                      message: t`Please select a date`
                     }
                   ]}
                 >
                   <DatePicker
                     format="YYYY-MM-DD"
                     style={{ width: '100%' }}
-                    placeholder="Select date"
+                    placeholder={t`Select date`}
                   />
                 </Form.Item>
               </Col>
               <Col span={12}>
                 <Form.Item
                   name="publication_time"
-                  label="Time"
+                  label={t`Time`}
                   rules={[
                     {
                       required: publishMode === 'custom',
-                      message: 'Please select a time'
+                      message: t`Please select a time`
                     }
                   ]}
                 >
                   <Select
                     showSearch
                     style={{ width: '100%' }}
-                    placeholder="Select time"
+                    placeholder={t`Select time`}
                     optionFilterProp="children"
                   >
                     {Array.from({ length: 24 * 4 }, (_, i) => {
@@ -180,18 +181,18 @@ export function PublishModal({ post, visible, onClose, workspaceId, workspace }:
 
             <Form.Item
               name="timezone"
-              label="Timezone"
+              label={t`Timezone`}
               rules={[
                 {
                   required: publishMode === 'custom',
-                  message: 'Please select a timezone'
+                  message: t`Please select a timezone`
                 }
               ]}
             >
               <Select
                 showSearch
                 style={{ width: '100%' }}
-                placeholder="Select timezone"
+                placeholder={t`Select timezone`}
                 optionFilterProp="label"
                 options={TIMEZONE_OPTIONS}
               />
@@ -201,9 +202,9 @@ export function PublishModal({ post, visible, onClose, workspaceId, workspace }:
 
         <div className="flex justify-end space-x-2 mt-6">
           <Space>
-            <Button onClick={onClose}>Cancel</Button>
+            <Button onClick={onClose}>{t`Cancel`}</Button>
             <Button type="primary" htmlType="submit" loading={publishMutation.isPending}>
-              {publishMode === 'now' ? 'Publish Now' : 'Publish'}
+              {publishMode === 'now' ? t`Publish Now` : t`Publish`}
             </Button>
           </Space>
         </div>

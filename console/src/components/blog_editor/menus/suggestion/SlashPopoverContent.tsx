@@ -1,4 +1,5 @@
 import { useRef, useEffect } from 'react'
+import { useLingui } from '@lingui/react/macro'
 import type { SuggestionItem } from './types'
 import { getElementOverflowPosition } from '../../utils/editor-utils'
 import './slash-popover.css'
@@ -67,9 +68,10 @@ export interface SlashPopoverContentProps {
  * Popover content component with categorized grid layout
  */
 export function SlashPopoverContent({ items, selectedIndex, onSelect }: SlashPopoverContentProps) {
+  const { t } = useLingui()
   // Group items by category
   const groupedItems = items.reduce((acc, item) => {
-    const group = item.group || 'Other'
+    const group = item.group || t`Other`
     if (!acc[group]) {
       acc[group] = []
     }

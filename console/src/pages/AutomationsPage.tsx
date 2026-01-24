@@ -3,6 +3,7 @@ import { Row, Col, Typography, Space, App, Empty, Pagination } from 'antd'
 import { useParams } from '@tanstack/react-router'
 import { useState } from 'react'
 import { PlusOutlined } from '@ant-design/icons'
+import { useLingui } from '@lingui/react/macro'
 import { automationApi, Automation } from '../services/api/automation'
 import { listsApi } from '../services/api/list'
 import { listSegments } from '../services/api/segment'
@@ -14,6 +15,7 @@ import { UpsertAutomationDrawer } from '../components/automations/UpsertAutomati
 const { Title } = Typography
 
 export function AutomationsPage() {
+  const { t } = useLingui()
   const { workspaceId } = useParams({ from: '/console/workspace/$workspaceId' })
   const { permissions } = useWorkspacePermissions(workspaceId)
   const { workspaces } = useAuth()
@@ -79,11 +81,11 @@ export function AutomationsPage() {
         workspace_id: workspaceId,
         automation_id: automation.id
       })
-      message.success('Automation activated successfully')
+      message.success(t`Automation activated successfully`)
       queryClient.invalidateQueries({ queryKey: ['automations', workspaceId] })
     } catch (error) {
       console.error('Failed to activate automation:', error)
-      message.error('Failed to activate automation')
+      message.error(t`Failed to activate automation`)
     }
   }
 
@@ -94,11 +96,11 @@ export function AutomationsPage() {
         workspace_id: workspaceId,
         automation_id: automation.id
       })
-      message.success('Automation paused successfully')
+      message.success(t`Automation paused successfully`)
       queryClient.invalidateQueries({ queryKey: ['automations', workspaceId] })
     } catch (error) {
       console.error('Failed to pause automation:', error)
-      message.error('Failed to pause automation')
+      message.error(t`Failed to pause automation`)
     }
   }
 
@@ -109,11 +111,11 @@ export function AutomationsPage() {
         workspace_id: workspaceId,
         automation_id: automation.id
       })
-      message.success('Automation deleted successfully')
+      message.success(t`Automation deleted successfully`)
       queryClient.invalidateQueries({ queryKey: ['automations', workspaceId] })
     } catch (error) {
       console.error('Failed to delete automation:', error)
-      message.error('Failed to delete automation')
+      message.error(t`Failed to delete automation`)
     }
   }
 
@@ -137,7 +139,7 @@ export function AutomationsPage() {
   if (automationsError) {
     return (
       <div className="p-6">
-        <Title level={4}>Error loading automations</Title>
+        <Title level={4}>{t`Error loading automations`}</Title>
         <p className="text-red-500">{String(automationsError)}</p>
       </div>
     )
@@ -148,7 +150,7 @@ export function AutomationsPage() {
       <Row justify="space-between" align="middle" className="mb-6">
         <Col>
           <Title level={4} style={{ margin: 0 }}>
-            Automations
+            {t`Automations`}
           </Title>
         </Col>
         <Col>
@@ -164,7 +166,7 @@ export function AutomationsPage() {
                   icon: <PlusOutlined />,
                   disabled: !permissions?.automations?.write
                 }}
-                buttonContent="Create Automation"
+                buttonContent={t`Create Automation`}
               />
             )}
           </Space>
@@ -172,10 +174,10 @@ export function AutomationsPage() {
       </Row>
 
       {isLoadingAutomations ? (
-        <div className="text-center py-12 text-gray-500">Loading automations...</div>
+        <div className="text-center py-12 text-gray-500">{t`Loading automations...`}</div>
       ) : automations.length === 0 ? (
         <Empty
-          description="No automations yet"
+          description={t`No automations yet`}
           className="py-12"
         >
           {currentWorkspace && (
@@ -189,7 +191,7 @@ export function AutomationsPage() {
                 icon: <PlusOutlined />,
                 disabled: !permissions?.automations?.write
               }}
-              buttonContent="Create your first automation"
+              buttonContent={t`Create your first automation`}
             />
           )}
         </Empty>
@@ -218,7 +220,7 @@ export function AutomationsPage() {
                 pageSize={pageSize}
                 onChange={handlePageChange}
                 showSizeChanger={false}
-                showTotal={(total, range) => `${range[0]}-${range[1]} of ${total} automations`}
+                showTotal={(total, range) => t`${range[0]}-${range[1]} of ${total} automations`}
               />
             </div>
           )}

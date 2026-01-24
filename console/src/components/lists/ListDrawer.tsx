@@ -2,6 +2,7 @@ import React from 'react'
 import { Button, Drawer, Form, Input, Switch, App, Tooltip } from 'antd'
 import { InfoCircleOutlined } from '@ant-design/icons'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useLingui } from '@lingui/react/macro'
 import { listsApi } from '../../services/api/list'
 import type {
   CreateListRequest,
@@ -31,6 +32,7 @@ export function CreateListDrawer({
     size: 'middle'
   }
 }: CreateListDrawerProps) {
+  const { t } = useLingui()
   const [open, setOpen] = React.useState(false)
   const [form] = Form.useForm()
   const queryClient = useQueryClient()
@@ -61,13 +63,13 @@ export function CreateListDrawer({
       return listsApi.create(data)
     },
     onSuccess: () => {
-      message.success('List created successfully')
+      message.success(t`List created successfully`)
       queryClient.invalidateQueries({ queryKey: ['lists', workspaceId] })
       setOpen(false)
       form.resetFields()
     },
     onError: (error) => {
-      message.error(`Failed to create list: ${error}`)
+      message.error(t`Failed to create list: ${error}`)
     }
   })
 
@@ -76,13 +78,13 @@ export function CreateListDrawer({
       return listsApi.update(data)
     },
     onSuccess: () => {
-      message.success('List updated successfully')
+      message.success(t`List updated successfully`)
       queryClient.invalidateQueries({ queryKey: ['lists', workspaceId] })
       setOpen(false)
       form.resetFields()
     },
     onError: (error) => {
-      message.error(`Failed to update list: ${error}`)
+      message.error(t`Failed to update list: ${error}`)
     }
   })
 
@@ -149,10 +151,10 @@ export function CreateListDrawer({
         size={buttonProps.size}
         disabled={buttonProps.disabled}
       >
-        {buttonProps.buttonContent || (isEditMode ? 'Edit List' : 'Create List')}
+        {buttonProps.buttonContent || (isEditMode ? t`Edit List` : t`Create List`)}
       </Button>
       <Drawer
-        title={isEditMode ? 'Edit List' : 'Create New List'}
+        title={isEditMode ? t`Edit List` : t`Create New List`}
         width={400}
         onClose={onClose}
         open={open}
@@ -165,7 +167,7 @@ export function CreateListDrawer({
             onClick={() => form.submit()}
             loading={isEditMode ? updateListMutation.isPending : createListMutation.isPending}
           >
-            {isEditMode ? 'Save' : 'Create'}
+            {isEditMode ? t`Save` : t`Create`}
           </Button>
         }
       >
@@ -180,37 +182,37 @@ export function CreateListDrawer({
         >
           <Form.Item
             name="name"
-            label="Name"
+            label={t`Name`}
             rules={[
-              { required: true, message: 'Please enter a list name' },
-              { max: 255, message: 'Name must be less than 255 characters' }
+              { required: true, message: t`Please enter a list name` },
+              { max: 255, message: t`Name must be less than 255 characters` }
             ]}
           >
-            <Input placeholder="Enter list name" onChange={handleNameChange} />
+            <Input placeholder={t`Enter list name`} onChange={handleNameChange} />
           </Form.Item>
 
           <Form.Item
             name="id"
-            label="List ID"
+            label={t`List ID`}
             rules={[
-              { required: true, message: 'Please enter a list ID' },
-              { pattern: /^[a-zA-Z0-9]+$/, message: 'ID must be alphanumeric' },
-              { max: 32, message: 'ID must be less than 32 characters' }
+              { required: true, message: t`Please enter a list ID` },
+              { pattern: /^[a-zA-Z0-9]+$/, message: t`ID must be alphanumeric` },
+              { max: 32, message: t`ID must be less than 32 characters` }
             ]}
           >
-            <Input placeholder="Enter a unique alphanumeric ID" disabled={isEditMode} />
+            <Input placeholder={t`Enter a unique alphanumeric ID`} disabled={isEditMode} />
           </Form.Item>
 
-          <Form.Item name="description" label="Description">
-            <Input.TextArea rows={4} placeholder="Enter list description" />
+          <Form.Item name="description" label={t`Description`}>
+            <Input.TextArea rows={4} placeholder={t`Enter list description`} />
           </Form.Item>
 
           <Form.Item
             name="is_public"
             label={
               <span>
-                Public &nbsp;
-                <Tooltip title="Public lists are visible in the Notification Center for users to subscribe to">
+                {t`Public`} &nbsp;
+                <Tooltip title={t`Public lists are visible in the Notification Center for users to subscribe to`}>
                   <InfoCircleOutlined />
                 </Tooltip>
               </span>
@@ -224,8 +226,8 @@ export function CreateListDrawer({
             name="is_double_optin"
             label={
               <span>
-                Double Opt-in &nbsp;
-                <Tooltip title="When enabled, subscribers must confirm their subscription via email before being added to the list">
+                {t`Double Opt-in`} &nbsp;
+                <Tooltip title={t`When enabled, subscribers must confirm their subscription via email before being added to the list`}>
                   <InfoCircleOutlined />
                 </Tooltip>
               </span>
@@ -245,15 +247,15 @@ export function CreateListDrawer({
               getFieldValue('is_double_optin') ? (
                 <Form.Item
                   name="double_optin_template_id"
-                  label="Double Opt-in Template"
+                  label={t`Double Opt-in Template`}
                   rules={[
-                    { required: true, message: 'Please select a template for double opt-in' }
+                    { required: true, message: t`Please select a template for double opt-in` }
                   ]}
                 >
                   <TemplateSelectorInput
                     workspaceId={workspaceId}
                     category="opt_in"
-                    placeholder="Select confirmation email template"
+                    placeholder={t`Select confirmation email template`}
                     clearable={false}
                   />
                 </Form.Item>

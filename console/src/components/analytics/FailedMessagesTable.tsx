@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Card, Button } from 'antd'
 import { useNavigate } from '@tanstack/react-router'
+import { useLingui } from '@lingui/react/macro'
 import { MessageHistoryTable } from '../messages/MessageHistoryTable'
 import {
   listMessages,
@@ -14,6 +15,7 @@ interface FailedMessagesTableProps {
 }
 
 export const FailedMessagesTable: React.FC<FailedMessagesTableProps> = ({ workspace }) => {
+  const { t } = useLingui()
   const navigate = useNavigate()
   const [messages, setMessages] = useState<MessageHistory[]>([])
   const [loading, setLoading] = useState(false)
@@ -34,7 +36,7 @@ export const FailedMessagesTable: React.FC<FailedMessagesTableProps> = ({ worksp
       setMessages(response.messages)
     } catch (err) {
       console.error('Failed to fetch failed messages data:', err)
-      setError(err instanceof Error ? err.message : 'Failed to fetch failed messages data')
+      setError(err instanceof Error ? err.message : t`Failed to fetch failed messages data`)
     } finally {
       setLoading(false)
     }
@@ -55,15 +57,15 @@ export const FailedMessagesTable: React.FC<FailedMessagesTableProps> = ({ worksp
 
   const cardExtra = (
     <Button type="link" size="small" onClick={handleViewMore}>
-      View more
+      {t`View more`}
     </Button>
   )
 
   return (
-    <Card title="Recent Failed Messages" extra={cardExtra}>
+    <Card title={t`Recent Failed Messages`} extra={cardExtra}>
       {error ? (
         <div className="text-red-500 p-4">
-          <p>Error: {error}</p>
+          <p>{t`Error`}: {error}</p>
         </div>
       ) : (
         <MessageHistoryTable

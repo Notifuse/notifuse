@@ -16,6 +16,7 @@ import {
   Divider
 } from 'antd'
 import { useParams } from '@tanstack/react-router'
+import { useLingui } from '@lingui/react/macro'
 import {
   transactionalNotificationsApi,
   TransactionalNotification
@@ -66,6 +67,7 @@ const TemplatePreview: React.FC<{ templateId: string; workspace: Workspace }> = 
   templateId,
   workspace
 }) => {
+  const { t } = useLingui()
   const { data: templateData } = useQuery({
     queryKey: ['template', workspace.id, templateId],
     queryFn: () => templatesApi.get({ workspace_id: workspace.id, id: templateId }),
@@ -78,7 +80,7 @@ const TemplatePreview: React.FC<{ templateId: string; workspace: Workspace }> = 
 
   return (
     <TemplatePreviewDrawer record={templateData.template} workspace={workspace}>
-      <Tooltip title="Preview template">
+      <Tooltip title={t`Preview template`}>
         <Button type="text" size="small" className="ml-2">
           <FontAwesomeIcon icon={faEye} style={{ opacity: 0.7 }} />
         </Button>
@@ -116,6 +118,7 @@ const TransactionalNotificationCard: React.FC<{
   onTest,
   onShowApi
 }) => {
+  const { t } = useLingui()
   const integration = workspace.integrations?.find((i) => i.id === notification.integration_id)
   const canDelete = permissions?.transactional?.write && !notification.integration_id
   const canWrite = permissions?.transactional?.write
@@ -126,7 +129,7 @@ const TransactionalNotificationCard: React.FC<{
       title={
         <Space size="large">
           {integration && (
-            <Tooltip title={`Managed by ${integration.name} (${integration.type} integration)`}>
+            <Tooltip title={t`Managed by ${integration.name} (${integration.type} integration)`}>
               {getIntegrationIcon(integration.type)}
             </Tooltip>
           )}
@@ -137,11 +140,11 @@ const TransactionalNotificationCard: React.FC<{
         <Space>
           {canDelete && (
             <Popconfirm
-              title="Delete the notification?"
-              description="This cannot be undone."
+              title={t`Delete the notification?`}
+              description={t`This cannot be undone.`}
               onConfirm={() => onDelete(notification)}
-              okText="Yes, Delete"
-              cancelText="Cancel"
+              okText={t`Yes, Delete`}
+              cancelText={t`Cancel`}
             >
               <Button type="text" size="small">
                 <FontAwesomeIcon icon={faTrashCan} style={{ opacity: 0.7 }} />
@@ -149,7 +152,7 @@ const TransactionalNotificationCard: React.FC<{
             </Popconfirm>
           )}
           {canWrite && (
-            <Tooltip title="Edit">
+            <Tooltip title={t`Edit`}>
               <span>
                 <UpsertTransactionalNotificationDrawer
                   workspace={workspace}
@@ -167,13 +170,13 @@ const TransactionalNotificationCard: React.FC<{
             />
           )}
           {canWrite && (
-            <Tooltip title="Test">
+            <Tooltip title={t`Test`}>
               <Button type="text" size="small" onClick={() => onTest(notification)}>
                 <FontAwesomeIcon icon={faPaperPlane} style={{ opacity: 0.7 }} />
               </Button>
             </Tooltip>
           )}
-          <Tooltip title="API Command">
+          <Tooltip title={t`API Command`}>
             <Button type="text" size="small" onClick={() => onShowApi(notification)}>
               <FontAwesomeIcon icon={faTerminal} style={{ opacity: 0.7 }} />
             </Button>
@@ -192,7 +195,7 @@ const TransactionalNotificationCard: React.FC<{
                   style={{ opacity: 0.7 }}
                   className="text-blue-500"
                 />{' '}
-                Sent
+                {t`Sent`}
               </Space>
             }
             value={isLoadingStats ? '-' : stats.sent}
@@ -209,7 +212,7 @@ const TransactionalNotificationCard: React.FC<{
                   style={{ opacity: 0.7 }}
                   className="text-green-500"
                 />{' '}
-                Delivered
+                {t`Delivered`}
               </Space>
             }
             value={isLoadingStats ? '-' : getRate(stats.delivered, stats.sent)}
@@ -226,7 +229,7 @@ const TransactionalNotificationCard: React.FC<{
                   style={{ opacity: 0.7 }}
                   className="text-red-500"
                 />{' '}
-                Failed
+                {t`Failed`}
               </Space>
             }
             value={isLoadingStats ? '-' : stats.failed}
@@ -243,7 +246,7 @@ const TransactionalNotificationCard: React.FC<{
                   style={{ opacity: 0.7 }}
                   className="text-orange-500"
                 />{' '}
-                Bounced
+                {t`Bounced`}
               </Space>
             }
             value={isLoadingStats ? '-' : stats.bounced}
@@ -256,9 +259,9 @@ const TransactionalNotificationCard: React.FC<{
       <Divider />
 
       <Descriptions size="small" column={2}>
-        <Descriptions.Item label="ID">{notification.id}</Descriptions.Item>
+        <Descriptions.Item label={t`ID`}>{notification.id}</Descriptions.Item>
         {notification.description && (
-          <Descriptions.Item label="Description">{notification.description}</Descriptions.Item>
+          <Descriptions.Item label={t`Description`}>{notification.description}</Descriptions.Item>
         )}
       </Descriptions>
     </Card>
@@ -266,6 +269,7 @@ const TransactionalNotificationCard: React.FC<{
 }
 
 export function TransactionalNotificationsPage() {
+  const { t } = useLingui()
   const { workspaceId } = useParams({ strict: false })
   const { workspaces } = useAuth()
   const { permissions } = useWorkspacePermissions(workspaceId as string)
@@ -341,13 +345,13 @@ export function TransactionalNotificationsPage() {
         id: notification.id
       })
 
-      message.success('Transactional notification deleted successfully')
+      message.success(t`Transactional notification deleted successfully`)
 
       // Refresh the list
       queryClient.invalidateQueries({ queryKey: ['transactional-notifications', workspaceId] })
     } catch (error) {
       console.error('Failed to delete notification:', error)
-      message.error('Failed to delete notification')
+      message.error(t`Failed to delete notification`)
     }
   }
 
@@ -364,7 +368,7 @@ export function TransactionalNotificationsPage() {
   if (notificationsError) {
     return (
       <div>
-        <Title level={4}>Error loading data</Title>
+        <Title level={4}>{t`Error loading data`}</Title>
         <Paragraph type="danger">{(notificationsError as Error)?.message}</Paragraph>
       </div>
     )
@@ -374,13 +378,13 @@ export function TransactionalNotificationsPage() {
   const hasNotifications = notifications.length > 0
 
   if (!currentWorkspace) {
-    return <div>Loading...</div>
+    return <div>{t`Loading...`}</div>
   }
 
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
-        <div className="text-2xl font-medium">Transactional Notifications</div>
+        <div className="text-2xl font-medium">{t`Transactional Notifications`}</div>
         {currentWorkspace && hasNotifications && (
           <Space size="middle">
             <Segmented
@@ -391,14 +395,14 @@ export function TransactionalNotificationsPage() {
             <Tooltip
               title={
                 !permissions?.transactional?.write
-                  ? "You don't have write permission for transactional notifications"
+                  ? t`You don't have write permission for transactional notifications`
                   : undefined
               }
             >
               <div>
                 <UpsertTransactionalNotificationDrawer
                   workspace={currentWorkspace}
-                  buttonContent={'Create Notification'}
+                  buttonContent={t`Create Notification`}
                   buttonProps={{
                     type: 'primary',
                     disabled: !permissions?.transactional?.write
@@ -435,22 +439,22 @@ export function TransactionalNotificationsPage() {
       ) : (
         <div className="text-center py-12">
           <Title level={4} type="secondary">
-            No transactional notifications found
+            {t`No transactional notifications found`}
           </Title>
-          <Paragraph type="secondary">Create your first notification to get started</Paragraph>
+          <Paragraph type="secondary">{t`Create your first notification to get started`}</Paragraph>
           <div className="mt-4">
             {currentWorkspace && (
               <Tooltip
                 title={
                   !permissions?.transactional?.write
-                    ? "You don't have write permission for transactional notifications"
+                    ? t`You don't have write permission for transactional notifications`
                     : undefined
                 }
               >
                 <div>
                   <UpsertTransactionalNotificationDrawer
                     workspace={currentWorkspace}
-                    buttonContent="Create Notification"
+                    buttonContent={t`Create Notification`}
                     buttonProps={{
                       type: 'primary',
                       disabled: !permissions?.transactional?.write

@@ -1,13 +1,16 @@
 import { Descriptions } from 'antd'
 import { CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons'
+import { useLingui } from '@lingui/react/macro'
 import { SettingsSectionHeader } from './SettingsSectionHeader'
 
 export function SMTPRelaySettings() {
+  const { t } = useLingui()
+
   return (
     <>
       <SettingsSectionHeader
-        title="SMTP Relay"
-        description="SMTP relay server for forwarding transactional emails"
+        title={t`SMTP Relay`}
+        description={t`SMTP relay server for forwarding transactional emails`}
       />
 
       {window.SMTP_RELAY_ENABLED ? (
@@ -18,7 +21,7 @@ export function SMTPRelaySettings() {
               target="_blank"
               rel="noopener noreferrer"
             >
-              View SMTP Relay documentation and setup guide
+              {t`View SMTP Relay documentation and setup guide`}
             </a>
           </div>
           <Descriptions
@@ -27,24 +30,24 @@ export function SMTPRelaySettings() {
             size="small"
             styles={{ label: { width: '200px', fontWeight: '500' } }}
           >
-            <Descriptions.Item label="SMTP domain">
-              {window.SMTP_RELAY_DOMAIN || 'Not set'}
+            <Descriptions.Item label={t`SMTP domain`}>
+              {window.SMTP_RELAY_DOMAIN || t`Not set`}
             </Descriptions.Item>
 
-            <Descriptions.Item label="SMTP port">
-              {window.SMTP_RELAY_PORT || 'Not set'}
+            <Descriptions.Item label={t`SMTP port`}>
+              {window.SMTP_RELAY_PORT || t`Not set`}
             </Descriptions.Item>
 
-            <Descriptions.Item label="TLS">
+            <Descriptions.Item label={t`TLS`}>
               {window.SMTP_RELAY_TLS_ENABLED ? (
                 <span style={{ color: '#52c41a' }}>
                   <CheckCircleOutlined style={{ marginRight: '8px' }} />
-                  Enabled
+                  {t`Enabled`}
                 </span>
               ) : (
                 <span style={{ color: '#ff4d4f' }}>
                   <CloseCircleOutlined style={{ marginRight: '8px' }} />
-                  Disabled
+                  {t`Disabled`}
                 </span>
               )}
             </Descriptions.Item>
@@ -52,13 +55,13 @@ export function SMTPRelaySettings() {
         </>
       ) : (
         <div style={{ color: '#8c8c8c', fontStyle: 'italic' }}>
-          SMTP relay is not configured.{' '}
+          {t`SMTP relay is not configured.`}{' '}
           <a
             href="https://docs.notifuse.com/installation#smtp-relay-configuration"
             target="_blank"
             rel="noopener noreferrer"
           >
-            Learn how to enable SMTP relay
+            {t`Learn how to enable SMTP relay`}
           </a>
         </div>
       )}

@@ -6,6 +6,7 @@ import {
   ExclamationCircleOutlined,
   MailOutlined
 } from '@ant-design/icons'
+import { useLingui } from '@lingui/react/macro'
 
 export type SettingsSection =
   | 'team'
@@ -24,11 +25,13 @@ interface SettingsSidebarProps {
 }
 
 export function SettingsSidebar({ activeSection, onSectionChange, isOwner }: SettingsSidebarProps) {
+  const { t } = useLingui()
+
   const menuItems = [
     {
       key: 'team',
       icon: <TeamOutlined />,
-      label: 'Team'
+      label: t`Team`
     },
     {
       key: 'integrations',
@@ -49,7 +52,7 @@ export function SettingsSidebar({ activeSection, onSectionChange, isOwner }: Set
           <rect x="14" y="2" width="8" height="8" rx="1" />
         </svg>
       ),
-      label: 'Integrations'
+      label: t`Integrations`
     },
     {
       key: 'webhooks',
@@ -71,7 +74,7 @@ export function SettingsSidebar({ activeSection, onSectionChange, isOwner }: Set
           <path d="m12 6 3.13 5.73C15.66 12.7 16.9 13 18 13a4 4 0 0 1 0 8" />
         </svg>
       ),
-      label: 'Webhooks'
+      label: t`Webhooks`
     },
     {
       key: 'blog',
@@ -92,22 +95,22 @@ export function SettingsSidebar({ activeSection, onSectionChange, isOwner }: Set
           <path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z" />
         </svg>
       ),
-      label: 'Blog'
+      label: t`Blog`
     },
     {
       key: 'custom-fields',
       icon: <TagsOutlined />,
-      label: 'Custom Fields'
+      label: t`Custom Fields`
     },
     {
       key: 'smtp-relay',
       icon: <MailOutlined />,
-      label: 'SMTP Relay'
+      label: t`SMTP Relay`
     },
     {
       key: 'general',
       icon: <SettingOutlined />,
-      label: 'General'
+      label: t`General`
     }
   ]
 
@@ -116,13 +119,13 @@ export function SettingsSidebar({ activeSection, onSectionChange, isOwner }: Set
     menuItems.push({
       key: 'danger-zone',
       icon: <ExclamationCircleOutlined />,
-      label: 'Danger Zone'
+      label: t`Danger Zone`
     })
   }
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <div className="text-xl font-medium pt-6 pl-6">Settings</div>
+      <div className="text-xl font-medium pt-6 pl-6">{t`Settings`}</div>
       <Divider className="!my-4" />
       <Menu
         mode="inline"

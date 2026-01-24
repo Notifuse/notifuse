@@ -17,6 +17,7 @@ import {
   Tabs,
   Collapse
 } from 'antd'
+import { useLingui } from '@lingui/react/macro'
 import { Contact } from '../../services/api/contacts'
 import { List, Workspace } from '../../services/api/types'
 import { Segment } from '../../services/api/segment'
@@ -90,6 +91,7 @@ export function ContactDetailsDrawer({
   onContactUpdate,
   buttonProps
 }: ContactDetailsDrawerProps) {
+  const { t } = useLingui()
   // Internal drawer visibility state
   const [internalVisible, setInternalVisible] = React.useState(false)
   const [gravatarUrl, setGravatarUrl] = React.useState<string>('')
@@ -258,7 +260,7 @@ export function ContactDetailsDrawer({
   const updateStatusMutation = useMutation({
     mutationFn: (params: UpdateContactListStatusRequest) => contactListApi.updateStatus(params),
     onSuccess: () => {
-      messageApi.success('Subscription status updated successfully')
+      messageApi.success(t`Subscription status updated successfully`)
       queryClient.invalidateQueries({ queryKey: ['contact_details', workspace.id, contactEmail] })
       queryClient.invalidateQueries({ queryKey: ['contacts', workspace.id] })
       setStatusModalVisible(false)
@@ -281,7 +283,7 @@ export function ContactDetailsDrawer({
         })
     },
     onError: (error) => {
-      messageApi.error(`Failed to update status: ${error}`)
+      messageApi.error(t`Failed to update status: ${error}`)
     }
   })
 
@@ -289,7 +291,7 @@ export function ContactDetailsDrawer({
   const addToListMutation = useMutation({
     mutationFn: (params: SubscribeToListsRequest) => listsApi.subscribe(params),
     onSuccess: () => {
-      messageApi.success('Contact added to list successfully')
+      messageApi.success(t`Contact added to list successfully`)
       queryClient.invalidateQueries({ queryKey: ['contact_details', workspace.id, contactEmail] })
       setSubscribeModalVisible(false)
       subscribeForm.resetFields()
@@ -311,7 +313,7 @@ export function ContactDetailsDrawer({
         })
     },
     onError: (error) => {
-      messageApi.error(`Failed to add to list: ${error}`)
+      messageApi.error(t`Failed to add to list: ${error}`)
     }
   })
 
@@ -346,7 +348,7 @@ export function ContactDetailsDrawer({
     })
 
     if (response.action === 'error') {
-      throw new Error(response.error || 'Failed to update field')
+      throw new Error(response.error || t`Failed to update field`)
     }
 
     // Fetch updated contact data
@@ -436,19 +438,19 @@ export function ContactDetailsDrawer({
 
   // Editable fields configuration
   const editableFields = [
-    { key: 'first_name', label: 'First Name', value: contact?.first_name },
-    { key: 'last_name', label: 'Last Name', value: contact?.last_name },
-    { key: 'full_name', label: 'Full Name', value: contact?.full_name },
-    { key: 'phone', label: 'Phone', value: contact?.phone },
-    { key: 'address_line_1', label: 'Address Line 1', value: contact?.address_line_1 },
-    { key: 'address_line_2', label: 'Address Line 2', value: contact?.address_line_2 },
-    { key: 'country', label: 'Country', value: contact?.country },
-    { key: 'state', label: 'State', value: contact?.state },
-    { key: 'postcode', label: 'Postcode', value: contact?.postcode },
-    { key: 'job_title', label: 'Job Title', value: contact?.job_title },
-    { key: 'timezone', label: 'Timezone', value: contact?.timezone },
-    { key: 'language', label: 'Language', value: contact?.language },
-    { key: 'external_id', label: 'External ID', value: contact?.external_id },
+    { key: 'first_name', label: t`First Name`, value: contact?.first_name },
+    { key: 'last_name', label: t`Last Name`, value: contact?.last_name },
+    { key: 'full_name', label: t`Full Name`, value: contact?.full_name },
+    { key: 'phone', label: t`Phone`, value: contact?.phone },
+    { key: 'address_line_1', label: t`Address Line 1`, value: contact?.address_line_1 },
+    { key: 'address_line_2', label: t`Address Line 2`, value: contact?.address_line_2 },
+    { key: 'country', label: t`Country`, value: contact?.country },
+    { key: 'state', label: t`State`, value: contact?.state },
+    { key: 'postcode', label: t`Postcode`, value: contact?.postcode },
+    { key: 'job_title', label: t`Job Title`, value: contact?.job_title },
+    { key: 'timezone', label: t`Timezone`, value: contact?.timezone },
+    { key: 'language', label: t`Language`, value: contact?.language },
+    { key: 'external_id', label: t`External ID`, value: contact?.external_id },
     // Custom string fields
     {
       key: 'custom_string_1',
@@ -531,8 +533,8 @@ export function ContactDetailsDrawer({
 
   // Read-only fields (not editable)
   const readOnlyFields = [
-    { key: 'created_at', label: 'Created At', value: formatDate(contact?.created_at) },
-    { key: 'updated_at', label: 'Updated At', value: formatDate(contact?.updated_at) }
+    { key: 'created_at', label: t`Created At`, value: formatDate(contact?.created_at) },
+    { key: 'updated_at', label: t`Updated At`, value: formatDate(contact?.updated_at) }
   ]
 
   // JSON fields (editable)
@@ -577,10 +579,10 @@ export function ContactDetailsDrawer({
 
   // Status options for dropdown
   const statusOptions = [
-    { label: 'Active', value: 'active' },
-    { label: 'Pending', value: 'pending' },
-    { label: 'Unsubscribed', value: 'unsubscribed' },
-    { label: 'Blacklisted', value: 'blacklisted' }
+    { label: t`Active`, value: 'active' },
+    { label: t`Pending`, value: 'pending' },
+    { label: t`Unsubscribed`, value: 'unsubscribed' },
+    { label: t`Blacklisted`, value: 'blacklisted' }
   ]
 
   // If buttonProps is provided, render a button that opens the drawer
@@ -617,14 +619,14 @@ export function ContactDetailsDrawer({
       </Button>
 
       <Drawer
-        title="Contact Details"
+        title={t`Contact Details`}
         width={1200}
         placement="right"
         className="drawer-body-no-padding"
         onClose={handleClose}
         open={internalVisible}
         extra={
-          <Tooltip title="Refresh">
+          <Tooltip title={t`Refresh`}>
             <Button
               type="text"
               icon={<FontAwesomeIcon icon={faRotate} />}
@@ -674,7 +676,7 @@ export function ContactDetailsDrawer({
               {isLoadingContact && (
                 <div className="mb-4 p-2 bg-blue-50 text-blue-600 rounded text-center">
                   <Spin size="small" className="mr-2" />
-                  <span>Refreshing contact data...</span>
+                  <span>{t`Refreshing contact data...`}</span>
                 </div>
               )}
 
@@ -839,7 +841,7 @@ export function ContactDetailsDrawer({
                 if (unsetCustomStrings.length > 0) {
                   collapseItems.push({
                     key: 'custom_strings',
-                    label: <span className="text-xs text-gray-500">Custom String Fields ({unsetCustomStrings.length})</span>,
+                    label: <span className="text-xs text-gray-500">{t`Custom String Fields`} ({unsetCustomStrings.length})</span>,
                     children: unsetCustomStrings.map((field) => (
                       <InlineEditableField
                         key={field.key}
@@ -861,7 +863,7 @@ export function ContactDetailsDrawer({
                 if (unsetCustomNumbers.length > 0) {
                   collapseItems.push({
                     key: 'custom_numbers',
-                    label: <span className="text-xs text-gray-500">Custom Number Fields ({unsetCustomNumbers.length})</span>,
+                    label: <span className="text-xs text-gray-500">{t`Custom Number Fields`} ({unsetCustomNumbers.length})</span>,
                     children: unsetCustomNumbers.map((field) => (
                       <InlineEditableField
                         key={field.key}
@@ -883,7 +885,7 @@ export function ContactDetailsDrawer({
                 if (unsetCustomDatetimes.length > 0) {
                   collapseItems.push({
                     key: 'custom_datetimes',
-                    label: <span className="text-xs text-gray-500">Custom Datetime Fields ({unsetCustomDatetimes.length})</span>,
+                    label: <span className="text-xs text-gray-500">{t`Custom Datetime Fields`} ({unsetCustomDatetimes.length})</span>,
                     children: unsetCustomDatetimes.map((field) => (
                       <InlineEditableField
                         key={field.key}
@@ -905,7 +907,7 @@ export function ContactDetailsDrawer({
                 if (unsetCustomJsons.length > 0) {
                   collapseItems.push({
                     key: 'custom_jsons',
-                    label: <span className="text-xs text-gray-500">Custom JSON Fields ({unsetCustomJsons.length})</span>,
+                    label: <span className="text-xs text-gray-500">{t`Custom JSON Fields`} ({unsetCustomJsons.length})</span>,
                     children: unsetCustomJsons.map((field) => (
                       <InlineEditableField
                         key={field.key}
@@ -943,7 +945,7 @@ export function ContactDetailsDrawer({
             {/* List subscriptions with action buttons */}
             <div className="flex justify-between items-center mb-3">
               <Title level={5} style={{ margin: 0 }}>
-                List Subscriptions
+                {t`List Subscriptions`}
               </Title>
               <Button
                 type="primary"
@@ -953,7 +955,7 @@ export function ContactDetailsDrawer({
                 onClick={openSubscribeModal}
                 disabled={availableLists.length === 0}
               >
-                Subscribe to List
+                {t`Subscribe to List`}
               </Button>
             </div>
 
@@ -965,18 +967,18 @@ export function ContactDetailsDrawer({
                 size="small"
                 columns={[
                   {
-                    title: 'Subscription list',
+                    title: t`Subscription list`,
                     dataIndex: 'name',
                     key: 'name',
                     width: '30%',
                     render: (name: string, record: ContactListWithName) => (
-                      <Tooltip title={`List ID: ${record.list_id}`}>
+                      <Tooltip title={t`List ID: ${record.list_id}`}>
                         <span style={{ cursor: 'help' }}>{name}</span>
                       </Tooltip>
                     )
                   },
                   {
-                    title: 'Status',
+                    title: t`Status`,
                     dataIndex: 'status',
                     key: 'status',
                     width: '20%',
@@ -987,7 +989,7 @@ export function ContactDetailsDrawer({
                     )
                   },
                   {
-                    title: 'Subscribed on',
+                    title: t`Subscribed on`,
                     dataIndex: 'created_at',
                     key: 'created_at',
                     width: '30%',
@@ -1015,7 +1017,7 @@ export function ContactDetailsDrawer({
                           updateStatusMutation.isPending && selectedList?.list_id === record.list_id
                         }
                       >
-                        Change Status
+                        {t`Change Status`}
                       </Button>
                     )
                   }
@@ -1024,7 +1026,7 @@ export function ContactDetailsDrawer({
             ) : (
               <Empty
                 image={Empty.PRESENTED_IMAGE_SIMPLE}
-                description="This contact is not subscribed to any lists"
+                description={t`This contact is not subscribed to any lists`}
                 style={{ margin: '20px 0' }}
               >
                 <Button
@@ -1033,14 +1035,14 @@ export function ContactDetailsDrawer({
                   disabled={availableLists.length === 0}
                   icon={<FontAwesomeIcon icon={faPlus} />}
                 >
-                  Subscribe to List
+                  {t`Subscribe to List`}
                 </Button>
               </Empty>
             )}
 
             <div className="mt-6">
               <Title level={5} style={{ margin: 0, marginBottom: '16px' }}>
-                Activity
+                {t`Activity`}
               </Title>
 
               <Tabs
@@ -1048,7 +1050,7 @@ export function ContactDetailsDrawer({
                 items={[
                   {
                     key: 'timeline',
-                    label: 'Timeline',
+                    label: t`Timeline`,
                     children: (
                       <div className="pt-4">
                         <ContactTimeline
@@ -1066,7 +1068,7 @@ export function ContactDetailsDrawer({
                   },
                   {
                     key: 'messages',
-                    label: 'Messages',
+                    label: t`Messages`,
                     children: (
                       <div className="pt-4">
                         <MessageHistoryTable
@@ -1090,7 +1092,7 @@ export function ContactDetailsDrawer({
 
         {/* Change Status Modal */}
         <Modal
-          title={`Change Status for ${selectedList?.name || 'List'}`}
+          title={t`Change Status for ${selectedList?.name || 'List'}`}
           open={statusModalVisible}
           onCancel={() => setStatusModalVisible(false)}
           footer={null}
@@ -1098,17 +1100,17 @@ export function ContactDetailsDrawer({
           <Form form={statusForm} layout="vertical" onFinish={handleStatusChange}>
             <Form.Item
               name="status"
-              label="Subscription Status"
-              rules={[{ required: true, message: 'Please select a status' }]}
+              label={t`Subscription Status`}
+              rules={[{ required: true, message: t`Please select a status` }]}
             >
               <Select options={statusOptions} />
             </Form.Item>
             <Form.Item>
               <Space>
                 <Button type="primary" htmlType="submit" loading={updateStatusMutation.isPending}>
-                  Update Status
+                  {t`Update Status`}
                 </Button>
-                <Button onClick={() => setStatusModalVisible(false)}>Cancel</Button>
+                <Button onClick={() => setStatusModalVisible(false)}>{t`Cancel`}</Button>
               </Space>
             </Form.Item>
           </Form>
@@ -1116,7 +1118,7 @@ export function ContactDetailsDrawer({
 
         {/* Subscribe to List Modal */}
         <Modal
-          title="Subscribe to List"
+          title={t`Subscribe to List`}
           open={subscribeModalVisible}
           onCancel={() => setSubscribeModalVisible(false)}
           footer={null}
@@ -1124,23 +1126,23 @@ export function ContactDetailsDrawer({
           <Form form={subscribeForm} layout="vertical" onFinish={handleSubscribe}>
             <Form.Item
               name="list_id"
-              label="Select List"
-              rules={[{ required: true, message: 'Please select a list' }]}
+              label={t`Select List`}
+              rules={[{ required: true, message: t`Please select a list` }]}
             >
               <Select
                 options={availableLists.map((list) => ({
                   label: list.name,
                   value: list.id
                 }))}
-                placeholder="Select a list"
+                placeholder={t`Select a list`}
               />
             </Form.Item>
             <Form.Item>
               <Space>
                 <Button type="primary" htmlType="submit" loading={addToListMutation.isPending}>
-                  Subscribe
+                  {t`Subscribe`}
                 </Button>
-                <Button onClick={() => setSubscribeModalVisible(false)}>Cancel</Button>
+                <Button onClick={() => setSubscribeModalVisible(false)}>{t`Cancel`}</Button>
               </Space>
             </Form.Item>
           </Form>

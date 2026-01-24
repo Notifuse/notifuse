@@ -12,6 +12,7 @@ import {
   Tooltip
 } from 'antd'
 import { Undo2, Redo2 } from 'lucide-react'
+import { useLingui } from '@lingui/react/macro'
 import type { Automation } from '../../services/api/automation'
 import type { Workspace, Template } from '../../services/api/types'
 import type { List } from '../../services/api/list'
@@ -35,6 +36,7 @@ interface UpsertAutomationDrawerProps {
 
 // Inner component that uses the context
 function DrawerContent({ onCloseDrawer }: { onCloseDrawer: () => void }) {
+  const { t } = useLingui()
   const {
     isEditing,
     name,
@@ -79,10 +81,10 @@ function DrawerContent({ onCloseDrawer }: { onCloseDrawer: () => void }) {
   const handleCloseWithConfirm = () => {
     if (hasUnsavedChanges) {
       modal.confirm({
-        title: 'Unsaved Changes',
-        content: 'You have unsaved changes. Are you sure you want to close?',
-        okText: 'Close without saving',
-        cancelText: 'Cancel',
+        title: t`Unsaved Changes`,
+        content: t`You have unsaved changes. Are you sure you want to close?`,
+        okText: t`Close without saving`,
+        cancelText: t`Cancel`,
         onOk: onCloseDrawer
       })
     } else {
@@ -94,8 +96,8 @@ function DrawerContent({ onCloseDrawer }: { onCloseDrawer: () => void }) {
     // Validate name first
     if (!name.trim()) {
       modal.error({
-        title: 'Validation Error',
-        content: 'Please enter an automation name'
+        title: t`Validation Error`,
+        content: t`Please enter an automation name`
       })
       return
     }
@@ -106,10 +108,10 @@ function DrawerContent({ onCloseDrawer }: { onCloseDrawer: () => void }) {
 
     if (warnings.length > 0) {
       Modal.confirm({
-        title: 'Warning',
+        title: t`Warning`,
         content: warnings.map(w => w.message).join('\n'),
-        okText: 'Save Anyway',
-        cancelText: 'Cancel',
+        okText: t`Save Anyway`,
+        cancelText: t`Cancel`,
         onOk: () => save()
       })
       return
@@ -124,14 +126,14 @@ function DrawerContent({ onCloseDrawer }: { onCloseDrawer: () => void }) {
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
         <Space>
           <span className="text-lg font-medium">
-            {isEditing ? 'Edit Automation' : 'Create Automation'}
+            {isEditing ? t`Edit Automation` : t`Create Automation`}
           </span>
           {hasUnsavedChanges && (
-            <Badge status="warning" text="Unsaved changes" />
+            <Badge status="warning" text={t`Unsaved changes`} />
           )}
         </Space>
         <Space>
-          <Tooltip title="Undo (Ctrl+Z)">
+          <Tooltip title={t`Undo (Ctrl+Z)`}>
             <Button
               type="text"
               icon={<Undo2 size={16} />}
@@ -139,7 +141,7 @@ function DrawerContent({ onCloseDrawer }: { onCloseDrawer: () => void }) {
               onClick={undo}
             />
           </Tooltip>
-          <Tooltip title="Redo (Ctrl+Shift+Z)">
+          <Tooltip title={t`Redo (Ctrl+Shift+Z)`}>
             <Button
               type="text"
               icon={<Redo2 size={16} />}
@@ -147,13 +149,13 @@ function DrawerContent({ onCloseDrawer }: { onCloseDrawer: () => void }) {
               onClick={redo}
             />
           </Tooltip>
-          <Button onClick={handleCloseWithConfirm}>Cancel</Button>
+          <Button onClick={handleCloseWithConfirm}>{t`Cancel`}</Button>
           <Button
             type="primary"
             loading={isSaving}
             onClick={handleSubmit}
           >
-            {isEditing ? 'Save Changes' : 'Create'}
+            {isEditing ? t`Save Changes` : t`Create`}
           </Button>
         </Space>
       </div>
@@ -162,22 +164,22 @@ function DrawerContent({ onCloseDrawer }: { onCloseDrawer: () => void }) {
       <div className="p-4 border-b border-gray-200 bg-white">
         <Form layout="inline">
           <Form.Item
-            label="Name"
+            label={t`Name`}
             required
             style={{ marginBottom: 0, minWidth: 300 }}
           >
             <Input
-              placeholder="Enter automation name"
+              placeholder={t`Enter automation name`}
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
           </Form.Item>
           <Form.Item
-            label="List"
+            label={t`List`}
             style={{ marginBottom: 0, minWidth: 250 }}
           >
             <Select
-              placeholder="Select list"
+              placeholder={t`Select list`}
               value={listId}
               onChange={setListId}
               allowClear
@@ -210,6 +212,7 @@ export function UpsertAutomationDrawer({
   open: controlledOpen,
   onOpenChange
 }: UpsertAutomationDrawerProps) {
+  const { t } = useLingui()
   const [internalOpen, setInternalOpen] = useState(false)
 
   // Support both controlled and uncontrolled modes
@@ -244,7 +247,7 @@ export function UpsertAutomationDrawer({
       {/* Only show button in uncontrolled mode */}
       {!isControlled && (
         <Button type="primary" onClick={handleOpen} {...buttonProps}>
-          {buttonContent || (isEditing ? 'Edit' : 'Create Automation')}
+          {buttonContent || (isEditing ? t`Edit` : t`Create Automation`)}
         </Button>
       )}
 

@@ -1,4 +1,5 @@
 import React from 'react'
+import { useLingui } from '@lingui/react/macro'
 import { Timeline, Empty, Spin, Button, Tag, Tooltip, Typography, Popover, Collapse } from 'antd'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
@@ -52,6 +53,8 @@ export function ContactTimeline({
   hasMore = false,
   isLoadingMore = false
 }: ContactTimelineProps) {
+  const { t } = useLingui()
+
   // Get color for contact list status
   const getStatusColor = (status: string) => {
     switch (status?.toLowerCase()) {
@@ -194,7 +197,7 @@ export function ContactTimeline({
   // Render contact list subscription message based on status
   const renderContactListMessage = (entry: ContactTimelineEntry) => {
     const statusChange = entry.changes?.status
-    const listId = entry.entity_id || 'Unknown List'
+    const listId = entry.entity_id || t`Unknown List`
 
     // Extract old and new values if they exist
     const oldStatus =
@@ -206,7 +209,7 @@ export function ContactTimeline({
     const entityData = entry.entity_data as ContactListEntityData | undefined
     const listName = entityData?.name
     const listDisplay = listName ? (
-      <Tooltip title={'ID: ' + listId}>
+      <Tooltip title={t`ID: ${listId}`}>
         <span>
           <Text strong>{listName}</Text>
         </span>
@@ -217,19 +220,19 @@ export function ContactTimeline({
 
     // Map operations to action labels
     const subscriptionActionMap: Record<string, string> = {
-      insert: 'subscribed',
-      update: 'status changed',
-      delete: 'removed'
+      insert: t`subscribed`,
+      update: t`status changed`,
+      delete: t`removed`
     }
     const actionLabel = subscriptionActionMap[entry.operation] || entry.operation
 
     if (entry.operation === 'insert') {
       return (
         <div>
-          {renderEventHeader(entry, 'Subscription', actionLabel)}
+          {renderEventHeader(entry, t`Subscription`, actionLabel)}
           <div className="text-sm">
-            <Text type="secondary">List:</Text> {listDisplay}{' '}
-            <Text type="secondary">with status</Text>{' '}
+            <Text type="secondary">{t`List:`}</Text> {listDisplay}{' '}
+            <Text type="secondary">{t`with status`}</Text>{' '}
             <Tag bordered={false} color={getStatusColor(newStatus)}>
               {newStatus}
             </Tag>
@@ -239,9 +242,9 @@ export function ContactTimeline({
     } else if (entry.operation === 'update') {
       return (
         <div>
-          {renderEventHeader(entry, 'Subscription', actionLabel)}
+          {renderEventHeader(entry, t`Subscription`, actionLabel)}
           <div className="text-sm">
-            <Text type="secondary">List:</Text> {listDisplay}
+            <Text type="secondary">{t`List:`}</Text> {listDisplay}
             {oldStatus ? (
               <>
                 {' — '}
@@ -265,9 +268,9 @@ export function ContactTimeline({
     } else if (entry.operation === 'delete') {
       return (
         <div>
-          {renderEventHeader(entry, 'Subscription', actionLabel)}
+          {renderEventHeader(entry, t`Subscription`, actionLabel)}
           <div className="text-sm">
-            <Text type="secondary">List:</Text> {listDisplay}
+            <Text type="secondary">{t`List:`}</Text> {listDisplay}
           </div>
         </div>
       )
@@ -284,7 +287,7 @@ export function ContactTimeline({
     if (!properties || Object.keys(properties).length === 0) {
       return (
         <Text type="secondary" className="text-xs">
-          No properties
+          {t`No properties`}
         </Text>
       )
     }
@@ -329,7 +332,7 @@ export function ContactTimeline({
           items={[
             {
               key: '1',
-              label: `${propertyCount} properties`,
+              label: t`${propertyCount} properties`,
               children: (
                 <div className="space-y-1">
                   {entries.map(([key, value]) => (
@@ -347,13 +350,13 @@ export function ContactTimeline({
         />
         <Popover
           content={rawJsonContent}
-          title="Raw JSON"
+          title={t`Raw JSON`}
           placement="rightTop"
           trigger="click"
           overlayStyle={{ maxWidth: '600px' }}
         >
           <Button size="small" type="text">
-            View Raw JSON
+            {t`View Raw JSON`}
           </Button>
         </Popover>
       </div>
@@ -366,16 +369,16 @@ export function ContactTimeline({
       case 'contact': {
         // Map operations to action labels
         const contactActionMap: Record<string, string> = {
-          insert: 'created',
-          update: 'updated',
-          delete: 'deleted'
+          insert: t`created`,
+          update: t`updated`,
+          delete: t`deleted`
         }
         const contactAction = contactActionMap[entry.operation] || entry.operation
 
         if (entry.operation === 'update') {
           return (
             <div>
-              {renderEventHeader(entry, 'Contact', contactAction)}
+              {renderEventHeader(entry, t`Contact`, contactAction)}
               <div className="space-y-1">
                 {Object.entries(entry.changes || {}).map(([key, value]) => {
                   // Handle different value types
@@ -406,7 +409,7 @@ export function ContactTimeline({
                       displayValue = (
                         <Tooltip title={JSON.stringify(value, null, 2)}>
                           <span>
-                            <Tag className="cursor-help">JSON Object</Tag>
+                            <Tag className="cursor-help">{t`JSON Object`}</Tag>
                           </span>
                         </Tooltip>
                       )
@@ -444,7 +447,7 @@ export function ContactTimeline({
           )
         } else {
           // Insert or delete - just header, no details needed
-          return <div>{renderEventHeader(entry, 'Contact', contactAction)}</div>
+          return <div>{renderEventHeader(entry, t`Contact`, contactAction)}</div>
         }
       }
 
@@ -452,13 +455,13 @@ export function ContactTimeline({
         return <div>{renderContactListMessage(entry)}</div>
 
       case 'contact_segment': {
-        const segmentId = entry.entity_id || 'Unknown Segment'
+        const segmentId = entry.entity_id || t`Unknown Segment`
 
         // Look up segment from segments prop
         const segment = segments.find((s) => s.id === segmentId)
 
         const segmentDisplay = segment ? (
-          <Tooltip title={'ID: ' + segmentId}>
+          <Tooltip title={t`ID: ${segmentId}`}>
             <span>
               <Tag bordered={false} color={segment.color}>
                 {segment.name}
@@ -472,11 +475,11 @@ export function ContactTimeline({
         )
 
         // Map kind to action labels
-        const segmentActionLabel = entry.kind === 'join_segment' ? 'joined' : 'left'
+        const segmentActionLabel = entry.kind === 'join_segment' ? t`joined` : t`left`
 
         return (
           <div>
-            {renderEventHeader(entry, 'Segment', segmentActionLabel)}
+            {renderEventHeader(entry, t`Segment`, segmentActionLabel)}
             <div className="text-sm">
               {segmentDisplay}
             </div>
@@ -488,23 +491,23 @@ export function ContactTimeline({
         const messageData = entry.entity_data as MessageHistoryEntityData | undefined
 
         // Determine email action based on changes
-        let emailAction = 'sent'
+        let emailAction = t`sent`
         if (entry.changes.delivered_at) {
-          emailAction = 'delivered'
+          emailAction = t`delivered`
         } else if (entry.changes.opened_at) {
-          emailAction = 'opened'
+          emailAction = t`opened`
         } else if (entry.changes.clicked_at) {
-          emailAction = 'clicked'
+          emailAction = t`clicked`
         }
 
         return (
           <div>
-            {renderEventHeader(entry, 'Email', emailAction)}
+            {renderEventHeader(entry, t`Email`, emailAction)}
             {messageData && messageData.template_id && (
               <div className="text-sm flex items-center gap-2">
-                <Text type="secondary">Template:</Text>{' '}
+                <Text type="secondary">{t`Template:`}</Text>{' '}
                 {messageData.template_name ? (
-                  <Tooltip title={`ID: ${messageData.template_id}`}>
+                  <Tooltip title={t`ID: ${messageData.template_id}`}>
                     <span>
                       <Text strong className="cursor-help">
                         {messageData.template_name}
@@ -518,7 +521,7 @@ export function ContactTimeline({
                   <Text type="secondary">(v{messageData.template_version})</Text>
                 )}
                 {workspace && messageData.template_email && (
-                  <Tooltip title="Preview email">
+                  <Tooltip title={t`Preview email`}>
                     <span>
                       <TemplatePreviewDrawer
                         record={{
@@ -567,34 +570,34 @@ export function ContactTimeline({
 
         // Map event types to labels and colors
         const webhookEventLabels: Record<string, string> = {
-          delivered: 'Delivered',
-          bounce: 'Bounce',
-          complaint: 'Complaint',
-          auth_email: 'Auth Email',
-          before_user_created: 'User Created'
+          delivered: t`Delivered`,
+          bounce: t`Bounce`,
+          complaint: t`Complaint`,
+          auth_email: t`Auth Email`,
+          before_user_created: t`User Created`
         }
-        const webhookActionLabel = webhookEventLabels[eventType || ''] || eventType || 'Event'
+        const webhookActionLabel = webhookEventLabels[eventType || ''] || eventType || t`Event`
 
         // Provider icon as prefix content
         const providerPrefix = source ? getProviderIcon(source, 'small') : undefined
 
         return (
           <div>
-            {renderEventHeader(entry, 'Webhook', webhookActionLabel, undefined, providerPrefix)}
+            {renderEventHeader(entry, t`Webhook`, webhookActionLabel, undefined, providerPrefix)}
             <div className="space-y-1">
               {isSupabase && (
                 <div className="text-sm">
                   <Text type="secondary">
-                    {eventType === 'auth_email' && 'Authentication email sent via Supabase'}
-                    {eventType === 'before_user_created' && 'User created and synced from Supabase'}
+                    {eventType === 'auth_email' && t`Authentication email sent via Supabase`}
+                    {eventType === 'before_user_created' && t`User created and synced from Supabase`}
                   </Text>
                 </div>
               )}
               {!isSupabase && webhookTemplateId && (
                 <div className="text-sm">
-                  <Text type="secondary">Template:</Text>{' '}
+                  <Text type="secondary">{t`Template:`}</Text>{' '}
                   {webhookEventData?.template_name ? (
-                    <Tooltip title={`ID: ${webhookTemplateId}`}>
+                    <Tooltip title={t`ID: ${webhookTemplateId}`}>
                       <span>
                         <Text strong className="cursor-help">
                           {webhookEventData.template_name}
@@ -611,23 +614,23 @@ export function ContactTimeline({
               )}
               {bounceType && (
                 <div className="text-sm">
-                  <Text type="secondary">Type:</Text> {bounceType}
+                  <Text type="secondary">{t`Type:`}</Text> {bounceType}
                   {bounceCategory && (
                     <>
                       {' | '}
-                      <Text type="secondary">Category:</Text> {bounceCategory}
+                      <Text type="secondary">{t`Category:`}</Text> {bounceCategory}
                     </>
                   )}
                 </div>
               )}
               {bounceDiagnostic && (
                 <div className="text-sm">
-                  <Text type="secondary">Diagnostic:</Text> {bounceDiagnostic}
+                  <Text type="secondary">{t`Diagnostic:`}</Text> {bounceDiagnostic}
                 </div>
               )}
               {complaintType && (
                 <div className="text-sm">
-                  <Text type="secondary">Feedback:</Text> {complaintType}
+                  <Text type="secondary">{t`Feedback:`}</Text> {complaintType}
                 </div>
               )}
             </div>
@@ -669,7 +672,7 @@ export function ContactTimeline({
               {customEventData?.source && getSourceBadge(customEventData.source)}
               {entry.operation === 'update' && (
                 <Tag color="orange" bordered={false}>
-                  updated
+                  {t`updated`}
                 </Tag>
               )}
               <Tooltip title={`${dayjs(entry.created_at).format('LLLL')} in ${timezone}`}>
@@ -685,14 +688,14 @@ export function ContactTimeline({
               {/* Goal name */}
               {goalName && (
                 <div className="text-sm">
-                  <Text type="secondary">Goal:</Text> {goalName}
+                  <Text type="secondary">{t`Goal:`}</Text> {goalName}
                 </div>
               )}
 
               {/* External ID */}
               {externalId && (
                 <div className="text-sm">
-                  <Text type="secondary">ID:</Text>{' '}
+                  <Text type="secondary">{t`ID:`}</Text>{' '}
                   <span className="font-mono">{externalId}</span>
                 </div>
               )}
@@ -705,7 +708,7 @@ export function ContactTimeline({
                   >
                     <span>
                       <Text type="secondary" className="cursor-help">
-                        Occurred: {dayjs(customEventData.occurred_at).fromNow()}
+                        {t`Occurred:`} {dayjs(customEventData.occurred_at).fromNow()}
                       </Text>
                     </span>
                   </Tooltip>
@@ -728,26 +731,26 @@ export function ContactTimeline({
           : undefined
 
         // Determine action label based on event kind and exit reason
-        let actionLabel = isStart ? 'started' : 'ended'
+        let actionLabel = isStart ? t`started` : t`ended`
         if (!isStart && exitReason) {
-          if (exitReason === 'failed') actionLabel = 'failed'
-          else if (exitReason.includes('exited') || exitReason.includes('deleted')) actionLabel = 'exited'
-          else if (exitReason === 'completed') actionLabel = 'completed'
+          if (exitReason === 'failed') actionLabel = t`failed`
+          else if (exitReason.includes('exited') || exitReason.includes('deleted')) actionLabel = t`exited`
+          else if (exitReason === 'completed') actionLabel = t`completed`
         }
 
         return (
           <div>
-            {renderEventHeader(entry, 'Automation', actionLabel)}
+            {renderEventHeader(entry, t`Automation`, actionLabel)}
             <div className="text-sm">
-              <Text type="secondary">Automation:</Text>{' '}
+              <Text type="secondary">{t`Automation:`}</Text>{' '}
               {automationData?.name ? (
-                <Tooltip title={`ID: ${entry.entity_id}`}>
+                <Tooltip title={t`ID: ${entry.entity_id}`}>
                   <span>
                     <Text strong className="cursor-help">{automationData.name}</Text>
                   </span>
                 </Tooltip>
               ) : (
-                <Text code>{entry.entity_id || 'Unknown'}</Text>
+                <Text code>{entry.entity_id || t`Unknown`}</Text>
               )}
               {!isStart && exitReason && exitReason !== 'completed' && (
                 <Tag className="ml-2" bordered={false}>{exitReason}</Tag>
@@ -763,7 +766,7 @@ export function ContactTimeline({
             {renderEventHeader(entry, formatEntityType(entry.entity_type), entry.operation)}
             {entry.entity_id && (
               <div className="text-sm">
-                <Text type="secondary">Entity ID:</Text>{' '}
+                <Text type="secondary">{t`Entity ID:`}</Text>{' '}
                 <Text code>{entry.entity_id}</Text>
               </div>
             )}
@@ -784,7 +787,7 @@ export function ContactTimeline({
     return (
       <Empty
         image={Empty.PRESENTED_IMAGE_SIMPLE}
-        description="No timeline events found for this contact"
+        description={t`No timeline events found for this contact`}
       />
     )
   }
@@ -801,7 +804,7 @@ export function ContactTimeline({
                   {JSON.stringify(entry, null, 2)}
                 </pre>
               }
-              title="Raw Entry Data"
+              title={t`Raw Entry Data`}
               trigger="hover"
               placement="right"
             >
@@ -817,7 +820,7 @@ export function ContactTimeline({
       {hasMore && onLoadMore && (
         <div className="text-center mt-4">
           <Button onClick={onLoadMore} loading={isLoadingMore} type="dashed" block>
-            {isLoadingMore ? 'Loading...' : 'Load More Events'}
+            {isLoadingMore ? t`Loading...` : t`Load More Events`}
           </Button>
         </div>
       )}

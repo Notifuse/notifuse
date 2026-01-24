@@ -1,4 +1,5 @@
 import React from 'react'
+import { useLingui } from '@lingui/react/macro'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faCircleCheck } from '@fortawesome/free-regular-svg-icons'
 import type { SEOSettings } from '../../services/api/workspace'
@@ -18,8 +19,11 @@ export const OpenGraphPreview: React.FC<OpenGraphPreviewProps> = ({
   customEndpointUrl,
   width = 350,
   fallbackIcon = <FontAwesomeIcon icon={faCircleCheck} className="text-blue-300" size="2x" />,
-  defaultDescription = 'Read the latest post from this broadcast.'
+  defaultDescription
 }) => {
+  const { t } = useLingui()
+  const resolvedDefaultDescription =
+    defaultDescription ?? t`Read the latest post from this broadcast.`
   return (
     <div
       className="border border-gray-200 rounded-lg overflow-hidden bg-white flex"
@@ -53,7 +57,7 @@ export const OpenGraphPreview: React.FC<OpenGraphPreviewProps> = ({
         <div className="text-xs text-gray-600 line-clamp-2">
           {webPublicationSettings.og_description ||
             webPublicationSettings.meta_description ||
-            defaultDescription}
+            resolvedDefaultDescription}
         </div>
       </div>
     </div>

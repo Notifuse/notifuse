@@ -1,3 +1,4 @@
+import { useLingui } from '@lingui/react/macro'
 import { Avatar, Button, Form, Input, Space, Table, Modal, Popconfirm, Tooltip } from 'antd'
 import { EditOutlined, DeleteOutlined, PlusOutlined, UserOutlined } from '@ant-design/icons'
 import { useState } from 'react'
@@ -10,6 +11,7 @@ interface AuthorsTableProps {
 }
 
 export function AuthorsTable({ value = [], onChange }: AuthorsTableProps) {
+  const { t } = useLingui()
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
   const [editForm] = Form.useForm()
@@ -73,7 +75,7 @@ export function AuthorsTable({ value = [], onChange }: AuthorsTableProps) {
       render: (_: unknown, record: BlogAuthor) => (
         <div>
           <div className="font-medium">
-            {record.name || <em className="text-gray-400">No name</em>}
+            {record.name || <em className="text-gray-400">{t`No name`}</em>}
           </div>
           {record.avatar_url && (
             <Tooltip title={record.avatar_url}>
@@ -98,11 +100,11 @@ export function AuthorsTable({ value = [], onChange }: AuthorsTableProps) {
             onClick={() => handleEdit(index)}
           />
           <Popconfirm
-            title="Remove this author?"
-            description="Are you sure you want to remove this author from the post?"
+            title={t`Remove this author?`}
+            description={t`Are you sure you want to remove this author from the post?`}
             onConfirm={() => handleDelete(index)}
-            okText="Yes"
-            cancelText="No"
+            okText={t`Yes`}
+            cancelText={t`No`}
           >
             <Button type="text" size="small" icon={<DeleteOutlined />} />
           </Popconfirm>
@@ -125,26 +127,26 @@ export function AuthorsTable({ value = [], onChange }: AuthorsTableProps) {
         />
       )}
       <Button type="primary" ghost onClick={handleAdd} block icon={<PlusOutlined />}>
-        Add Author
+        {t`Add Author`}
       </Button>
 
       <Modal
-        title={editingIndex !== null ? 'Edit Author' : 'Add Author'}
+        title={editingIndex !== null ? t`Edit Author` : t`Add Author`}
         open={isModalOpen}
         onOk={handleOk}
         onCancel={handleCancel}
-        okText={editingIndex !== null ? 'Save' : 'Add'}
+        okText={editingIndex !== null ? t`Save` : t`Add`}
       >
         <Form form={editForm} layout="vertical">
           <Form.Item
             name="name"
-            label="Name"
-            rules={[{ required: true, message: 'Author name is required' }]}
+            label={t`Name`}
+            rules={[{ required: true, message: t`Author name is required` }]}
           >
-            <Input placeholder="Enter author name" />
+            <Input placeholder={t`Enter author name`} />
           </Form.Item>
-          <Form.Item name="avatar_url" label="Avatar URL">
-            <ImageURLInput placeholder="Enter avatar URL (optional)" buttonText="Select Avatar" />
+          <Form.Item name="avatar_url" label={t`Avatar URL`}>
+            <ImageURLInput placeholder={t`Enter avatar URL (optional)`} buttonText={t`Select Avatar`} />
           </Form.Item>
         </Form>
       </Modal>

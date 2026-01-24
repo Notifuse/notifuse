@@ -1,6 +1,7 @@
 import React from 'react'
 import { Button, Tooltip } from 'antd'
 import { UploadOutlined } from '@ant-design/icons'
+import { useLingui } from '@lingui/react/macro'
 import { useContactsCsvUpload } from '../contacts/ContactsCsvUploadProvider'
 import { List } from '../../services/api/types'
 
@@ -25,6 +26,7 @@ export function ImportContactsToListButton({
   style,
   disabled = false
 }: ImportContactsToListButtonProps) {
+  const { t } = useLingui()
   const { openDrawerWithSelectedList } = useContactsCsvUpload()
 
   const handleClick = () => {
@@ -34,7 +36,7 @@ export function ImportContactsToListButton({
 
   return (
     <Button type={type} size={size} onClick={handleClick} className={className} style={style} disabled={disabled}>
-      <Tooltip title="Import Contacts to List">
+      <Tooltip title={t`Import Contacts to List`}>
         <UploadOutlined />
       </Tooltip>
     </Button>

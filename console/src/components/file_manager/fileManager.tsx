@@ -20,6 +20,7 @@ import {
   CloseCircleOutlined
 } from '@ant-design/icons'
 import type { FileManagerProps, StorageObject } from './interfaces'
+import { useLingui } from '@lingui/react/macro'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { ChangeEvent } from 'react'
 import { Copy, Folder, Trash2, ExternalLink, Settings, RefreshCw, Plus, Download } from 'lucide-react'
@@ -86,6 +87,7 @@ const styles = {
 }
 
 export const FileManager = (props: FileManagerProps) => {
+  const { t } = useLingui()
   const { message } = App.useApp()
   const [internalPath, setInternalPath] = useState(props.currentPath || '')
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([])
@@ -221,7 +223,7 @@ export const FileManager = (props: FileManagerProps) => {
       setIsLoading(false)
     }).catch((error: unknown) => {
       console.error('Failed to fetch objects:', error)
-      message.error('Failed to fetch objects: ' + error)
+      message.error(t`Failed to fetch objects: ` + error)
       setIsLoading(false)
     })
   }, [props.settings, message])
@@ -250,7 +252,7 @@ export const FileManager = (props: FileManagerProps) => {
 
   const deleteObject = (key: string, isFolder: boolean) => {
     if (!s3ClientRef.current) {
-      message.error('S3 client is not initialized.')
+      message.error(t`S3 client is not initialized.`)
       return
     }
 
@@ -266,18 +268,18 @@ export const FileManager = (props: FileManagerProps) => {
       .then(() => {
         if (isFolder) {
           fetchObjects()
-          message.success('Folder deleted successfully.')
+          message.success(t`Folder deleted successfully.`)
           // go to previous path
           const parentPath = key.split('/').slice(0, -2).join('/')
           goToPath(parentPath ? parentPath + '/' : '')
         } else {
-          message.success('File deleted successfully.')
+          message.success(t`File deleted successfully.`)
         }
         // refresh
         fetchObjects()
       })
       .catch((error: unknown) => {
-        message.error('Failed to delete file: ' + error)
+        message.error(t`Failed to delete file: ` + error)
         props.onError(error instanceof Error ? error : new Error(String(error)))
       })
   }
@@ -312,7 +314,7 @@ export const FileManager = (props: FileManagerProps) => {
 
   const onSubmitNewFolder = () => {
     if (!s3ClientRef.current) {
-      message.error('S3 client is not initialized.')
+      message.error(t`S3 client is not initialized.`)
       return
     }
 
@@ -337,7 +339,7 @@ export const FileManager = (props: FileManagerProps) => {
         .then((response) => {
           // console.log('response', response)
           if (response.Contents && response.Contents.length > 0) {
-            message.error('Folder already exists.')
+            message.error(t`Folder already exists.`)
             return
           }
 
@@ -350,18 +352,18 @@ export const FileManager = (props: FileManagerProps) => {
           s3Client
             .send(new PutObjectCommand(input))
             .then(() => {
-              message.success('Folder created successfully.')
+              message.success(t`Folder created successfully.`)
               setNewFolderLoading(false)
               fetchObjects()
             })
             .catch((error: unknown) => {
-              message.error('Failed to create folder: ' + error)
+              message.error(t`Failed to create folder: ` + error)
               setNewFolderLoading(false)
               props.onError(error instanceof Error ? error : new Error(String(error)))
             })
         })
         .catch((error: unknown) => {
-          message.error('Failed to create folder: ' + error)
+          message.error(t`Failed to create folder: ` + error)
           setNewFolderLoading(false)
           props.onError(error instanceof Error ? error : new Error(String(error)))
         })
@@ -459,7 +461,7 @@ export const FileManager = (props: FileManagerProps) => {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort()
     }
-    message.info('Import cancelled')
+    message.info(t`Import cancelled`)
   }
 
   const handleDragEnter = (e: React.DragEvent) => {
@@ -494,7 +496,7 @@ export const FileManager = (props: FileManagerProps) => {
     setIsDragging(false)
 
     if (isReadOnly) {
-      message.warning('Cannot upload in read-only mode')
+      message.warning(t`Cannot upload in read-only mode`)
       return
     }
 
@@ -516,7 +518,7 @@ export const FileManager = (props: FileManagerProps) => {
     ) || []
 
     if (selectedFiles.length === 0) {
-      message.warning('No files selected')
+      message.warning(t`No files selected`)
       return
     }
 
@@ -542,10 +544,10 @@ export const FileManager = (props: FileManagerProps) => {
       document.body.removeChild(link)
       URL.revokeObjectURL(url)
 
-      message.success(`Downloaded ${selectedFiles.length} file(s)`)
+      message.success(t`Downloaded ${selectedFiles.length} file(s)`)
     } catch (error) {
       console.error('ZIP download failed:', error)
-      message.error('Failed to download files')
+      message.error(t`Failed to download files`)
     } finally {
       setIsZipping(false)
     }
@@ -553,7 +555,7 @@ export const FileManager = (props: FileManagerProps) => {
 
   const deleteSelectedItems = async () => {
     if (!s3ClientRef.current || !props.settings?.bucket) {
-      message.error('S3 client is not initialized.')
+      message.error(t`S3 client is not initialized.`)
       return
     }
 
@@ -562,7 +564,7 @@ export const FileManager = (props: FileManagerProps) => {
     ) || []
 
     if (selectedItems.length === 0) {
-      message.warning('No items selected')
+      message.warning(t`No items selected`)
       return
     }
 
@@ -591,9 +593,9 @@ export const FileManager = (props: FileManagerProps) => {
     fetchObjects()
 
     if (failedCount === 0) {
-      message.success(`Deleted ${deletedCount} item(s)`)
+      message.success(t`Deleted ${deletedCount} item(s)`)
     } else {
-      message.warning(`Deleted ${deletedCount}, failed ${failedCount}`)
+      message.warning(t`Deleted ${deletedCount}, failed ${failedCount}`)
     }
   }
 
@@ -603,12 +605,12 @@ export const FileManager = (props: FileManagerProps) => {
         style={styles.marginBottomSmall}
         message={
           <>
-            File storage is not configured.
+            {t`File storage is not configured.`}
             <ButtonFilesSettings
               settings={props.settings}
               onUpdateSettings={props.onUpdateSettings}
             >
-              <Button type="link">Configure now</Button>
+              <Button type="link">{t`Configure now`}</Button>
             </ButtonFilesSettings>
           </>
         }
@@ -626,18 +628,17 @@ export const FileManager = (props: FileManagerProps) => {
             <div style={styles.pullRight}>
               <Space>
                 {currentPath !== '' && !isReadOnly && (
-                  <Tooltip title="Delete folder" placement="bottom">
+                  <Tooltip title={t`Delete folder`} placement="bottom">
                     <Popconfirm
                       placement="topRight"
                       title={
                         <>
-                          Do you want to delete the <b>{currentPath}</b> folder with all its
-                          content?
+                          {t`Do you want to delete the`} <b>{currentPath}</b> {t`folder with all its content?`}
                         </>
                       }
                       onConfirm={() => deleteObject(currentPath, true)}
-                      okText="Delete folder"
-                      cancelText="Cancel"
+                      okText={t`Delete folder`}
+                      cancelText={t`Cancel`}
                       okButtonProps={{
                         danger: true
                       }}
@@ -652,11 +653,11 @@ export const FileManager = (props: FileManagerProps) => {
                   </Tooltip>
                 )}
                 {currentPath !== '' && isReadOnly && (
-                  <Tooltip title="Delete folder (Read-only mode)" placement="bottom">
+                  <Tooltip title={t`Delete folder (Read-only mode)`} placement="bottom">
                     <Button size="small" type="text" disabled icon={<Trash2 size={16} />} />
                   </Tooltip>
                 )}
-                <Tooltip title="Refresh the list">
+                <Tooltip title={t`Refresh the list`}>
                   <Button
                     size="small"
                     type="text"
@@ -671,7 +672,7 @@ export const FileManager = (props: FileManagerProps) => {
                     onUpdateSettings={props.onUpdateSettings}
                     settingsInfo={props.settingsInfo}
                   >
-                    <Tooltip title="Storage settings">
+                    <Tooltip title={t`Storage settings`}>
                       <Button type="text" size="small">
                         <Settings size={16} />
                       </Button>
@@ -679,7 +680,7 @@ export const FileManager = (props: FileManagerProps) => {
                   </ButtonFilesSettings>
                 )}
                 {isReadOnly && (
-                  <Tooltip title="Storage settings (Read-only mode)">
+                  <Tooltip title={t`Storage settings (Read-only mode)`}>
                     <Button type="text" size="small" disabled>
                       <Settings size={16} />
                     </Button>
@@ -702,12 +703,12 @@ export const FileManager = (props: FileManagerProps) => {
                       loading={isUploading}
                     >
                       <Plus size={16} />
-                      Upload
+                      {t`Upload`}
                     </Button>
                   </span>
                 )}
                 {isReadOnly && (
-                  <Tooltip title="Upload file (Read-only mode)">
+                  <Tooltip title={t`Upload file (Read-only mode)`}>
                     <Button
                       type="primary"
                       // size="small"
@@ -715,7 +716,7 @@ export const FileManager = (props: FileManagerProps) => {
                       disabled
                     >
                       <Plus size={16} />
-                      Upload
+                      {t`Upload`}
                     </Button>
                   </Tooltip>
                 )}
@@ -750,25 +751,25 @@ export const FileManager = (props: FileManagerProps) => {
               </div>
               {selectedRowKeys.length === 0 && (
                 <Button type="primary" ghost onClick={toggleNewFolderModal} disabled={isReadOnly}>
-                  New folder
+                  {t`New folder`}
                 </Button>
               )}
               {selectedRowKeys.length > 0 && !isReadOnly && (
                 <Popconfirm
-                  title={`Delete ${selectedRowKeys.length} selected item(s)?`}
+                  title={t`Delete ${selectedRowKeys.length} selected item(s)?`}
                   onConfirm={deleteSelectedItems}
-                  okText="Delete"
-                  cancelText="Cancel"
+                  okText={t`Delete`}
+                  cancelText={t`Cancel`}
                   okButtonProps={{ danger: true }}
                 >
                   <Button type="primary" ghost loading={isDeleting}>
-                    <Trash2 size={16} /> Delete ({selectedRowKeys.length})
+                    <Trash2 size={16} /> {t`Delete`} ({selectedRowKeys.length})
                   </Button>
                 </Popconfirm>
               )}
               {selectedFileCount > 1 && (
                 <Button type="primary" ghost loading={isZipping} onClick={downloadSelectedAsZip}>
-                  <Download size={16} /> Zip ({selectedFileCount})
+                  <Download size={16} /> {t`Zip`} ({selectedFileCount})
                 </Button>
               )}
             </Space>
@@ -788,7 +789,7 @@ export const FileManager = (props: FileManagerProps) => {
             pagination={false}
             size="middle"
             rowKey="key"
-            locale={{ emptyText: 'Folder is empty' }}
+            locale={{ emptyText: t`Folder is empty` }}
             scroll={{ y: props.height ? props.height - 100 : undefined }}
             rowClassName={(record: StorageObject) => {
               return record.is_folder ? 'folder-row' : ''
@@ -852,21 +853,21 @@ export const FileManager = (props: FileManagerProps) => {
                 }
               },
               {
-                title: 'Name',
+                title: t`Name`,
                 key: 'name',
                 render: (item: StorageObject) => {
                   return <div>{item.name}</div>
                 }
               },
               {
-                title: 'Size',
+                title: t`Size`,
                 key: 'size',
                 render: (item: StorageObject) => {
                   return <div>{item.is_folder ? '-' : item.file_info.size_human}</div>
                 }
               },
               {
-                title: 'Last modified',
+                title: t`Last modified`,
                 key: 'lastModified',
                 render: (item: StorageObject) => {
                   return (
@@ -885,26 +886,26 @@ export const FileManager = (props: FileManagerProps) => {
                   if (item.is_folder) return
                   return (
                     <Space>
-                      <Tooltip title="Copy URL">
+                      <Tooltip title={t`Copy URL`}>
                         <Button
                           type="text"
                           size="small"
                           onClick={() => {
                             navigator.clipboard.writeText(item.file_info.url)
-                            message.success('URL copied to clipboard.')
+                            message.success(t`URL copied to clipboard.`)
                           }}
                         >
                           <Copy size={16} />
                         </Button>
                       </Tooltip>
-                      <Tooltip title="Open in a window">
+                      <Tooltip title={t`Open in a window`}>
                         <a href={item.file_info.url} target="_blank" rel="noreferrer">
                           <Button type="text" size="small">
                             <ExternalLink size={16} />
                           </Button>
                         </a>
                       </Tooltip>
-                      <Tooltip title="Download file">
+                      <Tooltip title={t`Download file`}>
                         <Button
                           type="text"
                           size="small"
@@ -923,7 +924,7 @@ export const FileManager = (props: FileManagerProps) => {
                               URL.revokeObjectURL(url)
                             } catch (error) {
                               console.error('Download failed:', error)
-                              message.error('Failed to download file')
+                              message.error(t`Failed to download file`)
                             }
                           }}
                         >
@@ -932,11 +933,11 @@ export const FileManager = (props: FileManagerProps) => {
                       </Tooltip>
                       {!isReadOnly && (
                         <Popconfirm
-                          title="Do you want to permanently delete this file from your storage?"
+                          title={t`Do you want to permanently delete this file from your storage?`}
                           onConfirm={() => deleteObject(item.key, false)}
                           placement="topRight"
-                          okText="Delete"
-                          cancelText="Cancel"
+                          okText={t`Delete`}
+                          cancelText={t`Cancel`}
                           okButtonProps={{
                             danger: true
                           }}
@@ -947,7 +948,7 @@ export const FileManager = (props: FileManagerProps) => {
                         </Popconfirm>
                       )}
                       {isReadOnly && (
-                        <Tooltip title="Delete file (Read-only mode)">
+                        <Tooltip title={t`Delete file (Read-only mode)`}>
                           <Button type="text" size="small" disabled>
                             <Trash2 size={16} />
                           </Button>
@@ -960,7 +961,7 @@ export const FileManager = (props: FileManagerProps) => {
                           style={{ marginRight: 16 }}
                           onClick={() => toggleSelectionForItem(item)}
                         >
-                          Select
+                          {t`Select`}
                         </Button>
                       )}
                     </Space>
@@ -990,7 +991,7 @@ export const FileManager = (props: FileManagerProps) => {
                 }}
               >
                 <Typography.Text style={{ fontSize: 18, color: '#1890ff' }}>
-                  Drop files here to upload
+                  {t`Drop files here to upload`}
                 </Typography.Text>
               </div>
             )}
@@ -999,12 +1000,12 @@ export const FileManager = (props: FileManagerProps) => {
       )}
       {newFolderModalVisible && (
         <Modal
-          title="Create new folder"
+          title={t`Create new folder`}
           open={newFolderModalVisible}
           onCancel={toggleNewFolderModal}
           footer={[
             <Button key="cancel" onClick={toggleNewFolderModal}>
-              Cancel
+              {t`Cancel`}
             </Button>,
             <Button
               key="create"
@@ -1013,12 +1014,12 @@ export const FileManager = (props: FileManagerProps) => {
               loading={newFolderLoading}
               disabled={isReadOnly}
             >
-              Create
+              {t`Create`}
             </Button>
           ]}
         >
           <Form form={form}>
-            <Form.Item label="Folder name" required>
+            <Form.Item label={t`Folder name`} required>
               <Space.Compact style={{ width: '100%' }}>
                 <Input
                   style={{ width: 'auto', pointerEvents: 'none' }}
@@ -1036,7 +1037,7 @@ export const FileManager = (props: FileManagerProps) => {
                         // alphanumeric, lowercase, underscore, dash
                         if (!/^[a-z0-9_-]+$/.test(value)) {
                           callback(
-                            'Only lowercase alphanumeric characters, underscore, and dash are allowed.'
+                            t`Only lowercase alphanumeric characters, underscore, and dash are allowed.`
                           )
                           return
                         }
@@ -1077,7 +1078,7 @@ export const FileManager = (props: FileManagerProps) => {
           }}
         >
           <Typography.Title level={4} style={{ marginBottom: 16 }}>
-            Importing files...
+            {t`Importing files...`}
           </Typography.Title>
 
           <div
@@ -1121,7 +1122,7 @@ export const FileManager = (props: FileManagerProps) => {
           </div>
 
           <Button onClick={handleCancelUpload} style={{ marginTop: 24 }} danger>
-            Cancel
+            {t`Cancel`}
           </Button>
         </div>
       )}

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Card, Button, Space, Form, Input, Select, Checkbox, message, Drawer, Row, Col } from 'antd'
 import { faPlus } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { useLingui } from '@lingui/react/macro'
 import { SettingsSectionHeader } from './SettingsSectionHeader'
 import { WebhookCard } from './WebhookCard'
 import Subtitle from '../common/subtitle'
@@ -16,6 +17,7 @@ interface WebhooksSettingsProps {
 }
 
 export function WebhooksSettings({ workspaceId }: WebhooksSettingsProps) {
+  const { t } = useLingui()
   const [subscriptions, setSubscriptions] = useState<WebhookSubscription[]>([])
   const [eventTypes, setEventTypes] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
@@ -37,7 +39,7 @@ export function WebhooksSettings({ workspaceId }: WebhooksSettingsProps) {
       setSubscriptions(response.subscriptions || [])
     } catch (error) {
       console.error('Failed to fetch webhook subscriptions:', error)
-      message.error('Failed to load webhook subscriptions')
+      message.error(t`Failed to load webhook subscriptions`)
     } finally {
       setLoading(false)
     }
@@ -104,7 +106,7 @@ export function WebhooksSettings({ workspaceId }: WebhooksSettingsProps) {
           custom_event_filters: customEventFilters,
           enabled: values.enabled
         })
-        message.success('Webhook subscription updated')
+        message.success(t`Webhook subscription updated`)
       } else {
         await webhookSubscriptionApi.create({
           workspace_id: workspaceId,
@@ -113,14 +115,14 @@ export function WebhooksSettings({ workspaceId }: WebhooksSettingsProps) {
           event_types: values.event_types,
           custom_event_filters: customEventFilters
         })
-        message.success('Webhook subscription created')
+        message.success(t`Webhook subscription created`)
       }
 
       setDrawerVisible(false)
       fetchSubscriptions()
     } catch (error) {
       console.error('Failed to save webhook subscription:', error)
-      message.error('Failed to save webhook subscription')
+      message.error(t`Failed to save webhook subscription`)
     } finally {
       setSaving(false)
     }
@@ -129,11 +131,11 @@ export function WebhooksSettings({ workspaceId }: WebhooksSettingsProps) {
   const handleDelete = async (id: string) => {
     try {
       await webhookSubscriptionApi.delete(workspaceId, id)
-      message.success('Webhook subscription deleted')
+      message.success(t`Webhook subscription deleted`)
       fetchSubscriptions()
     } catch (error) {
       console.error('Failed to delete webhook subscription:', error)
-      message.error('Failed to delete webhook subscription')
+      message.error(t`Failed to delete webhook subscription`)
     }
   }
 
@@ -144,11 +146,11 @@ export function WebhooksSettings({ workspaceId }: WebhooksSettingsProps) {
         id,
         enabled
       })
-      message.success(`Webhook ${enabled ? 'enabled' : 'disabled'}`)
+      message.success(enabled ? t`Webhook enabled` : t`Webhook disabled`)
       fetchSubscriptions()
     } catch (error) {
       console.error('Failed to toggle webhook subscription:', error)
-      message.error('Failed to toggle webhook subscription')
+      message.error(t`Failed to toggle webhook subscription`)
     }
   }
 
@@ -164,16 +166,16 @@ export function WebhooksSettings({ workspaceId }: WebhooksSettingsProps) {
   return (
     <>
       <SettingsSectionHeader
-        title="Webhooks"
-        description="Configure outgoing webhooks to receive real-time notifications when events occur in your workspace."
+        title={t`Webhooks`}
+        description={t`Configure outgoing webhooks to receive real-time notifications when events occur in your workspace.`}
       />
 
       {subscriptions.length === 0 && !loading ? (
         <Card className="text-center py-8">
-          <p className="text-gray-500 mb-4">No webhook subscriptions configured</p>
+          <p className="text-gray-500 mb-4">{t`No webhook subscriptions configured`}</p>
           <Button type="primary" onClick={handleCreate}>
             <FontAwesomeIcon icon={faPlus} className="mr-2" />
-            Create Webhook
+            {t`Create Webhook`}
           </Button>
         </Card>
       ) : (
@@ -181,7 +183,7 @@ export function WebhooksSettings({ workspaceId }: WebhooksSettingsProps) {
           <div className="mb-4 text-right">
             <Button type="primary" onClick={handleCreate}>
               <FontAwesomeIcon icon={faPlus} className="mr-2" />
-              Add Webhook
+              {t`Add Webhook`}
             </Button>
           </div>
 
@@ -201,16 +203,16 @@ export function WebhooksSettings({ workspaceId }: WebhooksSettingsProps) {
 
       {/* Create/Edit Drawer */}
       <Drawer
-        title={editingSubscription ? 'Edit Webhook' : 'Create Webhook'}
+        title={editingSubscription ? t`Edit Webhook` : t`Create Webhook`}
         width={500}
         open={drawerVisible}
         onClose={() => setDrawerVisible(false)}
         footer={
           <div className="text-right">
             <Space>
-              <Button onClick={() => setDrawerVisible(false)}>Cancel</Button>
+              <Button onClick={() => setDrawerVisible(false)}>{t`Cancel`}</Button>
               <Button type="primary" onClick={handleSave} loading={saving}>
-                Save
+                {t`Save`}
               </Button>
             </Space>
           </div>
@@ -219,18 +221,18 @@ export function WebhooksSettings({ workspaceId }: WebhooksSettingsProps) {
         <Form form={form} layout="vertical">
           <Form.Item
             name="name"
-            label="Name"
-            rules={[{ required: true, message: 'Please enter a name' }]}
+            label={t`Name`}
+            rules={[{ required: true, message: t`Please enter a name` }]}
           >
-            <Input placeholder="My Webhook" />
+            <Input placeholder={t`My Webhook`} />
           </Form.Item>
 
           <Form.Item
             name="url"
-            label="Endpoint URL"
+            label={t`Endpoint URL`}
             rules={[
-              { required: true, message: 'Please enter a URL' },
-              { type: 'url', message: 'Please enter a valid URL' }
+              { required: true, message: t`Please enter a URL` },
+              { type: 'url', message: t`Please enter a valid URL` }
             ]}
           >
             <Input placeholder="https://example.com/webhook" />
@@ -240,18 +242,18 @@ export function WebhooksSettings({ workspaceId }: WebhooksSettingsProps) {
             name="event_types"
             label={
               <div className="flex justify-between w-full">
-                <span>Event Types</span>
+                <span>{t`Event Types`}</span>
                 <a
                   onClick={(e) => {
                     e.preventDefault()
                     form.setFieldsValue({ event_types: eventTypes })
                   }}
                 >
-                  Select all
+                  {t`Select all`}
                 </a>
               </div>
             }
-            rules={[{ required: true, message: 'Please select at least one event type' }]}
+            rules={[{ required: true, message: t`Please select at least one event type` }]}
             className="[&_.ant-form-item-label]:w-full [&_.ant-form-item-label>label]:w-full [&_.ant-form-item-label>label]:inline-flex"
           >
             <Checkbox.Group className="w-full">
@@ -287,27 +289,27 @@ export function WebhooksSettings({ workspaceId }: WebhooksSettingsProps) {
           {showCustomEventFilters && (
             <>
               <Subtitle className="mb-6" borderBottom primary>
-                Custom Event Filters (optional)
+                {t`Custom Event Filters (optional)`}
               </Subtitle>
-              <Form.Item name="custom_event_goal_types" label="Goal Types">
+              <Form.Item name="custom_event_goal_types" label={t`Goal Types`}>
                 <Select
                   mode="multiple"
-                  placeholder="Select goal types to filter"
+                  placeholder={t`Select goal types to filter`}
                   options={[
-                    { value: 'purchase', label: 'Purchase' },
-                    { value: 'subscription', label: 'Subscription' },
-                    { value: 'lead', label: 'Lead' },
-                    { value: 'signup', label: 'Signup' },
-                    { value: 'booking', label: 'Booking' },
-                    { value: 'trial', label: 'Trial' },
-                    { value: 'other', label: 'Other' }
+                    { value: 'purchase', label: t`Purchase` },
+                    { value: 'subscription', label: t`Subscription` },
+                    { value: 'lead', label: t`Lead` },
+                    { value: 'signup', label: t`Signup` },
+                    { value: 'booking', label: t`Booking` },
+                    { value: 'trial', label: t`Trial` },
+                    { value: 'other', label: t`Other` }
                   ]}
                 />
               </Form.Item>
-              <Form.Item name="custom_event_names" label="Event Names">
+              <Form.Item name="custom_event_names" label={t`Event Names`}>
                 <Select
                   mode="tags"
-                  placeholder="Enter event names to filter"
+                  placeholder={t`Enter event names to filter`}
                   tokenSeparators={[',']}
                 />
               </Form.Item>

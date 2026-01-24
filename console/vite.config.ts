@@ -2,6 +2,7 @@
 import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
+import { lingui } from '@lingui/vite-plugin'
 import { fileURLToPath } from 'url'
 import { dirname, resolve } from 'path'
 import { readFileSync } from 'fs'
@@ -13,7 +14,15 @@ const __dirname = dirname(__filename)
 // https://vitejs.dev/config/
 export default defineConfig({
   base: '/console/',
-  plugins: [react(), tailwindcss()],
+  plugins: [
+    react({
+      babel: {
+        plugins: ['@lingui/babel-plugin-lingui-macro'],
+      },
+    }),
+    tailwindcss(),
+    lingui(),
+  ],
   server: {
     host: 'notifusedev.com',
     https: {
@@ -38,11 +47,11 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'jsdom',
-    setupFiles: ['./src/test/setup.tsx'],
+    setupFiles: ['./src/__tests__/setup.tsx'],
     include: ['**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
     coverage: {
       reporter: ['text', 'json', 'html'],
-      exclude: ['node_modules/', 'src/test/setup.tsx']
+      exclude: ['node_modules/', 'src/__tests__/setup.tsx']
     }
   },
   resolve: {

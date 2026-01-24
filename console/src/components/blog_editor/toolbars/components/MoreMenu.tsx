@@ -1,4 +1,5 @@
 import { useContext, useEffect, useState } from 'react'
+import { useLingui } from '@lingui/react/macro'
 import { EditorContext } from '@tiptap/react'
 import { Button, Popover, Tooltip } from 'antd'
 import { MoreVertical } from 'lucide-react'
@@ -18,6 +19,7 @@ export interface MoreMenuProps {
  * Contains superscript/subscript and text alignment options
  */
 export function MoreMenu({ hideWhenUnavailable = false }: MoreMenuProps) {
+  const { t } = useLingui()
   const { editor } = useContext(EditorContext)!
   const [open, setOpen] = useState(false)
   const [hasAvailableActions, setHasAvailableActions] = useState(true)
@@ -92,7 +94,7 @@ export function MoreMenu({ hideWhenUnavailable = false }: MoreMenuProps) {
       placement="topRight"
       styles={{ body: { padding: 3 } }}
     >
-      <Tooltip title="More options" placement="top" open={open ? false : undefined}>
+      <Tooltip title={t`More options`} placement="top" open={open ? false : undefined}>
         <Button
           type="text"
           size="small"

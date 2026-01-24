@@ -4,6 +4,7 @@ import { Sparkles, User } from 'lucide-react'
 import { Bubble, Sender } from '@ant-design/x'
 import { XMarkdown } from '@ant-design/x-markdown'
 import '@ant-design/x-markdown/dist/x-markdown.css'
+import { useLingui } from '@lingui/react/macro'
 import type { AIAssistantChatProps } from './types'
 
 export function AIAssistantChat({
@@ -24,6 +25,8 @@ export function AIAssistantChat({
   hidden = false,
   chatBoxTop = 66
 }: AIAssistantChatProps) {
+  const { t } = useLingui()
+
   // Render setup prompt when no LLM integration
   if (!llmIntegration) {
     return (
@@ -96,10 +99,9 @@ export function AIAssistantChat({
               >
                 <span style={{ color: '#fff' }}>{config.iconLarge}</span>
               </div>
-              <h3 style={{ margin: '0 0 8px', fontSize: 16 }}>AI Assistant Not Configured</h3>
+              <h3 style={{ margin: '0 0 8px', fontSize: 16 }}>{t`AI Assistant Not Configured`}</h3>
               <p style={{ margin: '0 0 16px', color: '#666', fontSize: 14, lineHeight: 1.5 }}>
-                To use the {config.title}, you need to configure the Anthropic integration in your
-                workspace settings.
+                {t`To use the ${config.title}, you need to configure the Anthropic integration in your workspace settings.`}
               </p>
               <Button
                 type="primary"
@@ -109,7 +111,7 @@ export function AIAssistantChat({
                   borderColor: 'transparent'
                 }}
               >
-                Configure Integration
+                {t`Configure Integration`}
               </Button>
             </div>
           </div>
@@ -263,19 +265,19 @@ export function AIAssistantChat({
                 onClick={resetConversation}
                 disabled={isStreaming || bubbleItems.length === 0}
               >
-                New conversation
+                {t`New conversation`}
               </Button>
               <Popover
                 content={
                   <div style={{ fontSize: 12 }}>
-                    <div>Input: ${costs.input.toFixed(4)}</div>
-                    <div>Output: ${costs.output.toFixed(4)}</div>
+                    <div>{t`Input`}: ${costs.input.toFixed(4)}</div>
+                    <div>{t`Output`}: ${costs.output.toFixed(4)}</div>
                   </div>
                 }
                 trigger="hover"
                 placement="top"
               >
-                <span style={{ cursor: 'help' }}>Cost: ${costs.total.toFixed(4)}</span>
+                <span style={{ cursor: 'help' }}>{t`Cost`}: ${costs.total.toFixed(4)}</span>
               </Popover>
             </div>
           </div>

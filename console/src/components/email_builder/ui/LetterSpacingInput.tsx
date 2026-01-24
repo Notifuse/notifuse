@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { InputNumber, Segmented } from 'antd'
+import { useLingui } from '@lingui/react/macro'
 
 interface LetterSpacingInputProps {
   value?: string
@@ -10,9 +11,11 @@ interface LetterSpacingInputProps {
 const LetterSpacingInput: React.FC<LetterSpacingInputProps> = ({
   value,
   onChange,
-  placeholder = 'Enter spacing'
+  placeholder
 }) => {
+  const { t } = useLingui()
   const [numericValue, setNumericValue] = useState<number | undefined>()
+  const resolvedPlaceholder = placeholder || t`Enter spacing`
   const [unit, setUnit] = useState<'px' | 'em'>('px')
 
   // Parse incoming value to extract number and unit
@@ -64,7 +67,7 @@ const LetterSpacingInput: React.FC<LetterSpacingInputProps> = ({
         size="small"
         value={numericValue}
         onChange={handleNumberChange}
-        placeholder={placeholder}
+        placeholder={resolvedPlaceholder}
         step={unit === 'em' ? 0.1 : 1}
         className="flex-1"
         style={{ width: 80 }}

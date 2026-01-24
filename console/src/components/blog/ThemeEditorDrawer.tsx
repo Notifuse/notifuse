@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { useLingui } from '@lingui/react/macro'
 import { Drawer, Button, Input, App, Modal, Space, Tabs, Segmented } from 'antd'
 import { ExclamationCircleOutlined } from '@ant-design/icons'
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
@@ -60,6 +61,7 @@ export function ThemeEditorDrawer({
   workspace,
   presetData
 }: ThemeEditorDrawerProps) {
+  const { t } = useLingui()
   const { message, modal } = App.useApp()
   const queryClient = useQueryClient()
   const [selectedFile, setSelectedFile] = useState<keyof BlogThemeFiles>('home.liquid')
@@ -142,7 +144,7 @@ export function ThemeEditorDrawer({
       setNotes(draft.notes)
       setSelectedFile(draft.selectedFile)
       setHasUnsavedChanges(true)
-      message.info('Draft restored from local storage')
+      message.info(t`Draft restored from local storage`)
     }
     setShowRestorePrompt(false)
     delete (window as DraftWindow).__themeDraft
@@ -241,11 +243,11 @@ export function ThemeEditorDrawer({
       const isPublished = theme?.published_at !== null && theme?.published_at !== undefined
 
       if (isPublished) {
-        message.success(`Created new version v${data.theme.version}`)
+        message.success(t`Created new version v${data.theme.version}`)
       } else if (theme) {
-        message.success('Theme updated successfully')
+        message.success(t`Theme updated successfully`)
       } else {
-        message.success('Theme created successfully')
+        message.success(t`Theme created successfully`)
       }
 
       setHasUnsavedChanges(false)
@@ -254,7 +256,7 @@ export function ThemeEditorDrawer({
       onClose()
     },
     onError: (error: Error) => {
-      message.error(error?.message || 'Failed to save theme')
+      message.error(error?.message || t`Failed to save theme`)
     }
   })
 
@@ -270,12 +272,12 @@ export function ThemeEditorDrawer({
   const handleCancel = () => {
     if (hasUnsavedChanges) {
       modal.confirm({
-        title: 'Unsaved Changes',
+        title: t`Unsaved Changes`,
         icon: <ExclamationCircleOutlined />,
         content:
-          'You have unsaved changes. Are you sure you want to close? Your changes will be lost.',
-        okText: 'Close',
-        cancelText: 'Cancel',
+          t`You have unsaved changes. Are you sure you want to close? Your changes will be lost.`,
+        okText: t`Close`,
+        cancelText: t`Cancel`,
         onOk: () => {
           localStorage.removeItem(localStorageKey)
           onClose()
@@ -297,15 +299,15 @@ export function ThemeEditorDrawer({
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <span>
               {theme
-                ? `Edit Theme v${theme.version}`
+                ? t`Edit Theme v${theme.version}`
                 : presetData
-                  ? `Create New Theme - ${presetData.name}`
-                  : 'Create New Theme'}
+                  ? t`Create New Theme - ${presetData.name}`
+                  : t`Create New Theme`}
               {hasUnsavedChanges && <span style={{ color: '#faad14', marginLeft: 8 }}>●</span>}
             </span>
             <Space>
               <Button type="text" onClick={handleCancel}>
-                Cancel
+                {t`Cancel`}
               </Button>
               <Button
                 type="primary"
@@ -313,7 +315,7 @@ export function ThemeEditorDrawer({
                 loading={saveMutation.isPending}
                 disabled={!hasUnsavedChanges}
               >
-                Save
+                {t`Save`}
               </Button>
             </Space>
           </div>
@@ -405,8 +407,8 @@ export function ThemeEditorDrawer({
                     value={isFullscreen ? 'fullscreen' : 'split'}
                     onChange={(value) => setIsFullscreen(value === 'fullscreen')}
                     options={[
-                      { label: 'Split', value: 'split' },
-                      { label: 'Fullscreen', value: 'fullscreen' }
+                      { label: t`Split`, value: 'split' },
+                      { label: t`Fullscreen`, value: 'fullscreen' }
                     ]}
                   />
                 )
@@ -414,7 +416,7 @@ export function ThemeEditorDrawer({
               items={[
                 {
                   key: 'home',
-                  label: 'Home',
+                  label: t`Home`,
                   children: (
                     <div style={{ height: 'calc(100vh - 110px)', overflow: 'auto' }}>
                       <ThemePreview files={previewFiles} workspace={workspace} view="home" />
@@ -423,7 +425,7 @@ export function ThemeEditorDrawer({
                 },
                 {
                   key: 'category',
-                  label: 'Category',
+                  label: t`Category`,
                   children: (
                     <div style={{ height: 'calc(100vh - 110px)', overflow: 'auto' }}>
                       <ThemePreview files={previewFiles} workspace={workspace} view="category" />
@@ -432,7 +434,7 @@ export function ThemeEditorDrawer({
                 },
                 {
                   key: 'post',
-                  label: 'Post',
+                  label: t`Post`,
                   children: (
                     <div style={{ height: 'calc(100vh - 110px)', overflow: 'auto' }}>
                       <ThemePreview files={previewFiles} workspace={workspace} view="post" />
@@ -447,34 +449,34 @@ export function ThemeEditorDrawer({
 
       {/* Restore Draft Modal */}
       <Modal
-        title="Restore Draft?"
+        title={t`Restore Draft?`}
         open={showRestorePrompt}
         onOk={handleRestoreDraft}
         onCancel={handleDiscardDraft}
-        okText="Restore Draft"
-        cancelText="Discard Draft"
+        okText={t`Restore Draft`}
+        cancelText={t`Discard Draft`}
       >
-        <p>A newer draft was found in local storage. Would you like to restore it or discard it?</p>
+        <p>{t`A newer draft was found in local storage. Would you like to restore it or discard it?`}</p>
       </Modal>
 
       {/* Save Modal */}
       <Modal
-        title="Save Theme"
+        title={t`Save Theme`}
         open={showSaveModal}
         onOk={handleConfirmSave}
         onCancel={() => setShowSaveModal(false)}
-        okText="Save"
-        cancelText="Cancel"
+        okText={t`Save`}
+        cancelText={t`Cancel`}
         confirmLoading={saveMutation.isPending}
       >
         <div style={{ marginBottom: 16 }}>
           <div style={{ fontSize: 12, color: '#8c8c8c', marginBottom: 8 }}>
-            VERSION NOTES (OPTIONAL)
+            {t`VERSION NOTES (OPTIONAL)`}
           </div>
           <TextArea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            placeholder="Add notes about this version..."
+            placeholder={t`Add notes about this version...`}
             rows={4}
             style={{ resize: 'none' }}
           />

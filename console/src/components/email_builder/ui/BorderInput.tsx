@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { Switch, Select, InputNumber } from 'antd'
+import { useLingui } from '@lingui/react/macro'
 import ColorPickerWithPresets from './ColorPickerWithPresets'
 
 interface BorderValue {
@@ -33,17 +34,7 @@ interface BorderInputProps {
   className?: string
 }
 
-const borderStyles = [
-  { label: 'None', value: 'none' },
-  { label: 'Solid', value: 'solid' },
-  { label: 'Dashed', value: 'dashed' },
-  { label: 'Dotted', value: 'dotted' },
-  { label: 'Double', value: 'double' },
-  { label: 'Groove', value: 'groove' },
-  { label: 'Ridge', value: 'ridge' },
-  { label: 'Inset', value: 'inset' },
-  { label: 'Outset', value: 'outset' }
-]
+// Moved inside component to use translation
 
 /**
  * BorderInput component for managing border properties on all four sides
@@ -57,7 +48,20 @@ const BorderInput: React.FC<BorderInputProps> = ({
   placeholder = { color: 'transparent', width: '0px', style: 'none' },
   className
 }) => {
+  const { t } = useLingui()
   const [mode, setMode] = useState<'all' | 'separate'>('all')
+
+  const borderStyles = [
+    { label: t`None`, value: 'none' },
+    { label: t`Solid`, value: 'solid' },
+    { label: t`Dashed`, value: 'dashed' },
+    { label: t`Dotted`, value: 'dotted' },
+    { label: t`Double`, value: 'double' },
+    { label: t`Groove`, value: 'groove' },
+    { label: t`Ridge`, value: 'ridge' },
+    { label: t`Inset`, value: 'inset' },
+    { label: t`Outset`, value: 'outset' }
+  ]
   const [manualModeSet, setManualModeSet] = useState(false)
 
   /**
@@ -345,35 +349,35 @@ const BorderInput: React.FC<BorderInputProps> = ({
           marginBottom: 22
         }}
       >
-        <span style={{ fontSize: '11px', color: '#666' }}>Separate sides</span>
+        <span style={{ fontSize: '11px', color: '#666' }}>{t`Separate sides`}</span>
         <Switch size="small" checked={mode === 'separate'} onChange={handleModeToggle} />
       </div>
 
       {mode === 'all' ? (
         // Unified mode - all borders same
-        renderBorderControls(unifiedBorder, updateAllBorders, 'All sides')
+        renderBorderControls(unifiedBorder, updateAllBorders, t`All sides`)
       ) : (
         // Separate mode - individual borders
         <div>
           {renderBorderControls(
             internalValue.top || {},
             (border) => updateBorder('top', border),
-            'Top'
+            t`Top`
           )}
           {renderBorderControls(
             internalValue.right || {},
             (border) => updateBorder('right', border),
-            'Right'
+            t`Right`
           )}
           {renderBorderControls(
             internalValue.bottom || {},
             (border) => updateBorder('bottom', border),
-            'Bottom'
+            t`Bottom`
           )}
           {renderBorderControls(
             internalValue.left || {},
             (border) => updateBorder('left', border),
-            'Left'
+            t`Left`
           )}
         </div>
       )}

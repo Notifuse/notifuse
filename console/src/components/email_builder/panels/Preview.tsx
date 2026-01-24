@@ -1,4 +1,5 @@
 import React, { useState, forwardRef, useImperativeHandle, useRef } from 'react'
+import { useLingui } from '@lingui/react/macro'
 import { Segmented, Tooltip, Tabs, Splitter, Button, App } from 'antd'
 import { OverlayScrollbarsComponent } from 'overlayscrollbars-react'
 import 'overlayscrollbars/overlayscrollbars.css'
@@ -27,6 +28,7 @@ export interface PreviewRef {
 
 export const Preview = forwardRef<PreviewRef, PreviewProps>(
   ({ html, mjml, errors, testData, onTestDataChange, mobileDesktopSwitcherRef }, ref) => {
+    const { t } = useLingui()
     const { message } = App.useApp()
     const [mobileView, setMobileView] = useState(true)
     const [leftPanelSize, setLeftPanelSize] = useState(500)
@@ -81,9 +83,9 @@ export const Preview = forwardRef<PreviewRef, PreviewProps>(
                 </svg>
               </div>
               <div className="ml-3">
-                <h3 className="text-sm font-medium text-green-800">No Issues</h3>
+                <h3 className="text-sm font-medium text-green-800">{t`No Issues`}</h3>
                 <p className="text-sm text-green-700 mt-1">
-                  MJML compilation completed successfully with no warnings or errors.
+                  {t`MJML compilation completed successfully with no warnings or errors.`}
                 </p>
               </div>
             </div>
@@ -93,7 +95,7 @@ export const Preview = forwardRef<PreviewRef, PreviewProps>(
             {errors && errors.length > 0 && (
               <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
                 <h3 className="text-sm font-medium text-amber-800 mb-2">
-                  MJML Compilation Warnings
+                  {t`MJML Compilation Warnings`}
                 </h3>
                 <ul className="text-sm text-amber-700 space-y-1">
                   {errors.map((error: Record<string, unknown>, index: number) => (
@@ -122,12 +124,12 @@ export const Preview = forwardRef<PreviewRef, PreviewProps>(
 
           if (onTestDataChange) {
             onTestDataChange(parsedData)
-            message.success('Test data updated successfully')
+            message.success(t`Test data updated successfully`)
           }
 
           setIsEditingTestData(false)
         } catch {
-          message.error('Invalid JSON format. Please check your syntax.')
+          message.error(t`Invalid JSON format. Please check your syntax.`)
         }
       }
 
@@ -174,13 +176,13 @@ export const Preview = forwardRef<PreviewRef, PreviewProps>(
           <div className="h-full flex flex-col">
             {/* Editor Header */}
             <div className="flex items-center justify-between p-3 border-b border-gray-200 bg-gray-50">
-              <span className="text-sm font-medium text-gray-700">Edit Test Data (JSON)</span>
+              <span className="text-sm font-medium text-gray-700">{t`Edit Test Data (JSON)`}</span>
               <div className="flex gap-2">
                 <Button size="small" onClick={handleCancelEdit}>
-                  Cancel
+                  {t`Cancel`}
                 </Button>
                 <Button size="small" type="primary" onClick={handleSaveTestData}>
-                  Save
+                  {t`Save`}
                 </Button>
               </div>
             </div>
@@ -206,14 +208,14 @@ export const Preview = forwardRef<PreviewRef, PreviewProps>(
 
           <div className="mb-4">
             <Button size="small" type="primary" ghost onClick={handleEditTestData} block>
-              Edit Test Data
+              {t`Edit Test Data`}
             </Button>
           </div>
 
           {/* Read-only Display */}
           <Highlight
             theme={themes.github}
-            code={testData ? JSON.stringify(testData, null, 2) : '// No test data yet...'}
+            code={testData ? JSON.stringify(testData, null, 2) : t`// No test data yet...`}
             language="json"
           >
             {({ className, style, tokens, getLineProps, getTokenProps }) => (
@@ -313,7 +315,7 @@ export const Preview = forwardRef<PreviewRef, PreviewProps>(
     const tabItems = [
       {
         key: 'compilation',
-        label: 'Compilation Results',
+        label: t`Compilation Results`,
         children: (
           <OverlayScrollbarsComponent
             defer
@@ -331,7 +333,7 @@ export const Preview = forwardRef<PreviewRef, PreviewProps>(
       },
       {
         key: 'testdata',
-        label: <span ref={templateDataTabTitleRef}>Template Data</span>,
+        label: <span ref={templateDataTabTitleRef}>{t`Template Data`}</span>,
         children: (
           <OverlayScrollbarsComponent
             defer
@@ -349,7 +351,7 @@ export const Preview = forwardRef<PreviewRef, PreviewProps>(
       },
       {
         key: 'mjml',
-        label: 'MJML',
+        label: t`MJML`,
         children: (
           <OverlayScrollbarsComponent
             defer
@@ -367,7 +369,7 @@ export const Preview = forwardRef<PreviewRef, PreviewProps>(
       },
       {
         key: 'html',
-        label: 'HTML',
+        label: t`HTML`,
         children: (
           <OverlayScrollbarsComponent
             defer
@@ -432,7 +434,7 @@ export const Preview = forwardRef<PreviewRef, PreviewProps>(
                     options={[
                       {
                         label: (
-                          <Tooltip title="Mobile view (400px)">
+                          <Tooltip title={t`Mobile view (400px)`}>
                             <FontAwesomeIcon icon={faMobileAlt} />
                           </Tooltip>
                         ),
@@ -440,7 +442,7 @@ export const Preview = forwardRef<PreviewRef, PreviewProps>(
                       },
                       {
                         label: (
-                          <Tooltip title="Desktop view (100%)">
+                          <Tooltip title={t`Desktop view (100%)`}>
                             <FontAwesomeIcon icon={faDesktop} />
                           </Tooltip>
                         ),
@@ -465,7 +467,7 @@ export const Preview = forwardRef<PreviewRef, PreviewProps>(
                     height: '100%',
                     border: 'none'
                   }}
-                  title="Email Preview"
+                  title={t`Email Preview`}
                 />
               </div>
             </div>

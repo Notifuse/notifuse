@@ -4,6 +4,7 @@ import { useForm } from 'antd/lib/form/Form'
 import type { FileManagerSettings } from './interfaces'
 import { ListObjectsV2Command, type ListObjectsV2CommandInput, S3Client } from '@aws-sdk/client-s3'
 import { S3_PROVIDERS, getProviderById, generateEndpoint, type S3Provider } from './s3Providers'
+import { useLingui } from '@lingui/react/macro'
 
 const { Text } = Typography
 
@@ -17,6 +18,7 @@ interface ButtonFilesSettingsProps {
 type ScreenType = 'provider' | 'settings'
 
 const ButtonFilesSettings = (props: ButtonFilesSettingsProps) => {
+  const { t } = useLingui()
   const [loading, setLoading] = useState(false)
   const [form] = useForm()
   const [settingsVisible, setSettingsVisible] = useState(false)
@@ -38,7 +40,6 @@ const ButtonFilesSettings = (props: ButtonFilesSettingsProps) => {
         ? getProviderById(props.settings.provider)
         : null
       const resolvedProvider = existingProvider || getProviderById('other') || null
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSelectedProvider(resolvedProvider)
       setCurrentScreen('settings')
 
@@ -134,7 +135,7 @@ const ButtonFilesSettings = (props: ButtonFilesSettingsProps) => {
             props
               .onUpdateSettings(values)
               .then(() => {
-                message.success('The workspace settings have been updated!')
+                message.success(t`The workspace settings have been updated!`)
                 setLoading(false)
                 toggleSettings()
               })
@@ -160,7 +161,7 @@ const ButtonFilesSettings = (props: ButtonFilesSettingsProps) => {
   const renderProviderSelection = () => (
     <div>
       <Text style={{ display: 'block', marginBottom: 16 }}>
-        Select your storage provider to pre-fill the configuration:
+        {t`Select your storage provider to pre-fill the configuration:`}
       </Text>
       <Row gutter={[12, 12]}>
         {S3_PROVIDERS.map((provider) => (
@@ -188,7 +189,7 @@ const ButtonFilesSettings = (props: ButtonFilesSettingsProps) => {
     <div>
       {hasExistingSettings && (
         <Button type="link" onClick={handleBackToProviders} style={{ padding: 0, marginBottom: 16 }}>
-          &larr; Change provider
+          &larr; {t`Change provider`}
         </Button>
       )}
 
@@ -210,8 +211,8 @@ const ButtonFilesSettings = (props: ButtonFilesSettingsProps) => {
         <Alert
           message={
             selectedProvider
-              ? `Configuring ${selectedProvider.name}`
-              : 'Your files can be uploaded to any S3 compatible storage.'
+              ? t`Configuring ${selectedProvider.name}`
+              : t`Your files can be uploaded to any S3 compatible storage.`
           }
           type="info"
           showIcon
@@ -220,7 +221,7 @@ const ButtonFilesSettings = (props: ButtonFilesSettingsProps) => {
         />
 
         <Form.Item
-          label="S3 Endpoint"
+          label={t`S3 Endpoint`}
           name="endpoint"
           rules={[{ type: 'url', required: true }]}
           help={selectedProvider?.endpointHelp}
@@ -230,7 +231,7 @@ const ButtonFilesSettings = (props: ButtonFilesSettingsProps) => {
 
         {selectedProvider?.regionOptions ? (
           <Form.Item
-            label="S3 region"
+            label={t`S3 region`}
             name="region"
             rules={[{ type: 'string', required: selectedProvider?.regionRequired }]}
           >
@@ -248,7 +249,7 @@ const ButtonFilesSettings = (props: ButtonFilesSettingsProps) => {
           </Form.Item>
         ) : (
           <Form.Item
-            label="S3 region"
+            label={t`S3 region`}
             name="region"
             rules={[{ type: 'string', required: selectedProvider?.regionRequired || false }]}
           >
@@ -259,31 +260,31 @@ const ButtonFilesSettings = (props: ButtonFilesSettingsProps) => {
           </Form.Item>
         )}
 
-        <Form.Item label="S3 access key" name="access_key" rules={[{ type: 'string', required: true }]}>
+        <Form.Item label={t`S3 access key`} name="access_key" rules={[{ type: 'string', required: true }]}>
           <Input />
         </Form.Item>
 
-        <Form.Item label="S3 secret key" name="secret_key" rules={[{ type: 'string', required: true }]}>
+        <Form.Item label={t`S3 secret key`} name="secret_key" rules={[{ type: 'string', required: true }]}>
           <Input type="password" />
         </Form.Item>
 
-        <Form.Item label="S3 bucket" name="bucket" rules={[{ type: 'string', required: true }]}>
+        <Form.Item label={t`S3 bucket`} name="bucket" rules={[{ type: 'string', required: true }]}>
           <Input />
         </Form.Item>
 
         <Form.Item
-          label="Path-style access"
+          label={t`Path-style access`}
           name="force_path_style"
           valuePropName="checked"
-          help="Use path-style URLs (bucket in path instead of subdomain)"
+          help={t`Use path-style URLs (bucket in path instead of subdomain)`}
         >
           <Switch disabled={selectedProvider ? !selectedProvider.showForcePathStyle : false} />
         </Form.Item>
 
         <Form.Item
-          label="CDN endpoint"
+          label={t`CDN endpoint`}
           name="cdn_endpoint"
-          help="URL of the CDN that caches your files"
+          help={t`URL of the CDN that caches your files`}
           rules={[{ type: 'url', required: false }]}
         >
           <Input placeholder="https://cdn.yourbusiness.com" />
@@ -294,9 +295,9 @@ const ButtonFilesSettings = (props: ButtonFilesSettingsProps) => {
 
   const getModalTitle = () => {
     if (currentScreen === 'provider') {
-      return 'Select storage provider'
+      return t`Select storage provider`
     }
-    return 'File storage settings'
+    return t`File storage settings`
   }
 
   const getModalFooter = () => {
@@ -305,10 +306,10 @@ const ButtonFilesSettings = (props: ButtonFilesSettingsProps) => {
     }
     return [
       <Button key="cancel" loading={loading} onClick={toggleSettings}>
-        Cancel
+        {t`Cancel`}
       </Button>,
       <Button key="submit" loading={loading} type="primary" onClick={onFinish}>
-        Save
+        {t`Save`}
       </Button>
     ]
   }

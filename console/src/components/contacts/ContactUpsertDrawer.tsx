@@ -16,6 +16,7 @@ import {
   Tooltip
 } from 'antd'
 import { DeleteOutlined } from '@ant-design/icons'
+import { useLingui } from '@lingui/react/macro'
 import type { InputProps } from 'antd/es/input'
 import type { TextAreaProps } from 'antd/es/input/TextArea'
 import type { SelectProps, DefaultOptionType } from 'antd/es/select'
@@ -35,7 +36,7 @@ const { Text } = Typography
 const { TextArea } = Input
 
 // Custom form input components
-const NullableInput: React.FC<InputProps & { name: string }> = ({ name, ...props }) => {
+const NullableInput: React.FC<InputProps & { name: string; nullLabel: string }> = ({ name, nullLabel, ...props }) => {
   const form = Form.useFormInstance()
   const value = Form.useWatch(name, form)
 
@@ -47,13 +48,13 @@ const NullableInput: React.FC<InputProps & { name: string }> = ({ name, ...props
         onClick={() => form.setFieldValue(name, null)}
         style={{ padding: '0 8px' }}
       >
-        Null
+        {nullLabel}
       </Button>
     </Space.Compact>
   )
 }
 
-const NullableTextArea: React.FC<TextAreaProps & { name: string }> = ({ name, ...props }) => {
+const NullableTextArea: React.FC<TextAreaProps & { name: string; nullLabel: string }> = ({ name, nullLabel, ...props }) => {
   const form = Form.useFormInstance()
   const value = Form.useWatch(name, form)
 
@@ -65,13 +66,13 @@ const NullableTextArea: React.FC<TextAreaProps & { name: string }> = ({ name, ..
         onClick={() => form.setFieldValue(name, null)}
         style={{ padding: '0 8px' }}
       >
-        Null
+        {nullLabel}
       </Button>
     </Space.Compact>
   )
 }
 
-const NullableInputNumber: React.FC<InputNumberProps & { name: string }> = ({ name, ...props }) => {
+const NullableInputNumber: React.FC<InputNumberProps & { name: string; nullLabel: string }> = ({ name, nullLabel, ...props }) => {
   const form = Form.useFormInstance()
   const value = Form.useWatch(name, form)
 
@@ -83,13 +84,13 @@ const NullableInputNumber: React.FC<InputNumberProps & { name: string }> = ({ na
         onClick={() => form.setFieldValue(name, null)}
         style={{ padding: '0 8px' }}
       >
-        Null
+        {nullLabel}
       </Button>
     </Space.Compact>
   )
 }
 
-const NullableDatePicker: React.FC<DatePickerProps & { name: string }> = ({ name, ...props }) => {
+const NullableDatePicker: React.FC<DatePickerProps & { name: string; nullLabel: string }> = ({ name, nullLabel, ...props }) => {
   const form = Form.useFormInstance()
   const value = Form.useWatch(name, form)
 
@@ -101,13 +102,13 @@ const NullableDatePicker: React.FC<DatePickerProps & { name: string }> = ({ name
         onClick={() => form.setFieldValue(name, null)}
         style={{ padding: '0 8px' }}
       >
-        Null
+        {nullLabel}
       </Button>
     </Space.Compact>
   )
 }
 
-const NullableSelect: React.FC<SelectProps & { name: string }> = ({ name, ...props }) => {
+const NullableSelect: React.FC<SelectProps & { name: string; nullLabel: string }> = ({ name, nullLabel, ...props }) => {
   const form = Form.useFormInstance()
   const value = Form.useWatch(name, form)
 
@@ -119,7 +120,7 @@ const NullableSelect: React.FC<SelectProps & { name: string }> = ({ name, ...pro
         onClick={() => form.setFieldValue(name, null)}
         style={{ padding: '0 8px' }}
       >
-        Null
+        {nullLabel}
       </Button>
     </Space.Compact>
   )
@@ -214,6 +215,7 @@ export function ContactUpsertDrawer({
   onClose: externalOnClose,
   buttonProps
 }: ContactUpsertDrawerProps) {
+  const { t } = useLingui()
   const [internalDrawerVisible, setInternalDrawerVisible] = React.useState(false)
   const [selectedFields, setSelectedFields] = React.useState<string[]>([])
   const [selectedFieldToAdd, setSelectedFieldToAdd] = React.useState<string | null>(null)
@@ -296,7 +298,7 @@ export function ContactUpsertDrawer({
               String(fieldValue)
             ) as never
           } catch {
-            message.error(`Invalid JSON in field ${field}`)
+            message.error(t`Invalid JSON in field ${field}`)
             return
           }
         }
@@ -318,14 +320,14 @@ export function ContactUpsertDrawer({
       })
 
       if (response.action === UpsertContactOperationAction.Error) {
-        message.error(response.error || 'Failed to save contact')
+        message.error(response.error || t`Failed to save contact`)
         return
       }
 
       const actionMessage =
         response.action === UpsertContactOperationAction.Create
-          ? 'Contact created successfully'
-          : 'Contact updated successfully'
+          ? t`Contact created successfully`
+          : t`Contact updated successfully`
 
       message.success(actionMessage)
 
@@ -362,7 +364,7 @@ export function ContactUpsertDrawer({
       }
     } catch (error) {
       console.error('Failed to upsert contact:', error)
-      message.error('Failed to save contact. Please try again.')
+      message.error(t`Failed to save contact. Please try again.`)
     } finally {
       setLoading(false)
     }
@@ -390,8 +392,9 @@ export function ContactUpsertDrawer({
       return (
         <NullableTextArea
           name={field}
+          nullLabel={t`Null`}
           rows={4}
-          placeholder={`Enter ${fieldInfo.label.toLowerCase()}`}
+          placeholder={t`Enter ${fieldInfo.label.toLowerCase()}`}
           style={{ fontFamily: 'monospace' }}
         />
       )
@@ -405,7 +408,7 @@ export function ContactUpsertDrawer({
       field === 'custom_number_5'
     ) {
       return (
-        <NullableInputNumber name={field} placeholder={`Enter ${fieldInfo.label.toLowerCase()}`} />
+        <NullableInputNumber name={field} nullLabel={t`Null`} placeholder={t`Enter ${fieldInfo.label.toLowerCase()}`} />
       )
     }
 
@@ -416,14 +419,15 @@ export function ContactUpsertDrawer({
       field === 'custom_datetime_4' ||
       field === 'custom_datetime_5'
     ) {
-      return <NullableDatePicker name={field} showTime format="YYYY-MM-DD HH:mm:ss" />
+      return <NullableDatePicker name={field} nullLabel={t`Null`} showTime format="YYYY-MM-DD HH:mm:ss" />
     }
 
     if (field === 'timezone') {
       return (
         <NullableSelect
           name={field}
-          placeholder="Select timezone"
+          nullLabel={t`Null`}
+          placeholder={t`Select timezone`}
           options={TIMEZONE_OPTIONS}
           showSearch
           filterOption={(input: string, option: DefaultOptionType | undefined) =>
@@ -439,7 +443,8 @@ export function ContactUpsertDrawer({
       return (
         <NullableSelect
           name={field}
-          placeholder="Select country"
+          nullLabel={t`Null`}
+          placeholder={t`Select country`}
           options={CountriesFormOptions}
           showSearch
           filterOption={(input: string, option: DefaultOptionType | undefined) =>
@@ -455,7 +460,8 @@ export function ContactUpsertDrawer({
       return (
         <NullableSelect
           name={field}
-          placeholder="Select language"
+          nullLabel={t`Null`}
+          placeholder={t`Select language`}
           options={Languages}
           showSearch
           filterOption={(input: string, option: DefaultOptionType | undefined) =>
@@ -467,7 +473,7 @@ export function ContactUpsertDrawer({
       )
     }
 
-    return <NullableInput name={field} placeholder={`Enter ${fieldInfo.label.toLowerCase()}`} />
+    return <NullableInput name={field} nullLabel={t`Null`} placeholder={t`Enter ${fieldInfo.label.toLowerCase()}`} />
   }
 
   return (
@@ -478,41 +484,41 @@ export function ContactUpsertDrawer({
           {...defaultButtonProps}
           loading={loading}
         >
-          {buttonContent || (buttonProps?.icon ? '' : contact ? 'Update Contact' : 'Add Contact')}
+          {buttonContent || (buttonProps?.icon ? '' : contact ? t`Update Contact` : t`Add Contact`)}
         </Button>
       )}
 
       <Drawer
-        title={contact ? 'Update Contact' : 'Add Contact'}
+        title={contact ? t`Update Contact` : t`Add Contact`}
         width={500}
         open={drawerVisible}
         onClose={handleClose}
         extra={
           <Space>
             <Button onClick={handleClose} disabled={loading}>
-              Cancel
+              {t`Cancel`}
             </Button>
             <Button type="primary" onClick={() => form.submit()} loading={loading}>
-              Save
+              {t`Save`}
             </Button>
           </Space>
         }
       >
         <Alert
-          description="If a contact with this email already exists, the provided fields will be overwritten. Fields not included in the form will remain unchanged."
+          description={t`If a contact with this email already exists, the provided fields will be overwritten. Fields not included in the form will remain unchanged.`}
           type="info"
           style={{ marginBottom: '16px' }}
         />
         <Form form={form} layout="vertical" onFinish={handleSubmit} disabled={loading}>
           <Form.Item
             name="email"
-            label="Email"
+            label={t`Email`}
             rules={[
-              { required: true, message: 'Email is required' },
-              { type: 'email', message: 'Please enter a valid email' }
+              { required: true, message: t`Email is required` },
+              { type: 'email', message: t`Please enter a valid email` }
             ]}
           >
-            <Input placeholder="Enter email address" disabled={!!contact} />
+            <Input placeholder={t`Enter email address`} disabled={!!contact} />
           </Form.Item>
 
           {selectedFields.map((field) => {
@@ -527,11 +533,11 @@ export function ContactUpsertDrawer({
                   <Space>
                     <span>{fieldInfo.label}</span>
                     <Popconfirm
-                      title="Remove field"
-                      description="Are you sure you want to remove this field?"
+                      title={t`Remove field`}
+                      description={t`Are you sure you want to remove this field?`}
                       onConfirm={() => handleRemoveField(field)}
-                      okText="Yes"
-                      cancelText="No"
+                      okText={t`Yes`}
+                      cancelText={t`No`}
                     >
                       <Button type="text" size="small" icon={<DeleteOutlined />} />
                     </Popconfirm>
@@ -546,10 +552,10 @@ export function ContactUpsertDrawer({
           <Divider />
 
           <div>
-            <Text strong>Add an optional field</Text>
+            <Text strong>{t`Add an optional field`}</Text>
             <div className="mt-2">
               <Select
-                placeholder="Select a field"
+                placeholder={t`Select a field`}
                 style={{ width: '100%' }}
                 value={selectedFieldToAdd}
                 showSearch

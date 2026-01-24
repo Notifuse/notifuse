@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useLingui } from '@lingui/react/macro'
 import type { NodeViewProps } from '@tiptap/react'
 import { NodeViewWrapper } from '@tiptap/react'
 import { Input, Button, Popover, Tooltip, Divider } from 'antd'
@@ -24,6 +25,7 @@ interface ResizeState {
  * Renders simple image when URL is provided
  */
 export function ImageNodeView(props: NodeViewProps) {
+  const { t } = useLingui()
   const { node, updateAttributes, deleteNode, selected } = props
   const [inputValue, setInputValue] = useState(node.attrs.src || '')
   const [error, setError] = useState<string | null>(null)
@@ -86,10 +88,10 @@ export function ImageNodeView(props: NodeViewProps) {
         setError(null)
         updateAttributes({ src: url })
       } else {
-        setError('Please enter a valid image URL')
+        setError(t`Please enter a valid image URL`)
       }
     }
-  }, [inputValue, updateAttributes, deleteNode])
+  }, [inputValue, updateAttributes, deleteNode, t])
 
   // Handle Enter key
   const handleKeyDown = useCallback(
@@ -269,7 +271,7 @@ export function ImageNodeView(props: NodeViewProps) {
           <Input
             ref={inputRef}
             className="image-input"
-            placeholder="Enter image URL or select from storage"
+            placeholder={t`Enter image URL or select from storage`}
             value={inputValue}
             status={error ? 'error' : undefined}
             suffix={
@@ -279,7 +281,7 @@ export function ImageNodeView(props: NodeViewProps) {
                 acceptItem={(item: StorageObject) =>
                   !item.is_folder && item.file_info?.content_type?.startsWith('image/')
                 }
-                buttonText="Select image"
+                buttonText={t`Select image`}
                 type="link"
                 size="small"
               />
@@ -296,7 +298,7 @@ export function ImageNodeView(props: NodeViewProps) {
             }}
           />
           {error && <div className="image-error">{error}</div>}
-          <div className="image-hint">Press Enter to confirm, Escape to cancel</div>
+          <div className="image-hint">{t`Press Enter to confirm, Escape to cancel`}</div>
         </div>
       </NodeViewWrapper>
     )
@@ -309,13 +311,13 @@ export function ImageNodeView(props: NodeViewProps) {
         <label
           style={{ display: 'block', marginBottom: '4px', fontSize: '12px', fontWeight: '500' }}
         >
-          Alternative text (for accessibility)
+          {t`Alternative text (for accessibility)`}
         </label>
         <Input
           ref={altInputRef}
           value={altValue}
           onChange={(e) => handleAltChange(e.target.value)}
-          placeholder="Describe this image..."
+          placeholder={t`Describe this image...`}
           allowClear
           maxLength={125}
           showCount
@@ -324,7 +326,7 @@ export function ImageNodeView(props: NodeViewProps) {
         />
       </div>
       <div style={{ fontSize: '11px', color: '#8c8c8c' }}>
-        Helps screen readers describe the image
+        {t`Helps screen readers describe the image`}
       </div>
     </div>
   )
@@ -337,7 +339,7 @@ export function ImageNodeView(props: NodeViewProps) {
       onMouseDown={(e) => e.stopPropagation()}
     >
       <div className="notifuse-editor-toolbar-section">
-        <Tooltip title="Align left">
+        <Tooltip title={t`Align left`}>
           <Button
             size="small"
             icon={
@@ -354,7 +356,7 @@ export function ImageNodeView(props: NodeViewProps) {
             }`}
           />
         </Tooltip>
-        <Tooltip title="Align center">
+        <Tooltip title={t`Align center`}>
           <Button
             size="small"
             icon={
@@ -371,7 +373,7 @@ export function ImageNodeView(props: NodeViewProps) {
             }`}
           />
         </Tooltip>
-        <Tooltip title="Align right">
+        <Tooltip title={t`Align right`}>
           <Button
             size="small"
             icon={
@@ -393,7 +395,7 @@ export function ImageNodeView(props: NodeViewProps) {
       <Divider type="vertical" style={{ height: '20px', margin: '0 4px' }} />
 
       <div className="notifuse-editor-toolbar-section">
-        <Tooltip title="Toggle caption">
+        <Tooltip title={t`Toggle caption`}>
           <Button
             size="small"
             icon={
@@ -416,13 +418,13 @@ export function ImageNodeView(props: NodeViewProps) {
 
         <Popover
           content={altTextPopoverContent}
-          title="Alt Text"
+          title={t`Alt Text`}
           trigger="click"
           open={altPopoverOpen}
           onOpenChange={setAltPopoverOpen}
           placement="bottomRight"
         >
-          <Tooltip title="Edit alt text">
+          <Tooltip title={t`Edit alt text`}>
             <Button
               size="small"
               icon={
@@ -519,7 +521,7 @@ export function ImageNodeView(props: NodeViewProps) {
           <Input
             ref={captionInputRef}
             variant="borderless"
-            placeholder="Add a caption..."
+            placeholder={t`Add a caption...`}
             value={caption}
             onChange={handleCaptionChange}
             className="image-caption-input"

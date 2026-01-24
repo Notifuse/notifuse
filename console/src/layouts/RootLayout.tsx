@@ -1,9 +1,11 @@
 import { Outlet, useNavigate, useMatch } from '@tanstack/react-router'
 import { Spin } from 'antd'
+import { useLingui } from '@lingui/react/macro'
 import { useAuth } from '../contexts/AuthContext'
 import { useEffect } from 'react'
 
 export function RootLayout() {
+  const { t } = useLingui()
   const { isAuthenticated, loading, workspaces } = useAuth()
   const navigate = useNavigate()
 
@@ -85,7 +87,7 @@ export function RootLayout() {
       <div
         style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}
       >
-        <Spin size="large" tip="Loading..." fullscreen />
+        <Spin size="large" tip={t`Loading...`} fullscreen />
       </div>
     )
   }

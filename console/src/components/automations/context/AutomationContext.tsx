@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useCallback, useMemo, useRe
 import { v4 as uuidv4 } from 'uuid'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { App } from 'antd'
+import { useLingui } from '@lingui/react/macro'
 import type { Node, Edge } from '@xyflow/react'
 import {
   automationApi,
@@ -98,6 +99,7 @@ export function AutomationProvider({
   onClose: _onClose,
   children
 }: AutomationProviderProps) {
+  const { t } = useLingui()
   const queryClient = useQueryClient()
   const { message } = App.useApp()
 
@@ -165,7 +167,7 @@ export function AutomationProvider({
     if (!newListId) {
       const hasEmailNodes = nodes.some(n => n.data.nodeType === 'email')
       if (hasEmailNodes) {
-        message.error('Cannot remove list while email nodes exist. Delete email nodes first.')
+        message.error(t`Cannot remove list while email nodes exist. Delete email nodes first.`)
         return
       }
     }
@@ -239,7 +241,7 @@ export function AutomationProvider({
 
     setListId(newListId)
     setHasUnsavedChanges(true)
-  }, [nodes, edges, message])
+  }, [nodes, edges, message, t])
 
   // Push current canvas state to history (call BEFORE making changes)
   const pushHistory = useCallback(() => {
@@ -282,12 +284,12 @@ export function AutomationProvider({
     mutationFn: (data: { workspace_id: string; automation: Automation }) =>
       automationApi.create(data),
     onSuccess: () => {
-      message.success('Automation created successfully')
+      message.success(t`Automation created successfully`)
       queryClient.invalidateQueries({ queryKey: ['automations', workspace.id] })
       onSaveSuccess?.()
     },
     onError: (error: Error) => {
-      message.error(`Failed to create automation: ${error.message}`)
+      message.error(t`Failed to create automation: ${error.message}`)
       setLastError(error)
     }
   })
@@ -297,12 +299,12 @@ export function AutomationProvider({
     mutationFn: (data: { workspace_id: string; automation: Automation }) =>
       automationApi.update(data),
     onSuccess: () => {
-      message.success('Automation updated successfully')
+      message.success(t`Automation updated successfully`)
       queryClient.invalidateQueries({ queryKey: ['automations', workspace.id] })
       onSaveSuccess?.()
     },
     onError: (error: Error) => {
-      message.error(`Failed to update automation: ${error.message}`)
+      message.error(t`Failed to update automation: ${error.message}`)
       setLastError(error)
     }
   })
@@ -311,7 +313,7 @@ export function AutomationProvider({
   const save = useCallback(async () => {
     // Validate name
     if (!name.trim()) {
-      message.error('Please enter an automation name')
+      message.error(t`Please enter an automation name`)
       return
     }
 
@@ -368,7 +370,7 @@ export function AutomationProvider({
     } finally {
       setIsSaving(false)
     }
-  }, [name, listId, nodes, edges, automation, workspace.id, isEditing, validate, createMutation, updateMutation, message])
+  }, [name, listId, nodes, edges, automation, workspace.id, isEditing, validate, createMutation, updateMutation, message, t])
 
   // Reset state
   const reset = useCallback(() => {

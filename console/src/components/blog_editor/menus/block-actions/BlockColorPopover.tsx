@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useLingui } from '@lingui/react/macro'
 import { Popover } from 'antd'
 import { Palette, ChevronRight } from 'lucide-react'
 import type { MenuProps } from 'antd'
@@ -13,6 +14,7 @@ import { ColorGrid } from '../../components/colors/ColorGrid'
 export function useBlockColorPopover(
   onCloseMenu: () => void
 ): NonNullable<MenuProps['items']>[number] | null {
+  const { t } = useLingui()
   const { editor } = useNotifuseEditor()
   const [open, setOpen] = useState(false)
   const { recentColors, addRecentColor, isInitialized } = useRecentColors()
@@ -92,7 +94,7 @@ export function useBlockColorPopover(
           }}
         >
           <Palette size={16} />
-          <span style={{ flex: 1 }}>Color</span>
+          <span style={{ flex: 1 }}>{t`Color`}</span>
           <ChevronRight size={16} style={{ opacity: 0.45 }} />
         </div>
       </Popover>

@@ -1,4 +1,5 @@
 import React from 'react'
+import { useLingui } from '@lingui/react/macro'
 import { Switch } from 'antd'
 import type { MJMLComponentType, MJWrapperAttributes, MergedBlockAttributes } from '../types'
 import {
@@ -16,6 +17,163 @@ import PaddingInput from '../ui/PaddingInput'
 import AlignSelector from '../ui/AlignSelector'
 import StringPopoverInput from '../ui/StringPopoverInput'
 import PanelLayout from '../panels/PanelLayout'
+
+// Functional component for settings panel with i18n support
+interface MjWrapperSettingsPanelProps {
+  currentAttributes: MJWrapperAttributes
+  blockDefaults: MergedBlockAttributes
+  onUpdate: OnUpdateAttributesFunction
+}
+
+const MjWrapperSettingsPanel: React.FC<MjWrapperSettingsPanelProps> = ({
+  currentAttributes,
+  blockDefaults,
+  onUpdate
+}) => {
+  const { t } = useLingui()
+
+  const handleAttributeChange = (key: string, value: unknown) => {
+    onUpdate({ [key]: value })
+  }
+
+  const handleBackgroundChange = (backgroundValues: Record<string, unknown>) => {
+    onUpdate(backgroundValues)
+  }
+
+  return (
+    <PanelLayout title={t`Wrapper Attributes`}>
+      <div className="space-y-4">
+        {/* Background Settings */}
+        <BackgroundInput
+          value={{
+            backgroundColor: currentAttributes.backgroundColor,
+            backgroundUrl: currentAttributes.backgroundUrl,
+            backgroundSize: currentAttributes.backgroundSize,
+            backgroundRepeat: currentAttributes.backgroundRepeat,
+            backgroundPosition: currentAttributes.backgroundPosition
+          }}
+          onChange={handleBackgroundChange}
+        />
+
+        {/* Border Settings */}
+        <InputLayout label={t`Border`} layout="vertical">
+          <BorderInput
+            className="-mt-6"
+            value={{
+              borderTop: currentAttributes.borderTop,
+              borderRight: currentAttributes.borderRight,
+              borderBottom: currentAttributes.borderBottom,
+              borderLeft: currentAttributes.borderLeft
+            }}
+            onChange={(borderValues) => {
+              onUpdate({
+                borderTop: borderValues.borderTop,
+                borderRight: borderValues.borderRight,
+                borderBottom: borderValues.borderBottom,
+                borderLeft: borderValues.borderLeft
+              })
+            }}
+          />
+        </InputLayout>
+
+        {/* Border Radius */}
+        <InputLayout label={t`Border radius`}>
+          <BorderRadiusInput
+            value={currentAttributes.borderRadius}
+            onChange={(value) => onUpdate({ borderRadius: value })}
+            defaultValue={blockDefaults.borderRadius}
+          />
+        </InputLayout>
+
+        {/* Full Width */}
+
+        <InputLayout
+          label={t`Full Width`}
+          help={t`Makes the wrapper span the entire email viewport width, ignoring container constraints (typically 600px). Useful for full-bleed backgrounds and hero sections.`}
+        >
+          <Switch
+            size="small"
+            checked={currentAttributes.fullWidth === 'full-width'}
+            onChange={(checked) =>
+              handleAttributeChange('fullWidth', checked ? 'full-width' : '')
+            }
+          />
+        </InputLayout>
+
+        {/* Padding Settings */}
+        <InputLayout label={t`Padding`} layout="vertical">
+          <PaddingInput
+            value={{
+              top: currentAttributes.paddingTop,
+              right: currentAttributes.paddingRight,
+              bottom: currentAttributes.paddingBottom,
+              left: currentAttributes.paddingLeft
+            }}
+            defaultValue={{
+              top: blockDefaults.paddingTop,
+              right: blockDefaults.paddingRight,
+              bottom: blockDefaults.paddingBottom,
+              left: blockDefaults.paddingLeft
+            }}
+            onChange={(values: {
+              top: string | undefined
+              right: string | undefined
+              bottom: string | undefined
+              left: string | undefined
+            }) => {
+              onUpdate({
+                paddingTop: values.top,
+                paddingRight: values.right,
+                paddingBottom: values.bottom,
+                paddingLeft: values.left
+              })
+            }}
+          />
+        </InputLayout>
+
+        {/* Text Alignment */}
+        <InputLayout label={t`Text Alignment`}>
+          <AlignSelector
+            value={currentAttributes.textAlign || blockDefaults.textAlign || 'left'}
+            onChange={(value) => handleAttributeChange('textAlign', value)}
+          />
+        </InputLayout>
+
+        {/* CSS Class */}
+        <InputLayout label={t`CSS Class`} help={t`Custom CSS class for styling`}>
+          <StringPopoverInput
+            value={currentAttributes.cssClass || ''}
+            onChange={(value) => handleAttributeChange('cssClass', value)}
+            placeholder={t`my-custom-class`}
+            buttonText={t`Set Value`}
+          />
+        </InputLayout>
+      </div>
+    </PanelLayout>
+  )
+}
+
+// Functional component for empty wrapper placeholder with i18n support
+const MjWrapperEmptyPlaceholder: React.FC = () => {
+  const { t } = useLingui()
+
+  return (
+    <div
+      style={{
+        padding: '20px',
+        backgroundColor: '#f8f9fa',
+        border: '2px dashed #dee2e6',
+        borderRadius: '4px',
+        color: '#6c757d',
+        fontSize: '14px',
+        textAlign: 'center',
+        margin: '10px'
+      }}
+    >
+      {t`This wrapper has no sections. Add a section to display content.`}
+    </div>
+  )
+}
 
 /**
  * Implementation for mj-wrapper blocks
@@ -85,124 +243,12 @@ export class MjWrapperBlock extends BaseEmailBlock {
   ): React.ReactNode {
     const currentAttributes = this.block.attributes as MJWrapperAttributes
 
-    const handleAttributeChange = (key: string, value: unknown) => {
-      onUpdate({ [key]: value })
-    }
-
-    const handleBackgroundChange = (backgroundValues: Record<string, unknown>) => {
-      onUpdate(backgroundValues)
-    }
-
     return (
-      <PanelLayout title="Wrapper Attributes">
-        <div className="space-y-4">
-          {/* Background Settings */}
-          <BackgroundInput
-            value={{
-              backgroundColor: currentAttributes.backgroundColor,
-              backgroundUrl: currentAttributes.backgroundUrl,
-              backgroundSize: currentAttributes.backgroundSize,
-              backgroundRepeat: currentAttributes.backgroundRepeat,
-              backgroundPosition: currentAttributes.backgroundPosition
-            }}
-            onChange={handleBackgroundChange}
-          />
-
-          {/* Border Settings */}
-          <InputLayout label="Border" layout="vertical">
-            <BorderInput
-              className="-mt-6"
-              value={{
-                borderTop: currentAttributes.borderTop,
-                borderRight: currentAttributes.borderRight,
-                borderBottom: currentAttributes.borderBottom,
-                borderLeft: currentAttributes.borderLeft
-              }}
-              onChange={(borderValues) => {
-                onUpdate({
-                  borderTop: borderValues.borderTop,
-                  borderRight: borderValues.borderRight,
-                  borderBottom: borderValues.borderBottom,
-                  borderLeft: borderValues.borderLeft
-                })
-              }}
-            />
-          </InputLayout>
-
-          {/* Border Radius */}
-          <InputLayout label="Border radius">
-            <BorderRadiusInput
-              value={currentAttributes.borderRadius}
-              onChange={(value) => onUpdate({ borderRadius: value })}
-              defaultValue={blockDefaults.borderRadius}
-            />
-          </InputLayout>
-
-          {/* Full Width */}
-
-          <InputLayout
-            label="Full Width"
-            help="Makes the wrapper span the entire email viewport width, ignoring container constraints (typically 600px). Useful for full-bleed backgrounds and hero sections."
-          >
-            <Switch
-              size="small"
-              checked={currentAttributes.fullWidth === 'full-width'}
-              onChange={(checked) =>
-                handleAttributeChange('fullWidth', checked ? 'full-width' : '')
-              }
-            />
-          </InputLayout>
-
-          {/* Padding Settings */}
-          <InputLayout label="Padding" layout="vertical">
-            <PaddingInput
-              value={{
-                top: currentAttributes.paddingTop,
-                right: currentAttributes.paddingRight,
-                bottom: currentAttributes.paddingBottom,
-                left: currentAttributes.paddingLeft
-              }}
-              defaultValue={{
-                top: blockDefaults.paddingTop,
-                right: blockDefaults.paddingRight,
-                bottom: blockDefaults.paddingBottom,
-                left: blockDefaults.paddingLeft
-              }}
-              onChange={(values: {
-                top: string | undefined
-                right: string | undefined
-                bottom: string | undefined
-                left: string | undefined
-              }) => {
-                onUpdate({
-                  paddingTop: values.top,
-                  paddingRight: values.right,
-                  paddingBottom: values.bottom,
-                  paddingLeft: values.left
-                })
-              }}
-            />
-          </InputLayout>
-
-          {/* Text Alignment */}
-          <InputLayout label="Text Alignment">
-            <AlignSelector
-              value={currentAttributes.textAlign || blockDefaults.textAlign || 'left'}
-              onChange={(value) => handleAttributeChange('textAlign', value)}
-            />
-          </InputLayout>
-
-          {/* CSS Class */}
-          <InputLayout label="CSS Class" help="Custom CSS class for styling">
-            <StringPopoverInput
-              value={currentAttributes.cssClass || ''}
-              onChange={(value) => handleAttributeChange('cssClass', value)}
-              placeholder="my-custom-class"
-              buttonText="Set Value"
-            />
-          </InputLayout>
-        </div>
-      </PanelLayout>
+      <MjWrapperSettingsPanel
+        currentAttributes={currentAttributes}
+        blockDefaults={blockDefaults}
+        onUpdate={onUpdate}
+      />
     )
   }
 
@@ -280,20 +326,7 @@ export class MjWrapperBlock extends BaseEmailBlock {
       >
         <div style={innerWrapperStyle}>
           {!hasSections ? (
-            <div
-              style={{
-                padding: '20px',
-                backgroundColor: '#f8f9fa',
-                border: '2px dashed #dee2e6',
-                borderRadius: '4px',
-                color: '#6c757d',
-                fontSize: '14px',
-                textAlign: 'center',
-                margin: '10px'
-              }}
-            >
-              📦 This wrapper has no sections. Add a section to display content.
-            </div>
+            <MjWrapperEmptyPlaceholder />
           ) : (
             this.block.children?.map((child) => (
               <React.Fragment key={child.id}>

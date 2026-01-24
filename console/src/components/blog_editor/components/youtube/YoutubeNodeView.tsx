@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useLingui } from '@lingui/react/macro'
 import type { NodeViewProps } from '@tiptap/react'
 import { NodeViewWrapper } from '@tiptap/react'
 import { Input, Button, Popover, Tooltip, Divider, Switch } from 'antd'
@@ -97,6 +98,7 @@ function formatSecondsToTime(seconds: number): string {
  * Renders YouTube iframe when URL is valid
  */
 export function YoutubeNodeView(props: NodeViewProps) {
+  const { t } = useLingui()
   const { node, updateAttributes, deleteNode, selected } = props
   const [inputValue, setInputValue] = useState(node.attrs.src || '')
   const [error, setError] = useState<string | null>(null)
@@ -155,14 +157,14 @@ export function YoutubeNodeView(props: NodeViewProps) {
     const videoId = getYoutubeVideoId(url)
 
     if (!videoId) {
-      setError('Please enter a valid YouTube URL')
+      setError(t`Please enter a valid YouTube URL`)
       return
     }
 
     // Clear error and update node
     setError(null)
     updateAttributes({ src: url })
-  }, [inputValue, updateAttributes, deleteNode])
+  }, [inputValue, updateAttributes, deleteNode, t])
 
   // Handle Enter key
   const handleKeyDown = useCallback(
@@ -228,13 +230,13 @@ export function YoutubeNodeView(props: NodeViewProps) {
 
       const seconds = parseTimeToSeconds(value)
       if (seconds === null) {
-        setStartTimeError('Invalid format. Use: 90 or 1:30 or 1:00:30')
+        setStartTimeError(t`Invalid format. Use: 90 or 1:30 or 1:00:30`)
       } else {
         setStartTimeError(null)
         updateAttributes({ start: seconds })
       }
     },
-    [updateAttributes]
+    [updateAttributes, t]
   )
 
   // Sync start time input with node attribute when playback popover opens
@@ -335,7 +337,7 @@ export function YoutubeNodeView(props: NodeViewProps) {
           <Input
             ref={inputRef}
             className="youtube-input"
-            placeholder="Paste YouTube URL..."
+            placeholder={t`Paste YouTube URL...`}
             value={inputValue}
             status={error ? 'error' : undefined}
             suffix={
@@ -367,7 +369,7 @@ export function YoutubeNodeView(props: NodeViewProps) {
             }}
           />
           {error && <div className="youtube-error">{error}</div>}
-          <div className="youtube-hint">Press Enter or click OK to confirm, Escape to cancel</div>
+          <div className="youtube-hint">{t`Press Enter or click OK to confirm, Escape to cancel`}</div>
         </div>
       </NodeViewWrapper>
     )
@@ -389,7 +391,7 @@ export function YoutubeNodeView(props: NodeViewProps) {
             marginBottom: '8px'
           }}
         >
-          <span style={{ fontSize: '13px', fontWeight: '500' }}>Closed Captions (CC)</span>
+          <span style={{ fontSize: '13px', fontWeight: '500' }}>{t`Closed Captions (CC)`}</span>
           <Switch
             size="small"
             checked={cc}
@@ -399,7 +401,7 @@ export function YoutubeNodeView(props: NodeViewProps) {
           />
         </div>
         <div style={{ fontSize: '11px', color: '#8c8c8c', marginBottom: '12px' }}>
-          Enable closed captions by default
+          {t`Enable closed captions by default`}
         </div>
       </div>
 
@@ -414,7 +416,7 @@ export function YoutubeNodeView(props: NodeViewProps) {
             marginBottom: '8px'
           }}
         >
-          <span style={{ fontSize: '13px', fontWeight: '500' }}>Loop</span>
+          <span style={{ fontSize: '13px', fontWeight: '500' }}>{t`Loop`}</span>
           <Switch
             size="small"
             checked={loop}
@@ -424,7 +426,7 @@ export function YoutubeNodeView(props: NodeViewProps) {
           />
         </div>
         <div style={{ fontSize: '11px', color: '#8c8c8c', marginBottom: '12px' }}>
-          Repeat video continuously
+          {t`Repeat video continuously`}
         </div>
       </div>
 
@@ -437,7 +439,7 @@ export function YoutubeNodeView(props: NodeViewProps) {
             marginBottom: '8px'
           }}
         >
-          <span style={{ fontSize: '13px', fontWeight: '500' }}>Show Controls</span>
+          <span style={{ fontSize: '13px', fontWeight: '500' }}>{t`Show Controls`}</span>
           <Switch
             size="small"
             checked={controls}
@@ -447,7 +449,7 @@ export function YoutubeNodeView(props: NodeViewProps) {
           />
         </div>
         <div style={{ fontSize: '11px', color: '#8c8c8c', marginBottom: '12px' }}>
-          Display video player controls
+          {t`Display video player controls`}
         </div>
       </div>
 
@@ -460,7 +462,7 @@ export function YoutubeNodeView(props: NodeViewProps) {
             marginBottom: '8px'
           }}
         >
-          <span style={{ fontSize: '13px', fontWeight: '500' }}>Modest Branding</span>
+          <span style={{ fontSize: '13px', fontWeight: '500' }}>{t`Modest Branding`}</span>
           <Switch
             size="small"
             checked={modestbranding}
@@ -470,7 +472,7 @@ export function YoutubeNodeView(props: NodeViewProps) {
           />
         </div>
         <div style={{ fontSize: '11px', color: '#8c8c8c', marginBottom: '12px' }}>
-          Minimize YouTube branding
+          {t`Minimize YouTube branding`}
         </div>
       </div>
 
@@ -481,7 +483,7 @@ export function YoutubeNodeView(props: NodeViewProps) {
           <label
             style={{ display: 'block', marginBottom: '4px', fontSize: '13px', fontWeight: '500' }}
           >
-            Start Time
+            {t`Start Time`}
           </label>
           <Input
             value={startTimeInput}
@@ -500,7 +502,7 @@ export function YoutubeNodeView(props: NodeViewProps) {
           </div>
         )}
         <div style={{ fontSize: '11px', color: '#8c8c8c' }}>
-          Video starts at this timestamp (MM:SS, HH:MM:SS, or seconds)
+          {t`Video starts at this timestamp (MM:SS, HH:MM:SS, or seconds)`}
         </div>
       </div>
     </div>
@@ -514,7 +516,7 @@ export function YoutubeNodeView(props: NodeViewProps) {
       onMouseDown={(e) => e.stopPropagation()}
     >
       <div className="notifuse-editor-toolbar-section">
-        <Tooltip title="Align left">
+        <Tooltip title={t`Align left`}>
           <Button
             size="small"
             icon={
@@ -531,7 +533,7 @@ export function YoutubeNodeView(props: NodeViewProps) {
             }`}
           />
         </Tooltip>
-        <Tooltip title="Align center">
+        <Tooltip title={t`Align center`}>
           <Button
             size="small"
             icon={
@@ -548,7 +550,7 @@ export function YoutubeNodeView(props: NodeViewProps) {
             }`}
           />
         </Tooltip>
-        <Tooltip title="Align right">
+        <Tooltip title={t`Align right`}>
           <Button
             size="small"
             icon={
@@ -570,7 +572,7 @@ export function YoutubeNodeView(props: NodeViewProps) {
       <Divider type="vertical" style={{ height: '20px', margin: '0 4px' }} />
 
       <div className="notifuse-editor-toolbar-section">
-        <Tooltip title="Toggle caption">
+        <Tooltip title={t`Toggle caption`}>
           <Button
             size="small"
             icon={
@@ -593,13 +595,13 @@ export function YoutubeNodeView(props: NodeViewProps) {
 
         <Popover
           content={playbackOptionsContent}
-          title="Playback Options"
+          title={t`Playback Options`}
           trigger="click"
           open={playbackPopoverOpen}
           onOpenChange={setPlaybackPopoverOpen}
           placement="bottomRight"
         >
-          <Tooltip title="Playback options">
+          <Tooltip title={t`Playback options`}>
             <Button
               size="small"
               icon={
@@ -698,7 +700,7 @@ export function YoutubeNodeView(props: NodeViewProps) {
               )}
             </>
           ) : (
-            <div className="youtube-error">Invalid YouTube URL</div>
+            <div className="youtube-error">{t`Invalid YouTube URL`}</div>
           )}
           {selected && (
             <>
@@ -725,7 +727,7 @@ export function YoutubeNodeView(props: NodeViewProps) {
           <Input
             ref={captionInputRef}
             variant="borderless"
-            placeholder="Add a caption..."
+            placeholder={t`Add a caption...`}
             value={caption}
             onChange={handleCaptionChange}
             className="youtube-caption-input"

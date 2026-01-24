@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { Card, Button, Table, Tag, Space, Tooltip } from 'antd'
 import { useNavigate } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
+import { useLingui } from '@lingui/react/macro'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faBan, faTriangleExclamation } from '@fortawesome/free-solid-svg-icons'
 import { faHourglass, faFaceFrown, faCircleCheck } from '@fortawesome/free-regular-svg-icons'
@@ -15,6 +16,7 @@ interface NewContactsTableProps {
 }
 
 export const NewContactsTable: React.FC<NewContactsTableProps> = ({ workspace }) => {
+  const { t } = useLingui()
   const navigate = useNavigate()
   const [contacts, setContacts] = useState<Contact[]>([])
   const [loading, setLoading] = useState(false)
@@ -42,7 +44,7 @@ export const NewContactsTable: React.FC<NewContactsTableProps> = ({ workspace })
       setContacts(response.contacts)
     } catch (err) {
       console.error('Failed to fetch new contacts data:', err)
-      setError(err instanceof Error ? err.message : 'Failed to fetch new contacts data')
+      setError(err instanceof Error ? err.message : t`Failed to fetch new contacts data`)
     } finally {
       setLoading(false)
     }
@@ -62,13 +64,13 @@ export const NewContactsTable: React.FC<NewContactsTableProps> = ({ workspace })
 
   const columns = [
     {
-      title: 'Email',
+      title: t`Email`,
       dataIndex: 'email',
       key: 'email',
       render: (email: string) => <span className="text-sm">{email}</span>
     },
     {
-      title: 'Lists',
+      title: t`Lists`,
       key: 'lists',
       render: (record: Contact) => (
         <Space direction="vertical" size={2}>
@@ -83,33 +85,33 @@ export const NewContactsTable: React.FC<NewContactsTableProps> = ({ workspace })
                 case 'active':
                   color = 'green'
                   icon = <FontAwesomeIcon icon={faCircleCheck} style={{ marginRight: '4px' }} />
-                  statusText = 'Active subscriber'
+                  statusText = t`Active subscriber`
                   break
                 case 'pending':
                   color = 'blue'
                   icon = <FontAwesomeIcon icon={faHourglass} style={{ marginRight: '4px' }} />
-                  statusText = 'Pending confirmation'
+                  statusText = t`Pending confirmation`
                   break
                 case 'unsubscribed':
                   color = 'gray'
                   icon = <FontAwesomeIcon icon={faBan} style={{ marginRight: '4px' }} />
-                  statusText = 'Unsubscribed from list'
+                  statusText = t`Unsubscribed from list`
                   break
                 case 'bounced':
                   color = 'orange'
                   icon = (
                     <FontAwesomeIcon icon={faTriangleExclamation} style={{ marginRight: '4px' }} />
                   )
-                  statusText = 'Email bounced'
+                  statusText = t`Email bounced`
                   break
                 case 'complained':
                   color = 'red'
                   icon = <FontAwesomeIcon icon={faFaceFrown} style={{ marginRight: '4px' }} />
-                  statusText = 'Marked as spam'
+                  statusText = t`Marked as spam`
                   break
                 default:
                   color = 'blue'
-                  statusText = 'Status unknown'
+                  statusText = t`Status unknown`
                   break
               }
 
@@ -120,16 +122,16 @@ export const NewContactsTable: React.FC<NewContactsTableProps> = ({ workspace })
               // Format creation date if available using workspace timezone
               const creationDate = list.created_at
                 ? dayjs(list.created_at).tz(workspace.settings.timezone).format('LL - HH:mm')
-                : 'Unknown date'
+                : t`Unknown date`
 
               const tooltipTitle = (
                 <>
                   <div>
                     <strong>{statusText}</strong>
                   </div>
-                  <div>Subscribed on: {creationDate}</div>
+                  <div>{t`Subscribed on`}: {creationDate}</div>
                   <div>
-                    <small>Timezone: {workspace.settings.timezone}</small>
+                    <small>{t`Timezone`}: {workspace.settings.timezone}</small>
                   </div>
                 </>
               )
@@ -153,7 +155,7 @@ export const NewContactsTable: React.FC<NewContactsTableProps> = ({ workspace })
       )
     },
     {
-      title: 'Name',
+      title: t`Name`,
       key: 'name',
       render: (record: Contact) => {
         const name = [record.first_name, record.last_name].filter(Boolean).join(' ')
@@ -161,25 +163,25 @@ export const NewContactsTable: React.FC<NewContactsTableProps> = ({ workspace })
       }
     },
     {
-      title: 'Language',
+      title: t`Language`,
       dataIndex: 'language',
       key: 'language',
       render: (language: string) => <span className="text-sm">{language || '-'}</span>
     },
     {
-      title: 'Timezone',
+      title: t`Timezone`,
       dataIndex: 'timezone',
       key: 'timezone',
       render: (timezone: string) => <span className="text-sm">{timezone || '-'}</span>
     },
     {
-      title: 'Country',
+      title: t`Country`,
       dataIndex: 'country',
       key: 'country',
       render: (country: string) => <span className="text-sm">{country || '-'}</span>
     },
     {
-      title: 'Since',
+      title: t`Since`,
       dataIndex: 'created_at',
       key: 'created_at',
       render: (date: string) => (
@@ -195,15 +197,15 @@ export const NewContactsTable: React.FC<NewContactsTableProps> = ({ workspace })
 
   const cardExtra = (
     <Button type="link" size="small" onClick={handleViewMore}>
-      View more
+      {t`View more`}
     </Button>
   )
 
   return (
-    <Card title="Recent New Contacts" extra={cardExtra}>
+    <Card title={t`Recent New Contacts`} extra={cardExtra}>
       {error ? (
         <div className="text-red-500 p-4">
-          <p>Error: {error}</p>
+          <p>{t`Error`}: {error}</p>
         </div>
       ) : (
         <Table

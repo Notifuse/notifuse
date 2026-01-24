@@ -1,3 +1,4 @@
+import { useLingui } from '@lingui/react/macro'
 import { message } from 'antd'
 import { Sparkles } from 'lucide-react'
 import { useAIAssistant, AIAssistantChat } from '../ai-assistant'
@@ -19,17 +20,7 @@ interface BlogAIAssistantProps {
   currentMetadata?: BlogMetadata
 }
 
-const config: AIAssistantConfig = {
-  title: 'AI Blog Assistant',
-  icon: <Sparkles size={18} />,
-  iconButton: <Sparkles size={24} />,
-  iconLarge: <Sparkles size={32} />,
-  iconColor: '#764ba2',
-  avatarColor: '#764ba2',
-  placeholder: 'Ask me to help write your blog...',
-  maxTokens: 4096,
-  notConfiguredGradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
-}
+// Note: Config is created inside component to access t() for translations
 
 export function BlogAIAssistant({
   workspace,
@@ -38,6 +29,20 @@ export function BlogAIAssistant({
   currentContent,
   currentMetadata
 }: BlogAIAssistantProps) {
+  const { t } = useLingui()
+
+  const config: AIAssistantConfig = {
+    title: t`AI Blog Assistant`,
+    icon: <Sparkles size={18} />,
+    iconButton: <Sparkles size={24} />,
+    iconLarge: <Sparkles size={32} />,
+    iconColor: '#764ba2',
+    avatarColor: '#764ba2',
+    placeholder: t`Ask me to help write your blog...`,
+    maxTokens: 4096,
+    notConfiguredGradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+  }
+
   const buildSystemPrompt = () => {
     let systemPrompt = BLOG_AI_SYSTEM_PROMPT
 

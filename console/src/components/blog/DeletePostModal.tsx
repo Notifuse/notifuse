@@ -1,3 +1,4 @@
+import { useLingui } from '@lingui/react/macro'
 import { Modal, Typography } from 'antd'
 import type { BlogPost } from '../../services/api/blog'
 
@@ -18,20 +19,21 @@ export function DeletePostModal({
   onCancel,
   loading
 }: DeletePostModalProps) {
+  const { t } = useLingui()
   return (
     <Modal
-      title="Delete Post"
+      title={t`Delete Post`}
       open={open}
       onOk={onConfirm}
       onCancel={onCancel}
-      okText="Delete"
+      okText={t`Delete`}
       okButtonProps={{ danger: true, loading }}
       cancelButtonProps={{ disabled: loading }}
     >
       <Paragraph>
-        Are you sure you want to delete the post <strong>{post?.settings.title}</strong>?
+        {t`Are you sure you want to delete the post`} <strong>{post?.settings.title}</strong>?
       </Paragraph>
-      <Paragraph type="secondary">This action cannot be undone.</Paragraph>
+      <Paragraph type="secondary">{t`This action cannot be undone.`}</Paragraph>
     </Modal>
   )
 }

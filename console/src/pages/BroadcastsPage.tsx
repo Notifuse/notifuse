@@ -21,6 +21,7 @@ import {
   Table
 } from 'antd'
 import { useParams } from '@tanstack/react-router'
+import { useLingui } from '@lingui/react/macro'
 import { broadcastApi, Broadcast, TestResultsResponse } from '../services/api/broadcast'
 import { listsApi } from '../services/api/list'
 import { taskApi } from '../services/api/task'
@@ -100,40 +101,43 @@ const getRemainingTestTime = (broadcast: Broadcast, testResults?: TestResultsRes
 const getStatusBadge = (
   broadcast: Broadcast,
   remainingTime?: string | null,
-  progressStats?: ProgressStats
+  progressStats?: ProgressStats,
+  t?: (strings: TemplateStringsArray, ...values: unknown[]) => string
 ) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const translate = t || ((s: TemplateStringsArray) => s[0] as any)
   switch (broadcast.status) {
     case 'draft':
       return (
-        <Tooltip title="This broadcast is a draft and has not been scheduled or sent yet.">
+        <Tooltip title={translate`This broadcast is a draft and has not been scheduled or sent yet.`}>
           <span>
-            <Badge status="default" text="Draft" />
+            <Badge status="default" text={translate`Draft`} />
           </span>
         </Tooltip>
       )
     case 'scheduled':
       return (
-        <Tooltip title="This broadcast is scheduled and will start sending at the specified time.">
+        <Tooltip title={translate`This broadcast is scheduled and will start sending at the specified time.`}>
           <span>
-            <Badge status="processing" text="Scheduled" />
+            <Badge status="processing" text={translate`Scheduled`} />
           </span>
         </Tooltip>
       )
     case 'processing':
       return (
-        <Tooltip title="Preparing emails for delivery. Contacts are being added to the sending queue.">
+        <Tooltip title={translate`Preparing emails for delivery. Contacts are being added to the sending queue.`}>
           <span>
-            <Badge status="processing" text="Preparing..." />
+            <Badge status="processing" text={translate`Preparing...`} />
           </span>
         </Tooltip>
       )
     case 'paused':
       return (
         <Tooltip
-          title={broadcast.pause_reason || 'Sending has been paused. You can resume at any time.'}
+          title={broadcast.pause_reason || translate`Sending has been paused. You can resume at any time.`}
         >
           <Space size="small">
-            <Badge status="warning" text="Paused" />
+            <Badge status="warning" text={translate`Paused`} />
             {broadcast.pause_reason && (
               <FontAwesomeIcon
                 icon={faCircleQuestion}
@@ -146,50 +150,50 @@ const getStatusBadge = (
       )
     case 'processed': {
       if (progressStats && progressStats.remaining > 0) {
-        const tooltipText = `Emails are being delivered. ${progressStats.processed.toLocaleString()} sent, ${progressStats.remaining.toLocaleString()} remaining.`
+        const tooltipText = translate`Emails are being delivered. ${progressStats.processed.toLocaleString()} sent, ${progressStats.remaining.toLocaleString()} remaining.`
         return (
           <Tooltip title={tooltipText}>
             <span>
               <Badge
                 status="warning"
-                text={`Sending ${progressStats.remaining.toLocaleString()} remaining`}
+                text={translate`Sending ${progressStats.remaining.toLocaleString()} remaining`}
               />
             </span>
           </Tooltip>
         )
       }
       const completeTooltip = progressStats
-        ? `All ${progressStats.enqueuedCount.toLocaleString()} emails have been processed.`
-        : 'All emails have been sent.'
+        ? translate`All ${progressStats.enqueuedCount.toLocaleString()} emails have been processed.`
+        : translate`All emails have been sent.`
       return (
         <Tooltip title={completeTooltip}>
           <span>
-            <Badge status="success" text="Complete" />
+            <Badge status="success" text={translate`Complete`} />
           </span>
         </Tooltip>
       )
     }
     case 'cancelled':
       return (
-        <Tooltip title="This broadcast was cancelled before completion.">
+        <Tooltip title={translate`This broadcast was cancelled before completion.`}>
           <span>
-            <Badge status="error" text="Cancelled" />
+            <Badge status="error" text={translate`Cancelled`} />
           </span>
         </Tooltip>
       )
     case 'failed':
       return (
-        <Tooltip title="This broadcast failed due to an error. Check the logs for details.">
+        <Tooltip title={translate`This broadcast failed due to an error. Check the logs for details.`}>
           <span>
-            <Badge status="error" text="Failed" />
+            <Badge status="error" text={translate`Failed`} />
           </span>
         </Tooltip>
       )
     case 'testing':
       return (
-        <Tooltip title="A/B test is in progress. Emails are being sent to the test group.">
+        <Tooltip title={translate`A/B test is in progress. Emails are being sent to the test group.`}>
           <Space size="small">
-            <Badge status="processing" text="A/B Testing" />
+            <Badge status="processing" text={translate`A/B Testing`} />
             {remainingTime && (
               <Text type="secondary" style={{ fontSize: '12px' }}>
                 ({remainingTime})
@@ -200,17 +204,17 @@ const getStatusBadge = (
       )
     case 'test_completed':
       return (
-        <Tooltip title="A/B test has completed. Select a winner to send to the remaining recipients.">
+        <Tooltip title={translate`A/B test has completed. Select a winner to send to the remaining recipients.`}>
           <span>
-            <Badge status="success" text="Test Completed" />
+            <Badge status="success" text={translate`Test Completed`} />
           </span>
         </Tooltip>
       )
     case 'winner_selected':
       return (
-        <Tooltip title="A winner has been selected. Emails are being sent to the remaining recipients.">
+        <Tooltip title={translate`A winner has been selected. Emails are being sent to the remaining recipients.`}>
           <span>
-            <Badge status="success" text="Winner Selected" />
+            <Badge status="success" text={translate`Winner Selected`} />
           </span>
         </Tooltip>
       )
@@ -255,6 +259,7 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
   currentPage,
   pageSize
 }) => {
+  const { t } = useLingui()
   const [showDetails, setShowDetails] = useState(isFirst)
   const queryClient = useQueryClient()
   const { message } = App.useApp()
@@ -308,14 +313,14 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
         template_id: templateId
       })
       message.success(
-        'Winner selected successfully! The broadcast will be sent to remaining recipients.'
+        t`Winner selected successfully! The broadcast will be sent to remaining recipients.`
       )
       queryClient.invalidateQueries({
         queryKey: ['broadcasts', workspaceId, currentPage, pageSize]
       })
       queryClient.invalidateQueries({ queryKey: ['testResults', workspaceId, broadcast.id] })
     } catch (error) {
-      message.error('Failed to select winner')
+      message.error(t`Failed to select winner`)
       console.error(error)
     }
   }
@@ -330,17 +335,17 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
   const getTaskStatusBadge = (status: string) => {
     switch (status) {
       case 'pending':
-        return <Badge status="processing" text="Pending" />
+        return <Badge status="processing" text={t`Pending`} />
       case 'running':
-        return <Badge status="processing" text="Running" />
+        return <Badge status="processing" text={t`Running`} />
       case 'completed':
-        return <Badge status="success" text="Completed" />
+        return <Badge status="success" text={t`Completed`} />
       case 'failed':
-        return <Badge status="error" text="Failed" />
+        return <Badge status="error" text={t`Failed`} />
       case 'cancelled':
-        return <Badge status="warning" text="Cancelled" />
+        return <Badge status="warning" text={t`Cancelled`} />
       case 'paused':
-        return <Badge status="warning" text="Paused" />
+        return <Badge status="warning" text={t`Paused`} />
       default:
         return <Badge status="default" text={status} />
     }
@@ -353,13 +358,13 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
     return (
       <div className="max-w-xs">
         <div className="mb-2">
-          <div className="font-medium text-gray-500">Status</div>
+          <div className="font-medium text-gray-500">{t`Status`}</div>
           <div>{getTaskStatusBadge(task.status)}</div>
         </div>
 
         {task.next_run_after && task.status !== 'completed' && (
           <div className="mb-2">
-            <div className="font-medium text-gray-500">Next Run</div>
+            <div className="font-medium text-gray-500">{t`Next Run`}</div>
             <div className="text-sm">
               {task.status === 'paused' ? (
                 <Tooltip title={dayjs(task.next_run_after).format('lll')}>
@@ -380,7 +385,7 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
 
         {(task.progress > 0 || task.state?.send_broadcast) && (
           <div className="mb-2">
-            <div className="font-medium text-gray-500">Progress</div>
+            <div className="font-medium text-gray-500">{t`Progress`}</div>
             <Progress
               percent={Math.round(
                 task.state?.send_broadcast
@@ -396,26 +401,26 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
 
         {task.state?.message && (
           <div className="mb-2">
-            <div className="font-medium text-gray-500">Message</div>
+            <div className="font-medium text-gray-500">{t`Message`}</div>
             <div>{task.state.message}</div>
           </div>
         )}
 
         {task.state?.send_broadcast && task.state.send_broadcast.failed_count > 0 && (
           <div className="mb-2">
-            <div className="font-medium text-gray-500">Failed</div>
+            <div className="font-medium text-gray-500">{t`Failed`}</div>
             <div className="text-sm text-red-500">{task.state.send_broadcast.failed_count}</div>
           </div>
         )}
 
         {task.error_message && (
           <div className="mb-2">
-            <div className="font-medium text-gray-500">Error</div>
+            <div className="font-medium text-gray-500">{t`Error`}</div>
             <div className="text-red-500 text-sm">{task.error_message}</div>
           </div>
         )}
 
-        {task.type && <div className="text-xs text-gray-500 mt-2">Task type: {task.type}</div>}
+        {task.type && <div className="text-xs text-gray-500 mt-2">{t`Task type:`} {task.type}</div>}
       </div>
     )
   }
@@ -434,12 +439,12 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
             {task ? (
               <Popover
                 content={taskPopoverContent}
-                title="Task Status"
+                title={t`Task Status`}
                 placement="bottom"
                 trigger="hover"
               >
                 <span className="cursor-help">
-                  {getStatusBadge(broadcast, remainingTestTime, progressStats)}
+                  {getStatusBadge(broadcast, remainingTestTime, progressStats, t)}
                   <FontAwesomeIcon
                     icon={faCircleQuestion}
                     style={{ opacity: 0.7 }}
@@ -449,18 +454,18 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
               </Popover>
             ) : isTaskLoading ? (
               <span className="text-gray-400">
-                {getStatusBadge(broadcast, remainingTestTime, progressStats)}
+                {getStatusBadge(broadcast, remainingTestTime, progressStats, t)}
                 <FontAwesomeIcon icon={faSpinner} spin className="ml-2" />
               </span>
             ) : (
-              getStatusBadge(broadcast, remainingTestTime, progressStats)
+              getStatusBadge(broadcast, remainingTestTime, progressStats, t)
             )}
           </div>
         </Space>
       }
       extra={
         <Space>
-          <Tooltip title="Refresh Broadcast">
+          <Tooltip title={t`Refresh Broadcast`}>
             <Button
               type="text"
               size="small"
@@ -473,8 +478,8 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
             <Tooltip
               title={
                 !permissions?.broadcasts?.write
-                  ? "You don't have write permission for broadcasts"
-                  : 'Edit Broadcast'
+                  ? t`You don't have write permission for broadcasts`
+                  : t`Edit Broadcast`
               }
             >
               <div>
@@ -499,16 +504,16 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
             <Tooltip
               title={
                 !permissions?.broadcasts?.write
-                  ? "You don't have write permission for broadcasts"
-                  : 'Pause Broadcast'
+                  ? t`You don't have write permission for broadcasts`
+                  : t`Pause Broadcast`
               }
             >
               <Popconfirm
-                title="Pause broadcast?"
-                description="The broadcast will stop sending and can be resumed later."
+                title={t`Pause broadcast?`}
+                description={t`The broadcast will stop sending and can be resumed later.`}
                 onConfirm={() => onPause(broadcast)}
-                okText="Yes, pause"
-                cancelText="Cancel"
+                okText={t`Yes, pause`}
+                cancelText={t`Cancel`}
                 disabled={!permissions?.broadcasts?.write}
               >
                 <Button type="text" size="small" disabled={!permissions?.broadcasts?.write}>
@@ -521,16 +526,16 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
             <Tooltip
               title={
                 !permissions?.broadcasts?.write
-                  ? "You don't have write permission for broadcasts"
-                  : 'Resume Broadcast'
+                  ? t`You don't have write permission for broadcasts`
+                  : t`Resume Broadcast`
               }
             >
               <Popconfirm
-                title="Resume broadcast?"
-                description="The broadcast will continue sending from where it was paused."
+                title={t`Resume broadcast?`}
+                description={t`The broadcast will continue sending from where it was paused.`}
                 onConfirm={() => onResume(broadcast)}
-                okText="Yes, resume"
-                cancelText="Cancel"
+                okText={t`Yes, resume`}
+                cancelText={t`Cancel`}
                 disabled={!permissions?.broadcasts?.write}
               >
                 <Button type="text" size="small" disabled={!permissions?.broadcasts?.write}>
@@ -543,8 +548,8 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
             <Tooltip
               title={
                 !permissions?.broadcasts?.write
-                  ? "You don't have write permission for broadcasts"
-                  : 'Cancel Broadcast'
+                  ? t`You don't have write permission for broadcasts`
+                  : t`Cancel Broadcast`
               }
             >
               <Button
@@ -562,8 +567,8 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
               <Tooltip
                 title={
                   !permissions?.broadcasts?.write
-                    ? "You don't have write permission for broadcasts"
-                    : 'Delete Broadcast'
+                    ? t`You don't have write permission for broadcasts`
+                    : t`Delete Broadcast`
                 }
               >
                 <Button
@@ -578,7 +583,7 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
               <Tooltip
                 title={
                   !permissions?.broadcasts?.write
-                    ? "You don't have write permission for broadcasts"
+                    ? t`You don't have write permission for broadcasts`
                     : undefined
                 }
               >
@@ -592,7 +597,7 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
                   }
                   onClick={() => onSchedule(broadcast)}
                 >
-                  Send or Schedule
+                  {t`Send or Schedule`}
                 </Button>
               </Tooltip>
             </>
@@ -630,12 +635,12 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
             {showDetails ? (
               <Space size="small">
                 <FontAwesomeIcon icon={faChevronUp} style={{ opacity: 0.7 }} className="mr-1" />{' '}
-                Hide Details
+                {t`Hide Details`}
               </Space>
             ) : (
               <Space size="small">
                 <FontAwesomeIcon icon={faChevronDown} style={{ opacity: 0.7 }} className="mr-1" />{' '}
-                Show Details
+                {t`Show Details`}
               </Space>
             )}
           </Button>
@@ -644,7 +649,7 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
         {showDetails && (
           <div className="p-6">
             <div className="flex items-center gap-2 mb-2">
-              <Subtitle className="!mb-0">Variations</Subtitle>
+              <Subtitle className="!mb-0">{t`Variations`}</Subtitle>
             </div>
             <div className="mb-6">
               <Table
@@ -669,12 +674,12 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
                     key: variation.template_id || index,
                     index: index + 1,
                     isWinner,
-                    templateName: variation.template?.name || 'Untitled',
+                    templateName: variation.template?.name || t`Untitled`,
                     template: variation.template,
                     sender: templateSender
                       ? `${templateSender.name} <${templateSender.email}>`
-                      : 'Default sender',
-                    subject: variation.template?.email?.subject || 'N/A',
+                      : t`Default sender`,
+                    subject: variation.template?.email?.subject || t`N/A`,
                     subjectPreview: variation.template?.email?.subject_preview,
                     replyTo: variation.template?.email?.reply_to || '-',
                     metrics: variationResult || variation.metrics,
@@ -695,12 +700,12 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
                     )
                   },
                   {
-                    title: 'Template',
+                    title: t`Template`,
                     key: 'templateName',
-                    render: (record) => <Tooltip title="Template">{record.templateName}</Tooltip>
+                    render: (record) => <Tooltip title={t`Template`}>{record.templateName}</Tooltip>
                   },
                   {
-                    title: 'Subject',
+                    title: t`Subject`,
                     dataIndex: 'subject',
                     key: 'subject',
                     render: (subject, record) => (
@@ -713,16 +718,16 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
                     )
                   },
                   {
-                    title: 'Info',
+                    title: t`Info`,
                     key: 'sender',
                     render: (record) => (
                       <div>
                         <div>
-                          <span className="font-medium text-gray-500">From:</span> {record.sender}
+                          <span className="font-medium text-gray-500">{t`From:`}</span> {record.sender}
                         </div>
                         {record.replyTo && record.replyTo !== '-' && (
                           <div>
-                            <span className="font-medium text-gray-500">Reply To:</span>{' '}
+                            <span className="font-medium text-gray-500">{t`Reply To:`}</span>{' '}
                             {record.replyTo}
                           </div>
                         )}
@@ -732,17 +737,17 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
                   ...(broadcast.status !== 'draft'
                     ? [
                         {
-                          title: 'Opens',
+                          title: t`Opens`,
                           key: 'opens',
                           width: 80,
                           render: (_: unknown, record: { metrics?: { open_rate?: number; opens?: number; recipients?: number } }) => {
                             const metrics = record.metrics
                             if (!metrics) {
                               return (
-                                <Tooltip title="0 opens out of 0 recipients">
+                                <Tooltip title={t`0 opens out of 0 recipients`}>
                                   <>
                                     <FontAwesomeIcon icon={faEye} style={{ opacity: 0.7 }} />
-                                    <span className="cursor-help ml-1">N/A</span>
+                                    <span className="cursor-help ml-1">{t`N/A`}</span>
                                   </>
                                 </Tooltip>
                               )
@@ -751,7 +756,7 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
                             const opens = metrics.opens || 0
                             const recipients = metrics.recipients || 0
                             return (
-                              <Tooltip title={`${opens} opens out of ${recipients} recipients`}>
+                              <Tooltip title={t`${opens} opens out of ${recipients} recipients`}>
                                 <>
                                   <FontAwesomeIcon icon={faEye} style={{ opacity: 0.7 }} />{' '}
                                   <span className="cursor-help ml-1">
@@ -763,20 +768,20 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
                           }
                         },
                         {
-                          title: 'Clicks',
+                          title: t`Clicks`,
                           key: 'clicks',
                           width: 80,
                           render: (_: unknown, record: { metrics?: { click_rate?: number; clicks?: number; recipients?: number } }) => {
                             const metrics = record.metrics
                             if (!metrics) {
                               return (
-                                <Tooltip title="0 clicks out of 0 recipients">
+                                <Tooltip title={t`0 clicks out of 0 recipients`}>
                                   <>
                                     <FontAwesomeIcon
                                       icon={faArrowPointer}
                                       style={{ opacity: 0.7 }}
                                     />{' '}
-                                    <span className="cursor-help ml-1">N/A</span>
+                                    <span className="cursor-help ml-1">{t`N/A`}</span>
                                   </>
                                 </Tooltip>
                               )
@@ -785,7 +790,7 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
                             const clicks = metrics.clicks || 0
                             const recipients = metrics.recipients || 0
                             return (
-                              <Tooltip title={`${clicks} clicks out of ${recipients} recipients`}>
+                              <Tooltip title={t`${clicks} clicks out of ${recipients} recipients`}>
                                 <>
                                   <FontAwesomeIcon icon={faArrowPointer} style={{ opacity: 0.7 }} />{' '}
                                   <span className="cursor-help ml-1">
@@ -799,7 +804,7 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
                       ]
                     : []),
                   {
-                    title: 'Actions',
+                    title: t`Actions`,
                     key: 'actions',
                     width: 150,
                     align: 'right',
@@ -813,8 +818,8 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
                             <Tooltip
                               title={
                                 !(permissions?.templates?.read && permissions?.contacts?.write)
-                                  ? 'You need read template and write contact permissions to send test emails'
-                                  : 'Send Test Email'
+                                  ? t`You need read template and write contact permissions to send test emails`
+                                  : t`Send Test Email`
                               }
                             >
                               <Button
@@ -830,7 +835,7 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
                               />
                             </Tooltip>
                           )}
-                          <Tooltip title="Preview Template">
+                          <Tooltip title={t`Preview Template`}>
                             <>
                               {record.template && currentWorkspace ? (
                                 <TemplatePreviewDrawer
@@ -859,23 +864,23 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
                             <Tooltip
                               title={
                                 !permissions?.broadcasts?.write
-                                  ? "You don't have write permission for broadcasts"
+                                  ? t`You don't have write permission for broadcasts`
                                   : undefined
                               }
                             >
                               <Popconfirm
-                                title="Select Winner"
-                                description={`Are you sure you want to select "${record.templateName}" as the winner? The broadcast will be sent to the remaining recipients.`}
+                                title={t`Select Winner`}
+                                description={t`Are you sure you want to select "${record.templateName}" as the winner? The broadcast will be sent to the remaining recipients.`}
                                 onConfirm={() => handleSelectWinner(record.templateId)}
-                                okText="Yes, Select Winner"
-                                cancelText="Cancel"
+                                okText={t`Yes, Select Winner`}
+                                cancelText={t`Cancel`}
                               >
                                 <Button
                                   size="small"
                                   type="primary"
                                   disabled={!permissions?.broadcasts?.write}
                                 >
-                                  Select
+                                  {t`Select`}
                                 </Button>
                               </Popconfirm>
                             </Tooltip>
@@ -894,12 +899,12 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
 
             <Row gutter={32}>
               <Col span={8}>
-                <Subtitle className="mt-8 mb-4">Audience</Subtitle>
+                <Subtitle className="mt-8 mb-4">{t`Audience`}</Subtitle>
 
                 <Descriptions bordered={false} size="small" column={1}>
                   {/* Audience Information */}
                   {broadcast.audience.segments && broadcast.audience.segments.length > 0 && (
-                    <Descriptions.Item label="Segments">
+                    <Descriptions.Item label={t`Segments`}>
                       <Space wrap>
                         {broadcast.audience.segments.map((segmentId) => {
                           const segment = segments.find((s) => s.id === segmentId)
@@ -909,7 +914,7 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
                             </Tag>
                           ) : (
                             <Tag key={segmentId} bordered={false}>
-                              Unknown segment ({segmentId})
+                              {t`Unknown segment`} ({segmentId})
                             </Tag>
                           )
                         })}
@@ -918,15 +923,15 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
                   )}
 
                   {broadcast.audience.list && (
-                    <Descriptions.Item label="List">
+                    <Descriptions.Item label={t`List`}>
                       {(() => {
                         const list = lists.find((l) => l.id === broadcast.audience.list)
-                        return list ? list.name : `Unknown list (${broadcast.audience.list})`
+                        return list ? list.name : t`Unknown list` + ` (${broadcast.audience.list})`
                       })()}
                     </Descriptions.Item>
                   )}
 
-                  <Descriptions.Item label="Exclude Unsubscribed">
+                  <Descriptions.Item label={t`Exclude Unsubscribed`}>
                     {broadcast.audience.exclude_unsubscribed ? (
                       <FontAwesomeIcon
                         icon={faCircleCheck}
@@ -945,38 +950,38 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
                 {broadcast.schedule.is_scheduled &&
                   broadcast.schedule.scheduled_date &&
                   broadcast.schedule.scheduled_time && (
-                    <Descriptions.Item label="Scheduled">
+                    <Descriptions.Item label={t`Scheduled`}>
                       {dayjs(
                         `${broadcast.schedule.scheduled_date} ${broadcast.schedule.scheduled_time}`
                       ).format('lll')}
-                      {' in '}
+                      {' '}
                       {broadcast.schedule.use_recipient_timezone
-                        ? 'recipients timezone'
-                        : broadcast.schedule.timezone}
+                        ? t`in recipients timezone`
+                        : t`in ${broadcast.schedule.timezone}`}
                     </Descriptions.Item>
                   )}
 
                 {/* sending */}
                 <Descriptions bordered={false} size="small" column={1}>
                   {broadcast.started_at && (
-                    <Descriptions.Item label="Started">
+                    <Descriptions.Item label={t`Started`}>
                       {dayjs(broadcast.started_at).fromNow()}
                     </Descriptions.Item>
                   )}
 
                   {broadcast.completed_at && (
-                    <Descriptions.Item label="Completed">
+                    <Descriptions.Item label={t`Completed`}>
                       {dayjs(broadcast.completed_at).fromNow()}
                     </Descriptions.Item>
                   )}
 
                   {broadcast.paused_at && (
-                    <Descriptions.Item label="Paused">
+                    <Descriptions.Item label={t`Paused`}>
                       <Space direction="vertical" size="small">
                         <div>{dayjs(broadcast.paused_at).fromNow()}</div>
                         {broadcast.pause_reason && (
                           <div className="text-orange-600 text-sm">
-                            <strong>Reason:</strong> {broadcast.pause_reason}
+                            <strong>{t`Reason:`}</strong> {broadcast.pause_reason}
                           </div>
                         )}
                       </Space>
@@ -984,41 +989,41 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
                   )}
 
                   {broadcast.cancelled_at && (
-                    <Descriptions.Item label="Cancelled">
+                    <Descriptions.Item label={t`Cancelled`}>
                       {dayjs(broadcast.cancelled_at).fromNow()}
                     </Descriptions.Item>
                   )}
                 </Descriptions>
               </Col>
               <Col span={8}>
-                <Subtitle className="mt-8 mb-4">Web Analytics</Subtitle>
+                <Subtitle className="mt-8 mb-4">{t`Web Analytics`}</Subtitle>
                 <Descriptions bordered={false} size="small" column={1}>
                   {broadcast.utm_parameters?.source && (
-                    <Descriptions.Item label="UTM Source">
+                    <Descriptions.Item label={t`UTM Source`}>
                       {broadcast.utm_parameters.source}
                     </Descriptions.Item>
                   )}
 
                   {broadcast.utm_parameters?.medium && (
-                    <Descriptions.Item label="UTM Medium">
+                    <Descriptions.Item label={t`UTM Medium`}>
                       {broadcast.utm_parameters.medium}
                     </Descriptions.Item>
                   )}
 
                   {broadcast.utm_parameters?.campaign && (
-                    <Descriptions.Item label="UTM Campaign">
+                    <Descriptions.Item label={t`UTM Campaign`}>
                       {broadcast.utm_parameters.campaign}
                     </Descriptions.Item>
                   )}
 
                   {broadcast.utm_parameters?.term && (
-                    <Descriptions.Item label="UTM Term">
+                    <Descriptions.Item label={t`UTM Term`}>
                       {broadcast.utm_parameters.term}
                     </Descriptions.Item>
                   )}
 
                   {broadcast.utm_parameters?.content && (
-                    <Descriptions.Item label="UTM Content">
+                    <Descriptions.Item label={t`UTM Content`}>
                       {broadcast.utm_parameters.content}
                     </Descriptions.Item>
                   )}
@@ -1027,16 +1032,16 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
               <Col span={8}>
                 {broadcast.test_settings.enabled && (
                   <>
-                    <Subtitle className="mt-8 mb-4">A/B Test</Subtitle>
+                    <Subtitle className="mt-8 mb-4">{t`A/B Test`}</Subtitle>
                     <Descriptions bordered={false} size="small" column={1}>
-                      <Descriptions.Item label="Sample Percentage">
+                      <Descriptions.Item label={t`Sample Percentage`}>
                         {broadcast.test_settings.sample_percentage}%
                       </Descriptions.Item>
 
                       {broadcast.test_settings.auto_send_winner &&
                         broadcast.test_settings.auto_send_winner_metric &&
                         broadcast.test_settings.test_duration_hours && (
-                          <Descriptions.Item label="Auto-send Winner">
+                          <Descriptions.Item label={t`Auto-send Winner`}>
                             <div className="flex items-center">
                               <FontAwesomeIcon
                                 icon={faCircleCheck}
@@ -1045,34 +1050,30 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
                                 style={{ opacity: 0.7 }}
                               />
                               <span>
-                                After {broadcast.test_settings.test_duration_hours} hours based on
-                                highest{' '}
-                                {broadcast.test_settings.auto_send_winner_metric === 'open_rate'
-                                  ? 'opens'
-                                  : 'clicks'}
+                                {t`After ${broadcast.test_settings.test_duration_hours} hours based on highest ${broadcast.test_settings.auto_send_winner_metric === 'open_rate' ? t`opens` : t`clicks`}`}
                               </span>
                             </div>
                           </Descriptions.Item>
                         )}
 
                       {testResults && testResults.recommended_winner && (
-                        <Descriptions.Item label="Recommended Winner">
+                        <Descriptions.Item label={t`Recommended Winner`}>
                           <Space>
-                            <Badge status="processing" text="Recommended" />
+                            <Badge status="processing" text={t`Recommended`} />
                             {Object.values(testResults.variation_results).find(
                               (result) => result.template_id === testResults.recommended_winner
-                            )?.template_name || 'Unknown'}
+                            )?.template_name || t`Unknown`}
                           </Space>
                         </Descriptions.Item>
                       )}
 
                       {testResults && testResults.winning_template && (
-                        <Descriptions.Item label="Selected Winner">
+                        <Descriptions.Item label={t`Selected Winner`}>
                           <Space>
-                            <Badge status="success" text="Winner" />
+                            <Badge status="success" text={t`Winner`} />
                             {Object.values(testResults.variation_results).find(
                               (result) => result.template_id === testResults.winning_template
-                            )?.template_name || 'Unknown'}
+                            )?.template_name || t`Unknown`}
                           </Space>
                         </Descriptions.Item>
                       )}
@@ -1099,6 +1100,7 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
 }
 
 export function BroadcastsPage() {
+  const { t } = useLingui()
   const { workspaceId } = useParams({ from: '/console/workspace/$workspaceId/broadcasts' })
   const [deleteModalVisible, setDeleteModalVisible] = useState(false)
   const [broadcastToDelete, setBroadcastToDelete] = useState<Broadcast | null>(null)
@@ -1158,7 +1160,7 @@ export function BroadcastsPage() {
         id: broadcastToDelete.id
       })
 
-      message.success(`Broadcast "${broadcastToDelete.name}" deleted successfully`)
+      message.success(t`Broadcast "${broadcastToDelete.name}" deleted successfully`)
       queryClient.invalidateQueries({
         queryKey: ['broadcasts', workspaceId, currentPage, pageSize]
       })
@@ -1171,7 +1173,7 @@ export function BroadcastsPage() {
       setBroadcastToDelete(null)
       setConfirmationInput('')
     } catch (error) {
-      message.error('Failed to delete broadcast')
+      message.error(t`Failed to delete broadcast`)
       console.error(error)
     } finally {
       setIsDeleting(false)
@@ -1184,12 +1186,12 @@ export function BroadcastsPage() {
         workspace_id: workspaceId,
         id: broadcast.id
       })
-      message.success(`Broadcast "${broadcast.name}" paused successfully`)
+      message.success(t`Broadcast "${broadcast.name}" paused successfully`)
       queryClient.invalidateQueries({
         queryKey: ['broadcasts', workspaceId, currentPage, pageSize]
       })
     } catch (error) {
-      message.error('Failed to pause broadcast')
+      message.error(t`Failed to pause broadcast`)
       console.error(error)
     }
   }
@@ -1200,12 +1202,12 @@ export function BroadcastsPage() {
         workspace_id: workspaceId,
         id: broadcast.id
       })
-      message.success(`Broadcast "${broadcast.name}" resumed successfully`)
+      message.success(t`Broadcast "${broadcast.name}" resumed successfully`)
       queryClient.invalidateQueries({
         queryKey: ['broadcasts', workspaceId, currentPage, pageSize]
       })
     } catch (error) {
-      message.error('Failed to resume broadcast')
+      message.error(t`Failed to resume broadcast`)
       console.error(error)
     }
   }
@@ -1216,12 +1218,12 @@ export function BroadcastsPage() {
         workspace_id: workspaceId,
         id: broadcast.id
       })
-      message.success(`Broadcast "${broadcast.name}" cancelled successfully`)
+      message.success(t`Broadcast "${broadcast.name}" cancelled successfully`)
       queryClient.invalidateQueries({
         queryKey: ['broadcasts', workspaceId, currentPage, pageSize]
       })
     } catch (error) {
-      message.error('Failed to cancel broadcast')
+      message.error(t`Failed to cancel broadcast`)
       console.error(error)
     }
   }
@@ -1254,7 +1256,7 @@ export function BroadcastsPage() {
     queryClient.invalidateQueries({ queryKey: ['testResults', workspaceId, broadcast.id] })
     // Also refresh the main broadcast data to get updated status
     queryClient.invalidateQueries({ queryKey: ['broadcasts', workspaceId, currentPage, pageSize] })
-    message.success(`Broadcast "${broadcast.name}" refreshed`)
+    message.success(t`Broadcast "${broadcast.name}" refreshed`)
   }
 
   const handlePageChange = (page: number) => {
@@ -1269,13 +1271,13 @@ export function BroadcastsPage() {
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
-        <div className="text-2xl font-medium">Broadcasts</div>
+        <div className="text-2xl font-medium">{t`Broadcasts`}</div>
         {currentWorkspace && hasBroadcasts && (
           <Space>
             <Tooltip
               title={
                 !permissions?.broadcasts?.write
-                  ? "You don't have write permission for broadcasts"
+                  ? t`You don't have write permission for broadcasts`
                   : undefined
               }
             >
@@ -1284,7 +1286,7 @@ export function BroadcastsPage() {
                   workspace={currentWorkspace}
                   lists={lists}
                   segments={segments}
-                  buttonContent={<>Create Broadcast</>}
+                  buttonContent={<>{t`Create Broadcast`}</>}
                   buttonProps={{
                     disabled: !permissions?.broadcasts?.write
                   }}
@@ -1297,8 +1299,8 @@ export function BroadcastsPage() {
 
       {!hasMarketingEmailProvider && (
         <Alert
-          message="Email Provider Required"
-          description="You don't have a marketing email provider configured. Please set up an email provider in your workspace settings to send broadcasts."
+          message={t`Email Provider Required`}
+          description={t`You don't have a marketing email provider configured. Please set up an email provider in your workspace settings to send broadcasts.`}
           type="warning"
           showIcon
           className="!mb-6"
@@ -1308,7 +1310,7 @@ export function BroadcastsPage() {
               size="small"
               href={`/console/workspace/${workspaceId}/settings/integrations`}
             >
-              Configure Provider
+              {t`Configure Provider`}
             </Button>
           }
         />
@@ -1355,7 +1357,7 @@ export function BroadcastsPage() {
                 onChange={handlePageChange}
                 showSizeChanger={false}
                 showQuickJumper={false}
-                showTotal={(total, range) => `${range[0]}-${range[1]} of ${total} broadcasts`}
+                showTotal={(total, range) => t`${range[0]}-${range[1]} of ${total} broadcasts`}
               />
             </div>
           )}
@@ -1363,15 +1365,15 @@ export function BroadcastsPage() {
       ) : (
         <div className="text-center py-12">
           <Title level={4} type="secondary">
-            No broadcasts found
+            {t`No broadcasts found`}
           </Title>
-          <Paragraph type="secondary">Create your first broadcast to get started</Paragraph>
+          <Paragraph type="secondary">{t`Create your first broadcast to get started`}</Paragraph>
           <div className="mt-4">
             {currentWorkspace && (
               <Tooltip
                 title={
                   !permissions?.broadcasts?.write
-                    ? "You don't have write permission for broadcasts"
+                    ? t`You don't have write permission for broadcasts`
                     : undefined
                 }
               >
@@ -1380,7 +1382,7 @@ export function BroadcastsPage() {
                     workspace={currentWorkspace}
                     lists={lists}
                     segments={segments}
-                    buttonContent="Create Broadcast"
+                    buttonContent={t`Create Broadcast`}
                     buttonProps={{
                       disabled: !permissions?.broadcasts?.write
                     }}
@@ -1406,12 +1408,12 @@ export function BroadcastsPage() {
       />
 
       <Modal
-        title="Delete Broadcast"
+        title={t`Delete Broadcast`}
         open={deleteModalVisible}
         onCancel={closeDeleteModal}
         footer={[
           <Button key="cancel" onClick={closeDeleteModal}>
-            Cancel
+            {t`Cancel`}
           </Button>,
           <Button
             key="delete"
@@ -1421,30 +1423,30 @@ export function BroadcastsPage() {
             disabled={confirmationInput !== (broadcastToDelete?.id || '')}
             onClick={handleDeleteBroadcast}
           >
-            Delete
+            {t`Delete`}
           </Button>
         ]}
       >
         {broadcastToDelete && (
           <>
-            <p>Are you sure you want to delete the broadcast "{broadcastToDelete.name}"?</p>
+            <p>{t`Are you sure you want to delete the broadcast "${broadcastToDelete.name}"?`}</p>
             <p>
-              This action cannot be undone. To confirm, please enter the broadcast ID:{' '}
+              {t`This action cannot be undone. To confirm, please enter the broadcast ID:`}{' '}
               <Text code>{broadcastToDelete.id}</Text>
-              <Tooltip title="Copy to clipboard">
+              <Tooltip title={t`Copy to clipboard`}>
                 <Button
                   type="text"
                   icon={<FontAwesomeIcon icon={faCopy} style={{ opacity: 0.7 }} />}
                   size="small"
                   onClick={() => {
                     navigator.clipboard.writeText(broadcastToDelete.id)
-                    message.success('Broadcast ID copied to clipboard')
+                    message.success(t`Broadcast ID copied to clipboard`)
                   }}
                 />
               </Tooltip>
             </p>
             <Input
-              placeholder="Enter broadcast ID to confirm"
+              placeholder={t`Enter broadcast ID to confirm`}
               value={confirmationInput}
               onChange={(e) => setConfirmationInput(e.target.value)}
               status={
@@ -1452,7 +1454,7 @@ export function BroadcastsPage() {
               }
             />
             {confirmationInput && confirmationInput !== broadcastToDelete.id && (
-              <p className="text-red-500 mt-2">ID doesn't match</p>
+              <p className="text-red-500 mt-2">{t`ID doesn't match`}</p>
             )}
           </>
         )}

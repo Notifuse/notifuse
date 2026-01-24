@@ -1,5 +1,6 @@
 import React from 'react'
 import { Input, App } from 'antd'
+import { useLingui } from '@lingui/react/macro'
 import { useFileManager } from '../../file_manager/context'
 
 interface FileSrcProps {
@@ -16,14 +17,17 @@ interface FileSrcProps {
 const FileSrcContent: React.FC<FileSrcProps> = ({
   value = '',
   onChange,
-  placeholder = 'Enter file URL or use file manager',
+  placeholder,
   acceptFileType = 'image/*',
   acceptItem = (item) => !item.is_folder && (item.file_info?.content_type?.startsWith('image/') ?? false),
-  buttonText = 'Browse Files',
+  buttonText,
   disabled = false,
   size = 'small'
 }) => {
+  const { t } = useLingui()
   const { SelectFileButton } = useFileManager()
+  const resolvedPlaceholder = placeholder || t`Enter file URL or use file manager`
+  const resolvedButtonText = buttonText || t`Browse Files`
 
   // Handle URL input change
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -43,7 +47,7 @@ const FileSrcContent: React.FC<FileSrcProps> = ({
         size={size}
         value={value}
         onChange={handleInputChange}
-        placeholder={placeholder}
+        placeholder={resolvedPlaceholder}
         disabled={disabled}
         style={{ marginBottom: '8px' }}
       />
@@ -53,7 +57,7 @@ const FileSrcContent: React.FC<FileSrcProps> = ({
         onSelect={handleFileSelect}
         acceptFileType={acceptFileType}
         acceptItem={acceptItem}
-        buttonText={buttonText}
+        buttonText={resolvedButtonText}
         disabled={disabled}
         size={size}
         block={true}

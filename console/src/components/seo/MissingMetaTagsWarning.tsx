@@ -1,3 +1,4 @@
+import { useLingui } from '@lingui/react/macro'
 import { Popover, List } from 'antd'
 import { WarningOutlined } from '@ant-design/icons'
 import type { SEOSettings } from '../../services/api/blog'
@@ -14,22 +15,24 @@ interface MissingTag {
 }
 
 export function MissingMetaTagsWarning({ seo, className }: MissingMetaTagsWarningProps) {
+  const { t } = useLingui()
+
   const getMissingTags = (): MissingTag[] => {
     const missing: MissingTag[] = []
 
     // Meta tags
     if (!seo?.meta_title || seo.meta_title.trim() === '') {
       missing.push({
-        name: 'Meta Title',
-        description: 'SEO title for search engines (recommended: 50-60 characters)',
+        name: t`Meta Title`,
+        description: t`SEO title for search engines (recommended: 50-60 characters)`,
         category: 'meta'
       })
     }
 
     if (!seo?.meta_description || seo.meta_description.trim() === '') {
       missing.push({
-        name: 'Meta Description',
-        description: 'SEO description for search results (recommended: 150-160 characters)',
+        name: t`Meta Description`,
+        description: t`SEO description for search results (recommended: 150-160 characters)`,
         category: 'meta'
       })
     }
@@ -37,24 +40,24 @@ export function MissingMetaTagsWarning({ seo, className }: MissingMetaTagsWarnin
     // Open Graph tags
     if (!seo?.og_title || seo.og_title.trim() === '') {
       missing.push({
-        name: 'Open Graph Title',
-        description: 'Title when shared on social media (og:title)',
+        name: t`Open Graph Title`,
+        description: t`Title when shared on social media (og:title)`,
         category: 'og'
       })
     }
 
     if (!seo?.og_description || seo.og_description.trim() === '') {
       missing.push({
-        name: 'Open Graph Description',
-        description: 'Description when shared on social media (og:description)',
+        name: t`Open Graph Description`,
+        description: t`Description when shared on social media (og:description)`,
         category: 'og'
       })
     }
 
     if (!seo?.og_image || seo.og_image.trim() === '') {
       missing.push({
-        name: 'Open Graph Image',
-        description: 'Image URL when shared on social media (og:image)',
+        name: t`Open Graph Image`,
+        description: t`Image URL when shared on social media (og:image)`,
         category: 'og'
       })
     }
@@ -86,7 +89,7 @@ export function MissingMetaTagsWarning({ seo, className }: MissingMetaTagsWarnin
   )
 
   return (
-    <Popover content={content} title="Missing Tags" trigger="hover">
+    <Popover content={content} title={t`Missing Tags`} trigger="hover">
       <WarningOutlined
         style={{
           color: '#ff9800',

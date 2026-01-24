@@ -6,10 +6,12 @@ import { useAuth } from '../contexts/AuthContext'
 import { AnalyticsDashboard } from '../components/analytics/AnalyticsDashboard'
 import { TIMEZONE_OPTIONS } from '../lib/timezones'
 import { getBrowserTimezone } from '../lib/timezoneNormalizer'
+import { useLingui } from '@lingui/react/macro'
 
 type TimePeriod = '7D' | '14D' | '30D' | '90D'
 
 export function AnalyticsPage() {
+  const { t } = useLingui()
   const { workspaceId } = useParams({ from: '/console/workspace/$workspaceId' })
   const { workspaces } = useAuth()
 
@@ -63,8 +65,8 @@ export function AnalyticsPage() {
   if (!workspace) {
     return (
       <div style={{ padding: '24px', textAlign: 'center' }}>
-        <h2>Workspace not found</h2>
-        <p>The requested workspace could not be found.</p>
+        <h2>{t`Workspace not found`}</h2>
+        <p>{t`The requested workspace could not be found.`}</p>
       </div>
     )
   }
@@ -72,7 +74,7 @@ export function AnalyticsPage() {
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
-        <div className="text-2xl font-medium">Dashboard</div>
+        <div className="text-2xl font-medium">{t`Dashboard`}</div>
         <Space>
           <Select
             value={selectedTimezone}
@@ -81,7 +83,7 @@ export function AnalyticsPage() {
             optionFilterProp="label"
             variant="filled"
             style={{ width: 170 }}
-            placeholder="Select timezone"
+            placeholder={t`Select timezone`}
             showSearch
             filterOption={(input, option) =>
               (option?.label ?? '').toString().toLowerCase().includes(input.toLowerCase())

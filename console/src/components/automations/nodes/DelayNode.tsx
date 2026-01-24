@@ -2,6 +2,7 @@ import React from 'react'
 import { Handle, Position, useConnection, type NodeProps } from '@xyflow/react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faHourglass } from '@fortawesome/free-regular-svg-icons'
+import { useLingui } from '@lingui/react/macro'
 import { BaseNode } from './BaseNode'
 import { nodeTypeColors } from './constants'
 import type { AutomationNodeData } from '../utils/flowConverter'
@@ -10,12 +11,13 @@ import type { DelayNodeConfig } from '../../../services/api/automation'
 type DelayNodeProps = NodeProps<AutomationNodeData>
 
 export const DelayNode: React.FC<DelayNodeProps> = ({ data, selected }) => {
+  const { t } = useLingui()
   const config = data.config as DelayNodeConfig
   const duration = config?.duration || 0
   const unit = config?.unit || 'minutes'
 
   const formatDuration = () => {
-    if (duration === 0) return 'Configure'
+    if (duration === 0) return t`Configure`
     const unitLabel = duration === 1 ? unit.slice(0, -1) : unit
     return `${duration} ${unitLabel}`
   }
@@ -40,7 +42,7 @@ export const DelayNode: React.FC<DelayNodeProps> = ({ data, selected }) => {
       />
       <BaseNode
         type="delay"
-        label="Delay"
+        label={t`Delay`}
         icon={<FontAwesomeIcon icon={faHourglass} style={{ color: selected ? undefined : nodeTypeColors.delay }} />}
         selected={selected}
         isOrphan={data.isOrphan}

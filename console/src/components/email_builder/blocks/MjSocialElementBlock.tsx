@@ -1,4 +1,5 @@
 import React from 'react'
+import { useLingui } from '@lingui/react/macro'
 import { Select, InputNumber, Row, Col, Input } from 'antd'
 import type { MJMLComponentType, MJSocialElementAttributes } from '../types'
 import { BaseEmailBlock, type OnUpdateAttributesFunction, type PreviewProps } from './BaseEmailBlock'
@@ -31,6 +32,410 @@ import {
   faSquareXTwitter
 } from '@fortawesome/free-brands-svg-icons'
 import { faGlobe } from '@fortawesome/free-solid-svg-icons'
+
+// Functional component for settings panel with i18n support
+interface MjSocialElementSettingsPanelProps {
+  currentAttributes: MJSocialElementAttributes
+  blockDefaults: MJSocialElementAttributes
+  onUpdate: OnUpdateAttributesFunction
+  parsePixelValue: (value?: string) => number | undefined
+}
+
+const MjSocialElementSettingsPanel: React.FC<MjSocialElementSettingsPanelProps> = ({
+  currentAttributes,
+  blockDefaults,
+  onUpdate,
+  parsePixelValue
+}) => {
+  const { t } = useLingui()
+
+  return (
+    <PanelLayout title={t`Social Element Attributes`}>
+      <InputLayout label={t`Social Network`}>
+        <Select
+          size="small"
+          value={currentAttributes.name || 'custom'}
+          onChange={(value) => onUpdate({ name: value === 'custom' ? undefined : value })}
+          style={{ width: '100%' }}
+        >
+          <Select.Option value="custom">{t`Custom`}</Select.Option>
+          <Select.Option value="facebook">Facebook</Select.Option>
+          <Select.Option value="twitter">Twitter</Select.Option>
+          <Select.Option value="x">X (Twitter)</Select.Option>
+          <Select.Option value="instagram">Instagram</Select.Option>
+          <Select.Option value="linkedin">LinkedIn</Select.Option>
+          <Select.Option value="github">GitHub</Select.Option>
+          <Select.Option value="youtube">YouTube</Select.Option>
+          <Select.Option value="pinterest">Pinterest</Select.Option>
+          <Select.Option value="google">Google</Select.Option>
+          <Select.Option value="snapchat">Snapchat</Select.Option>
+          <Select.Option value="dribbble">Dribbble</Select.Option>
+          <Select.Option value="medium">Medium</Select.Option>
+          <Select.Option value="tumblr">Tumblr</Select.Option>
+          <Select.Option value="vimeo">Vimeo</Select.Option>
+          <Select.Option value="soundcloud">SoundCloud</Select.Option>
+          <Select.Option value="xing">Xing</Select.Option>
+          <Select.Option value="web">{t`Website`}</Select.Option>
+        </Select>
+      </InputLayout>
+
+      <InputLayout label={t`Link URL`}>
+        <StringPopoverInput
+          value={currentAttributes.href || ''}
+          onChange={(value) => onUpdate({ href: value || undefined })}
+          placeholder={t`https://example.com or {{ url }}`}
+          buttonText={t`Set link URL`}
+          validateUri={true}
+        />
+      </InputLayout>
+
+      <InputLayout label={t`Custom Icon URL`}>
+        <Input
+          size="small"
+          value={currentAttributes.src || ''}
+          onChange={(e) => onUpdate({ src: e.target.value || undefined })}
+          placeholder="https://example.com/icon.png"
+          style={{ width: '100%' }}
+          disabled={!!(currentAttributes.name && currentAttributes.name !== 'custom')}
+        />
+      </InputLayout>
+
+      <InputLayout label={t`Alt Text`}>
+        <Input
+          size="small"
+          value={currentAttributes.alt || ''}
+          onChange={(e) => onUpdate({ alt: e.target.value || undefined })}
+          placeholder={t`Social media icon`}
+          style={{ width: '100%' }}
+        />
+      </InputLayout>
+
+      <InputLayout label={t`Alignment`}>
+        <AlignSelector
+          value={currentAttributes.align || 'center'}
+          onChange={(value) => onUpdate({ align: value })}
+        />
+      </InputLayout>
+
+      <InputLayout label={t`Icon Settings`} layout="vertical">
+        <Row gutter={16}>
+          <Col span={8}>
+            <div className="mb-2">
+              <span className="text-xs text-gray-500">{t`Size`}</span>
+              <div style={{ marginTop: '4px' }}>
+                <InputNumber
+                  size="small"
+                  value={parsePixelValue(currentAttributes.iconSize)}
+                  onChange={(value) => onUpdate({ iconSize: value ? `${value}px` : undefined })}
+                  placeholder={(parsePixelValue(blockDefaults.iconSize) || 20).toString()}
+                  min={10}
+                  max={100}
+                  step={1}
+                  suffix="px"
+                  style={{ width: '100%' }}
+                />
+              </div>
+            </div>
+          </Col>
+          <Col span={8}>
+            <div className="mb-2">
+              <span className="text-xs text-gray-500">{t`Height`}</span>
+              <div style={{ marginTop: '4px' }}>
+                <InputNumber
+                  size="small"
+                  value={parsePixelValue(currentAttributes.iconHeight)}
+                  onChange={(value) => onUpdate({ iconHeight: value ? `${value}px` : undefined })}
+                  placeholder={(parsePixelValue(blockDefaults.iconHeight) || 20).toString()}
+                  min={10}
+                  max={100}
+                  step={1}
+                  suffix="px"
+                  style={{ width: '100%' }}
+                />
+              </div>
+            </div>
+          </Col>
+        </Row>
+      </InputLayout>
+
+      <InputLayout label={t`Icon Styling`} layout="vertical">
+        <Row gutter={16}>
+          <Col span={12}>
+            <div className="mb-2">
+              <span className="text-xs text-gray-500">{t`Background`}</span>
+              <div style={{ marginTop: '4px' }}>
+                <ColorPickerWithPresets
+                  value={currentAttributes.backgroundColor || undefined}
+                  onChange={(color) => onUpdate({ backgroundColor: color || undefined })}
+                />
+              </div>
+            </div>
+          </Col>
+          <Col span={12}>
+            <div className="mb-2">
+              <span className="text-xs text-gray-500">{t`Border Radius`}</span>
+              <div style={{ marginTop: '4px' }}>
+                <BorderRadiusInput
+                  value={currentAttributes.borderRadius}
+                  onChange={(value) => onUpdate({ borderRadius: value })}
+                  defaultValue={blockDefaults.borderRadius}
+                />
+              </div>
+            </div>
+          </Col>
+        </Row>
+      </InputLayout>
+
+      <InputLayout label={t`Text Settings`} layout="vertical">
+        <Row gutter={16}>
+          <Col span={12}>
+            <div className="mb-2">
+              <span className="text-xs text-gray-500">{t`Color`}</span>
+              <div style={{ marginTop: '4px' }}>
+                <ColorPickerWithPresets
+                  value={currentAttributes.color || undefined}
+                  onChange={(color) => onUpdate({ color: color || undefined })}
+                />
+              </div>
+            </div>
+          </Col>
+          <Col span={12}>
+            <div className="mb-2">
+              <span className="text-xs text-gray-500">{t`Font Size`}</span>
+              <div style={{ marginTop: '4px' }}>
+                <InputNumber
+                  size="small"
+                  value={parsePixelValue(currentAttributes.fontSize)}
+                  onChange={(value) => onUpdate({ fontSize: value ? `${value}px` : undefined })}
+                  placeholder={(parsePixelValue(blockDefaults.fontSize) || 13).toString()}
+                  min={8}
+                  max={48}
+                  step={1}
+                  suffix="px"
+                  style={{ width: '100%' }}
+                />
+              </div>
+            </div>
+          </Col>
+        </Row>
+      </InputLayout>
+
+      <InputLayout label={t`Font Settings`} layout="vertical">
+        <Row gutter={16}>
+          <Col span={8}>
+            <div className="mb-2">
+              <span className="text-xs text-gray-500">{t`Weight`}</span>
+              <div style={{ marginTop: '4px' }}>
+                <Select
+                  size="small"
+                  value={currentAttributes.fontWeight || 'normal'}
+                  onChange={(value) => onUpdate({ fontWeight: value })}
+                  style={{ width: '100%' }}
+                >
+                  <Select.Option value="normal">{t`Normal`}</Select.Option>
+                  <Select.Option value="bold">{t`Bold`}</Select.Option>
+                  <Select.Option value="lighter">{t`Lighter`}</Select.Option>
+                  <Select.Option value="100">100</Select.Option>
+                  <Select.Option value="200">200</Select.Option>
+                  <Select.Option value="300">300</Select.Option>
+                  <Select.Option value="400">400</Select.Option>
+                  <Select.Option value="500">500</Select.Option>
+                  <Select.Option value="600">600</Select.Option>
+                  <Select.Option value="700">700</Select.Option>
+                  <Select.Option value="800">800</Select.Option>
+                  <Select.Option value="900">900</Select.Option>
+                </Select>
+              </div>
+            </div>
+          </Col>
+          <Col span={8}>
+            <div className="mb-2">
+              <span className="text-xs text-gray-500">{t`Style`}</span>
+              <div style={{ marginTop: '4px' }}>
+                <Select
+                  size="small"
+                  value={currentAttributes.fontStyle || 'normal'}
+                  onChange={(value) => onUpdate({ fontStyle: value })}
+                  style={{ width: '100%' }}
+                >
+                  <Select.Option value="normal">{t`Normal`}</Select.Option>
+                  <Select.Option value="italic">{t`Italic`}</Select.Option>
+                  <Select.Option value="oblique">{t`Oblique`}</Select.Option>
+                </Select>
+              </div>
+            </div>
+          </Col>
+          <Col span={8}>
+            <div className="mb-2">
+              <span className="text-xs text-gray-500">{t`Decoration`}</span>
+              <div style={{ marginTop: '4px' }}>
+                <Select
+                  size="small"
+                  value={currentAttributes.textDecoration || 'none'}
+                  onChange={(value) => onUpdate({ textDecoration: value })}
+                  style={{ width: '100%' }}
+                >
+                  <Select.Option value="none">{t`None`}</Select.Option>
+                  <Select.Option value="underline">{t`Underline`}</Select.Option>
+                  <Select.Option value="overline">{t`Overline`}</Select.Option>
+                  <Select.Option value="line-through">{t`Line Through`}</Select.Option>
+                </Select>
+              </div>
+            </div>
+          </Col>
+        </Row>
+      </InputLayout>
+
+      <InputLayout label={t`Font Family`}>
+        <Input
+          size="small"
+          value={currentAttributes.fontFamily || ''}
+          onChange={(e) => onUpdate({ fontFamily: e.target.value || undefined })}
+          placeholder={blockDefaults.fontFamily || 'Ubuntu, Helvetica, Arial, sans-serif'}
+          style={{ width: '100%' }}
+        />
+      </InputLayout>
+
+      <InputLayout label={t`Line Height`}>
+        <StringPopoverInput
+          value={currentAttributes.lineHeight || ''}
+          onChange={(value) => onUpdate({ lineHeight: value || undefined })}
+          placeholder={blockDefaults.lineHeight || '22px'}
+          buttonText={t`Set height`}
+        />
+      </InputLayout>
+
+      <InputLayout label={t`Vertical Align`}>
+        <Select
+          size="small"
+          value={currentAttributes.verticalAlign || 'middle'}
+          onChange={(value) => onUpdate({ verticalAlign: value })}
+          style={{ width: '100%' }}
+        >
+          <Select.Option value="top">{t`Top`}</Select.Option>
+          <Select.Option value="middle">{t`Middle`}</Select.Option>
+          <Select.Option value="bottom">{t`Bottom`}</Select.Option>
+        </Select>
+      </InputLayout>
+
+      <InputLayout label={t`Link Settings`} layout="vertical">
+        <Row gutter={16}>
+          <Col span={12}>
+            <div className="mb-2">
+              <span className="text-xs text-gray-500">{t`Target`}</span>
+              <div style={{ marginTop: '4px' }}>
+                <Select
+                  size="small"
+                  value={currentAttributes.target || '_blank'}
+                  onChange={(value) => onUpdate({ target: value })}
+                  style={{ width: '100%' }}
+                >
+                  <Select.Option value="_blank">{t`New Window`}</Select.Option>
+                  <Select.Option value="_self">{t`Same Window`}</Select.Option>
+                  <Select.Option value="_parent">{t`Parent Frame`}</Select.Option>
+                  <Select.Option value="_top">{t`Top Frame`}</Select.Option>
+                </Select>
+              </div>
+            </div>
+          </Col>
+          <Col span={12}>
+            <div className="mb-2">
+              <span className="text-xs text-gray-500">{t`Rel`}</span>
+              <div style={{ marginTop: '4px' }}>
+                <Input
+                  size="small"
+                  value={currentAttributes.rel || ''}
+                  onChange={(e) => onUpdate({ rel: e.target.value || undefined })}
+                  placeholder="noopener"
+                  style={{ width: '100%' }}
+                />
+              </div>
+            </div>
+          </Col>
+        </Row>
+      </InputLayout>
+
+      <InputLayout label={t`Title`}>
+        <Input
+          size="small"
+          value={currentAttributes.title || ''}
+          onChange={(e) => onUpdate({ title: e.target.value || undefined })}
+          placeholder={t`Tooltip text`}
+          style={{ width: '100%' }}
+        />
+      </InputLayout>
+
+      <InputLayout label={t`Padding Settings`} layout="vertical">
+        <Row gutter={16}>
+          <Col span={12}>
+            <div className="mb-2">
+              <span className="text-xs text-gray-500">{t`Icon Padding`}</span>
+              <div style={{ marginTop: '4px' }}>
+                <StringPopoverInput
+                  value={currentAttributes.iconPadding || ''}
+                  onChange={(value) => onUpdate({ iconPadding: value || undefined })}
+                  placeholder={blockDefaults.iconPadding || '0px'}
+                  buttonText={t`Set padding`}
+                />
+              </div>
+            </div>
+          </Col>
+          <Col span={12}>
+            <div className="mb-2">
+              <span className="text-xs text-gray-500">{t`Text Padding`}</span>
+              <div style={{ marginTop: '4px' }}>
+                <StringPopoverInput
+                  value={currentAttributes.textPadding || ''}
+                  onChange={(value) => onUpdate({ textPadding: value || undefined })}
+                  placeholder={blockDefaults.textPadding || '4px 4px 4px 0'}
+                  buttonText={t`Set padding`}
+                />
+              </div>
+            </div>
+          </Col>
+        </Row>
+      </InputLayout>
+
+      <InputLayout label={t`Element Padding`} layout="vertical">
+        <PaddingInput
+          value={{
+            top: currentAttributes.paddingTop,
+            right: currentAttributes.paddingRight,
+            bottom: currentAttributes.paddingBottom,
+            left: currentAttributes.paddingLeft
+          }}
+          defaultValue={{
+            top: blockDefaults.paddingTop,
+            right: blockDefaults.paddingRight,
+            bottom: blockDefaults.paddingBottom,
+            left: blockDefaults.paddingLeft
+          }}
+          onChange={(values: {
+            top: string | undefined
+            right: string | undefined
+            bottom: string | undefined
+            left: string | undefined
+          }) => {
+            onUpdate({
+              paddingTop: values.top,
+              paddingRight: values.right,
+              paddingBottom: values.bottom,
+              paddingLeft: values.left
+            })
+          }}
+        />
+      </InputLayout>
+
+      <InputLayout label={t`CSS Class`}>
+        <StringPopoverInput
+          value={currentAttributes.cssClass || ''}
+          onChange={(value) => onUpdate({ cssClass: value || undefined })}
+          placeholder={t`Enter CSS class name`}
+        />
+      </InputLayout>
+    </PanelLayout>
+  )
+}
 
 /**
  * Implementation for mj-social-element blocks
@@ -127,407 +532,12 @@ export class MjSocialElementBlock extends BaseEmailBlock {
     const blockDefaults = this.getDefaults() as MJSocialElementAttributes
 
     return (
-      <PanelLayout title="Social Element Attributes">
-        <InputLayout label="Social Network">
-          <Select
-            size="small"
-            value={currentAttributes.name || 'custom'}
-            onChange={(value) => onUpdate({ name: value === 'custom' ? undefined : value })}
-            style={{ width: '100%' }}
-          >
-            <Select.Option value="custom">Custom</Select.Option>
-            <Select.Option value="facebook">Facebook</Select.Option>
-            <Select.Option value="twitter">Twitter</Select.Option>
-            <Select.Option value="x">X (Twitter)</Select.Option>
-            <Select.Option value="instagram">Instagram</Select.Option>
-            <Select.Option value="linkedin">LinkedIn</Select.Option>
-            <Select.Option value="github">GitHub</Select.Option>
-            <Select.Option value="youtube">YouTube</Select.Option>
-            <Select.Option value="pinterest">Pinterest</Select.Option>
-            <Select.Option value="google">Google</Select.Option>
-            <Select.Option value="snapchat">Snapchat</Select.Option>
-            <Select.Option value="dribbble">Dribbble</Select.Option>
-            <Select.Option value="medium">Medium</Select.Option>
-            <Select.Option value="tumblr">Tumblr</Select.Option>
-            <Select.Option value="vimeo">Vimeo</Select.Option>
-            <Select.Option value="soundcloud">SoundCloud</Select.Option>
-            <Select.Option value="xing">Xing</Select.Option>
-            <Select.Option value="web">Website</Select.Option>
-          </Select>
-        </InputLayout>
-
-        <InputLayout label="Link URL">
-          <StringPopoverInput
-            value={currentAttributes.href || ''}
-            onChange={(value) => onUpdate({ href: value || undefined })}
-            placeholder="https://example.com or {{ url }}"
-            buttonText="Set link URL"
-            validateUri={true}
-          />
-        </InputLayout>
-
-        <InputLayout label="Custom Icon URL">
-          <Input
-            size="small"
-            value={currentAttributes.src || ''}
-            onChange={(e) => onUpdate({ src: e.target.value || undefined })}
-            placeholder="https://example.com/icon.png"
-            style={{ width: '100%' }}
-            disabled={!!(currentAttributes.name && currentAttributes.name !== 'custom')}
-          />
-        </InputLayout>
-
-        <InputLayout label="Alt Text">
-          <Input
-            size="small"
-            value={currentAttributes.alt || ''}
-            onChange={(e) => onUpdate({ alt: e.target.value || undefined })}
-            placeholder="Social media icon"
-            style={{ width: '100%' }}
-          />
-        </InputLayout>
-
-        <InputLayout label="Alignment">
-          <AlignSelector
-            value={currentAttributes.align || 'center'}
-            onChange={(value) => onUpdate({ align: value })}
-          />
-        </InputLayout>
-
-        <InputLayout label="Icon Settings" layout="vertical">
-          <Row gutter={16}>
-            <Col span={8}>
-              <div className="mb-2">
-                <span className="text-xs text-gray-500">Size</span>
-                <div style={{ marginTop: '4px' }}>
-                  <InputNumber
-                    size="small"
-                    value={this.parsePixelValue(currentAttributes.iconSize)}
-                    onChange={(value) => onUpdate({ iconSize: value ? `${value}px` : undefined })}
-                    placeholder={(this.parsePixelValue(blockDefaults.iconSize) || 20).toString()}
-                    min={10}
-                    max={100}
-                    step={1}
-                    suffix="px"
-                    style={{ width: '100%' }}
-                  />
-                </div>
-              </div>
-            </Col>
-            <Col span={8}>
-              <div className="mb-2">
-                <span className="text-xs text-gray-500">Height</span>
-                <div style={{ marginTop: '4px' }}>
-                  <InputNumber
-                    size="small"
-                    value={this.parsePixelValue(currentAttributes.iconHeight)}
-                    onChange={(value) => onUpdate({ iconHeight: value ? `${value}px` : undefined })}
-                    placeholder={(this.parsePixelValue(blockDefaults.iconHeight) || 20).toString()}
-                    min={10}
-                    max={100}
-                    step={1}
-                    suffix="px"
-                    style={{ width: '100%' }}
-                  />
-                </div>
-              </div>
-            </Col>
-            {/* Position control commented out - iconPosition is not supported by MJML */}
-            {/* <Col span={8}>
-              <div className="mb-2">
-                <span className="text-xs text-gray-500">Position</span>
-                <div style={{ marginTop: '4px' }}>
-                  <Select
-                    size="small"
-                    value={currentAttributes.iconPosition || 'right'}
-                    onChange={(value) => onUpdate({ iconPosition: value })}
-                    style={{ width: '100%' }}
-                  >
-                    <Select.Option value="left">Left</Select.Option>
-                    <Select.Option value="right">Right</Select.Option>
-                  </Select>
-                </div>
-              </div>
-            </Col> */}
-          </Row>
-        </InputLayout>
-
-        <InputLayout label="Icon Styling" layout="vertical">
-          <Row gutter={16}>
-            <Col span={12}>
-              <div className="mb-2">
-                <span className="text-xs text-gray-500">Background</span>
-                <div style={{ marginTop: '4px' }}>
-                  <ColorPickerWithPresets
-                    value={currentAttributes.backgroundColor || undefined}
-                    onChange={(color) => onUpdate({ backgroundColor: color || undefined })}
-                  />
-                </div>
-              </div>
-            </Col>
-            <Col span={12}>
-              <div className="mb-2">
-                <span className="text-xs text-gray-500">Border Radius</span>
-                <div style={{ marginTop: '4px' }}>
-                  <BorderRadiusInput
-                    value={currentAttributes.borderRadius}
-                    onChange={(value) => onUpdate({ borderRadius: value })}
-                    defaultValue={blockDefaults.borderRadius}
-                  />
-                </div>
-              </div>
-            </Col>
-          </Row>
-        </InputLayout>
-
-        <InputLayout label="Text Settings" layout="vertical">
-          <Row gutter={16}>
-            <Col span={12}>
-              <div className="mb-2">
-                <span className="text-xs text-gray-500">Color</span>
-                <div style={{ marginTop: '4px' }}>
-                  <ColorPickerWithPresets
-                    value={currentAttributes.color || undefined}
-                    onChange={(color) => onUpdate({ color: color || undefined })}
-                  />
-                </div>
-              </div>
-            </Col>
-            <Col span={12}>
-              <div className="mb-2">
-                <span className="text-xs text-gray-500">Font Size</span>
-                <div style={{ marginTop: '4px' }}>
-                  <InputNumber
-                    size="small"
-                    value={this.parsePixelValue(currentAttributes.fontSize)}
-                    onChange={(value) => onUpdate({ fontSize: value ? `${value}px` : undefined })}
-                    placeholder={(this.parsePixelValue(blockDefaults.fontSize) || 13).toString()}
-                    min={8}
-                    max={48}
-                    step={1}
-                    suffix="px"
-                    style={{ width: '100%' }}
-                  />
-                </div>
-              </div>
-            </Col>
-          </Row>
-        </InputLayout>
-
-        <InputLayout label="Font Settings" layout="vertical">
-          <Row gutter={16}>
-            <Col span={8}>
-              <div className="mb-2">
-                <span className="text-xs text-gray-500">Weight</span>
-                <div style={{ marginTop: '4px' }}>
-                  <Select
-                    size="small"
-                    value={currentAttributes.fontWeight || 'normal'}
-                    onChange={(value) => onUpdate({ fontWeight: value })}
-                    style={{ width: '100%' }}
-                  >
-                    <Select.Option value="normal">Normal</Select.Option>
-                    <Select.Option value="bold">Bold</Select.Option>
-                    <Select.Option value="lighter">Lighter</Select.Option>
-                    <Select.Option value="100">100</Select.Option>
-                    <Select.Option value="200">200</Select.Option>
-                    <Select.Option value="300">300</Select.Option>
-                    <Select.Option value="400">400</Select.Option>
-                    <Select.Option value="500">500</Select.Option>
-                    <Select.Option value="600">600</Select.Option>
-                    <Select.Option value="700">700</Select.Option>
-                    <Select.Option value="800">800</Select.Option>
-                    <Select.Option value="900">900</Select.Option>
-                  </Select>
-                </div>
-              </div>
-            </Col>
-            <Col span={8}>
-              <div className="mb-2">
-                <span className="text-xs text-gray-500">Style</span>
-                <div style={{ marginTop: '4px' }}>
-                  <Select
-                    size="small"
-                    value={currentAttributes.fontStyle || 'normal'}
-                    onChange={(value) => onUpdate({ fontStyle: value })}
-                    style={{ width: '100%' }}
-                  >
-                    <Select.Option value="normal">Normal</Select.Option>
-                    <Select.Option value="italic">Italic</Select.Option>
-                    <Select.Option value="oblique">Oblique</Select.Option>
-                  </Select>
-                </div>
-              </div>
-            </Col>
-            <Col span={8}>
-              <div className="mb-2">
-                <span className="text-xs text-gray-500">Decoration</span>
-                <div style={{ marginTop: '4px' }}>
-                  <Select
-                    size="small"
-                    value={currentAttributes.textDecoration || 'none'}
-                    onChange={(value) => onUpdate({ textDecoration: value })}
-                    style={{ width: '100%' }}
-                  >
-                    <Select.Option value="none">None</Select.Option>
-                    <Select.Option value="underline">Underline</Select.Option>
-                    <Select.Option value="overline">Overline</Select.Option>
-                    <Select.Option value="line-through">Line Through</Select.Option>
-                  </Select>
-                </div>
-              </div>
-            </Col>
-          </Row>
-        </InputLayout>
-
-        <InputLayout label="Font Family">
-          <Input
-            size="small"
-            value={currentAttributes.fontFamily || ''}
-            onChange={(e) => onUpdate({ fontFamily: e.target.value || undefined })}
-            placeholder={blockDefaults.fontFamily || 'Ubuntu, Helvetica, Arial, sans-serif'}
-            style={{ width: '100%' }}
-          />
-        </InputLayout>
-
-        <InputLayout label="Line Height">
-          <StringPopoverInput
-            value={currentAttributes.lineHeight || ''}
-            onChange={(value) => onUpdate({ lineHeight: value || undefined })}
-            placeholder={blockDefaults.lineHeight || '22px'}
-            buttonText="Set height"
-          />
-        </InputLayout>
-
-        <InputLayout label="Vertical Align">
-          <Select
-            size="small"
-            value={currentAttributes.verticalAlign || 'middle'}
-            onChange={(value) => onUpdate({ verticalAlign: value })}
-            style={{ width: '100%' }}
-          >
-            <Select.Option value="top">Top</Select.Option>
-            <Select.Option value="middle">Middle</Select.Option>
-            <Select.Option value="bottom">Bottom</Select.Option>
-          </Select>
-        </InputLayout>
-
-        <InputLayout label="Link Settings" layout="vertical">
-          <Row gutter={16}>
-            <Col span={12}>
-              <div className="mb-2">
-                <span className="text-xs text-gray-500">Target</span>
-                <div style={{ marginTop: '4px' }}>
-                  <Select
-                    size="small"
-                    value={currentAttributes.target || '_blank'}
-                    onChange={(value) => onUpdate({ target: value })}
-                    style={{ width: '100%' }}
-                  >
-                    <Select.Option value="_blank">New Window</Select.Option>
-                    <Select.Option value="_self">Same Window</Select.Option>
-                    <Select.Option value="_parent">Parent Frame</Select.Option>
-                    <Select.Option value="_top">Top Frame</Select.Option>
-                  </Select>
-                </div>
-              </div>
-            </Col>
-            <Col span={12}>
-              <div className="mb-2">
-                <span className="text-xs text-gray-500">Rel</span>
-                <div style={{ marginTop: '4px' }}>
-                  <Input
-                    size="small"
-                    value={currentAttributes.rel || ''}
-                    onChange={(e) => onUpdate({ rel: e.target.value || undefined })}
-                    placeholder="noopener"
-                    style={{ width: '100%' }}
-                  />
-                </div>
-              </div>
-            </Col>
-          </Row>
-        </InputLayout>
-
-        <InputLayout label="Title">
-          <Input
-            size="small"
-            value={currentAttributes.title || ''}
-            onChange={(e) => onUpdate({ title: e.target.value || undefined })}
-            placeholder="Tooltip text"
-            style={{ width: '100%' }}
-          />
-        </InputLayout>
-
-        <InputLayout label="Padding Settings" layout="vertical">
-          <Row gutter={16}>
-            <Col span={12}>
-              <div className="mb-2">
-                <span className="text-xs text-gray-500">Icon Padding</span>
-                <div style={{ marginTop: '4px' }}>
-                  <StringPopoverInput
-                    value={currentAttributes.iconPadding || ''}
-                    onChange={(value) => onUpdate({ iconPadding: value || undefined })}
-                    placeholder={blockDefaults.iconPadding || '0px'}
-                    buttonText="Set padding"
-                  />
-                </div>
-              </div>
-            </Col>
-            <Col span={12}>
-              <div className="mb-2">
-                <span className="text-xs text-gray-500">Text Padding</span>
-                <div style={{ marginTop: '4px' }}>
-                  <StringPopoverInput
-                    value={currentAttributes.textPadding || ''}
-                    onChange={(value) => onUpdate({ textPadding: value || undefined })}
-                    placeholder={blockDefaults.textPadding || '4px 4px 4px 0'}
-                    buttonText="Set padding"
-                  />
-                </div>
-              </div>
-            </Col>
-          </Row>
-        </InputLayout>
-
-        <InputLayout label="Element Padding" layout="vertical">
-          <PaddingInput
-            value={{
-              top: currentAttributes.paddingTop,
-              right: currentAttributes.paddingRight,
-              bottom: currentAttributes.paddingBottom,
-              left: currentAttributes.paddingLeft
-            }}
-            defaultValue={{
-              top: blockDefaults.paddingTop,
-              right: blockDefaults.paddingRight,
-              bottom: blockDefaults.paddingBottom,
-              left: blockDefaults.paddingLeft
-            }}
-            onChange={(values: {
-              top: string | undefined
-              right: string | undefined
-              bottom: string | undefined
-              left: string | undefined
-            }) => {
-              onUpdate({
-                paddingTop: values.top,
-                paddingRight: values.right,
-                paddingBottom: values.bottom,
-                paddingLeft: values.left
-              })
-            }}
-          />
-        </InputLayout>
-
-        <InputLayout label="CSS Class">
-          <StringPopoverInput
-            value={currentAttributes.cssClass || ''}
-            onChange={(value) => onUpdate({ cssClass: value || undefined })}
-            placeholder="Enter CSS class name"
-          />
-        </InputLayout>
-      </PanelLayout>
+      <MjSocialElementSettingsPanel
+        currentAttributes={currentAttributes}
+        blockDefaults={blockDefaults}
+        onUpdate={onUpdate}
+        parsePixelValue={this.parsePixelValue}
+      />
     )
   }
 

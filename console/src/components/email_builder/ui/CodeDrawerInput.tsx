@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { Drawer, Button } from 'antd'
 import { Editor } from '@monaco-editor/react'
+import { useLingui } from '@lingui/react/macro'
 
 interface CodeDrawerInputProps {
   value?: string
@@ -14,10 +15,13 @@ const CodeDrawerInput: React.FC<CodeDrawerInputProps> = ({
   value,
   onChange,
   language = 'html',
-  buttonText = 'Set content',
-  title = 'Code Editor'
+  buttonText,
+  title
 }) => {
+  const { t } = useLingui()
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
+  const resolvedButtonText = buttonText || t`Set content`
+  const resolvedTitle = title || t`Code Editor`
   const [tempContent, setTempContent] = useState(value || '')
 
   const handleEditClick = () => {
@@ -116,12 +120,12 @@ const CodeDrawerInput: React.FC<CodeDrawerInputProps> = ({
       <>
         <div className="space-y-2">
           <Button type="primary" block size="small" ghost onClick={handleEditClick}>
-            Edit Content
+            {t`Edit Content`}
           </Button>
         </div>
 
         <Drawer
-          title={title}
+          title={resolvedTitle}
           placement="right"
           open={isDrawerOpen}
           onClose={handleDrawerCancel}
@@ -132,10 +136,10 @@ const CodeDrawerInput: React.FC<CodeDrawerInputProps> = ({
           extra={
             <div className="flex gap-2">
               <Button size="small" onClick={handleDrawerCancel}>
-                Cancel
+                {t`Cancel`}
               </Button>
               <Button size="small" type="primary" onClick={handleDrawerSave}>
-                Save Changes
+                {t`Save Changes`}
               </Button>
             </div>
           }
@@ -157,11 +161,11 @@ const CodeDrawerInput: React.FC<CodeDrawerInputProps> = ({
   return (
     <>
       <Button size="small" type="primary" ghost className="text-xs" onClick={handleEditClick}>
-        {buttonText}
+        {resolvedButtonText}
       </Button>
 
       <Drawer
-        title={title}
+        title={resolvedTitle}
         placement="right"
         open={isDrawerOpen}
         onClose={handleDrawerCancel}
@@ -172,10 +176,10 @@ const CodeDrawerInput: React.FC<CodeDrawerInputProps> = ({
         extra={
           <div className="flex gap-2">
             <Button size="small" onClick={handleDrawerCancel}>
-              Cancel
+              {t`Cancel`}
             </Button>
             <Button size="small" type="primary" onClick={handleDrawerSave}>
-              Save Changes
+              {t`Save Changes`}
             </Button>
           </div>
         }

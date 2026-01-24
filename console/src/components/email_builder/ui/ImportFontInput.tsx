@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { Input, Popover, Button, Select } from 'antd'
+import { useLingui } from '@lingui/react/macro'
 
 interface ImportFontInputProps {
   value?: {
@@ -14,9 +15,11 @@ interface ImportFontInputProps {
 const ImportFontInput: React.FC<ImportFontInputProps> = ({
   value,
   onChange,
-  buttonText = 'Import Font'
+  buttonText
 }) => {
+  const { t } = useLingui()
   const [open, setOpen] = useState(false)
+  const resolvedButtonText = buttonText || t`Import Font`
   const [inputValues, setInputValues] = useState({
     name: value?.name || '',
     href: value?.href || ''
@@ -119,39 +122,39 @@ const ImportFontInput: React.FC<ImportFontInputProps> = ({
   const content = (
     <div className="w-80">
       <div className="mb-3">
-        <label className="block text-xs font-medium text-gray-700 mb-1">Font Name</label>
+        <label className="block text-xs font-medium text-gray-700 mb-1">{t`Font Name`}</label>
         <Input
           size="small"
           value={inputValues.name}
           onChange={(e) => setInputValues((prev) => ({ ...prev, name: e.target.value }))}
-          placeholder="e.g., Raleway, Open Sans"
+          placeholder={t`e.g., Raleway, Open Sans`}
           autoFocus
         />
       </div>
 
       <div className="mb-3">
-        <label className="block text-xs font-medium text-gray-700 mb-1">CSS File URL</label>
+        <label className="block text-xs font-medium text-gray-700 mb-1">{t`CSS File URL`}</label>
         <Input
           size="small"
           value={inputValues.href}
           onChange={(e) => setInputValues((prev) => ({ ...prev, href: e.target.value }))}
-          placeholder="https://fonts.googleapis.com/css?family=... or {{ font_url }}"
+          placeholder={t`https://fonts.googleapis.com/css?family=... or {{ font_url }}`}
           status={inputValues.href && !isValidUrl(inputValues.href) ? 'error' : undefined}
         />
         {inputValues.href && !isValidUrl(inputValues.href) && (
           <div className="text-xs text-red-500 mt-1">
-            Invalid URL format. Use a valid URL or liquid expression like {`{{ variable }}`}
+            {t`Invalid URL format. Use a valid URL or liquid expression like {{ variable }}`}
           </div>
         )}
       </div>
 
       <div className="mb-3">
         <div className="text-xs font-medium text-gray-700 mb-2">
-          Or select a popular Google Font
+          {t`Or select a popular Google Font`}
         </div>
         <Select
           size="small"
-          placeholder="Select a popular Google Font"
+          placeholder={t`Select a popular Google Font`}
           onChange={handleFontSelect}
           style={{ width: '100%' }}
           options={popularFonts.map((font) => ({
@@ -163,14 +166,14 @@ const ImportFontInput: React.FC<ImportFontInputProps> = ({
 
       <div className="flex justify-between gap-2">
         <Button size="small" onClick={handleClear} danger type="text">
-          Clear
+          {t`Clear`}
         </Button>
         <div className="flex gap-2">
           <Button size="small" onClick={handleCancel}>
-            Cancel
+            {t`Cancel`}
           </Button>
           <Button size="small" type="primary" onClick={handleSave} disabled={!isFormValid}>
-            Import Font
+            {t`Import Font`}
           </Button>
         </div>
       </div>
@@ -196,14 +199,14 @@ const ImportFontInput: React.FC<ImportFontInputProps> = ({
 
         <Popover
           content={content}
-          title="Edit Font Import"
+          title={t`Edit Font Import`}
           trigger="click"
           open={open}
           onOpenChange={handleOpenChange}
           placement="left"
         >
           <Button type="primary" ghost block size="small" className="self-start">
-            Edit
+            {t`Edit`}
           </Button>
         </Popover>
       </div>
@@ -213,14 +216,14 @@ const ImportFontInput: React.FC<ImportFontInputProps> = ({
   return (
     <Popover
       content={content}
-      title="Import Custom Font"
+      title={t`Import Custom Font`}
       trigger="click"
       open={open}
       onOpenChange={handleOpenChange}
       placement="left"
     >
       <Button size="small" type="primary" ghost block>
-        {buttonText}
+        {resolvedButtonText}
       </Button>
     </Popover>
   )

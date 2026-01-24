@@ -1,6 +1,7 @@
 import React from 'react'
 import { Form, Input, InputNumber, Button } from 'antd'
 import { PlusOutlined, DeleteOutlined } from '@ant-design/icons'
+import { useLingui } from '@lingui/react/macro'
 import type { ABTestNodeConfig, ABTestVariant } from '../../../services/api/automation'
 
 interface ABTestConfigFormProps {
@@ -18,6 +19,7 @@ const DEFAULT_VARIANTS: ABTestVariant[] = [
 ]
 
 export const ABTestConfigForm: React.FC<ABTestConfigFormProps> = ({ config, onChange }) => {
+  const { t } = useLingui()
   const variants = config?.variants?.length > 0 ? config.variants : DEFAULT_VARIANTS
 
   // Initialize with defaults if empty (using ref to run only once)
@@ -110,7 +112,7 @@ export const ABTestConfigForm: React.FC<ABTestConfigFormProps> = ({ config, onCh
   return (
     <Form layout="vertical" className="nodrag">
       <Form.Item
-        label={<span>Test Variants <span className="text-red-500">*</span></span>}
+        label={<span>{t`Test Variants`} <span className="text-red-500">*</span></span>}
         required={false}
       >
         <div className="space-y-2">
@@ -122,7 +124,7 @@ export const ABTestConfigForm: React.FC<ABTestConfigFormProps> = ({ config, onCh
               <Input
                 value={variant.name}
                 onChange={(e) => handleVariantChange(index, 'name', e.target.value)}
-                placeholder="Variant name"
+                placeholder={t`Variant name`}
                 style={{ flex: 1 }}
               />
               <InputNumber
@@ -155,16 +157,16 @@ export const ABTestConfigForm: React.FC<ABTestConfigFormProps> = ({ config, onCh
             icon={<PlusOutlined />}
             className="!mt-2"
           >
-            Add Variant
+            {t`Add Variant`}
           </Button>
         )}
       </Form.Item>
 
       <div className={`text-sm flex items-center gap-1 ${isWeightValid ? 'text-green-600' : 'text-red-500'}`}>
-        <span>Total: {totalWeight}%</span>
+        <span>{t`Total`}: {totalWeight}%</span>
         <span className="text-gray-400">-</span>
         <Button type="link" onClick={handleDistributeEvenly} size="small" className="p-0 h-auto text-sm">
-          Distribute evenly
+          {t`Distribute evenly`}
         </Button>
       </div>
     </Form>

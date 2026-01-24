@@ -1,4 +1,5 @@
 import React from 'react'
+import { useLingui } from '@lingui/react/macro'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faImage } from '@fortawesome/free-solid-svg-icons'
 import { Switch } from 'antd'
@@ -21,6 +22,166 @@ import BorderRadiusInput from '../ui/BorderRadiusInput'
 import FileSrc from '../ui/FileSrc'
 import PanelLayout from '../panels/PanelLayout'
 import WidthPxInput from '../ui/WidthPxInput'
+
+// Functional component for settings panel with i18n support
+interface MjImageSettingsPanelProps {
+  currentAttributes: MJImageAttributes
+  blockDefaults: MergedBlockAttributes
+  onUpdate: OnUpdateAttributesFunction
+}
+
+const MjImageSettingsPanel: React.FC<MjImageSettingsPanelProps> = ({
+  currentAttributes,
+  blockDefaults,
+  onUpdate
+}) => {
+  const { t } = useLingui()
+
+  return (
+    <PanelLayout title={t`Image Attributes`}>
+      <InputLayout label={t`Image`} className="mt-0" layout="vertical">
+        <FileSrc
+          size="small"
+          value={currentAttributes.src || ''}
+          onChange={(value) => onUpdate({ src: value || undefined })}
+          placeholder={t`Enter image URL`}
+          acceptFileType="image/*"
+          acceptItem={(item) =>
+            !item.is_folder && (item.file_info?.content_type?.startsWith('image/') ?? false)
+          }
+          buttonText={t`Browse Images`}
+        />
+      </InputLayout>
+
+      <InputLayout label={t`Link`}>
+        <StringPopoverInput
+          value={currentAttributes.href || ''}
+          onChange={(value) => onUpdate({ href: value || undefined })}
+          placeholder={t`Enter link URL or {{ url }}`}
+          buttonText={t`Set link`}
+          validateUri={true}
+        />
+      </InputLayout>
+
+      <InputLayout label={t`Alt text`}>
+        <StringPopoverInput
+          value={currentAttributes.alt || ''}
+          onChange={(value) => onUpdate({ alt: value || undefined })}
+          placeholder={t`Alternative text`}
+        />
+      </InputLayout>
+
+      <InputLayout label={t`Align`}>
+        <AlignSelector
+          value={currentAttributes.align || 'center'}
+          onChange={(value) => onUpdate({ align: value })}
+        />
+      </InputLayout>
+
+      <InputLayout label={t`Width`} help={t`Leave empty for full container width`}>
+        <WidthPxInput
+          value={currentAttributes.width}
+          onChange={(value) => onUpdate({ width: value })}
+          placeholder={t`Auto`}
+        />
+      </InputLayout>
+
+      <InputLayout
+        label={t`Full width on mobile`}
+        help={t`If "true", will be full width on mobile even if width is set`}
+      >
+        <Switch
+          size="small"
+          checked={currentAttributes['fluidOnMobile'] === 'true'}
+          onChange={(checked) => onUpdate({ fluidOnMobile: checked ? 'true' : 'false' })}
+        />
+      </InputLayout>
+
+      <InputLayout label={t`Height`}>
+        <HeightInput
+          value={currentAttributes.height}
+          onChange={(value) => onUpdate({ height: value })}
+          placeholder={blockDefaults.height || t`Auto`}
+        />
+      </InputLayout>
+
+      <InputLayout label={t`Padding`} layout="vertical">
+        <PaddingInput
+          value={{
+            top: currentAttributes.paddingTop,
+            right: currentAttributes.paddingRight,
+            bottom: currentAttributes.paddingBottom,
+            left: currentAttributes.paddingLeft
+          }}
+          defaultValue={{
+            top: blockDefaults.paddingTop,
+            right: blockDefaults.paddingRight,
+            bottom: blockDefaults.paddingBottom,
+            left: blockDefaults.paddingLeft
+          }}
+          onChange={(values: {
+            top: string | undefined
+            right: string | undefined
+            bottom: string | undefined
+            left: string | undefined
+          }) => {
+            onUpdate({
+              paddingTop: values.top,
+              paddingRight: values.right,
+              paddingBottom: values.bottom,
+              paddingLeft: values.left
+            })
+          }}
+        />
+      </InputLayout>
+
+      <InputLayout label={t`Container Background`}>
+        <ColorPickerWithPresets
+          value={currentAttributes.containerBackgroundColor || undefined}
+          onChange={(color) => {
+            onUpdate({ containerBackgroundColor: color || undefined })
+          }}
+        />
+      </InputLayout>
+
+      <InputLayout label={t`Border Radius`}>
+        <BorderRadiusInput
+          value={currentAttributes.borderRadius}
+          onChange={(value) => onUpdate({ borderRadius: value })}
+          defaultValue={blockDefaults.borderRadius}
+        />
+      </InputLayout>
+
+      <InputLayout label={t`Border`} layout="vertical">
+        <BorderInput
+          className="-mt-6"
+          value={{
+            borderTop: currentAttributes.borderTop,
+            borderRight: currentAttributes.borderRight,
+            borderBottom: currentAttributes.borderBottom,
+            borderLeft: currentAttributes.borderLeft
+          }}
+          onChange={(borderValues) => {
+            onUpdate({
+              borderTop: borderValues.borderTop,
+              borderRight: borderValues.borderRight,
+              borderBottom: borderValues.borderBottom,
+              borderLeft: borderValues.borderLeft
+            })
+          }}
+        />
+      </InputLayout>
+
+      <InputLayout label={t`CSS Class`}>
+        <StringPopoverInput
+          value={currentAttributes.cssClass || ''}
+          onChange={(value) => onUpdate({ cssClass: value || undefined })}
+          placeholder={t`Enter CSS class name`}
+        />
+      </InputLayout>
+    </PanelLayout>
+  )
+}
 
 /**
  * Implementation for mj-image blocks
@@ -221,148 +382,11 @@ export class MjImageBlock extends BaseEmailBlock {
   ): React.ReactNode {
     const currentAttributes = this.block.attributes as MJImageAttributes
     return (
-      <PanelLayout title="Image Attributes">
-        <InputLayout label="Image" className="mt-0" layout="vertical">
-          <FileSrc
-            size="small"
-            value={currentAttributes.src || ''}
-            onChange={(value) => onUpdate({ src: value || undefined })}
-            placeholder="Enter image URL"
-            acceptFileType="image/*"
-            acceptItem={(item) =>
-              !item.is_folder && (item.file_info?.content_type?.startsWith('image/') ?? false)
-            }
-            buttonText="Browse Images"
-          />
-        </InputLayout>
-
-        <InputLayout label="Link">
-          <StringPopoverInput
-            value={currentAttributes.href || ''}
-            onChange={(value) => onUpdate({ href: value || undefined })}
-            placeholder="Enter link URL or {{ url }}"
-            buttonText="Set link"
-            validateUri={true}
-          />
-        </InputLayout>
-
-        <InputLayout label="Alt text">
-          <StringPopoverInput
-            value={currentAttributes.alt || ''}
-            onChange={(value) => onUpdate({ alt: value || undefined })}
-            placeholder="Alternative text"
-          />
-        </InputLayout>
-
-        <InputLayout label="Align">
-          <AlignSelector
-            value={currentAttributes.align || 'center'}
-            onChange={(value) => onUpdate({ align: value })}
-          />
-        </InputLayout>
-
-        <InputLayout label="Width" help="Leave empty for full container width">
-          <WidthPxInput
-            value={currentAttributes.width}
-            onChange={(value) => onUpdate({ width: value })}
-            placeholder="Auto"
-          />
-        </InputLayout>
-
-        <InputLayout
-          label="Full width on mobile"
-          help='If "true", will be full width on mobile even if width is set'
-        >
-          <Switch
-            size="small"
-            checked={currentAttributes['fluidOnMobile'] === 'true'}
-            onChange={(checked) => onUpdate({ fluidOnMobile: checked ? 'true' : 'false' })}
-          />
-        </InputLayout>
-
-        <InputLayout label="Height">
-          <HeightInput
-            value={currentAttributes.height}
-            onChange={(value) => onUpdate({ height: value })}
-            placeholder={blockDefaults.height || 'Auto'}
-          />
-        </InputLayout>
-
-        <InputLayout label="Padding" layout="vertical">
-          <PaddingInput
-            value={{
-              top: currentAttributes.paddingTop,
-              right: currentAttributes.paddingRight,
-              bottom: currentAttributes.paddingBottom,
-              left: currentAttributes.paddingLeft
-            }}
-            defaultValue={{
-              top: blockDefaults.paddingTop,
-              right: blockDefaults.paddingRight,
-              bottom: blockDefaults.paddingBottom,
-              left: blockDefaults.paddingLeft
-            }}
-            onChange={(values: {
-              top: string | undefined
-              right: string | undefined
-              bottom: string | undefined
-              left: string | undefined
-            }) => {
-              onUpdate({
-                paddingTop: values.top,
-                paddingRight: values.right,
-                paddingBottom: values.bottom,
-                paddingLeft: values.left
-              })
-            }}
-          />
-        </InputLayout>
-
-        <InputLayout label="Container Background">
-          <ColorPickerWithPresets
-            value={currentAttributes.containerBackgroundColor || undefined}
-            onChange={(color) => {
-              onUpdate({ containerBackgroundColor: color || undefined })
-            }}
-          />
-        </InputLayout>
-
-        <InputLayout label="Border Radius">
-          <BorderRadiusInput
-            value={currentAttributes.borderRadius}
-            onChange={(value) => onUpdate({ borderRadius: value })}
-            defaultValue={blockDefaults.borderRadius}
-          />
-        </InputLayout>
-
-        <InputLayout label="Border" layout="vertical">
-          <BorderInput
-            className="-mt-6"
-            value={{
-              borderTop: currentAttributes.borderTop,
-              borderRight: currentAttributes.borderRight,
-              borderBottom: currentAttributes.borderBottom,
-              borderLeft: currentAttributes.borderLeft
-            }}
-            onChange={(borderValues) => {
-              onUpdate({
-                borderTop: borderValues.borderTop,
-                borderRight: borderValues.borderRight,
-                borderBottom: borderValues.borderBottom,
-                borderLeft: borderValues.borderLeft
-              })
-            }}
-          />
-        </InputLayout>
-
-        <InputLayout label="CSS Class">
-          <StringPopoverInput
-            value={currentAttributes.cssClass || ''}
-            onChange={(value) => onUpdate({ cssClass: value || undefined })}
-            placeholder="Enter CSS class name"
-          />
-        </InputLayout>
-      </PanelLayout>
+      <MjImageSettingsPanel
+        currentAttributes={currentAttributes}
+        blockDefaults={blockDefaults}
+        onUpdate={onUpdate}
+      />
     )
   }
 }

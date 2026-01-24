@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { InputNumber, Segmented } from 'antd'
+import { useLingui } from '@lingui/react/macro'
 
 interface WidthInputProps {
   value?: string
@@ -10,9 +11,11 @@ interface WidthInputProps {
 const WidthInput: React.FC<WidthInputProps> = ({
   value,
   onChange,
-  placeholder = 'Enter width'
+  placeholder
 }) => {
+  const { t } = useLingui()
   const [numericValue, setNumericValue] = useState<number | undefined>()
+  const resolvedPlaceholder = placeholder || t`Enter width`
   const [unit, setUnit] = useState<'px' | '%'>('%')
 
   // Parse incoming value to extract number and unit
@@ -64,7 +67,7 @@ const WidthInput: React.FC<WidthInputProps> = ({
         size="small"
         value={numericValue}
         onChange={handleNumberChange}
-        placeholder={placeholder}
+        placeholder={resolvedPlaceholder}
         min={0}
         step={unit === '%' ? 1 : 10}
         className="flex-1"

@@ -6,8 +6,10 @@ import { DateFilterInput } from './FilterInputs'
 import { BooleanFilterInput } from './FilterInputs'
 import { SelectFilterInput } from './FilterInputs'
 import React from 'react'
+import { useLingui } from '@lingui/react/macro'
 
 export function Filter({ fields, activeFilters, className }: FilterProps) {
+  const { t } = useLingui()
   const [tempValues, setTempValues] = React.useState<
     Record<string, string | number | boolean | Date>
   >({})
@@ -179,7 +181,7 @@ export function Filter({ fields, activeFilters, className }: FilterProps) {
                           tempValues[field.key] === undefined || tempValues[field.key] === ''
                         }
                       >
-                        Confirm
+                        {t`Confirm`}
                       </Button>
                       <Button
                         danger
@@ -187,7 +189,7 @@ export function Filter({ fields, activeFilters, className }: FilterProps) {
                         style={{ width: '50%' }}
                         onClick={() => handleClear(field.key)}
                       >
-                        Clear
+                        {t`Clear`}
                       </Button>
                     </div>
                   ) : (
@@ -198,13 +200,13 @@ export function Filter({ fields, activeFilters, className }: FilterProps) {
                       onClick={() => handleConfirm(field.key)}
                       disabled={tempValues[field.key] === undefined || tempValues[field.key] === ''}
                     >
-                      Confirm
+                      {t`Confirm`}
                     </Button>
                   )}
                 </div>
               }
             >
-              <Tooltip title={<>Filter by: {field.label}</>} placement="top">
+              <Tooltip title={t`Filter by: ${field.label}`} placement="top">
                 <Button
                   size="small"
                   type={activeFilters.some((f) => f.field === field.key) ? 'primary' : 'default'}

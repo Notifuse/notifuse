@@ -1,5 +1,6 @@
 import React from 'react'
 import { Form } from 'antd'
+import { useLingui } from '@lingui/react/macro'
 import TemplateSelectorInput from '../../templates/TemplateSelectorInput'
 import type { EmailNodeConfig } from '../../../services/api/automation'
 
@@ -14,6 +15,8 @@ export const EmailConfigForm: React.FC<EmailConfigFormProps> = ({
   onChange,
   workspaceId
 }) => {
+  const { t } = useLingui()
+
   const handleTemplateChange = (templateId: string | null) => {
     onChange({ ...config, template_id: templateId || '' })
   }
@@ -21,15 +24,15 @@ export const EmailConfigForm: React.FC<EmailConfigFormProps> = ({
   return (
     <Form layout="vertical" className="nodrag">
       <Form.Item
-        label="Email Template"
+        label={t`Email Template`}
         required
-        extra="Select the email template to send"
+        extra={t`Select the email template to send`}
       >
         <TemplateSelectorInput
           value={config.template_id || null}
           onChange={handleTemplateChange}
           workspaceId={workspaceId}
-          placeholder="Select email template..."
+          placeholder={t`Select email template...`}
         />
       </Form.Item>
     </Form>

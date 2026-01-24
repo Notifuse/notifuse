@@ -16,6 +16,7 @@ import {
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faCirclePause, faTrashCan, faPenToSquare } from '@fortawesome/free-regular-svg-icons'
 import { PieChart } from 'lucide-react'
+import { useLingui } from '@lingui/react/macro'
 import dayjs from '../../lib/dayjs'
 import { AutomationFlowViewer } from './AutomationFlowViewer'
 import { automationApi } from '../../services/api/automation'
@@ -24,19 +25,7 @@ import type { UserPermissions } from '../../services/api/workspace'
 import type { List } from '../../services/api/list'
 import type { Segment } from '../../services/api/segment'
 
-// Helper function to get status badge
-const getStatusBadge = (status: AutomationStatus) => {
-  switch (status) {
-    case 'draft':
-      return <Badge status="default" text="Draft" />
-    case 'live':
-      return <Badge status="processing" text="Live" />
-    case 'paused':
-      return <Badge status="warning" text="Paused" />
-    default:
-      return <Badge status="default" text={status} />
-  }
-}
+// Status badge is created inside component for i18n support
 
 interface AutomationCardProps {
   automation: Automation
@@ -61,10 +50,25 @@ export const AutomationCard: React.FC<AutomationCardProps> = ({
   onDelete,
   onEdit
 }) => {
+  const { t } = useLingui()
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [nodeStats, setNodeStats] = useState<Record<string, AutomationNodeStats> | null>(null)
   const [statsLoading, setStatsLoading] = useState(false)
   const [flowHeight, setFlowHeight] = useState(300)
+
+  // Helper function to get status badge
+  const getStatusBadge = (status: AutomationStatus) => {
+    switch (status) {
+      case 'draft':
+        return <Badge status="default" text={t`Draft`} />
+      case 'live':
+        return <Badge status="processing" text={t`Live`} />
+      case 'paused':
+        return <Badge status="warning" text={t`Paused`} />
+      default:
+        return <Badge status="default" text={status} />
+    }
+  }
 
   const fetchNodeStats = async () => {
     setStatsLoading(true)
@@ -92,7 +96,7 @@ export const AutomationCard: React.FC<AutomationCardProps> = ({
   // Find the list name if list_id is set
   const listName = automation.list_id
     ? lists.find((l) => l.id === automation.list_id)?.name || automation.list_id
-    : 'No list'
+    : t`No list`
 
   // Get trigger event kind and filter info
   const triggerEvent = automation.trigger?.event_kind
@@ -140,17 +144,17 @@ export const AutomationCard: React.FC<AutomationCardProps> = ({
             <Tooltip
               title={
                 !permissions?.automations?.write
-                  ? "You don't have write permission for automations"
-                  : 'Delete Automation'
+                  ? t`You don't have write permission for automations`
+                  : t`Delete Automation`
               }
             >
               <Popconfirm
-                title="Delete automation?"
-                description="This action cannot be undone."
+                title={t`Delete automation?`}
+                description={t`This action cannot be undone.`}
                 onConfirm={() => onDelete(automation)}
-                okText="Yes, delete"
+                okText={t`Yes, delete`}
                 okButtonProps={{ danger: true }}
-                cancelText="Cancel"
+                cancelText={t`Cancel`}
                 disabled={!permissions?.automations?.write}
               >
                 <Button
@@ -168,8 +172,8 @@ export const AutomationCard: React.FC<AutomationCardProps> = ({
             <Tooltip
               title={
                 !permissions?.automations?.write
-                  ? "You don't have write permission for automations"
-                  : 'Edit Automation'
+                  ? t`You don't have write permission for automations`
+                  : t`Edit Automation`
               }
             >
               <Button
@@ -183,7 +187,7 @@ export const AutomationCard: React.FC<AutomationCardProps> = ({
           )}
 
           {/* Stats button - always visible */}
-          <Tooltip title="View Flow Stats">
+          <Tooltip title={t`View Flow Stats`}>
             <Button
               type="text"
               size="small"
@@ -197,20 +201,20 @@ export const AutomationCard: React.FC<AutomationCardProps> = ({
             <Tooltip
               title={
                 !permissions?.automations?.write
-                  ? "You don't have write permission for automations"
-                  : 'Activate Automation'
+                  ? t`You don't have write permission for automations`
+                  : t`Activate Automation`
               }
             >
               <Popconfirm
-                title="Activate automation?"
-                description="The automation will start processing contacts that match the trigger."
+                title={t`Activate automation?`}
+                description={t`The automation will start processing contacts that match the trigger.`}
                 onConfirm={() => onActivate(automation)}
-                okText="Yes, activate"
-                cancelText="Cancel"
+                okText={t`Yes, activate`}
+                cancelText={t`Cancel`}
                 disabled={!permissions?.automations?.write}
               >
                 <Button type="primary" size="small" disabled={!permissions?.automations?.write}>
-                  Activate
+                  {t`Activate`}
                 </Button>
               </Popconfirm>
             </Tooltip>
@@ -221,16 +225,16 @@ export const AutomationCard: React.FC<AutomationCardProps> = ({
             <Tooltip
               title={
                 !permissions?.automations?.write
-                  ? "You don't have write permission for automations"
-                  : 'Pause Automation'
+                  ? t`You don't have write permission for automations`
+                  : t`Pause Automation`
               }
             >
               <Popconfirm
-                title="Pause automation?"
-                description="The automation will stop processing new contacts."
+                title={t`Pause automation?`}
+                description={t`The automation will stop processing new contacts.`}
                 onConfirm={() => onPause(automation)}
-                okText="Yes, pause"
-                cancelText="Cancel"
+                okText={t`Yes, pause`}
+                cancelText={t`Cancel`}
                 disabled={!permissions?.automations?.write}
               >
                 <Button
@@ -253,28 +257,28 @@ export const AutomationCard: React.FC<AutomationCardProps> = ({
           <Row gutter={24}>
             <Col span={6}>
               <Statistic
-                title="Enrolled"
+                title={t`Enrolled`}
                 value={automation.stats.enrolled}
                 valueStyle={{ fontSize: '20px' }}
               />
             </Col>
             <Col span={6}>
               <Statistic
-                title="Completed"
+                title={t`Completed`}
                 value={automation.stats.completed}
                 valueStyle={{ fontSize: '20px', color: '#52c41a' }}
               />
             </Col>
             <Col span={6}>
               <Statistic
-                title="Exited"
+                title={t`Exited`}
                 value={automation.stats.exited}
                 valueStyle={{ fontSize: '20px', color: '#faad14' }}
               />
             </Col>
             <Col span={6}>
               <Statistic
-                title="Failed"
+                title={t`Failed`}
                 value={automation.stats.failed}
                 valueStyle={{ fontSize: '20px', color: '#ff4d4f' }}
               />
@@ -286,8 +290,8 @@ export const AutomationCard: React.FC<AutomationCardProps> = ({
       {/* Details */}
       <div className="px-6 py-4 border-b border-gray-100">
         <Descriptions size="small" column={2}>
-          <Descriptions.Item label="ID">{automation.id}</Descriptions.Item>
-          <Descriptions.Item label="Trigger">
+          <Descriptions.Item label={t`ID`}>{automation.id}</Descriptions.Item>
+          <Descriptions.Item label={t`Trigger`}>
             <Space size="small">
               {triggerEvent ? (
                 <>
@@ -295,21 +299,21 @@ export const AutomationCard: React.FC<AutomationCardProps> = ({
                   {triggerFilter && <Tag color="cyan">{triggerFilter}</Tag>}
                 </>
               ) : (
-                <span className="text-gray-400">No trigger configured</span>
+                <span className="text-gray-400">{t`No trigger configured`}</span>
               )}
             </Space>
           </Descriptions.Item>
-          <Descriptions.Item label="List">{listName}</Descriptions.Item>
-          <Descriptions.Item label="Frequency">
-            {automation.trigger?.frequency === 'once' ? 'Once per contact' : 'Every time'}
+          <Descriptions.Item label={t`List`}>{listName}</Descriptions.Item>
+          <Descriptions.Item label={t`Frequency`}>
+            {automation.trigger?.frequency === 'once' ? t`Once per contact` : t`Every time`}
           </Descriptions.Item>
-          <Descriptions.Item label="Updated">{dayjs(automation.updated_at).fromNow()}</Descriptions.Item>
+          <Descriptions.Item label={t`Updated`}>{dayjs(automation.updated_at).fromNow()}</Descriptions.Item>
         </Descriptions>
       </div>
 
       {/* Flow Stats Drawer */}
       <Drawer
-        title={`Flow Stats: ${automation.name}`}
+        title={t`Flow Stats: ${automation.name}`}
         placement="right"
         width="100%"
         open={drawerOpen}

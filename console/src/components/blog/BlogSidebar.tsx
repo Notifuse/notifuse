@@ -1,3 +1,4 @@
+import { useLingui } from '@lingui/react/macro'
 import { Menu, Divider, Button, Space } from 'antd'
 import { PlusOutlined } from '@ant-design/icons'
 import { useQuery } from '@tanstack/react-query'
@@ -23,6 +24,7 @@ export function BlogSidebar({
   onEditCategory,
   onDeleteCategory
 }: BlogSidebarProps) {
+  const { t } = useLingui()
   const { data: categoriesData } = useQuery({
     queryKey: ['blog-categories', workspaceId],
     queryFn: () => blogCategoriesApi.list(workspaceId)
@@ -43,7 +45,7 @@ export function BlogSidebar({
   const menuItems = [
     {
       key: 'all',
-      label: 'All Posts'
+      label: t`All Posts`
     },
     ...categories.map((category) => ({
       key: category.id,
@@ -91,7 +93,7 @@ export function BlogSidebar({
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <div className="text-xl font-medium pt-6 pl-6">Categories</div>
+      <div className="text-xl font-medium pt-6 pl-6">{t`Categories`}</div>
       <Divider className="!my-4" />
       <Menu
         mode="inline"
@@ -103,7 +105,7 @@ export function BlogSidebar({
       <Divider className="!my-4" />
       <div className="px-6 pb-6">
         <Button type="primary" ghost icon={<PlusOutlined />} onClick={onNewCategory} block>
-          New Category
+          {t`New Category`}
         </Button>
       </div>
     </div>

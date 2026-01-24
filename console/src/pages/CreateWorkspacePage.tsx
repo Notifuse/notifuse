@@ -6,8 +6,10 @@ import { workspaceService } from '../services/api/workspace'
 import { useAuth } from '../contexts/AuthContext'
 import { MainLayout, MainLayoutSidebar } from '../layouts/MainLayout'
 import { getBrowserTimezone } from '../lib/timezoneNormalizer'
+import { useLingui } from '@lingui/react/macro'
 
 export function CreateWorkspacePage() {
+  const { t } = useLingui()
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
   const [form] = Form.useForm()
@@ -68,7 +70,7 @@ export function CreateWorkspacePage() {
       await refreshWorkspaces()
 
       // Navigate to the new workspace
-      message.success(`Workspace "${values.name}" created successfully!`)
+      message.success(t`Workspace "${values.name}" created successfully!`)
       // wait for the refreshWorkspaces to propagate the new workspaces list to the root layout
       window.setTimeout(() => {
         navigate({
@@ -78,7 +80,7 @@ export function CreateWorkspacePage() {
       }, 100)
     } catch (error) {
       console.error('Error creating workspace:', error)
-      message.error(error instanceof Error ? error.message : 'Failed to create workspace')
+      message.error(error instanceof Error ? error.message : t`Failed to create workspace`)
       setLoading(false)
     }
   }
@@ -90,7 +92,7 @@ export function CreateWorkspacePage() {
   return (
     <MainLayout>
       <MainLayoutSidebar
-        title="New workspace"
+        title={t`New workspace`}
         extra={
           <Button
             type="primary"
@@ -110,38 +112,38 @@ export function CreateWorkspacePage() {
           initialValues={{ id: '' }}
         >
           <Form.Item
-            label="Workspace Name"
+            label={t`Workspace Name`}
             name="name"
             rules={[
-              { required: true, message: 'Please enter a workspace name' },
-              { min: 3, message: 'Workspace name must be at least 3 characters long' }
+              { required: true, message: t`Please enter a workspace name` },
+              { min: 3, message: t`Workspace name must be at least 3 characters long` }
             ]}
           >
-            <Input placeholder="Enter a name for your workspace" onChange={handleNameChange} />
+            <Input placeholder={t`Enter a name for your workspace`} onChange={handleNameChange} />
           </Form.Item>
 
           <Form.Item
             label={
               <span>
-                Workspace ID &nbsp;
-                <Tooltip title="This ID will be used in URLs and API requests. It can only contain lowercase letters and numbers.">
+                {t`Workspace ID`} &nbsp;
+                <Tooltip title={t`This ID will be used in URLs and API requests. It can only contain lowercase letters and numbers.`}>
                   <InfoCircleOutlined />
                 </Tooltip>
               </span>
             }
             name="id"
             rules={[
-              { required: true, message: 'Workspace ID is required' },
+              { required: true, message: t`Workspace ID is required` },
               {
                 pattern: /^[a-z0-9]+$/,
-                message: 'ID can only contain lowercase letters and numbers'
+                message: t`ID can only contain lowercase letters and numbers`
               }
             ]}
           >
             <Input
               placeholder="workspaceid"
               suffix={
-                <Tooltip title="ID is automatically generated but can be modified if needed">
+                <Tooltip title={t`ID is automatically generated but can be modified if needed`}>
                   <InfoCircleOutlined style={{ color: 'rgba(0,0,0,.45)' }} />
                 </Tooltip>
               }
@@ -149,16 +151,16 @@ export function CreateWorkspacePage() {
           </Form.Item>
 
           <Form.Item
-            label="Website URL"
+            label={t`Website URL`}
             name="website_url"
             rules={[
               {
                 pattern: /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([/\w .-]*)*\/?$/,
-                message: 'Please enter a valid URL',
+                message: t`Please enter a valid URL`,
                 validateTrigger: 'onBlur'
               }
             ]}
-            extra="We'll automatically detect and use your website's favicon"
+            extra={t`We'll automatically detect and use your website's favicon`}
           >
             <Input placeholder="https://example.com" />
           </Form.Item>
@@ -170,7 +172,7 @@ export function CreateWorkspacePage() {
               loading={loading}
               style={{ width: '100%', marginTop: 20 }}
             >
-              Create Workspace
+              {t`Create Workspace`}
             </Button>
           </Form.Item>
         </Form>

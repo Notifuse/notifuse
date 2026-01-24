@@ -30,6 +30,7 @@ import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { ImportContactsToListButton } from '../components/lists/ImportContactsToListButton'
 import { ListStats } from '../components/lists/ListStats'
+import { useLingui } from '@lingui/react/macro'
 
 const { Title, Paragraph, Text } = Typography
 
@@ -41,6 +42,7 @@ const TemplatePreviewButton = ({
   templateRef: TemplateReference
   workspace: Workspace
 }) => {
+  const { t } = useLingui()
   const { data, isLoading } = useQuery({
     queryKey: ['template', workspace.id, templateRef.id, templateRef.version],
     queryFn: async () => {
@@ -59,7 +61,7 @@ const TemplatePreviewButton = ({
   if (isLoading || !data) {
     return (
       <Button type="link" size="small" loading={isLoading}>
-        preview
+        {t`preview`}
       </Button>
     )
   }
@@ -68,14 +70,14 @@ const TemplatePreviewButton = ({
     <Space>
       <TemplatePreviewDrawer record={data} workspace={workspace}>
         <Button type="link" size="small">
-          preview
+          {t`preview`}
         </Button>
       </TemplatePreviewDrawer>
       {workspace && (
         <CreateTemplateDrawer
           template={data}
           workspace={workspace}
-          buttonContent="edit"
+          buttonContent={t`edit`}
           buttonProps={{ type: 'link', size: 'small' }}
         />
       )}
@@ -84,6 +86,7 @@ const TemplatePreviewButton = ({
 }
 
 export function ListsPage() {
+  const { t } = useLingui()
   const { workspaceId } = useParams({ from: '/console/workspace/$workspaceId/lists' })
   const [deleteModalVisible, setDeleteModalVisible] = useState(false)
   const [listToDelete, setListToDelete] = useState<List | null>(null)
@@ -111,13 +114,13 @@ export function ListsPage() {
         id: listToDelete.id
       })
 
-      message.success(`List "${listToDelete.name}" deleted successfully`)
+      message.success(t`List "${listToDelete.name}" deleted successfully`)
       queryClient.invalidateQueries({ queryKey: ['lists', workspaceId] })
       setDeleteModalVisible(false)
       setListToDelete(null)
       setConfirmationInput('')
     } catch (error) {
-      message.error('Failed to delete list')
+      message.error(t`Failed to delete list`)
       console.error(error)
     } finally {
       setIsDeleting(false)
@@ -137,22 +140,22 @@ export function ListsPage() {
 
   const handleRefresh = () => {
     queryClient.invalidateQueries({ queryKey: ['lists', workspaceId] })
-    message.success('Lists refreshed')
+    message.success(t`Lists refreshed`)
   }
 
   const hasLists = !isLoading && data?.lists && data.lists.length > 0
 
   if (!workspace) {
-    return <div>Loading...</div>
+    return <div>{t`Loading...`}</div>
   }
 
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
-        <div className="text-2xl font-medium">Lists</div>
+        <div className="text-2xl font-medium">{t`Lists`}</div>
         {(isLoading || hasLists) && (
           <Space>
-            <Tooltip title="Refresh">
+            <Tooltip title={t`Refresh`}>
               <Button
                 type="text"
                 size="small"
@@ -163,7 +166,7 @@ export function ListsPage() {
             </Tooltip>
             <Tooltip
               title={
-                !permissions?.lists?.write ? "You don't have write permission for lists" : undefined
+                !permissions?.lists?.write ? t`You don't have write permission for lists` : undefined
               }
             >
               <div>
@@ -201,8 +204,8 @@ export function ListsPage() {
                   <Tooltip
                     title={
                       !permissions?.lists?.write
-                        ? "You don't have write permission for lists"
-                        : 'Delete List'
+                        ? t`You don't have write permission for lists`
+                        : t`Delete List`
                     }
                   >
                     <Button
@@ -217,8 +220,8 @@ export function ListsPage() {
                   <Tooltip
                     title={
                       !permissions?.lists?.write
-                        ? "You don't have write permission for lists"
-                        : 'Edit List'
+                        ? t`You don't have write permission for lists`
+                        : t`Edit List`
                     }
                   >
                     <div>
@@ -239,7 +242,7 @@ export function ListsPage() {
                   <Tooltip
                     title={
                       !permissions?.lists?.write
-                        ? "You don't have write permission for lists"
+                        ? t`You don't have write permission for lists`
                         : undefined
                     }
                   >
@@ -261,23 +264,23 @@ export function ListsPage() {
               <Divider />
 
               <Descriptions size="small" column={2}>
-                <Descriptions.Item label="ID">{list.id}</Descriptions.Item>
+                <Descriptions.Item label={t`ID`}>{list.id}</Descriptions.Item>
 
-                <Descriptions.Item label="Description">{list.description}</Descriptions.Item>
-                <Descriptions.Item label="Visibility">
+                <Descriptions.Item label={t`Description`}>{list.description}</Descriptions.Item>
+                <Descriptions.Item label={t`Visibility`}>
                   {list.is_public ? (
                     <Tag bordered={false} color="green">
-                      Public
+                      {t`Public`}
                     </Tag>
                   ) : (
                     <Tag bordered={false} color="volcano">
-                      Private
+                      {t`Private`}
                     </Tag>
                   )}
                 </Descriptions.Item>
 
                 {/* Double Opt-in Template */}
-                <Descriptions.Item label="Double Opt-in Template">
+                <Descriptions.Item label={t`Double Opt-in Template`}>
                   {list.double_optin_template ? (
                     <Space>
                       <Check size={16} className="text-green-500 mt-1" />
@@ -297,9 +300,9 @@ export function ListsPage() {
       ) : (
         <div className="text-center py-12">
           <Title level={4} type="secondary">
-            No lists found
+            {t`No lists found`}
           </Title>
-          <Paragraph type="secondary">Create your first list to get started</Paragraph>
+          <Paragraph type="secondary">{t`Create your first list to get started`}</Paragraph>
           <div className="mt-4">
             <CreateListDrawer workspaceId={workspaceId} buttonProps={{ size: 'large' }} />
           </div>
@@ -307,12 +310,12 @@ export function ListsPage() {
       )}
 
       <Modal
-        title="Delete List"
+        title={t`Delete List`}
         open={deleteModalVisible}
         onCancel={closeDeleteModal}
         footer={[
           <Button key="cancel" onClick={closeDeleteModal}>
-            Cancel
+            {t`Cancel`}
           </Button>,
           <Button
             key="delete"
@@ -322,25 +325,25 @@ export function ListsPage() {
             disabled={confirmationInput !== (listToDelete?.id || '')}
             onClick={handleDelete}
           >
-            Delete
+            {t`Delete`}
           </Button>
         ]}
       >
         {listToDelete && (
           <>
-            <p>Are you sure you want to delete the list "{listToDelete.name}"?</p>
+            <p>{t`Are you sure you want to delete the list "${listToDelete.name}"?`}</p>
             <p>
-              This action cannot be undone. To confirm, please enter the list ID:{' '}
+              {t`This action cannot be undone. To confirm, please enter the list ID:`}{' '}
               <Text code>{listToDelete.id}</Text>
             </p>
             <Input
-              placeholder="Enter list ID to confirm"
+              placeholder={t`Enter list ID to confirm`}
               value={confirmationInput}
               onChange={(e) => setConfirmationInput(e.target.value)}
               status={confirmationInput && confirmationInput !== listToDelete.id ? 'error' : ''}
             />
             {confirmationInput && confirmationInput !== listToDelete.id && (
-              <p className="text-red-500 mt-2">ID doesn't match</p>
+              <p className="text-red-500 mt-2">{t`ID doesn't match`}</p>
             )}
           </>
         )}

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { InputNumber, Radio, Space, Button } from 'antd'
+import { useLingui } from '@lingui/react/macro'
 
 interface HeightInputProps {
   value?: string
@@ -11,6 +12,7 @@ const HeightInput: React.FC<HeightInputProps> = ({
   value,
   onChange
 }) => {
+  const { t } = useLingui()
   const [mode, setMode] = useState<'auto' | 'custom'>('auto')
   const [numericValue, setNumericValue] = useState<number | undefined>()
 
@@ -87,7 +89,7 @@ const HeightInput: React.FC<HeightInputProps> = ({
             size="small"
             value={numericValue}
             onChange={handleNumberChange}
-            placeholder="Height"
+            placeholder={t`Height`}
             min={0}
             step={10}
             style={{ width: 70 }}

@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import React, { useEffect } from 'react'
 import { Row, Col, Statistic, Space, Tooltip, Spin } from 'antd'
+import { useLingui } from '@lingui/react/macro'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faPaperPlane,
@@ -37,6 +38,7 @@ export function BroadcastStats({
   enqueuedCount,
   onStatsUpdate
 }: BroadcastStatsProps) {
+  const { t } = useLingui()
   const navigate = useNavigate()
 
   const { data, isLoading } = useQuery({
@@ -122,7 +124,7 @@ export function BroadcastStats({
   return (
     <Row gutter={[16, 16]} wrap className="flex-nowrap overflow-x-auto">
       <Col span={3}>
-        <Tooltip title={`${stats.total_sent} total emails sent - Click to view details`}>
+        <Tooltip title={t`${stats.total_sent} total emails sent - Click to view details`}>
           <div
             className="cursor-pointer hover:bg-gray-50 p-2 rounded transition-colors"
             onClick={() => navigateToLogs('sent')}
@@ -135,7 +137,7 @@ export function BroadcastStats({
                     style={{ opacity: 0.7 }}
                     className="text-blue-500"
                   />{' '}
-                  Sent
+                  {t`Sent`}
                 </Space>
               }
               value={stats.total_sent}
@@ -149,8 +151,8 @@ export function BroadcastStats({
         <Tooltip
           title={
             isSmtpProvider
-              ? "SMTP provider doesn't support delivery webhooks, so delivery status cannot be tracked"
-              : `${stats.total_delivered} emails successfully delivered - Click to view details`
+              ? t`SMTP provider doesn't support delivery webhooks, so delivery status cannot be tracked`
+              : t`${stats.total_delivered} emails successfully delivered - Click to view details`
           }
         >
           <div
@@ -169,7 +171,7 @@ export function BroadcastStats({
                     style={{ opacity: 0.7 }}
                     className="text-green-500"
                   />{' '}
-                  Delivered
+                  {t`Delivered`}
                 </Space>
               }
               value={isSmtpProvider ? '-' : getRate(stats.total_delivered, stats.total_sent)}
@@ -180,7 +182,7 @@ export function BroadcastStats({
         </Tooltip>
       </Col>
       <Col span={3}>
-        <Tooltip title={`${stats.total_opened} total opens - Click to view details`}>
+        <Tooltip title={t`${stats.total_opened} total opens - Click to view details`}>
           <div
             className="cursor-pointer hover:bg-gray-50 p-2 rounded transition-colors"
             onClick={() => navigateToLogs('is_opened')}
@@ -193,7 +195,7 @@ export function BroadcastStats({
                     style={{ opacity: 0.7 }}
                     className="text-purple-500"
                   />{' '}
-                  Opens
+                  {t`Opens`}
                 </Space>
               }
               value={getRate(stats.total_opened, stats.total_sent)}
@@ -204,7 +206,7 @@ export function BroadcastStats({
         </Tooltip>
       </Col>
       <Col span={3}>
-        <Tooltip title={`${stats.total_clicked} total clicks - Click to view details`}>
+        <Tooltip title={t`${stats.total_clicked} total clicks - Click to view details`}>
           <div
             className="cursor-pointer hover:bg-gray-50 p-2 rounded transition-colors"
             onClick={() => navigateToLogs('is_clicked')}
@@ -217,7 +219,7 @@ export function BroadcastStats({
                     style={{ opacity: 0.7 }}
                     className="text-cyan-500 mr-1"
                   />{' '}
-                  Clicks
+                  {t`Clicks`}
                 </Space>
               }
               value={getRate(stats.total_clicked, stats.total_sent)}
@@ -228,7 +230,7 @@ export function BroadcastStats({
         </Tooltip>
       </Col>
       <Col span={3}>
-        <Tooltip title={`${stats.total_failed} emails failed to send - Click to view details`}>
+        <Tooltip title={t`${stats.total_failed} emails failed to send - Click to view details`}>
           <div
             className="cursor-pointer hover:bg-gray-50 p-2 rounded transition-colors"
             onClick={() => navigateToLogs('is_failed')}
@@ -241,7 +243,7 @@ export function BroadcastStats({
                     style={{ opacity: 0.7 }}
                     className="text-orange-500"
                   />{' '}
-                  Failed
+                  {t`Failed`}
                 </Space>
               }
               value={getRate(stats.total_failed, stats.total_sent)}
@@ -255,8 +257,8 @@ export function BroadcastStats({
         <Tooltip
           title={
             isSmtpProvider
-              ? "SMTP provider doesn't support bounce webhooks, so bounce status cannot be tracked"
-              : `${stats.total_bounced} emails bounced back - Click to view details`
+              ? t`SMTP provider doesn't support bounce webhooks, so bounce status cannot be tracked`
+              : t`${stats.total_bounced} emails bounced back - Click to view details`
           }
         >
           <div
@@ -275,7 +277,7 @@ export function BroadcastStats({
                     style={{ opacity: 0.7 }}
                     className="text-orange-500"
                   />{' '}
-                  Bounced
+                  {t`Bounced`}
                 </Space>
               }
               value={isSmtpProvider ? '-' : getRate(stats.total_bounced, stats.total_sent)}
@@ -289,8 +291,8 @@ export function BroadcastStats({
         <Tooltip
           title={
             isSmtpProvider
-              ? "SMTP provider doesn't support complaint webhooks, so spam complaints cannot be tracked"
-              : `${stats.total_complained} total complaints - Click to view details`
+              ? t`SMTP provider doesn't support complaint webhooks, so spam complaints cannot be tracked`
+              : t`${stats.total_complained} total complaints - Click to view details`
           }
         >
           <div
@@ -309,7 +311,7 @@ export function BroadcastStats({
                     style={{ opacity: 0.7 }}
                     className="text-orange-500"
                   />{' '}
-                  Complaints
+                  {t`Complaints`}
                 </Space>
               }
               value={isSmtpProvider ? '-' : getRate(stats.total_complained, stats.total_sent)}
@@ -320,7 +322,7 @@ export function BroadcastStats({
         </Tooltip>
       </Col>
       <Col span={3}>
-        <Tooltip title={`${stats.total_unsubscribed} total unsubscribes - Click to view details`}>
+        <Tooltip title={t`${stats.total_unsubscribed} total unsubscribes - Click to view details`}>
           <div
             className="cursor-pointer hover:bg-gray-50 p-2 rounded transition-colors"
             onClick={() => navigateToLogs('is_unsubscribed')}
@@ -333,7 +335,7 @@ export function BroadcastStats({
                     style={{ opacity: 0.7 }}
                     className="text-orange-500"
                   />{' '}
-                  Unsub.
+                  {t`Unsub.`}
                 </Space>
               }
               value={getRate(stats.total_unsubscribed, stats.total_sent)}

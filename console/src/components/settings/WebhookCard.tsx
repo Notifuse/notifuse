@@ -21,6 +21,7 @@ import { faRotate, faBarsStaggered } from '@fortawesome/free-solid-svg-icons'
 import { faPenToSquare, faTrashCan, faCopy, faEye } from '@fortawesome/free-regular-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { useNavigate } from '@tanstack/react-router'
+import { useLingui } from '@lingui/react/macro'
 import { webhookSubscriptionApi, WebhookSubscription } from '../../services/api/webhook_subscription'
 import { analyticsService } from '../../services/api/analytics'
 
@@ -50,6 +51,7 @@ export function WebhookCard({
   onToggle,
   onRefresh
 }: WebhookCardProps) {
+  const { t } = useLingui()
   const navigate = useNavigate()
   const [visibleSecret, setVisibleSecret] = useState(false)
   const [timeRange, setTimeRange] = useState<TimeRange>('1D')
@@ -128,17 +130,17 @@ export function WebhookCard({
   const handleRegenerateSecret = async () => {
     try {
       await webhookSubscriptionApi.regenerateSecret(workspaceId, webhook.id)
-      message.success('Webhook secret regenerated')
+      message.success(t`Webhook secret regenerated`)
       onRefresh()
     } catch (error) {
       console.error('Failed to regenerate secret:', error)
-      message.error('Failed to regenerate webhook secret')
+      message.error(t`Failed to regenerate webhook secret`)
     }
   }
 
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text)
-    message.success(`${label} copied to clipboard`)
+    message.success(t`${label} copied to clipboard`)
   }
 
   const formatEventType = (eventType: string) => {
@@ -163,7 +165,7 @@ export function WebhookCard({
         success: false,
         statusCode: 0,
         responseBody: '',
-        error: 'Failed to send test webhook'
+        error: t`Failed to send test webhook`
       })
     } finally {
       setTestLoading(false)
@@ -184,18 +186,18 @@ export function WebhookCard({
           <span className="font-medium">{webhook.name}</span>
           {webhook.enabled ? (
             <Popconfirm
-              title="Disable this webhook?"
-              description="The webhook will stop receiving events."
+              title={t`Disable this webhook?`}
+              description={t`The webhook will stop receiving events.`}
               onConfirm={() => onToggle(webhook.id, false)}
-              okText="Yes"
-              cancelText="No"
+              okText={t`Yes`}
+              cancelText={t`No`}
             >
-              <Tooltip title="Disable webhook">
+              <Tooltip title={t`Disable webhook`}>
                 <Switch checked={true} size="small" />
               </Tooltip>
             </Popconfirm>
           ) : (
-            <Tooltip title="Enable webhook">
+            <Tooltip title={t`Enable webhook`}>
               <Switch
                 checked={false}
                 onChange={() => onToggle(webhook.id, true)}
@@ -207,12 +209,12 @@ export function WebhookCard({
       }
       extra={
         <Space>
-          <Tooltip title="Test Webhook">
+          <Tooltip title={t`Test Webhook`}>
             <Button type="text" size="small" onClick={openTestModal}>
-              Send Test
+              {t`Send Test`}
             </Button>
           </Tooltip>
-          <Tooltip title="View Logs">
+          <Tooltip title={t`View Logs`}>
             <Button
               type="text"
               size="small"
@@ -228,19 +230,19 @@ export function WebhookCard({
             </Button>
           </Tooltip>
           <Popconfirm
-            title="Delete this webhook?"
-            description="This action cannot be undone."
+            title={t`Delete this webhook?`}
+            description={t`This action cannot be undone.`}
             onConfirm={() => onDelete(webhook.id)}
-            okText="Yes"
-            cancelText="No"
+            okText={t`Yes`}
+            cancelText={t`No`}
           >
-            <Tooltip title="Delete">
+            <Tooltip title={t`Delete`}>
               <Button type="text" size="small">
                 <FontAwesomeIcon icon={faTrashCan} />
               </Button>
             </Tooltip>
           </Popconfirm>
-          <Tooltip title="Edit">
+          <Tooltip title={t`Edit`}>
             <Button type="text" size="small" onClick={() => onEdit(webhook)}>
               <FontAwesomeIcon icon={faPenToSquare} />
             </Button>
@@ -251,39 +253,39 @@ export function WebhookCard({
     >
       <div className="p-4">
         <div className="flex items-center gap-2 mb-3">
-          <span className="text-gray-500 text-sm">URL:</span>
+          <span className="text-gray-500 text-sm">{t`URL:`}</span>
           <code className="text-sm bg-gray-100 px-2 py-1 rounded truncate flex-1">
             {webhook.url}
           </code>
         </div>
         <div className="flex items-center gap-2 mb-3">
-          <span className="text-gray-500 text-sm">Secret:</span>
+          <span className="text-gray-500 text-sm">{t`Secret:`}</span>
           <Space.Compact className="flex-1">
             <Input
               size="small"
               value={visibleSecret ? webhook.secret : '••••••••••••••••••••••••'}
               readOnly
             />
-            <Tooltip title={visibleSecret ? 'Hide' : 'Show'}>
+            <Tooltip title={visibleSecret ? t`Hide` : t`Show`}>
               <Button size="small" onClick={() => setVisibleSecret(!visibleSecret)}>
                 <FontAwesomeIcon icon={faEye} className="opacity-70" />
               </Button>
             </Tooltip>
             <Popconfirm
-              title="Regenerate secret?"
-              description="This will invalidate the current secret. You'll need to update your webhook receiver."
+              title={t`Regenerate secret?`}
+              description={t`This will invalidate the current secret. You'll need to update your webhook receiver.`}
               onConfirm={handleRegenerateSecret}
-              okText="Yes"
-              cancelText="No"
+              okText={t`Yes`}
+              cancelText={t`No`}
             >
-              <Tooltip title="Regenerate">
+              <Tooltip title={t`Regenerate`}>
                 <Button size="small">
                   <FontAwesomeIcon icon={faRotate} className="opacity-70" />
                 </Button>
               </Tooltip>
             </Popconfirm>
-            <Tooltip title="Copy">
-              <Button size="small" onClick={() => copyToClipboard(webhook.secret, 'Secret')}>
+            <Tooltip title={t`Copy`}>
+              <Button size="small" onClick={() => copyToClipboard(webhook.secret, t`Secret`)}>
                 <FontAwesomeIcon icon={faCopy} className="opacity-70" />
               </Button>
             </Tooltip>
@@ -292,7 +294,7 @@ export function WebhookCard({
         <Divider className="my-6!" />
         <div className="flex justify-between items-center mb-4">
           <span className="text-gray-500 text-sm">
-            {timeRange === '1D' ? 'Last 24 hours' : 'Last 7 days'}
+            {timeRange === '1D' ? t`Last 24 hours` : t`Last 7 days`}
           </span>
           <Segmented
             size="small"
@@ -303,14 +305,14 @@ export function WebhookCard({
         </div>
         <Row>
           <Col span={8} className="text-center">
-            <Statistic title="Delivered" value={stats.delivered} loading={statsLoading} />
+            <Statistic title={t`Delivered`} value={stats.delivered} loading={statsLoading} />
           </Col>
           <Col span={8} className="text-center">
-            <Statistic title="Failed" value={stats.failed} loading={statsLoading} />
+            <Statistic title={t`Failed`} value={stats.failed} loading={statsLoading} />
           </Col>
           <Col span={8} className="text-center">
             <Statistic
-              title="Success Rate"
+              title={t`Success Rate`}
               value={
                 stats.delivered + stats.failed > 0
                   ? Math.round((stats.delivered / (stats.delivered + stats.failed)) * 100)
@@ -335,22 +337,22 @@ export function WebhookCard({
 
       {/* Test Webhook Modal */}
       <Modal
-        title="Test Webhook"
+        title={t`Test Webhook`}
         open={testModalVisible}
         onCancel={() => setTestModalVisible(false)}
         footer={
           testResult ? (
-            <Button onClick={() => setTestModalVisible(false)}>Close</Button>
+            <Button onClick={() => setTestModalVisible(false)}>{t`Close`}</Button>
           ) : (
             <Space>
-              <Button onClick={() => setTestModalVisible(false)}>Cancel</Button>
+              <Button onClick={() => setTestModalVisible(false)}>{t`Cancel`}</Button>
               <Button
                 type="primary"
                 onClick={handleTest}
                 loading={testLoading}
                 disabled={!selectedEventType}
               >
-                Send Test
+                {t`Send Test`}
               </Button>
             </Space>
           )
@@ -366,13 +368,13 @@ export function WebhookCard({
             </div>
             {testResult.error && (
               <>
-                <div className="mt-3 text-gray-500">Error:</div>
+                <div className="mt-3 text-gray-500">{t`Error:`}</div>
                 <div className="text-red-400">{testResult.error}</div>
               </>
             )}
             {testResult.responseBody && (
               <>
-                <div className="mt-3 text-gray-500">Body:</div>
+                <div className="mt-3 text-gray-500">{t`Body:`}</div>
                 <div className="text-gray-300 whitespace-pre-wrap break-all">
                   {testResult.responseBody}
                 </div>
@@ -380,17 +382,17 @@ export function WebhookCard({
             )}
           </div>
         ) : testLoading ? (
-          <div className="py-8 text-center text-gray-500">Sending test webhook...</div>
+          <div className="py-8 text-center text-gray-500">{t`Sending test webhook...`}</div>
         ) : (
           <div className="py-4">
             <label className="block text-sm text-gray-600 mb-2">
-              Select event type to test:
+              {t`Select event type to test:`}
             </label>
             <Select
               value={selectedEventType}
               onChange={setSelectedEventType}
               style={{ width: '100%' }}
-              placeholder="Select an event type"
+              placeholder={t`Select an event type`}
               options={(webhook.settings.event_types || []).map((type) => ({
                 value: type,
                 label: type

@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react'
 import { Form, Input, Alert, message } from 'antd'
+import { useLingui } from '@lingui/react/macro'
 import { Integration, Workspace } from '../../services/api/types'
 
 interface FirecrawlIntegrationProps {
@@ -16,6 +17,7 @@ export const FirecrawlIntegration: React.FC<FirecrawlIntegrationProps> = ({
   isOwner,
   formRef
 }) => {
+  const { t } = useLingui()
   const [form] = Form.useForm()
 
   // Expose form instance to parent via ref
@@ -42,7 +44,7 @@ export const FirecrawlIntegration: React.FC<FirecrawlIntegrationProps> = ({
 
   const handleSave = async (values: Record<string, unknown>) => {
     if (!isOwner) {
-      message.error('Only workspace owners can modify integrations')
+      message.error(t`Only workspace owners can modify integrations`)
       return
     }
 
@@ -64,46 +66,46 @@ export const FirecrawlIntegration: React.FC<FirecrawlIntegrationProps> = ({
       await onSave(integrationData)
     } catch (error) {
       console.error('Failed to save Firecrawl integration:', error)
-      message.error('Failed to save integration')
+      message.error(t`Failed to save integration`)
     }
   }
 
   return (
     <Form form={form} layout="vertical" onFinish={handleSave} disabled={!isOwner}>
       <Form.Item
-        label="Integration Name"
+        label={t`Integration Name`}
         name="name"
-        rules={[{ required: true, message: 'Please enter integration name' }]}
+        rules={[{ required: true, message: t`Please enter integration name` }]}
       >
-        <Input placeholder="e.g., My Firecrawl Integration" />
+        <Input placeholder={t`e.g., My Firecrawl Integration`} />
       </Form.Item>
 
       <Form.Item
-        label="API Key"
+        label={t`API Key`}
         name="api_key"
-        extra={integration ? 'Leave blank to keep the existing API key' : undefined}
-        rules={integration ? [] : [{ required: true, message: 'Please enter your API key' }]}
+        extra={integration ? t`Leave blank to keep the existing API key` : undefined}
+        rules={integration ? [] : [{ required: true, message: t`Please enter your API key` }]}
       >
         <Input.Password placeholder="fc-..." />
       </Form.Item>
 
       <Form.Item
-        label="Base URL (Optional)"
+        label={t`Base URL (Optional)`}
         name="base_url"
-        extra="Leave blank to use the default Firecrawl API (api.firecrawl.dev)"
+        extra={t`Leave blank to use the default Firecrawl API (api.firecrawl.dev)`}
       >
         <Input placeholder="https://api.firecrawl.dev" />
       </Form.Item>
 
       <Alert
-        message="Available Tools"
+        message={t`Available Tools`}
         description={
           <ul className="list-disc pl-4 mt-2">
             <li>
-              <strong>scrape_url</strong> - Scrapes a URL and returns its content as markdown
+              <strong>scrape_url</strong> - {t`Scrapes a URL and returns its content as markdown`}
             </li>
             <li>
-              <strong>search_web</strong> - Searches the web and returns relevant URLs
+              <strong>search_web</strong> - {t`Searches the web and returns relevant URLs`}
             </li>
           </ul>
         }

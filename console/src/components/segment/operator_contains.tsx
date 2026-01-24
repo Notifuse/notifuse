@@ -11,6 +11,9 @@ export type OperatorContainsProps = {
   value: string | undefined
 }
 
+// Note: This class contains string labels that cannot use useLingui as they are class properties.
+// The labels 'contains', 'or', 'no values', placeholders, and option labels should be
+// translated at the point of use if needed.
 export class OperatorContains implements IOperator {
   type: Operator = 'contains'
   label = 'contains'

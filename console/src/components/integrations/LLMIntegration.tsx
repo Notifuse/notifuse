@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react'
 import { Form, Input, message, Select } from 'antd'
+import { useLingui } from '@lingui/react/macro'
 import { Integration, LLMProviderKind, Workspace } from '../../services/api/types'
 import { llmProviders } from './LLMProviders'
 
@@ -27,6 +28,7 @@ export const LLMIntegration: React.FC<LLMIntegrationProps> = ({
   isOwner,
   formRef
 }) => {
+  const { t } = useLingui()
   const [form] = Form.useForm()
 
   // Expose form instance to parent via ref
@@ -58,7 +60,7 @@ export const LLMIntegration: React.FC<LLMIntegrationProps> = ({
 
   const handleSave = async (values: Record<string, unknown>) => {
     if (!isOwner) {
-      message.error('Only workspace owners can modify integrations')
+      message.error(t`Only workspace owners can modify integrations`)
       return
     }
 
@@ -83,39 +85,39 @@ export const LLMIntegration: React.FC<LLMIntegrationProps> = ({
       await onSave(integrationData)
     } catch (error) {
       console.error('Failed to save LLM integration:', error)
-      message.error('Failed to save integration')
+      message.error(t`Failed to save integration`)
     }
   }
 
   return (
     <Form form={form} layout="vertical" onFinish={handleSave} disabled={!isOwner}>
       <Form.Item
-        label="Integration Name"
+        label={t`Integration Name`}
         name="name"
-        rules={[{ required: true, message: 'Please enter integration name' }]}
+        rules={[{ required: true, message: t`Please enter integration name` }]}
       >
-        <Input placeholder="e.g., My Anthropic Integration" />
+        <Input placeholder={t`e.g., My Anthropic Integration`} />
       </Form.Item>
 
       <Form.Item
-        label="API Key"
+        label={t`API Key`}
         name="api_key"
-        extra={integration ? 'Leave blank to keep the existing API key' : undefined}
+        extra={integration ? t`Leave blank to keep the existing API key` : undefined}
         rules={
           integration
             ? []
-            : [{ required: true, message: 'Please enter your API key' }]
+            : [{ required: true, message: t`Please enter your API key` }]
         }
       >
         <Input.Password placeholder="sk-ant-api03-..." />
       </Form.Item>
 
       <Form.Item
-        label="Model"
+        label={t`Model`}
         name="model"
-        rules={[{ required: true, message: 'Please select a model' }]}
+        rules={[{ required: true, message: t`Please select a model` }]}
       >
-        <Select placeholder="Select a model" options={anthropicModels} />
+        <Select placeholder={t`Select a model`} options={anthropicModels} />
       </Form.Item>
     </Form>
   )

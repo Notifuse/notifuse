@@ -1,4 +1,5 @@
 import React from 'react'
+import { useLingui } from '@lingui/react/macro'
 import { Select, InputNumber, Row, Col } from 'antd'
 import type { MJMLComponentType, MJDividerAttributes, MergedBlockAttributes } from '../types'
 import {
@@ -15,6 +16,141 @@ import PaddingInput from '../ui/PaddingInput'
 import StringPopoverInput from '../ui/StringPopoverInput'
 import PanelLayout from '../panels/PanelLayout'
 import WidthInput from '../ui/WidthInput'
+
+// Functional component for settings panel with i18n support
+interface MjDividerSettingsPanelProps {
+  currentAttributes: MJDividerAttributes
+  blockDefaults: MergedBlockAttributes
+  onUpdate: OnUpdateAttributesFunction
+  parsePixelValue: (value?: string) => number | undefined
+}
+
+const MjDividerSettingsPanel: React.FC<MjDividerSettingsPanelProps> = ({
+  currentAttributes,
+  blockDefaults,
+  onUpdate,
+  parsePixelValue
+}) => {
+  const { t } = useLingui()
+
+  return (
+    <PanelLayout title={t`Divider Attributes`}>
+      <InputLayout label={t`Border Style`} layout="vertical">
+        <Row gutter={16}>
+          <Col span={8}>
+            <div className="mb-2">
+              <span className="text-xs text-gray-500">{t`Color`}</span>
+              <div style={{ marginTop: '4px' }}>
+                <ColorPickerWithPresets
+                  value={currentAttributes.borderColor || undefined}
+                  onChange={(color) => onUpdate({ borderColor: color || undefined })}
+                />
+              </div>
+            </div>
+          </Col>
+          <Col span={8}>
+            <div className="mb-2">
+              <span className="text-xs text-gray-500">{t`Style`}</span>
+              <div style={{ marginTop: '4px' }}>
+                <Select
+                  size="small"
+                  value={currentAttributes.borderStyle || 'solid'}
+                  onChange={(value) => onUpdate({ borderStyle: value })}
+                  style={{ width: '100%' }}
+                >
+                  <Select.Option value="solid">{t`Solid`}</Select.Option>
+                  <Select.Option value="dashed">{t`Dashed`}</Select.Option>
+                  <Select.Option value="dotted">{t`Dotted`}</Select.Option>
+                </Select>
+              </div>
+            </div>
+          </Col>
+          <Col span={8}>
+            <div className="mb-2">
+              <span className="text-xs text-gray-500">{t`Width`}</span>
+              <div style={{ marginTop: '4px' }}>
+                <InputNumber
+                  size="small"
+                  value={parsePixelValue(currentAttributes.borderWidth)}
+                  onChange={(value) =>
+                    onUpdate({ borderWidth: value ? `${value}px` : undefined })
+                  }
+                  placeholder={(parsePixelValue(blockDefaults.borderWidth) || 4).toString()}
+                  min={0}
+                  max={50}
+                  step={1}
+                  suffix="px"
+                  style={{ width: '100%' }}
+                />
+              </div>
+            </div>
+          </Col>
+        </Row>
+      </InputLayout>
+
+      <InputLayout label={t`Divider Width`}>
+        <WidthInput
+          value={currentAttributes.width}
+          onChange={(value) => onUpdate({ width: value })}
+          placeholder={blockDefaults.width || t`Auto`}
+        />
+      </InputLayout>
+
+      <InputLayout label={t`Container Background`}>
+        <ColorPickerWithPresets
+          value={currentAttributes.containerBackgroundColor || undefined}
+          onChange={(color) => onUpdate({ containerBackgroundColor: color || undefined })}
+          placeholder={t`Transparent`}
+        />
+      </InputLayout>
+
+      <InputLayout label={t`Padding`} layout="vertical">
+        <PaddingInput
+          value={{
+            top: currentAttributes.paddingTop,
+            right: currentAttributes.paddingRight,
+            bottom: currentAttributes.paddingBottom,
+            left: currentAttributes.paddingLeft
+          }}
+          defaultValue={{
+            top: blockDefaults.paddingTop,
+            right: blockDefaults.paddingRight,
+            bottom: blockDefaults.paddingBottom,
+            left: blockDefaults.paddingLeft
+          }}
+          onChange={(values: {
+            top: string | undefined
+            right: string | undefined
+            bottom: string | undefined
+            left: string | undefined
+          }) => {
+            onUpdate({
+              paddingTop: values.top,
+              paddingRight: values.right,
+              paddingBottom: values.bottom,
+              paddingLeft: values.left
+            })
+          }}
+        />
+      </InputLayout>
+
+      <InputLayout label={t`Alignment`}>
+        <AlignSelector
+          value={currentAttributes.align || 'center'}
+          onChange={(value) => onUpdate({ align: value })}
+        />
+      </InputLayout>
+
+      <InputLayout label={t`CSS Class`}>
+        <StringPopoverInput
+          value={currentAttributes.cssClass || ''}
+          onChange={(value) => onUpdate({ cssClass: value || undefined })}
+          placeholder={t`Enter CSS class name`}
+        />
+      </InputLayout>
+    </PanelLayout>
+  )
+}
 
 /**
  * Implementation for mj-divider blocks
@@ -73,121 +209,12 @@ export class MjDividerBlock extends BaseEmailBlock {
     const currentAttributes = this.block.attributes as MJDividerAttributes
 
     return (
-      <PanelLayout title="Divider Attributes">
-        <InputLayout label="Border Style" layout="vertical">
-          <Row gutter={16}>
-            <Col span={8}>
-              <div className="mb-2">
-                <span className="text-xs text-gray-500">Color</span>
-                <div style={{ marginTop: '4px' }}>
-                  <ColorPickerWithPresets
-                    value={currentAttributes.borderColor || undefined}
-                    onChange={(color) => onUpdate({ borderColor: color || undefined })}
-                  />
-                </div>
-              </div>
-            </Col>
-            <Col span={8}>
-              <div className="mb-2">
-                <span className="text-xs text-gray-500">Style</span>
-                <div style={{ marginTop: '4px' }}>
-                  <Select
-                    size="small"
-                    value={currentAttributes.borderStyle || 'solid'}
-                    onChange={(value) => onUpdate({ borderStyle: value })}
-                    style={{ width: '100%' }}
-                  >
-                    <Select.Option value="solid">Solid</Select.Option>
-                    <Select.Option value="dashed">Dashed</Select.Option>
-                    <Select.Option value="dotted">Dotted</Select.Option>
-                  </Select>
-                </div>
-              </div>
-            </Col>
-            <Col span={8}>
-              <div className="mb-2">
-                <span className="text-xs text-gray-500">Width</span>
-                <div style={{ marginTop: '4px' }}>
-                  <InputNumber
-                    size="small"
-                    value={this.parsePixelValue(currentAttributes.borderWidth)}
-                    onChange={(value) =>
-                      onUpdate({ borderWidth: value ? `${value}px` : undefined })
-                    }
-                    placeholder={(this.parsePixelValue(blockDefaults.borderWidth) || 4).toString()}
-                    min={0}
-                    max={50}
-                    step={1}
-                    suffix="px"
-                    style={{ width: '100%' }}
-                  />
-                </div>
-              </div>
-            </Col>
-          </Row>
-        </InputLayout>
-
-        <InputLayout label="Divider Width">
-          <WidthInput
-            value={currentAttributes.width}
-            onChange={(value) => onUpdate({ width: value })}
-            placeholder={blockDefaults.width || 'Auto'}
-          />
-        </InputLayout>
-
-        <InputLayout label="Container Background">
-          <ColorPickerWithPresets
-            value={currentAttributes.containerBackgroundColor || undefined}
-            onChange={(color) => onUpdate({ containerBackgroundColor: color || undefined })}
-            placeholder="Transparent"
-          />
-        </InputLayout>
-
-        <InputLayout label="Padding" layout="vertical">
-          <PaddingInput
-            value={{
-              top: currentAttributes.paddingTop,
-              right: currentAttributes.paddingRight,
-              bottom: currentAttributes.paddingBottom,
-              left: currentAttributes.paddingLeft
-            }}
-            defaultValue={{
-              top: blockDefaults.paddingTop,
-              right: blockDefaults.paddingRight,
-              bottom: blockDefaults.paddingBottom,
-              left: blockDefaults.paddingLeft
-            }}
-            onChange={(values: {
-              top: string | undefined
-              right: string | undefined
-              bottom: string | undefined
-              left: string | undefined
-            }) => {
-              onUpdate({
-                paddingTop: values.top,
-                paddingRight: values.right,
-                paddingBottom: values.bottom,
-                paddingLeft: values.left
-              })
-            }}
-          />
-        </InputLayout>
-
-        <InputLayout label="Alignment">
-          <AlignSelector
-            value={currentAttributes.align || 'center'}
-            onChange={(value) => onUpdate({ align: value })}
-          />
-        </InputLayout>
-
-        <InputLayout label="CSS Class">
-          <StringPopoverInput
-            value={currentAttributes.cssClass || ''}
-            onChange={(value) => onUpdate({ cssClass: value || undefined })}
-            placeholder="Enter CSS class name"
-          />
-        </InputLayout>
-      </PanelLayout>
+      <MjDividerSettingsPanel
+        currentAttributes={currentAttributes}
+        blockDefaults={blockDefaults}
+        onUpdate={onUpdate}
+        parsePixelValue={this.parsePixelValue}
+      />
     )
   }
 

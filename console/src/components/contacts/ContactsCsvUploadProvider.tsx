@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { Button } from 'antd'
 import { UploadOutlined } from '@ant-design/icons'
+import { useLingui } from '@lingui/react/macro'
 import { List } from '../../services/api/types'
 import { ContactsCsvUploadDrawer } from './ContactsCsvUploadDrawer'
 import { useQueryClient } from '@tanstack/react-query'
@@ -93,11 +94,12 @@ export function useContactsCsvUpload() {
 }
 
 export function ContactsCsvUploadButton() {
+  const { t } = useLingui()
   const { openDrawer } = useContactsCsvUpload()
 
   return (
     <Button type="primary" onClick={() => openDrawer('')} icon={<UploadOutlined />}>
-      Import Contacts from CSV
+      {t`Import Contacts from CSV`}
     </Button>
   )
 }

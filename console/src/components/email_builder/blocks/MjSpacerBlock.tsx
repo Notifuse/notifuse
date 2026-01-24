@@ -1,4 +1,5 @@
 import React from 'react'
+import { useLingui } from '@lingui/react/macro'
 import { InputNumber } from 'antd'
 import type { MJMLComponentType, MJSpacerAttributes, MergedBlockAttributes } from '../types'
 import {
@@ -13,6 +14,87 @@ import ColorPickerWithPresets from '../ui/ColorPickerWithPresets'
 import PaddingInput from '../ui/PaddingInput'
 import StringPopoverInput from '../ui/StringPopoverInput'
 import PanelLayout from '../panels/PanelLayout'
+
+// Functional component for settings panel with i18n support
+interface MjSpacerSettingsPanelProps {
+  currentAttributes: MJSpacerAttributes
+  blockDefaults: MergedBlockAttributes
+  onUpdate: OnUpdateAttributesFunction
+  parsePixelValue: (value?: string) => number | undefined
+}
+
+const MjSpacerSettingsPanel: React.FC<MjSpacerSettingsPanelProps> = ({
+  currentAttributes,
+  blockDefaults,
+  onUpdate,
+  parsePixelValue
+}) => {
+  const { t } = useLingui()
+
+  return (
+    <PanelLayout title={t`Spacer Attributes`}>
+      <InputLayout label={t`Height`}>
+        <InputNumber
+          size="small"
+          value={parsePixelValue(currentAttributes.height)}
+          onChange={(value) => onUpdate({ height: value ? `${value}px` : undefined })}
+          placeholder={(parsePixelValue(blockDefaults.height) || 20).toString()}
+          min={0}
+          max={500}
+          step={1}
+          suffix="px"
+          style={{ width: '100%' }}
+        />
+      </InputLayout>
+
+      <InputLayout label={t`Container Background`}>
+        <ColorPickerWithPresets
+          value={currentAttributes.containerBackgroundColor || undefined}
+          onChange={(color) => onUpdate({ containerBackgroundColor: color || undefined })}
+          placeholder={t`Transparent`}
+        />
+      </InputLayout>
+
+      <InputLayout label={t`Padding`} layout="vertical">
+        <PaddingInput
+          value={{
+            top: currentAttributes.paddingTop,
+            right: currentAttributes.paddingRight,
+            bottom: currentAttributes.paddingBottom,
+            left: currentAttributes.paddingLeft
+          }}
+          defaultValue={{
+            top: blockDefaults.paddingTop,
+            right: blockDefaults.paddingRight,
+            bottom: blockDefaults.paddingBottom,
+            left: blockDefaults.paddingLeft
+          }}
+          onChange={(values: {
+            top: string | undefined
+            right: string | undefined
+            bottom: string | undefined
+            left: string | undefined
+          }) => {
+            onUpdate({
+              paddingTop: values.top,
+              paddingRight: values.right,
+              paddingBottom: values.bottom,
+              paddingLeft: values.left
+            })
+          }}
+        />
+      </InputLayout>
+
+      <InputLayout label={t`CSS Class`}>
+        <StringPopoverInput
+          value={currentAttributes.cssClass || ''}
+          onChange={(value) => onUpdate({ cssClass: value || undefined })}
+          placeholder={t`Enter CSS class name`}
+        />
+      </InputLayout>
+    </PanelLayout>
+  )
+}
 
 /**
  * Implementation for mj-spacer blocks
@@ -78,67 +160,12 @@ export class MjSpacerBlock extends BaseEmailBlock {
     const currentAttributes = this.block.attributes as MJSpacerAttributes
 
     return (
-      <PanelLayout title="Spacer Attributes">
-        <InputLayout label="Height">
-          <InputNumber
-            size="small"
-            value={this.parsePixelValue(currentAttributes.height)}
-            onChange={(value) => onUpdate({ height: value ? `${value}px` : undefined })}
-            placeholder={(this.parsePixelValue(blockDefaults.height) || 20).toString()}
-            min={0}
-            max={500}
-            step={1}
-            suffix="px"
-            style={{ width: '100%' }}
-          />
-        </InputLayout>
-
-        <InputLayout label="Container Background">
-          <ColorPickerWithPresets
-            value={currentAttributes.containerBackgroundColor || undefined}
-            onChange={(color) => onUpdate({ containerBackgroundColor: color || undefined })}
-            placeholder="Transparent"
-          />
-        </InputLayout>
-
-        <InputLayout label="Padding" layout="vertical">
-          <PaddingInput
-            value={{
-              top: currentAttributes.paddingTop,
-              right: currentAttributes.paddingRight,
-              bottom: currentAttributes.paddingBottom,
-              left: currentAttributes.paddingLeft
-            }}
-            defaultValue={{
-              top: blockDefaults.paddingTop,
-              right: blockDefaults.paddingRight,
-              bottom: blockDefaults.paddingBottom,
-              left: blockDefaults.paddingLeft
-            }}
-            onChange={(values: {
-              top: string | undefined
-              right: string | undefined
-              bottom: string | undefined
-              left: string | undefined
-            }) => {
-              onUpdate({
-                paddingTop: values.top,
-                paddingRight: values.right,
-                paddingBottom: values.bottom,
-                paddingLeft: values.left
-              })
-            }}
-          />
-        </InputLayout>
-
-        <InputLayout label="CSS Class">
-          <StringPopoverInput
-            value={currentAttributes.cssClass || ''}
-            onChange={(value) => onUpdate({ cssClass: value || undefined })}
-            placeholder="Enter CSS class name"
-          />
-        </InputLayout>
-      </PanelLayout>
+      <MjSpacerSettingsPanel
+        currentAttributes={currentAttributes}
+        blockDefaults={blockDefaults}
+        onUpdate={onUpdate}
+        parsePixelValue={this.parsePixelValue}
+      />
     )
   }
 

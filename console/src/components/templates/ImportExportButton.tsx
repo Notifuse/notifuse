@@ -1,4 +1,5 @@
 import React, { useRef } from 'react'
+import { useLingui } from '@lingui/react/macro'
 import { Button, Dropdown, Modal, App } from 'antd'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faChevronDown, faExclamationTriangle } from '@fortawesome/free-solid-svg-icons'
@@ -32,6 +33,7 @@ export const ImportExportButton: React.FC<ImportExportButtonProps> = ({
   testData,
   workspaceId
 }) => {
+  const { t } = useLingui()
   const { message } = App.useApp()
 
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -53,7 +55,7 @@ export const ImportExportButton: React.FC<ImportExportButtonProps> = ({
   const validateEmailTree = (tree: unknown): { isValid: boolean; errors: string[] } => {
     // Basic type and structure validation
     if (!tree || typeof tree !== 'object') {
-      return { isValid: false, errors: ['Invalid tree structure: not an object'] }
+      return { isValid: false, errors: [t`Invalid tree structure: not an object`] }
     }
 
     // Type guard to check if tree has the required properties
@@ -64,22 +66,22 @@ export const ImportExportButton: React.FC<ImportExportButtonProps> = ({
     }
 
     if (!hasRequiredProperties(tree)) {
-      return { isValid: false, errors: ['Invalid tree structure: missing id or type'] }
+      return { isValid: false, errors: [t`Invalid tree structure: missing id or type`] }
     }
 
     // Check required properties types
     if (typeof tree.id !== 'string' || typeof tree.type !== 'string') {
-      return { isValid: false, errors: ['Invalid tree structure: missing id or type'] }
+      return { isValid: false, errors: [t`Invalid tree structure: missing id or type`] }
     }
 
     // Check if it's a valid MJML root
     if (tree.type !== 'mjml') {
-      return { isValid: false, errors: ['Invalid tree structure: root must be mjml type'] }
+      return { isValid: false, errors: [t`Invalid tree structure: root must be mjml type`] }
     }
 
     // Check if children exist and are arrays
     if (tree.children && !Array.isArray(tree.children)) {
-      return { isValid: false, errors: ['Invalid tree structure: children must be an array'] }
+      return { isValid: false, errors: [t`Invalid tree structure: children must be an array`] }
     }
 
     // Use comprehensive EmailBlockClass validation
@@ -90,12 +92,12 @@ export const ImportExportButton: React.FC<ImportExportButtonProps> = ({
       const helpfulErrors = structureErrors.map((error) => {
         // Check for common mj-raw placement issues
         if (error.includes('mj-raw cannot be placed inside mj-wrapper')) {
-          return `${error}\n\nℹ️ Note: mj-raw components can only be placed directly in mj-body or mj-head, not inside mj-wrapper. Consider moving the mj-raw content outside the wrapper or converting it to appropriate MJML components.`
+          return `${error}\n\n${t`Note: mj-raw components can only be placed directly in mj-body or mj-head, not inside mj-wrapper. Consider moving the mj-raw content outside the wrapper or converting it to appropriate MJML components.`}`
         }
 
         // Check for HTML elements inside mj-raw (which shouldn't happen with our fixed parser)
         if (error.includes('cannot be placed inside mj-raw')) {
-          return `${error}\n\nℹ️ Note: This might be caused by an incorrectly structured MJML file. HTML content inside mj-raw should be stored as text content, not as child elements.`
+          return `${error}\n\n${t`Note: This might be caused by an incorrectly structured MJML file. HTML content inside mj-raw should be stored as text content, not as child elements.`}`
         }
 
         return error
@@ -163,7 +165,7 @@ export const ImportExportButton: React.FC<ImportExportButtonProps> = ({
           onTestDataImport(testData)
         }
 
-        message.success('Template imported successfully')
+        message.success(t`Template imported successfully`)
       } catch (error) {
         console.error('Import failed:', error)
 
@@ -171,15 +173,15 @@ export const ImportExportButton: React.FC<ImportExportButtonProps> = ({
           // Extract validation errors from the error message
           const errorMessage = error.message.replace('Validation failed: ', '')
           const errors = errorMessage.split(', ')
-          showErrorModal('Import Validation Failed', errors)
+          showErrorModal(t`Import Validation Failed`, errors)
         } else {
-          message.error('Failed to import template. Please check the file format.')
+          message.error(t`Failed to import template. Please check the file format.`)
         }
       }
     }
 
     reader.onerror = () => {
-      message.error('Failed to read the file')
+      message.error(t`Failed to read the file`)
     }
 
     reader.readAsText(file)
@@ -194,14 +196,14 @@ export const ImportExportButton: React.FC<ImportExportButtonProps> = ({
       // Validate the email tree
       const validation = validateEmailTree(emailTree)
       if (!validation.isValid) {
-        showErrorModal('MJML Import Validation Failed', validation.errors)
+        showErrorModal(t`MJML Import Validation Failed`, validation.errors)
         return
       }
 
       // Import the converted tree
       onImport(emailTree)
 
-      message.success('MJML template imported and converted successfully')
+      message.success(t`MJML template imported and converted successfully`)
     } catch (error) {
       console.error('MJML import failed:', error)
 
@@ -211,17 +213,17 @@ export const ImportExportButton: React.FC<ImportExportButtonProps> = ({
           error.message.includes('Invalid MJML syntax') ||
           error.message.includes('Root element must be')
         ) {
-          showErrorModal('MJML Syntax Error', [error.message])
+          showErrorModal(t`MJML Syntax Error`, [error.message])
         } else if (error.message.includes('Validation failed:')) {
           // Extract validation errors from the error message
           const errorMessage = error.message.replace('Validation failed: ', '')
           const errors = errorMessage.split(', ')
-          showErrorModal('MJML Validation Failed', errors)
+          showErrorModal(t`MJML Validation Failed`, errors)
         } else {
-          showErrorModal('MJML Import Error', [error.message])
+          showErrorModal(t`MJML Import Error`, [error.message])
         }
       } else {
-        message.error('Failed to import MJML template. Please check the MJML syntax.')
+        message.error(t`Failed to import MJML template. Please check the MJML syntax.`)
       }
     }
   }
@@ -247,7 +249,7 @@ export const ImportExportButton: React.FC<ImportExportButtonProps> = ({
       if (file.type === 'application/json' || file.name.endsWith('.json')) {
         handleFileUpload(file)
       } else {
-        message.error('Please select a JSON file')
+        message.error(t`Please select a JSON file`)
       }
     }
     // Reset input so same file can be selected again
@@ -266,7 +268,7 @@ export const ImportExportButton: React.FC<ImportExportButtonProps> = ({
       ) {
         handleFileUpload(file)
       } else {
-        message.error('Please select an MJML file')
+        message.error(t`Please select an MJML file`)
       }
     }
     // Reset input so same file can be selected again
@@ -299,19 +301,19 @@ export const ImportExportButton: React.FC<ImportExportButtonProps> = ({
       })
 
       if (response.error) {
-        showErrorModal('HTML Export Failed', [response.error.message])
+        showErrorModal(t`HTML Export Failed`, [response.error.message])
         return
       }
 
       if (response.html) {
         downloadFile(response.html, 'email-template.html', 'text/html')
-        message.success('HTML exported successfully')
+        message.success(t`HTML exported successfully`)
       } else {
-        message.error('No HTML content to export')
+        message.error(t`No HTML content to export`)
       }
     } catch (error) {
       console.error('HTML export failed:', error)
-      message.error('Failed to export HTML')
+      message.error(t`Failed to export HTML`)
     }
   }
 
@@ -327,19 +329,19 @@ export const ImportExportButton: React.FC<ImportExportButtonProps> = ({
       })
 
       if (response.error) {
-        showErrorModal('MJML Export Failed', [response.error.message])
+        showErrorModal(t`MJML Export Failed`, [response.error.message])
         return
       }
 
       if (response.mjml) {
         downloadFile(response.mjml, 'email-template.mjml', 'text/xml')
-        message.success('MJML exported successfully')
+        message.success(t`MJML exported successfully`)
       } else {
-        message.error('No MJML content to export')
+        message.error(t`No MJML content to export`)
       }
     } catch (error) {
       console.error('MJML export failed:', error)
-      message.error('Failed to export MJML')
+      message.error(t`Failed to export MJML`)
     }
   }
 
@@ -355,10 +357,10 @@ export const ImportExportButton: React.FC<ImportExportButtonProps> = ({
       const jsonContent = JSON.stringify(exportData, null, 2)
       downloadFile(jsonContent, 'email-template.json', 'application/json')
 
-      message.success('JSON exported successfully')
+      message.success(t`JSON exported successfully`)
     } catch (error) {
       console.error('JSON export failed:', error)
-      message.error('Failed to export JSON')
+      message.error(t`Failed to export JSON`)
     }
   }
 
@@ -366,14 +368,14 @@ export const ImportExportButton: React.FC<ImportExportButtonProps> = ({
   const menuItems = [
     {
       type: 'group' as const,
-      label: 'Import',
+      label: t`Import`,
       children: [
         {
           key: 'import-json',
           label: (
             <div className="flex flex-col">
-              <span className="font-medium">JSON</span>
-              <span className="text-xs text-gray-500">Load saved template</span>
+              <span className="font-medium">{t`JSON`}</span>
+              <span className="text-xs text-gray-500">{t`Load saved template`}</span>
             </div>
           ),
           onClick: handleImportJSON
@@ -382,8 +384,8 @@ export const ImportExportButton: React.FC<ImportExportButtonProps> = ({
           key: 'import-mjml',
           label: (
             <div className="flex flex-col">
-              <span className="font-medium">MJML</span>
-              <span className="text-xs text-gray-500">Import MJML markup</span>
+              <span className="font-medium">{t`MJML`}</span>
+              <span className="text-xs text-gray-500">{t`Import MJML markup`}</span>
             </div>
           ),
           onClick: handleImportMJML
@@ -395,14 +397,14 @@ export const ImportExportButton: React.FC<ImportExportButtonProps> = ({
     },
     {
       type: 'group' as const,
-      label: 'Export',
+      label: t`Export`,
       children: [
         {
           key: 'export-html',
           label: (
             <div className="flex flex-col">
-              <span className="font-medium">HTML</span>
-              <span className="text-xs text-gray-500">Ready to send</span>
+              <span className="font-medium">{t`HTML`}</span>
+              <span className="text-xs text-gray-500">{t`Ready to send`}</span>
             </div>
           ),
           onClick: handleExportHTML
@@ -411,8 +413,8 @@ export const ImportExportButton: React.FC<ImportExportButtonProps> = ({
           key: 'export-mjml',
           label: (
             <div className="flex flex-col">
-              <span className="font-medium">MJML</span>
-              <span className="text-xs text-gray-500">Editable markup</span>
+              <span className="font-medium">{t`MJML`}</span>
+              <span className="text-xs text-gray-500">{t`Editable markup`}</span>
             </div>
           ),
           onClick: handleExportMJML
@@ -421,8 +423,8 @@ export const ImportExportButton: React.FC<ImportExportButtonProps> = ({
           key: 'export-json',
           label: (
             <div className="flex flex-col">
-              <span className="font-medium">JSON</span>
-              <span className="text-xs text-gray-500">Save for later import</span>
+              <span className="font-medium">{t`JSON`}</span>
+              <span className="text-xs text-gray-500">{t`Save for later import`}</span>
             </div>
           ),
           onClick: handleExportJSON
@@ -435,7 +437,7 @@ export const ImportExportButton: React.FC<ImportExportButtonProps> = ({
     <div style={{ height: '24px' }}>
       <Dropdown menu={{ items: menuItems }} placement="bottomRight" trigger={['click']}>
         <Button size="small" type="primary" ghost>
-          <span>Import / Export</span>
+          <span>{t`Import / Export`}</span>
           <FontAwesomeIcon icon={faChevronDown} className="ml-1" size="sm" />
         </Button>
       </Dropdown>
@@ -470,14 +472,14 @@ export const ImportExportButton: React.FC<ImportExportButtonProps> = ({
         onCancel={() => setIsErrorModalVisible(false)}
         footer={[
           <Button key="ok" type="primary" onClick={() => setIsErrorModalVisible(false)}>
-            OK
+            {t`OK`}
           </Button>
         ]}
         width={600}
       >
         <div className="space-y-3">
           <p className="text-gray-600">
-            The following validation errors were found in your import:
+            {t`The following validation errors were found in your import:`}
           </p>
 
           <div className="bg-red-50 border border-red-200 rounded-md p-3 max-h-60 overflow-y-auto">
@@ -492,12 +494,12 @@ export const ImportExportButton: React.FC<ImportExportButtonProps> = ({
           </div>
 
           <div className="text-sm text-gray-500">
-            <p className="font-medium">Tips for fixing these errors:</p>
+            <p className="font-medium">{t`Tips for fixing these errors:`}</p>
             <ul className="mt-1 ml-4 space-y-1">
-              <li>• Check that your MJML structure follows the proper hierarchy</li>
-              <li>• Ensure all required components are properly nested</li>
-              <li>• Verify that component attributes are valid</li>
-              <li>• Make sure all XML tags are properly closed</li>
+              <li>{t`• Check that your MJML structure follows the proper hierarchy`}</li>
+              <li>{t`• Ensure all required components are properly nested`}</li>
+              <li>{t`• Verify that component attributes are valid`}</li>
+              <li>{t`• Make sure all XML tags are properly closed`}</li>
             </ul>
           </div>
         </div>

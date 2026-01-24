@@ -1,3 +1,4 @@
+import { useLingui } from '@lingui/react/macro'
 import { ColorPatch } from './ColorPatch'
 import { TEXT_COLORS, BACKGROUND_COLORS } from './ColorConstants'
 import type { RecentColor } from '../../toolbars/components/useRecentColors'
@@ -23,6 +24,7 @@ export function ColorGrid({
   recentColors = [],
   isInitialized = false
 }: ColorGridProps) {
+  const { t } = useLingui()
   // Split colors into two rows of 5
   const textColorsRow1 = TEXT_COLORS.slice(0, 5)
   const textColorsRow2 = TEXT_COLORS.slice(5, 10)
@@ -43,7 +45,7 @@ export function ColorGrid({
               textTransform: 'uppercase'
             }}
           >
-            Recently Used
+            {t`Recently Used`}
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', padding: '0 12px' }}>
             {recentColors.slice(0, 5).map((recentColor, index) => (
@@ -57,7 +59,7 @@ export function ColorGrid({
                   }
                 }}
                 title={`${recentColor.label} ${
-                  recentColor.type === 'text' ? 'text' : 'background'
+                  recentColor.type === 'text' ? t`text` : t`background`
                 }`}
                 style={{
                   width: '24px',
@@ -106,7 +108,7 @@ export function ColorGrid({
               textTransform: 'uppercase'
             }}
           >
-            Text Color
+            {t`Text Color`}
           </div>
           <div style={{ padding: '0 12px' }}>
             <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
@@ -145,7 +147,7 @@ export function ColorGrid({
               textTransform: 'uppercase'
             }}
           >
-            Background Color
+            {t`Background Color`}
           </div>
           <div style={{ padding: '0 12px' }}>
             <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>

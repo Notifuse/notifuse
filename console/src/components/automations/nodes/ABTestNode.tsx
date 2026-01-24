@@ -2,6 +2,7 @@ import React from 'react'
 import { Handle, Position, useConnection, type NodeProps } from '@xyflow/react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faFlask } from '@fortawesome/free-solid-svg-icons'
+import { useLingui } from '@lingui/react/macro'
 import { BaseNode } from './BaseNode'
 import { nodeTypeColors } from './constants'
 import type { AutomationNodeData } from '../utils/flowConverter'
@@ -10,6 +11,7 @@ import type { ABTestNodeConfig } from '../../../services/api/automation'
 type ABTestNodeProps = NodeProps<AutomationNodeData>
 
 export const ABTestNode: React.FC<ABTestNodeProps> = ({ data, selected }) => {
+  const { t } = useLingui()
   const config = data.config as ABTestNodeConfig
   const variants = config?.variants || []
 
@@ -42,7 +44,7 @@ export const ABTestNode: React.FC<ABTestNodeProps> = ({ data, selected }) => {
       />
       <BaseNode
         type="ab_test"
-        label="A/B Test"
+        label={t`A/B Test`}
         icon={
           <FontAwesomeIcon
             icon={faFlask}
@@ -54,7 +56,7 @@ export const ABTestNode: React.FC<ABTestNodeProps> = ({ data, selected }) => {
         onDelete={data.onDelete}
       >
         {variants.length === 0 ? (
-          <div className="text-orange-500">Configure</div>
+          <div className="text-orange-500">{t`Configure`}</div>
         ) : (
           <div className="flex flex-wrap gap-2 mt-1">
             {variants.map((variant) => (

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useLingui } from '@lingui/react/macro'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Typography,
@@ -38,6 +39,7 @@ interface PostsSearch {
 }
 
 export function PostsTable() {
+  const { t } = useLingui()
   const { workspaceId } = useParams({ from: '/console/workspace/$workspaceId/blog' })
   const navigate = useNavigate({ from: '/console/workspace/$workspaceId/blog' })
   const search = useSearch({ from: '/console/workspace/$workspaceId/blog' }) as PostsSearch
@@ -78,13 +80,13 @@ export function PostsTable() {
   const deleteMutation = useMutation({
     mutationFn: (id: string) => blogPostsApi.delete(workspaceId, { id }),
     onSuccess: () => {
-      message.success('Post deleted successfully')
+      message.success(t`Post deleted successfully`)
       queryClient.invalidateQueries({ queryKey: ['blog-posts', workspaceId] })
       setDeleteModalOpen(false)
       setPostToDelete(null)
     },
     onError: (error: Error) => {
-      const errorMsg = error?.message || 'Failed to delete post'
+      const errorMsg = error?.message || t`Failed to delete post`
       message.error(errorMsg)
     }
   })
@@ -92,11 +94,11 @@ export function PostsTable() {
   const unpublishMutation = useMutation({
     mutationFn: (id: string) => blogPostsApi.unpublish(workspaceId, { id }),
     onSuccess: () => {
-      message.success('Post unpublished successfully')
+      message.success(t`Post unpublished successfully`)
       queryClient.invalidateQueries({ queryKey: ['blog-posts', workspaceId] })
     },
     onError: (error: Error) => {
-      const errorMsg = error?.message || 'Failed to unpublish post'
+      const errorMsg = error?.message || t`Failed to unpublish post`
       message.error(errorMsg)
     }
   })
@@ -104,7 +106,7 @@ export function PostsTable() {
   const deleteCategoryMutation = useMutation({
     mutationFn: (id: string) => blogCategoriesApi.delete(workspaceId, { id }),
     onSuccess: () => {
-      message.success('Category deleted successfully')
+      message.success(t`Category deleted successfully`)
       queryClient.invalidateQueries({ queryKey: ['blog-categories', workspaceId] })
       setDeleteCategoryModalOpen(false)
       // Navigate to all posts after deletion
@@ -113,7 +115,7 @@ export function PostsTable() {
       })
     },
     onError: (error: Error) => {
-      const errorMsg = error?.message || 'Failed to delete category'
+      const errorMsg = error?.message || t`Failed to delete category`
       message.error(errorMsg)
     }
   })
@@ -163,9 +165,9 @@ export function PostsTable() {
   }
 
   const getCategoryName = (categoryId?: string | null) => {
-    if (!categoryId) return 'Uncategorized'
+    if (!categoryId) return t`Uncategorized`
     const category = (categoriesData?.categories ?? []).find((c) => c.id === categoryId)
-    return category?.settings.name || 'Unknown'
+    return category?.settings.name || t`Unknown`
   }
 
   const getCategorySlug = (categoryId?: string | null) => {
@@ -188,7 +190,7 @@ export function PostsTable() {
 
   const columns: TableColumnType<BlogPost>[] = [
     {
-      title: 'Title',
+      title: t`Title`,
       dataIndex: ['settings', 'title'],
       key: 'title',
       render: (title: string, record: BlogPost) => (
@@ -231,7 +233,7 @@ export function PostsTable() {
       ? []
       : [
           {
-            title: 'Category',
+            title: t`Category`,
             dataIndex: 'category_id',
             key: 'category_id',
             render: (categoryId?: string | null) => (
@@ -240,7 +242,7 @@ export function PostsTable() {
           }
         ]),
     {
-      title: 'Status',
+      title: t`Status`,
       key: 'status',
       render: (_: unknown, record: BlogPost) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -250,7 +252,7 @@ export function PostsTable() {
       )
     },
     {
-      title: 'Published',
+      title: t`Published`,
       dataIndex: 'published_at',
       key: 'published_at',
       render: (publishedAt: string | null) => {
@@ -266,8 +268,8 @@ export function PostsTable() {
         if (isFuture) {
           const daysUntil = publishDate.diff(now, 'day')
           const displayText = daysUntil === 0
-            ? 'Scheduled today'
-            : `Scheduled in ${daysUntil} ${daysUntil === 1 ? 'day' : 'days'}`
+            ? t`Scheduled today`
+            : t`Scheduled in ${daysUntil} ${daysUntil === 1 ? 'day' : 'days'}`
 
           return (
             <Tooltip title={`${formattedDate} ${timezone}`}>
@@ -285,19 +287,19 @@ export function PostsTable() {
       }
     },
     {
-      title: 'Updated',
+      title: t`Updated`,
       dataIndex: 'updated_at',
       key: 'updated_at',
       render: (date: string) => dayjs(date).format('MMM D, YYYY')
     },
     {
-      title: 'Actions',
+      title: t`Actions`,
       key: 'actions',
       width: 150,
       render: (_: unknown, record: BlogPost) => (
         <Space size="small">
           {record.published_at && (
-            <Tooltip title="Open on web" placement="left">
+            <Tooltip title={t`Open on web`} placement="left">
               <Button
                 type="text"
                 size="small"
@@ -310,13 +312,13 @@ export function PostsTable() {
             <>
               {record.published_at ? (
                 <Popconfirm
-                  title="Unpublish post"
-                  description="Are you sure you want to unpublish this post?"
+                  title={t`Unpublish post`}
+                  description={t`Are you sure you want to unpublish this post?`}
                   onConfirm={() => unpublishMutation.mutate(record.id)}
-                  okText="Yes"
-                  cancelText="No"
+                  okText={t`Yes`}
+                  cancelText={t`No`}
                 >
-                  <Tooltip title="Unpublish" placement="left">
+                  <Tooltip title={t`Unpublish`} placement="left">
                     <Button
                       type="text"
                       size="small"
@@ -326,17 +328,17 @@ export function PostsTable() {
                   </Tooltip>
                 </Popconfirm>
               ) : (
-                <Tooltip title="Publish" placement="left">
+                <Tooltip title={t`Publish`} placement="left">
                   <Button
                     type="primary"
                     size="small"
                     onClick={() => handlePublish(record)}
                   >
-                    Publish
+                    {t`Publish`}
                   </Button>
                 </Tooltip>
               )}
-              <Tooltip title="Delete">
+              <Tooltip title={t`Delete`}>
                 <Button
                   type="text"
                   size="small"
@@ -344,7 +346,7 @@ export function PostsTable() {
                   onClick={() => handleDelete(record)}
                 />
               </Tooltip>
-              <Tooltip title="Edit">
+              <Tooltip title={t`Edit`}>
                 <Button
                   type="text"
                   size="small"
@@ -362,10 +364,10 @@ export function PostsTable() {
   const hasPosts = !isLoading && data?.posts && data.posts.length > 0
 
   const getEmptyDescription = () => {
-    if (status === 'draft') return 'No draft posts'
-    if (status === 'published') return 'No published posts'
-    if (categoryId) return 'No posts in this category'
-    return 'No posts yet'
+    if (status === 'draft') return t`No draft posts`
+    if (status === 'published') return t`No published posts`
+    if (categoryId) return t`No posts in this category`
+    return t`No posts yet`
   }
 
   return (
@@ -373,17 +375,17 @@ export function PostsTable() {
       <div className="flex justify-between items-start mb-6">
         <div>
           <Title level={4} className="!mb-2">
-            {selectedCategory ? selectedCategory.settings.name : 'All Posts'}
+            {selectedCategory ? selectedCategory.settings.name : t`All Posts`}
           </Title>
           <Paragraph className="!mb-0 text-gray-600">
             {selectedCategory
-              ? `Posts in ${selectedCategory.settings.name}`
-              : 'Create and manage your blog content'}
+              ? t`Posts in ${selectedCategory.settings.name}`
+              : t`Create and manage your blog content`}
           </Paragraph>
         </div>
         {permissions?.workspace?.write && (
           <Button type="primary" icon={<PlusOutlined />} onClick={handleCreateNew}>
-            New Post
+            {t`New Post`}
           </Button>
         )}
       </div>
@@ -393,9 +395,9 @@ export function PostsTable() {
           value={status}
           onChange={handleStatusChange}
           options={[
-            { label: 'All Posts', value: 'all' },
-            { label: 'Drafts', value: 'draft' },
-            { label: 'Published', value: 'published' }
+            { label: t`All Posts`, value: 'all' },
+            { label: t`Drafts`, value: 'draft' },
+            { label: t`Published`, value: 'published' }
           ]}
         />
       </div>
@@ -409,7 +411,7 @@ export function PostsTable() {
             rowKey="id"
             pagination={{
               pageSize: 50,
-              showTotal: (total) => `Total ${total} posts`
+              showTotal: (total) => t`Total ${total} posts`
             }}
           />
         </Card>

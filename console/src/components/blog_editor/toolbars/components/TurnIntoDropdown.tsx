@@ -1,4 +1,5 @@
 import { useContext, useMemo } from 'react'
+import { useLingui } from '@lingui/react/macro'
 import { EditorContext } from '@tiptap/react'
 import { Button, Dropdown, Tooltip } from 'antd'
 import type { MenuProps } from 'antd'
@@ -30,6 +31,7 @@ export interface TurnIntoDropdownProps {
  * Shows current block type and allows switching to other block types
  */
 export function TurnIntoDropdown({ hideWhenUnavailable = false }: TurnIntoDropdownProps) {
+  const { t } = useLingui()
   const { editor } = useContext(EditorContext)!
 
   const actions = useActionsArray(TRANSFORM_ACTION_IDS, {
@@ -68,10 +70,10 @@ export function TurnIntoDropdown({ hideWhenUnavailable = false }: TurnIntoDropdo
     return null
   }
 
-  const displayLabel = activeAction?.label || 'Turn into'
+  const displayLabel = activeAction?.label || t`Turn into`
 
   return (
-    <Tooltip title="Turn into" placement="top">
+    <Tooltip title={t`Turn into`} placement="top">
       <span>
         <Dropdown
           menu={{ items: menuItems }}

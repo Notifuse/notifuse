@@ -1,4 +1,5 @@
 import React from 'react'
+import { useLingui } from '@lingui/react/macro'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faFont } from '@fortawesome/free-solid-svg-icons'
 import { Col, Row } from 'antd'
@@ -18,6 +19,141 @@ import FontStyleInput from '../ui/FontStyleInput'
 import HeightInput from '../ui/HeightInput'
 import StringPopoverInput from '../ui/StringPopoverInput'
 import { TiptapRichEditor } from '../ui/tiptap'
+
+// Functional component for settings panel with i18n support
+interface MjTextSettingsPanelProps {
+  currentAttributes: MJTextAttributes
+  blockDefaults: MergedBlockAttributes
+  importedFonts: Array<{ name: string; href: string }>
+  onUpdate: OnUpdateAttributesFunction
+}
+
+const MjTextSettingsPanel: React.FC<MjTextSettingsPanelProps> = ({
+  currentAttributes,
+  blockDefaults,
+  importedFonts,
+  onUpdate
+}) => {
+  const { t } = useLingui()
+
+  return (
+    <PanelLayout title={t`Text Attributes`}>
+      <InputLayout label={t`Colors`} layout="vertical">
+        <Row gutter={16}>
+          <Col span={12}>
+            <div className="mb-2">
+              <span className="text-xs text-gray-500">{t`Text`}</span>
+              <div style={{ marginTop: '4px' }}>
+                <ColorPickerWithPresets
+                  value={currentAttributes.color || undefined}
+                  onChange={(color) => onUpdate({ color: color || undefined })}
+                />
+              </div>
+            </div>
+          </Col>
+          <Col span={12}>
+            <div className="mb-2">
+              <span className="text-xs text-gray-500">{t`Container`}</span>
+              <div style={{ marginTop: '4px' }}>
+                <ColorPickerWithPresets
+                  value={currentAttributes.containerBackgroundColor || undefined}
+                  onChange={(color) => onUpdate({ containerBackgroundColor: color || undefined })}
+                  placeholder={t`None`}
+                />
+              </div>
+            </div>
+          </Col>
+        </Row>
+      </InputLayout>
+
+      <InputLayout label={t`Font Styling`} layout="vertical">
+        <FontStyleInput
+          value={{
+            fontFamily: currentAttributes.fontFamily,
+            fontSize: currentAttributes.fontSize,
+            fontWeight: currentAttributes.fontWeight,
+            fontStyle: currentAttributes.fontStyle,
+            textTransform: currentAttributes.textTransform,
+            textDecoration: currentAttributes.textDecoration,
+            lineHeight: currentAttributes.lineHeight,
+            letterSpacing: currentAttributes.letterSpacing,
+            textAlign: currentAttributes.align
+          }}
+          defaultValue={{
+            fontFamily: blockDefaults.fontFamily,
+            fontSize: blockDefaults.fontSize,
+            fontWeight: blockDefaults.fontWeight,
+            fontStyle: blockDefaults.fontStyle,
+            textTransform: blockDefaults.textTransform || 'none',
+            textDecoration: blockDefaults.textDecoration,
+            lineHeight: blockDefaults.lineHeight,
+            letterSpacing: blockDefaults.letterSpacing,
+            textAlign: blockDefaults.align
+          }}
+          onChange={(values) => {
+            onUpdate({
+              fontFamily: values.fontFamily,
+              fontSize: values.fontSize,
+              fontWeight: values.fontWeight,
+              fontStyle: values.fontStyle,
+              textTransform: values.textTransform,
+              textDecoration: values.textDecoration,
+              lineHeight: values.lineHeight,
+              letterSpacing: values.letterSpacing,
+              align: values.textAlign
+            })
+          }}
+          importedFonts={importedFonts}
+        />
+      </InputLayout>
+
+      <InputLayout label={t`Padding`} layout="vertical">
+        <PaddingInput
+          value={{
+            top: currentAttributes.paddingTop,
+            right: currentAttributes.paddingRight,
+            bottom: currentAttributes.paddingBottom,
+            left: currentAttributes.paddingLeft
+          }}
+          defaultValue={{
+            top: blockDefaults.paddingTop,
+            right: blockDefaults.paddingRight,
+            bottom: blockDefaults.paddingBottom,
+            left: blockDefaults.paddingLeft
+          }}
+          onChange={(values: {
+            top: string | undefined
+            right: string | undefined
+            bottom: string | undefined
+            left: string | undefined
+          }) => {
+            onUpdate({
+              paddingTop: values.top,
+              paddingRight: values.right,
+              paddingBottom: values.bottom,
+              paddingLeft: values.left
+            })
+          }}
+        />
+      </InputLayout>
+
+      <InputLayout label={t`Height`}>
+        <HeightInput
+          value={currentAttributes.height}
+          onChange={(value) => onUpdate({ height: value })}
+        />
+      </InputLayout>
+
+      <InputLayout label={t`CSS Class`}>
+        <StringPopoverInput
+          value={currentAttributes.cssClass || ''}
+          onChange={(value) => onUpdate({ cssClass: value || undefined })}
+          placeholder={t`Enter CSS class name`}
+        />
+      </InputLayout>
+    </PanelLayout>
+  )
+}
 
 // Local state management for text content to prevent unnecessary re-renders
 const useTextContentState = (
@@ -238,121 +374,12 @@ export class MjTextBlock extends BaseEmailBlock {
     }
 
     return (
-      <PanelLayout title="Text Attributes">
-        <InputLayout label="Colors" layout="vertical">
-          <Row gutter={16}>
-            <Col span={12}>
-              <div className="mb-2">
-                <span className="text-xs text-gray-500">Text</span>
-                <div style={{ marginTop: '4px' }}>
-                  <ColorPickerWithPresets
-                    value={currentAttributes.color || undefined}
-                    onChange={(color) => onUpdate({ color: color || undefined })}
-                  />
-                </div>
-              </div>
-            </Col>
-            <Col span={12}>
-              <div className="mb-2">
-                <span className="text-xs text-gray-500">Container</span>
-                <div style={{ marginTop: '4px' }}>
-                  <ColorPickerWithPresets
-                    value={currentAttributes.containerBackgroundColor || undefined}
-                    onChange={(color) => onUpdate({ containerBackgroundColor: color || undefined })}
-                    placeholder="None"
-                  />
-                </div>
-              </div>
-            </Col>
-          </Row>
-        </InputLayout>
-
-        <InputLayout label="Font Styling" layout="vertical">
-          <FontStyleInput
-            value={{
-              fontFamily: currentAttributes.fontFamily,
-              fontSize: currentAttributes.fontSize,
-              fontWeight: currentAttributes.fontWeight,
-              fontStyle: currentAttributes.fontStyle,
-              textTransform: currentAttributes.textTransform,
-              textDecoration: currentAttributes.textDecoration,
-              lineHeight: currentAttributes.lineHeight,
-              letterSpacing: currentAttributes.letterSpacing,
-              textAlign: currentAttributes.align
-            }}
-            defaultValue={{
-              fontFamily: blockDefaults.fontFamily,
-              fontSize: blockDefaults.fontSize,
-              fontWeight: blockDefaults.fontWeight,
-              fontStyle: blockDefaults.fontStyle,
-              textTransform: blockDefaults.textTransform || 'none',
-              textDecoration: blockDefaults.textDecoration,
-              lineHeight: blockDefaults.lineHeight,
-              letterSpacing: blockDefaults.letterSpacing,
-              textAlign: blockDefaults.align
-            }}
-            onChange={(values) => {
-              onUpdate({
-                fontFamily: values.fontFamily,
-                fontSize: values.fontSize,
-                fontWeight: values.fontWeight,
-                fontStyle: values.fontStyle,
-                textTransform: values.textTransform,
-                textDecoration: values.textDecoration,
-                lineHeight: values.lineHeight,
-                letterSpacing: values.letterSpacing,
-                align: values.textAlign
-              })
-            }}
-            importedFonts={importedFonts}
-          />
-        </InputLayout>
-
-        <InputLayout label="Padding" layout="vertical">
-          <PaddingInput
-            value={{
-              top: currentAttributes.paddingTop,
-              right: currentAttributes.paddingRight,
-              bottom: currentAttributes.paddingBottom,
-              left: currentAttributes.paddingLeft
-            }}
-            defaultValue={{
-              top: blockDefaults.paddingTop,
-              right: blockDefaults.paddingRight,
-              bottom: blockDefaults.paddingBottom,
-              left: blockDefaults.paddingLeft
-            }}
-            onChange={(values: {
-              top: string | undefined
-              right: string | undefined
-              bottom: string | undefined
-              left: string | undefined
-            }) => {
-              onUpdate({
-                paddingTop: values.top,
-                paddingRight: values.right,
-                paddingBottom: values.bottom,
-                paddingLeft: values.left
-              })
-            }}
-          />
-        </InputLayout>
-
-        <InputLayout label="Height">
-          <HeightInput
-            value={currentAttributes.height}
-            onChange={(value) => onUpdate({ height: value })}
-          />
-        </InputLayout>
-
-        <InputLayout label="CSS Class">
-          <StringPopoverInput
-            value={currentAttributes.cssClass || ''}
-            onChange={(value) => onUpdate({ cssClass: value || undefined })}
-            placeholder="Enter CSS class name"
-          />
-        </InputLayout>
-      </PanelLayout>
+      <MjTextSettingsPanel
+        currentAttributes={currentAttributes}
+        blockDefaults={blockDefaults}
+        importedFonts={importedFonts}
+        onUpdate={onUpdate}
+      />
     )
   }
 

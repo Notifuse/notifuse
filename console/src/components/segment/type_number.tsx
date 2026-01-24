@@ -10,6 +10,8 @@ import { OperatorEquals } from './operator_equals'
 import { OperatorSet, OperatorNotSet } from './operator_set_not_set'
 import { OperatorNumber } from './operator_number'
 
+// Note: This class contains string labels that cannot use useLingui as they are class properties.
+// The placeholder 'select a value' and error messages should be translated at the point of use if needed.
 export class FieldTypeNumber implements FieldTypeRenderer {
   operators: IOperator[] = [
     new OperatorSet(),

@@ -23,6 +23,7 @@ import {
   PlayCircleOutlined,
   CloseCircleOutlined
 } from '@ant-design/icons'
+import { useLingui } from '@lingui/react/macro'
 import type { UploadProps, UploadFile, ButtonProps } from 'antd'
 import Papa from 'papaparse'
 import { contactsApi } from '../../services/api/contacts'
@@ -86,6 +87,7 @@ interface SavedProgress {
 }
 
 export function BulkUpdateDrawer({ workspaceId, lists, buttonProps }: BulkUpdateDrawerProps) {
+  const { t } = useLingui()
   const [open, setOpen] = useState(false)
   const [csvData, setCsvData] = useState<CSVData | null>(null)
   const [fileList, setFileList] = useState<UploadFile[]>([])
@@ -127,7 +129,7 @@ export function BulkUpdateDrawer({ workspaceId, lists, buttonProps }: BulkUpdate
     })
 
     if (!parseResult.data || parseResult.data.length < 2) {
-      messageApi.error('CSV must have at least a header row and one data row')
+      messageApi.error(t`CSV must have at least a header row and one data row`)
       return null
     }
 
@@ -144,7 +146,7 @@ export function BulkUpdateDrawer({ workspaceId, lists, buttonProps }: BulkUpdate
 
     if (emailColumnIndex === -1) {
       messageApi.error(
-        'No email column found. Please ensure your CSV has a column with "email" in the name'
+        t`No email column found. Please ensure your CSV has a column with "email" in the name`
       )
       return null
     }
@@ -241,7 +243,7 @@ export function BulkUpdateDrawer({ workspaceId, lists, buttonProps }: BulkUpdate
       const parsedData = parseCSV(csvText, (file as File).name)
       if (parsedData) {
         setCsvData(parsedData)
-        messageApi.success(`Found ${parsedData.emails.length} email addresses`)
+        messageApi.success(t`Found ${parsedData.emails.length} email addresses`)
       }
       onSuccess?.('ok')
     }
@@ -363,27 +365,27 @@ export function BulkUpdateDrawer({ workspaceId, lists, buttonProps }: BulkUpdate
     const failed = results.filter((r) => !r.success).length
 
     if (failed === 0) {
-      messageApi.success(`Successfully processed ${successful} contacts`)
+      messageApi.success(t`Successfully processed ${successful} contacts`)
     } else if (successful === 0) {
-      messageApi.error(`Failed to process all ${emails.length} contacts`)
+      messageApi.error(t`Failed to process all ${emails.length} contacts`)
     } else {
-      messageApi.warning(`Processed ${successful} contacts successfully, ${failed} failed`)
+      messageApi.warning(t`Processed ${successful} contacts successfully, ${failed} failed`)
     }
   }
 
   const onFinish = async () => {
     if (!csvData || csvData.emails.length === 0) {
-      messageApi.error('Please upload a CSV file with email addresses')
+      messageApi.error(t`Please upload a CSV file with email addresses`)
       return
     }
 
     if (!operation) {
-      messageApi.error('Please select an operation')
+      messageApi.error(t`Please select an operation`)
       return
     }
 
     if (operation === 'unsubscribe' && !selectedListId) {
-      messageApi.error('Please select a list for unsubscribe operation')
+      messageApi.error(t`Please select a list for unsubscribe operation`)
       return
     }
 
@@ -392,10 +394,10 @@ export function BulkUpdateDrawer({ workspaceId, lists, buttonProps }: BulkUpdate
 
     if (savedProgress) {
       Modal.confirm({
-        title: 'Resume Previous Operation',
-        content: `A previous ${operation} operation for "${csvData.fileName}" was found. Would you like to resume from where you left off?`,
-        okText: 'Resume',
-        cancelText: 'Start New',
+        title: t`Resume Previous Operation`,
+        content: t`A previous ${operation} operation for "${csvData.fileName}" was found. Would you like to resume from where you left off?`,
+        okText: t`Resume`,
+        cancelText: t`Start New`,
         onOk: () => {
           // Restore progress and continue
           setProgress({
@@ -427,9 +429,9 @@ export function BulkUpdateDrawer({ workspaceId, lists, buttonProps }: BulkUpdate
     // If processing is running and not cancelled, show confirmation
     if (progress.isRunning && !processingCancelled) {
       Modal.confirm({
-        title: 'Cancel Operation?',
+        title: t`Cancel Operation?`,
         content:
-          'Are you sure you want to cancel the operation? Progress will be saved and you can resume later.',
+          t`Are you sure you want to cancel the operation? Progress will be saved and you can resume later.`,
         onOk: () => {
           if (progress.isRunning && !processingCancelled) {
             saveProgress()
@@ -547,7 +549,7 @@ export function BulkUpdateDrawer({ workspaceId, lists, buttonProps }: BulkUpdate
       <Button {...buttonProps} onClick={() => setOpen(true)} />
 
       <Drawer
-        title="Bulk Update Contacts"
+        title={t`Bulk Update Contacts`}
         width={800}
         onClose={onClose}
         open={open}
@@ -558,25 +560,25 @@ export function BulkUpdateDrawer({ workspaceId, lists, buttonProps }: BulkUpdate
             {!progress.isRunning && !uploadComplete && canSubmit && (
               <Button type="primary" danger={isDangerousOperation} onClick={onFinish}>
                 {operation === 'delete'
-                  ? 'DELETE'
+                  ? t`DELETE`
                   : operation === 'unsubscribe'
-                    ? 'UNSUBSCRIBE'
-                    : 'Start'}
+                    ? t`UNSUBSCRIBE`
+                    : t`Start`}
               </Button>
             )}
             {progress.isRunning && !paused && (
               <Button icon={<PauseCircleOutlined />} onClick={pauseProcessing}>
-                Pause
+                {t`Pause`}
               </Button>
             )}
             {progress.isRunning && paused && (
               <Button danger icon={<CloseCircleOutlined />} onClick={cancelProcessing}>
-                Cancel
+                {t`Cancel`}
               </Button>
             )}
             {progress.isRunning && paused && (
               <Button icon={<PlayCircleOutlined />} onClick={resumeProcessing}>
-                Resume
+                {t`Resume`}
               </Button>
             )}
           </Space>
@@ -584,22 +586,22 @@ export function BulkUpdateDrawer({ workspaceId, lists, buttonProps }: BulkUpdate
       >
         {/* Operation Selection Form - Always show but disable when processing */}
         <Form layout="horizontal" labelCol={{ span: 3 }} wrapperCol={{ span: 18 }}>
-          <Form.Item label="Action">
+          <Form.Item label={t`Action`}>
             <Radio.Group
               value={operation}
               onChange={(e) => setOperation(e.target.value)}
               disabled={progress.isRunning || uploadComplete}
             >
-              <Radio.Button value="unsubscribe">Unsubscribe from list</Radio.Button>
-              <Radio.Button value="delete">Delete contacts</Radio.Button>
+              <Radio.Button value="unsubscribe">{t`Unsubscribe from list`}</Radio.Button>
+              <Radio.Button value="delete">{t`Delete contacts`}</Radio.Button>
             </Radio.Group>
           </Form.Item>
 
           {/* List Selection for Unsubscribe - Always show when unsubscribe is selected */}
           {operation === 'unsubscribe' && (
-            <Form.Item label="List">
+            <Form.Item label={t`List`}>
               <Select
-                placeholder="Select list"
+                placeholder={t`Select list`}
                 value={selectedListId}
                 onChange={setSelectedListId}
                 disabled={progress.isRunning || uploadComplete}
@@ -616,9 +618,9 @@ export function BulkUpdateDrawer({ workspaceId, lists, buttonProps }: BulkUpdate
         {csvData && operation && !progress.isRunning && !uploadComplete && (
           <Alert
             type="warning"
-            message={`This action will ${
-              operation === 'delete' ? 'permanently delete' : 'unsubscribe'
-            } ${csvData.emails.length} contact(s)`}
+            message={operation === 'delete'
+              ? t`This action will permanently delete ${csvData.emails.length} contact(s)`
+              : t`This action will unsubscribe ${csvData.emails.length} contact(s)`}
             showIcon
             className="mb-4"
           />
@@ -640,9 +642,9 @@ export function BulkUpdateDrawer({ workspaceId, lists, buttonProps }: BulkUpdate
               <p className="ant-upload-drag-icon">
                 <UploadOutlined />
               </p>
-              <p className="ant-upload-text">Click or drag a CSV file to this area to upload</p>
+              <p className="ant-upload-text">{t`Click or drag a CSV file to this area to upload`}</p>
               <p className="ant-upload-hint">
-                The CSV file should have a column containing email addresses
+                {t`The CSV file should have a column containing email addresses`}
               </p>
             </Dragger>
           </div>
@@ -653,20 +655,20 @@ export function BulkUpdateDrawer({ workspaceId, lists, buttonProps }: BulkUpdate
           <>
             <div className="mt-8">
               <Text strong className="text-sm">
-                Preview (first 10 emails):
+                {t`Preview (first 10 emails)`}:
               </Text>
               <Table
                 size="small"
                 dataSource={csvData.emails
                   .slice(0, 10)
                   .map((email, index) => ({ key: index, email }))}
-                columns={[{ title: 'Email', dataIndex: 'email', key: 'email' }]}
+                columns={[{ title: t`Email`, dataIndex: 'email', key: 'email' }]}
                 pagination={false}
                 className="mt-2"
               />
               {csvData.emails.length > 10 && (
                 <Text type="secondary" className="text-xs">
-                  ... and {csvData.emails.length - 10} more emails
+                  {t`... and ${csvData.emails.length - 10} more emails`}
                 </Text>
               )}
             </div>
@@ -679,7 +681,7 @@ export function BulkUpdateDrawer({ workspaceId, lists, buttonProps }: BulkUpdate
             <Divider />
             <div className="mb-4">
               <div className="flex justify-between items-center mb-2">
-                <Text strong>Processing contacts...</Text>
+                <Text strong>{t`Processing contacts...`}</Text>
                 <Text type="secondary">
                   {progress.processed} / {progress.total}
                 </Text>
@@ -689,14 +691,14 @@ export function BulkUpdateDrawer({ workspaceId, lists, buttonProps }: BulkUpdate
                 status={progress.isRunning ? 'active' : 'success'}
               />
               <div className="flex justify-between mt-2">
-                <Text type="success">Successful: {progress.successful}</Text>
-                <Text type="danger">Failed: {progress.failed}</Text>
+                <Text type="success">{t`Successful`}: {progress.successful}</Text>
+                <Text type="danger">{t`Failed`}: {progress.failed}</Text>
               </div>
               {paused && (
                 <Alert
                   type="warning"
-                  message="Processing paused"
-                  description="Click Resume to continue processing"
+                  message={t`Processing paused`}
+                  description={t`Click Resume to continue processing`}
                   className="mt-2"
                 />
               )}
@@ -709,7 +711,7 @@ export function BulkUpdateDrawer({ workspaceId, lists, buttonProps }: BulkUpdate
           <>
             <Divider />
             <div className="mb-4">
-              <Text strong>Results:</Text>
+              <Text strong>{t`Results`}:</Text>
               <div className="mt-2 max-h-60 overflow-y-auto">
                 <AntList
                   size="small"
@@ -722,14 +724,14 @@ export function BulkUpdateDrawer({ workspaceId, lists, buttonProps }: BulkUpdate
                           {item.success ? (
                             item.error ? (
                               <Tag color="warning" title={item.error}>
-                                Skipped
+                                {t`Skipped`}
                               </Tag>
                             ) : (
-                              <Tag color="success">Success</Tag>
+                              <Tag color="success">{t`Success`}</Tag>
                             )
                           ) : (
                             <Tag color="error" title={item.error}>
-                              Failed
+                              {t`Failed`}
                             </Tag>
                           )}
                         </div>
@@ -746,8 +748,8 @@ export function BulkUpdateDrawer({ workspaceId, lists, buttonProps }: BulkUpdate
         {uploadComplete && (
           <Alert
             type={progress.failed === 0 ? 'success' : 'warning'}
-            message="Operation Complete"
-            description={`Processed ${progress.total} contacts: ${progress.successful} successful, ${progress.failed} failed`}
+            message={t`Operation Complete`}
+            description={t`Processed ${progress.total} contacts: ${progress.successful} successful, ${progress.failed} failed`}
             showIcon
             className="mb-4"
           />

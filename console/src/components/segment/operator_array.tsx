@@ -3,6 +3,9 @@ import Messages from './messages'
 import { DimensionFilter, IOperator } from '../../services/api/segment'
 
 // Operator for checking if a value is in a JSON array
+// Note: The labels 'in array' are used in class properties which are not React components,
+// so they cannot use useLingui. These labels should be translated at the point of use if needed.
+// The placeholder and validation messages use Messages which can be translated centrally.
 export class OperatorInArray implements IOperator {
   type: 'in_array'
   label: string

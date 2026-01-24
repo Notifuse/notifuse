@@ -17,6 +17,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons'
 import data from '@emoji-mart/data'
 import Picker from '@emoji-mart/react'
+import { useLingui } from '@lingui/react/macro'
 import type {
   TiptapToolbarProps,
   ToolbarButtonProps,
@@ -72,6 +73,7 @@ export const ColorButton: React.FC<ColorButtonProps> = ({
   title,
   isActive = false
 }) => {
+  const { t } = useLingui()
   const handleColorChange = (color: unknown) => {
     const hexValue = (color as { toHexString?: () => string })?.toHexString?.() || ''
     onColorChange(hexValue)
@@ -93,7 +95,7 @@ export const ColorButton: React.FC<ColorButtonProps> = ({
           showText={false}
           presets={[
             {
-              label: 'Recommended',
+              label: t`Recommended`,
               colors: [
                 // Basic + Gray
                 '#000000',
@@ -260,6 +262,7 @@ export const EmojiButton: React.FC<EmojiButtonProps> = ({ onEmojiSelect, title }
 
 // Link Button Component
 export const LinkButton: React.FC<LinkButtonProps> = ({ editor, title }) => {
+  const { t } = useLingui()
   const [visible, setVisible] = React.useState(false)
   const [linkType, setLinkType] = React.useState<LinkType>('url')
   const [linkValue, setLinkValue] = React.useState('')
@@ -328,12 +331,13 @@ export const LinkButton: React.FC<LinkButtonProps> = ({ editor, title }) => {
   }
 
   const linkTypeOptions = [
-    { value: 'url', label: 'URL' },
-    { value: 'email', label: 'Email' },
-    { value: 'phone', label: 'Phone' },
-    { value: 'anchor', label: 'Anchor' }
+    { value: 'url', label: t`URL` },
+    { value: 'email', label: t`Email` },
+    { value: 'phone', label: t`Phone` },
+    { value: 'anchor', label: t`Anchor` }
   ]
 
+  // Placeholder strings contain Liquid template syntax - not translatable
   const getPlaceholder = () => {
     switch (linkType) {
       case 'email':
@@ -356,7 +360,7 @@ export const LinkButton: React.FC<LinkButtonProps> = ({ editor, title }) => {
             <label
               style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}
             >
-              Link Type
+              {t`Link Type`}
             </label>
             <Select
               value={linkType}
@@ -371,12 +375,12 @@ export const LinkButton: React.FC<LinkButtonProps> = ({ editor, title }) => {
               style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}
             >
               {linkType === 'url'
-                ? 'URL'
+                ? t`URL`
                 : linkType === 'email'
-                ? 'Email Address'
+                ? t`Email Address`
                 : linkType === 'phone'
-                ? 'Phone Number'
-                : 'Anchor ID'}
+                ? t`Phone Number`
+                : t`Anchor ID`}
             </label>
             <Input
               value={linkValue}
@@ -388,15 +392,15 @@ export const LinkButton: React.FC<LinkButtonProps> = ({ editor, title }) => {
           </div>
           <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
             <Button size="small" onClick={() => setVisible(false)}>
-              Cancel
+              {t`Cancel`}
             </Button>
             {isActiveLink && (
               <Button size="small" onClick={handleRemoveLink} danger>
-                Remove Link
+                {t`Remove Link`}
               </Button>
             )}
             <Button size="small" type="primary" onClick={handleInsertLink}>
-              {isActiveLink ? 'Update Link' : 'Insert Link'}
+              {isActiveLink ? t`Update Link` : t`Insert Link`}
             </Button>
           </div>
         </div>
@@ -404,7 +408,7 @@ export const LinkButton: React.FC<LinkButtonProps> = ({ editor, title }) => {
       trigger="click"
       arrow={false}
       overlayClassName="tiptap-link-popover"
-      title="Insert Link"
+      title={t`Insert Link`}
       open={visible}
       onOpenChange={setVisible}
     >
@@ -419,6 +423,7 @@ export const LinkButton: React.FC<LinkButtonProps> = ({ editor, title }) => {
 
 // Main Toolbar Component
 export const TiptapToolbar: React.FC<TiptapToolbarProps> = ({ editor, buttons, mode = 'rich' }) => {
+  const { t } = useLingui()
   if (!editor) {
     return null
   }
@@ -485,7 +490,7 @@ export const TiptapToolbar: React.FC<TiptapToolbarProps> = ({ editor, buttons, m
               <ToolbarButton
                 onClick={() => editor.chain().focus().undo().run()}
                 disabled={!editor.can().chain().focus().undo().run()}
-                title="Undo"
+                title={t`Undo`}
               >
                 <FontAwesomeIcon icon={faUndo} size="xs" />
               </ToolbarButton>
@@ -494,7 +499,7 @@ export const TiptapToolbar: React.FC<TiptapToolbarProps> = ({ editor, buttons, m
               <ToolbarButton
                 onClick={() => editor.chain().focus().redo().run()}
                 disabled={!editor.can().chain().focus().redo().run()}
-                title="Redo"
+                title={t`Redo`}
               >
                 <FontAwesomeIcon icon={faRedo} size="xs" />
               </ToolbarButton>
@@ -516,7 +521,7 @@ export const TiptapToolbar: React.FC<TiptapToolbarProps> = ({ editor, buttons, m
                 onClick={getFormattingHandler(() => editor.chain().focus().toggleBold().run())}
                 disabled={!editor.can().chain().focus().toggleBold().run()}
                 isActive={editor.isActive('bold')}
-                title="Bold"
+                title={t`Bold`}
               >
                 <FontAwesomeIcon icon={faBold} size="xs" />
               </ToolbarButton>
@@ -526,7 +531,7 @@ export const TiptapToolbar: React.FC<TiptapToolbarProps> = ({ editor, buttons, m
                 onClick={getFormattingHandler(() => editor.chain().focus().toggleItalic().run())}
                 disabled={!editor.can().chain().focus().toggleItalic().run()}
                 isActive={editor.isActive('italic')}
-                title="Italic"
+                title={t`Italic`}
               >
                 <FontAwesomeIcon icon={faItalic} size="xs" />
               </ToolbarButton>
@@ -536,7 +541,7 @@ export const TiptapToolbar: React.FC<TiptapToolbarProps> = ({ editor, buttons, m
                 onClick={getFormattingHandler(() => editor.chain().focus().toggleUnderline().run())}
                 disabled={!editor.can().chain().focus().toggleUnderline().run()}
                 isActive={editor.isActive('underline')}
-                title="Underline"
+                title={t`Underline`}
               >
                 <FontAwesomeIcon icon={faUnderline} size="xs" />
               </ToolbarButton>
@@ -546,7 +551,7 @@ export const TiptapToolbar: React.FC<TiptapToolbarProps> = ({ editor, buttons, m
                 onClick={getFormattingHandler(() => editor.chain().focus().toggleStrike().run())}
                 disabled={!editor.can().chain().focus().toggleStrike().run()}
                 isActive={editor.isActive('strike')}
-                title="Strikethrough"
+                title={t`Strikethrough`}
               >
                 <FontAwesomeIcon icon={faStrikethrough} size="xs" />
               </ToolbarButton>
@@ -565,7 +570,7 @@ export const TiptapToolbar: React.FC<TiptapToolbarProps> = ({ editor, buttons, m
                 icon={faFont}
                 currentColor={getCurrentTextColor()}
                 onColorChange={handleTextColorChange}
-                title="Text Color"
+                title={t`Text Color`}
                 isActive={!!getCurrentTextColor()}
               />
             )}
@@ -574,7 +579,7 @@ export const TiptapToolbar: React.FC<TiptapToolbarProps> = ({ editor, buttons, m
                 icon={faHighlighter}
                 currentColor={getCurrentBackgroundColor()}
                 onColorChange={handleBackgroundColorChange}
-                title="Background Color"
+                title={t`Background Color`}
                 isActive={!!getCurrentBackgroundColor()}
               />
             )}
@@ -587,7 +592,7 @@ export const TiptapToolbar: React.FC<TiptapToolbarProps> = ({ editor, buttons, m
       {shouldShowButton('emoji') && (
         <>
           <Space size="small">
-            <EmojiButton onEmojiSelect={handleEmojiSelect} title="Insert Emoji" />
+            <EmojiButton onEmojiSelect={handleEmojiSelect} title={t`Insert Emoji`} />
           </Space>
           <ToolbarSeparator />
         </>
@@ -597,7 +602,7 @@ export const TiptapToolbar: React.FC<TiptapToolbarProps> = ({ editor, buttons, m
       {shouldShowButton('link') && (
         <>
           <Space size="small">
-            <LinkButton editor={editor} title="Insert Link" />
+            <LinkButton editor={editor} title={t`Insert Link`} />
           </Space>
           <ToolbarSeparator />
         </>
@@ -613,7 +618,7 @@ export const TiptapToolbar: React.FC<TiptapToolbarProps> = ({ editor, buttons, m
                   editor.chain().focus().toggleSuperscript().run()
                 )}
                 isActive={editor.isActive('superscript')}
-                title="Superscript"
+                title={t`Superscript`}
               >
                 <FontAwesomeIcon icon={faSuperscript} size="xs" />
               </ToolbarButton>
@@ -622,7 +627,7 @@ export const TiptapToolbar: React.FC<TiptapToolbarProps> = ({ editor, buttons, m
               <ToolbarButton
                 onClick={getFormattingHandler(() => editor.chain().focus().toggleSubscript().run())}
                 isActive={editor.isActive('subscript')}
-                title="Subscript"
+                title={t`Subscript`}
               >
                 <FontAwesomeIcon icon={faSubscript} size="xs" />
               </ToolbarButton>

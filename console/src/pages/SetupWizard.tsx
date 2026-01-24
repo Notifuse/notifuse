@@ -6,8 +6,10 @@ import { ApiOutlined, CheckOutlined, ArrowRightOutlined } from '@ant-design/icon
 import { setupApi } from '../services/api/setup'
 import type { SetupConfig } from '../types/setup'
 import { getBrowserTimezone } from '../lib/timezoneNormalizer'
+import { useLingui } from '@lingui/react/macro'
 
 export default function SetupWizard() {
+  const { t } = useLingui()
   const navigate = useNavigate()
 
   const [form] = Form.useForm()
@@ -50,7 +52,7 @@ export default function SetupWizard() {
           smtp_relay_configured: status.smtp_relay_configured
         })
       } catch {
-        message.error('Failed to fetch setup status')
+        message.error(t`Failed to fetch setup status`)
       } finally {
         setStatusLoading(false)
       }
@@ -75,10 +77,10 @@ export default function SetupWizard() {
 
       const result = await setupApi.testSmtp(testConfig)
       setTesting(false)
-      message.success(result.message || 'SMTP connection successful!')
+      message.success(result.message || t`SMTP connection successful!`)
     } catch (error) {
       setTesting(false)
-      message.error(error instanceof Error ? error.message : 'Failed to test SMTP connection')
+      message.error(error instanceof Error ? error.message : t`Failed to test SMTP connection`)
     }
   }
 
@@ -181,7 +183,7 @@ export default function SetupWizard() {
       // Keep loading state active while server restarts
       // Show loading message for server restart
       const hideRestartMessage = message.loading({
-        content: 'Server is restarting with new configuration...',
+        content: t`Server is restarting with new configuration...`,
         duration: 0, // Don't auto-dismiss
         key: 'server-restart'
       })
@@ -195,7 +197,7 @@ export default function SetupWizard() {
 
         // Success - server is back up
         message.success({
-          content: 'Server restarted successfully! You can now sign in.',
+          content: t`Server restarted successfully! You can now sign in.`,
           key: 'server-restart',
           duration: 3
         })
@@ -205,14 +207,14 @@ export default function SetupWizard() {
       } catch {
         hideRestartMessage()
         message.error({
-          content: 'Server restart timeout. Please refresh the page manually.',
+          content: t`Server restart timeout. Please refresh the page manually.`,
           key: 'server-restart',
           duration: 0
         })
         setLoading(false)
       }
     } catch (err) {
-      message.error(err instanceof Error ? err.message : 'Failed to complete setup')
+      message.error(err instanceof Error ? err.message : t`Failed to complete setup`)
       setLoading(false)
     }
   }
@@ -268,7 +270,7 @@ export default function SetupWizard() {
         <div className="min-h-screen bg-gray-50 flex items-center justify-center">
           <div className="text-center">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900" />
-            <p className="mt-4 text-gray-600">Loading setup...</p>
+            <p className="mt-4 text-gray-600">{t`Loading setup...`}</p>
           </div>
         </div>
       </App>
@@ -291,9 +293,9 @@ export default function SetupWizard() {
                   <CheckOutlined
                     style={{ fontSize: '48px', color: '#52c41a', marginBottom: '16px' }}
                   />
-                  <h2 className="text-3xl font-bold text-gray-900 mb-2">Setup Complete!</h2>
+                  <h2 className="text-3xl font-bold text-gray-900 mb-2">{t`Setup Complete!`}</h2>
                   <p className="text-gray-600">
-                    Your Notifuse instance has been successfully configured.
+                    {t`Your Notifuse instance has been successfully configured.`}
                   </p>
                 </div>
 
@@ -308,14 +310,14 @@ export default function SetupWizard() {
                     iconPosition="end"
                     disabled={loading}
                   >
-                    {loading ? 'Waiting for server restart...' : 'Go to Sign In'}
+                    {loading ? t`Waiting for server restart...` : t`Go to Sign In`}
                   </Button>
                 </div>
               </div>
             ) : (
               <div className="space-y-6">
                 <div className="text-center">
-                  <h2 className="text-3xl font-bold text-gray-900">Setup</h2>
+                  <h2 className="text-3xl font-bold text-gray-900">{t`Setup`}</h2>
                 </div>
 
                 <Form
@@ -336,26 +338,26 @@ export default function SetupWizard() {
                     <div className="mt-12">
                       {!configStatus.root_email_configured && (
                         <Form.Item
-                          label="Root Email"
+                          label={t`Root Email`}
                           name="root_email"
                           rules={[
-                            { required: true, message: 'Admin email is required' },
-                            { type: 'email', message: 'Invalid email format' }
+                            { required: true, message: t`Admin email is required` },
+                            { type: 'email', message: t`Invalid email format` }
                           ]}
-                          tooltip="This email will be used for the root administrator account"
+                          tooltip={t`This email will be used for the root administrator account`}
                         >
                           <Input placeholder="admin@example.com" />
                         </Form.Item>
                       )}
                       {!configStatus.api_endpoint_configured && (
                         <Form.Item
-                          label="API Endpoint"
+                          label={t`API Endpoint`}
                           name="api_endpoint"
                           rules={[
-                            { required: true, message: 'API endpoint is required' },
-                            { type: 'url', message: 'Invalid URL format' }
+                            { required: true, message: t`API endpoint is required` },
+                            { type: 'url', message: t`Invalid URL format` }
                           ]}
-                          tooltip="Public URL where this Notifuse instance is accessible"
+                          tooltip={t`Public URL where this Notifuse instance is accessible`}
                         >
                           <Input placeholder="https://notifuse.example.com" />
                         </Form.Item>
@@ -367,7 +369,7 @@ export default function SetupWizard() {
                   <Form.Item
                     name="subscribe_newsletter"
                     valuePropName="checked"
-                    label="Subscribe to the newsletter (new features...)"
+                    label={t`Subscribe to the newsletter (new features...)`}
                     style={{ marginTop: 24 }}
                   >
                     <Switch />
@@ -377,12 +379,12 @@ export default function SetupWizard() {
                   {!configStatus.smtp_configured && (
                     <>
                       <Divider orientation="center" style={{ marginTop: 32, marginBottom: 24 }}>
-                        SMTP Configuration
+                        {t`SMTP Configuration`}
                       </Divider>
 
                       <div className="text-center mb-4">
                         <p className="text-sm text-gray-600">
-                          See docs for:
+                          {t`See docs for:`}
                           <a
                             href="https://docs.aws.amazon.com/ses/latest/dg/smtp-credentials.html"
                             target="_blank"
@@ -424,19 +426,19 @@ export default function SetupWizard() {
                       <Row gutter={16}>
                         <Col span={10}>
                           <Form.Item
-                            label="SMTP Host"
+                            label={t`SMTP Host`}
                             name="smtp_host"
-                            rules={[{ required: true, message: 'SMTP host is required' }]}
+                            rules={[{ required: true, message: t`SMTP host is required` }]}
                           >
                             <Input placeholder="smtp.example.com" />
                           </Form.Item>
                         </Col>
                         <Col span={8}>
                           <Form.Item
-                            label="SMTP Port"
+                            label={t`SMTP Port`}
                             name="smtp_port"
-                            rules={[{ required: true, message: 'SMTP port is required' }]}
-                            tooltip="Common ports: 587 (TLS), 465 (SSL), 25 (unencrypted)"
+                            rules={[{ required: true, message: t`SMTP port is required` }]}
+                            tooltip={t`Common ports: 587 (TLS), 465 (SSL), 25 (unencrypted)`}
                           >
                             <InputNumber
                               min={1}
@@ -450,8 +452,8 @@ export default function SetupWizard() {
                           <Form.Item
                             name="smtp_use_tls"
                             valuePropName="checked"
-                            label="Use TLS"
-                            tooltip="Enable TLS encryption for SMTP connection"
+                            label={t`Use TLS`}
+                            tooltip={t`Enable TLS encryption for SMTP connection`}
                           >
                             <Switch defaultChecked />
                           </Form.Item>
@@ -460,12 +462,12 @@ export default function SetupWizard() {
 
                       <Row gutter={16}>
                         <Col span={12}>
-                          <Form.Item label="SMTP Username" name="smtp_username">
+                          <Form.Item label={t`SMTP Username`} name="smtp_username">
                             <Input placeholder="user@example.com" />
                           </Form.Item>
                         </Col>
                         <Col span={12}>
-                          <Form.Item label="SMTP Password" name="smtp_password">
+                          <Form.Item label={t`SMTP Password`} name="smtp_password">
                             <Input.Password placeholder="••••••••" />
                           </Form.Item>
                         </Col>
@@ -474,18 +476,18 @@ export default function SetupWizard() {
                       <Row gutter={16}>
                         <Col span={12}>
                           <Form.Item
-                            label="From Email"
+                            label={t`From Email`}
                             name="smtp_from_email"
                             rules={[
-                              { required: true, message: 'From email is required' },
-                              { type: 'email', message: 'Invalid email format' }
+                              { required: true, message: t`From email is required` },
+                              { type: 'email', message: t`Invalid email format` }
                             ]}
                           >
                             <Input placeholder="notifications@example.com" />
                           </Form.Item>
                         </Col>
                         <Col span={12}>
-                          <Form.Item label="From Name" name="smtp_from_name">
+                          <Form.Item label={t`From Name`} name="smtp_from_name">
                             <Input placeholder="Notifuse" />
                           </Form.Item>
                         </Col>
@@ -497,7 +499,7 @@ export default function SetupWizard() {
                           loading={testing}
                           icon={<ApiOutlined />}
                         >
-                          Test Connection
+                          {t`Test Connection`}
                         </Button>
                       </div>
                     </>
@@ -510,7 +512,7 @@ export default function SetupWizard() {
                     items={[
                       {
                         key: 'advanced',
-                        label: 'Advanced Settings',
+                        label: t`Advanced Settings`,
                         children: (
                           <>
                             <Row gutter={16}>
@@ -518,8 +520,8 @@ export default function SetupWizard() {
                                 <Form.Item
                                   name="telemetry_enabled"
                                   valuePropName="checked"
-                                  label="Enable Anonymous Telemetry"
-                                  tooltip="Help us improve Notifuse by sending anonymous usage statistics. No personal data or message content is collected."
+                                  label={t`Enable Anonymous Telemetry`}
+                                  tooltip={t`Help us improve Notifuse by sending anonymous usage statistics. No personal data or message content is collected.`}
                                 >
                                   <Switch />
                                 </Form.Item>
@@ -528,8 +530,8 @@ export default function SetupWizard() {
                                 <Form.Item
                                   name="check_for_updates"
                                   valuePropName="checked"
-                                  label="Check for Updates"
-                                  tooltip="Periodically check for new Notifuse versions and security updates. A popup will list new versions available."
+                                  label={t`Check for Updates`}
+                                  tooltip={t`Periodically check for new Notifuse versions and security updates. A popup will list new versions available.`}
                                 >
                                   <Switch />
                                 </Form.Item>
@@ -544,8 +546,8 @@ export default function SetupWizard() {
                                 <Form.Item
                                   name="smtp_relay_enabled"
                                   valuePropName="checked"
-                                  label="Enable SMTP Relay Server"
-                                  tooltip="Allow receiving emails to trigger transactional notifications. Requires TLS certificates."
+                                  label={t`Enable SMTP Relay Server`}
+                                  tooltip={t`Allow receiving emails to trigger transactional notifications. Requires TLS certificates.`}
                                 >
                                   <Switch />
                                 </Form.Item>
@@ -567,30 +569,30 @@ export default function SetupWizard() {
                                         }}
                                       >
                                         <Form.Item
-                                          label="Domain"
+                                          label={t`Domain`}
                                           name="smtp_relay_domain"
                                           rules={[
                                             {
                                               required: true,
-                                              message: 'SMTP relay domain is required'
+                                              message: t`SMTP relay domain is required`
                                             }
                                           ]}
-                                          tooltip="Domain for the SMTP relay server (e.g., smtp.yourcompany.com)"
+                                          tooltip={t`Domain for the SMTP relay server (e.g., smtp.yourcompany.com)`}
                                         >
                                           <Input placeholder="smtp.yourcompany.com" />
                                         </Form.Item>
 
                                         <Form.Item
-                                          label="Port"
+                                          label={t`Port`}
                                           name="smtp_relay_port"
                                           initialValue={587}
                                           rules={[
                                             {
                                               required: true,
-                                              message: 'SMTP relay port is required'
+                                              message: t`SMTP relay port is required`
                                             }
                                           ]}
-                                          tooltip="Port for the SMTP relay server (default: 587)"
+                                          tooltip={t`Port for the SMTP relay server (default: 587)`}
                                         >
                                           <InputNumber
                                             min={1}
@@ -600,15 +602,15 @@ export default function SetupWizard() {
                                         </Form.Item>
 
                                         <Form.Item
-                                          label="TLS Certificate (Base64)"
+                                          label={t`TLS Certificate (Base64)`}
                                           name="smtp_relay_tls_cert_base64"
                                           rules={[
                                             {
                                               required: true,
-                                              message: 'TLS certificate is required'
+                                              message: t`TLS certificate is required`
                                             }
                                           ]}
-                                          tooltip="Base64 encoded TLS certificate. Run: cat fullchain.pem | base64 -w 0"
+                                          tooltip={t`Base64 encoded TLS certificate. Run: cat fullchain.pem | base64 -w 0`}
                                         >
                                           <Input.TextArea
                                             rows={4}
@@ -618,15 +620,15 @@ export default function SetupWizard() {
                                         </Form.Item>
 
                                         <Form.Item
-                                          label="TLS Private Key (Base64)"
+                                          label={t`TLS Private Key (Base64)`}
                                           name="smtp_relay_tls_key_base64"
                                           rules={[
                                             {
                                               required: true,
-                                              message: 'TLS private key is required'
+                                              message: t`TLS private key is required`
                                             }
                                           ]}
-                                          tooltip="Base64 encoded TLS private key. Run: cat privkey.pem | base64 -w 0"
+                                          tooltip={t`Base64 encoded TLS private key. Run: cat privkey.pem | base64 -w 0`}
                                         >
                                           <Input.TextArea
                                             rows={4}
@@ -658,7 +660,7 @@ export default function SetupWizard() {
                     iconPosition="end"
                     block
                   >
-                    {loading ? 'Setting up...' : 'Complete Setup'}
+                    {loading ? t`Setting up...` : t`Complete Setup`}
                   </Button>
                 </Form>
               </div>

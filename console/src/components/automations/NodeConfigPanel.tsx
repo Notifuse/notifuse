@@ -1,6 +1,7 @@
 import React from 'react'
 import { Typography, Empty } from 'antd'
 import { X } from 'lucide-react'
+import { useLingui } from '@lingui/react/macro'
 import type { Node } from '@xyflow/react'
 import {
   TriggerConfigForm,
@@ -41,6 +42,7 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({
   workspaceId,
   onClose
 }) => {
+  const { t } = useLingui()
   const { workspace } = useAutomation()
 
   if (!selectedNode) {
@@ -127,7 +129,7 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({
       default:
         return (
           <Empty
-            description={`Configuration for ${nodeType} is not available in Phase 2`}
+            description={t`Configuration for ${nodeType} is not available in Phase 2`}
             image={Empty.PRESENTED_IMAGE_SIMPLE}
           />
         )
@@ -138,7 +140,7 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({
     <div className="bg-white h-full flex flex-col">
       <div className="p-3 border-b border-gray-200 flex items-center justify-between flex-shrink-0">
         <Title level={5} style={{ margin: 0, fontSize: '14px' }}>
-          Configure {selectedNode.data.label}
+          {t`Configure`} {selectedNode.data.label}
         </Title>
         {onClose && (
           <button

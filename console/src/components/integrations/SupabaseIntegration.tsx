@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Form, Input, Select, Space, Divider, Alert, message, Tooltip, Switch } from 'antd'
 import { InfoCircleOutlined } from '@ant-design/icons'
+import { useLingui } from '@lingui/react/macro'
 import { Integration, SupabaseIntegrationSettings, Workspace } from '../../services/api/types'
 import { listsApi, List } from '../../services/api/list'
 
@@ -19,6 +20,7 @@ export const SupabaseIntegration: React.FC<SupabaseIntegrationProps> = ({
   isOwner,
   formRef
 }) => {
+  const { t } = useLingui()
   const [form] = Form.useForm()
 
   // Expose form instance to parent via ref
@@ -39,7 +41,7 @@ export const SupabaseIntegration: React.FC<SupabaseIntegrationProps> = ({
         setLists(listsResponse.lists || [])
       } catch (error) {
         console.error('Failed to fetch lists:', error)
-        message.error('Failed to load contact lists')
+        message.error(t`Failed to load contact lists`)
         // Ensure we have empty array on error
         setLists([])
       } finally {
@@ -47,7 +49,7 @@ export const SupabaseIntegration: React.FC<SupabaseIntegrationProps> = ({
       }
     }
     fetchData()
-  }, [workspace.id])
+  }, [workspace.id, t])
 
   useEffect(() => {
     if (integration?.supabase_settings) {
@@ -72,7 +74,7 @@ export const SupabaseIntegration: React.FC<SupabaseIntegrationProps> = ({
 
   const handleSave = async (values: Record<string, unknown>) => {
     if (!isOwner) {
-      message.error('Only workspace owners can modify integrations')
+      message.error(t`Only workspace owners can modify integrations`)
       return
     }
 
@@ -118,31 +120,31 @@ export const SupabaseIntegration: React.FC<SupabaseIntegrationProps> = ({
       // Success message is shown by parent component (Integrations.tsx)
     } catch (error) {
       console.error('Failed to save Supabase integration:', error)
-      message.error('Failed to save integration')
+      message.error(t`Failed to save integration`)
     }
   }
 
   return (
     <Form form={form} layout="vertical" onFinish={handleSave} disabled={!isOwner}>
       <Form.Item
-        label="Integration Name"
+        label={t`Integration Name`}
         name="name"
-        rules={[{ required: true, message: 'Please enter integration name' }]}
+        rules={[{ required: true, message: t`Please enter integration name` }]}
       >
-        <Input placeholder="e.g., My Supabase Integration" />
+        <Input placeholder={t`e.g., My Supabase Integration`} />
       </Form.Item>
 
       <div className="mt-12">
         <Divider orientation="center" plain>
-          Auth Email Hook
+          {t`Auth Email Hook`}
         </Divider>
       </div>
 
       <Form.Item
         label={
           <Space>
-            <span>Auth Email Hook Secret</span>
-            <Tooltip title="Generate this key in Supabase Auth Hooks settings">
+            <span>{t`Auth Email Hook Secret`}</span>
+            <Tooltip title={t`Generate this key in Supabase Auth Hooks settings`}>
               <InfoCircleOutlined />
             </Tooltip>
           </Space>
@@ -154,15 +156,15 @@ export const SupabaseIntegration: React.FC<SupabaseIntegrationProps> = ({
 
       <div className="mt-12">
         <Divider orientation="center" plain>
-          User Created Hook
+          {t`User Created Hook`}
         </Divider>
       </div>
 
       <Form.Item
         label={
           <Space>
-            <span>User Created Hook Secret</span>
-            <Tooltip title="Generate this key in Supabase Auth Hooks settings">
+            <span>{t`User Created Hook Secret`}</span>
+            <Tooltip title={t`Generate this key in Supabase Auth Hooks settings`}>
               <InfoCircleOutlined />
             </Tooltip>
           </Space>
@@ -175,8 +177,8 @@ export const SupabaseIntegration: React.FC<SupabaseIntegrationProps> = ({
       <Form.Item
         label={
           <Space>
-            <span>Subscribe users to these lists (Optional)</span>
-            <Tooltip title="Automatically add new users to the selected lists">
+            <span>{t`Subscribe users to these lists (Optional)`}</span>
+            <Tooltip title={t`Automatically add new users to the selected lists`}>
               <InfoCircleOutlined />
             </Tooltip>
           </Space>
@@ -184,7 +186,7 @@ export const SupabaseIntegration: React.FC<SupabaseIntegrationProps> = ({
         name="add_user_created_to_lists"
       >
         <Select
-          placeholder="Select lists (optional)"
+          placeholder={t`Select lists (optional)`}
           mode="multiple"
           allowClear
           showSearch
@@ -202,19 +204,19 @@ export const SupabaseIntegration: React.FC<SupabaseIntegrationProps> = ({
       <Form.Item
         label={
           <Space>
-            <span>Save user metadata to this custom JSON field (Optional)</span>
-            <Tooltip title="The user_metadata field in Supabase will be saved to this custom JSON field">
+            <span>{t`Save user metadata to this custom JSON field (Optional)`}</span>
+            <Tooltip title={t`The user_metadata field in Supabase will be saved to this custom JSON field`}>
               <InfoCircleOutlined />
             </Tooltip>
           </Space>
         }
         name="user_created_custom_json_field"
       >
-        <Select placeholder="Select custom JSON field (optional)" allowClear>
+        <Select placeholder={t`Select custom JSON field (optional)`} allowClear>
           {[1, 2, 3, 4, 5].map((num) => {
             const fieldName = `custom_json_${num}`
             const friendlyName =
-              workspace.settings?.custom_field_labels?.[fieldName] || `Custom JSON ${num}`
+              workspace.settings?.custom_field_labels?.[fieldName] || t`Custom JSON ${num}`
             return (
               <Select.Option key={fieldName} value={fieldName}>
                 {friendlyName}
@@ -227,8 +229,8 @@ export const SupabaseIntegration: React.FC<SupabaseIntegrationProps> = ({
       <Form.Item
         label={
           <Space>
-            <span>Reject Disposable Email Addresses</span>
-            <Tooltip title="When enabled, user creation will be rejected if a disposable email address is detected">
+            <span>{t`Reject Disposable Email Addresses`}</span>
+            <Tooltip title={t`When enabled, user creation will be rejected if a disposable email address is detected`}>
               <InfoCircleOutlined />
             </Tooltip>
           </Space>
@@ -240,7 +242,7 @@ export const SupabaseIntegration: React.FC<SupabaseIntegrationProps> = ({
       </Form.Item>
 
       <Alert
-        description="This hook never blocks Supabase user creation for errors. However, if 'Reject Disposable Email Addresses' is enabled and a disposable email is detected, the user signup will be rejected by Supabase."
+        description={t`This hook never blocks Supabase user creation for errors. However, if 'Reject Disposable Email Addresses' is enabled and a disposable email is detected, the user signup will be rejected by Supabase.`}
         type="info"
       />
     </Form>

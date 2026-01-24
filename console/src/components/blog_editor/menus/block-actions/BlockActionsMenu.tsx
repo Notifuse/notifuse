@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState, useMemo } from 'react'
+import { useLingui } from '@lingui/react/macro'
 import { DragHandle } from '@tiptap/extension-drag-handle-react'
 import { Dropdown, Button, Tooltip } from 'antd'
 import type { MenuProps } from 'antd'
@@ -38,6 +39,7 @@ import './block-actions.css'
  * Clean-room implementation with distinct naming from original DragContextMenu
  */
 export function BlockActionsMenu() {
+  const { t } = useLingui()
   const { editor } = useNotifuseEditor()
   const { isDragging } = useControls(editor)
   const [optionsVisible, setOptionsVisible] = useState(false)
@@ -132,8 +134,8 @@ export function BlockActionsMenu() {
           <Tooltip
             title={
               <div>
-                <div>Click for options</div>
-                <div>Hold for drag</div>
+                <div>{t`Click for options`}</div>
+                <div>{t`Hold for drag`}</div>
               </div>
             }
           >

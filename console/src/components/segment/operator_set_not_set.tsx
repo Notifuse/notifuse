@@ -25,3 +25,7 @@ export class OperatorNotSet implements IOperator {
     return <></>
   }
 }
+
+// Note: The labels 'is set' and 'is not set' are used in class properties which are
+// not React components, so they cannot use useLingui. These labels should be
+// translated at the point of use if needed.

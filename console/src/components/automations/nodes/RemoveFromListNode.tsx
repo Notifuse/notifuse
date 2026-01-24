@@ -1,6 +1,7 @@
 import React from 'react'
 import { Handle, Position, useConnection, type NodeProps } from '@xyflow/react'
 import { UserMinus } from 'lucide-react'
+import { useLingui } from '@lingui/react/macro'
 import { BaseNode } from './BaseNode'
 import { nodeTypeColors } from './constants'
 import { useAutomation } from '../context'
@@ -10,6 +11,7 @@ import type { RemoveFromListNodeConfig } from '../../../services/api/automation'
 type RemoveFromListNodeProps = NodeProps<AutomationNodeData>
 
 export const RemoveFromListNode: React.FC<RemoveFromListNodeProps> = ({ data, selected }) => {
+  const { t } = useLingui()
   const { lists } = useAutomation()
   const config = data.config as RemoveFromListNodeConfig
   const listName = lists.find((l) => l.id === config?.list_id)?.name
@@ -34,7 +36,7 @@ export const RemoveFromListNode: React.FC<RemoveFromListNodeProps> = ({ data, se
       />
       <BaseNode
         type="remove_from_list"
-        label="Remove from List"
+        label={t`Remove from List`}
         icon={
           <UserMinus
             size={16}
@@ -46,9 +48,9 @@ export const RemoveFromListNode: React.FC<RemoveFromListNodeProps> = ({ data, se
         onDelete={data.onDelete}
       >
         {!config?.list_id ? (
-          <div className="text-orange-500">Configure</div>
+          <div className="text-orange-500">{t`Configure`}</div>
         ) : (
-          <span className="text-sm truncate max-w-[200px]">{listName || 'Unknown list'}</span>
+          <span className="text-sm truncate max-w-[200px]">{listName || t`Unknown list`}</span>
         )}
       </BaseNode>
       <Handle

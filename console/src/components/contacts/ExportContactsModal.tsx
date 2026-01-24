@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react'
 import { Modal, Button, Tag, Space, Alert, Spin } from 'antd'
+import { useLingui } from '@lingui/react/macro'
 import Papa from 'papaparse'
 import { ContactsSearch } from '../../router'
 import { Workspace, List, Segment } from '../../services/api/types'
@@ -25,6 +26,7 @@ export function ExportContactsModal({
   segmentsData,
   listsData
 }: ExportContactsModalProps) {
+  const { t } = useLingui()
   const [isExporting, setIsExporting] = useState(false)
   const [fetchedCount, setFetchedCount] = useState(0)
   const [startTime, setStartTime] = useState<number | null>(null)
@@ -45,37 +47,37 @@ export function ExportContactsModal({
     const activeFilters: { key: string; label: string; value: string }[] = []
 
     if (filters.email) {
-      activeFilters.push({ key: 'email', label: 'Email', value: filters.email })
+      activeFilters.push({ key: 'email', label: t`Email`, value: filters.email })
     }
     if (filters.external_id) {
-      activeFilters.push({ key: 'external_id', label: 'External ID', value: filters.external_id })
+      activeFilters.push({ key: 'external_id', label: t`External ID`, value: filters.external_id })
     }
     if (filters.first_name) {
-      activeFilters.push({ key: 'first_name', label: 'First Name', value: filters.first_name })
+      activeFilters.push({ key: 'first_name', label: t`First Name`, value: filters.first_name })
     }
     if (filters.last_name) {
-      activeFilters.push({ key: 'last_name', label: 'Last Name', value: filters.last_name })
+      activeFilters.push({ key: 'last_name', label: t`Last Name`, value: filters.last_name })
     }
     if (filters.phone) {
-      activeFilters.push({ key: 'phone', label: 'Phone', value: filters.phone })
+      activeFilters.push({ key: 'phone', label: t`Phone`, value: filters.phone })
     }
     if (filters.country) {
-      activeFilters.push({ key: 'country', label: 'Country', value: filters.country })
+      activeFilters.push({ key: 'country', label: t`Country`, value: filters.country })
     }
     if (filters.language) {
-      activeFilters.push({ key: 'language', label: 'Language', value: filters.language })
+      activeFilters.push({ key: 'language', label: t`Language`, value: filters.language })
     }
     if (filters.list_id) {
       activeFilters.push({
         key: 'list_id',
-        label: 'List',
+        label: t`List`,
         value: getFilterDisplayValue('list_id', filters.list_id)
       })
     }
     if (filters.contact_list_status) {
       activeFilters.push({
         key: 'contact_list_status',
-        label: 'List Status',
+        label: t`List Status`,
         value: filters.contact_list_status
       })
     }
@@ -84,7 +86,7 @@ export function ExportContactsModal({
         const segment = segmentsData.find((s) => s.id === segmentId)
         activeFilters.push({
           key: 'segment',
-          label: 'Segment',
+          label: t`Segment`,
           value: segment?.name || segmentId
         })
       })
@@ -110,11 +112,11 @@ export function ExportContactsModal({
   const formatElapsedTime = (ms: number): string => {
     const seconds = Math.floor(ms / 1000)
     if (seconds < 60) {
-      return `${seconds} second${seconds !== 1 ? 's' : ''}`
+      return seconds !== 1 ? t`${seconds} seconds` : t`${seconds} second`
     }
     const minutes = Math.floor(seconds / 60)
     const remainingSeconds = seconds % 60
-    return `${minutes}m ${remainingSeconds}s`
+    return t`${minutes}m ${remainingSeconds}s`
   }
 
   // Handle export
@@ -176,7 +178,7 @@ export function ExportContactsModal({
 
       // Check if there are any contacts
       if (allContacts.length === 0) {
-        setError('No contacts match the current filters')
+        setError(t`No contacts match the current filters`)
         setIsExporting(false)
         return
       }
@@ -278,7 +280,7 @@ export function ExportContactsModal({
       handleClose()
     } catch (err) {
       if (!abortControllerRef.current?.signal.aborted) {
-        setError(err instanceof Error ? err.message : 'An error occurred during export')
+        setError(err instanceof Error ? err.message : t`An error occurred during export`)
       }
     } finally {
       if (!abortControllerRef.current?.signal.aborted) {
@@ -304,12 +306,12 @@ export function ExportContactsModal({
 
   return (
     <Modal
-      title="Export Contacts to CSV"
+      title={t`Export Contacts to CSV`}
       open={visible}
       onCancel={handleClose}
       footer={[
         <Button key="cancel" onClick={handleClose}>
-          Cancel
+          {t`Cancel`}
         </Button>,
         <Button
           key="export"
@@ -318,14 +320,14 @@ export function ExportContactsModal({
           loading={isExporting}
           disabled={isExporting}
         >
-          Export
+          {t`Export`}
         </Button>
       ]}
     >
       <div className="py-4">
         {/* Filter summary */}
         <div className="mb-4">
-          <div className="text-sm font-medium mb-2">Active filters:</div>
+          <div className="text-sm font-medium mb-2">{t`Active filters`}:</div>
           {activeFilters.length > 0 ? (
             <Space wrap>
               {activeFilters.map((filter, index) => (
@@ -335,7 +337,7 @@ export function ExportContactsModal({
               ))}
             </Space>
           ) : (
-            <div className="text-gray-500">Exporting all contacts</div>
+            <div className="text-gray-500">{t`Exporting all contacts`}</div>
           )}
         </div>
 
@@ -344,11 +346,11 @@ export function ExportContactsModal({
           <div className="my-4">
             <Space align="center">
               <Spin size="small" />
-              <span>Fetched {fetchedCount.toLocaleString()} contacts...</span>
+              <span>{t`Fetched ${fetchedCount.toLocaleString()} contacts...`}</span>
             </Space>
             {elapsedTime > 0 && (
               <div className="text-gray-500 text-sm mt-2">
-                Elapsed: {formatElapsedTime(elapsedTime)}
+                {t`Elapsed`}: {formatElapsedTime(elapsedTime)}
               </div>
             )}
           </div>

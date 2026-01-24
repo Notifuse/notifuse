@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { Popover, Button, Row, Col, Typography, Space, Tabs } from 'antd'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faPlus } from '@fortawesome/free-solid-svg-icons'
+import { useLingui } from '@lingui/react/macro'
 import type { MJMLComponentType, EmailBlock, SavedBlock } from '../types'
 import { EmailBlockClass } from '../EmailBlockClass'
 import { EmailBlockFactory } from '../blocks/EmailBlockFactory'
@@ -79,6 +80,7 @@ export const AddBlockPopover: React.FC<AddBlockPopoverProps> = ({
   savedBlocks,
   hiddenBlocks
 }) => {
+  const { t } = useLingui()
   const [visible, setVisible] = useState(false)
   const [selectedBlock, setSelectedBlock] = useState<BlockOption | null>(null)
   const [selectedSavedBlock, setSelectedSavedBlock] = useState<SavedBlockOption | null>(null)
@@ -155,7 +157,7 @@ export const AddBlockPopover: React.FC<AddBlockPopoverProps> = ({
       id: savedBlock.id,
       name: savedBlock.name,
       block: savedBlock.block,
-      description: `Saved block: ${savedBlock.name}`,
+      description: t`Saved block: ${savedBlock.name}`,
       icon: EmailBlockClass.from(savedBlock.block).getIcon()
     }))
   }
@@ -216,9 +218,9 @@ export const AddBlockPopover: React.FC<AddBlockPopoverProps> = ({
     if (savedBlockOptions.length === 0) {
       return (
         <div style={{ padding: 16, textAlign: 'center', color: '#999' }}>
-          <div>No saved blocks yet</div>
+          <div>{t`No saved blocks yet`}</div>
           <div style={{ fontSize: 12, marginTop: 8 }}>
-            Use the save button in the block toolbar to save blocks
+            {t`Use the save button in the block toolbar to save blocks`}
           </div>
         </div>
       )
@@ -247,7 +249,7 @@ export const AddBlockPopover: React.FC<AddBlockPopoverProps> = ({
   const tabItems = [
     {
       key: 'blocks',
-      label: 'Blocks',
+      label: t`Blocks`,
       children: renderBlockList()
     }
   ]
@@ -255,7 +257,7 @@ export const AddBlockPopover: React.FC<AddBlockPopoverProps> = ({
   if (hasSavedBlocks) {
     tabItems.push({
       key: 'saved',
-      label: `Saved (${savedBlockOptions.length})`,
+      label: t`Saved (${savedBlockOptions.length})`,
       children: renderSavedBlocksList()
     })
   }
@@ -266,7 +268,7 @@ export const AddBlockPopover: React.FC<AddBlockPopoverProps> = ({
         {/* Left side - Block list */}
         <Col span={12} style={{ borderRight: '1px solid #f0f0f0', height: '100%' }}>
           <div style={{ padding: '16px 12px', height: '100%', overflow: 'auto' }}>
-            <div className="pb-2 text-slate-900">Available Blocks</div>
+            <div className="pb-2 text-slate-900">{t`Available Blocks`}</div>
             <Tabs
               defaultActiveKey="blocks"
               activeKey={activeTab}
@@ -296,7 +298,7 @@ export const AddBlockPopover: React.FC<AddBlockPopoverProps> = ({
                     onClick={() => handleAddBlock(selectedBlock.type)}
                   >
                     <FontAwesomeIcon icon={faPlus} style={{ marginRight: 6 }} />
-                    Add {selectedBlock.label}
+                    {t`Add ${selectedBlock.label}`}
                   </Button>
                 </div>
               </>
@@ -316,7 +318,7 @@ export const AddBlockPopover: React.FC<AddBlockPopoverProps> = ({
                     onClick={() => handleAddSavedBlock(selectedSavedBlock.id)}
                   >
                     <FontAwesomeIcon icon={faPlus} style={{ marginRight: 6 }} />
-                    Add {selectedSavedBlock.name}
+                    {t`Add ${selectedSavedBlock.name}`}
                   </Button>
                 </div>
               </>
@@ -334,7 +336,7 @@ export const AddBlockPopover: React.FC<AddBlockPopoverProps> = ({
                 <div>
                   <div style={{ fontSize: 32, marginBottom: 8 }}>👆</div>
                   <Text type="secondary" style={{ fontSize: 12 }}>
-                    Hover over a block to see details
+                    {t`Hover over a block to see details`}
                   </Text>
                 </div>
               </div>

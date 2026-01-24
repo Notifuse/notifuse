@@ -1,5 +1,6 @@
 import { Popover, Checkbox, Button, Tooltip } from 'antd'
 import { Columns2 } from 'lucide-react'
+import { useLingui } from '@lingui/react/macro'
 
 interface Column {
   key: string
@@ -18,6 +19,8 @@ export function MessageColumnsSelector({
   onColumnVisibilityChange,
   storageKey
 }: MessageColumnsSelectorProps) {
+  const { t } = useLingui()
+
   // Split columns into two groups
   const midPoint = Math.ceil(columns.length / 2)
   const leftColumns = columns.slice(0, midPoint)
@@ -85,7 +88,7 @@ export function MessageColumnsSelector({
         body: 'w-[450px]'
       }}
     >
-      <Tooltip title="Select columns" placement="left">
+      <Tooltip title={t`Select columns`} placement="left">
         <Button size="small" icon={<Columns2 size={16} />} />
       </Tooltip>
     </Popover>

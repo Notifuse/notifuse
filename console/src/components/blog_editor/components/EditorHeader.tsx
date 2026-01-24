@@ -1,6 +1,7 @@
 'use client'
 
 import { useContext } from 'react'
+import { useLingui } from '@lingui/react/macro'
 import { EditorContext, useEditorState } from '@tiptap/react'
 import { Button, Flex, Divider } from 'antd'
 import { Undo, Redo } from 'lucide-react'
@@ -9,6 +10,7 @@ import { Undo, Redo } from 'lucide-react'
  * Editor header component with undo/redo controls
  */
 export function EditorHeader() {
+  const { t } = useLingui()
   const { editor } = useContext(EditorContext)
 
   // Subscribe to editor state changes to update button states
@@ -50,7 +52,7 @@ export function EditorHeader() {
             icon={<Undo size={16} />}
             onClick={() => editor.chain().focus().undo().run()}
             disabled={!editorState.canUndo}
-            title="Undo"
+            title={t`Undo`}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -64,7 +66,7 @@ export function EditorHeader() {
             icon={<Redo size={16} />}
             onClick={() => editor.chain().focus().redo().run()}
             disabled={!editorState.canRedo}
-            title="Redo"
+            title={t`Redo`}
             style={{
               display: 'flex',
               alignItems: 'center',

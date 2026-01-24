@@ -4,10 +4,12 @@ import { useAuth } from '../contexts/AuthContext'
 import { useNavigate } from '@tanstack/react-router'
 import { MainLayout, MainLayoutSidebar } from '../layouts/MainLayout'
 import { isRootUser } from '../services/api/auth'
+import { useLingui } from '@lingui/react/macro'
 
 const { Text } = Typography
 
 export function DashboardPage() {
+  const { t } = useLingui()
   const { workspaces, user } = useAuth()
   const navigate = useNavigate()
 
@@ -25,7 +27,7 @@ export function DashboardPage() {
   return (
     <MainLayout>
       <MainLayoutSidebar
-        title="Select workspace"
+        title={t`Select workspace`}
         extra={
           isRootUser(user?.email) ? (
             <Button
@@ -39,7 +41,7 @@ export function DashboardPage() {
         }
       >
         {workspaces.length === 0 ? (
-          <Empty description="No workspaces" style={{ margin: '24px 0' }} />
+          <Empty description={t`No workspaces`} style={{ margin: '24px 0' }} />
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {workspaces.map((workspace) => (
@@ -82,7 +84,7 @@ export function DashboardPage() {
                   <div>
                     <div style={{ fontWeight: 500 }}>{workspace.name}</div>
                     <Text type="secondary" style={{ fontSize: '11px' }} ellipsis>
-                      ID: {workspace.id}
+                      {t`ID:`} {workspace.id}
                     </Text>
                   </div>
                 </div>

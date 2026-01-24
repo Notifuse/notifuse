@@ -1,6 +1,7 @@
 import React from 'react'
 import { Button } from 'antd'
 import { UploadOutlined } from '@ant-design/icons'
+import { useLingui } from '@lingui/react/macro'
 import { useContactsCsvUpload } from './ContactsCsvUploadProvider'
 import { List } from '../../services/api/types'
 
@@ -25,6 +26,7 @@ export function ImportContactsButton({
   refreshOnClose = true,
   disabled = false
 }: ImportContactsButtonProps) {
+  const { t } = useLingui()
   const { openDrawer } = useContactsCsvUpload()
 
   return (
@@ -37,7 +39,7 @@ export function ImportContactsButton({
       size={size}
       disabled={disabled}
     >
-      Import from CSV
+      {t`Import from CSV`}
     </Button>
   )
 }

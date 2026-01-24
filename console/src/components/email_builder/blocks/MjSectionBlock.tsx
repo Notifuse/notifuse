@@ -1,6 +1,7 @@
 import React from 'react'
+import { useLingui } from '@lingui/react/macro'
 import { Switch, Radio, Tooltip, Select, Alert } from 'antd'
-import type { MJMLComponentType, EmailBlock, MJSectionAttributes } from '../types'
+import type { MJMLComponentType, EmailBlock, MJSectionAttributes, MergedBlockAttributes } from '../types'
 import {
   BaseEmailBlock,
   type OnUpdateAttributesFunction,
@@ -46,6 +47,214 @@ const hasLiquidTagsInSection = (block: EmailBlock): boolean => {
   }
 
   return checkBlock(block)
+}
+
+// Functional component for settings panel with i18n support
+interface MjSectionSettingsPanelProps {
+  currentAttributes: MJSectionAttributes
+  blockDefaults: MergedBlockAttributes
+  block: EmailBlock
+  onUpdate: OnUpdateAttributesFunction
+}
+
+const MjSectionSettingsPanel: React.FC<MjSectionSettingsPanelProps> = ({
+  currentAttributes,
+  blockDefaults,
+  block,
+  onUpdate
+}) => {
+  const { t } = useLingui()
+
+  const handleAttributeChange = (key: string, value: unknown) => {
+    onUpdate({ [key]: value })
+  }
+
+  const handleBackgroundChange = (backgroundValues: Record<string, unknown>) => {
+    onUpdate(backgroundValues)
+  }
+
+  return (
+    <PanelLayout title={t`Section Attributes`}>
+      <div className="space-y-4">
+        {/* Background Settings */}
+        <BackgroundInput
+          value={{
+            backgroundColor: currentAttributes.backgroundColor,
+            backgroundUrl: currentAttributes.backgroundUrl,
+            backgroundSize: currentAttributes.backgroundSize,
+            backgroundRepeat: currentAttributes.backgroundRepeat,
+            backgroundPosition: currentAttributes.backgroundPosition,
+            backgroundPositionX: currentAttributes.backgroundPositionX,
+            backgroundPositionY: currentAttributes.backgroundPositionY
+          }}
+          onChange={handleBackgroundChange}
+        />
+
+        {/* Border Settings */}
+        <InputLayout label={t`Border`} layout="vertical">
+          <BorderInput
+            className="-mt-6"
+            value={{
+              borderTop: currentAttributes.borderTop,
+              borderRight: currentAttributes.borderRight,
+              borderBottom: currentAttributes.borderBottom,
+              borderLeft: currentAttributes.borderLeft
+            }}
+            onChange={(borderValues) => {
+              onUpdate({
+                borderTop: borderValues.borderTop,
+                borderRight: borderValues.borderRight,
+                borderBottom: borderValues.borderBottom,
+                borderLeft: borderValues.borderLeft
+              })
+            }}
+          />
+        </InputLayout>
+
+        {/* Border Radius */}
+        <InputLayout label={t`Border radius`}>
+          <BorderRadiusInput
+            value={currentAttributes.borderRadius}
+            onChange={(value) => onUpdate({ borderRadius: value })}
+            defaultValue={blockDefaults.borderRadius}
+          />
+        </InputLayout>
+
+        {/* Padding Settings */}
+
+        <InputLayout label={t`Padding`} layout="vertical">
+          <PaddingInput
+            value={{
+              top: currentAttributes.paddingTop,
+              right: currentAttributes.paddingRight,
+              bottom: currentAttributes.paddingBottom,
+              left: currentAttributes.paddingLeft
+            }}
+            defaultValue={{
+              top: blockDefaults.paddingTop,
+              right: blockDefaults.paddingRight,
+              bottom: blockDefaults.paddingBottom,
+              left: blockDefaults.paddingLeft
+            }}
+            onChange={(values: {
+              top: string | undefined
+              right: string | undefined
+              bottom: string | undefined
+              left: string | undefined
+            }) => {
+              onUpdate({
+                paddingTop: values.top,
+                paddingRight: values.right,
+                paddingBottom: values.bottom,
+                paddingLeft: values.left
+              })
+            }}
+          />
+        </InputLayout>
+
+        {/* Layout Settings */}
+        <InputLayout label={t`Text Alignment`}>
+          <AlignSelector
+            value={currentAttributes.textAlign || blockDefaults.textAlign || 'left'}
+            onChange={(value) => handleAttributeChange('textAlign', value)}
+          />
+        </InputLayout>
+
+        <InputLayout label={t`Text Direction`}>
+          <Radio.Group
+            size="small"
+            value={currentAttributes.direction || blockDefaults.direction || 'ltr'}
+            onChange={(e) => handleAttributeChange('direction', e.target.value)}
+          >
+            <Radio.Button value="ltr">
+              <Tooltip title={t`Left to Right`}>LTR</Tooltip>
+            </Radio.Button>
+            <Radio.Button value="rtl">
+              <Tooltip title={t`Right to Left`}>RTL</Tooltip>
+            </Radio.Button>
+          </Radio.Group>
+        </InputLayout>
+
+        <InputLayout
+          label={t`Full Width`}
+          help={t`Makes the section span the entire email viewport width, ignoring container constraints (typically 600px). Useful for full-bleed backgrounds and hero sections.`}
+        >
+          <Switch
+            size="small"
+            checked={currentAttributes.fullWidth === 'full-width'}
+            onChange={(checked) =>
+              handleAttributeChange('fullWidth', checked ? 'full-width' : '')
+            }
+          />
+        </InputLayout>
+
+        {/* Visibility / Channel Selector */}
+        <InputLayout
+          label={t`Visibility`}
+          help={t`Control which channels can see this section`}
+        >
+          <Select
+            size="small"
+            value={
+              (currentAttributes as Record<string, unknown>).visibility as string | undefined ||
+              'all'
+            }
+            onChange={(value) => handleAttributeChange('visibility', value)}
+            style={{ width: '100%' }}
+            options={[
+              { value: 'all', label: t`All Channels` },
+              { value: 'email_only', label: t`Email Only` },
+              { value: 'web_only', label: t`Web Only` }
+            ]}
+          />
+        </InputLayout>
+
+        {/* Warning for Liquid tags in web-visible sections */}
+        {hasLiquidTagsInSection(block) &&
+         (currentAttributes as Record<string, unknown>).visibility !== 'email_only' && (
+          <Alert
+            type="warning"
+            message={t`Personalization Not Available for Web`}
+            description={t`This section contains Liquid template tags for personalization. Web publications don't have access to contact data, so these tags will not render properly. Consider marking this section as 'Email Only' or remove personalization tags.`}
+            showIcon
+            closable
+          />
+        )}
+
+        {/* Advanced Settings */}
+        <InputLayout label={t`CSS Class`} help={t`Custom CSS class for styling`}>
+          <StringPopoverInput
+            value={currentAttributes.cssClass}
+            onChange={(value) => handleAttributeChange('cssClass', value)}
+            placeholder={t`my-custom-class`}
+            buttonText={t`Set Value`}
+          />
+        </InputLayout>
+      </div>
+    </PanelLayout>
+  )
+}
+
+// Functional component for empty section placeholder with i18n support
+const MjSectionEmptyPlaceholder: React.FC = () => {
+  const { t } = useLingui()
+
+  return (
+    <div
+      style={{
+        padding: '20px',
+        backgroundColor: '#fff3cd',
+        border: '1px solid #ffeaa7',
+        borderRadius: '4px',
+        color: '#856404',
+        fontSize: '14px',
+        textAlign: 'center',
+        margin: '10px'
+      }}
+    >
+      {t`This section is empty. Add columns or groups to display content.`}
+    </div>
+  )
 }
 
 /**
@@ -103,175 +312,15 @@ export class MjSectionBlock extends BaseEmailBlock {
    */
   renderSettingsPanel(onUpdate: OnUpdateAttributesFunction): React.ReactNode {
     const currentAttributes = this.block.attributes as MJSectionAttributes
-    const blockDefaults = this.getDefaults() as MJSectionAttributes
-
-    const handleAttributeChange = (key: string, value: unknown) => {
-      onUpdate({ [key]: value })
-    }
-
-    const handleBackgroundChange = (backgroundValues: Record<string, unknown>) => {
-      onUpdate(backgroundValues)
-    }
+    const blockDefaults = this.getDefaults() as MergedBlockAttributes
 
     return (
-      <PanelLayout title="Section Attributes">
-        <div className="space-y-4">
-          {/* Background Settings */}
-          <BackgroundInput
-            value={{
-              backgroundColor: currentAttributes.backgroundColor,
-              backgroundUrl: currentAttributes.backgroundUrl,
-              backgroundSize: currentAttributes.backgroundSize,
-              backgroundRepeat: currentAttributes.backgroundRepeat,
-              backgroundPosition: currentAttributes.backgroundPosition,
-              backgroundPositionX: currentAttributes.backgroundPositionX,
-              backgroundPositionY: currentAttributes.backgroundPositionY
-            }}
-            onChange={handleBackgroundChange}
-          />
-
-          {/* Border Settings */}
-          <InputLayout label="Border" layout="vertical">
-            <BorderInput
-              className="-mt-6"
-              value={{
-                borderTop: currentAttributes.borderTop,
-                borderRight: currentAttributes.borderRight,
-                borderBottom: currentAttributes.borderBottom,
-                borderLeft: currentAttributes.borderLeft
-              }}
-              onChange={(borderValues) => {
-                onUpdate({
-                  borderTop: borderValues.borderTop,
-                  borderRight: borderValues.borderRight,
-                  borderBottom: borderValues.borderBottom,
-                  borderLeft: borderValues.borderLeft
-                })
-              }}
-            />
-          </InputLayout>
-
-          {/* Border Radius */}
-          <InputLayout label="Border radius">
-            <BorderRadiusInput
-              value={currentAttributes.borderRadius}
-              onChange={(value) => onUpdate({ borderRadius: value })}
-              defaultValue={blockDefaults.borderRadius}
-            />
-          </InputLayout>
-
-          {/* Padding Settings */}
-
-          <InputLayout label="Padding" layout="vertical">
-            <PaddingInput
-              value={{
-                top: currentAttributes.paddingTop,
-                right: currentAttributes.paddingRight,
-                bottom: currentAttributes.paddingBottom,
-                left: currentAttributes.paddingLeft
-              }}
-              defaultValue={{
-                top: blockDefaults.paddingTop,
-                right: blockDefaults.paddingRight,
-                bottom: blockDefaults.paddingBottom,
-                left: blockDefaults.paddingLeft
-              }}
-              onChange={(values: {
-                top: string | undefined
-                right: string | undefined
-                bottom: string | undefined
-                left: string | undefined
-              }) => {
-                onUpdate({
-                  paddingTop: values.top,
-                  paddingRight: values.right,
-                  paddingBottom: values.bottom,
-                  paddingLeft: values.left
-                })
-              }}
-            />
-          </InputLayout>
-
-          {/* Layout Settings */}
-          <InputLayout label="Text Alignment">
-            <AlignSelector
-              value={currentAttributes.textAlign || blockDefaults.textAlign || 'left'}
-              onChange={(value) => handleAttributeChange('textAlign', value)}
-            />
-          </InputLayout>
-
-          <InputLayout label="Text Direction">
-            <Radio.Group
-              size="small"
-              value={currentAttributes.direction || blockDefaults.direction || 'ltr'}
-              onChange={(e) => handleAttributeChange('direction', e.target.value)}
-            >
-              <Radio.Button value="ltr">
-                <Tooltip title="Left to Right">LTR</Tooltip>
-              </Radio.Button>
-              <Radio.Button value="rtl">
-                <Tooltip title="Right to Left">RTL</Tooltip>
-              </Radio.Button>
-            </Radio.Group>
-          </InputLayout>
-
-          <InputLayout
-            label="Full Width"
-            help="Makes the section span the entire email viewport width, ignoring container constraints (typically 600px). Useful for full-bleed backgrounds and hero sections."
-          >
-            <Switch
-              size="small"
-              checked={currentAttributes.fullWidth === 'full-width'}
-              onChange={(checked) =>
-                handleAttributeChange('fullWidth', checked ? 'full-width' : '')
-              }
-            />
-          </InputLayout>
-
-          {/* Visibility / Channel Selector */}
-          <InputLayout
-            label="Visibility"
-            help="Control which channels can see this section"
-          >
-            <Select
-              size="small"
-              value={
-                (currentAttributes as Record<string, unknown>).visibility as string | undefined ||
-                'all'
-              }
-              onChange={(value) => handleAttributeChange('visibility', value)}
-              style={{ width: '100%' }}
-              options={[
-                { value: 'all', label: 'All Channels' },
-                { value: 'email_only', label: 'Email Only' },
-                { value: 'web_only', label: 'Web Only' }
-              ]}
-            />
-          </InputLayout>
-
-          {/* Warning for Liquid tags in web-visible sections */}
-          {hasLiquidTagsInSection(this.block) &&
-           (currentAttributes as Record<string, unknown>).visibility !== 'email_only' && (
-            <Alert
-              type="warning"
-              message="Personalization Not Available for Web"
-              description="This section contains Liquid template tags (e.g., {{ contact.name }}). Web publications don't have access to contact data, so these tags will not render properly. Consider marking this section as 'Email Only' or remove personalization tags."
-              showIcon
-              closable
-            />
-          )}
-
-          {/* Advanced Settings */}
-          <InputLayout label="CSS Class" help="Custom CSS class for styling">
-            <StringPopoverInput
-              value={currentAttributes.cssClass}
-              onChange={(value) => handleAttributeChange('cssClass', value)}
-              placeholder="my-custom-class"
-              buttonText="Set Value"
-            />
-          </InputLayout>
-        </div>
-      </PanelLayout>
+      <MjSectionSettingsPanel
+        currentAttributes={currentAttributes}
+        blockDefaults={blockDefaults}
+        block={this.block}
+        onUpdate={onUpdate}
+      />
     )
   }
 
@@ -353,20 +402,7 @@ export class MjSectionBlock extends BaseEmailBlock {
       this.block.children.some((child) => child.type === 'mj-column' || child.type === 'mj-group')
 
     const contentElement = !hasContent ? (
-      <div
-        style={{
-          padding: '20px',
-          backgroundColor: '#fff3cd',
-          border: '1px solid #ffeaa7',
-          borderRadius: '4px',
-          color: '#856404',
-          fontSize: '14px',
-          textAlign: 'center',
-          margin: '10px'
-        }}
-      >
-        ⚠️ This section is empty. Add columns or groups to display content.
-      </div>
+      <MjSectionEmptyPlaceholder />
     ) : (
       // Wrap columns in a table row structure as MJML does for multiple columns
       (() => {

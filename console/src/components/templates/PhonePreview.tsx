@@ -1,4 +1,5 @@
 import React from 'react'
+import { useLingui } from '@lingui/react/macro'
 
 // Import specific Lucide icons
 import { Signal, Wifi, BatteryFull, ChevronRight } from 'lucide-react'
@@ -175,6 +176,8 @@ const IphoneEmailPreview = ({
   timestamp: string
   currentTime: string
 }) => {
+  const { t } = useLingui()
+
   return (
     <div style={styles.iphoneMockupUpper}>
       <div style={styles.screen}>
@@ -195,7 +198,7 @@ const IphoneEmailPreview = ({
         </div>
 
         {/* Inbox Header */}
-        <div style={styles.inboxHeader}>Inbox</div>
+        <div style={styles.inboxHeader}>{t`Inbox`}</div>
 
         {/* Email Preview Content */}
         <div style={styles.emailPreview}>

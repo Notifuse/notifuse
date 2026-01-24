@@ -2,6 +2,7 @@ import React from 'react'
 import { Row, Col, Statistic, Button, Spin } from 'antd'
 import { useNavigate } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
+import { useLingui } from '@lingui/react/macro'
 import numbro from 'numbro'
 import { EmailMetricsChart } from './EmailMetricsChart'
 // import { NewContactsTable } from './NewContactsTable'
@@ -22,6 +23,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
   timeRange,
   timezone
 }) => {
+  const { t } = useLingui()
   const navigate = useNavigate()
 
   // Use timeRange and timezone as refresh key to update components when they change
@@ -124,7 +126,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
         <Col xs={24} sm={12} md={6}>
           <div className="p-4 rounded-lg bg-gray-100" style={{ height: '110px' }}>
             <Statistic
-              title="Total Contacts"
+              title={t`Total Contacts`}
               value={totalContacts as number}
               valueStyle={{ fontSize: '24px', fontWeight: 'bold' }}
               formatter={(value) => formatStat(value as number, totalContactsLoading)}
@@ -136,7 +138,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
         <Col xs={24} sm={12} md={6}>
           <div className="bg-gray-100 p-4 rounded-lg" style={{ height: '110px' }}>
             <Statistic
-              title="New Contacts"
+              title={t`New Contacts`}
               value={newContactsCount as number}
               valueStyle={{ fontSize: '24px', fontWeight: 'bold' }}
               formatter={(value) => formatStat(value as number, newContactsLoading)}
@@ -147,7 +149,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
         {/* Transactional Email Provider */}
         <Col xs={24} sm={12} md={6}>
           <div className="bg-gray-100 p-4 rounded-lg" style={{ height: '110px' }}>
-            <div className="text-gray-500 text-sm mb-2">Transactional Provider</div>
+            <div className="text-gray-500 text-sm mb-2">{t`Transactional Provider`}</div>
             {transactionalProvider ? (
               <div>
                 <div className="mb-1">
@@ -159,9 +161,9 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
               </div>
             ) : (
               <div>
-                <div className="text-gray-400 mb-2">Not configured</div>
+                <div className="text-gray-400 mb-2">{t`Not configured`}</div>
                 <Button size="small" type="primary" onClick={handleNavigateToSettings}>
-                  Configure
+                  {t`Configure`}
                 </Button>
               </div>
             )}
@@ -171,7 +173,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
         {/* Marketing Email Provider */}
         <Col xs={24} sm={12} md={6}>
           <div className="bg-gray-100 p-4 rounded-lg" style={{ height: '110px' }}>
-            <div className="text-gray-500 text-sm mb-2">Marketing Provider</div>
+            <div className="text-gray-500 text-sm mb-2">{t`Marketing Provider`}</div>
             {marketingProvider ? (
               <div>
                 <div className="mb-1">
@@ -183,9 +185,9 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
               </div>
             ) : (
               <div>
-                <div className="text-gray-400 mb-2">Not configured</div>
+                <div className="text-gray-400 mb-2">{t`Not configured`}</div>
                 <Button size="small" type="primary" onClick={handleNavigateToSettings}>
-                  Configure
+                  {t`Configure`}
                 </Button>
               </div>
             )}

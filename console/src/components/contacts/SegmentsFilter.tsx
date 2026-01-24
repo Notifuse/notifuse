@@ -1,6 +1,7 @@
 import React from 'react'
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query'
 import { Space, Dropdown, Modal, Badge, Tag, Popover, message, Progress } from 'antd'
+import { useLingui } from '@lingui/react/macro'
 import { deleteSegment, rebuildSegment, type Segment } from '../../services/api/segment'
 import { taskApi } from '../../services/api/task'
 import ButtonUpsertSegment from '../segment/button_upsert'
@@ -34,6 +35,7 @@ function SegmentButton({
   onDelete,
   onRebuild
 }: SegmentButtonProps) {
+  const { t } = useLingui()
   const queryClient = useQueryClient()
 
   // Fetch task for building segments
@@ -48,14 +50,14 @@ function SegmentButton({
   const getStatusBadge = () => {
     switch (segment.status) {
       case 'active':
-        return { status: 'success', title: 'Active', content: 'Ready to use' }
+        return { status: 'success', title: t`Active`, content: t`Ready to use` }
       case 'building': {
         if (task?.state?.build_segment) {
           const buildState = task.state.build_segment
           const progress = task.progress || 0
           return {
             status: 'processing',
-            title: 'Building segment',
+            title: t`Building segment`,
             content: (
               <div>
                 <Progress
@@ -64,27 +66,27 @@ function SegmentButton({
                   style={{ marginBottom: '12px' }}
                 />
                 <div>
-                  Processed:{' '}
+                  {t`Processed`}:{' '}
                   {numbro(buildState.processed_count).format({ thousandSeparated: true })}
                 </div>
                 <div>
-                  Matched: {numbro(buildState.matched_count).format({ thousandSeparated: true })}
+                  {t`Matched`}: {numbro(buildState.matched_count).format({ thousandSeparated: true })}
                 </div>
                 {buildState.total_contacts > 0 && (
                   <div>
-                    Total: {numbro(buildState.total_contacts).format({ thousandSeparated: true })}
+                    {t`Total`}: {numbro(buildState.total_contacts).format({ thousandSeparated: true })}
                   </div>
                 )}
               </div>
             )
           }
         }
-        return { status: 'processing', title: 'Building', content: 'Processing contacts' }
+        return { status: 'processing', title: t`Building`, content: t`Processing contacts` }
       }
       case 'deleted':
-        return { status: 'error', title: 'Deleted', content: 'Will be removed' }
+        return { status: 'error', title: t`Deleted`, content: t`Will be removed` }
       default:
-        return { status: 'default', title: 'Unknown', content: 'Unknown status' }
+        return { status: 'default', title: t`Unknown`, content: t`Unknown status` }
     }
   }
 
@@ -117,19 +119,19 @@ function SegmentButton({
                   queryClient.invalidateQueries({ queryKey: ['segments', workspaceId] })
                 }}
               >
-                <span>Update</span>
+                <span>{t`Update`}</span>
               </ButtonUpsertSegment>
             )
           },
           {
             key: 'rebuild',
-            label: 'Rebuild',
+            label: t`Rebuild`,
             onClick: () => {
               Modal.confirm({
-                title: 'Rebuild segment',
-                content: `Are you sure you want to rebuild "${segment.name}"? This will recalculate segment membership.`,
-                okText: 'Yes',
-                cancelText: 'No',
+                title: t`Rebuild segment`,
+                content: t`Are you sure you want to rebuild "${segment.name}"? This will recalculate segment membership.`,
+                okText: t`Yes`,
+                cancelText: t`No`,
                 onOk: () => {
                   onRebuild(segment.id)
                 }
@@ -138,13 +140,13 @@ function SegmentButton({
           },
           {
             key: 'delete',
-            label: <span style={{ color: '#ff4d4f' }}>Delete</span>,
+            label: <span style={{ color: '#ff4d4f' }}>{t`Delete`}</span>,
             onClick: () => {
               Modal.confirm({
-                title: 'Delete segment',
-                content: `Are you sure you want to delete "${segment.name}"?`,
-                okText: 'Yes',
-                cancelText: 'No',
+                title: t`Delete segment`,
+                content: t`Are you sure you want to delete "${segment.name}"?`,
+                okText: t`Yes`,
+                cancelText: t`No`,
                 okButtonProps: { danger: true },
                 onOk: () => {
                   onDelete(segment.id)
@@ -186,6 +188,7 @@ export function SegmentsFilter({
   totalContacts,
   onSegmentToggle
 }: SegmentsFilterProps) {
+  const { t } = useLingui()
   const queryClient = useQueryClient()
 
   // Delete segment mutation
@@ -196,11 +199,11 @@ export function SegmentsFilter({
         id: segmentId
       }),
     onSuccess: () => {
-      message.success('Segment deleted successfully')
+      message.success(t`Segment deleted successfully`)
       queryClient.invalidateQueries({ queryKey: ['segments', workspaceId] })
     },
     onError: (error: Error) => {
-      message.error(error?.message || 'Failed to delete segment')
+      message.error(error?.message || t`Failed to delete segment`)
     }
   })
 
@@ -212,17 +215,17 @@ export function SegmentsFilter({
         segment_id: segmentId
       }),
     onSuccess: (data) => {
-      message.success(data.message || 'Segment rebuild started successfully')
+      message.success(data.message || t`Segment rebuild started successfully`)
       queryClient.invalidateQueries({ queryKey: ['segments', workspaceId] })
     },
     onError: (error: Error) => {
-      message.error(error?.message || 'Failed to rebuild segment')
+      message.error(error?.message || t`Failed to rebuild segment`)
     }
   })
 
   return (
     <div className="flex items-center gap-2 mb-6">
-      <div className="text-sm font-medium">Segments:</div>
+      <div className="text-sm font-medium">{t`Segments`}:</div>
       <Space wrap>
         {segments.map((segment: Segment) => {
           const isSelected = selectedSegmentIds.includes(segment.id)

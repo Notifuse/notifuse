@@ -4,6 +4,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faCircleCheck, faFaceFrown, faHourglass } from '@fortawesome/free-regular-svg-icons'
 import { faBan, faTriangleExclamation } from '@fortawesome/free-solid-svg-icons'
 import { Link, useParams } from '@tanstack/react-router'
+import { useLingui } from '@lingui/react/macro'
 import { listsApi } from '../../services/api/list'
 
 interface ListStatsProps {
@@ -12,6 +13,7 @@ interface ListStatsProps {
 }
 
 export function ListStats({ workspaceId, listId }: ListStatsProps) {
+  const { t } = useLingui()
   const { workspaceId: paramWorkspaceId } = useParams({ from: '/console/workspace/$workspaceId' })
   // Use workspaceId from params if available, otherwise use the prop
   const currentWorkspaceId = paramWorkspaceId || workspaceId
@@ -61,7 +63,7 @@ export function ListStats({ workspaceId, listId }: ListStatsProps) {
                   className="text-green-500"
                   style={{ opacity: 0.7 }}
                 />{' '}
-                Active
+                {t`Active`}
               </Space>
             </Link>
           }
@@ -85,7 +87,7 @@ export function ListStats({ workspaceId, listId }: ListStatsProps) {
                   className="text-blue-500"
                   style={{ opacity: 0.7 }}
                 />{' '}
-                Pending
+                {t`Pending`}
               </Space>
             </Link>
           }
@@ -105,7 +107,7 @@ export function ListStats({ workspaceId, listId }: ListStatsProps) {
             >
               <Space>
                 <FontAwesomeIcon icon={faBan} className="text-gray-500" style={{ opacity: 0.7 }} />{' '}
-                Unsub
+                {t`Unsub`}
               </Space>
             </Link>
           }
@@ -129,7 +131,7 @@ export function ListStats({ workspaceId, listId }: ListStatsProps) {
                   className="text-yellow-500"
                   style={{ opacity: 0.7 }}
                 />{' '}
-                Bounced
+                {t`Bounced`}
               </Space>
             </Link>
           }
@@ -153,7 +155,7 @@ export function ListStats({ workspaceId, listId }: ListStatsProps) {
                   className="text-red-500"
                   style={{ opacity: 0.7 }}
                 />{' '}
-                Complaints
+                {t`Complaints`}
               </Space>
             </Link>
           }

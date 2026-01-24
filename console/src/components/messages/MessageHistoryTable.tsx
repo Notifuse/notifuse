@@ -1,4 +1,5 @@
 import React from 'react'
+import { useLingui } from '@lingui/react/macro'
 import { Table, Tag, Tooltip, Button, Spin, Empty, Space } from 'antd'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
@@ -39,6 +40,8 @@ const TemplatePreviewButton: React.FC<TemplatePreviewButtonProps> = ({
   templateData,
   messageHistory
 }) => {
+  const { t } = useLingui()
+
   // Use React Query to fetch the template data
   const { data, isLoading } = useQuery({
     queryKey: ['template', workspace.id, templateId, templateVersion],
@@ -71,7 +74,7 @@ const TemplatePreviewButton: React.FC<TemplatePreviewButtonProps> = ({
       templateData={templateData}
       messageHistory={messageHistory}
     >
-      <Tooltip title="Preview message">
+      <Tooltip title={t`Preview message`}>
         <Button type="text" className="opacity-70" icon={<FontAwesomeIcon icon={faEye} />} />
       </Tooltip>
     </TemplatePreviewDrawer>
@@ -111,6 +114,8 @@ export function MessageHistoryTable({
   visibleColumns = {},
   onColumnVisibilityChange
 }: MessageHistoryTableProps) {
+  const { t } = useLingui()
+
   // Format date using dayjs
   const formatDate = (dateString: string | undefined): string => {
     if (!dateString) return '-'
@@ -119,21 +124,21 @@ export function MessageHistoryTable({
 
   // All available columns with their metadata for the selector
   const allColumns = [
-    { key: 'id', title: 'Message ID' },
-    { key: 'external_id', title: 'External ID' },
-    { key: 'contact_email', title: 'Contact Email' },
-    { key: 'template_id', title: 'Template' },
-    { key: 'broadcast_id', title: 'Broadcast' },
-    { key: 'list_id', title: 'List' },
-    { key: 'events', title: 'Events' },
-    { key: 'error', title: 'Error' },
-    { key: 'created_at', title: 'Created At' }
+    { key: 'id', title: t`Message ID` },
+    { key: 'external_id', title: t`External ID` },
+    { key: 'contact_email', title: t`Contact Email` },
+    { key: 'template_id', title: t`Template` },
+    { key: 'broadcast_id', title: t`Broadcast` },
+    { key: 'list_id', title: t`List` },
+    { key: 'events', title: t`Events` },
+    { key: 'error', title: t`Error` },
+    { key: 'created_at', title: t`Created At` }
   ]
 
   // Define base columns
   const baseColumns = [
     {
-      title: 'Message ID',
+      title: t`Message ID`,
       dataIndex: 'id',
       key: 'id',
       hidden: visibleColumns.id === false,
@@ -146,7 +151,7 @@ export function MessageHistoryTable({
       }
     },
     {
-      title: 'External ID',
+      title: t`External ID`,
       dataIndex: 'external_id',
       key: 'external_id',
       hidden: visibleColumns.external_id === false,
@@ -164,7 +169,7 @@ export function MessageHistoryTable({
       }
     },
     {
-      title: 'Template',
+      title: t`Template`,
       key: 'template_id',
       hidden: visibleColumns.template_id === false,
       render: (record: MessageHistory) => {
@@ -177,7 +182,7 @@ export function MessageHistoryTable({
       }
     },
     {
-      title: 'Broadcast',
+      title: t`Broadcast`,
       dataIndex: 'broadcast_id',
       key: 'broadcast_id',
       hidden: visibleColumns.broadcast_id === false,
@@ -203,11 +208,11 @@ export function MessageHistoryTable({
         const tooltipContent = (
           <div>
             <div>
-              <strong>ID:</strong> {broadcastId}
+              <strong>{t`ID`}:</strong> {broadcastId}
             </div>
             {listName && (
               <div>
-                <strong>List:</strong> {listName}
+                <strong>{t`List`}:</strong> {listName}
               </div>
             )}
           </div>
@@ -221,7 +226,7 @@ export function MessageHistoryTable({
       }
     },
     {
-      title: 'List',
+      title: t`List`,
       key: 'list_id',
       hidden: visibleColumns.list_id === false,
       render: (record: MessageHistory) => {
@@ -241,7 +246,7 @@ export function MessageHistoryTable({
       }
     },
     {
-      title: 'Events',
+      title: t`Events`,
       key: 'events',
       hidden: visibleColumns.events === false,
       render: (record: MessageHistory) => {
@@ -250,7 +255,7 @@ export function MessageHistoryTable({
           events.push(
             <Tooltip key="sent" title={formatDate(record.sent_at)}>
               <Tag bordered={false} color="blue">
-                <FontAwesomeIcon icon={faPaperPlane} className="opacity-70" /> Sent
+                <FontAwesomeIcon icon={faPaperPlane} className="opacity-70" /> {t`Sent`}
               </Tag>
             </Tooltip>
           )
@@ -258,7 +263,7 @@ export function MessageHistoryTable({
           events.push(
             <Tooltip key="delivered" title={formatDate(record.delivered_at)}>
               <Tag bordered={false} color="green">
-                <FontAwesomeIcon icon={faCircleCheck} className="opacity-70" /> Delivered
+                <FontAwesomeIcon icon={faCircleCheck} className="opacity-70" /> {t`Delivered`}
               </Tag>
             </Tooltip>
           )
@@ -266,7 +271,7 @@ export function MessageHistoryTable({
           events.push(
             <Tooltip key="failed" title={formatDate(record.failed_at)}>
               <Tag bordered={false} color="red">
-                <FontAwesomeIcon icon={faCircleXmark} className="opacity-70" /> Failed
+                <FontAwesomeIcon icon={faCircleXmark} className="opacity-70" /> {t`Failed`}
               </Tag>
             </Tooltip>
           )
@@ -274,7 +279,7 @@ export function MessageHistoryTable({
           events.push(
             <Tooltip key="opened" title={formatDate(record.opened_at)}>
               <Tag bordered={false} color="cyan">
-                <FontAwesomeIcon icon={faEye} className="opacity-70" /> Opened
+                <FontAwesomeIcon icon={faEye} className="opacity-70" /> {t`Opened`}
               </Tag>
             </Tooltip>
           )
@@ -282,7 +287,7 @@ export function MessageHistoryTable({
           events.push(
             <Tooltip key="clicked" title={formatDate(record.clicked_at)}>
               <Tag bordered={false} color="geekblue">
-                <FontAwesomeIcon icon={faArrowPointer} className="opacity-70" /> Clicked
+                <FontAwesomeIcon icon={faArrowPointer} className="opacity-70" /> {t`Clicked`}
               </Tag>
             </Tooltip>
           )
@@ -290,7 +295,7 @@ export function MessageHistoryTable({
           events.push(
             <Tooltip key="bounced" title={formatDate(record.bounced_at)}>
               <Tag bordered={false} color="volcano">
-                <FontAwesomeIcon icon={faTriangleExclamation} className="opacity-70" /> Bounced
+                <FontAwesomeIcon icon={faTriangleExclamation} className="opacity-70" /> {t`Bounced`}
               </Tag>
             </Tooltip>
           )
@@ -298,7 +303,7 @@ export function MessageHistoryTable({
           events.push(
             <Tooltip key="complained" title={formatDate(record.complained_at)}>
               <Tag bordered={false} color="red">
-                <FontAwesomeIcon icon={faFaceFrown} className="opacity-70" /> Complained
+                <FontAwesomeIcon icon={faFaceFrown} className="opacity-70" /> {t`Complained`}
               </Tag>
             </Tooltip>
           )
@@ -306,7 +311,7 @@ export function MessageHistoryTable({
           events.push(
             <Tooltip key="unsubscribed" title={formatDate(record.unsubscribed_at)}>
               <Tag bordered={false} color="red">
-                <FontAwesomeIcon icon={faBan} className="opacity-70" /> Unsubscribed
+                <FontAwesomeIcon icon={faBan} className="opacity-70" /> {t`Unsubscribed`}
               </Tag>
             </Tooltip>
           )
@@ -314,7 +319,7 @@ export function MessageHistoryTable({
       }
     },
     {
-      title: 'Error',
+      title: t`Error`,
       key: 'error',
       hidden: visibleColumns.error === false,
       render: (record: MessageHistory) => {
@@ -328,7 +333,7 @@ export function MessageHistoryTable({
       }
     },
     {
-      title: 'Created At',
+      title: t`Created At`,
       dataIndex: 'created_at',
       key: 'created_at',
       hidden: visibleColumns.created_at === false,
@@ -340,7 +345,7 @@ export function MessageHistoryTable({
 
   // Email column to conditionally add
   const emailColumn = {
-    title: 'Contact Email',
+    title: t`Contact Email`,
     dataIndex: 'contact_email',
     key: 'contact_email',
     hidden: visibleColumns.contact_email === false,
@@ -352,7 +357,7 @@ export function MessageHistoryTable({
     title: (
       <Space size="small">
         {onRefresh && (
-          <Tooltip title="Refresh">
+          <Tooltip title={t`Refresh`}>
             <Button
               type="text"
               size="small"
@@ -408,7 +413,7 @@ export function MessageHistoryTable({
     return (
       <div className="loading-container" style={{ padding: '40px 0', textAlign: 'center' }}>
         <Spin size="large" />
-        <div style={{ marginTop: 16 }}>Loading message history...</div>
+        <div style={{ marginTop: 16 }}>{t`Loading message history...`}</div>
       </div>
     )
   }
@@ -417,7 +422,7 @@ export function MessageHistoryTable({
     return (
       <Empty
         image={Empty.PRESENTED_IMAGE_SIMPLE}
-        description="No messages found"
+        description={t`No messages found`}
         style={{ margin: '40px 0' }}
       />
     )
@@ -437,7 +442,7 @@ export function MessageHistoryTable({
       {nextCursor && (
         <div className="flex justify-center mt-4 mb-8">
           <Button size="small" onClick={onLoadMore} loading={isLoadingMore}>
-            Load More
+            {t`Load More`}
           </Button>
         </div>
       )}

@@ -1,6 +1,7 @@
 import { Layout, Menu, Select, Space, Button, Dropdown, message, Avatar } from 'antd'
 import { Outlet, Link, useParams, useMatches, useNavigate } from '@tanstack/react-router'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { useLingui } from '@lingui/react/macro'
 import md5 from 'blueimp-md5'
 import {
   faImage,
@@ -17,6 +18,7 @@ import {
   faAngleRight
 } from '@fortawesome/free-solid-svg-icons'
 import { useAuth } from '../contexts/AuthContext'
+import { LanguageSwitcher } from '../components/LanguageSwitcher'
 import { Workspace, UserPermissions } from '../services/api/types'
 import { ContactsCsvUploadProvider } from '../components/contacts/ContactsCsvUploadProvider'
 import { useState, useEffect } from 'react'
@@ -42,6 +44,7 @@ const getGravatarUrl = (email: string | undefined, size: number = 32): string =>
 }
 
 export function WorkspaceLayout() {
+  const { t } = useLingui()
   const { workspaceId } = useParams({ from: '/console/workspace/$workspaceId' })
   const { signout, workspaces, user, refreshWorkspaces } = useAuth()
   const navigate = useNavigate()
@@ -170,7 +173,7 @@ export function WorkspaceLayout() {
   const handleUpdateWorkspaceSettings = async (settings: FileManagerSettings): Promise<void> => {
     const workspace = workspaces.find((w) => w.id === workspaceId)
     if (!workspace) {
-      message.error('Workspace not found')
+      message.error(t`Workspace not found`)
       return
     }
 
@@ -188,11 +191,11 @@ export function WorkspaceLayout() {
       // Refresh workspaces from context
       await refreshWorkspaces()
 
-      message.success('Workspace settings updated successfully')
+      message.success(t`Workspace settings updated successfully`)
     } catch (error: unknown) {
       console.error('Error updating workspace settings:', error)
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-      message.error(`Failed to update workspace settings: ${errorMessage}`)
+      const errorMessage = error instanceof Error ? error.message : t`Unknown error`
+      message.error(t`Failed to update workspace settings: ${errorMessage}`)
     }
   }
 
@@ -203,7 +206,7 @@ export function WorkspaceLayout() {
       icon: <LineChartOutlined />,
       label: (
         <Link to="/console/workspace/$workspaceId" params={{ workspaceId }}>
-          Dashboard
+          {t`Dashboard`}
         </Link>
       )
     },
@@ -230,7 +233,7 @@ export function WorkspaceLayout() {
       ),
       label: (
         <Link to="/console/workspace/$workspaceId/contacts" params={{ workspaceId }}>
-          Contacts
+          {t`Contacts`}
         </Link>
       )
     },
@@ -240,7 +243,7 @@ export function WorkspaceLayout() {
       icon: <FolderOpenOutlined />,
       label: (
         <Link to="/console/workspace/$workspaceId/lists" params={{ workspaceId }}>
-          Lists
+          {t`Lists`}
         </Link>
       )
     },
@@ -266,7 +269,7 @@ export function WorkspaceLayout() {
       ),
       label: (
         <Link to="/console/workspace/$workspaceId/templates" params={{ workspaceId }}>
-          Templates
+          {t`Templates`}
         </Link>
       )
     },
@@ -275,7 +278,7 @@ export function WorkspaceLayout() {
       icon: <FontAwesomeIcon icon={faPaperPlane} size="sm" style={{ opacity: 0.7 }} />,
       label: (
         <Link to="/console/workspace/$workspaceId/broadcasts" params={{ workspaceId }}>
-          Broadcasts
+          {t`Broadcasts`}
         </Link>
       )
     },
@@ -301,7 +304,7 @@ export function WorkspaceLayout() {
       ),
       label: (
         <Link to="/console/workspace/$workspaceId/automations" params={{ workspaceId }}>
-          Automations
+          {t`Automations`}
         </Link>
       )
     },
@@ -313,7 +316,7 @@ export function WorkspaceLayout() {
           to="/console/workspace/$workspaceId/transactional-notifications"
           params={{ workspaceId }}
         >
-          Transactional
+          {t`Transactional`}
         </Link>
       )
     },
@@ -338,7 +341,7 @@ export function WorkspaceLayout() {
       ),
       label: (
         <Link to="/console/workspace/$workspaceId/blog" params={{ workspaceId }}>
-          Blog
+          {t`Blog`}
         </Link>
       )
     },
@@ -365,7 +368,7 @@ export function WorkspaceLayout() {
       // ),
       label: (
         <Link to="/console/workspace/$workspaceId/file-manager" params={{ workspaceId }}>
-          File Manager
+          {t`File Manager`}
         </Link>
       )
     },
@@ -374,7 +377,7 @@ export function WorkspaceLayout() {
       icon: <FontAwesomeIcon icon={faBarsStaggered} size="sm" style={{ opacity: 0.7 }} />,
       label: (
         <Link to="/console/workspace/$workspaceId/logs" params={{ workspaceId }}>
-          Logs
+          {t`Logs`}
         </Link>
       )
     },
@@ -383,7 +386,7 @@ export function WorkspaceLayout() {
       icon: <SettingOutlined />,
       label: (
         <Link to="/console/workspace/$workspaceId/settings" params={{ workspaceId }}>
-          Settings
+          {t`Settings`}
         </Link>
       )
     }
@@ -470,7 +473,7 @@ export function WorkspaceLayout() {
                 icon={<FontAwesomeIcon icon={collapsed ? faAngleRight : faAngleLeft} />}
                 onClick={() => setCollapsed(!collapsed)}
               >
-                {!collapsed && 'Collapse'}
+                {!collapsed && t`Collapse`}
               </Button>
             </div>
           </Sider>
@@ -496,7 +499,7 @@ export function WorkspaceLayout() {
               variant="filled"
               onChange={handleWorkspaceChange}
               style={{ width: '200px' }}
-              placeholder="Select workspace"
+              placeholder={t`Select workspace`}
               options={[
                 ...workspaces.map((workspace: Workspace) => ({
                   label: (
@@ -524,7 +527,7 @@ export function WorkspaceLayout() {
                       {
                         label: (
                           <Space className="text-indigo-500">
-                            <FontAwesomeIcon icon={faPlus} /> New workspace
+                            <FontAwesomeIcon icon={faPlus} /> {t`New workspace`}
                           </Space>
                         ),
                         value: 'new-workspace'
@@ -546,7 +549,7 @@ export function WorkspaceLayout() {
                           target="_blank"
                           rel="noopener noreferrer"
                         >
-                          <FontAwesomeIcon icon={faFileLines} className="mr-2" /> Documentation
+                          <FontAwesomeIcon icon={faFileLines} className="mr-2" /> {t`Documentation`}
                         </a>
                       )
                     },
@@ -559,7 +562,7 @@ export function WorkspaceLayout() {
                           rel="noopener noreferrer"
                         >
                           <WarningOutlined className="mr-2" />
-                          Report An Issue
+                          {t`Report An Issue`}
                         </a>
                       )
                     }
@@ -572,9 +575,10 @@ export function WorkspaceLayout() {
                   variant="filled"
                   icon={<FontAwesomeIcon icon={faQuestionCircle} />}
                 >
-                  Help
+                  {t`Help`}
                 </Button>
               </Dropdown>
+              <LanguageSwitcher />
               <Dropdown
                 menu={{
                   items: [
@@ -583,7 +587,7 @@ export function WorkspaceLayout() {
                       label: (
                         <Space>
                           <FontAwesomeIcon icon={faPowerOff} size="sm" style={{ opacity: 0.7 }} />
-                          Logout
+                          {t`Logout`}
                         </Space>
                       ),
                       onClick: () => signout()

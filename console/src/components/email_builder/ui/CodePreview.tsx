@@ -3,6 +3,7 @@ import { Button } from 'antd'
 import { Highlight, themes } from 'prism-react-renderer'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faExpand } from '@fortawesome/free-solid-svg-icons'
+import { useLingui } from '@lingui/react/macro'
 
 interface CodePreviewProps {
   code: string
@@ -19,6 +20,7 @@ const CodePreview: React.FC<CodePreviewProps> = ({
   onExpand,
   showExpandButton = true
 }) => {
+  const { t } = useLingui()
   const [isExpanded, setIsExpanded] = useState(false)
 
   const handleToggleExpand = () => {
@@ -34,7 +36,7 @@ const CodePreview: React.FC<CodePreviewProps> = ({
   if (!code.trim()) {
     return (
       <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center text-gray-500 text-sm">
-        No {language.toUpperCase()} content to preview
+        {t`No ${language.toUpperCase()} content to preview`}
       </div>
     )
   }
@@ -56,7 +58,7 @@ const CodePreview: React.FC<CodePreviewProps> = ({
             backgroundColor: 'rgba(255, 255, 255, 0.9)',
             backdropFilter: 'blur(2px)'
           }}
-          title={isExpanded ? 'Collapse' : 'Expand'}
+          title={isExpanded ? t`Collapse` : t`Expand`}
         />
       )}
       <div

@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef } from 'react'
+import { useLingui } from '@lingui/react/macro'
 import {
   Button,
   Drawer,
@@ -105,10 +106,11 @@ const createDefaultBlocks = (): EmailBlock => {
 
 // Help & Support dropdown component
 const HelpSupportDropdown: React.FC<{ onStartTour: () => void }> = ({ onStartTour }) => {
+  const { t } = useLingui()
   const menuItems: MenuProps['items'] = [
     {
       key: 'tour',
-      label: 'Take a Tour',
+      label: t`Take a Tour`,
       icon: <FontAwesomeIcon icon={faQuestion} />,
       onClick: onStartTour
     }
@@ -118,12 +120,12 @@ const HelpSupportDropdown: React.FC<{ onStartTour: () => void }> = ({ onStartTou
     <Dropdown menu={{ items: menuItems }} placement="bottomRight" trigger={['click']}>
       <Button
         size="small"
-        title="Help & Support"
+        title={t`Help & Support`}
         type="primary"
         ghost
         icon={<FontAwesomeIcon icon={faQuestion} size="sm" />}
       >
-        Help
+        {t`Help`}
       </Button>
     </Dropdown>
   )
@@ -159,6 +161,7 @@ export function CreateTemplateDrawer({
   onClose,
   forceCategory
 }: CreateTemplateDrawerProps) {
+  const { t } = useLingui()
   const [isOpen, setIsOpen] = useState(false)
   const [form] = Form.useForm()
   const queryClient = useQueryClient()
@@ -195,7 +198,7 @@ export function CreateTemplateDrawer({
         return JSON.parse(template.email.visual_editor_tree) as EmailBlock
       } catch (error) {
         console.error('Error parsing visual editor tree:', error)
-        message.error('Error loading template: Invalid template data')
+        message.error(t`Error loading template: Invalid template data`)
         return createDefaultBlocks()
       }
     }
@@ -243,13 +246,13 @@ export function CreateTemplateDrawer({
       }
     },
     onSuccess: () => {
-      message.success(`Template ${template ? 'updated' : 'created'} successfully`)
+      message.success(template ? t`Template updated successfully` : t`Template created successfully`)
       handleClose()
       queryClient.invalidateQueries({ queryKey: ['templates', workspace.id] })
       setLoading(false)
     },
     onError: (error) => {
-      message.error(`Failed to ${template ? 'update' : 'create'} template: ${error.message}`)
+      message.error(template ? t`Failed to update template: ${error.message}` : t`Failed to create template: ${error.message}`)
       setLoading(false)
     }
   })
@@ -317,7 +320,7 @@ export function CreateTemplateDrawer({
             setVisualEditorTree(JSON.parse(fromTemplate.email.visual_editor_tree) as EmailBlock)
           } catch (error) {
             console.error('Error parsing visual editor tree:', error)
-            message.error('Error loading template: Invalid template data')
+            message.error(t`Error loading template: Invalid template data`)
           }
         }
       }
@@ -357,12 +360,12 @@ export function CreateTemplateDrawer({
           name: nameOrId,
           block: block
         })
-        message.success(`Template block "${nameOrId}" saved successfully`)
+        message.success(t`Template block "${nameOrId}" saved successfully`)
       } else if (operation === 'update') {
         // Update existing template block
         const existingBlock = workspace.settings.template_blocks?.find((b) => b.id === nameOrId)
         if (!existingBlock) {
-          message.error('Template block not found')
+          message.error(t`Template block not found`)
           return
         }
         await templateBlocksApi.update({
@@ -371,7 +374,7 @@ export function CreateTemplateDrawer({
           name: existingBlock.name, // Preserve the existing name
           block: block
         })
-        message.success(`Template block "${existingBlock.name}" updated successfully`)
+        message.success(t`Template block "${existingBlock.name}" updated successfully`)
       } else if (operation === 'delete') {
         // Delete template block
         await templateBlocksApi.delete({
@@ -379,7 +382,7 @@ export function CreateTemplateDrawer({
           id: nameOrId
         })
         const existingBlock = workspace.settings.template_blocks?.find((b) => b.id === nameOrId)
-        message.success(`Template block "${existingBlock?.name || nameOrId}" deleted successfully`)
+        message.success(t`Template block "${existingBlock?.name || nameOrId}" deleted successfully`)
       } else {
         return // Invalid operation
       }
@@ -393,7 +396,7 @@ export function CreateTemplateDrawer({
     } catch (error) {
       console.error('Failed to save template block:', error)
       const err = error as Error
-      message.error(err?.message || 'Failed to save template block')
+      message.error(err?.message || t`Failed to save template block`)
     }
   }
 
@@ -405,17 +408,17 @@ export function CreateTemplateDrawer({
     <>
       <Button type="primary" onClick={showDrawer} {...buttonProps}>
         {buttonContent ||
-          (template ? 'Edit Template' : fromTemplate ? 'Clone Template' : 'Create Template')}
+          (template ? t`Edit Template` : fromTemplate ? t`Clone Template` : t`Create Template`)}
       </Button>
       {isOpen && (
         <Drawer
           title={
             <>
               {template
-                ? 'Edit email template'
+                ? t`Edit email template`
                 : fromTemplate
-                  ? 'Clone email template'
-                  : 'Create an email template'}
+                  ? t`Clone email template`
+                  : t`Create an email template`}
             </>
           }
           closable={true}
@@ -429,17 +432,17 @@ export function CreateTemplateDrawer({
             <div className="text-right">
               <Space>
                 <Button type="link" loading={loading} onClick={handleClose}>
-                  Cancel
+                  {t`Cancel`}
                 </Button>
 
                 {tab === 'settings' && (
                   <Button type="primary" onClick={goNext}>
-                    Next
+                    {t`Next`}
                   </Button>
                 )}
                 {tab === 'template' && (
                   <Button type="primary" ghost onClick={() => setTab('settings')}>
-                    Previous
+                    {t`Previous`}
                   </Button>
                 )}
 
@@ -451,7 +454,7 @@ export function CreateTemplateDrawer({
                     }}
                     type="primary"
                   >
-                    Save
+                    {t`Save`}
                   </Button>
                 )}
               </Space>
@@ -509,11 +512,11 @@ export function CreateTemplateDrawer({
                 items={[
                   {
                     key: 'settings',
-                    label: '1. Settings'
+                    label: t`1. Settings`
                   },
                   {
                     key: 'template',
-                    label: '2. Template'
+                    label: t`2. Template`
                   }
                 ]}
               />
@@ -523,9 +526,9 @@ export function CreateTemplateDrawer({
                 <div className="p-8">
                   <Row gutter={24}>
                     <Col span={8}>
-                      <Form.Item name="name" label="Template name" rules={[{ required: true }]}>
+                      <Form.Item name="name" label={t`Template name`} rules={[{ required: true }]}>
                         <Input
-                          placeholder="i.e: Welcome Email"
+                          placeholder={t`i.e: Welcome Email`}
                           onChange={(e) => {
                             if (!template) {
                               const id = kebabCase(e.target.value)
@@ -539,22 +542,22 @@ export function CreateTemplateDrawer({
                     <Col span={8}>
                       <Form.Item
                         name="id"
-                        label="Template ID (utm_content)"
-                        tooltip="This is the ID that will be used as the utm_content parameter in the links URL to track the template"
+                        label={t`Template ID (utm_content)`}
+                        tooltip={t`This is the ID that will be used as the utm_content parameter in the links URL to track the template`}
                         rules={[
                           {
                             required: true,
                             type: 'string',
                             pattern: /^[a-z0-9_-]+$/,
                             message:
-                              'ID must contain only lowercase letters, numbers, underscores, and hyphens'
+                              t`ID must contain only lowercase letters, numbers, underscores, and hyphens`
                           },
                           {
                             validator: async (_rule, value) => {
                               if (value && !template) {
                                 try {
                                   await templatesApi.get({ workspace_id: workspace.id, id: value })
-                                  return Promise.reject('Template ID already exists')
+                                  return Promise.reject(t`Template ID already exists`)
                                 } catch {
                                   return Promise.resolve()
                                 }
@@ -566,18 +569,18 @@ export function CreateTemplateDrawer({
                       >
                         <Input
                           disabled={template ? true : false}
-                          placeholder="i.e: welcome-email"
+                          placeholder={t`i.e: welcome-email`}
                         />
                       </Form.Item>
                     </Col>
                     <Col span={8}>
                       <Form.Item
                         name="category"
-                        label="Category"
+                        label={t`Category`}
                         rules={[{ required: true, type: 'string' }]}
                       >
                         <Select
-                          placeholder="Select category"
+                          placeholder={t`Select category`}
                           disabled={forceCategory ? true : false}
                           options={[
                             {
@@ -614,12 +617,12 @@ export function CreateTemplateDrawer({
                     </Col>
                   </Row>
 
-                  <div className="text-lg my-8 font-bold">Sender</div>
+                  <div className="text-lg my-8 font-bold">{t`Sender`}</div>
                   <Row gutter={24}>
                     <Col span={12}>
                       <Form.Item
                         name={['email', 'subject']}
-                        label="Email subject"
+                        label={t`Email subject`}
                         rules={[
                           { required: true, type: 'string' },
                           {
@@ -633,11 +636,11 @@ export function CreateTemplateDrawer({
                           }
                         ]}
                       >
-                        <Input placeholder="Templating markup allowed" />
+                        <Input placeholder={t`Templating markup allowed`} />
                       </Form.Item>
                       <Form.Item
                         name={['email', 'subject_preview']}
-                        label="Subject preview"
+                        label={t`Subject preview`}
                         rules={[
                           { required: true, type: 'string' },
                           {
@@ -651,12 +654,12 @@ export function CreateTemplateDrawer({
                           }
                         ]}
                       >
-                        <Input placeholder="Templating markup allowed" />
+                        <Input placeholder={t`Templating markup allowed`} />
                       </Form.Item>
 
                       <Form.Item
                         name={['email', 'reply_to']}
-                        label="Reply to"
+                        label={t`Reply to`}
                         rules={[{ required: false, type: 'email' }]}
                       >
                         <Input />
@@ -664,9 +667,7 @@ export function CreateTemplateDrawer({
 
                       <Form.Item
                         name={['email', 'sender_id']}
-                        label={`Custom sender (${
-                          categoryValue === 'marketing' ? 'marketing' : 'transactional'
-                        } email provider)`}
+                        label={categoryValue === 'marketing' ? t`Custom sender (marketing email provider)` : t`Custom sender (transactional email provider)`}
                         rules={[{ required: false, type: 'string' }]}
                       >
                         <Select
@@ -681,10 +682,10 @@ export function CreateTemplateDrawer({
                     <Col span={12}>
                       <div className="flex justify-center">
                         <IphoneEmailPreview
-                          sender={emailSender?.name || 'Sender Name'}
-                          subject={emailSubject || 'Email Subject'}
-                          previewText={emailPreview || 'Preview text will appear here...'}
-                          timestamp="Now"
+                          sender={emailSender?.name || t`Sender Name`}
+                          subject={emailSubject || t`Email Subject`}
+                          previewText={emailPreview || t`Preview text will appear here...`}
+                          timestamp={t`Now`}
                           currentTime="12:12"
                         />
                       </div>
@@ -842,58 +843,58 @@ export function CreateTemplateDrawer({
             }}
             steps={[
               {
-                title: 'Welcome to Email Builder! 🎉',
+                title: t`Welcome to Email Builder!`,
                 description:
-                  "Let's take a quick tour to help you get started with building beautiful emails using MJML.",
+                  t`Let's take a quick tour to help you get started with building beautiful emails using MJML.`,
                 target: null // Center of screen
               },
               {
-                title: 'Content Structure Tree',
+                title: t`Content Structure Tree`,
                 description:
-                  'This is your content structure tree. You can drag and drop blocks to reorganize your email layout. Click the + buttons to add new blocks, or drag blocks from one section to another.',
+                  t`This is your content structure tree. You can drag and drop blocks to reorganize your email layout. Click the + buttons to add new blocks, or drag blocks from one section to another.`,
                 target: () => treePanelRef.current!,
                 placement: 'right' as const
               },
               {
-                title: 'Visual Email Editor',
+                title: t`Visual Email Editor`,
                 description:
-                  'This is your visual email editor. Click on any element in your email to select it. Selected elements will be highlighted with a blue border and show editing options.',
+                  t`This is your visual email editor. Click on any element in your email to select it. Selected elements will be highlighted with a blue border and show editing options.`,
                 target: () => editPanelRef.current!,
                 placement: 'top' as const
               },
               {
-                title: 'Block Settings Panel',
+                title: t`Block Settings Panel`,
                 description:
-                  'When you select a block, its settings appear here. Modify colors, text, spacing, alignment, and other properties to customize your email design.',
+                  t`When you select a block, its settings appear here. Modify colors, text, spacing, alignment, and other properties to customize your email design.`,
                 target: () => settingsPanelRef.current!,
                 placement: 'left' as const
               },
               {
-                title: 'Preview Your Email',
+                title: t`Preview Your Email`,
                 description:
-                  'Switch to Preview mode to see how your email will look to recipients. This shows the final rendered version with all styling applied.',
+                  t`Switch to Preview mode to see how your email will look to recipients. This shows the final rendered version with all styling applied.`,
                 target: () => previewSwitcherRef.current!,
                 placement: 'bottom' as const
               },
               {
-                title: 'Mobile & Desktop Preview',
+                title: t`Mobile & Desktop Preview`,
                 description:
-                  'Toggle between mobile and desktop views to see how your email appears on different devices. Mobile view shows a 400px width while desktop shows the full width.',
+                  t`Toggle between mobile and desktop views to see how your email appears on different devices. Mobile view shows a 400px width while desktop shows the full width.`,
                 target: () => mobileDesktopSwitcherRef.current!,
                 placement: 'left' as const
               },
               {
-                title: 'Template Data & Liquid Templating 💧',
+                title: t`Template Data & Liquid Templating`,
                 description:
-                  'Use the Template Data tab to define dynamic content for your emails. Add variables like {{ name }} or {{ company }} in your email content, then define their values here. The Liquid templating engine supports conditionals, loops, and filters for powerful personalization.',
+                  t`Use the Template Data tab to define dynamic content for your emails. Add variables like {{ name }} or {{ company }} in your email content, then define their values here. The Liquid templating engine supports conditionals, loops, and filters for powerful personalization.`,
                 target: () =>
                   (templateDataRef.current?.getTemplateDataTabRef() as HTMLElement) || null,
                 placement: 'top' as const
               },
               {
-                title: 'Import & Export Templates',
+                title: t`Import & Export Templates`,
                 description:
-                  'Use this button to import saved email templates or export your finished emails. You can import JSON/MJML templates or export as HTML, MJML, or JSON for future use.',
+                  t`Use this button to import saved email templates or export your finished emails. You can import JSON/MJML templates or export as HTML, MJML, or JSON for future use.`,
                 target: () => importExportButtonRef.current!,
                 placement: 'bottom' as const
               }

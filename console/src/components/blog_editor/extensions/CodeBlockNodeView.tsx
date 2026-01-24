@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react'
+import { useLingui } from '@lingui/react/macro'
 import type { NodeViewProps } from '@tiptap/react'
 import { NodeViewContent, NodeViewWrapper } from '@tiptap/react'
 import { Input } from 'antd'
@@ -10,6 +11,7 @@ import './code-block-node.css'
  * Code Block Node View Component with Caption Support
  */
 export function CodeBlockNodeView(props: NodeViewProps) {
+  const { t } = useLingui()
   const { node, updateAttributes } = props
   const captionInputRef = useRef<InputRef>(null)
   const isInitialMountRef = useRef(true)
@@ -58,7 +60,7 @@ export function CodeBlockNodeView(props: NodeViewProps) {
           <Input
             ref={captionInputRef}
             variant="borderless"
-            placeholder="Add a caption..."
+            placeholder={t`Add a caption...`}
             value={caption}
             onChange={handleCaptionChange}
             className="code-block-caption-input"

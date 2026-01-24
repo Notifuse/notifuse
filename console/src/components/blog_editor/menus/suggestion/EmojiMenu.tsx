@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useLingui } from '@lingui/react/macro'
 import { flip, offset, shift, size } from '@floating-ui/react'
 import { PluginKey } from '@tiptap/pm/state'
 import { Suggestion } from '@tiptap/suggestion'
@@ -28,6 +29,7 @@ interface EmojiMenuProps {
  * Triggered by ':' character
  */
 export const EmojiMenu = ({ editor: providedEditor }: EmojiMenuProps) => {
+  const { t } = useLingui()
   const { editor } = useNotifuseEditor(providedEditor)
 
   const [show, setShow] = useState<boolean>(false)
@@ -284,7 +286,7 @@ export const EmojiMenu = ({ editor: providedEditor }: EmojiMenuProps) => {
       data-selector="emoji-menu"
       className="tiptap-suggestion-menu"
       role="listbox"
-      aria-label="Emoji Suggestions"
+      aria-label={t`Emoji Suggestions`}
       onPointerDown={(e) => e.preventDefault()}
     >
       <Menu

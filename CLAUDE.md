@@ -18,7 +18,7 @@ The application follows **Clean Architecture** principles with distinct layers:
 
 ### Core Framework & Language
 
-- **Language**: Go 1.23.x
+- **Language**: Go 1.25.x
 - **HTTP Framework**: Standard library `http.ServeMux` (no external web framework)
 - **Architecture**: Clean Architecture with dependency injection
 
@@ -124,9 +124,9 @@ func (m *V6Migration) UpdateSystem(ctx context.Context, config *config.Config, d
   - Amazon SES (AWS SDK v1.55.7)
   - SMTP (go-mail v0.7.2)
   - Mailgun, Mailjet, Postmark, SparkPost integrations
-- **Template Engine**: Liquid templating (osteele/liquid v1.7.0)
-- **MJML Support**: MJML-Go v0.15.0 for email rendering
-- **HTML Parsing**: PuerkitoBio/goquery v1.10.2
+- **Template Engine**: Liquid templating (Notifuse/liquidgo)
+- **MJML Support**: gomjml v0.10.0 for email rendering
+- **HTML Parsing**: PuerkitoBio/goquery v1.10.3
 
 ### Observability & Monitoring
 
@@ -157,12 +157,12 @@ func (m *V6Migration) UpdateSystem(ctx context.Context, config *config.Config, d
 #### Core Framework
 
 - **Framework**: React 18.2.0 with TypeScript 5.2.2
-- **Build Tool**: Vite 7.1.3
+- **Build Tool**: Vite 7.1.x
 - **Routing**: TanStack Router v1.15.7 with devtools
 
 #### UI Framework & Styling
 
-- **UI Library**: Ant Design v5.14.0
+- **UI Library**: Ant Design v5.27.x
 - **Icons**:
   - Ant Design Icons v5.3.0
   - FontAwesome v6.7.2 (solid, regular, brands)
@@ -177,7 +177,7 @@ func (m *V6Migration) UpdateSystem(ctx context.Context, config *config.Config, d
 
 #### Rich Text & Email Editor
 
-- **Rich Text Editor**: Tiptap v2.14.0 with extensions:
+- **Rich Text Editor**: Tiptap v3.10.x with extensions:
   - Highlight, Subscript, Superscript, Typography, Underline
   - Starter Kit for basic functionality
 - **Email Builder**: MJML Browser v4.15.3
@@ -193,7 +193,7 @@ func (m *V6Migration) UpdateSystem(ctx context.Context, config *config.Config, d
 
 #### Developer Experience
 
-- **Templating**: LiquidJS v10.21.0 for template preview
+- **Templating**: LiquidJS v10.24.x for template preview
 - **Date Handling**: Day.js v1.11.13
 - **Color Picker**: React Color v2.19.3
 - **Emoji Support**: Emoji Mart v5.6.0
@@ -201,16 +201,16 @@ func (m *V6Migration) UpdateSystem(ctx context.Context, config *config.Config, d
 
 #### Testing & Quality
 
-- **Testing**: Vitest v3.0.8 with React Testing Library
-- **Linting**: ESLint v8.55.0 with TypeScript support
+- **Testing**: Vitest v3.0.x with React Testing Library
+- **Linting**: ESLint v9.19.x with TypeScript support
 - **Type Checking**: TypeScript v5.2.2
 
 ### Notification Center Widget
 
 #### Core Framework
 
-- **Framework**: React 19.1.0 with TypeScript 5.8.3
-- **Build Tool**: Vite 6.3.5
+- **Framework**: React 19.1.0 with TypeScript 5.8.x
+- **Build Tool**: Vite 7.1.x
 
 #### UI & Styling
 
@@ -451,6 +451,55 @@ export const ContactDetailsDrawer: React.FC<ContactDetailsDrawerProps> = ({
 - **Primary**: Tailwind CSS for utility-first styling
 - **Components**: Ant Design for complex UI components
 - **Custom**: CSS modules or styled-components for specific needs
+
+#### Internationalization (i18n)
+
+The console uses **LinguiJS** for internationalization with natural language keys.
+
+**Setup:**
+
+- Runtime: `@lingui/core`, `@lingui/react`
+- Build: `@lingui/cli`, `@lingui/babel-plugin-lingui-macro`, `@lingui/vite-plugin`
+- Config: `console/lingui.config.ts`
+- Translations: `console/src/i18n/locales/{locale}.po`
+
+**Usage Pattern:**
+
+```tsx
+import { useLingui } from '@lingui/react/macro'
+
+function MyComponent() {
+  const { t } = useLingui()
+
+  return (
+    <div>
+      <h1>{t`Create Broadcast`}</h1>
+      <p>{t`You have ${count} messages`}</p>
+    </div>
+  )
+}
+```
+
+**Key Rules:**
+
+- Always use `useLingui()` hook from `@lingui/react/macro`
+- Use template literals: `` t`text` `` not `t("text")`
+- Variables use `${var}` syntax: `` t`Hello ${name}` ``
+- For JSX content, use `<Trans>` component from `@lingui/react/macro`
+- All user-facing strings must be wrapped with `t` or `<Trans>`
+- Run `npm run lingui:extract` after adding new strings
+- Run `npm run lingui:compile` before building
+
+**Commands:**
+
+- `npm run lingui:extract` - Extract strings to PO files
+- `npm run lingui:compile` - Compile PO files for production
+
+**File Locations:**
+
+- Config: `console/lingui.config.ts`
+- Setup: `console/src/i18n/index.ts`
+- Locales: `console/src/i18n/locales/`
 
 ### Testing Standards
 

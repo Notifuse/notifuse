@@ -1,5 +1,6 @@
 import React from 'react'
 import { Form, Input } from 'antd'
+import { useLingui } from '@lingui/react/macro'
 import type { WebhookNodeConfig } from '../../../services/api/automation'
 
 interface WebhookConfigFormProps {
@@ -8,6 +9,8 @@ interface WebhookConfigFormProps {
 }
 
 export const WebhookConfigForm: React.FC<WebhookConfigFormProps> = ({ config, onChange }) => {
+  const { t } = useLingui()
+
   const handleUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     onChange({ ...config, url: e.target.value })
   }
@@ -25,13 +28,13 @@ export const WebhookConfigForm: React.FC<WebhookConfigFormProps> = ({ config, on
   return (
     <Form layout="vertical" className="nodrag">
       <Form.Item
-        label="Webhook URL"
+        label={t`Webhook URL`}
         required
         validateStatus={config.url && !isValidUrl(config.url) ? 'error' : undefined}
         help={
-          config.url && !isValidUrl(config.url) ? 'URL must start with http:// or https://' : undefined
+          config.url && !isValidUrl(config.url) ? t`URL must start with http:// or https://` : undefined
         }
-        extra="The URL to send the POST request to"
+        extra={t`The URL to send the POST request to`}
       >
         <Input
           value={config.url || ''}
@@ -41,13 +44,13 @@ export const WebhookConfigForm: React.FC<WebhookConfigFormProps> = ({ config, on
       </Form.Item>
 
       <Form.Item
-        label="Authorization Secret"
-        extra="Optional. If provided, sent as Authorization: Bearer <secret>"
+        label={t`Authorization Secret`}
+        extra={t`Optional. If provided, sent as Authorization: Bearer <secret>`}
       >
         <Input.Password
           value={config.secret || ''}
           onChange={handleSecretChange}
-          placeholder="Optional bearer token"
+          placeholder={t`Optional bearer token`}
         />
       </Form.Item>
     </Form>

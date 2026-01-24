@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { useLingui } from '@lingui/react/macro'
 import { Drawer, Typography, Spin, Alert, Tabs, Tag, Space, Descriptions } from 'antd'
 import type { Template, MjmlCompileError, Workspace } from '../../services/api/types'
 import { templatesApi } from '../../services/api/template'
@@ -24,6 +25,7 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
   messageHistory,
   children
 }) => {
+  const { t } = useLingui()
   const [previewHtml, setPreviewHtml] = useState<string | null>(null)
   const [previewMjml, setPreviewMjml] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState<boolean>(false)
@@ -37,7 +39,7 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
 
   const fetchPreview = async () => {
     if (!workspace.id || !record.email?.visual_editor_tree) {
-      setError('Missing workspace ID or template data.')
+      setError(t`Missing workspace ID or template data.`)
       setMjmlError(null)
       setPreviewMjml(null)
       setPreviewHtml(null)
@@ -58,7 +60,7 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
           treeObject = JSON.parse(record.email.visual_editor_tree)
         } catch (parseError) {
           console.error('Failed to parse visual_editor_tree:', parseError)
-          setError('Invalid template structure data.')
+          setError(t`Invalid template structure data.`)
           setMjmlError(null)
           setPreviewMjml(null)
           setIsLoading(false)
@@ -69,7 +71,7 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
       }
 
       if (!treeObject) {
-        setError('Template structure data is missing or invalid.')
+        setError(t`Template structure data is missing or invalid.`)
         setMjmlError(null)
         setPreviewMjml(null)
         setIsLoading(false)
@@ -108,7 +110,7 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
       console.error('Compile Error:', err)
       const error = err as { response?: { data?: { error?: string } }; message?: string }
       const errorMsg =
-        error.response?.data?.error || error.message || 'Failed to compile template preview.'
+        error.response?.data?.error || error.message || t`Failed to compile template preview.`
       setError(errorMsg)
       setMjmlError(null)
       setPreviewMjml(null)
@@ -159,13 +161,13 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
   if (previewHtml) {
     items.push({
       key: '1',
-      label: 'HTML Preview',
+      label: t`HTML Preview`,
       children: (
         <iframe
           srcDoc={previewHtml}
           className="w-full h-full border-0"
           style={{ height: '600px', width: '100%' }}
-          title={`HTML Preview of ${record.name}`}
+          title={t`HTML Preview of ${record.name}`}
           sandbox="allow-same-origin"
         />
       )
@@ -175,7 +177,7 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
   if (previewMjml) {
     items.push({
       key: '2',
-      label: 'MJML Source',
+      label: t`MJML Source`,
       children: <MJMLPreview previewMjml={previewMjml} />
     })
   }
@@ -184,7 +186,7 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
   const testData = templateData || record.test_data || {}
   items.push({
     key: '3',
-    label: 'Template Data',
+    label: t`Template Data`,
     children: <JsonDataViewer data={testData} />
   })
 
@@ -203,16 +205,16 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
     <div>
       {/* Header details */}
       <Descriptions bordered={false} size="small" column={1} className="mb-4">
-        <Descriptions.Item label="From">
+        <Descriptions.Item label={t`From`}>
           {messageHistory?.channel_options?.from_name ? (
             <>
               <Text>
                 {messageHistory.channel_options.from_name} &lt;
-                {templateSender?.email || defaultSender?.email || 'no email'}&gt;
+                {templateSender?.email || defaultSender?.email || t`no email`}&gt;
               </Text>
               {(templateSender || defaultSender) && (
                 <Text type="secondary" className="text-xs pl-2">
-                  (original: {templateSender?.name || defaultSender?.name})
+                  {t`(original: ${templateSender?.name || defaultSender?.name})`}
                 </Text>
               )}
             </>
@@ -233,7 +235,7 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
                       <Text> &lt;{defaultSender.email}&gt;</Text>
                     </Text>
                   ) : (
-                    <Text>No default sender configured</Text>
+                    <Text>{t`No default sender configured`}</Text>
                   )}
                 </>
               )}
@@ -242,35 +244,35 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
         </Descriptions.Item>
 
         {(record.email?.reply_to || messageHistory?.channel_options?.reply_to) && (
-          <Descriptions.Item label="Reply to">
+          <Descriptions.Item label={t`Reply to`}>
             {messageHistory?.channel_options?.reply_to ? (
               <>
                 <Text>{messageHistory.channel_options.reply_to}</Text>
                 {record.email?.reply_to && (
                   <Text type="secondary" className="text-xs pl-2">
-                    (original: {record.email.reply_to})
+                    {t`(original: ${record.email.reply_to})`}
                   </Text>
                 )}
               </>
             ) : (
-              <Text>{record.email?.reply_to || 'Not set'}</Text>
+              <Text>{record.email?.reply_to || t`Not set`}</Text>
             )}
           </Descriptions.Item>
         )}
 
-        <Descriptions.Item label="Subject">
+        <Descriptions.Item label={t`Subject`}>
           <Text>{processedSubject ?? record.email?.subject}</Text>
         </Descriptions.Item>
 
         {record.email?.subject_preview && (
-          <Descriptions.Item label="Subject preview">
+          <Descriptions.Item label={t`Subject preview`}>
             <Text>{record.email.subject_preview}</Text>
           </Descriptions.Item>
         )}
 
         {/* Channel Options Display - CC and BCC */}
         {messageHistory?.channel_options?.cc && messageHistory.channel_options.cc.length > 0 && (
-          <Descriptions.Item label="CC">
+          <Descriptions.Item label={t`CC`}>
             <Space size={[0, 4]} wrap>
               {messageHistory.channel_options.cc.map((email, idx) => (
                 <Tag bordered={false} key={idx} color="blue" className="text-xs">
@@ -282,7 +284,7 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
         )}
 
         {messageHistory?.channel_options?.bcc && messageHistory.channel_options.bcc.length > 0 && (
-          <Descriptions.Item label="BCC">
+          <Descriptions.Item label={t`BCC`}>
             <Space size={[0, 4]} wrap>
               {messageHistory.channel_options.bcc.map((email, idx) => (
                 <Tag bordered={false} key={idx} color="purple" className="text-xs">
@@ -304,14 +306,14 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
           error &&
           !mjmlError && ( // General error (not MJML compilation error)
             <div className="p-4">
-              <Alert message="Error loading preview" description={error} type="error" showIcon />
+              <Alert message={t`Error loading preview`} description={error} type="error" showIcon />
             </div>
           )}
         {!isLoading && mjmlError && (
           // MJML Compilation Error
           <div className="p-4 overflow-auto flex-grow flex flex-col">
             <Alert
-              message={`MJML Compilation Error: ${mjmlError.message}`}
+              message={t`MJML Compilation Error: ${mjmlError.message}`}
               type="error"
               showIcon
               description={
@@ -319,12 +321,12 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
                   <ul className="list-disc list-inside mt-2 text-xs">
                     {mjmlError.details.map((detail, index) => (
                       <li key={index}>
-                        Line {detail.line} ({detail.tagName}): {detail.message}
+                        {t`Line ${detail.line} (${detail.tagName}): ${detail.message}`}
                       </li>
                     ))}
                   </ul>
                 ) : (
-                  'No specific details provided.'
+                  t`No specific details provided.`
                 )
               }
               className="mb-4 flex-shrink-0" // Prevent alert from growing too large
@@ -348,7 +350,7 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
           !previewMjml &&
           items.length === 0 && ( // Neither success nor error, initial or no data state
             <div className="flex items-center justify-center flex-grow text-gray-500">
-              No preview available or template is empty.
+              {t`No preview available or template is empty.`}
             </div>
           )}
       </div>

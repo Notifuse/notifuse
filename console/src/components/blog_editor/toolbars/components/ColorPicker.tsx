@@ -1,4 +1,5 @@
 import { useContext, useEffect, useState } from 'react'
+import { useLingui } from '@lingui/react/macro'
 import { EditorContext } from '@tiptap/react'
 import { Button, Popover, Tooltip } from 'antd'
 import { ChevronDown } from 'lucide-react'
@@ -25,6 +26,7 @@ export interface ColorPickerProps {
  * ColorPicker - Button with popover for changing text and highlight colors
  */
 export function ColorPicker({ hideWhenUnavailable = false }: ColorPickerProps) {
+  const { t } = useLingui()
   const { editor } = useContext(EditorContext)!
   const [open, setOpen] = useState(false)
   const [isVisible, setIsVisible] = useState(true)
@@ -116,7 +118,7 @@ export function ColorPicker({ hideWhenUnavailable = false }: ColorPickerProps) {
               textTransform: 'uppercase'
             }}
           >
-            Recently Used
+            {t`Recently Used`}
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', padding: '0 12px' }}>
             {recentColors.map((recentColor, index) => (
@@ -130,7 +132,7 @@ export function ColorPicker({ hideWhenUnavailable = false }: ColorPickerProps) {
                   }
                 }}
                 title={`${recentColor.label} ${
-                  recentColor.type === 'text' ? 'text' : 'background'
+                  recentColor.type === 'text' ? t`text` : t`background`
                 }`}
                 style={{
                   width: '24px',
@@ -179,7 +181,7 @@ export function ColorPicker({ hideWhenUnavailable = false }: ColorPickerProps) {
               textTransform: 'uppercase'
             }}
           >
-            Text Color
+            {t`Text Color`}
           </div>
           <div style={{ padding: '0 12px' }}>
             <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
@@ -218,7 +220,7 @@ export function ColorPicker({ hideWhenUnavailable = false }: ColorPickerProps) {
               textTransform: 'uppercase'
             }}
           >
-            Background Color
+            {t`Background Color`}
           </div>
           <div style={{ padding: '0 12px' }}>
             <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
@@ -256,7 +258,7 @@ export function ColorPicker({ hideWhenUnavailable = false }: ColorPickerProps) {
       onOpenChange={setOpen}
       placement="bottom"
     >
-      <Tooltip title="Text Color" placement="top">
+      <Tooltip title={t`Text Color`} placement="top">
         <Button
           type="text"
           size="small"

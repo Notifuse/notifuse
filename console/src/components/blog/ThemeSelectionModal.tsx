@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useLingui } from '@lingui/react/macro'
 import { Modal, Button } from 'antd'
 import { FileOutlined, EyeOutlined } from '@ant-design/icons'
 import { THEME_PRESETS, ThemePreset } from './themePresets'
@@ -18,6 +19,7 @@ export function ThemeSelectionModal({
   onSelectTheme,
   workspace
 }: ThemeSelectionModalProps) {
+  const { t } = useLingui()
   const [previewPreset, setPreviewPreset] = useState<ThemePreset | null>(null)
 
   const handleSelectTheme = (preset: ThemePreset) => {
@@ -37,7 +39,7 @@ export function ThemeSelectionModal({
   return (
     <>
       <Modal
-        title="Create New Theme"
+        title={t`Create New Theme`}
         open={open}
         onCancel={onClose}
         footer={null}
@@ -45,7 +47,7 @@ export function ThemeSelectionModal({
         styles={{ body: { paddingTop: '24px' } }}
       >
         <p style={{ marginBottom: 24, color: '#595959' }}>
-          Choose a starting point for your new theme. You can customize everything later.
+          {t`Choose a starting point for your new theme. You can customize everything later.`}
         </p>
 
         <div
@@ -72,7 +74,7 @@ export function ThemeSelectionModal({
                 {preset.id === 'blank' ? (
                   <FileOutlined className="text-5xl text-gray-400 mb-2" />
                 ) : null}
-                <span className="text-sm text-gray-500">Preview Coming Soon</span>
+                <span className="text-sm text-gray-500">{t`Preview Coming Soon`}</span>
               </div>
 
               {/* Theme Info */}
@@ -84,7 +86,7 @@ export function ThemeSelectionModal({
 
                 {/* Action Buttons */}
                 <Button block icon={<EyeOutlined />} onClick={(e) => handlePreviewClick(preset, e)}>
-                  Preview
+                  {t`Preview`}
                 </Button>
               </div>
             </div>

@@ -1,5 +1,6 @@
 import React from 'react'
 import { Form, Select } from 'antd'
+import { useLingui } from '@lingui/react/macro'
 import { useAutomation } from '../context'
 import type { AddToListNodeConfig } from '../../../services/api/automation'
 
@@ -8,13 +9,14 @@ interface AddToListConfigFormProps {
   onChange: (config: AddToListNodeConfig) => void
 }
 
-const STATUS_OPTIONS = [
-  { label: 'Subscribed', value: 'subscribed' },
-  { label: 'Pending', value: 'pending' }
-]
-
 export const AddToListConfigForm: React.FC<AddToListConfigFormProps> = ({ config, onChange }) => {
+  const { t } = useLingui()
   const { lists } = useAutomation()
+
+  const STATUS_OPTIONS = [
+    { label: t`Subscribed`, value: 'subscribed' },
+    { label: t`Pending`, value: 'pending' }
+  ]
 
   const handleListChange = (value: string) => {
     onChange({ ...config, list_id: value })
@@ -27,12 +29,12 @@ export const AddToListConfigForm: React.FC<AddToListConfigFormProps> = ({ config
   return (
     <Form layout="vertical" className="nodrag">
       <Form.Item
-        label="List"
+        label={t`List`}
         required
-        extra="Select which list to add the contact to"
+        extra={t`Select which list to add the contact to`}
       >
         <Select
-          placeholder="Select a list..."
+          placeholder={t`Select a list...`}
           value={config.list_id || undefined}
           onChange={handleListChange}
           style={{ width: '100%' }}
@@ -44,9 +46,9 @@ export const AddToListConfigForm: React.FC<AddToListConfigFormProps> = ({ config
       </Form.Item>
 
       <Form.Item
-        label="Subscription Status"
+        label={t`Subscription Status`}
         required
-        extra="The status to assign when adding to the list"
+        extra={t`The status to assign when adding to the list`}
       >
         <Select
           value={config.status || 'subscribed'}

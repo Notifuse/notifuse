@@ -1,4 +1,5 @@
 import React from 'react'
+import { useLingui } from '@lingui/react/macro'
 import { InputNumber, Row, Col } from 'antd'
 import type { MJMLComponentType, EmailBlock, MJButtonAttributes, MergedBlockAttributes } from '../types'
 import {
@@ -131,6 +132,265 @@ const useButtonContentState = (
   }
 }
 
+// Functional component for settings panel with i18n support
+interface MjButtonSettingsPanelProps {
+  currentAttributes: MJButtonAttributes
+  blockDefaults: MergedBlockAttributes
+  onUpdate: OnUpdateAttributesFunction
+  emailTree?: EmailBlock
+  parseWidthNumber: (width?: string) => number | undefined
+  parseHeightNumber: (height?: string) => number | undefined
+}
+
+const MjButtonSettingsPanel: React.FC<MjButtonSettingsPanelProps> = ({
+  currentAttributes,
+  blockDefaults,
+  onUpdate,
+  emailTree,
+  parseWidthNumber,
+  parseHeightNumber
+}) => {
+  const { t } = useLingui()
+
+  // Find all imported fonts in the email tree
+  const importedFonts: Array<{ name: string; href: string }> = []
+
+  if (emailTree) {
+    const fontBlocks = EmailBlockClass.findAllBlocksByType(emailTree, 'mj-font')
+    fontBlocks.forEach((fontBlock) => {
+      const attrs = fontBlock.attributes as { name?: string; href?: string }
+      if (attrs?.name && attrs?.href) {
+        importedFonts.push({
+          name: attrs.name,
+          href: attrs.href
+        })
+      }
+    })
+  }
+
+  return (
+    <PanelLayout title={t`Button Attributes`}>
+      <InputLayout label={t`Link URL`}>
+        <StringPopoverInput
+          value={currentAttributes.href || ''}
+          onChange={(value) => onUpdate({ href: value || undefined })}
+          placeholder={t`Enter button link URL or {{ url }}`}
+          buttonText={t`Set link`}
+          validateUri={true}
+        />
+      </InputLayout>
+
+      <InputLayout label={t`Colors`} layout="vertical">
+        <Row gutter={16}>
+          <Col span={8}>
+            <div className="mb-2">
+              <span className="text-xs text-gray-500">{t`Background`}</span>
+              <div style={{ marginTop: '4px' }}>
+                <ColorPickerWithPresets
+                  value={currentAttributes.backgroundColor || undefined}
+                  onChange={(color) => onUpdate({ backgroundColor: color || undefined })}
+                />
+              </div>
+            </div>
+          </Col>
+          <Col span={8}>
+            <div className="mb-2">
+              <span className="text-xs text-gray-500">{t`Text`}</span>
+              <div style={{ marginTop: '4px' }}>
+                <ColorPickerWithPresets
+                  value={currentAttributes.color || undefined}
+                  onChange={(color) => onUpdate({ color: color || undefined })}
+                />
+              </div>
+            </div>
+          </Col>
+          <Col span={8}>
+            <div className="mb-2">
+              <span className="text-xs text-gray-500">{t`Container`}</span>
+              <div style={{ marginTop: '4px' }}>
+                <ColorPickerWithPresets
+                  value={currentAttributes.containerBackgroundColor || undefined}
+                  onChange={(color) => onUpdate({ containerBackgroundColor: color || undefined })}
+                  placeholder={t`None`}
+                />
+              </div>
+            </div>
+          </Col>
+        </Row>
+      </InputLayout>
+
+      <InputLayout label={t`Border radius`}>
+        <BorderRadiusInput
+          value={currentAttributes.borderRadius}
+          onChange={(value) => onUpdate({ borderRadius: value })}
+          defaultValue={blockDefaults.borderRadius}
+        />
+      </InputLayout>
+
+      <InputLayout label={t`Button Align`}>
+        <AlignSelector
+          value={currentAttributes.align || 'center'}
+          onChange={(value) => onUpdate({ align: value })}
+        />
+      </InputLayout>
+
+      <InputLayout label={t`Font Styling`} layout="vertical">
+        <FontStyleInput
+          value={{
+            fontFamily: currentAttributes.fontFamily,
+            fontSize: currentAttributes.fontSize,
+            fontWeight: currentAttributes.fontWeight,
+            fontStyle: currentAttributes.fontStyle,
+            textTransform: currentAttributes.textTransform,
+            textDecoration: currentAttributes.textDecoration,
+            lineHeight: currentAttributes.lineHeight,
+            letterSpacing: currentAttributes.letterSpacing,
+            textAlign: currentAttributes.textAlign
+          }}
+          defaultValue={{
+            fontFamily: blockDefaults.fontFamily,
+            fontSize: blockDefaults.fontSize,
+            fontWeight: blockDefaults.fontWeight,
+            fontStyle: blockDefaults.fontStyle,
+            textTransform: blockDefaults.textTransform || 'none',
+            textDecoration: blockDefaults.textDecoration,
+            lineHeight: blockDefaults.lineHeight,
+            letterSpacing: blockDefaults.letterSpacing,
+            textAlign: blockDefaults.textAlign
+          }}
+          onChange={(values) => {
+            onUpdate({
+              fontFamily: values.fontFamily,
+              fontSize: values.fontSize,
+              fontWeight: values.fontWeight,
+              fontStyle: values.fontStyle,
+              textTransform: values.textTransform,
+              textDecoration: values.textDecoration,
+              lineHeight: values.lineHeight,
+              letterSpacing: values.letterSpacing,
+              textAlign: values.textAlign
+            })
+          }}
+          importedFonts={importedFonts}
+        />
+      </InputLayout>
+
+      <InputLayout label={t`Button Padding`} layout="vertical">
+        <PaddingInput
+          value={currentAttributes.innerPadding}
+          defaultValue={blockDefaults.innerPadding}
+          onChange={(value: string | undefined) => {
+            onUpdate({
+              innerPadding: value
+            })
+          }}
+        />
+      </InputLayout>
+
+      <InputLayout label={t`Container Padding`} layout="vertical">
+        <PaddingInput
+          value={{
+            top: currentAttributes.paddingTop,
+            right: currentAttributes.paddingRight,
+            bottom: currentAttributes.paddingBottom,
+            left: currentAttributes.paddingLeft
+          }}
+          defaultValue={{
+            top: blockDefaults.paddingTop,
+            right: blockDefaults.paddingRight,
+            bottom: blockDefaults.paddingBottom,
+            left: blockDefaults.paddingLeft
+          }}
+          onChange={(values: {
+            top: string | undefined
+            right: string | undefined
+            bottom: string | undefined
+            left: string | undefined
+          }) => {
+            onUpdate({
+              paddingTop: values.top,
+              paddingRight: values.right,
+              paddingBottom: values.bottom,
+              paddingLeft: values.left
+            })
+          }}
+        />
+      </InputLayout>
+
+      <InputLayout label={t`Border`} layout="vertical">
+        <BorderInput
+          className="-mt-6"
+          value={{
+            borderTop: currentAttributes.borderTop,
+            borderRight: currentAttributes.borderRight,
+            borderBottom: currentAttributes.borderBottom,
+            borderLeft: currentAttributes.borderLeft
+          }}
+          onChange={(borderValues) => {
+            onUpdate({
+              borderTop: borderValues.borderTop,
+              borderRight: borderValues.borderRight,
+              borderBottom: borderValues.borderBottom,
+              borderLeft: borderValues.borderLeft
+            })
+          }}
+        />
+      </InputLayout>
+
+      <InputLayout label={t`Button Size`} layout="vertical">
+        <Row gutter={16}>
+          <Col span={12}>
+            <div className="mb-2">
+              <span className="text-xs text-gray-500">{t`Width`}</span>
+              <div style={{ marginTop: '4px' }}>
+                <InputNumber
+                  size="small"
+                  value={parseWidthNumber(currentAttributes.width)}
+                  onChange={(value) => onUpdate({ width: value ? `${value}px` : undefined })}
+                  placeholder={(parseWidthNumber(blockDefaults.width) || t`Auto`).toString()}
+                  min={0}
+                  max={1000}
+                  step={1}
+                  suffix="px"
+                  style={{ width: '100%' }}
+                />
+              </div>
+            </div>
+          </Col>
+          <Col span={12}>
+            <div className="mb-2">
+              <span className="text-xs text-gray-500">{t`Height`}</span>
+              <div style={{ marginTop: '4px' }}>
+                <InputNumber
+                  size="small"
+                  value={parseHeightNumber(currentAttributes.height)}
+                  onChange={(value) => onUpdate({ height: value ? `${value}px` : undefined })}
+                  placeholder={(
+                    parseHeightNumber(blockDefaults.height) || t`Auto`
+                  ).toString()}
+                  min={0}
+                  max={1000}
+                  step={1}
+                  suffix="px"
+                  style={{ width: '100%' }}
+                />
+              </div>
+            </div>
+          </Col>
+        </Row>
+      </InputLayout>
+
+      <InputLayout label={t`CSS Class`}>
+        <StringPopoverInput
+          value={currentAttributes.cssClass || ''}
+          onChange={(value) => onUpdate({ cssClass: value || undefined })}
+          placeholder={t`Enter CSS class name`}
+        />
+      </InputLayout>
+    </PanelLayout>
+  )
+}
+
 /**
  * Implementation for mj-button blocks
  */
@@ -189,243 +449,15 @@ export class MjButtonBlock extends BaseEmailBlock {
   ): React.ReactNode {
     const currentAttributes = this.block.attributes as MJButtonAttributes
 
-    // Find all imported fonts in the email tree
-    const importedFonts: Array<{ name: string; href: string }> = []
-
-    if (emailTree) {
-      const fontBlocks = EmailBlockClass.findAllBlocksByType(emailTree, 'mj-font')
-      fontBlocks.forEach((fontBlock) => {
-        const attrs = fontBlock.attributes as { name?: string; href?: string }
-        if (attrs?.name && attrs?.href) {
-          importedFonts.push({
-            name: attrs.name,
-            href: attrs.href
-          })
-        }
-      })
-    }
-
-    // console.log('currentAttributes', currentAttributes)
     return (
-      <PanelLayout title="Button Attributes">
-        <InputLayout label="Link URL">
-          <StringPopoverInput
-            value={currentAttributes.href || ''}
-            onChange={(value) => onUpdate({ href: value || undefined })}
-            placeholder="Enter button link URL or {{ url }}"
-            buttonText="Set link"
-            validateUri={true}
-          />
-        </InputLayout>
-
-        <InputLayout label="Colors" layout="vertical">
-          <Row gutter={16}>
-            <Col span={8}>
-              <div className="mb-2">
-                <span className="text-xs text-gray-500">Background</span>
-                <div style={{ marginTop: '4px' }}>
-                  <ColorPickerWithPresets
-                    value={currentAttributes.backgroundColor || undefined}
-                    onChange={(color) => onUpdate({ backgroundColor: color || undefined })}
-                  />
-                </div>
-              </div>
-            </Col>
-            <Col span={8}>
-              <div className="mb-2">
-                <span className="text-xs text-gray-500">Text</span>
-                <div style={{ marginTop: '4px' }}>
-                  <ColorPickerWithPresets
-                    value={currentAttributes.color || undefined}
-                    onChange={(color) => onUpdate({ color: color || undefined })}
-                  />
-                </div>
-              </div>
-            </Col>
-            <Col span={8}>
-              <div className="mb-2">
-                <span className="text-xs text-gray-500">Container</span>
-                <div style={{ marginTop: '4px' }}>
-                  <ColorPickerWithPresets
-                    value={currentAttributes.containerBackgroundColor || undefined}
-                    onChange={(color) => onUpdate({ containerBackgroundColor: color || undefined })}
-                    placeholder="None"
-                  />
-                </div>
-              </div>
-            </Col>
-          </Row>
-        </InputLayout>
-
-        <InputLayout label="Border radius">
-          <BorderRadiusInput
-            value={currentAttributes.borderRadius}
-            onChange={(value) => onUpdate({ borderRadius: value })}
-            defaultValue={blockDefaults.borderRadius}
-          />
-        </InputLayout>
-
-        <InputLayout label="Button Align">
-          <AlignSelector
-            value={currentAttributes.align || 'center'}
-            onChange={(value) => onUpdate({ align: value })}
-          />
-        </InputLayout>
-
-        <InputLayout label="Font Styling" layout="vertical">
-          <FontStyleInput
-            value={{
-              fontFamily: currentAttributes.fontFamily,
-              fontSize: currentAttributes.fontSize,
-              fontWeight: currentAttributes.fontWeight,
-              fontStyle: currentAttributes.fontStyle,
-              textTransform: currentAttributes.textTransform,
-              textDecoration: currentAttributes.textDecoration,
-              lineHeight: currentAttributes.lineHeight,
-              letterSpacing: currentAttributes.letterSpacing,
-              textAlign: currentAttributes.textAlign
-            }}
-            defaultValue={{
-              fontFamily: blockDefaults.fontFamily,
-              fontSize: blockDefaults.fontSize,
-              fontWeight: blockDefaults.fontWeight,
-              fontStyle: blockDefaults.fontStyle,
-              textTransform: blockDefaults.textTransform || 'none',
-              textDecoration: blockDefaults.textDecoration,
-              lineHeight: blockDefaults.lineHeight,
-              letterSpacing: blockDefaults.letterSpacing,
-              textAlign: blockDefaults.textAlign
-            }}
-            onChange={(values) => {
-              onUpdate({
-                fontFamily: values.fontFamily,
-                fontSize: values.fontSize,
-                fontWeight: values.fontWeight,
-                fontStyle: values.fontStyle,
-                textTransform: values.textTransform,
-                textDecoration: values.textDecoration,
-                lineHeight: values.lineHeight,
-                letterSpacing: values.letterSpacing,
-                textAlign: values.textAlign
-              })
-            }}
-            importedFonts={importedFonts}
-          />
-        </InputLayout>
-
-        <InputLayout label="Button Padding" layout="vertical">
-          <PaddingInput
-            value={currentAttributes.innerPadding}
-            defaultValue={blockDefaults.innerPadding}
-            onChange={(value: string | undefined) => {
-              onUpdate({
-                innerPadding: value
-              })
-            }}
-          />
-        </InputLayout>
-
-        <InputLayout label="Container Padding" layout="vertical">
-          <PaddingInput
-            value={{
-              top: currentAttributes.paddingTop,
-              right: currentAttributes.paddingRight,
-              bottom: currentAttributes.paddingBottom,
-              left: currentAttributes.paddingLeft
-            }}
-            defaultValue={{
-              top: blockDefaults.paddingTop,
-              right: blockDefaults.paddingRight,
-              bottom: blockDefaults.paddingBottom,
-              left: blockDefaults.paddingLeft
-            }}
-            onChange={(values: {
-              top: string | undefined
-              right: string | undefined
-              bottom: string | undefined
-              left: string | undefined
-            }) => {
-              onUpdate({
-                paddingTop: values.top,
-                paddingRight: values.right,
-                paddingBottom: values.bottom,
-                paddingLeft: values.left
-              })
-            }}
-          />
-        </InputLayout>
-
-        <InputLayout label="Border" layout="vertical">
-          <BorderInput
-            className="-mt-6"
-            value={{
-              borderTop: currentAttributes.borderTop,
-              borderRight: currentAttributes.borderRight,
-              borderBottom: currentAttributes.borderBottom,
-              borderLeft: currentAttributes.borderLeft
-            }}
-            onChange={(borderValues) => {
-              onUpdate({
-                borderTop: borderValues.borderTop,
-                borderRight: borderValues.borderRight,
-                borderBottom: borderValues.borderBottom,
-                borderLeft: borderValues.borderLeft
-              })
-            }}
-          />
-        </InputLayout>
-
-        <InputLayout label="Button Size" layout="vertical">
-          <Row gutter={16}>
-            <Col span={12}>
-              <div className="mb-2">
-                <span className="text-xs text-gray-500">Width</span>
-                <div style={{ marginTop: '4px' }}>
-                  <InputNumber
-                    size="small"
-                    value={this.parseWidthNumber(currentAttributes.width)}
-                    onChange={(value) => onUpdate({ width: value ? `${value}px` : undefined })}
-                    placeholder={(this.parseWidthNumber(blockDefaults.width) || 'Auto').toString()}
-                    min={0}
-                    max={1000}
-                    step={1}
-                    suffix="px"
-                    style={{ width: '100%' }}
-                  />
-                </div>
-              </div>
-            </Col>
-            <Col span={12}>
-              <div className="mb-2">
-                <span className="text-xs text-gray-500">Height</span>
-                <div style={{ marginTop: '4px' }}>
-                  <InputNumber
-                    size="small"
-                    value={this.parseHeightNumber(currentAttributes.height)}
-                    onChange={(value) => onUpdate({ height: value ? `${value}px` : undefined })}
-                    placeholder={(
-                      this.parseHeightNumber(blockDefaults.height) || 'Auto'
-                    ).toString()}
-                    min={0}
-                    max={1000}
-                    step={1}
-                    suffix="px"
-                    style={{ width: '100%' }}
-                  />
-                </div>
-              </div>
-            </Col>
-          </Row>
-        </InputLayout>
-
-        <InputLayout label="CSS Class">
-          <StringPopoverInput
-            value={currentAttributes.cssClass || ''}
-            onChange={(value) => onUpdate({ cssClass: value || undefined })}
-            placeholder="Enter CSS class name"
-          />
-        </InputLayout>
-      </PanelLayout>
+      <MjButtonSettingsPanel
+        currentAttributes={currentAttributes}
+        blockDefaults={blockDefaults}
+        onUpdate={onUpdate}
+        emailTree={emailTree}
+        parseWidthNumber={this.parseWidthNumber}
+        parseHeightNumber={this.parseHeightNumber}
+      />
     )
   }
 
@@ -462,6 +494,7 @@ const MjButtonBlockWrapper: React.FC<PreviewProps & { block: EmailBlock }> = ({
   onUpdateBlock,
   attributeDefaults
 }) => {
+  const { t } = useLingui()
   const key = block.id
   const isSelected = selectedBlockId === block.id
   const blockClasses = `email-block-hover ${isSelected ? 'selected' : ''}`.trim()
@@ -601,7 +634,7 @@ const MjButtonBlockWrapper: React.FC<PreviewProps & { block: EmailBlock }> = ({
                 onChange={handleContentChange}
                 readOnly={!isSelected}
                 autoFocus={isSelected}
-                placeholder="Enter button text..."
+                placeholder={t`Enter button text...`}
                 buttons={[
                   'undo',
                   'redo',

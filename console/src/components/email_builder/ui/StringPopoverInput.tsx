@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { Input, Popover, Button } from 'antd'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faExternalLinkAlt } from '@fortawesome/free-solid-svg-icons'
+import { useLingui } from '@lingui/react/macro'
 
 interface StringPopoverInputProps {
   value?: string
@@ -14,11 +15,14 @@ interface StringPopoverInputProps {
 const StringPopoverInput: React.FC<StringPopoverInputProps> = ({
   value,
   onChange,
-  placeholder = 'Enter value',
-  buttonText = 'Set value',
+  placeholder,
+  buttonText,
   validateUri = false
 }) => {
+  const { t } = useLingui()
   const [open, setOpen] = useState(false)
+  const resolvedPlaceholder = placeholder || t`Enter value`
+  const resolvedButtonText = buttonText || t`Set value`
   const [inputValue, setInputValue] = useState(value || '')
 
   const isLiquidExpression = (value: string): boolean => {
@@ -74,7 +78,7 @@ const StringPopoverInput: React.FC<StringPopoverInputProps> = ({
         size="small"
         value={inputValue}
         onChange={(e) => setInputValue(e.target.value)}
-        placeholder={placeholder}
+        placeholder={resolvedPlaceholder}
         onPressEnter={handleSave}
         autoFocus
         allowClear
@@ -83,12 +87,12 @@ const StringPopoverInput: React.FC<StringPopoverInputProps> = ({
       />
       {validateUri && inputValue && !isCurrentValueValid && (
         <div className="text-xs text-red-500 mt-1">
-          Invalid URL format. Use a valid URL or liquid expression like {`{{ variable }}`}
+          {t`Invalid URL format. Use a valid URL or liquid expression like {{ variable }}`}
         </div>
       )}
       <div className="flex justify-end gap-2 mt-2">
         <Button size="small" onClick={handleCancel}>
-          Cancel
+          {t`Cancel`}
         </Button>
         <Button
           size="small"
@@ -96,7 +100,7 @@ const StringPopoverInput: React.FC<StringPopoverInputProps> = ({
           onClick={handleSave}
           disabled={!!(validateUri && inputValue && !isCurrentValueValid)}
         >
-          Save
+          {t`Save`}
         </Button>
       </div>
     </div>
@@ -141,14 +145,14 @@ const StringPopoverInput: React.FC<StringPopoverInputProps> = ({
 
         <Popover
           content={content}
-          title="Edit value"
+          title={t`Edit value`}
           trigger="click"
           open={open}
           onOpenChange={handleOpenChange}
           placement="bottom"
         >
           <Button type="primary" size="small" ghost>
-            Edit value
+            {t`Edit value`}
           </Button>
         </Popover>
       </div>
@@ -158,14 +162,14 @@ const StringPopoverInput: React.FC<StringPopoverInputProps> = ({
   return (
     <Popover
       content={content}
-      title="Set value"
+      title={t`Set value`}
       trigger="click"
       open={open}
       onOpenChange={handleOpenChange}
       placement="bottom"
     >
       <Button size="small" type="primary" ghost className="text-xs">
-        {buttonText}
+        {resolvedButtonText}
       </Button>
     </Popover>
   )
