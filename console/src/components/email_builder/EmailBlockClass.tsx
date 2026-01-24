@@ -468,12 +468,14 @@ export class EmailBlockClass {
       block.children = []
     }
 
-    // Special handling for mj-text blocks to ensure EditorJS content
+    // Special handling for blocks that support content
     if (
       type === 'mj-text' ||
       type === 'mj-button' ||
       type === 'mj-title' ||
-      type === 'mj-preview'
+      type === 'mj-preview' ||
+      type === 'mj-raw' ||
+      type === 'mj-style'
     ) {
       // For mj-text blocks, ensure content is wrapped in <p> tags (Tiptap always wraps in <p>)
       if (type === 'mj-text') {
@@ -486,8 +488,9 @@ export class EmailBlockClass {
           block.content = '<p></p>'
         }
       } else {
-        // For other content-supporting blocks, use content as-is
-        block.content = content
+        // For other content-supporting blocks, use content as-is or initialize to empty string
+        // This ensures the content field exists on the block for mj-raw and mj-style blocks
+        block.content = content ?? ''
       }
     }
 

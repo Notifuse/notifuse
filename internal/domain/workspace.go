@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/Notifuse/notifuse/pkg/crypto"
@@ -358,6 +359,18 @@ func (ws *WorkspaceSettings) Validate(passphrase string) error {
 
 	if ws.CoverURL != "" && !govalidator.IsURL(ws.CoverURL) {
 		return fmt.Errorf("invalid cover URL: %s", ws.CoverURL)
+	}
+
+	// Validate custom endpoint URL if provided
+	if ws.CustomEndpointURL != nil && *ws.CustomEndpointURL != "" {
+		customURL := *ws.CustomEndpointURL
+		if !govalidator.IsURL(customURL) {
+			return fmt.Errorf("invalid custom endpoint URL: %s", customURL)
+		}
+		// Ensure it uses http or https scheme
+		if !strings.HasPrefix(customURL, "http://") && !strings.HasPrefix(customURL, "https://") {
+			return fmt.Errorf("custom endpoint URL must use http or https scheme: %s", customURL)
+		}
 	}
 
 	// FileManager is completely optional, but if any fields are set, validate them

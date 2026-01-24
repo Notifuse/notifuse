@@ -281,6 +281,9 @@ function App() {
 
   const subscribe = async (listId: string) => {
     try {
+      // Clear any previous confirmation result (e.g., from unsubscribe action)
+      setConfirmationResult(null)
+
       // Set processing state
       setProcessingLists((prev) => ({ ...prev, [listId]: true }))
 

@@ -70,7 +70,7 @@
     "html2canvas": "^1.4.1",
     "is-hotkey": "^0.2.0",
     "liquidjs": "^10.24.0",
-    "lodash": "^4.17.21",
+    "lodash": "^4.17.23",
     "lodash.throttle": "^4.1.1",
     "lowlight": "^3.3.0",
     "lucide-react": "^0.487.0",

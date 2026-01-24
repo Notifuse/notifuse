@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [26.10] - 2026-01-23
+
+- **File Manager**: Added warning modal when selecting images larger than 200KB from email editor to prevent slow email loading times
+- **SES Email**: Fixed incorrect quoted-printable encoding in raw emails causing Gmail to break rendering for broadcasts with List-Unsubscribe headers or attachments (#230)
+- **Email Builder**: Fixed Raw HTML block content not appearing in preview or sent emails (#229)
+
 ## [26.9] - 2026-01-21
 
 - **Contacts**: Fixed CSV import not trimming non-breaking spaces (NBSP) from email addresses and string fields (#223)

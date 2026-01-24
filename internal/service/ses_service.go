@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"mime"
 	"mime/multipart"
+	"mime/quotedprintable"
 	"net/textproto"
 	"strings"
 	"unicode"
@@ -990,8 +991,14 @@ func (s *SESService) sendRawEmail(ctx context.Context, sesClient domain.SESClien
 		return fmt.Errorf("failed to create HTML part: %w", err)
 	}
 
-	if _, err := htmlWriter.Write([]byte(request.Content)); err != nil {
+	// Wrap with quoted-printable encoder for RFC 2045 compliance (Issue #230)
+	qpWriter := quotedprintable.NewWriter(htmlWriter)
+	if _, err := qpWriter.Write([]byte(request.Content)); err != nil {
+		qpWriter.Close()
 		return fmt.Errorf("failed to write HTML content: %w", err)
+	}
+	if err := qpWriter.Close(); err != nil {
+		return fmt.Errorf("failed to close quoted-printable writer: %w", err)
 	}
 
 	// Add attachments

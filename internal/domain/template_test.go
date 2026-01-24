@@ -1744,3 +1744,149 @@ func TestEmailTemplate_UnmarshalJSON_Minimal_ExistingFile(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
+
+// TestEmailTemplate_MjRawContent_JSONRoundTrip tests that mj-raw block content is preserved
+// through JSON serialization/deserialization (GitHub issue #229)
+func TestEmailTemplate_MjRawContent_JSONRoundTrip(t *testing.T) {
+	// JSON that represents a template with mj-raw content
+	jsonData := []byte(`{
+		"sender_id": "test-sender",
+		"subject": "Test Subject",
+		"compiled_preview": "<html>test</html>",
+		"visual_editor_tree": {
+			"id": "mjml-1",
+			"type": "mjml",
+			"children": [
+				{
+					"id": "body-1",
+					"type": "mj-body",
+					"children": [
+						{
+							"id": "section-1",
+							"type": "mj-section",
+							"children": [
+								{
+									"id": "column-1",
+									"type": "mj-column",
+									"children": [
+										{
+											"id": "raw-1",
+											"type": "mj-raw",
+											"content": "<table><tr><td>Cell 1</td><td>Cell 2</td></tr></table>",
+											"attributes": {}
+										}
+									]
+								}
+							]
+						}
+					]
+				}
+			]
+		}
+	}`)
+
+	// Unmarshal the JSON
+	var emailTemplate EmailTemplate
+	err := emailTemplate.UnmarshalJSON(jsonData)
+	assert.NoError(t, err, "Failed to unmarshal EmailTemplate")
+
+	// Verify the visual_editor_tree was unmarshaled correctly
+	assert.NotNil(t, emailTemplate.VisualEditorTree, "VisualEditorTree should not be nil")
+	assert.Equal(t, notifuse_mjml.MJMLComponentMjml, emailTemplate.VisualEditorTree.GetType())
+
+	// Find the mj-raw block and verify content
+	var rawBlock notifuse_mjml.EmailBlock
+	bodyBlock := emailTemplate.VisualEditorTree.GetChildren()[0]
+	sectionBlock := bodyBlock.GetChildren()[0]
+	columnBlock := sectionBlock.GetChildren()[0]
+	rawBlock = columnBlock.GetChildren()[0]
+
+	assert.Equal(t, notifuse_mjml.MJMLComponentMjRaw, rawBlock.GetType(), "Expected mj-raw block")
+	content := rawBlock.GetContent()
+	assert.NotNil(t, content, "mj-raw content should not be nil")
+	assert.Equal(t, "<table><tr><td>Cell 1</td><td>Cell 2</td></tr></table>", *content)
+
+	// Marshal back to JSON
+	marshaledJSON, err := emailTemplate.MarshalJSON()
+	assert.NoError(t, err, "Failed to marshal EmailTemplate")
+
+	// Verify the content is preserved in the marshaled JSON
+	assert.Contains(t, string(marshaledJSON), "Cell 1", "Marshaled JSON should contain mj-raw content")
+	assert.Contains(t, string(marshaledJSON), "Cell 2", "Marshaled JSON should contain mj-raw content")
+
+	// Unmarshal again to verify round-trip
+	var emailTemplate2 EmailTemplate
+	err = emailTemplate2.UnmarshalJSON(marshaledJSON)
+	assert.NoError(t, err, "Failed to unmarshal EmailTemplate after round-trip")
+
+	// Find the mj-raw block again and verify content
+	var rawBlock2 notifuse_mjml.EmailBlock
+	bodyBlock2 := emailTemplate2.VisualEditorTree.GetChildren()[0]
+	sectionBlock2 := bodyBlock2.GetChildren()[0]
+	columnBlock2 := sectionBlock2.GetChildren()[0]
+	rawBlock2 = columnBlock2.GetChildren()[0]
+
+	content2 := rawBlock2.GetContent()
+	assert.NotNil(t, content2, "mj-raw content should not be nil after round-trip")
+	assert.Equal(t, "<table><tr><td>Cell 1</td><td>Cell 2</td></tr></table>", *content2)
+}
+
+// TestEmailTemplate_MjRawContent_Value_Scan tests that mj-raw content is preserved
+// when using database Value() and Scan() methods (simulating database save/load)
+func TestEmailTemplate_MjRawContent_Value_Scan(t *testing.T) {
+	// Create an EmailTemplate with mj-raw content
+	rawContent := "<table><tr><td>Cell 1</td><td>Cell 2</td></tr></table>"
+
+	rawBase := notifuse_mjml.NewBaseBlock("raw-1", notifuse_mjml.MJMLComponentMjRaw)
+	rawBase.Content = &rawContent
+	rawBlock := &notifuse_mjml.MJRawBlock{BaseBlock: rawBase}
+
+	columnBlock := &notifuse_mjml.MJColumnBlock{BaseBlock: notifuse_mjml.NewBaseBlock("column-1", notifuse_mjml.MJMLComponentMjColumn)}
+	columnBlock.Children = []notifuse_mjml.EmailBlock{rawBlock}
+
+	sectionBlock := &notifuse_mjml.MJSectionBlock{BaseBlock: notifuse_mjml.NewBaseBlock("section-1", notifuse_mjml.MJMLComponentMjSection)}
+	sectionBlock.Children = []notifuse_mjml.EmailBlock{columnBlock}
+
+	bodyBlock := &notifuse_mjml.MJBodyBlock{BaseBlock: notifuse_mjml.NewBaseBlock("body-1", notifuse_mjml.MJMLComponentMjBody)}
+	bodyBlock.Children = []notifuse_mjml.EmailBlock{sectionBlock}
+
+	mjmlBlock := &notifuse_mjml.MJMLBlock{BaseBlock: notifuse_mjml.NewBaseBlock("mjml-1", notifuse_mjml.MJMLComponentMjml)}
+	mjmlBlock.Children = []notifuse_mjml.EmailBlock{bodyBlock}
+
+	emailTemplate := &EmailTemplate{
+		SenderID:         "test-sender",
+		Subject:          "Test Subject",
+		CompiledPreview:  "<html>test</html>",
+		VisualEditorTree: mjmlBlock,
+	}
+
+	// Test Value() - simulates database save
+	value, err := emailTemplate.Value()
+	assert.NoError(t, err, "Value() should not return error")
+	assert.NotNil(t, value, "Value() should return data")
+
+	// Verify the value contains the content
+	valueBytes, ok := value.([]byte)
+	assert.True(t, ok, "Value() should return []byte")
+	assert.Contains(t, string(valueBytes), "Cell 1", "Value() should contain mj-raw content")
+
+	// Test Scan() - simulates database load
+	var emailTemplate2 EmailTemplate
+	err = emailTemplate2.Scan(valueBytes)
+	assert.NoError(t, err, "Scan() should not return error")
+
+	// Verify the visual_editor_tree was scanned correctly
+	assert.NotNil(t, emailTemplate2.VisualEditorTree, "VisualEditorTree should not be nil after Scan")
+
+	// Find the mj-raw block and verify content
+	var rawBlock2 notifuse_mjml.EmailBlock
+	bodyBlock2 := emailTemplate2.VisualEditorTree.GetChildren()[0]
+	sectionBlock2 := bodyBlock2.GetChildren()[0]
+	columnBlock2 := sectionBlock2.GetChildren()[0]
+	rawBlock2 = columnBlock2.GetChildren()[0]
+
+	assert.Equal(t, notifuse_mjml.MJMLComponentMjRaw, rawBlock2.GetType(), "Expected mj-raw block after Scan")
+	content2 := rawBlock2.GetContent()
+	assert.NotNil(t, content2, "mj-raw content should not be nil after Scan")
+	assert.Equal(t, rawContent, *content2, "mj-raw content should be preserved after Value/Scan round-trip")
+}

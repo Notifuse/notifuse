@@ -4,6 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
+	"mime/quotedprintable"
+	"strings"
 	"testing"
 
 	"github.com/Notifuse/notifuse/internal/domain"
@@ -3292,4 +3295,166 @@ func TestSendRawEmail_WithNonASCIISubject(t *testing.T) {
 
 	err := service.SendEmail(context.Background(), request)
 	assert.NoError(t, err)
+}
+
+// TestSendEmail_QuotedPrintableEncoding verifies that HTML content is properly
+// quoted-printable encoded when using SendRawEmail (Issue #230)
+func TestSendEmail_QuotedPrintableEncoding(t *testing.T) {
+	testCases := []struct {
+		name            string
+		htmlContent     string
+		expectedEncoded string // substring that should appear in QP-encoded output
+		description     string
+	}{
+		{
+			name:            "equals sign encoding",
+			htmlContent:     `<html><body>a=b test</body></html>`,
+			expectedEncoded: "=3D", // '=' becomes '=3D' in QP
+			description:     "equals sign must be encoded as =3D",
+		},
+		{
+			name:            "long line soft wrapping",
+			htmlContent:     `<html><body>` + strings.Repeat("x", 100) + `</body></html>`,
+			expectedEncoded: "=\r\n", // soft line break
+			description:     "lines > 76 chars should have soft line breaks",
+		},
+		{
+			name:            "unicode content",
+			htmlContent:     `<html><body>Héllo Wörld</body></html>`,
+			expectedEncoded: "=C3=A9", // é encoded as UTF-8 bytes C3 A9
+			description:     "non-ASCII characters must be QP encoded",
+		},
+		{
+			name:            "HTML attributes with equals",
+			htmlContent:     `<html><body style="background-color=#ffffff;">Test</body></html>`,
+			expectedEncoded: "=3D#ffffff",
+			description:     "HTML attributes with = must be encoded",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			service, mockSES, _, _, _ := createMockSESService(t)
+
+			provider := domain.EmailProvider{
+				SES: &domain.AmazonSESSettings{
+					AccessKey: "test-access-key",
+					SecretKey: "test-secret-key",
+					Region:    "us-east-1",
+				},
+			}
+
+			mockSES.EXPECT().
+				ListConfigurationSetsWithContext(gomock.Any(), gomock.Any()).
+				Return(&ses.ListConfigurationSetsOutput{}, nil)
+
+			mockSES.EXPECT().
+				SendRawEmailWithContext(gomock.Any(), gomock.Any()).
+				DoAndReturn(func(_ context.Context, input *ses.SendRawEmailInput, _ ...request.Option) (*ses.SendRawEmailOutput, error) {
+					assert.NotNil(t, input.RawMessage)
+					rawData := string(input.RawMessage.Data)
+
+					// Verify Content-Transfer-Encoding header is present
+					assert.Contains(t, rawData, "Content-Transfer-Encoding: quoted-printable",
+						"HTML part must have quoted-printable encoding header")
+
+					// Verify the content is actually QP encoded
+					assert.Contains(t, rawData, tc.expectedEncoded, tc.description)
+
+					return &ses.SendRawEmailOutput{}, nil
+				})
+
+			request := domain.SendEmailProviderRequest{
+				WorkspaceID:   "workspace",
+				IntegrationID: "test-integration-id",
+				MessageID:     "test-qp-message",
+				FromAddress:   "from@example.com",
+				FromName:      "From",
+				To:            "to@example.com",
+				Subject:       "Test QP Encoding",
+				Content:       tc.htmlContent,
+				Provider:      &provider,
+				EmailOptions: domain.EmailOptions{
+					ListUnsubscribeURL: "https://example.com/unsubscribe/test", // Forces raw email path
+				},
+			}
+			err := service.SendEmail(context.Background(), request)
+			assert.NoError(t, err)
+		})
+	}
+}
+
+// TestSendEmail_QuotedPrintableRoundTrip verifies that QP-encoded content
+// can be decoded back to the original content (Issue #230)
+func TestSendEmail_QuotedPrintableRoundTrip(t *testing.T) {
+	service, mockSES, _, _, _ := createMockSESService(t)
+
+	provider := domain.EmailProvider{
+		SES: &domain.AmazonSESSettings{
+			AccessKey: "test-access-key",
+			SecretKey: "test-secret-key",
+			Region:    "us-east-1",
+		},
+	}
+
+	originalContent := `<html><body style="color=#333;">Price: $100 = €90</body></html>`
+	var capturedRawData string
+
+	mockSES.EXPECT().
+		ListConfigurationSetsWithContext(gomock.Any(), gomock.Any()).
+		Return(&ses.ListConfigurationSetsOutput{}, nil)
+
+	mockSES.EXPECT().
+		SendRawEmailWithContext(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, input *ses.SendRawEmailInput, _ ...request.Option) (*ses.SendRawEmailOutput, error) {
+			capturedRawData = string(input.RawMessage.Data)
+			return &ses.SendRawEmailOutput{}, nil
+		})
+
+	request := domain.SendEmailProviderRequest{
+		WorkspaceID:   "workspace",
+		IntegrationID: "test-integration-id",
+		MessageID:     "test-roundtrip",
+		FromAddress:   "from@example.com",
+		FromName:      "From",
+		To:            "to@example.com",
+		Subject:       "Round Trip Test",
+		Content:       originalContent,
+		Provider:      &provider,
+		EmailOptions: domain.EmailOptions{
+			ListUnsubscribeURL: "https://example.com/unsubscribe/test",
+		},
+	}
+	err := service.SendEmail(context.Background(), request)
+	assert.NoError(t, err)
+
+	// Extract the HTML part from the MIME message and decode it
+	// Find the QP encoding header
+	qpHeaderIndex := strings.Index(capturedRawData, "Content-Transfer-Encoding: quoted-printable")
+	assert.Greater(t, qpHeaderIndex, 0, "Should find QP encoding header")
+
+	// Find the blank line after headers (start of body)
+	bodyStartOffset := strings.Index(capturedRawData[qpHeaderIndex:], "\r\n\r\n")
+	assert.Greater(t, bodyStartOffset, 0, "Should find blank line after headers")
+
+	// Calculate actual content start position
+	contentStart := qpHeaderIndex + bodyStartOffset + 4 // +4 for \r\n\r\n
+
+	// Find the next boundary (end of HTML part)
+	boundaryIndex := strings.Index(capturedRawData[contentStart:], "\r\n--")
+
+	var encodedContent string
+	if boundaryIndex > 0 {
+		encodedContent = capturedRawData[contentStart : contentStart+boundaryIndex]
+	} else {
+		encodedContent = capturedRawData[contentStart:]
+	}
+
+	// Decode the QP content
+	reader := quotedprintable.NewReader(strings.NewReader(encodedContent))
+	decodedBytes, err := io.ReadAll(reader)
+	assert.NoError(t, err, "QP decoding should succeed")
+
+	decodedContent := string(decodedBytes)
+	assert.Equal(t, originalContent, decodedContent, "Decoded content should match original")
 }

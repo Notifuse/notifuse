@@ -18,6 +18,7 @@ interface SelectFileButtonProps {
   type?: 'primary' | 'default' | 'dashed' | 'link' | 'text'
   ghost?: boolean
   style?: React.CSSProperties
+  maxFileSizeWarning?: number // Threshold in bytes, default 200KB (204800)
 }
 
 interface FileManagerProviderProps {
@@ -44,7 +45,10 @@ export const FileManagerProvider: React.FC<FileManagerProviderProps> = ({
     onSelect: (url: string) => void
     acceptFileType?: string
     acceptItem?: (item: StorageObject) => boolean
+    maxFileSizeWarning?: number
   } | null>(null)
+  const [warningModalVisible, setWarningModalVisible] = useState(false)
+  const [pendingFile, setPendingFile] = useState<StorageObject | null>(null)
 
   // Close file manager modal
   const closeModal = () => {
@@ -57,11 +61,38 @@ export const FileManagerProvider: React.FC<FileManagerProviderProps> = ({
     if (currentOptions?.onSelect && items.length > 0) {
       const selectedFile = items[0]
       if (selectedFile.file_info?.url) {
+        const maxSize = currentOptions.maxFileSizeWarning ?? 204800 // Default 200KB
+
+        // Check if file exceeds size threshold
+        if (selectedFile.file_info.size > maxSize) {
+          setPendingFile(selectedFile)
+          setWarningModalVisible(true)
+          return
+        }
+
+        // File is under threshold, proceed normally
         currentOptions.onSelect(selectedFile.file_info.url)
         message.success(`Selected: ${selectedFile.name}`)
         closeModal()
       }
     }
+  }
+
+  // Handle confirm large file selection
+  const handleConfirmLargeFile = () => {
+    if (pendingFile && currentOptions?.onSelect) {
+      currentOptions.onSelect(pendingFile.file_info.url)
+      message.success(`Selected: ${pendingFile.name}`)
+    }
+    setWarningModalVisible(false)
+    setPendingFile(null)
+    closeModal()
+  }
+
+  // Handle cancel large file selection
+  const handleCancelLargeFile = () => {
+    setWarningModalVisible(false)
+    setPendingFile(null)
   }
 
   // Handle file manager errors
@@ -81,13 +112,15 @@ export const FileManagerProvider: React.FC<FileManagerProviderProps> = ({
     block = false,
     type = 'primary',
     ghost = false,
-    style
+    style,
+    maxFileSizeWarning
   }) => {
     const handleOpenFileManager = () => {
       setCurrentOptions({
         onSelect,
         acceptFileType,
-        acceptItem
+        acceptItem,
+        maxFileSizeWarning
       })
       setIsModalVisible(true)
     }
@@ -145,6 +178,32 @@ export const FileManagerProvider: React.FC<FileManagerProviderProps> = ({
             readOnly={readOnly}
           />
         )}
+      </Modal>
+
+      {/* Large File Warning Modal */}
+      <Modal
+        title="Large File Warning"
+        open={warningModalVisible}
+        onCancel={handleCancelLargeFile}
+        footer={[
+          <Button key="cancel" onClick={handleCancelLargeFile}>
+            Cancel
+          </Button>,
+          <Button key="confirm" type="primary" onClick={handleConfirmLargeFile}>
+            Use Anyway
+          </Button>
+        ]}
+        zIndex={1400}
+      >
+        <p>
+          The selected file <strong>{pendingFile?.name}</strong> is{' '}
+          <strong>{pendingFile?.file_info?.size_human}</strong>.
+        </p>
+        <p>
+          Large images can significantly slow down email loading times for recipients,
+          especially on mobile devices or slow connections.
+        </p>
+        <p>Are you sure you want to use this file?</p>
       </Modal>
     </FileManagerContext.Provider>
   )
