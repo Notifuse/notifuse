@@ -486,9 +486,14 @@ export const test = base.extend<{
     // Setup API mocks before any navigation (empty data)
     await setupApiMocks(page, { withData: false })
 
-    // Set auth token in localStorage via page context
+    // Set auth token and force English locale in localStorage via page context
+    // Also clear any cached locale to ensure fresh start
     await page.addInitScript(() => {
+      // Clear storage first
+      localStorage.clear()
+      // Set required values
       localStorage.setItem('auth_token', 'test-token-for-e2e')
+      localStorage.setItem('locale', 'en')
     })
 
     // eslint-disable-next-line react-hooks/rules-of-hooks -- use() is Playwright's fixture API, not a React hook
@@ -502,9 +507,14 @@ export const test = base.extend<{
     // Setup API mocks before any navigation (with mock data)
     await setupApiMocks(page, { withData: true })
 
-    // Set auth token in localStorage via page context
+    // Set auth token and force English locale in localStorage via page context
+    // Also clear any cached locale to ensure fresh start
     await page.addInitScript(() => {
+      // Clear storage first
+      localStorage.clear()
+      // Set required values
       localStorage.setItem('auth_token', 'test-token-for-e2e')
+      localStorage.setItem('locale', 'en')
     })
 
     // eslint-disable-next-line react-hooks/rules-of-hooks -- use() is Playwright's fixture API, not a React hook

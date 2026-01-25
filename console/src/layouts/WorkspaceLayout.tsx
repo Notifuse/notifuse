@@ -129,7 +129,7 @@ export function WorkspaceLayout() {
     if (!userPermissions) return false
     // User needs at least read or write permission to access the resource
     const permissions = userPermissions[resource]
-    return permissions.read || permissions.write
+    return permissions?.read || permissions?.write || false
   }
 
   // Determine which key should be selected based on the current path
