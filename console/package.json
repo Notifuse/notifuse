@@ -134,6 +134,7 @@
     "@vitejs/plugin-react": "^5.0.1",
     "autoprefixer": "^10.4.21",
     "babel-plugin-macros": "^3.1.0",
+    "baseline-browser-mapping": "^2.9.18",
     "eslint": "^9.19.0",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.5",
