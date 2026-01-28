@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [26.13] - 2026-01-25
+
+- **Segments**: Added real-time validation when creating segments to detect duplicate IDs before submission (#243)
+- **Email Builder**: Fixed clicking image blocks with links navigating away instead of allowing block selection (#239)
+- **Email Builder**: Fixed popover buttons overflowing in certain languages by using auto-width with minimum constraint (#240)
+- **Amazon SES**: Fixed Notifuse message ID extraction from webhook
+
 ## [26.12] - 2026-01-24
 
 - **Transactional Notifications**: Added card-based UI with delivery stats (sent, delivered, failed, bounced) and period selector (7D/30D/60D)

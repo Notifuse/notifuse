@@ -13,7 +13,6 @@ import (
 	"unicode"
 
 	"github.com/Notifuse/notifuse/internal/domain"
-	"golang.org/x/net/idna"
 	"github.com/Notifuse/notifuse/pkg/logger"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -21,6 +20,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ses"
 	"github.com/aws/aws-sdk-go/service/sns"
+	"golang.org/x/net/idna"
 )
 
 // Custom domain errors for better testability
@@ -1072,6 +1072,16 @@ func (s *SESService) sendRawEmail(ctx context.Context, sesClient domain.SESClien
 	// Add configuration set if available
 	if configSetName != "" {
 		rawInput.ConfigurationSetName = aws.String(configSetName)
+	}
+
+	// Add custom messageID as a tag (same as SendEmail API)
+	if request.MessageID != "" {
+		rawInput.Tags = []*ses.MessageTag{
+			{
+				Name:  aws.String("notifuse_message_id"),
+				Value: aws.String(request.MessageID),
+			},
+		}
 	}
 
 	// Add BCC addresses if provided (not in raw message headers for privacy)

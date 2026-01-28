@@ -14,6 +14,7 @@ import {
   message
 } from 'antd'
 import React, { useMemo, useState, useEffect } from 'react'
+import { debounce } from 'lodash'
 import { useParams } from '@tanstack/react-router'
 import { useAuth } from '../../contexts/AuthContext'
 import { TreeNodeInput, HasLeaf } from './input'
@@ -26,6 +27,7 @@ import {
   createSegment,
   updateSegment,
   previewSegment,
+  getSegment,
   CreateSegmentRequest,
   UpdateSegmentRequest,
   PreviewSegmentRequest,
@@ -125,6 +127,10 @@ const DrawerSegment = (props: {
   const [loadingPreview, setLoadingPreview] = useState(false)
   const [previewedData, setPreviewedData] = useState<string | undefined>() // track the tree hash to avoid re-render
   const [previewResponse, setPreviewResponse] = useState<PreviewSegmentResponse | undefined>()
+  const [idValidation, setIdValidation] = useState<{
+    status: '' | 'validating' | 'error' | 'success'
+    message: string
+  }>({ status: '', message: '' })
 
   // Find the current workspace
   const workspace = useMemo(() => {
@@ -168,6 +174,56 @@ const DrawerSegment = (props: {
 
   const lists = listsData?.lists || []
 
+  // Generate segment ID from name (same logic as in onFinish)
+  const generateSegmentId = (name: string): string => {
+    return name
+      .toLowerCase()
+      .replace(/[\s-]+/g, '_')
+      .replace(/[^a-z0-9_]/g, '')
+      .replace(/^_+|_+$/g, '')
+      .replace(/_+/g, '_')
+  }
+
+  // Debounced function to check if segment ID exists
+  const checkIdExists = useMemo(
+    () =>
+      debounce(async (name: string) => {
+        // Skip validation in edit mode or if no workspace
+        if (!name || !workspaceId || props.segment) {
+          setIdValidation({ status: '', message: '' })
+          return
+        }
+
+        const id = generateSegmentId(name)
+        if (!id) {
+          setIdValidation({ status: '', message: '' })
+          return
+        }
+
+        setIdValidation({ status: 'validating', message: '' })
+
+        try {
+          await getSegment({ workspace_id: workspaceId, id })
+          // Segment exists (active or deleted) - show error
+          setIdValidation({
+            status: 'error',
+            message: t`A segment with ID "${id}" already exists`
+          })
+        } catch {
+          // Segment not found - ID is available
+          setIdValidation({ status: 'success', message: '' })
+        }
+      }, 500),
+    [workspaceId, props.segment, t]
+  )
+
+  // Cleanup debounce on unmount
+  useEffect(() => {
+    return () => {
+      checkIdExists.cancel()
+    }
+  }, [checkIdExists])
+
   const preview = async () => {
     if (loadingPreview || !workspaceId) return
     setLoadingPreview(true)
@@ -210,6 +266,12 @@ const DrawerSegment = (props: {
 
   const onFinish = async (values: { name: string; color: string; tree: TreeNode; timezone: string }) => {
     if (loading || !workspaceId) return
+
+    // Block submission if ID validation failed (only for create mode)
+    if (!props.segment && idValidation.status === 'error') {
+      message.error(t`Please choose a different segment name`)
+      return
+    }
 
     setLoading(true)
 
@@ -309,8 +371,26 @@ const DrawerSegment = (props: {
             <Col span={18}>
               <Form.Item label={t`Name`} required>
                 <Space.Compact style={{ width: '100%' }}>
-                  <Form.Item name="name" noStyle rules={[{ required: true, type: 'string' }]}>
-                    <Input placeholder={t`i.e: Big spenders...`} style={{ flex: 1 }} />
+                  <Form.Item
+                    name="name"
+                    rules={[{ required: true, type: 'string' }]}
+                    validateStatus={
+                      idValidation.status === 'validating'
+                        ? 'validating'
+                        : idValidation.status === 'error'
+                          ? 'error'
+                          : idValidation.status === 'success'
+                            ? 'success'
+                            : undefined
+                    }
+                    help={idValidation.status === 'error' ? idValidation.message : undefined}
+                    hasFeedback={!props.segment && idValidation.status !== ''}
+                    style={{ flex: 1, marginBottom: 0 }}
+                  >
+                    <Input
+                      placeholder={t`i.e: Big spenders...`}
+                      onChange={(e) => checkIdExists(e.target.value)}
+                    />
                   </Form.Item>
                   <Form.Item noStyle name="color">
                     <Select

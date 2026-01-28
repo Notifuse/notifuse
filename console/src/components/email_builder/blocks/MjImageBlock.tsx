@@ -340,12 +340,13 @@ export class MjImageBlock extends BaseEmailBlock {
         href={attrs.href}
         target={attrs.target || '_blank'}
         rel={attrs.rel}
-        style={{ 
+        style={{
           textDecoration: 'none',
           display: 'block',
           borderRadius: attrs.borderRadius,
           overflow: 'hidden'
         }}
+        onClick={(e) => e.preventDefault()}
       >
         {imageElement}
       </a>

@@ -73,7 +73,7 @@ const StringPopoverInput: React.FC<StringPopoverInputProps> = ({
   }
 
   const content = (
-    <div className="w-64">
+    <div className="w-fit min-w-64">
       <Input
         size="small"
         value={inputValue}

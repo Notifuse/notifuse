@@ -2862,6 +2862,12 @@ func TestSendEmail_VerifyMIMEStructureWithAttachments(t *testing.T) {
 			assert.Contains(t, rawData, "Content-Transfer-Encoding: base64")
 			assert.Contains(t, rawData, "Content-Disposition: attachment; filename=\"test.txt\"")
 
+			// Verify tags are included in SendRawEmail
+			assert.NotNil(t, input.Tags, "Tags should be set for SendRawEmail")
+			assert.Len(t, input.Tags, 1)
+			assert.Equal(t, "notifuse_message_id", *input.Tags[0].Name)
+			assert.Equal(t, "test-message-id", *input.Tags[0].Value)
+
 			return &ses.SendRawEmailOutput{}, nil
 		})
 
@@ -2908,13 +2914,19 @@ func TestSendEmail_WithListUnsubscribeHeaders(t *testing.T) {
 			assert.Contains(t, rawData, "List-Unsubscribe: <https://example.com/unsubscribe/abc123>")
 			assert.Contains(t, rawData, "List-Unsubscribe-Post: List-Unsubscribe=One-Click")
 
+			// Verify tags are included in SendRawEmail
+			assert.NotNil(t, input.Tags, "Tags should be set for SendRawEmail")
+			assert.Len(t, input.Tags, 1)
+			assert.Equal(t, "notifuse_message_id", *input.Tags[0].Name)
+			assert.Equal(t, "test-message-id", *input.Tags[0].Value)
+
 			return &ses.SendRawEmailOutput{}, nil
 		})
 
 	request := domain.SendEmailProviderRequest{
 		WorkspaceID:   "workspace",
 		IntegrationID: "test-integration-id",
-		MessageID:     "message",
+		MessageID:     "test-message-id",
 		FromAddress:   "from@example.com",
 		FromName:      "From",
 		To:            "to@example.com",

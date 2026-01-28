@@ -193,7 +193,10 @@ export const ColorButton: React.FC<ColorButtonProps> = ({
         >
           <div style={{ position: 'relative' }}>
             <ToolbarButton title={title} isActive={isActive}>
-              <FontAwesomeIcon icon={icon as import('@fortawesome/fontawesome-svg-core').IconProp} size="xs" />
+              <FontAwesomeIcon
+                icon={icon as import('@fortawesome/fontawesome-svg-core').IconProp}
+                size="xs"
+              />
             </ToolbarButton>
             <div
               style={{
@@ -300,7 +303,7 @@ export const LinkButton: React.FC<LinkButtonProps> = ({ editor, title }) => {
         setLinkType('url')
       }
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- getCurrentLink is stable
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- getCurrentLink is stable
   }, [visible, isActiveLink])
 
   const handleInsertLink = () => {
@@ -355,7 +358,7 @@ export const LinkButton: React.FC<LinkButtonProps> = ({ editor, title }) => {
   return (
     <Popover
       content={
-        <div style={{ width: '300px', padding: '8px' }}>
+        <div style={{ minWidth: '300px', padding: '8px' }}>
           <div style={{ marginBottom: '12px' }}>
             <label
               style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}
@@ -377,10 +380,10 @@ export const LinkButton: React.FC<LinkButtonProps> = ({ editor, title }) => {
               {linkType === 'url'
                 ? t`URL`
                 : linkType === 'email'
-                ? t`Email Address`
-                : linkType === 'phone'
-                ? t`Phone Number`
-                : t`Anchor ID`}
+                  ? t`Email Address`
+                  : linkType === 'phone'
+                    ? t`Phone Number`
+                    : t`Anchor ID`}
             </label>
             <Input
               value={linkValue}
@@ -395,7 +398,7 @@ export const LinkButton: React.FC<LinkButtonProps> = ({ editor, title }) => {
               {t`Cancel`}
             </Button>
             {isActiveLink && (
-              <Button size="small" onClick={handleRemoveLink} danger>
+              <Button size="small" onClick={handleRemoveLink} color="danger" variant="outlined">
                 {t`Remove Link`}
               </Button>
             )}

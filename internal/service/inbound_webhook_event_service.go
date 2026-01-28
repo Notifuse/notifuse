@@ -260,6 +260,18 @@ func isHardBounce(bounceType, bounceCategory string) bool {
 	return false
 }
 
+// extractXMessageIDFromHeaders searches for the X-Message-ID header in SES mail headers.
+// This is used as a fallback when notifuse_message_id tag is not present
+// (e.g., for emails sent via SendRawEmail before tags were added).
+func extractXMessageIDFromHeaders(headers []domain.SESHeader) string {
+	for _, header := range headers {
+		if strings.EqualFold(header.Name, "X-Message-ID") {
+			return header.Value
+		}
+	}
+	return ""
+}
+
 // processSESWebhook processes a webhook event from Amazon SES
 func (s *InboundWebhookEventService) processSESWebhook(integrationID string, rawPayload []byte) (events []*domain.InboundWebhookEvent, err error) {
 
@@ -342,6 +354,10 @@ func (s *InboundWebhookEventService) processSESWebhook(integrationID string, raw
 				notifuseMessageID = ids[0]
 			}
 		}
+		// Fallback to X-Message-ID header if tag not found
+		if notifuseMessageID == "" {
+			notifuseMessageID = extractXMessageIDFromHeaders(bounceNotification.Mail.Headers)
+		}
 
 		// Parse timestamp
 		if t, err := time.Parse(time.RFC3339, bounceNotification.Bounce.Timestamp); err == nil {
@@ -366,6 +382,10 @@ func (s *InboundWebhookEventService) processSESWebhook(integrationID string, raw
 					notifuseMessageID = ids[0]
 				}
 			}
+			// Fallback to X-Message-ID header if tag not found
+			if notifuseMessageID == "" {
+				notifuseMessageID = extractXMessageIDFromHeaders(complaintNotification.Mail.Headers)
+			}
 
 			// Parse timestamp
 			if t, err := time.Parse(time.RFC3339, complaintNotification.Complaint.Timestamp); err == nil {
@@ -388,6 +408,10 @@ func (s *InboundWebhookEventService) processSESWebhook(integrationID string, raw
 					if ids, ok := deliveryNotification.Mail.Tags["notifuse_message_id"]; ok && len(ids) > 0 {
 						notifuseMessageID = ids[0]
 					}
+				}
+				// Fallback to X-Message-ID header if tag not found
+				if notifuseMessageID == "" {
+					notifuseMessageID = extractXMessageIDFromHeaders(deliveryNotification.Mail.Headers)
 				}
 
 				// Parse timestamp

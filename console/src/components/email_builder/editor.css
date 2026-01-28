@@ -18,10 +18,17 @@
 }
 
 /* Popover content buttons (for link and emoji popovers) */
-.tiptap-link-popover .ant-btn,
-.tiptap-emoji-popover .ant-btn {
-    color: inherit !important;
-    /* Let these inherit from their parent context */
+/* Only apply to default buttons, not primary/danger which need white text */
+.tiptap-link-popover .ant-btn-default,
+.tiptap-emoji-popover .ant-btn-default {
+    color: rgba(0, 0, 0, 0.88) !important;
+}
+
+.tiptap-link-popover .ant-btn-primary,
+.tiptap-link-popover .ant-btn-dangerous,
+.tiptap-emoji-popover .ant-btn-primary,
+.tiptap-emoji-popover .ant-btn-dangerous {
+    color: #fff !important;
 }
 
 /* Input elements inside TiptapToolbar popovers */

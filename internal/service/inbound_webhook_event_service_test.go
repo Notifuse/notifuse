@@ -603,6 +603,119 @@ func TestProcessSESWebhook(t *testing.T) {
 		assert.Nil(t, events)
 		assert.Contains(t, err.Error(), "failed to confirm subscription")
 	})
+
+	t.Run("Bounce Event with X-Message-ID Header Fallback", func(t *testing.T) {
+		// Create test bounce payload with X-Message-ID in headers but no tags
+		payload := domain.SESWebhookPayload{
+			Message: `{"eventType":"Bounce","bounce":{"bounceType":"Permanent","bounceSubType":"General","bouncedRecipients":[{"emailAddress":"test@example.com","diagnosticCode":"554"}],"timestamp":"2023-01-01T12:00:00Z"},"mail":{"messageId":"provider-msg-id","headers":[{"name":"X-Message-ID","value":"notifuse-header-123"}]}}`,
+		}
+		rawPayload, err := json.Marshal(payload)
+		require.NoError(t, err)
+
+		events, err := service.processSESWebhook(integrationID, rawPayload)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, events)
+		assert.Len(t, events, 1)
+		assert.NotNil(t, events[0].MessageID)
+		assert.Equal(t, "notifuse-header-123", *events[0].MessageID)
+	})
+
+	t.Run("Delivery Event with X-Message-ID Header Fallback", func(t *testing.T) {
+		// Create test delivery payload with X-Message-ID in headers but no tags
+		payload := domain.SESWebhookPayload{
+			Message: `{"eventType":"Delivery","delivery":{"recipients":["test@example.com"],"timestamp":"2023-01-01T12:00:00Z"},"mail":{"messageId":"provider-msg-id","headers":[{"name":"X-Message-ID","value":"notifuse-header-456"}]}}`,
+		}
+		rawPayload, err := json.Marshal(payload)
+		require.NoError(t, err)
+
+		events, err := service.processSESWebhook(integrationID, rawPayload)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, events)
+		assert.Len(t, events, 1)
+		assert.NotNil(t, events[0].MessageID)
+		assert.Equal(t, "notifuse-header-456", *events[0].MessageID)
+	})
+
+	t.Run("Complaint Event with X-Message-ID Header Fallback", func(t *testing.T) {
+		// Create test complaint payload with X-Message-ID in headers but no tags
+		payload := domain.SESWebhookPayload{
+			Message: `{"eventType":"Complaint","complaint":{"complainedRecipients":[{"emailAddress":"test@example.com"}],"timestamp":"2023-01-01T12:00:00Z","complaintFeedbackType":"abuse"},"mail":{"messageId":"provider-msg-id","headers":[{"name":"X-Message-ID","value":"notifuse-header-789"}]}}`,
+		}
+		rawPayload, err := json.Marshal(payload)
+		require.NoError(t, err)
+
+		events, err := service.processSESWebhook(integrationID, rawPayload)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, events)
+		assert.Len(t, events, 1)
+		assert.NotNil(t, events[0].MessageID)
+		assert.Equal(t, "notifuse-header-789", *events[0].MessageID)
+	})
+
+	t.Run("Tags take priority over X-Message-ID header fallback", func(t *testing.T) {
+		// Create test delivery payload with both tags AND headers
+		payload := domain.SESWebhookPayload{
+			Message: `{"eventType":"Delivery","delivery":{"recipients":["test@example.com"],"timestamp":"2023-01-01T12:00:00Z"},"mail":{"messageId":"provider-msg-id","tags":{"notifuse_message_id":["tag-message-id"]},"headers":[{"name":"X-Message-ID","value":"header-message-id"}]}}`,
+		}
+		rawPayload, err := json.Marshal(payload)
+		require.NoError(t, err)
+
+		events, err := service.processSESWebhook(integrationID, rawPayload)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, events)
+		assert.Len(t, events, 1)
+		assert.NotNil(t, events[0].MessageID)
+		assert.Equal(t, "tag-message-id", *events[0].MessageID) // Tags have priority
+	})
+}
+
+func TestExtractXMessageIDFromHeaders(t *testing.T) {
+	tests := []struct {
+		name     string
+		headers  []domain.SESHeader
+		expected string
+	}{
+		{
+			name:     "empty headers",
+			headers:  []domain.SESHeader{},
+			expected: "",
+		},
+		{
+			name: "X-Message-ID present",
+			headers: []domain.SESHeader{
+				{Name: "From", Value: "test@example.com"},
+				{Name: "X-Message-ID", Value: "notifuse-123"},
+				{Name: "Subject", Value: "Test"},
+			},
+			expected: "notifuse-123",
+		},
+		{
+			name: "X-Message-ID with different case",
+			headers: []domain.SESHeader{
+				{Name: "x-message-id", Value: "notifuse-456"},
+			},
+			expected: "notifuse-456",
+		},
+		{
+			name: "X-Message-ID not present",
+			headers: []domain.SESHeader{
+				{Name: "From", Value: "test@example.com"},
+				{Name: "Subject", Value: "Test"},
+			},
+			expected: "",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			result := extractXMessageIDFromHeaders(tc.headers)
+			assert.Equal(t, tc.expected, result)
+		})
+	}
 }
 
 func TestProcessPostmarkWebhook(t *testing.T) {
