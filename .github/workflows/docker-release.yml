@@ -86,12 +86,16 @@ jobs:
           echo "Git Commit SHA: '${{ steps.git-info.outputs.commit-sha }}'"
           echo "Git Commit Short SHA: '${{ steps.git-info.outputs.commit-short-sha }}'"
           echo "Git Tag: '${{ steps.git-info.outputs.tag-name }}'"
-          echo "Commit Message: '${{ steps.git-info.outputs.commit-message }}'"
+          cat <<'EOF'
+          Commit Message: ${{ steps.git-info.outputs.commit-message }}
+          EOF
           echo ""
           echo "=== Build Information ==="
           echo "Build Digest: '${{ steps.build.outputs.digest }}'"
           echo "Build ImageID: '${{ steps.build.outputs.imageid }}'"
-          echo "Build Metadata: '${{ steps.build.outputs.metadata }}'"
+          cat <<'EOF'
+          Build Metadata: ${{ steps.build.outputs.metadata }}
+          EOF
           echo "Meta Digest: '${{ steps.meta.outputs.digest }}'"
           echo "Tags: '${{ steps.meta.outputs.tags }}'"
           echo "Image Name: '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}'"
