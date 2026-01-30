@@ -1286,10 +1286,222 @@ func TestCompileTemplateWithPreserveLiquid(t *testing.T) {
 	})
 }
 
+// TestGomjmlButtonAttributeSupport tests which MJML button attributes are properly
+// supported by the gomjml library (https://documentation.mjml.io/#mj-button)
+func TestGomjmlButtonAttributeSupport(t *testing.T) {
+	// Create button with various MJML-spec attributes
+	buttonBase := NewBaseBlock("button-1", MJMLComponentMjButton)
+	buttonBase.Attributes["href"] = "https://example.com"
+	buttonBase.Attributes["font-weight"] = "bold"
+	buttonBase.Attributes["font-style"] = "italic"
+	buttonBase.Attributes["text-decoration"] = "underline"
+	buttonBase.Attributes["text-transform"] = "uppercase"
+	buttonBase.Attributes["color"] = "#ff0000"
+	buttonBase.Attributes["background-color"] = "#00ff00"
+	buttonBase.Content = stringPtr("Click Here")
+	buttonBlock := &MJButtonBlock{BaseBlock: buttonBase}
+
+	// Create complete MJML structure
+	column := &MJColumnBlock{BaseBlock: NewBaseBlock("column-1", MJMLComponentMjColumn)}
+	column.Children = []EmailBlock{buttonBlock}
+
+	section := &MJSectionBlock{BaseBlock: NewBaseBlock("section-1", MJMLComponentMjSection)}
+	section.Children = []EmailBlock{column}
+
+	body := &MJBodyBlock{BaseBlock: NewBaseBlock("body-1", MJMLComponentMjBody)}
+	body.Children = []EmailBlock{section}
+
+	mjml := &MJMLBlock{BaseBlock: NewBaseBlock("mjml-1", MJMLComponentMjml)}
+	mjml.Children = []EmailBlock{body}
+
+	req := CompileTemplateRequest{
+		WorkspaceID:      "test-workspace",
+		MessageID:        "test-message",
+		VisualEditorTree: mjml,
+		TrackingSettings: TrackingSettings{
+			EnableTracking: false,
+		},
+	}
+
+	resp, err := CompileTemplate(req)
+	if err != nil {
+		t.Fatalf("CompileTemplate failed: %v", err)
+	}
+
+	if !resp.Success {
+		t.Fatalf("Expected successful compilation, got error: %v", resp.Error)
+	}
+
+	// Log MJML for debugging
+	t.Logf("Generated MJML:\n%s", *resp.MJML)
+
+	// Check attribute support in generated HTML
+	attributeChecks := []struct {
+		name     string
+		pattern  string
+		required bool // If true, test fails when not found
+	}{
+		{"font-weight:bold", "font-weight:bold", false},
+		{"font-style:italic", "font-style:italic", false},
+		{"text-decoration", "text-decoration", false},
+		{"text-transform:uppercase", "text-transform:uppercase", false},
+		{"color #ff0000", "#ff0000", false},
+		{"background #00ff00", "#00ff00", false},
+		{"Button text 'Click Here'", "Click Here", true},
+	}
+
+	t.Log("\n=== gomjml Button Attribute Support ===")
+	for _, check := range attributeChecks {
+		found := strings.Contains(*resp.HTML, check.pattern)
+		status := "NOT FOUND"
+		if found {
+			status = "FOUND"
+		}
+		t.Logf("%s: %s", check.name, status)
+
+		if check.required && !found {
+			t.Errorf("Required pattern %q not found in HTML", check.pattern)
+		}
+	}
+
+	// Check that default "Button" text is NOT present (our fix should work)
+	if strings.Contains(*resp.HTML, ">Button<") {
+		t.Error("Found default 'Button' text - custom text was not rendered")
+	}
+}
+
 // TestCompileTemplateWithImageLiquidOnlySrcPartialData tests the bug scenario from issue #226
 // where an mj-image has only Liquid syntax in src (e.g., "{{ postImage }}") and template data
 // exists but doesn't include the referenced variable. This would cause the Liquid engine
 // to render the variable as an empty string, resulting in src="" which breaks MJML compilation.
+// TestCompileTemplateButtonWithHTMLContent tests the bug from GitHub issue #242
+// where button content containing HTML tags like <strong> and <br> renders as "Button"
+// instead of the custom text. The MJML spec requires button content to be plain text.
+func TestCompileTemplateButtonWithHTMLContent(t *testing.T) {
+	// This test confirms the bug: when button content contains HTML like
+	// <strong>Click here for the recipe!</strong><br/>
+	// the button renders as "Button" instead of the custom text
+
+	tests := []struct {
+		name            string
+		buttonContent   string
+		expectedText    string
+		shouldContain   []string
+		shouldNotContain []string
+	}{
+		{
+			name:          "plain text button content",
+			buttonContent: "Click here",
+			expectedText:  "Click here",
+			shouldContain: []string{"Click here"},
+		},
+		{
+			name:          "button with strong tag - BUG #242",
+			buttonContent: "<strong>Click here for the recipe!</strong>",
+			expectedText:  "Click here for the recipe!",
+			shouldContain: []string{"Click here for the recipe!"},
+			// Should NOT render as default "Button" text
+			shouldNotContain: []string{">Button<"},
+		},
+		{
+			name:          "button with strong and br tags - BUG #242",
+			buttonContent: "<strong>Click here for the recipe!</strong><br/>",
+			expectedText:  "Click here for the recipe!",
+			shouldContain: []string{"Click here for the recipe!"},
+			shouldNotContain: []string{">Button<"},
+		},
+		{
+			name:          "button with br tag only",
+			buttonContent: "Line 1<br/>Line 2",
+			expectedText:  "Line 1",
+			shouldContain: []string{"Line 1", "Line 2"},
+			shouldNotContain: []string{">Button<"},
+		},
+		{
+			name:          "button with em tag",
+			buttonContent: "<em>Important</em> Action",
+			expectedText:  "Important Action",
+			shouldContain: []string{"Important", "Action"},
+			shouldNotContain: []string{">Button<"},
+		},
+		{
+			name:          "button with nested formatting",
+			buttonContent: "<strong><em>Bold Italic</em></strong>",
+			expectedText:  "Bold Italic",
+			shouldContain: []string{"Bold Italic"},
+			shouldNotContain: []string{">Button<"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Create button with the test content
+			buttonBase := NewBaseBlock("button-1", MJMLComponentMjButton)
+			buttonBase.Attributes["href"] = "https://example.com"
+			buttonBase.Content = stringPtr(tt.buttonContent)
+			buttonBlock := &MJButtonBlock{BaseBlock: buttonBase}
+
+			// Create complete MJML structure
+			column := &MJColumnBlock{BaseBlock: NewBaseBlock("column-1", MJMLComponentMjColumn)}
+			column.Children = []EmailBlock{buttonBlock}
+
+			section := &MJSectionBlock{BaseBlock: NewBaseBlock("section-1", MJMLComponentMjSection)}
+			section.Children = []EmailBlock{column}
+
+			body := &MJBodyBlock{BaseBlock: NewBaseBlock("body-1", MJMLComponentMjBody)}
+			body.Children = []EmailBlock{section}
+
+			mjml := &MJMLBlock{BaseBlock: NewBaseBlock("mjml-1", MJMLComponentMjml)}
+			mjml.Children = []EmailBlock{body}
+
+			req := CompileTemplateRequest{
+				WorkspaceID:      "test-workspace",
+				MessageID:        "test-message",
+				VisualEditorTree: mjml,
+				TrackingSettings: TrackingSettings{
+					EnableTracking: false,
+				},
+			}
+
+			resp, err := CompileTemplate(req)
+			if err != nil {
+				t.Fatalf("CompileTemplate failed: %v", err)
+			}
+
+			if !resp.Success {
+				t.Fatalf("Expected successful compilation, got error: %v", resp.Error)
+			}
+
+			if resp.HTML == nil {
+				t.Fatal("Expected HTML in response")
+			}
+
+			// Log MJML and HTML for debugging
+			t.Logf("Input button content: %s", tt.buttonContent)
+			t.Logf("Generated MJML:\n%s", *resp.MJML)
+			t.Logf("Generated HTML (excerpt):\n%s", *resp.HTML)
+
+			// Check that expected content appears in HTML
+			for _, expected := range tt.shouldContain {
+				if !strings.Contains(*resp.HTML, expected) {
+					t.Errorf("Expected HTML to contain %q for button text, but it didn't.\n"+
+						"This confirms bug #242: button content with HTML tags doesn't render correctly.\n"+
+						"HTML output:\n%s", expected, *resp.HTML)
+				}
+			}
+
+			// Check that unexpected content does NOT appear
+			for _, unexpected := range tt.shouldNotContain {
+				if strings.Contains(*resp.HTML, unexpected) {
+					t.Errorf("Expected HTML NOT to contain %q (default button text), but it did.\n"+
+						"This confirms bug #242: button fell back to default 'Button' text.\n"+
+						"HTML output:\n%s", unexpected, *resp.HTML)
+				}
+			}
+		})
+	}
+}
+
 func TestCompileTemplateWithImageLiquidOnlySrcPartialData(t *testing.T) {
 	// Create an mj-image with only Liquid syntax in src attribute
 	imageBase := NewBaseBlock("image-1", MJMLComponentMjImage)

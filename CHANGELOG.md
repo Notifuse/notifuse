@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [26.14] - 2026-01-30
+
+- **Email Builder**: Fixed buttons with HTML content like `<strong>` rendering as default "Button" text instead of custom content (#242, [gomjml PR#33](https://github.com/preslavrachev/gomjml/pull/33))
+
 ## [26.13] - 2026-01-25
 
 - **Segments**: Added real-time validation when creating segments to detect duplicate IDs before submission (#243)

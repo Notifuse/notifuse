@@ -56,7 +56,7 @@ func convertBlockToMJMLWithErrorAndParsedData(block EmailBlock, indentLevel int,
 				}
 			}
 
-			// Block with content - don't escape for mj-raw, mj-text, and mj-button (they can contain HTML)
+			// Block with content - don't escape for mj-raw, mj-text, and mj-button (they can contain HTML per MJML spec)
 			attributeString := formatAttributesWithLiquid(block.GetAttributes(), parsedData, block.GetID())
 			if blockType == MJMLComponentMjRaw || blockType == MJMLComponentMjText || blockType == MJMLComponentMjButton {
 				return fmt.Sprintf("%s<%s%s>%s</%s>", indent, tagName, attributeString, content, tagName), nil
@@ -143,7 +143,7 @@ func convertBlockToMJMLWithParsedData(block EmailBlock, indentLevel int, templat
 				}
 			}
 
-			// Block with content - don't escape for mj-raw, mj-text, and mj-button (they can contain HTML)
+			// Block with content - don't escape for mj-raw, mj-text, and mj-button (they can contain HTML per MJML spec)
 			attributeString := formatAttributesWithLiquid(block.GetAttributes(), parsedData, block.GetID())
 			if blockType == MJMLComponentMjRaw || blockType == MJMLComponentMjText || blockType == MJMLComponentMjButton {
 				return fmt.Sprintf("%s<%s%s>%s</%s>", indent, tagName, attributeString, content, tagName)
@@ -202,7 +202,7 @@ func convertBlockToMJMLRaw(block EmailBlock, indentLevel int) string {
 
 		if content != "" {
 			// Do NOT process Liquid - keep content raw
-			// Block with content - don't escape for mj-raw, mj-text, and mj-button (they can contain HTML)
+			// Block with content - don't escape for mj-raw, mj-text, and mj-button (they can contain HTML per MJML spec)
 			attributeString := formatAttributes(block.GetAttributes())
 			if blockType == MJMLComponentMjRaw || blockType == MJMLComponentMjText || blockType == MJMLComponentMjButton {
 				return fmt.Sprintf("%s<%s%s>%s</%s>", indent, tagName, attributeString, content, tagName)
