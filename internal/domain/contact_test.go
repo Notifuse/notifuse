@@ -143,6 +143,105 @@ func TestContact_Validate(t *testing.T) {
 	}
 }
 
+func TestContact_Validate_NormalizesEmail(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "lowercase email unchanged",
+			input:    "test@example.com",
+			expected: "test@example.com",
+		},
+		{
+			name:     "uppercase email normalized",
+			input:    "TEST@EXAMPLE.COM",
+			expected: "test@example.com",
+		},
+		{
+			name:     "mixed case email normalized",
+			input:    "Test@Example.Com",
+			expected: "test@example.com",
+		},
+		{
+			name:     "email with leading/trailing spaces normalized",
+			input:    "  test@example.com  ",
+			expected: "test@example.com",
+		},
+		{
+			name:     "mixed case with spaces normalized",
+			input:    "  TEST@Example.COM  ",
+			expected: "test@example.com",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &Contact{Email: tt.input}
+			err := c.Validate()
+			assert.NoError(t, err)
+			assert.Equal(t, tt.expected, c.Email)
+		})
+	}
+}
+
+func TestNormalizeEmail(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "lowercase unchanged",
+			input:    "test@example.com",
+			expected: "test@example.com",
+		},
+		{
+			name:     "uppercase to lowercase",
+			input:    "TEST@EXAMPLE.COM",
+			expected: "test@example.com",
+		},
+		{
+			name:     "mixed case to lowercase",
+			input:    "Test@Example.Com",
+			expected: "test@example.com",
+		},
+		{
+			name:     "trim leading spaces",
+			input:    "  test@example.com",
+			expected: "test@example.com",
+		},
+		{
+			name:     "trim trailing spaces",
+			input:    "test@example.com  ",
+			expected: "test@example.com",
+		},
+		{
+			name:     "trim both and lowercase",
+			input:    "  TEST@Example.COM  ",
+			expected: "test@example.com",
+		},
+		{
+			name:     "empty string",
+			input:    "",
+			expected: "",
+		},
+		{
+			name:     "only spaces",
+			input:    "   ",
+			expected: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := NormalizeEmail(tt.input)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
 func TestScanContact(t *testing.T) {
 	now := time.Now()
 
@@ -995,6 +1094,22 @@ func TestFromJSON(t *testing.T) {
 				CustomJSON3: &NullableJSON{Data: nil, IsNull: true},
 				CustomJSON4: &NullableJSON{Data: nil, IsNull: true},
 				CustomJSON5: &NullableJSON{Data: nil, IsNull: true},
+			},
+			wantErr: false,
+		},
+		{
+			name:  "email is normalized to lowercase",
+			input: `{"email": "TEST@EXAMPLE.COM"}`,
+			want: &Contact{
+				Email: "test@example.com",
+			},
+			wantErr: false,
+		},
+		{
+			name:  "email with mixed case and spaces is normalized",
+			input: `{"email": "  Test@Example.COM  "}`,
+			want: &Contact{
+				Email: "test@example.com",
 			},
 			wantErr: false,
 		},

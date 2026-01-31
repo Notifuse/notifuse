@@ -44,6 +44,9 @@ func NewContactService(
 }
 
 func (s *ContactService) GetContactByEmail(ctx context.Context, workspaceID string, email string) (*domain.Contact, error) {
+	// Normalize email for consistent lookups
+	email = domain.NormalizeEmail(email)
+
 	// Check if this is a system call (e.g., from Supabase webhook)
 	isSystemCall := ctx.Value(domain.SystemCallKey) != nil
 
@@ -132,6 +135,9 @@ func (s *ContactService) GetContacts(ctx context.Context, req *domain.GetContact
 }
 
 func (s *ContactService) DeleteContact(ctx context.Context, workspaceID string, email string) error {
+	// Normalize email for consistent lookups
+	email = domain.NormalizeEmail(email)
+
 	var err error
 	log.Println("DeleteContact", email, workspaceID)
 	ctx, _, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)

@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [26.15] - 2026-01-31
+
+- **Contacts**: Emails are now normalized to lowercase on import to prevent case-sensitivity issues (#231)
+- **Security**: Upgraded fast-xml-parser to 5.3.4
+
 ## [26.14] - 2026-01-30
 
 - **Email Builder**: Fixed buttons with HTML content like `<strong>` rendering as default "Button" text instead of custom content (#242, [gomjml PR#33](https://github.com/preslavrachev/gomjml/pull/33))

@@ -106,7 +106,8 @@
   },
   "overrides": {
     "seroval": "^1.4.1",
-    "seroval-plugins": "^1.4.1"
+    "seroval-plugins": "^1.4.1",
+    "fast-xml-parser": "5.3.4"
   },
   "devDependencies": {
     "@eslint/js": "^9.19.0",

@@ -91,6 +91,8 @@ func (c *Contact) Validate() error {
 	if c.Email == "" {
 		return fmt.Errorf("email is required")
 	}
+	// Normalize email to lowercase
+	c.Email = NormalizeEmail(c.Email)
 	// Email must be valid
 	if !govalidator.IsEmail(c.Email) {
 		return fmt.Errorf("invalid email format")
@@ -656,8 +658,8 @@ func FromJSON(data interface{}) (*Contact, error) {
 		return nil, fmt.Errorf("unsupported data type: %T", data)
 	}
 
-	// Extract required fields and trim all Unicode whitespace (including NBSP)
-	email := trimUnicodeSpace(jsonResult.Get("email").String())
+	// Extract required fields and normalize email for consistent storage and lookups
+	email := NormalizeEmail(jsonResult.Get("email").String())
 	if email == "" {
 		return nil, fmt.Errorf("email is required")
 	}
@@ -815,6 +817,12 @@ func FromJSON(data interface{}) (*Contact, error) {
 // This is important for CSV imports where NBSP characters can prevent email delivery.
 func trimUnicodeSpace(s string) string {
 	return strings.TrimFunc(s, unicode.IsSpace)
+}
+
+// NormalizeEmail normalizes an email address by trimming whitespace and converting to lowercase.
+// This ensures consistent storage and lookups regardless of input case.
+func NormalizeEmail(email string) string {
+	return strings.ToLower(trimUnicodeSpace(email))
 }
 
 // Helper functions for parsing nullable fields from JSON
