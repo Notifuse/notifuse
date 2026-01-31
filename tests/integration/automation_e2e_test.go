@@ -2620,6 +2620,8 @@ func testAutomationContactCreatedTrigger(t *testing.T, factory *testutil.TestDat
 		t.Fatalf("ContactCreatedTrigger CreateContact: Expected 200, got %d: %s", contactResp.StatusCode, string(body))
 	}
 	contactResp.Body.Close()
+	// Normalize email to match what's stored in the database (lowercase)
+	email = domain.NormalizeEmail(email)
 	t.Logf("Contact created via HTTP API: %s (NOT subscribed to list %s)", email, listID)
 
 	// 5. Wait for contact.created timeline event to be created
