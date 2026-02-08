@@ -87,9 +87,10 @@ func (r *broadcastRepository) CreateBroadcastTx(ctx context.Context, tx *sql.Tx,
 			completed_at,
 			cancelled_at,
 			paused_at,
-			pause_reason
+			pause_reason,
+			data_feed
 		) VALUES (
-			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20
+			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21
 		)
 	`
 
@@ -114,6 +115,7 @@ func (r *broadcastRepository) CreateBroadcastTx(ctx context.Context, tx *sql.Tx,
 		broadcast.CancelledAt,
 		broadcast.PausedAt,
 		broadcast.PauseReason,
+		broadcast.DataFeed,
 	)
 
 	if err != nil {
@@ -152,7 +154,8 @@ func (r *broadcastRepository) GetBroadcast(ctx context.Context, workspaceID, id 
 			completed_at,
 			cancelled_at,
 			paused_at,
-			pause_reason
+			pause_reason,
+			data_feed
 		FROM broadcasts
 		WHERE id = $1 AND workspace_id = $2
 	`
@@ -193,7 +196,8 @@ func (r *broadcastRepository) GetBroadcastTx(ctx context.Context, tx *sql.Tx, wo
 			completed_at,
 			cancelled_at,
 			paused_at,
-			pause_reason
+			pause_reason,
+			data_feed
 		FROM broadcasts
 		WHERE id = $1 AND workspace_id = $2
 	`
@@ -241,7 +245,8 @@ func (r *broadcastRepository) UpdateBroadcastTx(ctx context.Context, tx *sql.Tx,
 			cancelled_at = $16,
 			paused_at = $17,
 			pause_reason = $18,
-			enqueued_count = $19
+			enqueued_count = $19,
+			data_feed = $20
 		WHERE id = $1 AND workspace_id = $2
 			AND status != 'cancelled'
 			AND status != 'processed'
@@ -267,6 +272,7 @@ func (r *broadcastRepository) UpdateBroadcastTx(ctx context.Context, tx *sql.Tx,
 		broadcast.PausedAt,
 		broadcast.PauseReason,
 		broadcast.EnqueuedCount,
+		broadcast.DataFeed,
 	)
 
 	if err != nil {
@@ -339,7 +345,8 @@ func (r *broadcastRepository) ListBroadcastsTx(ctx context.Context, tx *sql.Tx, 
 				completed_at,
 				cancelled_at,
 				paused_at,
-				pause_reason
+				pause_reason,
+				data_feed
 			FROM broadcasts
 			WHERE workspace_id = $1 AND status = $2
 			ORDER BY created_at DESC
@@ -368,7 +375,8 @@ func (r *broadcastRepository) ListBroadcastsTx(ctx context.Context, tx *sql.Tx, 
 				completed_at,
 				cancelled_at,
 				paused_at,
-				pause_reason
+				pause_reason,
+				data_feed
 			FROM broadcasts
 			WHERE workspace_id = $1
 			ORDER BY created_at DESC
@@ -469,6 +477,7 @@ func scanBroadcast(scanner interface {
 	broadcast := &domain.Broadcast{}
 	var winningTemplate sql.NullString
 	var pauseReason sql.NullString
+	var dataFeed domain.DataFeedSettings
 
 	err := scanner.Scan(
 		&broadcast.ID,
@@ -491,6 +500,7 @@ func scanBroadcast(scanner interface {
 		&broadcast.CancelledAt,
 		&broadcast.PausedAt,
 		&pauseReason,
+		&dataFeed,
 	)
 
 	if err != nil {
@@ -503,6 +513,11 @@ func scanBroadcast(scanner interface {
 	}
 	if pauseReason.Valid {
 		broadcast.PauseReason = &pauseReason.String
+	}
+
+	// Set DataFeed pointer if it has any data
+	if dataFeed.GlobalFeed != nil || dataFeed.RecipientFeed != nil || len(dataFeed.GlobalFeedData) > 0 || dataFeed.GlobalFeedFetchedAt != nil {
+		broadcast.DataFeed = &dataFeed
 	}
 
 	return broadcast, nil

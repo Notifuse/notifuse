@@ -17,15 +17,15 @@ import (
 
 // testWebhookSubscriptionService is a test double for WebhookSubscriptionService
 type testWebhookSubscriptionService struct {
-	createFunc            func(ctx context.Context, workspaceID string, name, url, description string, eventTypes []string, filters *domain.CustomEventFilters) (*domain.WebhookSubscription, error)
-	getByIDFunc           func(ctx context.Context, workspaceID, id string) (*domain.WebhookSubscription, error)
-	listFunc              func(ctx context.Context, workspaceID string) ([]*domain.WebhookSubscription, error)
-	updateFunc            func(ctx context.Context, workspaceID string, id, name, url, description string, eventTypes []string, filters *domain.CustomEventFilters, enabled bool) (*domain.WebhookSubscription, error)
-	deleteFunc            func(ctx context.Context, workspaceID, id string) error
-	toggleFunc            func(ctx context.Context, workspaceID, id string, enabled bool) (*domain.WebhookSubscription, error)
-	regenerateSecretFunc  func(ctx context.Context, workspaceID, id string) (*domain.WebhookSubscription, error)
-	getDeliveriesFunc     func(ctx context.Context, workspaceID string, subscriptionID *string, limit, offset int) ([]*domain.WebhookDelivery, int, error)
-	getEventTypesFunc     func() []string
+	createFunc           func(ctx context.Context, workspaceID string, name, url, description string, eventTypes []string, filters *domain.CustomEventFilters) (*domain.WebhookSubscription, error)
+	getByIDFunc          func(ctx context.Context, workspaceID, id string) (*domain.WebhookSubscription, error)
+	listFunc             func(ctx context.Context, workspaceID string) ([]*domain.WebhookSubscription, error)
+	updateFunc           func(ctx context.Context, workspaceID string, id, name, url, description string, eventTypes []string, filters *domain.CustomEventFilters, enabled bool) (*domain.WebhookSubscription, error)
+	deleteFunc           func(ctx context.Context, workspaceID, id string) error
+	toggleFunc           func(ctx context.Context, workspaceID, id string, enabled bool) (*domain.WebhookSubscription, error)
+	regenerateSecretFunc func(ctx context.Context, workspaceID, id string) (*domain.WebhookSubscription, error)
+	getDeliveriesFunc    func(ctx context.Context, workspaceID string, subscriptionID *string, limit, offset int) ([]*domain.WebhookDelivery, int, error)
+	getEventTypesFunc    func() []string
 }
 
 func (s *testWebhookSubscriptionService) Create(ctx context.Context, workspaceID string, name, url, description string, eventTypes []string, filters *domain.CustomEventFilters) (*domain.WebhookSubscription, error) {
@@ -678,9 +678,9 @@ func TestWebhookSubscriptionHandler_HandleTest_ValidationErrors(t *testing.T) {
 
 func TestWebhookSubscriptionHandler_HandleGetEventTypes_Success(t *testing.T) {
 	handler := &WebhookSubscriptionHandler{
-		service: &service.WebhookSubscriptionService{},
-		worker:  nil,
-		logger:  &mockLogger{},
+		service:      &service.WebhookSubscriptionService{},
+		worker:       nil,
+		logger:       &mockLogger{},
 		getJWTSecret: func() ([]byte, error) { return []byte("test"), nil },
 	}
 

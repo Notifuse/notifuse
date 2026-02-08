@@ -90,7 +90,7 @@ export function TemplatesPage() {
     if (workspaces.length > 0) {
       const currentWorkspace = workspaces.find((w) => w.id === workspaceId)
       if (currentWorkspace) {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
+         
         setWorkspace(currentWorkspace)
       }
     }

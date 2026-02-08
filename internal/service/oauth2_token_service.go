@@ -95,13 +95,13 @@ func (s *OAuth2TokenService) GetAccessToken(settings *domain.SMTPSettings) (stri
 }
 
 // getCacheKey generates a unique cache key for the given SMTP settings
-// Format: provider:tenantID:clientID:username
+// Format: provider:tenantID:clientID
+// Note: Username is not included because OAuth2 tokens are per-application, not per-mailbox
 func (s *OAuth2TokenService) getCacheKey(settings *domain.SMTPSettings) string {
-	return fmt.Sprintf("%s:%s:%s:%s",
+	return fmt.Sprintf("%s:%s:%s",
 		settings.OAuth2Provider,
 		settings.OAuth2TenantID,
 		settings.OAuth2ClientID,
-		settings.Username,
 	)
 }
 

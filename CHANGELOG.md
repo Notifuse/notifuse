@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file.
 
+## [27.0] - 2026-02-07
+
+### New Features
+
+- **Broadcast Data Feeds**: Added external data feed integration for broadcasts, allowing dynamic content injection from external APIs
+  - **Global Feed**: Fetch data once before broadcast starts, available to all recipients via `{{ global_feed.* }}` template variable
+  - **Per-Recipient Feed**: Fetch personalized data for each recipient via `{{ recipient_feed.* }}` template variable
+  - Custom HTTP headers support for API authentication
+  - Automatic retry with circuit breaker protection
+  - SSRF protection with URL validation (blocks localhost and private IPs)
+  - Real-time feed testing from the broadcast editor
+
+### Database Migration
+
+- Added `data_feed` JSONB column to `broadcasts` table (workspace migration)
+
+### Fixes
+
+- **SMTP M365 OAuth2**: Fixed XOAUTH2 authentication to use sender email instead of fixed auth email, resolving SendAs permission errors and incorrect Sent folder placement (#250)
+- **File Manager**: Sanitize uploaded filenames by replacing spaces with dashes and lowercasing extensions (#252)
+- **Broadcasts**: Fixed custom endpoint URL not propagating to click tracking and open tracking URLs in sent emails (#254)
+
 ## [26.15] - 2026-01-31
 
 - **Contacts**: Emails are now normalized to lowercase on import to prevent case-sensitivity issues (#231)

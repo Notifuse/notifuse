@@ -21,9 +21,9 @@ type BroadcastStatus string
 const (
 	BroadcastStatusDraft          BroadcastStatus = "draft"
 	BroadcastStatusScheduled      BroadcastStatus = "scheduled"
-	BroadcastStatusProcessing     BroadcastStatus = "processing"      // Orchestrator is enqueueing emails
+	BroadcastStatusProcessing     BroadcastStatus = "processing" // Orchestrator is enqueueing emails
 	BroadcastStatusPaused         BroadcastStatus = "paused"
-	BroadcastStatusProcessed      BroadcastStatus = "processed"       // Enqueueing complete
+	BroadcastStatusProcessed      BroadcastStatus = "processed" // Enqueueing complete
 	BroadcastStatusCancelled      BroadcastStatus = "cancelled"
 	BroadcastStatusFailed         BroadcastStatus = "failed"
 	BroadcastStatusTesting        BroadcastStatus = "testing"         // A/B test in progress
@@ -283,6 +283,9 @@ type Broadcast struct {
 	CancelledAt               *time.Time            `json:"cancelled_at,omitempty"`
 	PausedAt                  *time.Time            `json:"paused_at,omitempty"`
 	PauseReason               *string               `json:"pause_reason,omitempty"`
+
+	// Data feed settings (global and recipient feeds)
+	DataFeed *DataFeedSettings `json:"data_feed,omitempty"`
 }
 
 // UTMParameters contains UTM tracking parameters for the broadcast
@@ -414,6 +417,13 @@ func (b *Broadcast) Validate() error {
 		}
 	}
 
+	// Validate data feed settings if present
+	if b.DataFeed != nil {
+		if err := b.DataFeed.Validate(); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -427,6 +437,7 @@ type CreateBroadcastRequest struct {
 	TrackingEnabled bool                  `json:"tracking_enabled"`
 	UTMParameters   *UTMParameters        `json:"utm_parameters,omitempty"`
 	Metadata        MapOfAny              `json:"metadata,omitempty"`
+	DataFeed        *DataFeedSettings     `json:"data_feed,omitempty"`
 }
 
 // Validate validates the create broadcast request
@@ -440,6 +451,7 @@ func (r *CreateBroadcastRequest) Validate() (*Broadcast, error) {
 		TestSettings:  r.TestSettings,
 		UTMParameters: r.UTMParameters,
 		Metadata:      r.Metadata,
+		DataFeed:      r.DataFeed,
 		CreatedAt:     time.Now().UTC(),
 		UpdatedAt:     time.Now().UTC(),
 	}
@@ -462,6 +474,7 @@ type UpdateBroadcastRequest struct {
 	TrackingEnabled bool                  `json:"tracking_enabled"`
 	UTMParameters   *UTMParameters        `json:"utm_parameters,omitempty"`
 	Metadata        MapOfAny              `json:"metadata,omitempty"`
+	DataFeed        *DataFeedSettings     `json:"data_feed,omitempty"`
 }
 
 // Validate validates the update broadcast request
@@ -488,6 +501,30 @@ func (r *UpdateBroadcastRequest) Validate(existingBroadcast *Broadcast) (*Broadc
 	existingBroadcast.TestSettings = r.TestSettings
 	existingBroadcast.UTMParameters = r.UTMParameters
 	existingBroadcast.Metadata = r.Metadata
+
+	// Handle data_feed update - preserve fetched data if only updating settings
+	if r.DataFeed != nil {
+		if existingBroadcast.DataFeed == nil {
+			existingBroadcast.DataFeed = r.DataFeed
+		} else {
+			// Preserve GlobalFeedData and GlobalFeedFetchedAt from existing broadcast
+			existingGlobalFeedData := existingBroadcast.DataFeed.GlobalFeedData
+			existingGlobalFeedFetchedAt := existingBroadcast.DataFeed.GlobalFeedFetchedAt
+
+			// Update feed settings from request
+			if r.DataFeed.GlobalFeed != nil {
+				existingBroadcast.DataFeed.GlobalFeed = r.DataFeed.GlobalFeed
+			}
+			if r.DataFeed.RecipientFeed != nil {
+				existingBroadcast.DataFeed.RecipientFeed = r.DataFeed.RecipientFeed
+			}
+
+			// Restore preserved data
+			existingBroadcast.DataFeed.GlobalFeedData = existingGlobalFeedData
+			existingBroadcast.DataFeed.GlobalFeedFetchedAt = existingGlobalFeedFetchedAt
+		}
+	}
+
 	existingBroadcast.UpdatedAt = time.Now().UTC()
 
 	if err := existingBroadcast.Validate(); err != nil {
@@ -826,6 +863,120 @@ type TestResultsResponse struct {
 	IsAutoSendWinner  bool                        `json:"is_auto_send_winner"`
 }
 
+// RefreshGlobalFeedRequest defines the request to refresh global feed data
+type RefreshGlobalFeedRequest struct {
+	WorkspaceID string           `json:"workspace_id"`
+	BroadcastID string           `json:"broadcast_id"`
+	URL         string           `json:"url"`
+	Headers     []DataFeedHeader `json:"headers"`
+}
+
+// Validate validates the refresh global feed request
+func (r *RefreshGlobalFeedRequest) Validate() error {
+	if r.WorkspaceID == "" {
+		return fmt.Errorf("workspace_id is required")
+	}
+
+	if r.BroadcastID == "" {
+		return fmt.Errorf("broadcast_id is required")
+	}
+
+	if r.URL == "" {
+		return fmt.Errorf("url is required")
+	}
+
+	// Basic URL format check (no SSRF protection needed for test endpoint)
+	parsedURL, err := url.Parse(r.URL)
+	if err != nil {
+		return fmt.Errorf("url: invalid URL: %s", err.Error())
+	}
+	if parsedURL.Scheme != "http" && parsedURL.Scheme != "https" {
+		return fmt.Errorf("url: URL must use http or https scheme")
+	}
+	if parsedURL.Host == "" {
+		return fmt.Errorf("url: URL must have a host")
+	}
+
+	for _, header := range r.Headers {
+		if err := header.Validate(); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// RefreshGlobalFeedResponse defines the response for refresh global feed
+type RefreshGlobalFeedResponse struct {
+	Success   bool                   `json:"success"`
+	Data      map[string]interface{} `json:"data,omitempty"`
+	FetchedAt *time.Time             `json:"fetched_at,omitempty"`
+	Error     string                 `json:"error,omitempty"`
+}
+
+// ErrContactNotFoundForFeed is returned when a specified contact cannot be found for feed testing
+type ErrContactNotFoundForFeed struct {
+	Email string
+}
+
+func (e *ErrContactNotFoundForFeed) Error() string {
+	return fmt.Sprintf("Contact not found with email: %s", e.Email)
+}
+
+// TestRecipientFeedRequest defines the request to test recipient feed
+type TestRecipientFeedRequest struct {
+	WorkspaceID  string           `json:"workspace_id"`
+	BroadcastID  string           `json:"broadcast_id"`
+	ContactEmail string           `json:"contact_email,omitempty"`
+	URL          string           `json:"url"`
+	Headers      []DataFeedHeader `json:"headers"`
+}
+
+// Validate validates the test recipient feed request
+func (r *TestRecipientFeedRequest) Validate() error {
+	if r.WorkspaceID == "" {
+		return fmt.Errorf("workspace_id is required")
+	}
+
+	if r.BroadcastID == "" {
+		return fmt.Errorf("broadcast_id is required")
+	}
+
+	if r.URL == "" {
+		return fmt.Errorf("url is required")
+	}
+
+	// Basic URL format check (no SSRF protection needed for test endpoint)
+	parsedURL, err := url.Parse(r.URL)
+	if err != nil {
+		return fmt.Errorf("url: invalid URL: %s", err.Error())
+	}
+	if parsedURL.Scheme != "https" {
+		return fmt.Errorf("url must use https scheme")
+	}
+	if parsedURL.Host == "" {
+		return fmt.Errorf("url: URL must have a host")
+	}
+
+	for _, header := range r.Headers {
+		if err := header.Validate(); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// TestRecipientFeedResponse defines the response for test recipient feed
+type TestRecipientFeedResponse struct {
+	Success   bool                   `json:"success"`
+	Data      map[string]interface{} `json:"data,omitempty"`
+	FetchedAt *time.Time             `json:"fetched_at,omitempty"`
+	Error     string                 `json:"error,omitempty"`
+	// Contact used for the test
+	ContactEmail string `json:"contact_email,omitempty"`
+}
+
 // BroadcastService defines the interface for broadcast operations
 type BroadcastService interface {
 	// CreateBroadcast creates a new broadcast
@@ -863,6 +1014,12 @@ type BroadcastService interface {
 
 	// SelectWinner manually selects the winning variation for an A/B test
 	SelectWinner(ctx context.Context, workspaceID, broadcastID, templateID string) error
+
+	// RefreshGlobalFeed refreshes the global feed data for a broadcast
+	RefreshGlobalFeed(ctx context.Context, request *RefreshGlobalFeedRequest) (*RefreshGlobalFeedResponse, error)
+
+	// TestRecipientFeed tests the recipient feed configuration with a sample or specified contact
+	TestRecipientFeed(ctx context.Context, request *TestRecipientFeedRequest) (*TestRecipientFeedResponse, error)
 }
 
 // BroadcastSender is a minimal interface needed for sending broadcasts,

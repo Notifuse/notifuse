@@ -31,6 +31,8 @@ import { DeleteOutlined, InfoCircleOutlined } from '@ant-design/icons'
 import React from 'react'
 import extractTLD from '../../lib/tld'
 import type { List } from '../../services/api/list'
+import { DataFeedSettings } from './DataFeedSettings'
+import type { GlobalFeedSettings, RecipientFeedSettings } from '../../services/api/broadcast'
 
 // Custom component to handle A/B testing configuration
 const ABTestingConfig = ({ form }: { form: ReturnType<typeof Form.useForm>[0] }) => {
@@ -95,6 +97,16 @@ export function UpsertBroadcastDrawer({
   const { message, modal } = App.useApp()
   const [formTouched, setFormTouched] = useState(false)
   const [tab, setTab] = useState<string>('audience')
+  const [globalFeed, setGlobalFeed] = useState<GlobalFeedSettings>({
+    enabled: false,
+    url: '',
+    headers: []
+  })
+  const [recipientFeed, setRecipientFeed] = useState<RecipientFeedSettings>({
+    enabled: false,
+    url: '',
+    headers: []
+  })
 
   // Watch campaign name changes using Form.useWatch
   const campaignName = Form.useWatch('name', form)
@@ -168,6 +180,21 @@ export function UpsertBroadcastDrawer({
         utm_parameters: broadcast.utm_parameters || undefined,
         metadata: broadcast.metadata || undefined
       })
+      // Set data feed settings from broadcast
+      setGlobalFeed(
+        broadcast.data_feed?.global_feed || {
+          enabled: false,
+          url: '',
+          headers: []
+        }
+      )
+      setRecipientFeed(
+        broadcast.data_feed?.recipient_feed || {
+          enabled: false,
+          url: '',
+          headers: []
+        }
+      )
     } else {
       // Extract TLD from website URL
       const websiteTLD = extractTLD(workspace.settings.website_url || '')
@@ -196,6 +223,17 @@ export function UpsertBroadcastDrawer({
           source: websiteTLD || undefined,
           medium: 'email'
         }
+      })
+      // Reset data feed settings to defaults
+      setGlobalFeed({
+        enabled: false,
+        url: '',
+        headers: []
+      })
+      setRecipientFeed({
+        enabled: false,
+        url: '',
+        headers: []
       })
     }
     setFormTouched(false)
@@ -259,7 +297,7 @@ export function UpsertBroadcastDrawer({
     if (!isValid) return
 
     // If validation passes, proceed to next tab
-    const tabOrder = ['audience', 'email', 'content']
+    const tabOrder = ['audience', 'email', 'datafeed', 'content']
     const currentIndex = tabOrder.indexOf(tab)
     if (currentIndex < tabOrder.length - 1) {
       setTab(tabOrder[currentIndex + 1])
@@ -268,7 +306,7 @@ export function UpsertBroadcastDrawer({
 
   const handleTabChange = async (newTab: string) => {
     // Only validate if moving forward (not backward)
-    const tabOrder = ['audience', 'email', 'content']
+    const tabOrder = ['audience', 'email', 'datafeed', 'content']
     const currentIndex = tabOrder.indexOf(tab)
     const newIndex = tabOrder.indexOf(newTab)
 
@@ -307,9 +345,20 @@ export function UpsertBroadcastDrawer({
             </>
           )}
 
-          {tab === 'content' && (
+          {tab === 'datafeed' && (
             <>
               <Button type="primary" ghost onClick={() => handleTabChange('email')}>
+                {t`Previous`}
+              </Button>
+              <Button type="primary" onClick={goNext}>
+                {t`Next`}
+              </Button>
+            </>
+          )}
+
+          {tab === 'content' && (
+            <>
+              <Button type="primary" ghost onClick={() => handleTabChange('datafeed')}>
                 {t`Previous`}
               </Button>
               <Button
@@ -349,6 +398,18 @@ export function UpsertBroadcastDrawer({
             form={form}
             layout="vertical"
             onFinish={(values) => {
+              // Validate feed URLs if enabled
+              if (globalFeed.enabled && !globalFeed.url) {
+                message.error(t`Global feed URL is required when enabled`)
+                setTab('datafeed')
+                return
+              }
+              if (recipientFeed.enabled && !recipientFeed.url) {
+                message.error(t`Per-recipient feed URL is required when enabled`)
+                setTab('datafeed')
+                return
+              }
+
               setLoading(true)
 
               // Ensure workspace_id is included
@@ -359,7 +420,15 @@ export function UpsertBroadcastDrawer({
                 schedule: {
                   is_scheduled: false,
                   use_recipient_timezone: false
-                }
+                },
+                // Include data feed settings (consolidated)
+                data_feed:
+                  globalFeed.enabled || recipientFeed.enabled
+                    ? {
+                        global_feed: globalFeed.enabled ? globalFeed : undefined,
+                        recipient_feed: recipientFeed.enabled ? recipientFeed : undefined
+                      }
+                    : undefined
               }
 
               // Add ID for updates
@@ -425,8 +494,12 @@ export function UpsertBroadcastDrawer({
                     label: t`2. Web Analytics`
                   },
                   {
+                    key: 'datafeed',
+                    label: t`3. Data Feeds`
+                  },
+                  {
                     key: 'content',
-                    label: t`3. Content`
+                    label: t`4. Content`
                   }
                 ]}
               />
@@ -552,6 +625,27 @@ export function UpsertBroadcastDrawer({
                     <Form.Item name={['utm_parameters', 'campaign']} label="utm_campaign">
                       <Input />
                     </Form.Item>
+                  </div>
+                </div>
+
+                <div style={{ display: tab === 'datafeed' ? 'block' : 'none' }}>
+                  <div className="pt-8 pr-8">
+                    <DataFeedSettings
+                      workspaceId={workspace.id}
+                      broadcastId={broadcast?.id}
+                      globalFeed={globalFeed}
+                      onGlobalFeedChange={(settings) => {
+                        setGlobalFeed(settings)
+                        setFormTouched(true)
+                      }}
+                      globalFeedData={broadcast?.data_feed?.global_feed_data}
+                      globalFeedFetchedAt={broadcast?.data_feed?.global_feed_fetched_at}
+                      recipientFeed={recipientFeed}
+                      onRecipientFeedChange={(settings) => {
+                        setRecipientFeed(settings)
+                        setFormTouched(true)
+                      }}
+                    />
                   </div>
                 </div>
 

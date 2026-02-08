@@ -357,14 +357,14 @@ func buildTestPayload(eventType string) map[string]interface{} {
 	switch category {
 	case "contact":
 		return map[string]interface{}{
-			"email":      "test@example.com",
-			"id":         "test_contact_123",
+			"email":       "test@example.com",
+			"id":          "test_contact_123",
 			"external_id": "ext_456",
-			"first_name": "Test",
-			"last_name":  "User",
-			"tags":       []string{"test", "webhook"},
-			"created_at": now,
-			"updated_at": now,
+			"first_name":  "Test",
+			"last_name":   "User",
+			"tags":        []string{"test", "webhook"},
+			"created_at":  now,
+			"updated_at":  now,
 		}
 	case "list":
 		return map[string]interface{}{

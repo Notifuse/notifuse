@@ -11,14 +11,14 @@ import (
 )
 
 type ContactService struct {
-	repo                domain.ContactRepository
-	workspaceRepo       domain.WorkspaceRepository
-	authService         domain.AuthService
-	messageHistoryRepo  domain.MessageHistoryRepository
-	inboundWebhookEventRepo    domain.InboundWebhookEventRepository
-	contactListRepo     domain.ContactListRepository
-	contactTimelineRepo domain.ContactTimelineRepository
-	logger              logger.Logger
+	repo                    domain.ContactRepository
+	workspaceRepo           domain.WorkspaceRepository
+	authService             domain.AuthService
+	messageHistoryRepo      domain.MessageHistoryRepository
+	inboundWebhookEventRepo domain.InboundWebhookEventRepository
+	contactListRepo         domain.ContactListRepository
+	contactTimelineRepo     domain.ContactTimelineRepository
+	logger                  logger.Logger
 }
 
 func NewContactService(
@@ -32,14 +32,14 @@ func NewContactService(
 	logger logger.Logger,
 ) *ContactService {
 	return &ContactService{
-		repo:                repo,
-		workspaceRepo:       workspaceRepo,
-		authService:         authService,
-		messageHistoryRepo:  messageHistoryRepo,
-		inboundWebhookEventRepo:    inboundWebhookEventRepo,
-		contactListRepo:     contactListRepo,
-		contactTimelineRepo: contactTimelineRepo,
-		logger:              logger,
+		repo:                    repo,
+		workspaceRepo:           workspaceRepo,
+		authService:             authService,
+		messageHistoryRepo:      messageHistoryRepo,
+		inboundWebhookEventRepo: inboundWebhookEventRepo,
+		contactListRepo:         contactListRepo,
+		contactTimelineRepo:     contactTimelineRepo,
+		logger:                  logger,
 	}
 }
 

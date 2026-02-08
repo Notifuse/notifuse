@@ -33,7 +33,7 @@ import CodePreview from '../ui/CodePreview'
  * @param style - Optional inline styles for the iframe
  * @param emailTree - The email template tree to extract mj-style and mj-font content
  */
-// eslint-disable-next-line react-refresh/only-export-components -- Internal component
+ 
 const SandboxedIframe: React.FC<{
   htmlContent: string
   className?: string

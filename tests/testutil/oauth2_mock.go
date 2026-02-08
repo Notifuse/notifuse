@@ -30,8 +30,8 @@ type MockTokenResponse struct {
 
 // TokenRequest logs details of a token request
 type TokenRequest struct {
-	Provider     string    // "microsoft" or "google"
-	GrantType    string    // "client_credentials" or "refresh_token"
+	Provider     string // "microsoft" or "google"
+	GrantType    string // "client_credentials" or "refresh_token"
 	ClientID     string
 	ClientSecret string
 	Scope        string // Microsoft: "https://outlook.office365.com/.default"

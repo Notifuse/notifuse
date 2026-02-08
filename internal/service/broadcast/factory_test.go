@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/Notifuse/notifuse/internal/domain/mocks"
+	broadcastmocks "github.com/Notifuse/notifuse/internal/service/broadcast/mocks"
 	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
@@ -23,6 +24,7 @@ func TestNewFactory(t *testing.T) {
 	mockTaskRepo := mocks.NewMockTaskRepository(ctrl)
 	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
 	mockEmailQueueRepo := mocks.NewMockEmailQueueRepository(ctrl)
+	mockDataFeedFetcher := broadcastmocks.NewMockDataFeedFetcher(ctrl)
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 	mockEventBus := mocks.NewMockEventBus(ctrl)
 	config := DefaultConfig()
@@ -52,6 +54,7 @@ func TestNewFactory(t *testing.T) {
 				mockTaskRepo,
 				mockWorkspaceRepo,
 				mockEmailQueueRepo,
+				mockDataFeedFetcher,
 				mockLogger,
 				tt.config,
 				"https://api.notifuse.com",
@@ -91,6 +94,7 @@ func TestFactory_CreateMessageSender(t *testing.T) {
 	mockTaskRepo := mocks.NewMockTaskRepository(ctrl)
 	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
 	mockEmailQueueRepo := mocks.NewMockEmailQueueRepository(ctrl)
+	mockDataFeedFetcher := broadcastmocks.NewMockDataFeedFetcher(ctrl)
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 	mockEventBus := mocks.NewMockEventBus(ctrl)
 	config := DefaultConfig()
@@ -104,6 +108,7 @@ func TestFactory_CreateMessageSender(t *testing.T) {
 		mockTaskRepo,
 		mockWorkspaceRepo,
 		mockEmailQueueRepo,
+		mockDataFeedFetcher,
 		mockLogger,
 		config,
 		"https://api.notifuse.com",
@@ -133,6 +138,7 @@ func TestFactory_CreateOrchestrator(t *testing.T) {
 	mockTaskRepo := mocks.NewMockTaskRepository(ctrl)
 	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
 	mockEmailQueueRepo := mocks.NewMockEmailQueueRepository(ctrl)
+	mockDataFeedFetcher := broadcastmocks.NewMockDataFeedFetcher(ctrl)
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 	mockEventBus := mocks.NewMockEventBus(ctrl)
 	config := DefaultConfig()
@@ -146,6 +152,7 @@ func TestFactory_CreateOrchestrator(t *testing.T) {
 		mockTaskRepo,
 		mockWorkspaceRepo,
 		mockEmailQueueRepo,
+		mockDataFeedFetcher,
 		mockLogger,
 		config,
 		"https://api.notifuse.com",
@@ -175,6 +182,7 @@ func TestFactory_RegisterWithTaskService(t *testing.T) {
 	mockTaskRepo := mocks.NewMockTaskRepository(ctrl)
 	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
 	mockEmailQueueRepo := mocks.NewMockEmailQueueRepository(ctrl)
+	mockDataFeedFetcher := broadcastmocks.NewMockDataFeedFetcher(ctrl)
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 	mockTaskService := mocks.NewMockTaskService(ctrl)
 	mockEventBus := mocks.NewMockEventBus(ctrl)
@@ -193,6 +201,7 @@ func TestFactory_RegisterWithTaskService(t *testing.T) {
 		mockTaskRepo,
 		mockWorkspaceRepo,
 		mockEmailQueueRepo,
+		mockDataFeedFetcher,
 		mockLogger,
 		config,
 		"https://api.notifuse.com",

@@ -42,7 +42,7 @@ msgid "(original: {0})"
 msgstr "(original: {0})"
 
 #. placeholder {0}: previewResponse.total_count
-#: src/components/segment/button_upsert.tsx:522
+#: src/components/segment/button_upsert.tsx:602
 msgid "{0} contacts"
 msgstr "{0} contactes"
 
@@ -251,7 +251,7 @@ msgstr "+ Afegir filtre"
 msgid "+ add from name, CC, BCC, reply-to, attachments"
 msgstr "+ afegir nom del remitent, CC, CCO, respondre-a, adjunts"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:715
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:809
 msgid "+ Add variation"
 msgstr "+ Afegir variació"
 
@@ -259,7 +259,7 @@ msgstr "+ Afegir variació"
 msgid "0 clicks out of 0 recipients"
 msgstr "0 clics de 0 destinataris"
 
-#: src/components/segment/button_upsert.tsx:520
+#: src/components/segment/button_upsert.tsx:600
 msgid "0 contacts"
 msgstr "0 contactes"
 
@@ -267,7 +267,7 @@ msgstr "0 contactes"
 msgid "0 opens out of 0 recipients"
 msgstr "0 obertures de 0 destinataris"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:421
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:490
 msgid "1. Audience"
 msgstr "1. Audiència"
 
@@ -283,7 +283,7 @@ msgstr "100 - Fi"
 msgid "2. Template"
 msgstr "2. Plantilla"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:425
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:494
 msgid "2. Web Analytics"
 msgstr "2. Analítica web"
 
@@ -292,12 +292,20 @@ msgid "200 - Extra Light"
 msgstr "200 - Extra lleuger"
 
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:429
-msgid "3. Content"
-msgstr "3. Contingut"
+#~ msgid "3. Content"
+#~ msgstr "3. Contingut"
+
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:498
+msgid "3. Data Feeds"
+msgstr ""
 
 #: src/components/email_builder/ui/FontStyleInput.tsx:113
 msgid "300 - Light"
 msgstr "300 - Lleuger"
+
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:502
+msgid "4. Content"
+msgstr ""
 
 #: src/components/email_builder/ui/FontStyleInput.tsx:114
 msgid "400 - Normal"
@@ -346,7 +354,11 @@ msgstr "S'ha trobat una operació {operation} anterior per a \"{0}\". Voleu repr
 msgid "A previous upload for \"{0}\" was found ({1}). Would you like to resume from where you left off?"
 msgstr "S'ha trobat una pujada anterior per a \"{0}\" ({1}). Voleu reprendre des d'on ho vau deixar?"
 
-#: src/components/segment/button_upsert.tsx:634
+#: src/components/segment/button_upsert.tsx:210
+msgid "A segment with ID \"{id}\" already exists"
+msgstr ""
+
+#: src/components/segment/button_upsert.tsx:714
 msgid "A tree is required"
 msgstr "Es requereix un arbre"
 
@@ -417,6 +429,8 @@ msgid "Activity"
 msgstr "Activitat"
 
 #: src/components/blog/AuthorsTable.tsx:138
+#: src/components/broadcasts/HeadersEditor.tsx:54
+#: src/components/broadcasts/HeadersEditor.tsx:101
 #: src/components/segment/input_json_path.tsx:98
 #: src/pages/ContactsPage.tsx:941
 msgid "Add"
@@ -504,6 +518,18 @@ msgstr "Afegir CSS"
 #: src/components/settings/CustomFieldsConfiguration.tsx:215
 msgid "Add Custom Field Label"
 msgstr "Afegir etiqueta de camp personalitzat"
+
+#: src/components/broadcasts/HeadersEditor.tsx:89
+msgid "Add custom header"
+msgstr ""
+
+#: src/components/broadcasts/HeadersEditor.tsx:94
+msgid "Add Custom Header"
+msgstr ""
+
+#: src/components/broadcasts/HeadersEditor.tsx:73
+#~ msgid "Add Header"
+#~ msgstr ""
 
 #: src/components/settings/Integrations.tsx:2097
 msgid "Add Integration"
@@ -731,11 +757,11 @@ msgstr "S'ha produït un error durant l'exportació"
 msgid "An error occurred with the file manager"
 msgstr "S'ha produït un error amb el gestor de fitxers"
 
-#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:337
+#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:340
 msgid "Anchor"
 msgstr "Àncora"
 
-#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:383
+#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:386
 msgid "Anchor ID"
 msgstr "ID d'àncora"
 
@@ -860,6 +886,10 @@ msgstr "Esteu segur que voleu eliminar la publicació"
 msgid "Are you sure you want to delete this block?"
 msgstr "Esteu segur que voleu eliminar aquest bloc?"
 
+#: src/components/broadcasts/HeadersEditor.tsx:62
+msgid "Are you sure you want to delete this header?"
+msgstr ""
+
 #: src/components/automations/nodes/BaseNode.tsx:39
 msgid "Are you sure you want to delete this node?"
 msgstr "Esteu segur que voleu eliminar aquest node?"
@@ -900,7 +930,7 @@ msgstr "Esteu segur que voleu treure aquesta etiqueta de camp personalitzat?"
 msgid "Are you sure you want to remove this field?"
 msgstr "Esteu segur que voleu treure aquest camp?"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:685
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:779
 msgid "Are you sure you want to remove this variation?"
 msgstr "Esteu segur que voleu treure aquesta variació?"
 
@@ -1010,7 +1040,7 @@ msgstr "Subscripció automàtica a llistes"
 msgid "Automatically add new users to the selected lists"
 msgstr "Afegir automàticament nous usuaris a les llistes seleccionades"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:604
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:698
 msgid "Automatically send winner"
 msgstr "Enviar guanyador automàticament"
 
@@ -1094,7 +1124,7 @@ msgstr "Color de fons"
 #: src/components/blog_editor/toolbars/components/ColorPicker.tsx:223
 #: src/components/email_builder/blocks/MjBodyBlock.tsx:60
 #: src/components/email_builder/ui/BackgroundInput.tsx:264
-#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:582
+#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:585
 msgid "Background Color"
 msgstr "Color de fons"
 
@@ -1160,7 +1190,7 @@ msgstr "abans de la data"
 msgid "Before User Created Hook"
 msgstr "Ganxo abans de crear usuari"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:468
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:541
 msgid "Belonging to at least one of the following segments"
 msgstr "Pertany com a mínim a un dels segments següents"
 
@@ -1245,7 +1275,7 @@ msgstr "Cos:"
 
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:236
 #: src/components/email_builder/ui/FontStyleInput.tsx:110
-#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:524
+#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:527
 msgid "Bold"
 msgstr "Negreta"
 
@@ -1415,7 +1445,7 @@ msgstr "Difusió \"{0}\" programada correctament"
 msgid "Broadcast \"{0}\" sending started"
 msgstr "S'ha iniciat l'enviament de la difusió \"{0}\""
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:146
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:158
 msgid "Broadcast created successfully"
 msgstr "Difusió creada correctament"
 
@@ -1428,11 +1458,11 @@ msgstr "ID de difusió"
 msgid "Broadcast ID copied to clipboard"
 msgstr "ID de difusió copiat al porta-retalls"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:438
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:511
 msgid "Broadcast name"
 msgstr "Nom de la difusió"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:146
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:158
 msgid "Broadcast updated successfully"
 msgstr "Difusió actualitzada correctament"
 
@@ -1501,8 +1531,9 @@ msgstr "Mida del botó"
 #: src/components/blog/ThemeEditorDrawer.tsx:280
 #: src/components/blog/ThemeEditorDrawer.tsx:310
 #: src/components/blog/ThemeEditorDrawer.tsx:469
+#: src/components/broadcasts/HeadersEditor.tsx:102
 #: src/components/broadcasts/SendOrScheduleModal.tsx:301
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:290
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:328
 #: src/components/contacts/BulkUpdateDrawer.tsx:576
 #: src/components/contacts/ContactDetailsDrawer.tsx:1113
 #: src/components/contacts/ContactDetailsDrawer.tsx:1145
@@ -1519,7 +1550,7 @@ msgstr "Mida del botó"
 #: src/components/email_builder/ui/CodeDrawerInput.tsx:179
 #: src/components/email_builder/ui/ImportFontInput.tsx:173
 #: src/components/email_builder/ui/StringPopoverInput.tsx:95
-#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:395
+#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:398
 #: src/components/file_manager/buttonSettings.tsx:309
 #: src/components/file_manager/context.tsx:192
 #: src/components/file_manager/fileManager.tsx:641
@@ -1527,7 +1558,7 @@ msgstr "Mida del botó"
 #: src/components/file_manager/fileManager.tsx:940
 #: src/components/file_manager/fileManager.tsx:1008
 #: src/components/file_manager/fileManager.tsx:1118
-#: src/components/segment/button_upsert.tsx:285
+#: src/components/segment/button_upsert.tsx:347
 #: src/components/segment/input_dimension_filters.tsx:162
 #: src/components/segment/input.tsx:376
 #: src/components/settings/BlogSettings.tsx:181
@@ -1723,7 +1754,7 @@ msgstr "Feu clic per veure opcions"
 msgid "Click or drag a CSV file to this area to upload"
 msgstr "Feu clic o arrossegueu un fitxer CSV a aquesta àrea per pujar"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:53
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:55
 msgid "Click Rate"
 msgstr "Taxa de clics"
 
@@ -1773,6 +1804,7 @@ msgstr "Clonar plantilla"
 
 #: src/components/blog/ThemeEditorDrawer.tsx:279
 #: src/components/blog/ThemePresetPreviewDrawer.tsx:40
+#: src/components/broadcasts/GlobalFeedSettings.tsx:134
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:825
 #: src/components/settings/WebhookCard.tsx:345
 #: src/components/settings/WorkspaceMembers.tsx:585
@@ -1955,7 +1987,7 @@ msgstr "Configurant {0}"
 
 #: src/components/filters/Filter.tsx:184
 #: src/components/filters/Filter.tsx:203
-#: src/components/segment/button_upsert.tsx:294
+#: src/components/segment/button_upsert.tsx:356
 #: src/components/segment/form_leaf.tsx:99
 #: src/components/segment/form_leaf.tsx:216
 #: src/components/segment/form_leaf.tsx:486
@@ -2015,6 +2047,10 @@ msgstr "Detalls del contacte"
 #: src/components/messages/MessageHistoryTable.tsx:348
 msgid "Contact Email"
 msgstr "Correu del contacte"
+
+#: src/components/broadcasts/RecipientFeedSettings.tsx:150
+msgid "Contact email (leave empty for random)"
+msgstr ""
 
 #: src/components/transactional/ApiCommandModal.tsx:553
 msgid "Contact Email:"
@@ -2086,6 +2122,10 @@ msgstr "Farciment del contenidor"
 msgid "Content Structure Tree"
 msgstr "Arbre d'estructura del contingut"
 
+#: src/components/broadcasts/RecipientFeedSettingsCard.tsx:179
+#~ msgid "Continue"
+#~ msgstr ""
+
 #: src/components/seo/SEOSettingsForm.tsx:74
 #: src/components/seo/SEOSettingsForm.tsx:188
 msgid "Control how search engines index and follow links on your blog"
@@ -2150,7 +2190,7 @@ msgstr "Coberta"
 msgid "Create"
 msgstr "Crear"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:338
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:387
 msgid "Create a broadcast"
 msgstr "Crear una difusió"
 
@@ -2178,7 +2218,7 @@ msgstr "Crear clau API"
 msgid "Create Automation"
 msgstr "Crear automatització"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:334
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:383
 #: src/pages/BroadcastsPage.tsx:1289
 #: src/pages/BroadcastsPage.tsx:1385
 msgid "Create Broadcast"
@@ -2430,6 +2470,20 @@ msgstr "Etiqueta de camp personalitzat desada correctament"
 #: src/components/settings/SettingsSidebar.tsx:103
 msgid "Custom Fields"
 msgstr "Camps personalitzats"
+
+#: src/components/broadcasts/HeadersEditor.tsx:34
+msgid "Custom header"
+msgstr ""
+
+#: src/components/broadcasts/GlobalFeedSettings.tsx:108
+#: src/components/broadcasts/RecipientFeedSettings.tsx:114
+#~ msgid "Custom headers"
+#~ msgstr ""
+
+#: src/components/broadcasts/GlobalFeedSettingsCard.tsx:123
+#: src/components/broadcasts/RecipientFeedSettingsCard.tsx:129
+#~ msgid "Custom HTTP Headers"
+#~ msgstr ""
 
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:92
 msgid "Custom Icon URL"
@@ -2701,6 +2755,10 @@ msgstr "Eliminar carpeta"
 #: src/components/file_manager/fileManager.tsx:656
 msgid "Delete folder (Read-only mode)"
 msgstr "Eliminar carpeta (Mode de només lectura)"
+
+#: src/components/broadcasts/HeadersEditor.tsx:61
+msgid "Delete header"
+msgstr ""
 
 #: src/components/settings/WorkspaceMembers.tsx:209
 #: src/components/settings/WorkspaceMembers.tsx:216
@@ -3000,7 +3058,7 @@ msgstr "P. ex. Correu de restabliment de contrasenya"
 msgid "E.g. password_reset"
 msgstr "P. ex. password_reset"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:441
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:514
 msgid "E.g. Weekly Newsletter - May 2023"
 msgstr "P. ex. Butlletí setmanal - Maig 2023"
 
@@ -3074,11 +3132,11 @@ msgstr "Editar autor"
 msgid "Edit Automation"
 msgstr "Editar automatització"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:338
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:387
 msgid "Edit broadcast"
 msgstr "Editar difusió"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:334
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:383
 #: src/pages/BroadcastsPage.tsx:482
 msgid "Edit Broadcast"
 msgstr "Editar difusió"
@@ -3138,7 +3196,7 @@ msgstr "Editar permisos per a {0}"
 msgid "Edit Post"
 msgstr "Editar publicació"
 
-#: src/components/segment/button_upsert.tsx:99
+#: src/components/segment/button_upsert.tsx:101
 msgid "Edit segment"
 msgstr "Editar segment"
 
@@ -3189,7 +3247,7 @@ msgstr "Transcorregut"
 msgid "Element Padding"
 msgstr "Farciment de l'element"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:550
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:623
 msgid "email"
 msgstr "Correu electrònic"
 
@@ -3204,7 +3262,7 @@ msgstr "Correu electrònic"
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:1116
 #: src/components/contacts/ContactUpsertDrawer.tsx:515
 #: src/components/contacts/ExportContactsModal.tsx:50
-#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:335
+#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:338
 #: src/components/messages/MessageHistoryTab.tsx:219
 #: src/components/settings/Integrations.tsx:2156
 #: src/components/settings/WorkspaceMembers.tsx:77
@@ -3220,7 +3278,7 @@ msgstr "Correu electrònic"
 msgid "Email (Required)"
 msgstr "Correu (obligatori)"
 
-#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:380
+#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:383
 #: src/components/settings/Integrations.tsx:1581
 #: src/components/settings/WorkspaceMembers.tsx:554
 msgid "Email Address"
@@ -3339,7 +3397,7 @@ msgstr "Suggeriments d'emojis"
 msgid "Empty column. Add text, button, or image content."
 msgstr "Columna buida. Afegiu contingut de text, botó o imatge."
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:571
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:665
 msgid "Enable A/B Testing"
 msgstr "Activar proves A/B"
 
@@ -3367,6 +3425,18 @@ msgstr "Activeu la funció de blog per publicar articles i contingut a la pàgin
 #: src/pages/SetupWizard.tsx:456
 msgid "Enable TLS encryption for SMTP connection"
 msgstr "Activar xifratge TLS per a la connexió SMTP"
+
+#: src/components/broadcasts/GlobalFeedSettings.tsx:162
+#~ msgid "Enable to fetch global data that will be available to all recipients in this broadcast. The data will be accessible in your templates using the \"feed\" variable."
+#~ msgstr ""
+
+#: src/components/broadcasts/GlobalFeedSettings.tsx:181
+msgid "Enable to fetch global data that will be available to all recipients in this broadcast. The data will be accessible in your templates using the \"global_feed\" variable."
+msgstr ""
+
+#: src/components/broadcasts/RecipientFeedSettings.tsx:224
+msgid "Enable to fetch personalized data for each recipient before sending their email. The data will be accessible in your templates using the \"recipient_feed\" variable."
+msgstr ""
 
 #: src/components/settings/WebhookCard.tsx:200
 msgid "Enable webhook"
@@ -3677,7 +3747,7 @@ msgstr "Extracte"
 msgid "Exclude Unsubscribed"
 msgstr "Excloure donats de baixa"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:526
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:599
 msgid "Exclude unsubscribed recipients"
 msgstr "Excloure destinataris donats de baixa"
 
@@ -3789,7 +3859,7 @@ msgid "Failed to create automation: {0}"
 msgstr "No s'ha pogut crear l'automatització: {0}"
 
 #. placeholder {0}: error.message
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:152
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:164
 msgid "Failed to create broadcast: {0}"
 msgstr "No s'ha pogut crear la difusió: {0}"
 
@@ -3817,7 +3887,7 @@ msgstr "No s'ha pogut crear la notificació: {0}"
 msgid "Failed to create post: {0}"
 msgstr "No s'ha pogut crear la publicació: {0}"
 
-#: src/components/segment/button_upsert.tsx:261
+#: src/components/segment/button_upsert.tsx:323
 msgid "Failed to create segment"
 msgstr "No s'ha pogut crear el segment"
 
@@ -3912,6 +3982,11 @@ msgstr "No s'ha pogut exportar JSON"
 msgid "Failed to export MJML"
 msgstr "No s'ha pogut exportar MJML"
 
+#. placeholder {0}: response.error
+#: src/components/broadcasts/GlobalFeedSettings.tsx:59
+msgid "Failed to fetch data: {0}"
+msgstr ""
+
 #: src/components/analytics/EmailMetricsChart.tsx:164
 msgid "Failed to fetch email metrics"
 msgstr "No s'han pogut obtenir les mètriques de correu"
@@ -3964,7 +4039,7 @@ msgstr "No s'ha pogut pausar l'automatització"
 msgid "Failed to pause broadcast"
 msgstr "No s'ha pogut pausar la difusió"
 
-#: src/components/segment/button_upsert.tsx:191
+#: src/components/segment/button_upsert.tsx:247
 msgid "Failed to preview segment"
 msgstr "No s'ha pogut previsualitzar el segment"
 
@@ -3993,6 +4068,11 @@ msgstr "No s'ha pogut llegir el fitxer"
 #: src/components/contacts/SegmentsFilter.tsx:222
 msgid "Failed to rebuild segment"
 msgstr "No s'ha pogut reconstruir el segment"
+
+#. placeholder {0}: error.message
+#: src/components/broadcasts/GlobalFeedSettings.tsx:68
+msgid "Failed to refresh global feed: {0}"
+msgstr ""
 
 #: src/components/settings/WebhookCard.tsx:137
 msgid "Failed to regenerate webhook secret"
@@ -4104,6 +4184,11 @@ msgstr "No s'ha pogut establir el proveïdor per defecte"
 msgid "Failed to test email provider"
 msgstr "No s'ha pogut provar el proveïdor de correu"
 
+#. placeholder {0}: error.message
+#: src/components/broadcasts/RecipientFeedSettings.tsx:74
+msgid "Failed to test recipient feed: {0}"
+msgstr ""
+
 #: src/pages/SetupWizard.tsx:83
 msgid "Failed to test SMTP connection"
 msgstr "No s'ha pogut provar la connexió SMTP"
@@ -4126,7 +4211,7 @@ msgid "Failed to update blog settings"
 msgstr "No s'han pogut actualitzar els paràmetres del blog"
 
 #. placeholder {0}: error.message
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:152
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:164
 msgid "Failed to update broadcast: {0}"
 msgstr "No s'ha pogut actualitzar la difusió: {0}"
 
@@ -4165,7 +4250,7 @@ msgstr "No s'han pogut actualitzar els permisos"
 msgid "Failed to update post: {0}"
 msgstr "No s'ha pogut actualitzar la publicació: {0}"
 
-#: src/components/segment/button_upsert.tsx:261
+#: src/components/segment/button_upsert.tsx:323
 msgid "Failed to update segment"
 msgstr "No s'ha pogut actualitzar el segment"
 
@@ -4198,6 +4283,11 @@ msgstr "Favicon per al vostre blog. Recomanat: PNG de 32x32px o 192x192px"
 msgid "Featured Image URL"
 msgstr "URL de la imatge destacada"
 
+#: src/components/broadcasts/GlobalFeedSettingsCard.tsx:105
+#: src/components/broadcasts/RecipientFeedSettingsCard.tsx:104
+#~ msgid "Feed URL"
+#~ msgstr ""
+
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:464
 msgid "Feedback Type"
 msgstr "Tipus de comentari"
@@ -4210,6 +4300,14 @@ msgstr "Comentaris:"
 #: src/components/contacts/ExportContactsModal.tsx:349
 msgid "Fetched {0} contacts..."
 msgstr "Obtinguts {0} contactes..."
+
+#: src/components/broadcasts/GlobalFeedSettings.tsx:120
+#~ msgid "Fetched Data"
+#~ msgstr ""
+
+#: src/components/broadcasts/GlobalFeedSettings.tsx:141
+msgid "Fetching data..."
+msgstr ""
 
 #. placeholder {0}: toolInput.url
 #: src/components/ai-assistant/useAIAssistant.tsx:99
@@ -4487,9 +4585,33 @@ msgstr "Configuració general del vostre espai de treball"
 msgid "Generate this key in Supabase Auth Hooks settings"
 msgstr "Genereu aquesta clau a la configuració de Supabase Auth Hooks"
 
-#: src/components/segment/button_upsert.tsx:562
+#: src/components/segment/button_upsert.tsx:642
 msgid "Generated SQL:"
 msgstr "SQL generat:"
+
+#: src/components/broadcasts/GlobalFeedSettings.tsx:83
+msgid "Global Data Feed"
+msgstr ""
+
+#: src/components/broadcasts/DataFeedSettings.tsx:38
+#~ msgid "Global Feed"
+#~ msgstr ""
+
+#: src/components/broadcasts/GlobalFeedSettings.tsx:59
+#~ msgid "Global feed data refreshed successfully"
+#~ msgstr ""
+
+#: src/components/broadcasts/GlobalFeedSettings.tsx:131
+msgid "Global Feed Response"
+msgstr ""
+
+#: src/components/broadcasts/GlobalFeedSettings.tsx:96
+msgid "Global feed URL"
+msgstr ""
+
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:403
+msgid "Global feed URL is required when enabled"
+msgstr "L'URL del feed global és requerida quan està habilitat"
 
 #: src/pages/AcceptInvitationPage.tsx:125
 #: src/pages/SetupWizard.tsx:313
@@ -4537,6 +4659,22 @@ msgstr "Té error"
 #: src/components/email_builder/blocks/MjHeadBlock.tsx:15
 msgid "Head Attributes"
 msgstr "Atributs de capçalera"
+
+#: src/components/broadcasts/HeadersEditor.tsx:107
+msgid "Header name"
+msgstr ""
+
+#: src/components/broadcasts/HeadersEditor.tsx:108
+msgid "Header name is required"
+msgstr ""
+
+#: src/components/broadcasts/HeadersEditor.tsx:114
+msgid "Header value"
+msgstr ""
+
+#: src/components/broadcasts/HeadersEditor.tsx:115
+msgid "Header value is required"
+msgstr ""
 
 #: src/components/blog_editor/toolbars/components/CodeBlockToolbar.tsx:236
 #: src/components/email_builder/blocks/MjButtonBlock.tsx:362
@@ -4645,7 +4783,7 @@ msgstr "https://exemple.com o {{ url }}"
 msgid "https://fonts.googleapis.com/css?family=... or {{ font_url }}"
 msgstr "https://fonts.googleapis.com/css?family=... o {{ font_url }}"
 
-#: src/components/segment/button_upsert.tsx:313
+#: src/components/segment/button_upsert.tsx:391
 msgid "i.e: Big spenders..."
 msgstr "p. ex.: Grans compradors..."
 
@@ -4773,6 +4911,10 @@ msgstr "Si està activat, la difusió s'enviarà segons el fus horari de cada de
 #: src/components/transactional/ApiCommandModal.tsx:997
 msgid "If the contact email doesn't exist in your workspace, it will be automatically created."
 msgstr "Si el correu del contacte no existeix al vostre espai de treball, es crearà automàticament."
+
+#: src/components/broadcasts/RecipientFeedSettings.tsx:116
+#~ msgid "If the feed request fails after retries, the broadcast will pause automatically. This ensures all recipients receive their personalized content."
+#~ msgstr ""
 
 #: src/components/email_builder/blocks/MjImageBlock.tsx:42
 #: src/components/email_builder/ui/BackgroundInput.tsx:258
@@ -4945,14 +5087,14 @@ msgstr "Entrada"
 msgid "Insert"
 msgstr "Inserir"
 
-#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:595
+#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:598
 msgid "Insert Emoji"
 msgstr "Inserir emoji"
 
 #: src/components/blog_editor/toolbars/components/LinkPopover.tsx:139
-#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:403
-#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:411
-#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:605
+#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:406
+#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:414
+#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:608
 msgid "Insert Link"
 msgstr "Inserir enllaç"
 
@@ -5103,7 +5245,7 @@ msgstr "no està a"
 
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:262
 #: src/components/email_builder/ui/FontStyleInput.tsx:124
-#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:534
+#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:537
 msgid "Italic"
 msgstr "Cursiva"
 
@@ -5196,6 +5338,10 @@ msgstr "Últims 7 dies"
 msgid "Last Edited"
 msgstr "Última edició"
 
+#: src/components/broadcasts/GlobalFeedSettings.tsx:149
+msgid "Last fetched:"
+msgstr "Darrera recuperació:"
+
 #: src/components/file_manager/fileManager.tsx:870
 msgid "Last modified"
 msgstr "Última modificació"
@@ -5234,6 +5380,10 @@ msgstr "Deixeu buit per amplada completa del contenidor"
 #: src/components/automations/config/TriggerConfigForm.tsx:314
 msgid "Leave empty to trigger on any field change"
 msgstr "Deixeu buit per activar amb qualsevol canvi de camp"
+
+#: src/components/broadcasts/RecipientFeedSettings.tsx:164
+msgid "Leave empty to use a random contact from the broadcast audience."
+msgstr ""
 
 #: src/components/timeline/ContactTimeline.tsx:478
 msgid "left"
@@ -5294,7 +5444,7 @@ msgstr "Enllaç"
 msgid "Link Settings"
 msgstr "Configuració d'enllaç"
 
-#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:363
+#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:366
 msgid "Link Type"
 msgstr "Tipus d'enllaç"
 
@@ -5310,7 +5460,7 @@ msgstr "URL de l'enllaç"
 #: src/components/automations/config/TriggerConfigForm.tsx:65
 #: src/components/automations/config/TriggerConfigForm.tsx:256
 #: src/components/automations/UpsertAutomationDrawer.tsx:178
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:446
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:519
 #: src/components/contacts/BulkUpdateDrawer.tsx:602
 #: src/components/contacts/ExportContactsModal.tsx:73
 #: src/components/messages/MessageHistoryTable.tsx:132
@@ -5547,13 +5697,17 @@ msgstr "Coincideix"
 msgid "Matched on:"
 msgstr "Coincideix amb:"
 
-#: src/components/segment/button_upsert.tsx:557
+#: src/components/segment/button_upsert.tsx:637
 msgid "Matching contacts:"
 msgstr "Contactes coincidents:"
 
 #: src/components/templates/SendTemplateModal.tsx:357
 msgid "Max 3MB per file, 10MB total, 20 files maximum"
 msgstr "Màx. 3MB per fitxer, 10MB en total, màxim 20 fitxers"
+
+#: src/components/broadcasts/RecipientFeedSettingsCard.tsx:123
+#~ msgid "Max Retries"
+#~ msgstr ""
 
 #: src/components/templates/SendTemplateModal.tsx:173
 msgid "Maximum 20 attachments allowed"
@@ -5743,7 +5897,7 @@ msgstr "N/D"
 #: src/components/blog/CategoryDrawer.tsx:130
 #: src/components/file_manager/fileManager.tsx:856
 #: src/components/lists/ListDrawer.tsx:185
-#: src/components/segment/button_upsert.tsx:310
+#: src/components/segment/button_upsert.tsx:372
 #: src/components/settings/Integrations.tsx:333
 #: src/components/settings/Integrations.tsx:1199
 #: src/components/settings/Integrations.tsx:1358
@@ -5791,7 +5945,7 @@ msgstr "Nou missatge (correu...)"
 msgid "New Post"
 msgstr "Nova publicació"
 
-#: src/components/segment/button_upsert.tsx:277
+#: src/components/segment/button_upsert.tsx:339
 msgid "New segment"
 msgstr "Nou segment"
 
@@ -5808,8 +5962,9 @@ msgstr "Nova finestra"
 msgid "New workspace"
 msgstr "Nou espai de treball"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:295
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:305
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:333
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:343
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:354
 #: src/components/templates/CreateTemplateDrawer.tsx:440
 msgid "Next"
 msgstr "Següent"
@@ -5823,8 +5978,9 @@ msgstr "Propera execució"
 #: src/components/blog/PostDrawer.tsx:273
 #: src/components/blog/PostDrawer.tsx:488
 #: src/components/blog/PostsTable.tsx:319
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:212
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:688
+#: src/components/broadcasts/HeadersEditor.tsx:65
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:250
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:782
 #: src/components/contacts/ContactUpsertDrawer.tsx:540
 #: src/components/contacts/SegmentsFilter.tsx:134
 #: src/components/contacts/SegmentsFilter.tsx:149
@@ -5896,9 +6052,21 @@ msgstr "No hi ha contactes que coincideixin amb els filtres actuals"
 msgid "No CSV data available"
 msgstr "No hi ha dades CSV disponibles"
 
+#: src/components/broadcasts/HeadersEditor.tsx:37
+#~ msgid "No custom headers configured"
+#~ msgstr ""
+
 #: src/components/analytics/ChartVisualization.tsx:395
 msgid "No data available"
 msgstr "No hi ha dades disponibles"
+
+#: src/components/broadcasts/GlobalFeedSettings.tsx:154
+#~ msgid "No data fetched yet. Click \"Refresh Now\" to fetch data from the configured URL."
+#~ msgstr "Encara no s'han recuperat dades. Feu clic a « Refresh Now » per recuperar les dades des de l'URL configurada."
+
+#: src/components/broadcasts/GlobalFeedSettings.tsx:175
+msgid "No data returned"
+msgstr ""
 
 #: src/components/templates/TemplatePreviewDrawer.tsx:238
 msgid "No default sender configured"
@@ -5988,7 +6156,7 @@ msgstr "Encara no hi ha publicacions"
 msgid "No preview available or template is empty."
 msgstr "No hi ha previsualització disponible o la plantilla és buida."
 
-#: src/components/segment/button_upsert.tsx:616
+#: src/components/segment/button_upsert.tsx:696
 msgid "No preview available..."
 msgstr "No hi ha previsualització disponible..."
 
@@ -6223,6 +6391,10 @@ msgstr "de les condicions següents coincideixen:"
 msgid "OK"
 msgstr "D'acord"
 
+#: src/components/broadcasts/RecipientFeedSettings.tsx:115
+#~ msgid "On Error Behavior"
+#~ msgstr ""
+
 #: src/components/automations/nodes/TriggerNode.tsx:25
 msgid "Once"
 msgstr "Una vegada"
@@ -6271,7 +6443,7 @@ msgstr "Obrir en una finestra"
 msgid "Open on web"
 msgstr "Obrir al web"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:52
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:54
 msgid "Open Rate"
 msgstr "Taxa d'obertura"
 
@@ -6313,7 +6485,7 @@ msgstr "Token bearer opcional"
 msgid "Optional. If provided, sent as Authorization: Bearer <secret>"
 msgstr "Opcional. Si es proporciona, s'envia com Authorization: Bearer <secret>"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:470
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:543
 msgid "Optionally filter contacts by segments within the selected lists"
 msgstr "Opcionalment filtreu contactes per segments dins de les llistes seleccionades"
 
@@ -6400,6 +6572,10 @@ msgstr "Pausar difusió"
 msgid "Pause broadcast?"
 msgstr "Pausar difusió?"
 
+#: src/components/broadcasts/RecipientFeedSettingsCard.tsx:197
+#~ msgid "Pause the entire broadcast if any request fails (requires manual resume)"
+#~ msgstr ""
+
 #: src/components/automations/AutomationCard.tsx:67
 #: src/pages/BroadcastsPage.tsx:348
 #: src/pages/BroadcastsPage.tsx:979
@@ -6427,6 +6603,26 @@ msgstr "Pendent"
 msgid "Pending confirmation"
 msgstr "Confirmació pendent"
 
+#: src/components/broadcasts/RecipientFeedSettings.tsx:86
+msgid "Per-Recipient Data Feed"
+msgstr "Feed de dades per destinatari"
+
+#: src/components/broadcasts/DataFeedSettings.tsx:53
+#~ msgid "Per-Recipient Feed"
+#~ msgstr "Feed per destinatari"
+
+#: src/components/broadcasts/RecipientFeedSettings.tsx:105
+msgid "Per-recipient feed URL"
+msgstr "URL del feed per destinatari"
+
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:408
+msgid "Per-recipient feed URL is required when enabled"
+msgstr "L'URL del feed per destinatari és requerida quan està habilitat"
+
+#: src/components/broadcasts/RecipientFeedSettings.tsx:92
+#~ msgid "Performance Impact"
+#~ msgstr ""
+
 #: src/pages/SetupWizard.tsx:534
 msgid "Periodically check for new Notifuse versions and security updates. A popup will list new versions available."
 msgstr "Comproveu periòdicament noves versions de Notifuse i actualitzacions de seguretat. Una finestra emergent llistarà les noves versions disponibles."
@@ -6453,14 +6649,14 @@ msgstr "Personalització no disponible per a web"
 #: src/components/contacts/ContactDetailsDrawer.tsx:444
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:93
 #: src/components/contacts/ExportContactsModal.tsx:62
-#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:336
+#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:339
 #: src/pages/ContactsPage.tsx:197
 #: src/pages/ContactsPage.tsx:252
 #: src/pages/ContactsPage.tsx:569
 msgid "Phone"
 msgstr "Telèfon"
 
-#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:382
+#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:385
 msgid "Phone Number"
 msgstr "Número de telèfon"
 
@@ -6497,12 +6693,16 @@ msgid "Please check the form for errors"
 msgstr "Si us plau, comproveu el formulari per errors"
 
 #: src/components/blog/PostDrawer.tsx:629
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:403
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:472
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:244
 msgid "Please check the form for errors."
 msgstr "Si us plau, comproveu el formulari per errors."
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:439
+#: src/components/segment/button_upsert.tsx:272
+msgid "Please choose a different segment name"
+msgstr ""
+
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:512
 msgid "Please enter a broadcast name"
 msgstr "Si us plau, introduïu un nom de difusió"
 
@@ -6650,7 +6850,7 @@ msgstr "Si us plau, seleccioneu un tipus d'objectiu"
 msgid "Please select a JSON file"
 msgstr "Si us plau, seleccioneu un fitxer JSON"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:451
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:524
 #: src/components/contacts/ContactDetailsDrawer.tsx:1130
 #: src/components/segment/form_leaf.tsx:166
 msgid "Please select a list"
@@ -6807,8 +7007,8 @@ msgstr "Previsualitzar"
 #: src/components/blog/ThemePresetPreviewDrawer.tsx:37
 #: src/components/blog/ThemeSelectionModal.tsx:89
 #: src/components/common/ImageURLInput.tsx:52
-#: src/components/segment/button_upsert.tsx:470
-#: src/components/segment/button_upsert.tsx:509
+#: src/components/segment/button_upsert.tsx:550
+#: src/components/segment/button_upsert.tsx:589
 msgid "Preview"
 msgstr "Previsualitzar"
 
@@ -6832,7 +7032,7 @@ msgstr "Vista prèvia del missatge"
 msgid "Preview Mode Required"
 msgstr "Cal mode de vista prèvia"
 
-#: src/components/segment/button_upsert.tsx:552
+#: src/components/segment/button_upsert.tsx:632
 msgid "Preview Results"
 msgstr "Resultats de la vista prèvia"
 
@@ -6861,8 +7061,9 @@ msgstr "Previsualitza aquest tema en una nova pestanya"
 msgid "Preview Your Email"
 msgstr "Previsualitza el teu correu"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:302
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:313
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:340
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:351
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:362
 #: src/components/templates/CreateTemplateDrawer.tsx:445
 msgid "Previous"
 msgstr "Anterior"
@@ -7064,6 +7265,10 @@ msgstr "Destinatari"
 msgid "Recipient Email"
 msgstr "Correu del destinatari"
 
+#: src/components/broadcasts/RecipientFeedSettings.tsx:69
+msgid "Recipient feed test completed successfully"
+msgstr "Test del feed de destinatari completat amb èxit"
+
 #: src/components/templates/SendTemplateModal.tsx:292
 msgid "recipient@example.com"
 msgstr "destinatari@exemple.com"
@@ -7089,7 +7294,7 @@ msgstr "Recomanat: 50-60 caràcters"
 
 #: src/components/blog_editor/components/EditorHeader.tsx:69
 #: src/components/blog/PostDrawer.tsx:603
-#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:502
+#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:505
 msgid "Redo"
 msgstr "Refer"
 
@@ -7109,6 +7314,10 @@ msgstr "Actualitzar"
 #: src/pages/BroadcastsPage.tsx:468
 msgid "Refresh Broadcast"
 msgstr "Actualitzar difusió"
+
+#: src/components/broadcasts/GlobalFeedSettings.tsx:130
+#~ msgid "Refresh Now"
+#~ msgstr "Actualitzar ara"
 
 #: src/components/file_manager/fileManager.tsx:660
 msgid "Refresh the list"
@@ -7169,7 +7378,7 @@ msgstr "Treure camp"
 msgid "Remove from List"
 msgstr "Treure de la llista"
 
-#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:399
+#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:402
 msgid "Remove Link"
 msgstr "Eliminar enllaç"
 
@@ -7182,7 +7391,7 @@ msgstr "Treure membre"
 msgid "Remove this author?"
 msgstr "Eliminar aquest autor?"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:684
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:778
 msgid "Remove variation"
 msgstr "Eliminar variació"
 
@@ -7320,6 +7529,10 @@ msgstr "Reprendre càrrega anterior"
 msgid "Resume Upload"
 msgstr "Reprendre pujada"
 
+#: src/components/broadcasts/RecipientFeedSettingsCard.tsx:136
+#~ msgid "Retry Delay (ms)"
+#~ msgstr ""
+
 #: src/components/email_builder/ui/BorderInput.tsx:61
 msgid "Ridge"
 msgstr "Cresta"
@@ -7350,6 +7563,10 @@ msgstr "Arrodonit"
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:969
 msgid "rows"
 msgstr "Files"
+
+#: src/components/broadcasts/RecipientFeedSettings.tsx:160
+msgid "Run Test"
+msgstr ""
 
 #: src/pages/BroadcastsPage.tsx:340
 msgid "Running"
@@ -7406,7 +7623,7 @@ msgstr "Mode de caixa de proves"
 #: src/components/blog/PostDrawer.tsx:617
 #: src/components/blog/ThemeEditorDrawer.tsx:318
 #: src/components/blog/ThemeEditorDrawer.tsx:468
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:322
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:371
 #: src/components/contacts/ContactUpsertDrawer.tsx:502
 #: src/components/contacts/InlineEditableField.tsx:318
 #: src/components/email_builder/panels/Preview.tsx:185
@@ -7562,7 +7779,7 @@ msgstr "Consulteu la documentació per a:"
 #: src/components/automations/config/TriggerConfigForm.tsx:79
 #: src/components/automations/config/TriggerConfigForm.tsx:277
 #: src/components/contacts/ExportContactsModal.tsx:89
-#: src/components/segment/button_upsert.tsx:99
+#: src/components/segment/button_upsert.tsx:101
 #: src/components/timeline/ContactTimeline.tsx:482
 msgid "Segment"
 msgstr "Segment"
@@ -7623,7 +7840,7 @@ msgid "Select a field"
 msgstr "Seleccioneu un camp"
 
 #: src/components/automations/nodes/ListStatusBranchNode.tsx:50
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:456
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:529
 #: src/components/contacts/ContactDetailsDrawer.tsx:1137
 #: src/components/segment/form_leaf.tsx:168
 msgid "Select a list"
@@ -7661,7 +7878,7 @@ msgstr "Seleccioneu un remitent"
 msgid "Select a template"
 msgstr "Seleccioneu una plantilla"
 
-#: src/components/segment/button_upsert.tsx:428
+#: src/components/segment/button_upsert.tsx:508
 msgid "Select a time zone"
 msgstr "Seleccioneu una zona horària"
 
@@ -7793,7 +8010,7 @@ msgstr "Seleccionar proveïdor OAuth2"
 msgid "Select page size"
 msgstr "Seleccionar mida de pàgina"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:480
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:553
 msgid "Select segments (optional)"
 msgstr "Seleccionar segments (opcional)"
 
@@ -7805,8 +8022,8 @@ msgstr "Seleccionar estat"
 msgid "Select storage provider"
 msgstr "Seleccionar proveïdor d'emmagatzematge"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:672
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:735
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:766
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:829
 msgid "Select template"
 msgstr "Seleccionar plantilla"
 
@@ -7938,6 +8155,10 @@ msgstr "Enviar prova"
 #: src/pages/TemplatesPage.tsx:317
 msgid "Send Test Email"
 msgstr "Enviar correu de prova"
+
+#: src/components/broadcasts/RecipientFeedSettingsCard.tsx:181
+#~ msgid "Send the email without the feed data if the request fails"
+#~ msgstr ""
 
 #: src/components/transactional/ApiCommandModal.tsx:918
 msgid "Send transactional notifications using SMTP relay. Perfect for integrating with existing email systems or applications that support SMTP."
@@ -8159,6 +8380,14 @@ msgstr "Des de"
 msgid "Size"
 msgstr "Mida"
 
+#: src/components/broadcasts/RecipientFeedSettingsCard.tsx:187
+#~ msgid "Skip"
+#~ msgstr ""
+
+#: src/components/broadcasts/RecipientFeedSettingsCard.tsx:189
+#~ msgid "Skip this recipient if the request fails (they won't receive the email)"
+#~ msgstr ""
+
 #: src/components/contacts/BulkUpdateDrawer.tsx:727
 msgid "Skipped"
 msgstr "Omès"
@@ -8334,7 +8563,7 @@ msgstr "Clau API de SparkPost"
 msgid "Split"
 msgstr "Dividir"
 
-#: src/components/segment/button_upsert.tsx:581
+#: src/components/segment/button_upsert.tsx:661
 msgid "SQL Arguments:"
 msgstr "Arguments SQL:"
 
@@ -8421,7 +8650,7 @@ msgstr "Configuració d'emmagatzematge"
 msgid "Storage settings (Read-only mode)"
 msgstr "Configuració d'emmagatzematge (Mode només lectura)"
 
-#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:554
+#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:557
 msgid "Strikethrough"
 msgstr "Ratllat"
 
@@ -8483,7 +8712,7 @@ msgstr "Subscrit el"
 msgid "Subscribed on:"
 msgstr "Subscrit el:"
 
-#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:630
+#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:633
 msgid "Subscript"
 msgstr "Subíndex"
 
@@ -8537,7 +8766,7 @@ msgstr "Sessió iniciada correctament"
 msgid "Supabase integration saved successfully"
 msgstr "Integració de Supabase desada correctament"
 
-#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:621
+#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:624
 msgid "Superscript"
 msgstr "Superíndex"
 
@@ -8582,7 +8811,7 @@ msgstr "Tipus de tasca:"
 msgid "Team"
 msgstr "Equip"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:730
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:824
 #: src/components/messages/MessageHistoryTable.tsx:130
 #: src/components/messages/MessageHistoryTable.tsx:172
 #: src/pages/BroadcastsPage.tsx:703
@@ -8592,7 +8821,7 @@ msgid "Template"
 msgstr "Plantilla"
 
 #. placeholder {0}: field.key + 1
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:639
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:733
 msgid "Template {0}"
 msgstr "Plantilla {0}"
 
@@ -8690,6 +8919,8 @@ msgstr "Les plantilles que utilitzen aquest remitent hauran de ser actualitzades
 msgid "Templating markup allowed"
 msgstr "Marcatge de plantilles permès"
 
+#: src/components/broadcasts/GlobalFeedSettings.tsx:119
+#: src/components/broadcasts/RecipientFeedSettings.tsx:127
 #: src/components/settings/Integrations.tsx:319
 #: src/pages/TransactionalNotificationsPage.tsx:173
 msgid "Test"
@@ -8703,7 +8934,7 @@ msgstr "Provar connexió"
 msgid "Test data updated successfully"
 msgstr "Dades de prova actualitzades correctament"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:61
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:63
 msgid "Test duration (hours)"
 msgstr "Durada de la prova (hores)"
 
@@ -8716,6 +8947,19 @@ msgstr "Provar proveïdor de correu"
 msgid "Test email sent successfully"
 msgstr "Correu de prova enviat correctament"
 
+#: src/components/broadcasts/RecipientFeedSettings.tsx:178
+msgid "Test Failed"
+msgstr "Test fallat"
+
+#. placeholder {0}: response.error
+#: src/components/broadcasts/RecipientFeedSettings.tsx:66
+msgid "Test failed: {0}"
+msgstr "Test fallat: {0}"
+
+#: src/components/broadcasts/RecipientFeedSettings.tsx:126
+#~ msgid "Test Feed Configuration"
+#~ msgstr "Provar configuració del feed"
+
 #: src/components/email_builder/blocks/MjFontBlock.tsx:49
 msgid "Test in different email clients as support varies"
 msgstr "Proveu en diferents clients de correu ja que el suport varia"
@@ -8724,9 +8968,17 @@ msgstr "Proveu en diferents clients de correu ja que el suport varia"
 msgid "Test Integration"
 msgstr "Provar integració"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:595
+#: src/components/broadcasts/RecipientFeedSettings.tsx:139
+msgid "Test Recipient Feed"
+msgstr ""
+
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:689
 msgid "Test sample size (%)"
 msgstr "Mida de la mostra de prova (%)"
+
+#: src/components/broadcasts/RecipientFeedSettings.tsx:147
+#~ msgid "Test the feed configuration with a specific contact or leave empty to use a random contact from the broadcast audience."
+#~ msgstr "Proveu la configuració del feed amb un contacte específic o deixeu-ho buit per utilitzar un contacte aleatori de l'audiència del broadcast."
 
 #: src/components/automations/config/ABTestConfigForm.tsx:115
 msgid "Test Variants"
@@ -8736,6 +8988,14 @@ msgstr "Variants de prova"
 #: src/components/settings/WebhookCard.tsx:340
 msgid "Test Webhook"
 msgstr "Provar webhook"
+
+#: src/components/broadcasts/RecipientFeedSettings.tsx:187
+msgid "Tested with:"
+msgstr "Provat amb:"
+
+#: src/components/broadcasts/RecipientFeedSettings.tsx:171
+msgid "Testing feed..."
+msgstr "Provant feed..."
 
 #: src/components/blog_editor/components/colors/ColorGrid.tsx:62
 #: src/components/blog_editor/toolbars/components/ColorPicker.tsx:135
@@ -8763,7 +9023,7 @@ msgstr "Atributs de text"
 #: src/components/blog_editor/components/colors/ColorGrid.tsx:111
 #: src/components/blog_editor/toolbars/components/ColorPicker.tsx:184
 #: src/components/blog_editor/toolbars/components/ColorPicker.tsx:261
-#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:573
+#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:576
 msgid "Text Color"
 msgstr "Color de text"
 
@@ -8848,11 +9108,11 @@ msgstr "El títol principal del vostre blog"
 msgid "The requested workspace could not be found."
 msgstr "No s'ha pogut trobar l'espai de treball sol·licitat."
 
-#: src/components/segment/button_upsert.tsx:248
+#: src/components/segment/button_upsert.tsx:310
 msgid "The segment has been created!"
 msgstr "El segment s'ha creat!"
 
-#: src/components/segment/button_upsert.tsx:228
+#: src/components/segment/button_upsert.tsx:290
 msgid "The segment has been updated!"
 msgstr "El segment s'ha actualitzat!"
 
@@ -8863,6 +9123,14 @@ msgstr "El fitxer seleccionat"
 #: src/components/automations/config/AddToListConfigForm.tsx:51
 msgid "The status to assign when adding to the list"
 msgstr "L'estat a assignar quan s'afegeix a la llista"
+
+#: src/components/broadcasts/GlobalFeedSettings.tsx:97
+msgid "The URL must be publicly accessible. A POST request will be sent with broadcast and list information."
+msgstr "L'URL ha de ser accessible públicament. S'enviarà una sol·licitud POST amb informació del broadcast i la llista."
+
+#: src/components/broadcasts/RecipientFeedSettings.tsx:106
+msgid "The URL must use HTTPS. A POST request will be sent with contact information for each recipient."
+msgstr "L'URL ha d'utilitzar HTTPS. S'enviarà una sol·licitud POST amb informació del contacte per a cada destinatari."
 
 #: src/components/automations/config/WebhookConfigForm.tsx:37
 msgid "The URL to send the POST request to"
@@ -8896,7 +9164,7 @@ msgstr "Tema actualitzat correctament"
 msgid "Theme Versions"
 msgstr "Versions del tema"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:538
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:611
 msgid "These parameters are automatically added to the URL of the broadcast. They are used by web analytics tools to analyze the performance of your campaign."
 msgstr "Aquests paràmetres s'afegeixen automàticament a l'URL de la difusió. S'utilitzen per eines d'anàlisi web per analitzar el rendiment de la vostra campanya."
 
@@ -8946,6 +9214,14 @@ msgstr "Aquest contacte no està subscrit a cap llista"
 msgid "This email will be used for the root administrator account"
 msgstr "Aquest correu s'utilitzarà per al compte d'administrador arrel"
 
+#: src/components/broadcasts/RecipientFeedSettings.tsx:97
+msgid "This feature makes an HTTP request for each recipient before sending their email. This can significantly slow down broadcast processing. If the feed request fails after retries, the broadcast will pause automatically."
+msgstr "Aquesta funcionalitat fa una sol·licitud HTTP per a cada destinatari abans d'enviar el seu email. Això pot alentir significativament el processament del broadcast. Si la sol·licitud del feed falla després dels reintents, el broadcast es posarà en pausa automàticament."
+
+#: src/components/broadcasts/RecipientFeedSettings.tsx:93
+#~ msgid "This feature makes an HTTP request for each recipient before sending their email. This can significantly slow down broadcast processing. Use with caution for large broadcasts."
+#~ msgstr "Aquesta funcionalitat fa una sol·licitud HTTP per a cada destinatari abans d'enviar el seu email. Això pot alentir significativament el processament del broadcast. Utilitzeu amb precaució per a grans broadcasts."
+
 #: src/components/integrations/SupabaseIntegration.tsx:245
 msgid "This hook never blocks Supabase user creation for errors. However, if 'Reject Disposable Email Addresses' is enabled and a disposable email is detected, the user signup will be rejected by Supabase."
 msgstr "Aquest hook mai bloqueja la creació d'usuaris de Supabase per errors. No obstant això, si 'Rebutjar adreces de correu d'un sol ús' està habilitat i es detecta un correu d'un sol ús, el registre d'usuari serà rebutjat per Supabase."
@@ -8990,11 +9266,11 @@ msgstr "Aquesta secció conté etiquetes de plantilla Liquid per a personalitzac
 msgid "This section is empty. Add columns or groups to display content."
 msgstr "Aquesta secció està buida. Afegiu columnes o grups per mostrar contingut."
 
-#: src/components/segment/button_upsert.tsx:453
+#: src/components/segment/button_upsert.tsx:533
 msgid "This segment uses relative date filters and will be automatically recomputed daily at 5:00 AM ({timezone})"
 msgstr "Aquest segment utilitza filtres de data relativa i es recalcularà automàticament diàriament a les 5:00 AM ({timezone})"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:660
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:754
 msgid "This template is already used in another variation"
 msgstr "Aquesta plantilla ja s'utilitza en una altra variació"
 
@@ -9055,6 +9331,11 @@ msgstr "període de temps"
 msgid "Timeline"
 msgstr "Cronologia"
 
+#: src/components/broadcasts/GlobalFeedSettingsCard.tsx:122
+#: src/components/broadcasts/RecipientFeedSettingsCard.tsx:127
+#~ msgid "Timeout (seconds)"
+#~ msgstr ""
+
 #: src/components/segment/form_leaf.tsx:327
 #: src/components/segment/input.tsx:735
 msgid "times"
@@ -9078,7 +9359,7 @@ msgstr "Marca de temps"
 msgid "Timezone"
 msgstr "Fus horari"
 
-#: src/components/segment/button_upsert.tsx:423
+#: src/components/segment/button_upsert.tsx:503
 msgid "Timezone used for dates"
 msgstr "Zona horària utilitzada per a dates"
 
@@ -9212,11 +9493,11 @@ msgstr "La mida total dels fitxers adjunts supera el límit de 10MB"
 msgid "Total Contacts"
 msgstr "Contactes totals"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:562
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:656
 msgid "Tracking (opens & clicks) must be enabled in workspace settings to use A/B testing features."
 msgstr "El seguiment (obertures i clics) ha d'estar habilitat a la configuració de l'espai de treball per utilitzar les funcionalitats de proves A/B."
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:608
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:702
 msgid "Tracking (opens & clicks) should be enabled in your workspace settings to use this feature"
 msgstr "El seguiment (obertures i clics) hauria d'estar habilitat a la configuració de l'espai de treball per utilitzar aquesta funcionalitat"
 
@@ -9316,13 +9597,13 @@ msgstr "Sense categoria"
 
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:279
 #: src/components/email_builder/ui/FontStyleInput.tsx:137
-#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:544
+#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:547
 msgid "Underline"
 msgstr "Subratllat"
 
 #: src/components/blog_editor/components/EditorHeader.tsx:55
 #: src/components/blog/PostDrawer.tsx:596
-#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:493
+#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:496
 msgid "Undo"
 msgstr "Desfer"
 
@@ -9380,7 +9661,7 @@ msgstr "Despublicar publicació"
 
 #: src/components/automations/UpsertAutomationDrawer.tsx:132
 #: src/components/blog/PostDrawer.tsx:485
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:209
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:247
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:145
 msgid "Unsaved changes"
 msgstr "Canvis no desats"
@@ -9451,11 +9732,11 @@ msgstr "Actualitzar contacte"
 msgid "Update existing block"
 msgstr "Actualitzar bloc existent"
 
-#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:403
+#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:406
 msgid "Update Link"
 msgstr "Actualitzar enllaç"
 
-#: src/components/segment/button_upsert.tsx:277
+#: src/components/segment/button_upsert.tsx:339
 msgid "Update segment"
 msgstr "Actualitzar segment"
 
@@ -9512,14 +9793,19 @@ msgstr "Pujar fitxers"
 msgid "UPPERCASE"
 msgstr "Majúscules"
 
-#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:334
-#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:378
+#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:337
+#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:381
 msgid "URL"
 msgstr "URL"
 
 #: src/components/file_manager/fileManager.tsx:895
 msgid "URL copied to clipboard."
 msgstr "URL copiada al porta-retalls."
+
+#: src/components/broadcasts/GlobalFeedSettings.tsx:104
+#: src/components/broadcasts/RecipientFeedSettings.tsx:113
+msgid "URL is required"
+msgstr "L'URL és requerida"
 
 #: src/components/automations/config/WebhookConfigForm.tsx:35
 msgid "URL must start with http:// or https://"
@@ -9655,6 +9941,7 @@ msgstr "Terme UTM"
 msgid "Validation Error"
 msgstr "Error de validació"
 
+#: src/components/broadcasts/HeadersEditor.tsx:40
 #: src/components/segment/form_leaf.tsx:598
 msgid "Value"
 msgstr "Valor"
@@ -9671,7 +9958,7 @@ msgstr "Valor:"
 msgid "Variant name"
 msgstr "Nom de la variant"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:626
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:720
 #: src/pages/BroadcastsPage.tsx:652
 msgid "Variations"
 msgstr "Variacions"
@@ -9892,7 +10179,7 @@ msgstr "Guanyador"
 msgid "Winner selected successfully! The broadcast will be sent to remaining recipients."
 msgstr "Guanyador seleccionat correctament! La difusió s'enviarà als destinataris restants."
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:47
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:49
 msgid "Winning metric"
 msgstr "Mètrica guanyadora"
 
@@ -9979,8 +10266,9 @@ msgstr "Escriure"
 #: src/components/blog/PostDrawer.tsx:272
 #: src/components/blog/PostDrawer.tsx:487
 #: src/components/blog/PostsTable.tsx:318
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:211
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:687
+#: src/components/broadcasts/HeadersEditor.tsx:64
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:249
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:781
 #: src/components/contacts/ContactUpsertDrawer.tsx:539
 #: src/components/contacts/SegmentsFilter.tsx:133
 #: src/components/contacts/SegmentsFilter.tsx:148
@@ -10092,7 +10380,7 @@ msgid "You don't have write permission for transactional notifications"
 msgstr "No teniu permís d'escriptura per a notificacions transaccionals"
 
 #: src/components/blog/PostDrawer.tsx:486
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:210
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:248
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:146
 msgid "You have unsaved changes. Are you sure you want to close this drawer?"
 msgstr "Teniu canvis no desats. Esteu segur que voleu tancar aquest panell?"
@@ -10131,7 +10419,7 @@ msgstr "Els vostres fitxers es poden pujar a qualsevol emmagatzematge compatible
 msgid "Your Notifuse instance has been successfully configured."
 msgstr "La vostra instància de Notifuse s'ha configurat correctament."
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:543
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:616
 msgid "Your website or company name"
 msgstr "El nom del vostre lloc web o empresa"
 

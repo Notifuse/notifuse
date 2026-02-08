@@ -309,7 +309,7 @@ func TestConnectionPoolConcurrency(t *testing.T) {
 		require.NoError(t, err)
 
 		// Stress test: many goroutines doing various operations
-		numGoroutines := 30              // Reduced from 50
+		numGoroutines := 30                // Reduced from 50
 		duration := 300 * time.Millisecond // Reduced for faster tests
 		stopChan := make(chan struct{})
 		var wg sync.WaitGroup

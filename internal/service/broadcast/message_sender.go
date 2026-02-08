@@ -21,7 +21,7 @@ import (
 // MessageSender is the interface for sending messages to recipients
 type MessageSender interface {
 	// SendToRecipient sends a message to a single recipient
-	SendToRecipient(ctx context.Context, workspaceID string, integrationID string, trackingEnabled bool, broadcast *domain.Broadcast, messageID string, email string,
+	SendToRecipient(ctx context.Context, workspaceID string, integrationID string, endpoint string, trackingEnabled bool, broadcast *domain.Broadcast, messageID string, email string,
 		template *domain.Template, data map[string]interface{}, emailProvider *domain.EmailProvider, timeoutAt time.Time) error
 
 	// SendBatch sends messages to a batch of recipients
@@ -107,6 +107,7 @@ type messageSender struct {
 	messageHistoryRepo domain.MessageHistoryRepository
 	templateRepo       domain.TemplateRepository
 	emailService       domain.EmailServiceInterface
+	dataFeedFetcher    DataFeedFetcher
 	logger             logger.Logger
 	config             *Config
 	circuitBreaker     *CircuitBreaker
@@ -118,7 +119,7 @@ type messageSender struct {
 
 // NewMessageSender creates a new message sender
 func NewMessageSender(broadcastRepo domain.BroadcastRepository, messageHistoryRepo domain.MessageHistoryRepository, templateRepo domain.TemplateRepository,
-	emailService domain.EmailServiceInterface, logger logger.Logger, config *Config, apiEndpoint string) MessageSender {
+	emailService domain.EmailServiceInterface, dataFeedFetcher DataFeedFetcher, logger logger.Logger, config *Config, apiEndpoint string) MessageSender {
 	if config == nil {
 		config = DefaultConfig()
 	}
@@ -139,6 +140,7 @@ func NewMessageSender(broadcastRepo domain.BroadcastRepository, messageHistoryRe
 		messageHistoryRepo: messageHistoryRepo,
 		templateRepo:       templateRepo,
 		emailService:       emailService,
+		dataFeedFetcher:    dataFeedFetcher,
 		logger:             logger,
 		config:             config,
 		circuitBreaker:     cb,
@@ -197,7 +199,7 @@ func (s *messageSender) enforceRateLimit(ctx context.Context, integrationRateLim
 }
 
 // SendToRecipient sends a message to a single recipient
-func (s *messageSender) SendToRecipient(ctx context.Context, workspaceID string, integrationID string, trackingEnabled bool, broadcast *domain.Broadcast, messageID string, email string,
+func (s *messageSender) SendToRecipient(ctx context.Context, workspaceID string, integrationID string, endpoint string, trackingEnabled bool, broadcast *domain.Broadcast, messageID string, email string,
 	template *domain.Template, data map[string]interface{}, emailProvider *domain.EmailProvider, timeoutAt time.Time) error {
 
 	// Ensure UTM parameters object is present to avoid nil dereference
@@ -238,7 +240,7 @@ func (s *messageSender) SendToRecipient(ctx context.Context, workspaceID string,
 	}
 
 	trackingSettings := notifuse_mjml.TrackingSettings{
-		Endpoint:       s.apiEndpoint,
+		Endpoint:       endpoint,
 		EnableTracking: trackingEnabled,
 		UTMSource:      broadcast.UTMParameters.Source,
 		UTMMedium:      broadcast.UTMParameters.Medium,
@@ -377,11 +379,13 @@ func (s *messageSender) SendBatch(ctx context.Context, workspaceID string, integ
 
 	// Track specific error types for better reporting
 	errorCounts := map[string]int{
-		"template_not_found":   0,
-		"template_data_failed": 0,
-		"send_failed":          0,
-		"empty_email":          0,
-		"context_cancelled":    0,
+		"template_not_found":    0,
+		"template_data_failed":  0,
+		"send_failed":           0,
+		"empty_email":           0,
+		"context_cancelled":     0,
+		"recipient_feed_failed": 0,
+		"recipient_skipped":     0,
 	}
 	var firstError error
 
@@ -554,8 +558,47 @@ func (s *messageSender) SendBatch(ctx context.Context, workspaceID string, integ
 			continue
 		}
 
+		// Note: global_feed data is now injected by BuildTemplateData (domain/template.go)
+
+		// Fetch recipient feed if configured and enabled
+		if broadcast.DataFeed != nil && broadcast.DataFeed.RecipientFeed != nil && broadcast.DataFeed.RecipientFeed.Enabled && s.dataFeedFetcher != nil {
+			// Build the recipient feed payload
+			payload := &domain.RecipientFeedRequestPayload{
+				Contact: domain.BuildRecipientFeedContact(contact),
+				List: domain.RecipientFeedList{
+					ID:   contactWithList.ListID,
+					Name: contactWithList.ListName,
+				},
+				Broadcast: domain.RecipientFeedBroadcast{
+					ID:   broadcast.ID,
+					Name: broadcast.Name,
+				},
+				Workspace: domain.RecipientFeedWorkspace{
+					ID: workspaceID,
+				},
+			}
+
+			feedData, feedErr := s.dataFeedFetcher.FetchRecipient(ctx, broadcast.DataFeed.RecipientFeed, payload)
+			if feedErr != nil {
+				// Feed failed after retries - pause broadcast immediately
+				// If feed data is configured, it's mandatory - no skipping, no sending without data
+				s.logger.WithFields(map[string]interface{}{
+					"broadcast_id": broadcastID,
+					"workspace_id": workspaceID,
+					"recipient":    contact.Email,
+					"error":        feedErr.Error(),
+				}).Error("Recipient feed fetch failed, pausing broadcast")
+
+				return sent, failed, fmt.Errorf("%w: recipient feed failed for %s: %v",
+					ErrBroadcastShouldPause, contact.Email, feedErr)
+			}
+
+			// Success - add feed data to template context
+			recipientData["recipient_feed"] = feedData
+		}
+
 		// Send to the recipient
-		err = s.SendToRecipient(ctx, workspaceID, integrationID, trackingEnabled, broadcast, messageID, contact.Email, templates[templateID], recipientData, emailProvider, timeoutAt)
+		err = s.SendToRecipient(ctx, workspaceID, integrationID, endpoint, trackingEnabled, broadcast, messageID, contact.Email, templates[templateID], recipientData, emailProvider, timeoutAt)
 		if err != nil {
 			// SendToRecipient already logs errors
 			failed++

@@ -390,7 +390,7 @@ export class MjTextBlock extends BaseEmailBlock {
 }
 
 // Functional wrapper component to handle hooks
-// eslint-disable-next-line react-refresh/only-export-components -- Internal wrapper component
+ 
 const MjTextBlockWrapper: React.FC<PreviewProps & { block: EmailBlock }> = ({
   block,
   selectedBlockId,

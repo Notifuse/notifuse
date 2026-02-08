@@ -107,15 +107,15 @@ func TestTrackLinks(t *testing.T) {
 				MessageID:      "test-message",
 			},
 			expectedContains: []string{
-				`href="mailto:test@example.com"`,  // mailto should be unchanged
-				`href="tel:+1234567890"`,          // tel should be unchanged
-				`href="sms:+1234567890"`,          // sms should be unchanged
-				"track.example.com/visit",         // normal links should be tracked
+				`href="mailto:test@example.com"`, // mailto should be unchanged
+				`href="tel:+1234567890"`,         // tel should be unchanged
+				`href="sms:+1234567890"`,         // sms should be unchanged
+				"track.example.com/visit",        // normal links should be tracked
 			},
 			expectedNotContains: []string{
-				"url=mailto",  // mailto should NOT be in a tracking redirect URL param
-				"url=tel",     // tel should NOT be in a tracking redirect URL param
-				"url=sms",     // sms should NOT be in a tracking redirect URL param
+				"url=mailto", // mailto should NOT be in a tracking redirect URL param
+				"url=tel",    // tel should NOT be in a tracking redirect URL param
+				"url=sms",    // sms should NOT be in a tracking redirect URL param
 			},
 			shouldError: false,
 		},
@@ -1383,10 +1383,10 @@ func TestCompileTemplateButtonWithHTMLContent(t *testing.T) {
 	// the button renders as "Button" instead of the custom text
 
 	tests := []struct {
-		name            string
-		buttonContent   string
-		expectedText    string
-		shouldContain   []string
+		name             string
+		buttonContent    string
+		expectedText     string
+		shouldContain    []string
 		shouldNotContain []string
 	}{
 		{
@@ -1404,31 +1404,31 @@ func TestCompileTemplateButtonWithHTMLContent(t *testing.T) {
 			shouldNotContain: []string{">Button<"},
 		},
 		{
-			name:          "button with strong and br tags - BUG #242",
-			buttonContent: "<strong>Click here for the recipe!</strong><br/>",
-			expectedText:  "Click here for the recipe!",
-			shouldContain: []string{"Click here for the recipe!"},
+			name:             "button with strong and br tags - BUG #242",
+			buttonContent:    "<strong>Click here for the recipe!</strong><br/>",
+			expectedText:     "Click here for the recipe!",
+			shouldContain:    []string{"Click here for the recipe!"},
 			shouldNotContain: []string{">Button<"},
 		},
 		{
-			name:          "button with br tag only",
-			buttonContent: "Line 1<br/>Line 2",
-			expectedText:  "Line 1",
-			shouldContain: []string{"Line 1", "Line 2"},
+			name:             "button with br tag only",
+			buttonContent:    "Line 1<br/>Line 2",
+			expectedText:     "Line 1",
+			shouldContain:    []string{"Line 1", "Line 2"},
 			shouldNotContain: []string{">Button<"},
 		},
 		{
-			name:          "button with em tag",
-			buttonContent: "<em>Important</em> Action",
-			expectedText:  "Important Action",
-			shouldContain: []string{"Important", "Action"},
+			name:             "button with em tag",
+			buttonContent:    "<em>Important</em> Action",
+			expectedText:     "Important Action",
+			shouldContain:    []string{"Important", "Action"},
 			shouldNotContain: []string{">Button<"},
 		},
 		{
-			name:          "button with nested formatting",
-			buttonContent: "<strong><em>Bold Italic</em></strong>",
-			expectedText:  "Bold Italic",
-			shouldContain: []string{"Bold Italic"},
+			name:             "button with nested formatting",
+			buttonContent:    "<strong><em>Bold Italic</em></strong>",
+			expectedText:     "Bold Italic",
+			shouldContain:    []string{"Bold Italic"},
 			shouldNotContain: []string{">Button<"},
 		},
 	}

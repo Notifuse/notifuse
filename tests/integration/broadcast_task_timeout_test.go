@@ -782,14 +782,14 @@ func TestBroadcastEmptyBatchPrematureCompletion(t *testing.T) {
 
 // TaskStateInfo holds parsed task state information
 type TaskStateInfo struct {
-	Status           string
-	Progress         float64
-	EnqueuedCount    int
-	FailedCount      int
-	RecipientOffset  int64
-	TotalRecipients  int
-	Phase            string
-	ErrorMessage     string
+	Status          string
+	Progress        float64
+	EnqueuedCount   int
+	FailedCount     int
+	RecipientOffset int64
+	TotalRecipients int
+	Phase           string
+	ErrorMessage    string
 }
 
 // getTaskStateInfo retrieves and parses task state from the API

@@ -252,11 +252,11 @@ func TestWebhookSubscriptionService_Create(t *testing.T) {
 
 func TestWebhookSubscriptionService_GetByID(t *testing.T) {
 	testCases := []struct {
-		name        string
-		workspaceID string
-		subID       string
-		setupMocks  func(*mocks.MockWebhookSubscriptionRepository)
-		expectError bool
+		name           string
+		workspaceID    string
+		subID          string
+		setupMocks     func(*mocks.MockWebhookSubscriptionRepository)
+		expectError    bool
 		validateResult func(*testing.T, *domain.WebhookSubscription)
 	}{
 		{
@@ -639,12 +639,12 @@ func TestWebhookSubscriptionService_Delete(t *testing.T) {
 
 func TestWebhookSubscriptionService_Toggle(t *testing.T) {
 	testCases := []struct {
-		name        string
-		workspaceID string
-		subID       string
-		enabled     bool
-		setupMocks  func(*mocks.MockWebhookSubscriptionRepository)
-		expectError bool
+		name           string
+		workspaceID    string
+		subID          string
+		enabled        bool
+		setupMocks     func(*mocks.MockWebhookSubscriptionRepository)
+		expectError    bool
 		validateResult func(*testing.T, *domain.WebhookSubscription)
 	}{
 		{
@@ -751,11 +751,11 @@ func TestWebhookSubscriptionService_Toggle(t *testing.T) {
 
 func TestWebhookSubscriptionService_RegenerateSecret(t *testing.T) {
 	testCases := []struct {
-		name        string
-		workspaceID string
-		subID       string
-		setupMocks  func(*mocks.MockWebhookSubscriptionRepository)
-		expectError bool
+		name           string
+		workspaceID    string
+		subID          string
+		setupMocks     func(*mocks.MockWebhookSubscriptionRepository)
+		expectError    bool
 		validateResult func(*testing.T, *domain.WebhookSubscription, string)
 	}{
 		{

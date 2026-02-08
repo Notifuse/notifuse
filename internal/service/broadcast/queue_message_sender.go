@@ -21,6 +21,7 @@ type queueMessageSender struct {
 	broadcastRepo      domain.BroadcastRepository
 	messageHistoryRepo domain.MessageHistoryRepository
 	templateRepo       domain.TemplateRepository
+	dataFeedFetcher    DataFeedFetcher
 	logger             logger.Logger
 	config             *Config
 	apiEndpoint        string
@@ -32,6 +33,7 @@ func NewQueueMessageSender(
 	broadcastRepo domain.BroadcastRepository,
 	messageHistoryRepo domain.MessageHistoryRepository,
 	templateRepo domain.TemplateRepository,
+	dataFeedFetcher DataFeedFetcher,
 	logger logger.Logger,
 	config *Config,
 	apiEndpoint string,
@@ -45,6 +47,7 @@ func NewQueueMessageSender(
 		broadcastRepo:      broadcastRepo,
 		messageHistoryRepo: messageHistoryRepo,
 		templateRepo:       templateRepo,
+		dataFeedFetcher:    dataFeedFetcher,
 		logger:             logger,
 		config:             config,
 		apiEndpoint:        apiEndpoint,
@@ -56,6 +59,7 @@ func (s *queueMessageSender) SendToRecipient(
 	ctx context.Context,
 	workspaceID string,
 	integrationID string,
+	endpoint string,
 	trackingEnabled bool,
 	broadcast *domain.Broadcast,
 	messageID string,
@@ -66,7 +70,7 @@ func (s *queueMessageSender) SendToRecipient(
 	timeoutAt time.Time,
 ) error {
 	// Build the email payload
-	entry, err := s.buildQueueEntry(ctx, workspaceID, integrationID, trackingEnabled, broadcast, messageID, email, template, data, emailProvider)
+	entry, err := s.buildQueueEntry(ctx, workspaceID, integrationID, endpoint, trackingEnabled, broadcast, messageID, email, template, data, emailProvider)
 	if err != nil {
 		return err
 	}
@@ -176,8 +180,36 @@ func (s *queueMessageSender) SendBatch(
 			continue
 		}
 
+		// Fetch recipient feed if configured and enabled
+		if broadcast.DataFeed != nil && broadcast.DataFeed.RecipientFeed != nil &&
+			broadcast.DataFeed.RecipientFeed.Enabled && s.dataFeedFetcher != nil {
+
+			payload := &domain.RecipientFeedRequestPayload{
+				Contact:   domain.BuildRecipientFeedContact(recipient.Contact),
+				List:      domain.RecipientFeedList{ID: recipient.ListID, Name: recipient.ListName},
+				Broadcast: domain.RecipientFeedBroadcast{ID: broadcast.ID, Name: broadcast.Name},
+				Workspace: domain.RecipientFeedWorkspace{ID: workspaceID},
+			}
+
+			feedData, feedErr := s.dataFeedFetcher.FetchRecipient(ctx, broadcast.DataFeed.RecipientFeed, payload)
+			if feedErr != nil {
+				s.logger.WithFields(map[string]interface{}{
+					"broadcast_id": broadcastID,
+					"workspace_id": workspaceID,
+					"recipient":    recipient.Contact.Email,
+					"error":        feedErr.Error(),
+				}).Error("Recipient feed fetch failed, pausing broadcast")
+				// Return 0,0 — no entries were enqueued (batch Enqueue happens after loop)
+				// The broadcast will be paused and the entire batch re-processed on resume
+				return 0, 0, fmt.Errorf("%w: recipient feed failed for %s: %v",
+					ErrBroadcastShouldPause, recipient.Contact.Email, feedErr)
+			}
+
+			data["recipient_feed"] = feedData
+		}
+
 		// Build queue entry
-		entry, err := s.buildQueueEntry(ctx, workspaceID, integrationID, trackingEnabled, broadcast, messageID, recipient.Contact.Email, template, data, emailProvider)
+		entry, err := s.buildQueueEntry(ctx, workspaceID, integrationID, endpoint, trackingEnabled, broadcast, messageID, recipient.Contact.Email, template, data, emailProvider)
 		if err != nil {
 			s.logger.WithFields(map[string]interface{}{
 				"broadcast_id": broadcastID,
@@ -223,6 +255,7 @@ func (s *queueMessageSender) buildQueueEntry(
 	ctx context.Context,
 	workspaceID string,
 	integrationID string,
+	endpoint string,
 	trackingEnabled bool,
 	broadcast *domain.Broadcast,
 	messageID string,
@@ -242,7 +275,7 @@ func (s *queueMessageSender) buildQueueEntry(
 
 	// Build tracking settings
 	trackingSettings := notifuse_mjml.TrackingSettings{
-		Endpoint:       s.apiEndpoint,
+		Endpoint:       endpoint,
 		EnableTracking: trackingEnabled,
 		UTMSource:      broadcast.UTMParameters.Source,
 		UTMMedium:      broadcast.UTMParameters.Medium,

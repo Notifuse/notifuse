@@ -530,7 +530,7 @@ func testAutomationMultipleEntries(t *testing.T, factory *testutil.TestDataFacto
 			"status":       "draft",
 			"trigger": map[string]interface{}{
 				"event_kind": "custom_event", "custom_event_name": "repeat_event_e2e",
-				"frequency":  "every_time",
+				"frequency": "every_time",
 			},
 			"root_node_id": triggerNodeID,
 			"nodes": []map[string]interface{}{
@@ -642,7 +642,7 @@ func testAutomationDelayTiming(t *testing.T, factory *testutil.TestDataFactory, 
 			"status":       "draft",
 			"trigger": map[string]interface{}{
 				"event_kind": "custom_event", "custom_event_name": "delay_test_event_e2e",
-				"frequency":  "once",
+				"frequency": "once",
 			},
 			"root_node_id": triggerNodeID,
 			"nodes": []map[string]interface{}{
@@ -774,7 +774,7 @@ func testAutomationABTestDeterminism(t *testing.T, factory *testutil.TestDataFac
 			"status":       "draft",
 			"trigger": map[string]interface{}{
 				"event_kind": "custom_event", "custom_event_name": "ab_test_event_e2e",
-				"frequency":  "every_time",
+				"frequency": "every_time",
 			},
 			"root_node_id": triggerNodeID,
 			"nodes": []map[string]interface{}{
@@ -895,7 +895,7 @@ func testAutomationBranchRouting(t *testing.T, factory *testutil.TestDataFactory
 			"status":       "draft",
 			"trigger": map[string]interface{}{
 				"event_kind": "custom_event", "custom_event_name": "branch_test_event_e2e",
-				"frequency":  "once",
+				"frequency": "once",
 			},
 			"root_node_id": triggerNodeID,
 			"nodes": []map[string]interface{}{
@@ -1036,7 +1036,7 @@ func testAutomationFilterNode(t *testing.T, factory *testutil.TestDataFactory, c
 			"status":       "draft",
 			"trigger": map[string]interface{}{
 				"event_kind": "custom_event", "custom_event_name": "filter_test_event_e2e",
-				"frequency":  "once",
+				"frequency": "once",
 			},
 			"root_node_id": triggerNodeID,
 			"nodes": []map[string]interface{}{
@@ -1200,7 +1200,7 @@ func testAutomationListStatusBranch(t *testing.T, factory *testutil.TestDataFact
 			"status":       "draft",
 			"trigger": map[string]interface{}{
 				"event_kind": "custom_event", "custom_event_name": "list_status_branch_test_event_e2e",
-				"frequency":  "once",
+				"frequency": "once",
 			},
 			"root_node_id": triggerNodeID,
 			"nodes": []map[string]interface{}{
@@ -1385,7 +1385,7 @@ func testAutomationListOperations(t *testing.T, factory *testutil.TestDataFactor
 			"status":       "draft",
 			"trigger": map[string]interface{}{
 				"event_kind": "custom_event", "custom_event_name": "list_ops_event_e2e",
-				"frequency":  "once",
+				"frequency": "once",
 			},
 			"root_node_id": triggerNodeID,
 			"nodes": []map[string]interface{}{
@@ -1510,7 +1510,7 @@ func testAutomationContextData(t *testing.T, factory *testutil.TestDataFactory, 
 			"status":       "draft",
 			"trigger": map[string]interface{}{
 				"event_kind": "custom_event", "custom_event_name": "purchase_e2e",
-				"frequency":  "every_time",
+				"frequency": "every_time",
 			},
 			"root_node_id": triggerNodeID,
 			"nodes": []map[string]interface{}{
@@ -1690,7 +1690,7 @@ func testAutomationDeletionCleanup(t *testing.T, factory *testutil.TestDataFacto
 			"status":       "draft",
 			"trigger": map[string]interface{}{
 				"event_kind": "custom_event", "custom_event_name": "delete_test_event_e2e",
-				"frequency":  "once",
+				"frequency": "once",
 			},
 			"root_node_id": triggerNodeID,
 			"nodes": []map[string]interface{}{
@@ -1800,7 +1800,7 @@ func testAutomationErrorRecovery(t *testing.T, factory *testutil.TestDataFactory
 			"status":       "draft",
 			"trigger": map[string]interface{}{
 				"event_kind": "custom_event", "custom_event_name": "error_test_event",
-				"frequency":  "once",
+				"frequency": "once",
 			},
 			"root_node_id": triggerNodeID,
 			"nodes": []map[string]interface{}{
@@ -1887,7 +1887,7 @@ func testAutomationSchedulerExecution(t *testing.T, factory *testutil.TestDataFa
 			"list_id":      listID,
 			"trigger": map[string]interface{}{
 				"event_kind": "custom_event", "custom_event_name": "scheduler_test_event",
-				"frequency":  "once",
+				"frequency": "once",
 			},
 			"root_node_id": triggerNodeID,
 			"nodes": []map[string]interface{}{
@@ -2001,7 +2001,7 @@ func testAutomationPauseResume(t *testing.T, factory *testutil.TestDataFactory, 
 			"status":       "draft",
 			"trigger": map[string]interface{}{
 				"event_kind": "custom_event", "custom_event_name": "test_pause_event",
-				"frequency":  "once",
+				"frequency": "once",
 			},
 			"root_node_id": triggerNodeID,
 			"nodes": []map[string]interface{}{
@@ -2167,7 +2167,7 @@ func testAutomationPermissions(t *testing.T, factory *testutil.TestDataFactory, 
 			"status":       "draft",
 			"trigger": map[string]interface{}{
 				"event_kind": "custom_event", "custom_event_name": "test_event",
-				"frequency":  "once",
+				"frequency": "once",
 			},
 			"root_node_id": triggerNodeID,
 			"nodes": []map[string]interface{}{
@@ -2296,7 +2296,7 @@ func testAutomationTimelineStartEvent(t *testing.T, factory *testutil.TestDataFa
 			"status":       "draft",
 			"trigger": map[string]interface{}{
 				"event_kind": "custom_event", "custom_event_name": "timeline_start_test_event",
-				"frequency":  "once",
+				"frequency": "once",
 			},
 			"root_node_id": triggerNodeID,
 			"nodes": []map[string]interface{}{
@@ -2404,7 +2404,7 @@ func testAutomationTimelineEndEvent(t *testing.T, factory *testutil.TestDataFact
 			"status":       "draft",
 			"trigger": map[string]interface{}{
 				"event_kind": "custom_event", "custom_event_name": "timeline_end_test_event",
-				"frequency":  "once",
+				"frequency": "once",
 			},
 			"root_node_id": triggerNodeID,
 			"nodes": []map[string]interface{}{

@@ -39,13 +39,13 @@ type FirecrawlScrapeResponse struct {
 
 // FirecrawlSearchRequest is the request for web search
 type FirecrawlSearchRequest struct {
-	Query         string                      `json:"query"`
-	Limit         int                         `json:"limit,omitempty"`        // default 5
-	Lang          string                      `json:"lang,omitempty"`         // Language code (e.g., "en", "de")
-	Country       string                      `json:"country,omitempty"`      // Country code (e.g., "US", "DE")
-	Location      string                      `json:"location,omitempty"`     // Location string (e.g., "San Francisco,California,United States")
-	TBS           string                      `json:"tbs,omitempty"`          // Time-based search filter (qdr:d, qdr:w, qdr:m)
-	ScrapeOptions *FirecrawlScrapeOptions     `json:"scrapeOptions,omitempty"` // Options for scraping search results
+	Query         string                  `json:"query"`
+	Limit         int                     `json:"limit,omitempty"`         // default 5
+	Lang          string                  `json:"lang,omitempty"`          // Language code (e.g., "en", "de")
+	Country       string                  `json:"country,omitempty"`       // Country code (e.g., "US", "DE")
+	Location      string                  `json:"location,omitempty"`      // Location string (e.g., "San Francisco,California,United States")
+	TBS           string                  `json:"tbs,omitempty"`           // Time-based search filter (qdr:d, qdr:w, qdr:m)
+	ScrapeOptions *FirecrawlScrapeOptions `json:"scrapeOptions,omitempty"` // Options for scraping search results
 }
 
 // FirecrawlScrapeOptions contains scrape options for search results
@@ -98,13 +98,13 @@ type ScrapeOptions struct {
 
 // SearchOptions contains options for web search
 type SearchOptions struct {
-	Limit               int      // Maximum number of results (default 5)
-	Lang                string   // Language code (e.g., "en", "de")
-	Country             string   // Country code (e.g., "US", "DE")
-	Location            string   // Location string (e.g., "San Francisco,California,United States")
-	TBS                 string   // Time-based search filter (qdr:d, qdr:w, qdr:m, qdr:y)
-	ScrapeFormats       []string // Output formats for scraped results
-	ScrapeOnlyMainContent bool   // Extract only main content from results
+	Limit                 int      // Maximum number of results (default 5)
+	Lang                  string   // Language code (e.g., "en", "de")
+	Country               string   // Country code (e.g., "US", "DE")
+	Location              string   // Location string (e.g., "San Francisco,California,United States")
+	TBS                   string   // Time-based search filter (qdr:d, qdr:w, qdr:m, qdr:y)
+	ScrapeFormats         []string // Output formats for scraped results
+	ScrapeOnlyMainContent bool     // Extract only main content from results
 }
 
 // Scrape fetches a URL and returns content based on options

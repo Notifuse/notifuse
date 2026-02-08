@@ -25,4 +25,14 @@ export default tseslint.config(
       ],
     },
   },
+  {
+    files: [
+      'src/components/email_builder/blocks/**/*.{ts,tsx}',
+      'src/components/automations/AddNodeButton.tsx',
+      'src/contexts/LocaleContext.tsx',
+    ],
+    rules: {
+      'react-refresh/only-export-components': 'off',
+    },
+  },
 )

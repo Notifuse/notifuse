@@ -2126,3 +2126,623 @@ func TestGetTestResultsRequest_FromURLParams(t *testing.T) {
 		assert.Equal(t, "broadcast123", req.ID)
 	})
 }
+
+func TestBroadcast_ValidateGlobalFeed(t *testing.T) {
+	tests := []struct {
+		name      string
+		broadcast domain.Broadcast
+		wantErr   bool
+		errMsg    string
+	}{
+		{
+			name:      "broadcast without data feed is valid",
+			broadcast: createValidBroadcast(),
+			wantErr:   false,
+		},
+		{
+			name: "broadcast with nil global feed is valid",
+			broadcast: func() domain.Broadcast {
+				b := createValidBroadcast()
+				b.DataFeed = &domain.DataFeedSettings{
+					GlobalFeed: nil,
+				}
+				return b
+			}(),
+			wantErr: false,
+		},
+		{
+			name: "broadcast with disabled global feed is valid",
+			broadcast: func() domain.Broadcast {
+				b := createValidBroadcast()
+				b.DataFeed = &domain.DataFeedSettings{
+					GlobalFeed: &domain.GlobalFeedSettings{
+						Enabled: false,
+					},
+				}
+				return b
+			}(),
+			wantErr: false,
+		},
+		{
+			name: "broadcast with valid global feed is valid",
+			broadcast: func() domain.Broadcast {
+				b := createValidBroadcast()
+				b.DataFeed = &domain.DataFeedSettings{
+					GlobalFeed: &domain.GlobalFeedSettings{
+						Enabled: true,
+						URL:     "https://api.example.com/feed",
+						Headers: []domain.DataFeedHeader{},
+					},
+				}
+				return b
+			}(),
+			wantErr: false,
+		},
+		{
+			name: "broadcast with global feed with headers is valid",
+			broadcast: func() domain.Broadcast {
+				b := createValidBroadcast()
+				b.DataFeed = &domain.DataFeedSettings{
+					GlobalFeed: &domain.GlobalFeedSettings{
+						Enabled: true,
+						URL:     "https://api.example.com/feed",
+						Headers: []domain.DataFeedHeader{
+							{Name: "Authorization", Value: "Bearer token123"},
+							{Name: "X-Custom-Header", Value: "custom-value"},
+						},
+					},
+				}
+				return b
+			}(),
+			wantErr: false,
+		},
+		{
+			name: "broadcast with invalid global feed (missing URL when enabled) returns error",
+			broadcast: func() domain.Broadcast {
+				b := createValidBroadcast()
+				b.DataFeed = &domain.DataFeedSettings{
+					GlobalFeed: &domain.GlobalFeedSettings{
+						Enabled: true,
+						URL:     "",
+					},
+				}
+				return b
+			}(),
+			wantErr: true,
+			errMsg:  "global feed",
+		},
+		{
+			name: "broadcast with invalid global feed (invalid URL scheme) returns error",
+			broadcast: func() domain.Broadcast {
+				b := createValidBroadcast()
+				b.DataFeed = &domain.DataFeedSettings{
+					GlobalFeed: &domain.GlobalFeedSettings{
+						Enabled: true,
+						URL:     "ftp://example.com/feed",
+					},
+				}
+				return b
+			}(),
+			wantErr: true,
+			errMsg:  "global feed",
+		},
+		{
+			name: "broadcast with invalid global feed header returns error",
+			broadcast: func() domain.Broadcast {
+				b := createValidBroadcast()
+				b.DataFeed = &domain.DataFeedSettings{
+					GlobalFeed: &domain.GlobalFeedSettings{
+						Enabled: true,
+						URL:     "https://api.example.com/feed",
+						Headers: []domain.DataFeedHeader{
+							{Name: "", Value: "value"}, // Missing header name
+						},
+					},
+				}
+				return b
+			}(),
+			wantErr: true,
+			errMsg:  "global feed",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.broadcast.Validate()
+			if tt.wantErr {
+				assert.Error(t, err)
+				if tt.errMsg != "" {
+					assert.Contains(t, err.Error(), tt.errMsg)
+				}
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestBroadcast_GlobalFeedFields(t *testing.T) {
+	// Test that global feed data and fetched_at can be set properly
+	t.Run("broadcast with global feed data", func(t *testing.T) {
+		b := createValidBroadcast()
+		now := time.Now()
+
+		b.DataFeed = &domain.DataFeedSettings{
+			GlobalFeed: &domain.GlobalFeedSettings{
+				Enabled: true,
+				URL:     "https://api.example.com/feed",
+				Headers: []domain.DataFeedHeader{},
+			},
+			GlobalFeedData: domain.MapOfAny{
+				"products": []interface{}{
+					map[string]interface{}{"id": 1, "name": "Product 1"},
+					map[string]interface{}{"id": 2, "name": "Product 2"},
+				},
+				"promotions": "Summer Sale",
+			},
+			GlobalFeedFetchedAt: &now,
+		}
+
+		err := b.Validate()
+		require.NoError(t, err)
+
+		// Verify the fields are set correctly
+		assert.NotNil(t, b.DataFeed.GlobalFeed)
+		assert.True(t, b.DataFeed.GlobalFeed.Enabled)
+		assert.Equal(t, "https://api.example.com/feed", b.DataFeed.GlobalFeed.URL)
+
+		assert.NotNil(t, b.DataFeed.GlobalFeedData)
+		assert.Equal(t, "Summer Sale", b.DataFeed.GlobalFeedData["promotions"])
+
+		assert.NotNil(t, b.DataFeed.GlobalFeedFetchedAt)
+		assert.Equal(t, now.Unix(), b.DataFeed.GlobalFeedFetchedAt.Unix())
+	})
+
+	t.Run("broadcast without global feed data is valid", func(t *testing.T) {
+		b := createValidBroadcast()
+		b.DataFeed = nil
+
+		err := b.Validate()
+		require.NoError(t, err)
+	})
+}
+
+func TestBroadcast_ValidateRecipientFeed(t *testing.T) {
+	baseBroadcast := func() *domain.Broadcast {
+		// Create a minimal valid broadcast
+		b := createValidBroadcast()
+		return &b
+	}
+
+	t.Run("broadcast without recipient feed is valid", func(t *testing.T) {
+		b := baseBroadcast()
+		b.DataFeed = nil
+		err := b.Validate()
+		assert.NoError(t, err)
+	})
+
+	t.Run("broadcast with valid recipient feed", func(t *testing.T) {
+		b := baseBroadcast()
+		b.DataFeed = &domain.DataFeedSettings{
+			RecipientFeed: &domain.RecipientFeedSettings{
+				Enabled: true,
+				URL:     "https://api.example.com/personalize",
+			},
+		}
+		err := b.Validate()
+		assert.NoError(t, err)
+	})
+
+	t.Run("broadcast with disabled recipient feed is valid", func(t *testing.T) {
+		b := baseBroadcast()
+		b.DataFeed = &domain.DataFeedSettings{
+			RecipientFeed: &domain.RecipientFeedSettings{
+				Enabled: false,
+				URL:     "", // No URL needed when disabled
+			},
+		}
+		err := b.Validate()
+		assert.NoError(t, err)
+	})
+
+	t.Run("broadcast with invalid recipient feed - missing URL", func(t *testing.T) {
+		b := baseBroadcast()
+		b.DataFeed = &domain.DataFeedSettings{
+			RecipientFeed: &domain.RecipientFeedSettings{
+				Enabled: true,
+				URL:     "", // invalid: missing URL
+			},
+		}
+		err := b.Validate()
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "recipient feed")
+	})
+
+	t.Run("broadcast with invalid recipient feed - http URL", func(t *testing.T) {
+		b := baseBroadcast()
+		b.DataFeed = &domain.DataFeedSettings{
+			RecipientFeed: &domain.RecipientFeedSettings{
+				Enabled: true,
+				URL:     "http://api.example.com/personalize", // invalid: must be https
+			},
+		}
+		err := b.Validate()
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "recipient feed")
+	})
+
+	t.Run("broadcast with both feeds", func(t *testing.T) {
+		b := baseBroadcast()
+		b.DataFeed = &domain.DataFeedSettings{
+			GlobalFeed: &domain.GlobalFeedSettings{
+				Enabled: true,
+				URL:     "https://api.example.com/global",
+			},
+			RecipientFeed: &domain.RecipientFeedSettings{
+				Enabled: true,
+				URL:     "https://api.example.com/personalize",
+			},
+		}
+		err := b.Validate()
+		assert.NoError(t, err)
+	})
+
+	t.Run("broadcast with recipient feed with headers", func(t *testing.T) {
+		b := baseBroadcast()
+		b.DataFeed = &domain.DataFeedSettings{
+			RecipientFeed: &domain.RecipientFeedSettings{
+				Enabled: true,
+				URL:     "https://api.example.com/personalize",
+				Headers: []domain.DataFeedHeader{
+					{Name: "Authorization", Value: "Bearer token123"},
+					{Name: "X-Custom-Header", Value: "custom-value"},
+				},
+			},
+		}
+		err := b.Validate()
+		assert.NoError(t, err)
+	})
+
+	t.Run("broadcast with recipient feed with invalid header", func(t *testing.T) {
+		b := baseBroadcast()
+		b.DataFeed = &domain.DataFeedSettings{
+			RecipientFeed: &domain.RecipientFeedSettings{
+				Enabled: true,
+				URL:     "https://api.example.com/personalize",
+				Headers: []domain.DataFeedHeader{
+					{Name: "", Value: "value"}, // Missing header name
+				},
+			},
+		}
+		err := b.Validate()
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "recipient feed")
+	})
+}
+
+// TestCreateBroadcastRequest_WithDataFeed tests that data_feed is properly handled
+// in CreateBroadcastRequest validation
+func TestCreateBroadcastRequest_WithDataFeed(t *testing.T) {
+	tests := []struct {
+		name        string
+		dataFeed    *domain.DataFeedSettings
+		expectError bool
+		errorMsg    string
+	}{
+		{
+			name: "valid global feed enabled",
+			dataFeed: &domain.DataFeedSettings{
+				GlobalFeed: &domain.GlobalFeedSettings{
+					Enabled: true,
+					URL:     "https://api.example.com/feed",
+					Headers: []domain.DataFeedHeader{},
+				},
+			},
+			expectError: false,
+		},
+		{
+			name: "invalid global feed URL scheme",
+			dataFeed: &domain.DataFeedSettings{
+				GlobalFeed: &domain.GlobalFeedSettings{
+					Enabled: true,
+					URL:     "ftp://invalid.com/feed",
+					Headers: []domain.DataFeedHeader{},
+				},
+			},
+			expectError: true,
+			errorMsg:    "URL must use http or https scheme",
+		},
+		{
+			name: "recipient feed requires HTTPS",
+			dataFeed: &domain.DataFeedSettings{
+				RecipientFeed: &domain.RecipientFeedSettings{
+					Enabled: true,
+					URL:     "http://api.example.com/feed",
+					Headers: []domain.DataFeedHeader{},
+				},
+			},
+			expectError: true,
+			errorMsg:    "URL must use https scheme",
+		},
+		{
+			name: "disabled feed skips URL validation",
+			dataFeed: &domain.DataFeedSettings{
+				GlobalFeed: &domain.GlobalFeedSettings{
+					Enabled: false,
+					URL:     "",
+					Headers: []domain.DataFeedHeader{},
+				},
+			},
+			expectError: false,
+		},
+		{
+			name: "both feeds enabled with valid URLs",
+			dataFeed: &domain.DataFeedSettings{
+				GlobalFeed: &domain.GlobalFeedSettings{
+					Enabled: true,
+					URL:     "https://api.example.com/global",
+					Headers: []domain.DataFeedHeader{{Name: "Auth", Value: "token"}},
+				},
+				RecipientFeed: &domain.RecipientFeedSettings{
+					Enabled: true,
+					URL:     "https://api.example.com/recipient",
+					Headers: []domain.DataFeedHeader{},
+				},
+			},
+			expectError: false,
+		},
+		{
+			name: "global feed with custom headers",
+			dataFeed: &domain.DataFeedSettings{
+				GlobalFeed: &domain.GlobalFeedSettings{
+					Enabled: true,
+					URL:     "https://api.example.com/feed",
+					Headers: []domain.DataFeedHeader{
+						{Name: "Authorization", Value: "Bearer xyz123"},
+						{Name: "X-API-Key", Value: "secret"},
+					},
+				},
+			},
+			expectError: false,
+		},
+		{
+			name:        "nil data_feed is valid",
+			dataFeed:    nil,
+			expectError: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := &domain.CreateBroadcastRequest{
+				WorkspaceID: "ws1",
+				Name:        "Test Broadcast",
+				Audience:    domain.AudienceSettings{List: "list1"},
+				DataFeed:    tt.dataFeed,
+			}
+
+			broadcast, err := req.Validate()
+
+			if tt.expectError {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tt.errorMsg)
+			} else {
+				require.NoError(t, err)
+				assert.NotNil(t, broadcast)
+				// Verify DataFeed was copied to broadcast
+				if tt.dataFeed != nil {
+					assert.NotNil(t, broadcast.DataFeed)
+					if tt.dataFeed.GlobalFeed != nil {
+						assert.Equal(t, tt.dataFeed.GlobalFeed.Enabled, broadcast.DataFeed.GlobalFeed.Enabled)
+						assert.Equal(t, tt.dataFeed.GlobalFeed.URL, broadcast.DataFeed.GlobalFeed.URL)
+					}
+				}
+			}
+		})
+	}
+}
+
+// TestUpdateBroadcastRequest_WithDataFeed tests data_feed handling in update requests
+func TestUpdateBroadcastRequest_WithDataFeed(t *testing.T) {
+	t.Run("adds data_feed to broadcast without existing feed", func(t *testing.T) {
+		existing := &domain.Broadcast{
+			ID:          "bc123",
+			WorkspaceID: "ws1",
+			Name:        "Original",
+			Status:      domain.BroadcastStatusDraft,
+			Audience:    domain.AudienceSettings{List: "list1"},
+			DataFeed:    nil, // No existing feed
+		}
+
+		req := &domain.UpdateBroadcastRequest{
+			WorkspaceID: "ws1",
+			ID:          "bc123",
+			Name:        "Updated",
+			Audience:    domain.AudienceSettings{List: "list1"},
+			DataFeed: &domain.DataFeedSettings{
+				GlobalFeed: &domain.GlobalFeedSettings{
+					Enabled: true,
+					URL:     "https://api.example.com/feed",
+					Headers: []domain.DataFeedHeader{},
+				},
+			},
+		}
+
+		updated, err := req.Validate(existing)
+		require.NoError(t, err)
+		require.NotNil(t, updated.DataFeed)
+		assert.True(t, updated.DataFeed.GlobalFeed.Enabled)
+		assert.Equal(t, "https://api.example.com/feed", updated.DataFeed.GlobalFeed.URL)
+	})
+
+	t.Run("preserves GlobalFeedData when updating settings", func(t *testing.T) {
+		fetchedAt := time.Now().Add(-1 * time.Hour)
+		existing := &domain.Broadcast{
+			ID:          "bc123",
+			WorkspaceID: "ws1",
+			Name:        "Original",
+			Status:      domain.BroadcastStatusDraft,
+			Audience:    domain.AudienceSettings{List: "list1"},
+			DataFeed: &domain.DataFeedSettings{
+				GlobalFeed: &domain.GlobalFeedSettings{
+					Enabled: true,
+					URL:     "https://old.example.com/feed",
+					Headers: []domain.DataFeedHeader{},
+				},
+				GlobalFeedData:      domain.MapOfAny{"cached": "data", "promo": "CODE50"},
+				GlobalFeedFetchedAt: &fetchedAt,
+			},
+		}
+
+		req := &domain.UpdateBroadcastRequest{
+			WorkspaceID: "ws1",
+			ID:          "bc123",
+			Name:        "Updated Name",
+			Audience:    domain.AudienceSettings{List: "list1"},
+			DataFeed: &domain.DataFeedSettings{
+				GlobalFeed: &domain.GlobalFeedSettings{
+					Enabled: true,
+					URL:     "https://new.example.com/feed", // New URL
+					Headers: []domain.DataFeedHeader{{Name: "Auth", Value: "Bearer new"}},
+				},
+			},
+		}
+
+		updated, err := req.Validate(existing)
+		require.NoError(t, err)
+
+		// URL should be updated
+		assert.Equal(t, "https://new.example.com/feed", updated.DataFeed.GlobalFeed.URL)
+
+		// Headers should be updated
+		require.Len(t, updated.DataFeed.GlobalFeed.Headers, 1)
+		assert.Equal(t, "Auth", updated.DataFeed.GlobalFeed.Headers[0].Name)
+
+		// Cached data should be preserved
+		require.NotNil(t, updated.DataFeed.GlobalFeedData)
+		assert.Equal(t, "data", updated.DataFeed.GlobalFeedData["cached"])
+		assert.Equal(t, "CODE50", updated.DataFeed.GlobalFeedData["promo"])
+
+		// FetchedAt should be preserved
+		require.NotNil(t, updated.DataFeed.GlobalFeedFetchedAt)
+		assert.Equal(t, fetchedAt.Unix(), updated.DataFeed.GlobalFeedFetchedAt.Unix())
+	})
+
+	t.Run("updates recipient feed while preserving global feed data", func(t *testing.T) {
+		fetchedAt := time.Now().Add(-1 * time.Hour)
+		existing := &domain.Broadcast{
+			ID:          "bc123",
+			WorkspaceID: "ws1",
+			Name:        "Original",
+			Status:      domain.BroadcastStatusDraft,
+			Audience:    domain.AudienceSettings{List: "list1"},
+			DataFeed: &domain.DataFeedSettings{
+				GlobalFeed: &domain.GlobalFeedSettings{
+					Enabled: true,
+					URL:     "https://api.example.com/global",
+					Headers: []domain.DataFeedHeader{},
+				},
+				GlobalFeedData:      domain.MapOfAny{"global": "data"},
+				GlobalFeedFetchedAt: &fetchedAt,
+				RecipientFeed:       nil,
+			},
+		}
+
+		req := &domain.UpdateBroadcastRequest{
+			WorkspaceID: "ws1",
+			ID:          "bc123",
+			Name:        "Updated",
+			Audience:    domain.AudienceSettings{List: "list1"},
+			DataFeed: &domain.DataFeedSettings{
+				RecipientFeed: &domain.RecipientFeedSettings{
+					Enabled: true,
+					URL:     "https://api.example.com/recipient",
+					Headers: []domain.DataFeedHeader{},
+				},
+			},
+		}
+
+		updated, err := req.Validate(existing)
+		require.NoError(t, err)
+
+		// Global feed settings should be preserved
+		require.NotNil(t, updated.DataFeed.GlobalFeed)
+		assert.True(t, updated.DataFeed.GlobalFeed.Enabled)
+
+		// Global feed data should be preserved
+		require.NotNil(t, updated.DataFeed.GlobalFeedData)
+		assert.Equal(t, "data", updated.DataFeed.GlobalFeedData["global"])
+
+		// Recipient feed should be added
+		require.NotNil(t, updated.DataFeed.RecipientFeed)
+		assert.True(t, updated.DataFeed.RecipientFeed.Enabled)
+		assert.Equal(t, "https://api.example.com/recipient", updated.DataFeed.RecipientFeed.URL)
+	})
+
+	t.Run("rejects invalid data_feed in update", func(t *testing.T) {
+		existing := &domain.Broadcast{
+			ID:          "bc123",
+			WorkspaceID: "ws1",
+			Name:        "Original",
+			Status:      domain.BroadcastStatusDraft,
+			Audience:    domain.AudienceSettings{List: "list1"},
+		}
+
+		req := &domain.UpdateBroadcastRequest{
+			WorkspaceID: "ws1",
+			ID:          "bc123",
+			Name:        "Updated",
+			Audience:    domain.AudienceSettings{List: "list1"},
+			DataFeed: &domain.DataFeedSettings{
+				RecipientFeed: &domain.RecipientFeedSettings{
+					Enabled: true,
+					URL:     "http://insecure.example.com/feed", // HTTP not allowed
+					Headers: []domain.DataFeedHeader{},
+				},
+			},
+		}
+
+		_, err := req.Validate(existing)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "https")
+	})
+
+	t.Run("nil data_feed in request preserves existing feed", func(t *testing.T) {
+		fetchedAt := time.Now().Add(-1 * time.Hour)
+		existing := &domain.Broadcast{
+			ID:          "bc123",
+			WorkspaceID: "ws1",
+			Name:        "Original",
+			Status:      domain.BroadcastStatusDraft,
+			Audience:    domain.AudienceSettings{List: "list1"},
+			DataFeed: &domain.DataFeedSettings{
+				GlobalFeed: &domain.GlobalFeedSettings{
+					Enabled: true,
+					URL:     "https://api.example.com/feed",
+					Headers: []domain.DataFeedHeader{},
+				},
+				GlobalFeedData:      domain.MapOfAny{"existing": "data"},
+				GlobalFeedFetchedAt: &fetchedAt,
+			},
+		}
+
+		req := &domain.UpdateBroadcastRequest{
+			WorkspaceID: "ws1",
+			ID:          "bc123",
+			Name:        "Updated Name Only",
+			Audience:    domain.AudienceSettings{List: "list1"},
+			DataFeed:    nil, // Not updating data_feed
+		}
+
+		updated, err := req.Validate(existing)
+		require.NoError(t, err)
+
+		// Existing data_feed should be preserved
+		require.NotNil(t, updated.DataFeed)
+		require.NotNil(t, updated.DataFeed.GlobalFeed)
+		assert.True(t, updated.DataFeed.GlobalFeed.Enabled)
+		assert.Equal(t, "https://api.example.com/feed", updated.DataFeed.GlobalFeed.URL)
+		require.NotNil(t, updated.DataFeed.GlobalFeedData)
+		assert.Equal(t, "data", updated.DataFeed.GlobalFeedData["existing"])
+	})
+}

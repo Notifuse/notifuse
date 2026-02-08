@@ -381,4 +381,3 @@ func (e *AutomationExecutor) createAutomationEndEvent(ctx context.Context, works
 		}).Warn("Failed to create automation.end timeline event")
 	}
 }
-

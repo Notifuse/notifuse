@@ -1132,8 +1132,6 @@ func TestListService_UnsubscribeFromLists(t *testing.T) {
 		assert.NoError(t, err)
 	})
 
-
-
 	t.Run("error - get lists failure", func(t *testing.T) {
 		mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(workspace, nil)
 		mockRepo.EXPECT().GetLists(gomock.Any(), workspaceID).Return(nil, errors.New("get lists error"))
@@ -1230,7 +1228,6 @@ func TestListService_UnsubscribeFromLists(t *testing.T) {
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "list not found")
 	})
-
 
 	t.Run("unsubscribe updates message history when MessageID provided", func(t *testing.T) {
 		// Payload with MessageID for broadcast tracking
@@ -1401,7 +1398,6 @@ func TestListService_SubscribeToLists_UnauthExistingContactSkipsUpsert(t *testin
 	assert.NoError(t, err)
 }
 
-
 func TestListService_SubscribeToLists_DoubleOptInEmailSent(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -1475,7 +1471,6 @@ func TestListService_SubscribeToLists_DoubleOptInEmailSent(t *testing.T) {
 	err := service.SubscribeToLists(ctx, payload, false)
 	assert.NoError(t, err)
 }
-
 
 func TestListService_SubscribeToLists_GetEmailProviderError(t *testing.T) {
 	ctrl := gomock.NewController(t)

@@ -41,6 +41,8 @@ Broadcast:
       $ref: '#/BroadcastTestSettings'
     utm_parameters:
       $ref: '#/UTMParameters'
+    data_feed:
+      $ref: '#/DataFeedSettings'
     metadata:
       type: object
       additionalProperties: true
@@ -285,6 +287,8 @@ CreateBroadcastRequest:
       example: true
     utm_parameters:
       $ref: '#/UTMParameters'
+    data_feed:
+      $ref: '#/DataFeedSettings'
     metadata:
       type: object
       additionalProperties: true
@@ -323,6 +327,8 @@ UpdateBroadcastRequest:
       example: true
     utm_parameters:
       $ref: '#/UTMParameters'
+    data_feed:
+      $ref: '#/DataFeedSettings'
     metadata:
       type: object
       additionalProperties: true
@@ -561,3 +567,172 @@ TestResultsResponse:
       type: boolean
       description: Whether winner will be automatically sent
       example: true
+
+DataFeedHeader:
+  type: object
+  required:
+    - name
+    - value
+  properties:
+    name:
+      type: string
+      description: HTTP header name
+      example: Authorization
+    value:
+      type: string
+      description: HTTP header value
+      example: Bearer token123
+
+GlobalFeedSettings:
+  type: object
+  properties:
+    enabled:
+      type: boolean
+      description: Whether the global data feed is enabled
+      example: true
+    url:
+      type: string
+      description: URL endpoint to fetch global data from (must be HTTPS)
+      example: https://api.example.com/broadcast-data
+    headers:
+      type: array
+      description: Custom HTTP headers to include in the request
+      items:
+        $ref: '#/DataFeedHeader'
+
+RecipientFeedSettings:
+  type: object
+  properties:
+    enabled:
+      type: boolean
+      description: Whether the per-recipient data feed is enabled
+      example: true
+    url:
+      type: string
+      description: URL endpoint to fetch per-recipient data from (must be HTTPS)
+      example: https://api.example.com/recipient-data
+    headers:
+      type: array
+      description: Custom HTTP headers to include in the request
+      items:
+        $ref: '#/DataFeedHeader'
+
+DataFeedSettings:
+  type: object
+  description: Configuration for external data feeds
+  properties:
+    global_feed:
+      $ref: '#/GlobalFeedSettings'
+    global_feed_data:
+      type: object
+      additionalProperties: true
+      description: Cached data from the global feed (populated after fetch)
+    global_feed_fetched_at:
+      type: string
+      format: date-time
+      nullable: true
+      description: When the global feed was last fetched
+    recipient_feed:
+      $ref: '#/RecipientFeedSettings'
+
+RefreshGlobalFeedRequest:
+  type: object
+  required:
+    - workspace_id
+    - broadcast_id
+    - url
+  properties:
+    workspace_id:
+      type: string
+      description: The ID of the workspace
+      example: ws_1234567890
+    broadcast_id:
+      type: string
+      description: ID of the broadcast
+      example: broadcast_12345
+    url:
+      type: string
+      format: uri
+      description: The feed URL to fetch data from
+      example: https://api.example.com/feed/global
+    headers:
+      type: array
+      description: Optional custom headers to send with the request
+      items:
+        $ref: '#/DataFeedHeader'
+
+RefreshGlobalFeedResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      description: Whether the refresh was successful
+      example: true
+    data:
+      type: object
+      additionalProperties: true
+      description: The fetched data from the global feed
+    fetched_at:
+      type: string
+      format: date-time
+      description: When the data was fetched
+    error:
+      type: string
+      description: Error message if the refresh failed
+      example: null
+
+TestRecipientFeedRequest:
+  type: object
+  required:
+    - workspace_id
+    - broadcast_id
+    - url
+  properties:
+    workspace_id:
+      type: string
+      description: The ID of the workspace
+      example: ws_1234567890
+    broadcast_id:
+      type: string
+      description: ID of the broadcast
+      example: broadcast_12345
+    contact_email:
+      type: string
+      format: email
+      description: Optional email of a specific contact to test with. If not provided, uses a random contact from the audience.
+      example: john@example.com
+    url:
+      type: string
+      format: uri
+      description: The feed URL to fetch data from (must use HTTPS)
+      example: https://api.example.com/feed/recipient
+    headers:
+      type: array
+      description: Optional custom headers to send with the request
+      items:
+        $ref: '#/DataFeedHeader'
+
+TestRecipientFeedResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      description: Whether the test was successful
+      example: true
+    data:
+      type: object
+      additionalProperties: true
+      description: The fetched data from the recipient feed
+    fetched_at:
+      type: string
+      format: date-time
+      description: When the data was fetched
+    error:
+      type: string
+      description: Error message if the test failed
+      example: null
+    contact_email:
+      type: string
+      format: email
+      description: Email of the contact used for the test
+      example: john@example.com

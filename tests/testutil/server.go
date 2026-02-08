@@ -63,7 +63,7 @@ func NewServerManager(appFactory func(*config.Config) AppInterface, dbManager *D
 	cfg := &config.Config{
 		Environment: "development",
 		RootEmail:   "test@example.com",
-		APIEndpoint: "", // Empty to trigger direct task execution instead of HTTP callbacks
+		APIEndpoint: "",   // Empty to trigger direct task execution instead of HTTP callbacks
 		IsInstalled: true, // Mark as installed for tests
 		Server: config.ServerConfig{
 			Host: "127.0.0.1",
@@ -87,8 +87,8 @@ func NewServerManager(appFactory func(*config.Config) AppInterface, dbManager *D
 			Enabled: false, // Disable task scheduler and autoExecuteImmediate to prevent background goroutines
 		},
 		AutomationScheduler: config.AutomationSchedulerConfig{
-			Delay:     0,                       // No delay for tests
-			Interval:  500 * time.Millisecond,  // Fast polling for tests
+			Delay:     0,                      // No delay for tests
+			Interval:  500 * time.Millisecond, // Fast polling for tests
 			BatchSize: 50,
 		},
 		Tracing: config.TracingConfig{

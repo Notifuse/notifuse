@@ -821,6 +821,11 @@ func BuildTemplateData(req TemplateDataRequest) (MapOfAny, error) {
 		templateData["confirm_subscription_url"] = confirmURL
 	}
 
+	// Add global feed data if broadcast has pre-fetched data
+	if req.Broadcast != nil && req.Broadcast.DataFeed != nil && req.Broadcast.DataFeed.GlobalFeedData != nil {
+		templateData["global_feed"] = req.Broadcast.DataFeed.GlobalFeedData
+	}
+
 	// Add tracking data
 	templateData["message_id"] = req.MessageID
 

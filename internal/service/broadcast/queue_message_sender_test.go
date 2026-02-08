@@ -3,11 +3,13 @@ package broadcast
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/domain/mocks"
+	bmocks "github.com/Notifuse/notifuse/internal/service/broadcast/mocks"
 	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
 	"github.com/Notifuse/notifuse/pkg/notifuse_mjml"
 	"github.com/golang/mock/gomock"
@@ -31,6 +33,7 @@ func TestNewQueueMessageSender(t *testing.T) {
 			mockBroadcastRepo,
 			mockMessageHistoryRepo,
 			mockTemplateRepo,
+			nil,
 			mockLogger,
 			nil,
 			"https://api.example.com",
@@ -55,6 +58,7 @@ func TestNewQueueMessageSender(t *testing.T) {
 			mockBroadcastRepo,
 			mockMessageHistoryRepo,
 			mockTemplateRepo,
+			nil,
 			mockLogger,
 			nil, // nil config
 			"https://api.example.com",
@@ -84,12 +88,41 @@ func TestNewQueueMessageSender(t *testing.T) {
 			mockBroadcastRepo,
 			mockMessageHistoryRepo,
 			mockTemplateRepo,
+			nil,
 			mockLogger,
 			config,
 			"https://api.example.com",
 		)
 
 		require.NotNil(t, sender)
+	})
+
+	t.Run("creates sender with data feed fetcher", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		mockQueueRepo := mocks.NewMockEmailQueueRepository(ctrl)
+		mockBroadcastRepo := mocks.NewMockBroadcastRepository(ctrl)
+		mockMessageHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
+		mockTemplateRepo := mocks.NewMockTemplateRepository(ctrl)
+		mockDataFeedFetcher := bmocks.NewMockDataFeedFetcher(ctrl)
+		mockLogger := pkgmocks.NewMockLogger(ctrl)
+
+		sender := NewQueueMessageSender(
+			mockQueueRepo,
+			mockBroadcastRepo,
+			mockMessageHistoryRepo,
+			mockTemplateRepo,
+			mockDataFeedFetcher,
+			mockLogger,
+			nil,
+			"https://api.example.com",
+		)
+
+		require.NotNil(t, sender)
+		assert.Implements(t, (*MessageSender)(nil), sender)
+		qms := sender.(*queueMessageSender)
+		assert.NotNil(t, qms.dataFeedFetcher)
 	})
 }
 
@@ -173,6 +206,7 @@ func TestQueueMessageSender_SendToRecipient(t *testing.T) {
 			mockBroadcastRepo,
 			mockMessageHistoryRepo,
 			mockTemplateRepo,
+			nil,
 			mockLogger,
 			nil,
 			"https://api.example.com",
@@ -182,6 +216,7 @@ func TestQueueMessageSender_SendToRecipient(t *testing.T) {
 			context.Background(),
 			"workspace-1",
 			"integration-1",
+			"https://api.test.com",
 			true,
 			broadcast,
 			"msg-1",
@@ -237,6 +272,7 @@ func TestQueueMessageSender_SendToRecipient(t *testing.T) {
 			mockBroadcastRepo,
 			mockMessageHistoryRepo,
 			mockTemplateRepo,
+			nil,
 			mockLogger,
 			nil,
 			"https://api.example.com",
@@ -246,6 +282,7 @@ func TestQueueMessageSender_SendToRecipient(t *testing.T) {
 			context.Background(),
 			"workspace-1",
 			"integration-1",
+			"https://api.test.com",
 			true,
 			broadcast,
 			"msg-1",
@@ -294,6 +331,7 @@ func TestQueueMessageSender_SendToRecipient(t *testing.T) {
 			mockBroadcastRepo,
 			mockMessageHistoryRepo,
 			mockTemplateRepo,
+			nil,
 			mockLogger,
 			nil,
 			"https://api.example.com",
@@ -303,6 +341,7 @@ func TestQueueMessageSender_SendToRecipient(t *testing.T) {
 			context.Background(),
 			"workspace-1",
 			"integration-1",
+			"https://api.test.com",
 			true,
 			broadcast,
 			"msg-1",
@@ -379,6 +418,7 @@ func TestQueueMessageSender_SendBatch(t *testing.T) {
 			mockBroadcastRepo,
 			mockMessageHistoryRepo,
 			mockTemplateRepo,
+			nil,
 			mockLogger,
 			nil,
 			"https://api.example.com",
@@ -418,6 +458,7 @@ func TestQueueMessageSender_SendBatch(t *testing.T) {
 			mockBroadcastRepo,
 			mockMessageHistoryRepo,
 			mockTemplateRepo,
+			nil,
 			mockLogger,
 			nil,
 			"https://api.example.com",
@@ -492,6 +533,7 @@ func TestQueueMessageSender_SendBatch(t *testing.T) {
 			mockBroadcastRepo,
 			mockMessageHistoryRepo,
 			mockTemplateRepo,
+			nil,
 			mockLogger,
 			nil,
 			"https://api.example.com",
@@ -598,6 +640,7 @@ func TestQueueMessageSender_SendBatch(t *testing.T) {
 			mockBroadcastRepo,
 			mockMessageHistoryRepo,
 			mockTemplateRepo,
+			nil,
 			mockLogger,
 			nil,
 			"https://api.example.com",
@@ -690,6 +733,7 @@ func TestQueueMessageSender_SendBatch(t *testing.T) {
 			mockBroadcastRepo,
 			mockMessageHistoryRepo,
 			mockTemplateRepo,
+			nil,
 			mockLogger,
 			nil,
 			"https://api.example.com",
@@ -715,6 +759,398 @@ func TestQueueMessageSender_SendBatch(t *testing.T) {
 	})
 }
 
+func TestQueueSendBatch_WithRecipientFeed_Success(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockQueueRepo := mocks.NewMockEmailQueueRepository(ctrl)
+	mockBroadcastRepo := mocks.NewMockBroadcastRepository(ctrl)
+	mockMessageHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
+	mockTemplateRepo := mocks.NewMockTemplateRepository(ctrl)
+	mockDataFeedFetcher := bmocks.NewMockDataFeedFetcher(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+
+	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
+
+	emailSender := domain.NewEmailSender("sender@example.com", "Test Sender")
+	emailProvider := &domain.EmailProvider{
+		Kind:    domain.EmailProviderKindSMTP,
+		Senders: []domain.EmailSender{emailSender},
+	}
+
+	broadcast := &domain.Broadcast{
+		ID:            "broadcast-1",
+		WorkspaceID:   "workspace-1",
+		Name:          "Feed Broadcast",
+		UTMParameters: &domain.UTMParameters{Source: "test", Medium: "email"},
+		DataFeed: &domain.DataFeedSettings{
+			RecipientFeed: &domain.RecipientFeedSettings{
+				Enabled: true,
+				URL:     "https://feed.example.com/recipient",
+			},
+		},
+	}
+
+	// Template that uses recipient_feed data
+	template := &domain.Template{
+		ID: "template-1",
+		Email: &domain.EmailTemplate{
+			SenderID:         emailSender.ID,
+			Subject:          "Your product: {{ recipient_feed.product }}",
+			VisualEditorTree: createQueueValidTestTree(createQueueTestTextBlock("txt1", "Product: {{ recipient_feed.product }}")),
+		},
+	}
+
+	recipients := []*domain.ContactWithList{
+		{
+			Contact:  &domain.Contact{Email: "user@example.com"},
+			ListID:   "list-1",
+			ListName: "Subscribers",
+		},
+	}
+
+	mockBroadcastRepo.EXPECT().GetBroadcast(gomock.Any(), "workspace-1", "broadcast-1").
+		Return(broadcast, nil)
+
+	// Mock FetchRecipient to return feed data
+	mockDataFeedFetcher.EXPECT().FetchRecipient(
+		gomock.Any(),
+		broadcast.DataFeed.RecipientFeed,
+		gomock.Any(),
+	).Times(1).Return(map[string]interface{}{
+		"product":  "Widget",
+		"_success": true,
+	}, nil)
+
+	// Verify enqueued entry contains rendered feed data
+	mockQueueRepo.EXPECT().Enqueue(gomock.Any(), "workspace-1", gomock.Any()).
+		DoAndReturn(func(ctx context.Context, workspaceID string, entries []*domain.EmailQueueEntry) error {
+			require.Len(t, entries, 1)
+			entry := entries[0]
+
+			// HTML should contain the rendered recipient_feed.product value
+			assert.Contains(t, entry.Payload.HTMLContent, "Widget",
+				"HTML should contain rendered recipient_feed.product value")
+			assert.NotContains(t, entry.Payload.HTMLContent, "{{ recipient_feed.product }}",
+				"HTML should not contain raw Liquid syntax")
+
+			// Subject should also be rendered
+			assert.Contains(t, entry.Payload.Subject, "Widget",
+				"Subject should contain rendered recipient_feed.product value")
+
+			return nil
+		})
+
+	sender := NewQueueMessageSender(
+		mockQueueRepo,
+		mockBroadcastRepo,
+		mockMessageHistoryRepo,
+		mockTemplateRepo,
+		mockDataFeedFetcher,
+		mockLogger,
+		nil,
+		"https://api.example.com",
+	)
+
+	sent, failed, err := sender.SendBatch(
+		context.Background(),
+		"workspace-1",
+		"integration-1",
+		"secret-key",
+		"https://api.example.com",
+		true,
+		"broadcast-1",
+		recipients,
+		map[string]*domain.Template{"template-1": template},
+		emailProvider,
+		time.Now().Add(5*time.Minute),
+	)
+
+	assert.NoError(t, err)
+	assert.Equal(t, 1, sent)
+	assert.Equal(t, 0, failed)
+}
+
+func TestQueueSendBatch_WithRecipientFeed_FetchError_PausesBroadcast(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockQueueRepo := mocks.NewMockEmailQueueRepository(ctrl)
+	mockBroadcastRepo := mocks.NewMockBroadcastRepository(ctrl)
+	mockMessageHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
+	mockTemplateRepo := mocks.NewMockTemplateRepository(ctrl)
+	mockDataFeedFetcher := bmocks.NewMockDataFeedFetcher(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+
+	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Warn(gomock.Any()).AnyTimes()
+
+	emailSender := domain.NewEmailSender("sender@example.com", "Test Sender")
+	emailProvider := &domain.EmailProvider{
+		Kind:    domain.EmailProviderKindSMTP,
+		Senders: []domain.EmailSender{emailSender},
+	}
+
+	broadcast := &domain.Broadcast{
+		ID:            "broadcast-1",
+		WorkspaceID:   "workspace-1",
+		Name:          "Feed Broadcast",
+		UTMParameters: &domain.UTMParameters{},
+		DataFeed: &domain.DataFeedSettings{
+			RecipientFeed: &domain.RecipientFeedSettings{
+				Enabled: true,
+				URL:     "https://feed.example.com/recipient",
+			},
+		},
+	}
+
+	template := &domain.Template{
+		ID: "template-1",
+		Email: &domain.EmailTemplate{
+			SenderID:         emailSender.ID,
+			Subject:          "Test Subject",
+			VisualEditorTree: createQueueValidTestTree(createQueueTestTextBlock("txt1", "Hello")),
+		},
+	}
+
+	recipients := []*domain.ContactWithList{
+		{
+			Contact: &domain.Contact{Email: "user@example.com"},
+			ListID:  "list-1",
+		},
+	}
+
+	mockBroadcastRepo.EXPECT().GetBroadcast(gomock.Any(), "workspace-1", "broadcast-1").
+		Return(broadcast, nil)
+
+	// Mock FetchRecipient to return error (after exhausting retries internally)
+	mockDataFeedFetcher.EXPECT().FetchRecipient(
+		gomock.Any(),
+		broadcast.DataFeed.RecipientFeed,
+		gomock.Any(),
+	).Times(1).Return(nil, fmt.Errorf("HTTP error 500: Internal Server Error"))
+
+	// Enqueue should NOT be called — entries are discarded on feed failure
+	mockQueueRepo.EXPECT().Enqueue(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+
+	sender := NewQueueMessageSender(
+		mockQueueRepo,
+		mockBroadcastRepo,
+		mockMessageHistoryRepo,
+		mockTemplateRepo,
+		mockDataFeedFetcher,
+		mockLogger,
+		nil,
+		"https://api.example.com",
+	)
+
+	sent, failed, err := sender.SendBatch(
+		context.Background(),
+		"workspace-1",
+		"integration-1",
+		"secret-key",
+		"https://api.example.com",
+		true,
+		"broadcast-1",
+		recipients,
+		map[string]*domain.Template{"template-1": template},
+		emailProvider,
+		time.Now().Add(5*time.Minute),
+	)
+
+	require.Error(t, err)
+	assert.True(t, errors.Is(err, ErrBroadcastShouldPause),
+		"Error should wrap ErrBroadcastShouldPause")
+	assert.Contains(t, err.Error(), "recipient feed failed")
+	assert.Equal(t, 0, sent, "No entries should be reported as sent")
+	assert.Equal(t, 0, failed, "No entries should be reported as failed")
+}
+
+func TestQueueSendBatch_WithRecipientFeed_Disabled(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockQueueRepo := mocks.NewMockEmailQueueRepository(ctrl)
+	mockBroadcastRepo := mocks.NewMockBroadcastRepository(ctrl)
+	mockMessageHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
+	mockTemplateRepo := mocks.NewMockTemplateRepository(ctrl)
+	mockDataFeedFetcher := bmocks.NewMockDataFeedFetcher(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+
+	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
+
+	emailSender := domain.NewEmailSender("sender@example.com", "Test Sender")
+	emailProvider := &domain.EmailProvider{
+		Kind:    domain.EmailProviderKindSMTP,
+		Senders: []domain.EmailSender{emailSender},
+	}
+
+	broadcast := &domain.Broadcast{
+		ID:            "broadcast-1",
+		WorkspaceID:   "workspace-1",
+		Name:          "Feed Broadcast",
+		UTMParameters: &domain.UTMParameters{Source: "test", Medium: "email"},
+		DataFeed: &domain.DataFeedSettings{
+			RecipientFeed: &domain.RecipientFeedSettings{
+				Enabled: false, // Disabled
+				URL:     "https://feed.example.com/recipient",
+			},
+		},
+	}
+
+	template := &domain.Template{
+		ID: "template-1",
+		Email: &domain.EmailTemplate{
+			SenderID:         emailSender.ID,
+			Subject:          "Test Subject",
+			VisualEditorTree: createQueueValidTestTree(createQueueTestTextBlock("txt1", "Hello")),
+		},
+	}
+
+	recipients := []*domain.ContactWithList{
+		{
+			Contact:  &domain.Contact{Email: "user@example.com"},
+			ListID:   "list-1",
+			ListName: "Subscribers",
+		},
+	}
+
+	mockBroadcastRepo.EXPECT().GetBroadcast(gomock.Any(), "workspace-1", "broadcast-1").
+		Return(broadcast, nil)
+
+	// FetchRecipient should NOT be called when disabled
+	mockDataFeedFetcher.EXPECT().FetchRecipient(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+
+	mockQueueRepo.EXPECT().Enqueue(gomock.Any(), "workspace-1", gomock.Any()).
+		DoAndReturn(func(ctx context.Context, workspaceID string, entries []*domain.EmailQueueEntry) error {
+			assert.Len(t, entries, 1)
+			return nil
+		})
+
+	sender := NewQueueMessageSender(
+		mockQueueRepo,
+		mockBroadcastRepo,
+		mockMessageHistoryRepo,
+		mockTemplateRepo,
+		mockDataFeedFetcher,
+		mockLogger,
+		nil,
+		"https://api.example.com",
+	)
+
+	sent, failed, err := sender.SendBatch(
+		context.Background(),
+		"workspace-1",
+		"integration-1",
+		"secret-key",
+		"https://api.example.com",
+		true,
+		"broadcast-1",
+		recipients,
+		map[string]*domain.Template{"template-1": template},
+		emailProvider,
+		time.Now().Add(5*time.Minute),
+	)
+
+	assert.NoError(t, err)
+	assert.Equal(t, 1, sent)
+	assert.Equal(t, 0, failed)
+}
+
+func TestQueueSendBatch_WithRecipientFeed_NilFetcher(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockQueueRepo := mocks.NewMockEmailQueueRepository(ctrl)
+	mockBroadcastRepo := mocks.NewMockBroadcastRepository(ctrl)
+	mockMessageHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
+	mockTemplateRepo := mocks.NewMockTemplateRepository(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+
+	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
+
+	emailSender := domain.NewEmailSender("sender@example.com", "Test Sender")
+	emailProvider := &domain.EmailProvider{
+		Kind:    domain.EmailProviderKindSMTP,
+		Senders: []domain.EmailSender{emailSender},
+	}
+
+	broadcast := &domain.Broadcast{
+		ID:            "broadcast-1",
+		WorkspaceID:   "workspace-1",
+		Name:          "Feed Broadcast",
+		UTMParameters: &domain.UTMParameters{Source: "test", Medium: "email"},
+		DataFeed: &domain.DataFeedSettings{
+			RecipientFeed: &domain.RecipientFeedSettings{
+				Enabled: true, // Enabled, but fetcher is nil
+				URL:     "https://feed.example.com/recipient",
+			},
+		},
+	}
+
+	template := &domain.Template{
+		ID: "template-1",
+		Email: &domain.EmailTemplate{
+			SenderID:         emailSender.ID,
+			Subject:          "Test Subject",
+			VisualEditorTree: createQueueValidTestTree(createQueueTestTextBlock("txt1", "Hello")),
+		},
+	}
+
+	recipients := []*domain.ContactWithList{
+		{
+			Contact:  &domain.Contact{Email: "user@example.com"},
+			ListID:   "list-1",
+			ListName: "Subscribers",
+		},
+	}
+
+	mockBroadcastRepo.EXPECT().GetBroadcast(gomock.Any(), "workspace-1", "broadcast-1").
+		Return(broadcast, nil)
+
+	mockQueueRepo.EXPECT().Enqueue(gomock.Any(), "workspace-1", gomock.Any()).
+		DoAndReturn(func(ctx context.Context, workspaceID string, entries []*domain.EmailQueueEntry) error {
+			assert.Len(t, entries, 1)
+			return nil
+		})
+
+	// Create sender with nil dataFeedFetcher
+	sender := NewQueueMessageSender(
+		mockQueueRepo,
+		mockBroadcastRepo,
+		mockMessageHistoryRepo,
+		mockTemplateRepo,
+		nil, // nil dataFeedFetcher
+		mockLogger,
+		nil,
+		"https://api.example.com",
+	)
+
+	sent, failed, err := sender.SendBatch(
+		context.Background(),
+		"workspace-1",
+		"integration-1",
+		"secret-key",
+		"https://api.example.com",
+		true,
+		"broadcast-1",
+		recipients,
+		map[string]*domain.Template{"template-1": template},
+		emailProvider,
+		time.Now().Add(5*time.Minute),
+	)
+
+	assert.NoError(t, err)
+	assert.Equal(t, 1, sent, "Should still enqueue normally with nil fetcher")
+	assert.Equal(t, 0, failed)
+}
+
 func TestQueueMessageSender_SelectTemplate(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -730,6 +1166,7 @@ func TestQueueMessageSender_SelectTemplate(t *testing.T) {
 		mockBroadcastRepo,
 		mockMessageHistoryRepo,
 		mockTemplateRepo,
+		nil,
 		mockLogger,
 		nil,
 		"https://api.example.com",
@@ -790,6 +1227,7 @@ func TestQueueMessageSender_BuildQueueEntry(t *testing.T) {
 		mockBroadcastRepo,
 		mockMessageHistoryRepo,
 		mockTemplateRepo,
+		nil,
 		mockLogger,
 		nil,
 		"https://api.example.com",
@@ -835,6 +1273,7 @@ func TestQueueMessageSender_BuildQueueEntry(t *testing.T) {
 			context.Background(),
 			"workspace-1",
 			"integration-1",
+			"https://api.test.com",
 			true,
 			broadcast,
 			"msg-123",
@@ -894,6 +1333,7 @@ func TestQueueMessageSender_BuildQueueEntry(t *testing.T) {
 			context.Background(),
 			"workspace-1",
 			"integration-1",
+			"https://api.test.com",
 			true,
 			broadcast,
 			"msg-123",
@@ -930,6 +1370,7 @@ func TestQueueMessageSender_BuildQueueEntry(t *testing.T) {
 			context.Background(),
 			"workspace-1",
 			"integration-1",
+			"https://api.test.com",
 			true,
 			broadcast,
 			"msg-123",
@@ -970,6 +1411,7 @@ func TestQueueMessageSender_BuildQueueEntry(t *testing.T) {
 			context.Background(),
 			"workspace-1",
 			"integration-1",
+			"https://api.test.com",
 			true,
 			broadcast,
 			"msg-123",

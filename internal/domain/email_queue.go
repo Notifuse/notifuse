@@ -79,9 +79,9 @@ type EmailQueuePayload struct {
 	ProviderSettings map[string]interface{} `json:"provider_settings"`
 
 	// Message history tracking fields
-	TemplateVersion int                    `json:"template_version"`         // Needed for message_history
-	ListID          string                 `json:"list_id,omitempty"`        // For broadcasts
-	TemplateData    map[string]interface{} `json:"template_data,omitempty"`  // For message history logging
+	TemplateVersion int                    `json:"template_version"`        // Needed for message_history
+	ListID          string                 `json:"list_id,omitempty"`       // For broadcasts
+	TemplateData    map[string]interface{} `json:"template_data,omitempty"` // For message history logging
 }
 
 // ToSendEmailProviderRequest converts the payload to a SendEmailProviderRequest

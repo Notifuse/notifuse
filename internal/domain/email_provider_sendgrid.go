@@ -59,8 +59,8 @@ type SendGridWebhookEvent struct {
 
 	// Bounce-specific fields
 	Reason               string `json:"reason,omitempty"`
-	Status               string `json:"status,omitempty"`    // SMTP status code e.g., "5.1.1"
-	Type                 string `json:"type,omitempty"`      // "bounce" or "blocked"
+	Status               string `json:"status,omitempty"` // SMTP status code e.g., "5.1.1"
+	Type                 string `json:"type,omitempty"`   // "bounce" or "blocked"
 	BounceClassification string `json:"bounce_classification,omitempty"`
 
 	// Delivery fields

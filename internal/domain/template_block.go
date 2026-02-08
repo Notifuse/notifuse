@@ -335,4 +335,3 @@ type TemplateBlockService interface {
 	// DeleteTemplateBlock deletes a template block by ID
 	DeleteTemplateBlock(ctx context.Context, workspaceID string, id string) error
 }
-

@@ -547,10 +547,10 @@ func TestDeleteTemplateBlockRequest_Validate(t *testing.T) {
 
 func TestGetTemplateBlockRequest_FromURLParams(t *testing.T) {
 	tests := []struct {
-		name       string
+		name        string
 		queryParams url.Values
-		wantErr    bool
-		errMsg     string
+		wantErr     bool
+		errMsg      string
 	}{
 		{
 			name: "valid params",
@@ -607,10 +607,10 @@ func TestGetTemplateBlockRequest_FromURLParams(t *testing.T) {
 
 func TestListTemplateBlocksRequest_FromURLParams(t *testing.T) {
 	tests := []struct {
-		name       string
+		name        string
 		queryParams url.Values
-		wantErr    bool
-		errMsg     string
+		wantErr     bool
+		errMsg      string
 	}{
 		{
 			name: "valid params",
@@ -620,10 +620,10 @@ func TestListTemplateBlocksRequest_FromURLParams(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:       "missing workspace_id",
+			name:        "missing workspace_id",
 			queryParams: url.Values{},
-			wantErr:    true,
-			errMsg:     "workspace_id is required",
+			wantErr:     true,
+			errMsg:      "workspace_id is required",
 		},
 		{
 			name: "workspace_id too long",
@@ -661,4 +661,3 @@ func TestErrTemplateBlockNotFound(t *testing.T) {
 	assert.Equal(t, "template block not found", err.Error())
 	assert.Error(t, err)
 }
-

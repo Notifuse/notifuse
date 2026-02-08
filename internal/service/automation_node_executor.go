@@ -32,8 +32,8 @@ type NodeExecutionParams struct {
 	Contact          *domain.ContactAutomation
 	Node             *domain.AutomationNode
 	Automation       *domain.Automation
-	ContactData      *domain.Contact            // Full contact data for template rendering
-	ExecutionContext map[string]interface{}     // Reconstructed context from previous node executions
+	ContactData      *domain.Contact        // Full contact data for template rendering
+	ExecutionContext map[string]interface{} // Reconstructed context from previous node executions
 }
 
 // NodeExecutor executes a specific node type

@@ -59,7 +59,7 @@ export function AcceptInvitationPage() {
     }
 
     verifyToken()
-  }, [token, user, signout, message, accepted])
+  }, [token, user, signout, message, accepted, t])
 
   const handleAcceptInvitation = async () => {
     if (!token || !invitationData) return

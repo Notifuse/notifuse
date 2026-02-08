@@ -611,7 +611,7 @@ func TestSaveProgressState(t *testing.T) {
 	broadcastState := &domain.SendBroadcastState{
 		BroadcastID:               broadcastID,
 		TotalRecipients:           totalRecipients,
-		EnqueuedCount:                 sentCount,
+		EnqueuedCount:             sentCount,
 		FailedCount:               failedCount,
 		ChannelType:               "email",
 		RecipientOffset:           int64(processedCount),
@@ -648,7 +648,7 @@ func TestBroadcastOrchestrator_Process(t *testing.T) {
 			setupMocks: func(ctrl *gomock.Controller) (*mocks.MockMessageSender, *domainmocks.MockBroadcastRepository, *domainmocks.MockTemplateRepository, *domainmocks.MockContactRepository, *domainmocks.MockTaskRepository, *domainmocks.MockWorkspaceRepository, *pkgmocks.MockLogger, *mocks.MockTimeProvider) {
 				mockMessageSender := mocks.NewMockMessageSender(ctrl)
 				mockBroadcastRepo := domainmocks.NewMockBroadcastRepository(ctrl)
-					mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
+				mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
 				mockContactRepo := domainmocks.NewMockContactRepository(ctrl)
 				mockTaskRepo := domainmocks.NewMockTaskRepository(ctrl)
 				mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
@@ -769,7 +769,7 @@ func TestBroadcastOrchestrator_Process(t *testing.T) {
 					SendBroadcast: &domain.SendBroadcastState{
 						BroadcastID:     "broadcast-123",
 						TotalRecipients: 2, // Set to non-zero to skip recipient counting phase
-						EnqueuedCount:       0,
+						EnqueuedCount:   0,
 						FailedCount:     0,
 						RecipientOffset: 0,
 					},
@@ -785,7 +785,7 @@ func TestBroadcastOrchestrator_Process(t *testing.T) {
 			setupMocks: func(ctrl *gomock.Controller) (*mocks.MockMessageSender, *domainmocks.MockBroadcastRepository, *domainmocks.MockTemplateRepository, *domainmocks.MockContactRepository, *domainmocks.MockTaskRepository, *domainmocks.MockWorkspaceRepository, *pkgmocks.MockLogger, *mocks.MockTimeProvider) {
 				mockMessageSender := mocks.NewMockMessageSender(ctrl)
 				mockBroadcastRepo := domainmocks.NewMockBroadcastRepository(ctrl)
-					mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
+				mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
 				mockContactRepo := domainmocks.NewMockContactRepository(ctrl)
 				mockTaskRepo := domainmocks.NewMockTaskRepository(ctrl)
 				mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
@@ -899,7 +899,7 @@ func TestBroadcastOrchestrator_Process(t *testing.T) {
 					SendBroadcast: &domain.SendBroadcastState{
 						BroadcastID:     "broadcast-123",
 						TotalRecipients: 1, // Set to non-zero to skip recipient counting phase
-						EnqueuedCount:       0,
+						EnqueuedCount:   0,
 						FailedCount:     0,
 						RecipientOffset: 0,
 					},
@@ -916,7 +916,7 @@ func TestBroadcastOrchestrator_Process(t *testing.T) {
 			setupMocks: func(ctrl *gomock.Controller) (*mocks.MockMessageSender, *domainmocks.MockBroadcastRepository, *domainmocks.MockTemplateRepository, *domainmocks.MockContactRepository, *domainmocks.MockTaskRepository, *domainmocks.MockWorkspaceRepository, *pkgmocks.MockLogger, *mocks.MockTimeProvider) {
 				mockMessageSender := mocks.NewMockMessageSender(ctrl)
 				mockBroadcastRepo := domainmocks.NewMockBroadcastRepository(ctrl)
-					mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
+				mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
 				mockContactRepo := domainmocks.NewMockContactRepository(ctrl)
 				mockTaskRepo := domainmocks.NewMockTaskRepository(ctrl)
 				mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
@@ -950,7 +950,7 @@ func TestBroadcastOrchestrator_Process(t *testing.T) {
 					SendBroadcast: &domain.SendBroadcastState{
 						BroadcastID:     "broadcast-123",
 						TotalRecipients: 2,
-						EnqueuedCount:       0,
+						EnqueuedCount:   0,
 						FailedCount:     0,
 						RecipientOffset: 0,
 					},
@@ -967,7 +967,7 @@ func TestBroadcastOrchestrator_Process(t *testing.T) {
 			setupMocks: func(ctrl *gomock.Controller) (*mocks.MockMessageSender, *domainmocks.MockBroadcastRepository, *domainmocks.MockTemplateRepository, *domainmocks.MockContactRepository, *domainmocks.MockTaskRepository, *domainmocks.MockWorkspaceRepository, *pkgmocks.MockLogger, *mocks.MockTimeProvider) {
 				mockMessageSender := mocks.NewMockMessageSender(ctrl)
 				mockBroadcastRepo := domainmocks.NewMockBroadcastRepository(ctrl)
-					mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
+				mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
 				mockContactRepo := domainmocks.NewMockContactRepository(ctrl)
 				mockTaskRepo := domainmocks.NewMockTaskRepository(ctrl)
 				mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
@@ -1009,7 +1009,7 @@ func TestBroadcastOrchestrator_Process(t *testing.T) {
 					SendBroadcast: &domain.SendBroadcastState{
 						BroadcastID:     "broadcast-123",
 						TotalRecipients: 2,
-						EnqueuedCount:       0,
+						EnqueuedCount:   0,
 						FailedCount:     0,
 						RecipientOffset: 0,
 					},
@@ -1026,7 +1026,7 @@ func TestBroadcastOrchestrator_Process(t *testing.T) {
 			setupMocks: func(ctrl *gomock.Controller) (*mocks.MockMessageSender, *domainmocks.MockBroadcastRepository, *domainmocks.MockTemplateRepository, *domainmocks.MockContactRepository, *domainmocks.MockTaskRepository, *domainmocks.MockWorkspaceRepository, *pkgmocks.MockLogger, *mocks.MockTimeProvider) {
 				mockMessageSender := mocks.NewMockMessageSender(ctrl)
 				mockBroadcastRepo := domainmocks.NewMockBroadcastRepository(ctrl)
-					mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
+				mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
 				mockContactRepo := domainmocks.NewMockContactRepository(ctrl)
 				mockTaskRepo := domainmocks.NewMockTaskRepository(ctrl)
 				mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
@@ -1100,7 +1100,7 @@ func TestBroadcastOrchestrator_Process(t *testing.T) {
 					SendBroadcast: &domain.SendBroadcastState{
 						BroadcastID:     "broadcast-123",
 						TotalRecipients: 2,
-						EnqueuedCount:       0,
+						EnqueuedCount:   0,
 						FailedCount:     0,
 						RecipientOffset: 0,
 					},
@@ -1117,7 +1117,7 @@ func TestBroadcastOrchestrator_Process(t *testing.T) {
 			setupMocks: func(ctrl *gomock.Controller) (*mocks.MockMessageSender, *domainmocks.MockBroadcastRepository, *domainmocks.MockTemplateRepository, *domainmocks.MockContactRepository, *domainmocks.MockTaskRepository, *domainmocks.MockWorkspaceRepository, *pkgmocks.MockLogger, *mocks.MockTimeProvider) {
 				mockMessageSender := mocks.NewMockMessageSender(ctrl)
 				mockBroadcastRepo := domainmocks.NewMockBroadcastRepository(ctrl)
-					mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
+				mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
 				mockContactRepo := domainmocks.NewMockContactRepository(ctrl)
 				mockTaskRepo := domainmocks.NewMockTaskRepository(ctrl)
 				mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
@@ -1204,7 +1204,7 @@ func TestBroadcastOrchestrator_Process(t *testing.T) {
 					SendBroadcast: &domain.SendBroadcastState{
 						BroadcastID:     "broadcast-123",
 						TotalRecipients: 2,
-						EnqueuedCount:       0,
+						EnqueuedCount:   0,
 						FailedCount:     0,
 						RecipientOffset: 0,
 					},
@@ -1221,7 +1221,7 @@ func TestBroadcastOrchestrator_Process(t *testing.T) {
 			setupMocks: func(ctrl *gomock.Controller) (*mocks.MockMessageSender, *domainmocks.MockBroadcastRepository, *domainmocks.MockTemplateRepository, *domainmocks.MockContactRepository, *domainmocks.MockTaskRepository, *domainmocks.MockWorkspaceRepository, *pkgmocks.MockLogger, *mocks.MockTimeProvider) {
 				mockMessageSender := mocks.NewMockMessageSender(ctrl)
 				mockBroadcastRepo := domainmocks.NewMockBroadcastRepository(ctrl)
-					mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
+				mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
 				mockContactRepo := domainmocks.NewMockContactRepository(ctrl)
 				mockTaskRepo := domainmocks.NewMockTaskRepository(ctrl)
 				mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
@@ -1340,7 +1340,7 @@ func TestBroadcastOrchestrator_Process(t *testing.T) {
 					SendBroadcast: &domain.SendBroadcastState{
 						BroadcastID:     "", // Empty broadcast ID in state
 						TotalRecipients: 1,
-						EnqueuedCount:       0,
+						EnqueuedCount:   0,
 						FailedCount:     0,
 						RecipientOffset: 0,
 					},
@@ -1409,7 +1409,7 @@ func TestBroadcastOrchestrator_Process_ABTestStartSetsTestingAndCompletesTestPha
 
 	mockMessageSender := mocks.NewMockMessageSender(ctrl)
 	mockBroadcastRepo := domainmocks.NewMockBroadcastRepository(ctrl)
-		mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
+	mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
 	mockContactRepo := domainmocks.NewMockContactRepository(ctrl)
 	mockTaskRepo := domainmocks.NewMockTaskRepository(ctrl)
 	mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
@@ -1508,7 +1508,7 @@ func TestBroadcastOrchestrator_Process_WinnerPhaseMissingTemplate_Error(t *testi
 
 	mockMessageSender := mocks.NewMockMessageSender(ctrl)
 	mockBroadcastRepo := domainmocks.NewMockBroadcastRepository(ctrl)
-		mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
+	mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
 	mockContactRepo := domainmocks.NewMockContactRepository(ctrl)
 	mockTaskRepo := domainmocks.NewMockTaskRepository(ctrl)
 	mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
@@ -1559,7 +1559,7 @@ func TestBroadcastOrchestrator_Process_ValidateTemplatesFailure(t *testing.T) {
 
 	mockMessageSender := mocks.NewMockMessageSender(ctrl)
 	mockBroadcastRepo := domainmocks.NewMockBroadcastRepository(ctrl)
-		mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
+	mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
 	mockContactRepo := domainmocks.NewMockContactRepository(ctrl)
 	mockTaskRepo := domainmocks.NewMockTaskRepository(ctrl)
 	mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
@@ -1614,7 +1614,7 @@ func TestBroadcastOrchestrator_Process_BatchSizeZeroTriggersPhaseCompletion(t *t
 
 	mockMessageSender := mocks.NewMockMessageSender(ctrl)
 	mockBroadcastRepo := domainmocks.NewMockBroadcastRepository(ctrl)
-		mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
+	mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
 	mockContactRepo := domainmocks.NewMockContactRepository(ctrl)
 	mockTaskRepo := domainmocks.NewMockTaskRepository(ctrl)
 	mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
@@ -1662,7 +1662,7 @@ func TestBroadcastOrchestrator_Process_EmptyRecipientsTriggersTestCompletion(t *
 
 	mockMessageSender := mocks.NewMockMessageSender(ctrl)
 	mockBroadcastRepo := domainmocks.NewMockBroadcastRepository(ctrl)
-		mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
+	mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
 	mockContactRepo := domainmocks.NewMockContactRepository(ctrl)
 	mockTaskRepo := domainmocks.NewMockTaskRepository(ctrl)
 	mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
@@ -1712,7 +1712,7 @@ func TestBroadcastOrchestrator_Process_AutoWinnerEvaluationPath(t *testing.T) {
 
 	mockMessageSender := mocks.NewMockMessageSender(ctrl)
 	mockBroadcastRepo := domainmocks.NewMockBroadcastRepository(ctrl)
-		mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
+	mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
 	mockContactRepo := domainmocks.NewMockContactRepository(ctrl)
 	mockTaskRepo := domainmocks.NewMockTaskRepository(ctrl)
 	mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
@@ -1819,7 +1819,7 @@ func TestBroadcastOrchestrator_Process_ABTestWinnerPhaseProcessesRemainingRecipi
 	// Create mocks
 	mockMessageSender := mocks.NewMockMessageSender(ctrl)
 	mockBroadcastRepo := domainmocks.NewMockBroadcastRepository(ctrl)
-		mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
+	mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
 	mockContactRepo := domainmocks.NewMockContactRepository(ctrl)
 	mockTaskRepo := domainmocks.NewMockTaskRepository(ctrl)
 	mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
@@ -1982,12 +1982,12 @@ func TestBroadcastOrchestrator_Process_ABTestWinnerPhaseProcessesRemainingRecipi
 		State: &domain.TaskState{
 			SendBroadcast: &domain.SendBroadcastState{
 				BroadcastID:               "broadcast-123",
-				TotalRecipients:           2, // Total of 2 recipients
-				TestPhaseRecipientCount:   1, // Test phase processes 1 recipient (50% of 2)
-				WinnerPhaseRecipientCount: 1, // Winner phase should process remaining 1 recipient
-				RecipientOffset:           1, // Test phase already processed 1 recipient (progress counter)
+				TotalRecipients:           2,                        // Total of 2 recipients
+				TestPhaseRecipientCount:   1,                        // Test phase processes 1 recipient (50% of 2)
+				WinnerPhaseRecipientCount: 1,                        // Winner phase should process remaining 1 recipient
+				RecipientOffset:           1,                        // Test phase already processed 1 recipient (progress counter)
 				LastProcessedEmail:        "recipient1@example.com", // Cursor for DB pagination
-				EnqueuedCount:                 1, // Test phase sent to 1 recipient
+				EnqueuedCount:             1,                        // Test phase sent to 1 recipient
 				FailedCount:               0,
 				Phase:                     "test", // Should transition to "winner" when processing starts
 				TestPhaseCompleted:        true,
@@ -2017,7 +2017,7 @@ func TestBroadcastOrchestrator_Process_NoRecipientsUpdatesBroadcastStatus(t *tes
 
 	mockMessageSender := mocks.NewMockMessageSender(ctrl)
 	mockBroadcastRepo := domainmocks.NewMockBroadcastRepository(ctrl)
-		mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
+	mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
 	mockContactRepo := domainmocks.NewMockContactRepository(ctrl)
 	mockTaskRepo := domainmocks.NewMockTaskRepository(ctrl)
 	mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
@@ -2099,7 +2099,7 @@ func TestBroadcastOrchestrator_Process_NoRecipientsUpdatesBroadcastStatus(t *tes
 			SendBroadcast: &domain.SendBroadcastState{
 				BroadcastID:     "broadcast-123",
 				TotalRecipients: 0, // Not counted yet
-				EnqueuedCount:       0,
+				EnqueuedCount:   0,
 				FailedCount:     0,
 				RecipientOffset: 0,
 			},
@@ -2132,7 +2132,7 @@ func TestNewBroadcastOrchestrator_DefaultConfig(t *testing.T) {
 
 	mockMessageSender := mocks.NewMockMessageSender(ctrl)
 	mockBroadcastRepo := domainmocks.NewMockBroadcastRepository(ctrl)
-		mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
+	mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
 	mockContactRepo := domainmocks.NewMockContactRepository(ctrl)
 	mockTaskRepo := domainmocks.NewMockTaskRepository(ctrl)
 	mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
@@ -2166,7 +2166,7 @@ func TestNewBroadcastOrchestrator_DefaultTimeProvider(t *testing.T) {
 
 	mockMessageSender := mocks.NewMockMessageSender(ctrl)
 	mockBroadcastRepo := domainmocks.NewMockBroadcastRepository(ctrl)
-		mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
+	mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
 	mockContactRepo := domainmocks.NewMockContactRepository(ctrl)
 	mockTaskRepo := domainmocks.NewMockTaskRepository(ctrl)
 	mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
@@ -2205,7 +2205,7 @@ func TestBroadcastOrchestrator_ValidateTemplates_EmptyTemplates(t *testing.T) {
 
 	mockMessageSender := mocks.NewMockMessageSender(ctrl)
 	mockBroadcastRepo := domainmocks.NewMockBroadcastRepository(ctrl)
-		mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
+	mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
 	mockContactRepo := domainmocks.NewMockContactRepository(ctrl)
 	mockTaskRepo := domainmocks.NewMockTaskRepository(ctrl)
 	mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
@@ -2247,7 +2247,7 @@ func TestBroadcastOrchestrator_ValidateTemplates_NilTemplate(t *testing.T) {
 
 	mockMessageSender := mocks.NewMockMessageSender(ctrl)
 	mockBroadcastRepo := domainmocks.NewMockBroadcastRepository(ctrl)
-		mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
+	mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
 	mockContactRepo := domainmocks.NewMockContactRepository(ctrl)
 	mockTaskRepo := domainmocks.NewMockTaskRepository(ctrl)
 	mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
@@ -2292,7 +2292,7 @@ func TestBroadcastOrchestrator_ValidateTemplates_MissingEmailConfig(t *testing.T
 
 	mockMessageSender := mocks.NewMockMessageSender(ctrl)
 	mockBroadcastRepo := domainmocks.NewMockBroadcastRepository(ctrl)
-		mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
+	mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
 	mockContactRepo := domainmocks.NewMockContactRepository(ctrl)
 	mockTaskRepo := domainmocks.NewMockTaskRepository(ctrl)
 	mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
@@ -2344,7 +2344,7 @@ func TestBroadcastOrchestrator_ValidateTemplates_MissingContent(t *testing.T) {
 
 	mockMessageSender := mocks.NewMockMessageSender(ctrl)
 	mockBroadcastRepo := domainmocks.NewMockBroadcastRepository(ctrl)
-		mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
+	mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
 	mockContactRepo := domainmocks.NewMockContactRepository(ctrl)
 	mockTaskRepo := domainmocks.NewMockTaskRepository(ctrl)
 	mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
@@ -2401,7 +2401,7 @@ func TestBroadcastOrchestrator_FetchBatch_BroadcastNotFound(t *testing.T) {
 
 	mockMessageSender := mocks.NewMockMessageSender(ctrl)
 	mockBroadcastRepo := domainmocks.NewMockBroadcastRepository(ctrl)
-		mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
+	mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
 	mockContactRepo := domainmocks.NewMockContactRepository(ctrl)
 	mockTaskRepo := domainmocks.NewMockTaskRepository(ctrl)
 	mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
@@ -2455,7 +2455,7 @@ func TestBroadcastOrchestrator_FetchBatch_BroadcastCancelled(t *testing.T) {
 
 	mockMessageSender := mocks.NewMockMessageSender(ctrl)
 	mockBroadcastRepo := domainmocks.NewMockBroadcastRepository(ctrl)
-		mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
+	mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
 	mockContactRepo := domainmocks.NewMockContactRepository(ctrl)
 	mockTaskRepo := domainmocks.NewMockTaskRepository(ctrl)
 	mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
@@ -2514,7 +2514,7 @@ func TestBroadcastOrchestrator_FetchBatch_ContactRepoError(t *testing.T) {
 
 	mockMessageSender := mocks.NewMockMessageSender(ctrl)
 	mockBroadcastRepo := domainmocks.NewMockBroadcastRepository(ctrl)
-		mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
+	mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
 	mockContactRepo := domainmocks.NewMockContactRepository(ctrl)
 	mockTaskRepo := domainmocks.NewMockTaskRepository(ctrl)
 	mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
@@ -2577,7 +2577,7 @@ func TestBroadcastOrchestrator_SaveProgressState_SaveStateError(t *testing.T) {
 
 	mockMessageSender := mocks.NewMockMessageSender(ctrl)
 	mockBroadcastRepo := domainmocks.NewMockBroadcastRepository(ctrl)
-		mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
+	mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
 	mockContactRepo := domainmocks.NewMockContactRepository(ctrl)
 	mockTaskRepo := domainmocks.NewMockTaskRepository(ctrl)
 	mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
@@ -2622,7 +2622,7 @@ func TestBroadcastOrchestrator_SaveProgressState_SaveStateError(t *testing.T) {
 	broadcastState := &domain.SendBroadcastState{
 		BroadcastID:     "broadcast-123",
 		TotalRecipients: 100,
-		EnqueuedCount:       0,
+		EnqueuedCount:   0,
 		FailedCount:     0,
 	}
 	lastSaveTime := time.Date(2023, 1, 1, 11, 59, 0, 0, time.UTC)
@@ -2646,7 +2646,7 @@ func TestBroadcastOrchestrator_Process_PartialBatchCursorUpdate(t *testing.T) {
 
 	mockMessageSender := mocks.NewMockMessageSender(ctrl)
 	mockBroadcastRepo := domainmocks.NewMockBroadcastRepository(ctrl)
-		mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
+	mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
 	mockContactRepo := domainmocks.NewMockContactRepository(ctrl)
 	mockTaskRepo := domainmocks.NewMockTaskRepository(ctrl)
 	mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
@@ -2822,7 +2822,7 @@ func TestBroadcastOrchestrator_Process_PartialBatchCursorUpdate(t *testing.T) {
 			SendBroadcast: &domain.SendBroadcastState{
 				BroadcastID:     "broadcast-123",
 				TotalRecipients: 5,
-				EnqueuedCount:       0,
+				EnqueuedCount:   0,
 				FailedCount:     0,
 				RecipientOffset: 0,
 				Phase:           "single",
@@ -2857,4 +2857,217 @@ func TestBroadcastOrchestrator_Process_PartialBatchCursorUpdate(t *testing.T) {
 	// Total processed should be 5 (3 from first batch + 2 from second batch)
 	assert.Equal(t, int64(5), savedState.SendBroadcast.RecipientOffset,
 		"RecipientOffset should reflect all processed contacts (5)")
+}
+
+func TestProcessBroadcastTask_RecipientFeedFailure_PausesBroadcast(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockMessageSender := mocks.NewMockMessageSender(ctrl)
+	mockBroadcastRepo := domainmocks.NewMockBroadcastRepository(ctrl)
+	mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
+	mockContactRepo := domainmocks.NewMockContactRepository(ctrl)
+	mockTaskRepo := domainmocks.NewMockTaskRepository(ctrl)
+	mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+	mockTimeProvider := mocks.NewMockTimeProvider(ctrl)
+	mockEventBus := domainmocks.NewMockEventBus(ctrl)
+
+	// Logger expectations
+	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Warn(gomock.Any()).AnyTimes()
+
+	// Time provider
+	baseTime := time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC)
+	mockTimeProvider.EXPECT().Now().Return(baseTime).AnyTimes()
+	mockTimeProvider.EXPECT().Since(gomock.Any()).Return(5 * time.Second).AnyTimes()
+
+	// Workspace with email provider
+	workspace := &domain.Workspace{
+		ID: "workspace-123",
+		Settings: domain.WorkspaceSettings{
+			SecretKey:                "secret-key",
+			EmailTrackingEnabled:     true,
+			MarketingEmailProviderID: "marketing-provider-id",
+		},
+		Integrations: []domain.Integration{
+			{ID: "marketing-provider-id", Type: domain.IntegrationTypeEmail, EmailProvider: domain.EmailProvider{Kind: domain.EmailProviderKindSES, SES: &domain.AmazonSESSettings{AccessKey: "ak", SecretKey: "sk", Region: "us-east-1"}}},
+		},
+	}
+	mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), "workspace-123").Return(workspace, nil)
+
+	// Broadcast with single variation
+	bcast := &domain.Broadcast{
+		ID:     "broadcast-123",
+		Status: domain.BroadcastStatusProcessing,
+		TestSettings: domain.BroadcastTestSettings{
+			Variations: []domain.BroadcastVariation{{TemplateID: "template-1"}},
+		},
+		Audience: domain.AudienceSettings{List: "list-1"},
+	}
+	mockBroadcastRepo.EXPECT().GetBroadcast(gomock.Any(), "workspace-123", "broadcast-123").Return(bcast, nil).AnyTimes()
+
+	// Template
+	tpl := &domain.Template{ID: "template-1", Email: &domain.EmailTemplate{Subject: "S", SenderID: "s", VisualEditorTree: &notifuse_mjml.MJMLBlock{BaseBlock: notifuse_mjml.NewBaseBlock("root", notifuse_mjml.MJMLComponentMjml)}}}
+	mockTemplateRepo.EXPECT().GetTemplateByID(gomock.Any(), "workspace-123", "template-1", int64(0)).Return(tpl, nil)
+
+	// Contacts
+	recipients := []*domain.ContactWithList{
+		{Contact: &domain.Contact{Email: "user1@test.com"}, ListID: "list-1"},
+		{Contact: &domain.Contact{Email: "user2@test.com"}, ListID: "list-1"},
+	}
+	mockContactRepo.EXPECT().GetContactsForBroadcast(gomock.Any(), "workspace-123", bcast.Audience, 2, "").Return(recipients, nil)
+
+	// SendBatch returns ErrBroadcastShouldPause
+	mockMessageSender.EXPECT().SendBatch(
+		gomock.Any(), "workspace-123", "marketing-provider-id", "secret-key", gomock.Any(), true, "broadcast-123",
+		recipients, gomock.Any(), gomock.Any(), gomock.Any(),
+	).Return(0, 0, fmt.Errorf("%w: recipient feed failed for user1@test.com: server error", broadcast.ErrBroadcastShouldPause))
+
+	// UpdateBroadcast should set status to paused
+	mockBroadcastRepo.EXPECT().UpdateBroadcast(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, b *domain.Broadcast) error {
+		assert.Equal(t, domain.BroadcastStatusPaused, b.Status)
+		assert.NotNil(t, b.PausedAt)
+		require.NotNil(t, b.PauseReason)
+		assert.Contains(t, *b.PauseReason, "Recipient feed failed")
+		return nil
+	})
+
+	// EventBus should publish a paused event
+	mockEventBus.EXPECT().Publish(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, event domain.EventPayload) {
+		assert.Equal(t, domain.EventBroadcastPaused, event.Type)
+		assert.Equal(t, "workspace-123", event.WorkspaceID)
+		assert.Equal(t, "broadcast-123", event.EntityID)
+		assert.Equal(t, "recipient_feed_failed", event.Data["reason"])
+	})
+
+	// Save state
+	mockTaskRepo.EXPECT().SaveState(gomock.Any(), "workspace-123", "task-123", gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+
+	config := &broadcast.Config{FetchBatchSize: 50, MaxProcessTime: 30 * time.Second, ProgressLogInterval: 5 * time.Second}
+	orchestrator := broadcast.NewBroadcastOrchestrator(mockMessageSender, mockBroadcastRepo, mockTemplateRepo, mockContactRepo, mockTaskRepo, mockWorkspaceRepo, nil, mockLogger, config, mockTimeProvider, "https://api.example.com", mockEventBus)
+
+	ctx := context.Background()
+	task := &domain.Task{
+		ID:          "task-123",
+		WorkspaceID: "workspace-123",
+		Type:        "send_broadcast",
+		BroadcastID: stringPtr("broadcast-123"),
+		State:       &domain.TaskState{Progress: 0, Message: "Starting", SendBroadcast: &domain.SendBroadcastState{BroadcastID: "broadcast-123", TotalRecipients: 2, RecipientOffset: 0}},
+		RetryCount:  0,
+		MaxRetries:  3,
+	}
+
+	done, err := orchestrator.Process(ctx, task, time.Now().Add(30*time.Second))
+	assert.False(t, done)
+	require.Error(t, err)
+	assert.True(t, errors.Is(err, broadcast.ErrBroadcastShouldPause))
+}
+
+func TestProcessBroadcastTask_RecipientFeedFailure_NotMarkedAsFailed(t *testing.T) {
+	// When isLastRetry is true, the defer block should skip marking as failed
+	// because the broadcast was already paused due to recipient feed failure.
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockMessageSender := mocks.NewMockMessageSender(ctrl)
+	mockBroadcastRepo := domainmocks.NewMockBroadcastRepository(ctrl)
+	mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
+	mockContactRepo := domainmocks.NewMockContactRepository(ctrl)
+	mockTaskRepo := domainmocks.NewMockTaskRepository(ctrl)
+	mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+	mockTimeProvider := mocks.NewMockTimeProvider(ctrl)
+	mockEventBus := domainmocks.NewMockEventBus(ctrl)
+
+	// Logger expectations
+	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Warn(gomock.Any()).AnyTimes()
+
+	// Time provider
+	baseTime := time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC)
+	mockTimeProvider.EXPECT().Now().Return(baseTime).AnyTimes()
+	mockTimeProvider.EXPECT().Since(gomock.Any()).Return(5 * time.Second).AnyTimes()
+
+	// Workspace with email provider
+	workspace := &domain.Workspace{
+		ID: "workspace-123",
+		Settings: domain.WorkspaceSettings{
+			SecretKey:                "secret-key",
+			EmailTrackingEnabled:     true,
+			MarketingEmailProviderID: "marketing-provider-id",
+		},
+		Integrations: []domain.Integration{
+			{ID: "marketing-provider-id", Type: domain.IntegrationTypeEmail, EmailProvider: domain.EmailProvider{Kind: domain.EmailProviderKindSES, SES: &domain.AmazonSESSettings{AccessKey: "ak", SecretKey: "sk", Region: "us-east-1"}}},
+		},
+	}
+	mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), "workspace-123").Return(workspace, nil)
+
+	// Broadcast with single variation
+	bcast := &domain.Broadcast{
+		ID:     "broadcast-123",
+		Status: domain.BroadcastStatusProcessing,
+		TestSettings: domain.BroadcastTestSettings{
+			Variations: []domain.BroadcastVariation{{TemplateID: "template-1"}},
+		},
+		Audience: domain.AudienceSettings{List: "list-1"},
+	}
+	mockBroadcastRepo.EXPECT().GetBroadcast(gomock.Any(), "workspace-123", "broadcast-123").Return(bcast, nil).AnyTimes()
+
+	// Template
+	tpl := &domain.Template{ID: "template-1", Email: &domain.EmailTemplate{Subject: "S", SenderID: "s", VisualEditorTree: &notifuse_mjml.MJMLBlock{BaseBlock: notifuse_mjml.NewBaseBlock("root", notifuse_mjml.MJMLComponentMjml)}}}
+	mockTemplateRepo.EXPECT().GetTemplateByID(gomock.Any(), "workspace-123", "template-1", int64(0)).Return(tpl, nil)
+
+	// Contacts
+	recipients := []*domain.ContactWithList{
+		{Contact: &domain.Contact{Email: "user1@test.com"}, ListID: "list-1"},
+	}
+	mockContactRepo.EXPECT().GetContactsForBroadcast(gomock.Any(), "workspace-123", bcast.Audience, 1, "").Return(recipients, nil)
+
+	// SendBatch returns ErrBroadcastShouldPause
+	mockMessageSender.EXPECT().SendBatch(
+		gomock.Any(), "workspace-123", "marketing-provider-id", "secret-key", gomock.Any(), true, "broadcast-123",
+		recipients, gomock.Any(), gomock.Any(), gomock.Any(),
+	).Return(0, 0, fmt.Errorf("%w: recipient feed failed for user1@test.com: server error", broadcast.ErrBroadcastShouldPause))
+
+	// UpdateBroadcast should be called exactly ONCE (for pause), NOT for failed
+	mockBroadcastRepo.EXPECT().UpdateBroadcast(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, b *domain.Broadcast) error {
+		// Must be paused, not failed
+		assert.Equal(t, domain.BroadcastStatusPaused, b.Status, "broadcast should be paused, not failed")
+		assert.NotNil(t, b.PausedAt)
+		return nil
+	}).Times(1) // Exactly once — defer must NOT call UpdateBroadcast again
+
+	// EventBus publish for paused event
+	mockEventBus.EXPECT().Publish(gomock.Any(), gomock.Any()).AnyTimes()
+
+	// Save state
+	mockTaskRepo.EXPECT().SaveState(gomock.Any(), "workspace-123", "task-123", gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+
+	config := &broadcast.Config{FetchBatchSize: 50, MaxProcessTime: 30 * time.Second, ProgressLogInterval: 5 * time.Second}
+	orchestrator := broadcast.NewBroadcastOrchestrator(mockMessageSender, mockBroadcastRepo, mockTemplateRepo, mockContactRepo, mockTaskRepo, mockWorkspaceRepo, nil, mockLogger, config, mockTimeProvider, "https://api.example.com", mockEventBus)
+
+	ctx := context.Background()
+	task := &domain.Task{
+		ID:          "task-123",
+		WorkspaceID: "workspace-123",
+		Type:        "send_broadcast",
+		BroadcastID: stringPtr("broadcast-123"),
+		State:       &domain.TaskState{Progress: 0, Message: "Starting", SendBroadcast: &domain.SendBroadcastState{BroadcastID: "broadcast-123", TotalRecipients: 1, RecipientOffset: 0}},
+		RetryCount:  2, // isLastRetry = true (2 >= 3-1)
+		MaxRetries:  3,
+	}
+
+	done, err := orchestrator.Process(ctx, task, time.Now().Add(30*time.Second))
+	assert.False(t, done)
+	require.Error(t, err)
+	assert.True(t, errors.Is(err, broadcast.ErrBroadcastShouldPause))
 }

@@ -38,7 +38,7 @@ func createTestAutomation(id, workspaceID string) *domain.Automation {
 		ListID:      "list-123",
 		Trigger: &domain.TimelineTriggerConfig{
 			EventKind: "email.opened",
-			Frequency:  domain.TriggerFrequencyOnce,
+			Frequency: domain.TriggerFrequencyOnce,
 		},
 		RootNodeID: "node-root",
 		Stats: &domain.AutomationStats{
@@ -173,7 +173,7 @@ func TestAutomationRepository_GetByID(t *testing.T) {
 
 	triggerJSON, _ := json.Marshal(&domain.TimelineTriggerConfig{
 		EventKind: "email.opened",
-		Frequency:  domain.TriggerFrequencyOnce,
+		Frequency: domain.TriggerFrequencyOnce,
 	})
 	nodesJSON, _ := json.Marshal([]*domain.AutomationNode{})
 	statsJSON, _ := json.Marshal(&domain.AutomationStats{})
@@ -229,7 +229,7 @@ func TestAutomationRepository_List(t *testing.T) {
 
 	triggerJSON, _ := json.Marshal(&domain.TimelineTriggerConfig{
 		EventKind: "email.opened",
-		Frequency:  domain.TriggerFrequencyOnce,
+		Frequency: domain.TriggerFrequencyOnce,
 	})
 	nodesJSON, _ := json.Marshal([]*domain.AutomationNode{})
 	statsJSON, _ := json.Marshal(&domain.AutomationStats{})
@@ -987,7 +987,7 @@ func TestAutomationRepository_GetByIDTx(t *testing.T) {
 
 	triggerJSON, _ := json.Marshal(&domain.TimelineTriggerConfig{
 		EventKind: "email.opened",
-		Frequency:  domain.TriggerFrequencyOnce,
+		Frequency: domain.TriggerFrequencyOnce,
 	})
 	nodesJSON, _ := json.Marshal([]*domain.AutomationNode{})
 	statsJSON, _ := json.Marshal(&domain.AutomationStats{})
@@ -1094,7 +1094,6 @@ func TestAutomationRepository_List_JSONUnmarshalError(t *testing.T) {
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
-
 func TestAutomationRepository_List_DataQueryError(t *testing.T) {
 	db, mock, repo := setupAutomationMock(t)
 	defer func() { _ = db.Close() }()
@@ -1155,7 +1154,6 @@ func TestAutomationRepository_List_ScanError(t *testing.T) {
 	assert.Nil(t, automations)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
-
 
 func TestAutomationRepository_GetScheduledContactAutomations_ScanError(t *testing.T) {
 	db, mock, repo := setupAutomationMock(t)
@@ -1388,7 +1386,7 @@ func TestAutomationRepository_List_ExcludesDeleted(t *testing.T) {
 
 	triggerJSON, _ := json.Marshal(&domain.TimelineTriggerConfig{
 		EventKind: "email.opened",
-		Frequency:  domain.TriggerFrequencyOnce,
+		Frequency: domain.TriggerFrequencyOnce,
 	})
 	nodesJSON, _ := json.Marshal([]*domain.AutomationNode{})
 	statsJSON, _ := json.Marshal(&domain.AutomationStats{})
@@ -1435,7 +1433,7 @@ func TestAutomationRepository_List_IncludeDeleted(t *testing.T) {
 
 	triggerJSON, _ := json.Marshal(&domain.TimelineTriggerConfig{
 		EventKind: "email.opened",
-		Frequency:  domain.TriggerFrequencyOnce,
+		Frequency: domain.TriggerFrequencyOnce,
 	})
 	nodesJSON, _ := json.Marshal([]*domain.AutomationNode{})
 	statsJSON, _ := json.Marshal(&domain.AutomationStats{})

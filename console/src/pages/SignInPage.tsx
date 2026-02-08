@@ -47,7 +47,7 @@ export function SignInPage() {
         setLoading(false)
       }
     },
-    [email, signin, message, navigate]
+    [email, signin, message, navigate, t]
   )
 
   const handleEmailSubmit = useCallback(
@@ -76,7 +76,7 @@ export function SignInPage() {
         setLoading(false)
       }
     },
-    [handleCodeSubmit, message]
+    [handleCodeSubmit, message, t]
   )
 
   // Initialize email from URL parameter or demo mode

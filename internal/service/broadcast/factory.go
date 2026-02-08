@@ -15,6 +15,7 @@ type Factory struct {
 	taskRepo           domain.TaskRepository
 	workspaceRepo      domain.WorkspaceRepository
 	emailQueueRepo     domain.EmailQueueRepository
+	dataFeedFetcher    DataFeedFetcher
 	logger             logger.Logger
 	config             *Config
 	apiEndpoint        string
@@ -32,6 +33,7 @@ func NewFactory(
 	taskRepo domain.TaskRepository,
 	workspaceRepo domain.WorkspaceRepository,
 	emailQueueRepo domain.EmailQueueRepository,
+	dataFeedFetcher DataFeedFetcher,
 	logger logger.Logger,
 	config *Config,
 	apiEndpoint string,
@@ -51,6 +53,7 @@ func NewFactory(
 		taskRepo:           taskRepo,
 		workspaceRepo:      workspaceRepo,
 		emailQueueRepo:     emailQueueRepo,
+		dataFeedFetcher:    dataFeedFetcher,
 		logger:             logger,
 		config:             config,
 		apiEndpoint:        apiEndpoint,
@@ -69,6 +72,7 @@ func (f *Factory) CreateMessageSender() MessageSender {
 			f.broadcastRepo,
 			f.messageHistoryRepo,
 			f.templateRepo,
+			f.dataFeedFetcher,
 			f.logger,
 			f.config,
 			f.apiEndpoint,
@@ -80,6 +84,7 @@ func (f *Factory) CreateMessageSender() MessageSender {
 		f.messageHistoryRepo,
 		f.templateRepo,
 		f.emailService,
+		f.dataFeedFetcher,
 		f.logger,
 		f.config,
 		f.apiEndpoint,

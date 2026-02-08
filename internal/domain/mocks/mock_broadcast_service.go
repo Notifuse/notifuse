@@ -137,6 +137,21 @@ func (mr *MockBroadcastServiceMockRecorder) PauseBroadcast(arg0, arg1 interface{
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PauseBroadcast", reflect.TypeOf((*MockBroadcastService)(nil).PauseBroadcast), arg0, arg1)
 }
 
+// RefreshGlobalFeed mocks base method.
+func (m *MockBroadcastService) RefreshGlobalFeed(arg0 context.Context, arg1 *domain.RefreshGlobalFeedRequest) (*domain.RefreshGlobalFeedResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RefreshGlobalFeed", arg0, arg1)
+	ret0, _ := ret[0].(*domain.RefreshGlobalFeedResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// RefreshGlobalFeed indicates an expected call of RefreshGlobalFeed.
+func (mr *MockBroadcastServiceMockRecorder) RefreshGlobalFeed(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RefreshGlobalFeed", reflect.TypeOf((*MockBroadcastService)(nil).RefreshGlobalFeed), arg0, arg1)
+}
+
 // ResumeBroadcast mocks base method.
 func (m *MockBroadcastService) ResumeBroadcast(arg0 context.Context, arg1 *domain.ResumeBroadcastRequest) error {
 	m.ctrl.T.Helper()
@@ -191,6 +206,21 @@ func (m *MockBroadcastService) SendToIndividual(arg0 context.Context, arg1 *doma
 func (mr *MockBroadcastServiceMockRecorder) SendToIndividual(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendToIndividual", reflect.TypeOf((*MockBroadcastService)(nil).SendToIndividual), arg0, arg1)
+}
+
+// TestRecipientFeed mocks base method.
+func (m *MockBroadcastService) TestRecipientFeed(arg0 context.Context, arg1 *domain.TestRecipientFeedRequest) (*domain.TestRecipientFeedResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "TestRecipientFeed", arg0, arg1)
+	ret0, _ := ret[0].(*domain.TestRecipientFeedResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// TestRecipientFeed indicates an expected call of TestRecipientFeed.
+func (mr *MockBroadcastServiceMockRecorder) TestRecipientFeed(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TestRecipientFeed", reflect.TypeOf((*MockBroadcastService)(nil).TestRecipientFeed), arg0, arg1)
 }
 
 // UpdateBroadcast mocks base method.

@@ -1821,6 +1821,411 @@ func TestHandleSelectWinner(t *testing.T) {
 	})
 }
 
+// TestHandleRefreshGlobalFeed tests the HandleRefreshGlobalFeed handler
+func TestHandleRefreshGlobalFeed(t *testing.T) {
+	handler, mockService, _, mockLogger, ctrl := setupBroadcastHandler(t)
+	defer ctrl.Finish()
+
+	t.Run("Success", func(t *testing.T) {
+		now := time.Now().UTC()
+		feedData := map[string]interface{}{
+			"products": []interface{}{
+				map[string]interface{}{"id": "1", "name": "Product 1"},
+			},
+			"_success":    true,
+			"_fetched_at": now.Format(time.RFC3339),
+		}
+
+		mockService.EXPECT().
+			RefreshGlobalFeed(gomock.Any(), gomock.Any()).
+			DoAndReturn(func(_ context.Context, req *domain.RefreshGlobalFeedRequest) (*domain.RefreshGlobalFeedResponse, error) {
+				assert.Equal(t, "workspace123", req.WorkspaceID)
+				assert.Equal(t, "broadcast123", req.BroadcastID)
+				assert.Equal(t, "https://example.com/feed", req.URL)
+				return &domain.RefreshGlobalFeedResponse{
+					Success:   true,
+					Data:      feedData,
+					FetchedAt: &now,
+				}, nil
+			})
+
+		reqBody := domain.RefreshGlobalFeedRequest{
+			WorkspaceID: "workspace123",
+			BroadcastID: "broadcast123",
+			URL:         "https://example.com/feed",
+			Headers:     []domain.DataFeedHeader{},
+		}
+		b, _ := json.Marshal(reqBody)
+		httpReq := httptest.NewRequest(http.MethodPost, "/api/broadcasts.refreshGlobalFeed", bytes.NewBuffer(b))
+		httpReq.Header.Set("Content-Type", "application/json")
+
+		w := httptest.NewRecorder()
+		handler.HandleRefreshGlobalFeed(w, httpReq)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		var response domain.RefreshGlobalFeedResponse
+		err := json.Unmarshal(w.Body.Bytes(), &response)
+		assert.NoError(t, err)
+		assert.True(t, response.Success)
+		assert.NotNil(t, response.Data)
+		assert.NotNil(t, response.FetchedAt)
+	})
+
+	t.Run("FetchError", func(t *testing.T) {
+		mockService.EXPECT().
+			RefreshGlobalFeed(gomock.Any(), gomock.Any()).
+			Return(&domain.RefreshGlobalFeedResponse{
+				Success: false,
+				Error:   "failed to fetch global feed: connection timeout",
+			}, nil)
+
+		reqBody := domain.RefreshGlobalFeedRequest{
+			WorkspaceID: "workspace123",
+			BroadcastID: "broadcast123",
+			URL:         "https://example.com/feed",
+			Headers:     []domain.DataFeedHeader{},
+		}
+		b, _ := json.Marshal(reqBody)
+		httpReq := httptest.NewRequest(http.MethodPost, "/api/broadcasts.refreshGlobalFeed", bytes.NewBuffer(b))
+		httpReq.Header.Set("Content-Type", "application/json")
+
+		w := httptest.NewRecorder()
+		handler.HandleRefreshGlobalFeed(w, httpReq)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		var response domain.RefreshGlobalFeedResponse
+		err := json.Unmarshal(w.Body.Bytes(), &response)
+		assert.NoError(t, err)
+		assert.False(t, response.Success)
+		assert.Contains(t, response.Error, "connection timeout")
+	})
+
+	t.Run("MissingParams", func(t *testing.T) {
+		// Missing broadcast_id
+		reqBody := map[string]string{
+			"workspace_id": "workspace123",
+		}
+		b, _ := json.Marshal(reqBody)
+		httpReq := httptest.NewRequest(http.MethodPost, "/api/broadcasts.refreshGlobalFeed", bytes.NewBuffer(b))
+		httpReq.Header.Set("Content-Type", "application/json")
+
+		w := httptest.NewRecorder()
+		handler.HandleRefreshGlobalFeed(w, httpReq)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+	})
+
+	t.Run("InvalidJSON", func(t *testing.T) {
+		mockLoggerWithField := pkgmocks.NewMockLogger(ctrl)
+		mockLogger.EXPECT().WithField("error", gomock.Any()).Return(mockLoggerWithField)
+		mockLoggerWithField.EXPECT().Error("Failed to decode request body")
+
+		httpReq := httptest.NewRequest(http.MethodPost, "/api/broadcasts.refreshGlobalFeed", bytes.NewBuffer([]byte("{invalid")))
+		httpReq.Header.Set("Content-Type", "application/json")
+
+		w := httptest.NewRecorder()
+		handler.HandleRefreshGlobalFeed(w, httpReq)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+	})
+
+	t.Run("MethodNotAllowed", func(t *testing.T) {
+		httpReq := httptest.NewRequest(http.MethodGet, "/api/broadcasts.refreshGlobalFeed", nil)
+		w := httptest.NewRecorder()
+
+		handler.HandleRefreshGlobalFeed(w, httpReq)
+
+		assert.Equal(t, http.StatusMethodNotAllowed, w.Code)
+	})
+
+	t.Run("BroadcastNotFound", func(t *testing.T) {
+		mockService.EXPECT().
+			RefreshGlobalFeed(gomock.Any(), gomock.Any()).
+			Return(nil, &domain.ErrBroadcastNotFound{ID: "nonexistent"})
+
+		reqBody := domain.RefreshGlobalFeedRequest{
+			WorkspaceID: "workspace123",
+			BroadcastID: "nonexistent",
+			URL:         "https://example.com/feed",
+			Headers:     []domain.DataFeedHeader{},
+		}
+		b, _ := json.Marshal(reqBody)
+		httpReq := httptest.NewRequest(http.MethodPost, "/api/broadcasts.refreshGlobalFeed", bytes.NewBuffer(b))
+		httpReq.Header.Set("Content-Type", "application/json")
+
+		w := httptest.NewRecorder()
+		handler.HandleRefreshGlobalFeed(w, httpReq)
+
+		assert.Equal(t, http.StatusNotFound, w.Code)
+	})
+
+	t.Run("ServiceError", func(t *testing.T) {
+		mockLoggerWithField := pkgmocks.NewMockLogger(ctrl)
+		mockLogger.EXPECT().WithField("error", "service error").Return(mockLoggerWithField)
+		mockLoggerWithField.EXPECT().Error("Failed to refresh global feed")
+
+		mockService.EXPECT().
+			RefreshGlobalFeed(gomock.Any(), gomock.Any()).
+			Return(nil, errors.New("service error"))
+
+		reqBody := domain.RefreshGlobalFeedRequest{
+			WorkspaceID: "workspace123",
+			BroadcastID: "broadcast123",
+			URL:         "https://example.com/feed",
+			Headers:     []domain.DataFeedHeader{},
+		}
+		b, _ := json.Marshal(reqBody)
+		httpReq := httptest.NewRequest(http.MethodPost, "/api/broadcasts.refreshGlobalFeed", bytes.NewBuffer(b))
+		httpReq.Header.Set("Content-Type", "application/json")
+
+		w := httptest.NewRecorder()
+		handler.HandleRefreshGlobalFeed(w, httpReq)
+
+		assert.Equal(t, http.StatusInternalServerError, w.Code)
+	})
+}
+
+// TestHandleTestRecipientFeed tests the HandleTestRecipientFeed handler
+func TestHandleTestRecipientFeed(t *testing.T) {
+	handler, mockService, _, mockLogger, ctrl := setupBroadcastHandler(t)
+	defer ctrl.Finish()
+
+	t.Run("Success", func(t *testing.T) {
+		now := time.Now().UTC()
+		feedData := map[string]interface{}{
+			"recommendations": []interface{}{
+				map[string]interface{}{"id": "rec1", "title": "Product 1"},
+			},
+			"_success":    true,
+			"_fetched_at": now.Format(time.RFC3339),
+		}
+
+		mockService.EXPECT().
+			TestRecipientFeed(gomock.Any(), gomock.Any()).
+			DoAndReturn(func(_ context.Context, req *domain.TestRecipientFeedRequest) (*domain.TestRecipientFeedResponse, error) {
+				assert.Equal(t, "workspace123", req.WorkspaceID)
+				assert.Equal(t, "broadcast123", req.BroadcastID)
+				assert.Equal(t, "https://example.com/recipient-feed", req.URL)
+				return &domain.TestRecipientFeedResponse{
+					Success:      true,
+					Data:         feedData,
+					FetchedAt:    &now,
+					ContactEmail: "sample@example.com",
+				}, nil
+			})
+
+		reqBody := domain.TestRecipientFeedRequest{
+			WorkspaceID: "workspace123",
+			BroadcastID: "broadcast123",
+			URL:         "https://example.com/recipient-feed",
+			Headers:     []domain.DataFeedHeader{},
+		}
+		b, _ := json.Marshal(reqBody)
+		httpReq := httptest.NewRequest(http.MethodPost, "/api/broadcasts.testRecipientFeed", bytes.NewBuffer(b))
+		httpReq.Header.Set("Content-Type", "application/json")
+
+		w := httptest.NewRecorder()
+		handler.HandleTestRecipientFeed(w, httpReq)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		var response domain.TestRecipientFeedResponse
+		err := json.Unmarshal(w.Body.Bytes(), &response)
+		assert.NoError(t, err)
+		assert.True(t, response.Success)
+		assert.NotNil(t, response.Data)
+		assert.NotNil(t, response.FetchedAt)
+		assert.Equal(t, "sample@example.com", response.ContactEmail)
+	})
+
+	t.Run("SuccessWithSpecificContact", func(t *testing.T) {
+		now := time.Now().UTC()
+		feedData := map[string]interface{}{
+			"user_data": map[string]interface{}{"preferences": "premium"},
+		}
+
+		mockService.EXPECT().
+			TestRecipientFeed(gomock.Any(), gomock.Any()).
+			DoAndReturn(func(_ context.Context, req *domain.TestRecipientFeedRequest) (*domain.TestRecipientFeedResponse, error) {
+				assert.Equal(t, "workspace123", req.WorkspaceID)
+				assert.Equal(t, "broadcast123", req.BroadcastID)
+				assert.Equal(t, "test@example.com", req.ContactEmail)
+				return &domain.TestRecipientFeedResponse{
+					Success:      true,
+					Data:         feedData,
+					FetchedAt:    &now,
+					ContactEmail: "test@example.com",
+				}, nil
+			})
+
+		reqBody := domain.TestRecipientFeedRequest{
+			WorkspaceID:  "workspace123",
+			BroadcastID:  "broadcast123",
+			ContactEmail: "test@example.com",
+			URL:          "https://example.com/recipient-feed",
+			Headers:      []domain.DataFeedHeader{},
+		}
+		b, _ := json.Marshal(reqBody)
+		httpReq := httptest.NewRequest(http.MethodPost, "/api/broadcasts.testRecipientFeed", bytes.NewBuffer(b))
+		httpReq.Header.Set("Content-Type", "application/json")
+
+		w := httptest.NewRecorder()
+		handler.HandleTestRecipientFeed(w, httpReq)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		var response domain.TestRecipientFeedResponse
+		err := json.Unmarshal(w.Body.Bytes(), &response)
+		assert.NoError(t, err)
+		assert.True(t, response.Success)
+		assert.Equal(t, "test@example.com", response.ContactEmail)
+	})
+
+	t.Run("FetchError", func(t *testing.T) {
+		mockService.EXPECT().
+			TestRecipientFeed(gomock.Any(), gomock.Any()).
+			Return(&domain.TestRecipientFeedResponse{
+				Success:      false,
+				Error:        "failed to fetch recipient feed: connection timeout",
+				ContactEmail: "sample@example.com",
+			}, nil)
+
+		reqBody := domain.TestRecipientFeedRequest{
+			WorkspaceID: "workspace123",
+			BroadcastID: "broadcast123",
+			URL:         "https://example.com/recipient-feed",
+			Headers:     []domain.DataFeedHeader{},
+		}
+		b, _ := json.Marshal(reqBody)
+		httpReq := httptest.NewRequest(http.MethodPost, "/api/broadcasts.testRecipientFeed", bytes.NewBuffer(b))
+		httpReq.Header.Set("Content-Type", "application/json")
+
+		w := httptest.NewRecorder()
+		handler.HandleTestRecipientFeed(w, httpReq)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		var response domain.TestRecipientFeedResponse
+		err := json.Unmarshal(w.Body.Bytes(), &response)
+		assert.NoError(t, err)
+		assert.False(t, response.Success)
+		assert.Contains(t, response.Error, "connection timeout")
+	})
+
+	t.Run("MissingParams", func(t *testing.T) {
+		// Missing broadcast_id
+		reqBody := map[string]string{
+			"workspace_id": "workspace123",
+		}
+		b, _ := json.Marshal(reqBody)
+		httpReq := httptest.NewRequest(http.MethodPost, "/api/broadcasts.testRecipientFeed", bytes.NewBuffer(b))
+		httpReq.Header.Set("Content-Type", "application/json")
+
+		w := httptest.NewRecorder()
+		handler.HandleTestRecipientFeed(w, httpReq)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+	})
+
+	t.Run("InvalidJSON", func(t *testing.T) {
+		mockLoggerWithField := pkgmocks.NewMockLogger(ctrl)
+		mockLogger.EXPECT().WithField("error", gomock.Any()).Return(mockLoggerWithField)
+		mockLoggerWithField.EXPECT().Error("Failed to decode request body")
+
+		httpReq := httptest.NewRequest(http.MethodPost, "/api/broadcasts.testRecipientFeed", bytes.NewBuffer([]byte("{invalid")))
+		httpReq.Header.Set("Content-Type", "application/json")
+
+		w := httptest.NewRecorder()
+		handler.HandleTestRecipientFeed(w, httpReq)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+	})
+
+	t.Run("MethodNotAllowed", func(t *testing.T) {
+		httpReq := httptest.NewRequest(http.MethodGet, "/api/broadcasts.testRecipientFeed", nil)
+		w := httptest.NewRecorder()
+
+		handler.HandleTestRecipientFeed(w, httpReq)
+
+		assert.Equal(t, http.StatusMethodNotAllowed, w.Code)
+	})
+
+	t.Run("BroadcastNotFound", func(t *testing.T) {
+		mockService.EXPECT().
+			TestRecipientFeed(gomock.Any(), gomock.Any()).
+			Return(nil, &domain.ErrBroadcastNotFound{ID: "nonexistent"})
+
+		reqBody := domain.TestRecipientFeedRequest{
+			WorkspaceID: "workspace123",
+			BroadcastID: "nonexistent",
+			URL:         "https://example.com/recipient-feed",
+			Headers:     []domain.DataFeedHeader{},
+		}
+		b, _ := json.Marshal(reqBody)
+		httpReq := httptest.NewRequest(http.MethodPost, "/api/broadcasts.testRecipientFeed", bytes.NewBuffer(b))
+		httpReq.Header.Set("Content-Type", "application/json")
+
+		w := httptest.NewRecorder()
+		handler.HandleTestRecipientFeed(w, httpReq)
+
+		assert.Equal(t, http.StatusNotFound, w.Code)
+	})
+
+	t.Run("ContactNotFound", func(t *testing.T) {
+		mockService.EXPECT().
+			TestRecipientFeed(gomock.Any(), gomock.Any()).
+			Return(nil, &domain.ErrContactNotFoundForFeed{Email: "notfound@example.com"})
+
+		reqBody := domain.TestRecipientFeedRequest{
+			WorkspaceID:  "workspace123",
+			BroadcastID:  "broadcast123",
+			ContactEmail: "notfound@example.com",
+			URL:          "https://example.com/recipient-feed",
+			Headers:      []domain.DataFeedHeader{},
+		}
+		b, _ := json.Marshal(reqBody)
+		httpReq := httptest.NewRequest(http.MethodPost, "/api/broadcasts.testRecipientFeed", bytes.NewBuffer(b))
+		httpReq.Header.Set("Content-Type", "application/json")
+
+		w := httptest.NewRecorder()
+		handler.HandleTestRecipientFeed(w, httpReq)
+
+		assert.Equal(t, http.StatusNotFound, w.Code)
+
+		var response map[string]interface{}
+		err := json.Unmarshal(w.Body.Bytes(), &response)
+		assert.NoError(t, err)
+		assert.Contains(t, response["error"], "Contact not found")
+	})
+
+	t.Run("ServiceError", func(t *testing.T) {
+		mockLoggerWithField := pkgmocks.NewMockLogger(ctrl)
+		mockLogger.EXPECT().WithField("error", "service error").Return(mockLoggerWithField)
+		mockLoggerWithField.EXPECT().Error("Failed to test recipient feed")
+
+		mockService.EXPECT().
+			TestRecipientFeed(gomock.Any(), gomock.Any()).
+			Return(nil, errors.New("service error"))
+
+		reqBody := domain.TestRecipientFeedRequest{
+			WorkspaceID: "workspace123",
+			BroadcastID: "broadcast123",
+			URL:         "https://example.com/recipient-feed",
+			Headers:     []domain.DataFeedHeader{},
+		}
+		b, _ := json.Marshal(reqBody)
+		httpReq := httptest.NewRequest(http.MethodPost, "/api/broadcasts.testRecipientFeed", bytes.NewBuffer(b))
+		httpReq.Header.Set("Content-Type", "application/json")
+
+		w := httptest.NewRecorder()
+		handler.HandleTestRecipientFeed(w, httpReq)
+
+		assert.Equal(t, http.StatusInternalServerError, w.Code)
+	})
+}
+
 func TestMissingParameterError_Error(t *testing.T) {
 	// Test MissingParameterError.Error - this was at 0% coverage
 	t.Run("returns formatted error message", func(t *testing.T) {

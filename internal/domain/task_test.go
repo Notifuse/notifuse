@@ -55,7 +55,7 @@ func TestTaskState_Value(t *testing.T) {
 			SendBroadcast: &SendBroadcastState{
 				BroadcastID:     "broadcast-123",
 				TotalRecipients: 1000,
-				EnqueuedCount:       750,
+				EnqueuedCount:   750,
 				FailedCount:     10,
 				ChannelType:     "email",
 				RecipientOffset: 750,
@@ -461,7 +461,7 @@ func TestCreateTaskRequest_Validate(t *testing.T) {
 			SendBroadcast: &SendBroadcastState{
 				BroadcastID:     "broadcast-123",
 				TotalRecipients: 1000,
-				EnqueuedCount:       0,
+				EnqueuedCount:   0,
 				FailedCount:     0,
 				ChannelType:     "email",
 				RecipientOffset: 0,
@@ -649,7 +649,7 @@ func TestCreateTaskRequest_Validate(t *testing.T) {
 			SendBroadcast: &SendBroadcastState{
 				BroadcastID:     "broadcast-789",
 				TotalRecipients: 500,
-				EnqueuedCount:       0,
+				EnqueuedCount:   0,
 				FailedCount:     0,
 				ChannelType:     "sms",
 				RecipientOffset: 0,

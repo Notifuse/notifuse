@@ -28,7 +28,7 @@ type DemoService struct {
 	broadcastService                 *BroadcastService
 	taskService                      *TaskService
 	transactionalNotificationService *TransactionalNotificationService
-	inboundWebhookEventService              *InboundWebhookEventService
+	inboundWebhookEventService       *InboundWebhookEventService
 	webhookRegistrationService       *WebhookRegistrationService
 	messageHistoryService            *MessageHistoryService
 	notificationCenterService        *NotificationCenterService
@@ -36,7 +36,7 @@ type DemoService struct {
 	workspaceRepo                    domain.WorkspaceRepository
 	taskRepo                         domain.TaskRepository
 	messageHistoryRepo               domain.MessageHistoryRepository
-	inboundWebhookEventRepo                 domain.InboundWebhookEventRepository
+	inboundWebhookEventRepo          domain.InboundWebhookEventRepository
 	broadcastRepo                    domain.BroadcastRepository
 	customEventRepo                  domain.CustomEventRepository
 	webhookSubscriptionService       *WebhookSubscriptionService
@@ -129,7 +129,7 @@ func NewDemoService(
 		broadcastService:                 broadcastService,
 		taskService:                      taskService,
 		transactionalNotificationService: transactionalNotificationService,
-		inboundWebhookEventService:              inboundWebhookEventService,
+		inboundWebhookEventService:       inboundWebhookEventService,
 		webhookRegistrationService:       webhookRegistrationService,
 		messageHistoryService:            messageHistoryService,
 		notificationCenterService:        notificationCenterService,
@@ -137,7 +137,7 @@ func NewDemoService(
 		workspaceRepo:                    workspaceRepo,
 		taskRepo:                         taskRepo,
 		messageHistoryRepo:               messageHistoryRepo,
-		inboundWebhookEventRepo:                 inboundWebhookEventRepo,
+		inboundWebhookEventRepo:          inboundWebhookEventRepo,
 		broadcastRepo:                    broadcastRepo,
 		customEventRepo:                  customEventRepo,
 		webhookSubscriptionService:       webhookSubscriptionService,

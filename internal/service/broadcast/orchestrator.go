@@ -2,6 +2,7 @@ package broadcast
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -414,6 +415,16 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 				return
 			}
 
+			// Also skip if broadcast was paused due to recipient feed failure
+			if errors.Is(err, ErrBroadcastShouldPause) {
+				o.logger.WithFields(map[string]interface{}{
+					"task_id":      task.ID,
+					"broadcast_id": broadcastID,
+					"error":        err.Error(),
+				}).Info("Task failed due to recipient feed - broadcast already paused, not marking as failed")
+				return
+			}
+
 			o.logger.WithFields(map[string]interface{}{
 				"task_id":      task.ID,
 				"broadcast_id": broadcastID,
@@ -462,7 +473,7 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 			Progress: 0,
 			Message:  "Starting broadcast",
 			SendBroadcast: &domain.SendBroadcastState{
-				EnqueuedCount:                 0,
+				EnqueuedCount:             0,
 				FailedCount:               0,
 				RecipientOffset:           0,        // Track how many recipients we've processed
 				Phase:                     "single", // Default phase
@@ -475,7 +486,7 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 	// Initialize the SendBroadcast state if it doesn't exist yet
 	if task.State.SendBroadcast == nil {
 		task.State.SendBroadcast = &domain.SendBroadcastState{
-			EnqueuedCount:                 0,
+			EnqueuedCount:             0,
 			FailedCount:               0,
 			RecipientOffset:           0,
 			Phase:                     "single", // Default phase
@@ -1095,6 +1106,44 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 				}
 
 				// Return the circuit breaker error to stop processing
+				err = sendErr
+				return false, err
+			}
+
+			// Check if this is a recipient feed error requiring broadcast pause
+			if errors.Is(sendErr, ErrBroadcastShouldPause) {
+				o.logger.WithFields(map[string]interface{}{
+					"task_id":      task.ID,
+					"broadcast_id": broadcastState.BroadcastID,
+					"offset":       currentOffset,
+					"error":        sendErr.Error(),
+				}).Warn("Recipient feed failed - pausing broadcast")
+
+				currentBroadcast, getBroadcastErr := o.broadcastRepo.GetBroadcast(ctx, task.WorkspaceID, broadcastState.BroadcastID)
+				if getBroadcastErr == nil && currentBroadcast != nil {
+					currentBroadcast.Status = domain.BroadcastStatusPaused
+					currentBroadcast.PausedAt = &[]time.Time{time.Now().UTC()}[0]
+					reason := fmt.Sprintf("Recipient feed failed: %v", sendErr)
+					currentBroadcast.PauseReason = &reason
+					currentBroadcast.UpdatedAt = time.Now().UTC()
+
+					if updateErr := o.broadcastRepo.UpdateBroadcast(ctx, currentBroadcast); updateErr == nil {
+						if o.eventBus != nil {
+							pausedEvent := domain.EventPayload{
+								Type:        domain.EventBroadcastPaused,
+								WorkspaceID: task.WorkspaceID,
+								EntityID:    broadcastState.BroadcastID,
+								Data: map[string]interface{}{
+									"broadcast_id": broadcastState.BroadcastID,
+									"task_id":      task.ID,
+									"reason":       "recipient_feed_failed",
+								},
+							}
+							o.eventBus.Publish(context.Background(), pausedEvent)
+						}
+					}
+				}
+
 				err = sendErr
 				return false, err
 			}

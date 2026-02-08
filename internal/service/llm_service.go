@@ -312,7 +312,13 @@ func (s *LLMService) StreamChat(ctx context.Context, req *domain.LLMChatRequest,
 				Type:     "server_tool_result",
 				ToolName: tool.Name,
 				Content:  resultSummary,
-				Error:    func() string { if isError { return result } else { return "" } }(),
+				Error: func() string {
+					if isError {
+						return result
+					} else {
+						return ""
+					}
+				}(),
 			}); err != nil {
 				s.logger.WithField("error", err.Error()).Warn("Failed to send server_tool_result event")
 			}

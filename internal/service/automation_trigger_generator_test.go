@@ -374,10 +374,10 @@ func TestAutomationTriggerGenerator_Generate(t *testing.T) {
 		require.NotNil(t, result)
 
 		// Check function body contains all parameters (no list_id - it's only for unsubscribe URLs)
-		assert.Contains(t, result.FunctionBody, "'auto123'")       // automation ID
-		assert.Contains(t, result.FunctionBody, "'rootnode789'")   // root node ID
-		assert.Contains(t, result.FunctionBody, "'once'")          // frequency
-		assert.Contains(t, result.FunctionBody, "NEW.email")       // email reference
+		assert.Contains(t, result.FunctionBody, "'auto123'")     // automation ID
+		assert.Contains(t, result.FunctionBody, "'rootnode789'") // root node ID
+		assert.Contains(t, result.FunctionBody, "'once'")        // frequency
+		assert.Contains(t, result.FunctionBody, "NEW.email")     // email reference
 		assert.Contains(t, result.FunctionBody, "LANGUAGE plpgsql")
 		// Verify list_id is NOT in the function body
 		assert.NotContains(t, result.FunctionBody, "'mylist456'")

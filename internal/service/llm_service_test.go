@@ -380,58 +380,58 @@ func TestNewLLMService(t *testing.T) {
 
 func TestCalculateCost(t *testing.T) {
 	testCases := []struct {
-		name          string
-		model         string
-		inputTokens   int64
-		outputTokens  int64
-		wantInputCost float64
+		name           string
+		model          string
+		inputTokens    int64
+		outputTokens   int64
+		wantInputCost  float64
 		wantOutputCost float64
-		wantTotalCost float64
+		wantTotalCost  float64
 	}{
 		{
-			name:          "Opus 4.5 - 1M input, 500K output",
-			model:         "claude-opus-4-5-20251101",
-			inputTokens:   1_000_000,
-			outputTokens:  500_000,
-			wantInputCost: 5.0,   // 1M * $5/MTok
+			name:           "Opus 4.5 - 1M input, 500K output",
+			model:          "claude-opus-4-5-20251101",
+			inputTokens:    1_000_000,
+			outputTokens:   500_000,
+			wantInputCost:  5.0,  // 1M * $5/MTok
 			wantOutputCost: 12.5, // 500K * $25/MTok
-			wantTotalCost: 17.5,
+			wantTotalCost:  17.5,
 		},
 		{
-			name:          "Sonnet 4.5 - 1M input, 500K output",
-			model:         "claude-sonnet-4-5-20250929",
-			inputTokens:   1_000_000,
-			outputTokens:  500_000,
-			wantInputCost: 3.0,   // 1M * $3/MTok
-			wantOutputCost: 7.5,  // 500K * $15/MTok
-			wantTotalCost: 10.5,
+			name:           "Sonnet 4.5 - 1M input, 500K output",
+			model:          "claude-sonnet-4-5-20250929",
+			inputTokens:    1_000_000,
+			outputTokens:   500_000,
+			wantInputCost:  3.0, // 1M * $3/MTok
+			wantOutputCost: 7.5, // 500K * $15/MTok
+			wantTotalCost:  10.5,
 		},
 		{
-			name:          "Haiku 4.5 - 1000 input, 500 output",
-			model:         "claude-haiku-4-5-20251001",
-			inputTokens:   1000,
-			outputTokens:  500,
-			wantInputCost: 0.001,   // 1K/1M * $1 = $0.001
+			name:           "Haiku 4.5 - 1000 input, 500 output",
+			model:          "claude-haiku-4-5-20251001",
+			inputTokens:    1000,
+			outputTokens:   500,
+			wantInputCost:  0.001,  // 1K/1M * $1 = $0.001
 			wantOutputCost: 0.0025, // 500/1M * $5 = $0.0025
-			wantTotalCost: 0.0035,
+			wantTotalCost:  0.0035,
 		},
 		{
-			name:          "Unknown model - returns zero",
-			model:         "unknown-model",
-			inputTokens:   1000,
-			outputTokens:  500,
-			wantInputCost: 0,
+			name:           "Unknown model - returns zero",
+			model:          "unknown-model",
+			inputTokens:    1000,
+			outputTokens:   500,
+			wantInputCost:  0,
 			wantOutputCost: 0,
-			wantTotalCost: 0,
+			wantTotalCost:  0,
 		},
 		{
-			name:          "Zero tokens",
-			model:         "claude-sonnet-4-5-20250929",
-			inputTokens:   0,
-			outputTokens:  0,
-			wantInputCost: 0,
+			name:           "Zero tokens",
+			model:          "claude-sonnet-4-5-20250929",
+			inputTokens:    0,
+			outputTokens:   0,
+			wantInputCost:  0,
 			wantOutputCost: 0,
-			wantTotalCost: 0,
+			wantTotalCost:  0,
 		},
 	}
 

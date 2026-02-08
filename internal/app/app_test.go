@@ -630,10 +630,10 @@ func TestAppInitHandlers(t *testing.T) {
 	// Verify handlers were initialized - since handlers are not directly exposed,
 	// we can only check that the mux has routes registered
 	assert.NotNil(t, app.GetMux(), "HTTP mux should be initialized")
-	
+
 	// Verify templateBlocks routes are registered by checking if they exist in the mux
 	mux := app.GetMux()
-	
+
 	// Create test requests to verify routes exist
 	testRoutes := []string{
 		"/api/templateBlocks.list",
@@ -642,7 +642,7 @@ func TestAppInitHandlers(t *testing.T) {
 		"/api/templateBlocks.update",
 		"/api/templateBlocks.delete",
 	}
-	
+
 	for _, route := range testRoutes {
 		req := httptest.NewRequest("GET", route, nil)
 		handler, pattern := mux.Handler(req)

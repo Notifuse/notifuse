@@ -238,8 +238,8 @@ type CompileTemplateRequest struct {
 	VisualEditorTree EmailBlock       `json:"visual_editor_tree"`
 	TemplateData     MapOfAny         `json:"test_data,omitempty"`
 	TrackingSettings TrackingSettings `json:"tracking_settings,omitempty"`
-	Channel          string           `json:"channel,omitempty"`          // "email" or "web" - filters blocks by visibility
-	PreserveLiquid   bool             `json:"preserve_liquid,omitempty"`  // When true, skip Liquid template processing and preserve raw syntax
+	Channel          string           `json:"channel,omitempty"`         // "email" or "web" - filters blocks by visibility
+	PreserveLiquid   bool             `json:"preserve_liquid,omitempty"` // When true, skip Liquid template processing and preserve raw syntax
 }
 
 // UnmarshalJSON implements custom JSON unmarshaling for CompileTemplateRequest
@@ -290,9 +290,9 @@ func (r *CompileTemplateRequest) Validate() error {
 
 // CompileTemplateResponse represents the response from compiling a template
 type CompileTemplateResponse struct {
-	Success bool          `json:"success"`
-	MJML    *string       `json:"mjml,omitempty"`  // Pointer, omit if nil
-	HTML    *string       `json:"html,omitempty"`  // Pointer, omit if nil
+	Success bool        `json:"success"`
+	MJML    *string     `json:"mjml,omitempty"`  // Pointer, omit if nil
+	HTML    *string     `json:"html,omitempty"`  // Pointer, omit if nil
 	Error   *mjml.Error `json:"error,omitempty"` // Pointer, omit if nil
 }
 

@@ -10,8 +10,8 @@ import (
 	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
 	"github.com/Notifuse/notifuse/pkg/notifuse_mjml"
 	"github.com/golang/mock/gomock"
-	"github.com/preslavrachev/gomjml/mjml"
 	"github.com/google/uuid"
+	"github.com/preslavrachev/gomjml/mjml"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

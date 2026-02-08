@@ -15,9 +15,9 @@ import (
 
 // AutomationRepository implements domain.AutomationRepository
 type AutomationRepository struct {
-	workspaceRepo      domain.WorkspaceRepository
-	db                 *sql.DB // Used for testing with sqlmock
-	triggerGenerator   *service.AutomationTriggerGenerator
+	workspaceRepo    domain.WorkspaceRepository
+	db               *sql.DB // Used for testing with sqlmock
+	triggerGenerator *service.AutomationTriggerGenerator
 }
 
 // NewAutomationRepository creates a new AutomationRepository using workspace repository
@@ -459,8 +459,8 @@ func (r *AutomationRepository) CreateAutomationTrigger(ctx context.Context, work
 
 	// Execute in order: drop existing trigger, drop existing function, create function, create trigger
 	statements := []struct {
-		sql     string
-		errMsg  string
+		sql    string
+		errMsg string
 	}{
 		{triggerSQL.DropTrigger, "failed to drop existing trigger"},
 		{triggerSQL.DropFunction, "failed to drop existing function"},

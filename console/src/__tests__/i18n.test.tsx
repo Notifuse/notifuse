@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { render, screen, waitFor, act } from '@testing-library/react'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { i18n } from '@lingui/core'
 import { I18nProvider, useLingui } from '@lingui/react'
@@ -11,7 +11,6 @@ import {
   initI18n,
   locales,
   localeNames,
-  type Locale,
 } from '../i18n'
 
 // Mock localStorage

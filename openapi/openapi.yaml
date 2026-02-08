@@ -57,6 +57,10 @@ paths:
     $ref: './paths/broadcasts.yaml#/~1api~1broadcasts.getTestResults'
   /api/broadcasts.selectWinner:
     $ref: './paths/broadcasts.yaml#/~1api~1broadcasts.selectWinner'
+  /api/broadcasts.refreshGlobalFeed:
+    $ref: './paths/broadcasts.yaml#/~1api~1broadcasts.refreshGlobalFeed'
+  /api/broadcasts.testRecipientFeed:
+    $ref: './paths/broadcasts.yaml#/~1api~1broadcasts.testRecipientFeed'
   /api/templates.list:
     $ref: './paths/templates.yaml#/~1api~1templates.list'
   /api/templates.get:
@@ -180,6 +184,22 @@ components:
       $ref: './components/schemas/broadcast.yaml#/VariationResult'
     TestResultsResponse:
       $ref: './components/schemas/broadcast.yaml#/TestResultsResponse'
+    DataFeedHeader:
+      $ref: './components/schemas/broadcast.yaml#/DataFeedHeader'
+    GlobalFeedSettings:
+      $ref: './components/schemas/broadcast.yaml#/GlobalFeedSettings'
+    RecipientFeedSettings:
+      $ref: './components/schemas/broadcast.yaml#/RecipientFeedSettings'
+    DataFeedSettings:
+      $ref: './components/schemas/broadcast.yaml#/DataFeedSettings'
+    RefreshGlobalFeedRequest:
+      $ref: './components/schemas/broadcast.yaml#/RefreshGlobalFeedRequest'
+    RefreshGlobalFeedResponse:
+      $ref: './components/schemas/broadcast.yaml#/RefreshGlobalFeedResponse'
+    TestRecipientFeedRequest:
+      $ref: './components/schemas/broadcast.yaml#/TestRecipientFeedRequest'
+    TestRecipientFeedResponse:
+      $ref: './components/schemas/broadcast.yaml#/TestRecipientFeedResponse'
     Template:
       $ref: './components/schemas/template.yaml#/Template'
     EmailTemplate:

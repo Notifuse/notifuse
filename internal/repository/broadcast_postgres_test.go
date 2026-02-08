@@ -432,6 +432,7 @@ func TestBroadcastRepository_CreateBroadcast_Success(t *testing.T) {
 			sqlmock.AnyArg(), // cancelled_at
 			sqlmock.AnyArg(), // paused_at
 			sqlmock.AnyArg(), // pause_reason
+			sqlmock.AnyArg(), // data_feed (consolidated)
 		).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
@@ -517,14 +518,16 @@ func TestBroadcastRepository_GetBroadcast_Success(t *testing.T) {
 		"test_sent_at", "winner_sent_at", "enqueued_count",
 		"created_at", "updated_at",
 		"started_at", "completed_at", "cancelled_at", "paused_at", "pause_reason",
+		"data_feed",
 	}).
 		AddRow(
 			broadcastID, workspaceID, "Test Broadcast", domain.BroadcastStatusDraft,
 			[]byte("{}"), []byte("{}"), []byte("{}"), []byte("{}"), []byte("{}"),
-			"", // Use empty string instead of nil for winning_template
+			"",          // Use empty string instead of nil for winning_template
 			nil, nil, 0, // enqueued_count
 			time.Now(), time.Now(),
 			nil, nil, nil, nil, nil,
+			nil, // data_feed
 		)
 
 	mock.ExpectQuery("SELECT").
@@ -572,14 +575,16 @@ func TestBroadcastRepository_GetBroadcast_NullPauseReason(t *testing.T) {
 		"test_sent_at", "winner_sent_at", "enqueued_count",
 		"created_at", "updated_at",
 		"started_at", "completed_at", "cancelled_at", "paused_at", "pause_reason",
+		"data_feed",
 	}).
 		AddRow(
 			broadcastID, workspaceID, "Test Broadcast", domain.BroadcastStatusDraft,
 			[]byte("{}"), []byte("{}"), []byte("{}"), []byte("{}"), []byte("{}"),
-			"", // Use empty string instead of nil for winning_template
+			"",          // Use empty string instead of nil for winning_template
 			nil, nil, 0, // enqueued_count
 			time.Now(), time.Now(),
 			nil, nil, nil, nil, nil, // NULL pause_reason
+			nil, // data_feed
 		)
 
 	mock.ExpectQuery("SELECT").
@@ -626,6 +631,7 @@ func TestBroadcastRepository_GetBroadcast_WithPauseReason(t *testing.T) {
 		"test_sent_at", "winner_sent_at", "enqueued_count",
 		"created_at", "updated_at",
 		"started_at", "completed_at", "cancelled_at", "paused_at", "pause_reason",
+		"data_feed",
 	}).
 		AddRow(
 			broadcastID, workspaceID, "Test Broadcast", domain.BroadcastStatusPaused,
@@ -634,6 +640,7 @@ func TestBroadcastRepository_GetBroadcast_WithPauseReason(t *testing.T) {
 			nil, nil, 0, // enqueued_count
 			time.Now(), time.Now(),
 			nil, nil, nil, time.Now(), expectedReason, // Non-NULL pause_reason
+			nil, // data_feed
 		)
 
 	mock.ExpectQuery("SELECT").
@@ -784,6 +791,7 @@ func TestBroadcastRepository_UpdateBroadcast_Success(t *testing.T) {
 			sqlmock.AnyArg(), // paused_at
 			sqlmock.AnyArg(), // pause_reason
 			sqlmock.AnyArg(), // enqueued_count
+			sqlmock.AnyArg(), // data_feed (consolidated)
 		).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 
@@ -1056,12 +1064,15 @@ func TestBroadcastRepository_ListBroadcasts_RowsIterationError(t *testing.T) {
 		"id", "workspace_id", "name", "status", "audience", "schedule",
 		"test_settings", "utm_parameters", "metadata",
 		"winning_template",
-		"test_sent_at", "winner_sent_at", "created_at", "updated_at",
-		"started_at", "completed_at", "cancelled_at",
+		"test_sent_at", "winner_sent_at", "enqueued_count",
+		"created_at", "updated_at",
+		"started_at", "completed_at", "cancelled_at", "paused_at", "pause_reason",
+		"data_feed",
 	}).
 		AddRow(
-			"bc123", workspaceID, "Broadcast 1", "draft", "{}", "{}", "{}", "{}", "{}",
-			"", nil, nil, time.Now(), time.Now(), nil, nil, nil,
+			"bc123", workspaceID, "Broadcast 1", "draft", []byte("{}"), []byte("{}"), []byte("{}"), []byte("{}"), []byte("{}"),
+			"", nil, nil, 0, time.Now(), time.Now(), nil, nil, nil, nil, nil,
+			nil, // data_feed
 		).
 		RowError(0, iterationErr) // Set error on the first row
 
@@ -1174,14 +1185,17 @@ func TestBroadcastRepository_ListBroadcasts_WithStatus(t *testing.T) {
 		"test_sent_at", "winner_sent_at", "enqueued_count",
 		"created_at", "updated_at",
 		"started_at", "completed_at", "cancelled_at", "paused_at", "pause_reason",
+		"data_feed",
 	}).
 		AddRow(
 			"bc123", workspaceID, "Broadcast 1", status, []byte("{}"), []byte("{}"), []byte("{}"), []byte("{}"), []byte("{}"),
 			"", nil, nil, 0, time.Now(), time.Now(), nil, nil, nil, nil, nil,
+			nil, // data_feed
 		).
 		AddRow(
 			"bc456", workspaceID, "Broadcast 2", status, []byte("{}"), []byte("{}"), []byte("{}"), []byte("{}"), []byte("{}"),
 			"", nil, nil, 0, time.Now(), time.Now(), nil, nil, nil, nil, nil,
+			nil, // data_feed
 		)
 
 	// Expect query with limit/offset
@@ -1238,11 +1252,13 @@ func TestBroadcastRepository_GetBroadcastTx(t *testing.T) {
 				"test_sent_at", "winner_sent_at", "enqueued_count",
 				"created_at", "updated_at",
 				"started_at", "completed_at", "cancelled_at", "paused_at", "pause_reason",
+				"data_feed",
 			}).
 				AddRow(
 					broadcastID, workspaceID, "Test Broadcast", "draft",
 					[]byte("{}"), []byte("{}"), []byte("{}"), []byte("{}"), []byte("{}"),
 					"", nil, nil, 0, time.Now(), time.Now(), nil, nil, nil, nil, nil,
+					nil, // data_feed
 				))
 		sqlMock.ExpectCommit()
 
@@ -1274,4 +1290,224 @@ func TestBroadcastRepository_GetBroadcastTx(t *testing.T) {
 		assert.Nil(t, broadcast)
 		assert.Contains(t, err.Error(), "Broadcast not found")
 	})
+}
+
+// TestBroadcastRepository_GetBroadcast_WithDataFeed tests that the repository
+// correctly handles broadcasts with DataFeed settings.
+func TestBroadcastRepository_GetBroadcast_WithDataFeed(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	repo := NewBroadcastRepository(mockWorkspaceRepo)
+
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer func() { _ = db.Close() }()
+
+	ctx := context.Background()
+	workspaceID := "ws123"
+	broadcastID := "bc123"
+
+	mockWorkspaceRepo.EXPECT().
+		GetConnection(gomock.Any(), workspaceID).
+		Return(db, nil)
+
+	// Create mock rows with consolidated DataFeed data
+	dataFeedJSON := []byte(`{"global_feed":{"enabled":true,"url":"https://api.example.com/feed","headers":[]},"global_feed_data":{"products":[{"id":"1","name":"Product A"}]},"global_feed_fetched_at":"2024-01-15T10:00:00Z"}`)
+
+	rows := sqlmock.NewRows([]string{
+		"id", "workspace_id", "name", "status", "audience", "schedule",
+		"test_settings", "utm_parameters", "metadata",
+		"winning_template",
+		"test_sent_at", "winner_sent_at", "enqueued_count",
+		"created_at", "updated_at",
+		"started_at", "completed_at", "cancelled_at", "paused_at", "pause_reason",
+		"data_feed",
+	}).
+		AddRow(
+			broadcastID, workspaceID, "Test Broadcast", domain.BroadcastStatusDraft,
+			[]byte("{}"), []byte("{}"), []byte("{}"), []byte("{}"), []byte("{}"),
+			"", nil, nil, 0, time.Now(), time.Now(), nil, nil, nil, nil, nil,
+			dataFeedJSON,
+		)
+
+	mock.ExpectQuery("SELECT").
+		WithArgs(broadcastID, workspaceID).
+		WillReturnRows(rows)
+
+	broadcast, err := repo.GetBroadcast(ctx, workspaceID, broadcastID)
+	assert.NoError(t, err)
+	assert.NotNil(t, broadcast)
+	assert.Equal(t, broadcastID, broadcast.ID)
+
+	// Verify DataFeed settings
+	assert.NotNil(t, broadcast.DataFeed, "DataFeed should not be nil when data exists")
+	assert.NotNil(t, broadcast.DataFeed.GlobalFeed, "GlobalFeed should not be nil when data exists")
+	assert.True(t, broadcast.DataFeed.GlobalFeed.Enabled)
+	assert.Equal(t, "https://api.example.com/feed", broadcast.DataFeed.GlobalFeed.URL)
+
+	// Verify GlobalFeedData
+	assert.NotNil(t, broadcast.DataFeed.GlobalFeedData, "GlobalFeedData should not be nil when data exists")
+	products, ok := broadcast.DataFeed.GlobalFeedData["products"]
+	assert.True(t, ok, "Should have products key in GlobalFeedData")
+	assert.NotNil(t, products)
+
+	// Verify GlobalFeedFetchedAt
+	assert.NotNil(t, broadcast.DataFeed.GlobalFeedFetchedAt, "GlobalFeedFetchedAt should not be nil when set")
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+// TestBroadcastRepository_CreateBroadcast_WithDataFeed tests successful creation of a broadcast with DataFeed settings
+func TestBroadcastRepository_CreateBroadcast_WithDataFeed(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	repo := NewBroadcastRepository(mockWorkspaceRepo)
+
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer func() { _ = db.Close() }()
+
+	ctx := context.Background()
+	workspaceID := "ws123"
+
+	fetchedAt := time.Now()
+	testBroadcast := &domain.Broadcast{
+		ID:          "bc123",
+		WorkspaceID: workspaceID,
+		Name:        "Test Broadcast with DataFeed",
+		Status:      domain.BroadcastStatusDraft,
+		DataFeed: &domain.DataFeedSettings{
+			GlobalFeed: &domain.GlobalFeedSettings{
+				Enabled: true,
+				URL:     "https://api.example.com/feed",
+				Headers: []domain.DataFeedHeader{},
+			},
+			GlobalFeedData: domain.MapOfAny{
+				"products": []interface{}{
+					map[string]interface{}{"id": "1", "name": "Product A"},
+				},
+			},
+			GlobalFeedFetchedAt: &fetchedAt,
+		},
+	}
+
+	mockWorkspaceRepo.EXPECT().
+		GetConnection(gomock.Any(), workspaceID).
+		Return(db, nil)
+
+	// Expect transaction begin
+	mock.ExpectBegin()
+
+	// Use AnyArg() matcher since the broadcast will have timestamps added
+	mock.ExpectExec("INSERT INTO broadcasts").
+		WithArgs(
+			testBroadcast.ID,
+			testBroadcast.WorkspaceID,
+			testBroadcast.Name,
+			testBroadcast.Status,
+			sqlmock.AnyArg(), // audience
+			sqlmock.AnyArg(), // schedule
+			sqlmock.AnyArg(), // test_settings
+			sqlmock.AnyArg(), // utm_parameters
+			sqlmock.AnyArg(), // metadata
+			sqlmock.AnyArg(), // winning_template
+			sqlmock.AnyArg(), // test_sent_at
+			sqlmock.AnyArg(), // winner_sent_at
+			sqlmock.AnyArg(), // enqueued_count
+			sqlmock.AnyArg(), // created_at - timestamp will be added
+			sqlmock.AnyArg(), // updated_at - timestamp will be added
+			sqlmock.AnyArg(), // started_at
+			sqlmock.AnyArg(), // completed_at
+			sqlmock.AnyArg(), // cancelled_at
+			sqlmock.AnyArg(), // paused_at
+			sqlmock.AnyArg(), // pause_reason
+			sqlmock.AnyArg(), // data_feed (consolidated)
+		).
+		WillReturnResult(sqlmock.NewResult(1, 1))
+
+	// Expect transaction commit
+	mock.ExpectCommit()
+
+	err = repo.CreateBroadcast(ctx, testBroadcast)
+	assert.NoError(t, err)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+// TestBroadcastRepository_UpdateBroadcast_WithDataFeed tests updating broadcast with DataFeed settings
+func TestBroadcastRepository_UpdateBroadcast_WithDataFeed(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	repo := NewBroadcastRepository(mockWorkspaceRepo)
+
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer func() { _ = db.Close() }()
+
+	ctx := context.Background()
+	workspaceID := "ws123"
+	broadcastID := "bc123"
+
+	fetchedAt := time.Now()
+	testBroadcast := &domain.Broadcast{
+		ID:          broadcastID,
+		WorkspaceID: workspaceID,
+		Name:        "Updated Broadcast",
+		Status:      domain.BroadcastStatusScheduled,
+		DataFeed: &domain.DataFeedSettings{
+			GlobalFeed: &domain.GlobalFeedSettings{
+				Enabled: true,
+				URL:     "https://api.example.com/updated-feed",
+				Headers: []domain.DataFeedHeader{},
+			},
+			GlobalFeedData: domain.MapOfAny{
+				"updated": true,
+			},
+			GlobalFeedFetchedAt: &fetchedAt,
+		},
+	}
+
+	mockWorkspaceRepo.EXPECT().
+		GetConnection(gomock.Any(), workspaceID).
+		Return(db, nil)
+
+	// Expect transaction begin
+	mock.ExpectBegin()
+
+	// Expect UPDATE query with the correct parameters
+	mock.ExpectExec("UPDATE broadcasts SET").
+		WithArgs(
+			broadcastID,
+			workspaceID,
+			testBroadcast.Name,
+			testBroadcast.Status,
+			sqlmock.AnyArg(), // audience
+			sqlmock.AnyArg(), // schedule
+			sqlmock.AnyArg(), // test_settings
+			sqlmock.AnyArg(), // utm_parameters
+			sqlmock.AnyArg(), // metadata
+			sqlmock.AnyArg(), // winning_template
+			sqlmock.AnyArg(), // test_sent_at
+			sqlmock.AnyArg(), // winner_sent_at
+			sqlmock.AnyArg(), // updated_at
+			sqlmock.AnyArg(), // started_at
+			sqlmock.AnyArg(), // completed_at
+			sqlmock.AnyArg(), // cancelled_at
+			sqlmock.AnyArg(), // paused_at
+			sqlmock.AnyArg(), // pause_reason
+			sqlmock.AnyArg(), // enqueued_count
+			sqlmock.AnyArg(), // data_feed (consolidated)
+		).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+
+	// Expect transaction commit
+	mock.ExpectCommit()
+
+	err = repo.UpdateBroadcast(ctx, testBroadcast)
+	assert.NoError(t, err)
+	assert.NoError(t, mock.ExpectationsWereMet())
 }

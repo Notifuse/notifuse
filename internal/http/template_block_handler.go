@@ -192,4 +192,3 @@ func (h *TemplateBlockHandler) handleDelete(w http.ResponseWriter, r *http.Reque
 		"success": true,
 	})
 }
-

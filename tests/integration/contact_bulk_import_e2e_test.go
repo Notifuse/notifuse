@@ -678,8 +678,8 @@ func testDuplicateEmailsInBatch(t *testing.T, client *testutil.APIClient, worksp
 		},
 		{
 			"email":      duplicateEmail,
-			"first_name": "Third",   // This should be kept
-			"last_name":  "Winner",  // This should be kept
+			"first_name": "Third",  // This should be kept
+			"last_name":  "Winner", // This should be kept
 		},
 	}
 

@@ -396,6 +396,16 @@ func (c *APIClient) SelectBroadcastWinner(request map[string]interface{}) (*http
 	return c.Post("/api/broadcasts.selectWinner", request)
 }
 
+// RefreshGlobalFeed refreshes the global feed data for a broadcast
+func (c *APIClient) RefreshGlobalFeed(request map[string]interface{}) (*http.Response, error) {
+	return c.Post("/api/broadcasts.refreshGlobalFeed", request)
+}
+
+// TestRecipientFeed tests the recipient feed with a specific contact
+func (c *APIClient) TestRecipientFeed(request map[string]interface{}) (*http.Response, error) {
+	return c.Post("/api/broadcasts.testRecipientFeed", request)
+}
+
 // Contact API helpers
 func (c *APIClient) CreateContact(contact map[string]interface{}) (*http.Response, error) {
 	return c.Post("/api/contacts.upsert", contact)

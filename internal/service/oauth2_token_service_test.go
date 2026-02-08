@@ -18,7 +18,8 @@ func TestOAuth2TokenService_GetAccessToken_CachedToken(t *testing.T) {
 	service := NewOAuth2TokenService(&noopLogger{})
 
 	// Pre-populate cache with a valid token
-	cacheKey := "microsoft:tenant-123:client-123:user@example.com"
+	// Cache key format: provider:tenantID:clientID (username no longer included)
+	cacheKey := "microsoft:tenant-123:client-123"
 	service.tokenCache[cacheKey] = &cachedToken{
 		accessToken: "cached-token-123",
 		expiresAt:   time.Now().Add(10 * time.Minute), // Not expired
@@ -30,7 +31,7 @@ func TestOAuth2TokenService_GetAccessToken_CachedToken(t *testing.T) {
 		OAuth2TenantID:     "tenant-123",
 		OAuth2ClientID:     "client-123",
 		OAuth2ClientSecret: "secret-123",
-		Username:           "user@example.com",
+		// Username is no longer required for OAuth2
 	}
 
 	token, err := service.GetAccessToken(settings)
@@ -58,7 +59,8 @@ func TestOAuth2TokenService_GetAccessToken_ExpiredToken(t *testing.T) {
 	service.microsoftTokenURL = server.URL // Override for testing
 
 	// Pre-populate cache with an expired token
-	cacheKey := "microsoft:tenant-123:client-123:user@example.com"
+	// Cache key format: provider:tenantID:clientID (username no longer included)
+	cacheKey := "microsoft:tenant-123:client-123"
 	service.tokenCache[cacheKey] = &cachedToken{
 		accessToken: "expired-token",
 		expiresAt:   time.Now().Add(-10 * time.Minute), // Already expired
@@ -70,7 +72,7 @@ func TestOAuth2TokenService_GetAccessToken_ExpiredToken(t *testing.T) {
 		OAuth2TenantID:     "tenant-123",
 		OAuth2ClientID:     "client-123",
 		OAuth2ClientSecret: "secret-123",
-		Username:           "user@example.com",
+		// Username is no longer required for OAuth2
 	}
 
 	token, err := service.GetAccessToken(settings)
@@ -112,7 +114,7 @@ func TestOAuth2TokenService_FetchMicrosoftToken(t *testing.T) {
 		OAuth2TenantID:     "tenant-123",
 		OAuth2ClientID:     "client-123",
 		OAuth2ClientSecret: "secret-123",
-		Username:           "user@example.com",
+		// Username is no longer required for OAuth2
 	}
 
 	token, expiresAt, err := service.fetchMicrosoftToken(settings)
@@ -155,7 +157,7 @@ func TestOAuth2TokenService_FetchGoogleToken(t *testing.T) {
 		OAuth2ClientID:     "client-123",
 		OAuth2ClientSecret: "secret-123",
 		OAuth2RefreshToken: "refresh-token-xyz",
-		Username:           "user@gmail.com",
+		// Username is no longer required for OAuth2
 	}
 
 	token, expiresAt, err := service.fetchGoogleToken(settings)
@@ -168,20 +170,21 @@ func TestOAuth2TokenService_CacheKeyUniqueness(t *testing.T) {
 	service := NewOAuth2TokenService(&noopLogger{})
 
 	// Test that cache keys are unique for different configurations
+	// Note: Username is no longer part of the cache key since OAuth2 tokens
+	// are per-application (service principal), not per-mailbox
 	tests := []struct {
 		name     string
 		settings *domain.SMTPSettings
 		expected string
 	}{
 		{
-			name: "Microsoft with different tenant",
+			name: "Microsoft with tenant-a",
 			settings: &domain.SMTPSettings{
 				OAuth2Provider: "microsoft",
 				OAuth2TenantID: "tenant-a",
 				OAuth2ClientID: "client-123",
-				Username:       "user@example.com",
 			},
-			expected: "microsoft:tenant-a:client-123:user@example.com",
+			expected: "microsoft:tenant-a:client-123",
 		},
 		{
 			name: "Microsoft with same tenant, different client",
@@ -189,28 +192,25 @@ func TestOAuth2TokenService_CacheKeyUniqueness(t *testing.T) {
 				OAuth2Provider: "microsoft",
 				OAuth2TenantID: "tenant-a",
 				OAuth2ClientID: "client-456",
-				Username:       "user@example.com",
 			},
-			expected: "microsoft:tenant-a:client-456:user@example.com",
+			expected: "microsoft:tenant-a:client-456",
 		},
 		{
-			name: "Microsoft with same tenant, different username",
+			name: "Microsoft with different tenant",
 			settings: &domain.SMTPSettings{
 				OAuth2Provider: "microsoft",
-				OAuth2TenantID: "tenant-a",
+				OAuth2TenantID: "tenant-b",
 				OAuth2ClientID: "client-123",
-				Username:       "other@example.com",
 			},
-			expected: "microsoft:tenant-a:client-123:other@example.com",
+			expected: "microsoft:tenant-b:client-123",
 		},
 		{
 			name: "Google",
 			settings: &domain.SMTPSettings{
 				OAuth2Provider: "google",
 				OAuth2ClientID: "client-123",
-				Username:       "user@gmail.com",
 			},
-			expected: "google::client-123:user@gmail.com",
+			expected: "google::client-123",
 		},
 	}
 
@@ -262,7 +262,7 @@ func TestOAuth2TokenService_ThreadSafety(t *testing.T) {
 		OAuth2TenantID:     "tenant-123",
 		OAuth2ClientID:     "client-123",
 		OAuth2ClientSecret: "secret-123",
-		Username:           "user@example.com",
+		// Username is no longer required for OAuth2
 	}
 
 	// Launch multiple goroutines trying to get tokens concurrently
@@ -299,8 +299,10 @@ func TestOAuth2TokenService_TokenRefreshBuffer(t *testing.T) {
 	// Test that tokens are refreshed 5 minutes before expiry
 	service := NewOAuth2TokenService(&noopLogger{})
 
+	// Cache key format: provider:tenantID:clientID (username no longer included)
+	cacheKey := "microsoft:tenant-123:client-123"
+
 	// Token expires in 4 minutes (less than 5-minute buffer)
-	cacheKey := "microsoft:tenant-123:client-123:user@example.com"
 	service.tokenCache[cacheKey] = &cachedToken{
 		accessToken: "soon-expiring-token",
 		expiresAt:   time.Now().Add(4 * time.Minute),
@@ -312,7 +314,7 @@ func TestOAuth2TokenService_TokenRefreshBuffer(t *testing.T) {
 		OAuth2TenantID:     "tenant-123",
 		OAuth2ClientID:     "client-123",
 		OAuth2ClientSecret: "secret-123",
-		Username:           "user@example.com",
+		// Username is no longer required for OAuth2
 	}
 
 	// Token should be considered invalid (within buffer)
@@ -338,7 +340,7 @@ func TestOAuth2TokenService_InvalidProvider(t *testing.T) {
 		OAuth2Provider:     "invalid-provider",
 		OAuth2ClientID:     "client-123",
 		OAuth2ClientSecret: "secret-123",
-		Username:           "user@example.com",
+		// Username is no longer required for OAuth2
 	}
 
 	_, err := service.GetAccessToken(settings)
@@ -366,7 +368,7 @@ func TestOAuth2TokenService_HTTPError(t *testing.T) {
 		OAuth2TenantID:     "tenant-123",
 		OAuth2ClientID:     "client-123",
 		OAuth2ClientSecret: "wrong-secret",
-		Username:           "user@example.com",
+		// Username is no longer required for OAuth2
 	}
 
 	_, err := service.GetAccessToken(settings)
@@ -390,7 +392,7 @@ func TestOAuth2TokenService_InvalidJSONResponse(t *testing.T) {
 		OAuth2TenantID:     "tenant-123",
 		OAuth2ClientID:     "client-123",
 		OAuth2ClientSecret: "secret-123",
-		Username:           "user@example.com",
+		// Username is no longer required for OAuth2
 	}
 
 	_, err := service.GetAccessToken(settings)

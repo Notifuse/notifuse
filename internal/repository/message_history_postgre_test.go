@@ -309,7 +309,7 @@ func TestMessageHistoryRepository_Get(t *testing.T) {
 			message.ExternalID,
 			message.ContactEmail,
 			message.BroadcastID,
-				message.AutomationID,
+			message.AutomationID,
 			nil, // list_id (empty array)
 			message.TemplateID,
 			message.TemplateVersion,
@@ -380,7 +380,7 @@ func TestMessageHistoryRepository_Get(t *testing.T) {
 			message.ExternalID,
 			message.ContactEmail,
 			message.BroadcastID,
-				message.AutomationID,
+			message.AutomationID,
 			nil, // list_id (empty array)
 			message.TemplateID,
 			message.TemplateVersion,
@@ -424,7 +424,7 @@ func TestMessageHistoryRepository_GetByExternalID(t *testing.T) {
 			message.ExternalID,
 			message.ContactEmail,
 			message.BroadcastID,
-				message.AutomationID,
+			message.AutomationID,
 			nil, // list_id (empty array)
 			message.TemplateID,
 			message.TemplateVersion,
@@ -495,7 +495,7 @@ func TestMessageHistoryRepository_GetByExternalID(t *testing.T) {
 			message.ExternalID,
 			message.ContactEmail,
 			message.BroadcastID,
-				message.AutomationID,
+			message.AutomationID,
 			nil, // list_id (empty array)
 			message.TemplateID,
 			message.TemplateVersion,
@@ -548,7 +548,7 @@ func TestMessageHistoryRepository_GetByContact(t *testing.T) {
 			message.ExternalID,
 			message.ContactEmail,
 			message.BroadcastID,
-				message.AutomationID,
+			message.AutomationID,
 			nil, // list_id (empty array)
 			message.TemplateID,
 			message.TemplateVersion,
@@ -749,7 +749,7 @@ func TestMessageHistoryRepository_GetByBroadcast(t *testing.T) {
 			message.ExternalID,
 			message.ContactEmail,
 			message.BroadcastID,
-				message.AutomationID,
+			message.AutomationID,
 			nil, // list_id (empty array)
 			message.TemplateID,
 			message.TemplateVersion,

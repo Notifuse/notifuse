@@ -16,17 +16,17 @@ import (
 
 // SupabaseService handles Supabase webhook processing
 type SupabaseService struct {
-	workspaceRepo        domain.WorkspaceRepository
-	emailService         domain.EmailServiceInterface
-	contactService       domain.ContactService
-	listRepo             domain.ListRepository
-	contactListRepo      domain.ContactListRepository
-	templateRepo         domain.TemplateRepository
-	templateService      domain.TemplateService
-	transactionalRepo    domain.TransactionalNotificationRepository
-	transactionalService domain.TransactionalNotificationService
-	inboundWebhookEventRepo     domain.InboundWebhookEventRepository
-	logger               logger.Logger
+	workspaceRepo           domain.WorkspaceRepository
+	emailService            domain.EmailServiceInterface
+	contactService          domain.ContactService
+	listRepo                domain.ListRepository
+	contactListRepo         domain.ContactListRepository
+	templateRepo            domain.TemplateRepository
+	templateService         domain.TemplateService
+	transactionalRepo       domain.TransactionalNotificationRepository
+	transactionalService    domain.TransactionalNotificationService
+	inboundWebhookEventRepo domain.InboundWebhookEventRepository
+	logger                  logger.Logger
 }
 
 // NewSupabaseService creates a new Supabase service
@@ -44,17 +44,17 @@ func NewSupabaseService(
 	logger logger.Logger,
 ) *SupabaseService {
 	return &SupabaseService{
-		workspaceRepo:        workspaceRepo,
-		emailService:         emailService,
-		contactService:       contactService,
-		listRepo:             listRepo,
-		contactListRepo:      contactListRepo,
-		templateRepo:         templateRepo,
-		templateService:      templateService,
-		transactionalRepo:    transactionalRepo,
-		transactionalService: transactionalService,
-		inboundWebhookEventRepo:     inboundWebhookEventRepo,
-		logger:               logger,
+		workspaceRepo:           workspaceRepo,
+		emailService:            emailService,
+		contactService:          contactService,
+		listRepo:                listRepo,
+		contactListRepo:         contactListRepo,
+		templateRepo:            templateRepo,
+		templateService:         templateService,
+		transactionalRepo:       transactionalRepo,
+		transactionalService:    transactionalService,
+		inboundWebhookEventRepo: inboundWebhookEventRepo,
+		logger:                  logger,
 	}
 }
 

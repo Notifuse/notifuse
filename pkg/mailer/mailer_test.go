@@ -368,6 +368,15 @@ func TestSMTPMailer_WithEdgeCases(t *testing.T) {
 			baseURL:       "https://example.com",
 			expectError:   false,
 		},
+		{
+			name:          "base URL with trailing slash",
+			email:         "user@example.com",
+			workspaceName: "Test Workspace",
+			inviterName:   "John Doe",
+			token:         "valid-token",
+			baseURL:       "https://example.com/",
+			expectError:   false,
+		},
 	}
 
 	for _, tc := range testCases {
@@ -407,6 +416,17 @@ func TestSMTPMailer_WithEdgeCases(t *testing.T) {
 				expectedSubject := "Subject: You've been invited to join " + tc.workspaceName
 				if !strings.Contains(logOutput, expectedSubject) {
 					t.Errorf("Expected log to contain workspace name with special characters, but it didn't. Log: %s", logOutput)
+				}
+			}
+
+			// For the trailing slash case, verify no double slashes in URL
+			if tc.name == "base URL with trailing slash" && !tc.expectError {
+				if strings.Contains(logOutput, "//console") {
+					t.Errorf("URL should not contain double slashes, but it did. Log: %s", logOutput)
+				}
+				expectedURL := "https://example.com/console/accept-invitation?token=" + tc.token
+				if !strings.Contains(logOutput, expectedURL) {
+					t.Errorf("Expected URL '%s' in log, but it wasn't found. Log: %s", expectedURL, logOutput)
 				}
 			}
 		})

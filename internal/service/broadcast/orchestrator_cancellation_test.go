@@ -69,7 +69,7 @@ func TestBroadcastOrchestrator_Process_CancelledBroadcast(t *testing.T) {
 			SendBroadcast: &domain.SendBroadcastState{
 				BroadcastID:     broadcastID,
 				TotalRecipients: 100,
-				EnqueuedCount:       0,
+				EnqueuedCount:   0,
 				FailedCount:     0,
 				RecipientOffset: 0,
 				Phase:           "single",

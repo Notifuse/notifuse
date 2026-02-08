@@ -8,7 +8,7 @@ import { useLingui } from '@lingui/react/macro'
 import type { NodeType } from '../../services/api/automation'
 
 // Menu items structure without labels (labels are added inside component for i18n)
-// eslint-disable-next-line react-refresh/only-export-components -- Menu items intentionally co-located with button
+ 
 export const ADD_NODE_MENU_ITEMS: { key: NodeType; label: string; icon: React.ReactNode }[] = [
   { key: 'delay', label: 'Delay', icon: <FontAwesomeIcon icon={faHourglass} style={{ color: '#faad14' }} /> },
   { key: 'email', label: 'Email', icon: <FontAwesomeIcon icon={faEnvelope} style={{ color: '#1890ff' }} /> },

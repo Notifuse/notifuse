@@ -42,7 +42,7 @@ var GoalTypesRequiringValue = []string{
 // Note: ExternalID is the primary key and represents the unique identifier
 // from the external system (e.g., "shopify_order_12345", "stripe_pi_abc123")
 type CustomEvent struct {
-	ExternalID    string                 `json:"external_id"`              // Primary key: external system's unique ID
+	ExternalID    string                 `json:"external_id"` // Primary key: external system's unique ID
 	Email         string                 `json:"email"`
 	EventName     string                 `json:"event_name"`               // Generic: "shopify.order", "stripe.payment"
 	Properties    map[string]interface{} `json:"properties"`               // Current state of the resource
@@ -140,7 +140,7 @@ type UpsertCustomEventRequest struct {
 	WorkspaceID   string                 `json:"workspace_id"`
 	Email         string                 `json:"email"`
 	EventName     string                 `json:"event_name"`
-	ExternalID    string                 `json:"external_id"`              // Required: unique external resource ID
+	ExternalID    string                 `json:"external_id"` // Required: unique external resource ID
 	Properties    map[string]interface{} `json:"properties"`
 	OccurredAt    *time.Time             `json:"occurred_at,omitempty"`    // Optional, defaults to now
 	IntegrationID *string                `json:"integration_id,omitempty"` // Optional integration ID
@@ -212,8 +212,8 @@ func (r *UpsertCustomEventRequest) Validate() error {
 
 // ImportCustomEventsRequest for bulk import
 type ImportCustomEventsRequest struct {
-	WorkspaceID string          `json:"workspace_id"`
-	Events      []*CustomEvent  `json:"events"`
+	WorkspaceID string         `json:"workspace_id"`
+	Events      []*CustomEvent `json:"events"`
 }
 
 func (r *ImportCustomEventsRequest) Validate() error {

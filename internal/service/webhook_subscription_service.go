@@ -15,10 +15,10 @@ import (
 
 // WebhookSubscriptionService handles webhook subscription business logic
 type WebhookSubscriptionService struct {
-	repo        domain.WebhookSubscriptionRepository
+	repo         domain.WebhookSubscriptionRepository
 	deliveryRepo domain.WebhookDeliveryRepository
-	authService *AuthService
-	logger      logger.Logger
+	authService  *AuthService
+	logger       logger.Logger
 }
 
 // NewWebhookSubscriptionService creates a new webhook subscription service

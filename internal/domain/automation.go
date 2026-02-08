@@ -147,12 +147,12 @@ func (a NodeAction) IsValid() bool {
 
 // TimelineTriggerConfig defines the trigger configuration for an automation
 type TimelineTriggerConfig struct {
-	EventKind       string           `json:"event_kind"`                    // Timeline event type to listen for
-	ListID          *string          `json:"list_id,omitempty"`             // Required for list.* events
-	SegmentID       *string          `json:"segment_id,omitempty"`          // Required for segment.* events
-	CustomEventName *string          `json:"custom_event_name,omitempty"`   // Required for custom_event
-	UpdatedFields   []string         `json:"updated_fields,omitempty"`      // For contact.updated: only trigger on these field changes
-	Conditions      *TreeNode        `json:"conditions"`                    // Reuse segments condition system
+	EventKind       string           `json:"event_kind"`                  // Timeline event type to listen for
+	ListID          *string          `json:"list_id,omitempty"`           // Required for list.* events
+	SegmentID       *string          `json:"segment_id,omitempty"`        // Required for segment.* events
+	CustomEventName *string          `json:"custom_event_name,omitempty"` // Required for custom_event
+	UpdatedFields   []string         `json:"updated_fields,omitempty"`    // For contact.updated: only trigger on these field changes
+	Conditions      *TreeNode        `json:"conditions"`                  // Reuse segments condition system
 	Frequency       TriggerFrequency `json:"frequency"`
 }
 
@@ -222,7 +222,7 @@ type Automation struct {
 	Trigger     *TimelineTriggerConfig `json:"trigger"`
 	TriggerSQL  *string                `json:"trigger_sql,omitempty"` // Generated SQL for WHEN clause
 	RootNodeID  string                 `json:"root_node_id"`
-	Nodes       []*AutomationNode      `json:"nodes"`                 // Embedded workflow nodes
+	Nodes       []*AutomationNode      `json:"nodes"` // Embedded workflow nodes
 	Stats       *AutomationStats       `json:"stats,omitempty"`
 	CreatedAt   time.Time              `json:"created_at"`
 	UpdatedAt   time.Time              `json:"updated_at"`
@@ -558,10 +558,10 @@ func (c RemoveFromListNodeConfig) Validate() error {
 // ListStatusBranchNodeConfig configures a list status branch node
 // This node checks a contact's subscription status in a list and branches accordingly
 type ListStatusBranchNodeConfig struct {
-	ListID          string `json:"list_id"`              // List to check status in
-	NotInListNodeID string `json:"not_in_list_node_id"`  // Next node when contact is not in list
-	ActiveNodeID    string `json:"active_node_id"`       // Next node when status is "active"
-	NonActiveNodeID string `json:"non_active_node_id"`   // Next node when status is non-active (pending, unsubscribed, bounced, complained)
+	ListID          string `json:"list_id"`             // List to check status in
+	NotInListNodeID string `json:"not_in_list_node_id"` // Next node when contact is not in list
+	ActiveNodeID    string `json:"active_node_id"`      // Next node when status is "active"
+	NonActiveNodeID string `json:"non_active_node_id"`  // Next node when status is non-active (pending, unsubscribed, bounced, complained)
 }
 
 // Validate validates the list status branch node config

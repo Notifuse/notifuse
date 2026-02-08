@@ -155,6 +155,7 @@ type App struct {
 	automationScheduler              *service.AutomationScheduler
 	llmService                       *service.LLMService
 	emailQueueWorker                 *queue.EmailQueueWorker
+	dataFeedFetcher                  broadcast.DataFeedFetcher
 	// providers
 	postmarkService  *service.PostmarkService
 	mailgunService   *service.MailgunService
@@ -678,6 +679,9 @@ func (a *App) InitServices() error {
 		a.logger,
 	)
 
+	// Initialize data feed fetcher for external data in broadcasts
+	a.dataFeedFetcher = broadcast.NewDataFeedFetcher(a.logger)
+
 	// Initialize broadcast service
 	a.broadcastService = service.NewBroadcastService(
 		a.logger,
@@ -692,6 +696,7 @@ func (a *App) InitServices() error {
 		a.eventBus,           // Pass the event bus
 		a.messageHistoryRepo, // Message history repository
 		a.listService,        // List service for web publication validation
+		a.dataFeedFetcher,    // Data feed fetcher for global/recipient data
 		a.config.APIEndpoint, // API endpoint for tracking URLs
 	)
 
@@ -710,6 +715,7 @@ func (a *App) InitServices() error {
 		a.taskRepo,
 		a.workspaceRepo,
 		a.emailQueueRepo,
+		a.dataFeedFetcher,
 		a.logger,
 		broadcastConfig,
 		a.config.APIEndpoint,

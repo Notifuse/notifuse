@@ -511,10 +511,10 @@ func TestDemoService_GenerateMessagesPerContact(t *testing.T) {
 	mockMessageHistoryRepo := domainmocks.NewMockMessageHistoryRepository(ctrl)
 
 	svc := &DemoService{
-		logger:             logger.NewLoggerWithLevel("disabled"),
-		messageHistoryRepo: mockMessageHistoryRepo,
-		inboundWebhookEventRepo:   nil, // Won't be called in this test
-		workspaceService:   nil, // Won't be called in this test
+		logger:                  logger.NewLoggerWithLevel("disabled"),
+		messageHistoryRepo:      mockMessageHistoryRepo,
+		inboundWebhookEventRepo: nil, // Won't be called in this test
+		workspaceService:        nil, // Won't be called in this test
 	}
 
 	ctx := context.Background()

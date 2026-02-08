@@ -168,7 +168,7 @@ func TestTemplateBlockHandler_HandleList(t *testing.T) {
 		},
 		{
 			name:           "Missing Workspace ID",
-			queryParams:   url.Values{},
+			queryParams:    url.Values{},
 			setupMock:      func(m *mocks.MockTemplateBlockService) {},
 			expectedStatus: http.StatusBadRequest,
 			expectBody:     false,
@@ -176,7 +176,7 @@ func TestTemplateBlockHandler_HandleList(t *testing.T) {
 		},
 		{
 			name:           "Unauthorized",
-			queryParams:   url.Values{"workspace_id": {workspaceID}},
+			queryParams:    url.Values{"workspace_id": {workspaceID}},
 			setupMock:      func(m *mocks.MockTemplateBlockService) {},
 			expectedStatus: http.StatusUnauthorized,
 			expectBody:     false,
@@ -270,7 +270,7 @@ func TestTemplateBlockHandler_HandleGet(t *testing.T) {
 		},
 		{
 			name:           "Unauthorized",
-			queryParams:   url.Values{"workspace_id": {workspaceID}, "id": {blockID}},
+			queryParams:    url.Values{"workspace_id": {workspaceID}, "id": {blockID}},
 			setupMock:      func(m *mocks.MockTemplateBlockService) {},
 			expectedStatus: http.StatusUnauthorized,
 			expectBody:     false,
@@ -339,17 +339,17 @@ func TestTemplateBlockHandler_HandleCreate(t *testing.T) {
 			authenticate:   true,
 		},
 		{
-			name:        "Invalid JSON",
-			requestBody: `{"invalid": json}`,
-			setupMock:   func(m *mocks.MockTemplateBlockService) {},
+			name:           "Invalid JSON",
+			requestBody:    `{"invalid": json}`,
+			setupMock:      func(m *mocks.MockTemplateBlockService) {},
 			expectedStatus: http.StatusBadRequest,
 			expectBody:     false,
 			authenticate:   true,
 		},
 		{
-			name:        "Missing Required Fields",
-			requestBody: invalidRequestMissingName,
-			setupMock:   func(m *mocks.MockTemplateBlockService) {},
+			name:           "Missing Required Fields",
+			requestBody:    invalidRequestMissingName,
+			setupMock:      func(m *mocks.MockTemplateBlockService) {},
 			expectedStatus: http.StatusBadRequest,
 			expectBody:     false,
 			authenticate:   true,
@@ -462,17 +462,17 @@ func TestTemplateBlockHandler_HandleUpdate(t *testing.T) {
 			authenticate:   true,
 		},
 		{
-			name:        "Invalid JSON",
-			requestBody: `{"invalid": json}`,
-			setupMock:   func(m *mocks.MockTemplateBlockService) {},
+			name:           "Invalid JSON",
+			requestBody:    `{"invalid": json}`,
+			setupMock:      func(m *mocks.MockTemplateBlockService) {},
 			expectedStatus: http.StatusBadRequest,
 			expectBody:     false,
 			authenticate:   true,
 		},
 		{
-			name:        "Missing Required Fields",
-			requestBody: invalidRequestMissingName,
-			setupMock:   func(m *mocks.MockTemplateBlockService) {},
+			name:           "Missing Required Fields",
+			requestBody:    invalidRequestMissingName,
+			setupMock:      func(m *mocks.MockTemplateBlockService) {},
 			expectedStatus: http.StatusBadRequest,
 			expectBody:     false,
 			authenticate:   true,
@@ -576,9 +576,9 @@ func TestTemplateBlockHandler_HandleDelete(t *testing.T) {
 			authenticate:   true,
 		},
 		{
-			name:        "Invalid JSON",
-			requestBody: `{"invalid": json}`,
-			setupMock:   func(m *mocks.MockTemplateBlockService) {},
+			name:           "Invalid JSON",
+			requestBody:    `{"invalid": json}`,
+			setupMock:      func(m *mocks.MockTemplateBlockService) {},
 			expectedStatus: http.StatusBadRequest,
 			expectBody:     false,
 			authenticate:   true,
@@ -653,4 +653,3 @@ func TestTemplateBlockHandler_HandleDelete(t *testing.T) {
 		})
 	}
 }
-

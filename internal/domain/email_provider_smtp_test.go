@@ -268,15 +268,15 @@ func TestSMTPSettings_OAuth2_Validation(t *testing.T) {
 		{
 			name: "valid OAuth2 Microsoft settings",
 			settings: domain.SMTPSettings{
-				Host:                "smtp.office365.com",
-				Port:                587,
-				UseTLS:              true,
-				AuthType:            "oauth2",
-				OAuth2Provider:      "microsoft",
-				OAuth2TenantID:      "tenant-123",
-				OAuth2ClientID:      "client-123",
-				OAuth2ClientSecret:  "secret-123",
-				Username:            "user@example.com",
+				Host:               "smtp.office365.com",
+				Port:               587,
+				UseTLS:             true,
+				AuthType:           "oauth2",
+				OAuth2Provider:     "microsoft",
+				OAuth2TenantID:     "tenant-123",
+				OAuth2ClientID:     "client-123",
+				OAuth2ClientSecret: "secret-123",
+				// Username is no longer required for OAuth2 - sender email is used in XOAUTH2
 			},
 			wantErr: false,
 		},
@@ -291,7 +291,7 @@ func TestSMTPSettings_OAuth2_Validation(t *testing.T) {
 				OAuth2ClientID:     "client-123",
 				OAuth2ClientSecret: "secret-123",
 				OAuth2RefreshToken: "refresh-token-123",
-				Username:           "user@gmail.com",
+				// Username is no longer required for OAuth2 - sender email is used in XOAUTH2
 			},
 			wantErr: false,
 		},
@@ -390,7 +390,7 @@ func TestSMTPSettings_OAuth2_Validation(t *testing.T) {
 			errMsg:  "oauth2_refresh_token is required for Google",
 		},
 		{
-			name: "OAuth2 missing username",
+			name: "OAuth2 without username is valid (username no longer required)",
 			settings: domain.SMTPSettings{
 				Host:               "smtp.office365.com",
 				Port:               587,
@@ -400,10 +400,9 @@ func TestSMTPSettings_OAuth2_Validation(t *testing.T) {
 				OAuth2TenantID:     "tenant-123",
 				OAuth2ClientID:     "client-123",
 				OAuth2ClientSecret: "secret-123",
-				Username:           "", // Missing - required for OAuth2
+				Username:           "", // Username is no longer required - sender email is used in XOAUTH2
 			},
-			wantErr: true,
-			errMsg:  "username is required for OAuth2",
+			wantErr: false,
 		},
 		{
 			name: "basic auth type still works",
@@ -538,7 +537,7 @@ func TestSMTPSettings_OAuth2_EncryptionInValidate(t *testing.T) {
 			OAuth2TenantID:     "tenant-123",
 			OAuth2ClientID:     "client-123",
 			OAuth2ClientSecret: "secret-123",
-			Username:           "user@example.com",
+			// Username is no longer required for OAuth2
 		}
 
 		err := settings.Validate(passphrase)
@@ -559,7 +558,7 @@ func TestSMTPSettings_OAuth2_EncryptionInValidate(t *testing.T) {
 			OAuth2ClientID:     "client-123",
 			OAuth2ClientSecret: "secret-123",
 			OAuth2RefreshToken: "refresh-123",
-			Username:           "user@gmail.com",
+			// Username is no longer required for OAuth2
 		}
 
 		err := settings.Validate(passphrase)

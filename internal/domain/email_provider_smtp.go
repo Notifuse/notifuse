@@ -40,9 +40,9 @@ type SMTPSettings struct {
 	AuthType string `json:"auth_type,omitempty"`
 
 	// OAuth2 fields
-	OAuth2Provider              string `json:"oauth2_provider,omitempty"`               // "microsoft" or "google"
-	OAuth2TenantID              string `json:"oauth2_tenant_id,omitempty"`              // Microsoft only
-	OAuth2ClientID              string `json:"oauth2_client_id,omitempty"`              // Client ID from OAuth2 app
+	OAuth2Provider              string `json:"oauth2_provider,omitempty"`                // "microsoft" or "google"
+	OAuth2TenantID              string `json:"oauth2_tenant_id,omitempty"`               // Microsoft only
+	OAuth2ClientID              string `json:"oauth2_client_id,omitempty"`               // Client ID from OAuth2 app
 	EncryptedOAuth2ClientSecret string `json:"encrypted_oauth2_client_secret,omitempty"` // Encrypted client secret
 	EncryptedOAuth2RefreshToken string `json:"encrypted_oauth2_refresh_token,omitempty"` // Encrypted refresh token (Google)
 
@@ -179,11 +179,6 @@ func (s *SMTPSettings) validateOAuth2(passphrase string) error {
 		return fmt.Errorf("oauth2_client_secret is required for OAuth2 authentication")
 	}
 
-	// Username (email) is required for XOAUTH2
-	if s.Username == "" {
-		return fmt.Errorf("username is required for OAuth2 authentication")
-	}
-
 	// Microsoft-specific validation
 	if s.OAuth2Provider == "microsoft" {
 		if s.OAuth2TenantID == "" {
@@ -196,11 +191,6 @@ func (s *SMTPSettings) validateOAuth2(passphrase string) error {
 		if s.OAuth2RefreshToken == "" {
 			return fmt.Errorf("oauth2_refresh_token is required for Google OAuth2")
 		}
-	}
-
-	// Encrypt username (email) for OAuth2
-	if err := s.EncryptUsername(passphrase); err != nil {
-		return fmt.Errorf("failed to encrypt SMTP username: %w", err)
 	}
 
 	// Encrypt OAuth2 client secret

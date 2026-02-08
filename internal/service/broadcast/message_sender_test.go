@@ -36,6 +36,7 @@ func TestMessageSenderCreation(t *testing.T) {
 		mockMessageHistoryRepo,
 		mockTemplateRepo,
 		mockEmailService,
+		nil, // dataFeedFetcher
 		mockLogger,
 		nil, // Passing nil config to test the default config behavior
 		"",
@@ -60,6 +61,7 @@ func TestMessageSenderCreation(t *testing.T) {
 		mockMessageHistoryRepo,
 		mockTemplateRepo,
 		mockEmailService,
+		nil, // dataFeedFetcher
 		mockLogger,
 		customConfig,
 		"",
@@ -165,6 +167,7 @@ func TestSendToRecipientSuccess(t *testing.T) {
 		mockMessageHistoryRepo,
 		mockTemplateRepo,
 		mockEmailService,
+		nil, // dataFeedFetcher
 		mockLogger,
 		TestConfig(),
 		"",
@@ -172,7 +175,7 @@ func TestSendToRecipientSuccess(t *testing.T) {
 
 	// Test
 	timeoutAt := time.Now().Add(30 * time.Second)
-	err := sender.SendToRecipient(ctx, workspaceID, "test-integration-id", tracking, broadcast, "message-123", "test@example.com", template, map[string]interface{}{}, emailProvider, timeoutAt)
+	err := sender.SendToRecipient(ctx, workspaceID, "test-integration-id", "https://api.test.com", tracking, broadcast, "message-123", "test@example.com", template, map[string]interface{}{}, emailProvider, timeoutAt)
 	assert.NoError(t, err)
 }
 
@@ -238,6 +241,7 @@ func TestSendToRecipientCompileFailure(t *testing.T) {
 		mockMessageHistoryRepo,
 		mockTemplateRepo,
 		mockEmailService,
+		nil, // dataFeedFetcher
 		mockLogger,
 		TestConfig(),
 		"",
@@ -245,7 +249,7 @@ func TestSendToRecipientCompileFailure(t *testing.T) {
 
 	// Test - this should fail due to template compilation issues
 	timeoutAt := time.Now().Add(30 * time.Second)
-	err := sender.SendToRecipient(ctx, workspaceID, "test-integration-id", tracking, broadcast, "message-123", "test@example.com", template, map[string]interface{}{}, emailProvider, timeoutAt)
+	err := sender.SendToRecipient(ctx, workspaceID, "test-integration-id", "https://api.test.com", tracking, broadcast, "message-123", "test@example.com", template, map[string]interface{}{}, emailProvider, timeoutAt)
 	assert.Error(t, err)
 	broadcastErr, ok := err.(*BroadcastError)
 	assert.True(t, ok)
@@ -293,11 +297,11 @@ func TestWithMockMessageSender(t *testing.T) {
 	messageID := "test-message-id"
 	timeoutAt := time.Now().Add(30 * time.Second)
 	mockSender.EXPECT().
-		SendToRecipient(ctx, workspaceID, "test-integration-id", trackingEnabled, broadcast, messageID, recipientEmail, template, templateData, nil, timeoutAt).
+		SendToRecipient(ctx, workspaceID, "test-integration-id", "https://api.test.com", trackingEnabled, broadcast, messageID, recipientEmail, template, templateData, nil, timeoutAt).
 		Return(nil)
 
 	// Use the mock (normally this would be in the system under test)
-	err := mockSender.SendToRecipient(ctx, workspaceID, "test-integration-id", trackingEnabled, broadcast, messageID, recipientEmail, template, templateData, nil, timeoutAt)
+	err := mockSender.SendToRecipient(ctx, workspaceID, "test-integration-id", "https://api.test.com", trackingEnabled, broadcast, messageID, recipientEmail, template, templateData, nil, timeoutAt)
 
 	// Verify the result
 	assert.NoError(t, err)
@@ -367,11 +371,11 @@ func TestErrorHandlingWithMock(t *testing.T) {
 	mockError := errors.New("send failed: service unavailable")
 	messageID := "test-message-id"
 	mockSender.EXPECT().
-		SendToRecipient(ctx, workspaceID, "test-integration-id", trackingEnabled, broadcast, messageID, recipientEmail, template, templateData, nil, timeoutAt).
+		SendToRecipient(ctx, workspaceID, "test-integration-id", "https://api.test.com", trackingEnabled, broadcast, messageID, recipientEmail, template, templateData, nil, timeoutAt).
 		Return(mockError)
 
 	// Call the method
-	err := mockSender.SendToRecipient(ctx, workspaceID, "test-integration-id", trackingEnabled, broadcast, messageID, recipientEmail, template, templateData, nil, timeoutAt)
+	err := mockSender.SendToRecipient(ctx, workspaceID, "test-integration-id", "https://api.test.com", trackingEnabled, broadcast, messageID, recipientEmail, template, templateData, nil, timeoutAt)
 
 	// Verify error handling
 	assert.Error(t, err)
@@ -494,6 +498,7 @@ func TestSendBatch(t *testing.T) {
 		mockMessageHistoryRepo,
 		mockTemplateRepo,
 		mockEmailService,
+		nil, // dataFeedFetcher
 		mockLogger,
 		TestConfig(),
 		"",
@@ -560,6 +565,7 @@ func TestSendBatch_EmptyRecipients(t *testing.T) {
 		mockMessageHistoryRepo,
 		mockTemplateRepo,
 		mockEmailService,
+		nil, // dataFeedFetcher
 		mockLogger,
 		config,
 		"",
@@ -623,6 +629,7 @@ func TestSendBatch_CircuitBreakerOpen(t *testing.T) {
 		mockMessageHistoryRepo,
 		mockTemplateRepo,
 		mockEmailService,
+		nil, // dataFeedFetcher
 		mockLogger,
 		config,
 		"",
@@ -763,6 +770,7 @@ func TestSendBatch_WithFailure(t *testing.T) {
 		mockMessageHistoryRepo,
 		mockTemplateRepo,
 		mockEmailService,
+		nil, // dataFeedFetcher
 		mockLogger,
 		TestConfig(),
 		"",
@@ -881,6 +889,7 @@ func TestSendBatch_RecordMessageFails(t *testing.T) {
 		mockMessageHistoryRepo,
 		mockTemplateRepo,
 		mockEmailService,
+		nil, // dataFeedFetcher
 		mockLogger,
 		TestConfig(),
 		"",
@@ -930,6 +939,7 @@ func TestSendToRecipientWithLiquidSubject(t *testing.T) {
 		mockMessageHistoryRepo,
 		mockTemplateRepo,
 		mockEmailService,
+		nil, // dataFeedFetcher
 		mockLogger,
 		TestConfig(),
 		"https://api.test.com",
@@ -993,7 +1003,7 @@ func TestSendToRecipientWithLiquidSubject(t *testing.T) {
 		Return(nil)
 
 	// Call the method
-	err := sender.SendToRecipient(ctx, workspaceID, "test-integration-id", tracking, broadcast, messageID, email, template, templateData, emailProvider, timeoutAt)
+	err := sender.SendToRecipient(ctx, workspaceID, "test-integration-id", "https://api.test.com", tracking, broadcast, messageID, email, template, templateData, emailProvider, timeoutAt)
 
 	// Verify
 	assert.NoError(t, err)
@@ -1029,6 +1039,7 @@ func TestEnforceRateLimit(t *testing.T) {
 			mockMessageHistoryRepo,
 			mockTemplateRepo,
 			mockEmailService,
+			nil, // dataFeedFetcher
 			mockLogger,
 			config,
 			"",
@@ -1057,6 +1068,7 @@ func TestEnforceRateLimit(t *testing.T) {
 			mockMessageHistoryRepo,
 			mockTemplateRepo,
 			mockEmailService,
+			nil, // dataFeedFetcher
 			mockLogger,
 			config,
 			"",
@@ -1090,6 +1102,7 @@ func TestEnforceRateLimit(t *testing.T) {
 			mockMessageHistoryRepo,
 			mockTemplateRepo,
 			mockEmailService,
+			nil, // dataFeedFetcher
 			mockLogger,
 			config,
 			"",
@@ -1142,6 +1155,7 @@ func TestSendToRecipient_ErrorCases(t *testing.T) {
 			mockMessageHistoryRepo,
 			mockTemplateRepo,
 			mockEmailService,
+			nil, // dataFeedFetcher
 			mockLogger,
 			TestConfig(),
 			"",
@@ -1174,7 +1188,7 @@ func TestSendToRecipient_ErrorCases(t *testing.T) {
 			SendEmail(gomock.Any(), gomock.Any(), gomock.Any()).
 			Return(nil)
 
-		err := sender.SendToRecipient(ctx, workspaceID, "test-integration-id", tracking, broadcast, "message-123", "test@example.com", template, map[string]interface{}{}, emailProvider, timeoutAt)
+		err := sender.SendToRecipient(ctx, workspaceID, "test-integration-id", "https://api.test.com", tracking, broadcast, "message-123", "test@example.com", template, map[string]interface{}{}, emailProvider, timeoutAt)
 		assert.NoError(t, err)
 		// UTM parameters should be initialized to non-nil
 		assert.NotNil(t, broadcast.UTMParameters)
@@ -1201,6 +1215,7 @@ func TestSendToRecipient_ErrorCases(t *testing.T) {
 			mockMessageHistoryRepo,
 			mockTemplateRepo,
 			mockEmailService,
+			nil, // dataFeedFetcher
 			mockLogger,
 			TestConfig(),
 			"",
@@ -1232,7 +1247,7 @@ func TestSendToRecipient_ErrorCases(t *testing.T) {
 			},
 		}
 
-		err := sender.SendToRecipient(ctx, workspaceID, "test-integration-id", tracking, broadcast, "message-123", "test@example.com", template, map[string]interface{}{}, emptyEmailProvider, timeoutAt)
+		err := sender.SendToRecipient(ctx, workspaceID, "test-integration-id", "https://api.test.com", tracking, broadcast, "message-123", "test@example.com", template, map[string]interface{}{}, emptyEmailProvider, timeoutAt)
 		assert.Error(t, err)
 		broadcastErr, ok := err.(*BroadcastError)
 		assert.True(t, ok)
@@ -1262,6 +1277,7 @@ func TestSendToRecipient_ErrorCases(t *testing.T) {
 			mockMessageHistoryRepo,
 			mockTemplateRepo,
 			mockEmailService,
+			nil, // dataFeedFetcher
 			mockLogger,
 			TestConfig(),
 			"",
@@ -1304,7 +1320,7 @@ func TestSendToRecipient_ErrorCases(t *testing.T) {
 			Return(nil).
 			MaxTimes(1) // Allow 0 or 1 calls
 
-		err := sender.SendToRecipient(ctx, workspaceID, "test-integration-id", tracking, broadcast, "message-123", "test@example.com", template, templateData, emailProvider, timeoutAt)
+		err := sender.SendToRecipient(ctx, workspaceID, "test-integration-id", "https://api.test.com", tracking, broadcast, "message-123", "test@example.com", template, templateData, emailProvider, timeoutAt)
 		// This might succeed or fail depending on the Liquid processor implementation
 		// If it fails, it should be a template compile error
 		if err != nil {
@@ -1345,6 +1361,7 @@ func TestSendToRecipient_ErrorCases(t *testing.T) {
 			mockMessageHistoryRepo,
 			mockTemplateRepo,
 			mockEmailService,
+			nil, // dataFeedFetcher
 			mockLogger,
 			config,
 			"",
@@ -1382,7 +1399,7 @@ func TestSendToRecipient_ErrorCases(t *testing.T) {
 			Return(nil).
 			Times(1)
 
-		err := sender.SendToRecipient(ctx, workspaceID, "test-integration-id", tracking, broadcast, "message-1", "test@example.com", template, map[string]interface{}{}, emailProvider, timeoutAt)
+		err := sender.SendToRecipient(ctx, workspaceID, "test-integration-id", "https://api.test.com", tracking, broadcast, "message-1", "test@example.com", template, map[string]interface{}{}, emailProvider, timeoutAt)
 		assert.NoError(t, err)
 
 		// Create a context that will be cancelled quickly
@@ -1401,7 +1418,7 @@ func TestSendToRecipient_ErrorCases(t *testing.T) {
 		// Second message should fail due to context cancellation
 		// Note: Error could be ErrCodeRateLimitExceeded (cancelled during rate limiting)
 		// or ErrCodeSendFailed (cancelled during email send)
-		err = sender.SendToRecipient(cancelCtx, workspaceID, "test-integration-id", tracking, broadcast, "message-2", "test@example.com", template, map[string]interface{}{}, emailProvider, timeoutAt)
+		err = sender.SendToRecipient(cancelCtx, workspaceID, "test-integration-id", "https://api.test.com", tracking, broadcast, "message-2", "test@example.com", template, map[string]interface{}{}, emailProvider, timeoutAt)
 		assert.Error(t, err)
 		broadcastErr, ok := err.(*BroadcastError)
 		if assert.True(t, ok, "Expected error to be a BroadcastError but got: %T", err) {
@@ -1443,6 +1460,7 @@ func TestSendBatch_AdvancedScenarios(t *testing.T) {
 			mockMessageHistoryRepo,
 			mockTemplateRepo,
 			mockEmailService,
+			nil, // dataFeedFetcher
 			mockLogger,
 			TestConfig(),
 			"",
@@ -1473,6 +1491,7 @@ func TestSendBatch_AdvancedScenarios(t *testing.T) {
 			mockMessageHistoryRepo,
 			mockTemplateRepo,
 			mockEmailService,
+			nil, // dataFeedFetcher
 			mockLogger,
 			TestConfig(),
 			"",
@@ -1537,6 +1556,7 @@ func TestSendBatch_AdvancedScenarios(t *testing.T) {
 			mockMessageHistoryRepo,
 			mockTemplateRepo,
 			mockEmailService,
+			nil, // dataFeedFetcher
 			mockLogger,
 			TestConfig(),
 			"",
@@ -1626,6 +1646,7 @@ func TestSendBatch_AdvancedScenarios(t *testing.T) {
 			mockMessageHistoryRepo,
 			mockTemplateRepo,
 			mockEmailService,
+			nil, // dataFeedFetcher
 			mockLogger,
 			TestConfig(),
 			"",
@@ -1710,6 +1731,7 @@ func TestSendBatch_AdvancedScenarios(t *testing.T) {
 			mockMessageHistoryRepo,
 			mockTemplateRepo,
 			mockEmailService,
+			nil, // dataFeedFetcher
 			mockLogger,
 			config,
 			"",
@@ -1810,6 +1832,7 @@ func TestNewMessageSender_EdgeCases(t *testing.T) {
 			mockMessageHistoryRepo,
 			mockTemplateRepo,
 			mockEmailService,
+			nil, // dataFeedFetcher
 			mockLogger,
 			config,
 			"https://api.example.com",
@@ -1834,6 +1857,7 @@ func TestNewMessageSender_EdgeCases(t *testing.T) {
 			mockMessageHistoryRepo,
 			mockTemplateRepo,
 			mockEmailService,
+			nil, // dataFeedFetcher
 			mockLogger,
 			config,
 			"",
@@ -1939,6 +1963,7 @@ func TestSendBatch_TemplateDataBuildFailure(t *testing.T) {
 		mockMessageHistoryRepo,
 		mockTemplateRepo,
 		mockEmailService,
+		nil, // dataFeedFetcher
 		mockLogger,
 		TestConfig(),
 		"",
@@ -2040,6 +2065,7 @@ func TestSendBatch_EmptyEmailContact(t *testing.T) {
 		mockMessageHistoryRepo,
 		mockTemplateRepo,
 		mockEmailService,
+		nil, // dataFeedFetcher
 		mockLogger,
 		TestConfig(),
 		"",
@@ -2142,6 +2168,7 @@ func TestSendBatch_NoVariations(t *testing.T) {
 		mockMessageHistoryRepo,
 		mockTemplateRepo,
 		mockEmailService,
+		nil, // dataFeedFetcher
 		mockLogger,
 		TestConfig(),
 		"",
@@ -2215,6 +2242,7 @@ func TestSendToRecipient_CompilationFailsWithNilHTML(t *testing.T) {
 		mockMessageHistoryRepo,
 		mockTemplateRepo,
 		mockEmailService,
+		nil, // dataFeedFetcher
 		mockLogger,
 		TestConfig(),
 		"",
@@ -2247,7 +2275,7 @@ func TestSendToRecipient_CompilationFailsWithNilHTML(t *testing.T) {
 		},
 	}
 
-	err := sender.SendToRecipient(ctx, workspaceID, "test-integration-id", tracking, broadcast, "message-123", "test@example.com", template, map[string]interface{}{}, emailProvider, timeoutAt)
+	err := sender.SendToRecipient(ctx, workspaceID, "test-integration-id", "https://api.test.com", tracking, broadcast, "message-123", "test@example.com", template, map[string]interface{}{}, emailProvider, timeoutAt)
 
 	// Should fail with template compilation error
 	assert.Error(t, err)
@@ -2283,6 +2311,7 @@ func TestSendToRecipient_CircuitBreakerSuccessRecording(t *testing.T) {
 		mockMessageHistoryRepo,
 		mockTemplateRepo,
 		mockEmailService,
+		nil, // dataFeedFetcher
 		mockLogger,
 		config,
 		"",
@@ -2329,7 +2358,7 @@ func TestSendToRecipient_CircuitBreakerSuccessRecording(t *testing.T) {
 		SendEmail(gomock.Any(), gomock.Any(), gomock.Any()).
 		Return(nil)
 
-	err := sender.SendToRecipient(ctx, workspaceID, "test-integration-id", tracking, broadcast, "message-123", "test@example.com", template, map[string]interface{}{}, emailProvider, timeoutAt)
+	err := sender.SendToRecipient(ctx, workspaceID, "test-integration-id", "https://api.test.com", tracking, broadcast, "message-123", "test@example.com", template, map[string]interface{}{}, emailProvider, timeoutAt)
 
 	assert.NoError(t, err)
 	// Circuit breaker should have recorded success and reset failures
@@ -2366,6 +2395,7 @@ func TestPerBroadcastRateLimit(t *testing.T) {
 			mockMessageHistoryRepo,
 			mockTemplateRepo,
 			mockEmailService,
+			nil, // dataFeedFetcher
 			mockLogger,
 			config,
 			"http://api.example.com",
@@ -2400,6 +2430,7 @@ func TestPerBroadcastRateLimit(t *testing.T) {
 			mockMessageHistoryRepo,
 			mockTemplateRepo,
 			mockEmailService,
+			nil, // dataFeedFetcher
 			mockLogger,
 			config,
 			"http://api.example.com",
@@ -2434,6 +2465,7 @@ func TestPerBroadcastRateLimit(t *testing.T) {
 			mockMessageHistoryRepo,
 			mockTemplateRepo,
 			mockEmailService,
+			nil, // dataFeedFetcher
 			mockLogger,
 			config,
 			"http://api.example.com",
@@ -2464,6 +2496,7 @@ func TestPerBroadcastRateLimit(t *testing.T) {
 			mockMessageHistoryRepo,
 			mockTemplateRepo,
 			mockEmailService,
+			nil, // dataFeedFetcher
 			mockLogger,
 			config,
 			"http://api.example.com",
@@ -2509,12 +2542,12 @@ func TestPerBroadcastRateLimit(t *testing.T) {
 			Return(nil).Times(2)
 
 		// First send should be fast
-		err := sender.SendToRecipient(ctx, workspaceID, "test-integration-id", tracking, broadcast, "message-1", "test1@example.com", template, map[string]interface{}{}, emailProvider, timeoutAt)
+		err := sender.SendToRecipient(ctx, workspaceID, "test-integration-id", "https://api.test.com", tracking, broadcast, "message-1", "test1@example.com", template, map[string]interface{}{}, emailProvider, timeoutAt)
 		assert.NoError(t, err)
 
 		// Second send should be delayed due to broadcast rate limit
 		start := time.Now()
-		err = sender.SendToRecipient(ctx, workspaceID, "test-integration-id", tracking, broadcast, "message-2", "test2@example.com", template, map[string]interface{}{}, emailProvider, timeoutAt)
+		err = sender.SendToRecipient(ctx, workspaceID, "test-integration-id", "https://api.test.com", tracking, broadcast, "message-2", "test2@example.com", template, map[string]interface{}{}, emailProvider, timeoutAt)
 		elapsed := time.Since(start)
 		assert.NoError(t, err)
 
@@ -2522,4 +2555,623 @@ func TestPerBroadcastRateLimit(t *testing.T) {
 		assert.Greater(t, elapsed, 30*time.Millisecond, "Should delay for broadcast rate limiting")
 		assert.Less(t, elapsed, 80*time.Millisecond, "Should not delay too much longer than expected")
 	})
+}
+
+// TestSendBatch_WithRecipientFeed_Success tests successful recipient feed integration
+func TestSendBatch_WithRecipientFeed_Success(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockBroadcastRepository := mocks.NewMockBroadcastRepository(ctrl)
+	mockMessageHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
+	mockTemplateRepo := mocks.NewMockTemplateRepository(ctrl)
+	mockEmailService := mocks.NewMockEmailServiceInterface(ctrl)
+	mockDataFeedFetcher := bmocks.NewMockDataFeedFetcher(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+
+	// Setup logger expectations
+	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().Debug(gomock.Any()).Return().AnyTimes()
+	mockLogger.EXPECT().Info(gomock.Any()).Return().AnyTimes()
+	mockLogger.EXPECT().Warn(gomock.Any()).Return().AnyTimes()
+	mockLogger.EXPECT().Error(gomock.Any()).Return().AnyTimes()
+
+	ctx := context.Background()
+	timeoutAt := time.Now().Add(30 * time.Second)
+	workspaceID := "workspace-123"
+	broadcastID := "broadcast-123"
+	tracking := true
+
+	// Broadcast with RecipientFeed enabled
+	broadcast := &domain.Broadcast{
+		ID:          broadcastID,
+		WorkspaceID: workspaceID,
+		Name:        "Test Broadcast",
+		ChannelType: "email",
+		Audience:    domain.AudienceSettings{List: "list-1"},
+		Status:      domain.BroadcastStatusDraft,
+		UTMParameters: &domain.UTMParameters{
+			Source:   "test",
+			Medium:   "email",
+			Campaign: "unit-test",
+		},
+		TestSettings: domain.BroadcastTestSettings{
+			Enabled: false,
+			Variations: []domain.BroadcastVariation{
+				{
+					VariationName: "variation-1",
+					TemplateID:    "template-123",
+				},
+			},
+		},
+		DataFeed: &domain.DataFeedSettings{
+			RecipientFeed: &domain.RecipientFeedSettings{
+				Enabled: true,
+				URL:     "https://api.example.com/feed",
+			},
+		},
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+
+	emailSender := domain.NewEmailSender("sender@example.com", "Sender")
+	emailProvider := &domain.EmailProvider{
+		Kind:    domain.EmailProviderKindSMTP,
+		Senders: []domain.EmailSender{emailSender},
+		SMTP:    &domain.SMTPSettings{Host: "smtp.example.com", Port: 587, Username: "user", Password: "pass", UseTLS: true},
+	}
+	template := &domain.Template{
+		ID: "template-123",
+		Email: &domain.EmailTemplate{
+			SenderID:         emailSender.ID,
+			Subject:          "Test Subject",
+			VisualEditorTree: createValidTestTree(createTestTextBlock("txt1", "Test content")),
+		},
+	}
+
+	// Setup mock expectations
+	mockBroadcastRepository.EXPECT().
+		GetBroadcast(ctx, workspaceID, broadcastID).
+		Return(broadcast, nil)
+
+	// Mock FetchRecipient to return feed data
+	feedData := map[string]interface{}{
+		"product_name":  "Premium Widget",
+		"product_price": 99.99,
+		"_success":      true,
+	}
+	mockDataFeedFetcher.EXPECT().
+		FetchRecipient(gomock.Any(), broadcast.DataFeed.RecipientFeed, gomock.Any()).
+		Return(feedData, nil).
+		Times(1)
+
+	mockEmailService.EXPECT().
+		SendEmail(gomock.Any(), gomock.Any(), gomock.Any()).
+		Return(nil).Times(1)
+
+	mockMessageHistoryRepo.EXPECT().
+		Create(ctx, workspaceID, gomock.Any(), gomock.Any()).
+		Return(nil).Times(1)
+
+	// Create message sender with DataFeedFetcher
+	sender := NewMessageSender(
+		mockBroadcastRepository,
+		mockMessageHistoryRepo,
+		mockTemplateRepo,
+		mockEmailService,
+		mockDataFeedFetcher,
+		mockLogger,
+		TestConfig(),
+		"",
+	)
+
+	recipients := []*domain.ContactWithList{
+		{
+			Contact:  &domain.Contact{Email: "recipient1@example.com"},
+			ListID:   "list-1",
+			ListName: "Test List",
+		},
+	}
+	templates := map[string]*domain.Template{"template-123": template}
+
+	sent, failed, err := sender.SendBatch(ctx, workspaceID, "test-integration-id", "secret-key-123", "https://api.example.com", tracking, broadcastID, recipients, templates, emailProvider, timeoutAt)
+	assert.NoError(t, err)
+	assert.Equal(t, 1, sent)
+	assert.Equal(t, 0, failed)
+}
+
+// TestSendBatch_WithRecipientFeed_PauseOnFailure tests that broadcast pauses immediately on feed failure
+func TestSendBatch_WithRecipientFeed_PauseOnFailure(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockBroadcastRepository := mocks.NewMockBroadcastRepository(ctrl)
+	mockMessageHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
+	mockTemplateRepo := mocks.NewMockTemplateRepository(ctrl)
+	mockEmailService := mocks.NewMockEmailServiceInterface(ctrl)
+	mockDataFeedFetcher := bmocks.NewMockDataFeedFetcher(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+
+	// Setup logger expectations
+	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().Debug(gomock.Any()).Return().AnyTimes()
+	mockLogger.EXPECT().Info(gomock.Any()).Return().AnyTimes()
+	mockLogger.EXPECT().Warn(gomock.Any()).Return().AnyTimes()
+	mockLogger.EXPECT().Error(gomock.Any()).Return().AnyTimes()
+
+	ctx := context.Background()
+	timeoutAt := time.Now().Add(30 * time.Second)
+	workspaceID := "workspace-123"
+	broadcastID := "broadcast-123"
+	tracking := true
+
+	// Broadcast with RecipientFeed enabled
+	broadcast := &domain.Broadcast{
+		ID:          broadcastID,
+		WorkspaceID: workspaceID,
+		Name:        "Test Broadcast",
+		ChannelType: "email",
+		Audience:    domain.AudienceSettings{List: "list-1"},
+		Status:      domain.BroadcastStatusDraft,
+		UTMParameters: &domain.UTMParameters{
+			Source:   "test",
+			Medium:   "email",
+			Campaign: "unit-test",
+		},
+		TestSettings: domain.BroadcastTestSettings{
+			Enabled: false,
+			Variations: []domain.BroadcastVariation{
+				{
+					VariationName: "variation-1",
+					TemplateID:    "template-123",
+				},
+			},
+		},
+		DataFeed: &domain.DataFeedSettings{
+			RecipientFeed: &domain.RecipientFeedSettings{
+				Enabled: true,
+				URL:     "https://api.example.com/feed",
+			},
+		},
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+
+	emailSender := domain.NewEmailSender("sender@example.com", "Sender")
+	emailProvider := &domain.EmailProvider{
+		Kind:    domain.EmailProviderKindSMTP,
+		Senders: []domain.EmailSender{emailSender},
+		SMTP:    &domain.SMTPSettings{Host: "smtp.example.com", Port: 587, Username: "user", Password: "pass", UseTLS: true},
+	}
+	template := &domain.Template{
+		ID: "template-123",
+		Email: &domain.EmailTemplate{
+			SenderID:         emailSender.ID,
+			Subject:          "Test Subject",
+			VisualEditorTree: createValidTestTree(createTestTextBlock("txt1", "Test content")),
+		},
+	}
+
+	// Setup mock expectations
+	mockBroadcastRepository.EXPECT().
+		GetBroadcast(ctx, workspaceID, broadcastID).
+		Return(broadcast, nil)
+
+	// Mock FetchRecipient to return error - broadcast should pause immediately
+	mockDataFeedFetcher.EXPECT().
+		FetchRecipient(gomock.Any(), broadcast.DataFeed.RecipientFeed, gomock.Any()).
+		Return(nil, fmt.Errorf("feed service unavailable")).
+		Times(1)
+
+	// No email should be sent (broadcast pauses)
+	// mockEmailService.EXPECT().SendEmail(...) should NOT be called
+
+	// Create message sender with DataFeedFetcher
+	sender := NewMessageSender(
+		mockBroadcastRepository,
+		mockMessageHistoryRepo,
+		mockTemplateRepo,
+		mockEmailService,
+		mockDataFeedFetcher,
+		mockLogger,
+		TestConfig(),
+		"",
+	)
+
+	recipients := []*domain.ContactWithList{
+		{
+			Contact:  &domain.Contact{Email: "recipient1@example.com"},
+			ListID:   "list-1",
+			ListName: "Test List",
+		},
+	}
+	templates := map[string]*domain.Template{"template-123": template}
+
+	sent, failed, err := sender.SendBatch(ctx, workspaceID, "test-integration-id", "secret-key-123", "https://api.example.com", tracking, broadcastID, recipients, templates, emailProvider, timeoutAt)
+	// Broadcast should pause on first feed failure
+	assert.Error(t, err)
+	assert.True(t, errors.Is(err, ErrBroadcastShouldPause), "Expected ErrBroadcastShouldPause")
+	assert.Equal(t, 0, sent)
+	assert.Equal(t, 0, failed)
+}
+
+// TestSendBatch_WithRecipientFeed_ErrorPause is removed - the pause-on-failure behavior
+// is now tested in TestSendBatch_WithRecipientFeed_PauseOnFailure above.
+// Keeping this as a placeholder to avoid breaking test numbering.
+func TestSendBatch_WithRecipientFeed_LegacyRemoved(t *testing.T) {
+	t.Skip("Replaced by TestSendBatch_WithRecipientFeed_PauseOnFailure - feed errors now cause immediate pause")
+}
+
+// TestSendBatch_WithRecipientFeed_ErrorPause tests recipient feed error with pause strategy
+func TestSendBatch_WithRecipientFeed_ErrorPause(t *testing.T) {
+	t.Skip("Replaced by TestSendBatch_WithRecipientFeed_PauseOnFailure - feed errors now cause immediate pause")
+}
+
+func TestSendBatch_WithRecipientFeed_OldPause(t *testing.T) {
+	t.Skip("Removed - consecutive failure threshold no longer exists. Feed errors now cause immediate pause.")
+}
+
+// TestSendBatch_WithBothFeeds tests broadcast with both GlobalFeedData and RecipientFeed
+func TestSendBatch_WithBothFeeds(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockBroadcastRepository := mocks.NewMockBroadcastRepository(ctrl)
+	mockMessageHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
+	mockTemplateRepo := mocks.NewMockTemplateRepository(ctrl)
+	mockEmailService := mocks.NewMockEmailServiceInterface(ctrl)
+	mockDataFeedFetcher := bmocks.NewMockDataFeedFetcher(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+
+	// Setup logger expectations
+	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().Debug(gomock.Any()).Return().AnyTimes()
+	mockLogger.EXPECT().Info(gomock.Any()).Return().AnyTimes()
+	mockLogger.EXPECT().Warn(gomock.Any()).Return().AnyTimes()
+	mockLogger.EXPECT().Error(gomock.Any()).Return().AnyTimes()
+
+	ctx := context.Background()
+	timeoutAt := time.Now().Add(30 * time.Second)
+	workspaceID := "workspace-123"
+	broadcastID := "broadcast-123"
+	tracking := true
+
+	// Broadcast with both GlobalFeedData and RecipientFeed
+	broadcast := &domain.Broadcast{
+		ID:          broadcastID,
+		WorkspaceID: workspaceID,
+		Name:        "Test Broadcast",
+		ChannelType: "email",
+		Audience:    domain.AudienceSettings{List: "list-1"},
+		Status:      domain.BroadcastStatusDraft,
+		UTMParameters: &domain.UTMParameters{
+			Source:   "test",
+			Medium:   "email",
+			Campaign: "unit-test",
+		},
+		TestSettings: domain.BroadcastTestSettings{
+			Enabled: false,
+			Variations: []domain.BroadcastVariation{
+				{
+					VariationName: "variation-1",
+					TemplateID:    "template-123",
+				},
+			},
+		},
+		// DataFeed with pre-fetched global feed data and recipient feed
+		DataFeed: &domain.DataFeedSettings{
+			GlobalFeedData: domain.MapOfAny{
+				"company_name": "Acme Corp",
+				"promo_code":   "SUMMER2024",
+				"_success":     true,
+			},
+			RecipientFeed: &domain.RecipientFeedSettings{
+				Enabled: true,
+				URL:     "https://api.example.com/feed",
+			},
+		},
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+
+	emailSender := domain.NewEmailSender("sender@example.com", "Sender")
+	emailProvider := &domain.EmailProvider{
+		Kind:    domain.EmailProviderKindSMTP,
+		Senders: []domain.EmailSender{emailSender},
+		SMTP:    &domain.SMTPSettings{Host: "smtp.example.com", Port: 587, Username: "user", Password: "pass", UseTLS: true},
+	}
+	template := &domain.Template{
+		ID: "template-123",
+		Email: &domain.EmailTemplate{
+			SenderID:         emailSender.ID,
+			Subject:          "Test Subject",
+			VisualEditorTree: createValidTestTree(createTestTextBlock("txt1", "Test content")),
+		},
+	}
+
+	// Setup mock expectations
+	mockBroadcastRepository.EXPECT().
+		GetBroadcast(ctx, workspaceID, broadcastID).
+		Return(broadcast, nil)
+
+	// Mock FetchRecipient to return feed data
+	recipientFeedData := map[string]interface{}{
+		"product_name":  "Premium Widget",
+		"product_price": 99.99,
+		"_success":      true,
+	}
+	mockDataFeedFetcher.EXPECT().
+		FetchRecipient(gomock.Any(), broadcast.DataFeed.RecipientFeed, gomock.Any()).
+		Return(recipientFeedData, nil).
+		Times(1)
+
+	mockEmailService.EXPECT().
+		SendEmail(gomock.Any(), gomock.Any(), gomock.Any()).
+		Return(nil).Times(1)
+
+	mockMessageHistoryRepo.EXPECT().
+		Create(ctx, workspaceID, gomock.Any(), gomock.Any()).
+		Return(nil).Times(1)
+
+	// Create message sender with DataFeedFetcher
+	sender := NewMessageSender(
+		mockBroadcastRepository,
+		mockMessageHistoryRepo,
+		mockTemplateRepo,
+		mockEmailService,
+		mockDataFeedFetcher,
+		mockLogger,
+		TestConfig(),
+		"",
+	)
+
+	recipients := []*domain.ContactWithList{
+		{
+			Contact:  &domain.Contact{Email: "recipient1@example.com"},
+			ListID:   "list-1",
+			ListName: "Test List",
+		},
+	}
+	templates := map[string]*domain.Template{"template-123": template}
+
+	sent, failed, err := sender.SendBatch(ctx, workspaceID, "test-integration-id", "secret-key-123", "https://api.example.com", tracking, broadcastID, recipients, templates, emailProvider, timeoutAt)
+	assert.NoError(t, err)
+	assert.Equal(t, 1, sent)
+	assert.Equal(t, 0, failed)
+}
+
+// TestSendBatch_WithRecipientFeed_Disabled tests that disabled recipient feed is handled properly
+func TestSendBatch_WithRecipientFeed_Disabled(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockBroadcastRepository := mocks.NewMockBroadcastRepository(ctrl)
+	mockMessageHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
+	mockTemplateRepo := mocks.NewMockTemplateRepository(ctrl)
+	mockEmailService := mocks.NewMockEmailServiceInterface(ctrl)
+	mockDataFeedFetcher := bmocks.NewMockDataFeedFetcher(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+
+	// Setup logger expectations
+	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().Debug(gomock.Any()).Return().AnyTimes()
+	mockLogger.EXPECT().Info(gomock.Any()).Return().AnyTimes()
+	mockLogger.EXPECT().Warn(gomock.Any()).Return().AnyTimes()
+	mockLogger.EXPECT().Error(gomock.Any()).Return().AnyTimes()
+
+	ctx := context.Background()
+	timeoutAt := time.Now().Add(30 * time.Second)
+	workspaceID := "workspace-123"
+	broadcastID := "broadcast-123"
+	tracking := true
+
+	// Broadcast with RecipientFeed disabled
+	broadcast := &domain.Broadcast{
+		ID:          broadcastID,
+		WorkspaceID: workspaceID,
+		Name:        "Test Broadcast",
+		ChannelType: "email",
+		Audience:    domain.AudienceSettings{List: "list-1"},
+		Status:      domain.BroadcastStatusDraft,
+		UTMParameters: &domain.UTMParameters{
+			Source:   "test",
+			Medium:   "email",
+			Campaign: "unit-test",
+		},
+		TestSettings: domain.BroadcastTestSettings{
+			Enabled: false,
+			Variations: []domain.BroadcastVariation{
+				{
+					VariationName: "variation-1",
+					TemplateID:    "template-123",
+				},
+			},
+		},
+		DataFeed: &domain.DataFeedSettings{
+			RecipientFeed: &domain.RecipientFeedSettings{
+				Enabled: false, // Disabled
+				URL:     "https://api.example.com/feed",
+			},
+		},
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+
+	emailSender := domain.NewEmailSender("sender@example.com", "Sender")
+	emailProvider := &domain.EmailProvider{
+		Kind:    domain.EmailProviderKindSMTP,
+		Senders: []domain.EmailSender{emailSender},
+		SMTP:    &domain.SMTPSettings{Host: "smtp.example.com", Port: 587, Username: "user", Password: "pass", UseTLS: true},
+	}
+	template := &domain.Template{
+		ID: "template-123",
+		Email: &domain.EmailTemplate{
+			SenderID:         emailSender.ID,
+			Subject:          "Test Subject",
+			VisualEditorTree: createValidTestTree(createTestTextBlock("txt1", "Test content")),
+		},
+	}
+
+	// Setup mock expectations
+	mockBroadcastRepository.EXPECT().
+		GetBroadcast(ctx, workspaceID, broadcastID).
+		Return(broadcast, nil)
+
+	// FetchRecipient should NOT be called since RecipientFeed is disabled
+	// No expectation for mockDataFeedFetcher.FetchRecipient
+
+	mockEmailService.EXPECT().
+		SendEmail(gomock.Any(), gomock.Any(), gomock.Any()).
+		Return(nil).Times(1)
+
+	mockMessageHistoryRepo.EXPECT().
+		Create(ctx, workspaceID, gomock.Any(), gomock.Any()).
+		Return(nil).Times(1)
+
+	// Create message sender with DataFeedFetcher
+	sender := NewMessageSender(
+		mockBroadcastRepository,
+		mockMessageHistoryRepo,
+		mockTemplateRepo,
+		mockEmailService,
+		mockDataFeedFetcher,
+		mockLogger,
+		TestConfig(),
+		"",
+	)
+
+	recipients := []*domain.ContactWithList{
+		{
+			Contact:  &domain.Contact{Email: "recipient1@example.com"},
+			ListID:   "list-1",
+			ListName: "Test List",
+		},
+	}
+	templates := map[string]*domain.Template{"template-123": template}
+
+	sent, failed, err := sender.SendBatch(ctx, workspaceID, "test-integration-id", "secret-key-123", "https://api.example.com", tracking, broadcastID, recipients, templates, emailProvider, timeoutAt)
+	assert.NoError(t, err)
+	assert.Equal(t, 1, sent)
+	assert.Equal(t, 0, failed)
+}
+
+// TestSendBatch_WithRecipientFeed_NilSettings tests that nil recipient feed settings are handled properly
+func TestSendBatch_WithRecipientFeed_NilSettings(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockBroadcastRepository := mocks.NewMockBroadcastRepository(ctrl)
+	mockMessageHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
+	mockTemplateRepo := mocks.NewMockTemplateRepository(ctrl)
+	mockEmailService := mocks.NewMockEmailServiceInterface(ctrl)
+	mockDataFeedFetcher := bmocks.NewMockDataFeedFetcher(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+
+	// Setup logger expectations
+	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().Debug(gomock.Any()).Return().AnyTimes()
+	mockLogger.EXPECT().Info(gomock.Any()).Return().AnyTimes()
+	mockLogger.EXPECT().Warn(gomock.Any()).Return().AnyTimes()
+	mockLogger.EXPECT().Error(gomock.Any()).Return().AnyTimes()
+
+	ctx := context.Background()
+	timeoutAt := time.Now().Add(30 * time.Second)
+	workspaceID := "workspace-123"
+	broadcastID := "broadcast-123"
+	tracking := true
+
+	// Broadcast without RecipientFeed (nil)
+	broadcast := &domain.Broadcast{
+		ID:          broadcastID,
+		WorkspaceID: workspaceID,
+		Name:        "Test Broadcast",
+		ChannelType: "email",
+		Audience:    domain.AudienceSettings{List: "list-1"},
+		Status:      domain.BroadcastStatusDraft,
+		UTMParameters: &domain.UTMParameters{
+			Source:   "test",
+			Medium:   "email",
+			Campaign: "unit-test",
+		},
+		TestSettings: domain.BroadcastTestSettings{
+			Enabled: false,
+			Variations: []domain.BroadcastVariation{
+				{
+					VariationName: "variation-1",
+					TemplateID:    "template-123",
+				},
+			},
+		},
+		DataFeed:  nil, // Nil DataFeed means no global or recipient feeds
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+
+	emailSender := domain.NewEmailSender("sender@example.com", "Sender")
+	emailProvider := &domain.EmailProvider{
+		Kind:    domain.EmailProviderKindSMTP,
+		Senders: []domain.EmailSender{emailSender},
+		SMTP:    &domain.SMTPSettings{Host: "smtp.example.com", Port: 587, Username: "user", Password: "pass", UseTLS: true},
+	}
+	template := &domain.Template{
+		ID: "template-123",
+		Email: &domain.EmailTemplate{
+			SenderID:         emailSender.ID,
+			Subject:          "Test Subject",
+			VisualEditorTree: createValidTestTree(createTestTextBlock("txt1", "Test content")),
+		},
+	}
+
+	// Setup mock expectations
+	mockBroadcastRepository.EXPECT().
+		GetBroadcast(ctx, workspaceID, broadcastID).
+		Return(broadcast, nil)
+
+	// FetchRecipient should NOT be called since RecipientFeed is nil
+	// No expectation for mockDataFeedFetcher.FetchRecipient
+
+	mockEmailService.EXPECT().
+		SendEmail(gomock.Any(), gomock.Any(), gomock.Any()).
+		Return(nil).Times(1)
+
+	mockMessageHistoryRepo.EXPECT().
+		Create(ctx, workspaceID, gomock.Any(), gomock.Any()).
+		Return(nil).Times(1)
+
+	// Create message sender with DataFeedFetcher
+	sender := NewMessageSender(
+		mockBroadcastRepository,
+		mockMessageHistoryRepo,
+		mockTemplateRepo,
+		mockEmailService,
+		mockDataFeedFetcher,
+		mockLogger,
+		TestConfig(),
+		"",
+	)
+
+	recipients := []*domain.ContactWithList{
+		{
+			Contact:  &domain.Contact{Email: "recipient1@example.com"},
+			ListID:   "list-1",
+			ListName: "Test List",
+		},
+	}
+	templates := map[string]*domain.Template{"template-123": template}
+
+	sent, failed, err := sender.SendBatch(ctx, workspaceID, "test-integration-id", "secret-key-123", "https://api.example.com", tracking, broadcastID, recipients, templates, emailProvider, timeoutAt)
+	assert.NoError(t, err)
+	assert.Equal(t, 1, sent)
+	assert.Equal(t, 0, failed)
+}
+
+// TestSendBatch_WithRecipientFeed_ConsecutiveFailuresReset is removed - consecutive failure tracking no longer exists.
+// With the new behavior, feed errors cause immediate broadcast pause.
+func TestSendBatch_WithRecipientFeed_ConsecutiveFailuresReset(t *testing.T) {
+	t.Skip("Removed - consecutive failure counter no longer exists. Feed errors now cause immediate pause.")
 }

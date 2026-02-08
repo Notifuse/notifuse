@@ -3,6 +3,7 @@ package mailer
 import (
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/wneessen/go-mail"
@@ -55,7 +56,9 @@ func NewTestSMTPMailer(config *Config) *SMTPMailer {
 
 // SendWorkspaceInvitation sends an invitation email with the given token
 func (m *SMTPMailer) SendWorkspaceInvitation(email, workspaceName, inviterName, token string) error {
-	inviteURL := fmt.Sprintf("%s/console/accept-invitation?token=%s", m.config.APIEndpoint, token)
+	// Strip trailing slash from API endpoint to avoid double slashes in URL
+	endpoint := strings.TrimSuffix(m.config.APIEndpoint, "/")
+	inviteURL := fmt.Sprintf("%s/console/accept-invitation?token=%s", endpoint, token)
 
 	// Create a new message
 	msg := mail.NewMsg(mail.WithNoDefaultUserAgent())

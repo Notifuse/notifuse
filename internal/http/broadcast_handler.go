@@ -59,6 +59,10 @@ func (h *BroadcastHandler) RegisterRoutes(mux *http.ServeMux) {
 	// A/B Testing endpoints
 	mux.Handle("/api/broadcasts.getTestResults", requireAuth(http.HandlerFunc(h.HandleGetTestResults)))
 	mux.Handle("/api/broadcasts.selectWinner", restrictedInDemo(requireAuth(http.HandlerFunc(h.HandleSelectWinner))))
+	// Global feed endpoints
+	mux.Handle("/api/broadcasts.refreshGlobalFeed", requireAuth(http.HandlerFunc(h.HandleRefreshGlobalFeed)))
+	// Recipient feed endpoints
+	mux.Handle("/api/broadcasts.testRecipientFeed", requireAuth(http.HandlerFunc(h.HandleTestRecipientFeed)))
 }
 
 // HandleList handles the broadcast list request
@@ -500,4 +504,76 @@ func (h *BroadcastHandler) HandleSelectWinner(w http.ResponseWriter, r *http.Req
 	writeJSON(w, http.StatusOK, map[string]interface{}{
 		"success": true,
 	})
+}
+
+// HandleRefreshGlobalFeed handles the POST /api/broadcasts.refreshGlobalFeed request
+func (h *BroadcastHandler) HandleRefreshGlobalFeed(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req domain.RefreshGlobalFeedRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.logger.WithField("error", err.Error()).Error("Failed to decode request body")
+		WriteJSONError(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if err := req.Validate(); err != nil {
+		WriteJSONError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	response, err := h.service.RefreshGlobalFeed(r.Context(), &req)
+	if err != nil {
+		// Check for specific error types
+		if _, ok := err.(*domain.ErrBroadcastNotFound); ok {
+			WriteJSONError(w, "Broadcast not found", http.StatusNotFound)
+			return
+		}
+		h.logger.WithField("error", err.Error()).Error("Failed to refresh global feed")
+		WriteJSONError(w, "Failed to refresh global feed", http.StatusInternalServerError)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, response)
+}
+
+// HandleTestRecipientFeed handles the POST /api/broadcasts.testRecipientFeed request
+func (h *BroadcastHandler) HandleTestRecipientFeed(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req domain.TestRecipientFeedRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.logger.WithField("error", err.Error()).Error("Failed to decode request body")
+		WriteJSONError(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if err := req.Validate(); err != nil {
+		WriteJSONError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	response, err := h.service.TestRecipientFeed(r.Context(), &req)
+	if err != nil {
+		// Check for specific error types
+		if _, ok := err.(*domain.ErrBroadcastNotFound); ok {
+			WriteJSONError(w, "Broadcast not found", http.StatusNotFound)
+			return
+		}
+		if _, ok := err.(*domain.ErrContactNotFoundForFeed); ok {
+			WriteJSONError(w, "Contact not found", http.StatusNotFound)
+			return
+		}
+		h.logger.WithField("error", err.Error()).Error("Failed to test recipient feed")
+		WriteJSONError(w, "Failed to test recipient feed", http.StatusInternalServerError)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, response)
 }

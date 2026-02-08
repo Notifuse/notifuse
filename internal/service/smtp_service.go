@@ -137,7 +137,7 @@ func sendRawEmail(host string, port int, username, password string, useTLS bool,
 // sendRawEmailWithSettings sends an email using raw SMTP commands with full settings support.
 // It supports both basic authentication and OAuth2 (XOAUTH2) authentication.
 func sendRawEmailWithSettings(settings *domain.SMTPSettings, from string, to []string, msg []byte, oauth2Provider OAuth2TokenProvider) error {
-	addr := fmt.Sprintf("%s:%d", settings.Host, settings.Port)
+	addr := net.JoinHostPort(settings.Host, fmt.Sprintf("%d", settings.Port))
 
 	// Connect to SMTP server with configurable timeout
 	dialer := &net.Dialer{Timeout: getSMTPDialTimeout()}
@@ -215,7 +215,9 @@ func sendRawEmailWithSettings(settings *domain.SMTPSettings, from string, to []s
 		}
 
 		// XOAUTH2 format: base64("user=" + email + "\x01auth=Bearer " + token + "\x01\x01")
-		xoauth2String := fmt.Sprintf("user=%s\x01auth=Bearer %s\x01\x01", settings.Username, accessToken)
+		// Use the sender email (from) as the user, not settings.Username
+		// This ensures emails are sent from the correct mailbox and stored in its Sent folder
+		xoauth2String := fmt.Sprintf("user=%s\x01auth=Bearer %s\x01\x01", from, accessToken)
 		encoded := base64.StdEncoding.EncodeToString([]byte(xoauth2String))
 
 		code, response, err := smtpConn.sendCommand(fmt.Sprintf("AUTH XOAUTH2 %s", encoded))
@@ -227,7 +229,7 @@ func sendRawEmailWithSettings(settings *domain.SMTPSettings, from string, to []s
 			if code == 535 && oauth2Provider != nil {
 				oauth2Provider.InvalidateCacheForSettings(settings)
 				if newToken, retryErr := oauth2Provider.GetAccessToken(settings); retryErr == nil {
-					retryXoauth2 := fmt.Sprintf("user=%s\x01auth=Bearer %s\x01\x01", settings.Username, newToken)
+					retryXoauth2 := fmt.Sprintf("user=%s\x01auth=Bearer %s\x01\x01", from, newToken)
 					retryEncoded := base64.StdEncoding.EncodeToString([]byte(retryXoauth2))
 					if retryCode, _, retryErr := smtpConn.sendCommand(fmt.Sprintf("AUTH XOAUTH2 %s", retryEncoded)); retryErr == nil && retryCode == 235 {
 						goto authComplete

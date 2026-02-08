@@ -634,7 +634,7 @@ func TestTaskRepository_MarkAsCompleted(t *testing.T) {
 		SendBroadcast: &domain.SendBroadcastState{
 			BroadcastID:     "broadcast-123",
 			TotalRecipients: 1000,
-			EnqueuedCount:       1000,
+			EnqueuedCount:   1000,
 			FailedCount:     0,
 		},
 	}
@@ -721,7 +721,7 @@ func TestTaskRepository_MarkAsCompleted_SavesState(t *testing.T) {
 		SendBroadcast: &domain.SendBroadcastState{
 			BroadcastID:     "broadcast-123",
 			TotalRecipients: 1000,
-			EnqueuedCount:       1000,
+			EnqueuedCount:   1000,
 			FailedCount:     0,
 		},
 	}

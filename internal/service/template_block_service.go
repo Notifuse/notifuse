@@ -272,4 +272,3 @@ func (s *TemplateBlockService) DeleteTemplateBlock(ctx context.Context, workspac
 
 	return nil
 }
-

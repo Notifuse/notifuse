@@ -1739,7 +1739,7 @@ func testCustomEventsGoalsSegmentation(t *testing.T, client *testutil.APIClient,
 			"tree": map[string]interface{}{
 				"kind": "leaf",
 				"leaf": map[string]interface{}{
-					"source":              "custom_events_goals",
+					"source":             "custom_events_goals",
 					"custom_events_goal": goalCondition,
 				},
 			},

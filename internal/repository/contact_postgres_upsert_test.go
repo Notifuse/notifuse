@@ -127,7 +127,7 @@ func TestUpsertContact(t *testing.T) {
 		rows := sqlmock.NewRows([]string{
 			"email", "external_id", "timezone", "language", "first_name", "last_name", "full_name", "phone",
 			"address_line_1", "address_line_2", "country", "postcode", "state", "job_title",
-						"custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4", "custom_string_5",
+			"custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4", "custom_string_5",
 			"custom_number_1", "custom_number_2", "custom_number_3", "custom_number_4", "custom_number_5",
 			"custom_datetime_1", "custom_datetime_2", "custom_datetime_3", "custom_datetime_4", "custom_datetime_5",
 			"custom_json_1", "custom_json_2", "custom_json_3", "custom_json_4", "custom_json_5",
@@ -360,7 +360,7 @@ func TestUpsertContact(t *testing.T) {
 		rows := sqlmock.NewRows([]string{
 			"email", "external_id", "timezone", "language", "first_name", "last_name", "full_name", "phone",
 			"address_line_1", "address_line_2", "country", "postcode", "state", "job_title",
-						"custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4", "custom_string_5",
+			"custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4", "custom_string_5",
 			"custom_number_1", "custom_number_2", "custom_number_3", "custom_number_4", "custom_number_5",
 			"custom_datetime_1", "custom_datetime_2", "custom_datetime_3", "custom_datetime_4", "custom_datetime_5",
 			"custom_json_1", "custom_json_2", "custom_json_3", "custom_json_4", "custom_json_5",
@@ -533,7 +533,7 @@ func TestUpsertContact(t *testing.T) {
 		rows := sqlmock.NewRows([]string{
 			"email", "external_id", "timezone", "language", "first_name", "last_name", "full_name", "phone",
 			"address_line_1", "address_line_2", "country", "postcode", "state", "job_title",
-						"custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4", "custom_string_5",
+			"custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4", "custom_string_5",
 			"custom_number_1", "custom_number_2", "custom_number_3", "custom_number_4", "custom_number_5",
 			"custom_datetime_1", "custom_datetime_2", "custom_datetime_3", "custom_datetime_4", "custom_datetime_5",
 			"custom_json_1", "custom_json_2", "custom_json_3", "custom_json_4", "custom_json_5",
@@ -606,19 +606,19 @@ func TestUpsertContact(t *testing.T) {
 
 		// Create a contact with ALL fields populated
 		allFieldsContact := &domain.Contact{
-			Email:         email,
-			ExternalID:    &domain.NullableString{String: "ext-all-fields", IsNull: false},
-			Timezone:      &domain.NullableString{String: "Europe/Paris", IsNull: false},
-			Language:      &domain.NullableString{String: "fr-FR", IsNull: false},
-			FirstName:     &domain.NullableString{String: "Jean", IsNull: false},
-			LastName:      &domain.NullableString{String: "Dupont", IsNull: false},
-			Phone:         &domain.NullableString{String: "+33123456789", IsNull: false},
-			AddressLine1:  &domain.NullableString{String: "123 Rue de Paris", IsNull: false},
-			AddressLine2:  &domain.NullableString{String: "Appartement 42", IsNull: false},
-			Country:       &domain.NullableString{String: "France", IsNull: false},
-			Postcode:      &domain.NullableString{String: "75001", IsNull: false},
-			State:         &domain.NullableString{String: "Île-de-France", IsNull: false},
-			JobTitle:      &domain.NullableString{String: "Developer", IsNull: false},
+			Email:        email,
+			ExternalID:   &domain.NullableString{String: "ext-all-fields", IsNull: false},
+			Timezone:     &domain.NullableString{String: "Europe/Paris", IsNull: false},
+			Language:     &domain.NullableString{String: "fr-FR", IsNull: false},
+			FirstName:    &domain.NullableString{String: "Jean", IsNull: false},
+			LastName:     &domain.NullableString{String: "Dupont", IsNull: false},
+			Phone:        &domain.NullableString{String: "+33123456789", IsNull: false},
+			AddressLine1: &domain.NullableString{String: "123 Rue de Paris", IsNull: false},
+			AddressLine2: &domain.NullableString{String: "Appartement 42", IsNull: false},
+			Country:      &domain.NullableString{String: "France", IsNull: false},
+			Postcode:     &domain.NullableString{String: "75001", IsNull: false},
+			State:        &domain.NullableString{String: "Île-de-France", IsNull: false},
+			JobTitle:     &domain.NullableString{String: "Developer", IsNull: false},
 
 			// Custom string fields
 			CustomString1: &domain.NullableString{String: "Custom 1", IsNull: false},
@@ -708,8 +708,8 @@ func TestUpsertContact(t *testing.T) {
 			FirstName:   &domain.NullableString{IsNull: true},
 			LastName:    &domain.NullableString{IsNull: true},
 			CustomJSON1: &domain.NullableJSON{IsNull: true},
-			CreatedAt:     now,
-			UpdatedAt:     now,
+			CreatedAt:   now,
+			UpdatedAt:   now,
 		}
 
 		// Expect transaction begin
@@ -764,7 +764,7 @@ func TestUpsertContact(t *testing.T) {
 		rows := sqlmock.NewRows([]string{
 			"email", "external_id", "timezone", "language", "first_name", "last_name", "full_name", "phone",
 			"address_line_1", "address_line_2", "country", "postcode", "state", "job_title",
-						"custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4", "custom_string_5",
+			"custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4", "custom_string_5",
 			"custom_number_1", "custom_number_2", "custom_number_3", "custom_number_4", "custom_number_5",
 			"custom_datetime_1", "custom_datetime_2", "custom_datetime_3", "custom_datetime_4", "custom_datetime_5",
 			"custom_json_1", "custom_json_2", "custom_json_3", "custom_json_4", "custom_json_5",
@@ -845,7 +845,7 @@ func TestUpsertContact(t *testing.T) {
 		rows := sqlmock.NewRows([]string{
 			"email", "external_id", "timezone", "language", "first_name", "last_name", "full_name", "phone",
 			"address_line_1", "address_line_2", "country", "postcode", "state", "job_title",
-						"custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4", "custom_string_5",
+			"custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4", "custom_string_5",
 			"custom_number_1", "custom_number_2", "custom_number_3", "custom_number_4", "custom_number_5",
 			"custom_datetime_1", "custom_datetime_2", "custom_datetime_3", "custom_datetime_4", "custom_datetime_5",
 			"custom_json_1", "custom_json_2", "custom_json_3", "custom_json_4", "custom_json_5",
@@ -863,19 +863,19 @@ func TestUpsertContact(t *testing.T) {
 
 		// Create update contact with ALL fields populated with new values
 		updateContact := &domain.Contact{
-			Email:         email,
-			ExternalID:    &domain.NullableString{String: "new-ext", IsNull: false},
-			Timezone:      &domain.NullableString{String: "Europe/Paris", IsNull: false},
-			Language:      &domain.NullableString{String: "fr-FR", IsNull: false},
-			FirstName:     &domain.NullableString{String: "Jean", IsNull: false},
-			LastName:      &domain.NullableString{String: "Dupont", IsNull: false},
-			Phone:         &domain.NullableString{String: "+33123456789", IsNull: false},
-			AddressLine1:  &domain.NullableString{String: "123 Rue de Paris", IsNull: false},
-			AddressLine2:  &domain.NullableString{String: "Appartement 42", IsNull: false},
-			Country:       &domain.NullableString{String: "France", IsNull: false},
-			Postcode:      &domain.NullableString{String: "75001", IsNull: false},
-			State:         &domain.NullableString{String: "Île-de-France", IsNull: false},
-			JobTitle:      &domain.NullableString{String: "Developer", IsNull: false},
+			Email:        email,
+			ExternalID:   &domain.NullableString{String: "new-ext", IsNull: false},
+			Timezone:     &domain.NullableString{String: "Europe/Paris", IsNull: false},
+			Language:     &domain.NullableString{String: "fr-FR", IsNull: false},
+			FirstName:    &domain.NullableString{String: "Jean", IsNull: false},
+			LastName:     &domain.NullableString{String: "Dupont", IsNull: false},
+			Phone:        &domain.NullableString{String: "+33123456789", IsNull: false},
+			AddressLine1: &domain.NullableString{String: "123 Rue de Paris", IsNull: false},
+			AddressLine2: &domain.NullableString{String: "Appartement 42", IsNull: false},
+			Country:      &domain.NullableString{String: "France", IsNull: false},
+			Postcode:     &domain.NullableString{String: "75001", IsNull: false},
+			State:        &domain.NullableString{String: "Île-de-France", IsNull: false},
+			JobTitle:     &domain.NullableString{String: "Developer", IsNull: false},
 
 			// Custom string fields
 			CustomString1: &domain.NullableString{String: "New Custom 1", IsNull: false},
@@ -959,7 +959,7 @@ func TestUpsertContact(t *testing.T) {
 		rows := sqlmock.NewRows([]string{
 			"email", "external_id", "timezone", "language", "first_name", "last_name", "full_name", "phone",
 			"address_line_1", "address_line_2", "country", "postcode", "state", "job_title",
-						"custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4", "custom_string_5",
+			"custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4", "custom_string_5",
 			"custom_number_1", "custom_number_2", "custom_number_3", "custom_number_4", "custom_number_5",
 			"custom_datetime_1", "custom_datetime_2", "custom_datetime_3", "custom_datetime_4", "custom_datetime_5",
 			"custom_json_1", "custom_json_2", "custom_json_3", "custom_json_4", "custom_json_5",
@@ -1060,7 +1060,7 @@ func TestUpsertContact(t *testing.T) {
 		rows := sqlmock.NewRows([]string{
 			"email", "external_id", "timezone", "language", "first_name", "last_name", "full_name", "phone",
 			"address_line_1", "address_line_2", "country", "postcode", "state", "job_title",
-						"custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4", "custom_string_5",
+			"custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4", "custom_string_5",
 			"custom_number_1", "custom_number_2", "custom_number_3", "custom_number_4", "custom_number_5",
 			"custom_datetime_1", "custom_datetime_2", "custom_datetime_3", "custom_datetime_4", "custom_datetime_5",
 			"custom_json_1", "custom_json_2", "custom_json_3", "custom_json_4", "custom_json_5",
@@ -1135,7 +1135,7 @@ func TestUpsertContact(t *testing.T) {
 		rows := sqlmock.NewRows([]string{
 			"email", "external_id", "timezone", "language", "first_name", "last_name", "full_name", "phone",
 			"address_line_1", "address_line_2", "country", "postcode", "state", "job_title",
-						"custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4", "custom_string_5",
+			"custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4", "custom_string_5",
 			"custom_number_1", "custom_number_2", "custom_number_3", "custom_number_4", "custom_number_5",
 			"custom_datetime_1", "custom_datetime_2", "custom_datetime_3", "custom_datetime_4", "custom_datetime_5",
 			"custom_json_1", "custom_json_2", "custom_json_3", "custom_json_4", "custom_json_5",
@@ -1209,7 +1209,7 @@ func TestUpsertContact(t *testing.T) {
 		rows := sqlmock.NewRows([]string{
 			"email", "external_id", "timezone", "language", "first_name", "last_name", "full_name", "phone",
 			"address_line_1", "address_line_2", "country", "postcode", "state", "job_title",
-						"custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4", "custom_string_5",
+			"custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4", "custom_string_5",
 			"custom_number_1", "custom_number_2", "custom_number_3", "custom_number_4", "custom_number_5",
 			"custom_datetime_1", "custom_datetime_2", "custom_datetime_3", "custom_datetime_4", "custom_datetime_5",
 			"custom_json_1", "custom_json_2", "custom_json_3", "custom_json_4", "custom_json_5",
@@ -1283,7 +1283,7 @@ func TestUpsertContact(t *testing.T) {
 		rows := sqlmock.NewRows([]string{
 			"email", "external_id", "timezone", "language", "first_name", "last_name", "full_name", "phone",
 			"address_line_1", "address_line_2", "country", "postcode", "state", "job_title",
-						"custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4", "custom_string_5",
+			"custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4", "custom_string_5",
 			"custom_number_1", "custom_number_2", "custom_number_3", "custom_number_4", "custom_number_5",
 			"custom_datetime_1", "custom_datetime_2", "custom_datetime_3", "custom_datetime_4", "custom_datetime_5",
 			"custom_json_1", "custom_json_2", "custom_json_3", "custom_json_4", "custom_json_5",

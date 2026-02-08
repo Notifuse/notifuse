@@ -136,7 +136,7 @@ export const InboundWebhookEventsTab: React.FC<InboundWebhookEventsTabProps> = (
     })
 
     if (initialFilters.length > 0) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+       
       setActiveFilters(initialFilters)
     }
   }, [filterOptions])

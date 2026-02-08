@@ -97,6 +97,32 @@ export interface BroadcastChannels {
   email: boolean
 }
 
+// Data feed types
+export interface DataFeedHeader {
+  name: string
+  value: string
+}
+
+export interface GlobalFeedSettings {
+  enabled: boolean
+  url?: string
+  headers: DataFeedHeader[]
+}
+
+export interface RecipientFeedSettings {
+  enabled: boolean
+  url?: string
+  headers: DataFeedHeader[]
+}
+
+// DataFeedSettings consolidates all feed configuration and runtime data
+export interface DataFeedSettings {
+  global_feed?: GlobalFeedSettings
+  global_feed_data?: Record<string, unknown>
+  global_feed_fetched_at?: string
+  recipient_feed?: RecipientFeedSettings
+}
+
 export interface Broadcast {
   id: string
   workspace_id: string
@@ -121,6 +147,8 @@ export interface Broadcast {
   cancelled_at?: string
   paused_at?: string
   pause_reason?: string
+  // Data feed settings (consolidated)
+  data_feed?: DataFeedSettings
 }
 
 export interface CreateBroadcastRequest {
@@ -132,6 +160,7 @@ export interface CreateBroadcastRequest {
   tracking_enabled?: boolean
   utm_parameters?: UTMParameters
   metadata?: Record<string, unknown>
+  data_feed?: DataFeedSettings
 }
 
 export interface UpdateBroadcastRequest {
@@ -144,6 +173,7 @@ export interface UpdateBroadcastRequest {
   tracking_enabled?: boolean
   utm_parameters?: UTMParameters
   metadata?: Record<string, unknown>
+  data_feed?: DataFeedSettings
 }
 
 export interface ListBroadcastsRequest {
@@ -239,6 +269,35 @@ export interface TestResultsResponse {
   is_auto_send_winner: boolean
 }
 
+// Data feed API request/response types
+export interface RefreshGlobalFeedRequest {
+  workspace_id: string
+  broadcast_id: string
+  url: string
+  headers: DataFeedHeader[]
+}
+
+export interface RefreshGlobalFeedResponse {
+  data?: Record<string, unknown>
+  fetched_at?: string
+  error?: string
+}
+
+export interface TestRecipientFeedRequest {
+  workspace_id: string
+  broadcast_id: string
+  contact_email?: string
+  url: string
+  headers: DataFeedHeader[]
+}
+
+export interface TestRecipientFeedResponse {
+  data?: Record<string, unknown>
+  fetched_at?: string
+  error?: string
+  contact_email?: string
+}
+
 export const broadcastApi = {
   list: async (params: ListBroadcastsRequest): Promise<ListBroadcastsResponse> => {
     const searchParams = new URLSearchParams()
@@ -304,5 +363,13 @@ export const broadcastApi = {
 
   selectWinner: async (params: SelectWinnerRequest): Promise<{ success: boolean }> => {
     return api.post<{ success: boolean }>('/api/broadcasts.selectWinner', params)
+  },
+
+  refreshGlobalFeed: async (params: RefreshGlobalFeedRequest): Promise<RefreshGlobalFeedResponse> => {
+    return api.post<RefreshGlobalFeedResponse>('/api/broadcasts.refreshGlobalFeed', params)
+  },
+
+  testRecipientFeed: async (params: TestRecipientFeedRequest): Promise<TestRecipientFeedResponse> => {
+    return api.post<TestRecipientFeedResponse>('/api/broadcasts.testRecipientFeed', params)
   }
 }

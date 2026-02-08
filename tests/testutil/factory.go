@@ -215,9 +215,9 @@ func (tdf *TestDataFactory) CreateSegment(workspaceID string) (*domain.Segment, 
 	sql := "SELECT email FROM contacts WHERE 1=1"
 
 	segment := &domain.Segment{
-		ID:       segmentID,
-		Name:     fmt.Sprintf("Test Segment %s", uuid.New().String()[:8]),
-		Color:    "#FF5733",
+		ID:    segmentID,
+		Name:  fmt.Sprintf("Test Segment %s", uuid.New().String()[:8]),
+		Color: "#FF5733",
 		Tree: &domain.TreeNode{
 			Kind: "leaf",
 			Leaf: &domain.TreeNodeLeaf{
@@ -780,6 +780,24 @@ func WithContactCustomNumber1(value float64) ContactOption {
 	}
 }
 
+func WithContactPhone(phone string) ContactOption {
+	return func(c *domain.Contact) {
+		c.Phone = &domain.NullableString{String: phone, IsNull: false}
+	}
+}
+
+func WithContactTimezone(timezone string) ContactOption {
+	return func(c *domain.Contact) {
+		c.Timezone = &domain.NullableString{String: timezone, IsNull: false}
+	}
+}
+
+func WithContactCustomString1(value string) ContactOption {
+	return func(c *domain.Contact) {
+		c.CustomString1 = &domain.NullableString{String: value, IsNull: false}
+	}
+}
+
 // List options
 func WithListName(name string) ListOption {
 	return func(l *domain.List) {
@@ -867,6 +885,46 @@ func WithBroadcastABTesting(templateIDs []string) BroadcastOption {
 func WithBroadcastAudience(audience domain.AudienceSettings) BroadcastOption {
 	return func(b *domain.Broadcast) {
 		b.Audience = audience
+	}
+}
+
+// WithBroadcastGlobalFeed sets the global feed settings for a broadcast
+func WithBroadcastGlobalFeed(settings *domain.GlobalFeedSettings) BroadcastOption {
+	return func(b *domain.Broadcast) {
+		if b.DataFeed == nil {
+			b.DataFeed = &domain.DataFeedSettings{}
+		}
+		b.DataFeed.GlobalFeed = settings
+	}
+}
+
+// WithBroadcastRecipientFeed sets the recipient feed settings for a broadcast
+func WithBroadcastRecipientFeed(settings *domain.RecipientFeedSettings) BroadcastOption {
+	return func(b *domain.Broadcast) {
+		if b.DataFeed == nil {
+			b.DataFeed = &domain.DataFeedSettings{}
+		}
+		b.DataFeed.RecipientFeed = settings
+	}
+}
+
+// WithBroadcastGlobalFeedData sets pre-populated global feed data for a broadcast
+func WithBroadcastGlobalFeedData(data map[string]interface{}, fetchedAt *time.Time) BroadcastOption {
+	return func(b *domain.Broadcast) {
+		if b.DataFeed == nil {
+			b.DataFeed = &domain.DataFeedSettings{}
+		}
+		b.DataFeed.GlobalFeedData = data
+		b.DataFeed.GlobalFeedFetchedAt = fetchedAt
+	}
+}
+
+// WithBroadcastTemplateID sets the template ID on the default (first) variation
+func WithBroadcastTemplateID(templateID string) BroadcastOption {
+	return func(b *domain.Broadcast) {
+		if len(b.TestSettings.Variations) > 0 {
+			b.TestSettings.Variations[0].TemplateID = templateID
+		}
 	}
 }
 
@@ -1312,7 +1370,7 @@ func (tdf *TestDataFactory) CreateSendBroadcastTask(workspaceID, broadcastID str
 		SendBroadcast: &domain.SendBroadcastState{
 			BroadcastID:     broadcastID,
 			TotalRecipients: 100,
-			EnqueuedCount:       0,
+			EnqueuedCount:   0,
 			FailedCount:     0,
 			ChannelType:     "email",
 			RecipientOffset: 0,
@@ -1341,7 +1399,7 @@ func (tdf *TestDataFactory) CreateTaskWithABTesting(workspaceID, broadcastID str
 		SendBroadcast: &domain.SendBroadcastState{
 			BroadcastID:               broadcastID,
 			TotalRecipients:           1000,
-			EnqueuedCount:                 0,
+			EnqueuedCount:             0,
 			FailedCount:               0,
 			ChannelType:               "email",
 			RecipientOffset:           0,
@@ -1853,7 +1911,7 @@ func (tdf *TestDataFactory) CreateAutomation(workspaceID string, opts ...Automat
 			EventKind: "contact.created",
 			Frequency: domain.TriggerFrequencyOnce,
 		},
-		RootNodeID: "", // Set after creating nodes
+		RootNodeID: "",                         // Set after creating nodes
 		Nodes:      []*domain.AutomationNode{}, // Initialize empty
 		Stats: &domain.AutomationStats{
 			Enrolled:  0,
@@ -2464,16 +2522,16 @@ func (tdf *TestDataFactory) CountContactAutomations(workspaceID, automationID st
 
 // SMTPOAuth2Config holds configuration for OAuth2 SMTP integration
 type SMTPOAuth2Config struct {
-	Host           string // SMTP server host
-	Port           int    // SMTP server port
-	Provider       string // "microsoft" or "google"
-	TenantID       string // Microsoft only - Azure tenant ID
-	ClientID       string // OAuth2 client ID
-	ClientSecret   string // OAuth2 client secret
-	RefreshToken   string // Google only - refresh token
-	Username       string // Email address for XOAUTH2
-	SenderEmail    string // Sender email address (defaults to Username if empty)
-	SenderName     string // Sender display name
+	Host         string // SMTP server host
+	Port         int    // SMTP server port
+	Provider     string // "microsoft" or "google"
+	TenantID     string // Microsoft only - Azure tenant ID
+	ClientID     string // OAuth2 client ID
+	ClientSecret string // OAuth2 client secret
+	RefreshToken string // Google only - refresh token
+	Username     string // Email address for XOAUTH2
+	SenderEmail  string // Sender email address (defaults to Username if empty)
+	SenderName   string // Sender display name
 }
 
 // WithSMTPOAuth2 creates an integration option for OAuth2 SMTP configuration

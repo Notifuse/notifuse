@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
+	"github.com/Notifuse/notifuse/internal/service/broadcast"
 	"github.com/Notifuse/notifuse/pkg/logger"
 	"github.com/Notifuse/notifuse/pkg/notifuse_mjml"
 	"github.com/google/uuid"
@@ -27,6 +28,7 @@ type BroadcastService struct {
 	eventBus           domain.EventBus
 	messageHistoryRepo domain.MessageHistoryRepository
 	listService        domain.ListService
+	dataFeedFetcher    broadcast.DataFeedFetcher
 	apiEndpoint        string
 }
 
@@ -44,6 +46,7 @@ func NewBroadcastService(
 	eventBus domain.EventBus,
 	messageHistoryRepository domain.MessageHistoryRepository,
 	listService domain.ListService,
+	dataFeedFetcher broadcast.DataFeedFetcher,
 	apiEndpoint string,
 ) *BroadcastService {
 	return &BroadcastService{
@@ -59,6 +62,7 @@ func NewBroadcastService(
 		eventBus:           eventBus,
 		messageHistoryRepo: messageHistoryRepository,
 		listService:        listService,
+		dataFeedFetcher:    dataFeedFetcher,
 		apiEndpoint:        apiEndpoint,
 	}
 }
@@ -284,39 +288,90 @@ func (s *BroadcastService) ScheduleBroadcast(ctx context.Context, request *domai
 	// Use transaction to retrieve, update the broadcast, and publish the event
 	err = s.repo.WithTransaction(ctx, request.WorkspaceID, func(tx *sql.Tx) error {
 		// Retrieve the broadcast
-		broadcast, err := s.repo.GetBroadcastTx(ctx, tx, request.WorkspaceID, request.ID)
+		bcast, err := s.repo.GetBroadcastTx(ctx, tx, request.WorkspaceID, request.ID)
 		if err != nil {
 			s.logger.Error("Failed to get broadcast for scheduling")
 			return err
 		}
 
 		// Only draft broadcasts can be scheduled
-		if broadcast.Status != domain.BroadcastStatusDraft {
-			err := fmt.Errorf("only broadcasts with draft status can be scheduled, current status: %s", broadcast.Status)
+		if bcast.Status != domain.BroadcastStatusDraft {
+			err := fmt.Errorf("only broadcasts with draft status can be scheduled, current status: %s", bcast.Status)
 			s.logger.Error("Cannot schedule broadcast with non-draft status")
 			return err
 		}
 
+		// Fetch global feed if configured
+		if bcast.DataFeed != nil && bcast.DataFeed.GlobalFeed != nil && bcast.DataFeed.GlobalFeed.Enabled {
+			// Get list information for the payload
+			var listName string
+			if bcast.Audience.List != "" {
+				list, listErr := s.listService.GetListByID(ctx, request.WorkspaceID, bcast.Audience.List)
+				if listErr != nil {
+					s.logger.WithField("list_id", bcast.Audience.List).Warn("Failed to get list for global feed payload")
+				} else if list != nil {
+					listName = list.Name
+				}
+			}
+
+			payload := &domain.GlobalFeedRequestPayload{
+				Broadcast: domain.GlobalFeedBroadcast{
+					ID:   bcast.ID,
+					Name: bcast.Name,
+				},
+				List: domain.GlobalFeedList{
+					ID:   bcast.Audience.List,
+					Name: listName,
+				},
+				Workspace: domain.GlobalFeedWorkspace{
+					ID:   workspace.ID,
+					Name: workspace.Name,
+				},
+			}
+
+			feedData, fetchErr := s.dataFeedFetcher.FetchGlobal(ctx, bcast.DataFeed.GlobalFeed, payload)
+			if fetchErr != nil {
+				s.logger.WithFields(map[string]interface{}{
+					"broadcast_id": bcast.ID,
+					"url":          bcast.DataFeed.GlobalFeed.URL,
+					"error":        fetchErr.Error(),
+				}).Error("Failed to fetch global feed")
+				return fmt.Errorf("failed to fetch global feed: %w", fetchErr)
+			}
+
+			// If feedData is nil, the feed was disabled or not configured
+			if feedData != nil {
+				now := time.Now().UTC()
+				bcast.DataFeed.GlobalFeedData = feedData
+				bcast.DataFeed.GlobalFeedFetchedAt = &now
+
+				s.logger.WithFields(map[string]interface{}{
+					"broadcast_id": bcast.ID,
+					"data_keys":    len(feedData),
+				}).Info("Global feed data fetched successfully")
+			}
+		}
+
 		// Update broadcast status and scheduling info
-		broadcast.Status = domain.BroadcastStatusScheduled
-		broadcast.UpdatedAt = time.Now().UTC()
+		bcast.Status = domain.BroadcastStatusScheduled
+		bcast.UpdatedAt = time.Now().UTC()
 
 		if request.SendNow {
 			// If sending immediately, set status to sending
-			broadcast.Status = domain.BroadcastStatusProcessing
+			bcast.Status = domain.BroadcastStatusProcessing
 			now := time.Now().UTC()
-			broadcast.StartedAt = &now
+			bcast.StartedAt = &now
 		} else {
 			// Update the schedule settings with the requested settings
-			broadcast.Schedule.IsScheduled = true
-			broadcast.Schedule.ScheduledDate = request.ScheduledDate
-			broadcast.Schedule.ScheduledTime = request.ScheduledTime
-			broadcast.Schedule.Timezone = request.Timezone
-			broadcast.Schedule.UseRecipientTimezone = request.UseRecipientTimezone
+			bcast.Schedule.IsScheduled = true
+			bcast.Schedule.ScheduledDate = request.ScheduledDate
+			bcast.Schedule.ScheduledTime = request.ScheduledTime
+			bcast.Schedule.Timezone = request.Timezone
+			bcast.Schedule.UseRecipientTimezone = request.UseRecipientTimezone
 		}
 
 		// Persist the changes
-		err = s.repo.UpdateBroadcastTx(ctx, tx, broadcast)
+		err = s.repo.UpdateBroadcastTx(ctx, tx, bcast)
 		if err != nil {
 			s.logger.Error("Failed to update broadcast in repository")
 			return err
@@ -326,12 +381,12 @@ func (s *BroadcastService) ScheduleBroadcast(ctx context.Context, request *domai
 		payloadData := map[string]interface{}{
 			"broadcast_id": request.ID,
 			"send_now":     request.SendNow,
-			"status":       string(broadcast.Status),
+			"status":       string(bcast.Status),
 		}
 
 		// Include actual scheduled time if broadcast is scheduled
-		if !request.SendNow && broadcast.Schedule.IsScheduled {
-			scheduledTime, parseErr := broadcast.Schedule.ParseScheduledDateTime()
+		if !request.SendNow && bcast.Schedule.IsScheduled {
+			scheduledTime, parseErr := bcast.Schedule.ParseScheduledDateTime()
 			if parseErr == nil && !scheduledTime.IsZero() {
 				payloadData["scheduled_time"] = scheduledTime.Format(time.RFC3339)
 			}
@@ -1137,6 +1192,218 @@ func (s *BroadcastService) SelectWinner(ctx context.Context, workspaceID, broadc
 
 		return nil
 	})
+}
+
+// RefreshGlobalFeed refreshes the global feed data for a broadcast
+func (s *BroadcastService) RefreshGlobalFeed(ctx context.Context, request *domain.RefreshGlobalFeedRequest) (*domain.RefreshGlobalFeedResponse, error) {
+	// Validate the request
+	if err := request.Validate(); err != nil {
+		return nil, err
+	}
+
+	// Authenticate user for workspace
+	ctx, _, _, err := s.authService.AuthenticateUserForWorkspace(ctx, request.WorkspaceID)
+	if err != nil {
+		s.logger.WithField("broadcast_id", request.BroadcastID).Error("Failed to authenticate user for workspace")
+		return nil, fmt.Errorf("failed to authenticate user: %w", err)
+	}
+
+	// Get the broadcast (needed for payload: broadcast name, audience list)
+	broadcast, err := s.repo.GetBroadcast(ctx, request.WorkspaceID, request.BroadcastID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Build feed settings from request
+	feedSettings := &domain.GlobalFeedSettings{
+		Enabled: true,
+		URL:     request.URL,
+		Headers: request.Headers,
+	}
+
+	// Get workspace and list information for the payload
+	workspace, err := s.workspaceRepo.GetByID(ctx, request.WorkspaceID)
+	if err != nil {
+		s.logger.WithField("workspace_id", request.WorkspaceID).Error("Failed to get workspace for global feed refresh")
+		return nil, fmt.Errorf("failed to get workspace: %w", err)
+	}
+
+	var listName string
+	if broadcast.Audience.List != "" {
+		list, listErr := s.listService.GetListByID(ctx, request.WorkspaceID, broadcast.Audience.List)
+		if listErr != nil {
+			s.logger.WithField("list_id", broadcast.Audience.List).Warn("Failed to get list for global feed payload")
+		} else if list != nil {
+			listName = list.Name
+		}
+	}
+
+	// Build the payload
+	payload := &domain.GlobalFeedRequestPayload{
+		Broadcast: domain.GlobalFeedBroadcast{
+			ID:   broadcast.ID,
+			Name: broadcast.Name,
+		},
+		List: domain.GlobalFeedList{
+			ID:   broadcast.Audience.List,
+			Name: listName,
+		},
+		Workspace: domain.GlobalFeedWorkspace{
+			ID:   workspace.ID,
+			Name: workspace.Name,
+		},
+	}
+
+	// Fetch the global feed data
+	feedData, fetchErr := s.dataFeedFetcher.FetchGlobal(ctx, feedSettings, payload)
+	if fetchErr != nil {
+		s.logger.WithFields(map[string]interface{}{
+			"broadcast_id": broadcast.ID,
+			"url":          request.URL,
+			"error":        fetchErr.Error(),
+		}).Error("Failed to fetch global feed")
+
+		return &domain.RefreshGlobalFeedResponse{
+			Success: false,
+			Error:   fmt.Sprintf("failed to fetch global feed: %s", fetchErr.Error()),
+		}, nil
+	}
+
+	now := time.Now().UTC()
+
+	s.logger.WithFields(map[string]interface{}{
+		"broadcast_id": broadcast.ID,
+		"data_keys":    len(feedData),
+	}).Info("Global feed data fetched successfully")
+
+	return &domain.RefreshGlobalFeedResponse{
+		Success:   true,
+		Data:      feedData,
+		FetchedAt: &now,
+	}, nil
+}
+
+// TestRecipientFeed tests the recipient feed configuration with a sample or specified contact
+func (s *BroadcastService) TestRecipientFeed(ctx context.Context, request *domain.TestRecipientFeedRequest) (*domain.TestRecipientFeedResponse, error) {
+	// Validate the request
+	if err := request.Validate(); err != nil {
+		return nil, err
+	}
+
+	// Authenticate user for workspace
+	ctx, _, _, err := s.authService.AuthenticateUserForWorkspace(ctx, request.WorkspaceID)
+	if err != nil {
+		s.logger.WithField("broadcast_id", request.BroadcastID).Error("Failed to authenticate user for workspace")
+		return nil, fmt.Errorf("failed to authenticate user: %w", err)
+	}
+
+	// Get the broadcast (needed for payload: broadcast name, audience list)
+	broadcast, err := s.repo.GetBroadcast(ctx, request.WorkspaceID, request.BroadcastID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Build feed settings from request
+	feedSettings := &domain.RecipientFeedSettings{
+		Enabled: true,
+		URL:     request.URL,
+		Headers: request.Headers,
+	}
+
+	// Get or create a sample contact for testing
+	var contact *domain.Contact
+	var contactEmail string
+
+	if request.ContactEmail != "" {
+		// Use the specified contact
+		contact, err = s.contactRepo.GetContactByEmail(ctx, request.WorkspaceID, request.ContactEmail)
+		if err != nil {
+			if err == domain.ErrContactNotFound {
+				return nil, &domain.ErrContactNotFoundForFeed{Email: request.ContactEmail}
+			}
+			s.logger.WithFields(map[string]interface{}{
+				"workspace_id": request.WorkspaceID,
+				"email":        request.ContactEmail,
+				"error":        err.Error(),
+			}).Error("Failed to get contact for recipient feed test")
+			return nil, fmt.Errorf("failed to get contact: %w", err)
+		}
+		contactEmail = contact.Email
+	} else {
+		// Create a sample contact for testing (not persisted)
+		contact = &domain.Contact{
+			Email:     "sample@example.com",
+			FirstName: &domain.NullableString{String: "Sample", IsNull: false},
+			LastName:  &domain.NullableString{String: "Contact", IsNull: false},
+			CreatedAt: time.Now().UTC(),
+			UpdatedAt: time.Now().UTC(),
+		}
+		contactEmail = contact.Email
+	}
+
+	// Get workspace and list information for the payload
+	workspace, err := s.workspaceRepo.GetByID(ctx, request.WorkspaceID)
+	if err != nil {
+		s.logger.WithField("workspace_id", request.WorkspaceID).Error("Failed to get workspace for recipient feed test")
+		return nil, fmt.Errorf("failed to get workspace: %w", err)
+	}
+
+	var listName string
+	if broadcast.Audience.List != "" {
+		list, listErr := s.listService.GetListByID(ctx, request.WorkspaceID, broadcast.Audience.List)
+		if listErr != nil {
+			s.logger.WithField("list_id", broadcast.Audience.List).Warn("Failed to get list for recipient feed payload")
+		} else if list != nil {
+			listName = list.Name
+		}
+	}
+
+	// Build the recipient feed payload
+	payload := &domain.RecipientFeedRequestPayload{
+		Contact: domain.BuildRecipientFeedContact(contact),
+		Broadcast: domain.RecipientFeedBroadcast{
+			ID:   broadcast.ID,
+			Name: broadcast.Name,
+		},
+		List: domain.RecipientFeedList{
+			ID:   broadcast.Audience.List,
+			Name: listName,
+		},
+		Workspace: domain.RecipientFeedWorkspace{
+			ID: workspace.ID,
+		},
+	}
+
+	// Fetch the recipient feed data
+	feedData, fetchErr := s.dataFeedFetcher.FetchRecipient(ctx, feedSettings, payload)
+	if fetchErr != nil {
+		s.logger.WithFields(map[string]interface{}{
+			"broadcast_id": broadcast.ID,
+			"url":          request.URL,
+			"error":        fetchErr.Error(),
+		}).Warn("Failed to fetch recipient feed during test")
+
+		// Return a response with the error (not a hard error, since we want to communicate the fetch error)
+		return &domain.TestRecipientFeedResponse{
+			Success:      false,
+			Error:        fmt.Sprintf("failed to fetch recipient feed: %s", fetchErr.Error()),
+			ContactEmail: contactEmail,
+		}, nil
+	}
+
+	now := time.Now().UTC()
+	s.logger.WithFields(map[string]interface{}{
+		"broadcast_id":  broadcast.ID,
+		"contact_email": contactEmail,
+		"data_keys":     len(feedData),
+	}).Info("Recipient feed test completed successfully")
+
+	return &domain.TestRecipientFeedResponse{
+		Success:      true,
+		Data:         feedData,
+		FetchedAt:    &now,
+		ContactEmail: contactEmail,
+	}, nil
 }
 
 // ValidateSlug checks if slug is valid format (no nanoid - clean slugs)

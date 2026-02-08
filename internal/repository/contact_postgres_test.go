@@ -56,7 +56,7 @@ func TestGetContactByEmail(t *testing.T) {
 		"email", "external_id", "timezone", "language",
 		"first_name", "last_name", "full_name", "phone", "address_line_1", "address_line_2",
 		"country", "postcode", "state", "job_title",
-				"custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4", "custom_string_5",
+		"custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4", "custom_string_5",
 		"custom_number_1", "custom_number_2", "custom_number_3", "custom_number_4", "custom_number_5",
 		"custom_datetime_1", "custom_datetime_2", "custom_datetime_3", "custom_datetime_4", "custom_datetime_5",
 		"custom_json_1", "custom_json_2", "custom_json_3", "custom_json_4", "custom_json_5",
@@ -139,7 +139,7 @@ func TestGetContactByExternalID(t *testing.T) {
 		"email", "external_id", "timezone", "language",
 		"first_name", "last_name", "full_name", "phone", "address_line_1", "address_line_2",
 		"country", "postcode", "state", "job_title",
-				"custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4", "custom_string_5",
+		"custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4", "custom_string_5",
 		"custom_number_1", "custom_number_2", "custom_number_3", "custom_number_4", "custom_number_5",
 		"custom_datetime_1", "custom_datetime_2", "custom_datetime_3", "custom_datetime_4", "custom_datetime_5",
 		"custom_json_1", "custom_json_2", "custom_json_3", "custom_json_4", "custom_json_5",
@@ -280,7 +280,7 @@ func TestFetchContact(t *testing.T) {
 			"email", "external_id", "timezone", "language",
 			"first_name", "last_name", "full_name", "phone", "address_line_1", "address_line_2",
 			"country", "postcode", "state", "job_title",
-						"custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4", "custom_string_5",
+			"custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4", "custom_string_5",
 			"custom_number_1", "custom_number_2", "custom_number_3", "custom_number_4", "custom_number_5",
 			"custom_datetime_1", "custom_datetime_2", "custom_datetime_3", "custom_datetime_4", "custom_datetime_5",
 			"custom_json_1", "custom_json_2", "custom_json_3", "custom_json_4", "custom_json_5",
@@ -348,7 +348,7 @@ func TestFetchContact(t *testing.T) {
 			"email", "external_id", "timezone", "language",
 			"first_name", "last_name", "full_name", "phone", "address_line_1", "address_line_2",
 			"country", "postcode", "state", "job_title",
-						"custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4", "custom_string_5",
+			"custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4", "custom_string_5",
 			"custom_number_1", "custom_number_2", "custom_number_3", "custom_number_4", "custom_number_5",
 			"custom_datetime_1", "custom_datetime_2", "custom_datetime_3", "custom_datetime_4", "custom_datetime_5",
 			"custom_json_1", "custom_json_2", "custom_json_3", "custom_json_4", "custom_json_5",
@@ -400,7 +400,7 @@ func TestGetContacts(t *testing.T) {
 		rows := sqlmock.NewRows([]string{
 			"email", "external_id", "timezone", "language", "first_name", "last_name", "full_name",
 			"phone", "address_line_1", "address_line_2", "country", "postcode", "state",
-			"job_title", 			"custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4",
+			"job_title", "custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4",
 			"custom_string_5", "custom_number_1", "custom_number_2", "custom_number_3",
 			"custom_number_4", "custom_number_5", "custom_datetime_1", "custom_datetime_2",
 			"custom_datetime_3", "custom_datetime_4", "custom_datetime_5",
@@ -481,7 +481,7 @@ func TestGetContacts(t *testing.T) {
 		rows := sqlmock.NewRows([]string{
 			"email", "external_id", "timezone", "language", "first_name", "last_name", "full_name",
 			"phone", "address_line_1", "address_line_2", "country", "postcode", "state",
-			"job_title", 			"custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4",
+			"job_title", "custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4",
 			"custom_string_5", "custom_number_1", "custom_number_2", "custom_number_3",
 			"custom_number_4", "custom_number_5", "custom_datetime_1", "custom_datetime_2",
 			"custom_datetime_3", "custom_datetime_4", "custom_datetime_5",
@@ -499,7 +499,7 @@ func TestGetContacts(t *testing.T) {
 			time.Now(), time.Now(), time.Now(), time.Now(),
 		)
 
-		mock.ExpectQuery(`SELECT ` + contactColumnsPattern + ` FROM contacts c WHERE c\.email ILIKE \$1 AND c\.first_name ILIKE \$2 AND c\.country ILIKE \$3 ORDER BY c\.created_at DESC, c\.email ASC LIMIT 11`).
+		mock.ExpectQuery(`SELECT `+contactColumnsPattern+` FROM contacts c WHERE c\.email ILIKE \$1 AND c\.first_name ILIKE \$2 AND c\.country ILIKE \$3 ORDER BY c\.created_at DESC, c\.email ASC LIMIT 11`).
 			WithArgs("%test@example.com%", "%John%", "%US%").
 			WillReturnRows(rows)
 
@@ -563,7 +563,7 @@ func TestGetContacts(t *testing.T) {
 		rows := sqlmock.NewRows([]string{
 			"email", "external_id", "timezone", "language", "first_name", "last_name", "full_name",
 			"phone", "address_line_1", "address_line_2", "country", "postcode", "state",
-			"job_title", 			"custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4",
+			"job_title", "custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4",
 			"custom_string_5", "custom_number_1", "custom_number_2", "custom_number_3",
 			"custom_number_4", "custom_number_5", "custom_datetime_1", "custom_datetime_2",
 			"custom_datetime_3", "custom_datetime_4", "custom_datetime_5",
@@ -598,7 +598,7 @@ func TestGetContacts(t *testing.T) {
 
 		// The query should have compound condition for cursor-based pagination
 		// Use a simpler regex pattern that's more forgiving of whitespace variations
-		mock.ExpectQuery(`SELECT ` + contactColumnsPattern + ` FROM contacts c WHERE \(c\.created_at < \$1 OR \(c\.created_at = \$2 AND c\.email > \$3\)\) ORDER BY c\.created_at DESC, c\.email ASC LIMIT 11`).
+		mock.ExpectQuery(`SELECT `+contactColumnsPattern+` FROM contacts c WHERE \(c\.created_at < \$1 OR \(c\.created_at = \$2 AND c\.email > \$3\)\) ORDER BY c\.created_at DESC, c\.email ASC LIMIT 11`).
 			WithArgs(parsedTime, parsedTime, cursorEmail).
 			WillReturnRows(rows)
 
@@ -809,7 +809,7 @@ func TestGetContacts(t *testing.T) {
 		rows := sqlmock.NewRows([]string{
 			"email", "external_id", "timezone", "language", "first_name", "last_name", "full_name",
 			"phone", "address_line_1", "address_line_2", "country", "postcode", "state",
-			"job_title", 			"custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4",
+			"job_title", "custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4",
 			"custom_string_5", "custom_number_1", "custom_number_2", "custom_number_3",
 			"custom_number_4", "custom_number_5", "custom_datetime_1", "custom_datetime_2",
 			"custom_datetime_3", "custom_datetime_4", "custom_datetime_5",
@@ -827,7 +827,7 @@ func TestGetContacts(t *testing.T) {
 			time.Now(), time.Now(), time.Now(), time.Now(),
 		)
 
-		mock.ExpectQuery(`SELECT ` + contactColumnsPattern + ` FROM contacts c WHERE c\.email ILIKE \$1 AND c\.external_id ILIKE \$2 AND c\.first_name ILIKE \$3 AND c\.last_name ILIKE \$4 AND c\.phone ILIKE \$5 AND c\.country ILIKE \$6 ORDER BY c\.created_at DESC, c\.email ASC LIMIT 11`).
+		mock.ExpectQuery(`SELECT `+contactColumnsPattern+` FROM contacts c WHERE c\.email ILIKE \$1 AND c\.external_id ILIKE \$2 AND c\.first_name ILIKE \$3 AND c\.last_name ILIKE \$4 AND c\.phone ILIKE \$5 AND c\.country ILIKE \$6 ORDER BY c\.created_at DESC, c\.email ASC LIMIT 11`).
 			WithArgs("%test@example.com%", "%ext123%", "%John%", "%Doe%", "%+1234567890%", "%US%").
 			WillReturnRows(rows)
 
@@ -923,7 +923,7 @@ func TestGetContacts(t *testing.T) {
 		rows := sqlmock.NewRows([]string{
 			"email", "external_id", "timezone", "language", "first_name", "last_name", "full_name",
 			"phone", "address_line_1", "address_line_2", "country", "postcode", "state",
-			"job_title", 			"custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4",
+			"job_title", "custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4",
 			"custom_string_5", "custom_number_1", "custom_number_2", "custom_number_3",
 			"custom_number_4", "custom_number_5", "custom_datetime_1", "custom_datetime_2",
 			"custom_datetime_3", "custom_datetime_4", "custom_datetime_5",
@@ -1003,7 +1003,7 @@ func TestGetContacts(t *testing.T) {
 		rows := sqlmock.NewRows([]string{
 			"email", "external_id", "timezone", "language", "first_name", "last_name", "full_name",
 			"phone", "address_line_1", "address_line_2", "country", "postcode", "state",
-			"job_title", 			"custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4",
+			"job_title", "custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4",
 			"custom_string_5", "custom_number_1", "custom_number_2", "custom_number_3",
 			"custom_number_4", "custom_number_5", "custom_datetime_1", "custom_datetime_2",
 			"custom_datetime_3", "custom_datetime_4", "custom_datetime_5",
@@ -1083,7 +1083,7 @@ func TestGetContacts(t *testing.T) {
 		rows := sqlmock.NewRows([]string{
 			"email", "external_id", "timezone", "language", "first_name", "last_name", "full_name",
 			"phone", "address_line_1", "address_line_2", "country", "postcode", "state",
-			"job_title", 			"custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4",
+			"job_title", "custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4",
 			"custom_string_5", "custom_number_1", "custom_number_2", "custom_number_3",
 			"custom_number_4", "custom_number_5", "custom_datetime_1", "custom_datetime_2",
 			"custom_datetime_3", "custom_datetime_4", "custom_datetime_5",
@@ -1102,7 +1102,7 @@ func TestGetContacts(t *testing.T) {
 		)
 
 		// Match the query using a regex pattern that includes the EXISTS subquery with both list_id and status filters
-		mock.ExpectQuery(`SELECT ` + contactColumnsPattern + ` FROM contacts c WHERE EXISTS \(SELECT 1 FROM contact_lists cl WHERE cl\.email = c\.email AND cl\.deleted_at IS NULL AND cl\.list_id = \$1 AND cl\.status = \$2\) ORDER BY c\.created_at DESC, c\.email ASC LIMIT 11`).
+		mock.ExpectQuery(`SELECT `+contactColumnsPattern+` FROM contacts c WHERE EXISTS \(SELECT 1 FROM contact_lists cl WHERE cl\.email = c\.email AND cl\.deleted_at IS NULL AND cl\.list_id = \$1 AND cl\.status = \$2\) ORDER BY c\.created_at DESC, c\.email ASC LIMIT 11`).
 			WithArgs("list123", string(domain.ContactListStatusActive)).
 			WillReturnRows(rows)
 
@@ -1162,7 +1162,7 @@ func TestGetContacts(t *testing.T) {
 		rows := sqlmock.NewRows([]string{
 			"email", "external_id", "timezone", "language", "first_name", "last_name", "full_name",
 			"phone", "address_line_1", "address_line_2", "country", "postcode", "state",
-			"job_title", 			"custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4",
+			"job_title", "custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4",
 			"custom_string_5", "custom_number_1", "custom_number_2", "custom_number_3",
 			"custom_number_4", "custom_number_5", "custom_datetime_1", "custom_datetime_2",
 			"custom_datetime_3", "custom_datetime_4", "custom_datetime_5",
@@ -1181,7 +1181,7 @@ func TestGetContacts(t *testing.T) {
 		)
 
 		// Match the query using a regex pattern that includes the EXISTS subquery for segments
-		mock.ExpectQuery(`SELECT ` + contactColumnsPattern + ` FROM contacts c WHERE EXISTS \(SELECT 1 FROM contact_segments cs JOIN segments s ON cs\.segment_id = s\.id WHERE cs\.email = c\.email AND cs\.segment_id IN \(\$1,\$2\)\) ORDER BY c\.created_at DESC, c\.email ASC LIMIT 11`).
+		mock.ExpectQuery(`SELECT `+contactColumnsPattern+` FROM contacts c WHERE EXISTS \(SELECT 1 FROM contact_segments cs JOIN segments s ON cs\.segment_id = s\.id WHERE cs\.email = c\.email AND cs\.segment_id IN \(\$1,\$2\)\) ORDER BY c\.created_at DESC, c\.email ASC LIMIT 11`).
 			WithArgs("segment123", "segment456").
 			WillReturnRows(rows)
 
@@ -1252,7 +1252,7 @@ func TestGetContacts(t *testing.T) {
 		rows := sqlmock.NewRows([]string{
 			"email", "external_id", "timezone", "language", "first_name", "last_name", "full_name",
 			"phone", "address_line_1", "address_line_2", "country", "postcode", "state",
-			"job_title", 			"custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4",
+			"job_title", "custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4",
 			"custom_string_5", "custom_number_1", "custom_number_2", "custom_number_3",
 			"custom_number_4", "custom_number_5", "custom_datetime_1", "custom_datetime_2",
 			"custom_datetime_3", "custom_datetime_4", "custom_datetime_5",
@@ -1339,7 +1339,7 @@ func TestGetContactsForBroadcast(t *testing.T) {
 			"email", "external_id", "timezone", "language",
 			"first_name", "last_name", "full_name", "phone", "address_line_1", "address_line_2",
 			"country", "postcode", "state", "job_title",
-						"custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4", "custom_string_5",
+			"custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4", "custom_string_5",
 			"custom_number_1", "custom_number_2", "custom_number_3", "custom_number_4", "custom_number_5",
 			"custom_datetime_1", "custom_datetime_2", "custom_datetime_3", "custom_datetime_4", "custom_datetime_5",
 			"custom_json_1", "custom_json_2", "custom_json_3", "custom_json_4",
@@ -1370,7 +1370,7 @@ func TestGetContactsForBroadcast(t *testing.T) {
 			)
 
 			// Expect query with JOINS for list filtering and excludeUnsubscribed (cursor-based pagination)
-		mock.ExpectQuery(`SELECT ` + contactColumnsPattern + `, cl\.list_id, l\.name as list_name FROM contacts c JOIN contact_lists cl ON c\.email = cl\.email JOIN lists l ON cl\.list_id = l\.id WHERE cl\.list_id = \$1 AND l\.deleted_at IS NULL AND cl\.status <> \$2 AND cl\.status <> \$3 AND cl\.status <> \$4 ORDER BY c\.email ASC LIMIT 10`).
+		mock.ExpectQuery(`SELECT `+contactColumnsPattern+`, cl\.list_id, l\.name as list_name FROM contacts c JOIN contact_lists cl ON c\.email = cl\.email JOIN lists l ON cl\.list_id = l\.id WHERE cl\.list_id = \$1 AND l\.deleted_at IS NULL AND cl\.status <> \$2 AND cl\.status <> \$3 AND cl\.status <> \$4 ORDER BY c\.email ASC LIMIT 10`).
 			WithArgs("list1",
 				domain.ContactListStatusUnsubscribed,
 				domain.ContactListStatusBounced,
@@ -1421,7 +1421,7 @@ func TestGetContactsForBroadcast(t *testing.T) {
 			"email", "external_id", "timezone", "language",
 			"first_name", "last_name", "full_name", "phone", "address_line_1", "address_line_2",
 			"country", "postcode", "state", "job_title",
-						"custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4", "custom_string_5",
+			"custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4", "custom_string_5",
 			"custom_number_1", "custom_number_2", "custom_number_3", "custom_number_4", "custom_number_5",
 			"custom_datetime_1", "custom_datetime_2", "custom_datetime_3", "custom_datetime_4", "custom_datetime_5",
 			"custom_json_1", "custom_json_2", "custom_json_3", "custom_json_4",
@@ -1517,7 +1517,7 @@ func TestGetContactsForBroadcast(t *testing.T) {
 		}
 
 		// Expect query with error (cursor-based pagination)
-		mock.ExpectQuery(`SELECT ` + contactColumnsPattern + `, cl\.list_id, l\.name as list_name FROM contacts c JOIN contact_lists cl ON c\.email = cl\.email JOIN lists l ON cl\.list_id = l\.id WHERE cl\.list_id = \$1 AND l\.deleted_at IS NULL AND cl\.status <> \$2 AND cl\.status <> \$3 AND cl\.status <> \$4 ORDER BY c\.email ASC LIMIT 10`).
+		mock.ExpectQuery(`SELECT `+contactColumnsPattern+`, cl\.list_id, l\.name as list_name FROM contacts c JOIN contact_lists cl ON c\.email = cl\.email JOIN lists l ON cl\.list_id = l\.id WHERE cl\.list_id = \$1 AND l\.deleted_at IS NULL AND cl\.status <> \$2 AND cl\.status <> \$3 AND cl\.status <> \$4 ORDER BY c\.email ASC LIMIT 10`).
 			WithArgs("list1",
 				domain.ContactListStatusUnsubscribed,
 				domain.ContactListStatusBounced,

@@ -21,11 +21,11 @@ type TreeNodeBranch struct {
 
 // TreeNodeLeaf represents an actual condition on a data source
 type TreeNodeLeaf struct {
-	Source            string                      `json:"source"` // "contacts", "contact_lists", "contact_timeline", "custom_events_goals"
-	Contact           *ContactCondition           `json:"contact,omitempty"`
-	ContactList       *ContactListCondition       `json:"contact_list,omitempty"`
-	ContactTimeline   *ContactTimelineCondition   `json:"contact_timeline,omitempty"`
-	CustomEventsGoal  *CustomEventsGoalCondition  `json:"custom_events_goal,omitempty"`
+	Source           string                     `json:"source"` // "contacts", "contact_lists", "contact_timeline", "custom_events_goals"
+	Contact          *ContactCondition          `json:"contact,omitempty"`
+	ContactList      *ContactListCondition      `json:"contact_list,omitempty"`
+	ContactTimeline  *ContactTimelineCondition  `json:"contact_timeline,omitempty"`
+	CustomEventsGoal *CustomEventsGoalCondition `json:"custom_events_goal,omitempty"`
 }
 
 // ContactCondition represents filters on the contacts table
@@ -58,7 +58,7 @@ type CustomEventsGoalCondition struct {
 	AggregateOperator string   `json:"aggregate_operator"`  // sum, count, avg, min, max
 	Operator          string   `json:"operator"`            // gte, lte, eq, between
 	Value             float64  `json:"value"`
-	Value2            *float64 `json:"value_2,omitempty"` // For between operator
+	Value2            *float64 `json:"value_2,omitempty"`  // For between operator
 	TimeframeOperator string   `json:"timeframe_operator"` // anytime, in_the_last_days, in_date_range, before_date, after_date
 	TimeframeValues   []string `json:"timeframe_values,omitempty"`
 }
@@ -272,11 +272,11 @@ func (g *CustomEventsGoalCondition) Validate() error {
 
 	// Validate timeframe_operator
 	validTimeframes := map[string]bool{
-		"anytime":         true,
+		"anytime":          true,
 		"in_the_last_days": true,
-		"in_date_range":   true,
-		"before_date":     true,
-		"after_date":      true,
+		"in_date_range":    true,
+		"before_date":      true,
+		"after_date":       true,
 	}
 	if !validTimeframes[g.TimeframeOperator] {
 		return fmt.Errorf("invalid timeframe_operator: %s (must be 'anytime', 'in_the_last_days', 'in_date_range', 'before_date', or 'after_date')", g.TimeframeOperator)

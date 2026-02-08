@@ -655,3 +655,124 @@
               $ref: '../components/schemas/common.yaml#/ErrorResponse'
             example:
               error: Failed to select winner
+
+/api/broadcasts.refreshGlobalFeed:
+  post:
+    summary: Refresh global feed data
+    description: |
+      Fetches fresh data from the configured global feed URL and stores it in the broadcast.
+      The global feed must be enabled for the broadcast before calling this endpoint.
+    operationId: refreshGlobalFeed
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/broadcast.yaml#/RefreshGlobalFeedRequest'
+    responses:
+      '200':
+        description: Global feed data refreshed successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/broadcast.yaml#/RefreshGlobalFeedResponse'
+      '400':
+        description: Bad request - global feed not enabled or validation failed
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+            examples:
+              notEnabled:
+                value:
+                  error: global feed is not enabled for this broadcast
+              validation:
+                value:
+                  error: workspace_id is required
+      '401':
+        description: Unauthorized - invalid or missing authentication token
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '404':
+        description: Broadcast not found
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+            example:
+              error: Broadcast not found
+      '500':
+        description: Internal server error
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+            example:
+              error: Failed to refresh global feed
+
+/api/broadcasts.testRecipientFeed:
+  post:
+    summary: Test recipient feed configuration
+    description: |
+      Tests the per-recipient feed configuration by fetching data for a specific contact or a random contact from the broadcast audience.
+      The recipient feed must be enabled for the broadcast before calling this endpoint.
+    operationId: testRecipientFeed
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/broadcast.yaml#/TestRecipientFeedRequest'
+    responses:
+      '200':
+        description: Recipient feed test completed
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/broadcast.yaml#/TestRecipientFeedResponse'
+      '400':
+        description: Bad request - recipient feed not enabled or validation failed
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+            examples:
+              notEnabled:
+                value:
+                  error: recipient feed is not enabled for this broadcast
+              validation:
+                value:
+                  error: workspace_id is required
+      '401':
+        description: Unauthorized - invalid or missing authentication token
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '404':
+        description: Broadcast or contact not found
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+            examples:
+              broadcastNotFound:
+                value:
+                  error: Broadcast not found
+              contactNotFound:
+                value:
+                  error: Contact not found
+      '500':
+        description: Internal server error
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+            example:
+              error: Failed to test recipient feed

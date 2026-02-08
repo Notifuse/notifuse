@@ -60,6 +60,18 @@ dayjs.extend(isToday)
 // eslint-disable-next-line react-refresh/only-export-components -- Utility export co-located with component
 export default dayjs
 
+// Sanitize filename: replace spaces with dashes, lowercase extension
+const sanitizeFilename = (filename: string): string => {
+  const lastDotIndex = filename.lastIndexOf('.')
+  if (lastDotIndex === -1) {
+    // No extension - just replace spaces
+    return filename.replace(/\s+/g, '-')
+  }
+  const name = filename.substring(0, lastDotIndex)
+  const ext = filename.substring(lastDotIndex + 1)
+  return name.replace(/\s+/g, '-') + '.' + ext.toLowerCase()
+}
+
 // Upload file status interface for tracking upload progress
 interface UploadFileStatus {
   file: File
@@ -226,7 +238,7 @@ export const FileManager = (props: FileManagerProps) => {
       message.error(t`Failed to fetch objects: ` + error)
       setIsLoading(false)
     })
-  }, [props.settings, message])
+  }, [props.settings, message, t])
 
   // Initialize or reinitialize S3 client when settings change
   useEffect(() => {
@@ -418,7 +430,7 @@ export const FileManager = (props: FileManagerProps) => {
         await s3ClientRef.current.send(
           new PutObjectCommand({
             Bucket: props.settings?.bucket || '',
-            Key: currentPath + file.name,
+            Key: currentPath + sanitizeFilename(file.name),
             Body: uint8Array,
             ContentType: file.type
           }),

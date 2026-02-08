@@ -1,6 +1,16 @@
 package broadcast
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+)
+
+var (
+	// ErrRecipientSkipped is returned when a recipient is skipped due to feed error
+	ErrRecipientSkipped = errors.New("recipient skipped due to feed error")
+	// ErrBroadcastShouldPause is returned when broadcast should pause due to consecutive feed failures
+	ErrBroadcastShouldPause = errors.New("broadcast should pause due to consecutive feed failures")
+)
 
 // ErrorCode represents specific error conditions in the broadcast system
 type ErrorCode string
@@ -29,6 +39,11 @@ const (
 	ErrCodeTaskStateInvalid   ErrorCode = "TASK_STATE_INVALID"
 	ErrCodeTaskTimeout        ErrorCode = "TASK_TIMEOUT"
 	ErrCodeBroadcastCancelled ErrorCode = "BROADCAST_CANCELLED"
+
+	// Recipient feed errors
+	ErrCodeRecipientFeedFailed  ErrorCode = "RECIPIENT_FEED_FAILED"
+	ErrCodeRecipientSkipped     ErrorCode = "RECIPIENT_SKIPPED"
+	ErrCodeBroadcastShouldPause ErrorCode = "BROADCAST_SHOULD_PAUSE"
 )
 
 // BroadcastError represents an error in the broadcast system with context

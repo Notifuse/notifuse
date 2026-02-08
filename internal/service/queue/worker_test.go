@@ -1287,11 +1287,11 @@ func TestEmailQueueWorker_DynamicBatchSize(t *testing.T) {
 			configBatchSize   int
 			expectedBatchSize int
 		}{
-			{"low rate 20/min", 20, 50, 15},   // (20*45)/60 = 15
-			{"medium rate 60/min", 60, 50, 45}, // (60*45)/60 = 45
+			{"low rate 20/min", 20, 50, 15},      // (20*45)/60 = 15
+			{"medium rate 60/min", 60, 50, 45},   // (60*45)/60 = 45
 			{"high rate 1000/min", 1000, 50, 50}, // (1000*45)/60 = 750, capped at 50
-			{"very low rate 10/min", 10, 50, 7}, // (10*45)/60 = 7
-			{"rate 1/min", 1, 50, 1},           // (1*45)/60 = 0, min is 1
+			{"very low rate 10/min", 10, 50, 7},  // (10*45)/60 = 7
+			{"rate 1/min", 1, 50, 1},             // (1*45)/60 = 0, min is 1
 		}
 
 		for _, tc := range testCases {

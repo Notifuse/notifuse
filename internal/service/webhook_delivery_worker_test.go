@@ -606,10 +606,10 @@ func TestWebhookDeliveryWorker_retryScheduling(t *testing.T) {
 	workspaceID := "workspace1"
 
 	testCases := []struct {
-		name              string
-		attempts          int
-		expectedDelayMin  time.Duration
-		expectedDelayMax  time.Duration
+		name             string
+		attempts         int
+		expectedDelayMin time.Duration
+		expectedDelayMax time.Duration
 	}{
 		{
 			name:             "first retry - 30 seconds",

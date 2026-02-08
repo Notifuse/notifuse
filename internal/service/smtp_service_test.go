@@ -1126,7 +1126,8 @@ func (s *mockOAuth2SMTPServer) GetAuthCommands() []string {
 
 func TestSendRawEmailWithSettings_OAuth2_XOAUTH2(t *testing.T) {
 	expectedToken := "test-access-token-123"
-	expectedUsername := "user@example.com"
+	// expectedUsername is now the sender email (from parameter), not settings.Username
+	expectedUsername := "sender@example.com"
 
 	server := newMockOAuth2SMTPServer(t, expectedToken, expectedUsername)
 	defer server.Close()
@@ -1140,7 +1141,7 @@ func TestSendRawEmailWithSettings_OAuth2_XOAUTH2(t *testing.T) {
 		OAuth2TenantID:     "tenant-123",
 		OAuth2ClientID:     "client-123",
 		OAuth2ClientSecret: "secret-123",
-		Username:           expectedUsername,
+		// Username is no longer required for OAuth2
 	}
 
 	msg := []byte("From: sender@example.com\r\nTo: recipient@example.com\r\nSubject: Test\r\n\r\nTest body")
@@ -1164,7 +1165,8 @@ func TestSendRawEmailWithSettings_OAuth2_XOAUTH2(t *testing.T) {
 }
 
 func TestSendRawEmailWithSettings_OAuth2_InvalidToken(t *testing.T) {
-	server := newMockOAuth2SMTPServer(t, "correct-token", "user@example.com")
+	// Server expects sender email (from parameter) as user in XOAUTH2
+	server := newMockOAuth2SMTPServer(t, "correct-token", "sender@example.com")
 	defer server.Close()
 
 	settings := &domain.SMTPSettings{
@@ -1176,7 +1178,7 @@ func TestSendRawEmailWithSettings_OAuth2_InvalidToken(t *testing.T) {
 		OAuth2TenantID:     "tenant-123",
 		OAuth2ClientID:     "client-123",
 		OAuth2ClientSecret: "secret-123",
-		Username:           "user@example.com",
+		// Username is no longer required for OAuth2
 	}
 
 	msg := []byte("From: sender@example.com\r\nTo: recipient@example.com\r\nSubject: Test\r\n\r\nTest body")
@@ -1255,7 +1257,8 @@ func TestXOAuth2StringFormat(t *testing.T) {
 }
 
 func TestSendRawEmailWithSettings_OAuth2_TokenServiceError(t *testing.T) {
-	server := newMockOAuth2SMTPServer(t, "token", "user@example.com")
+	// Server expects sender email (from parameter) as user in XOAUTH2
+	server := newMockOAuth2SMTPServer(t, "token", "sender@example.com")
 	defer server.Close()
 
 	settings := &domain.SMTPSettings{
@@ -1267,7 +1270,7 @@ func TestSendRawEmailWithSettings_OAuth2_TokenServiceError(t *testing.T) {
 		OAuth2TenantID:     "tenant-123",
 		OAuth2ClientID:     "client-123",
 		OAuth2ClientSecret: "secret-123",
-		Username:           "user@example.com",
+		// Username is no longer required for OAuth2
 	}
 
 	msg := []byte("From: sender@example.com\r\nTo: recipient@example.com\r\nSubject: Test\r\n\r\nTest body")
@@ -1512,7 +1515,8 @@ func (s *mockOAuth2SMTPServerWithRetry) GetAuthCommands() []string {
 
 func TestSendRawEmailWithSettings_OAuth2_RetryOnExpiredToken(t *testing.T) {
 	expectedToken := "new-valid-token"
-	expectedUsername := "user@example.com"
+	// expectedUsername is now the sender email (from parameter)
+	expectedUsername := "sender@example.com"
 
 	server := newMockOAuth2SMTPServerWithRetry(t, expectedToken, expectedUsername)
 	defer server.Close()
@@ -1526,7 +1530,7 @@ func TestSendRawEmailWithSettings_OAuth2_RetryOnExpiredToken(t *testing.T) {
 		OAuth2TenantID:     "tenant-123",
 		OAuth2ClientID:     "client-123",
 		OAuth2ClientSecret: "secret-123",
-		Username:           expectedUsername,
+		// Username is no longer required for OAuth2
 	}
 
 	msg := []byte("From: sender@example.com\r\nTo: recipient@example.com\r\nSubject: Test\r\n\r\nTest body")
@@ -1626,7 +1630,7 @@ func TestSendRawEmailWithSettings_OAuth2_ErrorDecoding(t *testing.T) {
 		OAuth2ClientID:     "client-123",
 		OAuth2ClientSecret: "secret-123",
 		OAuth2RefreshToken: "refresh-token",
-		Username:           "user@gmail.com",
+		// Username is no longer required for OAuth2
 	}
 
 	msg := []byte("From: sender@example.com\r\nTo: recipient@example.com\r\nSubject: Test\r\n\r\nTest body")

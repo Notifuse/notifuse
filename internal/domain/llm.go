@@ -25,7 +25,7 @@ type LLMChatRequest struct {
 
 // LLMMessage represents a chat message
 type LLMMessage struct {
-	Role    string `json:"role"`    // "user" or "assistant"
+	Role    string `json:"role"` // "user" or "assistant"
 	Content string `json:"content"`
 }
 

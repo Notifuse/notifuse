@@ -486,7 +486,7 @@ export class MjButtonBlock extends BaseEmailBlock {
 }
 
 // Functional wrapper component to handle hooks
-// eslint-disable-next-line react-refresh/only-export-components -- Internal wrapper component
+ 
 const MjButtonBlockWrapper: React.FC<PreviewProps & { block: EmailBlock }> = ({
   block,
   selectedBlockId,

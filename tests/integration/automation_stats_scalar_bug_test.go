@@ -18,7 +18,8 @@ import (
 // a scalar JSONB value instead of an object.
 //
 // Root cause: The automation_enroll_contact function uses:
-//   SET stats = jsonb_set(COALESCE(stats, '{}'::jsonb), '{enrolled}', ...)
+//
+//	SET stats = jsonb_set(COALESCE(stats, '{}'::jsonb), '{enrolled}', ...)
 //
 // COALESCE handles SQL NULL, but NOT a stored JSONB scalar value.
 // If stats contains a scalar like 0, "null", or true, jsonb_set fails.

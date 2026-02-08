@@ -851,4 +851,3 @@ func TestTemplateBlockService_DeleteTemplateBlock(t *testing.T) {
 		assert.Contains(t, err.Error(), "failed to delete template block")
 	})
 }
-

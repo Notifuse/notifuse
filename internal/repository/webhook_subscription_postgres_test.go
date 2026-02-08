@@ -570,9 +570,9 @@ func TestWebhookSubscriptionRepository_Update(t *testing.T) {
 			EventTypes:         []string{"email.delivered", "email.opened"},
 			CustomEventFilters: customFilters,
 		},
-		Enabled:     false,
-		CreatedAt:   now.Add(-24 * time.Hour),
-		UpdatedAt:   now.Add(-1 * time.Hour),
+		Enabled:   false,
+		CreatedAt: now.Add(-24 * time.Hour),
+		UpdatedAt: now.Add(-1 * time.Hour),
 	}
 
 	t.Run("Success - with custom filters", func(t *testing.T) {
@@ -622,7 +622,7 @@ func TestWebhookSubscriptionRepository_Update(t *testing.T) {
 				EventTypes:         []string{"email.delivered"},
 				CustomEventFilters: nil,
 			},
-			Enabled:     true,
+			Enabled: true,
 		}
 
 		mock.ExpectExec(`UPDATE webhook_subscriptions SET name = \$2, url = \$3, secret = \$4, settings = \$5, enabled = \$6, updated_at = \$7 WHERE id = \$1`).

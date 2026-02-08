@@ -10,6 +10,7 @@ import (
 
 	"github.com/Notifuse/notifuse/internal/domain"
 	domainmocks "github.com/Notifuse/notifuse/internal/domain/mocks"
+	broadcastmocks "github.com/Notifuse/notifuse/internal/service/broadcast/mocks"
 	"github.com/Notifuse/notifuse/pkg/logger"
 	notifusemjml "github.com/Notifuse/notifuse/pkg/notifuse_mjml"
 	"github.com/golang/mock/gomock"
@@ -63,6 +64,7 @@ type broadcastSvcDeps struct {
 	eventBus           *domainmocks.MockEventBus
 	messageHistoryRepo *domainmocks.MockMessageHistoryRepository
 	listService        *domainmocks.MockListService
+	dataFeedFetcher    *broadcastmocks.MockDataFeedFetcher
 	svc                *BroadcastService
 }
 
@@ -81,6 +83,7 @@ func setupBroadcastSvc(t *testing.T) *broadcastSvcDeps {
 	eventBus := domainmocks.NewMockEventBus(ctrl)
 	messageHistoryRepo := domainmocks.NewMockMessageHistoryRepository(ctrl)
 	listService := domainmocks.NewMockListService(ctrl)
+	dataFeedFetcher := broadcastmocks.NewMockDataFeedFetcher(ctrl)
 
 	// use real no-op logger
 	log := logger.NewLoggerWithLevel("disabled")
@@ -98,6 +101,7 @@ func setupBroadcastSvc(t *testing.T) *broadcastSvcDeps {
 		eventBus,
 		messageHistoryRepo,
 		listService,
+		dataFeedFetcher,
 		"https://api.example.test",
 	)
 
@@ -114,6 +118,7 @@ func setupBroadcastSvc(t *testing.T) *broadcastSvcDeps {
 		eventBus:           eventBus,
 		messageHistoryRepo: messageHistoryRepo,
 		listService:        listService,
+		dataFeedFetcher:    dataFeedFetcher,
 		svc:                svc,
 	}
 }
@@ -939,6 +944,296 @@ func TestBroadcastService_ScheduleBroadcast_EventProcessingFailure(t *testing.T)
 	err := d.svc.ScheduleBroadcast(ctx, req)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to process schedule event")
+}
+
+// Global Feed Integration Tests
+
+func TestBroadcastService_ScheduleWithGlobalFeed_Success(t *testing.T) {
+	d := setupBroadcastSvc(t)
+	defer d.ctrl.Finish()
+
+	ctx := context.Background()
+	req := &domain.ScheduleBroadcastRequest{WorkspaceID: "w1", ID: "b1", SendNow: true}
+	authOK(d.authService, ctx, req.WorkspaceID)
+
+	// workspace with marketing email provider configured
+	workspace := &domain.Workspace{
+		ID:       "w1",
+		Name:     "Test Workspace",
+		Settings: domain.WorkspaceSettings{MarketingEmailProviderID: "mkt"},
+		Integrations: domain.Integrations{
+			{ID: "mkt", Type: domain.IntegrationTypeEmail, EmailProvider: domain.EmailProvider{Kind: domain.EmailProviderKindSMTP, Senders: []domain.EmailSender{domain.NewEmailSender("from@example.com", "From")}}},
+		},
+	}
+	d.workspaceRepo.EXPECT().GetByID(ctx, req.WorkspaceID).Return(workspace, nil)
+
+	// Transaction flow
+	d.repo.EXPECT().WithTransaction(ctx, req.WorkspaceID, gomock.Any()).DoAndReturn(
+		func(_ context.Context, _ string, fn func(*sql.Tx) error) error {
+			return fn(nil)
+		},
+	)
+
+	// Inside tx: get broadcast with GlobalFeed enabled
+	draft := testBroadcast(req.WorkspaceID, req.ID)
+	draft.DataFeed = &domain.DataFeedSettings{
+		GlobalFeed: &domain.GlobalFeedSettings{
+			Enabled: true,
+			URL:     "https://api.example.com/feed",
+		},
+	}
+	d.repo.EXPECT().GetBroadcastTx(gomock.Any(), gomock.Any(), req.WorkspaceID, req.ID).Return(draft, nil)
+
+	// List service returns list details
+	list := &domain.List{ID: "list1", Name: "Test List"}
+	d.listService.EXPECT().GetListByID(ctx, req.WorkspaceID, "list1").Return(list, nil)
+
+	// DataFeedFetcher returns feed data
+	feedData := map[string]interface{}{
+		"products": []interface{}{
+			map[string]interface{}{"id": "1", "name": "Product 1"},
+			map[string]interface{}{"id": "2", "name": "Product 2"},
+		},
+		"_success":    true,
+		"_fetched_at": "2024-01-15T10:00:00Z",
+	}
+	d.dataFeedFetcher.EXPECT().FetchGlobal(gomock.Any(), draft.DataFeed.GlobalFeed, gomock.Any()).DoAndReturn(
+		func(_ context.Context, _ *domain.GlobalFeedSettings, payload *domain.GlobalFeedRequestPayload) (map[string]interface{}, error) {
+			// Verify payload contains expected data
+			assert.Equal(t, draft.ID, payload.Broadcast.ID)
+			assert.Equal(t, draft.Name, payload.Broadcast.Name)
+			assert.Equal(t, "list1", payload.List.ID)
+			assert.Equal(t, "Test List", payload.List.Name)
+			assert.Equal(t, "w1", payload.Workspace.ID)
+			assert.Equal(t, "Test Workspace", payload.Workspace.Name)
+			return feedData, nil
+		},
+	)
+
+	// Update broadcast with feed data
+	d.repo.EXPECT().UpdateBroadcastTx(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(
+		func(_ context.Context, _ *sql.Tx, b *domain.Broadcast) error {
+			// Verify feed data was set
+			assert.NotNil(t, b.DataFeed.GlobalFeedData)
+			assert.NotNil(t, b.DataFeed.GlobalFeedFetchedAt)
+			assert.Equal(t, feedData, map[string]interface{}(b.DataFeed.GlobalFeedData))
+			return nil
+		},
+	)
+
+	d.eventBus.EXPECT().PublishWithAck(gomock.Any(), gomock.Any(), gomock.Any()).Do(
+		func(_ context.Context, _ domain.EventPayload, ack domain.EventAckCallback) {
+			ack(nil)
+		},
+	)
+
+	err := d.svc.ScheduleBroadcast(ctx, req)
+	require.NoError(t, err)
+}
+
+func TestBroadcastService_ScheduleWithGlobalFeed_FetchError(t *testing.T) {
+	d := setupBroadcastSvc(t)
+	defer d.ctrl.Finish()
+
+	ctx := context.Background()
+	req := &domain.ScheduleBroadcastRequest{WorkspaceID: "w1", ID: "b1", SendNow: true}
+	authOK(d.authService, ctx, req.WorkspaceID)
+
+	// workspace with marketing email provider configured
+	workspace := &domain.Workspace{
+		ID:       "w1",
+		Name:     "Test Workspace",
+		Settings: domain.WorkspaceSettings{MarketingEmailProviderID: "mkt"},
+		Integrations: domain.Integrations{
+			{ID: "mkt", Type: domain.IntegrationTypeEmail, EmailProvider: domain.EmailProvider{Kind: domain.EmailProviderKindSMTP}},
+		},
+	}
+	d.workspaceRepo.EXPECT().GetByID(ctx, req.WorkspaceID).Return(workspace, nil)
+
+	d.repo.EXPECT().WithTransaction(ctx, req.WorkspaceID, gomock.Any()).DoAndReturn(
+		func(_ context.Context, _ string, fn func(*sql.Tx) error) error {
+			// broadcast with GlobalFeed enabled
+			draft := testBroadcast(req.WorkspaceID, req.ID)
+			draft.DataFeed = &domain.DataFeedSettings{
+				GlobalFeed: &domain.GlobalFeedSettings{
+					Enabled: true,
+					URL:     "https://api.example.com/feed",
+				},
+			}
+			d.repo.EXPECT().GetBroadcastTx(gomock.Any(), gomock.Any(), req.WorkspaceID, req.ID).Return(draft, nil)
+
+			// List service returns list details
+			d.listService.EXPECT().GetListByID(ctx, req.WorkspaceID, "list1").Return(&domain.List{ID: "list1", Name: "Test List"}, nil)
+
+			// DataFeedFetcher returns error
+			d.dataFeedFetcher.EXPECT().FetchGlobal(gomock.Any(), draft.DataFeed.GlobalFeed, gomock.Any()).Return(nil, errors.New("connection timeout"))
+
+			return fn(nil)
+		},
+	)
+
+	err := d.svc.ScheduleBroadcast(ctx, req)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to fetch global feed")
+	assert.Contains(t, err.Error(), "connection timeout")
+}
+
+func TestBroadcastService_ScheduleWithoutGlobalFeed(t *testing.T) {
+	d := setupBroadcastSvc(t)
+	defer d.ctrl.Finish()
+
+	ctx := context.Background()
+	req := &domain.ScheduleBroadcastRequest{WorkspaceID: "w1", ID: "b1", SendNow: true}
+	authOK(d.authService, ctx, req.WorkspaceID)
+
+	// workspace with marketing email provider configured
+	workspace := &domain.Workspace{
+		ID:       "w1",
+		Name:     "Test Workspace",
+		Settings: domain.WorkspaceSettings{MarketingEmailProviderID: "mkt"},
+		Integrations: domain.Integrations{
+			{ID: "mkt", Type: domain.IntegrationTypeEmail, EmailProvider: domain.EmailProvider{Kind: domain.EmailProviderKindSMTP, Senders: []domain.EmailSender{domain.NewEmailSender("from@example.com", "From")}}},
+		},
+	}
+	d.workspaceRepo.EXPECT().GetByID(ctx, req.WorkspaceID).Return(workspace, nil)
+
+	// Transaction flow
+	d.repo.EXPECT().WithTransaction(ctx, req.WorkspaceID, gomock.Any()).DoAndReturn(
+		func(_ context.Context, _ string, fn func(*sql.Tx) error) error {
+			return fn(nil)
+		},
+	)
+
+	// Inside tx: get broadcast WITHOUT GlobalFeed
+	draft := testBroadcast(req.WorkspaceID, req.ID)
+	// DataFeed is already nil from testBroadcast(), meaning no global feed configured
+	d.repo.EXPECT().GetBroadcastTx(gomock.Any(), gomock.Any(), req.WorkspaceID, req.ID).Return(draft, nil)
+
+	// FetchGlobal should NOT be called
+	// (no expectation set means it will fail if called)
+
+	d.repo.EXPECT().UpdateBroadcastTx(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+
+	d.eventBus.EXPECT().PublishWithAck(gomock.Any(), gomock.Any(), gomock.Any()).Do(
+		func(_ context.Context, _ domain.EventPayload, ack domain.EventAckCallback) {
+			ack(nil)
+		},
+	)
+
+	err := d.svc.ScheduleBroadcast(ctx, req)
+	require.NoError(t, err)
+}
+
+func TestBroadcastService_ScheduleWithGlobalFeed_Disabled(t *testing.T) {
+	d := setupBroadcastSvc(t)
+	defer d.ctrl.Finish()
+
+	ctx := context.Background()
+	req := &domain.ScheduleBroadcastRequest{WorkspaceID: "w1", ID: "b1", SendNow: true}
+	authOK(d.authService, ctx, req.WorkspaceID)
+
+	// workspace with marketing email provider configured
+	workspace := &domain.Workspace{
+		ID:       "w1",
+		Name:     "Test Workspace",
+		Settings: domain.WorkspaceSettings{MarketingEmailProviderID: "mkt"},
+		Integrations: domain.Integrations{
+			{ID: "mkt", Type: domain.IntegrationTypeEmail, EmailProvider: domain.EmailProvider{Kind: domain.EmailProviderKindSMTP, Senders: []domain.EmailSender{domain.NewEmailSender("from@example.com", "From")}}},
+		},
+	}
+	d.workspaceRepo.EXPECT().GetByID(ctx, req.WorkspaceID).Return(workspace, nil)
+
+	// Transaction flow
+	d.repo.EXPECT().WithTransaction(ctx, req.WorkspaceID, gomock.Any()).DoAndReturn(
+		func(_ context.Context, _ string, fn func(*sql.Tx) error) error {
+			return fn(nil)
+		},
+	)
+
+	// Inside tx: get broadcast with GlobalFeed disabled
+	draft := testBroadcast(req.WorkspaceID, req.ID)
+	draft.DataFeed = &domain.DataFeedSettings{
+		GlobalFeed: &domain.GlobalFeedSettings{
+			Enabled: false, // Disabled
+			URL:     "https://api.example.com/feed",
+		},
+	}
+	d.repo.EXPECT().GetBroadcastTx(gomock.Any(), gomock.Any(), req.WorkspaceID, req.ID).Return(draft, nil)
+
+	// FetchGlobal should NOT be called when disabled
+	// (no expectation set means it will fail if called)
+
+	d.repo.EXPECT().UpdateBroadcastTx(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+
+	d.eventBus.EXPECT().PublishWithAck(gomock.Any(), gomock.Any(), gomock.Any()).Do(
+		func(_ context.Context, _ domain.EventPayload, ack domain.EventAckCallback) {
+			ack(nil)
+		},
+	)
+
+	err := d.svc.ScheduleBroadcast(ctx, req)
+	require.NoError(t, err)
+}
+
+func TestBroadcastService_ScheduleWithGlobalFeed_ListNotFound(t *testing.T) {
+	d := setupBroadcastSvc(t)
+	defer d.ctrl.Finish()
+
+	ctx := context.Background()
+	req := &domain.ScheduleBroadcastRequest{WorkspaceID: "w1", ID: "b1", SendNow: true}
+	authOK(d.authService, ctx, req.WorkspaceID)
+
+	// workspace with marketing email provider configured
+	workspace := &domain.Workspace{
+		ID:       "w1",
+		Name:     "Test Workspace",
+		Settings: domain.WorkspaceSettings{MarketingEmailProviderID: "mkt"},
+		Integrations: domain.Integrations{
+			{ID: "mkt", Type: domain.IntegrationTypeEmail, EmailProvider: domain.EmailProvider{Kind: domain.EmailProviderKindSMTP, Senders: []domain.EmailSender{domain.NewEmailSender("from@example.com", "From")}}},
+		},
+	}
+	d.workspaceRepo.EXPECT().GetByID(ctx, req.WorkspaceID).Return(workspace, nil)
+
+	// Transaction flow
+	d.repo.EXPECT().WithTransaction(ctx, req.WorkspaceID, gomock.Any()).DoAndReturn(
+		func(_ context.Context, _ string, fn func(*sql.Tx) error) error {
+			return fn(nil)
+		},
+	)
+
+	// Inside tx: get broadcast with GlobalFeed enabled
+	draft := testBroadcast(req.WorkspaceID, req.ID)
+	draft.DataFeed = &domain.DataFeedSettings{
+		GlobalFeed: &domain.GlobalFeedSettings{
+			Enabled: true,
+			URL:     "https://api.example.com/feed",
+		},
+	}
+	d.repo.EXPECT().GetBroadcastTx(gomock.Any(), gomock.Any(), req.WorkspaceID, req.ID).Return(draft, nil)
+
+	// List service returns error (list not found) - should continue with empty list name
+	d.listService.EXPECT().GetListByID(ctx, req.WorkspaceID, "list1").Return(nil, errors.New("list not found"))
+
+	// DataFeedFetcher should still be called but with empty list name
+	feedData := map[string]interface{}{"_success": true}
+	d.dataFeedFetcher.EXPECT().FetchGlobal(gomock.Any(), draft.DataFeed.GlobalFeed, gomock.Any()).DoAndReturn(
+		func(_ context.Context, _ *domain.GlobalFeedSettings, payload *domain.GlobalFeedRequestPayload) (map[string]interface{}, error) {
+			// List name should be empty since list fetch failed
+			assert.Equal(t, "", payload.List.Name)
+			return feedData, nil
+		},
+	)
+
+	d.repo.EXPECT().UpdateBroadcastTx(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+
+	d.eventBus.EXPECT().PublishWithAck(gomock.Any(), gomock.Any(), gomock.Any()).Do(
+		func(_ context.Context, _ domain.EventPayload, ack domain.EventAckCallback) {
+			ack(nil)
+		},
+	)
+
+	err := d.svc.ScheduleBroadcast(ctx, req)
+	require.NoError(t, err)
 }
 
 func TestBroadcastService_PauseBroadcast_AuthFailure(t *testing.T) {
@@ -2387,4 +2682,329 @@ func TestValidateSlug(t *testing.T) {
 			assert.Contains(t, err.Error(), "lowercase letters, numbers, and hyphens")
 		}
 	})
+}
+
+func TestBroadcastService_RefreshGlobalFeed_Success(t *testing.T) {
+	d := setupBroadcastSvc(t)
+	defer d.ctrl.Finish()
+
+	ctx := context.Background()
+	req := &domain.RefreshGlobalFeedRequest{WorkspaceID: "w1", BroadcastID: "b1", URL: "https://example.com/feed", Headers: []domain.DataFeedHeader{}}
+	authOK(d.authService, ctx, req.WorkspaceID)
+
+	// Broadcast (no feed settings needed - URL comes from request)
+	b := testBroadcast(req.WorkspaceID, req.BroadcastID)
+	d.repo.EXPECT().GetBroadcast(ctx, req.WorkspaceID, req.BroadcastID).Return(b, nil)
+
+	// Workspace for payload
+	workspace := &domain.Workspace{ID: "w1", Name: "Test Workspace"}
+	d.workspaceRepo.EXPECT().GetByID(ctx, req.WorkspaceID).Return(workspace, nil)
+
+	// List for payload
+	list := &domain.List{ID: "list1", Name: "Test List"}
+	d.listService.EXPECT().GetListByID(ctx, req.WorkspaceID, b.Audience.List).Return(list, nil)
+
+	// Feed fetcher returns data
+	feedData := map[string]interface{}{
+		"products":    []interface{}{map[string]interface{}{"id": "1", "name": "Product"}},
+		"_success":    true,
+		"_fetched_at": time.Now().UTC().Format(time.RFC3339),
+	}
+	d.dataFeedFetcher.EXPECT().FetchGlobal(ctx, gomock.Any(), gomock.Any()).Return(feedData, nil)
+
+	resp, err := d.svc.RefreshGlobalFeed(ctx, req)
+	require.NoError(t, err)
+	assert.True(t, resp.Success)
+	assert.NotNil(t, resp.Data)
+	assert.NotNil(t, resp.FetchedAt)
+}
+
+func TestBroadcastService_RefreshGlobalFeed_FetchError(t *testing.T) {
+	d := setupBroadcastSvc(t)
+	defer d.ctrl.Finish()
+
+	ctx := context.Background()
+	req := &domain.RefreshGlobalFeedRequest{WorkspaceID: "w1", BroadcastID: "b1", URL: "https://example.com/feed", Headers: []domain.DataFeedHeader{}}
+	authOK(d.authService, ctx, req.WorkspaceID)
+
+	// Broadcast (no feed settings needed - URL comes from request)
+	b := testBroadcast(req.WorkspaceID, req.BroadcastID)
+	d.repo.EXPECT().GetBroadcast(ctx, req.WorkspaceID, req.BroadcastID).Return(b, nil)
+
+	// Workspace for payload
+	workspace := &domain.Workspace{ID: "w1", Name: "Test Workspace"}
+	d.workspaceRepo.EXPECT().GetByID(ctx, req.WorkspaceID).Return(workspace, nil)
+
+	// List for payload (not found)
+	d.listService.EXPECT().GetListByID(ctx, req.WorkspaceID, b.Audience.List).Return(nil, errors.New("not found"))
+
+	// Feed fetcher returns error
+	d.dataFeedFetcher.EXPECT().FetchGlobal(ctx, gomock.Any(), gomock.Any()).Return(nil, errors.New("connection timeout"))
+
+	// Should return response with error, not a hard error
+	resp, err := d.svc.RefreshGlobalFeed(ctx, req)
+	require.NoError(t, err) // Not a hard error
+	assert.NotNil(t, resp)
+	assert.False(t, resp.Success)
+	assert.Contains(t, resp.Error, "connection timeout")
+}
+
+func TestBroadcastService_RefreshGlobalFeed_AuthFailure(t *testing.T) {
+	d := setupBroadcastSvc(t)
+	defer d.ctrl.Finish()
+
+	ctx := context.Background()
+	req := &domain.RefreshGlobalFeedRequest{WorkspaceID: "w1", BroadcastID: "b1", URL: "https://example.com/feed", Headers: []domain.DataFeedHeader{}}
+
+	d.authService.EXPECT().AuthenticateUserForWorkspace(ctx, req.WorkspaceID).Return(ctx, nil, nil, errors.New("auth failed"))
+
+	resp, err := d.svc.RefreshGlobalFeed(ctx, req)
+	assert.Nil(t, resp)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to authenticate user")
+}
+
+func TestBroadcastService_RefreshGlobalFeed_BroadcastNotFound(t *testing.T) {
+	d := setupBroadcastSvc(t)
+	defer d.ctrl.Finish()
+
+	ctx := context.Background()
+	req := &domain.RefreshGlobalFeedRequest{WorkspaceID: "w1", BroadcastID: "nonexistent", URL: "https://example.com/feed", Headers: []domain.DataFeedHeader{}}
+	authOK(d.authService, ctx, req.WorkspaceID)
+
+	d.repo.EXPECT().GetBroadcast(ctx, req.WorkspaceID, req.BroadcastID).Return(nil, &domain.ErrBroadcastNotFound{ID: req.BroadcastID})
+
+	resp, err := d.svc.RefreshGlobalFeed(ctx, req)
+	assert.Nil(t, resp)
+	assert.Error(t, err)
+	assert.IsType(t, &domain.ErrBroadcastNotFound{}, err)
+}
+
+func TestBroadcastService_RefreshGlobalFeed_ValidationFailure(t *testing.T) {
+	d := setupBroadcastSvc(t)
+	defer d.ctrl.Finish()
+
+	ctx := context.Background()
+
+	// Test with missing workspace_id
+	req := &domain.RefreshGlobalFeedRequest{BroadcastID: "b1", URL: "https://example.com/feed"}
+	resp, err := d.svc.RefreshGlobalFeed(ctx, req)
+	assert.Nil(t, resp)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "workspace_id is required")
+
+	// Test with missing broadcast_id
+	req = &domain.RefreshGlobalFeedRequest{WorkspaceID: "w1", URL: "https://example.com/feed"}
+	resp, err = d.svc.RefreshGlobalFeed(ctx, req)
+	assert.Nil(t, resp)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "broadcast_id is required")
+
+	// Test with missing URL
+	req = &domain.RefreshGlobalFeedRequest{WorkspaceID: "w1", BroadcastID: "b1"}
+	resp, err = d.svc.RefreshGlobalFeed(ctx, req)
+	assert.Nil(t, resp)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "url is required")
+}
+
+func TestBroadcastService_TestRecipientFeed_Success(t *testing.T) {
+	d := setupBroadcastSvc(t)
+	defer d.ctrl.Finish()
+
+	ctx := context.Background()
+	req := &domain.TestRecipientFeedRequest{WorkspaceID: "w1", BroadcastID: "b1", URL: "https://example.com/recipient-feed", Headers: []domain.DataFeedHeader{}}
+	authOK(d.authService, ctx, req.WorkspaceID)
+
+	// Broadcast (no feed settings needed - URL comes from request)
+	b := testBroadcast(req.WorkspaceID, req.BroadcastID)
+	d.repo.EXPECT().GetBroadcast(ctx, req.WorkspaceID, req.BroadcastID).Return(b, nil)
+
+	// Workspace for payload
+	workspace := &domain.Workspace{ID: "w1", Name: "Test Workspace"}
+	d.workspaceRepo.EXPECT().GetByID(ctx, req.WorkspaceID).Return(workspace, nil)
+
+	// List for payload
+	list := &domain.List{ID: "list1", Name: "Test List"}
+	d.listService.EXPECT().GetListByID(ctx, req.WorkspaceID, b.Audience.List).Return(list, nil)
+
+	// Feed fetcher returns data
+	feedData := map[string]interface{}{
+		"recommendations": []interface{}{map[string]interface{}{"id": "1", "title": "Product"}},
+		"_success":        true,
+		"_fetched_at":     time.Now().UTC().Format(time.RFC3339),
+	}
+	d.dataFeedFetcher.EXPECT().FetchRecipient(ctx, gomock.Any(), gomock.Any()).Return(feedData, nil)
+
+	resp, err := d.svc.TestRecipientFeed(ctx, req)
+	require.NoError(t, err)
+	assert.True(t, resp.Success)
+	assert.NotNil(t, resp.Data)
+	assert.NotNil(t, resp.FetchedAt)
+	assert.Equal(t, "sample@example.com", resp.ContactEmail) // Uses sample contact
+}
+
+func TestBroadcastService_TestRecipientFeed_WithSpecificContact(t *testing.T) {
+	d := setupBroadcastSvc(t)
+	defer d.ctrl.Finish()
+
+	ctx := context.Background()
+	req := &domain.TestRecipientFeedRequest{
+		WorkspaceID:  "w1",
+		BroadcastID:  "b1",
+		ContactEmail: "john@example.com",
+		URL:          "https://example.com/recipient-feed",
+		Headers:      []domain.DataFeedHeader{},
+	}
+	authOK(d.authService, ctx, req.WorkspaceID)
+
+	// Broadcast (no feed settings needed - URL comes from request)
+	b := testBroadcast(req.WorkspaceID, req.BroadcastID)
+	d.repo.EXPECT().GetBroadcast(ctx, req.WorkspaceID, req.BroadcastID).Return(b, nil)
+
+	// Contact lookup
+	contact := &domain.Contact{
+		Email:     "john@example.com",
+		FirstName: &domain.NullableString{String: "John", IsNull: false},
+		LastName:  &domain.NullableString{String: "Doe", IsNull: false},
+		CreatedAt: time.Now().UTC(),
+		UpdatedAt: time.Now().UTC(),
+	}
+	d.contactRepo.EXPECT().GetContactByEmail(ctx, req.WorkspaceID, req.ContactEmail).Return(contact, nil)
+
+	// Workspace for payload
+	workspace := &domain.Workspace{ID: "w1", Name: "Test Workspace"}
+	d.workspaceRepo.EXPECT().GetByID(ctx, req.WorkspaceID).Return(workspace, nil)
+
+	// List for payload
+	list := &domain.List{ID: "list1", Name: "Test List"}
+	d.listService.EXPECT().GetListByID(ctx, req.WorkspaceID, b.Audience.List).Return(list, nil)
+
+	// Feed fetcher returns data
+	feedData := map[string]interface{}{
+		"user_preferences": map[string]interface{}{"theme": "dark"},
+	}
+	d.dataFeedFetcher.EXPECT().FetchRecipient(ctx, gomock.Any(), gomock.Any()).Return(feedData, nil)
+
+	resp, err := d.svc.TestRecipientFeed(ctx, req)
+	require.NoError(t, err)
+	assert.True(t, resp.Success)
+	assert.NotNil(t, resp.Data)
+	assert.Equal(t, "john@example.com", resp.ContactEmail)
+}
+
+func TestBroadcastService_TestRecipientFeed_FetchError(t *testing.T) {
+	d := setupBroadcastSvc(t)
+	defer d.ctrl.Finish()
+
+	ctx := context.Background()
+	req := &domain.TestRecipientFeedRequest{WorkspaceID: "w1", BroadcastID: "b1", URL: "https://example.com/recipient-feed", Headers: []domain.DataFeedHeader{}}
+	authOK(d.authService, ctx, req.WorkspaceID)
+
+	// Broadcast (no feed settings needed - URL comes from request)
+	b := testBroadcast(req.WorkspaceID, req.BroadcastID)
+	d.repo.EXPECT().GetBroadcast(ctx, req.WorkspaceID, req.BroadcastID).Return(b, nil)
+
+	// Workspace for payload
+	workspace := &domain.Workspace{ID: "w1", Name: "Test Workspace"}
+	d.workspaceRepo.EXPECT().GetByID(ctx, req.WorkspaceID).Return(workspace, nil)
+
+	// List for payload
+	list := &domain.List{ID: "list1", Name: "Test List"}
+	d.listService.EXPECT().GetListByID(ctx, req.WorkspaceID, b.Audience.List).Return(list, nil)
+
+	// Feed fetcher returns error
+	d.dataFeedFetcher.EXPECT().FetchRecipient(ctx, gomock.Any(), gomock.Any()).Return(nil, errors.New("connection timeout"))
+
+	// Response should succeed but contain error info
+	resp, err := d.svc.TestRecipientFeed(ctx, req)
+	require.NoError(t, err) // No hard error
+	assert.False(t, resp.Success)
+	assert.Contains(t, resp.Error, "connection timeout")
+	assert.Equal(t, "sample@example.com", resp.ContactEmail)
+}
+
+func TestBroadcastService_TestRecipientFeed_AuthFailure(t *testing.T) {
+	d := setupBroadcastSvc(t)
+	defer d.ctrl.Finish()
+
+	ctx := context.Background()
+	req := &domain.TestRecipientFeedRequest{WorkspaceID: "w1", BroadcastID: "b1", URL: "https://example.com/recipient-feed", Headers: []domain.DataFeedHeader{}}
+
+	d.authService.EXPECT().AuthenticateUserForWorkspace(ctx, req.WorkspaceID).Return(ctx, nil, nil, errors.New("auth failed"))
+
+	resp, err := d.svc.TestRecipientFeed(ctx, req)
+	assert.Nil(t, resp)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to authenticate user")
+}
+
+func TestBroadcastService_TestRecipientFeed_BroadcastNotFound(t *testing.T) {
+	d := setupBroadcastSvc(t)
+	defer d.ctrl.Finish()
+
+	ctx := context.Background()
+	req := &domain.TestRecipientFeedRequest{WorkspaceID: "w1", BroadcastID: "b1", URL: "https://example.com/recipient-feed", Headers: []domain.DataFeedHeader{}}
+	authOK(d.authService, ctx, req.WorkspaceID)
+
+	d.repo.EXPECT().GetBroadcast(ctx, req.WorkspaceID, req.BroadcastID).Return(nil, &domain.ErrBroadcastNotFound{ID: req.BroadcastID})
+
+	resp, err := d.svc.TestRecipientFeed(ctx, req)
+	assert.Nil(t, resp)
+	assert.Error(t, err)
+}
+
+func TestBroadcastService_TestRecipientFeed_ContactNotFound(t *testing.T) {
+	d := setupBroadcastSvc(t)
+	defer d.ctrl.Finish()
+
+	ctx := context.Background()
+	req := &domain.TestRecipientFeedRequest{
+		WorkspaceID:  "w1",
+		BroadcastID:  "b1",
+		ContactEmail: "notfound@example.com",
+		URL:          "https://example.com/recipient-feed",
+		Headers:      []domain.DataFeedHeader{},
+	}
+	authOK(d.authService, ctx, req.WorkspaceID)
+
+	// Broadcast (no feed settings needed - URL comes from request)
+	b := testBroadcast(req.WorkspaceID, req.BroadcastID)
+	d.repo.EXPECT().GetBroadcast(ctx, req.WorkspaceID, req.BroadcastID).Return(b, nil)
+
+	// Contact not found
+	d.contactRepo.EXPECT().GetContactByEmail(ctx, req.WorkspaceID, req.ContactEmail).Return(nil, domain.ErrContactNotFound)
+
+	resp, err := d.svc.TestRecipientFeed(ctx, req)
+	assert.Nil(t, resp)
+	assert.Error(t, err)
+	assert.IsType(t, &domain.ErrContactNotFoundForFeed{}, err)
+}
+
+func TestBroadcastService_TestRecipientFeed_ValidationFailure(t *testing.T) {
+	d := setupBroadcastSvc(t)
+	defer d.ctrl.Finish()
+
+	ctx := context.Background()
+
+	// Test with missing workspace_id
+	req := &domain.TestRecipientFeedRequest{BroadcastID: "b1", URL: "https://example.com/feed"}
+	resp, err := d.svc.TestRecipientFeed(ctx, req)
+	assert.Nil(t, resp)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "workspace_id is required")
+
+	// Test with missing broadcast_id
+	req = &domain.TestRecipientFeedRequest{WorkspaceID: "w1", URL: "https://example.com/feed"}
+	resp, err = d.svc.TestRecipientFeed(ctx, req)
+	assert.Nil(t, resp)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "broadcast_id is required")
+
+	// Test with missing URL
+	req = &domain.TestRecipientFeedRequest{WorkspaceID: "w1", BroadcastID: "b1"}
+	resp, err = d.svc.TestRecipientFeed(ctx, req)
+	assert.Nil(t, resp)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "url is required")
 }

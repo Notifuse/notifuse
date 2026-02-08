@@ -1774,8 +1774,8 @@ func TestRemoveFromListNodeExecutor_Execute_InvalidConfig(t *testing.T) {
 	params := NodeExecutionParams{
 		WorkspaceID: "ws1",
 		Node: &domain.AutomationNode{
-			ID:   "remove_from_list1",
-			Type: domain.NodeTypeRemoveFromList,
+			ID:     "remove_from_list1",
+			Type:   domain.NodeTypeRemoveFromList,
 			Config: map[string]interface{}{
 				// Missing list_id
 			},
@@ -1815,10 +1815,10 @@ func TestListStatusBranchNodeExecutor_NodeType(t *testing.T) {
 func TestParseListStatusBranchNodeConfig(t *testing.T) {
 	t.Run("valid config", func(t *testing.T) {
 		config := map[string]interface{}{
-			"list_id":              "list123",
-			"not_in_list_node_id":  "node1",
-			"active_node_id":       "node2",
-			"non_active_node_id":   "node3",
+			"list_id":             "list123",
+			"not_in_list_node_id": "node1",
+			"active_node_id":      "node2",
+			"non_active_node_id":  "node3",
 		}
 
 		c, err := parseListStatusBranchNodeConfig(config)
@@ -1867,10 +1867,10 @@ func TestListStatusBranchNodeExecutor_Execute_NotInList(t *testing.T) {
 			ID:   "list_status_branch1",
 			Type: domain.NodeTypeListStatusBranch,
 			Config: map[string]interface{}{
-				"list_id":              "list123",
-				"not_in_list_node_id":  "node_not_in_list",
-				"active_node_id":       "node_active",
-				"non_active_node_id":   "node_non_active",
+				"list_id":             "list123",
+				"not_in_list_node_id": "node_not_in_list",
+				"active_node_id":      "node_active",
+				"non_active_node_id":  "node_non_active",
 			},
 		},
 		Contact: &domain.ContactAutomation{
@@ -1912,10 +1912,10 @@ func TestListStatusBranchNodeExecutor_Execute_ActiveStatus(t *testing.T) {
 			ID:   "list_status_branch1",
 			Type: domain.NodeTypeListStatusBranch,
 			Config: map[string]interface{}{
-				"list_id":              "list123",
-				"not_in_list_node_id":  "node_not_in_list",
-				"active_node_id":       "node_active",
-				"non_active_node_id":   "node_non_active",
+				"list_id":             "list123",
+				"not_in_list_node_id": "node_not_in_list",
+				"active_node_id":      "node_active",
+				"non_active_node_id":  "node_non_active",
 			},
 		},
 		Contact: &domain.ContactAutomation{
@@ -1964,10 +1964,10 @@ func TestListStatusBranchNodeExecutor_Execute_NonActiveStatuses(t *testing.T) {
 					ID:   "list_status_branch1",
 					Type: domain.NodeTypeListStatusBranch,
 					Config: map[string]interface{}{
-						"list_id":              "list123",
-						"not_in_list_node_id":  "node_not_in_list",
-						"active_node_id":       "node_active",
-						"non_active_node_id":   "node_non_active",
+						"list_id":             "list123",
+						"not_in_list_node_id": "node_not_in_list",
+						"active_node_id":      "node_active",
+						"non_active_node_id":  "node_non_active",
 					},
 				},
 				Contact: &domain.ContactAutomation{
@@ -2005,10 +2005,10 @@ func TestListStatusBranchNodeExecutor_Execute_RepositoryError(t *testing.T) {
 			ID:   "list_status_branch1",
 			Type: domain.NodeTypeListStatusBranch,
 			Config: map[string]interface{}{
-				"list_id":              "list123",
-				"not_in_list_node_id":  "node_not_in_list",
-				"active_node_id":       "node_active",
-				"non_active_node_id":   "node_non_active",
+				"list_id":             "list123",
+				"not_in_list_node_id": "node_not_in_list",
+				"active_node_id":      "node_active",
+				"non_active_node_id":  "node_non_active",
 			},
 		},
 		Contact: &domain.ContactAutomation{
@@ -2034,8 +2034,8 @@ func TestListStatusBranchNodeExecutor_Execute_InvalidConfig(t *testing.T) {
 	params := NodeExecutionParams{
 		WorkspaceID: "ws1",
 		Node: &domain.AutomationNode{
-			ID:   "list_status_branch1",
-			Type: domain.NodeTypeListStatusBranch,
+			ID:     "list_status_branch1",
+			Type:   domain.NodeTypeListStatusBranch,
 			Config: map[string]interface{}{
 				// Missing list_id
 			},
@@ -2069,10 +2069,10 @@ func TestListStatusBranchNodeExecutor_Execute_EmptyBranchCompletes(t *testing.T)
 			ID:   "list_status_branch1",
 			Type: domain.NodeTypeListStatusBranch,
 			Config: map[string]interface{}{
-				"list_id":              "list123",
-				"not_in_list_node_id":  "", // Empty - should complete
-				"active_node_id":       "node_active",
-				"non_active_node_id":   "node_non_active",
+				"list_id":             "list123",
+				"not_in_list_node_id": "", // Empty - should complete
+				"active_node_id":      "node_active",
+				"non_active_node_id":  "node_non_active",
 			},
 		},
 		Contact: &domain.ContactAutomation{
@@ -2755,8 +2755,8 @@ func TestWebhookNodeExecutor_Execute_InvalidConfig(t *testing.T) {
 	params := NodeExecutionParams{
 		WorkspaceID: "ws1",
 		Node: &domain.AutomationNode{
-			ID:   "webhook_node1",
-			Type: domain.NodeTypeWebhook,
+			ID:     "webhook_node1",
+			Type:   domain.NodeTypeWebhook,
 			Config: map[string]interface{}{
 				// Missing URL
 			},

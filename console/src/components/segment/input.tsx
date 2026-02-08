@@ -196,7 +196,7 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
     // })
 
     return options
-  }, [props.schemas])
+  }, [props.schemas, t])
 
   // borderColor incrementer
   let currentColorID = 0

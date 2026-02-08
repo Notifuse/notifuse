@@ -412,4 +412,3 @@ func TestConnectionPoolPerformance(t *testing.T) {
 			"Pool warmup should be fast")
 	})
 }
-
