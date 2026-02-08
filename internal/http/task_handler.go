@@ -2,6 +2,7 @@ package http
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strings"
 	"time"
@@ -45,6 +46,8 @@ func (h *TaskHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.Handle("/api/tasks.list", requireAuth(http.HandlerFunc(h.ListTasks)))
 	mux.Handle("/api/tasks.get", requireAuth(http.HandlerFunc(h.GetTask)))
 	mux.Handle("/api/tasks.delete", requireAuth(http.HandlerFunc(h.DeleteTask)))
+	mux.Handle("/api/tasks.reset", requireAuth(http.HandlerFunc(h.ResetTask)))
+	mux.Handle("/api/tasks.trigger", requireAuth(http.HandlerFunc(h.TriggerTask)))
 	// public routes for external systems to trigger task execution
 	mux.Handle("/api/tasks.execute", http.HandlerFunc(h.ExecuteTask))
 	mux.Handle("/api/cron", http.HandlerFunc(h.ExecutePendingTasks))
@@ -324,4 +327,79 @@ func (h *TaskHandler) GetCronStatus(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, response)
+}
+
+// ResetTask resets a failed recurring task, clearing error state and scheduling for immediate execution
+func (h *TaskHandler) ResetTask(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req domain.ResetTaskRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		WriteJSONError(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if err := req.Validate(); err != nil {
+		WriteJSONError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if err := h.taskService.ResetTask(r.Context(), req.WorkspaceID, req.ID); err != nil {
+		if errors.Is(err, domain.ErrTaskNotFound) {
+			WriteJSONError(w, "Task not found", http.StatusNotFound)
+			return
+		}
+		h.logger.WithFields(map[string]interface{}{
+			"task_id":      req.ID,
+			"workspace_id": req.WorkspaceID,
+			"error":        err.Error(),
+		}).Error("Failed to reset task")
+		WriteJSONError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]interface{}{"success": true})
+}
+
+// TriggerTask triggers an immediate execution of a recurring task
+func (h *TaskHandler) TriggerTask(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req domain.TriggerTaskRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		WriteJSONError(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if err := req.Validate(); err != nil {
+		WriteJSONError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if err := h.taskService.TriggerTask(r.Context(), req.WorkspaceID, req.ID); err != nil {
+		if errors.Is(err, domain.ErrTaskNotFound) {
+			WriteJSONError(w, "Task not found", http.StatusNotFound)
+			return
+		}
+		var alreadyRunningErr *domain.ErrTaskAlreadyRunning
+		if errors.As(err, &alreadyRunningErr) {
+			WriteJSONError(w, "Task is already running", http.StatusConflict)
+			return
+		}
+		h.logger.WithFields(map[string]interface{}{
+			"task_id":      req.ID,
+			"workspace_id": req.WorkspaceID,
+			"error":        err.Error(),
+		}).Error("Failed to trigger task")
+		WriteJSONError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]interface{}{"success": true})
 }

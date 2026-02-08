@@ -23,6 +23,8 @@ All notable changes to this project will be documented in this file.
 - **SMTP M365 OAuth2**: Fixed XOAUTH2 authentication to use sender email instead of fixed auth email, resolving SendAs permission errors and incorrect Sent folder placement (#250)
 - **File Manager**: Sanitize uploaded filenames by replacing spaces with dashes and lowercasing extensions (#252)
 - **Broadcasts**: Fixed custom endpoint URL not propagating to click tracking and open tracking URLs in sent emails (#254)
+- **Email Builder**: Fixed text color/background changes not applying when re-selecting already-styled text in the rich text editor
+- **Contacts**: Bulk import now processes contacts in batches of 500, fixing crashes on large imports and improving performance
 
 ## [26.15] - 2026-01-31
 

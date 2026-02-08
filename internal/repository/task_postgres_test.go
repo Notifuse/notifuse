@@ -68,7 +68,7 @@ func taskToMockRows(t *testing.T, task *domain.Task) *sqlmock.Rows {
 		"error_message", "created_at", "updated_at", "last_run_at",
 		"completed_at", "next_run_after", "timeout_after",
 		"max_runtime", "max_retries", "retry_count", "retry_interval",
-		"broadcast_id",
+		"broadcast_id", "recurring_interval", "integration_id",
 	})
 
 	// Direct row addition instead of building a slice
@@ -77,7 +77,7 @@ func taskToMockRows(t *testing.T, task *domain.Task) *sqlmock.Rows {
 		task.ErrorMessage, task.CreatedAt, task.UpdatedAt, task.LastRunAt,
 		task.CompletedAt, task.NextRunAfter, task.TimeoutAfter,
 		task.MaxRuntime, task.MaxRetries, task.RetryCount, task.RetryInterval,
-		task.BroadcastID,
+		task.BroadcastID, task.RecurringInterval, task.IntegrationID,
 	)
 }
 
@@ -152,6 +152,7 @@ func TestTaskRepository_CreateWithTransaction(t *testing.T) {
 			task.CompletedAt, task.NextRunAfter, task.TimeoutAfter,
 			task.MaxRuntime, task.MaxRetries, task.RetryCount, task.RetryInterval,
 			task.BroadcastID,
+			task.RecurringInterval, task.IntegrationID,
 		).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 	mock.ExpectCommit()
@@ -176,13 +177,13 @@ func TestTaskRepository_GetWithTransaction(t *testing.T) {
 		"error_message", "created_at", "updated_at", "last_run_at",
 		"completed_at", "next_run_after", "timeout_after",
 		"max_runtime", "max_retries", "retry_count", "retry_interval",
-		"broadcast_id",
+		"broadcast_id", "recurring_interval", "integration_id",
 	}).AddRow(
 		taskID, workspace, "test-task", domain.TaskStatusPending, 0, "{}",
 		"", now, now, nil,
 		nil, nil, nil,
 		60, 3, 0, 60,
-		nil, // broadcast_id
+		nil, nil, nil, // broadcast_id, recurring_interval, integration_id
 	)
 
 	// Setup mock expectations
@@ -240,7 +241,7 @@ func TestTaskRepository_UpdateWithTransaction(t *testing.T) {
 			task.ErrorMessage, sqlmock.AnyArg(), task.LastRunAt,
 			task.CompletedAt, task.NextRunAfter, task.TimeoutAfter,
 			task.MaxRuntime, task.MaxRetries, task.RetryCount, task.RetryInterval,
-			task.BroadcastID,
+			task.BroadcastID, task.RecurringInterval, task.IntegrationID,
 		).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectCommit()
@@ -365,7 +366,7 @@ func TestTaskRepository_List(t *testing.T) {
 		"error_message", "created_at", "updated_at", "last_run_at",
 		"completed_at", "next_run_after", "timeout_after",
 		"max_runtime", "max_retries", "retry_count", "retry_interval",
-		"broadcast_id",
+		"broadcast_id", "recurring_interval", "integration_id",
 	})
 
 	// Add task rows
@@ -374,7 +375,7 @@ func TestTaskRepository_List(t *testing.T) {
 		task1.ErrorMessage, task1.CreatedAt, task1.UpdatedAt, task1.LastRunAt,
 		task1.CompletedAt, task1.NextRunAfter, task1.TimeoutAfter,
 		task1.MaxRuntime, task1.MaxRetries, task1.RetryCount, task1.RetryInterval,
-		task1.BroadcastID,
+		task1.BroadcastID, task1.RecurringInterval, task1.IntegrationID,
 	)
 
 	rows.AddRow(
@@ -382,7 +383,7 @@ func TestTaskRepository_List(t *testing.T) {
 		task2.ErrorMessage, task2.CreatedAt, task2.UpdatedAt, task2.LastRunAt,
 		task2.CompletedAt, task2.NextRunAfter, task2.TimeoutAfter,
 		task2.MaxRuntime, task2.MaxRetries, task2.RetryCount, task2.RetryInterval,
-		task2.BroadcastID,
+		task2.BroadcastID, task2.RecurringInterval, task2.IntegrationID,
 	)
 
 	mock.ExpectQuery("SELECT .* FROM tasks WHERE").
@@ -455,7 +456,7 @@ func TestTaskRepository_GetNextBatch(t *testing.T) {
 		"error_message", "created_at", "updated_at", "last_run_at",
 		"completed_at", "next_run_after", "timeout_after",
 		"max_runtime", "max_retries", "retry_count", "retry_interval",
-		"broadcast_id",
+		"broadcast_id", "recurring_interval", "integration_id",
 	})
 
 	// Add task rows
@@ -464,7 +465,7 @@ func TestTaskRepository_GetNextBatch(t *testing.T) {
 		task1.ErrorMessage, task1.CreatedAt, task1.UpdatedAt, task1.LastRunAt,
 		task1.CompletedAt, task1.NextRunAfter, task1.TimeoutAfter,
 		task1.MaxRuntime, task1.MaxRetries, task1.RetryCount, task1.RetryInterval,
-		task1.BroadcastID,
+		task1.BroadcastID, task1.RecurringInterval, task1.IntegrationID,
 	)
 
 	rows.AddRow(
@@ -472,7 +473,7 @@ func TestTaskRepository_GetNextBatch(t *testing.T) {
 		task2.ErrorMessage, task2.CreatedAt, task2.UpdatedAt, task2.LastRunAt,
 		task2.CompletedAt, task2.NextRunAfter, task2.TimeoutAfter,
 		task2.MaxRuntime, task2.MaxRetries, task2.RetryCount, task2.RetryInterval,
-		task2.BroadcastID,
+		task2.BroadcastID, task2.RecurringInterval, task2.IntegrationID,
 	)
 
 	mock.ExpectQuery("SELECT .* FROM tasks WHERE").
@@ -1050,13 +1051,13 @@ func TestTaskRepository_GetTaskByBroadcastID(t *testing.T) {
 		"error_message", "created_at", "updated_at", "last_run_at",
 		"completed_at", "next_run_after", "timeout_after",
 		"max_runtime", "max_retries", "retry_count", "retry_interval",
-		"broadcast_id",
+		"broadcast_id", "recurring_interval", "integration_id",
 	}).AddRow(
 		taskID, workspace, "send_broadcast", domain.TaskStatusPending, 0, "invalid json",
 		"", task.CreatedAt, task.UpdatedAt, nil,
 		nil, nil, nil,
 		60, 3, 0, 60,
-		broadcastID,
+		broadcastID, nil, nil,
 	)
 
 	mock.ExpectQuery("SELECT .* FROM tasks WHERE workspace_id = \\$1 AND broadcast_id = \\$2").
@@ -1068,6 +1069,77 @@ func TestTaskRepository_GetTaskByBroadcastID(t *testing.T) {
 	assert.Error(t, err)
 	assert.Nil(t, retrievedTask)
 	assert.Contains(t, err.Error(), "failed to unmarshal state")
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestTaskRepository_GetTaskByIntegrationID(t *testing.T) {
+	db, mock, repo := setupTaskMock(t)
+	defer func() { _ = db.Close() }()
+
+	ctx := context.Background()
+	workspace := "test-workspace"
+	taskID := uuid.New().String()
+	integrationID := "int-123"
+	interval := int64(60)
+
+	task := &domain.Task{
+		ID:                taskID,
+		WorkspaceID:       workspace,
+		Type:              "sync_integration",
+		Status:            domain.TaskStatusPending,
+		Progress:          0,
+		State:             &domain.TaskState{},
+		CreatedAt:         time.Now().UTC(),
+		UpdatedAt:         time.Now().UTC(),
+		MaxRuntime:        300,
+		MaxRetries:        3,
+		RetryCount:        0,
+		RetryInterval:     60,
+		RecurringInterval: &interval,
+		IntegrationID:     &integrationID,
+	}
+
+	// Test successful retrieval
+	mock.ExpectBegin()
+	mockRows := taskToMockRows(t, task)
+	mock.ExpectQuery("SELECT .* FROM tasks WHERE workspace_id = \\$1 AND integration_id = \\$2").
+		WithArgs(workspace, integrationID).
+		WillReturnRows(mockRows)
+	mock.ExpectCommit()
+
+	retrievedTask, err := repo.GetTaskByIntegrationID(ctx, workspace, integrationID)
+	assert.NoError(t, err)
+	assert.NotNil(t, retrievedTask)
+	assert.Equal(t, taskID, retrievedTask.ID)
+	assert.Equal(t, workspace, retrievedTask.WorkspaceID)
+	assert.Equal(t, integrationID, *retrievedTask.IntegrationID)
+	assert.Equal(t, interval, *retrievedTask.RecurringInterval)
+	assert.NoError(t, mock.ExpectationsWereMet())
+
+	// Test task not found
+	mock.ExpectBegin()
+	mock.ExpectQuery("SELECT .* FROM tasks WHERE workspace_id = \\$1 AND integration_id = \\$2").
+		WithArgs(workspace, integrationID).
+		WillReturnError(sql.ErrNoRows)
+	mock.ExpectRollback()
+
+	retrievedTask, err = repo.GetTaskByIntegrationID(ctx, workspace, integrationID)
+	assert.Error(t, err)
+	assert.Nil(t, retrievedTask)
+	assert.ErrorIs(t, err, domain.ErrTaskNotFound)
+	assert.NoError(t, mock.ExpectationsWereMet())
+
+	// Test database error
+	mock.ExpectBegin()
+	mock.ExpectQuery("SELECT .* FROM tasks WHERE workspace_id = \\$1 AND integration_id = \\$2").
+		WithArgs(workspace, integrationID).
+		WillReturnError(fmt.Errorf("database error"))
+	mock.ExpectRollback()
+
+	retrievedTask, err = repo.GetTaskByIntegrationID(ctx, workspace, integrationID)
+	assert.Error(t, err)
+	assert.Nil(t, retrievedTask)
+	assert.Contains(t, err.Error(), "failed to get task by integration ID")
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
@@ -1108,7 +1180,7 @@ func TestTaskRepository_CreateTx_ErrorPaths(t *testing.T) {
 			task.LastRunAt,
 			task.CompletedAt, task.NextRunAfter, task.TimeoutAfter,
 			task.MaxRuntime, task.MaxRetries, task.RetryCount, task.RetryInterval,
-			task.BroadcastID,
+			task.BroadcastID, task.RecurringInterval, task.IntegrationID,
 		).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 	mock.ExpectCommit()
@@ -1137,13 +1209,13 @@ func TestTaskRepository_GetTx_ErrorPaths(t *testing.T) {
 		"error_message", "created_at", "updated_at", "last_run_at",
 		"completed_at", "next_run_after", "timeout_after",
 		"max_runtime", "max_retries", "retry_count", "retry_interval",
-		"broadcast_id",
+		"broadcast_id", "recurring_interval", "integration_id",
 	}).AddRow(
 		taskID, workspace, "test-task", domain.TaskStatusPending, 0, "invalid json",
 		"", time.Now(), time.Now(), nil,
 		nil, nil, nil,
 		60, 3, 0, 60,
-		nil,
+		nil, nil, nil,
 	)
 
 	mock.ExpectQuery("SELECT .* FROM tasks WHERE id = .* AND workspace_id = .*").
@@ -1189,7 +1261,7 @@ func TestTaskRepository_UpdateTx_ErrorPaths(t *testing.T) {
 			task.ErrorMessage, sqlmock.AnyArg(), task.LastRunAt,
 			task.CompletedAt, task.NextRunAfter, task.TimeoutAfter,
 			task.MaxRuntime, task.MaxRetries, task.RetryCount, task.RetryInterval,
-			task.BroadcastID,
+			task.BroadcastID, task.RecurringInterval, task.IntegrationID,
 		).
 		WillReturnResult(sqlmock.NewErrorResult(fmt.Errorf("rows affected error")))
 	mock.ExpectRollback()
@@ -1227,13 +1299,13 @@ func TestTaskRepository_List_ErrorPaths(t *testing.T) {
 		"error_message", "created_at", "updated_at", "last_run_at",
 		"completed_at", "next_run_after", "timeout_after",
 		"max_runtime", "max_retries", "retry_count", "retry_interval",
-		"broadcast_id",
+		"broadcast_id", "recurring_interval", "integration_id",
 	}).AddRow(
 		"task-1", workspace, "test-task", domain.TaskStatusPending, 0, "{}",
 		"", time.Now(), time.Now(), nil,
 		nil, nil, nil,
 		60, 3, 0, 60,
-		nil,
+		nil, nil, nil,
 	).RowError(0, fmt.Errorf("row iteration error"))
 
 	mock.ExpectQuery("SELECT .* FROM tasks WHERE").
@@ -1278,13 +1350,13 @@ func TestTaskRepository_List_ErrorPaths(t *testing.T) {
 		"error_message", "created_at", "updated_at", "last_run_at",
 		"completed_at", "next_run_after", "timeout_after",
 		"max_runtime", "max_retries", "retry_count", "retry_interval",
-		"broadcast_id",
+		"broadcast_id", "recurring_interval", "integration_id",
 	}).AddRow(
 		"task-1", workspace, "test-task", domain.TaskStatusPending, 0, "invalid json",
 		"", time.Now(), time.Now(), nil,
 		nil, nil, nil,
 		60, 3, 0, 60,
-		nil,
+		nil, nil, nil,
 	)
 
 	mock.ExpectQuery("SELECT .* FROM tasks WHERE").
@@ -1325,13 +1397,13 @@ func TestTaskRepository_GetNextBatch_ErrorPaths(t *testing.T) {
 		"error_message", "created_at", "updated_at", "last_run_at",
 		"completed_at", "next_run_after", "timeout_after",
 		"max_runtime", "max_retries", "retry_count", "retry_interval",
-		"broadcast_id",
+		"broadcast_id", "recurring_interval", "integration_id",
 	}).AddRow(
 		"task-1", "workspace-1", "test-task", domain.TaskStatusPending, 0, "{}",
 		"", time.Now(), time.Now(), nil,
 		nil, nil, nil,
 		60, 3, 0, 60,
-		nil,
+		nil, nil, nil,
 	).RowError(0, fmt.Errorf("row iteration error"))
 
 	mock.ExpectQuery("SELECT .* FROM tasks WHERE").
@@ -1349,13 +1421,13 @@ func TestTaskRepository_GetNextBatch_ErrorPaths(t *testing.T) {
 		"error_message", "created_at", "updated_at", "last_run_at",
 		"completed_at", "next_run_after", "timeout_after",
 		"max_runtime", "max_retries", "retry_count", "retry_interval",
-		"broadcast_id",
+		"broadcast_id", "recurring_interval", "integration_id",
 	}).AddRow(
 		"task-1", "workspace-1", "test-task", domain.TaskStatusPending, 0, "invalid json",
 		"", time.Now(), time.Now(), nil,
 		nil, nil, nil,
 		60, 3, 0, 60,
-		nil,
+		nil, nil, nil,
 	)
 
 	mock.ExpectQuery("SELECT .* FROM tasks WHERE").
@@ -1438,7 +1510,7 @@ func TestTaskRepository_CreateTx_MarshalError(t *testing.T) {
 			task.LastRunAt,
 			task.CompletedAt, task.NextRunAfter, task.TimeoutAfter,
 			task.MaxRuntime, task.MaxRetries, task.RetryCount, task.RetryInterval,
-			task.BroadcastID,
+			task.BroadcastID, task.RecurringInterval, task.IntegrationID,
 		).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 	mock.ExpectCommit()
@@ -1479,7 +1551,7 @@ func TestTaskRepository_UpdateTx_MarshalError(t *testing.T) {
 			task.ErrorMessage, sqlmock.AnyArg(), task.LastRunAt,
 			task.CompletedAt, task.NextRunAfter, task.TimeoutAfter,
 			task.MaxRuntime, task.MaxRetries, task.RetryCount, task.RetryInterval,
-			task.BroadcastID,
+			task.BroadcastID, task.RecurringInterval, task.IntegrationID,
 		).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectCommit()
@@ -1584,13 +1656,13 @@ func TestTaskRepository_GetNextBatch_QueryBuildError(t *testing.T) {
 		"error_message", "created_at", "updated_at", "last_run_at",
 		"completed_at", "next_run_after", "timeout_after",
 		"max_runtime", "max_retries", "retry_count", "retry_interval",
-		"broadcast_id",
+		"broadcast_id", "recurring_interval", "integration_id",
 	}).AddRow(
 		"task-1", "workspace-1", "test-task", domain.TaskStatusPending, 0, "{}",
 		"", time.Now(), time.Now(), nil,
 		nil, nil, nil,
 		60, 3, 0, 60,
-		nil,
+		nil, nil, nil,
 	)
 
 	mock.ExpectQuery("SELECT .* FROM tasks WHERE").

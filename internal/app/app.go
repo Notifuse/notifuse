@@ -832,6 +832,12 @@ func (a *App) InitServices() error {
 	)
 	a.taskService.RegisterProcessor(contactSegmentQueueTaskProcessor)
 
+	// Initialize integration sync processor for recurring integration sync tasks
+	integrationSyncProcessor := service.NewIntegrationSyncProcessor(a.logger)
+	// TODO: Register integration-specific handlers here as integrations are added
+	// Example: integrationSyncProcessor.RegisterHandler("staminads", staminadsHandler)
+	a.taskService.RegisterProcessor(integrationSyncProcessor)
+
 	// Initialize webhook subscription service (before demo service so it can create subscriptions)
 	a.webhookSubscriptionService = service.NewWebhookSubscriptionService(
 		a.webhookSubscriptionRepo,

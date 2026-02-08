@@ -1330,6 +1330,20 @@ func WithTaskErrorMessage(errorMsg string) TaskOption {
 	}
 }
 
+// WithTaskRecurringInterval sets the recurring interval for the task
+func WithTaskRecurringInterval(interval int64) TaskOption {
+	return func(t *domain.Task) {
+		t.RecurringInterval = &interval
+	}
+}
+
+// WithTaskIntegrationID sets the integration ID for the task
+func WithTaskIntegrationID(integrationID string) TaskOption {
+	return func(t *domain.Task) {
+		t.IntegrationID = &integrationID
+	}
+}
+
 // CreateTask creates a test task with optional configuration
 func (tdf *TestDataFactory) CreateTask(workspaceID string, opts ...TaskOption) (*domain.Task, error) {
 	// Create default task

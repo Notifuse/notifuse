@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"database/sql/driver"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/url"
 	"strconv"
@@ -33,6 +34,24 @@ const (
 	TaskStatusPaused TaskStatus = "paused"
 )
 
+// Task error sentinels
+var (
+	// ErrTaskNotFound is returned when a task cannot be found
+	ErrTaskNotFound = errors.New("task not found")
+)
+
+// Note: ErrTaskAlreadyRunning is defined in errors.go as a struct type with TaskID context
+
+// Error type constants for integration sync error classification
+const (
+	// ErrorTypeTransient indicates a temporary error that should be retried (network timeouts, rate limits)
+	ErrorTypeTransient = "transient"
+	// ErrorTypePermanent indicates a permanent error that should not be retried (invalid API key, disabled integration)
+	ErrorTypePermanent = "permanent"
+	// ErrorTypeUnknown indicates an unknown error type, treated as transient
+	ErrorTypeUnknown = "unknown"
+)
+
 // TaskState represents the state of a task, with specialized fields for different task types
 type TaskState struct {
 	// Common fields for all task types
@@ -40,8 +59,9 @@ type TaskState struct {
 	Message  string  `json:"message,omitempty"`
 
 	// Specialized states for different task types - only one will be used based on task type
-	SendBroadcast *SendBroadcastState `json:"send_broadcast,omitempty"`
-	BuildSegment  *BuildSegmentState  `json:"build_segment,omitempty"`
+	SendBroadcast   *SendBroadcastState   `json:"send_broadcast,omitempty"`
+	BuildSegment    *BuildSegmentState    `json:"build_segment,omitempty"`
+	IntegrationSync *IntegrationSyncState `json:"integration_sync,omitempty"`
 }
 
 // Value implements the driver.Valuer interface for TaskState
@@ -95,6 +115,20 @@ type BuildSegmentState struct {
 	StartedAt      string `json:"started_at"`
 }
 
+// IntegrationSyncState contains state for integration sync tasks (recurring polling tasks)
+type IntegrationSyncState struct {
+	IntegrationID   string     `json:"integration_id"`
+	IntegrationType string     `json:"integration_type"` // e.g., "staminads"
+	Cursor          string     `json:"cursor,omitempty"` // Pagination cursor for incremental sync
+	LastSyncAt      *time.Time `json:"last_sync_at,omitempty"`
+	LastSuccessAt   *time.Time `json:"last_success_at,omitempty"` // Last successful sync (distinct from LastSyncAt)
+	EventsImported  int64      `json:"events_imported"`           // Total events imported
+	LastEventCount  int        `json:"last_event_count"`          // Events imported in last run
+	ConsecErrors    int        `json:"consec_errors"`             // Consecutive error count
+	LastError       *string    `json:"last_error,omitempty"`
+	LastErrorType   string     `json:"last_error_type,omitempty"` // "transient", "permanent", or "unknown"
+}
+
 // Task represents a background task that can be executed in multiple steps
 type Task struct {
 	ID            string     `json:"id"`
@@ -115,6 +149,15 @@ type Task struct {
 	RetryCount    int        `json:"retry_count"`
 	RetryInterval int        `json:"retry_interval"`         // Retry interval in seconds
 	BroadcastID   *string    `json:"broadcast_id,omitempty"` // Optional reference to a broadcast
+
+	// Recurring task support
+	RecurringInterval *int64  `json:"recurring_interval,omitempty"` // Interval in seconds (nil = not recurring)
+	IntegrationID     *string `json:"integration_id,omitempty"`     // Link to integration for management
+}
+
+// IsRecurring returns true if this task has a valid recurring interval
+func (t *Task) IsRecurring() bool {
+	return t.RecurringInterval != nil && *t.RecurringInterval > 0
 }
 
 type TaskService interface {
@@ -129,6 +172,10 @@ type TaskService interface {
 	GetLastCronRun(ctx context.Context) (*time.Time, error)
 	SubscribeToBroadcastEvents(eventBus EventBus)
 	IsAutoExecuteEnabled() bool
+
+	// Recurring task operations
+	ResetTask(ctx context.Context, workspace, taskID string) error
+	TriggerTask(ctx context.Context, workspace, taskID string) error
 }
 
 // TaskRepository defines methods for task persistence
@@ -185,6 +232,10 @@ type TaskRepository interface {
 	// MarkAsPending marks a task as pending (e.g., for recurring tasks)
 	MarkAsPending(ctx context.Context, workspace, id string, nextRunAfter time.Time, progress float64, state *TaskState) error
 	MarkAsPendingTx(ctx context.Context, tx *sql.Tx, workspace, id string, nextRunAfter time.Time, progress float64, state *TaskState) error
+
+	// GetTaskByIntegrationID retrieves the active task for a specific integration
+	GetTaskByIntegrationID(ctx context.Context, workspace, integrationID string) (*Task, error)
+	GetTaskByIntegrationIDTx(ctx context.Context, tx *sql.Tx, workspace, integrationID string) (*Task, error)
 }
 
 // TaskFilter defines the filtering criteria for task listing
@@ -227,6 +278,10 @@ type CreateTaskRequest struct {
 	MaxRetries    int        `json:"max_retries"`
 	RetryInterval int        `json:"retry_interval"`
 	NextRunAfter  *time.Time `json:"next_run_after,omitempty"`
+
+	// Recurring task fields
+	RecurringInterval *int64  `json:"recurring_interval,omitempty"` // Interval in seconds (nil = not recurring)
+	IntegrationID     *string `json:"integration_id,omitempty"`     // Link to integration for management
 }
 
 // Validate validates the create task request
@@ -240,16 +295,18 @@ func (r *CreateTaskRequest) Validate() (*Task, error) {
 	}
 
 	task := &Task{
-		WorkspaceID:   r.WorkspaceID,
-		Type:          r.Type,
-		Status:        TaskStatusPending,
-		State:         r.State,
-		MaxRuntime:    r.MaxRuntime,
-		MaxRetries:    r.MaxRetries,
-		RetryInterval: r.RetryInterval,
-		NextRunAfter:  r.NextRunAfter,
-		CreatedAt:     time.Now().UTC(),
-		UpdatedAt:     time.Now().UTC(),
+		WorkspaceID:       r.WorkspaceID,
+		Type:              r.Type,
+		Status:            TaskStatusPending,
+		State:             r.State,
+		MaxRuntime:        r.MaxRuntime,
+		MaxRetries:        r.MaxRetries,
+		RetryInterval:     r.RetryInterval,
+		NextRunAfter:      r.NextRunAfter,
+		RecurringInterval: r.RecurringInterval,
+		IntegrationID:     r.IntegrationID,
+		CreatedAt:         time.Now().UTC(),
+		UpdatedAt:         time.Now().UTC(),
 	}
 
 	// Set defaults if not provided
@@ -455,6 +512,44 @@ func (r *ExecuteTaskRequest) Validate() error {
 
 	if r.ID == "" {
 		return fmt.Errorf("task id is required")
+	}
+
+	return nil
+}
+
+// ResetTaskRequest defines the request to reset a failed recurring task
+type ResetTaskRequest struct {
+	WorkspaceID string `json:"workspace_id"`
+	ID          string `json:"id"`
+}
+
+// Validate validates the reset task request
+func (r *ResetTaskRequest) Validate() error {
+	if r.WorkspaceID == "" {
+		return fmt.Errorf("workspace_id is required")
+	}
+
+	if r.ID == "" {
+		return fmt.Errorf("id is required")
+	}
+
+	return nil
+}
+
+// TriggerTaskRequest defines the request to trigger immediate execution of a recurring task
+type TriggerTaskRequest struct {
+	WorkspaceID string `json:"workspace_id"`
+	ID          string `json:"id"`
+}
+
+// Validate validates the trigger task request
+func (r *TriggerTaskRequest) Validate() error {
+	if r.WorkspaceID == "" {
+		return fmt.Errorf("workspace_id is required")
+	}
+
+	if r.ID == "" {
+		return fmt.Errorf("id is required")
 	}
 
 	return nil

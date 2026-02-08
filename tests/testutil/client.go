@@ -581,6 +581,38 @@ func (c *APIClient) ExecutePendingTasks(maxTasks int) (*http.Response, error) {
 	return c.Get("/api/cron", params)
 }
 
+// TriggerTask triggers immediate execution of a recurring task
+func (c *APIClient) TriggerTask(workspaceID, taskID string) (*http.Response, error) {
+	request := map[string]string{
+		"workspace_id": workspaceID,
+		"id":           taskID,
+	}
+	return c.Post("/api/tasks.trigger", request)
+}
+
+// ResetTask resets a failed recurring task
+func (c *APIClient) ResetTask(workspaceID, taskID string) (*http.Response, error) {
+	request := map[string]string{
+		"workspace_id": workspaceID,
+		"id":           taskID,
+	}
+	return c.Post("/api/tasks.reset", request)
+}
+
+// CreateRecurringTask creates a recurring task for integration testing
+func (c *APIClient) CreateRecurringTask(workspaceID, taskType string, interval int64, integrationID string, state map[string]interface{}) (*http.Response, error) {
+	request := map[string]interface{}{
+		"workspace_id":       workspaceID,
+		"type":               taskType,
+		"recurring_interval": interval,
+		"integration_id":     integrationID,
+	}
+	if state != nil {
+		request["state"] = state
+	}
+	return c.Post("/api/tasks.create", request)
+}
+
 // Webhook registration API methods
 
 // RegisterWebhooks registers webhooks with an email provider

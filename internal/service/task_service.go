@@ -6,9 +6,11 @@ import (
 	"crypto/tls"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
+	"math/rand"
 	"net/http"
 	"sync"
 	"time"
@@ -102,6 +104,7 @@ func getTaskTypes() []string {
 		"build_segment",
 		"process_contact_segment_queue",
 		"check_segment_recompute",
+		"sync_integration",
 	}
 }
 
@@ -579,30 +582,89 @@ func (s *TaskService) ExecuteTask(ctx context.Context, workspace, taskID string,
 	select {
 	case completed := <-done:
 		if completed {
-			// Task was completed successfully
-			completeCtx, completeSpan := tracing.StartServiceSpan(ctx, "TaskService", "MarkTaskCompleted")
-			defer tracing.EndSpan(completeSpan, nil)
+			// Check if this is a recurring task
+			if task.IsRecurring() {
+				// Recurring task: reschedule instead of completing
+				rescheduleCtx, rescheduleSpan := tracing.StartServiceSpan(ctx, "TaskService", "RescheduleRecurringTask")
+				defer tracing.EndSpan(rescheduleSpan, nil)
 
-			tracing.AddAttribute(completeCtx, "task_id", taskID)
-			tracing.AddAttribute(completeCtx, "workspace_id", workspace)
+				tracing.AddAttribute(rescheduleCtx, "task_id", taskID)
+				tracing.AddAttribute(rescheduleCtx, "workspace_id", workspace)
+				tracing.AddAttribute(rescheduleCtx, "recurring_interval", *task.RecurringInterval)
 
-			if err := s.repo.MarkAsCompleted(bgCtx, workspace, taskID, task.State); err != nil {
-				tracing.MarkSpanError(completeCtx, err)
+				// Calculate next run with backoff and jitter
+				interval := *task.RecurringInterval
+				if task.State != nil && task.State.IntegrationSync != nil {
+					if task.State.IntegrationSync.ConsecErrors > 0 {
+						// Quadratic backoff: errors^2 * 10 seconds, capped at 1 hour
+						backoff := int64(task.State.IntegrationSync.ConsecErrors * task.State.IntegrationSync.ConsecErrors * 10)
+						if backoff > 3600 {
+							backoff = 3600
+						}
+						interval += backoff
+						tracing.AddAttribute(rescheduleCtx, "backoff_seconds", backoff)
+					}
+				}
+
+				// Add jitter (10% of interval) to prevent thundering herd
+				jitter := time.Duration(rand.Int63n(interval/10+1)) * time.Second
+				nextRun := time.Now().UTC().Add(time.Duration(interval)*time.Second + jitter)
+
+				tracing.AddAttribute(rescheduleCtx, "next_run", nextRun.Format(time.RFC3339))
+
+				if err := s.repo.MarkAsPending(bgCtx, workspace, taskID, nextRun, 0, task.State); err != nil {
+					if errors.Is(err, domain.ErrTaskNotFound) {
+						// Task was deleted during execution, this is fine
+						s.logger.WithFields(map[string]interface{}{
+							"task_id":      taskID,
+							"workspace_id": workspace,
+						}).Info("Recurring task deleted during execution")
+						return nil
+					}
+					tracing.MarkSpanError(rescheduleCtx, err)
+					s.logger.WithFields(map[string]interface{}{
+						"task_id":      taskID,
+						"workspace_id": workspace,
+						"error":        err.Error(),
+					}).Error("Failed to reschedule recurring task")
+					return &domain.ErrTaskExecution{
+						TaskID: taskID,
+						Reason: "failed to reschedule recurring task",
+						Err:    err,
+					}
+				}
 				s.logger.WithFields(map[string]interface{}{
 					"task_id":      taskID,
 					"workspace_id": workspace,
-					"error":        err.Error(),
-				}).Error("Failed to mark task as completed")
-				return &domain.ErrTaskExecution{
-					TaskID: taskID,
-					Reason: "failed to mark task as completed",
-					Err:    err,
+					"next_run":     nextRun,
+					"interval":     interval,
+				}).Info("Recurring task rescheduled")
+			} else {
+				// Non-recurring task: mark as completed
+				completeCtx, completeSpan := tracing.StartServiceSpan(ctx, "TaskService", "MarkTaskCompleted")
+				defer tracing.EndSpan(completeSpan, nil)
+
+				tracing.AddAttribute(completeCtx, "task_id", taskID)
+				tracing.AddAttribute(completeCtx, "workspace_id", workspace)
+
+				if err := s.repo.MarkAsCompleted(bgCtx, workspace, taskID, task.State); err != nil {
+					tracing.MarkSpanError(completeCtx, err)
+					s.logger.WithFields(map[string]interface{}{
+						"task_id":      taskID,
+						"workspace_id": workspace,
+						"error":        err.Error(),
+					}).Error("Failed to mark task as completed")
+					return &domain.ErrTaskExecution{
+						TaskID: taskID,
+						Reason: "failed to mark task as completed",
+						Err:    err,
+					}
 				}
+				s.logger.WithFields(map[string]interface{}{
+					"task_id":      taskID,
+					"workspace_id": workspace,
+				}).Info("Task completed successfully")
 			}
-			s.logger.WithFields(map[string]interface{}{
-				"task_id":      taskID,
-				"workspace_id": workspace,
-			}).Info("Task completed successfully")
 		} else {
 			// Mark task as pending for next run
 			pendingCtx, pendingSpan := tracing.StartServiceSpan(ctx, "TaskService", "MarkTaskPending")
@@ -1145,4 +1207,108 @@ func (s *TaskService) handleBroadcastCancelled(ctx context.Context, payload doma
 			"task_id":      task.ID,
 		}).Info("Successfully marked task as failed for cancelled broadcast")
 	}
+}
+
+// ResetTask resets a failed recurring task, clearing error state and rescheduling for immediate execution
+func (s *TaskService) ResetTask(ctx context.Context, workspace, taskID string) error {
+	ctx, span := tracing.StartServiceSpan(ctx, "TaskService", "ResetTask")
+	defer func() { tracing.EndSpan(span, nil) }()
+
+	tracing.AddAttribute(ctx, "task_id", taskID)
+	tracing.AddAttribute(ctx, "workspace_id", workspace)
+
+	// Get the task
+	task, err := s.repo.Get(ctx, workspace, taskID)
+	if err != nil {
+		tracing.MarkSpanError(ctx, err)
+		return domain.ErrTaskNotFound
+	}
+
+	// Verify task is in failed state
+	if task.Status != domain.TaskStatusFailed {
+		return fmt.Errorf("task is not in failed state, current status: %s", task.Status)
+	}
+
+	// Verify task is recurring
+	if !task.IsRecurring() {
+		return fmt.Errorf("task is not a recurring task")
+	}
+
+	// Reset error state in IntegrationSync
+	if task.State != nil && task.State.IntegrationSync != nil {
+		task.State.IntegrationSync.ConsecErrors = 0
+		task.State.IntegrationSync.LastError = nil
+		task.State.IntegrationSync.LastErrorType = ""
+	}
+
+	// Schedule for immediate execution
+	nextRun := time.Now().UTC()
+
+	if err := s.repo.MarkAsPending(ctx, workspace, taskID, nextRun, 0, task.State); err != nil {
+		tracing.MarkSpanError(ctx, err)
+		s.logger.WithFields(map[string]interface{}{
+			"task_id":      taskID,
+			"workspace_id": workspace,
+			"error":        err.Error(),
+		}).Error("Failed to reset task")
+		return fmt.Errorf("failed to reset task: %w", err)
+	}
+
+	s.logger.WithFields(map[string]interface{}{
+		"task_id":      taskID,
+		"workspace_id": workspace,
+	}).Info("Task reset successfully")
+
+	return nil
+}
+
+// TriggerTask triggers an immediate execution of a recurring task
+func (s *TaskService) TriggerTask(ctx context.Context, workspace, taskID string) error {
+	ctx, span := tracing.StartServiceSpan(ctx, "TaskService", "TriggerTask")
+	defer func() { tracing.EndSpan(span, nil) }()
+
+	tracing.AddAttribute(ctx, "task_id", taskID)
+	tracing.AddAttribute(ctx, "workspace_id", workspace)
+
+	// Get the task
+	task, err := s.repo.Get(ctx, workspace, taskID)
+	if err != nil {
+		tracing.MarkSpanError(ctx, err)
+		return domain.ErrTaskNotFound
+	}
+
+	// Verify task is recurring
+	if !task.IsRecurring() {
+		return fmt.Errorf("task is not a recurring task")
+	}
+
+	// Check if task is already running
+	if task.Status == domain.TaskStatusRunning {
+		return &domain.ErrTaskAlreadyRunning{TaskID: taskID}
+	}
+
+	// Check if task is in a state that can be triggered
+	if task.Status != domain.TaskStatusPending && task.Status != domain.TaskStatusPaused {
+		return fmt.Errorf("task cannot be triggered in current status: %s", task.Status)
+	}
+
+	// Schedule for immediate execution
+	nextRun := time.Now().UTC()
+
+	if err := s.repo.MarkAsPending(ctx, workspace, taskID, nextRun, task.Progress, task.State); err != nil {
+		tracing.MarkSpanError(ctx, err)
+		s.logger.WithFields(map[string]interface{}{
+			"task_id":      taskID,
+			"workspace_id": workspace,
+			"error":        err.Error(),
+		}).Error("Failed to trigger task")
+		return fmt.Errorf("failed to trigger task: %w", err)
+	}
+
+	s.logger.WithFields(map[string]interface{}{
+		"task_id":      taskID,
+		"workspace_id": workspace,
+	}).Info("Task triggered for immediate execution")
+
+	return nil
 }

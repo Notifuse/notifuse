@@ -67,7 +67,9 @@ var TableDefinitions = []string{
 		max_retries INTEGER NOT NULL DEFAULT 3,
 		retry_count INTEGER NOT NULL DEFAULT 0,
 		retry_interval INTEGER NOT NULL DEFAULT 300,
-		broadcast_id VARCHAR(36)
+		broadcast_id VARCHAR(36),
+		recurring_interval INTEGER,
+		integration_id VARCHAR(36)
 	)`,
 	`CREATE TABLE IF NOT EXISTS settings (
 		key VARCHAR(255) PRIMARY KEY,
@@ -83,6 +85,8 @@ var TableDefinitions = []string{
 	`CREATE INDEX IF NOT EXISTS idx_tasks_created_at ON tasks (created_at)`,
 	`CREATE INDEX IF NOT EXISTS idx_tasks_broadcast_id ON tasks (broadcast_id)`,
 	`CREATE UNIQUE INDEX IF NOT EXISTS idx_tasks_workspace_broadcast_id ON tasks (workspace_id, broadcast_id) WHERE broadcast_id IS NOT NULL`,
+	`CREATE INDEX IF NOT EXISTS idx_tasks_integration_id ON tasks (integration_id) WHERE integration_id IS NOT NULL`,
+	`CREATE UNIQUE INDEX IF NOT EXISTS idx_tasks_workspace_integration_active ON tasks (workspace_id, integration_id) WHERE integration_id IS NOT NULL AND status NOT IN ('completed', 'failed')`,
 }
 
 // MigrationStatements contains SQL statements to be run after table creation

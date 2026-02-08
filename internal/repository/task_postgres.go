@@ -112,9 +112,9 @@ func (r *TaskRepository) CreateTx(ctx context.Context, tx *sql.Tx, workspace str
 			error_message, created_at, updated_at, last_run_at,
 			completed_at, next_run_after, timeout_after,
 			max_runtime, max_retries, retry_count, retry_interval,
-			broadcast_id
+			broadcast_id, recurring_interval, integration_id
 		) VALUES (
-			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18
+			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20
 		)
 	`
 
@@ -139,6 +139,8 @@ func (r *TaskRepository) CreateTx(ctx context.Context, tx *sql.Tx, workspace str
 		task.RetryCount,
 		task.RetryInterval,
 		task.BroadcastID,
+		task.RecurringInterval,
+		task.IntegrationID,
 	)
 
 	if err != nil {
@@ -169,7 +171,7 @@ func (r *TaskRepository) GetTx(ctx context.Context, tx *sql.Tx, workspace, id st
 			error_message, created_at, updated_at, last_run_at,
 			completed_at, next_run_after, timeout_after,
 			max_runtime, max_retries, retry_count, retry_interval,
-			broadcast_id
+			broadcast_id, recurring_interval, integration_id
 		FROM tasks
 		WHERE id = $1 AND workspace_id = $2
 		FOR UPDATE
@@ -180,6 +182,8 @@ func (r *TaskRepository) GetTx(ctx context.Context, tx *sql.Tx, workspace, id st
 	var lastRunAt, completedAt, nextRunAfter, timeoutAfter sql.NullTime
 	var broadcastID sql.NullString
 	var errorMessage sql.NullString
+	var recurringInterval sql.NullInt64
+	var integrationID sql.NullString
 
 	err := tx.QueryRowContext(ctx, query, id, workspace).Scan(
 		&task.ID,
@@ -200,6 +204,8 @@ func (r *TaskRepository) GetTx(ctx context.Context, tx *sql.Tx, workspace, id st
 		&task.RetryCount,
 		&task.RetryInterval,
 		&broadcastID,
+		&recurringInterval,
+		&integrationID,
 	)
 
 	if err != nil {
@@ -231,6 +237,14 @@ func (r *TaskRepository) GetTx(ctx context.Context, tx *sql.Tx, workspace, id st
 	// Handle optional broadcast ID
 	if broadcastID.Valid {
 		task.BroadcastID = &broadcastID.String
+	}
+
+	// Handle optional recurring fields
+	if recurringInterval.Valid {
+		task.RecurringInterval = &recurringInterval.Int64
+	}
+	if integrationID.Valid {
+		task.IntegrationID = &integrationID.String
 	}
 
 	// Unmarshal state
@@ -280,7 +294,9 @@ func (r *TaskRepository) UpdateTx(ctx context.Context, tx *sql.Tx, workspace str
 			max_retries = $14,
 			retry_count = $15,
 			retry_interval = $16,
-			broadcast_id = $17
+			broadcast_id = $17,
+			recurring_interval = $18,
+			integration_id = $19
 		WHERE id = $1 AND workspace_id = $2
 	`
 
@@ -304,6 +320,8 @@ func (r *TaskRepository) UpdateTx(ctx context.Context, tx *sql.Tx, workspace str
 		task.RetryCount,
 		task.RetryInterval,
 		task.BroadcastID,
+		task.RecurringInterval,
+		task.IntegrationID,
 	)
 
 	if err != nil {
@@ -392,7 +410,7 @@ func (r *TaskRepository) List(ctx context.Context, workspace string, filter doma
 		"error_message", "created_at", "updated_at", "last_run_at",
 		"completed_at", "next_run_after", "timeout_after",
 		"max_runtime", "max_retries", "retry_count", "retry_interval",
-		"broadcast_id",
+		"broadcast_id", "recurring_interval", "integration_id",
 	).
 		From("tasks").
 		Where(sq.Eq{"workspace_id": workspace})
@@ -446,6 +464,8 @@ func (r *TaskRepository) List(ctx context.Context, workspace string, filter doma
 		var lastRunAt, completedAt, nextRunAfter, timeoutAfter sql.NullTime
 		var broadcastID sql.NullString
 		var errorMessage sql.NullString
+		var recurringInterval sql.NullInt64
+		var integrationID sql.NullString
 
 		err := rows.Scan(
 			&task.ID,
@@ -466,6 +486,8 @@ func (r *TaskRepository) List(ctx context.Context, workspace string, filter doma
 			&task.RetryCount,
 			&task.RetryInterval,
 			&broadcastID,
+			&recurringInterval,
+			&integrationID,
 		)
 		if err != nil {
 			return nil, 0, fmt.Errorf("failed to scan task row: %w", err)
@@ -493,6 +515,14 @@ func (r *TaskRepository) List(ctx context.Context, workspace string, filter doma
 		// Handle optional broadcast ID
 		if broadcastID.Valid {
 			task.BroadcastID = &broadcastID.String
+		}
+
+		// Handle optional recurring fields
+		if recurringInterval.Valid {
+			task.RecurringInterval = &recurringInterval.Int64
+		}
+		if integrationID.Valid {
+			task.IntegrationID = &integrationID.String
 		}
 
 		// Unmarshal state
@@ -527,7 +557,7 @@ func (r *TaskRepository) GetNextBatch(ctx context.Context, limit int) ([]*domain
 		"error_message", "created_at", "updated_at", "last_run_at",
 		"completed_at", "next_run_after", "timeout_after",
 		"max_runtime", "max_retries", "retry_count", "retry_interval",
-		"broadcast_id",
+		"broadcast_id", "recurring_interval", "integration_id",
 	).
 		From("tasks").
 		Where(sq.Or{
@@ -572,6 +602,8 @@ func (r *TaskRepository) GetNextBatch(ctx context.Context, limit int) ([]*domain
 		var lastRunAt, completedAt, nextRunAfter, timeoutAfter sql.NullTime
 		var broadcastID sql.NullString
 		var errorMessage sql.NullString
+		var recurringInterval sql.NullInt64
+		var integrationID sql.NullString
 
 		err := rows.Scan(
 			&task.ID,
@@ -592,6 +624,8 @@ func (r *TaskRepository) GetNextBatch(ctx context.Context, limit int) ([]*domain
 			&task.RetryCount,
 			&task.RetryInterval,
 			&broadcastID,
+			&recurringInterval,
+			&integrationID,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan task row: %w", err)
@@ -619,6 +653,14 @@ func (r *TaskRepository) GetNextBatch(ctx context.Context, limit int) ([]*domain
 		// Handle optional broadcast ID
 		if broadcastID.Valid {
 			task.BroadcastID = &broadcastID.String
+		}
+
+		// Handle optional recurring fields
+		if recurringInterval.Valid {
+			task.RecurringInterval = &recurringInterval.Int64
+		}
+		if integrationID.Valid {
+			task.IntegrationID = &integrationID.String
 		}
 
 		// Unmarshal state
@@ -980,7 +1022,7 @@ func (r *TaskRepository) GetTaskByBroadcastIDTx(ctx context.Context, tx *sql.Tx,
 			error_message, created_at, updated_at, last_run_at,
 			completed_at, next_run_after, timeout_after,
 			max_runtime, max_retries, retry_count, retry_interval,
-			broadcast_id
+			broadcast_id, recurring_interval, integration_id
 		FROM tasks
 		WHERE workspace_id = $1 AND broadcast_id = $2
 		AND type = 'send_broadcast'
@@ -993,6 +1035,8 @@ func (r *TaskRepository) GetTaskByBroadcastIDTx(ctx context.Context, tx *sql.Tx,
 	var lastRunAt, completedAt, nextRunAfter, timeoutAfter sql.NullTime
 	var dbBroadcastID sql.NullString
 	var errorMessage sql.NullString
+	var recurringInterval sql.NullInt64
+	var integrationID sql.NullString
 
 	err := tx.QueryRowContext(ctx, query, workspace, broadcastID).Scan(
 		&task.ID,
@@ -1013,6 +1057,8 @@ func (r *TaskRepository) GetTaskByBroadcastIDTx(ctx context.Context, tx *sql.Tx,
 		&task.RetryCount,
 		&task.RetryInterval,
 		&dbBroadcastID,
+		&recurringInterval,
+		&integrationID,
 	)
 
 	if err != nil {
@@ -1044,6 +1090,124 @@ func (r *TaskRepository) GetTaskByBroadcastIDTx(ctx context.Context, tx *sql.Tx,
 	// Handle optional broadcast ID
 	if dbBroadcastID.Valid {
 		task.BroadcastID = &dbBroadcastID.String
+	}
+
+	// Handle optional recurring fields
+	if recurringInterval.Valid {
+		task.RecurringInterval = &recurringInterval.Int64
+	}
+	if integrationID.Valid {
+		task.IntegrationID = &integrationID.String
+	}
+
+	// Unmarshal state
+	if stateJSON != nil {
+		task.State = &domain.TaskState{}
+		if err := json.Unmarshal(stateJSON, task.State); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal state: %w", err)
+		}
+	}
+
+	return &task, nil
+}
+
+// GetTaskByIntegrationID retrieves an active task by integration ID
+func (r *TaskRepository) GetTaskByIntegrationID(ctx context.Context, workspace, integrationID string) (*domain.Task, error) {
+	var task *domain.Task
+	var err error
+
+	err = r.WithTransaction(ctx, func(tx *sql.Tx) error {
+		task, err = r.GetTaskByIntegrationIDTx(ctx, tx, workspace, integrationID)
+		return err
+	})
+
+	return task, err
+}
+
+// GetTaskByIntegrationIDTx retrieves an active task by integration ID within a transaction
+func (r *TaskRepository) GetTaskByIntegrationIDTx(ctx context.Context, tx *sql.Tx, workspace, integrationID string) (*domain.Task, error) {
+	query := `
+		SELECT
+			id, workspace_id, type, status, progress, state,
+			error_message, created_at, updated_at, last_run_at,
+			completed_at, next_run_after, timeout_after,
+			max_runtime, max_retries, retry_count, retry_interval,
+			broadcast_id, recurring_interval, integration_id
+		FROM tasks
+		WHERE workspace_id = $1 AND integration_id = $2
+		AND status NOT IN ('completed', 'failed')
+		LIMIT 1
+		FOR UPDATE
+	`
+
+	var task domain.Task
+	var stateJSON []byte
+	var lastRunAt, completedAt, nextRunAfter, timeoutAfter sql.NullTime
+	var broadcastID sql.NullString
+	var errorMessage sql.NullString
+	var recurringInterval sql.NullInt64
+	var dbIntegrationID sql.NullString
+
+	err := tx.QueryRowContext(ctx, query, workspace, integrationID).Scan(
+		&task.ID,
+		&task.WorkspaceID,
+		&task.Type,
+		&task.Status,
+		&task.Progress,
+		&stateJSON,
+		&errorMessage,
+		&task.CreatedAt,
+		&task.UpdatedAt,
+		&lastRunAt,
+		&completedAt,
+		&nextRunAfter,
+		&timeoutAfter,
+		&task.MaxRuntime,
+		&task.MaxRetries,
+		&task.RetryCount,
+		&task.RetryInterval,
+		&broadcastID,
+		&recurringInterval,
+		&dbIntegrationID,
+	)
+
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, domain.ErrTaskNotFound
+		}
+		return nil, fmt.Errorf("failed to get task by integration ID: %w", err)
+	}
+
+	// Handle nullable times
+	if lastRunAt.Valid {
+		task.LastRunAt = &lastRunAt.Time
+	}
+	if completedAt.Valid {
+		task.CompletedAt = &completedAt.Time
+	}
+	if nextRunAfter.Valid {
+		task.NextRunAfter = &nextRunAfter.Time
+	}
+	if timeoutAfter.Valid {
+		task.TimeoutAfter = &timeoutAfter.Time
+	}
+
+	// Handle nullable error message
+	if errorMessage.Valid {
+		task.ErrorMessage = &errorMessage.String
+	}
+
+	// Handle optional broadcast ID
+	if broadcastID.Valid {
+		task.BroadcastID = &broadcastID.String
+	}
+
+	// Handle optional recurring fields
+	if recurringInterval.Valid {
+		task.RecurringInterval = &recurringInterval.Int64
+	}
+	if dbIntegrationID.Valid {
+		task.IntegrationID = &dbIntegrationID.String
 	}
 
 	// Unmarshal state

@@ -195,10 +195,25 @@ case completed := <-done:
 
 ### 5. Task Repository Interface Update (`internal/domain/task.go`)
 
-Add error sentinel for task not found:
+Add error sentinels:
 
 ```go
 var ErrTaskNotFound = errors.New("task not found")
+var ErrTaskAlreadyRunning = errors.New("task is already running")
+```
+
+Update TaskService interface with new methods:
+
+```go
+type TaskService interface {
+    // ... existing methods ...
+
+    // ResetTask resets a failed recurring task to pending state
+    ResetTask(ctx context.Context, workspace, taskID string) error
+
+    // TriggerTask triggers immediate execution of a recurring task
+    TriggerTask(ctx context.Context, workspace, taskID string) error
+}
 ```
 
 Add method for finding tasks by integration:
@@ -553,8 +568,16 @@ func (m *V28Migration) UpdateSystem(ctx context.Context, config *config.Config, 
         ALTER TABLE tasks
         ADD COLUMN IF NOT EXISTS integration_id VARCHAR(36) DEFAULT NULL;
 
+        -- Index for finding tasks by integration
         CREATE INDEX IF NOT EXISTS idx_tasks_integration_id
         ON tasks(integration_id) WHERE integration_id IS NOT NULL;
+
+        -- Prevent duplicate active sync tasks per integration
+        -- Only one non-terminal task allowed per workspace/integration pair
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_tasks_workspace_integration_active
+        ON tasks(workspace_id, integration_id)
+        WHERE integration_id IS NOT NULL
+          AND status NOT IN ('completed', 'failed');
     `)
     return err
 }
@@ -566,16 +589,18 @@ func (m *V28Migration) UpdateSystem(ctx context.Context, config *config.Config, 
 
 | File | Changes |
 |------|---------|
-| `internal/domain/task.go` | Add `RecurringInterval`, `IntegrationID` fields; add `IntegrationSyncState` |
-| `internal/repository/task_postgres.go` | Update all queries for new columns; add `GetTaskByIntegrationID` |
-| `internal/service/task_service.go` | Modify completion handling for recurring tasks; add `sync_integration` type |
-| `internal/migrations/v8.go` | Database schema migration |
+| `internal/domain/task.go` | Add `RecurringInterval`, `IntegrationID` fields; add `IntegrationSyncState`; add `ErrTaskNotFound`; add `IsRecurring()` helper |
+| `internal/repository/task_postgres.go` | Update all queries for new columns; add `GetTaskByIntegrationID`; update row scanners for nullable fields |
+| `internal/service/task_service.go` | Modify completion handling for recurring tasks; add `sync_integration` type; add `ResetTask()` and `TriggerTask()` methods |
+| `internal/http/task_handler.go` | Add `ResetTask` and `TriggerTask` handlers |
+| `internal/migrations/v28.go` | Database schema migration |
 
 ## Files to Create
 
 | File | Purpose |
 |------|---------|
 | `internal/service/integration_sync_processor.go` | Generic processor that dispatches to specific integration handlers |
+| `internal/migrations/v28_test.go` | Migration tests |
 
 ---
 
@@ -683,6 +708,83 @@ make test-integration
 # 6. Coverage report
 make coverage
 ```
+
+---
+
+## API Endpoints
+
+Following the existing pattern where integration management uses generic endpoints (not per-integration), add these **generic task endpoints** for recurring task operations:
+
+### Reset Failed Recurring Task
+
+```go
+// POST /api/tasks.reset
+// Resets a failed recurring task to pending state
+type ResetTaskRequest struct {
+    WorkspaceID string `json:"workspace_id"`
+    TaskID      string `json:"task_id"`
+}
+```
+
+Handler in `internal/http/task_handler.go`:
+```go
+func (h *TaskHandler) ResetTask(w http.ResponseWriter, r *http.Request) {
+    // Validate auth and workspace access
+    // Call taskService.ResetTask(ctx, workspaceID, taskID)
+    // Returns updated task
+}
+```
+
+### Trigger Immediate Sync
+
+```go
+// POST /api/tasks.trigger
+// Triggers immediate execution of a recurring task (sets next_run_after = now)
+type TriggerTaskRequest struct {
+    WorkspaceID string `json:"workspace_id"`
+    TaskID      string `json:"task_id"`
+}
+```
+
+Service implementation with running check:
+```go
+func (s *TaskService) TriggerTask(ctx context.Context, workspace, taskID string) error {
+    task, err := s.repo.Get(ctx, workspace, taskID)
+    if err != nil {
+        return fmt.Errorf("failed to get task: %w", err)
+    }
+
+    // Prevent triggering a task that's already running
+    if task.Status == domain.TaskStatusRunning {
+        return domain.ErrTaskAlreadyRunning
+    }
+
+    // Only allow triggering recurring tasks
+    if !task.IsRecurring() {
+        return fmt.Errorf("task is not a recurring task")
+    }
+
+    // Set next_run_after to now for immediate pickup by scheduler
+    nextRun := time.Now().UTC()
+    return s.repo.MarkAsPending(ctx, workspace, taskID, nextRun, task.Progress, task.State)
+}
+```
+
+> **Note:** Each integration service (e.g., StaminadsService) creates its own sync task via the generic task system. The task endpoints handle reset/trigger operations generically - no per-integration endpoints needed.
+
+---
+
+## Frontend Integration
+
+Tasks will be displayed in the **Logs page in a dedicated Tab**:
+
+- Show all workspace tasks with filtering by type, status
+- Display recurring indicator for tasks with `recurring_interval`
+- Show `next_run_after` for pending recurring tasks
+- Display error type (`transient`/`permanent`) for failed tasks
+- Action buttons:
+  - **Reset** - For failed recurring tasks (calls `/api/tasks.reset`)
+  - **Trigger Now** - For paused/pending recurring tasks (calls `/api/tasks.trigger`)
 
 ---
 

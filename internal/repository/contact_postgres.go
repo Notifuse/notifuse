@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -1133,6 +1134,38 @@ func (r *contactRepository) UpsertContact(ctx context.Context, workspaceID strin
 	return isNew, nil
 }
 
+func contactToNullString(n *domain.NullableString) sql.NullString {
+	if n != nil && !n.IsNull {
+		return sql.NullString{String: n.String, Valid: true}
+	}
+	return sql.NullString{Valid: false}
+}
+
+func contactToNullFloat64(n *domain.NullableFloat64) sql.NullFloat64 {
+	if n != nil && !n.IsNull {
+		return sql.NullFloat64{Float64: n.Float64, Valid: true}
+	}
+	return sql.NullFloat64{Valid: false}
+}
+
+func contactToNullTime(n *domain.NullableTime) sql.NullTime {
+	if n != nil && !n.IsNull {
+		return sql.NullTime{Time: n.Time, Valid: true}
+	}
+	return sql.NullTime{Valid: false}
+}
+
+func contactToNullJSON(n *domain.NullableJSON) sql.NullString {
+	if n != nil && !n.IsNull {
+		jsonBytes, err := json.Marshal(n.Data)
+		if err != nil {
+			return sql.NullString{Valid: false}
+		}
+		return sql.NullString{String: string(jsonBytes), Valid: true}
+	}
+	return sql.NullString{Valid: false}
+}
+
 // BulkUpsertContacts creates or updates multiple contacts in a single database operation
 // It uses PostgreSQL's INSERT ... ON CONFLICT to efficiently handle both inserts and updates
 // Returns per-contact results indicating whether each was inserted (IsNew=true) or updated (IsNew=false)
@@ -1185,40 +1218,11 @@ func (r *contactRepository) BulkUpsertContacts(ctx context.Context, workspaceID 
 			if j > 0 {
 				queryBuilder.WriteString(", ")
 			}
-			queryBuilder.WriteString(fmt.Sprintf("$%d", argIndex))
+			queryBuilder.WriteByte('$')
+			queryBuilder.WriteString(strconv.Itoa(argIndex))
 			argIndex++
 		}
 		queryBuilder.WriteString(")")
-
-		// Helper function to convert nullable types to sql.Null* types
-		toNullString := func(n *domain.NullableString) sql.NullString {
-			if n != nil && !n.IsNull {
-				return sql.NullString{String: n.String, Valid: true}
-			}
-			return sql.NullString{Valid: false}
-		}
-		toNullFloat64 := func(n *domain.NullableFloat64) sql.NullFloat64 {
-			if n != nil && !n.IsNull {
-				return sql.NullFloat64{Float64: n.Float64, Valid: true}
-			}
-			return sql.NullFloat64{Valid: false}
-		}
-		toNullTime := func(n *domain.NullableTime) sql.NullTime {
-			if n != nil && !n.IsNull {
-				return sql.NullTime{Time: n.Time, Valid: true}
-			}
-			return sql.NullTime{Valid: false}
-		}
-		toNullJSON := func(n *domain.NullableJSON) sql.NullString {
-			if n != nil && !n.IsNull {
-				jsonBytes, err := json.Marshal(n.Data)
-				if err != nil {
-					return sql.NullString{Valid: false}
-				}
-				return sql.NullString{String: string(jsonBytes), Valid: true}
-			}
-			return sql.NullString{Valid: false}
-		}
 
 		// Determine timestamps - use provided or default to now
 		createdAt := now
@@ -1234,39 +1238,39 @@ func (r *contactRepository) BulkUpsertContacts(ctx context.Context, workspaceID 
 		// Note: db_created_at and db_updated_at are NOT included - they have DEFAULT CURRENT_TIMESTAMP in the schema
 		args = append(args,
 			contact.Email,                        // 1
-			toNullString(contact.ExternalID),     // 2
-			toNullString(contact.Timezone),       // 3
-			toNullString(contact.Language),       // 4
-			toNullString(contact.FirstName),      // 5
-			toNullString(contact.LastName),       // 6
-			toNullString(contact.FullName),       // 7
-			toNullString(contact.Phone),          // 8
-			toNullString(contact.AddressLine1),   // 9
-			toNullString(contact.AddressLine2),   // 10
-			toNullString(contact.Country),        // 11
-			toNullString(contact.Postcode),       // 12
-			toNullString(contact.State),          // 13
-			toNullString(contact.JobTitle),       // 14
-			toNullString(contact.CustomString1),  // 15
-			toNullString(contact.CustomString2),  // 16
-			toNullString(contact.CustomString3),  // 17
-			toNullString(contact.CustomString4),  // 18
-			toNullString(contact.CustomString5),  // 19
-			toNullFloat64(contact.CustomNumber1), // 20
-			toNullFloat64(contact.CustomNumber2), // 21
-			toNullFloat64(contact.CustomNumber3), // 22
-			toNullFloat64(contact.CustomNumber4), // 23
-			toNullFloat64(contact.CustomNumber5), // 24
-			toNullTime(contact.CustomDatetime1),  // 25
-			toNullTime(contact.CustomDatetime2),  // 26
-			toNullTime(contact.CustomDatetime3),  // 27
-			toNullTime(contact.CustomDatetime4),  // 28
-			toNullTime(contact.CustomDatetime5),  // 29
-			toNullJSON(contact.CustomJSON1),      // 30
-			toNullJSON(contact.CustomJSON2),      // 31
-			toNullJSON(contact.CustomJSON3),      // 32
-			toNullJSON(contact.CustomJSON4),      // 33
-			toNullJSON(contact.CustomJSON5),      // 34
+			contactToNullString(contact.ExternalID),     // 2
+			contactToNullString(contact.Timezone),       // 3
+			contactToNullString(contact.Language),       // 4
+			contactToNullString(contact.FirstName),      // 5
+			contactToNullString(contact.LastName),       // 6
+			contactToNullString(contact.FullName),       // 7
+			contactToNullString(contact.Phone),          // 8
+			contactToNullString(contact.AddressLine1),   // 9
+			contactToNullString(contact.AddressLine2),   // 10
+			contactToNullString(contact.Country),        // 11
+			contactToNullString(contact.Postcode),       // 12
+			contactToNullString(contact.State),          // 13
+			contactToNullString(contact.JobTitle),       // 14
+			contactToNullString(contact.CustomString1),  // 15
+			contactToNullString(contact.CustomString2),  // 16
+			contactToNullString(contact.CustomString3),  // 17
+			contactToNullString(contact.CustomString4),  // 18
+			contactToNullString(contact.CustomString5),  // 19
+			contactToNullFloat64(contact.CustomNumber1), // 20
+			contactToNullFloat64(contact.CustomNumber2), // 21
+			contactToNullFloat64(contact.CustomNumber3), // 22
+			contactToNullFloat64(contact.CustomNumber4), // 23
+			contactToNullFloat64(contact.CustomNumber5), // 24
+			contactToNullTime(contact.CustomDatetime1),  // 25
+			contactToNullTime(contact.CustomDatetime2),  // 26
+			contactToNullTime(contact.CustomDatetime3),  // 27
+			contactToNullTime(contact.CustomDatetime4),  // 28
+			contactToNullTime(contact.CustomDatetime5),  // 29
+			contactToNullJSON(contact.CustomJSON1),      // 30
+			contactToNullJSON(contact.CustomJSON2),      // 31
+			contactToNullJSON(contact.CustomJSON3),      // 32
+			contactToNullJSON(contact.CustomJSON4),      // 33
+			contactToNullJSON(contact.CustomJSON5),      // 34
 			createdAt,                            // 35 - application-level timestamp
 			updatedAt,                            // 36 - application-level timestamp
 		)

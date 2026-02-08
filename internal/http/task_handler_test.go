@@ -7,6 +7,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -970,4 +971,179 @@ func TestTaskHandler_GetCronStatus_Integration(t *testing.T) {
 	body := w.Body.String()
 	assert.Contains(t, body, `"success":true`)
 	assert.Contains(t, body, lastRun.Format(time.RFC3339))
+}
+
+func TestTaskHandler_ResetTask(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockTaskService := mocks.NewMockTaskService(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+
+	// Configure logger
+	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+
+	jwtSecret := []byte("test-jwt-secret-key-for-testing-32bytes")
+	handler := NewTaskHandler(
+		mockTaskService,
+		func() ([]byte, error) { return jwtSecret, nil },
+		mockLogger,
+		"test-secret",
+	)
+
+	t.Run("Success", func(t *testing.T) {
+		mockTaskService.EXPECT().
+			ResetTask(gomock.Any(), "ws-1", "task-1").
+			Return(nil)
+
+		body := `{"workspace_id": "ws-1", "id": "task-1"}`
+		req := httptest.NewRequest(http.MethodPost, "/api/tasks.reset", strings.NewReader(body))
+		w := httptest.NewRecorder()
+
+		handler.ResetTask(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+		assert.Contains(t, w.Body.String(), `"success":true`)
+	})
+
+	t.Run("Method not allowed", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/api/tasks.reset", nil)
+		w := httptest.NewRecorder()
+
+		handler.ResetTask(w, req)
+
+		assert.Equal(t, http.StatusMethodNotAllowed, w.Code)
+	})
+
+	t.Run("Invalid body", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodPost, "/api/tasks.reset", strings.NewReader("invalid"))
+		w := httptest.NewRecorder()
+
+		handler.ResetTask(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+	})
+
+	t.Run("Missing workspace_id", func(t *testing.T) {
+		body := `{"id": "task-1"}`
+		req := httptest.NewRequest(http.MethodPost, "/api/tasks.reset", strings.NewReader(body))
+		w := httptest.NewRecorder()
+
+		handler.ResetTask(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+		assert.Contains(t, w.Body.String(), "workspace_id is required")
+	})
+
+	t.Run("Task not found", func(t *testing.T) {
+		mockTaskService.EXPECT().
+			ResetTask(gomock.Any(), "ws-1", "task-not-found").
+			Return(domain.ErrTaskNotFound)
+
+		body := `{"workspace_id": "ws-1", "id": "task-not-found"}`
+		req := httptest.NewRequest(http.MethodPost, "/api/tasks.reset", strings.NewReader(body))
+		w := httptest.NewRecorder()
+
+		handler.ResetTask(w, req)
+
+		assert.Equal(t, http.StatusNotFound, w.Code)
+	})
+}
+
+func TestTaskHandler_TriggerTask(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockTaskService := mocks.NewMockTaskService(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+
+	// Configure logger
+	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+
+	jwtSecret := []byte("test-jwt-secret-key-for-testing-32bytes")
+	handler := NewTaskHandler(
+		mockTaskService,
+		func() ([]byte, error) { return jwtSecret, nil },
+		mockLogger,
+		"test-secret",
+	)
+
+	t.Run("Success", func(t *testing.T) {
+		mockTaskService.EXPECT().
+			TriggerTask(gomock.Any(), "ws-1", "task-1").
+			Return(nil)
+
+		body := `{"workspace_id": "ws-1", "id": "task-1"}`
+		req := httptest.NewRequest(http.MethodPost, "/api/tasks.trigger", strings.NewReader(body))
+		w := httptest.NewRecorder()
+
+		handler.TriggerTask(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+		assert.Contains(t, w.Body.String(), `"success":true`)
+	})
+
+	t.Run("Method not allowed", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/api/tasks.trigger", nil)
+		w := httptest.NewRecorder()
+
+		handler.TriggerTask(w, req)
+
+		assert.Equal(t, http.StatusMethodNotAllowed, w.Code)
+	})
+
+	t.Run("Invalid body", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodPost, "/api/tasks.trigger", strings.NewReader("invalid"))
+		w := httptest.NewRecorder()
+
+		handler.TriggerTask(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+	})
+
+	t.Run("Missing id", func(t *testing.T) {
+		body := `{"workspace_id": "ws-1"}`
+		req := httptest.NewRequest(http.MethodPost, "/api/tasks.trigger", strings.NewReader(body))
+		w := httptest.NewRecorder()
+
+		handler.TriggerTask(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+		assert.Contains(t, w.Body.String(), "id is required")
+	})
+
+	t.Run("Task not found", func(t *testing.T) {
+		mockTaskService.EXPECT().
+			TriggerTask(gomock.Any(), "ws-1", "task-not-found").
+			Return(domain.ErrTaskNotFound)
+
+		body := `{"workspace_id": "ws-1", "id": "task-not-found"}`
+		req := httptest.NewRequest(http.MethodPost, "/api/tasks.trigger", strings.NewReader(body))
+		w := httptest.NewRecorder()
+
+		handler.TriggerTask(w, req)
+
+		assert.Equal(t, http.StatusNotFound, w.Code)
+	})
+
+	t.Run("Task already running", func(t *testing.T) {
+		mockTaskService.EXPECT().
+			TriggerTask(gomock.Any(), "ws-1", "task-running").
+			Return(&domain.ErrTaskAlreadyRunning{TaskID: "task-running"})
+
+		body := `{"workspace_id": "ws-1", "id": "task-running"}`
+		req := httptest.NewRequest(http.MethodPost, "/api/tasks.trigger", strings.NewReader(body))
+		w := httptest.NewRecorder()
+
+		handler.TriggerTask(w, req)
+
+		assert.Equal(t, http.StatusConflict, w.Code)
+		assert.Contains(t, w.Body.String(), "already running")
+	})
 }

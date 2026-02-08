@@ -971,6 +971,117 @@ func TestContactService_BatchImportContacts_DuplicateEmails(t *testing.T) {
 	})
 }
 
+func TestContactService_BatchImportContacts_Chunking(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	service, mockRepo, _, mockAuthService, _, _, _, _, mockLogger := createContactServiceWithMocks(ctrl)
+
+	ctx := context.Background()
+	workspaceID := "workspace123"
+
+	userWorkspace := &domain.UserWorkspace{
+		UserID:      "user123",
+		WorkspaceID: workspaceID,
+		Role:        "admin",
+		Permissions: domain.UserPermissions{
+			domain.PermissionResourceContacts: {Read: true, Write: true},
+		},
+	}
+
+	t.Run("large batch is chunked into multiple BulkUpsertContacts calls", func(t *testing.T) {
+		// Create 501 contacts to force 2 chunks (500 + 1)
+		contacts := make([]*domain.Contact, 501)
+		for i := range contacts {
+			contacts[i] = &domain.Contact{Email: fmt.Sprintf("test%d@example.com", i)}
+		}
+
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{}, userWorkspace, nil)
+
+		// Expect 2 BulkUpsertContacts calls: first chunk of 500, then chunk of 1
+		firstResults := make([]domain.BulkUpsertResult, 500)
+		for i := 0; i < 500; i++ {
+			firstResults[i] = domain.BulkUpsertResult{
+				Email: fmt.Sprintf("test%d@example.com", i), IsNew: true,
+			}
+		}
+
+		firstCall := mockRepo.EXPECT().BulkUpsertContacts(ctx, workspaceID, gomock.Any()).DoAndReturn(
+			func(ctx context.Context, wsID string, chunk []*domain.Contact) ([]domain.BulkUpsertResult, error) {
+				assert.Len(t, chunk, 500, "first chunk should have 500 contacts")
+				return firstResults, nil
+			})
+
+		secondCall := mockRepo.EXPECT().BulkUpsertContacts(ctx, workspaceID, gomock.Any()).DoAndReturn(
+			func(ctx context.Context, wsID string, chunk []*domain.Contact) ([]domain.BulkUpsertResult, error) {
+				assert.Len(t, chunk, 1, "second chunk should have 1 contact")
+				return []domain.BulkUpsertResult{
+					{Email: "test500@example.com", IsNew: true},
+				}, nil
+			})
+
+		gomock.InOrder(firstCall, secondCall)
+
+		response := service.BatchImportContacts(ctx, workspaceID, contacts, nil)
+
+		assert.NotNil(t, response)
+		assert.Empty(t, response.Error)
+		assert.Len(t, response.Operations, 501)
+
+		// All operations should be successful creates
+		for _, op := range response.Operations {
+			assert.Equal(t, domain.UpsertContactOperationCreate, op.Action)
+		}
+	})
+
+	t.Run("chunk failure continues with remaining chunks", func(t *testing.T) {
+		// Create 501 contacts to force 2 chunks
+		contacts := make([]*domain.Contact, 501)
+		for i := range contacts {
+			contacts[i] = &domain.Contact{Email: fmt.Sprintf("test%d@example.com", i)}
+		}
+
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{}, userWorkspace, nil)
+
+		// First chunk of 500 fails
+		firstCall := mockRepo.EXPECT().BulkUpsertContacts(ctx, workspaceID, gomock.Any()).DoAndReturn(
+			func(ctx context.Context, wsID string, chunk []*domain.Contact) ([]domain.BulkUpsertResult, error) {
+				assert.Len(t, chunk, 500)
+				return nil, errors.New("database error on chunk 1")
+			})
+		mockLogger.EXPECT().Error(gomock.Any())
+
+		// Second chunk of 1 succeeds
+		secondCall := mockRepo.EXPECT().BulkUpsertContacts(ctx, workspaceID, gomock.Any()).DoAndReturn(
+			func(ctx context.Context, wsID string, chunk []*domain.Contact) ([]domain.BulkUpsertResult, error) {
+				assert.Len(t, chunk, 1)
+				return []domain.BulkUpsertResult{
+					{Email: "test500@example.com", IsNew: true},
+				}, nil
+			})
+
+		gomock.InOrder(firstCall, secondCall)
+
+		response := service.BatchImportContacts(ctx, workspaceID, contacts, nil)
+
+		assert.NotNil(t, response)
+		assert.Empty(t, response.Error)
+		assert.Len(t, response.Operations, 501) // 500 errors + 1 success
+
+		errorCount := 0
+		successCount := 0
+		for _, op := range response.Operations {
+			if op.Action == domain.UpsertContactOperationError {
+				errorCount++
+			} else {
+				successCount++
+			}
+		}
+		assert.Equal(t, 500, errorCount, "failed chunk should produce 500 error operations")
+		assert.Equal(t, 1, successCount, "successful chunk should produce 1 success operation")
+	})
+}
+
 func TestContactService_CountContacts(t *testing.T) {
 	// Test ContactService.CountContacts - this was at 0% coverage
 	ctrl := gomock.NewController(t)

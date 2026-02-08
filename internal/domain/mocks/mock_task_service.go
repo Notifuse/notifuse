@@ -178,6 +178,20 @@ func (mr *MockTaskServiceMockRecorder) RegisterProcessor(arg0 interface{}) *gomo
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterProcessor", reflect.TypeOf((*MockTaskService)(nil).RegisterProcessor), arg0)
 }
 
+// ResetTask mocks base method.
+func (m *MockTaskService) ResetTask(arg0 context.Context, arg1, arg2 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ResetTask", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ResetTask indicates an expected call of ResetTask.
+func (mr *MockTaskServiceMockRecorder) ResetTask(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResetTask", reflect.TypeOf((*MockTaskService)(nil).ResetTask), arg0, arg1, arg2)
+}
+
 // SubscribeToBroadcastEvents mocks base method.
 func (m *MockTaskService) SubscribeToBroadcastEvents(arg0 domain.EventBus) {
 	m.ctrl.T.Helper()
@@ -188,4 +202,18 @@ func (m *MockTaskService) SubscribeToBroadcastEvents(arg0 domain.EventBus) {
 func (mr *MockTaskServiceMockRecorder) SubscribeToBroadcastEvents(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SubscribeToBroadcastEvents", reflect.TypeOf((*MockTaskService)(nil).SubscribeToBroadcastEvents), arg0)
+}
+
+// TriggerTask mocks base method.
+func (m *MockTaskService) TriggerTask(arg0 context.Context, arg1, arg2 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "TriggerTask", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// TriggerTask indicates an expected call of TriggerTask.
+func (mr *MockTaskServiceMockRecorder) TriggerTask(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TriggerTask", reflect.TypeOf((*MockTaskService)(nil).TriggerTask), arg0, arg1, arg2)
 }

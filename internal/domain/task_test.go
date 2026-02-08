@@ -684,6 +684,40 @@ func TestCreateTaskRequest_Validate(t *testing.T) {
 		require.NotNil(t, task)
 		assert.Equal(t, &futureTime, task.NextRunAfter)
 	})
+
+	t.Run("recurring_interval and integration_id are preserved", func(t *testing.T) {
+		interval := int64(300)
+		integrationID := "integration-123"
+		req := &CreateTaskRequest{
+			WorkspaceID:       "ws-123",
+			Type:              "sync_integration",
+			RecurringInterval: &interval,
+			IntegrationID:     &integrationID,
+		}
+
+		task, err := req.Validate()
+		require.NoError(t, err)
+		require.NotNil(t, task)
+		require.NotNil(t, task.RecurringInterval)
+		assert.Equal(t, int64(300), *task.RecurringInterval)
+		require.NotNil(t, task.IntegrationID)
+		assert.Equal(t, "integration-123", *task.IntegrationID)
+		assert.True(t, task.IsRecurring())
+	})
+
+	t.Run("nil recurring fields create non-recurring task", func(t *testing.T) {
+		req := &CreateTaskRequest{
+			WorkspaceID: "ws-123",
+			Type:        "send_broadcast",
+		}
+
+		task, err := req.Validate()
+		require.NoError(t, err)
+		require.NotNil(t, task)
+		assert.Nil(t, task.RecurringInterval)
+		assert.Nil(t, task.IntegrationID)
+		assert.False(t, task.IsRecurring())
+	})
 }
 
 func TestExecuteTaskRequest_Validate(t *testing.T) {
@@ -715,5 +749,322 @@ func TestExecuteTaskRequest_Validate(t *testing.T) {
 		err := req.Validate()
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "task id is required")
+	})
+}
+
+// Helper function for creating int64 pointers
+func ptrInt64(v int64) *int64 {
+	return &v
+}
+
+// Helper function for creating string pointers
+func ptrString(v string) *string {
+	return &v
+}
+
+func TestTask_IsRecurring(t *testing.T) {
+	t.Run("nil interval", func(t *testing.T) {
+		task := &Task{
+			RecurringInterval: nil,
+		}
+		assert.False(t, task.IsRecurring())
+	})
+
+	t.Run("zero interval", func(t *testing.T) {
+		task := &Task{
+			RecurringInterval: ptrInt64(0),
+		}
+		assert.False(t, task.IsRecurring())
+	})
+
+	t.Run("negative interval", func(t *testing.T) {
+		task := &Task{
+			RecurringInterval: ptrInt64(-1),
+		}
+		assert.False(t, task.IsRecurring())
+	})
+
+	t.Run("positive interval", func(t *testing.T) {
+		task := &Task{
+			RecurringInterval: ptrInt64(60),
+		}
+		assert.True(t, task.IsRecurring())
+	})
+
+	t.Run("large interval", func(t *testing.T) {
+		task := &Task{
+			RecurringInterval: ptrInt64(3600), // 1 hour
+		}
+		assert.True(t, task.IsRecurring())
+	})
+}
+
+func TestIntegrationSyncState_JSON(t *testing.T) {
+	t.Run("marshal and unmarshal", func(t *testing.T) {
+		now := time.Now().UTC().Truncate(time.Second)
+		errMsg := "connection timeout"
+		state := &IntegrationSyncState{
+			IntegrationID:   "int-123",
+			IntegrationType: "staminads",
+			Cursor:          "cursor-abc",
+			LastSyncAt:      &now,
+			LastSuccessAt:   &now,
+			EventsImported:  1000,
+			LastEventCount:  50,
+			ConsecErrors:    3,
+			LastError:       &errMsg,
+			LastErrorType:   ErrorTypeTransient,
+		}
+
+		// Marshal
+		data, err := json.Marshal(state)
+		require.NoError(t, err)
+
+		// Unmarshal
+		var restored IntegrationSyncState
+		err = json.Unmarshal(data, &restored)
+		require.NoError(t, err)
+
+		// Verify fields
+		assert.Equal(t, "int-123", restored.IntegrationID)
+		assert.Equal(t, "staminads", restored.IntegrationType)
+		assert.Equal(t, "cursor-abc", restored.Cursor)
+		assert.NotNil(t, restored.LastSyncAt)
+		assert.Equal(t, now.Unix(), restored.LastSyncAt.Unix())
+		assert.NotNil(t, restored.LastSuccessAt)
+		assert.Equal(t, now.Unix(), restored.LastSuccessAt.Unix())
+		assert.Equal(t, int64(1000), restored.EventsImported)
+		assert.Equal(t, 50, restored.LastEventCount)
+		assert.Equal(t, 3, restored.ConsecErrors)
+		assert.NotNil(t, restored.LastError)
+		assert.Equal(t, "connection timeout", *restored.LastError)
+		assert.Equal(t, ErrorTypeTransient, restored.LastErrorType)
+	})
+
+	t.Run("omitempty fields", func(t *testing.T) {
+		state := &IntegrationSyncState{
+			IntegrationID:   "int-456",
+			IntegrationType: "mixpanel",
+		}
+
+		data, err := json.Marshal(state)
+		require.NoError(t, err)
+
+		// Verify omitted fields are not in JSON
+		var m map[string]interface{}
+		err = json.Unmarshal(data, &m)
+		require.NoError(t, err)
+
+		assert.Equal(t, "int-456", m["integration_id"])
+		assert.Equal(t, "mixpanel", m["integration_type"])
+		_, hasCursor := m["cursor"]
+		assert.False(t, hasCursor, "cursor should be omitted when empty")
+		_, hasLastError := m["last_error"]
+		assert.False(t, hasLastError, "last_error should be omitted when nil")
+	})
+}
+
+func TestTaskState_WithIntegrationSync(t *testing.T) {
+	t.Run("value and scan with integration sync", func(t *testing.T) {
+		state := TaskState{
+			Progress: 75.0,
+			Message:  "Syncing integration",
+			IntegrationSync: &IntegrationSyncState{
+				IntegrationID:   "int-789",
+				IntegrationType: "staminads",
+				EventsImported:  500,
+				ConsecErrors:    0,
+			},
+		}
+
+		// Test Value
+		value, err := state.Value()
+		require.NoError(t, err)
+
+		bytes, ok := value.([]byte)
+		require.True(t, ok)
+
+		// Verify JSON structure
+		var m map[string]interface{}
+		err = json.Unmarshal(bytes, &m)
+		require.NoError(t, err)
+
+		assert.Equal(t, 75.0, m["progress"])
+		assert.Equal(t, "Syncing integration", m["message"])
+
+		syncMap, ok := m["integration_sync"].(map[string]interface{})
+		require.True(t, ok)
+		assert.Equal(t, "int-789", syncMap["integration_id"])
+		assert.Equal(t, "staminads", syncMap["integration_type"])
+		assert.Equal(t, float64(500), syncMap["events_imported"])
+
+		// Test Scan
+		var scanned TaskState
+		err = scanned.Scan(bytes)
+		require.NoError(t, err)
+
+		assert.Equal(t, 75.0, scanned.Progress)
+		assert.Equal(t, "Syncing integration", scanned.Message)
+		assert.NotNil(t, scanned.IntegrationSync)
+		assert.Equal(t, "int-789", scanned.IntegrationSync.IntegrationID)
+		assert.Equal(t, "staminads", scanned.IntegrationSync.IntegrationType)
+		assert.Equal(t, int64(500), scanned.IntegrationSync.EventsImported)
+	})
+
+	t.Run("only one specialized state", func(t *testing.T) {
+		// TaskState should only have one specialized state at a time
+		state := TaskState{
+			IntegrationSync: &IntegrationSyncState{
+				IntegrationID: "int-123",
+			},
+		}
+
+		assert.Nil(t, state.SendBroadcast)
+		assert.Nil(t, state.BuildSegment)
+		assert.NotNil(t, state.IntegrationSync)
+	})
+}
+
+func TestErrorTypeConstants(t *testing.T) {
+	assert.Equal(t, "transient", ErrorTypeTransient)
+	assert.Equal(t, "permanent", ErrorTypePermanent)
+	assert.Equal(t, "unknown", ErrorTypeUnknown)
+}
+
+func TestResetTaskRequest_Validate(t *testing.T) {
+	t.Run("valid request", func(t *testing.T) {
+		req := &ResetTaskRequest{
+			WorkspaceID: "ws-123",
+			ID:          "task-456",
+		}
+
+		err := req.Validate()
+		require.NoError(t, err)
+	})
+
+	t.Run("missing workspace_id", func(t *testing.T) {
+		req := &ResetTaskRequest{
+			ID: "task-456",
+		}
+
+		err := req.Validate()
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "workspace_id is required")
+	})
+
+	t.Run("empty workspace_id", func(t *testing.T) {
+		req := &ResetTaskRequest{
+			WorkspaceID: "",
+			ID:          "task-456",
+		}
+
+		err := req.Validate()
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "workspace_id is required")
+	})
+
+	t.Run("missing id", func(t *testing.T) {
+		req := &ResetTaskRequest{
+			WorkspaceID: "ws-123",
+		}
+
+		err := req.Validate()
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "id is required")
+	})
+
+	t.Run("empty id", func(t *testing.T) {
+		req := &ResetTaskRequest{
+			WorkspaceID: "ws-123",
+			ID:          "",
+		}
+
+		err := req.Validate()
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "id is required")
+	})
+}
+
+func TestTriggerTaskRequest_Validate(t *testing.T) {
+	t.Run("valid request", func(t *testing.T) {
+		req := &TriggerTaskRequest{
+			WorkspaceID: "ws-123",
+			ID:          "task-456",
+		}
+
+		err := req.Validate()
+		require.NoError(t, err)
+	})
+
+	t.Run("missing workspace_id", func(t *testing.T) {
+		req := &TriggerTaskRequest{
+			ID: "task-456",
+		}
+
+		err := req.Validate()
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "workspace_id is required")
+	})
+
+	t.Run("empty workspace_id", func(t *testing.T) {
+		req := &TriggerTaskRequest{
+			WorkspaceID: "",
+			ID:          "task-456",
+		}
+
+		err := req.Validate()
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "workspace_id is required")
+	})
+
+	t.Run("missing id", func(t *testing.T) {
+		req := &TriggerTaskRequest{
+			WorkspaceID: "ws-123",
+		}
+
+		err := req.Validate()
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "id is required")
+	})
+
+	t.Run("empty id", func(t *testing.T) {
+		req := &TriggerTaskRequest{
+			WorkspaceID: "ws-123",
+			ID:          "",
+		}
+
+		err := req.Validate()
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "id is required")
+	})
+}
+
+func TestTask_RecurringFields(t *testing.T) {
+	t.Run("task with recurring fields", func(t *testing.T) {
+		interval := int64(60)
+		integrationID := "int-123"
+		task := &Task{
+			ID:                "task-1",
+			WorkspaceID:       "ws-1",
+			Type:              "sync_integration",
+			RecurringInterval: &interval,
+			IntegrationID:     &integrationID,
+		}
+
+		assert.Equal(t, int64(60), *task.RecurringInterval)
+		assert.Equal(t, "int-123", *task.IntegrationID)
+		assert.True(t, task.IsRecurring())
+	})
+
+	t.Run("task without recurring fields", func(t *testing.T) {
+		task := &Task{
+			ID:          "task-1",
+			WorkspaceID: "ws-1",
+			Type:        "send_broadcast",
+		}
+
+		assert.Nil(t, task.RecurringInterval)
+		assert.Nil(t, task.IntegrationID)
+		assert.False(t, task.IsRecurring())
 	})
 }

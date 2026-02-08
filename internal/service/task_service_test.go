@@ -803,6 +803,11 @@ func TestTaskService_RegisterProcessor(t *testing.T) {
 			Return(false).
 			Times(1)
 
+		mockProcessor.EXPECT().
+			CanProcess("sync_integration").
+			Return(false).
+			Times(1)
+
 		// Register the processor
 		taskService.RegisterProcessor(mockProcessor)
 
@@ -2285,5 +2290,314 @@ func TestTaskService_IsAutoExecuteEnabled(t *testing.T) {
 	t.Run("Returns true when enabled", func(t *testing.T) {
 		taskService.SetAutoExecuteImmediate(true)
 		assert.True(t, taskService.IsAutoExecuteEnabled())
+	})
+}
+
+func TestTaskService_ResetTask(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockRepo := mocks.NewMockTaskRepository(ctrl)
+	mockSettingRepo := mocks.NewMockSettingRepository(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+	var mockAuthService *AuthService = nil
+	apiEndpoint := "http://localhost:8080"
+
+	// Configure logger to return itself for chaining
+	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+
+	taskService := NewTaskService(mockRepo, mockSettingRepo, mockLogger, mockAuthService, apiEndpoint)
+
+	t.Run("Success - resets failed recurring task", func(t *testing.T) {
+		ctx := context.Background()
+		workspace := "ws-1"
+		taskID := "task-1"
+		interval := int64(60)
+		integrationID := "int-123"
+		lastError := "some error"
+
+		task := &domain.Task{
+			ID:                taskID,
+			WorkspaceID:       workspace,
+			Type:              "sync_integration",
+			Status:            domain.TaskStatusFailed,
+			RecurringInterval: &interval,
+			IntegrationID:     &integrationID,
+			State: &domain.TaskState{
+				IntegrationSync: &domain.IntegrationSyncState{
+					IntegrationID: integrationID,
+					ConsecErrors:  5,
+					LastError:     &lastError,
+					LastErrorType: domain.ErrorTypeTransient,
+				},
+			},
+		}
+
+		mockRepo.EXPECT().Get(gomock.Any(), workspace, taskID).Return(task, nil)
+		mockRepo.EXPECT().MarkAsPending(gomock.Any(), workspace, taskID, gomock.Any(), float64(0), gomock.Any()).
+			DoAndReturn(func(_ context.Context, _, _ string, nextRun time.Time, progress float64, state *domain.TaskState) error {
+				// Verify error state was cleared
+				assert.Equal(t, 0, state.IntegrationSync.ConsecErrors)
+				assert.Nil(t, state.IntegrationSync.LastError)
+				assert.Empty(t, state.IntegrationSync.LastErrorType)
+				return nil
+			})
+
+		err := taskService.ResetTask(ctx, workspace, taskID)
+		assert.NoError(t, err)
+	})
+
+	t.Run("Error - task not found", func(t *testing.T) {
+		ctx := context.Background()
+		workspace := "ws-1"
+		taskID := "task-not-found"
+
+		mockRepo.EXPECT().Get(gomock.Any(), workspace, taskID).Return(nil, fmt.Errorf("not found"))
+
+		err := taskService.ResetTask(ctx, workspace, taskID)
+		assert.Error(t, err)
+		assert.ErrorIs(t, err, domain.ErrTaskNotFound)
+	})
+
+	t.Run("Error - task not in failed state", func(t *testing.T) {
+		ctx := context.Background()
+		workspace := "ws-1"
+		taskID := "task-1"
+		interval := int64(60)
+
+		task := &domain.Task{
+			ID:                taskID,
+			WorkspaceID:       workspace,
+			Status:            domain.TaskStatusRunning, // Not failed
+			RecurringInterval: &interval,
+		}
+
+		mockRepo.EXPECT().Get(gomock.Any(), workspace, taskID).Return(task, nil)
+
+		err := taskService.ResetTask(ctx, workspace, taskID)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "task is not in failed state")
+	})
+
+	t.Run("Error - task is not recurring", func(t *testing.T) {
+		ctx := context.Background()
+		workspace := "ws-1"
+		taskID := "task-1"
+
+		task := &domain.Task{
+			ID:          taskID,
+			WorkspaceID: workspace,
+			Status:      domain.TaskStatusFailed,
+			// No RecurringInterval - not a recurring task
+		}
+
+		mockRepo.EXPECT().Get(gomock.Any(), workspace, taskID).Return(task, nil)
+
+		err := taskService.ResetTask(ctx, workspace, taskID)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "task is not a recurring task")
+	})
+}
+
+func TestTaskService_TriggerTask(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockRepo := mocks.NewMockTaskRepository(ctrl)
+	mockSettingRepo := mocks.NewMockSettingRepository(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+	var mockAuthService *AuthService = nil
+	apiEndpoint := "http://localhost:8080"
+
+	// Configure logger to return itself for chaining
+	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+
+	taskService := NewTaskService(mockRepo, mockSettingRepo, mockLogger, mockAuthService, apiEndpoint)
+
+	t.Run("Success - triggers recurring task", func(t *testing.T) {
+		ctx := context.Background()
+		workspace := "ws-1"
+		taskID := "task-1"
+		interval := int64(60)
+
+		task := &domain.Task{
+			ID:                taskID,
+			WorkspaceID:       workspace,
+			Status:            domain.TaskStatusPending,
+			RecurringInterval: &interval,
+		}
+
+		mockRepo.EXPECT().Get(gomock.Any(), workspace, taskID).Return(task, nil)
+		mockRepo.EXPECT().MarkAsPending(gomock.Any(), workspace, taskID, gomock.Any(), task.Progress, task.State).Return(nil)
+
+		err := taskService.TriggerTask(ctx, workspace, taskID)
+		assert.NoError(t, err)
+	})
+
+	t.Run("Error - task not found", func(t *testing.T) {
+		ctx := context.Background()
+		workspace := "ws-1"
+		taskID := "task-not-found"
+
+		mockRepo.EXPECT().Get(gomock.Any(), workspace, taskID).Return(nil, fmt.Errorf("not found"))
+
+		err := taskService.TriggerTask(ctx, workspace, taskID)
+		assert.Error(t, err)
+		assert.ErrorIs(t, err, domain.ErrTaskNotFound)
+	})
+
+	t.Run("Error - task is not recurring", func(t *testing.T) {
+		ctx := context.Background()
+		workspace := "ws-1"
+		taskID := "task-1"
+
+		task := &domain.Task{
+			ID:          taskID,
+			WorkspaceID: workspace,
+			Status:      domain.TaskStatusPending,
+			// No RecurringInterval
+		}
+
+		mockRepo.EXPECT().Get(gomock.Any(), workspace, taskID).Return(task, nil)
+
+		err := taskService.TriggerTask(ctx, workspace, taskID)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "task is not a recurring task")
+	})
+
+	t.Run("Error - task already running", func(t *testing.T) {
+		ctx := context.Background()
+		workspace := "ws-1"
+		taskID := "task-1"
+		interval := int64(60)
+
+		task := &domain.Task{
+			ID:                taskID,
+			WorkspaceID:       workspace,
+			Status:            domain.TaskStatusRunning, // Already running
+			RecurringInterval: &interval,
+		}
+
+		mockRepo.EXPECT().Get(gomock.Any(), workspace, taskID).Return(task, nil)
+
+		err := taskService.TriggerTask(ctx, workspace, taskID)
+		assert.Error(t, err)
+		var alreadyRunningErr *domain.ErrTaskAlreadyRunning
+		assert.True(t, errors.As(err, &alreadyRunningErr))
+		assert.Equal(t, taskID, alreadyRunningErr.TaskID)
+	})
+
+	t.Run("Error - task in failed state cannot be triggered", func(t *testing.T) {
+		ctx := context.Background()
+		workspace := "ws-1"
+		taskID := "task-1"
+		interval := int64(60)
+
+		task := &domain.Task{
+			ID:                taskID,
+			WorkspaceID:       workspace,
+			Status:            domain.TaskStatusFailed, // Failed tasks need reset first
+			RecurringInterval: &interval,
+		}
+
+		mockRepo.EXPECT().Get(gomock.Any(), workspace, taskID).Return(task, nil)
+
+		err := taskService.TriggerTask(ctx, workspace, taskID)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "task cannot be triggered in current status")
+	})
+}
+
+func TestTaskService_ExecuteTask_RecurringReschedules(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockRepo := mocks.NewMockTaskRepository(ctrl)
+	mockSettingRepo := mocks.NewMockSettingRepository(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+	var mockAuthService *AuthService = nil
+	apiEndpoint := "http://localhost:8080"
+
+	// Configure logger to return itself for chaining
+	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Warn(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+
+	taskService := NewTaskService(mockRepo, mockSettingRepo, mockLogger, mockAuthService, apiEndpoint)
+	taskService.SetAutoExecuteImmediate(false)
+
+	// Create a mock processor that handles sync_integration tasks
+	mockProcessor := mocks.NewMockTaskProcessor(ctrl)
+	// RegisterProcessor calls CanProcess for all task types
+	mockProcessor.EXPECT().CanProcess(gomock.Any()).DoAndReturn(func(taskType string) bool {
+		return taskType == "sync_integration"
+	}).AnyTimes()
+	taskService.RegisterProcessor(mockProcessor)
+
+	// Setup transaction mocking
+	mockRepo.EXPECT().
+		WithTransaction(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, fn func(*sql.Tx) error) error {
+			return fn(nil)
+		}).AnyTimes()
+
+	t.Run("Recurring task reschedules after completion", func(t *testing.T) {
+		ctx := context.Background()
+		workspace := "ws-1"
+		taskID := "task-1"
+		interval := int64(60)
+		integrationID := "int-123"
+
+		task := &domain.Task{
+			ID:                taskID,
+			WorkspaceID:       workspace,
+			Type:              "sync_integration",
+			Status:            domain.TaskStatusPending,
+			RecurringInterval: &interval,
+			IntegrationID:     &integrationID,
+			MaxRuntime:        300,
+			State: &domain.TaskState{
+				IntegrationSync: &domain.IntegrationSyncState{
+					IntegrationID:   integrationID,
+					IntegrationType: "test",
+				},
+			},
+		}
+
+		// Mock GetTx
+		mockRepo.EXPECT().GetTx(gomock.Any(), gomock.Any(), workspace, taskID).Return(task, nil)
+
+		// Mock MarkAsRunningTx
+		mockRepo.EXPECT().MarkAsRunningTx(gomock.Any(), gomock.Any(), workspace, taskID, gomock.Any()).Return(nil)
+
+		// Mock processor to complete successfully
+		mockProcessor.EXPECT().Process(gomock.Any(), task, gomock.Any()).Return(true, nil)
+
+		// Expect MarkAsPending (not MarkAsCompleted) because it's recurring
+		mockRepo.EXPECT().MarkAsPending(gomock.Any(), workspace, taskID, gomock.Any(), float64(0), gomock.Any()).
+			DoAndReturn(func(_ context.Context, _, _ string, nextRun time.Time, progress float64, state *domain.TaskState) error {
+				// Verify next run is approximately interval + jitter seconds in the future
+				// Allow 1 second tolerance for timing differences between time.Now() calls
+				expectedMinNext := time.Now().Add(time.Duration(interval-1) * time.Second)
+				expectedMaxNext := time.Now().Add(time.Duration(interval+interval/10+5) * time.Second)
+				assert.True(t, nextRun.After(expectedMinNext) || nextRun.Equal(expectedMinNext),
+					"nextRun %v should be after expectedMinNext %v", nextRun, expectedMinNext)
+				assert.True(t, nextRun.Before(expectedMaxNext),
+					"nextRun %v should be before expectedMaxNext %v", nextRun, expectedMaxNext)
+				return nil
+			})
+
+		timeoutAt := time.Now().Add(60 * time.Second)
+		err := taskService.ExecuteTask(ctx, workspace, taskID, timeoutAt)
+		assert.NoError(t, err)
 	})
 }

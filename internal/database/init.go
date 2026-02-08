@@ -112,7 +112,6 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 			db_created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			db_updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
 		)`,
-		`CREATE INDEX IF NOT EXISTS idx_contacts_email ON contacts(email)`,
 		`CREATE INDEX IF NOT EXISTS idx_contacts_external_id ON contacts(external_id)`,
 		`CREATE TABLE IF NOT EXISTS lists (
 			id VARCHAR(32) PRIMARY KEY,
@@ -134,6 +133,7 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 			deleted_at TIMESTAMP WITH TIME ZONE,
 			PRIMARY KEY (email, list_id)
 		)`,
+		`CREATE INDEX IF NOT EXISTS idx_contact_lists_list_id ON contact_lists(list_id)`,
 		`CREATE TABLE IF NOT EXISTS templates (
 			id VARCHAR(32) NOT NULL,
 			name VARCHAR(255) NOT NULL,

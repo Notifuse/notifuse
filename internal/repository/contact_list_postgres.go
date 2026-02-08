@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
@@ -67,40 +69,59 @@ func (r *contactListRepository) BulkAddContactsToLists(ctx context.Context, work
 
 	now := time.Now().UTC()
 
-	// Build the multi-row INSERT statement
-	// Total rows = len(emails) * len(listIDs)
-	var queryBuilder string
-	args := make([]interface{}, 0, len(emails)*len(listIDs)*5)
-	argIndex := 1
-
-	queryBuilder = `INSERT INTO contact_lists (email, list_id, status, created_at, updated_at, deleted_at) VALUES `
-
-	// Create cross-product of emails and listIDs
-	first := true
-	for _, email := range emails {
-		for _, listID := range listIDs {
-			if !first {
-				queryBuilder += ", "
-			}
-			first = false
-
-			queryBuilder += fmt.Sprintf("($%d, $%d, $%d, $%d, $%d, NULL)",
-				argIndex, argIndex+1, argIndex+2, argIndex+3, argIndex+4)
-			argIndex += 5
-
-			args = append(args, email, listID, status, now, now)
-		}
+	// Calculate emails per batch based on cross-product size
+	// Each row uses 5 params; PostgreSQL limit is 65,535 params
+	emailsPerBatch := domain.BulkListAssignMaxRows / len(listIDs)
+	if emailsPerBatch < 1 {
+		emailsPerBatch = 1
 	}
 
-	// Add ON CONFLICT clause
-	queryBuilder += `
-		ON CONFLICT (email, list_id) DO UPDATE
-		SET status = EXCLUDED.status, updated_at = EXCLUDED.updated_at, deleted_at = NULL`
+	for i := 0; i < len(emails); i += emailsPerBatch {
+		end := i + emailsPerBatch
+		if end > len(emails) {
+			end = len(emails)
+		}
+		batchEmails := emails[i:end]
 
-	// Execute the bulk insert
-	_, err = workspaceDB.ExecContext(ctx, queryBuilder, args...)
-	if err != nil {
-		return fmt.Errorf("failed to bulk add contacts to lists: %w", err)
+		var qb strings.Builder
+		args := make([]interface{}, 0, len(batchEmails)*len(listIDs)*5)
+		argIndex := 1
+
+		qb.WriteString(`INSERT INTO contact_lists (email, list_id, status, created_at, updated_at, deleted_at) VALUES `)
+
+		first := true
+		for _, email := range batchEmails {
+			for _, listID := range listIDs {
+				if !first {
+					qb.WriteString(", ")
+				}
+				first = false
+
+				qb.WriteString("($")
+			qb.WriteString(strconv.Itoa(argIndex))
+			qb.WriteString(", $")
+			qb.WriteString(strconv.Itoa(argIndex + 1))
+			qb.WriteString(", $")
+			qb.WriteString(strconv.Itoa(argIndex + 2))
+			qb.WriteString(", $")
+			qb.WriteString(strconv.Itoa(argIndex + 3))
+			qb.WriteString(", $")
+			qb.WriteString(strconv.Itoa(argIndex + 4))
+			qb.WriteString(", NULL)")
+				argIndex += 5
+
+				args = append(args, email, listID, status, now, now)
+			}
+		}
+
+		qb.WriteString(`
+		ON CONFLICT (email, list_id) DO UPDATE
+		SET status = EXCLUDED.status, updated_at = EXCLUDED.updated_at, deleted_at = NULL`)
+
+		_, err = workspaceDB.ExecContext(ctx, qb.String(), args...)
+		if err != nil {
+			return fmt.Errorf("failed to bulk add contacts to lists: %w", err)
+		}
 	}
 
 	return nil

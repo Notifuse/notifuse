@@ -153,6 +153,36 @@ func (mr *MockTaskRepositoryMockRecorder) GetTaskByBroadcastIDTx(arg0, arg1, arg
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTaskByBroadcastIDTx", reflect.TypeOf((*MockTaskRepository)(nil).GetTaskByBroadcastIDTx), arg0, arg1, arg2, arg3)
 }
 
+// GetTaskByIntegrationID mocks base method.
+func (m *MockTaskRepository) GetTaskByIntegrationID(arg0 context.Context, arg1, arg2 string) (*domain.Task, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetTaskByIntegrationID", arg0, arg1, arg2)
+	ret0, _ := ret[0].(*domain.Task)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetTaskByIntegrationID indicates an expected call of GetTaskByIntegrationID.
+func (mr *MockTaskRepositoryMockRecorder) GetTaskByIntegrationID(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTaskByIntegrationID", reflect.TypeOf((*MockTaskRepository)(nil).GetTaskByIntegrationID), arg0, arg1, arg2)
+}
+
+// GetTaskByIntegrationIDTx mocks base method.
+func (m *MockTaskRepository) GetTaskByIntegrationIDTx(arg0 context.Context, arg1 *sql.Tx, arg2, arg3 string) (*domain.Task, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetTaskByIntegrationIDTx", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(*domain.Task)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetTaskByIntegrationIDTx indicates an expected call of GetTaskByIntegrationIDTx.
+func (mr *MockTaskRepositoryMockRecorder) GetTaskByIntegrationIDTx(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTaskByIntegrationIDTx", reflect.TypeOf((*MockTaskRepository)(nil).GetTaskByIntegrationIDTx), arg0, arg1, arg2, arg3)
+}
+
 // GetTx mocks base method.
 func (m *MockTaskRepository) GetTx(arg0 context.Context, arg1 *sql.Tx, arg2, arg3 string) (*domain.Task, error) {
 	m.ctrl.T.Helper()

@@ -168,7 +168,7 @@ export const TextStyleMark = Mark.create({
           }
         }
       },
-      // Catch-all for any other CSS styles
+      // Catch-all for any other CSS styles not handled by individual attributes
       style: {
         default: null,
         parseHTML: (element) => {
@@ -179,8 +179,29 @@ export const TextStyleMark = Mark.create({
           if (!attributes.style) {
             return {}
           }
+          // Filter out CSS properties already handled by individual attributes,
+          // so stale catch-all values don't override updated individual attrs
+          // (e.g., after setMark updates color, the old style string still has the old color)
+          const handledProperties = [
+            'color', 'background-color', 'font-size', 'font-family',
+            'font-weight', 'font-style', 'line-height', 'letter-spacing',
+            'text-decoration', 'text-transform', 'text-align', 'text-shadow',
+            'vertical-align'
+          ]
+          const filtered = attributes.style
+            .split(';')
+            .map((s: string) => s.trim())
+            .filter((s: string) => {
+              if (!s) return false
+              const prop = s.split(':')[0]?.trim().toLowerCase()
+              return !handledProperties.includes(prop)
+            })
+            .join('; ')
+          if (!filtered) {
+            return {}
+          }
           return {
-            style: attributes.style
+            style: filtered
           }
         }
       }

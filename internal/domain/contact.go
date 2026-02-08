@@ -570,6 +570,14 @@ const (
 	UpsertContactOperationCreate = "create"
 	UpsertContactOperationUpdate = "update"
 	UpsertContactOperationError  = "error"
+
+	// BulkImportChunkSize is the max contacts per INSERT query.
+	// 500 * 36 params = 18,000 (safely under PostgreSQL's 65,535 param limit).
+	BulkImportChunkSize = 500
+
+	// BulkListAssignMaxRows is the max rows (email x listID cross-product) per INSERT.
+	// 13,000 * 5 params = 65,000 (safely under PostgreSQL's 65,535 param limit).
+	BulkListAssignMaxRows = 13000
 )
 
 type UpsertContactOperation struct {
