@@ -389,8 +389,8 @@ func TestCalculateCost(t *testing.T) {
 		wantTotalCost  float64
 	}{
 		{
-			name:           "Opus 4.5 - 1M input, 500K output",
-			model:          "claude-opus-4-5-20251101",
+			name:           "Opus 4.6 - 1M input, 500K output",
+			model:          "claude-opus-4-6",
 			inputTokens:    1_000_000,
 			outputTokens:   500_000,
 			wantInputCost:  5.0,  // 1M * $5/MTok
