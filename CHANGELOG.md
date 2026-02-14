@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [27.1] - 2026-02-14
+
+- **Automations**: Per-email integration override — choose which email provider sends each email node, for IP warming and load distribution (#257)
+- Update Anthropic Opus model from `claude-opus-4-5-20251101` to `claude-opus-4-6`
+- **Segments**: Allow `count_value=0` in activity conditions to support "never did X" segments (#249)
+- **Security**: Upgraded markdown-it to 14.1.1
+
 ## [27.0] - 2026-02-07
 
 ### New Features

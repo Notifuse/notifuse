@@ -430,7 +430,7 @@ msgstr "Activity"
 
 #: src/components/blog/AuthorsTable.tsx:138
 #: src/components/broadcasts/HeadersEditor.tsx:54
-#: src/components/broadcasts/HeadersEditor.tsx:101
+#: src/components/broadcasts/HeadersEditor.tsx:102
 #: src/components/segment/input_json_path.tsx:98
 #: src/pages/ContactsPage.tsx:941
 msgid "Add"
@@ -519,11 +519,11 @@ msgstr "Add CSS"
 msgid "Add Custom Field Label"
 msgstr "Add Custom Field Label"
 
-#: src/components/broadcasts/HeadersEditor.tsx:89
+#: src/components/broadcasts/HeadersEditor.tsx:90
 msgid "Add custom header"
 msgstr "Add custom header"
 
-#: src/components/broadcasts/HeadersEditor.tsx:94
+#: src/components/broadcasts/HeadersEditor.tsx:95
 msgid "Add Custom Header"
 msgstr "Add Custom Header"
 
@@ -886,7 +886,7 @@ msgstr "Are you sure you want to delete the post"
 msgid "Are you sure you want to delete this block?"
 msgstr "Are you sure you want to delete this block?"
 
-#: src/components/broadcasts/HeadersEditor.tsx:62
+#: src/components/broadcasts/HeadersEditor.tsx:63
 msgid "Are you sure you want to delete this header?"
 msgstr "Are you sure you want to delete this header?"
 
@@ -1531,7 +1531,7 @@ msgstr "Button Size"
 #: src/components/blog/ThemeEditorDrawer.tsx:280
 #: src/components/blog/ThemeEditorDrawer.tsx:310
 #: src/components/blog/ThemeEditorDrawer.tsx:469
-#: src/components/broadcasts/HeadersEditor.tsx:102
+#: src/components/broadcasts/HeadersEditor.tsx:103
 #: src/components/broadcasts/SendOrScheduleModal.tsx:301
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:328
 #: src/components/contacts/BulkUpdateDrawer.tsx:576
@@ -1553,11 +1553,11 @@ msgstr "Button Size"
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:398
 #: src/components/file_manager/buttonSettings.tsx:309
 #: src/components/file_manager/context.tsx:192
-#: src/components/file_manager/fileManager.tsx:641
-#: src/components/file_manager/fileManager.tsx:762
-#: src/components/file_manager/fileManager.tsx:940
-#: src/components/file_manager/fileManager.tsx:1008
-#: src/components/file_manager/fileManager.tsx:1118
+#: src/components/file_manager/fileManager.tsx:653
+#: src/components/file_manager/fileManager.tsx:774
+#: src/components/file_manager/fileManager.tsx:952
+#: src/components/file_manager/fileManager.tsx:1020
+#: src/components/file_manager/fileManager.tsx:1130
 #: src/components/segment/button_upsert.tsx:347
 #: src/components/segment/input_dimension_filters.tsx:162
 #: src/components/segment/input.tsx:376
@@ -1612,7 +1612,7 @@ msgstr "Cannot remove list while email nodes exist. Delete email nodes first."
 msgid "Cannot restore progress: CSV data is not available"
 msgstr "Cannot restore progress: CSV data is not available"
 
-#: src/components/file_manager/fileManager.tsx:499
+#: src/components/file_manager/fileManager.tsx:511
 msgid "Cannot upload in read-only mode"
 msgstr "Cannot upload in read-only mode"
 
@@ -1804,7 +1804,7 @@ msgstr "Clone Template"
 
 #: src/components/blog/ThemeEditorDrawer.tsx:279
 #: src/components/blog/ThemePresetPreviewDrawer.tsx:40
-#: src/components/broadcasts/GlobalFeedSettings.tsx:134
+#: src/components/broadcasts/GlobalFeedSettings.tsx:137
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:825
 #: src/components/settings/WebhookCard.tsx:345
 #: src/components/settings/WorkspaceMembers.tsx:585
@@ -1926,13 +1926,13 @@ msgstr "Condition"
 msgid "conditions"
 msgstr "conditions"
 
-#: src/components/automations/NodeConfigPanel.tsx:132
+#: src/components/automations/NodeConfigPanel.tsx:133
 msgid "Configuration for {nodeType} is not available in Phase 2"
 msgstr "Configuration for {nodeType} is not available in Phase 2"
 
 #: src/components/analytics/AnalyticsDashboard.tsx:166
 #: src/components/analytics/AnalyticsDashboard.tsx:190
-#: src/components/automations/NodeConfigPanel.tsx:143
+#: src/components/automations/NodeConfigPanel.tsx:144
 #: src/components/automations/nodes/ABTestNode.tsx:59
 #: src/components/automations/nodes/AddToListNode.tsx:53
 #: src/components/automations/nodes/DelayNode.tsx:20
@@ -1956,7 +1956,7 @@ msgstr "Configure both the font name and CSS file URL together"
 msgid "Configure Integration"
 msgstr "Configure Integration"
 
-#: src/components/file_manager/fileManager.tsx:613
+#: src/components/file_manager/fileManager.tsx:625
 msgid "Configure now"
 msgstr "Configure now"
 
@@ -2048,7 +2048,7 @@ msgstr "Contact Details"
 msgid "Contact Email"
 msgstr "Contact Email"
 
-#: src/components/broadcasts/RecipientFeedSettings.tsx:150
+#: src/components/broadcasts/RecipientFeedSettings.tsx:154
 msgid "Contact email (leave empty for random)"
 msgstr "Contact email (leave empty for random)"
 
@@ -2150,7 +2150,7 @@ msgstr "Copy {0} Code"
 msgid "Copy to clipboard"
 msgstr "Copy to clipboard"
 
-#: src/components/file_manager/fileManager.tsx:889
+#: src/components/file_manager/fileManager.tsx:901
 msgid "Copy URL"
 msgstr "Copy URL"
 
@@ -2185,7 +2185,7 @@ msgstr "Cover"
 #: src/components/automations/UpsertAutomationDrawer.tsx:158
 #: src/components/blog/CategoryDrawer.tsx:114
 #: src/components/blog/PostDrawer.tsx:617
-#: src/components/file_manager/fileManager.tsx:1017
+#: src/components/file_manager/fileManager.tsx:1029
 #: src/components/lists/ListDrawer.tsx:170
 msgid "Create"
 msgstr "Create"
@@ -2241,7 +2241,7 @@ msgstr "Create New {0} Template"
 msgid "Create New Category"
 msgstr "Create New Category"
 
-#: src/components/file_manager/fileManager.tsx:1003
+#: src/components/file_manager/fileManager.tsx:1015
 msgid "Create new folder"
 msgstr "Create new folder"
 
@@ -2682,9 +2682,9 @@ msgstr "Delay"
 #: src/components/blog/PostsTable.tsx:341
 #: src/components/contacts/DeleteContactModal.tsx:40
 #: src/components/contacts/SegmentsFilter.tsx:143
-#: src/components/file_manager/fileManager.tsx:761
-#: src/components/file_manager/fileManager.tsx:766
-#: src/components/file_manager/fileManager.tsx:939
+#: src/components/file_manager/fileManager.tsx:773
+#: src/components/file_manager/fileManager.tsx:778
+#: src/components/file_manager/fileManager.tsx:951
 #: src/components/segment/input.tsx:374
 #: src/components/settings/Integrations.tsx:312
 #: src/components/settings/Integrations.tsx:1183
@@ -2702,7 +2702,7 @@ msgid "DELETE"
 msgstr "DELETE"
 
 #. placeholder {0}: selectedRowKeys.length
-#: src/components/file_manager/fileManager.tsx:759
+#: src/components/file_manager/fileManager.tsx:771
 msgid "Delete {0} selected item(s)?"
 msgstr "Delete {0} selected item(s)?"
 
@@ -2743,20 +2743,20 @@ msgstr "Delete contacts"
 msgid "Delete edge"
 msgstr "Delete edge"
 
-#: src/components/file_manager/fileManager.tsx:951
+#: src/components/file_manager/fileManager.tsx:963
 msgid "Delete file (Read-only mode)"
 msgstr "Delete file (Read-only mode)"
 
-#: src/components/file_manager/fileManager.tsx:631
-#: src/components/file_manager/fileManager.tsx:640
+#: src/components/file_manager/fileManager.tsx:643
+#: src/components/file_manager/fileManager.tsx:652
 msgid "Delete folder"
 msgstr "Delete folder"
 
-#: src/components/file_manager/fileManager.tsx:656
+#: src/components/file_manager/fileManager.tsx:668
 msgid "Delete folder (Read-only mode)"
 msgstr "Delete folder (Read-only mode)"
 
-#: src/components/broadcasts/HeadersEditor.tsx:61
+#: src/components/broadcasts/HeadersEditor.tsx:62
 msgid "Delete header"
 msgstr "Delete header"
 
@@ -2823,11 +2823,11 @@ msgstr "deleted"
 msgid "Deleted"
 msgstr "Deleted"
 
-#: src/components/file_manager/fileManager.tsx:596
+#: src/components/file_manager/fileManager.tsx:608
 msgid "Deleted {deletedCount} item(s)"
 msgstr "Deleted {deletedCount} item(s)"
 
-#: src/components/file_manager/fileManager.tsx:598
+#: src/components/file_manager/fileManager.tsx:610
 msgid "Deleted {deletedCount}, failed {failedCount}"
 msgstr "Deleted {deletedCount}, failed {failedCount}"
 
@@ -2953,11 +2953,11 @@ msgstr "Do you really want to remove this condition?"
 msgid "Do you really want to remove this filter?"
 msgstr "Do you really want to remove this filter?"
 
-#: src/components/file_manager/fileManager.tsx:636
+#: src/components/file_manager/fileManager.tsx:648
 msgid "Do you want to delete the"
 msgstr "Do you want to delete the"
 
-#: src/components/file_manager/fileManager.tsx:936
+#: src/components/file_manager/fileManager.tsx:948
 msgid "Do you want to permanently delete this file from your storage?"
 msgstr "Do you want to permanently delete this file from your storage?"
 
@@ -3008,12 +3008,12 @@ msgstr "Double Opt-in"
 msgid "Double Opt-in Template"
 msgstr "Double Opt-in Template"
 
-#: src/components/file_manager/fileManager.tsx:908
+#: src/components/file_manager/fileManager.tsx:920
 msgid "Download file"
 msgstr "Download file"
 
 #. placeholder {0}: selectedFiles.length
-#: src/components/file_manager/fileManager.tsx:547
+#: src/components/file_manager/fileManager.tsx:559
 msgid "Downloaded {0} file(s)"
 msgstr "Downloaded {0} file(s)"
 
@@ -3034,7 +3034,7 @@ msgstr "Drafts"
 msgid "Drag to move this block in the tree"
 msgstr "Drag to move this block in the tree"
 
-#: src/components/file_manager/fileManager.tsx:994
+#: src/components/file_manager/fileManager.tsx:1006
 msgid "Drop files here to upload"
 msgstr "Drop files here to upload"
 
@@ -3305,6 +3305,7 @@ msgstr "Email bounced"
 msgid "Email field mapping is required"
 msgstr "Email field mapping is required"
 
+#: src/components/automations/config/EmailConfigForm.tsx:79
 #: src/components/templates/SendTemplateModal.tsx:260
 msgid "Email Integration"
 msgstr "Email Integration"
@@ -3362,7 +3363,7 @@ msgstr "Email subject"
 msgid "Email Subject"
 msgstr "Email Subject"
 
-#: src/components/automations/config/EmailConfigForm.tsx:27
+#: src/components/automations/config/EmailConfigForm.tsx:65
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:283
 msgid "Email Template"
 msgstr "Email Template"
@@ -3430,11 +3431,11 @@ msgstr "Enable TLS encryption for SMTP connection"
 #~ msgid "Enable to fetch global data that will be available to all recipients in this broadcast. The data will be accessible in your templates using the \"feed\" variable."
 #~ msgstr "Enable to fetch global data that will be available to all recipients in this broadcast. The data will be accessible in your templates using the \"feed\" variable."
 
-#: src/components/broadcasts/GlobalFeedSettings.tsx:181
+#: src/components/broadcasts/GlobalFeedSettings.tsx:186
 msgid "Enable to fetch global data that will be available to all recipients in this broadcast. The data will be accessible in your templates using the \"global_feed\" variable."
 msgstr "Enable to fetch global data that will be available to all recipients in this broadcast. The data will be accessible in your templates using the \"global_feed\" variable."
 
-#: src/components/broadcasts/RecipientFeedSettings.tsx:224
+#: src/components/broadcasts/RecipientFeedSettings.tsx:229
 msgid "Enable to fetch personalized data for each recipient before sending their email. The data will be accessible in your templates using the \"recipient_feed\" variable."
 msgstr "Enable to fetch personalized data for each recipient before sending their email. The data will be accessible in your templates using the \"recipient_feed\" variable."
 
@@ -3868,8 +3869,8 @@ msgstr "Failed to create broadcast: {0}"
 msgid "Failed to create category: {0}"
 msgstr "Failed to create category: {0}"
 
-#: src/components/file_manager/fileManager.tsx:360
-#: src/components/file_manager/fileManager.tsx:366
+#: src/components/file_manager/fileManager.tsx:372
+#: src/components/file_manager/fileManager.tsx:378
 msgid "Failed to create folder: "
 msgstr "Failed to create folder: "
 
@@ -3917,7 +3918,7 @@ msgstr "Failed to delete category"
 msgid "Failed to delete contact"
 msgstr "Failed to delete contact"
 
-#: src/components/file_manager/fileManager.tsx:282
+#: src/components/file_manager/fileManager.tsx:294
 msgid "Failed to delete file: "
 msgstr "Failed to delete file: "
 
@@ -3962,11 +3963,11 @@ msgstr "Failed to delete workspace"
 msgid "Failed to detect icon: {0}"
 msgstr "Failed to detect icon: {0}"
 
-#: src/components/file_manager/fileManager.tsx:927
+#: src/components/file_manager/fileManager.tsx:939
 msgid "Failed to download file"
 msgstr "Failed to download file"
 
-#: src/components/file_manager/fileManager.tsx:550
+#: src/components/file_manager/fileManager.tsx:562
 msgid "Failed to download files"
 msgstr "Failed to download files"
 
@@ -3983,7 +3984,7 @@ msgid "Failed to export MJML"
 msgstr "Failed to export MJML"
 
 #. placeholder {0}: response.error
-#: src/components/broadcasts/GlobalFeedSettings.tsx:59
+#: src/components/broadcasts/GlobalFeedSettings.tsx:61
 msgid "Failed to fetch data: {0}"
 msgstr "Failed to fetch data: {0}"
 
@@ -3999,7 +4000,7 @@ msgstr "Failed to fetch failed messages data"
 msgid "Failed to fetch new contacts data"
 msgstr "Failed to fetch new contacts data"
 
-#: src/components/file_manager/fileManager.tsx:226
+#: src/components/file_manager/fileManager.tsx:238
 msgid "Failed to fetch objects: "
 msgstr "Failed to fetch objects: "
 
@@ -4070,7 +4071,7 @@ msgid "Failed to rebuild segment"
 msgstr "Failed to rebuild segment"
 
 #. placeholder {0}: error.message
-#: src/components/broadcasts/GlobalFeedSettings.tsx:68
+#: src/components/broadcasts/GlobalFeedSettings.tsx:70
 msgid "Failed to refresh global feed: {0}"
 msgstr "Failed to refresh global feed: {0}"
 
@@ -4185,7 +4186,7 @@ msgid "Failed to test email provider"
 msgstr "Failed to test email provider"
 
 #. placeholder {0}: error.message
-#: src/components/broadcasts/RecipientFeedSettings.tsx:74
+#: src/components/broadcasts/RecipientFeedSettings.tsx:76
 msgid "Failed to test recipient feed: {0}"
 msgstr "Failed to test recipient feed: {0}"
 
@@ -4305,7 +4306,7 @@ msgstr "Fetched {0} contacts..."
 #~ msgid "Fetched Data"
 #~ msgstr "Fetched Data"
 
-#: src/components/broadcasts/GlobalFeedSettings.tsx:141
+#: src/components/broadcasts/GlobalFeedSettings.tsx:145
 msgid "Fetching data..."
 msgstr "Fetching data..."
 
@@ -4341,7 +4342,7 @@ msgstr "File {0} added"
 msgid "File {0} exceeds 3MB limit"
 msgstr "File {0} exceeds 3MB limit"
 
-#: src/components/file_manager/fileManager.tsx:276
+#: src/components/file_manager/fileManager.tsx:288
 msgid "File deleted successfully."
 msgstr "File deleted successfully."
 
@@ -4359,7 +4360,7 @@ msgstr "File manager error: "
 msgid "File manager settings updated successfully"
 msgstr "File manager settings updated successfully"
 
-#: src/components/file_manager/fileManager.tsx:608
+#: src/components/file_manager/fileManager.tsx:620
 msgid "File storage is not configured."
 msgstr "File storage is not configured."
 
@@ -4430,27 +4431,27 @@ msgstr "First Name"
 msgid "Flow Stats: {0}"
 msgstr "Flow Stats: {0}"
 
-#: src/components/file_manager/fileManager.tsx:342
+#: src/components/file_manager/fileManager.tsx:354
 msgid "Folder already exists."
 msgstr "Folder already exists."
 
-#: src/components/file_manager/fileManager.tsx:355
+#: src/components/file_manager/fileManager.tsx:367
 msgid "Folder created successfully."
 msgstr "Folder created successfully."
 
-#: src/components/file_manager/fileManager.tsx:271
+#: src/components/file_manager/fileManager.tsx:283
 msgid "Folder deleted successfully."
 msgstr "Folder deleted successfully."
 
-#: src/components/file_manager/fileManager.tsx:792
+#: src/components/file_manager/fileManager.tsx:804
 msgid "Folder is empty"
 msgstr "Folder is empty"
 
-#: src/components/file_manager/fileManager.tsx:1023
+#: src/components/file_manager/fileManager.tsx:1035
 msgid "Folder name"
 msgstr "Folder name"
 
-#: src/components/file_manager/fileManager.tsx:636
+#: src/components/file_manager/fileManager.tsx:648
 msgid "folder with all its content?"
 msgstr "folder with all its content?"
 
@@ -4589,7 +4590,7 @@ msgstr "Generate this key in Supabase Auth Hooks settings"
 msgid "Generated SQL:"
 msgstr "Generated SQL:"
 
-#: src/components/broadcasts/GlobalFeedSettings.tsx:83
+#: src/components/broadcasts/GlobalFeedSettings.tsx:85
 msgid "Global Data Feed"
 msgstr "Global Data Feed"
 
@@ -4601,11 +4602,11 @@ msgstr "Global Data Feed"
 #~ msgid "Global feed data refreshed successfully"
 #~ msgstr "Global feed data refreshed successfully"
 
-#: src/components/broadcasts/GlobalFeedSettings.tsx:131
+#: src/components/broadcasts/GlobalFeedSettings.tsx:134
 msgid "Global Feed Response"
 msgstr "Global Feed Response"
 
-#: src/components/broadcasts/GlobalFeedSettings.tsx:96
+#: src/components/broadcasts/GlobalFeedSettings.tsx:98
 msgid "Global feed URL"
 msgstr "Global feed URL"
 
@@ -4660,19 +4661,19 @@ msgstr "Has Error"
 msgid "Head Attributes"
 msgstr "Head Attributes"
 
-#: src/components/broadcasts/HeadersEditor.tsx:107
+#: src/components/broadcasts/HeadersEditor.tsx:108
 msgid "Header name"
 msgstr "Header name"
 
-#: src/components/broadcasts/HeadersEditor.tsx:108
+#: src/components/broadcasts/HeadersEditor.tsx:109
 msgid "Header name is required"
 msgstr "Header name is required"
 
-#: src/components/broadcasts/HeadersEditor.tsx:114
+#: src/components/broadcasts/HeadersEditor.tsx:115
 msgid "Header value"
 msgstr "Header value"
 
-#: src/components/broadcasts/HeadersEditor.tsx:115
+#: src/components/broadcasts/HeadersEditor.tsx:116
 msgid "Header value is required"
 msgstr "Header value is required"
 
@@ -4942,7 +4943,7 @@ msgstr "Import / Export"
 msgid "Import & Export Templates"
 msgstr "Import & Export Templates"
 
-#: src/components/file_manager/fileManager.tsx:464
+#: src/components/file_manager/fileManager.tsx:476
 msgid "Import cancelled"
 msgstr "Import cancelled"
 
@@ -5002,7 +5003,7 @@ msgstr "Imported {0} contacts ({1} failed, see details below)"
 msgid "Imported Fonts"
 msgstr "Imported Fonts"
 
-#: src/components/file_manager/fileManager.tsx:1074
+#: src/components/file_manager/fileManager.tsx:1086
 msgid "Importing files..."
 msgstr "Importing files..."
 
@@ -5338,11 +5339,11 @@ msgstr "Last 7 days"
 msgid "Last Edited"
 msgstr "Last Edited"
 
-#: src/components/broadcasts/GlobalFeedSettings.tsx:149
+#: src/components/broadcasts/GlobalFeedSettings.tsx:153
 msgid "Last fetched:"
 msgstr "Last fetched:"
 
-#: src/components/file_manager/fileManager.tsx:870
+#: src/components/file_manager/fileManager.tsx:882
 msgid "Last modified"
 msgstr "Last modified"
 
@@ -5381,7 +5382,7 @@ msgstr "Leave empty for full container width"
 msgid "Leave empty to trigger on any field change"
 msgstr "Leave empty to trigger on any field change"
 
-#: src/components/broadcasts/RecipientFeedSettings.tsx:164
+#: src/components/broadcasts/RecipientFeedSettings.tsx:168
 msgid "Leave empty to use a random contact from the broadcast audience."
 msgstr "Leave empty to use a random contact from the broadcast audience."
 
@@ -5895,7 +5896,7 @@ msgstr "N/A"
 #: src/components/automations/UpsertAutomationDrawer.tsx:167
 #: src/components/blog/AuthorsTable.tsx:143
 #: src/components/blog/CategoryDrawer.tsx:130
-#: src/components/file_manager/fileManager.tsx:856
+#: src/components/file_manager/fileManager.tsx:868
 #: src/components/lists/ListDrawer.tsx:185
 #: src/components/segment/button_upsert.tsx:372
 #: src/components/settings/Integrations.tsx:333
@@ -5928,7 +5929,7 @@ msgstr "New Contacts"
 msgid "New conversation"
 msgstr "New conversation"
 
-#: src/components/file_manager/fileManager.tsx:754
+#: src/components/file_manager/fileManager.tsx:766
 msgid "New folder"
 msgstr "New folder"
 
@@ -5978,7 +5979,7 @@ msgstr "Next Run"
 #: src/components/blog/PostDrawer.tsx:273
 #: src/components/blog/PostDrawer.tsx:488
 #: src/components/blog/PostsTable.tsx:319
-#: src/components/broadcasts/HeadersEditor.tsx:65
+#: src/components/broadcasts/HeadersEditor.tsx:66
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:250
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:782
 #: src/components/contacts/ContactUpsertDrawer.tsx:540
@@ -6064,7 +6065,7 @@ msgstr "No data available"
 #~ msgid "No data fetched yet. Click \"Refresh Now\" to fetch data from the configured URL."
 #~ msgstr "No data fetched yet. Click \"Refresh Now\" to fetch data from the configured URL."
 
-#: src/components/broadcasts/GlobalFeedSettings.tsx:175
+#: src/components/broadcasts/GlobalFeedSettings.tsx:179
 msgid "No data returned"
 msgstr "No data returned"
 
@@ -6092,7 +6093,7 @@ msgstr "No email integrations available. Please configure one in Settings."
 msgid "No Errors"
 msgstr "No Errors"
 
-#: src/components/file_manager/fileManager.tsx:521
+#: src/components/file_manager/fileManager.tsx:533
 msgid "No files selected"
 msgstr "No files selected"
 
@@ -6108,7 +6109,7 @@ msgstr "No icon found"
 msgid "No Issues"
 msgstr "No Issues"
 
-#: src/components/file_manager/fileManager.tsx:567
+#: src/components/file_manager/fileManager.tsx:579
 msgid "No items selected"
 msgstr "No items selected"
 
@@ -6404,7 +6405,7 @@ msgstr "Once"
 msgid "Once per contact"
 msgstr "Once per contact"
 
-#: src/components/file_manager/fileManager.tsx:1034
+#: src/components/file_manager/fileManager.tsx:1046
 msgid "Only lowercase alphanumeric characters, underscore, and dash are allowed."
 msgstr "Only lowercase alphanumeric characters, underscore, and dash are allowed."
 
@@ -6435,7 +6436,7 @@ msgstr "Open Graph Image"
 msgid "Open Graph Title"
 msgstr "Open Graph Title"
 
-#: src/components/file_manager/fileManager.tsx:901
+#: src/components/file_manager/fileManager.tsx:913
 msgid "Open in a window"
 msgstr "Open in a window"
 
@@ -6520,6 +6521,10 @@ msgstr "Overline"
 msgid "Override the default sender name for this test email"
 msgstr "Override the default sender name for this test email"
 
+#: src/components/automations/config/EmailConfigForm.tsx:80
+msgid "Override the workspace default email provider for this node"
+msgstr "Override the workspace default email provider for this node"
+
 #: src/components/email_builder/blocks/MjColumnBlock.tsx:144
 #: src/components/email_builder/blocks/MjDividerBlock.tsx:107
 #: src/components/email_builder/blocks/MjImageBlock.tsx:108
@@ -6603,7 +6608,7 @@ msgstr "Pending"
 msgid "Pending confirmation"
 msgstr "Pending confirmation"
 
-#: src/components/broadcasts/RecipientFeedSettings.tsx:86
+#: src/components/broadcasts/RecipientFeedSettings.tsx:88
 msgid "Per-Recipient Data Feed"
 msgstr "Per-Recipient Data Feed"
 
@@ -6611,7 +6616,7 @@ msgstr "Per-Recipient Data Feed"
 #~ msgid "Per-Recipient Feed"
 #~ msgstr "Per-Recipient Feed"
 
-#: src/components/broadcasts/RecipientFeedSettings.tsx:105
+#: src/components/broadcasts/RecipientFeedSettings.tsx:107
 msgid "Per-recipient feed URL"
 msgstr "Per-recipient feed URL"
 
@@ -7265,7 +7270,7 @@ msgstr "Recipient"
 msgid "Recipient Email"
 msgstr "Recipient Email"
 
-#: src/components/broadcasts/RecipientFeedSettings.tsx:69
+#: src/components/broadcasts/RecipientFeedSettings.tsx:71
 msgid "Recipient feed test completed successfully"
 msgstr "Recipient feed test completed successfully"
 
@@ -7319,7 +7324,7 @@ msgstr "Refresh Broadcast"
 #~ msgid "Refresh Now"
 #~ msgstr "Refresh Now"
 
-#: src/components/file_manager/fileManager.tsx:660
+#: src/components/file_manager/fileManager.tsx:672
 msgid "Refresh the list"
 msgstr "Refresh the list"
 
@@ -7564,7 +7569,7 @@ msgstr "Round"
 msgid "rows"
 msgstr "rows"
 
-#: src/components/broadcasts/RecipientFeedSettings.tsx:160
+#: src/components/broadcasts/RecipientFeedSettings.tsx:164
 msgid "Run Test"
 msgstr "Run Test"
 
@@ -7580,9 +7585,9 @@ msgstr "S3 access key"
 msgid "S3 bucket"
 msgstr "S3 bucket"
 
-#: src/components/file_manager/fileManager.tsx:255
-#: src/components/file_manager/fileManager.tsx:317
-#: src/components/file_manager/fileManager.tsx:558
+#: src/components/file_manager/fileManager.tsx:267
+#: src/components/file_manager/fileManager.tsx:329
+#: src/components/file_manager/fileManager.tsx:570
 msgid "S3 client is not initialized."
 msgstr "S3 client is not initialized."
 
@@ -7812,7 +7817,7 @@ msgid "Segments"
 msgstr "Segments"
 
 #: src/components/automations/nodes/EmailNode.tsx:48
-#: src/components/file_manager/fileManager.tsx:964
+#: src/components/file_manager/fileManager.tsx:976
 #: src/components/settings/BlogSettings.tsx:332
 #: src/components/settings/BlogSettings.tsx:348
 #: src/components/templates/TemplateSelectorInput.tsx:221
@@ -7943,7 +7948,7 @@ msgstr "Select date"
 msgid "Select email template"
 msgstr "Select email template"
 
-#: src/components/automations/config/EmailConfigForm.tsx:35
+#: src/components/automations/config/EmailConfigForm.tsx:73
 msgid "Select email template..."
 msgstr "Select email template..."
 
@@ -8031,7 +8036,7 @@ msgstr "Select template"
 msgid "Select Template"
 msgstr "Select Template"
 
-#: src/components/automations/config/EmailConfigForm.tsx:29
+#: src/components/automations/config/EmailConfigForm.tsx:67
 msgid "Select the email template to send"
 msgstr "Select the email template to send"
 
@@ -8376,7 +8381,7 @@ msgstr "Since"
 
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:124
 #: src/components/email_builder/ui/FontStyleInput.tsx:179
-#: src/components/file_manager/fileManager.tsx:863
+#: src/components/file_manager/fileManager.tsx:875
 msgid "Size"
 msgstr "Size"
 
@@ -8642,11 +8647,11 @@ msgstr "status changed"
 msgid "Status unknown"
 msgstr "Status unknown"
 
-#: src/components/file_manager/fileManager.tsx:675
+#: src/components/file_manager/fileManager.tsx:687
 msgid "Storage settings"
 msgstr "Storage settings"
 
-#: src/components/file_manager/fileManager.tsx:683
+#: src/components/file_manager/fileManager.tsx:695
 msgid "Storage settings (Read-only mode)"
 msgstr "Storage settings (Read-only mode)"
 
@@ -8919,8 +8924,8 @@ msgstr "Templates using this sender will need to be updated to use a different s
 msgid "Templating markup allowed"
 msgstr "Templating markup allowed"
 
-#: src/components/broadcasts/GlobalFeedSettings.tsx:119
-#: src/components/broadcasts/RecipientFeedSettings.tsx:127
+#: src/components/broadcasts/GlobalFeedSettings.tsx:122
+#: src/components/broadcasts/RecipientFeedSettings.tsx:130
 #: src/components/settings/Integrations.tsx:319
 #: src/pages/TransactionalNotificationsPage.tsx:173
 msgid "Test"
@@ -8947,12 +8952,12 @@ msgstr "Test Email Provider"
 msgid "Test email sent successfully"
 msgstr "Test email sent successfully"
 
-#: src/components/broadcasts/RecipientFeedSettings.tsx:178
+#: src/components/broadcasts/RecipientFeedSettings.tsx:182
 msgid "Test Failed"
 msgstr "Test Failed"
 
 #. placeholder {0}: response.error
-#: src/components/broadcasts/RecipientFeedSettings.tsx:66
+#: src/components/broadcasts/RecipientFeedSettings.tsx:68
 msgid "Test failed: {0}"
 msgstr "Test failed: {0}"
 
@@ -8968,7 +8973,7 @@ msgstr "Test in different email clients as support varies"
 msgid "Test Integration"
 msgstr "Test Integration"
 
-#: src/components/broadcasts/RecipientFeedSettings.tsx:139
+#: src/components/broadcasts/RecipientFeedSettings.tsx:142
 msgid "Test Recipient Feed"
 msgstr "Test Recipient Feed"
 
@@ -8989,11 +8994,11 @@ msgstr "Test Variants"
 msgid "Test Webhook"
 msgstr "Test Webhook"
 
-#: src/components/broadcasts/RecipientFeedSettings.tsx:187
+#: src/components/broadcasts/RecipientFeedSettings.tsx:191
 msgid "Tested with:"
 msgstr "Tested with:"
 
-#: src/components/broadcasts/RecipientFeedSettings.tsx:171
+#: src/components/broadcasts/RecipientFeedSettings.tsx:175
 msgid "Testing feed..."
 msgstr "Testing feed..."
 
@@ -9124,11 +9129,11 @@ msgstr "The selected file"
 msgid "The status to assign when adding to the list"
 msgstr "The status to assign when adding to the list"
 
-#: src/components/broadcasts/GlobalFeedSettings.tsx:97
+#: src/components/broadcasts/GlobalFeedSettings.tsx:99
 msgid "The URL must be publicly accessible. A POST request will be sent with broadcast and list information."
 msgstr "The URL must be publicly accessible. A POST request will be sent with broadcast and list information."
 
-#: src/components/broadcasts/RecipientFeedSettings.tsx:106
+#: src/components/broadcasts/RecipientFeedSettings.tsx:108
 msgid "The URL must use HTTPS. A POST request will be sent with contact information for each recipient."
 msgstr "The URL must use HTTPS. A POST request will be sent with contact information for each recipient."
 
@@ -9214,7 +9219,7 @@ msgstr "This contact is not subscribed to any lists"
 msgid "This email will be used for the root administrator account"
 msgstr "This email will be used for the root administrator account"
 
-#: src/components/broadcasts/RecipientFeedSettings.tsx:97
+#: src/components/broadcasts/RecipientFeedSettings.tsx:99
 msgid "This feature makes an HTTP request for each recipient before sending their email. This can significantly slow down broadcast processing. If the feed request fails after retries, the broadcast will pause automatically."
 msgstr "This feature makes an HTTP request for each recipient before sending their email. This can significantly slow down broadcast processing. If the feed request fails after retries, the broadcast will pause automatically."
 
@@ -9759,8 +9764,8 @@ msgstr "Updated"
 msgid "Updated At"
 msgstr "Updated At"
 
-#: src/components/file_manager/fileManager.tsx:706
-#: src/components/file_manager/fileManager.tsx:719
+#: src/components/file_manager/fileManager.tsx:718
+#: src/components/file_manager/fileManager.tsx:731
 msgid "Upload"
 msgstr "Upload"
 
@@ -9781,7 +9786,7 @@ msgstr "Upload failed: {0}"
 msgid "Upload failed. Please try again."
 msgstr "Upload failed. Please try again."
 
-#: src/components/file_manager/fileManager.tsx:711
+#: src/components/file_manager/fileManager.tsx:723
 msgid "Upload file (Read-only mode)"
 msgstr "Upload file (Read-only mode)"
 
@@ -9798,12 +9803,12 @@ msgstr "UPPERCASE"
 msgid "URL"
 msgstr "URL"
 
-#: src/components/file_manager/fileManager.tsx:895
+#: src/components/file_manager/fileManager.tsx:907
 msgid "URL copied to clipboard."
 msgstr "URL copied to clipboard."
 
-#: src/components/broadcasts/GlobalFeedSettings.tsx:104
-#: src/components/broadcasts/RecipientFeedSettings.tsx:113
+#: src/components/broadcasts/GlobalFeedSettings.tsx:106
+#: src/components/broadcasts/RecipientFeedSettings.tsx:115
 msgid "URL is required"
 msgstr "URL is required"
 
@@ -9882,6 +9887,10 @@ msgstr "Use This Theme"
 #: src/pages/SetupWizard.tsx:455
 msgid "Use TLS"
 msgstr "Use TLS"
+
+#: src/components/automations/config/EmailConfigForm.tsx:87
+msgid "Use workspace default"
+msgstr "Use workspace default"
 
 #: src/components/settings/Integrations.tsx:352
 msgid "Used for"
@@ -10266,7 +10275,7 @@ msgstr "Write"
 #: src/components/blog/PostDrawer.tsx:272
 #: src/components/blog/PostDrawer.tsx:487
 #: src/components/blog/PostsTable.tsx:318
-#: src/components/broadcasts/HeadersEditor.tsx:64
+#: src/components/broadcasts/HeadersEditor.tsx:65
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:249
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:781
 #: src/components/contacts/ContactUpsertDrawer.tsx:539
@@ -10431,6 +10440,6 @@ msgstr "Your workspace API email (the email associated with your API key)"
 msgid "Your workspace API key"
 msgstr "Your workspace API key"
 
-#: src/components/file_manager/fileManager.tsx:772
+#: src/components/file_manager/fileManager.tsx:784
 msgid "Zip"
 msgstr "Zip"

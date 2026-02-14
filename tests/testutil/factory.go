@@ -2638,3 +2638,30 @@ func (tdf *TestDataFactory) CreateGoogleOAuth2SMTPIntegration(
 
 	return tdf.CreateIntegration(workspaceID, oauth2Opts...)
 }
+
+// EmailQueueEntryResult holds the key fields from an email_queue entry for test assertions
+type EmailQueueEntryResult struct {
+	IntegrationID string
+	ProviderKind  string
+	SourceID      string
+}
+
+// GetEmailQueueEntryByAutomationID queries the email_queue table in a workspace DB
+// and returns the first entry with source_type='automation' matching the given automationID.
+func (tdf *TestDataFactory) GetEmailQueueEntryByAutomationID(workspaceID, automationID string) (*EmailQueueEntryResult, error) {
+	workspaceDB, err := tdf.workspaceRepo.GetConnection(context.Background(), workspaceID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get workspace database: %w", err)
+	}
+
+	var result EmailQueueEntryResult
+	err = workspaceDB.QueryRowContext(context.Background(),
+		`SELECT integration_id, provider_kind, source_id FROM email_queue WHERE source_type = 'automation' AND source_id = $1 LIMIT 1`,
+		automationID,
+	).Scan(&result.IntegrationID, &result.ProviderKind, &result.SourceID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query email_queue: %w", err)
+	}
+
+	return &result, nil
+}

@@ -1031,6 +1031,68 @@ func TestQueryBuilder_ContactTimeline(t *testing.T) {
 		assert.Equal(t, []interface{}{"email_bounced", 2}, args)
 	})
 
+	t.Run("timeline event count - exactly 0 (never)", func(t *testing.T) {
+		tree := &domain.TreeNode{
+			Kind: "leaf",
+			Leaf: &domain.TreeNodeLeaf{
+				Source: "contact_timeline",
+				ContactTimeline: &domain.ContactTimelineCondition{
+					Kind:          "open_email",
+					CountOperator: "exactly",
+					CountValue:    0,
+				},
+			},
+		}
+
+		sql, args, err := qb.BuildSQL(tree)
+		require.NoError(t, err)
+
+		assert.Contains(t, sql, "SELECT COUNT(*)")
+		assert.Contains(t, sql, "ct.kind = $1")
+		assert.Contains(t, sql, "= $2")
+		assert.Equal(t, []interface{}{"open_email", 0}, args)
+	})
+
+	t.Run("timeline event count - at most 0 (never)", func(t *testing.T) {
+		tree := &domain.TreeNode{
+			Kind: "leaf",
+			Leaf: &domain.TreeNodeLeaf{
+				Source: "contact_timeline",
+				ContactTimeline: &domain.ContactTimelineCondition{
+					Kind:          "click_email",
+					CountOperator: "at_most",
+					CountValue:    0,
+				},
+			},
+		}
+
+		sql, args, err := qb.BuildSQL(tree)
+		require.NoError(t, err)
+
+		assert.Contains(t, sql, "<= $2")
+		assert.Equal(t, []interface{}{"click_email", 0}, args)
+	})
+
+	t.Run("timeline event count - at least 0 (always true)", func(t *testing.T) {
+		tree := &domain.TreeNode{
+			Kind: "leaf",
+			Leaf: &domain.TreeNodeLeaf{
+				Source: "contact_timeline",
+				ContactTimeline: &domain.ContactTimelineCondition{
+					Kind:          "email_opened",
+					CountOperator: "at_least",
+					CountValue:    0,
+				},
+			},
+		}
+
+		sql, args, err := qb.BuildSQL(tree)
+		require.NoError(t, err)
+
+		assert.Contains(t, sql, ">= $2")
+		assert.Equal(t, []interface{}{"email_opened", 0}, args)
+	})
+
 	t.Run("timeline with date range timeframe", func(t *testing.T) {
 		timeframeOp := "in_date_range"
 		tree := &domain.TreeNode{

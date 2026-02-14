@@ -195,10 +195,26 @@ func (e *EmailNodeExecutor) Execute(ctx context.Context, params NodeExecutionPar
 		return nil, fmt.Errorf("workspace not found: %w", err)
 	}
 
-	// 3. Get email provider (use marketing email provider)
-	emailProvider, integrationID, err := workspace.GetEmailProviderWithIntegrationID(true)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get email provider: %w", err)
+	// 3. Get email provider - use node-level override if set, else workspace default
+	var emailProvider *domain.EmailProvider
+	var integrationID string
+
+	if config.IntegrationID != nil && *config.IntegrationID != "" {
+		integration := workspace.GetIntegrationByID(*config.IntegrationID)
+		if integration == nil {
+			return nil, fmt.Errorf("integration %s not found in workspace", *config.IntegrationID)
+		}
+		if integration.Type != domain.IntegrationTypeEmail {
+			return nil, fmt.Errorf("integration %s is not an email provider", *config.IntegrationID)
+		}
+		emailProvider = &integration.EmailProvider
+		integrationID = integration.ID
+	} else {
+		var err error
+		emailProvider, integrationID, err = workspace.GetEmailProviderWithIntegrationID(true)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get email provider: %w", err)
+		}
 	}
 	if emailProvider == nil {
 		return nil, fmt.Errorf("no email provider configured for workspace")

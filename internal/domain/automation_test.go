@@ -952,6 +952,22 @@ func TestEmailNodeConfig_Validate(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name: "valid config with integration_id override",
+			config: EmailNodeConfig{
+				TemplateID:    "tmpl123",
+				IntegrationID: automationStringPtr("integration456"),
+			},
+			wantErr: false,
+		},
+		{
+			name: "valid config with empty integration_id",
+			config: EmailNodeConfig{
+				TemplateID:    "tmpl123",
+				IntegrationID: automationStringPtr(""),
+			},
+			wantErr: false,
+		},
+		{
 			name:    "empty template ID",
 			config:  EmailNodeConfig{TemplateID: ""},
 			wantErr: true,

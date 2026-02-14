@@ -92,6 +92,7 @@ export interface DelayNodeConfig {
 
 export interface EmailNodeConfig {
   template_id: string
+  integration_id?: string
   subject_override?: string
   from_override?: string
 }

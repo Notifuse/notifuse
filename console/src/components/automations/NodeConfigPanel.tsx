@@ -82,6 +82,7 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({
             config={config as EmailNodeConfig}
             onChange={handleConfigChange}
             workspaceId={workspaceId}
+            workspace={workspace}
           />
         )
       case 'ab_test':

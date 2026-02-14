@@ -319,7 +319,7 @@ export const LeafActionForm = (props: LeafFormProps) => {
             noStyle
             name={['contact_timeline', 'count_value']}
             colon={false}
-            rules={[{ required: true, type: 'number', min: 1, message: Messages.RequiredField }]}
+            rules={[{ required: true, type: 'number', min: 0, message: Messages.RequiredField }]}
           >
             <InputNumber style={{ width: 70 }} size="small" />
           </Form.Item>

@@ -430,7 +430,7 @@ msgstr "アクティビティ"
 
 #: src/components/blog/AuthorsTable.tsx:138
 #: src/components/broadcasts/HeadersEditor.tsx:54
-#: src/components/broadcasts/HeadersEditor.tsx:101
+#: src/components/broadcasts/HeadersEditor.tsx:102
 #: src/components/segment/input_json_path.tsx:98
 #: src/pages/ContactsPage.tsx:941
 msgid "Add"
@@ -519,11 +519,11 @@ msgstr "CSSを追加"
 msgid "Add Custom Field Label"
 msgstr "カスタムフィールドラベルを追加"
 
-#: src/components/broadcasts/HeadersEditor.tsx:89
+#: src/components/broadcasts/HeadersEditor.tsx:90
 msgid "Add custom header"
 msgstr ""
 
-#: src/components/broadcasts/HeadersEditor.tsx:94
+#: src/components/broadcasts/HeadersEditor.tsx:95
 msgid "Add Custom Header"
 msgstr ""
 
@@ -886,7 +886,7 @@ msgstr "投稿を削除してもよろしいですか"
 msgid "Are you sure you want to delete this block?"
 msgstr "このブロックを削除してもよろしいですか?"
 
-#: src/components/broadcasts/HeadersEditor.tsx:62
+#: src/components/broadcasts/HeadersEditor.tsx:63
 msgid "Are you sure you want to delete this header?"
 msgstr ""
 
@@ -1531,7 +1531,7 @@ msgstr "ボタンサイズ"
 #: src/components/blog/ThemeEditorDrawer.tsx:280
 #: src/components/blog/ThemeEditorDrawer.tsx:310
 #: src/components/blog/ThemeEditorDrawer.tsx:469
-#: src/components/broadcasts/HeadersEditor.tsx:102
+#: src/components/broadcasts/HeadersEditor.tsx:103
 #: src/components/broadcasts/SendOrScheduleModal.tsx:301
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:328
 #: src/components/contacts/BulkUpdateDrawer.tsx:576
@@ -1553,11 +1553,11 @@ msgstr "ボタンサイズ"
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:398
 #: src/components/file_manager/buttonSettings.tsx:309
 #: src/components/file_manager/context.tsx:192
-#: src/components/file_manager/fileManager.tsx:641
-#: src/components/file_manager/fileManager.tsx:762
-#: src/components/file_manager/fileManager.tsx:940
-#: src/components/file_manager/fileManager.tsx:1008
-#: src/components/file_manager/fileManager.tsx:1118
+#: src/components/file_manager/fileManager.tsx:653
+#: src/components/file_manager/fileManager.tsx:774
+#: src/components/file_manager/fileManager.tsx:952
+#: src/components/file_manager/fileManager.tsx:1020
+#: src/components/file_manager/fileManager.tsx:1130
 #: src/components/segment/button_upsert.tsx:347
 #: src/components/segment/input_dimension_filters.tsx:162
 #: src/components/segment/input.tsx:376
@@ -1612,7 +1612,7 @@ msgstr "メールノードが存在する間はリストを削除できません
 msgid "Cannot restore progress: CSV data is not available"
 msgstr "進捗を復元できません: CSVデータが利用できません"
 
-#: src/components/file_manager/fileManager.tsx:499
+#: src/components/file_manager/fileManager.tsx:511
 msgid "Cannot upload in read-only mode"
 msgstr "読み取り専用モードではアップロードできません"
 
@@ -1804,7 +1804,7 @@ msgstr "テンプレートを複製"
 
 #: src/components/blog/ThemeEditorDrawer.tsx:279
 #: src/components/blog/ThemePresetPreviewDrawer.tsx:40
-#: src/components/broadcasts/GlobalFeedSettings.tsx:134
+#: src/components/broadcasts/GlobalFeedSettings.tsx:137
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:825
 #: src/components/settings/WebhookCard.tsx:345
 #: src/components/settings/WorkspaceMembers.tsx:585
@@ -1926,13 +1926,13 @@ msgstr "条件"
 msgid "conditions"
 msgstr "条件"
 
-#: src/components/automations/NodeConfigPanel.tsx:132
+#: src/components/automations/NodeConfigPanel.tsx:133
 msgid "Configuration for {nodeType} is not available in Phase 2"
 msgstr "{nodeType}の設定はフェーズ2では利用できません"
 
 #: src/components/analytics/AnalyticsDashboard.tsx:166
 #: src/components/analytics/AnalyticsDashboard.tsx:190
-#: src/components/automations/NodeConfigPanel.tsx:143
+#: src/components/automations/NodeConfigPanel.tsx:144
 #: src/components/automations/nodes/ABTestNode.tsx:59
 #: src/components/automations/nodes/AddToListNode.tsx:53
 #: src/components/automations/nodes/DelayNode.tsx:20
@@ -1956,7 +1956,7 @@ msgstr "フォント名とCSSファイルURLを一緒に設定してください
 msgid "Configure Integration"
 msgstr "連携を設定"
 
-#: src/components/file_manager/fileManager.tsx:613
+#: src/components/file_manager/fileManager.tsx:625
 msgid "Configure now"
 msgstr "今すぐ設定"
 
@@ -2048,7 +2048,7 @@ msgstr "コンタクト詳細"
 msgid "Contact Email"
 msgstr "コンタクトメール"
 
-#: src/components/broadcasts/RecipientFeedSettings.tsx:150
+#: src/components/broadcasts/RecipientFeedSettings.tsx:154
 msgid "Contact email (leave empty for random)"
 msgstr ""
 
@@ -2150,7 +2150,7 @@ msgstr "{0}コードをコピー"
 msgid "Copy to clipboard"
 msgstr "クリップボードにコピー"
 
-#: src/components/file_manager/fileManager.tsx:889
+#: src/components/file_manager/fileManager.tsx:901
 msgid "Copy URL"
 msgstr "URLをコピー"
 
@@ -2185,7 +2185,7 @@ msgstr "カバー"
 #: src/components/automations/UpsertAutomationDrawer.tsx:158
 #: src/components/blog/CategoryDrawer.tsx:114
 #: src/components/blog/PostDrawer.tsx:617
-#: src/components/file_manager/fileManager.tsx:1017
+#: src/components/file_manager/fileManager.tsx:1029
 #: src/components/lists/ListDrawer.tsx:170
 msgid "Create"
 msgstr "作成"
@@ -2241,7 +2241,7 @@ msgstr "新規{0}テンプレートを作成"
 msgid "Create New Category"
 msgstr "新規カテゴリを作成"
 
-#: src/components/file_manager/fileManager.tsx:1003
+#: src/components/file_manager/fileManager.tsx:1015
 msgid "Create new folder"
 msgstr "新規フォルダを作成"
 
@@ -2682,9 +2682,9 @@ msgstr "遅延"
 #: src/components/blog/PostsTable.tsx:341
 #: src/components/contacts/DeleteContactModal.tsx:40
 #: src/components/contacts/SegmentsFilter.tsx:143
-#: src/components/file_manager/fileManager.tsx:761
-#: src/components/file_manager/fileManager.tsx:766
-#: src/components/file_manager/fileManager.tsx:939
+#: src/components/file_manager/fileManager.tsx:773
+#: src/components/file_manager/fileManager.tsx:778
+#: src/components/file_manager/fileManager.tsx:951
 #: src/components/segment/input.tsx:374
 #: src/components/settings/Integrations.tsx:312
 #: src/components/settings/Integrations.tsx:1183
@@ -2702,7 +2702,7 @@ msgid "DELETE"
 msgstr "削除"
 
 #. placeholder {0}: selectedRowKeys.length
-#: src/components/file_manager/fileManager.tsx:759
+#: src/components/file_manager/fileManager.tsx:771
 msgid "Delete {0} selected item(s)?"
 msgstr "{0}件の選択アイテムを削除しますか？"
 
@@ -2743,20 +2743,20 @@ msgstr "コンタクトを削除"
 msgid "Delete edge"
 msgstr "エッジを削除"
 
-#: src/components/file_manager/fileManager.tsx:951
+#: src/components/file_manager/fileManager.tsx:963
 msgid "Delete file (Read-only mode)"
 msgstr "ファイルを削除（読み取り専用モード）"
 
-#: src/components/file_manager/fileManager.tsx:631
-#: src/components/file_manager/fileManager.tsx:640
+#: src/components/file_manager/fileManager.tsx:643
+#: src/components/file_manager/fileManager.tsx:652
 msgid "Delete folder"
 msgstr "フォルダを削除"
 
-#: src/components/file_manager/fileManager.tsx:656
+#: src/components/file_manager/fileManager.tsx:668
 msgid "Delete folder (Read-only mode)"
 msgstr "フォルダを削除（読み取り専用モード）"
 
-#: src/components/broadcasts/HeadersEditor.tsx:61
+#: src/components/broadcasts/HeadersEditor.tsx:62
 msgid "Delete header"
 msgstr ""
 
@@ -2823,11 +2823,11 @@ msgstr "削除済み"
 msgid "Deleted"
 msgstr "削除済み"
 
-#: src/components/file_manager/fileManager.tsx:596
+#: src/components/file_manager/fileManager.tsx:608
 msgid "Deleted {deletedCount} item(s)"
 msgstr "{deletedCount}件のアイテムを削除しました"
 
-#: src/components/file_manager/fileManager.tsx:598
+#: src/components/file_manager/fileManager.tsx:610
 msgid "Deleted {deletedCount}, failed {failedCount}"
 msgstr "{deletedCount}件を削除、{failedCount}件が失敗"
 
@@ -2953,11 +2953,11 @@ msgstr "この条件を削除してもよろしいですか？"
 msgid "Do you really want to remove this filter?"
 msgstr "このフィルターを削除してもよろしいですか？"
 
-#: src/components/file_manager/fileManager.tsx:636
+#: src/components/file_manager/fileManager.tsx:648
 msgid "Do you want to delete the"
 msgstr "削除しますか？"
 
-#: src/components/file_manager/fileManager.tsx:936
+#: src/components/file_manager/fileManager.tsx:948
 msgid "Do you want to permanently delete this file from your storage?"
 msgstr "このファイルをストレージから完全に削除しますか？"
 
@@ -3008,12 +3008,12 @@ msgstr "ダブルオプトイン"
 msgid "Double Opt-in Template"
 msgstr "ダブルオプトインテンプレート"
 
-#: src/components/file_manager/fileManager.tsx:908
+#: src/components/file_manager/fileManager.tsx:920
 msgid "Download file"
 msgstr "ファイルをダウンロード"
 
 #. placeholder {0}: selectedFiles.length
-#: src/components/file_manager/fileManager.tsx:547
+#: src/components/file_manager/fileManager.tsx:559
 msgid "Downloaded {0} file(s)"
 msgstr "{0}件のファイルをダウンロードしました"
 
@@ -3034,7 +3034,7 @@ msgstr "下書き"
 msgid "Drag to move this block in the tree"
 msgstr "ドラッグしてツリー内でこのブロックを移動"
 
-#: src/components/file_manager/fileManager.tsx:994
+#: src/components/file_manager/fileManager.tsx:1006
 msgid "Drop files here to upload"
 msgstr "ここにファイルをドロップしてアップロード"
 
@@ -3305,6 +3305,7 @@ msgstr "メールがバウンス"
 msgid "Email field mapping is required"
 msgstr "メールフィールドのマッピングが必要です"
 
+#: src/components/automations/config/EmailConfigForm.tsx:79
 #: src/components/templates/SendTemplateModal.tsx:260
 msgid "Email Integration"
 msgstr "メール連携"
@@ -3362,7 +3363,7 @@ msgstr "メール件名"
 msgid "Email Subject"
 msgstr "メール件名"
 
-#: src/components/automations/config/EmailConfigForm.tsx:27
+#: src/components/automations/config/EmailConfigForm.tsx:65
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:283
 msgid "Email Template"
 msgstr "メールテンプレート"
@@ -3430,11 +3431,11 @@ msgstr "SMTP接続のTLS暗号化を有効化"
 #~ msgid "Enable to fetch global data that will be available to all recipients in this broadcast. The data will be accessible in your templates using the \"feed\" variable."
 #~ msgstr ""
 
-#: src/components/broadcasts/GlobalFeedSettings.tsx:181
+#: src/components/broadcasts/GlobalFeedSettings.tsx:186
 msgid "Enable to fetch global data that will be available to all recipients in this broadcast. The data will be accessible in your templates using the \"global_feed\" variable."
 msgstr ""
 
-#: src/components/broadcasts/RecipientFeedSettings.tsx:224
+#: src/components/broadcasts/RecipientFeedSettings.tsx:229
 msgid "Enable to fetch personalized data for each recipient before sending their email. The data will be accessible in your templates using the \"recipient_feed\" variable."
 msgstr ""
 
@@ -3868,8 +3869,8 @@ msgstr "ブロードキャストの作成に失敗しました: {0}"
 msgid "Failed to create category: {0}"
 msgstr "カテゴリの作成に失敗しました: {0}"
 
-#: src/components/file_manager/fileManager.tsx:360
-#: src/components/file_manager/fileManager.tsx:366
+#: src/components/file_manager/fileManager.tsx:372
+#: src/components/file_manager/fileManager.tsx:378
 msgid "Failed to create folder: "
 msgstr "フォルダの作成に失敗しました: "
 
@@ -3917,7 +3918,7 @@ msgstr "カテゴリの削除に失敗しました"
 msgid "Failed to delete contact"
 msgstr "コンタクトの削除に失敗しました"
 
-#: src/components/file_manager/fileManager.tsx:282
+#: src/components/file_manager/fileManager.tsx:294
 msgid "Failed to delete file: "
 msgstr "ファイルの削除に失敗しました: "
 
@@ -3962,11 +3963,11 @@ msgstr "ワークスペースの削除に失敗しました"
 msgid "Failed to detect icon: {0}"
 msgstr "アイコンの検出に失敗しました: {0}"
 
-#: src/components/file_manager/fileManager.tsx:927
+#: src/components/file_manager/fileManager.tsx:939
 msgid "Failed to download file"
 msgstr "ファイルのダウンロードに失敗しました"
 
-#: src/components/file_manager/fileManager.tsx:550
+#: src/components/file_manager/fileManager.tsx:562
 msgid "Failed to download files"
 msgstr "ファイルのダウンロードに失敗しました"
 
@@ -3983,7 +3984,7 @@ msgid "Failed to export MJML"
 msgstr "MJMLのエクスポートに失敗しました"
 
 #. placeholder {0}: response.error
-#: src/components/broadcasts/GlobalFeedSettings.tsx:59
+#: src/components/broadcasts/GlobalFeedSettings.tsx:61
 msgid "Failed to fetch data: {0}"
 msgstr ""
 
@@ -3999,7 +4000,7 @@ msgstr "失敗したメッセージデータの取得に失敗しました"
 msgid "Failed to fetch new contacts data"
 msgstr "新規コンタクトデータの取得に失敗しました"
 
-#: src/components/file_manager/fileManager.tsx:226
+#: src/components/file_manager/fileManager.tsx:238
 msgid "Failed to fetch objects: "
 msgstr "オブジェクトの取得に失敗しました: "
 
@@ -4070,7 +4071,7 @@ msgid "Failed to rebuild segment"
 msgstr "セグメントの再構築に失敗しました"
 
 #. placeholder {0}: error.message
-#: src/components/broadcasts/GlobalFeedSettings.tsx:68
+#: src/components/broadcasts/GlobalFeedSettings.tsx:70
 msgid "Failed to refresh global feed: {0}"
 msgstr ""
 
@@ -4185,7 +4186,7 @@ msgid "Failed to test email provider"
 msgstr "メールプロバイダのテストに失敗しました"
 
 #. placeholder {0}: error.message
-#: src/components/broadcasts/RecipientFeedSettings.tsx:74
+#: src/components/broadcasts/RecipientFeedSettings.tsx:76
 msgid "Failed to test recipient feed: {0}"
 msgstr ""
 
@@ -4305,7 +4306,7 @@ msgstr "{0}件のコンタクトを取得中..."
 #~ msgid "Fetched Data"
 #~ msgstr ""
 
-#: src/components/broadcasts/GlobalFeedSettings.tsx:141
+#: src/components/broadcasts/GlobalFeedSettings.tsx:145
 msgid "Fetching data..."
 msgstr ""
 
@@ -4341,7 +4342,7 @@ msgstr "ファイル {0} を追加しました"
 msgid "File {0} exceeds 3MB limit"
 msgstr "ファイル {0} は3MBの制限を超えています"
 
-#: src/components/file_manager/fileManager.tsx:276
+#: src/components/file_manager/fileManager.tsx:288
 msgid "File deleted successfully."
 msgstr "ファイルを削除しました。"
 
@@ -4359,7 +4360,7 @@ msgstr "ファイルマネージャーエラー: "
 msgid "File manager settings updated successfully"
 msgstr "ファイルマネージャー設定を更新しました"
 
-#: src/components/file_manager/fileManager.tsx:608
+#: src/components/file_manager/fileManager.tsx:620
 msgid "File storage is not configured."
 msgstr "ファイルストレージが設定されていません。"
 
@@ -4430,27 +4431,27 @@ msgstr "名"
 msgid "Flow Stats: {0}"
 msgstr "フロー統計: {0}"
 
-#: src/components/file_manager/fileManager.tsx:342
+#: src/components/file_manager/fileManager.tsx:354
 msgid "Folder already exists."
 msgstr "フォルダは既に存在します。"
 
-#: src/components/file_manager/fileManager.tsx:355
+#: src/components/file_manager/fileManager.tsx:367
 msgid "Folder created successfully."
 msgstr "フォルダを作成しました。"
 
-#: src/components/file_manager/fileManager.tsx:271
+#: src/components/file_manager/fileManager.tsx:283
 msgid "Folder deleted successfully."
 msgstr "フォルダを削除しました。"
 
-#: src/components/file_manager/fileManager.tsx:792
+#: src/components/file_manager/fileManager.tsx:804
 msgid "Folder is empty"
 msgstr "フォルダが空です"
 
-#: src/components/file_manager/fileManager.tsx:1023
+#: src/components/file_manager/fileManager.tsx:1035
 msgid "Folder name"
 msgstr "フォルダ名"
 
-#: src/components/file_manager/fileManager.tsx:636
+#: src/components/file_manager/fileManager.tsx:648
 msgid "folder with all its content?"
 msgstr "フォルダとその中のすべてのコンテンツ？"
 
@@ -4589,7 +4590,7 @@ msgstr "Supabase Auth Hooks設定でこのキーを生成してください"
 msgid "Generated SQL:"
 msgstr "生成されたSQL:"
 
-#: src/components/broadcasts/GlobalFeedSettings.tsx:83
+#: src/components/broadcasts/GlobalFeedSettings.tsx:85
 msgid "Global Data Feed"
 msgstr ""
 
@@ -4601,11 +4602,11 @@ msgstr ""
 #~ msgid "Global feed data refreshed successfully"
 #~ msgstr ""
 
-#: src/components/broadcasts/GlobalFeedSettings.tsx:131
+#: src/components/broadcasts/GlobalFeedSettings.tsx:134
 msgid "Global Feed Response"
 msgstr ""
 
-#: src/components/broadcasts/GlobalFeedSettings.tsx:96
+#: src/components/broadcasts/GlobalFeedSettings.tsx:98
 msgid "Global feed URL"
 msgstr ""
 
@@ -4660,19 +4661,19 @@ msgstr "エラーあり"
 msgid "Head Attributes"
 msgstr "ヘッド属性"
 
-#: src/components/broadcasts/HeadersEditor.tsx:107
+#: src/components/broadcasts/HeadersEditor.tsx:108
 msgid "Header name"
 msgstr ""
 
-#: src/components/broadcasts/HeadersEditor.tsx:108
+#: src/components/broadcasts/HeadersEditor.tsx:109
 msgid "Header name is required"
 msgstr ""
 
-#: src/components/broadcasts/HeadersEditor.tsx:114
+#: src/components/broadcasts/HeadersEditor.tsx:115
 msgid "Header value"
 msgstr ""
 
-#: src/components/broadcasts/HeadersEditor.tsx:115
+#: src/components/broadcasts/HeadersEditor.tsx:116
 msgid "Header value is required"
 msgstr ""
 
@@ -4942,7 +4943,7 @@ msgstr "インポート / エクスポート"
 msgid "Import & Export Templates"
 msgstr "テンプレートのインポート＆エクスポート"
 
-#: src/components/file_manager/fileManager.tsx:464
+#: src/components/file_manager/fileManager.tsx:476
 msgid "Import cancelled"
 msgstr "インポートがキャンセルされました"
 
@@ -5002,7 +5003,7 @@ msgstr "{0}件のコンタクトをインポートしました（{1}件失敗、
 msgid "Imported Fonts"
 msgstr "インポート済みフォント"
 
-#: src/components/file_manager/fileManager.tsx:1074
+#: src/components/file_manager/fileManager.tsx:1086
 msgid "Importing files..."
 msgstr "ファイルをインポート中..."
 
@@ -5338,11 +5339,11 @@ msgstr "過去7日間"
 msgid "Last Edited"
 msgstr "最終編集"
 
-#: src/components/broadcasts/GlobalFeedSettings.tsx:149
+#: src/components/broadcasts/GlobalFeedSettings.tsx:153
 msgid "Last fetched:"
 msgstr "最終取得:"
 
-#: src/components/file_manager/fileManager.tsx:870
+#: src/components/file_manager/fileManager.tsx:882
 msgid "Last modified"
 msgstr "最終更新"
 
@@ -5381,7 +5382,7 @@ msgstr "コンテナ全幅にするには空のままにしてください"
 msgid "Leave empty to trigger on any field change"
 msgstr "任意のフィールド変更でトリガーするには空のままにしてください"
 
-#: src/components/broadcasts/RecipientFeedSettings.tsx:164
+#: src/components/broadcasts/RecipientFeedSettings.tsx:168
 msgid "Leave empty to use a random contact from the broadcast audience."
 msgstr ""
 
@@ -5895,7 +5896,7 @@ msgstr "N/A"
 #: src/components/automations/UpsertAutomationDrawer.tsx:167
 #: src/components/blog/AuthorsTable.tsx:143
 #: src/components/blog/CategoryDrawer.tsx:130
-#: src/components/file_manager/fileManager.tsx:856
+#: src/components/file_manager/fileManager.tsx:868
 #: src/components/lists/ListDrawer.tsx:185
 #: src/components/segment/button_upsert.tsx:372
 #: src/components/settings/Integrations.tsx:333
@@ -5928,7 +5929,7 @@ msgstr "新規コンタクト"
 msgid "New conversation"
 msgstr "新しい会話"
 
-#: src/components/file_manager/fileManager.tsx:754
+#: src/components/file_manager/fileManager.tsx:766
 msgid "New folder"
 msgstr "新規フォルダ"
 
@@ -5978,7 +5979,7 @@ msgstr "次回実行"
 #: src/components/blog/PostDrawer.tsx:273
 #: src/components/blog/PostDrawer.tsx:488
 #: src/components/blog/PostsTable.tsx:319
-#: src/components/broadcasts/HeadersEditor.tsx:65
+#: src/components/broadcasts/HeadersEditor.tsx:66
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:250
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:782
 #: src/components/contacts/ContactUpsertDrawer.tsx:540
@@ -6064,7 +6065,7 @@ msgstr "データがありません"
 #~ msgid "No data fetched yet. Click \"Refresh Now\" to fetch data from the configured URL."
 #~ msgstr "まだデータが取得されていません。「Refresh Now」をクリックして設定されたURLからデータを取得してください。"
 
-#: src/components/broadcasts/GlobalFeedSettings.tsx:175
+#: src/components/broadcasts/GlobalFeedSettings.tsx:179
 msgid "No data returned"
 msgstr ""
 
@@ -6092,7 +6093,7 @@ msgstr "メール連携が利用できません。設定で連携を構成して
 msgid "No Errors"
 msgstr "エラーなし"
 
-#: src/components/file_manager/fileManager.tsx:521
+#: src/components/file_manager/fileManager.tsx:533
 msgid "No files selected"
 msgstr "ファイルが選択されていません"
 
@@ -6108,7 +6109,7 @@ msgstr "アイコンが見つかりません"
 msgid "No Issues"
 msgstr "問題なし"
 
-#: src/components/file_manager/fileManager.tsx:567
+#: src/components/file_manager/fileManager.tsx:579
 msgid "No items selected"
 msgstr "アイテムが選択されていません"
 
@@ -6404,7 +6405,7 @@ msgstr "1回のみ"
 msgid "Once per contact"
 msgstr "コンタクトごとに1回"
 
-#: src/components/file_manager/fileManager.tsx:1034
+#: src/components/file_manager/fileManager.tsx:1046
 msgid "Only lowercase alphanumeric characters, underscore, and dash are allowed."
 msgstr "小文字の英数字、アンダースコア、ハイフンのみ使用できます。"
 
@@ -6435,7 +6436,7 @@ msgstr "Open Graph画像"
 msgid "Open Graph Title"
 msgstr "Open Graphタイトル"
 
-#: src/components/file_manager/fileManager.tsx:901
+#: src/components/file_manager/fileManager.tsx:913
 msgid "Open in a window"
 msgstr "新しいウィンドウで開く"
 
@@ -6520,6 +6521,10 @@ msgstr "上線"
 msgid "Override the default sender name for this test email"
 msgstr "このテストメールのデフォルト送信者名を上書き"
 
+#: src/components/automations/config/EmailConfigForm.tsx:80
+msgid "Override the workspace default email provider for this node"
+msgstr ""
+
 #: src/components/email_builder/blocks/MjColumnBlock.tsx:144
 #: src/components/email_builder/blocks/MjDividerBlock.tsx:107
 #: src/components/email_builder/blocks/MjImageBlock.tsx:108
@@ -6603,7 +6608,7 @@ msgstr "保留中"
 msgid "Pending confirmation"
 msgstr "確認待ち"
 
-#: src/components/broadcasts/RecipientFeedSettings.tsx:86
+#: src/components/broadcasts/RecipientFeedSettings.tsx:88
 msgid "Per-Recipient Data Feed"
 msgstr "受信者別データフィード"
 
@@ -6611,7 +6616,7 @@ msgstr "受信者別データフィード"
 #~ msgid "Per-Recipient Feed"
 #~ msgstr "受信者別フィード"
 
-#: src/components/broadcasts/RecipientFeedSettings.tsx:105
+#: src/components/broadcasts/RecipientFeedSettings.tsx:107
 msgid "Per-recipient feed URL"
 msgstr "受信者別フィードURL"
 
@@ -7265,7 +7270,7 @@ msgstr "受信者"
 msgid "Recipient Email"
 msgstr "受信者メールアドレス"
 
-#: src/components/broadcasts/RecipientFeedSettings.tsx:69
+#: src/components/broadcasts/RecipientFeedSettings.tsx:71
 msgid "Recipient feed test completed successfully"
 msgstr "受信者フィードのテストが正常に完了しました"
 
@@ -7319,7 +7324,7 @@ msgstr "ブロードキャストを更新"
 #~ msgid "Refresh Now"
 #~ msgstr "今すぐ更新"
 
-#: src/components/file_manager/fileManager.tsx:660
+#: src/components/file_manager/fileManager.tsx:672
 msgid "Refresh the list"
 msgstr "リストを更新"
 
@@ -7564,7 +7569,7 @@ msgstr "丸め"
 msgid "rows"
 msgstr "行"
 
-#: src/components/broadcasts/RecipientFeedSettings.tsx:160
+#: src/components/broadcasts/RecipientFeedSettings.tsx:164
 msgid "Run Test"
 msgstr ""
 
@@ -7580,9 +7585,9 @@ msgstr "S3アクセスキー"
 msgid "S3 bucket"
 msgstr "S3バケット"
 
-#: src/components/file_manager/fileManager.tsx:255
-#: src/components/file_manager/fileManager.tsx:317
-#: src/components/file_manager/fileManager.tsx:558
+#: src/components/file_manager/fileManager.tsx:267
+#: src/components/file_manager/fileManager.tsx:329
+#: src/components/file_manager/fileManager.tsx:570
 msgid "S3 client is not initialized."
 msgstr "S3クライアントが初期化されていません。"
 
@@ -7812,7 +7817,7 @@ msgid "Segments"
 msgstr "セグメント"
 
 #: src/components/automations/nodes/EmailNode.tsx:48
-#: src/components/file_manager/fileManager.tsx:964
+#: src/components/file_manager/fileManager.tsx:976
 #: src/components/settings/BlogSettings.tsx:332
 #: src/components/settings/BlogSettings.tsx:348
 #: src/components/templates/TemplateSelectorInput.tsx:221
@@ -7943,7 +7948,7 @@ msgstr "日付を選択"
 msgid "Select email template"
 msgstr "メールテンプレートを選択"
 
-#: src/components/automations/config/EmailConfigForm.tsx:35
+#: src/components/automations/config/EmailConfigForm.tsx:73
 msgid "Select email template..."
 msgstr "メールテンプレートを選択..."
 
@@ -8031,7 +8036,7 @@ msgstr "テンプレートを選択"
 msgid "Select Template"
 msgstr "テンプレートを選択"
 
-#: src/components/automations/config/EmailConfigForm.tsx:29
+#: src/components/automations/config/EmailConfigForm.tsx:67
 msgid "Select the email template to send"
 msgstr "送信するメールテンプレートを選択"
 
@@ -8376,7 +8381,7 @@ msgstr "以来"
 
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:124
 #: src/components/email_builder/ui/FontStyleInput.tsx:179
-#: src/components/file_manager/fileManager.tsx:863
+#: src/components/file_manager/fileManager.tsx:875
 msgid "Size"
 msgstr "サイズ"
 
@@ -8642,11 +8647,11 @@ msgstr "ステータス変更"
 msgid "Status unknown"
 msgstr "ステータス不明"
 
-#: src/components/file_manager/fileManager.tsx:675
+#: src/components/file_manager/fileManager.tsx:687
 msgid "Storage settings"
 msgstr "ストレージ設定"
 
-#: src/components/file_manager/fileManager.tsx:683
+#: src/components/file_manager/fileManager.tsx:695
 msgid "Storage settings (Read-only mode)"
 msgstr "ストレージ設定（読み取り専用モード）"
 
@@ -8919,8 +8924,8 @@ msgstr "この送信者を使用しているテンプレートは、別の送信
 msgid "Templating markup allowed"
 msgstr "テンプレートマークアップ使用可能"
 
-#: src/components/broadcasts/GlobalFeedSettings.tsx:119
-#: src/components/broadcasts/RecipientFeedSettings.tsx:127
+#: src/components/broadcasts/GlobalFeedSettings.tsx:122
+#: src/components/broadcasts/RecipientFeedSettings.tsx:130
 #: src/components/settings/Integrations.tsx:319
 #: src/pages/TransactionalNotificationsPage.tsx:173
 msgid "Test"
@@ -8947,12 +8952,12 @@ msgstr "メールプロバイダーをテスト"
 msgid "Test email sent successfully"
 msgstr "テストメールが正常に送信されました"
 
-#: src/components/broadcasts/RecipientFeedSettings.tsx:178
+#: src/components/broadcasts/RecipientFeedSettings.tsx:182
 msgid "Test Failed"
 msgstr "テスト失敗"
 
 #. placeholder {0}: response.error
-#: src/components/broadcasts/RecipientFeedSettings.tsx:66
+#: src/components/broadcasts/RecipientFeedSettings.tsx:68
 msgid "Test failed: {0}"
 msgstr "テスト失敗: {0}"
 
@@ -8968,7 +8973,7 @@ msgstr "サポート状況は異なるため、様々なメールクライアン
 msgid "Test Integration"
 msgstr "連携テスト"
 
-#: src/components/broadcasts/RecipientFeedSettings.tsx:139
+#: src/components/broadcasts/RecipientFeedSettings.tsx:142
 msgid "Test Recipient Feed"
 msgstr ""
 
@@ -8989,11 +8994,11 @@ msgstr "テストバリエーション"
 msgid "Test Webhook"
 msgstr "Webhookをテスト"
 
-#: src/components/broadcasts/RecipientFeedSettings.tsx:187
+#: src/components/broadcasts/RecipientFeedSettings.tsx:191
 msgid "Tested with:"
 msgstr "テスト対象:"
 
-#: src/components/broadcasts/RecipientFeedSettings.tsx:171
+#: src/components/broadcasts/RecipientFeedSettings.tsx:175
 msgid "Testing feed..."
 msgstr "フィードをテスト中..."
 
@@ -9124,11 +9129,11 @@ msgstr "選択したファイル"
 msgid "The status to assign when adding to the list"
 msgstr "リストに追加する際に割り当てるステータス"
 
-#: src/components/broadcasts/GlobalFeedSettings.tsx:97
+#: src/components/broadcasts/GlobalFeedSettings.tsx:99
 msgid "The URL must be publicly accessible. A POST request will be sent with broadcast and list information."
 msgstr "URLは公開アクセス可能である必要があります。ブロードキャストとリスト情報を含むPOSTリクエストが送信されます。"
 
-#: src/components/broadcasts/RecipientFeedSettings.tsx:106
+#: src/components/broadcasts/RecipientFeedSettings.tsx:108
 msgid "The URL must use HTTPS. A POST request will be sent with contact information for each recipient."
 msgstr "URLはHTTPSを使用する必要があります。各受信者のコンタクト情報を含むPOSTリクエストが送信されます。"
 
@@ -9214,7 +9219,7 @@ msgstr "このコンタクトはどのリストにも購読していません"
 msgid "This email will be used for the root administrator account"
 msgstr "このメールはルート管理者アカウントに使用されます"
 
-#: src/components/broadcasts/RecipientFeedSettings.tsx:97
+#: src/components/broadcasts/RecipientFeedSettings.tsx:99
 msgid "This feature makes an HTTP request for each recipient before sending their email. This can significantly slow down broadcast processing. If the feed request fails after retries, the broadcast will pause automatically."
 msgstr "この機能は各受信者のメール送信前にHTTPリクエストを行います。これによりブロードキャスト処理が大幅に遅くなる可能性があります。フィードリクエストがリトライ後に失敗した場合、ブロードキャストは自動的に一時停止されます。"
 
@@ -9759,8 +9764,8 @@ msgstr "更新済み"
 msgid "Updated At"
 msgstr "更新日時"
 
-#: src/components/file_manager/fileManager.tsx:706
-#: src/components/file_manager/fileManager.tsx:719
+#: src/components/file_manager/fileManager.tsx:718
+#: src/components/file_manager/fileManager.tsx:731
 msgid "Upload"
 msgstr "アップロード"
 
@@ -9781,7 +9786,7 @@ msgstr "アップロード失敗: {0}"
 msgid "Upload failed. Please try again."
 msgstr "アップロードに失敗しました。もう一度お試しください。"
 
-#: src/components/file_manager/fileManager.tsx:711
+#: src/components/file_manager/fileManager.tsx:723
 msgid "Upload file (Read-only mode)"
 msgstr "ファイルをアップロード（読み取り専用モード）"
 
@@ -9798,12 +9803,12 @@ msgstr "大文字"
 msgid "URL"
 msgstr "URL"
 
-#: src/components/file_manager/fileManager.tsx:895
+#: src/components/file_manager/fileManager.tsx:907
 msgid "URL copied to clipboard."
 msgstr "URLがクリップボードにコピーされました。"
 
-#: src/components/broadcasts/GlobalFeedSettings.tsx:104
-#: src/components/broadcasts/RecipientFeedSettings.tsx:113
+#: src/components/broadcasts/GlobalFeedSettings.tsx:106
+#: src/components/broadcasts/RecipientFeedSettings.tsx:115
 msgid "URL is required"
 msgstr "URLは必須です"
 
@@ -9882,6 +9887,10 @@ msgstr "このテーマを使用"
 #: src/pages/SetupWizard.tsx:455
 msgid "Use TLS"
 msgstr "TLSを使用"
+
+#: src/components/automations/config/EmailConfigForm.tsx:87
+msgid "Use workspace default"
+msgstr ""
 
 #: src/components/settings/Integrations.tsx:352
 msgid "Used for"
@@ -10266,7 +10275,7 @@ msgstr "書き込み"
 #: src/components/blog/PostDrawer.tsx:272
 #: src/components/blog/PostDrawer.tsx:487
 #: src/components/blog/PostsTable.tsx:318
-#: src/components/broadcasts/HeadersEditor.tsx:64
+#: src/components/broadcasts/HeadersEditor.tsx:65
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:249
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:781
 #: src/components/contacts/ContactUpsertDrawer.tsx:539
@@ -10431,6 +10440,6 @@ msgstr "ワークスペースAPIメール（APIキーに関連付けられたメ
 msgid "Your workspace API key"
 msgstr "ワークスペースAPIキー"
 
-#: src/components/file_manager/fileManager.tsx:772
+#: src/components/file_manager/fileManager.tsx:784
 msgid "Zip"
 msgstr "郵便番号"

@@ -490,6 +490,7 @@ func (c DelayNodeConfig) Validate() error {
 // EmailNodeConfig configures an email node
 type EmailNodeConfig struct {
 	TemplateID      string  `json:"template_id"`
+	IntegrationID   *string `json:"integration_id,omitempty"`
 	SubjectOverride *string `json:"subject_override,omitempty"`
 	FromOverride    *string `json:"from_override,omitempty"`
 }

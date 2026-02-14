@@ -282,6 +282,9 @@ func TestAutomation(t *testing.T) {
 	t.Run("WebhookNode", func(t *testing.T) {
 		testWebhookNode(t, factory, client, workspace.ID)
 	})
+	t.Run("IntegrationOverride", func(t *testing.T) {
+		testAutomationIntegrationOverride(t, factory, client, workspace.ID)
+	})
 	t.Run("PrintBugReport", func(t *testing.T) {
 		printBugReport(t)
 	})
@@ -3070,4 +3073,114 @@ func printBugReport(t *testing.T) {
 		t.Logf("  Code Path: %s", bug.CodePath)
 		t.Log("")
 	}
+}
+
+// testAutomationIntegrationOverride verifies that an email node with integration_id
+// override sends via the specified integration instead of the workspace default.
+func testAutomationIntegrationOverride(t *testing.T, factory *testutil.TestDataFactory, client *testutil.APIClient, workspaceID string) {
+	// 1. Create a second SMTP integration (not set as workspace default)
+	overrideIntegration, err := factory.CreateMailpitSMTPIntegration(workspaceID, testutil.WithIntegrationName("Override SMTP"))
+	require.NoError(t, err)
+	t.Logf("Override integration created: %s", overrideIntegration.ID)
+
+	// 2. Create list and template
+	list, err := factory.CreateList(workspaceID)
+	require.NoError(t, err)
+
+	template, err := factory.CreateTemplate(workspaceID)
+	require.NoError(t, err)
+
+	// 3. Create automation with email node that uses integration_id override
+	automationID := shortuuid.New()
+	triggerNodeID := shortuuid.New()
+	emailNodeID := shortuuid.New()
+
+	createReq := map[string]interface{}{
+		"workspace_id": workspaceID,
+		"automation": map[string]interface{}{
+			"id":           automationID,
+			"workspace_id": workspaceID,
+			"name":         "Integration Override E2E",
+			"status":       "draft",
+			"list_id":      list.ID,
+			"trigger": map[string]interface{}{
+				"event_kind": "list.subscribed",
+				"list_id":    list.ID,
+				"frequency":  "once",
+			},
+			"root_node_id": triggerNodeID,
+			"nodes": []map[string]interface{}{
+				{
+					"id":            triggerNodeID,
+					"automation_id": automationID,
+					"type":          "trigger",
+					"config":        map[string]interface{}{},
+					"next_node_id":  emailNodeID,
+					"position":      map[string]interface{}{"x": 0, "y": 0},
+				},
+				{
+					"id":            emailNodeID,
+					"automation_id": automationID,
+					"type":          "email",
+					"config": map[string]interface{}{
+						"template_id":    template.ID,
+						"integration_id": overrideIntegration.ID,
+					},
+					"position": map[string]interface{}{"x": 0, "y": 100},
+				},
+			},
+			"stats": map[string]interface{}{"enrolled": 0, "completed": 0, "exited": 0, "failed": 0},
+		},
+	}
+
+	resp, err := client.CreateAutomation(createReq)
+	require.NoError(t, err)
+	if resp.StatusCode != http.StatusCreated {
+		body, _ := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		t.Fatalf("IntegrationOverride CreateAutomation: Expected 201, got %d: %s", resp.StatusCode, string(body))
+	}
+	resp.Body.Close()
+
+	// 4. Activate automation
+	activateResp, err := client.ActivateAutomation(map[string]interface{}{
+		"workspace_id":  workspaceID,
+		"automation_id": automationID,
+	})
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, activateResp.StatusCode)
+	activateResp.Body.Close()
+
+	// 5. Create contact and subscribe to list to trigger the automation
+	email := "integration-override-e2e@example.com"
+	contact, err := factory.CreateContact(workspaceID, testutil.WithContactEmail(email))
+	require.NoError(t, err)
+	t.Logf("Contact created: %s", contact.Email)
+
+	_, err = factory.CreateContactList(workspaceID,
+		testutil.WithContactListEmail(email),
+		testutil.WithContactListListID(list.ID),
+		testutil.WithContactListStatus(domain.ContactListStatusActive),
+	)
+	require.NoError(t, err)
+
+	// 6. Wait for enrollment
+	ca := waitForEnrollmentViaAPI(t, client, automationID, email, 2*time.Second)
+	require.NotNil(t, ca, "Contact should be enrolled in automation")
+
+	// 7. Wait for automation to complete (trigger → email → done)
+	completedCA := waitForAutomationComplete(t, factory, workspaceID, automationID, email, 15*time.Second)
+	require.NotNil(t, completedCA, "Automation should complete")
+	assert.Equal(t, domain.ContactAutomationStatusCompleted, completedCA.Status)
+
+	// 8. Verify the email_queue entry has the override integration_id
+	var queueEntry *testutil.EmailQueueEntryResult
+	require.Eventually(t, func() bool {
+		queueEntry, err = factory.GetEmailQueueEntryByAutomationID(workspaceID, automationID)
+		return err == nil && queueEntry != nil
+	}, 5*time.Second, 200*time.Millisecond, "email_queue entry should exist for automation")
+
+	assert.Equal(t, overrideIntegration.ID, queueEntry.IntegrationID,
+		"email_queue entry should use the override integration, not the workspace default")
+	t.Logf("Integration override verified: email_queue entry has integration_id=%s", queueEntry.IntegrationID)
 }

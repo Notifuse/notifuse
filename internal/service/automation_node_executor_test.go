@@ -929,6 +929,192 @@ func TestEmailNodeExecutor_Execute_WithCustomEndpoint(t *testing.T) {
 	require.NotNil(t, result)
 }
 
+func TestEmailNodeExecutor_Execute_WithIntegrationOverride(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockEmailQueueRepo := mocks.NewMockEmailQueueRepository(ctrl)
+	mockTemplateRepo := mocks.NewMockTemplateRepository(ctrl)
+	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	mockLogger := setupMockLoggerForNodeExecutor(ctrl)
+
+	executor := NewEmailNodeExecutor(mockEmailQueueRepo, mockTemplateRepo, mockWorkspaceRepo, "https://api.example.com", mockLogger)
+
+	overrideIntegrationID := "override_integration456"
+	workspace := createTestWorkspaceWithEmailProvider()
+	// Add a second email integration for override testing
+	workspace.Integrations = append(workspace.Integrations, domain.Integration{
+		ID:   overrideIntegrationID,
+		Name: "Override Email Provider",
+		Type: domain.IntegrationTypeEmail,
+		EmailProvider: domain.EmailProvider{
+			Kind:               domain.EmailProviderKindSMTP,
+			RateLimitPerMinute: 30,
+			Senders: []domain.EmailSender{
+				{
+					ID:        "sender2",
+					Email:     "override@example.com",
+					Name:      "Override Sender",
+					IsDefault: true,
+				},
+			},
+			SMTP: &domain.SMTPSettings{
+				Host:     "smtp-override.example.com",
+				Port:     587,
+				Username: "user2",
+				Password: "pass2",
+			},
+		},
+	})
+
+	template := createTestTemplate()
+
+	mockWorkspaceRepo.EXPECT().
+		GetByID(gomock.Any(), "ws1").
+		Return(workspace, nil)
+
+	mockTemplateRepo.EXPECT().
+		GetTemplateByID(gomock.Any(), "ws1", "tpl123", int64(0)).
+		Return(template, nil)
+
+	// Capture the enqueue call to verify the correct integration ID is used
+	mockEmailQueueRepo.EXPECT().
+		Enqueue(gomock.Any(), "ws1", gomock.Any()).
+		DoAndReturn(func(ctx context.Context, workspaceID string, entries []*domain.EmailQueueEntry) error {
+			require.Len(t, entries, 1)
+			assert.Equal(t, overrideIntegrationID, entries[0].IntegrationID, "should use override integration ID")
+			return nil
+		})
+
+	params := NodeExecutionParams{
+		WorkspaceID: "ws1",
+		Node: &domain.AutomationNode{
+			ID:         "email_node1",
+			Type:       domain.NodeTypeEmail,
+			NextNodeID: strPtr("next_node"),
+			Config: map[string]interface{}{
+				"template_id":    "tpl123",
+				"integration_id": overrideIntegrationID,
+			},
+		},
+		Contact: &domain.ContactAutomation{
+			ID:           "ca1",
+			ContactEmail: "recipient@example.com",
+		},
+		ContactData: &domain.Contact{
+			Email: "recipient@example.com",
+		},
+		Automation: &domain.Automation{
+			ID:   "auto1",
+			Name: "Test Automation",
+		},
+	}
+
+	result, err := executor.Execute(context.Background(), params)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	assert.Equal(t, "next_node", *result.NextNodeID)
+	assert.Equal(t, domain.ContactAutomationStatusActive, result.Status)
+}
+
+func TestEmailNodeExecutor_Execute_IntegrationOverrideNotFound(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockEmailQueueRepo := mocks.NewMockEmailQueueRepository(ctrl)
+	mockTemplateRepo := mocks.NewMockTemplateRepository(ctrl)
+	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	mockLogger := setupMockLoggerForNodeExecutor(ctrl)
+
+	executor := NewEmailNodeExecutor(mockEmailQueueRepo, mockTemplateRepo, mockWorkspaceRepo, "https://api.example.com", mockLogger)
+
+	workspace := createTestWorkspaceWithEmailProvider()
+
+	mockWorkspaceRepo.EXPECT().
+		GetByID(gomock.Any(), "ws1").
+		Return(workspace, nil)
+
+	params := NodeExecutionParams{
+		WorkspaceID: "ws1",
+		Node: &domain.AutomationNode{
+			ID:   "email_node1",
+			Type: domain.NodeTypeEmail,
+			Config: map[string]interface{}{
+				"template_id":    "tpl123",
+				"integration_id": "nonexistent_integration",
+			},
+		},
+		Contact: &domain.ContactAutomation{
+			ID:           "ca1",
+			ContactEmail: "recipient@example.com",
+		},
+		ContactData: &domain.Contact{
+			Email: "recipient@example.com",
+		},
+		Automation: &domain.Automation{
+			ID:   "auto1",
+			Name: "Test Automation",
+		},
+	}
+
+	result, err := executor.Execute(context.Background(), params)
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	assert.Contains(t, err.Error(), "integration nonexistent_integration not found in workspace")
+}
+
+func TestEmailNodeExecutor_Execute_IntegrationOverrideNotEmailType(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockEmailQueueRepo := mocks.NewMockEmailQueueRepository(ctrl)
+	mockTemplateRepo := mocks.NewMockTemplateRepository(ctrl)
+	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	mockLogger := setupMockLoggerForNodeExecutor(ctrl)
+
+	executor := NewEmailNodeExecutor(mockEmailQueueRepo, mockTemplateRepo, mockWorkspaceRepo, "https://api.example.com", mockLogger)
+
+	workspace := createTestWorkspaceWithEmailProvider()
+	// Add a non-email integration (Supabase)
+	workspace.Integrations = append(workspace.Integrations, domain.Integration{
+		ID:   "supabase_integration",
+		Name: "Supabase",
+		Type: domain.IntegrationTypeSupabase,
+	})
+
+	mockWorkspaceRepo.EXPECT().
+		GetByID(gomock.Any(), "ws1").
+		Return(workspace, nil)
+
+	params := NodeExecutionParams{
+		WorkspaceID: "ws1",
+		Node: &domain.AutomationNode{
+			ID:   "email_node1",
+			Type: domain.NodeTypeEmail,
+			Config: map[string]interface{}{
+				"template_id":    "tpl123",
+				"integration_id": "supabase_integration",
+			},
+		},
+		Contact: &domain.ContactAutomation{
+			ID:           "ca1",
+			ContactEmail: "recipient@example.com",
+		},
+		ContactData: &domain.Contact{
+			Email: "recipient@example.com",
+		},
+		Automation: &domain.Automation{
+			ID:   "auto1",
+			Name: "Test Automation",
+		},
+	}
+
+	result, err := executor.Execute(context.Background(), params)
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	assert.Contains(t, err.Error(), "integration supabase_integration is not an email provider")
+}
+
 func TestEmailNodeExecutor_NodeType(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()

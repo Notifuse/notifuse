@@ -7,7 +7,7 @@ import { llmProviders } from './LLMProviders'
 // Available Anthropic models with pricing (input/output per million tokens)
 // Model IDs from: https://docs.anthropic.com/en/docs/about-claude/models/overview
 const anthropicModels = [
-  { value: 'claude-opus-4-5-20251101', label: 'Claude Opus 4.5 ($5/$25 per MTok)' },
+  { value: 'claude-opus-4-6', label: 'Claude Opus 4.6 ($5/$25 per MTok)' },
   { value: 'claude-sonnet-4-5-20250929', label: 'Claude Sonnet 4.5 ($3/$15 per MTok)' },
   { value: 'claude-haiku-4-5-20251001', label: 'Claude Haiku 4.5 ($1/$5 per MTok)' }
 ]
