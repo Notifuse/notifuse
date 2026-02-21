@@ -11,7 +11,6 @@ interface BlockToolbarProps {
   onClone: (blockId: string) => void
   onDelete: (blockId: string) => void
   onSave: (block: EmailBlock, operation: SaveOperation, nameOrId: string) => void
-  position?: 'right' | 'left' | 'top'
   savedBlocks?: SavedBlock[]
   style?: React.CSSProperties
 }
@@ -22,7 +21,6 @@ export const BlockToolbar: React.FC<BlockToolbarProps> = ({
   onClone,
   onDelete,
   onSave,
-  position = 'left',
   savedBlocks,
   style
 }) => {
@@ -136,40 +134,12 @@ export const BlockToolbar: React.FC<BlockToolbarProps> = ({
     setSaving(false)
   }
 
-  const getPositionStyle = (): React.CSSProperties => {
-    switch (position) {
-      case 'left':
-        return {
-          position: 'absolute',
-          left: '-33px',
-          top: '0',
-          flexDirection: 'column'
-        }
-      case 'top':
-        return {
-          position: 'absolute',
-          top: '-30px',
-          right: '0px',
-          flexDirection: 'row'
-        }
-      case 'right':
-      default:
-        return {
-          position: 'absolute',
-          right: '-30px',
-          top: '0',
-          flexDirection: 'column'
-        }
-    }
-  }
-
   return (
     <>
       <div
         style={{
-          ...getPositionStyle(),
-          zIndex: 'auto',
           display: 'flex',
+          flexDirection: 'column',
           gap: '4px',
           backgroundColor: 'rgba(255, 255, 255, 0.8)',
           boxShadow: '0 0 7px 2px #00000014',

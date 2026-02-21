@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
@@ -182,6 +183,9 @@ func (s *SetupService) Initialize(ctx context.Context, config *SetupConfig) erro
 	if status.APIEndpointConfigured {
 		finalConfig.APIEndpoint = s.envConfig.APIEndpoint
 	}
+
+	// Sanitize API endpoint
+	finalConfig.APIEndpoint = strings.TrimRight(finalConfig.APIEndpoint, "/")
 
 	// Handle SMTP configuration
 	var smtpHost, smtpUsername, smtpPassword, smtpFromEmail, smtpFromName string

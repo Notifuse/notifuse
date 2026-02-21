@@ -43,7 +43,6 @@ export const EditPanel: React.FC<EditPanelProps> = ({
   const [toolbarPosition, setToolbarPosition] = useState<{
     top: number
     left: number
-    position: 'left' | 'right' | 'top'
   } | null>(null)
   const [isToolbarInteracting, setIsToolbarInteracting] = useState(false)
   const [isUserScrolling, setIsUserScrolling] = useState(false)
@@ -75,25 +74,11 @@ export const EditPanel: React.FC<EditPanelProps> = ({
     const relativeTop = elementRect.top - editPanelRect.top
     const relativeLeft = elementRect.left - editPanelRect.left
 
-    // Determine position based on available space
-    let position: 'left' | 'right' | 'top' = 'left'
-    let top = relativeTop
-    let left = relativeLeft // Default to left position, closer to block
+    // Position toolbar to the left of the block's top-left corner
+    const top = relativeTop
+    const left = Math.max(0, relativeLeft - 33)
 
-    // If not enough space on the left, position on the right
-    if (relativeLeft < 35) {
-      position = 'right'
-      left = relativeLeft + elementRect.width + 5 // Closer to right edge
-    }
-
-    // If not enough space on either side, position on top
-    if (relativeLeft < 35 && relativeLeft + elementRect.width + 35 > editPanelRect.width) {
-      position = 'top'
-      top = relativeTop // Closer to top edge
-      left = relativeLeft + elementRect.width - 90 // Adjust alignment
-    }
-
-    setToolbarPosition({ top, left, position })
+    setToolbarPosition({ top, left })
   }, [selectedBlockId])
 
   // Save scroll position when emailTree changes (but not when just selectedBlockId changes)
@@ -355,7 +340,6 @@ export const EditPanel: React.FC<EditPanelProps> = ({
             onClone={onCloneBlock}
             onDelete={onDeleteBlock}
             onSave={onSaveBlock}
-            position={toolbarPosition.position}
             savedBlocks={savedBlocks}
           />
         </div>

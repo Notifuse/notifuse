@@ -398,8 +398,8 @@ func TestCalculateCost(t *testing.T) {
 			wantTotalCost:  17.5,
 		},
 		{
-			name:           "Sonnet 4.5 - 1M input, 500K output",
-			model:          "claude-sonnet-4-5-20250929",
+			name:           "Sonnet 4.6 - 1M input, 500K output",
+			model:          "claude-sonnet-4-6",
 			inputTokens:    1_000_000,
 			outputTokens:   500_000,
 			wantInputCost:  3.0, // 1M * $3/MTok
@@ -426,7 +426,7 @@ func TestCalculateCost(t *testing.T) {
 		},
 		{
 			name:           "Zero tokens",
-			model:          "claude-sonnet-4-5-20250929",
+			model:          "claude-sonnet-4-6",
 			inputTokens:    0,
 			outputTokens:   0,
 			wantInputCost:  0,

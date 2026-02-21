@@ -43,7 +43,7 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
     defaultOrigin = 'https://localapi.notifuse.com:4000'
   }
 
-  const apiEndpoint = window.API_ENDPOINT?.trim() || defaultOrigin
+  const apiEndpoint = window.API_ENDPOINT?.trim().replace(/\/+$/, '') || defaultOrigin
 
   const response = await fetch(`${apiEndpoint}${endpoint}`, {
     ...options,

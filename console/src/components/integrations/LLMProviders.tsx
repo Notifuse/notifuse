@@ -34,7 +34,7 @@ export const llmProviders: LLMProviderInfo[] = [
     type: 'llm',
     kind: 'anthropic',
     name: 'Anthropic',
-    defaultModel: 'claude-sonnet-4-5-20250929',
+    defaultModel: 'claude-sonnet-4-6',
     getIcon: (className = '', size: 'small' | 'large' | number = 'small') => {
       const height = typeof size === 'number' ? size : size === 'small' ? 12 : 18
       // Wide wordmark logo needs max-width to prevent it being too wide

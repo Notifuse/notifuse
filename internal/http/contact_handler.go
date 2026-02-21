@@ -54,6 +54,12 @@ func (h *ContactHandler) handleList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Validate and set defaults (e.g. default limit)
+	if err := domainReq.Validate(); err != nil {
+		http.Error(w, fmt.Sprintf("Invalid request: %v", err), http.StatusBadRequest)
+		return
+	}
+
 	// Get contacts from service
 	response, err := h.service.GetContacts(r.Context(), domainReq)
 	if err != nil {

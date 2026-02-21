@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [27.2] - 2026-02-21
+
+- **Contacts**: Fixed panic (502) when calling `/api/contacts.list` without the `limit` parameter (#264)
+- **Security**: Upgraded fast-xml-parser to 5.3.6
+- **Email Builder**: Fixed block toolbar not appearing on divider blocks and improved toolbar positioning
+- **Setup**: Strip trailing slash from API endpoint to prevent double-slash URLs breaking sign-in (#266)
+- Update Anthropic Sonnet model from `claude-sonnet-4-5-20250929` to `claude-sonnet-4-6`
+
 ## [27.1] - 2026-02-14
 
 - **Automations**: Per-email integration override — choose which email provider sends each email node, for IP warming and load distribution (#257)

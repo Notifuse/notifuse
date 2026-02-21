@@ -14,7 +14,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-const VERSION = "27.1"
+const VERSION = "27.2"
 
 type Config struct {
 	Server              ServerConfig
@@ -688,6 +688,9 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 		telemetryEnabled = v.GetBool("TELEMETRY")
 		checkForUpdates = v.GetBool("CHECK_FOR_UPDATES")
 	}
+
+	// Sanitize API endpoint - strip trailing slashes to prevent double-slash URL issues
+	apiEndpoint = strings.TrimRight(apiEndpoint, "/")
 
 	config := &Config{
 		Server: ServerConfig{

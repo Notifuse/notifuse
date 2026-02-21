@@ -261,3 +261,14 @@ func TestDatabaseConnectionConfig_ValidationPerDBMaximum(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "DB_MAX_CONNECTIONS_PER_DB cannot exceed 50")
 }
+
+func TestAPIEndpointTrailingSlashStripped(t *testing.T) {
+	_ = os.Setenv("SECRET_KEY", "test-secret-key-1234567890123456")
+	_ = os.Setenv("API_ENDPOINT", "http://localhost:8081/")
+	defer func() { _ = os.Unsetenv("SECRET_KEY") }()
+	defer func() { _ = os.Unsetenv("API_ENDPOINT") }()
+
+	cfg, err := LoadWithOptions(LoadOptions{})
+	require.NoError(t, err)
+	assert.Equal(t, "http://localhost:8081", cfg.APIEndpoint)
+}

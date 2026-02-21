@@ -113,6 +113,27 @@ func TestContactHandler_HandleList(t *testing.T) {
 			expectedContacts: false,
 		},
 		{
+			name:        "Get Contacts Success Without Limit (default 20)",
+			method:      http.MethodGet,
+			queryParams: "workspace_id=workspace123",
+			setupMock: func(m *mocks.MockContactService) {
+				m.EXPECT().GetContacts(gomock.Any(), &domain.GetContactsRequest{
+					WorkspaceID: "workspace123",
+					Limit:       20,
+				}).Return(&domain.GetContactsResponse{
+					Contacts: []*domain.Contact{
+						{
+							Email:      "test1@example.com",
+							ExternalID: &domain.NullableString{String: "ext1", IsNull: false},
+							Timezone:   &domain.NullableString{String: "UTC", IsNull: false},
+						},
+					},
+				}, nil)
+			},
+			expectedStatus:   http.StatusOK,
+			expectedContacts: true,
+		},
+		{
 			name:        "Method Not Allowed",
 			method:      http.MethodPost,
 			queryParams: "workspace_id=workspace123&limit=2",

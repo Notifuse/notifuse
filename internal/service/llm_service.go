@@ -18,7 +18,7 @@ var modelPricing = map[string]struct {
 	OutputPerMTok float64
 }{
 	"claude-opus-4-6":            {5.0, 25.0},
-	"claude-sonnet-4-5-20250929": {3.0, 15.0},
+	"claude-sonnet-4-6":          {3.0, 15.0},
 	"claude-haiku-4-5-20251001":  {1.0, 5.0},
 }
 
@@ -118,7 +118,7 @@ func (s *LLMService) StreamChat(ctx context.Context, req *domain.LLMChatRequest,
 	}
 	model := integration.LLMProvider.Anthropic.Model
 	if model == "" {
-		model = "claude-sonnet-4-5-20250929" // Default model
+		model = "claude-sonnet-4-6" // Default model
 	}
 
 	// 6. Create Anthropic client
