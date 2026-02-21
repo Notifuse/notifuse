@@ -470,8 +470,10 @@ func (a *App) InitServices() error {
 	a.rateLimiter.SetPolicy("signin", 5, 5*time.Minute)           // Strict auth
 	a.rateLimiter.SetPolicy("verify", 5, 5*time.Minute)           // Strict auth
 	a.rateLimiter.SetPolicy("smtp", 5, 1*time.Minute)             // SMTP relay
-	a.rateLimiter.SetPolicy("subscribe:email", 10, 1*time.Minute) // Public subscribe by email
-	a.rateLimiter.SetPolicy("subscribe:ip", 50, 1*time.Minute)    // Public subscribe by IP
+	a.rateLimiter.SetPolicy("subscribe:email", 10, 1*time.Minute)    // Public subscribe by email
+	a.rateLimiter.SetPolicy("subscribe:ip", 50, 1*time.Minute)      // Public subscribe by IP
+	a.rateLimiter.SetPolicy("preferences:email", 20, 1*time.Minute)  // Public preferences by email
+	a.rateLimiter.SetPolicy("preferences:ip", 100, 1*time.Minute)   // Public preferences by IP
 
 	// Initialize user service
 	userServiceConfig := service.UserServiceConfig{
