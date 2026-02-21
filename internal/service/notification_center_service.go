@@ -84,3 +84,32 @@ func (s *NotificationCenterService) GetContactPreferences(ctx context.Context, w
 		WebsiteURL:   workspace.Settings.WebsiteURL,
 	}, nil
 }
+
+// UpdateContactPreferences updates a contact's language and/or timezone
+func (s *NotificationCenterService) UpdateContactPreferences(ctx context.Context, req *domain.UpdateContactPreferencesRequest) error {
+	workspace, err := s.workspaceRepo.GetByID(ctx, req.WorkspaceID)
+	if err != nil {
+		s.logger.Error(fmt.Sprintf("Failed to get workspace: %v", err))
+		return fmt.Errorf("failed to get workspace: %w", err)
+	}
+
+	if !domain.VerifyEmailHMAC(req.Email, req.EmailHMAC, workspace.Settings.SecretKey) {
+		return fmt.Errorf("invalid email verification")
+	}
+
+	contact := &domain.Contact{Email: req.Email}
+	if req.Language != "" {
+		contact.Language = &domain.NullableString{String: req.Language, IsNull: false}
+	}
+	if req.Timezone != "" {
+		contact.Timezone = &domain.NullableString{String: req.Timezone, IsNull: false}
+	}
+
+	_, err = s.contactRepo.UpsertContact(ctx, req.WorkspaceID, contact)
+	if err != nil {
+		s.logger.Error(fmt.Sprintf("Failed to upsert contact preferences: %v", err))
+		return fmt.Errorf("failed to update contact preferences: %w", err)
+	}
+
+	return nil
+}

@@ -792,6 +792,24 @@ func WithContactTimezone(timezone string) ContactOption {
 	}
 }
 
+func WithContactLanguage(language string) ContactOption {
+	return func(c *domain.Contact) {
+		c.Language = &domain.NullableString{String: language, IsNull: false}
+	}
+}
+
+func WithContactLanguageNil() ContactOption {
+	return func(c *domain.Contact) {
+		c.Language = nil
+	}
+}
+
+func WithContactTimezoneNil() ContactOption {
+	return func(c *domain.Contact) {
+		c.Timezone = nil
+	}
+}
+
 func WithContactCustomString1(value string) ContactOption {
 	return func(c *domain.Contact) {
 		c.CustomString1 = &domain.NullableString{String: value, IsNull: false}

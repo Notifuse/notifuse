@@ -292,8 +292,13 @@ func cleanLiquidTemplate(content string) string {
 	liquidVarRegex := regexp.MustCompile(`(\{\{[^}]*\}\}|\{%[^%]*%\})`)
 
 	return liquidVarRegex.ReplaceAllStringFunc(content, func(match string) string {
-		// Remove non-breaking spaces (\u00a0) and other invisible characters
-		cleaned := strings.ReplaceAll(match, "\u00a0", "")  // Non-breaking space
+		// Remove HTML entity non-breaking spaces that rich text editors (like Tiptap) commonly insert
+		cleaned := strings.ReplaceAll(match, "&nbsp;", " ")  // HTML named entity → regular space
+		cleaned = strings.ReplaceAll(cleaned, "&#160;", " ") // HTML numeric entity → regular space
+		cleaned = strings.ReplaceAll(cleaned, "&#xa0;", " ") // HTML hex entity → regular space
+		cleaned = strings.ReplaceAll(cleaned, "&#xA0;", " ") // HTML hex entity uppercase → regular space
+		// Remove Unicode non-breaking spaces and other invisible characters
+		cleaned = strings.ReplaceAll(cleaned, "\u00a0", "")  // Non-breaking space
 		cleaned = strings.ReplaceAll(cleaned, "\u200b", "") // Zero-width space
 		cleaned = strings.ReplaceAll(cleaned, "\u2060", "") // Word joiner
 		cleaned = strings.ReplaceAll(cleaned, "\ufeff", "") // Byte order mark

@@ -349,6 +349,140 @@ func TestVerifyEmailHMAC_Comprehensive(t *testing.T) {
 	})
 }
 
+func TestUpdateContactPreferencesRequest_Validate(t *testing.T) {
+	tests := []struct {
+		name    string
+		request UpdateContactPreferencesRequest
+		wantErr string
+	}{
+		{
+			name: "valid with both language and timezone",
+			request: UpdateContactPreferencesRequest{
+				WorkspaceID: "ws1",
+				Email:       "test@example.com",
+				EmailHMAC:   "hmac",
+				Language:    "fr",
+				Timezone:    "Europe/Paris",
+			},
+		},
+		{
+			name: "valid with language only",
+			request: UpdateContactPreferencesRequest{
+				WorkspaceID: "ws1",
+				Email:       "test@example.com",
+				EmailHMAC:   "hmac",
+				Language:    "en",
+			},
+		},
+		{
+			name: "valid with timezone only",
+			request: UpdateContactPreferencesRequest{
+				WorkspaceID: "ws1",
+				Email:       "test@example.com",
+				EmailHMAC:   "hmac",
+				Timezone:    "America/New_York",
+			},
+		},
+		{
+			name: "missing workspace_id",
+			request: UpdateContactPreferencesRequest{
+				Email:     "test@example.com",
+				EmailHMAC: "hmac",
+				Language:  "fr",
+			},
+			wantErr: "workspace_id is required",
+		},
+		{
+			name: "missing email",
+			request: UpdateContactPreferencesRequest{
+				WorkspaceID: "ws1",
+				EmailHMAC:   "hmac",
+				Language:    "fr",
+			},
+			wantErr: "email is required",
+		},
+		{
+			name: "missing email_hmac",
+			request: UpdateContactPreferencesRequest{
+				WorkspaceID: "ws1",
+				Email:       "test@example.com",
+				Language:    "fr",
+			},
+			wantErr: "email_hmac is required",
+		},
+		{
+			name: "no language or timezone",
+			request: UpdateContactPreferencesRequest{
+				WorkspaceID: "ws1",
+				Email:       "test@example.com",
+				EmailHMAC:   "hmac",
+			},
+			wantErr: "at least one of language or timezone must be provided",
+		},
+		{
+			name: "invalid language - too long",
+			request: UpdateContactPreferencesRequest{
+				WorkspaceID: "ws1",
+				Email:       "test@example.com",
+				EmailHMAC:   "hmac",
+				Language:    "fra",
+			},
+			wantErr: "language must be a 2-letter lowercase code",
+		},
+		{
+			name: "invalid language - uppercase",
+			request: UpdateContactPreferencesRequest{
+				WorkspaceID: "ws1",
+				Email:       "test@example.com",
+				EmailHMAC:   "hmac",
+				Language:    "FR",
+			},
+			wantErr: "language must be a 2-letter lowercase code",
+		},
+		{
+			name: "invalid language - digits",
+			request: UpdateContactPreferencesRequest{
+				WorkspaceID: "ws1",
+				Email:       "test@example.com",
+				EmailHMAC:   "hmac",
+				Language:    "12",
+			},
+			wantErr: "language must be a 2-letter lowercase code",
+		},
+		{
+			name: "invalid timezone - too short",
+			request: UpdateContactPreferencesRequest{
+				WorkspaceID: "ws1",
+				Email:       "test@example.com",
+				EmailHMAC:   "hmac",
+				Timezone:    "X",
+			},
+			wantErr: "timezone must be between 2 and 50 characters",
+		},
+		{
+			name: "invalid timezone - too long",
+			request: UpdateContactPreferencesRequest{
+				WorkspaceID: "ws1",
+				Email:       "test@example.com",
+				EmailHMAC:   "hmac",
+				Timezone:    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+			},
+			wantErr: "timezone must be between 2 and 50 characters",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.request.Validate()
+			if tt.wantErr != "" {
+				assert.EqualError(t, err, tt.wantErr)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
 func TestNotificationCenterServiceInterface(t *testing.T) {
 	// This test is simply a placeholder to ensure our interface definition is correct
 	// We're not testing actual implementation here
@@ -363,4 +497,8 @@ type mockNotificationCenter struct{}
 
 func (m *mockNotificationCenter) GetContactPreferences(_ context.Context, _ string, _ string, _ string) (*ContactPreferencesResponse, error) {
 	return nil, nil
+}
+
+func (m *mockNotificationCenter) UpdateContactPreferences(_ context.Context, _ *UpdateContactPreferencesRequest) error {
+	return nil
 }

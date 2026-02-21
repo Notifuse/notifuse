@@ -36,6 +36,35 @@ func NewTestNotificationCenterService(
 	}
 }
 
+// UpdateContactPreferences overrides the original method to use our mock HMAC verifier
+func (s *TestNotificationCenterService) UpdateContactPreferences(ctx context.Context, req *domain.UpdateContactPreferencesRequest) error {
+	workspace, err := s.workspaceRepo.GetByID(ctx, req.WorkspaceID)
+	if err != nil {
+		s.logger.Error(fmt.Sprintf("Failed to get workspace: %v", err))
+		return fmt.Errorf("failed to get workspace: %w", err)
+	}
+
+	if !s.mockHMACVerifier(req.Email, req.EmailHMAC, workspace.Settings.SecretKey) {
+		return fmt.Errorf("invalid email verification")
+	}
+
+	contact := &domain.Contact{Email: req.Email}
+	if req.Language != "" {
+		contact.Language = &domain.NullableString{String: req.Language, IsNull: false}
+	}
+	if req.Timezone != "" {
+		contact.Timezone = &domain.NullableString{String: req.Timezone, IsNull: false}
+	}
+
+	_, err = s.contactRepo.UpsertContact(ctx, req.WorkspaceID, contact)
+	if err != nil {
+		s.logger.Error(fmt.Sprintf("Failed to upsert contact preferences: %v", err))
+		return fmt.Errorf("failed to update contact preferences: %w", err)
+	}
+
+	return nil
+}
+
 // GetContactPreferences overrides the original method to use our mock HMAC verifier
 func (s *TestNotificationCenterService) GetContactPreferences(ctx context.Context, workspaceID string, email string, emailHMAC string) (*domain.ContactPreferencesResponse, error) {
 	workspace, err := s.workspaceRepo.GetByID(ctx, workspaceID)
@@ -481,6 +510,201 @@ func TestNotificationCenterService_GetContactPreferences(t *testing.T) {
 				} else {
 					assert.Equal(t, tc.expectedResp, result)
 				}
+			}
+		})
+	}
+}
+
+func TestNotificationCenterService_UpdateContactPreferences(t *testing.T) {
+	secretKey := "test-secret-key"
+	validEmail := "user@example.com"
+	validHMAC := crypto.ComputeHMAC256([]byte(validEmail), secretKey)
+
+	testCases := []struct {
+		name          string
+		req           *domain.UpdateContactPreferencesRequest
+		setupMocks    func(ctrl *gomock.Controller, mockContactRepo *mocks.MockContactRepository, mockWorkspaceRepo *mocks.MockWorkspaceRepository, mockLogger *pkgmocks.MockLogger)
+		expectedError string
+	}{
+		{
+			name: "Success with both language and timezone",
+			req: &domain.UpdateContactPreferencesRequest{
+				WorkspaceID: "workspace-123",
+				Email:       validEmail,
+				EmailHMAC:   validHMAC,
+				Language:    "fr",
+				Timezone:    "Europe/Paris",
+			},
+			setupMocks: func(ctrl *gomock.Controller, mockContactRepo *mocks.MockContactRepository, mockWorkspaceRepo *mocks.MockWorkspaceRepository, mockLogger *pkgmocks.MockLogger) {
+				workspace := &domain.Workspace{
+					ID: "workspace-123",
+					Settings: domain.WorkspaceSettings{
+						SecretKey: secretKey,
+					},
+				}
+				mockWorkspaceRepo.EXPECT().
+					GetByID(gomock.Any(), "workspace-123").
+					Return(workspace, nil)
+				mockContactRepo.EXPECT().
+					UpsertContact(gomock.Any(), "workspace-123", gomock.Any()).
+					DoAndReturn(func(ctx context.Context, wsID string, contact *domain.Contact) (bool, error) {
+						assert.Equal(t, validEmail, contact.Email)
+						assert.NotNil(t, contact.Language)
+						assert.Equal(t, "fr", contact.Language.String)
+						assert.NotNil(t, contact.Timezone)
+						assert.Equal(t, "Europe/Paris", contact.Timezone.String)
+						return false, nil
+					})
+			},
+		},
+		{
+			name: "Success with language only",
+			req: &domain.UpdateContactPreferencesRequest{
+				WorkspaceID: "workspace-123",
+				Email:       validEmail,
+				EmailHMAC:   validHMAC,
+				Language:    "en",
+			},
+			setupMocks: func(ctrl *gomock.Controller, mockContactRepo *mocks.MockContactRepository, mockWorkspaceRepo *mocks.MockWorkspaceRepository, mockLogger *pkgmocks.MockLogger) {
+				workspace := &domain.Workspace{
+					ID: "workspace-123",
+					Settings: domain.WorkspaceSettings{
+						SecretKey: secretKey,
+					},
+				}
+				mockWorkspaceRepo.EXPECT().
+					GetByID(gomock.Any(), "workspace-123").
+					Return(workspace, nil)
+				mockContactRepo.EXPECT().
+					UpsertContact(gomock.Any(), "workspace-123", gomock.Any()).
+					DoAndReturn(func(ctx context.Context, wsID string, contact *domain.Contact) (bool, error) {
+						assert.Equal(t, validEmail, contact.Email)
+						assert.NotNil(t, contact.Language)
+						assert.Equal(t, "en", contact.Language.String)
+						assert.Nil(t, contact.Timezone)
+						return false, nil
+					})
+			},
+		},
+		{
+			name: "Success with timezone only",
+			req: &domain.UpdateContactPreferencesRequest{
+				WorkspaceID: "workspace-123",
+				Email:       validEmail,
+				EmailHMAC:   validHMAC,
+				Timezone:    "America/New_York",
+			},
+			setupMocks: func(ctrl *gomock.Controller, mockContactRepo *mocks.MockContactRepository, mockWorkspaceRepo *mocks.MockWorkspaceRepository, mockLogger *pkgmocks.MockLogger) {
+				workspace := &domain.Workspace{
+					ID: "workspace-123",
+					Settings: domain.WorkspaceSettings{
+						SecretKey: secretKey,
+					},
+				}
+				mockWorkspaceRepo.EXPECT().
+					GetByID(gomock.Any(), "workspace-123").
+					Return(workspace, nil)
+				mockContactRepo.EXPECT().
+					UpsertContact(gomock.Any(), "workspace-123", gomock.Any()).
+					DoAndReturn(func(ctx context.Context, wsID string, contact *domain.Contact) (bool, error) {
+						assert.Equal(t, validEmail, contact.Email)
+						assert.Nil(t, contact.Language)
+						assert.NotNil(t, contact.Timezone)
+						assert.Equal(t, "America/New_York", contact.Timezone.String)
+						return false, nil
+					})
+			},
+		},
+		{
+			name: "Invalid HMAC",
+			req: &domain.UpdateContactPreferencesRequest{
+				WorkspaceID: "workspace-123",
+				Email:       validEmail,
+				EmailHMAC:   "invalid-hmac",
+				Language:    "fr",
+			},
+			setupMocks: func(ctrl *gomock.Controller, mockContactRepo *mocks.MockContactRepository, mockWorkspaceRepo *mocks.MockWorkspaceRepository, mockLogger *pkgmocks.MockLogger) {
+				workspace := &domain.Workspace{
+					ID: "workspace-123",
+					Settings: domain.WorkspaceSettings{
+						SecretKey: secretKey,
+					},
+				}
+				mockWorkspaceRepo.EXPECT().
+					GetByID(gomock.Any(), "workspace-123").
+					Return(workspace, nil)
+			},
+			expectedError: "invalid email verification",
+		},
+		{
+			name: "Workspace not found",
+			req: &domain.UpdateContactPreferencesRequest{
+				WorkspaceID: "nonexistent",
+				Email:       validEmail,
+				EmailHMAC:   validHMAC,
+				Language:    "fr",
+			},
+			setupMocks: func(ctrl *gomock.Controller, mockContactRepo *mocks.MockContactRepository, mockWorkspaceRepo *mocks.MockWorkspaceRepository, mockLogger *pkgmocks.MockLogger) {
+				mockWorkspaceRepo.EXPECT().
+					GetByID(gomock.Any(), "nonexistent").
+					Return(nil, errors.New("workspace not found"))
+				mockLogger.EXPECT().Error(gomock.Any())
+			},
+			expectedError: "failed to get workspace",
+		},
+		{
+			name: "Upsert failure",
+			req: &domain.UpdateContactPreferencesRequest{
+				WorkspaceID: "workspace-123",
+				Email:       validEmail,
+				EmailHMAC:   validHMAC,
+				Language:    "fr",
+			},
+			setupMocks: func(ctrl *gomock.Controller, mockContactRepo *mocks.MockContactRepository, mockWorkspaceRepo *mocks.MockWorkspaceRepository, mockLogger *pkgmocks.MockLogger) {
+				workspace := &domain.Workspace{
+					ID: "workspace-123",
+					Settings: domain.WorkspaceSettings{
+						SecretKey: secretKey,
+					},
+				}
+				mockWorkspaceRepo.EXPECT().
+					GetByID(gomock.Any(), "workspace-123").
+					Return(workspace, nil)
+				mockContactRepo.EXPECT().
+					UpsertContact(gomock.Any(), "workspace-123", gomock.Any()).
+					Return(false, errors.New("database error"))
+				mockLogger.EXPECT().Error(gomock.Any())
+			},
+			expectedError: "failed to update contact preferences",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			mockContactRepo := mocks.NewMockContactRepository(ctrl)
+			mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+			mockListRepo := mocks.NewMockListRepository(ctrl)
+			mockLogger := pkgmocks.NewMockLogger(ctrl)
+
+			tc.setupMocks(ctrl, mockContactRepo, mockWorkspaceRepo, mockLogger)
+
+			service := NewNotificationCenterService(
+				mockContactRepo,
+				mockWorkspaceRepo,
+				mockListRepo,
+				mockLogger,
+			)
+
+			err := service.UpdateContactPreferences(context.Background(), tc.req)
+
+			if tc.expectedError != "" {
+				assert.Error(t, err)
+				assert.Contains(t, err.Error(), tc.expectedError)
+			} else {
+				assert.NoError(t, err)
 			}
 		})
 	}

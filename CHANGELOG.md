@@ -8,6 +8,7 @@ All notable changes to this project will be documented in this file.
 - **Security**: Upgraded fast-xml-parser to 5.3.6
 - **Email Builder**: Fixed block toolbar not appearing on divider blocks and improved toolbar positioning
 - **Setup**: Strip trailing slash from API endpoint to prevent double-slash URLs breaking sign-in (#266)
+- **Email Builder**: Fixed Liquid template variables (e.g. `{{ contact.email }}`) not rendering in preview due to `&nbsp;` entities inserted by Tiptap v3 (#267)
 - Update Anthropic Sonnet model from `claude-sonnet-4-5-20250929` to `claude-sonnet-4-6`
 
 ## [27.1] - 2026-02-14

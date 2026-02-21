@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/Notifuse/notifuse/config"
@@ -14,6 +15,7 @@ import (
 	"github.com/Notifuse/notifuse/internal/domain/mocks"
 	pkgDatabase "github.com/Notifuse/notifuse/pkg/database"
 	"github.com/Notifuse/notifuse/pkg/logger"
+	"github.com/Notifuse/notifuse/pkg/ratelimiter"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -72,7 +74,7 @@ func TestNotificationCenterHandler_handleNotificationCenter(t *testing.T) {
 	}{
 		{
 			name:               "method not allowed",
-			method:             http.MethodPost,
+			method:             http.MethodPut,
 			queryParams:        "",
 			setupMock:          func() {},
 			expectedStatusCode: http.StatusMethodNotAllowed,
@@ -453,6 +455,173 @@ func TestNewNotificationCenterHandler(t *testing.T) {
 	assert.Equal(t, mockService, handler.service)
 	assert.Equal(t, mockListService, handler.listService)
 	assert.Equal(t, mockLogger, handler.logger)
+}
+
+func TestNotificationCenterHandler_handleUpdatePreferences(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockService := mocks.NewMockNotificationCenterService(ctrl)
+	mockListService := mocks.NewMockListService(ctrl)
+	mockLogger := &mockLogger{}
+	handler := NewNotificationCenterHandler(mockService, mockListService, mockLogger, nil)
+
+	tests := []struct {
+		name               string
+		requestBody        interface{}
+		setupMock          func()
+		expectedStatusCode int
+		expectedResponse   string
+	}{
+		{
+			name:               "invalid JSON body",
+			requestBody:        "not json",
+			setupMock:          func() {},
+			expectedStatusCode: http.StatusBadRequest,
+			expectedResponse:   `{"error":"Invalid request body"}`,
+		},
+		{
+			name:               "validation failure - missing fields",
+			requestBody:        map[string]interface{}{"language": "fr"},
+			setupMock:          func() {},
+			expectedStatusCode: http.StatusBadRequest,
+			expectedResponse:   `{"error":"workspace_id is required"}`,
+		},
+		{
+			name: "validation failure - no language or timezone",
+			requestBody: map[string]interface{}{
+				"workspace_id": "ws123",
+				"email":        "test@example.com",
+				"email_hmac":   "hmac",
+			},
+			setupMock:          func() {},
+			expectedStatusCode: http.StatusBadRequest,
+			expectedResponse:   `{"error":"at least one of language or timezone must be provided"}`,
+		},
+		{
+			name: "service returns HMAC error",
+			requestBody: domain.UpdateContactPreferencesRequest{
+				WorkspaceID: "ws123",
+				Email:       "test@example.com",
+				EmailHMAC:   "invalid",
+				Language:    "fr",
+			},
+			setupMock: func() {
+				mockService.EXPECT().
+					UpdateContactPreferences(gomock.Any(), gomock.Any()).
+					Return(errors.New("invalid email verification"))
+			},
+			expectedStatusCode: http.StatusUnauthorized,
+			expectedResponse:   `{"error":"Unauthorized: invalid verification"}`,
+		},
+		{
+			name: "service returns other error",
+			requestBody: domain.UpdateContactPreferencesRequest{
+				WorkspaceID: "ws123",
+				Email:       "test@example.com",
+				EmailHMAC:   "valid",
+				Language:    "fr",
+			},
+			setupMock: func() {
+				mockService.EXPECT().
+					UpdateContactPreferences(gomock.Any(), gomock.Any()).
+					Return(errors.New("database error"))
+			},
+			expectedStatusCode: http.StatusInternalServerError,
+			expectedResponse:   `{"error":"Failed to update contact preferences"}`,
+		},
+		{
+			name: "successful update",
+			requestBody: domain.UpdateContactPreferencesRequest{
+				WorkspaceID: "ws123",
+				Email:       "test@example.com",
+				EmailHMAC:   "valid",
+				Language:    "fr",
+				Timezone:    "Europe/Paris",
+			},
+			setupMock: func() {
+				mockService.EXPECT().
+					UpdateContactPreferences(gomock.Any(), gomock.Any()).
+					Return(nil)
+			},
+			expectedStatusCode: http.StatusOK,
+			expectedResponse:   `{"success":true}`,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			tc.setupMock()
+
+			var body []byte
+			var err error
+			switch v := tc.requestBody.(type) {
+			case string:
+				body = []byte(v)
+			default:
+				body, err = json.Marshal(tc.requestBody)
+				require.NoError(t, err)
+			}
+
+			req := httptest.NewRequest(http.MethodPost, "/preferences", bytes.NewBuffer(body))
+			req.Header.Set("Content-Type", "application/json")
+			rec := httptest.NewRecorder()
+
+			handler.handlePreferences(rec, req)
+
+			assert.Equal(t, tc.expectedStatusCode, rec.Code)
+			assert.JSONEq(t, tc.expectedResponse, rec.Body.String())
+		})
+	}
+}
+
+func TestNotificationCenterHandler_handleUpdatePreferences_RateLimiting(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockService := mocks.NewMockNotificationCenterService(ctrl)
+	mockListService := mocks.NewMockListService(ctrl)
+	mockLogger := &mockLogger{}
+
+	rl := ratelimiter.NewRateLimiter()
+	defer rl.Stop()
+	// Allow only 1 request per 60s window
+	rl.SetPolicy("preferences:email", 1, 60*time.Second)
+	rl.SetPolicy("preferences:ip", 1, 60*time.Second)
+
+	handler := NewNotificationCenterHandler(mockService, mockListService, mockLogger, rl)
+
+	validReq := domain.UpdateContactPreferencesRequest{
+		WorkspaceID: "ws123",
+		Email:       "ratelimit@example.com",
+		EmailHMAC:   "valid",
+		Language:    "fr",
+	}
+
+	// First request should succeed
+	mockService.EXPECT().
+		UpdateContactPreferences(gomock.Any(), gomock.Any()).
+		Return(nil)
+
+	body, err := json.Marshal(validReq)
+	require.NoError(t, err)
+
+	req := httptest.NewRequest(http.MethodPost, "/preferences", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	handler.handlePreferences(rec, req)
+	assert.Equal(t, http.StatusOK, rec.Code)
+
+	// Second request should be rate limited
+	body, err = json.Marshal(validReq)
+	require.NoError(t, err)
+
+	req = httptest.NewRequest(http.MethodPost, "/preferences", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec = httptest.NewRecorder()
+	handler.handlePreferences(rec, req)
+	assert.Equal(t, http.StatusTooManyRequests, rec.Code)
+	assert.NotEmpty(t, rec.Header().Get("Retry-After"))
 }
 
 func TestNotificationCenterHandler_handleHealth(t *testing.T) {

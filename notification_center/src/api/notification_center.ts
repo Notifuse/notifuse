@@ -21,6 +21,8 @@ export interface Contact {
   first_name?: string
   last_name?: string
   external_id?: string
+  language?: string | null
+  timezone?: string | null
   [key: string]: any
 }
 
@@ -123,6 +125,20 @@ export async function subscribeToLists(
   request: SubscribeToListsRequest
 ): Promise<SubscribeResponse> {
   return api.post<SubscribeResponse>('/subscribe', request)
+}
+
+export interface UpdateContactPreferencesRequest {
+  workspace_id: string
+  email: string
+  email_hmac: string
+  language?: string
+  timezone?: string
+}
+
+export async function updateContactPreferences(
+  request: UpdateContactPreferencesRequest
+): Promise<{ success: boolean }> {
+  return api.post<{ success: boolean }>('/preferences', request)
 }
 
 export interface UnsubscribeFromListsRequest {

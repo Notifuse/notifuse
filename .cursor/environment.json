@@ -1,4 +1,0 @@
-{
-  "install": "curl -fsSL https://get.docker.com -o get-docker.sh && sudo sh get-docker.sh && sudo usermod -aG docker $USER && rm get-docker.sh && sudo mkdir -p /etc/docker && echo '{\"storage-driver\":\"vfs\",\"iptables\":false,\"ip-forward\":false,\"ip-masq\":false,\"userland-proxy\":false,\"bridge\":\"none\"}' | sudo tee /etc/docker/daemon.json > /dev/null",
-  "start": "sudo service docker start && sleep 3 && sudo chmod 666 /var/run/docker.sock && until docker info > /dev/null 2>&1; do sleep 1; done && echo 'Docker is ready' && docker --version && docker compose version"
-}

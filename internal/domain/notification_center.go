@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/url"
+	"regexp"
 )
 
 //go:generate mockgen -destination mocks/mock_notification_center_service.go -package mocks github.com/Notifuse/notifuse/internal/domain NotificationCenterService
@@ -11,6 +12,8 @@ import (
 type NotificationCenterService interface {
 	// GetContactPreferences returns public lists and notifications for a contact
 	GetContactPreferences(ctx context.Context, workspaceID string, email string, emailHMAC string) (*ContactPreferencesResponse, error)
+	// UpdateContactPreferences updates a contact's language and/or timezone
+	UpdateContactPreferences(ctx context.Context, req *UpdateContactPreferencesRequest) error
 }
 
 type NotificationCenterRequest struct {
@@ -52,4 +55,37 @@ type ContactPreferencesResponse struct {
 	ContactLists []*ContactList `json:"contact_lists"`
 	LogoURL      string         `json:"logo_url"`
 	WebsiteURL   string         `json:"website_url"`
+}
+
+// UpdateContactPreferencesRequest represents a request to update a contact's language/timezone
+type UpdateContactPreferencesRequest struct {
+	WorkspaceID string `json:"workspace_id"`
+	Email       string `json:"email"`
+	EmailHMAC   string `json:"email_hmac"`
+	Language    string `json:"language,omitempty"`
+	Timezone    string `json:"timezone,omitempty"`
+}
+
+var languageCodeRegex = regexp.MustCompile(`^[a-z]{2}$`)
+
+func (r *UpdateContactPreferencesRequest) Validate() error {
+	if r.WorkspaceID == "" {
+		return errors.New("workspace_id is required")
+	}
+	if r.Email == "" {
+		return errors.New("email is required")
+	}
+	if r.EmailHMAC == "" {
+		return errors.New("email_hmac is required")
+	}
+	if r.Language == "" && r.Timezone == "" {
+		return errors.New("at least one of language or timezone must be provided")
+	}
+	if r.Language != "" && !languageCodeRegex.MatchString(r.Language) {
+		return errors.New("language must be a 2-letter lowercase code")
+	}
+	if r.Timezone != "" && (len(r.Timezone) > 50 || len(r.Timezone) < 2) {
+		return errors.New("timezone must be between 2 and 50 characters")
+	}
+	return nil
 }

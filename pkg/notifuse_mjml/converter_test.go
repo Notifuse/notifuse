@@ -78,6 +78,43 @@ func TestProcessLiquidTemplate(t *testing.T) {
 			expected:     "Hello Guest!",
 			expectError:  false,
 		},
+		{
+			name:    "nested contact.email access",
+			content: "<p>Your email: {{ contact.email }}</p>",
+			templateData: map[string]interface{}{
+				"contact": map[string]interface{}{
+					"email":      "john@example.com",
+					"first_name": "John",
+				},
+			},
+			context:     "test",
+			expected:    "<p>Your email: john@example.com</p>",
+			expectError: false,
+		},
+		{
+			name:    "contact.email with HTML entity nbsp",
+			content: "<p>Email: {{&nbsp;contact.email&nbsp;}}</p>",
+			templateData: map[string]interface{}{
+				"contact": map[string]interface{}{
+					"email": "jane@example.com",
+				},
+			},
+			context:     "test",
+			expected:    "<p>Email: jane@example.com</p>",
+			expectError: false,
+		},
+		{
+			name:    "contact.email with numeric entity nbsp",
+			content: "<p>Email: {{&#160;contact.email&#160;}}</p>",
+			templateData: map[string]interface{}{
+				"contact": map[string]interface{}{
+					"email": "test@example.com",
+				},
+			},
+			context:     "test",
+			expected:    "<p>Email: test@example.com</p>",
+			expectError: false,
+		},
 	}
 
 	for _, tt := range tests {
@@ -98,6 +135,74 @@ func TestProcessLiquidTemplate(t *testing.T) {
 
 			if result != tt.expected {
 				t.Errorf("Expected '%s', got '%s'", tt.expected, result)
+			}
+		})
+	}
+}
+
+func TestCleanLiquidTemplate(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "no liquid tags unchanged",
+			input:    "<p>Hello world</p>",
+			expected: "<p>Hello world</p>",
+		},
+		{
+			name:     "clean liquid unchanged",
+			input:    "{{ contact.email }}",
+			expected: "{{ contact.email }}",
+		},
+		{
+			name:     "HTML entity nbsp in variable",
+			input:    "{{&nbsp;contact.email&nbsp;}}",
+			expected: "{{ contact.email }}",
+		},
+		{
+			name:     "numeric entity nbsp in variable",
+			input:    "{{&#160;contact.email&#160;}}",
+			expected: "{{ contact.email }}",
+		},
+		{
+			name:     "hex entity nbsp in variable",
+			input:    "{{&#xa0;contact.email&#xa0;}}",
+			expected: "{{ contact.email }}",
+		},
+		{
+			name:     "hex entity uppercase nbsp in variable",
+			input:    "{{&#xA0;contact.email&#xA0;}}",
+			expected: "{{ contact.email }}",
+		},
+		{
+			name:     "unicode non-breaking space in variable",
+			input:    "{{\u00a0contact.email\u00a0}}",
+			expected: "{{contact.email}}",
+		},
+		{
+			name:     "mixed HTML entities and text",
+			input:    "<p>Email: {{&nbsp;contact.email&nbsp;}}</p>",
+			expected: "<p>Email: {{ contact.email }}</p>",
+		},
+		{
+			name:     "block tag with nbsp",
+			input:    "{%&nbsp;if contact.email&nbsp;%}yes{%&nbsp;endif&nbsp;%}",
+			expected: "{% if contact.email %}yes{% endif %}",
+		},
+		{
+			name:     "zero-width space in variable",
+			input:    "{{\u200bcontact.email\u200b}}",
+			expected: "{{contact.email}}",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := cleanLiquidTemplate(tt.input)
+			if result != tt.expected {
+				t.Errorf("Expected %q, got %q", tt.expected, result)
 			}
 		})
 	}

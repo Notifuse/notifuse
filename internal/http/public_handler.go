@@ -60,11 +60,17 @@ func (h *NotificationCenterHandler) RegisterRoutes(mux *http.ServeMux) {
 }
 
 func (h *NotificationCenterHandler) handlePreferences(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
+	switch r.Method {
+	case http.MethodGet:
+		h.handleGetPreferences(w, r)
+	case http.MethodPost:
+		h.handleUpdatePreferences(w, r)
+	default:
 		WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
 	}
+}
 
+func (h *NotificationCenterHandler) handleGetPreferences(w http.ResponseWriter, r *http.Request) {
 	var req domain.NotificationCenterRequest
 	if err := req.FromURLValues(r.URL.Query()); err != nil {
 		WriteJSONError(w, err.Error(), http.StatusBadRequest)
@@ -92,6 +98,50 @@ func (h *NotificationCenterHandler) handlePreferences(w http.ResponseWriter, r *
 
 	// Write the response
 	writeJSON(w, http.StatusOK, response)
+}
+
+func (h *NotificationCenterHandler) handleUpdatePreferences(w http.ResponseWriter, r *http.Request) {
+	var req domain.UpdateContactPreferencesRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		WriteJSONError(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if err := req.Validate(); err != nil {
+		WriteJSONError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// Rate limit by email
+	if h.rateLimiter != nil && !h.rateLimiter.Allow("preferences:email", req.Email) {
+		retryAfter := h.rateLimiter.GetRemainingWindow("preferences:email", req.Email)
+		w.Header().Set("Retry-After", fmt.Sprintf("%d", retryAfter))
+		WriteJSONError(w, "Too many requests. Please try again later.", http.StatusTooManyRequests)
+		return
+	}
+
+	// Rate limit by IP
+	clientIP := getClientIP(r)
+	if h.rateLimiter != nil && !h.rateLimiter.Allow("preferences:ip", clientIP) {
+		retryAfter := h.rateLimiter.GetRemainingWindow("preferences:ip", clientIP)
+		w.Header().Set("Retry-After", fmt.Sprintf("%d", retryAfter))
+		WriteJSONError(w, "Too many requests. Please try again later.", http.StatusTooManyRequests)
+		return
+	}
+
+	if err := h.service.UpdateContactPreferences(r.Context(), &req); err != nil {
+		if strings.Contains(err.Error(), "invalid email verification") {
+			WriteJSONError(w, "Unauthorized: invalid verification", http.StatusUnauthorized)
+			return
+		}
+		h.logger.WithField("error", err.Error()).Error("Failed to update contact preferences")
+		WriteJSONError(w, "Failed to update contact preferences", http.StatusInternalServerError)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"success": true,
+	})
 }
 
 func (h *NotificationCenterHandler) handleSubscribe(w http.ResponseWriter, r *http.Request) {

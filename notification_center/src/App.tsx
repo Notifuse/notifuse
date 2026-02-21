@@ -3,7 +3,8 @@ import {
   getContactPreferences,
   parseNotificationCenterParams,
   subscribeToLists,
-  unsubscribeOneClick
+  unsubscribeOneClick,
+  updateContactPreferences
 } from './api/notification_center'
 import type { ContactPreferencesResponse, List } from './api/notification_center'
 import { Button } from '@/components/ui/button'
@@ -152,6 +153,30 @@ function App() {
         })
         setNotificationData(data)
 
+        // Auto-detect browser language and timezone, sync if different from contact
+        const browserLang = navigator.language.split('-')[0].toLowerCase()
+        const browserTz = Intl.DateTimeFormat().resolvedOptions().timeZone
+        const contactLang = data.contact?.language || null
+        const contactTz = data.contact?.timezone || null
+
+        const langChanged = browserLang.length === 2 && contactLang !== browserLang
+        const tzChanged = !!browserTz && contactTz !== browserTz
+
+        if (langChanged || tzChanged) {
+          updateContactPreferences({
+            workspace_id: params.wid,
+            email: params.email,
+            email_hmac: params.email_hmac,
+            ...(langChanged ? { language: browserLang } : {}),
+            ...(tzChanged ? { timezone: browserTz } : {})
+          }).catch((err) => console.error('Failed to auto-sync preferences:', err))
+
+          // Also update the widget UI language if the browser lang is supported
+          if (langChanged && browserLang in languageNames) {
+            setLanguage(browserLang as Language)
+          }
+        }
+
         // Initialize subscriptions state
         const initialSubscriptions: Record<string, boolean> = {}
 
@@ -276,6 +301,15 @@ function App() {
       setLanguage(code as Language)
       setShowLanguageMenu(false)
       e.preventDefault()
+      const p = parseNotificationCenterParams()
+      if (p && !isPreviewMode) {
+        updateContactPreferences({
+          workspace_id: p.wid,
+          email: p.email,
+          email_hmac: p.email_hmac,
+          language: code
+        }).catch((err) => console.error('Failed to sync language:', err))
+      }
     }
   }
 
@@ -515,6 +549,17 @@ function App() {
                       onClick={() => {
                         setLanguage(code as Language)
                         setShowLanguageMenu(false)
+                        const p = parseNotificationCenterParams()
+                        if (p && !isPreviewMode) {
+                          updateContactPreferences({
+                            workspace_id: p.wid,
+                            email: p.email,
+                            email_hmac: p.email_hmac,
+                            language: code
+                          }).catch((err) =>
+                            console.error('Failed to sync language:', err)
+                          )
+                        }
                       }}
                       onKeyDown={(e) => handleLanguageOptionKeyDown(e, code)}
                       role="menuitem"
