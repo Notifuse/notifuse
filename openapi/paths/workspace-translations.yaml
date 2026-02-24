@@ -1,0 +1,117 @@
+/api/workspace_translations.list:
+  get:
+    summary: List workspace translations
+    description: Retrieves all workspace-level translations. Returns one entry per locale with its nested key-value content.
+    operationId: listWorkspaceTranslations
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: workspace_id
+        in: query
+        required: true
+        schema:
+          type: string
+        description: The ID of the workspace
+        example: ws_1234567890
+    responses:
+      '200':
+        description: List of workspace translations retrieved successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                translations:
+                  type: array
+                  items:
+                    $ref: '../components/schemas/workspace-translation.yaml#/WorkspaceTranslation'
+      '400':
+        description: Bad request - validation failed
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '401':
+        description: Unauthorized
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+
+/api/workspace_translations.upsert:
+  post:
+    summary: Create or update workspace translation
+    description: |
+      Creates or updates translations for a specific locale at the workspace level.
+      If translations for the locale already exist, they are replaced.
+      Workspace translations are shared across all templates and resolved when a template
+      uses `{{ "key" | t }}` and the key is not found in the template's own translations.
+    operationId: upsertWorkspaceTranslation
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/workspace-translation.yaml#/UpsertWorkspaceTranslationRequest'
+    responses:
+      '200':
+        description: Translation upserted successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+      '400':
+        description: Bad request - validation failed
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '401':
+        description: Unauthorized
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+
+/api/workspace_translations.delete:
+  post:
+    summary: Delete workspace translation
+    description: Deletes all translations for a specific locale at the workspace level.
+    operationId: deleteWorkspaceTranslation
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/workspace-translation.yaml#/DeleteWorkspaceTranslationRequest'
+    responses:
+      '200':
+        description: Translation deleted successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+      '400':
+        description: Bad request - validation failed
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '401':
+        description: Unauthorized
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
