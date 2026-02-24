@@ -4,7 +4,8 @@ import {
   TagsOutlined,
   SettingOutlined,
   ExclamationCircleOutlined,
-  MailOutlined
+  MailOutlined,
+  GlobalOutlined
 } from '@ant-design/icons'
 import { useLingui } from '@lingui/react/macro'
 
@@ -15,6 +16,7 @@ export type SettingsSection =
   | 'custom-fields'
   | 'smtp-relay'
   | 'general'
+  | 'languages'
   | 'blog'
   | 'danger-zone'
 
@@ -106,6 +108,11 @@ export function SettingsSidebar({ activeSection, onSectionChange, isOwner }: Set
       key: 'smtp-relay',
       icon: <MailOutlined />,
       label: t`SMTP Relay`
+    },
+    {
+      key: 'languages',
+      icon: <GlobalOutlined />,
+      label: t`Languages`
     },
     {
       key: 'general',

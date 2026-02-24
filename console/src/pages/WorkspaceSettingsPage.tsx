@@ -13,6 +13,7 @@ import { BlogSettings } from '../components/settings/BlogSettings'
 import { WebhooksSettings } from '../components/settings/WebhooksSettings'
 import { useAuth } from '../contexts/AuthContext'
 import { DeleteWorkspaceSection } from '../components/settings/DeleteWorkspace'
+import { LanguageSettings } from '../components/settings/LanguageSettings'
 import { SettingsSidebar, SettingsSection } from '../components/settings/SettingsSidebar'
 
 const { Sider, Content } = Layout
@@ -37,6 +38,7 @@ export function WorkspaceSettingsPage() {
     'custom-fields',
     'smtp-relay',
     'general',
+    'languages',
     'blog',
     'danger-zone'
   ]
@@ -139,6 +141,14 @@ export function WorkspaceSettingsPage() {
       case 'general':
         return (
           <GeneralSettings
+            workspace={workspace}
+            onWorkspaceUpdate={handleWorkspaceUpdate}
+            isOwner={isOwner}
+          />
+        )
+      case 'languages':
+        return (
+          <LanguageSettings
             workspace={workspace}
             onWorkspaceUpdate={handleWorkspaceUpdate}
             isOwner={isOwner}
