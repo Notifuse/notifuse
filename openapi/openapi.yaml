@@ -73,6 +73,12 @@ paths:
     $ref: './paths/templates.yaml#/~1api~1templates.delete'
   /api/templates.compile:
     $ref: './paths/templates.yaml#/~1api~1templates.compile'
+  /api/workspace_translations.list:
+    $ref: './paths/workspace-translations.yaml#/~1api~1workspace_translations.list'
+  /api/workspace_translations.upsert:
+    $ref: './paths/workspace-translations.yaml#/~1api~1workspace_translations.upsert'
+  /api/workspace_translations.delete:
+    $ref: './paths/workspace-translations.yaml#/~1api~1workspace_translations.delete'
   /api/customEvents.import:
     $ref: './paths/custom-events.yaml#/~1api~1customEvents.import'
   /api/webhookSubscriptions.create:
@@ -218,6 +224,12 @@ components:
       $ref: './components/schemas/template.yaml#/CompileTemplateResponse'
     TrackingSettings:
       $ref: './components/schemas/template.yaml#/TrackingSettings'
+    WorkspaceTranslation:
+      $ref: './components/schemas/workspace-translation.yaml#/WorkspaceTranslation'
+    UpsertWorkspaceTranslationRequest:
+      $ref: './components/schemas/workspace-translation.yaml#/UpsertWorkspaceTranslationRequest'
+    DeleteWorkspaceTranslationRequest:
+      $ref: './components/schemas/workspace-translation.yaml#/DeleteWorkspaceTranslationRequest'
     CustomEvent:
       $ref: './components/schemas/custom-event.yaml#/CustomEvent'
     ImportCustomEventsRequest:
