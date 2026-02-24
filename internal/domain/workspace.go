@@ -334,6 +334,8 @@ type WorkspaceSettings struct {
 	CustomFieldLabels            map[string]string   `json:"custom_field_labels,omitempty"`
 	BlogEnabled                  bool                `json:"blog_enabled"`            // Enable blog feature at workspace level
 	BlogSettings                 *BlogSettings       `json:"blog_settings,omitempty"` // Blog styling and SEO settings
+	DefaultLanguage              string              `json:"default_language,omitempty"`    // e.g., "en"
+	SupportedLanguages           []string            `json:"supported_languages,omitempty"` // e.g., ["en", "fr", "de"]
 
 	// decoded secret key, not stored in the database
 	SecretKey string `json:"-"`
@@ -453,6 +455,20 @@ func (ws *WorkspaceSettings) ValidateCustomFieldLabels() error {
 	}
 
 	return nil
+}
+
+func (ws *WorkspaceSettings) GetDefaultLanguage() string {
+	if ws.DefaultLanguage != "" {
+		return ws.DefaultLanguage
+	}
+	return "en"
+}
+
+func (ws *WorkspaceSettings) GetSupportedLanguages() []string {
+	if len(ws.SupportedLanguages) > 0 {
+		return ws.SupportedLanguages
+	}
+	return []string{"en"}
 }
 
 type Workspace struct {

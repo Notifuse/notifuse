@@ -367,6 +367,61 @@ func TestTemplate_Validate(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		{
+			name: "valid template with translations",
+			template: func() *Template {
+				t := createValidTemplate()
+				t.Translations = MapOfAny{
+					"fr": map[string]any{"subject": "Bonjour"},
+					"de": map[string]any{"subject": "Hallo"},
+				}
+				return t
+			}(),
+			wantErr: false,
+		},
+		{
+			name: "invalid template - empty translation locale",
+			template: func() *Template {
+				t := createValidTemplate()
+				t.Translations = MapOfAny{
+					"": map[string]any{"subject": "Bonjour"},
+				}
+				return t
+			}(),
+			wantErr: true,
+		},
+		{
+			name: "invalid template - translation locale too long",
+			template: func() *Template {
+				t := createValidTemplate()
+				t.Translations = MapOfAny{
+					"12345678901": map[string]any{"subject": "Bonjour"},
+				}
+				return t
+			}(),
+			wantErr: true,
+		},
+		{
+			name: "invalid template - nil translation content",
+			template: func() *Template {
+				t := createValidTemplate()
+				t.Translations = MapOfAny{
+					"fr": nil,
+				}
+				return t
+			}(),
+			wantErr: true,
+		},
+		{
+			name: "invalid template - default_language too long",
+			template: func() *Template {
+				t := createValidTemplate()
+				longLang := "12345678901"
+				t.DefaultLanguage = &longLang
+				return t
+			}(),
+			wantErr: true,
+		},
 	}
 
 	for _, tt := range tests {

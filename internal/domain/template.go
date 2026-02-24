@@ -77,6 +77,8 @@ type Template struct {
 	IntegrationID   *string        `json:"integration_id,omitempty"` // Set if template is managed by an integration (e.g., Supabase)
 	TestData        MapOfAny       `json:"test_data,omitempty"`
 	Settings        MapOfAny       `json:"settings,omitempty"` // Channels specific 3rd-party settings
+	Translations    MapOfAny       `json:"translations"`      // {locale: {nested key-value}}
+	DefaultLanguage *string        `json:"default_language"`  // overrides workspace default
 	CreatedAt       time.Time      `json:"created_at"`
 	UpdatedAt       time.Time      `json:"updated_at"`
 	DeletedAt       *time.Time     `json:"deleted_at,omitempty"`
@@ -145,6 +147,28 @@ func (t *Template) Validate() error {
 		}
 		if err := t.Web.Validate(t.TestData); err != nil {
 			return fmt.Errorf("invalid template: %w", err)
+		}
+	}
+
+	// Validate translations if provided
+	if t.Translations != nil {
+		for locale, content := range t.Translations {
+			if locale == "" {
+				return fmt.Errorf("invalid template: translation locale cannot be empty")
+			}
+			if len(locale) > 10 {
+				return fmt.Errorf("invalid template: translation locale '%s' exceeds max length of 10", locale)
+			}
+			if content == nil {
+				return fmt.Errorf("invalid template: translation content for locale '%s' cannot be nil", locale)
+			}
+		}
+	}
+
+	// Validate default_language if set
+	if t.DefaultLanguage != nil && *t.DefaultLanguage != "" {
+		if len(*t.DefaultLanguage) > 10 {
+			return fmt.Errorf("invalid template: default_language exceeds max length of 10")
 		}
 	}
 
