@@ -146,6 +146,8 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 			integration_id VARCHAR(255),
 			test_data JSONB,
 			settings JSONB,
+			translations JSONB NOT NULL DEFAULT '{}'::jsonb,
+			default_language VARCHAR(10) DEFAULT NULL,
 			created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			deleted_at TIMESTAMP WITH TIME ZONE,
@@ -469,6 +471,12 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 		`CREATE INDEX IF NOT EXISTS idx_email_queue_retry ON email_queue(next_retry_at) WHERE status = 'failed' AND attempts < max_attempts`,
 		`CREATE INDEX IF NOT EXISTS idx_email_queue_source ON email_queue(source_type, source_id, status)`,
 		`CREATE INDEX IF NOT EXISTS idx_email_queue_integration ON email_queue(integration_id, status)`,
+		`CREATE TABLE IF NOT EXISTS workspace_translations (
+			locale VARCHAR(10) NOT NULL PRIMARY KEY,
+			content JSONB NOT NULL DEFAULT '{}'::jsonb,
+			created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+		)`,
 	}
 
 	// Run all table creation queries
