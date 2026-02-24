@@ -114,13 +114,13 @@ type Template struct {
 }
 ```
 
-### Modified: `Workspace` struct
+### Modified: `WorkspaceSettings` struct (inside Workspace.Settings JSONB)
 
 ```go
-type Workspace struct {
+type WorkspaceSettings struct {
     // ... existing fields ...
-    DefaultLanguage    string   `json:"default_language"`    // e.g., "en"
-    SupportedLanguages []string `json:"supported_languages"` // e.g., ["en", "fr", "de"]
+    DefaultLanguage    string   `json:"default_language,omitempty"`    // e.g., "en"
+    SupportedLanguages []string `json:"supported_languages,omitempty"` // e.g., ["en", "fr", "de"]
 }
 ```
 
@@ -141,12 +141,7 @@ Non-breaking, additive migration. Existing templates get empty `{}` translations
 
 ### System database
 
-```sql
-ALTER TABLE workspaces
-  ADD COLUMN IF NOT EXISTS default_language VARCHAR(10) NOT NULL DEFAULT 'en';
-ALTER TABLE workspaces
-  ADD COLUMN IF NOT EXISTS supported_languages JSONB NOT NULL DEFAULT '["en"]'::jsonb;
-```
+No schema changes needed. `default_language` and `supported_languages` are added to the `WorkspaceSettings` Go struct. Since `WorkspaceSettings` is stored as JSONB in the existing `workspaces.settings` column, the new fields are automatically handled — existing workspaces will have these fields absent in JSON, and Go will deserialize them as zero values (falling back to `"en"` and `["en"]` via helper methods).
 
 ### Workspace database
 
