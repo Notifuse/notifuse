@@ -19,6 +19,8 @@ export interface Template {
   utm_campaign?: string
   test_data?: Record<string, unknown>
   settings?: Record<string, unknown>
+  translations?: Record<string, Record<string, unknown>> // locale → nested key-value
+  default_language?: string
   created_at: string
   updated_at: string
 }
