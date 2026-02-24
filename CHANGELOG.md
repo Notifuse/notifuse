@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [28.0] - 2026-XX-XX
+
+### New Features
+
+- **Template i18n**: Auto-select email content based on contact language (#268)
+  - **Liquid `t` filter**: Use `{{ "key" | t }}` in templates to reference translation keys
+  - **Placeholder support**: Pass dynamic values with `{{ "greeting" | t: name: contact.first_name }}`
+  - **Nested keys**: Dot-separated key paths (e.g., `welcome.heading`, `cta.button`)
+  - **Per-template translations**: Store translation key-value maps per locale as part of the template
+  - **Workspace translations**: Shared translation catalog available to all templates in a workspace
+  - **Automatic locale resolution**: Fallback chain from `contact.language` → base language → template default → workspace default
+  - **Translations panel**: Manage translation keys and per-locale values in the template editor
+  - **Import/Export**: Bulk upload/download translations as JSON files per locale
+- **Workspace language settings**: Configure default language and supported languages in workspace settings
+
+### Database Migration
+
+- Added `translations` JSONB column and `default_language` VARCHAR column to `templates` table (workspace migration)
+- Created `workspace_translations` table for workspace-level shared translations (workspace migration)
+
 ## [27.2] - 2026-02-21
 
 - **Contacts**: Fixed panic (502) when calling `/api/contacts.list` without the `limit` parameter (#264)
