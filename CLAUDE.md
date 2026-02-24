@@ -128,6 +128,19 @@ func (m *V6Migration) UpdateSystem(ctx context.Context, config *config.Config, d
 - **MJML Support**: gomjml v0.10.0 for email rendering
 - **HTML Parsing**: PuerkitoBio/goquery v1.10.3
 
+#### Translation Filter (v28.0+)
+
+Templates can reference translatable strings using the Liquid `t` filter:
+
+```liquid
+{{ "welcome.heading" | t }}
+{{ "welcome.greeting" | t: name: contact.first_name }}
+```
+
+Translations are stored per-locale as nested JSON on the template's `translations` field. The system resolves the best locale from `contact.language` with a fallback chain: exact match → base language → template default → workspace default.
+
+Workspace-level shared translations (in the `workspace_translations` table) serve as a fallback when a key is not found in the template's own translations. Template translations take priority over workspace translations.
+
 ### Observability & Monitoring
 
 - **Logging**: Zerolog v1.33.0 (structured logging)
