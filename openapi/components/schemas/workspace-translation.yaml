@@ -1,0 +1,69 @@
+WorkspaceTranslation:
+  type: object
+  properties:
+    locale:
+      type: string
+      description: Locale code (e.g., "en", "fr", "pt-BR")
+      example: en
+      maxLength: 10
+    content:
+      type: object
+      additionalProperties: true
+      description: |
+        Nested key-value translation map. Keys use dot-separated paths.
+        Values are strings, optionally containing {{ placeholder }} syntax.
+      example:
+        common:
+          greeting: "Hello"
+          footer: "Unsubscribe from our emails"
+    created_at:
+      type: string
+      format: date-time
+      description: When the translation was created
+    updated_at:
+      type: string
+      format: date-time
+      description: When the translation was last updated
+  required:
+    - locale
+    - content
+
+UpsertWorkspaceTranslationRequest:
+  type: object
+  required:
+    - workspace_id
+    - locale
+    - content
+  properties:
+    workspace_id:
+      type: string
+      description: The ID of the workspace
+      example: ws_1234567890
+    locale:
+      type: string
+      description: Locale code
+      example: fr
+      maxLength: 10
+    content:
+      type: object
+      additionalProperties: true
+      description: Nested key-value translation map
+      example:
+        common:
+          greeting: "Bonjour"
+          footer: "Se désabonner de nos emails"
+
+DeleteWorkspaceTranslationRequest:
+  type: object
+  required:
+    - workspace_id
+    - locale
+  properties:
+    workspace_id:
+      type: string
+      description: The ID of the workspace
+      example: ws_1234567890
+    locale:
+      type: string
+      description: Locale code to delete
+      example: fr
