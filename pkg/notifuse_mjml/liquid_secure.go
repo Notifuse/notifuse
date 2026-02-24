@@ -28,6 +28,9 @@ func NewSecureLiquidEngine() *SecureLiquidEngine {
 	env := liquid.NewEnvironment()
 	tags.RegisterStandardTags(env)
 
+	// Register default empty translation filter so the t filter is always available
+	env.RegisterFilter(&TranslationFilters{translations: map[string]interface{}{}})
+
 	return &SecureLiquidEngine{
 		timeout: DefaultRenderTimeout,
 		maxSize: DefaultMaxTemplateSize,
@@ -39,6 +42,9 @@ func NewSecureLiquidEngine() *SecureLiquidEngine {
 func NewSecureLiquidEngineWithOptions(timeout time.Duration, maxSize int) *SecureLiquidEngine {
 	env := liquid.NewEnvironment()
 	tags.RegisterStandardTags(env)
+
+	// Register default empty translation filter so the t filter is always available
+	env.RegisterFilter(&TranslationFilters{translations: map[string]interface{}{}})
 
 	return &SecureLiquidEngine{
 		timeout: timeout,
@@ -93,6 +99,16 @@ func (s *SecureLiquidEngine) RenderWithTimeout(content string, data map[string]i
 	case <-ctx.Done():
 		return "", fmt.Errorf("liquid rendering timeout after %v (possible infinite loop or excessive computation)", s.timeout)
 	}
+}
+
+// RegisterTranslations registers translation data for the Liquid t filter.
+// Must be called before Render. Translations should be a merged map (template + workspace).
+func (s *SecureLiquidEngine) RegisterTranslations(translations map[string]interface{}) {
+	if translations == nil {
+		translations = map[string]interface{}{}
+	}
+	filter := &TranslationFilters{translations: translations}
+	s.env.RegisterFilter(filter)
 }
 
 // Render is a convenience method that calls RenderWithTimeout

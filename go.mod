@@ -117,3 +117,6 @@ require (
 
 // Use Notifuse fork until PR is merged: https://github.com/preslavrachev/gomjml/pull/33
 replace github.com/preslavrachev/gomjml => github.com/Notifuse/gomjml v0.0.0-20260130090101-a038317c31c2
+
+// Use local liquidgo with keyword args support for Liquid filters
+replace github.com/Notifuse/liquidgo => /var/www/forks/liquidgo
