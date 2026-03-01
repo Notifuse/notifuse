@@ -152,6 +152,10 @@ func (h *TemplateHandler) handleUpdate(w http.ResponseWriter, r *http.Request) {
 			WriteJSONError(w, "Template not found", http.StatusNotFound)
 			return
 		}
+		if e, ok := err.(*domain.ErrEditorModeChange); ok {
+			WriteJSONError(w, e.Message, http.StatusBadRequest)
+			return
+		}
 		h.logger.WithField("error", err.Error()).Error("Failed to update template")
 		WriteJSONError(w, "Failed to update template", http.StatusInternalServerError)
 		return

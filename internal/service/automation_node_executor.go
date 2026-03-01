@@ -276,15 +276,15 @@ func (e *EmailNodeExecutor) Execute(ctx context.Context, params NodeExecutionPar
 	}
 
 	// 8. Compile template
-	compiledTemplate, err := notifuse_mjml.CompileTemplate(
-		notifuse_mjml.CompileTemplateRequest{
-			WorkspaceID:      params.WorkspaceID,
-			MessageID:        messageID,
-			VisualEditorTree: template.Email.VisualEditorTree,
-			TemplateData:     notifuse_mjml.MapOfAny(templateData),
-			TrackingSettings: trackingSettings,
-		},
-	)
+	compileReq := notifuse_mjml.CompileTemplateRequest{
+		WorkspaceID:      params.WorkspaceID,
+		MessageID:        messageID,
+		VisualEditorTree: template.Email.VisualEditorTree,
+		TemplateData:     notifuse_mjml.MapOfAny(templateData),
+		TrackingSettings: trackingSettings,
+	}
+	compileReq.MjmlSource = template.Email.GetCodeModeMjmlSource()
+	compiledTemplate, err := notifuse_mjml.CompileTemplate(compileReq)
 	if err != nil {
 		return nil, fmt.Errorf("failed to compile template: %w", err)
 	}

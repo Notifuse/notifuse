@@ -71,6 +71,10 @@ func TestBroadcastHandler(t *testing.T) {
 	t.Run("Individual Send", func(t *testing.T) {
 		testBroadcastIndividualSend(t, client, factory, workspace.ID)
 	})
+
+	t.Run("Code Mode Lifecycle", func(t *testing.T) {
+		testBroadcastCodeModeLifecycle(t, client, factory, workspace.ID)
+	})
 }
 
 func testBroadcastCRUD(t *testing.T, client *testutil.APIClient, factory *testutil.TestDataFactory, workspaceID string) {
@@ -875,6 +879,91 @@ func testBroadcastIndividualSend(t *testing.T, client *testutil.APIClient, facto
 			defer func() { _ = resp.Body.Close() }()
 
 			assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+		})
+	})
+}
+
+func testBroadcastCodeModeLifecycle(t *testing.T, client *testutil.APIClient, factory *testutil.TestDataFactory, workspaceID string) {
+	t.Run("Schedule Code Mode Broadcast", func(t *testing.T) {
+		t.Run("should schedule code-mode broadcast for immediate sending", func(t *testing.T) {
+			// Create a code-mode template with Liquid variable in MJML
+			mjml := `<mjml><mj-body><mj-section><mj-column><mj-text>Hello {{contact.first_name}}</mj-text></mj-column></mj-section></mj-body></mjml>`
+			template, err := factory.CreateTemplate(workspaceID, testutil.WithCodeModeTemplate(mjml))
+			require.NoError(t, err)
+
+			// Create a list
+			list, err := factory.CreateList(workspaceID)
+			require.NoError(t, err)
+
+			// Create contacts and add them to the list
+			for i := 0; i < 3; i++ {
+				contact, err := factory.CreateContact(workspaceID,
+					testutil.WithContactEmail(fmt.Sprintf("code-mode-test-%d@example.com", i)))
+				require.NoError(t, err)
+
+				_, err = factory.CreateContactList(workspaceID,
+					testutil.WithContactListEmail(contact.Email),
+					testutil.WithContactListListID(list.ID),
+					testutil.WithContactListStatus(domain.ContactListStatusActive))
+				require.NoError(t, err)
+			}
+
+			// Create broadcast targeting the list
+			broadcast, err := factory.CreateBroadcast(workspaceID,
+				testutil.WithBroadcastAudience(domain.AudienceSettings{
+					List:                list.ID,
+					ExcludeUnsubscribed: true,
+				}))
+			require.NoError(t, err)
+
+			// Set the code-mode template on the broadcast variation
+			broadcast.TestSettings.Variations[0].TemplateID = template.ID
+			updateReq := map[string]interface{}{
+				"workspace_id":  workspaceID,
+				"id":            broadcast.ID,
+				"name":          broadcast.Name,
+				"audience":      broadcast.Audience,
+				"schedule":      broadcast.Schedule,
+				"test_settings": broadcast.TestSettings,
+			}
+			updateResp, err := client.UpdateBroadcast(updateReq)
+			require.NoError(t, err)
+			defer func() { _ = updateResp.Body.Close() }()
+			require.Equal(t, http.StatusOK, updateResp.StatusCode)
+
+			// Schedule for immediate sending
+			scheduleRequest := map[string]interface{}{
+				"workspace_id": workspaceID,
+				"id":           broadcast.ID,
+				"send_now":     true,
+			}
+
+			resp, err := client.ScheduleBroadcast(scheduleRequest)
+			require.NoError(t, err)
+			defer func() { _ = resp.Body.Close() }()
+
+			assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+			var result map[string]interface{}
+			err = json.NewDecoder(resp.Body).Decode(&result)
+			require.NoError(t, err)
+
+			if successInterface, ok := result["success"]; ok && successInterface != nil {
+				assert.True(t, successInterface.(bool))
+			} else {
+				t.Logf("Unexpected response format: %+v", result)
+			}
+
+			// Wait for broadcast to complete
+			finalStatus, err := testutil.WaitForBroadcastStatusWithExecution(t, client, broadcast.ID,
+				[]string{"processed", "completed"},
+				60*time.Second)
+			if err != nil {
+				t.Fatalf("Code-mode broadcast failed or timed out: %v", err)
+			}
+
+			assert.Contains(t, []string{"processed", "completed"}, finalStatus,
+				"Code-mode broadcast should complete successfully")
 		})
 	})
 }

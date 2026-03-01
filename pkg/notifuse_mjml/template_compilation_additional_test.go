@@ -128,3 +128,153 @@ func TestCompileTemplateRequest_UnmarshalJSON_Minimal(t *testing.T) {
 		t.Fatalf("unexpected tree: %+v", req.VisualEditorTree)
 	}
 }
+
+func TestCompileTemplateRequest_Validate_MjmlSource(t *testing.T) {
+	validMjml := "<mjml><mj-body><mj-section><mj-column><mj-text>Hello</mj-text></mj-column></mj-section></mj-body></mjml>"
+	emptyStr := ""
+
+	t.Run("valid with MjmlSource only", func(t *testing.T) {
+		req := CompileTemplateRequest{
+			WorkspaceID: "w",
+			MessageID:   "m",
+			MjmlSource:  &validMjml,
+		}
+		if err := req.Validate(); err != nil {
+			t.Fatalf("unexpected validation error: %v", err)
+		}
+	})
+
+	t.Run("fails with neither tree nor MjmlSource", func(t *testing.T) {
+		req := CompileTemplateRequest{
+			WorkspaceID: "w",
+			MessageID:   "m",
+		}
+		if err := req.Validate(); err == nil {
+			t.Fatal("expected validation error for empty request")
+		}
+	})
+
+	t.Run("fails with empty MjmlSource", func(t *testing.T) {
+		req := CompileTemplateRequest{
+			WorkspaceID: "w",
+			MessageID:   "m",
+			MjmlSource:  &emptyStr,
+		}
+		if err := req.Validate(); err == nil {
+			t.Fatal("expected validation error for empty MjmlSource")
+		}
+	})
+}
+
+func TestCompileTemplate_WithMjmlSource(t *testing.T) {
+	mjmlSrc := "<mjml><mj-body><mj-section><mj-column><mj-text>Hello World</mj-text></mj-column></mj-section></mj-body></mjml>"
+
+	t.Run("compiles MJML source directly to HTML", func(t *testing.T) {
+		req := CompileTemplateRequest{
+			WorkspaceID: "w",
+			MessageID:   "m",
+			MjmlSource:  &mjmlSrc,
+		}
+		resp, err := CompileTemplate(req)
+		if err != nil {
+			t.Fatalf("CompileTemplate error: %v", err)
+		}
+		if resp == nil || !resp.Success {
+			t.Fatalf("expected success, got: %+v", resp)
+		}
+		if resp.HTML == nil {
+			t.Fatal("expected HTML output")
+		}
+		if !strings.Contains(*resp.HTML, "Hello World") {
+			t.Fatalf("expected HTML to contain 'Hello World', got: %s", *resp.HTML)
+		}
+	})
+
+	t.Run("compiles MJML source with Liquid template data", func(t *testing.T) {
+		mjmlWithLiquid := "<mjml><mj-body><mj-section><mj-column><mj-text>Hello {{name}}</mj-text></mj-column></mj-section></mj-body></mjml>"
+		td := MapOfAny{"name": "Ada"}
+		req := CompileTemplateRequest{
+			WorkspaceID:  "w",
+			MessageID:    "m",
+			MjmlSource:   &mjmlWithLiquid,
+			TemplateData: td,
+		}
+		resp, err := CompileTemplate(req)
+		if err != nil {
+			t.Fatalf("CompileTemplate error: %v", err)
+		}
+		if resp == nil || !resp.Success {
+			t.Fatalf("expected success, got: %+v", resp)
+		}
+		if resp.HTML == nil {
+			t.Fatal("expected HTML output")
+		}
+		if !strings.Contains(*resp.HTML, "Hello Ada") {
+			t.Fatalf("expected HTML to contain 'Hello Ada', got: %s", *resp.HTML)
+		}
+	})
+
+	t.Run("preserves Liquid when PreserveLiquid is true", func(t *testing.T) {
+		mjmlWithLiquid := "<mjml><mj-body><mj-section><mj-column><mj-text>Hello {{name}}</mj-text></mj-column></mj-section></mj-body></mjml>"
+		td := MapOfAny{"name": "Ada"}
+		req := CompileTemplateRequest{
+			WorkspaceID:    "w",
+			MessageID:      "m",
+			MjmlSource:     &mjmlWithLiquid,
+			TemplateData:   td,
+			PreserveLiquid: true,
+		}
+		resp, err := CompileTemplate(req)
+		if err != nil {
+			t.Fatalf("CompileTemplate error: %v", err)
+		}
+		if resp == nil || !resp.Success {
+			t.Fatalf("expected success, got: %+v", resp)
+		}
+		if resp.HTML == nil {
+			t.Fatal("expected HTML output")
+		}
+		// Liquid should be preserved, not processed
+		if !strings.Contains(*resp.HTML, "{{name}}") {
+			t.Fatalf("expected HTML to contain '{{name}}' (preserved), got: %s", *resp.HTML)
+		}
+	})
+}
+
+func TestCompileTemplate_WithMalformedMjmlSource(t *testing.T) {
+	malformed := "<mjml><mj-body><mj-section><mj-column><mj-text>Unclosed"
+
+	req := CompileTemplateRequest{
+		WorkspaceID: "w",
+		MessageID:   "m",
+		MjmlSource:  &malformed,
+	}
+	resp, err := CompileTemplate(req)
+	if err != nil {
+		// An outright error is acceptable
+		return
+	}
+	// If no error, the response should indicate failure
+	if resp != nil && !resp.Success {
+		return
+	}
+	// If it somehow "succeeds", that's also acceptable for the MJML compiler
+	// (some compilers auto-close tags) — just ensure no panic occurred
+}
+
+func TestCompileTemplateRequest_UnmarshalJSON_MjmlSource(t *testing.T) {
+	mjmlSrc := "<mjml><mj-body></mj-body></mjml>"
+	raw := map[string]any{
+		"workspace_id": "w",
+		"message_id":   "m",
+		"mjml_source":  mjmlSrc,
+	}
+	b, _ := json.Marshal(raw)
+	var req CompileTemplateRequest
+	if err := json.Unmarshal(b, &req); err != nil {
+		t.Fatalf("unmarshal failed: %v", err)
+	}
+	if req.MjmlSource == nil || *req.MjmlSource != mjmlSrc {
+		t.Fatalf("unexpected MjmlSource: %v", req.MjmlSource)
+	}
+}

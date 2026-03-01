@@ -1890,3 +1890,177 @@ func TestEmailTemplate_MjRawContent_Value_Scan(t *testing.T) {
 	assert.NotNil(t, content2, "mj-raw content should not be nil after Scan")
 	assert.Equal(t, rawContent, *content2, "mj-raw content should be preserved after Value/Scan round-trip")
 }
+
+func TestEmailTemplate_Validate_CodeMode(t *testing.T) {
+	validMjml := "<mjml><mj-body><mj-section><mj-column><mj-text>Hello</mj-text></mj-column></mj-section></mj-body></mjml>"
+	emptyStr := ""
+
+	tests := []struct {
+		name     string
+		template *EmailTemplate
+		testData MapOfAny
+		wantErr  bool
+		errMsg   string
+	}{
+		{
+			name: "code mode with valid mjml_source",
+			template: &EmailTemplate{
+				EditorMode:  "code",
+				MjmlSource:  &validMjml,
+				Subject:     "Test Subject",
+			},
+			wantErr: false,
+		},
+		{
+			name: "code mode with nil mjml_source",
+			template: &EmailTemplate{
+				EditorMode:  "code",
+				MjmlSource:  nil,
+				Subject:     "Test Subject",
+			},
+			wantErr: true,
+			errMsg:  "invalid email template: mjml_source is required for code mode",
+		},
+		{
+			name: "code mode with empty mjml_source",
+			template: &EmailTemplate{
+				EditorMode:  "code",
+				MjmlSource:  &emptyStr,
+				Subject:     "Test Subject",
+			},
+			wantErr: true,
+			errMsg:  "invalid email template: mjml_source is required for code mode",
+		},
+		{
+			name: "invalid editor_mode",
+			template: &EmailTemplate{
+				EditorMode:  "invalid",
+				MjmlSource:  &validMjml,
+				Subject:     "Test Subject",
+			},
+			wantErr: true,
+			errMsg:  "invalid email template: editor_mode must be 'visual' or 'code'",
+		},
+		{
+			name: "empty editor_mode defaults to visual behavior",
+			template: &EmailTemplate{
+				EditorMode:       "",
+				Subject:          "Test Subject",
+				CompiledPreview:  "<html>Test</html>",
+				VisualEditorTree: createValidMJMLBlock(),
+			},
+			wantErr: false,
+		},
+		{
+			name: "explicit visual mode works as before",
+			template: &EmailTemplate{
+				EditorMode:       "visual",
+				Subject:          "Test Subject",
+				CompiledPreview:  "<html>Test</html>",
+				VisualEditorTree: createValidMJMLBlock(),
+			},
+			wantErr: false,
+		},
+		{
+			name: "code mode sets compiled_preview from mjml_source",
+			template: &EmailTemplate{
+				EditorMode: "code",
+				MjmlSource: &validMjml,
+				Subject:    "Test Subject",
+			},
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.template.Validate(tt.testData)
+			if tt.wantErr {
+				assert.Error(t, err)
+				if tt.errMsg != "" {
+					assert.Equal(t, tt.errMsg, err.Error())
+				}
+			} else {
+				assert.NoError(t, err)
+				if tt.template.EditorMode == "code" {
+					assert.NotEmpty(t, tt.template.CompiledPreview, "CompiledPreview should be set for code mode")
+				}
+			}
+		})
+	}
+}
+
+func TestTemplate_Validate_CodeMode(t *testing.T) {
+	now := time.Now()
+	validMjml := "<mjml><mj-body><mj-section><mj-column><mj-text>Hello</mj-text></mj-column></mj-section></mj-body></mjml>"
+
+	t.Run("valid code mode template", func(t *testing.T) {
+		tmpl := &Template{
+			ID:      "test-code",
+			Name:    "Code Template",
+			Version: 1,
+			Channel: "email",
+			Email: &EmailTemplate{
+				EditorMode: "code",
+				MjmlSource: &validMjml,
+				Subject:    "Test Subject",
+			},
+			Category:  string(TemplateCategoryMarketing),
+			CreatedAt: now,
+			UpdatedAt: now,
+		}
+		err := tmpl.Validate()
+		assert.NoError(t, err)
+	})
+
+	t.Run("code mode template missing mjml_source", func(t *testing.T) {
+		tmpl := &Template{
+			ID:      "test-code",
+			Name:    "Code Template",
+			Version: 1,
+			Channel: "email",
+			Email: &EmailTemplate{
+				EditorMode: "code",
+				Subject:    "Test Subject",
+			},
+			Category:  string(TemplateCategoryMarketing),
+			CreatedAt: now,
+			UpdatedAt: now,
+		}
+		err := tmpl.Validate()
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "mjml_source is required for code mode")
+	})
+}
+
+func TestEmailTemplate_UnmarshalJSON_CodeMode(t *testing.T) {
+	t.Run("unmarshal code mode template", func(t *testing.T) {
+		jsonData := []byte(`{
+			"editor_mode": "code",
+			"mjml_source": "<mjml><mj-body></mj-body></mjml>",
+			"subject": "Test Subject",
+			"compiled_preview": "<html>test</html>"
+		}`)
+
+		var et EmailTemplate
+		err := et.UnmarshalJSON(jsonData)
+		assert.NoError(t, err)
+		assert.Equal(t, "code", et.EditorMode)
+		assert.NotNil(t, et.MjmlSource)
+		assert.Equal(t, "<mjml><mj-body></mj-body></mjml>", *et.MjmlSource)
+	})
+
+	t.Run("unmarshal visual mode template with no editor_mode", func(t *testing.T) {
+		jsonData := []byte(`{
+			"subject": "Test Subject",
+			"compiled_preview": "<html>test</html>",
+			"visual_editor_tree": {"id":"root","type":"mjml","children":[]}
+		}`)
+
+		var et EmailTemplate
+		err := et.UnmarshalJSON(jsonData)
+		assert.NoError(t, err)
+		assert.Equal(t, "", et.EditorMode)
+		assert.Nil(t, et.MjmlSource)
+	})
+}

@@ -43,6 +43,12 @@ const (
 	ChannelWeb   = "web"
 )
 
+// Editor mode constants for email templates
+const (
+	EditorModeVisual = "visual"
+	EditorModeCode   = "code"
+)
+
 type TemplateCategory string
 
 const (
@@ -193,16 +199,32 @@ func (t TemplateReference) Value() (driver.Value, error) {
 }
 
 type EmailTemplate struct {
-	SenderID         string                   `json:"sender_id,omitempty"`
-	ReplyTo          string                   `json:"reply_to,omitempty"`
-	Subject          string                   `json:"subject"`
-	SubjectPreview   *string                  `json:"subject_preview,omitempty"`
-	CompiledPreview  string                   `json:"compiled_preview"` // compiled html
+	EditorMode       string                  `json:"editor_mode,omitempty"`
+	MjmlSource       *string                 `json:"mjml_source,omitempty"`
+	SenderID         string                  `json:"sender_id,omitempty"`
+	ReplyTo          string                  `json:"reply_to,omitempty"`
+	Subject          string                  `json:"subject"`
+	SubjectPreview   *string                 `json:"subject_preview,omitempty"`
+	CompiledPreview  string                  `json:"compiled_preview"` // compiled html
 	VisualEditorTree notifuse_mjml.EmailBlock `json:"visual_editor_tree"`
-	Text             *string                  `json:"text,omitempty"`
+	Text             *string                 `json:"text,omitempty"`
+}
+
+// GetCodeModeMjmlSource returns MjmlSource if the template is in code mode, nil otherwise.
+// Safe to call on a nil receiver.
+func (e *EmailTemplate) GetCodeModeMjmlSource() *string {
+	if e != nil && e.EditorMode == EditorModeCode && e.MjmlSource != nil {
+		return e.MjmlSource
+	}
+	return nil
 }
 
 func (e *EmailTemplate) Validate(testData MapOfAny) error {
+	// Validate editor mode if set
+	if e.EditorMode != "" && e.EditorMode != EditorModeVisual && e.EditorMode != EditorModeCode {
+		return fmt.Errorf("invalid email template: editor_mode must be '%s' or '%s'", EditorModeVisual, EditorModeCode)
+	}
+
 	// Validate required fields
 	if e.Subject == "" {
 		return fmt.Errorf("invalid email template: subject is required")
@@ -210,35 +232,50 @@ func (e *EmailTemplate) Validate(testData MapOfAny) error {
 	if len(e.Subject) > 255 {
 		return fmt.Errorf("invalid email template: subject length must be between 1 and 255")
 	}
-	if e.VisualEditorTree.GetType() != notifuse_mjml.MJMLComponentMjml {
-		return fmt.Errorf("invalid email template: visual_editor_tree must have type 'mjml'")
-	}
-	if e.VisualEditorTree.GetChildren() == nil {
-		return fmt.Errorf("invalid email template: visual_editor_tree root block must have children")
-	}
-	if e.CompiledPreview == "" {
-		// Prepare template data JSON string
-		var templateDataStr string
-		if len(testData) > 0 {
-			jsonDataBytes, err := json.Marshal(testData)
-			if err != nil {
-				return fmt.Errorf("failed to marshal test_data: %w", err)
-			}
-			templateDataStr = string(jsonDataBytes)
-		}
 
-		// Compile tree to MJML using our pkg/notifuse_mjml function
-		var mjmlResult string
-		if templateDataStr != "" {
-			result, err := notifuse_mjml.ConvertJSONToMJMLWithData(e.VisualEditorTree, templateDataStr)
-			if err != nil {
-				return fmt.Errorf("failed to convert tree to MJML: %w", err)
-			}
-			mjmlResult = result
-		} else {
-			mjmlResult = notifuse_mjml.ConvertJSONToMJML(e.VisualEditorTree)
+	// Code mode validation: require MjmlSource, skip visual editor tree validation
+	if e.EditorMode == EditorModeCode {
+		if e.MjmlSource == nil || *e.MjmlSource == "" {
+			return fmt.Errorf("invalid email template: mjml_source is required for code mode")
 		}
-		e.CompiledPreview = mjmlResult
+		// Code mode: store raw MJML source as CompiledPreview.
+		// Visual mode stores compiled MJML output; for code mode the raw source
+		// serves as the lightweight preview representation.
+		if e.CompiledPreview == "" {
+			e.CompiledPreview = *e.MjmlSource
+		}
+	} else {
+		// Visual mode validation (default)
+		if e.VisualEditorTree.GetType() != notifuse_mjml.MJMLComponentMjml {
+			return fmt.Errorf("invalid email template: visual_editor_tree must have type 'mjml'")
+		}
+		if e.VisualEditorTree.GetChildren() == nil {
+			return fmt.Errorf("invalid email template: visual_editor_tree root block must have children")
+		}
+		if e.CompiledPreview == "" {
+			// Prepare template data JSON string
+			var templateDataStr string
+			if len(testData) > 0 {
+				jsonDataBytes, err := json.Marshal(testData)
+				if err != nil {
+					return fmt.Errorf("failed to marshal test_data: %w", err)
+				}
+				templateDataStr = string(jsonDataBytes)
+			}
+
+			// Compile tree to MJML using our pkg/notifuse_mjml function
+			var mjmlResult string
+			if templateDataStr != "" {
+				result, err := notifuse_mjml.ConvertJSONToMJMLWithData(e.VisualEditorTree, templateDataStr)
+				if err != nil {
+					return fmt.Errorf("failed to convert tree to MJML: %w", err)
+				}
+				mjmlResult = result
+			} else {
+				mjmlResult = notifuse_mjml.ConvertJSONToMJML(e.VisualEditorTree)
+			}
+			e.CompiledPreview = mjmlResult
+		}
 	}
 
 	// Validate optional fields
@@ -675,6 +712,15 @@ type ErrTemplateNotFound struct {
 }
 
 func (e *ErrTemplateNotFound) Error() string {
+	return e.Message
+}
+
+// ErrEditorModeChange is returned when attempting to switch a template's editor mode
+type ErrEditorModeChange struct {
+	Message string
+}
+
+func (e *ErrEditorModeChange) Error() string {
 	return e.Message
 }
 

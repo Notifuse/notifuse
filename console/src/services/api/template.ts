@@ -24,6 +24,8 @@ export interface Template {
 }
 
 export interface EmailTemplate {
+  editor_mode?: 'visual' | 'code'
+  mjml_source?: string
   sender_id?: string
   reply_to?: string
   subject: string
@@ -136,7 +138,8 @@ export interface TrackingSettings {
 export interface CompileTemplateRequest {
   workspace_id: string
   message_id: string
-  visual_editor_tree: EmailBlock
+  visual_editor_tree?: EmailBlock
+  mjml_source?: string
   test_data?: Record<string, unknown> | null
   tracking_settings?: TrackingSettings
   channel?: string // "email" or "web" - filters blocks by visibility

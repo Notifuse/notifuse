@@ -252,15 +252,15 @@ func (s *messageSender) SendToRecipient(ctx context.Context, workspaceID string,
 	}
 
 	// Compile template with the provided data
-	compiledTemplate, err := notifuse_mjml.CompileTemplate(
-		notifuse_mjml.CompileTemplateRequest{
-			WorkspaceID:      workspaceID,
-			MessageID:        messageID,
-			VisualEditorTree: template.Email.VisualEditorTree,
-			TemplateData:     data,
-			TrackingSettings: trackingSettings,
-		},
-	)
+	compileReq := notifuse_mjml.CompileTemplateRequest{
+		WorkspaceID:      workspaceID,
+		MessageID:        messageID,
+		VisualEditorTree: template.Email.VisualEditorTree,
+		TemplateData:     data,
+		TrackingSettings: trackingSettings,
+	}
+	compileReq.MjmlSource = template.Email.GetCodeModeMjmlSource()
+	compiledTemplate, err := notifuse_mjml.CompileTemplate(compileReq)
 
 	if err != nil {
 		s.logger.WithFields(map[string]interface{}{

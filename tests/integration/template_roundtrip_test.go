@@ -526,3 +526,150 @@ func createNestedStructure(t *testing.T) notifuse_mjml.EmailBlock {
 	require.NoError(t, err, "Failed to unmarshal nested structure")
 	return block
 }
+
+// TestCodeModeTemplateRoundtrip tests that code mode templates can be created, retrieved,
+// updated, and compiled via the API with mjml_source persisted correctly
+func TestCodeModeTemplateRoundtrip(t *testing.T) {
+	testutil.SkipIfShort(t)
+	testutil.SetupTestEnvironment()
+	defer testutil.CleanupTestEnvironment()
+
+	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
+		return app.NewApp(cfg)
+	})
+	defer func() { suite.Cleanup() }()
+
+	factory := suite.DataFactory
+	client := suite.APIClient
+
+	// Create user and workspace
+	user, err := factory.CreateUser()
+	require.NoError(t, err, "Failed to create user")
+	workspace, err := factory.CreateWorkspace()
+	require.NoError(t, err, "Failed to create workspace")
+
+	err = factory.AddUserToWorkspace(user.ID, workspace.ID, "owner")
+	require.NoError(t, err, "Failed to add user to workspace")
+
+	err = client.Login(user.Email, "password")
+	require.NoError(t, err, "Failed to login")
+	client.SetWorkspaceID(workspace.ID)
+
+	mjmlSrc := "<mjml><mj-body><mj-section><mj-column><mj-text>Hello Code Mode</mj-text></mj-column></mj-section></mj-body></mjml>"
+	templateID := fmt.Sprintf("code-%d", time.Now().Unix())
+
+	t.Run("Create code mode template", func(t *testing.T) {
+		template := map[string]interface{}{
+			"workspace_id": workspace.ID,
+			"id":           templateID,
+			"name":         "Code Mode Template",
+			"channel":      "email",
+			"category":     "transactional",
+			"email": map[string]interface{}{
+				"editor_mode":      "code",
+				"mjml_source":      mjmlSrc,
+				"subject":          "Code Mode Test",
+				"compiled_preview": mjmlSrc,
+			},
+		}
+
+		createResp, err := client.CreateTemplate(template)
+		require.NoError(t, err, "Failed to create code mode template")
+		require.Equal(t, http.StatusCreated, createResp.StatusCode, "Template creation should return 201")
+		_ = createResp.Body.Close()
+	})
+
+	t.Run("Retrieve code mode template and verify fields", func(t *testing.T) {
+		getResp, err := client.Get("/api/templates.get", map[string]string{
+			"workspace_id": workspace.ID,
+			"id":           templateID,
+		})
+		require.NoError(t, err, "Failed to get template")
+		defer func() { _ = getResp.Body.Close() }()
+
+		var result struct {
+			Template domain.Template `json:"template"`
+		}
+		err = json.NewDecoder(getResp.Body).Decode(&result)
+		require.NoError(t, err, "Failed to decode template response")
+
+		assert.NotNil(t, result.Template.Email, "Template should have email field")
+		assert.Equal(t, "code", result.Template.Email.EditorMode)
+		assert.NotNil(t, result.Template.Email.MjmlSource)
+		// The service injects mj-title/mj-preview into the MJML source, so verify
+		// the original body content is preserved rather than checking exact equality
+		assert.Contains(t, *result.Template.Email.MjmlSource, "Hello Code Mode")
+		assert.Contains(t, *result.Template.Email.MjmlSource, "<mj-title>Code Mode Template</mj-title>")
+	})
+
+	t.Run("Update code mode template", func(t *testing.T) {
+		updatedMjml := "<mjml><mj-body><mj-section><mj-column><mj-text>Updated Code Mode</mj-text></mj-column></mj-section></mj-body></mjml>"
+		template := map[string]interface{}{
+			"workspace_id": workspace.ID,
+			"id":           templateID,
+			"name":         "Code Mode Template",
+			"channel":      "email",
+			"category":     "transactional",
+			"email": map[string]interface{}{
+				"editor_mode":      "code",
+				"mjml_source":      updatedMjml,
+				"subject":          "Updated Code Mode Test",
+				"compiled_preview": updatedMjml,
+			},
+		}
+
+		updateResp, err := client.Post("/api/templates.update", template)
+		require.NoError(t, err, "Failed to update code mode template")
+		require.Equal(t, http.StatusOK, updateResp.StatusCode, "Template update should return 200")
+		_ = updateResp.Body.Close()
+	})
+
+	t.Run("Compile code mode template", func(t *testing.T) {
+		compileReq := map[string]interface{}{
+			"workspace_id": workspace.ID,
+			"message_id":   "test-msg",
+			"mjml_source":  mjmlSrc,
+		}
+
+		compileResp, err := client.Post("/api/templates.compile", compileReq)
+		require.NoError(t, err, "Failed to compile code mode template")
+		defer func() { _ = compileResp.Body.Close() }()
+
+		require.Equal(t, http.StatusOK, compileResp.StatusCode, "Compile should return 200")
+
+		var result domain.CompileTemplateResponse
+		err = json.NewDecoder(compileResp.Body).Decode(&result)
+		require.NoError(t, err, "Failed to decode compile response")
+
+		assert.True(t, result.Success)
+		assert.NotNil(t, result.HTML)
+		assert.Contains(t, *result.HTML, "Hello Code Mode")
+	})
+
+	t.Run("Attempt to switch editor mode fails", func(t *testing.T) {
+		template := map[string]interface{}{
+			"workspace_id": workspace.ID,
+			"id":           templateID,
+			"name":         "Code Mode Template",
+			"channel":      "email",
+			"category":     "transactional",
+			"email": map[string]interface{}{
+				"editor_mode":      "visual",
+				"subject":          "Switch Test",
+				"compiled_preview": "<html>test</html>",
+				"visual_editor_tree": map[string]interface{}{
+					"id":       "root",
+					"type":     "mjml",
+					"children": []interface{}{},
+				},
+			},
+		}
+
+		updateResp, err := client.Post("/api/templates.update", template)
+		require.NoError(t, err, "Request should not fail")
+		defer func() { _ = updateResp.Body.Close() }()
+
+		// Should return error because we're trying to switch editor mode
+		assert.Equal(t, http.StatusBadRequest, updateResp.StatusCode, "Should not allow switching editor mode")
+	})
+}

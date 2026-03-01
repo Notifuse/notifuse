@@ -314,6 +314,7 @@ func (s *EmailService) SendEmailForTemplate(ctx context.Context, request domain.
 		TemplateData:     request.MessageData.Data,
 		TrackingSettings: trackingSettings,
 	}
+	compileTemplateRequest.MjmlSource = template.Email.GetCodeModeMjmlSource()
 
 	// Compile the template with the message data (use system context to bypass authentication)
 	compiledTemplate, err := s.templateService.CompileTemplate(systemCtx, compileTemplateRequest)

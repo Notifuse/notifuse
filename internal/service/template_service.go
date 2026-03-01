@@ -3,6 +3,8 @@ package service
 import (
 	"context"
 	"fmt"
+	"regexp"
+	"strings"
 	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
@@ -20,14 +22,34 @@ type TemplateService struct {
 // updateEmailMetadataBlocks updates mj-title and mj-preview blocks in the email tree
 // based on template name and subject preview
 func (s *TemplateService) updateEmailMetadataBlocks(template *domain.Template) {
-	if template.Email == nil || template.Email.VisualEditorTree == nil {
+	if template.Email == nil {
 		return
 	}
 
-	// Find mj-title and mj-preview blocks and update their content
+	// Code mode: override mj-title/mj-preview in the raw MJML source string
+	if template.Email.EditorMode == domain.EditorModeCode {
+		if template.Email.MjmlSource != nil && *template.Email.MjmlSource != "" {
+			mjml := *template.Email.MjmlSource
+			mjml = overrideMjmlTag(mjml, "mj-title", template.Name)
+
+			previewText := template.Name
+			if template.Email.SubjectPreview != nil && *template.Email.SubjectPreview != "" {
+				previewText = *template.Email.SubjectPreview
+			}
+			mjml = overrideMjmlTag(mjml, "mj-preview", previewText)
+
+			template.Email.MjmlSource = &mjml
+		}
+		return
+	}
+
+	// Visual mode: traverse block tree (existing logic)
+	if template.Email.VisualEditorTree == nil {
+		return
+	}
+
 	s.updateBlockContentRecursively(template.Email.VisualEditorTree, notifuse_mjml.MJMLComponentMjTitle, template.Name)
 
-	// Use subject preview if available, otherwise use template name as fallback
 	previewText := template.Name
 	if template.Email.SubjectPreview != nil && *template.Email.SubjectPreview != "" {
 		previewText = *template.Email.SubjectPreview
@@ -56,6 +78,54 @@ func (s *TemplateService) updateBlockContentRecursively(block notifuse_mjml.Emai
 	for _, child := range children {
 		s.updateBlockContentRecursively(child, blockType, content)
 	}
+}
+
+// Pre-compiled regexes for MJML structural tags (don't depend on tagName)
+var (
+	mjmlHeadRe = regexp.MustCompile(`(?i)<mj-head[^>]*>`)
+	mjmlRootRe = regexp.MustCompile(`(?i)<mjml[^>]*>`)
+)
+
+// escapeXMLElementContent escapes &, <, > for safe insertion as XML element text content.
+// It does not escape quotes since they don't need escaping in element content (only in attributes).
+func escapeXMLElementContent(s string) string {
+	s = strings.ReplaceAll(s, "&", "&amp;")
+	s = strings.ReplaceAll(s, "<", "&lt;")
+	s = strings.ReplaceAll(s, ">", "&gt;")
+	return s
+}
+
+// overrideMjmlTag replaces the content of an MJML tag in raw MJML source.
+// If tag exists: replace first occurrence. If not: inject after <mj-head>. If no <mj-head>: create one.
+// tagName is escaped with regexp.QuoteMeta to prevent regex injection.
+func overrideMjmlTag(mjml string, tagName string, content string) string {
+	escaped := escapeXMLElementContent(content)
+	quotedTag := regexp.QuoteMeta(tagName)
+
+	// Try to replace first occurrence of existing tag
+	re := regexp.MustCompile(`(?i)(<` + quotedTag + `\s*>)([\s\S]*?)(</` + quotedTag + `\s*>)`)
+	loc := re.FindStringSubmatchIndex(mjml)
+	if loc != nil {
+		// loc[2]:loc[3] = opening tag, loc[6]:loc[7] = closing tag
+		openTag := mjml[loc[2]:loc[3]]
+		closeTag := mjml[loc[6]:loc[7]]
+		return mjml[:loc[0]] + openTag + escaped + closeTag + mjml[loc[1]:]
+	}
+
+	// Tag not found — inject into existing <mj-head> (first occurrence only)
+	newTag := fmt.Sprintf("<%s>%s</%s>", tagName, escaped, tagName)
+	loc = mjmlHeadRe.FindStringIndex(mjml)
+	if loc != nil {
+		return mjml[:loc[1]] + "\n    " + newTag + mjml[loc[1]:]
+	}
+
+	// No <mj-head> — create one after <mjml> (first occurrence only)
+	loc = mjmlRootRe.FindStringIndex(mjml)
+	if loc != nil {
+		return mjml[:loc[1]] + "\n  <mj-head>\n    " + newTag + "\n  </mj-head>" + mjml[loc[1]:]
+	}
+
+	return mjml
 }
 
 func NewTemplateService(repo domain.TemplateRepository, authService domain.AuthService, logger logger.Logger, apiEndpoint string) *TemplateService {
@@ -197,6 +267,21 @@ func (s *TemplateService) UpdateTemplate(ctx context.Context, workspaceID string
 
 	// Set version from existing template *before* validation to satisfy the check
 	template.Version = existingTemplate.Version
+
+	// Verify editor_mode hasn't changed (prevent switching between visual and code)
+	if template.Email != nil && existingTemplate.Email != nil {
+		existingMode := existingTemplate.Email.EditorMode
+		if existingMode == "" {
+			existingMode = domain.EditorModeVisual
+		}
+		newMode := template.Email.EditorMode
+		if newMode == "" {
+			newMode = domain.EditorModeVisual
+		}
+		if existingMode != newMode {
+			return &domain.ErrEditorModeChange{Message: fmt.Sprintf("cannot change editor mode: template was created in '%s' mode", existingMode)}
+		}
+	}
 
 	// Update mj-title and mj-preview blocks with template metadata
 	s.updateEmailMetadataBlocks(template)

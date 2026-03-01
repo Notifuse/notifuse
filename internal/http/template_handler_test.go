@@ -722,3 +722,90 @@ func TestHandleCompile_MethodNotAllowed(t *testing.T) {
 // func TestHandleCompile_BadRequest_ValidationError(t *testing.T) {
 // 	// ... (Original test code)
 // }
+
+func TestHandleCompile_WithMjmlSource(t *testing.T) {
+	mockService, _, serverURL, secretKey, cleanup := setupTemplateHandlerTest(t)
+	defer cleanup()
+
+	mjmlSrc := "<mjml><mj-body><mj-section><mj-column><mj-text>Hello</mj-text></mj-column></mj-section></mj-body></mjml>"
+	htmlOut := "<html><body>Hello</body></html>"
+
+	payload := map[string]interface{}{
+		"workspace_id": "workspace123",
+		"message_id":   "msg-1",
+		"mjml_source":  mjmlSrc,
+	}
+
+	mockService.EXPECT().CompileTemplate(gomock.Any(), gomock.Any()).Return(&domain.CompileTemplateResponse{
+		Success: true,
+		MJML:    &mjmlSrc,
+		HTML:    &htmlOut,
+	}, nil)
+
+	apiURL := fmt.Sprintf("%s/api/templates.compile", serverURL)
+	token := createTestToken(secretKey)
+	resp := sendRequest(t, http.MethodPost, apiURL, token, payload)
+	defer func() { _ = resp.Body.Close() }()
+
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+}
+
+func TestHandleCreate_CodeModeTemplate(t *testing.T) {
+	mockService, _, serverURL, secretKey, cleanup := setupTemplateHandlerTest(t)
+	defer cleanup()
+
+	mjmlSrc := "<mjml><mj-body><mj-section><mj-column><mj-text>Hello</mj-text></mj-column></mj-section></mj-body></mjml>"
+
+	payload := map[string]interface{}{
+		"workspace_id": "workspace123",
+		"id":           "code-tmpl",
+		"name":         "Code Template",
+		"channel":      "email",
+		"category":     "marketing",
+		"email": map[string]interface{}{
+			"editor_mode":     "code",
+			"mjml_source":     mjmlSrc,
+			"subject":         "Test Subject",
+			"compiled_preview": mjmlSrc,
+		},
+	}
+
+	mockService.EXPECT().CreateTemplate(gomock.Any(), "workspace123", gomock.Any()).Return(nil)
+
+	apiURL := fmt.Sprintf("%s/api/templates.create", serverURL)
+	token := createTestToken(secretKey)
+	resp := sendRequest(t, http.MethodPost, apiURL, token, payload)
+	defer func() { _ = resp.Body.Close() }()
+
+	assert.Equal(t, http.StatusCreated, resp.StatusCode)
+}
+
+func TestHandleUpdate_CodeModeTemplate(t *testing.T) {
+	mockService, _, serverURL, secretKey, cleanup := setupTemplateHandlerTest(t)
+	defer cleanup()
+
+	mjmlSrc := "<mjml><mj-body><mj-section><mj-column><mj-text>Updated</mj-text></mj-column></mj-section></mj-body></mjml>"
+
+	payload := map[string]interface{}{
+		"workspace_id": "workspace123",
+		"id":           "code-tmpl",
+		"name":         "Code Template",
+		"channel":      "email",
+		"category":     "marketing",
+		"email": map[string]interface{}{
+			"editor_mode":     "code",
+			"mjml_source":     mjmlSrc,
+			"subject":         "Updated Subject",
+			"compiled_preview": mjmlSrc,
+		},
+	}
+
+	mockService.EXPECT().UpdateTemplate(gomock.Any(), "workspace123", gomock.Any()).Return(nil)
+
+	apiURL := fmt.Sprintf("%s/api/templates.update", serverURL)
+	token := createTestToken(secretKey)
+	resp := sendRequest(t, http.MethodPost, apiURL, token, payload)
+	defer func() { _ = resp.Body.Close() }()
+
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+}

@@ -13,6 +13,7 @@ import {
   Col,
   Tag,
   Dropdown,
+  Radio,
   MenuProps
 } from 'antd'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
@@ -33,6 +34,9 @@ import { useAuth } from '../../contexts/AuthContext'
 import { EmailAIAssistant } from '../email_builder/EmailAIAssistant'
 import { EmailBlockClass } from '../email_builder/EmailBlockClass'
 import type { MJMLComponentType } from '../email_builder/types'
+import MjmlCodeEditor, { STARTER_TEMPLATE } from '../email_builder/MjmlCodeEditor'
+import type { MjmlCodeEditorRef } from '../email_builder/MjmlCodeEditor'
+import type { MjmlCompileError } from '../../services/api/template'
 
 /**
  * Validates liquid template tags in a string to ensure they are properly closed
@@ -175,6 +179,16 @@ export function CreateTemplateDrawer({
   const [emailBuilderHeight, setEmailBuilderHeight] = useState<string>(
     `calc(100vh - ${HEADER_HEIGHT}px)`
   )
+  const [editorMode, setEditorMode] = useState<'visual' | 'code'>(() => {
+    if (template?.email?.editor_mode === 'code') return 'code'
+    if (fromTemplate?.email?.editor_mode === 'code') return 'code'
+    return 'visual'
+  })
+  const [mjmlSource, setMjmlSource] = useState<string>(() => {
+    if (template?.email?.mjml_source) return template.email.mjml_source
+    if (fromTemplate?.email?.mjml_source) return fromTemplate.email.mjml_source
+    return STARTER_TEMPLATE
+  })
 
   // Refs for tour targets
   const treePanelRef = useRef<HTMLDivElement>(null)
@@ -184,6 +198,7 @@ export function CreateTemplateDrawer({
   const mobileDesktopSwitcherRef = useRef<HTMLDivElement>(null)
   const templateDataRef = useRef<PreviewRef>(null)
   const importExportButtonRef = useRef<HTMLDivElement>(null)
+  const codeEditorRef = useRef<MjmlCodeEditorRef>(null)
 
   // set the tree apart to avoid rerendering the Email Editor when the tree changes
   const [visualEditorTree, setVisualEditorTree] = useState<EmailBlock>(() => {
@@ -246,6 +261,7 @@ export function CreateTemplateDrawer({
       }
     },
     onSuccess: () => {
+      codeEditorRef.current?.clearDraft()
       message.success(template ? t`Template updated successfully` : t`Template created successfully`)
       handleClose()
       queryClient.invalidateQueries({ queryKey: ['templates', workspace.id] })
@@ -280,6 +296,11 @@ export function CreateTemplateDrawer({
 
   const showDrawer = () => {
     if (template) {
+      // Set editor mode from existing template
+      setEditorMode(template.email?.editor_mode === 'code' ? 'code' : 'visual')
+      if (template.email?.editor_mode === 'code' && template.email?.mjml_source) {
+        setMjmlSource(template.email.mjml_source)
+      }
       form.setFieldsValue({
         name: template.name,
         id: template.id || kebabCase(template.name),
@@ -295,7 +316,12 @@ export function CreateTemplateDrawer({
         test_data: template.test_data || defaultTestData
       })
     } else if (fromTemplate) {
-      // Clone template functionality - append "copy" as suffix instead of "Copy of" prefix
+      // Clone template functionality - lock to source template's editor mode
+      setEditorMode(fromTemplate.email?.editor_mode === 'code' ? 'code' : 'visual')
+      if (fromTemplate.email?.editor_mode === 'code' && fromTemplate.email?.mjml_source) {
+        setMjmlSource(fromTemplate.email.mjml_source)
+      }
+      // Append "copy" as suffix instead of "Copy of" prefix
       form.setFieldsValue({
         name: `${fromTemplate.name} copy`,
         id: kebabCase(`${fromTemplate.name}-copy`),
@@ -338,6 +364,8 @@ export function CreateTemplateDrawer({
     setIsOpen(false)
     form.resetFields()
     setTab('settings')
+    setEditorMode('visual')
+    setMjmlSource(STARTER_TEMPLATE)
     if (onClose) {
       onClose()
     }
@@ -466,7 +494,15 @@ export function CreateTemplateDrawer({
             layout="vertical"
             onFinish={(values) => {
               setLoading(true)
-              values.email.visual_editor_tree = visualEditorTree
+              if (editorMode === 'code') {
+                values.email.editor_mode = 'code'
+                values.email.mjml_source = mjmlSource
+                // Code mode doesn't use visual_editor_tree
+                delete values.email.visual_editor_tree
+              } else {
+                values.email.editor_mode = 'visual'
+                values.email.visual_editor_tree = visualEditorTree
+              }
               createTemplateMutation.mutate(values)
             }}
             onFinishFailed={(info) => {
@@ -525,7 +561,7 @@ export function CreateTemplateDrawer({
               <div style={{ display: tab === 'settings' ? 'block' : 'none' }}>
                 <div className="p-8">
                   <Row gutter={24}>
-                    <Col span={8}>
+                    <Col span={6}>
                       <Form.Item name="name" label={t`Template name`} rules={[{ required: true }]}>
                         <Input
                           placeholder={t`i.e: Welcome Email`}
@@ -539,7 +575,7 @@ export function CreateTemplateDrawer({
                         />
                       </Form.Item>
                     </Col>
-                    <Col span={8}>
+                    <Col span={6}>
                       <Form.Item
                         name="id"
                         label={t`Template ID (utm_content)`}
@@ -573,7 +609,7 @@ export function CreateTemplateDrawer({
                         />
                       </Form.Item>
                     </Col>
-                    <Col span={8}>
+                    <Col span={6}>
                       <Form.Item
                         name="category"
                         label={t`Category`}
@@ -613,6 +649,25 @@ export function CreateTemplateDrawer({
                             }
                           ]}
                         />
+                      </Form.Item>
+                    </Col>
+                    <Col span={6}>
+                      <Form.Item label={t`Editor mode`}>
+                        {template || fromTemplate ? (
+                          <Tag color={editorMode === 'code' ? 'geekblue' : 'default'}>
+                            {editorMode === 'code' ? t`Code (MJML)` : t`Visual`}
+                          </Tag>
+                        ) : (
+                          <Radio.Group
+                            value={editorMode}
+                            onChange={(e) => setEditorMode(e.target.value as 'visual' | 'code')}
+                            optionType="button"
+                            options={[
+                              { label: t`Visual`, value: 'visual' },
+                              { label: t`Code (MJML)`, value: 'code' }
+                            ]}
+                          />
+                        )}
                       </Form.Item>
                     </Col>
                   </Row>
@@ -698,6 +753,62 @@ export function CreateTemplateDrawer({
                 <Form.Item dependencies={['id']} style={{ margin: 0 }}>
                   {(form) => {
                     const testData = form.getFieldValue('test_data')
+                    const templateId = form.getFieldValue('id')
+
+                    if (editorMode === 'code') {
+                      return (
+                        <MjmlCodeEditor
+                          ref={codeEditorRef}
+                          mjmlSource={mjmlSource}
+                          onMjmlSourceChange={setMjmlSource}
+                          onCompile={async (
+                            mjml: string,
+                            codeTestData?: Record<string, unknown>
+                          ) => {
+                            try {
+                              const response = await templatesApi.compile({
+                                workspace_id: workspace.id,
+                                message_id: 'preview',
+                                mjml_source: mjml,
+                                test_data: codeTestData || {},
+                                channel: 'email',
+                                tracking_settings: {
+                                  enable_tracking:
+                                    workspace.settings?.email_tracking_enabled || false,
+                                  endpoint: workspace.settings?.custom_endpoint_url || undefined,
+                                  workspace_id: workspace.id,
+                                  message_id: 'preview'
+                                }
+                              })
+
+                              return {
+                                html: response.html || '',
+                                mjml: response.mjml || '',
+                                error: response.error
+                              }
+                            } catch (error) {
+                              const err = error as Error
+                              return {
+                                html: '',
+                                mjml: '',
+                                error: {
+                                  message: err.message || 'Compilation failed',
+                                  details: []
+                                } as MjmlCompileError
+                              }
+                            }
+                          }}
+                          testData={testData}
+                          onTestDataChange={(newTestData) => {
+                            form.setFieldsValue({
+                              test_data: newTestData
+                            })
+                          }}
+                          height={emailBuilderHeight}
+                          templateId={templateId || 'new'}
+                        />
+                      )
+                    }
 
                     return (
                       <EmailBuilder
@@ -705,14 +816,14 @@ export function CreateTemplateDrawer({
                         onTreeChange={setVisualEditorTree}
                         onCompile={async (
                           tree: EmailBlock,
-                          testData?: Record<string, unknown>
+                          builderTestData?: Record<string, unknown>
                         ) => {
                           try {
                             const response = await templatesApi.compile({
                               workspace_id: workspace.id,
                               message_id: 'preview',
                               visual_editor_tree: tree,
-                              test_data: testData || {},
+                              test_data: builderTestData || {},
                               channel: 'email',
                               tracking_settings: {
                                 enable_tracking:
@@ -737,7 +848,6 @@ export function CreateTemplateDrawer({
                               errors: []
                             }
                           } catch (error) {
-                            console.error('Compilation error:', error)
                             const err = error as Error
                             return {
                               html: '',
@@ -912,9 +1022,9 @@ export function CreateTemplateDrawer({
             )}
           />
 
-          {/* AI Email Assistant - persists across tab switches */}
+          {/* AI Email Assistant - persists across tab switches, hidden in code mode */}
           <EmailAIAssistant
-              hidden={tab !== 'template'}
+              hidden={tab !== 'template' || editorMode === 'code'}
               workspace={workspace}
               currentSubject={emailSubject}
               currentPreviewText={emailPreview}

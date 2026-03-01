@@ -786,13 +786,15 @@ func (s *TransactionalNotificationService) TestTemplate(ctx context.Context, wor
 	}
 
 	// Compile the template with the test data
-	compiledResult, err := s.templateService.CompileTemplate(ctx, domain.CompileTemplateRequest{
+	compileReq := domain.CompileTemplateRequest{
 		WorkspaceID:      workspaceID,
 		MessageID:        messageID,
 		VisualEditorTree: template.Email.VisualEditorTree,
 		TemplateData:     notifuse_mjml.MapOfAny(messageData),
 		TrackingSettings: trackingSettings,
-	})
+	}
+	compileReq.MjmlSource = template.Email.GetCodeModeMjmlSource()
+	compiledResult, err := s.templateService.CompileTemplate(ctx, compileReq)
 
 	if err != nil {
 		return fmt.Errorf("failed to compile template: %w", err)

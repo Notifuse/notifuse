@@ -947,13 +947,15 @@ func (s *BroadcastService) SendToIndividual(ctx context.Context, request *domain
 	}
 
 	// Compile the template
-	compiledTemplate, err := s.templateSvc.CompileTemplate(ctx, domain.CompileTemplateRequest{
+	compileReq := domain.CompileTemplateRequest{
 		WorkspaceID:      request.WorkspaceID,
 		MessageID:        messageID,
 		VisualEditorTree: template.Email.VisualEditorTree,
 		TemplateData:     notifuse_mjml.MapOfAny(templateData),
 		TrackingSettings: trackingSettings,
-	})
+	}
+	compileReq.MjmlSource = template.Email.GetCodeModeMjmlSource()
+	compiledTemplate, err := s.templateSvc.CompileTemplate(ctx, compileReq)
 	if err != nil {
 		s.logger.Error("Failed to compile template for broadcast")
 		return err

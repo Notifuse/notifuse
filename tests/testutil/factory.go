@@ -906,6 +906,17 @@ func WithTemplateEmailContent(content string) TemplateOption {
 	}
 }
 
+// WithCodeModeTemplate sets the template to code mode with the given MJML source
+func WithCodeModeTemplate(mjmlSource string) TemplateOption {
+	return func(t *domain.Template) {
+		if t.Email != nil {
+			t.Email.EditorMode = domain.EditorModeCode
+			t.Email.MjmlSource = &mjmlSource
+			t.Email.CompiledPreview = mjmlSource
+		}
+	}
+}
+
 // Broadcast options
 func WithBroadcastName(name string) BroadcastOption {
 	return func(b *domain.Broadcast) {

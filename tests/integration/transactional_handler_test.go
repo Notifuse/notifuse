@@ -71,6 +71,10 @@ func TestTransactionalHandler(t *testing.T) {
 	t.Run("Send with Custom Subject", func(t *testing.T) {
 		testTransactionalSendWithCustomSubject(t, client, factory, workspace.ID)
 	})
+
+	t.Run("Send Code Mode Notification", func(t *testing.T) {
+		testTransactionalSendCodeMode(t, client, factory, workspace.ID)
+	})
 }
 
 func testTransactionalCRUD(t *testing.T, client *testutil.APIClient, factory *testutil.TestDataFactory, workspaceID string) {
@@ -445,6 +449,60 @@ func testTransactionalSend(t *testing.T, client *testutil.APIClient, factory *te
 			defer func() { _ = resp.Body.Close() }()
 
 			assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+		})
+	})
+}
+
+func testTransactionalSendCodeMode(t *testing.T, client *testutil.APIClient, factory *testutil.TestDataFactory, workspaceID string) {
+	t.Run("Send Code Mode Transactional Notification", func(t *testing.T) {
+		// Create a code-mode template with Liquid variable in MJML
+		mjml := `<mjml><mj-body><mj-section><mj-column><mj-text>Hello {{contact.first_name}}</mj-text></mj-column></mj-section></mj-body></mjml>`
+		template, err := factory.CreateTemplate(workspaceID, testutil.WithCodeModeTemplate(mjml))
+		require.NoError(t, err)
+
+		notification, err := factory.CreateTransactionalNotification(workspaceID,
+			testutil.WithTransactionalNotificationID("send-code-mode-test"),
+			testutil.WithTransactionalNotificationChannels(domain.ChannelTemplates{
+				domain.TransactionalChannelEmail: domain.ChannelTemplate{
+					TemplateID: template.ID,
+					Settings:   map[string]interface{}{},
+				},
+			}),
+		)
+		require.NoError(t, err)
+
+		contact, err := factory.CreateContact(workspaceID)
+		require.NoError(t, err)
+
+		t.Run("should send code-mode notification successfully", func(t *testing.T) {
+			sendRequest := map[string]interface{}{
+				"id": notification.ID,
+				"contact": map[string]interface{}{
+					"email":      contact.Email,
+					"first_name": "CodeUser",
+					"last_name":  "Test",
+				},
+				"channels": []string{"email"},
+				"data": map[string]interface{}{
+					"user_name": "CodeUser Test",
+				},
+				"metadata": map[string]interface{}{
+					"source": "integration_test_code_mode",
+				},
+			}
+
+			resp, err := client.SendTransactionalNotification(sendRequest)
+			require.NoError(t, err)
+			defer func() { _ = resp.Body.Close() }()
+
+			assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+			var result map[string]interface{}
+			err = json.NewDecoder(resp.Body).Decode(&result)
+			require.NoError(t, err)
+
+			assert.Contains(t, result, "message_id")
+			assert.NotEmpty(t, result["message_id"], "Message ID should not be empty")
 		})
 	})
 }

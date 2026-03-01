@@ -3,6 +3,7 @@ import { useLingui } from '@lingui/react/macro'
 import { Drawer, Typography, Spin, Alert, Tabs, Tag, Space, Descriptions } from 'antd'
 import type { Template, MjmlCompileError, Workspace } from '../../services/api/types'
 import { templatesApi } from '../../services/api/template'
+import type { CompileTemplateRequest } from '../../services/api/template'
 import type { EmailBlock } from '../email_builder/types'
 import { Highlight, themes } from 'prism-react-renderer'
 import { Liquid } from 'liquidjs'
@@ -38,7 +39,9 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
   // Removed usePrismjs hook call
 
   const fetchPreview = async () => {
-    if (!workspace.id || !record.email?.visual_editor_tree) {
+    const isCodeMode = record.email?.editor_mode === 'code'
+
+    if (!workspace.id || (!isCodeMode && !record.email?.visual_editor_tree) || (isCodeMode && !record.email?.mjml_source)) {
       setError(t`Missing workspace ID or template data.`)
       setMjmlError(null)
       setPreviewMjml(null)
@@ -54,34 +57,10 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
     setActiveTabKey('1') // Reset to HTML tab on new fetch
 
     try {
-      let treeObject: EmailBlock | null = null
-      if (record.email?.visual_editor_tree && typeof record.email.visual_editor_tree === 'string') {
-        try {
-          treeObject = JSON.parse(record.email.visual_editor_tree)
-        } catch (parseError) {
-          console.error('Failed to parse visual_editor_tree:', parseError)
-          setError(t`Invalid template structure data.`)
-          setMjmlError(null)
-          setPreviewMjml(null)
-          setIsLoading(false)
-          return
-        }
-      } else if (record.email?.visual_editor_tree) {
-        treeObject = record.email.visual_editor_tree as unknown as EmailBlock
-      }
-
-      if (!treeObject) {
-        setError(t`Template structure data is missing or invalid.`)
-        setMjmlError(null)
-        setPreviewMjml(null)
-        setIsLoading(false)
-        return
-      }
-
-      const req = {
+      // Build compile request based on editor mode
+      const req: Partial<CompileTemplateRequest> = {
         workspace_id: workspace.id,
         message_id: 'preview',
-        visual_editor_tree: treeObject,
         test_data: templateData || record.test_data || {},
         tracking_settings: {
           enable_tracking: workspace.settings?.email_tracking_enabled || false,
@@ -91,8 +70,40 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
         }
       }
 
+      if (isCodeMode) {
+        // Code mode: use mjml_source directly
+        req.mjml_source = record.email!.mjml_source
+      } else {
+        // Visual mode: parse visual_editor_tree
+        let treeObject: EmailBlock | null = null
+        if (record.email?.visual_editor_tree && typeof record.email.visual_editor_tree === 'string') {
+          try {
+            treeObject = JSON.parse(record.email.visual_editor_tree)
+          } catch (parseError) {
+            console.error('Failed to parse visual_editor_tree:', parseError)
+            setError(t`Invalid template structure data.`)
+            setMjmlError(null)
+            setPreviewMjml(null)
+            setIsLoading(false)
+            return
+          }
+        } else if (record.email?.visual_editor_tree) {
+          treeObject = record.email.visual_editor_tree as unknown as EmailBlock
+        }
+
+        if (!treeObject) {
+          setError(t`Template structure data is missing or invalid.`)
+          setMjmlError(null)
+          setPreviewMjml(null)
+          setIsLoading(false)
+          return
+        }
+
+        req.visual_editor_tree = treeObject
+      }
+
       // console.log('Compile Request:', req)
-      const response = await templatesApi.compile(req)
+      const response = await templatesApi.compile(req as CompileTemplateRequest)
       // console.log('Compile Response:', response)
 
       if (response.error) {
@@ -168,7 +179,7 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
           className="w-full h-full border-0"
           style={{ height: '600px', width: '100%' }}
           title={t`HTML Preview of ${record.name}`}
-          sandbox="allow-same-origin"
+          sandbox=""
         />
       )
     })

@@ -1060,3 +1060,407 @@ func TestCompileTemplate_InvalidTreeData(t *testing.T) {
 	require.NotNil(t, resp.HTML, "Response HTML should not be nil")
 	assert.NotEmpty(t, *resp.HTML, "HTML output should not be empty")
 }
+
+func TestTemplateService_CreateTemplate_CodeMode(t *testing.T) {
+	ctx := context.Background()
+	workspaceID := "ws-123"
+	userID := "user-456"
+	mjmlSrc := "<mjml><mj-body><mj-section><mj-column><mj-text>Hello</mj-text></mj-column></mj-section></mj-body></mjml>"
+
+	t.Run("Success", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		templateService, mockRepo, mockAuthService, _ := setupTemplateServiceTest(ctrl)
+
+		template := &domain.Template{
+			ID:       "tmpl-code",
+			Name:     "Code Template",
+			Channel:  "email",
+			Category: "transactional",
+			Email: &domain.EmailTemplate{
+				EditorMode: domain.EditorModeCode,
+				MjmlSource: &mjmlSrc,
+				Subject:    "Test Email",
+			},
+		}
+
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, &domain.UserWorkspace{
+			UserID:      userID,
+			WorkspaceID: workspaceID,
+			Role:        "member",
+			Permissions: domain.UserPermissions{
+				domain.PermissionResourceTemplates: {Read: true, Write: true},
+			},
+		}, nil)
+		mockRepo.EXPECT().CreateTemplate(ctx, workspaceID, gomock.Any()).Return(nil)
+
+		err := templateService.CreateTemplate(ctx, workspaceID, template)
+
+		assert.NoError(t, err)
+		assert.Equal(t, int64(1), template.Version)
+		assert.NotEmpty(t, template.Email.CompiledPreview)
+	})
+}
+
+func TestTemplateService_UpdateTemplate_CodeMode(t *testing.T) {
+	ctx := context.Background()
+	workspaceID := "ws-123"
+	userID := "user-456"
+	templateID := "tmpl-code"
+	mjmlSrc := "<mjml><mj-body><mj-section><mj-column><mj-text>Hello</mj-text></mj-column></mj-section></mj-body></mjml>"
+	existingCreatedAt := time.Now().Add(-1 * time.Hour).UTC()
+
+	existingCodeTemplate := &domain.Template{
+		ID:        templateID,
+		Name:      "Code Template",
+		Version:   1,
+		Channel:   "email",
+		Category:  "transactional",
+		CreatedAt: existingCreatedAt,
+		Email: &domain.EmailTemplate{
+			EditorMode:      domain.EditorModeCode,
+			MjmlSource:      &mjmlSrc,
+			Subject:         "Old Subject",
+			CompiledPreview: mjmlSrc,
+		},
+	}
+
+	t.Run("Success - update code mode template", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		templateService, mockRepo, mockAuthService, _ := setupTemplateServiceTest(ctrl)
+
+		newMjml := "<mjml><mj-body><mj-section><mj-column><mj-text>Updated</mj-text></mj-column></mj-section></mj-body></mjml>"
+		templateToUpdate := &domain.Template{
+			ID:       templateID,
+			Name:     "Code Template",
+			Channel:  "email",
+			Category: "transactional",
+			Email: &domain.EmailTemplate{
+				EditorMode: domain.EditorModeCode,
+				MjmlSource: &newMjml,
+				Subject:    "New Subject",
+			},
+		}
+
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, &domain.UserWorkspace{
+			UserID:      userID,
+			WorkspaceID: workspaceID,
+			Role:        "member",
+			Permissions: domain.UserPermissions{
+				domain.PermissionResourceTemplates: {Read: true, Write: true},
+			},
+		}, nil)
+		mockRepo.EXPECT().GetTemplateByID(ctx, workspaceID, templateID, int64(0)).Return(existingCodeTemplate, nil)
+		mockRepo.EXPECT().UpdateTemplate(ctx, workspaceID, gomock.Any()).Return(nil)
+
+		err := templateService.UpdateTemplate(ctx, workspaceID, templateToUpdate)
+		assert.NoError(t, err)
+	})
+
+	t.Run("Fails - switch from visual to code", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		templateService, mockRepo, mockAuthService, _ := setupTemplateServiceTest(ctrl)
+
+		existingVisualTemplate := &domain.Template{
+			ID:        templateID,
+			Name:      "Visual Template",
+			Version:   1,
+			Channel:   "email",
+			Category:  "transactional",
+			CreatedAt: existingCreatedAt,
+			Email: &domain.EmailTemplate{
+				EditorMode:      "", // visual (default)
+				Subject:         "Subject",
+				CompiledPreview: "<html>Test</html>",
+				VisualEditorTree: func() notifuse_mjml.EmailBlock {
+					bodyBase := notifuse_mjml.NewBaseBlock("body", notifuse_mjml.MJMLComponentMjBody)
+					bodyBlock := &notifuse_mjml.MJBodyBlock{BaseBlock: bodyBase}
+					rootBase := notifuse_mjml.NewBaseBlock("root", notifuse_mjml.MJMLComponentMjml)
+					rootBase.Children = []notifuse_mjml.EmailBlock{bodyBlock}
+					return &notifuse_mjml.MJMLBlock{BaseBlock: rootBase}
+				}(),
+			},
+		}
+
+		templateToUpdate := &domain.Template{
+			ID:       templateID,
+			Name:     "Visual Template",
+			Channel:  "email",
+			Category: "transactional",
+			Email: &domain.EmailTemplate{
+				EditorMode: domain.EditorModeCode, // trying to switch
+				MjmlSource: &mjmlSrc,
+				Subject:    "Subject",
+			},
+		}
+
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, &domain.UserWorkspace{
+			UserID:      userID,
+			WorkspaceID: workspaceID,
+			Role:        "member",
+			Permissions: domain.UserPermissions{
+				domain.PermissionResourceTemplates: {Read: true, Write: true},
+			},
+		}, nil)
+		mockRepo.EXPECT().GetTemplateByID(ctx, workspaceID, templateID, int64(0)).Return(existingVisualTemplate, nil)
+
+		err := templateService.UpdateTemplate(ctx, workspaceID, templateToUpdate)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "cannot change editor mode")
+	})
+
+	t.Run("Fails - switch from code to visual", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		templateService, mockRepo, mockAuthService, _ := setupTemplateServiceTest(ctrl)
+
+		templateToUpdate := &domain.Template{
+			ID:       templateID,
+			Name:     "Code Template",
+			Channel:  "email",
+			Category: "transactional",
+			Email: &domain.EmailTemplate{
+				EditorMode:      domain.EditorModeVisual, // trying to switch
+				Subject:         "Subject",
+				CompiledPreview: "<html>Test</html>",
+				VisualEditorTree: func() notifuse_mjml.EmailBlock {
+					bodyBase := notifuse_mjml.NewBaseBlock("body", notifuse_mjml.MJMLComponentMjBody)
+					bodyBlock := &notifuse_mjml.MJBodyBlock{BaseBlock: bodyBase}
+					rootBase := notifuse_mjml.NewBaseBlock("root", notifuse_mjml.MJMLComponentMjml)
+					rootBase.Children = []notifuse_mjml.EmailBlock{bodyBlock}
+					return &notifuse_mjml.MJMLBlock{BaseBlock: rootBase}
+				}(),
+			},
+		}
+
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, &domain.UserWorkspace{
+			UserID:      userID,
+			WorkspaceID: workspaceID,
+			Role:        "member",
+			Permissions: domain.UserPermissions{
+				domain.PermissionResourceTemplates: {Read: true, Write: true},
+			},
+		}, nil)
+		mockRepo.EXPECT().GetTemplateByID(ctx, workspaceID, templateID, int64(0)).Return(existingCodeTemplate, nil)
+
+		err := templateService.UpdateTemplate(ctx, workspaceID, templateToUpdate)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "cannot change editor mode")
+	})
+}
+
+func TestCompileTemplate_WithMjmlSource(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockAuthService := domainmocks.NewMockAuthService(ctrl)
+	mockRepo := domainmocks.NewMockTemplateRepository(ctrl)
+	mockLogger := &MockLogger{}
+
+	svc := service.NewTemplateService(mockRepo, mockAuthService, mockLogger, "https://api.example.com")
+
+	ctx := context.Background()
+	workspaceID := "ws-123"
+	userID := "user-456"
+
+	mjmlSrc := "<mjml><mj-body><mj-section><mj-column><mj-text>Hello World</mj-text></mj-column></mj-section></mj-body></mjml>"
+
+	mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{ID: userID}, &domain.UserWorkspace{
+		UserID:      userID,
+		WorkspaceID: workspaceID,
+		Role:        "member",
+		Permissions: domain.UserPermissions{
+			domain.PermissionResourceTemplates: {Read: true, Write: true},
+		},
+	}, nil)
+
+	resp, err := svc.CompileTemplate(ctx, domain.CompileTemplateRequest{
+		WorkspaceID: workspaceID,
+		MessageID:   "msg-123",
+		MjmlSource:  &mjmlSrc,
+	})
+
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	assert.True(t, resp.Success)
+	require.NotNil(t, resp.HTML)
+	assert.Contains(t, *resp.HTML, "Hello World")
+}
+
+func TestTemplateService_UpdateEmailMetadataBlocks_CodeMode(t *testing.T) {
+	ctx := context.Background()
+	workspaceID := "ws-123"
+	userID := "user-456"
+
+	starterMjml := `<mjml>
+  <mj-head>
+    <mj-attributes>
+      <mj-all font-family="Arial, sans-serif" />
+    </mj-attributes>
+  </mj-head>
+  <mj-body>
+    <mj-section>
+      <mj-column>
+        <mj-text>Hello</mj-text>
+      </mj-column>
+    </mj-section>
+  </mj-body>
+</mjml>`
+
+	subjectPreview := "Check this out"
+
+	t.Run("CreateTemplate injects mj-title and mj-preview in code mode", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		svc, mockRepo, mockAuthService, _ := setupTemplateServiceTest(ctrl)
+
+		tmpl := &domain.Template{
+			ID:       "tmpl-code-1",
+			Name:     "My Template",
+			Channel:  "email",
+			Category: "transactional",
+			Email: &domain.EmailTemplate{
+				EditorMode:     domain.EditorModeCode,
+				MjmlSource:     &starterMjml,
+				Subject:        "Test Subject",
+				SubjectPreview: &subjectPreview,
+			},
+		}
+
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, &domain.UserWorkspace{
+			UserID:      userID,
+			WorkspaceID: workspaceID,
+			Role:        "member",
+			Permissions: domain.UserPermissions{
+				domain.PermissionResourceTemplates: {Read: true, Write: true},
+			},
+		}, nil)
+
+		mockRepo.EXPECT().CreateTemplate(ctx, workspaceID, gomock.Any()).DoAndReturn(
+			func(_ context.Context, _ string, tmplArg *domain.Template) error {
+				// Verify that the MJML source was modified with mj-title and mj-preview
+				require.NotNil(t, tmplArg.Email)
+				require.NotNil(t, tmplArg.Email.MjmlSource)
+				assert.Contains(t, *tmplArg.Email.MjmlSource, "<mj-title>My Template</mj-title>")
+				assert.Contains(t, *tmplArg.Email.MjmlSource, "<mj-preview>Check this out</mj-preview>")
+				return nil
+			},
+		)
+
+		err := svc.CreateTemplate(ctx, workspaceID, tmpl)
+		require.NoError(t, err)
+	})
+
+	t.Run("UpdateTemplate overrides existing mj-title and mj-preview in code mode", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		svc, mockRepo, mockAuthService, _ := setupTemplateServiceTest(ctrl)
+
+		mjmlWithTags := `<mjml>
+  <mj-head>
+    <mj-title>Old Title</mj-title>
+    <mj-preview>Old Preview</mj-preview>
+  </mj-head>
+  <mj-body>
+    <mj-section><mj-column><mj-text>Hello</mj-text></mj-column></mj-section>
+  </mj-body>
+</mjml>`
+
+		newPreview := "Updated Preview"
+		tmpl := &domain.Template{
+			ID:       "tmpl-code-2",
+			Name:     "Updated Template",
+			Channel:  "email",
+			Category: "transactional",
+			Email: &domain.EmailTemplate{
+				EditorMode:     domain.EditorModeCode,
+				MjmlSource:     &mjmlWithTags,
+				Subject:        "Test Subject",
+				SubjectPreview: &newPreview,
+			},
+		}
+
+		existingMjml := mjmlWithTags
+		existingTemplate := &domain.Template{
+			ID:       "tmpl-code-2",
+			Name:     "Old Template",
+			Version:  1,
+			Channel:  "email",
+			Category: "transactional",
+			Email: &domain.EmailTemplate{
+				EditorMode: domain.EditorModeCode,
+				MjmlSource: &existingMjml,
+				Subject:    "Test Subject",
+			},
+			CreatedAt: time.Now().Add(-time.Hour),
+		}
+
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, &domain.UserWorkspace{
+			UserID:      userID,
+			WorkspaceID: workspaceID,
+			Role:        "member",
+			Permissions: domain.UserPermissions{
+				domain.PermissionResourceTemplates: {Read: true, Write: true},
+			},
+		}, nil)
+
+		mockRepo.EXPECT().GetTemplateByID(ctx, workspaceID, "tmpl-code-2", int64(0)).Return(existingTemplate, nil)
+
+		mockRepo.EXPECT().UpdateTemplate(ctx, workspaceID, gomock.Any()).DoAndReturn(
+			func(_ context.Context, _ string, tmplArg *domain.Template) error {
+				require.NotNil(t, tmplArg.Email)
+				require.NotNil(t, tmplArg.Email.MjmlSource)
+				assert.Contains(t, *tmplArg.Email.MjmlSource, "<mj-title>Updated Template</mj-title>")
+				assert.Contains(t, *tmplArg.Email.MjmlSource, "<mj-preview>Updated Preview</mj-preview>")
+				assert.NotContains(t, *tmplArg.Email.MjmlSource, "Old Title")
+				assert.NotContains(t, *tmplArg.Email.MjmlSource, "Old Preview")
+				return nil
+			},
+		)
+
+		err := svc.UpdateTemplate(ctx, workspaceID, tmpl)
+		require.NoError(t, err)
+	})
+
+	t.Run("Code mode with no SubjectPreview uses template Name for mj-preview", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		svc, mockRepo, mockAuthService, _ := setupTemplateServiceTest(ctrl)
+
+		tmpl := &domain.Template{
+			ID:       "tmpl-code-3",
+			Name:     "My Fallback Name",
+			Channel:  "email",
+			Category: "transactional",
+			Email: &domain.EmailTemplate{
+				EditorMode: domain.EditorModeCode,
+				MjmlSource: &starterMjml,
+				Subject:    "Test Subject",
+			},
+		}
+
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, &domain.UserWorkspace{
+			UserID:      userID,
+			WorkspaceID: workspaceID,
+			Role:        "member",
+			Permissions: domain.UserPermissions{
+				domain.PermissionResourceTemplates: {Read: true, Write: true},
+			},
+		}, nil)
+
+		mockRepo.EXPECT().CreateTemplate(ctx, workspaceID, gomock.Any()).DoAndReturn(
+			func(_ context.Context, _ string, tmplArg *domain.Template) error {
+				require.NotNil(t, tmplArg.Email)
+				require.NotNil(t, tmplArg.Email.MjmlSource)
+				assert.Contains(t, *tmplArg.Email.MjmlSource, "<mj-title>My Fallback Name</mj-title>")
+				assert.Contains(t, *tmplArg.Email.MjmlSource, "<mj-preview>My Fallback Name</mj-preview>")
+				return nil
+			},
+		)
+
+		err := svc.CreateTemplate(ctx, workspaceID, tmpl)
+		require.NoError(t, err)
+	})
+}
