@@ -20,13 +20,14 @@ import (
 )
 
 // Updated setup function to use gomock controller
-func setupTemplateServiceTest(ctrl *gomock.Controller) (*service.TemplateService, *domainmocks.MockTemplateRepository, *domainmocks.MockAuthService, *pkgmocks.MockLogger) {
+func setupTemplateServiceTest(ctrl *gomock.Controller) (*service.TemplateService, *domainmocks.MockTemplateRepository, *domainmocks.MockWorkspaceRepository, *domainmocks.MockAuthService, *pkgmocks.MockLogger) {
 	mockRepo := domainmocks.NewMockTemplateRepository(ctrl)
+	mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
 	mockAuthService := domainmocks.NewMockAuthService(ctrl)
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 
-	templateService := service.NewTemplateService(mockRepo, mockAuthService, mockLogger, "https://api.example.com")
-	return templateService, mockRepo, mockAuthService, mockLogger
+	templateService := service.NewTemplateService(mockRepo, mockWorkspaceRepo, mockAuthService, mockLogger, "https://api.example.com")
+	return templateService, mockRepo, mockWorkspaceRepo, mockAuthService, mockLogger
 }
 
 // Gomock matcher for validating the template passed to CreateTemplate
@@ -86,7 +87,7 @@ func TestTemplateService_CreateTemplate(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		templateService, mockRepo, mockAuthService, _ := setupTemplateServiceTest(ctrl)
+		templateService, mockRepo, _, mockAuthService, _ := setupTemplateServiceTest(ctrl)
 		templateToPass := *templateToCreate // Use a copy
 
 		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, &domain.UserWorkspace{
@@ -111,7 +112,7 @@ func TestTemplateService_CreateTemplate(t *testing.T) {
 	t.Run("Authentication Failure", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		templateService, _, mockAuthService, _ := setupTemplateServiceTest(ctrl)
+		templateService, _, _, mockAuthService, _ := setupTemplateServiceTest(ctrl)
 		authErr := errors.New("auth error")
 		templateToPass := *templateToCreate // Use a copy
 
@@ -127,7 +128,7 @@ func TestTemplateService_CreateTemplate(t *testing.T) {
 	t.Run("Validation Failure - Missing Name", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		templateService, _, mockAuthService, _ := setupTemplateServiceTest(ctrl)
+		templateService, _, _, mockAuthService, _ := setupTemplateServiceTest(ctrl)
 		invalidTemplate := *templateToCreate // Copy
 		invalidTemplate.Name = ""            // Make invalid
 
@@ -149,7 +150,7 @@ func TestTemplateService_CreateTemplate(t *testing.T) {
 	t.Run("Validation Failure - Missing Email Details", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		templateService, _, mockAuthService, _ := setupTemplateServiceTest(ctrl)
+		templateService, _, _, mockAuthService, _ := setupTemplateServiceTest(ctrl)
 		invalidTemplate := *templateToCreate // Copy
 		invalidTemplate.Email = nil          // Make invalid
 
@@ -171,7 +172,7 @@ func TestTemplateService_CreateTemplate(t *testing.T) {
 	t.Run("Repository Failure", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		templateService, mockRepo, mockAuthService, mockLogger := setupTemplateServiceTest(ctrl)
+		templateService, mockRepo, _, mockAuthService, mockLogger := setupTemplateServiceTest(ctrl)
 		repoErr := errors.New("db error")
 		templateToPass := *templateToCreate // Use a copy
 
@@ -192,6 +193,197 @@ func TestTemplateService_CreateTemplate(t *testing.T) {
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to create template")
 		assert.ErrorIs(t, err, repoErr)
+	})
+
+	t.Run("Translation language not in workspace languages", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		templateService, _, mockWorkspaceRepo, mockAuthService, _ := setupTemplateServiceTest(ctrl)
+
+		templateWithTranslation := &domain.Template{
+			ID:       templateID,
+			Name:     "Test Template",
+			Channel:  "email",
+			Category: "transactional",
+			Email: &domain.EmailTemplate{
+				SenderID:        "sender-123",
+				Subject:         "Test Email",
+				CompiledPreview: "<p>Test</p>",
+				VisualEditorTree: func() notifuse_mjml.EmailBlock {
+					bodyBase := notifuse_mjml.NewBaseBlock("body", notifuse_mjml.MJMLComponentMjBody)
+					bodyBlock := &notifuse_mjml.MJBodyBlock{BaseBlock: bodyBase}
+					rootBase := notifuse_mjml.NewBaseBlock("root", notifuse_mjml.MJMLComponentMjml)
+					rootBase.Children = []notifuse_mjml.EmailBlock{bodyBlock}
+					return &notifuse_mjml.MJMLBlock{BaseBlock: rootBase}
+				}(),
+			},
+			Translations: map[string]domain.TemplateTranslation{
+				"de": {Email: &domain.EmailTemplate{
+					SenderID:        "sender-123",
+					Subject:         "Betreff DE",
+					CompiledPreview: "<p>Test DE</p>",
+					VisualEditorTree: func() notifuse_mjml.EmailBlock {
+						bodyBase := notifuse_mjml.NewBaseBlock("body", notifuse_mjml.MJMLComponentMjBody)
+						bodyBlock := &notifuse_mjml.MJBodyBlock{BaseBlock: bodyBase}
+						rootBase := notifuse_mjml.NewBaseBlock("root", notifuse_mjml.MJMLComponentMjml)
+						rootBase.Children = []notifuse_mjml.EmailBlock{bodyBlock}
+						return &notifuse_mjml.MJMLBlock{BaseBlock: rootBase}
+					}(),
+				}},
+			},
+		}
+
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, &domain.UserWorkspace{
+			UserID:      userID,
+			WorkspaceID: workspaceID,
+			Role:        "member",
+			Permissions: domain.UserPermissions{
+				domain.PermissionResourceTemplates: {Read: true, Write: true},
+			},
+		}, nil)
+
+		// Workspace only allows "en" and "fr"
+		mockWorkspaceRepo.EXPECT().GetByID(ctx, workspaceID).Return(&domain.Workspace{
+			ID:   workspaceID,
+			Name: "Test Workspace",
+			Settings: domain.WorkspaceSettings{
+				Timezone:        "UTC",
+				DefaultLanguage: "en",
+				Languages:       []string{"en", "fr"},
+			},
+		}, nil)
+
+		err := templateService.CreateTemplate(ctx, workspaceID, templateWithTranslation)
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "translation language 'de' is not in workspace's configured languages")
+	})
+
+	t.Run("Translation language allowed by workspace", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		templateService, mockRepo, mockWorkspaceRepo, mockAuthService, _ := setupTemplateServiceTest(ctrl)
+
+		templateWithTranslation := &domain.Template{
+			ID:       templateID,
+			Name:     "Test Template",
+			Channel:  "email",
+			Category: "transactional",
+			Email: &domain.EmailTemplate{
+				SenderID:        "sender-123",
+				Subject:         "Test Email",
+				CompiledPreview: "<p>Test</p>",
+				VisualEditorTree: func() notifuse_mjml.EmailBlock {
+					bodyBase := notifuse_mjml.NewBaseBlock("body", notifuse_mjml.MJMLComponentMjBody)
+					bodyBlock := &notifuse_mjml.MJBodyBlock{BaseBlock: bodyBase}
+					rootBase := notifuse_mjml.NewBaseBlock("root", notifuse_mjml.MJMLComponentMjml)
+					rootBase.Children = []notifuse_mjml.EmailBlock{bodyBlock}
+					return &notifuse_mjml.MJMLBlock{BaseBlock: rootBase}
+				}(),
+			},
+			Translations: map[string]domain.TemplateTranslation{
+				"fr": {Email: &domain.EmailTemplate{
+					SenderID:        "sender-123",
+					Subject:         "Sujet FR",
+					CompiledPreview: "<p>Test FR</p>",
+					VisualEditorTree: func() notifuse_mjml.EmailBlock {
+						bodyBase := notifuse_mjml.NewBaseBlock("body", notifuse_mjml.MJMLComponentMjBody)
+						bodyBlock := &notifuse_mjml.MJBodyBlock{BaseBlock: bodyBase}
+						rootBase := notifuse_mjml.NewBaseBlock("root", notifuse_mjml.MJMLComponentMjml)
+						rootBase.Children = []notifuse_mjml.EmailBlock{bodyBlock}
+						return &notifuse_mjml.MJMLBlock{BaseBlock: rootBase}
+					}(),
+				}},
+			},
+		}
+
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, &domain.UserWorkspace{
+			UserID:      userID,
+			WorkspaceID: workspaceID,
+			Role:        "member",
+			Permissions: domain.UserPermissions{
+				domain.PermissionResourceTemplates: {Read: true, Write: true},
+			},
+		}, nil)
+
+		// Workspace allows "en" and "fr"
+		mockWorkspaceRepo.EXPECT().GetByID(ctx, workspaceID).Return(&domain.Workspace{
+			ID:   workspaceID,
+			Name: "Test Workspace",
+			Settings: domain.WorkspaceSettings{
+				Timezone:        "UTC",
+				DefaultLanguage: "en",
+				Languages:       []string{"en", "fr"},
+			},
+		}, nil)
+
+		mockRepo.EXPECT().CreateTemplate(ctx, workspaceID, gomock.Any()).Return(nil)
+
+		err := templateService.CreateTemplate(ctx, workspaceID, templateWithTranslation)
+		assert.NoError(t, err)
+	})
+
+	t.Run("Translation rejected when workspace has empty Languages but non-default key", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		templateService, _, mockWorkspaceRepo, mockAuthService, _ := setupTemplateServiceTest(ctrl)
+
+		templateWithTranslation := &domain.Template{
+			ID:       templateID,
+			Name:     "Test Template",
+			Channel:  "email",
+			Category: "transactional",
+			Email: &domain.EmailTemplate{
+				SenderID:        "sender-123",
+				Subject:         "Test Email",
+				CompiledPreview: "<p>Test</p>",
+				VisualEditorTree: func() notifuse_mjml.EmailBlock {
+					bodyBase := notifuse_mjml.NewBaseBlock("body", notifuse_mjml.MJMLComponentMjBody)
+					bodyBlock := &notifuse_mjml.MJBodyBlock{BaseBlock: bodyBase}
+					rootBase := notifuse_mjml.NewBaseBlock("root", notifuse_mjml.MJMLComponentMjml)
+					rootBase.Children = []notifuse_mjml.EmailBlock{bodyBlock}
+					return &notifuse_mjml.MJMLBlock{BaseBlock: rootBase}
+				}(),
+			},
+			Translations: map[string]domain.TemplateTranslation{
+				"fr": {Email: &domain.EmailTemplate{
+					SenderID:        "sender-123",
+					Subject:         "Sujet FR",
+					CompiledPreview: "<p>FR</p>",
+					VisualEditorTree: func() notifuse_mjml.EmailBlock {
+						bodyBase := notifuse_mjml.NewBaseBlock("body", notifuse_mjml.MJMLComponentMjBody)
+						bodyBlock := &notifuse_mjml.MJBodyBlock{BaseBlock: bodyBase}
+						rootBase := notifuse_mjml.NewBaseBlock("root", notifuse_mjml.MJMLComponentMjml)
+						rootBase.Children = []notifuse_mjml.EmailBlock{bodyBlock}
+						return &notifuse_mjml.MJMLBlock{BaseBlock: rootBase}
+					}(),
+				}},
+			},
+		}
+
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, &domain.UserWorkspace{
+			UserID:      userID,
+			WorkspaceID: workspaceID,
+			Role:        "member",
+			Permissions: domain.UserPermissions{
+				domain.PermissionResourceTemplates: {Read: true, Write: true},
+			},
+		}, nil)
+
+		// Workspace has no Languages configured, only DefaultLanguage
+		mockWorkspaceRepo.EXPECT().GetByID(ctx, workspaceID).Return(&domain.Workspace{
+			ID:   workspaceID,
+			Name: "Test Workspace",
+			Settings: domain.WorkspaceSettings{
+				Timezone:        "UTC",
+				DefaultLanguage: "en",
+				Languages:       nil,
+			},
+		}, nil)
+
+		err := templateService.CreateTemplate(ctx, workspaceID, templateWithTranslation)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "not in workspace's configured languages")
 	})
 }
 
@@ -228,7 +420,7 @@ func TestTemplateService_GetTemplateByID(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		templateService, mockRepo, mockAuthService, _ := setupTemplateServiceTest(ctrl)
+		templateService, mockRepo, _, mockAuthService, _ := setupTemplateServiceTest(ctrl)
 
 		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, &domain.UserWorkspace{
 			UserID:      userID,
@@ -249,7 +441,7 @@ func TestTemplateService_GetTemplateByID(t *testing.T) {
 	t.Run("Authentication Failure", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		templateService, _, mockAuthService, _ := setupTemplateServiceTest(ctrl)
+		templateService, _, _, mockAuthService, _ := setupTemplateServiceTest(ctrl)
 		authErr := errors.New("auth error")
 
 		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, nil, nil, authErr)
@@ -265,7 +457,7 @@ func TestTemplateService_GetTemplateByID(t *testing.T) {
 	t.Run("System Call Bypasses Authentication", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		templateService, mockRepo, _, _ := setupTemplateServiceTest(ctrl)
+		templateService, mockRepo, _, _, _ := setupTemplateServiceTest(ctrl)
 
 		// Create a system context that should bypass authentication
 		systemCtx := context.WithValue(ctx, domain.SystemCallKey, true)
@@ -282,7 +474,7 @@ func TestTemplateService_GetTemplateByID(t *testing.T) {
 	t.Run("Not Found", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		templateService, mockRepo, mockAuthService, _ := setupTemplateServiceTest(ctrl)
+		templateService, mockRepo, _, mockAuthService, _ := setupTemplateServiceTest(ctrl)
 		notFoundErr := &domain.ErrTemplateNotFound{Message: "not found"}
 
 		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, &domain.UserWorkspace{
@@ -305,7 +497,7 @@ func TestTemplateService_GetTemplateByID(t *testing.T) {
 	t.Run("Repository Failure", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		templateService, mockRepo, mockAuthService, mockLogger := setupTemplateServiceTest(ctrl)
+		templateService, mockRepo, _, mockAuthService, mockLogger := setupTemplateServiceTest(ctrl)
 		repoErr := errors.New("db error")
 
 		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, &domain.UserWorkspace{
@@ -365,7 +557,7 @@ func TestTemplateService_GetTemplates(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		templateService, mockRepo, mockAuthService, _ := setupTemplateServiceTest(ctrl)
+		templateService, mockRepo, _, mockAuthService, _ := setupTemplateServiceTest(ctrl)
 
 		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, &domain.UserWorkspace{
 			UserID:      userID,
@@ -386,7 +578,7 @@ func TestTemplateService_GetTemplates(t *testing.T) {
 	t.Run("Authentication Failure", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		templateService, _, mockAuthService, _ := setupTemplateServiceTest(ctrl)
+		templateService, _, _, mockAuthService, _ := setupTemplateServiceTest(ctrl)
 		authErr := errors.New("auth error")
 
 		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, nil, nil, authErr)
@@ -402,7 +594,7 @@ func TestTemplateService_GetTemplates(t *testing.T) {
 	t.Run("Repository Failure", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		templateService, mockRepo, mockAuthService, mockLogger := setupTemplateServiceTest(ctrl)
+		templateService, mockRepo, _, mockAuthService, mockLogger := setupTemplateServiceTest(ctrl)
 		repoErr := errors.New("db error")
 
 		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, &domain.UserWorkspace{
@@ -476,7 +668,7 @@ func TestTemplateService_UpdateTemplate(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		templateService, mockRepo, mockAuthService, _ := setupTemplateServiceTest(ctrl)
+		templateService, mockRepo, _, mockAuthService, _ := setupTemplateServiceTest(ctrl)
 		templateToUpdate := *updatedTemplateData // Use a copy
 
 		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, &domain.UserWorkspace{
@@ -513,7 +705,7 @@ func TestTemplateService_UpdateTemplate(t *testing.T) {
 	t.Run("Authentication Failure", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		templateService, _, mockAuthService, _ := setupTemplateServiceTest(ctrl)
+		templateService, _, _, mockAuthService, _ := setupTemplateServiceTest(ctrl)
 		authErr := errors.New("auth error")
 		templateToUpdate := *updatedTemplateData // Use a copy
 
@@ -529,7 +721,7 @@ func TestTemplateService_UpdateTemplate(t *testing.T) {
 	t.Run("Get Existing Template Not Found", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		templateService, mockRepo, mockAuthService, _ := setupTemplateServiceTest(ctrl)
+		templateService, mockRepo, _, mockAuthService, _ := setupTemplateServiceTest(ctrl)
 		notFoundErr := &domain.ErrTemplateNotFound{Message: "not found"}
 		templateToUpdate := *updatedTemplateData // Use a copy
 
@@ -552,7 +744,7 @@ func TestTemplateService_UpdateTemplate(t *testing.T) {
 	t.Run("Get Existing Template Repository Failure", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		templateService, mockRepo, mockAuthService, mockLogger := setupTemplateServiceTest(ctrl)
+		templateService, mockRepo, _, mockAuthService, mockLogger := setupTemplateServiceTest(ctrl)
 		repoErr := errors.New("get db error")
 		templateToUpdate := *updatedTemplateData // Use a copy
 
@@ -578,7 +770,7 @@ func TestTemplateService_UpdateTemplate(t *testing.T) {
 	t.Run("Validation Failure", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		templateService, mockRepo, mockAuthService, _ := setupTemplateServiceTest(ctrl)
+		templateService, mockRepo, _, mockAuthService, _ := setupTemplateServiceTest(ctrl)
 		invalidTemplate := *updatedTemplateData // Copy
 		invalidTemplate.Name = ""               // Make invalid
 
@@ -602,7 +794,7 @@ func TestTemplateService_UpdateTemplate(t *testing.T) {
 	t.Run("Update Repository Failure", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		templateService, mockRepo, mockAuthService, mockLogger := setupTemplateServiceTest(ctrl)
+		templateService, mockRepo, _, mockAuthService, mockLogger := setupTemplateServiceTest(ctrl)
 		repoErr := errors.New("update db error")
 		templateToUpdate := *updatedTemplateData // Use a copy
 
@@ -647,7 +839,7 @@ func TestTemplateService_DeleteTemplate(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		templateService, mockRepo, mockAuthService, _ := setupTemplateServiceTest(ctrl)
+		templateService, mockRepo, _, mockAuthService, _ := setupTemplateServiceTest(ctrl)
 
 		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, &domain.UserWorkspace{
 			UserID:      userID,
@@ -669,7 +861,7 @@ func TestTemplateService_DeleteTemplate(t *testing.T) {
 	t.Run("Authentication Failure", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		templateService, _, mockAuthService, _ := setupTemplateServiceTest(ctrl)
+		templateService, _, _, mockAuthService, _ := setupTemplateServiceTest(ctrl)
 		authErr := errors.New("auth error")
 
 		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, nil, nil, authErr)
@@ -684,7 +876,7 @@ func TestTemplateService_DeleteTemplate(t *testing.T) {
 	t.Run("Cannot Delete Integration-Managed Template", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		templateService, mockRepo, mockAuthService, _ := setupTemplateServiceTest(ctrl)
+		templateService, mockRepo, _, mockAuthService, _ := setupTemplateServiceTest(ctrl)
 		integrationID := "integration-123"
 		integrationManagedTemplate := &domain.Template{
 			ID:            templateID,
@@ -718,7 +910,7 @@ func TestTemplateService_DeleteTemplate(t *testing.T) {
 	t.Run("Get Template Not Found Before Delete", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		templateService, mockRepo, mockAuthService, _ := setupTemplateServiceTest(ctrl)
+		templateService, mockRepo, _, mockAuthService, _ := setupTemplateServiceTest(ctrl)
 		notFoundErr := &domain.ErrTemplateNotFound{Message: "not found"}
 
 		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, &domain.UserWorkspace{
@@ -740,7 +932,7 @@ func TestTemplateService_DeleteTemplate(t *testing.T) {
 	t.Run("Get Template Repository Failure Before Delete", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		templateService, mockRepo, mockAuthService, mockLogger := setupTemplateServiceTest(ctrl)
+		templateService, mockRepo, _, mockAuthService, mockLogger := setupTemplateServiceTest(ctrl)
 		repoErr := errors.New("db error")
 
 		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, &domain.UserWorkspace{
@@ -765,7 +957,7 @@ func TestTemplateService_DeleteTemplate(t *testing.T) {
 	t.Run("Delete Not Found", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		templateService, mockRepo, mockAuthService, _ := setupTemplateServiceTest(ctrl)
+		templateService, mockRepo, _, mockAuthService, _ := setupTemplateServiceTest(ctrl)
 		notFoundErr := &domain.ErrTemplateNotFound{Message: "not found"}
 
 		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, &domain.UserWorkspace{
@@ -788,7 +980,7 @@ func TestTemplateService_DeleteTemplate(t *testing.T) {
 	t.Run("Delete Repository Failure", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		templateService, mockRepo, mockAuthService, mockLogger := setupTemplateServiceTest(ctrl)
+		templateService, mockRepo, _, mockAuthService, mockLogger := setupTemplateServiceTest(ctrl)
 		repoErr := errors.New("db error")
 
 		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, &domain.UserWorkspace{
@@ -858,7 +1050,7 @@ func TestCompileTemplate_Success(t *testing.T) {
 	mockRepo := domainmocks.NewMockTemplateRepository(ctrl)
 	mockLogger := &MockLogger{}
 
-	svc := service.NewTemplateService(mockRepo, mockAuthService, mockLogger, "https://api.example.com")
+	svc := service.NewTemplateService(mockRepo, nil, mockAuthService, mockLogger, "https://api.example.com")
 
 	ctx := context.Background()
 	workspaceID := "ws_123"
@@ -912,7 +1104,7 @@ func TestCompileTemplate_TreeToMjmlError(t *testing.T) {
 	mockAuthService := domainmocks.NewMockAuthService(ctrl)
 	mockRepo := domainmocks.NewMockTemplateRepository(ctrl)
 	mockLogger := &MockLogger{}
-	svc := service.NewTemplateService(mockRepo, mockAuthService, mockLogger, "https://api.example.com")
+	svc := service.NewTemplateService(mockRepo, nil, mockAuthService, mockLogger, "https://api.example.com")
 
 	ctx := context.Background()
 	workspaceID := "ws_123"
@@ -962,7 +1154,7 @@ func TestCompileTemplate_AuthError(t *testing.T) {
 	mockRepo := domainmocks.NewMockTemplateRepository(ctrl)
 	mockLogger := &MockLogger{}
 
-	svc := service.NewTemplateService(mockRepo, mockAuthService, mockLogger, "https://api.example.com")
+	svc := service.NewTemplateService(mockRepo, nil, mockAuthService, mockLogger, "https://api.example.com")
 
 	ctx := context.Background()
 	workspaceID := "ws_123"
@@ -995,7 +1187,7 @@ func TestCompileTemplate_SystemCallBypassesAuth(t *testing.T) {
 	mockRepo := domainmocks.NewMockTemplateRepository(ctrl)
 	mockLogger := &MockLogger{}
 
-	svc := service.NewTemplateService(mockRepo, mockAuthService, mockLogger, "https://api.example.com")
+	svc := service.NewTemplateService(mockRepo, nil, mockAuthService, mockLogger, "https://api.example.com")
 
 	// Create a system context that should bypass authentication
 	ctx := context.WithValue(context.Background(), domain.SystemCallKey, true)
@@ -1026,7 +1218,7 @@ func TestCompileTemplate_InvalidTreeData(t *testing.T) {
 	mockRepo := domainmocks.NewMockTemplateRepository(ctrl)
 	mockLogger := &MockLogger{}
 
-	svc := service.NewTemplateService(mockRepo, mockAuthService, mockLogger, "https://api.example.com")
+	svc := service.NewTemplateService(mockRepo, nil, mockAuthService, mockLogger, "https://api.example.com")
 
 	ctx := context.Background()
 	workspaceID := "ws_123"
@@ -1070,7 +1262,7 @@ func TestTemplateService_CreateTemplate_CodeMode(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		templateService, mockRepo, mockAuthService, _ := setupTemplateServiceTest(ctrl)
+		templateService, mockRepo, _, mockAuthService, _ := setupTemplateServiceTest(ctrl)
 
 		template := &domain.Template{
 			ID:       "tmpl-code",
@@ -1128,7 +1320,7 @@ func TestTemplateService_UpdateTemplate_CodeMode(t *testing.T) {
 	t.Run("Success - update code mode template", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		templateService, mockRepo, mockAuthService, _ := setupTemplateServiceTest(ctrl)
+		templateService, mockRepo, _, mockAuthService, _ := setupTemplateServiceTest(ctrl)
 
 		newMjml := "<mjml><mj-body><mj-section><mj-column><mj-text>Updated</mj-text></mj-column></mj-section></mj-body></mjml>"
 		templateToUpdate := &domain.Template{
@@ -1161,7 +1353,7 @@ func TestTemplateService_UpdateTemplate_CodeMode(t *testing.T) {
 	t.Run("Fails - switch from visual to code", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		templateService, mockRepo, mockAuthService, _ := setupTemplateServiceTest(ctrl)
+		templateService, mockRepo, _, mockAuthService, _ := setupTemplateServiceTest(ctrl)
 
 		existingVisualTemplate := &domain.Template{
 			ID:        templateID,
@@ -1214,7 +1406,7 @@ func TestTemplateService_UpdateTemplate_CodeMode(t *testing.T) {
 	t.Run("Fails - switch from code to visual", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		templateService, mockRepo, mockAuthService, _ := setupTemplateServiceTest(ctrl)
+		templateService, mockRepo, _, mockAuthService, _ := setupTemplateServiceTest(ctrl)
 
 		templateToUpdate := &domain.Template{
 			ID:       templateID,
@@ -1259,7 +1451,7 @@ func TestCompileTemplate_WithMjmlSource(t *testing.T) {
 	mockRepo := domainmocks.NewMockTemplateRepository(ctrl)
 	mockLogger := &MockLogger{}
 
-	svc := service.NewTemplateService(mockRepo, mockAuthService, mockLogger, "https://api.example.com")
+	svc := service.NewTemplateService(mockRepo, nil, mockAuthService, mockLogger, "https://api.example.com")
 
 	ctx := context.Background()
 	workspaceID := "ws-123"
@@ -1314,7 +1506,7 @@ func TestTemplateService_UpdateEmailMetadataBlocks_CodeMode(t *testing.T) {
 	t.Run("CreateTemplate injects mj-title and mj-preview in code mode", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		svc, mockRepo, mockAuthService, _ := setupTemplateServiceTest(ctrl)
+		svc, mockRepo, _, mockAuthService, _ := setupTemplateServiceTest(ctrl)
 
 		tmpl := &domain.Template{
 			ID:       "tmpl-code-1",
@@ -1356,7 +1548,7 @@ func TestTemplateService_UpdateEmailMetadataBlocks_CodeMode(t *testing.T) {
 	t.Run("UpdateTemplate overrides existing mj-title and mj-preview in code mode", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		svc, mockRepo, mockAuthService, _ := setupTemplateServiceTest(ctrl)
+		svc, mockRepo, _, mockAuthService, _ := setupTemplateServiceTest(ctrl)
 
 		mjmlWithTags := `<mjml>
   <mj-head>
@@ -1427,7 +1619,7 @@ func TestTemplateService_UpdateEmailMetadataBlocks_CodeMode(t *testing.T) {
 	t.Run("Code mode with no SubjectPreview uses template Name for mj-preview", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		svc, mockRepo, mockAuthService, _ := setupTemplateServiceTest(ctrl)
+		svc, mockRepo, _, mockAuthService, _ := setupTemplateServiceTest(ctrl)
 
 		tmpl := &domain.Template{
 			ID:       "tmpl-code-3",

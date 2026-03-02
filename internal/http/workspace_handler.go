@@ -144,6 +144,8 @@ func (h *WorkspaceHandler) handleCreate(w http.ResponseWriter, r *http.Request) 
 		req.Settings.CoverURL,
 		req.Settings.Timezone,
 		req.Settings.FileManager,
+		req.Settings.DefaultLanguage,
+		req.Settings.Languages,
 	)
 	if err != nil {
 		if err.Error() == "workspace already exists" {

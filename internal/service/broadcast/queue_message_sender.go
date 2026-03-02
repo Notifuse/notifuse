@@ -68,9 +68,11 @@ func (s *queueMessageSender) SendToRecipient(
 	data map[string]interface{},
 	emailProvider *domain.EmailProvider,
 	timeoutAt time.Time,
+	contactLanguage string,
+	workspaceDefaultLanguage string,
 ) error {
 	// Build the email payload
-	entry, err := s.buildQueueEntry(ctx, workspaceID, integrationID, endpoint, trackingEnabled, broadcast, messageID, email, template, data, emailProvider)
+	entry, err := s.buildQueueEntry(ctx, workspaceID, integrationID, endpoint, trackingEnabled, broadcast, messageID, email, template, data, emailProvider, contactLanguage, workspaceDefaultLanguage)
 	if err != nil {
 		return err
 	}
@@ -102,6 +104,7 @@ func (s *queueMessageSender) SendBatch(
 	templates map[string]*domain.Template,
 	emailProvider *domain.EmailProvider,
 	timeoutAt time.Time,
+	workspaceDefaultLanguage string,
 ) (sent int, failed int, err error) {
 	if len(recipients) == 0 {
 		return 0, 0, nil
@@ -208,8 +211,14 @@ func (s *queueMessageSender) SendBatch(
 			data["recipient_feed"] = feedData
 		}
 
+		// Extract contact language for variant resolution
+		contactLanguage := ""
+		if recipient.Contact.Language != nil && !recipient.Contact.Language.IsNull {
+			contactLanguage = recipient.Contact.Language.String
+		}
+
 		// Build queue entry
-		entry, err := s.buildQueueEntry(ctx, workspaceID, integrationID, endpoint, trackingEnabled, broadcast, messageID, recipient.Contact.Email, template, data, emailProvider)
+		entry, err := s.buildQueueEntry(ctx, workspaceID, integrationID, endpoint, trackingEnabled, broadcast, messageID, recipient.Contact.Email, template, data, emailProvider, contactLanguage, workspaceDefaultLanguage)
 		if err != nil {
 			s.logger.WithFields(map[string]interface{}{
 				"broadcast_id": broadcastID,
@@ -263,6 +272,8 @@ func (s *queueMessageSender) buildQueueEntry(
 	template *domain.Template,
 	data map[string]interface{},
 	emailProvider *domain.EmailProvider,
+	contactLanguage string,
+	workspaceDefaultLanguage string,
 ) (*domain.EmailQueueEntry, error) {
 	// Ensure UTM parameters object is present
 	if broadcast.UTMParameters == nil {
@@ -286,8 +297,14 @@ func (s *queueMessageSender) buildQueueEntry(
 		MessageID:      messageID,
 	}
 
+	// Resolve language variant
+	emailContent := template.ResolveEmailContent(contactLanguage, workspaceDefaultLanguage)
+	if emailContent == nil {
+		return nil, fmt.Errorf("email content not available after language resolution")
+	}
+
 	// Get sender (use template's sender ID if specified, otherwise default)
-	sender := emailProvider.GetSender(template.Email.SenderID)
+	sender := emailProvider.GetSender(emailContent.SenderID)
 	if sender == nil {
 		return nil, fmt.Errorf("no sender configured for email provider")
 	}
@@ -296,11 +313,11 @@ func (s *queueMessageSender) buildQueueEntry(
 	compileReq := notifuse_mjml.CompileTemplateRequest{
 		WorkspaceID:      workspaceID,
 		MessageID:        messageID,
-		VisualEditorTree: template.Email.VisualEditorTree,
+		VisualEditorTree: emailContent.VisualEditorTree,
 		TemplateData:     data,
 		TrackingSettings: trackingSettings,
 	}
-	compileReq.MjmlSource = template.Email.GetCodeModeMjmlSource()
+	compileReq.MjmlSource = emailContent.GetCodeModeMjmlSource()
 	compiledTemplate, err := notifuse_mjml.CompileTemplate(compileReq)
 	if err != nil {
 		return nil, fmt.Errorf("failed to compile template: %w", err)
@@ -316,7 +333,7 @@ func (s *queueMessageSender) buildQueueEntry(
 
 	// Process subject line through Liquid templating
 	subject, err := notifuse_mjml.ProcessLiquidTemplate(
-		template.Email.Subject,
+		emailContent.Subject,
 		data,
 		"email_subject",
 	)
@@ -343,7 +360,7 @@ func (s *queueMessageSender) buildQueueEntry(
 			HTMLContent:        htmlContent,
 			RateLimitPerMinute: emailProvider.RateLimitPerMinute,
 			EmailOptions: domain.EmailOptions{
-				ReplyTo: template.Email.ReplyTo,
+				ReplyTo: emailContent.ReplyTo,
 			},
 			TemplateVersion: int(template.Version),
 			ListID:          broadcast.Audience.List,

@@ -13,10 +13,11 @@ import (
 )
 
 type TemplateService struct {
-	repo        domain.TemplateRepository
-	authService domain.AuthService
-	logger      logger.Logger
-	apiEndpoint string
+	repo          domain.TemplateRepository
+	workspaceRepo domain.WorkspaceRepository
+	authService   domain.AuthService
+	logger        logger.Logger
+	apiEndpoint   string
 }
 
 // updateEmailMetadataBlocks updates mj-title and mj-preview blocks in the email tree
@@ -128,13 +129,47 @@ func overrideMjmlTag(mjml string, tagName string, content string) string {
 	return mjml
 }
 
-func NewTemplateService(repo domain.TemplateRepository, authService domain.AuthService, logger logger.Logger, apiEndpoint string) *TemplateService {
+func NewTemplateService(repo domain.TemplateRepository, workspaceRepo domain.WorkspaceRepository, authService domain.AuthService, logger logger.Logger, apiEndpoint string) *TemplateService {
 	return &TemplateService{
-		repo:        repo,
-		authService: authService,
-		logger:      logger,
-		apiEndpoint: apiEndpoint,
+		repo:          repo,
+		workspaceRepo: workspaceRepo,
+		authService:   authService,
+		logger:        logger,
+		apiEndpoint:   apiEndpoint,
 	}
+}
+
+// validateTranslationLanguages checks that all translation language keys are in the workspace's configured languages.
+func (s *TemplateService) validateTranslationLanguages(ctx context.Context, workspaceID string, translations map[string]domain.TemplateTranslation) error {
+	if len(translations) == 0 {
+		return nil
+	}
+
+	workspace, err := s.workspaceRepo.GetByID(ctx, workspaceID)
+	if err != nil {
+		return fmt.Errorf("failed to get workspace: %w", err)
+	}
+	if workspace == nil {
+		return fmt.Errorf("workspace not found: %s", workspaceID)
+	}
+
+	// Build allowed languages: use configured Languages, or fall back to DefaultLanguage only
+	allowedLangs := make(map[string]bool)
+	if len(workspace.Settings.Languages) > 0 {
+		for _, lang := range workspace.Settings.Languages {
+			allowedLangs[lang] = true
+		}
+	} else {
+		allowedLangs[workspace.Settings.DefaultLanguage] = true
+	}
+
+	for lang := range translations {
+		if !allowedLangs[lang] {
+			return fmt.Errorf("translation language '%s' is not in workspace's configured languages", lang)
+		}
+	}
+
+	return nil
 }
 
 func (s *TemplateService) CreateTemplate(ctx context.Context, workspaceID string, template *domain.Template) error {
@@ -166,6 +201,11 @@ func (s *TemplateService) CreateTemplate(ctx context.Context, workspaceID string
 	// Validate template after setting required fields
 	if err := template.Validate(); err != nil {
 		return fmt.Errorf("invalid template: %w", err)
+	}
+
+	// Cross-validate translation languages against workspace languages
+	if err := s.validateTranslationLanguages(ctx, workspaceID, template.Translations); err != nil {
+		return err
 	}
 
 	// Create template in repository
@@ -289,6 +329,11 @@ func (s *TemplateService) UpdateTemplate(ctx context.Context, workspaceID string
 	// Validate template
 	if err := template.Validate(); err != nil {
 		return fmt.Errorf("invalid template: %w", err)
+	}
+
+	// Cross-validate translation languages against workspace languages
+	if err := s.validateTranslationLanguages(ctx, workspaceID, template.Translations); err != nil {
+		return err
 	}
 
 	// Preserve creation time from existing template

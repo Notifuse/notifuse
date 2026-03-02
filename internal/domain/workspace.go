@@ -334,6 +334,8 @@ type WorkspaceSettings struct {
 	CustomFieldLabels            map[string]string   `json:"custom_field_labels,omitempty"`
 	BlogEnabled                  bool                `json:"blog_enabled"`            // Enable blog feature at workspace level
 	BlogSettings                 *BlogSettings       `json:"blog_settings,omitempty"` // Blog styling and SEO settings
+	DefaultLanguage              string              `json:"default_language"`
+	Languages                    []string            `json:"languages"`
 
 	// decoded secret key, not stored in the database
 	SecretKey string `json:"-"`
@@ -394,6 +396,42 @@ func (ws *WorkspaceSettings) Validate(passphrase string) error {
 	// Validate custom field labels if any are present
 	if err := ws.ValidateCustomFieldLabels(); err != nil {
 		return fmt.Errorf("invalid custom field labels: %w", err)
+	}
+
+	// Validate default language is set
+	if ws.DefaultLanguage == "" {
+		return fmt.Errorf("default language is required")
+	}
+
+	// Validate language settings - languages list is mandatory
+	if len(ws.Languages) == 0 {
+		return fmt.Errorf("languages list is required and must contain at least one language")
+	}
+
+	seen := make(map[string]bool)
+	for _, lang := range ws.Languages {
+		if !IsValidLanguage(lang) {
+			return fmt.Errorf("invalid language code: %s", lang)
+		}
+		if seen[lang] {
+			return fmt.Errorf("duplicate language code: %s", lang)
+		}
+		seen[lang] = true
+	}
+
+	if !IsValidLanguage(ws.DefaultLanguage) {
+		return fmt.Errorf("invalid default language code: %s", ws.DefaultLanguage)
+	}
+
+	found := false
+	for _, lang := range ws.Languages {
+		if lang == ws.DefaultLanguage {
+			found = true
+			break
+		}
+	}
+	if !found {
+		return fmt.Errorf("default language %s must be in the languages list", ws.DefaultLanguage)
 	}
 
 	return nil
@@ -923,7 +961,7 @@ func (e *ErrWorkspaceNotFound) Error() string {
 
 // WorkspaceServiceInterface defines the interface for workspace operations
 type WorkspaceServiceInterface interface {
-	CreateWorkspace(ctx context.Context, id, name, websiteURL, logoURL, coverURL, timezone string, fileManager FileManagerSettings) (*Workspace, error)
+	CreateWorkspace(ctx context.Context, id, name, websiteURL, logoURL, coverURL, timezone string, fileManager FileManagerSettings, defaultLanguage string, languages []string) (*Workspace, error)
 	GetWorkspace(ctx context.Context, id string) (*Workspace, error)
 	ListWorkspaces(ctx context.Context) ([]*Workspace, error)
 	UpdateWorkspace(ctx context.Context, id, name string, settings WorkspaceSettings) (*Workspace, error)

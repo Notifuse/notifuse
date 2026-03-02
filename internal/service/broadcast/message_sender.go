@@ -22,11 +22,11 @@ import (
 type MessageSender interface {
 	// SendToRecipient sends a message to a single recipient
 	SendToRecipient(ctx context.Context, workspaceID string, integrationID string, endpoint string, trackingEnabled bool, broadcast *domain.Broadcast, messageID string, email string,
-		template *domain.Template, data map[string]interface{}, emailProvider *domain.EmailProvider, timeoutAt time.Time) error
+		template *domain.Template, data map[string]interface{}, emailProvider *domain.EmailProvider, timeoutAt time.Time, contactLanguage string, workspaceDefaultLanguage string) error
 
 	// SendBatch sends messages to a batch of recipients
 	SendBatch(ctx context.Context, workspaceID string, integrationID string, workspaceSecretKey string, endpoint string, trackingEnabled bool, broadcastID string, recipients []*domain.ContactWithList,
-		templates map[string]*domain.Template, emailProvider *domain.EmailProvider, timeoutAt time.Time) (sent int, failed int, err error)
+		templates map[string]*domain.Template, emailProvider *domain.EmailProvider, timeoutAt time.Time, workspaceDefaultLanguage string) (sent int, failed int, err error)
 }
 
 // CircuitBreaker provides circuit breaking functionality
@@ -200,7 +200,7 @@ func (s *messageSender) enforceRateLimit(ctx context.Context, integrationRateLim
 
 // SendToRecipient sends a message to a single recipient
 func (s *messageSender) SendToRecipient(ctx context.Context, workspaceID string, integrationID string, endpoint string, trackingEnabled bool, broadcast *domain.Broadcast, messageID string, email string,
-	template *domain.Template, data map[string]interface{}, emailProvider *domain.EmailProvider, timeoutAt time.Time) error {
+	template *domain.Template, data map[string]interface{}, emailProvider *domain.EmailProvider, timeoutAt time.Time, contactLanguage string, workspaceDefaultLanguage string) error {
 
 	// Ensure UTM parameters object is present to avoid nil dereference
 	if broadcast.UTMParameters == nil {
@@ -251,15 +251,21 @@ func (s *messageSender) SendToRecipient(ctx context.Context, workspaceID string,
 		MessageID:      messageID,
 	}
 
+	// Resolve language variant
+	emailContent := template.ResolveEmailContent(contactLanguage, workspaceDefaultLanguage)
+	if emailContent == nil {
+		return NewBroadcastError(ErrCodeTemplateCompile, "email content not available after language resolution", true, nil)
+	}
+
 	// Compile template with the provided data
 	compileReq := notifuse_mjml.CompileTemplateRequest{
 		WorkspaceID:      workspaceID,
 		MessageID:        messageID,
-		VisualEditorTree: template.Email.VisualEditorTree,
+		VisualEditorTree: emailContent.VisualEditorTree,
 		TemplateData:     data,
 		TrackingSettings: trackingSettings,
 	}
-	compileReq.MjmlSource = template.Email.GetCodeModeMjmlSource()
+	compileReq.MjmlSource = emailContent.GetCodeModeMjmlSource()
 	compiledTemplate, err := notifuse_mjml.CompileTemplate(compileReq)
 
 	if err != nil {
@@ -288,13 +294,13 @@ func (s *messageSender) SendToRecipient(ctx context.Context, workspaceID string,
 		return NewBroadcastError(ErrCodeTemplateCompile, errMsg, true, nil)
 	}
 
-	emailSender := emailProvider.GetSender(template.Email.SenderID)
+	emailSender := emailProvider.GetSender(emailContent.SenderID)
 
 	if emailSender == nil {
 		s.logger.WithFields(map[string]interface{}{
 			"broadcast_id": broadcast.ID,
 			"workspace_id": workspaceID,
-			"sender_id":    template.Email.SenderID,
+			"sender_id":    emailContent.SenderID,
 			"recipient":    email,
 		}).Error("Sender not found")
 		return NewBroadcastError(ErrCodeSenderNotFound, "sender not found", true, nil)
@@ -302,7 +308,7 @@ func (s *messageSender) SendToRecipient(ctx context.Context, workspaceID string,
 
 	// Process subject line through Liquid templating if it contains Liquid tags
 	processedSubject, err := notifuse_mjml.ProcessLiquidTemplate(
-		template.Email.Subject,
+		emailContent.Subject,
 		data,
 		"email_subject",
 	)
@@ -311,7 +317,7 @@ func (s *messageSender) SendToRecipient(ctx context.Context, workspaceID string,
 			"broadcast_id": broadcast.ID,
 			"workspace_id": workspaceID,
 			"recipient":    email,
-			"subject":      template.Email.Subject,
+			"subject":      emailContent.Subject,
 			"error":        err.Error(),
 		}).Error("Failed to process subject line with Liquid templating")
 		return NewBroadcastError(ErrCodeTemplateCompile, "failed to process subject with Liquid", true, err)
@@ -329,7 +335,7 @@ func (s *messageSender) SendToRecipient(ctx context.Context, workspaceID string,
 		Content:       *compiledTemplate.HTML,
 		Provider:      emailProvider,
 		EmailOptions: domain.EmailOptions{
-			ReplyTo: template.Email.ReplyTo,
+			ReplyTo: emailContent.ReplyTo,
 		},
 	}
 
@@ -375,7 +381,7 @@ func (s *messageSender) SendToRecipient(ctx context.Context, workspaceID string,
 
 // SendBatch sends messages to a batch of recipients
 func (s *messageSender) SendBatch(ctx context.Context, workspaceID string, integrationID string, workspaceSecretKey string, endpoint string, trackingEnabled bool, broadcastID string, recipients []*domain.ContactWithList,
-	templates map[string]*domain.Template, emailProvider *domain.EmailProvider, timeoutAt time.Time) (sent int, failed int, err error) {
+	templates map[string]*domain.Template, emailProvider *domain.EmailProvider, timeoutAt time.Time, workspaceDefaultLanguage string) (sent int, failed int, err error) {
 
 	// Track specific error types for better reporting
 	errorCounts := map[string]int{
@@ -597,8 +603,14 @@ func (s *messageSender) SendBatch(ctx context.Context, workspaceID string, integ
 			recipientData["recipient_feed"] = feedData
 		}
 
+		// Extract contact language for variant resolution
+		contactLanguage := ""
+		if contact.Language != nil && !contact.Language.IsNull {
+			contactLanguage = contact.Language.String
+		}
+
 		// Send to the recipient
-		err = s.SendToRecipient(ctx, workspaceID, integrationID, endpoint, trackingEnabled, broadcast, messageID, contact.Email, templates[templateID], recipientData, emailProvider, timeoutAt)
+		err = s.SendToRecipient(ctx, workspaceID, integrationID, endpoint, trackingEnabled, broadcast, messageID, contact.Email, templates[templateID], recipientData, emailProvider, timeoutAt, contactLanguage, workspaceDefaultLanguage)
 		if err != nil {
 			// SendToRecipient already logs errors
 			failed++

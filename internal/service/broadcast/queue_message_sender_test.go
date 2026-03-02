@@ -225,6 +225,7 @@ func TestQueueMessageSender_SendToRecipient(t *testing.T) {
 			map[string]interface{}{"contact": map[string]interface{}{"email": "recipient@example.com"}},
 			emailProvider,
 			time.Now().Add(5*time.Minute),
+			"", "",
 		)
 
 		assert.NoError(t, err)
@@ -291,6 +292,7 @@ func TestQueueMessageSender_SendToRecipient(t *testing.T) {
 			map[string]interface{}{},
 			emailProvider,
 			time.Now().Add(5*time.Minute),
+			"", "",
 		)
 
 		assert.Error(t, err)
@@ -350,6 +352,7 @@ func TestQueueMessageSender_SendToRecipient(t *testing.T) {
 			map[string]interface{}{},
 			emailProvider,
 			time.Now().Add(5*time.Minute),
+			"", "",
 		)
 
 		assert.Error(t, err)
@@ -436,6 +439,7 @@ func TestQueueMessageSender_SendBatch(t *testing.T) {
 			map[string]*domain.Template{"template-1": template},
 			emailProvider,
 			time.Now().Add(5*time.Minute),
+			"",
 		)
 
 		assert.NoError(t, err)
@@ -476,6 +480,7 @@ func TestQueueMessageSender_SendBatch(t *testing.T) {
 			nil,
 			nil,
 			time.Now().Add(5*time.Minute),
+			"",
 		)
 
 		assert.NoError(t, err)
@@ -551,6 +556,7 @@ func TestQueueMessageSender_SendBatch(t *testing.T) {
 			map[string]*domain.Template{"template-1": template},
 			emailProvider,
 			time.Now().Add(5*time.Minute),
+			"",
 		)
 
 		assert.Error(t, err)
@@ -658,6 +664,7 @@ func TestQueueMessageSender_SendBatch(t *testing.T) {
 			map[string]*domain.Template{"template-1": template},
 			emailProvider,
 			time.Now().Add(5*time.Minute),
+			"",
 		)
 
 		assert.NoError(t, err)
@@ -751,6 +758,7 @@ func TestQueueMessageSender_SendBatch(t *testing.T) {
 			map[string]*domain.Template{"template-1": template},
 			emailProvider,
 			time.Now().Add(5*time.Minute),
+			"",
 		)
 
 		assert.NoError(t, err)
@@ -866,6 +874,7 @@ func TestQueueSendBatch_WithRecipientFeed_Success(t *testing.T) {
 		map[string]*domain.Template{"template-1": template},
 		emailProvider,
 		time.Now().Add(5*time.Minute),
+		"",
 	)
 
 	assert.NoError(t, err)
@@ -960,6 +969,7 @@ func TestQueueSendBatch_WithRecipientFeed_FetchError_PausesBroadcast(t *testing.
 		map[string]*domain.Template{"template-1": template},
 		emailProvider,
 		time.Now().Add(5*time.Minute),
+		"",
 	)
 
 	require.Error(t, err)
@@ -1055,6 +1065,7 @@ func TestQueueSendBatch_WithRecipientFeed_Disabled(t *testing.T) {
 		map[string]*domain.Template{"template-1": template},
 		emailProvider,
 		time.Now().Add(5*time.Minute),
+		"",
 	)
 
 	assert.NoError(t, err)
@@ -1144,6 +1155,7 @@ func TestQueueSendBatch_WithRecipientFeed_NilFetcher(t *testing.T) {
 		map[string]*domain.Template{"template-1": template},
 		emailProvider,
 		time.Now().Add(5*time.Minute),
+		"",
 	)
 
 	assert.NoError(t, err)
@@ -1281,6 +1293,8 @@ func TestQueueMessageSender_BuildQueueEntry(t *testing.T) {
 			template,
 			data,
 			emailProvider,
+			"",
+			"",
 		)
 
 		require.NoError(t, err)
@@ -1341,6 +1355,8 @@ func TestQueueMessageSender_BuildQueueEntry(t *testing.T) {
 			template,
 			data,
 			emailProvider,
+			"",
+			"",
 		)
 
 		require.NoError(t, err)
@@ -1378,6 +1394,8 @@ func TestQueueMessageSender_BuildQueueEntry(t *testing.T) {
 			template,
 			nil,
 			emailProvider,
+			"",
+			"",
 		)
 
 		assert.Error(t, err)
@@ -1419,6 +1437,8 @@ func TestQueueMessageSender_BuildQueueEntry(t *testing.T) {
 			template,
 			map[string]interface{}{},
 			emailProvider,
+			"",
+			"",
 		)
 
 		require.NoError(t, err)

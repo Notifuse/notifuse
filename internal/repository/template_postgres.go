@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -37,23 +38,36 @@ func (r *templateRepository) CreateTemplate(ctx context.Context, workspaceID str
 		template.Version = 1
 	}
 
+	// Normalize nil translations to empty map for consistent JSONB storage
+	translations := template.Translations
+	if translations == nil {
+		translations = make(map[string]domain.TemplateTranslation)
+	}
+
+	// Marshal translations to JSON
+	translationsJSON, err := json.Marshal(translations)
+	if err != nil {
+		return fmt.Errorf("failed to marshal translations: %w", err)
+	}
+
 	query := `
 		INSERT INTO templates (
-			id, 
-			name, 
-			version, 
-			channel, 
+			id,
+			name,
+			version,
+			channel,
 			email,
-			web, 
-			category, 
-			template_macro_id, 
+			web,
+			category,
+			template_macro_id,
 			integration_id,
-			test_data, 
-			settings, 
-			created_at, 
+			test_data,
+			settings,
+			translations,
+			created_at,
 			updated_at
 		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
 	`
 	_, err = workspaceDB.ExecContext(ctx, query,
 		template.ID,
@@ -67,6 +81,7 @@ func (r *templateRepository) CreateTemplate(ctx context.Context, workspaceID str
 		template.IntegrationID,
 		template.TestData,
 		template.Settings,
+		translationsJSON,
 		template.CreatedAt,
 		template.UpdatedAt,
 	)
@@ -90,19 +105,20 @@ func (r *templateRepository) GetTemplateByID(ctx context.Context, workspaceID st
 	if version > 0 {
 		// Get specific version
 		query = `
-			SELECT 
-				id, 
-				name, 
-				version, 
-				channel, 
+			SELECT
+				id,
+				name,
+				version,
+				channel,
 				email,
-				web, 
-				category, 
-				template_macro_id, 
+				web,
+				category,
+				template_macro_id,
 				integration_id,
-				test_data, 
-				settings, 
-				created_at, 
+				test_data,
+				settings,
+				translations,
+				created_at,
 				updated_at
 			FROM templates
 			WHERE id = $1 AND version = $2
@@ -111,19 +127,20 @@ func (r *templateRepository) GetTemplateByID(ctx context.Context, workspaceID st
 	} else {
 		// Get latest version
 		query = `
-			SELECT 
-				id, 
-				name, 
-				version, 
-				channel, 
+			SELECT
+				id,
+				name,
+				version,
+				channel,
 				email,
-				web, 
-				category, 
-				template_macro_id, 
+				web,
+				category,
+				template_macro_id,
 				integration_id,
-				test_data, 
-				settings, 
-				created_at, 
+				test_data,
+				settings,
+				translations,
+				created_at,
 				updated_at
 			FROM templates
 			WHERE id = $1
@@ -201,6 +218,7 @@ func (r *templateRepository) GetTemplates(ctx context.Context, workspaceID strin
 		"t.integration_id",
 		"t.test_data",
 		"t.settings",
+		"t.translations",
 		"t.created_at",
 		"t.updated_at",
 	).Prefix(latestVersionsCTE).
@@ -261,24 +279,37 @@ func (r *templateRepository) UpdateTemplate(ctx context.Context, workspaceID str
 	template.Version = latestVersion + 1
 	template.UpdatedAt = time.Now().UTC()
 
+	// Normalize nil translations to empty map for consistent JSONB storage
+	translations := template.Translations
+	if translations == nil {
+		translations = make(map[string]domain.TemplateTranslation)
+	}
+
+	// Marshal translations to JSON
+	translationsJSON, err := json.Marshal(translations)
+	if err != nil {
+		return fmt.Errorf("failed to marshal translations: %w", err)
+	}
+
 	// Create a new version instead of updating the existing one
 	query := `
 		INSERT INTO templates (
-			id, 
-			name, 
-			version, 
-			channel, 
+			id,
+			name,
+			version,
+			channel,
 			email,
-			web, 
-			category, 
-			template_macro_id, 
+			web,
+			category,
+			template_macro_id,
 			integration_id,
-			test_data, 
-			settings, 
-			created_at, 
+			test_data,
+			settings,
+			translations,
+			created_at,
 			updated_at
 		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
 	`
 	_, err = workspaceDB.ExecContext(ctx, query,
 		template.ID,
@@ -292,6 +323,7 @@ func (r *templateRepository) UpdateTemplate(ctx context.Context, workspaceID str
 		template.IntegrationID,
 		template.TestData,
 		template.Settings,
+		translationsJSON,
 		template.CreatedAt,
 		template.UpdatedAt,
 	)
@@ -334,9 +366,10 @@ func scanTemplate(scanner interface {
 	Scan(dest ...interface{}) error
 }) (*domain.Template, error) {
 	var (
-		template        domain.Template
-		templateMacroID sql.NullString
-		integrationID   sql.NullString
+		template         domain.Template
+		templateMacroID  sql.NullString
+		integrationID    sql.NullString
+		translationsJSON []byte
 	)
 
 	err := scanner.Scan(
@@ -351,6 +384,7 @@ func scanTemplate(scanner interface {
 		&integrationID,
 		&template.TestData,
 		&template.Settings,
+		&translationsJSON,
 		&template.CreatedAt,
 		&template.UpdatedAt,
 	)
@@ -364,6 +398,14 @@ func scanTemplate(scanner interface {
 	}
 	if integrationID.Valid {
 		template.IntegrationID = &integrationID.String
+	}
+
+	// Unmarshal translations JSON, always initialize to empty map for consistency
+	template.Translations = make(map[string]domain.TemplateTranslation)
+	if len(translationsJSON) > 0 {
+		if err := json.Unmarshal(translationsJSON, &template.Translations); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal translations: %w", err)
+		}
 	}
 
 	return &template, nil

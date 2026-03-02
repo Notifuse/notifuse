@@ -951,6 +951,132 @@ func TestCreateTemplateRequest_Validate(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		{
+			name: "invalid translation language key",
+			request: &CreateTemplateRequest{
+				WorkspaceID: "workspace123",
+				ID:          "template123",
+				Name:        "Test Template",
+				Channel:     "email",
+				Email: &EmailTemplate{
+					SenderID:         "test123",
+					Subject:          "Test Subject",
+					CompiledPreview:  "<html>Test content</html>",
+					VisualEditorTree: createValidMJMLBlock(),
+				},
+				Category:     string(TemplateCategoryMarketing),
+				Translations: map[string]TemplateTranslation{"invalid_lang": {}},
+			},
+			wantErr: true,
+		},
+		{
+			name: "valid translation language key",
+			request: &CreateTemplateRequest{
+				WorkspaceID: "workspace123",
+				ID:          "template123",
+				Name:        "Test Template",
+				Channel:     "email",
+				Email: &EmailTemplate{
+					SenderID:         "test123",
+					Subject:          "Test Subject",
+					CompiledPreview:  "<html>Test content</html>",
+					VisualEditorTree: createValidMJMLBlock(),
+				},
+				Category: string(TemplateCategoryMarketing),
+				Translations: map[string]TemplateTranslation{"fr": {Email: &EmailTemplate{
+					SenderID:         "test123",
+					Subject:          "Sujet FR",
+					CompiledPreview:  "<html>Contenu FR</html>",
+					VisualEditorTree: createValidMJMLBlock(),
+				}}},
+			},
+			wantErr: false,
+		},
+		{
+			name: "empty translation object is rejected",
+			request: &CreateTemplateRequest{
+				WorkspaceID: "workspace123",
+				ID:          "template123",
+				Name:        "Test Template",
+				Channel:     "email",
+				Email: &EmailTemplate{
+					SenderID:         "test123",
+					Subject:          "Test Subject",
+					CompiledPreview:  "<html>Test content</html>",
+					VisualEditorTree: createValidMJMLBlock(),
+				},
+				Category: string(TemplateCategoryMarketing),
+				Translations: map[string]TemplateTranslation{
+					"fr": {},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid translation email content",
+			request: &CreateTemplateRequest{
+				WorkspaceID: "workspace123",
+				ID:          "template123",
+				Name:        "Test Template",
+				Channel:     "email",
+				Email: &EmailTemplate{
+					SenderID:         "test123",
+					Subject:          "Test Subject",
+					CompiledPreview:  "<html>Test content</html>",
+					VisualEditorTree: createValidMJMLBlock(),
+				},
+				Category: string(TemplateCategoryMarketing),
+				Translations: map[string]TemplateTranslation{
+					"fr": {Email: &EmailTemplate{Subject: ""}},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "email template with web-only translation is channel mismatch",
+			request: &CreateTemplateRequest{
+				WorkspaceID: "workspace123",
+				ID:          "template123",
+				Name:        "Test Template",
+				Channel:     "email",
+				Email: &EmailTemplate{
+					SenderID:         "test123",
+					Subject:          "Test Subject",
+					CompiledPreview:  "<html>Test content</html>",
+					VisualEditorTree: createValidMJMLBlock(),
+				},
+				Category: string(TemplateCategoryMarketing),
+				Translations: map[string]TemplateTranslation{
+					"fr": {Web: &WebTemplate{Content: MapOfAny{"type": "doc"}}},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "valid translation with email content",
+			request: &CreateTemplateRequest{
+				WorkspaceID: "workspace123",
+				ID:          "template123",
+				Name:        "Test Template",
+				Channel:     "email",
+				Email: &EmailTemplate{
+					SenderID:         "test123",
+					Subject:          "Test Subject",
+					CompiledPreview:  "<html>Test content</html>",
+					VisualEditorTree: createValidMJMLBlock(),
+				},
+				Category: string(TemplateCategoryMarketing),
+				Translations: map[string]TemplateTranslation{
+					"fr": {Email: &EmailTemplate{
+						SenderID:         "test123",
+						Subject:          "Sujet FR",
+						CompiledPreview:  "<html>Contenu FR</html>",
+						VisualEditorTree: createValidMJMLBlock(),
+					}},
+				},
+			},
+			wantErr: false,
+		},
 	}
 
 	for _, tt := range tests {
@@ -1308,6 +1434,132 @@ func TestUpdateTemplateRequest_Validate(t *testing.T) {
 				Category: string(TemplateCategoryMarketing),
 			},
 			wantErr: true,
+		},
+		{
+			name: "invalid translation language key",
+			request: &UpdateTemplateRequest{
+				WorkspaceID: "workspace123",
+				ID:          "template123",
+				Name:        "Test Template",
+				Channel:     "email",
+				Email: &EmailTemplate{
+					SenderID:         "test123",
+					Subject:          "Test Subject",
+					CompiledPreview:  "<html>Test content</html>",
+					VisualEditorTree: createValidMJMLBlock(),
+				},
+				Category:     string(TemplateCategoryMarketing),
+				Translations: map[string]TemplateTranslation{"invalid_lang": {}},
+			},
+			wantErr: true,
+		},
+		{
+			name: "valid translation language key",
+			request: &UpdateTemplateRequest{
+				WorkspaceID: "workspace123",
+				ID:          "template123",
+				Name:        "Test Template",
+				Channel:     "email",
+				Email: &EmailTemplate{
+					SenderID:         "test123",
+					Subject:          "Test Subject",
+					CompiledPreview:  "<html>Test content</html>",
+					VisualEditorTree: createValidMJMLBlock(),
+				},
+				Category: string(TemplateCategoryMarketing),
+				Translations: map[string]TemplateTranslation{"fr": {Email: &EmailTemplate{
+					SenderID:         "test123",
+					Subject:          "Sujet FR",
+					CompiledPreview:  "<html>Contenu FR</html>",
+					VisualEditorTree: createValidMJMLBlock(),
+				}}},
+			},
+			wantErr: false,
+		},
+		{
+			name: "empty translation object is rejected",
+			request: &UpdateTemplateRequest{
+				WorkspaceID: "workspace123",
+				ID:          "template123",
+				Name:        "Test Template",
+				Channel:     "email",
+				Email: &EmailTemplate{
+					SenderID:         "test123",
+					Subject:          "Test Subject",
+					CompiledPreview:  "<html>Test content</html>",
+					VisualEditorTree: createValidMJMLBlock(),
+				},
+				Category: string(TemplateCategoryMarketing),
+				Translations: map[string]TemplateTranslation{
+					"fr": {},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid translation email content",
+			request: &UpdateTemplateRequest{
+				WorkspaceID: "workspace123",
+				ID:          "template123",
+				Name:        "Test Template",
+				Channel:     "email",
+				Email: &EmailTemplate{
+					SenderID:         "test123",
+					Subject:          "Test Subject",
+					CompiledPreview:  "<html>Test content</html>",
+					VisualEditorTree: createValidMJMLBlock(),
+				},
+				Category: string(TemplateCategoryMarketing),
+				Translations: map[string]TemplateTranslation{
+					"fr": {Email: &EmailTemplate{Subject: ""}},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "email template with web-only translation is channel mismatch",
+			request: &UpdateTemplateRequest{
+				WorkspaceID: "workspace123",
+				ID:          "template123",
+				Name:        "Test Template",
+				Channel:     "email",
+				Email: &EmailTemplate{
+					SenderID:         "test123",
+					Subject:          "Test Subject",
+					CompiledPreview:  "<html>Test content</html>",
+					VisualEditorTree: createValidMJMLBlock(),
+				},
+				Category: string(TemplateCategoryMarketing),
+				Translations: map[string]TemplateTranslation{
+					"fr": {Web: &WebTemplate{Content: MapOfAny{"type": "doc"}}},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "valid translation with email content",
+			request: &UpdateTemplateRequest{
+				WorkspaceID: "workspace123",
+				ID:          "template123",
+				Name:        "Test Template",
+				Channel:     "email",
+				Email: &EmailTemplate{
+					SenderID:         "test123",
+					Subject:          "Test Subject",
+					CompiledPreview:  "<html>Test content</html>",
+					VisualEditorTree: createValidMJMLBlock(),
+				},
+				Category: string(TemplateCategoryMarketing),
+				Translations: map[string]TemplateTranslation{
+					"fr": {Email: &EmailTemplate{
+						SenderID:         "test123",
+						Subject:          "Sujet FR",
+						CompiledPreview:  "<html>Contenu FR</html>",
+						VisualEditorTree: createValidMJMLBlock(),
+					}},
+				},
+			},
+			wantErr: false,
 		},
 	}
 
@@ -2064,3 +2316,135 @@ func TestEmailTemplate_UnmarshalJSON_CodeMode(t *testing.T) {
 		assert.Nil(t, et.MjmlSource)
 	})
 }
+
+func TestTemplate_ResolveEmailContent(t *testing.T) {
+	defaultEmail := &EmailTemplate{Subject: "Default Subject", SenderID: "default-sender"}
+	frEmail := &EmailTemplate{Subject: "Sujet Français", SenderID: "fr-sender"}
+	esEmail := &EmailTemplate{Subject: "Asunto Español", SenderID: "es-sender"}
+
+	template := &Template{
+		Email: defaultEmail,
+		Translations: map[string]TemplateTranslation{
+			"fr": {Email: frEmail},
+			"es": {Email: esEmail},
+		},
+	}
+
+	tests := []struct {
+		name             string
+		contactLang      string
+		defaultLang      string
+		expectedSubject  string
+	}{
+		{"empty contact language returns default", "", "en", "Default Subject"},
+		{"contact language matches default returns default", "en", "en", "Default Subject"},
+		{"contact language has translation", "fr", "en", "Sujet Français"},
+		{"contact language has translation (es)", "es", "en", "Asunto Español"},
+		{"contact language has no translation falls back", "de", "en", "Default Subject"},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			result := template.ResolveEmailContent(tc.contactLang, tc.defaultLang)
+			assert.Equal(t, tc.expectedSubject, result.Subject)
+		})
+	}
+
+	t.Run("nil email returns nil", func(t *testing.T) {
+		tmpl := &Template{Email: nil}
+		result := tmpl.ResolveEmailContent("fr", "en")
+		assert.Nil(t, result)
+	})
+
+	t.Run("nil translations returns default", func(t *testing.T) {
+		tmpl := &Template{Email: defaultEmail, Translations: nil}
+		result := tmpl.ResolveEmailContent("fr", "en")
+		assert.Equal(t, "Default Subject", result.Subject)
+	})
+
+	t.Run("translation exists but email is nil falls back", func(t *testing.T) {
+		tmpl := &Template{
+			Email: defaultEmail,
+			Translations: map[string]TemplateTranslation{
+				"fr": {Web: &WebTemplate{}},
+			},
+		}
+		result := tmpl.ResolveEmailContent("fr", "en")
+		assert.Equal(t, "Default Subject", result.Subject)
+	})
+}
+
+func TestTemplate_ResolveWebContent(t *testing.T) {
+	defaultWeb := &WebTemplate{HTML: "<p>Default</p>"}
+	frWeb := &WebTemplate{HTML: "<p>Français</p>"}
+
+	template := &Template{
+		Web: defaultWeb,
+		Translations: map[string]TemplateTranslation{
+			"fr": {Web: frWeb},
+		},
+	}
+
+	t.Run("contact language has web translation", func(t *testing.T) {
+		result := template.ResolveWebContent("fr", "en")
+		assert.Equal(t, "<p>Français</p>", result.HTML)
+	})
+
+	t.Run("no web translation falls back", func(t *testing.T) {
+		result := template.ResolveWebContent("de", "en")
+		assert.Equal(t, "<p>Default</p>", result.HTML)
+	})
+
+	t.Run("nil web returns nil", func(t *testing.T) {
+		tmpl := &Template{Web: nil}
+		result := tmpl.ResolveWebContent("fr", "en")
+		assert.Nil(t, result)
+	})
+}
+
+func TestTemplate_Validate_Translations(t *testing.T) {
+	validTree := createValidMJMLBlock()
+
+	t.Run("valid translation keys", func(t *testing.T) {
+		tmpl := &Template{
+			ID:       "test-template",
+			Name:     "Test",
+			Version:  1,
+			Channel:  "email",
+			Category: "marketing",
+			Email: &EmailTemplate{
+				Subject:          "Test",
+				CompiledPreview:  "<html>test</html>",
+				VisualEditorTree: validTree,
+			},
+			Translations: map[string]TemplateTranslation{
+				"fr": {Email: &EmailTemplate{Subject: "Test FR", CompiledPreview: "<html>fr</html>", VisualEditorTree: validTree}},
+				"es": {Email: &EmailTemplate{Subject: "Test ES", CompiledPreview: "<html>es</html>", VisualEditorTree: validTree}},
+			},
+		}
+		err := tmpl.Validate()
+		assert.NoError(t, err)
+	})
+
+	t.Run("invalid translation key", func(t *testing.T) {
+		tmpl := &Template{
+			ID:       "test-template",
+			Name:     "Test",
+			Version:  1,
+			Channel:  "email",
+			Category: "marketing",
+			Email: &EmailTemplate{
+				Subject:          "Test",
+				CompiledPreview:  "<html>test</html>",
+				VisualEditorTree: validTree,
+			},
+			Translations: map[string]TemplateTranslation{
+				"xx": {Email: &EmailTemplate{Subject: "Test XX", CompiledPreview: "<html>xx</html>", VisualEditorTree: validTree}},
+			},
+		}
+		err := tmpl.Validate()
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "invalid translation language code")
+	})
+}
+

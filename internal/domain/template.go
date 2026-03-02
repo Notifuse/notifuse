@@ -71,21 +71,91 @@ func (t TemplateCategory) Validate() error {
 	return fmt.Errorf("invalid template category: %s", t)
 }
 
+// TemplateTranslation holds the translated content for a specific language variant.
+type TemplateTranslation struct {
+	Email *EmailTemplate `json:"email,omitempty"`
+	Web   *WebTemplate   `json:"web,omitempty"`
+}
+
+// validateTranslations validates translation language keys, channel match, and content.
+func validateTranslations(translations map[string]TemplateTranslation, channel string, testData MapOfAny) error {
+	for lang, translation := range translations {
+		if !IsValidLanguage(lang) {
+			return fmt.Errorf("invalid translation language code: %s", lang)
+		}
+		if translation.Email == nil && translation.Web == nil {
+			return fmt.Errorf("translation '%s': must have either email or web content", lang)
+		}
+		switch channel {
+		case ChannelEmail:
+			if translation.Web != nil {
+				return fmt.Errorf("translation '%s': web content not allowed for email channel", lang)
+			}
+			if translation.Email != nil {
+				if err := translation.Email.Validate(testData); err != nil {
+					return fmt.Errorf("translation '%s': %w", lang, err)
+				}
+			}
+		case ChannelWeb:
+			if translation.Email != nil {
+				return fmt.Errorf("translation '%s': email content not allowed for web channel", lang)
+			}
+			if translation.Web != nil {
+				if err := translation.Web.Validate(testData); err != nil {
+					return fmt.Errorf("translation '%s': %w", lang, err)
+				}
+			}
+		}
+	}
+	return nil
+}
+
 type Template struct {
-	ID              string         `json:"id"`
-	Name            string         `json:"name"`
-	Version         int64          `json:"version"`
-	Channel         string         `json:"channel"` // email or web
-	Email           *EmailTemplate `json:"email,omitempty"`
-	Web             *WebTemplate   `json:"web,omitempty"`
-	Category        string         `json:"category"`
-	TemplateMacroID *string        `json:"template_macro_id,omitempty"`
-	IntegrationID   *string        `json:"integration_id,omitempty"` // Set if template is managed by an integration (e.g., Supabase)
-	TestData        MapOfAny       `json:"test_data,omitempty"`
-	Settings        MapOfAny       `json:"settings,omitempty"` // Channels specific 3rd-party settings
-	CreatedAt       time.Time      `json:"created_at"`
-	UpdatedAt       time.Time      `json:"updated_at"`
-	DeletedAt       *time.Time     `json:"deleted_at,omitempty"`
+	ID              string                          `json:"id"`
+	Name            string                          `json:"name"`
+	Version         int64                           `json:"version"`
+	Channel         string                          `json:"channel"` // email or web
+	Email           *EmailTemplate                  `json:"email,omitempty"`
+	Web             *WebTemplate                    `json:"web,omitempty"`
+	Category        string                          `json:"category"`
+	TemplateMacroID *string                         `json:"template_macro_id,omitempty"`
+	IntegrationID   *string                         `json:"integration_id,omitempty"` // Set if template is managed by an integration (e.g., Supabase)
+	TestData        MapOfAny                        `json:"test_data,omitempty"`
+	Settings        MapOfAny                        `json:"settings,omitempty"` // Channels specific 3rd-party settings
+	Translations    map[string]TemplateTranslation  `json:"translations,omitempty"`
+	CreatedAt       time.Time                       `json:"created_at"`
+	UpdatedAt       time.Time                       `json:"updated_at"`
+	DeletedAt       *time.Time                      `json:"deleted_at,omitempty"`
+}
+
+// ResolveEmailContent returns the EmailTemplate for the given contact language.
+// Falls back to the default template content if no translation exists.
+func (t *Template) ResolveEmailContent(contactLanguage string, workspaceDefaultLanguage string) *EmailTemplate {
+	if t.Email == nil || t.Translations == nil || contactLanguage == "" {
+		return t.Email
+	}
+	if contactLanguage == workspaceDefaultLanguage {
+		return t.Email
+	}
+	if translation, ok := t.Translations[contactLanguage]; ok && translation.Email != nil {
+		return translation.Email
+	}
+	return t.Email
+}
+
+// ResolveWebContent returns the WebTemplate for the given contact language.
+// Falls back to the default template content if no translation exists.
+func (t *Template) ResolveWebContent(contactLanguage string, workspaceDefaultLanguage string) *WebTemplate {
+	if t.Web == nil || t.Translations == nil || contactLanguage == "" {
+		return t.Web
+	}
+	if contactLanguage == workspaceDefaultLanguage {
+		return t.Web
+	}
+	if translation, ok := t.Translations[contactLanguage]; ok && translation.Web != nil {
+		return translation.Web
+	}
+	return t.Web
 }
 
 func (t *Template) Validate() error {
@@ -152,6 +222,11 @@ func (t *Template) Validate() error {
 		if err := t.Web.Validate(t.TestData); err != nil {
 			return fmt.Errorf("invalid template: %w", err)
 		}
+	}
+
+	// Validate translations: language keys, channel match, and content
+	if err := validateTranslations(t.Translations, t.Channel, t.TestData); err != nil {
+		return fmt.Errorf("invalid template: %w", err)
 	}
 
 	return nil
@@ -410,16 +485,17 @@ func (w *WebTemplate) UnmarshalJSON(data []byte) error {
 
 // Request/Response types
 type CreateTemplateRequest struct {
-	WorkspaceID     string         `json:"workspace_id"`
-	ID              string         `json:"id"`
-	Name            string         `json:"name"`
-	Channel         string         `json:"channel"`
-	Email           *EmailTemplate `json:"email,omitempty"`
-	Web             *WebTemplate   `json:"web,omitempty"`
-	Category        string         `json:"category"`
-	TemplateMacroID *string        `json:"template_macro_id,omitempty"`
-	TestData        MapOfAny       `json:"test_data,omitempty"`
-	Settings        MapOfAny       `json:"settings,omitempty"`
+	WorkspaceID     string                          `json:"workspace_id"`
+	ID              string                          `json:"id"`
+	Name            string                          `json:"name"`
+	Channel         string                          `json:"channel"`
+	Email           *EmailTemplate                  `json:"email,omitempty"`
+	Web             *WebTemplate                    `json:"web,omitempty"`
+	Category        string                          `json:"category"`
+	TemplateMacroID *string                         `json:"template_macro_id,omitempty"`
+	TestData        MapOfAny                        `json:"test_data,omitempty"`
+	Settings        MapOfAny                        `json:"settings,omitempty"`
+	Translations    map[string]TemplateTranslation  `json:"translations,omitempty"`
 }
 
 func (r *CreateTemplateRequest) Validate() (template *Template, workspaceID string, err error) {
@@ -480,6 +556,10 @@ func (r *CreateTemplateRequest) Validate() (template *Template, workspaceID stri
 		}
 	}
 
+	if err := validateTranslations(r.Translations, r.Channel, r.TestData); err != nil {
+		return nil, "", fmt.Errorf("invalid create template request: %w", err)
+	}
+
 	return &Template{
 		ID:              r.ID,
 		Name:            r.Name,
@@ -491,6 +571,7 @@ func (r *CreateTemplateRequest) Validate() (template *Template, workspaceID stri
 		TemplateMacroID: r.TemplateMacroID,
 		TestData:        r.TestData,
 		Settings:        r.Settings,
+		Translations:    r.Translations,
 	}, r.WorkspaceID, nil
 }
 
@@ -558,16 +639,17 @@ func (r *GetTemplateRequest) FromURLParams(queryParams url.Values) (err error) {
 }
 
 type UpdateTemplateRequest struct {
-	WorkspaceID     string         `json:"workspace_id"`
-	ID              string         `json:"id"`
-	Name            string         `json:"name"`
-	Channel         string         `json:"channel"`
-	Email           *EmailTemplate `json:"email,omitempty"`
-	Web             *WebTemplate   `json:"web,omitempty"`
-	Category        string         `json:"category"`
-	TemplateMacroID *string        `json:"template_macro_id,omitempty"`
-	TestData        MapOfAny       `json:"test_data,omitempty"`
-	Settings        MapOfAny       `json:"settings,omitempty"`
+	WorkspaceID     string                          `json:"workspace_id"`
+	ID              string                          `json:"id"`
+	Name            string                          `json:"name"`
+	Channel         string                          `json:"channel"`
+	Email           *EmailTemplate                  `json:"email,omitempty"`
+	Web             *WebTemplate                    `json:"web,omitempty"`
+	Category        string                          `json:"category"`
+	TemplateMacroID *string                         `json:"template_macro_id,omitempty"`
+	TestData        MapOfAny                        `json:"test_data,omitempty"`
+	Settings        MapOfAny                        `json:"settings,omitempty"`
+	Translations    map[string]TemplateTranslation  `json:"translations,omitempty"`
 }
 
 func (r *UpdateTemplateRequest) Validate() (template *Template, workspaceID string, err error) {
@@ -628,6 +710,10 @@ func (r *UpdateTemplateRequest) Validate() (template *Template, workspaceID stri
 		}
 	}
 
+	if err := validateTranslations(r.Translations, r.Channel, r.TestData); err != nil {
+		return nil, "", fmt.Errorf("invalid update template request: %w", err)
+	}
+
 	return &Template{
 		ID:              r.ID,
 		Name:            r.Name,
@@ -638,6 +724,7 @@ func (r *UpdateTemplateRequest) Validate() (template *Template, workspaceID stri
 		TemplateMacroID: r.TemplateMacroID,
 		TestData:        r.TestData,
 		Settings:        r.Settings,
+		Translations:    r.Translations,
 	}, r.WorkspaceID, nil
 }
 

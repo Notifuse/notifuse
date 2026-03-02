@@ -1,3 +1,64 @@
+/**
+ * Supported languages for workspace content translations.
+ * Must match the list in internal/domain/languages.go.
+ */
+export const SUPPORTED_LANGUAGES: Record<string, string> = {
+  ar: 'Arabic',
+  ca: 'Catalan',
+  cs: 'Czech',
+  da: 'Danish',
+  de: 'German',
+  el: 'Greek',
+  en: 'English',
+  es: 'Spanish',
+  fi: 'Finnish',
+  fr: 'French',
+  he: 'Hebrew',
+  hi: 'Hindi',
+  hu: 'Hungarian',
+  id: 'Indonesian',
+  it: 'Italian',
+  ja: 'Japanese',
+  ko: 'Korean',
+  nl: 'Dutch',
+  nb: 'Norwegian Bokmal',
+  pl: 'Polish',
+  pt: 'Portuguese',
+  'pt-BR': 'Portuguese (Brazil)',
+  ro: 'Romanian',
+  ru: 'Russian',
+  sv: 'Swedish',
+  th: 'Thai',
+  tr: 'Turkish',
+  uk: 'Ukrainian',
+  vi: 'Vietnamese',
+  zh: 'Chinese',
+  'zh-TW': 'Chinese (Traditional)'
+}
+
+/**
+ * Detects the user's browser language and matches it against SUPPORTED_LANGUAGES.
+ * Tries exact match first (handles pt-BR, zh-TW), then base code (fr-FR → fr),
+ * falls back to 'en'.
+ */
+export function getBrowserLanguage(): string {
+  const browserLang = navigator.language
+  if (SUPPORTED_LANGUAGES[browserLang]) return browserLang
+  const base = browserLang.split('-')[0]
+  if (SUPPORTED_LANGUAGES[base]) return base
+  return 'en'
+}
+
+/**
+ * Language options for Ant Design Select (workspace supported languages).
+ */
+export const LANGUAGE_OPTIONS = Object.entries(SUPPORTED_LANGUAGES)
+  .map(([code, name]) => ({
+    label: `${name} (${code})`,
+    value: code
+  }))
+  .sort((a, b) => a.label.localeCompare(b.label))
+
 export type Language = {
   value: string
   label: string

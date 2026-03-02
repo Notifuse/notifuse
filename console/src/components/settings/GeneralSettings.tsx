@@ -5,6 +5,7 @@ import { useLingui } from '@lingui/react/macro'
 import { Workspace } from '../../services/api/types'
 import { workspaceService } from '../../services/api/workspace'
 import { TIMEZONE_OPTIONS } from '../../lib/timezones'
+import { LANGUAGE_OPTIONS } from '../../lib/languages'
 import { LogoInput } from './LogoInput'
 import { SettingsSectionHeader } from './SettingsSectionHeader'
 
@@ -32,7 +33,9 @@ export function GeneralSettings({ workspace, onWorkspaceUpdate, isOwner }: Gener
       logo_url: workspace?.settings.logo_url || '',
       timezone: workspace?.settings.timezone || 'UTC',
       email_tracking_enabled: workspace?.settings.email_tracking_enabled || false,
-      custom_endpoint_url: workspace?.settings.custom_endpoint_url || ''
+      custom_endpoint_url: workspace?.settings.custom_endpoint_url || '',
+      languages: workspace?.settings.languages || ['en'],
+      default_language: workspace?.settings.default_language || 'en'
     })
     setFormTouched(false)
   }, [workspace, form, isOwner])
@@ -44,6 +47,8 @@ export function GeneralSettings({ workspace, onWorkspaceUpdate, isOwner }: Gener
     timezone: string
     email_tracking_enabled: boolean
     custom_endpoint_url?: string
+    languages?: string[]
+    default_language?: string
   }) => {
     if (!workspace) return
 
@@ -59,7 +64,9 @@ export function GeneralSettings({ workspace, onWorkspaceUpdate, isOwner }: Gener
           cover_url: workspace?.settings.cover_url || null,
           timezone: values.timezone,
           email_tracking_enabled: values.email_tracking_enabled,
-          custom_endpoint_url: (values.custom_endpoint_url as string | undefined) || undefined
+          custom_endpoint_url: (values.custom_endpoint_url as string | undefined) || undefined,
+          languages: values.languages || ['en'],
+          default_language: values.default_language || 'en'
         }
       })
 
@@ -183,6 +190,42 @@ export function GeneralSettings({ workspace, onWorkspaceUpdate, isOwner }: Gener
           rules={[{ required: true, message: t`Please select a timezone` }]}
         >
           <Select options={TIMEZONE_OPTIONS} showSearch optionFilterProp="label" />
+        </Form.Item>
+
+        <Form.Item
+          name="languages"
+          label={t`Supported Languages`}
+          tooltip={t`Languages available for template translations in this workspace`}
+        >
+          <Select
+            mode="multiple"
+            options={LANGUAGE_OPTIONS}
+            showSearch
+            optionFilterProp="label"
+            placeholder={t`Select supported languages`}
+            onChange={(values: string[]) => {
+              const currentDefault = form.getFieldValue('default_language')
+              if (currentDefault && !values.includes(currentDefault)) {
+                form.setFieldsValue({ default_language: values[0] || 'en' })
+              }
+              handleFormChange()
+            }}
+          />
+        </Form.Item>
+
+        <Form.Item
+          name="default_language"
+          label={t`Default Language`}
+          tooltip={t`The primary language for template content. Translations are stored for other languages.`}
+        >
+          <Select
+            options={(form.getFieldValue('languages') || ['en']).map((code: string) => {
+              const opt = LANGUAGE_OPTIONS.find((o) => o.value === code)
+              return opt || { label: code, value: code }
+            })}
+            showSearch
+            optionFilterProp="label"
+          />
         </Form.Item>
 
         <Form.Item

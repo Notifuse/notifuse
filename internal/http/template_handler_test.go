@@ -2,6 +2,7 @@ package http_test
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -420,6 +421,90 @@ func TestTemplateHandler_HandleCreate(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestTemplateHandler_HandleCreate_WithTranslations(t *testing.T) {
+	mockService, _, serverURL, secretKey, cleanup := setupTemplateHandlerTest(t)
+	defer cleanup()
+
+	reqWithTranslations := domain.CreateTemplateRequest{
+		WorkspaceID: "workspace123",
+		ID:          "translatedTmpl",
+		Name:        "Translated Template",
+		Channel:     "email",
+		Category:    "transactional",
+		Email:       createTestEmailTemplate(),
+		Translations: map[string]domain.TemplateTranslation{
+			"fr": {Email: &domain.EmailTemplate{
+				SenderID:         "sender123",
+				Subject:          "Sujet FR",
+				CompiledPreview:  "<html>FR</html>",
+				VisualEditorTree: createTestEmailTemplate().VisualEditorTree,
+			}},
+		},
+	}
+
+	mockService.EXPECT().CreateTemplate(gomock.Any(), "workspace123", gomock.Any()).
+		DoAndReturn(func(ctx context.Context, wsID string, tmpl *domain.Template) error {
+			assert.NotNil(t, tmpl.Translations)
+			assert.Len(t, tmpl.Translations, 1)
+			fr, ok := tmpl.Translations["fr"]
+			assert.True(t, ok, "expected fr translation")
+			assert.NotNil(t, fr.Email)
+			assert.Equal(t, "Sujet FR", fr.Email.Subject)
+			return nil
+		})
+
+	resp := sendRequest(t, http.MethodPost, fmt.Sprintf("%s/api/templates.create", serverURL), createTestToken(secretKey), reqWithTranslations)
+	defer func() { _ = resp.Body.Close() }()
+
+	assert.Equal(t, http.StatusCreated, resp.StatusCode)
+}
+
+func TestTemplateHandler_HandleUpdate_WithTranslations(t *testing.T) {
+	mockService, _, serverURL, secretKey, cleanup := setupTemplateHandlerTest(t)
+	defer cleanup()
+
+	reqWithTranslations := domain.UpdateTemplateRequest{
+		WorkspaceID: "workspace123",
+		ID:          "translatedTmpl",
+		Name:        "Updated Translated Template",
+		Channel:     "email",
+		Category:    "transactional",
+		Email:       createTestEmailTemplate(),
+		Translations: map[string]domain.TemplateTranslation{
+			"fr": {Email: &domain.EmailTemplate{
+				SenderID:         "sender123",
+				Subject:          "Sujet FR mis à jour",
+				CompiledPreview:  "<html>FR updated</html>",
+				VisualEditorTree: createTestEmailTemplate().VisualEditorTree,
+			}},
+			"es": {Email: &domain.EmailTemplate{
+				SenderID:         "sender123",
+				Subject:          "Asunto ES",
+				CompiledPreview:  "<html>ES</html>",
+				VisualEditorTree: createTestEmailTemplate().VisualEditorTree,
+			}},
+		},
+	}
+
+	mockService.EXPECT().UpdateTemplate(gomock.Any(), "workspace123", gomock.Any()).
+		DoAndReturn(func(ctx context.Context, wsID string, tmpl *domain.Template) error {
+			assert.NotNil(t, tmpl.Translations)
+			assert.Len(t, tmpl.Translations, 2)
+			fr, ok := tmpl.Translations["fr"]
+			assert.True(t, ok, "expected fr translation")
+			assert.Equal(t, "Sujet FR mis à jour", fr.Email.Subject)
+			es, ok := tmpl.Translations["es"]
+			assert.True(t, ok, "expected es translation")
+			assert.Equal(t, "Asunto ES", es.Email.Subject)
+			return nil
+		})
+
+	resp := sendRequest(t, http.MethodPost, fmt.Sprintf("%s/api/templates.update", serverURL), createTestToken(secretKey), reqWithTranslations)
+	defer func() { _ = resp.Body.Close() }()
+
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
 }
 
 func TestTemplateHandler_HandleUpdate(t *testing.T) {

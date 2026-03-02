@@ -2633,6 +2633,90 @@ func TestBroadcastService_SendToIndividual_ContactToMapError(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestBroadcastService_SendToIndividual_LanguageResolution(t *testing.T) {
+	d := setupBroadcastSvc(t)
+	defer d.ctrl.Finish()
+
+	ctx := context.Background()
+	req := &domain.SendToIndividualRequest{WorkspaceID: "w1", BroadcastID: "b1", RecipientEmail: "test@example.com"}
+	authOK(d.authService, ctx, req.WorkspaceID)
+
+	sender := domain.NewEmailSender("from@example.com", "From")
+	frSender := domain.NewEmailSender("fr@example.com", "From FR")
+	workspace := &domain.Workspace{
+		ID: "w1",
+		Settings: domain.WorkspaceSettings{
+			MarketingEmailProviderID: "mkt",
+			SecretKey:                "sk_test",
+			DefaultLanguage:          "en",
+			Languages:                []string{"en", "fr"},
+		},
+		Integrations: domain.Integrations{
+			{ID: "mkt", Type: domain.IntegrationTypeEmail, EmailProvider: domain.EmailProvider{
+				Kind:    domain.EmailProviderKindSMTP,
+				Senders: []domain.EmailSender{sender, frSender},
+			}},
+		},
+	}
+	d.workspaceRepo.EXPECT().GetByID(ctx, req.WorkspaceID).Return(workspace, nil)
+
+	b := testBroadcast(req.WorkspaceID, req.BroadcastID)
+	b.TestSettings.Variations = []domain.BroadcastVariation{{VariationName: "A", TemplateID: "tplA"}}
+	d.repo.EXPECT().GetBroadcast(ctx, req.WorkspaceID, req.BroadcastID).Return(b, nil)
+
+	// Contact with French language preference
+	contact := &domain.Contact{
+		Email:    req.RecipientEmail,
+		Language: &domain.NullableString{String: "fr", IsNull: false},
+	}
+	d.contactRepo.EXPECT().GetContactByEmail(ctx, req.WorkspaceID, req.RecipientEmail).Return(contact, nil).AnyTimes()
+
+	// Template with French translation
+	frReplyTo := "reply-fr@example.com"
+	template := &domain.Template{
+		ID:      "tplA",
+		Name:    "Template A",
+		Channel: "email",
+		Email: &domain.EmailTemplate{
+			SenderID:         sender.ID,
+			Subject:          "Hello English",
+			CompiledPreview:  "<p>preview</p>",
+			VisualEditorTree: createMJMLRootBlock(),
+			ReplyTo:          "reply-en@example.com",
+		},
+		Translations: map[string]domain.TemplateTranslation{
+			"fr": {
+				Email: &domain.EmailTemplate{
+					SenderID:         frSender.ID,
+					Subject:          "Bonjour French",
+					CompiledPreview:  "<p>aperçu</p>",
+					VisualEditorTree: createMJMLRootBlock(),
+					ReplyTo:          frReplyTo,
+				},
+			},
+		},
+	}
+	d.templateSvc.EXPECT().GetTemplateByID(ctx, req.WorkspaceID, "tplA", int64(0)).Return(template, nil)
+
+	compiledHTML := "<html>Bonjour</html>"
+	d.templateSvc.EXPECT().CompileTemplate(ctx, gomock.Any()).Return(&domain.CompileTemplateResponse{Success: true, HTML: &compiledHTML}, nil)
+
+	// Verify the email uses the French subject and reply-to
+	d.emailSvc.EXPECT().SendEmail(gomock.Any(), gomock.Any(), true).DoAndReturn(
+		func(_ context.Context, emailReq domain.SendEmailProviderRequest, _ bool) error {
+			assert.Equal(t, "Bonjour French", emailReq.Subject, "should use French translation subject")
+			assert.Equal(t, "reply-fr@example.com", emailReq.EmailOptions.ReplyTo, "should use French translation reply-to")
+			assert.Equal(t, "fr@example.com", emailReq.FromAddress, "should use French sender")
+			return nil
+		},
+	)
+
+	d.messageHistoryRepo.EXPECT().Create(gomock.Any(), req.WorkspaceID, gomock.Any(), gomock.Any()).Return(nil)
+
+	err := d.svc.SendToIndividual(ctx, req)
+	require.NoError(t, err)
+}
+
 func TestValidateSlug(t *testing.T) {
 	// Test ValidateSlug - this was at 0% coverage
 	t.Run("Success - Valid slugs", func(t *testing.T) {

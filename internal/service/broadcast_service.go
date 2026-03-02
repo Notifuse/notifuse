@@ -889,7 +889,17 @@ func (s *BroadcastService) SendToIndividual(ctx context.Context, request *domain
 		return err
 	}
 
-	emailSender := emailProvider.GetSender(template.Email.SenderID)
+	// Resolve language variant based on contact language
+	contactLanguage := ""
+	if contact != nil && contact.Language != nil && !contact.Language.IsNull {
+		contactLanguage = contact.Language.String
+	}
+	emailContent := template.ResolveEmailContent(contactLanguage, workspace.Settings.DefaultLanguage)
+	if emailContent == nil {
+		return fmt.Errorf("email content not available after language resolution")
+	}
+
+	emailSender := emailProvider.GetSender(emailContent.SenderID)
 
 	if emailSender == nil {
 		s.logger.Error("Failed to get sender for broadcast")
@@ -950,11 +960,11 @@ func (s *BroadcastService) SendToIndividual(ctx context.Context, request *domain
 	compileReq := domain.CompileTemplateRequest{
 		WorkspaceID:      request.WorkspaceID,
 		MessageID:        messageID,
-		VisualEditorTree: template.Email.VisualEditorTree,
+		VisualEditorTree: emailContent.VisualEditorTree,
 		TemplateData:     notifuse_mjml.MapOfAny(templateData),
 		TrackingSettings: trackingSettings,
 	}
-	compileReq.MjmlSource = template.Email.GetCodeModeMjmlSource()
+	compileReq.MjmlSource = emailContent.GetCodeModeMjmlSource()
 	compiledTemplate, err := s.templateSvc.CompileTemplate(ctx, compileReq)
 	if err != nil {
 		s.logger.Error("Failed to compile template for broadcast")
@@ -978,11 +988,11 @@ func (s *BroadcastService) SendToIndividual(ctx context.Context, request *domain
 		FromAddress:   emailSender.Email,
 		FromName:      emailSender.Name,
 		To:            request.RecipientEmail,
-		Subject:       template.Email.Subject,
+		Subject:       emailContent.Subject,
 		Content:       *compiledTemplate.HTML,
 		Provider:      emailProvider,
 		EmailOptions: domain.EmailOptions{
-			ReplyTo: template.Email.ReplyTo,
+			ReplyTo: emailContent.ReplyTo,
 		},
 	}
 

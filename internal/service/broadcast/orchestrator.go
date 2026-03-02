@@ -1016,6 +1016,7 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 			templates,
 			emailProvider,
 			processTimeoutAt,
+			workspace.Settings.DefaultLanguage,
 		)
 
 		// Handle errors during sending

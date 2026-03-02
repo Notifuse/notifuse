@@ -246,6 +246,7 @@ func (s *DemoService) createDemoWorkspace(ctx context.Context) error {
 		"https://demo.notifuse.com/cover.png",
 		"UTC",
 		fileManagerSettings,
+		domain.DefaultLanguageCode, []string{domain.DefaultLanguageCode},
 	)
 	if err != nil {
 		return fmt.Errorf("failed to create demo workspace: %w", err)

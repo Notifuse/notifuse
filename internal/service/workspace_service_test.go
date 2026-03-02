@@ -327,7 +327,7 @@ func TestWorkspaceService_CreateWorkspace(t *testing.T) {
 			Endpoint:  "https://s3.amazonaws.com",
 			Bucket:    "my-bucket",
 			AccessKey: "AKIAIOSFODNN7EXAMPLE",
-		})
+		}, "en", []string{"en"})
 		require.NoError(t, err)
 		assert.Equal(t, workspaceID, workspace.ID)
 		assert.Equal(t, "Test Workspace", workspace.Name)
@@ -337,6 +337,10 @@ func TestWorkspaceService_CreateWorkspace(t *testing.T) {
 		assert.Equal(t, "https://example.com/logo.png", workspace.Settings.LogoURL)
 		assert.Equal(t, "https://example.com/cover.png", workspace.Settings.CoverURL)
 		assert.Equal(t, "UTC", workspace.Settings.Timezone)
+
+		// Verify language defaults
+		assert.Equal(t, "en", workspace.Settings.DefaultLanguage)
+		assert.Equal(t, []string{"en"}, workspace.Settings.Languages)
 
 		// Verify SecretKey format but not exact value
 		assert.NotEmpty(t, workspace.Settings.SecretKey)
@@ -360,7 +364,7 @@ func TestWorkspaceService_CreateWorkspace(t *testing.T) {
 			Endpoint:  "https://s3.amazonaws.com",
 			Bucket:    "my-bucket",
 			AccessKey: "AKIAIOSFODNN7EXAMPLE",
-		})
+		}, "en", []string{"en"})
 		require.Error(t, err)
 		assert.Nil(t, workspace)
 		assert.Contains(t, err.Error(), "invalid timezone: INVALID_TIMEZONE")
@@ -381,7 +385,7 @@ func TestWorkspaceService_CreateWorkspace(t *testing.T) {
 			Endpoint:  "https://s3.amazonaws.com",
 			Bucket:    "my-bucket",
 			AccessKey: "AKIAIOSFODNN7EXAMPLE",
-		})
+		}, "en", []string{"en"})
 		require.Error(t, err)
 		assert.Nil(t, workspace)
 		assert.Equal(t, assert.AnError, err)
@@ -403,7 +407,7 @@ func TestWorkspaceService_CreateWorkspace(t *testing.T) {
 			Endpoint:  "https://s3.amazonaws.com",
 			Bucket:    "my-bucket",
 			AccessKey: "AKIAIOSFODNN7EXAMPLE",
-		})
+		}, "en", []string{"en"})
 		require.Error(t, err)
 		assert.Nil(t, workspace)
 		assert.Equal(t, assert.AnError, err)
@@ -426,7 +430,7 @@ func TestWorkspaceService_CreateWorkspace(t *testing.T) {
 			Endpoint:  "https://s3.amazonaws.com",
 			Bucket:    "my-bucket",
 			AccessKey: "AKIAIOSFODNN7EXAMPLE",
-		})
+		}, "en", []string{"en"})
 		require.Error(t, err)
 		assert.Nil(t, workspace)
 		assert.Equal(t, assert.AnError, err)
@@ -453,7 +457,7 @@ func TestWorkspaceService_CreateWorkspace(t *testing.T) {
 			Endpoint:  "https://s3.amazonaws.com",
 			Bucket:    "my-bucket",
 			AccessKey: "AKIAIOSFODNN7EXAMPLE",
-		})
+		}, "en", []string{"en"})
 		require.Error(t, err)
 		assert.Nil(t, workspace)
 		assert.Contains(t, err.Error(), "failed to upsert contact")
@@ -489,7 +493,7 @@ func TestWorkspaceService_CreateWorkspace(t *testing.T) {
 			Endpoint:  "https://s3.amazonaws.com",
 			Bucket:    "my-bucket",
 			AccessKey: "AKIAIOSFODNN7EXAMPLE",
-		})
+		}, "en", []string{"en"})
 
 		// Should still succeed despite template error
 		require.NoError(t, err)
@@ -515,11 +519,156 @@ func TestWorkspaceService_CreateWorkspace(t *testing.T) {
 			Endpoint:  "https://s3.amazonaws.com",
 			Bucket:    "my-bucket",
 			AccessKey: "AKIAIOSFODNN7EXAMPLE",
-		})
+		}, "en", []string{"en"})
 		require.Error(t, err)
 		assert.Nil(t, workspace)
 		assert.Contains(t, err.Error(), "workspace already exists")
 	})
+}
+
+func TestWorkspaceService_CreateWorkspace_CustomLanguageSettings(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	mockUserRepo := mocks.NewMockUserRepository(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+	mockUserService := mocks.NewMockUserServiceInterface(ctrl)
+	mockAuthService := mocks.NewMockAuthService(ctrl)
+	mockMailer := pkgmocks.NewMockMailer(ctrl)
+	mockConfig := &config.Config{RootEmail: "test@example.com"}
+	mockContactService := mocks.NewMockContactService(ctrl)
+	mockListService := mocks.NewMockListService(ctrl)
+	mockContactListService := mocks.NewMockContactListService(ctrl)
+	mockTemplateService := mocks.NewMockTemplateService(ctrl)
+	mockWebhookRegService := mocks.NewMockWebhookRegistrationService(ctrl)
+	mockTaskRepo := mocks.NewMockTaskRepository(ctrl)
+
+	service := NewWorkspaceService(
+		mockRepo,
+		mockUserRepo,
+		mockTaskRepo,
+		mockLogger,
+		mockUserService,
+		mockAuthService,
+		mockMailer,
+		mockConfig,
+		mockContactService,
+		mockListService,
+		mockContactListService,
+		mockTemplateService,
+		mockWebhookRegService,
+		"secret_key",
+		&SupabaseService{},
+		&DNSVerificationService{},
+		&BlogService{},
+	)
+
+	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Warn(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
+
+	ctx := context.Background()
+	workspaceID := "testworkspace"
+
+	expectedUser := &domain.User{
+		ID:    "testowner",
+		Email: "test@example.com",
+		Name:  "Test User",
+	}
+
+	mockAuthService.EXPECT().AuthenticateUserFromContext(ctx).Return(expectedUser, nil)
+	mockRepo.EXPECT().GetByID(ctx, workspaceID).Return(nil, nil)
+	mockRepo.EXPECT().Create(ctx, gomock.Any()).DoAndReturn(func(ctx context.Context, workspace *domain.Workspace) error {
+		assert.Equal(t, "fr", workspace.Settings.DefaultLanguage)
+		assert.Equal(t, []string{"fr", "en"}, workspace.Settings.Languages)
+		return nil
+	})
+	mockRepo.EXPECT().AddUserToWorkspace(ctx, gomock.Any()).Return(nil)
+	mockUserService.EXPECT().GetUserByID(ctx, expectedUser.ID).Return(expectedUser, nil)
+	mockContactService.EXPECT().UpsertContact(ctx, workspaceID, gomock.Any()).Return(domain.UpsertContactOperation{Action: domain.UpsertContactOperationCreate})
+	mockListService.EXPECT().CreateList(ctx, workspaceID, gomock.Any()).Return(nil)
+	mockListService.EXPECT().SubscribeToLists(ctx, gomock.Any(), true).Return(nil)
+	mockTaskRepo.EXPECT().List(ctx, workspaceID, gomock.Any()).Return([]*domain.Task{}, 0, nil).AnyTimes()
+	mockTaskRepo.EXPECT().Create(ctx, workspaceID, gomock.Any()).Return(nil).AnyTimes()
+
+	workspace, err := service.CreateWorkspace(ctx, workspaceID, "Test Workspace", "https://example.com", "https://example.com/logo.png", "https://example.com/cover.png", "UTC", domain.FileManagerSettings{
+		Endpoint:  "https://s3.amazonaws.com",
+		Bucket:    "my-bucket",
+		AccessKey: "AKIAIOSFODNN7EXAMPLE",
+	}, "fr", []string{"fr", "en"})
+	require.NoError(t, err)
+	assert.Equal(t, "fr", workspace.Settings.DefaultLanguage)
+	assert.Equal(t, []string{"fr", "en"}, workspace.Settings.Languages)
+}
+
+func TestWorkspaceService_CreateWorkspace_DefaultLanguageNotInList(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	mockUserRepo := mocks.NewMockUserRepository(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+	mockUserService := mocks.NewMockUserServiceInterface(ctrl)
+	mockAuthService := mocks.NewMockAuthService(ctrl)
+	mockMailer := pkgmocks.NewMockMailer(ctrl)
+	mockConfig := &config.Config{RootEmail: "test@example.com"}
+	mockContactService := mocks.NewMockContactService(ctrl)
+	mockListService := mocks.NewMockListService(ctrl)
+	mockContactListService := mocks.NewMockContactListService(ctrl)
+	mockTemplateService := mocks.NewMockTemplateService(ctrl)
+	mockWebhookRegService := mocks.NewMockWebhookRegistrationService(ctrl)
+	mockTaskRepo := mocks.NewMockTaskRepository(ctrl)
+
+	service := NewWorkspaceService(
+		mockRepo,
+		mockUserRepo,
+		mockTaskRepo,
+		mockLogger,
+		mockUserService,
+		mockAuthService,
+		mockMailer,
+		mockConfig,
+		mockContactService,
+		mockListService,
+		mockContactListService,
+		mockTemplateService,
+		mockWebhookRegService,
+		"secret_key",
+		&SupabaseService{},
+		&DNSVerificationService{},
+		&BlogService{},
+	)
+
+	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Warn(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
+
+	ctx := context.Background()
+	workspaceID := "testworkspace"
+
+	expectedUser := &domain.User{
+		ID:    "testowner",
+		Email: "test@example.com",
+		Name:  "Test User",
+	}
+
+	mockAuthService.EXPECT().AuthenticateUserFromContext(ctx).Return(expectedUser, nil)
+
+	// Pass defaultLanguage="fr" but languages=["en"] — validation should reject this
+	_, err := service.CreateWorkspace(ctx, workspaceID, "Test Workspace", "https://example.com", "https://example.com/logo.png", "https://example.com/cover.png", "UTC", domain.FileManagerSettings{
+		Endpoint:  "https://s3.amazonaws.com",
+		Bucket:    "my-bucket",
+		AccessKey: "AKIAIOSFODNN7EXAMPLE",
+	}, "fr", []string{"en"})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "default language fr must be in the languages list")
 }
 
 func TestWorkspaceService_UpdateWorkspace(t *testing.T) {
@@ -583,6 +732,8 @@ func TestWorkspaceService_UpdateWorkspace(t *testing.T) {
 			LogoURL:    "https://example.com/logo.png",
 			CoverURL:   "https://example.com/cover.png",
 			Timezone:   "UTC",
+			DefaultLanguage: "en",
+			Languages:       []string{"en"},
 			FileManager: domain.FileManagerSettings{
 				Endpoint:  "https://s3.amazonaws.com",
 				Bucket:    "my-bucket",
@@ -628,6 +779,8 @@ func TestWorkspaceService_UpdateWorkspace(t *testing.T) {
 			LogoURL:    "https://example.com/logo.png",
 			CoverURL:   "https://example.com/cover.png",
 			Timezone:   "UTC",
+			DefaultLanguage: "en",
+			Languages:       []string{"en"},
 			FileManager: domain.FileManagerSettings{
 				Endpoint:  "https://s3.amazonaws.com",
 				Bucket:    "my-bucket",
@@ -657,6 +810,8 @@ func TestWorkspaceService_UpdateWorkspace(t *testing.T) {
 			LogoURL:    "https://example.com/logo.png",
 			CoverURL:   "https://example.com/cover.png",
 			Timezone:   "UTC",
+			DefaultLanguage: "en",
+			Languages:       []string{"en"},
 			FileManager: domain.FileManagerSettings{
 				Endpoint:  "https://s3.amazonaws.com",
 				Bucket:    "my-bucket",
@@ -683,6 +838,8 @@ func TestWorkspaceService_UpdateWorkspace(t *testing.T) {
 			LogoURL:    "https://example.com/logo.png",
 			CoverURL:   "https://example.com/cover.png",
 			Timezone:   "UTC",
+			DefaultLanguage: "en",
+			Languages:       []string{"en"},
 			FileManager: domain.FileManagerSettings{
 				Endpoint:  "https://s3.amazonaws.com",
 				Bucket:    "my-bucket",
@@ -722,6 +879,8 @@ func TestWorkspaceService_UpdateWorkspace(t *testing.T) {
 			LogoURL:    "https://example.com/logo.png",
 			CoverURL:   "https://example.com/cover.png",
 			Timezone:   "UTC",
+			DefaultLanguage: "en",
+			Languages:       []string{"en"},
 			FileManager: domain.FileManagerSettings{
 				Endpoint:  "https://s3.amazonaws.com",
 				Bucket:    "my-bucket",
@@ -787,14 +946,18 @@ func TestWorkspaceService_UpdateWorkspace(t *testing.T) {
 			ID:   workspaceID,
 			Name: "Original Workspace",
 			Settings: domain.WorkspaceSettings{
-				Timezone:       "UTC",
-				TemplateBlocks: existingTemplateBlocks,
+				Timezone:        "UTC",
+				DefaultLanguage: "en",
+				Languages:       []string{"en"},
+				TemplateBlocks:  existingTemplateBlocks,
 			},
 		}
 
 		// Update settings without template blocks
 		settings := domain.WorkspaceSettings{
-			Timezone: "America/New_York",
+			Timezone:        "America/New_York",
+			DefaultLanguage: "en",
+			Languages:       []string{"en"},
 		}
 
 		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, expectedUser, nil, nil)
@@ -833,7 +996,9 @@ func TestWorkspaceService_UpdateWorkspace(t *testing.T) {
 			ID:   workspaceID,
 			Name: "Original Workspace",
 			Settings: domain.WorkspaceSettings{
-				Timezone: "UTC",
+				Timezone:        "UTC",
+				DefaultLanguage: "en",
+				Languages:       []string{"en"},
 				TemplateBlocks: []domain.TemplateBlock{
 					{
 						ID:      "old-block",
@@ -856,8 +1021,10 @@ func TestWorkspaceService_UpdateWorkspace(t *testing.T) {
 		}
 
 		settings := domain.WorkspaceSettings{
-			Timezone:       "UTC",
-			TemplateBlocks: newTemplateBlocks,
+			Timezone:        "UTC",
+			DefaultLanguage: "en",
+			Languages:       []string{"en"},
+			TemplateBlocks:  newTemplateBlocks,
 		}
 
 		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, expectedUser, nil, nil)
@@ -1721,6 +1888,8 @@ func TestWorkspaceService_DeleteIntegration(t *testing.T) {
 			ID:   workspaceID,
 			Name: "Test Workspace",
 			Settings: domain.WorkspaceSettings{
+				DefaultLanguage:              "en",
+				Languages:                    []string{"en"},
 				TransactionalEmailProviderID: integrationID, // Reference the integration
 			},
 			Integrations: []domain.Integration{existingIntegration},
@@ -1861,6 +2030,8 @@ func TestWorkspaceService_DeleteIntegration(t *testing.T) {
 			ID:   workspaceID,
 			Name: "Test Workspace",
 			Settings: domain.WorkspaceSettings{
+				DefaultLanguage:          "en",
+				Languages:                []string{"en"},
 				MarketingEmailProviderID: integrationID, // Reference the integration as marketing provider
 			},
 			Integrations: []domain.Integration{existingIntegration},

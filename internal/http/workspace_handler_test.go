@@ -51,6 +51,8 @@ func TestWorkspaceHandler_Create(t *testing.T) {
 			LogoURL:    "https://example.com/logo.png",
 			CoverURL:   "https://example.com/cover.png",
 			Timezone:   "UTC",
+			DefaultLanguage: "en",
+			Languages:       []string{"en"},
 			FileManager: domain.FileManagerSettings{
 				Endpoint:  "https://s3.amazonaws.com",
 				Bucket:    "my-bucket",
@@ -59,8 +61,8 @@ func TestWorkspaceHandler_Create(t *testing.T) {
 		},
 	}
 	workspaceSvc.EXPECT().
-		CreateWorkspace(gomock.Any(), "testworkspace1", "Test Workspace", "https://example.com", "https://example.com/logo.png", "https://example.com/cover.png", "UTC", gomock.Any()).
-		DoAndReturn(func(ctx context.Context, id, name, websiteURL, logoURL, coverURL, timezone string, fileManager domain.FileManagerSettings) (*domain.Workspace, error) {
+		CreateWorkspace(gomock.Any(), "testworkspace1", "Test Workspace", "https://example.com", "https://example.com/logo.png", "https://example.com/cover.png", "UTC", gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, id, name, websiteURL, logoURL, coverURL, timezone string, fileManager domain.FileManagerSettings, defaultLanguage string, languages []string) (*domain.Workspace, error) {
 			// Verify file manager settings
 			assert.Equal(t, "https://s3.amazonaws.com", fileManager.Endpoint)
 			assert.Equal(t, "my-bucket", fileManager.Bucket)
@@ -77,6 +79,8 @@ func TestWorkspaceHandler_Create(t *testing.T) {
 			LogoURL:    "https://example.com/logo.png",
 			CoverURL:   "https://example.com/cover.png",
 			Timezone:   "UTC",
+			DefaultLanguage: "en",
+			Languages:       []string{"en"},
 			FileManager: domain.FileManagerSettings{
 				Endpoint:  "https://s3.amazonaws.com",
 				Bucket:    "my-bucket",
@@ -116,6 +120,8 @@ func TestWorkspaceHandler_Get(t *testing.T) {
 			WebsiteURL: "https://example.com",
 			LogoURL:    "https://example.com/logo.png",
 			Timezone:   "UTC",
+			DefaultLanguage: "en",
+			Languages:       []string{"en"},
 			FileManager: domain.FileManagerSettings{
 				Endpoint:  "https://s3.amazonaws.com",
 				Bucket:    "my-bucket",
@@ -160,6 +166,8 @@ func TestWorkspaceHandler_List(t *testing.T) {
 				WebsiteURL: "https://example1.com",
 				LogoURL:    "https://example1.com/logo.png",
 				Timezone:   "UTC",
+				DefaultLanguage: "en",
+				Languages:       []string{"en"},
 				FileManager: domain.FileManagerSettings{
 					Endpoint:  "https://s3.amazonaws.com",
 					Bucket:    "my-bucket",
@@ -174,6 +182,8 @@ func TestWorkspaceHandler_List(t *testing.T) {
 				WebsiteURL: "https://example2.com",
 				LogoURL:    "https://example2.com/logo.png",
 				Timezone:   "UTC",
+				DefaultLanguage: "en",
+				Languages:       []string{"en"},
 				FileManager: domain.FileManagerSettings{
 					Endpoint:  "https://s3.amazonaws.com",
 					Bucket:    "my-bucket",
@@ -215,6 +225,8 @@ func TestWorkspaceHandler_Update(t *testing.T) {
 			LogoURL:    "https://updated.com/logo.png",
 			CoverURL:   "https://updated.com/cover.png",
 			Timezone:   "UTC",
+			DefaultLanguage: "en",
+			Languages:       []string{"en"},
 			FileManager: domain.FileManagerSettings{
 				Endpoint:  "https://s3.amazonaws.com",
 				Bucket:    "my-bucket",
@@ -247,6 +259,8 @@ func TestWorkspaceHandler_Update(t *testing.T) {
 			LogoURL:    "https://updated.com/logo.png",
 			CoverURL:   "https://updated.com/cover.png",
 			Timezone:   "UTC",
+			DefaultLanguage: "en",
+			Languages:       []string{"en"},
 			FileManager: domain.FileManagerSettings{
 				Endpoint:  "https://s3.amazonaws.com",
 				Bucket:    "my-bucket",
@@ -491,6 +505,8 @@ func TestWorkspaceHandler_Create_MissingID(t *testing.T) {
 			LogoURL:    "https://example.com/logo.png",
 			CoverURL:   "https://example.com/cover.png",
 			Timezone:   "UTC",
+			DefaultLanguage: "en",
+			Languages:       []string{"en"},
 			FileManager: domain.FileManagerSettings{
 				Endpoint:  "https://s3.amazonaws.com",
 				Bucket:    "my-bucket",
@@ -522,6 +538,8 @@ func TestWorkspaceHandler_Create_MissingName(t *testing.T) {
 			LogoURL:    "https://example.com/logo.png",
 			CoverURL:   "https://example.com/cover.png",
 			Timezone:   "UTC",
+			DefaultLanguage: "en",
+			Languages:       []string{"en"},
 			FileManager: domain.FileManagerSettings{
 				Endpoint:  "https://s3.amazonaws.com",
 				Bucket:    "my-bucket",
@@ -550,9 +568,11 @@ func TestWorkspaceHandler_Create_MissingTimezone(t *testing.T) {
 		ID:   "testworkspace1",
 		Name: "Test Workspace",
 		Settings: domain.WorkspaceSettings{
-			WebsiteURL: "https://example.com",
-			LogoURL:    "https://example.com/logo.png",
-			CoverURL:   "https://example.com/cover.png",
+			WebsiteURL:      "https://example.com",
+			LogoURL:         "https://example.com/logo.png",
+			CoverURL:        "https://example.com/cover.png",
+			DefaultLanguage: "en",
+			Languages:       []string{"en"},
 			FileManager: domain.FileManagerSettings{
 				Endpoint:  "https://s3.amazonaws.com",
 				Bucket:    "my-bucket",
@@ -578,7 +598,7 @@ func TestWorkspaceHandler_Create_ServiceError(t *testing.T) {
 
 	// Mock service error
 	workspaceSvc.EXPECT().
-		CreateWorkspace(gomock.Any(), "testworkspace1", "Test Workspace", "https://example.com", "https://example.com/logo.png", "https://example.com/cover.png", "UTC", gomock.Any()).
+		CreateWorkspace(gomock.Any(), "testworkspace1", "Test Workspace", "https://example.com", "https://example.com/logo.png", "https://example.com/cover.png", "UTC", gomock.Any(), gomock.Any(), gomock.Any()).
 		Return(nil, fmt.Errorf("database error"))
 
 	// Create request with valid data
@@ -590,6 +610,8 @@ func TestWorkspaceHandler_Create_ServiceError(t *testing.T) {
 			LogoURL:    "https://example.com/logo.png",
 			CoverURL:   "https://example.com/cover.png",
 			Timezone:   "UTC",
+			DefaultLanguage: "en",
+			Languages:       []string{"en"},
 			FileManager: domain.FileManagerSettings{
 				Endpoint:  "https://s3.amazonaws.com",
 				Bucket:    "my-bucket",
@@ -608,6 +630,65 @@ func TestWorkspaceHandler_Create_ServiceError(t *testing.T) {
 
 	assert.Equal(t, http.StatusInternalServerError, w.Code)
 	assert.Contains(t, w.Body.String(), "Failed to create workspace")
+}
+
+func TestWorkspaceHandler_Create_WithMultipleLanguages(t *testing.T) {
+	_, workspaceSvc, mux, secretKey, _ := setupTest(t)
+
+	expectedWorkspace := &domain.Workspace{
+		ID:   "testworkspace1",
+		Name: "Test Workspace",
+		Settings: domain.WorkspaceSettings{
+			WebsiteURL:      "https://example.com",
+			LogoURL:         "https://example.com/logo.png",
+			CoverURL:        "https://example.com/cover.png",
+			Timezone:        "UTC",
+			DefaultLanguage: "fr",
+			Languages:       []string{"fr", "en", "es"},
+			FileManager: domain.FileManagerSettings{
+				Endpoint:  "https://s3.amazonaws.com",
+				Bucket:    "my-bucket",
+				AccessKey: "AKIAIOSFODNN7EXAMPLE",
+			},
+		},
+	}
+	workspaceSvc.EXPECT().
+		CreateWorkspace(gomock.Any(), "testworkspace1", "Test Workspace", "https://example.com", "https://example.com/logo.png", "https://example.com/cover.png", "UTC", gomock.Any(), "fr", []string{"fr", "en", "es"}).
+		Return(expectedWorkspace, nil)
+
+	reqBody := domain.CreateWorkspaceRequest{
+		ID:   "testworkspace1",
+		Name: "Test Workspace",
+		Settings: domain.WorkspaceSettings{
+			WebsiteURL:      "https://example.com",
+			LogoURL:         "https://example.com/logo.png",
+			CoverURL:        "https://example.com/cover.png",
+			Timezone:        "UTC",
+			DefaultLanguage: "fr",
+			Languages:       []string{"fr", "en", "es"},
+			FileManager: domain.FileManagerSettings{
+				Endpoint:  "https://s3.amazonaws.com",
+				Bucket:    "my-bucket",
+				AccessKey: "AKIAIOSFODNN7EXAMPLE",
+			},
+		},
+	}
+	body, err := json.Marshal(reqBody)
+	require.NoError(t, err)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/workspaces.create", bytes.NewReader(body))
+	req.Header.Set("Authorization", "Bearer "+createTestToken(t, secretKey, "test-user"))
+
+	w := httptest.NewRecorder()
+	mux.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusCreated, w.Code)
+
+	var response domain.Workspace
+	err = json.NewDecoder(w.Body).Decode(&response)
+	require.NoError(t, err)
+	assert.Equal(t, "fr", response.Settings.DefaultLanguage)
+	assert.Equal(t, []string{"fr", "en", "es"}, response.Settings.Languages)
 }
 
 func TestWorkspaceHandler_Update_MethodNotAllowed(t *testing.T) {
@@ -674,6 +755,8 @@ func TestWorkspaceHandler_Update_MissingID(t *testing.T) {
 			LogoURL:    "https://updated.com/logo.png",
 			CoverURL:   "https://updated.com/cover.png",
 			Timezone:   "UTC",
+			DefaultLanguage: "en",
+			Languages:       []string{"en"},
 			FileManager: domain.FileManagerSettings{
 				Endpoint:  "https://s3.amazonaws.com",
 				Bucket:    "my-bucket",
@@ -711,6 +794,8 @@ func TestWorkspaceHandler_Update_ServiceError(t *testing.T) {
 			LogoURL:    "https://updated.com/logo.png",
 			CoverURL:   "https://updated.com/cover.png",
 			Timezone:   "UTC",
+			DefaultLanguage: "en",
+			Languages:       []string{"en"},
 			FileManager: domain.FileManagerSettings{
 				Endpoint:  "https://s3.amazonaws.com",
 				Bucket:    "my-bucket",

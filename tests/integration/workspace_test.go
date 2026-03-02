@@ -47,6 +47,8 @@ func TestWorkspaceCRUDSuite(t *testing.T) {
 					WebsiteURL:           "https://example.com",
 					LogoURL:              "https://example.com/logo.png",
 					EmailTrackingEnabled: true,
+					DefaultLanguage:      "en",
+					Languages:            []string{"en"},
 				},
 			}
 
@@ -98,7 +100,9 @@ func TestWorkspaceCRUDSuite(t *testing.T) {
 				ID:   workspaceID,
 				Name: "First Workspace",
 				Settings: domain.WorkspaceSettings{
-					Timezone: "UTC",
+					Timezone:        "UTC",
+					DefaultLanguage: "en",
+					Languages:       []string{"en"},
 				},
 			}
 
@@ -127,7 +131,9 @@ func TestWorkspaceCRUDSuite(t *testing.T) {
 				ID:   "", // Empty ID
 				Name: "Test Workspace",
 				Settings: domain.WorkspaceSettings{
-					Timezone: "UTC",
+					Timezone:        "UTC",
+					DefaultLanguage: "en",
+					Languages:       []string{"en"},
 				},
 			}
 
@@ -146,7 +152,9 @@ func TestWorkspaceCRUDSuite(t *testing.T) {
 				ID:   "unauthorized" + uuid.New().String()[:8],
 				Name: "Unauthorized Workspace",
 				Settings: domain.WorkspaceSettings{
-					Timezone: "UTC",
+					Timezone:        "UTC",
+					DefaultLanguage: "en",
+					Languages:       []string{"en"},
 				},
 			}
 
@@ -264,6 +272,8 @@ func TestWorkspaceCRUDSuite(t *testing.T) {
 					WebsiteURL:           "https://updated.example.com",
 					LogoURL:              "https://updated.example.com/logo.png",
 					EmailTrackingEnabled: false,
+					DefaultLanguage:      "en",
+					Languages:            []string{"en"},
 				},
 			}
 
@@ -296,7 +306,9 @@ func TestWorkspaceCRUDSuite(t *testing.T) {
 				ID:   "nonexistent" + uuid.New().String()[:8],
 				Name: "Updated Name",
 				Settings: domain.WorkspaceSettings{
-					Timezone: "UTC",
+					Timezone:        "UTC",
+					DefaultLanguage: "en",
+					Languages:       []string{"en"},
 				},
 			}
 
@@ -1057,7 +1069,9 @@ func createTestWorkspaceWithToken(t *testing.T, client *testutil.APIClient, toke
 		ID:   workspaceID,
 		Name: name,
 		Settings: domain.WorkspaceSettings{
-			Timezone: "UTC",
+			Timezone:        "UTC",
+			DefaultLanguage: "en",
+			Languages:       []string{"en"},
 		},
 	}
 
@@ -1087,7 +1101,9 @@ func createTestWorkspace(t *testing.T, client *testutil.APIClient, name string) 
 		ID:   workspaceID,
 		Name: name,
 		Settings: domain.WorkspaceSettings{
-			Timezone: "UTC",
+			Timezone:        "UTC",
+			DefaultLanguage: "en",
+			Languages:       []string{"en"},
 		},
 	}
 

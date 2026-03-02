@@ -275,15 +275,22 @@ func (e *EmailNodeExecutor) Execute(ctx context.Context, params NodeExecutionPar
 		return nil, fmt.Errorf("failed to build template data: %w", err)
 	}
 
-	// 8. Compile template
+	// 8. Resolve language variant based on contact's language
+	contactLang := ""
+	if params.ContactData.Language != nil && !params.ContactData.Language.IsNull {
+		contactLang = params.ContactData.Language.String
+	}
+	emailContent := template.ResolveEmailContent(contactLang, workspace.Settings.DefaultLanguage)
+
+	// 9. Compile template
 	compileReq := notifuse_mjml.CompileTemplateRequest{
 		WorkspaceID:      params.WorkspaceID,
 		MessageID:        messageID,
-		VisualEditorTree: template.Email.VisualEditorTree,
+		VisualEditorTree: emailContent.VisualEditorTree,
 		TemplateData:     notifuse_mjml.MapOfAny(templateData),
 		TrackingSettings: trackingSettings,
 	}
-	compileReq.MjmlSource = template.Email.GetCodeModeMjmlSource()
+	compileReq.MjmlSource = emailContent.GetCodeModeMjmlSource()
 	compiledTemplate, err := notifuse_mjml.CompileTemplate(compileReq)
 	if err != nil {
 		return nil, fmt.Errorf("failed to compile template: %w", err)
@@ -297,9 +304,9 @@ func (e *EmailNodeExecutor) Execute(ctx context.Context, params NodeExecutionPar
 	}
 	htmlContent := *compiledTemplate.HTML
 
-	// 9. Process subject line through Liquid templating
+	// 10. Process subject line through Liquid templating
 	subject, err := notifuse_mjml.ProcessLiquidTemplate(
-		template.Email.Subject,
+		emailContent.Subject,
 		templateData,
 		"email_subject",
 	)
@@ -307,13 +314,13 @@ func (e *EmailNodeExecutor) Execute(ctx context.Context, params NodeExecutionPar
 		return nil, fmt.Errorf("failed to process subject: %w", err)
 	}
 
-	// 10. Get sender
-	sender := emailProvider.GetSender(template.Email.SenderID)
+	// 11. Get sender
+	sender := emailProvider.GetSender(emailContent.SenderID)
 	if sender == nil {
 		return nil, fmt.Errorf("no sender configured for email provider")
 	}
 
-	// 11. Create queue entry
+	// 12. Create queue entry
 	entry := &domain.EmailQueueEntry{
 		ID:            uuid.New().String(),
 		Status:        domain.EmailQueueStatusPending,
@@ -332,7 +339,7 @@ func (e *EmailNodeExecutor) Execute(ctx context.Context, params NodeExecutionPar
 			HTMLContent:        htmlContent,
 			RateLimitPerMinute: emailProvider.RateLimitPerMinute,
 			EmailOptions: domain.EmailOptions{
-				ReplyTo: template.Email.ReplyTo,
+				ReplyTo: emailContent.ReplyTo,
 			},
 		},
 		MaxAttempts: 3,
@@ -340,12 +347,12 @@ func (e *EmailNodeExecutor) Execute(ctx context.Context, params NodeExecutionPar
 		UpdatedAt:   time.Now().UTC(),
 	}
 
-	// 12. Add List-Unsubscribe header for RFC-8058 compliance
+	// 13. Add List-Unsubscribe header for RFC-8058 compliance
 	if url, ok := templateData["oneclick_unsubscribe_url"].(string); ok && url != "" {
 		entry.Payload.EmailOptions.ListUnsubscribeURL = url
 	}
 
-	// 13. Enqueue the email
+	// 14. Enqueue the email
 	if err := e.emailQueueRepo.Enqueue(ctx, params.WorkspaceID, []*domain.EmailQueueEntry{entry}); err != nil {
 		return nil, fmt.Errorf("failed to enqueue email: %w", err)
 	}

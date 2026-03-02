@@ -137,7 +137,7 @@ func (s *WorkspaceService) GetWorkspace(ctx context.Context, id string) (*domain
 }
 
 // CreateWorkspace creates a new workspace and adds the creator as owner
-func (s *WorkspaceService) CreateWorkspace(ctx context.Context, id string, name string, websiteURL string, logoURL string, coverURL string, timezone string, fileManager domain.FileManagerSettings) (*domain.Workspace, error) {
+func (s *WorkspaceService) CreateWorkspace(ctx context.Context, id string, name string, websiteURL string, logoURL string, coverURL string, timezone string, fileManager domain.FileManagerSettings, defaultLanguage string, languages []string) (*domain.Workspace, error) {
 	user, err := s.authService.AuthenticateUserFromContext(ctx)
 	if err != nil {
 		return nil, err
@@ -171,6 +171,8 @@ func (s *WorkspaceService) CreateWorkspace(ctx context.Context, id string, name 
 			FileManager:          fileManager,
 			SecretKey:            randomSecretKey,
 			EmailTrackingEnabled: true,
+			DefaultLanguage:      defaultLanguage,
+			Languages:            languages,
 		},
 		CreatedAt: time.Now().UTC(),
 		UpdatedAt: time.Now().UTC(),
@@ -358,6 +360,8 @@ func (s *WorkspaceService) UpdateWorkspace(ctx context.Context, id string, name 
 	existingWorkspace.Settings.CustomFieldLabels = settings.CustomFieldLabels
 	existingWorkspace.Settings.BlogEnabled = settings.BlogEnabled
 	existingWorkspace.Settings.BlogSettings = settings.BlogSettings
+	existingWorkspace.Settings.DefaultLanguage = settings.DefaultLanguage
+	existingWorkspace.Settings.Languages = settings.Languages
 
 	// Handle template blocks - preserve existing blocks if not provided in update
 	// Note: Template blocks should be managed via dedicated /api/templateBlocks.* endpoints

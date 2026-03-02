@@ -19,6 +19,7 @@ export interface Template {
   utm_campaign?: string
   test_data?: Record<string, unknown>
   settings?: Record<string, unknown>
+  translations?: Record<string, TemplateTranslation>
   created_at: string
   updated_at: string
 }
@@ -39,6 +40,11 @@ export interface WebTemplate {
   content?: unknown // Tiptap JSON (source of truth)
   html?: string // Pre-rendered HTML for display
   plain_text?: string // Extracted text for search indexing
+}
+
+export interface TemplateTranslation {
+  email?: EmailTemplate
+  web?: WebTemplate
 }
 
 export interface GetTemplatesRequest {
@@ -67,6 +73,7 @@ export interface CreateTemplateRequest {
   utm_campaign?: string
   test_data?: Record<string, unknown>
   settings?: Record<string, unknown>
+  translations?: Record<string, TemplateTranslation>
 }
 
 export interface UpdateTemplateRequest {
@@ -83,6 +90,7 @@ export interface UpdateTemplateRequest {
   utm_campaign?: string
   test_data?: Record<string, unknown>
   settings?: Record<string, unknown>
+  translations?: Record<string, TemplateTranslation>
 }
 
 export interface DeleteTemplateRequest {

@@ -146,6 +146,7 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 			integration_id VARCHAR(255),
 			test_data JSONB,
 			settings JSONB,
+			translations JSONB,
 			created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			deleted_at TIMESTAMP WITH TIME ZONE,

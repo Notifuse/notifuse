@@ -315,7 +315,7 @@ func TestDemoService_CreateSampleTemplates_Smoke(t *testing.T) {
 	mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
 	mockAuth := domainmocks.NewMockAuthService(ctrl)
 
-	tmplSvc := NewTemplateService(mockTemplateRepo, mockAuth, logger.NewLoggerWithLevel("disabled"), "https://api.test")
+	tmplSvc := NewTemplateService(mockTemplateRepo, nil, mockAuth, logger.NewLoggerWithLevel("disabled"), "https://api.test")
 
 	svc := &DemoService{
 		logger:          logger.NewLoggerWithLevel("disabled"),

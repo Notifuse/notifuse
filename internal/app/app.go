@@ -528,6 +528,7 @@ func (a *App) InitServices() error {
 	// Initialize template service
 	a.templateService = service.NewTemplateService(
 		a.templateRepo,
+		a.workspaceRepo,
 		a.authService,
 		a.logger,
 		a.config.APIEndpoint,

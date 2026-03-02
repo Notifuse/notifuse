@@ -6,6 +6,7 @@ import { workspaceService } from '../services/api/workspace'
 import { useAuth } from '../contexts/AuthContext'
 import { MainLayout, MainLayoutSidebar } from '../layouts/MainLayout'
 import { getBrowserTimezone } from '../lib/timezoneNormalizer'
+import { getBrowserLanguage } from '../lib/languages'
 import { useLingui } from '@lingui/react/macro'
 
 export function CreateWorkspacePage() {
@@ -53,6 +54,7 @@ export function CreateWorkspacePage() {
 
       // Get user's timezone (normalized to canonical IANA name)
       const timezone = getBrowserTimezone()
+      const detectedLang = getBrowserLanguage()
 
       // Create workspace with API
       await workspaceService.create({
@@ -63,7 +65,9 @@ export function CreateWorkspacePage() {
           logo_url: logoUrl,
           cover_url: coverUrl,
           timezone: timezone,
-          email_tracking_enabled: true
+          email_tracking_enabled: true,
+          default_language: detectedLang,
+          languages: [detectedLang]
         }
       })
 
