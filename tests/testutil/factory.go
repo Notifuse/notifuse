@@ -782,6 +782,14 @@ func WithCustomDomain(customDomain string) WorkspaceOption {
 	}
 }
 
+// WithWorkspaceDefaultLanguage sets the default language and available languages for a workspace
+func WithWorkspaceDefaultLanguage(defaultLang string, languages []string) WorkspaceOption {
+	return func(w *domain.Workspace) {
+		w.Settings.DefaultLanguage = defaultLang
+		w.Settings.Languages = languages
+	}
+}
+
 func WithBlogEnabled(enabled bool) WorkspaceOption {
 	return func(w *domain.Workspace) {
 		w.Settings.BlogEnabled = enabled
@@ -901,8 +909,15 @@ func WithTemplateSubject(subject string) TemplateOption {
 func WithTemplateEmailContent(content string) TemplateOption {
 	return func(t *domain.Template) {
 		if t.Email != nil {
-			t.Email.VisualEditorTree = createMJMLBlockWithContent(content)
+			t.Email.VisualEditorTree = CreateMJMLBlockWithContent(content)
 		}
+	}
+}
+
+// WithTemplateTranslations sets the translations map on a template
+func WithTemplateTranslations(translations map[string]domain.TemplateTranslation) TemplateOption {
+	return func(t *domain.Template) {
+		t.Translations = translations
 	}
 }
 
@@ -1239,9 +1254,9 @@ func createDefaultMJMLBlock() notifuse_mjml.EmailBlock {
 	return block
 }
 
-// createMJMLBlockWithContent creates an MJML block with custom text content
+// CreateMJMLBlockWithContent creates an MJML block with custom text content
 // This allows testing Liquid template variables in the email body
-func createMJMLBlockWithContent(content string) notifuse_mjml.EmailBlock {
+func CreateMJMLBlockWithContent(content string) notifuse_mjml.EmailBlock {
 	textBlockMap := map[string]interface{}{
 		"id":      "text-1",
 		"type":    "mj-text",

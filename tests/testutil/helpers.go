@@ -1109,6 +1109,44 @@ func GetMailpitMessage(t *testing.T, messageID string) (*MailpitMessage, error) 
 	return &msg, nil
 }
 
+// WaitForMailpitMessageByRecipient polls Mailpit until an email for the given recipient is found,
+// then returns the full MailpitMessage (with Subject, HTML, Text fields).
+func WaitForMailpitMessageByRecipient(t *testing.T, recipientEmail string, timeout time.Duration) (*MailpitMessage, error) {
+	deadline := time.Now().Add(timeout)
+	httpClient := &http.Client{Timeout: 5 * time.Second}
+	pollInterval := 500 * time.Millisecond
+
+	for time.Now().Before(deadline) {
+		resp, err := httpClient.Get("http://localhost:8025/api/v1/messages")
+		if err != nil {
+			t.Logf("Failed to connect to Mailpit: %v", err)
+			time.Sleep(pollInterval)
+			continue
+		}
+
+		var apiResp MailpitMessagesResponse
+		err = json.NewDecoder(resp.Body).Decode(&apiResp)
+		resp.Body.Close()
+
+		if err != nil {
+			t.Logf("Failed to decode Mailpit response: %v", err)
+			time.Sleep(pollInterval)
+			continue
+		}
+
+		for _, msg := range apiResp.Messages {
+			for _, to := range msg.To {
+				if strings.EqualFold(recipientEmail, to.Address) {
+					t.Logf("Found email for recipient: %s (message ID: %s)", recipientEmail, msg.ID)
+					return GetMailpitMessage(t, msg.ID)
+				}
+			}
+		}
+		time.Sleep(pollInterval)
+	}
+	return nil, fmt.Errorf("timeout waiting for email to %s after %v", recipientEmail, timeout)
+}
+
 // GetMailpitMessageCount returns the total count of messages matching a subject substring
 // This is useful for verifying broadcast delivery to large recipient lists
 func GetMailpitMessageCount(t *testing.T, subject string) (int, error) {
