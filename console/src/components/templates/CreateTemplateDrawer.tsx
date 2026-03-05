@@ -37,6 +37,10 @@ import type { MJMLComponentType } from '../email_builder/types'
 import MjmlCodeEditor, { STARTER_TEMPLATE } from '../email_builder/MjmlCodeEditor'
 import type { MjmlCodeEditorRef } from '../email_builder/MjmlCodeEditor'
 import type { MjmlCompileError } from '../../services/api/template'
+import { SUPPORTED_LANGUAGES } from '../../lib/languages'
+import TemplateTranslationsTab from './TemplateTranslationsTab'
+import type { TranslationEditorState } from './TemplateTranslationsTab'
+import type { TemplateTranslation } from '../../services/api/template'
 
 /**
  * Validates liquid template tags in a string to ensure they are properly closed
@@ -189,6 +193,12 @@ export function CreateTemplateDrawer({
     if (fromTemplate?.email?.mjml_source) return fromTemplate.email.mjml_source
     return STARTER_TEMPLATE
   })
+  const [translationsState, setTranslationsState] = useState<Record<string, TranslationEditorState>>({})
+
+  const translationLanguages = (workspace.settings.languages || []).filter(
+    (l) => l !== workspace.settings.default_language
+  )
+  const showTranslationsTab = translationLanguages.length > 0
 
   // Refs for tour targets
   const treePanelRef = useRef<HTMLDivElement>(null)
@@ -294,6 +304,25 @@ export function CreateTemplateDrawer({
     }
   }, [workspace.settings.custom_endpoint_url, workspace.id])
 
+  const loadTranslations = (translations?: Record<string, TemplateTranslation>) => {
+    if (!translations) return
+    const loaded: Record<string, TranslationEditorState> = {}
+    for (const [lang, trans] of Object.entries(translations)) {
+      loaded[lang] = {
+        enabled: true,
+        subject: trans.email?.subject || '',
+        subjectPreview: trans.email?.subject_preview || '',
+        visualEditorTree: trans.email?.visual_editor_tree
+          ? (typeof trans.email.visual_editor_tree === 'object'
+              ? (JSON.parse(JSON.stringify(trans.email.visual_editor_tree)) as EmailBlock)
+              : (JSON.parse(trans.email.visual_editor_tree as unknown as string) as EmailBlock))
+          : undefined,
+        mjmlSource: trans.email?.mjml_source || undefined
+      }
+    }
+    setTranslationsState(loaded)
+  }
+
   const showDrawer = () => {
     if (template) {
       // Set editor mode from existing template
@@ -315,6 +344,7 @@ export function CreateTemplateDrawer({
         },
         test_data: template.test_data || defaultTestData
       })
+      loadTranslations(template.translations)
     } else if (fromTemplate) {
       // Clone template functionality - lock to source template's editor mode
       setEditorMode(fromTemplate.email?.editor_mode === 'code' ? 'code' : 'visual')
@@ -336,6 +366,8 @@ export function CreateTemplateDrawer({
         },
         test_data: fromTemplate.test_data || defaultTestData
       })
+
+      loadTranslations(fromTemplate.translations)
 
       // Update the visual editor tree
       if (fromTemplate.email?.visual_editor_tree) {
@@ -366,6 +398,7 @@ export function CreateTemplateDrawer({
     setTab('settings')
     setEditorMode('visual')
     setMjmlSource(STARTER_TEMPLATE)
+    setTranslationsState({})
     if (onClose) {
       onClose()
     }
@@ -429,7 +462,11 @@ export function CreateTemplateDrawer({
   }
 
   const goNext = () => {
-    setTab('template')
+    if (tab === 'settings') {
+      setTab('template')
+    } else if (tab === 'template' && showTranslationsTab) {
+      setTab('translations')
+    }
   }
 
   return (
@@ -473,8 +510,28 @@ export function CreateTemplateDrawer({
                     {t`Previous`}
                   </Button>
                 )}
-
-                {tab === 'template' && (
+                {tab === 'template' && !showTranslationsTab && (
+                  <Button
+                    loading={loading || createTemplateMutation.isPending}
+                    onClick={() => {
+                      form.submit()
+                    }}
+                    type="primary"
+                  >
+                    {t`Save`}
+                  </Button>
+                )}
+                {tab === 'template' && showTranslationsTab && (
+                  <Button type="primary" onClick={goNext}>
+                    {t`Next`}
+                  </Button>
+                )}
+                {tab === 'translations' && (
+                  <Button type="primary" ghost onClick={() => setTab('template')}>
+                    {t`Previous`}
+                  </Button>
+                )}
+                {tab === 'translations' && (
                   <Button
                     loading={loading || createTemplateMutation.isPending}
                     onClick={() => {
@@ -503,6 +560,41 @@ export function CreateTemplateDrawer({
                 values.email.editor_mode = 'visual'
                 values.email.visual_editor_tree = visualEditorTree
               }
+
+              // Validate and build translations from state
+              if (showTranslationsTab) {
+                // Check enabled translations have required fields
+                for (const [lang, state] of Object.entries(translationsState)) {
+                  if (!state.enabled) continue
+                  if (!state.subject || !state.subjectPreview) {
+                    const langName = SUPPORTED_LANGUAGES[lang] || lang
+                    message.error(t`${langName} translation is missing required fields (subject and preview)`)
+                    setTab('translations')
+                    setLoading(false)
+                    return
+                  }
+                }
+
+                const translations: Record<string, TemplateTranslation> = {}
+                for (const [lang, state] of Object.entries(translationsState)) {
+                  if (!state.enabled) continue
+                  const emailTranslation: Record<string, unknown> = {
+                    subject: state.subject,
+                    subject_preview: state.subjectPreview || ''
+                  }
+                  if (editorMode === 'code') {
+                    emailTranslation.editor_mode = 'code'
+                    emailTranslation.mjml_source = state.mjmlSource || ''
+                  } else {
+                    emailTranslation.editor_mode = 'visual'
+                    emailTranslation.visual_editor_tree = state.visualEditorTree || visualEditorTree
+                  }
+                  translations[lang] = { email: emailTranslation as TemplateTranslation['email'] }
+                }
+                // Always send translations (even empty) so disabling all clears them on the server
+                values.translations = translations
+              }
+
               createTemplateMutation.mutate(values)
             }}
             onFinishFailed={(info) => {
@@ -552,8 +644,18 @@ export function CreateTemplateDrawer({
                   },
                   {
                     key: 'template',
-                    label: t`2. Template`
-                  }
+                    label: showTranslationsTab
+                      ? t`2. Template (${workspace.settings.default_language})`
+                      : t`2. Template`
+                  },
+                  ...(showTranslationsTab
+                    ? [
+                        {
+                          key: 'translations',
+                          label: t`3. Translations`
+                        }
+                      ]
+                    : [])
                 ]}
               />
             </div>
@@ -653,21 +755,16 @@ export function CreateTemplateDrawer({
                     </Col>
                     <Col span={6}>
                       <Form.Item label={t`Editor mode`}>
-                        {template || fromTemplate ? (
-                          <Tag color={editorMode === 'code' ? 'geekblue' : 'default'}>
-                            {editorMode === 'code' ? t`Code (MJML)` : t`Visual`}
-                          </Tag>
-                        ) : (
-                          <Radio.Group
-                            value={editorMode}
-                            onChange={(e) => setEditorMode(e.target.value as 'visual' | 'code')}
-                            optionType="button"
-                            options={[
-                              { label: t`Visual`, value: 'visual' },
-                              { label: t`Code (MJML)`, value: 'code' }
-                            ]}
-                          />
-                        )}
+                        <Radio.Group
+                          value={editorMode}
+                          onChange={(e) => setEditorMode(e.target.value as 'visual' | 'code')}
+                          optionType="button"
+                          disabled={!!(template || fromTemplate)}
+                          options={[
+                            { label: t`Visual`, value: 'visual' },
+                            { label: t`Code (MJML)`, value: 'code' }
+                          ]}
+                        />
                       </Form.Item>
                     </Col>
                   </Row>
@@ -677,7 +774,7 @@ export function CreateTemplateDrawer({
                     <Col span={12}>
                       <Form.Item
                         name={['email', 'subject']}
-                        label={t`Email subject`}
+                        label={showTranslationsTab ? t`Email subject (${workspace.settings.default_language})` : t`Email subject`}
                         rules={[
                           { required: true, type: 'string' },
                           {
@@ -695,7 +792,7 @@ export function CreateTemplateDrawer({
                       </Form.Item>
                       <Form.Item
                         name={['email', 'subject_preview']}
-                        label={t`Subject preview`}
+                        label={showTranslationsTab ? t`Subject preview (${workspace.settings.default_language})` : t`Subject preview`}
                         rules={[
                           { required: true, type: 'string' },
                           {
@@ -712,27 +809,32 @@ export function CreateTemplateDrawer({
                         <Input placeholder={t`Templating markup allowed`} />
                       </Form.Item>
 
-                      <Form.Item
-                        name={['email', 'reply_to']}
-                        label={t`Reply to`}
-                        rules={[{ required: false, type: 'email' }]}
-                      >
-                        <Input />
-                      </Form.Item>
-
-                      <Form.Item
-                        name={['email', 'sender_id']}
-                        label={categoryValue === 'marketing' ? t`Custom sender (marketing email provider)` : t`Custom sender (transactional email provider)`}
-                        rules={[{ required: false, type: 'string' }]}
-                      >
-                        <Select
-                          options={emailProvider?.email_provider?.senders.map((sender) => ({
-                            value: sender.id,
-                            label: `${sender.name} <${sender.email}>`
-                          }))}
-                          allowClear={true}
-                        />
-                      </Form.Item>
+                      <Row gutter={24}>
+                        <Col span={12}>
+                          <Form.Item
+                            name={['email', 'reply_to']}
+                            label={t`Reply to`}
+                            rules={[{ required: false, type: 'email' }]}
+                          >
+                            <Input />
+                          </Form.Item>
+                        </Col>
+                        <Col span={12}>
+                          <Form.Item
+                            name={['email', 'sender_id']}
+                            label={categoryValue === 'marketing' ? t`Custom sender (marketing email provider)` : t`Custom sender (transactional email provider)`}
+                            rules={[{ required: false, type: 'string' }]}
+                          >
+                            <Select
+                              options={emailProvider?.email_provider?.senders.map((sender) => ({
+                                value: sender.id,
+                                label: `${sender.name} <${sender.email}>`
+                              }))}
+                              allowClear={true}
+                            />
+                          </Form.Item>
+                        </Col>
+                      </Row>
                     </Col>
                     <Col span={12}>
                       <div className="flex justify-center">
@@ -900,6 +1002,25 @@ export function CreateTemplateDrawer({
                   }}
                 </Form.Item>
               </div>
+
+              {showTranslationsTab && (
+                <div style={{ display: tab === 'translations' ? 'block' : 'none' }}>
+                  <TemplateTranslationsTab
+                    workspace={workspace}
+                    editorMode={editorMode}
+                    translationsState={translationsState}
+                    onTranslationsStateChange={setTranslationsState}
+                    defaultSubject={emailSubject}
+                    defaultSubjectPreview={emailPreview}
+                    defaultVisualEditorTree={visualEditorTree}
+                    defaultMjmlSource={mjmlSource}
+                    testData={form.getFieldValue('test_data')}
+                    onTestDataChange={(newTestData) => form.setFieldsValue({ test_data: newTestData })}
+                    savedBlocks={workspace.settings.template_blocks || []}
+                    onSaveBlock={handleSaveBlock}
+                  />
+                </div>
+              )}
             </div>
           </Form>
           <Tour

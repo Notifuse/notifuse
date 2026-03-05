@@ -425,8 +425,7 @@ export function ContactDetailsDrawer({
       pending: 'orange',
       unsubscribed: 'red',
       bounced: 'volcano',
-      complained: 'magenta',
-      blacklisted: 'black'
+      complained: 'magenta'
     }
     return statusColors[status.toLowerCase()] || 'blue'
   }
@@ -582,7 +581,8 @@ export function ContactDetailsDrawer({
     { label: t`Active`, value: 'active' },
     { label: t`Pending`, value: 'pending' },
     { label: t`Unsubscribed`, value: 'unsubscribed' },
-    { label: t`Blacklisted`, value: 'blacklisted' }
+    { label: t`Bounced`, value: 'bounced' },
+    { label: t`Complained`, value: 'complained' }
   ]
 
   // If buttonProps is provided, render a button that opens the drawer

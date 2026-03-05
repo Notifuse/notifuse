@@ -8,7 +8,7 @@ import { Signal, Wifi, BatteryFull, ChevronRight } from 'lucide-react'
 const styles: Record<string, React.CSSProperties> = {
   iphoneMockupUpper: {
     width: '375px',
-    height: '350px',
+    height: '260px',
     border: '12px solid black',
     borderBottom: 'none',
     borderTopLeftRadius: '50px',

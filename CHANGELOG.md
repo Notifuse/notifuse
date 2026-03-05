@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [28.0] - 2026-03-05
+
+- **Templates**: Added ability to translate email templates to languages configured in workspace settings
+- **Contacts**: Fixed invalid "Blacklisted" status option in change status dropdown, replaced with valid "Bounced" and "Complained" statuses (#285)
+
 ## [27.4] - 2026-03-01
 
 - **Notification Center**: Fixed browser language auto-save overwriting contact's manually chosen language. Now only auto-detects when contact has no language set.
