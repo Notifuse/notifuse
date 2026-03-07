@@ -1618,3 +1618,256 @@ func TestCompileTemplateWithImageLiquidOnlySrcPartialData(t *testing.T) {
 		t.Logf("Generated HTML:\n%s", *resp.HTML)
 	})
 }
+
+func TestAttributePriority(t *testing.T) {
+	t.Run("P3 mj-attributes overrides compiler defaults", func(t *testing.T) {
+		// mj-attributes sets color=#333333, body mj-text has no inline color
+		jsonData := `{
+			"workspace_id": "ws-1",
+			"message_id": "msg-1",
+			"visual_editor_tree": {
+				"id": "mjml-1",
+				"type": "mjml",
+				"children": [
+					{
+						"id": "head-1",
+						"type": "mj-head",
+						"children": [
+							{
+								"id": "attrs-1",
+								"type": "mj-attributes",
+								"children": [
+									{"id":"text-def","type":"mj-text","attributes":{"color":"#333333"}}
+								]
+							}
+						]
+					},
+					{
+						"id": "body-1",
+						"type": "mj-body",
+						"children": [
+							{
+								"id": "section-1",
+								"type": "mj-section",
+								"children": [
+									{
+										"id": "column-1",
+										"type": "mj-column",
+										"children": [
+											{"id":"text-1","type":"mj-text","content":"Hello"}
+										]
+									}
+								]
+							}
+						]
+					}
+				]
+			}
+		}`
+
+		var req CompileTemplateRequest
+		err := json.Unmarshal([]byte(jsonData), &req)
+		if err != nil {
+			t.Fatalf("Failed to unmarshal: %v", err)
+		}
+
+		resp, err := CompileTemplate(req)
+		if err != nil {
+			t.Fatalf("Failed to compile: %v", err)
+		}
+		if resp.HTML == nil {
+			t.Fatal("HTML should not be nil")
+		}
+
+		html := *resp.HTML
+		if !strings.Contains(html, "color:#333333") && !strings.Contains(html, "color: #333333") {
+			t.Errorf("Expected HTML to contain color:#333333 from mj-attributes, got:\n%s", html)
+		}
+	})
+
+	t.Run("P3 mj-all applies globally", func(t *testing.T) {
+		jsonData := `{
+			"workspace_id": "ws-1",
+			"message_id": "msg-1",
+			"visual_editor_tree": {
+				"id": "mjml-1",
+				"type": "mjml",
+				"children": [
+					{
+						"id": "head-1",
+						"type": "mj-head",
+						"children": [
+							{
+								"id": "attrs-1",
+								"type": "mj-attributes",
+								"children": [
+									{"id":"all-1","type":"mj-all","attributes":{"fontFamily":"Courier"}}
+								]
+							}
+						]
+					},
+					{
+						"id": "body-1",
+						"type": "mj-body",
+						"children": [
+							{
+								"id": "section-1",
+								"type": "mj-section",
+								"children": [
+									{
+										"id": "column-1",
+										"type": "mj-column",
+										"children": [
+											{"id":"text-1","type":"mj-text","content":"Hello"}
+										]
+									}
+								]
+							}
+						]
+					}
+				]
+			}
+		}`
+
+		var req CompileTemplateRequest
+		err := json.Unmarshal([]byte(jsonData), &req)
+		if err != nil {
+			t.Fatalf("Failed to unmarshal: %v", err)
+		}
+
+		resp, err := CompileTemplate(req)
+		if err != nil {
+			t.Fatalf("Failed to compile: %v", err)
+		}
+		if resp.HTML == nil {
+			t.Fatal("HTML should not be nil")
+		}
+
+		html := *resp.HTML
+		if !strings.Contains(html, "font-family:Courier") && !strings.Contains(html, "font-family: Courier") {
+			t.Errorf("Expected HTML to contain font-family:Courier from mj-all, got:\n%s", html)
+		}
+	})
+
+	t.Run("P1 inline overrides mj-attributes", func(t *testing.T) {
+		jsonData := `{
+			"workspace_id": "ws-1",
+			"message_id": "msg-1",
+			"visual_editor_tree": {
+				"id": "mjml-1",
+				"type": "mjml",
+				"children": [
+					{
+						"id": "head-1",
+						"type": "mj-head",
+						"children": [
+							{
+								"id": "attrs-1",
+								"type": "mj-attributes",
+								"children": [
+									{"id":"text-def","type":"mj-text","attributes":{"color":"#333333"}}
+								]
+							}
+						]
+					},
+					{
+						"id": "body-1",
+						"type": "mj-body",
+						"children": [
+							{
+								"id": "section-1",
+								"type": "mj-section",
+								"children": [
+									{
+										"id": "column-1",
+										"type": "mj-column",
+										"children": [
+											{"id":"text-1","type":"mj-text","content":"Hello","attributes":{"color":"#ff0000"}}
+										]
+									}
+								]
+							}
+						]
+					}
+				]
+			}
+		}`
+
+		var req CompileTemplateRequest
+		err := json.Unmarshal([]byte(jsonData), &req)
+		if err != nil {
+			t.Fatalf("Failed to unmarshal: %v", err)
+		}
+
+		resp, err := CompileTemplate(req)
+		if err != nil {
+			t.Fatalf("Failed to compile: %v", err)
+		}
+		if resp.HTML == nil {
+			t.Fatal("HTML should not be nil")
+		}
+
+		html := *resp.HTML
+		if !strings.Contains(html, "color:#ff0000") && !strings.Contains(html, "color: #ff0000") {
+			t.Errorf("Expected HTML to contain inline color:#ff0000, got:\n%s", html)
+		}
+	})
+
+	t.Run("P4 compiler defaults when no mj-attributes", func(t *testing.T) {
+		// Without mj-head/mj-attributes, gomjml applies its own component defaults.
+		// The email should render successfully with content visible.
+		jsonData := `{
+			"workspace_id": "ws-1",
+			"message_id": "msg-1",
+			"visual_editor_tree": {
+				"id": "mjml-1",
+				"type": "mjml",
+				"children": [
+					{
+						"id": "body-1",
+						"type": "mj-body",
+						"children": [
+							{
+								"id": "section-1",
+								"type": "mj-section",
+								"children": [
+									{
+										"id": "column-1",
+										"type": "mj-column",
+										"children": [
+											{"id":"text-1","type":"mj-text","content":"Hello"}
+										]
+									}
+								]
+							}
+						]
+					}
+				]
+			}
+		}`
+
+		var req CompileTemplateRequest
+		err := json.Unmarshal([]byte(jsonData), &req)
+		if err != nil {
+			t.Fatalf("Failed to unmarshal: %v", err)
+		}
+
+		resp, err := CompileTemplate(req)
+		if err != nil {
+			t.Fatalf("Failed to compile: %v", err)
+		}
+		if resp.HTML == nil {
+			t.Fatal("HTML should not be nil")
+		}
+
+		html := *resp.HTML
+		// Content is rendered
+		if !strings.Contains(html, "Hello") {
+			t.Errorf("Expected HTML to contain 'Hello', got:\n%s", html)
+		}
+		// gomjml produces valid HTML structure
+		if !strings.Contains(html, "<table") {
+			t.Errorf("Expected HTML to contain table-based email layout, got:\n%s", html)
+		}
+	})
+}

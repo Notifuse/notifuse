@@ -33,6 +33,8 @@ const (
 	MJMLComponentMjStyle          MJMLComponentType = "mj-style"
 	MJMLComponentMjTitle          MJMLComponentType = "mj-title"
 	MJMLComponentMjRaw            MJMLComponentType = "mj-raw"
+	MJMLComponentMjAll            MJMLComponentType = "mj-all"
+	MJMLComponentMjClass          MJMLComponentType = "mj-class"
 )
 
 // Common attribute interfaces
@@ -564,38 +566,23 @@ func UnmarshalEmailBlock(data []byte) (EmailBlock, error) {
 		children[i] = child
 	}
 
-	// Merge with defaults
-	mergedAttrs := mergeAttributesWithDefaults(blockJSON.Type, blockJSON.Attributes)
+	// Preserve stored attributes as-is (no defaults injected during deserialization)
+	attrs := blockJSON.Attributes
+	if attrs == nil {
+		attrs = make(map[string]interface{})
+	}
 
 	// Create base block
 	base := &BaseBlock{
 		ID:         blockJSON.ID,
 		Type:       blockJSON.Type,
 		Children:   children,
-		Attributes: mergedAttrs,
+		Attributes: attrs,
 		Content:    blockJSON.Content,
 	}
 
 	// Return typed wrapper based on component type
 	return createTypedBlock(base), nil
-}
-
-// mergeAttributesWithDefaults merges default attributes with provided attributes
-func mergeAttributesWithDefaults(componentType MJMLComponentType, attrs map[string]interface{}) map[string]interface{} {
-	defaults := GetDefaultAttributes(componentType)
-	if attrs == nil {
-		return defaults
-	}
-	merged := make(map[string]interface{})
-	// Copy defaults first
-	for k, v := range defaults {
-		merged[k] = v
-	}
-	// Override with provided attributes
-	for k, v := range attrs {
-		merged[k] = v
-	}
-	return merged
 }
 
 // createTypedBlock creates a typed block wrapper for a BaseBlock
@@ -633,6 +620,10 @@ func createTypedBlock(base *BaseBlock) EmailBlock {
 		return &MJRawBlock{BaseBlock: base}
 	case MJMLComponentMjAttributes:
 		return &MJAttributesBlock{BaseBlock: base}
+	case MJMLComponentMjAll:
+		return &MJAttributeElementBlock{BaseBlock: base}
+	case MJMLComponentMjClass:
+		return &MJAttributeElementBlock{BaseBlock: base}
 	case MJMLComponentMjBreakpoint:
 		return &MJBreakpointBlock{BaseBlock: base}
 	case MJMLComponentMjFont:
@@ -723,7 +714,15 @@ var ValidChildrenMap = map[MJMLComponentType][]MJMLComponentType{
 	MJMLComponentMjSpacer:         {},
 	MJMLComponentMjSocialElement:  {},
 	MJMLComponentMjRaw:            {},
-	MJMLComponentMjAttributes:     {},
+	MJMLComponentMjAttributes: {
+		MJMLComponentMjAll, MJMLComponentMjClass,
+		MJMLComponentMjText, MJMLComponentMjButton, MJMLComponentMjImage,
+		MJMLComponentMjSection, MJMLComponentMjColumn, MJMLComponentMjWrapper,
+		MJMLComponentMjBody, MJMLComponentMjDivider, MJMLComponentMjSpacer,
+		MJMLComponentMjSocial, MJMLComponentMjSocialElement, MJMLComponentMjGroup,
+	},
+	MJMLComponentMjAll:            {},
+	MJMLComponentMjClass:          {},
 	MJMLComponentMjBreakpoint:     {},
 	MJMLComponentMjFont:           {},
 	MJMLComponentMjHtmlAttributes: {},

@@ -738,3 +738,65 @@ func TestFormatSingleAttribute(t *testing.T) {
 		})
 	}
 }
+
+func TestEndToEnd_MjAttributesGlobalsPreserved(t *testing.T) {
+	// Build full tree via JSON: mjml > head > mj-attributes > [mj-all, mj-text] + body > section > column > mj-text
+	fullJSON := `{
+		"id": "mjml-1",
+		"type": "mjml",
+		"children": [
+			{
+				"id": "head-1",
+				"type": "mj-head",
+				"children": [
+					{
+						"id": "attrs-1",
+						"type": "mj-attributes",
+						"children": [
+							{"id":"all-1","type":"mj-all","attributes":{"fontFamily":"Helvetica"}},
+							{"id":"text-def","type":"mj-text","attributes":{"color":"#333333"}}
+						]
+					}
+				]
+			},
+			{
+				"id": "body-1",
+				"type": "mj-body",
+				"children": [
+					{
+						"id": "section-1",
+						"type": "mj-section",
+						"children": [
+							{
+								"id": "column-1",
+								"type": "mj-column",
+								"children": [
+									{"id":"text-1","type":"mj-text","content":"Hello"}
+								]
+							}
+						]
+					}
+				]
+			}
+		]
+	}`
+
+	block, err := UnmarshalEmailBlock([]byte(fullJSON))
+	if err != nil {
+		t.Fatalf("Failed to unmarshal: %v", err)
+	}
+
+	// Convert to MJML string
+	mjmlOutput := ConvertJSONToMJML(block)
+
+	// Behavior: mj-all appears in the MJML output with its attributes
+	if !strings.Contains(mjmlOutput, `<mj-all font-family="Helvetica"`) {
+		t.Errorf("Expected mj-all with font-family in output, got:\n%s", mjmlOutput)
+	}
+
+	// Behavior: body mj-text with no stored attributes produces a tag without inline attributes
+	// (so mj-attributes globals can take effect at render time)
+	if !strings.Contains(mjmlOutput, `<mj-text>Hello</mj-text>`) {
+		t.Errorf("Expected body mj-text without inline attributes, got:\n%s", mjmlOutput)
+	}
+}

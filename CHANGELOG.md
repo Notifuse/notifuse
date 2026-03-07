@@ -8,6 +8,8 @@ All notable changes to this project will be documented in this file.
 - **Templates**: Added ability to translate email templates to languages configured in workspace settings
 - **Contacts**: Fixed invalid "Blacklisted" status option in change status dropdown, replaced with valid "Bounced" and "Complained" statuses (#285)
 - **SMTP**: Added configurable EHLO hostname for SMTP connections. Some SMTP servers reject `EHLO localhost`; users can now set a custom hostname (e.g., their domain) via the `SMTP_EHLO_HOSTNAME` env var, setup wizard, or workspace integration settings. Defaults to the SMTP host value when empty.
+- **Transactional Notifications**: Fixed delivery stats (sent, delivered, failed, bounced) always showing 0 by linking messages to their originating notification via a new `transactional_notification_id` column
+- **Email Builder**: Fixed `<mj-attributes>` global styles not applying in preview and sent emails (#282)
 
 ## [27.4] - 2026-03-01
 

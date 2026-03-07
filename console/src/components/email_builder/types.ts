@@ -24,6 +24,8 @@ export type MJMLComponentType =
   | 'mj-style'
   | 'mj-title'
   | 'mj-raw'
+  | 'mj-all'
+  | 'mj-class'
 
 // Common attribute interfaces
 export interface PaddingAttributes {

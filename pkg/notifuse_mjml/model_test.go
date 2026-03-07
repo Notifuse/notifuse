@@ -867,7 +867,7 @@ func TestUnmarshalEmailBlockWithChildren(t *testing.T) {
 // Helper function for tests - using stringPtr from examples.go
 
 func TestUnmarshalEmailBlockWithoutAttributes(t *testing.T) {
-	// Test the specific case shown by the user - blocks without attributes field
+	// Test blocks without attributes field - deserialization preserves as-is (no defaults injected)
 	testJSON := `{
 		"id": "e2f8ab42-c479-4561-8016-9eb72de7931e",
 		"type": "mj-column",
@@ -887,10 +887,10 @@ func TestUnmarshalEmailBlockWithoutAttributes(t *testing.T) {
 	assert.Equal(t, "e2f8ab42-c479-4561-8016-9eb72de7931e", block.GetID())
 	assert.Equal(t, MJMLComponentMjColumn, block.GetType())
 
-	// Verify that default attributes are applied
+	// Attributes should be non-nil empty map (no defaults injected during deserialization)
 	attrs := block.GetAttributes()
 	assert.NotNil(t, attrs, "Attributes should not be nil even when not provided")
-	assert.NotEmpty(t, attrs, "Attributes should have default values")
+	assert.Empty(t, attrs, "Attributes should be empty when none were stored")
 
 	// Verify the spacer child
 	children := block.GetChildren()
@@ -900,32 +900,15 @@ func TestUnmarshalEmailBlockWithoutAttributes(t *testing.T) {
 	assert.Equal(t, "7148af9b-7906-40d7-807e-8a111ca22be8", spacerChild.GetID())
 	assert.Equal(t, MJMLComponentMjSpacer, spacerChild.GetType())
 
-	// Verify that the spacer also has default attributes
+	// Spacer attributes should also be empty (no defaults injected)
 	spacerAttrs := spacerChild.GetAttributes()
 	assert.NotNil(t, spacerAttrs, "Spacer attributes should not be nil")
-	assert.NotEmpty(t, spacerAttrs, "Spacer should have default attributes")
+	assert.Empty(t, spacerAttrs, "Spacer should have empty attributes when none were stored")
 
-	// Spacer should have a default height
-	if height, exists := spacerAttrs["height"]; exists {
-		assert.Equal(t, "20px", height, "Spacer should have default height of 20px")
-	}
-
-	// Verify typed attributes are properly set
-	if columnBlock, ok := block.(*MJColumnBlock); ok {
-		assert.NotNil(t, columnBlock.Attributes, "Typed attributes should be set")
-	} else {
-		t.Error("Block should be of type *MJColumnBlock")
-	}
-
-	if spacerBlock, ok := spacerChild.(*MJSpacerBlock); ok {
-		assert.NotNil(t, spacerBlock.Attributes, "Spacer typed attributes should be set")
-	} else {
-		t.Error("Child should be of type *MJSpacerBlock")
-	}
 }
 
 func TestUnmarshalEmailBlockWithPartialAttributes(t *testing.T) {
-	// Test blocks with some attributes present
+	// Test blocks with some attributes present - only stored attrs preserved
 	testJSON := `{
 		"id": "test-text-block",
 		"type": "mj-text",
@@ -949,21 +932,17 @@ func TestUnmarshalEmailBlockWithPartialAttributes(t *testing.T) {
 	assert.Equal(t, "#ff0000", attrs["color"])
 	assert.Equal(t, "18px", attrs["fontSize"])
 
-	// Verify that default attributes are still applied for missing ones
-	assert.Equal(t, "1.5", attrs["lineHeight"]) // Default from GetDefaultAttributes
+	// No defaults injected — only explicitly provided attrs present
+	_, hasLineHeight := attrs["lineHeight"]
+	assert.False(t, hasLineHeight, "lineHeight default should not be injected")
 
 	// Verify content is preserved
-	if textBlock, ok := block.(*MJTextBlock); ok {
-		assert.NotNil(t, textBlock.Content)
-		assert.Equal(t, "Hello World", *textBlock.Content)
-		assert.NotNil(t, textBlock.Attributes, "Typed attributes should be set")
-	} else {
-		t.Error("Block should be of type *MJTextBlock")
-	}
+	assert.NotNil(t, block.GetContent())
+	assert.Equal(t, "Hello World", *block.GetContent())
 }
 
 func TestUnmarshalEmailBlockWithEmptyAttributes(t *testing.T) {
-	// Test blocks with empty attributes object
+	// Test blocks with empty attributes object — no defaults injected
 	testJSON := `{
 		"id": "test-button-block",
 		"type": "mj-button",
@@ -979,20 +958,14 @@ func TestUnmarshalEmailBlockWithEmptyAttributes(t *testing.T) {
 	assert.Equal(t, "test-button-block", block.GetID())
 	assert.Equal(t, MJMLComponentMjButton, block.GetType())
 
-	// Verify that default attributes are applied
+	// Attributes should be empty — no defaults injected during deserialization
 	attrs := block.GetAttributes()
-	assert.NotEmpty(t, attrs, "Should have default attributes")
-	assert.Equal(t, "#414141", attrs["backgroundColor"]) // Default background color
-	assert.Equal(t, "#ffffff", attrs["color"])           // Default text color
+	assert.NotNil(t, attrs, "Attributes map should not be nil")
+	assert.Empty(t, attrs, "Attributes should be empty when none were stored")
 
 	// Verify content is preserved
-	if buttonBlock, ok := block.(*MJButtonBlock); ok {
-		assert.NotNil(t, buttonBlock.Content)
-		assert.Equal(t, "Click Me", *buttonBlock.Content)
-		assert.NotNil(t, buttonBlock.Attributes, "Typed attributes should be set")
-	} else {
-		t.Error("Block should be of type *MJButtonBlock")
-	}
+	assert.NotNil(t, block.GetContent())
+	assert.Equal(t, "Click Me", *block.GetContent())
 }
 
 func TestBaseBlock_SetID(t *testing.T) {
@@ -1409,5 +1382,136 @@ func TestStructToMap(t *testing.T) {
 		assert.Equal(t, "body-class", result["cssClass"])
 		assert.Equal(t, "600px", result["width"])
 		assert.Equal(t, "https://example.com/bg.jpg", result["backgroundUrl"])
+	})
+}
+
+// Phase 1 tests: mj-all and mj-class support
+
+func TestMjAttributesValidChildren(t *testing.T) {
+	t.Run("mj-all is valid child", func(t *testing.T) {
+		assert.True(t, CanDropCheck("mj-all", "mj-attributes"))
+	})
+
+	t.Run("mj-class is valid child", func(t *testing.T) {
+		assert.True(t, CanDropCheck("mj-class", "mj-attributes"))
+	})
+
+	t.Run("mj-divider is valid child", func(t *testing.T) {
+		assert.True(t, CanDropCheck("mj-divider", "mj-attributes"))
+	})
+
+	t.Run("mj-text is valid child", func(t *testing.T) {
+		assert.True(t, CanDropCheck("mj-text", "mj-attributes"))
+	})
+}
+
+func TestUnmarshalMjAllBlock(t *testing.T) {
+	testJSON := `{"id":"all-1","type":"mj-all","attributes":{"fontFamily":"Arial"}}`
+
+	block, err := UnmarshalEmailBlock([]byte(testJSON))
+	require.NoError(t, err)
+	require.NotNil(t, block)
+
+	assert.Equal(t, MJMLComponentMjAll, block.GetType())
+	assert.Equal(t, "all-1", block.GetID())
+	assert.Equal(t, "Arial", block.GetAttributes()["fontFamily"])
+}
+
+func TestUnmarshalMjClassBlock(t *testing.T) {
+	testJSON := `{"id":"class-1","type":"mj-class","attributes":{"name":"blue","color":"#0000ff"}}`
+
+	block, err := UnmarshalEmailBlock([]byte(testJSON))
+	require.NoError(t, err)
+	require.NotNil(t, block)
+
+	assert.Equal(t, MJMLComponentMjClass, block.GetType())
+	assert.Equal(t, "blue", block.GetAttributes()["name"])
+	assert.Equal(t, "#0000ff", block.GetAttributes()["color"])
+}
+
+func TestUnmarshalMjAttributesWithChildren(t *testing.T) {
+	testJSON := `{
+		"id": "attrs-1",
+		"type": "mj-attributes",
+		"children": [
+			{"id":"all-1","type":"mj-all","attributes":{"fontFamily":"Helvetica"}}
+		]
+	}`
+
+	block, err := UnmarshalEmailBlock([]byte(testJSON))
+	require.NoError(t, err)
+	require.NotNil(t, block)
+
+	assert.Equal(t, MJMLComponentMjAttributes, block.GetType())
+
+	children := block.GetChildren()
+	require.Len(t, children, 1)
+	assert.Equal(t, MJMLComponentMjAll, children[0].GetType())
+	assert.Equal(t, "Helvetica", children[0].GetAttributes()["fontFamily"])
+}
+
+// Phase 2 tests: No defaults injected during deserialization
+
+func TestUnmarshalEmailBlock_NoDefaultsInjected(t *testing.T) {
+	t.Run("mj-text preserves only stored attrs", func(t *testing.T) {
+		testJSON := `{"id":"t1","type":"mj-text","attributes":{"color":"#ff0000","fontSize":"18px"}}`
+
+		block, err := UnmarshalEmailBlock([]byte(testJSON))
+		require.NoError(t, err)
+
+		attrs := block.GetAttributes()
+		assert.Equal(t, "#ff0000", attrs["color"])
+		assert.Equal(t, "18px", attrs["fontSize"])
+
+		// mj-text defaults (lineHeight, fontSize from GetDefaultAttributes) should NOT be injected
+		_, hasLineHeight := attrs["lineHeight"]
+		assert.False(t, hasLineHeight, "lineHeight default should not be injected")
+	})
+
+	t.Run("mj-text empty attrs stays empty", func(t *testing.T) {
+		testJSON := `{"id":"t2","type":"mj-text","attributes":{}}`
+
+		block, err := UnmarshalEmailBlock([]byte(testJSON))
+		require.NoError(t, err)
+
+		attrs := block.GetAttributes()
+		assert.NotNil(t, attrs)
+		assert.Empty(t, attrs)
+	})
+
+	t.Run("mj-text nil attrs gets empty map", func(t *testing.T) {
+		testJSON := `{"id":"t3","type":"mj-text"}`
+
+		block, err := UnmarshalEmailBlock([]byte(testJSON))
+		require.NoError(t, err)
+
+		attrs := block.GetAttributes()
+		assert.NotNil(t, attrs)
+		assert.Empty(t, attrs)
+	})
+
+	t.Run("mj-attributes child no defaults", func(t *testing.T) {
+		testJSON := `{
+			"id": "attrs-1",
+			"type": "mj-attributes",
+			"children": [
+				{"id":"text-def","type":"mj-text","attributes":{"color":"#333"}}
+			]
+		}`
+
+		block, err := UnmarshalEmailBlock([]byte(testJSON))
+		require.NoError(t, err)
+
+		children := block.GetChildren()
+		require.Len(t, children, 1)
+
+		childAttrs := children[0].GetAttributes()
+		assert.Equal(t, "#333", childAttrs["color"])
+
+		// mj-text defaults should not leak into mj-attributes children
+		_, hasFontSize := childAttrs["fontSize"]
+		_, hasLineHeight := childAttrs["lineHeight"]
+		assert.False(t, hasFontSize, "fontSize default should not be injected into mj-attributes child")
+		assert.False(t, hasLineHeight, "lineHeight default should not be injected into mj-attributes child")
 	})
 }

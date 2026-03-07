@@ -50,7 +50,12 @@ export class MjAttributesBlock extends BaseEmailBlock {
 
   getValidChildTypes(): MJMLComponentType[] {
     // mj-attributes can contain attribute elements for any MJML component type
-    return ['mj-text', 'mj-button', 'mj-image', 'mj-section', 'mj-column', 'mj-wrapper', 'mj-body']
+    return [
+      'mj-all', 'mj-class',
+      'mj-text', 'mj-button', 'mj-image', 'mj-section', 'mj-column',
+      'mj-wrapper', 'mj-body', 'mj-divider', 'mj-spacer', 'mj-social',
+      'mj-social-element', 'mj-group'
+    ]
   }
 
   /**
