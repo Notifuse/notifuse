@@ -194,6 +194,12 @@ var PredefinedSchemas = map[string]analytics.SchemaDefinition{
 				SQL:         "external_id",
 				Description: "Client-provided transactional notification identifier",
 			},
+			"transactional_notification_id": {
+				Type:        "string",
+				Title:       "Transactional Notification ID",
+				SQL:         "transactional_notification_id",
+				Description: "Transactional notification identifier",
+			},
 		},
 	},
 	"contacts": {

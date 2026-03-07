@@ -184,6 +184,7 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 			external_id VARCHAR(255),
 			broadcast_id VARCHAR(255),
 			automation_id VARCHAR(36),
+			transactional_notification_id VARCHAR(32),
 			list_id VARCHAR(32),
 			template_id VARCHAR(32) NOT NULL,
 			template_version INTEGER NOT NULL,
@@ -206,6 +207,7 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 		`CREATE INDEX IF NOT EXISTS idx_message_history_contact_email ON message_history(contact_email)`,
 		`CREATE INDEX IF NOT EXISTS idx_message_history_broadcast_id ON message_history(broadcast_id) WHERE broadcast_id IS NOT NULL`,
 		`CREATE INDEX IF NOT EXISTS idx_message_history_automation_id ON message_history(automation_id) WHERE automation_id IS NOT NULL`,
+		`CREATE INDEX IF NOT EXISTS idx_message_history_transactional_notification_id ON message_history(transactional_notification_id) WHERE transactional_notification_id IS NOT NULL`,
 		`CREATE INDEX IF NOT EXISTS idx_message_history_template_id ON message_history(template_id, template_version)`,
 		`CREATE INDEX IF NOT EXISTS idx_message_history_created_at_id ON message_history(created_at DESC, id DESC)`,
 		`CREATE TABLE IF NOT EXISTS transactional_notifications (

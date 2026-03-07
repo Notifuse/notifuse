@@ -172,7 +172,7 @@ func TestSchemaDefinitionStructure(t *testing.T) {
 	}
 
 	// Test required dimensions
-	requiredDimensions := []string{"created_at", "sent_at", "contact_email", "broadcast_id", "channel", "template_id", "external_id"}
+	requiredDimensions := []string{"created_at", "sent_at", "contact_email", "broadcast_id", "channel", "template_id", "external_id", "transactional_notification_id"}
 	for _, dimension := range requiredDimensions {
 		assert.Contains(t, schema.Dimensions, dimension, "message_history should have dimension %s", dimension)
 	}

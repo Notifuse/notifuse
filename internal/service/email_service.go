@@ -414,17 +414,18 @@ func (s *EmailService) SendEmailForTemplate(ctx context.Context, request domain.
 
 	// Create message history record
 	messageHistory := &domain.MessageHistory{
-		ID:             request.MessageID,
-		ExternalID:     request.ExternalID,
-		ContactEmail:   request.Contact.Email,
-		AutomationID:   request.AutomationID,
-		TemplateID:     request.TemplateConfig.TemplateID,
-		Channel:        "email",
-		MessageData:    request.MessageData,
-		ChannelOptions: channelOptions,
-		SentAt:         now,
-		CreatedAt:      now,
-		UpdatedAt:      now,
+		ID:                          request.MessageID,
+		ExternalID:                  request.ExternalID,
+		ContactEmail:                request.Contact.Email,
+		AutomationID:                request.AutomationID,
+		TransactionalNotificationID: request.TransactionalNotificationID,
+		TemplateID:                  request.TemplateConfig.TemplateID,
+		Channel:                     "email",
+		MessageData:                 request.MessageData,
+		ChannelOptions:              channelOptions,
+		SentAt:                      now,
+		CreatedAt:                   now,
+		UpdatedAt:                   now,
 	}
 
 	// Save to message history

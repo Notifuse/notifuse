@@ -81,6 +81,15 @@ func TestV28Migration_UpdateWorkspace_Success(t *testing.T) {
 	// Expect UPDATE to normalize NULL translations
 	mock.ExpectExec(`UPDATE templates SET translations`).
 		WillReturnResult(sqlmock.NewResult(0, 5))
+	// Expect ALTER TABLE for transactional_notification_id column
+	mock.ExpectExec(`ALTER TABLE message_history ADD COLUMN IF NOT EXISTS transactional_notification_id`).
+		WillReturnResult(sqlmock.NewResult(0, 0))
+	// Expect CREATE INDEX for transactional_notification_id
+	mock.ExpectExec(`CREATE INDEX IF NOT EXISTS idx_message_history_transactional_notification_id`).
+		WillReturnResult(sqlmock.NewResult(0, 0))
+	// Expect UPDATE to backfill transactional_notification_id
+	mock.ExpectExec(`UPDATE message_history mh`).
+		WillReturnResult(sqlmock.NewResult(0, 10))
 
 	err = m.UpdateWorkspace(context.Background(), cfg, workspace, db)
 	assert.NoError(t, err)
@@ -141,10 +150,86 @@ func TestV28Migration_UpdateWorkspace_ColumnAlreadyExists(t *testing.T) {
 	// Normalize NULLs (idempotent - may update 0 rows)
 	mock.ExpectExec(`UPDATE templates SET translations`).
 		WillReturnResult(sqlmock.NewResult(0, 0))
+	// transactional_notification_id column (idempotent)
+	mock.ExpectExec(`ALTER TABLE message_history ADD COLUMN IF NOT EXISTS transactional_notification_id`).
+		WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectExec(`CREATE INDEX IF NOT EXISTS idx_message_history_transactional_notification_id`).
+		WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectExec(`UPDATE message_history mh`).
+		WillReturnResult(sqlmock.NewResult(0, 0))
 
 	err = m.UpdateWorkspace(context.Background(), cfg, workspace, db)
 	assert.NoError(t, err)
 	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestV28Migration_UpdateWorkspace_AddColumnError(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer db.Close()
+
+	m := &V28Migration{}
+	cfg := &config.Config{}
+	workspace := &domain.Workspace{ID: "test-workspace"}
+
+	mock.ExpectExec(`ALTER TABLE templates ADD COLUMN IF NOT EXISTS translations`).
+		WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectExec(`UPDATE templates SET translations`).
+		WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectExec(`ALTER TABLE message_history ADD COLUMN IF NOT EXISTS transactional_notification_id`).
+		WillReturnError(assert.AnError)
+
+	err = m.UpdateWorkspace(context.Background(), cfg, workspace, db)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to add transactional_notification_id column")
+}
+
+func TestV28Migration_UpdateWorkspace_CreateIndexError(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer db.Close()
+
+	m := &V28Migration{}
+	cfg := &config.Config{}
+	workspace := &domain.Workspace{ID: "test-workspace"}
+
+	mock.ExpectExec(`ALTER TABLE templates ADD COLUMN IF NOT EXISTS translations`).
+		WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectExec(`UPDATE templates SET translations`).
+		WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectExec(`ALTER TABLE message_history ADD COLUMN IF NOT EXISTS transactional_notification_id`).
+		WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectExec(`CREATE INDEX IF NOT EXISTS idx_message_history_transactional_notification_id`).
+		WillReturnError(assert.AnError)
+
+	err = m.UpdateWorkspace(context.Background(), cfg, workspace, db)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to create transactional_notification_id index")
+}
+
+func TestV28Migration_UpdateWorkspace_BackfillError(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer db.Close()
+
+	m := &V28Migration{}
+	cfg := &config.Config{}
+	workspace := &domain.Workspace{ID: "test-workspace"}
+
+	mock.ExpectExec(`ALTER TABLE templates ADD COLUMN IF NOT EXISTS translations`).
+		WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectExec(`UPDATE templates SET translations`).
+		WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectExec(`ALTER TABLE message_history ADD COLUMN IF NOT EXISTS transactional_notification_id`).
+		WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectExec(`CREATE INDEX IF NOT EXISTS idx_message_history_transactional_notification_id`).
+		WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectExec(`UPDATE message_history mh`).
+		WillReturnError(assert.AnError)
+
+	err = m.UpdateWorkspace(context.Background(), cfg, workspace, db)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to backfill transactional_notification_id")
 }
 
 func TestV28Migration_Registration(t *testing.T) {

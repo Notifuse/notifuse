@@ -645,17 +645,19 @@ func (s *TransactionalNotificationService) SendNotification(
 
 			notification.TrackingSettings.EnableTracking = workspace.Settings.EmailTrackingEnabled
 
+			notificationID := params.ID
 			request := domain.SendEmailRequest{
-				WorkspaceID:      workspaceID,
-				IntegrationID:    integrationID,
-				MessageID:        messageID,
-				ExternalID:       params.ExternalID,
-				Contact:          contact,
-				TemplateConfig:   templateConfig,
-				MessageData:      messageData,
-				TrackingSettings: notification.TrackingSettings,
-				EmailProvider:    emailProvider,
-				EmailOptions:     params.EmailOptions,
+				WorkspaceID:                 workspaceID,
+				IntegrationID:               integrationID,
+				MessageID:                   messageID,
+				ExternalID:                  params.ExternalID,
+				TransactionalNotificationID: &notificationID,
+				Contact:                     contact,
+				TemplateConfig:              templateConfig,
+				MessageData:                 messageData,
+				TrackingSettings:            notification.TrackingSettings,
+				EmailProvider:               emailProvider,
+				EmailOptions:                params.EmailOptions,
 			}
 			err = s.emailService.SendEmailForTemplate(childCtx, request)
 			if err == nil {

@@ -1223,6 +1223,9 @@ func TestTransactionalNotificationService_SendNotification(t *testing.T) {
 			assert.NotNil(t, request.EmailProvider)
 			assert.Equal(t, workspaceObj.Settings.EmailTrackingEnabled, request.TrackingSettings.EnableTracking)
 			assert.Equal(t, "https://api.example.com", request.TrackingSettings.Endpoint)
+			// Verify transactional notification ID is passed through
+			require.NotNil(t, request.TransactionalNotificationID)
+			assert.Equal(t, notificationID, *request.TransactionalNotificationID)
 		}).Return(nil)
 
 		// Message history creation happens inside SendEmailForTemplate

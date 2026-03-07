@@ -948,6 +948,8 @@ func TestEmailService_SendEmailForTemplate(t *testing.T) {
 				assert.Equal(t, templateConfig.TemplateID, msgHistory.TemplateID)
 				assert.Equal(t, "email", msgHistory.Channel)
 				assert.Equal(t, messageData, msgHistory.MessageData)
+				// TransactionalNotificationID should be nil when not set in request
+				assert.Nil(t, msgHistory.TransactionalNotificationID)
 
 				return nil
 			})

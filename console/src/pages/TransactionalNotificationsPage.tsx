@@ -312,7 +312,7 @@ export function TransactionalNotificationsPage() {
         {
           schema: 'message_history',
           measures: ['count_sent', 'count_delivered', 'count_failed', 'count_bounced'],
-          dimensions: ['external_id'],
+          dimensions: ['transactional_notification_id'],
           filters: [
             { member: 'broadcast_id', operator: 'notSet', values: [] },
             {
@@ -329,7 +329,7 @@ export function TransactionalNotificationsPage() {
 
   // Helper to get stats for a notification
   const getStatsForNotification = (notificationId: string): NotificationStats => {
-    const row = statsData?.data?.find((d) => d.external_id === notificationId)
+    const row = statsData?.data?.find((d) => d.transactional_notification_id === notificationId)
     return {
       sent: Number(row?.count_sent || 0),
       delivered: Number(row?.count_delivered || 0),
