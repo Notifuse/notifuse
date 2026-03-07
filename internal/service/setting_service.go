@@ -21,6 +21,7 @@ type SystemConfig struct {
 	SMTPFromEmail          string
 	SMTPFromName           string
 	SMTPUseTLS             bool
+	SMTPEHLOHostname       string
 	TelemetryEnabled       bool
 	CheckForUpdates        bool
 	SMTPRelayEnabled       bool
@@ -97,6 +98,11 @@ func (s *SettingService) GetSystemConfig(ctx context.Context, secretKey string) 
 	// Load SMTP TLS setting (default to true if not set)
 	if setting, err := s.repo.Get(ctx, "smtp_use_tls"); err == nil {
 		config.SMTPUseTLS = setting.Value != "false"
+	}
+
+	// Load SMTP EHLO hostname
+	if setting, err := s.repo.Get(ctx, "smtp_ehlo_hostname"); err == nil {
+		config.SMTPEHLOHostname = setting.Value
 	}
 
 	// Load and decrypt SMTP username
@@ -210,6 +216,13 @@ func (s *SettingService) SetSystemConfig(ctx context.Context, config *SystemConf
 	if config.SMTPFromName != "" {
 		if err := s.repo.Set(ctx, "smtp_from_name", config.SMTPFromName); err != nil {
 			return fmt.Errorf("failed to set smtp_from_name: %w", err)
+		}
+	}
+
+	// Set SMTP EHLO hostname
+	if config.SMTPEHLOHostname != "" {
+		if err := s.repo.Set(ctx, "smtp_ehlo_hostname", config.SMTPEHLOHostname); err != nil {
+			return fmt.Errorf("failed to set smtp_ehlo_hostname: %w", err)
 		}
 	}
 

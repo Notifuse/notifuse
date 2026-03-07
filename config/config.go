@@ -52,6 +52,7 @@ type EnvValues struct {
 	SMTPFromEmail          string
 	SMTPFromName           string
 	SMTPUseTLS             string // "true", "false", or "" (empty = not set, defaults to true)
+	SMTPEHLOHostname       string
 	SMTPRelayEnabled       string // "true", "false", or "" (empty = not set, allows setup wizard to configure)
 	SMTPRelayDomain        string
 	SMTPRelayPort          int
@@ -136,13 +137,14 @@ type TracingConfig struct {
 }
 
 type SMTPConfig struct {
-	Host      string
-	Port      int
-	Username  string
-	Password  string
-	FromEmail string
-	FromName  string
-	UseTLS    bool
+	Host         string
+	Port         int
+	Username     string
+	Password     string
+	FromEmail    string
+	FromName     string
+	UseTLS       bool
+	EHLOHostname string
 }
 
 type SMTPRelayConfig struct {
@@ -187,6 +189,7 @@ type SystemSettings struct {
 	SMTPFromEmail          string
 	SMTPFromName           string
 	SMTPUseTLS             bool
+	SMTPEHLOHostname       string
 	TelemetryEnabled       bool
 	CheckForUpdates        bool
 	SMTPRelayEnabled       bool
@@ -283,6 +286,8 @@ func loadSystemSettings(db *sql.DB, secretKey string) (*SystemSettings, error) {
 		if smtpUseTLS, ok := settingsMap["smtp_use_tls"]; ok {
 			settings.SMTPUseTLS = smtpUseTLS != "false"
 		}
+
+		settings.SMTPEHLOHostname = settingsMap["smtp_ehlo_hostname"]
 
 		// Decrypt SMTP username if present
 		if encryptedUsername, ok := settingsMap["encrypted_smtp_username"]; ok && encryptedUsername != "" {
@@ -517,6 +522,7 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 		SMTPFromEmail:          v.GetString("SMTP_FROM_EMAIL"),
 		SMTPFromName:           v.GetString("SMTP_FROM_NAME"),
 		SMTPUseTLS:             smtpUseTLSStr,       // "true", "false", or "" (empty = not set, defaults to true)
+		SMTPEHLOHostname:       v.GetString("SMTP_EHLO_HOSTNAME"),
 		SMTPRelayEnabled:       smtpRelayEnabledStr, // "true", "false", or "" (empty = not set)
 		SMTPRelayDomain:        v.GetString("SMTP_RELAY_DOMAIN"),
 		SMTPRelayPort:          v.GetInt("SMTP_RELAY_PORT"),
@@ -561,13 +567,14 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 
 		// SMTP settings - env vars override database
 		smtpConfig = SMTPConfig{
-			Host:      envVals.SMTPHost,
-			Port:      envVals.SMTPPort,
-			Username:  envVals.SMTPUsername,
-			Password:  envVals.SMTPPassword,
-			FromEmail: envVals.SMTPFromEmail,
-			FromName:  envVals.SMTPFromName,
-			UseTLS:    envVals.SMTPUseTLS != "false", // Default to true unless explicitly set to false
+			Host:         envVals.SMTPHost,
+			Port:         envVals.SMTPPort,
+			Username:     envVals.SMTPUsername,
+			Password:     envVals.SMTPPassword,
+			FromEmail:    envVals.SMTPFromEmail,
+			FromName:     envVals.SMTPFromName,
+			UseTLS:       envVals.SMTPUseTLS != "false", // Default to true unless explicitly set to false
+			EHLOHostname: envVals.SMTPEHLOHostname,
 		}
 
 		// Use database values as fallback
@@ -598,6 +605,9 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 		// Use database value for TLS if env var is not set
 		if envVals.SMTPUseTLS == "" {
 			smtpConfig.UseTLS = systemSettings.SMTPUseTLS
+		}
+		if smtpConfig.EHLOHostname == "" {
+			smtpConfig.EHLOHostname = systemSettings.SMTPEHLOHostname
 		}
 
 		// SMTP Relay settings - env vars override database
@@ -635,13 +645,14 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 		rootEmail = envVals.RootEmail
 		apiEndpoint = envVals.APIEndpoint
 		smtpConfig = SMTPConfig{
-			Host:      envVals.SMTPHost,
-			Port:      envVals.SMTPPort,
-			Username:  envVals.SMTPUsername,
-			Password:  envVals.SMTPPassword,
-			FromEmail: envVals.SMTPFromEmail,
-			FromName:  envVals.SMTPFromName,
-			UseTLS:    envVals.SMTPUseTLS != "false", // Default to true unless explicitly set to false
+			Host:         envVals.SMTPHost,
+			Port:         envVals.SMTPPort,
+			Username:     envVals.SMTPUsername,
+			Password:     envVals.SMTPPassword,
+			FromEmail:    envVals.SMTPFromEmail,
+			FromName:     envVals.SMTPFromName,
+			UseTLS:       envVals.SMTPUseTLS != "false", // Default to true unless explicitly set to false
+			EHLOHostname: envVals.SMTPEHLOHostname,
 		}
 		// Apply defaults for first-run
 		if smtpConfig.Port == 0 {

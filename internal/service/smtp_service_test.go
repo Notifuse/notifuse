@@ -432,6 +432,102 @@ func TestSMTPService_SendEmail_Integration(t *testing.T) {
 	assert.NotContains(t, mailFromCmd, "SMTPUTF8")
 }
 
+func TestSMTPService_SendEmail_DefaultEhloUsesHost(t *testing.T) {
+	server := newMockSMTPServer(t, true)
+	defer server.Close()
+
+	log := &noopLogger{}
+	service := NewSMTPService(log)
+
+	provider := &domain.EmailProvider{
+		Kind: domain.EmailProviderKindSMTP,
+		SMTP: &domain.SMTPSettings{
+			Host:     "127.0.0.1",
+			Port:     server.Port(),
+			Username: "",
+			Password: "",
+			UseTLS:   false,
+			// EHLOHostname left empty - should default to Host
+		},
+	}
+
+	request := domain.SendEmailProviderRequest{
+		WorkspaceID:   "workspace-123",
+		IntegrationID: "integration-123",
+		MessageID:     "message-123",
+		FromAddress:   "sender@example.com",
+		FromName:      "Test Sender",
+		To:            "recipient@example.com",
+		Subject:       "Test Subject",
+		Content:       "<h1>Hello</h1>",
+		Provider:      provider,
+		EmailOptions:  domain.EmailOptions{},
+	}
+
+	err := service.SendEmail(context.Background(), request)
+	require.NoError(t, err)
+
+	// Verify EHLO used the SMTP host (127.0.0.1) instead of "localhost"
+	commands := server.GetCommands()
+	foundEhlo := false
+	for _, cmd := range commands {
+		if strings.HasPrefix(strings.ToUpper(cmd), "EHLO") {
+			assert.Equal(t, "EHLO 127.0.0.1", cmd)
+			foundEhlo = true
+			break
+		}
+	}
+	assert.True(t, foundEhlo, "Should have sent an EHLO command")
+}
+
+func TestSMTPService_SendEmail_CustomEHLOHostname(t *testing.T) {
+	server := newMockSMTPServer(t, true)
+	defer server.Close()
+
+	log := &noopLogger{}
+	service := NewSMTPService(log)
+
+	provider := &domain.EmailProvider{
+		Kind: domain.EmailProviderKindSMTP,
+		SMTP: &domain.SMTPSettings{
+			Host:         "127.0.0.1",
+			Port:         server.Port(),
+			Username:     "",
+			Password:     "",
+			UseTLS:       false,
+			EHLOHostname: "mail.example.com",
+		},
+	}
+
+	request := domain.SendEmailProviderRequest{
+		WorkspaceID:   "workspace-123",
+		IntegrationID: "integration-123",
+		MessageID:     "message-123",
+		FromAddress:   "sender@example.com",
+		FromName:      "Test Sender",
+		To:            "recipient@example.com",
+		Subject:       "Test Subject",
+		Content:       "<h1>Hello</h1>",
+		Provider:      provider,
+		EmailOptions:  domain.EmailOptions{},
+	}
+
+	err := service.SendEmail(context.Background(), request)
+	require.NoError(t, err)
+
+	// Verify EHLO used the custom hostname
+	commands := server.GetCommands()
+	foundEhlo := false
+	for _, cmd := range commands {
+		if strings.HasPrefix(strings.ToUpper(cmd), "EHLO") {
+			assert.Equal(t, "EHLO mail.example.com", cmd)
+			foundEhlo = true
+			break
+		}
+	}
+	assert.True(t, foundEhlo, "Should have sent an EHLO command")
+}
+
 func TestSMTPService_SendEmail_WithCCAndBCC(t *testing.T) {
 	server := newMockSMTPServer(t, true)
 	defer server.Close()

@@ -8,6 +8,7 @@ export interface SetupConfig {
   smtp_from_email?: string
   smtp_from_name?: string
   smtp_use_tls?: boolean
+  smtp_ehlo_hostname?: string
   telemetry_enabled?: boolean
   check_for_updates?: boolean
   smtp_relay_enabled?: boolean
@@ -36,6 +37,7 @@ export interface TestSMTPConfig {
   smtp_username: string
   smtp_password: string
   smtp_use_tls?: boolean
+  smtp_ehlo_hostname?: string
 }
 
 export interface TestSMTPResponse {

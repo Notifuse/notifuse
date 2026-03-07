@@ -381,6 +381,7 @@ func (a *App) InitMailer() error {
 			FromName:     a.config.SMTP.FromName,
 			APIEndpoint:  a.config.APIEndpoint,
 			UseTLS:       a.config.SMTP.UseTLS,
+			EHLOHostname: a.config.SMTP.EHLOHostname,
 		}
 
 		a.mailer = mailer.NewSMTPMailer(mailerConfig)

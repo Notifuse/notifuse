@@ -24,6 +24,7 @@ type SetupConfig struct {
 	SMTPFromEmail          string
 	SMTPFromName           string
 	SMTPUseTLS             bool
+	SMTPEHLOHostname       string
 	TelemetryEnabled       bool
 	CheckForUpdates        bool
 	SMTPRelayEnabled       bool
@@ -35,11 +36,12 @@ type SetupConfig struct {
 
 // SMTPTestConfig represents SMTP configuration for testing
 type SMTPTestConfig struct {
-	Host     string
-	Port     int
-	Username string
-	Password string
-	UseTLS   bool
+	Host         string
+	Port         int
+	Username     string
+	Password     string
+	UseTLS       bool
+	EHLOHostname string
 }
 
 // ConfigurationStatus represents which configuration groups are set via environment
@@ -72,6 +74,7 @@ type EnvironmentConfig struct {
 	SMTPFromEmail          string
 	SMTPFromName           string
 	SMTPUseTLS             string // "true", "false", or "" (empty = not set, defaults to true)
+	SMTPEHLOHostname       string
 	SMTPRelayEnabled       string // "true", "false", or "" (empty = not set, allows setup wizard to configure)
 	SMTPRelayDomain        string
 	SMTPRelayPort          int
@@ -188,7 +191,7 @@ func (s *SetupService) Initialize(ctx context.Context, config *SetupConfig) erro
 	finalConfig.APIEndpoint = strings.TrimRight(finalConfig.APIEndpoint, "/")
 
 	// Handle SMTP configuration
-	var smtpHost, smtpUsername, smtpPassword, smtpFromEmail, smtpFromName string
+	var smtpHost, smtpUsername, smtpPassword, smtpFromEmail, smtpFromName, smtpEHLOHostname string
 	var smtpPort int
 	var smtpUseTLS bool
 
@@ -202,6 +205,7 @@ func (s *SetupService) Initialize(ctx context.Context, config *SetupConfig) erro
 		smtpFromName = s.envConfig.SMTPFromName
 		// TLS defaults to true unless explicitly set to false via env var
 		smtpUseTLS = s.envConfig.SMTPUseTLS != "false"
+		smtpEHLOHostname = s.envConfig.SMTPEHLOHostname
 	} else {
 		// Use user-provided SMTP
 		smtpHost = config.SMTPHost
@@ -211,6 +215,7 @@ func (s *SetupService) Initialize(ctx context.Context, config *SetupConfig) erro
 		smtpFromEmail = config.SMTPFromEmail
 		smtpFromName = config.SMTPFromName
 		smtpUseTLS = config.SMTPUseTLS
+		smtpEHLOHostname = config.SMTPEHLOHostname
 	}
 
 	// Handle SMTP Relay configuration
@@ -246,6 +251,7 @@ func (s *SetupService) Initialize(ctx context.Context, config *SetupConfig) erro
 		SMTPFromEmail:          smtpFromEmail,
 		SMTPFromName:           smtpFromName,
 		SMTPUseTLS:             smtpUseTLS,
+		SMTPEHLOHostname:       smtpEHLOHostname,
 		TelemetryEnabled:       config.TelemetryEnabled,
 		CheckForUpdates:        config.CheckForUpdates,
 		SMTPRelayEnabled:       smtpRelayEnabled,
@@ -322,6 +328,11 @@ func (s *SetupService) TestSMTPConnection(ctx context.Context, config *SMTPTestC
 			mail.WithPassword(config.Password),
 			mail.WithSMTPAuth(mail.SMTPAuthAutoDiscover),
 		)
+	}
+
+	// Set custom EHLO hostname if configured
+	if config.EHLOHostname != "" {
+		clientOptions = append(clientOptions, mail.WithHELO(config.EHLOHostname))
 	}
 
 	// Create mail client with timeout from context

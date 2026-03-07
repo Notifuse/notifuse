@@ -72,7 +72,8 @@ export default function SetupWizard() {
         smtp_port: values.smtp_port,
         smtp_username: values.smtp_username || '',
         smtp_password: values.smtp_password || '',
-        smtp_use_tls: values.smtp_use_tls ?? true
+        smtp_use_tls: values.smtp_use_tls ?? true,
+        smtp_ehlo_hostname: values.smtp_ehlo_hostname || undefined
       }
 
       const result = await setupApi.testSmtp(testConfig)
@@ -492,6 +493,14 @@ export default function SetupWizard() {
                           </Form.Item>
                         </Col>
                       </Row>
+
+                      <Form.Item
+                        name="smtp_ehlo_hostname"
+                        label={t`EHLO Hostname`}
+                        tooltip={t`The hostname your server identifies itself as when connecting to the SMTP server. Defaults to the SMTP host value if empty.`}
+                      >
+                        <Input placeholder={t`Defaults to SMTP host`} />
+                      </Form.Item>
 
                       <div className="text-right">
                         <Button

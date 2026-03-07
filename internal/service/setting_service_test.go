@@ -300,6 +300,7 @@ func TestSettingService_SetSystemConfig(t *testing.T) {
 			SMTPPassword:     "smtp_pass",
 			SMTPFromEmail:    "noreply@example.com",
 			SMTPFromName:     "Test App",
+			SMTPEHLOHostname: "mail.example.com",
 			TelemetryEnabled: true,
 			CheckForUpdates:  true,
 		}
@@ -322,6 +323,7 @@ func TestSettingService_SetSystemConfig(t *testing.T) {
 		assert.Equal(t, originalConfig.SMTPPassword, retrievedConfig.SMTPPassword)
 		assert.Equal(t, originalConfig.SMTPFromEmail, retrievedConfig.SMTPFromEmail)
 		assert.Equal(t, originalConfig.SMTPFromName, retrievedConfig.SMTPFromName)
+		assert.Equal(t, originalConfig.SMTPEHLOHostname, retrievedConfig.SMTPEHLOHostname)
 		assert.Equal(t, originalConfig.TelemetryEnabled, retrievedConfig.TelemetryEnabled)
 		assert.Equal(t, originalConfig.CheckForUpdates, retrievedConfig.CheckForUpdates)
 	})

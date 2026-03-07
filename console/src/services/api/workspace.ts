@@ -103,6 +103,7 @@ export interface SMTPSettings {
   encrypted_password?: string
   encrypted_username?: string
   use_tls: boolean
+  ehlo_hostname?: string
 
   // Authentication type: 'basic' (default) or 'oauth2'
   auth_type?: SMTPAuthType

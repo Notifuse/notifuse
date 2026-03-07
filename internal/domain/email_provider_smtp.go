@@ -30,6 +30,7 @@ type SMTPSettings struct {
 	EncryptedUsername string `json:"encrypted_username,omitempty"`
 	EncryptedPassword string `json:"encrypted_password,omitempty"`
 	UseTLS            bool   `json:"use_tls"`
+	EHLOHostname      string `json:"ehlo_hostname,omitempty"`
 
 	// decoded username, not stored in the database
 	// decoded password , not stored in the database

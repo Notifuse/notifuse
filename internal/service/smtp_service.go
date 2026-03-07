@@ -158,8 +158,11 @@ func sendRawEmailWithSettings(settings *domain.SMTPSettings, from string, to []s
 		return fmt.Errorf("unexpected greeting code: %d", code)
 	}
 
-	// Send EHLO
-	hostname := "localhost"
+	// Send EHLO - use configured hostname, fall back to SMTP host for better deliverability
+	hostname := settings.EHLOHostname
+	if hostname == "" {
+		hostname = settings.Host
+	}
 	code, err = smtpConn.sendCommandMultiline(fmt.Sprintf("EHLO %s", hostname))
 	if err != nil {
 		return fmt.Errorf("EHLO failed: %w", err)

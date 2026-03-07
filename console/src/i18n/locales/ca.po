@@ -390,7 +390,7 @@ msgstr "Prova A/B"
 msgid "Accept Invitation"
 msgstr "Acceptar invitació"
 
-#: src/components/settings/Integrations.tsx:1510
+#: src/components/settings/Integrations.tsx:1511
 msgid "Access Key"
 msgstr "Clau d'accés"
 
@@ -544,7 +544,7 @@ msgstr ""
 #~ msgid "Add Header"
 #~ msgstr ""
 
-#: src/components/settings/Integrations.tsx:2097
+#: src/components/settings/Integrations.tsx:2117
 msgid "Add Integration"
 msgstr "Afegir integració"
 
@@ -565,7 +565,7 @@ msgstr "Afegir node"
 msgid "Add notes about this version..."
 msgstr "Afegir notes sobre aquesta versió..."
 
-#: src/components/settings/Integrations.tsx:1889
+#: src/components/settings/Integrations.tsx:1909
 msgid "Add one or more email senders. The first sender will be used as the default."
 msgstr "Afegiu un o més remitents de correu. El primer remitent s'utilitzarà per defecte."
 
@@ -573,9 +573,9 @@ msgstr "Afegiu un o més remitents de correu. El primer remitent s'utilitzarà p
 msgid "Add path"
 msgstr "Afegir camí"
 
-#: src/components/settings/Integrations.tsx:1848
-#: src/components/settings/Integrations.tsx:1904
-#: src/components/settings/Integrations.tsx:2141
+#: src/components/settings/Integrations.tsx:1868
+#: src/components/settings/Integrations.tsx:1924
+#: src/components/settings/Integrations.tsx:2161
 msgid "Add Sender"
 msgstr "Afegir remitent"
 
@@ -622,13 +622,18 @@ msgstr "Línia d'adreça 1"
 msgid "Address Line 2"
 msgstr "Línia d'adreça 2"
 
-#: src/pages/SetupWizard.tsx:344
+#: src/pages/SetupWizard.tsx:345
 msgid "Admin email is required"
 msgstr "El correu de l'administrador és obligatori"
 
-#: src/pages/SetupWizard.tsx:515
+#: src/pages/SetupWizard.tsx:536
 msgid "Advanced Settings"
 msgstr "Configuració avançada"
+
+#: src/components/settings/Integrations.tsx:1711
+#: src/pages/SetupWizard.tsx:503
+msgid "Advanced SMTP Settings"
+msgstr ""
 
 #: src/components/email_builder/blocks/MjBreakpointBlock.tsx:48
 msgid "Affects how columns stack on mobile devices"
@@ -715,7 +720,7 @@ msgstr "Tots els canals"
 msgid "All contact fields are optional except email."
 msgstr "Tots els camps de contacte són opcionals excepte el correu electrònic."
 
-#: src/components/settings/Integrations.tsx:383
+#: src/components/settings/Integrations.tsx:384
 msgid "All marketing emails (broadcasts, campaigns) will be sent through this provider from now on."
 msgstr "Tots els correus de màrqueting (difusions, campanyes) s'enviaran a través d'aquest proveïdor a partir d'ara."
 
@@ -729,11 +734,11 @@ msgstr "Totes les publicacions"
 msgid "All sides"
 msgstr "Tots els costats"
 
-#: src/components/settings/Integrations.tsx:402
+#: src/components/settings/Integrations.tsx:403
 msgid "All transactional emails (notifications, password resets, etc.) will be sent through this provider from now on."
 msgstr "Tots els correus transaccionals (notificacions, restabliments de contrasenya, etc.) s'enviaran a través d'aquest proveïdor a partir d'ara."
 
-#: src/pages/SetupWizard.tsx:550
+#: src/pages/SetupWizard.tsx:571
 msgid "Allow receiving emails to trigger transactional notifications. Requires TLS certificates."
 msgstr "Permet rebre correus per activar notificacions transaccionals. Requereix certificats TLS."
 
@@ -811,13 +816,13 @@ msgstr "en qualsevol moment"
 msgid "API Command"
 msgstr "Comanda API"
 
-#: src/components/settings/Integrations.tsx:1711
-#: src/components/settings/Integrations.tsx:1948
-#: src/pages/SetupWizard.tsx:354
+#: src/components/settings/Integrations.tsx:1731
+#: src/components/settings/Integrations.tsx:1968
+#: src/pages/SetupWizard.tsx:355
 msgid "API Endpoint"
 msgstr "Punt final API"
 
-#: src/pages/SetupWizard.tsx:357
+#: src/pages/SetupWizard.tsx:358
 msgid "API endpoint is required"
 msgstr "El punt final API és obligatori"
 
@@ -827,11 +832,11 @@ msgstr "Identificador API"
 
 #: src/components/integrations/FirecrawlIntegration.tsx:84
 #: src/components/integrations/LLMIntegration.tsx:103
-#: src/components/settings/Integrations.tsx:1364
-#: src/components/settings/Integrations.tsx:1415
-#: src/components/settings/Integrations.tsx:1752
-#: src/components/settings/Integrations.tsx:1770
-#: src/components/settings/Integrations.tsx:1792
+#: src/components/settings/Integrations.tsx:1365
+#: src/components/settings/Integrations.tsx:1416
+#: src/components/settings/Integrations.tsx:1772
+#: src/components/settings/Integrations.tsx:1790
+#: src/components/settings/Integrations.tsx:1812
 #: src/components/settings/WorkspaceMembers.tsx:92
 msgid "API Key"
 msgstr "Clau API"
@@ -1004,7 +1009,7 @@ msgid "Auth Email"
 msgstr "Correu d'autenticació"
 
 #: src/components/integrations/SupabaseIntegration.tsx:139
-#: src/components/settings/Integrations.tsx:1200
+#: src/components/settings/Integrations.tsx:1201
 msgid "Auth Email Hook"
 msgstr "Ganxo de correu d'autenticació"
 
@@ -1012,7 +1017,7 @@ msgstr "Ganxo de correu d'autenticació"
 msgid "Auth Email Hook Secret"
 msgstr "Secret del ganxo de correu d'autenticació"
 
-#: src/components/settings/Integrations.tsx:1930
+#: src/components/settings/Integrations.tsx:1950
 msgid "Authentication"
 msgstr "Autenticació"
 
@@ -1020,7 +1025,7 @@ msgstr "Autenticació"
 msgid "Authentication email sent via Supabase"
 msgstr "Correu d'autenticació enviat via Supabase"
 
-#: src/components/settings/Integrations.tsx:1545
+#: src/components/settings/Integrations.tsx:1546
 msgid "Authentication Type"
 msgstr "Tipus d'autenticació"
 
@@ -1053,7 +1058,7 @@ msgstr "Automàtic"
 msgid "Auto-send Winner"
 msgstr "Enviar guanyador automàticament"
 
-#: src/components/settings/Integrations.tsx:1275
+#: src/components/settings/Integrations.tsx:1276
 msgid "Auto-subscribe to Lists"
 msgstr "Subscripció automàtica a llistes"
 
@@ -1114,16 +1119,16 @@ msgstr "URL de l'avatar"
 msgid "Avoid special characters that might not display properly"
 msgstr "Eviteu caràcters especials que podrien no mostrar-se correctament"
 
-#: src/components/settings/Integrations.tsx:1507
+#: src/components/settings/Integrations.tsx:1508
 msgid "AWS Access Key"
 msgstr "Clau d'accés AWS"
 
-#: src/components/settings/Integrations.tsx:1457
-#: src/components/settings/Integrations.tsx:1942
+#: src/components/settings/Integrations.tsx:1458
+#: src/components/settings/Integrations.tsx:1962
 msgid "AWS Region"
 msgstr "Regió AWS"
 
-#: src/components/settings/Integrations.tsx:1512
+#: src/components/settings/Integrations.tsx:1513
 msgid "AWS Secret Key"
 msgstr "Clau secreta AWS"
 
@@ -1173,15 +1178,15 @@ msgstr "Tipus de fons"
 msgid "Base URL (Optional)"
 msgstr "URL base (opcional)"
 
-#: src/pages/SetupWizard.tsx:613
+#: src/pages/SetupWizard.tsx:634
 msgid "Base64 encoded TLS certificate. Run: cat fullchain.pem | base64 -w 0"
 msgstr "Certificat TLS codificat en Base64. Executeu: cat fullchain.pem | base64 -w 0"
 
-#: src/pages/SetupWizard.tsx:631
+#: src/pages/SetupWizard.tsx:652
 msgid "Base64 encoded TLS private key. Run: cat privkey.pem | base64 -w 0"
 msgstr "Clau privada TLS codificada en Base64. Executeu: cat privkey.pem | base64 -w 0"
 
-#: src/components/settings/Integrations.tsx:1550
+#: src/components/settings/Integrations.tsx:1551
 msgid "Basic Authentication (Username/Password)"
 msgstr "Autenticació bàsica (Usuari/Contrasenya)"
 
@@ -1207,7 +1212,7 @@ msgstr "Abans"
 msgid "before date"
 msgstr "abans de la data"
 
-#: src/components/settings/Integrations.tsx:1237
+#: src/components/settings/Integrations.tsx:1238
 msgid "Before User Created Hook"
 msgstr "Ganxo abans de crear usuari"
 
@@ -1352,7 +1357,7 @@ msgstr "Inferior esquerra"
 msgid "Bottom Right"
 msgstr "Inferior dreta"
 
-#: src/components/settings/Integrations.tsx:214
+#: src/components/settings/Integrations.tsx:215
 msgid "bounce"
 msgstr "Rebot"
 
@@ -1586,12 +1591,12 @@ msgstr "Mida del botó"
 #: src/components/settings/BlogSettings.tsx:181
 #: src/components/settings/CustomFieldsConfiguration.tsx:273
 #: src/components/settings/EditPermissionsModal.tsx:121
-#: src/components/settings/Integrations.tsx:2023
-#: src/components/settings/Integrations.tsx:2146
-#: src/components/settings/Integrations.tsx:2181
-#: src/components/settings/Integrations.tsx:2228
-#: src/components/settings/Integrations.tsx:2276
-#: src/components/settings/Integrations.tsx:2323
+#: src/components/settings/Integrations.tsx:2043
+#: src/components/settings/Integrations.tsx:2166
+#: src/components/settings/Integrations.tsx:2201
+#: src/components/settings/Integrations.tsx:2248
+#: src/components/settings/Integrations.tsx:2296
+#: src/components/settings/Integrations.tsx:2343
 #: src/components/settings/WebhookCard.tsx:348
 #: src/components/settings/WebhooksSettings.tsx:213
 #: src/components/settings/WorkspaceMembers.tsx:545
@@ -1727,7 +1732,7 @@ msgstr "Canal"
 msgid "Check"
 msgstr "Comprovar"
 
-#: src/pages/SetupWizard.tsx:533
+#: src/pages/SetupWizard.tsx:554
 msgid "Check for Updates"
 msgstr "Comprovar actualitzacions"
 
@@ -1881,7 +1886,7 @@ msgstr "Atributs de columna"
 msgid "Column width (e.g., '50%', '300px', 'auto')"
 msgstr "Amplada de columna (p. ex., '50%', '300px', 'auto')"
 
-#: src/pages/SetupWizard.tsx:441
+#: src/pages/SetupWizard.tsx:442
 msgid "Common ports: 587 (TLS), 465 (SSL), 25 (unencrypted)"
 msgstr "Ports comuns: 587 (TLS), 465 (SSL), 25 (sense xifrar)"
 
@@ -1916,7 +1921,7 @@ msgstr "Correu de queixa"
 msgid "Complained"
 msgstr "Queixa"
 
-#: src/components/settings/Integrations.tsx:218
+#: src/components/settings/Integrations.tsx:219
 msgid "complaint"
 msgstr "Queixa"
 
@@ -1936,7 +1941,7 @@ msgstr "Queixes"
 msgid "Complement, don't repeat the subject line"
 msgstr "Complementeu, no repetiu la línia d'assumpte"
 
-#: src/pages/SetupWizard.tsx:663
+#: src/pages/SetupWizard.tsx:684
 msgid "Complete Setup"
 msgstr "Completar configuració"
 
@@ -1980,8 +1985,8 @@ msgstr "La configuració per a {nodeType} no està disponible a la Fase 2"
 #: src/components/automations/nodes/RemoveFromListNode.tsx:51
 #: src/components/automations/nodes/TriggerNode.tsx:74
 #: src/components/automations/nodes/WebhookNode.tsx:54
-#: src/components/settings/Integrations.tsx:1029
-#: src/components/settings/Integrations.tsx:1077
+#: src/components/settings/Integrations.tsx:1030
+#: src/components/settings/Integrations.tsx:1078
 msgid "Configure"
 msgstr "Configurar"
 
@@ -2014,10 +2019,10 @@ msgstr "Configurar proveïdor"
 msgid "Configure styling and SEO settings for your blog. These settings will be applied to all blog pages."
 msgstr "Configureu l'estil i els paràmetres SEO per al vostre blog. Aquests paràmetres s'aplicaran a totes les pàgines del blog."
 
-#: src/components/settings/Integrations.tsx:1204
-#: src/components/settings/Integrations.tsx:1241
-#: src/components/settings/Integrations.tsx:1366
-#: src/components/settings/Integrations.tsx:1417
+#: src/components/settings/Integrations.tsx:1205
+#: src/components/settings/Integrations.tsx:1242
+#: src/components/settings/Integrations.tsx:1367
+#: src/components/settings/Integrations.tsx:1418
 msgid "Configured"
 msgstr "Configurat"
 
@@ -2041,7 +2046,7 @@ msgstr "Confirmar"
 msgid "Confirmed"
 msgstr "Confirmat"
 
-#: src/components/settings/Integrations.tsx:2090
+#: src/components/settings/Integrations.tsx:2110
 msgid "Connect and manage external services"
 msgstr "Connecteu i gestioneu serveis externs"
 
@@ -2049,11 +2054,11 @@ msgstr "Connecteu i gestioneu serveis externs"
 msgid "Connection Details"
 msgstr "Detalls de connexió"
 
-#: src/components/settings/Integrations.tsx:2119
+#: src/components/settings/Integrations.tsx:2139
 msgid "Consider connecting a marketing email provider to send newsletters, promotional campaigns, and announcements to engage with your audience."
 msgstr "Considereu connectar un proveïdor de correu de màrqueting per enviar butlletins, campanyes promocionals i anuncis per connectar amb la vostra audiència."
 
-#: src/components/settings/Integrations.tsx:2114
+#: src/components/settings/Integrations.tsx:2134
 msgid "Consider connecting a transactional email provider to be able to use transactional emails for account notifications, password resets, and other important system messages."
 msgstr "Considereu connectar un proveïdor de correu transaccional per poder utilitzar correus transaccionals per a notificacions de compte, restabliments de contrasenya i altres missatges importants del sistema."
 
@@ -2176,8 +2181,8 @@ msgstr "Controleu com els motors de cerca indexen i segueixen els enllaços del 
 msgid "Control which channels can see this section"
 msgstr "Controleu quins canals poden veure aquesta secció"
 
-#: src/components/settings/Integrations.tsx:1225
-#: src/components/settings/Integrations.tsx:1262
+#: src/components/settings/Integrations.tsx:1226
+#: src/components/settings/Integrations.tsx:1263
 #: src/components/settings/WebhookCard.tsx:287
 msgid "Copy"
 msgstr "Copiar"
@@ -2195,8 +2200,8 @@ msgstr "Copiar al porta-retalls"
 msgid "Copy URL"
 msgstr "Copiar URL"
 
-#: src/components/settings/Integrations.tsx:1214
-#: src/components/settings/Integrations.tsx:1251
+#: src/components/settings/Integrations.tsx:1215
+#: src/components/settings/Integrations.tsx:1252
 msgid "Copy Webhook endpoint"
 msgstr "Copiar punt final del webhook"
 
@@ -2318,7 +2323,7 @@ msgstr "Crear notificació"
 msgid "Create Template"
 msgstr "Crear plantilla"
 
-#: src/components/settings/Integrations.tsx:1633
+#: src/components/settings/Integrations.tsx:1634
 msgid "Create this in Azure Portal > App registrations > Your App > Certificates & secrets"
 msgstr "Creeu-ho a Azure Portal > Registres d'aplicacions > La vostra aplicació > Certificats i secrets"
 
@@ -2678,7 +2683,7 @@ msgid "default"
 msgstr "Per defecte"
 
 #: src/components/email_builder/ui/FontStyleInput.tsx:232
-#: src/components/settings/Integrations.tsx:342
+#: src/components/settings/Integrations.tsx:343
 msgid "Default"
 msgstr "Per defecte"
 
@@ -2712,6 +2717,11 @@ msgstr "Per defecte és la meta descripció"
 msgid "Defaults to meta title"
 msgstr "Per defecte és el meta títol"
 
+#: src/components/settings/Integrations.tsx:1718
+#: src/pages/SetupWizard.tsx:510
+msgid "Defaults to SMTP host"
+msgstr ""
+
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:307
 msgid "Define UTM parameters for links in your email for better campaign tracking."
 msgstr "Definiu paràmetres UTM per als enllaços del vostre correu per a un millor seguiment de campanyes."
@@ -2731,10 +2741,10 @@ msgstr "Retard"
 #: src/components/file_manager/fileManager.tsx:778
 #: src/components/file_manager/fileManager.tsx:951
 #: src/components/segment/input.tsx:383
-#: src/components/settings/Integrations.tsx:312
-#: src/components/settings/Integrations.tsx:1183
-#: src/components/settings/Integrations.tsx:1342
-#: src/components/settings/Integrations.tsx:1400
+#: src/components/settings/Integrations.tsx:313
+#: src/components/settings/Integrations.tsx:1184
+#: src/components/settings/Integrations.tsx:1343
+#: src/components/settings/Integrations.tsx:1401
 #: src/components/settings/WebhookCard.tsx:239
 #: src/pages/BroadcastsPage.tsx:1427
 #: src/pages/ContactsPage.tsx:823
@@ -2840,14 +2850,14 @@ msgstr "Eliminar plantilla?"
 msgid "Delete the notification?"
 msgstr "Eliminar la notificació?"
 
-#: src/components/settings/Integrations.tsx:306
-#: src/components/settings/Integrations.tsx:1177
-#: src/components/settings/Integrations.tsx:1336
-#: src/components/settings/Integrations.tsx:1394
+#: src/components/settings/Integrations.tsx:307
+#: src/components/settings/Integrations.tsx:1178
+#: src/components/settings/Integrations.tsx:1337
+#: src/components/settings/Integrations.tsx:1395
 msgid "Delete this integration?"
 msgstr "Eliminar aquesta integració?"
 
-#: src/components/settings/Integrations.tsx:1868
+#: src/components/settings/Integrations.tsx:1888
 msgid "Delete this sender?"
 msgstr "Eliminar aquest remitent?"
 
@@ -2876,7 +2886,7 @@ msgstr "Eliminat(s) {deletedCount} element(s)"
 msgid "Deleted {deletedCount}, failed {failedCount}"
 msgstr "Eliminat(s) {deletedCount}, fallat(s) {failedCount}"
 
-#: src/components/settings/Integrations.tsx:210
+#: src/components/settings/Integrations.tsx:211
 #: src/components/timeline/ContactTimeline.tsx:496
 msgid "delivered"
 msgstr "Lliurat"
@@ -2949,7 +2959,7 @@ msgstr "Desactivar webhook"
 
 #: src/components/settings/BlogSettings.tsx:210
 #: src/components/settings/GeneralSettings.tsx:143
-#: src/components/settings/Integrations.tsx:1303
+#: src/components/settings/Integrations.tsx:1304
 #: src/components/settings/SMTPRelaySettings.tsx:50
 #: src/components/templates/TemplateTranslationsTab.tsx:204
 msgid "Disabled"
@@ -3016,13 +3026,13 @@ msgstr "Voleu enviar \"{0}\" immediatament o programar-ho per més tard?"
 msgid "Documentation"
 msgstr "Documentació"
 
-#: src/components/settings/Integrations.tsx:1749
-#: src/components/settings/Integrations.tsx:1957
-#: src/pages/SetupWizard.tsx:572
+#: src/components/settings/Integrations.tsx:1769
+#: src/components/settings/Integrations.tsx:1977
+#: src/pages/SetupWizard.tsx:593
 msgid "Domain"
 msgstr "Domini"
 
-#: src/pages/SetupWizard.tsx:580
+#: src/pages/SetupWizard.tsx:601
 msgid "Domain for the SMTP relay server (e.g., smtp.yourcompany.com)"
 msgstr "Domini per al servidor de retransmissió SMTP (p. ex., smtp.yourcompany.com)"
 
@@ -3159,10 +3169,10 @@ msgstr "Editar"
 #: src/components/automations/UpsertAutomationDrawer.tsx:250
 #: src/components/blog/PostsTable.tsx:349
 #: src/components/email_builder/ui/ImportFontInput.tsx:209
-#: src/components/settings/Integrations.tsx:296
-#: src/components/settings/Integrations.tsx:1167
-#: src/components/settings/Integrations.tsx:1326
-#: src/components/settings/Integrations.tsx:1384
+#: src/components/settings/Integrations.tsx:297
+#: src/components/settings/Integrations.tsx:1168
+#: src/components/settings/Integrations.tsx:1327
+#: src/components/settings/Integrations.tsx:1385
 #: src/components/settings/WebhookCard.tsx:245
 #: src/pages/ContactsPage.tsx:817
 #: src/pages/TransactionalNotificationsPage.tsx:155
@@ -3255,7 +3265,7 @@ msgstr "Editar publicació"
 msgid "Edit segment"
 msgstr "Editar segment"
 
-#: src/components/settings/Integrations.tsx:2141
+#: src/components/settings/Integrations.tsx:2161
 msgid "Edit Sender"
 msgstr "Editar remitent"
 
@@ -3298,6 +3308,11 @@ msgstr "Marcatge editable"
 msgid "Editor mode"
 msgstr ""
 
+#: src/components/settings/Integrations.tsx:1715
+#: src/pages/SetupWizard.tsx:507
+msgid "EHLO Hostname"
+msgstr ""
+
 #: src/components/contacts/ExportContactsModal.tsx:353
 msgid "Elapsed"
 msgstr "Transcorregut"
@@ -3323,7 +3338,7 @@ msgstr "Correu electrònic"
 #: src/components/contacts/ExportContactsModal.tsx:50
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:338
 #: src/components/messages/MessageHistoryTab.tsx:219
-#: src/components/settings/Integrations.tsx:2156
+#: src/components/settings/Integrations.tsx:2176
 #: src/components/settings/WorkspaceMembers.tsx:77
 #: src/components/timeline/ContactTimeline.tsx:505
 #: src/pages/ContactsPage.tsx:192
@@ -3338,12 +3353,12 @@ msgid "Email (Required)"
 msgstr "Correu (obligatori)"
 
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:383
-#: src/components/settings/Integrations.tsx:1581
+#: src/components/settings/Integrations.tsx:1582
 #: src/components/settings/WorkspaceMembers.tsx:554
 msgid "Email Address"
 msgstr "Adreça de correu electrònic"
 
-#: src/components/settings/Integrations.tsx:1583
+#: src/components/settings/Integrations.tsx:1584
 msgid "Email address is required for OAuth2"
 msgstr "L'adreça de correu és obligatòria per a OAuth2"
 
@@ -3407,7 +3422,7 @@ msgstr "Opcions de correu:"
 msgid "Email Preview"
 msgstr "Previsualització del correu"
 
-#: src/components/settings/Integrations.tsx:2109
+#: src/components/settings/Integrations.tsx:2129
 msgid "Email Provider Configuration Needed"
 msgstr "Es necessita configuració del proveïdor de correu"
 
@@ -3447,13 +3462,13 @@ msgstr "Les amplades de correu superiors a 650px poden no mostrar-se correctamen
 msgid "Email:"
 msgstr "Correu:"
 
-#: src/components/settings/Integrations.tsx:1812
-#: src/components/settings/Integrations.tsx:1978
+#: src/components/settings/Integrations.tsx:1832
+#: src/components/settings/Integrations.tsx:1998
 msgid "emails per day"
 msgstr "correus per dia"
 
-#: src/components/settings/Integrations.tsx:1811
-#: src/components/settings/Integrations.tsx:1977
+#: src/components/settings/Integrations.tsx:1831
+#: src/components/settings/Integrations.tsx:1997
 msgid "emails per hour"
 msgstr "correus per hora"
 
@@ -3469,7 +3484,7 @@ msgstr "Columna buida. Afegiu contingut de text, botó o imatge."
 msgid "Enable A/B Testing"
 msgstr "Activar proves A/B"
 
-#: src/pages/SetupWizard.tsx:523
+#: src/pages/SetupWizard.tsx:544
 msgid "Enable Anonymous Telemetry"
 msgstr "Activar telemetria anònima"
 
@@ -3482,7 +3497,7 @@ msgstr "Activar blog"
 msgid "Enable closed captions by default"
 msgstr "Activar subtítols per defecte"
 
-#: src/pages/SetupWizard.tsx:549
+#: src/pages/SetupWizard.tsx:570
 msgid "Enable SMTP Relay Server"
 msgstr "Activar servidor de retransmissió SMTP"
 
@@ -3490,7 +3505,7 @@ msgstr "Activar servidor de retransmissió SMTP"
 msgid "Enable the blog feature to publish articles and content on your custom domain homepage. Your blog will be accessible at"
 msgstr "Activeu la funció de blog per publicar articles i contingut a la pàgina d'inici del vostre domini personalitzat. El vostre blog serà accessible a"
 
-#: src/pages/SetupWizard.tsx:456
+#: src/pages/SetupWizard.tsx:457
 msgid "Enable TLS encryption for SMTP connection"
 msgstr "Activar xifratge TLS per a la connexió SMTP"
 
@@ -3512,7 +3527,7 @@ msgstr "Activar webhook"
 
 #: src/components/settings/BlogSettings.tsx:205
 #: src/components/settings/GeneralSettings.tsx:138
-#: src/components/settings/Integrations.tsx:1299
+#: src/components/settings/Integrations.tsx:1300
 #: src/components/settings/SMTPRelaySettings.tsx:45
 #: src/components/templates/TemplateTranslationsTab.tsx:203
 msgid "Enabled"
@@ -3543,7 +3558,7 @@ msgstr "Introduïu {0}"
 msgid "Enter a name for this block"
 msgstr "Introduïu un nom per a aquest bloc"
 
-#: src/components/settings/Integrations.tsx:1452
+#: src/components/settings/Integrations.tsx:1453
 msgid "Enter a name for this integration"
 msgstr "Introduïu un nom per a aquesta integració"
 
@@ -3555,7 +3570,7 @@ msgstr "Introduïu un nom per al vostre espai de treball"
 msgid "Enter a unique alphanumeric ID"
 msgstr "Introduïu un ID alfanumèric únic"
 
-#: src/components/settings/Integrations.tsx:2194
+#: src/components/settings/Integrations.tsx:2214
 msgid "Enter an email address to receive a test email:"
 msgstr "Introduïu una adreça de correu per rebre un correu de prova:"
 
@@ -3927,7 +3942,7 @@ msgstr "No s'ha pogut esborrar el camp"
 msgid "Failed to compile template preview."
 msgstr "No s'ha pogut compilar la previsualització de la plantilla."
 
-#: src/pages/SetupWizard.tsx:217
+#: src/pages/SetupWizard.tsx:218
 msgid "Failed to complete setup"
 msgstr "No s'ha pogut completar la configuració"
 
@@ -4007,7 +4022,7 @@ msgstr "No s'ha pogut eliminar el contacte"
 msgid "Failed to delete file: "
 msgstr "No s'ha pogut eliminar el fitxer: "
 
-#: src/components/settings/Integrations.tsx:956
+#: src/components/settings/Integrations.tsx:957
 msgid "Failed to delete integration"
 msgstr "No s'ha pogut eliminar la integració"
 
@@ -4165,7 +4180,7 @@ msgstr ""
 msgid "Failed to regenerate webhook secret"
 msgstr "No s'ha pogut regenerar el secret del webhook"
 
-#: src/components/settings/Integrations.tsx:187
+#: src/components/settings/Integrations.tsx:188
 msgid "Failed to register webhooks"
 msgstr "No s'han pogut registrar els webhooks"
 
@@ -4205,22 +4220,22 @@ msgstr "No s'ha pogut desar el contacte. Si us plau, torneu-ho a provar."
 msgid "Failed to save field"
 msgstr "No s'ha pogut desar el camp"
 
-#: src/components/settings/Integrations.tsx:865
+#: src/components/settings/Integrations.tsx:866
 msgid "Failed to save Firecrawl integration"
 msgstr "No s'ha pogut desar la integració de Firecrawl"
 
 #: src/components/integrations/FirecrawlIntegration.tsx:69
 #: src/components/integrations/LLMIntegration.tsx:88
 #: src/components/integrations/SupabaseIntegration.tsx:123
-#: src/components/settings/Integrations.tsx:933
+#: src/components/settings/Integrations.tsx:934
 msgid "Failed to save integration"
 msgstr "No s'ha pogut desar la integració"
 
-#: src/components/settings/Integrations.tsx:815
+#: src/components/settings/Integrations.tsx:816
 msgid "Failed to save LLM integration"
 msgstr "No s'ha pogut desar la integració LLM"
 
-#: src/components/settings/Integrations.tsx:762
+#: src/components/settings/Integrations.tsx:763
 msgid "Failed to save Supabase integration"
 msgstr "No s'ha pogut desar la integració de Supabase"
 
@@ -4254,7 +4269,7 @@ msgstr "Error en enviar el codi màgic"
 
 #. placeholder {0}: response.error
 #. placeholder {0}: response.error || 'Unknown error'
-#: src/components/settings/Integrations.tsx:996
+#: src/components/settings/Integrations.tsx:997
 #: src/components/templates/SendTemplateModal.tsx:114
 msgid "Failed to send test email: {0}"
 msgstr "No s'ha pogut enviar el correu de prova: {0}"
@@ -4263,11 +4278,11 @@ msgstr "No s'ha pogut enviar el correu de prova: {0}"
 msgid "Failed to send test webhook"
 msgstr "No s'ha pogut enviar el webhook de prova"
 
-#: src/components/settings/Integrations.tsx:588
+#: src/components/settings/Integrations.tsx:589
 msgid "Failed to set default provider"
 msgstr "No s'ha pogut establir el proveïdor per defecte"
 
-#: src/components/settings/Integrations.tsx:1000
+#: src/components/settings/Integrations.tsx:1001
 msgid "Failed to test email provider"
 msgstr "No s'ha pogut provar el proveïdor de correu"
 
@@ -4276,7 +4291,7 @@ msgstr "No s'ha pogut provar el proveïdor de correu"
 msgid "Failed to test recipient feed: {0}"
 msgstr ""
 
-#: src/pages/SetupWizard.tsx:83
+#: src/pages/SetupWizard.tsx:84
 msgid "Failed to test SMTP connection"
 msgstr "No s'ha pogut provar la connexió SMTP"
 
@@ -4489,20 +4504,20 @@ msgstr "Filtres"
 msgid "Filters:"
 msgstr "Filtres:"
 
-#: src/components/settings/Integrations.tsx:1622
+#: src/components/settings/Integrations.tsx:1623
 msgid "Find this in Azure Portal > App registrations > Your App > Overview"
 msgstr "Trobeu-ho a Azure Portal > Registres d'aplicacions > La vostra aplicació > Visió general"
 
-#: src/components/settings/Integrations.tsx:1611
+#: src/components/settings/Integrations.tsx:1612
 msgid "Find this in Azure Portal > Azure Active Directory > Overview"
 msgstr "Trobeu-ho a Azure Portal > Azure Active Directory > Visió general"
 
-#: src/components/settings/Integrations.tsx:1651
-#: src/components/settings/Integrations.tsx:1659
+#: src/components/settings/Integrations.tsx:1652
+#: src/components/settings/Integrations.tsx:1660
 msgid "Find this in Google Cloud Console > APIs & Services > Credentials"
 msgstr "Trobeu-ho a Google Cloud Console > APIs i serveis > Credencials"
 
-#: src/components/settings/Integrations.tsx:862
+#: src/components/settings/Integrations.tsx:863
 msgid "Firecrawl integration saved successfully"
 msgstr "Integració de Firecrawl desada correctament"
 
@@ -4615,15 +4630,15 @@ msgstr "Freqüència"
 msgid "From"
 msgstr "Des de"
 
-#: src/pages/SetupWizard.tsx:479
+#: src/pages/SetupWizard.tsx:480
 msgid "From Email"
 msgstr "De correu"
 
-#: src/pages/SetupWizard.tsx:482
+#: src/pages/SetupWizard.tsx:483
 msgid "From email is required"
 msgstr "El correu del remitent és obligatori"
 
-#: src/pages/SetupWizard.tsx:490
+#: src/pages/SetupWizard.tsx:491
 msgid "From Name"
 msgstr "Del nom"
 
@@ -4713,7 +4728,7 @@ msgid "Global feed URL is required when enabled"
 msgstr "L'URL del feed global és requerida quan està habilitat"
 
 #: src/pages/AcceptInvitationPage.tsx:125
-#: src/pages/SetupWizard.tsx:313
+#: src/pages/SetupWizard.tsx:314
 msgid "Go to Sign In"
 msgstr "Anar a iniciar sessió"
 
@@ -4730,7 +4745,7 @@ msgstr "Tipus d'objectius"
 msgid "Goal:"
 msgstr "Objectiu:"
 
-#: src/components/settings/Integrations.tsx:1575
+#: src/components/settings/Integrations.tsx:1576
 msgid "Google Workspace / Gmail"
 msgstr "Google Workspace / Gmail"
 
@@ -4796,7 +4811,7 @@ msgstr "Ajuda"
 msgid "Help & Support"
 msgstr "Ajuda i suport"
 
-#: src/pages/SetupWizard.tsx:524
+#: src/pages/SetupWizard.tsx:545
 msgid "Help us improve Notifuse by sending anonymous usage statistics. No personal data or message content is collected."
 msgstr "Ajudeu-nos a millorar Notifuse enviant estadístiques d'ús anònimes. No es recopilen dades personals ni contingut de missatges."
 
@@ -5208,11 +5223,11 @@ msgstr "Inserir enllaç"
 msgid "Inset"
 msgstr "Encastat"
 
-#: src/components/settings/Integrations.tsx:922
+#: src/components/settings/Integrations.tsx:923
 msgid "Integration created successfully"
 msgstr "Integració creada correctament"
 
-#: src/components/settings/Integrations.tsx:953
+#: src/components/settings/Integrations.tsx:954
 msgid "Integration deleted successfully"
 msgstr "Integració eliminada correctament"
 
@@ -5223,26 +5238,26 @@ msgstr "ID d'integració:"
 #: src/components/integrations/FirecrawlIntegration.tsx:76
 #: src/components/integrations/LLMIntegration.tsx:95
 #: src/components/integrations/SupabaseIntegration.tsx:130
-#: src/components/settings/Integrations.tsx:1451
+#: src/components/settings/Integrations.tsx:1452
 msgid "Integration Name"
 msgstr "Nom de la integració"
 
-#: src/components/settings/Integrations.tsx:690
-#: src/components/settings/Integrations.tsx:973
+#: src/components/settings/Integrations.tsx:691
+#: src/components/settings/Integrations.tsx:974
 msgid "Integration not found or not an email provider"
 msgstr "Integració no trobada o no és un proveïdor de correu"
 
-#: src/components/settings/Integrations.tsx:910
+#: src/components/settings/Integrations.tsx:911
 msgid "Integration updated successfully"
 msgstr "Integració actualitzada correctament"
 
-#: src/components/settings/Integrations.tsx:2089
+#: src/components/settings/Integrations.tsx:2109
 #: src/components/settings/SettingsSidebar.tsx:55
 msgid "Integrations"
 msgstr "Integracions"
 
-#: src/pages/SetupWizard.tsx:345
-#: src/pages/SetupWizard.tsx:483
+#: src/pages/SetupWizard.tsx:346
+#: src/pages/SetupWizard.tsx:484
 msgid "Invalid email format"
 msgstr "Format de correu invàlid"
 
@@ -5296,7 +5311,7 @@ msgstr "Estructura d'arbre invàlida: no és un objecte"
 msgid "Invalid tree structure: root must be mjml type"
 msgstr "Estructura d'arbre invàlida: l'arrel ha de ser de tipus mjml"
 
-#: src/pages/SetupWizard.tsx:358
+#: src/pages/SetupWizard.tsx:359
 msgid "Invalid URL format"
 msgstr "Format d'URL invàlid"
 
@@ -5648,7 +5663,7 @@ msgstr "Llistes actualitzades"
 msgid "Live"
 msgstr "En directe"
 
-#: src/components/settings/Integrations.tsx:812
+#: src/components/settings/Integrations.tsx:813
 msgid "LLM integration saved successfully"
 msgstr "Integració LLM desada correctament"
 
@@ -5675,7 +5690,7 @@ msgstr "Carregant automatitzacions..."
 msgid "Loading message history..."
 msgstr "Carregant historial de missatges..."
 
-#: src/pages/SetupWizard.tsx:273
+#: src/pages/SetupWizard.tsx:274
 msgid "Loading setup..."
 msgstr "Carregant configuració..."
 
@@ -5695,7 +5710,7 @@ msgstr "Carregant enviaments de webhook..."
 msgid "Loading webhook events..."
 msgstr "Carregant esdeveniments de webhook..."
 
-#: src/components/settings/Integrations.tsx:199
+#: src/components/settings/Integrations.tsx:200
 msgid "Loading webhook status..."
 msgstr "Carregant estat del webhook..."
 
@@ -5792,7 +5807,7 @@ msgstr "Màrqueting"
 msgid "Marketing Email Provider Required"
 msgstr "Es requereix proveïdor de correu de màrqueting"
 
-#: src/components/settings/Integrations.tsx:358
+#: src/components/settings/Integrations.tsx:359
 msgid "Marketing Emails"
 msgstr "Correus de màrqueting"
 
@@ -5865,7 +5880,7 @@ msgstr "Meta descripció"
 msgid "Meta Title"
 msgstr "Meta títol"
 
-#: src/components/settings/Integrations.tsx:1573
+#: src/components/settings/Integrations.tsx:1574
 msgid "Microsoft 365 / Office 365"
 msgstr "Microsoft 365 / Office 365"
 
@@ -5971,7 +5986,7 @@ msgid "Mobile view (400px)"
 msgstr "Vista mòbil (400px)"
 
 #: src/components/integrations/LLMIntegration.tsx:116
-#: src/components/settings/Integrations.tsx:1359
+#: src/components/settings/Integrations.tsx:1360
 msgid "Model"
 msgstr "Model"
 
@@ -6017,11 +6032,11 @@ msgstr "N/D"
 #: src/components/file_manager/fileManager.tsx:868
 #: src/components/lists/ListDrawer.tsx:185
 #: src/components/segment/button_upsert.tsx:372
-#: src/components/settings/Integrations.tsx:333
-#: src/components/settings/Integrations.tsx:1199
-#: src/components/settings/Integrations.tsx:1358
-#: src/components/settings/Integrations.tsx:1414
-#: src/components/settings/Integrations.tsx:2166
+#: src/components/settings/Integrations.tsx:334
+#: src/components/settings/Integrations.tsx:1200
+#: src/components/settings/Integrations.tsx:1359
+#: src/components/settings/Integrations.tsx:1415
+#: src/components/settings/Integrations.tsx:2186
 #: src/components/settings/WebhooksSettings.tsx:224
 msgid "Name"
 msgstr "Nom"
@@ -6113,13 +6128,13 @@ msgstr "Propera execució"
 #: src/components/messages/MessageHistoryTab.tsx:189
 #: src/components/messages/MessageHistoryTab.tsx:205
 #: src/components/settings/CustomFieldsConfiguration.tsx:202
-#: src/components/settings/Integrations.tsx:268
-#: src/components/settings/Integrations.tsx:310
-#: src/components/settings/Integrations.tsx:386
-#: src/components/settings/Integrations.tsx:405
-#: src/components/settings/Integrations.tsx:1181
-#: src/components/settings/Integrations.tsx:1340
-#: src/components/settings/Integrations.tsx:1398
+#: src/components/settings/Integrations.tsx:269
+#: src/components/settings/Integrations.tsx:311
+#: src/components/settings/Integrations.tsx:387
+#: src/components/settings/Integrations.tsx:406
+#: src/components/settings/Integrations.tsx:1182
+#: src/components/settings/Integrations.tsx:1341
+#: src/components/settings/Integrations.tsx:1399
 #: src/components/settings/WebhookCard.tsx:193
 #: src/components/settings/WebhookCard.tsx:237
 #: src/components/settings/WebhookCard.tsx:279
@@ -6288,7 +6303,7 @@ msgstr "No hi ha previsualització disponible..."
 msgid "No properties"
 msgstr "Sense propietats"
 
-#: src/components/settings/Integrations.tsx:980
+#: src/components/settings/Integrations.tsx:981
 msgid "No provider configured for testing"
 msgstr "No s'ha configurat cap proveïdor per a proves"
 
@@ -6308,7 +6323,7 @@ msgstr "No hi ha valors de mostra disponibles"
 msgid "No saved blocks yet"
 msgstr "Encara no hi ha blocs desats"
 
-#: src/components/settings/Integrations.tsx:349
+#: src/components/settings/Integrations.tsx:350
 msgid "No senders configured"
 msgstr "No s'han configurat remitents"
 
@@ -6399,15 +6414,15 @@ msgstr "Cap"
 msgid "Normal"
 msgstr "Normal"
 
-#: src/components/settings/Integrations.tsx:368
-#: src/components/settings/Integrations.tsx:374
+#: src/components/settings/Integrations.tsx:369
+#: src/components/settings/Integrations.tsx:375
 msgid "Not assigned"
 msgstr "No assignat"
 
 #: src/components/analytics/AnalyticsDashboard.tsx:164
 #: src/components/analytics/AnalyticsDashboard.tsx:188
-#: src/components/settings/Integrations.tsx:1233
-#: src/components/settings/Integrations.tsx:1270
+#: src/components/settings/Integrations.tsx:1234
+#: src/components/settings/Integrations.tsx:1271
 msgid "Not configured"
 msgstr "No configurat"
 
@@ -6483,11 +6498,11 @@ msgstr "Nombre de publicacions per mostrar per pàgina a les pàgines de categor
 msgid "Number of posts to display per page on the homepage"
 msgstr "Nombre de publicacions per mostrar per pàgina a la pàgina d'inici"
 
-#: src/components/settings/Integrations.tsx:1552
+#: src/components/settings/Integrations.tsx:1553
 msgid "OAuth2 (Microsoft 365 / Google)"
 msgstr "OAuth2 (Microsoft 365 / Google)"
 
-#: src/components/settings/Integrations.tsx:1568
+#: src/components/settings/Integrations.tsx:1569
 msgid "OAuth2 Provider"
 msgstr "Proveïdor OAuth2"
 
@@ -6500,7 +6515,7 @@ msgstr "Clau d'objecte: {segment}"
 msgid "Oblique"
 msgstr "Oblic"
 
-#: src/components/settings/Integrations.tsx:1672
+#: src/components/settings/Integrations.tsx:1673
 msgid "Obtain this using the OAuth2 playground or your own OAuth flow"
 msgstr "Obteniu-ho utilitzant el OAuth2 playground o el vostre propi flux OAuth"
 
@@ -6756,7 +6771,7 @@ msgstr "L'URL del feed per destinatari és requerida quan està habilitat"
 #~ msgid "Performance Impact"
 #~ msgstr ""
 
-#: src/pages/SetupWizard.tsx:534
+#: src/pages/SetupWizard.tsx:555
 msgid "Periodically check for new Notifuse versions and security updates. A popup will list new versions available."
 msgstr "Comproveu periòdicament noves versions de Notifuse i actualitzacions de seguretat. Una finestra emergent llistarà les noves versions disponibles."
 
@@ -6817,7 +6832,7 @@ msgstr "Opcions de reproducció"
 msgid "Please add at least one author"
 msgstr "Si us plau, afegiu com a mínim un autor"
 
-#: src/components/settings/Integrations.tsx:886
+#: src/components/settings/Integrations.tsx:887
 msgid "Please add at least one sender before saving"
 msgstr "Si us plau, afegiu com a mínim un remitent abans de desar"
 
@@ -7042,7 +7057,7 @@ msgstr "Si us plau, seleccioneu un tipus d'esdeveniment"
 msgid "Please select an MJML file"
 msgstr "Si us plau, seleccioneu un fitxer MJML"
 
-#: src/components/settings/Integrations.tsx:1569
+#: src/components/settings/Integrations.tsx:1570
 msgid "Please select an OAuth2 provider"
 msgstr "Si us plau, seleccioneu un proveïdor OAuth2"
 
@@ -7063,11 +7078,11 @@ msgid "Please upload a CSV file with email addresses"
 msgstr "Si us plau, pugeu un fitxer CSV amb adreces de correu"
 
 #: src/components/transactional/ApiCommandModal.tsx:527
-#: src/pages/SetupWizard.tsx:586
+#: src/pages/SetupWizard.tsx:607
 msgid "Port"
 msgstr "Port"
 
-#: src/pages/SetupWizard.tsx:595
+#: src/pages/SetupWizard.tsx:616
 msgid "Port for the SMTP relay server (default: 587)"
 msgstr "Port per al servidor de retransmissió SMTP (per defecte: 587)"
 
@@ -7273,7 +7288,7 @@ msgstr "Públic"
 msgid "Public lists are visible in the Notification Center for users to subscribe to"
 msgstr "Les llistes públiques són visibles al Centre de notificacions perquè els usuaris s'hi subscriguin"
 
-#: src/pages/SetupWizard.tsx:360
+#: src/pages/SetupWizard.tsx:361
 msgid "Public URL where this Notifuse instance is accessible"
 msgstr "URL pública on aquesta instància de Notifuse és accessible"
 
@@ -7320,11 +7335,11 @@ msgstr "Compra"
 msgid "Push"
 msgstr "Enviar"
 
-#: src/components/settings/Integrations.tsx:1974
+#: src/components/settings/Integrations.tsx:1994
 msgid "Rate Limit for Marketing"
 msgstr "Límit de velocitat per a màrqueting"
 
-#: src/components/settings/Integrations.tsx:1799
+#: src/components/settings/Integrations.tsx:1819
 msgid "Rate limit for marketing emails (emails per minute)"
 msgstr "Límit de velocitat per a correus de màrqueting (correus per minut)"
 
@@ -7348,7 +7363,7 @@ msgstr "JSON en brut"
 msgid "Raw Payload:"
 msgstr "Càrrega útil en brut:"
 
-#: src/components/settings/Integrations.tsx:276
+#: src/components/settings/Integrations.tsx:277
 msgid "Re-register"
 msgstr "Tornar a registrar"
 
@@ -7478,21 +7493,21 @@ msgstr "Regenerar"
 msgid "Regenerate secret?"
 msgstr "Regenerar secret?"
 
-#: src/components/settings/Integrations.tsx:1755
-#: src/components/settings/Integrations.tsx:1960
+#: src/components/settings/Integrations.tsx:1775
+#: src/components/settings/Integrations.tsx:1980
 msgid "Region"
 msgstr "Regió"
 
-#: src/components/settings/Integrations.tsx:229
-#: src/components/settings/Integrations.tsx:276
+#: src/components/settings/Integrations.tsx:230
+#: src/components/settings/Integrations.tsx:277
 msgid "Register Webhooks"
 msgstr "Registrar webhooks"
 
-#: src/components/settings/Integrations.tsx:264
+#: src/components/settings/Integrations.tsx:265
 msgid "Register webhooks?"
 msgstr "Registrar webhooks?"
 
-#: src/components/settings/Integrations.tsx:1295
+#: src/components/settings/Integrations.tsx:1296
 msgid "Reject Disposable Email"
 msgstr "Rebutjar correu d'un sol ús"
 
@@ -7705,7 +7720,7 @@ msgstr "Dreta a esquerra"
 msgid "Role"
 msgstr "Rol"
 
-#: src/pages/SetupWizard.tsx:341
+#: src/pages/SetupWizard.tsx:342
 msgid "Root Email"
 msgstr "Correu arrel"
 
@@ -7764,10 +7779,10 @@ msgstr "Percentatge de mostra"
 msgid "Sample values"
 msgstr "Valors de mostra"
 
-#: src/components/settings/Integrations.tsx:1729
-#: src/components/settings/Integrations.tsx:1783
-#: src/components/settings/Integrations.tsx:1951
-#: src/components/settings/Integrations.tsx:1966
+#: src/components/settings/Integrations.tsx:1749
+#: src/components/settings/Integrations.tsx:1803
+#: src/components/settings/Integrations.tsx:1971
+#: src/components/settings/Integrations.tsx:1986
 msgid "Sandbox Mode"
 msgstr "Mode de caixa de proves"
 
@@ -7785,11 +7800,11 @@ msgstr "Mode de caixa de proves"
 #: src/components/file_manager/buttonSettings.tsx:312
 #: src/components/lists/ListDrawer.tsx:170
 #: src/components/settings/CustomFieldsConfiguration.tsx:275
-#: src/components/settings/Integrations.tsx:2026
-#: src/components/settings/Integrations.tsx:2149
-#: src/components/settings/Integrations.tsx:2236
-#: src/components/settings/Integrations.tsx:2284
-#: src/components/settings/Integrations.tsx:2331
+#: src/components/settings/Integrations.tsx:2046
+#: src/components/settings/Integrations.tsx:2169
+#: src/components/settings/Integrations.tsx:2256
+#: src/components/settings/Integrations.tsx:2304
+#: src/components/settings/Integrations.tsx:2351
 #: src/components/settings/WebhooksSettings.tsx:215
 #: src/components/templates/CreateTemplateDrawer.tsx:521
 #: src/components/templates/CreateTemplateDrawer.tsx:542
@@ -7909,8 +7924,8 @@ msgstr "El segon valor ha de ser més gran que el primer valor"
 msgid "Secret"
 msgstr "Secret"
 
-#: src/components/settings/Integrations.tsx:1513
-#: src/components/settings/Integrations.tsx:1775
+#: src/components/settings/Integrations.tsx:1514
+#: src/components/settings/Integrations.tsx:1795
 msgid "Secret Key"
 msgstr "Clau secreta"
 
@@ -7926,7 +7941,7 @@ msgstr "Atributs de secció"
 msgid "Security"
 msgstr "Seguretat"
 
-#: src/pages/SetupWizard.tsx:387
+#: src/pages/SetupWizard.tsx:388
 msgid "See docs for:"
 msgstr "Consulteu la documentació per a:"
 
@@ -8056,7 +8071,7 @@ msgstr "Seleccioneu un esdeveniment..."
 msgid "Select Avatar"
 msgstr "Seleccionar avatar"
 
-#: src/components/settings/Integrations.tsx:1458
+#: src/components/settings/Integrations.tsx:1459
 msgid "Select AWS Region"
 msgstr "Seleccionar regió AWS"
 
@@ -8155,7 +8170,7 @@ msgstr "Seleccionar llistes (opcional)"
 msgid "Select lists to add contacts to"
 msgstr "Seleccionar llistes per afegir contactes"
 
-#: src/components/settings/Integrations.tsx:1571
+#: src/components/settings/Integrations.tsx:1572
 msgid "Select OAuth2 Provider"
 msgstr "Seleccionar proveïdor OAuth2"
 
@@ -8306,7 +8321,7 @@ msgstr "Enviar o programar difusió"
 msgid "Send Test"
 msgstr "Enviar prova"
 
-#: src/components/settings/Integrations.tsx:2190
+#: src/components/settings/Integrations.tsx:2210
 #: src/components/templates/SendTemplateModal.tsx:237
 #: src/components/templates/SendTemplateModal.tsx:251
 #: src/pages/BroadcastsPage.tsx:823
@@ -8333,8 +8348,8 @@ msgstr "Remitent"
 msgid "Sender Name"
 msgstr "Nom del remitent"
 
-#: src/components/settings/Integrations.tsx:334
-#: src/components/settings/Integrations.tsx:1887
+#: src/components/settings/Integrations.tsx:335
+#: src/components/settings/Integrations.tsx:1907
 msgid "Senders"
 msgstr "Remitents"
 
@@ -8382,39 +8397,39 @@ msgstr "Títol SEO per als motors de cerca (recomanat: 50-60 caràcters)"
 msgid "Separate sides"
 msgstr "Separar costats"
 
-#: src/pages/SetupWizard.tsx:186
+#: src/pages/SetupWizard.tsx:187
 msgid "Server is restarting with new configuration..."
 msgstr "El servidor s'està reiniciant amb la nova configuració..."
 
-#: src/pages/SetupWizard.tsx:210
+#: src/pages/SetupWizard.tsx:211
 msgid "Server restart timeout. Please refresh the page manually."
 msgstr "Temps d'espera del reinici del servidor. Si us plau, actualitzeu la pàgina manualment."
 
-#: src/pages/SetupWizard.tsx:200
+#: src/pages/SetupWizard.tsx:201
 msgid "Server restarted successfully! You can now sign in."
 msgstr "Servidor reiniciat correctament! Ara podeu iniciar sessió."
 
-#: src/components/settings/Integrations.tsx:1740
+#: src/components/settings/Integrations.tsx:1760
 msgid "Server Token"
 msgstr "Token del servidor"
 
-#: src/components/settings/Integrations.tsx:585
+#: src/components/settings/Integrations.tsx:586
 msgid "Set as default marketing email provider"
 msgstr "Establir com a proveïdor de correu de màrqueting predeterminat"
 
-#: src/components/settings/Integrations.tsx:1857
+#: src/components/settings/Integrations.tsx:1877
 msgid "Set as default sender"
 msgstr "Establir com a remitent predeterminat"
 
-#: src/components/settings/Integrations.tsx:585
+#: src/components/settings/Integrations.tsx:586
 msgid "Set as default transactional email provider"
 msgstr "Establir com a proveïdor de correu transaccional predeterminat"
 
-#: src/components/settings/Integrations.tsx:382
+#: src/components/settings/Integrations.tsx:383
 msgid "Set as marketing email provider?"
 msgstr "Establir com a proveïdor de correu de màrqueting?"
 
-#: src/components/settings/Integrations.tsx:401
+#: src/components/settings/Integrations.tsx:402
 msgid "Set as transactional email provider?"
 msgstr "Establir com a proveïdor de correu transaccional?"
 
@@ -8482,7 +8497,7 @@ msgstr "Estableix el punt de ruptura responsiu per a tot el correu"
 msgid "Sets the screen width below which the email will switch to mobile layout. Most email clients use 480px as the standard mobile breakpoint."
 msgstr "Estableix l'amplada de pantalla per sota de la qual el correu canviarà al disseny mòbil. La majoria de clients de correu utilitzen 480px com a punt de ruptura mòbil estàndard."
 
-#: src/pages/SetupWizard.tsx:663
+#: src/pages/SetupWizard.tsx:684
 msgid "Setting up..."
 msgstr "Configurant..."
 
@@ -8491,11 +8506,11 @@ msgstr "Configurant..."
 msgid "Settings"
 msgstr "Configuració"
 
-#: src/pages/SetupWizard.tsx:320
+#: src/pages/SetupWizard.tsx:321
 msgid "Setup"
 msgstr "Configuració"
 
-#: src/pages/SetupWizard.tsx:296
+#: src/pages/SetupWizard.tsx:297
 msgid "Setup Complete!"
 msgstr "Configuració completada!"
 
@@ -8574,11 +8589,11 @@ msgstr "L'slug només pot contenir lletres minúscules, números i guions"
 msgid "SMS"
 msgstr "SMS"
 
-#: src/pages/SetupWizard.tsx:382
+#: src/pages/SetupWizard.tsx:383
 msgid "SMTP Configuration"
 msgstr "Configuració SMTP"
 
-#: src/pages/SetupWizard.tsx:80
+#: src/pages/SetupWizard.tsx:81
 msgid "SMTP connection successful!"
 msgstr "Connexió SMTP correcta!"
 
@@ -8586,18 +8601,18 @@ msgstr "Connexió SMTP correcta!"
 msgid "SMTP domain"
 msgstr "Domini SMTP"
 
-#: src/components/settings/Integrations.tsx:1522
-#: src/components/settings/Integrations.tsx:1921
-#: src/pages/SetupWizard.tsx:429
+#: src/components/settings/Integrations.tsx:1523
+#: src/components/settings/Integrations.tsx:1941
+#: src/pages/SetupWizard.tsx:430
 msgid "SMTP Host"
 msgstr "Amfitrió SMTP"
 
-#: src/pages/SetupWizard.tsx:431
+#: src/pages/SetupWizard.tsx:432
 msgid "SMTP host is required"
 msgstr "L'amfitrió SMTP és obligatori"
 
-#: src/components/settings/Integrations.tsx:1696
-#: src/pages/SetupWizard.tsx:470
+#: src/components/settings/Integrations.tsx:1697
+#: src/pages/SetupWizard.tsx:471
 msgid "SMTP Password"
 msgstr "Contrasenya SMTP"
 
@@ -8605,12 +8620,12 @@ msgstr "Contrasenya SMTP"
 msgid "SMTP port"
 msgstr "Port SMTP"
 
-#: src/components/settings/Integrations.tsx:1527
-#: src/pages/SetupWizard.tsx:438
+#: src/components/settings/Integrations.tsx:1528
+#: src/pages/SetupWizard.tsx:439
 msgid "SMTP Port"
 msgstr "Port SMTP"
 
-#: src/pages/SetupWizard.tsx:440
+#: src/pages/SetupWizard.tsx:441
 msgid "SMTP port is required"
 msgstr "El port SMTP és obligatori"
 
@@ -8631,7 +8646,7 @@ msgstr "El proveïdor SMTP no suporta webhooks de lliurament, per tant l'estat d
 msgid "SMTP Relay"
 msgstr "Relay SMTP"
 
-#: src/pages/SetupWizard.tsx:577
+#: src/pages/SetupWizard.tsx:598
 msgid "SMTP relay domain is required"
 msgstr "El domini de relay SMTP és obligatori"
 
@@ -8639,7 +8654,7 @@ msgstr "El domini de relay SMTP és obligatori"
 msgid "SMTP relay is not configured."
 msgstr "El relay SMTP no està configurat."
 
-#: src/pages/SetupWizard.tsx:592
+#: src/pages/SetupWizard.tsx:613
 msgid "SMTP relay port is required"
 msgstr "El port de relay SMTP és obligatori"
 
@@ -8647,12 +8662,12 @@ msgstr "El port de relay SMTP és obligatori"
 msgid "SMTP relay server for forwarding transactional emails"
 msgstr "Servidor de relay SMTP per reenviar correus transaccionals"
 
-#: src/components/settings/Integrations.tsx:1924
+#: src/components/settings/Integrations.tsx:1944
 msgid "SMTP User"
 msgstr "Usuari SMTP"
 
-#: src/components/settings/Integrations.tsx:1691
-#: src/pages/SetupWizard.tsx:465
+#: src/components/settings/Integrations.tsx:1692
+#: src/pages/SetupWizard.tsx:466
 msgid "SMTP Username"
 msgstr "Nom d'usuari SMTP"
 
@@ -8714,7 +8729,7 @@ msgstr "Espai"
 msgid "Spacer Attributes"
 msgstr "Atributs d'espaiador"
 
-#: src/components/settings/Integrations.tsx:1723
+#: src/components/settings/Integrations.tsx:1743
 msgid "SparkPost API Key"
 msgstr "Clau API de SparkPost"
 
@@ -8852,7 +8867,7 @@ msgstr "Subscriure's"
 msgid "Subscribe to List"
 msgstr "Subscriure a la llista"
 
-#: src/pages/SetupWizard.tsx:372
+#: src/pages/SetupWizard.tsx:373
 msgid "Subscribe to the newsletter (new features...)"
 msgstr "Subscriure al butlletí (noves funcionalitats...)"
 
@@ -8928,7 +8943,7 @@ msgstr "Processats {successful} contactes correctament"
 msgid "Successfully signed in"
 msgstr "Sessió iniciada correctament"
 
-#: src/components/settings/Integrations.tsx:759
+#: src/components/settings/Integrations.tsx:760
 msgid "Supabase integration saved successfully"
 msgstr "Integració de Supabase desada correctament"
 
@@ -9085,7 +9100,7 @@ msgstr "Plantilla:"
 msgid "Templates"
 msgstr "Plantilles"
 
-#: src/components/settings/Integrations.tsx:1869
+#: src/components/settings/Integrations.tsx:1889
 msgid "Templates using this sender will need to be updated to use a different sender."
 msgstr "Les plantilles que utilitzen aquest remitent hauran de ser actualitzades per utilitzar un remitent diferent."
 
@@ -9096,12 +9111,12 @@ msgstr "Marcatge de plantilles permès"
 
 #: src/components/broadcasts/GlobalFeedSettings.tsx:122
 #: src/components/broadcasts/RecipientFeedSettings.tsx:130
-#: src/components/settings/Integrations.tsx:319
+#: src/components/settings/Integrations.tsx:320
 #: src/pages/TransactionalNotificationsPage.tsx:173
 msgid "Test"
 msgstr "Provar"
 
-#: src/pages/SetupWizard.tsx:502
+#: src/pages/SetupWizard.tsx:523
 msgid "Test Connection"
 msgstr "Provar connexió"
 
@@ -9121,11 +9136,11 @@ msgstr "Dades de prova actualitzades correctament"
 msgid "Test duration (hours)"
 msgstr "Durada de la prova (hores)"
 
-#: src/components/settings/Integrations.tsx:2176
+#: src/components/settings/Integrations.tsx:2196
 msgid "Test Email Provider"
 msgstr "Provar proveïdor de correu"
 
-#: src/components/settings/Integrations.tsx:993
+#: src/components/settings/Integrations.tsx:994
 #: src/components/templates/SendTemplateModal.tsx:111
 msgid "Test email sent successfully"
 msgstr "Correu de prova enviat correctament"
@@ -9147,7 +9162,7 @@ msgstr "Test fallat: {0}"
 msgid "Test in different email clients as support varies"
 msgstr "Proveu en diferents clients de correu ja que el suport varia"
 
-#: src/components/settings/Integrations.tsx:2024
+#: src/components/settings/Integrations.tsx:2044
 msgid "Test Integration"
 msgstr "Provar integració"
 
@@ -9267,7 +9282,7 @@ msgstr "El fitxer CSV ha de tenir capçaleres a la primera fila."
 msgid "The currently published theme will be unpublished automatically."
 msgstr "El tema publicat actualment es despublicarà automàticament."
 
-#: src/components/settings/Integrations.tsx:1585
+#: src/components/settings/Integrations.tsx:1586
 msgid "The email address that will be used as the SMTP user for authentication"
 msgstr "L'adreça de correu que s'utilitzarà com a usuari SMTP per a l'autenticació"
 
@@ -9282,6 +9297,11 @@ msgstr "El cos del correu ha de contenir JSON vàlid que coincideixi amb el form
 #: src/components/templates/ImportExportButton.tsx:482
 msgid "The following validation errors were found in your import:"
 msgstr "S'han trobat els següents errors de validació a la vostra importació:"
+
+#: src/components/settings/Integrations.tsx:1716
+#: src/pages/SetupWizard.tsx:508
+msgid "The hostname your server identifies itself as when connecting to the SMTP server. Defaults to the SMTP host value if empty."
+msgstr ""
 
 #: src/components/settings/BlogSettings.tsx:316
 msgid "The main title for your blog"
@@ -9359,10 +9379,10 @@ msgstr "Aquests paràmetres s'afegeixen automàticament a l'URL de la difusió. 
 #: src/components/blog/DeletePostModal.tsx:36
 #: src/components/contacts/DeleteContactModal.tsx:54
 #: src/components/settings/DeleteWorkspace.tsx:45
-#: src/components/settings/Integrations.tsx:307
-#: src/components/settings/Integrations.tsx:1178
-#: src/components/settings/Integrations.tsx:1337
-#: src/components/settings/Integrations.tsx:1395
+#: src/components/settings/Integrations.tsx:308
+#: src/components/settings/Integrations.tsx:1179
+#: src/components/settings/Integrations.tsx:1338
+#: src/components/settings/Integrations.tsx:1396
 #: src/components/settings/WebhookCard.tsx:234
 msgid "This action cannot be undone."
 msgstr "Aquesta acció no es pot desfer."
@@ -9397,7 +9417,7 @@ msgstr "Això no es pot desfer."
 msgid "This contact is not subscribed to any lists"
 msgstr "Aquest contacte no està subscrit a cap llista"
 
-#: src/pages/SetupWizard.tsx:347
+#: src/pages/SetupWizard.tsx:348
 msgid "This email will be used for the root administrator account"
 msgstr "Aquest correu s'utilitzarà per al compte d'administrador arrel"
 
@@ -9486,7 +9506,7 @@ msgstr "Això eliminarà permanentment l'espai de treball \"{0}\" i totes les se
 msgid "This will permanently remove the contact and their subscriptions."
 msgstr "Això eliminarà permanentment el contacte i les seves subscripcions."
 
-#: src/components/settings/Integrations.tsx:265
+#: src/components/settings/Integrations.tsx:266
 msgid "This will register or update webhook endpoints for this email provider."
 msgstr "Això registrarà o actualitzarà els punts finals de webhook per a aquest proveïdor de correu."
 
@@ -9494,7 +9514,7 @@ msgstr "Això registrarà o actualitzarà els punts finals de webhook per a aque
 msgid "This will replace all content with the default language template. Continue?"
 msgstr ""
 
-#: src/components/settings/Integrations.tsx:2202
+#: src/components/settings/Integrations.tsx:2222
 msgid "This will send a real test email to the address provided."
 msgstr "Això enviarà un correu de prova real a l'adreça proporcionada."
 
@@ -9592,23 +9612,23 @@ msgstr "Títol quan es comparteix a xarxes socials (opcional)"
 msgid "TLS"
 msgstr "TLS"
 
-#: src/pages/SetupWizard.tsx:605
+#: src/pages/SetupWizard.tsx:626
 msgid "TLS Certificate (Base64)"
 msgstr "Certificat TLS (Base64)"
 
-#: src/pages/SetupWizard.tsx:610
+#: src/pages/SetupWizard.tsx:631
 msgid "TLS certificate is required"
 msgstr "El certificat TLS és obligatori"
 
-#: src/components/settings/Integrations.tsx:1927
+#: src/components/settings/Integrations.tsx:1947
 msgid "TLS Enabled"
 msgstr "TLS habilitat"
 
-#: src/pages/SetupWizard.tsx:623
+#: src/pages/SetupWizard.tsx:644
 msgid "TLS Private Key (Base64)"
 msgstr "Clau privada TLS (Base64)"
 
-#: src/pages/SetupWizard.tsx:628
+#: src/pages/SetupWizard.tsx:649
 msgid "TLS private key is required"
 msgstr "La clau privada TLS és obligatòria"
 
@@ -9635,7 +9655,7 @@ msgstr "Canvieu entre les vistes mòbil i escriptori per veure com es mostra el 
 msgid "Toggle caption"
 msgstr "Alternar llegenda"
 
-#: src/components/settings/Integrations.tsx:1420
+#: src/components/settings/Integrations.tsx:1421
 msgid "Tools"
 msgstr "Eines"
 
@@ -9699,7 +9719,7 @@ msgstr "El seguiment (obertures i clics) hauria d'estar habilitat a la configura
 msgid "Transactional"
 msgstr "Transaccional"
 
-#: src/components/settings/Integrations.tsx:363
+#: src/components/settings/Integrations.tsx:364
 msgid "Transactional Emails"
 msgstr "Correus transaccionals"
 
@@ -10033,11 +10053,11 @@ msgstr "Utilitzar un altre correu"
 msgid "Use Anyway"
 msgstr "Utilitzar igualment"
 
-#: src/components/settings/Integrations.tsx:395
+#: src/components/settings/Integrations.tsx:396
 msgid "Use for Marketing"
 msgstr "Utilitzar per a màrqueting"
 
-#: src/components/settings/Integrations.tsx:414
+#: src/components/settings/Integrations.tsx:415
 msgid "Use for Transactional"
 msgstr "Utilitzar per a transaccional"
 
@@ -10073,8 +10093,8 @@ msgstr "Utilitzeu aquesta comanda curl per enviar una notificació transaccional
 msgid "Use This Theme"
 msgstr "Utilitzar aquest tema"
 
-#: src/components/settings/Integrations.tsx:1535
-#: src/pages/SetupWizard.tsx:455
+#: src/components/settings/Integrations.tsx:1536
+#: src/pages/SetupWizard.tsx:456
 msgid "Use TLS"
 msgstr "Utilitzar TLS"
 
@@ -10082,7 +10102,7 @@ msgstr "Utilitzar TLS"
 msgid "Use workspace default"
 msgstr ""
 
-#: src/components/settings/Integrations.tsx:352
+#: src/components/settings/Integrations.tsx:353
 msgid "Used for"
 msgstr "Utilitzat per a"
 
@@ -10103,7 +10123,7 @@ msgstr "Hook d'usuari creat"
 msgid "User Created Hook Secret"
 msgstr "Secret del hook d'usuari creat"
 
-#: src/components/settings/Integrations.tsx:1287
+#: src/components/settings/Integrations.tsx:1288
 msgid "User Metadata Field"
 msgstr "Camp de metadades d'usuari"
 
@@ -10233,7 +10253,7 @@ msgstr "Editor visual de correu"
 msgid "Wait Duration"
 msgstr "Durada d'espera"
 
-#: src/pages/SetupWizard.tsx:313
+#: src/pages/SetupWizard.tsx:314
 msgid "Waiting for server restart..."
 msgstr "Esperant el reinici del servidor..."
 
@@ -10267,13 +10287,13 @@ msgstr "Webhook deshabilitat"
 msgid "Webhook enabled"
 msgstr "Webhook habilitat"
 
-#: src/components/settings/Integrations.tsx:1220
-#: src/components/settings/Integrations.tsx:1257
+#: src/components/settings/Integrations.tsx:1221
+#: src/components/settings/Integrations.tsx:1258
 msgid "Webhook endpoint copied to clipboard"
 msgstr "Punt final del webhook copiat al porta-retalls"
 
-#: src/components/settings/Integrations.tsx:1206
-#: src/components/settings/Integrations.tsx:1243
+#: src/components/settings/Integrations.tsx:1207
+#: src/components/settings/Integrations.tsx:1244
 msgid "Webhook endpoint:"
 msgstr "Punt final del webhook:"
 
@@ -10297,15 +10317,15 @@ msgstr "Subscripció de webhook actualitzada"
 msgid "Webhook URL"
 msgstr "URL del webhook"
 
-#: src/components/settings/Integrations.tsx:198
-#: src/components/settings/Integrations.tsx:206
-#: src/components/settings/Integrations.tsx:237
+#: src/components/settings/Integrations.tsx:199
+#: src/components/settings/Integrations.tsx:207
+#: src/components/settings/Integrations.tsx:238
 #: src/components/settings/SettingsSidebar.tsx:77
 #: src/components/settings/WebhooksSettings.tsx:169
 msgid "Webhooks"
 msgstr "Webhooks"
 
-#: src/components/settings/Integrations.tsx:184
+#: src/components/settings/Integrations.tsx:185
 msgid "Webhooks registered successfully"
 msgstr "Webhooks registrats correctament"
 
@@ -10484,13 +10504,13 @@ msgstr "Escriure"
 #: src/components/messages/MessageHistoryTab.tsx:188
 #: src/components/messages/MessageHistoryTab.tsx:204
 #: src/components/settings/CustomFieldsConfiguration.tsx:201
-#: src/components/settings/Integrations.tsx:267
-#: src/components/settings/Integrations.tsx:309
-#: src/components/settings/Integrations.tsx:385
-#: src/components/settings/Integrations.tsx:404
-#: src/components/settings/Integrations.tsx:1180
-#: src/components/settings/Integrations.tsx:1339
-#: src/components/settings/Integrations.tsx:1397
+#: src/components/settings/Integrations.tsx:268
+#: src/components/settings/Integrations.tsx:310
+#: src/components/settings/Integrations.tsx:386
+#: src/components/settings/Integrations.tsx:405
+#: src/components/settings/Integrations.tsx:1181
+#: src/components/settings/Integrations.tsx:1340
+#: src/components/settings/Integrations.tsx:1398
 #: src/components/settings/WebhookCard.tsx:192
 #: src/components/settings/WebhookCard.tsx:236
 #: src/components/settings/WebhookCard.tsx:278
@@ -10618,7 +10638,7 @@ msgstr "Heu estat convidat a unir-vos"
 msgid "Your files can be uploaded to any S3 compatible storage."
 msgstr "Els vostres fitxers es poden pujar a qualsevol emmagatzematge compatible amb S3."
 
-#: src/pages/SetupWizard.tsx:298
+#: src/pages/SetupWizard.tsx:299
 msgid "Your Notifuse instance has been successfully configured."
 msgstr "La vostra instància de Notifuse s'ha configurat correctament."
 

@@ -147,6 +147,58 @@ func TestSetupWizardWithJWT(t *testing.T) {
 	})
 }
 
+// TestSetupWizardWithEHLOHostname tests that setup wizard accepts and processes smtp_ehlo_hostname
+func TestSetupWizardWithEHLOHostname(t *testing.T) {
+	testutil.SkipIfShort(t)
+	testutil.SetupTestEnvironment()
+	defer testutil.CleanupTestEnvironment()
+
+	suite := createUninstalledTestSuite(t)
+	defer func() { suite.Cleanup() }()
+
+	client := suite.APIClient
+
+	t.Run("Initialize with EHLO Hostname", func(t *testing.T) {
+		initReq := map[string]interface{}{
+			"root_email":         "admin@example.com",
+			"api_endpoint":       suite.ServerManager.GetURL(),
+			"smtp_host":          "localhost",
+			"smtp_port":          1025,
+			"smtp_from_email":    "test@example.com",
+			"smtp_from_name":     "Test Notifuse",
+			"smtp_use_tls":       false,
+			"smtp_ehlo_hostname": "mail.example.com",
+		}
+
+		resp, err := client.Post("/api/setup.initialize", initReq)
+		require.NoError(t, err)
+		defer func() { _ = resp.Body.Close() }()
+
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+		var initResp map[string]interface{}
+		err = json.NewDecoder(resp.Body).Decode(&initResp)
+		require.NoError(t, err)
+
+		assert.True(t, initResp["success"].(bool), "Setup should succeed with EHLO hostname")
+		assert.Contains(t, initResp["message"].(string), "restarting", "Should indicate server is restarting")
+	})
+
+	t.Run("Status - Installed", func(t *testing.T) {
+		resp, err := client.Get("/api/setup.status")
+		require.NoError(t, err)
+		defer func() { _ = resp.Body.Close() }()
+
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+		var statusResp map[string]interface{}
+		err = json.NewDecoder(resp.Body).Decode(&statusResp)
+		require.NoError(t, err)
+
+		assert.True(t, statusResp["is_installed"].(bool), "System should be installed after setup with EHLO hostname")
+	})
+}
+
 // TestSetupWizardValidation tests validation of setup wizard inputs
 func TestSetupWizardValidation(t *testing.T) {
 	testutil.SkipIfShort(t)
@@ -221,9 +273,10 @@ func TestSetupWizardSMTPTest(t *testing.T) {
 	t.Run("Test SMTP Connection - Success", func(t *testing.T) {
 		// Test with valid Mailpit settings (running in Docker Compose)
 		testReq := map[string]interface{}{
-			"smtp_host":    "localhost",
-			"smtp_port":    1025,
-			"smtp_use_tls": false, // Mailpit doesn't use TLS
+			"smtp_host":          "localhost",
+			"smtp_port":          1025,
+			"smtp_use_tls":       false, // Mailpit doesn't use TLS
+			"smtp_ehlo_hostname": "mail.example.com",
 		}
 
 		resp, err := client.Post("/api/setup.testSmtp", testReq)

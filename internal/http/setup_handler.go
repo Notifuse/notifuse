@@ -59,6 +59,7 @@ type InitializeRequest struct {
 	SMTPFromEmail          string `json:"smtp_from_email"`
 	SMTPFromName           string `json:"smtp_from_name"`
 	SMTPUseTLS             *bool  `json:"smtp_use_tls"`
+	SMTPEHLOHostname       string `json:"smtp_ehlo_hostname"`
 	TelemetryEnabled       bool   `json:"telemetry_enabled"`
 	CheckForUpdates        bool   `json:"check_for_updates"`
 	SMTPRelayEnabled       bool   `json:"smtp_relay_enabled"`
@@ -76,11 +77,12 @@ type InitializeResponse struct {
 
 // TestSMTPRequest represents the SMTP connection test request
 type TestSMTPRequest struct {
-	SMTPHost     string `json:"smtp_host"`
-	SMTPPort     int    `json:"smtp_port"`
-	SMTPUsername string `json:"smtp_username"`
-	SMTPPassword string `json:"smtp_password"`
-	SMTPUseTLS   *bool  `json:"smtp_use_tls"`
+	SMTPHost         string `json:"smtp_host"`
+	SMTPPort         int    `json:"smtp_port"`
+	SMTPUsername     string `json:"smtp_username"`
+	SMTPPassword     string `json:"smtp_password"`
+	SMTPUseTLS       *bool  `json:"smtp_use_tls"`
+	SMTPEHLOHostname string `json:"smtp_ehlo_hostname"`
 }
 
 // TestSMTPResponse represents the SMTP connection test response
@@ -182,6 +184,7 @@ func (h *SetupHandler) Initialize(w http.ResponseWriter, r *http.Request) {
 		SMTPFromEmail:          req.SMTPFromEmail,
 		SMTPFromName:           req.SMTPFromName,
 		SMTPUseTLS:             smtpUseTLS,
+		SMTPEHLOHostname:       req.SMTPEHLOHostname,
 		TelemetryEnabled:       req.TelemetryEnabled,
 		CheckForUpdates:        req.CheckForUpdates,
 		SMTPRelayEnabled:       req.SMTPRelayEnabled,
@@ -261,11 +264,12 @@ func (h *SetupHandler) TestSMTP(w http.ResponseWriter, r *http.Request) {
 
 	// Test SMTP connection using service
 	testConfig := &service.SMTPTestConfig{
-		Host:     req.SMTPHost,
-		Port:     req.SMTPPort,
-		Username: req.SMTPUsername,
-		Password: req.SMTPPassword,
-		UseTLS:   useTLS,
+		Host:         req.SMTPHost,
+		Port:         req.SMTPPort,
+		Username:     req.SMTPUsername,
+		Password:     req.SMTPPassword,
+		UseTLS:       useTLS,
+		EHLOHostname: req.SMTPEHLOHostname,
 	}
 
 	if err := h.setupService.TestSMTPConnection(ctx, testConfig); err != nil {

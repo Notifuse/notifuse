@@ -1701,6 +1701,13 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
                 )
               }}
             </Form.Item>
+            <Form.Item
+              name={['smtp', 'ehlo_hostname']}
+              label={t`EHLO Hostname`}
+              tooltip={t`The hostname your server identifies itself as when connecting to the SMTP server. Defaults to the SMTP host value if empty.`}
+            >
+              <Input placeholder={t`Defaults to SMTP host`} disabled={!isOwner} />
+            </Form.Item>
           </>
         )}
 
@@ -1937,6 +1944,13 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
           )}
         </Descriptions.Item>
       )
+      if (provider.smtp.ehlo_hostname) {
+        items.push(
+          <Descriptions.Item key="ehlo" label={t`EHLO Hostname`}>
+            {provider.smtp.ehlo_hostname}
+          </Descriptions.Item>
+        )
+      }
     } else if (provider.kind === 'ses' && provider.ses) {
       items.push(
         <Descriptions.Item key="region" label={t`AWS Region`}>

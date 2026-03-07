@@ -225,6 +225,108 @@ func TestSMTPClient_E2E_NoExtensionsInMailFrom(t *testing.T) {
 	assert.Contains(t, mailFromCmd, "MAIL FROM:<sender@example.com>")
 }
 
+// TestSMTPClient_E2E_DefaultEHLOUsesHost verifies that when EHLOHostname is empty,
+// the SMTP client uses the Host value for the EHLO command
+func TestSMTPClient_E2E_DefaultEHLOUsesHost(t *testing.T) {
+	server := newMockSMTPServerIntegration(t, true)
+	defer server.Close()
+
+	log := logger.NewLogger()
+	smtpService := service.NewSMTPService(log)
+
+	request := domain.SendEmailProviderRequest{
+		WorkspaceID:   "test-workspace",
+		IntegrationID: "test-integration",
+		MessageID:     "test-msg-ehlo-default",
+		FromAddress:   "sender@example.com",
+		FromName:      "Test Sender",
+		To:            "recipient@example.com",
+		Subject:       "Test Default EHLO",
+		Content:       "<html><body><p>Test content</p></body></html>",
+		Provider: &domain.EmailProvider{
+			Kind: domain.EmailProviderKindSMTP,
+			SMTP: &domain.SMTPSettings{
+				Host:         "127.0.0.1",
+				Port:         server.Port(),
+				Username:     "testuser",
+				Password:     "testpass",
+				UseTLS:       false,
+				EHLOHostname: "", // empty — should fall back to Host
+			},
+		},
+	}
+
+	err := smtpService.SendEmail(context.Background(), request)
+	require.NoError(t, err)
+
+	time.Sleep(100 * time.Millisecond)
+
+	commands := server.GetAllCommands()
+	var ehloCmd string
+	for _, cmd := range commands {
+		if strings.HasPrefix(strings.ToUpper(cmd), "EHLO") {
+			ehloCmd = cmd
+			break
+		}
+	}
+
+	require.NotEmpty(t, ehloCmd, "EHLO command should have been captured")
+	t.Logf("Captured EHLO command: %s", ehloCmd)
+	assert.Equal(t, "EHLO 127.0.0.1", ehloCmd,
+		"EHLO should use the Host value when EHLOHostname is empty")
+}
+
+// TestSMTPClient_E2E_CustomEHLOHostname verifies that a custom EHLOHostname is used
+// in the EHLO command instead of the Host value
+func TestSMTPClient_E2E_CustomEHLOHostname(t *testing.T) {
+	server := newMockSMTPServerIntegration(t, true)
+	defer server.Close()
+
+	log := logger.NewLogger()
+	smtpService := service.NewSMTPService(log)
+
+	request := domain.SendEmailProviderRequest{
+		WorkspaceID:   "test-workspace",
+		IntegrationID: "test-integration",
+		MessageID:     "test-msg-ehlo-custom",
+		FromAddress:   "sender@example.com",
+		FromName:      "Test Sender",
+		To:            "recipient@example.com",
+		Subject:       "Test Custom EHLO",
+		Content:       "<html><body><p>Test content</p></body></html>",
+		Provider: &domain.EmailProvider{
+			Kind: domain.EmailProviderKindSMTP,
+			SMTP: &domain.SMTPSettings{
+				Host:         "127.0.0.1",
+				Port:         server.Port(),
+				Username:     "testuser",
+				Password:     "testpass",
+				UseTLS:       false,
+				EHLOHostname: "mail.example.com",
+			},
+		},
+	}
+
+	err := smtpService.SendEmail(context.Background(), request)
+	require.NoError(t, err)
+
+	time.Sleep(100 * time.Millisecond)
+
+	commands := server.GetAllCommands()
+	var ehloCmd string
+	for _, cmd := range commands {
+		if strings.HasPrefix(strings.ToUpper(cmd), "EHLO") {
+			ehloCmd = cmd
+			break
+		}
+	}
+
+	require.NotEmpty(t, ehloCmd, "EHLO command should have been captured")
+	t.Logf("Captured EHLO command: %s", ehloCmd)
+	assert.Equal(t, "EHLO mail.example.com", ehloCmd,
+		"EHLO should use the custom EHLOHostname value")
+}
+
 // TestSMTPClient_E2E_WithAttachments verifies attachments work correctly
 func TestSMTPClient_E2E_WithAttachments(t *testing.T) {
 	server := newMockSMTPServerIntegration(t, true)
