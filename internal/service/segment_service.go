@@ -519,7 +519,8 @@ func calculateNext5AMInTimezone(tz string) (time.Time, error) {
 
 	// If we've already passed 5 AM today, move to tomorrow
 	if now.After(next5AM) || now.Equal(next5AM) {
-		next5AM = next5AM.Add(24 * time.Hour)
+		tomorrow := now.AddDate(0, 0, 1)
+		next5AM = time.Date(tomorrow.Year(), tomorrow.Month(), tomorrow.Day(), 5, 0, 0, 0, loc)
 	}
 
 	// Convert to UTC for storage
