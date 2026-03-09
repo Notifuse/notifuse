@@ -313,9 +313,10 @@ func TestDemoService_CreateSampleTemplates_Smoke(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
+	mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
 	mockAuth := domainmocks.NewMockAuthService(ctrl)
 
-	tmplSvc := NewTemplateService(mockTemplateRepo, nil, mockAuth, logger.NewLoggerWithLevel("disabled"), "https://api.test")
+	tmplSvc := NewTemplateService(mockTemplateRepo, mockWorkspaceRepo, mockAuth, logger.NewLoggerWithLevel("disabled"), "https://api.test")
 
 	svc := &DemoService{
 		logger:          logger.NewLoggerWithLevel("disabled"),
@@ -335,6 +336,13 @@ func TestDemoService_CreateSampleTemplates_Smoke(t *testing.T) {
 
 	// Authenticate for each template creation (4 templates)
 	mockAuth.EXPECT().AuthenticateUserForWorkspace(ctx, "demo").Return(ctx, &domain.User{ID: "u1"}, userWorkspace, nil).Times(4)
+	mockWorkspaceRepo.EXPECT().GetByID(ctx, "demo").Return(&domain.Workspace{
+		ID: "demo",
+		Settings: domain.WorkspaceSettings{
+			DefaultLanguage: "en",
+			Languages:       []string{"en", "fr", "es"},
+		},
+	}, nil).Times(4)
 	mockTemplateRepo.EXPECT().CreateTemplate(ctx, "demo", gomock.Any()).Return(nil).Times(4)
 
 	err := svc.createSampleTemplates(ctx, "demo")
@@ -344,10 +352,10 @@ func TestDemoService_CreateSampleTemplates_Smoke(t *testing.T) {
 func TestDemoService_CreateNewsletterStructures_NotNil(t *testing.T) {
 	svc := &DemoService{logger: logger.NewLoggerWithLevel("disabled")}
 
-	b1 := svc.createNewsletterMJMLStructure()
-	b2 := svc.createNewsletterV2MJMLStructure()
-	b3 := svc.createWelcomeMJMLStructure()
-	b4 := svc.createPasswordResetMJMLStructure()
+	b1 := svc.createNewsletterMJMLStructure(getNewsletterContents()["en"])
+	b2 := svc.createNewsletterV2MJMLStructure(getNewsletterV2Contents()["en"])
+	b3 := svc.createWelcomeMJMLStructure(getWelcomeContents()["en"])
+	b4 := svc.createPasswordResetMJMLStructure(getPasswordResetContents()["en"])
 
 	assert.NotNil(t, b1)
 	assert.NotNil(t, b2)
@@ -357,6 +365,54 @@ func TestDemoService_CreateNewsletterStructures_NotNil(t *testing.T) {
 	assert.Equal(t, notifuse_mjml.MJMLComponentMjml, b2.GetType())
 	assert.Equal(t, notifuse_mjml.MJMLComponentMjml, b3.GetType())
 	assert.Equal(t, notifuse_mjml.MJMLComponentMjml, b4.GetType())
+}
+
+func TestDemoService_ContentFactories(t *testing.T) {
+	langs := []string{"en", "fr", "es"}
+
+	t.Run("newsletter contents", func(t *testing.T) {
+		contents := getNewsletterContents()
+		for _, lang := range langs {
+			c, ok := contents[lang]
+			assert.True(t, ok, "missing language: %s", lang)
+			assert.NotEmpty(t, c.title)
+			assert.NotEmpty(t, c.mainText)
+			assert.Equal(t, lang, c.lang)
+		}
+	})
+
+	t.Run("newsletter v2 contents", func(t *testing.T) {
+		contents := getNewsletterV2Contents()
+		for _, lang := range langs {
+			c, ok := contents[lang]
+			assert.True(t, ok, "missing language: %s", lang)
+			assert.NotEmpty(t, c.title)
+			assert.NotEmpty(t, c.intro)
+			assert.Equal(t, lang, c.lang)
+		}
+	})
+
+	t.Run("welcome contents", func(t *testing.T) {
+		contents := getWelcomeContents()
+		for _, lang := range langs {
+			c, ok := contents[lang]
+			assert.True(t, ok, "missing language: %s", lang)
+			assert.NotEmpty(t, c.title)
+			assert.NotEmpty(t, c.welcome)
+			assert.Equal(t, lang, c.lang)
+		}
+	})
+
+	t.Run("password reset contents", func(t *testing.T) {
+		contents := getPasswordResetContents()
+		for _, lang := range langs {
+			c, ok := contents[lang]
+			assert.True(t, ok, "missing language: %s", lang)
+			assert.NotEmpty(t, c.title)
+			assert.NotEmpty(t, c.mainContent)
+			assert.Equal(t, lang, c.lang)
+		}
+	})
 }
 
 func TestGetStringValue(t *testing.T) {

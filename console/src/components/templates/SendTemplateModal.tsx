@@ -8,6 +8,7 @@ import {
   Attachment
 } from '../../services/api/transactional_notifications'
 import { emailProviders } from '../integrations/EmailProviders'
+import { SUPPORTED_LANGUAGES } from '../../lib/languages'
 
 const { Text } = Typography
 const { Option } = Select
@@ -40,6 +41,7 @@ export default function SendTemplateModal({
   const [replyTo, setReplyTo] = useState<string>('')
   const [attachments, setAttachments] = useState<Attachment[]>([])
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false)
+  const [selectedLanguage, setSelectedLanguage] = useState<string>('')
   const [form] = Form.useForm()
   const { message } = App.useApp()
 
@@ -52,6 +54,28 @@ export default function SendTemplateModal({
       ) || [],
     [workspace?.integrations]
   )
+
+  // Build language options: only show when template has email translations
+  const languageOptions = React.useMemo(() => {
+    if (!template?.translations || !workspace?.settings) return []
+    const defaultLang = workspace.settings.default_language || 'en'
+    const options: { label: string; value: string }[] = []
+
+    // Add default language
+    const defaultLabel = SUPPORTED_LANGUAGES[defaultLang] || defaultLang
+    options.push({ label: `${defaultLabel} (${defaultLang}) — ${t`default`}`, value: defaultLang })
+
+    // Add languages that have email translations
+    for (const [lang, translation] of Object.entries(template.translations)) {
+      if (translation.email && lang !== defaultLang) {
+        const langLabel = SUPPORTED_LANGUAGES[lang] || lang
+        options.push({ label: `${langLabel} (${lang})`, value: lang })
+      }
+    }
+
+    // Only show dropdown if there are translations beyond the default
+    return options.length > 1 ? options : []
+  }, [template?.translations, workspace?.settings?.default_language, t])
 
   // Set default integration when modal opens or template changes
   useEffect(() => {
@@ -83,9 +107,10 @@ export default function SendTemplateModal({
       setReplyTo('')
       setAttachments([])
       setShowAdvancedOptions(false)
+      setSelectedLanguage(workspace?.settings?.default_language || '')
       form.resetFields()
     }
-  }, [isOpen, form, withCCAndBCC])
+  }, [isOpen, form, withCCAndBCC, workspace?.settings?.default_language])
 
   const handleSend = async () => {
     if (!template || !workspace || !selectedIntegrationId) return
@@ -98,6 +123,7 @@ export default function SendTemplateModal({
         selectedIntegrationId,
         selectedSenderId,
         email,
+        selectedLanguage || undefined,
         {
           from_name: fromName || undefined,
           cc: ccEmails,
@@ -295,6 +321,17 @@ export default function SendTemplateModal({
               type="email"
             />
           </Form.Item>
+
+          {languageOptions.length > 0 && (
+            <Form.Item label={t`Language`}>
+              <Select
+                className="w-full"
+                value={selectedLanguage}
+                onChange={setSelectedLanguage}
+                options={languageOptions}
+              />
+            </Form.Item>
+          )}
 
           {!showAdvancedOptions && (
             <Button type="link" onClick={() => setShowAdvancedOptions(true)} className="!p-0">

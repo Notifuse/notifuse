@@ -1236,6 +1236,7 @@ func TestTransactionalNotificationHandler_HandleTestTemplate(t *testing.T) {
 						"invalid",
 						"sender123",
 						"test@example.com",
+						"",
 						domain.EmailOptions{},
 					).
 					Return(fmt.Errorf("integration not found: invalid"))
@@ -1275,6 +1276,7 @@ func TestTransactionalNotificationHandler_HandleTestTemplate(t *testing.T) {
 						"marketing",
 						"sender123",
 						"test@example.com",
+						"",
 						domain.EmailOptions{},
 					).
 					Return(errors.New("service error"))
@@ -1314,6 +1316,7 @@ func TestTransactionalNotificationHandler_HandleTestTemplate(t *testing.T) {
 						"marketing",
 						"sender123",
 						"test@example.com",
+						"",
 						domain.EmailOptions{},
 					).
 					Return(&domain.ErrTemplateNotFound{Message: "not found"})
@@ -1344,6 +1347,7 @@ func TestTransactionalNotificationHandler_HandleTestTemplate(t *testing.T) {
 						"marketing",
 						"sender123",
 						"test@example.com",
+						"",
 						domain.EmailOptions{
 							CC:  []string{"cc1@example.com", "cc2@example.com"},
 							BCC: []string{"bcc@example.com"},
@@ -1375,6 +1379,7 @@ func TestTransactionalNotificationHandler_HandleTestTemplate(t *testing.T) {
 						"marketing",
 						"sender123",
 						"test@example.com",
+						"",
 						domain.EmailOptions{},
 					).
 					Return(nil)
@@ -1406,6 +1411,7 @@ func TestTransactionalNotificationHandler_HandleTestTemplate(t *testing.T) {
 						"marketing",
 						"sender123",
 						"test@example.com",
+						"",
 						domain.EmailOptions{
 							ReplyTo: "custom-reply@example.com",
 						},
@@ -1457,11 +1463,42 @@ func TestTransactionalNotificationHandler_HandleTestTemplate(t *testing.T) {
 						"marketing",
 						"sender123",
 						"test@example.com",
+						"",
 						domain.EmailOptions{
 							CC:      []string{"cc@example.com"},
 							BCC:     []string{"bcc@example.com"},
 							ReplyTo: "reply@example.com",
 						},
+					).
+					Return(nil)
+			},
+			expectedStatus: http.StatusOK,
+			expectedResp: &domain.TestTemplateResponse{
+				Success: true,
+			},
+		},
+		{
+			name:   "Success with language",
+			method: http.MethodPost,
+			reqBody: domain.TestTemplateRequest{
+				WorkspaceID:    "workspace123",
+				TemplateID:     "template123",
+				IntegrationID:  "marketing",
+				SenderID:       "sender123",
+				RecipientEmail: "test@example.com",
+				Language:       "fr",
+			},
+			setupMock: func(m *mocks.MockTransactionalNotificationService, l *pkgmocks.MockLogger) {
+				m.EXPECT().
+					TestTemplate(
+						gomock.Any(),
+						"workspace123",
+						"template123",
+						"marketing",
+						"sender123",
+						"test@example.com",
+						"fr",
+						domain.EmailOptions{},
 					).
 					Return(nil)
 			},

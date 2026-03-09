@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useLingui } from '@lingui/react/macro'
-import { Drawer, Typography, Spin, Alert, Tabs, Tag, Space, Descriptions } from 'antd'
+import { Drawer, Typography, Spin, Alert, Tabs, Tag, Space, Descriptions, Segmented } from 'antd'
 import type { Template, MjmlCompileError, Workspace } from '../../services/api/types'
 import { templatesApi } from '../../services/api/template'
 import type { CompileTemplateRequest } from '../../services/api/template'
@@ -8,6 +8,7 @@ import type { EmailBlock } from '../email_builder/types'
 import { Highlight, themes } from 'prism-react-renderer'
 import { Liquid } from 'liquidjs'
 import type { MessageHistory } from '../../services/api/messages_history'
+import { SUPPORTED_LANGUAGES } from '../../lib/languages'
 
 const { Text } = Typography
 
@@ -35,13 +36,41 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
   const [isOpen, setIsOpen] = useState<boolean>(false)
   const [activeTabKey, setActiveTabKey] = useState<string>('1') // State for active tab
   const [processedSubject, setProcessedSubject] = useState<string | null>(null)
+  const [selectedLanguage, setSelectedLanguage] = useState<string | null>(null)
 
-  // Removed usePrismjs hook call
+  const availableLanguages = useMemo(() => {
+    if (messageHistory) return []
+    const defaultLang = workspace.settings?.default_language || 'en'
+    const langs: { label: string; value: string }[] = [
+      { label: SUPPORTED_LANGUAGES[defaultLang] || defaultLang, value: defaultLang }
+    ]
+    if (record.translations) {
+      for (const [code, translation] of Object.entries(record.translations)) {
+        if (
+          code !== defaultLang &&
+          translation.email &&
+          (translation.email.visual_editor_tree || translation.email.mjml_source)
+        ) {
+          langs.push({ label: SUPPORTED_LANGUAGES[code] || code, value: code })
+        }
+      }
+    }
+    return langs
+  }, [record.translations, workspace.settings?.default_language, messageHistory])
+
+  const showLanguageSelector = availableLanguages.length > 1
+  const effectiveLanguage = selectedLanguage || workspace.settings?.default_language || 'en'
+
+  const effectiveEmail = useMemo(() => {
+    const defaultLang = workspace.settings?.default_language || 'en'
+    if (effectiveLanguage === defaultLang) return record.email
+    return record.translations?.[effectiveLanguage]?.email || record.email
+  }, [effectiveLanguage, record.email, record.translations, workspace.settings?.default_language])
 
   const fetchPreview = async () => {
-    const isCodeMode = record.email?.editor_mode === 'code'
+    const isCodeMode = effectiveEmail?.editor_mode === 'code'
 
-    if (!workspace.id || (!isCodeMode && !record.email?.visual_editor_tree) || (isCodeMode && !record.email?.mjml_source)) {
+    if (!workspace.id || (!isCodeMode && !effectiveEmail?.visual_editor_tree) || (isCodeMode && !effectiveEmail?.mjml_source)) {
       setError(t`Missing workspace ID or template data.`)
       setMjmlError(null)
       setPreviewMjml(null)
@@ -72,13 +101,13 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
 
       if (isCodeMode) {
         // Code mode: use mjml_source directly
-        req.mjml_source = record.email!.mjml_source
+        req.mjml_source = effectiveEmail!.mjml_source
       } else {
         // Visual mode: parse visual_editor_tree
         let treeObject: EmailBlock | null = null
-        if (record.email?.visual_editor_tree && typeof record.email.visual_editor_tree === 'string') {
+        if (effectiveEmail?.visual_editor_tree && typeof effectiveEmail.visual_editor_tree === 'string') {
           try {
-            treeObject = JSON.parse(record.email.visual_editor_tree)
+            treeObject = JSON.parse(effectiveEmail.visual_editor_tree)
           } catch (parseError) {
             console.error('Failed to parse visual_editor_tree:', parseError)
             setError(t`Invalid template structure data.`)
@@ -87,8 +116,8 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
             setIsLoading(false)
             return
           }
-        } else if (record.email?.visual_editor_tree) {
-          treeObject = record.email.visual_editor_tree as unknown as EmailBlock
+        } else if (effectiveEmail?.visual_editor_tree) {
+          treeObject = effectiveEmail.visual_editor_tree as unknown as EmailBlock
         }
 
         if (!treeObject) {
@@ -142,15 +171,16 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
       setIsLoading(false)
       setActiveTabKey('1')
       setProcessedSubject(null)
+      setSelectedLanguage(null)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps -- fetchPreview is stable
-  }, [isOpen, record.id, record.version, workspace.id]) // Keep original dependencies
+  }, [isOpen, record.id, record.version, workspace.id, effectiveLanguage])
 
   // Process subject with Liquid using provided template data
   useEffect(() => {
     if (!isOpen) return
 
-    const subject = record.email?.subject || ''
+    const subject = effectiveEmail?.subject || ''
     const data = templateData || record.test_data || {}
 
     try {
@@ -165,7 +195,7 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
       // Fallback to raw subject on any rendering error
       setProcessedSubject(subject)
     }
-  }, [isOpen, record.email?.subject, templateData, record.test_data])
+  }, [isOpen, effectiveEmail?.subject, templateData, record.test_data])
 
   const items = []
 
@@ -272,12 +302,12 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
         )}
 
         <Descriptions.Item label={t`Subject`}>
-          <Text>{processedSubject ?? record.email?.subject}</Text>
+          <Text>{processedSubject ?? effectiveEmail?.subject}</Text>
         </Descriptions.Item>
 
-        {record.email?.subject_preview && (
+        {effectiveEmail?.subject_preview && (
           <Descriptions.Item label={t`Subject preview`}>
-            <Text>{record.email.subject_preview}</Text>
+            <Text>{effectiveEmail.subject_preview}</Text>
           </Descriptions.Item>
         )}
 
@@ -303,6 +333,16 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
                 </Tag>
               ))}
             </Space>
+          </Descriptions.Item>
+        )}
+        {showLanguageSelector && (
+          <Descriptions.Item label={t`Language`}>
+            <Segmented
+              size="small"
+              value={effectiveLanguage}
+              onChange={(value) => setSelectedLanguage(value as string)}
+              options={availableLanguages}
+            />
           </Descriptions.Item>
         )}
       </Descriptions>

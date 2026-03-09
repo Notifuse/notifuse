@@ -993,6 +993,7 @@ export function CreateTemplateDrawer({
                                 tree={visualEditorTree}
                                 testData={testData}
                                 workspaceId={workspace.id}
+                                templateName={template?.name}
                               />
                             </div>
                           </div>

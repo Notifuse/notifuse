@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [28.1] - 2026-03-09
+
+- **Templates**: Added language selection to "Send Test Email" modal and "Preview Template" drawer, allowing users to preview and test translated email variants
+- **Demo**: Demo workspace now includes French and Spanish translations for all 4 email templates, showcasing the multi-language feature
+- **Templates**: Downloaded template files now use the template's name as filename instead of a generic name (#286)
+
 ## [28.0] - 2026-03-05
 
 - **Templates**: Added option to choose between visual email builder or MJML code editor when creating templates
