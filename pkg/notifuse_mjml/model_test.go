@@ -37,6 +37,7 @@ func TestMJMLComponentTypeConstants(t *testing.T) {
 		{MJMLComponentMjStyle, "mj-style"},
 		{MJMLComponentMjTitle, "mj-title"},
 		{MJMLComponentMjRaw, "mj-raw"},
+		{MJMLComponentMjLiquid, "mj-liquid"},
 	}
 
 	for _, test := range tests {
@@ -161,6 +162,7 @@ func TestGetComponentDisplayName(t *testing.T) {
 		{MJMLComponentMjSocialElement, "Social Element"},
 		{MJMLComponentMjHead, "Head"},
 		{MJMLComponentMjRaw, "Raw HTML"},
+		{MJMLComponentMjLiquid, "Liquid"},
 	}
 
 	for _, test := range tests {
@@ -202,6 +204,7 @@ func TestGetComponentCategory(t *testing.T) {
 		{MJMLComponentMjBreakpoint, "Head"},
 		{MJMLComponentMjFont, "Head"},
 		{MJMLComponentMjRaw, "Raw"},
+		{MJMLComponentMjLiquid, "Content"},
 	}
 
 	for _, test := range tests {
@@ -229,6 +232,7 @@ func TestIsContentComponent(t *testing.T) {
 		MJMLComponentMjSocial,
 		MJMLComponentMjSocialElement,
 		MJMLComponentMjRaw,
+		MJMLComponentMjLiquid,
 	}
 
 	nonContentComponents := []MJMLComponentType{
@@ -508,6 +512,7 @@ func TestValidChildrenMap(t *testing.T) {
 		MJMLComponentMjStyle,
 		MJMLComponentMjTitle,
 		MJMLComponentMjRaw,
+		MJMLComponentMjLiquid,
 	}
 
 	for _, comp := range allComponents {
@@ -532,6 +537,7 @@ func TestValidChildrenMap(t *testing.T) {
 		MJMLComponentMjSpacer,
 		MJMLComponentMjSocialElement,
 		MJMLComponentMjRaw,
+		MJMLComponentMjLiquid,
 	}
 
 	for _, leaf := range leafComponents {
@@ -672,6 +678,7 @@ func TestAllComponentTypesUnmarshal(t *testing.T) {
 		MJMLComponentMjStyle,
 		MJMLComponentMjTitle,
 		MJMLComponentMjRaw,
+		MJMLComponentMjLiquid,
 	}
 
 	for _, componentType := range allComponentTypes {
@@ -687,7 +694,7 @@ func TestAllComponentTypesUnmarshal(t *testing.T) {
 			contentComponents := []MJMLComponentType{
 				MJMLComponentMjText, MJMLComponentMjButton, MJMLComponentMjPreview,
 				MJMLComponentMjStyle, MJMLComponentMjTitle, MJMLComponentMjRaw,
-				MJMLComponentMjSocialElement,
+				MJMLComponentMjSocialElement, MJMLComponentMjLiquid,
 			}
 			for _, contentComp := range contentComponents {
 				if componentType == contentComp {
@@ -1514,4 +1521,67 @@ func TestUnmarshalEmailBlock_NoDefaultsInjected(t *testing.T) {
 		assert.False(t, hasFontSize, "fontSize default should not be injected into mj-attributes child")
 		assert.False(t, hasLineHeight, "lineHeight default should not be injected into mj-attributes child")
 	})
+}
+
+func TestMJLiquidBlock(t *testing.T) {
+	base := NewBaseBlock("liquid-1", MJMLComponentMjLiquid)
+	content := `{% for item in items %}<mj-column>{{ item.name }}</mj-column>{% endfor %}`
+	base.Content = stringPtr(content)
+	block := &MJLiquidBlock{BaseBlock: base}
+
+	assert.Equal(t, MJMLComponentMjLiquid, block.GetType())
+	assert.Equal(t, "liquid-1", block.GetID())
+	assert.NotNil(t, block.GetContent())
+	assert.True(t, IsLeafComponent(block.GetType()))
+	assert.True(t, IsContentComponent(block.GetType()))
+}
+
+func TestMJLiquidValidParents(t *testing.T) {
+	parents := []MJMLComponentType{
+		MJMLComponentMjBody, MJMLComponentMjSection,
+		MJMLComponentMjColumn, MJMLComponentMjWrapper,
+	}
+	for _, parent := range parents {
+		assert.True(t, CanDropCheck(MJMLComponentMjLiquid, parent),
+			"mj-liquid should be valid child of %s", parent)
+	}
+}
+
+func TestMJLiquidCannotHaveChildren(t *testing.T) {
+	liquid := &MJLiquidBlock{BaseBlock: NewBaseBlock("liq", MJMLComponentMjLiquid)}
+	child := &MJTextBlock{BaseBlock: NewBaseBlock("txt", MJMLComponentMjText)}
+	liquid.Children = []EmailBlock{child}
+	err := ValidateComponentHierarchy(liquid)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "cannot have children")
+}
+
+func TestMJLiquidInvalidParents(t *testing.T) {
+	invalidParents := []MJMLComponentType{
+		MJMLComponentMjHead,
+		MJMLComponentMjGroup,
+		MJMLComponentMjml,
+		MJMLComponentMjText,
+	}
+	for _, parent := range invalidParents {
+		assert.False(t, CanDropCheck(MJMLComponentMjLiquid, parent),
+			"mj-liquid should NOT be valid child of %s", parent)
+	}
+}
+
+func TestMJLiquidUnmarshal(t *testing.T) {
+	testJSON := `{"id":"liq-1","type":"mj-liquid","content":"{% if show %}<mj-text>Hello</mj-text>{% endif %}"}`
+
+	block, err := UnmarshalEmailBlock([]byte(testJSON))
+	require.NoError(t, err)
+	require.NotNil(t, block)
+
+	assert.Equal(t, MJMLComponentMjLiquid, block.GetType())
+	assert.Equal(t, "liq-1", block.GetID())
+
+	_, ok := block.(*MJLiquidBlock)
+	assert.True(t, ok, "Expected *MJLiquidBlock but got %T", block)
+
+	require.NotNil(t, block.GetContent())
+	assert.Contains(t, *block.GetContent(), "{% if show %}")
 }

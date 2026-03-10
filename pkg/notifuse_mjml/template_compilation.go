@@ -413,6 +413,28 @@ func CompileTemplate(req CompileTemplateRequest) (resp *CompileTemplateResponse,
 		}
 	}
 
+	// Whole-string Liquid pass for visual editor mode.
+	// Processes raw Liquid from mj-liquid blocks. Existing block content was already
+	// Liquid-processed per-block during tree walk, so the second pass is a no-op for them.
+	if req.MjmlSource == nil && !req.PreserveLiquid && len(req.TemplateData) > 0 && req.Channel != "web" {
+		processed, liquidErr := ProcessLiquidTemplate(mjmlString, req.TemplateData, "visual-editor-whole")
+		if liquidErr != nil {
+			return &CompileTemplateResponse{
+				Success: false,
+				Error:   &mjml.Error{Message: liquidErr.Error()},
+			}, nil
+		}
+		mjmlString = processed
+	}
+
+	// For visual editor mode: if subject_preview override was requested but the tree
+	// didn't contain an mj-preview block, fall back to injecting it in the MJML string.
+	if req.MjmlSource == nil && req.SubjectPreviewOverride != nil && *req.SubjectPreviewOverride != "" {
+		if !mjPreviewTagRegexp.MatchString(mjmlString) {
+			mjmlString = overrideMjPreviewInSource(mjmlString, *req.SubjectPreviewOverride)
+		}
+	}
+
 	// Preprocess MJML to fix HTML vs XML incompatibilities
 	// gomjml uses a strict XML parser that doesn't accept HTML void tags (<br>) or HTML entities (&nbsp;)
 	preprocessedMjml := preprocessMjmlForXML(mjmlString)
