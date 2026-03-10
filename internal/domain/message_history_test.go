@@ -1257,15 +1257,24 @@ func TestChannelOptions_Value(t *testing.T) {
 			wantErr:  false,
 		},
 		{
+			name: "with subject_preview only",
+			options: ChannelOptions{
+				SubjectPreview: stringPtr("Preview text"),
+			},
+			expected: `{"subject_preview":"Preview text"}`,
+			wantErr:  false,
+		},
+		{
 			name: "with all fields",
 			options: ChannelOptions{
-				FromName: stringPtr("Test Sender"),
-				Subject:  stringPtr("Custom Subject"),
-				CC:       []string{"cc@example.com"},
-				BCC:      []string{"bcc@example.com"},
-				ReplyTo:  "reply@example.com",
+				FromName:       stringPtr("Test Sender"),
+				Subject:        stringPtr("Custom Subject"),
+				SubjectPreview: stringPtr("Preview text"),
+				CC:             []string{"cc@example.com"},
+				BCC:            []string{"bcc@example.com"},
+				ReplyTo:        "reply@example.com",
 			},
-			expected: `{"from_name":"Test Sender","subject":"Custom Subject","cc":["cc@example.com"],"bcc":["bcc@example.com"],"reply_to":"reply@example.com"}`,
+			expected: `{"from_name":"Test Sender","subject":"Custom Subject","subject_preview":"Preview text","cc":["cc@example.com"],"bcc":["bcc@example.com"],"reply_to":"reply@example.com"}`,
 			wantErr:  false,
 		},
 	}
@@ -1361,14 +1370,22 @@ func TestChannelOptions_Scan(t *testing.T) {
 			},
 		},
 		{
-			name:  "valid json - with all fields",
-			input: []byte(`{"from_name":"Test Sender","subject":"Custom Subject","cc":["cc@example.com"],"bcc":["bcc@example.com"],"reply_to":"reply@example.com"}`),
+			name:  "valid json - with subject_preview",
+			input: []byte(`{"subject_preview":"Preview text"}`),
 			want: &ChannelOptions{
-				FromName: stringPtr("Test Sender"),
-				Subject:  stringPtr("Custom Subject"),
-				CC:       []string{"cc@example.com"},
-				BCC:      []string{"bcc@example.com"},
-				ReplyTo:  "reply@example.com",
+				SubjectPreview: stringPtr("Preview text"),
+			},
+		},
+		{
+			name:  "valid json - with all fields",
+			input: []byte(`{"from_name":"Test Sender","subject":"Custom Subject","subject_preview":"Preview text","cc":["cc@example.com"],"bcc":["bcc@example.com"],"reply_to":"reply@example.com"}`),
+			want: &ChannelOptions{
+				FromName:       stringPtr("Test Sender"),
+				Subject:        stringPtr("Custom Subject"),
+				SubjectPreview: stringPtr("Preview text"),
+				CC:             []string{"cc@example.com"},
+				BCC:            []string{"bcc@example.com"},
+				ReplyTo:        "reply@example.com",
 			},
 		},
 		{
@@ -1393,6 +1410,7 @@ func TestChannelOptions_Scan(t *testing.T) {
 			if tt.input == nil {
 				assert.Nil(t, co.FromName)
 				assert.Nil(t, co.Subject)
+				assert.Nil(t, co.SubjectPreview)
 				assert.Empty(t, co.CC)
 				assert.Empty(t, co.BCC)
 				assert.Empty(t, co.ReplyTo)
@@ -1411,6 +1429,13 @@ func TestChannelOptions_Scan(t *testing.T) {
 			} else {
 				require.NotNil(t, co.Subject)
 				assert.Equal(t, *tt.want.Subject, *co.Subject)
+			}
+
+			if tt.want.SubjectPreview == nil {
+				assert.Nil(t, co.SubjectPreview)
+			} else {
+				require.NotNil(t, co.SubjectPreview)
+				assert.Equal(t, *tt.want.SubjectPreview, *co.SubjectPreview)
 			}
 
 			assert.Equal(t, tt.want.CC, co.CC)

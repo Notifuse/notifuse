@@ -43,11 +43,12 @@ type MessageEventUpdate struct {
 // This structure allows future extension for SMS/push without breaking changes
 type ChannelOptions struct {
 	// Email-specific options
-	FromName *string  `json:"from_name,omitempty"`
-	Subject  *string  `json:"subject,omitempty"`
-	CC       []string `json:"cc,omitempty"`
-	BCC      []string `json:"bcc,omitempty"`
-	ReplyTo  string   `json:"reply_to,omitempty"`
+	FromName       *string  `json:"from_name,omitempty"`
+	Subject        *string  `json:"subject,omitempty"`
+	SubjectPreview *string  `json:"subject_preview,omitempty"`
+	CC             []string `json:"cc,omitempty"`
+	BCC            []string `json:"bcc,omitempty"`
+	ReplyTo        string   `json:"reply_to,omitempty"`
 
 	// Future: SMS options would go here
 	// Future: Push notification options would go here

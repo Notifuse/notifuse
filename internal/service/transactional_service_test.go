@@ -2084,12 +2084,16 @@ func TestTransactionalNotificationService_TestTemplate_WithChannelOptions(t *tes
 			Action: domain.UpsertContactOperationUpdate,
 		})
 
-	// Expect compile template
+	// Expect compile template - verify SubjectPreviewOverride is passed
 	mockTemplateService.EXPECT().
 		CompileTemplate(gomock.Any(), gomock.Any()).
-		Return(compilationResult, nil)
+		DoAndReturn(func(ctx context.Context, req domain.CompileTemplateRequest) (*domain.CompileTemplateResponse, error) {
+			require.NotNil(t, req.SubjectPreviewOverride)
+			assert.Equal(t, "Override Preview", *req.SubjectPreviewOverride)
+			return compilationResult, nil
+		})
 
-	// Expect send email with options - verify subject override was applied
+	// Expect send email with options - verify subject and from name overrides
 	mockEmailService.EXPECT().
 		SendEmail(
 			gomock.Any(),
@@ -2106,12 +2110,14 @@ func TestTransactionalNotificationService_TestTemplate_WithChannelOptions(t *tes
 	// Expect message history creation with ChannelOptions
 	fromName := "Custom Sender"
 	overrideSubject := "Override Subject"
+	overridePreview := "Override Preview"
 	emailOptions := domain.EmailOptions{
-		FromName: &fromName,
-		Subject:  &overrideSubject,
-		CC:       []string{"cc@example.com"},
-		BCC:      []string{"bcc@example.com"},
-		ReplyTo:  "reply@example.com",
+		FromName:       &fromName,
+		Subject:        &overrideSubject,
+		SubjectPreview: &overridePreview,
+		CC:             []string{"cc@example.com"},
+		BCC:            []string{"bcc@example.com"},
+		ReplyTo:        "reply@example.com",
 	}
 
 	mockMsgHistoryRepo.EXPECT().
@@ -2123,6 +2129,8 @@ func TestTransactionalNotificationService_TestTemplate_WithChannelOptions(t *tes
 			assert.Equal(t, "Custom Sender", *message.ChannelOptions.FromName)
 			require.NotNil(t, message.ChannelOptions.Subject)
 			assert.Equal(t, "Override Subject", *message.ChannelOptions.Subject)
+			require.NotNil(t, message.ChannelOptions.SubjectPreview)
+			assert.Equal(t, "Override Preview", *message.ChannelOptions.SubjectPreview)
 			assert.Equal(t, []string{"cc@example.com"}, message.ChannelOptions.CC)
 			assert.Equal(t, []string{"bcc@example.com"}, message.ChannelOptions.BCC)
 			assert.Equal(t, "reply@example.com", message.ChannelOptions.ReplyTo)

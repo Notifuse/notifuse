@@ -392,6 +392,11 @@ func (req *SendTransactionalRequest) Validate() error {
 		return NewValidationError("subject length must not exceed 255 characters")
 	}
 
+	// validate subject_preview override length if provided
+	if req.Notification.EmailOptions.SubjectPreview != nil && len(*req.Notification.EmailOptions.SubjectPreview) > 255 {
+		return NewValidationError("subject_preview length must not exceed 255 characters")
+	}
+
 	// validate attachments if provided
 	if len(req.Notification.EmailOptions.Attachments) > 0 {
 		if err := ValidateAttachments(req.Notification.EmailOptions.Attachments); err != nil {

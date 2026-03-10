@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestTrackLinks(t *testing.T) {
@@ -1869,5 +1871,99 @@ func TestAttributePriority(t *testing.T) {
 		if !strings.Contains(html, "<table") {
 			t.Errorf("Expected HTML to contain table-based email layout, got:\n%s", html)
 		}
+	})
+}
+
+func TestOverrideMjPreviewInSource(t *testing.T) {
+	t.Run("replaces existing mj-preview content", func(t *testing.T) {
+		mjml := `<mjml><mj-head><mj-preview>Old preview</mj-preview></mj-head><mj-body></mj-body></mjml>`
+		result := overrideMjPreviewInSource(mjml, "New preview")
+		assert.Contains(t, result, "<mj-preview>New preview</mj-preview>")
+		assert.NotContains(t, result, "Old preview")
+	})
+
+	t.Run("injects mj-preview when none exists", func(t *testing.T) {
+		mjml := `<mjml><mj-head><mj-title>Title</mj-title></mj-head><mj-body></mj-body></mjml>`
+		result := overrideMjPreviewInSource(mjml, "Injected preview")
+		assert.Contains(t, result, "<mj-preview>Injected preview</mj-preview>")
+		assert.Contains(t, result, "<mj-title>Title</mj-title>")
+	})
+
+	t.Run("escapes XML special characters", func(t *testing.T) {
+		mjml := `<mjml><mj-head><mj-preview>Old</mj-preview></mj-head></mjml>`
+		result := overrideMjPreviewInSource(mjml, `<script>alert("xss")</script> & more`)
+		assert.Contains(t, result, "&lt;script&gt;")
+		assert.Contains(t, result, "&amp; more")
+		assert.NotContains(t, result, "<script>")
+	})
+
+	t.Run("handles multiline existing content", func(t *testing.T) {
+		mjml := "<mjml><mj-head><mj-preview>Line1\nLine2</mj-preview></mj-head></mjml>"
+		result := overrideMjPreviewInSource(mjml, "New text")
+		assert.Contains(t, result, "<mj-preview>New text</mj-preview>")
+		assert.NotContains(t, result, "Line1")
+	})
+
+	t.Run("handles dollar signs in text", func(t *testing.T) {
+		mjml := `<mjml><mj-head><mj-preview>Old</mj-preview></mj-head></mjml>`
+		result := overrideMjPreviewInSource(mjml, "Save $50 today!")
+		assert.Contains(t, result, "<mj-preview>Save $50 today!</mj-preview>")
+	})
+
+	t.Run("preserves Liquid variables for later processing", func(t *testing.T) {
+		mjml := `<mjml><mj-head><mj-preview>Old</mj-preview></mj-head></mjml>`
+		result := overrideMjPreviewInSource(mjml, "Order {{ order_id }} confirmed")
+		assert.Contains(t, result, "<mj-preview>Order {{ order_id }} confirmed</mj-preview>")
+	})
+
+	t.Run("creates mj-head when only mjml root exists", func(t *testing.T) {
+		mjml := `<mjml><mj-body></mj-body></mjml>`
+		result := overrideMjPreviewInSource(mjml, "Preview")
+		assert.Contains(t, result, "<mj-head>")
+		assert.Contains(t, result, "<mj-preview>Preview</mj-preview>")
+		assert.Contains(t, result, "</mj-head>")
+	})
+
+	t.Run("no mjml tag returns unchanged", func(t *testing.T) {
+		mjml := `<div>not mjml</div>`
+		result := overrideMjPreviewInSource(mjml, "Preview")
+		assert.Equal(t, mjml, result)
+	})
+}
+
+func TestUpdateBlockContent(t *testing.T) {
+	t.Run("updates mj-preview block content", func(t *testing.T) {
+		oldContent := "Old preview"
+		previewBase := NewBaseBlock("preview", MJMLComponentMjPreview)
+		previewBase.Content = &oldContent
+
+		headBase := NewBaseBlock("head", MJMLComponentMjHead)
+		headBase.Children = []EmailBlock{
+			&MJPreviewBlock{BaseBlock: previewBase},
+		}
+
+		rootBase := NewBaseBlock("root", MJMLComponentMjml)
+		rootBase.Children = []EmailBlock{
+			&MJHeadBlock{BaseBlock: headBase},
+		}
+		tree := &MJMLBlock{BaseBlock: rootBase}
+
+		updateBlockContent(tree, MJMLComponentMjPreview, "New preview")
+
+		// Find the preview block and verify
+		headBlock := tree.Children[0].(*MJHeadBlock)
+		previewBlock := headBlock.Children[0].(*MJPreviewBlock)
+		assert.Equal(t, "New preview", *previewBlock.Content)
+	})
+
+	t.Run("no-op when block type not found", func(t *testing.T) {
+		tree := &MJMLBlock{BaseBlock: NewBaseBlock("root", MJMLComponentMjml)}
+		// Should not panic
+		updateBlockContent(tree, MJMLComponentMjPreview, "Preview")
+	})
+
+	t.Run("handles nil block", func(t *testing.T) {
+		// Should not panic
+		updateBlockContent(nil, MJMLComponentMjPreview, "Preview")
 	})
 }

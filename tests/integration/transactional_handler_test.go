@@ -72,6 +72,10 @@ func TestTransactionalHandler(t *testing.T) {
 		testTransactionalSendWithCustomSubject(t, client, factory, workspace.ID)
 	})
 
+	t.Run("Send with Custom Subject Preview", func(t *testing.T) {
+		testTransactionalSendWithCustomSubjectPreview(t, client, factory, workspace.ID)
+	})
+
 	t.Run("Send Code Mode Notification", func(t *testing.T) {
 		testTransactionalSendCodeMode(t, client, factory, workspace.ID)
 	})
@@ -1688,5 +1692,135 @@ func testTransactionalSendWithCustomSubject(t *testing.T, client *testutil.APICl
 		t.Logf("Email sent with message ID: %s", messageID)
 		t.Logf("Mailpit received email with custom subject in Subject header")
 		t.Logf("Message history created correctly")
+	})
+}
+
+// testTransactionalSendWithCustomSubjectPreview verifies that the subject_preview override works correctly
+func testTransactionalSendWithCustomSubjectPreview(t *testing.T, client *testutil.APIClient, factory *testutil.TestDataFactory, workspaceID string) {
+	t.Run("should send email with custom subject_preview", func(t *testing.T) {
+		// Clear Mailpit before test
+		err := testutil.ClearMailpitMessages(t)
+		if err != nil {
+			t.Logf("Warning: Could not clear Mailpit messages: %v", err)
+		}
+
+		// Create a template
+		template, err := factory.CreateTemplate(workspaceID)
+		require.NoError(t, err)
+
+		// Create a transactional notification
+		notification, err := factory.CreateTransactionalNotification(workspaceID,
+			testutil.WithTransactionalNotificationID("custom-preview-test"),
+			testutil.WithTransactionalNotificationChannels(domain.ChannelTemplates{
+				domain.TransactionalChannelEmail: domain.ChannelTemplate{
+					TemplateID: template.ID,
+					Settings:   map[string]interface{}{},
+				},
+			}),
+		)
+		require.NoError(t, err)
+
+		// Define test parameters
+		recipient := "preview-test@example.com"
+		customPreview := "This is a custom preheader text"
+		customSubject := "Preview Test Email"
+
+		// Send the notification with custom subject_preview
+		sendRequest := map[string]interface{}{
+			"id": notification.ID,
+			"contact": map[string]interface{}{
+				"email":      recipient,
+				"first_name": "Preview",
+				"last_name":  "Tester",
+			},
+			"channels": []string{"email"},
+			"data": map[string]interface{}{
+				"test_message": "Testing subject_preview override",
+			},
+			"email_options": map[string]interface{}{
+				"subject":         customSubject,
+				"subject_preview": customPreview,
+			},
+		}
+
+		t.Logf("Sending transactional notification with subject_preview: '%s'", customPreview)
+
+		resp, err := client.SendTransactionalNotification(sendRequest)
+		require.NoError(t, err)
+		defer func() { _ = resp.Body.Close() }()
+
+		// Check response
+		assert.Equal(t, http.StatusOK, resp.StatusCode, "Expected 200 OK when sending notification")
+
+		var result map[string]interface{}
+		err = json.NewDecoder(resp.Body).Decode(&result)
+		require.NoError(t, err)
+
+		// Verify we got a message ID
+		assert.Contains(t, result, "message_id")
+		messageID := result["message_id"].(string)
+		assert.NotEmpty(t, messageID, "Message ID should not be empty")
+
+		t.Logf("Email sent successfully with message ID: %s", messageID)
+
+		// Wait for SMTP server to process email
+		t.Log("Waiting for email to be delivered to Mailpit...")
+		mailpitData, err := testutil.WaitForMailpitMessagesFast(t, customSubject, 5*time.Second)
+		require.NoError(t, err, "Failed to get emails from Mailpit")
+
+		t.Logf("Mailpit reports %d total emails", mailpitData.Total)
+
+		// Find our email and verify the preheader is in the HTML body
+		foundEmail := false
+		for _, msgSummary := range mailpitData.Messages {
+			fullMsg, err := testutil.GetMailpitMessage(t, msgSummary.ID)
+			if err != nil {
+				t.Logf("Failed to get full message: %v", err)
+				continue
+			}
+			if fullMsg.Subject == customSubject {
+				foundEmail = true
+				// The preheader text should appear in the HTML body inside the hidden div
+				assert.Contains(t, fullMsg.HTML, customPreview,
+					"HTML body should contain the custom preheader text")
+				// The preheader div should have the characteristic hidden style
+				assert.Contains(t, fullMsg.HTML, "display:none;font-size:1px",
+					"HTML body should contain the preheader hidden div style")
+				t.Logf("Found email with preheader text in HTML body")
+				break
+			}
+		}
+
+		assert.True(t, foundEmail, "Should find the sent email with custom subject_preview in Mailpit")
+
+		// Verify message history was created with channel options
+		messageResp, err := client.Get("/api/messages.list?workspace_id=" + workspaceID + "&id=" + messageID)
+		require.NoError(t, err)
+		defer func() { _ = messageResp.Body.Close() }()
+
+		assert.Equal(t, http.StatusOK, messageResp.StatusCode)
+
+		var messagesResult map[string]interface{}
+		err = json.NewDecoder(messageResp.Body).Decode(&messagesResult)
+		require.NoError(t, err)
+
+		messages, ok := messagesResult["messages"].([]interface{})
+		require.True(t, ok, "Expected messages array in response")
+		require.NotEmpty(t, messages, "Expected at least one message in history")
+
+		message := messages[0].(map[string]interface{})
+		assert.Equal(t, recipient, message["contact_email"], "Message should be recorded for recipient")
+
+		// Verify channel_options includes subject_preview
+		if channelOptions, ok := message["channel_options"].(map[string]interface{}); ok {
+			assert.Equal(t, customPreview, channelOptions["subject_preview"],
+				"Channel options should contain subject_preview")
+		}
+
+		t.Log("\n=== Test Summary ===")
+		t.Logf("API accepted the request with custom subject_preview")
+		t.Logf("Email sent with message ID: %s", messageID)
+		t.Logf("Mailpit received email with preheader text in HTML body")
+		t.Logf("Message history created with subject_preview in channel_options")
 	})
 }

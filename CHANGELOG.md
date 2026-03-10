@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## [28.1] - 2026-03-09
 
+- **Transactional Emails**: Added `subject_preview` override to `email_options`, allowing dynamic email preheader text per API call with Liquid templating support
 - **Templates**: Added language selection to "Send Test Email" modal and "Preview Template" drawer, allowing users to preview and test translated email variants
 - **Demo**: Demo workspace now includes French and Spanish translations for all 4 email templates, showcasing the multi-language feature
 - **Templates**: Downloaded template files now use the template's name as filename instead of a generic name (#286)

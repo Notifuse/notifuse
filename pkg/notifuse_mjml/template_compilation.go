@@ -233,14 +233,15 @@ func (t *TrackingSettings) GetTrackingURL(sourceURL string) string {
 
 // CompileTemplateRequest represents the request for compiling a template
 type CompileTemplateRequest struct {
-	WorkspaceID      string           `json:"workspace_id"`
-	MessageID        string           `json:"message_id"`
-	VisualEditorTree EmailBlock       `json:"visual_editor_tree"`
-	MjmlSource       *string          `json:"mjml_source,omitempty"`
-	TemplateData     MapOfAny         `json:"test_data,omitempty"`
-	TrackingSettings TrackingSettings `json:"tracking_settings,omitempty"`
-	Channel          string           `json:"channel,omitempty"`         // "email" or "web" - filters blocks by visibility
-	PreserveLiquid   bool             `json:"preserve_liquid,omitempty"` // When true, skip Liquid template processing and preserve raw syntax
+	WorkspaceID             string           `json:"workspace_id"`
+	MessageID               string           `json:"message_id"`
+	VisualEditorTree        EmailBlock       `json:"visual_editor_tree"`
+	MjmlSource              *string          `json:"mjml_source,omitempty"`
+	TemplateData            MapOfAny         `json:"test_data,omitempty"`
+	TrackingSettings        TrackingSettings `json:"tracking_settings,omitempty"`
+	Channel                 string           `json:"channel,omitempty"`                  // "email" or "web" - filters blocks by visibility
+	PreserveLiquid          bool             `json:"preserve_liquid,omitempty"`           // When true, skip Liquid template processing and preserve raw syntax
+	SubjectPreviewOverride  *string          `json:"subject_preview_override,omitempty"`  // Override mj-preview content before compilation
 }
 
 // UnmarshalJSON implements custom JSON unmarshaling for CompileTemplateRequest
@@ -337,6 +338,11 @@ func CompileTemplate(req CompileTemplateRequest) (resp *CompileTemplateResponse,
 	if req.MjmlSource != nil && *req.MjmlSource != "" {
 		mjmlString = *req.MjmlSource
 
+		// Apply subject_preview override in MJML source before Liquid processing
+		if req.SubjectPreviewOverride != nil && *req.SubjectPreviewOverride != "" {
+			mjmlString = overrideMjPreviewInSource(mjmlString, *req.SubjectPreviewOverride)
+		}
+
 		// Process Liquid templates if template data is provided and PreserveLiquid is false
 		if !req.PreserveLiquid && len(req.TemplateData) > 0 {
 			processed, err := ProcessLiquidTemplate(mjmlString, req.TemplateData, "mjml-source")
@@ -357,6 +363,11 @@ func CompileTemplate(req CompileTemplateRequest) (resp *CompileTemplateResponse,
 		tree := req.VisualEditorTree
 		if req.Channel != "" {
 			tree = FilterBlocksByChannel(req.VisualEditorTree, req.Channel)
+		}
+
+		// Apply subject_preview override in the tree before conversion
+		if req.SubjectPreviewOverride != nil && *req.SubjectPreviewOverride != "" {
+			updateBlockContent(tree, MJMLComponentMjPreview, *req.SubjectPreviewOverride)
 		}
 
 		// If PreserveLiquid is true, skip all Liquid processing and return raw MJML
@@ -540,4 +551,68 @@ func TrackLinks(htmlString string, trackingSettings TrackingSettings) (updatedHT
 	}
 
 	return updatedHTML, nil
+}
+
+// mjPreviewTagRegexp matches <mj-preview>...</mj-preview> in MJML source.
+var mjPreviewTagRegexp = regexp.MustCompile(`(?is)(<mj-preview\s*>)([\s\S]*?)(</mj-preview\s*>)`)
+
+// mjHeadTagRegexp matches the opening <mj-head...> tag.
+var mjHeadTagRegexp = regexp.MustCompile(`(?i)<mj-head[^>]*>`)
+
+// mjmlRootTagRegexp matches the opening <mjml...> tag.
+var mjmlRootTagRegexp = regexp.MustCompile(`(?i)<mjml[^>]*>`)
+
+// overrideMjPreviewInSource replaces or injects <mj-preview> in raw MJML source.
+// Content is XML-escaped for safe insertion.
+// Fallback order: replace existing → inject after <mj-head> → create <mj-head> after <mjml>.
+func overrideMjPreviewInSource(mjmlSource string, previewText string) string {
+	escaped := escapeXMLContent(previewText)
+
+	// Replace existing <mj-preview> content
+	if mjPreviewTagRegexp.MatchString(mjmlSource) {
+		return mjPreviewTagRegexp.ReplaceAllString(mjmlSource, "${1}"+escapeRegexpReplacement(escaped)+"${3}")
+	}
+
+	// No <mj-preview> — inject after <mj-head>
+	newTag := "<mj-preview>" + escaped + "</mj-preview>"
+	loc := mjHeadTagRegexp.FindStringIndex(mjmlSource)
+	if loc != nil {
+		return mjmlSource[:loc[1]] + "\n    " + newTag + mjmlSource[loc[1]:]
+	}
+
+	// No <mj-head> — create one after <mjml>
+	loc = mjmlRootTagRegexp.FindStringIndex(mjmlSource)
+	if loc != nil {
+		return mjmlSource[:loc[1]] + "\n  <mj-head>\n    " + newTag + "\n  </mj-head>" + mjmlSource[loc[1]:]
+	}
+
+	// No <mjml> tag found; return as-is
+	return mjmlSource
+}
+
+// escapeXMLContent escapes &, <, > for safe insertion as XML element text content.
+func escapeXMLContent(s string) string {
+	s = strings.ReplaceAll(s, "&", "&amp;")
+	s = strings.ReplaceAll(s, "<", "&lt;")
+	s = strings.ReplaceAll(s, ">", "&gt;")
+	return s
+}
+
+// escapeRegexpReplacement escapes $ signs so they are treated literally by ReplaceAllString.
+func escapeRegexpReplacement(s string) string {
+	return strings.ReplaceAll(s, "$", "$$")
+}
+
+// updateBlockContent traverses the block tree and sets the content of all blocks
+// matching the given type. Used to override mj-preview content before compilation.
+func updateBlockContent(block EmailBlock, blockType MJMLComponentType, content string) {
+	if block == nil {
+		return
+	}
+	if block.GetType() == blockType {
+		block.SetContent(&content)
+	}
+	for _, child := range block.GetChildren() {
+		updateBlockContent(child, blockType, content)
+	}
 }

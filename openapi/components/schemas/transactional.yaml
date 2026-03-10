@@ -68,6 +68,12 @@ TransactionalNotificationSendParams:
           description: Override template subject line. Supports Liquid templating variables.
           maxLength: 255
           example: "Welcome, {{ name }}!"
+        subject_preview:
+          type: string
+          nullable: true
+          description: Override template preheader/preview text. Supports Liquid templating variables.
+          maxLength: 255
+          example: "Your order has been confirmed"
         cc:
           type: array
           description: CC email addresses

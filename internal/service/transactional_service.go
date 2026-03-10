@@ -792,11 +792,12 @@ func (s *TransactionalNotificationService) TestTemplate(ctx context.Context, wor
 
 	// Compile the template with the test data
 	compileReq := domain.CompileTemplateRequest{
-		WorkspaceID:      workspaceID,
-		MessageID:        messageID,
-		VisualEditorTree: emailContent.VisualEditorTree,
-		TemplateData:     notifuse_mjml.MapOfAny(messageData),
-		TrackingSettings: trackingSettings,
+		WorkspaceID:            workspaceID,
+		MessageID:              messageID,
+		VisualEditorTree:       emailContent.VisualEditorTree,
+		TemplateData:           notifuse_mjml.MapOfAny(messageData),
+		TrackingSettings:       trackingSettings,
+		SubjectPreviewOverride: emailOptions.SubjectPreview,
 	}
 	compileReq.MjmlSource = emailContent.GetCodeModeMjmlSource()
 	compiledResult, err := s.templateService.CompileTemplate(ctx, compileReq)
