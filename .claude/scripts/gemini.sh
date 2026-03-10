@@ -5,7 +5,7 @@
 
 set -e
 
-MODEL="gemini-3-pro-preview"
+MODEL="gemini-3.1-pro-preview"
 API_URL="https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent"
 
 if [ -z "$GEMINI_API_KEY" ]; then

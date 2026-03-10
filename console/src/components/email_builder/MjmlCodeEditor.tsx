@@ -157,6 +157,11 @@ const MJML_TAGS = [
     detail: 'Raw HTML'
   },
   {
+    label: 'mj-liquid',
+    insertText: '{% for item in $1 %}\n\t$0\n{% endfor %}',
+    detail: 'Liquid template block'
+  },
+  {
     label: 'mj-head',
     insertText: '<mj-head>\n\t$0\n</mj-head>',
     detail: 'Head section'

@@ -231,7 +231,7 @@ export class MjWrapperBlock extends BaseEmailBlock {
   }
 
   getValidChildTypes(): MJMLComponentType[] {
-    return ['mj-section', 'mj-raw']
+    return ['mj-section', 'mj-raw', 'mj-liquid']
   }
 
   /**

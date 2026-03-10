@@ -35,7 +35,8 @@ const DRAGGABLE_NODES: MJMLComponentType[] = [
   'mj-spacer',
   'mj-social',
   'mj-social-element',
-  'mj-raw'
+  'mj-raw',
+  'mj-liquid'
 ]
 
 const SELECTABLE_NODES: MJMLComponentType[] = [
@@ -58,7 +59,8 @@ const SELECTABLE_NODES: MJMLComponentType[] = [
   'mj-spacer',
   'mj-social',
   'mj-social-element',
-  'mj-raw'
+  'mj-raw',
+  'mj-liquid'
 ]
 
 // Blocks that have inline add buttons and should be excluded from general add logic

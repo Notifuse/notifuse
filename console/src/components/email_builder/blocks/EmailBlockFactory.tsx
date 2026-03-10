@@ -20,6 +20,7 @@ import { MjTitleBlock } from './MjTitleBlock'
 import { MjHeadBlock } from './MjHeadBlock'
 import { MjAttributesBlock } from './MjAttributesBlock'
 import { MjRawBlock } from './MjRawBlock'
+import { MjLiquidBlock } from './MjLiquidBlock'
 import { MjSocialElementBlock } from './MjSocialElementBlock'
 // Import other block types as they're created
 // import { MjImageBlock } from './MjImageBlock'
@@ -52,6 +53,7 @@ export class EmailBlockFactory {
       ['mj-preview', MjPreviewBlock],
       ['mj-title', MjTitleBlock],
       ['mj-raw', MjRawBlock],
+      ['mj-liquid', MjLiquidBlock],
       ['mj-social-element', MjSocialElementBlock]
     ])
 

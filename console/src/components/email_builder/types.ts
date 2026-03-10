@@ -24,6 +24,7 @@ export type MJMLComponentType =
   | 'mj-style'
   | 'mj-title'
   | 'mj-raw'
+  | 'mj-liquid'
   | 'mj-all'
   | 'mj-class'
 
@@ -153,6 +154,7 @@ type ComponentAttributesMap = {
   'mj-style': MJStyleBlock['attributes']
   'mj-title': MJTitleBlock['attributes']
   'mj-raw': MJRawBlock['attributes']
+  'mj-liquid': MJLiquidBlock['attributes']
 }
 
 // Individual attribute element within mj-attributes
@@ -212,21 +214,21 @@ export interface MJTitleBlock extends BaseBlock {
 // MJML Body - Root block (can contain mj-wrapper and mj-section blocks)
 export interface MJBodyBlock extends BaseBlock {
   type: 'mj-body'
-  children?: (MJWrapperBlock | MJSectionBlock | MJRawBlock)[]
+  children?: (MJWrapperBlock | MJSectionBlock | MJRawBlock | MJLiquidBlock)[]
   attributes?: MJBodyAttributes
 }
 
 // MJML Wrapper - Contains mj-section blocks and provides styling context
 export interface MJWrapperBlock extends BaseBlock {
   type: 'mj-wrapper'
-  children?: (MJSectionBlock | MJRawBlock)[]
+  children?: (MJSectionBlock | MJRawBlock | MJLiquidBlock)[]
   attributes?: MJWrapperAttributes
 }
 
 // MJML Section - Contains only mj-column blocks
 export interface MJSectionBlock extends BaseBlock {
   type: 'mj-section'
-  children?: (MJColumnBlock | MJGroupBlock | MJRawBlock)[]
+  children?: (MJColumnBlock | MJGroupBlock | MJRawBlock | MJLiquidBlock)[]
   attributes?: MJSectionAttributes
 }
 
@@ -241,6 +243,7 @@ export interface MJColumnBlock extends BaseBlock {
     | MJSpacerBlock
     | MJSocialBlock
     | MJRawBlock
+    | MJLiquidBlock
   )[]
   attributes?: MJColumnAttributes
 }
@@ -304,6 +307,14 @@ export interface MJRawBlock extends BaseBlock {
   attributes?: MJRawAttributes
 }
 
+// MJML Liquid - Leaf component (no children) - allows raw MJML+Liquid content
+export interface MJLiquidBlock extends BaseBlock {
+  type: 'mj-liquid'
+  children?: never
+  content?: string
+  attributes?: MJLiquidAttributes
+}
+
 // Union type for all block types
 export type EmailBlock =
   | MJMLBlock
@@ -329,6 +340,7 @@ export type EmailBlock =
   | MJWrapperBlock
   | MJGroupBlock
   | MJRawBlock
+  | MJLiquidBlock
 
 // Email builder state types
 export interface EmailBuilderState {
@@ -362,9 +374,9 @@ export interface DragInfo {
 
 // Valid parent-child relationships
 export type ValidChildren = {
-  'mj-body': 'mj-wrapper' | 'mj-section' | 'mj-raw'
-  'mj-wrapper': 'mj-section' | 'mj-raw'
-  'mj-section': 'mj-column' | 'mj-group' | 'mj-raw'
+  'mj-body': 'mj-wrapper' | 'mj-section' | 'mj-raw' | 'mj-liquid'
+  'mj-wrapper': 'mj-section' | 'mj-raw' | 'mj-liquid'
+  'mj-section': 'mj-column' | 'mj-group' | 'mj-raw' | 'mj-liquid'
   'mj-column':
     | 'mj-text'
     | 'mj-button'
@@ -373,6 +385,7 @@ export type ValidChildren = {
     | 'mj-spacer'
     | 'mj-social'
     | 'mj-raw'
+    | 'mj-liquid'
   'mj-group': 'mj-column'
   'mj-text': never
   'mj-button': never
@@ -382,6 +395,7 @@ export type ValidChildren = {
   'mj-social': 'mj-social-element'
   'mj-social-element': never
   'mj-raw': never
+  'mj-liquid': never
   'mj-head':
     | 'mj-attributes'
     | 'mj-breakpoint'
@@ -509,6 +523,8 @@ export type MJImageAttributes = BorderAttributes &
   }
 
 export type MJRawAttributes = CommonAttributes
+
+export type MJLiquidAttributes = CommonAttributes
 
 export type MJBreakpointAttributes = {
   width?: string

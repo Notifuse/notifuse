@@ -211,6 +211,11 @@ export const MJ_RAW_DEFAULTS = {
   cssClass: ''
 }
 
+// mj-liquid defaults
+export const MJ_LIQUID_DEFAULTS = {
+  cssClass: ''
+}
+
 // mj-divider defaults
 export const MJ_DIVIDER_DEFAULTS = {
   align: 'center' as const,
@@ -313,6 +318,7 @@ export const MJML_COMPONENT_DEFAULTS: Record<MJMLComponentType, Record<string, u
   'mj-title': MJ_TITLE_DEFAULTS,
   'mj-group': MJ_GROUP_DEFAULTS,
   'mj-raw': MJ_RAW_DEFAULTS,
+  'mj-liquid': MJ_LIQUID_DEFAULTS,
   'mj-divider': MJ_DIVIDER_DEFAULTS,
   'mj-spacer': MJ_SPACER_DEFAULTS,
   'mj-social': MJ_SOCIAL_DEFAULTS,

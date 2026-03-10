@@ -9,6 +9,7 @@ All notable changes to this project will be documented in this file.
 - **Demo**: Demo workspace now includes French and Spanish translations for all 4 email templates, showcasing the multi-language feature
 - **Templates**: Downloaded template files now use the template's name as filename instead of a generic name (#286)
 - **Email Builder**: Added `mj-liquid` block type for embedding raw MJML+Liquid code in the visual editor, enabling dynamic structural content like for-loops generating columns or conditional sections
+- **Security**: Upgraded liquidjs to 10.25.0
 
 ## [28.0] - 2026-03-05
 

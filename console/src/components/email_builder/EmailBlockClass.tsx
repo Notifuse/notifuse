@@ -463,7 +463,8 @@ export class EmailBlockClass {
       type !== 'mj-preview' &&
       type !== 'mj-title' &&
       type !== 'mj-style' &&
-      type !== 'mj-raw'
+      type !== 'mj-raw' &&
+      type !== 'mj-liquid'
     ) {
       block.children = []
     }
@@ -475,6 +476,7 @@ export class EmailBlockClass {
       type === 'mj-title' ||
       type === 'mj-preview' ||
       type === 'mj-raw' ||
+      type === 'mj-liquid' ||
       type === 'mj-style'
     ) {
       // For mj-text blocks, ensure content is wrapped in <p> tags (Tiptap always wraps in <p>)
