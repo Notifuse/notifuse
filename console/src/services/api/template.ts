@@ -178,6 +178,7 @@ export interface TestTemplateRequest {
   integration_id: string
   sender_id: string
   recipient_email: string
+  language?: string
   email_options?: EmailOptions
 }
 

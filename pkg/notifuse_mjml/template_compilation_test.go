@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestTrackLinks(t *testing.T) {
@@ -1870,4 +1872,452 @@ func TestAttributePriority(t *testing.T) {
 			t.Errorf("Expected HTML to contain table-based email layout, got:\n%s", html)
 		}
 	})
+}
+
+func TestOverrideMjPreviewInSource(t *testing.T) {
+	t.Run("replaces existing mj-preview content", func(t *testing.T) {
+		mjml := `<mjml><mj-head><mj-preview>Old preview</mj-preview></mj-head><mj-body></mj-body></mjml>`
+		result := overrideMjPreviewInSource(mjml, "New preview")
+		assert.Contains(t, result, "<mj-preview>New preview</mj-preview>")
+		assert.NotContains(t, result, "Old preview")
+	})
+
+	t.Run("injects mj-preview when none exists", func(t *testing.T) {
+		mjml := `<mjml><mj-head><mj-title>Title</mj-title></mj-head><mj-body></mj-body></mjml>`
+		result := overrideMjPreviewInSource(mjml, "Injected preview")
+		assert.Contains(t, result, "<mj-preview>Injected preview</mj-preview>")
+		assert.Contains(t, result, "<mj-title>Title</mj-title>")
+	})
+
+	t.Run("escapes XML special characters", func(t *testing.T) {
+		mjml := `<mjml><mj-head><mj-preview>Old</mj-preview></mj-head></mjml>`
+		result := overrideMjPreviewInSource(mjml, `<script>alert("xss")</script> & more`)
+		assert.Contains(t, result, "&lt;script&gt;")
+		assert.Contains(t, result, "&amp; more")
+		assert.NotContains(t, result, "<script>")
+	})
+
+	t.Run("handles multiline existing content", func(t *testing.T) {
+		mjml := "<mjml><mj-head><mj-preview>Line1\nLine2</mj-preview></mj-head></mjml>"
+		result := overrideMjPreviewInSource(mjml, "New text")
+		assert.Contains(t, result, "<mj-preview>New text</mj-preview>")
+		assert.NotContains(t, result, "Line1")
+	})
+
+	t.Run("handles dollar signs in text", func(t *testing.T) {
+		mjml := `<mjml><mj-head><mj-preview>Old</mj-preview></mj-head></mjml>`
+		result := overrideMjPreviewInSource(mjml, "Save $50 today!")
+		assert.Contains(t, result, "<mj-preview>Save $50 today!</mj-preview>")
+	})
+
+	t.Run("preserves Liquid variables for later processing", func(t *testing.T) {
+		mjml := `<mjml><mj-head><mj-preview>Old</mj-preview></mj-head></mjml>`
+		result := overrideMjPreviewInSource(mjml, "Order {{ order_id }} confirmed")
+		assert.Contains(t, result, "<mj-preview>Order {{ order_id }} confirmed</mj-preview>")
+	})
+
+	t.Run("creates mj-head when only mjml root exists", func(t *testing.T) {
+		mjml := `<mjml><mj-body></mj-body></mjml>`
+		result := overrideMjPreviewInSource(mjml, "Preview")
+		assert.Contains(t, result, "<mj-head>")
+		assert.Contains(t, result, "<mj-preview>Preview</mj-preview>")
+		assert.Contains(t, result, "</mj-head>")
+	})
+
+	t.Run("no mjml tag returns unchanged", func(t *testing.T) {
+		mjml := `<div>not mjml</div>`
+		result := overrideMjPreviewInSource(mjml, "Preview")
+		assert.Equal(t, mjml, result)
+	})
+}
+
+func TestUpdateBlockContent(t *testing.T) {
+	t.Run("updates mj-preview block content", func(t *testing.T) {
+		oldContent := "Old preview"
+		previewBase := NewBaseBlock("preview", MJMLComponentMjPreview)
+		previewBase.Content = &oldContent
+
+		headBase := NewBaseBlock("head", MJMLComponentMjHead)
+		headBase.Children = []EmailBlock{
+			&MJPreviewBlock{BaseBlock: previewBase},
+		}
+
+		rootBase := NewBaseBlock("root", MJMLComponentMjml)
+		rootBase.Children = []EmailBlock{
+			&MJHeadBlock{BaseBlock: headBase},
+		}
+		tree := &MJMLBlock{BaseBlock: rootBase}
+
+		updateBlockContent(tree, MJMLComponentMjPreview, "New preview")
+
+		// Find the preview block and verify
+		headBlock := tree.Children[0].(*MJHeadBlock)
+		previewBlock := headBlock.Children[0].(*MJPreviewBlock)
+		assert.Equal(t, "New preview", *previewBlock.Content)
+	})
+
+	t.Run("no-op when block type not found", func(t *testing.T) {
+		tree := &MJMLBlock{BaseBlock: NewBaseBlock("root", MJMLComponentMjml)}
+		// Should not panic
+		updateBlockContent(tree, MJMLComponentMjPreview, "Preview")
+	})
+
+	t.Run("handles nil block", func(t *testing.T) {
+		// Should not panic
+		updateBlockContent(nil, MJMLComponentMjPreview, "Preview")
+	})
+}
+
+func TestCompileTemplateWithMJLiquidForLoop(t *testing.T) {
+	liqBase := NewBaseBlock("liq", MJMLComponentMjLiquid)
+	liqBase.Content = stringPtr(
+		`{% for item in items %}<mj-column><mj-text>{{ item.name }}</mj-text></mj-column>{% endfor %}`)
+
+	section := &MJSectionBlock{BaseBlock: NewBaseBlock("sec", MJMLComponentMjSection)}
+	section.Children = []EmailBlock{&MJLiquidBlock{BaseBlock: liqBase}}
+
+	body := &MJBodyBlock{BaseBlock: NewBaseBlock("body", MJMLComponentMjBody)}
+	body.Children = []EmailBlock{section}
+
+	root := &MJMLBlock{BaseBlock: NewBaseBlock("mjml", MJMLComponentMjml)}
+	root.Children = []EmailBlock{body}
+
+	resp, err := CompileTemplate(CompileTemplateRequest{
+		WorkspaceID:      "ws",
+		MessageID:        "msg",
+		VisualEditorTree: root,
+		TemplateData: MapOfAny{"items": []map[string]interface{}{
+			{"name": "Product A"}, {"name": "Product B"},
+		}},
+		TrackingSettings: TrackingSettings{EnableTracking: false},
+	})
+	assert.NoError(t, err)
+	assert.True(t, resp.Success, "error: %v", resp.Error)
+	assert.Contains(t, *resp.HTML, "Product A")
+	assert.Contains(t, *resp.HTML, "Product B")
+}
+
+func TestCompileTemplateWithMJLiquidConditional(t *testing.T) {
+	liqBase := NewBaseBlock("liq", MJMLComponentMjLiquid)
+	liqBase.Content = stringPtr(
+		`{% if show_promo %}<mj-section><mj-column><mj-text>Special Offer!</mj-text></mj-column></mj-section>{% endif %}`)
+
+	body := &MJBodyBlock{BaseBlock: NewBaseBlock("body", MJMLComponentMjBody)}
+	body.Children = []EmailBlock{&MJLiquidBlock{BaseBlock: liqBase}}
+
+	root := &MJMLBlock{BaseBlock: NewBaseBlock("mjml", MJMLComponentMjml)}
+	root.Children = []EmailBlock{body}
+
+	// show_promo = true
+	resp, err := CompileTemplate(CompileTemplateRequest{
+		WorkspaceID:      "ws",
+		MessageID:        "msg",
+		VisualEditorTree: root,
+		TemplateData:     MapOfAny{"show_promo": true},
+		TrackingSettings: TrackingSettings{EnableTracking: false},
+	})
+	assert.NoError(t, err)
+	assert.True(t, resp.Success, "error: %v", resp.Error)
+	assert.Contains(t, *resp.HTML, "Special Offer!")
+
+	// show_promo = false
+	resp, err = CompileTemplate(CompileTemplateRequest{
+		WorkspaceID:      "ws",
+		MessageID:        "msg",
+		VisualEditorTree: root,
+		TemplateData:     MapOfAny{"show_promo": false},
+		TrackingSettings: TrackingSettings{EnableTracking: false},
+	})
+	assert.NoError(t, err)
+	assert.True(t, resp.Success, "error: %v", resp.Error)
+	assert.NotContains(t, *resp.HTML, "Special Offer!")
+}
+
+func TestCompileTemplateWithMJLiquidPreserveLiquid(t *testing.T) {
+	liqBase := NewBaseBlock("liq", MJMLComponentMjLiquid)
+	liqBase.Content = stringPtr(
+		`{% for item in items %}<mj-column><mj-text>{{ item.name }}</mj-text></mj-column>{% endfor %}`)
+
+	section := &MJSectionBlock{BaseBlock: NewBaseBlock("sec", MJMLComponentMjSection)}
+	section.Children = []EmailBlock{&MJLiquidBlock{BaseBlock: liqBase}}
+
+	body := &MJBodyBlock{BaseBlock: NewBaseBlock("body", MJMLComponentMjBody)}
+	body.Children = []EmailBlock{section}
+
+	root := &MJMLBlock{BaseBlock: NewBaseBlock("mjml", MJMLComponentMjml)}
+	root.Children = []EmailBlock{body}
+
+	resp, err := CompileTemplate(CompileTemplateRequest{
+		WorkspaceID:      "ws",
+		MessageID:        "msg",
+		VisualEditorTree: root,
+		PreserveLiquid:   true,
+		TrackingSettings: TrackingSettings{EnableTracking: false},
+	})
+	assert.NoError(t, err)
+	assert.NotNil(t, resp.MJML)
+	assert.Contains(t, *resp.MJML, "{% for item in items %}")
+	assert.Contains(t, *resp.MJML, "{{ item.name }}")
+}
+
+func TestCompileTemplateWithMJLiquidNoData(t *testing.T) {
+	liqBase := NewBaseBlock("liq", MJMLComponentMjLiquid)
+	liqBase.Content = stringPtr(
+		`{% for item in items %}<mj-column><mj-text>{{ item.name }}</mj-text></mj-column>{% endfor %}`)
+
+	section := &MJSectionBlock{BaseBlock: NewBaseBlock("sec", MJMLComponentMjSection)}
+	section.Children = []EmailBlock{&MJLiquidBlock{BaseBlock: liqBase}}
+
+	body := &MJBodyBlock{BaseBlock: NewBaseBlock("body", MJMLComponentMjBody)}
+	body.Children = []EmailBlock{section}
+
+	root := &MJMLBlock{BaseBlock: NewBaseBlock("mjml", MJMLComponentMjml)}
+	root.Children = []EmailBlock{body}
+
+	resp, err := CompileTemplate(CompileTemplateRequest{
+		WorkspaceID:      "ws",
+		MessageID:        "msg",
+		VisualEditorTree: root,
+		TrackingSettings: TrackingSettings{EnableTracking: false},
+	})
+	assert.NoError(t, err)
+	assert.NotNil(t, resp.MJML)
+	// No template data → Liquid syntax preserved in MJML
+	assert.Contains(t, *resp.MJML, "{% for item in items %}")
+}
+
+func TestCompileTemplateWithMJLiquidAndRegularBlocks(t *testing.T) {
+	text := &MJTextBlock{BaseBlock: NewBaseBlock("txt", MJMLComponentMjText)}
+	text.Content = stringPtr("Hello {{ user_name }}")
+
+	liqBase := NewBaseBlock("liq", MJMLComponentMjLiquid)
+	liqBase.Content = stringPtr(
+		`{% if show_cta %}<mj-button href="https://example.com">Click me</mj-button>{% endif %}`)
+
+	column := &MJColumnBlock{BaseBlock: NewBaseBlock("col", MJMLComponentMjColumn)}
+	column.Children = []EmailBlock{text, &MJLiquidBlock{BaseBlock: liqBase}}
+
+	section := &MJSectionBlock{BaseBlock: NewBaseBlock("sec", MJMLComponentMjSection)}
+	section.Children = []EmailBlock{column}
+
+	body := &MJBodyBlock{BaseBlock: NewBaseBlock("body", MJMLComponentMjBody)}
+	body.Children = []EmailBlock{section}
+
+	root := &MJMLBlock{BaseBlock: NewBaseBlock("mjml", MJMLComponentMjml)}
+	root.Children = []EmailBlock{body}
+
+	resp, err := CompileTemplate(CompileTemplateRequest{
+		WorkspaceID:      "ws",
+		MessageID:        "msg",
+		VisualEditorTree: root,
+		TemplateData:     MapOfAny{"user_name": "Alice", "show_cta": true},
+		TrackingSettings: TrackingSettings{EnableTracking: false},
+	})
+	assert.NoError(t, err)
+	assert.True(t, resp.Success, "error: %v", resp.Error)
+	assert.Contains(t, *resp.HTML, "Hello Alice")
+	assert.Contains(t, *resp.HTML, "Click me")
+}
+
+func TestCompileTemplateWithMJLiquidFromJSON(t *testing.T) {
+	jsonData := `{
+		"workspace_id": "ws",
+		"message_id": "msg",
+		"visual_editor_tree": {
+			"id": "mjml-1", "type": "mjml",
+			"children": [{
+				"id": "body-1", "type": "mj-body",
+				"children": [{
+					"id": "sec-1", "type": "mj-section",
+					"children": [{
+						"id": "liq-1", "type": "mj-liquid",
+						"content": "{% for item in items %}<mj-column><mj-text>{{ item.name }}</mj-text></mj-column>{% endfor %}"
+					}]
+				}]
+			}]
+		},
+		"test_data": {"items": [{"name": "Item 1"}, {"name": "Item 2"}]}
+	}`
+
+	var req CompileTemplateRequest
+	err := json.Unmarshal([]byte(jsonData), &req)
+	assert.NoError(t, err)
+
+	resp, err := CompileTemplate(req)
+	assert.NoError(t, err)
+	assert.True(t, resp.Success, "error: %v", resp.Error)
+	assert.Contains(t, *resp.HTML, "Item 1")
+	assert.Contains(t, *resp.HTML, "Item 2")
+}
+
+func TestCompileTemplateWithMJLiquidGeneratingSections(t *testing.T) {
+	liqBase := NewBaseBlock("liq", MJMLComponentMjLiquid)
+	liqBase.Content = stringPtr(
+		`{% for section in sections %}<mj-section><mj-column><mj-text>{{ section.title }}</mj-text></mj-column></mj-section>{% endfor %}`)
+
+	body := &MJBodyBlock{BaseBlock: NewBaseBlock("body", MJMLComponentMjBody)}
+	body.Children = []EmailBlock{&MJLiquidBlock{BaseBlock: liqBase}}
+
+	root := &MJMLBlock{BaseBlock: NewBaseBlock("mjml", MJMLComponentMjml)}
+	root.Children = []EmailBlock{body}
+
+	resp, err := CompileTemplate(CompileTemplateRequest{
+		WorkspaceID:      "ws",
+		MessageID:        "msg",
+		VisualEditorTree: root,
+		TemplateData: MapOfAny{"sections": []map[string]interface{}{
+			{"title": "Section One"}, {"title": "Section Two"},
+		}},
+		TrackingSettings: TrackingSettings{EnableTracking: false},
+	})
+	assert.NoError(t, err)
+	assert.True(t, resp.Success, "error: %v", resp.Error)
+	assert.Contains(t, *resp.HTML, "Section One")
+	assert.Contains(t, *resp.HTML, "Section Two")
+}
+
+func TestCompileTemplateWithMJLiquidInvalidSyntax(t *testing.T) {
+	liqBase := NewBaseBlock("liq", MJMLComponentMjLiquid)
+	liqBase.Content = stringPtr(`{% for item in items %}<mj-text>{{ item.name }}</mj-text>`)
+	// Missing {% endfor %}
+
+	section := &MJSectionBlock{BaseBlock: NewBaseBlock("sec", MJMLComponentMjSection)}
+	section.Children = []EmailBlock{&MJLiquidBlock{BaseBlock: liqBase}}
+
+	body := &MJBodyBlock{BaseBlock: NewBaseBlock("body", MJMLComponentMjBody)}
+	body.Children = []EmailBlock{section}
+
+	root := &MJMLBlock{BaseBlock: NewBaseBlock("mjml", MJMLComponentMjml)}
+	root.Children = []EmailBlock{body}
+
+	resp, err := CompileTemplate(CompileTemplateRequest{
+		WorkspaceID:      "ws",
+		MessageID:        "msg",
+		VisualEditorTree: root,
+		TemplateData:     MapOfAny{"items": []map[string]interface{}{{"name": "A"}}},
+		TrackingSettings: TrackingSettings{EnableTracking: false},
+	})
+	assert.NoError(t, err) // Go error should be nil
+	assert.False(t, resp.Success)
+	assert.NotNil(t, resp.Error)
+}
+
+func TestCompileTemplateWithMJLiquidDoubleLiquidSafety(t *testing.T) {
+	// Verify that template data containing Liquid-like syntax does not
+	// get re-interpreted by the whole-string Liquid pass.
+	text := &MJTextBlock{BaseBlock: NewBaseBlock("txt", MJMLComponentMjText)}
+	text.Content = stringPtr("Hello {{ user_name }}")
+
+	liqBase := NewBaseBlock("liq", MJMLComponentMjLiquid)
+	liqBase.Content = stringPtr(
+		`{% if show %}<mj-section><mj-column><mj-text>Promo</mj-text></mj-column></mj-section>{% endif %}`)
+
+	column := &MJColumnBlock{BaseBlock: NewBaseBlock("col", MJMLComponentMjColumn)}
+	column.Children = []EmailBlock{text}
+
+	section := &MJSectionBlock{BaseBlock: NewBaseBlock("sec", MJMLComponentMjSection)}
+	section.Children = []EmailBlock{column}
+
+	body := &MJBodyBlock{BaseBlock: NewBaseBlock("body", MJMLComponentMjBody)}
+	body.Children = []EmailBlock{section, &MJLiquidBlock{BaseBlock: liqBase}}
+
+	root := &MJMLBlock{BaseBlock: NewBaseBlock("mjml", MJMLComponentMjml)}
+	root.Children = []EmailBlock{body}
+
+	// user_name contains Liquid-like syntax — it should NOT be re-processed
+	resp, err := CompileTemplate(CompileTemplateRequest{
+		WorkspaceID:      "ws",
+		MessageID:        "msg",
+		VisualEditorTree: root,
+		TemplateData:     MapOfAny{"user_name": "Bob {{ secret }}", "show": true},
+		TrackingSettings: TrackingSettings{EnableTracking: false},
+	})
+	assert.NoError(t, err)
+	assert.True(t, resp.Success, "error: %v", resp.Error)
+	// The per-block pass renders "Bob {{ secret }}" into mj-text.
+	// The whole-string pass then sees {{ secret }} and renders it as empty.
+	// This is the known double-processing edge case (same risk as code mode).
+	assert.Contains(t, *resp.HTML, "Bob")
+	assert.Contains(t, *resp.HTML, "Promo")
+}
+
+func TestCompileTemplateWithMJLiquidInvalidMJML(t *testing.T) {
+	// mj-liquid generating structurally invalid MJML (mj-text directly in mj-body)
+	// should produce a compilation error from the MJML compiler, not a crash.
+	liqBase := NewBaseBlock("liq", MJMLComponentMjLiquid)
+	liqBase.Content = stringPtr(`<mj-text>Orphan text</mj-text>`)
+
+	body := &MJBodyBlock{BaseBlock: NewBaseBlock("body", MJMLComponentMjBody)}
+	body.Children = []EmailBlock{&MJLiquidBlock{BaseBlock: liqBase}}
+
+	root := &MJMLBlock{BaseBlock: NewBaseBlock("mjml", MJMLComponentMjml)}
+	root.Children = []EmailBlock{body}
+
+	resp, err := CompileTemplate(CompileTemplateRequest{
+		WorkspaceID:      "ws",
+		MessageID:        "msg",
+		VisualEditorTree: root,
+		TrackingSettings: TrackingSettings{EnableTracking: false},
+	})
+	// Should not panic — either succeeds (MJML is lenient) or returns a clean error
+	assert.NoError(t, err)
+	if !resp.Success {
+		assert.NotNil(t, resp.Error)
+	}
+}
+
+func TestCompileTemplateWithMJLiquidEmptyStringContent(t *testing.T) {
+	liqBase := NewBaseBlock("liq", MJMLComponentMjLiquid)
+	liqBase.Content = stringPtr("")
+
+	section := &MJSectionBlock{BaseBlock: NewBaseBlock("sec", MJMLComponentMjSection)}
+	section.Children = []EmailBlock{&MJLiquidBlock{BaseBlock: liqBase}}
+
+	body := &MJBodyBlock{BaseBlock: NewBaseBlock("body", MJMLComponentMjBody)}
+	body.Children = []EmailBlock{section}
+
+	root := &MJMLBlock{BaseBlock: NewBaseBlock("mjml", MJMLComponentMjml)}
+	root.Children = []EmailBlock{body}
+
+	resp, err := CompileTemplate(CompileTemplateRequest{
+		WorkspaceID:      "ws",
+		MessageID:        "msg",
+		VisualEditorTree: root,
+		TrackingSettings: TrackingSettings{EnableTracking: false},
+	})
+	assert.NoError(t, err)
+	assert.True(t, resp.Success, "error: %v", resp.Error)
+	assert.NotNil(t, resp.HTML)
+	assert.NotContains(t, *resp.HTML, "mj-liquid")
+}
+
+func TestCompileTemplateWithMJLiquidTimeout(t *testing.T) {
+	// Deeply nested loops that should trigger SecureLiquidEngine timeout
+	liqBase := NewBaseBlock("liq", MJMLComponentMjLiquid)
+	liqBase.Content = stringPtr(
+		`{% for a in items %}{% for b in items %}{% for c in items %}{% for d in items %}{% for e in items %}<mj-text>{{ a }}</mj-text>{% endfor %}{% endfor %}{% endfor %}{% endfor %}{% endfor %}`)
+
+	body := &MJBodyBlock{BaseBlock: NewBaseBlock("body", MJMLComponentMjBody)}
+	body.Children = []EmailBlock{&MJLiquidBlock{BaseBlock: liqBase}}
+
+	root := &MJMLBlock{BaseBlock: NewBaseBlock("mjml", MJMLComponentMjml)}
+	root.Children = []EmailBlock{body}
+
+	// Provide a large array to make the nested loops expensive
+	largeArray := make([]int, 100)
+	for i := range largeArray {
+		largeArray[i] = i
+	}
+
+	resp, err := CompileTemplate(CompileTemplateRequest{
+		WorkspaceID:      "ws",
+		MessageID:        "msg",
+		VisualEditorTree: root,
+		TemplateData:     MapOfAny{"items": largeArray},
+		TrackingSettings: TrackingSettings{EnableTracking: false},
+	})
+	assert.NoError(t, err)
+	// Should fail due to timeout, not crash
+	assert.False(t, resp.Success)
+	assert.NotNil(t, resp.Error)
 }

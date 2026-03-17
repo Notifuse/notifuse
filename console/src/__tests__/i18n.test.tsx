@@ -63,12 +63,33 @@ const catalanMessages = {
   'Welcome {name}': 'Benvingut {name}',
 }
 
+const portugueseBRMessages = {
+  Hello: 'Olá',
+  Goodbye: 'Tchau',
+  'Welcome {name}': 'Bem-vindo {name}',
+}
+
+const japaneseMessages = {
+  Hello: 'こんにちは',
+  Goodbye: 'さようなら',
+  'Welcome {name}': 'ようこそ {name}',
+}
+
+const italianMessages = {
+  Hello: 'Ciao',
+  Goodbye: 'Arrivederci',
+  'Welcome {name}': 'Benvenuto {name}',
+}
+
 // Mock the dynamic imports for locale files
 vi.mock('../i18n/locales/en.po', () => ({ messages: englishMessages }))
 vi.mock('../i18n/locales/fr.po', () => ({ messages: frenchMessages }))
 vi.mock('../i18n/locales/es.po', () => ({ messages: spanishMessages }))
 vi.mock('../i18n/locales/de.po', () => ({ messages: germanMessages }))
 vi.mock('../i18n/locales/ca.po', () => ({ messages: catalanMessages }))
+vi.mock('../i18n/locales/pt-BR.po', () => ({ messages: portugueseBRMessages }))
+vi.mock('../i18n/locales/ja.po', () => ({ messages: japaneseMessages }))
+vi.mock('../i18n/locales/it.po', () => ({ messages: italianMessages }))
 
 describe('i18n utility functions', () => {
   beforeEach(() => {
@@ -141,7 +162,7 @@ describe('i18n utility functions', () => {
 
   describe('locales and localeNames', () => {
     it('exports all supported locales', () => {
-      expect(locales).toEqual(['en', 'fr', 'es', 'de', 'ca'])
+      expect(locales).toEqual(['en', 'fr', 'es', 'de', 'ca', 'pt-BR', 'ja', 'it'])
     })
 
     it('exports locale names for all locales', () => {
@@ -151,6 +172,9 @@ describe('i18n utility functions', () => {
         es: 'Español',
         de: 'Deutsch',
         ca: 'Català',
+        'pt-BR': 'Português (Brasil)',
+        ja: '日本語',
+        it: 'Italiano',
       })
     })
 
@@ -226,7 +250,7 @@ describe('LocaleContext', () => {
       expect(screen.getByTestId('is-loading')).toHaveTextContent('ready')
     })
 
-    expect(screen.getByTestId('locale-count')).toHaveTextContent('5')
+    expect(screen.getByTestId('locale-count')).toHaveTextContent('8')
   })
 
   it('provides locale name for current locale', async () => {

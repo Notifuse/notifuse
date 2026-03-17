@@ -17,6 +17,8 @@ interface ImportExportButtonProps {
   testData?: Record<string, unknown>
   // Workspace ID for API calls
   workspaceId: string
+  // Template name used as the download filename
+  templateName?: string
 }
 
 interface ImportedData {
@@ -26,12 +28,23 @@ interface ImportedData {
   version?: string
 }
 
+// Sanitize a template name for use as a filename
+const sanitizeFilename = (name: string): string => {
+  return name
+    .replace(/[/\\?%*:|"<>]/g, '-') // replace illegal filename chars
+    .replace(/\s+/g, '-') // replace spaces with dashes
+    .replace(/-+/g, '-') // collapse multiple dashes
+    .replace(/^-|-$/g, '') // trim leading/trailing dashes
+    .toLowerCase()
+}
+
 export const ImportExportButton: React.FC<ImportExportButtonProps> = ({
   onImport,
   onTestDataImport,
   tree,
   testData,
-  workspaceId
+  workspaceId,
+  templateName
 }) => {
   const { t } = useLingui()
   const { message } = App.useApp()
@@ -306,7 +319,8 @@ export const ImportExportButton: React.FC<ImportExportButtonProps> = ({
       }
 
       if (response.html) {
-        downloadFile(response.html, 'email-template.html', 'text/html')
+        const baseName = templateName ? sanitizeFilename(templateName) : 'email-template'
+        downloadFile(response.html, `${baseName}.html`, 'text/html')
         message.success(t`HTML exported successfully`)
       } else {
         message.error(t`No HTML content to export`)
@@ -334,7 +348,8 @@ export const ImportExportButton: React.FC<ImportExportButtonProps> = ({
       }
 
       if (response.mjml) {
-        downloadFile(response.mjml, 'email-template.mjml', 'text/xml')
+        const baseName = templateName ? sanitizeFilename(templateName) : 'email-template'
+        downloadFile(response.mjml, `${baseName}.mjml`, 'text/xml')
         message.success(t`MJML exported successfully`)
       } else {
         message.error(t`No MJML content to export`)
@@ -355,7 +370,8 @@ export const ImportExportButton: React.FC<ImportExportButtonProps> = ({
         version: '1.0'
       }
       const jsonContent = JSON.stringify(exportData, null, 2)
-      downloadFile(jsonContent, 'email-template.json', 'application/json')
+      const baseName = templateName ? sanitizeFilename(templateName) : 'email-template'
+      downloadFile(jsonContent, `${baseName}.json`, 'application/json')
 
       message.success(t`JSON exported successfully`)
     } catch (error) {

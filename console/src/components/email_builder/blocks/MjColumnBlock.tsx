@@ -252,7 +252,7 @@ export class MjColumnBlock extends BaseEmailBlock {
   }
 
   getValidChildTypes(): MJMLComponentType[] {
-    return ['mj-text', 'mj-image', 'mj-button', 'mj-divider', 'mj-spacer', 'mj-social', 'mj-raw']
+    return ['mj-text', 'mj-image', 'mj-button', 'mj-divider', 'mj-spacer', 'mj-social', 'mj-raw', 'mj-liquid']
   }
 
   /**

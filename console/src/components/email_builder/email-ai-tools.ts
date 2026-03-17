@@ -67,7 +67,8 @@ export const ADD_BLOCK_TOOL: LLMTool = {
           'mj-social-element',
           'mj-wrapper',
           'mj-group',
-          'mj-raw'
+          'mj-raw',
+          'mj-liquid'
         ],
         description: 'The type of MJML block to add'
       },

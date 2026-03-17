@@ -96,7 +96,12 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
 
   try {
     if (EmailBlockFactory.hasBlockType(selectedBlock.type)) {
-      blockInstance = EmailBlockFactory.createBlock(selectedBlock) as { renderSettingsPanel: (update: (updates: Record<string, unknown>) => void, defaults: Record<string, unknown>, tree: EmailBlock) => React.ReactNode }
+      // Ensure attributes is always at least an empty object to prevent
+      // settings panels from crashing on undefined attribute access
+      const safeBlock = selectedBlock.attributes
+        ? selectedBlock
+        : { ...selectedBlock, attributes: {} }
+      blockInstance = EmailBlockFactory.createBlock(safeBlock as EmailBlock) as { renderSettingsPanel: (update: (updates: Record<string, unknown>) => void, defaults: Record<string, unknown>, tree: EmailBlock) => React.ReactNode }
     }
   } catch (error: unknown) {
     console.warn(`No block class for ${selectedBlock.type}, falling back to legacy system`, error)

@@ -824,6 +824,41 @@ func TestSendTransactionalRequest_Validate(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name: "subject_preview too long",
+			req: SendTransactionalRequest{
+				WorkspaceID: "workspace-123",
+				Notification: TransactionalNotificationSendParams{
+					ID: "notification-456",
+					Contact: &Contact{
+						Email: "contact@example.com",
+					},
+					Channels: []TransactionalChannel{TransactionalChannelEmail},
+					EmailOptions: EmailOptions{
+						SubjectPreview: stringPtr(strings.Repeat("a", 256)),
+					},
+				},
+			},
+			wantErr: true,
+			errMsg:  "subject_preview length must not exceed 255 characters",
+		},
+		{
+			name: "subject_preview exactly 255 chars",
+			req: SendTransactionalRequest{
+				WorkspaceID: "workspace-123",
+				Notification: TransactionalNotificationSendParams{
+					ID: "notification-456",
+					Contact: &Contact{
+						Email: "contact@example.com",
+					},
+					Channels: []TransactionalChannel{TransactionalChannelEmail},
+					EmailOptions: EmailOptions{
+						SubjectPreview: stringPtr(strings.Repeat("a", 255)),
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
 			name: "missing channels",
 			req: SendTransactionalRequest{
 				WorkspaceID: "workspace-123",

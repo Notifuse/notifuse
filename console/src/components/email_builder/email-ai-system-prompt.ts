@@ -30,10 +30,10 @@ An email template has this structure:
 
 ## Valid Parent-Child Relationships
 
-- mj-body can contain: mj-wrapper, mj-section, mj-raw
-- mj-wrapper can contain: mj-section, mj-raw
-- mj-section can contain: mj-column, mj-group, mj-raw
-- mj-column can contain: mj-text, mj-button, mj-image, mj-divider, mj-spacer, mj-social, mj-raw
+- mj-body can contain: mj-wrapper, mj-section, mj-raw, mj-liquid
+- mj-wrapper can contain: mj-section, mj-raw, mj-liquid
+- mj-section can contain: mj-column, mj-group, mj-raw, mj-liquid
+- mj-column can contain: mj-text, mj-button, mj-image, mj-divider, mj-spacer, mj-social, mj-raw, mj-liquid
 - mj-group can contain: mj-column
 - mj-social can contain: mj-social-element
 

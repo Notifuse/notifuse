@@ -310,8 +310,9 @@ func (e *EmailProvider) DecryptSecretKeys(passphrase string) error {
 }
 
 type EmailOptions struct {
-	FromName           *string      `json:"from_name,omitempty"` // Override default sender from name
-	Subject            *string      `json:"subject,omitempty"`   // Override template subject
+	FromName           *string      `json:"from_name,omitempty"`        // Override default sender from name
+	Subject            *string      `json:"subject,omitempty"`          // Override template subject
+	SubjectPreview     *string      `json:"subject_preview,omitempty"`  // Override template preheader
 	CC                 []string     `json:"cc,omitempty"`
 	BCC                []string     `json:"bcc,omitempty"`
 	ReplyTo            string       `json:"reply_to,omitempty"`
@@ -323,6 +324,7 @@ type EmailOptions struct {
 func (eo EmailOptions) IsEmpty() bool {
 	return eo.FromName == nil &&
 		eo.Subject == nil &&
+		eo.SubjectPreview == nil &&
 		len(eo.CC) == 0 &&
 		len(eo.BCC) == 0 &&
 		eo.ReplyTo == ""
@@ -336,11 +338,12 @@ func (eo EmailOptions) ToChannelOptions() *ChannelOptions {
 	}
 
 	return &ChannelOptions{
-		FromName: eo.FromName,
-		Subject:  eo.Subject,
-		CC:       eo.CC,
-		BCC:      eo.BCC,
-		ReplyTo:  eo.ReplyTo,
+		FromName:       eo.FromName,
+		Subject:        eo.Subject,
+		SubjectPreview: eo.SubjectPreview,
+		CC:             eo.CC,
+		BCC:            eo.BCC,
+		ReplyTo:        eo.ReplyTo,
 	}
 }
 

@@ -125,6 +125,7 @@ type TestTemplateRequest struct {
 	IntegrationID  string       `json:"integration_id"`
 	SenderID       string       `json:"sender_id"`
 	RecipientEmail string       `json:"recipient_email"`
+	Language       string       `json:"language,omitempty"`
 	EmailOptions   EmailOptions `json:"email_options,omitempty"`
 }
 
@@ -199,7 +200,7 @@ type TransactionalNotificationService interface {
 	// SendNotification sends a transactional notification to a contact
 	SendNotification(ctx context.Context, workspaceID string, params TransactionalNotificationSendParams) (string, error)
 
-	TestTemplate(ctx context.Context, workspaceID string, templateID string, integrationID string, senderID string, recipientEmail string, options EmailOptions) error
+	TestTemplate(ctx context.Context, workspaceID string, templateID string, integrationID string, senderID string, recipientEmail string, language string, options EmailOptions) error
 }
 
 // Request and response types for transactional notifications
@@ -389,6 +390,11 @@ func (req *SendTransactionalRequest) Validate() error {
 	// validate subject override length if provided
 	if req.Notification.EmailOptions.Subject != nil && len(*req.Notification.EmailOptions.Subject) > 255 {
 		return NewValidationError("subject length must not exceed 255 characters")
+	}
+
+	// validate subject_preview override length if provided
+	if req.Notification.EmailOptions.SubjectPreview != nil && len(*req.Notification.EmailOptions.SubjectPreview) > 255 {
+		return NewValidationError("subject_preview length must not exceed 255 characters")
 	}
 
 	// validate attachments if provided

@@ -694,7 +694,7 @@ func (s *TransactionalNotificationService) SendNotification(
 }
 
 // TestTemplate sends a test email with a template to verify it works
-func (s *TransactionalNotificationService) TestTemplate(ctx context.Context, workspaceID string, templateID string, integrationID string, senderID string, recipientEmail string, emailOptions domain.EmailOptions) error {
+func (s *TransactionalNotificationService) TestTemplate(ctx context.Context, workspaceID string, templateID string, integrationID string, senderID string, recipientEmail string, language string, emailOptions domain.EmailOptions) error {
 	// Authenticate user
 	var err error
 	ctx, _, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
@@ -718,6 +718,9 @@ func (s *TransactionalNotificationService) TestTemplate(ctx context.Context, wor
 	if err != nil {
 		return fmt.Errorf("failed to get workspace: %w", err)
 	}
+
+	// Resolve email content for the selected language (falls back to base template)
+	emailContent := template.ResolveEmailContent(language, workspace.Settings.DefaultLanguage)
 
 	// Find the integration
 	var emailProvider *domain.EmailProvider
@@ -789,13 +792,14 @@ func (s *TransactionalNotificationService) TestTemplate(ctx context.Context, wor
 
 	// Compile the template with the test data
 	compileReq := domain.CompileTemplateRequest{
-		WorkspaceID:      workspaceID,
-		MessageID:        messageID,
-		VisualEditorTree: template.Email.VisualEditorTree,
-		TemplateData:     notifuse_mjml.MapOfAny(messageData),
-		TrackingSettings: trackingSettings,
+		WorkspaceID:            workspaceID,
+		MessageID:              messageID,
+		VisualEditorTree:       emailContent.VisualEditorTree,
+		TemplateData:           notifuse_mjml.MapOfAny(messageData),
+		TrackingSettings:       trackingSettings,
+		SubjectPreviewOverride: emailOptions.SubjectPreview,
 	}
-	compileReq.MjmlSource = template.Email.GetCodeModeMjmlSource()
+	compileReq.MjmlSource = emailContent.GetCodeModeMjmlSource()
 	compiledResult, err := s.templateService.CompileTemplate(ctx, compileReq)
 
 	if err != nil {
@@ -812,7 +816,7 @@ func (s *TransactionalNotificationService) TestTemplate(ctx context.Context, wor
 
 	// Process subject line through Liquid templating if it contains Liquid tags
 	processedSubject, err := notifuse_mjml.ProcessLiquidTemplate(
-		template.Email.Subject,
+		emailContent.Subject,
 		messageData,
 		"email_subject",
 	)

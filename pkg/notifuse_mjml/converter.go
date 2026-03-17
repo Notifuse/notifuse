@@ -30,6 +30,13 @@ func ConvertJSONToMJMLWithData(tree EmailBlock, templateData string) (string, er
 
 // convertBlockToMJMLWithErrorAndParsedData recursively converts a single EmailBlock to MJML string with error handling and pre-parsed data
 func convertBlockToMJMLWithErrorAndParsedData(block EmailBlock, indentLevel int, templateData string, parsedData map[string]interface{}) (string, error) {
+	// mj-liquid: output content directly, no wrapping tags
+	// Content is raw MJML+Liquid processed in the whole-string Liquid pass
+	if block.GetType() == MJMLComponentMjLiquid {
+		content := getBlockContent(block)
+		return content, nil
+	}
+
 	indent := strings.Repeat("  ", indentLevel)
 	tagName := string(block.GetType())
 	children := block.GetChildren()
@@ -117,6 +124,11 @@ func convertBlockToMJMLWithParsedData(block EmailBlock, indentLevel int, templat
 		return ""
 	}
 
+	if blockType == MJMLComponentMjLiquid {
+		content := getBlockContent(block)
+		return content
+	}
+
 	indent := strings.Repeat("  ", indentLevel)
 	tagName := string(blockType)
 	children := block.GetChildren()
@@ -189,6 +201,11 @@ func convertBlockToMJMLRaw(block EmailBlock, indentLevel int) string {
 	blockType := block.GetType()
 	if blockType == "" {
 		return ""
+	}
+
+	if blockType == MJMLComponentMjLiquid {
+		content := getBlockContent(block)
+		return content
 	}
 
 	indent := strings.Repeat("  ", indentLevel)

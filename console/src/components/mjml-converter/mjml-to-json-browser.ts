@@ -259,7 +259,7 @@ function convertDomNodeToEmailBlock(element: Element): EmailBlock {
 
   // Special handling for elements that should preserve their inner HTML as content
   // This includes mj-raw, mj-text, mj-button, mj-title, mj-preview
-  const contentElements = ['mj-raw', 'mj-text', 'mj-button', 'mj-title', 'mj-preview']
+  const contentElements = ['mj-raw', 'mj-liquid', 'mj-text', 'mj-button', 'mj-title', 'mj-preview']
   const tagNameLower = element.tagName.toLowerCase()
 
   if (contentElements.includes(tagNameLower)) {

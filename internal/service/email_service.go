@@ -316,11 +316,12 @@ func (s *EmailService) SendEmailForTemplate(ctx context.Context, request domain.
 	}
 
 	compileTemplateRequest := domain.CompileTemplateRequest{
-		WorkspaceID:      request.WorkspaceID,
-		MessageID:        request.MessageID,
-		VisualEditorTree: emailContent.VisualEditorTree,
-		TemplateData:     request.MessageData.Data,
-		TrackingSettings: trackingSettings,
+		WorkspaceID:            request.WorkspaceID,
+		MessageID:              request.MessageID,
+		VisualEditorTree:       emailContent.VisualEditorTree,
+		TemplateData:           request.MessageData.Data,
+		TrackingSettings:       trackingSettings,
+		SubjectPreviewOverride: request.EmailOptions.SubjectPreview,
 	}
 	compileTemplateRequest.MjmlSource = emailContent.GetCodeModeMjmlSource()
 
@@ -407,6 +408,7 @@ func (s *EmailService) SendEmailForTemplate(ctx context.Context, request domain.
 	}
 
 	htmlContent := *compiledTemplate.HTML
+
 	now := time.Now().UTC()
 
 	// Convert email options to channel options for storage

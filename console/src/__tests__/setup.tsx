@@ -37,6 +37,25 @@ export function TestI18nWrapper({ children }: { children: ReactNode }) {
   return <I18nProvider i18n={i18n}>{children}</I18nProvider>
 }
 
+// Mock localStorage (jsdom doesn't provide full implementation)
+const localStorageMock = (() => {
+  let store: Record<string, string> = {}
+  return {
+    getItem: vi.fn((key: string) => store[key] || null),
+    setItem: vi.fn((key: string, value: string) => {
+      store[key] = value
+    }),
+    removeItem: vi.fn((key: string) => {
+      delete store[key]
+    }),
+    clear: vi.fn(() => {
+      store = {}
+    })
+  }
+})()
+
+Object.defineProperty(window, 'localStorage', { value: localStorageMock })
+
 // Mock window.matchMedia for Ant Design
 Object.defineProperty(window, 'matchMedia', {
   writable: true,

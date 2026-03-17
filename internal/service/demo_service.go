@@ -246,7 +246,7 @@ func (s *DemoService) createDemoWorkspace(ctx context.Context) error {
 		"https://demo.notifuse.com/cover.png",
 		"UTC",
 		fileManagerSettings,
-		domain.DefaultLanguageCode, []string{domain.DefaultLanguageCode},
+		domain.DefaultLanguageCode, []string{"en", "fr", "es"},
 	)
 	if err != nil {
 		return fmt.Errorf("failed to create demo workspace: %w", err)
@@ -636,7 +636,8 @@ func (s *DemoService) createSampleTemplates(ctx context.Context, workspaceID str
 	s.logger.WithField("workspace_id", workspaceID).Info("Creating sample templates")
 
 	// Create newsletter template
-	newsletterMJML := s.createNewsletterMJMLStructure()
+	nlContents := getNewsletterContents()
+	newsletterMJML := s.createNewsletterMJMLStructure(nlContents["en"])
 	newsletterTestData := domain.MapOfAny{
 		"contact": domain.MapOfAny{
 			"first_name": "John",
@@ -644,9 +645,17 @@ func (s *DemoService) createSampleTemplates(ctx context.Context, workspaceID str
 			"email":      "john.doe@example.com",
 		},
 	}
-
-	// Compile MJML to HTML
 	newsletterHTML := s.compileTemplateToHTML(workspaceID, "newsletter-preview", newsletterMJML, newsletterTestData)
+
+	nlSubjects := map[string]string{
+		"fr": "{{contact.first_name}}, Votre mise à jour hebdomadaire est arrivée ! 📧",
+		"es": "{{contact.first_name}}, ¡Tu actualización semanal está aquí! 📧",
+	}
+	nlMJMLStructures := map[string]notifuse_mjml.EmailBlock{
+		"fr": s.createNewsletterMJMLStructure(nlContents["fr"]),
+		"es": s.createNewsletterMJMLStructure(nlContents["es"]),
+	}
+	nlTranslations := s.buildEmailTranslations(workspaceID, "newsletter", nlSubjects, nlMJMLStructures, newsletterTestData)
 
 	newsletterTemplate := &domain.Template{
 		ID:       "newsletter-weekly",
@@ -659,9 +668,10 @@ func (s *DemoService) createSampleTemplates(ctx context.Context, workspaceID str
 			CompiledPreview:  newsletterHTML,
 			VisualEditorTree: newsletterMJML,
 		},
-		TestData:  newsletterTestData,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		TestData:     newsletterTestData,
+		Translations: nlTranslations,
+		CreatedAt:    time.Now(),
+		UpdatedAt:    time.Now(),
 	}
 
 	if err := s.templateService.CreateTemplate(ctx, workspaceID, newsletterTemplate); err != nil {
@@ -669,7 +679,8 @@ func (s *DemoService) createSampleTemplates(ctx context.Context, workspaceID str
 	}
 
 	// Create newsletter template v2
-	newsletterV2MJML := s.createNewsletterV2MJMLStructure()
+	nlV2Contents := getNewsletterV2Contents()
+	newsletterV2MJML := s.createNewsletterV2MJMLStructure(nlV2Contents["en"])
 	newsletterV2TestData := domain.MapOfAny{
 		"contact": domain.MapOfAny{
 			"first_name": "Sarah",
@@ -677,9 +688,17 @@ func (s *DemoService) createSampleTemplates(ctx context.Context, workspaceID str
 			"email":      "sarah.wilson@example.com",
 		},
 	}
-
-	// Compile MJML to HTML
 	newsletterV2HTML := s.compileTemplateToHTML(workspaceID, "newsletter-v2-preview", newsletterV2MJML, newsletterV2TestData)
+
+	nlV2Subjects := map[string]string{
+		"fr": "🚀 {{contact.first_name}}, Les articles et nouveautés de la semaine !",
+		"es": "🚀 {{contact.first_name}}, ¡Las mejores historias y novedades de la semana!",
+	}
+	nlV2MJMLStructures := map[string]notifuse_mjml.EmailBlock{
+		"fr": s.createNewsletterV2MJMLStructure(nlV2Contents["fr"]),
+		"es": s.createNewsletterV2MJMLStructure(nlV2Contents["es"]),
+	}
+	nlV2Translations := s.buildEmailTranslations(workspaceID, "newsletter-v2", nlV2Subjects, nlV2MJMLStructures, newsletterV2TestData)
 
 	newsletterV2Template := &domain.Template{
 		ID:       "newsletter-weekly-v2",
@@ -692,9 +711,10 @@ func (s *DemoService) createSampleTemplates(ctx context.Context, workspaceID str
 			CompiledPreview:  newsletterV2HTML,
 			VisualEditorTree: newsletterV2MJML,
 		},
-		TestData:  newsletterV2TestData,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		TestData:     newsletterV2TestData,
+		Translations: nlV2Translations,
+		CreatedAt:    time.Now(),
+		UpdatedAt:    time.Now(),
 	}
 
 	if err := s.templateService.CreateTemplate(ctx, workspaceID, newsletterV2Template); err != nil {
@@ -702,7 +722,8 @@ func (s *DemoService) createSampleTemplates(ctx context.Context, workspaceID str
 	}
 
 	// Create welcome email template
-	welcomeMJML := s.createWelcomeMJMLStructure()
+	wContents := getWelcomeContents()
+	welcomeMJML := s.createWelcomeMJMLStructure(wContents["en"])
 	welcomeTestData := domain.MapOfAny{
 		"contact": domain.MapOfAny{
 			"first_name": "Jane",
@@ -710,9 +731,17 @@ func (s *DemoService) createSampleTemplates(ctx context.Context, workspaceID str
 			"email":      "jane.smith@example.com",
 		},
 	}
-
-	// Compile MJML to HTML
 	welcomeHTML := s.compileTemplateToHTML(workspaceID, "welcome-preview", welcomeMJML, welcomeTestData)
+
+	wSubjects := map[string]string{
+		"fr": "Bienvenue dans notre communauté, {{contact.first_name}} ! 🎉",
+		"es": "¡Bienvenido/a a nuestra comunidad, {{contact.first_name}}! 🎉",
+	}
+	wMJMLStructures := map[string]notifuse_mjml.EmailBlock{
+		"fr": s.createWelcomeMJMLStructure(wContents["fr"]),
+		"es": s.createWelcomeMJMLStructure(wContents["es"]),
+	}
+	wTranslations := s.buildEmailTranslations(workspaceID, "welcome", wSubjects, wMJMLStructures, welcomeTestData)
 
 	welcomeTemplate := &domain.Template{
 		ID:       "welcome-email",
@@ -725,9 +754,10 @@ func (s *DemoService) createSampleTemplates(ctx context.Context, workspaceID str
 			CompiledPreview:  welcomeHTML,
 			VisualEditorTree: welcomeMJML,
 		},
-		TestData:  welcomeTestData,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		TestData:     welcomeTestData,
+		Translations: wTranslations,
+		CreatedAt:    time.Now(),
+		UpdatedAt:    time.Now(),
 	}
 
 	if err := s.templateService.CreateTemplate(ctx, workspaceID, welcomeTemplate); err != nil {
@@ -735,7 +765,8 @@ func (s *DemoService) createSampleTemplates(ctx context.Context, workspaceID str
 	}
 
 	// Create password reset template
-	passwordResetMJML := s.createPasswordResetMJMLStructure()
+	prContents := getPasswordResetContents()
+	passwordResetMJML := s.createPasswordResetMJMLStructure(prContents["en"])
 	passwordResetTestData := domain.MapOfAny{
 		"contact": domain.MapOfAny{
 			"first_name": "Alex",
@@ -744,9 +775,17 @@ func (s *DemoService) createSampleTemplates(ctx context.Context, workspaceID str
 		},
 		"reset_url": "https://demo.notifuse.com/reset-password?token=demo_token_123",
 	}
-
-	// Compile MJML to HTML
 	passwordResetHTML := s.compileTemplateToHTML(workspaceID, "password-reset-preview", passwordResetMJML, passwordResetTestData)
+
+	prSubjects := map[string]string{
+		"fr": "Réinitialisez votre mot de passe, {{contact.first_name}}",
+		"es": "Restablece tu contraseña, {{contact.first_name}}",
+	}
+	prMJMLStructures := map[string]notifuse_mjml.EmailBlock{
+		"fr": s.createPasswordResetMJMLStructure(prContents["fr"]),
+		"es": s.createPasswordResetMJMLStructure(prContents["es"]),
+	}
+	prTranslations := s.buildEmailTranslations(workspaceID, "password-reset", prSubjects, prMJMLStructures, passwordResetTestData)
 
 	passwordResetTemplate := &domain.Template{
 		ID:       "password-reset",
@@ -759,9 +798,10 @@ func (s *DemoService) createSampleTemplates(ctx context.Context, workspaceID str
 			CompiledPreview:  passwordResetHTML,
 			VisualEditorTree: passwordResetMJML,
 		},
-		TestData:  passwordResetTestData,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		TestData:     passwordResetTestData,
+		Translations: prTranslations,
+		CreatedAt:    time.Now(),
+		UpdatedAt:    time.Now(),
 	}
 
 	if err := s.templateService.CreateTemplate(ctx, workspaceID, passwordResetTemplate); err != nil {
@@ -810,6 +850,27 @@ func (s *DemoService) compileTemplateToHTML(workspaceID, messageID string, mjmlS
 	return *resp.HTML
 }
 
+// buildEmailTranslations builds translation entries for fr and es languages
+func (s *DemoService) buildEmailTranslations(
+	workspaceID, messageIDPrefix string,
+	subjects map[string]string,
+	mjmlStructures map[string]notifuse_mjml.EmailBlock,
+	testData domain.MapOfAny,
+) map[string]domain.TemplateTranslation {
+	translations := make(map[string]domain.TemplateTranslation)
+	for lang, mjml := range mjmlStructures {
+		html := s.compileTemplateToHTML(workspaceID, messageIDPrefix+"-"+lang, mjml, testData)
+		translations[lang] = domain.TemplateTranslation{
+			Email: &domain.EmailTemplate{
+				Subject:          subjects[lang],
+				CompiledPreview:  html,
+				VisualEditorTree: mjml,
+			},
+		}
+	}
+	return translations
+}
+
 // createFallbackHTML creates a simple fallback HTML when MJML compilation fails
 func (s *DemoService) createFallbackHTML() string {
 	return `
@@ -828,19 +889,226 @@ func (s *DemoService) createFallbackHTML() string {
 </html>`
 }
 
+// Content structs for multi-language template support
+
+type newsletterContent struct {
+	lang       string
+	title      string
+	preview    string
+	headerText string
+	mainText   string
+	highlights string
+	listItems  string
+	buttonText string
+	footerText string
+}
+
+type newsletterV2Content struct {
+	lang            string
+	title           string
+	preview         string
+	hero            string
+	intro           string
+	feature1Title   string
+	feature1Content string
+	feature2Title   string
+	feature2Content string
+	feature3Title   string
+	feature3Content string
+	buttonText      string
+	footerText      string
+}
+
+type welcomeContent struct {
+	lang        string
+	title       string
+	preview     string
+	welcome     string
+	mainContent string
+	buttonText  string
+	footerText  string
+}
+
+type passwordResetContent struct {
+	lang        string
+	title       string
+	preview     string
+	header      string
+	mainContent string
+	buttonText  string
+	expireText  string
+	footerText  string
+}
+
+func getNewsletterContents() map[string]newsletterContent {
+	return map[string]newsletterContent{
+		"en": {
+			lang:       "en",
+			title:      "Weekly Newsletter",
+			preview:    "Your weekly dose of updates and insights",
+			headerText: "Weekly Newsletter",
+			mainText:   "Hi {{contact.first_name}},<br><br>Welcome to this week's newsletter! Here are the latest updates and insights we thought you'd find interesting.",
+			highlights: "📈 This Week's Highlights",
+			listItems:  "• New feature releases and improvements<br>• Industry insights and trends<br>• Community highlights and success stories",
+			buttonText: "Read Full Newsletter",
+			footerText: "You received this email because you're subscribed to our newsletter.<br><a href=\"{{unsubscribe_url}}\">Unsubscribe</a> | <a href=\"https://demo.notifuse.com\">Visit our website</a>",
+		},
+		"fr": {
+			lang:       "fr",
+			title:      "Newsletter Hebdomadaire",
+			preview:    "Votre dose hebdomadaire de mises à jour et d'informations",
+			headerText: "Newsletter Hebdomadaire",
+			mainText:   "Bonjour {{contact.first_name}},<br><br>Bienvenue dans la newsletter de cette semaine ! Voici les dernières mises à jour et informations qui pourraient vous intéresser.",
+			highlights: "📈 Les Temps Forts de la Semaine",
+			listItems:  "• Nouvelles fonctionnalités et améliorations<br>• Analyses et tendances du secteur<br>• Moments forts de la communauté et succès",
+			buttonText: "Lire la Newsletter Complète",
+			footerText: "Vous recevez cet e-mail car vous êtes abonné(e) à notre newsletter.<br><a href=\"{{unsubscribe_url}}\">Se désabonner</a> | <a href=\"https://demo.notifuse.com\">Visiter notre site</a>",
+		},
+		"es": {
+			lang:       "es",
+			title:      "Boletín Semanal",
+			preview:    "Tu dosis semanal de novedades e información",
+			headerText: "Boletín Semanal",
+			mainText:   "Hola {{contact.first_name}},<br><br>¡Bienvenido/a al boletín de esta semana! Aquí tienes las últimas novedades e información que creemos te resultarán interesantes.",
+			highlights: "📈 Destacados de la Semana",
+			listItems:  "• Nuevas funcionalidades y mejoras<br>• Análisis y tendencias del sector<br>• Momentos destacados de la comunidad y casos de éxito",
+			buttonText: "Leer el Boletín Completo",
+			footerText: "Recibes este correo porque estás suscrito/a a nuestro boletín.<br><a href=\"{{unsubscribe_url}}\">Cancelar suscripción</a> | <a href=\"https://demo.notifuse.com\">Visitar nuestro sitio</a>",
+		},
+	}
+}
+
+func getNewsletterV2Contents() map[string]newsletterV2Content {
+	return map[string]newsletterV2Content{
+		"en": {
+			lang:            "en",
+			title:           "Weekly Digest",
+			preview:         "Your personalized weekly roundup of insights and updates",
+			hero:            "Stay Ahead of the Curve 📈",
+			intro:           "Hey {{contact.first_name}},<br><br>Here's your curated weekly digest packed with the latest trends, insights, and updates tailored just for you.",
+			feature1Title:   "🎯 Featured Story",
+			feature1Content: "Breaking: New industry standards are reshaping how we approach digital transformation. Here's what you need to know.",
+			feature2Title:   "💡 Quick Tips",
+			feature2Content: "5 productivity hacks that successful professionals swear by. Simple changes, big impact.",
+			feature3Title:   "🔥 Trending Now",
+			feature3Content: "The tools and strategies everyone's talking about this week. Don't miss out on the conversation.",
+			buttonText:      "Explore More",
+			footerText:      "You're receiving this because you subscribed to our weekly digest.<br><a href=\"{{unsubscribe_url}}\">Unsubscribe</a> | <a href=\"https://demo.notifuse.com/preferences\">Manage Preferences</a>",
+		},
+		"fr": {
+			lang:            "fr",
+			title:           "Résumé Hebdomadaire",
+			preview:         "Votre sélection hebdomadaire personnalisée d'informations et de mises à jour",
+			hero:            "Gardez une longueur d'avance 📈",
+			intro:           "Bonjour {{contact.first_name}},<br><br>Voici votre résumé hebdomadaire avec les dernières tendances, informations et mises à jour sélectionnées pour vous.",
+			feature1Title:   "🎯 Article Vedette",
+			feature1Content: "Exclusif : De nouvelles normes industrielles redéfinissent notre approche de la transformation numérique. Voici ce qu'il faut savoir.",
+			feature2Title:   "💡 Astuces Rapides",
+			feature2Content: "5 astuces de productivité adoptées par les professionnels qui réussissent. De petits changements, un grand impact.",
+			feature3Title:   "🔥 Tendances du Moment",
+			feature3Content: "Les outils et stratégies dont tout le monde parle cette semaine. Ne manquez pas la conversation.",
+			buttonText:      "En Savoir Plus",
+			footerText:      "Vous recevez ceci car vous êtes abonné(e) à notre résumé hebdomadaire.<br><a href=\"{{unsubscribe_url}}\">Se désabonner</a> | <a href=\"https://demo.notifuse.com/preferences\">Gérer les préférences</a>",
+		},
+		"es": {
+			lang:            "es",
+			title:           "Resumen Semanal",
+			preview:         "Tu selección semanal personalizada de novedades y actualizaciones",
+			hero:            "Mantente a la vanguardia 📈",
+			intro:           "Hola {{contact.first_name}},<br><br>Aquí tienes tu resumen semanal con las últimas tendencias, novedades y actualizaciones seleccionadas especialmente para ti.",
+			feature1Title:   "🎯 Artículo Destacado",
+			feature1Content: "Última hora: Nuevos estándares de la industria están transformando nuestra forma de abordar la transformación digital. Esto es lo que debes saber.",
+			feature2Title:   "💡 Consejos Rápidos",
+			feature2Content: "5 trucos de productividad que los profesionales exitosos utilizan. Cambios sencillos, gran impacto.",
+			feature3Title:   "🔥 Tendencias del Momento",
+			feature3Content: "Las herramientas y estrategias de las que todos hablan esta semana. No te pierdas la conversación.",
+			buttonText:      "Explorar Más",
+			footerText:      "Recibes esto porque te suscribiste a nuestro resumen semanal.<br><a href=\"{{unsubscribe_url}}\">Cancelar suscripción</a> | <a href=\"https://demo.notifuse.com/preferences\">Gestionar preferencias</a>",
+		},
+	}
+}
+
+func getWelcomeContents() map[string]welcomeContent {
+	return map[string]welcomeContent{
+		"en": {
+			lang:        "en",
+			title:       "Welcome to our community!",
+			preview:     "Thank you for joining us, {{contact.first_name}}!",
+			welcome:     "Welcome, {{contact.first_name}}! 🎉",
+			mainContent: "Thank you for joining our community! We're excited to have you on board and can't wait to share amazing content with you.",
+			buttonText:  "Get Started",
+			footerText:  "If you have any questions, feel free to reach out to our support team.<br><br>Best regards,<br>The Demo Team",
+		},
+		"fr": {
+			lang:        "fr",
+			title:       "Bienvenue dans notre communauté !",
+			preview:     "Merci de nous rejoindre, {{contact.first_name}} !",
+			welcome:     "Bienvenue, {{contact.first_name}} ! 🎉",
+			mainContent: "Merci d'avoir rejoint notre communauté ! Nous sommes ravis de vous accueillir et avons hâte de partager du contenu passionnant avec vous.",
+			buttonText:  "Commencer",
+			footerText:  "Si vous avez des questions, n'hésitez pas à contacter notre équipe d'assistance.<br><br>Cordialement,<br>L'Équipe Démo",
+		},
+		"es": {
+			lang:        "es",
+			title:       "¡Bienvenido/a a nuestra comunidad!",
+			preview:     "Gracias por unirte, {{contact.first_name}}!",
+			welcome:     "¡Bienvenido/a, {{contact.first_name}}! 🎉",
+			mainContent: "¡Gracias por unirte a nuestra comunidad! Estamos encantados de tenerte y no podemos esperar para compartir contenido increíble contigo.",
+			buttonText:  "Comenzar",
+			footerText:  "Si tienes alguna pregunta, no dudes en contactar a nuestro equipo de soporte.<br><br>Un saludo,<br>El Equipo Demo",
+		},
+	}
+}
+
+func getPasswordResetContents() map[string]passwordResetContent {
+	return map[string]passwordResetContent{
+		"en": {
+			lang:        "en",
+			title:       "Reset Your Password",
+			preview:     "You requested a password reset for your account",
+			header:      "Reset Your Password 🔐",
+			mainContent: "Hi {{contact.first_name}},<br><br>We received a request to reset the password for your account. If you made this request, click the button below to set a new password:",
+			buttonText:  "Reset Password",
+			expireText:  "This link will expire in 24 hours for security reasons.",
+			footerText:  "If you didn't request a password reset, you can safely ignore this email. Your password will remain unchanged.<br><br>If you're having trouble with the button above, copy and paste the URL below into your web browser:<br>{{reset_url}}",
+		},
+		"fr": {
+			lang:        "fr",
+			title:       "Réinitialisation de votre mot de passe",
+			preview:     "Vous avez demandé la réinitialisation de votre mot de passe",
+			header:      "Réinitialisez votre mot de passe 🔐",
+			mainContent: "Bonjour {{contact.first_name}},<br><br>Nous avons reçu une demande de réinitialisation du mot de passe de votre compte. Si vous êtes à l'origine de cette demande, cliquez sur le bouton ci-dessous pour définir un nouveau mot de passe :",
+			buttonText:  "Réinitialiser le mot de passe",
+			expireText:  "Ce lien expirera dans 24 heures pour des raisons de sécurité.",
+			footerText:  "Si vous n'avez pas demandé la réinitialisation de votre mot de passe, vous pouvez ignorer cet e-mail en toute sécurité. Votre mot de passe restera inchangé.<br><br>Si vous avez des difficultés avec le bouton ci-dessus, copiez et collez l'URL ci-dessous dans votre navigateur :<br>{{reset_url}}",
+		},
+		"es": {
+			lang:        "es",
+			title:       "Restablece tu contraseña",
+			preview:     "Solicitaste restablecer la contraseña de tu cuenta",
+			header:      "Restablece tu contraseña 🔐",
+			mainContent: "Hola {{contact.first_name}},<br><br>Recibimos una solicitud para restablecer la contraseña de tu cuenta. Si realizaste esta solicitud, haz clic en el botón de abajo para establecer una nueva contraseña:",
+			buttonText:  "Restablecer contraseña",
+			expireText:  "Este enlace caducará en 24 horas por motivos de seguridad.",
+			footerText:  "Si no solicitaste el restablecimiento de tu contraseña, puedes ignorar este correo con tranquilidad. Tu contraseña no se modificará.<br><br>Si tienes problemas con el botón de arriba, copia y pega la URL de abajo en tu navegador:<br>{{reset_url}}",
+		},
+	}
+}
+
 // createNewsletterMJMLStructure creates the MJML structure for the newsletter template
-func (s *DemoService) createNewsletterMJMLStructure() notifuse_mjml.EmailBlock {
+func (s *DemoService) createNewsletterMJMLStructure(c newsletterContent) notifuse_mjml.EmailBlock {
 	// Create the text content block
-	textContent := "Hi {{contact.first_name}},<br><br>Welcome to this week's newsletter! Here are the latest updates and insights we thought you'd find interesting."
-	highlightsContent := "📈 This Week's Highlights"
-	listContent := "• New feature releases and improvements<br>• Industry insights and trends<br>• Community highlights and success stories"
-	buttonContent := "Read Full Newsletter"
-	titleContent := "Weekly Newsletter"
-	previewContent := "Your weekly dose of updates and insights"
+	textContent := c.mainText
+	highlightsContent := c.highlights
+	listContent := c.listItems
+	buttonContent := c.buttonText
+	titleContent := c.title
+	previewContent := c.preview
+	headerTextContent := c.headerText
 
 	// Create header text block
 	headerTextBase := notifuse_mjml.NewBaseBlock("header-text", notifuse_mjml.MJMLComponentMjText)
-	headerTextBase.Content = &titleContent
+	headerTextBase.Content = &headerTextContent
 	headerText := &notifuse_mjml.MJTextBlock{BaseBlock: headerTextBase}
 
 	// Create main text block
@@ -884,7 +1152,7 @@ func (s *DemoService) createNewsletterMJMLStructure() notifuse_mjml.EmailBlock {
 	preview := &notifuse_mjml.MJPreviewBlock{BaseBlock: previewBase}
 
 	// Create footer text
-	footerContent := "You received this email because you're subscribed to our newsletter.<br><a href=\"{{unsubscribe_url}}\">Unsubscribe</a> | <a href=\"https://demo.notifuse.com\">Visit our website</a>"
+	footerContent := c.footerText
 	footerTextBase := notifuse_mjml.NewBaseBlock("footer-text", notifuse_mjml.MJMLComponentMjText)
 	footerTextBase.Content = &footerContent
 	footerText := &notifuse_mjml.MJTextBlock{BaseBlock: footerTextBase}
@@ -926,30 +1194,30 @@ func (s *DemoService) createNewsletterMJMLStructure() notifuse_mjml.EmailBlock {
 
 	// Create root MJML block
 	rootBase := notifuse_mjml.NewBaseBlock("mjml-root", notifuse_mjml.MJMLComponentMjml)
-	rootBase.Attributes["lang"] = "en"
+	rootBase.Attributes["lang"] = c.lang
 	rootBase.Children = []notifuse_mjml.EmailBlock{head, body}
 	return &notifuse_mjml.MJMLBlock{BaseBlock: rootBase}
 }
 
 // createNewsletterV2MJMLStructure creates the MJML structure for the newsletter v2 template (modern card-based design)
-func (s *DemoService) createNewsletterV2MJMLStructure() notifuse_mjml.EmailBlock {
+func (s *DemoService) createNewsletterV2MJMLStructure(c newsletterV2Content) notifuse_mjml.EmailBlock {
 	// Create the text content blocks with different styling and content
-	titleContent := "Weekly Digest"
-	previewContent := "Your personalized weekly roundup of insights and updates"
-	heroContent := "Stay Ahead of the Curve 📈"
-	introContent := "Hey {{contact.first_name}},<br><br>Here's your curated weekly digest packed with the latest trends, insights, and updates tailored just for you."
+	titleContent := c.title
+	previewContent := c.preview
+	heroContent := c.hero
+	introContent := c.intro
 
 	// Feature stories content
-	feature1Title := "🎯 Featured Story"
-	feature1Content := "Breaking: New industry standards are reshaping how we approach digital transformation. Here's what you need to know."
+	feature1Title := c.feature1Title
+	feature1Content := c.feature1Content
 
-	feature2Title := "💡 Quick Tips"
-	feature2Content := "5 productivity hacks that successful professionals swear by. Simple changes, big impact."
+	feature2Title := c.feature2Title
+	feature2Content := c.feature2Content
 
-	feature3Title := "🔥 Trending Now"
-	feature3Content := "The tools and strategies everyone's talking about this week. Don't miss out on the conversation."
+	feature3Title := c.feature3Title
+	feature3Content := c.feature3Content
 
-	buttonContent := "Explore More"
+	buttonContent := c.buttonText
 
 	// Create title and preview blocks
 	titleBase := notifuse_mjml.NewBaseBlock("title", notifuse_mjml.MJMLComponentMjTitle)
@@ -1007,7 +1275,7 @@ func (s *DemoService) createNewsletterV2MJMLStructure() notifuse_mjml.EmailBlock
 	button := &notifuse_mjml.MJButtonBlock{BaseBlock: buttonBase2}
 
 	// Create footer
-	footerContent := "You're receiving this because you subscribed to our weekly digest.<br><a href=\"{{unsubscribe_url}}\">Unsubscribe</a> | <a href=\"https://demo.notifuse.com/preferences\">Manage Preferences</a>"
+	footerContent := c.footerText
 	footerTextBase := notifuse_mjml.NewBaseBlock("footer-text", notifuse_mjml.MJMLComponentMjText)
 	footerTextBase.Content = &footerContent
 	footerText := &notifuse_mjml.MJTextBlock{BaseBlock: footerTextBase}
@@ -1070,20 +1338,20 @@ func (s *DemoService) createNewsletterV2MJMLStructure() notifuse_mjml.EmailBlock
 
 	// Create root MJML block
 	rootBase := notifuse_mjml.NewBaseBlock("mjml-root", notifuse_mjml.MJMLComponentMjml)
-	rootBase.Attributes["lang"] = "en"
+	rootBase.Attributes["lang"] = c.lang
 	rootBase.Children = []notifuse_mjml.EmailBlock{head, body}
 	return &notifuse_mjml.MJMLBlock{BaseBlock: rootBase}
 }
 
 // createWelcomeMJMLStructure creates the MJML structure for the welcome template
-func (s *DemoService) createWelcomeMJMLStructure() notifuse_mjml.EmailBlock {
+func (s *DemoService) createWelcomeMJMLStructure(c welcomeContent) notifuse_mjml.EmailBlock {
 	// Create content strings
-	titleContent := "Welcome to our community!"
-	previewContent := "Thank you for joining us, {{contact.first_name}}!"
-	welcomeContent := "Welcome, {{contact.first_name}}! 🎉"
-	mainContent := "Thank you for joining our community! We're excited to have you on board and can't wait to share amazing content with you."
-	buttonContent := "Get Started"
-	footerContent := "If you have any questions, feel free to reach out to our support team.<br><br>Best regards,<br>The Demo Team"
+	titleContent := c.title
+	previewContent := c.preview
+	welcomeText := c.welcome
+	mainContentText := c.mainContent
+	buttonContent := c.buttonText
+	footerContent := c.footerText
 
 	// Create blocks using concrete types
 	titleBase := notifuse_mjml.NewBaseBlock("title", notifuse_mjml.MJMLComponentMjTitle)
@@ -1095,11 +1363,11 @@ func (s *DemoService) createWelcomeMJMLStructure() notifuse_mjml.EmailBlock {
 	preview := &notifuse_mjml.MJPreviewBlock{BaseBlock: previewBase}
 
 	welcomeTextBase := notifuse_mjml.NewBaseBlock("welcome-text", notifuse_mjml.MJMLComponentMjText)
-	welcomeTextBase.Content = &welcomeContent
-	welcomeText := &notifuse_mjml.MJTextBlock{BaseBlock: welcomeTextBase}
+	welcomeTextBase.Content = &welcomeText
+	welcomeTextBlock := &notifuse_mjml.MJTextBlock{BaseBlock: welcomeTextBase}
 
 	mainTextBase := notifuse_mjml.NewBaseBlock("main-text", notifuse_mjml.MJMLComponentMjText)
-	mainTextBase.Content = &mainContent
+	mainTextBase.Content = &mainContentText
 	mainText := &notifuse_mjml.MJTextBlock{BaseBlock: mainTextBase}
 
 	buttonBase3 := notifuse_mjml.NewBaseBlock("get-started-button", notifuse_mjml.MJMLComponentMjButton)
@@ -1121,7 +1389,7 @@ func (s *DemoService) createWelcomeMJMLStructure() notifuse_mjml.EmailBlock {
 	footerText := &notifuse_mjml.MJTextBlock{BaseBlock: footerTextBase}
 
 	columnBase := notifuse_mjml.NewBaseBlock("main-column", notifuse_mjml.MJMLComponentMjColumn)
-	columnBase.Children = []notifuse_mjml.EmailBlock{welcomeText, mainText, button, divider, footerText}
+	columnBase.Children = []notifuse_mjml.EmailBlock{welcomeTextBlock, mainText, button, divider, footerText}
 	column := &notifuse_mjml.MJColumnBlock{BaseBlock: columnBase}
 
 	sectionBase := notifuse_mjml.NewBaseBlock("main-section", notifuse_mjml.MJMLComponentMjSection)
@@ -1137,7 +1405,7 @@ func (s *DemoService) createWelcomeMJMLStructure() notifuse_mjml.EmailBlock {
 	body := &notifuse_mjml.MJBodyBlock{BaseBlock: bodyBase}
 
 	rootBase7 := notifuse_mjml.NewBaseBlock("mjml-root", notifuse_mjml.MJMLComponentMjml)
-	rootBase7.Attributes["lang"] = "en"
+	rootBase7.Attributes["lang"] = c.lang
 	rootBase7.Children = []notifuse_mjml.EmailBlock{head, body}
 	return &notifuse_mjml.MJMLBlock{BaseBlock: rootBase7}
 }
@@ -1251,15 +1519,15 @@ func (s *DemoService) createSampleBroadcasts(ctx context.Context, workspaceID st
 }
 
 // createPasswordResetMJMLStructure creates the MJML structure for the password reset template
-func (s *DemoService) createPasswordResetMJMLStructure() notifuse_mjml.EmailBlock {
+func (s *DemoService) createPasswordResetMJMLStructure(c passwordResetContent) notifuse_mjml.EmailBlock {
 	// Create content strings
-	titleContent := "Reset Your Password"
-	previewContent := "You requested a password reset for your account"
-	headerContent := "Reset Your Password 🔐"
-	mainContent := "Hi {{contact.first_name}},<br><br>We received a request to reset the password for your account. If you made this request, click the button below to set a new password:"
-	buttonContent := "Reset Password"
-	expireContent := "This link will expire in 24 hours for security reasons."
-	footerContent := "If you didn't request a password reset, you can safely ignore this email. Your password will remain unchanged.<br><br>If you're having trouble with the button above, copy and paste the URL below into your web browser:<br>{{reset_url}}"
+	titleContent := c.title
+	previewContent := c.preview
+	headerContent := c.header
+	mainContent := c.mainContent
+	buttonContent := c.buttonText
+	expireContent := c.expireText
+	footerContent := c.footerText
 
 	// Create blocks using concrete types
 	titleBase := notifuse_mjml.NewBaseBlock("title", notifuse_mjml.MJMLComponentMjTitle)
@@ -1318,7 +1586,7 @@ func (s *DemoService) createPasswordResetMJMLStructure() notifuse_mjml.EmailBloc
 	body := &notifuse_mjml.MJBodyBlock{BaseBlock: bodyBase}
 
 	rootBase6 := notifuse_mjml.NewBaseBlock("mjml-root", notifuse_mjml.MJMLComponentMjml)
-	rootBase6.Attributes["lang"] = "en"
+	rootBase6.Attributes["lang"] = c.lang
 	rootBase6.Children = []notifuse_mjml.EmailBlock{head, body}
 	return &notifuse_mjml.MJMLBlock{BaseBlock: rootBase6}
 }

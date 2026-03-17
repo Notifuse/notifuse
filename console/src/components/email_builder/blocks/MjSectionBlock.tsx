@@ -304,7 +304,7 @@ export class MjSectionBlock extends BaseEmailBlock {
   }
 
   getValidChildTypes(): MJMLComponentType[] {
-    return ['mj-column', 'mj-group', 'mj-raw']
+    return ['mj-column', 'mj-group', 'mj-raw', 'mj-liquid']
   }
 
   /**

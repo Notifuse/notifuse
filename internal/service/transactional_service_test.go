@@ -1962,7 +1962,7 @@ func TestTransactionalNotificationService_TestTemplate(t *testing.T) {
 		Return(nil)
 
 	// Call the method
-	err := service.TestTemplate(ctx, workspaceID, templateID, integrationID, senderID, recipientEmail, domain.EmailOptions{})
+	err := service.TestTemplate(ctx, workspaceID, templateID, integrationID, senderID, recipientEmail, "", domain.EmailOptions{})
 
 	// Assertions
 	require.NoError(t, err)
@@ -2084,12 +2084,16 @@ func TestTransactionalNotificationService_TestTemplate_WithChannelOptions(t *tes
 			Action: domain.UpsertContactOperationUpdate,
 		})
 
-	// Expect compile template
+	// Expect compile template - verify SubjectPreviewOverride is passed
 	mockTemplateService.EXPECT().
 		CompileTemplate(gomock.Any(), gomock.Any()).
-		Return(compilationResult, nil)
+		DoAndReturn(func(ctx context.Context, req domain.CompileTemplateRequest) (*domain.CompileTemplateResponse, error) {
+			require.NotNil(t, req.SubjectPreviewOverride)
+			assert.Equal(t, "Override Preview", *req.SubjectPreviewOverride)
+			return compilationResult, nil
+		})
 
-	// Expect send email with options - verify subject override was applied
+	// Expect send email with options - verify subject and from name overrides
 	mockEmailService.EXPECT().
 		SendEmail(
 			gomock.Any(),
@@ -2106,12 +2110,14 @@ func TestTransactionalNotificationService_TestTemplate_WithChannelOptions(t *tes
 	// Expect message history creation with ChannelOptions
 	fromName := "Custom Sender"
 	overrideSubject := "Override Subject"
+	overridePreview := "Override Preview"
 	emailOptions := domain.EmailOptions{
-		FromName: &fromName,
-		Subject:  &overrideSubject,
-		CC:       []string{"cc@example.com"},
-		BCC:      []string{"bcc@example.com"},
-		ReplyTo:  "reply@example.com",
+		FromName:       &fromName,
+		Subject:        &overrideSubject,
+		SubjectPreview: &overridePreview,
+		CC:             []string{"cc@example.com"},
+		BCC:            []string{"bcc@example.com"},
+		ReplyTo:        "reply@example.com",
 	}
 
 	mockMsgHistoryRepo.EXPECT().
@@ -2123,6 +2129,8 @@ func TestTransactionalNotificationService_TestTemplate_WithChannelOptions(t *tes
 			assert.Equal(t, "Custom Sender", *message.ChannelOptions.FromName)
 			require.NotNil(t, message.ChannelOptions.Subject)
 			assert.Equal(t, "Override Subject", *message.ChannelOptions.Subject)
+			require.NotNil(t, message.ChannelOptions.SubjectPreview)
+			assert.Equal(t, "Override Preview", *message.ChannelOptions.SubjectPreview)
 			assert.Equal(t, []string{"cc@example.com"}, message.ChannelOptions.CC)
 			assert.Equal(t, []string{"bcc@example.com"}, message.ChannelOptions.BCC)
 			assert.Equal(t, "reply@example.com", message.ChannelOptions.ReplyTo)
@@ -2130,7 +2138,7 @@ func TestTransactionalNotificationService_TestTemplate_WithChannelOptions(t *tes
 		})
 
 	// Call the method with email options
-	err := service.TestTemplate(ctx, workspaceID, templateID, integrationID, senderID, recipientEmail, emailOptions)
+	err := service.TestTemplate(ctx, workspaceID, templateID, integrationID, senderID, recipientEmail, "", emailOptions)
 
 	// Assertions
 	require.NoError(t, err)
@@ -2181,7 +2189,7 @@ func TestTransactionalNotificationService_TestTemplate_ErrorCases(t *testing.T) 
 			AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
 			Return(ctx, nil, nil, errors.New("authentication failed"))
 
-		err := service.TestTemplate(ctx, workspaceID, templateID, integrationID, senderID, recipientEmail, domain.EmailOptions{})
+		err := service.TestTemplate(ctx, workspaceID, templateID, integrationID, senderID, recipientEmail, "", domain.EmailOptions{})
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to authenticate user for workspace")
 	})
@@ -2201,7 +2209,7 @@ func TestTransactionalNotificationService_TestTemplate_ErrorCases(t *testing.T) 
 			GetTemplateByID(gomock.Any(), workspaceID, templateID, int64(0)).
 			Return(nil, errors.New("template not found"))
 
-		err := service.TestTemplate(ctx, workspaceID, templateID, integrationID, senderID, recipientEmail, domain.EmailOptions{})
+		err := service.TestTemplate(ctx, workspaceID, templateID, integrationID, senderID, recipientEmail, "", domain.EmailOptions{})
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to retrieve template")
 	})
@@ -2226,7 +2234,7 @@ func TestTransactionalNotificationService_TestTemplate_ErrorCases(t *testing.T) 
 			GetTemplateByID(gomock.Any(), workspaceID, templateID, int64(0)).
 			Return(template, nil)
 
-		err := service.TestTemplate(ctx, workspaceID, templateID, integrationID, senderID, recipientEmail, domain.EmailOptions{})
+		err := service.TestTemplate(ctx, workspaceID, templateID, integrationID, senderID, recipientEmail, "", domain.EmailOptions{})
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "template does not contain email content")
 	})
@@ -2258,7 +2266,7 @@ func TestTransactionalNotificationService_TestTemplate_ErrorCases(t *testing.T) 
 			GetByID(gomock.Any(), workspaceID).
 			Return(nil, errors.New("workspace not found"))
 
-		err := service.TestTemplate(ctx, workspaceID, templateID, integrationID, senderID, recipientEmail, domain.EmailOptions{})
+		err := service.TestTemplate(ctx, workspaceID, templateID, integrationID, senderID, recipientEmail, "", domain.EmailOptions{})
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to get workspace")
 	})
@@ -2295,7 +2303,7 @@ func TestTransactionalNotificationService_TestTemplate_ErrorCases(t *testing.T) 
 			GetByID(gomock.Any(), workspaceID).
 			Return(workspace, nil)
 
-		err := service.TestTemplate(ctx, workspaceID, templateID, "nonexistent-integration", senderID, recipientEmail, domain.EmailOptions{})
+		err := service.TestTemplate(ctx, workspaceID, templateID, "nonexistent-integration", senderID, recipientEmail, "", domain.EmailOptions{})
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "integration not found")
 	})
@@ -2342,7 +2350,7 @@ func TestTransactionalNotificationService_TestTemplate_ErrorCases(t *testing.T) 
 			GetByID(gomock.Any(), workspaceID).
 			Return(workspace, nil)
 
-		err := service.TestTemplate(ctx, workspaceID, templateID, integrationID, "nonexistent-sender", recipientEmail, domain.EmailOptions{})
+		err := service.TestTemplate(ctx, workspaceID, templateID, integrationID, "nonexistent-sender", recipientEmail, "", domain.EmailOptions{})
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "sender not found")
 	})
@@ -2404,8 +2412,153 @@ func TestTransactionalNotificationService_TestTemplate_ErrorCases(t *testing.T) 
 				Error:  "database error",
 			})
 
-		err := service.TestTemplate(ctx, workspaceID, templateID, integrationID, senderID, recipientEmail, domain.EmailOptions{})
+		err := service.TestTemplate(ctx, workspaceID, templateID, integrationID, senderID, recipientEmail, "", domain.EmailOptions{})
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to upsert contact")
 	})
+}
+
+func TestTransactionalNotificationService_TestTemplate_WithLanguage(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockRepo := mocks.NewMockTransactionalNotificationRepository(ctrl)
+	mockMsgHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
+	mockTemplateService := mocks.NewMockTemplateService(ctrl)
+	mockContactService := mocks.NewMockContactService(ctrl)
+	mockEmailService := mocks.NewMockEmailServiceInterface(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	mockAuthService := mocks.NewMockAuthService(ctrl)
+
+	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+
+	ctx := context.Background()
+	workspaceID := "test-workspace"
+	templateID := uuid.New().String()
+	integrationID := "integration-1"
+	senderID := "sender-1"
+	recipientEmail := "test@example.com"
+
+	// Setup workspace with default language "en"
+	workspace := &domain.Workspace{
+		ID:   workspaceID,
+		Name: "Test Workspace",
+		Settings: domain.WorkspaceSettings{
+			SecretKey:       "test-secret-key",
+			DefaultLanguage: "en",
+		},
+		Integrations: []domain.Integration{
+			{
+				ID:   integrationID,
+				Name: "Test Integration",
+				Type: "email",
+				EmailProvider: domain.EmailProvider{
+					Kind: domain.EmailProviderKindSparkPost,
+					Senders: []domain.EmailSender{
+						{
+							ID:    senderID,
+							Email: "sender@example.com",
+							Name:  "Test Sender",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	// Setup template with French translation
+	template := &domain.Template{
+		ID:   templateID,
+		Name: "Test Template",
+		Email: &domain.EmailTemplate{
+			Subject: "English Subject",
+			VisualEditorTree: &notifuse_mjml.MJMLBlock{
+				BaseBlock: notifuse_mjml.NewBaseBlock("root", notifuse_mjml.MJMLComponentMjml),
+			},
+		},
+		Translations: map[string]domain.TemplateTranslation{
+			"fr": {
+				Email: &domain.EmailTemplate{
+					Subject: "Sujet Français",
+					VisualEditorTree: &notifuse_mjml.MJMLBlock{
+						BaseBlock: notifuse_mjml.NewBaseBlock("root-fr", notifuse_mjml.MJMLComponentMjml),
+					},
+				},
+			},
+		},
+	}
+
+	htmlResult := "<html><body>Contenu français</body></html>"
+	compilationResult := &domain.CompileTemplateResponse{
+		Success: true,
+		HTML:    &htmlResult,
+		Error:   nil,
+	}
+
+	service := &TransactionalNotificationService{
+		transactionalRepo:  mockRepo,
+		messageHistoryRepo: mockMsgHistoryRepo,
+		templateService:    mockTemplateService,
+		contactService:     mockContactService,
+		emailService:       mockEmailService,
+		logger:             mockLogger,
+		workspaceRepo:      mockWorkspaceRepo,
+		apiEndpoint:        "https://api.example.com",
+		authService:        mockAuthService,
+	}
+
+	mockAuthService.EXPECT().
+		AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
+		Return(ctx, &domain.User{ID: "user-123"}, &domain.UserWorkspace{
+			UserID:      "user-123",
+			WorkspaceID: workspaceID,
+			Role:        "member",
+			Permissions: domain.UserPermissions{
+				domain.PermissionResourceTransactional: {Read: true, Write: true},
+			},
+		}, nil)
+
+	mockTemplateService.EXPECT().
+		GetTemplateByID(gomock.Any(), workspaceID, templateID, int64(0)).
+		Return(template, nil)
+
+	mockWorkspaceRepo.EXPECT().
+		GetByID(gomock.Any(), workspaceID).
+		Return(workspace, nil)
+
+	mockContactService.EXPECT().
+		UpsertContact(gomock.Any(), workspaceID, gomock.Any()).
+		Return(domain.UpsertContactOperation{
+			Email:  recipientEmail,
+			Action: domain.UpsertContactOperationUpdate,
+		})
+
+	// Verify the compile is called with the French translation's visual editor tree
+	mockTemplateService.EXPECT().
+		CompileTemplate(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, req domain.CompileTemplateRequest) (*domain.CompileTemplateResponse, error) {
+			// The visual editor tree should be from the French translation
+			assert.Equal(t, "root-fr", req.VisualEditorTree.GetID())
+			return compilationResult, nil
+		})
+
+	// Verify the email is sent with the French subject
+	mockEmailService.EXPECT().
+		SendEmail(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, req domain.SendEmailProviderRequest, isMarketing bool) error {
+			assert.Equal(t, "Sujet Français", req.Subject)
+			return nil
+		})
+
+	mockMsgHistoryRepo.EXPECT().
+		Create(gomock.Any(), workspaceID, gomock.Any(), gomock.Any()).
+		Return(nil)
+
+	err := service.TestTemplate(ctx, workspaceID, templateID, integrationID, senderID, recipientEmail, "fr", domain.EmailOptions{})
+	require.NoError(t, err)
 }

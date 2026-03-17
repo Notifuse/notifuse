@@ -9,8 +9,11 @@ import { App } from 'antd'
 vi.mock('../services/api/auth', () => ({
   authService: {
     signIn: vi.fn(),
-    verifyCode: vi.fn()
-  }
+    verifyCode: vi.fn(),
+    getCurrentUser: vi.fn().mockRejectedValue(new Error('Not authenticated')),
+    logout: vi.fn().mockResolvedValue(undefined)
+  },
+  isRootUser: vi.fn().mockReturnValue(false)
 }))
 
 // Mock the navigate function and useSearch

@@ -1565,6 +1565,27 @@ func TestEmailOptions_JSONMarshaling(t *testing.T) {
 		assert.Equal(t, "", *options.FromName)
 	})
 
+	t.Run("JSON marshal with subject_preview", func(t *testing.T) {
+		preview := "Check out our latest offers"
+		options := EmailOptions{
+			SubjectPreview: &preview,
+		}
+
+		jsonBytes, err := json.Marshal(options)
+		require.NoError(t, err)
+
+		jsonString := string(jsonBytes)
+		assert.Contains(t, jsonString, "subject_preview")
+		assert.Contains(t, jsonString, "Check out our latest offers")
+
+		var unmarshaled EmailOptions
+		err = json.Unmarshal(jsonBytes, &unmarshaled)
+		require.NoError(t, err)
+
+		require.NotNil(t, unmarshaled.SubjectPreview)
+		assert.Equal(t, "Check out our latest offers", *unmarshaled.SubjectPreview)
+	})
+
 	t.Run("JSON marshal with subject", func(t *testing.T) {
 		subject := "Override Subject"
 		options := EmailOptions{
@@ -1662,15 +1683,25 @@ func TestEmailOptions_IsEmpty(t *testing.T) {
 		assert.False(t, options.IsEmpty())
 	})
 
+	t.Run("EmailOptions with SubjectPreview only", func(t *testing.T) {
+		preview := "Preview text"
+		options := EmailOptions{
+			SubjectPreview: &preview,
+		}
+		assert.False(t, options.IsEmpty())
+	})
+
 	t.Run("EmailOptions with all fields", func(t *testing.T) {
 		fromName := "Test Sender"
 		subject := "Custom Subject"
+		preview := "Preview text"
 		options := EmailOptions{
-			FromName: &fromName,
-			Subject:  &subject,
-			CC:       []string{"cc@example.com"},
-			BCC:      []string{"bcc@example.com"},
-			ReplyTo:  "reply@example.com",
+			FromName:       &fromName,
+			Subject:        &subject,
+			SubjectPreview: &preview,
+			CC:             []string{"cc@example.com"},
+			BCC:            []string{"bcc@example.com"},
+			ReplyTo:        "reply@example.com",
 		}
 		assert.False(t, options.IsEmpty())
 	})
@@ -1711,20 +1742,40 @@ func TestEmailOptions_ToChannelOptions(t *testing.T) {
 		assert.Empty(t, channelOptions.ReplyTo)
 	})
 
+	t.Run("EmailOptions with SubjectPreview only", func(t *testing.T) {
+		preview := "Preview text"
+		options := EmailOptions{
+			SubjectPreview: &preview,
+		}
+		channelOptions := options.ToChannelOptions()
+		require.NotNil(t, channelOptions)
+		require.NotNil(t, channelOptions.SubjectPreview)
+		assert.Equal(t, preview, *channelOptions.SubjectPreview)
+		assert.Nil(t, channelOptions.FromName)
+		assert.Nil(t, channelOptions.Subject)
+		assert.Empty(t, channelOptions.CC)
+		assert.Empty(t, channelOptions.BCC)
+		assert.Empty(t, channelOptions.ReplyTo)
+	})
+
 	t.Run("EmailOptions with all fields", func(t *testing.T) {
 		fromName := "Test Sender"
 		subject := "Custom Subject"
+		preview := "Preview text"
 		options := EmailOptions{
-			FromName: &fromName,
-			Subject:  &subject,
-			CC:       []string{"cc1@example.com", "cc2@example.com"},
-			BCC:      []string{"bcc@example.com"},
-			ReplyTo:  "reply@example.com",
+			FromName:       &fromName,
+			Subject:        &subject,
+			SubjectPreview: &preview,
+			CC:             []string{"cc1@example.com", "cc2@example.com"},
+			BCC:            []string{"bcc@example.com"},
+			ReplyTo:        "reply@example.com",
 		}
 		channelOptions := options.ToChannelOptions()
 		require.NotNil(t, channelOptions)
 		assert.Equal(t, fromName, *channelOptions.FromName)
 		assert.Equal(t, subject, *channelOptions.Subject)
+		require.NotNil(t, channelOptions.SubjectPreview)
+		assert.Equal(t, preview, *channelOptions.SubjectPreview)
 		assert.Equal(t, 2, len(channelOptions.CC))
 		assert.Contains(t, channelOptions.CC, "cc1@example.com")
 		assert.Contains(t, channelOptions.CC, "cc2@example.com")
