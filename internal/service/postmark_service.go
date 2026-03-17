@@ -352,7 +352,7 @@ func (s *PostmarkService) RegisterWebhooks(
 	// Register new webhook
 	webhookConfig := domain.PostmarkWebhookConfig{
 		URL:           webhookURL,
-		MessageStream: "outbound",
+		MessageStream: providerConfig.Postmark.GetMessageStream(),
 		Triggers:      triggers,
 	}
 
@@ -546,10 +546,11 @@ func (s *PostmarkService) SendEmail(ctx context.Context, request domain.SendEmai
 
 	// Prepare the request body
 	requestBody := map[string]interface{}{
-		"From":     fmt.Sprintf("%s <%s>", request.FromName, request.FromAddress),
-		"To":       request.To,
-		"Subject":  request.Subject,
-		"HtmlBody": request.Content,
+		"From":          fmt.Sprintf("%s <%s>", request.FromName, request.FromAddress),
+		"To":            request.To,
+		"Subject":       request.Subject,
+		"HtmlBody":      request.Content,
+		"MessageStream": request.Provider.Postmark.GetMessageStream(),
 		"Metadata": map[string]string{
 			"notifuse_message_id": request.MessageID,
 		},

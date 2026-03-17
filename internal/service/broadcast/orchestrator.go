@@ -157,7 +157,15 @@ func (o *BroadcastOrchestrator) ValidateTemplates(templates map[string]*domain.T
 			return NewBroadcastError(ErrCodeTemplateInvalid, "template missing subject", false, nil)
 		}
 
-		if template.Email.VisualEditorTree.GetType() == "" {
+		// Code mode templates use MjmlSource; visual mode templates use VisualEditorTree
+		if template.Email.EditorMode == domain.EditorModeCode {
+			if template.Email.MjmlSource == nil || *template.Email.MjmlSource == "" {
+				// codecov:ignore:start
+				o.logger.WithField("template_id", id).Error("Code mode template missing mjml_source")
+				// codecov:ignore:end
+				return NewBroadcastError(ErrCodeTemplateInvalid, "template missing content", false, nil)
+			}
+		} else if template.Email.VisualEditorTree.GetType() == "" {
 			// codecov:ignore:start
 			o.logger.WithField("template_id", id).Error("Template missing content")
 			// codecov:ignore:end

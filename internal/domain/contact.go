@@ -373,7 +373,7 @@ type GetContactsRequest struct {
 	WorkspaceID string `json:"workspace_id" valid:"required,alphanum,stringlength(1|20)"`
 
 	// Optional filters
-	Email             string   `json:"email,omitempty" valid:"optional,email"`
+	Email             string   `json:"email,omitempty" valid:"optional"`
 	ExternalID        string   `json:"external_id,omitempty" valid:"optional"`
 	FirstName         string   `json:"first_name,omitempty" valid:"optional"`
 	LastName          string   `json:"last_name,omitempty" valid:"optional"`
@@ -437,13 +437,6 @@ func (r *GetContactsRequest) FromQueryParams(params url.Values) error {
 			return fmt.Errorf("invalid with_contact_lists: %w", err)
 		}
 		r.WithContactLists = withContactLists
-	}
-
-	// Validate email format if provided
-	if r.Email != "" {
-		if !govalidator.IsEmail(r.Email) {
-			return fmt.Errorf("invalid email format")
-		}
 	}
 
 	return nil

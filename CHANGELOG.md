@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [28.1] - 2026-03-17
+
+- **Postmark**: Added configurable Message Stream support, allowing Postmark to be used for both transactional (`outbound`) and broadcast/marketing emails (#289)
+- **Broadcasts**: Fixed MJML code mode templates failing with "template missing content" error when sending broadcasts
+- **Contacts**: Fixed `/api/contacts.list` rejecting partial email searches with "invalid email format" error. The `email` filter now accepts partial strings for substring matching as intended (#292)
+
 ## [28.0] - 2026-03-05
 
 - **Templates**: Added option to choose between visual email builder or MJML code editor when creating templates

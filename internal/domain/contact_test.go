@@ -1191,13 +1191,18 @@ func TestGetContactsRequest_FromQueryParams(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "invalid email",
+			name: "partial email for search",
 			params: url.Values{
 				"workspace_id": []string{"workspace123"},
-				"email":        []string{"invalid-email"},
+				"email":        []string{"@company.com"},
 				"limit":        []string{"50"},
 			},
-			wantErr: true,
+			wantErr: false,
+			wantResult: &GetContactsRequest{
+				WorkspaceID: "workspace123",
+				Email:       "@company.com",
+				Limit:       50,
+			},
 		},
 		{
 			name: "invalid limit format",

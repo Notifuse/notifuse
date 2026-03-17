@@ -150,6 +150,15 @@ type PostmarkListWebhooksResponse struct {
 type PostmarkSettings struct {
 	EncryptedServerToken string `json:"encrypted_server_token,omitempty"`
 	ServerToken          string `json:"server_token,omitempty"`
+	MessageStream        string `json:"message_stream,omitempty"`
+}
+
+// GetMessageStream returns the configured message stream, defaulting to "outbound"
+func (p *PostmarkSettings) GetMessageStream() string {
+	if p.MessageStream == "" {
+		return "outbound"
+	}
+	return p.MessageStream
 }
 
 func (p *PostmarkSettings) DecryptServerToken(passphrase string) error {
@@ -176,6 +185,11 @@ func (p *PostmarkSettings) Validate(passphrase string) error {
 		if err := p.EncryptServerToken(passphrase); err != nil {
 			return fmt.Errorf("failed to encrypt Postmark server token: %w", err)
 		}
+	}
+
+	// Default empty message stream to "outbound"
+	if p.MessageStream == "" {
+		p.MessageStream = "outbound"
 	}
 
 	return nil

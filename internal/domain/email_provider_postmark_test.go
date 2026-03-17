@@ -76,6 +76,67 @@ func TestPostmarkSettings_ValidateSettings(t *testing.T) {
 	assert.Equal(t, serverToken, decrypted)
 }
 
+func TestPostmarkSettings_GetMessageStream(t *testing.T) {
+	t.Run("returns outbound when empty", func(t *testing.T) {
+		settings := domain.PostmarkSettings{}
+		assert.Equal(t, "outbound", settings.GetMessageStream())
+	})
+
+	t.Run("returns outbound when set", func(t *testing.T) {
+		settings := domain.PostmarkSettings{MessageStream: "outbound"}
+		assert.Equal(t, "outbound", settings.GetMessageStream())
+	})
+
+	t.Run("returns broadcasts when set", func(t *testing.T) {
+		settings := domain.PostmarkSettings{MessageStream: "broadcasts"}
+		assert.Equal(t, "broadcasts", settings.GetMessageStream())
+	})
+}
+
+func TestPostmarkSettings_ValidateMessageStream(t *testing.T) {
+	passphrase := "test-passphrase"
+
+	t.Run("defaults empty to outbound", func(t *testing.T) {
+		settings := domain.PostmarkSettings{
+			ServerToken:   "test-token",
+			MessageStream: "",
+		}
+		err := settings.Validate(passphrase)
+		require.NoError(t, err)
+		assert.Equal(t, "outbound", settings.MessageStream)
+	})
+
+	t.Run("accepts outbound", func(t *testing.T) {
+		settings := domain.PostmarkSettings{
+			ServerToken:   "test-token",
+			MessageStream: "outbound",
+		}
+		err := settings.Validate(passphrase)
+		require.NoError(t, err)
+		assert.Equal(t, "outbound", settings.MessageStream)
+	})
+
+	t.Run("accepts broadcasts", func(t *testing.T) {
+		settings := domain.PostmarkSettings{
+			ServerToken:   "test-token",
+			MessageStream: "broadcasts",
+		}
+		err := settings.Validate(passphrase)
+		require.NoError(t, err)
+		assert.Equal(t, "broadcasts", settings.MessageStream)
+	})
+
+	t.Run("accepts custom stream ID", func(t *testing.T) {
+		settings := domain.PostmarkSettings{
+			ServerToken:   "test-token",
+			MessageStream: "my-custom-stream",
+		}
+		err := settings.Validate(passphrase)
+		require.NoError(t, err)
+		assert.Equal(t, "my-custom-stream", settings.MessageStream)
+	})
+}
+
 // TestPostmarkServiceInterface tests the PostmarkServiceInterface using generated mocks
 func TestPostmarkServiceInterface(t *testing.T) {
 	// Setup

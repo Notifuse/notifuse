@@ -30,7 +30,8 @@ export const EmailConfigForm: React.FC<EmailConfigFormProps> = ({
   const handleIntegrationChange = (value: string) => {
     if (value === '') {
       // "Use workspace default" selected — remove override
-      const { integration_id: _, ...rest } = config
+      const { integration_id, ...rest } = config
+      void integration_id
       onChange(rest)
     } else {
       onChange({ ...config, integration_id: value })

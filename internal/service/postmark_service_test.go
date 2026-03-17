@@ -1021,6 +1021,69 @@ func TestPostmarkService_RegisterWebhooks(t *testing.T) {
 		assert.Nil(t, status)
 		assert.Contains(t, err.Error(), "failed to register Postmark webhook")
 	})
+
+	t.Run("RegisterWebhooks uses configured broadcasts stream", func(t *testing.T) {
+		service, httpClient, _, _ := setupPostmarkTest(t)
+		workspaceID := "workspace-123"
+		integrationID := "integration-456"
+		baseURL := "https://api.notifuse.com"
+		eventTypes := []domain.EmailEventType{domain.EmailEventDelivered}
+
+		providerConfig := &domain.EmailProvider{
+			Kind: domain.EmailProviderKindPostmark,
+			Postmark: &domain.PostmarkSettings{
+				ServerToken:   "test-server-token",
+				MessageStream: "broadcasts",
+			},
+		}
+
+		expectedURL := "https://api.notifuse.com/webhooks/email?provider=postmark&workspace_id=workspace-123&integration_id=integration-456"
+
+		listResponse := &domain.PostmarkListWebhooksResponse{
+			Webhooks: []domain.PostmarkWebhookResponse{},
+		}
+		listResponseBody, _ := json.Marshal(listResponse)
+
+		registerResponse := domain.PostmarkWebhookResponse{
+			ID:            200,
+			URL:           expectedURL,
+			MessageStream: "broadcasts",
+			Triggers: &domain.PostmarkTriggers{
+				Delivery: &domain.PostmarkDeliveryTrigger{Enabled: true},
+			},
+		}
+		registerResponseBody, _ := json.Marshal(registerResponse)
+
+		listCall := httpClient.EXPECT().
+			Do(gomock.Any()).
+			DoAndReturn(func(req *http.Request) (*http.Response, error) {
+				return createMockResponse(http.StatusOK, string(listResponseBody)), nil
+			})
+
+		httpClient.EXPECT().
+			Do(gomock.Any()).
+			DoAndReturn(func(req *http.Request) (*http.Response, error) {
+				body, _ := io.ReadAll(req.Body)
+				var webhookConfig domain.PostmarkWebhookConfig
+				err := json.Unmarshal(body, &webhookConfig)
+				assert.NoError(t, err)
+				assert.Equal(t, "broadcasts", webhookConfig.MessageStream)
+				return createMockResponse(http.StatusCreated, string(registerResponseBody)), nil
+			}).After(listCall)
+
+		status, err := service.RegisterWebhooks(
+			context.Background(),
+			workspaceID,
+			integrationID,
+			baseURL,
+			eventTypes,
+			providerConfig,
+		)
+
+		require.NoError(t, err)
+		require.NotNil(t, status)
+		assert.True(t, status.IsRegistered)
+	})
 }
 
 func TestPostmarkService_GetWebhookStatus(t *testing.T) {
@@ -2339,6 +2402,81 @@ func TestPostmarkService_SendEmail(t *testing.T) {
 		err := service.SendEmail(context.Background(), request)
 
 		// Verify results
+		assert.NoError(t, err)
+	})
+
+	t.Run("SendEmail includes default MessageStream outbound", func(t *testing.T) {
+		service, httpClient, _, _ := setupPostmarkTest(t)
+
+		providerConfig := &domain.EmailProvider{
+			Kind: domain.EmailProviderKindPostmark,
+			Postmark: &domain.PostmarkSettings{
+				ServerToken: "test-server-token",
+			},
+		}
+
+		httpClient.EXPECT().
+			Do(gomock.Any()).
+			DoAndReturn(func(req *http.Request) (*http.Response, error) {
+				body, _ := io.ReadAll(req.Body)
+				var requestBody map[string]interface{}
+				err := json.Unmarshal(body, &requestBody)
+				require.NoError(t, err)
+				assert.Equal(t, "outbound", requestBody["MessageStream"])
+				return createMockResponse(http.StatusOK, `{"MessageID":"12345"}`), nil
+			})
+
+		request := domain.SendEmailProviderRequest{
+			WorkspaceID:   "workspace-123",
+			IntegrationID: "test-integration-id",
+			MessageID:     "test-message-id",
+			FromAddress:   "sender@example.com",
+			FromName:      "Sender",
+			To:            "recipient@example.com",
+			Subject:       "Subject",
+			Content:       "Content",
+			Provider:      providerConfig,
+			EmailOptions:  domain.EmailOptions{},
+		}
+		err := service.SendEmail(context.Background(), request)
+		assert.NoError(t, err)
+	})
+
+	t.Run("SendEmail includes configured MessageStream broadcasts", func(t *testing.T) {
+		service, httpClient, _, _ := setupPostmarkTest(t)
+
+		providerConfig := &domain.EmailProvider{
+			Kind: domain.EmailProviderKindPostmark,
+			Postmark: &domain.PostmarkSettings{
+				ServerToken:   "test-server-token",
+				MessageStream: "broadcasts",
+			},
+		}
+
+		httpClient.EXPECT().
+			Do(gomock.Any()).
+			DoAndReturn(func(req *http.Request) (*http.Response, error) {
+				body, _ := io.ReadAll(req.Body)
+				var requestBody map[string]interface{}
+				err := json.Unmarshal(body, &requestBody)
+				require.NoError(t, err)
+				assert.Equal(t, "broadcasts", requestBody["MessageStream"])
+				return createMockResponse(http.StatusOK, `{"MessageID":"12345"}`), nil
+			})
+
+		request := domain.SendEmailProviderRequest{
+			WorkspaceID:   "workspace-123",
+			IntegrationID: "test-integration-id",
+			MessageID:     "test-message-id",
+			FromAddress:   "sender@example.com",
+			FromName:      "Sender",
+			To:            "recipient@example.com",
+			Subject:       "Subject",
+			Content:       "Content",
+			Provider:      providerConfig,
+			EmailOptions:  domain.EmailOptions{},
+		}
+		err := service.SendEmail(context.Background(), request)
 		assert.NoError(t, err)
 	})
 }

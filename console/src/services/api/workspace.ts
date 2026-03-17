@@ -128,6 +128,7 @@ export interface SparkPostSettings {
 export interface PostmarkSettings {
   server_token?: string
   encrypted_server_token?: string
+  message_stream?: string
 }
 
 export interface MailgunSettings {
