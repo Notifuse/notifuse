@@ -94,6 +94,14 @@ func (s *Server) Start() error {
 func (s *Server) Shutdown(ctx context.Context) error {
 	s.logger.Info("Shutting down SMTP relay server")
 
+	// Check if context is already done
+	select {
+	case <-ctx.Done():
+		s.logger.Warn("SMTP server shutdown timeout exceeded")
+		return ctx.Err()
+	default:
+	}
+
 	// Create a channel to signal completion
 	done := make(chan error, 1)
 
