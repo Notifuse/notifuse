@@ -2,11 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
-## [28.1] - 2026-03-17
+## [28.2] - 2026-03-17
 
 - **Postmark**: Added configurable Message Stream support, allowing Postmark to be used for both transactional (`outbound`) and broadcast/marketing emails (#289)
 - **Broadcasts**: Fixed MJML code mode templates failing with "template missing content" error when sending broadcasts
 - **Contacts**: Fixed `/api/contacts.list` rejecting partial email searches with "invalid email format" error. The `email` filter now accepts partial strings for substring matching as intended (#292)
+
+## [28.1] - 2026-03-09
+
 - **Transactional Emails**: Added `subject_preview` override to `email_options`, allowing dynamic email preheader text per API call with Liquid templating support
 - **Templates**: Added language selection to "Send Test Email" modal and "Preview Template" drawer, allowing users to preview and test translated email variants
 - **Demo**: Demo workspace now includes French and Spanish translations for all 4 email templates, showcasing the multi-language feature
