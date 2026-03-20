@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [28.3] - 2026-03-20
+
+- **Security**: Upgraded google.golang.org/grpc to v1.79.3
+- **Security**: Upgraded fast-xml-parser to v5.5.8
+
 ## [28.2] - 2026-03-17
 
 - **Postmark**: Added configurable Message Stream support, allowing Postmark to be used for both transactional (`outbound`) and broadcast/marketing emails (#289)
