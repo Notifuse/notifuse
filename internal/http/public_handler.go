@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
 	"net/url"
 	"strings"
@@ -318,6 +319,70 @@ func (h *NotificationCenterHandler) handleHealthz(w http.ResponseWriter, r *http
 	})
 }
 
+
+// isPrivateOrReservedIP checks if the given IP is private, loopback, or reserved.
+// Used to prevent SSRF attacks via user-supplied URLs.
+func isPrivateOrReservedIP(ip net.IP) bool {
+	privateRanges := []struct {
+		network *net.IPNet
+	}{
+		{network: mustParseCIDR("10.0.0.0/8")},
+		{network: mustParseCIDR("172.16.0.0/12")},
+		{network: mustParseCIDR("192.168.0.0/16")},
+		{network: mustParseCIDR("127.0.0.0/8")},
+		{network: mustParseCIDR("169.254.0.0/16")}, // link-local / cloud metadata
+		{network: mustParseCIDR("::1/128")},
+		{network: mustParseCIDR("fc00::/7")},
+		{network: mustParseCIDR("fe80::/10")},
+	}
+	for _, r := range privateRanges {
+		if r.network.Contains(ip) {
+			return true
+		}
+	}
+	return false
+}
+
+func mustParseCIDR(s string) *net.IPNet {
+	_, network, err := net.ParseCIDR(s)
+	if err != nil {
+		panic(err)
+	}
+	return network
+}
+
+// validateExternalURL checks that a URL is safe to fetch (not pointing to internal resources).
+func validateExternalURL(rawURL string) error {
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		return fmt.Errorf("invalid URL")
+	}
+
+	if u.Scheme != "http" && u.Scheme != "https" {
+		return fmt.Errorf("only http and https schemes are allowed")
+	}
+
+	host := u.Hostname()
+
+	// Resolve hostname to IP addresses
+	ips, err := net.LookupHost(host)
+	if err != nil {
+		return fmt.Errorf("cannot resolve host")
+	}
+
+	for _, ipStr := range ips {
+		ip := net.ParseIP(ipStr)
+		if ip == nil {
+			continue
+		}
+		if isPrivateOrReservedIP(ip) {
+			return fmt.Errorf("requests to private/internal addresses are not allowed")
+		}
+	}
+
+	return nil
+}
+
 func (h *NotificationCenterHandler) HandleDetectFavicon(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -339,6 +404,12 @@ func (h *NotificationCenterHandler) HandleDetectFavicon(w http.ResponseWriter, r
 	baseURL, err := url.Parse(req.URL)
 	if err != nil {
 		http.Error(w, "Invalid URL", http.StatusBadRequest)
+		return
+	}
+
+	// SSRF protection: block requests to private/internal IPs
+	if err := validateExternalURL(req.URL); err != nil {
+		http.Error(w, "URL not allowed: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 
