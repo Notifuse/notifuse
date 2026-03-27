@@ -751,10 +751,17 @@ func (s *TransactionalNotificationService) TestTemplate(ctx context.Context, wor
 		return fmt.Errorf("failed to upsert contact: %s", contactOperation.Error)
 	}
 
-	contactWithList := domain.ContactWithList{
-		Contact: &domain.Contact{
+	// Get the full contact record (same pattern as SendNotification)
+	contact, err := s.contactService.GetContactByEmail(ctx, workspaceID, recipientEmail)
+	if err != nil {
+		// Fallback to minimal contact - test emails should still work
+		contact = &domain.Contact{
 			Email: recipientEmail,
-		},
+		}
+	}
+
+	contactWithList := domain.ContactWithList{
+		Contact:  contact,
 		ListID:   "foo",
 		ListName: "bar",
 	}

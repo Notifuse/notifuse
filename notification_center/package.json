@@ -55,6 +55,7 @@
   "overrides": {
     "rollup": "^4.59.0",
     "minimatch": ">=9.0.7",
-    "flatted": ">=3.4.2"
+    "flatted": ">=3.4.2",
+    "picomatch": ">=4.0.4"
   }
 }

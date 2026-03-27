@@ -1943,6 +1943,15 @@ func TestTransactionalNotificationService_TestTemplate(t *testing.T) {
 			Action: domain.UpsertContactOperationUpdate,
 		})
 
+	// Expect get contact by email after upsert (returns full contact)
+	mockContactService.EXPECT().
+		GetContactByEmail(gomock.Any(), workspaceID, recipientEmail).
+		Return(&domain.Contact{
+			Email:     recipientEmail,
+			FirstName: &domain.NullableString{String: "Test", IsNull: false},
+			LastName:  &domain.NullableString{String: "User", IsNull: false},
+		}, nil)
+
 	// Expect compile template
 	mockTemplateService.EXPECT().
 		CompileTemplate(gomock.Any(), gomock.Any()).
@@ -2083,6 +2092,15 @@ func TestTransactionalNotificationService_TestTemplate_WithChannelOptions(t *tes
 			Email:  recipientEmail,
 			Action: domain.UpsertContactOperationUpdate,
 		})
+
+	// Expect get contact by email after upsert
+	mockContactService.EXPECT().
+		GetContactByEmail(gomock.Any(), workspaceID, recipientEmail).
+		Return(&domain.Contact{
+			Email:     recipientEmail,
+			FirstName: &domain.NullableString{String: "Test", IsNull: false},
+			LastName:  &domain.NullableString{String: "User", IsNull: false},
+		}, nil)
 
 	// Expect compile template - verify SubjectPreviewOverride is passed
 	mockTemplateService.EXPECT().
@@ -2416,6 +2434,99 @@ func TestTransactionalNotificationService_TestTemplate_ErrorCases(t *testing.T) 
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to upsert contact")
 	})
+
+	t.Run("Fallback_GetContactByEmailFailed", func(t *testing.T) {
+		// Auth succeeds
+		mockAuthService.EXPECT().
+			AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
+			Return(ctx, &domain.User{ID: "user-123"}, &domain.UserWorkspace{
+				UserID:      "user-123",
+				WorkspaceID: workspaceID,
+				Role:        "member",
+				Permissions: domain.UserPermissions{
+					domain.PermissionResourceTransactional: {Read: true, Write: true},
+				},
+			}, nil)
+
+		// Template with email content
+		template := &domain.Template{
+			ID:   templateID,
+			Name: "Test Template",
+			Email: &domain.EmailTemplate{
+				Subject: "Test Subject",
+				VisualEditorTree: &notifuse_mjml.MJMLBlock{
+					BaseBlock: notifuse_mjml.NewBaseBlock("root", notifuse_mjml.MJMLComponentMjml),
+				},
+			},
+		}
+		mockTemplateService.EXPECT().
+			GetTemplateByID(gomock.Any(), workspaceID, templateID, int64(0)).
+			Return(template, nil)
+
+		// Workspace with valid integration and sender
+		workspace := &domain.Workspace{
+			ID:   workspaceID,
+			Name: "Test Workspace",
+			Settings: domain.WorkspaceSettings{
+				SecretKey: "test-secret-key",
+			},
+			Integrations: []domain.Integration{
+				{
+					ID:   integrationID,
+					Name: "Test Integration",
+					Type: "email",
+					EmailProvider: domain.EmailProvider{
+						Kind: domain.EmailProviderKindSparkPost,
+						Senders: []domain.EmailSender{
+							{
+								ID:    senderID,
+								Email: "sender@example.com",
+								Name:  "Test Sender",
+							},
+						},
+					},
+				},
+			},
+		}
+		mockWorkspaceRepo.EXPECT().
+			GetByID(gomock.Any(), workspaceID).
+			Return(workspace, nil)
+
+		// Upsert succeeds
+		mockContactService.EXPECT().
+			UpsertContact(gomock.Any(), workspaceID, gomock.Any()).
+			Return(domain.UpsertContactOperation{
+				Email:  recipientEmail,
+				Action: domain.UpsertContactOperationCreate,
+			})
+
+		// GetContactByEmail fails - should fallback to minimal contact
+		mockContactService.EXPECT().
+			GetContactByEmail(gomock.Any(), workspaceID, recipientEmail).
+			Return(nil, errors.New("contact not found"))
+
+		// Compilation succeeds (proving fallback worked)
+		htmlResult := "<html><body>Test</body></html>"
+		mockTemplateService.EXPECT().
+			CompileTemplate(gomock.Any(), gomock.Any()).
+			Return(&domain.CompileTemplateResponse{
+				Success: true,
+				HTML:    &htmlResult,
+			}, nil)
+
+		// Email sends successfully
+		mockEmailService.EXPECT().
+			SendEmail(gomock.Any(), gomock.Any(), gomock.Any()).
+			Return(nil)
+
+		// Message history created
+		mockMsgHistoryRepo.EXPECT().
+			Create(gomock.Any(), workspaceID, gomock.Any(), gomock.Any()).
+			Return(nil)
+
+		err := service.TestTemplate(ctx, workspaceID, templateID, integrationID, senderID, recipientEmail, "", domain.EmailOptions{})
+		require.NoError(t, err)
+	})
 }
 
 func TestTransactionalNotificationService_TestTemplate_WithLanguage(t *testing.T) {
@@ -2537,6 +2648,15 @@ func TestTransactionalNotificationService_TestTemplate_WithLanguage(t *testing.T
 			Email:  recipientEmail,
 			Action: domain.UpsertContactOperationUpdate,
 		})
+
+	// Expect get contact by email after upsert
+	mockContactService.EXPECT().
+		GetContactByEmail(gomock.Any(), workspaceID, recipientEmail).
+		Return(&domain.Contact{
+			Email:     recipientEmail,
+			FirstName: &domain.NullableString{String: "Test", IsNull: false},
+			LastName:  &domain.NullableString{String: "User", IsNull: false},
+		}, nil)
 
 	// Verify the compile is called with the French translation's visual editor tree
 	mockTemplateService.EXPECT().

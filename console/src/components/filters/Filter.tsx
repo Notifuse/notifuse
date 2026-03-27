@@ -36,8 +36,8 @@ export function Filter({ fields, activeFilters, className }: FilterProps) {
       searchParams.delete(field.key)
     })
 
-    // Remove any cursor parameters
-    searchParams.delete('cursor')
+    // Reset pagination when filters change
+    searchParams.delete('limit')
 
     // Then add the active filters
     filters.forEach((filter) => {
@@ -88,6 +88,7 @@ export function Filter({ fields, activeFilters, className }: FilterProps) {
     // Directly modify URL search params
     const searchParams = new URLSearchParams(window.location.search)
     searchParams.delete(field)
+    searchParams.delete('limit') // Reset pagination when filters change
     const newUrl =
       window.location.pathname + (searchParams.toString() ? `?${searchParams.toString()}` : '')
     window.history.pushState({ path: newUrl }, '', newUrl)

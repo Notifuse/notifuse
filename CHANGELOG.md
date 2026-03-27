@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [28.4] - 2026-03-27
+
+- **Security**: Upgraded picomatch to 4.0.4 in notification center
+- **Contacts**: Fixed dropdown menu becoming unresponsive after deleting contacts, and pagination state now persists in URL across page refreshes (#294)
+- **Templates**: Test emails now load the full contact record, so Liquid variables like `{{ contact.first_name }}` render correctly
+
 ## [28.3] - 2026-03-20
 
 - **Security**: Upgraded google.golang.org/grpc to v1.79.3
