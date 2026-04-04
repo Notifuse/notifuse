@@ -18,6 +18,7 @@ All notable changes to this project will be documented in this file.
 - **Security**: Fixed SSRF vulnerability in `/api/detect-favicon` endpoint by adding a safe HTTP client with private IP blocking, DNS rebinding protection, scheme validation, and response size limits
 - **Security**: Upgraded happy-dom to 20.8.9 in notification center and picomatch to 4.0.4 in console
 - **Improvement**: SMTP EHLO hostname now defaults to the from-email domain instead of the SMTP host, improving compatibility with strict providers (#301)
+- **Security**: Updated lodash/lodash-es to 4.18.x, brace-expansion to 5.0.5, and yaml to 2.8.3 to fix prototype pollution, code injection, ReDoS, and stack overflow vulnerabilities
 
 ## [28.4] - 2026-03-27
 

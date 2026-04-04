@@ -74,7 +74,7 @@
     "html2canvas": "^1.4.1",
     "is-hotkey": "^0.2.0",
     "liquidjs": "^10.25.0",
-    "lodash": "^4.17.23",
+    "lodash": "^4.18.0",
     "lodash.throttle": "^4.1.1",
     "lowlight": "^3.3.0",
     "lucide-react": "^0.487.0",
@@ -112,7 +112,8 @@
     "minimatch": ">=10.2.3",
     "yaml": "^2.4.2",
     "flatted": ">=3.4.2",
-    "picomatch": ">=4.0.4"
+    "picomatch": ">=4.0.4",
+    "lodash-es": ">=4.18.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.19.0",
