@@ -432,7 +432,7 @@ func TestSMTPService_SendEmail_Integration(t *testing.T) {
 	assert.NotContains(t, mailFromCmd, "SMTPUTF8")
 }
 
-func TestSMTPService_SendEmail_DefaultEhloUsesHost(t *testing.T) {
+func TestSMTPService_SendEmail_DefaultEhloUsesFromDomain(t *testing.T) {
 	server := newMockSMTPServer(t, true)
 	defer server.Close()
 
@@ -447,7 +447,7 @@ func TestSMTPService_SendEmail_DefaultEhloUsesHost(t *testing.T) {
 			Username: "",
 			Password: "",
 			UseTLS:   false,
-			// EHLOHostname left empty - should default to Host
+			// EHLOHostname left empty - should derive from from-email domain
 		},
 	}
 
@@ -467,12 +467,12 @@ func TestSMTPService_SendEmail_DefaultEhloUsesHost(t *testing.T) {
 	err := service.SendEmail(context.Background(), request)
 	require.NoError(t, err)
 
-	// Verify EHLO used the SMTP host (127.0.0.1) instead of "localhost"
+	// Verify EHLO used the domain from the from-email address
 	commands := server.GetCommands()
 	foundEhlo := false
 	for _, cmd := range commands {
 		if strings.HasPrefix(strings.ToUpper(cmd), "EHLO") {
-			assert.Equal(t, "EHLO 127.0.0.1", cmd)
+			assert.Equal(t, "EHLO example.com", cmd)
 			foundEhlo = true
 			break
 		}

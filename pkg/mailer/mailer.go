@@ -298,8 +298,13 @@ func (m *SMTPMailer) createSMTPClient() (*mail.Client, error) {
 		)
 	}
 
-	// Set custom EHLO hostname if configured, otherwise use SMTP host
+	// Set custom EHLO hostname if configured, fall back to from-email domain, then SMTP host
 	ehlo := m.config.EHLOHostname
+	if ehlo == "" {
+		if idx := strings.LastIndex(m.config.FromEmail, "@"); idx >= 0 {
+			ehlo = m.config.FromEmail[idx+1:]
+		}
+	}
 	if ehlo == "" {
 		ehlo = m.config.SMTPHost
 	}

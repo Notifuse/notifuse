@@ -225,9 +225,9 @@ func TestSMTPClient_E2E_NoExtensionsInMailFrom(t *testing.T) {
 	assert.Contains(t, mailFromCmd, "MAIL FROM:<sender@example.com>")
 }
 
-// TestSMTPClient_E2E_DefaultEHLOUsesHost verifies that when EHLOHostname is empty,
-// the SMTP client uses the Host value for the EHLO command
-func TestSMTPClient_E2E_DefaultEHLOUsesHost(t *testing.T) {
+// TestSMTPClient_E2E_DefaultEHLOUsesFromDomain verifies that when EHLOHostname is empty,
+// the SMTP client uses the domain from the from-email address for the EHLO command
+func TestSMTPClient_E2E_DefaultEHLOUsesFromDomain(t *testing.T) {
 	server := newMockSMTPServerIntegration(t, true)
 	defer server.Close()
 
@@ -251,7 +251,7 @@ func TestSMTPClient_E2E_DefaultEHLOUsesHost(t *testing.T) {
 				Username:     "testuser",
 				Password:     "testpass",
 				UseTLS:       false,
-				EHLOHostname: "", // empty — should fall back to Host
+				EHLOHostname: "", // empty — should fall back to from-email domain
 			},
 		},
 	}
@@ -272,8 +272,8 @@ func TestSMTPClient_E2E_DefaultEHLOUsesHost(t *testing.T) {
 
 	require.NotEmpty(t, ehloCmd, "EHLO command should have been captured")
 	t.Logf("Captured EHLO command: %s", ehloCmd)
-	assert.Equal(t, "EHLO 127.0.0.1", ehloCmd,
-		"EHLO should use the Host value when EHLOHostname is empty")
+	assert.Equal(t, "EHLO example.com", ehloCmd,
+		"EHLO should use the from-email domain when EHLOHostname is empty")
 }
 
 // TestSMTPClient_E2E_CustomEHLOHostname verifies that a custom EHLOHostname is used
