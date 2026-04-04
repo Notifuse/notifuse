@@ -24,7 +24,7 @@ tests/
     ├── database_test.go         # Database integration tests
     ├── api_test.go              # Basic API integration tests
     ├── contact_api_test.go      # Contact API integration tests
-    ├── smtp_relay_e2e_test.go   # SMTP relay end-to-end tests
+    ├── smtp_bridge_e2e_test.go   # SMTP bridge end-to-end tests
     └── ...                      # Other integration tests
 ```
 

@@ -45,7 +45,7 @@ type StatusResponse struct {
 	SMTPConfigured        bool `json:"smtp_configured"`
 	APIEndpointConfigured bool `json:"api_endpoint_configured"`
 	RootEmailConfigured   bool `json:"root_email_configured"`
-	SMTPRelayConfigured   bool `json:"smtp_relay_configured"`
+	SMTPBridgeConfigured   bool `json:"smtp_bridge_configured"`
 }
 
 // InitializeRequest represents the setup initialization request
@@ -62,11 +62,11 @@ type InitializeRequest struct {
 	SMTPEHLOHostname       string `json:"smtp_ehlo_hostname"`
 	TelemetryEnabled       bool   `json:"telemetry_enabled"`
 	CheckForUpdates        bool   `json:"check_for_updates"`
-	SMTPRelayEnabled       bool   `json:"smtp_relay_enabled"`
-	SMTPRelayHost          string `json:"smtp_relay_domain"`
-	SMTPRelayPort          int    `json:"smtp_relay_port"`
-	SMTPRelayTLSCertBase64 string `json:"smtp_relay_tls_cert_base64"`
-	SMTPRelayTLSKeyBase64  string `json:"smtp_relay_tls_key_base64"`
+	SMTPBridgeEnabled       bool   `json:"smtp_bridge_enabled"`
+	SMTPBridgeHost          string `json:"smtp_bridge_domain"`
+	SMTPBridgePort          int    `json:"smtp_bridge_port"`
+	SMTPBridgeTLSCertBase64 string `json:"smtp_bridge_tls_cert_base64"`
+	SMTPBridgeTLSKeyBase64  string `json:"smtp_bridge_tls_key_base64"`
 }
 
 // InitializeResponse represents the setup completion response
@@ -114,7 +114,7 @@ func (h *SetupHandler) Status(w http.ResponseWriter, r *http.Request) {
 		SMTPConfigured:        configStatus.SMTPConfigured,
 		APIEndpointConfigured: configStatus.APIEndpointConfigured,
 		RootEmailConfigured:   configStatus.RootEmailConfigured,
-		SMTPRelayConfigured:   configStatus.SMTPRelayConfigured,
+		SMTPBridgeConfigured:   configStatus.SMTPBridgeConfigured,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -187,11 +187,11 @@ func (h *SetupHandler) Initialize(w http.ResponseWriter, r *http.Request) {
 		SMTPEHLOHostname:       req.SMTPEHLOHostname,
 		TelemetryEnabled:       req.TelemetryEnabled,
 		CheckForUpdates:        req.CheckForUpdates,
-		SMTPRelayEnabled:       req.SMTPRelayEnabled,
-		SMTPRelayDomain:        req.SMTPRelayHost,
-		SMTPRelayPort:          req.SMTPRelayPort,
-		SMTPRelayTLSCertBase64: req.SMTPRelayTLSCertBase64,
-		SMTPRelayTLSKeyBase64:  req.SMTPRelayTLSKeyBase64,
+		SMTPBridgeEnabled:       req.SMTPBridgeEnabled,
+		SMTPBridgeDomain:        req.SMTPBridgeHost,
+		SMTPBridgePort:          req.SMTPBridgePort,
+		SMTPBridgeTLSCertBase64: req.SMTPBridgeTLSCertBase64,
+		SMTPBridgeTLSKeyBase64:  req.SMTPBridgeTLSKeyBase64,
 	}
 
 	// Initialize using service (callback will be called in service)

@@ -6,7 +6,7 @@ import { workspaceService } from '../services/api/workspace'
 import { Workspace, WorkspaceMember } from '../services/api/types'
 import { WorkspaceMembers } from '../components/settings/WorkspaceMembers'
 import { GeneralSettings } from '../components/settings/GeneralSettings'
-import { SMTPRelaySettings } from '../components/settings/SMTPRelaySettings'
+import { SMTPBridgeSettings } from '../components/settings/SMTPBridgeSettings'
 import { Integrations } from '../components/settings/Integrations'
 import { CustomFieldsConfiguration } from '../components/settings/CustomFieldsConfiguration'
 import { BlogSettings } from '../components/settings/BlogSettings'
@@ -35,7 +35,7 @@ export function WorkspaceSettingsPage() {
     'integrations',
     'webhooks',
     'custom-fields',
-    'smtp-relay',
+    'smtp-bridge',
     'general',
     'blog',
     'danger-zone'
@@ -134,8 +134,8 @@ export function WorkspaceSettingsPage() {
             isOwner={isOwner}
           />
         )
-      case 'smtp-relay':
-        return <SMTPRelaySettings />
+      case 'smtp-bridge':
+        return <SMTPBridgeSettings />
       case 'general':
         return (
           <GeneralSettings

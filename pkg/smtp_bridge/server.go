@@ -1,4 +1,4 @@
-package smtp_relay
+package smtp_bridge
 
 import (
 	"context"
@@ -11,7 +11,7 @@ import (
 	"github.com/emersion/go-smtp"
 )
 
-// Server represents an SMTP relay server for receiving emails
+// Server represents an SMTP bridge server for receiving emails
 type Server struct {
 	server  *smtp.Server
 	backend *Backend
@@ -46,21 +46,21 @@ func NewServer(cfg ServerConfig, backend *Backend) (*Server, error) {
 	if cfg.TLSConfig != nil {
 		s.TLSConfig = cfg.TLSConfig
 		s.AllowInsecureAuth = false // Require TLS for authentication
-		cfg.Logger.Info("SMTP relay: TLS enabled")
+		cfg.Logger.Info("SMTP bridge: TLS enabled")
 	} else {
 		// Check if running in production
 		if cfg.RequireTLS {
-			return nil, fmt.Errorf("SMTP relay: TLS is required in production environment")
+			return nil, fmt.Errorf("SMTP bridge: TLS is required in production environment")
 		}
 		s.AllowInsecureAuth = true // Allow auth without TLS (development only)
-		cfg.Logger.Warn("⚠️  SMTP relay: Running without TLS - authentication will be insecure (FOR DEVELOPMENT ONLY)")
+		cfg.Logger.Warn("⚠️  SMTP bridge: Running without TLS - authentication will be insecure (FOR DEVELOPMENT ONLY)")
 	}
 
 	cfg.Logger.WithFields(map[string]interface{}{
 		"addr":   addr,
 		"domain": cfg.Domain,
 		"tls":    cfg.TLSConfig != nil,
-	}).Info("SMTP relay server initialized")
+	}).Info("SMTP bridge server initialized")
 
 	return &Server{
 		server:  s,
@@ -72,7 +72,7 @@ func NewServer(cfg ServerConfig, backend *Backend) (*Server, error) {
 
 // Start starts the SMTP server
 func (s *Server) Start() error {
-	s.logger.WithField("addr", s.addr).Info("Starting SMTP relay server")
+	s.logger.WithField("addr", s.addr).Info("Starting SMTP bridge server")
 
 	// Listen on the specified address
 	listener, err := net.Listen("tcp", s.addr)
@@ -80,7 +80,7 @@ func (s *Server) Start() error {
 		return fmt.Errorf("failed to listen on %s: %w", s.addr, err)
 	}
 
-	s.logger.WithField("addr", s.addr).Info("SMTP relay server listening")
+	s.logger.WithField("addr", s.addr).Info("SMTP bridge server listening")
 
 	// Start serving
 	if err := s.server.Serve(listener); err != nil {
@@ -92,7 +92,7 @@ func (s *Server) Start() error {
 
 // Shutdown gracefully shuts down the SMTP server
 func (s *Server) Shutdown(ctx context.Context) error {
-	s.logger.Info("Shutting down SMTP relay server")
+	s.logger.Info("Shutting down SMTP bridge server")
 
 	// Check if context is already done
 	select {
@@ -116,7 +116,7 @@ func (s *Server) Shutdown(ctx context.Context) error {
 			s.logger.WithField("error", err.Error()).Error("Error during SMTP server shutdown")
 			return err
 		}
-		s.logger.Info("SMTP relay server shut down successfully")
+		s.logger.Info("SMTP bridge server shut down successfully")
 		return nil
 	case <-ctx.Done():
 		s.logger.Warn("SMTP server shutdown timeout exceeded")

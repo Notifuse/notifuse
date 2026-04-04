@@ -27,11 +27,11 @@ type SetupConfig struct {
 	SMTPEHLOHostname       string
 	TelemetryEnabled       bool
 	CheckForUpdates        bool
-	SMTPRelayEnabled       bool
-	SMTPRelayDomain        string
-	SMTPRelayPort          int
-	SMTPRelayTLSCertBase64 string
-	SMTPRelayTLSKeyBase64  string
+	SMTPBridgeEnabled       bool
+	SMTPBridgeDomain        string
+	SMTPBridgePort          int
+	SMTPBridgeTLSCertBase64 string
+	SMTPBridgeTLSKeyBase64  string
 }
 
 // SMTPTestConfig represents SMTP configuration for testing
@@ -49,7 +49,7 @@ type ConfigurationStatus struct {
 	SMTPConfigured        bool
 	APIEndpointConfigured bool
 	RootEmailConfigured   bool
-	SMTPRelayConfigured   bool
+	SMTPBridgeConfigured   bool
 }
 
 // SetupService handles setup wizard operations
@@ -75,11 +75,11 @@ type EnvironmentConfig struct {
 	SMTPFromName           string
 	SMTPUseTLS             string // "true", "false", or "" (empty = not set, defaults to true)
 	SMTPEHLOHostname       string
-	SMTPRelayEnabled       string // "true", "false", or "" (empty = not set, allows setup wizard to configure)
-	SMTPRelayDomain        string
-	SMTPRelayPort          int
-	SMTPRelayTLSCertBase64 string
-	SMTPRelayTLSKeyBase64  string
+	SMTPBridgeEnabled       string // "true", "false", or "" (empty = not set, allows setup wizard to configure)
+	SMTPBridgeDomain        string
+	SMTPBridgePort          int
+	SMTPBridgeTLSCertBase64 string
+	SMTPBridgeTLSKeyBase64  string
 }
 
 // NewSetupService creates a new setup service
@@ -110,7 +110,7 @@ func (s *SetupService) GetConfigurationStatus() *ConfigurationStatus {
 			SMTPConfigured:        false,
 			APIEndpointConfigured: false,
 			RootEmailConfigured:   false,
-			SMTPRelayConfigured:   false,
+			SMTPBridgeConfigured:   false,
 		}
 	}
 
@@ -120,20 +120,20 @@ func (s *SetupService) GetConfigurationStatus() *ConfigurationStatus {
 		s.envConfig.SMTPPort > 0 &&
 		s.envConfig.SMTPFromEmail != ""
 
-	// SMTP Relay is configured if:
-	// 1. SMTP_RELAY_ENABLED env var is explicitly set (even if "" or "false") - this prevents setup wizard from enabling it
+	// SMTP Bridge is configured if:
+	// 1. SMTP_BRIDGE_ENABLED env var is explicitly set (even if "" or "false") - this prevents setup wizard from enabling it
 	// 2. OR if enabled ("true") and has all required fields
-	smtpRelayConfigured := s.envConfig.SMTPRelayEnabled != "" ||
-		(s.envConfig.SMTPRelayEnabled == "true" &&
-			s.envConfig.SMTPRelayDomain != "" &&
-			s.envConfig.SMTPRelayTLSCertBase64 != "" &&
-			s.envConfig.SMTPRelayTLSKeyBase64 != "")
+	smtpBridgeConfigured := s.envConfig.SMTPBridgeEnabled != "" ||
+		(s.envConfig.SMTPBridgeEnabled == "true" &&
+			s.envConfig.SMTPBridgeDomain != "" &&
+			s.envConfig.SMTPBridgeTLSCertBase64 != "" &&
+			s.envConfig.SMTPBridgeTLSKeyBase64 != "")
 
 	return &ConfigurationStatus{
 		SMTPConfigured:        smtpConfigured,
 		APIEndpointConfigured: s.envConfig.APIEndpoint != "",
 		RootEmailConfigured:   s.envConfig.RootEmail != "",
-		SMTPRelayConfigured:   smtpRelayConfigured,
+		SMTPBridgeConfigured:   smtpBridgeConfigured,
 	}
 }
 
@@ -218,25 +218,25 @@ func (s *SetupService) Initialize(ctx context.Context, config *SetupConfig) erro
 		smtpEHLOHostname = config.SMTPEHLOHostname
 	}
 
-	// Handle SMTP Relay configuration
-	var smtpRelayEnabled bool
-	var smtpRelayDomain, smtpRelayTLSCertBase64, smtpRelayTLSKeyBase64 string
-	var smtpRelayPort int
+	// Handle SMTP Bridge configuration
+	var smtpBridgeEnabled bool
+	var smtpBridgeDomain, smtpBridgeTLSCertBase64, smtpBridgeTLSKeyBase64 string
+	var smtpBridgePort int
 
-	if status.SMTPRelayConfigured {
-		// Use env-configured SMTP Relay (parse string to bool)
-		smtpRelayEnabled = s.envConfig.SMTPRelayEnabled == "true"
-		smtpRelayDomain = s.envConfig.SMTPRelayDomain
-		smtpRelayPort = s.envConfig.SMTPRelayPort
-		smtpRelayTLSCertBase64 = s.envConfig.SMTPRelayTLSCertBase64
-		smtpRelayTLSKeyBase64 = s.envConfig.SMTPRelayTLSKeyBase64
+	if status.SMTPBridgeConfigured {
+		// Use env-configured SMTP Bridge (parse string to bool)
+		smtpBridgeEnabled = s.envConfig.SMTPBridgeEnabled == "true"
+		smtpBridgeDomain = s.envConfig.SMTPBridgeDomain
+		smtpBridgePort = s.envConfig.SMTPBridgePort
+		smtpBridgeTLSCertBase64 = s.envConfig.SMTPBridgeTLSCertBase64
+		smtpBridgeTLSKeyBase64 = s.envConfig.SMTPBridgeTLSKeyBase64
 	} else {
-		// Use user-provided SMTP Relay
-		smtpRelayEnabled = config.SMTPRelayEnabled
-		smtpRelayDomain = config.SMTPRelayDomain
-		smtpRelayPort = config.SMTPRelayPort
-		smtpRelayTLSCertBase64 = config.SMTPRelayTLSCertBase64
-		smtpRelayTLSKeyBase64 = config.SMTPRelayTLSKeyBase64
+		// Use user-provided SMTP Bridge
+		smtpBridgeEnabled = config.SMTPBridgeEnabled
+		smtpBridgeDomain = config.SMTPBridgeDomain
+		smtpBridgePort = config.SMTPBridgePort
+		smtpBridgeTLSCertBase64 = config.SMTPBridgeTLSCertBase64
+		smtpBridgeTLSKeyBase64 = config.SMTPBridgeTLSKeyBase64
 	}
 
 	// Store system settings
@@ -254,11 +254,11 @@ func (s *SetupService) Initialize(ctx context.Context, config *SetupConfig) erro
 		SMTPEHLOHostname:       smtpEHLOHostname,
 		TelemetryEnabled:       config.TelemetryEnabled,
 		CheckForUpdates:        config.CheckForUpdates,
-		SMTPRelayEnabled:       smtpRelayEnabled,
-		SMTPRelayDomain:        smtpRelayDomain,
-		SMTPRelayPort:          smtpRelayPort,
-		SMTPRelayTLSCertBase64: smtpRelayTLSCertBase64,
-		SMTPRelayTLSKeyBase64:  smtpRelayTLSKeyBase64,
+		SMTPBridgeEnabled:       smtpBridgeEnabled,
+		SMTPBridgeDomain:        smtpBridgeDomain,
+		SMTPBridgePort:          smtpBridgePort,
+		SMTPBridgeTLSCertBase64: smtpBridgeTLSCertBase64,
+		SMTPBridgeTLSKeyBase64:  smtpBridgeTLSKeyBase64,
 	}
 
 	if err := s.settingService.SetSystemConfig(ctx, systemConfig, s.secretKey); err != nil {

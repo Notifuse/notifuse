@@ -2847,7 +2847,7 @@ msgstr ""
 #: src/components/settings/BlogSettings.tsx:210
 #: src/components/settings/GeneralSettings.tsx:136
 #: src/components/settings/Integrations.tsx:1303
-#: src/components/settings/SMTPRelaySettings.tsx:50
+#: src/components/settings/SMTPBridgeSettings.tsx:50
 msgid "Disabled"
 msgstr ""
 
@@ -2919,7 +2919,7 @@ msgid "Domain"
 msgstr ""
 
 #: src/pages/SetupWizard.tsx:580
-msgid "Domain for the SMTP relay server (e.g., smtp.yourcompany.com)"
+msgid "Domain for the SMTP bridge server (e.g., smtp.yourcompany.com)"
 msgstr ""
 
 #: src/components/seo/SEOSettingsForm.tsx:85
@@ -3357,7 +3357,7 @@ msgid "Enable closed captions by default"
 msgstr ""
 
 #: src/pages/SetupWizard.tsx:549
-msgid "Enable SMTP Relay Server"
+msgid "Enable SMTP Bridge Server"
 msgstr ""
 
 #: src/components/settings/BlogSettings.tsx:278
@@ -3375,7 +3375,7 @@ msgstr ""
 #: src/components/settings/BlogSettings.tsx:205
 #: src/components/settings/GeneralSettings.tsx:131
 #: src/components/settings/Integrations.tsx:1299
-#: src/components/settings/SMTPRelaySettings.tsx:45
+#: src/components/settings/SMTPBridgeSettings.tsx:45
 msgid "Enabled"
 msgstr ""
 
@@ -5214,8 +5214,8 @@ msgstr "Cognome"
 msgid "Lead"
 msgstr "Lead"
 
-#: src/components/settings/SMTPRelaySettings.tsx:64
-msgid "Learn how to enable SMTP relay"
+#: src/components/settings/SMTPBridgeSettings.tsx:64
+msgid "Learn how to enable SMTP bridge"
 msgstr "Scopri come abilitare il relay SMTP"
 
 #: src/components/integrations/FirecrawlIntegration.tsx:86
@@ -6134,8 +6134,8 @@ msgstr ""
 #: src/components/settings/GeneralSettings.tsx:104
 #: src/components/settings/GeneralSettings.tsx:108
 #: src/components/settings/GeneralSettings.tsx:119
-#: src/components/settings/SMTPRelaySettings.tsx:34
-#: src/components/settings/SMTPRelaySettings.tsx:38
+#: src/components/settings/SMTPBridgeSettings.tsx:34
+#: src/components/settings/SMTPBridgeSettings.tsx:38
 #: src/components/templates/TemplatePreviewDrawer.tsx:258
 msgid "Not set"
 msgstr ""
@@ -6735,7 +6735,7 @@ msgid "Port"
 msgstr ""
 
 #: src/pages/SetupWizard.tsx:595
-msgid "Port for the SMTP relay server (default: 587)"
+msgid "Port for the SMTP bridge server (default: 587)"
 msgstr ""
 
 #: src/components/blog/ThemeEditorDrawer.tsx:437
@@ -7940,7 +7940,7 @@ msgid "Send Test Email"
 msgstr ""
 
 #: src/components/transactional/ApiCommandModal.tsx:918
-msgid "Send transactional notifications using SMTP relay. Perfect for integrating with existing email systems or applications that support SMTP."
+msgid "Send transactional notifications using SMTP bridge. Perfect for integrating with existing email systems or applications that support SMTP."
 msgstr ""
 
 #: src/components/templates/CreateTemplateDrawer.tsx:620
@@ -8194,7 +8194,7 @@ msgstr ""
 msgid "SMTP connection successful!"
 msgstr ""
 
-#: src/components/settings/SMTPRelaySettings.tsx:33
+#: src/components/settings/SMTPBridgeSettings.tsx:33
 msgid "SMTP domain"
 msgstr ""
 
@@ -8213,7 +8213,7 @@ msgstr ""
 msgid "SMTP Password"
 msgstr ""
 
-#: src/components/settings/SMTPRelaySettings.tsx:37
+#: src/components/settings/SMTPBridgeSettings.tsx:37
 msgid "SMTP port"
 msgstr ""
 
@@ -8239,24 +8239,24 @@ msgid "SMTP provider doesn't support delivery webhooks, so delivery status canno
 msgstr ""
 
 #: src/components/settings/SettingsSidebar.tsx:108
-#: src/components/settings/SMTPRelaySettings.tsx:12
-msgid "SMTP Relay"
+#: src/components/settings/SMTPBridgeSettings.tsx:12
+msgid "SMTP Bridge"
 msgstr ""
 
 #: src/pages/SetupWizard.tsx:577
-msgid "SMTP relay domain is required"
+msgid "SMTP bridge domain is required"
 msgstr ""
 
-#: src/components/settings/SMTPRelaySettings.tsx:58
-msgid "SMTP relay is not configured."
+#: src/components/settings/SMTPBridgeSettings.tsx:58
+msgid "SMTP bridge is not configured."
 msgstr ""
 
 #: src/pages/SetupWizard.tsx:592
-msgid "SMTP relay port is required"
+msgid "SMTP bridge port is required"
 msgstr ""
 
-#: src/components/settings/SMTPRelaySettings.tsx:13
-msgid "SMTP relay server for forwarding transactional emails"
+#: src/components/settings/SMTPBridgeSettings.tsx:13
+msgid "SMTP bridge server for forwarding transactional emails"
 msgstr ""
 
 #: src/components/settings/Integrations.tsx:1924
@@ -9116,7 +9116,7 @@ msgstr ""
 msgid "Title when shared on social media (optional)"
 msgstr ""
 
-#: src/components/settings/SMTPRelaySettings.tsx:41
+#: src/components/settings/SMTPBridgeSettings.tsx:41
 msgid "TLS"
 msgstr ""
 
@@ -9726,8 +9726,8 @@ msgstr ""
 msgid "View Raw JSON"
 msgstr ""
 
-#: src/components/settings/SMTPRelaySettings.tsx:24
-msgid "View SMTP Relay documentation and setup guide"
+#: src/components/settings/SMTPBridgeSettings.tsx:24
+msgid "View SMTP Bridge documentation and setup guide"
 msgstr ""
 
 #: src/components/email_builder/blocks/MjSectionBlock.tsx:193

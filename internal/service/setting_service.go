@@ -24,11 +24,11 @@ type SystemConfig struct {
 	SMTPEHLOHostname       string
 	TelemetryEnabled       bool
 	CheckForUpdates        bool
-	SMTPRelayEnabled       bool
-	SMTPRelayDomain        string
-	SMTPRelayPort          int
-	SMTPRelayTLSCertBase64 string
-	SMTPRelayTLSKeyBase64  string
+	SMTPBridgeEnabled       bool
+	SMTPBridgeDomain        string
+	SMTPBridgePort          int
+	SMTPBridgeTLSCertBase64 string
+	SMTPBridgeTLSKeyBase64  string
 }
 
 // SettingService provides methods for managing system settings
@@ -133,37 +133,37 @@ func (s *SettingService) GetSystemConfig(ctx context.Context, secretKey string) 
 		config.CheckForUpdates = setting.Value == "true"
 	}
 
-	// Load SMTP Relay settings
-	if setting, err := s.repo.Get(ctx, "smtp_relay_enabled"); err == nil {
-		config.SMTPRelayEnabled = setting.Value == "true"
+	// Load SMTP Bridge settings
+	if setting, err := s.repo.Get(ctx, "smtp_bridge_enabled"); err == nil {
+		config.SMTPBridgeEnabled = setting.Value == "true"
 	}
 
-	if setting, err := s.repo.Get(ctx, "smtp_relay_domain"); err == nil {
-		config.SMTPRelayDomain = setting.Value
+	if setting, err := s.repo.Get(ctx, "smtp_bridge_domain"); err == nil {
+		config.SMTPBridgeDomain = setting.Value
 	}
 
-	if setting, err := s.repo.Get(ctx, "smtp_relay_port"); err == nil && setting.Value != "" {
+	if setting, err := s.repo.Get(ctx, "smtp_bridge_port"); err == nil && setting.Value != "" {
 		if port, err := strconv.Atoi(setting.Value); err == nil {
-			config.SMTPRelayPort = port
+			config.SMTPBridgePort = port
 		}
 	}
 
-	// Load and decrypt SMTP Relay TLS certificate
-	if setting, err := s.repo.Get(ctx, "encrypted_smtp_relay_tls_cert_base64"); err == nil && setting.Value != "" {
+	// Load and decrypt SMTP Bridge TLS certificate
+	if setting, err := s.repo.Get(ctx, "encrypted_smtp_bridge_tls_cert_base64"); err == nil && setting.Value != "" {
 		decrypted, err := crypto.DecryptFromHexString(setting.Value, secretKey)
 		if err != nil {
-			return nil, fmt.Errorf("failed to decrypt SMTP relay TLS certificate: %w", err)
+			return nil, fmt.Errorf("failed to decrypt SMTP bridge TLS certificate: %w", err)
 		}
-		config.SMTPRelayTLSCertBase64 = decrypted
+		config.SMTPBridgeTLSCertBase64 = decrypted
 	}
 
-	// Load and decrypt SMTP Relay TLS key
-	if setting, err := s.repo.Get(ctx, "encrypted_smtp_relay_tls_key_base64"); err == nil && setting.Value != "" {
+	// Load and decrypt SMTP Bridge TLS key
+	if setting, err := s.repo.Get(ctx, "encrypted_smtp_bridge_tls_key_base64"); err == nil && setting.Value != "" {
 		decrypted, err := crypto.DecryptFromHexString(setting.Value, secretKey)
 		if err != nil {
-			return nil, fmt.Errorf("failed to decrypt SMTP relay TLS key: %w", err)
+			return nil, fmt.Errorf("failed to decrypt SMTP bridge TLS key: %w", err)
 		}
-		config.SMTPRelayTLSKeyBase64 = decrypted
+		config.SMTPBridgeTLSKeyBase64 = decrypted
 	}
 
 	return config, nil
@@ -275,48 +275,48 @@ func (s *SettingService) SetSystemConfig(ctx context.Context, config *SystemConf
 		return fmt.Errorf("failed to set check_for_updates: %w", err)
 	}
 
-	// Set SMTP Relay enabled
-	smtpRelayEnabledValue := "false"
-	if config.SMTPRelayEnabled {
-		smtpRelayEnabledValue = "true"
+	// Set SMTP Bridge enabled
+	smtpBridgeEnabledValue := "false"
+	if config.SMTPBridgeEnabled {
+		smtpBridgeEnabledValue = "true"
 	}
-	if err := s.repo.Set(ctx, "smtp_relay_enabled", smtpRelayEnabledValue); err != nil {
-		return fmt.Errorf("failed to set smtp_relay_enabled: %w", err)
+	if err := s.repo.Set(ctx, "smtp_bridge_enabled", smtpBridgeEnabledValue); err != nil {
+		return fmt.Errorf("failed to set smtp_bridge_enabled: %w", err)
 	}
 
-	// Set SMTP Relay domain
-	if config.SMTPRelayDomain != "" {
-		if err := s.repo.Set(ctx, "smtp_relay_domain", config.SMTPRelayDomain); err != nil {
-			return fmt.Errorf("failed to set smtp_relay_domain: %w", err)
+	// Set SMTP Bridge domain
+	if config.SMTPBridgeDomain != "" {
+		if err := s.repo.Set(ctx, "smtp_bridge_domain", config.SMTPBridgeDomain); err != nil {
+			return fmt.Errorf("failed to set smtp_bridge_domain: %w", err)
 		}
 	}
 
-	// Set SMTP Relay port
-	if config.SMTPRelayPort > 0 {
-		if err := s.repo.Set(ctx, "smtp_relay_port", strconv.Itoa(config.SMTPRelayPort)); err != nil {
-			return fmt.Errorf("failed to set smtp_relay_port: %w", err)
+	// Set SMTP Bridge port
+	if config.SMTPBridgePort > 0 {
+		if err := s.repo.Set(ctx, "smtp_bridge_port", strconv.Itoa(config.SMTPBridgePort)); err != nil {
+			return fmt.Errorf("failed to set smtp_bridge_port: %w", err)
 		}
 	}
 
-	// Encrypt and store SMTP Relay TLS certificate
-	if config.SMTPRelayTLSCertBase64 != "" {
-		encrypted, err := crypto.EncryptString(config.SMTPRelayTLSCertBase64, secretKey)
+	// Encrypt and store SMTP Bridge TLS certificate
+	if config.SMTPBridgeTLSCertBase64 != "" {
+		encrypted, err := crypto.EncryptString(config.SMTPBridgeTLSCertBase64, secretKey)
 		if err != nil {
-			return fmt.Errorf("failed to encrypt SMTP relay TLS certificate: %w", err)
+			return fmt.Errorf("failed to encrypt SMTP bridge TLS certificate: %w", err)
 		}
-		if err := s.repo.Set(ctx, "encrypted_smtp_relay_tls_cert_base64", encrypted); err != nil {
-			return fmt.Errorf("failed to set encrypted_smtp_relay_tls_cert_base64: %w", err)
+		if err := s.repo.Set(ctx, "encrypted_smtp_bridge_tls_cert_base64", encrypted); err != nil {
+			return fmt.Errorf("failed to set encrypted_smtp_bridge_tls_cert_base64: %w", err)
 		}
 	}
 
-	// Encrypt and store SMTP Relay TLS key
-	if config.SMTPRelayTLSKeyBase64 != "" {
-		encrypted, err := crypto.EncryptString(config.SMTPRelayTLSKeyBase64, secretKey)
+	// Encrypt and store SMTP Bridge TLS key
+	if config.SMTPBridgeTLSKeyBase64 != "" {
+		encrypted, err := crypto.EncryptString(config.SMTPBridgeTLSKeyBase64, secretKey)
 		if err != nil {
-			return fmt.Errorf("failed to encrypt SMTP relay TLS key: %w", err)
+			return fmt.Errorf("failed to encrypt SMTP bridge TLS key: %w", err)
 		}
-		if err := s.repo.Set(ctx, "encrypted_smtp_relay_tls_key_base64", encrypted); err != nil {
-			return fmt.Errorf("failed to set encrypted_smtp_relay_tls_key_base64: %w", err)
+		if err := s.repo.Set(ctx, "encrypted_smtp_bridge_tls_key_base64", encrypted); err != nil {
+			return fmt.Errorf("failed to set encrypted_smtp_bridge_tls_key_base64: %w", err)
 		}
 	}
 

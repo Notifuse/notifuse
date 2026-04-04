@@ -40,12 +40,12 @@ services:
       # - SMTP_FROM_EMAIL=${SMTP_FROM_EMAIL}
       # - SMTP_FROM_NAME=${SMTP_FROM_NAME}
 
-      # SMTP Relay Configuration (Optional - for receiving inbound emails)
-      # - SMTP_RELAY_ENABLED=${SMTP_RELAY_ENABLED}
-      # - SMTP_RELAY_PORT=${SMTP_RELAY_PORT}
-      # - SMTP_RELAY_DOMAIN=${SMTP_RELAY_DOMAIN}
-      # - SMTP_RELAY_TLS_CERT_BASE64=${SMTP_RELAY_TLS_CERT_BASE64}
-      # - SMTP_RELAY_TLS_KEY_BASE64=${SMTP_RELAY_TLS_KEY_BASE64}
+      # SMTP Bridge Configuration (Optional - for receiving inbound emails)
+      # - SMTP_BRIDGE_ENABLED=${SMTP_BRIDGE_ENABLED}
+      # - SMTP_BRIDGE_PORT=${SMTP_BRIDGE_PORT}
+      # - SMTP_BRIDGE_DOMAIN=${SMTP_BRIDGE_DOMAIN}
+      # - SMTP_BRIDGE_TLS_CERT_BASE64=${SMTP_BRIDGE_TLS_CERT_BASE64}
+      # - SMTP_BRIDGE_TLS_KEY_BASE64=${SMTP_BRIDGE_TLS_KEY_BASE64}
     depends_on:
       - postgres
     volumes:

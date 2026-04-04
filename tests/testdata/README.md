@@ -15,7 +15,7 @@ testdata/
 
 ## Certificates
 
-The `certs/` directory contains self-signed TLS certificates used for testing the SMTP relay server with STARTTLS support.
+The `certs/` directory contains self-signed TLS certificates used for testing the SMTP bridge server with STARTTLS support.
 
 ### Key Details
 
@@ -26,7 +26,7 @@ The `certs/` directory contains self-signed TLS certificates used for testing th
 
 ### Usage
 
-These certificates are automatically loaded by the SMTP relay e2e tests:
+These certificates are automatically loaded by the SMTP bridge e2e tests:
 
 ```go
 certPath := filepath.Join("..", "testdata", "certs", "test_cert.pem")
@@ -68,5 +68,5 @@ All test data should be:
 
 - [Integration Test Guide](../README.md)
 - [TLS Certificate Documentation](certs/README.md)
-- [SMTP Relay Testing](../../SMTP_RELAY_TESTING.md)
+- [SMTP Bridge Testing](../../SMTP_BRIDGE_TESTING.md)
 

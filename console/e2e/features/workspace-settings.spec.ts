@@ -274,16 +274,16 @@ test.describe('Workspace Settings Feature', () => {
     })
   })
 
-  test.describe('SMTP Relay Settings', () => {
-    test('loads SMTP relay settings page', async ({ authenticatedPageWithData }) => {
+  test.describe('SMTP Bridge Settings', () => {
+    test('loads SMTP bridge settings page', async ({ authenticatedPageWithData }) => {
       const page = authenticatedPageWithData
 
-      await page.goto(`/console/workspace/${WORKSPACE_ID}/settings/smtp-relay`)
+      await page.goto(`/console/workspace/${WORKSPACE_ID}/settings/smtp-bridge`)
       await waitForLoading(page)
 
       // Page should load
       await expect(page.locator('body')).toBeVisible()
-      await expect(page).toHaveURL(/settings\/smtp-relay/)
+      await expect(page).toHaveURL(/settings\/smtp-bridge/)
     })
   })
 
@@ -338,7 +338,7 @@ test.describe('Workspace Settings Feature', () => {
         settingsSidebar.locator('.ant-menu-item').filter({ hasText: 'Custom Fields' })
       ).toBeVisible()
       await expect(
-        settingsSidebar.locator('.ant-menu-item').filter({ hasText: 'SMTP Relay' })
+        settingsSidebar.locator('.ant-menu-item').filter({ hasText: 'SMTP Bridge' })
       ).toBeVisible()
       await expect(
         settingsSidebar.locator('.ant-menu-item').filter({ hasText: 'General' })

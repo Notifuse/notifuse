@@ -17,8 +17,8 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-// SMTPRelayHandlerService handles incoming SMTP relay messages and converts them to transactional notifications
-type SMTPRelayHandlerService struct {
+// SMTPBridgeHandlerService handles incoming SMTP bridge messages and converts them to transactional notifications
+type SMTPBridgeHandlerService struct {
 	authService                      *AuthService
 	transactionalNotificationService domain.TransactionalNotificationService
 	workspaceRepo                    domain.WorkspaceRepository
@@ -27,16 +27,16 @@ type SMTPRelayHandlerService struct {
 	rateLimiter                      *ratelimiter.RateLimiter
 }
 
-// NewSMTPRelayHandlerService creates a new SMTP relay handler service
-func NewSMTPRelayHandlerService(
+// NewSMTPBridgeHandlerService creates a new SMTP bridge handler service
+func NewSMTPBridgeHandlerService(
 	authService *AuthService,
 	transactionalNotificationService domain.TransactionalNotificationService,
 	workspaceRepo domain.WorkspaceRepository,
 	logger logger.Logger,
 	jwtSecret []byte,
 	rateLimiter *ratelimiter.RateLimiter,
-) *SMTPRelayHandlerService {
-	return &SMTPRelayHandlerService{
+) *SMTPBridgeHandlerService {
+	return &SMTPBridgeHandlerService{
 		authService:                      authService,
 		transactionalNotificationService: transactionalNotificationService,
 		workspaceRepo:                    workspaceRepo,
@@ -49,13 +49,13 @@ func NewSMTPRelayHandlerService(
 // Authenticate validates the SMTP credentials (api_email and api_key)
 // Returns the user_id if authentication succeeds
 // Note: workspace_id will be extracted from the JSON payload in the email body
-func (s *SMTPRelayHandlerService) Authenticate(username, password string) (string, error) {
+func (s *SMTPBridgeHandlerService) Authenticate(username, password string) (string, error) {
 	apiEmail := username
 	apiKey := password
 
 	// Check rate limit
 	if !s.rateLimiter.Allow("smtp", apiEmail) {
-		s.logger.WithField("api_email", apiEmail).Warn("SMTP relay: Rate limit exceeded")
+		s.logger.WithField("api_email", apiEmail).Warn("SMTP bridge: Rate limit exceeded")
 		return "", fmt.Errorf("rate limit exceeded")
 	}
 
@@ -73,12 +73,12 @@ func (s *SMTPRelayHandlerService) Authenticate(username, password string) (strin
 		s.logger.WithFields(map[string]interface{}{
 			"api_email": apiEmail,
 			"error":     err.Error(),
-		}).Warn("SMTP relay: Invalid API key token")
+		}).Warn("SMTP bridge: Invalid API key token")
 		return "", fmt.Errorf("invalid API key: %w", err)
 	}
 
 	if !token.Valid {
-		s.logger.WithField("api_email", apiEmail).Warn("SMTP relay: Invalid API key token")
+		s.logger.WithField("api_email", apiEmail).Warn("SMTP bridge: Invalid API key token")
 		return "", fmt.Errorf("invalid API key token")
 	}
 
@@ -87,7 +87,7 @@ func (s *SMTPRelayHandlerService) Authenticate(username, password string) (strin
 		s.logger.WithFields(map[string]interface{}{
 			"api_email": apiEmail,
 			"user_type": claims.Type,
-		}).Warn("SMTP relay: Token is not an API key")
+		}).Warn("SMTP bridge: Token is not an API key")
 		return "", fmt.Errorf("token must be an API key")
 	}
 
@@ -97,14 +97,14 @@ func (s *SMTPRelayHandlerService) Authenticate(username, password string) (strin
 			"api_email":   apiEmail,
 			"token_email": claims.Email,
 			"user_id":     claims.UserID,
-		}).Warn("SMTP relay: Email mismatch")
+		}).Warn("SMTP bridge: Email mismatch")
 		return "", fmt.Errorf("email does not match token")
 	}
 
 	s.logger.WithFields(map[string]interface{}{
 		"api_email": apiEmail,
 		"user_id":   claims.UserID,
-	}).Info("SMTP relay: Authentication successful")
+	}).Info("SMTP bridge: Authentication successful")
 
 	// Reset rate limit on successful authentication
 	s.rateLimiter.Reset("smtp", apiEmail)
@@ -115,13 +115,13 @@ func (s *SMTPRelayHandlerService) Authenticate(username, password string) (strin
 
 // HandleMessage processes an incoming SMTP message and triggers a transactional notification
 // The userID parameter is the authenticated API key user's ID
-func (s *SMTPRelayHandlerService) HandleMessage(userID string, from string, to []string, data []byte) error {
+func (s *SMTPBridgeHandlerService) HandleMessage(userID string, from string, to []string, data []byte) error {
 	s.logger.WithFields(map[string]interface{}{
 		"user_id": userID,
 		"from":    from,
 		"to":      to,
 		"size":    len(data),
-	}).Debug("SMTP relay: Processing message")
+	}).Debug("SMTP bridge: Processing message")
 
 	// Parse the email message
 	msg, err := mail.ReadMessage(bytes.NewReader(data))
@@ -129,7 +129,7 @@ func (s *SMTPRelayHandlerService) HandleMessage(userID string, from string, to [
 		s.logger.WithFields(map[string]interface{}{
 			"user_id": userID,
 			"error":   err.Error(),
-		}).Error("SMTP relay: Failed to parse email message")
+		}).Error("SMTP bridge: Failed to parse email message")
 		return fmt.Errorf("failed to parse email: %w", err)
 	}
 
@@ -149,7 +149,7 @@ func (s *SMTPRelayHandlerService) HandleMessage(userID string, from string, to [
 		s.logger.WithFields(map[string]interface{}{
 			"user_id": userID,
 			"error":   err.Error(),
-		}).Error("SMTP relay: Failed to extract JSON payload")
+		}).Error("SMTP bridge: Failed to extract JSON payload")
 		return fmt.Errorf("failed to extract JSON payload: %w", err)
 	}
 
@@ -163,13 +163,13 @@ func (s *SMTPRelayHandlerService) HandleMessage(userID string, from string, to [
 		s.logger.WithFields(map[string]interface{}{
 			"user_id": userID,
 			"error":   err.Error(),
-		}).Error("SMTP relay: Failed to parse JSON payload")
+		}).Error("SMTP bridge: Failed to parse JSON payload")
 		return fmt.Errorf("email body is not valid JSON: %w", err)
 	}
 
 	// Validate workspace_id is provided
 	if payload.WorkspaceID == "" {
-		s.logger.WithField("user_id", userID).Error("SMTP relay: Missing workspace_id in payload")
+		s.logger.WithField("user_id", userID).Error("SMTP bridge: Missing workspace_id in payload")
 		return fmt.Errorf("workspace_id is required in JSON payload")
 	}
 
@@ -186,7 +186,7 @@ func (s *SMTPRelayHandlerService) HandleMessage(userID string, from string, to [
 			"user_id":      userID,
 			"workspace_id": workspaceID,
 			"error":        err.Error(),
-		}).Warn("SMTP relay: User does not have access to workspace")
+		}).Warn("SMTP bridge: User does not have access to workspace")
 		return fmt.Errorf("user does not have access to workspace: %w", err)
 	}
 
@@ -194,7 +194,7 @@ func (s *SMTPRelayHandlerService) HandleMessage(userID string, from string, to [
 		s.logger.WithFields(map[string]interface{}{
 			"user_id":      userID,
 			"workspace_id": workspaceID,
-		}).Warn("SMTP relay: User workspace not found")
+		}).Warn("SMTP bridge: User workspace not found")
 		return fmt.Errorf("user does not have access to workspace")
 	}
 
@@ -207,7 +207,7 @@ func (s *SMTPRelayHandlerService) HandleMessage(userID string, from string, to [
 		s.logger.WithFields(map[string]interface{}{
 			"user_id":    userID,
 			"message_id": messageID,
-		}).Debug("SMTP relay: Using Message-ID as external_id")
+		}).Debug("SMTP bridge: Using Message-ID as external_id")
 	}
 
 	// Validate the notification parameters
@@ -222,7 +222,7 @@ func (s *SMTPRelayHandlerService) HandleMessage(userID string, from string, to [
 	}
 
 	// Set SystemCallKey in context to skip authentication in SendNotification
-	// since we've already authenticated the user via JWT token in the SMTP relay
+	// since we've already authenticated the user via JWT token in the SMTP bridge
 	systemCtx := context.WithValue(ctx, domain.SystemCallKey, true)
 
 	// Send the transactional notification
@@ -232,7 +232,7 @@ func (s *SMTPRelayHandlerService) HandleMessage(userID string, from string, to [
 			"workspace_id":    workspaceID,
 			"notification_id": payload.Notification.ID,
 			"error":           err.Error(),
-		}).Error("SMTP relay: Failed to send notification")
+		}).Error("SMTP bridge: Failed to send notification")
 		return fmt.Errorf("failed to send notification: %w", err)
 	}
 
@@ -240,13 +240,13 @@ func (s *SMTPRelayHandlerService) HandleMessage(userID string, from string, to [
 		"workspace_id":    workspaceID,
 		"notification_id": payload.Notification.ID,
 		"message_id":      sentMessageID,
-	}).Info("SMTP relay: Notification sent successfully")
+	}).Info("SMTP bridge: Notification sent successfully")
 
 	return nil
 }
 
 // extractJSONPayload extracts the JSON payload from the email body
-func (s *SMTPRelayHandlerService) extractJSONPayload(msg *mail.Message) ([]byte, error) {
+func (s *SMTPBridgeHandlerService) extractJSONPayload(msg *mail.Message) ([]byte, error) {
 	contentType := msg.Header.Get("Content-Type")
 
 	// Handle multipart messages
@@ -312,7 +312,7 @@ type extractedEmailHeaders struct {
 }
 
 // extractEmailHeaders extracts CC, BCC, and Reply-To from email headers
-func (s *SMTPRelayHandlerService) extractEmailHeaders(msg *mail.Message) *extractedEmailHeaders {
+func (s *SMTPBridgeHandlerService) extractEmailHeaders(msg *mail.Message) *extractedEmailHeaders {
 	headers := &extractedEmailHeaders{}
 
 	// Extract CC
@@ -367,25 +367,25 @@ func parseEmailAddresses(addressList string) []string {
 
 // mergeEmailHeaders merges extracted email headers into the notification payload
 // JSON payload takes precedence over email headers
-func (s *SMTPRelayHandlerService) mergeEmailHeaders(
+func (s *SMTPBridgeHandlerService) mergeEmailHeaders(
 	notification *domain.TransactionalNotificationSendParams,
 	headers *extractedEmailHeaders,
 ) {
 	// Only set CC if not already specified in JSON and headers have values
 	if len(notification.EmailOptions.CC) == 0 && len(headers.CC) > 0 {
 		notification.EmailOptions.CC = headers.CC
-		s.logger.WithField("cc", headers.CC).Debug("SMTP relay: Using CC from email headers")
+		s.logger.WithField("cc", headers.CC).Debug("SMTP bridge: Using CC from email headers")
 	}
 
 	// Only set BCC if not already specified in JSON and headers have values
 	if len(notification.EmailOptions.BCC) == 0 && len(headers.BCC) > 0 {
 		notification.EmailOptions.BCC = headers.BCC
-		s.logger.WithField("bcc", headers.BCC).Debug("SMTP relay: Using BCC from email headers")
+		s.logger.WithField("bcc", headers.BCC).Debug("SMTP bridge: Using BCC from email headers")
 	}
 
 	// Only set Reply-To if not already specified in JSON and header has a value
 	if notification.EmailOptions.ReplyTo == "" && headers.ReplyTo != "" {
 		notification.EmailOptions.ReplyTo = headers.ReplyTo
-		s.logger.WithField("reply_to", headers.ReplyTo).Debug("SMTP relay: Using Reply-To from email headers")
+		s.logger.WithField("reply_to", headers.ReplyTo).Debug("SMTP bridge: Using Reply-To from email headers")
 	}
 }

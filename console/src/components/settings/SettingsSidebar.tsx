@@ -13,7 +13,7 @@ export type SettingsSection =
   | 'integrations'
   | 'webhooks'
   | 'custom-fields'
-  | 'smtp-relay'
+  | 'smtp-bridge'
   | 'general'
   | 'blog'
   | 'danger-zone'
@@ -103,9 +103,9 @@ export function SettingsSidebar({ activeSection, onSectionChange, isOwner }: Set
       label: t`Custom Fields`
     },
     {
-      key: 'smtp-relay',
+      key: 'smtp-bridge',
       icon: <MailOutlined />,
-      label: t`SMTP Relay`
+      label: t`SMTP Bridge`
     },
     {
       key: 'general',

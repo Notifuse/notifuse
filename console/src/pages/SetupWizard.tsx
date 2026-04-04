@@ -22,12 +22,12 @@ export default function SetupWizard() {
     smtp_configured: boolean
     api_endpoint_configured: boolean
     root_email_configured: boolean
-    smtp_relay_configured: boolean
+    smtp_bridge_configured: boolean
   }>({
     smtp_configured: false,
     api_endpoint_configured: false,
     root_email_configured: false,
-    smtp_relay_configured: false
+    smtp_bridge_configured: false
   })
   const { message } = App.useApp()
 
@@ -49,7 +49,7 @@ export default function SetupWizard() {
           smtp_configured: status.smtp_configured,
           api_endpoint_configured: status.api_endpoint_configured,
           root_email_configured: status.root_email_configured,
-          smtp_relay_configured: status.smtp_relay_configured
+          smtp_bridge_configured: status.smtp_bridge_configured
         })
       } catch {
         message.error(t`Failed to fetch setup status`)
@@ -114,14 +114,14 @@ export default function SetupWizard() {
         setupConfig.smtp_use_tls = typeof values.smtp_use_tls === 'boolean' ? values.smtp_use_tls : true
       }
 
-      // SMTP Relay configuration (only if not configured via env)
-      if (!configStatus.smtp_relay_configured) {
-        setupConfig.smtp_relay_enabled = typeof values.smtp_relay_enabled === 'boolean' ? values.smtp_relay_enabled : false
-        if (values.smtp_relay_enabled) {
-          setupConfig.smtp_relay_domain = typeof values.smtp_relay_domain === 'string' ? values.smtp_relay_domain : undefined
-          setupConfig.smtp_relay_port = typeof values.smtp_relay_port === 'number' ? values.smtp_relay_port : 587
-          setupConfig.smtp_relay_tls_cert_base64 = typeof values.smtp_relay_tls_cert_base64 === 'string' ? values.smtp_relay_tls_cert_base64 : undefined
-          setupConfig.smtp_relay_tls_key_base64 = typeof values.smtp_relay_tls_key_base64 === 'string' ? values.smtp_relay_tls_key_base64 : undefined
+      // SMTP Bridge configuration (only if not configured via env)
+      if (!configStatus.smtp_bridge_configured) {
+        setupConfig.smtp_bridge_enabled = typeof values.smtp_bridge_enabled === 'boolean' ? values.smtp_bridge_enabled : false
+        if (values.smtp_bridge_enabled) {
+          setupConfig.smtp_bridge_domain = typeof values.smtp_bridge_domain === 'string' ? values.smtp_bridge_domain : undefined
+          setupConfig.smtp_bridge_port = typeof values.smtp_bridge_port === 'number' ? values.smtp_bridge_port : 587
+          setupConfig.smtp_bridge_tls_cert_base64 = typeof values.smtp_bridge_tls_cert_base64 === 'string' ? values.smtp_bridge_tls_cert_base64 : undefined
+          setupConfig.smtp_bridge_tls_key_base64 = typeof values.smtp_bridge_tls_key_base64 === 'string' ? values.smtp_bridge_tls_key_base64 : undefined
         }
       }
 
@@ -547,15 +547,15 @@ export default function SetupWizard() {
                               </Col>
                             </Row>
 
-                            {/* SMTP Relay Configuration - Hidden if configured via env */}
-                            {!configStatus.smtp_relay_configured && (
+                            {/* SMTP Bridge Configuration - Hidden if configured via env */}
+                            {!configStatus.smtp_bridge_configured && (
                               <>
                                 <Divider style={{ marginTop: 24, marginBottom: 24 }} />
 
                                 <Form.Item
-                                  name="smtp_relay_enabled"
+                                  name="smtp_bridge_enabled"
                                   valuePropName="checked"
-                                  label={t`Enable SMTP Relay Server`}
+                                  label={t`Enable SMTP Bridge Server`}
                                   tooltip={t`Allow receiving emails to trigger transactional notifications. Requires TLS certificates.`}
                                 >
                                   <Switch />
@@ -564,12 +564,12 @@ export default function SetupWizard() {
                                 <Form.Item
                                   noStyle
                                   shouldUpdate={(prevValues, currentValues) =>
-                                    prevValues.smtp_relay_enabled !==
-                                    currentValues.smtp_relay_enabled
+                                    prevValues.smtp_bridge_enabled !==
+                                    currentValues.smtp_bridge_enabled
                                   }
                                 >
                                   {({ getFieldValue }) =>
-                                    getFieldValue('smtp_relay_enabled') ? (
+                                    getFieldValue('smtp_bridge_enabled') ? (
                                       <div
                                         style={{
                                           marginTop: 16,
@@ -579,29 +579,29 @@ export default function SetupWizard() {
                                       >
                                         <Form.Item
                                           label={t`Domain`}
-                                          name="smtp_relay_domain"
+                                          name="smtp_bridge_domain"
                                           rules={[
                                             {
                                               required: true,
-                                              message: t`SMTP relay domain is required`
+                                              message: t`SMTP bridge domain is required`
                                             }
                                           ]}
-                                          tooltip={t`Domain for the SMTP relay server (e.g., smtp.yourcompany.com)`}
+                                          tooltip={t`Domain for the SMTP bridge server (e.g., smtp.yourcompany.com)`}
                                         >
                                           <Input placeholder="smtp.yourcompany.com" />
                                         </Form.Item>
 
                                         <Form.Item
                                           label={t`Port`}
-                                          name="smtp_relay_port"
+                                          name="smtp_bridge_port"
                                           initialValue={587}
                                           rules={[
                                             {
                                               required: true,
-                                              message: t`SMTP relay port is required`
+                                              message: t`SMTP bridge port is required`
                                             }
                                           ]}
-                                          tooltip={t`Port for the SMTP relay server (default: 587)`}
+                                          tooltip={t`Port for the SMTP bridge server (default: 587)`}
                                         >
                                           <InputNumber
                                             min={1}
@@ -612,7 +612,7 @@ export default function SetupWizard() {
 
                                         <Form.Item
                                           label={t`TLS Certificate (Base64)`}
-                                          name="smtp_relay_tls_cert_base64"
+                                          name="smtp_bridge_tls_cert_base64"
                                           rules={[
                                             {
                                               required: true,
@@ -630,7 +630,7 @@ export default function SetupWizard() {
 
                                         <Form.Item
                                           label={t`TLS Private Key (Base64)`}
-                                          name="smtp_relay_tls_key_base64"
+                                          name="smtp_bridge_tls_key_base64"
                                           rules={[
                                             {
                                               required: true,

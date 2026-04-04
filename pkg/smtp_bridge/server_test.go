@@ -1,4 +1,4 @@
-package smtp_relay
+package smtp_bridge
 
 import (
 	"context"
@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Notifuse/notifuse/pkg/mocks"
+	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

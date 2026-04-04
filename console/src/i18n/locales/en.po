@@ -421,7 +421,7 @@ msgstr "Activate automation?"
 #: src/components/contacts/ContactDetailsDrawer.tsx:581
 #: src/components/contacts/SegmentsFilter.tsx:53
 #: src/components/lists/ListStats.tsx:66
-#: src/pages/ContactsPage.tsx:215
+#: src/pages/ContactsPage.tsx:226
 msgid "Active"
 msgstr "Active"
 
@@ -430,7 +430,7 @@ msgid "Active filters"
 msgstr "Active filters"
 
 #: src/components/analytics/NewContactsTable.tsx:88
-#: src/pages/ContactsPage.tsx:434
+#: src/pages/ContactsPage.tsx:397
 msgid "Active subscriber"
 msgstr "Active subscriber"
 
@@ -445,7 +445,7 @@ msgstr "Activity"
 #: src/components/broadcasts/HeadersEditor.tsx:54
 #: src/components/broadcasts/HeadersEditor.tsx:102
 #: src/components/segment/input_json_path.tsx:98
-#: src/pages/ContactsPage.tsx:941
+#: src/pages/ContactsPage.tsx:904
 msgid "Add"
 msgstr "Add"
 
@@ -605,8 +605,8 @@ msgid "Add Webhook"
 msgstr "Add Webhook"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:117
-#: src/pages/ContactsPage.tsx:256
-#: src/pages/ContactsPage.tsx:593
+#: src/pages/ContactsPage.tsx:267
+#: src/pages/ContactsPage.tsx:556
 msgid "Address"
 msgstr "Address"
 
@@ -1394,7 +1394,7 @@ msgstr "Bounce Type"
 #: src/components/messages/MessageHistoryTab.tsx:166
 #: src/components/messages/MessageHistoryTab.tsx:171
 #: src/components/messages/MessageHistoryTable.tsx:298
-#: src/pages/ContactsPage.tsx:218
+#: src/pages/ContactsPage.tsx:229
 #: src/pages/TransactionalNotificationsPage.tsx:249
 msgid "Bounced"
 msgstr "Bounced"
@@ -1520,7 +1520,7 @@ msgstr "Building"
 msgid "Building segment"
 msgstr "Building segment"
 
-#: src/pages/ContactsPage.tsx:922
+#: src/pages/ContactsPage.tsx:885
 msgid "Bulk Update"
 msgstr "Bulk Update"
 
@@ -1751,7 +1751,7 @@ msgstr "Choose when to publish \"{0}\""
 
 #: src/components/contacts/InlineEditableField.tsx:308
 #: src/components/email_builder/ui/ImportFontInput.tsx:169
-#: src/components/filters/Filter.tsx:192
+#: src/components/filters/Filter.tsx:193
 #: src/components/messages/MessageHistoryTab.tsx:553
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:312
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:322
@@ -1917,7 +1917,7 @@ msgstr "Complain email"
 #: src/components/messages/MessageHistoryTab.tsx:182
 #: src/components/messages/MessageHistoryTab.tsx:184
 #: src/components/messages/MessageHistoryTable.tsx:306
-#: src/pages/ContactsPage.tsx:219
+#: src/pages/ContactsPage.tsx:230
 msgid "Complained"
 msgstr "Complained"
 
@@ -2031,8 +2031,8 @@ msgstr "Configured"
 msgid "Configuring {0}"
 msgstr "Configuring {0}"
 
-#: src/components/filters/Filter.tsx:184
-#: src/components/filters/Filter.tsx:203
+#: src/components/filters/Filter.tsx:185
+#: src/components/filters/Filter.tsx:204
 #: src/components/segment/button_upsert.tsx:356
 #: src/components/segment/form_leaf.tsx:101
 #: src/components/segment/form_leaf.tsx:218
@@ -2080,7 +2080,7 @@ msgstr "Contact added to list successfully"
 msgid "Contact created successfully"
 msgstr "Contact created successfully"
 
-#: src/pages/ContactsPage.tsx:139
+#: src/pages/ContactsPage.tsx:150
 msgid "Contact deleted successfully"
 msgstr "Contact deleted successfully"
 
@@ -2129,7 +2129,7 @@ msgid "Contact updated successfully"
 msgstr "Contact updated successfully"
 
 #: src/layouts/WorkspaceLayout.tsx:236
-#: src/pages/ContactsPage.tsx:877
+#: src/pages/ContactsPage.tsx:840
 msgid "Contacts"
 msgstr "Contacts"
 
@@ -2218,9 +2218,9 @@ msgstr "Cost"
 #: src/components/contacts/ContactDetailsDrawer.tsx:446
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:94
 #: src/components/contacts/ExportContactsModal.tsx:65
-#: src/pages/ContactsPage.tsx:199
-#: src/pages/ContactsPage.tsx:253
-#: src/pages/ContactsPage.tsx:575
+#: src/pages/ContactsPage.tsx:210
+#: src/pages/ContactsPage.tsx:264
+#: src/pages/ContactsPage.tsx:538
 msgid "Country"
 msgstr "Country"
 
@@ -2385,8 +2385,8 @@ msgstr "Created"
 #: src/components/contacts/ContactDetailsDrawer.tsx:535
 #: src/components/messages/MessageHistoryTable.tsx:135
 #: src/components/messages/MessageHistoryTable.tsx:336
-#: src/pages/ContactsPage.tsx:258
-#: src/pages/ContactsPage.tsx:613
+#: src/pages/ContactsPage.tsx:269
+#: src/pages/ContactsPage.tsx:576
 msgid "Created At"
 msgstr "Created At"
 
@@ -2748,7 +2748,7 @@ msgstr "Delay"
 #: src/components/settings/Integrations.tsx:1405
 #: src/components/settings/WebhookCard.tsx:239
 #: src/pages/BroadcastsPage.tsx:1427
-#: src/pages/ContactsPage.tsx:823
+#: src/pages/ContactsPage.tsx:786
 #: src/pages/ListsPage.tsx:328
 msgid "Delete"
 msgstr "Delete"
@@ -2961,7 +2961,7 @@ msgstr "Disable webhook"
 #: src/components/settings/BlogSettings.tsx:210
 #: src/components/settings/GeneralSettings.tsx:143
 #: src/components/settings/Integrations.tsx:1308
-#: src/components/settings/SMTPRelaySettings.tsx:50
+#: src/components/settings/SMTPBridgeSettings.tsx:50
 #: src/components/templates/TemplateTranslationsTab.tsx:204
 msgid "Disabled"
 msgstr "Disabled"
@@ -3034,8 +3034,8 @@ msgid "Domain"
 msgstr "Domain"
 
 #: src/pages/SetupWizard.tsx:589
-msgid "Domain for the SMTP relay server (e.g., smtp.yourcompany.com)"
-msgstr "Domain for the SMTP relay server (e.g., smtp.yourcompany.com)"
+msgid "Domain for the SMTP bridge server (e.g., smtp.yourcompany.com)"
+msgstr "Domain for the SMTP bridge server (e.g., smtp.yourcompany.com)"
 
 #: src/components/seo/SEOSettingsForm.tsx:85
 #: src/components/seo/SEOSettingsForm.tsx:198
@@ -3175,7 +3175,7 @@ msgstr "edit"
 #: src/components/settings/Integrations.tsx:1331
 #: src/components/settings/Integrations.tsx:1389
 #: src/components/settings/WebhookCard.tsx:245
-#: src/pages/ContactsPage.tsx:817
+#: src/pages/ContactsPage.tsx:780
 #: src/pages/TransactionalNotificationsPage.tsx:155
 msgid "Edit"
 msgstr "Edit"
@@ -3347,8 +3347,8 @@ msgstr "email"
 #: src/components/settings/Integrations.tsx:2191
 #: src/components/settings/WorkspaceMembers.tsx:77
 #: src/components/timeline/ContactTimeline.tsx:505
-#: src/pages/ContactsPage.tsx:192
-#: src/pages/ContactsPage.tsx:407
+#: src/pages/ContactsPage.tsx:203
+#: src/pages/ContactsPage.tsx:370
 #: src/pages/SignInPage.tsx:142
 #: src/pages/SignInPage.tsx:149
 msgid "Email"
@@ -3377,7 +3377,7 @@ msgid "Email Body Payload"
 msgstr "Email Body Payload"
 
 #: src/components/analytics/NewContactsTable.tsx:105
-#: src/pages/ContactsPage.tsx:451
+#: src/pages/ContactsPage.tsx:414
 msgid "Email bounced"
 msgstr "Email bounced"
 
@@ -3504,8 +3504,8 @@ msgid "Enable closed captions by default"
 msgstr "Enable closed captions by default"
 
 #: src/pages/SetupWizard.tsx:558
-msgid "Enable SMTP Relay Server"
-msgstr "Enable SMTP Relay Server"
+msgid "Enable SMTP Bridge Server"
+msgstr "Enable SMTP Bridge Server"
 
 #: src/components/settings/BlogSettings.tsx:278
 msgid "Enable the blog feature to publish articles and content on your custom domain homepage. Your blog will be accessible at"
@@ -3534,7 +3534,7 @@ msgstr "Enable webhook"
 #: src/components/settings/BlogSettings.tsx:205
 #: src/components/settings/GeneralSettings.tsx:138
 #: src/components/settings/Integrations.tsx:1304
-#: src/components/settings/SMTPRelaySettings.tsx:45
+#: src/components/settings/SMTPBridgeSettings.tsx:45
 #: src/components/templates/TemplateTranslationsTab.tsx:203
 msgid "Enabled"
 msgstr "Enabled"
@@ -3868,7 +3868,7 @@ msgstr "Expires:"
 #: src/components/contacts/ExportContactsModal.tsx:323
 #: src/components/email_builder/MjmlCodeEditor.tsx:626
 #: src/components/templates/ImportExportButton.tsx:416
-#: src/pages/ContactsPage.tsx:900
+#: src/pages/ContactsPage.tsx:863
 msgid "Export"
 msgstr "Export"
 
@@ -3895,7 +3895,7 @@ msgstr "Exporting all contacts"
 #: src/components/messages/MessageHistoryTab.tsx:226
 #: src/components/messages/MessageHistoryTable.tsx:128
 #: src/components/messages/MessageHistoryTable.tsx:154
-#: src/pages/ContactsPage.tsx:193
+#: src/pages/ContactsPage.tsx:204
 msgid "External ID"
 msgstr "External ID"
 
@@ -4020,7 +4020,7 @@ msgstr "Failed to delete broadcast"
 msgid "Failed to delete category"
 msgstr "Failed to delete category"
 
-#: src/pages/ContactsPage.tsx:151
+#: src/pages/ContactsPage.tsx:160
 msgid "Failed to delete contact"
 msgstr "Failed to delete contact"
 
@@ -4126,7 +4126,7 @@ msgstr "Failed to import MJML template. Please check the MJML syntax."
 msgid "Failed to import template. Please check the file format."
 msgstr "Failed to import template. Please check the file format."
 
-#: src/components/settings/WorkspaceMembers.tsx:267
+#: src/components/settings/WorkspaceMembers.tsx:266
 msgid "Failed to invite member"
 msgstr "Failed to invite member"
 
@@ -4494,7 +4494,7 @@ msgid "Filter by {0}"
 msgstr "Filter by {0}"
 
 #. placeholder {0}: field.label
-#: src/components/filters/Filter.tsx:209
+#: src/components/filters/Filter.tsx:210
 msgid "Filter by: {0}"
 msgstr "Filter by: {0}"
 
@@ -4506,7 +4506,7 @@ msgstr "Filter Conditions"
 msgid "Filters"
 msgstr "Filters"
 
-#: src/pages/ContactsPage.tsx:954
+#: src/pages/ContactsPage.tsx:917
 msgid "Filters:"
 msgstr "Filters:"
 
@@ -4531,9 +4531,9 @@ msgstr "Firecrawl integration saved successfully"
 #: src/components/contacts/ContactDetailsDrawer.tsx:440
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:91
 #: src/components/contacts/ExportContactsModal.tsx:56
-#: src/pages/ContactsPage.tsx:194
-#: src/pages/ContactsPage.tsx:249
-#: src/pages/ContactsPage.tsx:548
+#: src/pages/ContactsPage.tsx:205
+#: src/pages/ContactsPage.tsx:260
+#: src/pages/ContactsPage.tsx:511
 msgid "First Name"
 msgstr "First Name"
 
@@ -4662,9 +4662,9 @@ msgid "Full Access"
 msgstr "Full Access"
 
 #: src/components/contacts/ContactDetailsDrawer.tsx:442
-#: src/pages/ContactsPage.tsx:196
-#: src/pages/ContactsPage.tsx:251
-#: src/pages/ContactsPage.tsx:562
+#: src/pages/ContactsPage.tsx:207
+#: src/pages/ContactsPage.tsx:262
+#: src/pages/ContactsPage.tsx:525
 msgid "Full Name"
 msgstr "Full Name"
 
@@ -5052,7 +5052,7 @@ msgstr "Image URL when shared on social media (og:image)"
 
 #: src/components/email_builder/MjmlCodeEditor.tsx:614
 #: src/components/templates/ImportExportButton.tsx:387
-#: src/pages/ContactsPage.tsx:893
+#: src/pages/ContactsPage.tsx:856
 msgid "Import"
 msgstr "Import"
 
@@ -5379,8 +5379,8 @@ msgstr "Italic"
 
 #: src/components/contacts/ContactDetailsDrawer.tsx:449
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:101
-#: src/pages/ContactsPage.tsx:257
-#: src/pages/ContactsPage.tsx:607
+#: src/pages/ContactsPage.tsx:268
+#: src/pages/ContactsPage.tsx:570
 msgid "Job Title"
 msgstr "Job Title"
 
@@ -5442,9 +5442,9 @@ msgstr "Label must be at most 100 characters"
 #: src/components/contacts/ExportContactsModal.tsx:68
 #: src/components/templates/SendTemplateModal.tsx:326
 #: src/components/templates/TemplatePreviewDrawer.tsx:339
-#: src/pages/ContactsPage.tsx:198
-#: src/pages/ContactsPage.tsx:254
-#: src/pages/ContactsPage.tsx:581
+#: src/pages/ContactsPage.tsx:209
+#: src/pages/ContactsPage.tsx:265
+#: src/pages/ContactsPage.tsx:544
 msgid "Language"
 msgstr "Language"
 
@@ -5484,9 +5484,9 @@ msgstr "Last modified"
 #: src/components/contacts/ContactDetailsDrawer.tsx:441
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:92
 #: src/components/contacts/ExportContactsModal.tsx:59
-#: src/pages/ContactsPage.tsx:195
-#: src/pages/ContactsPage.tsx:250
-#: src/pages/ContactsPage.tsx:555
+#: src/pages/ContactsPage.tsx:206
+#: src/pages/ContactsPage.tsx:261
+#: src/pages/ContactsPage.tsx:518
 msgid "Last Name"
 msgstr "Last Name"
 
@@ -5494,9 +5494,9 @@ msgstr "Last Name"
 msgid "Lead"
 msgstr "Lead"
 
-#: src/components/settings/SMTPRelaySettings.tsx:64
-msgid "Learn how to enable SMTP relay"
-msgstr "Learn how to enable SMTP relay"
+#: src/components/settings/SMTPBridgeSettings.tsx:64
+msgid "Learn how to enable SMTP bridge"
+msgstr "Learn how to enable SMTP bridge"
 
 #: src/components/integrations/FirecrawlIntegration.tsx:86
 #: src/components/integrations/LLMIntegration.tsx:105
@@ -5609,7 +5609,7 @@ msgstr "Liquid block - Click to add MJML + Liquid content"
 #: src/components/messages/MessageHistoryTable.tsx:215
 #: src/components/messages/MessageHistoryTable.tsx:229
 #: src/pages/BroadcastsPage.tsx:927
-#: src/pages/ContactsPage.tsx:202
+#: src/pages/ContactsPage.tsx:213
 msgid "List"
 msgstr "List"
 
@@ -5634,7 +5634,7 @@ msgstr "List ID: {0}"
 
 #: src/components/automations/nodes/ListStatusBranchNode.tsx:38
 #: src/components/contacts/ExportContactsModal.tsx:80
-#: src/pages/ContactsPage.tsx:212
+#: src/pages/ContactsPage.tsx:223
 msgid "List Status"
 msgstr "List Status"
 
@@ -5664,8 +5664,8 @@ msgstr "List:"
 
 #: src/components/analytics/NewContactsTable.tsx:73
 #: src/layouts/WorkspaceLayout.tsx:246
-#: src/pages/ContactsPage.tsx:247
-#: src/pages/ContactsPage.tsx:419
+#: src/pages/ContactsPage.tsx:258
+#: src/pages/ContactsPage.tsx:382
 #: src/pages/ListsPage.tsx:155
 msgid "Lists"
 msgstr "Lists"
@@ -5686,7 +5686,7 @@ msgstr "LLM integration saved successfully"
 #: src/components/messages/MessageHistoryTable.tsx:445
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:554
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:506
-#: src/pages/ContactsPage.tsx:1001
+#: src/pages/ContactsPage.tsx:965
 msgid "Load More"
 msgstr "Load More"
 
@@ -5737,8 +5737,8 @@ msgstr "Loading webhook status..."
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:499
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:440
 #: src/layouts/RootLayout.tsx:90
-#: src/pages/ContactsPage.tsx:402
-#: src/pages/ContactsPage.tsx:993
+#: src/pages/ContactsPage.tsx:365
+#: src/pages/ContactsPage.tsx:957
 #: src/pages/ListsPage.tsx:149
 #: src/pages/LogsPage.tsx:18
 #: src/pages/TemplatesPage.tsx:147
@@ -5811,7 +5811,7 @@ msgid "Map your CSV columns to contact fields. The"
 msgstr "Map your CSV columns to contact fields. The"
 
 #: src/components/analytics/NewContactsTable.tsx:110
-#: src/pages/ContactsPage.tsx:456
+#: src/pages/ContactsPage.tsx:419
 msgid "Marked as spam"
 msgstr "Marked as spam"
 
@@ -5835,7 +5835,7 @@ msgstr "Marketing Provider"
 msgid "Matched"
 msgstr "Matched"
 
-#: src/pages/ContactsPage.tsx:526
+#: src/pages/ContactsPage.tsx:489
 msgid "Matched on:"
 msgstr "Matched on:"
 
@@ -6204,7 +6204,7 @@ msgstr "No category"
 msgid "No conditions"
 msgstr "No conditions"
 
-#: src/pages/ContactsPage.tsx:992
+#: src/pages/ContactsPage.tsx:956
 msgid "No contacts found. Add some contacts to get started."
 msgstr "No contacts found. Add some contacts to get started."
 
@@ -6470,8 +6470,8 @@ msgstr "Not in List"
 #: src/components/settings/GeneralSettings.tsx:111
 #: src/components/settings/GeneralSettings.tsx:115
 #: src/components/settings/GeneralSettings.tsx:126
-#: src/components/settings/SMTPRelaySettings.tsx:34
-#: src/components/settings/SMTPRelaySettings.tsx:38
+#: src/components/settings/SMTPBridgeSettings.tsx:34
+#: src/components/settings/SMTPBridgeSettings.tsx:38
 #: src/components/templates/TemplatePreviewDrawer.tsx:299
 msgid "Not set"
 msgstr "Not set"
@@ -6771,12 +6771,12 @@ msgstr "Payload:"
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:79
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:236
 #: src/pages/BroadcastsPage.tsx:338
-#: src/pages/ContactsPage.tsx:216
+#: src/pages/ContactsPage.tsx:227
 msgid "Pending"
 msgstr "Pending"
 
 #: src/components/analytics/NewContactsTable.tsx:93
-#: src/pages/ContactsPage.tsx:439
+#: src/pages/ContactsPage.tsx:402
 msgid "Pending confirmation"
 msgstr "Pending confirmation"
 
@@ -6827,9 +6827,9 @@ msgstr "Personalization Not Available for Web"
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:93
 #: src/components/contacts/ExportContactsModal.tsx:62
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:339
-#: src/pages/ContactsPage.tsx:197
-#: src/pages/ContactsPage.tsx:252
-#: src/pages/ContactsPage.tsx:569
+#: src/pages/ContactsPage.tsx:208
+#: src/pages/ContactsPage.tsx:263
+#: src/pages/ContactsPage.tsx:532
 msgid "Phone"
 msgstr "Phone"
 
@@ -7112,8 +7112,8 @@ msgid "Port"
 msgstr "Port"
 
 #: src/pages/SetupWizard.tsx:604
-msgid "Port for the SMTP relay server (default: 587)"
-msgstr "Port for the SMTP relay server (default: 587)"
+msgid "Port for the SMTP bridge server (default: 587)"
+msgstr "Port for the SMTP bridge server (default: 587)"
 
 #: src/components/blog/ThemeEditorDrawer.tsx:437
 #: src/components/blog/ThemePresetPreviewDrawer.tsx:88
@@ -7497,7 +7497,7 @@ msgstr "Redo (Ctrl+Shift+Z)"
 #: src/components/messages/MessageHistoryTable.tsx:360
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:429
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:414
-#: src/pages/ContactsPage.tsx:785
+#: src/pages/ContactsPage.tsx:748
 #: src/pages/ListsPage.tsx:158
 msgid "Refresh"
 msgstr "Refresh"
@@ -8008,8 +8008,8 @@ msgstr "Segment tree reset"
 
 #: src/components/contacts/SegmentsFilter.tsx:228
 #: src/pages/BroadcastsPage.tsx:908
-#: src/pages/ContactsPage.tsx:248
-#: src/pages/ContactsPage.tsx:500
+#: src/pages/ContactsPage.tsx:259
+#: src/pages/ContactsPage.tsx:463
 msgid "Segments"
 msgstr "Segments"
 
@@ -8367,8 +8367,8 @@ msgstr "Send Test Email"
 #~ msgstr "Send the email without the feed data if the request fails"
 
 #: src/components/transactional/ApiCommandModal.tsx:919
-msgid "Send transactional notifications using SMTP relay. Perfect for integrating with existing email systems or applications that support SMTP."
-msgstr "Send transactional notifications using SMTP relay. Perfect for integrating with existing email systems or applications that support SMTP."
+msgid "Send transactional notifications using SMTP bridge. Perfect for integrating with existing email systems or applications that support SMTP."
+msgstr "Send transactional notifications using SMTP bridge. Perfect for integrating with existing email systems or applications that support SMTP."
 
 #: src/components/templates/CreateTemplateDrawer.tsx:772
 #: src/components/templates/SendTemplateModal.tsx:303
@@ -8626,6 +8626,27 @@ msgstr "Slug must contain only lowercase letters, numbers, and hyphens"
 msgid "SMS"
 msgstr "SMS"
 
+#: src/components/settings/SettingsSidebar.tsx:108
+#: src/components/settings/SMTPBridgeSettings.tsx:12
+msgid "SMTP Bridge"
+msgstr "SMTP Bridge"
+
+#: src/pages/SetupWizard.tsx:586
+msgid "SMTP bridge domain is required"
+msgstr "SMTP bridge domain is required"
+
+#: src/components/settings/SMTPBridgeSettings.tsx:58
+msgid "SMTP bridge is not configured."
+msgstr "SMTP bridge is not configured."
+
+#: src/pages/SetupWizard.tsx:601
+msgid "SMTP bridge port is required"
+msgstr "SMTP bridge port is required"
+
+#: src/components/settings/SMTPBridgeSettings.tsx:13
+msgid "SMTP bridge server for forwarding transactional emails"
+msgstr "SMTP bridge server for forwarding transactional emails"
+
 #: src/pages/SetupWizard.tsx:383
 msgid "SMTP Configuration"
 msgstr "SMTP Configuration"
@@ -8634,7 +8655,7 @@ msgstr "SMTP Configuration"
 msgid "SMTP connection successful!"
 msgstr "SMTP connection successful!"
 
-#: src/components/settings/SMTPRelaySettings.tsx:33
+#: src/components/settings/SMTPBridgeSettings.tsx:33
 msgid "SMTP domain"
 msgstr "SMTP domain"
 
@@ -8653,7 +8674,7 @@ msgstr "SMTP host is required"
 msgid "SMTP Password"
 msgstr "SMTP Password"
 
-#: src/components/settings/SMTPRelaySettings.tsx:37
+#: src/components/settings/SMTPBridgeSettings.tsx:37
 msgid "SMTP port"
 msgstr "SMTP port"
 
@@ -8677,27 +8698,6 @@ msgstr "SMTP provider doesn't support complaint webhooks, so spam complaints can
 #: src/components/broadcasts/BroadcastStats.tsx:154
 msgid "SMTP provider doesn't support delivery webhooks, so delivery status cannot be tracked"
 msgstr "SMTP provider doesn't support delivery webhooks, so delivery status cannot be tracked"
-
-#: src/components/settings/SettingsSidebar.tsx:108
-#: src/components/settings/SMTPRelaySettings.tsx:12
-msgid "SMTP Relay"
-msgstr "SMTP Relay"
-
-#: src/pages/SetupWizard.tsx:586
-msgid "SMTP relay domain is required"
-msgstr "SMTP relay domain is required"
-
-#: src/components/settings/SMTPRelaySettings.tsx:58
-msgid "SMTP relay is not configured."
-msgstr "SMTP relay is not configured."
-
-#: src/pages/SetupWizard.tsx:601
-msgid "SMTP relay port is required"
-msgstr "SMTP relay port is required"
-
-#: src/components/settings/SMTPRelaySettings.tsx:13
-msgid "SMTP relay server for forwarding transactional emails"
-msgstr "SMTP relay server for forwarding transactional emails"
 
 #: src/components/settings/Integrations.tsx:1946
 msgid "SMTP User"
@@ -8849,7 +8849,7 @@ msgid "status changed"
 msgstr "status changed"
 
 #: src/components/analytics/NewContactsTable.tsx:114
-#: src/pages/ContactsPage.tsx:460
+#: src/pages/ContactsPage.tsx:423
 msgid "Status unknown"
 msgstr "Status unknown"
 
@@ -8926,7 +8926,7 @@ msgstr "Subscribed"
 msgid "Subscribed on"
 msgstr "Subscribed on"
 
-#: src/pages/ContactsPage.tsx:478
+#: src/pages/ContactsPage.tsx:441
 msgid "Subscribed on:"
 msgstr "Subscribed on:"
 
@@ -9602,8 +9602,8 @@ msgstr "Timestamp"
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:95
 #: src/components/settings/GeneralSettings.tsx:130
 #: src/components/settings/GeneralSettings.tsx:189
-#: src/pages/ContactsPage.tsx:255
-#: src/pages/ContactsPage.tsx:587
+#: src/pages/ContactsPage.tsx:266
+#: src/pages/ContactsPage.tsx:550
 msgid "Timezone"
 msgstr "Timezone"
 
@@ -9611,8 +9611,8 @@ msgstr "Timezone"
 msgid "Timezone used for dates"
 msgstr "Timezone used for dates"
 
-#: src/pages/ContactsPage.tsx:480
-#: src/pages/ContactsPage.tsx:529
+#: src/pages/ContactsPage.tsx:443
+#: src/pages/ContactsPage.tsx:492
 msgid "Timezone:"
 msgstr "Timezone:"
 
@@ -9645,7 +9645,7 @@ msgstr "Title when shared on social media (og:title)"
 msgid "Title when shared on social media (optional)"
 msgstr "Title when shared on social media (optional)"
 
-#: src/components/settings/SMTPRelaySettings.tsx:41
+#: src/components/settings/SMTPBridgeSettings.tsx:41
 msgid "TLS"
 msgstr "TLS"
 
@@ -9868,8 +9868,8 @@ msgid "Unknown"
 msgstr "Unknown"
 
 #: src/components/analytics/NewContactsTable.tsx:125
-#: src/pages/ContactsPage.tsx:471
-#: src/pages/ContactsPage.tsx:519
+#: src/pages/ContactsPage.tsx:434
+#: src/pages/ContactsPage.tsx:482
 msgid "Unknown date"
 msgstr "Unknown date"
 
@@ -9952,12 +9952,12 @@ msgstr "Unsubscribe from list"
 #: src/components/messages/MessageHistoryTab.tsx:195
 #: src/components/messages/MessageHistoryTab.tsx:200
 #: src/components/messages/MessageHistoryTable.tsx:314
-#: src/pages/ContactsPage.tsx:217
+#: src/pages/ContactsPage.tsx:228
 msgid "Unsubscribed"
 msgstr "Unsubscribed"
 
 #: src/components/analytics/NewContactsTable.tsx:98
-#: src/pages/ContactsPage.tsx:444
+#: src/pages/ContactsPage.tsx:407
 msgid "Unsubscribed from list"
 msgstr "Unsubscribed from list"
 
@@ -10235,7 +10235,7 @@ msgstr "Version"
 msgid "VERSION NOTES (OPTIONAL)"
 msgstr "VERSION NOTES (OPTIONAL)"
 
-#: src/pages/ContactsPage.tsx:527
+#: src/pages/ContactsPage.tsx:490
 msgid "Version:"
 msgstr "Version:"
 
@@ -10269,9 +10269,9 @@ msgstr "View more"
 msgid "View Raw JSON"
 msgstr "View Raw JSON"
 
-#: src/components/settings/SMTPRelaySettings.tsx:24
-msgid "View SMTP Relay documentation and setup guide"
-msgstr "View SMTP Relay documentation and setup guide"
+#: src/components/settings/SMTPBridgeSettings.tsx:24
+msgid "View SMTP Bridge documentation and setup guide"
+msgstr "View SMTP Bridge documentation and setup guide"
 
 #: src/components/email_builder/blocks/MjSectionBlock.tsx:193
 #: src/pages/ListsPage.tsx:270
@@ -10619,8 +10619,8 @@ msgstr "You don't have write permission for automations"
 msgid "You don't have write permission for broadcasts"
 msgstr "You don't have write permission for broadcasts"
 
-#: src/pages/ContactsPage.tsx:912
-#: src/pages/ContactsPage.tsx:931
+#: src/pages/ContactsPage.tsx:875
+#: src/pages/ContactsPage.tsx:894
 msgid "You don't have write permission for contacts"
 msgstr "You don't have write permission for contacts"
 

@@ -13,7 +13,7 @@ import (
 	"github.com/emersion/go-smtp"
 )
 
-// Server represents an SMTP relay server for receiving emails
+// Server represents an SMTP bridge server for receiving emails
 type Server struct {
 	server   *smtp.Server
 	backend  *Backend
@@ -62,15 +62,15 @@ func NewServer(cfg ServerConfig, backend *Backend) (*Server, error) {
 		cfg.Logger.WithFields(map[string]interface{}{
 			"cert_file": cfg.TLSCertFile,
 			"key_file":  cfg.TLSKeyFile,
-		}).Info("SMTP relay: TLS configured")
+		}).Info("SMTP bridge: TLS configured")
 	} else {
-		cfg.Logger.Warn("SMTP relay: No TLS certificates provided - TLS will not be available")
+		cfg.Logger.Warn("SMTP bridge: No TLS certificates provided - TLS will not be available")
 	}
 
 	cfg.Logger.WithFields(map[string]interface{}{
 		"addr":   addr,
 		"domain": cfg.Domain,
-	}).Info("SMTP relay server initialized")
+	}).Info("SMTP bridge server initialized")
 
 	return &Server{
 		server:  s,
@@ -82,7 +82,7 @@ func NewServer(cfg ServerConfig, backend *Backend) (*Server, error) {
 
 // Start starts the SMTP server
 func (s *Server) Start() error {
-	s.logger.WithField("addr", s.addr).Info("Starting SMTP relay server")
+	s.logger.WithField("addr", s.addr).Info("Starting SMTP bridge server")
 
 	// Listen on the specified address
 	listener, err := net.Listen("tcp", s.addr)
@@ -94,7 +94,7 @@ func (s *Server) Start() error {
 	s.listener = listener
 	s.mu.Unlock()
 
-	s.logger.WithField("addr", s.addr).Info("SMTP relay server listening")
+	s.logger.WithField("addr", s.addr).Info("SMTP bridge server listening")
 
 	// Start serving - Serve will return when listener is closed
 	err = s.server.Serve(listener)
@@ -114,7 +114,7 @@ func (s *Server) Start() error {
 
 // Shutdown gracefully shuts down the SMTP server
 func (s *Server) Shutdown(ctx context.Context) error {
-	s.logger.Info("Shutting down SMTP relay server")
+	s.logger.Info("Shutting down SMTP bridge server")
 
 	// Check if context is already cancelled before starting shutdown
 	if err := ctx.Err(); err != nil {
@@ -151,13 +151,13 @@ func (s *Server) Shutdown(ctx context.Context) error {
 			// Check if it's a "closed network connection" error, which is expected
 			if strings.Contains(errStr, "use of closed network connection") {
 				// Expected error when listener was already closed, ignore it
-				s.logger.Info("SMTP relay server shut down successfully")
+				s.logger.Info("SMTP bridge server shut down successfully")
 				return nil
 			}
 			s.logger.WithField("error", err.Error()).Error("Error during SMTP server shutdown")
 			return err
 		}
-		s.logger.Info("SMTP relay server shut down successfully")
+		s.logger.Info("SMTP bridge server shut down successfully")
 		return nil
 	case <-ctx.Done():
 		s.logger.Warn("SMTP server shutdown timeout exceeded")

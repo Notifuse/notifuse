@@ -35,13 +35,11 @@ func NewDatabaseManager() *DatabaseManager {
 	// Use environment variables if set (for containerized environments)
 	testHost := getEnvOrDefault("TEST_DB_HOST", defaultHost)
 	testPort := defaultPort
-	if testHost != defaultHost {
+	if portStr := os.Getenv("TEST_DB_PORT"); portStr != "" {
+		fmt.Sscanf(portStr, "%d", &testPort)
+	} else if testHost != defaultHost {
 		// Custom host likely means internal port
-		if portStr := os.Getenv("TEST_DB_PORT"); portStr != "" {
-			fmt.Sscanf(portStr, "%d", &testPort)
-		} else {
-			testPort = 5432
-		}
+		testPort = 5432
 	}
 
 	config := &config.DatabaseConfig{

@@ -1,4 +1,4 @@
-package smtp_relay
+package smtp_bridge
 
 // AuthHandler is a function type that authenticates SMTP credentials
 // It receives the username (workspace_id) and password (api_key)

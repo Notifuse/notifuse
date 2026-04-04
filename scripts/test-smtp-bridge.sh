@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Script to test the SMTP relay server locally
-# Usage: ./scripts/test-smtp-relay.sh [workspace_id] [api_key]
+# Script to test the SMTP bridge server locally
+# Usage: ./scripts/test-smtp-bridge.sh [workspace_id] [api_key]
 
 set -e
 
@@ -87,7 +87,7 @@ read -r -d '' JSON_PAYLOAD <<'EOF' || true
       "custom_var": "CUSTOM_VAR_PLACEHOLDER"
     },
     "metadata": {
-      "source": "smtp_relay_test_script",
+      "source": "smtp_bridge_test_script",
       "test_id": "TEST_ID_PLACEHOLDER"
     }
   }
@@ -105,7 +105,7 @@ JSON_PAYLOAD="${JSON_PAYLOAD//CUSTOM_VAR_PLACEHOLDER/test-$(openssl rand -hex 8)
 print_info "Checking SMTP server connectivity..."
 if ! nc -z -w 5 "$(echo $SMTP_SERVER | sed 's/:.*$//')" "$SMTP_PORT" 2>/dev/null; then
     print_error "Cannot connect to $SMTP_SERVER:$SMTP_PORT"
-    print_warning "Make sure the SMTP relay server is running (make dev)"
+    print_warning "Make sure the SMTP bridge server is running (make dev)"
     print_warning "And that '$SMTP_SERVER' is in your /etc/hosts file"
     exit 1
 fi
@@ -148,16 +148,16 @@ if swaks \
     $TLS_CA_PATH \
     --auth-user "$API_EMAIL" \
     --auth-password "$API_KEY" \
-    --header "Subject: SMTP Relay Test - $NOTIFICATION_ID" \
+    --header "Subject: SMTP Bridge Test - $NOTIFICATION_ID" \
     --header "Content-Type: application/json" \
     --body "$JSON_PAYLOAD" \
     --hide-all; then
-    
+
     echo ""
     print_success "Email sent successfully!"
     echo ""
     print_info "Check server logs for processing details:"
-    echo "  Look for: \"SMTP relay: Notification sent successfully\""
+    echo "  Look for: \"SMTP bridge: Notification sent successfully\""
     echo ""
 else
     echo ""
@@ -171,4 +171,3 @@ else
     echo ""
     exit 1
 fi
-

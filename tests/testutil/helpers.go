@@ -366,8 +366,8 @@ func CleanupTestEnvironment() {
 	// Clean up the global connection pool to prevent connection leaks between tests
 	CleanupAllTestConnections()
 
-	os.Unsetenv("TEST_DB_HOST")
-	os.Unsetenv("TEST_DB_PORT")
+	// Don't unset TEST_DB_HOST and TEST_DB_PORT - they may have been set externally
+	// and are needed by subsequent tests that recreate the connection pool
 	os.Unsetenv("TEST_DB_USER")
 	os.Unsetenv("TEST_DB_PASSWORD")
 	os.Unsetenv("ENVIRONMENT")

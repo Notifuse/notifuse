@@ -16,7 +16,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestSMTPRelayHandlerService_Authenticate_Success(t *testing.T) {
+func TestSMTPBridgeHandlerService_Authenticate_Success(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -46,7 +46,7 @@ func TestSMTPRelayHandlerService_Authenticate_Success(t *testing.T) {
 	rl.SetPolicy("smtp", 5, 1*time.Minute)
 	defer rl.Stop()
 	mockRepo := mocks.NewMockWorkspaceRepository(ctrl)
-	service := NewSMTPRelayHandlerService(nil, nil, mockRepo, log, jwtSecret, rl)
+	service := NewSMTPBridgeHandlerService(nil, nil, mockRepo, log, jwtSecret, rl)
 
 	userID, err := service.Authenticate(apiEmail, apiKey)
 
@@ -54,7 +54,7 @@ func TestSMTPRelayHandlerService_Authenticate_Success(t *testing.T) {
 	assert.Equal(t, "api-user-123", userID)
 }
 
-func TestSMTPRelayHandlerService_Authenticate_InvalidToken(t *testing.T) {
+func TestSMTPBridgeHandlerService_Authenticate_InvalidToken(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -65,7 +65,7 @@ func TestSMTPRelayHandlerService_Authenticate_InvalidToken(t *testing.T) {
 	rl := ratelimiter.NewRateLimiter()
 	rl.SetPolicy("smtp", 5, 1*time.Minute)
 	defer rl.Stop()
-	service := NewSMTPRelayHandlerService(nil, nil, mockRepo, log, jwtSecret, rl)
+	service := NewSMTPBridgeHandlerService(nil, nil, mockRepo, log, jwtSecret, rl)
 
 	_, err := service.Authenticate("workspace123", "invalid-token")
 
@@ -73,7 +73,7 @@ func TestSMTPRelayHandlerService_Authenticate_InvalidToken(t *testing.T) {
 	assert.Contains(t, err.Error(), "invalid API key")
 }
 
-func TestSMTPRelayHandlerService_Authenticate_WrongUserType(t *testing.T) {
+func TestSMTPBridgeHandlerService_Authenticate_WrongUserType(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -99,7 +99,7 @@ func TestSMTPRelayHandlerService_Authenticate_WrongUserType(t *testing.T) {
 	rl := ratelimiter.NewRateLimiter()
 	rl.SetPolicy("smtp", 5, 1*time.Minute)
 	defer rl.Stop()
-	service := NewSMTPRelayHandlerService(nil, nil, mockRepo, log, jwtSecret, rl)
+	service := NewSMTPBridgeHandlerService(nil, nil, mockRepo, log, jwtSecret, rl)
 
 	_, err := service.Authenticate(apiEmail, apiKey)
 
@@ -107,7 +107,7 @@ func TestSMTPRelayHandlerService_Authenticate_WrongUserType(t *testing.T) {
 	assert.Contains(t, err.Error(), "must be an API key")
 }
 
-func TestSMTPRelayHandlerService_Authenticate_NoWorkspaceAccess(t *testing.T) {
+func TestSMTPBridgeHandlerService_Authenticate_NoWorkspaceAccess(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -132,7 +132,7 @@ func TestSMTPRelayHandlerService_Authenticate_NoWorkspaceAccess(t *testing.T) {
 	rl.SetPolicy("smtp", 5, 1*time.Minute)
 	defer rl.Stop()
 	mockRepo := mocks.NewMockWorkspaceRepository(ctrl)
-	service := NewSMTPRelayHandlerService(nil, nil, mockRepo, log, jwtSecret, rl)
+	service := NewSMTPBridgeHandlerService(nil, nil, mockRepo, log, jwtSecret, rl)
 
 	userID, err := service.Authenticate(apiEmail, apiKey)
 
@@ -140,7 +140,7 @@ func TestSMTPRelayHandlerService_Authenticate_NoWorkspaceAccess(t *testing.T) {
 	assert.Equal(t, "api-user-123", userID)
 }
 
-func TestSMTPRelayHandlerService_HandleMessage_Success(t *testing.T) {
+func TestSMTPBridgeHandlerService_HandleMessage_Success(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -189,14 +189,14 @@ Content-Type: text/plain
 	rl := ratelimiter.NewRateLimiter()
 	rl.SetPolicy("smtp", 5, 1*time.Minute)
 	defer rl.Stop()
-	service := NewSMTPRelayHandlerService(nil, mockTransactionalService, mockRepo, log, jwtSecret, rl)
+	service := NewSMTPBridgeHandlerService(nil, mockTransactionalService, mockRepo, log, jwtSecret, rl)
 
 	err := service.HandleMessage(userID, "sender@example.com", []string{"test@example.com"}, []byte(emailBody))
 
 	assert.NoError(t, err)
 }
 
-func TestSMTPRelayHandlerService_HandleMessage_InvalidJSON(t *testing.T) {
+func TestSMTPBridgeHandlerService_HandleMessage_InvalidJSON(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -215,7 +215,7 @@ This is not JSON`
 	rl := ratelimiter.NewRateLimiter()
 	rl.SetPolicy("smtp", 5, 1*time.Minute)
 	defer rl.Stop()
-	service := NewSMTPRelayHandlerService(nil, nil, mockRepo, log, jwtSecret, rl)
+	service := NewSMTPBridgeHandlerService(nil, nil, mockRepo, log, jwtSecret, rl)
 
 	err := service.HandleMessage(userID, "sender@example.com", []string{"test@example.com"}, []byte(emailBody))
 
@@ -223,7 +223,7 @@ This is not JSON`
 	assert.Contains(t, err.Error(), "not valid JSON")
 }
 
-func TestSMTPRelayHandlerService_HandleMessage_MissingNotificationID(t *testing.T) {
+func TestSMTPBridgeHandlerService_HandleMessage_MissingNotificationID(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -258,7 +258,7 @@ Content-Type: text/plain
 	rl := ratelimiter.NewRateLimiter()
 	rl.SetPolicy("smtp", 5, 1*time.Minute)
 	defer rl.Stop()
-	service := NewSMTPRelayHandlerService(nil, nil, mockRepo, log, jwtSecret, rl)
+	service := NewSMTPBridgeHandlerService(nil, nil, mockRepo, log, jwtSecret, rl)
 
 	err := service.HandleMessage(userID, "sender@example.com", []string{"test@example.com"}, []byte(emailBody))
 
@@ -266,7 +266,7 @@ Content-Type: text/plain
 	assert.Contains(t, err.Error(), "notification.id is required")
 }
 
-func TestSMTPRelayHandlerService_HandleMessage_MissingContact(t *testing.T) {
+func TestSMTPBridgeHandlerService_HandleMessage_MissingContact(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -299,7 +299,7 @@ Content-Type: text/plain
 	rl := ratelimiter.NewRateLimiter()
 	rl.SetPolicy("smtp", 5, 1*time.Minute)
 	defer rl.Stop()
-	service := NewSMTPRelayHandlerService(nil, nil, mockRepo, log, jwtSecret, rl)
+	service := NewSMTPBridgeHandlerService(nil, nil, mockRepo, log, jwtSecret, rl)
 
 	err := service.HandleMessage(userID, "sender@example.com", []string{"test@example.com"}, []byte(emailBody))
 
@@ -307,7 +307,7 @@ Content-Type: text/plain
 	assert.Contains(t, err.Error(), "notification.contact is required")
 }
 
-func TestSMTPRelayHandlerService_HandleMessage_WithEmailHeaders(t *testing.T) {
+func TestSMTPBridgeHandlerService_HandleMessage_WithEmailHeaders(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -341,7 +341,7 @@ func TestSMTPRelayHandlerService_HandleMessage_WithEmailHeaders(t *testing.T) {
 	rl.SetPolicy("smtp", 5, 1*time.Minute)
 	defer rl.Stop()
 
-	service := NewSMTPRelayHandlerService(
+	service := NewSMTPBridgeHandlerService(
 		mockAuth,
 		mockTransactionalService,
 		mockWorkspaceRepo,
@@ -386,7 +386,7 @@ Content-Type: text/plain
 	assert.Equal(t, "replyto@example.com", capturedParams.EmailOptions.ReplyTo)
 }
 
-func TestSMTPRelayHandlerService_HandleMessage_JSONOverridesHeaders(t *testing.T) {
+func TestSMTPBridgeHandlerService_HandleMessage_JSONOverridesHeaders(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -420,7 +420,7 @@ func TestSMTPRelayHandlerService_HandleMessage_JSONOverridesHeaders(t *testing.T
 	rl.SetPolicy("smtp", 5, 1*time.Minute)
 	defer rl.Stop()
 
-	service := NewSMTPRelayHandlerService(
+	service := NewSMTPBridgeHandlerService(
 		mockAuth,
 		mockTransactionalService,
 		mockWorkspaceRepo,
@@ -507,7 +507,7 @@ func TestParseEmailAddresses(t *testing.T) {
 	}
 }
 
-func TestSMTPRelayHandlerService_ExtractJSONPayload_Multipart(t *testing.T) {
+func TestSMTPBridgeHandlerService_ExtractJSONPayload_Multipart(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -533,7 +533,7 @@ Content-Type: text/plain
 	rl := ratelimiter.NewRateLimiter()
 	rl.SetPolicy("smtp", 5, 1*time.Minute)
 	defer rl.Stop()
-	service := NewSMTPRelayHandlerService(nil, mockTransactionalService, mockRepo, log, jwtSecret, rl)
+	service := NewSMTPBridgeHandlerService(nil, mockTransactionalService, mockRepo, log, jwtSecret, rl)
 
 	// Parse the email
 	msg, err := mail.ReadMessage(bytes.NewReader([]byte(emailBody)))

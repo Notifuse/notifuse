@@ -23,10 +23,10 @@ type RootHandler struct {
 	version               string
 	rootEmail             string
 	isInstalledPtr        *bool // Pointer to installation status that updates dynamically
-	smtpRelayEnabled      bool
-	smtpRelayDomain       string
-	smtpRelayPort         int
-	smtpRelayTLSEnabled   bool
+	smtpBridgeEnabled      bool
+	smtpBridgeDomain       string
+	smtpBridgePort         int
+	smtpBridgeTLSEnabled   bool
 	workspaceRepo         domain.WorkspaceRepository
 	blogService           domain.BlogService
 	cache                 cache.Cache
@@ -41,10 +41,10 @@ func NewRootHandler(
 	version string,
 	rootEmail string,
 	isInstalledPtr *bool,
-	smtpRelayEnabled bool,
-	smtpRelayDomain string,
-	smtpRelayPort int,
-	smtpRelayTLSEnabled bool,
+	smtpBridgeEnabled bool,
+	smtpBridgeDomain string,
+	smtpBridgePort int,
+	smtpBridgeTLSEnabled bool,
 	workspaceRepo domain.WorkspaceRepository,
 	blogService domain.BlogService,
 	cache cache.Cache,
@@ -57,10 +57,10 @@ func NewRootHandler(
 		version:               version,
 		rootEmail:             rootEmail,
 		isInstalledPtr:        isInstalledPtr,
-		smtpRelayEnabled:      smtpRelayEnabled,
-		smtpRelayDomain:       smtpRelayDomain,
-		smtpRelayPort:         smtpRelayPort,
-		smtpRelayTLSEnabled:   smtpRelayTLSEnabled,
+		smtpBridgeEnabled:      smtpBridgeEnabled,
+		smtpBridgeDomain:       smtpBridgeDomain,
+		smtpBridgePort:         smtpBridgePort,
+		smtpBridgeTLSEnabled:   smtpBridgeTLSEnabled,
 		workspaceRepo:         workspaceRepo,
 		blogService:           blogService,
 		cache:                 cache,
@@ -138,27 +138,27 @@ func (h *RootHandler) serveConfigJS(w http.ResponseWriter, r *http.Request) {
 		timezonesJSON = []byte("[]")
 	}
 
-	smtpRelayEnabledStr := "false"
-	if h.smtpRelayEnabled {
-		smtpRelayEnabledStr = "true"
+	smtpBridgeEnabledStr := "false"
+	if h.smtpBridgeEnabled {
+		smtpBridgeEnabledStr = "true"
 	}
 
-	smtpRelayTLSEnabledStr := "false"
-	if h.smtpRelayTLSEnabled {
-		smtpRelayTLSEnabledStr = "true"
+	smtpBridgeTLSEnabledStr := "false"
+	if h.smtpBridgeTLSEnabled {
+		smtpBridgeTLSEnabledStr = "true"
 	}
 
 	configJS := fmt.Sprintf(
-		"window.API_ENDPOINT = %q;\nwindow.VERSION = %q;\nwindow.ROOT_EMAIL = %q;\nwindow.IS_INSTALLED = %s;\nwindow.TIMEZONES = %s;\nwindow.SMTP_RELAY_ENABLED = %s;\nwindow.SMTP_RELAY_DOMAIN = %q;\nwindow.SMTP_RELAY_PORT = %d;\nwindow.SMTP_RELAY_TLS_ENABLED = %s;",
+		"window.API_ENDPOINT = %q;\nwindow.VERSION = %q;\nwindow.ROOT_EMAIL = %q;\nwindow.IS_INSTALLED = %s;\nwindow.TIMEZONES = %s;\nwindow.SMTP_BRIDGE_ENABLED = %s;\nwindow.SMTP_BRIDGE_DOMAIN = %q;\nwindow.SMTP_BRIDGE_PORT = %d;\nwindow.SMTP_BRIDGE_TLS_ENABLED = %s;",
 		h.apiEndpoint,
 		h.version,
 		h.rootEmail,
 		isInstalledStr,
 		string(timezonesJSON),
-		smtpRelayEnabledStr,
-		h.smtpRelayDomain,
-		h.smtpRelayPort,
-		smtpRelayTLSEnabledStr,
+		smtpBridgeEnabledStr,
+		h.smtpBridgeDomain,
+		h.smtpBridgePort,
+		smtpBridgeTLSEnabledStr,
 	)
 	_, _ = w.Write([]byte(configJS))
 }

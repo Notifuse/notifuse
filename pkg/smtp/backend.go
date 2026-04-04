@@ -49,7 +49,7 @@ type Session struct {
 func (s *Session) AuthPlain(username, password string) error {
 	s.logger.WithFields(map[string]interface{}{
 		"username": username,
-	}).Debug("SMTP relay: AUTH PLAIN attempt")
+	}).Debug("SMTP bridge: AUTH PLAIN attempt")
 
 	// Authenticate using workspace_id as username and api_key as password
 	workspaceID, err := s.backend.authenticator(username, password)
@@ -57,14 +57,14 @@ func (s *Session) AuthPlain(username, password string) error {
 		s.logger.WithFields(map[string]interface{}{
 			"username": username,
 			"error":    err.Error(),
-		}).Warn("SMTP relay: Authentication failed")
+		}).Warn("SMTP bridge: Authentication failed")
 		return errors.New("invalid credentials")
 	}
 
 	s.workspaceID = workspaceID
 	s.logger.WithFields(map[string]interface{}{
 		"workspace_id": workspaceID,
-	}).Info("SMTP relay: Authentication successful")
+	}).Info("SMTP bridge: Authentication successful")
 
 	return nil
 }
@@ -78,7 +78,7 @@ func (s *Session) Mail(from string, opts *smtp.MailOptions) error {
 	s.logger.WithFields(map[string]interface{}{
 		"from":         from,
 		"workspace_id": s.workspaceID,
-	}).Debug("SMTP relay: MAIL FROM")
+	}).Debug("SMTP bridge: MAIL FROM")
 
 	s.from = from
 	return nil
@@ -93,7 +93,7 @@ func (s *Session) Rcpt(to string, opts *smtp.RcptOptions) error {
 	s.logger.WithFields(map[string]interface{}{
 		"to":           to,
 		"workspace_id": s.workspaceID,
-	}).Debug("SMTP relay: RCPT TO")
+	}).Debug("SMTP bridge: RCPT TO")
 
 	s.to = append(s.to, to)
 	return nil
@@ -109,14 +109,14 @@ func (s *Session) Data(r io.Reader) error {
 		"from":         s.from,
 		"to":           s.to,
 		"workspace_id": s.workspaceID,
-	}).Debug("SMTP relay: DATA")
+	}).Debug("SMTP bridge: DATA")
 
 	// Read the message data
 	data, err := io.ReadAll(r)
 	if err != nil {
 		s.logger.WithFields(map[string]interface{}{
 			"error": err.Error(),
-		}).Error("SMTP relay: Failed to read message data")
+		}).Error("SMTP bridge: Failed to read message data")
 		return errors.New("failed to read message")
 	}
 
@@ -126,14 +126,14 @@ func (s *Session) Data(r io.Reader) error {
 		s.logger.WithFields(map[string]interface{}{
 			"error":        err.Error(),
 			"workspace_id": s.workspaceID,
-		}).Error("SMTP relay: Failed to process message")
+		}).Error("SMTP bridge: Failed to process message")
 		return err
 	}
 
 	s.logger.WithFields(map[string]interface{}{
 		"workspace_id": s.workspaceID,
 		"message_size": len(data),
-	}).Info("SMTP relay: Message processed successfully")
+	}).Info("SMTP bridge: Message processed successfully")
 
 	return nil
 }

@@ -21,22 +21,22 @@ Generates self-signed TLS certificates for local development.
 **Output:**
 - `dev-certs/[domain].cert.pem` - TLS certificate
 - `dev-certs/[domain].key.pem` - Private key
-- `dev-certs/.env.smtp-relay` - Environment variables (base64 encoded)
+- `dev-certs/.env.smtp-bridge` - Environment variables (base64 encoded)
 
 ---
 
-### 📧 `test-smtp-relay.sh`
+### 📧 `test-smtp-bridge.sh`
 
-Sends a test email to the local SMTP relay server.
+Sends a test email to the local SMTP bridge server.
 
 **Usage:**
 ```bash
-./scripts/test-smtp-relay.sh <workspace_id> <api_key>
+./scripts/test-smtp-bridge.sh <workspace_id> <api_key>
 ```
 
 **Example:**
 ```bash
-./scripts/test-smtp-relay.sh workspace_abc123 "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+./scripts/test-smtp-bridge.sh workspace_abc123 "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
 **Features:**
@@ -60,18 +60,18 @@ NOTIFICATION_ID=password_reset        # Notification template ID
 NOTIFICATION_ID=welcome_email \
 FROM_EMAIL=sender@myapp.com \
 TO_EMAIL=user@example.com \
-./scripts/test-smtp-relay.sh workspace_123 "api_key_jwt"
+./scripts/test-smtp-bridge.sh workspace_123 "api_key_jwt"
 ```
 
 ---
 
-### 🧪 `test-smtp-relay-advanced.sh`
+### 🧪 `test-smtp-bridge-advanced.sh`
 
-Runs multiple SMTP relay test scenarios to verify different features.
+Runs multiple SMTP bridge test scenarios to verify different features.
 
 **Usage:**
 ```bash
-./scripts/test-smtp-relay-advanced.sh <workspace_id> <api_key>
+./scripts/test-smtp-bridge-advanced.sh <workspace_id> <api_key>
 ```
 
 **Test Scenarios:**
@@ -84,7 +84,7 @@ Runs multiple SMTP relay test scenarios to verify different features.
 
 **Example:**
 ```bash
-./scripts/test-smtp-relay-advanced.sh workspace_abc123 "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+./scripts/test-smtp-bridge-advanced.sh workspace_abc123 "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
 **Output:**
@@ -173,7 +173,7 @@ echo "127.0.0.1 localapi.notifuse.com" | sudo tee -a /etc/hosts
 ### 3. Configure Environment
 
 ```bash
-cat dev-certs/.env.smtp-relay >> .env
+cat dev-certs/.env.smtp-bridge >> .env
 ```
 
 ### 4. Start Server
@@ -182,12 +182,12 @@ cat dev-certs/.env.smtp-relay >> .env
 make dev
 ```
 
-### 5. Test SMTP Relay
+### 5. Test SMTP Bridge
 
 First, get your workspace ID and API key from the application, then:
 
 ```bash
-./scripts/test-smtp-relay.sh your_workspace_id "your_api_key_jwt"
+./scripts/test-smtp-bridge.sh your_workspace_id "your_api_key_jwt"
 ```
 
 ## Troubleshooting
@@ -205,7 +205,7 @@ Install swaks (see Prerequisites above).
 ### Connection Refused
 
 Ensure:
-1. SMTP relay is enabled in `.env`
+1. SMTP bridge is enabled in `.env`
 2. Server is running (`make dev`)
 3. Domain is in `/etc/hosts`
 4. Port 587 is not blocked
@@ -233,6 +233,6 @@ Or disable verification for testing:
 ## See Also
 
 - [Setup Local SMTP](../SETUP_LOCAL_SMTP.md)
-- [SMTP Relay Implementation](../SMTP_RELAY_IMPLEMENTATION.md)
+- [SMTP Bridge Implementation](../SMTP_BRIDGE_IMPLEMENTATION.md)
 - [Environment Variables](../env.example)
 

@@ -345,13 +345,10 @@ func GetGlobalTestPool() *TestConnectionPool {
 		// If TEST_DB_HOST is explicitly set, use it with its port
 		testHost := getEnvOrDefault("TEST_DB_HOST", defaultHost)
 		testPort := defaultPort
-		if testHost != defaultHost {
-			// If custom host is set, likely need internal port
-			if os.Getenv("TEST_DB_PORT") != "" {
-				fmt.Sscanf(os.Getenv("TEST_DB_PORT"), "%d", &testPort)
-			} else {
-				testPort = 5432 // Default to internal port when using custom host
-			}
+		if portStr := os.Getenv("TEST_DB_PORT"); portStr != "" {
+			fmt.Sscanf(portStr, "%d", &testPort)
+		} else if testHost != defaultHost {
+			testPort = 5432 // Default to internal port when using custom host
 		}
 
 		config := &config.DatabaseConfig{

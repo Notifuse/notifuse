@@ -15,7 +15,7 @@ import (
 	"github.com/Notifuse/notifuse/internal/service"
 	"github.com/Notifuse/notifuse/pkg/logger"
 	"github.com/Notifuse/notifuse/pkg/ratelimiter"
-	"github.com/Notifuse/notifuse/pkg/smtp_relay"
+	"github.com/Notifuse/notifuse/pkg/smtp_bridge"
 	"github.com/Notifuse/notifuse/tests/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -35,8 +35,8 @@ func loadTestTLSConfig(t *testing.T) *tls.Config {
 	}
 }
 
-// smtpRelayDialAndAuth creates an SMTP client, starts TLS, and authenticates.
-func smtpRelayDialAndAuth(t *testing.T, addr, email, apiKey string) *smtp.Client {
+// smtpBridgeDialAndAuth creates an SMTP client, starts TLS, and authenticates.
+func smtpBridgeDialAndAuth(t *testing.T, addr, email, apiKey string) *smtp.Client {
 	t.Helper()
 	smtpClient, err := smtp.Dial(addr)
 	require.NoError(t, err)
@@ -55,9 +55,9 @@ func smtpRelayDialAndAuth(t *testing.T, addr, email, apiKey string) *smtp.Client
 	return smtpClient
 }
 
-// TestSMTPRelayE2E consolidates all SMTP relay integration tests under a single
+// TestSMTPBridgeE2E consolidates all SMTP bridge integration tests under a single
 // shared setup to reduce suite overhead from 5 separate app instances to 1.
-func TestSMTPRelayE2E(t *testing.T) {
+func TestSMTPBridgeE2E(t *testing.T) {
 	testutil.SkipIfShort(t)
 	testutil.SetupTestEnvironment()
 	defer testutil.CleanupTestEnvironment()
@@ -81,7 +81,7 @@ func TestSMTPRelayE2E(t *testing.T) {
 	require.NoError(t, err)
 
 	// Shared template
-	template, err := factory.CreateTemplate(workspace.ID, testutil.WithTemplateName("SMTP Relay Test"))
+	template, err := factory.CreateTemplate(workspace.ID, testutil.WithTemplateName("SMTP Bridge Test"))
 	require.NoError(t, err)
 
 	// Create all notifications used across subtests
@@ -102,13 +102,13 @@ func TestSMTPRelayE2E(t *testing.T) {
 
 	jwtSecret := suite.Config.Security.JWTSecret
 
-	// Shared SMTP relay server
+	// Shared SMTP bridge server
 	log := logger.NewLogger()
 	rl := ratelimiter.NewRateLimiter()
 	rl.SetPolicy("smtp", 20, 1*time.Minute)
 	defer rl.Stop()
 
-	handlerService := service.NewSMTPRelayHandlerService(
+	handlerService := service.NewSMTPBridgeHandlerService(
 		authService,
 		appInstance.GetTransactionalNotificationService(),
 		appInstance.GetWorkspaceRepository(),
@@ -117,12 +117,12 @@ func TestSMTPRelayE2E(t *testing.T) {
 		rl,
 	)
 
-	backend := smtp_relay.NewBackend(handlerService.Authenticate, handlerService.HandleMessage, log)
+	backend := smtp_bridge.NewBackend(handlerService.Authenticate, handlerService.HandleMessage, log)
 
 	testPort := testutil.FindAvailablePort(t)
 	tlsConfig := loadTestTLSConfig(t)
 
-	serverConfig := smtp_relay.ServerConfig{
+	serverConfig := smtp_bridge.ServerConfig{
 		Host:      "127.0.0.1",
 		Port:      testPort,
 		Domain:    "test.localhost",
@@ -130,7 +130,7 @@ func TestSMTPRelayE2E(t *testing.T) {
 		Logger:    log,
 	}
 
-	server, err := smtp_relay.NewServer(serverConfig, backend)
+	server, err := smtp_bridge.NewServer(serverConfig, backend)
 	require.NoError(t, err)
 
 	go func() {
@@ -146,7 +146,7 @@ func TestSMTPRelayE2E(t *testing.T) {
 	addr := fmt.Sprintf("localhost:%d", testPort)
 
 	t.Run("FullFlow", func(t *testing.T) {
-		smtpClient := smtpRelayDialAndAuth(t, addr, apiUser.Email, apiKey)
+		smtpClient := smtpBridgeDialAndAuth(t, addr, apiUser.Email, apiKey)
 		defer func() { _ = smtpClient.Close() }()
 
 		err := smtpClient.Mail("sender@example.com")
@@ -210,7 +210,7 @@ Content-Type: text/plain
 	})
 
 	t.Run("WithEmailHeaders", func(t *testing.T) {
-		smtpClient := smtpRelayDialAndAuth(t, addr, apiUser.Email, apiKey)
+		smtpClient := smtpBridgeDialAndAuth(t, addr, apiUser.Email, apiKey)
 		defer func() { _ = smtpClient.Close() }()
 
 		err := smtpClient.Mail("sender@example.com")
@@ -286,7 +286,7 @@ Content-Type: text/plain
 	})
 
 	t.Run("InvalidJSON", func(t *testing.T) {
-		smtpClient := smtpRelayDialAndAuth(t, addr, apiUser.Email, apiKey)
+		smtpClient := smtpBridgeDialAndAuth(t, addr, apiUser.Email, apiKey)
 		defer func() { _ = smtpClient.Close() }()
 
 		err := smtpClient.Mail("sender@example.com")
@@ -314,7 +314,7 @@ This is not valid JSON`
 
 	t.Run("MultipleMessages", func(t *testing.T) {
 		for _, notifID := range notificationIDs {
-			smtpClient := smtpRelayDialAndAuth(t, addr, apiUser.Email, apiKey)
+			smtpClient := smtpBridgeDialAndAuth(t, addr, apiUser.Email, apiKey)
 
 			err := smtpClient.Mail("sender@example.com")
 			require.NoError(t, err)

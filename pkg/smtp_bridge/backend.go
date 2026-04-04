@@ -1,4 +1,4 @@
-package smtp_relay
+package smtp_bridge
 
 import (
 	"errors"
@@ -59,7 +59,7 @@ func (s *Session) Auth(mech string) (sasl.Server, error) {
 	return sasl.NewPlainServer(func(identity, username, password string) error {
 		s.logger.WithFields(map[string]interface{}{
 			"username": username,
-		}).Debug("SMTP relay: AUTH PLAIN attempt")
+		}).Debug("SMTP bridge: AUTH PLAIN attempt")
 
 		// Authenticate using api_email as username and api_key as password
 		userID, err := s.backend.authenticator(username, password)
@@ -67,14 +67,14 @@ func (s *Session) Auth(mech string) (sasl.Server, error) {
 			s.logger.WithFields(map[string]interface{}{
 				"username": username,
 				"error":    err.Error(),
-			}).Warn("SMTP relay: Authentication failed")
+			}).Warn("SMTP bridge: Authentication failed")
 			return errors.New("invalid credentials")
 		}
 
 		s.userID = userID
 		s.logger.WithFields(map[string]interface{}{
 			"user_id": userID,
-		}).Info("SMTP relay: Authentication successful")
+		}).Info("SMTP bridge: Authentication successful")
 
 		return nil
 	}), nil
@@ -84,7 +84,7 @@ func (s *Session) Auth(mech string) (sasl.Server, error) {
 func (s *Session) AuthPlain(username, password string) error {
 	s.logger.WithFields(map[string]interface{}{
 		"username": username,
-	}).Debug("SMTP relay: AUTH PLAIN attempt (legacy)")
+	}).Debug("SMTP bridge: AUTH PLAIN attempt (legacy)")
 
 	// Authenticate using api_email as username and api_key as password
 	userID, err := s.backend.authenticator(username, password)
@@ -92,14 +92,14 @@ func (s *Session) AuthPlain(username, password string) error {
 		s.logger.WithFields(map[string]interface{}{
 			"username": username,
 			"error":    err.Error(),
-		}).Warn("SMTP relay: Authentication failed")
+		}).Warn("SMTP bridge: Authentication failed")
 		return errors.New("invalid credentials")
 	}
 
 	s.userID = userID
 	s.logger.WithFields(map[string]interface{}{
 		"user_id": userID,
-	}).Info("SMTP relay: Authentication successful")
+	}).Info("SMTP bridge: Authentication successful")
 
 	return nil
 }
@@ -113,7 +113,7 @@ func (s *Session) Mail(from string, opts *smtp.MailOptions) error {
 	s.logger.WithFields(map[string]interface{}{
 		"from":    from,
 		"user_id": s.userID,
-	}).Debug("SMTP relay: MAIL FROM")
+	}).Debug("SMTP bridge: MAIL FROM")
 
 	s.from = from
 	return nil
@@ -128,7 +128,7 @@ func (s *Session) Rcpt(to string, opts *smtp.RcptOptions) error {
 	s.logger.WithFields(map[string]interface{}{
 		"to":      to,
 		"user_id": s.userID,
-	}).Debug("SMTP relay: RCPT TO")
+	}).Debug("SMTP bridge: RCPT TO")
 
 	s.to = append(s.to, to)
 	return nil
@@ -144,14 +144,14 @@ func (s *Session) Data(r io.Reader) error {
 		"from":    s.from,
 		"to":      s.to,
 		"user_id": s.userID,
-	}).Debug("SMTP relay: DATA")
+	}).Debug("SMTP bridge: DATA")
 
 	// Read the message data
 	data, err := io.ReadAll(r)
 	if err != nil {
 		s.logger.WithFields(map[string]interface{}{
 			"error": err.Error(),
-		}).Error("SMTP relay: Failed to read message data")
+		}).Error("SMTP bridge: Failed to read message data")
 		return errors.New("failed to read message")
 	}
 
@@ -162,14 +162,14 @@ func (s *Session) Data(r io.Reader) error {
 		s.logger.WithFields(map[string]interface{}{
 			"error":   err.Error(),
 			"user_id": s.userID,
-		}).Error("SMTP relay: Failed to process message")
+		}).Error("SMTP bridge: Failed to process message")
 		return err
 	}
 
 	s.logger.WithFields(map[string]interface{}{
 		"user_id":      s.userID,
 		"message_size": len(data),
-	}).Info("SMTP relay: Message processed successfully")
+	}).Info("SMTP bridge: Message processed successfully")
 
 	return nil
 }

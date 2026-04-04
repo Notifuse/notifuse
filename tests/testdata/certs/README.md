@@ -9,7 +9,7 @@ This directory contains self-signed TLS certificates for testing purposes only.
 
 ## Usage
 
-These certificates are used in the SMTP relay end-to-end tests to enable TLS authentication without requiring real certificates.
+These certificates are used in the SMTP bridge end-to-end tests to enable TLS authentication without requiring real certificates.
 
 **WARNING**: These are self-signed certificates and should NEVER be used in production. They are for testing purposes only.
 

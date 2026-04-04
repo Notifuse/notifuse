@@ -514,9 +514,9 @@ func main() {
   }
 
   const renderSMTPInstructions = () => {
-    const smtpHost = window.SMTP_RELAY_DOMAIN || 'your-smtp-domain.com'
-    const smtpPort = window.SMTP_RELAY_PORT || 587
-    const tlsEnabled = window.SMTP_RELAY_TLS_ENABLED !== false
+    const smtpHost = window.SMTP_BRIDGE_DOMAIN || 'your-smtp-domain.com'
+    const smtpPort = window.SMTP_BRIDGE_PORT || 587
+    const tlsEnabled = window.SMTP_BRIDGE_TLS_ENABLED !== false
 
     return (
       <div className="space-y-6">
@@ -907,7 +907,7 @@ public class NotificationSender {
         </div>
       )
     },
-    ...(window.SMTP_RELAY_ENABLED
+    ...(window.SMTP_BRIDGE_ENABLED
       ? [
           {
             key: 'smtp',
@@ -916,7 +916,7 @@ public class NotificationSender {
               <div>
                 <div className="mb-4">
                   <p className="text-sm">
-                    {t`Send transactional notifications using SMTP relay. Perfect for integrating with existing email systems or applications that support SMTP.`}
+                    {t`Send transactional notifications using SMTP bridge. Perfect for integrating with existing email systems or applications that support SMTP.`}
                   </p>
                 </div>
                 {renderSMTPInstructions()}

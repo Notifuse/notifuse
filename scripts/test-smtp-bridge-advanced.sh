@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Advanced SMTP relay test script with multiple test scenarios
-# Usage: ./scripts/test-smtp-relay-advanced.sh [api_email] [api_key] [workspace_id]
+# Advanced SMTP bridge test script with multiple test scenarios
+# Usage: ./scripts/test-smtp-bridge-advanced.sh [api_email] [api_key] [workspace_id]
 
 set -e
 
@@ -31,9 +31,9 @@ send_test() {
     local to="$3"
     local payload="$4"
     local headers="$5"
-    
+
     echo -e "${YELLOW}▶${NC} Testing: $test_name"
-    
+
     if swaks \
         --to "$to" \
         --from "$from" \
@@ -62,7 +62,7 @@ if [ -z "$API_EMAIL" ] || [ -z "$API_KEY" ] || [ -z "$WORKSPACE_ID" ]; then
     exit 1
 fi
 
-print_header "SMTP Relay Advanced Tests"
+print_header "SMTP Bridge Advanced Tests"
 
 passed=0
 failed=0
@@ -161,4 +161,3 @@ else
     echo "✗ Some tests failed"
     exit 1
 fi
-

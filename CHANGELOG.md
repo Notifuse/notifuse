@@ -2,7 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
-## [28.5] - 2026-03-27
+## [29.0] - 2026-04-04
+
+### Breaking Changes
+
+- **Rename**: "SMTP Relay" renamed to "SMTP Bridge" throughout the application
+  - Environment variables: `SMTP_RELAY_*` renamed to `SMTP_BRIDGE_*` (old names still accepted for backward compatibility)
+  - Database settings keys migrated automatically via V29 migration
+  - JSON API: `smtp_relay_*` fields renamed to `smtp_bridge_*` in setup endpoints
+  - Frontend routes: `/settings/smtp-relay` changed to `/settings/smtp-bridge`
+  - UI labels: "SMTP Relay" changed to "SMTP Bridge"
 
 - **Workspace**: Enforce team member limits via `MAX_USERS` env var (0 = unlimited), with checks on invite, accept invitation, and direct add — API key users are excluded from the count
 

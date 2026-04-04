@@ -1,4 +1,4 @@
-package smtp_relay
+package smtp_bridge
 
 import (
 	"crypto/tls"
@@ -20,11 +20,11 @@ type TLSConfig struct {
 func SetupTLS(cfg TLSConfig) (*tls.Config, error) {
 	// Check if certificates are provided
 	if cfg.CertBase64 == "" || cfg.KeyBase64 == "" {
-		cfg.Logger.Warn("SMTP relay: No TLS configuration provided - server will run without TLS (NOT recommended for production)")
+		cfg.Logger.Warn("SMTP bridge: No TLS configuration provided - server will run without TLS (NOT recommended for production)")
 		return nil, nil
 	}
 
-	cfg.Logger.Info("SMTP relay: Configuring TLS from base64-encoded certificates")
+	cfg.Logger.Info("SMTP bridge: Configuring TLS from base64-encoded certificates")
 
 	// Decode certificate
 	certPEM, err := base64.StdEncoding.DecodeString(cfg.CertBase64)
@@ -49,7 +49,7 @@ func SetupTLS(cfg TLSConfig) (*tls.Config, error) {
 		MinVersion:   tls.VersionTLS12,
 	}
 
-	cfg.Logger.Info("SMTP relay: TLS configured successfully from base64 certificates")
+	cfg.Logger.Info("SMTP bridge: TLS configured successfully from base64 certificates")
 
 	return tlsConfig, nil
 }

@@ -36,26 +36,26 @@ CERT_BASE64=$(cat "$OUTPUT_DIR/${DOMAIN}.cert.pem" | base64)
 KEY_BASE64=$(cat "$OUTPUT_DIR/${DOMAIN}.key.pem" | base64)
 
 # Save base64 versions to a file
-cat > "$OUTPUT_DIR/.env.smtp-relay" <<EOF
-# SMTP Relay TLS Configuration (Base64 Encoded)
+cat > "$OUTPUT_DIR/.env.smtp-bridge" <<EOF
+# SMTP Bridge TLS Configuration (Base64 Encoded)
 # Generated for: $DOMAIN
 # Valid for: 365 days from $(date +%Y-%m-%d)
 #
 # Add these to your .env file:
 
-SMTP_RELAY_ENABLED=true
-SMTP_RELAY_PORT=587
-SMTP_RELAY_DOMAIN=$DOMAIN
+SMTP_BRIDGE_ENABLED=true
+SMTP_BRIDGE_PORT=587
+SMTP_BRIDGE_DOMAIN=$DOMAIN
 
 # Base64 encoded certificate and key
-SMTP_RELAY_TLS_CERT_BASE64="$CERT_BASE64"
-SMTP_RELAY_TLS_KEY_BASE64="$KEY_BASE64"
+SMTP_BRIDGE_TLS_CERT_BASE64="$CERT_BASE64"
+SMTP_BRIDGE_TLS_KEY_BASE64="$KEY_BASE64"
 EOF
 
-echo "📝 Environment variables saved to: $OUTPUT_DIR/.env.smtp-relay"
+echo "📝 Environment variables saved to: $OUTPUT_DIR/.env.smtp-bridge"
 echo ""
 echo "🚀 Quick Setup:"
-echo "   1. Copy the contents of $OUTPUT_DIR/.env.smtp-relay to your .env file"
+echo "   1. Copy the contents of $OUTPUT_DIR/.env.smtp-bridge to your .env file"
 echo "   2. Add '127.0.0.1 $DOMAIN' to your /etc/hosts file"
 echo "   3. Run 'make dev' to start the server"
 echo ""

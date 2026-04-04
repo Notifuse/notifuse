@@ -1,4 +1,4 @@
-package smtp_relay
+package smtp_bridge
 
 import (
 	"encoding/base64"

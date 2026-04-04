@@ -163,13 +163,10 @@ func GetTestDatabaseConfig() *config.DatabaseConfig {
 	// Check if we're likely in a containerized environment
 	testHost := getEnvOrDefault("TEST_DB_HOST", defaultHost)
 	testPort := defaultPort
-	if testHost != defaultHost {
-		// If custom host is set, likely need internal port
-		if portStr := getEnvOrDefault("TEST_DB_PORT", ""); portStr != "" {
-			fmt.Sscanf(portStr, "%d", &testPort)
-		} else {
-			testPort = 5432 // Default to internal port when using custom host
-		}
+	if portStr := getEnvOrDefault("TEST_DB_PORT", ""); portStr != "" {
+		fmt.Sscanf(portStr, "%d", &testPort)
+	} else if testHost != defaultHost {
+		testPort = 5432 // Default to internal port when using custom host
 	}
 
 	cfg := &config.DatabaseConfig{
