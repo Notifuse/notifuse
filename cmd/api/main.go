@@ -113,6 +113,10 @@ func runServer(cfg *config.Config, appLogger logger.Logger) error {
 }
 
 func main() {
+	if err := config.CheckBlockedPlatforms(); err != nil {
+		log.Fatalf("%v", err)
+	}
+
 	// Load configuration
 	cfg, err := config.Load()
 	if err != nil {

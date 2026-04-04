@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -14,6 +15,7 @@ import (
 	pkgDatabase "github.com/Notifuse/notifuse/pkg/database"
 	"github.com/Notifuse/notifuse/pkg/logger"
 	"github.com/Notifuse/notifuse/pkg/ratelimiter"
+	"github.com/Notifuse/notifuse/pkg/safehttpclient"
 	"github.com/PuerkitoBio/goquery"
 )
 
@@ -22,6 +24,7 @@ type NotificationCenterHandler struct {
 	listService domain.ListService
 	logger      logger.Logger
 	rateLimiter *ratelimiter.RateLimiter
+	httpClient  *http.Client // SSRF-safe client for outbound requests
 }
 
 func NewNotificationCenterHandler(service domain.NotificationCenterService, listService domain.ListService, logger logger.Logger, rateLimiter *ratelimiter.RateLimiter) *NotificationCenterHandler {
@@ -30,6 +33,7 @@ func NewNotificationCenterHandler(service domain.NotificationCenterService, list
 		listService: listService,
 		logger:      logger,
 		rateLimiter: rateLimiter,
+		httpClient:  safehttpclient.New(),
 	}
 }
 
@@ -342,16 +346,22 @@ func (h *NotificationCenterHandler) HandleDetectFavicon(w http.ResponseWriter, r
 		return
 	}
 
-	// Fetch the webpage
-	resp, err := http.Get(req.URL)
+	// Block non-http/https schemes
+	if baseURL.Scheme != "http" && baseURL.Scheme != "https" {
+		http.Error(w, "Only http and https URLs are supported", http.StatusBadRequest)
+		return
+	}
+
+	// Fetch the webpage using SSRF-safe client
+	resp, err := h.httpClient.Get(req.URL)
 	if err != nil {
 		http.Error(w, "Error fetching URL", http.StatusInternalServerError)
 		return
 	}
 	defer func() { _ = resp.Body.Close() }()
 
-	// Parse HTML
-	doc, err := goquery.NewDocumentFromReader(resp.Body)
+	// Parse HTML with a body size limit to prevent resource exhaustion
+	doc, err := goquery.NewDocumentFromReader(io.LimitReader(resp.Body, 5*1024*1024))
 	if err != nil {
 		http.Error(w, "Error parsing HTML", http.StatusInternalServerError)
 		return
@@ -372,11 +382,11 @@ func (h *NotificationCenterHandler) HandleDetectFavicon(w http.ResponseWriter, r
 	// Check for apple-touch-icon
 	if iconURL := findAppleTouchIcon(doc, baseURL); iconURL != "" {
 		response.IconURL = iconURL
-	} else if iconURL := findManifestIcon(doc, baseURL); iconURL != "" { // Check for manifest.json
+	} else if iconURL := findManifestIcon(doc, baseURL, h.httpClient); iconURL != "" { // Check for manifest.json
 		response.IconURL = iconURL
 	} else if iconURL := findTraditionalFavicon(doc, baseURL); iconURL != "" { // Check for traditional favicon
 		response.IconURL = iconURL
-	} else if iconURL := tryDefaultFavicon(baseURL); iconURL != "" { // Try default favicon location
+	} else if iconURL := tryDefaultFavicon(baseURL, h.httpClient); iconURL != "" { // Try default favicon location
 		response.IconURL = iconURL
 	}
 
@@ -404,7 +414,7 @@ func findAppleTouchIcon(doc *goquery.Document, baseURL *url.URL) string {
 	return iconURL
 }
 
-func findManifestIcon(doc *goquery.Document, baseURL *url.URL) string {
+func findManifestIcon(doc *goquery.Document, baseURL *url.URL, client *http.Client) string {
 	var iconURL string
 	doc.Find("link[rel='manifest']").Each(func(_ int, s *goquery.Selection) {
 		if href, exists := s.Attr("href"); exists {
@@ -413,7 +423,7 @@ func findManifestIcon(doc *goquery.Document, baseURL *url.URL) string {
 				return
 			}
 
-			resp, err := http.Get(manifestURL)
+			resp, err := client.Get(manifestURL)
 			if err != nil {
 				return
 			}
@@ -426,7 +436,7 @@ func findManifestIcon(doc *goquery.Document, baseURL *url.URL) string {
 				} `json:"icons"`
 			}
 
-			if err := json.NewDecoder(resp.Body).Decode(&manifest); err != nil {
+			if err := json.NewDecoder(io.LimitReader(resp.Body, 1*1024*1024)).Decode(&manifest); err != nil {
 				return
 			}
 
@@ -461,10 +471,14 @@ func findTraditionalFavicon(doc *goquery.Document, baseURL *url.URL) string {
 	return iconURL
 }
 
-func tryDefaultFavicon(baseURL *url.URL) string {
+func tryDefaultFavicon(baseURL *url.URL, client *http.Client) string {
 	faviconURL := baseURL.ResolveReference(&url.URL{Path: "/favicon.ico"}).String()
-	resp, err := http.Head(faviconURL)
-	if err == nil && resp.StatusCode == http.StatusOK {
+	resp, err := client.Head(faviconURL)
+	if err != nil {
+		return ""
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode == http.StatusOK {
 		return faviconURL
 	}
 	return ""

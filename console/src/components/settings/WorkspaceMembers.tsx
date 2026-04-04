@@ -263,8 +263,8 @@ export function WorkspaceMembers({
       // Refresh the members list
       onMembersChange()
     } catch (error) {
-      console.error('Failed to invite member', error)
-      message.error(t`Failed to invite member`)
+      const msg = error instanceof Error ? error.message : t`Failed to invite member`
+      message.error(msg)
     } finally {
       setInviting(false)
     }

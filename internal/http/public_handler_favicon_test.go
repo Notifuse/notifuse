@@ -186,10 +186,6 @@ func TestResolveURL(t *testing.T) {
 }
 
 func TestTryDefaultFavicon(t *testing.T) {
-	// Create a client with a mock transport
-	originalClient := http.DefaultClient
-	defer func() { http.DefaultClient = originalClient }()
-
 	mockClient := &http.Client{
 		Transport: &mockTransport{
 			responses: map[string]*http.Response{
@@ -204,18 +200,17 @@ func TestTryDefaultFavicon(t *testing.T) {
 			},
 		},
 	}
-	http.DefaultClient = mockClient
 
 	// Test successful icon detection
 	baseURL, err := url.Parse("https://example.com")
 	require.NoError(t, err)
-	result := tryDefaultFavicon(baseURL)
+	result := tryDefaultFavicon(baseURL, mockClient)
 	assert.Equal(t, "https://example.com/favicon.ico", result)
 
 	// Test failed icon detection
 	baseURL, err = url.Parse("https://noicon.com")
 	require.NoError(t, err)
-	result = tryDefaultFavicon(baseURL)
+	result = tryDefaultFavicon(baseURL, mockClient)
 	assert.Equal(t, "", result)
 }
 
@@ -280,11 +275,6 @@ func TestFindManifestIcon(t *testing.T) {
 	baseURL, err := url.Parse("https://example.com")
 	require.NoError(t, err)
 
-	// Save and restore the default HTTP client
-	originalClient := http.DefaultClient
-	defer func() { http.DefaultClient = originalClient }()
-
-	// Create a mock HTTP client
 	mockClient := &http.Client{
 		Transport: &mockTransport{
 			responses: map[string]*http.Response{
@@ -324,13 +314,12 @@ func TestFindManifestIcon(t *testing.T) {
 			},
 		},
 	}
-	http.DefaultClient = mockClient
 
 	t.Run("with valid manifest", func(t *testing.T) {
 		html := `<html><head><link rel="manifest" href="/manifest.json"></head><body></body></html>`
 		doc := createMockHTMLDoc(t, html)
 
-		result := findManifestIcon(doc, baseURL)
+		result := findManifestIcon(doc, baseURL, mockClient)
 		assert.Equal(t, "https://example.com/icon-512.png", result)
 	})
 
@@ -338,7 +327,7 @@ func TestFindManifestIcon(t *testing.T) {
 		html := `<html><head><link rel="manifest" href="/empty-manifest.json"></head><body></body></html>`
 		doc := createMockHTMLDoc(t, html)
 
-		result := findManifestIcon(doc, baseURL)
+		result := findManifestIcon(doc, baseURL, mockClient)
 		assert.Equal(t, "", result)
 	})
 
@@ -346,7 +335,7 @@ func TestFindManifestIcon(t *testing.T) {
 		html := `<html><head><link rel="manifest" href="/invalid-manifest.json"></head><body></body></html>`
 		doc := createMockHTMLDoc(t, html)
 
-		result := findManifestIcon(doc, baseURL)
+		result := findManifestIcon(doc, baseURL, mockClient)
 		assert.Equal(t, "", result)
 	})
 
@@ -354,7 +343,7 @@ func TestFindManifestIcon(t *testing.T) {
 		html := `<html><head><link rel="manifest" href="https://failure.com/manifest.json"></head><body></body></html>`
 		doc := createMockHTMLDoc(t, html)
 
-		result := findManifestIcon(doc, baseURL)
+		result := findManifestIcon(doc, baseURL, mockClient)
 		assert.Equal(t, "", result)
 	})
 
@@ -362,17 +351,12 @@ func TestFindManifestIcon(t *testing.T) {
 		html := `<html><head></head><body></body></html>`
 		doc := createMockHTMLDoc(t, html)
 
-		result := findManifestIcon(doc, baseURL)
+		result := findManifestIcon(doc, baseURL, mockClient)
 		assert.Equal(t, "", result)
 	})
 }
 
 func TestFaviconHandler_DetectFavicon_AppleTouchIcon_Success(t *testing.T) {
-	// Save original http.DefaultClient and restore it after the test
-	originalClient := http.DefaultClient
-	defer func() { http.DefaultClient = originalClient }()
-
-	// Create mock responses
 	testURL := "https://example.com"
 	htmlContent := `<!DOCTYPE html>
 	<html>
@@ -382,8 +366,8 @@ func TestFaviconHandler_DetectFavicon_AppleTouchIcon_Success(t *testing.T) {
 	<body>Test</body>
 	</html>`
 
-	// Setup mock client
-	http.DefaultClient = &http.Client{
+	handler := NewNotificationCenterHandler(nil, nil, nil, nil)
+	handler.httpClient = &http.Client{
 		Transport: &mockTransport{
 			responses: map[string]*http.Response{
 				testURL: {
@@ -400,18 +384,12 @@ func TestFaviconHandler_DetectFavicon_AppleTouchIcon_Success(t *testing.T) {
 		},
 	}
 
-	// Setup handler
-	handler := NewNotificationCenterHandler(nil, nil, nil, nil)
-
-	// Create request
 	reqBody, _ := json.Marshal(FaviconRequest{URL: testURL})
 	req := httptest.NewRequest(http.MethodPost, "/api/detect-favicon", bytes.NewBuffer(reqBody))
 	w := httptest.NewRecorder()
 
-	// Call handler
 	handler.HandleDetectFavicon(w, req)
 
-	// Check response
 	assert.Equal(t, http.StatusOK, w.Code)
 
 	var resp FaviconResponse
@@ -421,11 +399,6 @@ func TestFaviconHandler_DetectFavicon_AppleTouchIcon_Success(t *testing.T) {
 }
 
 func TestFaviconHandler_DetectFavicon_ManifestIcon_Success(t *testing.T) {
-	// Save original http.DefaultClient and restore it after the test
-	originalClient := http.DefaultClient
-	defer func() { http.DefaultClient = originalClient }()
-
-	// Create mock responses
 	testURL := "https://example.com"
 	htmlContent := `<!DOCTYPE html>
 	<html>
@@ -445,8 +418,8 @@ func TestFaviconHandler_DetectFavicon_ManifestIcon_Success(t *testing.T) {
 		]
 	}`
 
-	// Setup mock client
-	http.DefaultClient = &http.Client{
+	handler := NewNotificationCenterHandler(nil, nil, nil, nil)
+	handler.httpClient = &http.Client{
 		Transport: &mockTransport{
 			responses: map[string]*http.Response{
 				testURL: {
@@ -468,18 +441,12 @@ func TestFaviconHandler_DetectFavicon_ManifestIcon_Success(t *testing.T) {
 		},
 	}
 
-	// Setup handler
-	handler := NewNotificationCenterHandler(nil, nil, nil, nil)
-
-	// Create request
 	reqBody, _ := json.Marshal(FaviconRequest{URL: testURL})
 	req := httptest.NewRequest(http.MethodPost, "/api/detect-favicon", bytes.NewBuffer(reqBody))
 	w := httptest.NewRecorder()
 
-	// Call handler
 	handler.HandleDetectFavicon(w, req)
 
-	// Check response
 	assert.Equal(t, http.StatusOK, w.Code)
 
 	var resp FaviconResponse
@@ -489,11 +456,6 @@ func TestFaviconHandler_DetectFavicon_ManifestIcon_Success(t *testing.T) {
 }
 
 func TestFaviconHandler_DetectFavicon_Traditional_Success(t *testing.T) {
-	// Save original http.DefaultClient and restore it after the test
-	originalClient := http.DefaultClient
-	defer func() { http.DefaultClient = originalClient }()
-
-	// Create mock responses
 	testURL := "https://example.com"
 	htmlContent := `<!DOCTYPE html>
 	<html>
@@ -503,8 +465,8 @@ func TestFaviconHandler_DetectFavicon_Traditional_Success(t *testing.T) {
 	<body>Test</body>
 	</html>`
 
-	// Setup mock client
-	http.DefaultClient = &http.Client{
+	handler := NewNotificationCenterHandler(nil, nil, nil, nil)
+	handler.httpClient = &http.Client{
 		Transport: &mockTransport{
 			responses: map[string]*http.Response{
 				testURL: {
@@ -521,18 +483,12 @@ func TestFaviconHandler_DetectFavicon_Traditional_Success(t *testing.T) {
 		},
 	}
 
-	// Setup handler
-	handler := NewNotificationCenterHandler(nil, nil, nil, nil)
-
-	// Create request
 	reqBody, _ := json.Marshal(FaviconRequest{URL: testURL})
 	req := httptest.NewRequest(http.MethodPost, "/api/detect-favicon", bytes.NewBuffer(reqBody))
 	w := httptest.NewRecorder()
 
-	// Call handler
 	handler.HandleDetectFavicon(w, req)
 
-	// Check response
 	assert.Equal(t, http.StatusOK, w.Code)
 
 	var resp FaviconResponse
@@ -542,11 +498,6 @@ func TestFaviconHandler_DetectFavicon_Traditional_Success(t *testing.T) {
 }
 
 func TestFaviconHandler_DetectFavicon_DefaultLocation_Success(t *testing.T) {
-	// Save original http.DefaultClient and restore it after the test
-	originalClient := http.DefaultClient
-	defer func() { http.DefaultClient = originalClient }()
-
-	// Create mock responses
 	testURL := "https://example.com"
 	htmlContent := `<!DOCTYPE html>
 	<html>
@@ -555,8 +506,8 @@ func TestFaviconHandler_DetectFavicon_DefaultLocation_Success(t *testing.T) {
 	<body>Test</body>
 	</html>`
 
-	// Setup mock client
-	http.DefaultClient = &http.Client{
+	handler := NewNotificationCenterHandler(nil, nil, nil, nil)
+	handler.httpClient = &http.Client{
 		Transport: &mockTransport{
 			responses: map[string]*http.Response{
 				testURL: {
@@ -573,18 +524,12 @@ func TestFaviconHandler_DetectFavicon_DefaultLocation_Success(t *testing.T) {
 		},
 	}
 
-	// Setup handler
-	handler := NewNotificationCenterHandler(nil, nil, nil, nil)
-
-	// Create request
 	reqBody, _ := json.Marshal(FaviconRequest{URL: testURL})
 	req := httptest.NewRequest(http.MethodPost, "/api/detect-favicon", bytes.NewBuffer(reqBody))
 	w := httptest.NewRecorder()
 
-	// Call handler
 	handler.HandleDetectFavicon(w, req)
 
-	// Check response
 	assert.Equal(t, http.StatusOK, w.Code)
 
 	var resp FaviconResponse
@@ -594,11 +539,6 @@ func TestFaviconHandler_DetectFavicon_DefaultLocation_Success(t *testing.T) {
 }
 
 func TestFaviconHandler_DetectFavicon_NoFaviconFound(t *testing.T) {
-	// Save original http.DefaultClient and restore it after the test
-	originalClient := http.DefaultClient
-	defer func() { http.DefaultClient = originalClient }()
-
-	// Create mock responses
 	testURL := "https://example.com"
 	htmlContent := `<!DOCTYPE html>
 	<html>
@@ -607,8 +547,8 @@ func TestFaviconHandler_DetectFavicon_NoFaviconFound(t *testing.T) {
 	<body>Test</body>
 	</html>`
 
-	// Setup mock client
-	http.DefaultClient = &http.Client{
+	handler := NewNotificationCenterHandler(nil, nil, nil, nil)
+	handler.httpClient = &http.Client{
 		Transport: &mockTransport{
 			responses: map[string]*http.Response{
 				testURL: {
@@ -625,62 +565,38 @@ func TestFaviconHandler_DetectFavicon_NoFaviconFound(t *testing.T) {
 		},
 	}
 
-	// Setup handler
-	handler := NewNotificationCenterHandler(nil, nil, nil, nil)
-
-	// Create request
 	reqBody, _ := json.Marshal(FaviconRequest{URL: testURL})
 	req := httptest.NewRequest(http.MethodPost, "/api/detect-favicon", bytes.NewBuffer(reqBody))
 	w := httptest.NewRecorder()
 
-	// Call handler
 	handler.HandleDetectFavicon(w, req)
 
-	// Check response
 	assert.Equal(t, http.StatusNotFound, w.Code)
 	assert.Contains(t, w.Body.String(), "No favicon or cover image found")
 }
 
 func TestFaviconHandler_DetectFavicon_FailedFetch(t *testing.T) {
-	// Save original http.DefaultClient and restore it after the test
-	originalClient := http.DefaultClient
-	defer func() { http.DefaultClient = originalClient }()
-
-	// Create a custom transport that returns an error for all requests
-	errTransport := &errorTransport{}
-
-	// Setup mock client with the error transport
-	http.DefaultClient = &http.Client{
-		Transport: errTransport,
+	handler := NewNotificationCenterHandler(nil, nil, nil, nil)
+	handler.httpClient = &http.Client{
+		Transport: &errorTransport{},
 	}
 
-	// Setup handler
-	handler := NewNotificationCenterHandler(nil, nil, nil, nil)
-
-	// Create request
 	reqBody, _ := json.Marshal(FaviconRequest{URL: "https://example.com"})
 	req := httptest.NewRequest(http.MethodPost, "/api/detect-favicon", bytes.NewBuffer(reqBody))
 	w := httptest.NewRecorder()
 
-	// Call handler
 	handler.HandleDetectFavicon(w, req)
 
-	// Check response
 	assert.Equal(t, http.StatusInternalServerError, w.Code)
 	assert.Contains(t, w.Body.String(), "Error fetching URL")
 }
 
 func TestFaviconHandler_DetectFavicon_InvalidHTML(t *testing.T) {
-	// Save original http.DefaultClient and restore it after the test
-	originalClient := http.DefaultClient
-	defer func() { http.DefaultClient = originalClient }()
-
-	// Create mock responses with invalid HTML
 	testURL := "https://example.com"
 	invalidHTML := `<html><head><title>Test</title></head><body><p>Unclosed paragraph`
 
-	// Setup mock client
-	http.DefaultClient = &http.Client{
+	handler := NewNotificationCenterHandler(nil, nil, nil, nil)
+	handler.httpClient = &http.Client{
 		Transport: &mockTransport{
 			responses: map[string]*http.Response{
 				testURL: {
@@ -692,18 +608,12 @@ func TestFaviconHandler_DetectFavicon_InvalidHTML(t *testing.T) {
 		},
 	}
 
-	// Setup handler
-	handler := NewNotificationCenterHandler(nil, nil, nil, nil)
-
-	// Create request
 	reqBody, _ := json.Marshal(FaviconRequest{URL: testURL})
 	req := httptest.NewRequest(http.MethodPost, "/api/detect-favicon", bytes.NewBuffer(reqBody))
 	w := httptest.NewRecorder()
 
-	// Call handler
 	handler.HandleDetectFavicon(w, req)
 
-	// Check response - goquery is quite forgiving, so it should still parse
 	assert.Equal(t, http.StatusNotFound, w.Code)
 	assert.Contains(t, w.Body.String(), "No favicon or cover image found")
 }
@@ -716,14 +626,10 @@ func (f *failingReader) Read(p []byte) (n int, err error) {
 }
 
 func TestFaviconHandler_DetectFavicon_HTMLParsingError(t *testing.T) {
-	// Save original http.DefaultClient and restore it after the test
-	originalClient := http.DefaultClient
-	defer func() { http.DefaultClient = originalClient }()
-
 	testURL := "https://example.com"
 
-	// Create a mock response that will fail when reading the body
-	http.DefaultClient = &http.Client{
+	handler := NewNotificationCenterHandler(nil, nil, nil, nil)
+	handler.httpClient = &http.Client{
 		Transport: &mockTransport{
 			responses: map[string]*http.Response{
 				testURL: {
@@ -735,18 +641,12 @@ func TestFaviconHandler_DetectFavicon_HTMLParsingError(t *testing.T) {
 		},
 	}
 
-	// Setup handler
-	handler := NewNotificationCenterHandler(nil, nil, nil, nil)
-
-	// Create request
 	reqBody, _ := json.Marshal(FaviconRequest{URL: testURL})
 	req := httptest.NewRequest(http.MethodPost, "/api/detect-favicon", bytes.NewBuffer(reqBody))
 	w := httptest.NewRecorder()
 
-	// Call handler
 	handler.HandleDetectFavicon(w, req)
 
-	// Check response - should get parsing error
 	assert.Equal(t, http.StatusInternalServerError, w.Code)
 	assert.Contains(t, w.Body.String(), "Error parsing HTML")
 }
@@ -1010,10 +910,6 @@ func TestParseInt(t *testing.T) {
 }
 
 func TestFaviconHandler_DetectFavicon_WithCoverImages(t *testing.T) {
-	// Save original http.DefaultClient and restore it after the test
-	originalClient := http.DefaultClient
-	defer func() { http.DefaultClient = originalClient }()
-
 	testCases := []struct {
 		name          string
 		html          string
@@ -1090,8 +986,8 @@ func TestFaviconHandler_DetectFavicon_WithCoverImages(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			testURL := "https://example.com"
 
-			// Setup mock client
-			http.DefaultClient = &http.Client{
+			handler := NewNotificationCenterHandler(nil, nil, nil, nil)
+			handler.httpClient = &http.Client{
 				Transport: &mockTransport{
 					responses: map[string]*http.Response{
 						testURL: {
@@ -1102,9 +998,6 @@ func TestFaviconHandler_DetectFavicon_WithCoverImages(t *testing.T) {
 					},
 				},
 			}
-
-			// Setup handler
-			handler := NewNotificationCenterHandler(nil, nil, nil, nil)
 
 			// Create request
 			reqBody, _ := json.Marshal(FaviconRequest{URL: testURL})
@@ -1225,15 +1118,18 @@ func TestFindManifestIcon_EdgeCases(t *testing.T) {
 	baseURL, err := url.Parse("https://example.com")
 	require.NoError(t, err)
 
-	// Save and restore the default HTTP client
-	originalClient := http.DefaultClient
-	defer func() { http.DefaultClient = originalClient }()
+	// Use a basic mock client for tests that don't need specific responses
+	basicMockClient := &http.Client{
+		Transport: &mockTransport{
+			responses: map[string]*http.Response{},
+		},
+	}
 
 	t.Run("with manifest URL resolution error", func(t *testing.T) {
 		html := `<html><head><link rel="manifest" href="://invalid-url"></head><body></body></html>`
 		doc := createMockHTMLDoc(t, html)
 
-		result := findManifestIcon(doc, baseURL)
+		result := findManifestIcon(doc, baseURL, basicMockClient)
 		assert.Equal(t, "", result)
 	})
 
@@ -1241,12 +1137,11 @@ func TestFindManifestIcon_EdgeCases(t *testing.T) {
 		html := `<html><head><link rel="manifest"></head><body></body></html>`
 		doc := createMockHTMLDoc(t, html)
 
-		result := findManifestIcon(doc, baseURL)
+		result := findManifestIcon(doc, baseURL, basicMockClient)
 		assert.Equal(t, "", result)
 	})
 
 	t.Run("with manifest icon URL resolution error", func(t *testing.T) {
-		// Create a mock HTTP client that returns an invalid icon URL
 		mockClient := &http.Client{
 			Transport: &mockTransport{
 				responses: map[string]*http.Response{
@@ -1265,45 +1160,55 @@ func TestFindManifestIcon_EdgeCases(t *testing.T) {
 				},
 			},
 		}
-		http.DefaultClient = mockClient
 
 		html := `<html><head><link rel="manifest" href="/manifest.json"></head><body></body></html>`
 		doc := createMockHTMLDoc(t, html)
 
-		result := findManifestIcon(doc, baseURL)
-		// The URL resolution now correctly fails for invalid URLs
+		result := findManifestIcon(doc, baseURL, mockClient)
 		assert.Equal(t, "", result)
 	})
 
 	t.Run("with network error for manifest fetch", func(t *testing.T) {
-		// Create a client that returns network errors
-		http.DefaultClient = &http.Client{
+		errClient := &http.Client{
 			Transport: &errorTransport{},
 		}
 
 		html := `<html><head><link rel="manifest" href="/manifest.json"></head><body></body></html>`
 		doc := createMockHTMLDoc(t, html)
 
-		result := findManifestIcon(doc, baseURL)
+		result := findManifestIcon(doc, baseURL, errClient)
 		assert.Equal(t, "", result)
 	})
 }
 
 func TestTryDefaultFavicon_NetworkError(t *testing.T) {
-	// Save original http.DefaultClient and restore it after the test
-	originalClient := http.DefaultClient
-	defer func() { http.DefaultClient = originalClient }()
-
-	// Create a client that returns network errors
-	http.DefaultClient = &http.Client{
+	errClient := &http.Client{
 		Transport: &errorTransport{},
 	}
 
 	baseURL, err := url.Parse("https://example.com")
 	require.NoError(t, err)
 
-	result := tryDefaultFavicon(baseURL)
+	result := tryDefaultFavicon(baseURL, errClient)
 	assert.Equal(t, "", result)
+}
+
+func TestHandleDetectFavicon_BlocksNonHTTPScheme(t *testing.T) {
+	handler := NewNotificationCenterHandler(nil, nil, nil, nil)
+
+	schemes := []string{"ftp://evil.com", "file:///etc/passwd", "javascript:alert(1)", "gopher://internal:70"}
+	for _, u := range schemes {
+		t.Run(u, func(t *testing.T) {
+			reqBody, _ := json.Marshal(FaviconRequest{URL: u})
+			req := httptest.NewRequest(http.MethodPost, "/api/detect-favicon", bytes.NewBuffer(reqBody))
+			w := httptest.NewRecorder()
+
+			handler.HandleDetectFavicon(w, req)
+
+			assert.Equal(t, http.StatusBadRequest, w.Code)
+			assert.Contains(t, w.Body.String(), "Only http and https URLs are supported")
+		})
+	}
 }
 
 func TestFindAppleTouchIcon_EdgeCases(t *testing.T) {

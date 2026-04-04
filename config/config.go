@@ -14,7 +14,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-const VERSION = "28.4"
+const VERSION = "28.5"
 
 type Config struct {
 	Server              ServerConfig
@@ -36,6 +36,7 @@ type Config struct {
 	LogLevel            string
 	Version             string
 	IsInstalled         bool // NEW: Indicates if setup wizard has been completed
+	MaxUsers            int  // 0 = unlimited (backward compat for self-hosted)
 
 	// Track which values came from actual environment variables (not database, not generated)
 	EnvValues EnvValues
@@ -783,6 +784,7 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 		LogLevel:        v.GetString("LOG_LEVEL"),
 		Version:         v.GetString("VERSION"),
 		IsInstalled:     isInstalled,
+		MaxUsers:        v.GetInt("MAX_USERS"),
 		EnvValues:       envVals, // Store env values for setup service
 	}
 

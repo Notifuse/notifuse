@@ -476,6 +476,21 @@ func (s *WorkspaceService) AddUserToWorkspace(ctx context.Context, workspaceID s
 		return &domain.ErrUnauthorized{Message: "user is not an owner of the workspace"}
 	}
 
+	// Check team member limit
+	if s.config.MaxUsers > 0 {
+		count, err := s.repo.CountWorkspaceMembersAndInvitations(ctx, workspaceID)
+		if err != nil {
+			s.logger.WithField("workspace_id", workspaceID).WithField("error", err.Error()).Error("Failed to count workspace members")
+			return err
+		}
+		if count >= s.config.MaxUsers {
+			return &domain.ErrTeamMemberLimitReached{
+				Limit:   s.config.MaxUsers,
+				Current: count,
+			}
+		}
+	}
+
 	// Use the permissions passed as parameter
 
 	userWorkspace := &domain.UserWorkspace{
@@ -621,6 +636,21 @@ func (s *WorkspaceService) InviteMember(ctx context.Context, workspaceID, email 
 	}
 	if !isMember {
 		return nil, "", fmt.Errorf("inviter is not a member of the workspace")
+	}
+
+	// Check team member limit
+	if s.config.MaxUsers > 0 {
+		count, err := s.repo.CountWorkspaceMembersAndInvitations(ctx, workspaceID)
+		if err != nil {
+			s.logger.WithField("workspace_id", workspaceID).WithField("error", err.Error()).Error("Failed to count workspace members")
+			return nil, "", err
+		}
+		if count >= s.config.MaxUsers {
+			return nil, "", &domain.ErrTeamMemberLimitReached{
+				Limit:   s.config.MaxUsers,
+				Current: count,
+			}
+		}
 	}
 
 	// Get inviter user details for the email
@@ -969,6 +999,24 @@ func (s *WorkspaceService) AcceptInvitation(ctx context.Context, invitationID, w
 				s.logger.WithField("invitation_id", invitationID).WithField("error", err.Error()).Warn("Failed to delete invitation after finding user is already a member")
 			}
 			return nil, fmt.Errorf("user is already a member of the workspace")
+		}
+	}
+
+	// Check team member limit before adding to workspace.
+	// Subtract 1 because the invitation being accepted is still counted in the total
+	// but will be deleted after the user is added — accepting converts an invitation
+	// into a member (net-zero change), so it should not block acceptance.
+	if s.config.MaxUsers > 0 {
+		count, err := s.repo.CountWorkspaceMembersAndInvitations(ctx, workspaceID)
+		if err != nil {
+			s.logger.WithField("workspace_id", workspaceID).WithField("error", err.Error()).Error("Failed to count workspace members")
+			return nil, err
+		}
+		if count-1 >= s.config.MaxUsers {
+			return nil, &domain.ErrTeamMemberLimitReached{
+				Limit:   s.config.MaxUsers,
+				Current: count,
+			}
 		}
 	}
 

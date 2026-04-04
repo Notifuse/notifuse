@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [28.5] - 2026-03-27
+
+- **Workspace**: Enforce team member limits via `MAX_USERS` env var (0 = unlimited), with checks on invite, accept invitation, and direct add — API key users are excluded from the count
+
+- **Security**: Fixed SSRF vulnerability in `/api/detect-favicon` endpoint by adding a safe HTTP client with private IP blocking, DNS rebinding protection, scheme validation, and response size limits
+- **Security**: Upgraded happy-dom to 20.8.9 in notification center and picomatch to 4.0.4 in console
+
 ## [28.4] - 2026-03-27
 
 - **Security**: Upgraded picomatch to 4.0.4 in notification center
