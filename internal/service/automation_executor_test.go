@@ -1959,3 +1959,86 @@ func TestAutomationExecutor_Execute_MaxIterationsLimit(t *testing.T) {
 	assert.Equal(t, "node11", *contactAutomation.CurrentNodeID)
 	assert.Equal(t, domain.ContactAutomationStatusActive, contactAutomation.Status)
 }
+
+func TestAutomationExecutor_Execute_ExitReasonPropagation(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockAutomationRepo := mocks.NewMockAutomationRepository(ctrl)
+	mockContactRepo := mocks.NewMockContactRepository(ctrl)
+	mockTimelineRepo := mocks.NewMockContactTimelineRepository(ctrl)
+	mockLogger := setupMockLogger(ctrl)
+
+	exitReason := "unsubscribed"
+	customExecutor := &testNodeExecutor{
+		nodeType: domain.NodeTypeEmail,
+		execute: func(ctx context.Context, params NodeExecutionParams) (*NodeExecutionResult, error) {
+			return &NodeExecutionResult{
+				NextNodeID: nil,
+				Status:     domain.ContactAutomationStatusExited,
+				ExitReason: &exitReason,
+				Output:     map[string]interface{}{"skipped": true, "skip_reason": "unsubscribed"},
+			}, nil
+		},
+	}
+
+	executor := &AutomationExecutor{
+		automationRepo: mockAutomationRepo,
+		contactRepo:    mockContactRepo,
+		timelineRepo:   mockTimelineRepo,
+		nodeExecutors: map[domain.NodeType]NodeExecutor{
+			domain.NodeTypeEmail: customExecutor,
+		},
+		logger: mockLogger,
+	}
+
+	workspaceID := "ws1"
+	nodeID := "email_node1"
+
+	contactAutomation := &domain.ContactAutomation{
+		ID:            "ca1",
+		AutomationID:  "auto1",
+		ContactEmail:  "test@example.com",
+		CurrentNodeID: &nodeID,
+		Status:        domain.ContactAutomationStatusActive,
+		MaxRetries:    3,
+	}
+
+	automation := &domain.Automation{
+		ID:     "auto1",
+		Name:   "Test Automation",
+		Status: domain.AutomationStatusLive,
+		Nodes: []*domain.AutomationNode{
+			{
+				ID:     nodeID,
+				Type:   domain.NodeTypeEmail,
+				Config: map[string]interface{}{},
+			},
+		},
+	}
+
+	contact := &domain.Contact{Email: "test@example.com"}
+
+	mockAutomationRepo.EXPECT().GetByID(gomock.Any(), workspaceID, "auto1").Return(automation, nil)
+	mockContactRepo.EXPECT().GetContactByEmail(gomock.Any(), workspaceID, "test@example.com").Return(contact, nil)
+	mockAutomationRepo.EXPECT().CreateNodeExecution(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
+	mockAutomationRepo.EXPECT().GetNodeExecutions(gomock.Any(), workspaceID, "ca1").Return([]*domain.NodeExecution{}, nil)
+	mockAutomationRepo.EXPECT().UpdateContactAutomation(gomock.Any(), workspaceID, gomock.Any()).
+		DoAndReturn(func(ctx context.Context, wsID string, ca *domain.ContactAutomation) error {
+			// Verify ExitReason is set before persist
+			require.NotNil(t, ca.ExitReason)
+			assert.Equal(t, "unsubscribed", *ca.ExitReason)
+			assert.Equal(t, domain.ContactAutomationStatusExited, ca.Status)
+			return nil
+		})
+	mockAutomationRepo.EXPECT().UpdateNodeExecution(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
+	mockAutomationRepo.EXPECT().IncrementAutomationStat(gomock.Any(), workspaceID, "auto1", "exited").Return(nil)
+	mockTimelineRepo.EXPECT().Create(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
+
+	err := executor.Execute(context.Background(), workspaceID, contactAutomation)
+	require.NoError(t, err)
+
+	assert.Equal(t, domain.ContactAutomationStatusExited, contactAutomation.Status)
+	require.NotNil(t, contactAutomation.ExitReason)
+	assert.Equal(t, "unsubscribed", *contactAutomation.ExitReason)
+}

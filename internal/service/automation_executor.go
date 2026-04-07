@@ -44,7 +44,7 @@ func NewAutomationExecutor(
 	executors := map[domain.NodeType]NodeExecutor{
 		domain.NodeTypeTrigger:          NewTriggerNodeExecutor(),
 		domain.NodeTypeDelay:            NewDelayNodeExecutor(),
-		domain.NodeTypeEmail:            NewEmailNodeExecutor(emailQueueRepo, templateRepo, workspaceRepo, listRepo, apiEndpoint, log),
+		domain.NodeTypeEmail:            NewEmailNodeExecutor(emailQueueRepo, templateRepo, workspaceRepo, listRepo, contactListRepo, apiEndpoint, log),
 		domain.NodeTypeBranch:           NewBranchNodeExecutor(qb, workspaceRepo),
 		domain.NodeTypeFilter:           NewFilterNodeExecutor(qb, workspaceRepo),
 		domain.NodeTypeAddToList:        NewAddToListNodeExecutor(contactListRepo),
@@ -148,6 +148,9 @@ func (e *AutomationExecutor) Execute(ctx context.Context, workspaceID string, co
 		// Update contact automation state
 		contactAutomation.CurrentNodeID = result.NextNodeID
 		contactAutomation.ScheduledAt = result.ScheduledAt
+		if result.ExitReason != nil {
+			contactAutomation.ExitReason = result.ExitReason
+		}
 
 		// Determine status (terminal node = completed, unless waiting for a delay)
 		isTerminalNode := result.NextNodeID == nil && result.Status == domain.ContactAutomationStatusActive

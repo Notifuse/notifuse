@@ -285,6 +285,12 @@ func TestAutomation(t *testing.T) {
 	t.Run("IntegrationOverride", func(t *testing.T) {
 		testAutomationIntegrationOverride(t, factory, client, workspace.ID)
 	})
+	t.Run("UnsubscribeExitsMarketing", func(t *testing.T) {
+		testAutomationUnsubscribeExitsMarketing(t, factory, client, workspace.ID)
+	})
+	t.Run("UnsubscribeAllowsTransactional", func(t *testing.T) {
+		testAutomationUnsubscribeAllowsTransactional(t, factory, client, workspace.ID)
+	})
 	t.Run("PrintBugReport", func(t *testing.T) {
 		printBugReport(t)
 	})
@@ -3042,6 +3048,259 @@ func testWebhookNode(t *testing.T, factory *testutil.TestDataFactory, client *te
 	require.Equal(t, http.StatusOK, listResp.StatusCode, "Contact should be in list")
 
 	t.Logf("Webhook Node E2E test passed")
+}
+
+// waitForStatsExited polls until automation stats show expected exited count
+func waitForStatsExited(t *testing.T, factory *testutil.TestDataFactory, workspaceID, automationID string, expectedExited int64, timeout time.Duration) *domain.AutomationStats {
+	var stats *domain.AutomationStats
+	testutil.WaitForCondition(t, func() bool {
+		var err error
+		stats, err = factory.GetAutomationStats(workspaceID, automationID)
+		if err != nil || stats == nil {
+			return false
+		}
+		return stats.Exited >= expectedExited
+	}, timeout, fmt.Sprintf("waiting for stats.Exited >= %d for automation %s", expectedExited, automationID))
+	return stats
+}
+
+// testAutomationUnsubscribeExitsMarketing tests that a marketing email node
+// exits the automation when the contact has unsubscribed from the list.
+// Workflow: trigger (custom_event) → email (marketing template) → terminal
+func testAutomationUnsubscribeExitsMarketing(t *testing.T, factory *testutil.TestDataFactory, client *testutil.APIClient, workspaceID string) {
+	// 1. Create list and marketing template
+	list, err := factory.CreateList(workspaceID)
+	require.NoError(t, err)
+	listID := list.ID
+
+	template, err := factory.CreateTemplate(workspaceID) // default category is "marketing"
+	require.NoError(t, err)
+	templateID := template.ID
+
+	// 2. Create automation: trigger → email (terminal)
+	automationID := shortuuid.New()
+	triggerNodeID := shortuuid.New()
+	emailNodeID := shortuuid.New()
+
+	createReq := map[string]interface{}{
+		"workspace_id": workspaceID,
+		"automation": map[string]interface{}{
+			"id":           automationID,
+			"workspace_id": workspaceID,
+			"name":         "Unsubscribe Exits Marketing E2E",
+			"status":       "draft",
+			"list_id":      listID,
+			"trigger": map[string]interface{}{
+				"event_kind":        "custom_event",
+				"custom_event_name": "unsub_marketing_test_e2e",
+				"frequency":         "once",
+			},
+			"root_node_id": triggerNodeID,
+			"nodes": []map[string]interface{}{
+				{
+					"id":            triggerNodeID,
+					"automation_id": automationID,
+					"type":          "trigger",
+					"config":        map[string]interface{}{},
+					"next_node_id":  emailNodeID,
+					"position":      map[string]interface{}{"x": 0, "y": 0},
+				},
+				{
+					"id":            emailNodeID,
+					"automation_id": automationID,
+					"type":          "email",
+					"config":        map[string]interface{}{"template_id": templateID},
+					"position":      map[string]interface{}{"x": 0, "y": 100},
+				},
+			},
+			"stats": map[string]interface{}{"enrolled": 0, "completed": 0, "exited": 0, "failed": 0},
+		},
+	}
+
+	resp, err := client.CreateAutomation(createReq)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusCreated, resp.StatusCode)
+	resp.Body.Close()
+
+	// 3. Activate automation
+	activateResp, err := client.ActivateAutomation(map[string]interface{}{
+		"workspace_id":  workspaceID,
+		"automation_id": automationID,
+	})
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, activateResp.StatusCode)
+	activateResp.Body.Close()
+
+	// 4. Create contact and subscribe to list as active
+	email := "unsub-marketing-test-e2e@example.com"
+	_, err = factory.CreateContact(workspaceID, testutil.WithContactEmail(email))
+	require.NoError(t, err)
+
+	_, err = factory.CreateContactList(workspaceID,
+		testutil.WithContactListEmail(email),
+		testutil.WithContactListListID(listID),
+		testutil.WithContactListStatus(domain.ContactListStatusActive),
+	)
+	require.NoError(t, err)
+
+	// 5. Unsubscribe the contact BEFORE triggering the automation
+	err = factory.UpdateContactListStatus(workspaceID, email, listID, domain.ContactListStatusUnsubscribed)
+	require.NoError(t, err)
+	t.Logf("Contact %s unsubscribed from list %s", email, listID)
+
+	// 6. Trigger automation via custom event
+	err = factory.CreateCustomEvent(workspaceID, email, "unsub_marketing_test_e2e", nil)
+	require.NoError(t, err)
+	t.Logf("Custom event triggered for %s", email)
+
+	// 7. Wait for enrollment
+	ca := waitForEnrollment(t, factory, workspaceID, automationID, email, 5*time.Second)
+	require.NotNil(t, ca, "Contact should be enrolled")
+	t.Logf("Contact enrolled with status: %s", ca.Status)
+
+	// 8. Wait for automation to exit (not complete)
+	exitedCA := waitForAutomationStatus(t, factory, workspaceID, automationID, email,
+		domain.ContactAutomationStatusExited, 10*time.Second)
+	require.NotNil(t, exitedCA, "Automation should exit")
+	assert.Equal(t, domain.ContactAutomationStatusExited, exitedCA.Status)
+	require.NotNil(t, exitedCA.ExitReason, "Exit reason should be set")
+	assert.Equal(t, "unsubscribed", *exitedCA.ExitReason, "Exit reason should be 'unsubscribed'")
+	t.Logf("Automation exited with reason: %s", *exitedCA.ExitReason)
+
+	// 9. Verify stats show exit
+	stats := waitForStatsExited(t, factory, workspaceID, automationID, 1, 2*time.Second)
+	require.NotNil(t, stats)
+	assert.Equal(t, int64(1), stats.Enrolled, "Enrolled should be 1")
+	assert.Equal(t, int64(1), stats.Exited, "Exited should be 1")
+	assert.Equal(t, int64(0), stats.Completed, "Completed should be 0")
+	t.Logf("Stats: enrolled=%d, exited=%d, completed=%d", stats.Enrolled, stats.Exited, stats.Completed)
+
+	// 10. Verify no email was enqueued
+	queueEntry, queueErr := factory.GetEmailQueueEntryByAutomationID(workspaceID, automationID)
+	assert.Error(t, queueErr, "No email should be in the queue")
+	assert.Nil(t, queueEntry, "Queue entry should be nil")
+
+	t.Logf("UnsubscribeExitsMarketing E2E test passed: marketing email blocked for unsubscribed contact")
+}
+
+// testAutomationUnsubscribeAllowsTransactional tests that a transactional email node
+// still sends even when the contact has unsubscribed from the list.
+// Workflow: trigger (custom_event) → email (transactional template) → terminal
+func testAutomationUnsubscribeAllowsTransactional(t *testing.T, factory *testutil.TestDataFactory, client *testutil.APIClient, workspaceID string) {
+	// 1. Create list and transactional template
+	list, err := factory.CreateList(workspaceID)
+	require.NoError(t, err)
+	listID := list.ID
+
+	template, err := factory.CreateTemplate(workspaceID, testutil.WithTemplateCategory("transactional"))
+	require.NoError(t, err)
+	templateID := template.ID
+
+	// 2. Create automation: trigger → email (terminal)
+	automationID := shortuuid.New()
+	triggerNodeID := shortuuid.New()
+	emailNodeID := shortuuid.New()
+
+	createReq := map[string]interface{}{
+		"workspace_id": workspaceID,
+		"automation": map[string]interface{}{
+			"id":           automationID,
+			"workspace_id": workspaceID,
+			"name":         "Unsubscribe Allows Transactional E2E",
+			"status":       "draft",
+			"list_id":      listID,
+			"trigger": map[string]interface{}{
+				"event_kind":        "custom_event",
+				"custom_event_name": "unsub_transactional_test_e2e",
+				"frequency":         "once",
+			},
+			"root_node_id": triggerNodeID,
+			"nodes": []map[string]interface{}{
+				{
+					"id":            triggerNodeID,
+					"automation_id": automationID,
+					"type":          "trigger",
+					"config":        map[string]interface{}{},
+					"next_node_id":  emailNodeID,
+					"position":      map[string]interface{}{"x": 0, "y": 0},
+				},
+				{
+					"id":            emailNodeID,
+					"automation_id": automationID,
+					"type":          "email",
+					"config":        map[string]interface{}{"template_id": templateID},
+					"position":      map[string]interface{}{"x": 0, "y": 100},
+				},
+			},
+			"stats": map[string]interface{}{"enrolled": 0, "completed": 0, "exited": 0, "failed": 0},
+		},
+	}
+
+	resp, err := client.CreateAutomation(createReq)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusCreated, resp.StatusCode)
+	resp.Body.Close()
+
+	// 3. Activate automation
+	activateResp, err := client.ActivateAutomation(map[string]interface{}{
+		"workspace_id":  workspaceID,
+		"automation_id": automationID,
+	})
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, activateResp.StatusCode)
+	activateResp.Body.Close()
+
+	// 4. Create contact and subscribe to list as active
+	email := "unsub-transactional-test-e2e@example.com"
+	_, err = factory.CreateContact(workspaceID, testutil.WithContactEmail(email))
+	require.NoError(t, err)
+
+	_, err = factory.CreateContactList(workspaceID,
+		testutil.WithContactListEmail(email),
+		testutil.WithContactListListID(listID),
+		testutil.WithContactListStatus(domain.ContactListStatusActive),
+	)
+	require.NoError(t, err)
+
+	// 5. Unsubscribe the contact BEFORE triggering the automation
+	err = factory.UpdateContactListStatus(workspaceID, email, listID, domain.ContactListStatusUnsubscribed)
+	require.NoError(t, err)
+	t.Logf("Contact %s unsubscribed from list %s", email, listID)
+
+	// 6. Trigger automation via custom event
+	err = factory.CreateCustomEvent(workspaceID, email, "unsub_transactional_test_e2e", nil)
+	require.NoError(t, err)
+	t.Logf("Custom event triggered for %s", email)
+
+	// 7. Wait for enrollment
+	ca := waitForEnrollment(t, factory, workspaceID, automationID, email, 5*time.Second)
+	require.NotNil(t, ca, "Contact should be enrolled")
+	t.Logf("Contact enrolled with status: %s", ca.Status)
+
+	// 8. Wait for automation to COMPLETE (transactional bypasses subscription check)
+	completedCA := waitForAutomationComplete(t, factory, workspaceID, automationID, email, 10*time.Second)
+	require.NotNil(t, completedCA, "Automation should complete")
+	assert.Equal(t, domain.ContactAutomationStatusCompleted, completedCA.Status,
+		"Transactional email should complete despite contact being unsubscribed")
+	t.Logf("Automation completed for contact %s (transactional email sent despite unsubscribe)", email)
+
+	// 9. Verify stats show completion
+	stats := waitForStatsCompleted(t, factory, workspaceID, automationID, 1, 2*time.Second)
+	require.NotNil(t, stats)
+	assert.Equal(t, int64(1), stats.Enrolled, "Enrolled should be 1")
+	assert.Equal(t, int64(1), stats.Completed, "Completed should be 1")
+	assert.Equal(t, int64(0), stats.Exited, "Exited should be 0")
+	t.Logf("Stats: enrolled=%d, completed=%d, exited=%d", stats.Enrolled, stats.Completed, stats.Exited)
+
+	// 10. Verify email WAS enqueued (transactional emails bypass subscription check)
+	var queueEntry *testutil.EmailQueueEntryResult
+	testutil.WaitForCondition(t, func() bool {
+		queueEntry, err = factory.GetEmailQueueEntryByAutomationID(workspaceID, automationID)
+		return err == nil && queueEntry != nil
+	}, 5*time.Second, "email_queue entry should exist for transactional email")
+	require.NotNil(t, queueEntry, "Email queue entry should exist for transactional email")
+
+	t.Logf("UnsubscribeAllowsTransactional E2E test passed: transactional email sent to unsubscribed contact")
 }
 
 // printBugReport outputs all bugs found during testing

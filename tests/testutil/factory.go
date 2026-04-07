@@ -349,6 +349,11 @@ func (tdf *TestDataFactory) CreateContactList(workspaceID string, opts ...Contac
 	return contactList, nil
 }
 
+// UpdateContactListStatus updates a contact's status on a list
+func (tdf *TestDataFactory) UpdateContactListStatus(workspaceID, email, listID string, status domain.ContactListStatus) error {
+	return tdf.contactListRepo.UpdateContactListStatus(context.Background(), workspaceID, email, listID, status)
+}
+
 // CreateContactTimelineEvent creates a timeline event for a contact
 func (tdf *TestDataFactory) CreateContactTimelineEvent(workspaceID, email, kind string, metadata map[string]interface{}) error {
 	// Get workspace database connection
@@ -2396,18 +2401,18 @@ func (tdf *TestDataFactory) GetContactAutomation(workspaceID, automationID, emai
 	var ca domain.ContactAutomation
 	var contextJSON []byte
 	var scheduledAt, lastRetryAt sql.NullTime
-	var lastError sql.NullString
+	var lastError, exitReason sql.NullString
 
 	err = workspaceDB.QueryRowContext(context.Background(), `
 		SELECT id, automation_id, contact_email, current_node_id, status,
-		       entered_at, scheduled_at, context, retry_count, last_error, last_retry_at, max_retries
+		       entered_at, scheduled_at, context, retry_count, last_error, last_retry_at, max_retries, exit_reason
 		FROM contact_automations
 		WHERE automation_id = $1 AND contact_email = $2
 		ORDER BY entered_at DESC
 		LIMIT 1
 	`, automationID, email).Scan(
 		&ca.ID, &ca.AutomationID, &ca.ContactEmail, &ca.CurrentNodeID, &ca.Status,
-		&ca.EnteredAt, &scheduledAt, &contextJSON, &ca.RetryCount, &lastError, &lastRetryAt, &ca.MaxRetries,
+		&ca.EnteredAt, &scheduledAt, &contextJSON, &ca.RetryCount, &lastError, &lastRetryAt, &ca.MaxRetries, &exitReason,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get contact automation: %w", err)
@@ -2421,6 +2426,9 @@ func (tdf *TestDataFactory) GetContactAutomation(workspaceID, automationID, emai
 	}
 	if lastError.Valid {
 		ca.LastError = &lastError.String
+	}
+	if exitReason.Valid {
+		ca.ExitReason = &exitReason.String
 	}
 	if len(contextJSON) > 0 {
 		json.Unmarshal(contextJSON, &ca.Context)

@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file.
 
 - **Security**: Upgraded Vite to 7.3.2 in console and notification center to fix arbitrary file read via WebSocket (CVE-2026-39363)
 - **Fix**: Removed invalid `visibility` attribute from MJML section output that caused template compilation errors (#305)
+- **Fix**: Automation now exits when contact is unsubscribed/bounced/complained for marketing emails, while still allowing transactional emails to be sent (#304)
 
 ## [29.0] - 2026-04-04
 
