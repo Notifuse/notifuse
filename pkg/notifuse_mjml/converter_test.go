@@ -310,6 +310,18 @@ func TestLiquidInHrefAttributes(t *testing.T) {
 			expectError:  false,
 		},
 		{
+			name: "social element with noshare name preserves href",
+			block: func() EmailBlock {
+				b := NewBaseBlock("social2", MJMLComponentMjSocialElement)
+				b.Attributes["href"] = "https://facebook.com/mypage"
+				b.Attributes["name"] = "facebook-noshare"
+				return &MJSocialElementBlock{BaseBlock: b}
+			}(),
+			templateData: `{}`,
+			expectedHref: `name="facebook-noshare"`,
+			expectError:  false,
+		},
+		{
 			name: "non-URL attributes should not be processed",
 			block: func() EmailBlock {
 				b := NewBaseBlock("text1", MJMLComponentMjText)

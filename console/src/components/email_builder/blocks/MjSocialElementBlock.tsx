@@ -1,6 +1,6 @@
 import React from 'react'
 import { useLingui } from '@lingui/react/macro'
-import { Select, InputNumber, Row, Col, Input } from 'antd'
+import { Select, InputNumber, Row, Col, Input, Switch } from 'antd'
 import type { MJMLComponentType, MJSocialElementAttributes } from '../types'
 import { BaseEmailBlock, type OnUpdateAttributesFunction, type PreviewProps } from './BaseEmailBlock'
 import { MJML_COMPONENT_DEFAULTS } from '../mjml-defaults'
@@ -33,6 +33,31 @@ import {
 } from '@fortawesome/free-brands-svg-icons'
 import { faGlobe } from '@fortawesome/free-solid-svg-icons'
 
+// Networks that have share URL templates in gomjml.
+// When name is plain (e.g. "facebook"), gomjml wraps href in share URL.
+// When name has "-noshare" suffix (e.g. "facebook-noshare"), href passes through unchanged.
+const NETWORKS_WITH_SHARE_URL = new Set([
+  'facebook',
+  'twitter',
+  'x',
+  'google',
+  'pinterest',
+  'linkedin',
+  'tumblr',
+  'xing'
+])
+
+const getBaseNetworkName = (name?: string): string => {
+  if (!name) return ''
+  return name.replace(/-noshare$/, '')
+}
+
+const isShareMode = (name?: string): boolean => {
+  if (!name) return false
+  const baseName = getBaseNetworkName(name)
+  return NETWORKS_WITH_SHARE_URL.has(baseName) && !name.endsWith('-noshare')
+}
+
 // Functional component for settings panel with i18n support
 interface MjSocialElementSettingsPanelProps {
   currentAttributes: MJSocialElementAttributes
@@ -54,8 +79,16 @@ const MjSocialElementSettingsPanel: React.FC<MjSocialElementSettingsPanelProps> 
       <InputLayout label={t`Social Network`}>
         <Select
           size="small"
-          value={currentAttributes.name || 'custom'}
-          onChange={(value) => onUpdate({ name: value === 'custom' ? undefined : value })}
+          value={getBaseNetworkName(currentAttributes.name) || 'custom'}
+          onChange={(value) => {
+            if (value === 'custom') {
+              onUpdate({ name: undefined })
+            } else if (NETWORKS_WITH_SHARE_URL.has(value)) {
+              onUpdate({ name: value + '-noshare' })
+            } else {
+              onUpdate({ name: value })
+            }
+          }}
           style={{ width: '100%' }}
         >
           <Select.Option value="custom">{t`Custom`}</Select.Option>
@@ -78,6 +111,22 @@ const MjSocialElementSettingsPanel: React.FC<MjSocialElementSettingsPanelProps> 
           <Select.Option value="web">{t`Website`}</Select.Option>
         </Select>
       </InputLayout>
+
+      {NETWORKS_WITH_SHARE_URL.has(getBaseNetworkName(currentAttributes.name)) && (
+        <InputLayout
+          label={t`Share link`}
+          help={t`When enabled, the link will prompt visitors to share the URL on this social network. When disabled, the link opens directly.`}
+        >
+          <Switch
+            size="small"
+            checked={isShareMode(currentAttributes.name)}
+            onChange={(checked) => {
+              const baseName = getBaseNetworkName(currentAttributes.name)
+              onUpdate({ name: checked ? baseName : baseName + '-noshare' })
+            }}
+          />
+        </InputLayout>
+      )}
 
       <InputLayout label={t`Link URL`}>
         <StringPopoverInput
@@ -453,7 +502,8 @@ export class MjSocialElementBlock extends BaseEmailBlock {
       return <FontAwesomeIcon icon={faGlobe} />
     }
 
-    switch (name?.toLowerCase()) {
+    const baseName = name?.toLowerCase().replace(/-noshare$/, '')
+    switch (baseName) {
       case 'facebook':
         return <FontAwesomeIcon icon={faFacebook} />
       case 'twitter':
@@ -499,8 +549,9 @@ export class MjSocialElementBlock extends BaseEmailBlock {
 
   getLabel(): string {
     const currentAttributes = this.block.attributes as MJSocialElementAttributes
-    return currentAttributes.name
-      ? currentAttributes.name.charAt(0).toUpperCase() + currentAttributes.name.slice(1)
+    const baseName = currentAttributes.name?.replace(/-noshare$/, '')
+    return baseName
+      ? baseName.charAt(0).toUpperCase() + baseName.slice(1)
       : 'Social Element'
   }
 
@@ -555,25 +606,16 @@ export class MjSocialElementBlock extends BaseEmailBlock {
    * Since we're using true color icons, we use transparent backgrounds to avoid hiding the icon
    */
   private getNetworkDefaultColor(name?: string): string {
-    // For true color icons, we typically want transparent backgrounds
-    // or light/dark contrasting backgrounds that complement the icon
+    const baseName = (name || '').replace(/-noshare$/, '')
     const networkColors: Record<string, string> = {
       facebook: 'transparent',
-      'facebook-noshare': 'transparent',
       twitter: 'transparent',
-      'twitter-noshare': 'transparent',
       x: 'transparent',
-      'x-noshare': 'transparent',
       google: 'transparent',
-      'google-noshare': 'transparent',
       pinterest: 'transparent',
-      'pinterest-noshare': 'transparent',
       linkedin: 'transparent',
-      'linkedin-noshare': 'transparent',
       tumblr: 'transparent',
-      'tumblr-noshare': 'transparent',
       xing: 'transparent',
-      'xing-noshare': 'transparent',
       github: 'transparent',
       instagram: 'transparent',
       youtube: 'transparent',
@@ -584,13 +626,14 @@ export class MjSocialElementBlock extends BaseEmailBlock {
       snapchat: 'transparent',
       web: 'transparent'
     }
-    return networkColors[name || ''] || 'transparent'
+    return networkColors[baseName] || 'transparent'
   }
 
   /**
    * Get the icon URL for a social network from MageCDN
    */
   private getSocialIcon(name?: string): string {
+    const baseName = (name || '').replace(/-noshare$/, '')
     const iconUrls: Record<string, string> = {
       facebook: 'https://www.mailjet.com/images/theme/v1/icons/ico-social/facebook.png',
       twitter: 'https://www.mailjet.com/images/theme/v1/icons/ico-social/twitter.png',
@@ -611,7 +654,7 @@ export class MjSocialElementBlock extends BaseEmailBlock {
       web: 'https://www.mailjet.com/images/theme/v1/icons/ico-social/web.png'
     }
     return (
-      iconUrls[name || ''] || 'https://www.mailjet.com/images/theme/v1/icons/ico-social/web.png'
+      iconUrls[baseName] || 'https://www.mailjet.com/images/theme/v1/icons/ico-social/web.png'
     )
   }
 

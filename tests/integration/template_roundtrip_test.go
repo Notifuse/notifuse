@@ -390,6 +390,15 @@ func createAllComponentsTree(t *testing.T) notifuse_mjml.EmailBlock {
 																	"name": "twitter",
 																	"href": "https://twitter.com"
 																}
+															},
+															{
+																"id": "social-element-3",
+																"type": "mj-social-element",
+																"content": "Facebook Page",
+																"attributes": {
+																	"name": "facebook-noshare",
+																	"href": "https://www.facebook.com/mypage"
+																}
 															}
 														]
 													}

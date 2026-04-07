@@ -25,7 +25,7 @@ require (
 	github.com/lib/pq v1.10.9
 	github.com/lithammer/shortuuid/v4 v4.2.0
 	github.com/openzipkin/zipkin-go v0.4.2
-	github.com/preslavrachev/gomjml v0.10.0
+	github.com/preslavrachev/gomjml v0.11.0
 	github.com/rs/zerolog v1.33.0
 	github.com/spf13/viper v1.19.0
 	github.com/standard-webhooks/standard-webhooks/libraries v0.0.0-20250711233419-a173a6c0125c
@@ -101,11 +101,9 @@ require (
 	go.opentelemetry.io/otel/trace v1.39.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/exp v0.0.0-20230905200255-921286631fa9 // indirect
-	golang.org/x/mod v0.30.0 // indirect
 	golang.org/x/oauth2 v0.34.0 // indirect
 	golang.org/x/sys v0.39.0 // indirect
 	golang.org/x/text v0.32.0 // indirect
-	golang.org/x/tools v0.39.0 // indirect
 	google.golang.org/api v0.189.0 // indirect
 	google.golang.org/genproto v0.0.0-20240722135656-d784300faade // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20251202230838-ff82c1b0f217 // indirect
@@ -117,6 +115,3 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
-
-// Use Notifuse fork until PR is merged: https://github.com/preslavrachev/gomjml/pull/33
-replace github.com/preslavrachev/gomjml => github.com/Notifuse/gomjml v0.0.0-20260130090101-a038317c31c2

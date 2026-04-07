@@ -738,7 +738,7 @@
                         "id": "pakmqc44d",
                         "type": "mj-social-element",
                         "attributes": {
-                          "name": "facebook",
+                          "name": "facebook-noshare",
                           "href": "#",
                           "src": "https://diorama.dam-broadcast.com/pm_11872_627_627474-8ignle05lv.png"
                         }
@@ -765,7 +765,7 @@
                         "id": "rew98dvl5",
                         "type": "mj-social-element",
                         "attributes": {
-                          "name": "twitter",
+                          "name": "twitter-noshare",
                           "href": "#",
                           "src": "https://diorama.dam-broadcast.com/pm_11872_627_627465-u8evc4n5t6.png"
                         }

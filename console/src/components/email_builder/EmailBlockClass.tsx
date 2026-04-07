@@ -503,7 +503,7 @@ export class EmailBlockClass {
           id: EmailBlockClass.generateId(),
           type: 'mj-social-element' as MJMLComponentType,
           attributes: {
-            name: 'facebook',
+            name: 'facebook-noshare',
             href: 'https://facebook.com',
             backgroundColor: '#3b5998',
             borderRadius: '3px'
@@ -525,7 +525,7 @@ export class EmailBlockClass {
           id: EmailBlockClass.generateId(),
           type: 'mj-social-element' as MJMLComponentType,
           attributes: {
-            name: 'x',
+            name: 'x-noshare',
             href: 'https://x.com',
             backgroundColor: '#000000',
             borderRadius: '3px'

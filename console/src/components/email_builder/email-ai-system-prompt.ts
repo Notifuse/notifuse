@@ -186,14 +186,14 @@ NOTE: IDs are auto-generated - you don't need to specify them when adding blocks
     {
       "type": "mj-social-element",
       "attributes": {
-        "name": "facebook",
+        "name": "facebook-noshare",
         "href": "https://facebook.com/yourpage"
       }
     },
     {
       "type": "mj-social-element",
       "attributes": {
-        "name": "x",
+        "name": "x-noshare",
         "href": "https://x.com/yourhandle"
       }
     }

@@ -436,7 +436,7 @@
                             "attributes": {
                               "backgroundColor": "#000000",
                               "borderRadius": "3px",
-                              "name": "x",
+                              "name": "x-noshare",
                               "href": "https://x.com/notifuse"
                             }
                           }
