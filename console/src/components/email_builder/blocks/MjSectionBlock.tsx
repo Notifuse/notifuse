@@ -1,7 +1,7 @@
 import React from 'react'
 import { useLingui } from '@lingui/react/macro'
-import { Switch, Radio, Tooltip, Select, Alert } from 'antd'
-import type { MJMLComponentType, EmailBlock, MJSectionAttributes, MergedBlockAttributes } from '../types'
+import { Switch, Radio, Tooltip } from 'antd'
+import type { MJMLComponentType, MJSectionAttributes, MergedBlockAttributes } from '../types'
 import {
   BaseEmailBlock,
   type OnUpdateAttributesFunction,
@@ -18,49 +18,16 @@ import AlignSelector from '../ui/AlignSelector'
 import StringPopoverInput from '../ui/StringPopoverInput'
 import BorderRadiusInput from '../ui/BorderRadiusInput'
 
-/**
- * Helper function to detect Liquid template tags in a block or its children
- */
-const hasLiquidTagsInSection = (block: EmailBlock): boolean => {
-  const liquidRegex = /\{\{.*?\}\}|\{%.*?%\}/
-
-  const checkBlock = (b: EmailBlock): boolean => {
-    // Check content field if present
-    if (b.content && liquidRegex.test(b.content)) {
-      return true
-    }
-
-    // Check text in attributes (for mj-text content attribute)
-    if (b.attributes) {
-      const attrs = b.attributes as Record<string, unknown>
-      if (attrs.content && typeof attrs.content === 'string' && liquidRegex.test(attrs.content)) {
-        return true
-      }
-    }
-
-    // Recursively check children
-    if (b.children && b.children.length > 0) {
-      return b.children.some((child) => checkBlock(child))
-    }
-
-    return false
-  }
-
-  return checkBlock(block)
-}
-
 // Functional component for settings panel with i18n support
 interface MjSectionSettingsPanelProps {
   currentAttributes: MJSectionAttributes
   blockDefaults: MergedBlockAttributes
-  block: EmailBlock
   onUpdate: OnUpdateAttributesFunction
 }
 
 const MjSectionSettingsPanel: React.FC<MjSectionSettingsPanelProps> = ({
   currentAttributes,
   blockDefaults,
-  block,
   onUpdate
 }) => {
   const { t } = useLingui()
@@ -188,39 +155,6 @@ const MjSectionSettingsPanel: React.FC<MjSectionSettingsPanelProps> = ({
           />
         </InputLayout>
 
-        {/* Visibility / Channel Selector */}
-        <InputLayout
-          label={t`Visibility`}
-          help={t`Control which channels can see this section`}
-        >
-          <Select
-            size="small"
-            value={
-              (currentAttributes as Record<string, unknown>).visibility as string | undefined ||
-              'all'
-            }
-            onChange={(value) => handleAttributeChange('visibility', value)}
-            style={{ width: '100%' }}
-            options={[
-              { value: 'all', label: t`All Channels` },
-              { value: 'email_only', label: t`Email Only` },
-              { value: 'web_only', label: t`Web Only` }
-            ]}
-          />
-        </InputLayout>
-
-        {/* Warning for Liquid tags in web-visible sections */}
-        {hasLiquidTagsInSection(block) &&
-         (currentAttributes as Record<string, unknown>).visibility !== 'email_only' && (
-          <Alert
-            type="warning"
-            message={t`Personalization Not Available for Web`}
-            description={t`This section contains Liquid template tags for personalization. Web publications don't have access to contact data, so these tags will not render properly. Consider marking this section as 'Email Only' or remove personalization tags.`}
-            showIcon
-            closable
-          />
-        )}
-
         {/* Advanced Settings */}
         <InputLayout label={t`CSS Class`} help={t`Custom CSS class for styling`}>
           <StringPopoverInput
@@ -318,7 +252,6 @@ export class MjSectionBlock extends BaseEmailBlock {
       <MjSectionSettingsPanel
         currentAttributes={currentAttributes}
         blockDefaults={blockDefaults}
-        block={this.block}
         onUpdate={onUpdate}
       />
     )

@@ -345,6 +345,10 @@ func formatAttributesWithLiquid(attributes map[string]interface{}, templateData 
 
 	var attrPairs []string
 	for key, value := range attributes {
+		// Skip editor-only attributes that are not valid MJML
+		if key == "visibility" {
+			continue
+		}
 		if shouldIncludeAttribute(value) {
 			if attr := formatSingleAttributeWithLiquid(key, value, templateData, blockID); attr != "" {
 				attrPairs = append(attrPairs, attr)

@@ -239,7 +239,7 @@ type CompileTemplateRequest struct {
 	MjmlSource              *string          `json:"mjml_source,omitempty"`
 	TemplateData            MapOfAny         `json:"test_data,omitempty"`
 	TrackingSettings        TrackingSettings `json:"tracking_settings,omitempty"`
-	Channel                 string           `json:"channel,omitempty"`                  // "email" or "web" - filters blocks by visibility
+	Channel                 string           `json:"channel,omitempty"`                  // "email" or "web"
 	PreserveLiquid          bool             `json:"preserve_liquid,omitempty"`           // When true, skip Liquid template processing and preserve raw syntax
 	SubjectPreviewOverride  *string          `json:"subject_preview_override,omitempty"`  // Override mj-preview content before compilation
 }
@@ -359,11 +359,7 @@ func CompileTemplate(req CompileTemplateRequest) (resp *CompileTemplateResponse,
 	} else {
 		// Visual editor mode: convert JSON tree to MJML
 
-		// Apply channel filtering if specified
 		tree := req.VisualEditorTree
-		if req.Channel != "" {
-			tree = FilterBlocksByChannel(req.VisualEditorTree, req.Channel)
-		}
 
 		// Apply subject_preview override in the tree before conversion
 		if req.SubjectPreviewOverride != nil && *req.SubjectPreviewOverride != "" {

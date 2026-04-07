@@ -150,7 +150,7 @@ export interface CompileTemplateRequest {
   mjml_source?: string
   test_data?: Record<string, unknown> | null
   tracking_settings?: TrackingSettings
-  channel?: string // "email" or "web" - filters blocks by visibility
+  channel?: string // "email" or "web"
   preserve_liquid?: boolean // When true, skip Liquid template processing and preserve raw syntax
 }
 

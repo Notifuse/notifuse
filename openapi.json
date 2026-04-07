@@ -6551,7 +6551,7 @@
               "email",
               "web"
             ],
-            "description": "Channel filter for block visibility"
+            "description": "Channel filter (email or web)"
           }
         }
       },

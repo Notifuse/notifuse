@@ -300,10 +300,6 @@ msgstr "2. Analyse web"
 msgid "200 - Extra Light"
 msgstr "200 - Extra fin"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:429
-#~ msgid "3. Content"
-#~ msgstr "3. Contenu"
-
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:498
 msgid "3. Data Feeds"
 msgstr "3. Flux de données"
@@ -540,10 +536,6 @@ msgstr "Ajouter un header personnalisé"
 msgid "Add Custom Header"
 msgstr "Ajouter un header personnalisé"
 
-#: src/components/broadcasts/HeadersEditor.tsx:73
-#~ msgid "Add Header"
-#~ msgstr ""
-
 #: src/components/settings/Integrations.tsx:2132
 msgid "Add Integration"
 msgstr "Ajouter une intégration"
@@ -630,11 +622,6 @@ msgstr "L email administrateur est requis"
 msgid "Advanced Settings"
 msgstr "Paramètres avancés"
 
-#: src/components/settings/Integrations.tsx:1711
-#: src/pages/SetupWizard.tsx:503
-#~ msgid "Advanced SMTP Settings"
-#~ msgstr ""
-
 #: src/components/email_builder/blocks/MjBreakpointBlock.tsx:48
 msgid "Affects how columns stack on mobile devices"
 msgstr "Affecte l empilement des colonnes sur les appareils mobiles"
@@ -711,10 +698,6 @@ msgstr "Tout"
 #: src/components/segment/input.tsx:884
 msgid "ALL"
 msgstr "TOUT"
-
-#: src/components/email_builder/blocks/MjSectionBlock.tsx:205
-msgid "All Channels"
-msgstr "Tous les canaux"
 
 #: src/components/transactional/ApiCommandModal.tsx:1003
 msgid "All contact fields are optional except email."
@@ -1229,10 +1212,6 @@ msgstr "Bonnes pratiques :"
 msgid "between"
 msgstr "entre"
 
-#: src/components/contacts/ContactDetailsDrawer.tsx:585
-#~ msgid "Blacklisted"
-#~ msgstr "Liste noire"
-
 #. placeholder {0}: selectedBlock?.name
 #: src/components/email_builder/ui/BlockToolbar.tsx:117
 msgid "Block \"{0}\" updated"
@@ -1312,14 +1291,14 @@ msgstr "Réservation"
 #: src/components/email_builder/blocks/MjButtonBlock.tsx:320
 #: src/components/email_builder/blocks/MjColumnBlock.tsx:84
 #: src/components/email_builder/blocks/MjImageBlock.tsx:155
-#: src/components/email_builder/blocks/MjSectionBlock.tsx:94
+#: src/components/email_builder/blocks/MjSectionBlock.tsx:63
 #: src/components/email_builder/blocks/MjWrapperBlock.tsx:59
 msgid "Border"
 msgstr "Bordure"
 
 #: src/components/email_builder/blocks/MjButtonBlock.tsx:222
 #: src/components/email_builder/blocks/MjColumnBlock.tsx:105
-#: src/components/email_builder/blocks/MjSectionBlock.tsx:115
+#: src/components/email_builder/blocks/MjSectionBlock.tsx:84
 #: src/components/email_builder/blocks/MjWrapperBlock.tsx:80
 msgid "Border radius"
 msgstr "Rayon de bordure"
@@ -2168,18 +2147,10 @@ msgstr "Espacement du conteneur"
 msgid "Content Structure Tree"
 msgstr "Arborescence de la structure du contenu"
 
-#: src/components/broadcasts/RecipientFeedSettingsCard.tsx:179
-#~ msgid "Continue"
-#~ msgstr ""
-
 #: src/components/seo/SEOSettingsForm.tsx:74
 #: src/components/seo/SEOSettingsForm.tsx:188
 msgid "Control how search engines index and follow links on your blog"
 msgstr "Contrôlez comment les moteurs de recherche indexent et suivent les liens de votre blog"
-
-#: src/components/email_builder/blocks/MjSectionBlock.tsx:194
-msgid "Control which channels can see this section"
-msgstr "Contrôlez quels canaux peuvent voir cette section"
 
 #: src/components/settings/Integrations.tsx:1230
 #: src/components/settings/Integrations.tsx:1267
@@ -2402,7 +2373,7 @@ msgstr "Nouvelle version v{0} créée"
 #: src/components/email_builder/blocks/MjGroupBlock.tsx:114
 #: src/components/email_builder/blocks/MjImageBlock.tsx:175
 #: src/components/email_builder/blocks/MjRawBlock.tsx:272
-#: src/components/email_builder/blocks/MjSectionBlock.tsx:225
+#: src/components/email_builder/blocks/MjSectionBlock.tsx:161
 #: src/components/email_builder/blocks/MjSocialBlock.tsx:87
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:429
 #: src/components/email_builder/blocks/MjSpacerBlock.tsx:88
@@ -2447,7 +2418,7 @@ msgstr "Personnalisé (px)"
 #: src/components/email_builder/blocks/MjColumnBlock.tsx:175
 #: src/components/email_builder/blocks/MjGroupBlock.tsx:114
 #: src/components/email_builder/blocks/MjRawBlock.tsx:272
-#: src/components/email_builder/blocks/MjSectionBlock.tsx:225
+#: src/components/email_builder/blocks/MjSectionBlock.tsx:161
 #: src/components/email_builder/blocks/MjWrapperBlock.tsx:143
 msgid "Custom CSS class for styling"
 msgstr "Classe CSS personnalisée pour le style"
@@ -2520,16 +2491,6 @@ msgstr "Champs personnalisés"
 #: src/components/broadcasts/HeadersEditor.tsx:34
 msgid "Custom header"
 msgstr ""
-
-#: src/components/broadcasts/GlobalFeedSettings.tsx:108
-#: src/components/broadcasts/RecipientFeedSettings.tsx:114
-#~ msgid "Custom headers"
-#~ msgstr "Headers personnalisés"
-
-#: src/components/broadcasts/GlobalFeedSettingsCard.tsx:123
-#: src/components/broadcasts/RecipientFeedSettingsCard.tsx:129
-#~ msgid "Custom HTTP Headers"
-#~ msgstr ""
 
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:92
 msgid "Custom Icon URL"
@@ -3410,10 +3371,6 @@ msgstr "Mappage email requis"
 msgid "Email Metrics"
 msgstr "Métriques email"
 
-#: src/components/email_builder/blocks/MjSectionBlock.tsx:206
-msgid "Email Only"
-msgstr "Email uniquement"
-
 #: src/components/settings/GeneralSettings.tsx:134
 #: src/components/settings/GeneralSettings.tsx:233
 msgid "Email Opens and Clicks Tracking"
@@ -3514,10 +3471,6 @@ msgstr "Activez la fonctionnalité blog pour publier des articles et du contenu 
 #: src/pages/SetupWizard.tsx:457
 msgid "Enable TLS encryption for SMTP connection"
 msgstr "Activer le chiffrement TLS pour la connexion SMTP"
-
-#: src/components/broadcasts/GlobalFeedSettings.tsx:162
-#~ msgid "Enable to fetch global data that will be available to all recipients in this broadcast. The data will be accessible in your templates using the \"feed\" variable."
-#~ msgstr ""
 
 #: src/components/broadcasts/GlobalFeedSettings.tsx:186
 msgid "Enable to fetch global data that will be available to all recipients in this broadcast. The data will be accessible in your templates using the \"global_feed\" variable."
@@ -3840,10 +3793,6 @@ msgstr "Extrait"
 #: src/pages/BroadcastsPage.tsx:935
 msgid "Exclude Unsubscribed"
 msgstr "Exclure les désabonnés"
-
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:599
-#~ msgid "Exclude unsubscribed recipients"
-#~ msgstr "Exclure les destinataires désabonnés"
 
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:599
 msgid "Exclude unsubscribed, bounced & complained recipients"
@@ -4391,11 +4340,6 @@ msgstr "Favicon pour votre blog. Recommandé : PNG 32x32px ou 192x192px"
 msgid "Featured Image URL"
 msgstr "URL de l image à la une"
 
-#: src/components/broadcasts/GlobalFeedSettingsCard.tsx:105
-#: src/components/broadcasts/RecipientFeedSettingsCard.tsx:104
-#~ msgid "Feed URL"
-#~ msgstr ""
-
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:464
 msgid "Feedback Type"
 msgstr "Type de retour"
@@ -4408,10 +4352,6 @@ msgstr "Retour :"
 #: src/components/contacts/ExportContactsModal.tsx:349
 msgid "Fetched {0} contacts..."
 msgstr "{0} contacts récupérés..."
-
-#: src/components/broadcasts/GlobalFeedSettings.tsx:120
-#~ msgid "Fetched Data"
-#~ msgstr "Données récupérées"
 
 #: src/components/broadcasts/GlobalFeedSettings.tsx:145
 msgid "Fetching data..."
@@ -4668,7 +4608,7 @@ msgstr "Accès complet"
 msgid "Full Name"
 msgstr "Nom complet"
 
-#: src/components/email_builder/blocks/MjSectionBlock.tsx:179
+#: src/components/email_builder/blocks/MjSectionBlock.tsx:148
 #: src/components/email_builder/blocks/MjWrapperBlock.tsx:91
 msgid "Full Width"
 msgstr "Pleine largeur"
@@ -4712,14 +4652,6 @@ msgstr "SQL généré :"
 #: src/components/broadcasts/GlobalFeedSettings.tsx:85
 msgid "Global Data Feed"
 msgstr "Flux de données global"
-
-#: src/components/broadcasts/DataFeedSettings.tsx:38
-#~ msgid "Global Feed"
-#~ msgstr ""
-
-#: src/components/broadcasts/GlobalFeedSettings.tsx:59
-#~ msgid "Global feed data refreshed successfully"
-#~ msgstr "Données du flux global actualisées avec succès"
 
 #: src/components/broadcasts/GlobalFeedSettings.tsx:134
 msgid "Global Feed Response"
@@ -5032,10 +4964,6 @@ msgstr "Si activé, la diffusion sera envoyée selon le fuseau horaire de chaque
 #: src/components/transactional/ApiCommandModal.tsx:998
 msgid "If the contact email doesn't exist in your workspace, it will be automatically created."
 msgstr "Si l email du contact n existe pas dans votre espace de travail, il sera automatiquement créé."
-
-#: src/components/broadcasts/RecipientFeedSettings.tsx:116
-#~ msgid "If the feed request fails after retries, the broadcast will pause automatically. This ensures all recipients receive their personalized content."
-#~ msgstr ""
 
 #: src/components/email_builder/blocks/MjImageBlock.tsx:42
 #: src/components/email_builder/ui/BackgroundInput.tsx:258
@@ -5531,7 +5459,7 @@ msgid "Left"
 msgstr "Gauche"
 
 #: src/components/email_builder/blocks/MjGroupBlock.tsx:99
-#: src/components/email_builder/blocks/MjSectionBlock.tsx:170
+#: src/components/email_builder/blocks/MjSectionBlock.tsx:139
 msgid "Left to Right"
 msgstr "De gauche à droite"
 
@@ -5788,7 +5716,7 @@ msgstr "Logo principal de votre blog. Taille recommandée : 200x50px ou ratio si
 msgid "Make it relevant to your email content"
 msgstr "Rendez-le pertinent par rapport au contenu de votre email"
 
-#: src/components/email_builder/blocks/MjSectionBlock.tsx:180
+#: src/components/email_builder/blocks/MjSectionBlock.tsx:149
 msgid "Makes the section span the entire email viewport width, ignoring container constraints (typically 600px). Useful for full-bleed backgrounds and hero sections."
 msgstr "Fait en sorte que la section s étende sur toute la largeur de la fenêtre email, ignorant les contraintes du conteneur (généralement 600px). Utile pour les arrière-plans pleine largeur et les sections hero."
 
@@ -5846,10 +5774,6 @@ msgstr "Contacts correspondants :"
 #: src/components/templates/SendTemplateModal.tsx:394
 msgid "Max 3MB per file, 10MB total, 20 files maximum"
 msgstr "Max 3 Mo par fichier, 10 Mo au total, 20 fichiers maximum"
-
-#: src/components/broadcasts/RecipientFeedSettingsCard.tsx:123
-#~ msgid "Max Retries"
-#~ msgstr ""
 
 #: src/components/templates/SendTemplateModal.tsx:199
 msgid "Maximum 20 attachments allowed"
@@ -6043,7 +5967,7 @@ msgstr "Mon webhook"
 #: src/components/email_builder/blocks/MjColumnBlock.tsx:179
 #: src/components/email_builder/blocks/MjGroupBlock.tsx:118
 #: src/components/email_builder/blocks/MjRawBlock.tsx:276
-#: src/components/email_builder/blocks/MjSectionBlock.tsx:229
+#: src/components/email_builder/blocks/MjSectionBlock.tsx:165
 #: src/components/email_builder/blocks/MjWrapperBlock.tsx:147
 msgid "my-custom-class"
 msgstr "ma-classe-personnalisee"
@@ -6216,17 +6140,9 @@ msgstr "Aucun contact ne correspond aux filtres actuels"
 msgid "No CSV data available"
 msgstr "Aucune donnée CSV disponible"
 
-#: src/components/broadcasts/HeadersEditor.tsx:37
-#~ msgid "No custom headers configured"
-#~ msgstr ""
-
 #: src/components/analytics/ChartVisualization.tsx:395
 msgid "No data available"
 msgstr "Aucune donnée disponible"
-
-#: src/components/broadcasts/GlobalFeedSettings.tsx:154
-#~ msgid "No data fetched yet. Click \"Refresh Now\" to fetch data from the configured URL."
-#~ msgstr "Aucune donnée récupérée. Cliquez sur « Refresh Now » pour récupérer les données depuis l'URL configurée."
 
 #: src/components/broadcasts/GlobalFeedSettings.tsx:179
 msgid "No data returned"
@@ -6560,10 +6476,6 @@ msgstr "des conditions suivantes correspondent :"
 msgid "OK"
 msgstr "OK"
 
-#: src/components/broadcasts/RecipientFeedSettings.tsx:115
-#~ msgid "On Error Behavior"
-#~ msgstr ""
-
 #: src/components/automations/nodes/TriggerNode.tsx:25
 msgid "Once"
 msgstr "Une fois"
@@ -6700,7 +6612,7 @@ msgstr ""
 #: src/components/email_builder/blocks/MjColumnBlock.tsx:144
 #: src/components/email_builder/blocks/MjDividerBlock.tsx:107
 #: src/components/email_builder/blocks/MjImageBlock.tsx:108
-#: src/components/email_builder/blocks/MjSectionBlock.tsx:125
+#: src/components/email_builder/blocks/MjSectionBlock.tsx:94
 #: src/components/email_builder/blocks/MjSocialBlock.tsx:75
 #: src/components/email_builder/blocks/MjSpacerBlock.tsx:58
 #: src/components/email_builder/blocks/MjTextBlock.tsx:110
@@ -6749,10 +6661,6 @@ msgstr "Mettre en pause la diffusion"
 msgid "Pause broadcast?"
 msgstr "Mettre en pause la diffusion ?"
 
-#: src/components/broadcasts/RecipientFeedSettingsCard.tsx:197
-#~ msgid "Pause the entire broadcast if any request fails (requires manual resume)"
-#~ msgstr ""
-
 #: src/components/automations/AutomationCard.tsx:67
 #: src/pages/BroadcastsPage.tsx:348
 #: src/pages/BroadcastsPage.tsx:980
@@ -6784,10 +6692,6 @@ msgstr "En attente de confirmation"
 msgid "Per-Recipient Data Feed"
 msgstr "Flux de données par destinataire"
 
-#: src/components/broadcasts/DataFeedSettings.tsx:53
-#~ msgid "Per-Recipient Feed"
-#~ msgstr "Feed par destinataire"
-
 #: src/components/broadcasts/RecipientFeedSettings.tsx:107
 msgid "Per-recipient feed URL"
 msgstr "URL du feed par destinataire"
@@ -6795,10 +6699,6 @@ msgstr "URL du feed par destinataire"
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:408
 msgid "Per-recipient feed URL is required when enabled"
 msgstr "L'URL du feed par destinataire est requise lorsqu'il est activé"
-
-#: src/components/broadcasts/RecipientFeedSettings.tsx:92
-#~ msgid "Performance Impact"
-#~ msgstr ""
 
 #: src/pages/SetupWizard.tsx:543
 msgid "Periodically check for new Notifuse versions and security updates. A popup will list new versions available."
@@ -6817,10 +6717,6 @@ msgstr "Permissions"
 #: src/components/settings/EditPermissionsModal.tsx:46
 msgid "Permissions updated successfully"
 msgstr "Permissions mises à jour avec succès"
-
-#: src/components/email_builder/blocks/MjSectionBlock.tsx:217
-msgid "Personalization Not Available for Web"
-msgstr "Personnalisation non disponible pour le Web"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:109
 #: src/components/contacts/ContactDetailsDrawer.tsx:443
@@ -7506,10 +7402,6 @@ msgstr "Actualiser"
 msgid "Refresh Broadcast"
 msgstr "Actualiser la diffusion"
 
-#: src/components/broadcasts/GlobalFeedSettings.tsx:130
-#~ msgid "Refresh Now"
-#~ msgstr "Actualiser maintenant"
-
 #: src/components/file_manager/fileManager.tsx:672
 msgid "Refresh the list"
 msgstr "Actualiser la liste"
@@ -7730,10 +7622,6 @@ msgstr "Reprendre le téléversement précédent"
 msgid "Resume Upload"
 msgstr "Reprendre le téléversement"
 
-#: src/components/broadcasts/RecipientFeedSettingsCard.tsx:136
-#~ msgid "Retry Delay (ms)"
-#~ msgstr ""
-
 #: src/components/email_builder/ui/BorderInput.tsx:61
 msgid "Ridge"
 msgstr "Crête"
@@ -7745,7 +7633,7 @@ msgid "Right"
 msgstr "Droite"
 
 #: src/components/email_builder/blocks/MjGroupBlock.tsx:105
-#: src/components/email_builder/blocks/MjSectionBlock.tsx:173
+#: src/components/email_builder/blocks/MjSectionBlock.tsx:142
 msgid "Right to Left"
 msgstr "De droite à gauche"
 
@@ -7966,7 +7854,7 @@ msgstr "Clé secrète"
 msgid "Secret:"
 msgstr "Secret :"
 
-#: src/components/email_builder/blocks/MjSectionBlock.tsx:77
+#: src/components/email_builder/blocks/MjSectionBlock.tsx:46
 msgid "Section Attributes"
 msgstr "Attributs de section"
 
@@ -8362,10 +8250,6 @@ msgstr "Envoyer un test"
 msgid "Send Test Email"
 msgstr "Envoyer un email de test"
 
-#: src/components/broadcasts/RecipientFeedSettingsCard.tsx:181
-#~ msgid "Send the email without the feed data if the request fails"
-#~ msgstr ""
-
 #: src/components/transactional/ApiCommandModal.tsx:919
 msgid "Send transactional notifications using SMTP bridge. Perfect for integrating with existing email systems or applications that support SMTP."
 msgstr "Envoyez des notifications transactionnelles via le relais SMTP. Parfait pour l intégration avec des systèmes email existants ou des applications qui supportent SMTP."
@@ -8517,7 +8401,7 @@ msgstr "Définir la valeur"
 #: src/components/email_builder/blocks/MjColumnBlock.tsx:180
 #: src/components/email_builder/blocks/MjGroupBlock.tsx:119
 #: src/components/email_builder/blocks/MjRawBlock.tsx:277
-#: src/components/email_builder/blocks/MjSectionBlock.tsx:230
+#: src/components/email_builder/blocks/MjSectionBlock.tsx:166
 #: src/components/email_builder/blocks/MjWrapperBlock.tsx:148
 msgid "Set Value"
 msgstr "Définir la valeur"
@@ -8590,14 +8474,6 @@ msgstr "Depuis"
 #: src/components/file_manager/fileManager.tsx:875
 msgid "Size"
 msgstr "Taille"
-
-#: src/components/broadcasts/RecipientFeedSettingsCard.tsx:187
-#~ msgid "Skip"
-#~ msgstr ""
-
-#: src/components/broadcasts/RecipientFeedSettingsCard.tsx:189
-#~ msgid "Skip this recipient if the request fails (they won't receive the email)"
-#~ msgstr ""
 
 #: src/components/contacts/BulkUpdateDrawer.tsx:727
 msgid "Skipped"
@@ -9191,10 +9067,6 @@ msgstr "Échec du test"
 msgid "Test failed: {0}"
 msgstr "Échec du test : {0}"
 
-#: src/components/broadcasts/RecipientFeedSettings.tsx:126
-#~ msgid "Test Feed Configuration"
-#~ msgstr "Tester la configuration du feed"
-
 #: src/components/email_builder/blocks/MjFontBlock.tsx:49
 msgid "Test in different email clients as support varies"
 msgstr "Testez dans différents clients email car la prise en charge varie"
@@ -9210,10 +9082,6 @@ msgstr ""
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:689
 msgid "Test sample size (%)"
 msgstr "Taille de l'échantillon de test (%)"
-
-#: src/components/broadcasts/RecipientFeedSettings.tsx:147
-#~ msgid "Test the feed configuration with a specific contact or leave empty to use a random contact from the broadcast audience."
-#~ msgstr "Testez la configuration du feed avec un contact spécifique ou laissez vide pour utiliser un contact aléatoire de l'audience du broadcast."
 
 #: src/components/automations/config/ABTestConfigForm.tsx:115
 msgid "Test Variants"
@@ -9246,7 +9114,7 @@ msgstr "Texte"
 msgid "Text Align"
 msgstr "Alignement du texte"
 
-#: src/components/email_builder/blocks/MjSectionBlock.tsx:156
+#: src/components/email_builder/blocks/MjSectionBlock.tsx:125
 #: src/components/email_builder/blocks/MjWrapperBlock.tsx:135
 msgid "Text Alignment"
 msgstr "Alignement du texte"
@@ -9267,7 +9135,7 @@ msgid "Text Decoration"
 msgstr "Décoration du texte"
 
 #: src/components/email_builder/blocks/MjGroupBlock.tsx:92
-#: src/components/email_builder/blocks/MjSectionBlock.tsx:163
+#: src/components/email_builder/blocks/MjSectionBlock.tsx:132
 msgid "Text Direction"
 msgstr "Direction du texte"
 
@@ -9462,10 +9330,6 @@ msgstr "Cet email sera utilisé pour le compte administrateur racine"
 msgid "This feature makes an HTTP request for each recipient before sending their email. This can significantly slow down broadcast processing. If the feed request fails after retries, the broadcast will pause automatically."
 msgstr "Cette fonctionnalité effectue une requête HTTP pour chaque destinataire avant l'envoi de son email. Cela peut considérablement ralentir le traitement du broadcast. Si la requête du feed échoue après les tentatives, le broadcast sera automatiquement mis en pause."
 
-#: src/components/broadcasts/RecipientFeedSettings.tsx:93
-#~ msgid "This feature makes an HTTP request for each recipient before sending their email. This can significantly slow down broadcast processing. Use with caution for large broadcasts."
-#~ msgstr "Cette fonctionnalité effectue une requête HTTP pour chaque destinataire avant l'envoi de son email. Cela peut considérablement ralentir le traitement du broadcast. À utiliser avec précaution pour les grands broadcasts."
-
 #: src/components/integrations/SupabaseIntegration.tsx:245
 msgid "This hook never blocks Supabase user creation for errors. However, if 'Reject Disposable Email Addresses' is enabled and a disposable email is detected, the user signup will be rejected by Supabase."
 msgstr "Ce hook ne bloque jamais la création d'utilisateur Supabase pour les erreurs. Cependant, si \"Rejeter les adresses email jetables\" est activé et qu'un email jetable est détecté, l'inscription de l'utilisateur sera rejetée par Supabase."
@@ -9502,11 +9366,7 @@ msgstr "Cette notification est gérée par une intégration et ne peut pas être
 msgid "This notification is managed by an integration and the template cannot be changed"
 msgstr "Cette notification est gérée par une intégration et le modèle ne peut pas être modifié"
 
-#: src/components/email_builder/blocks/MjSectionBlock.tsx:218
-msgid "This section contains Liquid template tags for personalization. Web publications don't have access to contact data, so these tags will not render properly. Consider marking this section as 'Email Only' or remove personalization tags."
-msgstr "Cette section contient des balises de modèle Liquid pour la personnalisation. Les publications web n'ont pas accès aux données de contact, donc ces balises ne s'afficheront pas correctement. Envisagez de marquer cette section comme \"Email uniquement\" ou supprimez les balises de personnalisation."
-
-#: src/components/email_builder/blocks/MjSectionBlock.tsx:255
+#: src/components/email_builder/blocks/MjSectionBlock.tsx:191
 msgid "This section is empty. Add columns or groups to display content."
 msgstr "Cette section est vide. Ajoutez des colonnes ou des groupes pour afficher du contenu."
 
@@ -9578,11 +9438,6 @@ msgstr "période"
 #: src/components/contacts/ContactDetailsDrawer.tsx:1053
 msgid "Timeline"
 msgstr "Chronologie"
-
-#: src/components/broadcasts/GlobalFeedSettingsCard.tsx:122
-#: src/components/broadcasts/RecipientFeedSettingsCard.tsx:127
-#~ msgid "Timeout (seconds)"
-#~ msgstr ""
 
 #: src/components/segment/form_leaf.tsx:363
 #: src/components/segment/input.tsx:755
@@ -10273,7 +10128,6 @@ msgstr "Voir le JSON brut"
 msgid "View SMTP Bridge documentation and setup guide"
 msgstr "Voir la documentation et le guide de configuration du relais SMTP"
 
-#: src/components/email_builder/blocks/MjSectionBlock.tsx:193
 #: src/pages/ListsPage.tsx:270
 msgid "Visibility"
 msgstr "Visibilité"
@@ -10305,10 +10159,6 @@ msgstr "Nous détecterons et utiliserons automatiquement le favicon de votre sit
 #: src/pages/BroadcastsPage.tsx:1000
 msgid "Web Analytics"
 msgstr "Analyse web"
-
-#: src/components/email_builder/blocks/MjSectionBlock.tsx:207
-msgid "Web Only"
-msgstr "Web uniquement"
 
 #: src/components/automations/nodes/StatNode.tsx:59
 #: src/components/automations/nodes/WebhookNode.tsx:43
