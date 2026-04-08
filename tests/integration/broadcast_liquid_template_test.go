@@ -3,6 +3,7 @@
 package integration
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -10,9 +11,12 @@ import (
 	"testing"
 	"time"
 
+	"regexp"
+
 	"github.com/Notifuse/notifuse/config"
 	"github.com/Notifuse/notifuse/internal/app"
 	"github.com/Notifuse/notifuse/internal/domain"
+	"github.com/Notifuse/notifuse/pkg/crypto"
 	"github.com/Notifuse/notifuse/tests/testutil"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -30,6 +34,11 @@ func TestBroadcastLiquidTemplateSubstitution(t *testing.T) {
 		return app.NewApp(cfg)
 	})
 	defer suite.Cleanup()
+
+	// Start background workers (needed for email queue worker to deliver to Mailpit)
+	ctx := context.Background()
+	err := suite.ServerManager.StartBackgroundWorkers(ctx)
+	require.NoError(t, err)
 
 	client := suite.APIClient
 	factory := suite.DataFactory
@@ -259,6 +268,10 @@ func TestBroadcastLiquidTemplateSubstitution(t *testing.T) {
 		err := testutil.ClearMailpitMessages(t)
 		require.NoError(t, err)
 
+		// Enable email tracking so we can verify encrypted /t/ and /r/ URLs
+		err = factory.EnableEmailTracking(workspace.ID)
+		require.NoError(t, err)
+
 		// Create list with a specific name to verify list.name variable
 		listName := fmt.Sprintf("Subscribers-%s", uuid.New().String()[:8])
 		list, err := factory.CreateList(workspace.ID,
@@ -338,17 +351,47 @@ func TestBroadcastLiquidTemplateSubstitution(t *testing.T) {
 		t.Logf("Email HTML (first 500 chars): %s", truncateString(msg.HTML, 500))
 
 		// Assert system variables are rendered (not empty or raw Liquid)
-		// URLs are wrapped in click tracking, so check for URL-encoded notification-center
-		assert.Contains(t, msg.HTML, "notification-center",
-			"notification_center_url should be rendered to actual URL")
-		assert.Contains(t, msg.HTML, "action",
-			"unsubscribe_url should contain action parameter")
+		// URLs are wrapped in encrypted /r/ tracking tokens
+		assert.Contains(t, msg.HTML, "/r/",
+			"system URLs should be rendered as encrypted tracking redirects")
+		// Tracking pixel should be present with encrypted /t/ path and table wrapper
+		assert.Contains(t, msg.HTML, "/t/",
+			"tracking pixel should use encrypted /t/ path")
+		assert.Contains(t, msg.HTML, `<table border="0" cellpadding="0" cellspacing="0" role="presentation"`,
+			"tracking pixel should be wrapped in a table")
 		assert.NotContains(t, msg.HTML, `href=""`,
 			"System variable URLs should not be empty")
 		assert.NotContains(t, msg.HTML, "{{ unsubscribe_url }}",
 			"Raw Liquid syntax should not appear for unsubscribe_url")
 		assert.NotContains(t, msg.HTML, "{{ notification_center_url }}",
 			"Raw Liquid syntax should not appear for notification_center_url")
+
+		// Decrypt tracking pixel token and verify its content
+		pixelTokenRegex := regexp.MustCompile(`/t/([A-Za-z0-9_-]+)`)
+		pixelMatch := pixelTokenRegex.FindStringSubmatch(msg.HTML)
+		require.Len(t, pixelMatch, 2, "Should find a /t/ token in the HTML")
+		pixelDecrypted, err := crypto.DecryptTrackingToken(pixelMatch[1])
+		require.NoError(t, err, "Tracking pixel token should decrypt successfully")
+		pixelParts := strings.SplitN(pixelDecrypted, "\n", 3)
+		require.Len(t, pixelParts, 3, "Decrypted pixel should have 3 parts: mid, wid, ts")
+		assert.Contains(t, pixelParts[0], workspace.ID, "Pixel messageID should contain workspace ID")
+		assert.Equal(t, workspace.ID, pixelParts[1], "Pixel workspaceID should match")
+		assert.NotEmpty(t, pixelParts[2], "Pixel timestamp should not be empty")
+		t.Logf("Decrypted pixel: mid=%s, wid=%s, ts=%s", pixelParts[0], pixelParts[1], pixelParts[2])
+
+		// Decrypt a click redirect token and verify its content
+		clickTokenRegex := regexp.MustCompile(`/r/([A-Za-z0-9_-]+)`)
+		clickMatch := clickTokenRegex.FindStringSubmatch(msg.HTML)
+		require.Len(t, clickMatch, 2, "Should find a /r/ token in the HTML")
+		clickDecrypted, err := crypto.DecryptTrackingToken(clickMatch[1])
+		require.NoError(t, err, "Click redirect token should decrypt successfully")
+		clickParts := strings.SplitN(clickDecrypted, "\n", 4)
+		require.Len(t, clickParts, 4, "Decrypted click should have 4 parts: mid, wid, ts, url")
+		assert.Contains(t, clickParts[0], workspace.ID, "Click messageID should contain workspace ID")
+		assert.Equal(t, workspace.ID, clickParts[1], "Click workspaceID should match")
+		assert.NotEmpty(t, clickParts[2], "Click timestamp should not be empty")
+		assert.NotEmpty(t, clickParts[3], "Click destination URL should not be empty")
+		t.Logf("Decrypted click: mid=%s, wid=%s, ts=%s, url=%s", clickParts[0], clickParts[1], clickParts[2], clickParts[3])
 
 		// Verify contact variable still works alongside system variables
 		assert.Contains(t, msg.HTML, "Hello Jane!",

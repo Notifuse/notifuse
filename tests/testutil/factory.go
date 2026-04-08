@@ -738,6 +738,16 @@ func (tdf *TestDataFactory) SetupWorkspaceWithSMTPProvider(workspaceID string, o
 	return integration, nil
 }
 
+// EnableEmailTracking enables email tracking on a workspace
+func (tdf *TestDataFactory) EnableEmailTracking(workspaceID string) error {
+	workspace, err := tdf.workspaceRepo.GetByID(context.Background(), workspaceID)
+	if err != nil {
+		return fmt.Errorf("failed to get workspace: %w", err)
+	}
+	workspace.Settings.EmailTrackingEnabled = true
+	return tdf.workspaceRepo.Update(context.Background(), workspace)
+}
+
 // Option types for customizing test data
 type UserOption func(*domain.User)
 type WorkspaceOption func(*domain.Workspace)
