@@ -267,18 +267,20 @@ export function AIAssistantChat({
               >
                 {t`New conversation`}
               </Button>
-              <Popover
-                content={
-                  <div style={{ fontSize: 12 }}>
-                    <div>{t`Input`}: ${costs.input.toFixed(4)}</div>
-                    <div>{t`Output`}: ${costs.output.toFixed(4)}</div>
-                  </div>
-                }
-                trigger="hover"
-                placement="top"
-              >
-                <span style={{ cursor: 'help' }}>{t`Cost`}: ${costs.total.toFixed(4)}</span>
-              </Popover>
+              {llmIntegration?.llm_provider?.kind !== 'openai' && (
+                <Popover
+                  content={
+                    <div style={{ fontSize: 12 }}>
+                      <div>{t`Input`}: ${costs.input.toFixed(4)}</div>
+                      <div>{t`Output`}: ${costs.output.toFixed(4)}</div>
+                    </div>
+                  }
+                  trigger="hover"
+                  placement="top"
+                >
+                  <span style={{ cursor: 'help' }}>{t`Cost`}: ${costs.total.toFixed(4)}</span>
+                </Popover>
+              )}
             </div>
           </div>
         </div>

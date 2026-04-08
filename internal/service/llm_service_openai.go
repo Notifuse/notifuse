@@ -30,6 +30,14 @@ func (s *LLMService) streamChatOpenAI(
 		model = "gpt-4.1" // Default model
 	}
 
+	s.logger.WithFields(map[string]interface{}{
+		"model":          model,
+		"base_url":       settings.BaseURL,
+		"api_key_len":    len(apiKey),
+		"api_key_prefix": apiKey[:min(10, len(apiKey))],
+		"encrypted_key_len": len(settings.EncryptedAPIKey),
+	}).Debug("OpenAI streaming chat config")
+
 	// Create OpenAI client with optional custom base URL
 	opts := []openaiopt.RequestOption{openaiopt.WithAPIKey(apiKey)}
 	if settings.BaseURL != "" {

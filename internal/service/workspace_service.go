@@ -1364,7 +1364,7 @@ func (s *WorkspaceService) UpdateIntegration(ctx context.Context, req domain.Upd
 		if req.LLMProvider != nil {
 			updatedIntegration.LLMProvider = req.LLMProvider
 
-			// Preserve encrypted API key if not provided in update
+			// Preserve Anthropic encrypted API key if not provided in update
 			if req.LLMProvider.Anthropic != nil &&
 				req.LLMProvider.Anthropic.APIKey == "" &&
 				req.LLMProvider.Anthropic.EncryptedAPIKey == "" &&
@@ -1372,6 +1372,16 @@ func (s *WorkspaceService) UpdateIntegration(ctx context.Context, req domain.Upd
 				existingIntegration.LLMProvider.Anthropic != nil {
 				updatedIntegration.LLMProvider.Anthropic.EncryptedAPIKey =
 					existingIntegration.LLMProvider.Anthropic.EncryptedAPIKey
+			}
+
+			// Preserve OpenAI encrypted API key if not provided in update
+			if req.LLMProvider.OpenAI != nil &&
+				req.LLMProvider.OpenAI.APIKey == "" &&
+				req.LLMProvider.OpenAI.EncryptedAPIKey == "" &&
+				existingIntegration.LLMProvider != nil &&
+				existingIntegration.LLMProvider.OpenAI != nil {
+				updatedIntegration.LLMProvider.OpenAI.EncryptedAPIKey =
+					existingIntegration.LLMProvider.OpenAI.EncryptedAPIKey
 			}
 		} else {
 			// If no settings provided, preserve existing

@@ -154,6 +154,14 @@ func TestContactListStatusConstants(t *testing.T) {
 	assert.Equal(t, domain.ContactListStatus("complained"), domain.ContactListStatusComplained)
 }
 
+func TestIsTerminalContactListStatus(t *testing.T) {
+	assert.True(t, domain.IsTerminalContactListStatus(domain.ContactListStatusBounced))
+	assert.True(t, domain.IsTerminalContactListStatus(domain.ContactListStatusComplained))
+	assert.False(t, domain.IsTerminalContactListStatus(domain.ContactListStatusActive))
+	assert.False(t, domain.IsTerminalContactListStatus(domain.ContactListStatusPending))
+	assert.False(t, domain.IsTerminalContactListStatus(domain.ContactListStatusUnsubscribed))
+}
+
 // Mock scanner for testing
 type contactListMockScanner struct {
 	data []interface{}

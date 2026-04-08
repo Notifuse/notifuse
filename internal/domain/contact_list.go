@@ -28,6 +28,12 @@ const (
 	ContactListStatusComplained ContactListStatus = "complained"
 )
 
+// IsTerminalContactListStatus returns true for statuses that should not be overwritten
+// (bounced and complained contacts must stay suppressed for deliverability and compliance)
+func IsTerminalContactListStatus(status ContactListStatus) bool {
+	return status == ContactListStatusBounced || status == ContactListStatusComplained
+}
+
 // ContactList represents the relationship between a contact and a list
 type ContactList struct {
 	Email     string            `json:"email"`

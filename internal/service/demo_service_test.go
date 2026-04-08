@@ -301,6 +301,8 @@ func TestDemoService_SubscribeContactsToList_Success(t *testing.T) {
 	mockContactRepo.EXPECT().UpsertContact(ctx, "demo", gomock.Any()).Return(true, nil).Times(2)
 	// List retrieval
 	mockListRepo.EXPECT().GetLists(ctx, "demo").Return([]*domain.List{{ID: "newsletter", Name: "Newsletter", IsPublic: true}}, nil).Times(2)
+	// Check existing subscription (not found)
+	mockContactListRepo.EXPECT().GetContactListByIDs(ctx, "demo", gomock.Any(), "newsletter").Return(nil, &domain.ErrContactListNotFound{Message: "not found"}).Times(2)
 	// Add to list
 	mockContactListRepo.EXPECT().AddContactToList(ctx, "demo", gomock.Any()).Return(nil).Times(2)
 

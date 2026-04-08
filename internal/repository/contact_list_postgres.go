@@ -39,6 +39,7 @@ func (r *contactListRepository) AddContactToList(ctx context.Context, workspaceI
 		VALUES ($1, $2, $3, $4, $5, NULL)
 		ON CONFLICT (email, list_id) DO UPDATE
 		SET status = $3, updated_at = $5, deleted_at = NULL
+		WHERE contact_lists.status NOT IN ('bounced', 'complained')
 	`
 	_, err = workspaceDB.ExecContext(ctx, query,
 		contactList.Email,
@@ -116,7 +117,8 @@ func (r *contactListRepository) BulkAddContactsToLists(ctx context.Context, work
 
 		qb.WriteString(`
 		ON CONFLICT (email, list_id) DO UPDATE
-		SET status = EXCLUDED.status, updated_at = EXCLUDED.updated_at, deleted_at = NULL`)
+		SET status = EXCLUDED.status, updated_at = EXCLUDED.updated_at, deleted_at = NULL
+		WHERE contact_lists.status NOT IN ('unsubscribed', 'bounced', 'complained')`)
 
 		_, err = workspaceDB.ExecContext(ctx, qb.String(), args...)
 		if err != nil {

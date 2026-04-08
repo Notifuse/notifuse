@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## [29.2] - 2026-04-08
 
+- **Feature**: Added OpenAI as LLM provider alongside Anthropic — supports any OpenAI-compatible endpoint (OpenRouter, Ollama, vLLM, LiteLLM, Azure, etc.) via custom base URL, with full streaming and tool use support
 - **Security**: Updated liquidjs to 10.25.5 in console and vitest to 3.2.4 in notification center to fix 5 Dependabot vulnerabilities
 - **Deps**: Updated @vitejs/plugin-react to 5.2.0 in console and notification center
 - **Feature**: Added System Settings drawer for root admin to view and edit system configuration from the dashboard

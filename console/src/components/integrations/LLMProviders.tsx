@@ -61,7 +61,7 @@ export const llmProviders: LLMProviderInfo[] = [
       const maxWidth = height * 5
       return (
         <img
-          src="/console/openai.svg"
+          src="/console/openai.png"
           alt="OpenAI"
           style={{ height, maxWidth, objectFit: 'contain', display: 'inline-block' }}
           className={className}

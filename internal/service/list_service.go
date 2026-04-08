@@ -309,6 +309,35 @@ func (s *ListService) SubscribeToLists(ctx context.Context, payload *domain.Subs
 			return fmt.Errorf("list is not public")
 		}
 
+		// Check existing subscription status to prevent overwriting
+		existingCL, err := s.contactListRepo.GetContactListByIDs(ctx, workspace.ID, payload.Contact.Email, listID)
+		if err != nil {
+			if _, ok := err.(*domain.ErrContactListNotFound); !ok {
+				return fmt.Errorf("failed to check existing subscription: %w", err)
+			}
+			// Not found — proceed as new subscription
+		}
+
+		skipDBWrite := false
+		forceDoubleOptin := false
+
+		if existingCL != nil {
+			switch existingCL.Status {
+			case domain.ContactListStatusActive:
+				// Idempotent no-op — already subscribed
+				continue
+			case domain.ContactListStatusPending:
+				// Already pending — skip DB write, resend DOI email below
+				skipDBWrite = true
+			case domain.ContactListStatusBounced, domain.ContactListStatusComplained:
+				// Hard block — do not send email to bounced/complained addresses
+				continue
+			case domain.ContactListStatusUnsubscribed:
+				// Allow re-subscribe — force double opt-in for compliance
+				forceDoubleOptin = true
+			}
+		}
+
 		contactList := &domain.ContactList{
 			Email:     payload.Contact.Email,
 			ListID:    listID,
@@ -319,19 +348,27 @@ func (s *ListService) SubscribeToLists(ctx context.Context, payload *domain.Subs
 		}
 
 		// if the list is double optin and the contact is not authenticated, set the status to pending
-		if list.IsDoubleOptin && !isAuthenticated {
+		// also force double optin for re-subscribing contacts (compliance requirement)
+		if (list.IsDoubleOptin && !isAuthenticated) || forceDoubleOptin {
 			contactList.Status = domain.ContactListStatusPending
 		}
 
-		// Subscribe to the list
-		err = s.contactListRepo.AddContactToList(ctx, workspace.ID, contactList)
-		if err != nil {
-			// codecov:ignore:start
-			s.logger.WithField("email", contactList.Email).
-				WithField("list_id", contactList.ListID).
-				Error(fmt.Sprintf("Failed to subscribe to list: %v", err))
-			// codecov:ignore:end
-			return fmt.Errorf("failed to subscribe to list: %w", err)
+		if !skipDBWrite {
+			// Subscribe to the list
+			err = s.contactListRepo.AddContactToList(ctx, workspace.ID, contactList)
+			if err != nil {
+				// codecov:ignore:start
+				s.logger.WithField("email", contactList.Email).
+					WithField("list_id", contactList.ListID).
+					Error(fmt.Sprintf("Failed to subscribe to list: %v", err))
+				// codecov:ignore:end
+				return fmt.Errorf("failed to subscribe to list: %w", err)
+			}
+		}
+
+		// For pending resend: ensure status is pending so DOI email logic fires
+		if skipDBWrite {
+			contactList.Status = domain.ContactListStatusPending
 		}
 
 		marketingEmailProvider, integrationID, err := workspace.GetEmailProviderWithIntegrationID(true)
