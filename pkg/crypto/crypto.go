@@ -6,12 +6,19 @@ import (
 	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"io"
 
 	"golang.org/x/crypto/bcrypt"
 )
+
+// trackingObfuscationKey is a hardcoded key used to obfuscate tracking URL parameters.
+// This is NOT for security — the data (workspace ID, message ID, timestamp) is not sensitive.
+// The purpose is to make tracking URLs opaque to automated pixel blockers that pattern-match
+// on query parameters like ?mid=...&wid=...&ts=...
+const trackingObfuscationKey = "nf-tracking-obfuscation-2024"
 
 // func ComputeHMAC256FromInterface(toSign interface{}, secretKey string) (signature string, err error) {
 
@@ -115,6 +122,10 @@ func Decrypt(data []byte, passphrase string) ([]byte, error) {
 
 	nonceSize := gcm.NonceSize()
 
+	if len(data) < nonceSize {
+		return nil, fmt.Errorf("Decrypt data too short: got %d bytes, need at least %d", len(data), nonceSize)
+	}
+
 	nonce, ciphertext := data[:nonceSize], data[nonceSize:]
 
 	plaintext, err := gcm.Open(nil, nonce, ciphertext, nil)
@@ -145,6 +156,50 @@ func DecryptFromHexString(str string, passphrase string) (string, error) {
 	}
 
 	return string(decodedBytes), nil
+}
+
+// EncryptTrackingToken encrypts a plaintext string into a URL-safe token using AES-256-GCM
+// with the hardcoded obfuscation key. Returns a base64 RawURLEncoding string (no padding).
+func EncryptTrackingToken(plaintext string) (string, error) {
+	data := []byte(plaintext)
+
+	block, err := aes.NewCipher(Sha256Hash(trackingObfuscationKey))
+	if err != nil {
+		return "", fmt.Errorf("EncryptTrackingToken cipher error: %w", err)
+	}
+
+	gcm, err := cipher.NewGCM(block)
+	if err != nil {
+		return "", fmt.Errorf("EncryptTrackingToken GCM error: %w", err)
+	}
+
+	nonce := make([]byte, gcm.NonceSize())
+	if _, err = io.ReadFull(rand.Reader, nonce); err != nil {
+		return "", fmt.Errorf("EncryptTrackingToken nonce error: %w", err)
+	}
+
+	ciphertext := gcm.Seal(nonce, nonce, data, nil)
+	return base64.RawURLEncoding.EncodeToString(ciphertext), nil
+}
+
+// DecryptTrackingToken decrypts a URL-safe token back to plaintext using AES-256-GCM
+// with the hardcoded obfuscation key.
+func DecryptTrackingToken(token string) (string, error) {
+	if token == "" {
+		return "", fmt.Errorf("DecryptTrackingToken empty token")
+	}
+
+	data, err := base64.RawURLEncoding.DecodeString(token)
+	if err != nil {
+		return "", fmt.Errorf("DecryptTrackingToken base64 decode error: %w", err)
+	}
+
+	plaintext, err := Decrypt(data, trackingObfuscationKey)
+	if err != nil {
+		return "", fmt.Errorf("DecryptTrackingToken decrypt error: %w", err)
+	}
+
+	return string(plaintext), nil
 }
 
 // HashMagicCode creates an HMAC-SHA256 hash of the magic code with the provided secret key.

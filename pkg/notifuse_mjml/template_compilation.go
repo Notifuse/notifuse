@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Notifuse/notifuse/pkg/crypto"
 	"github.com/preslavrachev/gomjml/mjml"
 )
 
@@ -310,8 +311,17 @@ type CompileTemplateResponse struct {
 }
 
 // GenerateEmailRedirectionEndpoint generates the email redirection endpoint URL
+// Uses encrypted path tokens (/r/{token}) to avoid pixel blocker detection.
+// Falls back to legacy query params (/visit?mid=...) if encryption fails.
 func GenerateEmailRedirectionEndpoint(workspaceID string, messageID string, apiEndpoint string, destinationURL string, sentTimestamp int64) string {
-	// URL encode the parameters to handle special characters
+	// Try encrypted format: /r/{token}
+	plaintext := fmt.Sprintf("%s\n%s\n%d\n%s", messageID, workspaceID, sentTimestamp, destinationURL)
+	token, err := crypto.EncryptTrackingToken(plaintext)
+	if err == nil {
+		return fmt.Sprintf("%s/r/%s", apiEndpoint, token)
+	}
+
+	// Fallback to legacy query params
 	encodedMID := url.QueryEscape(messageID)
 	encodedWID := url.QueryEscape(workspaceID)
 	encodedURL := url.QueryEscape(destinationURL)
@@ -319,13 +329,24 @@ func GenerateEmailRedirectionEndpoint(workspaceID string, messageID string, apiE
 		apiEndpoint, encodedMID, encodedWID, sentTimestamp, encodedURL)
 }
 
+// GenerateHTMLOpenTrackingPixel generates the HTML for the open tracking pixel.
+// Uses encrypted path tokens (/t/{token}) to avoid pixel blocker detection.
+// Falls back to legacy query params (/opens?mid=...) if encryption fails.
 func GenerateHTMLOpenTrackingPixel(workspaceID string, messageID string, apiEndpoint string, sentTimestamp int64) string {
-	// URL encode the parameters to handle special characters
-	encodedMID := url.QueryEscape(messageID)
-	encodedWID := url.QueryEscape(workspaceID)
-	pixelURL := fmt.Sprintf("%s/opens?mid=%s&wid=%s&ts=%d",
-		apiEndpoint, encodedMID, encodedWID, sentTimestamp)
-	return fmt.Sprintf(`<img src="%s" alt="" width="1" height="1">`, pixelURL)
+	// Try encrypted format: /t/{token}
+	plaintext := fmt.Sprintf("%s\n%s\n%d", messageID, workspaceID, sentTimestamp)
+	token, err := crypto.EncryptTrackingToken(plaintext)
+	var pixelURL string
+	if err == nil {
+		pixelURL = fmt.Sprintf("%s/t/%s", apiEndpoint, token)
+	} else {
+		// Fallback to legacy query params
+		encodedMID := url.QueryEscape(messageID)
+		encodedWID := url.QueryEscape(workspaceID)
+		pixelURL = fmt.Sprintf("%s/opens?mid=%s&wid=%s&ts=%d",
+			apiEndpoint, encodedMID, encodedWID, sentTimestamp)
+	}
+	return fmt.Sprintf(`<img src="%s" alt="" style="border:0;margin:0;padding:0;">`, pixelURL)
 }
 
 // CompileTemplate compiles a visual editor tree to MJML and HTML
@@ -553,18 +574,28 @@ func TrackLinks(htmlString string, trackingSettings TrackingSettings) (updatedHT
 	})
 
 	if trackingSettings.EnableTracking {
-		// Insert tracking pixel at the end of the body tag
-		// Use current Unix timestamp (seconds) for bot detection
+		// Insert tracking pixel after the last </table> tag to look like a structural
+		// spacer image in table-based email layout. This avoids the common detection
+		// pattern of placing pixels just before </body>.
 		sentTimestamp := time.Now().Unix()
 		trackingPixel := GenerateHTMLOpenTrackingPixel(trackingSettings.WorkspaceID, trackingSettings.MessageID, trackingSettings.Endpoint, sentTimestamp)
 
-		// Find the closing </body> tag and insert the pixel before it
-		bodyCloseRegex := regexp.MustCompile(`(?i)(<\/body>)`)
-		if bodyCloseRegex.MatchString(updatedHTML) {
-			updatedHTML = bodyCloseRegex.ReplaceAllString(updatedHTML, trackingPixel+"$1")
+		// Find last </table> (case-insensitive, check both common casings)
+		lastTableClose := strings.LastIndex(updatedHTML, "</table>")
+		if idx := strings.LastIndex(updatedHTML, "</TABLE>"); idx > lastTableClose {
+			lastTableClose = idx
+		}
+		if lastTableClose != -1 {
+			insertPos := lastTableClose + len("</table>")
+			updatedHTML = updatedHTML[:insertPos] + trackingPixel + updatedHTML[insertPos:]
 		} else {
-			// Fallback: if no closing body tag found, append to the end
-			updatedHTML = updatedHTML + trackingPixel
+			// Fallback: before </body> or append to end
+			bodyCloseRegex := regexp.MustCompile(`(?i)(<\/body>)`)
+			if bodyCloseRegex.MatchString(updatedHTML) {
+				updatedHTML = bodyCloseRegex.ReplaceAllString(updatedHTML, trackingPixel+"$1")
+			} else {
+				updatedHTML = updatedHTML + trackingPixel
+			}
 		}
 	}
 

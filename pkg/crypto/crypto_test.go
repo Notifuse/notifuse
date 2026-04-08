@@ -417,6 +417,114 @@ func TestVerifyMagicCode(t *testing.T) {
 	}
 }
 
+func TestEncryptTrackingTokenAndDecrypt(t *testing.T) {
+	tests := []struct {
+		name      string
+		plaintext string
+	}{
+		{
+			name:      "Open tracking payload",
+			plaintext: "msg-123_uuid\nworkspace-456\n1744100000",
+		},
+		{
+			name:      "Click tracking payload with URL",
+			plaintext: "msg-123_uuid\nworkspace-456\n1744100000\nhttps://example.com/path?foo=bar&baz=qux",
+		},
+		{
+			name:      "Empty string",
+			plaintext: "",
+		},
+		{
+			name:      "URL with special characters",
+			plaintext: "mid\nwid\n123\nhttps://example.com/path?q=hello+world&lang=en#section",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			token, err := EncryptTrackingToken(tt.plaintext)
+			if err != nil {
+				t.Fatalf("EncryptTrackingToken() error = %v", err)
+			}
+
+			if token == "" {
+				t.Fatal("EncryptTrackingToken() returned empty token")
+			}
+
+			// Verify token is URL-safe (no +, /, or = characters)
+			for _, c := range token {
+				if c == '+' || c == '/' || c == '=' {
+					t.Errorf("EncryptTrackingToken() token contains non-URL-safe character: %c", c)
+				}
+			}
+
+			decrypted, err := DecryptTrackingToken(token)
+			if err != nil {
+				t.Fatalf("DecryptTrackingToken() error = %v", err)
+			}
+
+			if decrypted != tt.plaintext {
+				t.Errorf("DecryptTrackingToken() = %q, want %q", decrypted, tt.plaintext)
+			}
+		})
+	}
+}
+
+func TestDecryptTrackingToken_Errors(t *testing.T) {
+	tests := []struct {
+		name  string
+		token string
+	}{
+		{
+			name:  "Empty token",
+			token: "",
+		},
+		{
+			name:  "Invalid base64",
+			token: "not-valid-base64!!!",
+		},
+		{
+			name:  "Valid base64 but invalid ciphertext",
+			token: "dGhpcyBpcyBub3QgZW5jcnlwdGVk",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := DecryptTrackingToken(tt.token)
+			if err == nil {
+				t.Error("DecryptTrackingToken() expected error, got nil")
+			}
+		})
+	}
+}
+
+func TestEncryptTrackingToken_UniquePerCall(t *testing.T) {
+	plaintext := "msg-123\nworkspace-456\n1744100000"
+
+	token1, err := EncryptTrackingToken(plaintext)
+	if err != nil {
+		t.Fatalf("EncryptTrackingToken() error = %v", err)
+	}
+
+	token2, err := EncryptTrackingToken(plaintext)
+	if err != nil {
+		t.Fatalf("EncryptTrackingToken() error = %v", err)
+	}
+
+	// Each call uses a random nonce, so tokens should differ
+	if token1 == token2 {
+		t.Error("EncryptTrackingToken() produced identical tokens for same input — nonce reuse")
+	}
+
+	// Both should decrypt to the same plaintext
+	d1, _ := DecryptTrackingToken(token1)
+	d2, _ := DecryptTrackingToken(token2)
+	if d1 != d2 {
+		t.Errorf("Different tokens decrypted to different values: %q vs %q", d1, d2)
+	}
+}
+
 func TestMagicCodeIntegration(t *testing.T) {
 	// Test the full flow: hash a code, then verify it
 	secretKey := "integration-test-secret"

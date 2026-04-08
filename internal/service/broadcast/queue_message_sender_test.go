@@ -619,11 +619,9 @@ func TestQueueMessageSender_SendBatch(t *testing.T) {
 				entry := entries[0]
 
 				// System variables should be rendered in HTML (not raw Liquid)
-				// URLs are URL-encoded inside click tracking wrapper, so check for encoded format
-				assert.Contains(t, entry.Payload.HTMLContent, "notification-center",
-					"notification_center_url should be rendered to actual URL")
-				assert.Contains(t, entry.Payload.HTMLContent, "action%3Dunsubscribe",
-					"unsubscribe_url should be rendered to actual URL (URL-encoded in tracking)")
+				// URLs are now inside encrypted /r/ tracking tokens
+				assert.Contains(t, entry.Payload.HTMLContent, "/r/",
+					"system URLs should be rendered as encrypted tracking redirects")
 				assert.NotContains(t, entry.Payload.HTMLContent, "{{ unsubscribe_url }}",
 					"Raw Liquid syntax should not appear in HTML")
 				assert.NotContains(t, entry.Payload.HTMLContent, "{{ notification_center_url }}",

@@ -434,12 +434,15 @@ func TestEmailHandler_HandleOpens(t *testing.T) {
 				assert.Equal(t, tt.expectedContentType, w.Header().Get("Content-Type"))
 			}
 
-			// If it's a successful response, verify it returned a PNG image
-			// The transparent pixel is 67 bytes long
+			// If it's a successful response, verify it returned a padded PNG image
 			if tt.expectedStatusCode == http.StatusOK {
-				assert.Equal(t, 67, len(w.Body.Bytes()))
+				assert.Equal(t, 825, len(w.Body.Bytes()))
 				// Verify PNG signature in the first 8 bytes
 				assert.Equal(t, []byte{0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A}, w.Body.Bytes()[:8])
+				// Verify Cache-Control headers
+				assert.Equal(t, "no-cache, no-store, must-revalidate", w.Header().Get("Cache-Control"))
+				assert.Equal(t, "no-cache", w.Header().Get("Pragma"))
+				assert.Equal(t, "0", w.Header().Get("Expires"))
 			}
 		})
 	}

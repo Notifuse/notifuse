@@ -57,7 +57,7 @@ func TestTrackLinks(t *testing.T) {
 				MessageID:      "test-message",
 			},
 			expectedContains: []string{
-				"https://track.example.com/redirect/visit?mid=test-message&wid=test-workspace&ts=",
+				"https://track.example.com/redirect/r/",
 			},
 			shouldError: false,
 		},
@@ -112,7 +112,7 @@ func TestTrackLinks(t *testing.T) {
 				`href="mailto:test@example.com"`, // mailto should be unchanged
 				`href="tel:+1234567890"`,         // tel should be unchanged
 				`href="sms:+1234567890"`,         // sms should be unchanged
-				"track.example.com/visit",        // normal links should be tracked
+				"track.example.com/r/",           // normal links should be tracked
 			},
 			expectedNotContains: []string{
 				"url=mailto", // mailto should NOT be in a tracking redirect URL param
@@ -134,7 +134,7 @@ func TestTrackLinks(t *testing.T) {
 			},
 			expectedContains: []string{
 				`href="#section1"`,        // anchor should be unchanged
-				"track.example.com/visit", // normal links should be tracked
+				"track.example.com/r/",    // normal links should be tracked
 			},
 			shouldError: false,
 		},
@@ -151,7 +151,7 @@ func TestTrackLinks(t *testing.T) {
 			},
 			expectedContains: []string{
 				`href="javascript:void(0)"`, // javascript should be unchanged
-				"track.example.com/visit",   // normal links should be tracked
+				"track.example.com/r/",      // normal links should be tracked
 			},
 			shouldError: false,
 		},
@@ -202,7 +202,7 @@ func TestTrackLinks(t *testing.T) {
 				MessageID:      "test-message",
 			},
 			expectedContains: []string{
-				"https://track.example.com/redirect/visit?mid=test-message&wid=test-workspace&ts=",
+				"https://track.example.com/redirect/r/",
 			},
 			shouldError: false,
 		},
@@ -238,7 +238,7 @@ func TestTrackLinks(t *testing.T) {
 				MessageID:      "test-message",
 			},
 			expectedContains: []string{
-				"https://track.example.com/visit?mid=test-message&wid=test-workspace&ts=",
+				"https://track.example.com/r/",
 				"class=\"button\"",
 				"<span>Click Here</span>",
 			},
@@ -518,18 +518,16 @@ func TestTrackingPixelPlacement(t *testing.T) {
 		t.Fatalf("TrackLinks failed: %v", err)
 	}
 
-	// Check that the tracking pixel is inserted before the closing body tag
-	// Check for the pattern with ts parameter (which is dynamic)
-	hasPixelPattern := strings.Contains(result, `opens?mid=test-message&wid=test-workspace&ts=`) &&
-		strings.Contains(result, `alt="" width="1" height="1">`)
+	// Check that the tracking pixel uses encrypted /t/ format and new styling
+	hasPixelPattern := strings.Contains(result, `/t/`) &&
+		strings.Contains(result, `alt="" style="border:0;margin:0;padding:0;">`)
 	if !hasPixelPattern {
-		t.Errorf("Expected tracking pixel pattern to be present in the HTML. Result: %s", result)
+		t.Errorf("Expected encrypted tracking pixel with /t/ path and new styling. Result: %s", result)
 	}
 
 	// Check that the pixel is placed before the closing body tag
 	bodyCloseIndex := strings.Index(result, "</body>")
-	pixelMarker := `opens?mid=test-message&wid=test-workspace&ts=`
-	pixelIndex := strings.Index(result, pixelMarker)
+	pixelIndex := strings.Index(result, `/t/`)
 
 	if bodyCloseIndex == -1 {
 		t.Error("Expected closing body tag to be present")
@@ -560,16 +558,15 @@ func TestTrackingPixelWithoutBodyTag(t *testing.T) {
 		t.Fatalf("TrackLinks failed: %v", err)
 	}
 
-	// Check that the tracking pixel is appended to the end as fallback
-	// Check for the pattern with ts parameter (which is dynamic)
-	hasPixelPattern := strings.Contains(result, `opens?mid=test-message&wid=test-workspace&ts=`) &&
-		strings.Contains(result, `alt="" width="1" height="1">`)
+	// Check that the tracking pixel uses encrypted /t/ format
+	hasPixelPattern := strings.Contains(result, `/t/`) &&
+		strings.Contains(result, `alt="" style="border:0;margin:0;padding:0;">`)
 	if !hasPixelPattern {
-		t.Error("Expected tracking pixel pattern to be present in the HTML")
+		t.Error("Expected encrypted tracking pixel with /t/ path and new styling")
 	}
 
 	// Check that the pixel is at the end (check for the closing tag pattern)
-	if !strings.HasSuffix(strings.TrimSpace(result), `alt="" width="1" height="1">`) {
+	if !strings.HasSuffix(strings.TrimSpace(result), `alt="" style="border:0;margin:0;padding:0;">`) {
 		t.Error("Expected tracking pixel to be at the end when no body tag is present")
 	}
 }

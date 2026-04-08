@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
+	"github.com/Notifuse/notifuse/pkg/crypto"
 	"github.com/Notifuse/notifuse/tests/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -812,6 +813,134 @@ func testBotDetectionOpenTracking(t *testing.T, suite *testutil.IntegrationTestS
 		// Should work fine
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 		assert.Equal(t, "image/png", resp.Header.Get("Content-Type"))
+	})
+}
+
+func TestEmailHandler_EncryptedTracking(t *testing.T) {
+	testutil.SkipIfShort(t)
+	testutil.SetupTestEnvironment()
+	defer testutil.CleanupTestEnvironment()
+
+	suite := testutil.NewIntegrationTestSuite(t, appFactory)
+	defer func() { suite.Cleanup() }()
+
+	baseURL := suite.ServerManager.GetURL()
+	client := &http.Client{}
+
+	t.Run("encrypted open tracking returns padded pixel with cache headers", func(t *testing.T) {
+		// Create an encrypted token for open tracking
+		token, err := crypto.EncryptTrackingToken("msg-enc-1\nws-enc-1\n1000000000")
+		require.NoError(t, err)
+
+		openURL := fmt.Sprintf("%s/t/%s", baseURL, token)
+		req, err := http.NewRequest(http.MethodGet, openURL, nil)
+		require.NoError(t, err)
+		req.Header.Set("User-Agent", "Mozilla/5.0 Chrome/120.0.0.0")
+
+		resp, err := client.Do(req)
+		require.NoError(t, err)
+		defer func() { _ = resp.Body.Close() }()
+
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+		assert.Equal(t, "image/png", resp.Header.Get("Content-Type"))
+		assert.Equal(t, "no-cache, no-store, must-revalidate", resp.Header.Get("Cache-Control"))
+		assert.Equal(t, "no-cache", resp.Header.Get("Pragma"))
+		assert.Equal(t, "0", resp.Header.Get("Expires"))
+
+		body, err := io.ReadAll(resp.Body)
+		require.NoError(t, err)
+		assert.Equal(t, 825, len(body))
+		assert.Equal(t, []byte{0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A}, body[:8])
+	})
+
+	t.Run("encrypted click tracking redirects", func(t *testing.T) {
+		redirectURL := "https://example.com/encrypted-click"
+		token, err := crypto.EncryptTrackingToken(fmt.Sprintf("msg-enc-2\nws-enc-2\n1000000000\n%s", redirectURL))
+		require.NoError(t, err)
+
+		clickURL := fmt.Sprintf("%s/r/%s", baseURL, token)
+		req, err := http.NewRequest(http.MethodGet, clickURL, nil)
+		require.NoError(t, err)
+		req.Header.Set("User-Agent", "Mozilla/5.0 Chrome/120.0.0.0")
+
+		client := &http.Client{
+			CheckRedirect: func(req *http.Request, via []*http.Request) error {
+				return http.ErrUseLastResponse
+			},
+		}
+
+		resp, err := client.Do(req)
+		require.NoError(t, err)
+		defer func() { _ = resp.Body.Close() }()
+
+		assert.Equal(t, http.StatusSeeOther, resp.StatusCode)
+		assert.Equal(t, redirectURL, resp.Header.Get("Location"))
+	})
+
+	t.Run("invalid encrypted token returns pixel gracefully for opens", func(t *testing.T) {
+		openURL := fmt.Sprintf("%s/t/invalid-token-data", baseURL)
+		req, err := http.NewRequest(http.MethodGet, openURL, nil)
+		require.NoError(t, err)
+
+		resp, err := client.Do(req)
+		require.NoError(t, err)
+		defer func() { _ = resp.Body.Close() }()
+
+		// Should still return pixel (don't leak errors)
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+		assert.Equal(t, "image/png", resp.Header.Get("Content-Type"))
+	})
+
+	t.Run("invalid encrypted token returns error for clicks", func(t *testing.T) {
+		clickURL := fmt.Sprintf("%s/r/invalid-token-data", baseURL)
+		req, err := http.NewRequest(http.MethodGet, clickURL, nil)
+		require.NoError(t, err)
+
+		resp, err := client.Do(req)
+		require.NoError(t, err)
+		defer func() { _ = resp.Body.Close() }()
+
+		// Should return 400 (can't redirect without valid URL)
+		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+	})
+
+	t.Run("legacy /opens still works (backward compat)", func(t *testing.T) {
+		openURL := fmt.Sprintf("%s/opens?mid=legacy-msg&wid=legacy-ws&ts=1000000000", baseURL)
+		req, err := http.NewRequest(http.MethodGet, openURL, nil)
+		require.NoError(t, err)
+		req.Header.Set("User-Agent", "Mozilla/5.0 Chrome/120.0.0.0")
+
+		resp, err := client.Do(req)
+		require.NoError(t, err)
+		defer func() { _ = resp.Body.Close() }()
+
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+		assert.Equal(t, "image/png", resp.Header.Get("Content-Type"))
+		// Legacy endpoint also gets Cache-Control headers now
+		assert.Equal(t, "no-cache, no-store, must-revalidate", resp.Header.Get("Cache-Control"))
+	})
+
+	t.Run("legacy /visit still works (backward compat)", func(t *testing.T) {
+		redirectURL := "https://example.com/legacy-click"
+		visitURL := fmt.Sprintf("%s/visit?url=%s&mid=legacy-msg&wid=legacy-ws&ts=1000000000",
+			baseURL, url.QueryEscape(redirectURL))
+
+		req, err := http.NewRequest(http.MethodGet, visitURL, nil)
+		require.NoError(t, err)
+		req.Header.Set("User-Agent", "Mozilla/5.0 Chrome/120.0.0.0")
+
+		client := &http.Client{
+			CheckRedirect: func(req *http.Request, via []*http.Request) error {
+				return http.ErrUseLastResponse
+			},
+		}
+
+		resp, err := client.Do(req)
+		require.NoError(t, err)
+		defer func() { _ = resp.Body.Close() }()
+
+		assert.Equal(t, http.StatusSeeOther, resp.StatusCode)
+		assert.Equal(t, redirectURL, resp.Header.Get("Location"))
 	})
 }
 

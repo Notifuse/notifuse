@@ -85,21 +85,25 @@ func TestGenerateEmailRedirectionAndPixel(t *testing.T) {
 	testTimestamp := time.Now().Unix()
 
 	redir := GenerateEmailRedirectionEndpoint("w id", "m/id", "https://api.example.com", "https://example.com/x?y=1", testTimestamp)
-	if redir == "" || redir == "https://api.example.com/visit?mid=m/id&wid=w id&url=https://example.com/x?y=1" {
-		t.Fatalf("expected URL-encoded params, got: %s", redir)
+	if redir == "" {
+		t.Fatal("expected non-empty redirect URL")
 	}
-	// Verify timestamp is included in the URL
-	if !strings.Contains(redir, "ts=") {
-		t.Fatalf("expected 'ts=' parameter in URL, got: %s", redir)
+	// New format should use encrypted /r/ path
+	if !strings.Contains(redir, "/r/") {
+		t.Fatalf("expected encrypted /r/ path in redirect URL, got: %s", redir)
 	}
 
 	pixel := GenerateHTMLOpenTrackingPixel("w", "m", "https://api.example.com", testTimestamp)
 	if pixel == "" || !strings.Contains(pixel, "<img src=") {
 		t.Fatalf("unexpected pixel: %s", pixel)
 	}
-	// Verify timestamp is included in the pixel URL
-	if !strings.Contains(pixel, "ts=") {
-		t.Fatalf("expected 'ts=' parameter in pixel URL, got: %s", pixel)
+	// New format should use encrypted /t/ path
+	if !strings.Contains(pixel, "/t/") {
+		t.Fatalf("expected encrypted /t/ path in pixel URL, got: %s", pixel)
+	}
+	// Should use new styling without width/height
+	if !strings.Contains(pixel, `style="border:0;margin:0;padding:0;"`) {
+		t.Fatalf("expected new styling in pixel, got: %s", pixel)
 	}
 }
 
