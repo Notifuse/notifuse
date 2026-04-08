@@ -801,7 +801,7 @@ msgstr "Comando API"
 
 #: src/components/settings/Integrations.tsx:1723
 #: src/components/settings/Integrations.tsx:1977
-#: src/components/settings/SystemSettingsDrawer.tsx:238
+#: src/components/settings/SystemSettingsDrawer.tsx:245
 #: src/pages/SetupWizard.tsx:355
 msgid "API Endpoint"
 msgstr "Endpoint API"
@@ -821,23 +821,23 @@ msgstr "Identificador API"
 #: src/components/settings/Integrations.tsx:1774
 #: src/components/settings/Integrations.tsx:1792
 #: src/components/settings/Integrations.tsx:1814
-#: src/components/settings/WorkspaceMembers.tsx:92
+#: src/components/settings/WorkspaceMembers.tsx:93
 msgid "API Key"
 msgstr "Chave API"
 
-#: src/components/settings/WorkspaceMembers.tsx:294
+#: src/components/settings/WorkspaceMembers.tsx:299
 msgid "API key created successfully"
 msgstr "Chave API criada com sucesso"
 
-#: src/components/settings/WorkspaceMembers.tsx:632
+#: src/components/settings/WorkspaceMembers.tsx:637
 msgid "API Key Created Successfully"
 msgstr "Chave API Criada com Sucesso"
 
-#: src/components/settings/WorkspaceMembers.tsx:606
+#: src/components/settings/WorkspaceMembers.tsx:611
 msgid "API Key Name"
 msgstr "Nome da Chave API"
 
-#: src/components/settings/WorkspaceMembers.tsx:639
+#: src/components/settings/WorkspaceMembers.tsx:644
 msgid "API Token"
 msgstr "Token API"
 
@@ -878,7 +878,7 @@ msgid "Are you sure you want to delete the category"
 msgstr "Tem certeza que deseja excluir a categoria"
 
 #. placeholder {0}: record.email
-#: src/components/settings/WorkspaceMembers.tsx:210
+#: src/components/settings/WorkspaceMembers.tsx:211
 msgid "Are you sure you want to delete the invitation for {0}?"
 msgstr "Tem certeza que deseja excluir o convite para {0}?"
 
@@ -924,7 +924,7 @@ msgstr "Tem certeza que deseja reconstruir \"{0}\"? Isso recalculará os membros
 
 #. placeholder {0}: record.email
 #. placeholder {1}: record.type === 'api_key' ? ' This API key will be permanently deleted.' : ''
-#: src/components/settings/WorkspaceMembers.tsx:190
+#: src/components/settings/WorkspaceMembers.tsx:191
 msgid "Are you sure you want to remove {0}?{1}"
 msgstr "Tem certeza que deseja remover {0}?{1}"
 
@@ -1162,7 +1162,7 @@ msgstr "Tipo de Fundo"
 msgid "Base URL (Optional)"
 msgstr "URL Base (Opcional)"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:472
+#: src/components/settings/SystemSettingsDrawer.tsx:481
 msgid "Base64 encoded TLS certificate"
 msgstr ""
 
@@ -1170,7 +1170,7 @@ msgstr ""
 msgid "Base64 encoded TLS certificate. Run: cat fullchain.pem | base64 -w 0"
 msgstr "Certificado TLS codificado em Base64. Execute: cat fullchain.pem | base64 -w 0"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:486
+#: src/components/settings/SystemSettingsDrawer.tsx:496
 msgid "Base64 encoded TLS private key"
 msgstr ""
 
@@ -1403,11 +1403,11 @@ msgstr "Atributos de Breakpoint"
 msgid "Breakpoint Width"
 msgstr "Largura do Breakpoint"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:429
+#: src/components/settings/SystemSettingsDrawer.tsx:436
 msgid "Bridge Domain"
 msgstr ""
 
-#: src/components/settings/SystemSettingsDrawer.tsx:442
+#: src/components/settings/SystemSettingsDrawer.tsx:450
 msgid "Bridge Port"
 msgstr ""
 
@@ -1593,11 +1593,11 @@ msgstr "Tamanho do Botao"
 #: src/components/settings/Integrations.tsx:2263
 #: src/components/settings/Integrations.tsx:2311
 #: src/components/settings/Integrations.tsx:2358
-#: src/components/settings/SystemSettingsDrawer.tsx:141
+#: src/components/settings/SystemSettingsDrawer.tsx:148
 #: src/components/settings/WebhookCard.tsx:348
 #: src/components/settings/WebhooksSettings.tsx:213
-#: src/components/settings/WorkspaceMembers.tsx:545
-#: src/components/settings/WorkspaceMembers.tsx:590
+#: src/components/settings/WorkspaceMembers.tsx:550
+#: src/components/settings/WorkspaceMembers.tsx:595
 #: src/components/templates/CreateTemplateDrawer.tsx:500
 #: src/components/templates/SendTemplateModal.tsx:268
 #: src/components/templates/TemplateTranslationsTab.tsx:254
@@ -1729,7 +1729,7 @@ msgstr "Canal"
 msgid "Check"
 msgstr "Verificar"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:509
+#: src/components/settings/SystemSettingsDrawer.tsx:519
 #: src/pages/SetupWizard.tsx:542
 msgid "Check for Updates"
 msgstr "Verificar Atualizacoes"
@@ -1833,7 +1833,7 @@ msgstr "Clonar Template"
 #: src/components/broadcasts/GlobalFeedSettings.tsx:137
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:825
 #: src/components/settings/WebhookCard.tsx:345
-#: src/components/settings/WorkspaceMembers.tsx:585
+#: src/components/settings/WorkspaceMembers.tsx:590
 #: src/components/transactional/ApiCommandModal.tsx:986
 msgid "Close"
 msgstr "Fechar"
@@ -2242,9 +2242,9 @@ msgstr "Criar um template de email"
 msgid "Create and manage your blog content"
 msgstr "Crie e gerencie o conteúdo do seu blog"
 
-#: src/components/settings/WorkspaceMembers.tsx:514
-#: src/components/settings/WorkspaceMembers.tsx:578
-#: src/components/settings/WorkspaceMembers.tsx:598
+#: src/components/settings/WorkspaceMembers.tsx:519
+#: src/components/settings/WorkspaceMembers.tsx:583
+#: src/components/settings/WorkspaceMembers.tsx:603
 msgid "Create API Key"
 msgstr "Criar Chave API"
 
@@ -2326,7 +2326,7 @@ msgstr "Crie urgência ou curiosidade"
 msgid "Create Webhook"
 msgstr "Criar Webhook"
 
-#: src/pages/CreateWorkspacePage.tsx:179
+#: src/pages/CreateWorkspacePage.tsx:184
 msgid "Create Workspace"
 msgstr "Criar Workspace"
 
@@ -2511,7 +2511,7 @@ msgstr "Campos Personalizados"
 msgid "Custom header"
 msgstr ""
 
-#: src/components/settings/SystemSettingsDrawer.tsx:394
+#: src/components/settings/SystemSettingsDrawer.tsx:401
 msgid "Custom hostname used in SMTP EHLO/HELO command. Leave empty to use default."
 msgstr ""
 
@@ -2800,8 +2800,8 @@ msgstr "Excluir pasta (Modo somente leitura)"
 msgid "Delete header"
 msgstr ""
 
-#: src/components/settings/WorkspaceMembers.tsx:209
-#: src/components/settings/WorkspaceMembers.tsx:216
+#: src/components/settings/WorkspaceMembers.tsx:210
+#: src/components/settings/WorkspaceMembers.tsx:217
 msgid "Delete invitation"
 msgstr "Excluir convite"
 
@@ -3237,7 +3237,7 @@ msgstr "Editar notificação"
 msgid "Edit Notification"
 msgstr "Editar Notificação"
 
-#: src/components/settings/WorkspaceMembers.tsx:178
+#: src/components/settings/WorkspaceMembers.tsx:179
 msgid "Edit permissions"
 msgstr "Editar permissões"
 
@@ -3299,7 +3299,7 @@ msgstr ""
 
 #: src/components/settings/Integrations.tsx:1711
 #: src/components/settings/Integrations.tsx:1964
-#: src/components/settings/SystemSettingsDrawer.tsx:392
+#: src/components/settings/SystemSettingsDrawer.tsx:399
 #: src/pages/SetupWizard.tsx:499
 msgid "EHLO Hostname"
 msgstr ""
@@ -3330,7 +3330,7 @@ msgstr "email"
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:338
 #: src/components/messages/MessageHistoryTab.tsx:219
 #: src/components/settings/Integrations.tsx:2191
-#: src/components/settings/WorkspaceMembers.tsx:77
+#: src/components/settings/WorkspaceMembers.tsx:78
 #: src/components/timeline/ContactTimeline.tsx:505
 #: src/pages/ContactsPage.tsx:203
 #: src/pages/ContactsPage.tsx:370
@@ -3345,7 +3345,7 @@ msgstr "Email (Obrigatório)"
 
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:383
 #: src/components/settings/Integrations.tsx:1586
-#: src/components/settings/WorkspaceMembers.tsx:554
+#: src/components/settings/WorkspaceMembers.tsx:559
 msgid "Email Address"
 msgstr "Endereço de Email"
 
@@ -3492,7 +3492,7 @@ msgstr "Habilitar Servidor de Relay SMTP"
 msgid "Enable the blog feature to publish articles and content on your custom domain homepage. Your blog will be accessible at"
 msgstr "Habilite o recurso de blog para publicar artigos e conteúdo na página inicial do seu domínio personalizado. Seu blog estará acessível em"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:315
+#: src/components/settings/SystemSettingsDrawer.tsx:322
 #: src/pages/SetupWizard.tsx:457
 msgid "Enable TLS encryption for SMTP connection"
 msgstr "Habilitar criptografia TLS para conexão SMTP"
@@ -3513,7 +3513,7 @@ msgstr "Habilitar webhook"
 #: src/components/settings/GeneralSettings.tsx:138
 #: src/components/settings/Integrations.tsx:1304
 #: src/components/settings/SMTPBridgeSettings.tsx:45
-#: src/components/settings/SystemSettingsDrawer.tsx:419
+#: src/components/settings/SystemSettingsDrawer.tsx:426
 #: src/components/templates/TemplateTranslationsTab.tsx:203
 msgid "Enabled"
 msgstr "Habilitado"
@@ -3547,7 +3547,7 @@ msgstr "Digite um nome para este bloco"
 msgid "Enter a name for this integration"
 msgstr "Digite um nome para esta integração"
 
-#: src/pages/CreateWorkspacePage.tsx:126
+#: src/pages/CreateWorkspacePage.tsx:131
 msgid "Enter a name for your workspace"
 msgstr "Digite um nome para seu workspace"
 
@@ -3615,7 +3615,7 @@ msgid "Enter duration"
 msgstr "Digite a duração"
 
 #: src/components/contacts/ContactUpsertDrawer.tsx:521
-#: src/components/settings/WorkspaceMembers.tsx:559
+#: src/components/settings/WorkspaceMembers.tsx:564
 msgid "Enter email address"
 msgstr "Digite o endereço de email"
 
@@ -3931,7 +3931,7 @@ msgstr "Falha ao concluir configuração"
 msgid "Failed to copy to clipboard"
 msgstr "Falha ao copiar para a área de transferência"
 
-#: src/components/settings/WorkspaceMembers.tsx:300
+#: src/components/settings/WorkspaceMembers.tsx:305
 msgid "Failed to create API key"
 msgstr "Falha ao criar chave de API"
 
@@ -3978,7 +3978,7 @@ msgstr "Falha ao criar segmento"
 msgid "Failed to create template: {0}"
 msgstr "Falha ao criar template: {0}"
 
-#: src/pages/CreateWorkspacePage.tsx:87
+#: src/pages/CreateWorkspacePage.tsx:91
 msgid "Failed to create workspace"
 msgstr "Falha ao criar workspace"
 
@@ -4007,7 +4007,7 @@ msgstr "Falha ao excluir arquivo: "
 msgid "Failed to delete integration"
 msgstr "Falha ao excluir integração"
 
-#: src/components/settings/WorkspaceMembers.tsx:349
+#: src/components/settings/WorkspaceMembers.tsx:354
 msgid "Failed to delete invitation"
 msgstr "Falha ao excluir convite"
 
@@ -4101,7 +4101,7 @@ msgstr "Falha ao importar template MJML. Por favor, verifique a sintaxe MJML."
 msgid "Failed to import template. Please check the file format."
 msgstr "Falha ao importar template. Por favor, verifique o formato do arquivo."
 
-#: src/components/settings/WorkspaceMembers.tsx:266
+#: src/components/settings/WorkspaceMembers.tsx:270
 msgid "Failed to invite member"
 msgstr "Falha ao convidar membro"
 
@@ -4109,7 +4109,7 @@ msgstr "Falha ao convidar membro"
 msgid "Failed to load contact lists"
 msgstr "Falha ao carregar listas de contatos"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:49
+#: src/components/settings/SystemSettingsDrawer.tsx:54
 msgid "Failed to load settings"
 msgstr ""
 
@@ -4173,7 +4173,7 @@ msgstr "Falha ao registrar webhooks"
 msgid "Failed to remove custom field label"
 msgstr "Falha ao remover rótulo do campo personalizado"
 
-#: src/components/settings/WorkspaceMembers.tsx:330
+#: src/components/settings/WorkspaceMembers.tsx:335
 msgid "Failed to remove member"
 msgstr "Falha ao remover membro"
 
@@ -4181,7 +4181,7 @@ msgstr "Falha ao remover membro"
 msgid "Failed to render preview"
 msgstr "Falha ao renderizar pré-visualização"
 
-#: src/components/settings/WorkspaceMembers.tsx:385
+#: src/components/settings/WorkspaceMembers.tsx:390
 msgid "Failed to resend invitation"
 msgstr "Falha ao reenviar convite"
 
@@ -4220,7 +4220,7 @@ msgstr "Falha ao salvar integração"
 msgid "Failed to save LLM integration"
 msgstr "Falha ao salvar integração LLM"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:181
+#: src/components/settings/SystemSettingsDrawer.tsx:188
 msgid "Failed to save settings"
 msgstr ""
 
@@ -4374,7 +4374,7 @@ msgstr "Favicon para seu blog. Recomendado: 32x32px ou 192x192px PNG"
 msgid "Featured Image URL"
 msgstr "URL da Imagem Destacada"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:496
+#: src/components/settings/SystemSettingsDrawer.tsx:506
 msgid "Features"
 msgstr ""
 
@@ -4614,7 +4614,7 @@ msgstr "Frequência"
 msgid "From"
 msgstr "De"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:359
+#: src/components/settings/SystemSettingsDrawer.tsx:366
 #: src/pages/SetupWizard.tsx:480
 msgid "From Email"
 msgstr "Email do Remetente"
@@ -4623,7 +4623,7 @@ msgstr "Email do Remetente"
 msgid "From email is required"
 msgstr "Email do remetente é obrigatório"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:375
+#: src/components/settings/SystemSettingsDrawer.tsx:382
 #: src/pages/SetupWizard.tsx:491
 msgid "From Name"
 msgstr "Nome do Remetente"
@@ -4636,8 +4636,8 @@ msgstr "Nome do Remetente (substituir)"
 msgid "From:"
 msgstr "De:"
 
-#: src/components/settings/WorkspaceMembers.tsx:112
-#: src/components/settings/WorkspaceMembers.tsx:139
+#: src/components/settings/WorkspaceMembers.tsx:113
+#: src/components/settings/WorkspaceMembers.tsx:140
 msgid "Full Access"
 msgstr "Acesso Total"
 
@@ -4662,7 +4662,7 @@ msgid "Fullscreen"
 msgstr "Tela Cheia"
 
 #: src/components/settings/SettingsSidebar.tsx:113
-#: src/components/settings/SystemSettingsDrawer.tsx:221
+#: src/components/settings/SystemSettingsDrawer.tsx:228
 msgid "General"
 msgstr "Geral"
 
@@ -4917,7 +4917,7 @@ msgstr "URL do Ícone/Favicon"
 msgid "ID"
 msgstr "ID"
 
-#: src/pages/CreateWorkspacePage.tsx:143
+#: src/pages/CreateWorkspacePage.tsx:148
 msgid "ID can only contain lowercase letters and numbers"
 msgstr "ID só pode conter letras minúsculas e números"
 
@@ -4934,7 +4934,7 @@ msgstr "ID não corresponde"
 msgid "ID for API:"
 msgstr "ID para API:"
 
-#: src/pages/CreateWorkspacePage.tsx:150
+#: src/pages/CreateWorkspacePage.tsx:155
 msgid "ID is automatically generated but can be modified if needed"
 msgstr "ID é gerado automaticamente mas pode ser modificado se necessário"
 
@@ -5231,8 +5231,8 @@ msgstr "Integração atualizada com sucesso"
 msgid "Integrations"
 msgstr "Integrações"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:229
-#: src/components/settings/SystemSettingsDrawer.tsx:363
+#: src/components/settings/SystemSettingsDrawer.tsx:236
+#: src/components/settings/SystemSettingsDrawer.tsx:370
 msgid "Invalid email"
 msgstr ""
 
@@ -5308,24 +5308,24 @@ msgstr "URL do YouTube inválida"
 msgid "Invitation accepted successfully! Welcome to the workspace."
 msgstr "Convite aceito com sucesso! Bem-vindo ao workspace."
 
-#: src/components/settings/WorkspaceMembers.tsx:345
+#: src/components/settings/WorkspaceMembers.tsx:350
 msgid "Invitation deleted successfully"
 msgstr "Convite excluído com sucesso"
 
-#: src/components/settings/WorkspaceMembers.tsx:381
+#: src/components/settings/WorkspaceMembers.tsx:386
 msgid "Invitation resent to {email}"
 msgstr "Convite reenviado para {email}"
 
-#: src/components/settings/WorkspaceMembers.tsx:97
+#: src/components/settings/WorkspaceMembers.tsx:98
 msgid "Invitation sent"
 msgstr "Convite enviado"
 
-#: src/components/settings/WorkspaceMembers.tsx:259
+#: src/components/settings/WorkspaceMembers.tsx:260
 msgid "Invitation sent to {inviteEmail}"
 msgstr "Convite enviado para {inviteEmail}"
 
-#: src/components/settings/WorkspaceMembers.tsx:517
-#: src/components/settings/WorkspaceMembers.tsx:539
+#: src/components/settings/WorkspaceMembers.tsx:522
+#: src/components/settings/WorkspaceMembers.tsx:544
 msgid "Invite Member"
 msgstr "Convidar Membro"
 
@@ -5770,7 +5770,7 @@ msgstr "Faz a seção ocupar toda a largura do viewport do email, ignorando rest
 msgid "Makes the wrapper span the entire email viewport width, ignoring container constraints (typically 600px). Useful for full-bleed backgrounds and hero sections."
 msgstr "Faz o wrapper ocupar toda a largura do viewport do email, ignorando restrições do container (tipicamente 600px). Útil para fundos de largura total e seções de destaque."
 
-#: src/components/settings/WorkspaceMembers.tsx:508
+#: src/components/settings/WorkspaceMembers.tsx:513
 msgid "Manage your workspace members"
 msgstr "Gerencie os membros do seu workspace"
 
@@ -5825,7 +5825,7 @@ msgstr "Máx. 3MB por arquivo, 10MB total, máximo de 20 arquivos"
 msgid "Maximum 20 attachments allowed"
 msgstr "Máximo de 20 anexos permitidos"
 
-#: src/components/settings/WorkspaceMembers.tsx:326
+#: src/components/settings/WorkspaceMembers.tsx:331
 msgid "Member removed successfully"
 msgstr "Membro removido com sucesso"
 
@@ -6091,7 +6091,7 @@ msgid "New Window"
 msgstr "Nova Janela"
 
 #: src/layouts/WorkspaceLayout.tsx:530
-#: src/pages/CreateWorkspacePage.tsx:99
+#: src/pages/CreateWorkspacePage.tsx:104
 msgid "New workspace"
 msgstr "Novo workspace"
 
@@ -6137,10 +6137,10 @@ msgstr "Próxima Execução"
 #: src/components/settings/WebhookCard.tsx:193
 #: src/components/settings/WebhookCard.tsx:237
 #: src/components/settings/WebhookCard.tsx:279
-#: src/components/settings/WorkspaceMembers.tsx:193
-#: src/components/settings/WorkspaceMembers.tsx:213
-#: src/components/settings/WorkspaceMembers.tsx:425
-#: src/components/settings/WorkspaceMembers.tsx:433
+#: src/components/settings/WorkspaceMembers.tsx:194
+#: src/components/settings/WorkspaceMembers.tsx:214
+#: src/components/settings/WorkspaceMembers.tsx:430
+#: src/components/settings/WorkspaceMembers.tsx:438
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:148
 msgid "No"
 msgstr "Não"
@@ -6150,7 +6150,7 @@ msgstr "Não"
 msgid "No {0} content to preview"
 msgstr "Nenhum conteúdo {0} para pré-visualizar"
 
-#: src/components/settings/WorkspaceMembers.tsx:133
+#: src/components/settings/WorkspaceMembers.tsx:134
 msgid "No Access"
 msgstr "Sem Acesso"
 
@@ -6250,7 +6250,7 @@ msgstr "Sem lista"
 msgid "No lists found"
 msgstr "Nenhuma lista encontrada"
 
-#: src/components/settings/WorkspaceMembers.tsx:533
+#: src/components/settings/WorkspaceMembers.tsx:538
 msgid "No members found"
 msgstr "Nenhum membro encontrado"
 
@@ -6608,9 +6608,9 @@ msgstr "Operação Concluída"
 msgid "Opt-in"
 msgstr "Opt-in"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:337
-#: src/components/settings/SystemSettingsDrawer.tsx:350
-#: src/components/settings/SystemSettingsDrawer.tsx:405
+#: src/components/settings/SystemSettingsDrawer.tsx:344
+#: src/components/settings/SystemSettingsDrawer.tsx:357
+#: src/components/settings/SystemSettingsDrawer.tsx:412
 msgid "Optional"
 msgstr ""
 
@@ -6727,7 +6727,7 @@ msgstr "Payload:"
 #: src/components/automations/config/TriggerConfigForm.tsx:73
 #: src/components/contacts/ContactDetailsDrawer.tsx:582
 #: src/components/lists/ListStats.tsx:90
-#: src/components/settings/WorkspaceMembers.tsx:115
+#: src/components/settings/WorkspaceMembers.tsx:116
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:79
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:236
 #: src/pages/BroadcastsPage.tsx:338
@@ -6756,13 +6756,13 @@ msgstr "A URL do feed por destinatário é obrigatória quando habilitado"
 msgid "Periodically check for new Notifuse versions and security updates. A popup will list new versions available."
 msgstr "Verifique periodicamente por novas versões do Notifuse e atualizações de segurança. Um popup listará as novas versões disponíveis."
 
-#: src/components/settings/WorkspaceMembers.tsx:129
-#: src/components/settings/WorkspaceMembers.tsx:144
+#: src/components/settings/WorkspaceMembers.tsx:130
+#: src/components/settings/WorkspaceMembers.tsx:145
 msgid "Permission Details"
 msgstr "Detalhes da Permissão"
 
-#: src/components/settings/WorkspaceMembers.tsx:108
-#: src/components/settings/WorkspaceMembers.tsx:565
+#: src/components/settings/WorkspaceMembers.tsx:109
+#: src/components/settings/WorkspaceMembers.tsx:570
 msgid "Permissions"
 msgstr "Permissões"
 
@@ -6888,7 +6888,7 @@ msgstr "Por favor, insira uma URL de imagem válida"
 #: src/components/settings/GeneralSettings.tsx:244
 #: src/components/settings/LogoInput.tsx:27
 #: src/components/settings/WebhooksSettings.tsx:235
-#: src/pages/CreateWorkspacePage.tsx:163
+#: src/pages/CreateWorkspacePage.tsx:168
 msgid "Please enter a valid URL"
 msgstr "Por favor, insira uma URL válida"
 
@@ -6900,7 +6900,7 @@ msgstr "Por favor, insira uma URL do YouTube válida"
 msgid "Please enter a website URL first"
 msgstr "Por favor, insira uma URL do site primeiro"
 
-#: src/pages/CreateWorkspacePage.tsx:122
+#: src/pages/CreateWorkspacePage.tsx:127
 msgid "Please enter a workspace name"
 msgstr "Por favor, insira um nome para o workspace"
 
@@ -6908,8 +6908,8 @@ msgstr "Por favor, insira um nome para o workspace"
 msgid "Please enter an API identifier"
 msgstr "Por favor, insira um identificador de API"
 
-#: src/components/settings/WorkspaceMembers.tsx:275
-#: src/components/settings/WorkspaceMembers.tsx:608
+#: src/components/settings/WorkspaceMembers.tsx:280
+#: src/components/settings/WorkspaceMembers.tsx:613
 msgid "Please enter an API key name"
 msgstr "Por favor, insira um nome para a chave API"
 
@@ -6918,8 +6918,8 @@ msgstr "Por favor, insira um nome para a chave API"
 msgid "Please enter an automation name"
 msgstr "Por favor, insira um nome para a automação"
 
-#: src/components/settings/WorkspaceMembers.tsx:246
-#: src/components/settings/WorkspaceMembers.tsx:556
+#: src/components/settings/WorkspaceMembers.tsx:247
+#: src/components/settings/WorkspaceMembers.tsx:561
 msgid "Please enter an email address"
 msgstr "Por favor, insira um endereço de email"
 
@@ -7063,8 +7063,8 @@ msgstr "Porta"
 msgid "Port for the SMTP bridge server (default: 587)"
 msgstr "Porta para o servidor de relay SMTP (padrão: 587)"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:298
-#: src/components/settings/SystemSettingsDrawer.tsx:449
+#: src/components/settings/SystemSettingsDrawer.tsx:305
+#: src/components/settings/SystemSettingsDrawer.tsx:457
 msgid "Port must be 1-65535"
 msgstr ""
 
@@ -7354,8 +7354,8 @@ msgid "Re-register"
 msgstr "Re-registrar"
 
 #: src/components/settings/EditPermissionsModal.tsx:86
-#: src/components/settings/WorkspaceMembers.tsx:425
-#: src/components/settings/WorkspaceMembers.tsx:479
+#: src/components/settings/WorkspaceMembers.tsx:430
+#: src/components/settings/WorkspaceMembers.tsx:484
 msgid "Read"
 msgstr "Leitura"
 
@@ -7522,8 +7522,8 @@ msgstr "Remover da Lista"
 msgid "Remove Link"
 msgstr "Remover Link"
 
-#: src/components/settings/WorkspaceMembers.tsx:189
-#: src/components/settings/WorkspaceMembers.tsx:196
+#: src/components/settings/WorkspaceMembers.tsx:190
+#: src/components/settings/WorkspaceMembers.tsx:197
 msgid "Remove member"
 msgstr "Remover membro"
 
@@ -7584,17 +7584,23 @@ msgstr "Reply-To"
 msgid "Report An Issue"
 msgstr "Relatar um Problema"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:228
-#: src/components/settings/SystemSettingsDrawer.tsx:240
-#: src/components/settings/SystemSettingsDrawer.tsx:279
-#: src/components/settings/SystemSettingsDrawer.tsx:293
-#: src/components/settings/SystemSettingsDrawer.tsx:362
+#: src/components/settings/SystemSettingsDrawer.tsx:235
+#: src/components/settings/SystemSettingsDrawer.tsx:247
+#: src/components/settings/SystemSettingsDrawer.tsx:286
+#: src/components/settings/SystemSettingsDrawer.tsx:300
+#: src/components/settings/SystemSettingsDrawer.tsx:369
 msgid "Required"
 msgstr ""
 
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:1110
 msgid "Required Fields"
 msgstr "Campos Obrigatórios"
+
+#: src/components/settings/SystemSettingsDrawer.tsx:438
+#: src/components/settings/SystemSettingsDrawer.tsx:475
+#: src/components/settings/SystemSettingsDrawer.tsx:490
+msgid "Required when bridge is enabled"
+msgstr ""
 
 #: src/components/email_builder/blocks/MjColumnBlock.tsx:75
 msgid "Requires a padding"
@@ -7604,7 +7610,7 @@ msgstr "Requer um espaçamento"
 msgid "Resend code"
 msgstr "Reenviar código"
 
-#: src/components/settings/WorkspaceMembers.tsx:224
+#: src/components/settings/WorkspaceMembers.tsx:225
 msgid "Resend invitation"
 msgstr "Reenviar convite"
 
@@ -7627,7 +7633,7 @@ msgid "Reset translation"
 msgstr ""
 
 #: src/components/settings/EditPermissionsModal.tsx:80
-#: src/components/settings/WorkspaceMembers.tsx:473
+#: src/components/settings/WorkspaceMembers.tsx:478
 msgid "Resource"
 msgstr "Recurso"
 
@@ -7639,7 +7645,7 @@ msgstr "Resposta"
 msgid "Response Body:"
 msgstr "Corpo da Resposta:"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:132
+#: src/components/settings/SystemSettingsDrawer.tsx:139
 msgid "Restart Server?"
 msgstr ""
 
@@ -7706,11 +7712,11 @@ msgstr "Direita"
 msgid "Right to Left"
 msgstr "Direita para Esquerda"
 
-#: src/components/settings/WorkspaceMembers.tsx:85
+#: src/components/settings/WorkspaceMembers.tsx:86
 msgid "Role"
 msgstr "Função"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:225
+#: src/components/settings/SystemSettingsDrawer.tsx:232
 #: src/pages/SetupWizard.tsx:342
 msgid "Root Email"
 msgstr "Email Principal"
@@ -7796,7 +7802,7 @@ msgstr "Modo Sandbox"
 #: src/components/settings/Integrations.tsx:2271
 #: src/components/settings/Integrations.tsx:2319
 #: src/components/settings/Integrations.tsx:2366
-#: src/components/settings/SystemSettingsDrawer.tsx:210
+#: src/components/settings/SystemSettingsDrawer.tsx:217
 #: src/components/settings/WebhooksSettings.tsx:215
 #: src/components/templates/CreateTemplateDrawer.tsx:521
 #: src/components/templates/CreateTemplateDrawer.tsx:542
@@ -7804,7 +7810,7 @@ msgstr "Modo Sandbox"
 msgid "Save"
 msgstr "Salvar"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:140
+#: src/components/settings/SystemSettingsDrawer.tsx:147
 msgid "Save & Restart"
 msgstr ""
 
@@ -7864,7 +7870,7 @@ msgstr "Salvos ({0})"
 msgid "Saved block: {0}"
 msgstr "Bloco salvo: {0}"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:122
+#: src/components/settings/SystemSettingsDrawer.tsx:129
 msgid "Saving settings will restart the server. You will need to sign in again."
 msgstr ""
 
@@ -8296,7 +8302,7 @@ msgstr "Envie uma notificação transacional usando Python:"
 msgid "Send a transactional notification using TypeScript/JavaScript:"
 msgstr "Envie uma notificação transacional usando TypeScript/JavaScript:"
 
-#: src/components/settings/WorkspaceMembers.tsx:548
+#: src/components/settings/WorkspaceMembers.tsx:553
 msgid "Send Invitation"
 msgstr "Enviar Convite"
 
@@ -8397,16 +8403,16 @@ msgstr "Lados separados"
 msgid "Server is restarting with new configuration..."
 msgstr "O servidor está reiniciando com a nova configuração..."
 
-#: src/components/settings/SystemSettingsDrawer.tsx:148
+#: src/components/settings/SystemSettingsDrawer.tsx:155
 msgid "Server is restarting..."
 msgstr ""
 
-#: src/components/settings/SystemSettingsDrawer.tsx:173
+#: src/components/settings/SystemSettingsDrawer.tsx:180
 #: src/pages/SetupWizard.tsx:211
 msgid "Server restart timeout. Please refresh the page manually."
 msgstr "Tempo esgotado para reiniciar o servidor. Por favor, atualize a página manualmente."
 
-#: src/components/settings/SystemSettingsDrawer.tsx:160
+#: src/components/settings/SystemSettingsDrawer.tsx:167
 msgid "Server restarted successfully!"
 msgstr ""
 
@@ -8438,7 +8444,7 @@ msgstr "Definir como provedor de email marketing?"
 msgid "Set as transactional email provider?"
 msgstr "Definir como provedor de email transacional?"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:67
+#: src/components/settings/SystemSettingsDrawer.tsx:74
 msgid "Set by environment variable"
 msgstr ""
 
@@ -8561,7 +8567,7 @@ msgid "Signup"
 msgstr "Cadastro"
 
 #: src/components/analytics/NewContactsTable.tsx:184
-#: src/components/settings/WorkspaceMembers.tsx:155
+#: src/components/settings/WorkspaceMembers.tsx:156
 msgid "Since"
 msgstr "Desde"
 
@@ -8600,7 +8606,7 @@ msgstr "SMS"
 
 #: src/components/settings/SettingsSidebar.tsx:108
 #: src/components/settings/SMTPBridgeSettings.tsx:12
-#: src/components/settings/SystemSettingsDrawer.tsx:415
+#: src/components/settings/SystemSettingsDrawer.tsx:422
 msgid "SMTP Bridge"
 msgstr "SMTP Bridge"
 
@@ -8628,11 +8634,11 @@ msgstr "Configuração SMTP"
 msgid "SMTP connection successful!"
 msgstr "Conexão SMTP bem-sucedida!"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:86
+#: src/components/settings/SystemSettingsDrawer.tsx:93
 msgid "SMTP connection test failed"
 msgstr ""
 
-#: src/components/settings/SystemSettingsDrawer.tsx:84
+#: src/components/settings/SystemSettingsDrawer.tsx:91
 msgid "SMTP connection test successful"
 msgstr ""
 
@@ -8642,7 +8648,7 @@ msgstr "Domínio SMTP"
 
 #: src/components/settings/Integrations.tsx:1527
 #: src/components/settings/Integrations.tsx:1943
-#: src/components/settings/SystemSettingsDrawer.tsx:277
+#: src/components/settings/SystemSettingsDrawer.tsx:284
 #: src/pages/SetupWizard.tsx:430
 msgid "SMTP Host"
 msgstr "Host SMTP"
@@ -8652,7 +8658,7 @@ msgid "SMTP host is required"
 msgstr "Host SMTP é obrigatório"
 
 #: src/components/settings/Integrations.tsx:1701
-#: src/components/settings/SystemSettingsDrawer.tsx:344
+#: src/components/settings/SystemSettingsDrawer.tsx:351
 #: src/pages/SetupWizard.tsx:471
 msgid "SMTP Password"
 msgstr "Senha SMTP"
@@ -8662,7 +8668,7 @@ msgid "SMTP port"
 msgstr "Porta SMTP"
 
 #: src/components/settings/Integrations.tsx:1532
-#: src/components/settings/SystemSettingsDrawer.tsx:290
+#: src/components/settings/SystemSettingsDrawer.tsx:297
 #: src/pages/SetupWizard.tsx:439
 msgid "SMTP Port"
 msgstr "Porta SMTP"
@@ -8688,7 +8694,7 @@ msgid "SMTP User"
 msgstr "Usuário SMTP"
 
 #: src/components/settings/Integrations.tsx:1696
-#: src/components/settings/SystemSettingsDrawer.tsx:331
+#: src/components/settings/SystemSettingsDrawer.tsx:338
 #: src/pages/SetupWizard.tsx:466
 msgid "SMTP Username"
 msgstr "Nome de Usuário SMTP"
@@ -8993,12 +8999,12 @@ msgstr "Alterne para o modo Visualização para ver os efeitos do breakpoint. O 
 msgid "System Fonts"
 msgstr "Fontes do Sistema"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:192
-#: src/components/settings/SystemSettingsDrawer.tsx:203
+#: src/components/settings/SystemSettingsDrawer.tsx:199
+#: src/components/settings/SystemSettingsDrawer.tsx:210
 msgid "System Settings"
 msgstr ""
 
-#: src/components/settings/SystemSettingsDrawer.tsx:263
+#: src/components/settings/SystemSettingsDrawer.tsx:270
 msgid "System SMTP"
 msgstr ""
 
@@ -9023,11 +9029,15 @@ msgid "Task type:"
 msgstr "Tipo de tarefa:"
 
 #: src/components/settings/SettingsSidebar.tsx:34
-#: src/components/settings/WorkspaceMembers.tsx:508
+#: src/components/settings/WorkspaceMembers.tsx:513
 msgid "Team"
 msgstr "Equipe"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:500
+#: src/components/settings/WorkspaceMembers.tsx:268
+msgid "Team member limit reached. Please upgrade your plan to add more members."
+msgstr ""
+
+#: src/components/settings/SystemSettingsDrawer.tsx:510
 msgid "Telemetry"
 msgstr ""
 
@@ -9151,7 +9161,7 @@ msgstr "Marcação de template permitida"
 msgid "Test"
 msgstr "Testar"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:271
+#: src/components/settings/SystemSettingsDrawer.tsx:278
 #: src/pages/SetupWizard.tsx:511
 msgid "Test Connection"
 msgstr "Testar Conexão"
@@ -9278,7 +9288,7 @@ msgstr "Transformação do Texto"
 msgid "The"
 msgstr "O"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:126
+#: src/components/settings/SystemSettingsDrawer.tsx:133
 msgid "The API endpoint has changed. After restart, the console will be available at:"
 msgstr ""
 
@@ -9461,7 +9471,7 @@ msgstr "Esta funcionalidade faz uma requisição HTTP para cada destinatário an
 msgid "This hook never blocks Supabase user creation for errors. However, if 'Reject Disposable Email Addresses' is enabled and a disposable email is detected, the user signup will be rejected by Supabase."
 msgstr "Este hook nunca bloqueia a criação de usuários do Supabase por erros. No entanto, se 'Rejeitar Endereços de Email Descartáveis' estiver habilitado e um email descartável for detectado, o cadastro do usuário será rejeitado pelo Supabase."
 
-#: src/pages/CreateWorkspacePage.tsx:133
+#: src/pages/CreateWorkspacePage.tsx:138
 msgid "This ID will be used in URLs and API requests. It can only contain lowercase letters and numbers."
 msgstr "Este ID será usado em URLs e requisições de API. Ele só pode conter letras minúsculas e números."
 
@@ -9513,7 +9523,7 @@ msgstr "Este template é gerenciado por uma integração e não pode ser excluí
 msgid "This text appears in the email client's preview pane, typically after the subject line. Keep it concise and compelling (100-140 characters recommended)."
 msgstr "Este texto aparece no painel de visualização do cliente de email, geralmente após a linha de assunto. Mantenha-o conciso e atraente (100-140 caracteres recomendados)."
 
-#: src/components/settings/WorkspaceMembers.tsx:633
+#: src/components/settings/WorkspaceMembers.tsx:638
 msgid "This token will only be displayed once. Please save it in a secure location. It cannot be retrieved again."
 msgstr "Este token será exibido apenas uma vez. Por favor, salve-o em um local seguro. Ele não pode ser recuperado novamente."
 
@@ -9631,7 +9641,7 @@ msgstr "Título quando compartilhado nas redes sociais (opcional)"
 msgid "TLS"
 msgstr "TLS"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:465
+#: src/components/settings/SystemSettingsDrawer.tsx:473
 #: src/pages/SetupWizard.tsx:614
 msgid "TLS Certificate (Base64)"
 msgstr "Certificado TLS (Base64)"
@@ -9644,7 +9654,7 @@ msgstr "O certificado TLS é obrigatório"
 msgid "TLS Enabled"
 msgstr "TLS Habilitado"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:479
+#: src/components/settings/SystemSettingsDrawer.tsx:488
 msgid "TLS Key (Base64)"
 msgstr ""
 
@@ -10118,7 +10128,7 @@ msgid "Use This Theme"
 msgstr "Usar Este Tema"
 
 #: src/components/settings/Integrations.tsx:1540
-#: src/components/settings/SystemSettingsDrawer.tsx:314
+#: src/components/settings/SystemSettingsDrawer.tsx:321
 #: src/pages/SetupWizard.tsx:456
 msgid "Use TLS"
 msgstr "Usar TLS"
@@ -10285,7 +10295,7 @@ msgstr "Aguardando reinício do servidor..."
 msgid "Warning"
 msgstr "Aviso"
 
-#: src/pages/CreateWorkspacePage.tsx:167
+#: src/pages/CreateWorkspacePage.tsx:172
 msgid "We'll automatically detect and use your website's favicon"
 msgstr "Detectaremos e usaremos automaticamente o favicon do seu site"
 
@@ -10355,7 +10365,7 @@ msgstr "Website"
 
 #: src/components/settings/GeneralSettings.tsx:114
 #: src/components/settings/GeneralSettings.tsx:179
-#: src/pages/CreateWorkspacePage.tsx:158
+#: src/pages/CreateWorkspacePage.tsx:163
 msgid "Website URL"
 msgstr "URL do Website"
 
@@ -10445,7 +10455,7 @@ msgid "with status"
 msgstr "com status"
 
 #. placeholder {0}: values.name
-#: src/pages/CreateWorkspacePage.tsx:77
+#: src/pages/CreateWorkspacePage.tsx:78
 msgid "Workspace \"{0}\" created successfully!"
 msgstr "Workspace \"{0}\" criado com sucesso!"
 
@@ -10453,7 +10463,7 @@ msgstr "Workspace \"{0}\" criado com sucesso!"
 msgid "Workspace deleted successfully"
 msgstr "Workspace excluído com sucesso"
 
-#: src/pages/CreateWorkspacePage.tsx:132
+#: src/pages/CreateWorkspacePage.tsx:137
 msgid "Workspace ID"
 msgstr "ID do Workspace"
 
@@ -10461,7 +10471,7 @@ msgstr "ID do Workspace"
 msgid "Workspace ID does not match"
 msgstr "O ID do workspace não corresponde"
 
-#: src/pages/CreateWorkspacePage.tsx:140
+#: src/pages/CreateWorkspacePage.tsx:145
 msgid "Workspace ID is required"
 msgstr "O ID do workspace é obrigatório"
 
@@ -10469,17 +10479,21 @@ msgstr "O ID do workspace é obrigatório"
 msgid "Workspace Invitation"
 msgstr "Convite de Workspace"
 
+#: src/pages/CreateWorkspacePage.tsx:89
+msgid "Workspace limit reached. Please upgrade your plan to create more workspaces."
+msgstr ""
+
 #: src/components/settings/GeneralSettings.tsx:122
 msgid "Workspace logo"
 msgstr "Logo do workspace"
 
 #: src/components/settings/GeneralSettings.tsx:110
 #: src/components/settings/GeneralSettings.tsx:171
-#: src/pages/CreateWorkspacePage.tsx:119
+#: src/pages/CreateWorkspacePage.tsx:124
 msgid "Workspace Name"
 msgstr "Nome do Workspace"
 
-#: src/pages/CreateWorkspacePage.tsx:123
+#: src/pages/CreateWorkspacePage.tsx:128
 msgid "Workspace name must be at least 3 characters long"
 msgstr "O nome do workspace deve ter pelo menos 3 caracteres"
 
@@ -10503,8 +10517,8 @@ msgid "Wrapper Attributes"
 msgstr "Atributos do Wrapper"
 
 #: src/components/settings/EditPermissionsModal.tsx:99
-#: src/components/settings/WorkspaceMembers.tsx:433
-#: src/components/settings/WorkspaceMembers.tsx:492
+#: src/components/settings/WorkspaceMembers.tsx:438
+#: src/components/settings/WorkspaceMembers.tsx:497
 msgid "Write"
 msgstr "Escrita"
 
@@ -10542,8 +10556,8 @@ msgstr ""
 #: src/components/settings/WebhookCard.tsx:192
 #: src/components/settings/WebhookCard.tsx:236
 #: src/components/settings/WebhookCard.tsx:278
-#: src/components/settings/WorkspaceMembers.tsx:192
-#: src/components/settings/WorkspaceMembers.tsx:212
+#: src/components/settings/WorkspaceMembers.tsx:193
+#: src/components/settings/WorkspaceMembers.tsx:213
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:147
 msgid "Yes"
 msgstr "Sim"

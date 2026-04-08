@@ -65,6 +65,21 @@ func (mr *MockWorkspaceRepositoryMockRecorder) CountWorkspaceMembersAndInvitatio
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountWorkspaceMembersAndInvitations", reflect.TypeOf((*MockWorkspaceRepository)(nil).CountWorkspaceMembersAndInvitations), arg0, arg1)
 }
 
+// CountWorkspaces mocks base method.
+func (m *MockWorkspaceRepository) CountWorkspaces(arg0 context.Context) (int, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CountWorkspaces", arg0)
+	ret0, _ := ret[0].(int)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CountWorkspaces indicates an expected call of CountWorkspaces.
+func (mr *MockWorkspaceRepositoryMockRecorder) CountWorkspaces(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountWorkspaces", reflect.TypeOf((*MockWorkspaceRepository)(nil).CountWorkspaces), arg0)
+}
+
 // Create mocks base method.
 func (m *MockWorkspaceRepository) Create(arg0 context.Context, arg1 *domain.Workspace) error {
 	m.ctrl.T.Helper()

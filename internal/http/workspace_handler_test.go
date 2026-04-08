@@ -632,6 +632,44 @@ func TestWorkspaceHandler_Create_ServiceError(t *testing.T) {
 	assert.Contains(t, w.Body.String(), "Failed to create workspace")
 }
 
+func TestWorkspaceHandler_Create_WorkspaceLimitReached(t *testing.T) {
+	_, workspaceSvc, mux, secretKey, _ := setupTest(t)
+
+	// Mock service returning workspace limit error
+	workspaceSvc.EXPECT().
+		CreateWorkspace(gomock.Any(), "testworkspace1", "Test Workspace", "https://example.com", "https://example.com/logo.png", "https://example.com/cover.png", "UTC", gomock.Any(), gomock.Any(), gomock.Any()).
+		Return(nil, &domain.ErrWorkspaceLimitReached{Limit: 3, Current: 3})
+
+	reqBody := domain.CreateWorkspaceRequest{
+		ID:   "testworkspace1",
+		Name: "Test Workspace",
+		Settings: domain.WorkspaceSettings{
+			WebsiteURL: "https://example.com",
+			LogoURL:    "https://example.com/logo.png",
+			CoverURL:   "https://example.com/cover.png",
+			Timezone:   "UTC",
+			DefaultLanguage: "en",
+			Languages:       []string{"en"},
+			FileManager: domain.FileManagerSettings{
+				Endpoint:  "https://s3.amazonaws.com",
+				Bucket:    "my-bucket",
+				AccessKey: "AKIAIOSFODNN7EXAMPLE",
+			},
+		},
+	}
+	body, err := json.Marshal(reqBody)
+	require.NoError(t, err)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/workspaces.create", bytes.NewReader(body))
+	req.Header.Set("Authorization", "Bearer "+createTestToken(t, secretKey, "test-user"))
+
+	w := httptest.NewRecorder()
+	mux.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusForbidden, w.Code)
+	assert.Contains(t, w.Body.String(), "workspace limit reached")
+}
+
 func TestWorkspaceHandler_Create_WithMultipleLanguages(t *testing.T) {
 	_, workspaceSvc, mux, secretKey, _ := setupTest(t)
 

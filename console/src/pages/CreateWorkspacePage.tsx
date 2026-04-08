@@ -3,6 +3,7 @@ import { Form, Input, Button, Tooltip, App } from 'antd'
 import { useNavigate } from '@tanstack/react-router'
 import { InfoCircleOutlined, ArrowLeftOutlined } from '@ant-design/icons'
 import { workspaceService } from '../services/api/workspace'
+import { ApiError } from '../services/api/client'
 import { useAuth } from '../contexts/AuthContext'
 import { MainLayout, MainLayoutSidebar } from '../layouts/MainLayout'
 import { getBrowserTimezone } from '../lib/timezoneNormalizer'
@@ -84,7 +85,11 @@ export function CreateWorkspacePage() {
       }, 100)
     } catch (error) {
       console.error('Error creating workspace:', error)
-      message.error(error instanceof Error ? error.message : t`Failed to create workspace`)
+      if (error instanceof ApiError && error.status === 403 && error.message.includes('workspace limit')) {
+        message.error(t`Workspace limit reached. Please upgrade your plan to create more workspaces.`)
+      } else {
+        message.error(error instanceof Error ? error.message : t`Failed to create workspace`)
+      }
       setLoading(false)
     }
   }

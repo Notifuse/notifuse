@@ -6,6 +6,8 @@ All notable changes to this project will be documented in this file.
 
 - **Deps**: Updated @vitejs/plugin-react to 5.2.0 in console and notification center
 - **Feature**: Added System Settings drawer for root admin to view and edit system configuration from the dashboard
+- **Workspace**: Enforce workspace creation limits via `MAX_WORKSPACES` env var (0 = unlimited), with "upgrade your plan" messaging in the console
+- **Improvement**: Email open tracking now works independently of click tracking — added Cache-Control headers to prevent proxy caching, encrypted tracking URLs (`/t/`, `/r/`) to avoid pixel blocker detection, and padded tracking pixel (#307)
 
 ## [29.1] - 2026-04-07
 

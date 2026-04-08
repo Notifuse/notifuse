@@ -4988,3 +4988,11 @@ func TestWorkspaceSettings_ValidateLanguages(t *testing.T) {
 		})
 	}
 }
+
+func TestErrWorkspaceLimitReached_Error(t *testing.T) {
+	err := &ErrWorkspaceLimitReached{
+		Limit:   3,
+		Current: 3,
+	}
+	assert.Equal(t, "workspace limit reached: 3 workspaces exist (limit: 3)", err.Error())
+}

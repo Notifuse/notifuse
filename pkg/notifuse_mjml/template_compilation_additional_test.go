@@ -105,6 +105,10 @@ func TestGenerateEmailRedirectionAndPixel(t *testing.T) {
 	if !strings.Contains(pixel, `style="border:0;margin:0;padding:0;"`) {
 		t.Fatalf("expected new styling in pixel, got: %s", pixel)
 	}
+	// Should be wrapped in a table
+	if !strings.Contains(pixel, `<table border="0"`) || !strings.Contains(pixel, `</td></tr></table>`) {
+		t.Fatalf("expected table-wrapped pixel, got: %s", pixel)
+	}
 }
 
 func TestCompileTemplateRequest_UnmarshalJSON_Minimal(t *testing.T) {

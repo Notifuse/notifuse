@@ -22,6 +22,7 @@ import { faRefresh, faUserCog } from '@fortawesome/free-solid-svg-icons'
 import { useLingui } from '@lingui/react/macro'
 import { WorkspaceMember, UserPermissions } from '../../services/api/types'
 import { workspaceService } from '../../services/api/workspace'
+import { ApiError } from '../../services/api/client'
 import { EditPermissionsModal } from './EditPermissionsModal'
 import { SettingsSectionHeader } from './SettingsSectionHeader'
 
@@ -263,8 +264,12 @@ export function WorkspaceMembers({
       // Refresh the members list
       onMembersChange()
     } catch (error) {
-      const msg = error instanceof Error ? error.message : t`Failed to invite member`
-      message.error(msg)
+      if (error instanceof ApiError && error.status === 403 && error.message.includes('team member limit')) {
+        message.error(t`Team member limit reached. Please upgrade your plan to add more members.`)
+      } else {
+        const msg = error instanceof Error ? error.message : t`Failed to invite member`
+        message.error(msg)
+      }
     } finally {
       setInviting(false)
     }

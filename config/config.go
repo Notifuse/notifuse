@@ -37,6 +37,7 @@ type Config struct {
 	Version             string
 	IsInstalled         bool // NEW: Indicates if setup wizard has been completed
 	MaxUsers            int  // 0 = unlimited (backward compat for self-hosted)
+	MaxWorkspaces       int  // 0 = unlimited (backward compat for self-hosted)
 
 	// Track which values came from actual environment variables (not database, not generated)
 	EnvValues EnvValues
@@ -808,6 +809,7 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 		Version:         v.GetString("VERSION"),
 		IsInstalled:     isInstalled,
 		MaxUsers:        v.GetInt("MAX_USERS"),
+		MaxWorkspaces:   v.GetInt("MAX_WORKSPACES"),
 		EnvValues:       envVals, // Store env values for setup service
 	}
 

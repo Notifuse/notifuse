@@ -137,6 +137,11 @@ func (m *MockWorkspaceRepository) CountWorkspaceMembersAndInvitations(ctx contex
 	return args.Int(0), args.Error(1)
 }
 
+func (m *MockWorkspaceRepository) CountWorkspaces(ctx context.Context) (int, error) {
+	args := m.Called(ctx)
+	return args.Int(0), args.Error(1)
+}
+
 func (m *MockWorkspaceRepository) UpdateUserWorkspacePermissions(ctx context.Context, userWorkspace *domain.UserWorkspace) error {
 	args := m.Called(ctx, userWorkspace)
 	return args.Error(0)

@@ -931,6 +931,7 @@ type WorkspaceRepository interface {
 	DeleteInvitation(ctx context.Context, id string) error
 	IsUserWorkspaceMember(ctx context.Context, userID, workspaceID string) (bool, error)
 	CountWorkspaceMembersAndInvitations(ctx context.Context, workspaceID string) (int, error)
+	CountWorkspaces(ctx context.Context) (int, error)
 
 	// Database management
 	GetConnection(ctx context.Context, workspaceID string) (*sql.DB, error)
@@ -968,6 +969,16 @@ type ErrTeamMemberLimitReached struct {
 
 func (e *ErrTeamMemberLimitReached) Error() string {
 	return fmt.Sprintf("team member limit reached: workspace has %d members and invitations (limit: %d)", e.Current, e.Limit)
+}
+
+// ErrWorkspaceLimitReached is returned when the system has reached its workspace limit
+type ErrWorkspaceLimitReached struct {
+	Limit   int
+	Current int
+}
+
+func (e *ErrWorkspaceLimitReached) Error() string {
+	return fmt.Sprintf("workspace limit reached: %d workspaces exist (limit: %d)", e.Current, e.Limit)
 }
 
 // WorkspaceServiceInterface defines the interface for workspace operations

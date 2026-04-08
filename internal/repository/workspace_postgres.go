@@ -651,6 +651,16 @@ func (r *workspaceRepository) CountWorkspaceMembersAndInvitations(ctx context.Co
 	return count, nil
 }
 
+// CountWorkspaces returns the total number of workspaces in the system.
+func (r *workspaceRepository) CountWorkspaces(ctx context.Context) (int, error) {
+	var count int
+	err := r.systemDB.QueryRowContext(ctx, "SELECT COUNT(*) FROM workspaces").Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("failed to count workspaces: %w", err)
+	}
+	return count, nil
+}
+
 // GetWorkspaceUsersWithEmail returns all users for a workspace including email information
 func (r *workspaceRepository) GetWorkspaceUsersWithEmail(ctx context.Context, workspaceID string) ([]*domain.UserWorkspaceWithEmail, error) {
 	query := `

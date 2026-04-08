@@ -168,9 +168,9 @@ func TestLLMHandler_HandleChat_Success(t *testing.T) {
 			assert.Equal(t, 1024, req.MaxTokens)
 
 			// Simulate streaming events
-			onEvent(domain.LLMChatEvent{Type: "text", Content: "Hello"})
-			onEvent(domain.LLMChatEvent{Type: "text", Content: " there!"})
-			onEvent(domain.LLMChatEvent{Type: "done"})
+			_ = onEvent(domain.LLMChatEvent{Type: "text", Content: "Hello"})
+			_ = onEvent(domain.LLMChatEvent{Type: "text", Content: " there!"})
+			_ = onEvent(domain.LLMChatEvent{Type: "done"})
 			return nil
 		}).
 		Times(1)
@@ -220,12 +220,12 @@ func TestLLMHandler_HandleChat_WithToolUse(t *testing.T) {
 			assert.Equal(t, "update_blog_content", req.Tools[0].Name)
 
 			// Simulate tool use event
-			onEvent(domain.LLMChatEvent{
+			_ = onEvent(domain.LLMChatEvent{
 				Type:      "tool_use",
 				ToolName:  "update_blog_content",
 				ToolInput: map[string]interface{}{"content": map[string]interface{}{"type": "doc"}, "message": "Updated"},
 			})
-			onEvent(domain.LLMChatEvent{Type: "done"})
+			_ = onEvent(domain.LLMChatEvent{Type: "done"})
 			return nil
 		}).
 		Times(1)

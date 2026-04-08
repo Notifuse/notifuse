@@ -565,9 +565,9 @@ func TestTrackingPixelWithoutBodyTag(t *testing.T) {
 		t.Error("Expected encrypted tracking pixel with /t/ path and new styling")
 	}
 
-	// Check that the pixel is at the end (check for the closing tag pattern)
-	if !strings.HasSuffix(strings.TrimSpace(result), `alt="" style="border:0;margin:0;padding:0;">`) {
-		t.Error("Expected tracking pixel to be at the end when no body tag is present")
+	// Check that the table-wrapped pixel is at the end
+	if !strings.HasSuffix(strings.TrimSpace(result), `</td></tr></table>`) {
+		t.Error("Expected table-wrapped tracking pixel to be at the end when no body tag is present")
 	}
 }
 

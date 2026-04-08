@@ -801,7 +801,7 @@ msgstr "Comanda API"
 
 #: src/components/settings/Integrations.tsx:1723
 #: src/components/settings/Integrations.tsx:1977
-#: src/components/settings/SystemSettingsDrawer.tsx:238
+#: src/components/settings/SystemSettingsDrawer.tsx:245
 #: src/pages/SetupWizard.tsx:355
 msgid "API Endpoint"
 msgstr "Punt final API"
@@ -821,23 +821,23 @@ msgstr "Identificador API"
 #: src/components/settings/Integrations.tsx:1774
 #: src/components/settings/Integrations.tsx:1792
 #: src/components/settings/Integrations.tsx:1814
-#: src/components/settings/WorkspaceMembers.tsx:92
+#: src/components/settings/WorkspaceMembers.tsx:93
 msgid "API Key"
 msgstr "Clau API"
 
-#: src/components/settings/WorkspaceMembers.tsx:294
+#: src/components/settings/WorkspaceMembers.tsx:299
 msgid "API key created successfully"
 msgstr "Clau API creada correctament"
 
-#: src/components/settings/WorkspaceMembers.tsx:632
+#: src/components/settings/WorkspaceMembers.tsx:637
 msgid "API Key Created Successfully"
 msgstr "Clau API creada correctament"
 
-#: src/components/settings/WorkspaceMembers.tsx:606
+#: src/components/settings/WorkspaceMembers.tsx:611
 msgid "API Key Name"
 msgstr "Nom de la clau API"
 
-#: src/components/settings/WorkspaceMembers.tsx:639
+#: src/components/settings/WorkspaceMembers.tsx:644
 msgid "API Token"
 msgstr "Token API"
 
@@ -878,7 +878,7 @@ msgid "Are you sure you want to delete the category"
 msgstr "Esteu segur que voleu eliminar la categoria"
 
 #. placeholder {0}: record.email
-#: src/components/settings/WorkspaceMembers.tsx:210
+#: src/components/settings/WorkspaceMembers.tsx:211
 msgid "Are you sure you want to delete the invitation for {0}?"
 msgstr "Esteu segur que voleu eliminar la invitació per a {0}?"
 
@@ -924,7 +924,7 @@ msgstr "Esteu segur que voleu reconstruir \"{0}\"? Això recalcularà la pertine
 
 #. placeholder {0}: record.email
 #. placeholder {1}: record.type === 'api_key' ? ' This API key will be permanently deleted.' : ''
-#: src/components/settings/WorkspaceMembers.tsx:190
+#: src/components/settings/WorkspaceMembers.tsx:191
 msgid "Are you sure you want to remove {0}?{1}"
 msgstr "Esteu segur que voleu treure {0}?{1}"
 
@@ -1162,7 +1162,7 @@ msgstr "Tipus de fons"
 msgid "Base URL (Optional)"
 msgstr "URL base (opcional)"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:472
+#: src/components/settings/SystemSettingsDrawer.tsx:481
 msgid "Base64 encoded TLS certificate"
 msgstr ""
 
@@ -1170,7 +1170,7 @@ msgstr ""
 msgid "Base64 encoded TLS certificate. Run: cat fullchain.pem | base64 -w 0"
 msgstr "Certificat TLS codificat en Base64. Executeu: cat fullchain.pem | base64 -w 0"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:486
+#: src/components/settings/SystemSettingsDrawer.tsx:496
 msgid "Base64 encoded TLS private key"
 msgstr ""
 
@@ -1403,11 +1403,11 @@ msgstr "Atributs del punt de ruptura"
 msgid "Breakpoint Width"
 msgstr "Amplada del punt de ruptura"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:429
+#: src/components/settings/SystemSettingsDrawer.tsx:436
 msgid "Bridge Domain"
 msgstr ""
 
-#: src/components/settings/SystemSettingsDrawer.tsx:442
+#: src/components/settings/SystemSettingsDrawer.tsx:450
 msgid "Bridge Port"
 msgstr ""
 
@@ -1593,11 +1593,11 @@ msgstr "Mida del botó"
 #: src/components/settings/Integrations.tsx:2263
 #: src/components/settings/Integrations.tsx:2311
 #: src/components/settings/Integrations.tsx:2358
-#: src/components/settings/SystemSettingsDrawer.tsx:141
+#: src/components/settings/SystemSettingsDrawer.tsx:148
 #: src/components/settings/WebhookCard.tsx:348
 #: src/components/settings/WebhooksSettings.tsx:213
-#: src/components/settings/WorkspaceMembers.tsx:545
-#: src/components/settings/WorkspaceMembers.tsx:590
+#: src/components/settings/WorkspaceMembers.tsx:550
+#: src/components/settings/WorkspaceMembers.tsx:595
 #: src/components/templates/CreateTemplateDrawer.tsx:500
 #: src/components/templates/SendTemplateModal.tsx:268
 #: src/components/templates/TemplateTranslationsTab.tsx:254
@@ -1729,7 +1729,7 @@ msgstr "Canal"
 msgid "Check"
 msgstr "Comprovar"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:509
+#: src/components/settings/SystemSettingsDrawer.tsx:519
 #: src/pages/SetupWizard.tsx:542
 msgid "Check for Updates"
 msgstr "Comprovar actualitzacions"
@@ -1833,7 +1833,7 @@ msgstr "Clonar plantilla"
 #: src/components/broadcasts/GlobalFeedSettings.tsx:137
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:825
 #: src/components/settings/WebhookCard.tsx:345
-#: src/components/settings/WorkspaceMembers.tsx:585
+#: src/components/settings/WorkspaceMembers.tsx:590
 #: src/components/transactional/ApiCommandModal.tsx:986
 msgid "Close"
 msgstr "Tancar"
@@ -2242,9 +2242,9 @@ msgstr "Crear una plantilla de correu"
 msgid "Create and manage your blog content"
 msgstr "Creeu i gestioneu el contingut del vostre blog"
 
-#: src/components/settings/WorkspaceMembers.tsx:514
-#: src/components/settings/WorkspaceMembers.tsx:578
-#: src/components/settings/WorkspaceMembers.tsx:598
+#: src/components/settings/WorkspaceMembers.tsx:519
+#: src/components/settings/WorkspaceMembers.tsx:583
+#: src/components/settings/WorkspaceMembers.tsx:603
 msgid "Create API Key"
 msgstr "Crear clau API"
 
@@ -2326,7 +2326,7 @@ msgstr "Creeu urgència o curiositat"
 msgid "Create Webhook"
 msgstr "Crear webhook"
 
-#: src/pages/CreateWorkspacePage.tsx:179
+#: src/pages/CreateWorkspacePage.tsx:184
 msgid "Create Workspace"
 msgstr "Crear espai de treball"
 
@@ -2511,7 +2511,7 @@ msgstr "Camps personalitzats"
 msgid "Custom header"
 msgstr ""
 
-#: src/components/settings/SystemSettingsDrawer.tsx:394
+#: src/components/settings/SystemSettingsDrawer.tsx:401
 msgid "Custom hostname used in SMTP EHLO/HELO command. Leave empty to use default."
 msgstr ""
 
@@ -2800,8 +2800,8 @@ msgstr "Eliminar carpeta (Mode de només lectura)"
 msgid "Delete header"
 msgstr ""
 
-#: src/components/settings/WorkspaceMembers.tsx:209
-#: src/components/settings/WorkspaceMembers.tsx:216
+#: src/components/settings/WorkspaceMembers.tsx:210
+#: src/components/settings/WorkspaceMembers.tsx:217
 msgid "Delete invitation"
 msgstr "Eliminar invitació"
 
@@ -3237,7 +3237,7 @@ msgstr "Editar notificació"
 msgid "Edit Notification"
 msgstr "Editar notificació"
 
-#: src/components/settings/WorkspaceMembers.tsx:178
+#: src/components/settings/WorkspaceMembers.tsx:179
 msgid "Edit permissions"
 msgstr "Editar permisos"
 
@@ -3299,7 +3299,7 @@ msgstr ""
 
 #: src/components/settings/Integrations.tsx:1711
 #: src/components/settings/Integrations.tsx:1964
-#: src/components/settings/SystemSettingsDrawer.tsx:392
+#: src/components/settings/SystemSettingsDrawer.tsx:399
 #: src/pages/SetupWizard.tsx:499
 msgid "EHLO Hostname"
 msgstr ""
@@ -3330,7 +3330,7 @@ msgstr "Correu electrònic"
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:338
 #: src/components/messages/MessageHistoryTab.tsx:219
 #: src/components/settings/Integrations.tsx:2191
-#: src/components/settings/WorkspaceMembers.tsx:77
+#: src/components/settings/WorkspaceMembers.tsx:78
 #: src/components/timeline/ContactTimeline.tsx:505
 #: src/pages/ContactsPage.tsx:203
 #: src/pages/ContactsPage.tsx:370
@@ -3345,7 +3345,7 @@ msgstr "Correu (obligatori)"
 
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:383
 #: src/components/settings/Integrations.tsx:1586
-#: src/components/settings/WorkspaceMembers.tsx:554
+#: src/components/settings/WorkspaceMembers.tsx:559
 msgid "Email Address"
 msgstr "Adreça de correu electrònic"
 
@@ -3492,7 +3492,7 @@ msgstr "Activar servidor de retransmissió SMTP"
 msgid "Enable the blog feature to publish articles and content on your custom domain homepage. Your blog will be accessible at"
 msgstr "Activeu la funció de blog per publicar articles i contingut a la pàgina d'inici del vostre domini personalitzat. El vostre blog serà accessible a"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:315
+#: src/components/settings/SystemSettingsDrawer.tsx:322
 #: src/pages/SetupWizard.tsx:457
 msgid "Enable TLS encryption for SMTP connection"
 msgstr "Activar xifratge TLS per a la connexió SMTP"
@@ -3513,7 +3513,7 @@ msgstr "Activar webhook"
 #: src/components/settings/GeneralSettings.tsx:138
 #: src/components/settings/Integrations.tsx:1304
 #: src/components/settings/SMTPBridgeSettings.tsx:45
-#: src/components/settings/SystemSettingsDrawer.tsx:419
+#: src/components/settings/SystemSettingsDrawer.tsx:426
 #: src/components/templates/TemplateTranslationsTab.tsx:203
 msgid "Enabled"
 msgstr "Activat"
@@ -3547,7 +3547,7 @@ msgstr "Introduïu un nom per a aquest bloc"
 msgid "Enter a name for this integration"
 msgstr "Introduïu un nom per a aquesta integració"
 
-#: src/pages/CreateWorkspacePage.tsx:126
+#: src/pages/CreateWorkspacePage.tsx:131
 msgid "Enter a name for your workspace"
 msgstr "Introduïu un nom per al vostre espai de treball"
 
@@ -3615,7 +3615,7 @@ msgid "Enter duration"
 msgstr "Introduïu durada"
 
 #: src/components/contacts/ContactUpsertDrawer.tsx:521
-#: src/components/settings/WorkspaceMembers.tsx:559
+#: src/components/settings/WorkspaceMembers.tsx:564
 msgid "Enter email address"
 msgstr "Introduïu adreça de correu"
 
@@ -3931,7 +3931,7 @@ msgstr "No s'ha pogut completar la configuració"
 msgid "Failed to copy to clipboard"
 msgstr "No s'ha pogut copiar al porta-retalls"
 
-#: src/components/settings/WorkspaceMembers.tsx:300
+#: src/components/settings/WorkspaceMembers.tsx:305
 msgid "Failed to create API key"
 msgstr "No s'ha pogut crear la clau API"
 
@@ -3978,7 +3978,7 @@ msgstr "No s'ha pogut crear el segment"
 msgid "Failed to create template: {0}"
 msgstr "No s'ha pogut crear la plantilla: {0}"
 
-#: src/pages/CreateWorkspacePage.tsx:87
+#: src/pages/CreateWorkspacePage.tsx:91
 msgid "Failed to create workspace"
 msgstr "No s'ha pogut crear l'espai de treball"
 
@@ -4007,7 +4007,7 @@ msgstr "No s'ha pogut eliminar el fitxer: "
 msgid "Failed to delete integration"
 msgstr "No s'ha pogut eliminar la integració"
 
-#: src/components/settings/WorkspaceMembers.tsx:349
+#: src/components/settings/WorkspaceMembers.tsx:354
 msgid "Failed to delete invitation"
 msgstr "No s'ha pogut eliminar la invitació"
 
@@ -4101,7 +4101,7 @@ msgstr "No s'ha pogut importar la plantilla MJML. Si us plau, comproveu la sinta
 msgid "Failed to import template. Please check the file format."
 msgstr "No s'ha pogut importar la plantilla. Si us plau, comproveu el format del fitxer."
 
-#: src/components/settings/WorkspaceMembers.tsx:266
+#: src/components/settings/WorkspaceMembers.tsx:270
 msgid "Failed to invite member"
 msgstr "No s'ha pogut convidar el membre"
 
@@ -4109,7 +4109,7 @@ msgstr "No s'ha pogut convidar el membre"
 msgid "Failed to load contact lists"
 msgstr "No s'han pogut carregar les llistes de contactes"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:49
+#: src/components/settings/SystemSettingsDrawer.tsx:54
 msgid "Failed to load settings"
 msgstr ""
 
@@ -4173,7 +4173,7 @@ msgstr "No s'han pogut registrar els webhooks"
 msgid "Failed to remove custom field label"
 msgstr "No s'ha pogut treure l'etiqueta de camp personalitzat"
 
-#: src/components/settings/WorkspaceMembers.tsx:330
+#: src/components/settings/WorkspaceMembers.tsx:335
 msgid "Failed to remove member"
 msgstr "No s'ha pogut treure el membre"
 
@@ -4181,7 +4181,7 @@ msgstr "No s'ha pogut treure el membre"
 msgid "Failed to render preview"
 msgstr "No s'ha pogut renderitzar la previsualització"
 
-#: src/components/settings/WorkspaceMembers.tsx:385
+#: src/components/settings/WorkspaceMembers.tsx:390
 msgid "Failed to resend invitation"
 msgstr "No s'ha pogut reenviar la invitació"
 
@@ -4220,7 +4220,7 @@ msgstr "No s'ha pogut desar la integració"
 msgid "Failed to save LLM integration"
 msgstr "No s'ha pogut desar la integració LLM"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:181
+#: src/components/settings/SystemSettingsDrawer.tsx:188
 msgid "Failed to save settings"
 msgstr ""
 
@@ -4374,7 +4374,7 @@ msgstr "Favicon per al vostre blog. Recomanat: PNG de 32x32px o 192x192px"
 msgid "Featured Image URL"
 msgstr "URL de la imatge destacada"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:496
+#: src/components/settings/SystemSettingsDrawer.tsx:506
 msgid "Features"
 msgstr ""
 
@@ -4614,7 +4614,7 @@ msgstr "Freqüència"
 msgid "From"
 msgstr "Des de"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:359
+#: src/components/settings/SystemSettingsDrawer.tsx:366
 #: src/pages/SetupWizard.tsx:480
 msgid "From Email"
 msgstr "De correu"
@@ -4623,7 +4623,7 @@ msgstr "De correu"
 msgid "From email is required"
 msgstr "El correu del remitent és obligatori"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:375
+#: src/components/settings/SystemSettingsDrawer.tsx:382
 #: src/pages/SetupWizard.tsx:491
 msgid "From Name"
 msgstr "Del nom"
@@ -4636,8 +4636,8 @@ msgstr "Nom del remitent (anul·lar)"
 msgid "From:"
 msgstr "De:"
 
-#: src/components/settings/WorkspaceMembers.tsx:112
-#: src/components/settings/WorkspaceMembers.tsx:139
+#: src/components/settings/WorkspaceMembers.tsx:113
+#: src/components/settings/WorkspaceMembers.tsx:140
 msgid "Full Access"
 msgstr "Accés complet"
 
@@ -4662,7 +4662,7 @@ msgid "Fullscreen"
 msgstr "Pantalla completa"
 
 #: src/components/settings/SettingsSidebar.tsx:113
-#: src/components/settings/SystemSettingsDrawer.tsx:221
+#: src/components/settings/SystemSettingsDrawer.tsx:228
 msgid "General"
 msgstr "General"
 
@@ -4917,7 +4917,7 @@ msgstr "URL d'icona/favicon"
 msgid "ID"
 msgstr "ID"
 
-#: src/pages/CreateWorkspacePage.tsx:143
+#: src/pages/CreateWorkspacePage.tsx:148
 msgid "ID can only contain lowercase letters and numbers"
 msgstr "L'ID només pot contenir lletres minúscules i números"
 
@@ -4934,7 +4934,7 @@ msgstr "L'ID no coincideix"
 msgid "ID for API:"
 msgstr "ID per a API:"
 
-#: src/pages/CreateWorkspacePage.tsx:150
+#: src/pages/CreateWorkspacePage.tsx:155
 msgid "ID is automatically generated but can be modified if needed"
 msgstr "L'ID es genera automàticament però es pot modificar si cal"
 
@@ -5231,8 +5231,8 @@ msgstr "Integració actualitzada correctament"
 msgid "Integrations"
 msgstr "Integracions"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:229
-#: src/components/settings/SystemSettingsDrawer.tsx:363
+#: src/components/settings/SystemSettingsDrawer.tsx:236
+#: src/components/settings/SystemSettingsDrawer.tsx:370
 msgid "Invalid email"
 msgstr ""
 
@@ -5308,24 +5308,24 @@ msgstr "URL de YouTube invàlida"
 msgid "Invitation accepted successfully! Welcome to the workspace."
 msgstr "Invitació acceptada correctament! Benvingut a l'espai de treball."
 
-#: src/components/settings/WorkspaceMembers.tsx:345
+#: src/components/settings/WorkspaceMembers.tsx:350
 msgid "Invitation deleted successfully"
 msgstr "Invitació eliminada correctament"
 
-#: src/components/settings/WorkspaceMembers.tsx:381
+#: src/components/settings/WorkspaceMembers.tsx:386
 msgid "Invitation resent to {email}"
 msgstr "Invitació reenviada a {email}"
 
-#: src/components/settings/WorkspaceMembers.tsx:97
+#: src/components/settings/WorkspaceMembers.tsx:98
 msgid "Invitation sent"
 msgstr "Invitació enviada"
 
-#: src/components/settings/WorkspaceMembers.tsx:259
+#: src/components/settings/WorkspaceMembers.tsx:260
 msgid "Invitation sent to {inviteEmail}"
 msgstr "Invitació enviada a {inviteEmail}"
 
-#: src/components/settings/WorkspaceMembers.tsx:517
-#: src/components/settings/WorkspaceMembers.tsx:539
+#: src/components/settings/WorkspaceMembers.tsx:522
+#: src/components/settings/WorkspaceMembers.tsx:544
 msgid "Invite Member"
 msgstr "Convidar membre"
 
@@ -5770,7 +5770,7 @@ msgstr "Fa que la secció ocupi tota l'amplada de la vista del correu, ignorant 
 msgid "Makes the wrapper span the entire email viewport width, ignoring container constraints (typically 600px). Useful for full-bleed backgrounds and hero sections."
 msgstr "Fa que el contenidor ocupi tota l'amplada de la vista del correu, ignorant les restriccions del contenidor (normalment 600px). Útil per a fons de sang completa i seccions hero."
 
-#: src/components/settings/WorkspaceMembers.tsx:508
+#: src/components/settings/WorkspaceMembers.tsx:513
 msgid "Manage your workspace members"
 msgstr "Gestioneu els membres del vostre espai de treball"
 
@@ -5825,7 +5825,7 @@ msgstr "Màx. 3MB per fitxer, 10MB en total, màxim 20 fitxers"
 msgid "Maximum 20 attachments allowed"
 msgstr "Es permeten màxim 20 adjunts"
 
-#: src/components/settings/WorkspaceMembers.tsx:326
+#: src/components/settings/WorkspaceMembers.tsx:331
 msgid "Member removed successfully"
 msgstr "Membre tret correctament"
 
@@ -6091,7 +6091,7 @@ msgid "New Window"
 msgstr "Nova finestra"
 
 #: src/layouts/WorkspaceLayout.tsx:530
-#: src/pages/CreateWorkspacePage.tsx:99
+#: src/pages/CreateWorkspacePage.tsx:104
 msgid "New workspace"
 msgstr "Nou espai de treball"
 
@@ -6137,10 +6137,10 @@ msgstr "Propera execució"
 #: src/components/settings/WebhookCard.tsx:193
 #: src/components/settings/WebhookCard.tsx:237
 #: src/components/settings/WebhookCard.tsx:279
-#: src/components/settings/WorkspaceMembers.tsx:193
-#: src/components/settings/WorkspaceMembers.tsx:213
-#: src/components/settings/WorkspaceMembers.tsx:425
-#: src/components/settings/WorkspaceMembers.tsx:433
+#: src/components/settings/WorkspaceMembers.tsx:194
+#: src/components/settings/WorkspaceMembers.tsx:214
+#: src/components/settings/WorkspaceMembers.tsx:430
+#: src/components/settings/WorkspaceMembers.tsx:438
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:148
 msgid "No"
 msgstr "No"
@@ -6150,7 +6150,7 @@ msgstr "No"
 msgid "No {0} content to preview"
 msgstr "No hi ha contingut {0} per previsualitzar"
 
-#: src/components/settings/WorkspaceMembers.tsx:133
+#: src/components/settings/WorkspaceMembers.tsx:134
 msgid "No Access"
 msgstr "Sense accés"
 
@@ -6250,7 +6250,7 @@ msgstr "Sense llista"
 msgid "No lists found"
 msgstr "No s'han trobat llistes"
 
-#: src/components/settings/WorkspaceMembers.tsx:533
+#: src/components/settings/WorkspaceMembers.tsx:538
 msgid "No members found"
 msgstr "No s'han trobat membres"
 
@@ -6608,9 +6608,9 @@ msgstr "Operació completada"
 msgid "Opt-in"
 msgstr "Opt-in"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:337
-#: src/components/settings/SystemSettingsDrawer.tsx:350
-#: src/components/settings/SystemSettingsDrawer.tsx:405
+#: src/components/settings/SystemSettingsDrawer.tsx:344
+#: src/components/settings/SystemSettingsDrawer.tsx:357
+#: src/components/settings/SystemSettingsDrawer.tsx:412
 msgid "Optional"
 msgstr ""
 
@@ -6727,7 +6727,7 @@ msgstr "Càrrega:"
 #: src/components/automations/config/TriggerConfigForm.tsx:73
 #: src/components/contacts/ContactDetailsDrawer.tsx:582
 #: src/components/lists/ListStats.tsx:90
-#: src/components/settings/WorkspaceMembers.tsx:115
+#: src/components/settings/WorkspaceMembers.tsx:116
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:79
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:236
 #: src/pages/BroadcastsPage.tsx:338
@@ -6756,13 +6756,13 @@ msgstr "L'URL del feed per destinatari és requerida quan està habilitat"
 msgid "Periodically check for new Notifuse versions and security updates. A popup will list new versions available."
 msgstr "Comproveu periòdicament noves versions de Notifuse i actualitzacions de seguretat. Una finestra emergent llistarà les noves versions disponibles."
 
-#: src/components/settings/WorkspaceMembers.tsx:129
-#: src/components/settings/WorkspaceMembers.tsx:144
+#: src/components/settings/WorkspaceMembers.tsx:130
+#: src/components/settings/WorkspaceMembers.tsx:145
 msgid "Permission Details"
 msgstr "Detalls del permís"
 
-#: src/components/settings/WorkspaceMembers.tsx:108
-#: src/components/settings/WorkspaceMembers.tsx:565
+#: src/components/settings/WorkspaceMembers.tsx:109
+#: src/components/settings/WorkspaceMembers.tsx:570
 msgid "Permissions"
 msgstr "Permisos"
 
@@ -6888,7 +6888,7 @@ msgstr "Si us plau, introduïu una URL d'imatge vàlida"
 #: src/components/settings/GeneralSettings.tsx:244
 #: src/components/settings/LogoInput.tsx:27
 #: src/components/settings/WebhooksSettings.tsx:235
-#: src/pages/CreateWorkspacePage.tsx:163
+#: src/pages/CreateWorkspacePage.tsx:168
 msgid "Please enter a valid URL"
 msgstr "Si us plau, introduïu una URL vàlida"
 
@@ -6900,7 +6900,7 @@ msgstr "Si us plau, introduïu una URL de YouTube vàlida"
 msgid "Please enter a website URL first"
 msgstr "Si us plau, introduïu primer una URL de lloc web"
 
-#: src/pages/CreateWorkspacePage.tsx:122
+#: src/pages/CreateWorkspacePage.tsx:127
 msgid "Please enter a workspace name"
 msgstr "Si us plau, introduïu un nom d'espai de treball"
 
@@ -6908,8 +6908,8 @@ msgstr "Si us plau, introduïu un nom d'espai de treball"
 msgid "Please enter an API identifier"
 msgstr "Si us plau, introduïu un identificador API"
 
-#: src/components/settings/WorkspaceMembers.tsx:275
-#: src/components/settings/WorkspaceMembers.tsx:608
+#: src/components/settings/WorkspaceMembers.tsx:280
+#: src/components/settings/WorkspaceMembers.tsx:613
 msgid "Please enter an API key name"
 msgstr "Si us plau, introduïu un nom de clau API"
 
@@ -6918,8 +6918,8 @@ msgstr "Si us plau, introduïu un nom de clau API"
 msgid "Please enter an automation name"
 msgstr "Si us plau, introduïu un nom d'automatització"
 
-#: src/components/settings/WorkspaceMembers.tsx:246
-#: src/components/settings/WorkspaceMembers.tsx:556
+#: src/components/settings/WorkspaceMembers.tsx:247
+#: src/components/settings/WorkspaceMembers.tsx:561
 msgid "Please enter an email address"
 msgstr "Si us plau, introduïu una adreça de correu"
 
@@ -7063,8 +7063,8 @@ msgstr "Port"
 msgid "Port for the SMTP bridge server (default: 587)"
 msgstr "Port per al servidor de retransmissió SMTP (per defecte: 587)"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:298
-#: src/components/settings/SystemSettingsDrawer.tsx:449
+#: src/components/settings/SystemSettingsDrawer.tsx:305
+#: src/components/settings/SystemSettingsDrawer.tsx:457
 msgid "Port must be 1-65535"
 msgstr ""
 
@@ -7354,8 +7354,8 @@ msgid "Re-register"
 msgstr "Tornar a registrar"
 
 #: src/components/settings/EditPermissionsModal.tsx:86
-#: src/components/settings/WorkspaceMembers.tsx:425
-#: src/components/settings/WorkspaceMembers.tsx:479
+#: src/components/settings/WorkspaceMembers.tsx:430
+#: src/components/settings/WorkspaceMembers.tsx:484
 msgid "Read"
 msgstr "Llegit"
 
@@ -7522,8 +7522,8 @@ msgstr "Treure de la llista"
 msgid "Remove Link"
 msgstr "Eliminar enllaç"
 
-#: src/components/settings/WorkspaceMembers.tsx:189
-#: src/components/settings/WorkspaceMembers.tsx:196
+#: src/components/settings/WorkspaceMembers.tsx:190
+#: src/components/settings/WorkspaceMembers.tsx:197
 msgid "Remove member"
 msgstr "Treure membre"
 
@@ -7584,17 +7584,23 @@ msgstr "Respondre a"
 msgid "Report An Issue"
 msgstr "Informar d'un problema"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:228
-#: src/components/settings/SystemSettingsDrawer.tsx:240
-#: src/components/settings/SystemSettingsDrawer.tsx:279
-#: src/components/settings/SystemSettingsDrawer.tsx:293
-#: src/components/settings/SystemSettingsDrawer.tsx:362
+#: src/components/settings/SystemSettingsDrawer.tsx:235
+#: src/components/settings/SystemSettingsDrawer.tsx:247
+#: src/components/settings/SystemSettingsDrawer.tsx:286
+#: src/components/settings/SystemSettingsDrawer.tsx:300
+#: src/components/settings/SystemSettingsDrawer.tsx:369
 msgid "Required"
 msgstr ""
 
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:1110
 msgid "Required Fields"
 msgstr "Camps obligatoris"
+
+#: src/components/settings/SystemSettingsDrawer.tsx:438
+#: src/components/settings/SystemSettingsDrawer.tsx:475
+#: src/components/settings/SystemSettingsDrawer.tsx:490
+msgid "Required when bridge is enabled"
+msgstr ""
 
 #: src/components/email_builder/blocks/MjColumnBlock.tsx:75
 msgid "Requires a padding"
@@ -7604,7 +7610,7 @@ msgstr "Requereix un farciment"
 msgid "Resend code"
 msgstr "Reenviar codi"
 
-#: src/components/settings/WorkspaceMembers.tsx:224
+#: src/components/settings/WorkspaceMembers.tsx:225
 msgid "Resend invitation"
 msgstr "Reenviar invitació"
 
@@ -7627,7 +7633,7 @@ msgid "Reset translation"
 msgstr ""
 
 #: src/components/settings/EditPermissionsModal.tsx:80
-#: src/components/settings/WorkspaceMembers.tsx:473
+#: src/components/settings/WorkspaceMembers.tsx:478
 msgid "Resource"
 msgstr "Recurs"
 
@@ -7639,7 +7645,7 @@ msgstr "Resposta"
 msgid "Response Body:"
 msgstr "Cos de la resposta:"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:132
+#: src/components/settings/SystemSettingsDrawer.tsx:139
 msgid "Restart Server?"
 msgstr ""
 
@@ -7706,11 +7712,11 @@ msgstr "Dret"
 msgid "Right to Left"
 msgstr "Dreta a esquerra"
 
-#: src/components/settings/WorkspaceMembers.tsx:85
+#: src/components/settings/WorkspaceMembers.tsx:86
 msgid "Role"
 msgstr "Rol"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:225
+#: src/components/settings/SystemSettingsDrawer.tsx:232
 #: src/pages/SetupWizard.tsx:342
 msgid "Root Email"
 msgstr "Correu arrel"
@@ -7796,7 +7802,7 @@ msgstr "Mode de caixa de proves"
 #: src/components/settings/Integrations.tsx:2271
 #: src/components/settings/Integrations.tsx:2319
 #: src/components/settings/Integrations.tsx:2366
-#: src/components/settings/SystemSettingsDrawer.tsx:210
+#: src/components/settings/SystemSettingsDrawer.tsx:217
 #: src/components/settings/WebhooksSettings.tsx:215
 #: src/components/templates/CreateTemplateDrawer.tsx:521
 #: src/components/templates/CreateTemplateDrawer.tsx:542
@@ -7804,7 +7810,7 @@ msgstr "Mode de caixa de proves"
 msgid "Save"
 msgstr "Desar"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:140
+#: src/components/settings/SystemSettingsDrawer.tsx:147
 msgid "Save & Restart"
 msgstr ""
 
@@ -7864,7 +7870,7 @@ msgstr "Desat ({0})"
 msgid "Saved block: {0}"
 msgstr "Bloc desat: {0}"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:122
+#: src/components/settings/SystemSettingsDrawer.tsx:129
 msgid "Saving settings will restart the server. You will need to sign in again."
 msgstr ""
 
@@ -8296,7 +8302,7 @@ msgstr "Envieu una notificació transaccional utilitzant Python:"
 msgid "Send a transactional notification using TypeScript/JavaScript:"
 msgstr "Envieu una notificació transaccional utilitzant TypeScript/JavaScript:"
 
-#: src/components/settings/WorkspaceMembers.tsx:548
+#: src/components/settings/WorkspaceMembers.tsx:553
 msgid "Send Invitation"
 msgstr "Enviar invitació"
 
@@ -8397,16 +8403,16 @@ msgstr "Separar costats"
 msgid "Server is restarting with new configuration..."
 msgstr "El servidor s'està reiniciant amb la nova configuració..."
 
-#: src/components/settings/SystemSettingsDrawer.tsx:148
+#: src/components/settings/SystemSettingsDrawer.tsx:155
 msgid "Server is restarting..."
 msgstr ""
 
-#: src/components/settings/SystemSettingsDrawer.tsx:173
+#: src/components/settings/SystemSettingsDrawer.tsx:180
 #: src/pages/SetupWizard.tsx:211
 msgid "Server restart timeout. Please refresh the page manually."
 msgstr "Temps d'espera del reinici del servidor. Si us plau, actualitzeu la pàgina manualment."
 
-#: src/components/settings/SystemSettingsDrawer.tsx:160
+#: src/components/settings/SystemSettingsDrawer.tsx:167
 msgid "Server restarted successfully!"
 msgstr ""
 
@@ -8438,7 +8444,7 @@ msgstr "Establir com a proveïdor de correu de màrqueting?"
 msgid "Set as transactional email provider?"
 msgstr "Establir com a proveïdor de correu transaccional?"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:67
+#: src/components/settings/SystemSettingsDrawer.tsx:74
 msgid "Set by environment variable"
 msgstr ""
 
@@ -8561,7 +8567,7 @@ msgid "Signup"
 msgstr "Registre"
 
 #: src/components/analytics/NewContactsTable.tsx:184
-#: src/components/settings/WorkspaceMembers.tsx:155
+#: src/components/settings/WorkspaceMembers.tsx:156
 msgid "Since"
 msgstr "Des de"
 
@@ -8600,7 +8606,7 @@ msgstr "SMS"
 
 #: src/components/settings/SettingsSidebar.tsx:108
 #: src/components/settings/SMTPBridgeSettings.tsx:12
-#: src/components/settings/SystemSettingsDrawer.tsx:415
+#: src/components/settings/SystemSettingsDrawer.tsx:422
 msgid "SMTP Bridge"
 msgstr "Relay SMTP"
 
@@ -8628,11 +8634,11 @@ msgstr "Configuració SMTP"
 msgid "SMTP connection successful!"
 msgstr "Connexió SMTP correcta!"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:86
+#: src/components/settings/SystemSettingsDrawer.tsx:93
 msgid "SMTP connection test failed"
 msgstr ""
 
-#: src/components/settings/SystemSettingsDrawer.tsx:84
+#: src/components/settings/SystemSettingsDrawer.tsx:91
 msgid "SMTP connection test successful"
 msgstr ""
 
@@ -8642,7 +8648,7 @@ msgstr "Domini SMTP"
 
 #: src/components/settings/Integrations.tsx:1527
 #: src/components/settings/Integrations.tsx:1943
-#: src/components/settings/SystemSettingsDrawer.tsx:277
+#: src/components/settings/SystemSettingsDrawer.tsx:284
 #: src/pages/SetupWizard.tsx:430
 msgid "SMTP Host"
 msgstr "Amfitrió SMTP"
@@ -8652,7 +8658,7 @@ msgid "SMTP host is required"
 msgstr "L'amfitrió SMTP és obligatori"
 
 #: src/components/settings/Integrations.tsx:1701
-#: src/components/settings/SystemSettingsDrawer.tsx:344
+#: src/components/settings/SystemSettingsDrawer.tsx:351
 #: src/pages/SetupWizard.tsx:471
 msgid "SMTP Password"
 msgstr "Contrasenya SMTP"
@@ -8662,7 +8668,7 @@ msgid "SMTP port"
 msgstr "Port SMTP"
 
 #: src/components/settings/Integrations.tsx:1532
-#: src/components/settings/SystemSettingsDrawer.tsx:290
+#: src/components/settings/SystemSettingsDrawer.tsx:297
 #: src/pages/SetupWizard.tsx:439
 msgid "SMTP Port"
 msgstr "Port SMTP"
@@ -8688,7 +8694,7 @@ msgid "SMTP User"
 msgstr "Usuari SMTP"
 
 #: src/components/settings/Integrations.tsx:1696
-#: src/components/settings/SystemSettingsDrawer.tsx:331
+#: src/components/settings/SystemSettingsDrawer.tsx:338
 #: src/pages/SetupWizard.tsx:466
 msgid "SMTP Username"
 msgstr "Nom d'usuari SMTP"
@@ -8993,12 +8999,12 @@ msgstr "Canvieu al mode de vista prèvia per veure els efectes del punt de ruptu
 msgid "System Fonts"
 msgstr "Fonts del sistema"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:192
-#: src/components/settings/SystemSettingsDrawer.tsx:203
+#: src/components/settings/SystemSettingsDrawer.tsx:199
+#: src/components/settings/SystemSettingsDrawer.tsx:210
 msgid "System Settings"
 msgstr ""
 
-#: src/components/settings/SystemSettingsDrawer.tsx:263
+#: src/components/settings/SystemSettingsDrawer.tsx:270
 msgid "System SMTP"
 msgstr ""
 
@@ -9023,11 +9029,15 @@ msgid "Task type:"
 msgstr "Tipus de tasca:"
 
 #: src/components/settings/SettingsSidebar.tsx:34
-#: src/components/settings/WorkspaceMembers.tsx:508
+#: src/components/settings/WorkspaceMembers.tsx:513
 msgid "Team"
 msgstr "Equip"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:500
+#: src/components/settings/WorkspaceMembers.tsx:268
+msgid "Team member limit reached. Please upgrade your plan to add more members."
+msgstr ""
+
+#: src/components/settings/SystemSettingsDrawer.tsx:510
 msgid "Telemetry"
 msgstr ""
 
@@ -9151,7 +9161,7 @@ msgstr "Marcatge de plantilles permès"
 msgid "Test"
 msgstr "Provar"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:271
+#: src/components/settings/SystemSettingsDrawer.tsx:278
 #: src/pages/SetupWizard.tsx:511
 msgid "Test Connection"
 msgstr "Provar connexió"
@@ -9278,7 +9288,7 @@ msgstr "Transformació de text"
 msgid "The"
 msgstr "El/La"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:126
+#: src/components/settings/SystemSettingsDrawer.tsx:133
 msgid "The API endpoint has changed. After restart, the console will be available at:"
 msgstr ""
 
@@ -9461,7 +9471,7 @@ msgstr "Aquesta funcionalitat fa una sol·licitud HTTP per a cada destinatari ab
 msgid "This hook never blocks Supabase user creation for errors. However, if 'Reject Disposable Email Addresses' is enabled and a disposable email is detected, the user signup will be rejected by Supabase."
 msgstr "Aquest hook mai bloqueja la creació d'usuaris de Supabase per errors. No obstant això, si 'Rebutjar adreces de correu d'un sol ús' està habilitat i es detecta un correu d'un sol ús, el registre d'usuari serà rebutjat per Supabase."
 
-#: src/pages/CreateWorkspacePage.tsx:133
+#: src/pages/CreateWorkspacePage.tsx:138
 msgid "This ID will be used in URLs and API requests. It can only contain lowercase letters and numbers."
 msgstr "Aquest ID s'utilitzarà en URLs i sol·licituds API. Només pot contenir lletres minúscules i números."
 
@@ -9513,7 +9523,7 @@ msgstr "Aquesta plantilla està gestionada per una integració i no es pot elimi
 msgid "This text appears in the email client's preview pane, typically after the subject line. Keep it concise and compelling (100-140 characters recommended)."
 msgstr "Aquest text apareix al panell de vista prèvia del client de correu, normalment després de l'assumpte. Manteniu-lo concís i atractiu (es recomanen 100-140 caràcters)."
 
-#: src/components/settings/WorkspaceMembers.tsx:633
+#: src/components/settings/WorkspaceMembers.tsx:638
 msgid "This token will only be displayed once. Please save it in a secure location. It cannot be retrieved again."
 msgstr "Aquest token només es mostrarà una vegada. Si us plau, deseu-lo en una ubicació segura. No es podrà recuperar de nou."
 
@@ -9631,7 +9641,7 @@ msgstr "Títol quan es comparteix a xarxes socials (opcional)"
 msgid "TLS"
 msgstr "TLS"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:465
+#: src/components/settings/SystemSettingsDrawer.tsx:473
 #: src/pages/SetupWizard.tsx:614
 msgid "TLS Certificate (Base64)"
 msgstr "Certificat TLS (Base64)"
@@ -9644,7 +9654,7 @@ msgstr "El certificat TLS és obligatori"
 msgid "TLS Enabled"
 msgstr "TLS habilitat"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:479
+#: src/components/settings/SystemSettingsDrawer.tsx:488
 msgid "TLS Key (Base64)"
 msgstr ""
 
@@ -10118,7 +10128,7 @@ msgid "Use This Theme"
 msgstr "Utilitzar aquest tema"
 
 #: src/components/settings/Integrations.tsx:1540
-#: src/components/settings/SystemSettingsDrawer.tsx:314
+#: src/components/settings/SystemSettingsDrawer.tsx:321
 #: src/pages/SetupWizard.tsx:456
 msgid "Use TLS"
 msgstr "Utilitzar TLS"
@@ -10285,7 +10295,7 @@ msgstr "Esperant el reinici del servidor..."
 msgid "Warning"
 msgstr "Avís"
 
-#: src/pages/CreateWorkspacePage.tsx:167
+#: src/pages/CreateWorkspacePage.tsx:172
 msgid "We'll automatically detect and use your website's favicon"
 msgstr "Detectarem i utilitzarem automàticament el favicon del vostre lloc web"
 
@@ -10355,7 +10365,7 @@ msgstr "Lloc web"
 
 #: src/components/settings/GeneralSettings.tsx:114
 #: src/components/settings/GeneralSettings.tsx:179
-#: src/pages/CreateWorkspacePage.tsx:158
+#: src/pages/CreateWorkspacePage.tsx:163
 msgid "Website URL"
 msgstr "URL del lloc web"
 
@@ -10445,7 +10455,7 @@ msgid "with status"
 msgstr "amb estat"
 
 #. placeholder {0}: values.name
-#: src/pages/CreateWorkspacePage.tsx:77
+#: src/pages/CreateWorkspacePage.tsx:78
 msgid "Workspace \"{0}\" created successfully!"
 msgstr "Espai de treball \"{0}\" creat correctament!"
 
@@ -10453,7 +10463,7 @@ msgstr "Espai de treball \"{0}\" creat correctament!"
 msgid "Workspace deleted successfully"
 msgstr "Espai de treball eliminat correctament"
 
-#: src/pages/CreateWorkspacePage.tsx:132
+#: src/pages/CreateWorkspacePage.tsx:137
 msgid "Workspace ID"
 msgstr "ID d'espai de treball"
 
@@ -10461,7 +10471,7 @@ msgstr "ID d'espai de treball"
 msgid "Workspace ID does not match"
 msgstr "L'ID de l'espai de treball no coincideix"
 
-#: src/pages/CreateWorkspacePage.tsx:140
+#: src/pages/CreateWorkspacePage.tsx:145
 msgid "Workspace ID is required"
 msgstr "L'ID de l'espai de treball és obligatori"
 
@@ -10469,17 +10479,21 @@ msgstr "L'ID de l'espai de treball és obligatori"
 msgid "Workspace Invitation"
 msgstr "Invitació a l'espai de treball"
 
+#: src/pages/CreateWorkspacePage.tsx:89
+msgid "Workspace limit reached. Please upgrade your plan to create more workspaces."
+msgstr ""
+
 #: src/components/settings/GeneralSettings.tsx:122
 msgid "Workspace logo"
 msgstr "Logotip de l'espai de treball"
 
 #: src/components/settings/GeneralSettings.tsx:110
 #: src/components/settings/GeneralSettings.tsx:171
-#: src/pages/CreateWorkspacePage.tsx:119
+#: src/pages/CreateWorkspacePage.tsx:124
 msgid "Workspace Name"
 msgstr "Nom de l'espai de treball"
 
-#: src/pages/CreateWorkspacePage.tsx:123
+#: src/pages/CreateWorkspacePage.tsx:128
 msgid "Workspace name must be at least 3 characters long"
 msgstr "El nom de l'espai de treball ha de tenir almenys 3 caràcters"
 
@@ -10503,8 +10517,8 @@ msgid "Wrapper Attributes"
 msgstr "Atributs del contenidor"
 
 #: src/components/settings/EditPermissionsModal.tsx:99
-#: src/components/settings/WorkspaceMembers.tsx:433
-#: src/components/settings/WorkspaceMembers.tsx:492
+#: src/components/settings/WorkspaceMembers.tsx:438
+#: src/components/settings/WorkspaceMembers.tsx:497
 msgid "Write"
 msgstr "Escriure"
 
@@ -10542,8 +10556,8 @@ msgstr ""
 #: src/components/settings/WebhookCard.tsx:192
 #: src/components/settings/WebhookCard.tsx:236
 #: src/components/settings/WebhookCard.tsx:278
-#: src/components/settings/WorkspaceMembers.tsx:192
-#: src/components/settings/WorkspaceMembers.tsx:212
+#: src/components/settings/WorkspaceMembers.tsx:193
+#: src/components/settings/WorkspaceMembers.tsx:213
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:147
 msgid "Yes"
 msgstr "Sí"

@@ -149,6 +149,21 @@ func (s *WorkspaceService) CreateWorkspace(ctx context.Context, id string, name 
 		return nil, &domain.ErrUnauthorized{Message: "only root user can create workspaces"}
 	}
 
+	// Check workspace limit
+	if s.config.MaxWorkspaces > 0 {
+		count, err := s.repo.CountWorkspaces(ctx)
+		if err != nil {
+			s.logger.WithField("error", err.Error()).Error("Failed to count workspaces")
+			return nil, err
+		}
+		if count >= s.config.MaxWorkspaces {
+			return nil, &domain.ErrWorkspaceLimitReached{
+				Limit:   s.config.MaxWorkspaces,
+				Current: count,
+			}
+		}
+	}
+
 	randomSecretKey, err := GenerateSecureKey(32) // 32 bytes = 256 bits
 	if err != nil {
 		s.logger.WithField("workspace_id", id).WithField("error", err.Error()).Error("Failed to generate secure key")

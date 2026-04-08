@@ -1,6 +1,6 @@
 import { router } from '../../router'
 
-class ApiError extends Error {
+export class ApiError extends Error {
   constructor(
     message: string,
     public status: number,

@@ -99,7 +99,7 @@ func (h *LLMHandler) handleChat(w http.ResponseWriter, r *http.Request) {
 			Error: err.Error(),
 		}
 		data, _ := json.Marshal(errorEvent)
-		fmt.Fprintf(w, "data: %s\n\n", data)
+		_, _ = fmt.Fprintf(w, "data: %s\n\n", data)
 		flusher.Flush()
 	}
 }

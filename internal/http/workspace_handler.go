@@ -148,6 +148,11 @@ func (h *WorkspaceHandler) handleCreate(w http.ResponseWriter, r *http.Request) 
 		req.Settings.Languages,
 	)
 	if err != nil {
+		var limitErr *domain.ErrWorkspaceLimitReached
+		if errors.As(err, &limitErr) {
+			WriteJSONError(w, limitErr.Error(), http.StatusForbidden)
+			return
+		}
 		if err.Error() == "workspace already exists" {
 			WriteJSONError(w, "Workspace already exists", http.StatusConflict)
 		} else {

@@ -58,22 +58,6 @@ func createTestAutomation(id, workspaceID string) *domain.Automation {
 	}
 }
 
-func createTestNode(id, automationID string, nodeType domain.NodeType) *domain.AutomationNode {
-	now := time.Now().UTC()
-	return &domain.AutomationNode{
-		ID:           id,
-		AutomationID: automationID,
-		Type:         nodeType,
-		Config: map[string]interface{}{
-			"key": "value",
-		},
-		Position: domain.NodePosition{
-			X: 100,
-			Y: 200,
-		},
-		CreatedAt: now,
-	}
-}
 
 func TestAutomationHandler_Create(t *testing.T) {
 	_, automationSvc, mux, secretKey := setupAutomationTest(t)

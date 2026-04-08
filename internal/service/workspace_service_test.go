@@ -3554,3 +3554,107 @@ func TestWorkspaceService_AcceptInvitation_TeamMemberLimit(t *testing.T) {
 		assert.Equal(t, "auth-token", resp.Token)
 	})
 }
+
+func TestWorkspaceService_CreateWorkspace_WorkspaceLimit(t *testing.T) {
+	setupService := func(t *testing.T, maxWorkspaces int) (
+		*WorkspaceService,
+		*mocks.MockWorkspaceRepository,
+		*mocks.MockAuthService,
+		*pkgmocks.MockLogger,
+	) {
+		ctrl := gomock.NewController(t)
+		mockRepo := mocks.NewMockWorkspaceRepository(ctrl)
+		mockUserRepo := mocks.NewMockUserRepository(ctrl)
+		mockLogger := pkgmocks.NewMockLogger(ctrl)
+		mockUserService := mocks.NewMockUserServiceInterface(ctrl)
+		mockAuthService := mocks.NewMockAuthService(ctrl)
+		mockMailer := pkgmocks.NewMockMailer(ctrl)
+		mockConfig := &config.Config{RootEmail: "test@example.com", MaxWorkspaces: maxWorkspaces, Environment: "development"}
+		mockContactService := mocks.NewMockContactService(ctrl)
+		mockListService := mocks.NewMockListService(ctrl)
+		mockContactListService := mocks.NewMockContactListService(ctrl)
+		mockTemplateService := mocks.NewMockTemplateService(ctrl)
+		mockWebhookRegService := mocks.NewMockWebhookRegistrationService(ctrl)
+
+		mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+		mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+		mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
+
+		service := NewWorkspaceService(
+			mockRepo, mockUserRepo, mocks.NewMockTaskRepository(ctrl),
+			mockLogger, mockUserService, mockAuthService, mockMailer,
+			mockConfig, mockContactService, mockListService,
+			mockContactListService, mockTemplateService, mockWebhookRegService,
+			"secret_key", &SupabaseService{}, &DNSVerificationService{}, &BlogService{},
+		)
+		return service, mockRepo, mockAuthService, mockLogger
+	}
+
+	t.Run("limit reached", func(t *testing.T) {
+		service, mockRepo, mockAuthService, _ := setupService(t, 3)
+
+		rootUser := &domain.User{ID: "root-user", Email: "test@example.com"}
+		mockAuthService.EXPECT().
+			AuthenticateUserFromContext(gomock.Any()).
+			Return(rootUser, nil)
+		mockRepo.EXPECT().
+			CountWorkspaces(gomock.Any()).
+			Return(3, nil)
+
+		_, err := service.CreateWorkspace(context.Background(), "newws", "New Workspace", "", "", "", "UTC", domain.FileManagerSettings{}, "en", []string{"en"})
+		require.Error(t, err)
+
+		var limitErr *domain.ErrWorkspaceLimitReached
+		assert.True(t, errors.As(err, &limitErr))
+		assert.Equal(t, 3, limitErr.Limit)
+		assert.Equal(t, 3, limitErr.Current)
+	})
+
+	t.Run("under limit", func(t *testing.T) {
+		service, mockRepo, mockAuthService, _ := setupService(t, 3)
+
+		rootUser := &domain.User{ID: "root-user", Email: "test@example.com"}
+		mockAuthService.EXPECT().
+			AuthenticateUserFromContext(gomock.Any()).
+			Return(rootUser, nil)
+		mockRepo.EXPECT().
+			CountWorkspaces(gomock.Any()).
+			Return(2, nil)
+		// After limit check passes, mock GetByID to return existing workspace so we get
+		// a clean "workspace already exists" error — proving the limit check passed
+		mockRepo.EXPECT().
+			GetByID(gomock.Any(), "newws").
+			Return(&domain.Workspace{ID: "newws"}, nil)
+
+		_, err := service.CreateWorkspace(context.Background(), "newws", "New Workspace", "", "", "", "UTC", domain.FileManagerSettings{}, "en", []string{"en"})
+		require.Error(t, err)
+		assert.Equal(t, "workspace already exists", err.Error())
+
+		var limitErr *domain.ErrWorkspaceLimitReached
+		assert.False(t, errors.As(err, &limitErr), "error should NOT be a workspace limit error")
+	})
+
+	t.Run("unlimited when MaxWorkspaces is zero", func(t *testing.T) {
+		service, mockRepo, mockAuthService, _ := setupService(t, 0)
+
+		rootUser := &domain.User{ID: "root-user", Email: "test@example.com"}
+		mockAuthService.EXPECT().
+			AuthenticateUserFromContext(gomock.Any()).
+			Return(rootUser, nil)
+
+		// CountWorkspaces should NOT be called when MaxWorkspaces=0
+		// (gomock will fail if it's called since no expectation is set)
+
+		// Mock GetByID to return existing workspace so flow exits cleanly
+		mockRepo.EXPECT().
+			GetByID(gomock.Any(), "newws").
+			Return(&domain.Workspace{ID: "newws"}, nil)
+
+		_, err := service.CreateWorkspace(context.Background(), "newws", "New Workspace", "", "", "", "UTC", domain.FileManagerSettings{}, "en", []string{"en"})
+		require.Error(t, err)
+		assert.Equal(t, "workspace already exists", err.Error())
+
+		var limitErr *domain.ErrWorkspaceLimitReached
+		assert.False(t, errors.As(err, &limitErr), "error should NOT be a workspace limit error")
+	})
+}

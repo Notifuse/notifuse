@@ -346,7 +346,7 @@ func GenerateHTMLOpenTrackingPixel(workspaceID string, messageID string, apiEndp
 		pixelURL = fmt.Sprintf("%s/opens?mid=%s&wid=%s&ts=%d",
 			apiEndpoint, encodedMID, encodedWID, sentTimestamp)
 	}
-	return fmt.Sprintf(`<img src="%s" alt="" style="border:0;margin:0;padding:0;">`, pixelURL)
+	return fmt.Sprintf(`<table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%%"><tr><td><img src="%s" alt="" style="border:0;margin:0;padding:0;"></td></tr></table>`, pixelURL)
 }
 
 // CompileTemplate compiles a visual editor tree to MJML and HTML
@@ -574,28 +574,17 @@ func TrackLinks(htmlString string, trackingSettings TrackingSettings) (updatedHT
 	})
 
 	if trackingSettings.EnableTracking {
-		// Insert tracking pixel after the last </table> tag to look like a structural
-		// spacer image in table-based email layout. This avoids the common detection
-		// pattern of placing pixels just before </body>.
+		// Insert tracking pixel before </body>. The pixel is wrapped in a <table>
+		// by GenerateHTMLOpenTrackingPixel to look like a structural layout element
+		// rather than a standalone tracking pixel.
 		sentTimestamp := time.Now().Unix()
 		trackingPixel := GenerateHTMLOpenTrackingPixel(trackingSettings.WorkspaceID, trackingSettings.MessageID, trackingSettings.Endpoint, sentTimestamp)
 
-		// Find last </table> (case-insensitive, check both common casings)
-		lastTableClose := strings.LastIndex(updatedHTML, "</table>")
-		if idx := strings.LastIndex(updatedHTML, "</TABLE>"); idx > lastTableClose {
-			lastTableClose = idx
-		}
-		if lastTableClose != -1 {
-			insertPos := lastTableClose + len("</table>")
-			updatedHTML = updatedHTML[:insertPos] + trackingPixel + updatedHTML[insertPos:]
+		bodyCloseRegex := regexp.MustCompile(`(?i)(<\/body>)`)
+		if bodyCloseRegex.MatchString(updatedHTML) {
+			updatedHTML = bodyCloseRegex.ReplaceAllString(updatedHTML, trackingPixel+"$1")
 		} else {
-			// Fallback: before </body> or append to end
-			bodyCloseRegex := regexp.MustCompile(`(?i)(<\/body>)`)
-			if bodyCloseRegex.MatchString(updatedHTML) {
-				updatedHTML = bodyCloseRegex.ReplaceAllString(updatedHTML, trackingPixel+"$1")
-			} else {
-				updatedHTML = updatedHTML + trackingPixel
-			}
+			updatedHTML = updatedHTML + trackingPixel
 		}
 	}
 

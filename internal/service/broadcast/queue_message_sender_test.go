@@ -622,6 +622,11 @@ func TestQueueMessageSender_SendBatch(t *testing.T) {
 				// URLs are now inside encrypted /r/ tracking tokens
 				assert.Contains(t, entry.Payload.HTMLContent, "/r/",
 					"system URLs should be rendered as encrypted tracking redirects")
+				// Tracking pixel should be present with encrypted /t/ path and table wrapper
+				assert.Contains(t, entry.Payload.HTMLContent, "/t/",
+					"tracking pixel should use encrypted /t/ path")
+				assert.Contains(t, entry.Payload.HTMLContent, `<table border="0" cellpadding="0" cellspacing="0" role="presentation"`,
+					"tracking pixel should be wrapped in a table")
 				assert.NotContains(t, entry.Payload.HTMLContent, "{{ unsubscribe_url }}",
 					"Raw Liquid syntax should not appear in HTML")
 				assert.NotContains(t, entry.Payload.HTMLContent, "{{ notification_center_url }}",

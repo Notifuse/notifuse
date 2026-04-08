@@ -144,6 +144,36 @@ func TestWorkspaceCRUDSuite(t *testing.T) {
 			assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 		})
 
+		t.Run("workspace limit reached", func(t *testing.T) {
+			// Depends on "successful workspace creation" having run first (Go runs
+			// subtests sequentially within a parent t.Run). The seed data also
+			// creates a test workspace, so at least 1 workspace exists.
+			suite.Config.MaxWorkspaces = 1
+			defer func() { suite.Config.MaxWorkspaces = 0 }()
+
+			createReq := domain.CreateWorkspaceRequest{
+				ID:   "limited" + uuid.New().String()[:8],
+				Name: "Limited Workspace",
+				Settings: domain.WorkspaceSettings{
+					Timezone:        "UTC",
+					DefaultLanguage: "en",
+					Languages:       []string{"en"},
+				},
+			}
+
+			resp, err := client.Post("/api/workspaces.create", createReq)
+			require.NoError(t, err)
+			defer resp.Body.Close()
+
+			// Should be forbidden because at least 1 workspace already exists (from earlier test)
+			assert.Equal(t, http.StatusForbidden, resp.StatusCode)
+
+			var errorResp map[string]string
+			err = json.NewDecoder(resp.Body).Decode(&errorResp)
+			require.NoError(t, err)
+			assert.Contains(t, errorResp["error"], "workspace limit reached")
+		})
+
 		t.Run("unauthorized workspace creation", func(t *testing.T) {
 			// Remove token
 			client.SetToken("")

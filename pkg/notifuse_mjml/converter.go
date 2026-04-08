@@ -52,7 +52,7 @@ func convertBlockToMJMLWithErrorAndParsedData(block EmailBlock, indentLevel int,
 			if blockType == MJMLComponentMjText || blockType == MJMLComponentMjButton || blockType == MJMLComponentMjTitle || blockType == MJMLComponentMjPreview || blockType == MJMLComponentMjRaw {
 				// Only process Liquid when we have actual template data.
 				// When parsedData is nil or empty, preserve Liquid syntax for MJML export (issue #226).
-				if parsedData != nil && len(parsedData) > 0 {
+				if len(parsedData) > 0 {
 					processedContent, err := processLiquidContent(content, parsedData, block.GetID())
 					if err != nil {
 						// Return error instead of just logging
@@ -144,7 +144,7 @@ func convertBlockToMJMLWithParsedData(block EmailBlock, indentLevel int, templat
 			if blockType == MJMLComponentMjText || blockType == MJMLComponentMjButton || blockType == MJMLComponentMjTitle || blockType == MJMLComponentMjPreview || blockType == MJMLComponentMjRaw {
 				// Only process Liquid when we have actual template data.
 				// When parsedData is nil or empty, preserve Liquid syntax for MJML export (issue #226).
-				if parsedData != nil && len(parsedData) > 0 {
+				if len(parsedData) > 0 {
 					processedContent, err := processLiquidContent(content, parsedData, block.GetID())
 					if err != nil {
 						// Log error but continue with original content
@@ -442,7 +442,7 @@ func processAttributeValue(value, attributeKey string, templateData map[string]i
 	// This preserves Liquid syntax (e.g., {{ postImage }}) when no template data is provided,
 	// which is important for MJML export where we want to keep the raw Liquid syntax.
 	// Without this check, Liquid variables would render as empty strings, breaking URLs (issue #226).
-	if templateData == nil || len(templateData) == 0 || (!isURLAttribute && !isAltAttribute) {
+	if len(templateData) == 0 || (!isURLAttribute && !isAltAttribute) {
 		return value
 	}
 

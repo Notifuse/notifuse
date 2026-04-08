@@ -526,7 +526,7 @@ func (h *RootHandler) serveBlogSitemap(w http.ResponseWriter, r *http.Request, w
 
 	// Add homepage
 	sitemap.WriteString("  <url>\n")
-	sitemap.WriteString(fmt.Sprintf("    <loc>https://%s/</loc>\n", r.Host))
+	fmt.Fprintf(&sitemap, "    <loc>https://%s/</loc>\n", r.Host)
 	sitemap.WriteString("    <changefreq>daily</changefreq>\n")
 	sitemap.WriteString("    <priority>1.0</priority>\n")
 	sitemap.WriteString("  </url>\n")
@@ -538,9 +538,9 @@ func (h *RootHandler) serveBlogSitemap(w http.ResponseWriter, r *http.Request, w
 			category, err := h.blogService.GetCategory(ctx, post.CategoryID)
 			if err == nil && category != nil {
 				sitemap.WriteString("  <url>\n")
-				sitemap.WriteString(fmt.Sprintf("    <loc>https://%s/%s/%s</loc>\n", r.Host, category.Slug, post.Slug))
+				fmt.Fprintf(&sitemap, "    <loc>https://%s/%s/%s</loc>\n", r.Host, category.Slug, post.Slug)
 				if post.PublishedAt != nil {
-					sitemap.WriteString(fmt.Sprintf("    <lastmod>%s</lastmod>\n", post.PublishedAt.Format("2006-01-02")))
+					fmt.Fprintf(&sitemap, "    <lastmod>%s</lastmod>\n", post.PublishedAt.Format("2006-01-02"))
 				}
 				sitemap.WriteString("    <changefreq>monthly</changefreq>\n")
 				sitemap.WriteString("    <priority>0.8</priority>\n")
