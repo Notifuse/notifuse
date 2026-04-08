@@ -26,8 +26,16 @@ func TestSubscribeStatusProtection_Integration(t *testing.T) {
 	factory := suite.DataFactory
 	client := suite.APIClient
 
-	workspace, err := suite.DataFactory.CreateWorkspace()
+	// Create user, workspace, and authenticate
+	user, err := factory.CreateUser()
 	require.NoError(t, err)
+	workspace, err := factory.CreateWorkspace()
+	require.NoError(t, err)
+	err = factory.AddUserToWorkspace(user.ID, workspace.ID, "owner")
+	require.NoError(t, err)
+	err = client.Login(user.Email, "password")
+	require.NoError(t, err)
+	client.SetWorkspaceID(workspace.ID)
 
 	list, err := factory.CreateList(workspace.ID, testutil.WithListPublic(true))
 	require.NoError(t, err)
@@ -187,16 +195,19 @@ func TestBulkImportStatusProtection_Integration(t *testing.T) {
 	factory := suite.DataFactory
 	client := suite.APIClient
 
-	workspace, err := suite.DataFactory.CreateWorkspace()
+	// Create user, workspace, and authenticate
+	user, err := factory.CreateUser()
 	require.NoError(t, err)
+	workspace, err := factory.CreateWorkspace()
+	require.NoError(t, err)
+	err = factory.AddUserToWorkspace(user.ID, workspace.ID, "owner")
+	require.NoError(t, err)
+	err = client.Login(user.Email, "password")
+	require.NoError(t, err)
+	client.SetWorkspaceID(workspace.ID)
 
 	list, err := factory.CreateList(workspace.ID, testutil.WithListPublic(true))
 	require.NoError(t, err)
-
-	// Login to get auth token
-	err = client.Login("admin@test.com", "")
-	require.NoError(t, err)
-	client.SetWorkspaceID(workspace.ID)
 
 	// Helper to get subscription status
 	getStatus := func(t *testing.T, email string) string {

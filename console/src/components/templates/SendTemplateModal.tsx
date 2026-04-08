@@ -75,7 +75,7 @@ export default function SendTemplateModal({
 
     // Only show dropdown if there are translations beyond the default
     return options.length > 1 ? options : []
-  }, [template?.translations, workspace?.settings?.default_language, t])
+  }, [template?.translations, workspace?.settings, t])
 
   // Set default integration when modal opens or template changes
   useEffect(() => {
