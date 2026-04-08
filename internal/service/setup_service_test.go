@@ -199,3 +199,136 @@ func TestSetupService_TestSMTPConnection(t *testing.T) {
 	// Note: Actual SMTP connection test would require a real SMTP server or more complex mocking
 	// For coverage purposes, we test the validation logic
 }
+
+func TestSetupService_GetEnvOverrides(t *testing.T) {
+	tests := []struct {
+		name      string
+		envConfig *service.EnvironmentConfig
+		expected  map[string]bool
+	}{
+		{
+			name:      "nil env config returns all false",
+			envConfig: nil,
+			expected:  map[string]bool{},
+		},
+		{
+			name:      "empty env config returns all false",
+			envConfig: &service.EnvironmentConfig{},
+			expected:  map[string]bool{},
+		},
+		{
+			name: "only root_email set",
+			envConfig: &service.EnvironmentConfig{
+				RootEmail: "admin@example.com",
+			},
+			expected: map[string]bool{
+				"root_email": true,
+			},
+		},
+		{
+			name: "SMTP fields set",
+			envConfig: &service.EnvironmentConfig{
+				SMTPHost:     "smtp.example.com",
+				SMTPPort:     587,
+				SMTPUsername: "user",
+				SMTPPassword: "pass",
+			},
+			expected: map[string]bool{
+				"smtp_host":     true,
+				"smtp_port":     true,
+				"smtp_username": true,
+				"smtp_password": true,
+			},
+		},
+		{
+			name: "all fields set",
+			envConfig: &service.EnvironmentConfig{
+				RootEmail:               "admin@example.com",
+				APIEndpoint:             "https://api.example.com",
+				SMTPHost:                "smtp.example.com",
+				SMTPPort:                587,
+				SMTPUsername:            "user",
+				SMTPPassword:            "pass",
+				SMTPFromEmail:           "noreply@example.com",
+				SMTPFromName:            "Test",
+				SMTPUseTLS:              "true",
+				SMTPEHLOHostname:        "mail.example.com",
+				SMTPBridgeEnabled:       "true",
+				SMTPBridgeDomain:        "bridge.example.com",
+				SMTPBridgePort:          587,
+				SMTPBridgeTLSCertBase64: "cert-data",
+				SMTPBridgeTLSKeyBase64:  "key-data",
+			},
+			expected: map[string]bool{
+				"root_email":                  true,
+				"api_endpoint":                true,
+				"smtp_host":                   true,
+				"smtp_port":                   true,
+				"smtp_username":               true,
+				"smtp_password":               true,
+				"smtp_from_email":             true,
+				"smtp_from_name":              true,
+				"smtp_use_tls":                true,
+				"smtp_ehlo_hostname":          true,
+				"smtp_bridge_enabled":         true,
+				"smtp_bridge_domain":          true,
+				"smtp_bridge_port":            true,
+				"smtp_bridge_tls_cert_base64": true,
+				"smtp_bridge_tls_key_base64":  true,
+			},
+		},
+		{
+			name: "smtp_use_tls set to false is still an override",
+			envConfig: &service.EnvironmentConfig{
+				SMTPUseTLS: "false",
+			},
+			expected: map[string]bool{
+				"smtp_use_tls": true,
+			},
+		},
+		{
+			name: "smtp_bridge_enabled set to false is still an override",
+			envConfig: &service.EnvironmentConfig{
+				SMTPBridgeEnabled: "false",
+			},
+			expected: map[string]bool{
+				"smtp_bridge_enabled": true,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			setupService := service.NewSetupService(
+				&service.SettingService{},
+				&service.UserService{},
+				nil,
+				&mockLogger{},
+				"test-secret-key",
+				nil,
+				tt.envConfig,
+			)
+
+			result := setupService.GetEnvOverrides()
+
+			// Check that expected overrides are present
+			for key, val := range tt.expected {
+				assert.Equal(t, val, result[key], "expected %s to be %v", key, val)
+			}
+
+			// Check that non-expected keys are NOT present (or false)
+			allKeys := []string{
+				"root_email", "api_endpoint",
+				"smtp_host", "smtp_port", "smtp_username", "smtp_password",
+				"smtp_from_email", "smtp_from_name", "smtp_use_tls", "smtp_ehlo_hostname",
+				"smtp_bridge_enabled", "smtp_bridge_domain", "smtp_bridge_port",
+				"smtp_bridge_tls_cert_base64", "smtp_bridge_tls_key_base64",
+			}
+			for _, key := range allKeys {
+				if _, expected := tt.expected[key]; !expected {
+					assert.False(t, result[key], "expected %s to be false/absent", key)
+				}
+			}
+		})
+	}
+}

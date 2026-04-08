@@ -1074,6 +1074,16 @@ func (a *App) InitHandlers() error {
 		a.logger,
 		a, // Pass app for shutdown capability
 	)
+	settingsHandler := httpHandler.NewSettingsHandler(
+		a.setupService,
+		a.settingService,
+		a.userService,
+		getJWTSecret,
+		a.logger,
+		a.config.Security.SecretKey,
+		a.config.RootEmail,
+		a, // AppShutdowner
+	)
 	workspaceHandler := httpHandler.NewWorkspaceHandler(
 		a.workspaceService,
 		a.authService,
@@ -1156,6 +1166,7 @@ func (a *App) InitHandlers() error {
 
 	// Register routes
 	setupHandler.RegisterRoutes(a.mux) // Setup handler first (should be accessible without auth)
+	settingsHandler.RegisterRoutes(a.mux)
 	userHandler.RegisterRoutes(a.mux)
 	workspaceHandler.RegisterRoutes(a.mux)
 	rootHandler.RegisterRoutes(a.mux)

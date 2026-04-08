@@ -137,6 +137,64 @@ func (s *SetupService) GetConfigurationStatus() *ConfigurationStatus {
 	}
 }
 
+// GetEnvOverrides returns a map of setting keys that are overridden by environment variables.
+// A key is present (true) if the corresponding env var has a non-empty/non-zero value.
+func (s *SetupService) GetEnvOverrides() map[string]bool {
+	result := make(map[string]bool)
+
+	if s.envConfig == nil {
+		return result
+	}
+
+	if s.envConfig.RootEmail != "" {
+		result["root_email"] = true
+	}
+	if s.envConfig.APIEndpoint != "" {
+		result["api_endpoint"] = true
+	}
+	if s.envConfig.SMTPHost != "" {
+		result["smtp_host"] = true
+	}
+	if s.envConfig.SMTPPort > 0 {
+		result["smtp_port"] = true
+	}
+	if s.envConfig.SMTPUsername != "" {
+		result["smtp_username"] = true
+	}
+	if s.envConfig.SMTPPassword != "" {
+		result["smtp_password"] = true
+	}
+	if s.envConfig.SMTPFromEmail != "" {
+		result["smtp_from_email"] = true
+	}
+	if s.envConfig.SMTPFromName != "" {
+		result["smtp_from_name"] = true
+	}
+	if s.envConfig.SMTPUseTLS != "" {
+		result["smtp_use_tls"] = true
+	}
+	if s.envConfig.SMTPEHLOHostname != "" {
+		result["smtp_ehlo_hostname"] = true
+	}
+	if s.envConfig.SMTPBridgeEnabled != "" {
+		result["smtp_bridge_enabled"] = true
+	}
+	if s.envConfig.SMTPBridgeDomain != "" {
+		result["smtp_bridge_domain"] = true
+	}
+	if s.envConfig.SMTPBridgePort > 0 {
+		result["smtp_bridge_port"] = true
+	}
+	if s.envConfig.SMTPBridgeTLSCertBase64 != "" {
+		result["smtp_bridge_tls_cert_base64"] = true
+	}
+	if s.envConfig.SMTPBridgeTLSKeyBase64 != "" {
+		result["smtp_bridge_tls_key_base64"] = true
+	}
+
+	return result
+}
+
 // ValidateSetupConfig validates the setup configuration, only checking user-provided fields
 func (s *SetupService) ValidateSetupConfig(config *SetupConfig) error {
 	status := s.GetConfigurationStatus()

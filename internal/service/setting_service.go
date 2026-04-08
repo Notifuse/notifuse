@@ -213,17 +213,14 @@ func (s *SettingService) SetSystemConfig(ctx context.Context, config *SystemConf
 		}
 	}
 
-	if config.SMTPFromName != "" {
-		if err := s.repo.Set(ctx, "smtp_from_name", config.SMTPFromName); err != nil {
-			return fmt.Errorf("failed to set smtp_from_name: %w", err)
-		}
+	// Always write smtp_from_name (allow clearing)
+	if err := s.repo.Set(ctx, "smtp_from_name", config.SMTPFromName); err != nil {
+		return fmt.Errorf("failed to set smtp_from_name: %w", err)
 	}
 
-	// Set SMTP EHLO hostname
-	if config.SMTPEHLOHostname != "" {
-		if err := s.repo.Set(ctx, "smtp_ehlo_hostname", config.SMTPEHLOHostname); err != nil {
-			return fmt.Errorf("failed to set smtp_ehlo_hostname: %w", err)
-		}
+	// Always write smtp_ehlo_hostname (allow clearing)
+	if err := s.repo.Set(ctx, "smtp_ehlo_hostname", config.SMTPEHLOHostname); err != nil {
+		return fmt.Errorf("failed to set smtp_ehlo_hostname: %w", err)
 	}
 
 	// Set SMTP TLS setting
@@ -235,7 +232,7 @@ func (s *SettingService) SetSystemConfig(ctx context.Context, config *SystemConf
 		return fmt.Errorf("failed to set smtp_use_tls: %w", err)
 	}
 
-	// Encrypt and store SMTP username
+	// Encrypt and store SMTP username (allow clearing)
 	if config.SMTPUsername != "" {
 		encrypted, err := crypto.EncryptString(config.SMTPUsername, secretKey)
 		if err != nil {
@@ -244,9 +241,13 @@ func (s *SettingService) SetSystemConfig(ctx context.Context, config *SystemConf
 		if err := s.repo.Set(ctx, "encrypted_smtp_username", encrypted); err != nil {
 			return fmt.Errorf("failed to set encrypted_smtp_username: %w", err)
 		}
+	} else {
+		if err := s.repo.Set(ctx, "encrypted_smtp_username", ""); err != nil {
+			return fmt.Errorf("failed to clear encrypted_smtp_username: %w", err)
+		}
 	}
 
-	// Encrypt and store SMTP password
+	// Encrypt and store SMTP password (allow clearing)
 	if config.SMTPPassword != "" {
 		encrypted, err := crypto.EncryptString(config.SMTPPassword, secretKey)
 		if err != nil {
@@ -254,6 +255,10 @@ func (s *SettingService) SetSystemConfig(ctx context.Context, config *SystemConf
 		}
 		if err := s.repo.Set(ctx, "encrypted_smtp_password", encrypted); err != nil {
 			return fmt.Errorf("failed to set encrypted_smtp_password: %w", err)
+		}
+	} else {
+		if err := s.repo.Set(ctx, "encrypted_smtp_password", ""); err != nil {
+			return fmt.Errorf("failed to clear encrypted_smtp_password: %w", err)
 		}
 	}
 
@@ -284,11 +289,9 @@ func (s *SettingService) SetSystemConfig(ctx context.Context, config *SystemConf
 		return fmt.Errorf("failed to set smtp_bridge_enabled: %w", err)
 	}
 
-	// Set SMTP Bridge domain
-	if config.SMTPBridgeDomain != "" {
-		if err := s.repo.Set(ctx, "smtp_bridge_domain", config.SMTPBridgeDomain); err != nil {
-			return fmt.Errorf("failed to set smtp_bridge_domain: %w", err)
-		}
+	// Always write smtp_bridge_domain (allow clearing)
+	if err := s.repo.Set(ctx, "smtp_bridge_domain", config.SMTPBridgeDomain); err != nil {
+		return fmt.Errorf("failed to set smtp_bridge_domain: %w", err)
 	}
 
 	// Set SMTP Bridge port
@@ -298,7 +301,7 @@ func (s *SettingService) SetSystemConfig(ctx context.Context, config *SystemConf
 		}
 	}
 
-	// Encrypt and store SMTP Bridge TLS certificate
+	// Encrypt and store SMTP Bridge TLS certificate (allow clearing)
 	if config.SMTPBridgeTLSCertBase64 != "" {
 		encrypted, err := crypto.EncryptString(config.SMTPBridgeTLSCertBase64, secretKey)
 		if err != nil {
@@ -307,9 +310,13 @@ func (s *SettingService) SetSystemConfig(ctx context.Context, config *SystemConf
 		if err := s.repo.Set(ctx, "encrypted_smtp_bridge_tls_cert_base64", encrypted); err != nil {
 			return fmt.Errorf("failed to set encrypted_smtp_bridge_tls_cert_base64: %w", err)
 		}
+	} else {
+		if err := s.repo.Set(ctx, "encrypted_smtp_bridge_tls_cert_base64", ""); err != nil {
+			return fmt.Errorf("failed to clear encrypted_smtp_bridge_tls_cert_base64: %w", err)
+		}
 	}
 
-	// Encrypt and store SMTP Bridge TLS key
+	// Encrypt and store SMTP Bridge TLS key (allow clearing)
 	if config.SMTPBridgeTLSKeyBase64 != "" {
 		encrypted, err := crypto.EncryptString(config.SMTPBridgeTLSKeyBase64, secretKey)
 		if err != nil {
@@ -317,6 +324,10 @@ func (s *SettingService) SetSystemConfig(ctx context.Context, config *SystemConf
 		}
 		if err := s.repo.Set(ctx, "encrypted_smtp_bridge_tls_key_base64", encrypted); err != nil {
 			return fmt.Errorf("failed to set encrypted_smtp_bridge_tls_key_base64: %w", err)
+		}
+	} else {
+		if err := s.repo.Set(ctx, "encrypted_smtp_bridge_tls_key_base64", ""); err != nil {
+			return fmt.Errorf("failed to clear encrypted_smtp_bridge_tls_key_base64: %w", err)
 		}
 	}
 

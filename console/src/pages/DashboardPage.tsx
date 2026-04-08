@@ -5,6 +5,7 @@ import { useNavigate } from '@tanstack/react-router'
 import { MainLayout, MainLayoutSidebar } from '../layouts/MainLayout'
 import { isRootUser } from '../services/api/auth'
 import { useLingui } from '@lingui/react/macro'
+import { SystemSettingsDrawer } from '../components/settings/SystemSettingsDrawer'
 
 const { Text } = Typography
 
@@ -30,13 +31,16 @@ export function DashboardPage() {
         title={t`Select workspace`}
         extra={
           isRootUser(user?.email) ? (
-            <Button
-              type="primary"
-              ghost
-              icon={<PlusOutlined />}
-              onClick={handleCreateWorkspace}
-              style={{ padding: '4px', lineHeight: 1 }}
-            />
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <SystemSettingsDrawer />
+              <Button
+                type="primary"
+                ghost
+                icon={<PlusOutlined />}
+                onClick={handleCreateWorkspace}
+                style={{ padding: '4px', lineHeight: 1 }}
+              />
+            </div>
           ) : undefined
         }
       >

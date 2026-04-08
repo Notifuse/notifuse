@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [29.2] - 2026-04-08
+
+- **Deps**: Updated @vitejs/plugin-react to 5.2.0 in console and notification center
+- **Feature**: Added System Settings drawer for root admin to view and edit system configuration from the dashboard
+
 ## [29.1] - 2026-04-07
 
 - **Security**: Upgraded Vite to 7.3.2 in console and notification center to fix arbitrary file read via WebSocket (CVE-2026-39363)

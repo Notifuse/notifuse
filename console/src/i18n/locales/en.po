@@ -801,6 +801,7 @@ msgstr "API Command"
 
 #: src/components/settings/Integrations.tsx:1723
 #: src/components/settings/Integrations.tsx:1977
+#: src/components/settings/SystemSettingsDrawer.tsx:238
 #: src/pages/SetupWizard.tsx:355
 msgid "API Endpoint"
 msgstr "API Endpoint"
@@ -1161,9 +1162,17 @@ msgstr "Background Type"
 msgid "Base URL (Optional)"
 msgstr "Base URL (Optional)"
 
+#: src/components/settings/SystemSettingsDrawer.tsx:472
+msgid "Base64 encoded TLS certificate"
+msgstr "Base64 encoded TLS certificate"
+
 #: src/pages/SetupWizard.tsx:622
 msgid "Base64 encoded TLS certificate. Run: cat fullchain.pem | base64 -w 0"
 msgstr "Base64 encoded TLS certificate. Run: cat fullchain.pem | base64 -w 0"
+
+#: src/components/settings/SystemSettingsDrawer.tsx:486
+msgid "Base64 encoded TLS private key"
+msgstr "Base64 encoded TLS private key"
 
 #: src/pages/SetupWizard.tsx:640
 msgid "Base64 encoded TLS private key. Run: cat privkey.pem | base64 -w 0"
@@ -1394,6 +1403,14 @@ msgstr "Breakpoint Attributes"
 msgid "Breakpoint Width"
 msgstr "Breakpoint Width"
 
+#: src/components/settings/SystemSettingsDrawer.tsx:429
+msgid "Bridge Domain"
+msgstr "Bridge Domain"
+
+#: src/components/settings/SystemSettingsDrawer.tsx:442
+msgid "Bridge Port"
+msgstr "Bridge Port"
+
 #: src/components/seo/SEOSettingsForm.tsx:23
 msgid "Brief description for search results"
 msgstr "Brief description for search results"
@@ -1576,6 +1593,7 @@ msgstr "Button Size"
 #: src/components/settings/Integrations.tsx:2263
 #: src/components/settings/Integrations.tsx:2311
 #: src/components/settings/Integrations.tsx:2358
+#: src/components/settings/SystemSettingsDrawer.tsx:141
 #: src/components/settings/WebhookCard.tsx:348
 #: src/components/settings/WebhooksSettings.tsx:213
 #: src/components/settings/WorkspaceMembers.tsx:545
@@ -1711,6 +1729,7 @@ msgstr "Channel"
 msgid "Check"
 msgstr "Check"
 
+#: src/components/settings/SystemSettingsDrawer.tsx:509
 #: src/pages/SetupWizard.tsx:542
 msgid "Check for Updates"
 msgstr "Check for Updates"
@@ -2491,6 +2510,10 @@ msgstr "Custom Fields"
 #: src/components/broadcasts/HeadersEditor.tsx:34
 msgid "Custom header"
 msgstr "Custom header"
+
+#: src/components/settings/SystemSettingsDrawer.tsx:394
+msgid "Custom hostname used in SMTP EHLO/HELO command. Leave empty to use default."
+msgstr "Custom hostname used in SMTP EHLO/HELO command. Leave empty to use default."
 
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:141
 msgid "Custom Icon URL"
@@ -3276,6 +3299,7 @@ msgstr "Editor mode"
 
 #: src/components/settings/Integrations.tsx:1711
 #: src/components/settings/Integrations.tsx:1964
+#: src/components/settings/SystemSettingsDrawer.tsx:392
 #: src/pages/SetupWizard.tsx:499
 msgid "EHLO Hostname"
 msgstr "EHLO Hostname"
@@ -3468,6 +3492,7 @@ msgstr "Enable SMTP Bridge Server"
 msgid "Enable the blog feature to publish articles and content on your custom domain homepage. Your blog will be accessible at"
 msgstr "Enable the blog feature to publish articles and content on your custom domain homepage. Your blog will be accessible at"
 
+#: src/components/settings/SystemSettingsDrawer.tsx:315
 #: src/pages/SetupWizard.tsx:457
 msgid "Enable TLS encryption for SMTP connection"
 msgstr "Enable TLS encryption for SMTP connection"
@@ -3488,6 +3513,7 @@ msgstr "Enable webhook"
 #: src/components/settings/GeneralSettings.tsx:138
 #: src/components/settings/Integrations.tsx:1304
 #: src/components/settings/SMTPBridgeSettings.tsx:45
+#: src/components/settings/SystemSettingsDrawer.tsx:419
 #: src/components/templates/TemplateTranslationsTab.tsx:203
 msgid "Enabled"
 msgstr "Enabled"
@@ -4083,6 +4109,10 @@ msgstr "Failed to invite member"
 msgid "Failed to load contact lists"
 msgstr "Failed to load contact lists"
 
+#: src/components/settings/SystemSettingsDrawer.tsx:49
+msgid "Failed to load settings"
+msgstr "Failed to load settings"
+
 #: src/components/settings/WebhooksSettings.tsx:42
 msgid "Failed to load webhook subscriptions"
 msgstr "Failed to load webhook subscriptions"
@@ -4189,6 +4219,10 @@ msgstr "Failed to save integration"
 #: src/components/settings/Integrations.tsx:820
 msgid "Failed to save LLM integration"
 msgstr "Failed to save LLM integration"
+
+#: src/components/settings/SystemSettingsDrawer.tsx:181
+msgid "Failed to save settings"
+msgstr "Failed to save settings"
 
 #: src/components/settings/Integrations.tsx:767
 msgid "Failed to save Supabase integration"
@@ -4339,6 +4373,10 @@ msgstr "Favicon for your blog. Recommended: 32x32px or 192x192px PNG"
 #: src/components/blog/PostDrawer.tsx:848
 msgid "Featured Image URL"
 msgstr "Featured Image URL"
+
+#: src/components/settings/SystemSettingsDrawer.tsx:496
+msgid "Features"
+msgstr "Features"
 
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:464
 msgid "Feedback Type"
@@ -4576,6 +4614,7 @@ msgstr "Frequency"
 msgid "From"
 msgstr "From"
 
+#: src/components/settings/SystemSettingsDrawer.tsx:359
 #: src/pages/SetupWizard.tsx:480
 msgid "From Email"
 msgstr "From Email"
@@ -4584,6 +4623,7 @@ msgstr "From Email"
 msgid "From email is required"
 msgstr "From email is required"
 
+#: src/components/settings/SystemSettingsDrawer.tsx:375
 #: src/pages/SetupWizard.tsx:491
 msgid "From Name"
 msgstr "From Name"
@@ -4622,6 +4662,7 @@ msgid "Fullscreen"
 msgstr "Fullscreen"
 
 #: src/components/settings/SettingsSidebar.tsx:113
+#: src/components/settings/SystemSettingsDrawer.tsx:221
 msgid "General"
 msgstr "General"
 
@@ -4910,7 +4951,7 @@ msgid "ID must contain only lowercase letters, numbers, underscores, and hyphens
 msgstr "ID must contain only lowercase letters, numbers, underscores, and hyphens"
 
 #: src/components/timeline/ContactTimeline.tsx:698
-#: src/pages/DashboardPage.tsx:87
+#: src/pages/DashboardPage.tsx:91
 msgid "ID:"
 msgstr "ID:"
 
@@ -5189,6 +5230,11 @@ msgstr "Integration updated successfully"
 #: src/components/settings/SettingsSidebar.tsx:55
 msgid "Integrations"
 msgstr "Integrations"
+
+#: src/components/settings/SystemSettingsDrawer.tsx:229
+#: src/components/settings/SystemSettingsDrawer.tsx:363
+msgid "Invalid email"
+msgstr "Invalid email"
 
 #: src/pages/SetupWizard.tsx:346
 #: src/pages/SetupWizard.tsx:484
@@ -6326,7 +6372,7 @@ msgstr "No webhook events found"
 msgid "No webhook subscriptions configured"
 msgstr "No webhook subscriptions configured"
 
-#: src/pages/DashboardPage.tsx:44
+#: src/pages/DashboardPage.tsx:48
 msgid "No workspaces"
 msgstr "No workspaces"
 
@@ -6561,6 +6607,12 @@ msgstr "Operation Complete"
 #: src/pages/TemplatesPage.tsx:81
 msgid "Opt-in"
 msgstr "Opt-in"
+
+#: src/components/settings/SystemSettingsDrawer.tsx:337
+#: src/components/settings/SystemSettingsDrawer.tsx:350
+#: src/components/settings/SystemSettingsDrawer.tsx:405
+msgid "Optional"
+msgstr "Optional"
 
 #: src/components/automations/config/WebhookConfigForm.tsx:53
 msgid "Optional bearer token"
@@ -7010,6 +7062,11 @@ msgstr "Port"
 #: src/pages/SetupWizard.tsx:604
 msgid "Port for the SMTP bridge server (default: 587)"
 msgstr "Port for the SMTP bridge server (default: 587)"
+
+#: src/components/settings/SystemSettingsDrawer.tsx:298
+#: src/components/settings/SystemSettingsDrawer.tsx:449
+msgid "Port must be 1-65535"
+msgstr "Port must be 1-65535"
 
 #: src/components/blog/ThemeEditorDrawer.tsx:437
 #: src/components/blog/ThemePresetPreviewDrawer.tsx:88
@@ -7527,6 +7584,14 @@ msgstr "Reply-To"
 msgid "Report An Issue"
 msgstr "Report An Issue"
 
+#: src/components/settings/SystemSettingsDrawer.tsx:228
+#: src/components/settings/SystemSettingsDrawer.tsx:240
+#: src/components/settings/SystemSettingsDrawer.tsx:279
+#: src/components/settings/SystemSettingsDrawer.tsx:293
+#: src/components/settings/SystemSettingsDrawer.tsx:362
+msgid "Required"
+msgstr "Required"
+
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:1110
 msgid "Required Fields"
 msgstr "Required Fields"
@@ -7573,6 +7638,10 @@ msgstr "Response"
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:486
 msgid "Response Body:"
 msgstr "Response Body:"
+
+#: src/components/settings/SystemSettingsDrawer.tsx:132
+msgid "Restart Server?"
+msgstr "Restart Server?"
 
 #: src/components/email_builder/MjmlCodeEditor.tsx:371
 msgid "Restore"
@@ -7641,6 +7710,7 @@ msgstr "Right to Left"
 msgid "Role"
 msgstr "Role"
 
+#: src/components/settings/SystemSettingsDrawer.tsx:225
 #: src/pages/SetupWizard.tsx:342
 msgid "Root Email"
 msgstr "Root Email"
@@ -7726,12 +7796,17 @@ msgstr "Sandbox Mode"
 #: src/components/settings/Integrations.tsx:2271
 #: src/components/settings/Integrations.tsx:2319
 #: src/components/settings/Integrations.tsx:2366
+#: src/components/settings/SystemSettingsDrawer.tsx:210
 #: src/components/settings/WebhooksSettings.tsx:215
 #: src/components/templates/CreateTemplateDrawer.tsx:521
 #: src/components/templates/CreateTemplateDrawer.tsx:542
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:182
 msgid "Save"
 msgstr "Save"
+
+#: src/components/settings/SystemSettingsDrawer.tsx:140
+msgid "Save & Restart"
+msgstr "Save & Restart"
 
 #: src/components/automations/UpsertAutomationDrawer.tsx:113
 msgid "Save Anyway"
@@ -7788,6 +7863,10 @@ msgstr "Saved ({0})"
 #: src/components/email_builder/ui/AddBlockPopover.tsx:160
 msgid "Saved block: {0}"
 msgstr "Saved block: {0}"
+
+#: src/components/settings/SystemSettingsDrawer.tsx:122
+msgid "Saving settings will restart the server. You will need to sign in again."
+msgstr "Saving settings will restart the server. You will need to sign in again."
 
 #: src/components/broadcasts/SendOrScheduleModal.tsx:308
 msgid "Schedule"
@@ -8178,7 +8257,7 @@ msgid "Select Winner"
 msgstr "Select Winner"
 
 #: src/layouts/WorkspaceLayout.tsx:502
-#: src/pages/DashboardPage.tsx:30
+#: src/pages/DashboardPage.tsx:31
 msgid "Select workspace"
 msgstr "Select workspace"
 
@@ -8318,9 +8397,18 @@ msgstr "Separate sides"
 msgid "Server is restarting with new configuration..."
 msgstr "Server is restarting with new configuration..."
 
+#: src/components/settings/SystemSettingsDrawer.tsx:148
+msgid "Server is restarting..."
+msgstr "Server is restarting..."
+
+#: src/components/settings/SystemSettingsDrawer.tsx:173
 #: src/pages/SetupWizard.tsx:211
 msgid "Server restart timeout. Please refresh the page manually."
 msgstr "Server restart timeout. Please refresh the page manually."
+
+#: src/components/settings/SystemSettingsDrawer.tsx:160
+msgid "Server restarted successfully!"
+msgstr "Server restarted successfully!"
 
 #: src/pages/SetupWizard.tsx:201
 msgid "Server restarted successfully! You can now sign in."
@@ -8349,6 +8437,10 @@ msgstr "Set as marketing email provider?"
 #: src/components/settings/Integrations.tsx:401
 msgid "Set as transactional email provider?"
 msgstr "Set as transactional email provider?"
+
+#: src/components/settings/SystemSettingsDrawer.tsx:67
+msgid "Set by environment variable"
+msgstr "Set by environment variable"
 
 #: src/components/email_builder/blocks/MjBodyBlock.tsx:75
 msgid "Set class"
@@ -8508,6 +8600,7 @@ msgstr "SMS"
 
 #: src/components/settings/SettingsSidebar.tsx:108
 #: src/components/settings/SMTPBridgeSettings.tsx:12
+#: src/components/settings/SystemSettingsDrawer.tsx:415
 msgid "SMTP Bridge"
 msgstr "SMTP Bridge"
 
@@ -8535,12 +8628,21 @@ msgstr "SMTP Configuration"
 msgid "SMTP connection successful!"
 msgstr "SMTP connection successful!"
 
+#: src/components/settings/SystemSettingsDrawer.tsx:86
+msgid "SMTP connection test failed"
+msgstr "SMTP connection test failed"
+
+#: src/components/settings/SystemSettingsDrawer.tsx:84
+msgid "SMTP connection test successful"
+msgstr "SMTP connection test successful"
+
 #: src/components/settings/SMTPBridgeSettings.tsx:33
 msgid "SMTP domain"
 msgstr "SMTP domain"
 
 #: src/components/settings/Integrations.tsx:1527
 #: src/components/settings/Integrations.tsx:1943
+#: src/components/settings/SystemSettingsDrawer.tsx:277
 #: src/pages/SetupWizard.tsx:430
 msgid "SMTP Host"
 msgstr "SMTP Host"
@@ -8550,6 +8652,7 @@ msgid "SMTP host is required"
 msgstr "SMTP host is required"
 
 #: src/components/settings/Integrations.tsx:1701
+#: src/components/settings/SystemSettingsDrawer.tsx:344
 #: src/pages/SetupWizard.tsx:471
 msgid "SMTP Password"
 msgstr "SMTP Password"
@@ -8559,6 +8662,7 @@ msgid "SMTP port"
 msgstr "SMTP port"
 
 #: src/components/settings/Integrations.tsx:1532
+#: src/components/settings/SystemSettingsDrawer.tsx:290
 #: src/pages/SetupWizard.tsx:439
 msgid "SMTP Port"
 msgstr "SMTP Port"
@@ -8584,6 +8688,7 @@ msgid "SMTP User"
 msgstr "SMTP User"
 
 #: src/components/settings/Integrations.tsx:1696
+#: src/components/settings/SystemSettingsDrawer.tsx:331
 #: src/pages/SetupWizard.tsx:466
 msgid "SMTP Username"
 msgstr "SMTP Username"
@@ -8888,6 +8993,15 @@ msgstr "Switch to Preview mode to see the breakpoint effects. The edit mode show
 msgid "System Fonts"
 msgstr "System Fonts"
 
+#: src/components/settings/SystemSettingsDrawer.tsx:192
+#: src/components/settings/SystemSettingsDrawer.tsx:203
+msgid "System Settings"
+msgstr "System Settings"
+
+#: src/components/settings/SystemSettingsDrawer.tsx:263
+msgid "System SMTP"
+msgstr "System SMTP"
+
 #: src/components/blog/PostDrawer.tsx:670
 msgid "Table of Contents"
 msgstr "Table of Contents"
@@ -8912,6 +9026,10 @@ msgstr "Task type:"
 #: src/components/settings/WorkspaceMembers.tsx:508
 msgid "Team"
 msgstr "Team"
+
+#: src/components/settings/SystemSettingsDrawer.tsx:500
+msgid "Telemetry"
+msgstr "Telemetry"
 
 #: src/components/segment/form_leaf.tsx:319
 #: src/components/segment/input.tsx:737
@@ -9033,6 +9151,7 @@ msgstr "Templating markup allowed"
 msgid "Test"
 msgstr "Test"
 
+#: src/components/settings/SystemSettingsDrawer.tsx:271
 #: src/pages/SetupWizard.tsx:511
 msgid "Test Connection"
 msgstr "Test Connection"
@@ -9158,6 +9277,10 @@ msgstr "Text Transform"
 #: src/components/transactional/ApiCommandModal.tsx:554
 msgid "The"
 msgstr "The"
+
+#: src/components/settings/SystemSettingsDrawer.tsx:126
+msgid "The API endpoint has changed. After restart, the console will be available at:"
+msgstr "The API endpoint has changed. After restart, the console will be available at:"
 
 #: src/components/automations/AutomationCard.tsx:210
 msgid "The automation will start processing contacts that match the trigger."
@@ -9508,6 +9631,7 @@ msgstr "Title when shared on social media (optional)"
 msgid "TLS"
 msgstr "TLS"
 
+#: src/components/settings/SystemSettingsDrawer.tsx:465
 #: src/pages/SetupWizard.tsx:614
 msgid "TLS Certificate (Base64)"
 msgstr "TLS Certificate (Base64)"
@@ -9519,6 +9643,10 @@ msgstr "TLS certificate is required"
 #: src/components/settings/Integrations.tsx:1949
 msgid "TLS Enabled"
 msgstr "TLS Enabled"
+
+#: src/components/settings/SystemSettingsDrawer.tsx:479
+msgid "TLS Key (Base64)"
+msgstr "TLS Key (Base64)"
 
 #: src/pages/SetupWizard.tsx:632
 msgid "TLS Private Key (Base64)"
@@ -9990,6 +10118,7 @@ msgid "Use This Theme"
 msgstr "Use This Theme"
 
 #: src/components/settings/Integrations.tsx:1540
+#: src/components/settings/SystemSettingsDrawer.tsx:314
 #: src/pages/SetupWizard.tsx:456
 msgid "Use TLS"
 msgstr "Use TLS"
