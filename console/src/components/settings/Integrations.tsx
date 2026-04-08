@@ -1363,9 +1363,18 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
                     <Descriptions.Item label={t`Name`}>{integration.name}</Descriptions.Item>
                     <Descriptions.Item label={t`Model`}>
                       <Tag bordered={false} color="purple">
-                        {provider.anthropic?.model || 'Not configured'}
+                        {provider.kind === 'openai'
+                          ? provider.openai?.model || 'Not configured'
+                          : provider.anthropic?.model || 'Not configured'}
                       </Tag>
                     </Descriptions.Item>
+                    {provider.kind === 'openai' && provider.openai?.base_url && (
+                      <Descriptions.Item label={t`Base URL`}>
+                        <Tag bordered={false} color="blue">
+                          {provider.openai.base_url}
+                        </Tag>
+                      </Descriptions.Item>
+                    )}
                     <Descriptions.Item label={t`API Key`}>
                       <Tag bordered={false} color="green">
                         <FontAwesomeIcon icon={faCheck} className="mr-1" /> {t`Configured`}

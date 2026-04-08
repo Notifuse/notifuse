@@ -13,6 +13,8 @@ export const getLLMProviderName = (kind: string): string => {
   switch (kind) {
     case 'anthropic':
       return 'Anthropic'
+    case 'openai':
+      return 'OpenAI'
     default:
       return kind
   }
@@ -43,6 +45,24 @@ export const llmProviders: LLMProviderInfo[] = [
         <img
           src="/console/anthropic.png"
           alt="Anthropic"
+          style={{ height, maxWidth, objectFit: 'contain', display: 'inline-block' }}
+          className={className}
+        />
+      )
+    }
+  },
+  {
+    type: 'llm',
+    kind: 'openai',
+    name: 'OpenAI',
+    defaultModel: 'gpt-4.1',
+    getIcon: (className = '', size: 'small' | 'large' | number = 'small') => {
+      const height = typeof size === 'number' ? size : size === 'small' ? 12 : 18
+      const maxWidth = height * 5
+      return (
+        <img
+          src="/console/openai.svg"
+          alt="OpenAI"
           style={{ height, maxWidth, objectFit: 'contain', display: 'inline-block' }}
           className={className}
         />

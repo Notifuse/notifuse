@@ -60,7 +60,7 @@ func NewLLMService(config LLMServiceConfig) *LLMService {
 	}
 }
 
-// StreamChat implements streaming chat with Anthropic
+// StreamChat authenticates the user, resolves the integration, and dispatches to the provider-specific streaming implementation
 func (s *LLMService) StreamChat(ctx context.Context, req *domain.LLMChatRequest, onEvent func(domain.LLMChatEvent) error) error {
 	// 1. Authenticate user for workspace
 	ctx, _, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, req.WorkspaceID)
@@ -107,24 +107,49 @@ func (s *LLMService) StreamChat(ctx context.Context, req *domain.LLMChatRequest,
 	if integration.Type != domain.IntegrationTypeLLM {
 		return fmt.Errorf("integration is not an LLM integration: %s", req.IntegrationID)
 	}
-	if integration.LLMProvider == nil || integration.LLMProvider.Anthropic == nil {
+	if integration.LLMProvider == nil {
 		return fmt.Errorf("LLM provider configuration is missing")
 	}
 
-	// 5. Get decrypted API key (already decrypted by AfterLoad in repository)
-	apiKey := integration.LLMProvider.Anthropic.APIKey
+	// 5. Dispatch to provider-specific streaming implementation
+	switch integration.LLMProvider.Kind {
+	case domain.LLMProviderKindAnthropic:
+		if integration.LLMProvider.Anthropic == nil {
+			return fmt.Errorf("Anthropic configuration is missing")
+		}
+		return s.streamChatAnthropic(ctx, req, integration.LLMProvider.Anthropic, firecrawlSettings, onEvent)
+	case domain.LLMProviderKindOpenAI:
+		if integration.LLMProvider.OpenAI == nil {
+			return fmt.Errorf("OpenAI configuration is missing")
+		}
+		return s.streamChatOpenAI(ctx, req, integration.LLMProvider.OpenAI, firecrawlSettings, onEvent)
+	default:
+		return fmt.Errorf("unsupported LLM provider: %s", integration.LLMProvider.Kind)
+	}
+}
+
+// streamChatAnthropic implements streaming chat with Anthropic's Claude API
+func (s *LLMService) streamChatAnthropic(
+	ctx context.Context,
+	req *domain.LLMChatRequest,
+	settings *domain.AnthropicSettings,
+	firecrawlSettings *domain.FirecrawlSettings,
+	onEvent func(domain.LLMChatEvent) error,
+) error {
+	// Get decrypted API key (already decrypted by AfterLoad in repository)
+	apiKey := settings.APIKey
 	if apiKey == "" {
 		return fmt.Errorf("API key is not configured for LLM integration")
 	}
-	model := integration.LLMProvider.Anthropic.Model
+	model := settings.Model
 	if model == "" {
 		model = "claude-sonnet-4-6" // Default model
 	}
 
-	// 6. Create Anthropic client
+	// Create Anthropic client
 	client := anthropic.NewClient(option.WithAPIKey(apiKey))
 
-	// 7. Convert messages to Anthropic format
+	// Convert messages to Anthropic format
 	messages := make([]anthropic.MessageParam, len(req.Messages))
 	for i, msg := range req.Messages {
 		if msg.Role == "user" {
@@ -134,13 +159,13 @@ func (s *LLMService) StreamChat(ctx context.Context, req *domain.LLMChatRequest,
 		}
 	}
 
-	// 8. Set default max tokens
+	// Set default max tokens
 	maxTokens := int64(req.MaxTokens)
 	if maxTokens == 0 {
 		maxTokens = 2048
 	}
 
-	// 9. Build streaming request parameters
+	// Build streaming request parameters
 	params := anthropic.MessageNewParams{
 		Model:     anthropic.Model(model),
 		MaxTokens: maxTokens,
@@ -154,7 +179,7 @@ func (s *LLMService) StreamChat(ctx context.Context, req *domain.LLMChatRequest,
 		}
 	}
 
-	// 10. Add tools if provided
+	// Add tools if provided
 	if len(req.Tools) > 0 {
 		tools := make([]anthropic.ToolUnionParam, len(req.Tools))
 		for i, t := range req.Tools {
@@ -188,13 +213,13 @@ func (s *LLMService) StreamChat(ctx context.Context, req *domain.LLMChatRequest,
 		params.Tools = tools
 	}
 
-	// 11. Create streaming request
+	// Create streaming request
 	stream := client.Messages.NewStreaming(ctx, params)
 
-	// 12. Create message accumulator to capture usage stats and tool use blocks
+	// Create message accumulator to capture usage stats and tool use blocks
 	message := anthropic.Message{}
 
-	// 13. Process stream events
+	// Process stream events
 	for stream.Next() {
 		event := stream.Current()
 
@@ -222,7 +247,7 @@ func (s *LLMService) StreamChat(ctx context.Context, req *domain.LLMChatRequest,
 		return fmt.Errorf("stream error: %w", err)
 	}
 
-	// 14. Process accumulated tool use blocks - handle server-side vs client-side
+	// Process accumulated tool use blocks - handle server-side vs client-side
 	var serverToolCalls []struct {
 		ID    string
 		Name  string
@@ -263,7 +288,7 @@ func (s *LLMService) StreamChat(ctx context.Context, req *domain.LLMChatRequest,
 		}
 	}
 
-	// 15. Execute server-side tools and continue conversation if needed
+	// Execute server-side tools and continue conversation if needed
 	totalInputTokens := message.Usage.InputTokens
 	totalOutputTokens := message.Usage.OutputTokens
 
@@ -418,10 +443,10 @@ func (s *LLMService) StreamChat(ctx context.Context, req *domain.LLMChatRequest,
 		}
 	}
 
-	// 16. Calculate costs
+	// Calculate costs
 	inputCost, outputCost, totalCost := calculateCost(model, totalInputTokens, totalOutputTokens)
 
-	// 17. Send done event with usage stats
+	// Send done event with usage stats
 	return onEvent(domain.LLMChatEvent{
 		Type:         "done",
 		InputTokens:  &totalInputTokens,

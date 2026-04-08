@@ -34,6 +34,7 @@ export type {
   SendGridSettings,
   LLMProviderKind,
   LLMProvider,
+  OpenAISettings,
   IntegrationType,
   Integration,
   SupabaseAuthEmailHookSettings,

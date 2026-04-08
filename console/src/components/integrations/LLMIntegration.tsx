@@ -43,18 +43,34 @@ export const LLMIntegration: React.FC<LLMIntegrationProps> = ({
   const providerInfo = llmProviders.find((p) => p.kind === providerKind)
 
   useEffect(() => {
-    if (integration?.llm_provider) {
-      const provider = integration.llm_provider
-      form.setFieldsValue({
-        name: integration.name,
-        model: provider.anthropic?.model || providerInfo?.defaultModel || ''
-      })
+    if (providerKind === 'openai') {
+      if (integration?.llm_provider?.openai) {
+        const provider = integration.llm_provider.openai
+        form.setFieldsValue({
+          name: integration.name,
+          model: provider.model || providerInfo?.defaultModel || 'gpt-4.1',
+          base_url: provider.base_url || ''
+        })
+      } else {
+        form.setFieldsValue({
+          name: providerInfo?.name || 'OpenAI',
+          model: providerInfo?.defaultModel || 'gpt-4.1',
+          base_url: ''
+        })
+      }
     } else {
-      // Default values for new integration
-      form.setFieldsValue({
-        name: providerInfo?.name || 'Anthropic',
-        model: providerInfo?.defaultModel || 'claude-sonnet-4-6'
-      })
+      if (integration?.llm_provider) {
+        const provider = integration.llm_provider
+        form.setFieldsValue({
+          name: integration.name,
+          model: provider.anthropic?.model || providerInfo?.defaultModel || ''
+        })
+      } else {
+        form.setFieldsValue({
+          name: providerInfo?.name || 'Anthropic',
+          model: providerInfo?.defaultModel || 'claude-sonnet-4-6'
+        })
+      }
     }
   }, [integration, providerKind, form, providerInfo])
 
@@ -69,14 +85,26 @@ export const LLMIntegration: React.FC<LLMIntegrationProps> = ({
 
       const integrationData: Integration = {
         id: integration?.id || `int_${Date.now()}`,
-        name: isString(values.name) ? values.name : providerInfo?.name || 'Anthropic',
+        name: isString(values.name) ? values.name : providerInfo?.name || '',
         type: 'llm',
         llm_provider: {
           kind: providerKind,
-          anthropic: {
-            api_key: isString(values.api_key) && values.api_key !== '' ? values.api_key : undefined,
-            model: isString(values.model) ? values.model : providerInfo?.defaultModel || ''
-          }
+          ...(providerKind === 'anthropic' && {
+            anthropic: {
+              api_key:
+                isString(values.api_key) && values.api_key !== '' ? values.api_key : undefined,
+              model: isString(values.model) ? values.model : providerInfo?.defaultModel || ''
+            }
+          }),
+          ...(providerKind === 'openai' && {
+            openai: {
+              api_key:
+                isString(values.api_key) && values.api_key !== '' ? values.api_key : undefined,
+              model: isString(values.model) ? values.model : 'gpt-4o',
+              base_url:
+                isString(values.base_url) && values.base_url !== '' ? values.base_url : undefined
+            }
+          })
         },
         created_at: integration?.created_at || new Date().toISOString(),
         updated_at: new Date().toISOString()
@@ -96,7 +124,13 @@ export const LLMIntegration: React.FC<LLMIntegrationProps> = ({
         name="name"
         rules={[{ required: true, message: t`Please enter integration name` }]}
       >
-        <Input placeholder={t`e.g., My Anthropic Integration`} />
+        <Input
+          placeholder={
+            providerKind === 'openai'
+              ? t`e.g., My OpenAI Integration`
+              : t`e.g., My Anthropic Integration`
+          }
+        />
       </Form.Item>
 
       <Form.Item
@@ -104,21 +138,43 @@ export const LLMIntegration: React.FC<LLMIntegrationProps> = ({
         name="api_key"
         extra={integration ? t`Leave blank to keep the existing API key` : undefined}
         rules={
-          integration
-            ? []
-            : [{ required: true, message: t`Please enter your API key` }]
+          integration ? [] : [{ required: true, message: t`Please enter your API key` }]
         }
       >
-        <Input.Password placeholder="sk-ant-api03-..." />
+        <Input.Password
+          placeholder={providerKind === 'openai' ? 'sk-proj-...' : 'sk-ant-api03-...'}
+        />
       </Form.Item>
 
-      <Form.Item
-        label={t`Model`}
-        name="model"
-        rules={[{ required: true, message: t`Please select a model` }]}
-      >
-        <Select placeholder={t`Select a model`} options={anthropicModels} />
-      </Form.Item>
+      {providerKind === 'anthropic' && (
+        <Form.Item
+          label={t`Model`}
+          name="model"
+          rules={[{ required: true, message: t`Please select a model` }]}
+        >
+          <Select placeholder={t`Select a model`} options={anthropicModels} />
+        </Form.Item>
+      )}
+
+      {providerKind === 'openai' && (
+        <>
+          <Form.Item
+            label={t`Model`}
+            name="model"
+            rules={[{ required: true, message: t`Please enter a model name` }]}
+          >
+            <Input placeholder={t`gpt-4.1, gpt-5.4, o4-mini, or custom model name`} />
+          </Form.Item>
+
+          <Form.Item
+            label={t`Base URL`}
+            name="base_url"
+            extra={t`Optional. For OpenAI-compatible providers (Ollama, vLLM, LiteLLM, Azure, etc.). Leave empty for the default OpenAI endpoint.`}
+          >
+            <Input placeholder="https://api.openai.com/v1" />
+          </Form.Item>
+        </>
+      )}
     </Form>
   )
 }

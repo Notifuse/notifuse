@@ -308,7 +308,137 @@ func TestLLMService_StreamChat_MissingAnthropicConfig(t *testing.T) {
 	})
 
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "LLM provider configuration is missing")
+	assert.Contains(t, err.Error(), "Anthropic configuration is missing")
+}
+
+func TestLLMService_StreamChat_MissingOpenAIConfig(t *testing.T) {
+	service, mockAuthService, mockWorkspaceRepo := setupLLMServiceTest(t)
+
+	req := &domain.LLMChatRequest{
+		WorkspaceID:   "workspace123",
+		IntegrationID: "llm-integration",
+		Messages: []domain.LLMMessage{
+			{Role: "user", Content: "Hello"},
+		},
+	}
+
+	ctx := setupLLMContextWithAuth(mockAuthService, "workspace123", true, true)
+
+	workspace := &domain.Workspace{
+		ID:   "workspace123",
+		Name: "Test Workspace",
+		Integrations: []domain.Integration{
+			{
+				ID:   "llm-integration",
+				Name: "LLM Provider",
+				Type: domain.IntegrationTypeLLM,
+				LLMProvider: &domain.LLMProvider{
+					Kind:   domain.LLMProviderKindOpenAI,
+					OpenAI: nil, // Missing OpenAI config
+				},
+			},
+		},
+	}
+
+	mockWorkspaceRepo.EXPECT().
+		GetByID(gomock.Any(), "workspace123").
+		Return(workspace, nil).
+		Times(1)
+
+	err := service.StreamChat(ctx, req, func(event domain.LLMChatEvent) error {
+		return nil
+	})
+
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "OpenAI configuration is missing")
+}
+
+func TestLLMService_StreamChat_EmptyAPIKey_OpenAI(t *testing.T) {
+	service, mockAuthService, mockWorkspaceRepo := setupLLMServiceTest(t)
+
+	req := &domain.LLMChatRequest{
+		WorkspaceID:   "workspace123",
+		IntegrationID: "llm-integration",
+		Messages: []domain.LLMMessage{
+			{Role: "user", Content: "Hello"},
+		},
+	}
+
+	ctx := setupLLMContextWithAuth(mockAuthService, "workspace123", true, true)
+
+	workspace := &domain.Workspace{
+		ID:   "workspace123",
+		Name: "Test Workspace",
+		Integrations: []domain.Integration{
+			{
+				ID:   "llm-integration",
+				Name: "LLM Provider",
+				Type: domain.IntegrationTypeLLM,
+				LLMProvider: &domain.LLMProvider{
+					Kind: domain.LLMProviderKindOpenAI,
+					OpenAI: &domain.OpenAISettings{
+						APIKey: "", // Empty API key
+						Model:  "gpt-4.1",
+					},
+				},
+				CreatedAt: time.Now(),
+				UpdatedAt: time.Now(),
+			},
+		},
+	}
+
+	mockWorkspaceRepo.EXPECT().
+		GetByID(gomock.Any(), "workspace123").
+		Return(workspace, nil).
+		Times(1)
+
+	err := service.StreamChat(ctx, req, func(event domain.LLMChatEvent) error {
+		return nil
+	})
+
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "API key is not configured")
+}
+
+func TestLLMService_StreamChat_UnsupportedProvider(t *testing.T) {
+	service, mockAuthService, mockWorkspaceRepo := setupLLMServiceTest(t)
+
+	req := &domain.LLMChatRequest{
+		WorkspaceID:   "workspace123",
+		IntegrationID: "llm-integration",
+		Messages: []domain.LLMMessage{
+			{Role: "user", Content: "Hello"},
+		},
+	}
+
+	ctx := setupLLMContextWithAuth(mockAuthService, "workspace123", true, true)
+
+	workspace := &domain.Workspace{
+		ID:   "workspace123",
+		Name: "Test Workspace",
+		Integrations: []domain.Integration{
+			{
+				ID:   "llm-integration",
+				Name: "LLM Provider",
+				Type: domain.IntegrationTypeLLM,
+				LLMProvider: &domain.LLMProvider{
+					Kind: "unsupported-provider",
+				},
+			},
+		},
+	}
+
+	mockWorkspaceRepo.EXPECT().
+		GetByID(gomock.Any(), "workspace123").
+		Return(workspace, nil).
+		Times(1)
+
+	err := service.StreamChat(ctx, req, func(event domain.LLMChatEvent) error {
+		return nil
+	})
+
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "unsupported LLM provider")
 }
 
 func TestLLMService_StreamChat_EmptyAPIKey(t *testing.T) {
