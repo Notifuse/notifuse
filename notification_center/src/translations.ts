@@ -1,4 +1,4 @@
-export type Language = 'en' | 'fr' | 'es' | 'de' | 'zh' | 'hi' | 'ar' | 'pt' | 'ru' | 'ja'
+export type Language = 'en' | 'fr' | 'es' | 'de' | 'zh' | 'hi' | 'ar' | 'pt' | 'ru' | 'ja' | 'pl'
 
 export interface TranslationObject {
   [key: string]: {
@@ -17,7 +17,8 @@ export const translations: TranslationObject = {
     ar: 'جاري التحميل...',
     pt: 'Carregando...',
     ru: 'Загрузка...',
-    ja: '読み込み中...'
+    ja: '読み込み中...',
+    pl: 'Ładowanie...'
   },
   error: {
     en: 'Error',
@@ -29,7 +30,8 @@ export const translations: TranslationObject = {
     ar: 'خطأ',
     pt: 'Erro',
     ru: 'Ошибка',
-    ja: 'エラー'
+    ja: 'エラー',
+    pl: 'Błąd'
   },
   missingParameters: {
     en: 'Missing required parameters. Please check the URL.',
@@ -41,7 +43,8 @@ export const translations: TranslationObject = {
     ar: 'معلمات مطلوبة مفقودة. يرجى التحقق من عنوان URL.',
     pt: 'Parâmetros necessários ausentes. Por favor, verifique o URL.',
     ru: 'Отсутствуют необходимые параметры. Пожалуйста, проверьте URL.',
-    ja: '必要なパラメータが不足しています。URLを確認してください。'
+    ja: '必要なパラメータが不足しています。URLを確認してください。',
+    pl: 'Brakuje wymaganych parametrów. Sprawdź adres URL.'
   },
   emailSubscriptions: {
     en: 'Email Subscriptions',
@@ -53,7 +56,8 @@ export const translations: TranslationObject = {
     ar: 'اشتراكات البريد الإلكتروني',
     pt: 'Assinaturas de e-mail',
     ru: 'Подписки на электронную почту',
-    ja: 'メール配信登録'
+    ja: 'メール配信登録',
+    pl: 'Subskrypcje e-mail'
   },
   welcome: {
     en: 'Welcome,',
@@ -65,7 +69,8 @@ export const translations: TranslationObject = {
     ar: 'مرحبًا،',
     pt: 'Bem-vindo,',
     ru: 'Добро пожаловать,',
-    ja: 'ようこそ、'
+    ja: 'ようこそ、',
+    pl: 'Witaj,'
   },
   processing: {
     en: 'Processing...',
@@ -77,7 +82,8 @@ export const translations: TranslationObject = {
     ar: 'جاري المعالجة...',
     pt: 'Processando...',
     ru: 'Обработка...',
-    ja: '処理中...'
+    ja: '処理中...',
+    pl: 'Przetwarzanie...'
   },
   subscribe: {
     en: 'Subscribe',
@@ -89,7 +95,8 @@ export const translations: TranslationObject = {
     ar: 'اشترك',
     pt: 'Assinar',
     ru: 'Подписаться',
-    ja: '登録する'
+    ja: '登録する',
+    pl: 'Subskrybuj'
   },
   unsubscribe: {
     en: 'Unsubscribe',
@@ -101,7 +108,8 @@ export const translations: TranslationObject = {
     ar: 'إلغاء الاشتراك',
     pt: 'Cancelar assinatura',
     ru: 'Отписаться',
-    ja: '登録解除'
+    ja: '登録解除',
+    pl: 'Anuluj subskrypcję'
   },
   noSubscriptions: {
     en: 'No subscriptions settings available.',
@@ -113,7 +121,8 @@ export const translations: TranslationObject = {
     ar: 'لا توجد إعدادات اشتراكات متاحة.',
     pt: 'Nenhuma configuração de assinatura disponível.',
     ru: 'Настройки подписок недоступны.',
-    ja: '利用可能な購読設定はありません。'
+    ja: '利用可能な購読設定はありません。',
+    pl: 'Brak dostępnych ustawień subskrypcji.'
   },
   visitWebsite: {
     en: 'Visit our website',
@@ -125,7 +134,8 @@ export const translations: TranslationObject = {
     ar: 'زيارة موقعنا',
     pt: 'Visite nosso site',
     ru: 'Посетите наш сайт',
-    ja: 'ウェブサイトにアクセス'
+    ja: 'ウェブサイトにアクセス',
+    pl: 'Odwiedź naszą stronę'
   },
   successSubscribed: {
     en: 'Successfully subscribed',
@@ -137,7 +147,8 @@ export const translations: TranslationObject = {
     ar: 'تم الاشتراك بنجاح',
     pt: 'Assinatura bem-sucedida',
     ru: 'Успешная подписка',
-    ja: '登録が完了しました'
+    ja: '登録が完了しました',
+    pl: 'Pomyślnie zasubskrybowano'
   },
   successUnsubscribed: {
     en: 'Successfully unsubscribed',
@@ -149,7 +160,8 @@ export const translations: TranslationObject = {
     ar: 'تم إلغاء الاشتراك بنجاح',
     pt: 'Cancelamento bem-sucedido',
     ru: 'Успешная отписка',
-    ja: '登録解除が完了しました'
+    ja: '登録解除が完了しました',
+    pl: 'Pomyślnie anulowano subskrypcję'
   },
   failedSubscribe: {
     en: 'Failed to subscribe. Please try again.',
@@ -161,7 +173,8 @@ export const translations: TranslationObject = {
     ar: 'فشل الاشتراك. يرجى المحاولة مرة أخرى.',
     pt: 'Falha na assinatura. Por favor, tente novamente.',
     ru: 'Не удалось подписаться. Пожалуйста, попробуйте снова.',
-    ja: '登録に失敗しました。もう一度お試しください。'
+    ja: '登録に失敗しました。もう一度お試しください。',
+    pl: 'Nie udało się zasubskrybować. Spróbuj ponownie.'
   },
   failedUnsubscribe: {
     en: 'Failed to unsubscribe. Please try again.',
@@ -173,7 +186,8 @@ export const translations: TranslationObject = {
     ar: 'فشل إلغاء الاشتراك. يرجى المحاولة مرة أخرى.',
     pt: 'Falha no cancelamento. Por favor, tente novamente.',
     ru: 'Не удалось отписаться. Пожалуйста, попробуйте снова.',
-    ja: '登録解除に失敗しました。もう一度お試しください。'
+    ja: '登録解除に失敗しました。もう一度お試しください。',
+    pl: 'Nie udało się anulować subskrypcji. Spróbuj ponownie.'
   },
   failedToLoad: {
     en: 'Failed to load notifications',
@@ -185,7 +199,8 @@ export const translations: TranslationObject = {
     ar: 'فشل في تحميل الإشعارات',
     pt: 'Falha ao carregar notificações',
     ru: 'Не удалось загрузить уведомления',
-    ja: '通知の読み込みに失敗しました'
+    ja: '通知の読み込みに失敗しました',
+    pl: 'Nie udało się załadować powiadomień'
   }
 }
 
@@ -204,7 +219,8 @@ export function getLanguage(): Language {
     'ar',
     'pt',
     'ru',
-    'ja'
+    'ja',
+    'pl'
   ]
 
   if (supportedLanguages.includes(browserLang as Language)) {
