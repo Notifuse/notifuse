@@ -40,12 +40,14 @@ func TestSubscribeStatusProtection_Integration(t *testing.T) {
 	list, err := factory.CreateList(workspace.ID, testutil.WithListPublic(true))
 	require.NoError(t, err)
 
-	// Helper to subscribe via public endpoint
-	subscribe := func(t *testing.T, email string) *http.Response {
+	// Helper to subscribe via public endpoint. Pass a non-empty hmac to simulate
+	// an authenticated request (e.g. DOI confirmation-link click); pass "" for
+	// an anonymous subscribe-form submission.
+	subscribe := func(t *testing.T, email, hmac string) *http.Response {
 		t.Helper()
 		reqBody := domain.SubscribeToListsRequest{
 			WorkspaceID: workspace.ID,
-			Contact:     domain.Contact{Email: email},
+			Contact:     domain.Contact{Email: email, EmailHMAC: hmac},
 			ListIDs:     []string{list.ID},
 		}
 		body, _ := json.Marshal(reqBody)
@@ -86,7 +88,7 @@ func TestSubscribeStatusProtection_Integration(t *testing.T) {
 			testutil.WithContactListStatus(domain.ContactListStatusActive))
 		require.NoError(t, err)
 
-		resp := subscribe(t, email)
+		resp := subscribe(t, email, "")
 		defer func() { _ = resp.Body.Close() }()
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -105,7 +107,7 @@ func TestSubscribeStatusProtection_Integration(t *testing.T) {
 		err = factory.UpdateContactListStatus(workspace.ID, email, list.ID, domain.ContactListStatusPending)
 		require.NoError(t, err)
 
-		resp := subscribe(t, email)
+		resp := subscribe(t, email, "")
 		defer func() { _ = resp.Body.Close() }()
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -124,7 +126,7 @@ func TestSubscribeStatusProtection_Integration(t *testing.T) {
 		err = factory.UpdateContactListStatus(workspace.ID, email, list.ID, domain.ContactListStatusBounced)
 		require.NoError(t, err)
 
-		resp := subscribe(t, email)
+		resp := subscribe(t, email, "")
 		defer func() { _ = resp.Body.Close() }()
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -143,7 +145,7 @@ func TestSubscribeStatusProtection_Integration(t *testing.T) {
 		err = factory.UpdateContactListStatus(workspace.ID, email, list.ID, domain.ContactListStatusComplained)
 		require.NoError(t, err)
 
-		resp := subscribe(t, email)
+		resp := subscribe(t, email, "")
 		defer func() { _ = resp.Body.Close() }()
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -162,7 +164,7 @@ func TestSubscribeStatusProtection_Integration(t *testing.T) {
 		err = factory.UpdateContactListStatus(workspace.ID, email, list.ID, domain.ContactListStatusUnsubscribed)
 		require.NoError(t, err)
 
-		resp := subscribe(t, email)
+		resp := subscribe(t, email, "")
 		defer func() { _ = resp.Body.Close() }()
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -174,7 +176,7 @@ func TestSubscribeStatusProtection_Integration(t *testing.T) {
 		_, err := factory.CreateContact(workspace.ID, testutil.WithContactEmail(email))
 		require.NoError(t, err)
 
-		resp := subscribe(t, email)
+		resp := subscribe(t, email, "")
 		defer func() { _ = resp.Body.Close() }()
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -273,4 +275,104 @@ func TestBulkImportStatusProtection_Integration(t *testing.T) {
 
 		assert.Equal(t, "unsubscribed", getStatus(t, email))
 	})
+}
+
+// TestDoubleOptInConfirmation_Integration is a regression test for issue #313.
+// It exercises the end-to-end DOI confirmation flow that broke in v29.2:
+//  1. Anonymous subscribe to a public DOI list → contact_list row is Pending.
+//  2. Clicking the confirmation link (authenticated subscribe with valid HMAC)
+//     must transition Pending → Active.
+//  3. Re-clicking the same link must be idempotent (stay Active).
+func TestDoubleOptInConfirmation_Integration(t *testing.T) {
+	testutil.SkipIfShort(t)
+	testutil.SetupTestEnvironment()
+	defer testutil.CleanupTestEnvironment()
+
+	suite := testutil.NewIntegrationTestSuite(t, appFactory)
+	defer func() { suite.Cleanup() }()
+
+	baseURL := suite.ServerManager.GetURL()
+	factory := suite.DataFactory
+	client := suite.APIClient
+
+	// Create user, workspace, and authenticate (needed so client.GetContactListByIDs works).
+	user, err := factory.CreateUser()
+	require.NoError(t, err)
+	workspace, err := factory.CreateWorkspace()
+	require.NoError(t, err)
+	err = factory.AddUserToWorkspace(user.ID, workspace.ID, "owner")
+	require.NoError(t, err)
+	err = client.Login(user.Email, "password")
+	require.NoError(t, err)
+	client.SetWorkspaceID(workspace.ID)
+
+	// Public DOI list — the combination that triggered the bug.
+	doiList, err := factory.CreateList(workspace.ID,
+		testutil.WithListPublic(true),
+		testutil.WithListDoubleOptin(true))
+	require.NoError(t, err)
+
+	secretKey := workspace.Settings.SecretKey
+
+	// Helper to subscribe via the public endpoint. Pass "" for hmac to simulate
+	// an anonymous subscribe-form submission; pass a valid hmac to simulate a
+	// DOI confirmation-link click.
+	subscribe := func(t *testing.T, email, hmac string) *http.Response {
+		t.Helper()
+		reqBody := domain.SubscribeToListsRequest{
+			WorkspaceID: workspace.ID,
+			Contact:     domain.Contact{Email: email, EmailHMAC: hmac},
+			ListIDs:     []string{doiList.ID},
+		}
+		body, _ := json.Marshal(reqBody)
+		req, err := http.NewRequest("POST", baseURL+"/subscribe", bytes.NewBuffer(body))
+		require.NoError(t, err)
+		req.Header.Set("Content-Type", "application/json")
+		resp, err := (&http.Client{}).Do(req)
+		require.NoError(t, err)
+		return resp
+	}
+
+	// Helper to read the authoritative contact_list status via the authenticated API.
+	getStatus := func(t *testing.T, email string) string {
+		t.Helper()
+		resp, err := client.GetContactListByIDs(workspace.ID, email, doiList.ID)
+		require.NoError(t, err)
+		defer func() { _ = resp.Body.Close() }()
+
+		var result map[string]interface{}
+		err = json.NewDecoder(resp.Body).Decode(&result)
+		require.NoError(t, err)
+
+		cl, ok := result["contact_list"].(map[string]interface{})
+		if !ok {
+			return ""
+		}
+		status, _ := cl["status"].(string)
+		return status
+	}
+
+	email := fmt.Sprintf("doi-confirm-%d@example.com", time.Now().UnixNano())
+
+	// Step 1: anonymous subscribe — list is DOI, so status must be Pending.
+	resp := subscribe(t, email, "")
+	_ = resp.Body.Close()
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+	require.Equal(t, string(domain.ContactListStatusPending), getStatus(t, email),
+		"new anonymous subscribe to a DOI list must create a Pending row")
+
+	// Step 2: confirmation-link click — authenticated subscribe must activate.
+	hmac := domain.ComputeEmailHMAC(email, secretKey)
+	resp = subscribe(t, email, hmac)
+	_ = resp.Body.Close()
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+	require.Equal(t, string(domain.ContactListStatusActive), getStatus(t, email),
+		"issue #313: authenticated subscribe on a Pending row must transition to Active")
+
+	// Step 3: re-clicking the confirmation link is an idempotent no-op.
+	resp = subscribe(t, email, hmac)
+	_ = resp.Body.Close()
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+	require.Equal(t, string(domain.ContactListStatusActive), getStatus(t, email),
+		"a repeat confirmation click must remain Active")
 }

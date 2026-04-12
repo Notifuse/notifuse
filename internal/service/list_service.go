@@ -327,8 +327,14 @@ func (s *ListService) SubscribeToLists(ctx context.Context, payload *domain.Subs
 				// Idempotent no-op — already subscribed
 				continue
 			case domain.ContactListStatusPending:
-				// Already pending — skip DB write, resend DOI email below
-				skipDBWrite = true
+				if !isAuthenticated {
+					// Anonymous re-submit of the subscribe form:
+					// skip DB write and resend DOI email below.
+					skipDBWrite = true
+				}
+				// Authenticated request (valid email_hmac) is the confirmation-link click:
+				// fall through so the upsert below transitions Pending → Active and the
+				// DOI email logic is NOT re-triggered. (Issue #313)
 			case domain.ContactListStatusBounced, domain.ContactListStatusComplained:
 				// Hard block — do not send email to bounced/complained addresses
 				continue

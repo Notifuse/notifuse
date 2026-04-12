@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [29.3] - 2026-04-12
+
+- **Fix**: Double opt-in confirmation link now correctly transitions contacts from Pending to Active instead of resending the confirmation email in a loop (#313)
+
 ## [29.2] - 2026-04-08
 
 - **Feature**: Added OpenAI as LLM provider alongside Anthropic — supports any OpenAI-compatible endpoint (OpenRouter, Ollama, vLLM, LiteLLM, Azure, etc.) via custom base URL, with full streaming and tool use support

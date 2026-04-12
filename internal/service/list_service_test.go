@@ -1064,18 +1064,61 @@ func TestListService_SubscribeToLists_StatusProtection(t *testing.T) {
 		assert.NoError(t, err)
 	})
 
-	t.Run("existing pending subscription resends DOI", func(t *testing.T) {
+	t.Run("authenticated confirmation on DOI list activates pending subscription", func(t *testing.T) {
+		// Regression test for issue #313.
+		// Simulates the DOI confirmation-link click: existing Pending row, authenticated
+		// request (valid email_hmac). MUST transition Pending → Active and MUST NOT
+		// re-send the DOI email. This is the scenario the v29.2 pre-check broke.
+		doiList := *testList
+		doiList.IsDoubleOptin = true
+
 		mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(workspace, nil)
 		mockContactRepo.EXPECT().UpsertContact(gomock.Any(), workspaceID, gomock.Any()).Return(true, nil)
-		mockRepo.EXPECT().GetLists(gomock.Any(), workspaceID).Return([]*domain.List{testList}, nil)
+		mockRepo.EXPECT().GetLists(gomock.Any(), workspaceID).Return([]*domain.List{&doiList}, nil)
 		mockContactListRepo.EXPECT().GetContactListByIDs(gomock.Any(), workspaceID, contactEmail, listID).
 			Return(&domain.ContactList{Email: contactEmail, ListID: listID, Status: domain.ContactListStatusPending}, nil)
-		mockContactListRepo.EXPECT().AddContactToList(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+		// Critical: the DB upsert MUST happen and MUST write Active.
+		mockContactListRepo.EXPECT().AddContactToList(gomock.Any(), workspaceID, gomock.Any()).
+			Do(func(_ context.Context, _ string, cl *domain.ContactList) {
+				assert.Equal(t, domain.ContactListStatusActive, cl.Status)
+			}).Return(nil)
 		mockContactRepo.EXPECT().GetContactByEmail(gomock.Any(), workspaceID, contactEmail).
 			Return(&domain.Contact{Email: contactEmail}, nil)
-		mockEmailService.EXPECT().SendEmailForTemplate(gomock.Any(), gomock.Any()).Return(nil)
+		// Critical: NO DOI email re-sent on confirmation.
+		mockEmailService.EXPECT().SendEmailForTemplate(gomock.Any(), gomock.Any()).Times(0)
 
 		err := service.SubscribeToLists(ctx, payload, false)
+		assert.NoError(t, err)
+	})
+
+	t.Run("anonymous resubmit on DOI list resends confirmation without activating", func(t *testing.T) {
+		// Simulates an unauthenticated user re-submitting the subscribe form while their
+		// subscription is still Pending: the DB row must remain Pending (no activation)
+		// and a new DOI email must be sent.
+		doiList := *testList
+		doiList.IsDoubleOptin = true
+
+		anonPayload := &domain.SubscribeToListsRequest{
+			WorkspaceID: workspaceID,
+			Contact:     domain.Contact{Email: contactEmail}, // no EmailHMAC = unauthenticated
+			ListIDs:     []string{listID},
+		}
+
+		mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(workspace, nil)
+		// Unauthenticated + existing contact: GetContactByEmail called twice —
+		// once for the canUpsert probe and once later for template data.
+		mockContactRepo.EXPECT().GetContactByEmail(gomock.Any(), workspaceID, contactEmail).
+			Return(&domain.Contact{Email: contactEmail}, nil).Times(2)
+		// canUpsert=false, so UpsertContact is NOT called.
+		mockRepo.EXPECT().GetLists(gomock.Any(), workspaceID).Return([]*domain.List{&doiList}, nil)
+		mockContactListRepo.EXPECT().GetContactListByIDs(gomock.Any(), workspaceID, contactEmail, listID).
+			Return(&domain.ContactList{Email: contactEmail, ListID: listID, Status: domain.ContactListStatusPending}, nil)
+		// DB write skipped.
+		mockContactListRepo.EXPECT().AddContactToList(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+		// DOI email re-sent.
+		mockEmailService.EXPECT().SendEmailForTemplate(gomock.Any(), gomock.Any()).Return(nil)
+
+		err := service.SubscribeToLists(ctx, anonPayload, false)
 		assert.NoError(t, err)
 	})
 
