@@ -10,11 +10,12 @@ import (
 	"time"
 
 	"github.com/Notifuse/notifuse/pkg/crypto"
+	"github.com/Notifuse/notifuse/pkg/smtp_bridge"
 	_ "github.com/lib/pq" // PostgreSQL driver
 	"github.com/spf13/viper"
 )
 
-const VERSION = "29.3"
+const VERSION = "29.4"
 
 type Config struct {
 	Server              ServerConfig
@@ -60,6 +61,7 @@ type EnvValues struct {
 	SMTPBridgePort          int
 	SMTPBridgeTLSCertBase64 string
 	SMTPBridgeTLSKeyBase64  string
+	SMTPBridgeTLSMode       string // "off", "starttls", "implicit", or "" (empty = auto-resolve)
 }
 
 type DemoConfig struct {
@@ -156,6 +158,7 @@ type SMTPBridgeConfig struct {
 	Domain        string // Server domain name for SMTP greeting
 	TLSCertBase64 string // Base64 encoded TLS certificate
 	TLSKeyBase64  string // Base64 encoded TLS private key
+	TLSMode       string // "off", "starttls", or "implicit" — resolved at Load time
 }
 
 type BroadcastConfig struct {
@@ -199,6 +202,7 @@ type SystemSettings struct {
 	SMTPBridgePort          int
 	SMTPBridgeTLSCertBase64 string
 	SMTPBridgeTLSKeyBase64  string
+	SMTPBridgeTLSMode       string
 }
 
 // getSystemDSN constructs the database connection string for the system database
@@ -338,6 +342,8 @@ func loadSystemSettings(db *sql.DB, secretKey string) (*SystemSettings, error) {
 				settings.SMTPBridgeTLSKeyBase64 = decrypted
 			}
 		}
+
+		settings.SMTPBridgeTLSMode = settingsMap["smtp_bridge_tls_mode"]
 	}
 
 	return settings, nil
@@ -537,6 +543,11 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 		smtpBridgeTLSKeyBase64 = v.GetString("SMTP_RELAY_TLS_KEY_BASE64") // backward compat
 	}
 
+	smtpBridgeTLSMode := v.GetString("SMTP_BRIDGE_TLS")
+	if smtpBridgeTLSMode == "" {
+		smtpBridgeTLSMode = v.GetString("SMTP_RELAY_TLS") // backward compat
+	}
+
 	envVals := EnvValues{
 		RootEmail:               v.GetString("ROOT_EMAIL"),
 		APIEndpoint:             v.GetString("API_ENDPOINT"),
@@ -553,6 +564,7 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 		SMTPBridgePort:          smtpBridgePort,
 		SMTPBridgeTLSCertBase64: smtpBridgeTLSCertBase64,
 		SMTPBridgeTLSKeyBase64:  smtpBridgeTLSKeyBase64,
+		SMTPBridgeTLSMode:       smtpBridgeTLSMode,
 	}
 
 	// Derive JWT secret from SECRET_KEY
@@ -643,6 +655,7 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 			Domain:        envVals.SMTPBridgeDomain,
 			TLSCertBase64: envVals.SMTPBridgeTLSCertBase64,
 			TLSKeyBase64:  envVals.SMTPBridgeTLSKeyBase64,
+			TLSMode:       envVals.SMTPBridgeTLSMode,
 		}
 
 		// Use database values as fallback
@@ -664,6 +677,9 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 		}
 		if smtpBridgeConfig.TLSKeyBase64 == "" {
 			smtpBridgeConfig.TLSKeyBase64 = systemSettings.SMTPBridgeTLSKeyBase64
+		}
+		if smtpBridgeConfig.TLSMode == "" {
+			smtpBridgeConfig.TLSMode = systemSettings.SMTPBridgeTLSMode
 		}
 	} else {
 		// First-run: use env vars only
@@ -694,6 +710,7 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 			Domain:        envVals.SMTPBridgeDomain,
 			TLSCertBase64: envVals.SMTPBridgeTLSCertBase64,
 			TLSKeyBase64:  envVals.SMTPBridgeTLSKeyBase64,
+			TLSMode:       envVals.SMTPBridgeTLSMode,
 		}
 		// Apply defaults for first-run
 		if smtpBridgeConfig.Port == 0 {
@@ -702,6 +719,18 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 		if smtpBridgeConfig.Domain == "" {
 			smtpBridgeConfig.Domain = "localhost"
 		}
+	}
+
+	// Resolve + validate SMTP bridge TLS mode (only when bridge is enabled).
+	// This replaces the runtime "TLS required in production" check that used to
+	// live in pkg/smtp_bridge/server.go, moved up so startup fails early with
+	// a clear message.
+	if smtpBridgeConfig.Enabled {
+		resolved, err := resolveSMTPBridgeTLSMode(smtpBridgeConfig, v.GetString("ENVIRONMENT"))
+		if err != nil {
+			return nil, err
+		}
+		smtpBridgeConfig.TLSMode = resolved
 	}
 
 	// Telemetry and check for updates settings - env var overrides database
@@ -818,6 +847,49 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 	}
 
 	return config, nil
+}
+
+// resolveSMTPBridgeTLSMode returns the final TLS mode for the SMTP bridge or
+// an error if the explicit/implicit configuration is invalid.
+//
+// Precedence:
+//  1. Explicit SMTP_BRIDGE_TLS value wins (validated).
+//  2. Otherwise: cert+key present → "starttls".
+//  3. Otherwise + production → error (preserves the historical prod-TLS guard;
+//     operators who really want plaintext behind a proxy must set SMTP_BRIDGE_TLS=off).
+//  4. Otherwise → "off".
+//
+// "starttls" and "implicit" require both TLS cert and key to be non-empty.
+func resolveSMTPBridgeTLSMode(cfg SMTPBridgeConfig, environment string) (string, error) {
+	if cfg.TLSMode != "" {
+		if err := smtp_bridge.ValidateMode(cfg.TLSMode); err != nil {
+			return "", fmt.Errorf("SMTP_BRIDGE_TLS: %w", err)
+		}
+		if cfg.TLSMode == smtp_bridge.ModeSTARTTLS || cfg.TLSMode == smtp_bridge.ModeImplicit {
+			if cfg.TLSCertBase64 == "" || cfg.TLSKeyBase64 == "" {
+				return "", fmt.Errorf(
+					"SMTP_BRIDGE_TLS=%s requires both SMTP_BRIDGE_TLS_CERT_BASE64 and SMTP_BRIDGE_TLS_KEY_BASE64 to be set",
+					cfg.TLSMode,
+				)
+			}
+		}
+		return cfg.TLSMode, nil
+	}
+
+	// Auto-resolve when unset.
+	if cfg.TLSCertBase64 != "" && cfg.TLSKeyBase64 != "" {
+		return smtp_bridge.ModeSTARTTLS, nil
+	}
+
+	if environment == "production" {
+		return "", fmt.Errorf(
+			"SMTP bridge is enabled but no TLS is configured. In production you must either " +
+				"provide SMTP_BRIDGE_TLS_CERT_BASE64 and SMTP_BRIDGE_TLS_KEY_BASE64, or explicitly " +
+				"set SMTP_BRIDGE_TLS=off if running behind a TLS-terminating reverse proxy",
+		)
+	}
+
+	return smtp_bridge.ModeOff, nil
 }
 
 // IsDevelopment returns true if the environment is set to development

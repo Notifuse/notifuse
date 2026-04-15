@@ -6,6 +6,14 @@ import { SettingsSectionHeader } from './SettingsSectionHeader'
 export function SMTPBridgeSettings() {
   const { t } = useLingui()
 
+  const mode = window.SMTP_BRIDGE_TLS_MODE
+  const modeLabel: Record<typeof mode, string> = {
+    off: t`Off (plaintext)`,
+    starttls: t`STARTTLS`,
+    implicit: t`Implicit TLS`,
+  }
+  const modeEnabled = mode === 'starttls' || mode === 'implicit'
+
   return (
     <>
       <SettingsSectionHeader
@@ -39,15 +47,15 @@ export function SMTPBridgeSettings() {
             </Descriptions.Item>
 
             <Descriptions.Item label={t`TLS`}>
-              {window.SMTP_BRIDGE_TLS_ENABLED ? (
+              {modeEnabled ? (
                 <span style={{ color: '#52c41a' }}>
                   <CheckCircleOutlined style={{ marginRight: '8px' }} />
-                  {t`Enabled`}
+                  {modeLabel[mode]}
                 </span>
               ) : (
                 <span style={{ color: '#ff4d4f' }}>
                   <CloseCircleOutlined style={{ marginRight: '8px' }} />
-                  {t`Disabled`}
+                  {modeLabel[mode]}
                 </span>
               )}
             </Descriptions.Item>

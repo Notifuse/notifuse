@@ -46,6 +46,7 @@ cat > "$OUTPUT_DIR/.env.smtp-bridge" <<EOF
 SMTP_BRIDGE_ENABLED=true
 SMTP_BRIDGE_PORT=587
 SMTP_BRIDGE_DOMAIN=$DOMAIN
+SMTP_BRIDGE_TLS=starttls
 
 # Base64 encoded certificate and key
 SMTP_BRIDGE_TLS_CERT_BASE64="$CERT_BASE64"

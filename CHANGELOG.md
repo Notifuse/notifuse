@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [29.4] - 2026-04-15
+
+- **Feature**: Added `SMTP_BRIDGE_TLS` setting (`off` / `starttls` / `implicit`) to let operators run the SMTP bridge behind a TLS-terminating reverse proxy or in implicit-TLS (SMTPS) mode (#314)
+
 ## [29.3] - 2026-04-12
 
 - **Fix**: Double opt-in confirmation link now correctly transitions contacts from Pending to Active instead of resending the confirmation email in a loop (#313)

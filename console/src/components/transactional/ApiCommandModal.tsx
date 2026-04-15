@@ -516,7 +516,13 @@ func main() {
   const renderSMTPInstructions = () => {
     const smtpHost = window.SMTP_BRIDGE_DOMAIN || 'your-smtp-domain.com'
     const smtpPort = window.SMTP_BRIDGE_PORT || 587
-    const tlsEnabled = window.SMTP_BRIDGE_TLS_ENABLED !== false
+    const tlsMode = window.SMTP_BRIDGE_TLS_MODE
+    const securityLabel =
+      tlsMode === 'implicit'
+        ? t`Implicit TLS (SMTPS)`
+        : tlsMode === 'off'
+          ? t`Plain text (only safe behind a TLS-terminating proxy)`
+          : t`STARTTLS required`
 
     return (
       <div className="space-y-6">
@@ -525,9 +531,7 @@ func main() {
           <Descriptions column={1} size="small" bordered>
             <Descriptions.Item label={t`Host`}>{smtpHost}</Descriptions.Item>
             <Descriptions.Item label={t`Port`}>{smtpPort}</Descriptions.Item>
-            <Descriptions.Item label={t`Security`}>
-              {tlsEnabled ? t`STARTTLS required` : t`Plain text (not recommended for production)`}
-            </Descriptions.Item>
+            <Descriptions.Item label={t`Security`}>{securityLabel}</Descriptions.Item>
             <Descriptions.Item label={t`Username`}>
               {t`Your workspace API email (the email associated with your API key)`}
             </Descriptions.Item>

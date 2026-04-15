@@ -2204,7 +2204,7 @@ msgstr "Copiar punto final del webhook"
 msgid "Core Fields"
 msgstr "Campos principales"
 
-#: src/components/ai-assistant/AIAssistantChat.tsx:280
+#: src/components/ai-assistant/AIAssistantChat.tsx:281
 msgid "Cost"
 msgstr "Costo"
 
@@ -2950,7 +2950,6 @@ msgstr "Deshabilitar webhook"
 #: src/components/settings/BlogSettings.tsx:210
 #: src/components/settings/GeneralSettings.tsx:143
 #: src/components/settings/Integrations.tsx:1308
-#: src/components/settings/SMTPBridgeSettings.tsx:50
 #: src/components/templates/TemplateTranslationsTab.tsx:204
 msgid "Disabled"
 msgstr "Deshabilitado"
@@ -3521,7 +3520,6 @@ msgstr "Habilitar webhook"
 #: src/components/settings/BlogSettings.tsx:205
 #: src/components/settings/GeneralSettings.tsx:138
 #: src/components/settings/Integrations.tsx:1304
-#: src/components/settings/SMTPBridgeSettings.tsx:45
 #: src/components/settings/SystemSettingsDrawer.tsx:426
 #: src/components/templates/TemplateTranslationsTab.tsx:203
 msgid "Enabled"
@@ -4738,8 +4736,12 @@ msgid "Google Workspace / Gmail"
 msgstr "Google Workspace / Gmail"
 
 #: src/components/integrations/LLMIntegration.tsx:166
-msgid "gpt-4o, gpt-4.1, o4-mini, or custom model name"
+msgid "gpt-4.1, gpt-5.4, o4-mini, or custom model name"
 msgstr ""
+
+#: src/components/integrations/LLMIntegration.tsx:166
+#~ msgid "gpt-4o, gpt-4.1, o4-mini, or custom model name"
+#~ msgstr ""
 
 #: src/components/email_builder/ui/BorderInput.tsx:60
 msgid "Groove"
@@ -5032,6 +5034,10 @@ msgstr "Atributos de imagen"
 msgid "Image URL when shared on social media (og:image)"
 msgstr "URL de imagen cuando se comparte en redes sociales (og:image)"
 
+#: src/components/settings/SMTPBridgeSettings.tsx:13
+msgid "Implicit TLS"
+msgstr ""
+
 #: src/components/email_builder/MjmlCodeEditor.tsx:614
 #: src/components/templates/ImportExportButton.tsx:387
 #: src/pages/ContactsPage.tsx:856
@@ -5188,7 +5194,7 @@ msgstr "Borde interior"
 msgid "Inner border radius"
 msgstr "Radio de borde interior"
 
-#: src/components/ai-assistant/AIAssistantChat.tsx:273
+#: src/components/ai-assistant/AIAssistantChat.tsx:274
 msgid "Input"
 msgstr "Entrada"
 
@@ -5481,7 +5487,7 @@ msgstr "Apellido"
 msgid "Lead"
 msgstr "Prospecto"
 
-#: src/components/settings/SMTPBridgeSettings.tsx:64
+#: src/components/settings/SMTPBridgeSettings.tsx:72
 msgid "Learn how to enable SMTP bridge"
 msgstr "Aprende cómo habilitar la retransmisión SMTP"
 
@@ -6446,8 +6452,8 @@ msgstr "No está en lista"
 #: src/components/settings/GeneralSettings.tsx:111
 #: src/components/settings/GeneralSettings.tsx:115
 #: src/components/settings/GeneralSettings.tsx:126
-#: src/components/settings/SMTPBridgeSettings.tsx:34
-#: src/components/settings/SMTPBridgeSettings.tsx:38
+#: src/components/settings/SMTPBridgeSettings.tsx:42
+#: src/components/settings/SMTPBridgeSettings.tsx:46
 #: src/components/templates/TemplatePreviewDrawer.tsx:299
 msgid "Not set"
 msgstr "No establecido"
@@ -6531,6 +6537,10 @@ msgstr "Ocurrió:"
 #: src/components/segment/input.tsx:887
 msgid "of the following conditions match:"
 msgstr "de las siguientes condiciones coinciden:"
+
+#: src/components/settings/SMTPBridgeSettings.tsx:11
+msgid "Off (plaintext)"
+msgstr ""
 
 #: src/components/templates/ImportExportButton.tsx:491
 msgid "OK"
@@ -6658,7 +6668,7 @@ msgstr "Otro"
 msgid "Outgoing Webhooks"
 msgstr "Webhooks salientes"
 
-#: src/components/ai-assistant/AIAssistantChat.tsx:274
+#: src/components/ai-assistant/AIAssistantChat.tsx:275
 msgid "Output"
 msgstr "Salida"
 
@@ -8627,7 +8637,7 @@ msgid "SMS"
 msgstr "SMS"
 
 #: src/components/settings/SettingsSidebar.tsx:108
-#: src/components/settings/SMTPBridgeSettings.tsx:12
+#: src/components/settings/SMTPBridgeSettings.tsx:20
 #: src/components/settings/SystemSettingsDrawer.tsx:422
 msgid "SMTP Bridge"
 msgstr "Retransmisión SMTP"
@@ -8636,7 +8646,7 @@ msgstr "Retransmisión SMTP"
 msgid "SMTP bridge domain is required"
 msgstr "El dominio de retransmisión SMTP es requerido"
 
-#: src/components/settings/SMTPBridgeSettings.tsx:58
+#: src/components/settings/SMTPBridgeSettings.tsx:66
 msgid "SMTP bridge is not configured."
 msgstr "La retransmisión SMTP no está configurada."
 
@@ -8644,7 +8654,7 @@ msgstr "La retransmisión SMTP no está configurada."
 msgid "SMTP bridge port is required"
 msgstr "El puerto de retransmisión SMTP es requerido"
 
-#: src/components/settings/SMTPBridgeSettings.tsx:13
+#: src/components/settings/SMTPBridgeSettings.tsx:21
 msgid "SMTP bridge server for forwarding transactional emails"
 msgstr "Servidor de retransmisión SMTP para reenviar correos transaccionales"
 
@@ -8664,7 +8674,7 @@ msgstr ""
 msgid "SMTP connection test successful"
 msgstr ""
 
-#: src/components/settings/SMTPBridgeSettings.tsx:33
+#: src/components/settings/SMTPBridgeSettings.tsx:41
 msgid "SMTP domain"
 msgstr "Dominio SMTP"
 
@@ -8685,7 +8695,7 @@ msgstr "El host SMTP es requerido"
 msgid "SMTP Password"
 msgstr "Contraseña SMTP"
 
-#: src/components/settings/SMTPBridgeSettings.tsx:37
+#: src/components/settings/SMTPBridgeSettings.tsx:45
 msgid "SMTP port"
 msgstr "Puerto SMTP"
 
@@ -8836,6 +8846,10 @@ msgstr "iniciado"
 #: src/pages/BroadcastsPage.tsx:968
 msgid "Started"
 msgstr "Iniciado"
+
+#: src/components/settings/SMTPBridgeSettings.tsx:12
+msgid "STARTTLS"
+msgstr ""
 
 #: src/components/transactional/ApiCommandModal.tsx:529
 msgid "STARTTLS required"
@@ -9659,7 +9673,7 @@ msgstr "Título cuando se comparte en redes sociales (og:title)"
 msgid "Title when shared on social media (optional)"
 msgstr "Título cuando se comparte en redes sociales (opcional)"
 
-#: src/components/settings/SMTPBridgeSettings.tsx:41
+#: src/components/settings/SMTPBridgeSettings.tsx:49
 msgid "TLS"
 msgstr "TLS"
 
@@ -10289,7 +10303,7 @@ msgstr "Ver más"
 msgid "View Raw JSON"
 msgstr "Ver JSON sin procesar"
 
-#: src/components/settings/SMTPBridgeSettings.tsx:24
+#: src/components/settings/SMTPBridgeSettings.tsx:32
 msgid "View SMTP Bridge documentation and setup guide"
 msgstr "Ver documentación y guía de configuración de retransmisión SMTP"
 

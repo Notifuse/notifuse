@@ -9,7 +9,7 @@ declare global {
     SMTP_BRIDGE_ENABLED: boolean
     SMTP_BRIDGE_DOMAIN: string
     SMTP_BRIDGE_PORT: number
-    SMTP_BRIDGE_TLS_ENABLED: boolean
+    SMTP_BRIDGE_TLS_MODE: 'off' | 'starttls' | 'implicit'
   }
 }
 

@@ -258,6 +258,7 @@ func TestSetupService_GetEnvOverrides(t *testing.T) {
 				SMTPBridgePort:          587,
 				SMTPBridgeTLSCertBase64: "cert-data",
 				SMTPBridgeTLSKeyBase64:  "key-data",
+				SMTPBridgeTLSMode:       "starttls",
 			},
 			expected: map[string]bool{
 				"root_email":                  true,
@@ -275,6 +276,16 @@ func TestSetupService_GetEnvOverrides(t *testing.T) {
 				"smtp_bridge_port":            true,
 				"smtp_bridge_tls_cert_base64": true,
 				"smtp_bridge_tls_key_base64":  true,
+				"smtp_bridge_tls_mode":        true,
+			},
+		},
+		{
+			name: "smtp_bridge_tls_mode set alone",
+			envConfig: &service.EnvironmentConfig{
+				SMTPBridgeTLSMode: "off",
+			},
+			expected: map[string]bool{
+				"smtp_bridge_tls_mode": true,
 			},
 		},
 		{

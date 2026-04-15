@@ -37,7 +37,7 @@ func TestNewRootHandler(t *testing.T) {
 		false,
 		"",
 		0,
-		false,
+		"off",
 		nil, // workspaceRepo
 		nil, // blogService
 		nil, // cache
@@ -63,7 +63,7 @@ func TestRootHandler_Handle(t *testing.T) {
 		false,
 		"",
 		0,
-		false,
+		"off",
 		nil, // workspaceRepo
 		nil, // blogService
 		nil, // cache
@@ -105,7 +105,7 @@ func TestRootHandler_RegisterRoutes(t *testing.T) {
 		false,
 		"",
 		0,
-		false,
+		"off",
 		nil, // workspaceRepo
 		nil, // blogService
 		nil, // cache
@@ -153,7 +153,7 @@ func TestRootHandler_RegisterRoutesWithNotificationCenter(t *testing.T) {
 		false,
 		"",
 		0,
-		false,
+		"off",
 		nil, // workspaceRepo
 		nil, // blogService
 		nil, // cache
@@ -194,7 +194,7 @@ func TestRootHandler_ServeConfigJS(t *testing.T) {
 		false,
 		"",
 		0,
-		false,
+		"off",
 		nil, // workspaceRepo
 		nil, // blogService
 		nil, // cache
@@ -250,7 +250,7 @@ func TestRootHandler_Handle_ConfigJS(t *testing.T) {
 		false,
 		"",
 		0,
-		false,
+		"off",
 		nil, // workspaceRepo
 		nil, // blogService
 		nil, // cache
@@ -309,7 +309,7 @@ func TestRootHandler_ServeNotificationCenter(t *testing.T) {
 		false,
 		"",
 		0,
-		false,
+		"off",
 		nil, // workspaceRepo
 		nil, // blogService
 		nil, // cache
@@ -386,7 +386,7 @@ func TestRootHandler_ServeConsole(t *testing.T) {
 		false,
 		"",
 		0,
-		false,
+		"off",
 		nil, // workspaceRepo
 		nil, // blogService
 		nil, // cache
@@ -479,7 +479,7 @@ func TestRootHandler_Handle_Comprehensive(t *testing.T) {
 		false,
 		"",
 		0,
-		false,
+		"off",
 		nil, // workspaceRepo
 		nil, // blogService
 		nil, // cache
@@ -597,7 +597,7 @@ func TestRootHandler_CacheIntegration(t *testing.T) {
 			false,
 			"",
 			0,
-			false,
+			"off",
 			nil, // workspaceRepo
 			nil, // blogService
 			nil, // cache - nil is allowed
@@ -664,7 +664,7 @@ func setupBlogHandlerTest(t *testing.T) (*mocks.MockBlogService, *pkgmocks.MockL
 		false,
 		"",
 		0,
-		false,
+		"off",
 		nil, // workspaceRepo
 		mockBlogService,
 		testCache,

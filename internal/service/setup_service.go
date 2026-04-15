@@ -80,6 +80,7 @@ type EnvironmentConfig struct {
 	SMTPBridgePort          int
 	SMTPBridgeTLSCertBase64 string
 	SMTPBridgeTLSKeyBase64  string
+	SMTPBridgeTLSMode       string // "off", "starttls", "implicit", or ""
 }
 
 // NewSetupService creates a new setup service
@@ -190,6 +191,9 @@ func (s *SetupService) GetEnvOverrides() map[string]bool {
 	}
 	if s.envConfig.SMTPBridgeTLSKeyBase64 != "" {
 		result["smtp_bridge_tls_key_base64"] = true
+	}
+	if s.envConfig.SMTPBridgeTLSMode != "" {
+		result["smtp_bridge_tls_mode"] = true
 	}
 
 	return result

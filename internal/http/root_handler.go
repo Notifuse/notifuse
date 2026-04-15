@@ -23,10 +23,10 @@ type RootHandler struct {
 	version               string
 	rootEmail             string
 	isInstalledPtr        *bool // Pointer to installation status that updates dynamically
-	smtpBridgeEnabled      bool
-	smtpBridgeDomain       string
-	smtpBridgePort         int
-	smtpBridgeTLSEnabled   bool
+	smtpBridgeEnabled     bool
+	smtpBridgeDomain      string
+	smtpBridgePort        int
+	smtpBridgeTLSMode     string // "off", "starttls", or "implicit"
 	workspaceRepo         domain.WorkspaceRepository
 	blogService           domain.BlogService
 	cache                 cache.Cache
@@ -44,7 +44,7 @@ func NewRootHandler(
 	smtpBridgeEnabled bool,
 	smtpBridgeDomain string,
 	smtpBridgePort int,
-	smtpBridgeTLSEnabled bool,
+	smtpBridgeTLSMode string,
 	workspaceRepo domain.WorkspaceRepository,
 	blogService domain.BlogService,
 	cache cache.Cache,
@@ -57,10 +57,10 @@ func NewRootHandler(
 		version:               version,
 		rootEmail:             rootEmail,
 		isInstalledPtr:        isInstalledPtr,
-		smtpBridgeEnabled:      smtpBridgeEnabled,
-		smtpBridgeDomain:       smtpBridgeDomain,
-		smtpBridgePort:         smtpBridgePort,
-		smtpBridgeTLSEnabled:   smtpBridgeTLSEnabled,
+		smtpBridgeEnabled:     smtpBridgeEnabled,
+		smtpBridgeDomain:      smtpBridgeDomain,
+		smtpBridgePort:        smtpBridgePort,
+		smtpBridgeTLSMode:     smtpBridgeTLSMode,
 		workspaceRepo:         workspaceRepo,
 		blogService:           blogService,
 		cache:                 cache,
@@ -143,13 +143,8 @@ func (h *RootHandler) serveConfigJS(w http.ResponseWriter, r *http.Request) {
 		smtpBridgeEnabledStr = "true"
 	}
 
-	smtpBridgeTLSEnabledStr := "false"
-	if h.smtpBridgeTLSEnabled {
-		smtpBridgeTLSEnabledStr = "true"
-	}
-
 	configJS := fmt.Sprintf(
-		"window.API_ENDPOINT = %q;\nwindow.VERSION = %q;\nwindow.ROOT_EMAIL = %q;\nwindow.IS_INSTALLED = %s;\nwindow.TIMEZONES = %s;\nwindow.SMTP_BRIDGE_ENABLED = %s;\nwindow.SMTP_BRIDGE_DOMAIN = %q;\nwindow.SMTP_BRIDGE_PORT = %d;\nwindow.SMTP_BRIDGE_TLS_ENABLED = %s;",
+		"window.API_ENDPOINT = %q;\nwindow.VERSION = %q;\nwindow.ROOT_EMAIL = %q;\nwindow.IS_INSTALLED = %s;\nwindow.TIMEZONES = %s;\nwindow.SMTP_BRIDGE_ENABLED = %s;\nwindow.SMTP_BRIDGE_DOMAIN = %q;\nwindow.SMTP_BRIDGE_PORT = %d;\nwindow.SMTP_BRIDGE_TLS_MODE = %q;",
 		h.apiEndpoint,
 		h.version,
 		h.rootEmail,
@@ -158,7 +153,7 @@ func (h *RootHandler) serveConfigJS(w http.ResponseWriter, r *http.Request) {
 		smtpBridgeEnabledStr,
 		h.smtpBridgeDomain,
 		h.smtpBridgePort,
-		smtpBridgeTLSEnabledStr,
+		h.smtpBridgeTLSMode,
 	)
 	_, _ = w.Write([]byte(configJS))
 }

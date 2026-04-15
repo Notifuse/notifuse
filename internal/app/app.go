@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"crypto/tls"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -514,6 +515,7 @@ func (a *App) InitServices() error {
 		SMTPBridgePort:          smtpBridgePort,
 		SMTPBridgeTLSCertBase64: smtpBridgeTLSCertBase64,
 		SMTPBridgeTLSKeyBase64:  smtpBridgeTLSKeyBase64,
+		SMTPBridgeTLSMode:       a.config.EnvValues.SMTPBridgeTLSMode,
 	}
 
 	a.setupService = service.NewSetupService(
@@ -982,15 +984,19 @@ func (a *App) InitServices() error {
 
 	// Initialize SMTP bridge server if enabled
 	if a.config.SMTPBridge.Enabled {
-		// Setup TLS configuration
-		tlsConfig, err := smtp_bridge.SetupTLS(smtp_bridge.TLSConfig{
-			CertBase64: a.config.SMTPBridge.TLSCertBase64,
-			KeyBase64:  a.config.SMTPBridge.TLSKeyBase64,
-			Logger:     a.logger,
-		})
-		if err != nil {
-			a.logger.WithField("error", err.Error()).Error("Failed to setup TLS for SMTP bridge")
-			return fmt.Errorf("failed to setup TLS for SMTP bridge: %w", err)
+		// TLS is required for starttls and implicit modes; skipped for off.
+		var tlsConfig *tls.Config
+		if a.config.SMTPBridge.TLSMode != smtp_bridge.ModeOff {
+			cfg, err := smtp_bridge.SetupTLS(smtp_bridge.TLSConfig{
+				CertBase64: a.config.SMTPBridge.TLSCertBase64,
+				KeyBase64:  a.config.SMTPBridge.TLSKeyBase64,
+				Logger:     a.logger,
+			})
+			if err != nil {
+				a.logger.WithField("error", err.Error()).Error("Failed to setup TLS for SMTP bridge")
+				return fmt.Errorf("failed to setup TLS for SMTP bridge: %w", err)
+			}
+			tlsConfig = cfg
 		}
 
 		// Create SMTP backend with authentication and message handlers
@@ -1002,12 +1008,12 @@ func (a *App) InitServices() error {
 
 		// Create SMTP server configuration
 		smtpConfig := smtp_bridge.ServerConfig{
-			Host:       a.config.SMTPBridge.Host,
-			Port:       a.config.SMTPBridge.Port,
-			Domain:     a.config.SMTPBridge.Domain,
-			TLSConfig:  tlsConfig,
-			RequireTLS: a.config.IsProduction(),
-			Logger:     a.logger,
+			Host:      a.config.SMTPBridge.Host,
+			Port:      a.config.SMTPBridge.Port,
+			Domain:    a.config.SMTPBridge.Domain,
+			Mode:      a.config.SMTPBridge.TLSMode,
+			TLSConfig: tlsConfig,
+			Logger:    a.logger,
 		}
 
 		// Create the SMTP server
@@ -1021,7 +1027,7 @@ func (a *App) InitServices() error {
 		a.logger.WithFields(map[string]interface{}{
 			"port":   a.config.SMTPBridge.Port,
 			"domain": a.config.SMTPBridge.Domain,
-			"tls":    tlsConfig != nil,
+			"mode":   a.config.SMTPBridge.TLSMode,
 		}).Info("SMTP bridge server initialized successfully")
 	}
 
@@ -1049,9 +1055,6 @@ func (a *App) InitHandlers() error {
 		a.config,
 		getJWTSecret,
 		a.logger)
-	// Determine if SMTP bridge TLS is enabled (check if cert is configured)
-	smtpBridgeTLSEnabled := a.config.SMTPBridge.TLSCertBase64 != ""
-
 	rootHandler := httpHandler.NewRootHandler(
 		"console/dist",
 		"notification_center/dist",
@@ -1063,7 +1066,7 @@ func (a *App) InitHandlers() error {
 		a.config.SMTPBridge.Enabled,
 		a.config.SMTPBridge.Domain,
 		a.config.SMTPBridge.Port,
-		smtpBridgeTLSEnabled,
+		a.config.SMTPBridge.TLSMode,
 		a.workspaceRepo,
 		a.blogService,
 		a.blogCache,
