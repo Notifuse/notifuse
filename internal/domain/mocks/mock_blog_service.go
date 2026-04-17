@@ -7,6 +7,7 @@ package mocks
 import (
 	context "context"
 	reflect "reflect"
+	time "time"
 
 	domain "github.com/Notifuse/notifuse/internal/domain"
 	gomock "github.com/golang/mock/gomock"
@@ -33,6 +34,21 @@ func NewMockBlogService(ctrl *gomock.Controller) *MockBlogService {
 // EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockBlogService) EXPECT() *MockBlogServiceMockRecorder {
 	return m.recorder
+}
+
+// BuildFeed mocks base method.
+func (m *MockBlogService) BuildFeed(arg0 context.Context, arg1 string, arg2 *string) (*domain.BlogFeed, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "BuildFeed", arg0, arg1, arg2)
+	ret0, _ := ret[0].(*domain.BlogFeed)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// BuildFeed indicates an expected call of BuildFeed.
+func (mr *MockBlogServiceMockRecorder) BuildFeed(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BuildFeed", reflect.TypeOf((*MockBlogService)(nil).BuildFeed), arg0, arg1, arg2)
 }
 
 // CreateCategory mocks base method.
@@ -136,6 +152,22 @@ func (m *MockBlogService) GetCategoryBySlug(arg0 context.Context, arg1 string) (
 func (mr *MockBlogServiceMockRecorder) GetCategoryBySlug(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCategoryBySlug", reflect.TypeOf((*MockBlogService)(nil).GetCategoryBySlug), arg0, arg1)
+}
+
+// GetFeedFingerprint mocks base method.
+func (m *MockBlogService) GetFeedFingerprint(arg0 context.Context, arg1 string, arg2 *string) (time.Time, string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetFeedFingerprint", arg0, arg1, arg2)
+	ret0, _ := ret[0].(time.Time)
+	ret1, _ := ret[1].(string)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// GetFeedFingerprint indicates an expected call of GetFeedFingerprint.
+func (mr *MockBlogServiceMockRecorder) GetFeedFingerprint(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFeedFingerprint", reflect.TypeOf((*MockBlogService)(nil).GetFeedFingerprint), arg0, arg1, arg2)
 }
 
 // GetPost mocks base method.
@@ -359,6 +391,21 @@ func (m *MockBlogService) RenderHomePage(arg0 context.Context, arg1 string, arg2
 func (mr *MockBlogServiceMockRecorder) RenderHomePage(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RenderHomePage", reflect.TypeOf((*MockBlogService)(nil).RenderHomePage), arg0, arg1, arg2, arg3)
+}
+
+// RenderPostContent mocks base method.
+func (m *MockBlogService) RenderPostContent(arg0 context.Context, arg1, arg2, arg3 string) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RenderPostContent", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// RenderPostContent indicates an expected call of RenderPostContent.
+func (mr *MockBlogServiceMockRecorder) RenderPostContent(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RenderPostContent", reflect.TypeOf((*MockBlogService)(nil).RenderPostContent), arg0, arg1, arg2, arg3)
 }
 
 // RenderPostPage mocks base method.

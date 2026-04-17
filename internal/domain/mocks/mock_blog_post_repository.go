@@ -108,6 +108,22 @@ func (mr *MockBlogPostRepositoryMockRecorder) DeletePostsByCategoryIDTx(arg0, ar
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeletePostsByCategoryIDTx", reflect.TypeOf((*MockBlogPostRepository)(nil).DeletePostsByCategoryIDTx), arg0, arg1, arg2)
 }
 
+// GetFeedFingerprint mocks base method.
+func (m *MockBlogPostRepository) GetFeedFingerprint(arg0 context.Context, arg1 *string, arg2 int) (time.Time, string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetFeedFingerprint", arg0, arg1, arg2)
+	ret0, _ := ret[0].(time.Time)
+	ret1, _ := ret[1].(string)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// GetFeedFingerprint indicates an expected call of GetFeedFingerprint.
+func (mr *MockBlogPostRepositoryMockRecorder) GetFeedFingerprint(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFeedFingerprint", reflect.TypeOf((*MockBlogPostRepository)(nil).GetFeedFingerprint), arg0, arg1, arg2)
+}
+
 // GetPost mocks base method.
 func (m *MockBlogPostRepository) GetPost(arg0 context.Context, arg1 string) (*domain.BlogPost, error) {
 	m.ctrl.T.Helper()
@@ -181,6 +197,21 @@ func (m *MockBlogPostRepository) GetPostTx(arg0 context.Context, arg1 *sql.Tx, a
 func (mr *MockBlogPostRepositoryMockRecorder) GetPostTx(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPostTx", reflect.TypeOf((*MockBlogPostRepository)(nil).GetPostTx), arg0, arg1, arg2)
+}
+
+// ListFeedPosts mocks base method.
+func (m *MockBlogPostRepository) ListFeedPosts(arg0 context.Context, arg1 *string, arg2 int) ([]*domain.BlogPost, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListFeedPosts", arg0, arg1, arg2)
+	ret0, _ := ret[0].([]*domain.BlogPost)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListFeedPosts indicates an expected call of ListFeedPosts.
+func (mr *MockBlogPostRepositoryMockRecorder) ListFeedPosts(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListFeedPosts", reflect.TypeOf((*MockBlogPostRepository)(nil).ListFeedPosts), arg0, arg1, arg2)
 }
 
 // ListPosts mocks base method.

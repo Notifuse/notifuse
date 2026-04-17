@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ## [29.4] - 2026-04-15
 
 - **Feature**: Added `SMTP_BRIDGE_TLS` setting (`off` / `starttls` / `implicit`) to let operators run the SMTP bridge behind a TLS-terminating reverse proxy or in implicit-TLS (SMTPS) mode (#314)
+- **Feature**: Blog RSS 2.0 and JSON Feed 1.1 syndication — automatic `/feed.xml` and `/feed.json` endpoints per workspace, per-category feeds, conditional GET with ETag, gzip, XSS-sanitized content, autodiscovery `<link>` tags, and admin-configurable feed settings
 
 ## [29.3] - 2026-04-12
 

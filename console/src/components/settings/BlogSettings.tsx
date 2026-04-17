@@ -51,6 +51,8 @@ export function BlogSettings({ workspace, onWorkspaceUpdate, isOwner }: BlogSett
         icon_url: workspace?.settings.blog_settings?.icon_url || '',
         home_page_size: workspace?.settings.blog_settings?.home_page_size || 20,
         category_page_size: workspace?.settings.blog_settings?.category_page_size || 20,
+        feed_max_items: workspace?.settings.blog_settings?.feed_max_items || 20,
+        feed_summary_only: workspace?.settings.blog_settings?.feed_summary_only || false,
         seo: {
           meta_title: workspace?.settings.blog_settings?.seo?.meta_title || '',
           meta_description: workspace?.settings.blog_settings?.seo?.meta_description || '',
@@ -73,6 +75,8 @@ export function BlogSettings({ workspace, onWorkspaceUpdate, isOwner }: BlogSett
       icon_url?: string
       home_page_size?: number
       category_page_size?: number
+      feed_max_items?: number
+      feed_summary_only?: boolean
       seo?: {
         meta_title?: string
         meta_description?: string
@@ -379,6 +383,44 @@ export function BlogSettings({ workspace, onWorkspaceUpdate, isOwner }: BlogSett
                     <Select.Option value={10}>10</Select.Option>
                     <Select.Option value={15}>15</Select.Option>
                     <Select.Option value={20}>20</Select.Option>
+                  </Select>
+                </Form.Item>
+              </Col>
+            </Row>
+
+            <Divider className="!my-8" />
+
+            <SettingsSectionHeader
+              title={t`RSS / Feeds`}
+              description={t`Configure how your blog's RSS and JSON feeds are generated.`}
+              className="!mb-4"
+            />
+
+            <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item
+                  name={['blog_settings', 'feed_max_items']}
+                  label={t`Items per feed`}
+                  tooltip={t`Maximum number of posts to include in the RSS/JSON feed (1–20)`}
+                >
+                  <Select placeholder={t`Select feed size`}>
+                    <Select.Option value={5}>5</Select.Option>
+                    <Select.Option value={10}>10</Select.Option>
+                    <Select.Option value={15}>15</Select.Option>
+                    <Select.Option value={20}>20</Select.Option>
+                  </Select>
+                </Form.Item>
+              </Col>
+
+              <Col span={12}>
+                <Form.Item
+                  name={['blog_settings', 'feed_summary_only']}
+                  label={t`Summary-only feed`}
+                  tooltip={t`When enabled, the feed includes only excerpts instead of full article content`}
+                >
+                  <Select placeholder={t`Select content mode`}>
+                    <Select.Option value={false}>{t`Full content`}</Select.Option>
+                    <Select.Option value={true}>{t`Excerpt only`}</Select.Option>
                   </Select>
                 </Form.Item>
               </Col>

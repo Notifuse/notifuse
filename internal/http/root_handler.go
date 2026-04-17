@@ -1,6 +1,7 @@
 package http
 
 import (
+	"compress/gzip"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -11,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/Notifuse/notifuse/internal/domain"
+	"github.com/Notifuse/notifuse/internal/blogfeed"
 	"github.com/Notifuse/notifuse/pkg/cache"
 	"github.com/Notifuse/notifuse/pkg/logger"
 )
@@ -224,6 +226,12 @@ func (h *RootHandler) serveBlog(w http.ResponseWriter, r *http.Request, workspac
 	case "/sitemap.xml":
 		h.serveBlogSitemap(w, r, workspace)
 		return
+	case "/feed.xml":
+		h.serveBlogFeed(w, r, workspace, nil, feedFormatRSS)
+		return
+	case "/feed.json":
+		h.serveBlogFeed(w, r, workspace, nil, feedFormatJSON)
+		return
 	case "/":
 		h.serveBlogHome(w, r, workspace)
 		return
@@ -231,6 +239,17 @@ func (h *RootHandler) serveBlog(w http.ResponseWriter, r *http.Request, workspac
 
 	// Try to parse URL parts
 	parts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
+
+	// Handle /{category-slug}/feed.xml or /{category-slug}/feed.json
+	if len(parts) == 2 && (parts[1] == "feed.xml" || parts[1] == "feed.json") {
+		slug := parts[0]
+		format := feedFormatRSS
+		if parts[1] == "feed.json" {
+			format = feedFormatJSON
+		}
+		h.serveBlogFeed(w, r, workspace, &slug, format)
+		return
+	}
 
 	// Handle /{category-slug} - category page
 	if len(parts) == 1 && parts[0] != "" {
@@ -544,10 +563,127 @@ func (h *RootHandler) serveBlogSitemap(w http.ResponseWriter, r *http.Request, w
 		}
 	}
 
+	// Add main feed URL
+	sitemap.WriteString("  <url>\n")
+	fmt.Fprintf(&sitemap, "    <loc>https://%s/feed.xml</loc>\n", r.Host)
+	sitemap.WriteString("    <changefreq>daily</changefreq>\n")
+	sitemap.WriteString("    <priority>0.3</priority>\n")
+	sitemap.WriteString("  </url>\n")
+
+	// Add per-category feed URLs (deduplicated from the category set above)
+	seenCategories := map[string]struct{}{}
+	for _, post := range response.Posts {
+		if post.CategoryID == "" {
+			continue
+		}
+		if _, ok := seenCategories[post.CategoryID]; ok {
+			continue
+		}
+		seenCategories[post.CategoryID] = struct{}{}
+		category, err := h.blogService.GetCategory(ctx, post.CategoryID)
+		if err == nil && category != nil {
+			sitemap.WriteString("  <url>\n")
+			fmt.Fprintf(&sitemap, "    <loc>https://%s/%s/feed.xml</loc>\n", r.Host, category.Slug)
+			sitemap.WriteString("    <changefreq>daily</changefreq>\n")
+			sitemap.WriteString("    <priority>0.3</priority>\n")
+			sitemap.WriteString("  </url>\n")
+		}
+	}
+
 	sitemap.WriteString("</urlset>")
 
 	w.Header().Set("Content-Type", "application/xml")
 	_, _ = w.Write([]byte(sitemap.String()))
+}
+
+type feedFormat int
+
+const (
+	feedFormatRSS feedFormat = iota
+	feedFormatJSON
+)
+
+func (h *RootHandler) serveBlogFeed(w http.ResponseWriter, r *http.Request, workspace *domain.Workspace, categorySlug *string, format feedFormat) {
+	if r.Method != http.MethodGet && r.Method != http.MethodHead {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	maxUpdatedAt, etag, err := h.blogService.GetFeedFingerprint(r.Context(), workspace.ID, categorySlug)
+	if err != nil {
+		h.logger.WithField("error", err.Error()).Error("Feed: fingerprint failed")
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	lastModified := maxUpdatedAt.UTC().Format(http.TimeFormat)
+
+	// Conditional GET: 304 without building the feed.
+	if match := r.Header.Get("If-None-Match"); match != "" && match == etag {
+		w.Header().Set("ETag", etag)
+		w.Header().Set("Last-Modified", lastModified)
+		w.Header().Set("Cache-Control", "public, max-age=0, s-maxage=300, must-revalidate")
+		w.WriteHeader(http.StatusNotModified)
+		return
+	}
+	if ims := r.Header.Get("If-Modified-Since"); ims != "" {
+		if t, err := http.ParseTime(ims); err == nil && !maxUpdatedAt.After(t) {
+			w.Header().Set("ETag", etag)
+			w.Header().Set("Last-Modified", lastModified)
+			w.Header().Set("Cache-Control", "public, max-age=0, s-maxage=300, must-revalidate")
+			w.WriteHeader(http.StatusNotModified)
+			return
+		}
+	}
+
+	feed, err := h.blogService.BuildFeed(r.Context(), workspace.ID, categorySlug)
+	if err != nil {
+		h.logger.WithField("error", err.Error()).Error("Feed: build failed")
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	// BuildFeed defaults SelfURL/FeedURL to /feed.xml. Fix up for JSON.
+	if format == feedFormatJSON {
+		jsonSelf := strings.Replace(feed.Meta.SelfURL, "/feed.xml", "/feed.json", 1)
+		feed.Meta.SelfURL = jsonSelf
+		feed.Meta.FeedURL = jsonSelf
+	}
+
+	var body []byte
+	var contentType string
+	switch format {
+	case feedFormatJSON:
+		body, err = blogfeed.RenderJSON(feed)
+		contentType = "application/feed+json; charset=utf-8"
+	default:
+		body, err = blogfeed.RenderRSS(feed)
+		contentType = "application/rss+xml; charset=utf-8"
+	}
+	if err != nil {
+		h.logger.WithField("error", err.Error()).Error("Feed: render failed")
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", contentType)
+	w.Header().Set("ETag", etag)
+	w.Header().Set("Last-Modified", lastModified)
+	w.Header().Set("Cache-Control", "public, max-age=0, s-maxage=300, must-revalidate")
+	w.Header().Set("Vary", "Accept-Encoding")
+
+	if r.Method == http.MethodHead {
+		return
+	}
+
+	if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
+		w.Header().Set("Content-Encoding", "gzip")
+		gz := gzip.NewWriter(w)
+		defer gz.Close()
+		_, _ = gz.Write(body)
+		return
+	}
+	_, _ = w.Write(body)
 }
 
 // serveBlog404 serves a 404 page for blog

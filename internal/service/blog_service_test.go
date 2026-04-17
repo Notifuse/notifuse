@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -2379,5 +2380,479 @@ func TestBlogSettings_ValidationHelpers(t *testing.T) {
 	t.Run("GetCategoryPageSize returns default when nil", func(t *testing.T) {
 		var settings *domain.BlogSettings
 		assert.Equal(t, 20, settings.GetCategoryPageSize())
+	})
+}
+
+func TestBlogService_RenderPostContent(t *testing.T) {
+	workspaceID := "ws-feed"
+	publishedAt := time.Now().Add(-time.Hour)
+	newWorkspace := func() *domain.Workspace {
+		return &domain.Workspace{
+			ID: workspaceID,
+			Settings: domain.WorkspaceSettings{
+				WebsiteURL: "https://blog.example.com",
+			},
+		}
+	}
+	newPost := func() *domain.BlogPost {
+		return &domain.BlogPost{
+			ID:          "post-1",
+			Slug:        "hello",
+			CategoryID:  "cat-1",
+			PublishedAt: &publishedAt,
+			Settings: domain.BlogPostSettings{
+				Title: "Hello",
+				Template: domain.BlogPostTemplateReference{
+					TemplateID:      "tpl-1",
+					TemplateVersion: 3,
+				},
+			},
+		}
+	}
+
+	t.Run("renders body HTML with absolute URLs and XSS stripped", func(t *testing.T) {
+		service, _, mockPostRepo, _, mockWorkspaceRepo, _, mockTemplateRepo, _ := setupBlogServiceTest(t)
+		ctx := context.Background()
+
+		mockWorkspaceRepo.EXPECT().
+			GetByID(ctx, workspaceID).Return(newWorkspace(), nil)
+		mockPostRepo.EXPECT().
+			GetPostByCategoryAndSlug(ctx, "tech", "hello").Return(newPost(), nil)
+		mockTemplateRepo.EXPECT().
+			GetTemplateByID(ctx, workspaceID, "tpl-1", int64(3)).
+			Return(&domain.Template{
+				Web: &domain.WebTemplate{
+					HTML: `<p>Hi <a href="/x">link</a><script>alert(1)</script></p>`,
+				},
+			}, nil)
+
+		out, err := service.RenderPostContent(ctx, workspaceID, "tech", "hello")
+		require.NoError(t, err)
+		assert.Contains(t, out, `href="https://blog.example.com/x"`)
+		assert.NotContains(t, out, "<script")
+	})
+
+	t.Run("errors with PostNotFound when post missing", func(t *testing.T) {
+		service, _, mockPostRepo, _, mockWorkspaceRepo, _, _, _ := setupBlogServiceTest(t)
+		ctx := context.Background()
+
+		mockWorkspaceRepo.EXPECT().
+			GetByID(ctx, workspaceID).Return(newWorkspace(), nil)
+		mockPostRepo.EXPECT().
+			GetPostByCategoryAndSlug(ctx, "tech", "missing").Return(nil, errors.New("not found"))
+
+		_, err := service.RenderPostContent(ctx, workspaceID, "tech", "missing")
+		require.Error(t, err)
+		var renderErr *domain.BlogRenderError
+		require.ErrorAs(t, err, &renderErr)
+		assert.Equal(t, domain.ErrCodePostNotFound, renderErr.Code)
+	})
+
+	t.Run("errors with PostNotFound for unpublished post", func(t *testing.T) {
+		service, _, mockPostRepo, _, mockWorkspaceRepo, _, _, _ := setupBlogServiceTest(t)
+		ctx := context.Background()
+
+		draft := newPost()
+		draft.PublishedAt = nil
+
+		mockWorkspaceRepo.EXPECT().
+			GetByID(ctx, workspaceID).Return(newWorkspace(), nil)
+		mockPostRepo.EXPECT().
+			GetPostByCategoryAndSlug(ctx, "tech", "hello").Return(draft, nil)
+
+		_, err := service.RenderPostContent(ctx, workspaceID, "tech", "hello")
+		require.Error(t, err)
+		var renderErr *domain.BlogRenderError
+		require.ErrorAs(t, err, &renderErr)
+		assert.Equal(t, domain.ErrCodePostNotFound, renderErr.Code)
+	})
+
+	t.Run("errors when template has no web content", func(t *testing.T) {
+		service, _, mockPostRepo, _, mockWorkspaceRepo, _, mockTemplateRepo, _ := setupBlogServiceTest(t)
+		ctx := context.Background()
+
+		mockWorkspaceRepo.EXPECT().
+			GetByID(ctx, workspaceID).Return(newWorkspace(), nil)
+		mockPostRepo.EXPECT().
+			GetPostByCategoryAndSlug(ctx, "tech", "hello").Return(newPost(), nil)
+		mockTemplateRepo.EXPECT().
+			GetTemplateByID(ctx, workspaceID, "tpl-1", int64(3)).
+			Return(&domain.Template{Web: nil}, nil)
+
+		_, err := service.RenderPostContent(ctx, workspaceID, "tech", "hello")
+		require.Error(t, err)
+		var renderErr *domain.BlogRenderError
+		require.ErrorAs(t, err, &renderErr)
+		assert.Equal(t, domain.ErrCodeRenderFailed, renderErr.Code)
+	})
+}
+
+// ====================
+// Feed tests
+// ====================
+
+func TestBlogService_BuildFeed(t *testing.T) {
+	workspaceID := "ws-feed"
+	pubTime := time.Now().Add(-time.Hour).UTC()
+
+	newWorkspace := func(summaryOnly bool) *domain.Workspace {
+		return &domain.Workspace{
+			ID:   workspaceID,
+			Name: "Example Blog",
+			Settings: domain.WorkspaceSettings{
+				WebsiteURL:      "https://blog.example.com",
+				DefaultLanguage: "fr",
+				BlogSettings: &domain.BlogSettings{
+					Title:           "Example",
+					FeedSummaryOnly: summaryOnly,
+					FeedMaxItems:    5,
+				},
+			},
+		}
+	}
+
+	newPost := func(id, slug, title, excerpt string) *domain.BlogPost {
+		return &domain.BlogPost{
+			ID:          id,
+			Slug:        slug,
+			CategoryID:  "cat-1",
+			PublishedAt: &pubTime,
+			UpdatedAt:   pubTime,
+			Settings: domain.BlogPostSettings{
+				Title:   title,
+				Excerpt: excerpt,
+				Template: domain.BlogPostTemplateReference{
+					TemplateID:      "tpl-1",
+					TemplateVersion: 1,
+				},
+			},
+		}
+	}
+	newCategory := func() *domain.BlogCategory {
+		return &domain.BlogCategory{
+			ID:   "cat-1",
+			Slug: "tech",
+			Settings: domain.BlogCategorySettings{
+				Name: "Tech",
+			},
+		}
+	}
+
+	t.Run("summary-only feed uses excerpts, not full bodies", func(t *testing.T) {
+		service, mockCategoryRepo, mockPostRepo, _, mockWorkspaceRepo, _, _, _ := setupBlogServiceTest(t)
+		ctx := context.Background()
+
+		mockWorkspaceRepo.EXPECT().GetByID(ctx, workspaceID).Return(newWorkspace(true), nil)
+		mockPostRepo.EXPECT().
+			ListFeedPosts(gomock.Any(), nil, 5).
+			Return([]*domain.BlogPost{newPost("p1", "hello", "Hello", "A warm greeting.")}, nil)
+		mockPostRepo.EXPECT().
+			GetFeedFingerprint(gomock.Any(), nil, 5).
+			Return(pubTime, "abcd", nil)
+		mockCategoryRepo.EXPECT().
+			GetCategoriesByIDs(gomock.Any(), []string{"cat-1"}).
+			Return([]*domain.BlogCategory{newCategory()}, nil)
+
+		feed, err := service.BuildFeed(ctx, workspaceID, nil)
+		require.NoError(t, err)
+		require.Len(t, feed.Items, 1)
+		assert.Equal(t, "A warm greeting.", feed.Items[0].ContentHTML)
+		assert.Equal(t, "https://blog.example.com/tech/hello", feed.Items[0].URL)
+		assert.Equal(t, "fr", feed.Meta.Language)
+		assert.Equal(t, "https://blog.example.com/feed.xml", feed.Meta.SelfURL)
+		assert.NotEmpty(t, feed.Meta.ETag)
+	})
+
+	t.Run("full-content feed renders body HTML", func(t *testing.T) {
+		service, mockCategoryRepo, mockPostRepo, _, mockWorkspaceRepo, _, mockTemplateRepo, _ := setupBlogServiceTest(t)
+		ctx := context.Background()
+
+		// With N+1 fix: BuildFeed fetches workspace once, fingerprint once,
+		// lists posts once, batches categories once, batches templates once.
+		mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(newWorkspace(false), nil)
+		mockPostRepo.EXPECT().
+			ListFeedPosts(gomock.Any(), nil, 5).
+			Return([]*domain.BlogPost{newPost("p1", "hello", "Hello", "Excerpt")}, nil)
+		mockPostRepo.EXPECT().
+			GetFeedFingerprint(gomock.Any(), nil, 5).
+			Return(pubTime, "abcd", nil)
+		mockCategoryRepo.EXPECT().
+			GetCategoriesByIDs(gomock.Any(), []string{"cat-1"}).
+			Return([]*domain.BlogCategory{newCategory()}, nil)
+		mockTemplateRepo.EXPECT().
+			GetTemplateByID(gomock.Any(), workspaceID, "tpl-1", int64(1)).
+			Return(&domain.Template{Web: &domain.WebTemplate{HTML: `<p>Body</p>`}}, nil)
+
+		feed, err := service.BuildFeed(ctx, workspaceID, nil)
+		require.NoError(t, err)
+		require.Len(t, feed.Items, 1)
+		assert.Contains(t, feed.Items[0].ContentHTML, "<p>Body</p>")
+	})
+
+	t.Run("templates are batched across posts sharing the same template", func(t *testing.T) {
+		service, mockCategoryRepo, mockPostRepo, _, mockWorkspaceRepo, _, mockTemplateRepo, _ := setupBlogServiceTest(t)
+		ctx := context.Background()
+
+		mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(newWorkspace(false), nil)
+		mockPostRepo.EXPECT().
+			ListFeedPosts(gomock.Any(), nil, 5).
+			Return([]*domain.BlogPost{
+				newPost("p1", "a", "A", "x"),
+				newPost("p2", "b", "B", "y"),
+				newPost("p3", "c", "C", "z"),
+			}, nil)
+		mockPostRepo.EXPECT().GetFeedFingerprint(gomock.Any(), nil, 5).Return(pubTime, "abcd", nil)
+		mockCategoryRepo.EXPECT().
+			GetCategoriesByIDs(gomock.Any(), []string{"cat-1"}).
+			Return([]*domain.BlogCategory{newCategory()}, nil)
+		// Three posts share (tpl-1, 1) → GetTemplateByID called exactly once.
+		mockTemplateRepo.EXPECT().
+			GetTemplateByID(gomock.Any(), workspaceID, "tpl-1", int64(1)).
+			Return(&domain.Template{Web: &domain.WebTemplate{HTML: `<p>Body</p>`}}, nil).
+			Times(1)
+
+		feed, err := service.BuildFeed(ctx, workspaceID, nil)
+		require.NoError(t, err)
+		require.Len(t, feed.Items, 3)
+	})
+
+	t.Run("render failure falls back to excerpt", func(t *testing.T) {
+		service, mockCategoryRepo, mockPostRepo, _, mockWorkspaceRepo, _, mockTemplateRepo, _ := setupBlogServiceTest(t)
+		ctx := context.Background()
+
+		mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(newWorkspace(false), nil)
+		mockPostRepo.EXPECT().
+			ListFeedPosts(gomock.Any(), nil, 5).
+			Return([]*domain.BlogPost{newPost("p1", "hello", "Hello", "Fallback excerpt")}, nil)
+		mockPostRepo.EXPECT().
+			GetFeedFingerprint(gomock.Any(), nil, 5).
+			Return(pubTime, "abcd", nil)
+		mockCategoryRepo.EXPECT().
+			GetCategoriesByIDs(gomock.Any(), []string{"cat-1"}).
+			Return([]*domain.BlogCategory{newCategory()}, nil)
+		// Template lookup fails → template pre-cache stores nil → render
+		// errors → fallback ladder kicks in.
+		mockTemplateRepo.EXPECT().
+			GetTemplateByID(gomock.Any(), workspaceID, "tpl-1", int64(1)).
+			Return(nil, errors.New("template missing"))
+
+		feed, err := service.BuildFeed(ctx, workspaceID, nil)
+		require.NoError(t, err)
+		require.Len(t, feed.Items, 1)
+		assert.Equal(t, "Fallback excerpt", feed.Items[0].ContentHTML)
+	})
+
+	t.Run("render failure with empty excerpt drops item", func(t *testing.T) {
+		service, mockCategoryRepo, mockPostRepo, _, mockWorkspaceRepo, _, mockTemplateRepo, _ := setupBlogServiceTest(t)
+		ctx := context.Background()
+
+		mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(newWorkspace(false), nil)
+		mockPostRepo.EXPECT().
+			ListFeedPosts(gomock.Any(), nil, 5).
+			Return([]*domain.BlogPost{newPost("p1", "hello", "Hello", "")}, nil)
+		mockPostRepo.EXPECT().
+			GetFeedFingerprint(gomock.Any(), nil, 5).
+			Return(pubTime, "abcd", nil)
+		mockCategoryRepo.EXPECT().
+			GetCategoriesByIDs(gomock.Any(), []string{"cat-1"}).
+			Return([]*domain.BlogCategory{newCategory()}, nil)
+		mockTemplateRepo.EXPECT().
+			GetTemplateByID(gomock.Any(), workspaceID, "tpl-1", int64(1)).
+			Return(nil, errors.New("template missing"))
+
+		feed, err := service.BuildFeed(ctx, workspaceID, nil)
+		require.NoError(t, err)
+		assert.Empty(t, feed.Items)
+	})
+
+	t.Run("errors when workspace has no origin configured", func(t *testing.T) {
+		service, _, _, _, mockWorkspaceRepo, _, _, _ := setupBlogServiceTest(t)
+		ctx := context.Background()
+
+		ws := newWorkspace(false)
+		ws.Settings.WebsiteURL = ""
+		ws.Settings.CustomEndpointURL = nil
+		mockWorkspaceRepo.EXPECT().GetByID(ctx, workspaceID).Return(ws, nil)
+
+		_, err := service.BuildFeed(ctx, workspaceID, nil)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "no website URL")
+	})
+
+	t.Run("category-scoped feed URL", func(t *testing.T) {
+		service, mockCategoryRepo, mockPostRepo, _, mockWorkspaceRepo, _, _, _ := setupBlogServiceTest(t)
+		ctx := context.Background()
+		slug := "tech"
+
+		mockWorkspaceRepo.EXPECT().GetByID(ctx, workspaceID).Return(newWorkspace(true), nil)
+		mockPostRepo.EXPECT().
+			ListFeedPosts(gomock.Any(), &slug, 5).
+			Return([]*domain.BlogPost{}, nil)
+		mockPostRepo.EXPECT().
+			GetFeedFingerprint(gomock.Any(), &slug, 5).
+			Return(pubTime, "abcd", nil)
+		// No categories to resolve because no posts.
+		_ = mockCategoryRepo
+
+		feed, err := service.BuildFeed(ctx, workspaceID, &slug)
+		require.NoError(t, err)
+		assert.Equal(t, "https://blog.example.com/tech/feed.xml", feed.Meta.SelfURL)
+	})
+
+	t.Run("empty feed falls back to workspace.UpdatedAt for channel UpdatedAt", func(t *testing.T) {
+		service, _, mockPostRepo, _, mockWorkspaceRepo, _, _, _ := setupBlogServiceTest(t)
+		ctx := context.Background()
+
+		ws := newWorkspace(true)
+		ws.UpdatedAt = time.Date(2026, 1, 1, 12, 0, 0, 0, time.UTC)
+
+		mockWorkspaceRepo.EXPECT().GetByID(ctx, workspaceID).Return(ws, nil)
+		mockPostRepo.EXPECT().
+			ListFeedPosts(gomock.Any(), nil, 5).
+			Return([]*domain.BlogPost{}, nil)
+		// Repo returns zero-time for empty feeds; service must substitute.
+		mockPostRepo.EXPECT().
+			GetFeedFingerprint(gomock.Any(), nil, 5).
+			Return(time.Time{}, "", nil)
+
+		feed, err := service.BuildFeed(ctx, workspaceID, nil)
+		require.NoError(t, err)
+		assert.True(t, feed.Meta.UpdatedAt.Equal(ws.UpdatedAt.UTC()),
+			"expected UpdatedAt to fall back to workspace.UpdatedAt, got %s", feed.Meta.UpdatedAt)
+		assert.Empty(t, feed.Items)
+	})
+
+	t.Run("Unicode in post title is preserved", func(t *testing.T) {
+		service, mockCategoryRepo, mockPostRepo, _, mockWorkspaceRepo, _, _, _ := setupBlogServiceTest(t)
+		ctx := context.Background()
+
+		mockWorkspaceRepo.EXPECT().GetByID(ctx, workspaceID).Return(newWorkspace(true), nil)
+		mockPostRepo.EXPECT().
+			ListFeedPosts(gomock.Any(), nil, 5).
+			Return([]*domain.BlogPost{newPost("p1", "hola", "Héllo 👋 مرحبا", "Excerpt")}, nil)
+		mockPostRepo.EXPECT().GetFeedFingerprint(gomock.Any(), nil, 5).Return(pubTime, "abcd", nil)
+		mockCategoryRepo.EXPECT().
+			GetCategoriesByIDs(gomock.Any(), []string{"cat-1"}).
+			Return([]*domain.BlogCategory{newCategory()}, nil)
+
+		feed, err := service.BuildFeed(ctx, workspaceID, nil)
+		require.NoError(t, err)
+		require.Len(t, feed.Items, 1)
+		assert.Equal(t, "Héllo 👋 مرحبا", feed.Items[0].Title)
+	})
+
+	t.Run("weak ETag prefix", func(t *testing.T) {
+		service, _, mockPostRepo, _, mockWorkspaceRepo, _, _, _ := setupBlogServiceTest(t)
+		ctx := context.Background()
+
+		mockWorkspaceRepo.EXPECT().GetByID(ctx, workspaceID).Return(newWorkspace(true), nil)
+		mockPostRepo.EXPECT().
+			ListFeedPosts(gomock.Any(), nil, 5).
+			Return([]*domain.BlogPost{}, nil)
+		mockPostRepo.EXPECT().GetFeedFingerprint(gomock.Any(), nil, 5).Return(pubTime, "abcd", nil)
+
+		feed, err := service.BuildFeed(ctx, workspaceID, nil)
+		require.NoError(t, err)
+		assert.True(t, strings.HasPrefix(feed.Meta.ETag, `W/"`),
+			"expected weak ETag prefix, got %q", feed.Meta.ETag)
+	})
+
+	t.Run("nil BlogSettings uses defaults without panic", func(t *testing.T) {
+		service, _, mockPostRepo, _, mockWorkspaceRepo, _, _, _ := setupBlogServiceTest(t)
+		ctx := context.Background()
+
+		ws := &domain.Workspace{
+			ID:   workspaceID,
+			Name: "No Settings Blog",
+			Settings: domain.WorkspaceSettings{
+				WebsiteURL:   "https://blog.example.com",
+				BlogSettings: nil, // explicitly nil
+			},
+		}
+		mockWorkspaceRepo.EXPECT().GetByID(ctx, workspaceID).Return(ws, nil)
+		// nil BlogSettings → GetFeedMaxItems returns 20 (nil-safe)
+		mockPostRepo.EXPECT().
+			ListFeedPosts(gomock.Any(), nil, 20).
+			Return([]*domain.BlogPost{}, nil)
+		mockPostRepo.EXPECT().GetFeedFingerprint(gomock.Any(), nil, 20).Return(time.Time{}, "", nil)
+
+		feed, err := service.BuildFeed(ctx, workspaceID, nil)
+		require.NoError(t, err)
+		assert.Empty(t, feed.Items)
+		assert.Equal(t, "No Settings Blog", feed.Meta.Title, "should fall back to workspace name")
+	})
+}
+
+func TestBlogService_GetFeedFingerprint(t *testing.T) {
+	workspaceID := "ws-etag"
+	updated := time.Now().Add(-time.Hour).UTC()
+
+	mkWorkspace := func(summaryOnly bool) *domain.Workspace {
+		return &domain.Workspace{
+			ID: workspaceID,
+			Settings: domain.WorkspaceSettings{
+				BlogSettings: &domain.BlogSettings{FeedSummaryOnly: summaryOnly, FeedMaxItems: 10},
+			},
+		}
+	}
+
+	t.Run("returns stable etag for same inputs", func(t *testing.T) {
+		service, _, mockPostRepo, _, mockWorkspaceRepo, _, _, _ := setupBlogServiceTest(t)
+		ctx := context.Background()
+
+		mockWorkspaceRepo.EXPECT().GetByID(ctx, workspaceID).Return(mkWorkspace(false), nil).Times(2)
+		mockPostRepo.EXPECT().GetFeedFingerprint(gomock.Any(), nil, 10).Return(updated, "hash-x", nil).Times(2)
+
+		_, etag1, err := service.GetFeedFingerprint(ctx, workspaceID, nil)
+		require.NoError(t, err)
+		_, etag2, err := service.GetFeedFingerprint(ctx, workspaceID, nil)
+		require.NoError(t, err)
+		assert.Equal(t, etag1, etag2)
+	})
+
+	t.Run("main and category feed produce different etags", func(t *testing.T) {
+		service, _, mockPostRepo, _, mockWorkspaceRepo, _, _, _ := setupBlogServiceTest(t)
+		ctx := context.Background()
+		slug := "tech"
+
+		mockWorkspaceRepo.EXPECT().GetByID(ctx, workspaceID).Return(mkWorkspace(false), nil).Times(2)
+		mockPostRepo.EXPECT().GetFeedFingerprint(gomock.Any(), nil, 10).Return(updated, "hash-x", nil)
+		mockPostRepo.EXPECT().GetFeedFingerprint(gomock.Any(), &slug, 10).Return(updated, "hash-x", nil)
+
+		_, mainETag, err := service.GetFeedFingerprint(ctx, workspaceID, nil)
+		require.NoError(t, err)
+		_, catETag, err := service.GetFeedFingerprint(ctx, workspaceID, &slug)
+		require.NoError(t, err)
+		assert.NotEqual(t, mainETag, catETag)
+	})
+
+	t.Run("etag changes when ids hash changes (delete)", func(t *testing.T) {
+		service, _, mockPostRepo, _, mockWorkspaceRepo, _, _, _ := setupBlogServiceTest(t)
+		ctx := context.Background()
+
+		mockWorkspaceRepo.EXPECT().GetByID(ctx, workspaceID).Return(mkWorkspace(false), nil).Times(2)
+		mockPostRepo.EXPECT().GetFeedFingerprint(gomock.Any(), nil, 10).Return(updated, "before", nil)
+		mockPostRepo.EXPECT().GetFeedFingerprint(gomock.Any(), nil, 10).Return(updated, "after", nil)
+
+		_, before, err := service.GetFeedFingerprint(ctx, workspaceID, nil)
+		require.NoError(t, err)
+		_, after, err := service.GetFeedFingerprint(ctx, workspaceID, nil)
+		require.NoError(t, err)
+		assert.NotEqual(t, before, after)
+	})
+
+	t.Run("etag changes when settings flip", func(t *testing.T) {
+		service, _, mockPostRepo, _, mockWorkspaceRepo, _, _, _ := setupBlogServiceTest(t)
+		ctx := context.Background()
+
+		mockWorkspaceRepo.EXPECT().GetByID(ctx, workspaceID).Return(mkWorkspace(false), nil)
+		mockWorkspaceRepo.EXPECT().GetByID(ctx, workspaceID).Return(mkWorkspace(true), nil)
+		mockPostRepo.EXPECT().GetFeedFingerprint(gomock.Any(), nil, 10).Return(updated, "hash-x", nil).Times(2)
+
+		_, etagBefore, err := service.GetFeedFingerprint(ctx, workspaceID, nil)
+		require.NoError(t, err)
+		_, etagAfter, err := service.GetFeedFingerprint(ctx, workspaceID, nil)
+		require.NoError(t, err)
+		assert.NotEqual(t, etagBefore, etagAfter)
 	})
 }

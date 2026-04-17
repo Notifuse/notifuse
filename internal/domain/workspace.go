@@ -280,6 +280,8 @@ type BlogSettings struct {
 	SEO              *SEOSettings `json:"seo,omitempty"`
 	HomePageSize     int          `json:"home_page_size,omitempty"`     // Posts per page on home (default: 20)
 	CategoryPageSize int          `json:"category_page_size,omitempty"` // Posts per page on category (default: 20)
+	FeedSummaryOnly  bool         `json:"feed_summary_only,omitempty"`  // When true, RSS/JSON feeds emit excerpt instead of full HTML
+	FeedMaxItems     int          `json:"feed_max_items,omitempty"`     // Items per RSS/JSON feed (default and cap: 20)
 }
 
 // GetHomePageSize returns the home page size with validation and default
@@ -296,6 +298,14 @@ func (bs *BlogSettings) GetCategoryPageSize() int {
 		return 20 // default
 	}
 	return bs.CategoryPageSize
+}
+
+// GetFeedMaxItems returns the feed item cap, clamped to [1, 20].
+func (bs *BlogSettings) GetFeedMaxItems() int {
+	if bs == nil || bs.FeedMaxItems < 1 || bs.FeedMaxItems > 20 {
+		return 20
+	}
+	return bs.FeedMaxItems
 }
 
 // Value implements the driver.Valuer interface for database serialization

@@ -31,6 +31,8 @@ export interface BlogSettings {
   seo?: SEOSettings
   home_page_size?: number
   category_page_size?: number
+  feed_summary_only?: boolean
+  feed_max_items?: number
 }
 
 export interface WorkspaceSettings {

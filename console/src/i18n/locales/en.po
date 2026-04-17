@@ -203,7 +203,7 @@ msgstr "{label} copied to clipboard"
 msgid "{langName} translation is missing required fields (subject and preview)"
 msgstr "{langName} translation is missing required fields (subject and preview)"
 
-#: src/components/transactional/ApiCommandModal.tsx:814
+#: src/components/transactional/ApiCommandModal.tsx:818
 msgid "{language} code copied to clipboard!"
 msgstr "{language} code copied to clipboard!"
 
@@ -699,7 +699,7 @@ msgstr "All"
 msgid "ALL"
 msgstr "ALL"
 
-#: src/components/transactional/ApiCommandModal.tsx:1003
+#: src/components/transactional/ApiCommandModal.tsx:1007
 msgid "All contact fields are optional except email."
 msgstr "All contact fields are optional except email."
 
@@ -794,7 +794,7 @@ msgstr "Any template"
 msgid "anytime"
 msgstr "anytime"
 
-#: src/components/transactional/ApiCommandModal.tsx:972
+#: src/components/transactional/ApiCommandModal.tsx:976
 #: src/pages/TransactionalNotificationsPage.tsx:179
 msgid "API Command"
 msgstr "API Command"
@@ -908,7 +908,7 @@ msgstr "Are you sure you want to delete this node?"
 msgid "Are you sure you want to delete this template?"
 msgstr "Are you sure you want to delete this template?"
 
-#: src/components/settings/BlogSettings.tsx:178
+#: src/components/settings/BlogSettings.tsx:182
 msgid "Are you sure you want to disable the blog? All SEO settings and blog visibility will be lost. This action cannot be undone."
 msgstr "Are you sure you want to disable the blog? All SEO settings and blog visibility will be lost. This action cannot be undone."
 
@@ -1256,9 +1256,9 @@ msgstr "Blocklist"
 msgid "Blocks"
 msgstr "Blocks"
 
-#: src/components/settings/BlogSettings.tsx:193
-#: src/components/settings/BlogSettings.tsx:201
-#: src/components/settings/BlogSettings.tsx:234
+#: src/components/settings/BlogSettings.tsx:197
+#: src/components/settings/BlogSettings.tsx:205
+#: src/components/settings/BlogSettings.tsx:238
 #: src/components/settings/SettingsSidebar.tsx:98
 #: src/layouts/WorkspaceLayout.tsx:344
 msgid "Blog"
@@ -1268,19 +1268,19 @@ msgstr "Blog"
 msgid "Blog custom endpoint URL is not configured"
 msgstr "Blog custom endpoint URL is not configured"
 
-#: src/components/settings/BlogSettings.tsx:124
+#: src/components/settings/BlogSettings.tsx:128
 msgid "Blog enabled but theme creation failed. Please create a theme manually."
 msgstr "Blog enabled but theme creation failed. Please create a theme manually."
 
-#: src/components/settings/BlogSettings.tsx:151
+#: src/components/settings/BlogSettings.tsx:155
 msgid "Blog settings updated successfully"
 msgstr "Blog settings updated successfully"
 
-#: src/components/settings/BlogSettings.tsx:193
+#: src/components/settings/BlogSettings.tsx:197
 msgid "Blog styling and SEO settings"
 msgstr "Blog styling and SEO settings"
 
-#: src/components/settings/BlogSettings.tsx:315
+#: src/components/settings/BlogSettings.tsx:319
 msgid "Blog Title"
 msgstr "Blog Title"
 
@@ -1589,7 +1589,7 @@ msgstr "Button Size"
 #: src/components/segment/button_upsert.tsx:347
 #: src/components/segment/input_dimension_filters.tsx:162
 #: src/components/segment/input.tsx:385
-#: src/components/settings/BlogSettings.tsx:181
+#: src/components/settings/BlogSettings.tsx:185
 #: src/components/settings/CustomFieldsConfiguration.tsx:273
 #: src/components/settings/EditPermissionsModal.tsx:121
 #: src/components/settings/Integrations.tsx:2067
@@ -1839,7 +1839,7 @@ msgstr "Clone Template"
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:825
 #: src/components/settings/WebhookCard.tsx:345
 #: src/components/settings/WorkspaceMembers.tsx:590
-#: src/components/transactional/ApiCommandModal.tsx:986
+#: src/components/transactional/ApiCommandModal.tsx:990
 msgid "Close"
 msgstr "Close"
 
@@ -2001,6 +2001,10 @@ msgstr "Configure a custom domain for email links, notification center, and web 
 msgid "Configure both the font name and CSS file URL together"
 msgstr "Configure both the font name and CSS file URL together"
 
+#: src/components/settings/BlogSettings.tsx:395
+msgid "Configure how your blog's RSS and JSON feeds are generated."
+msgstr "Configure how your blog's RSS and JSON feeds are generated."
+
 #: src/components/ai-assistant/AIAssistantChat.tsx:114
 msgid "Configure Integration"
 msgstr "Configure Integration"
@@ -2018,7 +2022,7 @@ msgstr "Configure outgoing webhooks to receive real-time notifications when even
 msgid "Configure Provider"
 msgstr "Configure Provider"
 
-#: src/components/settings/BlogSettings.tsx:235
+#: src/components/settings/BlogSettings.tsx:239
 msgid "Configure styling and SEO settings for your blog. These settings will be applied to all blog pages."
 msgstr "Configure styling and SEO settings for your blog. These settings will be applied to all blog pages."
 
@@ -2053,7 +2057,7 @@ msgstr "Confirmed"
 msgid "Connect and manage external services"
 msgstr "Connect and manage external services"
 
-#: src/components/transactional/ApiCommandModal.tsx:524
+#: src/components/transactional/ApiCommandModal.tsx:530
 msgid "Connection Details"
 msgstr "Connection Details"
 
@@ -2101,7 +2105,7 @@ msgstr "Contact Email"
 msgid "Contact email (leave empty for random)"
 msgstr "Contact email (leave empty for random)"
 
-#: src/components/transactional/ApiCommandModal.tsx:554
+#: src/components/transactional/ApiCommandModal.tsx:558
 msgid "Contact Email:"
 msgstr "Contact Email:"
 
@@ -2183,7 +2187,7 @@ msgid "Copy"
 msgstr "Copy"
 
 #. placeholder {0}: getCurrentLanguage()
-#: src/components/transactional/ApiCommandModal.tsx:983
+#: src/components/transactional/ApiCommandModal.tsx:987
 msgid "Copy {0} Code"
 msgstr "Copy {0} Code"
 
@@ -2619,7 +2623,7 @@ msgstr "Custom String 5"
 msgid "Custom String Fields"
 msgstr "Custom String Fields"
 
-#: src/components/settings/BlogSettings.tsx:421
+#: src/components/settings/BlogSettings.tsx:464
 #: src/components/settings/DeleteWorkspace.tsx:45
 #: src/components/settings/SettingsSidebar.tsx:122
 msgid "Danger Zone"
@@ -2663,7 +2667,7 @@ msgstr "Decline"
 msgid "Decoration"
 msgstr "Decoration"
 
-#: src/components/transactional/ApiCommandModal.tsx:557
+#: src/components/transactional/ApiCommandModal.tsx:561
 msgid "Deduplication:"
 msgstr "Deduplication:"
 
@@ -2693,7 +2697,7 @@ msgstr "Default Language"
 msgid "Default sender"
 msgstr "Default sender"
 
-#: src/components/settings/BlogSettings.tsx:121
+#: src/components/settings/BlogSettings.tsx:125
 msgid "Default theme created and published"
 msgstr "Default theme created and published"
 
@@ -2930,12 +2934,12 @@ msgstr "Detect from website URL"
 msgid "Diagnostic:"
 msgstr "Diagnostic:"
 
-#: src/components/settings/BlogSettings.tsx:179
-#: src/components/settings/BlogSettings.tsx:426
+#: src/components/settings/BlogSettings.tsx:183
+#: src/components/settings/BlogSettings.tsx:469
 msgid "Disable Blog"
 msgstr "Disable Blog"
 
-#: src/components/settings/BlogSettings.tsx:176
+#: src/components/settings/BlogSettings.tsx:180
 msgid "Disable Blog?"
 msgstr "Disable Blog?"
 
@@ -2947,14 +2951,14 @@ msgstr "Disable this webhook?"
 msgid "Disable webhook"
 msgstr "Disable webhook"
 
-#: src/components/settings/BlogSettings.tsx:210
+#: src/components/settings/BlogSettings.tsx:214
 #: src/components/settings/GeneralSettings.tsx:143
 #: src/components/settings/Integrations.tsx:1308
 #: src/components/templates/TemplateTranslationsTab.tsx:204
 msgid "Disabled"
 msgstr "Disabled"
 
-#: src/components/settings/BlogSettings.tsx:423
+#: src/components/settings/BlogSettings.tsx:466
 msgid "Disabling the blog will remove all SEO settings and make your blog inaccessible to visitors. This action will affect your blog's visibility and search engine rankings."
 msgstr "Disabling the blog will remove all SEO settings and make your blog inaccessible to visitors. This action will affect your blog's visibility and search engine rankings."
 
@@ -3365,7 +3369,7 @@ msgstr "Email address is required for OAuth2"
 msgid "Email Attributes"
 msgstr "Email Attributes"
 
-#: src/components/transactional/ApiCommandModal.tsx:539
+#: src/components/transactional/ApiCommandModal.tsx:543
 msgid "Email Body Payload"
 msgstr "Email Body Payload"
 
@@ -3408,7 +3412,7 @@ msgstr "Email Metrics"
 msgid "Email Opens and Clicks Tracking"
 msgstr "Email Opens and Clicks Tracking"
 
-#: src/components/transactional/ApiCommandModal.tsx:563
+#: src/components/transactional/ApiCommandModal.tsx:567
 msgid "Email Options:"
 msgstr "Email Options:"
 
@@ -3483,8 +3487,8 @@ msgstr "Enable A/B Testing"
 msgid "Enable Anonymous Telemetry"
 msgstr "Enable Anonymous Telemetry"
 
-#: src/components/settings/BlogSettings.tsx:276
-#: src/components/settings/BlogSettings.tsx:303
+#: src/components/settings/BlogSettings.tsx:280
+#: src/components/settings/BlogSettings.tsx:307
 msgid "Enable Blog"
 msgstr "Enable Blog"
 
@@ -3496,7 +3500,7 @@ msgstr "Enable closed captions by default"
 msgid "Enable SMTP Bridge Server"
 msgstr "Enable SMTP Bridge Server"
 
-#: src/components/settings/BlogSettings.tsx:278
+#: src/components/settings/BlogSettings.tsx:282
 msgid "Enable the blog feature to publish articles and content on your custom domain homepage. Your blog will be accessible at"
 msgstr "Enable the blog feature to publish articles and content on your custom domain homepage. Your blog will be accessible at"
 
@@ -3517,7 +3521,7 @@ msgstr "Enable to fetch personalized data for each recipient before sending thei
 msgid "Enable webhook"
 msgstr "Enable webhook"
 
-#: src/components/settings/BlogSettings.tsx:205
+#: src/components/settings/BlogSettings.tsx:209
 #: src/components/settings/GeneralSettings.tsx:138
 #: src/components/settings/Integrations.tsx:1304
 #: src/components/settings/SystemSettingsDrawer.tsx:426
@@ -3642,7 +3646,7 @@ msgstr "Enter file URL or use file manager"
 msgid "Enter height"
 msgstr "Enter height"
 
-#: src/components/settings/BlogSettings.tsx:343
+#: src/components/settings/BlogSettings.tsx:347
 msgid "Enter icon URL or select image"
 msgstr "Enter icon URL or select image"
 
@@ -3674,7 +3678,7 @@ msgstr "Enter list ID to confirm"
 msgid "Enter list name"
 msgstr "Enter list name"
 
-#: src/components/settings/BlogSettings.tsx:327
+#: src/components/settings/BlogSettings.tsx:331
 msgid "Enter logo URL or select image"
 msgstr "Enter logo URL or select image"
 
@@ -3823,6 +3827,10 @@ msgstr "exactly"
 msgid "Excerpt"
 msgstr "Excerpt"
 
+#: src/components/settings/BlogSettings.tsx:424
+msgid "Excerpt only"
+msgstr "Excerpt only"
+
 #: src/pages/BroadcastsPage.tsx:935
 msgid "Exclude Unsubscribed"
 msgstr "Exclude Unsubscribed"
@@ -3934,7 +3942,7 @@ msgstr "Failed to compile template preview."
 msgid "Failed to complete setup"
 msgstr "Failed to complete setup"
 
-#: src/components/transactional/ApiCommandModal.tsx:817
+#: src/components/transactional/ApiCommandModal.tsx:821
 msgid "Failed to copy to clipboard"
 msgstr "Failed to copy to clipboard"
 
@@ -4304,7 +4312,7 @@ msgstr "Failed to unpublish post"
 msgid "Failed to update automation: {0}"
 msgstr "Failed to update automation: {0}"
 
-#: src/components/settings/BlogSettings.tsx:155
+#: src/components/settings/BlogSettings.tsx:159
 msgid "Failed to update blog settings"
 msgstr "Failed to update blog settings"
 
@@ -4373,7 +4381,7 @@ msgstr "Failed to update workspace settings: {errorMessage}"
 msgid "Failed to verify code"
 msgstr "Failed to verify code"
 
-#: src/components/settings/BlogSettings.tsx:340
+#: src/components/settings/BlogSettings.tsx:344
 msgid "Favicon for your blog. Recommended: 32x32px or 192x192px PNG"
 msgstr "Favicon for your blog. Recommended: 32x32px or 192x192px PNG"
 
@@ -4407,7 +4415,7 @@ msgstr "Fetching data..."
 msgid "Fetching: {0}"
 msgstr "Fetching: {0}"
 
-#: src/components/transactional/ApiCommandModal.tsx:554
+#: src/components/transactional/ApiCommandModal.tsx:558
 msgid "field is required"
 msgstr "field is required"
 
@@ -4582,19 +4590,19 @@ msgstr "Font Size"
 msgid "Font Styling"
 msgstr "Font Styling"
 
-#: src/components/transactional/ApiCommandModal.tsx:1001
+#: src/components/transactional/ApiCommandModal.tsx:1005
 msgid "for deduplication - notifications with the same external_id won't be sent twice."
 msgstr "for deduplication - notifications with the same external_id won't be sent twice."
 
-#: src/components/transactional/ApiCommandModal.tsx:560
+#: src/components/transactional/ApiCommandModal.tsx:564
 msgid "for template variables"
 msgstr "for template variables"
 
-#: src/components/transactional/ApiCommandModal.tsx:1005
+#: src/components/transactional/ApiCommandModal.tsx:1009
 msgid "for template variables,"
 msgstr "for template variables,"
 
-#: src/components/transactional/ApiCommandModal.tsx:1005
+#: src/components/transactional/ApiCommandModal.tsx:1009
 msgid "for tracking (not available in templates)."
 msgstr "for tracking (not available in templates)."
 
@@ -4648,6 +4656,10 @@ msgstr "From:"
 msgid "Full Access"
 msgstr "Full Access"
 
+#: src/components/settings/BlogSettings.tsx:423
+msgid "Full content"
+msgstr "Full content"
+
 #: src/components/contacts/ContactDetailsDrawer.tsx:442
 #: src/pages/ContactsPage.tsx:207
 #: src/pages/ContactsPage.tsx:262
@@ -4673,7 +4685,7 @@ msgstr "Fullscreen"
 msgid "General"
 msgstr "General"
 
-#: src/components/settings/BlogSettings.tsx:311
+#: src/components/settings/BlogSettings.tsx:315
 #: src/components/settings/GeneralSettings.tsx:100
 #: src/components/settings/GeneralSettings.tsx:159
 msgid "General Settings"
@@ -4830,7 +4842,7 @@ msgstr "Hold for drag"
 msgid "Home"
 msgstr "Home"
 
-#: src/components/transactional/ApiCommandModal.tsx:526
+#: src/components/transactional/ApiCommandModal.tsx:532
 msgid "Host"
 msgstr "Host"
 
@@ -4920,7 +4932,7 @@ msgstr "Icon Settings"
 msgid "Icon Styling"
 msgstr "Icon Styling"
 
-#: src/components/settings/BlogSettings.tsx:339
+#: src/components/settings/BlogSettings.tsx:343
 msgid "Icon/Favicon URL"
 msgstr "Icon/Favicon URL"
 
@@ -5017,7 +5029,7 @@ msgstr "If a contact with this email already exists, the provided fields will be
 msgid "If enabled, the broadcast will be sent according to each recipient's timezone"
 msgstr "If enabled, the broadcast will be sent according to each recipient's timezone"
 
-#: src/components/transactional/ApiCommandModal.tsx:998
+#: src/components/transactional/ApiCommandModal.tsx:1002
 msgid "If the contact email doesn't exist in your workspace, it will be automatically created."
 msgstr "If the contact email doesn't exist in your workspace, it will be automatically created."
 
@@ -5037,6 +5049,10 @@ msgstr "Image URL when shared on social media (og:image)"
 #: src/components/settings/SMTPBridgeSettings.tsx:13
 msgid "Implicit TLS"
 msgstr "Implicit TLS"
+
+#: src/components/transactional/ApiCommandModal.tsx:522
+msgid "Implicit TLS (SMTPS)"
+msgstr "Implicit TLS (SMTPS)"
 
 #: src/components/email_builder/MjmlCodeEditor.tsx:614
 #: src/components/templates/ImportExportButton.tsx:387
@@ -5096,7 +5112,7 @@ msgstr "Import MJML markup"
 msgid "Import Validation Failed"
 msgstr "Import Validation Failed"
 
-#: src/components/transactional/ApiCommandModal.tsx:548
+#: src/components/transactional/ApiCommandModal.tsx:552
 msgid "Important Notes"
 msgstr "Important Notes"
 
@@ -5142,7 +5158,7 @@ msgstr "in recipients timezone"
 msgid "in the last"
 msgstr "in the last"
 
-#: src/components/transactional/ApiCommandModal.tsx:542
+#: src/components/transactional/ApiCommandModal.tsx:546
 msgid "in the payload."
 msgstr "in the payload."
 
@@ -5370,6 +5386,10 @@ msgstr "is not in"
 msgid "Italic"
 msgstr "Italic"
 
+#: src/components/settings/BlogSettings.tsx:403
+msgid "Items per feed"
+msgstr "Items per feed"
+
 #: src/components/contacts/ContactDetailsDrawer.tsx:449
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:101
 #: src/pages/ContactsPage.tsx:268
@@ -5398,7 +5418,7 @@ msgstr "JSON exported successfully"
 msgid "JSON Object"
 msgstr "JSON Object"
 
-#: src/components/transactional/ApiCommandModal.tsx:551
+#: src/components/transactional/ApiCommandModal.tsx:555
 msgid "JSON Payload Required:"
 msgstr "JSON Payload Required:"
 
@@ -5747,7 +5767,7 @@ msgstr "Logo"
 msgid "Logo Preview"
 msgstr "Logo Preview"
 
-#: src/components/settings/BlogSettings.tsx:323
+#: src/components/settings/BlogSettings.tsx:327
 #: src/components/settings/LogoInput.tsx:25
 msgid "Logo URL"
 msgstr "Logo URL"
@@ -5773,7 +5793,7 @@ msgstr "lowercase"
 msgid "Magic code sent to your email"
 msgstr "Magic code sent to your email"
 
-#: src/components/settings/BlogSettings.tsx:324
+#: src/components/settings/BlogSettings.tsx:328
 msgid "Main logo for your blog. Recommended size: 200x50px or similar aspect ratio"
 msgstr "Main logo for your blog. Recommended size: 200x50px or similar aspect ratio"
 
@@ -5844,6 +5864,10 @@ msgstr "Max 3MB per file, 10MB total, 20 files maximum"
 msgid "Maximum 20 attachments allowed"
 msgstr "Maximum 20 attachments allowed"
 
+#: src/components/settings/BlogSettings.tsx:404
+msgid "Maximum number of posts to include in the RSS/JSON feed (1–20)"
+msgstr "Maximum number of posts to include in the RSS/JSON feed (1–20)"
+
 #: src/components/settings/WorkspaceMembers.tsx:331
 msgid "Member removed successfully"
 msgstr "Member removed successfully"
@@ -5886,7 +5910,7 @@ msgstr "Meta Description"
 #: src/components/seo/MissingMetaTagsWarning.tsx:26
 #: src/components/seo/SEOSettingsForm.tsx:36
 #: src/components/seo/SEOSettingsForm.tsx:150
-#: src/components/settings/BlogSettings.tsx:221
+#: src/components/settings/BlogSettings.tsx:225
 msgid "Meta Title"
 msgstr "Meta Title"
 
@@ -6021,8 +6045,8 @@ msgstr "Monitor message delivery status and webhook events"
 msgid "More options"
 msgstr "More options"
 
-#: src/components/settings/BlogSettings.tsx:318
-#: src/components/settings/BlogSettings.tsx:391
+#: src/components/settings/BlogSettings.tsx:322
+#: src/components/settings/BlogSettings.tsx:434
 msgid "My Amazing Blog"
 msgstr "My Amazing Blog"
 
@@ -6447,8 +6471,8 @@ msgid "Not in List"
 msgstr "Not in List"
 
 #: src/components/contacts/InlineEditableField.tsx:144
-#: src/components/settings/BlogSettings.tsx:218
 #: src/components/settings/BlogSettings.tsx:222
+#: src/components/settings/BlogSettings.tsx:226
 #: src/components/settings/GeneralSettings.tsx:111
 #: src/components/settings/GeneralSettings.tsx:115
 #: src/components/settings/GeneralSettings.tsx:126
@@ -6501,11 +6525,11 @@ msgstr "Now"
 msgid "Null"
 msgstr "Null"
 
-#: src/components/settings/BlogSettings.tsx:374
+#: src/components/settings/BlogSettings.tsx:378
 msgid "Number of posts to display per page on category pages"
 msgstr "Number of posts to display per page on category pages"
 
-#: src/components/settings/BlogSettings.tsx:358
+#: src/components/settings/BlogSettings.tsx:362
 msgid "Number of posts to display per page on the homepage"
 msgstr "Number of posts to display per page on the homepage"
 
@@ -6708,7 +6732,7 @@ msgstr "Padding Settings"
 msgid "Parent Frame"
 msgstr "Parent Frame"
 
-#: src/components/transactional/ApiCommandModal.tsx:534
+#: src/components/transactional/ApiCommandModal.tsx:538
 msgid "Password"
 msgstr "Password"
 
@@ -6822,8 +6846,12 @@ msgid "Photo URL"
 msgstr "Photo URL"
 
 #: src/components/transactional/ApiCommandModal.tsx:529
-msgid "Plain text (not recommended for production)"
-msgstr "Plain text (not recommended for production)"
+#~ msgid "Plain text (not recommended for production)"
+#~ msgstr "Plain text (not recommended for production)"
+
+#: src/components/transactional/ApiCommandModal.tsx:524
+msgid "Plain text (only safe behind a TLS-terminating proxy)"
+msgstr "Plain text (only safe behind a TLS-terminating proxy)"
 
 #: src/components/blog_editor/components/youtube/YoutubeNodeView.tsx:604
 msgid "Playback options"
@@ -7021,8 +7049,8 @@ msgstr "Please select a list for unsubscribe operation"
 msgid "Please select a model"
 msgstr "Please select a model"
 
-#: src/components/settings/BlogSettings.tsx:359
-#: src/components/settings/BlogSettings.tsx:375
+#: src/components/settings/BlogSettings.tsx:363
+#: src/components/settings/BlogSettings.tsx:379
 msgid "Please select a page size"
 msgstr "Please select a page size"
 
@@ -7086,7 +7114,7 @@ msgstr "Please select operator"
 msgid "Please upload a CSV file with email addresses"
 msgstr "Please upload a CSV file with email addresses"
 
-#: src/components/transactional/ApiCommandModal.tsx:527
+#: src/components/transactional/ApiCommandModal.tsx:533
 #: src/pages/SetupWizard.tsx:595
 msgid "Port"
 msgstr "Port"
@@ -7144,11 +7172,11 @@ msgstr "Postmark Message Stream ID (e.g. \"outbound\" for transactional, \"broad
 msgid "Posts in {0}"
 msgstr "Posts in {0}"
 
-#: src/components/settings/BlogSettings.tsx:373
+#: src/components/settings/BlogSettings.tsx:377
 msgid "Posts on category pages"
 msgstr "Posts on category pages"
 
-#: src/components/settings/BlogSettings.tsx:357
+#: src/components/settings/BlogSettings.tsx:361
 msgid "Posts on homepage"
 msgstr "Posts on homepage"
 
@@ -7761,6 +7789,10 @@ msgstr "Round"
 msgid "rows"
 msgstr "rows"
 
+#: src/components/settings/BlogSettings.tsx:394
+msgid "RSS / Feeds"
+msgstr "RSS / Feeds"
+
 #: src/components/broadcasts/RecipientFeedSettings.tsx:164
 msgid "Run Test"
 msgstr "Run Test"
@@ -7863,7 +7895,7 @@ msgstr "Save Block"
 #: src/components/email_builder/blocks/MjStyleBlock.tsx:158
 #: src/components/email_builder/ui/CodeDrawerInput.tsx:142
 #: src/components/email_builder/ui/CodeDrawerInput.tsx:182
-#: src/components/settings/BlogSettings.tsx:402
+#: src/components/settings/BlogSettings.tsx:445
 #: src/components/settings/GeneralSettings.tsx:299
 msgid "Save Changes"
 msgstr "Save Changes"
@@ -7975,7 +8007,7 @@ msgstr "Secret:"
 msgid "Section Attributes"
 msgstr "Section Attributes"
 
-#: src/components/transactional/ApiCommandModal.tsx:528
+#: src/components/transactional/ApiCommandModal.tsx:534
 msgid "Security"
 msgstr "Security"
 
@@ -8020,8 +8052,8 @@ msgstr "Segments"
 
 #: src/components/automations/nodes/EmailNode.tsx:48
 #: src/components/file_manager/fileManager.tsx:976
-#: src/components/settings/BlogSettings.tsx:332
-#: src/components/settings/BlogSettings.tsx:348
+#: src/components/settings/BlogSettings.tsx:336
+#: src/components/settings/BlogSettings.tsx:352
 #: src/components/templates/TemplateSelectorInput.tsx:224
 #: src/pages/BroadcastsPage.tsx:884
 msgid "Select"
@@ -8130,6 +8162,10 @@ msgstr "Select columns"
 msgid "Select confirmation email template"
 msgstr "Select confirmation email template"
 
+#: src/components/settings/BlogSettings.tsx:422
+msgid "Select content mode"
+msgstr "Select content mode"
+
 #: src/components/contacts/ContactUpsertDrawer.tsx:447
 msgid "Select country"
 msgstr "Select country"
@@ -8161,6 +8197,10 @@ msgstr "Select event"
 #: src/components/settings/WebhookCard.tsx:389
 msgid "Select event type to test:"
 msgstr "Select event type to test:"
+
+#: src/components/settings/BlogSettings.tsx:406
+msgid "Select feed size"
+msgstr "Select feed size"
 
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:1087
 msgid "Select field to map to"
@@ -8212,8 +8252,8 @@ msgstr "Select lists to add contacts to"
 msgid "Select OAuth2 Provider"
 msgstr "Select OAuth2 Provider"
 
-#: src/components/settings/BlogSettings.tsx:361
-#: src/components/settings/BlogSettings.tsx:377
+#: src/components/settings/BlogSettings.tsx:365
+#: src/components/settings/BlogSettings.tsx:381
 msgid "Select page size"
 msgstr "Select page size"
 
@@ -8318,19 +8358,19 @@ msgstr "Selected: {0}"
 msgid "Send a test email using this template to verify how it will look."
 msgstr "Send a test email using this template to verify how it will look."
 
-#: src/components/transactional/ApiCommandModal.tsx:895
+#: src/components/transactional/ApiCommandModal.tsx:899
 msgid "Send a transactional notification using Go:"
 msgstr "Send a transactional notification using Go:"
 
-#: src/components/transactional/ApiCommandModal.tsx:905
+#: src/components/transactional/ApiCommandModal.tsx:909
 msgid "Send a transactional notification using Java:"
 msgstr "Send a transactional notification using Java:"
 
-#: src/components/transactional/ApiCommandModal.tsx:885
+#: src/components/transactional/ApiCommandModal.tsx:889
 msgid "Send a transactional notification using Python:"
 msgstr "Send a transactional notification using Python:"
 
-#: src/components/transactional/ApiCommandModal.tsx:875
+#: src/components/transactional/ApiCommandModal.tsx:879
 msgid "Send a transactional notification using TypeScript/JavaScript:"
 msgstr "Send a transactional notification using TypeScript/JavaScript:"
 
@@ -8367,7 +8407,7 @@ msgstr "Send Test"
 msgid "Send Test Email"
 msgstr "Send Test Email"
 
-#: src/components/transactional/ApiCommandModal.tsx:919
+#: src/components/transactional/ApiCommandModal.tsx:923
 msgid "Send transactional notifications using SMTP bridge. Perfect for integrating with existing email systems or applications that support SMTP."
 msgstr "Send transactional notifications using SMTP bridge. Perfect for integrating with existing email systems or applications that support SMTP."
 
@@ -8851,7 +8891,7 @@ msgstr "Started"
 msgid "STARTTLS"
 msgstr "STARTTLS"
 
-#: src/components/transactional/ApiCommandModal.tsx:529
+#: src/components/transactional/ApiCommandModal.tsx:525
 msgid "STARTTLS required"
 msgstr "STARTTLS required"
 
@@ -9007,6 +9047,10 @@ msgstr "Successfully processed {successful} contacts"
 msgid "Successfully signed in"
 msgstr "Successfully signed in"
 
+#: src/components/settings/BlogSettings.tsx:418
+msgid "Summary-only feed"
+msgstr "Summary-only feed"
+
 #: src/components/settings/Integrations.tsx:764
 msgid "Supabase integration saved successfully"
 msgstr "Supabase integration saved successfully"
@@ -9019,7 +9063,7 @@ msgstr "Superscript"
 msgid "Supported Languages"
 msgstr "Supported Languages"
 
-#: src/components/transactional/ApiCommandModal.tsx:563
+#: src/components/transactional/ApiCommandModal.tsx:567
 msgid "Supports reply_to, cc, bcc, and attachments"
 msgstr "Supports reply_to, cc, bcc, and attachments"
 
@@ -9167,7 +9211,7 @@ msgstr "Template structure data is missing or invalid."
 msgid "Template updated successfully"
 msgstr "Template updated successfully"
 
-#: src/components/transactional/ApiCommandModal.tsx:560
+#: src/components/transactional/ApiCommandModal.tsx:564
 msgid "Template Variables:"
 msgstr "Template Variables:"
 
@@ -9320,7 +9364,7 @@ msgstr "Text Settings"
 msgid "Text Transform"
 msgstr "Text Transform"
 
-#: src/components/transactional/ApiCommandModal.tsx:554
+#: src/components/transactional/ApiCommandModal.tsx:558
 msgid "The"
 msgstr "The"
 
@@ -9364,11 +9408,11 @@ msgstr "The currently published theme will be unpublished automatically."
 msgid "The email address that will be used as the SMTP user for authentication"
 msgstr "The email address that will be used as the SMTP user for authentication"
 
-#: src/components/transactional/ApiCommandModal.tsx:541
+#: src/components/transactional/ApiCommandModal.tsx:545
 msgid "The email body must contain a JSON payload with your notification data. The SMTP envelope To/From addresses are ignored - the actual recipient is determined by"
 msgstr "The email body must contain a JSON payload with your notification data. The SMTP envelope To/From addresses are ignored - the actual recipient is determined by"
 
-#: src/components/transactional/ApiCommandModal.tsx:551
+#: src/components/transactional/ApiCommandModal.tsx:555
 msgid "The email body must contain valid JSON matching the format above"
 msgstr "The email body must contain valid JSON matching the format above"
 
@@ -9381,7 +9425,7 @@ msgstr "The following validation errors were found in your import:"
 msgid "The hostname your server identifies itself as when connecting to the SMTP server. Defaults to the SMTP host value if empty."
 msgstr "The hostname your server identifies itself as when connecting to the SMTP server. Defaults to the SMTP host value if empty."
 
-#: src/components/settings/BlogSettings.tsx:316
+#: src/components/settings/BlogSettings.tsx:320
 msgid "The main title for your blog"
 msgstr "The main title for your blog"
 
@@ -9656,7 +9700,7 @@ msgstr "Tips for fixing these errors:"
 #: src/components/blog/PostsTable.tsx:193
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:407
 #: src/components/email_builder/blocks/MjTitleBlock.tsx:34
-#: src/components/settings/BlogSettings.tsx:217
+#: src/components/settings/BlogSettings.tsx:221
 msgid "Title"
 msgstr "Title"
 
@@ -9702,7 +9746,7 @@ msgstr "TLS Private Key (Base64)"
 msgid "TLS private key is required"
 msgstr "TLS private key is required"
 
-#: src/components/transactional/ApiCommandModal.tsx:557
+#: src/components/transactional/ApiCommandModal.tsx:561
 msgid "to prevent duplicate sends"
 msgstr "to prevent duplicate sends"
 
@@ -10108,10 +10152,10 @@ msgstr "URL-friendly identifier (lowercase, hyphens only)"
 msgid "URL:"
 msgstr "URL:"
 
-#: src/components/transactional/ApiCommandModal.tsx:557
-#: src/components/transactional/ApiCommandModal.tsx:560
-#: src/components/transactional/ApiCommandModal.tsx:1001
+#: src/components/transactional/ApiCommandModal.tsx:561
+#: src/components/transactional/ApiCommandModal.tsx:564
 #: src/components/transactional/ApiCommandModal.tsx:1005
+#: src/components/transactional/ApiCommandModal.tsx:1009
 msgid "Use"
 msgstr "Use"
 
@@ -10155,7 +10199,7 @@ msgstr "Use the Template Data tab to define dynamic content for your emails. Add
 msgid "Use this button to import saved email templates or export your finished emails. You can import JSON/MJML templates or export as HTML, MJML, or JSON for future use."
 msgstr "Use this button to import saved email templates or export your finished emails. You can import JSON/MJML templates or export as HTML, MJML, or JSON for future use."
 
-#: src/components/transactional/ApiCommandModal.tsx:864
+#: src/components/transactional/ApiCommandModal.tsx:868
 msgid "Use this curl command to send a transactional notification via API:"
 msgstr "Use this curl command to send a transactional notification via API:"
 
@@ -10198,7 +10242,7 @@ msgstr "User Created Hook Secret"
 msgid "User Metadata Field"
 msgstr "User Metadata Field"
 
-#: src/components/transactional/ApiCommandModal.tsx:531
+#: src/components/transactional/ApiCommandModal.tsx:535
 msgid "Username"
 msgstr "Username"
 
@@ -10418,7 +10462,7 @@ msgstr "Welcome"
 msgid "Welcome to Email Builder!"
 msgstr "Welcome to Email Builder!"
 
-#: src/components/settings/BlogSettings.tsx:392
+#: src/components/settings/BlogSettings.tsx:435
 msgid "Welcome to my blog where I share insights about..."
 msgstr "Welcome to my blog where I share insights about..."
 
@@ -10429,6 +10473,10 @@ msgstr "When enabled, links in the email will be tracked for opens and clicks"
 #: src/components/lists/ListDrawer.tsx:230
 msgid "When enabled, subscribers must confirm their subscription via email before being added to the list"
 msgstr "When enabled, subscribers must confirm their subscription via email before being added to the list"
+
+#: src/components/settings/BlogSettings.tsx:419
+msgid "When enabled, the feed includes only excerpts instead of full article content"
+msgstr "When enabled, the feed includes only excerpts instead of full article content"
 
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:118
 msgid "When enabled, the link will prompt visitors to share the URL on this social network. When disabled, the link opens directly."
@@ -10694,7 +10742,7 @@ msgstr "You have unsaved changes. Are you sure you want to close?"
 msgid "You have unsaved changes. Are you sure you want to close? Your changes will be lost."
 msgstr "You have unsaved changes. Are you sure you want to close? Your changes will be lost."
 
-#: src/components/settings/BlogSettings.tsx:248
+#: src/components/settings/BlogSettings.tsx:252
 msgid "You must configure a Custom Endpoint URL in General Settings above before enabling the blog."
 msgstr "You must configure a Custom Endpoint URL in General Settings above before enabling the blog."
 
@@ -10724,11 +10772,11 @@ msgstr "Your Notifuse instance has been successfully configured."
 msgid "Your website or company name"
 msgstr "Your website or company name"
 
-#: src/components/transactional/ApiCommandModal.tsx:532
+#: src/components/transactional/ApiCommandModal.tsx:536
 msgid "Your workspace API email (the email associated with your API key)"
 msgstr "Your workspace API email (the email associated with your API key)"
 
-#: src/components/transactional/ApiCommandModal.tsx:534
+#: src/components/transactional/ApiCommandModal.tsx:538
 msgid "Your workspace API key"
 msgstr "Your workspace API key"
 

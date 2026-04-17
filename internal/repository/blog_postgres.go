@@ -825,6 +825,131 @@ func (r *blogPostRepository) ListPosts(ctx context.Context, params domain.ListBl
 	}, nil
 }
 
+// ListFeedPosts returns the top `limit` published posts (newest first) for
+// feed syndication.
+func (r *blogPostRepository) ListFeedPosts(ctx context.Context, categorySlug *string, limit int) ([]*domain.BlogPost, error) {
+	workspaceID, ok := ctx.Value(domain.WorkspaceIDKey).(string)
+	if !ok {
+		return nil, fmt.Errorf("workspace_id not found in context")
+	}
+
+	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get workspace connection: %w", err)
+	}
+
+	args := []interface{}{}
+	categoryFilter := ""
+	if categorySlug != nil && *categorySlug != "" {
+		categoryFilter = " AND c.slug = $1"
+		args = append(args, *categorySlug)
+	}
+	args = append(args, limit)
+	limitPlaceholder := fmt.Sprintf("$%d", len(args))
+
+	query := fmt.Sprintf(`
+		SELECT p.id, p.category_id, p.slug, p.settings, p.published_at, p.created_at, p.updated_at, p.deleted_at
+		FROM blog_posts p
+		JOIN blog_categories c ON c.id = p.category_id AND c.deleted_at IS NULL
+		WHERE p.deleted_at IS NULL
+		  AND p.published_at IS NOT NULL
+		  AND p.published_at <= NOW()
+		  %s
+		ORDER BY p.published_at DESC
+		LIMIT %s
+	`, categoryFilter, limitPlaceholder)
+
+	rows, err := workspaceDB.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list feed posts: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	var posts []*domain.BlogPost
+	for rows.Next() {
+		var post domain.BlogPost
+		if err := rows.Scan(
+			&post.ID,
+			&post.CategoryID,
+			&post.Slug,
+			&post.Settings,
+			&post.PublishedAt,
+			&post.CreatedAt,
+			&post.UpdatedAt,
+			&post.DeletedAt,
+		); err != nil {
+			return nil, fmt.Errorf("failed to scan feed post: %w", err)
+		}
+		posts = append(posts, &post)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating feed posts: %w", err)
+	}
+	return posts, nil
+}
+
+// GetFeedFingerprint returns (maxUpdatedAt, idsHash) over the same slice of
+// posts ListFeedPosts would return.
+//
+// maxUpdatedAt = MAX(GREATEST(p.updated_at, c.updated_at)) so a category
+// rename invalidates the ETag even if no post was touched. idsHash = MD5 of
+// the comma-joined, sorted post IDs so a same-second delete-and-publish that
+// leaves the timestamp unchanged still invalidates.
+func (r *blogPostRepository) GetFeedFingerprint(ctx context.Context, categorySlug *string, limit int) (time.Time, string, error) {
+	workspaceID, ok := ctx.Value(domain.WorkspaceIDKey).(string)
+	if !ok {
+		return time.Time{}, "", fmt.Errorf("workspace_id not found in context")
+	}
+
+	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
+	if err != nil {
+		return time.Time{}, "", fmt.Errorf("failed to get workspace connection: %w", err)
+	}
+
+	args := []interface{}{}
+	categoryFilter := ""
+	if categorySlug != nil && *categorySlug != "" {
+		categoryFilter = " AND c.slug = $1"
+		args = append(args, *categorySlug)
+	}
+	args = append(args, limit)
+	limitPlaceholder := fmt.Sprintf("$%d", len(args))
+
+	// The inner SELECT picks the top-N post IDs (matching ListFeedPosts). The
+	// outer aggregate reads the same top-N rows back (no re-sort needed — the
+	// id list is the authoritative set) to compute max_updated_at and ids_hash.
+	// Returns NULL for max_updated_at when the feed is empty; callers
+	// substitute a sensible default (e.g. workspace.UpdatedAt) rather than
+	// emitting 1970-01-01 which some CDNs treat as uncacheable.
+	query := fmt.Sprintf(`
+		WITH top_posts AS (
+			SELECT p.id, p.updated_at AS post_updated, c.updated_at AS cat_updated
+			FROM blog_posts p
+			JOIN blog_categories c ON c.id = p.category_id AND c.deleted_at IS NULL
+			WHERE p.deleted_at IS NULL
+			  AND p.published_at IS NOT NULL
+			  AND p.published_at <= NOW()
+			  %s
+			ORDER BY p.published_at DESC
+			LIMIT %s
+		)
+		SELECT
+			MAX(GREATEST(post_updated, cat_updated)) AS max_updated_at,
+			COALESCE(MD5(STRING_AGG(id::text, ',' ORDER BY id)), '') AS ids_hash
+		FROM top_posts
+	`, categoryFilter, limitPlaceholder)
+
+	var maxUpdatedAt sql.NullTime
+	var idsHash string
+	if err := workspaceDB.QueryRowContext(ctx, query, args...).Scan(&maxUpdatedAt, &idsHash); err != nil {
+		return time.Time{}, "", fmt.Errorf("failed to compute feed fingerprint: %w", err)
+	}
+	if !maxUpdatedAt.Valid {
+		return time.Time{}, idsHash, nil
+	}
+	return maxUpdatedAt.Time.UTC(), idsHash, nil
+}
+
 // PublishPost sets the published_at timestamp to provided time or now
 func (r *blogPostRepository) PublishPost(ctx context.Context, id string, publishedAt *time.Time) error {
 	workspaceID, ok := ctx.Value(domain.WorkspaceIDKey).(string)

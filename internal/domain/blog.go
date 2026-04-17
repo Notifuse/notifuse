@@ -662,6 +662,17 @@ type BlogPostRepository interface {
 	UpdatePost(ctx context.Context, post *BlogPost) error
 	DeletePost(ctx context.Context, id string) error
 	ListPosts(ctx context.Context, params ListBlogPostsRequest) (*BlogPostListResponse, error)
+	// ListFeedPosts returns the top `limit` published posts (newest first) for
+	// RSS/JSON syndication. Enforces deleted_at IS NULL AND published_at IS NOT
+	// NULL AND published_at <= NOW() — the filter mirrors GetFeedFingerprint so
+	// the cheap 304 path always agrees with the rendered feed body.
+	ListFeedPosts(ctx context.Context, categorySlug *string, limit int) ([]*BlogPost, error)
+	// GetFeedFingerprint returns the inputs needed to compute a feed ETag
+	// without materializing items. maxUpdatedAt is GREATEST(post.updated_at,
+	// category.updated_at) so category renames invalidate the cache even
+	// though they don't touch post rows. idsHash detects deletes/replacements
+	// that preserve the timestamp.
+	GetFeedFingerprint(ctx context.Context, categorySlug *string, limit int) (maxUpdatedAt time.Time, idsHash string, err error)
 	PublishPost(ctx context.Context, id string, publishedAt *time.Time) error
 	UnpublishPost(ctx context.Context, id string) error
 
@@ -715,6 +726,21 @@ type BlogService interface {
 	RenderHomePage(ctx context.Context, workspaceID string, page int, themeVersion *int) (string, error)
 	RenderPostPage(ctx context.Context, workspaceID, categorySlug, postSlug string, themeVersion *int) (string, error)
 	RenderCategoryPage(ctx context.Context, workspaceID, categorySlug string, page int, themeVersion *int) (string, error)
+
+	// Feed rendering — returns post body HTML prepared for RSS/JSON Feed
+	// emission (no theme chrome, absolute URLs, XSS-sanitized).
+	RenderPostContent(ctx context.Context, workspaceID, categorySlug, postSlug string) (string, error)
+
+	// BuildFeed materializes the RSS / JSON Feed payload for a workspace
+	// (optionally filtered to a category). Callers should call
+	// GetFeedFingerprint first and short-circuit 304 responses before
+	// invoking BuildFeed, which renders post bodies.
+	BuildFeed(ctx context.Context, workspaceID string, categorySlug *string) (*BlogFeed, error)
+
+	// GetFeedFingerprint computes the ETag inputs for the cheap conditional-GET
+	// path. It does not render post bodies. The second return is a short hex
+	// ETag suitable for emitting in the HTTP response.
+	GetFeedFingerprint(ctx context.Context, workspaceID string, categorySlug *string) (maxUpdatedAt time.Time, etag string, err error)
 }
 
 // NormalizeSlug normalizes a string to be a valid slug

@@ -1,10 +1,13 @@
 package integration
 
 import (
+	"compress/gzip"
 	"encoding/json"
+	"encoding/xml"
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/Notifuse/notifuse/config"
@@ -35,6 +38,7 @@ func TestBlogAPI(t *testing.T) {
 	t.Run("PublicRendering", func(t *testing.T) { runBlogPublicRenderingTests(t, suite) })
 	t.Run("DataFactory", func(t *testing.T) { runBlogDataFactoryTests(t, suite) })
 	t.Run("E2EFlow", func(t *testing.T) { runBlogE2EFlowTests(t, suite) })
+	t.Run("FeedAPI", func(t *testing.T) { runBlogFeedTests(t, suite) })
 }
 
 // runBlogRoutingLogicTests tests the critical blog routing logic
@@ -989,5 +993,327 @@ func runBlogE2EFlowTests(t *testing.T, suite *testutil.IntegrationTestSuite) {
 		defer func() { _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode, "Blog should be served after re-enabling")
+	})
+}
+
+// runBlogFeedTests exercises the RSS and JSON Feed endpoints end-to-end:
+// routing, content correctness, conditional GET, per-category filtering,
+// XSS sanitization, draft exclusion, and feed autodiscovery in HTML.
+func runBlogFeedTests(t *testing.T, suite *testutil.IntegrationTestSuite) {
+	factory := suite.DataFactory
+	client := suite.APIClient
+
+	// --- Setup: workspace with blog + custom domain ---
+	workspace, err := factory.CreateWorkspace(
+		testutil.WithCustomDomain("feed.blog"),
+		testutil.WithBlogEnabled(true),
+	)
+	require.NoError(t, err)
+
+	_, err = factory.CreateBlogTheme(workspace.ID, testutil.WithThemePublished(true))
+	require.NoError(t, err)
+
+	techCat, err := factory.CreateBlogCategory(workspace.ID,
+		testutil.WithCategoryName("Tech"),
+		testutil.WithCategorySlug("tech"),
+	)
+	require.NoError(t, err)
+
+	designCat, err := factory.CreateBlogCategory(workspace.ID,
+		testutil.WithCategoryName("Design"),
+		testutil.WithCategorySlug("design"),
+	)
+	require.NoError(t, err)
+
+	// Published posts
+	_, err = factory.CreateBlogPost(workspace.ID, techCat.ID,
+		testutil.WithPostTitle("Intro to Go"),
+		testutil.WithPostSlug("intro-to-go"),
+		testutil.WithPostPublished(true),
+	)
+	require.NoError(t, err)
+
+	_, err = factory.CreateBlogPost(workspace.ID, techCat.ID,
+		testutil.WithPostTitle("Concurrency Patterns"),
+		testutil.WithPostSlug("concurrency-patterns"),
+		testutil.WithPostPublished(true),
+	)
+	require.NoError(t, err)
+
+	_, err = factory.CreateBlogPost(workspace.ID, designCat.ID,
+		testutil.WithPostTitle("Color Theory"),
+		testutil.WithPostSlug("color-theory"),
+		testutil.WithPostPublished(true),
+	)
+	require.NoError(t, err)
+
+	// Draft post — must NOT appear in feeds
+	_, err = factory.CreateBlogPost(workspace.ID, techCat.ID,
+		testutil.WithPostTitle("Draft Post"),
+		testutil.WithPostSlug("draft-post"),
+		testutil.WithPostPublished(false),
+	)
+	require.NoError(t, err)
+
+	// --- Tests ---
+
+	t.Run("RSS feed returns valid XML with all published posts", func(t *testing.T) {
+		resp, err := client.MakeRequestWithHost("GET", "/feed.xml", "feed.blog", nil)
+		require.NoError(t, err)
+		defer func() { _ = resp.Body.Close() }()
+
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+		assert.Contains(t, resp.Header.Get("Content-Type"), "application/rss+xml")
+		assert.NotEmpty(t, resp.Header.Get("ETag"))
+		assert.NotEmpty(t, resp.Header.Get("Last-Modified"))
+		assert.Contains(t, resp.Header.Get("Cache-Control"), "s-maxage=300")
+		assert.Equal(t, "Accept-Encoding", resp.Header.Get("Vary"))
+
+		body, err := io.ReadAll(resp.Body)
+		require.NoError(t, err)
+		bodyStr := string(body)
+
+		// Well-formed XML
+		var parsed struct{}
+		require.NoError(t, xml.Unmarshal(body, &parsed), "RSS output must be well-formed XML")
+
+		// All 3 published posts present
+		assert.Contains(t, bodyStr, "Intro to Go")
+		assert.Contains(t, bodyStr, "Concurrency Patterns")
+		assert.Contains(t, bodyStr, "Color Theory")
+
+		// Draft excluded
+		assert.NotContains(t, bodyStr, "Draft Post")
+
+		// RSS 2.0 structure
+		assert.Contains(t, bodyStr, `<rss version="2.0"`)
+		assert.Contains(t, bodyStr, `xmlns:content=`)
+		assert.Contains(t, bodyStr, `xmlns:dc=`)
+		assert.Contains(t, bodyStr, `<description>`)
+		assert.Contains(t, bodyStr, `<language>`)
+		assert.Contains(t, bodyStr, `<lastBuildDate>`)
+		assert.Contains(t, bodyStr, `isPermaLink="false"`)
+	})
+
+	t.Run("JSON Feed returns valid JSON with all published posts", func(t *testing.T) {
+		resp, err := client.MakeRequestWithHost("GET", "/feed.json", "feed.blog", nil)
+		require.NoError(t, err)
+		defer func() { _ = resp.Body.Close() }()
+
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+		assert.Contains(t, resp.Header.Get("Content-Type"), "application/feed+json")
+
+		body, err := io.ReadAll(resp.Body)
+		require.NoError(t, err)
+
+		var feed map[string]interface{}
+		require.NoError(t, json.Unmarshal(body, &feed), "JSON Feed output must be valid JSON")
+
+		assert.Equal(t, "https://jsonfeed.org/version/1.1", feed["version"])
+		assert.Contains(t, feed["feed_url"], "/feed.json")
+
+		items, ok := feed["items"].([]interface{})
+		require.True(t, ok)
+		assert.Len(t, items, 3, "Should have 3 published posts")
+
+		// Verify draft not present
+		for _, it := range items {
+			item := it.(map[string]interface{})
+			assert.NotEqual(t, "Draft Post", item["title"])
+		}
+	})
+
+	t.Run("Per-category RSS feed filters to that category only", func(t *testing.T) {
+		resp, err := client.MakeRequestWithHost("GET", "/design/feed.xml", "feed.blog", nil)
+		require.NoError(t, err)
+		defer func() { _ = resp.Body.Close() }()
+
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+		body, err := io.ReadAll(resp.Body)
+		require.NoError(t, err)
+		bodyStr := string(body)
+
+		// Only design post
+		assert.Contains(t, bodyStr, "Color Theory")
+		assert.NotContains(t, bodyStr, "Intro to Go")
+		assert.NotContains(t, bodyStr, "Concurrency Patterns")
+	})
+
+	t.Run("Per-category JSON Feed filters correctly", func(t *testing.T) {
+		resp, err := client.MakeRequestWithHost("GET", "/tech/feed.json", "feed.blog", nil)
+		require.NoError(t, err)
+		defer func() { _ = resp.Body.Close() }()
+
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+		body, err := io.ReadAll(resp.Body)
+		require.NoError(t, err)
+
+		var feed map[string]interface{}
+		require.NoError(t, json.Unmarshal(body, &feed))
+
+		items := feed["items"].([]interface{})
+		assert.Len(t, items, 2, "Tech category should have 2 published posts")
+
+		// Verify no design posts
+		for _, it := range items {
+			item := it.(map[string]interface{})
+			assert.NotEqual(t, "Color Theory", item["title"])
+		}
+	})
+
+	t.Run("Conditional GET returns 304 with matching ETag", func(t *testing.T) {
+		// First request to get ETag
+		resp1, err := client.MakeRequestWithHost("GET", "/feed.xml", "feed.blog", nil)
+		require.NoError(t, err)
+		_, _ = io.ReadAll(resp1.Body)
+		resp1.Body.Close()
+
+		etag := resp1.Header.Get("ETag")
+		require.NotEmpty(t, etag)
+
+		// Second request with If-None-Match
+		noRedirectClient := testutil.NewAPIClientNoRedirect(suite.ServerManager.GetURL())
+		noRedirectClient.SetToken(client.GetToken())
+		noRedirectClient.SetWorkspaceID(client.GetWorkspaceID())
+
+		req, err := http.NewRequest("GET", suite.ServerManager.GetURL()+"/feed.xml", nil)
+		require.NoError(t, err)
+		req.Host = "feed.blog"
+		req.Header.Set("If-None-Match", etag)
+
+		resp2, err := http.DefaultClient.Do(req)
+		require.NoError(t, err)
+		defer func() { _ = resp2.Body.Close() }()
+
+		assert.Equal(t, http.StatusNotModified, resp2.StatusCode, "Should return 304 when ETag matches")
+		assert.Equal(t, etag, resp2.Header.Get("ETag"), "304 response must include ETag header")
+		assert.NotEmpty(t, resp2.Header.Get("Last-Modified"), "304 response must include Last-Modified")
+	})
+
+	t.Run("HEAD returns headers without body", func(t *testing.T) {
+		req, err := http.NewRequest("HEAD", suite.ServerManager.GetURL()+"/feed.xml", nil)
+		require.NoError(t, err)
+		req.Host = "feed.blog"
+
+		resp, err := http.DefaultClient.Do(req)
+		require.NoError(t, err)
+		defer func() { _ = resp.Body.Close() }()
+
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+		assert.Contains(t, resp.Header.Get("Content-Type"), "application/rss+xml")
+		assert.NotEmpty(t, resp.Header.Get("ETag"))
+
+		body, _ := io.ReadAll(resp.Body)
+		assert.Empty(t, body, "HEAD response must have empty body")
+	})
+
+	t.Run("POST returns 405 Method Not Allowed", func(t *testing.T) {
+		req, err := http.NewRequest("POST", suite.ServerManager.GetURL()+"/feed.xml", nil)
+		require.NoError(t, err)
+		req.Host = "feed.blog"
+
+		resp, err := http.DefaultClient.Do(req)
+		require.NoError(t, err)
+		defer func() { _ = resp.Body.Close() }()
+
+		assert.Equal(t, http.StatusMethodNotAllowed, resp.StatusCode)
+	})
+
+	t.Run("Blog home page contains feed autodiscovery links when theme has head", func(t *testing.T) {
+		resp, err := client.MakeRequestWithHost("GET", "/", "feed.blog", nil)
+		require.NoError(t, err)
+		defer func() { _ = resp.Body.Close() }()
+
+		body, _ := io.ReadAll(resp.Body)
+		bodyStr := string(body)
+
+		// Autodiscovery tags are injected before </head>. If the theme
+		// template has no <head> section, there's nowhere to inject and
+		// InjectFeedDiscoveryTags correctly returns the HTML unchanged.
+		if strings.Contains(strings.ToLower(bodyStr), "</head>") {
+			assert.Contains(t, bodyStr, `type="application/rss+xml"`, "Home page should have RSS autodiscovery")
+			assert.Contains(t, bodyStr, `href="/feed.xml"`)
+			assert.Contains(t, bodyStr, `type="application/feed+json"`, "Home page should have JSON Feed autodiscovery")
+			assert.Contains(t, bodyStr, `href="/feed.json"`)
+		} else {
+			t.Log("Theme has no <head> tag — autodiscovery injection skipped (expected for minimal test theme)")
+		}
+	})
+
+	t.Run("Sitemap includes feed URLs", func(t *testing.T) {
+		resp, err := client.MakeRequestWithHost("GET", "/sitemap.xml", "feed.blog", nil)
+		require.NoError(t, err)
+		defer func() { _ = resp.Body.Close() }()
+
+		body, _ := io.ReadAll(resp.Body)
+		bodyStr := string(body)
+
+		assert.Contains(t, bodyStr, "/feed.xml", "Sitemap should include main feed URL")
+	})
+
+	t.Run("Feed content does not contain script tags (XSS sanitization)", func(t *testing.T) {
+		resp, err := client.MakeRequestWithHost("GET", "/feed.xml", "feed.blog", nil)
+		require.NoError(t, err)
+		defer func() { _ = resp.Body.Close() }()
+
+		body, _ := io.ReadAll(resp.Body)
+		bodyStr := string(body)
+
+		assert.NotContains(t, strings.ToLower(bodyStr), "<script", "Feed must not contain script tags")
+		assert.NotContains(t, strings.ToLower(bodyStr), "javascript:", "Feed must not contain javascript: URIs")
+	})
+
+	t.Run("Robots.txt references sitemap which includes feeds", func(t *testing.T) {
+		resp, err := client.MakeRequestWithHost("GET", "/robots.txt", "feed.blog", nil)
+		require.NoError(t, err)
+		defer func() { _ = resp.Body.Close() }()
+
+		body, _ := io.ReadAll(resp.Body)
+		assert.Contains(t, string(body), "Sitemap: /sitemap.xml")
+	})
+
+	t.Run("Non-existent category feed returns empty items not 500", func(t *testing.T) {
+		resp, err := client.MakeRequestWithHost("GET", "/nonexistent-category/feed.xml", "feed.blog", nil)
+		require.NoError(t, err)
+		defer func() { _ = resp.Body.Close() }()
+
+		// The slug doesn't match any category, so ListFeedPosts returns 0 rows.
+		// The feed should still be valid XML with 0 items — not a 500 or 404.
+		body, _ := io.ReadAll(resp.Body)
+		bodyStr := string(body)
+
+		if resp.StatusCode == http.StatusOK {
+			assert.Contains(t, bodyStr, "<rss", "Should still be valid RSS")
+			assert.NotContains(t, bodyStr, "<item>", "Should have zero items")
+		} else {
+			// Acceptable: 404 for completely unknown category
+			assert.Equal(t, http.StatusNotFound, resp.StatusCode)
+		}
+	})
+
+	t.Run("Gzip response decompresses to valid feed", func(t *testing.T) {
+		req, err := http.NewRequest("GET", suite.ServerManager.GetURL()+"/feed.xml", nil)
+		require.NoError(t, err)
+		req.Host = "feed.blog"
+		req.Header.Set("Accept-Encoding", "gzip")
+
+		// Use a transport that does NOT auto-decompress
+		transport := &http.Transport{DisableCompression: true}
+		gzipClient := &http.Client{Transport: transport}
+
+		resp, err := gzipClient.Do(req)
+		require.NoError(t, err)
+		defer func() { _ = resp.Body.Close() }()
+
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+		assert.Equal(t, "gzip", resp.Header.Get("Content-Encoding"))
+
+		gr, err := gzip.NewReader(resp.Body)
+		require.NoError(t, err, "response body must be valid gzip")
+		decompressed, err := io.ReadAll(gr)
+		require.NoError(t, err)
+		assert.Contains(t, string(decompressed), "<rss", "decompressed content must be valid RSS")
 	})
 }

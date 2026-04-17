@@ -1177,3 +1177,126 @@ func TestBlogPostRepository_TxMethods(t *testing.T) {
 		assert.NoError(t, sqlMock2.ExpectationsWereMet())
 	})
 }
+
+// Feed-specific repository tests (Phase A follow-up).
+//
+// These tests validate that the new ListFeedPosts and GetFeedFingerprint
+// methods emit the filter clauses the plan promises — specifically that
+// scheduled posts (published_at in the future) are excluded and that the
+// fingerprint query joins blog_categories for the GREATEST(updated_at)
+// invalidation.
+func TestBlogPostRepository_ListFeedPosts(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	repo := NewBlogPostRepository(mockWorkspaceRepo)
+
+	db, sqlMock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer func() { _ = db.Close() }()
+
+	ctx := context.WithValue(context.Background(), domain.WorkspaceIDKey, "ws1")
+	mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), "ws1").Return(db, nil)
+
+	rows := sqlmock.NewRows([]string{
+		"id", "category_id", "slug", "settings", "published_at", "created_at", "updated_at", "deleted_at",
+	}).AddRow("p1", "c1", "hello", []byte(`{"title":"Hi","template":{"template_id":"tpl","template_version":1}}`), time.Now(), time.Now(), time.Now(), nil)
+
+	// The query MUST filter on `published_at <= NOW()` so scheduled posts
+	// don't leak into feeds. Match a loose regex — SQL whitespace is normalized
+	// differently by different drivers.
+	// Regex validates all critical WHERE clauses: deleted_at IS NULL,
+	// published_at IS NOT NULL, published_at <= NOW(), and ORDER BY.
+	sqlMock.ExpectQuery(`(?s)blog_posts p\s+JOIN blog_categories c.*p\.deleted_at IS NULL.*published_at IS NOT NULL.*published_at <= NOW\(\).*ORDER BY p\.published_at DESC`).
+		WithArgs(10).
+		WillReturnRows(rows)
+
+	posts, err := repo.ListFeedPosts(ctx, nil, 10)
+	require.NoError(t, err)
+	require.Len(t, posts, 1)
+	assert.Equal(t, "p1", posts[0].ID)
+	assert.NoError(t, sqlMock.ExpectationsWereMet())
+}
+
+func TestBlogPostRepository_ListFeedPosts_CategoryFilter(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	repo := NewBlogPostRepository(mockWorkspaceRepo)
+
+	db, sqlMock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer func() { _ = db.Close() }()
+
+	ctx := context.WithValue(context.Background(), domain.WorkspaceIDKey, "ws1")
+	mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), "ws1").Return(db, nil)
+
+	slug := "tech"
+	sqlMock.ExpectQuery(`(?s)JOIN blog_categories c.*c\.slug = \$1.*LIMIT \$2`).
+		WithArgs("tech", 5).
+		WillReturnRows(sqlmock.NewRows([]string{
+			"id", "category_id", "slug", "settings", "published_at", "created_at", "updated_at", "deleted_at",
+		}))
+
+	posts, err := repo.ListFeedPosts(ctx, &slug, 5)
+	require.NoError(t, err)
+	assert.Empty(t, posts)
+	assert.NoError(t, sqlMock.ExpectationsWereMet())
+}
+
+func TestBlogPostRepository_GetFeedFingerprint(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	repo := NewBlogPostRepository(mockWorkspaceRepo)
+
+	db, sqlMock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer func() { _ = db.Close() }()
+
+	ctx := context.WithValue(context.Background(), domain.WorkspaceIDKey, "ws1")
+	mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), "ws1").Return(db, nil)
+
+	expectedTime := time.Now().UTC().Truncate(time.Second)
+	// Fingerprint SQL MUST GREATEST(p.updated_at, c.updated_at) so category
+	// renames invalidate the ETag.
+	// Regex validates: deleted_at IS NULL, published_at <= NOW(), ORDER BY, GREATEST, MD5.
+	sqlMock.ExpectQuery(`(?s)WITH top_posts.*deleted_at IS NULL.*published_at <= NOW\(\).*ORDER BY p\.published_at DESC.*GREATEST\(post_updated, cat_updated\).*MD5\(STRING_AGG\(id::text`).
+		WithArgs(10).
+		WillReturnRows(sqlmock.NewRows([]string{"max_updated_at", "ids_hash"}).
+			AddRow(expectedTime, "hash123"))
+
+	maxUpdated, idsHash, err := repo.GetFeedFingerprint(ctx, nil, 10)
+	require.NoError(t, err)
+	assert.Equal(t, "hash123", idsHash)
+	assert.True(t, maxUpdated.Equal(expectedTime), "expected %s got %s", expectedTime, maxUpdated)
+	assert.NoError(t, sqlMock.ExpectationsWereMet())
+}
+
+func TestBlogPostRepository_GetFeedFingerprint_EmptyFeed(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	repo := NewBlogPostRepository(mockWorkspaceRepo)
+
+	db, sqlMock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer func() { _ = db.Close() }()
+
+	ctx := context.WithValue(context.Background(), domain.WorkspaceIDKey, "ws1")
+	mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), "ws1").Return(db, nil)
+
+	// Empty feed: SQL returns NULL max_updated_at (no rows aggregated).
+	// The repo scans via sql.NullTime and returns zero-time — the service
+	// layer substitutes workspace.UpdatedAt.
+	sqlMock.ExpectQuery(`(?s)WITH top_posts.*MD5\(STRING_AGG`).
+		WithArgs(10).
+		WillReturnRows(sqlmock.NewRows([]string{"max_updated_at", "ids_hash"}).
+			AddRow(nil, ""))
+
+	maxUpdated, idsHash, err := repo.GetFeedFingerprint(ctx, nil, 10)
+	require.NoError(t, err)
+	assert.True(t, maxUpdated.IsZero(), "expected zero-time for empty feed, got %s", maxUpdated)
+	assert.Empty(t, idsHash)
+	assert.NoError(t, sqlMock.ExpectationsWereMet())
+}

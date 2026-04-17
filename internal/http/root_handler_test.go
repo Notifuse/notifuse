@@ -1,8 +1,10 @@
 package http
 
 import (
+	"compress/gzip"
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -747,10 +749,12 @@ func TestRootHandler_serveBlogSitemap(t *testing.T) {
 				Posts: posts,
 			}, nil)
 
+		// 2 posts share cat-1 → GetCategory called twice for post URLs,
+		// plus once for the per-category feed URL = 3 total.
 		mockBlogService.EXPECT().
 			GetCategory(gomock.Any(), "cat-1").
 			Return(category, nil).
-			Times(2)
+			Times(3)
 
 		req := httptest.NewRequest("GET", "/sitemap.xml", nil)
 		req.Host = "example.com"
@@ -787,16 +791,17 @@ func TestRootHandler_serveBlogSitemap(t *testing.T) {
 		assert.Equal(t, "application/xml", w.Header().Get("Content-Type"))
 		body := w.Body.String()
 		assert.Contains(t, body, `<loc>https://example.com/</loc>`)
-		// Should not contain any post URLs (only homepage)
+		assert.Contains(t, body, `<loc>https://example.com/feed.xml</loc>`)
+		// No post/category URLs
 		assert.NotContains(t, body, `<loc>https://example.com/tech/`)
-		// Count URL entries - should only have homepage (1 entry)
+		// Homepage + main feed = 2 URL entries
 		urlCount := 0
 		for i := 0; i <= len(body)-len(`<loc>`); i++ {
 			if i+len(`<loc>`) <= len(body) && body[i:i+len(`<loc>`)] == `<loc>` {
 				urlCount++
 			}
 		}
-		assert.Equal(t, 1, urlCount, "Should only have homepage URL")
+		assert.Equal(t, 2, urlCount, "Should have homepage + main feed URLs")
 	})
 
 	t.Run("sitemap generation error", func(t *testing.T) {
@@ -1611,4 +1616,182 @@ func TestRootHandler_handleBlogRenderError(t *testing.T) {
 			assert.Contains(t, body, tc.expectedBody)
 		})
 	}
+}
+
+func TestRootHandler_serveBlogFeed(t *testing.T) {
+	now := time.Now().UTC()
+	etag := `W/"abc123"`
+
+	feedPayload := &domain.BlogFeed{
+		Meta: domain.BlogFeedMeta{
+			Title:     "Test Blog",
+			SiteURL:   "https://example.com",
+			FeedURL:   "https://example.com/feed.xml",
+			SelfURL:   "https://example.com/feed.xml",
+			Language:  "en",
+			UpdatedAt: now,
+			ETag:      etag,
+		},
+		Items: []domain.BlogFeedItem{
+			{
+				GUID:        "p1",
+				Title:       "Hello",
+				URL:         "https://example.com/tech/hello",
+				ContentHTML: "<p>Hi</p>",
+				Excerpt:     "hi",
+				PublishedAt: now,
+				UpdatedAt:   now,
+			},
+		},
+	}
+
+	t.Run("200 RSS with valid XML", func(t *testing.T) {
+		mockBlogService, _, _, workspace, handler := setupBlogHandlerTest(t)
+
+		mockBlogService.EXPECT().GetFeedFingerprint(gomock.Any(), workspace.ID, nil).Return(now, etag, nil)
+		mockBlogService.EXPECT().BuildFeed(gomock.Any(), workspace.ID, nil).Return(feedPayload, nil)
+
+		req := httptest.NewRequest("GET", "/feed.xml", nil)
+		w := httptest.NewRecorder()
+		handler.serveBlogFeed(w, req, workspace, nil, feedFormatRSS)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+		assert.Equal(t, "application/rss+xml; charset=utf-8", w.Header().Get("Content-Type"))
+		assert.Equal(t, etag, w.Header().Get("ETag"))
+		assert.Contains(t, w.Body.String(), "<rss")
+		assert.Contains(t, w.Body.String(), "<title>Test Blog</title>")
+	})
+
+	t.Run("200 JSON Feed", func(t *testing.T) {
+		mockBlogService, _, _, workspace, handler := setupBlogHandlerTest(t)
+
+		mockBlogService.EXPECT().GetFeedFingerprint(gomock.Any(), workspace.ID, nil).Return(now, etag, nil)
+		mockBlogService.EXPECT().BuildFeed(gomock.Any(), workspace.ID, nil).Return(feedPayload, nil)
+
+		req := httptest.NewRequest("GET", "/feed.json", nil)
+		w := httptest.NewRecorder()
+		handler.serveBlogFeed(w, req, workspace, nil, feedFormatJSON)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+		assert.Equal(t, "application/feed+json; charset=utf-8", w.Header().Get("Content-Type"))
+		assert.Contains(t, w.Body.String(), `"version"`)
+	})
+
+	t.Run("304 on matching ETag", func(t *testing.T) {
+		mockBlogService, _, _, workspace, handler := setupBlogHandlerTest(t)
+
+		mockBlogService.EXPECT().GetFeedFingerprint(gomock.Any(), workspace.ID, nil).Return(now, etag, nil)
+		// BuildFeed must NOT be called on the 304 path.
+
+		req := httptest.NewRequest("GET", "/feed.xml", nil)
+		req.Header.Set("If-None-Match", etag)
+		w := httptest.NewRecorder()
+		handler.serveBlogFeed(w, req, workspace, nil, feedFormatRSS)
+
+		assert.Equal(t, http.StatusNotModified, w.Code)
+		assert.Equal(t, etag, w.Header().Get("ETag"))
+		assert.NotEmpty(t, w.Header().Get("Last-Modified"))
+		assert.Empty(t, w.Body.String())
+	})
+
+	t.Run("304 on If-Modified-Since", func(t *testing.T) {
+		mockBlogService, _, _, workspace, handler := setupBlogHandlerTest(t)
+
+		mockBlogService.EXPECT().GetFeedFingerprint(gomock.Any(), workspace.ID, nil).Return(now, etag, nil)
+
+		req := httptest.NewRequest("GET", "/feed.xml", nil)
+		req.Header.Set("If-Modified-Since", now.Add(time.Hour).UTC().Format(http.TimeFormat))
+		w := httptest.NewRecorder()
+		handler.serveBlogFeed(w, req, workspace, nil, feedFormatRSS)
+
+		assert.Equal(t, http.StatusNotModified, w.Code)
+	})
+
+	t.Run("405 on POST", func(t *testing.T) {
+		_, _, _, workspace, handler := setupBlogHandlerTest(t)
+
+		req := httptest.NewRequest("POST", "/feed.xml", nil)
+		w := httptest.NewRecorder()
+		handler.serveBlogFeed(w, req, workspace, nil, feedFormatRSS)
+
+		assert.Equal(t, http.StatusMethodNotAllowed, w.Code)
+	})
+
+	t.Run("HEAD returns headers but empty body", func(t *testing.T) {
+		mockBlogService, _, _, workspace, handler := setupBlogHandlerTest(t)
+
+		mockBlogService.EXPECT().GetFeedFingerprint(gomock.Any(), workspace.ID, nil).Return(now, etag, nil)
+		mockBlogService.EXPECT().BuildFeed(gomock.Any(), workspace.ID, nil).Return(feedPayload, nil)
+
+		req := httptest.NewRequest("HEAD", "/feed.xml", nil)
+		w := httptest.NewRecorder()
+		handler.serveBlogFeed(w, req, workspace, nil, feedFormatRSS)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+		assert.Equal(t, etag, w.Header().Get("ETag"))
+		assert.Empty(t, w.Body.String())
+	})
+
+	t.Run("per-category feed", func(t *testing.T) {
+		mockBlogService, _, _, workspace, handler := setupBlogHandlerTest(t)
+		slug := "tech"
+
+		mockBlogService.EXPECT().GetFeedFingerprint(gomock.Any(), workspace.ID, &slug).Return(now, etag, nil)
+		mockBlogService.EXPECT().BuildFeed(gomock.Any(), workspace.ID, &slug).Return(feedPayload, nil)
+
+		req := httptest.NewRequest("GET", "/tech/feed.xml", nil)
+		w := httptest.NewRecorder()
+		handler.serveBlogFeed(w, req, workspace, &slug, feedFormatRSS)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+	})
+
+	t.Run("Cache-Control header set correctly", func(t *testing.T) {
+		mockBlogService, _, _, workspace, handler := setupBlogHandlerTest(t)
+
+		mockBlogService.EXPECT().GetFeedFingerprint(gomock.Any(), workspace.ID, nil).Return(now, etag, nil)
+		mockBlogService.EXPECT().BuildFeed(gomock.Any(), workspace.ID, nil).Return(feedPayload, nil)
+
+		req := httptest.NewRequest("GET", "/feed.xml", nil)
+		w := httptest.NewRecorder()
+		handler.serveBlogFeed(w, req, workspace, nil, feedFormatRSS)
+
+		assert.Equal(t, "public, max-age=0, s-maxage=300, must-revalidate", w.Header().Get("Cache-Control"))
+	})
+
+	t.Run("gzip response when Accept-Encoding set", func(t *testing.T) {
+		mockBlogService, _, _, workspace, handler := setupBlogHandlerTest(t)
+
+		mockBlogService.EXPECT().GetFeedFingerprint(gomock.Any(), workspace.ID, nil).Return(now, etag, nil)
+		mockBlogService.EXPECT().BuildFeed(gomock.Any(), workspace.ID, nil).Return(feedPayload, nil)
+
+		req := httptest.NewRequest("GET", "/feed.xml", nil)
+		req.Header.Set("Accept-Encoding", "gzip")
+		w := httptest.NewRecorder()
+		handler.serveBlogFeed(w, req, workspace, nil, feedFormatRSS)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+		assert.Equal(t, "gzip", w.Header().Get("Content-Encoding"))
+		assert.Equal(t, "Accept-Encoding", w.Header().Get("Vary"))
+
+		// Decompress and verify valid XML
+		gr, err := gzip.NewReader(w.Body)
+		require.NoError(t, err, "response must be valid gzip")
+		decompressed, err := io.ReadAll(gr)
+		require.NoError(t, err)
+		assert.Contains(t, string(decompressed), "<rss")
+	})
+
+	t.Run("GetFeedFingerprint error returns 500", func(t *testing.T) {
+		mockBlogService, _, _, workspace, handler := setupBlogHandlerTest(t)
+
+		mockBlogService.EXPECT().GetFeedFingerprint(gomock.Any(), workspace.ID, nil).
+			Return(time.Time{}, "", assert.AnError)
+
+		req := httptest.NewRequest("GET", "/feed.xml", nil)
+		w := httptest.NewRecorder()
+		handler.serveBlogFeed(w, req, workspace, nil, feedFormatRSS)
+
+		assert.Equal(t, http.StatusInternalServerError, w.Code)
+	})
 }

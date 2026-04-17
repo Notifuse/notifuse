@@ -2,8 +2,13 @@ package service
 
 import (
 	"context"
+	"crypto/sha256"
 	"database/sql"
+	"encoding/hex"
+	"encoding/json"
 	"fmt"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
@@ -1292,6 +1297,7 @@ func (s *BlogService) RenderHomePage(ctx context.Context, workspaceID string, pa
 		}
 	}
 
+	html = liquid.InjectFeedDiscoveryTags(html, blogTitleForDiscovery(workspace), "")
 	return html, nil
 }
 
@@ -1464,7 +1470,370 @@ func (s *BlogService) RenderPostPage(ctx context.Context, workspaceID, categoryS
 		}
 	}
 
+	html = liquid.InjectFeedDiscoveryTags(html, blogTitleForDiscovery(workspace), categorySlug)
 	return html, nil
+}
+
+// RenderPostContent returns the post body HTML prepared for syndication
+// (RSS / JSON Feed) — no theme chrome, no header/footer, relative URLs
+// rewritten to absolute against the workspace origin, sanitized against
+// XSS, and stripped of XML-illegal control characters.
+//
+// Errors surface as *domain.BlogRenderError so callers (feed builder) can
+// discriminate "post not found" from "render failed" and apply the fallback
+// ladder documented in BuildFeed. Callers that already hold the workspace,
+// post, and template entities should use renderPostContentFromEntities to
+// avoid redundant lookups.
+func (s *BlogService) RenderPostContent(ctx context.Context, workspaceID, categorySlug, postSlug string) (string, error) {
+	workspace, err := s.workspaceRepo.GetByID(ctx, workspaceID)
+	if err != nil {
+		return "", &domain.BlogRenderError{
+			Code:    domain.ErrCodeRenderFailed,
+			Message: "Failed to get workspace",
+			Details: err,
+		}
+	}
+
+	post, err := s.postRepo.GetPostByCategoryAndSlug(ctx, categorySlug, postSlug)
+	if err != nil {
+		return "", &domain.BlogRenderError{
+			Code:    domain.ErrCodePostNotFound,
+			Message: "Post not found",
+			Details: err,
+		}
+	}
+	if !post.IsPublished() {
+		return "", &domain.BlogRenderError{
+			Code:    domain.ErrCodePostNotFound,
+			Message: "Post is not published",
+		}
+	}
+
+	tmpl, err := s.templateRepo.GetTemplateByID(ctx, workspaceID, post.Settings.Template.TemplateID, int64(post.Settings.Template.TemplateVersion))
+	if err != nil {
+		return "", &domain.BlogRenderError{
+			Code:    domain.ErrCodeRenderFailed,
+			Message: "Failed to get post template",
+			Details: err,
+		}
+	}
+	return renderPostContentFromEntities(workspace, tmpl)
+}
+
+// renderPostContentFromEntities is the shared rendering + sanitization path
+// used by both RenderPostContent (which loads entities itself) and BuildFeed
+// (which preloads them in batch). Does not hit the database.
+func renderPostContentFromEntities(workspace *domain.Workspace, tmpl *domain.Template) (string, error) {
+	if tmpl == nil || tmpl.Web == nil || tmpl.Web.HTML == "" {
+		return "", &domain.BlogRenderError{
+			Code:    domain.ErrCodeRenderFailed,
+			Message: "Post template has no web content",
+		}
+	}
+	sanitized, err := liquid.SanitizeFeedHTML(tmpl.Web.HTML, workspaceBlogOrigin(workspace))
+	if err != nil {
+		return "", &domain.BlogRenderError{
+			Code:    domain.ErrCodeRenderFailed,
+			Message: "Failed to sanitize post HTML",
+			Details: err,
+		}
+	}
+	return sanitized, nil
+}
+
+// BuildFeed loads the newest published posts (optionally filtered by
+// category), renders each body, and returns a *domain.BlogFeed the feed
+// renderer package can serialize. Callers that care about conditional GET
+// should call GetFeedFingerprint first and skip BuildFeed on cache hits —
+// body rendering is the expensive step.
+func (s *BlogService) BuildFeed(ctx context.Context, workspaceID string, categorySlug *string) (*domain.BlogFeed, error) {
+	workspace, err := s.workspaceRepo.GetByID(ctx, workspaceID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get workspace: %w", err)
+	}
+
+	origin := workspaceBlogOrigin(workspace)
+	if origin == "" {
+		return nil, fmt.Errorf("feed unavailable: workspace has no website URL configured")
+	}
+
+	limit := workspace.Settings.BlogSettings.GetFeedMaxItems()
+
+	// The repo methods read workspaceID from ctx (like ListPosts).
+	feedCtx := context.WithValue(ctx, domain.WorkspaceIDKey, workspaceID)
+
+	posts, err := s.postRepo.ListFeedPosts(feedCtx, categorySlug, limit)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list feed posts: %w", err)
+	}
+
+	maxUpdatedAt, idsHash, err := s.postRepo.GetFeedFingerprint(feedCtx, categorySlug, limit)
+	if err != nil {
+		return nil, fmt.Errorf("failed to compute feed fingerprint: %w", err)
+	}
+	// Empty feed: repo returns zero-time. Substitute workspace.UpdatedAt so
+	// the channel's <lastBuildDate> / Last-Modified are sane rather than
+	// epoch.
+	if maxUpdatedAt.IsZero() {
+		maxUpdatedAt = workspace.UpdatedAt.UTC()
+	}
+
+	// Resolve categories for the items in one shot.
+	categoryIDs := make([]string, 0, len(posts))
+	seen := map[string]struct{}{}
+	for _, p := range posts {
+		if _, ok := seen[p.CategoryID]; ok {
+			continue
+		}
+		seen[p.CategoryID] = struct{}{}
+		categoryIDs = append(categoryIDs, p.CategoryID)
+	}
+	categoriesByID := map[string]*domain.BlogCategory{}
+	if len(categoryIDs) > 0 {
+		cats, err := s.categoryRepo.GetCategoriesByIDs(feedCtx, categoryIDs)
+		if err != nil {
+			s.logger.WithField("error", err.Error()).Warn("Failed to load categories for feed; continuing with empty names")
+		} else {
+			for _, c := range cats {
+				categoriesByID[c.ID] = c
+			}
+		}
+	}
+
+	summaryOnly := workspace.Settings.BlogSettings != nil && workspace.Settings.BlogSettings.FeedSummaryOnly
+
+	// Preload templates for all posts up front: many posts share the same
+	// (templateID, version) pair, and the feed used to re-fetch the workspace
+	// + post + template for every item through RenderPostContent. A single
+	// pass here turns the worst case from O(N) round-trips into O(distinct
+	// templates).
+	templates := map[string]*domain.Template{}
+	if !summaryOnly {
+		for _, post := range posts {
+			key := post.Settings.Template.TemplateID + "@" + strconv.Itoa(post.Settings.Template.TemplateVersion)
+			if _, cached := templates[key]; cached {
+				continue
+			}
+			tmpl, err := s.templateRepo.GetTemplateByID(feedCtx, workspaceID, post.Settings.Template.TemplateID, int64(post.Settings.Template.TemplateVersion))
+			if err != nil {
+				s.logger.WithFields(map[string]interface{}{
+					"workspace_id":     workspaceID,
+					"post_id":          post.ID,
+					"template_id":      post.Settings.Template.TemplateID,
+					"template_version": post.Settings.Template.TemplateVersion,
+					"error":            err.Error(),
+				}).Warn("Feed: template fetch failed; post will fall back to excerpt")
+				templates[key] = nil
+				continue
+			}
+			templates[key] = tmpl
+		}
+	}
+
+	items := make([]domain.BlogFeedItem, 0, len(posts))
+	for _, post := range posts {
+		cat := categoriesByID[post.CategoryID]
+		if cat == nil {
+			s.logger.WithFields(map[string]interface{}{
+				"workspace_id": workspaceID,
+				"post_id":      post.ID,
+				"category_id":  post.CategoryID,
+			}).Error("Feed: dropping item — category not found (orphan post)")
+			continue
+		}
+
+		item := domain.BlogFeedItem{
+			GUID:             post.ID,
+			Title:            post.Settings.Title,
+			URL:              buildPostURL(origin, cat.Slug, post.Slug),
+			CategorySlug:     cat.Slug,
+			CategoryName:     cat.Settings.Name,
+			Excerpt:          post.Settings.Excerpt,
+			Authors:          post.Settings.Authors,
+			FeaturedImageURL: post.Settings.FeaturedImageURL,
+			UpdatedAt:        post.UpdatedAt,
+		}
+		if post.PublishedAt != nil {
+			item.PublishedAt = *post.PublishedAt
+		}
+
+		// Content fallback ladder: full render → excerpt → drop.
+		if summaryOnly {
+			item.ContentHTML = post.Settings.Excerpt
+			items = append(items, item)
+			continue
+		}
+
+		tmpl := templates[post.Settings.Template.TemplateID+"@"+strconv.Itoa(post.Settings.Template.TemplateVersion)]
+		body, err := renderPostContentFromEntities(workspace, tmpl)
+		if err != nil {
+			s.logger.WithFields(map[string]interface{}{
+				"workspace_id":  workspaceID,
+				"post_id":       post.ID,
+				"category_slug": cat.Slug,
+				"error":         err.Error(),
+			}).Warn("Feed: body render failed; falling back to excerpt")
+			if post.Settings.Excerpt == "" {
+				s.logger.WithFields(map[string]interface{}{
+					"workspace_id":  workspaceID,
+					"post_id":       post.ID,
+					"category_slug": cat.Slug,
+				}).Error("Feed: dropping item — render failed and excerpt empty")
+				continue
+			}
+			item.ContentHTML = post.Settings.Excerpt
+		} else {
+			item.ContentHTML = body
+		}
+
+		items = append(items, item)
+	}
+
+	language := workspace.Settings.DefaultLanguage
+	if language == "" {
+		language = "en"
+	}
+	blogTitle := ""
+	blogDescription := ""
+	var logoURL, iconURL string
+	if bs := workspace.Settings.BlogSettings; bs != nil {
+		blogTitle = bs.Title
+		if bs.SEO != nil && bs.SEO.MetaDescription != "" {
+			blogDescription = bs.SEO.MetaDescription
+		}
+		if bs.LogoURL != nil {
+			logoURL = *bs.LogoURL
+		}
+		if bs.IconURL != nil {
+			iconURL = *bs.IconURL
+		}
+	}
+	if blogTitle == "" {
+		blogTitle = workspace.Name
+	}
+	if blogDescription == "" {
+		blogDescription = blogTitle
+	}
+
+	selfPath := "/feed.xml"
+	if categorySlug != nil && *categorySlug != "" {
+		selfPath = "/" + *categorySlug + "/feed.xml"
+	}
+
+	meta := domain.BlogFeedMeta{
+		Title:       blogTitle,
+		Description: blogDescription,
+		SiteURL:     origin,
+		FeedURL:     joinURL(origin, selfPath),
+		SelfURL:     joinURL(origin, selfPath),
+		Language:    language,
+		IconURL:     iconURL,
+		LogoURL:     logoURL,
+		UpdatedAt:   maxUpdatedAt,
+		ETag:        computeFeedETag(workspace, categorySlug, maxUpdatedAt, idsHash),
+	}
+	return &domain.BlogFeed{Meta: meta, Items: items}, nil
+}
+
+// GetFeedFingerprint returns (maxUpdatedAt, etag) without rendering items.
+// HTTP handlers use this for conditional GET.
+func (s *BlogService) GetFeedFingerprint(ctx context.Context, workspaceID string, categorySlug *string) (time.Time, string, error) {
+	workspace, err := s.workspaceRepo.GetByID(ctx, workspaceID)
+	if err != nil {
+		return time.Time{}, "", fmt.Errorf("failed to get workspace: %w", err)
+	}
+	limit := workspace.Settings.BlogSettings.GetFeedMaxItems()
+	feedCtx := context.WithValue(ctx, domain.WorkspaceIDKey, workspaceID)
+
+	maxUpdatedAt, idsHash, err := s.postRepo.GetFeedFingerprint(feedCtx, categorySlug, limit)
+	if err != nil {
+		return time.Time{}, "", fmt.Errorf("failed to compute feed fingerprint: %w", err)
+	}
+	if maxUpdatedAt.IsZero() {
+		maxUpdatedAt = workspace.UpdatedAt.UTC()
+	}
+	return maxUpdatedAt, computeFeedETag(workspace, categorySlug, maxUpdatedAt, idsHash), nil
+}
+
+// computeFeedETag hashes the fingerprint inputs to a short hex ETag.
+// Inputs: maxUpdatedAt, idsHash, categorySlug, settings fingerprint (blog
+// title/logos/feed toggles/default language). Any one changing invalidates.
+func computeFeedETag(ws *domain.Workspace, categorySlug *string, maxUpdatedAt time.Time, idsHash string) string {
+	var settingsPart struct {
+		Title           string
+		LogoURL         string
+		IconURL         string
+		FeedSummaryOnly bool
+		FeedMaxItems    int
+		DefaultLanguage string
+	}
+	if bs := ws.Settings.BlogSettings; bs != nil {
+		settingsPart.Title = bs.Title
+		if bs.LogoURL != nil {
+			settingsPart.LogoURL = *bs.LogoURL
+		}
+		if bs.IconURL != nil {
+			settingsPart.IconURL = *bs.IconURL
+		}
+		settingsPart.FeedSummaryOnly = bs.FeedSummaryOnly
+		settingsPart.FeedMaxItems = bs.FeedMaxItems
+	}
+	settingsPart.DefaultLanguage = ws.Settings.DefaultLanguage
+	settingsBlob, _ := json.Marshal(settingsPart)
+
+	catSlug := ""
+	if categorySlug != nil {
+		catSlug = *categorySlug
+	}
+
+	h := sha256.New()
+	h.Write([]byte(maxUpdatedAt.UTC().Format(time.RFC3339Nano)))
+	h.Write([]byte{0})
+	h.Write([]byte(idsHash))
+	h.Write([]byte{0})
+	h.Write([]byte(catSlug))
+	h.Write([]byte{0})
+	h.Write(settingsBlob)
+	sum := h.Sum(nil)
+	// Emit as a weak ETag: sanitizer output is deterministic but not
+	// byte-identical across library version bumps (bluemonday, goquery), so
+	// the strong-ETag guarantee would overstate equivalence.
+	return `W/"` + hex.EncodeToString(sum[:8]) + `"`
+}
+
+func buildPostURL(origin, categorySlug, postSlug string) string {
+	return joinURL(origin, "/"+categorySlug+"/"+postSlug)
+}
+
+func joinURL(origin, path string) string {
+	if origin == "" {
+		return path
+	}
+	origin = strings.TrimRight(origin, "/")
+	if !strings.HasPrefix(path, "/") {
+		path = "/" + path
+	}
+	return origin + path
+}
+
+func blogTitleForDiscovery(ws *domain.Workspace) string {
+	if ws.Settings.BlogSettings != nil && ws.Settings.BlogSettings.Title != "" {
+		return ws.Settings.BlogSettings.Title
+	}
+	return ws.Name
+}
+
+// workspaceBlogOrigin returns the public URL origin to use as the base for
+// absolute URL rewriting in feed output. Mirrors the fallback chain used in
+// domain.BuildBlogTemplateData (CustomEndpointURL > WebsiteURL).
+func workspaceBlogOrigin(ws *domain.Workspace) string {
+	if ws == nil {
+		return ""
+	}
+	if ws.Settings.CustomEndpointURL != nil && *ws.Settings.CustomEndpointURL != "" {
+		return *ws.Settings.CustomEndpointURL
+	}
+	return ws.Settings.WebsiteURL
 }
 
 // RenderCategoryPage renders a category page with posts in that category
@@ -1620,5 +1989,6 @@ func (s *BlogService) RenderCategoryPage(ctx context.Context, workspaceID, categ
 		}
 	}
 
+	html = liquid.InjectFeedDiscoveryTags(html, blogTitleForDiscovery(workspace), categorySlug)
 	return html, nil
 }

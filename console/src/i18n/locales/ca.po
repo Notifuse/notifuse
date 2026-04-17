@@ -203,7 +203,7 @@ msgstr "{label} copiat al porta-retalls"
 msgid "{langName} translation is missing required fields (subject and preview)"
 msgstr ""
 
-#: src/components/transactional/ApiCommandModal.tsx:814
+#: src/components/transactional/ApiCommandModal.tsx:818
 msgid "{language} code copied to clipboard!"
 msgstr "Codi {language} copiat al porta-retalls!"
 
@@ -699,7 +699,7 @@ msgstr "Tot"
 msgid "ALL"
 msgstr "Tot"
 
-#: src/components/transactional/ApiCommandModal.tsx:1003
+#: src/components/transactional/ApiCommandModal.tsx:1007
 msgid "All contact fields are optional except email."
 msgstr "Tots els camps de contacte són opcionals excepte el correu electrònic."
 
@@ -794,7 +794,7 @@ msgstr ""
 msgid "anytime"
 msgstr "en qualsevol moment"
 
-#: src/components/transactional/ApiCommandModal.tsx:972
+#: src/components/transactional/ApiCommandModal.tsx:976
 #: src/pages/TransactionalNotificationsPage.tsx:179
 msgid "API Command"
 msgstr "Comanda API"
@@ -908,7 +908,7 @@ msgstr "Esteu segur que voleu eliminar aquest node?"
 msgid "Are you sure you want to delete this template?"
 msgstr "Esteu segur que voleu eliminar aquesta plantilla?"
 
-#: src/components/settings/BlogSettings.tsx:178
+#: src/components/settings/BlogSettings.tsx:182
 msgid "Are you sure you want to disable the blog? All SEO settings and blog visibility will be lost. This action cannot be undone."
 msgstr "Esteu segur que voleu desactivar el blog? Es perdran tots els paràmetres SEO i la visibilitat del blog. Aquesta acció no es pot desfer."
 
@@ -1256,9 +1256,9 @@ msgstr "Llista de bloqueig"
 msgid "Blocks"
 msgstr "Blocs"
 
-#: src/components/settings/BlogSettings.tsx:193
-#: src/components/settings/BlogSettings.tsx:201
-#: src/components/settings/BlogSettings.tsx:234
+#: src/components/settings/BlogSettings.tsx:197
+#: src/components/settings/BlogSettings.tsx:205
+#: src/components/settings/BlogSettings.tsx:238
 #: src/components/settings/SettingsSidebar.tsx:98
 #: src/layouts/WorkspaceLayout.tsx:344
 msgid "Blog"
@@ -1268,19 +1268,19 @@ msgstr "Blog"
 msgid "Blog custom endpoint URL is not configured"
 msgstr "L'URL del punt final personalitzat del blog no està configurat"
 
-#: src/components/settings/BlogSettings.tsx:124
+#: src/components/settings/BlogSettings.tsx:128
 msgid "Blog enabled but theme creation failed. Please create a theme manually."
 msgstr "Blog activat però la creació del tema ha fallat. Si us plau, creeu un tema manualment."
 
-#: src/components/settings/BlogSettings.tsx:151
+#: src/components/settings/BlogSettings.tsx:155
 msgid "Blog settings updated successfully"
 msgstr "Configuració del blog actualitzada correctament"
 
-#: src/components/settings/BlogSettings.tsx:193
+#: src/components/settings/BlogSettings.tsx:197
 msgid "Blog styling and SEO settings"
 msgstr "Estil del blog i configuració SEO"
 
-#: src/components/settings/BlogSettings.tsx:315
+#: src/components/settings/BlogSettings.tsx:319
 msgid "Blog Title"
 msgstr "Títol del blog"
 
@@ -1589,7 +1589,7 @@ msgstr "Mida del botó"
 #: src/components/segment/button_upsert.tsx:347
 #: src/components/segment/input_dimension_filters.tsx:162
 #: src/components/segment/input.tsx:385
-#: src/components/settings/BlogSettings.tsx:181
+#: src/components/settings/BlogSettings.tsx:185
 #: src/components/settings/CustomFieldsConfiguration.tsx:273
 #: src/components/settings/EditPermissionsModal.tsx:121
 #: src/components/settings/Integrations.tsx:2067
@@ -1839,7 +1839,7 @@ msgstr "Clonar plantilla"
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:825
 #: src/components/settings/WebhookCard.tsx:345
 #: src/components/settings/WorkspaceMembers.tsx:590
-#: src/components/transactional/ApiCommandModal.tsx:986
+#: src/components/transactional/ApiCommandModal.tsx:990
 msgid "Close"
 msgstr "Tancar"
 
@@ -2001,6 +2001,10 @@ msgstr "Configureu un domini personalitzat per a enllaços de correu, centre de 
 msgid "Configure both the font name and CSS file URL together"
 msgstr "Configureu conjuntament el nom de la font i l'URL del fitxer CSS"
 
+#: src/components/settings/BlogSettings.tsx:395
+msgid "Configure how your blog's RSS and JSON feeds are generated."
+msgstr ""
+
 #: src/components/ai-assistant/AIAssistantChat.tsx:114
 msgid "Configure Integration"
 msgstr "Configurar integració"
@@ -2018,7 +2022,7 @@ msgstr "Configureu webhooks sortints per rebre notificacions en temps real quan 
 msgid "Configure Provider"
 msgstr "Configurar proveïdor"
 
-#: src/components/settings/BlogSettings.tsx:235
+#: src/components/settings/BlogSettings.tsx:239
 msgid "Configure styling and SEO settings for your blog. These settings will be applied to all blog pages."
 msgstr "Configureu l'estil i els paràmetres SEO per al vostre blog. Aquests paràmetres s'aplicaran a totes les pàgines del blog."
 
@@ -2053,7 +2057,7 @@ msgstr "Confirmat"
 msgid "Connect and manage external services"
 msgstr "Connecteu i gestioneu serveis externs"
 
-#: src/components/transactional/ApiCommandModal.tsx:524
+#: src/components/transactional/ApiCommandModal.tsx:530
 msgid "Connection Details"
 msgstr "Detalls de connexió"
 
@@ -2101,7 +2105,7 @@ msgstr "Correu del contacte"
 msgid "Contact email (leave empty for random)"
 msgstr ""
 
-#: src/components/transactional/ApiCommandModal.tsx:554
+#: src/components/transactional/ApiCommandModal.tsx:558
 msgid "Contact Email:"
 msgstr "Correu del contacte:"
 
@@ -2183,7 +2187,7 @@ msgid "Copy"
 msgstr "Copiar"
 
 #. placeholder {0}: getCurrentLanguage()
-#: src/components/transactional/ApiCommandModal.tsx:983
+#: src/components/transactional/ApiCommandModal.tsx:987
 msgid "Copy {0} Code"
 msgstr "Copiar codi {0}"
 
@@ -2619,7 +2623,7 @@ msgstr "Cadena personalitzada 5"
 msgid "Custom String Fields"
 msgstr "Camps de cadena personalitzats"
 
-#: src/components/settings/BlogSettings.tsx:421
+#: src/components/settings/BlogSettings.tsx:464
 #: src/components/settings/DeleteWorkspace.tsx:45
 #: src/components/settings/SettingsSidebar.tsx:122
 msgid "Danger Zone"
@@ -2663,7 +2667,7 @@ msgstr "Rebutjar"
 msgid "Decoration"
 msgstr "Decoració"
 
-#: src/components/transactional/ApiCommandModal.tsx:557
+#: src/components/transactional/ApiCommandModal.tsx:561
 msgid "Deduplication:"
 msgstr "Deduplicació:"
 
@@ -2693,7 +2697,7 @@ msgstr ""
 msgid "Default sender"
 msgstr "Remitent per defecte"
 
-#: src/components/settings/BlogSettings.tsx:121
+#: src/components/settings/BlogSettings.tsx:125
 msgid "Default theme created and published"
 msgstr "Tema per defecte creat i publicat"
 
@@ -2930,12 +2934,12 @@ msgstr "Detectar des de l'URL del lloc web"
 msgid "Diagnostic:"
 msgstr "Diagnòstic:"
 
-#: src/components/settings/BlogSettings.tsx:179
-#: src/components/settings/BlogSettings.tsx:426
+#: src/components/settings/BlogSettings.tsx:183
+#: src/components/settings/BlogSettings.tsx:469
 msgid "Disable Blog"
 msgstr "Desactivar blog"
 
-#: src/components/settings/BlogSettings.tsx:176
+#: src/components/settings/BlogSettings.tsx:180
 msgid "Disable Blog?"
 msgstr "Desactivar blog?"
 
@@ -2947,14 +2951,14 @@ msgstr "Desactivar aquest webhook?"
 msgid "Disable webhook"
 msgstr "Desactivar webhook"
 
-#: src/components/settings/BlogSettings.tsx:210
+#: src/components/settings/BlogSettings.tsx:214
 #: src/components/settings/GeneralSettings.tsx:143
 #: src/components/settings/Integrations.tsx:1308
 #: src/components/templates/TemplateTranslationsTab.tsx:204
 msgid "Disabled"
 msgstr "Desactivat"
 
-#: src/components/settings/BlogSettings.tsx:423
+#: src/components/settings/BlogSettings.tsx:466
 msgid "Disabling the blog will remove all SEO settings and make your blog inaccessible to visitors. This action will affect your blog's visibility and search engine rankings."
 msgstr "Desactivar el blog eliminarà tots els paràmetres SEO i farà que el vostre blog sigui inaccessible pels visitants. Aquesta acció afectarà la visibilitat del vostre blog i el posicionament als motors de cerca."
 
@@ -3365,7 +3369,7 @@ msgstr "L'adreça de correu és obligatòria per a OAuth2"
 msgid "Email Attributes"
 msgstr "Atributs del correu"
 
-#: src/components/transactional/ApiCommandModal.tsx:539
+#: src/components/transactional/ApiCommandModal.tsx:543
 msgid "Email Body Payload"
 msgstr "Càrrega del cos del correu"
 
@@ -3408,7 +3412,7 @@ msgstr "Mètriques de correu"
 msgid "Email Opens and Clicks Tracking"
 msgstr "Seguiment d'obertures i clics de correu"
 
-#: src/components/transactional/ApiCommandModal.tsx:563
+#: src/components/transactional/ApiCommandModal.tsx:567
 msgid "Email Options:"
 msgstr "Opcions de correu:"
 
@@ -3483,8 +3487,8 @@ msgstr "Activar proves A/B"
 msgid "Enable Anonymous Telemetry"
 msgstr "Activar telemetria anònima"
 
-#: src/components/settings/BlogSettings.tsx:276
-#: src/components/settings/BlogSettings.tsx:303
+#: src/components/settings/BlogSettings.tsx:280
+#: src/components/settings/BlogSettings.tsx:307
 msgid "Enable Blog"
 msgstr "Activar blog"
 
@@ -3496,7 +3500,7 @@ msgstr "Activar subtítols per defecte"
 msgid "Enable SMTP Bridge Server"
 msgstr "Activar servidor de retransmissió SMTP"
 
-#: src/components/settings/BlogSettings.tsx:278
+#: src/components/settings/BlogSettings.tsx:282
 msgid "Enable the blog feature to publish articles and content on your custom domain homepage. Your blog will be accessible at"
 msgstr "Activeu la funció de blog per publicar articles i contingut a la pàgina d'inici del vostre domini personalitzat. El vostre blog serà accessible a"
 
@@ -3517,7 +3521,7 @@ msgstr ""
 msgid "Enable webhook"
 msgstr "Activar webhook"
 
-#: src/components/settings/BlogSettings.tsx:205
+#: src/components/settings/BlogSettings.tsx:209
 #: src/components/settings/GeneralSettings.tsx:138
 #: src/components/settings/Integrations.tsx:1304
 #: src/components/settings/SystemSettingsDrawer.tsx:426
@@ -3642,7 +3646,7 @@ msgstr "Introduïu URL del fitxer o utilitzeu el gestor de fitxers"
 msgid "Enter height"
 msgstr "Introduïu alçada"
 
-#: src/components/settings/BlogSettings.tsx:343
+#: src/components/settings/BlogSettings.tsx:347
 msgid "Enter icon URL or select image"
 msgstr "Introduïu URL de la icona o seleccioneu imatge"
 
@@ -3674,7 +3678,7 @@ msgstr "Introduïu l'ID de la llista per confirmar"
 msgid "Enter list name"
 msgstr "Introduïu el nom de la llista"
 
-#: src/components/settings/BlogSettings.tsx:327
+#: src/components/settings/BlogSettings.tsx:331
 msgid "Enter logo URL or select image"
 msgstr "Introduïu URL del logotip o seleccioneu imatge"
 
@@ -3823,6 +3827,10 @@ msgstr "exactament"
 msgid "Excerpt"
 msgstr "Extracte"
 
+#: src/components/settings/BlogSettings.tsx:424
+msgid "Excerpt only"
+msgstr ""
+
 #: src/pages/BroadcastsPage.tsx:935
 msgid "Exclude Unsubscribed"
 msgstr "Excloure donats de baixa"
@@ -3934,7 +3942,7 @@ msgstr "No s'ha pogut compilar la previsualització de la plantilla."
 msgid "Failed to complete setup"
 msgstr "No s'ha pogut completar la configuració"
 
-#: src/components/transactional/ApiCommandModal.tsx:817
+#: src/components/transactional/ApiCommandModal.tsx:821
 msgid "Failed to copy to clipboard"
 msgstr "No s'ha pogut copiar al porta-retalls"
 
@@ -4304,7 +4312,7 @@ msgstr "No s'ha pogut despublicar la publicació"
 msgid "Failed to update automation: {0}"
 msgstr "No s'ha pogut actualitzar l'automatització: {0}"
 
-#: src/components/settings/BlogSettings.tsx:155
+#: src/components/settings/BlogSettings.tsx:159
 msgid "Failed to update blog settings"
 msgstr "No s'han pogut actualitzar els paràmetres del blog"
 
@@ -4373,7 +4381,7 @@ msgstr "No s'han pogut actualitzar els paràmetres de l'espai de treball: {error
 msgid "Failed to verify code"
 msgstr "Error en verificar el codi"
 
-#: src/components/settings/BlogSettings.tsx:340
+#: src/components/settings/BlogSettings.tsx:344
 msgid "Favicon for your blog. Recommended: 32x32px or 192x192px PNG"
 msgstr "Favicon per al vostre blog. Recomanat: PNG de 32x32px o 192x192px"
 
@@ -4407,7 +4415,7 @@ msgstr ""
 msgid "Fetching: {0}"
 msgstr "Obtenint: {0}"
 
-#: src/components/transactional/ApiCommandModal.tsx:554
+#: src/components/transactional/ApiCommandModal.tsx:558
 msgid "field is required"
 msgstr "el camp és obligatori"
 
@@ -4582,19 +4590,19 @@ msgstr "Mida de font"
 msgid "Font Styling"
 msgstr "Estil de font"
 
-#: src/components/transactional/ApiCommandModal.tsx:1001
+#: src/components/transactional/ApiCommandModal.tsx:1005
 msgid "for deduplication - notifications with the same external_id won't be sent twice."
 msgstr "per a deduplicació - les notificacions amb el mateix external_id no s'enviaran dues vegades."
 
-#: src/components/transactional/ApiCommandModal.tsx:560
+#: src/components/transactional/ApiCommandModal.tsx:564
 msgid "for template variables"
 msgstr "per a variables de plantilla"
 
-#: src/components/transactional/ApiCommandModal.tsx:1005
+#: src/components/transactional/ApiCommandModal.tsx:1009
 msgid "for template variables,"
 msgstr "per a variables de plantilla,"
 
-#: src/components/transactional/ApiCommandModal.tsx:1005
+#: src/components/transactional/ApiCommandModal.tsx:1009
 msgid "for tracking (not available in templates)."
 msgstr "per a seguiment (no disponible a plantilles)."
 
@@ -4648,6 +4656,10 @@ msgstr "De:"
 msgid "Full Access"
 msgstr "Accés complet"
 
+#: src/components/settings/BlogSettings.tsx:423
+msgid "Full content"
+msgstr ""
+
 #: src/components/contacts/ContactDetailsDrawer.tsx:442
 #: src/pages/ContactsPage.tsx:207
 #: src/pages/ContactsPage.tsx:262
@@ -4673,7 +4685,7 @@ msgstr "Pantalla completa"
 msgid "General"
 msgstr "General"
 
-#: src/components/settings/BlogSettings.tsx:311
+#: src/components/settings/BlogSettings.tsx:315
 #: src/components/settings/GeneralSettings.tsx:100
 #: src/components/settings/GeneralSettings.tsx:159
 msgid "General Settings"
@@ -4830,7 +4842,7 @@ msgstr "Manteniu premut per arrossegar"
 msgid "Home"
 msgstr "Inici"
 
-#: src/components/transactional/ApiCommandModal.tsx:526
+#: src/components/transactional/ApiCommandModal.tsx:532
 msgid "Host"
 msgstr "Amfitrió"
 
@@ -4920,7 +4932,7 @@ msgstr "Configuració d'icona"
 msgid "Icon Styling"
 msgstr "Estil d'icona"
 
-#: src/components/settings/BlogSettings.tsx:339
+#: src/components/settings/BlogSettings.tsx:343
 msgid "Icon/Favicon URL"
 msgstr "URL d'icona/favicon"
 
@@ -5017,7 +5029,7 @@ msgstr "Si ja existeix un contacte amb aquest correu, els camps proporcionats se
 msgid "If enabled, the broadcast will be sent according to each recipient's timezone"
 msgstr "Si està activat, la difusió s'enviarà segons el fus horari de cada destinatari"
 
-#: src/components/transactional/ApiCommandModal.tsx:998
+#: src/components/transactional/ApiCommandModal.tsx:1002
 msgid "If the contact email doesn't exist in your workspace, it will be automatically created."
 msgstr "Si el correu del contacte no existeix al vostre espai de treball, es crearà automàticament."
 
@@ -5036,6 +5048,10 @@ msgstr "URL de la imatge quan es comparteix a xarxes socials (og:image)"
 
 #: src/components/settings/SMTPBridgeSettings.tsx:13
 msgid "Implicit TLS"
+msgstr ""
+
+#: src/components/transactional/ApiCommandModal.tsx:522
+msgid "Implicit TLS (SMTPS)"
 msgstr ""
 
 #: src/components/email_builder/MjmlCodeEditor.tsx:614
@@ -5096,7 +5112,7 @@ msgstr "Importar marcatge MJML"
 msgid "Import Validation Failed"
 msgstr "La validació de la importació ha fallat"
 
-#: src/components/transactional/ApiCommandModal.tsx:548
+#: src/components/transactional/ApiCommandModal.tsx:552
 msgid "Important Notes"
 msgstr "Notes importants"
 
@@ -5142,7 +5158,7 @@ msgstr "en el fus horari dels destinataris"
 msgid "in the last"
 msgstr "en els últims"
 
-#: src/components/transactional/ApiCommandModal.tsx:542
+#: src/components/transactional/ApiCommandModal.tsx:546
 msgid "in the payload."
 msgstr "a la càrrega."
 
@@ -5370,6 +5386,10 @@ msgstr "no està a"
 msgid "Italic"
 msgstr "Cursiva"
 
+#: src/components/settings/BlogSettings.tsx:403
+msgid "Items per feed"
+msgstr ""
+
 #: src/components/contacts/ContactDetailsDrawer.tsx:449
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:101
 #: src/pages/ContactsPage.tsx:268
@@ -5398,7 +5418,7 @@ msgstr "JSON exportat correctament"
 msgid "JSON Object"
 msgstr "Objecte JSON"
 
-#: src/components/transactional/ApiCommandModal.tsx:551
+#: src/components/transactional/ApiCommandModal.tsx:555
 msgid "JSON Payload Required:"
 msgstr "Càrrega JSON requerida:"
 
@@ -5747,7 +5767,7 @@ msgstr "Logotip"
 msgid "Logo Preview"
 msgstr "Previsualització del logotip"
 
-#: src/components/settings/BlogSettings.tsx:323
+#: src/components/settings/BlogSettings.tsx:327
 #: src/components/settings/LogoInput.tsx:25
 msgid "Logo URL"
 msgstr "URL del logotip"
@@ -5773,7 +5793,7 @@ msgstr "Minúscules"
 msgid "Magic code sent to your email"
 msgstr "Codi màgic enviat al teu correu"
 
-#: src/components/settings/BlogSettings.tsx:324
+#: src/components/settings/BlogSettings.tsx:328
 msgid "Main logo for your blog. Recommended size: 200x50px or similar aspect ratio"
 msgstr "Logotip principal per al vostre blog. Mida recomanada: 200x50px o proporció similar"
 
@@ -5844,6 +5864,10 @@ msgstr "Màx. 3MB per fitxer, 10MB en total, màxim 20 fitxers"
 msgid "Maximum 20 attachments allowed"
 msgstr "Es permeten màxim 20 adjunts"
 
+#: src/components/settings/BlogSettings.tsx:404
+msgid "Maximum number of posts to include in the RSS/JSON feed (1–20)"
+msgstr ""
+
 #: src/components/settings/WorkspaceMembers.tsx:331
 msgid "Member removed successfully"
 msgstr "Membre tret correctament"
@@ -5886,7 +5910,7 @@ msgstr "Meta descripció"
 #: src/components/seo/MissingMetaTagsWarning.tsx:26
 #: src/components/seo/SEOSettingsForm.tsx:36
 #: src/components/seo/SEOSettingsForm.tsx:150
-#: src/components/settings/BlogSettings.tsx:221
+#: src/components/settings/BlogSettings.tsx:225
 msgid "Meta Title"
 msgstr "Meta títol"
 
@@ -6021,8 +6045,8 @@ msgstr "Monitorar l'estat de lliurament de missatges i esdeveniments de webhook"
 msgid "More options"
 msgstr "Més opcions"
 
-#: src/components/settings/BlogSettings.tsx:318
-#: src/components/settings/BlogSettings.tsx:391
+#: src/components/settings/BlogSettings.tsx:322
+#: src/components/settings/BlogSettings.tsx:434
 msgid "My Amazing Blog"
 msgstr "El meu blog impressionant"
 
@@ -6447,8 +6471,8 @@ msgid "Not in List"
 msgstr "No és a la llista"
 
 #: src/components/contacts/InlineEditableField.tsx:144
-#: src/components/settings/BlogSettings.tsx:218
 #: src/components/settings/BlogSettings.tsx:222
+#: src/components/settings/BlogSettings.tsx:226
 #: src/components/settings/GeneralSettings.tsx:111
 #: src/components/settings/GeneralSettings.tsx:115
 #: src/components/settings/GeneralSettings.tsx:126
@@ -6501,11 +6525,11 @@ msgstr "Ara"
 msgid "Null"
 msgstr "Nul"
 
-#: src/components/settings/BlogSettings.tsx:374
+#: src/components/settings/BlogSettings.tsx:378
 msgid "Number of posts to display per page on category pages"
 msgstr "Nombre de publicacions per mostrar per pàgina a les pàgines de categoria"
 
-#: src/components/settings/BlogSettings.tsx:358
+#: src/components/settings/BlogSettings.tsx:362
 msgid "Number of posts to display per page on the homepage"
 msgstr "Nombre de publicacions per mostrar per pàgina a la pàgina d'inici"
 
@@ -6708,7 +6732,7 @@ msgstr "Configuració de farciment"
 msgid "Parent Frame"
 msgstr "Marc pare"
 
-#: src/components/transactional/ApiCommandModal.tsx:534
+#: src/components/transactional/ApiCommandModal.tsx:538
 msgid "Password"
 msgstr "Contrasenya"
 
@@ -6822,8 +6846,12 @@ msgid "Photo URL"
 msgstr "URL de la foto"
 
 #: src/components/transactional/ApiCommandModal.tsx:529
-msgid "Plain text (not recommended for production)"
-msgstr "Text pla (no recomanat per a producció)"
+#~ msgid "Plain text (not recommended for production)"
+#~ msgstr "Text pla (no recomanat per a producció)"
+
+#: src/components/transactional/ApiCommandModal.tsx:524
+msgid "Plain text (only safe behind a TLS-terminating proxy)"
+msgstr ""
 
 #: src/components/blog_editor/components/youtube/YoutubeNodeView.tsx:604
 msgid "Playback options"
@@ -7021,8 +7049,8 @@ msgstr "Si us plau, seleccioneu una llista per a l'operació de baixa"
 msgid "Please select a model"
 msgstr "Si us plau, seleccioneu un model"
 
-#: src/components/settings/BlogSettings.tsx:359
-#: src/components/settings/BlogSettings.tsx:375
+#: src/components/settings/BlogSettings.tsx:363
+#: src/components/settings/BlogSettings.tsx:379
 msgid "Please select a page size"
 msgstr "Si us plau, seleccioneu una mida de pàgina"
 
@@ -7086,7 +7114,7 @@ msgstr "Si us plau, seleccioneu operador"
 msgid "Please upload a CSV file with email addresses"
 msgstr "Si us plau, pugeu un fitxer CSV amb adreces de correu"
 
-#: src/components/transactional/ApiCommandModal.tsx:527
+#: src/components/transactional/ApiCommandModal.tsx:533
 #: src/pages/SetupWizard.tsx:595
 msgid "Port"
 msgstr "Port"
@@ -7144,11 +7172,11 @@ msgstr ""
 msgid "Posts in {0}"
 msgstr "Publicacions a {0}"
 
-#: src/components/settings/BlogSettings.tsx:373
+#: src/components/settings/BlogSettings.tsx:377
 msgid "Posts on category pages"
 msgstr "Publicacions a les pàgines de categoria"
 
-#: src/components/settings/BlogSettings.tsx:357
+#: src/components/settings/BlogSettings.tsx:361
 msgid "Posts on homepage"
 msgstr "Publicacions a la pàgina d'inici"
 
@@ -7761,6 +7789,10 @@ msgstr "Arrodonit"
 msgid "rows"
 msgstr "Files"
 
+#: src/components/settings/BlogSettings.tsx:394
+msgid "RSS / Feeds"
+msgstr ""
+
 #: src/components/broadcasts/RecipientFeedSettings.tsx:164
 msgid "Run Test"
 msgstr ""
@@ -7863,7 +7895,7 @@ msgstr "Desar bloc"
 #: src/components/email_builder/blocks/MjStyleBlock.tsx:158
 #: src/components/email_builder/ui/CodeDrawerInput.tsx:142
 #: src/components/email_builder/ui/CodeDrawerInput.tsx:182
-#: src/components/settings/BlogSettings.tsx:402
+#: src/components/settings/BlogSettings.tsx:445
 #: src/components/settings/GeneralSettings.tsx:299
 msgid "Save Changes"
 msgstr "Desar canvis"
@@ -7975,7 +8007,7 @@ msgstr "Secret:"
 msgid "Section Attributes"
 msgstr "Atributs de secció"
 
-#: src/components/transactional/ApiCommandModal.tsx:528
+#: src/components/transactional/ApiCommandModal.tsx:534
 msgid "Security"
 msgstr "Seguretat"
 
@@ -8020,8 +8052,8 @@ msgstr "Segments"
 
 #: src/components/automations/nodes/EmailNode.tsx:48
 #: src/components/file_manager/fileManager.tsx:976
-#: src/components/settings/BlogSettings.tsx:332
-#: src/components/settings/BlogSettings.tsx:348
+#: src/components/settings/BlogSettings.tsx:336
+#: src/components/settings/BlogSettings.tsx:352
 #: src/components/templates/TemplateSelectorInput.tsx:224
 #: src/pages/BroadcastsPage.tsx:884
 msgid "Select"
@@ -8130,6 +8162,10 @@ msgstr "Seleccionar columnes"
 msgid "Select confirmation email template"
 msgstr "Seleccionar plantilla de correu de confirmació"
 
+#: src/components/settings/BlogSettings.tsx:422
+msgid "Select content mode"
+msgstr ""
+
 #: src/components/contacts/ContactUpsertDrawer.tsx:447
 msgid "Select country"
 msgstr "Seleccionar país"
@@ -8161,6 +8197,10 @@ msgstr "Seleccionar esdeveniment"
 #: src/components/settings/WebhookCard.tsx:389
 msgid "Select event type to test:"
 msgstr "Seleccioneu el tipus d'esdeveniment per provar:"
+
+#: src/components/settings/BlogSettings.tsx:406
+msgid "Select feed size"
+msgstr ""
 
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:1087
 msgid "Select field to map to"
@@ -8212,8 +8252,8 @@ msgstr "Seleccionar llistes per afegir contactes"
 msgid "Select OAuth2 Provider"
 msgstr "Seleccionar proveïdor OAuth2"
 
-#: src/components/settings/BlogSettings.tsx:361
-#: src/components/settings/BlogSettings.tsx:377
+#: src/components/settings/BlogSettings.tsx:365
+#: src/components/settings/BlogSettings.tsx:381
 msgid "Select page size"
 msgstr "Seleccionar mida de pàgina"
 
@@ -8318,19 +8358,19 @@ msgstr "Seleccionat: {0}"
 msgid "Send a test email using this template to verify how it will look."
 msgstr "Envieu un correu de prova amb aquesta plantilla per verificar com es veurà."
 
-#: src/components/transactional/ApiCommandModal.tsx:895
+#: src/components/transactional/ApiCommandModal.tsx:899
 msgid "Send a transactional notification using Go:"
 msgstr "Envieu una notificació transaccional utilitzant Go:"
 
-#: src/components/transactional/ApiCommandModal.tsx:905
+#: src/components/transactional/ApiCommandModal.tsx:909
 msgid "Send a transactional notification using Java:"
 msgstr "Envieu una notificació transaccional utilitzant Java:"
 
-#: src/components/transactional/ApiCommandModal.tsx:885
+#: src/components/transactional/ApiCommandModal.tsx:889
 msgid "Send a transactional notification using Python:"
 msgstr "Envieu una notificació transaccional utilitzant Python:"
 
-#: src/components/transactional/ApiCommandModal.tsx:875
+#: src/components/transactional/ApiCommandModal.tsx:879
 msgid "Send a transactional notification using TypeScript/JavaScript:"
 msgstr "Envieu una notificació transaccional utilitzant TypeScript/JavaScript:"
 
@@ -8367,7 +8407,7 @@ msgstr "Enviar prova"
 msgid "Send Test Email"
 msgstr "Enviar correu de prova"
 
-#: src/components/transactional/ApiCommandModal.tsx:919
+#: src/components/transactional/ApiCommandModal.tsx:923
 msgid "Send transactional notifications using SMTP bridge. Perfect for integrating with existing email systems or applications that support SMTP."
 msgstr "Envieu notificacions transaccionals mitjançant relay SMTP. Perfecte per integrar amb sistemes de correu existents o aplicacions que suporten SMTP."
 
@@ -8851,7 +8891,7 @@ msgstr "Iniciat"
 msgid "STARTTLS"
 msgstr ""
 
-#: src/components/transactional/ApiCommandModal.tsx:529
+#: src/components/transactional/ApiCommandModal.tsx:525
 msgid "STARTTLS required"
 msgstr "STARTTLS obligatori"
 
@@ -9007,6 +9047,10 @@ msgstr "Processats {successful} contactes correctament"
 msgid "Successfully signed in"
 msgstr "Sessió iniciada correctament"
 
+#: src/components/settings/BlogSettings.tsx:418
+msgid "Summary-only feed"
+msgstr ""
+
 #: src/components/settings/Integrations.tsx:764
 msgid "Supabase integration saved successfully"
 msgstr "Integració de Supabase desada correctament"
@@ -9019,7 +9063,7 @@ msgstr "Superíndex"
 msgid "Supported Languages"
 msgstr ""
 
-#: src/components/transactional/ApiCommandModal.tsx:563
+#: src/components/transactional/ApiCommandModal.tsx:567
 msgid "Supports reply_to, cc, bcc, and attachments"
 msgstr "Suporta reply_to, cc, bcc i fitxers adjunts"
 
@@ -9167,7 +9211,7 @@ msgstr "Les dades d'estructura de la plantilla falten o no són vàlides."
 msgid "Template updated successfully"
 msgstr "Plantilla actualitzada correctament"
 
-#: src/components/transactional/ApiCommandModal.tsx:560
+#: src/components/transactional/ApiCommandModal.tsx:564
 msgid "Template Variables:"
 msgstr "Variables de plantilla:"
 
@@ -9320,7 +9364,7 @@ msgstr "Configuració del text"
 msgid "Text Transform"
 msgstr "Transformació de text"
 
-#: src/components/transactional/ApiCommandModal.tsx:554
+#: src/components/transactional/ApiCommandModal.tsx:558
 msgid "The"
 msgstr "El/La"
 
@@ -9364,11 +9408,11 @@ msgstr "El tema publicat actualment es despublicarà automàticament."
 msgid "The email address that will be used as the SMTP user for authentication"
 msgstr "L'adreça de correu que s'utilitzarà com a usuari SMTP per a l'autenticació"
 
-#: src/components/transactional/ApiCommandModal.tsx:541
+#: src/components/transactional/ApiCommandModal.tsx:545
 msgid "The email body must contain a JSON payload with your notification data. The SMTP envelope To/From addresses are ignored - the actual recipient is determined by"
 msgstr "El cos del correu ha de contenir una càrrega útil JSON amb les dades de la notificació. Les adreces To/From de l'embolcall SMTP s'ignoren - el destinatari real es determina per"
 
-#: src/components/transactional/ApiCommandModal.tsx:551
+#: src/components/transactional/ApiCommandModal.tsx:555
 msgid "The email body must contain valid JSON matching the format above"
 msgstr "El cos del correu ha de contenir JSON vàlid que coincideixi amb el format anterior"
 
@@ -9381,7 +9425,7 @@ msgstr "S'han trobat els següents errors de validació a la vostra importació:
 msgid "The hostname your server identifies itself as when connecting to the SMTP server. Defaults to the SMTP host value if empty."
 msgstr ""
 
-#: src/components/settings/BlogSettings.tsx:316
+#: src/components/settings/BlogSettings.tsx:320
 msgid "The main title for your blog"
 msgstr "El títol principal del vostre blog"
 
@@ -9656,7 +9700,7 @@ msgstr "Consells per solucionar aquests errors:"
 #: src/components/blog/PostsTable.tsx:193
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:407
 #: src/components/email_builder/blocks/MjTitleBlock.tsx:34
-#: src/components/settings/BlogSettings.tsx:217
+#: src/components/settings/BlogSettings.tsx:221
 msgid "Title"
 msgstr "Títol"
 
@@ -9702,7 +9746,7 @@ msgstr "Clau privada TLS (Base64)"
 msgid "TLS private key is required"
 msgstr "La clau privada TLS és obligatòria"
 
-#: src/components/transactional/ApiCommandModal.tsx:557
+#: src/components/transactional/ApiCommandModal.tsx:561
 msgid "to prevent duplicate sends"
 msgstr "per evitar enviaments duplicats"
 
@@ -10108,10 +10152,10 @@ msgstr "Identificador compatible amb URL (només minúscules i guions)"
 msgid "URL:"
 msgstr "URL:"
 
-#: src/components/transactional/ApiCommandModal.tsx:557
-#: src/components/transactional/ApiCommandModal.tsx:560
-#: src/components/transactional/ApiCommandModal.tsx:1001
+#: src/components/transactional/ApiCommandModal.tsx:561
+#: src/components/transactional/ApiCommandModal.tsx:564
 #: src/components/transactional/ApiCommandModal.tsx:1005
+#: src/components/transactional/ApiCommandModal.tsx:1009
 msgid "Use"
 msgstr "Utilitzar"
 
@@ -10155,7 +10199,7 @@ msgstr "Utilitzeu la pestanya Dades de plantilla per definir contingut dinàmic 
 msgid "Use this button to import saved email templates or export your finished emails. You can import JSON/MJML templates or export as HTML, MJML, or JSON for future use."
 msgstr "Utilitzeu aquest botó per importar plantilles de correu desades o exportar els vostres correus acabats. Podeu importar plantilles JSON/MJML o exportar com a HTML, MJML o JSON per a ús futur."
 
-#: src/components/transactional/ApiCommandModal.tsx:864
+#: src/components/transactional/ApiCommandModal.tsx:868
 msgid "Use this curl command to send a transactional notification via API:"
 msgstr "Utilitzeu aquesta comanda curl per enviar una notificació transaccional via API:"
 
@@ -10198,7 +10242,7 @@ msgstr "Secret del hook d'usuari creat"
 msgid "User Metadata Field"
 msgstr "Camp de metadades d'usuari"
 
-#: src/components/transactional/ApiCommandModal.tsx:531
+#: src/components/transactional/ApiCommandModal.tsx:535
 msgid "Username"
 msgstr "Nom d'usuari"
 
@@ -10418,7 +10462,7 @@ msgstr "Benvingut"
 msgid "Welcome to Email Builder!"
 msgstr "Benvingut a l'Editor de correu!"
 
-#: src/components/settings/BlogSettings.tsx:392
+#: src/components/settings/BlogSettings.tsx:435
 msgid "Welcome to my blog where I share insights about..."
 msgstr "Benvingut al meu blog on comparteixo reflexions sobre..."
 
@@ -10429,6 +10473,10 @@ msgstr "Quan està habilitat, els enllaços del correu es rastrejaran per obertu
 #: src/components/lists/ListDrawer.tsx:230
 msgid "When enabled, subscribers must confirm their subscription via email before being added to the list"
 msgstr "Quan està habilitat, els subscriptors han de confirmar la seva subscripció per correu abans de ser afegits a la llista"
+
+#: src/components/settings/BlogSettings.tsx:419
+msgid "When enabled, the feed includes only excerpts instead of full article content"
+msgstr ""
 
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:118
 msgid "When enabled, the link will prompt visitors to share the URL on this social network. When disabled, the link opens directly."
@@ -10694,7 +10742,7 @@ msgstr "Teniu canvis no desats. Esteu segur que voleu tancar?"
 msgid "You have unsaved changes. Are you sure you want to close? Your changes will be lost."
 msgstr "Teniu canvis no desats. Esteu segur que voleu tancar? Els vostres canvis es perdran."
 
-#: src/components/settings/BlogSettings.tsx:248
+#: src/components/settings/BlogSettings.tsx:252
 msgid "You must configure a Custom Endpoint URL in General Settings above before enabling the blog."
 msgstr "Heu de configurar una URL de punt final personalitzat a la Configuració general anterior abans d'habilitar el blog."
 
@@ -10724,11 +10772,11 @@ msgstr "La vostra instància de Notifuse s'ha configurat correctament."
 msgid "Your website or company name"
 msgstr "El nom del vostre lloc web o empresa"
 
-#: src/components/transactional/ApiCommandModal.tsx:532
+#: src/components/transactional/ApiCommandModal.tsx:536
 msgid "Your workspace API email (the email associated with your API key)"
 msgstr "El correu de l'API del vostre espai de treball (el correu associat a la vostra clau API)"
 
-#: src/components/transactional/ApiCommandModal.tsx:534
+#: src/components/transactional/ApiCommandModal.tsx:538
 msgid "Your workspace API key"
 msgstr "La clau API del vostre espai de treball"
 

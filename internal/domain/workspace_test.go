@@ -4354,6 +4354,46 @@ func TestBlogSettings_GetCategoryPageSize(t *testing.T) {
 	}
 }
 
+func TestBlogSettings_GetFeedMaxItems(t *testing.T) {
+	tests := []struct {
+		name     string
+		settings *BlogSettings
+		want     int
+	}{
+		{name: "nil settings", settings: nil, want: 20},
+		{name: "zero falls back to default", settings: &BlogSettings{FeedMaxItems: 0}, want: 20},
+		{name: "negative falls back to default", settings: &BlogSettings{FeedMaxItems: -5}, want: 20},
+		{name: "over cap falls back to default", settings: &BlogSettings{FeedMaxItems: 100}, want: 20},
+		{name: "exactly 1", settings: &BlogSettings{FeedMaxItems: 1}, want: 1},
+		{name: "exactly 20", settings: &BlogSettings{FeedMaxItems: 20}, want: 20},
+		{name: "mid-range 7", settings: &BlogSettings{FeedMaxItems: 7}, want: 7},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, tt.settings.GetFeedMaxItems())
+		})
+	}
+}
+
+func TestBlogSettings_FeedFieldsRoundTrip(t *testing.T) {
+	original := BlogSettings{
+		Title:           "My Blog",
+		FeedSummaryOnly: true,
+		FeedMaxItems:    15,
+	}
+
+	v, err := original.Value()
+	require.NoError(t, err)
+
+	var decoded BlogSettings
+	require.NoError(t, decoded.Scan(v))
+
+	assert.Equal(t, original.Title, decoded.Title)
+	assert.True(t, decoded.FeedSummaryOnly)
+	assert.Equal(t, 15, decoded.FeedMaxItems)
+}
+
 func TestWorkspace_GetEmailProviderWithIntegrationID(t *testing.T) {
 	tests := []struct {
 		name          string
