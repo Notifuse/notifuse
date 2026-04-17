@@ -201,6 +201,84 @@ export const translations: TranslationObject = {
     ru: 'Не удалось загрузить уведомления',
     ja: '通知の読み込みに失敗しました',
     pl: 'Nie udało się załadować powiadomień'
+  },
+  successHeader: {
+    en: '✓ Success!',
+    fr: '✓ Succès !',
+    es: '✓ ¡Éxito!',
+    de: '✓ Erfolg!',
+    zh: '✓ 成功！',
+    hi: '✓ सफल!',
+    ar: '✓ نجاح!',
+    pt: '✓ Sucesso!',
+    ru: '✓ Успех!',
+    ja: '✓ 成功！',
+    pl: '✓ Sukces!'
+  },
+  errorHeader: {
+    en: '✗ Error',
+    fr: '✗ Erreur',
+    es: '✗ Error',
+    de: '✗ Fehler',
+    zh: '✗ 错误',
+    hi: '✗ त्रुटि',
+    ar: '✗ خطأ',
+    pt: '✗ Erro',
+    ru: '✗ Ошибка',
+    ja: '✗ エラー',
+    pl: '✗ Błąd'
+  },
+  confirmSubscriptionSuccess: {
+    en: 'Subscription confirmed successfully!',
+    fr: 'Abonnement confirmé avec succès !',
+    es: '¡Suscripción confirmada con éxito!',
+    de: 'Abonnement erfolgreich bestätigt!',
+    zh: '订阅确认成功！',
+    hi: 'सदस्यता सफलतापूर्वक पुष्टि की गई!',
+    ar: 'تم تأكيد الاشتراك بنجاح!',
+    pt: 'Assinatura confirmada com sucesso!',
+    ru: 'Подписка успешно подтверждена!',
+    ja: '登録が正常に確認されました！',
+    pl: 'Subskrypcja potwierdzona pomyślnie!'
+  },
+  confirmSubscriptionFailed: {
+    en: 'Failed to confirm subscription',
+    fr: "Échec de la confirmation de l'abonnement",
+    es: 'Error al confirmar la suscripción',
+    de: 'Abonnement konnte nicht bestätigt werden',
+    zh: '无法确认订阅',
+    hi: 'सदस्यता की पुष्टि करने में विफल',
+    ar: 'فشل تأكيد الاشتراك',
+    pt: 'Falha ao confirmar a assinatura',
+    ru: 'Не удалось подтвердить подписку',
+    ja: '登録の確認に失敗しました',
+    pl: 'Nie udało się potwierdzić subskrypcji'
+  },
+  unsubscribeSuccess: {
+    en: 'You have been unsubscribed successfully.',
+    fr: 'Vous avez été désabonné avec succès.',
+    es: 'Se ha dado de baja correctamente.',
+    de: 'Sie wurden erfolgreich abgemeldet.',
+    zh: '您已成功取消订阅。',
+    hi: 'आपकी सदस्यता सफलतापूर्वक समाप्त कर दी गई है।',
+    ar: 'تم إلغاء اشتراكك بنجاح.',
+    pt: 'Você foi cancelado com sucesso.',
+    ru: 'Вы успешно отписаны.',
+    ja: '正常に登録解除されました。',
+    pl: 'Zostałeś pomyślnie wypisany.'
+  },
+  unsubscribeFailed: {
+    en: 'Failed to unsubscribe',
+    fr: 'Échec du désabonnement',
+    es: 'Error al darse de baja',
+    de: 'Abmeldung fehlgeschlagen',
+    zh: '取消订阅失败',
+    hi: 'सदस्यता समाप्त करने में विफल',
+    ar: 'فشل إلغاء الاشتراك',
+    pt: 'Falha ao cancelar a assinatura',
+    ru: 'Не удалось отписаться',
+    ja: '登録解除に失敗しました',
+    pl: 'Nie udało się wypisać'
   }
 }
 

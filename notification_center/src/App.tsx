@@ -40,7 +40,7 @@ function App() {
   const [showLanguageMenu, setShowLanguageMenu] = useState(false)
   const [confirmationResult, setConfirmationResult] = useState<{
     success: boolean
-    message: string
+    messageKey: string
     listId?: string
   } | null>(null)
   const [isPreviewMode, setIsPreviewMode] = useState(false)
@@ -95,20 +95,20 @@ function App() {
             if (response.success) {
               setConfirmationResult({
                 success: true,
-                message: 'Subscription confirmed successfully!',
+                messageKey: 'confirmSubscriptionSuccess',
                 listId: params.lid
               })
             } else {
               setConfirmationResult({
                 success: false,
-                message: 'Failed to confirm subscription'
+                messageKey: 'confirmSubscriptionFailed'
               })
             }
           } catch (err) {
             console.error('Failed to confirm subscription:', err)
             setConfirmationResult({
               success: false,
-              message: 'Failed to confirm subscription'
+              messageKey: 'confirmSubscriptionFailed'
             })
           }
         }
@@ -128,20 +128,20 @@ function App() {
             if (response.success) {
               setConfirmationResult({
                 success: true,
-                message: 'You have been unsubscribed successfully.',
+                messageKey: 'unsubscribeSuccess',
                 listId: params.lid
               })
             } else {
               setConfirmationResult({
                 success: false,
-                message: 'Failed to unsubscribe'
+                messageKey: 'unsubscribeFailed'
               })
             }
           } catch (err) {
             console.error('Failed to unsubscribe:', err)
             setConfirmationResult({
               success: false,
-              message: 'Failed to unsubscribe'
+              messageKey: 'unsubscribeFailed'
             })
           }
         }
@@ -598,9 +598,9 @@ function App() {
                   }`}
                 >
                   <div className="font-medium">
-                    {confirmationResult.success ? '✓ Success!' : '✗ Error'}
+                    {confirmationResult.success ? t('successHeader') : t('errorHeader')}
                   </div>
-                  <div className="mt-1 text-sm">{confirmationResult.message}</div>
+                  <div className="mt-1 text-sm">{t(confirmationResult.messageKey)}</div>
                 </div>
               )}
 
