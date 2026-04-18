@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 - **Feature**: Added `SMTP_BRIDGE_TLS` setting (`off` / `starttls` / `implicit`) to let operators run the SMTP bridge behind a TLS-terminating reverse proxy or in implicit-TLS (SMTPS) mode (#314)
 - **Feature**: Blog RSS 2.0 and JSON Feed 1.1 syndication — automatic `/feed.xml` and `/feed.json` endpoints per workspace, per-category feeds, conditional GET with ETag, gzip, XSS-sanitized content, autodiscovery `<link>` tags, and admin-configurable feed settings
 - **i18n**: Notification center confirmation banner (subscribe/unsubscribe result) is now translated in all supported languages instead of always showing English (#315)
+- **Security**: Bumped transitive `github.com/prometheus/prometheus` from v0.35.0 to v0.311.2 to clear Dependabot alert for CVE-2026-40179 (stored XSS in Prometheus web UI; Notifuse only imports `model/value`, so it was not exploitable)
 
 ## [29.3] - 2026-04-12
 
