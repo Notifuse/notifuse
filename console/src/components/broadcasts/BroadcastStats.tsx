@@ -28,6 +28,7 @@ interface BroadcastStatsProps {
   broadcastId: string
   workspace?: Workspace
   enqueuedCount?: number
+  broadcastStatus?: string
   onStatsUpdate?: (stats: ProgressStats) => void
 }
 
@@ -36,6 +37,7 @@ export function BroadcastStats({
   broadcastId,
   workspace,
   enqueuedCount,
+  broadcastStatus,
   onStatsUpdate
 }: BroadcastStatsProps) {
   const { t } = useLingui()
@@ -46,8 +48,9 @@ export function BroadcastStats({
     queryFn: async () => {
       return getBroadcastStats(workspaceId, broadcastId)
     },
-    // Refetch interval is handled by the query key invalidation
-    refetchInterval: 5000
+    // Stop polling for terminal states where stats won't change.
+    refetchInterval:
+      broadcastStatus === 'cancelled' || broadcastStatus === 'failed' ? false : 5000
   })
 
   const stats = data?.stats || {

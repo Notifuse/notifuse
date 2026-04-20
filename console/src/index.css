@@ -46,6 +46,26 @@ h1 {
   border-bottom: 1px solid rgba(78, 108, 255, 0.4) !important;
 }
 
+/* Contacts table: fixed left (email) and right (actions) columns need an
+ * opaque background so scrolling content doesn't bleed through. Use enough
+ * selector specificity to beat antd's own `.ant-table-cell.ant-table-cell-fix-*`
+ * rules (0,2,0), otherwise the cells render transparent and horizontal scroll
+ * content shows through underneath. */
+td.ant-table-cell.contacts-fixed-col,
+th.ant-table-cell.contacts-fixed-col {
+  background-color: #F9F9F9;
+}
+.ant-table-tbody > tr:hover > td.ant-table-cell.contacts-fixed-col {
+  background-color: #F9F9F9;
+}
+/* antd v5 doesn't expose --ant-control-item-bg-active as a CSS variable on
+ * :root — it generates selected-row styles at runtime with the literal color.
+ * Use the same literal value so our higher-specificity selector matches. */
+.ant-table-tbody > tr.ant-table-row-selected > td.ant-table-cell.contacts-fixed-col,
+.ant-table-tbody > tr.ant-table-row-selected:hover > td.ant-table-cell.contacts-fixed-col {
+  background-color: rgb(244, 240, 255);
+}
+
 .drawer-body-no-padding .ant-drawer-body {
   padding: 0;
 }

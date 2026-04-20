@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [29.5] - 2026-04-18
+
+- **Feature**: Pause, resume, and cancel broadcasts mid-delivery — even after the orchestrator has finished enqueueing — and cancel is now allowed from the Processing state (#303)
+- **Contacts**: Added in-table bulk actions (multi-select delete, add to list, remove from list, unsubscribe) with progress modal and "Skipped" tagging for no-op cases (#299)
+
 ## [29.4] - 2026-04-15
 
 - **Feature**: Added `SMTP_BRIDGE_TLS` setting (`off` / `starttls` / `implicit`) to let operators run the SMTP bridge behind a TLS-terminating reverse proxy or in implicit-TLS (SMTPS) mode (#314)

@@ -110,6 +110,7 @@ func (f *Factory) CreateOrchestrator() BroadcastOrchestratorInterface {
 		f.contactRepo,
 		f.taskRepo,
 		f.workspaceRepo,
+		f.emailQueueRepo,
 		abTestEvaluator,
 		f.logger,
 		f.config,

@@ -48,6 +48,7 @@ func TestBroadcastOrchestrator_Process_PausedBroadcast(t *testing.T) {
 		mockContactRepo,
 		mockTaskRepo,
 		mockWorkspaceRepo,
+		nil, // emailQueueRepo not needed for this test
 		nil, // abTestEvaluator not needed for tests,
 		mockLogger,
 		nil, // Use default config
@@ -207,6 +208,7 @@ func TestBroadcastOrchestrator_Process_PausedDuringProcessing(t *testing.T) {
 		mockContactRepo,
 		mockTaskRepo,
 		mockWorkspaceRepo,
+		nil, // emailQueueRepo not needed for this test
 		nil, // abTestEvaluator not needed for tests,
 		mockLogger,
 		config,
@@ -424,6 +426,7 @@ func TestBroadcastOrchestrator_Process_PausedVsCancelled(t *testing.T) {
 				mockContactRepo,
 				mockTaskRepo,
 				mockWorkspaceRepo,
+				nil, // emailQueueRepo not needed for this test
 				nil,
 				mockLogger,
 				nil,

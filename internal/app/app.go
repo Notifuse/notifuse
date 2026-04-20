@@ -702,6 +702,7 @@ func (a *App) InitServices() error {
 		a.authService,
 		a.eventBus,           // Pass the event bus
 		a.messageHistoryRepo, // Message history repository
+		a.emailQueueRepo,     // Email queue for mid-flight pause/resume/cancel
 		a.listService,        // List service for web publication validation
 		a.dataFeedFetcher,    // Data feed fetcher for global/recipient data
 		a.config.APIEndpoint, // API endpoint for tracking URLs

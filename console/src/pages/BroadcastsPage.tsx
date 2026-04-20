@@ -280,7 +280,9 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
         ? 5000 // Refetch every 5 seconds for processing broadcasts
         : broadcast.status === 'scheduled'
           ? 30000 // Refetch every 30 seconds for scheduled broadcasts
-          : false // Don't auto-refetch for other statuses
+          : broadcast.status === 'processed'
+            ? 10000 // Mid-drain (Phase 2): poll every 10s while remaining > 0
+            : false // Don't auto-refetch for terminal statuses
   })
 
   // Fetch test results if broadcast has A/B testing enabled and is in testing phase
@@ -500,7 +502,8 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
               </div>
             </Tooltip>
           )}
-          {broadcast.status === 'processing' && (
+          {(broadcast.status === 'processing' ||
+            (broadcast.status === 'processed' && (progressStats?.remaining ?? 0) > 0)) && (
             <Tooltip
               title={
                 !permissions?.broadcasts?.write
@@ -544,7 +547,10 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
               </Popconfirm>
             </Tooltip>
           )}
-          {broadcast.status === 'scheduled' && (
+          {(broadcast.status === 'scheduled' ||
+            broadcast.status === 'paused' ||
+            broadcast.status === 'processing' ||
+            (broadcast.status === 'processed' && (progressStats?.remaining ?? 0) > 0)) && (
             <Tooltip
               title={
                 !permissions?.broadcasts?.write
@@ -552,14 +558,18 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
                   : t`Cancel Broadcast`
               }
             >
-              <Button
-                type="text"
-                size="small"
-                onClick={() => onCancel(broadcast)}
+              <Popconfirm
+                title={t`Cancel broadcast?`}
+                description={t`Queued emails will not be sent. In-flight sends will complete.`}
+                onConfirm={() => onCancel(broadcast)}
+                okText={t`Yes, cancel`}
+                cancelText={t`No`}
                 disabled={!permissions?.broadcasts?.write}
               >
-                <FontAwesomeIcon icon={faBan} style={{ opacity: 0.7 }} />
-              </Button>
+                <Button type="text" size="small" disabled={!permissions?.broadcasts?.write}>
+                  <FontAwesomeIcon icon={faBan} style={{ opacity: 0.7 }} />
+                </Button>
+              </Popconfirm>
             </Tooltip>
           )}
           {broadcast.status === 'draft' && (
@@ -625,6 +635,7 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
           broadcastId={broadcast.id}
           workspace={currentWorkspace}
           enqueuedCount={enqueuedCount}
+          broadcastStatus={broadcast.status}
           onStatsUpdate={setProgressStats}
         />
       </div>

@@ -960,6 +960,95 @@ func TestTaskService_BroadcastEventHandlers(t *testing.T) {
 		// Call the event handler
 		taskService.handleBroadcastPaused(ctx, payload)
 	})
+
+	t.Run("handleBroadcastPaused skips when task already completed (Phase 2)", func(t *testing.T) {
+		ctx := context.Background()
+		workspaceID := "workspace1"
+		broadcastID := "phase2-paused"
+
+		payload := domain.EventPayload{
+			Type:        domain.EventBroadcastPaused,
+			WorkspaceID: workspaceID,
+			Data:        map[string]interface{}{"broadcast_id": broadcastID},
+		}
+
+		task := &domain.Task{
+			ID:          "task-done",
+			WorkspaceID: workspaceID,
+			Type:        "send_broadcast",
+			Status:      domain.TaskStatusCompleted,
+			BroadcastID: &broadcastID,
+		}
+
+		mockRepo.EXPECT().
+			GetTaskByBroadcastID(gomock.Any(), workspaceID, broadcastID).
+			Return(task, nil)
+		// CRITICAL: MarkAsPaused must NOT be called for a completed task.
+
+		taskService.handleBroadcastPaused(ctx, payload)
+	})
+
+	t.Run("handleBroadcastResumed skips when task already completed (Phase 2)", func(t *testing.T) {
+		// This is the critical re-run protection: without the guard, the handler
+		// would flip the task to Pending + NextRunAfter=now, and the next
+		// ExecutePendingTasks tick would re-run the orchestrator.
+		ctx := context.Background()
+		workspaceID := "workspace1"
+		broadcastID := "phase2-resumed"
+
+		payload := domain.EventPayload{
+			Type:        domain.EventBroadcastResumed,
+			WorkspaceID: workspaceID,
+			Data: map[string]interface{}{
+				"broadcast_id": broadcastID,
+				"start_now":    false,
+			},
+		}
+
+		task := &domain.Task{
+			ID:          "task-done",
+			WorkspaceID: workspaceID,
+			Type:        "send_broadcast",
+			Status:      domain.TaskStatusCompleted,
+			BroadcastID: &broadcastID,
+		}
+
+		mockRepo.EXPECT().
+			GetTaskByBroadcastID(gomock.Any(), workspaceID, broadcastID).
+			Return(task, nil)
+		// CRITICAL: Update must NOT be called, otherwise task.Status would be
+		// reset to Pending and orchestrator would re-enqueue every recipient.
+
+		taskService.handleBroadcastResumed(ctx, payload)
+	})
+
+	t.Run("handleBroadcastCancelled skips when task already completed (Phase 2)", func(t *testing.T) {
+		ctx := context.Background()
+		workspaceID := "workspace1"
+		broadcastID := "phase2-cancelled"
+
+		payload := domain.EventPayload{
+			Type:        domain.EventBroadcastCancelled,
+			WorkspaceID: workspaceID,
+			Data:        map[string]interface{}{"broadcast_id": broadcastID},
+		}
+
+		task := &domain.Task{
+			ID:          "task-done",
+			WorkspaceID: workspaceID,
+			Type:        "send_broadcast",
+			Status:      domain.TaskStatusCompleted,
+			BroadcastID: &broadcastID,
+		}
+
+		mockRepo.EXPECT().
+			GetTaskByBroadcastID(gomock.Any(), workspaceID, broadcastID).
+			Return(task, nil)
+		// The enqueue task genuinely succeeded — don't falsify it to Failed.
+		// MarkAsFailed must NOT be called.
+
+		taskService.handleBroadcastCancelled(ctx, payload)
+	})
 }
 
 func TestTaskService_ExecutePendingTasks(t *testing.T) {

@@ -27,6 +27,14 @@ import {
 import { ContactDetailsDrawer } from '../components/contacts/ContactDetailsDrawer'
 import { DeleteContactModal } from '../components/contacts/DeleteContactModal'
 import { SegmentsFilter } from '../components/contacts/SegmentsFilter'
+import { BulkActionsBar } from '../components/contacts/BulkActionsBar'
+import { BulkActionProgressModal } from '../components/contacts/BulkActionProgressModal'
+import {
+  useBulkContactAction,
+  SkippedAction,
+  type BulkActionResult
+} from '../hooks/useBulkContactAction'
+import { contactListApi } from '../services/api/contact_list'
 import dayjs from '../lib/dayjs'
 import { useAuth, useWorkspacePermissions } from '../contexts/AuthContext'
 import numbro from 'numbro'
@@ -98,6 +106,45 @@ export function ContactsPage() {
   const [contactToEdit, setContactToEdit] = React.useState<Contact | null>(null)
   // Export modal state
   const [exportModalVisible, setExportModalVisible] = React.useState(false)
+
+  // Bulk selection state
+  const [selectedEmails, setSelectedEmails] = React.useState<string[]>([])
+  const [bulkActionLabel, setBulkActionLabel] = React.useState<string>('')
+  const [showProgressModal, setShowProgressModal] = React.useState(false)
+  const bulk = useBulkContactAction()
+
+  // Track running state in a ref so the selection-clear effect can read the
+  // latest value without making `running` itself a dep (which would fire the
+  // effect on every running-transition).
+  const bulkRunningRef = React.useRef(false)
+  React.useEffect(() => {
+    bulkRunningRef.current = bulk.running
+  })
+
+  // Clear selection whenever filters/search change.
+  // - Strip `limit` so the "Load More" pagination bump does NOT clear selection.
+  // - Stringify because useSearch() returns a new reference each render.
+  // - Guarded by bulkRunningRef so an in-flight bulk op can't be orphaned.
+  const filtersKey = React.useMemo(() => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- stripping `limit` from the key
+    const { limit, ...filters } = search
+    return JSON.stringify(filters)
+  }, [search])
+  React.useEffect(() => {
+    if (bulkRunningRef.current) return
+    setSelectedEmails([])
+  }, [filtersKey])
+
+  // Warn the user before closing the tab while a bulk action is running.
+  React.useEffect(() => {
+    if (!bulk.running) return
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault()
+      e.returnValue = 'A bulk action is in progress. Leaving now will abort it.'
+    }
+    window.addEventListener('beforeunload', handler)
+    return () => window.removeEventListener('beforeunload', handler)
+  }, [bulk.running])
 
   // Fetch lists for the current workspace
   const { data: listsData } = useQuery({
@@ -197,6 +244,115 @@ export function ContactsPage() {
   const handleContactUpdate = () => {
     queryClient.invalidateQueries({ queryKey: ['contacts', workspaceId] })
     handleEditClose()
+  }
+
+  // Bulk action handlers — always snapshot the selection at call time so a
+  // mid-operation selection change (e.g. an optimistic cache update) can't
+  // shrink the working set.
+  const handleBulkDelete = async () => {
+    const emailsToUse = [...selectedEmails]
+    setBulkActionLabel(t`Delete contacts`)
+    setShowProgressModal(true)
+    await bulk.run(emailsToUse, async (email) => {
+      await contactsApi.delete({ workspace_id: workspaceId, email })
+    })
+    queryClient.invalidateQueries({ queryKey: ['contacts', workspaceId] })
+    queryClient.invalidateQueries({ queryKey: ['total-contacts', workspaceId] })
+  }
+
+  const handleBulkAddToList = async (listId: string) => {
+    const emailsToUse = [...selectedEmails]
+    setBulkActionLabel(t`Add to list`)
+    setShowProgressModal(true)
+    await bulk.runBatch(emailsToUse, async (emails) => {
+      const response = await contactsApi.batchImport({
+        workspace_id: workspaceId,
+        contacts: emails.map((email) => ({ email })),
+        subscribe_to_lists: [listId]
+      })
+      if (response.error) {
+        return emails.map((email) => ({ email, success: false, error: response.error }))
+      }
+      const resultMap = new Map<string, BulkActionResult>()
+      for (const op of response.operations || []) {
+        if (!op.email) continue
+        resultMap.set(op.email, {
+          email: op.email,
+          success: op.action === 'create' || op.action === 'update',
+          error: op.action === 'error' ? op.error : undefined
+        })
+      }
+      // If the server omits an email from operations[], treat it as a failure
+      // rather than an assumed success — prevents silent data loss if the
+      // backend truncates or drops rows.
+      return emails.map(
+        (email) =>
+          resultMap.get(email) || {
+            email,
+            success: false,
+            error: 'Not acknowledged by server'
+          }
+      )
+    })
+    queryClient.invalidateQueries({ queryKey: ['contacts', workspaceId] })
+    queryClient.invalidateQueries({ queryKey: ['lists', workspaceId] })
+    queryClient.invalidateQueries({ queryKey: ['total-contacts', workspaceId] })
+  }
+
+  const handleBulkRemoveFromList = async (listId: string) => {
+    const emailsToUse = [...selectedEmails]
+    setBulkActionLabel(t`Remove from list`)
+    setShowProgressModal(true)
+    await bulk.run(emailsToUse, async (email) => {
+      try {
+        await contactListApi.removeContact({
+          workspace_id: workspaceId,
+          email,
+          list_id: listId
+        })
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : ''
+        if (msg.includes('contact list not found')) {
+          throw new SkippedAction('Not in list')
+        }
+        throw err
+      }
+    })
+    queryClient.invalidateQueries({ queryKey: ['contacts', workspaceId] })
+  }
+
+  const handleBulkUnsubscribe = async (listId: string) => {
+    const emailsToUse = [...selectedEmails]
+    setBulkActionLabel(t`Unsubscribe from list`)
+    setShowProgressModal(true)
+    await bulk.run(emailsToUse, async (email) => {
+      const response = await contactListApi.updateStatus({
+        workspace_id: workspaceId,
+        email,
+        list_id: listId,
+        status: 'unsubscribed'
+      })
+      // Backend silently no-ops when the contact is not in the list. Surface
+      // this to the user as "Skipped" rather than misleading "Success".
+      if (response.found === false) {
+        throw new SkippedAction('Not in list')
+      }
+    })
+    queryClient.invalidateQueries({ queryKey: ['contacts', workspaceId] })
+  }
+
+  const handleProgressModalClose = () => {
+    // Defensive: today the modal is non-closable while running, so this path
+    // is unreachable mid-run. But if those guards are ever relaxed, make sure
+    // we don't orphan the loop — cancel first, then the next iteration of the
+    // loop will observe `cancelledRef` and exit; the finally block will
+    // release `busyRef` and reset will succeed on a later close.
+    if (bulk.running) {
+      bulk.cancel()
+    }
+    setShowProgressModal(false)
+    setSelectedEmails([])
+    bulk.reset()
   }
 
   const filterFields: FilterField[] = React.useMemo(() => [
@@ -371,12 +527,8 @@ export function ContactsPage() {
       dataIndex: 'email',
       key: 'email',
       fixed: 'left' as const,
-      onHeaderCell: () => ({
-        style: { backgroundColor: '#F9F9F9' }
-      }),
-      onCell: () => ({
-        style: { backgroundColor: '#F9F9F9' }
-      })
+      onHeaderCell: () => ({ className: 'contacts-fixed-col' }),
+      onCell: () => ({ className: 'contacts-fixed-col' })
     },
     {
       title: t`Lists`,
@@ -767,12 +919,8 @@ export function ContactsPage() {
       width: 120,
       fixed: 'right' as const,
       align: 'right' as const,
-      onHeaderCell: () => ({
-        style: { backgroundColor: '#F9F9F9' }
-      }),
-      onCell: () => ({
-        style: { backgroundColor: '#F9F9F9' }
-      }),
+      onHeaderCell: () => ({ className: 'contacts-fixed-col' }),
+      onCell: () => ({ className: 'contacts-fixed-col' }),
       render: (_: unknown, record: Contact) => {
         const menuItems: MenuProps['items'] = [
           {
@@ -942,6 +1090,20 @@ export function ContactsPage() {
         }}
       />
 
+      {/* Bulk actions bar — appears when rows are selected */}
+      <BulkActionsBar
+        selectedCount={selectedEmails.length}
+        lists={listsData?.lists || []}
+        canWriteContacts={!!permissions?.contacts?.write}
+        canWriteLists={!!permissions?.lists?.write}
+        disabled={bulk.running}
+        onAddToList={handleBulkAddToList}
+        onRemoveFromList={handleBulkRemoveFromList}
+        onUnsubscribeFromList={handleBulkUnsubscribe}
+        onDelete={handleBulkDelete}
+        onClear={() => setSelectedEmails([])}
+      />
+
       {/* Contacts Table */}
       <Table
         columns={columns}
@@ -951,6 +1113,33 @@ export function ContactsPage() {
         pagination={false}
         scroll={{ x: 'max-content' }}
         style={{ minWidth: 800 }}
+        rowSelection={{
+          selectedRowKeys: selectedEmails,
+          onChange: (keys) => setSelectedEmails(keys as string[]),
+          getCheckboxProps: () => ({
+            disabled: !permissions?.contacts?.write
+          })
+        }}
+        onRow={(record) => ({
+          onClick: (e) => {
+            if (!permissions?.contacts?.write) return
+            // Ignore clicks inside the selection column (checkbox handles itself)
+            // or the fixed-right actions column (dropdown + detail drawer).
+            const target = e.target as HTMLElement
+            if (
+              target.closest(
+                '.ant-table-selection-column, .ant-table-cell-fix-right'
+              )
+            )
+              return
+            setSelectedEmails((prev) =>
+              prev.includes(record.email)
+                ? prev.filter((email) => email !== record.email)
+                : [...prev, record.email]
+            )
+          },
+          style: permissions?.contacts?.write ? { cursor: 'pointer' } : undefined
+        })}
         locale={{
           emptyText: showEmptyState
             ? t`No contacts found. Add some contacts to get started.`
@@ -994,6 +1183,16 @@ export function ContactsPage() {
         filters={search}
         segmentsData={segmentsData?.segments || []}
         listsData={listsData?.lists || []}
+      />
+
+      <BulkActionProgressModal
+        open={showProgressModal}
+        title={bulkActionLabel}
+        progress={bulk.progress}
+        onPause={bulk.pause}
+        onResume={bulk.resume}
+        onCancel={bulk.cancel}
+        onClose={handleProgressModalClose}
       />
     </div>
   )

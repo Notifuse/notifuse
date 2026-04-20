@@ -27,6 +27,7 @@ type BroadcastService struct {
 	authService        domain.AuthService
 	eventBus           domain.EventBus
 	messageHistoryRepo domain.MessageHistoryRepository
+	emailQueueRepo     domain.EmailQueueRepository
 	listService        domain.ListService
 	dataFeedFetcher    broadcast.DataFeedFetcher
 	apiEndpoint        string
@@ -45,6 +46,7 @@ func NewBroadcastService(
 	authService domain.AuthService,
 	eventBus domain.EventBus,
 	messageHistoryRepository domain.MessageHistoryRepository,
+	emailQueueRepository domain.EmailQueueRepository,
 	listService domain.ListService,
 	dataFeedFetcher broadcast.DataFeedFetcher,
 	apiEndpoint string,
@@ -61,6 +63,7 @@ func NewBroadcastService(
 		authService:        authService,
 		eventBus:           eventBus,
 		messageHistoryRepo: messageHistoryRepository,
+		emailQueueRepo:     emailQueueRepository,
 		listService:        listService,
 		dataFeedFetcher:    dataFeedFetcher,
 		apiEndpoint:        apiEndpoint,
@@ -465,10 +468,12 @@ func (s *BroadcastService) PauseBroadcast(ctx context.Context, request *domain.P
 			return err
 		}
 
-		// Only sending broadcasts can be paused
-		if broadcast.Status != domain.BroadcastStatusProcessing {
-			err := fmt.Errorf("only broadcasts with sending status can be paused, current status: %s", broadcast.Status)
-			s.logger.Error("Cannot pause broadcast with non-sending status")
+		// Only sending (Phase 1) or processed-with-remaining-drain (Phase 2) broadcasts can be paused.
+		// A/B intermediate states (testing/test_completed/winner_selected) are out of scope.
+		if broadcast.Status != domain.BroadcastStatusProcessing &&
+			broadcast.Status != domain.BroadcastStatusProcessed {
+			err := fmt.Errorf("only broadcasts with sending or processed status can be paused, current status: %s", broadcast.Status)
+			s.logger.Error("Cannot pause broadcast with invalid status")
 			return err
 		}
 
@@ -478,14 +483,24 @@ func (s *BroadcastService) PauseBroadcast(ctx context.Context, request *domain.P
 		broadcast.PausedAt = &now
 		broadcast.UpdatedAt = now
 
-		// Persist the changes
-		err = s.repo.UpdateBroadcastTx(ctx, tx, broadcast)
+		// Use status-only update so we can pause a broadcast that's already
+		// in the Processed phase-2 state. UpdateBroadcastTx rejects terminal states.
+		err = s.repo.UpdateBroadcastStatusTx(ctx, tx, broadcast)
 		if err != nil {
 			s.logger.Error("Failed to update broadcast in repository")
 			return err
 		}
 
-		s.logger.Info("Broadcast paused successfully")
+		// Pause queued email rows for this broadcast so the worker skips them.
+		pausedCount, pauseErr := s.emailQueueRepo.PauseBySourceTx(ctx, tx, domain.EmailQueueSourceBroadcast, broadcast.ID)
+		if pauseErr != nil {
+			s.logger.WithField("broadcast_id", broadcast.ID).Error("Failed to pause email queue entries")
+			return pauseErr
+		}
+		s.logger.WithFields(map[string]interface{}{
+			"broadcast_id":        broadcast.ID,
+			"paused_queue_count":  pausedCount,
+		}).Info("Broadcast paused successfully")
 
 		// Create an event with acknowledgment callback
 		eventPayload := domain.EventPayload{
@@ -574,11 +589,17 @@ func (s *BroadcastService) ResumeBroadcast(ctx context.Context, request *domain.
 		now := time.Now().UTC()
 		broadcast.UpdatedAt = now
 
-		// Determine the new status based on scheduling
+		// Determine the new status based on pause phase and scheduling.
 		startNow := false
 
-		// If broadcast was originally scheduled and scheduled time is in the future
-		if broadcast.Schedule.IsScheduled {
+		if broadcast.CompletedAt != nil {
+			// Phase-2 pause: orchestrator already finished enqueueing. Restore to processed
+			// so the worker can drain remaining (now un-paused) queue rows.
+			// Do NOT set start_now — the task is completed and must not be re-run.
+			broadcast.Status = domain.BroadcastStatusProcessed
+			s.logger.Info("Broadcast resumed to processed status (Phase 2)")
+		} else if broadcast.Schedule.IsScheduled {
+			// Phase-1 pause: originally scheduled flow.
 			scheduledTime, err := broadcast.Schedule.ParseScheduledDateTime()
 			isScheduledInFuture := err == nil && scheduledTime.After(now) && broadcast.StartedAt == nil
 
@@ -595,7 +616,7 @@ func (s *BroadcastService) ResumeBroadcast(ctx context.Context, request *domain.
 				s.logger.Info("Broadcast resumed to sending status")
 			}
 		} else {
-			// If broadcast wasn't scheduled, resume sending
+			// Phase-1 pause: not scheduled, resume sending.
 			broadcast.Status = domain.BroadcastStatusProcessing
 			startNow = true
 			if broadcast.StartedAt == nil {
@@ -608,14 +629,24 @@ func (s *BroadcastService) ResumeBroadcast(ctx context.Context, request *domain.
 		broadcast.PausedAt = nil
 		broadcast.PauseReason = nil
 
-		// Persist the changes
-		err = s.repo.UpdateBroadcastTx(ctx, tx, broadcast)
+		// Status-only update — Phase-2 resume target is Processed, which the
+		// general UpdateBroadcastTx would reject.
+		err = s.repo.UpdateBroadcastStatusTx(ctx, tx, broadcast)
 		if err != nil {
 			s.logger.Error("Failed to update broadcast in repository")
 			return err
 		}
 
-		s.logger.Info("Broadcast resumed successfully")
+		// Un-pause queued email rows for this broadcast so the worker picks them up again.
+		resumedCount, resumeErr := s.emailQueueRepo.ResumeBySourceTx(ctx, tx, domain.EmailQueueSourceBroadcast, broadcast.ID)
+		if resumeErr != nil {
+			s.logger.WithField("broadcast_id", broadcast.ID).Error("Failed to resume email queue entries")
+			return resumeErr
+		}
+		s.logger.WithFields(map[string]interface{}{
+			"broadcast_id":        broadcast.ID,
+			"resumed_queue_count": resumedCount,
+		}).Info("Broadcast resumed successfully")
 
 		// Create an event with acknowledgment callback
 		eventPayload := domain.EventPayload{
@@ -694,9 +725,16 @@ func (s *BroadcastService) CancelBroadcast(ctx context.Context, request *domain.
 			return err
 		}
 
-		// Only scheduled or paused broadcasts can be cancelled
-		if broadcast.Status != domain.BroadcastStatusScheduled && broadcast.Status != domain.BroadcastStatusPaused {
-			err := fmt.Errorf("only broadcasts with scheduled or paused status can be cancelled, current status: %s", broadcast.Status)
+		// Cancel is allowed from Scheduled, Paused, Processing (mid-enqueue),
+		// or Processed (mid-drain). A/B intermediate states are out of scope.
+		switch broadcast.Status {
+		case domain.BroadcastStatusScheduled,
+			domain.BroadcastStatusPaused,
+			domain.BroadcastStatusProcessing,
+			domain.BroadcastStatusProcessed:
+			// Allowed.
+		default:
+			err := fmt.Errorf("only broadcasts with scheduled, paused, processing, or processed status can be cancelled, current status: %s", broadcast.Status)
 			s.logger.Error("Cannot cancel broadcast with invalid status")
 			return err
 		}
@@ -707,14 +745,25 @@ func (s *BroadcastService) CancelBroadcast(ctx context.Context, request *domain.
 		broadcast.CancelledAt = &now
 		broadcast.UpdatedAt = now
 
-		// Persist the changes
-		err = s.repo.UpdateBroadcastTx(ctx, tx, broadcast)
+		// Status-only update — cancellation from Processed needs to bypass the
+		// terminal-state guard in UpdateBroadcastTx.
+		err = s.repo.UpdateBroadcastStatusTx(ctx, tx, broadcast)
 		if err != nil {
 			s.logger.Error("Failed to update broadcast in repository")
 			return err
 		}
 
-		s.logger.Info("Broadcast cancelled successfully")
+		// Delete any queued email rows for this broadcast. Processing rows are left alone —
+		// they'll complete naturally (bounded tail, ≤ batch size).
+		cancelledCount, deleteErr := s.emailQueueRepo.DeleteBySourceTx(ctx, tx, domain.EmailQueueSourceBroadcast, broadcast.ID)
+		if deleteErr != nil {
+			s.logger.WithField("broadcast_id", broadcast.ID).Error("Failed to delete email queue entries")
+			return deleteErr
+		}
+		s.logger.WithFields(map[string]interface{}{
+			"broadcast_id":         broadcast.ID,
+			"cancelled_queue_count": cancelledCount,
+		}).Info("Broadcast cancelled successfully")
 
 		// Create an event with acknowledgment callback
 		eventPayload := domain.EventPayload{

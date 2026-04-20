@@ -168,6 +168,7 @@ func TestProcess_HappyPath(t *testing.T) {
 		mockContactRepo,
 		mockTaskRepo,
 		mockWorkspaceRepo,
+		nil, // emailQueueRepo not needed for this test
 		nil, // abTestEvaluator not needed for tests,
 		mockLogger,
 		config,
@@ -258,6 +259,7 @@ func TestProcess_NilTaskState(t *testing.T) {
 		mockContactRepo,
 		mockTaskRepo,
 		mockWorkspaceRepo,
+		nil, // emailQueueRepo not needed for this test
 		nil, // abTestEvaluator not needed for tests,
 		mockLogger,
 		config,
@@ -356,6 +358,7 @@ func TestProcess_NilSendBroadcastState(t *testing.T) {
 		mockContactRepo,
 		mockTaskRepo,
 		mockWorkspaceRepo,
+		nil, // emailQueueRepo not needed for this test
 		nil, // abTestEvaluator not needed for tests,
 		mockLogger,
 		config,
@@ -439,6 +442,7 @@ func TestProcess_MissingBroadcastID(t *testing.T) {
 		mockContactRepo,
 		mockTaskRepo,
 		mockWorkspaceRepo,
+		nil, // emailQueueRepo not needed for this test
 		nil, // abTestEvaluator not needed for tests,
 		mockLogger,
 		config,
@@ -539,6 +543,7 @@ func TestProcess_ZeroRecipients(t *testing.T) {
 		mockContactRepo,
 		mockTaskRepo,
 		mockWorkspaceRepo,
+		nil, // emailQueueRepo not needed for this test
 		nil, // abTestEvaluator not needed for tests,
 		mockLogger,
 		config,
@@ -636,6 +641,7 @@ func TestProcess_GetTotalRecipientCountError(t *testing.T) {
 		mockContactRepo,
 		mockTaskRepo,
 		mockWorkspaceRepo,
+		nil, // emailQueueRepo not needed for this test
 		nil, // abTestEvaluator not needed for tests,
 		mockLogger,
 		config,
@@ -743,6 +749,7 @@ func TestProcess_LastRetryError(t *testing.T) {
 		mockContactRepo,
 		mockTaskRepo,
 		mockWorkspaceRepo,
+		nil, // emailQueueRepo not needed for this test
 		nil, // abTestEvaluator not needed for tests,
 		mockLogger,
 		config,
@@ -838,6 +845,7 @@ func TestProcess_LoadTemplatesError(t *testing.T) {
 		mockContactRepo,
 		mockTaskRepo,
 		mockWorkspaceRepo,
+		nil, // emailQueueRepo not needed for this test
 		nil, // abTestEvaluator not needed for tests,
 		mockLogger,
 		config,

@@ -959,6 +959,17 @@ func (s *TaskService) handleBroadcastPaused(ctx context.Context, payload domain.
 	tracing.AddAttribute(ctx, "task_id", task.ID)
 	tracing.AddAttribute(ctx, "current_status", string(task.Status))
 
+	// Phase-2 pause: task already completed (orchestrator done enqueueing).
+	// Leave the task alone — we only want to pause the queue rows, which the
+	// service layer handled via PauseBySourceTx before publishing this event.
+	if task.Status == domain.TaskStatusCompleted {
+		s.logger.WithFields(map[string]interface{}{
+			"broadcast_id": broadcastID,
+			"task_id":      task.ID,
+		}).Info("Broadcast paused after task completion - leaving task completed")
+		return
+	}
+
 	// Pause the task
 	nextRunAfter := time.Now().Add(24 * time.Hour) // Pause for 24 hours
 	tracing.AddAttribute(ctx, "next_run_after", nextRunAfter.Format(time.RFC3339))
@@ -1010,6 +1021,18 @@ func (s *TaskService) handleBroadcastResumed(ctx context.Context, payload domain
 
 	tracing.AddAttribute(ctx, "task_id", task.ID)
 	tracing.AddAttribute(ctx, "current_status", string(task.Status))
+
+	// Phase-2 resume: task already completed (orchestrator done enqueueing).
+	// CRITICAL: do not flip the task back to Pending — the next ExecutePendingTasks
+	// tick would re-run the orchestrator and re-enqueue every recipient.
+	// The queue-row resume is handled by the service layer before this event fires.
+	if task.Status == domain.TaskStatusCompleted {
+		s.logger.WithFields(map[string]interface{}{
+			"broadcast_id": broadcastID,
+			"task_id":      task.ID,
+		}).Info("Broadcast resumed after task completion - leaving task completed")
+		return
+	}
 
 	// Resume the task
 	nextRunAfter := time.Now().UTC()
@@ -1189,6 +1212,16 @@ func (s *TaskService) handleBroadcastCancelled(ctx context.Context, payload doma
 
 	tracing.AddAttribute(ctx, "task_id", task.ID)
 	tracing.AddAttribute(ctx, "current_status", string(task.Status))
+
+	// Phase-2 cancel: the enqueue task genuinely succeeded; don't overwrite its
+	// status to Failed. Queue-row deletion is handled by the service layer.
+	if task.Status == domain.TaskStatusCompleted {
+		s.logger.WithFields(map[string]interface{}{
+			"broadcast_id": broadcastID,
+			"task_id":      task.ID,
+		}).Info("Broadcast cancelled after task completion - leaving task completed")
+		return
+	}
 
 	// Mark the task as failed with cancellation reason
 	cancelReason := "Broadcast was cancelled"

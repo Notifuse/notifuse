@@ -374,6 +374,105 @@ func (r *EmailQueueRepository) CountBySourceAndStatus(ctx context.Context, works
 	return count, nil
 }
 
+// emailQueueExecutor is satisfied by both *sql.DB and *sql.Tx.
+type emailQueueExecutor interface {
+	ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
+}
+
+const pauseBySourceSQL = `
+	UPDATE email_queue
+	SET status = 'paused', updated_at = NOW()
+	WHERE source_type = $1 AND source_id = $2
+	  AND status IN ('pending', 'failed')
+`
+
+const resumeBySourceSQL = `
+	UPDATE email_queue
+	SET status = 'pending', next_retry_at = NULL, updated_at = NOW()
+	WHERE source_type = $1 AND source_id = $2
+	  AND status = 'paused'
+`
+
+const deleteBySourceSQL = `
+	DELETE FROM email_queue
+	WHERE source_type = $1 AND source_id = $2
+	  AND status IN ('pending', 'failed', 'paused')
+`
+
+func execBySource(ctx context.Context, exec emailQueueExecutor, query string, sourceType domain.EmailQueueSourceType, sourceID string) (int64, error) {
+	result, err := exec.ExecContext(ctx, query, sourceType, sourceID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+// PauseBySource marks pending/failed entries for a source as paused.
+func (r *EmailQueueRepository) PauseBySource(ctx context.Context, workspaceID string, sourceType domain.EmailQueueSourceType, sourceID string) (int64, error) {
+	db, err := r.getDB(ctx, workspaceID)
+	if err != nil {
+		return 0, fmt.Errorf("failed to get database connection: %w", err)
+	}
+	n, err := execBySource(ctx, db, pauseBySourceSQL, sourceType, sourceID)
+	if err != nil {
+		return 0, fmt.Errorf("failed to pause queue entries by source: %w", err)
+	}
+	return n, nil
+}
+
+// PauseBySourceTx is the transactional variant of PauseBySource.
+func (r *EmailQueueRepository) PauseBySourceTx(ctx context.Context, tx *sql.Tx, sourceType domain.EmailQueueSourceType, sourceID string) (int64, error) {
+	n, err := execBySource(ctx, tx, pauseBySourceSQL, sourceType, sourceID)
+	if err != nil {
+		return 0, fmt.Errorf("failed to pause queue entries by source: %w", err)
+	}
+	return n, nil
+}
+
+// ResumeBySource flips paused entries back to pending and clears next_retry_at.
+func (r *EmailQueueRepository) ResumeBySource(ctx context.Context, workspaceID string, sourceType domain.EmailQueueSourceType, sourceID string) (int64, error) {
+	db, err := r.getDB(ctx, workspaceID)
+	if err != nil {
+		return 0, fmt.Errorf("failed to get database connection: %w", err)
+	}
+	n, err := execBySource(ctx, db, resumeBySourceSQL, sourceType, sourceID)
+	if err != nil {
+		return 0, fmt.Errorf("failed to resume queue entries by source: %w", err)
+	}
+	return n, nil
+}
+
+// ResumeBySourceTx is the transactional variant of ResumeBySource.
+func (r *EmailQueueRepository) ResumeBySourceTx(ctx context.Context, tx *sql.Tx, sourceType domain.EmailQueueSourceType, sourceID string) (int64, error) {
+	n, err := execBySource(ctx, tx, resumeBySourceSQL, sourceType, sourceID)
+	if err != nil {
+		return 0, fmt.Errorf("failed to resume queue entries by source: %w", err)
+	}
+	return n, nil
+}
+
+// DeleteBySource deletes pending/failed/paused entries for a source.
+func (r *EmailQueueRepository) DeleteBySource(ctx context.Context, workspaceID string, sourceType domain.EmailQueueSourceType, sourceID string) (int64, error) {
+	db, err := r.getDB(ctx, workspaceID)
+	if err != nil {
+		return 0, fmt.Errorf("failed to get database connection: %w", err)
+	}
+	n, err := execBySource(ctx, db, deleteBySourceSQL, sourceType, sourceID)
+	if err != nil {
+		return 0, fmt.Errorf("failed to delete queue entries by source: %w", err)
+	}
+	return n, nil
+}
+
+// DeleteBySourceTx is the transactional variant of DeleteBySource.
+func (r *EmailQueueRepository) DeleteBySourceTx(ctx context.Context, tx *sql.Tx, sourceType domain.EmailQueueSourceType, sourceID string) (int64, error) {
+	n, err := execBySource(ctx, tx, deleteBySourceSQL, sourceType, sourceID)
+	if err != nil {
+		return 0, fmt.Errorf("failed to delete queue entries by source: %w", err)
+	}
+	return n, nil
+}
+
 // scanEmailQueueEntry scans a row into an EmailQueueEntry
 func scanEmailQueueEntry(rows *sql.Rows) (*domain.EmailQueueEntry, error) {
 	var entry domain.EmailQueueEntry

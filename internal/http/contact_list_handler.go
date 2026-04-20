@@ -2,10 +2,12 @@ package http
 
 import (
 	"encoding/json"
+	"errors"
+	"net/http"
+
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/http/middleware"
 	"github.com/Notifuse/notifuse/pkg/logger"
-	"net/http"
 )
 
 type ContactListHandler struct {
@@ -170,6 +172,14 @@ func (h *ContactListHandler) handleRemoveContact(w http.ResponseWriter, r *http.
 	err := h.service.RemoveContactFromList(r.Context(), req.WorkspaceID, req.Email, req.ListID)
 	if err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to remove contact from list")
+		// Surface "not in list" as 404 with the canonical error text so callers
+		// (notably the contacts bulk remove flow) can map it to a "Skipped"
+		// result instead of a hard failure.
+		var notFound *domain.ErrContactListNotFound
+		if errors.As(err, &notFound) {
+			WriteJSONError(w, "contact list not found", http.StatusNotFound)
+			return
+		}
 		WriteJSONError(w, "Failed to remove contact from list", http.StatusInternalServerError)
 		return
 	}

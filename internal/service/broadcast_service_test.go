@@ -63,6 +63,7 @@ type broadcastSvcDeps struct {
 	authService        *domainmocks.MockAuthService
 	eventBus           *domainmocks.MockEventBus
 	messageHistoryRepo *domainmocks.MockMessageHistoryRepository
+	emailQueueRepo     *domainmocks.MockEmailQueueRepository
 	listService        *domainmocks.MockListService
 	dataFeedFetcher    *broadcastmocks.MockDataFeedFetcher
 	svc                *BroadcastService
@@ -82,6 +83,7 @@ func setupBroadcastSvc(t *testing.T) *broadcastSvcDeps {
 	authService := domainmocks.NewMockAuthService(ctrl)
 	eventBus := domainmocks.NewMockEventBus(ctrl)
 	messageHistoryRepo := domainmocks.NewMockMessageHistoryRepository(ctrl)
+	emailQueueRepo := domainmocks.NewMockEmailQueueRepository(ctrl)
 	listService := domainmocks.NewMockListService(ctrl)
 	dataFeedFetcher := broadcastmocks.NewMockDataFeedFetcher(ctrl)
 
@@ -100,6 +102,7 @@ func setupBroadcastSvc(t *testing.T) *broadcastSvcDeps {
 		authService,
 		eventBus,
 		messageHistoryRepo,
+		emailQueueRepo,
 		listService,
 		dataFeedFetcher,
 		"https://api.example.test",
@@ -117,6 +120,7 @@ func setupBroadcastSvc(t *testing.T) *broadcastSvcDeps {
 		authService:        authService,
 		eventBus:           eventBus,
 		messageHistoryRepo: messageHistoryRepo,
+		emailQueueRepo:     emailQueueRepo,
 		listService:        listService,
 		dataFeedFetcher:    dataFeedFetcher,
 		svc:                svc,
@@ -213,7 +217,8 @@ func TestBroadcastService_PauseBroadcast_Success(t *testing.T) {
 	sending := testBroadcast(req.WorkspaceID, req.ID)
 	sending.Status = domain.BroadcastStatusProcessing
 	d.repo.EXPECT().GetBroadcastTx(gomock.Any(), gomock.Any(), req.WorkspaceID, req.ID).Return(sending, nil)
-	d.repo.EXPECT().UpdateBroadcastTx(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+	d.repo.EXPECT().UpdateBroadcastStatusTx(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+	d.emailQueueRepo.EXPECT().PauseBySourceTx(gomock.Any(), gomock.Any(), domain.EmailQueueSourceBroadcast, req.ID).Return(int64(0), nil)
 	d.eventBus.EXPECT().PublishWithAck(gomock.Any(), gomock.Any(), gomock.Any()).Do(func(_ context.Context, _ domain.EventPayload, ack domain.EventAckCallback) { ack(nil) })
 
 	err := d.svc.PauseBroadcast(ctx, req)
@@ -240,7 +245,8 @@ func TestBroadcastService_ResumeBroadcast_ToScheduled_Success(t *testing.T) {
 	paused.Schedule.IsScheduled = true
 
 	d.repo.EXPECT().GetBroadcastTx(gomock.Any(), gomock.Any(), req.WorkspaceID, req.ID).Return(paused, nil)
-	d.repo.EXPECT().UpdateBroadcastTx(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+	d.repo.EXPECT().UpdateBroadcastStatusTx(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+	d.emailQueueRepo.EXPECT().ResumeBySourceTx(gomock.Any(), gomock.Any(), domain.EmailQueueSourceBroadcast, req.ID).Return(int64(0), nil)
 	d.eventBus.EXPECT().PublishWithAck(gomock.Any(), gomock.Any(), gomock.Any()).Do(func(_ context.Context, _ domain.EventPayload, ack domain.EventAckCallback) { ack(nil) })
 
 	err := d.svc.ResumeBroadcast(ctx, req)
@@ -485,7 +491,8 @@ func TestBroadcastService_CancelBroadcast_Success(t *testing.T) {
 	scheduled.Status = domain.BroadcastStatusScheduled
 
 	d.repo.EXPECT().GetBroadcastTx(gomock.Any(), gomock.Any(), req.WorkspaceID, req.ID).Return(scheduled, nil)
-	d.repo.EXPECT().UpdateBroadcastTx(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+	d.repo.EXPECT().UpdateBroadcastStatusTx(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+	d.emailQueueRepo.EXPECT().DeleteBySourceTx(gomock.Any(), gomock.Any(), domain.EmailQueueSourceBroadcast, req.ID).Return(int64(0), nil)
 
 	// Publish event and ack
 	d.eventBus.EXPECT().PublishWithAck(gomock.Any(), gomock.Any(), gomock.Any()).Do(
@@ -1270,7 +1277,7 @@ func TestBroadcastService_PauseBroadcast_InvalidStatus(t *testing.T) {
 
 	err := d.svc.PauseBroadcast(ctx, req)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "only broadcasts with sending status can be paused")
+	assert.Contains(t, err.Error(), "only broadcasts with sending or processed status can be paused")
 }
 
 func TestBroadcastService_ResumeBroadcast_AuthFailure(t *testing.T) {
@@ -1328,7 +1335,8 @@ func TestBroadcastService_ResumeBroadcast_ToSending_Success(t *testing.T) {
 	paused.Schedule.IsScheduled = false
 
 	d.repo.EXPECT().GetBroadcastTx(gomock.Any(), gomock.Any(), req.WorkspaceID, req.ID).Return(paused, nil)
-	d.repo.EXPECT().UpdateBroadcastTx(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+	d.repo.EXPECT().UpdateBroadcastStatusTx(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+	d.emailQueueRepo.EXPECT().ResumeBySourceTx(gomock.Any(), gomock.Any(), domain.EmailQueueSourceBroadcast, req.ID).Return(int64(0), nil)
 	d.eventBus.EXPECT().PublishWithAck(gomock.Any(), gomock.Any(), gomock.Any()).Do(func(_ context.Context, _ domain.EventPayload, ack domain.EventAckCallback) { ack(nil) })
 
 	err := d.svc.ResumeBroadcast(ctx, req)
@@ -1359,9 +1367,10 @@ func TestBroadcastService_CancelBroadcast_InvalidStatus(t *testing.T) {
 
 	d.repo.EXPECT().WithTransaction(ctx, req.WorkspaceID, gomock.Any()).DoAndReturn(
 		func(_ context.Context, _ string, fn func(*sql.Tx) error) error {
-			// broadcast with invalid status for cancelling
+			// broadcast with invalid status for cancelling (draft is rejected;
+			// processing/processed are now allowed)
 			broadcast := testBroadcast(req.WorkspaceID, req.ID)
-			broadcast.Status = domain.BroadcastStatusProcessing // not scheduled or paused
+			broadcast.Status = domain.BroadcastStatusDraft
 			d.repo.EXPECT().GetBroadcastTx(gomock.Any(), gomock.Any(), req.WorkspaceID, req.ID).Return(broadcast, nil)
 			return fn(nil)
 		},
@@ -1369,7 +1378,135 @@ func TestBroadcastService_CancelBroadcast_InvalidStatus(t *testing.T) {
 
 	err := d.svc.CancelBroadcast(ctx, req)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "only broadcasts with scheduled or paused status can be cancelled")
+	assert.Contains(t, err.Error(), "only broadcasts with scheduled, paused, processing, or processed status can be cancelled")
+}
+
+// Phase-2 scenarios: pause/resume/cancel work once orchestrator has enqueued
+// all recipients (status=Processed) and queue workers are draining.
+
+func TestBroadcastService_PauseBroadcast_FromProcessed_Success(t *testing.T) {
+	d := setupBroadcastSvc(t)
+	defer d.ctrl.Finish()
+
+	ctx := context.Background()
+	req := &domain.PauseBroadcastRequest{WorkspaceID: "w1", ID: "b1"}
+	authOK(d.authService, ctx, req.WorkspaceID)
+
+	d.repo.EXPECT().WithTransaction(ctx, req.WorkspaceID, gomock.Any()).DoAndReturn(
+		func(_ context.Context, _ string, fn func(*sql.Tx) error) error { return fn(nil) },
+	)
+
+	processed := testBroadcast(req.WorkspaceID, req.ID)
+	processed.Status = domain.BroadcastStatusProcessed
+	now := time.Now().UTC()
+	processed.CompletedAt = &now
+	d.repo.EXPECT().GetBroadcastTx(gomock.Any(), gomock.Any(), req.WorkspaceID, req.ID).Return(processed, nil)
+	d.repo.EXPECT().UpdateBroadcastStatusTx(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+	d.emailQueueRepo.EXPECT().PauseBySourceTx(gomock.Any(), gomock.Any(), domain.EmailQueueSourceBroadcast, req.ID).Return(int64(12), nil)
+	d.eventBus.EXPECT().PublishWithAck(gomock.Any(), gomock.Any(), gomock.Any()).Do(func(_ context.Context, _ domain.EventPayload, ack domain.EventAckCallback) { ack(nil) })
+
+	err := d.svc.PauseBroadcast(ctx, req)
+	require.NoError(t, err)
+}
+
+func TestBroadcastService_ResumeBroadcast_FromPhase2_RestoresProcessed(t *testing.T) {
+	d := setupBroadcastSvc(t)
+	defer d.ctrl.Finish()
+
+	ctx := context.Background()
+	req := &domain.ResumeBroadcastRequest{WorkspaceID: "w1", ID: "b1"}
+	authOK(d.authService, ctx, req.WorkspaceID)
+
+	d.repo.EXPECT().WithTransaction(ctx, req.WorkspaceID, gomock.Any()).DoAndReturn(
+		func(_ context.Context, _ string, fn func(*sql.Tx) error) error { return fn(nil) },
+	)
+
+	// Paused broadcast that was in Phase 2 (CompletedAt set)
+	paused := testBroadcast(req.WorkspaceID, req.ID)
+	paused.Status = domain.BroadcastStatusPaused
+	completed := time.Now().UTC().Add(-1 * time.Hour)
+	paused.CompletedAt = &completed
+	nowPtr := time.Now().UTC().Add(-2 * time.Hour)
+	paused.StartedAt = &nowPtr
+
+	d.repo.EXPECT().GetBroadcastTx(gomock.Any(), gomock.Any(), req.WorkspaceID, req.ID).Return(paused, nil)
+	// Capture the updated broadcast to assert final status and start_now flag.
+	d.repo.EXPECT().UpdateBroadcastStatusTx(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(
+		func(_ context.Context, _ *sql.Tx, b *domain.Broadcast) error {
+			assert.Equal(t, domain.BroadcastStatusProcessed, b.Status, "Phase-2 resume must restore to processed")
+			assert.Nil(t, b.PausedAt)
+			return nil
+		},
+	)
+	d.emailQueueRepo.EXPECT().ResumeBySourceTx(gomock.Any(), gomock.Any(), domain.EmailQueueSourceBroadcast, req.ID).Return(int64(8), nil)
+	d.eventBus.EXPECT().PublishWithAck(gomock.Any(), gomock.Any(), gomock.Any()).Do(
+		func(_ context.Context, event domain.EventPayload, ack domain.EventAckCallback) {
+			// Phase-2 resume must NOT set start_now, otherwise ExecutePendingTasks
+			// would immediately pick up the (already completed) task.
+			startNow, _ := event.Data["start_now"].(bool)
+			assert.False(t, startNow, "Phase-2 resume must not set start_now=true")
+			ack(nil)
+		},
+	)
+
+	err := d.svc.ResumeBroadcast(ctx, req)
+	require.NoError(t, err)
+}
+
+func TestBroadcastService_CancelBroadcast_FromProcessing_Success(t *testing.T) {
+	d := setupBroadcastSvc(t)
+	defer d.ctrl.Finish()
+
+	ctx := context.Background()
+	req := &domain.CancelBroadcastRequest{WorkspaceID: "w1", ID: "b1"}
+	authOK(d.authService, ctx, req.WorkspaceID)
+
+	d.repo.EXPECT().WithTransaction(ctx, req.WorkspaceID, gomock.Any()).DoAndReturn(
+		func(_ context.Context, _ string, fn func(*sql.Tx) error) error { return fn(nil) },
+	)
+
+	processing := testBroadcast(req.WorkspaceID, req.ID)
+	processing.Status = domain.BroadcastStatusProcessing
+	d.repo.EXPECT().GetBroadcastTx(gomock.Any(), gomock.Any(), req.WorkspaceID, req.ID).Return(processing, nil)
+	d.repo.EXPECT().UpdateBroadcastStatusTx(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+	d.emailQueueRepo.EXPECT().DeleteBySourceTx(gomock.Any(), gomock.Any(), domain.EmailQueueSourceBroadcast, req.ID).Return(int64(42), nil)
+	d.eventBus.EXPECT().PublishWithAck(gomock.Any(), gomock.Any(), gomock.Any()).Do(func(_ context.Context, _ domain.EventPayload, ack domain.EventAckCallback) { ack(nil) })
+
+	err := d.svc.CancelBroadcast(ctx, req)
+	require.NoError(t, err)
+}
+
+func TestBroadcastService_CancelBroadcast_FromProcessed_Success(t *testing.T) {
+	d := setupBroadcastSvc(t)
+	defer d.ctrl.Finish()
+
+	ctx := context.Background()
+	req := &domain.CancelBroadcastRequest{WorkspaceID: "w1", ID: "b1"}
+	authOK(d.authService, ctx, req.WorkspaceID)
+
+	d.repo.EXPECT().WithTransaction(ctx, req.WorkspaceID, gomock.Any()).DoAndReturn(
+		func(_ context.Context, _ string, fn func(*sql.Tx) error) error { return fn(nil) },
+	)
+
+	processed := testBroadcast(req.WorkspaceID, req.ID)
+	processed.Status = domain.BroadcastStatusProcessed
+	completedAt := time.Now().UTC().Add(-5 * time.Minute)
+	processed.CompletedAt = &completedAt
+	d.repo.EXPECT().GetBroadcastTx(gomock.Any(), gomock.Any(), req.WorkspaceID, req.ID).Return(processed, nil)
+	d.repo.EXPECT().UpdateBroadcastStatusTx(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(
+		func(_ context.Context, _ *sql.Tx, b *domain.Broadcast) error {
+			assert.Equal(t, domain.BroadcastStatusCancelled, b.Status)
+			assert.NotNil(t, b.CancelledAt)
+			// CompletedAt is preserved for audit; don't null it.
+			assert.NotNil(t, b.CompletedAt)
+			return nil
+		},
+	)
+	d.emailQueueRepo.EXPECT().DeleteBySourceTx(gomock.Any(), gomock.Any(), domain.EmailQueueSourceBroadcast, req.ID).Return(int64(17), nil)
+	d.eventBus.EXPECT().PublishWithAck(gomock.Any(), gomock.Any(), gomock.Any()).Do(func(_ context.Context, _ domain.EventPayload, ack domain.EventAckCallback) { ack(nil) })
+
+	err := d.svc.CancelBroadcast(ctx, req)
+	require.NoError(t, err)
 }
 
 func TestBroadcastService_DeleteBroadcast_AuthFailure(t *testing.T) {
@@ -2560,7 +2697,8 @@ func TestBroadcastService_ResumeBroadcast_ScheduleParseError(t *testing.T) {
 			paused.Schedule.ScheduledTime = "invalid-time"
 
 			d.repo.EXPECT().GetBroadcastTx(gomock.Any(), gomock.Any(), req.WorkspaceID, req.ID).Return(paused, nil)
-			d.repo.EXPECT().UpdateBroadcastTx(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+			d.repo.EXPECT().UpdateBroadcastStatusTx(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+			d.emailQueueRepo.EXPECT().ResumeBySourceTx(gomock.Any(), gomock.Any(), domain.EmailQueueSourceBroadcast, req.ID).Return(int64(0), nil)
 			d.eventBus.EXPECT().PublishWithAck(gomock.Any(), gomock.Any(), gomock.Any()).Do(func(_ context.Context, _ domain.EventPayload, ack domain.EventAckCallback) { ack(nil) })
 
 			return fn(nil)

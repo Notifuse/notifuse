@@ -45,6 +45,7 @@ type BroadcastOrchestrator struct {
 	contactRepo     domain.ContactRepository
 	taskRepo        domain.TaskRepository
 	workspaceRepo   domain.WorkspaceRepository
+	emailQueueRepo  domain.EmailQueueRepository
 	abTestEvaluator *ABTestEvaluator
 	logger          logger.Logger
 	config          *Config
@@ -61,6 +62,7 @@ func NewBroadcastOrchestrator(
 	contactRepo domain.ContactRepository,
 	taskRepo domain.TaskRepository,
 	workspaceRepo domain.WorkspaceRepository,
+	emailQueueRepo domain.EmailQueueRepository,
 	abTestEvaluator *ABTestEvaluator,
 	logger logger.Logger,
 	config *Config,
@@ -83,6 +85,7 @@ func NewBroadcastOrchestrator(
 		contactRepo:     contactRepo,
 		taskRepo:        taskRepo,
 		workspaceRepo:   workspaceRepo,
+		emailQueueRepo:  emailQueueRepo,
 		abTestEvaluator: abTestEvaluator,
 		logger:          logger,
 		config:          config,
@@ -95,6 +98,50 @@ func NewBroadcastOrchestrator(
 // CanProcess returns true if this processor can handle the given task type
 func (o *BroadcastOrchestrator) CanProcess(taskType string) bool {
 	return taskType == "send_broadcast"
+}
+
+// pauseQueueEntries pauses any pending/failed queue rows for the given broadcast.
+// Nil-safe so tests without a queue repo continue to work.
+func (o *BroadcastOrchestrator) pauseQueueEntries(ctx context.Context, workspaceID, broadcastID string) {
+	if o.emailQueueRepo == nil {
+		return
+	}
+	n, err := o.emailQueueRepo.PauseBySource(ctx, workspaceID, domain.EmailQueueSourceBroadcast, broadcastID)
+	if err != nil {
+		o.logger.WithFields(map[string]interface{}{
+			"broadcast_id": broadcastID,
+			"error":        err.Error(),
+		}).Warn("Failed to pause email queue entries")
+		return
+	}
+	if n > 0 {
+		o.logger.WithFields(map[string]interface{}{
+			"broadcast_id":       broadcastID,
+			"paused_queue_count": n,
+		}).Info("Paused email queue entries for broadcast")
+	}
+}
+
+// deleteQueueEntries removes pending/failed/paused queue rows for the given broadcast.
+// Nil-safe. Used when the orchestrator observes an external cancellation.
+func (o *BroadcastOrchestrator) deleteQueueEntries(ctx context.Context, workspaceID, broadcastID string) {
+	if o.emailQueueRepo == nil {
+		return
+	}
+	n, err := o.emailQueueRepo.DeleteBySource(ctx, workspaceID, domain.EmailQueueSourceBroadcast, broadcastID)
+	if err != nil {
+		o.logger.WithFields(map[string]interface{}{
+			"broadcast_id": broadcastID,
+			"error":        err.Error(),
+		}).Warn("Failed to delete email queue entries")
+		return
+	}
+	if n > 0 {
+		o.logger.WithFields(map[string]interface{}{
+			"broadcast_id":          broadcastID,
+			"cancelled_queue_count": n,
+		}).Info("Deleted email queue entries for broadcast")
+	}
 }
 
 // LoadTemplates loads all templates for a broadcast's variations
@@ -831,6 +878,9 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 					"broadcast_id": broadcast.ID,
 					"task_id":      task.ID,
 				}).Info("Broadcast cancelled during processing - stopping task")
+				// Delete any rows we enqueued between the service-layer DeleteBySourceTx
+				// commit and this poll — closes the late-enqueue race window.
+				o.deleteQueueEntries(ctx, task.WorkspaceID, broadcast.ID)
 				// Task should stop processing as broadcast is cancelled
 				broadcastCancelledDuringProcessing = true
 				allDone = true
@@ -843,6 +893,9 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 					"broadcast_id": broadcast.ID,
 					"task_id":      task.ID,
 				}).Info("Broadcast paused during processing - stopping task")
+				// Pause any rows we enqueued between the service-layer PauseBySourceTx
+				// commit and this poll — closes the late-enqueue race window.
+				o.pauseQueueEntries(ctx, task.WorkspaceID, broadcast.ID)
 				// Task should stop processing as broadcast is paused
 				allDone = false // Task is not complete, it should be resumed later
 				break
@@ -1057,6 +1110,10 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 							"pause_reason": currentBroadcast.PauseReason,
 						}).Info("Broadcast paused due to circuit breaker")
 
+						// Pause already-queued rows so the worker doesn't keep sending through
+						// the broken integration.
+						o.pauseQueueEntries(ctx, task.WorkspaceID, broadcastState.BroadcastID)
+
 						// Publish circuit breaker event for notification handling
 						if o.eventBus != nil {
 							event := domain.EventPayload{
@@ -1137,6 +1194,9 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 					currentBroadcast.UpdatedAt = time.Now().UTC()
 
 					if updateErr := o.broadcastRepo.UpdateBroadcast(ctx, currentBroadcast); updateErr == nil {
+						// Pause already-queued rows so the worker stops sending.
+						o.pauseQueueEntries(ctx, task.WorkspaceID, broadcastState.BroadcastID)
+
 						if o.eventBus != nil {
 							pausedEvent := domain.EventPayload{
 								Type:        domain.EventBroadcastPaused,

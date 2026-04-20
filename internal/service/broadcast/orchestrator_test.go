@@ -60,6 +60,7 @@ func TestBroadcastOrchestrator_CanProcess(t *testing.T) {
 		mockContactRepo,
 		mockTaskRepo,
 		mockWorkspaceRepo,
+		nil, // emailQueueRepo not needed for this test
 		nil, // abTestEvaluator not needed for tests
 		mockLogger,
 		nil, // Use default config
@@ -116,6 +117,7 @@ func TestBroadcastOrchestrator_LoadTemplates(t *testing.T) {
 		mockContactRepo,
 		mockTaskRepo,
 		mockWorkspaceRepo,
+		nil, // emailQueueRepo not needed for this test
 		nil, // abTestEvaluator not needed for tests
 		mockLogger,
 		nil, // Use default config
@@ -195,6 +197,7 @@ func TestBroadcastOrchestrator_ValidateTemplates(t *testing.T) {
 		mockContactRepo,
 		mockTaskRepo,
 		mockWorkspaceRepo,
+		nil, // emailQueueRepo not needed for this test
 		nil, // abTestEvaluator not needed for tests
 		mockLogger,
 		nil, // Use default config
@@ -294,6 +297,7 @@ func TestBroadcastOrchestrator_GetTotalRecipientCount(t *testing.T) {
 		mockContactRepo,
 		mockTaskRepo,
 		mockWorkspaceRepo,
+		nil, // emailQueueRepo not needed for this test
 		nil, // abTestEvaluator not needed for tests,
 		mockLogger,
 		nil, // Use default config
@@ -360,6 +364,7 @@ func TestBroadcastOrchestrator_FetchBatch(t *testing.T) {
 		mockContactRepo,
 		mockTaskRepo,
 		mockWorkspaceRepo,
+		nil, // emailQueueRepo not needed for this test
 		nil, // abTestEvaluator not needed for tests,
 		mockLogger,
 		nil, // Use default config
@@ -435,6 +440,7 @@ func TestBroadcastOrchestrator_FetchBatch_CancelledBroadcast(t *testing.T) {
 		mockContactRepo,
 		mockTaskRepo,
 		mockWorkspaceRepo,
+		nil, // emailQueueRepo not needed for this test
 		nil, // abTestEvaluator not needed for tests,
 		mockLogger,
 		nil, // Use default config
@@ -578,6 +584,7 @@ func TestSaveProgressState(t *testing.T) {
 		mockContactRepo,
 		mockTaskRepo,
 		mockWorkspaceRepo,
+		nil, // emailQueueRepo not needed for this test
 		nil, // abTestEvaluator not needed for tests,
 		mockLogger,
 		nil, // Use default config
@@ -1378,6 +1385,7 @@ func TestBroadcastOrchestrator_Process(t *testing.T) {
 				mockContactRepo,
 				mockTaskRepo,
 				mockWorkspaceRepo,
+				nil, // emailQueueRepo not needed for this test
 				nil, // abTestEvaluator not needed for tests,
 				mockLogger,
 				config,
@@ -1485,7 +1493,7 @@ func TestBroadcastOrchestrator_Process_ABTestStartSetsTestingAndCompletesTestPha
 	mockTaskRepo.EXPECT().SaveState(gomock.Any(), "workspace-123", "task-123", gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
 	config := &broadcast.Config{FetchBatchSize: 50, MaxProcessTime: 30 * time.Second, ProgressLogInterval: 5 * time.Second}
-	orchestrator := broadcast.NewBroadcastOrchestrator(mockMessageSender, mockBroadcastRepo, mockTemplateRepo, mockContactRepo, mockTaskRepo, mockWorkspaceRepo, nil, mockLogger, config, mockTimeProvider, "https://api.example.com", mockEventBus)
+	orchestrator := broadcast.NewBroadcastOrchestrator(mockMessageSender, mockBroadcastRepo, mockTemplateRepo, mockContactRepo, mockTaskRepo, mockWorkspaceRepo, nil, nil, mockLogger, config, mockTimeProvider, "https://api.example.com", mockEventBus)
 
 	ctx := context.Background()
 	task := &domain.Task{
@@ -1544,7 +1552,7 @@ func TestBroadcastOrchestrator_Process_WinnerPhaseMissingTemplate_Error(t *testi
 	mockBroadcastRepo.EXPECT().UpdateBroadcast(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
 	config := &broadcast.Config{FetchBatchSize: 50, MaxProcessTime: 30 * time.Second}
-	orchestrator := broadcast.NewBroadcastOrchestrator(mockMessageSender, mockBroadcastRepo, mockTemplateRepo, mockContactRepo, mockTaskRepo, mockWorkspaceRepo, nil, mockLogger, config, mockTimeProvider, "https://api.example.com", mockEventBus)
+	orchestrator := broadcast.NewBroadcastOrchestrator(mockMessageSender, mockBroadcastRepo, mockTemplateRepo, mockContactRepo, mockTaskRepo, mockWorkspaceRepo, nil, nil, mockLogger, config, mockTimeProvider, "https://api.example.com", mockEventBus)
 
 	ctx := context.Background()
 	task := &domain.Task{ID: "task-123", WorkspaceID: "workspace-123", Type: "send_broadcast", BroadcastID: stringPtr("broadcast-123"), State: &domain.TaskState{SendBroadcast: &domain.SendBroadcastState{BroadcastID: "broadcast-123", TotalRecipients: 1, Phase: "winner"}}}
@@ -1600,7 +1608,7 @@ func TestBroadcastOrchestrator_Process_ValidateTemplatesFailure(t *testing.T) {
 	mockTemplateRepo.EXPECT().GetTemplateByID(gomock.Any(), "workspace-123", "tpl1", int64(0)).Return(badTpl, nil)
 
 	config := &broadcast.Config{FetchBatchSize: 50, MaxProcessTime: 30 * time.Second}
-	orchestrator := broadcast.NewBroadcastOrchestrator(mockMessageSender, mockBroadcastRepo, mockTemplateRepo, mockContactRepo, mockTaskRepo, mockWorkspaceRepo, nil, mockLogger, config, mockTimeProvider, "https://api.example.com", mockEventBus)
+	orchestrator := broadcast.NewBroadcastOrchestrator(mockMessageSender, mockBroadcastRepo, mockTemplateRepo, mockContactRepo, mockTaskRepo, mockWorkspaceRepo, nil, nil, mockLogger, config, mockTimeProvider, "https://api.example.com", mockEventBus)
 
 	ctx := context.Background()
 	task := &domain.Task{ID: "task-123", WorkspaceID: "workspace-123", Type: "send_broadcast", BroadcastID: stringPtr("broadcast-123"), State: &domain.TaskState{SendBroadcast: &domain.SendBroadcastState{BroadcastID: "broadcast-123", TotalRecipients: 2}}}
@@ -1647,7 +1655,7 @@ func TestBroadcastOrchestrator_Process_BatchSizeZeroTriggersPhaseCompletion(t *t
 	mockTaskRepo.EXPECT().SaveState(gomock.Any(), "w", "t", gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
 	config := &broadcast.Config{FetchBatchSize: 0, MaxProcessTime: 30 * time.Second}
-	orchestrator := broadcast.NewBroadcastOrchestrator(mockMessageSender, mockBroadcastRepo, mockTemplateRepo, mockContactRepo, mockTaskRepo, mockWorkspaceRepo, nil, mockLogger, config, mockTimeProvider, "https://api.example.com", mockEventBus)
+	orchestrator := broadcast.NewBroadcastOrchestrator(mockMessageSender, mockBroadcastRepo, mockTemplateRepo, mockContactRepo, mockTaskRepo, mockWorkspaceRepo, nil, nil, mockLogger, config, mockTimeProvider, "https://api.example.com", mockEventBus)
 
 	ctx := context.Background()
 	task := &domain.Task{ID: "t", WorkspaceID: "w", Type: "send_broadcast", BroadcastID: stringPtr("b"), State: &domain.TaskState{SendBroadcast: &domain.SendBroadcastState{BroadcastID: "b", TotalRecipients: 1}}}
@@ -1698,7 +1706,7 @@ func TestBroadcastOrchestrator_Process_EmptyRecipientsTriggersTestCompletion(t *
 	mockTaskRepo.EXPECT().SaveState(gomock.Any(), "w", "t", gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
 	config := &broadcast.Config{FetchBatchSize: 50, MaxProcessTime: 30 * time.Second}
-	orchestrator := broadcast.NewBroadcastOrchestrator(mockMessageSender, mockBroadcastRepo, mockTemplateRepo, mockContactRepo, mockTaskRepo, mockWorkspaceRepo, nil, mockLogger, config, mockTimeProvider, "https://api.example.com", mockEventBus)
+	orchestrator := broadcast.NewBroadcastOrchestrator(mockMessageSender, mockBroadcastRepo, mockTemplateRepo, mockContactRepo, mockTaskRepo, mockWorkspaceRepo, nil, nil, mockLogger, config, mockTimeProvider, "https://api.example.com", mockEventBus)
 
 	ctx := context.Background()
 	task := &domain.Task{ID: "t", WorkspaceID: "w", Type: "send_broadcast", BroadcastID: stringPtr("b"), State: &domain.TaskState{SendBroadcast: &domain.SendBroadcastState{BroadcastID: "b", TotalRecipients: 1}}}
@@ -1801,7 +1809,7 @@ func TestBroadcastOrchestrator_Process_AutoWinnerEvaluationPath(t *testing.T) {
 	mockBroadcastRepo.EXPECT().UpdateBroadcast(gomock.Any(), gomock.Any()).Return(nil)
 
 	config := &broadcast.Config{FetchBatchSize: 50, MaxProcessTime: 30 * time.Second, ProgressLogInterval: 5 * time.Second}
-	orchestrator := broadcast.NewBroadcastOrchestrator(mockMessageSender, mockBroadcastRepo, mockTemplateRepo, mockContactRepo, mockTaskRepo, mockWorkspaceRepo, abEval, mockLogger, config, mockTimeProvider, "https://api.example.com", mockEventBus)
+	orchestrator := broadcast.NewBroadcastOrchestrator(mockMessageSender, mockBroadcastRepo, mockTemplateRepo, mockContactRepo, mockTaskRepo, mockWorkspaceRepo, nil, abEval, mockLogger, config, mockTimeProvider, "https://api.example.com", mockEventBus)
 
 	ctx := context.Background()
 	task := &domain.Task{ID: "t", WorkspaceID: "w", Type: "send_broadcast", BroadcastID: stringPtr("b"), State: &domain.TaskState{SendBroadcast: &domain.SendBroadcastState{BroadcastID: "b", TotalRecipients: 1, Phase: "test"}}}
@@ -1966,6 +1974,7 @@ func TestBroadcastOrchestrator_Process_ABTestWinnerPhaseProcessesRemainingRecipi
 		mockContactRepo,
 		mockTaskRepo,
 		mockWorkspaceRepo,
+		nil, // emailQueueRepo not needed for this test
 		nil, // abTestEvaluator not needed for this test
 		mockLogger,
 		config,
@@ -2083,6 +2092,7 @@ func TestBroadcastOrchestrator_Process_NoRecipientsUpdatesBroadcastStatus(t *tes
 		mockContactRepo,
 		mockTaskRepo,
 		mockWorkspaceRepo,
+		nil, // emailQueueRepo not needed for this test
 		nil, // abTestEvaluator not needed
 		mockLogger,
 		config,
@@ -2152,6 +2162,7 @@ func TestNewBroadcastOrchestrator_DefaultConfig(t *testing.T) {
 		mockContactRepo,
 		mockTaskRepo,
 		mockWorkspaceRepo,
+		nil, // emailQueueRepo not needed for this test
 		nil,
 		mockLogger,
 		nil, // nil config
@@ -2191,6 +2202,7 @@ func TestNewBroadcastOrchestrator_DefaultTimeProvider(t *testing.T) {
 		mockContactRepo,
 		mockTaskRepo,
 		mockWorkspaceRepo,
+		nil, // emailQueueRepo not needed for this test
 		nil,
 		mockLogger,
 		config,
@@ -2230,6 +2242,7 @@ func TestBroadcastOrchestrator_ValidateTemplates_EmptyTemplates(t *testing.T) {
 		mockContactRepo,
 		mockTaskRepo,
 		mockWorkspaceRepo,
+		nil, // emailQueueRepo not needed for this test
 		nil,
 		mockLogger,
 		config,
@@ -2272,6 +2285,7 @@ func TestBroadcastOrchestrator_ValidateTemplates_NilTemplate(t *testing.T) {
 		mockContactRepo,
 		mockTaskRepo,
 		mockWorkspaceRepo,
+		nil, // emailQueueRepo not needed for this test
 		nil,
 		mockLogger,
 		config,
@@ -2321,6 +2335,7 @@ func TestBroadcastOrchestrator_ValidateTemplates_MissingEmailConfig(t *testing.T
 		mockContactRepo,
 		mockTaskRepo,
 		mockWorkspaceRepo,
+		nil, // emailQueueRepo not needed for this test
 		nil,
 		mockLogger,
 		config,
@@ -2373,6 +2388,7 @@ func TestBroadcastOrchestrator_ValidateTemplates_MissingContent(t *testing.T) {
 		mockContactRepo,
 		mockTaskRepo,
 		mockWorkspaceRepo,
+		nil, // emailQueueRepo not needed for this test
 		nil,
 		mockLogger,
 		config,
@@ -2426,6 +2442,7 @@ func TestBroadcastOrchestrator_ValidateTemplates_CodeModeValid(t *testing.T) {
 		mockContactRepo,
 		mockTaskRepo,
 		mockWorkspaceRepo,
+		nil, // emailQueueRepo not needed for this test
 		nil,
 		mockLogger,
 		config,
@@ -2482,6 +2499,7 @@ func TestBroadcastOrchestrator_ValidateTemplates_CodeModeMissingSource(t *testin
 		mockContactRepo,
 		mockTaskRepo,
 		mockWorkspaceRepo,
+		nil, // emailQueueRepo not needed for this test
 		nil,
 		mockLogger,
 		config,
@@ -2539,6 +2557,7 @@ func TestBroadcastOrchestrator_FetchBatch_BroadcastNotFound(t *testing.T) {
 		mockContactRepo,
 		mockTaskRepo,
 		mockWorkspaceRepo,
+		nil, // emailQueueRepo not needed for this test
 		nil,
 		mockLogger,
 		config,
@@ -2592,6 +2611,7 @@ func TestBroadcastOrchestrator_FetchBatch_BroadcastCancelled(t *testing.T) {
 		mockContactRepo,
 		mockTaskRepo,
 		mockWorkspaceRepo,
+		nil, // emailQueueRepo not needed for this test
 		nil,
 		mockLogger,
 		config,
@@ -2652,6 +2672,7 @@ func TestBroadcastOrchestrator_FetchBatch_ContactRepoError(t *testing.T) {
 		mockContactRepo,
 		mockTaskRepo,
 		mockWorkspaceRepo,
+		nil, // emailQueueRepo not needed for this test
 		nil,
 		mockLogger,
 		config,
@@ -2718,6 +2739,7 @@ func TestBroadcastOrchestrator_SaveProgressState_SaveStateError(t *testing.T) {
 		mockContactRepo,
 		mockTaskRepo,
 		mockWorkspaceRepo,
+		nil, // emailQueueRepo not needed for this test
 		nil,
 		mockLogger,
 		config,
@@ -2917,6 +2939,7 @@ func TestBroadcastOrchestrator_Process_PartialBatchCursorUpdate(t *testing.T) {
 		mockContactRepo,
 		mockTaskRepo,
 		mockWorkspaceRepo,
+		nil, // emailQueueRepo not needed for this test
 		nil,
 		mockLogger,
 		config,
@@ -3063,7 +3086,7 @@ func TestProcessBroadcastTask_RecipientFeedFailure_PausesBroadcast(t *testing.T)
 	mockTaskRepo.EXPECT().SaveState(gomock.Any(), "workspace-123", "task-123", gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
 	config := &broadcast.Config{FetchBatchSize: 50, MaxProcessTime: 30 * time.Second, ProgressLogInterval: 5 * time.Second}
-	orchestrator := broadcast.NewBroadcastOrchestrator(mockMessageSender, mockBroadcastRepo, mockTemplateRepo, mockContactRepo, mockTaskRepo, mockWorkspaceRepo, nil, mockLogger, config, mockTimeProvider, "https://api.example.com", mockEventBus)
+	orchestrator := broadcast.NewBroadcastOrchestrator(mockMessageSender, mockBroadcastRepo, mockTemplateRepo, mockContactRepo, mockTaskRepo, mockWorkspaceRepo, nil, nil, mockLogger, config, mockTimeProvider, "https://api.example.com", mockEventBus)
 
 	ctx := context.Background()
 	task := &domain.Task{
@@ -3167,7 +3190,7 @@ func TestProcessBroadcastTask_RecipientFeedFailure_NotMarkedAsFailed(t *testing.
 	mockTaskRepo.EXPECT().SaveState(gomock.Any(), "workspace-123", "task-123", gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
 	config := &broadcast.Config{FetchBatchSize: 50, MaxProcessTime: 30 * time.Second, ProgressLogInterval: 5 * time.Second}
-	orchestrator := broadcast.NewBroadcastOrchestrator(mockMessageSender, mockBroadcastRepo, mockTemplateRepo, mockContactRepo, mockTaskRepo, mockWorkspaceRepo, nil, mockLogger, config, mockTimeProvider, "https://api.example.com", mockEventBus)
+	orchestrator := broadcast.NewBroadcastOrchestrator(mockMessageSender, mockBroadcastRepo, mockTemplateRepo, mockContactRepo, mockTaskRepo, mockWorkspaceRepo, nil, nil, mockLogger, config, mockTimeProvider, "https://api.example.com", mockEventBus)
 
 	ctx := context.Background()
 	task := &domain.Task{

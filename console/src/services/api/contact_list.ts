@@ -53,6 +53,14 @@ export interface SuccessResponse {
   success: boolean
 }
 
+// updateStatus silently no-ops when the contact is not in the list; `found`
+// distinguishes the no-op case so callers can surface it as "Skipped".
+export interface UpdateContactListStatusResponse {
+  success: boolean
+  found?: boolean
+  message?: string
+}
+
 // API client for contact list operations
 export const contactListApi = {
   // Get a specific contact-list relationship by IDs
@@ -88,8 +96,10 @@ export const contactListApi = {
   },
 
   // Update the status of a contact in a list
-  updateStatus: async (params: UpdateContactListStatusRequest): Promise<SuccessResponse> => {
-    return api.post<SuccessResponse>('/api/contactLists.updateStatus', params)
+  updateStatus: async (
+    params: UpdateContactListStatusRequest
+  ): Promise<UpdateContactListStatusResponse> => {
+    return api.post<UpdateContactListStatusResponse>('/api/contactLists.updateStatus', params)
   },
 
   // Remove a contact from a list

@@ -16,6 +16,7 @@ const (
 	EmailQueueStatusPending    EmailQueueStatus = "pending"
 	EmailQueueStatusProcessing EmailQueueStatus = "processing"
 	EmailQueueStatusFailed     EmailQueueStatus = "failed"
+	EmailQueueStatusPaused     EmailQueueStatus = "paused"
 	// Note: There is no "sent" status - entries are deleted immediately after successful send
 )
 
@@ -148,6 +149,30 @@ type EmailQueueRepository interface {
 
 	// CountBySourceAndStatus counts entries by source and status
 	CountBySourceAndStatus(ctx context.Context, workspaceID string, sourceType EmailQueueSourceType, sourceID string, status EmailQueueStatus) (int64, error)
+
+	// PauseBySource marks all pending/failed entries for a source as paused.
+	// Processing entries are untouched (mid-send, will complete naturally).
+	// Returns the number of rows affected.
+	PauseBySource(ctx context.Context, workspaceID string, sourceType EmailQueueSourceType, sourceID string) (int64, error)
+
+	// PauseBySourceTx is the transactional variant of PauseBySource.
+	PauseBySourceTx(ctx context.Context, tx *sql.Tx, sourceType EmailQueueSourceType, sourceID string) (int64, error)
+
+	// ResumeBySource marks all paused entries for a source back to pending
+	// and clears next_retry_at so retries pick up immediately.
+	// Returns the number of rows affected.
+	ResumeBySource(ctx context.Context, workspaceID string, sourceType EmailQueueSourceType, sourceID string) (int64, error)
+
+	// ResumeBySourceTx is the transactional variant of ResumeBySource.
+	ResumeBySourceTx(ctx context.Context, tx *sql.Tx, sourceType EmailQueueSourceType, sourceID string) (int64, error)
+
+	// DeleteBySource deletes all pending/failed/paused entries for a source.
+	// Processing entries are untouched (mid-send, will complete naturally).
+	// Returns the number of rows deleted.
+	DeleteBySource(ctx context.Context, workspaceID string, sourceType EmailQueueSourceType, sourceID string) (int64, error)
+
+	// DeleteBySourceTx is the transactional variant of DeleteBySource.
+	DeleteBySourceTx(ctx context.Context, tx *sql.Tx, sourceType EmailQueueSourceType, sourceID string) (int64, error)
 }
 
 // getEmailQueueRetryBase returns the base retry interval for exponential backoff.

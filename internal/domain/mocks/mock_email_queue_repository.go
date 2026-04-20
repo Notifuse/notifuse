@@ -66,6 +66,36 @@ func (mr *MockEmailQueueRepositoryMockRecorder) Delete(arg0, arg1, arg2 interfac
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockEmailQueueRepository)(nil).Delete), arg0, arg1, arg2)
 }
 
+// DeleteBySource mocks base method.
+func (m *MockEmailQueueRepository) DeleteBySource(arg0 context.Context, arg1 string, arg2 domain.EmailQueueSourceType, arg3 string) (int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteBySource", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DeleteBySource indicates an expected call of DeleteBySource.
+func (mr *MockEmailQueueRepositoryMockRecorder) DeleteBySource(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteBySource", reflect.TypeOf((*MockEmailQueueRepository)(nil).DeleteBySource), arg0, arg1, arg2, arg3)
+}
+
+// DeleteBySourceTx mocks base method.
+func (m *MockEmailQueueRepository) DeleteBySourceTx(arg0 context.Context, arg1 *sql.Tx, arg2 domain.EmailQueueSourceType, arg3 string) (int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteBySourceTx", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DeleteBySourceTx indicates an expected call of DeleteBySourceTx.
+func (mr *MockEmailQueueRepositoryMockRecorder) DeleteBySourceTx(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteBySourceTx", reflect.TypeOf((*MockEmailQueueRepository)(nil).DeleteBySourceTx), arg0, arg1, arg2, arg3)
+}
+
 // Enqueue mocks base method.
 func (m *MockEmailQueueRepository) Enqueue(arg0 context.Context, arg1 string, arg2 []*domain.EmailQueueEntry) error {
 	m.ctrl.T.Helper()
@@ -179,6 +209,66 @@ func (m *MockEmailQueueRepository) MarkAsSent(arg0 context.Context, arg1, arg2 s
 func (mr *MockEmailQueueRepositoryMockRecorder) MarkAsSent(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MarkAsSent", reflect.TypeOf((*MockEmailQueueRepository)(nil).MarkAsSent), arg0, arg1, arg2)
+}
+
+// PauseBySource mocks base method.
+func (m *MockEmailQueueRepository) PauseBySource(arg0 context.Context, arg1 string, arg2 domain.EmailQueueSourceType, arg3 string) (int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PauseBySource", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// PauseBySource indicates an expected call of PauseBySource.
+func (mr *MockEmailQueueRepositoryMockRecorder) PauseBySource(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PauseBySource", reflect.TypeOf((*MockEmailQueueRepository)(nil).PauseBySource), arg0, arg1, arg2, arg3)
+}
+
+// PauseBySourceTx mocks base method.
+func (m *MockEmailQueueRepository) PauseBySourceTx(arg0 context.Context, arg1 *sql.Tx, arg2 domain.EmailQueueSourceType, arg3 string) (int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PauseBySourceTx", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// PauseBySourceTx indicates an expected call of PauseBySourceTx.
+func (mr *MockEmailQueueRepositoryMockRecorder) PauseBySourceTx(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PauseBySourceTx", reflect.TypeOf((*MockEmailQueueRepository)(nil).PauseBySourceTx), arg0, arg1, arg2, arg3)
+}
+
+// ResumeBySource mocks base method.
+func (m *MockEmailQueueRepository) ResumeBySource(arg0 context.Context, arg1 string, arg2 domain.EmailQueueSourceType, arg3 string) (int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ResumeBySource", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ResumeBySource indicates an expected call of ResumeBySource.
+func (mr *MockEmailQueueRepositoryMockRecorder) ResumeBySource(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResumeBySource", reflect.TypeOf((*MockEmailQueueRepository)(nil).ResumeBySource), arg0, arg1, arg2, arg3)
+}
+
+// ResumeBySourceTx mocks base method.
+func (m *MockEmailQueueRepository) ResumeBySourceTx(arg0 context.Context, arg1 *sql.Tx, arg2 domain.EmailQueueSourceType, arg3 string) (int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ResumeBySourceTx", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ResumeBySourceTx indicates an expected call of ResumeBySourceTx.
+func (mr *MockEmailQueueRepositoryMockRecorder) ResumeBySourceTx(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResumeBySourceTx", reflect.TypeOf((*MockEmailQueueRepository)(nil).ResumeBySourceTx), arg0, arg1, arg2, arg3)
 }
 
 // SetNextRetry mocks base method.

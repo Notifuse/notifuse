@@ -291,6 +291,51 @@ func (r *broadcastRepository) UpdateBroadcastTx(ctx context.Context, tx *sql.Tx,
 	return nil
 }
 
+// UpdateBroadcastStatusTx updates only the status-lifecycle fields. Unlike
+// UpdateBroadcastTx it does not enforce the "not already terminal" guard,
+// so pause/resume/cancel flows can transition a Processed broadcast.
+// Only updates: status, started_at, completed_at, cancelled_at, paused_at,
+// pause_reason, updated_at.
+func (r *broadcastRepository) UpdateBroadcastStatusTx(ctx context.Context, tx *sql.Tx, broadcast *domain.Broadcast) error {
+	broadcast.UpdatedAt = time.Now().UTC()
+
+	query := `
+		UPDATE broadcasts SET
+			status = $3,
+			started_at = $4,
+			completed_at = $5,
+			cancelled_at = $6,
+			paused_at = $7,
+			pause_reason = $8,
+			updated_at = $9
+		WHERE id = $1 AND workspace_id = $2
+	`
+
+	result, err := tx.ExecContext(ctx, query,
+		broadcast.ID,
+		broadcast.WorkspaceID,
+		broadcast.Status,
+		broadcast.StartedAt,
+		broadcast.CompletedAt,
+		broadcast.CancelledAt,
+		broadcast.PausedAt,
+		broadcast.PauseReason,
+		broadcast.UpdatedAt,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to update broadcast status: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+	if rowsAffected == 0 {
+		return &domain.ErrBroadcastNotFound{ID: broadcast.ID}
+	}
+	return nil
+}
+
 // ListBroadcastsTx retrieves a list of broadcasts within a transaction
 func (r *broadcastRepository) ListBroadcastsTx(ctx context.Context, tx *sql.Tx, params domain.ListBroadcastsParams) (*domain.BroadcastListResponse, error) {
 	// First count total records that match the criteria

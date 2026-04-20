@@ -30,6 +30,12 @@ vi.mock('@lingui/react/macro', () => ({
     i18n,
   }),
   Trans: ({ children }: { children: ReactNode }) => children,
+  // Plural macro fallback: pick `one` for 1, `other` otherwise, and replace `#`
+  // with the value (matches real macro behavior well enough for tests).
+  Plural: ({ value, one, other }: { value: number; one?: string; other: string }) => {
+    const template = value === 1 && one ? one : other
+    return template.replace(/#/g, String(value))
+  },
 }))
 
 // Test wrapper with i18n support

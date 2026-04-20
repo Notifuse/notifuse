@@ -46,6 +46,7 @@ func TestBroadcastOrchestrator_Process_CancelledBroadcast(t *testing.T) {
 		mockContactRepo,
 		mockTaskRepo,
 		mockWorkspaceRepo,
+		nil, // emailQueueRepo not needed for this test
 		nil, // abTestEvaluator not needed for tests,
 		mockLogger,
 		nil, // Use default config

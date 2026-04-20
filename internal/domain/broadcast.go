@@ -1048,6 +1048,12 @@ type BroadcastRepository interface {
 	CreateBroadcastTx(ctx context.Context, tx *sql.Tx, broadcast *Broadcast) error
 	GetBroadcastTx(ctx context.Context, tx *sql.Tx, workspaceID, broadcastID string) (*Broadcast, error)
 	UpdateBroadcastTx(ctx context.Context, tx *sql.Tx, broadcast *Broadcast) error
+	// UpdateBroadcastStatusTx updates only status-lifecycle fields (status,
+	// timestamps, pause_reason). Unlike UpdateBroadcastTx, it does not reject
+	// already-terminal states — used by pause/resume/cancel flows that need to
+	// transition a Processed broadcast. The service layer enforces allowed
+	// transitions.
+	UpdateBroadcastStatusTx(ctx context.Context, tx *sql.Tx, broadcast *Broadcast) error
 	DeleteBroadcastTx(ctx context.Context, tx *sql.Tx, workspaceID, broadcastID string) error
 	ListBroadcastsTx(ctx context.Context, tx *sql.Tx, params ListBroadcastsParams) (*BroadcastListResponse, error)
 }

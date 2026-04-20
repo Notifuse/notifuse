@@ -662,3 +662,189 @@ func TestEmailQueueRepository_MarkAsProcessing_StuckRecovery(t *testing.T) {
 		assert.Contains(t, err.Error(), "not found or already processing")
 	})
 }
+
+func TestEmailQueueRepository_PauseBySource(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("pauses pending and failed entries for broadcast", func(t *testing.T) {
+		db, mock, cleanup := testutil.SetupMockDB(t)
+		defer cleanup()
+
+		repo := NewEmailQueueRepositoryWithDB(db)
+
+		mock.ExpectExec(`UPDATE email_queue\s+SET status = 'paused', updated_at = NOW\(\)\s+WHERE source_type = \$1 AND source_id = \$2\s+AND status IN \('pending', 'failed'\)`).
+			WithArgs(domain.EmailQueueSourceBroadcast, "broadcast-1").
+			WillReturnResult(sqlmock.NewResult(0, 5))
+
+		n, err := repo.PauseBySource(ctx, "workspace-123", domain.EmailQueueSourceBroadcast, "broadcast-1")
+		require.NoError(t, err)
+		assert.Equal(t, int64(5), n)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("returns zero when no rows match", func(t *testing.T) {
+		db, mock, cleanup := testutil.SetupMockDB(t)
+		defer cleanup()
+
+		repo := NewEmailQueueRepositoryWithDB(db)
+
+		mock.ExpectExec(`UPDATE email_queue`).
+			WithArgs(domain.EmailQueueSourceBroadcast, "broadcast-1").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+
+		n, err := repo.PauseBySource(ctx, "workspace-123", domain.EmailQueueSourceBroadcast, "broadcast-1")
+		require.NoError(t, err)
+		assert.Equal(t, int64(0), n)
+	})
+
+	t.Run("wraps database error", func(t *testing.T) {
+		db, mock, cleanup := testutil.SetupMockDB(t)
+		defer cleanup()
+
+		repo := NewEmailQueueRepositoryWithDB(db)
+
+		mock.ExpectExec(`UPDATE email_queue`).
+			WillReturnError(errors.New("db down"))
+
+		_, err := repo.PauseBySource(ctx, "workspace-123", domain.EmailQueueSourceBroadcast, "broadcast-1")
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to pause queue entries by source")
+	})
+}
+
+func TestEmailQueueRepository_PauseBySourceTx(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("pauses within existing transaction", func(t *testing.T) {
+		db, mock, cleanup := testutil.SetupMockDB(t)
+		defer cleanup()
+
+		repo := NewEmailQueueRepositoryWithDB(db).(*EmailQueueRepository)
+
+		mock.ExpectBegin()
+		tx, err := db.BeginTx(ctx, nil)
+		require.NoError(t, err)
+
+		mock.ExpectExec(`UPDATE email_queue\s+SET status = 'paused'`).
+			WithArgs(domain.EmailQueueSourceBroadcast, "broadcast-1").
+			WillReturnResult(sqlmock.NewResult(0, 3))
+
+		n, err := repo.PauseBySourceTx(ctx, tx, domain.EmailQueueSourceBroadcast, "broadcast-1")
+		require.NoError(t, err)
+		assert.Equal(t, int64(3), n)
+	})
+}
+
+func TestEmailQueueRepository_ResumeBySource(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("flips paused to pending and clears next_retry_at", func(t *testing.T) {
+		db, mock, cleanup := testutil.SetupMockDB(t)
+		defer cleanup()
+
+		repo := NewEmailQueueRepositoryWithDB(db)
+
+		mock.ExpectExec(`UPDATE email_queue\s+SET status = 'pending', next_retry_at = NULL, updated_at = NOW\(\)\s+WHERE source_type = \$1 AND source_id = \$2\s+AND status = 'paused'`).
+			WithArgs(domain.EmailQueueSourceBroadcast, "broadcast-1").
+			WillReturnResult(sqlmock.NewResult(0, 4))
+
+		n, err := repo.ResumeBySource(ctx, "workspace-123", domain.EmailQueueSourceBroadcast, "broadcast-1")
+		require.NoError(t, err)
+		assert.Equal(t, int64(4), n)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("wraps database error", func(t *testing.T) {
+		db, mock, cleanup := testutil.SetupMockDB(t)
+		defer cleanup()
+
+		repo := NewEmailQueueRepositoryWithDB(db)
+
+		mock.ExpectExec(`UPDATE email_queue`).
+			WillReturnError(errors.New("db down"))
+
+		_, err := repo.ResumeBySource(ctx, "workspace-123", domain.EmailQueueSourceBroadcast, "broadcast-1")
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to resume queue entries by source")
+	})
+}
+
+func TestEmailQueueRepository_ResumeBySourceTx(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("resumes within existing transaction", func(t *testing.T) {
+		db, mock, cleanup := testutil.SetupMockDB(t)
+		defer cleanup()
+
+		repo := NewEmailQueueRepositoryWithDB(db).(*EmailQueueRepository)
+
+		mock.ExpectBegin()
+		tx, err := db.BeginTx(ctx, nil)
+		require.NoError(t, err)
+
+		mock.ExpectExec(`UPDATE email_queue\s+SET status = 'pending', next_retry_at = NULL`).
+			WithArgs(domain.EmailQueueSourceBroadcast, "broadcast-1").
+			WillReturnResult(sqlmock.NewResult(0, 2))
+
+		n, err := repo.ResumeBySourceTx(ctx, tx, domain.EmailQueueSourceBroadcast, "broadcast-1")
+		require.NoError(t, err)
+		assert.Equal(t, int64(2), n)
+	})
+}
+
+func TestEmailQueueRepository_DeleteBySource(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("deletes pending, failed, and paused; excludes processing", func(t *testing.T) {
+		db, mock, cleanup := testutil.SetupMockDB(t)
+		defer cleanup()
+
+		repo := NewEmailQueueRepositoryWithDB(db)
+
+		mock.ExpectExec(`DELETE FROM email_queue\s+WHERE source_type = \$1 AND source_id = \$2\s+AND status IN \('pending', 'failed', 'paused'\)`).
+			WithArgs(domain.EmailQueueSourceBroadcast, "broadcast-1").
+			WillReturnResult(sqlmock.NewResult(0, 7))
+
+		n, err := repo.DeleteBySource(ctx, "workspace-123", domain.EmailQueueSourceBroadcast, "broadcast-1")
+		require.NoError(t, err)
+		assert.Equal(t, int64(7), n)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("wraps database error", func(t *testing.T) {
+		db, mock, cleanup := testutil.SetupMockDB(t)
+		defer cleanup()
+
+		repo := NewEmailQueueRepositoryWithDB(db)
+
+		mock.ExpectExec(`DELETE FROM email_queue`).
+			WillReturnError(errors.New("db down"))
+
+		_, err := repo.DeleteBySource(ctx, "workspace-123", domain.EmailQueueSourceBroadcast, "broadcast-1")
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to delete queue entries by source")
+	})
+}
+
+func TestEmailQueueRepository_DeleteBySourceTx(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("deletes within existing transaction", func(t *testing.T) {
+		db, mock, cleanup := testutil.SetupMockDB(t)
+		defer cleanup()
+
+		repo := NewEmailQueueRepositoryWithDB(db).(*EmailQueueRepository)
+
+		mock.ExpectBegin()
+		tx, err := db.BeginTx(ctx, nil)
+		require.NoError(t, err)
+
+		mock.ExpectExec(`DELETE FROM email_queue\s+WHERE source_type = \$1 AND source_id = \$2\s+AND status IN \('pending', 'failed', 'paused'\)`).
+			WithArgs(domain.EmailQueueSourceBroadcast, "broadcast-1").
+			WillReturnResult(sqlmock.NewResult(0, 6))
+
+		n, err := repo.DeleteBySourceTx(ctx, tx, domain.EmailQueueSourceBroadcast, "broadcast-1")
+		require.NoError(t, err)
+		assert.Equal(t, int64(6), n)
+	})
+}
