@@ -11,8 +11,18 @@ env:
   IMAGE_NAME: notifuse/notifuse
 
 jobs:
-  build-and-push:
-    runs-on: ubuntu-latest
+  build:
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - platform: linux/amd64
+            arch: amd64
+            runner: ubuntu-latest
+          - platform: linux/arm64
+            arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
     permissions:
       contents: read
       packages: write
@@ -22,8 +32,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0 # Fetch all history for tags
 
       - name: Get git commit info
         id: git-info
@@ -31,10 +39,6 @@ jobs:
           echo "commit-sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
           echo "commit-short-sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
           echo "tag-name=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
-          echo "commit-message=$(git log -1 --pretty=%B | tr '\n' ' ' | sed 's/[[:space:]]*$//')" >> $GITHUB_OUTPUT
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -62,64 +66,115 @@ jobs:
             notifuse.build.date=${{ github.run_id }}
             notifuse.build.url=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
-      - name: Build and push Docker image
+      - name: Build and push by digest
         id: build
         uses: docker/build-push-action@v5
         with:
           context: .
           file: ./Dockerfile
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          platforms: linux/amd64,linux/arm64
+          platforms: ${{ matrix.platform }}
           no-cache: true
+          labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             GIT_COMMIT=${{ steps.git-info.outputs.commit-sha }}
             GIT_COMMIT_SHORT=${{ steps.git-info.outputs.commit-short-sha }}
             GIT_TAG=${{ steps.git-info.outputs.tag-name }}
             BUILD_DATE=${{ github.run_id }}
             BUILD_URL=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          outputs: type=image,name=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }},push-by-digest=true,name-canonical=true,push=true
 
-      - name: Debug outputs
-        run: |
-          echo "=== Git Information ==="
-          echo "Git Commit SHA: '${{ steps.git-info.outputs.commit-sha }}'"
-          echo "Git Commit Short SHA: '${{ steps.git-info.outputs.commit-short-sha }}'"
-          echo "Git Tag: '${{ steps.git-info.outputs.tag-name }}'"
-          cat <<'EOF'
-          Commit Message: ${{ steps.git-info.outputs.commit-message }}
-          EOF
-          echo ""
-          echo "=== Build Information ==="
-          echo "Build Digest: '${{ steps.build.outputs.digest }}'"
-          echo "Build ImageID: '${{ steps.build.outputs.imageid }}'"
-          cat <<'EOF'
-          Build Metadata: ${{ steps.build.outputs.metadata }}
-          EOF
-          echo "Meta Digest: '${{ steps.meta.outputs.digest }}'"
-          echo "Tags: '${{ steps.meta.outputs.tags }}'"
-          echo "Image Name: '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}'"
-
-      - name: Generate artifact attestation
-        if: steps.build.outputs.digest != ''
+      - name: Attest per-arch image
         uses: actions/attest-build-provenance@v1
         with:
           subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           subject-digest: ${{ steps.build.outputs.digest }}
           push-to-registry: true
 
+      - name: Export digest
+        run: |
+          mkdir -p "${{ runner.temp }}/digests"
+          digest="${{ steps.build.outputs.digest }}"
+          touch "${{ runner.temp }}/digests/${digest#sha256:}"
+
+      - name: Upload digest
+        uses: actions/upload-artifact@v4
+        with:
+          name: digests-${{ matrix.arch }}
+          path: ${{ runner.temp }}/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  merge:
+    needs: [build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      attestations: write
+
+    steps:
+      - name: Download digests
+        uses: actions/download-artifact@v4
+        with:
+          path: ${{ runner.temp }}/digests
+          pattern: digests-*
+          merge-multiple: true
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Set up crane
+        uses: imjasonh/setup-crane@v0.4
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=tag
+            type=raw,value=latest,enable=${{ github.ref_name == 'latest' }}
+
+      - name: Create manifest list and push
+        working-directory: ${{ runner.temp }}/digests
+        run: |
+          tag_args=$(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON")
+          src_args=""
+          for f in *; do
+            src_args="$src_args ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@sha256:$f"
+          done
+          docker buildx imagetools create $tag_args $src_args
+
+      - name: Get manifest digest
+        id: digest
+        run: |
+          first_tag=$(jq -r '.tags[0]' <<< "$DOCKER_METADATA_OUTPUT_JSON")
+          digest=$(crane digest "$first_tag")
+          echo "digest=$digest" >> $GITHUB_OUTPUT
+          echo "Manifest digest: $digest"
+
+      - name: Attest manifest list
+        uses: actions/attest-build-provenance@v1
+        with:
+          subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          subject-digest: ${{ steps.digest.outputs.digest }}
+          push-to-registry: true
+
       - name: Output image details
         run: |
           echo "Image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
           echo "Tags: ${{ steps.meta.outputs.tags }}"
-          echo "Digest: ${{ steps.build.outputs.digest }}"
+          echo "Digest: ${{ steps.digest.outputs.digest }}"
           echo "Triggered by tag: ${{ github.ref_name }}"
-          echo "Git Commit: ${{ steps.git-info.outputs.commit-sha }}"
           echo ""
-          echo "🚀 Docker image successfully built and pushed!"
-          echo "📦 Registry: ${{ env.REGISTRY }}"
-          echo "🏷️  Image: ${{ env.IMAGE_NAME }}"
-          echo "🔖 Tags: ${{ steps.meta.outputs.tags }}"
-          echo "🏷️  Triggered by tag: ${{ steps.git-info.outputs.tag-name }}"
-          echo "📝 Git commit: ${{ steps.git-info.outputs.commit-short-sha }}"
-          echo "🔗 Build URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          echo "Docker image successfully built and pushed."
+          echo "Registry: ${{ env.REGISTRY }}"
+          echo "Image: ${{ env.IMAGE_NAME }}"
+          echo "Build URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
