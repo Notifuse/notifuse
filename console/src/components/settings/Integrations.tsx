@@ -1498,6 +1498,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
                 <Select.Option value="eu-central-1">
                   Europe (Frankfurt) - eu-central-1
                 </Select.Option>
+                <Select.Option value="eu-central-2">Europe (Zurich) - eu-central-2</Select.Option>
                 <Select.Option value="eu-west-1">Europe (Ireland) - eu-west-1</Select.Option>
                 <Select.Option value="eu-west-2">Europe (London) - eu-west-2</Select.Option>
                 <Select.Option value="eu-south-1">Europe (Milan) - eu-south-1</Select.Option>
