@@ -1475,8 +1475,14 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
                 <Select.Option value="us-west-1">US West (N. California) - us-west-1</Select.Option>
                 <Select.Option value="us-west-2">US West (Oregon) - us-west-2</Select.Option>
                 <Select.Option value="af-south-1">Africa (Cape Town) - af-south-1</Select.Option>
+                <Select.Option value="ap-south-2">
+                  Asia Pacific (Hyderabad) - ap-south-2
+                </Select.Option>
                 <Select.Option value="ap-southeast-3">
                   Asia Pacific (Jakarta) - ap-southeast-3
+                </Select.Option>
+                <Select.Option value="ap-southeast-5">
+                  Asia Pacific (Malaysia) - ap-southeast-5
                 </Select.Option>
                 <Select.Option value="ap-south-1">Asia Pacific (Mumbai) - ap-south-1</Select.Option>
                 <Select.Option value="ap-northeast-3">
@@ -1495,6 +1501,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
                   Asia Pacific (Tokyo) - ap-northeast-1
                 </Select.Option>
                 <Select.Option value="ca-central-1">Canada (Central) - ca-central-1</Select.Option>
+                <Select.Option value="ca-west-1">Canada West (Calgary) - ca-west-1</Select.Option>
                 <Select.Option value="eu-central-1">
                   Europe (Frankfurt) - eu-central-1
                 </Select.Option>
@@ -1506,6 +1513,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
                 <Select.Option value="eu-north-1">Europe (Stockholm) - eu-north-1</Select.Option>
                 <Select.Option value="il-central-1">Israel (Tel Aviv) - il-central-1</Select.Option>
                 <Select.Option value="me-south-1">Middle East (Bahrain) - me-south-1</Select.Option>
+                <Select.Option value="me-central-1">Middle East (UAE) - me-central-1</Select.Option>
                 <Select.Option value="sa-east-1">
                   South America (São Paulo) - sa-east-1
                 </Select.Option>
