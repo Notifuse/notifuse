@@ -260,8 +260,20 @@ func (s *TaskService) ExecutePendingTasks(ctx context.Context, maxTasks int) err
 	// Create HTTP client with connection pooling for reuse across tasks
 	// Per Go docs: "Clients and Transports are safe for concurrent use by multiple
 	// goroutines and for efficiency should only be created once and re-used."
+	//
+	// CheckRedirect: refuse to follow redirects. The dispatch target is our own
+	// /api/tasks.execute; any 3xx response means something in front of the API
+	// (auth proxy, TLS-upgrading ingress, CDN) has intercepted the request. The
+	// Go default would follow a 302 as a GET to the Location URL — if that URL
+	// is an auth-wall login page returning 200 HTML, the status check below
+	// treats it as success and the task never runs. ErrUseLastResponse returns
+	// the 3xx response unfollowed so the non-200 branch catches it and logs
+	// loudly. See #320 / #317 (Cloudflare Access intercepting dispatch).
 	httpClient := &http.Client{
 		Timeout: 53 * time.Second,
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
 		Transport: &http.Transport{
 			MaxIdleConns:        100,
 			MaxIdleConnsPerHost: 100,
@@ -273,27 +285,17 @@ func (s *TaskService) ExecutePendingTasks(ctx context.Context, maxTasks int) err
 	}
 	httpClient = tracing.WrapHTTPClient(httpClient)
 
-	// Execute tasks using HTTP roundtrips — fire and forget. Each dispatch
-	// runs in its own goroutine bounded by the http.Client's 53s timeout.
+	// Fire-and-forget dispatch: each task runs in its own goroutine bounded by
+	// the http.Client's 53s timeout. The scheduler tick doesn't wait for
+	// in-flight dispatches so one slow handler can't delay the next tick.
 	//
-	// Previously this function blocked on a sync.WaitGroup until every
-	// in-flight dispatch completed. That coupled the scheduler tick to the
-	// slowest dispatch: a long-running recurring task like
-	// process_contact_segment_queue (MaxRuntime=50s, plus internal 10s sleeps
-	// in the empty-queue path) could block the tick for a minute or more,
-	// starving all other tasks — including scheduled broadcasts. That's the
-	// root cause of #317 ("scheduler dispatches every ~20s but handler never
-	// runs, broadcast stuck in scheduled, task stuck in pending"). The
-	// reporter was observing the tick-blocking effect: logs show a dispatch
-	// burst, then silence until the slowest dispatch returns.
-	//
-	// Safety of fire-and-forget: GetNextBatch only picks up tasks that are
-	// pending/paused (with next_run_after elapsed) or running-with-expired-
-	// timeout. Once the handler calls MarkAsRunningTx the task becomes
-	// running with timeout_after in the future and is skipped by subsequent
-	// batches — no duplicate dispatch. The narrow race (tick N+1 before
-	// tick N's handler commits MarkAsRunningTx) is handled by the server
-	// returning 409 Conflict, which the client already treats as expected.
+	// Duplicate-dispatch safety: GetNextBatch only picks up pending/paused
+	// tasks (with next_run_after elapsed) or running tasks whose timeout_after
+	// has expired. Once the handler commits MarkAsRunningTx the row becomes
+	// running with a fresh timeout_after and is skipped by subsequent batches.
+	// The narrow race (tick N+1 fires before tick N's handler commits) is
+	// handled server-side by MarkAsRunningTx returning ErrTaskAlreadyRunning,
+	// which the client logs at Debug on a 409.
 	for _, task := range tasks {
 		go func(t *domain.Task) {
 			taskCtx, taskSpan := tracing.StartServiceSpan(ctx, "TaskService", "DispatchTaskExecution")
@@ -354,7 +356,10 @@ func (s *TaskService) ExecutePendingTasks(ctx context.Context, maxTasks int) err
 
 			// Check response
 			if resp.StatusCode != http.StatusOK {
-				body, _ := io.ReadAll(resp.Body)
+				// Bound the body read — a misrouted dispatch can land on an
+				// auth-wall HTML page of tens of KB, and this path fires every
+				// tick until the misconfig is fixed.
+				body, _ := io.ReadAll(io.LimitReader(resp.Body, 2048))
 
 				// 409 Conflict means task is already running - this is expected in concurrent scenarios
 				if resp.StatusCode == http.StatusConflict {
@@ -364,14 +369,19 @@ func (s *TaskService) ExecutePendingTasks(ctx context.Context, maxTasks int) err
 					return
 				}
 
-				// Other non-OK statuses are actual errors
-				err := fmt.Errorf("non-OK status: %d, response: %s", resp.StatusCode, string(body))
-				tracing.MarkSpanError(taskCtx, err)
-				s.logger.WithField("task_id", t.ID).
+				// Other non-OK statuses are actual errors. For 3xx, include the
+				// Location header so an auth-wall / ingress redirect is
+				// immediately obvious in the log.
+				logEntry := s.logger.WithField("task_id", t.ID).
 					WithField("workspace_id", t.WorkspaceID).
 					WithField("status_code", resp.StatusCode).
-					WithField("response", string(body)).
-					Error("HTTP request for task execution returned non-OK status")
+					WithField("response", string(body))
+				if resp.StatusCode >= 300 && resp.StatusCode < 400 {
+					logEntry = logEntry.WithField("location", resp.Header.Get("Location"))
+				}
+				err := fmt.Errorf("non-OK status: %d, response: %s", resp.StatusCode, string(body))
+				tracing.MarkSpanError(taskCtx, err)
+				logEntry.Error("HTTP request for task execution returned non-OK status")
 				return
 			}
 
