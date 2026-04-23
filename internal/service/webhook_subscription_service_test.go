@@ -1155,7 +1155,7 @@ func TestValidateEventTypes(t *testing.T) {
 }
 
 func TestGenerateSecret(t *testing.T) {
-	// Test that generateSecret produces valid secrets
+	// Test that generateSecret produces Standard Webhooks compliant secrets
 	secrets := make(map[string]bool)
 
 	for i := 0; i < 100; i++ {
@@ -1163,13 +1163,51 @@ func TestGenerateSecret(t *testing.T) {
 		require.NoError(t, err)
 		require.NotEmpty(t, secret)
 
-		// Secret should be base64 encoded 32 bytes (~44 chars)
-		require.Greater(t, len(secret), 40)
+		// Must carry the whsec_ prefix required by the Standard Webhooks spec
+		require.True(t, strings.HasPrefix(secret, "whsec_"), "Secret must start with whsec_")
+
+		// The part after the prefix must decode to exactly 32 bytes (256 bits)
+		key, decodeErr := decodeSecret(secret)
+		require.NoError(t, decodeErr)
+		require.Len(t, key, 32)
 
 		// Each secret should be unique
 		require.False(t, secrets[secret], "Secret should be unique")
 		secrets[secret] = true
 	}
+}
+
+func TestDecodeSecret(t *testing.T) {
+	t.Run("valid whsec_ prefixed secret", func(t *testing.T) {
+		secret, err := generateSecret()
+		require.NoError(t, err)
+
+		key, err := decodeSecret(secret)
+		require.NoError(t, err)
+		require.Len(t, key, 32)
+	})
+
+	t.Run("missing prefix is rejected", func(t *testing.T) {
+		// Generate a secret then strip the prefix to simulate a pre-v30 row.
+		secret, err := generateSecret()
+		require.NoError(t, err)
+		bare := strings.TrimPrefix(secret, "whsec_")
+
+		_, err = decodeSecret(bare)
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "whsec_")
+	})
+
+	t.Run("malformed base64 after prefix is rejected", func(t *testing.T) {
+		_, err := decodeSecret("whsec_!!!not-base64!!!")
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "base64")
+	})
+
+	t.Run("empty string is rejected", func(t *testing.T) {
+		_, err := decodeSecret("")
+		require.Error(t, err)
+	})
 }
 
 func TestGenerateWebhookID(t *testing.T) {

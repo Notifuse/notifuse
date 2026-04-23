@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -221,7 +222,17 @@ func (w *WebhookDeliveryWorker) processDelivery(ctx context.Context, workspaceID
 	timestamp := time.Now().Unix()
 
 	// Sign the payload using Standard Webhooks spec
-	signature := signPayload(delivery.ID, timestamp, payloadBytes, []byte(sub.Secret))
+	key, err := decodeSecret(sub.Secret)
+	if err != nil {
+		w.logger.WithFields(map[string]interface{}{
+			"delivery_id":     delivery.ID,
+			"subscription_id": sub.ID,
+			"error":           err.Error(),
+		}).Error("Failed to decode webhook secret")
+		w.handleDeliveryFailure(ctx, workspaceID, delivery, sub, nil, "", fmt.Sprintf("invalid webhook secret: %s", err.Error()))
+		return
+	}
+	signature := signPayload(delivery.ID, timestamp, payloadBytes, key)
 
 	// Create HTTP request
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, sub.URL, bytes.NewReader(payloadBytes))
@@ -336,14 +347,17 @@ func (w *WebhookDeliveryWorker) handleDeliveryFailure(ctx context.Context, works
 	}).Debug("Webhook delivery failed, scheduled retry")
 }
 
-// signPayload signs the webhook payload using Standard Webhooks spec
-// Format: v1,{base64-encoded-signature}
+// signPayload signs the webhook payload using Standard Webhooks spec.
+// Signed content is `{msgID}.{timestamp}.{payload}`; output is `v1,{base64(HMAC-SHA256)}`.
+// The secret must already be the raw HMAC key (see decodeSecret).
 func signPayload(msgID string, timestamp int64, payload []byte, secret []byte) string {
-	signedContent := fmt.Sprintf("%s.%d.%s", msgID, timestamp, string(payload))
 	h := hmac.New(sha256.New, secret)
-	h.Write([]byte(signedContent))
-	signature := base64.StdEncoding.EncodeToString(h.Sum(nil))
-	return fmt.Sprintf("v1,%s", signature)
+	h.Write([]byte(msgID))
+	h.Write([]byte("."))
+	h.Write([]byte(strconv.FormatInt(timestamp, 10)))
+	h.Write([]byte("."))
+	h.Write(payload)
+	return "v1," + base64.StdEncoding.EncodeToString(h.Sum(nil))
 }
 
 // buildTestPayload generates a realistic test payload based on event type
@@ -456,7 +470,11 @@ func (w *WebhookDeliveryWorker) SendTestWebhook(ctx context.Context, workspaceID
 	timestamp := time.Now().Unix()
 
 	// Sign the payload
-	signature := signPayload(testID, timestamp, payloadBytes, []byte(sub.Secret))
+	key, err := decodeSecret(sub.Secret)
+	if err != nil {
+		return 0, "", fmt.Errorf("invalid webhook secret: %w", err)
+	}
+	signature := signPayload(testID, timestamp, payloadBytes, key)
 
 	// Create HTTP request
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, sub.URL, bytes.NewReader(payloadBytes))

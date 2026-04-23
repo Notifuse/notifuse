@@ -108,6 +108,7 @@ func testWebhookSubscriptionCRUD(t *testing.T, client *testutil.APIClient, works
 		assert.Equal(t, "Test Webhook Subscription", subscription["name"])
 		assert.Equal(t, "https://example.com/webhook", subscription["url"])
 		assert.NotEmpty(t, originalSecret, "Secret should be generated")
+		assert.True(t, strings.HasPrefix(originalSecret, "whsec_"), "Secret should carry the Standard Webhooks whsec_ prefix")
 		assert.Equal(t, true, subscription["enabled"], "Webhook should be enabled by default")
 
 		// Verify event types
@@ -259,7 +260,9 @@ func testWebhookSubscriptionCRUD(t *testing.T, client *testutil.APIClient, works
 
 		assert.NotEmpty(t, newSecret)
 		assert.NotEqual(t, originalSecret, newSecret, "Secret should be different after regeneration")
-		assert.Greater(t, len(newSecret), 40, "Secret should be sufficiently long (base64 encoded 32 bytes)")
+		assert.True(t, strings.HasPrefix(newSecret, "whsec_"), "Regenerated secret should carry the Standard Webhooks whsec_ prefix")
+		// whsec_ (6) + base64(32 bytes) (44) = 50 chars
+		assert.Equal(t, 50, len(newSecret), "whsec_-prefixed base64(32-byte) secret should be exactly 50 chars")
 	})
 
 	// GET EVENT TYPES - Test getting available event types
@@ -748,34 +751,24 @@ func TestWebhookPayloadAndSignatureVerification(t *testing.T) {
 			timestampStr := cap.headers.Get("Webhook-Timestamp")
 			signatureHeader := cap.headers.Get("Webhook-Signature")
 
-			// Parse timestamp
+			// Exercise the verifyWebhookSignature reference helper end-to-end.
+			// This is the same code shape published in the docs, so a passing
+			// assertion here means a consumer who copies the docs verbatim
+			// will successfully verify real Notifuse deliveries.
+			require.True(t, strings.HasPrefix(secret, "whsec_"), "webhook secret should carry the whsec_ prefix")
+			ok, err := verifyWebhookSignature(webhookID, timestampStr, signatureHeader, secret, cap.body)
+			require.NoError(t, err, "reference verifier should not error on a valid delivery")
+			assert.True(t, ok, "reference verifier should accept the delivery")
+
+			// Additional low-level assertions to catch regressions in the shape
+			// of the signature header (scheme prefix + base64 body).
 			timestamp, err := strconv.ParseInt(timestampStr, 10, 64)
 			require.NoError(t, err, "Timestamp should be a valid integer")
-
-			// Verify timestamp is not too old (within 5 minutes for test)
 			now := time.Now().Unix()
 			assert.LessOrEqual(t, now-timestamp, int64(300), "Timestamp should be within 5 minutes")
-
-			// Extract signature from header (format: "v1,<base64_signature>")
 			assert.True(t, strings.HasPrefix(signatureHeader, "v1,"), "Signature should start with 'v1,'")
-			receivedSignature := strings.TrimPrefix(signatureHeader, "v1,")
-
-			// Compute expected signature using the same algorithm as Notifuse
-			// signedContent = "{msgID}.{timestamp}.{payload}"
-			signedContent := fmt.Sprintf("%s.%d.%s", webhookID, timestamp, string(cap.body))
-			h := hmac.New(sha256.New, []byte(secret))
-			h.Write([]byte(signedContent))
-			expectedSignature := base64.StdEncoding.EncodeToString(h.Sum(nil))
-
-			// Verify signatures match
-			assert.Equal(t, expectedSignature, receivedSignature, "HMAC signature should match")
-
-			// Also verify using constant-time comparison (recommended for production)
-			decodedReceived, err := base64.StdEncoding.DecodeString(receivedSignature)
-			require.NoError(t, err, "Received signature should be valid base64")
-			decodedExpected, err := base64.StdEncoding.DecodeString(expectedSignature)
-			require.NoError(t, err, "Expected signature should be valid base64")
-			assert.True(t, hmac.Equal(decodedReceived, decodedExpected), "Signatures should match using constant-time comparison")
+			_, err = base64.StdEncoding.DecodeString(strings.TrimPrefix(signatureHeader, "v1,"))
+			require.NoError(t, err, "Signature body should be valid base64")
 		})
 
 		// === VERIFY SIGNATURE FAILS WITH WRONG SECRET ===
@@ -787,10 +780,13 @@ func TestWebhookPayloadAndSignatureVerification(t *testing.T) {
 			timestamp, _ := strconv.ParseInt(timestampStr, 10, 64)
 			receivedSignature := strings.TrimPrefix(signatureHeader, "v1,")
 
-			// Compute signature with wrong secret
-			wrongSecret := "wrong-secret-12345"
+			// Compute signature with a different key (what a consumer using the
+			// wrong secret would produce).
+			wrongSecret := "whsec_" + base64.StdEncoding.EncodeToString([]byte("wrong-key-bytes-0000000000000000"))
+			wrongKey, err := base64.StdEncoding.DecodeString(strings.TrimPrefix(wrongSecret, "whsec_"))
+			require.NoError(t, err)
 			signedContent := fmt.Sprintf("%s.%d.%s", webhookID, timestamp, string(cap.body))
-			h := hmac.New(sha256.New, []byte(wrongSecret))
+			h := hmac.New(sha256.New, wrongKey)
 			h.Write([]byte(signedContent))
 			wrongSignature := base64.StdEncoding.EncodeToString(h.Sum(nil))
 
@@ -806,10 +802,12 @@ func TestWebhookPayloadAndSignatureVerification(t *testing.T) {
 			timestamp, _ := strconv.ParseInt(timestampStr, 10, 64)
 			receivedSignature := strings.TrimPrefix(signatureHeader, "v1,")
 
-			// Compute signature with tampered payload
+			// Compute signature with tampered payload using the real secret.
+			key, err := base64.StdEncoding.DecodeString(strings.TrimPrefix(secret, "whsec_"))
+			require.NoError(t, err)
 			tamperedPayload := `{"id":"tampered","type":"contact.created","data":{"email":"hacker@evil.com"}}`
 			signedContent := fmt.Sprintf("%s.%d.%s", webhookID, timestamp, tamperedPayload)
-			h := hmac.New(sha256.New, []byte(secret))
+			h := hmac.New(sha256.New, key)
 			h.Write([]byte(signedContent))
 			tamperedSignature := base64.StdEncoding.EncodeToString(h.Sum(nil))
 
@@ -903,8 +901,9 @@ func TestWebhookPayloadAndSignatureVerification(t *testing.T) {
 	})
 }
 
-// verifyWebhookSignature is a helper function demonstrating how to verify webhook signatures.
-// This can be used as a reference implementation for webhook consumers.
+// verifyWebhookSignature is a reference implementation of Standard Webhooks
+// verification, matching the snippets published in the public docs.
+// https://github.com/standard-webhooks/standard-webhooks/blob/main/spec/standard-webhooks.md
 func verifyWebhookSignature(webhookID, timestampStr, signatureHeader, secret string, payload []byte) (bool, error) {
 	// Parse timestamp
 	timestamp, err := strconv.ParseInt(timestampStr, 10, 64)
@@ -924,9 +923,15 @@ func verifyWebhookSignature(webhookID, timestampStr, signatureHeader, secret str
 	}
 	receivedSig := strings.TrimPrefix(signatureHeader, "v1,")
 
+	// Derive the HMAC key from the stored secret per spec: strip whsec_, base64-decode.
+	key, err := base64.StdEncoding.DecodeString(strings.TrimPrefix(secret, "whsec_"))
+	if err != nil {
+		return false, fmt.Errorf("invalid secret encoding: %w", err)
+	}
+
 	// Compute expected signature
 	signedContent := fmt.Sprintf("%s.%d.%s", webhookID, timestamp, string(payload))
-	h := hmac.New(sha256.New, []byte(secret))
+	h := hmac.New(sha256.New, key)
 	h.Write([]byte(signedContent))
 	expectedSig := base64.StdEncoding.EncodeToString(h.Sum(nil))
 

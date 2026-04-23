@@ -1,11 +1,16 @@
 package service
 
 import (
+	"bytes"
 	"context"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/base64"
 	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -233,7 +238,7 @@ func TestWebhookDeliveryWorker_processWorkspaceDeliveries(t *testing.T) {
 		subscription := &domain.WebhookSubscription{
 			ID:      "sub1",
 			URL:     "https://example.com/webhook",
-			Secret:  "secret123",
+			Secret:  "whsec_YWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXowMTIzNDU=",
 			Enabled: false,
 		}
 
@@ -281,7 +286,7 @@ func TestWebhookDeliveryWorker_processWorkspaceDeliveries(t *testing.T) {
 		subscription := &domain.WebhookSubscription{
 			ID:      "sub1",
 			URL:     server.URL,
-			Secret:  "secret123",
+			Secret:  "whsec_YWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXowMTIzNDU=",
 			Enabled: true,
 		}
 
@@ -372,7 +377,7 @@ func TestWebhookDeliveryWorker_deliverWebhook(t *testing.T) {
 		subscription := &domain.WebhookSubscription{
 			ID:      "sub1",
 			URL:     server.URL,
-			Secret:  "secret123",
+			Secret:  "whsec_YWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXowMTIzNDU=",
 			Enabled: true,
 		}
 
@@ -403,7 +408,7 @@ func TestWebhookDeliveryWorker_deliverWebhook(t *testing.T) {
 		subscription := &domain.WebhookSubscription{
 			ID:      "sub1",
 			URL:     server.URL,
-			Secret:  "secret123",
+			Secret:  "whsec_YWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXowMTIzNDU=",
 			Enabled: true,
 		}
 
@@ -431,7 +436,7 @@ func TestWebhookDeliveryWorker_deliverWebhook(t *testing.T) {
 		subscription := &domain.WebhookSubscription{
 			ID:      "sub1",
 			URL:     "http://invalid-domain-that-does-not-exist.example.com/webhook",
-			Secret:  "secret123",
+			Secret:  "whsec_YWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXowMTIzNDU=",
 			Enabled: true,
 		}
 
@@ -464,7 +469,7 @@ func TestWebhookDeliveryWorker_deliverWebhook(t *testing.T) {
 		subscription := &domain.WebhookSubscription{
 			ID:      "sub1",
 			URL:     server.URL,
-			Secret:  "secret123",
+			Secret:  "whsec_YWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXowMTIzNDU=",
 			Enabled: true,
 		}
 
@@ -503,7 +508,7 @@ func TestWebhookDeliveryWorker_deliverWebhook(t *testing.T) {
 		subscription := &domain.WebhookSubscription{
 			ID:      "sub1",
 			URL:     server.URL,
-			Secret:  "secret123",
+			Secret:  "whsec_YWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXowMTIzNDU=",
 			Enabled: true,
 		}
 
@@ -585,6 +590,78 @@ func TestWebhookDeliveryWorker_signPayload(t *testing.T) {
 
 		assert.NotEqual(t, sig1, sig2)
 	})
+
+	// Verifies the chain `decodeSecret(whsec_…) -> signPayload` produces the
+	// same signature a spec-compliant consumer would compute independently.
+	// This is the regression guard for the Standard Webhooks alignment.
+	t.Run("matches spec-compliant consumer verification", func(t *testing.T) {
+		rawKey := make([]byte, 32)
+		for i := range rawKey {
+			rawKey[i] = byte(i)
+		}
+		stored := "whsec_" + base64.StdEncoding.EncodeToString(rawKey)
+
+		msgID := "msg_2KWPBgLlAfxdpx2AI54pPJ85f4W"
+		timestamp := int64(1674087231)
+		payload := []byte(`{"type":"contact.created"}`)
+
+		// What signPayload produces (after decodeSecret in the worker).
+		key, err := decodeSecret(stored)
+		require.NoError(t, err)
+		got := signPayload(msgID, timestamp, payload, key)
+
+		// What a spec-compliant consumer computes.
+		signedContent := msgID + "." + strconv.FormatInt(timestamp, 10) + "." + string(payload)
+		mac := hmac.New(sha256.New, rawKey)
+		mac.Write([]byte(signedContent))
+		want := "v1," + base64.StdEncoding.EncodeToString(mac.Sum(nil))
+
+		assert.Equal(t, want, got)
+	})
+
+	t.Run("handles unicode / multi-byte payloads", func(t *testing.T) {
+		secret := []byte("secret")
+		payload := []byte(`{"note":"café 🌶️ 中文"}`)
+
+		sig1 := signPayload("m", 1, payload, secret)
+		sig2 := signPayload("m", 1, payload, secret)
+		assert.Equal(t, sig1, sig2, "same bytes must yield same signature")
+
+		// Hand-computed HMAC over the exact bytes — guards the bytes.Buffer/string
+		// round-trip removal in signPayload.
+		mac := hmac.New(sha256.New, secret)
+		mac.Write([]byte("m.1."))
+		mac.Write(payload)
+		want := "v1," + base64.StdEncoding.EncodeToString(mac.Sum(nil))
+		assert.Equal(t, want, sig1)
+	})
+
+	t.Run("handles empty payload", func(t *testing.T) {
+		sig := signPayload("m", 1, []byte{}, []byte("secret"))
+		assert.True(t, strings.HasPrefix(sig, "v1,"))
+		assert.Greater(t, len(sig), len("v1,"))
+	})
+
+	t.Run("handles large payload", func(t *testing.T) {
+		payload := bytes.Repeat([]byte("x"), 1024*1024) // 1 MB
+		sig1 := signPayload("m", 1, payload, []byte("secret"))
+		sig2 := signPayload("m", 1, payload, []byte("secret"))
+		assert.Equal(t, sig1, sig2)
+		assert.True(t, strings.HasPrefix(sig1, "v1,"))
+	})
+
+	// Unix seconds are ~1.7e9 in 2026; Unix millis would be ~1.7e12. A sane
+	// signPayload call produces a short decimal suffix. This guards against a
+	// future regression that passes UnixMilli() instead of Unix().
+	t.Run("timestamp is formatted as decimal seconds", func(t *testing.T) {
+		sig := signPayload("m", 1700000000, []byte("{}"), []byte("k"))
+
+		// Rebuild the signed content the spec way and assert it matches.
+		mac := hmac.New(sha256.New, []byte("k"))
+		mac.Write([]byte("m.1700000000.{}"))
+		want := "v1," + base64.StdEncoding.EncodeToString(mac.Sum(nil))
+		assert.Equal(t, want, sig)
+	})
 }
 
 func TestWebhookDeliveryWorker_retryScheduling(t *testing.T) {
@@ -658,7 +735,7 @@ func TestWebhookDeliveryWorker_retryScheduling(t *testing.T) {
 			subscription := &domain.WebhookSubscription{
 				ID:      "sub1",
 				URL:     server.URL,
-				Secret:  "secret123",
+				Secret:  "whsec_YWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXowMTIzNDU=",
 				Enabled: true,
 			}
 
@@ -865,7 +942,7 @@ func TestWebhookDeliveryWorker_SendTestWebhook(t *testing.T) {
 		subscription := &domain.WebhookSubscription{
 			ID:      "sub1",
 			URL:     server.URL,
-			Secret:  "secret123",
+			Secret:  "whsec_YWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXowMTIzNDU=",
 			Enabled: true,
 		}
 
@@ -897,7 +974,7 @@ func TestWebhookDeliveryWorker_SendTestWebhook(t *testing.T) {
 		subscription := &domain.WebhookSubscription{
 			ID:      "sub1",
 			URL:     server.URL,
-			Secret:  "secret123",
+			Secret:  "whsec_YWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXowMTIzNDU=",
 			Enabled: true,
 		}
 
@@ -912,7 +989,7 @@ func TestWebhookDeliveryWorker_SendTestWebhook(t *testing.T) {
 		subscription := &domain.WebhookSubscription{
 			ID:      "sub1",
 			URL:     "http://invalid-domain-that-does-not-exist.example.com/webhook",
-			Secret:  "secret123",
+			Secret:  "whsec_YWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXowMTIzNDU=",
 			Enabled: true,
 		}
 
@@ -928,7 +1005,7 @@ func TestWebhookDeliveryWorker_SendTestWebhook(t *testing.T) {
 		subscription := &domain.WebhookSubscription{
 			ID:      "sub1",
 			URL:     "://invalid-url",
-			Secret:  "secret123",
+			Secret:  "whsec_YWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXowMTIzNDU=",
 			Enabled: true,
 		}
 
@@ -954,7 +1031,7 @@ func TestWebhookDeliveryWorker_SendTestWebhook(t *testing.T) {
 		subscription := &domain.WebhookSubscription{
 			ID:      "sub1",
 			URL:     server.URL,
-			Secret:  "secret123",
+			Secret:  "whsec_YWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXowMTIzNDU=",
 			Enabled: true,
 		}
 
@@ -982,7 +1059,7 @@ func TestWebhookDeliveryWorker_SendTestWebhook(t *testing.T) {
 		subscription := &domain.WebhookSubscription{
 			ID:      "sub1",
 			URL:     server.URL,
-			Secret:  "secret123",
+			Secret:  "whsec_YWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXowMTIzNDU=",
 			Enabled: true,
 		}
 
@@ -1005,7 +1082,7 @@ func TestWebhookDeliveryWorker_SendTestWebhook(t *testing.T) {
 		subscription := &domain.WebhookSubscription{
 			ID:      "sub1",
 			URL:     server.URL,
-			Secret:  "secret123",
+			Secret:  "whsec_YWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXowMTIzNDU=",
 			Enabled: true,
 		}
 

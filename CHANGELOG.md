@@ -2,10 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
-## [29.6] - 2026-04-23
+## [30.0] - 2026-04-23
 
-- **Fix**: Scheduled broadcasts and recurring tasks no longer get stuck when the scheduler dispatches slow tasks — decoupled scheduler tick from HTTP dispatch completion, and stale `running` tasks (expired `timeout_after`) are now reclaimed instead of looping on 409 (#317)
-- **Feature**: Added AWS region `eu-central-2` (Europe, Zurich) to the S3 provider and integrations region selectors (#316)
+### Breaking Changes
+
+- **Webhooks**: Signatures now conform to the [Standard Webhooks](https://github.com/standard-webhooks/standard-webhooks/blob/main/spec/standard-webhooks.md) specification and match the published verification code in the docs (#318)
+  - Stored secrets are now prefixed with `whsec_` and the 32 random bytes after the prefix are base64-decoded before use as the HMAC key (previously the 44-char base64 string was used directly as raw bytes, making the published Python/JS/Go/PHP verification snippets always fail)
+  - V30 migration rotates every existing webhook secret to the new format. Subscriptions, URLs, event filters, enabled state, and delivery history are preserved; only the secret value changes
+  - **Consumer action required**: copy the new `whsec_…` secret from the console into your environment and update your verification code to the spec-compliant form shown in the docs. Deliveries that fire during the gap will retry automatically once the consumer's secret is updated
+
+### Data migration
+
+- **Timezone**: `Europe/Kiev` is rewritten to the IANA-canonical `Europe/Kyiv` across `workspaces.settings`, `contacts.timezone`, `segments.timezone`, and `broadcasts.schedule.timezone`. Stored `Europe/Kiev` continued to resolve at runtime via Go's tzdata alias, but the console dropdown (which no longer lists the obsolete name) showed an empty selection for affected rows. The `contacts` triggers are briefly disabled around the rename so it does not emit `contact.updated` webhook events or fill `contact_timeline` with rename entries.
+
+### Other changes
+
+- **Task scheduler**: Scheduler tick no longer waits on in-flight HTTP dispatches, so one slow recurring task can't delay dispatch of others on the same tick. Stale tasks left in `running` with an expired `timeout_after` are now reclaimed by `MarkAsRunningTx` on a subsequent tick instead of looping on 409 indefinitely (#317).
+- **Task dispatch observability**: The scheduler-side "Task execution request dispatched successfully" log now includes the HTTP `status_code`, and `tasks.execute` logs an entry line on the handler side. Diffing the two streams makes silent request interception visible — e.g. an auth-walling reverse proxy (Cloudflare Access and similar) that 302-redirects the scheduler's internal `POST /api/tasks.execute`, which Go's default `http.Client` follows as a GET to a 200 HTML login page. This change surfaces that failure mode but does not prevent it; the dispatcher still treats any 200 as success. Preventing it requires a `CheckRedirect` policy on the dispatch client, tracked separately in #320.
+- **Feature**: Added AWS region `eu-central-2` (Europe, Zurich) to the S3 provider and integrations region selectors (#316).
 
 ## [29.5] - 2026-04-20
 

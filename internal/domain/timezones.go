@@ -1,8 +1,8 @@
 package domain
 
-// Timezones contains all valid IANA timezone identifiers
-// This list is generated from Go's embedded timezone database
-// It includes both canonical zones and aliases (links)
+// Timezones is the list of IANA timezone identifiers shown in the UI.
+// It is generated from a hardcoded candidate list filtered against Go's
+// embedded timezone database, so entries here are editorial choices.
 //
 // To regenerate this list, run: go generate ./internal/domain
 //
@@ -457,7 +457,6 @@ var Timezones = []string{
 	"Europe/Istanbul",
 	"Europe/Jersey",
 	"Europe/Kaliningrad",
-	"Europe/Kiev",
 	"Europe/Kirov",
 	"Europe/Kyiv",
 	"Europe/Lisbon",
@@ -604,12 +603,21 @@ var Timezones = []string{
 	"Zulu",
 }
 
-// IsValidTimezone checks if the given timezone is valid
+// deprecatedTimezoneAliases maps legacy IANA names we still accept on input
+// but no longer surface in the UI list. Values point to the canonical name.
+var deprecatedTimezoneAliases = map[string]string{
+	"Europe/Kiev": "Europe/Kyiv",
+}
+
+// IsValidTimezone reports whether the given name is a timezone we accept.
+// It matches entries in Timezones exactly (case-sensitive) and also accepts
+// deprecated IANA aliases listed in deprecatedTimezoneAliases.
 func IsValidTimezone(timezone string) bool {
 	for _, tz := range Timezones {
 		if tz == timezone {
 			return true
 		}
 	}
-	return false
+	_, ok := deprecatedTimezoneAliases[timezone]
+	return ok
 }

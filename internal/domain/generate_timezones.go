@@ -22,9 +22,9 @@ func main() {
 	var sb strings.Builder
 
 	sb.WriteString("package domain\n\n")
-	sb.WriteString("// Timezones contains all valid IANA timezone identifiers\n")
-	sb.WriteString("// This list is generated from Go's embedded timezone database\n")
-	sb.WriteString("// It includes both canonical zones and aliases (links)\n")
+	sb.WriteString("// Timezones is the list of IANA timezone identifiers shown in the UI.\n")
+	sb.WriteString("// It is generated from a hardcoded candidate list filtered against Go's\n")
+	sb.WriteString("// embedded timezone database, so entries here are editorial choices.\n")
 	sb.WriteString("//\n")
 	sb.WriteString("// To regenerate this list, run: go generate ./internal/domain\n")
 	sb.WriteString("//\n")
@@ -36,14 +36,22 @@ func main() {
 	}
 
 	sb.WriteString("}\n\n")
-	sb.WriteString("// IsValidTimezone checks if the given timezone is valid\n")
+	sb.WriteString("// deprecatedTimezoneAliases maps legacy IANA names we still accept on input\n")
+	sb.WriteString("// but no longer surface in the UI list. Values point to the canonical name.\n")
+	sb.WriteString("var deprecatedTimezoneAliases = map[string]string{\n")
+	sb.WriteString("\t\"Europe/Kiev\": \"Europe/Kyiv\",\n")
+	sb.WriteString("}\n\n")
+	sb.WriteString("// IsValidTimezone reports whether the given name is a timezone we accept.\n")
+	sb.WriteString("// It matches entries in Timezones exactly (case-sensitive) and also accepts\n")
+	sb.WriteString("// deprecated IANA aliases listed in deprecatedTimezoneAliases.\n")
 	sb.WriteString("func IsValidTimezone(timezone string) bool {\n")
 	sb.WriteString("\tfor _, tz := range Timezones {\n")
 	sb.WriteString("\t\tif tz == timezone {\n")
 	sb.WriteString("\t\t\treturn true\n")
 	sb.WriteString("\t\t}\n")
 	sb.WriteString("\t}\n")
-	sb.WriteString("\treturn false\n")
+	sb.WriteString("\t_, ok := deprecatedTimezoneAliases[timezone]\n")
+	sb.WriteString("\treturn ok\n")
 	sb.WriteString("}\n")
 
 	// Write to timezones.go
@@ -143,7 +151,7 @@ func extractTimezones() []string {
 			"Amsterdam", "Andorra", "Astrakhan", "Athens", "Belfast", "Belgrade", "Berlin",
 			"Bratislava", "Brussels", "Bucharest", "Budapest", "Busingen", "Chisinau",
 			"Copenhagen", "Dublin", "Gibraltar", "Guernsey", "Helsinki", "Isle_of_Man",
-			"Istanbul", "Jersey", "Kaliningrad", "Kiev", "Kirov", "Kyiv", "Lisbon",
+			"Istanbul", "Jersey", "Kaliningrad", "Kirov", "Kyiv", "Lisbon",
 			"Ljubljana", "London", "Luxembourg", "Madrid", "Malta", "Mariehamn", "Minsk",
 			"Monaco", "Moscow", "Nicosia", "Oslo", "Paris", "Podgorica", "Prague", "Riga",
 			"Rome", "Samara", "San_Marino", "Sarajevo", "Saratov", "Simferopol", "Skopje",

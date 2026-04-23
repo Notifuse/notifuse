@@ -13,6 +13,10 @@ import (
 	"github.com/google/uuid"
 )
 
+// webhookSecretPrefix is the Standard Webhooks symmetric-key prefix.
+// See: https://github.com/standard-webhooks/standard-webhooks/blob/main/spec/standard-webhooks.md
+const webhookSecretPrefix = "whsec_"
+
 // WebhookSubscriptionService handles webhook subscription business logic
 type WebhookSubscriptionService struct {
 	repo         domain.WebhookSubscriptionRepository
@@ -36,13 +40,27 @@ func NewWebhookSubscriptionService(
 	}
 }
 
-// generateSecret generates a secure random secret for webhook signing
+// generateSecret generates a secure random secret for webhook signing.
+// Output format is `whsec_<base64(32 random bytes)>`, per Standard Webhooks.
 func generateSecret() (string, error) {
 	bytes := make([]byte, 32) // 256 bits
 	if _, err := rand.Read(bytes); err != nil {
 		return "", fmt.Errorf("failed to generate random bytes: %w", err)
 	}
-	return base64.StdEncoding.EncodeToString(bytes), nil
+	return webhookSecretPrefix + base64.StdEncoding.EncodeToString(bytes), nil
+}
+
+// decodeSecret returns the raw HMAC key bytes for a stored webhook secret.
+// The stored form must be `whsec_<base64(key)>` per Standard Webhooks.
+func decodeSecret(stored string) ([]byte, error) {
+	if !strings.HasPrefix(stored, webhookSecretPrefix) {
+		return nil, fmt.Errorf("webhook secret is missing %q prefix", webhookSecretPrefix)
+	}
+	key, err := base64.StdEncoding.DecodeString(strings.TrimPrefix(stored, webhookSecretPrefix))
+	if err != nil {
+		return nil, fmt.Errorf("webhook secret is not valid base64: %w", err)
+	}
+	return key, nil
 }
 
 // generateID generates a unique ID for a webhook subscription

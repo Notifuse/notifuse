@@ -102,6 +102,16 @@ func TestIsValidTimezone(t *testing.T) {
 	})
 }
 
+func TestIsValidTimezone_DeprecatedAliases(t *testing.T) {
+	// Europe/Kiev was renamed to Europe/Kyiv in IANA 2022b. The UI list only
+	// exposes the canonical name, but existing stored values and API clients
+	// using the alias must still pass validation.
+	assert.True(t, IsValidTimezone("Europe/Kiev"), "legacy alias should still validate")
+	assert.True(t, IsValidTimezone("Europe/Kyiv"), "canonical name should validate")
+	assert.NotContains(t, Timezones, "Europe/Kiev", "deprecated alias should not be surfaced in UI list")
+	assert.Contains(t, Timezones, "Europe/Kyiv", "canonical name should be in UI list")
+}
+
 func TestTimezonesList(t *testing.T) {
 	t.Run("No duplicate timezones", func(t *testing.T) {
 		seen := make(map[string]bool)
