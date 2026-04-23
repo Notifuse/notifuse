@@ -58,12 +58,14 @@ type AppInterface interface {
 	GetTransactionalNotificationRepository() domain.TransactionalNotificationRepository
 	GetTelemetryRepository() domain.TelemetryRepository
 	GetEmailQueueRepository() domain.EmailQueueRepository
+	GetTaskRepository() domain.TaskRepository
 
 	// Service getters for testing
 	GetAuthService() interface{} // Returns *service.AuthService but defined as interface{} to avoid import cycle
 	GetTransactionalNotificationService() domain.TransactionalNotificationService
 	GetEmailQueueWorker() *queue.EmailQueueWorker
 	GetAutomationScheduler() *service.AutomationScheduler
+	GetTaskScheduler() *service.TaskScheduler
 
 	// Server status methods
 	IsServerCreated() bool
@@ -1736,6 +1738,10 @@ func (a *App) GetEmailQueueRepository() domain.EmailQueueRepository {
 	return a.emailQueueRepo
 }
 
+func (a *App) GetTaskRepository() domain.TaskRepository {
+	return a.taskRepo
+}
+
 func (a *App) GetEmailQueueWorker() *queue.EmailQueueWorker {
 	return a.emailQueueWorker
 }
@@ -1751,6 +1757,13 @@ func (a *App) GetTransactionalNotificationService() domain.TransactionalNotifica
 // GetAutomationScheduler returns the automation scheduler instance
 func (a *App) GetAutomationScheduler() *service.AutomationScheduler {
 	return a.automationScheduler
+}
+
+// GetTaskScheduler returns the task scheduler instance.
+// Used by tests that drive the live scheduler directly, bypassing app.Start()'s
+// delayed-start goroutine.
+func (a *App) GetTaskScheduler() *service.TaskScheduler {
+	return a.taskScheduler
 }
 
 // SetHandler allows setting a custom HTTP handler

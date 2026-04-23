@@ -43,6 +43,7 @@ export const S3_PROVIDERS: S3Provider[] = [
       'eu-west-2',
       'eu-west-3',
       'eu-central-1',
+      'eu-central-2',
       'eu-north-1',
       'ap-northeast-1',
       'ap-northeast-2',

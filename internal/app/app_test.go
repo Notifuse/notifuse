@@ -1132,6 +1132,14 @@ func TestApp_ServiceGetters(t *testing.T) {
 		// The getter should return whatever is stored (nil or initialized service)
 		_ = transactionalService // Just call the getter to increase coverage
 	})
+
+	// GetTaskScheduler must return the scheduler created unconditionally in
+	// InitServices (app.go:~907), regardless of TaskScheduler.Enabled. Tests
+	// that drive the live scheduler rely on this accessor.
+	t.Run("GetTaskScheduler", func(t *testing.T) {
+		assert.NotNil(t, app.GetTaskScheduler(),
+			"GetTaskScheduler should return the scheduler after InitServices")
+	})
 }
 
 // TestApp_InitDB tests the InitDB method with various scenarios

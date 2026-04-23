@@ -214,6 +214,17 @@ func (h *TaskHandler) ExecuteTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Entry log so the scheduler-side "Task execution request dispatched
+	// successfully" log has a falsifiable counterpart on the handler side.
+	// Diff the two streams to verify the handler actually ran for a given
+	// dispatch (see #317 — reporter saw dispatch success logs but believed
+	// the handler wasn't running). Logged before Validate so even a request
+	// that fails validation is visible to debugging.
+	h.logger.WithFields(map[string]interface{}{
+		"task_id":      executeRequest.ID,
+		"workspace_id": executeRequest.WorkspaceID,
+	}).Info("tasks.execute received")
+
 	if err := executeRequest.Validate(); err != nil {
 		WriteJSONError(w, err.Error(), http.StatusBadRequest)
 		return

@@ -533,6 +533,8 @@ func TestTaskRepository_MarkAsRunning(t *testing.T) {
 			workspace,
 			string(domain.TaskStatusPending), // status check in WHERE
 			string(domain.TaskStatusPaused),  // status check in WHERE
+			string(domain.TaskStatusRunning), // stale-running reap — status check in WHERE
+			sqlmock.AnyArg(),                 // stale-running reap — now for timeout_after comparison
 		).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectCommit()
@@ -553,6 +555,8 @@ func TestTaskRepository_MarkAsRunning(t *testing.T) {
 			workspace,
 			string(domain.TaskStatusPending), // status check in WHERE
 			string(domain.TaskStatusPaused),  // status check in WHERE
+			string(domain.TaskStatusRunning), // stale-running reap — status check in WHERE
+			sqlmock.AnyArg(),                 // stale-running reap — now for timeout_after comparison
 		).
 		WillReturnResult(sqlmock.NewResult(0, 0))
 	mock.ExpectRollback()
@@ -576,6 +580,8 @@ func TestTaskRepository_MarkAsRunning(t *testing.T) {
 			workspace,
 			string(domain.TaskStatusPending), // status check in WHERE
 			string(domain.TaskStatusPaused),  // status check in WHERE
+			string(domain.TaskStatusRunning), // stale-running reap — status check in WHERE
+			sqlmock.AnyArg(),                 // stale-running reap — now for timeout_after comparison
 		).
 		WillReturnError(fmt.Errorf("database error"))
 	mock.ExpectRollback()
@@ -598,7 +604,8 @@ func TestTaskRepository_MarkAsRunning_ConcurrentProtection(t *testing.T) {
 	timeoutAfter := time.Now().UTC().Add(5 * time.Minute)
 
 	// Simulate scenario where task is already running (another executor claimed it first)
-	// The query will match 0 rows because status is 'running', not 'pending' or 'paused'
+	// The query will match 0 rows because status is 'running' with a non-expired
+	// timeout_after — the widened WHERE (for stale-running reap) still rejects this case.
 	mock.ExpectBegin()
 	mock.ExpectExec("UPDATE tasks SET").
 		WithArgs(
@@ -610,8 +617,10 @@ func TestTaskRepository_MarkAsRunning_ConcurrentProtection(t *testing.T) {
 			workspace,
 			string(domain.TaskStatusPending),
 			string(domain.TaskStatusPaused),
+			string(domain.TaskStatusRunning), // stale-running reap status branch
+			sqlmock.AnyArg(),                 // stale-running reap: now for timeout_after comparison
 		).
-		WillReturnResult(sqlmock.NewResult(0, 0)) // 0 rows = task already running
+		WillReturnResult(sqlmock.NewResult(0, 0)) // 0 rows = task already running (non-expired timeout)
 	mock.ExpectRollback()
 
 	err := repo.MarkAsRunning(ctx, workspace, taskID, timeoutAfter)

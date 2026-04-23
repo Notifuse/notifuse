@@ -257,9 +257,6 @@ func (s *TaskService) ExecutePendingTasks(ctx context.Context, maxTasks int) err
 
 	tracing.AddAttribute(ctx, "execution_mode", "http")
 
-	// Use a wait group to wait for all HTTP requests to complete
-	var wg sync.WaitGroup
-
 	// Create HTTP client with connection pooling for reuse across tasks
 	// Per Go docs: "Clients and Transports are safe for concurrent use by multiple
 	// goroutines and for efficiency should only be created once and re-used."
@@ -276,14 +273,29 @@ func (s *TaskService) ExecutePendingTasks(ctx context.Context, maxTasks int) err
 	}
 	httpClient = tracing.WrapHTTPClient(httpClient)
 
-	// Execute tasks using HTTP roundtrips
+	// Execute tasks using HTTP roundtrips — fire and forget. Each dispatch
+	// runs in its own goroutine bounded by the http.Client's 53s timeout.
+	//
+	// Previously this function blocked on a sync.WaitGroup until every
+	// in-flight dispatch completed. That coupled the scheduler tick to the
+	// slowest dispatch: a long-running recurring task like
+	// process_contact_segment_queue (MaxRuntime=50s, plus internal 10s sleeps
+	// in the empty-queue path) could block the tick for a minute or more,
+	// starving all other tasks — including scheduled broadcasts. That's the
+	// root cause of #317 ("scheduler dispatches every ~20s but handler never
+	// runs, broadcast stuck in scheduled, task stuck in pending"). The
+	// reporter was observing the tick-blocking effect: logs show a dispatch
+	// burst, then silence until the slowest dispatch returns.
+	//
+	// Safety of fire-and-forget: GetNextBatch only picks up tasks that are
+	// pending/paused (with next_run_after elapsed) or running-with-expired-
+	// timeout. Once the handler calls MarkAsRunningTx the task becomes
+	// running with timeout_after in the future and is skipped by subsequent
+	// batches — no duplicate dispatch. The narrow race (tick N+1 before
+	// tick N's handler commits MarkAsRunningTx) is handled by the server
+	// returning 409 Conflict, which the client already treats as expected.
 	for _, task := range tasks {
-		// Add to wait group before launching goroutine
-		wg.Add(1)
-
 		go func(t *domain.Task) {
-			defer wg.Done() // Signal completion when goroutine finishes
-
 			taskCtx, taskSpan := tracing.StartServiceSpan(ctx, "TaskService", "DispatchTaskExecution")
 			defer tracing.EndSpan(taskSpan, nil)
 
@@ -365,12 +377,10 @@ func (s *TaskService) ExecutePendingTasks(ctx context.Context, maxTasks int) err
 
 			s.logger.WithField("task_id", t.ID).
 				WithField("workspace_id", t.WorkspaceID).
+				WithField("status_code", resp.StatusCode).
 				Info("Task execution request dispatched successfully")
 		}(task)
 	}
-
-	// Wait for all HTTP requests to complete
-	wg.Wait()
 
 	return nil
 }

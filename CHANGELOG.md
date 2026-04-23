@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [29.6] - 2026-04-23
+
+- **Fix**: Scheduled broadcasts and recurring tasks no longer get stuck when the scheduler dispatches slow tasks — decoupled scheduler tick from HTTP dispatch completion, and stale `running` tasks (expired `timeout_after`) are now reclaimed instead of looping on 409 (#317)
+- **Feature**: Added AWS region `eu-central-2` (Europe, Zurich) to the S3 provider and integrations region selectors (#316)
+
 ## [29.5] - 2026-04-20
 
 - **Feature**: Pause, resume, and cancel broadcasts mid-delivery — even after the orchestrator has finished enqueueing — and cancel is now allowed from the Processing state (#303)

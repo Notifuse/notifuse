@@ -732,14 +732,19 @@ func (r *TaskRepository) MarkAsRunning(ctx context.Context, workspace, id string
 }
 
 // MarkAsRunningTx marks a task as running and sets timeout within a transaction.
-// Only tasks in "pending" or "paused" status can be marked as running.
-// This prevents duplicate execution when multiple schedulers try to execute the same task.
+// Accepts tasks in pending/paused status, OR running status whose timeout has
+// already elapsed (stale-running reap — if a prior execution died without
+// calling MarkAsPending/Completed/Failed, the row stays "running" forever.
+// GetNextBatch would keep re-dispatching it, but MarkAsRunningTx used to only
+// accept pending/paused, returning 409 indefinitely. That's the secondary
+// failure mode noted in #317: "Stale running tasks aren't reaped.")
+// This still prevents the race where two concurrent tick dispatches try to
+// execute the same task — the losing one sees a fresh (non-expired)
+// timeout_after and gets ErrTaskAlreadyRunning as before.
 func (r *TaskRepository) MarkAsRunningTx(ctx context.Context, tx *sql.Tx, workspace, id string, timeoutAfter time.Time) error {
 	now := time.Now().UTC()
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
-	// Only mark as running if task is in pending or paused status
-	// This prevents race conditions where multiple executors try to run the same task
 	query := psql.Update("tasks").
 		Set("status", domain.TaskStatusRunning).
 		Set("updated_at", now).
@@ -751,6 +756,10 @@ func (r *TaskRepository) MarkAsRunningTx(ctx context.Context, tx *sql.Tx, worksp
 			sq.Or{
 				sq.Eq{"status": string(domain.TaskStatusPending)},
 				sq.Eq{"status": string(domain.TaskStatusPaused)},
+				sq.And{
+					sq.Eq{"status": string(domain.TaskStatusRunning)},
+					sq.LtOrEq{"timeout_after": now},
+				},
 			},
 		})
 

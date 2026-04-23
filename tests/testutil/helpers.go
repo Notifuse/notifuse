@@ -82,6 +82,53 @@ func NewIntegrationTestSuite(t *testing.T, appFactory func(*config.Config) AppIn
 	return suite
 }
 
+// NewIntegrationTestSuiteWithLiveScheduler creates an integration test suite
+// that drives the real TaskScheduler ticker + HTTP dispatch, instead of the
+// direct-execution branch NewIntegrationTestSuite uses.
+//
+// Use this for tests that need to exercise the scheduler → /api/tasks.execute
+// HTTP round-trip (e.g. reproducing scheduler-dispatch bugs like #317). All
+// other helpers (factory, APIClient) work identically.
+func NewIntegrationTestSuiteWithLiveScheduler(t *testing.T, appFactory func(*config.Config) AppInterface) *IntegrationTestSuite {
+	if os.Getenv("INTEGRATION_TESTS") != "true" {
+		t.Skip("Skipping integration test. Set INTEGRATION_TESTS=true to run.")
+	}
+
+	suite := &IntegrationTestSuite{T: t}
+
+	suite.DBManager = NewDatabaseManager()
+	require.NoError(t, suite.DBManager.Setup(), "Failed to setup test database")
+	require.NoError(t, suite.DBManager.WaitForDatabase(30), "Database not ready")
+
+	suite.ServerManager = NewServerManagerWithLiveScheduler(appFactory, suite.DBManager)
+	// Live scheduler needs a long-lived context; tie to the app's shutdown context
+	// so the scheduler stops cleanly when app.Shutdown() fires during suite.Cleanup().
+	require.NoError(t, suite.ServerManager.StartLive(context.Background()),
+		"Failed to start live-scheduler test server")
+
+	suite.APIClient = NewAPIClient(suite.ServerManager.GetURL())
+
+	app := suite.ServerManager.GetApp()
+	suite.DataFactory = NewTestDataFactory(
+		suite.DBManager.GetDB(),
+		app.GetUserRepository(),
+		app.GetWorkspaceRepository(),
+		app.GetContactRepository(),
+		app.GetListRepository(),
+		app.GetTemplateRepository(),
+		app.GetBroadcastRepository(),
+		app.GetMessageHistoryRepository(),
+		app.GetContactListRepository(),
+		app.GetTransactionalNotificationRepository(),
+	)
+
+	require.NoError(t, suite.DBManager.SeedTestData(), "Failed to seed test data")
+	suite.APIClient.SetWorkspaceID("test-workspace-id")
+	suite.Config = suite.ServerManager.GetApp().GetConfig()
+
+	return suite
+}
+
 // FindAvailablePort finds an available TCP port for testing
 func FindAvailablePort(t *testing.T) int {
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
