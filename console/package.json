@@ -107,7 +107,7 @@
   "overrides": {
     "seroval": "^1.4.1",
     "seroval-plugins": "^1.4.1",
-    "fast-xml-parser": ">=5.5.7",
+    "fast-xml-parser": ">=5.7.0",
     "markdown-it": ">=14.1.1",
     "minimatch": ">=10.2.3",
     "yaml": "^2.4.2",
