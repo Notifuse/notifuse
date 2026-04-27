@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [30.1] - 2026-04-27
 
+- **Security**: Bumped `go.opentelemetry.io/otel` to v1.41.0 in `telemetry/go.mod` (CVE-2026-29181).
+- **Deps**: Bumped `gomjml` to v0.12.0.
+
 ### Breaking Changes
 
 - **SMTP auth with `SMTP_USE_TLS=false`**: When TLS is explicitly disabled, the SMTP client now uses `PLAIN` authentication explicitly instead of `SMTPAuthAutoDiscover`. Previously, go-mail's auto-discover refused `PLAIN`/`LOGIN` over an unencrypted connection (only `SCRAM-SHA-*` and `CRAM-MD5` were tried), which broke setups where the relay advertised only `AUTH PLAIN` (e.g. local maddy/Mailpit relays). Operators who have set `SMTP_USE_TLS=false` have already accepted plaintext credential transit, so forcing `PLAIN` aligns with their stated intent. **Action**: none if your relay accepts `PLAIN`. If your relay only accepts `SCRAM`/`CRAM-MD5`, you must enable TLS (`SMTP_USE_TLS=true`) — auto-discover continues to apply when TLS is on.
