@@ -294,7 +294,7 @@ func (m *SMTPMailer) createSMTPClient() (*mail.Client, error) {
 		clientOptions = append(clientOptions,
 			mail.WithUsername(m.config.SMTPUsername),
 			mail.WithPassword(m.config.SMTPPassword),
-			mail.WithSMTPAuth(mail.SMTPAuthAutoDiscover),
+			mail.WithSMTPAuth(selectSMTPAuthType(m.config.UseTLS)),
 		)
 	}
 
@@ -316,6 +316,20 @@ func (m *SMTPMailer) createSMTPClient() (*mail.Client, error) {
 	}
 
 	return client, nil
+}
+
+// selectSMTPAuthType picks the SMTP authentication mechanism.
+//
+// When UseTLS is false, go-mail's SMTPAuthAutoDiscover refuses PLAIN/LOGIN
+// for security and only attempts SCRAM-SHA-* / CRAM-MD5 — incompatible with
+// internal trusted relays that advertise only PLAIN. Choosing PLAIN
+// explicitly bypasses that refusal. The user already accepted plaintext
+// transit by setting UseTLS=false, so this is consistent with their intent.
+func selectSMTPAuthType(useTLS bool) mail.SMTPAuthType {
+	if !useTLS {
+		return mail.SMTPAuthPlain
+	}
+	return mail.SMTPAuthAutoDiscover
 }
 
 // ConsoleMailer is a development implementation that just logs emails

@@ -8,6 +8,8 @@ import (
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/wneessen/go-mail"
 )
 
 // captureOutput captures stdout for testing
@@ -917,4 +919,23 @@ func TestSMTPMailer_createSMTPClient(t *testing.T) {
 			t.Error("Expected nil client with invalid config, got non-nil")
 		}
 	})
+}
+
+func TestSelectSMTPAuthType(t *testing.T) {
+	cases := []struct {
+		name   string
+		useTLS bool
+		want   mail.SMTPAuthType
+	}{
+		{"TLS enabled uses autodiscover", true, mail.SMTPAuthAutoDiscover},
+		{"TLS disabled forces PLAIN", false, mail.SMTPAuthPlain},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := selectSMTPAuthType(tc.useTLS)
+			if got != tc.want {
+				t.Errorf("selectSMTPAuthType(%v) = %q, want %q", tc.useTLS, got, tc.want)
+			}
+		})
+	}
 }
