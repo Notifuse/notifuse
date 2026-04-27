@@ -928,7 +928,7 @@ func TestSelectSMTPAuthType(t *testing.T) {
 		want   mail.SMTPAuthType
 	}{
 		{"TLS enabled uses autodiscover", true, mail.SMTPAuthAutoDiscover},
-		{"TLS disabled forces PLAIN", false, mail.SMTPAuthPlain},
+		{"TLS disabled forces PLAIN-NOENC", false, mail.SMTPAuthPlainNoEnc},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

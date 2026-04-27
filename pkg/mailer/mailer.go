@@ -320,14 +320,16 @@ func (m *SMTPMailer) createSMTPClient() (*mail.Client, error) {
 
 // selectSMTPAuthType picks the SMTP authentication mechanism.
 //
-// When UseTLS is false, go-mail's SMTPAuthAutoDiscover refuses PLAIN/LOGIN
-// for security and only attempts SCRAM-SHA-* / CRAM-MD5 — incompatible with
-// internal trusted relays that advertise only PLAIN. Choosing PLAIN
-// explicitly bypasses that refusal. The user already accepted plaintext
+// When UseTLS is false, go-mail has two security gates that block PLAIN over
+// an unencrypted connection: SMTPAuthAutoDiscover skips PLAIN/LOGIN at the
+// mechanism-selection step, and SMTPAuthPlain refuses again at the AUTH step
+// ("unencrypted connection" error). SMTPAuthPlainNoEnc bypasses both — the
+// wire protocol is still standard "AUTH PLAIN", so any server that
+// advertises AUTH PLAIN accepts it. The user already accepted plaintext
 // transit by setting UseTLS=false, so this is consistent with their intent.
 func selectSMTPAuthType(useTLS bool) mail.SMTPAuthType {
 	if !useTLS {
-		return mail.SMTPAuthPlain
+		return mail.SMTPAuthPlainNoEnc
 	}
 	return mail.SMTPAuthAutoDiscover
 }
