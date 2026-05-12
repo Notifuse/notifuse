@@ -162,7 +162,18 @@ export const SET_EMAIL_TREE_TOOL: LLMTool = {
           type: { type: 'string', enum: ['mjml'], description: 'Must be "mjml" for root' },
           children: {
             type: 'array',
-            description: 'Array of child blocks (must include mj-body, optionally mj-head)'
+            description: 'Array of child blocks (must include mj-body, optionally mj-head)',
+            items: {
+              type: 'object',
+              properties: {
+                id: { type: 'string', description: 'Unique block identifier' },
+                type: {
+                  type: 'string',
+                  description: 'MJML block type (e.g. mj-body, mj-head, mj-section, mj-column, mj-text, ...)'
+                }
+              },
+              required: ['id', 'type']
+            }
           }
         },
         required: ['id', 'type', 'children']

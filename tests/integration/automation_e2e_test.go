@@ -291,6 +291,9 @@ func TestAutomation(t *testing.T) {
 	t.Run("UnsubscribeAllowsTransactional", func(t *testing.T) {
 		testAutomationUnsubscribeAllowsTransactional(t, factory, client, workspace.ID)
 	})
+	t.Run("EmailThenListOps_Issue327", func(t *testing.T) {
+		testAutomationEmailThenListOps(t, factory, client, workspace.ID)
+	})
 	t.Run("PrintBugReport", func(t *testing.T) {
 		printBugReport(t)
 	})
@@ -2892,6 +2895,263 @@ func testAutomationConsecutiveAddToList(t *testing.T, factory *testutil.TestData
 		stats.Enrolled, stats.Completed, stats.Exited, stats.Failed)
 
 	t.Logf("ConsecutiveAddToList E2E test passed: both add_to_list nodes executed successfully!")
+}
+
+// testAutomationEmailThenListOps reproduces GitHub issue #327.
+// Workflow: trigger(list.subscribed) → email → add_to_list → remove_from_list.
+// Bug report claims add_to_list and remove_from_list silently fail to execute
+// when chained after an email node, despite the email node completing successfully.
+func testAutomationEmailThenListOps(t *testing.T, factory *testutil.TestDataFactory, client *testutil.APIClient, workspaceID string) {
+	// 1. Create three lists: trigger (fires automation), premium (add target), trial (remove target)
+	triggerList, err := factory.CreateList(workspaceID)
+	require.NoError(t, err)
+	triggerListID := triggerList.ID
+
+	premiumList, err := factory.CreateList(workspaceID)
+	require.NoError(t, err)
+	premiumListID := premiumList.ID
+
+	trialList, err := factory.CreateList(workspaceID)
+	require.NoError(t, err)
+	trialListID := trialList.ID
+
+	// 2. Create email template via factory (complex MJML validation)
+	template, err := factory.CreateTemplate(workspaceID)
+	require.NoError(t, err)
+	templateID := template.ID
+
+	// 3. Build automation: trigger → email → add_to_list → remove_from_list
+	automationID := shortuuid.New()
+	triggerNodeID := shortuuid.New()
+	emailNodeID := shortuuid.New()
+	addNodeID := shortuuid.New()
+	removeNodeID := shortuuid.New()
+
+	createReq := map[string]interface{}{
+		"workspace_id": workspaceID,
+		"automation": map[string]interface{}{
+			"id":           automationID,
+			"workspace_id": workspaceID,
+			"name":         "Issue 327: Email Then List Ops E2E",
+			"status":       "draft",
+			"list_id":      triggerListID,
+			"trigger": map[string]interface{}{
+				"event_kind": "list.subscribed",
+				"list_id":    triggerListID,
+				"frequency":  "once",
+			},
+			"root_node_id": triggerNodeID,
+			"nodes": []map[string]interface{}{
+				{
+					"id":            triggerNodeID,
+					"automation_id": automationID,
+					"type":          "trigger",
+					"config":        map[string]interface{}{},
+					"next_node_id":  emailNodeID,
+					"position":      map[string]interface{}{"x": 0, "y": 0},
+				},
+				{
+					"id":            emailNodeID,
+					"automation_id": automationID,
+					"type":          "email",
+					"config":        map[string]interface{}{"template_id": templateID},
+					"next_node_id":  addNodeID,
+					"position":      map[string]interface{}{"x": 0, "y": 100},
+				},
+				{
+					"id":            addNodeID,
+					"automation_id": automationID,
+					"type":          "add_to_list",
+					"config":        map[string]interface{}{"list_id": premiumListID, "status": "active"},
+					"next_node_id":  removeNodeID,
+					"position":      map[string]interface{}{"x": 0, "y": 200},
+				},
+				{
+					"id":            removeNodeID,
+					"automation_id": automationID,
+					"type":          "remove_from_list",
+					"config":        map[string]interface{}{"list_id": trialListID},
+					"position":      map[string]interface{}{"x": 0, "y": 300},
+				},
+			},
+			"stats": map[string]interface{}{"enrolled": 0, "completed": 0, "exited": 0, "failed": 0},
+		},
+	}
+
+	resp, err := client.CreateAutomation(createReq)
+	require.NoError(t, err)
+	if resp.StatusCode != http.StatusCreated {
+		body, _ := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		t.Fatalf("CreateAutomation: expected 201, got %d: %s", resp.StatusCode, string(body))
+	}
+	resp.Body.Close()
+	t.Logf("Automation created: %s", automationID)
+
+	// 4. Activate automation via HTTP
+	activateResp, err := client.ActivateAutomation(map[string]interface{}{
+		"workspace_id":  workspaceID,
+		"automation_id": automationID,
+	})
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, activateResp.StatusCode)
+	activateResp.Body.Close()
+	t.Logf("Automation activated: %s", automationID)
+
+	// 5. Create contact via factory
+	email := "issue-327-e2e@example.com"
+	contact, err := factory.CreateContact(workspaceID, testutil.WithContactEmail(email))
+	require.NoError(t, err)
+	t.Logf("Contact created: %s", contact.Email)
+
+	// 6. Pre-subscribe contact to trial list so remove_from_list has something to remove
+	_, err = factory.CreateContactList(workspaceID,
+		testutil.WithContactListEmail(email),
+		testutil.WithContactListListID(trialListID),
+		testutil.WithContactListStatus(domain.ContactListStatusActive),
+	)
+	require.NoError(t, err)
+	t.Logf("Contact pre-subscribed to trial list: %s", trialListID)
+
+	// 6b. Sanity check: contact is NOT already in the premium list - if it were, step 10's
+	// assertion would be meaningless (it would pass even if add_to_list never ran).
+	preCheckResp, err := client.GetContactListByIDs(workspaceID, email, premiumListID)
+	require.NoError(t, err)
+	preCheckBody, _ := io.ReadAll(preCheckResp.Body)
+	preCheckResp.Body.Close()
+	require.NotEqualf(t, http.StatusOK, preCheckResp.StatusCode,
+		"sanity check failed: contact should NOT be in premium list before automation runs (got %d: %s)",
+		preCheckResp.StatusCode, string(preCheckBody))
+	t.Logf("Sanity check ok: contact is not in premium list before automation runs")
+
+	// 7. Subscribe contact to trigger list → fires list.subscribed → enrolls in automation
+	_, err = factory.CreateContactList(workspaceID,
+		testutil.WithContactListEmail(email),
+		testutil.WithContactListListID(triggerListID),
+		testutil.WithContactListStatus(domain.ContactListStatusActive),
+	)
+	require.NoError(t, err)
+	t.Logf("Contact subscribed to trigger list: %s", triggerListID)
+
+	// 8. Verify enrollment
+	ca := waitForEnrollmentViaAPI(t, client, automationID, email, 2*time.Second)
+	require.NotNil(t, ca, "Contact should be enrolled")
+	t.Logf("Contact enrolled with status: %s, current_node: %v", ca["status"], ca["current_node_id"])
+
+	// 9. Wait for automation to complete - this is where the alleged bug should manifest
+	var finalStatus string
+	var finalNode string
+	testutil.WaitForCondition(t, func() bool {
+		caFromFactory, err := factory.GetContactAutomation(workspaceID, automationID, email)
+		if err != nil || caFromFactory == nil {
+			return false
+		}
+		finalStatus = string(caFromFactory.Status)
+		if caFromFactory.CurrentNodeID != nil {
+			finalNode = *caFromFactory.CurrentNodeID
+		}
+		t.Logf("Current status: %s, current_node: %s", finalStatus, finalNode)
+		return caFromFactory.Status == domain.ContactAutomationStatusCompleted
+	}, 15*time.Second, "waiting for automation to complete after email → add_to_list → remove_from_list")
+
+	// 10. Verify contact was added to premium list (add_to_list after email)
+	premiumResp, err := client.GetContactListByIDs(workspaceID, email, premiumListID)
+	require.NoError(t, err)
+	defer premiumResp.Body.Close()
+	if premiumResp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(premiumResp.Body)
+		t.Logf("Premium list response: %d - %s", premiumResp.StatusCode, string(body))
+		addBug("TestAutomation_EmailThenListOps_Issue327",
+			"Contact not added to premium list - add_to_list node after email did not execute",
+			"Critical",
+			"Scheduler may not be advancing past email node to subsequent action nodes",
+			"internal/service/automation_node_executor.go:EmailNodeExecutor.Execute")
+		t.Fatalf("ISSUE #327 CONFIRMED: contact not added to premium list (status %d); add_to_list node after email did not execute. Final automation status=%s, current_node=%s", premiumResp.StatusCode, finalStatus, finalNode)
+	}
+	var premiumResult map[string]interface{}
+	require.NoError(t, json.NewDecoder(premiumResp.Body).Decode(&premiumResult))
+	premiumCL, ok := premiumResult["contact_list"].(map[string]interface{})
+	require.True(t, ok, "premium list response should contain a contact_list object, got: %v", premiumResult)
+	assert.Equal(t, email, premiumCL["email"], "contact_list.email must match the enrolled contact")
+	assert.Equal(t, premiumListID, premiumCL["list_id"], "contact_list.list_id must match the add_to_list config")
+	assert.Equal(t, "active", premiumCL["status"], "add_to_list config sets status=active; recorded status must match")
+	t.Logf("Contact verified in premium list with status=active (add_to_list executed correctly)")
+
+	// 11. Verify contact was removed from trial list (remove_from_list after add_to_list after email)
+	trialResp, err := client.GetContactListByIDs(workspaceID, email, trialListID)
+	require.NoError(t, err)
+	defer trialResp.Body.Close()
+	if trialResp.StatusCode == http.StatusOK {
+		var trialResult map[string]interface{}
+		err = json.NewDecoder(trialResp.Body).Decode(&trialResult)
+		require.NoError(t, err)
+		if cl, ok := trialResult["contact_list"].(map[string]interface{}); ok {
+			status, _ := cl["status"].(string)
+			if status == "active" {
+				addBug("TestAutomation_EmailThenListOps_Issue327",
+					"Contact still active in trial list - remove_from_list node after email/add_to_list did not execute",
+					"Critical",
+					"Scheduler may not be advancing through full chain after email node",
+					"internal/service/automation_node_executor.go:EmailNodeExecutor.Execute")
+				t.Fatalf("ISSUE #327 CONFIRMED: contact still active in trial list; remove_from_list node did not execute. Final automation status=%s, current_node=%s", finalStatus, finalNode)
+			}
+		}
+	}
+	t.Logf("Contact verified removed from trial list (remove_from_list executed)")
+
+	// 12. Verify final automation status and stats
+	assert.Equal(t, "completed", finalStatus, "Automation should be completed after processing all nodes")
+	stats := waitForStatsCompleted(t, factory, workspaceID, automationID, 1, 2*time.Second)
+	require.NotNil(t, stats, "Stats should exist")
+	assert.Equal(t, int64(1), stats.Enrolled, "Enrolled count should be 1")
+	assert.Equal(t, int64(1), stats.Completed, "Completed count should be 1")
+	assert.Equal(t, int64(0), stats.Failed, "Failed count should be 0")
+	t.Logf("Automation stats: enrolled=%d, completed=%d, exited=%d, failed=%d",
+		stats.Enrolled, stats.Completed, stats.Exited, stats.Failed)
+
+	// 13. Verify per-node execution records: every node in the chain must have a `completed` action.
+	// The bug report claims the email node completes but downstream nodes silently fail -
+	// per-node completion records are the authoritative signal for that allegation.
+	caFromFactory, err := factory.GetContactAutomation(workspaceID, automationID, email)
+	require.NoError(t, err)
+	require.NotNil(t, caFromFactory)
+
+	executions, err := factory.GetNodeExecutions(workspaceID, caFromFactory.ID)
+	require.NoError(t, err)
+
+	completedByNode := map[string]*domain.NodeExecution{}
+	for _, exec := range executions {
+		t.Logf("Node execution: node=%s type=%s action=%s completed_at=%v",
+			exec.NodeID, exec.NodeType, exec.Action, exec.CompletedAt)
+		if exec.Action == domain.NodeActionCompleted {
+			completedByNode[exec.NodeID] = exec
+		}
+	}
+
+	for _, expected := range []struct {
+		nodeID   string
+		nodeType domain.NodeType
+	}{
+		{triggerNodeID, domain.NodeTypeTrigger},
+		{emailNodeID, domain.NodeTypeEmail},
+		{addNodeID, domain.NodeTypeAddToList},
+		{removeNodeID, domain.NodeTypeRemoveFromList},
+	} {
+		exec, ok := completedByNode[expected.nodeID]
+		if !ok {
+			addBug("TestAutomation_EmailThenListOps_Issue327",
+				fmt.Sprintf("Node %s (%s) has no 'completed' execution record", expected.nodeID, expected.nodeType),
+				"Critical",
+				"Scheduler did not record completion for node placed after email",
+				"internal/service/automation_node_executor.go")
+			t.Fatalf("ISSUE #327 CONFIRMED: %s node (%s) never recorded a 'completed' execution entry", expected.nodeType, expected.nodeID)
+		}
+		require.NotNil(t, exec.CompletedAt, "Node %s (%s) completed entry should have completed_at set", expected.nodeID, expected.nodeType)
+		assert.Equal(t, expected.nodeType, exec.NodeType, "Node execution type mismatch for %s", expected.nodeID)
+	}
+
+	t.Logf("All 4 nodes (trigger, email, add_to_list, remove_from_list) recorded completion")
+	t.Logf("Issue #327 E2E test passed: email → add_to_list → remove_from_list chain executed correctly")
 }
 
 // testWebhookNode tests webhook node sends HTTP POST with correct headers/payload

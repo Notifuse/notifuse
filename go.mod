@@ -82,7 +82,7 @@ require (
 	github.com/prometheus/client_model v0.6.2 // indirect
 	github.com/prometheus/common v0.67.5 // indirect
 	github.com/prometheus/procfs v0.16.1 // indirect
-	github.com/prometheus/prometheus v0.311.2-0.20260410083055-07c6232d159b // indirect
+	github.com/prometheus/prometheus v0.311.3 // indirect
 	github.com/prometheus/statsd_exporter v0.22.7 // indirect
 	github.com/sagikazarmark/locafero v0.4.0 // indirect
 	github.com/sagikazarmark/slog-shim v0.1.0 // indirect

@@ -15,7 +15,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-const VERSION = "30.1"
+const VERSION = "30.2"
 
 type Config struct {
 	Server              ServerConfig
@@ -46,16 +46,16 @@ type Config struct {
 
 // EnvValues tracks configuration that came from actual environment variables
 type EnvValues struct {
-	RootEmail              string
-	APIEndpoint            string
-	SMTPHost               string
-	SMTPPort               int
-	SMTPUsername           string
-	SMTPPassword           string
-	SMTPFromEmail          string
-	SMTPFromName           string
-	SMTPUseTLS             string // "true", "false", or "" (empty = not set, defaults to true)
-	SMTPEHLOHostname       string
+	RootEmail               string
+	APIEndpoint             string
+	SMTPHost                string
+	SMTPPort                int
+	SMTPUsername            string
+	SMTPPassword            string
+	SMTPFromEmail           string
+	SMTPFromName            string
+	SMTPUseTLS              string // "true", "false", or "" (empty = not set, defaults to true)
+	SMTPEHLOHostname        string
 	SMTPBridgeEnabled       string // "true", "false", or "" (empty = not set, allows setup wizard to configure)
 	SMTPBridgeDomain        string
 	SMTPBridgePort          int
@@ -184,19 +184,19 @@ type LoadOptions struct {
 
 // SystemSettings holds configuration loaded from database
 type SystemSettings struct {
-	IsInstalled            bool
-	RootEmail              string
-	APIEndpoint            string
-	SMTPHost               string
-	SMTPPort               int
-	SMTPUsername           string
-	SMTPPassword           string
-	SMTPFromEmail          string
-	SMTPFromName           string
-	SMTPUseTLS             bool
-	SMTPEHLOHostname       string
-	TelemetryEnabled       bool
-	CheckForUpdates        bool
+	IsInstalled             bool
+	RootEmail               string
+	APIEndpoint             string
+	SMTPHost                string
+	SMTPPort                int
+	SMTPUsername            string
+	SMTPPassword            string
+	SMTPFromEmail           string
+	SMTPFromName            string
+	SMTPUseTLS              bool
+	SMTPEHLOHostname        string
+	TelemetryEnabled        bool
+	CheckForUpdates         bool
 	SMTPBridgeEnabled       bool
 	SMTPBridgeDomain        string
 	SMTPBridgePort          int
@@ -557,9 +557,9 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 		SMTPPassword:            v.GetString("SMTP_PASSWORD"),
 		SMTPFromEmail:           v.GetString("SMTP_FROM_EMAIL"),
 		SMTPFromName:            v.GetString("SMTP_FROM_NAME"),
-		SMTPUseTLS:              smtpUseTLSStr,           // "true", "false", or "" (empty = not set, defaults to true)
+		SMTPUseTLS:              smtpUseTLSStr, // "true", "false", or "" (empty = not set, defaults to true)
 		SMTPEHLOHostname:        v.GetString("SMTP_EHLO_HOSTNAME"),
-		SMTPBridgeEnabled:       smtpBridgeEnabledStr,    // "true", "false", or "" (empty = not set)
+		SMTPBridgeEnabled:       smtpBridgeEnabledStr, // "true", "false", or "" (empty = not set)
 		SMTPBridgeDomain:        smtpBridgeDomain,
 		SMTPBridgePort:          smtpBridgePort,
 		SMTPBridgeTLSCertBase64: smtpBridgeTLSCertBase64,
@@ -767,8 +767,8 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 				KeyFile:  v.GetString("SSL_KEY_FILE"),
 			},
 		},
-		Database:  dbConfig,
-		SMTP:      smtpConfig,
+		Database:   dbConfig,
+		SMTP:       smtpConfig,
 		SMTPBridge: smtpBridgeConfig,
 		Security: SecurityConfig{
 			JWTSecret: jwtSecret,

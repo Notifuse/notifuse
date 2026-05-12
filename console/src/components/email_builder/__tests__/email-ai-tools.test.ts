@@ -46,8 +46,11 @@ describe('Email AI Tools', () => {
       const tool = EMAIL_AI_TOOLS.find(t => t.name === 'setEmailTree')
       expect(tool).toBeDefined()
       expect(tool?.input_schema.required).toContain('tree')
-      const properties = tool?.input_schema.properties as Record<string, { properties?: Record<string, { type?: string; enum?: string[] }> }>
+      const properties = tool?.input_schema.properties as Record<string, { properties?: Record<string, { type?: string; enum?: string[]; items?: { type?: string } }> }>
       expect(properties.tree.properties?.type.enum).toContain('mjml')
+      // OpenAI rejects array schemas without `items` (see issue #324)
+      expect(properties.tree.properties?.children.items).toBeDefined()
+      expect(properties.tree.properties?.children.items?.type).toBe('object')
     })
   })
 

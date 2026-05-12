@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [30.2] - 2026-05-12
+
+- **Fix**: Email AI Assistant `setEmailTree` tool now declares `items` on its `children` array schema, so OpenAI-compatible providers no longer reject the request with `array schema missing items` (#324). Anthropic was already lenient about this; only OpenAI-compatible endpoints surfaced the error.
+- **Deps**: Bumped `liquidjs` to 10.25.7, `postcss` to 8.5.14, `fast-xml-parser` override to ≥5.8.0 (+ new `fast-xml-builder` ≥1.1.7 override), and `github.com/prometheus/prometheus` to v0.311.3.
+
 ## [30.1] - 2026-04-27
 
 - **Security**: Bumped `go.opentelemetry.io/otel` to v1.41.0 in `telemetry/go.mod` (CVE-2026-29181).

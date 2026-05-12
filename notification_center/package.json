@@ -44,7 +44,7 @@
     "happy-dom": "^20.8.9",
     "js-yaml": "^4.1.1",
     "jsdom": "^25.0.1",
-    "postcss": "^8.5.3",
+    "postcss": "^8.5.14",
     "tailwindcss": "^4.1.6",
     "tw-animate-css": "^1.3.0",
     "typescript": "~5.8.3",
