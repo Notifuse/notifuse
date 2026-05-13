@@ -2741,7 +2741,7 @@
     "/api/templates.compile": {
       "post": {
         "summary": "Compile template",
-        "description": "Compiles an MJML template with provided data, returning the rendered HTML. Useful for previewing templates before saving.",
+        "description": "Compiles an MJML template with provided data, returning the rendered HTML.\nWhen `subject` and/or `subject_preview` are provided, they are rendered\nthrough the same Liquid engine used at send time and returned alongside\nthe HTML so callers do not need to run a separate Liquid pass to preview\nthe subject line. Useful for previewing templates before saving.\n",
         "operationId": "compileTemplate",
         "security": [
           {
@@ -4117,6 +4117,13 @@
                 "description": "Override template subject line. Supports Liquid templating variables.",
                 "maxLength": 255,
                 "example": "Welcome, {{ name }}!"
+              },
+              "subject_preview": {
+                "type": "string",
+                "nullable": true,
+                "description": "Override template preheader/preview text. Supports Liquid templating variables.",
+                "maxLength": 255,
+                "example": "Your order has been confirmed"
               },
               "cc": {
                 "type": "array",
@@ -6533,6 +6540,16 @@
             "description": "MJML visual editor tree structure (must have type 'mjml')",
             "additionalProperties": true
           },
+          "subject": {
+            "type": "string",
+            "description": "Optional email subject. When provided, it is rendered through the same\nLiquid engine the send path uses (with `test_data`) and the rendered\nresult is returned as `subject` in the response. Liquid processing is\nskipped when `preserve_liquid` is true, `channel` is `web`, or\n`test_data` is empty.\n",
+            "example": "Hi {{ contact.first_name }}"
+          },
+          "subject_preview": {
+            "type": "string",
+            "description": "Optional inbox preview text (the snippet shown after the subject in\nmost clients). Rendered through Liquid like `subject` and returned as\n`subject_preview` in the response.\n",
+            "example": "Welcome {{ contact.first_name }}"
+          },
           "test_data": {
             "type": "object",
             "description": "Data to use for Liquid templating",
@@ -6551,7 +6568,7 @@
               "email",
               "web"
             ],
-            "description": "Channel filter (email or web)"
+            "description": "Channel filter for block visibility"
           }
         }
       },
@@ -6569,6 +6586,16 @@
           "html": {
             "type": "string",
             "description": "Compiled HTML output"
+          },
+          "subject": {
+            "type": "string",
+            "description": "Rendered email subject. Present only when the request included a\nnon-empty `subject`. Returned on both success and error paths so the\ncaller can display the rendered subject alongside any compilation\nerror.\n",
+            "example": "Hi Pierre"
+          },
+          "subject_preview": {
+            "type": "string",
+            "description": "Rendered inbox preview text. Present only when the request included a\nnon-empty `subject_preview`. Returned on both success and error paths.\n",
+            "example": "Welcome Pierre"
           },
           "error": {
             "type": "object",
