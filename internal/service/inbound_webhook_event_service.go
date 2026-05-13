@@ -23,6 +23,7 @@ type InboundWebhookEventService struct {
 	logger             logger.Logger
 	workspaceRepo      domain.WorkspaceRepository
 	messageHistoryRepo domain.MessageHistoryRepository
+	contactRepo        domain.ContactRepository
 }
 
 // NewInboundWebhookEventService creates a new InboundWebhookEventService
@@ -32,6 +33,7 @@ func NewInboundWebhookEventService(
 	logger logger.Logger,
 	workspaceRepo domain.WorkspaceRepository,
 	messageHistoryRepo domain.MessageHistoryRepository,
+	contactRepo domain.ContactRepository,
 ) *InboundWebhookEventService {
 	return &InboundWebhookEventService{
 		repo:               repo,
@@ -39,6 +41,7 @@ func NewInboundWebhookEventService(
 		logger:             logger,
 		workspaceRepo:      workspaceRepo,
 		messageHistoryRepo: messageHistoryRepo,
+		contactRepo:        contactRepo,
 	}
 }
 
@@ -107,52 +110,70 @@ func (s *InboundWebhookEventService) ProcessWebhook(ctx context.Context, workspa
 	}
 
 	updates := []domain.MessageEventUpdate{}
+	var hardEmails []string
+	var softCountEmails []string
 
 	for _, event := range events {
-		var statusInfo *string
-
-		// Update message history status if we have a message ID
-		if event.MessageID != nil && *event.MessageID != "" {
-			var messageEvent domain.MessageEvent
-			switch event.Type {
-			case domain.EmailEventDelivered:
-				messageEvent = domain.MessageEventDelivered
-			case domain.EmailEventBounce:
-				// Only process HARD bounces - soft bounces are logged in webhook_events but don't update message_history
-				if !isHardBounce(event.BounceType, event.BounceCategory) {
-					s.logger.WithField("message_id", *event.MessageID).
-						WithField("bounce_type", event.BounceType).
-						WithField("bounce_category", event.BounceCategory).
-						Debug("Skipping soft bounce - not updating message history")
-					continue // Skip soft bounces
-				}
-
-				messageEvent = domain.MessageEventBounced
-				reason := fmt.Sprintf("%s %s %s", event.BounceType, event.BounceCategory, event.BounceDiagnostic)
-				// Truncate to fit VARCHAR(255) constraint
-				if len(reason) > 255 {
-					reason = reason[:255]
-				}
-				statusInfo = &reason
-			case domain.EmailEventComplaint:
-				messageEvent = domain.MessageEventComplained
-				reason := event.ComplaintFeedbackType
-				// Truncate to fit VARCHAR(255) constraint
-				if len(reason) > 255 {
-					reason = reason[:255]
-				}
-				statusInfo = &reason
-			default:
-				// Skip other event types
-				return nil
+		switch event.Type {
+		case domain.EmailEventDelivered:
+			if event.MessageID != nil && *event.MessageID != "" {
+				updates = append(updates, domain.MessageEventUpdate{
+					ID:        *event.MessageID,
+					Event:     domain.MessageEventDelivered,
+					Timestamp: event.Timestamp,
+				})
 			}
 
-			updates = append(updates, domain.MessageEventUpdate{
-				ID:         *event.MessageID,
-				Event:      messageEvent,
-				Timestamp:  event.Timestamp,
-				StatusInfo: statusInfo,
+		case domain.EmailEventBounce:
+			class := domain.ClassifyBounce(domain.BounceInput{
+				Provider:   integration.EmailProvider.Kind,
+				Type:       event.BounceType,
+				Subtype:    event.BounceCategory,
+				Diagnostic: event.BounceDiagnostic,
 			})
+			switch class {
+			case domain.BounceClassificationHard:
+				hardEmails = append(hardEmails, event.RecipientEmail)
+				if event.MessageID != nil && *event.MessageID != "" {
+					reason := fmt.Sprintf("%s %s %s", event.BounceType, event.BounceCategory, event.BounceDiagnostic)
+					if len(reason) > 255 {
+						reason = reason[:255]
+					}
+					updates = append(updates, domain.MessageEventUpdate{
+						ID:         *event.MessageID,
+						Event:      domain.MessageEventBounced,
+						Timestamp:  event.Timestamp,
+						StatusInfo: &reason,
+					})
+				}
+
+			case domain.BounceClassificationSoftCount:
+				softCountEmails = append(softCountEmails, event.RecipientEmail)
+				s.logger.WithField("recipient_email", event.RecipientEmail).
+					WithField("bounce_type", event.BounceType).
+					WithField("bounce_category", event.BounceCategory).
+					Debug("counting soft bounce toward threshold")
+
+			case domain.BounceClassificationSoftIgnore:
+				s.logger.WithField("recipient_email", event.RecipientEmail).
+					WithField("bounce_type", event.BounceType).
+					WithField("bounce_category", event.BounceCategory).
+					Debug("ignoring message-level soft bounce")
+			}
+
+		case domain.EmailEventComplaint:
+			if event.MessageID != nil && *event.MessageID != "" {
+				reason := event.ComplaintFeedbackType
+				if len(reason) > 255 {
+					reason = reason[:255]
+				}
+				updates = append(updates, domain.MessageEventUpdate{
+					ID:         *event.MessageID,
+					Event:      domain.MessageEventComplained,
+					Timestamp:  event.Timestamp,
+					StatusInfo: &reason,
+				})
+			}
 		}
 	}
 
@@ -163,101 +184,50 @@ func (s *InboundWebhookEventService) ProcessWebhook(ctx context.Context, workspa
 		return fmt.Errorf("failed to update message status: %w", err)
 	}
 
+	if len(softCountEmails) > 0 {
+		threshold := domain.DefaultSoftBounceThreshold
+		counts, err := s.repo.CountConsecutiveSoftBounces(ctx, workspaceID, softCountEmails)
+		if err != nil {
+			// codecov:ignore:start
+			tracing.MarkSpanError(ctx, err)
+			// codecov:ignore:end
+			return fmt.Errorf("failed to count consecutive soft bounces: %w", err)
+		}
+		for email, n := range counts {
+			if n >= threshold {
+				hardEmails = append(hardEmails, email)
+			}
+		}
+	}
+
+	if len(hardEmails) > 0 {
+		if err := s.contactRepo.MarkEmailsAsBounced(ctx, workspaceID, dedupeStrings(hardEmails), time.Now().UTC()); err != nil {
+			// codecov:ignore:start
+			tracing.MarkSpanError(ctx, err)
+			// codecov:ignore:end
+			return fmt.Errorf("failed to mark emails as bounced: %w", err)
+		}
+	}
+
 	return nil
 }
 
-// isHardBounce determines if a bounce is a hard/permanent bounce based on bounce type and category
-// Hard bounces indicate permanent delivery failures and should update contact list status
-// Soft bounces are temporary failures and should not affect contact list status
-func isHardBounce(bounceType, bounceCategory string) bool {
-	// Normalize to lowercase for case-insensitive comparison
-	bounceType = strings.ToLower(bounceType)
-	bounceCategory = strings.ToLower(bounceCategory)
-
-	// Amazon SES bounce types
-	// Reference: https://docs.aws.amazon.com/ses/latest/dg/notification-contents.html#bounce-types
-	if bounceType == "permanent" {
-		return true // Hard bounce - permanent failure
+// dedupeStrings returns a new slice with duplicates removed, preserving the
+// order of first occurrence.
+func dedupeStrings(in []string) []string {
+	if len(in) <= 1 {
+		return in
 	}
-	if bounceType == "transient" || bounceType == "undetermined" {
-		return false // Soft bounce - temporary issue
+	seen := make(map[string]struct{}, len(in))
+	out := make([]string, 0, len(in))
+	for _, s := range in {
+		if _, ok := seen[s]; ok {
+			continue
+		}
+		seen[s] = struct{}{}
+		out = append(out, s)
 	}
-
-	// Mailgun classifications
-	if bounceCategory == "hardbounce" || bounceCategory == "permanent" {
-		return true
-	}
-	if bounceCategory == "softbounce" || bounceCategory == "temporary" {
-		return false
-	}
-
-	// Mailjet classifications (uses BounceType field)
-	if bounceType == "hardbounce" {
-		return true
-	}
-	if bounceType == "softbounce" {
-		return false
-	}
-
-	// Blocked emails should be treated as hard bounces
-	if bounceType == "blocked" || bounceCategory == "blocked" {
-		return true
-	}
-
-	// Postmark type codes (hard bounces typically have TypeCode 1 or contain "Hard" in Type field)
-	if strings.Contains(bounceType, "hard") || strings.Contains(bounceCategory, "hard") {
-		return true
-	}
-	if strings.Contains(bounceType, "soft") || strings.Contains(bounceCategory, "soft") {
-		return false
-	}
-
-	// SparkPost bounce classes
-	// Reference: https://support.sparkpost.com/docs/deliverability/bounce-classification-codes
-	// Hard bounces: 10 (Invalid Recipient), 30 (No RCPT), 90 (Unsubscribe)
-	if bounceCategory == "10" || bounceCategory == "30" || bounceCategory == "90" {
-		return true // Hard bounce - permanent failure
-	}
-	// Soft bounces: 20-24, 40, 60, 70, 100 (temporary failures)
-	// Block: 50-54 (temporary blocks - treated as soft per SparkPost docs)
-	// Admin: 25, 80 (configuration issues - temporary)
-	// Undetermined: 1 (unknown - temporary)
-	if bounceCategory == "1" || bounceCategory == "20" || bounceCategory == "21" ||
-		bounceCategory == "22" || bounceCategory == "23" || bounceCategory == "24" ||
-		bounceCategory == "25" || bounceCategory == "40" || bounceCategory == "50" ||
-		bounceCategory == "51" || bounceCategory == "52" || bounceCategory == "53" ||
-		bounceCategory == "54" || bounceCategory == "60" || bounceCategory == "70" ||
-		bounceCategory == "80" || bounceCategory == "100" {
-		return false // Soft/temporary bounce
-	}
-
-	// SendGrid bounce classification
-	// Reference: https://docs.sendgrid.com/glossary/bounces
-	// type="bounce" = hard bounce (permanent failure)
-	// type="blocked" = soft bounce (temporary rejection)
-	// type="dropped" = message dropped before sending (treat as soft)
-	if bounceType == "bounce" {
-		return true // Hard bounce - permanent failure
-	}
-	if bounceType == "blocked" || bounceType == "dropped" {
-		return false // Soft bounce - temporary issue
-	}
-
-	// SendGrid bounce_classification values
-	// "Invalid Address" indicates permanent failure
-	if bounceCategory == "invalid address" {
-		return true
-	}
-	// Other classifications are typically temporary
-	if bounceCategory == "technical" || bounceCategory == "content" ||
-		bounceCategory == "reputation" || bounceCategory == "frequency/volume" ||
-		bounceCategory == "mailbox unavailable" || bounceCategory == "unclassified" {
-		return false
-	}
-
-	// Default to false (don't update contact lists unless we're certain it's a hard bounce)
-	// This is the safe default - better to miss some hard bounces than incorrectly mark soft bounces
-	return false
+	return out
 }
 
 // extractXMessageIDFromHeaders searches for the X-Message-ID header in SES mail headers.

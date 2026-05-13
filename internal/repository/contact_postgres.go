@@ -14,6 +14,7 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/Notifuse/notifuse/internal/domain"
+	"github.com/lib/pq"
 )
 
 type contactRepository struct {
@@ -1765,4 +1766,33 @@ func (r *contactRepository) GetBatchForSegment(ctx context.Context, workspaceID 
 	}
 
 	return emails, nil
+}
+
+// MarkEmailsAsBounced flips contact_lists.status='bounced' for every list each
+// given email is on, except rows already in a terminal status ('complained' or
+// 'bounced') or soft-deleted. The track_contact_list_changes trigger emits the
+// matching list.bounced timeline rows for transitions.
+func (r *contactRepository) MarkEmailsAsBounced(ctx context.Context, workspaceID string, emails []string, at time.Time) error {
+	if len(emails) == 0 {
+		return nil
+	}
+
+	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
+	if err != nil {
+		return fmt.Errorf("failed to get workspace connection: %w", err)
+	}
+
+	const query = `
+UPDATE contact_lists
+   SET status = 'bounced',
+       updated_at = $2
+ WHERE email = ANY($1)
+   AND status NOT IN ('complained', 'bounced')
+   AND deleted_at IS NULL`
+
+	if _, err := workspaceDB.ExecContext(ctx, query, pq.Array(emails), at); err != nil {
+		return fmt.Errorf("failed to mark emails as bounced: %w", err)
+	}
+
+	return nil
 }

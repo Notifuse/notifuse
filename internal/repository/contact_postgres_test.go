@@ -2316,3 +2316,125 @@ func TestContactRepository_GetBatchForSegment(t *testing.T) {
 		assert.Contains(t, err.Error(), "failed to query emails")
 	})
 }
+
+func TestMarkEmailsAsBounced_FlipsActiveLists(t *testing.T) {
+	db, mock, cleanup := setupMockDB(t)
+	defer cleanup()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	workspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	workspaceRepo.EXPECT().GetConnection(gomock.Any(), "ws-123").Return(db, nil)
+
+	repo := NewContactRepository(workspaceRepo)
+	at := time.Date(2026, 5, 12, 10, 0, 0, 0, time.UTC)
+	emails := []string{"a@example.com", "b@example.com"}
+
+	// 4 list rows flipped from active → bounced across the two emails.
+	mock.ExpectExec(`UPDATE contact_lists\s+SET status = 'bounced',\s+updated_at = \$2\s+WHERE email = ANY\(\$1\)\s+AND status NOT IN \('complained', 'bounced'\)\s+AND deleted_at IS NULL`).
+		WithArgs(sqlmock.AnyArg(), at).
+		WillReturnResult(sqlmock.NewResult(0, 4))
+
+	err := repo.MarkEmailsAsBounced(context.Background(), "ws-123", emails, at)
+	require.NoError(t, err)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestMarkEmailsAsBounced_PreservesComplained(t *testing.T) {
+	// We can't make sqlmock evaluate the WHERE clause for real, but pinning the
+	// regex guarantees that future refactors which drop the "NOT IN ('complained', 'bounced')"
+	// guard will fail this test. The RowsAffected we return here represents only
+	// the active rows that legitimately flipped — complained rows would not be touched.
+	db, mock, cleanup := setupMockDB(t)
+	defer cleanup()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	workspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	workspaceRepo.EXPECT().GetConnection(gomock.Any(), "ws-123").Return(db, nil)
+
+	repo := NewContactRepository(workspaceRepo)
+	at := time.Now().UTC()
+
+	mock.ExpectExec(`status NOT IN \('complained', 'bounced'\)`).
+		WithArgs(sqlmock.AnyArg(), at).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+
+	err := repo.MarkEmailsAsBounced(context.Background(), "ws-123", []string{"a@example.com"}, at)
+	require.NoError(t, err)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestMarkEmailsAsBounced_Idempotent(t *testing.T) {
+	db, mock, cleanup := setupMockDB(t)
+	defer cleanup()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	workspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	workspaceRepo.EXPECT().GetConnection(gomock.Any(), "ws-123").Return(db, nil)
+
+	repo := NewContactRepository(workspaceRepo)
+	at := time.Now().UTC()
+
+	// Already-bounced rows are excluded by the WHERE clause, so RowsAffected = 0.
+	mock.ExpectExec(`UPDATE contact_lists`).
+		WithArgs(sqlmock.AnyArg(), at).
+		WillReturnResult(sqlmock.NewResult(0, 0))
+
+	err := repo.MarkEmailsAsBounced(context.Background(), "ws-123", []string{"a@example.com"}, at)
+	require.NoError(t, err, "calling twice on an already-bounced contact should not error")
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestMarkEmailsAsBounced_EmptyEmailsShortCircuits(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	workspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	// No GetConnection expectation — we must not even hit the DB.
+
+	repo := NewContactRepository(workspaceRepo)
+	err := repo.MarkEmailsAsBounced(context.Background(), "ws-123", nil, time.Now())
+	require.NoError(t, err)
+}
+
+func TestMarkEmailsAsBounced_WorkspaceConnectionError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	workspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	workspaceRepo.EXPECT().GetConnection(gomock.Any(), "ws-123").
+		Return(nil, errors.New("boom"))
+
+	repo := NewContactRepository(workspaceRepo)
+	err := repo.MarkEmailsAsBounced(context.Background(), "ws-123", []string{"a@example.com"}, time.Now())
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to get workspace connection")
+}
+
+func TestMarkEmailsAsBounced_ExecError(t *testing.T) {
+	db, mock, cleanup := setupMockDB(t)
+	defer cleanup()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	workspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	workspaceRepo.EXPECT().GetConnection(gomock.Any(), "ws-123").Return(db, nil)
+
+	repo := NewContactRepository(workspaceRepo)
+	at := time.Now().UTC()
+
+	mock.ExpectExec(`UPDATE contact_lists`).
+		WithArgs(sqlmock.AnyArg(), at).
+		WillReturnError(errors.New("db down"))
+
+	err := repo.MarkEmailsAsBounced(context.Background(), "ws-123", []string{"a@example.com"}, at)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to mark emails as bounced")
+	assert.NoError(t, mock.ExpectationsWereMet())
+}

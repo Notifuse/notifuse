@@ -641,6 +641,12 @@ type ContactRepository interface {
 
 	// GetBatchForSegment retrieves a batch of email addresses for segment processing
 	GetBatchForSegment(ctx context.Context, workspaceID string, offset int64, limit int) ([]string, error)
+
+	// MarkEmailsAsBounced flips contact_lists.status to 'bounced' for every list
+	// each given email is on, except where the row is already 'bounced' or
+	// 'complained', or has been soft-deleted. The track_contact_list_changes
+	// trigger emits the corresponding list.bounced timeline rows.
+	MarkEmailsAsBounced(ctx context.Context, workspaceID string, emails []string, at time.Time) error
 }
 
 // FromJSON parses JSON data into a Contact struct

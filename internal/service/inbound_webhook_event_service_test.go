@@ -26,6 +26,7 @@ func TestProcessWebhook_Success(t *testing.T) {
 	authService := mocks.NewMockAuthService(ctrl)
 	log := pkgmocks.NewMockLogger(ctrl)
 	workspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	contactRepo := mocks.NewMockContactRepository(ctrl)
 
 	// Setup logging expectations
 	log.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(log).AnyTimes()
@@ -100,6 +101,9 @@ func TestProcessWebhook_Success(t *testing.T) {
 			return nil
 		})
 
+		// Hard bounce → contact_lists.status flipped to 'bounced'
+		contactRepo.EXPECT().MarkEmailsAsBounced(gomock.Any(), workspaceID, []string{"test@example.com"}, gomock.Any()).Return(nil)
+
 		// Create service
 		service := &InboundWebhookEventService{
 			repo:               repo,
@@ -107,6 +111,7 @@ func TestProcessWebhook_Success(t *testing.T) {
 			logger:             log,
 			workspaceRepo:      workspaceRepo,
 			messageHistoryRepo: messageHistoryRepo,
+			contactRepo:        contactRepo,
 		}
 
 		// Call method
@@ -176,6 +181,7 @@ func TestProcessWebhook_Success(t *testing.T) {
 			logger:             log,
 			workspaceRepo:      workspaceRepo,
 			messageHistoryRepo: messageHistoryRepo,
+			contactRepo:        contactRepo,
 		}
 
 		// Call method
@@ -206,6 +212,7 @@ func TestProcessWebhook_Success(t *testing.T) {
 			logger:             log,
 			workspaceRepo:      workspaceRepo,
 			messageHistoryRepo: messageHistoryRepo,
+			contactRepo:        contactRepo,
 		}
 
 		// Call method
@@ -255,6 +262,7 @@ func TestProcessWebhook_Success(t *testing.T) {
 			logger:             log,
 			workspaceRepo:      workspaceRepo,
 			messageHistoryRepo: messageHistoryRepo,
+			contactRepo:        contactRepo,
 		}
 
 		// Call method
@@ -275,6 +283,7 @@ func TestProcessWebhook_WorkspaceNotFound(t *testing.T) {
 	authService := mocks.NewMockAuthService(ctrl)
 	log := pkgmocks.NewMockLogger(ctrl)
 	workspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	contactRepo := mocks.NewMockContactRepository(ctrl)
 
 	// Setup logging expectations
 	log.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(log).AnyTimes()
@@ -298,6 +307,7 @@ func TestProcessWebhook_WorkspaceNotFound(t *testing.T) {
 		logger:             log,
 		workspaceRepo:      workspaceRepo,
 		messageHistoryRepo: messageHistoryRepo,
+		contactRepo:        contactRepo,
 	}
 
 	// Call method
@@ -316,9 +326,10 @@ func TestNewInboundWebhookEventService(t *testing.T) {
 	authService := mocks.NewMockAuthService(ctrl)
 	log := pkgmocks.NewMockLogger(ctrl)
 	workspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	contactRepo := mocks.NewMockContactRepository(ctrl)
 	messageHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
 
-	service := NewInboundWebhookEventService(repo, authService, log, workspaceRepo, messageHistoryRepo)
+	service := NewInboundWebhookEventService(repo, authService, log, workspaceRepo, messageHistoryRepo, contactRepo)
 
 	assert.NotNil(t, service)
 	assert.Equal(t, repo, service.repo)
@@ -326,6 +337,7 @@ func TestNewInboundWebhookEventService(t *testing.T) {
 	assert.NotNil(t, service.logger)
 	assert.Equal(t, workspaceRepo, service.workspaceRepo)
 	assert.Equal(t, messageHistoryRepo, service.messageHistoryRepo)
+	assert.Equal(t, contactRepo, service.contactRepo)
 }
 
 func TestProcessSESWebhook(t *testing.T) {
@@ -337,6 +349,7 @@ func TestProcessSESWebhook(t *testing.T) {
 	authService := mocks.NewMockAuthService(ctrl)
 	log := pkgmocks.NewMockLogger(ctrl)
 	workspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	contactRepo := mocks.NewMockContactRepository(ctrl)
 
 	// Setup logging expectations
 	log.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(log).AnyTimes()
@@ -352,6 +365,7 @@ func TestProcessSESWebhook(t *testing.T) {
 		logger:             log,
 		workspaceRepo:      workspaceRepo,
 		messageHistoryRepo: messageHistoryRepo,
+		contactRepo:        contactRepo,
 	}
 
 	integrationID := "integration1"
@@ -727,6 +741,7 @@ func TestProcessPostmarkWebhook(t *testing.T) {
 	authService := mocks.NewMockAuthService(ctrl)
 	log := pkgmocks.NewMockLogger(ctrl)
 	workspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	contactRepo := mocks.NewMockContactRepository(ctrl)
 
 	messageHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
 	service := &InboundWebhookEventService{
@@ -735,6 +750,7 @@ func TestProcessPostmarkWebhook(t *testing.T) {
 		logger:             log,
 		workspaceRepo:      workspaceRepo,
 		messageHistoryRepo: messageHistoryRepo,
+		contactRepo:        contactRepo,
 	}
 
 	integrationID := "integration1"
@@ -969,6 +985,7 @@ func TestProcessSparkPostWebhook(t *testing.T) {
 	authService := mocks.NewMockAuthService(ctrl)
 	log := pkgmocks.NewMockLogger(ctrl)
 	workspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	contactRepo := mocks.NewMockContactRepository(ctrl)
 
 	messageHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
 	service := &InboundWebhookEventService{
@@ -977,6 +994,7 @@ func TestProcessSparkPostWebhook(t *testing.T) {
 		logger:             log,
 		workspaceRepo:      workspaceRepo,
 		messageHistoryRepo: messageHistoryRepo,
+		contactRepo:        contactRepo,
 	}
 
 	integrationID := "integration1"
@@ -1267,6 +1285,7 @@ func TestProcessMailgunWebhook(t *testing.T) {
 	authService := mocks.NewMockAuthService(ctrl)
 	log := pkgmocks.NewMockLogger(ctrl)
 	workspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	contactRepo := mocks.NewMockContactRepository(ctrl)
 
 	messageHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
 	service := &InboundWebhookEventService{
@@ -1275,6 +1294,7 @@ func TestProcessMailgunWebhook(t *testing.T) {
 		logger:             log,
 		workspaceRepo:      workspaceRepo,
 		messageHistoryRepo: messageHistoryRepo,
+		contactRepo:        contactRepo,
 	}
 
 	integrationID := "integration1"
@@ -1485,6 +1505,7 @@ func TestProcessMailjetWebhook(t *testing.T) {
 	authService := mocks.NewMockAuthService(ctrl)
 	log := pkgmocks.NewMockLogger(ctrl)
 	workspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	contactRepo := mocks.NewMockContactRepository(ctrl)
 
 	messageHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
 	service := &InboundWebhookEventService{
@@ -1493,6 +1514,7 @@ func TestProcessMailjetWebhook(t *testing.T) {
 		logger:             log,
 		workspaceRepo:      workspaceRepo,
 		messageHistoryRepo: messageHistoryRepo,
+		contactRepo:        contactRepo,
 	}
 
 	integrationID := "integration1"
@@ -1832,6 +1854,7 @@ func TestProcessSMTPWebhook(t *testing.T) {
 	authService := mocks.NewMockAuthService(ctrl)
 	log := pkgmocks.NewMockLogger(ctrl)
 	workspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	contactRepo := mocks.NewMockContactRepository(ctrl)
 
 	messageHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
 	service := &InboundWebhookEventService{
@@ -1840,6 +1863,7 @@ func TestProcessSMTPWebhook(t *testing.T) {
 		logger:             log,
 		workspaceRepo:      workspaceRepo,
 		messageHistoryRepo: messageHistoryRepo,
+		contactRepo:        contactRepo,
 	}
 
 	integrationID := "integration1"
@@ -1989,6 +2013,7 @@ func TestProcessSendGridWebhook(t *testing.T) {
 	authService := mocks.NewMockAuthService(ctrl)
 	log := pkgmocks.NewMockLogger(ctrl)
 	workspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	contactRepo := mocks.NewMockContactRepository(ctrl)
 	messageHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
 
 	service := &InboundWebhookEventService{
@@ -1997,6 +2022,7 @@ func TestProcessSendGridWebhook(t *testing.T) {
 		logger:             log,
 		workspaceRepo:      workspaceRepo,
 		messageHistoryRepo: messageHistoryRepo,
+		contactRepo:        contactRepo,
 	}
 
 	integrationID := "integration1"
@@ -2270,6 +2296,7 @@ func TestProcessWebhook_AdditionalScenarios(t *testing.T) {
 	log.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(log).AnyTimes()
 	log.EXPECT().Error(gomock.Any()).AnyTimes()
 	workspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	contactRepo := mocks.NewMockContactRepository(ctrl)
 	messageHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
 
 	service := &InboundWebhookEventService{
@@ -2278,6 +2305,7 @@ func TestProcessWebhook_AdditionalScenarios(t *testing.T) {
 		logger:             log,
 		workspaceRepo:      workspaceRepo,
 		messageHistoryRepo: messageHistoryRepo,
+		contactRepo:        contactRepo,
 	}
 
 	workspaceID := "workspace1"
@@ -2315,6 +2343,8 @@ func TestProcessWebhook_AdditionalScenarios(t *testing.T) {
 				assert.LessOrEqual(t, len(*updates[0].StatusInfo), 255)
 				return nil
 			})
+		// Hard bounce → contact_lists.status flipped to 'bounced'
+		contactRepo.EXPECT().MarkEmailsAsBounced(gomock.Any(), workspaceID, []string{"test@example.com"}, gomock.Any()).Return(nil)
 
 		// Call method
 		err = service.ProcessWebhook(context.Background(), workspaceID, integrationID, rawPayload)
@@ -2458,6 +2488,7 @@ func TestProcessWebhook_AdditionalScenarios(t *testing.T) {
 			logger:             log,
 			workspaceRepo:      workspaceRepo,
 			messageHistoryRepo: messageHistoryRepo,
+			contactRepo:        contactRepo,
 		}
 
 		// We'll use reflection or create a mock to simulate this
@@ -2484,6 +2515,7 @@ func TestProcessWebhook_UpdatesMessageHistory(t *testing.T) {
 	log.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(log).AnyTimes()
 	log.EXPECT().Error(gomock.Any()).AnyTimes()
 	workspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	contactRepo := mocks.NewMockContactRepository(ctrl)
 	messageHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
 
 	// Create service
@@ -2493,6 +2525,7 @@ func TestProcessWebhook_UpdatesMessageHistory(t *testing.T) {
 		logger:             log,
 		workspaceRepo:      workspaceRepo,
 		messageHistoryRepo: messageHistoryRepo,
+		contactRepo:        contactRepo,
 	}
 
 	// Test data
@@ -2567,6 +2600,7 @@ func TestProcessWebhook_UpdatesMessageHistoryWithMultipleEvents(t *testing.T) {
 	log.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(log).AnyTimes()
 	log.EXPECT().Error(gomock.Any()).AnyTimes()
 	workspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	contactRepo := mocks.NewMockContactRepository(ctrl)
 	messageHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
 
 	// Create service
@@ -2576,6 +2610,7 @@ func TestProcessWebhook_UpdatesMessageHistoryWithMultipleEvents(t *testing.T) {
 		logger:             log,
 		workspaceRepo:      workspaceRepo,
 		messageHistoryRepo: messageHistoryRepo,
+		contactRepo:        contactRepo,
 	}
 
 	// Test data
@@ -2660,6 +2695,9 @@ func TestProcessWebhook_UpdatesMessageHistoryWithMultipleEvents(t *testing.T) {
 		return nil
 	})
 
+	// SparkPost class 10 is a hard bounce → contact_lists.status flipped to 'bounced'
+	contactRepo.EXPECT().MarkEmailsAsBounced(gomock.Any(), workspaceID, []string{"test2@example.com"}, gomock.Any()).Return(nil)
+
 	// Call the method
 	err = service.ProcessWebhook(context.Background(), workspaceID, integrationID, rawPayload)
 
@@ -2667,133 +2705,241 @@ func TestProcessWebhook_UpdatesMessageHistoryWithMultipleEvents(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-// TestListEvents tests the ListEvents method of WebhookEventService
-func TestIsHardBounce(t *testing.T) {
-	t.Run("Amazon SES - Permanent bounces", func(t *testing.T) {
-		assert.True(t, isHardBounce("Permanent", ""))
-		assert.True(t, isHardBounce("permanent", ""))
-		assert.True(t, isHardBounce("PERMANENT", ""))
-	})
+// newClassificationTestService is a tiny helper for the SES classification tests
+// below. Each call returns a fresh service + its mocks so each subtest is
+// independent.
+func newClassificationTestService(t *testing.T) (
+	*InboundWebhookEventService,
+	*mocks.MockInboundWebhookEventRepository,
+	*mocks.MockWorkspaceRepository,
+	*mocks.MockMessageHistoryRepository,
+	*mocks.MockContactRepository,
+	*gomock.Controller,
+) {
+	t.Helper()
+	ctrl := gomock.NewController(t)
 
-	t.Run("Amazon SES - Soft bounces", func(t *testing.T) {
-		assert.False(t, isHardBounce("Transient", ""))
-		assert.False(t, isHardBounce("transient", ""))
-		assert.False(t, isHardBounce("Undetermined", ""))
-		assert.False(t, isHardBounce("undetermined", ""))
-	})
+	repo := mocks.NewMockInboundWebhookEventRepository(ctrl)
+	authService := mocks.NewMockAuthService(ctrl)
+	log := pkgmocks.NewMockLogger(ctrl)
+	log.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(log).AnyTimes()
+	log.EXPECT().WithFields(gomock.Any()).Return(log).AnyTimes()
+	log.EXPECT().Debug(gomock.Any()).AnyTimes()
+	log.EXPECT().Info(gomock.Any()).AnyTimes()
+	log.EXPECT().Warn(gomock.Any()).AnyTimes()
+	log.EXPECT().Error(gomock.Any()).AnyTimes()
 
-	t.Run("Mailgun - Hard bounces", func(t *testing.T) {
-		assert.True(t, isHardBounce("", "hardbounce"))
-		assert.True(t, isHardBounce("", "HardBounce"))
-		assert.True(t, isHardBounce("", "permanent"))
-		assert.True(t, isHardBounce("", "Permanent"))
-	})
+	workspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	messageHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
+	contactRepo := mocks.NewMockContactRepository(ctrl)
 
-	t.Run("Mailgun - Soft bounces", func(t *testing.T) {
-		assert.False(t, isHardBounce("", "softbounce"))
-		assert.False(t, isHardBounce("", "SoftBounce"))
-		assert.False(t, isHardBounce("", "temporary"))
-		assert.False(t, isHardBounce("", "Temporary"))
-	})
-
-	t.Run("Mailjet - Hard bounces", func(t *testing.T) {
-		assert.True(t, isHardBounce("hardbounce", ""))
-		assert.True(t, isHardBounce("HardBounce", ""))
-		assert.True(t, isHardBounce("HARDBOUNCE", ""))
-	})
-
-	t.Run("Mailjet - Soft bounces", func(t *testing.T) {
-		assert.False(t, isHardBounce("softbounce", ""))
-		assert.False(t, isHardBounce("SoftBounce", ""))
-		assert.False(t, isHardBounce("SOFTBOUNCE", ""))
-	})
-
-	t.Run("Blocked emails", func(t *testing.T) {
-		assert.True(t, isHardBounce("blocked", ""))
-		assert.True(t, isHardBounce("Blocked", ""))
-		assert.True(t, isHardBounce("", "blocked"))
-		assert.True(t, isHardBounce("", "Blocked"))
-	})
-
-	t.Run("Postmark - Hard bounce patterns", func(t *testing.T) {
-		assert.True(t, isHardBounce("HardBounce", ""))
-		assert.True(t, isHardBounce("hard", ""))
-		assert.True(t, isHardBounce("", "HardBounce"))
-		assert.True(t, isHardBounce("", "hard"))
-		assert.True(t, isHardBounce("This is a hard bounce", ""))
-	})
-
-	t.Run("Postmark - Soft bounce patterns", func(t *testing.T) {
-		assert.False(t, isHardBounce("SoftBounce", ""))
-		assert.False(t, isHardBounce("soft", ""))
-		assert.False(t, isHardBounce("", "SoftBounce"))
-		assert.False(t, isHardBounce("", "soft"))
-		assert.False(t, isHardBounce("This is a soft bounce", ""))
-	})
-
-	t.Run("SparkPost - Hard bounces", func(t *testing.T) {
-		// Hard bounce classes: 10 (Invalid Recipient), 30 (No RCPT), 90 (Unsubscribe)
-		assert.True(t, isHardBounce("", "10"))
-		assert.True(t, isHardBounce("", "30"))
-		assert.True(t, isHardBounce("", "90"))
-	})
-
-	t.Run("SparkPost - Soft bounces", func(t *testing.T) {
-		// Soft bounce classes: 1, 20-25, 40, 50-54, 60, 70, 80, 100
-		assert.False(t, isHardBounce("", "1"))   // Undetermined
-		assert.False(t, isHardBounce("", "20"))  // Soft bounce
-		assert.False(t, isHardBounce("", "21"))  // Soft bounce
-		assert.False(t, isHardBounce("", "22"))  // Soft bounce
-		assert.False(t, isHardBounce("", "23"))  // Soft bounce
-		assert.False(t, isHardBounce("", "24"))  // Soft bounce
-		assert.False(t, isHardBounce("", "25"))  // Admin failure
-		assert.False(t, isHardBounce("", "40"))  // Generic bounce
-		assert.False(t, isHardBounce("", "50"))  // Block
-		assert.False(t, isHardBounce("", "51"))  // Block
-		assert.False(t, isHardBounce("", "52"))  // Block
-		assert.False(t, isHardBounce("", "53"))  // Block
-		assert.False(t, isHardBounce("", "54"))  // Block
-		assert.False(t, isHardBounce("", "60"))  // Auto-reply
-		assert.False(t, isHardBounce("", "70"))  // Transient failure
-		assert.False(t, isHardBounce("", "80"))  // Subscribe
-		assert.False(t, isHardBounce("", "100")) // Mail block
-	})
-
-	t.Run("SparkPost - Unknown bounce classes default to soft", func(t *testing.T) {
-		assert.False(t, isHardBounce("", "99"))
-		assert.False(t, isHardBounce("", "999"))
-		assert.False(t, isHardBounce("", "5"))
-	})
-
-	t.Run("Case insensitivity", func(t *testing.T) {
-		assert.True(t, isHardBounce("PERMANENT", ""))
-		assert.True(t, isHardBounce("Permanent", ""))
-		assert.True(t, isHardBounce("permanent", ""))
-		assert.True(t, isHardBounce("", "HARDBOUNCE"))
-		assert.True(t, isHardBounce("", "HardBounce"))
-		assert.True(t, isHardBounce("", "hardbounce"))
-	})
-
-	t.Run("Default behavior - unknown types default to soft", func(t *testing.T) {
-		assert.False(t, isHardBounce("unknown", ""))
-		assert.False(t, isHardBounce("", "unknown"))
-		assert.False(t, isHardBounce("some-random-type", "some-random-category"))
-		assert.False(t, isHardBounce("", ""))
-	})
-
-	t.Run("Combined type and category", func(t *testing.T) {
-		// The function checks in order: SES type → Mailgun category → Mailjet type → blocked → patterns → SparkPost
-		// SES "permanent" is checked first, so returns true even with soft category
-		assert.True(t, isHardBounce("permanent", "softbounce"))
-		// SES "transient" is checked first, so returns false even with hard category
-		assert.False(t, isHardBounce("transient", "hardbounce"))
-		// Mailgun category is checked before Mailjet type, so "temporary" returns false
-		assert.False(t, isHardBounce("hardbounce", "temporary"))
-		// But if category doesn't match Mailgun patterns, it continues to check type
-		assert.True(t, isHardBounce("hardbounce", "unknown"))
-	})
+	service := &InboundWebhookEventService{
+		repo:               repo,
+		authService:        authService,
+		logger:             log,
+		workspaceRepo:      workspaceRepo,
+		messageHistoryRepo: messageHistoryRepo,
+		contactRepo:        contactRepo,
+	}
+	return service, repo, workspaceRepo, messageHistoryRepo, contactRepo, ctrl
 }
 
+func sesWorkspace(workspaceID, integrationID string) *domain.Workspace {
+	return &domain.Workspace{
+		ID: workspaceID,
+		Integrations: []domain.Integration{
+			{
+				ID: integrationID,
+				EmailProvider: domain.EmailProvider{
+					Kind: domain.EmailProviderKindSES,
+				},
+			},
+		},
+	}
+}
+
+func TestProcessWebhook_SES_Permanent_HardBounce(t *testing.T) {
+	service, repo, workspaceRepo, messageHistoryRepo, contactRepo, ctrl := newClassificationTestService(t)
+	defer ctrl.Finish()
+
+	workspaceID, integrationID := "ws1", "int1"
+	payload := domain.SESWebhookPayload{
+		Message: `{"eventType":"Bounce","bounce":{"bounceType":"Permanent","bounceSubType":"General","bouncedRecipients":[{"emailAddress":"hard@example.com","diagnosticCode":"550 mailbox does not exist"}],"timestamp":"2026-05-12T10:00:00Z"},"mail":{"messageId":"msg-1"}}`,
+	}
+	rawPayload, err := json.Marshal(payload)
+	require.NoError(t, err)
+
+	workspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(sesWorkspace(workspaceID, integrationID), nil)
+	repo.EXPECT().StoreEvents(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
+	messageHistoryRepo.EXPECT().SetStatusesIfNotSet(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
+	// Hard bounce: no count query, direct escalation.
+	contactRepo.EXPECT().MarkEmailsAsBounced(gomock.Any(), workspaceID, []string{"hard@example.com"}, gomock.Any()).Return(nil)
+
+	require.NoError(t, service.ProcessWebhook(context.Background(), workspaceID, integrationID, rawPayload))
+}
+
+func TestProcessWebhook_SES_TransientGeneral_BelowThreshold(t *testing.T) {
+	service, repo, workspaceRepo, messageHistoryRepo, contactRepo, ctrl := newClassificationTestService(t)
+	defer ctrl.Finish()
+
+	workspaceID, integrationID := "ws1", "int1"
+	payload := domain.SESWebhookPayload{
+		Message: `{"eventType":"Bounce","bounce":{"bounceType":"Transient","bounceSubType":"General","bouncedRecipients":[{"emailAddress":"soft@example.com","diagnosticCode":"smtp; 421 temporary"}],"timestamp":"2026-05-12T10:00:00Z"},"mail":{"messageId":"msg-2"}}`,
+	}
+	rawPayload, err := json.Marshal(payload)
+	require.NoError(t, err)
+
+	workspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(sesWorkspace(workspaceID, integrationID), nil)
+	repo.EXPECT().StoreEvents(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
+	// Soft bounce never produces a message_history update.
+	messageHistoryRepo.EXPECT().SetStatusesIfNotSet(gomock.Any(), workspaceID, gomock.Any()).DoAndReturn(
+		func(_ context.Context, _ string, updates []domain.MessageEventUpdate) error {
+			assert.Empty(t, updates, "soft bounces should not touch message_history")
+			return nil
+		})
+	// Count query runs and returns 2 (under default threshold of 5).
+	repo.EXPECT().
+		CountConsecutiveSoftBounces(gomock.Any(), workspaceID, []string{"soft@example.com"}).
+		Return(map[string]int{"soft@example.com": 2}, nil)
+	// MarkEmailsAsBounced must NOT be called — no EXPECT.
+
+	require.NoError(t, service.ProcessWebhook(context.Background(), workspaceID, integrationID, rawPayload))
+	_ = contactRepo
+}
+
+func TestProcessWebhook_SES_TransientGeneral_AtThreshold(t *testing.T) {
+	service, repo, workspaceRepo, messageHistoryRepo, contactRepo, ctrl := newClassificationTestService(t)
+	defer ctrl.Finish()
+
+	workspaceID, integrationID := "ws1", "int1"
+	payload := domain.SESWebhookPayload{
+		Message: `{"eventType":"Bounce","bounce":{"bounceType":"Transient","bounceSubType":"General","bouncedRecipients":[{"emailAddress":"chronic@example.com","diagnosticCode":"smtp; 421 temporary"}],"timestamp":"2026-05-12T10:00:00Z"},"mail":{"messageId":"msg-3"}}`,
+	}
+	rawPayload, err := json.Marshal(payload)
+	require.NoError(t, err)
+
+	workspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(sesWorkspace(workspaceID, integrationID), nil)
+	repo.EXPECT().StoreEvents(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
+	messageHistoryRepo.EXPECT().SetStatusesIfNotSet(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
+	// Count query returns 5 (== default threshold) → escalate.
+	repo.EXPECT().
+		CountConsecutiveSoftBounces(gomock.Any(), workspaceID, []string{"chronic@example.com"}).
+		Return(map[string]int{"chronic@example.com": domain.DefaultSoftBounceThreshold}, nil)
+	contactRepo.EXPECT().MarkEmailsAsBounced(gomock.Any(), workspaceID, []string{"chronic@example.com"}, gomock.Any()).Return(nil)
+
+	require.NoError(t, service.ProcessWebhook(context.Background(), workspaceID, integrationID, rawPayload))
+}
+
+func TestProcessWebhook_SES_TransientGeneral_RetryExhausted(t *testing.T) {
+	service, repo, workspaceRepo, messageHistoryRepo, contactRepo, ctrl := newClassificationTestService(t)
+	defer ctrl.Finish()
+
+	workspaceID, integrationID := "ws1", "int1"
+	// The exact diagnostic from the original issue (#323).
+	payload := domain.SESWebhookPayload{
+		Message: `{"eventType":"Bounce","bounce":{"bounceType":"Transient","bounceSubType":"General","bouncedRecipients":[{"emailAddress":"expired@example.com","diagnosticCode":"smtp; 550 4.4.7 Message expired: unable to deliver in 840 minutes. <421 4.4.1 Failed to establish connection>"}],"timestamp":"2026-05-12T10:00:00Z"},"mail":{"messageId":"msg-4"}}`,
+	}
+	rawPayload, err := json.Marshal(payload)
+	require.NoError(t, err)
+
+	workspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(sesWorkspace(workspaceID, integrationID), nil)
+	repo.EXPECT().StoreEvents(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
+	messageHistoryRepo.EXPECT().SetStatusesIfNotSet(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
+	// CountConsecutiveSoftBounces MUST NOT be called — diagnostic promotion bypasses the counter.
+	// (No repo.EXPECT() for it.)
+	contactRepo.EXPECT().MarkEmailsAsBounced(gomock.Any(), workspaceID, []string{"expired@example.com"}, gomock.Any()).Return(nil)
+
+	require.NoError(t, service.ProcessWebhook(context.Background(), workspaceID, integrationID, rawPayload))
+}
+
+func TestProcessWebhook_SES_MessageTooLarge_NoOp(t *testing.T) {
+	service, repo, workspaceRepo, messageHistoryRepo, contactRepo, ctrl := newClassificationTestService(t)
+	defer ctrl.Finish()
+
+	workspaceID, integrationID := "ws1", "int1"
+	payload := domain.SESWebhookPayload{
+		Message: `{"eventType":"Bounce","bounce":{"bounceType":"Transient","bounceSubType":"MessageTooLarge","bouncedRecipients":[{"emailAddress":"big@example.com","diagnosticCode":"552 5.3.4 message too big"}],"timestamp":"2026-05-12T10:00:00Z"},"mail":{"messageId":"msg-5"}}`,
+	}
+	rawPayload, err := json.Marshal(payload)
+	require.NoError(t, err)
+
+	workspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(sesWorkspace(workspaceID, integrationID), nil)
+	repo.EXPECT().StoreEvents(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
+	messageHistoryRepo.EXPECT().SetStatusesIfNotSet(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
+	// SoftIgnore: no count query, no escalation. (No EXPECT for either.)
+
+	require.NoError(t, service.ProcessWebhook(context.Background(), workspaceID, integrationID, rawPayload))
+	_ = contactRepo
+}
+
+func TestProcessWebhook_BatchedMixedClassifications(t *testing.T) {
+	service, repo, workspaceRepo, messageHistoryRepo, contactRepo, ctrl := newClassificationTestService(t)
+	defer ctrl.Finish()
+
+	workspaceID, integrationID := "ws1", "int1"
+
+	// SparkPost is convenient: a single payload can carry multiple events with
+	// distinct recipients and bounce classes.
+	//  - hard@   → class 10 (Hard)
+	//  - soft1@  → class 20 (SoftCount), will cross threshold via counter
+	//  - soft2@  → class 20 (SoftCount), stays below threshold
+	//  - ignore@ → class 25 (Admin/temporary → SoftCount per existing taxonomy; use a
+	//              SoftIgnore equivalent below by switching to SES MessageTooLarge in a
+	//              second integration. SparkPost has no SoftIgnore mapping, so this
+	//              test exercises Hard + SoftCount only — sufficient to verify the
+	//              count query receives only SoftCount emails and that hard ∪
+	//              escalated_softCount lands in MarkEmailsAsBounced.)
+	sp := []*domain.SparkPostWebhookPayload{
+		{MSys: domain.SparkPostMSys{MessageEvent: &domain.SparkPostMessageEvent{
+			Type: "bounce", RecipientTo: "hard@example.com", MessageID: "m-h",
+			Timestamp: time.Now().Format(time.RFC3339), BounceClass: "10",
+		}}},
+		{MSys: domain.SparkPostMSys{MessageEvent: &domain.SparkPostMessageEvent{
+			Type: "bounce", RecipientTo: "soft1@example.com", MessageID: "m-s1",
+			Timestamp: time.Now().Format(time.RFC3339), BounceClass: "20",
+		}}},
+		{MSys: domain.SparkPostMSys{MessageEvent: &domain.SparkPostMessageEvent{
+			Type: "bounce", RecipientTo: "soft2@example.com", MessageID: "m-s2",
+			Timestamp: time.Now().Format(time.RFC3339), BounceClass: "20",
+		}}},
+	}
+	rawPayload, err := json.Marshal(sp)
+	require.NoError(t, err)
+
+	workspace := &domain.Workspace{
+		ID: workspaceID,
+		Integrations: []domain.Integration{
+			{ID: integrationID, EmailProvider: domain.EmailProvider{Kind: domain.EmailProviderKindSparkPost}},
+		},
+	}
+	workspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(workspace, nil)
+	repo.EXPECT().StoreEvents(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
+	messageHistoryRepo.EXPECT().SetStatusesIfNotSet(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
+
+	// Verify the count query gets only the SoftCount emails (order-independent).
+	repo.EXPECT().
+		CountConsecutiveSoftBounces(gomock.Any(), workspaceID, gomock.Any()).
+		DoAndReturn(func(_ context.Context, _ string, emails []string) (map[string]int, error) {
+			assert.ElementsMatch(t, []string{"soft1@example.com", "soft2@example.com"}, emails,
+				"only SoftCount emails should hit the counter")
+			return map[string]int{
+				"soft1@example.com": domain.DefaultSoftBounceThreshold, // crosses → promoted
+				"soft2@example.com": 1,                                 // below → stays soft
+			}, nil
+		})
+
+	// Final escalation: hard@ (direct hard) ∪ soft1@ (counter-promoted).
+	contactRepo.EXPECT().
+		MarkEmailsAsBounced(gomock.Any(), workspaceID, gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, _ string, emails []string, _ time.Time) error {
+			assert.ElementsMatch(t, []string{"hard@example.com", "soft1@example.com"}, emails)
+			return nil
+		})
+
+	require.NoError(t, service.ProcessWebhook(context.Background(), workspaceID, integrationID, rawPayload))
+}
+
+// TestListEvents tests the ListEvents method of WebhookEventService
 func TestListEvents(t *testing.T) {
 	// Setup
 	ctrl := gomock.NewController(t)
@@ -2803,6 +2949,7 @@ func TestListEvents(t *testing.T) {
 	authService := mocks.NewMockAuthService(ctrl)
 	log := pkgmocks.NewMockLogger(ctrl)
 	workspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	contactRepo := mocks.NewMockContactRepository(ctrl)
 	messageHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
 
 	// Setup logging expectations
@@ -2816,6 +2963,7 @@ func TestListEvents(t *testing.T) {
 		logger:             log,
 		workspaceRepo:      workspaceRepo,
 		messageHistoryRepo: messageHistoryRepo,
+		contactRepo:        contactRepo,
 	}
 
 	// Create test data

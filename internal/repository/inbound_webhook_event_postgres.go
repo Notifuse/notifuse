@@ -11,6 +11,7 @@ import (
 	sq "github.com/Masterminds/squirrel"
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/pkg/tracing"
+	"github.com/lib/pq"
 )
 
 type inboundWebhookEventRepository struct {
@@ -318,6 +319,96 @@ func (r *inboundWebhookEventRepository) ListEvents(ctx context.Context, workspac
 		NextCursor: nextCursor,
 		HasMore:    hasMore,
 	}, nil
+}
+
+// countConsecutiveSoftBouncesSQL counts bounce events that count toward the
+// soft-bounce threshold for each recipient email since that email's last
+// successful delivery.
+//
+// We do not filter on bounce_type because the per-provider string varies
+// (`Transient` for SES, `Failed` for Mailgun, `Bounce` for SparkPost/SMTP,
+// `bounce`/`blocked`/`dropped` for SendGrid, etc.) — a strict allow-list would
+// silently exclude most providers' soft bounces. Instead we count every
+// `type='bounce'` event in the window minus message-level rejections, and rely
+// on the per-event `domain.ClassifyBounce` call in the service to have already
+// gated which events become a count attempt.
+//
+// Edge case: a hard bounce since last delivery would also be counted, but a
+// hard bounce already flipped contact_lists.status='bounced', so the eventual
+// MarkEmailsAsBounced UPDATE is a no-op via its status guard.
+//
+// The ignored-subtype filter must stay in sync with the SoftIgnore branch of
+// ClassifyBounce.
+const countConsecutiveSoftBouncesSQL = `
+WITH last_delivery AS (
+  SELECT contact_email AS email, MAX(delivered_at) AS ts
+    FROM message_history
+   WHERE contact_email = ANY($1)
+     AND delivered_at IS NOT NULL
+   GROUP BY contact_email
+)
+SELECT e.recipient_email, COUNT(*)::int
+  FROM inbound_webhook_events e
+  LEFT JOIN last_delivery d ON d.email = e.recipient_email
+ WHERE e.recipient_email = ANY($1)
+   AND e.type = 'bounce'
+   AND lower(coalesce(e.bounce_category, '')) NOT IN
+        ('messagetoolarge','contentrejected','attachmentrejected')
+   AND e.timestamp > COALESCE(d.ts, 'epoch'::timestamptz)
+ GROUP BY e.recipient_email`
+
+// CountConsecutiveSoftBounces returns, per email, the number of countable soft
+// bounces recorded since that email's last successful delivery.
+func (r *inboundWebhookEventRepository) CountConsecutiveSoftBounces(ctx context.Context, workspaceID string, emails []string) (map[string]int, error) {
+	// codecov:ignore:start
+	ctx, span := tracing.StartServiceSpan(ctx, "InboundWebhookEventRepository", "CountConsecutiveSoftBounces")
+	defer tracing.EndSpan(span, nil)
+	tracing.AddAttribute(ctx, "workspaceID", workspaceID)
+	tracing.AddAttribute(ctx, "emailCount", len(emails))
+	// codecov:ignore:end
+
+	result := map[string]int{}
+	if len(emails) == 0 {
+		return result, nil
+	}
+
+	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
+	if err != nil {
+		// codecov:ignore:start
+		tracing.MarkSpanError(ctx, err)
+		// codecov:ignore:end
+		return nil, fmt.Errorf("failed to get workspace connection: %w", err)
+	}
+
+	rows, err := workspaceDB.QueryContext(ctx, countConsecutiveSoftBouncesSQL, pq.Array(emails))
+	if err != nil {
+		// codecov:ignore:start
+		tracing.MarkSpanError(ctx, err)
+		// codecov:ignore:end
+		return nil, fmt.Errorf("failed to count consecutive soft bounces: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	for rows.Next() {
+		var email string
+		var count int
+		if err := rows.Scan(&email, &count); err != nil {
+			// codecov:ignore:start
+			tracing.MarkSpanError(ctx, err)
+			// codecov:ignore:end
+			return nil, fmt.Errorf("failed to scan soft-bounce count row: %w", err)
+		}
+		result[email] = count
+	}
+
+	if err := rows.Err(); err != nil {
+		// codecov:ignore:start
+		tracing.MarkSpanError(ctx, err)
+		// codecov:ignore:end
+		return nil, fmt.Errorf("error iterating soft-bounce count rows: %w", err)
+	}
+
+	return result, nil
 }
 
 // DeleteForEmail redacts the email address in all inbound webhook events for a specific email

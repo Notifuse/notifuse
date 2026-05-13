@@ -35,6 +35,21 @@ func (m *MockInboundWebhookEventRepository) EXPECT() *MockInboundWebhookEventRep
 	return m.recorder
 }
 
+// CountConsecutiveSoftBounces mocks base method.
+func (m *MockInboundWebhookEventRepository) CountConsecutiveSoftBounces(arg0 context.Context, arg1 string, arg2 []string) (map[string]int, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CountConsecutiveSoftBounces", arg0, arg1, arg2)
+	ret0, _ := ret[0].(map[string]int)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CountConsecutiveSoftBounces indicates an expected call of CountConsecutiveSoftBounces.
+func (mr *MockInboundWebhookEventRepositoryMockRecorder) CountConsecutiveSoftBounces(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountConsecutiveSoftBounces", reflect.TypeOf((*MockInboundWebhookEventRepository)(nil).CountConsecutiveSoftBounces), arg0, arg1, arg2)
+}
+
 // DeleteForEmail mocks base method.
 func (m *MockInboundWebhookEventRepository) DeleteForEmail(arg0 context.Context, arg1, arg2 string) error {
 	m.ctrl.T.Helper()

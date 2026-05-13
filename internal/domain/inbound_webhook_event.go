@@ -246,4 +246,12 @@ type InboundWebhookEventRepository interface {
 
 	// DeleteForEmail deletes all inbound webhook events for a specific email
 	DeleteForEmail(ctx context.Context, workspaceID, email string) error
+
+	// CountConsecutiveSoftBounces returns, for each given recipient email, the
+	// number of countable soft-bounce events recorded since that email's last
+	// successful delivery (or all-time if it has never been delivered to).
+	// Events whose bounce subtype describes a message-level rejection
+	// (MessageTooLarge, ContentRejected, AttachmentRejected) are excluded.
+	// The returned map only contains entries with a positive count.
+	CountConsecutiveSoftBounces(ctx context.Context, workspaceID string, emails []string) (map[string]int, error)
 }

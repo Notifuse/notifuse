@@ -2,8 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
-## [30.2] - 2026-05-12
+## [30.2] - 2026-05-13
 
+- **Fix**: SES `4.4.7 Message expired` (retry-exhaustion) now suppresses on the first event, and any recipient that accumulates 5 consecutive soft bounces with no successful delivery in between is also suppressed; `MessageTooLarge`/`ContentRejected`/`AttachmentRejected` never count (#323).
 - **Fix**: Email AI Assistant `setEmailTree` tool now declares `items` on its `children` array schema, so OpenAI-compatible providers no longer reject the request with `array schema missing items` (#324). Anthropic was already lenient about this; only OpenAI-compatible endpoints surfaced the error.
 - **Deps**: Bumped `liquidjs` to 10.25.7, `postcss` to 8.5.14, `fast-xml-parser` override to ≥5.8.0 (+ new `fast-xml-builder` ≥1.1.7 override), and `github.com/prometheus/prometheus` to v0.311.3.
 

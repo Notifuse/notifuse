@@ -595,3 +595,154 @@ func TestInboundWebhookEventRepository_DeleteForEmail(t *testing.T) {
 		assert.Contains(t, err.Error(), "failed to get affected rows")
 	})
 }
+
+func TestCountConsecutiveSoftBounces_NoPriorDelivery(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	repo := NewInboundWebhookEventRepository(mockWorkspaceRepo)
+
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer func() { _ = db.Close() }()
+
+	ctx := context.Background()
+	workspaceID := "ws-123"
+	emails := []string{"a@example.com"}
+
+	mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), workspaceID).Return(db, nil)
+
+	rows := sqlmock.NewRows([]string{"recipient_email", "count"}).
+		AddRow("a@example.com", 3)
+
+	// No prior delivery row exists in message_history → LEFT JOIN yields NULL ts
+	// → window is the full event history (timestamp > epoch).
+	mock.ExpectQuery(`WITH last_delivery .* FROM inbound_webhook_events e\s+LEFT JOIN last_delivery d`).
+		WillReturnRows(rows)
+
+	got, err := repo.CountConsecutiveSoftBounces(ctx, workspaceID, emails)
+	require.NoError(t, err)
+	assert.Equal(t, map[string]int{"a@example.com": 3}, got)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestCountConsecutiveSoftBounces_WithDelivery(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	repo := NewInboundWebhookEventRepository(mockWorkspaceRepo)
+
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer func() { _ = db.Close() }()
+
+	ctx := context.Background()
+	workspaceID := "ws-123"
+	emails := []string{"a@example.com"}
+
+	mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), workspaceID).Return(db, nil)
+
+	// Single call, returns only the bounces recorded after the last delivery.
+	rows := sqlmock.NewRows([]string{"recipient_email", "count"}).
+		AddRow("a@example.com", 2)
+
+	mock.ExpectQuery(`WITH last_delivery .* e\.timestamp > COALESCE\(d\.ts, 'epoch'::timestamptz\)`).
+		WillReturnRows(rows)
+
+	got, err := repo.CountConsecutiveSoftBounces(ctx, workspaceID, emails)
+	require.NoError(t, err)
+	assert.Equal(t, map[string]int{"a@example.com": 2}, got)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestCountConsecutiveSoftBounces_BatchEmails(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	repo := NewInboundWebhookEventRepository(mockWorkspaceRepo)
+
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer func() { _ = db.Close() }()
+
+	ctx := context.Background()
+	workspaceID := "ws-123"
+	emails := []string{"a@example.com", "b@example.com", "c@example.com"}
+
+	mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), workspaceID).Return(db, nil)
+
+	// One round-trip; one row per email. "c" never bounced so it isn't in the result.
+	rows := sqlmock.NewRows([]string{"recipient_email", "count"}).
+		AddRow("a@example.com", 1).
+		AddRow("b@example.com", 5)
+
+	mock.ExpectQuery(`WITH last_delivery`).WillReturnRows(rows)
+
+	got, err := repo.CountConsecutiveSoftBounces(ctx, workspaceID, emails)
+	require.NoError(t, err)
+	assert.Equal(t, map[string]int{"a@example.com": 1, "b@example.com": 5}, got)
+	_, hasC := got["c@example.com"]
+	assert.False(t, hasC, "emails with zero bounces should not appear in the result")
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestCountConsecutiveSoftBounces_ExcludesIgnoredSubtypes(t *testing.T) {
+	// Verify the SQL filter excludes the message-level rejection categories.
+	// We can't introspect what postgres would do, but we can pin the query text
+	// so a future refactor that drops the filter is caught.
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	repo := NewInboundWebhookEventRepository(mockWorkspaceRepo)
+
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer func() { _ = db.Close() }()
+
+	ctx := context.Background()
+	workspaceID := "ws-123"
+	emails := []string{"a@example.com"}
+
+	mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), workspaceID).Return(db, nil)
+
+	rows := sqlmock.NewRows([]string{"recipient_email", "count"})
+
+	mock.ExpectQuery(`lower\(coalesce\(e\.bounce_category, ''\)\) NOT IN\s*\('messagetoolarge','contentrejected','attachmentrejected'\)`).
+		WillReturnRows(rows)
+
+	got, err := repo.CountConsecutiveSoftBounces(ctx, workspaceID, emails)
+	require.NoError(t, err)
+	assert.Empty(t, got)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestCountConsecutiveSoftBounces_EmptyEmailsShortCircuits(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	repo := NewInboundWebhookEventRepository(mockWorkspaceRepo)
+
+	// No GetConnection expectation — we must not even hit the DB.
+	got, err := repo.CountConsecutiveSoftBounces(context.Background(), "ws-123", nil)
+	require.NoError(t, err)
+	assert.Empty(t, got)
+}
+
+func TestCountConsecutiveSoftBounces_WorkspaceConnectionError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	repo := NewInboundWebhookEventRepository(mockWorkspaceRepo)
+
+	mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), "ws-123").Return(nil, errors.New("boom"))
+
+	_, err := repo.CountConsecutiveSoftBounces(context.Background(), "ws-123", []string{"a@example.com"})
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to get workspace connection")
+}

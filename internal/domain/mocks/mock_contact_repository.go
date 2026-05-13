@@ -7,6 +7,7 @@ package mocks
 import (
 	context "context"
 	reflect "reflect"
+	time "time"
 
 	domain "github.com/Notifuse/notifuse/internal/domain"
 	gomock "github.com/golang/mock/gomock"
@@ -167,6 +168,20 @@ func (m *MockContactRepository) GetContactsForBroadcast(arg0 context.Context, ar
 func (mr *MockContactRepositoryMockRecorder) GetContactsForBroadcast(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetContactsForBroadcast", reflect.TypeOf((*MockContactRepository)(nil).GetContactsForBroadcast), arg0, arg1, arg2, arg3, arg4)
+}
+
+// MarkEmailsAsBounced mocks base method.
+func (m *MockContactRepository) MarkEmailsAsBounced(arg0 context.Context, arg1 string, arg2 []string, arg3 time.Time) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "MarkEmailsAsBounced", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// MarkEmailsAsBounced indicates an expected call of MarkEmailsAsBounced.
+func (mr *MockContactRepositoryMockRecorder) MarkEmailsAsBounced(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MarkEmailsAsBounced", reflect.TypeOf((*MockContactRepository)(nil).MarkEmailsAsBounced), arg0, arg1, arg2, arg3)
 }
 
 // UpsertContact mocks base method.
