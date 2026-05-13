@@ -6,7 +6,6 @@ import { templatesApi } from '../../services/api/template'
 import type { CompileTemplateRequest } from '../../services/api/template'
 import type { EmailBlock } from '../email_builder/types'
 import { Highlight, themes } from 'prism-react-renderer'
-import { Liquid } from 'liquidjs'
 import type { MessageHistory } from '../../services/api/messages_history'
 import { SUPPORTED_LANGUAGES } from '../../lib/languages'
 
@@ -35,7 +34,8 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
   const [mjmlError, setMjmlError] = useState<MjmlCompileError | null>(null)
   const [isOpen, setIsOpen] = useState<boolean>(false)
   const [activeTabKey, setActiveTabKey] = useState<string>('1') // State for active tab
-  const [processedSubject, setProcessedSubject] = useState<string | null>(null)
+  const [renderedSubject, setRenderedSubject] = useState<string | null>(null)
+  const [renderedSubjectPreview, setRenderedSubjectPreview] = useState<string | null>(null)
   const [selectedLanguage, setSelectedLanguage] = useState<string | null>(null)
 
   const availableLanguages = useMemo(() => {
@@ -83,13 +83,19 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
     setMjmlError(null)
     setPreviewHtml(null)
     setPreviewMjml(null)
+    setRenderedSubject(null)
+    setRenderedSubjectPreview(null)
     setActiveTabKey('1') // Reset to HTML tab on new fetch
 
     try {
-      // Build compile request based on editor mode
+      // Build compile request based on editor mode.
+      // Subject and subject_preview are sent so the server can render them with
+      // the same Liquid engine used at send time, keeping preview and send in sync.
       const req: Partial<CompileTemplateRequest> = {
         workspace_id: workspace.id,
         message_id: 'preview',
+        subject: effectiveEmail?.subject,
+        subject_preview: effectiveEmail?.subject_preview,
         test_data: templateData || record.test_data || {},
         tracking_settings: {
           enable_tracking: workspace.settings?.email_tracking_enabled || false,
@@ -135,6 +141,11 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
       const response = await templatesApi.compile(req as CompileTemplateRequest)
       // console.log('Compile Response:', response)
 
+      // Server returns rendered subject/subject_preview on both success and
+      // MJML-error paths, so update them either way before branching.
+      setRenderedSubject(response.subject ?? null)
+      setRenderedSubjectPreview(response.subject_preview ?? null)
+
       if (response.error) {
         setMjmlError(response.error)
         setPreviewMjml(response.mjml)
@@ -170,32 +181,12 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
       setMjmlError(null)
       setIsLoading(false)
       setActiveTabKey('1')
-      setProcessedSubject(null)
+      setRenderedSubject(null)
+      setRenderedSubjectPreview(null)
       setSelectedLanguage(null)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps -- fetchPreview is stable
   }, [isOpen, record.id, record.version, workspace.id, effectiveLanguage])
-
-  // Process subject with Liquid using provided template data
-  useEffect(() => {
-    if (!isOpen) return
-
-    const subject = effectiveEmail?.subject || ''
-    const data = templateData || record.test_data || {}
-
-    try {
-      if (subject && (subject.includes('{{') || subject.includes('{%'))) {
-        const engine = new Liquid()
-        const rendered = engine.parseAndRenderSync(subject, data)
-        setProcessedSubject(rendered)
-      } else {
-        setProcessedSubject(subject)
-      }
-    } catch {
-      // Fallback to raw subject on any rendering error
-      setProcessedSubject(subject)
-    }
-  }, [isOpen, effectiveEmail?.subject, templateData, record.test_data])
 
   const items = []
 
@@ -302,12 +293,12 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
         )}
 
         <Descriptions.Item label={t`Subject`}>
-          <Text>{processedSubject ?? effectiveEmail?.subject}</Text>
+          <Text>{renderedSubject ?? effectiveEmail?.subject}</Text>
         </Descriptions.Item>
 
-        {effectiveEmail?.subject_preview && (
+        {(renderedSubjectPreview || effectiveEmail?.subject_preview) && (
           <Descriptions.Item label={t`Subject preview`}>
-            <Text>{effectiveEmail.subject_preview}</Text>
+            <Text>{renderedSubjectPreview ?? effectiveEmail?.subject_preview}</Text>
           </Descriptions.Item>
         )}
 

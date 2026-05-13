@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"testing"
@@ -253,6 +254,96 @@ func TestTemplateIntegrationBasic(t *testing.T) {
 		t.Logf("Template CRUD operations completed - Create: %d, List: %d, Get: %d, Update: %d, Delete: %d",
 			createResp.StatusCode, listResp.StatusCode, getResp.StatusCode, updateResp.StatusCode, deleteResp.StatusCode)
 	})
+}
+
+// TestTemplateCompileWithSubject verifies that /api/templates.compile renders
+// subject and subject_preview through the Liquid engine using test_data.
+// Regression for https://github.com/Notifuse/notifuse/issues/329.
+func TestTemplateCompileWithSubject(t *testing.T) {
+	testutil.SkipIfShort(t)
+	testutil.SetupTestEnvironment()
+	defer testutil.CleanupTestEnvironment()
+
+	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
+		return app.NewApp(cfg)
+	})
+	defer func() { suite.Cleanup() }()
+
+	client := suite.APIClient
+
+	email := "test@example.com"
+	token := performCompleteSignInFlow(t, client, email)
+	client.SetToken(token)
+
+	workspaceID := createTestWorkspace(t, client, "Compile Subject Test Workspace")
+
+	compileReq := map[string]interface{}{
+		"workspace_id": workspaceID,
+		"message_id":   "preview",
+		"subject":      "Hi {{ contact.first_name }}",
+		"subject_preview": "Welcome {{ contact.first_name }}",
+		"test_data": map[string]interface{}{
+			"contact": map[string]interface{}{
+				"first_name": "Pierre",
+			},
+		},
+		"visual_editor_tree": map[string]interface{}{
+			"id":         "mjml-1",
+			"type":       "mjml",
+			"attributes": map[string]interface{}{},
+			"children": []interface{}{
+				map[string]interface{}{
+					"id":         "body-1",
+					"type":       "mj-body",
+					"attributes": map[string]interface{}{},
+					"children": []interface{}{
+						map[string]interface{}{
+							"id":         "section-1",
+							"type":       "mj-section",
+							"attributes": map[string]interface{}{},
+							"children": []interface{}{
+								map[string]interface{}{
+									"id":         "column-1",
+									"type":       "mj-column",
+									"attributes": map[string]interface{}{},
+									"children": []interface{}{
+										map[string]interface{}{
+											"id":         "text-1",
+											"type":       "mj-text",
+											"attributes": map[string]interface{}{},
+											"content":    "hello",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	resp, err := client.CompileTemplate(compileReq)
+	require.NoError(t, err)
+	defer func() { _ = resp.Body.Close() }()
+	require.Equal(t, http.StatusOK, resp.StatusCode, "compile should return 200")
+
+	var body struct {
+		Success        bool    `json:"success"`
+		Subject        *string `json:"subject"`
+		SubjectPreview *string `json:"subject_preview"`
+		HTML           *string `json:"html"`
+	}
+	require.NoError(t, json.NewDecoder(resp.Body).Decode(&body))
+
+	assert.True(t, body.Success, "compile should succeed")
+	if assert.NotNil(t, body.Subject, "response should include rendered subject") {
+		assert.Equal(t, "Hi Pierre", *body.Subject)
+	}
+	if assert.NotNil(t, body.SubjectPreview, "response should include rendered subject_preview") {
+		assert.Equal(t, "Welcome Pierre", *body.SubjectPreview)
+	}
+	assert.NotNil(t, body.HTML, "response should still include compiled HTML")
 }
 
 // Helper functions for creating test data

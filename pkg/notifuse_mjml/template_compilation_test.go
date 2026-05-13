@@ -2318,3 +2318,235 @@ func TestCompileTemplateWithMJLiquidTimeout(t *testing.T) {
 	assert.False(t, resp.Success)
 	assert.NotNil(t, resp.Error)
 }
+
+// minimalTree returns the smallest valid visual_editor_tree the compiler accepts.
+func minimalTree() EmailBlock {
+	textBase := NewBaseBlock("text-1", MJMLComponentMjText)
+	textBase.Content = stringPtr("hello")
+	textBlock := &MJTextBlock{BaseBlock: textBase}
+
+	columnBlock := &MJColumnBlock{BaseBlock: NewBaseBlock("column-1", MJMLComponentMjColumn)}
+	columnBlock.Children = []EmailBlock{textBlock}
+
+	sectionBlock := &MJSectionBlock{BaseBlock: NewBaseBlock("section-1", MJMLComponentMjSection)}
+	sectionBlock.Children = []EmailBlock{columnBlock}
+
+	bodyBlock := &MJBodyBlock{BaseBlock: NewBaseBlock("body-1", MJMLComponentMjBody)}
+	bodyBlock.Children = []EmailBlock{sectionBlock}
+
+	mjml := &MJMLBlock{BaseBlock: NewBaseBlock("mjml-1", MJMLComponentMjml)}
+	mjml.Children = []EmailBlock{bodyBlock}
+	return mjml
+}
+
+func TestCompileTemplateSubjectRendered(t *testing.T) {
+	subject := "Hi {{ contact.first_name }}"
+	preview := "Welcome {{ contact.first_name }}"
+	req := CompileTemplateRequest{
+		WorkspaceID:      "ws",
+		MessageID:        "msg",
+		VisualEditorTree: minimalTree(),
+		Subject:          &subject,
+		SubjectPreview:   &preview,
+		TemplateData:     MapOfAny{"contact": map[string]interface{}{"first_name": "Pierre"}},
+	}
+
+	resp, err := CompileTemplate(req)
+	assert.NoError(t, err)
+	assert.True(t, resp.Success)
+	if assert.NotNil(t, resp.Subject) {
+		assert.Equal(t, "Hi Pierre", *resp.Subject)
+	}
+	if assert.NotNil(t, resp.SubjectPreview) {
+		assert.Equal(t, "Welcome Pierre", *resp.SubjectPreview)
+	}
+}
+
+func TestCompileTemplateSubjectNoLiquid(t *testing.T) {
+	subject := "Plain subject line"
+	req := CompileTemplateRequest{
+		WorkspaceID:      "ws",
+		MessageID:        "msg",
+		VisualEditorTree: minimalTree(),
+		Subject:          &subject,
+		TemplateData:     MapOfAny{"contact": map[string]interface{}{"first_name": "Pierre"}},
+	}
+
+	resp, err := CompileTemplate(req)
+	assert.NoError(t, err)
+	assert.True(t, resp.Success)
+	if assert.NotNil(t, resp.Subject) {
+		assert.Equal(t, "Plain subject line", *resp.Subject)
+	}
+}
+
+func TestCompileTemplateSubjectEmpty(t *testing.T) {
+	// No subject provided at all → response omits subject field.
+	req := CompileTemplateRequest{
+		WorkspaceID:      "ws",
+		MessageID:        "msg",
+		VisualEditorTree: minimalTree(),
+	}
+
+	resp, err := CompileTemplate(req)
+	assert.NoError(t, err)
+	assert.True(t, resp.Success)
+	assert.Nil(t, resp.Subject)
+	assert.Nil(t, resp.SubjectPreview)
+}
+
+func TestCompileTemplateSubjectEmptyString(t *testing.T) {
+	// Subject pointer set but empty string → treated as not provided.
+	empty := ""
+	req := CompileTemplateRequest{
+		WorkspaceID:      "ws",
+		MessageID:        "msg",
+		VisualEditorTree: minimalTree(),
+		Subject:          &empty,
+	}
+
+	resp, err := CompileTemplate(req)
+	assert.NoError(t, err)
+	assert.True(t, resp.Success)
+	assert.Nil(t, resp.Subject)
+}
+
+func TestCompileTemplateSubjectPreserveLiquid(t *testing.T) {
+	subject := "Hi {{ contact.first_name }}"
+	req := CompileTemplateRequest{
+		WorkspaceID:      "ws",
+		MessageID:        "msg",
+		VisualEditorTree: minimalTree(),
+		Subject:          &subject,
+		TemplateData:     MapOfAny{"contact": map[string]interface{}{"first_name": "Pierre"}},
+		PreserveLiquid:   true,
+	}
+
+	resp, err := CompileTemplate(req)
+	assert.NoError(t, err)
+	assert.True(t, resp.Success)
+	if assert.NotNil(t, resp.Subject) {
+		assert.Equal(t, "Hi {{ contact.first_name }}", *resp.Subject)
+	}
+}
+
+func TestCompileTemplateSubjectWebChannel(t *testing.T) {
+	subject := "Hi {{ contact.first_name }}"
+	req := CompileTemplateRequest{
+		WorkspaceID:      "ws",
+		MessageID:        "msg",
+		VisualEditorTree: minimalTree(),
+		Subject:          &subject,
+		TemplateData:     MapOfAny{"contact": map[string]interface{}{"first_name": "Pierre"}},
+		Channel:          "web",
+	}
+
+	resp, err := CompileTemplate(req)
+	assert.NoError(t, err)
+	assert.True(t, resp.Success)
+	if assert.NotNil(t, resp.Subject) {
+		// web channel skips personalization for the body; subject mirrors that.
+		assert.Equal(t, "Hi {{ contact.first_name }}", *resp.Subject)
+	}
+}
+
+func TestCompileTemplateSubjectLiquidError(t *testing.T) {
+	// Unclosed Liquid tag in the subject should short-circuit compilation.
+	subject := "Hi {{ contact.first_name"
+	req := CompileTemplateRequest{
+		WorkspaceID:      "ws",
+		MessageID:        "msg",
+		VisualEditorTree: minimalTree(),
+		Subject:          &subject,
+		TemplateData:     MapOfAny{"contact": map[string]interface{}{"first_name": "Pierre"}},
+	}
+
+	resp, err := CompileTemplate(req)
+	assert.NoError(t, err)
+	assert.False(t, resp.Success)
+	assert.NotNil(t, resp.Error)
+	// Body should NOT have been compiled because subject failed first.
+	assert.Nil(t, resp.MJML)
+	assert.Nil(t, resp.HTML)
+}
+
+func TestCompileTemplateSubjectPreviewLiquidError(t *testing.T) {
+	// Valid subject, malformed subject_preview → subject is returned, body skipped.
+	subject := "Hi {{ contact.first_name }}"
+	preview := "Welcome {{ contact.first_name"
+	req := CompileTemplateRequest{
+		WorkspaceID:      "ws",
+		MessageID:        "msg",
+		VisualEditorTree: minimalTree(),
+		Subject:          &subject,
+		SubjectPreview:   &preview,
+		TemplateData:     MapOfAny{"contact": map[string]interface{}{"first_name": "Pierre"}},
+	}
+
+	resp, err := CompileTemplate(req)
+	assert.NoError(t, err)
+	assert.False(t, resp.Success)
+	assert.NotNil(t, resp.Error)
+	if assert.NotNil(t, resp.Subject) {
+		assert.Equal(t, "Hi Pierre", *resp.Subject)
+	}
+	assert.Nil(t, resp.SubjectPreview)
+}
+
+func TestCompileTemplateSubjectReturnedOnBodyError(t *testing.T) {
+	// Valid subject Liquid but malformed body Liquid (unclosed expression in
+	// mj-text content) must still return the rendered subject so the UI can
+	// display it next to the error.
+	subject := "Hi {{ contact.first_name }}"
+
+	textBase := NewBaseBlock("text-1", MJMLComponentMjText)
+	textBase.Content = stringPtr("Hello {{ contact.first_name")
+	textBlock := &MJTextBlock{BaseBlock: textBase}
+
+	columnBlock := &MJColumnBlock{BaseBlock: NewBaseBlock("column-1", MJMLComponentMjColumn)}
+	columnBlock.Children = []EmailBlock{textBlock}
+
+	sectionBlock := &MJSectionBlock{BaseBlock: NewBaseBlock("section-1", MJMLComponentMjSection)}
+	sectionBlock.Children = []EmailBlock{columnBlock}
+
+	bodyBlock := &MJBodyBlock{BaseBlock: NewBaseBlock("body-1", MJMLComponentMjBody)}
+	bodyBlock.Children = []EmailBlock{sectionBlock}
+
+	root := &MJMLBlock{BaseBlock: NewBaseBlock("mjml-1", MJMLComponentMjml)}
+	root.Children = []EmailBlock{bodyBlock}
+
+	req := CompileTemplateRequest{
+		WorkspaceID:      "ws",
+		MessageID:        "msg",
+		VisualEditorTree: root,
+		Subject:          &subject,
+		TemplateData:     MapOfAny{"contact": map[string]interface{}{"first_name": "Pierre"}},
+	}
+
+	resp, err := CompileTemplate(req)
+	assert.NoError(t, err)
+	assert.False(t, resp.Success)
+	assert.NotNil(t, resp.Error)
+	if assert.NotNil(t, resp.Subject) {
+		assert.Equal(t, "Hi Pierre", *resp.Subject)
+	}
+}
+
+func TestCompileTemplateSubjectNoTemplateData(t *testing.T) {
+	// Liquid expression in subject but no data → ProcessLiquidTemplate is skipped
+	// because TemplateData is empty (mirrors body behavior).
+	subject := "Hi {{ contact.first_name }}"
+	req := CompileTemplateRequest{
+		WorkspaceID:      "ws",
+		MessageID:        "msg",
+		VisualEditorTree: minimalTree(),
+		Subject:          &subject,
+	}
+
+	resp, err := CompileTemplate(req)
+	assert.NoError(t, err)
+	assert.True(t, resp.Success)
+	if assert.NotNil(t, resp.Subject) {
+		assert.Equal(t, "Hi {{ contact.first_name }}", *resp.Subject)
+	}
+}

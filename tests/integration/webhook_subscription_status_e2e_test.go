@@ -17,10 +17,17 @@ import (
 )
 
 // TestWebhookSubscriptionStatusE2E tests the end-to-end flow of:
-// 1. Webhook receiving bounce/complaint events
-// 2. Message history being updated with bounced_at/complained_at
-// 3. Database trigger automatically updating contact_lists status
-// This test verifies the v10 migration feature works correctly
+//  1. Webhook receiving bounce/complaint events
+//  2. Message history being updated with bounced_at/complained_at
+//  3. The webhook event service propagating bounce/complaint status to the
+//     contact's list memberships.
+//
+// Suppression semantics (since the soft-bounce-threshold work):
+//   - Hard bounces and complaints are contact-scoped: every contact_lists row
+//     for the recipient is flipped, regardless of which list_id the bouncing
+//     message belonged to (or even if the message had no list_id at all).
+//   - Soft bounces do not propagate until the consecutive-soft-bounce threshold
+//     is reached, at which point they're treated like a hard bounce.
 func TestWebhookSubscriptionStatusE2E(t *testing.T) {
 	testutil.SkipIfShort(t)
 	testutil.SetupTestEnvironment()
@@ -69,8 +76,8 @@ func TestWebhookSubscriptionStatusE2E(t *testing.T) {
 		testComplaintTakesPriorityOverBounce(t, suite, client, factory, workspace.ID)
 	})
 
-	t.Run("Webhook Without List IDs Does Not Update Status", func(t *testing.T) {
-		testWebhookWithoutListIDDoesNotUpdate(t, suite, client, factory, workspace.ID)
+	t.Run("Webhook Without List ID Still Suppresses All Lists", func(t *testing.T) {
+		testWebhookWithoutListIDSuppressesAllLists(t, suite, client, factory, workspace.ID)
 	})
 }
 
@@ -343,7 +350,7 @@ func testWebhookUpdatesMultipleLists(t *testing.T, suite *testutil.IntegrationTe
 		testutil.WithContactListStatus(domain.ContactListStatusActive))
 	require.NoError(t, err)
 
-	// Add to list3 but don't include in the message (to verify only relevant lists are updated)
+	// Add to list3 (also not on the message) so we can verify contact-scoped suppression covers every list
 	_, err = factory.CreateContactList(workspaceID,
 		testutil.WithContactListEmail(contact.Email),
 		testutil.WithContactListListID(list3.ID),
@@ -391,21 +398,23 @@ func testWebhookUpdatesMultipleLists(t *testing.T, suite *testutil.IntegrationTe
 	// Give the database trigger time to process
 	time.Sleep(100 * time.Millisecond)
 
-	// Verify only list1 status was updated (the list associated with the message)
+	// A hard bounce is contact-scoped: ContactRepository.MarkEmailsAsBounced
+	// flips every non-terminal contact_lists row for this email, regardless of
+	// which list_id was on the message that bounced. The recipient's address
+	// is treated as broken globally — same as the soft-bounce-threshold path.
 	contactListRepo := app.GetContactListRepository()
 
 	list1ContactList, err := contactListRepo.GetContactListByIDs(context.Background(), workspaceID, contact.Email, list1.ID)
 	require.NoError(t, err)
-	assert.Equal(t, domain.ContactListStatusBounced, list1ContactList.Status, "List1 status should be bounced")
+	assert.Equal(t, domain.ContactListStatusBounced, list1ContactList.Status, "List1 status should be bounced (list on the bounced message)")
 
-	// Verify list2 and list3 statuses remain active (not included in the message)
 	list2ContactList, err := contactListRepo.GetContactListByIDs(context.Background(), workspaceID, contact.Email, list2.ID)
 	require.NoError(t, err)
-	assert.Equal(t, domain.ContactListStatusActive, list2ContactList.Status, "List2 status should remain active (not associated with the bounced message)")
+	assert.Equal(t, domain.ContactListStatusBounced, list2ContactList.Status, "List2 status should also be bounced (contact-scoped suppression)")
 
 	list3ContactList, err := contactListRepo.GetContactListByIDs(context.Background(), workspaceID, contact.Email, list3.ID)
 	require.NoError(t, err)
-	assert.Equal(t, domain.ContactListStatusActive, list3ContactList.Status, "List3 status should remain active")
+	assert.Equal(t, domain.ContactListStatusBounced, list3ContactList.Status, "List3 status should also be bounced (contact-scoped suppression)")
 }
 
 func testComplaintTakesPriorityOverBounce(t *testing.T, suite *testutil.IntegrationTestSuite, client *testutil.APIClient, factory *testutil.TestDataFactory, workspaceID string) {
@@ -476,7 +485,7 @@ func testComplaintTakesPriorityOverBounce(t *testing.T, suite *testutil.Integrat
 	assert.Equal(t, domain.ContactListStatusComplained, updatedContactList.Status, "Contact list status should be upgraded to complained")
 }
 
-func testWebhookWithoutListIDDoesNotUpdate(t *testing.T, suite *testutil.IntegrationTestSuite, client *testutil.APIClient, factory *testutil.TestDataFactory, workspaceID string) {
+func testWebhookWithoutListIDSuppressesAllLists(t *testing.T, suite *testutil.IntegrationTestSuite, client *testutil.APIClient, factory *testutil.TestDataFactory, workspaceID string) {
 	// Create SES integration for webhook testing
 	integration, err := factory.CreateSESIntegration(workspaceID)
 	require.NoError(t, err)
@@ -507,7 +516,7 @@ func testWebhookWithoutListIDDoesNotUpdate(t *testing.T, suite *testutil.Integra
 		testutil.WithMessageTemplate(template.ID),
 		func(m *domain.MessageHistory) {
 			m.ID = messageID
-			m.ListID = nil // No list ID
+			m.ListID = nil // No list ID (transactional)
 		})
 	require.NoError(t, err)
 
@@ -521,15 +530,18 @@ func testWebhookWithoutListIDDoesNotUpdate(t *testing.T, suite *testutil.Integra
 
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 
-	// Give time for any potential processing
+	// Give time for processing
 	time.Sleep(100 * time.Millisecond)
 
-	// Verify contact list status remains active (trigger should not update without list_ids)
+	// Even though the bouncing message had no list_id (transactional), the
+	// recipient's address is still suppressed across every list they're on.
+	// ContactRepository.MarkEmailsAsBounced operates on the email, not the
+	// message's list_id, so list-membership is flipped to 'bounced'.
 	app := suite.ServerManager.GetApp()
 	contactListRepo := app.GetContactListRepository()
 	updatedContactList, err := contactListRepo.GetContactListByIDs(context.Background(), workspaceID, contact.Email, list.ID)
 	require.NoError(t, err)
-	assert.Equal(t, domain.ContactListStatusActive, updatedContactList.Status, "Contact list status should remain active when message has no list_ids")
+	assert.Equal(t, domain.ContactListStatusBounced, updatedContactList.Status, "Contact list status should be bounced after a hard bounce, even when the message had no list_id (contact-scoped suppression)")
 }
 
 // Helper functions to create SES webhook payloads

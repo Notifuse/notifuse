@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file.
 
 - **Fix**: SES `4.4.7 Message expired` (retry-exhaustion) now suppresses on the first event, and any recipient that accumulates 5 consecutive soft bounces with no successful delivery in between is also suppressed; `MessageTooLarge`/`ContentRejected`/`AttachmentRejected` never count (#323).
 - **Fix**: Email AI Assistant `setEmailTree` tool now declares `items` on its `children` array schema, so OpenAI-compatible providers no longer reject the request with `array schema missing items` (#324). Anthropic was already lenient about this; only OpenAI-compatible endpoints surfaced the error.
+- **Improvement**: `/api/templates.compile` now accepts and returns `subject` and `subject_preview`, rendered through the same Liquid engine used at send time. Previously the API only returned `mjml`/`html`, so the console preview drawer rendered the subject in-browser with `liquidjs`, which could diverge from the Go-side `liquidgo` output used by the send pipeline. Any API consumer can now retrieve the rendered subject directly (#329).
 - **Deps**: Bumped `liquidjs` to 10.25.7, `postcss` to 8.5.14, `fast-xml-parser` override to ≥5.8.0 (+ new `fast-xml-builder` ≥1.1.7 override), and `github.com/prometheus/prometheus` to v0.311.3.
 
 ## [30.1] - 2026-04-27

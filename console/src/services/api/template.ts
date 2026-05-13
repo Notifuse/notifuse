@@ -148,6 +148,8 @@ export interface CompileTemplateRequest {
   message_id: string
   visual_editor_tree?: EmailBlock
   mjml_source?: string
+  subject?: string // Email subject; rendered server-side through Liquid using test_data
+  subject_preview?: string // Email subject preview (inbox preview text); rendered server-side through Liquid
   test_data?: Record<string, unknown> | null
   tracking_settings?: TrackingSettings
   channel?: string // "email" or "web"
@@ -157,6 +159,8 @@ export interface CompileTemplateRequest {
 export interface CompileTemplateResponse {
   mjml: string
   html: string
+  subject?: string // Rendered subject; only present when request.subject was set
+  subject_preview?: string // Rendered subject preview; only present when request.subject_preview was set
   error?: MjmlCompileError // Use the structured error type, optional
 }
 
