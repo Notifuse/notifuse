@@ -302,7 +302,12 @@
 /api/templates.compile:
   post:
     summary: Compile template
-    description: Compiles an MJML template with provided data, returning the rendered HTML. Useful for previewing templates before saving.
+    description: |
+      Compiles an MJML template with provided data, returning the rendered HTML.
+      When `subject` and/or `subject_preview` are provided, they are rendered
+      through the same Liquid engine used at send time and returned alongside
+      the HTML so callers do not need to run a separate Liquid pass to preview
+      the subject line. Useful for previewing templates before saving.
     operationId: compileTemplate
     security:
       - BearerAuth: []

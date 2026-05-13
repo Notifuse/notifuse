@@ -293,6 +293,22 @@ CompileTemplateRequest:
       type: object
       description: MJML visual editor tree structure (must have type 'mjml')
       additionalProperties: true
+    subject:
+      type: string
+      description: |
+        Optional email subject. When provided, it is rendered through the same
+        Liquid engine the send path uses (with `test_data`) and the rendered
+        result is returned as `subject` in the response. Liquid processing is
+        skipped when `preserve_liquid` is true, `channel` is `web`, or
+        `test_data` is empty.
+      example: "Hi {{ contact.first_name }}"
+    subject_preview:
+      type: string
+      description: |
+        Optional inbox preview text (the snippet shown after the subject in
+        most clients). Rendered through Liquid like `subject` and returned as
+        `subject_preview` in the response.
+      example: "Welcome {{ contact.first_name }}"
     test_data:
       type: object
       description: Data to use for Liquid templating
@@ -321,6 +337,20 @@ CompileTemplateResponse:
     html:
       type: string
       description: Compiled HTML output
+    subject:
+      type: string
+      description: |
+        Rendered email subject. Present only when the request included a
+        non-empty `subject`. Returned on both success and error paths so the
+        caller can display the rendered subject alongside any compilation
+        error.
+      example: "Hi Pierre"
+    subject_preview:
+      type: string
+      description: |
+        Rendered inbox preview text. Present only when the request included a
+        non-empty `subject_preview`. Returned on both success and error paths.
+      example: "Welcome Pierre"
     error:
       type: object
       description: MJML compilation error details, if any
