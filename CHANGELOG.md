@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [30.3] - 2026-05-14
+
+- **Fix**: UTM parameters (`utm_source`, `utm_medium`, `utm_campaign`, `utm_content`, `utm_term`) were dropped from tracked links when click tracking was enabled — the encrypted `/r/` redirect token embedded the raw destination URL instead of the UTM-augmented one. The UTM parameters are now preserved in the redirect target.
+
 ## [30.2] - 2026-05-13
 
 - **Fix**: SES `4.4.7 Message expired` (retry-exhaustion) now suppresses on the first event, and any recipient that accumulates 5 consecutive soft bounces with no successful delivery in between is also suppressed; `MessageTooLarge`/`ContentRejected`/`AttachmentRejected` never count (#323).

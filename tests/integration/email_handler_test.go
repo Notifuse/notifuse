@@ -7,12 +7,14 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/pkg/crypto"
+	"github.com/Notifuse/notifuse/pkg/notifuse_mjml"
 	"github.com/Notifuse/notifuse/tests/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -942,6 +944,80 @@ func TestEmailHandler_EncryptedTracking(t *testing.T) {
 		assert.Equal(t, http.StatusSeeOther, resp.StatusCode)
 		assert.Equal(t, redirectURL, resp.Header.Get("Location"))
 	})
+}
+
+// TestEmailHandler_TrackedLinkPreservesUTM exercises the real pipeline end to
+// end: it compiles an email template with click tracking enabled and UTM
+// parameters configured (exactly as the broadcast message sender does), then
+// follows the generated /r/{token} link against the running server and asserts
+// that the final redirect destination still carries every UTM parameter.
+func TestEmailHandler_TrackedLinkPreservesUTM(t *testing.T) {
+	testutil.SkipIfShort(t)
+	testutil.SetupTestEnvironment()
+	defer testutil.CleanupTestEnvironment()
+
+	suite := testutil.NewIntegrationTestSuite(t, appFactory)
+	defer func() { suite.Cleanup() }()
+
+	baseURL := suite.ServerManager.GetURL()
+
+	mjmlSource := `<mjml><mj-body><mj-section><mj-column>` +
+		`<mj-button href="https://shop.example.com/product?ref=email">Buy Now</mj-button>` +
+		`</mj-column></mj-section></mj-body></mjml>`
+
+	compileResp, err := notifuse_mjml.CompileTemplate(notifuse_mjml.CompileTemplateRequest{
+		WorkspaceID: "ws-utm",
+		MessageID:   "msg-utm",
+		MjmlSource:  &mjmlSource,
+		TrackingSettings: notifuse_mjml.TrackingSettings{
+			EnableTracking: true,
+			Endpoint:       baseURL,
+			UTMSource:      "newsletter",
+			UTMMedium:      "email",
+			UTMCampaign:    "spring-sale",
+			UTMContent:     "hero-button",
+			UTMTerm:        "running-shoes",
+			WorkspaceID:    "ws-utm",
+			MessageID:      "msg-utm",
+		},
+	})
+	require.NoError(t, err)
+	require.NotNil(t, compileResp)
+	require.True(t, compileResp.Success)
+	require.NotNil(t, compileResp.HTML)
+
+	// Extract the encrypted /r/{token} tracking link the pipeline generated
+	linkRegex := regexp.MustCompile(`href="(` + regexp.QuoteMeta(baseURL) + `/r/[^"]+)"`)
+	match := linkRegex.FindStringSubmatch(*compileResp.HTML)
+	require.NotNil(t, match, "expected a tracked /r/ link in compiled HTML: %s", *compileResp.HTML)
+	trackedLink := match[1]
+
+	client := &http.Client{
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+	}
+	req, err := http.NewRequest(http.MethodGet, trackedLink, nil)
+	require.NoError(t, err)
+	req.Header.Set("User-Agent", "Mozilla/5.0 Chrome/120.0.0.0")
+
+	resp, err := client.Do(req)
+	require.NoError(t, err)
+	defer func() { _ = resp.Body.Close() }()
+
+	require.Equal(t, http.StatusSeeOther, resp.StatusCode)
+
+	// The final redirect destination must carry every configured UTM parameter
+	location := resp.Header.Get("Location")
+	parsedLocation, err := url.Parse(location)
+	require.NoError(t, err)
+	q := parsedLocation.Query()
+	assert.Equal(t, "newsletter", q.Get("utm_source"))
+	assert.Equal(t, "email", q.Get("utm_medium"))
+	assert.Equal(t, "spring-sale", q.Get("utm_campaign"))
+	assert.Equal(t, "hero-button", q.Get("utm_content"))
+	assert.Equal(t, "running-shoes", q.Get("utm_term"))
+	assert.Equal(t, "email", q.Get("ref"), "pre-existing query params must be preserved")
 }
 
 func TestEmailHandler_ConcurrentRequests(t *testing.T) {

@@ -172,61 +172,70 @@ func isNonTrackableURL(urlStr string) bool {
 	return false
 }
 
+// applyUTMParameters appends the configured UTM parameters to sourceURL and
+// returns the result. The URL is returned unchanged when it is empty, a Liquid
+// placeholder, a mailto:/tel: link, cannot be parsed, or already carries any
+// utm_* query parameter.
+func (t *TrackingSettings) applyUTMParameters(sourceURL string) string {
+	if sourceURL == "" || strings.Contains(sourceURL, "{{") || strings.Contains(sourceURL, "{%") ||
+		strings.HasPrefix(sourceURL, "mailto:") || strings.HasPrefix(sourceURL, "tel:") {
+		return sourceURL
+	}
+
+	parsedURL, err := url.Parse(sourceURL)
+	if err != nil {
+		return sourceURL
+	}
+
+	queryParams := parsedURL.Query()
+
+	// If the URL already has UTM parameters, leave them untouched
+	for key := range queryParams {
+		if strings.HasPrefix(strings.ToLower(key), "utm_") {
+			return sourceURL
+		}
+	}
+
+	if t.UTMSource != "" {
+		queryParams.Add("utm_source", t.UTMSource)
+	}
+	if t.UTMMedium != "" {
+		queryParams.Add("utm_medium", t.UTMMedium)
+	}
+	if t.UTMCampaign != "" {
+		queryParams.Add("utm_campaign", t.UTMCampaign)
+	}
+	if t.UTMContent != "" {
+		queryParams.Add("utm_content", t.UTMContent)
+	}
+	if t.UTMTerm != "" {
+		queryParams.Add("utm_term", t.UTMTerm)
+	}
+	parsedURL.RawQuery = queryParams.Encode()
+
+	return parsedURL.String()
+}
+
 func (t *TrackingSettings) GetTrackingURL(sourceURL string) string {
 	// Ignore if URL is empty, a placeholder, mailto:, tel:, or already tracked (basic check)
 	if sourceURL == "" || strings.Contains(sourceURL, "{{") || strings.Contains(sourceURL, "{%") || strings.HasPrefix(sourceURL, "mailto:") || strings.HasPrefix(sourceURL, "tel:") {
 		return sourceURL
 	}
 
-	// parse sourceURL to get the domain
-	parsedURL, err := url.Parse(sourceURL)
-	if err != nil {
-		return sourceURL
-	}
-
-	// Get existing query parameters
-	queryParams := parsedURL.Query()
-
-	// Check if URL already has UTM parameters - if yes, don't modify them
-	hasExistingUTM := false
-	for key := range queryParams {
-		if strings.HasPrefix(strings.ToLower(key), "utm_") {
-			hasExistingUTM = true
-			break
-		}
-	}
-
-	// Add UTM parameters to the URL if no existing UTM parameters
-	if !hasExistingUTM {
-		if t.UTMSource != "" {
-			queryParams.Add("utm_source", t.UTMSource)
-		}
-		if t.UTMMedium != "" {
-			queryParams.Add("utm_medium", t.UTMMedium)
-		}
-		if t.UTMCampaign != "" {
-			queryParams.Add("utm_campaign", t.UTMCampaign)
-		}
-		if t.UTMContent != "" {
-			queryParams.Add("utm_content", t.UTMContent)
-		}
-		if t.UTMTerm != "" {
-			queryParams.Add("utm_term", t.UTMTerm)
-		}
-		parsedURL.RawQuery = queryParams.Encode()
-	}
+	// Append UTM parameters to the destination URL
+	destinationURL := t.applyUTMParameters(sourceURL)
 
 	if !t.EnableTracking {
-		return parsedURL.String()
+		return destinationURL
 	}
 
-	// parse endpoint and add url to the query params
+	// parse endpoint and add the UTM-augmented destination URL to the query params
 	parsedEndpoint, err := url.Parse(t.Endpoint)
 	if err != nil {
 		return sourceURL
 	}
 	endpointParams := parsedEndpoint.Query()
-	endpointParams.Add("url", parsedURL.String()) // Use the URL with UTM parameters
+	endpointParams.Add("url", destinationURL)
 	parsedEndpoint.RawQuery = endpointParams.Encode()
 
 	return parsedEndpoint.String()
@@ -622,13 +631,16 @@ func TrackLinks(htmlString string, trackingSettings TrackingSettings) (updatedHT
 			return match // Return original link unchanged
 		}
 
-		// Apply tracking to the URL
-		trackedURL := trackingSettings.GetTrackingURL(originalURL)
+		// Append UTM parameters to the destination URL
+		destinationURL := trackingSettings.applyUTMParameters(originalURL)
+		trackedURL := destinationURL
 
 		if trackingSettings.EnableTracking {
-			// Use current Unix timestamp (seconds) for bot detection
+			// Use current Unix timestamp (seconds) for bot detection.
+			// The UTM-augmented destination URL is what gets encrypted into the
+			// token, so the redirect target preserves the UTM parameters.
 			sentTimestamp := time.Now().Unix()
-			trackedURL = GenerateEmailRedirectionEndpoint(trackingSettings.WorkspaceID, trackingSettings.MessageID, trackingSettings.Endpoint, originalURL, sentTimestamp)
+			trackedURL = GenerateEmailRedirectionEndpoint(trackingSettings.WorkspaceID, trackingSettings.MessageID, trackingSettings.Endpoint, destinationURL, sentTimestamp)
 		}
 
 		// Return the updated tag

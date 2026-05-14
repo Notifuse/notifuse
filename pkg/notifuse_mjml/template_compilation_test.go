@@ -2,9 +2,11 @@ package notifuse_mjml
 
 import (
 	"encoding/json"
+	"regexp"
 	"strings"
 	"testing"
 
+	"github.com/Notifuse/notifuse/pkg/crypto"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -293,6 +295,62 @@ func TestTrackLinksInvalidHTML(t *testing.T) {
 	// Should still process the href attribute
 	if !strings.Contains(result, "track.example.com") {
 		t.Error("Expected tracking URL to be added even with malformed HTML")
+	}
+}
+
+// TestTrackLinks_PreservesUTMInEncryptedToken verifies that when click tracking
+// is enabled, the UTM parameters are NOT dropped: they must be appended to the
+// destination URL that gets encrypted into the /r/{token} redirect link.
+func TestTrackLinks_PreservesUTMInEncryptedToken(t *testing.T) {
+	trackingSettings := TrackingSettings{
+		EnableTracking: true,
+		Endpoint:       "https://track.example.com",
+		UTMSource:      "newsletter",
+		UTMMedium:      "email",
+		UTMCampaign:    "spring-sale",
+		UTMContent:     "hero-button",
+		UTMTerm:        "running-shoes",
+		WorkspaceID:    "ws-1",
+		MessageID:      "msg-1",
+	}
+
+	htmlInput := `<a href="https://shop.example.com/product?ref=email">Buy Now</a>`
+
+	result, err := TrackLinks(htmlInput, trackingSettings)
+	if err != nil {
+		t.Fatalf("TrackLinks failed: %v", err)
+	}
+
+	// Extract the encrypted /r/{token} link that TrackLinks generated
+	tokenRegex := regexp.MustCompile(`href="https://track\.example\.com/r/([^"]+)"`)
+	m := tokenRegex.FindStringSubmatch(result)
+	if m == nil {
+		t.Fatalf("expected a /r/{token} tracking link, got: %s", result)
+	}
+
+	// Decrypt the token: format is "messageID\nworkspaceID\ntimestamp\ndestinationURL"
+	plaintext, err := crypto.DecryptTrackingToken(m[1])
+	if err != nil {
+		t.Fatalf("failed to decrypt tracking token: %v", err)
+	}
+	parts := strings.Split(plaintext, "\n")
+	if len(parts) != 4 {
+		t.Fatalf("expected 4 token parts, got %d: %q", len(parts), plaintext)
+	}
+	destinationURL := parts[3]
+
+	// The destination URL embedded in the token must carry every UTM parameter
+	for _, want := range []string{
+		"utm_source=newsletter",
+		"utm_medium=email",
+		"utm_campaign=spring-sale",
+		"utm_content=hero-button",
+		"utm_term=running-shoes",
+		"ref=email", // pre-existing query params must be preserved too
+	} {
+		if !strings.Contains(destinationURL, want) {
+			t.Errorf("expected destination URL %q to contain %q", destinationURL, want)
+		}
 	}
 }
 
