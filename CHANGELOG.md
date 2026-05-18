@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [30.4] - 2026-05-18
+
+- **Fix**: Workspace database pool no longer falsely evicted when the caller's HTTP request context expires mid-Ping during broadcast load. Previously, a single caller-context cancellation could close the cached pool, causing every other in-flight worker (segment queue, webhook delivery, email send) to fail with `sql: database is closed` on its next operation. The pool health check now uses an isolated, sub-second context.
+
 ## [30.3] - 2026-05-14
 
 - **Fix**: UTM parameters (`utm_source`, `utm_medium`, `utm_campaign`, `utm_content`, `utm_term`) were dropped from tracked links when click tracking was enabled — the encrypted `/r/` redirect token embedded the raw destination URL instead of the UTM-augmented one. The UTM parameters are now preserved in the redirect target.

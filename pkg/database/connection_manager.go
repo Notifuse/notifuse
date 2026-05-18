@@ -13,6 +13,11 @@ import (
 	"github.com/Notifuse/notifuse/internal/database"
 )
 
+// pingHealthCheckTimeout caps the GetWorkspaceConnection pool health check.
+// Kept short (sub-second) so a slow PG does not stall the caller, but long
+// enough that a healthy PG always responds even under broadcast WAL pressure.
+const pingHealthCheckTimeout = 500 * time.Millisecond
+
 // ConnectionManager manages database connections with a shared pool approach
 type ConnectionManager interface {
 	// GetSystemConnection returns the system database connection
@@ -151,14 +156,26 @@ func (cm *connectionManager) GetWorkspaceConnection(ctx context.Context, workspa
 	cm.mu.RUnlock()
 
 	if ok {
-		// Test the connection pool is still valid
-		if err := pool.PingContext(ctx); err == nil {
+		// Health-check the pool with a short, isolated context. Using the
+		// caller's ctx here is unsafe: a caller context that expires while
+		// Ping is in flight causes Ping to return ctx.Err(), which would
+		// falsely evict and close an otherwise-healthy pool — invalidating
+		// every other goroutine still holding the pool reference.
+		pingCtx, cancel := context.WithTimeout(context.Background(), pingHealthCheckTimeout)
+		pingErr := pool.PingContext(pingCtx)
+		cancel()
+
+		if pingErr == nil {
 			// Double-check it's still in the map (not closed by another goroutine)
 			cm.mu.RLock()
 			stillExists := cm.workspacePools[workspaceID] == pool
 			cm.mu.RUnlock()
 
 			if stillExists {
+				// Respect the caller's deadline before returning the pool.
+				if err := ctx.Err(); err != nil {
+					return nil, err
+				}
 				// Update access time for LRU tracking
 				cm.mu.Lock()
 				cm.poolAccessTimes[workspaceID] = time.Now()

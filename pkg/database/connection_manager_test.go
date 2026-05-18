@@ -693,3 +693,75 @@ func TestConnectionManager_GetStats(t *testing.T) {
 		instance.mu.Unlock()
 	})
 }
+
+// TestConnectionManager_PingUsesIsolatedContext asserts that a caller
+// context that expires mid-Ping does not cause a healthy cached pool to be
+// evicted. The Ping must use an isolated context, otherwise caller-ctx
+// cancellation invalidates the pool out from under every other goroutine
+// holding the reference.
+func TestConnectionManager_PingUsesIsolatedContext(t *testing.T) {
+	defer ResetConnectionManager()
+
+	cfg := createTestConfig()
+	systemDB, _, err := sqlmock.New()
+	require.NoError(t, err)
+	defer func() { _ = systemDB.Close() }()
+
+	require.NoError(t, InitializeConnectionManager(cfg, systemDB))
+	cm := instance
+
+	// Inject a healthy workspace pool. The Ping is slow enough (100ms) that
+	// a 20ms caller context would have expired mid-Ping if the buggy
+	// behaviour were still in place — but fast enough to easily complete
+	// within the isolated 500ms health-check budget.
+	poolDB, poolMock, err := sqlmock.New(sqlmock.MonitorPingsOption(true))
+	require.NoError(t, err)
+	defer func() { _ = poolDB.Close() }()
+	poolMock.ExpectPing().WillDelayFor(100 * time.Millisecond)
+
+	const workspaceID = "ws_ping_race"
+	originalPool := poolDB
+	cm.mu.Lock()
+	cm.workspacePools[workspaceID] = poolDB
+	cm.poolAccessTimes[workspaceID] = time.Now().Add(-time.Minute)
+	cm.mu.Unlock()
+
+	callerCtx, cancel := context.WithTimeout(context.Background(), 20*time.Millisecond)
+	defer cancel()
+
+	_, err = cm.GetWorkspaceConnection(callerCtx, workspaceID)
+	// The caller's context has expired — they get the expected ctx error.
+	require.Error(t, err)
+	require.ErrorIs(t, err, context.DeadlineExceeded)
+
+	// CRITICAL: the cached pool must survive a caller-ctx-cancel that races
+	// with the health check. Before the fix this assertion failed because
+	// pool.PingContext(callerCtx) returned ctx.Err() and the eviction path
+	// closed the pool and removed it from the map.
+	cm.mu.RLock()
+	cachedPool, exists := cm.workspacePools[workspaceID]
+	cm.mu.RUnlock()
+
+	require.True(t, exists,
+		"workspace pool must not be evicted just because the caller's context expired")
+	require.Same(t, originalPool, cachedPool,
+		"cached pool reference must be preserved (no false-positive eviction)")
+
+	// Sanity: the pool is still usable from a fresh caller context. Set up
+	// a new Ping expectation since the previous one was consumed.
+	poolMock.ExpectPing()
+	freshCtx, freshCancel := context.WithTimeout(context.Background(), time.Second)
+	defer freshCancel()
+
+	got, err := cm.GetWorkspaceConnection(freshCtx, workspaceID)
+	require.NoError(t, err)
+	require.Same(t, originalPool, got, "second call should return the same preserved pool")
+
+	// Clean up
+	cm.mu.Lock()
+	delete(cm.workspacePools, workspaceID)
+	delete(cm.poolAccessTimes, workspaceID)
+	cm.mu.Unlock()
+
+	require.NoError(t, poolMock.ExpectationsWereMet())
+}
