@@ -1,0 +1,230 @@
+[
+  {
+    "t": "2026-05-18T21:35:37.815188Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 322,
+      "contact_segments": 0,
+      "contact_timeline": 322,
+      "message_history": 0,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-18T21:35:38.31515Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 400,
+      "contact_segments": 0,
+      "contact_timeline": 400,
+      "message_history": 0,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-18T21:35:38.814277Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 403,
+      "contact_segments": 0,
+      "contact_timeline": 403,
+      "message_history": 3,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-18T21:35:39.315171Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 445,
+      "contact_segments": 0,
+      "contact_timeline": 445,
+      "message_history": 45,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-18T21:35:39.81437Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 456,
+      "contact_segments": 0,
+      "contact_timeline": 456,
+      "message_history": 56,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-18T21:35:40.315187Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 516,
+      "contact_segments": 0,
+      "contact_timeline": 516,
+      "message_history": 116,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-18T21:35:40.814298Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 536,
+      "contact_segments": 0,
+      "contact_timeline": 536,
+      "message_history": 136,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-18T21:35:41.315174Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 537,
+      "contact_segments": 0,
+      "contact_timeline": 537,
+      "message_history": 137,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-18T21:35:41.814211Z",
+    "app_conns": 1,
+    "active_queries": 1,
+    "lock_waiters": 0,
+    "wait_events": {
+      "IO:WalSync": 1
+    },
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 608,
+      "contact_segments": 0,
+      "contact_timeline": 608,
+      "message_history": 208,
+      "webhook_deliveries": 0
+    },
+    "top_active_query": "DELETE FROM email_queue WHERE id = $1"
+  },
+  {
+    "t": "2026-05-18T21:35:42.314681Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 621,
+      "contact_segments": 0,
+      "contact_timeline": 621,
+      "message_history": 221,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-18T21:35:42.81469Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 622,
+      "contact_segments": 0,
+      "contact_timeline": 622,
+      "message_history": 222,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-18T21:35:43.315186Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 670,
+      "contact_segments": 0,
+      "contact_timeline": 670,
+      "message_history": 270,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-18T21:35:43.815228Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 670,
+      "contact_segments": 0,
+      "contact_timeline": 670,
+      "message_history": 270,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-18T21:35:44.314659Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 692,
+      "contact_segments": 0,
+      "contact_timeline": 692,
+      "message_history": 292,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-18T21:35:44.331247Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 692,
+      "contact_segments": 0,
+      "contact_timeline": 692,
+      "message_history": 292,
+      "webhook_deliveries": 0
+    }
+  }
+]

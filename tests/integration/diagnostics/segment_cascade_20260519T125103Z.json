@@ -1,0 +1,995 @@
+[
+  {
+    "t": "2026-05-19T12:50:31.710569Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 393,
+      "contact_segments": 0,
+      "contact_timeline": 393,
+      "message_history": 0,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:50:32.211509Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 400,
+      "contact_segments": 0,
+      "contact_timeline": 400,
+      "message_history": 0,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:50:32.711527Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 400,
+      "contact_segments": 0,
+      "contact_timeline": 400,
+      "message_history": 0,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:50:33.210776Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 401,
+      "contact_segments": 0,
+      "contact_timeline": 401,
+      "message_history": 1,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:50:33.710664Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 415,
+      "contact_segments": 0,
+      "contact_timeline": 415,
+      "message_history": 15,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:50:34.210532Z",
+    "app_conns": 1,
+    "active_queries": 1,
+    "lock_waiters": 0,
+    "wait_events": {
+      "IO:WalSync": 1
+    },
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 415,
+      "contact_segments": 0,
+      "contact_timeline": 415,
+      "message_history": 15,
+      "webhook_deliveries": 0
+    },
+    "top_active_query": "\n\t\tUPDATE email_queue\n\t\tSET status = 'processing', updated_at = NOW(), attempts = attempts + 1\n\t\tWHERE id = $1 AND (\n\t\t\tstatus IN ('pending', 'failed')\n\t\t\tOR (status = 'processing' AND updated_at \u003c NO"
+  },
+  {
+    "t": "2026-05-19T12:50:34.710756Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 548,
+      "contact_segments": 0,
+      "contact_timeline": 548,
+      "message_history": 148,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:50:35.210536Z",
+    "app_conns": 1,
+    "active_queries": 1,
+    "lock_waiters": 0,
+    "wait_events": {
+      "IO:WalSync": 1
+    },
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 560,
+      "contact_segments": 0,
+      "contact_timeline": 560,
+      "message_history": 160,
+      "webhook_deliveries": 0
+    },
+    "top_active_query": "\n\t\tINSERT INTO message_history (\n\t\t\tid, external_id, contact_email, broadcast_id, automation_id, transactional_notification_id, list_id, template_id, template_version,\n\t\t\tchannel, status_info, message"
+  },
+  {
+    "t": "2026-05-19T12:50:35.710621Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 621,
+      "contact_segments": 0,
+      "contact_timeline": 621,
+      "message_history": 221,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:50:36.210558Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 622,
+      "contact_segments": 0,
+      "contact_timeline": 622,
+      "message_history": 222,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:50:36.710542Z",
+    "app_conns": 1,
+    "active_queries": 1,
+    "lock_waiters": 0,
+    "wait_events": {
+      "IO:WalSync": 1
+    },
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 714,
+      "contact_segments": 0,
+      "contact_timeline": 714,
+      "message_history": 314,
+      "webhook_deliveries": 0
+    },
+    "top_active_query": "\n\t\tUPDATE email_queue\n\t\tSET status = 'processing', updated_at = NOW(), attempts = attempts + 1\n\t\tWHERE id = $1 AND (\n\t\t\tstatus IN ('pending', 'failed')\n\t\t\tOR (status = 'processing' AND updated_at \u003c NO"
+  },
+  {
+    "t": "2026-05-19T12:50:37.211564Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 714,
+      "contact_segments": 0,
+      "contact_timeline": 714,
+      "message_history": 314,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:50:37.711607Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 770,
+      "contact_segments": 0,
+      "contact_timeline": 770,
+      "message_history": 370,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:50:38.211589Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 770,
+      "contact_segments": 0,
+      "contact_timeline": 770,
+      "message_history": 370,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:50:38.711376Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 810,
+      "contact_segments": 0,
+      "contact_timeline": 810,
+      "message_history": 410,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:50:39.21155Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 810,
+      "contact_segments": 0,
+      "contact_timeline": 810,
+      "message_history": 410,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:50:39.711593Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 849,
+      "contact_segments": 0,
+      "contact_timeline": 849,
+      "message_history": 449,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:50:40.211576Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 849,
+      "contact_segments": 0,
+      "contact_timeline": 849,
+      "message_history": 449,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:50:40.710592Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 890,
+      "contact_segments": 0,
+      "contact_timeline": 890,
+      "message_history": 490,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:50:41.211334Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 890,
+      "contact_segments": 0,
+      "contact_timeline": 890,
+      "message_history": 490,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:50:41.711597Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 930,
+      "contact_segments": 0,
+      "contact_timeline": 930,
+      "message_history": 530,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:50:42.211596Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 930,
+      "contact_segments": 0,
+      "contact_timeline": 930,
+      "message_history": 530,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:50:42.711221Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 971,
+      "contact_segments": 0,
+      "contact_timeline": 971,
+      "message_history": 571,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:50:43.21159Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 971,
+      "contact_segments": 0,
+      "contact_timeline": 971,
+      "message_history": 571,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:50:43.711628Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 1000,
+      "contact_segments": 0,
+      "contact_timeline": 1000,
+      "message_history": 600,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:50:44.211615Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 1000,
+      "contact_segments": 0,
+      "contact_timeline": 1000,
+      "message_history": 600,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:50:44.71066Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 1000,
+      "contact_segments": 0,
+      "contact_timeline": 1000,
+      "message_history": 600,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:50:45.211598Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 1000,
+      "contact_segments": 0,
+      "contact_timeline": 1000,
+      "message_history": 600,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:50:45.711601Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 1000,
+      "contact_segments": 0,
+      "contact_timeline": 1000,
+      "message_history": 600,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:50:46.211602Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 1000,
+      "contact_segments": 0,
+      "contact_timeline": 1000,
+      "message_history": 600,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:50:46.711628Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 1000,
+      "contact_segments": 0,
+      "contact_timeline": 1000,
+      "message_history": 600,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:50:47.211612Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 1000,
+      "contact_segments": 0,
+      "contact_timeline": 1000,
+      "message_history": 600,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:50:47.711609Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 1000,
+      "contact_segments": 0,
+      "contact_timeline": 1000,
+      "message_history": 600,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:50:48.211625Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 1000,
+      "contact_segments": 0,
+      "contact_timeline": 1000,
+      "message_history": 600,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:50:48.711625Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 196,
+    "write_counts": {
+      "contact_segment_queue": 1000,
+      "contact_segments": 5,
+      "contact_timeline": 1005,
+      "message_history": 600,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:50:49.211632Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 194,
+    "write_counts": {
+      "contact_segment_queue": 1000,
+      "contact_segments": 25,
+      "contact_timeline": 1025,
+      "message_history": 600,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:50:49.71062Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 187,
+    "write_counts": {
+      "contact_segment_queue": 1000,
+      "contact_segments": 64,
+      "contact_timeline": 1064,
+      "message_history": 600,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:50:50.210623Z",
+    "app_conns": 2,
+    "active_queries": 1,
+    "lock_waiters": 0,
+    "wait_events": {
+      "IO:WalSync": 1
+    },
+    "queue_size": 177,
+    "write_counts": {
+      "contact_segment_queue": 1000,
+      "contact_segments": 105,
+      "contact_timeline": 1105,
+      "message_history": 600,
+      "webhook_deliveries": 0
+    },
+    "top_active_query": "COMMIT"
+  },
+  {
+    "t": "2026-05-19T12:50:50.711396Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 170,
+    "write_counts": {
+      "contact_segment_queue": 1000,
+      "contact_segments": 140,
+      "contact_timeline": 1140,
+      "message_history": 600,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:50:51.210822Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 167,
+    "write_counts": {
+      "contact_segment_queue": 1000,
+      "contact_segments": 160,
+      "contact_timeline": 1160,
+      "message_history": 600,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:50:51.711645Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 161,
+    "write_counts": {
+      "contact_segment_queue": 1000,
+      "contact_segments": 185,
+      "contact_timeline": 1185,
+      "message_history": 600,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:50:52.211638Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 154,
+    "write_counts": {
+      "contact_segment_queue": 1000,
+      "contact_segments": 222,
+      "contact_timeline": 1222,
+      "message_history": 600,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:50:52.711632Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 144,
+    "write_counts": {
+      "contact_segment_queue": 1000,
+      "contact_segments": 274,
+      "contact_timeline": 1274,
+      "message_history": 600,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:50:53.211638Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 138,
+    "write_counts": {
+      "contact_segment_queue": 1000,
+      "contact_segments": 305,
+      "contact_timeline": 1305,
+      "message_history": 600,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:50:53.711641Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 133,
+    "write_counts": {
+      "contact_segment_queue": 1000,
+      "contact_segments": 320,
+      "contact_timeline": 1320,
+      "message_history": 600,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:50:54.21063Z",
+    "app_conns": 2,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 129,
+    "write_counts": {
+      "contact_segment_queue": 1000,
+      "contact_segments": 345,
+      "contact_timeline": 1345,
+      "message_history": 600,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:50:54.710621Z",
+    "app_conns": 2,
+    "active_queries": 1,
+    "lock_waiters": 0,
+    "wait_events": {
+      "IO:WalSync": 1
+    },
+    "queue_size": 116,
+    "write_counts": {
+      "contact_segment_queue": 1000,
+      "contact_segments": 400,
+      "contact_timeline": 1400,
+      "message_history": 600,
+      "webhook_deliveries": 0
+    },
+    "top_active_query": "\n\t\tINSERT INTO contact_segments (email, segment_id, version, matched_at, computed_at)\n\t\tVALUES ($1, $2, $3, $4, $5)\n\t\tON CONFLICT (email, segment_id)\n\t\tDO UPDATE SET version = $3, computed_at = $5\n\t"
+  },
+  {
+    "t": "2026-05-19T12:50:55.211657Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 102,
+    "write_counts": {
+      "contact_segment_queue": 1000,
+      "contact_segments": 470,
+      "contact_timeline": 1470,
+      "message_history": 600,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:50:55.710674Z",
+    "app_conns": 2,
+    "active_queries": 1,
+    "lock_waiters": 0,
+    "wait_events": {
+      "-:-": 1
+    },
+    "queue_size": 91,
+    "write_counts": {
+      "contact_segment_queue": 1000,
+      "contact_segments": 515,
+      "contact_timeline": 1515,
+      "message_history": 600,
+      "webhook_deliveries": 0
+    },
+    "top_active_query": "\n\t\tINSERT INTO contact_segments (email, segment_id, version, matched_at, computed_at)\n\t\tVALUES ($1, $2, $3, $4, $5)\n\t\tON CONFLICT (email, segment_id)\n\t\tDO UPDATE SET version = $3, computed_at = $5\n\t"
+  },
+  {
+    "t": "2026-05-19T12:50:56.211663Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 73,
+    "write_counts": {
+      "contact_segment_queue": 1000,
+      "contact_segments": 633,
+      "contact_timeline": 1633,
+      "message_history": 600,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:50:56.711655Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 56,
+    "write_counts": {
+      "contact_segment_queue": 1000,
+      "contact_segments": 705,
+      "contact_timeline": 1705,
+      "message_history": 600,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:50:57.211641Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 38,
+    "write_counts": {
+      "contact_segment_queue": 1000,
+      "contact_segments": 780,
+      "contact_timeline": 1780,
+      "message_history": 600,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:50:57.710712Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 21,
+    "write_counts": {
+      "contact_segment_queue": 1000,
+      "contact_segments": 855,
+      "contact_timeline": 1855,
+      "message_history": 600,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:50:58.210725Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 6,
+    "write_counts": {
+      "contact_segment_queue": 1000,
+      "contact_segments": 931,
+      "contact_timeline": 1931,
+      "message_history": 600,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:50:58.71165Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 0,
+    "write_counts": {
+      "contact_segment_queue": 1000,
+      "contact_segments": 970,
+      "contact_timeline": 1970,
+      "message_history": 600,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:50:59.211695Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 0,
+    "write_counts": {
+      "contact_segment_queue": 1000,
+      "contact_segments": 970,
+      "contact_timeline": 1970,
+      "message_history": 600,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:50:59.711687Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 0,
+    "write_counts": {
+      "contact_segment_queue": 1000,
+      "contact_segments": 1000,
+      "contact_timeline": 2000,
+      "message_history": 600,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:51:00.211685Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 0,
+    "write_counts": {
+      "contact_segment_queue": 1000,
+      "contact_segments": 1000,
+      "contact_timeline": 2000,
+      "message_history": 600,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:51:00.71167Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 0,
+    "write_counts": {
+      "contact_segment_queue": 1000,
+      "contact_segments": 1000,
+      "contact_timeline": 2000,
+      "message_history": 600,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:51:01.211687Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 0,
+    "write_counts": {
+      "contact_segment_queue": 1000,
+      "contact_segments": 1000,
+      "contact_timeline": 2000,
+      "message_history": 600,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:51:01.71169Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 0,
+    "write_counts": {
+      "contact_segment_queue": 1000,
+      "contact_segments": 1000,
+      "contact_timeline": 2000,
+      "message_history": 600,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:51:02.211722Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 0,
+    "write_counts": {
+      "contact_segment_queue": 1000,
+      "contact_segments": 1000,
+      "contact_timeline": 2000,
+      "message_history": 600,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:51:02.711706Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 0,
+    "write_counts": {
+      "contact_segment_queue": 1000,
+      "contact_segments": 1000,
+      "contact_timeline": 2000,
+      "message_history": 600,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:51:03.211701Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 0,
+    "write_counts": {
+      "contact_segment_queue": 1000,
+      "contact_segments": 1000,
+      "contact_timeline": 2000,
+      "message_history": 600,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:51:03.250959Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 0,
+    "write_counts": {
+      "contact_segment_queue": 1000,
+      "contact_segments": 1000,
+      "contact_timeline": 2000,
+      "message_history": 600,
+      "webhook_deliveries": 0
+    }
+  }
+]

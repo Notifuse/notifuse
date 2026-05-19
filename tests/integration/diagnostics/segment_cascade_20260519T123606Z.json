@@ -1,0 +1,989 @@
+[
+  {
+    "t": "2026-05-19T12:35:35.04025Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 385,
+      "contact_segments": 0,
+      "contact_timeline": 385,
+      "message_history": 0,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:35:35.539303Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 400,
+      "contact_segments": 0,
+      "contact_timeline": 400,
+      "message_history": 0,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:35:36.039209Z",
+    "app_conns": 1,
+    "active_queries": 1,
+    "lock_waiters": 0,
+    "wait_events": {
+      "-:-": 1
+    },
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 400,
+      "contact_segments": 0,
+      "contact_timeline": 400,
+      "message_history": 0,
+      "webhook_deliveries": 0
+    },
+    "top_active_query": "INSERT INTO email_queue (id,status,priority,source_type,source_id,integration_id,provider_kind,contact_email,message_id,template_id,payload,attempts,max_attempts,created_at,updated_at) VALUES ($1,$2,$"
+  },
+  {
+    "t": "2026-05-19T12:35:36.540087Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 400,
+      "contact_segments": 0,
+      "contact_timeline": 400,
+      "message_history": 0,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:35:37.039257Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 402,
+      "contact_segments": 0,
+      "contact_timeline": 402,
+      "message_history": 2,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:35:37.542445Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 467,
+      "contact_segments": 0,
+      "contact_timeline": 467,
+      "message_history": 67,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:35:38.041378Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 534,
+      "contact_segments": 0,
+      "contact_timeline": 534,
+      "message_history": 134,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:35:38.539404Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 558,
+      "contact_segments": 0,
+      "contact_timeline": 558,
+      "message_history": 158,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:35:39.039255Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 581,
+      "contact_segments": 0,
+      "contact_timeline": 581,
+      "message_history": 181,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:35:39.539903Z",
+    "app_conns": 2,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 647,
+      "contact_segments": 0,
+      "contact_timeline": 647,
+      "message_history": 247,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:35:40.041956Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 708,
+      "contact_segments": 0,
+      "contact_timeline": 708,
+      "message_history": 308,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:35:40.540273Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 708,
+      "contact_segments": 0,
+      "contact_timeline": 708,
+      "message_history": 308,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:35:41.040284Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 766,
+      "contact_segments": 0,
+      "contact_timeline": 766,
+      "message_history": 366,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:35:41.540276Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 766,
+      "contact_segments": 0,
+      "contact_timeline": 766,
+      "message_history": 366,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:35:42.040283Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 806,
+      "contact_segments": 0,
+      "contact_timeline": 806,
+      "message_history": 406,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:35:42.53949Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 806,
+      "contact_segments": 0,
+      "contact_timeline": 806,
+      "message_history": 406,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:35:43.040288Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 847,
+      "contact_segments": 0,
+      "contact_timeline": 847,
+      "message_history": 447,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:35:43.540288Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 847,
+      "contact_segments": 0,
+      "contact_timeline": 847,
+      "message_history": 447,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:35:44.040283Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 888,
+      "contact_segments": 0,
+      "contact_timeline": 888,
+      "message_history": 488,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:35:44.539636Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 888,
+      "contact_segments": 0,
+      "contact_timeline": 888,
+      "message_history": 488,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:35:45.040298Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 928,
+      "contact_segments": 0,
+      "contact_timeline": 928,
+      "message_history": 528,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:35:45.540301Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 928,
+      "contact_segments": 0,
+      "contact_timeline": 928,
+      "message_history": 528,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:35:46.040266Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 968,
+      "contact_segments": 0,
+      "contact_timeline": 968,
+      "message_history": 568,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:35:46.53985Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 968,
+      "contact_segments": 0,
+      "contact_timeline": 968,
+      "message_history": 568,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:35:47.040319Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 1000,
+      "contact_segments": 0,
+      "contact_timeline": 1000,
+      "message_history": 600,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:35:47.540308Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 1000,
+      "contact_segments": 0,
+      "contact_timeline": 1000,
+      "message_history": 600,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:35:48.040318Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 1000,
+      "contact_segments": 0,
+      "contact_timeline": 1000,
+      "message_history": 600,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:35:48.5403Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 1000,
+      "contact_segments": 0,
+      "contact_timeline": 1000,
+      "message_history": 600,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:35:49.039316Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 1000,
+      "contact_segments": 0,
+      "contact_timeline": 1000,
+      "message_history": 600,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:35:49.540318Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 1000,
+      "contact_segments": 0,
+      "contact_timeline": 1000,
+      "message_history": 600,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:35:50.040349Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 1000,
+      "contact_segments": 0,
+      "contact_timeline": 1000,
+      "message_history": 600,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:35:50.540304Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 1000,
+      "contact_segments": 0,
+      "contact_timeline": 1000,
+      "message_history": 600,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:35:51.040301Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 1000,
+      "contact_segments": 0,
+      "contact_timeline": 1000,
+      "message_history": 600,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:35:51.540319Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 1000,
+      "contact_segments": 0,
+      "contact_timeline": 1000,
+      "message_history": 600,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:35:52.039897Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 198,
+    "write_counts": {
+      "contact_segment_queue": 1000,
+      "contact_segments": 5,
+      "contact_timeline": 1005,
+      "message_history": 600,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:35:52.540315Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 195,
+    "write_counts": {
+      "contact_segment_queue": 1000,
+      "contact_segments": 20,
+      "contact_timeline": 1020,
+      "message_history": 600,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:35:53.040331Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 190,
+    "write_counts": {
+      "contact_segment_queue": 1000,
+      "contact_segments": 45,
+      "contact_timeline": 1045,
+      "message_history": 600,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:35:53.540306Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 186,
+    "write_counts": {
+      "contact_segment_queue": 1000,
+      "contact_segments": 60,
+      "contact_timeline": 1060,
+      "message_history": 600,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:35:54.04032Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 179,
+    "write_counts": {
+      "contact_segment_queue": 1000,
+      "contact_segments": 100,
+      "contact_timeline": 1100,
+      "message_history": 600,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:35:54.540353Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 174,
+    "write_counts": {
+      "contact_segment_queue": 1000,
+      "contact_segments": 115,
+      "contact_timeline": 1115,
+      "message_history": 600,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:35:55.03939Z",
+    "app_conns": 2,
+    "active_queries": 1,
+    "lock_waiters": 0,
+    "wait_events": {
+      "IO:WalSync": 1
+    },
+    "queue_size": 167,
+    "write_counts": {
+      "contact_segment_queue": 1000,
+      "contact_segments": 155,
+      "contact_timeline": 1155,
+      "message_history": 600,
+      "webhook_deliveries": 0
+    },
+    "top_active_query": "\n\t\tINSERT INTO contact_segments (email, segment_id, version, matched_at, computed_at)\n\t\tVALUES ($1, $2, $3, $4, $5)\n\t\tON CONFLICT (email, segment_id)\n\t\tDO UPDATE SET version = $3, computed_at = $5\n\t"
+  },
+  {
+    "t": "2026-05-19T12:35:55.53931Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 156,
+    "write_counts": {
+      "contact_segment_queue": 1000,
+      "contact_segments": 215,
+      "contact_timeline": 1215,
+      "message_history": 600,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:35:56.04025Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 149,
+    "write_counts": {
+      "contact_segment_queue": 1000,
+      "contact_segments": 245,
+      "contact_timeline": 1245,
+      "message_history": 600,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:35:56.543316Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 141,
+    "write_counts": {
+      "contact_segment_queue": 1000,
+      "contact_segments": 280,
+      "contact_timeline": 1280,
+      "message_history": 600,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:35:57.039347Z",
+    "app_conns": 2,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 131,
+    "write_counts": {
+      "contact_segment_queue": 1000,
+      "contact_segments": 325,
+      "contact_timeline": 1325,
+      "message_history": 600,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:35:57.539797Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 121,
+    "write_counts": {
+      "contact_segment_queue": 1000,
+      "contact_segments": 395,
+      "contact_timeline": 1395,
+      "message_history": 600,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:35:58.040338Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 113,
+    "write_counts": {
+      "contact_segment_queue": 1000,
+      "contact_segments": 430,
+      "contact_timeline": 1430,
+      "message_history": 600,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:35:58.540322Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 103,
+    "write_counts": {
+      "contact_segment_queue": 1000,
+      "contact_segments": 470,
+      "contact_timeline": 1470,
+      "message_history": 600,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:35:59.040349Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 90,
+    "write_counts": {
+      "contact_segment_queue": 1000,
+      "contact_segments": 520,
+      "contact_timeline": 1520,
+      "message_history": 600,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:35:59.539787Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 74,
+    "write_counts": {
+      "contact_segment_queue": 1000,
+      "contact_segments": 628,
+      "contact_timeline": 1628,
+      "message_history": 600,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:36:00.039544Z",
+    "app_conns": 2,
+    "active_queries": 1,
+    "lock_waiters": 0,
+    "wait_events": {
+      "IO:WalSync": 1
+    },
+    "queue_size": 62,
+    "write_counts": {
+      "contact_segment_queue": 1000,
+      "contact_segments": 655,
+      "contact_timeline": 1655,
+      "message_history": 600,
+      "webhook_deliveries": 0
+    },
+    "top_active_query": "\n\t\tINSERT INTO contact_segments (email, segment_id, version, matched_at, computed_at)\n\t\tVALUES ($1, $2, $3, $4, $5)\n\t\tON CONFLICT (email, segment_id)\n\t\tDO UPDATE SET version = $3, computed_at = $5\n\t"
+  },
+  {
+    "t": "2026-05-19T12:36:00.539348Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 45,
+    "write_counts": {
+      "contact_segment_queue": 1000,
+      "contact_segments": 745,
+      "contact_timeline": 1745,
+      "message_history": 600,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:36:01.040375Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 23,
+    "write_counts": {
+      "contact_segment_queue": 1000,
+      "contact_segments": 850,
+      "contact_timeline": 1850,
+      "message_history": 600,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:36:01.539399Z",
+    "app_conns": 2,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 12,
+    "write_counts": {
+      "contact_segment_queue": 1000,
+      "contact_segments": 924,
+      "contact_timeline": 1924,
+      "message_history": 600,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:36:02.040185Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 0,
+    "write_counts": {
+      "contact_segment_queue": 1000,
+      "contact_segments": 975,
+      "contact_timeline": 1975,
+      "message_history": 600,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:36:02.540353Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 0,
+    "write_counts": {
+      "contact_segment_queue": 1000,
+      "contact_segments": 975,
+      "contact_timeline": 1975,
+      "message_history": 600,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:36:03.040379Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 0,
+    "write_counts": {
+      "contact_segment_queue": 1000,
+      "contact_segments": 1000,
+      "contact_timeline": 2000,
+      "message_history": 600,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:36:03.540342Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 0,
+    "write_counts": {
+      "contact_segment_queue": 1000,
+      "contact_segments": 1000,
+      "contact_timeline": 2000,
+      "message_history": 600,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:36:04.040149Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 0,
+    "write_counts": {
+      "contact_segment_queue": 1000,
+      "contact_segments": 1000,
+      "contact_timeline": 2000,
+      "message_history": 600,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:36:04.540236Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 0,
+    "write_counts": {
+      "contact_segment_queue": 1000,
+      "contact_segments": 1000,
+      "contact_timeline": 2000,
+      "message_history": 600,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:36:05.040386Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 0,
+    "write_counts": {
+      "contact_segment_queue": 1000,
+      "contact_segments": 1000,
+      "contact_timeline": 2000,
+      "message_history": 600,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:36:05.540381Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 0,
+    "write_counts": {
+      "contact_segment_queue": 1000,
+      "contact_segments": 1000,
+      "contact_timeline": 2000,
+      "message_history": 600,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:36:06.040381Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 0,
+    "write_counts": {
+      "contact_segment_queue": 1000,
+      "contact_segments": 1000,
+      "contact_timeline": 2000,
+      "message_history": 600,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:36:06.539909Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 0,
+    "write_counts": {
+      "contact_segment_queue": 1000,
+      "contact_segments": 1000,
+      "contact_timeline": 2000,
+      "message_history": 600,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T12:36:06.557295Z",
+    "app_conns": 2,
+    "active_queries": 1,
+    "lock_waiters": 0,
+    "wait_events": {
+      "-:-": 1
+    },
+    "queue_size": 0,
+    "write_counts": {
+      "contact_segment_queue": 1000,
+      "contact_segments": 1000,
+      "contact_timeline": 2000,
+      "message_history": 600,
+      "webhook_deliveries": 0
+    },
+    "top_active_query": "\n\t\tSELECT id FROM message_history\n\t\tWHERE sent_at IS NOT NULL AND opened_at IS NULL\n\t\tORDER BY random() LIMIT 1"
+  }
+]

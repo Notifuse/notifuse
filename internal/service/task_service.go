@@ -990,8 +990,9 @@ func (s *TaskService) handleBroadcastPaused(ctx context.Context, payload domain.
 		return
 	}
 
-	// Pause the task
-	nextRunAfter := time.Now().Add(24 * time.Hour) // Pause for 24 hours
+	// Pause the task. UTC is mandatory because tasks.next_run_after is
+	// TIMESTAMP WITHOUT TIME ZONE — see task_handler.go timeoutAt comment.
+	nextRunAfter := time.Now().UTC().Add(24 * time.Hour) // Pause for 24 hours
 	tracing.AddAttribute(ctx, "next_run_after", nextRunAfter.Format(time.RFC3339))
 
 	if err := s.repo.MarkAsPaused(ctx, payload.WorkspaceID, task.ID, nextRunAfter, task.Progress, task.State); err != nil {

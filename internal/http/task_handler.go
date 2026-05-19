@@ -237,8 +237,13 @@ func (h *TaskHandler) ExecuteTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Calculate timeout based on task's MaxRuntime
-	timeoutAt := time.Now().Add(time.Duration(task.MaxRuntime) * time.Second)
+	// Calculate timeout based on task's MaxRuntime. UTC is mandatory: the
+	// tasks.timeout_after column is TIMESTAMP WITHOUT TIME ZONE, so a local
+	// time.Now() on a non-UTC server would write a literal that, when later
+	// compared against time.Now().UTC() in GetNextBatch, leaves the task
+	// "still running" for the duration of the server's UTC offset (e.g. +2h
+	// in CEST) and the recurring task is never re-picked within that window.
+	timeoutAt := time.Now().UTC().Add(time.Duration(task.MaxRuntime) * time.Second)
 
 	if err := h.taskService.ExecuteTask(r.Context(), executeRequest.WorkspaceID, executeRequest.ID, timeoutAt); err != nil {
 		// Handle different error types with appropriate status codes

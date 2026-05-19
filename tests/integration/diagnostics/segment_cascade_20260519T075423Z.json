@@ -1,0 +1,1076 @@
+[
+  {
+    "t": "2026-05-19T07:53:52.467759Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 367,
+      "contact_segments": 0,
+      "contact_timeline": 367,
+      "message_history": 0,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T07:53:52.965696Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 400,
+      "contact_segments": 0,
+      "contact_timeline": 400,
+      "message_history": 0,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T07:53:53.466019Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 401,
+      "contact_segments": 0,
+      "contact_timeline": 401,
+      "message_history": 1,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T07:53:53.967752Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 401,
+      "contact_segments": 0,
+      "contact_timeline": 401,
+      "message_history": 1,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T07:53:54.465676Z",
+    "app_conns": 1,
+    "active_queries": 1,
+    "lock_waiters": 0,
+    "wait_events": {
+      "IO:WalSync": 1
+    },
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 452,
+      "contact_segments": 0,
+      "contact_timeline": 452,
+      "message_history": 52,
+      "webhook_deliveries": 0
+    },
+    "top_active_query": "DELETE FROM email_queue WHERE id = $1"
+  },
+  {
+    "t": "2026-05-19T07:53:54.96775Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 507,
+      "contact_segments": 0,
+      "contact_timeline": 507,
+      "message_history": 107,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T07:53:55.465935Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 531,
+      "contact_segments": 0,
+      "contact_timeline": 531,
+      "message_history": 131,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T07:53:55.967734Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 532,
+      "contact_segments": 0,
+      "contact_timeline": 532,
+      "message_history": 132,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T07:53:56.465697Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 608,
+      "contact_segments": 0,
+      "contact_timeline": 608,
+      "message_history": 208,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T07:53:56.967733Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 608,
+      "contact_segments": 0,
+      "contact_timeline": 608,
+      "message_history": 208,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T07:53:57.467764Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 665,
+      "contact_segments": 0,
+      "contact_timeline": 665,
+      "message_history": 265,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T07:53:57.967369Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 665,
+      "contact_segments": 0,
+      "contact_timeline": 665,
+      "message_history": 265,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T07:53:58.46775Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 685,
+      "contact_segments": 0,
+      "contact_timeline": 685,
+      "message_history": 285,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T07:53:58.967753Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 685,
+      "contact_segments": 0,
+      "contact_timeline": 685,
+      "message_history": 285,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T07:53:59.46777Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 706,
+      "contact_segments": 0,
+      "contact_timeline": 706,
+      "message_history": 306,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T07:53:59.965778Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 706,
+      "contact_segments": 0,
+      "contact_timeline": 706,
+      "message_history": 306,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T07:54:00.467749Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 726,
+      "contact_segments": 0,
+      "contact_timeline": 726,
+      "message_history": 326,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T07:54:00.967754Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 726,
+      "contact_segments": 0,
+      "contact_timeline": 726,
+      "message_history": 326,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T07:54:01.466031Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 741,
+      "contact_segments": 0,
+      "contact_timeline": 741,
+      "message_history": 341,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T07:54:01.966172Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 741,
+      "contact_segments": 0,
+      "contact_timeline": 741,
+      "message_history": 341,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T07:54:02.467063Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 761,
+      "contact_segments": 0,
+      "contact_timeline": 761,
+      "message_history": 361,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T07:54:02.967756Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 762,
+      "contact_segments": 0,
+      "contact_timeline": 762,
+      "message_history": 362,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T07:54:03.465789Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 781,
+      "contact_segments": 0,
+      "contact_timeline": 781,
+      "message_history": 381,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T07:54:03.967748Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 781,
+      "contact_segments": 0,
+      "contact_timeline": 781,
+      "message_history": 381,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T07:54:04.467777Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 800,
+      "contact_segments": 0,
+      "contact_timeline": 800,
+      "message_history": 400,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T07:54:04.967751Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 800,
+      "contact_segments": 0,
+      "contact_timeline": 800,
+      "message_history": 400,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T07:54:05.465996Z",
+    "app_conns": 1,
+    "active_queries": 1,
+    "lock_waiters": 0,
+    "wait_events": {
+      "-:-": 1
+    },
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 800,
+      "contact_segments": 0,
+      "contact_timeline": 800,
+      "message_history": 400,
+      "webhook_deliveries": 0
+    },
+    "top_active_query": "SELECT COUNT(*) FROM contact_segment_queue"
+  },
+  {
+    "t": "2026-05-19T07:54:05.965909Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 800,
+      "contact_segments": 0,
+      "contact_timeline": 800,
+      "message_history": 400,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T07:54:06.467824Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 800,
+      "contact_segments": 0,
+      "contact_timeline": 800,
+      "message_history": 400,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T07:54:06.967764Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 800,
+      "contact_segments": 0,
+      "contact_timeline": 800,
+      "message_history": 400,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T07:54:07.466967Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 800,
+      "contact_segments": 0,
+      "contact_timeline": 800,
+      "message_history": 400,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T07:54:07.96782Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 800,
+      "contact_segments": 0,
+      "contact_timeline": 800,
+      "message_history": 400,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T07:54:08.467816Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 800,
+      "contact_segments": 0,
+      "contact_timeline": 800,
+      "message_history": 400,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T07:54:08.967803Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 800,
+      "contact_segments": 0,
+      "contact_timeline": 800,
+      "message_history": 400,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-19T07:54:09.467777Z",
+    "app_conns": 2,
+    "active_queries": 1,
+    "lock_waiters": 1,
+    "wait_events": {
+      "Lock:transactionid": 1
+    },
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 800,
+      "contact_segments": 0,
+      "contact_timeline": 800,
+      "message_history": 400,
+      "webhook_deliveries": 0
+    },
+    "top_active_query": "\n\t\tINSERT INTO contact_segments (email, segment_id, version, matched_at, computed_at)\n\t\tVALUES ($1, $2, $3, $4, $5)\n\t\tON CONFLICT (email, segment_id)\n\t\tDO UPDATE SET version = $3, computed_at = $5\n\t"
+  },
+  {
+    "t": "2026-05-19T07:54:09.967803Z",
+    "app_conns": 3,
+    "active_queries": 1,
+    "lock_waiters": 1,
+    "wait_events": {
+      "Lock:transactionid": 1
+    },
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 800,
+      "contact_segments": 0,
+      "contact_timeline": 800,
+      "message_history": 400,
+      "webhook_deliveries": 0
+    },
+    "top_active_query": "\n\t\tINSERT INTO contact_segments (email, segment_id, version, matched_at, computed_at)\n\t\tVALUES ($1, $2, $3, $4, $5)\n\t\tON CONFLICT (email, segment_id)\n\t\tDO UPDATE SET version = $3, computed_at = $5\n\t"
+  },
+  {
+    "t": "2026-05-19T07:54:10.467011Z",
+    "app_conns": 3,
+    "active_queries": 1,
+    "lock_waiters": 1,
+    "wait_events": {
+      "Lock:transactionid": 1
+    },
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 800,
+      "contact_segments": 0,
+      "contact_timeline": 800,
+      "message_history": 400,
+      "webhook_deliveries": 0
+    },
+    "top_active_query": "\n\t\tINSERT INTO contact_segments (email, segment_id, version, matched_at, computed_at)\n\t\tVALUES ($1, $2, $3, $4, $5)\n\t\tON CONFLICT (email, segment_id)\n\t\tDO UPDATE SET version = $3, computed_at = $5\n\t"
+  },
+  {
+    "t": "2026-05-19T07:54:10.967806Z",
+    "app_conns": 3,
+    "active_queries": 1,
+    "lock_waiters": 1,
+    "wait_events": {
+      "Lock:transactionid": 1
+    },
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 800,
+      "contact_segments": 0,
+      "contact_timeline": 800,
+      "message_history": 400,
+      "webhook_deliveries": 0
+    },
+    "top_active_query": "\n\t\tINSERT INTO contact_segments (email, segment_id, version, matched_at, computed_at)\n\t\tVALUES ($1, $2, $3, $4, $5)\n\t\tON CONFLICT (email, segment_id)\n\t\tDO UPDATE SET version = $3, computed_at = $5\n\t"
+  },
+  {
+    "t": "2026-05-19T07:54:11.466784Z",
+    "app_conns": 3,
+    "active_queries": 1,
+    "lock_waiters": 1,
+    "wait_events": {
+      "Lock:transactionid": 1
+    },
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 800,
+      "contact_segments": 0,
+      "contact_timeline": 800,
+      "message_history": 400,
+      "webhook_deliveries": 0
+    },
+    "top_active_query": "\n\t\tINSERT INTO contact_segments (email, segment_id, version, matched_at, computed_at)\n\t\tVALUES ($1, $2, $3, $4, $5)\n\t\tON CONFLICT (email, segment_id)\n\t\tDO UPDATE SET version = $3, computed_at = $5\n\t"
+  },
+  {
+    "t": "2026-05-19T07:54:11.967806Z",
+    "app_conns": 3,
+    "active_queries": 1,
+    "lock_waiters": 1,
+    "wait_events": {
+      "Lock:transactionid": 1
+    },
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 800,
+      "contact_segments": 0,
+      "contact_timeline": 800,
+      "message_history": 400,
+      "webhook_deliveries": 0
+    },
+    "top_active_query": "\n\t\tINSERT INTO contact_segments (email, segment_id, version, matched_at, computed_at)\n\t\tVALUES ($1, $2, $3, $4, $5)\n\t\tON CONFLICT (email, segment_id)\n\t\tDO UPDATE SET version = $3, computed_at = $5\n\t"
+  },
+  {
+    "t": "2026-05-19T07:54:12.467833Z",
+    "app_conns": 3,
+    "active_queries": 1,
+    "lock_waiters": 1,
+    "wait_events": {
+      "Lock:transactionid": 1
+    },
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 800,
+      "contact_segments": 0,
+      "contact_timeline": 800,
+      "message_history": 400,
+      "webhook_deliveries": 0
+    },
+    "top_active_query": "\n\t\tINSERT INTO contact_segments (email, segment_id, version, matched_at, computed_at)\n\t\tVALUES ($1, $2, $3, $4, $5)\n\t\tON CONFLICT (email, segment_id)\n\t\tDO UPDATE SET version = $3, computed_at = $5\n\t"
+  },
+  {
+    "t": "2026-05-19T07:54:12.967806Z",
+    "app_conns": 3,
+    "active_queries": 1,
+    "lock_waiters": 1,
+    "wait_events": {
+      "Lock:transactionid": 1
+    },
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 800,
+      "contact_segments": 0,
+      "contact_timeline": 800,
+      "message_history": 400,
+      "webhook_deliveries": 0
+    },
+    "top_active_query": "\n\t\tINSERT INTO contact_segments (email, segment_id, version, matched_at, computed_at)\n\t\tVALUES ($1, $2, $3, $4, $5)\n\t\tON CONFLICT (email, segment_id)\n\t\tDO UPDATE SET version = $3, computed_at = $5\n\t"
+  },
+  {
+    "t": "2026-05-19T07:54:13.467792Z",
+    "app_conns": 3,
+    "active_queries": 1,
+    "lock_waiters": 1,
+    "wait_events": {
+      "Lock:transactionid": 1
+    },
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 800,
+      "contact_segments": 0,
+      "contact_timeline": 800,
+      "message_history": 400,
+      "webhook_deliveries": 0
+    },
+    "top_active_query": "\n\t\tINSERT INTO contact_segments (email, segment_id, version, matched_at, computed_at)\n\t\tVALUES ($1, $2, $3, $4, $5)\n\t\tON CONFLICT (email, segment_id)\n\t\tDO UPDATE SET version = $3, computed_at = $5\n\t"
+  },
+  {
+    "t": "2026-05-19T07:54:13.967821Z",
+    "app_conns": 3,
+    "active_queries": 1,
+    "lock_waiters": 1,
+    "wait_events": {
+      "Lock:transactionid": 1
+    },
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 800,
+      "contact_segments": 0,
+      "contact_timeline": 800,
+      "message_history": 400,
+      "webhook_deliveries": 0
+    },
+    "top_active_query": "\n\t\tINSERT INTO contact_segments (email, segment_id, version, matched_at, computed_at)\n\t\tVALUES ($1, $2, $3, $4, $5)\n\t\tON CONFLICT (email, segment_id)\n\t\tDO UPDATE SET version = $3, computed_at = $5\n\t"
+  },
+  {
+    "t": "2026-05-19T07:54:14.467805Z",
+    "app_conns": 3,
+    "active_queries": 1,
+    "lock_waiters": 1,
+    "wait_events": {
+      "Lock:transactionid": 1
+    },
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 800,
+      "contact_segments": 0,
+      "contact_timeline": 800,
+      "message_history": 400,
+      "webhook_deliveries": 0
+    },
+    "top_active_query": "\n\t\tINSERT INTO contact_segments (email, segment_id, version, matched_at, computed_at)\n\t\tVALUES ($1, $2, $3, $4, $5)\n\t\tON CONFLICT (email, segment_id)\n\t\tDO UPDATE SET version = $3, computed_at = $5\n\t"
+  },
+  {
+    "t": "2026-05-19T07:54:14.967777Z",
+    "app_conns": 3,
+    "active_queries": 1,
+    "lock_waiters": 1,
+    "wait_events": {
+      "Lock:transactionid": 1
+    },
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 800,
+      "contact_segments": 0,
+      "contact_timeline": 800,
+      "message_history": 400,
+      "webhook_deliveries": 0
+    },
+    "top_active_query": "\n\t\tINSERT INTO contact_segments (email, segment_id, version, matched_at, computed_at)\n\t\tVALUES ($1, $2, $3, $4, $5)\n\t\tON CONFLICT (email, segment_id)\n\t\tDO UPDATE SET version = $3, computed_at = $5\n\t"
+  },
+  {
+    "t": "2026-05-19T07:54:15.465997Z",
+    "app_conns": 3,
+    "active_queries": 1,
+    "lock_waiters": 1,
+    "wait_events": {
+      "Lock:transactionid": 1
+    },
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 800,
+      "contact_segments": 0,
+      "contact_timeline": 800,
+      "message_history": 400,
+      "webhook_deliveries": 0
+    },
+    "top_active_query": "\n\t\tINSERT INTO contact_segments (email, segment_id, version, matched_at, computed_at)\n\t\tVALUES ($1, $2, $3, $4, $5)\n\t\tON CONFLICT (email, segment_id)\n\t\tDO UPDATE SET version = $3, computed_at = $5\n\t"
+  },
+  {
+    "t": "2026-05-19T07:54:15.967818Z",
+    "app_conns": 3,
+    "active_queries": 1,
+    "lock_waiters": 1,
+    "wait_events": {
+      "Lock:transactionid": 1
+    },
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 800,
+      "contact_segments": 0,
+      "contact_timeline": 800,
+      "message_history": 400,
+      "webhook_deliveries": 0
+    },
+    "top_active_query": "\n\t\tINSERT INTO contact_segments (email, segment_id, version, matched_at, computed_at)\n\t\tVALUES ($1, $2, $3, $4, $5)\n\t\tON CONFLICT (email, segment_id)\n\t\tDO UPDATE SET version = $3, computed_at = $5\n\t"
+  },
+  {
+    "t": "2026-05-19T07:54:16.467553Z",
+    "app_conns": 3,
+    "active_queries": 1,
+    "lock_waiters": 1,
+    "wait_events": {
+      "Lock:transactionid": 1
+    },
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 800,
+      "contact_segments": 0,
+      "contact_timeline": 800,
+      "message_history": 400,
+      "webhook_deliveries": 0
+    },
+    "top_active_query": "\n\t\tINSERT INTO contact_segments (email, segment_id, version, matched_at, computed_at)\n\t\tVALUES ($1, $2, $3, $4, $5)\n\t\tON CONFLICT (email, segment_id)\n\t\tDO UPDATE SET version = $3, computed_at = $5\n\t"
+  },
+  {
+    "t": "2026-05-19T07:54:16.967825Z",
+    "app_conns": 3,
+    "active_queries": 1,
+    "lock_waiters": 1,
+    "wait_events": {
+      "Lock:transactionid": 1
+    },
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 800,
+      "contact_segments": 0,
+      "contact_timeline": 800,
+      "message_history": 400,
+      "webhook_deliveries": 0
+    },
+    "top_active_query": "\n\t\tINSERT INTO contact_segments (email, segment_id, version, matched_at, computed_at)\n\t\tVALUES ($1, $2, $3, $4, $5)\n\t\tON CONFLICT (email, segment_id)\n\t\tDO UPDATE SET version = $3, computed_at = $5\n\t"
+  },
+  {
+    "t": "2026-05-19T07:54:17.467692Z",
+    "app_conns": 3,
+    "active_queries": 1,
+    "lock_waiters": 1,
+    "wait_events": {
+      "Lock:transactionid": 1
+    },
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 800,
+      "contact_segments": 0,
+      "contact_timeline": 800,
+      "message_history": 400,
+      "webhook_deliveries": 0
+    },
+    "top_active_query": "\n\t\tINSERT INTO contact_segments (email, segment_id, version, matched_at, computed_at)\n\t\tVALUES ($1, $2, $3, $4, $5)\n\t\tON CONFLICT (email, segment_id)\n\t\tDO UPDATE SET version = $3, computed_at = $5\n\t"
+  },
+  {
+    "t": "2026-05-19T07:54:17.96784Z",
+    "app_conns": 3,
+    "active_queries": 1,
+    "lock_waiters": 1,
+    "wait_events": {
+      "Lock:transactionid": 1
+    },
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 800,
+      "contact_segments": 0,
+      "contact_timeline": 800,
+      "message_history": 400,
+      "webhook_deliveries": 0
+    },
+    "top_active_query": "\n\t\tINSERT INTO contact_segments (email, segment_id, version, matched_at, computed_at)\n\t\tVALUES ($1, $2, $3, $4, $5)\n\t\tON CONFLICT (email, segment_id)\n\t\tDO UPDATE SET version = $3, computed_at = $5\n\t"
+  },
+  {
+    "t": "2026-05-19T07:54:18.467831Z",
+    "app_conns": 3,
+    "active_queries": 1,
+    "lock_waiters": 1,
+    "wait_events": {
+      "Lock:transactionid": 1
+    },
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 800,
+      "contact_segments": 0,
+      "contact_timeline": 800,
+      "message_history": 400,
+      "webhook_deliveries": 0
+    },
+    "top_active_query": "\n\t\tINSERT INTO contact_segments (email, segment_id, version, matched_at, computed_at)\n\t\tVALUES ($1, $2, $3, $4, $5)\n\t\tON CONFLICT (email, segment_id)\n\t\tDO UPDATE SET version = $3, computed_at = $5\n\t"
+  },
+  {
+    "t": "2026-05-19T07:54:18.96785Z",
+    "app_conns": 3,
+    "active_queries": 1,
+    "lock_waiters": 1,
+    "wait_events": {
+      "Lock:transactionid": 1
+    },
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 800,
+      "contact_segments": 0,
+      "contact_timeline": 800,
+      "message_history": 400,
+      "webhook_deliveries": 0
+    },
+    "top_active_query": "\n\t\tINSERT INTO contact_segments (email, segment_id, version, matched_at, computed_at)\n\t\tVALUES ($1, $2, $3, $4, $5)\n\t\tON CONFLICT (email, segment_id)\n\t\tDO UPDATE SET version = $3, computed_at = $5\n\t"
+  },
+  {
+    "t": "2026-05-19T07:54:19.467834Z",
+    "app_conns": 3,
+    "active_queries": 1,
+    "lock_waiters": 1,
+    "wait_events": {
+      "Lock:transactionid": 1
+    },
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 800,
+      "contact_segments": 0,
+      "contact_timeline": 800,
+      "message_history": 400,
+      "webhook_deliveries": 0
+    },
+    "top_active_query": "\n\t\tINSERT INTO contact_segments (email, segment_id, version, matched_at, computed_at)\n\t\tVALUES ($1, $2, $3, $4, $5)\n\t\tON CONFLICT (email, segment_id)\n\t\tDO UPDATE SET version = $3, computed_at = $5\n\t"
+  },
+  {
+    "t": "2026-05-19T07:54:19.96687Z",
+    "app_conns": 3,
+    "active_queries": 1,
+    "lock_waiters": 1,
+    "wait_events": {
+      "Lock:transactionid": 1
+    },
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 800,
+      "contact_segments": 0,
+      "contact_timeline": 800,
+      "message_history": 400,
+      "webhook_deliveries": 0
+    },
+    "top_active_query": "\n\t\tINSERT INTO contact_segments (email, segment_id, version, matched_at, computed_at)\n\t\tVALUES ($1, $2, $3, $4, $5)\n\t\tON CONFLICT (email, segment_id)\n\t\tDO UPDATE SET version = $3, computed_at = $5\n\t"
+  },
+  {
+    "t": "2026-05-19T07:54:20.466445Z",
+    "app_conns": 3,
+    "active_queries": 1,
+    "lock_waiters": 1,
+    "wait_events": {
+      "Lock:transactionid": 1
+    },
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 800,
+      "contact_segments": 0,
+      "contact_timeline": 800,
+      "message_history": 400,
+      "webhook_deliveries": 0
+    },
+    "top_active_query": "\n\t\tINSERT INTO contact_segments (email, segment_id, version, matched_at, computed_at)\n\t\tVALUES ($1, $2, $3, $4, $5)\n\t\tON CONFLICT (email, segment_id)\n\t\tDO UPDATE SET version = $3, computed_at = $5\n\t"
+  },
+  {
+    "t": "2026-05-19T07:54:20.9676Z",
+    "app_conns": 3,
+    "active_queries": 1,
+    "lock_waiters": 1,
+    "wait_events": {
+      "Lock:transactionid": 1
+    },
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 800,
+      "contact_segments": 0,
+      "contact_timeline": 800,
+      "message_history": 400,
+      "webhook_deliveries": 0
+    },
+    "top_active_query": "\n\t\tINSERT INTO contact_segments (email, segment_id, version, matched_at, computed_at)\n\t\tVALUES ($1, $2, $3, $4, $5)\n\t\tON CONFLICT (email, segment_id)\n\t\tDO UPDATE SET version = $3, computed_at = $5\n\t"
+  },
+  {
+    "t": "2026-05-19T07:54:21.466763Z",
+    "app_conns": 3,
+    "active_queries": 1,
+    "lock_waiters": 1,
+    "wait_events": {
+      "Lock:transactionid": 1
+    },
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 800,
+      "contact_segments": 0,
+      "contact_timeline": 800,
+      "message_history": 400,
+      "webhook_deliveries": 0
+    },
+    "top_active_query": "\n\t\tINSERT INTO contact_segments (email, segment_id, version, matched_at, computed_at)\n\t\tVALUES ($1, $2, $3, $4, $5)\n\t\tON CONFLICT (email, segment_id)\n\t\tDO UPDATE SET version = $3, computed_at = $5\n\t"
+  },
+  {
+    "t": "2026-05-19T07:54:21.967128Z",
+    "app_conns": 3,
+    "active_queries": 1,
+    "lock_waiters": 1,
+    "wait_events": {
+      "Lock:transactionid": 1
+    },
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 800,
+      "contact_segments": 0,
+      "contact_timeline": 800,
+      "message_history": 400,
+      "webhook_deliveries": 0
+    },
+    "top_active_query": "\n\t\tINSERT INTO contact_segments (email, segment_id, version, matched_at, computed_at)\n\t\tVALUES ($1, $2, $3, $4, $5)\n\t\tON CONFLICT (email, segment_id)\n\t\tDO UPDATE SET version = $3, computed_at = $5\n\t"
+  },
+  {
+    "t": "2026-05-19T07:54:22.465876Z",
+    "app_conns": 3,
+    "active_queries": 1,
+    "lock_waiters": 1,
+    "wait_events": {
+      "Lock:transactionid": 1
+    },
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 800,
+      "contact_segments": 0,
+      "contact_timeline": 800,
+      "message_history": 400,
+      "webhook_deliveries": 0
+    },
+    "top_active_query": "\n\t\tINSERT INTO contact_segments (email, segment_id, version, matched_at, computed_at)\n\t\tVALUES ($1, $2, $3, $4, $5)\n\t\tON CONFLICT (email, segment_id)\n\t\tDO UPDATE SET version = $3, computed_at = $5\n\t"
+  },
+  {
+    "t": "2026-05-19T07:54:22.967842Z",
+    "app_conns": 3,
+    "active_queries": 1,
+    "lock_waiters": 1,
+    "wait_events": {
+      "Lock:transactionid": 1
+    },
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 800,
+      "contact_segments": 0,
+      "contact_timeline": 800,
+      "message_history": 400,
+      "webhook_deliveries": 0
+    },
+    "top_active_query": "\n\t\tINSERT INTO contact_segments (email, segment_id, version, matched_at, computed_at)\n\t\tVALUES ($1, $2, $3, $4, $5)\n\t\tON CONFLICT (email, segment_id)\n\t\tDO UPDATE SET version = $3, computed_at = $5\n\t"
+  },
+  {
+    "t": "2026-05-19T07:54:23.466684Z",
+    "app_conns": 3,
+    "active_queries": 1,
+    "lock_waiters": 1,
+    "wait_events": {
+      "Lock:transactionid": 1
+    },
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 800,
+      "contact_segments": 0,
+      "contact_timeline": 800,
+      "message_history": 400,
+      "webhook_deliveries": 0
+    },
+    "top_active_query": "\n\t\tINSERT INTO contact_segments (email, segment_id, version, matched_at, computed_at)\n\t\tVALUES ($1, $2, $3, $4, $5)\n\t\tON CONFLICT (email, segment_id)\n\t\tDO UPDATE SET version = $3, computed_at = $5\n\t"
+  },
+  {
+    "t": "2026-05-19T07:54:23.966967Z",
+    "app_conns": 3,
+    "active_queries": 1,
+    "lock_waiters": 1,
+    "wait_events": {
+      "Lock:transactionid": 1
+    },
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 800,
+      "contact_segments": 0,
+      "contact_timeline": 800,
+      "message_history": 400,
+      "webhook_deliveries": 0
+    },
+    "top_active_query": "\n\t\tINSERT INTO contact_segments (email, segment_id, version, matched_at, computed_at)\n\t\tVALUES ($1, $2, $3, $4, $5)\n\t\tON CONFLICT (email, segment_id)\n\t\tDO UPDATE SET version = $3, computed_at = $5\n\t"
+  },
+  {
+    "t": "2026-05-19T07:54:23.989754Z",
+    "app_conns": 4,
+    "active_queries": 1,
+    "lock_waiters": 1,
+    "wait_events": {
+      "Lock:transactionid": 1
+    },
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 800,
+      "contact_segments": 0,
+      "contact_timeline": 800,
+      "message_history": 400,
+      "webhook_deliveries": 0
+    },
+    "top_active_query": "\n\t\tINSERT INTO contact_segments (email, segment_id, version, matched_at, computed_at)\n\t\tVALUES ($1, $2, $3, $4, $5)\n\t\tON CONFLICT (email, segment_id)\n\t\tDO UPDATE SET version = $3, computed_at = $5\n\t"
+  }
+]

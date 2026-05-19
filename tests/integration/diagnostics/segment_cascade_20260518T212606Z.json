@@ -1,0 +1,236 @@
+[
+  {
+    "t": "2026-05-18T21:25:59.854743Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 378,
+      "contact_segments": 0,
+      "contact_timeline": 378,
+      "message_history": 0,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-18T21:26:00.354737Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 400,
+      "contact_segments": 0,
+      "contact_timeline": 400,
+      "message_history": 0,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-18T21:26:00.854069Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 400,
+      "contact_segments": 0,
+      "contact_timeline": 400,
+      "message_history": 0,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-18T21:26:01.353745Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 400,
+      "contact_segments": 0,
+      "contact_timeline": 400,
+      "message_history": 0,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-18T21:26:01.853761Z",
+    "app_conns": 1,
+    "active_queries": 1,
+    "lock_waiters": 0,
+    "wait_events": {
+      "IO:WalSync": 1
+    },
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 448,
+      "contact_segments": 0,
+      "contact_timeline": 448,
+      "message_history": 48,
+      "webhook_deliveries": 0
+    },
+    "top_active_query": "\n\t\tUPDATE email_queue\n\t\tSET status = 'processing', updated_at = NOW(), attempts = attempts + 1\n\t\tWHERE id = $1 AND (\n\t\t\tstatus IN ('pending', 'failed')\n\t\t\tOR (status = 'processing' AND updated_at \u003c NO"
+  },
+  {
+    "t": "2026-05-18T21:26:02.354015Z",
+    "app_conns": 1,
+    "active_queries": 1,
+    "lock_waiters": 0,
+    "wait_events": {
+      "Client:ClientRead": 1
+    },
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 469,
+      "contact_segments": 0,
+      "contact_timeline": 469,
+      "message_history": 69,
+      "webhook_deliveries": 0
+    },
+    "top_active_query": ";"
+  },
+  {
+    "t": "2026-05-18T21:26:02.85391Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 496,
+      "contact_segments": 0,
+      "contact_timeline": 496,
+      "message_history": 96,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-18T21:26:03.353923Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 539,
+      "contact_segments": 0,
+      "contact_timeline": 539,
+      "message_history": 139,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-18T21:26:03.853769Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 583,
+      "contact_segments": 0,
+      "contact_timeline": 583,
+      "message_history": 183,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-18T21:26:04.354026Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 609,
+      "contact_segments": 0,
+      "contact_timeline": 609,
+      "message_history": 209,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-18T21:26:04.853855Z",
+    "app_conns": 1,
+    "active_queries": 1,
+    "lock_waiters": 0,
+    "wait_events": {
+      "IO:WalSync": 1
+    },
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 611,
+      "contact_segments": 0,
+      "contact_timeline": 611,
+      "message_history": 211,
+      "webhook_deliveries": 0
+    },
+    "top_active_query": "\n\t\tUPDATE email_queue\n\t\tSET status = 'processing', updated_at = NOW(), attempts = attempts + 1\n\t\tWHERE id = $1 AND (\n\t\t\tstatus IN ('pending', 'failed')\n\t\t\tOR (status = 'processing' AND updated_at \u003c NO"
+  },
+  {
+    "t": "2026-05-18T21:26:05.354274Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 680,
+      "contact_segments": 0,
+      "contact_timeline": 680,
+      "message_history": 280,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-18T21:26:05.854779Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 680,
+      "contact_segments": 0,
+      "contact_timeline": 680,
+      "message_history": 280,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-18T21:26:06.354788Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 680,
+      "contact_segments": 0,
+      "contact_timeline": 680,
+      "message_history": 280,
+      "webhook_deliveries": 0
+    }
+  },
+  {
+    "t": "2026-05-18T21:26:06.386439Z",
+    "app_conns": 1,
+    "active_queries": 0,
+    "lock_waiters": 0,
+    "wait_events": {},
+    "queue_size": 200,
+    "write_counts": {
+      "contact_segment_queue": 700,
+      "contact_segments": 0,
+      "contact_timeline": 700,
+      "message_history": 300,
+      "webhook_deliveries": 0
+    }
+  }
+]

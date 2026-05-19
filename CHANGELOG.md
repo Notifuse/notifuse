@@ -2,9 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
-## [30.4] - 2026-05-18
+## [31.0] - 2026-05-19
 
-- **Fix**: Workspace database pool no longer falsely evicted when the caller's HTTP request context expires mid-Ping during broadcast load. Previously, a single caller-context cancellation could close the cached pool, causing every other in-flight worker (segment queue, webhook delivery, email send) to fail with `sql: database is closed` on its next operation. The pool health check now uses an isolated, sub-second context.
+### Database Schema Changes
+
+- Migration v31.0 updates the `queue_contact_for_segment_recomputation` trigger function on every workspace database to short-circuit when the inserted `contact_timeline` row is itself a segment membership event (`kind IN ('segment.joined', 'segment.left')`).
+
+### Fixes
+
+- **Fix**: `queue_contact_for_segment_recomputation` trigger no longer re-enqueues contacts when the inserted `contact_timeline` event is itself a segment membership change (`segment.joined`/`segment.left`). Removes a self-loop where every membership write re-queued the same contact.
+- **Fix**: Recurring tasks dispatched via HTTP now write `timeout_after` in UTC. The column is `TIMESTAMP WITHOUT TIME ZONE` and the scheduler compares it against `time.Now().UTC()`; on non-UTC hosts the local-time value caused the task to appear "still running" for the host's UTC offset. Same fix applied to the broadcast-pause `next_run_after`.
+- **Fix**: `GetWorkspaceConnection`'s pool health check now uses an isolated context for `pool.PingContext` instead of the caller's. A caller-context cancellation no longer triggers pool eviction.
 
 ## [30.3] - 2026-05-14
 

@@ -706,6 +706,18 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 		`CREATE OR REPLACE FUNCTION queue_contact_for_segment_recomputation()
 		RETURNS TRIGGER AS $$
 		BEGIN
+			-- Skip re-queue when the timeline event is itself a segment
+			-- membership change. The queue worker writes contact_segments,
+			-- which fires track_contact_segment_changes (inserts a
+			-- contact_timeline row with kind='segment.joined'/'segment.left'),
+			-- which would re-enter this function and re-queue the same
+			-- contact for re-processing — a self-loop that also contends
+			-- with concurrent open-tracking writes on the contact_segment_queue
+			-- (email) row lock and prevents batches from completing.
+			IF NEW.kind IN ('segment.joined', 'segment.left') THEN
+				RETURN NEW;
+			END IF;
+
 			-- Queue the contact for segment recomputation
 			INSERT INTO contact_segment_queue (email, queued_at)
 			VALUES (NEW.email, CURRENT_TIMESTAMP)
