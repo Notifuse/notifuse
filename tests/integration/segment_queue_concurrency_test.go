@@ -27,17 +27,17 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestSegmentQueueCascadeUnderBroadcast exercises a broadcast send running
-// concurrently with open-tracking AND delivery-webhook writes against a
-// workspace that has segments configured. This is the closest approximation
-// of the reporter's environment (broadcast + SES `delivered` callbacks +
-// recipients opening emails) the harness can produce. It captures rich DB
-// observability and fails on the downstream symptoms of a misbehaving
-// segment-queue cascade:
-//   - `sql: database is closed` (signalled by app connection count dropping
-//     to zero mid-run)
-//   - broadcast never reaches `processed`
-//   - contact_segment_queue stuck above zero after the broadcast window
+// TestSegmentQueueDrainsUnderConcurrentEngagement is a regression guard for
+// the segment-queue write path under realistic concurrent load. With a
+// broadcast send + simulated /opens + simulated delivery-webhook UPDATEs all
+// firing against the same workspace, it asserts that:
+//
+//   1. The broadcast reaches `processed` within the deadline.
+//   2. The workspace pool's connection count never drops to zero mid-run
+//      (precursor to `sql: database is closed`).
+//   3. contact_segment_queue drains to ≤50% of contacts within the drain
+//      window — i.e. the queue worker is actually making progress and not
+//      stalled on row-lock contention.
 //
 // Output: on completion the sampled timeline is written to
 //   tests/integration/diagnostics/segment_cascade_<timestamp>.json
@@ -50,7 +50,7 @@ import (
 //   CASCADE_DELIVERY_RATE_MS default 50    delay between simulated delivery webhooks
 //   CASCADE_DEADLINE_SEC     default 90    total test budget
 //   CASCADE_SAMPLE_MS        default 500   DB sampler tick
-func TestSegmentQueueCascadeUnderBroadcast(t *testing.T) {
+func TestSegmentQueueDrainsUnderConcurrentEngagement(t *testing.T) {
 	testutil.SkipIfShort(t)
 	testutil.SetupTestEnvironment()
 	defer testutil.CleanupTestEnvironment()
@@ -115,10 +115,13 @@ func TestSegmentQueueCascadeUnderBroadcast(t *testing.T) {
 		require.NoError(t, clErr)
 	}
 
-	// Create segments so the queue worker has real work to do — the trigger
-	// path we care about (`webhook_contact_segments_trigger` at init.go:1035)
-	// only fires when contact_segments rows are written, which only happens
-	// when the worker evaluates against real segments.
+	// Create segments so the queue worker has real work to do. Membership
+	// writes by the worker fire track_contact_segment_changes (init.go:681),
+	// which used to cascade through contact_timeline_queue_trigger
+	// (init.go:836) and re-enqueue the same contact for re-processing — the
+	// self-loop fixed by the trigger short-circuit in
+	// queue_contact_for_segment_recomputation. This test reproduces the
+	// load shape that exposed that self-loop.
 	for i := 0; i < cfg.segments; i++ {
 		_, sErr := factory.CreateSegment(ws.ID)
 		require.NoError(t, sErr)
@@ -225,7 +228,7 @@ func TestSegmentQueueCascadeUnderBroadcast(t *testing.T) {
 
 	// Symptom 1: broadcast never reached processed.
 	if broadcastStatus != string(domain.BroadcastStatusProcessed) {
-		t.Fatalf("CASCADE FAILURE:broadcast did not reach processed within %ds — status=%s enqueued=%d (diag: %s)",
+		t.Fatalf("REGRESSION:broadcast did not reach processed within %ds — status=%s enqueued=%d (diag: %s)",
 			cfg.deadlineSec, broadcastStatus, enqueued, diagPath)
 	}
 
@@ -234,7 +237,7 @@ func TestSegmentQueueCascadeUnderBroadcast(t *testing.T) {
 	// `sql: database is closed`. We exempt the very last sample (post-drain
 	// the pool may have legitimately released idle conns).
 	if poolCollapsed := sampler.detectPoolCollapse(); poolCollapsed != "" {
-		t.Fatalf("CASCADE FAILURE:workspace pool collapse detected — %s (diag: %s)",
+		t.Fatalf("REGRESSION:workspace pool collapse detected — %s (diag: %s)",
 			poolCollapsed, diagPath)
 	}
 
@@ -243,7 +246,7 @@ func TestSegmentQueueCascadeUnderBroadcast(t *testing.T) {
 	// stuck queue (≥50% of contacts after drain window) means the worker
 	// could not keep up — which is the actual symptom the reporter saw.
 	if residual := queueSize(t, workspaceDB); residual > cfg.contacts/2 {
-		t.Fatalf("CASCADE FAILURE:contact_segment_queue stuck at %d/%d after drain — worker not progressing (diag: %s)",
+		t.Fatalf("REGRESSION:contact_segment_queue stuck at %d/%d after drain — worker not progressing (diag: %s)",
 			residual, cfg.contacts, diagPath)
 	}
 }
