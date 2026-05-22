@@ -25,6 +25,7 @@ type UserServiceInterface interface {
 	RootSignin(ctx context.Context, input domain.RootSigninInput) (*domain.AuthResponse, error)
 	VerifyUserSession(ctx context.Context, userID string, sessionID string) (*domain.User, error)
 	GetUserByID(ctx context.Context, userID string) (*domain.User, error)
+	UpdateUserLanguage(ctx context.Context, userID string, language string) error
 	Logout(ctx context.Context, userID string) error
 }
 
@@ -313,6 +314,64 @@ func (h *UserHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// UpdateLanguage updates the authenticated user's preferred language for the
+// console UI and system emails.
+func (h *UserHandler) UpdateLanguage(w http.ResponseWriter, r *http.Request) {
+	ctx, span := h.tracer.StartSpan(r.Context(), "UserHandler.UpdateLanguage")
+	defer span.End()
+
+	// Get authenticated user from context
+	userID, ok := ctx.Value(domain.UserIDKey).(string)
+	if !ok || userID == "" {
+		WriteJSONError(w, "Unauthorized", http.StatusUnauthorized)
+		span.SetStatus(trace.Status{
+			Code:    trace.StatusCodeUnauthenticated,
+			Message: "No user ID in context",
+		})
+		return
+	}
+
+	var input struct {
+		Language string `json:"language"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		WriteJSONError(w, "Invalid UpdateLanguage request body", http.StatusBadRequest)
+		span.SetStatus(trace.Status{
+			Code:    trace.StatusCodeInvalidArgument,
+			Message: "Invalid request body",
+		})
+		return
+	}
+
+	span.AddAttributes(
+		trace.StringAttribute("user.id", userID),
+		trace.StringAttribute("user.language", input.Language),
+	)
+	h.tracer.AddAttribute(ctx, "operation", "UpdateLanguage")
+
+	// The service is the single validation authority for the language value.
+	if err := h.userService.UpdateUserLanguage(ctx, userID, input.Language); err != nil {
+		if _, ok := err.(*domain.ErrUnsupportedLanguage); ok {
+			WriteJSONError(w, err.Error(), http.StatusBadRequest)
+			h.tracer.MarkSpanError(ctx, err)
+			return
+		}
+		if _, ok := err.(*domain.ErrUserNotFound); ok {
+			WriteJSONError(w, err.Error(), http.StatusNotFound)
+			h.tracer.MarkSpanError(ctx, err)
+			return
+		}
+		WriteJSONError(w, "Failed to update language", http.StatusInternalServerError)
+		h.tracer.MarkSpanError(ctx, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]string{
+		"message": "Language updated successfully",
+	})
+}
+
 func (h *UserHandler) RegisterRoutes(mux *http.ServeMux) {
 	// Public routes (no auth required)
 	mux.HandleFunc("/api/user.signin", h.SignIn)
@@ -326,4 +385,5 @@ func (h *UserHandler) RegisterRoutes(mux *http.ServeMux) {
 	// Register protected routes
 	mux.Handle("/api/user.me", requireAuth(http.HandlerFunc(h.GetCurrentUser)))
 	mux.Handle("/api/user.logout", requireAuth(http.HandlerFunc(h.Logout)))
+	mux.Handle("/api/user.updateLanguage", requireAuth(http.HandlerFunc(h.UpdateLanguage)))
 }

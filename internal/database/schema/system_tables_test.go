@@ -162,6 +162,21 @@ func TestTableNames(t *testing.T) {
 	})
 }
 
+func TestUsersTableHasLanguageColumn(t *testing.T) {
+	var usersDDL string
+	for _, ddl := range TableDefinitions {
+		if strings.Contains(ddl, "CREATE TABLE IF NOT EXISTS users (") {
+			usersDDL = ddl
+			break
+		}
+	}
+	if usersDDL == "" {
+		t.Fatal("users table definition not found in TableDefinitions")
+	}
+	assert.Contains(t, usersDDL, "language VARCHAR(10) NOT NULL DEFAULT 'en'",
+		"fresh-install users table should define the language column")
+}
+
 func TestSchemaConsistency(t *testing.T) {
 	t.Run("Migration statements reference some TableNames", func(t *testing.T) {
 		allStatements := strings.Join(MigrationStatements, " ")

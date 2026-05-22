@@ -109,6 +109,20 @@ func (mr *MockUserServiceInterfaceMockRecorder) SignIn(arg0, arg1 interface{}) *
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SignIn", reflect.TypeOf((*MockUserServiceInterface)(nil).SignIn), arg0, arg1)
 }
 
+// UpdateUserLanguage mocks base method.
+func (m *MockUserServiceInterface) UpdateUserLanguage(arg0 context.Context, arg1, arg2 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateUserLanguage", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateUserLanguage indicates an expected call of UpdateUserLanguage.
+func (mr *MockUserServiceInterfaceMockRecorder) UpdateUserLanguage(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateUserLanguage", reflect.TypeOf((*MockUserServiceInterface)(nil).UpdateUserLanguage), arg0, arg1, arg2)
+}
+
 // VerifyCode mocks base method.
 func (m *MockUserServiceInterface) VerifyCode(arg0 context.Context, arg1 domain.VerifyCodeInput) (*domain.AuthResponse, error) {
 	m.ctrl.T.Helper()

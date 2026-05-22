@@ -20,7 +20,7 @@ type mockEmailSender struct {
 	shouldError bool
 }
 
-func (m *mockEmailSender) SendMagicCode(email, code string) error {
+func (m *mockEmailSender) SendMagicCode(email, code, language string) error {
 	if m.shouldError {
 		return errors.New("mock error")
 	}
@@ -98,6 +98,39 @@ func setupUserTest(t *testing.T) (
 	require.NoError(t, err)
 
 	return mockRepo, mockAuthService, service, mockSender
+}
+
+func TestUserService_UpdateUserLanguage(t *testing.T) {
+	t.Run("success", func(t *testing.T) {
+		mockRepo, _, service, _ := setupUserTest(t)
+
+		mockRepo.EXPECT().
+			UpdateUserLanguage(gomock.Any(), "user123", "fr").
+			Return(nil)
+
+		err := service.UpdateUserLanguage(context.Background(), "user123", "fr")
+		require.NoError(t, err)
+	})
+
+	t.Run("rejects unsupported language", func(t *testing.T) {
+		_, _, service, _ := setupUserTest(t)
+
+		err := service.UpdateUserLanguage(context.Background(), "user123", "xx")
+		var unsupported *domain.ErrUnsupportedLanguage
+		require.ErrorAs(t, err, &unsupported)
+		require.Equal(t, "xx", unsupported.Language)
+	})
+
+	t.Run("repository error", func(t *testing.T) {
+		mockRepo, _, service, _ := setupUserTest(t)
+
+		mockRepo.EXPECT().
+			UpdateUserLanguage(gomock.Any(), "user123", "de").
+			Return(errors.New("database error"))
+
+		err := service.UpdateUserLanguage(context.Background(), "user123", "de")
+		require.Error(t, err)
+	})
 }
 
 func TestUserService_SignIn(t *testing.T) {

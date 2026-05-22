@@ -30,8 +30,8 @@ func TestCreateUser(t *testing.T) {
 		Type:  domain.UserTypeUser,
 	}
 
-	mock.ExpectExec(`INSERT INTO users \(id, email, name, type, created_at, updated_at\) VALUES \(\$1, \$2, \$3, \$4, \$5, \$6\)`).
-		WithArgs(user.ID, user.Email, user.Name, user.Type, sqlmock.AnyArg(), sqlmock.AnyArg()).
+	mock.ExpectExec(`INSERT INTO users \(id, email, name, type, language, created_at, updated_at\) VALUES \(\$1, \$2, \$3, \$4, \$5, \$6, \$7\)`).
+		WithArgs(user.ID, user.Email, user.Name, user.Type, sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg()).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
 	err := repo.CreateUser(context.Background(), user)
@@ -45,8 +45,8 @@ func TestCreateUser(t *testing.T) {
 		Type:  domain.UserTypeUser,
 	}
 
-	mock.ExpectExec(`INSERT INTO users \(id, email, name, type, created_at, updated_at\) VALUES \(\$1, \$2, \$3, \$4, \$5, \$6\)`).
-		WithArgs(userWithError.ID, userWithError.Email, userWithError.Name, userWithError.Type, sqlmock.AnyArg(), sqlmock.AnyArg()).
+	mock.ExpectExec(`INSERT INTO users \(id, email, name, type, language, created_at, updated_at\) VALUES \(\$1, \$2, \$3, \$4, \$5, \$6, \$7\)`).
+		WithArgs(userWithError.ID, userWithError.Email, userWithError.Name, userWithError.Type, sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg()).
 		WillReturnError(errors.New("database error"))
 
 	err = repo.CreateUser(context.Background(), userWithError)
@@ -61,8 +61,8 @@ func TestCreateUser(t *testing.T) {
 		Type:  domain.UserTypeUser,
 	}
 
-	mock.ExpectExec(`INSERT INTO users \(id, email, name, type, created_at, updated_at\) VALUES \(\$1, \$2, \$3, \$4, \$5, \$6\)`).
-		WithArgs(duplicateUser.ID, duplicateUser.Email, duplicateUser.Name, duplicateUser.Type, sqlmock.AnyArg(), sqlmock.AnyArg()).
+	mock.ExpectExec(`INSERT INTO users \(id, email, name, type, language, created_at, updated_at\) VALUES \(\$1, \$2, \$3, \$4, \$5, \$6, \$7\)`).
+		WithArgs(duplicateUser.ID, duplicateUser.Email, duplicateUser.Name, duplicateUser.Type, sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg()).
 		WillReturnError(errors.New("pq: duplicate key value violates unique constraint \"users_email_key\""))
 
 	err = repo.CreateUser(context.Background(), duplicateUser)
@@ -84,14 +84,15 @@ func TestGetUserByEmail(t *testing.T) {
 		Email:     email,
 		Name:      "Test User",
 		Type:      domain.UserTypeUser,
+		Language:  "fr",
 		CreatedAt: time.Now().UTC().Truncate(time.Second),
 		UpdatedAt: time.Now().UTC().Truncate(time.Second),
 	}
 
-	rows := sqlmock.NewRows([]string{"id", "email", "name", "type", "created_at", "updated_at"}).
-		AddRow(expectedUser.ID, expectedUser.Email, expectedUser.Name, expectedUser.Type, expectedUser.CreatedAt, expectedUser.UpdatedAt)
+	rows := sqlmock.NewRows([]string{"id", "email", "name", "type", "language", "created_at", "updated_at"}).
+		AddRow(expectedUser.ID, expectedUser.Email, expectedUser.Name, expectedUser.Type, expectedUser.Language, expectedUser.CreatedAt, expectedUser.UpdatedAt)
 
-	mock.ExpectQuery(`SELECT id, email, name, type, created_at, updated_at FROM users WHERE email = \$1`).
+	mock.ExpectQuery(`SELECT id, email, name, type, language, created_at, updated_at FROM users WHERE email = \$1`).
 		WithArgs(email).
 		WillReturnRows(rows)
 
@@ -101,9 +102,10 @@ func TestGetUserByEmail(t *testing.T) {
 	assert.Equal(t, expectedUser.Email, user.Email)
 	assert.Equal(t, expectedUser.Name, user.Name)
 	assert.Equal(t, expectedUser.Type, user.Type)
+	assert.Equal(t, expectedUser.Language, user.Language)
 
 	// Test case 2: User not found
-	mock.ExpectQuery(`SELECT id, email, name, type, created_at, updated_at FROM users WHERE email = \$1`).
+	mock.ExpectQuery(`SELECT id, email, name, type, language, created_at, updated_at FROM users WHERE email = \$1`).
 		WithArgs("nonexistent@example.com").
 		WillReturnError(sql.ErrNoRows)
 
@@ -113,7 +115,7 @@ func TestGetUserByEmail(t *testing.T) {
 	assert.IsType(t, &domain.ErrUserNotFound{}, err)
 
 	// Test case 3: Database error
-	mock.ExpectQuery(`SELECT id, email, name, type, created_at, updated_at FROM users WHERE email = \$1`).
+	mock.ExpectQuery(`SELECT id, email, name, type, language, created_at, updated_at FROM users WHERE email = \$1`).
 		WithArgs("error@example.com").
 		WillReturnError(errors.New("database error"))
 
@@ -136,14 +138,15 @@ func TestGetUserByID(t *testing.T) {
 		Email:     "test@example.com",
 		Name:      "Test User",
 		Type:      domain.UserTypeUser,
+		Language:  "fr",
 		CreatedAt: time.Now().UTC().Truncate(time.Second),
 		UpdatedAt: time.Now().UTC().Truncate(time.Second),
 	}
 
-	rows := sqlmock.NewRows([]string{"id", "email", "name", "type", "created_at", "updated_at"}).
-		AddRow(expectedUser.ID, expectedUser.Email, expectedUser.Name, expectedUser.Type, expectedUser.CreatedAt, expectedUser.UpdatedAt)
+	rows := sqlmock.NewRows([]string{"id", "email", "name", "type", "language", "created_at", "updated_at"}).
+		AddRow(expectedUser.ID, expectedUser.Email, expectedUser.Name, expectedUser.Type, expectedUser.Language, expectedUser.CreatedAt, expectedUser.UpdatedAt)
 
-	mock.ExpectQuery(`SELECT id, email, name, type, created_at, updated_at FROM users WHERE id = \$1`).
+	mock.ExpectQuery(`SELECT id, email, name, type, language, created_at, updated_at FROM users WHERE id = \$1`).
 		WithArgs(userID).
 		WillReturnRows(rows)
 
@@ -153,9 +156,10 @@ func TestGetUserByID(t *testing.T) {
 	assert.Equal(t, expectedUser.Email, user.Email)
 	assert.Equal(t, expectedUser.Name, user.Name)
 	assert.Equal(t, expectedUser.Type, user.Type)
+	assert.Equal(t, expectedUser.Language, user.Language)
 
 	// Test case 2: User not found
-	mock.ExpectQuery(`SELECT id, email, name, type, created_at, updated_at FROM users WHERE id = \$1`).
+	mock.ExpectQuery(`SELECT id, email, name, type, language, created_at, updated_at FROM users WHERE id = \$1`).
 		WithArgs("nonexistent-id").
 		WillReturnError(sql.ErrNoRows)
 
@@ -163,6 +167,42 @@ func TestGetUserByID(t *testing.T) {
 	require.Error(t, err)
 	assert.Nil(t, user)
 	assert.IsType(t, &domain.ErrUserNotFound{}, err)
+}
+
+func TestUpdateUserLanguage(t *testing.T) {
+	db, mock, cleanup := testutil.SetupMockDB(t)
+	defer cleanup()
+
+	repo := NewUserRepository(db)
+
+	t.Run("success", func(t *testing.T) {
+		mock.ExpectExec(`UPDATE users SET language = \$1, updated_at = \$2 WHERE id = \$3`).
+			WithArgs("fr", sqlmock.AnyArg(), "user-id-1").
+			WillReturnResult(sqlmock.NewResult(0, 1))
+
+		err := repo.UpdateUserLanguage(context.Background(), "user-id-1", "fr")
+		require.NoError(t, err)
+	})
+
+	t.Run("user not found", func(t *testing.T) {
+		mock.ExpectExec(`UPDATE users SET language = \$1, updated_at = \$2 WHERE id = \$3`).
+			WithArgs("fr", sqlmock.AnyArg(), "missing-id").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+
+		err := repo.UpdateUserLanguage(context.Background(), "missing-id", "fr")
+		require.Error(t, err)
+		assert.IsType(t, &domain.ErrUserNotFound{}, err)
+	})
+
+	t.Run("database error", func(t *testing.T) {
+		mock.ExpectExec(`UPDATE users SET language`).
+			WithArgs("fr", sqlmock.AnyArg(), "user-id-1").
+			WillReturnError(errors.New("database error"))
+
+		err := repo.UpdateUserLanguage(context.Background(), "user-id-1", "fr")
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to update user language")
+	})
 }
 
 func TestCreateSession(t *testing.T) {

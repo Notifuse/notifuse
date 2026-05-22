@@ -25,6 +25,7 @@ export interface GetCurrentUserResponse {
     id: string
     email: string
     timezone: string
+    language: string
   }
   workspaces: Workspace[]
 }
@@ -43,9 +44,15 @@ export interface LogoutResponse {
   message: string
 }
 
+export interface UpdateLanguageResponse {
+  message: string
+}
+
 export const authService = {
   signIn: (data: SignInRequest) => api.post<SignInResponse>('/api/user.signin', data),
   verifyCode: (data: VerifyCodeRequest) => api.post<VerifyResponse>('/api/user.verify', data),
   getCurrentUser: () => api.get<GetCurrentUserResponse>('/api/user.me'),
-  logout: () => api.post<LogoutResponse>('/api/user.logout', {})
+  logout: () => api.post<LogoutResponse>('/api/user.logout', {}),
+  updateLanguage: (language: string) =>
+    api.post<UpdateLanguageResponse>('/api/user.updateLanguage', { language })
 }

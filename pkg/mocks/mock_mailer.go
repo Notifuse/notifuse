@@ -34,43 +34,43 @@ func (m *MockMailer) EXPECT() *MockMailerMockRecorder {
 }
 
 // SendCircuitBreakerAlert mocks base method.
-func (m *MockMailer) SendCircuitBreakerAlert(arg0, arg1, arg2, arg3 string) error {
+func (m *MockMailer) SendCircuitBreakerAlert(arg0, arg1, arg2, arg3, arg4 string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SendCircuitBreakerAlert", arg0, arg1, arg2, arg3)
+	ret := m.ctrl.Call(m, "SendCircuitBreakerAlert", arg0, arg1, arg2, arg3, arg4)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // SendCircuitBreakerAlert indicates an expected call of SendCircuitBreakerAlert.
-func (mr *MockMailerMockRecorder) SendCircuitBreakerAlert(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+func (mr *MockMailerMockRecorder) SendCircuitBreakerAlert(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendCircuitBreakerAlert", reflect.TypeOf((*MockMailer)(nil).SendCircuitBreakerAlert), arg0, arg1, arg2, arg3)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendCircuitBreakerAlert", reflect.TypeOf((*MockMailer)(nil).SendCircuitBreakerAlert), arg0, arg1, arg2, arg3, arg4)
 }
 
 // SendMagicCode mocks base method.
-func (m *MockMailer) SendMagicCode(arg0, arg1 string) error {
+func (m *MockMailer) SendMagicCode(arg0, arg1, arg2 string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SendMagicCode", arg0, arg1)
+	ret := m.ctrl.Call(m, "SendMagicCode", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // SendMagicCode indicates an expected call of SendMagicCode.
-func (mr *MockMailerMockRecorder) SendMagicCode(arg0, arg1 interface{}) *gomock.Call {
+func (mr *MockMailerMockRecorder) SendMagicCode(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendMagicCode", reflect.TypeOf((*MockMailer)(nil).SendMagicCode), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendMagicCode", reflect.TypeOf((*MockMailer)(nil).SendMagicCode), arg0, arg1, arg2)
 }
 
 // SendWorkspaceInvitation mocks base method.
-func (m *MockMailer) SendWorkspaceInvitation(arg0, arg1, arg2, arg3 string) error {
+func (m *MockMailer) SendWorkspaceInvitation(arg0, arg1, arg2, arg3, arg4 string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SendWorkspaceInvitation", arg0, arg1, arg2, arg3)
+	ret := m.ctrl.Call(m, "SendWorkspaceInvitation", arg0, arg1, arg2, arg3, arg4)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // SendWorkspaceInvitation indicates an expected call of SendWorkspaceInvitation.
-func (mr *MockMailerMockRecorder) SendWorkspaceInvitation(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+func (mr *MockMailerMockRecorder) SendWorkspaceInvitation(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendWorkspaceInvitation", reflect.TypeOf((*MockMailer)(nil).SendWorkspaceInvitation), arg0, arg1, arg2, arg3)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendWorkspaceInvitation", reflect.TypeOf((*MockMailer)(nil).SendWorkspaceInvitation), arg0, arg1, arg2, arg3, arg4)
 }

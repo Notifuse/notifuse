@@ -11,14 +11,15 @@ import (
 
 //go:generate mockgen -destination=../mocks/mock_mailer.go -package=pkgmocks github.com/Notifuse/notifuse/pkg/mailer Mailer
 
-// Mailer is the interface for sending emails
+// Mailer is the interface for sending emails. The trailing language argument
+// selects the locale of the email content (see GetTranslations).
 type Mailer interface {
 	// SendWorkspaceInvitation sends an invitation email with the given token
-	SendWorkspaceInvitation(email, workspaceName, inviterName, token string) error
+	SendWorkspaceInvitation(email, workspaceName, inviterName, token, language string) error
 	// SendMagicCode sends a magic code for authentication purposes
-	SendMagicCode(email, code string) error
+	SendMagicCode(email, code, language string) error
 	// SendCircuitBreakerAlert sends a notification when a broadcast is paused due to circuit breaker
-	SendCircuitBreakerAlert(email, workspaceName, broadcastName, reason string) error
+	SendCircuitBreakerAlert(email, workspaceName, broadcastName, reason, language string) error
 }
 
 // Config holds the configuration for the mailer
@@ -57,7 +58,9 @@ func NewTestSMTPMailer(config *Config) *SMTPMailer {
 }
 
 // SendWorkspaceInvitation sends an invitation email with the given token
-func (m *SMTPMailer) SendWorkspaceInvitation(email, workspaceName, inviterName, token string) error {
+func (m *SMTPMailer) SendWorkspaceInvitation(email, workspaceName, inviterName, token, language string) error {
+	t := GetTranslations(language)
+
 	// Strip trailing slash from API endpoint to avoid double slashes in URL
 	endpoint := strings.TrimSuffix(m.config.APIEndpoint, "/")
 	inviteURL := fmt.Sprintf("%s/console/accept-invitation?token=%s", endpoint, token)
@@ -75,31 +78,42 @@ func (m *SMTPMailer) SendWorkspaceInvitation(email, workspaceName, inviterName, 
 	}
 
 	// Set subject and body
-	subject := fmt.Sprintf("You've been invited to join %s on Notifuse", workspaceName)
+	subject := fmt.Sprintf(t.Invitation.Subject, workspaceName)
 	msg.Subject(subject)
 
 	// Create HTML content
 	htmlBody := fmt.Sprintf(`
-	<html>
+	<html lang="%s">
 		<body>
-			<h1>You've been invited to join Notifuse!</h1>
-			<p>Hello,</p>
-			<p>%s has invited you to join the <strong>%s</strong> workspace on Notifuse.</p>
-			<p>Click the link below to join:</p>
-			<p><a href="%s">Accept invitation</a></p>
-			<p>If the link doesn't work, copy and paste this URL into your browser:</p>
+			<h1>%s</h1>
 			<p>%s</p>
-			<p>This invitation will expire in 7 days.</p>
-			<p>Thanks,<br>The Notifuse Team</p>
+			<p>%s</p>
+			<p>%s</p>
+			<p><a href="%s">%s</a></p>
+			<p>%s</p>
+			<p>%s</p>
+			<p>%s</p>
+			<p>%s<br>%s</p>
 		</body>
-	</html>`, inviterName, workspaceName, inviteURL, inviteURL)
+	</html>`,
+		t.Lang,
+		t.Invitation.Heading,
+		t.Common.Greeting,
+		fmt.Sprintf(t.Invitation.Body, inviterName, "<strong>"+workspaceName+"</strong>"),
+		t.Invitation.ClickPrompt,
+		inviteURL, t.Invitation.LinkText,
+		t.Invitation.FallbackURL,
+		inviteURL,
+		t.Invitation.Expiry,
+		t.Invitation.SignOff, t.Common.TeamName)
 
 	// Set alternative body parts
-	plainBody := fmt.Sprintf(
-		"Hello,\n\n%s has invited you to join the %s workspace on Notifuse.\n\n"+
-			"Use the following link to join: %s\n\n"+
-			"This invitation will expire in 7 days.\n\n"+
-			"Thanks,\nThe Notifuse Team", inviterName, workspaceName, inviteURL)
+	plainBody := fmt.Sprintf("%s\n\n%s\n\n%s\n\n%s\n\n%s\n%s",
+		t.Common.Greeting,
+		fmt.Sprintf(t.Invitation.Body, inviterName, workspaceName),
+		fmt.Sprintf(t.Invitation.PlainLink, inviteURL),
+		t.Invitation.Expiry,
+		t.Invitation.SignOff, t.Common.TeamName)
 
 	msg.SetBodyString(mail.TypeTextHTML, htmlBody)
 	msg.AddAlternativeString(mail.TypeTextPlain, plainBody)
@@ -128,7 +142,9 @@ func (m *SMTPMailer) SendWorkspaceInvitation(email, workspaceName, inviterName, 
 }
 
 // SendMagicCode sends an authentication magic code email
-func (m *SMTPMailer) SendMagicCode(email, code string) error {
+func (m *SMTPMailer) SendMagicCode(email, code, language string) error {
+	t := GetTranslations(language)
+
 	// Create a new message
 	msg := mail.NewMsg(mail.WithNoDefaultUserAgent())
 
@@ -142,29 +158,38 @@ func (m *SMTPMailer) SendMagicCode(email, code string) error {
 	}
 
 	// Set subject
-	subject := "Your Notifuse authentication code"
+	subject := t.MagicCode.Subject
 	msg.Subject(subject)
 
 	// Create HTML content
 	htmlBody := fmt.Sprintf(`
-	<html>
+	<html lang="%s">
 		<body>
-			<h1>Your authentication code</h1>
-			<p>Hello,</p>
-			<p>Your authentication code for Notifuse is:</p>
+			<h1>%s</h1>
+			<p>%s</p>
+			<p>%s</p>
 			<h2 style="font-size: 24px; letter-spacing: 3px; background-color: #f5f5f5; padding: 15px; display: inline-block; border-radius: 5px;">%s</h2>
-			<p>The code will expire in 10 minutes.</p>
-			<p>If you did not request this code, please ignore this email.</p>
-			<p>Thanks,<br>The Notifuse Team</p>
+			<p>%s</p>
+			<p>%s</p>
+			<p>%s<br>%s</p>
 		</body>
-	</html>`, code)
+	</html>`,
+		t.Lang,
+		t.MagicCode.Heading,
+		t.Common.Greeting,
+		t.MagicCode.Intro,
+		code,
+		t.MagicCode.Expiry,
+		t.MagicCode.IgnoreNotice,
+		t.MagicCode.SignOff, t.Common.TeamName)
 
 	// Set alternative body parts
-	plainBody := fmt.Sprintf(
-		"Hello,\n\nYour authentication code for Notifuse is: %s\n\n"+
-			"This code will expire in 10 minutes.\n\n"+
-			"If you did not request this code, please ignore this email.\n\n"+
-			"Thanks,\nThe Notifuse Team", code)
+	plainBody := fmt.Sprintf("%s\n\n%s %s\n\n%s\n\n%s\n\n%s\n%s",
+		t.Common.Greeting,
+		t.MagicCode.Intro, code,
+		t.MagicCode.Expiry,
+		t.MagicCode.IgnoreNotice,
+		t.MagicCode.SignOff, t.Common.TeamName)
 
 	msg.SetBodyString(mail.TypeTextHTML, htmlBody)
 	msg.AddAlternativeString(mail.TypeTextPlain, plainBody)
@@ -193,7 +218,9 @@ func (m *SMTPMailer) SendMagicCode(email, code string) error {
 }
 
 // SendCircuitBreakerAlert sends a notification when a broadcast is paused due to circuit breaker
-func (m *SMTPMailer) SendCircuitBreakerAlert(email, workspaceName, broadcastName, reason string) error {
+func (m *SMTPMailer) SendCircuitBreakerAlert(email, workspaceName, broadcastName, reason, language string) error {
+	t := GetTranslations(language)
+
 	// Create a new message
 	msg := mail.NewMsg(mail.WithNoDefaultUserAgent())
 
@@ -207,38 +234,40 @@ func (m *SMTPMailer) SendCircuitBreakerAlert(email, workspaceName, broadcastName
 	}
 
 	// Set subject
-	subject := fmt.Sprintf("🚨 Broadcast Paused - %s", broadcastName)
+	subject := fmt.Sprintf(t.CircuitBreaker.Subject, broadcastName)
 	msg.Subject(subject)
 
 	// Create HTML content
 	htmlBody := fmt.Sprintf(`
-	<html>
+	<html lang="%s">
 		<body>
-			<h1 style="color: #d32f2f;">🚨 Broadcast Automatically Paused</h1>
-			<p>Hello,</p>
-			<p>Your broadcast <strong>"%s"</strong> in workspace <strong>%s</strong> has been automatically paused.</p>
+			<h1 style="color: #d32f2f;">%s</h1>
+			<p>%s</p>
+			<p>%s</p>
 
 			<div style="background-color: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 5px; margin: 20px 0;">
-				<h3 style="color: #856404; margin-top: 0;">Reason:</h3>
+				<h3 style="color: #856404; margin-top: 0;">%s</h3>
 				<p style="margin-bottom: 0; color: #856404;"><strong>%s</strong></p>
 			</div>
 
-			<p>Best regards,<br>The Notifuse Team</p>
+			<p>%s<br>%s</p>
 		</body>
-	</html>`, broadcastName, workspaceName, reason)
+	</html>`,
+		t.Lang,
+		t.CircuitBreaker.Heading,
+		t.Common.Greeting,
+		fmt.Sprintf(t.CircuitBreaker.Body, `<strong>"`+broadcastName+`"</strong>`, "<strong>"+workspaceName+"</strong>"),
+		t.CircuitBreaker.ReasonLabel,
+		reason,
+		t.CircuitBreaker.SignOff, t.Common.TeamName)
 
 	// Set alternative body parts
-	plainBody := fmt.Sprintf(`
-🚨 BROADCAST AUTOMATICALLY PAUSED
-
-Hello,
-
-Your broadcast "%s" in workspace %s has been automatically paused.
-
-REASON: %s
-
-Best regards,
-The Notifuse Team`, broadcastName, workspaceName, reason)
+	plainBody := fmt.Sprintf("%s\n\n%s\n\n%s\n\n%s %s\n\n%s\n%s",
+		t.CircuitBreaker.Heading,
+		t.Common.Greeting,
+		fmt.Sprintf(t.CircuitBreaker.Body, `"`+broadcastName+`"`, workspaceName),
+		t.CircuitBreaker.ReasonLabel, reason,
+		t.CircuitBreaker.SignOff, t.Common.TeamName)
 
 	msg.SetBodyString(mail.TypeTextHTML, htmlBody)
 	msg.AddAlternativeString(mail.TypeTextPlain, plainBody)
@@ -343,57 +372,57 @@ func NewConsoleMailer() *ConsoleMailer {
 }
 
 // SendWorkspaceInvitation logs the invitation details to console
-func (m *ConsoleMailer) SendWorkspaceInvitation(email, workspaceName, inviterName, token string) error {
+func (m *ConsoleMailer) SendWorkspaceInvitation(email, workspaceName, inviterName, token, language string) error {
+	t := GetTranslations(language)
 	fmt.Println("==============================================================")
 	fmt.Println("                 WORKSPACE INVITATION EMAIL                   ")
 	fmt.Println("==============================================================")
 	fmt.Printf("To: %s\n", email)
-	fmt.Printf("Subject: You've been invited to join %s\n\n", workspaceName)
+	fmt.Printf("Subject: %s\n\n", fmt.Sprintf(t.Invitation.Subject, workspaceName))
 	fmt.Println("Email Content:")
-	fmt.Printf("Hello,\n\n")
-	fmt.Printf("%s has invited you to join the %s workspace on Notifuse.\n\n", inviterName, workspaceName)
-	fmt.Printf("Use the following token to join: %s\n\n", token)
+	fmt.Printf("%s\n\n", t.Common.Greeting)
+	fmt.Printf("%s\n\n", fmt.Sprintf(t.Invitation.Body, inviterName, workspaceName))
+	fmt.Printf("%s\n\n", fmt.Sprintf(t.Invitation.PlainLink, token))
+	fmt.Printf("%s\n\n", t.Invitation.Expiry)
+	fmt.Printf("%s\n%s\n", t.Invitation.SignOff, t.Common.TeamName)
 	fmt.Println("==============================================================")
 
 	return nil
 }
 
 // SendMagicCode logs the magic code details to console
-func (m *ConsoleMailer) SendMagicCode(email, code string) error {
+func (m *ConsoleMailer) SendMagicCode(email, code, language string) error {
+	t := GetTranslations(language)
 	fmt.Println("==============================================================")
 	fmt.Println("                 AUTHENTICATION MAGIC CODE                    ")
 	fmt.Println("==============================================================")
 	fmt.Printf("To: %s\n", email)
-	fmt.Printf("Subject: Your authentication code\n\n")
+	fmt.Printf("Subject: %s\n\n", t.MagicCode.Subject)
 	fmt.Println("Email Content:")
-	fmt.Printf("Hello,\n\n")
-	fmt.Printf("Your authentication code is: %s\n\n", code)
+	fmt.Printf("%s\n\n", t.Common.Greeting)
+	fmt.Printf("%s %s\n\n", t.MagicCode.Intro, code)
+	fmt.Printf("%s\n\n", t.MagicCode.Expiry)
+	fmt.Printf("%s\n\n", t.MagicCode.IgnoreNotice)
+	fmt.Printf("%s\n%s\n", t.MagicCode.SignOff, t.Common.TeamName)
 	fmt.Println("==============================================================")
 
 	return nil
 }
 
 // SendCircuitBreakerAlert logs the circuit breaker alert details to console
-func (m *ConsoleMailer) SendCircuitBreakerAlert(email, workspaceName, broadcastName, reason string) error {
+func (m *ConsoleMailer) SendCircuitBreakerAlert(email, workspaceName, broadcastName, reason, language string) error {
+	t := GetTranslations(language)
 	fmt.Println("==============================================================")
 	fmt.Println("                 CIRCUIT BREAKER ALERT EMAIL                  ")
 	fmt.Println("==============================================================")
 	fmt.Printf("To: %s\n", email)
-	fmt.Printf("Subject: 🚨 Broadcast Paused - %s\n\n", broadcastName)
+	fmt.Printf("Subject: %s\n\n", fmt.Sprintf(t.CircuitBreaker.Subject, broadcastName))
 	fmt.Println("Email Content:")
-	fmt.Printf("🚨 BROADCAST AUTOMATICALLY PAUSED\n\n")
-	fmt.Printf("Hello,\n\n")
-	fmt.Printf("Your broadcast \"%s\" in workspace %s has been automatically paused due to sending limits being reached.\n\n", broadcastName, workspaceName)
-	fmt.Printf("REASON: %s\n\n", reason)
-	fmt.Printf("What happened?\n")
-	fmt.Printf("Your email service provider has indicated that you've reached your daily sending limits.\n")
-	fmt.Printf("To protect your sender reputation, we've automatically paused your broadcast.\n\n")
-	fmt.Printf("What should you do?\n")
-	fmt.Printf("- Wait for your daily sending limits to reset\n")
-	fmt.Printf("- Check your email provider's dashboard for more details\n")
-	fmt.Printf("- Resume the broadcast once your limits have been reset\n")
-	fmt.Printf("- Consider upgrading your email provider plan if needed\n\n")
-	fmt.Printf("Best regards,\nThe Notifuse Team\n\n")
+	fmt.Printf("%s\n\n", t.CircuitBreaker.Heading)
+	fmt.Printf("%s\n\n", t.Common.Greeting)
+	fmt.Printf("%s\n\n", fmt.Sprintf(t.CircuitBreaker.Body, `"`+broadcastName+`"`, workspaceName))
+	fmt.Printf("%s %s\n\n", t.CircuitBreaker.ReasonLabel, reason)
+	fmt.Printf("%s\n%s\n", t.CircuitBreaker.SignOff, t.Common.TeamName)
 	fmt.Println("==============================================================")
 
 	return nil

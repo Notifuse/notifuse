@@ -707,9 +707,10 @@ func TestWorkspaceService_InviteMember(t *testing.T) {
 		mockUserSvc.EXPECT().
 			GetUserByID(ctx, inviterID).
 			Return(&domain.User{
-				ID:    inviterID,
-				Name:  "Test Inviter",
-				Email: "inviter@example.com",
+				ID:       inviterID,
+				Name:     "Test Inviter",
+				Email:    "inviter@example.com",
+				Language: "de",
 			}, nil)
 
 		mockUserSvc.EXPECT().
@@ -742,6 +743,7 @@ func TestWorkspaceService_InviteMember(t *testing.T) {
 				"Test Workspace",
 				"Test Inviter",
 				"test-token",
+				"de",
 			).Return(nil)
 
 		invitation, token, err := service.InviteMember(ctx, workspaceID, email, domain.UserPermissions{})

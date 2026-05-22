@@ -103,8 +103,8 @@ func (s *SystemNotificationService) HandleCircuitBreakerEvent(ctx context.Contex
 	}
 
 	// Send notification to workspace owners
-	err = s.notifyWorkspaceOwners(ctx, payload.WorkspaceID, func(ownerEmail string) error {
-		return s.mailer.SendCircuitBreakerAlert(ownerEmail, workspace.Name, broadcast.Name, reason)
+	err = s.notifyWorkspaceOwners(ctx, payload.WorkspaceID, func(owner *domain.UserWorkspaceWithEmail) error {
+		return s.mailer.SendCircuitBreakerAlert(owner.Email, workspace.Name, broadcast.Name, reason, owner.Language)
 	})
 
 	if err != nil {
@@ -142,7 +142,7 @@ func (s *SystemNotificationService) HandleSystemAlert(ctx context.Context, paylo
 }
 
 // notifyWorkspaceOwners is a helper function that sends notifications to all workspace owners
-func (s *SystemNotificationService) notifyWorkspaceOwners(ctx context.Context, workspaceID string, notificationFunc func(string) error) error {
+func (s *SystemNotificationService) notifyWorkspaceOwners(ctx context.Context, workspaceID string, notificationFunc func(*domain.UserWorkspaceWithEmail) error) error {
 	// Get workspace owners with email
 	workspaceUsers, err := s.workspaceRepo.GetWorkspaceUsersWithEmail(ctx, workspaceID)
 	if err != nil {
@@ -159,7 +159,7 @@ func (s *SystemNotificationService) notifyWorkspaceOwners(ctx context.Context, w
 
 			// Send notification using the provided function
 			if s.mailer != nil {
-				emailErr := notificationFunc(user.Email)
+				emailErr := notificationFunc(user)
 				if emailErr != nil {
 					s.logger.WithFields(map[string]interface{}{
 						"workspace_id": workspaceID,

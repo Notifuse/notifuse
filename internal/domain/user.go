@@ -36,6 +36,7 @@ type User struct {
 	Type      UserType  `json:"type" db:"type"`
 	Email     string    `json:"email" db:"email"`
 	Name      string    `json:"name,omitempty" db:"name"`
+	Language  string    `json:"language" db:"language"`
 	CreatedAt time.Time `json:"created_at" db:"created_at"`
 	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
 }
@@ -80,6 +81,7 @@ type UserServiceInterface interface {
 	VerifyUserSession(ctx context.Context, userID string, sessionID string) (*User, error)
 	GetUserByID(ctx context.Context, userID string) (*User, error)
 	GetUserByEmail(ctx context.Context, email string) (*User, error)
+	UpdateUserLanguage(ctx context.Context, userID string, language string) error
 	Logout(ctx context.Context, userID string) error
 }
 
@@ -92,6 +94,9 @@ type UserRepository interface {
 
 	// GetUserByID retrieves a user by their ID
 	GetUserByID(ctx context.Context, id string) (*User, error)
+
+	// UpdateUserLanguage updates a user's preferred language
+	UpdateUserLanguage(ctx context.Context, userID string, language string) error
 
 	// CreateSession creates a new session for a user
 	CreateSession(ctx context.Context, session *Session) error

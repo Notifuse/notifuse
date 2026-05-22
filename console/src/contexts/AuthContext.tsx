@@ -7,6 +7,7 @@ import { isRootUser } from '../services/api/auth'
 export interface User {
   id: string
   email: string
+  language?: string
 }
 
 interface AuthContextType {
@@ -19,7 +20,8 @@ interface AuthContextType {
   refreshWorkspaces: () => Promise<void>
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined)
+// eslint-disable-next-line react-refresh/only-export-components -- Context co-located with provider
+export const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)

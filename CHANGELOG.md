@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [32.0] - 2026-05-22
+
+### Database Schema Changes
+
+- Migration v32.0 adds a `language` column (`VARCHAR(10) NOT NULL DEFAULT 'en'`) to the system `users` table. Existing users default to English.
+
+### Features
+
+- **Feature**: System emails and the console UI are now localized per user. Each user has a `language` preference — one of `en`, `fr`, `es`, `de`, `ca`, `pt-BR`, `ja`, `it` — that drives both their console UI locale and the language of the system emails (authentication code, workspace invitation, broadcast circuit-breaker alert) sent to them. The language is changed from the console language switcher and persisted via the new `POST /api/user.updateLanguage` endpoint. Magic-code emails use the recipient's language, circuit-breaker alerts use each owner's language, and workspace invitations use the inviter's language.
+
 ## [31.0] - 2026-05-19
 
 ### Database Schema Changes

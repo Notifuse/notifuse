@@ -81,7 +81,8 @@ func TestSystemNotificationService_HandleCircuitBreakerEvent(t *testing.T) {
 					WorkspaceID: "workspace-123",
 					Role:        "owner",
 				},
-				Email: "owner@example.com",
+				Email:    "owner@example.com",
+				Language: "fr",
 			},
 		}
 
@@ -93,7 +94,7 @@ func TestSystemNotificationService_HandleCircuitBreakerEvent(t *testing.T) {
 		mockWorkspaceRepo.EXPECT().GetByID(ctx, "workspace-123").Return(workspace, nil)
 		mockWorkspaceRepo.EXPECT().GetWorkspaceUsersWithEmail(ctx, "workspace-123").Return(workspaceUsers, nil)
 
-		mockMailer.EXPECT().SendCircuitBreakerAlert("owner@example.com", "Test Workspace", "Test Broadcast", "High bounce rate detected").Return(nil)
+		mockMailer.EXPECT().SendCircuitBreakerAlert("owner@example.com", "Test Workspace", "Test Broadcast", "High bounce rate detected", "fr").Return(nil)
 
 		mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger)
 		mockLogger.EXPECT().Info("Notification sent successfully to workspace owner")
@@ -333,8 +334,8 @@ func TestSystemNotificationService_notifyWorkspaceOwners(t *testing.T) {
 		mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger)
 		mockLogger.EXPECT().Info("Notification sent successfully to workspace owner")
 
-		notificationFunc := func(email string) error {
-			assert.Equal(t, "owner@example.com", email)
+		notificationFunc := func(owner *domain.UserWorkspaceWithEmail) error {
+			assert.Equal(t, "owner@example.com", owner.Email)
 			return nil
 		}
 
@@ -379,8 +380,8 @@ func TestSystemNotificationService_notifyWorkspaceOwners(t *testing.T) {
 		callCount := 0
 		expectedEmails := []string{"owner1@example.com", "owner2@example.com"}
 
-		notificationFunc := func(email string) error {
-			assert.Contains(t, expectedEmails, email)
+		notificationFunc := func(owner *domain.UserWorkspaceWithEmail) error {
+			assert.Contains(t, expectedEmails, owner.Email)
 			callCount++
 			return nil
 		}
@@ -393,7 +394,7 @@ func TestSystemNotificationService_notifyWorkspaceOwners(t *testing.T) {
 	t.Run("Error - Failed to get workspace users", func(t *testing.T) {
 		mockWorkspaceRepo.EXPECT().GetWorkspaceUsersWithEmail(ctx, workspaceID).Return(nil, errors.New("database error"))
 
-		notificationFunc := func(email string) error {
+		notificationFunc := func(owner *domain.UserWorkspaceWithEmail) error {
 			t.Fatal("Should not call notification function")
 			return nil
 		}
@@ -420,7 +421,7 @@ func TestSystemNotificationService_notifyWorkspaceOwners(t *testing.T) {
 		mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger)
 		mockLogger.EXPECT().Error("Failed to send notification to workspace owner")
 
-		notificationFunc := func(email string) error {
+		notificationFunc := func(owner *domain.UserWorkspaceWithEmail) error {
 			return errors.New("email sending failed")
 		}
 
@@ -446,7 +447,7 @@ func TestSystemNotificationService_notifyWorkspaceOwners(t *testing.T) {
 		mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger)
 		mockLogger.EXPECT().Warn("No workspace owners with email found for notification")
 
-		notificationFunc := func(email string) error {
+		notificationFunc := func(owner *domain.UserWorkspaceWithEmail) error {
 			t.Fatal("Should not call notification function")
 			return nil
 		}
@@ -480,7 +481,7 @@ func TestSystemNotificationService_notifyWorkspaceOwners(t *testing.T) {
 		mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger)
 		mockLogger.EXPECT().Warn("Cannot send notification - mailer not available")
 
-		notificationFunc := func(email string) error {
+		notificationFunc := func(owner *domain.UserWorkspaceWithEmail) error {
 			return nil
 		}
 

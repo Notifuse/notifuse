@@ -104,6 +104,10 @@ func (m *mockUserRepository) GetUserByEmail(ctx context.Context, email string) (
 	return nil, nil
 }
 
+func (m *mockUserRepository) UpdateUserLanguage(ctx context.Context, userID string, language string) error {
+	return nil
+}
+
 func (m *mockUserRepository) CreateSession(ctx context.Context, session *domain.Session) error {
 	return nil
 }

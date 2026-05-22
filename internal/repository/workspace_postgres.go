@@ -664,7 +664,7 @@ func (r *workspaceRepository) CountWorkspaces(ctx context.Context) (int, error) 
 // GetWorkspaceUsersWithEmail returns all users for a workspace including email information
 func (r *workspaceRepository) GetWorkspaceUsersWithEmail(ctx context.Context, workspaceID string) ([]*domain.UserWorkspaceWithEmail, error) {
 	query := `
-		SELECT uw.user_id, uw.workspace_id, uw.role, uw.permissions, uw.created_at, uw.updated_at, u.email, u.type
+		SELECT uw.user_id, uw.workspace_id, uw.role, uw.permissions, uw.created_at, uw.updated_at, u.email, u.type, u.language
 		FROM user_workspaces uw
 		JOIN users u ON uw.user_id = u.id
 		WHERE uw.workspace_id = $1
@@ -687,6 +687,7 @@ func (r *workspaceRepository) GetWorkspaceUsersWithEmail(ctx context.Context, wo
 			&uw.UpdatedAt,
 			&uw.Email,
 			&uw.Type,
+			&uw.Language,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan user workspace with email: %w", err)

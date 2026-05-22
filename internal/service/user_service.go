@@ -30,7 +30,7 @@ type UserService struct {
 }
 
 type EmailSender interface {
-	SendMagicCode(email, code string) error
+	SendMagicCode(email, code, language string) error
 }
 
 type UserServiceConfig struct {
@@ -138,7 +138,7 @@ func (s *UserService) SignIn(ctx context.Context, input domain.SignInInput) (str
 	}
 
 	// Send magic code via email in production
-	if err := s.emailSender.SendMagicCode(user.Email, plainCode); err != nil {
+	if err := s.emailSender.SendMagicCode(user.Email, plainCode, user.Language); err != nil {
 		s.logger.WithField("user_id", user.ID).WithField("email", user.Email).WithField("error", err.Error()).Error("Failed to send magic code")
 		s.tracer.MarkSpanError(ctx, err)
 		return "", err
@@ -458,5 +458,28 @@ func (s *UserService) Logout(ctx context.Context, userID string) error {
 	}
 
 	s.logger.WithField("user_id", userID).Info("User logged out - all sessions deleted")
+	return nil
+}
+
+// UpdateUserLanguage updates a user's preferred language for the console UI and system emails
+func (s *UserService) UpdateUserLanguage(ctx context.Context, userID string, language string) error {
+	ctx, span := s.tracer.StartServiceSpan(ctx, "UserService", "UpdateUserLanguage")
+	defer span.End()
+
+	s.tracer.AddAttribute(ctx, "user.id", userID)
+	s.tracer.AddAttribute(ctx, "user.language", language)
+
+	if !domain.IsSupportedUILanguage(language) {
+		err := &domain.ErrUnsupportedLanguage{Language: language}
+		s.tracer.MarkSpanError(ctx, err)
+		return err
+	}
+
+	if err := s.repo.UpdateUserLanguage(ctx, userID, language); err != nil {
+		s.logger.WithField("user_id", userID).WithField("error", err.Error()).Error("Failed to update user language")
+		s.tracer.MarkSpanError(ctx, err)
+		return err
+	}
+
 	return nil
 }

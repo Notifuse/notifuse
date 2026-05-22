@@ -736,9 +736,12 @@ func (s *WorkspaceService) InviteMember(ctx context.Context, workspaceID, email 
 	// Generate a JWT token with the invitation details
 	token := s.authService.GenerateInvitationToken(invitation)
 
-	// Send invitation email in production mode
+	// Send invitation email in production mode.
+	// This path only runs for invitees who do not yet have an account, so they
+	// have no language preference of their own — the email is localized in the
+	// inviter's language.
 	if !s.config.IsDevelopment() {
-		err = s.mailer.SendWorkspaceInvitation(email, workspace.Name, inviterName, token)
+		err = s.mailer.SendWorkspaceInvitation(email, workspace.Name, inviterName, token, inviterDetails.Language)
 		if err != nil {
 			s.logger.WithField("workspace_id", workspaceID).WithField("email", email).WithField("error", err.Error()).Error("Failed to send invitation email")
 			// Continue even if email sending fails

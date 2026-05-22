@@ -60,6 +60,10 @@ User:
       type: string
       description: User's display name
       example: Admin User
+    language:
+      type: string
+      description: User's preferred locale for the console UI and system emails
+      example: en
     created_at:
       type: string
       format: date-time

@@ -30,19 +30,25 @@ func (r *userRepository) CreateUser(ctx context.Context, user *domain.User) erro
 	if user.Type == "" {
 		user.Type = domain.UserTypeUser
 	}
+	// Coerce empty or unrecognized languages to the default so the column
+	// always holds a supported UI locale.
+	if !domain.IsSupportedUILanguage(user.Language) {
+		user.Language = domain.DefaultLanguageCode
+	}
 	now := time.Now().UTC()
 	user.CreatedAt = now
 	user.UpdatedAt = now
 
 	query := `
-		INSERT INTO users (id, email, name, type, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6)
+		INSERT INTO users (id, email, name, type, language, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
 	`
 	_, err := r.systemDB.ExecContext(ctx, query,
 		user.ID,
 		user.Email,
 		user.Name,
 		user.Type,
+		user.Language,
 		user.CreatedAt,
 		user.UpdatedAt,
 	)
@@ -60,7 +66,7 @@ func (r *userRepository) CreateUser(ctx context.Context, user *domain.User) erro
 func (r *userRepository) GetUserByEmail(ctx context.Context, email string) (*domain.User, error) {
 	var user domain.User
 	query := `
-		SELECT id, email, name, type, created_at, updated_at
+		SELECT id, email, name, type, language, created_at, updated_at
 		FROM users
 		WHERE email = $1
 	`
@@ -69,6 +75,7 @@ func (r *userRepository) GetUserByEmail(ctx context.Context, email string) (*dom
 		&user.Email,
 		&user.Name,
 		&user.Type,
+		&user.Language,
 		&user.CreatedAt,
 		&user.UpdatedAt,
 	)
@@ -89,7 +96,7 @@ func (r *userRepository) GetUserByID(ctx context.Context, id string) (*domain.Us
 
 	var user domain.User
 	query := `
-		SELECT id, email, name, type, created_at, updated_at
+		SELECT id, email, name, type, language, created_at, updated_at
 		FROM users
 		WHERE id = $1
 	`
@@ -99,6 +106,7 @@ func (r *userRepository) GetUserByID(ctx context.Context, id string) (*domain.Us
 		&user.Email,
 		&user.Name,
 		&user.Type,
+		&user.Language,
 		&user.CreatedAt,
 		&user.UpdatedAt,
 	)
@@ -128,6 +136,23 @@ func (r *userRepository) GetUserByID(ctx context.Context, id string) (*domain.Us
 	span.AddAttributes(trace.StringAttribute("user.email", user.Email))
 
 	return &user, nil
+}
+
+// UpdateUserLanguage updates a user's preferred language
+func (r *userRepository) UpdateUserLanguage(ctx context.Context, userID string, language string) error {
+	query := `UPDATE users SET language = $1, updated_at = $2 WHERE id = $3`
+	result, err := r.systemDB.ExecContext(ctx, query, language, time.Now().UTC(), userID)
+	if err != nil {
+		return fmt.Errorf("failed to update user language: %w", err)
+	}
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+	if rows == 0 {
+		return &domain.ErrUserNotFound{Message: "user not found"}
+	}
+	return nil
 }
 
 func (r *userRepository) CreateSession(ctx context.Context, session *domain.Session) error {

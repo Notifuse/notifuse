@@ -10,6 +10,7 @@ var TableDefinitions = []string{
 		type VARCHAR(20) NOT NULL,
 		email VARCHAR(255) UNIQUE NOT NULL,
 		name VARCHAR(255),
+		language VARCHAR(10) NOT NULL DEFAULT 'en',
 		created_at TIMESTAMP NOT NULL,
 		updated_at TIMESTAMP NOT NULL
 	)`,

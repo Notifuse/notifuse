@@ -49,3 +49,20 @@ func TestSupportedLanguages(t *testing.T) {
 		assert.True(t, ok, "expected language %s to be in SupportedLanguages", code)
 	}
 }
+
+func TestIsSupportedUILanguage(t *testing.T) {
+	for _, code := range []string{"en", "fr", "es", "de", "ca", "pt-BR", "ja", "it"} {
+		assert.True(t, IsSupportedUILanguage(code), "expected %s to be a supported UI language", code)
+	}
+
+	for _, code := range []string{"", "xx", "EN", "en ", "ru", "zh", "English"} {
+		assert.False(t, IsSupportedUILanguage(code), "expected %s to NOT be a supported UI language", code)
+	}
+
+	// DefaultLanguageCode must itself be a supported UI language.
+	assert.True(t, IsSupportedUILanguage(DefaultLanguageCode))
+	// Every supported UI language must also be a generally valid language.
+	for code := range SupportedUILanguages {
+		assert.True(t, IsValidLanguage(code), "UI language %s must be in SupportedLanguages", code)
+	}
+}

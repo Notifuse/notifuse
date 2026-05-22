@@ -55,6 +55,10 @@ func (m *mockUserServiceForSettings) Logout(ctx context.Context, userID string) 
 	return nil
 }
 
+func (m *mockUserServiceForSettings) UpdateUserLanguage(ctx context.Context, userID string, language string) error {
+	return nil
+}
+
 const testRootEmail = "root@example.com"
 const testSecretKey = "test-secret-key-32-bytes-long!!"
 
@@ -221,9 +225,9 @@ func TestSettingsHandler_Get_EnvOverrides(t *testing.T) {
 	shutdowner := newMockAppShutdowner()
 
 	envConfig := &service.EnvironmentConfig{
-		RootEmail:   "env-root@example.com",
-		SMTPHost:    "env-smtp.example.com",
-		SMTPPort:    465,
+		RootEmail: "env-root@example.com",
+		SMTPHost:  "env-smtp.example.com",
+		SMTPPort:  465,
 	}
 	userRepo := newMockUserRepository()
 	setupService := service.NewSetupService(
@@ -331,13 +335,13 @@ func TestSettingsHandler_Update_Success(t *testing.T) {
 	_ = settingRepo.Set(ctx, "root_email", testRootEmail)
 
 	updateData := SystemSettingsData{
-		RootEmail:       testRootEmail,
-		APIEndpoint:     "https://new-api.example.com",
-		SMTPHost:        "new-smtp.example.com",
-		SMTPPort:        465,
-		SMTPFromEmail:   "new@example.com",
-		SMTPFromName:    "NewName",
-		SMTPUseTLS:      true,
+		RootEmail:        testRootEmail,
+		APIEndpoint:      "https://new-api.example.com",
+		SMTPHost:         "new-smtp.example.com",
+		SMTPPort:         465,
+		SMTPFromEmail:    "new@example.com",
+		SMTPFromName:     "NewName",
+		SMTPUseTLS:       true,
 		TelemetryEnabled: true,
 		CheckForUpdates:  true,
 	}
@@ -432,10 +436,10 @@ func TestSettingsHandler_Update_ClearOptionalField(t *testing.T) {
 
 	// Send update with empty EHLO hostname to clear it
 	updateData := SystemSettingsData{
-		RootEmail:       testRootEmail,
-		SMTPHost:        "smtp.example.com",
-		SMTPPort:        587,
-		SMTPFromEmail:   "noreply@example.com",
+		RootEmail:        testRootEmail,
+		SMTPHost:         "smtp.example.com",
+		SMTPPort:         587,
+		SMTPFromEmail:    "noreply@example.com",
 		SMTPEHLOHostname: "", // clearing this field
 	}
 	body, _ := json.Marshal(updateData)

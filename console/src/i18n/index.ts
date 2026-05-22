@@ -1,5 +1,9 @@
 import { i18n } from "@lingui/core"
 
+// Keep this list in sync with the backend's canonical set:
+// domain.SupportedUILanguages (internal/domain/languages.go) and the
+// pkg/mailer translation registry. The two backend lists are guarded by a
+// test; this frontend list is not automatically guarded against them.
 export type Locale = "en" | "fr" | "es" | "de" | "ca" | "pt-BR" | "ja" | "it"
 
 export const locales: Locale[] = ["en", "fr", "es", "de", "ca", "pt-BR", "ja", "it"]

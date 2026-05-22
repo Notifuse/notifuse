@@ -515,6 +515,99 @@ func TestUserHandler_Logout(t *testing.T) {
 	})
 }
 
+func TestUserHandler_UpdateLanguage(t *testing.T) {
+	handler, mockUserSvc, _, _ := setupUserHandlerTest(t)
+
+	t.Run("successful update", func(t *testing.T) {
+		userID := "test-user"
+
+		mockUserSvc.EXPECT().
+			UpdateUserLanguage(gomock.Any(), userID, "fr").
+			Return(nil)
+
+		body, _ := json.Marshal(map[string]string{"language": "fr"})
+		req := httptest.NewRequest(http.MethodPost, "/api/user.updateLanguage", bytes.NewReader(body))
+		req = req.WithContext(context.WithValue(req.Context(), domain.UserIDKey, userID))
+		rec := httptest.NewRecorder()
+
+		handler.UpdateLanguage(rec, req)
+
+		assert.Equal(t, http.StatusOK, rec.Code)
+		var response map[string]string
+		require.NoError(t, json.NewDecoder(rec.Body).Decode(&response))
+		assert.Equal(t, "Language updated successfully", response["message"])
+	})
+
+	t.Run("rejects unsupported language with 400", func(t *testing.T) {
+		mockUserSvc.EXPECT().
+			UpdateUserLanguage(gomock.Any(), "test-user", "xx").
+			Return(&domain.ErrUnsupportedLanguage{Language: "xx"})
+
+		body, _ := json.Marshal(map[string]string{"language": "xx"})
+		req := httptest.NewRequest(http.MethodPost, "/api/user.updateLanguage", bytes.NewReader(body))
+		req = req.WithContext(context.WithValue(req.Context(), domain.UserIDKey, "test-user"))
+		rec := httptest.NewRecorder()
+
+		handler.UpdateLanguage(rec, req)
+
+		assert.Equal(t, http.StatusBadRequest, rec.Code)
+	})
+
+	t.Run("invalid request body with 400", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodPost, "/api/user.updateLanguage", bytes.NewReader([]byte("not json")))
+		req = req.WithContext(context.WithValue(req.Context(), domain.UserIDKey, "test-user"))
+		rec := httptest.NewRecorder()
+
+		handler.UpdateLanguage(rec, req)
+
+		assert.Equal(t, http.StatusBadRequest, rec.Code)
+	})
+
+	t.Run("unauthorized when no user ID in context", func(t *testing.T) {
+		body, _ := json.Marshal(map[string]string{"language": "fr"})
+		req := httptest.NewRequest(http.MethodPost, "/api/user.updateLanguage", bytes.NewReader(body))
+		rec := httptest.NewRecorder()
+
+		handler.UpdateLanguage(rec, req)
+
+		assert.Equal(t, http.StatusUnauthorized, rec.Code)
+	})
+
+	t.Run("not found returns 404", func(t *testing.T) {
+		userID := "missing-user"
+
+		mockUserSvc.EXPECT().
+			UpdateUserLanguage(gomock.Any(), userID, "fr").
+			Return(&domain.ErrUserNotFound{Message: "user not found"})
+
+		body, _ := json.Marshal(map[string]string{"language": "fr"})
+		req := httptest.NewRequest(http.MethodPost, "/api/user.updateLanguage", bytes.NewReader(body))
+		req = req.WithContext(context.WithValue(req.Context(), domain.UserIDKey, userID))
+		rec := httptest.NewRecorder()
+
+		handler.UpdateLanguage(rec, req)
+
+		assert.Equal(t, http.StatusNotFound, rec.Code)
+	})
+
+	t.Run("internal error returns 500", func(t *testing.T) {
+		userID := "test-user"
+
+		mockUserSvc.EXPECT().
+			UpdateUserLanguage(gomock.Any(), userID, "de").
+			Return(fmt.Errorf("database error"))
+
+		body, _ := json.Marshal(map[string]string{"language": "de"})
+		req := httptest.NewRequest(http.MethodPost, "/api/user.updateLanguage", bytes.NewReader(body))
+		req = req.WithContext(context.WithValue(req.Context(), domain.UserIDKey, userID))
+		rec := httptest.NewRecorder()
+
+		handler.UpdateLanguage(rec, req)
+
+		assert.Equal(t, http.StatusInternalServerError, rec.Code)
+	})
+}
+
 func TestUserHandler_RootSignIn(t *testing.T) {
 	handler, mockUserSvc, _, _ := setupUserHandlerTest(t)
 
