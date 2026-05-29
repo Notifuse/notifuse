@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	// Import the notifuse_mjml package
@@ -957,6 +958,12 @@ func BuildTemplateData(req TemplateDataRequest) (MapOfAny, error) {
 	// Add global feed data if broadcast has pre-fetched data
 	if req.Broadcast != nil && req.Broadcast.DataFeed != nil && req.Broadcast.DataFeed.GlobalFeedData != nil {
 		templateData["global_feed"] = req.Broadcast.DataFeed.GlobalFeedData
+	}
+
+	// Expose workspace base URL (resolved CustomEndpointURL, or API endpoint fallback).
+	// Trim any trailing slash so templates can compose links as "{{ workspace.base_url }}/path".
+	templateData["workspace"] = MapOfAny{
+		"base_url": strings.TrimRight(req.TrackingSettings.Endpoint, "/"),
 	}
 
 	// Add tracking data

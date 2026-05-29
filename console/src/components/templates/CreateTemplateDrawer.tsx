@@ -294,6 +294,9 @@ export function CreateTemplateDrawer({
         last_name: 'Doe',
         email: 'john.doe@example.com'
       },
+      workspace: {
+        base_url: endpoint
+      },
       list: {
         id: 'newsletter',
         name: 'Newsletter'

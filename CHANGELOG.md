@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [32.1] - 2026-05-29
+
+- **Feature**: Exposed `{{ workspace.base_url }}` in email templates — the resolved Custom Endpoint URL (or the default API endpoint), trailing slash trimmed — so templates can compose links from relative paths like `{{ workspace.base_url }}/users/verify/xxx` (#342).
+- **Security**: Bumped `liquidjs` to 10.27.0 in console to clear 6 Dependabot alerts (critical RCE, ReDoS in `strip_html`, `date` filter padding DoS, `{% render %}` `ownPropertyOnly` bypass, empty `{% for %}` renderLimit bypass, and `strip_html` newline XSS); `npm audit fix` also cleared transitive `brace-expansion` and `ws` advisories.
+
 ## [32.0] - 2026-05-22
 
 ### Database Schema Changes

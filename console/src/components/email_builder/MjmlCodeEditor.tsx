@@ -476,6 +476,7 @@ const MjmlCodeEditor = forwardRef<MjmlCodeEditorRef, MjmlCodeEditorProps>(({
           'contact.first_name',
           'contact.last_name',
           'contact.external_id',
+          'workspace.base_url',
           'unsubscribe_url',
           'notification_center_url',
           'confirm_subscription_url',
