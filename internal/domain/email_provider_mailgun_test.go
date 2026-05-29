@@ -262,3 +262,43 @@ func TestMailgunWebhookPayloadParsing(t *testing.T) {
 	assert.Equal(t, expected.EventData.Delivery.TLS, actual.EventData.Delivery.TLS)
 	assert.Equal(t, expected.EventData.Delivery.MXHost, actual.EventData.Delivery.MXHost)
 }
+
+func TestMailgunUrls_All(t *testing.T) {
+	testCases := []struct {
+		name     string
+		input    MailgunUrls
+		expected []string
+	}{
+		{
+			name:     "empty",
+			input:    MailgunUrls{},
+			expected: []string{},
+		},
+		{
+			name:     "urls array only",
+			input:    MailgunUrls{URLs: []string{"https://a.example/w", "https://b.example/w"}},
+			expected: []string{"https://a.example/w", "https://b.example/w"},
+		},
+		{
+			name:     "singular url only (SDK UrlOrUrls back-compat)",
+			input:    MailgunUrls{URL: "https://a.example/w"},
+			expected: []string{"https://a.example/w"},
+		},
+		{
+			name:     "both forms are unioned, url first",
+			input:    MailgunUrls{URL: "https://a.example/w", URLs: []string{"https://b.example/w"}},
+			expected: []string{"https://a.example/w", "https://b.example/w"},
+		},
+		{
+			name:     "duplicates and empties removed",
+			input:    MailgunUrls{URL: "https://a.example/w", URLs: []string{"https://a.example/w", "", "https://b.example/w"}},
+			expected: []string{"https://a.example/w", "https://b.example/w"},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, tc.expected, tc.input.All())
+		})
+	}
+}

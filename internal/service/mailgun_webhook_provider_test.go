@@ -610,7 +610,7 @@ func TestMailgunService_UnregisterWebhooks(t *testing.T) {
 
 		// Verify error is returned
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "failed to delete one or more Mailgun webhooks")
+		assert.Contains(t, err.Error(), "failed to unregister one or more Mailgun webhooks")
 	})
 }
 

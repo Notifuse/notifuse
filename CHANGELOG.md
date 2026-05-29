@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file.
 
 - **Feature**: Exposed `{{ workspace.base_url }}` in email templates — the resolved Custom Endpoint URL (or the default API endpoint), trailing slash trimmed — so templates can compose links from relative paths like `{{ workspace.base_url }}/users/verify/xxx` (#342).
 - **Security**: Bumped `liquidjs` to 10.27.0 in console to clear 6 Dependabot alerts (critical RCE, ReDoS in `strip_html`, `date` filter padding DoS, `{% render %}` `ownPropertyOnly` bypass, empty `{% for %}` renderLimit bypass, and `strip_html` newline XSS); `npm audit fix` also cleared transitive `brace-expansion` and `ws` advisories.
+- **Fix**: Mailgun webhook registration no longer fails with `400` on domains shared with other services — Notifuse now merges its callback URL into each event's existing URL set via `PUT` (up to Mailgun's limit of 3 per event) instead of always `POST`ing, and unregistering removes only its own URL while preserving other consumers' (#340).
 
 ## [32.0] - 2026-05-22
 

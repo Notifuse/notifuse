@@ -72,6 +72,7 @@ type MailgunDelivery struct {
 type MailgunWebhook struct {
 	ID     string   `json:"id,omitempty"`
 	URL    string   `json:"url"`
+	URLs   []string `json:"urls,omitempty"`
 	Events []string `json:"events"`
 	Active bool     `json:"active"`
 }
@@ -84,8 +85,26 @@ type MailgunWebhooks struct {
 	Complained    MailgunUrls `json:"complained"`
 }
 
+// MailgunUrls mirrors a Mailgun webhook entry. The API returns the configured
+// callbacks either as a single "url" string or as a "urls" array (the official
+// mailgun-go SDK models this as its UrlOrUrls type), so both must be decoded.
 type MailgunUrls struct {
+	URL  string   `json:"url,omitempty"`
 	URLs []string `json:"urls"`
+}
+
+// All folds the singular "url" and the "urls" array into a single, deduplicated
+// list of callback URLs, preserving order (url first, then urls).
+func (u MailgunUrls) All() []string {
+	seen := make(map[string]bool)
+	result := []string{}
+	for _, candidate := range append([]string{u.URL}, u.URLs...) {
+		if candidate != "" && !seen[candidate] {
+			seen[candidate] = true
+			result = append(result, candidate)
+		}
+	}
+	return result
 }
 
 type MailgunWebhookListResponse struct {

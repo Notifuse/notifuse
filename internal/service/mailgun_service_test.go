@@ -91,6 +91,41 @@ func TestMailgunService_ListWebhooks(t *testing.T) {
 		assert.Empty(t, result.Webhooks.Complained.URLs)
 	})
 
+	t.Run("singular url form (SDK UrlOrUrls parity)", func(t *testing.T) {
+		// Mailgun may return a webhook as a single "url" string instead of a "urls"
+		// array (the official SDK models this as UrlOrUrls). Both must be parsed.
+		responseBody := `{
+			"webhooks": {
+				"delivered": {
+					"url": "https://webhook.example.com/mailgun/delivered"
+				},
+				"permanent_fail": {
+					"url": "https://other-service.example/webhook"
+				},
+				"temporary_fail": {"urls": []},
+				"complained": {"urls": []}
+			}
+		}`
+
+		resp := &http.Response{
+			StatusCode: http.StatusOK,
+			Body:       io.NopCloser(strings.NewReader(responseBody)),
+		}
+
+		mockHTTPClient.EXPECT().
+			Do(gomock.Any()).
+			Return(resp, nil)
+
+		result, err := service.ListWebhooks(ctx, config)
+
+		require.NoError(t, err)
+		require.NotNil(t, result)
+		// Singular "url" parsed into URLs and kept (matches our endpoint)
+		assert.Equal(t, []string{"https://webhook.example.com/mailgun/delivered"}, result.Webhooks.Delivered.URLs)
+		// Singular "url" for another service is filtered out by ListWebhooks
+		assert.Empty(t, result.Webhooks.PermanentFail.URLs)
+	})
+
 	t.Run("EU region", func(t *testing.T) {
 		// Use EU region config
 		euConfig := domain.MailgunSettings{
@@ -553,10 +588,9 @@ func TestMailgunService_UpdateWebhook(t *testing.T) {
 				assert.Equal(t, "PUT", req.Method)
 				assert.Equal(t, "https://api.mailgun.net/v3/domains/example.com/webhooks/delivered", req.URL.String())
 
-				// Ensure body contains form data
+				// Ensure body uses the SDK-aligned singular "url" form field
 				body, _ := io.ReadAll(req.Body)
-				// Use a more generic assertion since the exact form parameter names might differ
-				assert.Contains(t, string(body), "urls=https%3A%2F%2Fwebhook.example.com%2Fmailgun%2Fdelivered-updated")
+				assert.Contains(t, string(body), "url=https%3A%2F%2Fwebhook.example.com%2Fmailgun%2Fdelivered-updated")
 
 				return resp, nil
 			})
@@ -571,6 +605,42 @@ func TestMailgunService_UpdateWebhook(t *testing.T) {
 		assert.Equal(t, "https://webhook.example.com/mailgun/delivered-updated", result.URL)
 		assert.Equal(t, []string{"delivered"}, result.Events)
 		assert.True(t, result.Active)
+	})
+
+	t.Run("multiple URLs sent as repeated url fields", func(t *testing.T) {
+		multiWebhook := domain.MailgunWebhook{
+			URLs:   []string{"https://other-service.example/webhook", "https://webhook.example.com/mailgun/delivered"},
+			Events: []string{"delivered"},
+			Active: true,
+		}
+
+		resp := &http.Response{
+			StatusCode: http.StatusOK,
+			Body:       io.NopCloser(strings.NewReader(`{"message": "Webhook has been updated", "webhook": {"id": "delivered"}}`)),
+		}
+
+		mockHTTPClient.EXPECT().
+			Do(gomock.Any()).
+			DoAndReturn(func(req *http.Request) (*http.Response, error) {
+				assert.Equal(t, "PUT", req.Method)
+
+				body, _ := io.ReadAll(req.Body)
+				// Both URLs are sent as repeated "url" fields (matches the official SDK)
+				form, perr := url.ParseQuery(string(body))
+				require.NoError(t, perr)
+				assert.ElementsMatch(t,
+					[]string{"https://other-service.example/webhook", "https://webhook.example.com/mailgun/delivered"},
+					form["url"])
+				assert.Empty(t, form["urls"], "should not use the plural 'urls' field")
+
+				return resp, nil
+			})
+
+		result, err := service.UpdateWebhook(ctx, config, "delivered", multiWebhook)
+
+		require.NoError(t, err)
+		require.NotNil(t, result)
+		assert.ElementsMatch(t, multiWebhook.URLs, result.URLs)
 	})
 
 	t.Run("HTTP request error", func(t *testing.T) {
@@ -1433,5 +1503,275 @@ func TestMailgunService_SendEmail(t *testing.T) {
 
 		// Verify results
 		require.NoError(t, err)
+	})
+}
+
+// mailgunHTTPCapture records the webhook API calls made during a Register/Unregister
+// run so tests can assert which verbs/URLs were sent.
+type mailgunHTTPCapture struct {
+	gets    int
+	posts   []url.Values          // POST /webhooks bodies (create)
+	puts    map[string]url.Values // PUT /webhooks/{event} bodies (update), keyed by event
+	deletes []string              // DELETE /webhooks/{event} events
+}
+
+func newMailgunCapture() *mailgunHTTPCapture {
+	return &mailgunHTTPCapture{puts: map[string]url.Values{}}
+}
+
+// handler returns a gomock DoAndReturn func that serves listBody for GET and records
+// create/update/delete calls (all succeeding).
+func (c *mailgunHTTPCapture) handler(listBody string) func(*http.Request) (*http.Response, error) {
+	return func(req *http.Request) (*http.Response, error) {
+		ok := func(body string) *http.Response {
+			return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(strings.NewReader(body))}
+		}
+		event := req.URL.Path[strings.LastIndex(req.URL.Path, "/")+1:]
+		switch req.Method {
+		case http.MethodGet:
+			c.gets++
+			return ok(listBody), nil
+		case http.MethodPost:
+			b, _ := io.ReadAll(req.Body)
+			f, _ := url.ParseQuery(string(b))
+			c.posts = append(c.posts, f)
+			return ok(`{"message":"ok","webhook":{}}`), nil
+		case http.MethodPut:
+			b, _ := io.ReadAll(req.Body)
+			f, _ := url.ParseQuery(string(b))
+			c.puts[event] = f
+			return ok(`{"message":"ok","webhook":{}}`), nil
+		case http.MethodDelete:
+			c.deletes = append(c.deletes, event)
+			return ok(``), nil
+		default:
+			return ok(``), nil
+		}
+	}
+}
+
+// newMailgunTestService builds a MailgunService with a permissive logger for orchestration tests.
+func newMailgunTestService(ctrl *gomock.Controller) (*MailgunService, *mocks.MockHTTPClient) {
+	httpClient := mocks.NewMockHTTPClient(ctrl)
+	logger := pkgmocks.NewMockLogger(ctrl)
+	logger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(logger).AnyTimes()
+	logger.EXPECT().Error(gomock.Any()).AnyTimes()
+	logger.EXPECT().Info(gomock.Any()).AnyTimes()
+	logger.EXPECT().Debug(gomock.Any()).AnyTimes()
+	svc := NewMailgunService(httpClient, mocks.NewMockAuthService(ctrl), logger, "https://api.notifuse.test/webhooks/email")
+	return svc, httpClient
+}
+
+// TestMailgunService_RegisterWebhooks_Coexistence covers the shared-domain scenarios
+// from issue #340 (merging with other consumers' URLs). Basic create/error coverage
+// lives in mailgun_webhook_provider_test.go.
+func TestMailgunService_RegisterWebhooks_Coexistence(t *testing.T) {
+	const (
+		workspaceID   = "ws123"
+		integrationID = "int456"
+		baseURL       = "https://api.notifuse.test"
+		otherURL      = "https://other-service.example/webhook"
+	)
+	ctx := context.Background()
+	selfURL := domain.GenerateWebhookCallbackURL(baseURL, domain.EmailProviderKindMailgun, workspaceID, integrationID)
+	deliveredOnly := []domain.EmailEventType{domain.EmailEventDelivered}
+
+	newProvider := func() *domain.EmailProvider {
+		return &domain.EmailProvider{
+			Mailgun: &domain.MailgunSettings{Domain: "example.com", APIKey: "key", Region: "US"},
+		}
+	}
+	emptyList := `{"webhooks":{"delivered":{"urls":[]},"permanent_fail":{"urls":[]},"temporary_fail":{"urls":[]},"complained":{"urls":[]}}}`
+
+	t.Run("fresh domain creates via POST", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		svc, httpClient := newMailgunTestService(ctrl)
+		cap := newMailgunCapture()
+		httpClient.EXPECT().Do(gomock.Any()).DoAndReturn(cap.handler(emptyList)).AnyTimes()
+
+		status, err := svc.RegisterWebhooks(ctx, workspaceID, integrationID, baseURL, deliveredOnly, newProvider())
+
+		require.NoError(t, err)
+		require.NotNil(t, status)
+		assert.True(t, status.IsRegistered)
+		require.Len(t, cap.posts, 1, "should POST once for the fresh event")
+		assert.Equal(t, selfURL, cap.posts[0].Get("url"))
+		assert.Empty(t, cap.puts)
+		assert.Empty(t, cap.deletes)
+	})
+
+	t.Run("co-tenant present (urls array) merges via PUT, no 400", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		svc, httpClient := newMailgunTestService(ctrl)
+		cap := newMailgunCapture()
+		listBody := fmt.Sprintf(`{"webhooks":{"delivered":{"urls":[%q]},"permanent_fail":{"urls":[]},"temporary_fail":{"urls":[]},"complained":{"urls":[]}}}`, otherURL)
+		httpClient.EXPECT().Do(gomock.Any()).DoAndReturn(cap.handler(listBody)).AnyTimes()
+
+		status, err := svc.RegisterWebhooks(ctx, workspaceID, integrationID, baseURL, deliveredOnly, newProvider())
+
+		require.NoError(t, err)
+		assert.True(t, status.IsRegistered)
+		assert.Empty(t, cap.posts, "must not POST when the event already exists")
+		require.Contains(t, cap.puts, "delivered")
+		assert.ElementsMatch(t, []string{otherURL, selfURL}, cap.puts["delivered"]["url"], "co-tenant URL must be preserved")
+		assert.Empty(t, cap.deletes)
+	})
+
+	t.Run("co-tenant present (singular url form) merges via PUT", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		svc, httpClient := newMailgunTestService(ctrl)
+		cap := newMailgunCapture()
+		// singular "url" form — only handled because MailgunUrls mirrors the SDK's UrlOrUrls
+		listBody := fmt.Sprintf(`{"webhooks":{"delivered":{"url":%q},"permanent_fail":{"urls":[]},"temporary_fail":{"urls":[]},"complained":{"urls":[]}}}`, otherURL)
+		httpClient.EXPECT().Do(gomock.Any()).DoAndReturn(cap.handler(listBody)).AnyTimes()
+
+		status, err := svc.RegisterWebhooks(ctx, workspaceID, integrationID, baseURL, deliveredOnly, newProvider())
+
+		require.NoError(t, err)
+		assert.True(t, status.IsRegistered)
+		assert.Empty(t, cap.posts, "singular-url co-tenant must be detected, so no POST/400")
+		require.Contains(t, cap.puts, "delivered")
+		assert.ElementsMatch(t, []string{otherURL, selfURL}, cap.puts["delivered"]["url"])
+	})
+
+	t.Run("already registered (self only) is a no-op", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		svc, httpClient := newMailgunTestService(ctrl)
+		cap := newMailgunCapture()
+		listBody := fmt.Sprintf(`{"webhooks":{"delivered":{"urls":[%q]},"permanent_fail":{"urls":[]},"temporary_fail":{"urls":[]},"complained":{"urls":[]}}}`, selfURL)
+		httpClient.EXPECT().Do(gomock.Any()).DoAndReturn(cap.handler(listBody)).AnyTimes()
+
+		status, err := svc.RegisterWebhooks(ctx, workspaceID, integrationID, baseURL, deliveredOnly, newProvider())
+
+		require.NoError(t, err)
+		assert.True(t, status.IsRegistered, "still reported as registered")
+		assert.Len(t, status.Endpoints, 1)
+		assert.Empty(t, cap.posts)
+		assert.Empty(t, cap.puts)
+		assert.Empty(t, cap.deletes)
+	})
+
+	t.Run("self + co-tenant already present is a no-op", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		svc, httpClient := newMailgunTestService(ctrl)
+		cap := newMailgunCapture()
+		listBody := fmt.Sprintf(`{"webhooks":{"delivered":{"urls":[%q,%q]},"permanent_fail":{"urls":[]},"temporary_fail":{"urls":[]},"complained":{"urls":[]}}}`, selfURL, otherURL)
+		httpClient.EXPECT().Do(gomock.Any()).DoAndReturn(cap.handler(listBody)).AnyTimes()
+
+		_, err := svc.RegisterWebhooks(ctx, workspaceID, integrationID, baseURL, deliveredOnly, newProvider())
+
+		require.NoError(t, err)
+		assert.Empty(t, cap.posts)
+		assert.Empty(t, cap.puts)
+		assert.Empty(t, cap.deletes)
+	})
+
+	t.Run("stale own URL is replaced, co-tenant preserved", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		svc, httpClient := newMailgunTestService(ctrl)
+		cap := newMailgunCapture()
+		// same ws+int but a different base URL (e.g. host changed) → considered ours, dropped
+		staleSelf := domain.GenerateWebhookCallbackURL("https://old.notifuse.test", domain.EmailProviderKindMailgun, workspaceID, integrationID)
+		listBody := fmt.Sprintf(`{"webhooks":{"delivered":{"urls":[%q,%q]},"permanent_fail":{"urls":[]},"temporary_fail":{"urls":[]},"complained":{"urls":[]}}}`, staleSelf, otherURL)
+		httpClient.EXPECT().Do(gomock.Any()).DoAndReturn(cap.handler(listBody)).AnyTimes()
+
+		_, err := svc.RegisterWebhooks(ctx, workspaceID, integrationID, baseURL, deliveredOnly, newProvider())
+
+		require.NoError(t, err)
+		require.Contains(t, cap.puts, "delivered")
+		assert.ElementsMatch(t, []string{otherURL, selfURL}, cap.puts["delivered"]["url"])
+		assert.NotContains(t, cap.puts["delivered"]["url"], staleSelf, "stale own URL must be dropped")
+	})
+
+	t.Run("overflow at 3 URLs fails loudly without mutating", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		svc, httpClient := newMailgunTestService(ctrl)
+		cap := newMailgunCapture()
+		listBody := `{"webhooks":{"delivered":{"urls":["https://a.example/w","https://b.example/w","https://c.example/w"]},"permanent_fail":{"urls":[]},"temporary_fail":{"urls":[]},"complained":{"urls":[]}}}`
+		httpClient.EXPECT().Do(gomock.Any()).DoAndReturn(cap.handler(listBody)).AnyTimes()
+
+		status, err := svc.RegisterWebhooks(ctx, workspaceID, integrationID, baseURL, deliveredOnly, newProvider())
+
+		require.Error(t, err)
+		assert.Nil(t, status)
+		assert.Contains(t, err.Error(), "delivered")
+		assert.Contains(t, err.Error(), "limit is 3")
+		assert.Empty(t, cap.posts, "no create on overflow")
+		assert.Empty(t, cap.puts, "no update on overflow")
+		assert.Empty(t, cap.deletes, "no delete on overflow")
+	})
+}
+
+// TestMailgunService_UnregisterWebhooks_Coexistence covers the shared-domain scenarios
+// from issue #340 (preserving other consumers' URLs). Basic delete/error coverage
+// lives in mailgun_webhook_provider_test.go.
+func TestMailgunService_UnregisterWebhooks_Coexistence(t *testing.T) {
+	const (
+		workspaceID   = "ws123"
+		integrationID = "int456"
+		baseURL       = "https://api.notifuse.test"
+		otherURL      = "https://other-service.example/webhook"
+	)
+	ctx := context.Background()
+	selfURL := domain.GenerateWebhookCallbackURL(baseURL, domain.EmailProviderKindMailgun, workspaceID, integrationID)
+
+	newProvider := func() *domain.EmailProvider {
+		return &domain.EmailProvider{
+			Mailgun: &domain.MailgunSettings{Domain: "example.com", APIKey: "key", Region: "US"},
+		}
+	}
+
+	t.Run("only our URL deletes the whole event", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		svc, httpClient := newMailgunTestService(ctrl)
+		cap := newMailgunCapture()
+		// singular url form, just to also exercise the parser in this path
+		listBody := fmt.Sprintf(`{"webhooks":{"delivered":{"url":%q},"permanent_fail":{"urls":[]},"temporary_fail":{"urls":[]},"complained":{"urls":[]}}}`, selfURL)
+		httpClient.EXPECT().Do(gomock.Any()).DoAndReturn(cap.handler(listBody)).AnyTimes()
+
+		err := svc.UnregisterWebhooks(ctx, workspaceID, integrationID, newProvider())
+
+		require.NoError(t, err)
+		assert.Equal(t, []string{"delivered"}, cap.deletes)
+		assert.Empty(t, cap.puts)
+	})
+
+	t.Run("our URL removed but co-tenant preserved via PUT", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		svc, httpClient := newMailgunTestService(ctrl)
+		cap := newMailgunCapture()
+		listBody := fmt.Sprintf(`{"webhooks":{"delivered":{"urls":[%q,%q]},"permanent_fail":{"urls":[]},"temporary_fail":{"urls":[]},"complained":{"urls":[]}}}`, selfURL, otherURL)
+		httpClient.EXPECT().Do(gomock.Any()).DoAndReturn(cap.handler(listBody)).AnyTimes()
+
+		err := svc.UnregisterWebhooks(ctx, workspaceID, integrationID, newProvider())
+
+		require.NoError(t, err)
+		assert.Empty(t, cap.deletes, "must not delete an event still used by another consumer")
+		require.Contains(t, cap.puts, "delivered")
+		assert.Equal(t, []string{otherURL}, cap.puts["delivered"]["url"], "co-tenant URL preserved, ours removed")
+	})
+
+	t.Run("no URL of ours is a no-op", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		svc, httpClient := newMailgunTestService(ctrl)
+		cap := newMailgunCapture()
+		listBody := fmt.Sprintf(`{"webhooks":{"delivered":{"urls":[%q]},"permanent_fail":{"urls":[]},"temporary_fail":{"urls":[]},"complained":{"urls":[]}}}`, otherURL)
+		httpClient.EXPECT().Do(gomock.Any()).DoAndReturn(cap.handler(listBody)).AnyTimes()
+
+		err := svc.UnregisterWebhooks(ctx, workspaceID, integrationID, newProvider())
+
+		require.NoError(t, err)
+		assert.Empty(t, cap.deletes)
+		assert.Empty(t, cap.puts)
 	})
 }
