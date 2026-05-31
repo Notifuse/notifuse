@@ -397,6 +397,124 @@ func TestBroadcastLiquidTemplateSubstitution(t *testing.T) {
 		assert.Contains(t, msg.HTML, "Hello Jane!",
 			"Contact first_name should be rendered")
 	})
+
+	t.Run("renders workspace.website_url and workspace.base_url for composing app links", func(t *testing.T) {
+		// Clear Mailpit
+		err := testutil.ClearMailpitMessages(t)
+		require.NoError(t, err)
+
+		// Set the workspace Website URL WITH a trailing slash to prove it is trimmed
+		// before exposure, so "{{ workspace.website_url }}/path" composes a single slash.
+		err = factory.SetWorkspaceWebsiteURL(workspace.ID, "https://app.notifuse-verify.test/")
+		require.NoError(t, err)
+
+		// Set a Custom Endpoint URL (the tracking domain) that is DISTINCT from the Website
+		// URL, so the test proves base_url (tracking) and website_url (app) are independent.
+		err = factory.SetWorkspaceCustomEndpointURL(workspace.ID, "https://track.notifuse-verify.test")
+		require.NoError(t, err)
+
+		// Create list
+		list, err := factory.CreateList(workspace.ID,
+			testutil.WithListName(fmt.Sprintf("WebsiteURL-%s", uuid.New().String()[:8])))
+		require.NoError(t, err)
+
+		// Create contact
+		contactEmail := fmt.Sprintf("website-url-test-%s@example.com", uuid.New().String()[:8])
+		contact, err := factory.CreateContact(workspace.ID,
+			testutil.WithContactEmail(contactEmail),
+			testutil.WithContactName("Ada", "Lovelace"))
+		require.NoError(t, err)
+		t.Logf("Created contact: %s", contact.Email)
+
+		// Add contact to list
+		_, err = factory.CreateContactList(workspace.ID,
+			testutil.WithContactListEmail(contact.Email),
+			testutil.WithContactListListID(list.ID),
+			testutil.WithContactListStatus(domain.ContactListStatusActive))
+		require.NoError(t, err)
+
+		// Template composes an application link from a relative path (issue #342).
+		// The tokens are plain text (not <a href>) so click-tracking does not rewrite
+		// them, allowing a direct assertion on the rendered URLs.
+		uniqueID := uuid.New().String()[:8]
+		verifyPath := fmt.Sprintf("/users/verify/%s", uniqueID)
+		template, err := factory.CreateTemplate(workspace.ID,
+			testutil.WithTemplateName("Website URL Template"),
+			testutil.WithTemplateSubject(fmt.Sprintf("Verify - %s", uniqueID)),
+			testutil.WithTemplateEmailContent(
+				`Hello {{ contact.first_name }}! verify={{ workspace.website_url }}`+verifyPath+
+					` site=[{{ workspace.website_url }}] base=[{{ workspace.base_url }}]`))
+		require.NoError(t, err)
+		t.Log("Created template using {{ workspace.website_url }} and {{ workspace.base_url }}")
+
+		// Create broadcast
+		broadcast, err := factory.CreateBroadcast(workspace.ID,
+			testutil.WithBroadcastName(fmt.Sprintf("Website URL Broadcast-%s", uniqueID)),
+			testutil.WithBroadcastAudience(domain.AudienceSettings{
+				List:                list.ID,
+				ExcludeUnsubscribed: true,
+			}))
+		require.NoError(t, err)
+
+		// Update broadcast to use our template
+		broadcast.TestSettings.Variations[0].TemplateID = template.ID
+		updateReq := map[string]interface{}{
+			"workspace_id":  workspace.ID,
+			"id":            broadcast.ID,
+			"name":          broadcast.Name,
+			"audience":      broadcast.Audience,
+			"schedule":      broadcast.Schedule,
+			"test_settings": broadcast.TestSettings,
+		}
+		updateResp, err := client.UpdateBroadcast(updateReq)
+		require.NoError(t, err)
+		updateResp.Body.Close()
+
+		// Schedule broadcast to send now
+		t.Log("Scheduling broadcast to send now...")
+		scheduleResp, err := client.ScheduleBroadcast(map[string]interface{}{
+			"workspace_id": workspace.ID,
+			"id":           broadcast.ID,
+			"send_now":     true,
+		})
+		require.NoError(t, err)
+		scheduleResp.Body.Close()
+
+		// Wait for broadcast completion
+		t.Log("Waiting for broadcast completion...")
+		_, err = testutil.WaitForBroadcastStatusWithExecution(t, client, broadcast.ID,
+			[]string{"processed", "completed"}, 60*time.Second)
+		require.NoError(t, err)
+
+		// Fetch email from Mailpit
+		t.Log("Fetching email from Mailpit...")
+		msg, err := waitForEmailByRecipient(t, contactEmail, 15*time.Second)
+		require.NoError(t, err, "Should receive email in Mailpit")
+
+		t.Logf("Email HTML (first 500 chars): %s", truncateString(msg.HTML, 500))
+
+		expectedVerifyURL := "https://app.notifuse-verify.test" + verifyPath
+
+		// website_url composes with a relative path using a single slash (trailing slash trimmed)
+		assert.Contains(t, msg.HTML, "verify="+expectedVerifyURL,
+			"{{ workspace.website_url }} should compose with the relative path")
+		assert.NotContains(t, msg.HTML, "https://app.notifuse-verify.test//",
+			"trailing slash should be trimmed so no double slash appears")
+		// website_url is exposed standalone (trailing slash trimmed)
+		assert.Contains(t, msg.HTML, "site=[https://app.notifuse-verify.test]",
+			"{{ workspace.website_url }} should render the workspace Website URL")
+		// base_url resolves to the tracking endpoint (Custom Endpoint URL), which is a
+		// DIFFERENT domain than website_url — proving the two variables are independent.
+		assert.Contains(t, msg.HTML, "base=[https://track.notifuse-verify.test]",
+			"{{ workspace.base_url }} should render the tracking endpoint, distinct from website_url")
+		// No raw Liquid syntax should survive for either variable
+		assert.NotContains(t, msg.HTML, "{{ workspace.website_url }}",
+			"Raw Liquid syntax should not appear for workspace.website_url")
+		assert.NotContains(t, msg.HTML, "{{ workspace.base_url }}",
+			"Raw Liquid syntax should not appear for workspace.base_url")
+		// Contact variable still renders alongside the workspace variables
+		assert.Contains(t, msg.HTML, "Hello Ada!", "Contact first_name should be rendered")
+	})
 }
 
 // waitForEmailByRecipient waits for an email to arrive for a specific recipient

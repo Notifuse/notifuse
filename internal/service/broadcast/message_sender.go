@@ -25,7 +25,7 @@ type MessageSender interface {
 		template *domain.Template, data map[string]interface{}, emailProvider *domain.EmailProvider, timeoutAt time.Time, contactLanguage string, workspaceDefaultLanguage string) error
 
 	// SendBatch sends messages to a batch of recipients
-	SendBatch(ctx context.Context, workspaceID string, integrationID string, workspaceSecretKey string, endpoint string, trackingEnabled bool, broadcastID string, recipients []*domain.ContactWithList,
+	SendBatch(ctx context.Context, workspaceID string, integrationID string, workspaceSecretKey string, endpoint string, websiteURL string, trackingEnabled bool, broadcastID string, recipients []*domain.ContactWithList,
 		templates map[string]*domain.Template, emailProvider *domain.EmailProvider, timeoutAt time.Time, workspaceDefaultLanguage string) (sent int, failed int, err error)
 }
 
@@ -380,7 +380,7 @@ func (s *messageSender) SendToRecipient(ctx context.Context, workspaceID string,
 }
 
 // SendBatch sends messages to a batch of recipients
-func (s *messageSender) SendBatch(ctx context.Context, workspaceID string, integrationID string, workspaceSecretKey string, endpoint string, trackingEnabled bool, broadcastID string, recipients []*domain.ContactWithList,
+func (s *messageSender) SendBatch(ctx context.Context, workspaceID string, integrationID string, workspaceSecretKey string, endpoint string, websiteURL string, trackingEnabled bool, broadcastID string, recipients []*domain.ContactWithList,
 	templates map[string]*domain.Template, emailProvider *domain.EmailProvider, timeoutAt time.Time, workspaceDefaultLanguage string) (sent int, failed int, err error) {
 
 	// Track specific error types for better reporting
@@ -541,12 +541,13 @@ func (s *messageSender) SendBatch(ctx context.Context, workspaceID string, integ
 
 		// Build the template data with all options
 		req := domain.TemplateDataRequest{
-			WorkspaceID:        workspaceID,
-			WorkspaceSecretKey: workspaceSecretKey,
-			ContactWithList:    *contactWithList,
-			MessageID:          messageID,
-			TrackingSettings:   trackingSettings,
-			Broadcast:          broadcast,
+			WorkspaceID:         workspaceID,
+			WorkspaceSecretKey:  workspaceSecretKey,
+			WorkspaceWebsiteURL: websiteURL,
+			ContactWithList:     *contactWithList,
+			MessageID:           messageID,
+			TrackingSettings:    trackingSettings,
+			Broadcast:           broadcast,
 		}
 		recipientData, err := domain.BuildTemplateData(req)
 		if err != nil {

@@ -595,13 +595,14 @@ func (s *TransactionalNotificationService) SendNotification(
 		}
 
 		req := domain.TemplateDataRequest{
-			WorkspaceID:        workspace.ID,
-			WorkspaceSecretKey: workspace.Settings.SecretKey,
-			ContactWithList:    contactWithList,
-			MessageID:          messageID,
-			ProvidedData:       params.Data,
-			TrackingSettings:   notification.TrackingSettings,
-			Broadcast:          nil,
+			WorkspaceID:         workspace.ID,
+			WorkspaceSecretKey:  workspace.Settings.SecretKey,
+			WorkspaceWebsiteURL: workspace.Settings.WebsiteURL,
+			ContactWithList:     contactWithList,
+			MessageID:           messageID,
+			ProvidedData:        params.Data,
+			TrackingSettings:    notification.TrackingSettings,
+			Broadcast:           nil,
 		}
 		templateData, err := domain.BuildTemplateData(req)
 		if err != nil {
@@ -783,13 +784,14 @@ func (s *TransactionalNotificationService) TestTemplate(ctx context.Context, wor
 	}
 
 	req := domain.TemplateDataRequest{
-		WorkspaceID:        workspace.ID,
-		WorkspaceSecretKey: workspace.Settings.SecretKey,
-		ContactWithList:    contactWithList,
-		MessageID:          messageID,
-		TrackingSettings:   trackingSettings,
-		Broadcast:          nil,
-		ProvidedData:       template.TestData,
+		WorkspaceID:         workspace.ID,
+		WorkspaceSecretKey:  workspace.Settings.SecretKey,
+		WorkspaceWebsiteURL: workspace.Settings.WebsiteURL,
+		ContactWithList:     contactWithList,
+		MessageID:           messageID,
+		TrackingSettings:    trackingSettings,
+		Broadcast:           nil,
+		ProvidedData:        template.TestData,
 	}
 	messageData, err := domain.BuildTemplateData(req)
 

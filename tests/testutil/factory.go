@@ -748,6 +748,29 @@ func (tdf *TestDataFactory) EnableEmailTracking(workspaceID string) error {
 	return tdf.workspaceRepo.Update(context.Background(), workspace)
 }
 
+// SetWorkspaceWebsiteURL sets the workspace's public Website URL (settings.website_url),
+// which is exposed to templates as {{ workspace.website_url }}.
+func (tdf *TestDataFactory) SetWorkspaceWebsiteURL(workspaceID, websiteURL string) error {
+	workspace, err := tdf.workspaceRepo.GetByID(context.Background(), workspaceID)
+	if err != nil {
+		return fmt.Errorf("failed to get workspace: %w", err)
+	}
+	workspace.Settings.WebsiteURL = websiteURL
+	return tdf.workspaceRepo.Update(context.Background(), workspace)
+}
+
+// SetWorkspaceCustomEndpointURL sets the workspace's Custom Endpoint URL (the tracking
+// domain), which resolves into TrackingSettings.Endpoint and is exposed to templates as
+// {{ workspace.base_url }}. Writes directly via the repository to bypass DNS verification.
+func (tdf *TestDataFactory) SetWorkspaceCustomEndpointURL(workspaceID, endpointURL string) error {
+	workspace, err := tdf.workspaceRepo.GetByID(context.Background(), workspaceID)
+	if err != nil {
+		return fmt.Errorf("failed to get workspace: %w", err)
+	}
+	workspace.Settings.CustomEndpointURL = &endpointURL
+	return tdf.workspaceRepo.Update(context.Background(), workspace)
+}
+
 // Option types for customizing test data
 type UserOption func(*domain.User)
 type WorkspaceOption func(*domain.Workspace)

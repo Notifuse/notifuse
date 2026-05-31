@@ -112,21 +112,21 @@ func validateTranslations(translations map[string]TemplateTranslation, channel s
 }
 
 type Template struct {
-	ID              string                          `json:"id"`
-	Name            string                          `json:"name"`
-	Version         int64                           `json:"version"`
-	Channel         string                          `json:"channel"` // email or web
-	Email           *EmailTemplate                  `json:"email,omitempty"`
-	Web             *WebTemplate                    `json:"web,omitempty"`
-	Category        string                          `json:"category"`
-	TemplateMacroID *string                         `json:"template_macro_id,omitempty"`
-	IntegrationID   *string                         `json:"integration_id,omitempty"` // Set if template is managed by an integration (e.g., Supabase)
-	TestData        MapOfAny                        `json:"test_data,omitempty"`
-	Settings        MapOfAny                        `json:"settings,omitempty"` // Channels specific 3rd-party settings
-	Translations    map[string]TemplateTranslation  `json:"translations,omitempty"`
-	CreatedAt       time.Time                       `json:"created_at"`
-	UpdatedAt       time.Time                       `json:"updated_at"`
-	DeletedAt       *time.Time                      `json:"deleted_at,omitempty"`
+	ID              string                         `json:"id"`
+	Name            string                         `json:"name"`
+	Version         int64                          `json:"version"`
+	Channel         string                         `json:"channel"` // email or web
+	Email           *EmailTemplate                 `json:"email,omitempty"`
+	Web             *WebTemplate                   `json:"web,omitempty"`
+	Category        string                         `json:"category"`
+	TemplateMacroID *string                        `json:"template_macro_id,omitempty"`
+	IntegrationID   *string                        `json:"integration_id,omitempty"` // Set if template is managed by an integration (e.g., Supabase)
+	TestData        MapOfAny                       `json:"test_data,omitempty"`
+	Settings        MapOfAny                       `json:"settings,omitempty"` // Channels specific 3rd-party settings
+	Translations    map[string]TemplateTranslation `json:"translations,omitempty"`
+	CreatedAt       time.Time                      `json:"created_at"`
+	UpdatedAt       time.Time                      `json:"updated_at"`
+	DeletedAt       *time.Time                     `json:"deleted_at,omitempty"`
 }
 
 // ResolveEmailContent returns the EmailTemplate for the given contact language.
@@ -275,15 +275,15 @@ func (t TemplateReference) Value() (driver.Value, error) {
 }
 
 type EmailTemplate struct {
-	EditorMode       string                  `json:"editor_mode,omitempty"`
-	MjmlSource       *string                 `json:"mjml_source,omitempty"`
-	SenderID         string                  `json:"sender_id,omitempty"`
-	ReplyTo          string                  `json:"reply_to,omitempty"`
-	Subject          string                  `json:"subject"`
-	SubjectPreview   *string                 `json:"subject_preview,omitempty"`
-	CompiledPreview  string                  `json:"compiled_preview"` // compiled html
+	EditorMode       string                   `json:"editor_mode,omitempty"`
+	MjmlSource       *string                  `json:"mjml_source,omitempty"`
+	SenderID         string                   `json:"sender_id,omitempty"`
+	ReplyTo          string                   `json:"reply_to,omitempty"`
+	Subject          string                   `json:"subject"`
+	SubjectPreview   *string                  `json:"subject_preview,omitempty"`
+	CompiledPreview  string                   `json:"compiled_preview"` // compiled html
 	VisualEditorTree notifuse_mjml.EmailBlock `json:"visual_editor_tree"`
-	Text             *string                 `json:"text,omitempty"`
+	Text             *string                  `json:"text,omitempty"`
 }
 
 // GetCodeModeMjmlSource returns MjmlSource if the template is in code mode, nil otherwise.
@@ -486,17 +486,17 @@ func (w *WebTemplate) UnmarshalJSON(data []byte) error {
 
 // Request/Response types
 type CreateTemplateRequest struct {
-	WorkspaceID     string                          `json:"workspace_id"`
-	ID              string                          `json:"id"`
-	Name            string                          `json:"name"`
-	Channel         string                          `json:"channel"`
-	Email           *EmailTemplate                  `json:"email,omitempty"`
-	Web             *WebTemplate                    `json:"web,omitempty"`
-	Category        string                          `json:"category"`
-	TemplateMacroID *string                         `json:"template_macro_id,omitempty"`
-	TestData        MapOfAny                        `json:"test_data,omitempty"`
-	Settings        MapOfAny                        `json:"settings,omitempty"`
-	Translations    map[string]TemplateTranslation  `json:"translations,omitempty"`
+	WorkspaceID     string                         `json:"workspace_id"`
+	ID              string                         `json:"id"`
+	Name            string                         `json:"name"`
+	Channel         string                         `json:"channel"`
+	Email           *EmailTemplate                 `json:"email,omitempty"`
+	Web             *WebTemplate                   `json:"web,omitempty"`
+	Category        string                         `json:"category"`
+	TemplateMacroID *string                        `json:"template_macro_id,omitempty"`
+	TestData        MapOfAny                       `json:"test_data,omitempty"`
+	Settings        MapOfAny                       `json:"settings,omitempty"`
+	Translations    map[string]TemplateTranslation `json:"translations,omitempty"`
 }
 
 func (r *CreateTemplateRequest) Validate() (template *Template, workspaceID string, err error) {
@@ -640,17 +640,17 @@ func (r *GetTemplateRequest) FromURLParams(queryParams url.Values) (err error) {
 }
 
 type UpdateTemplateRequest struct {
-	WorkspaceID     string                          `json:"workspace_id"`
-	ID              string                          `json:"id"`
-	Name            string                          `json:"name"`
-	Channel         string                          `json:"channel"`
-	Email           *EmailTemplate                  `json:"email,omitempty"`
-	Web             *WebTemplate                    `json:"web,omitempty"`
-	Category        string                          `json:"category"`
-	TemplateMacroID *string                         `json:"template_macro_id,omitempty"`
-	TestData        MapOfAny                        `json:"test_data,omitempty"`
-	Settings        MapOfAny                        `json:"settings,omitempty"`
-	Translations    map[string]TemplateTranslation  `json:"translations,omitempty"`
+	WorkspaceID     string                         `json:"workspace_id"`
+	ID              string                         `json:"id"`
+	Name            string                         `json:"name"`
+	Channel         string                         `json:"channel"`
+	Email           *EmailTemplate                 `json:"email,omitempty"`
+	Web             *WebTemplate                   `json:"web,omitempty"`
+	Category        string                         `json:"category"`
+	TemplateMacroID *string                        `json:"template_macro_id,omitempty"`
+	TestData        MapOfAny                       `json:"test_data,omitempty"`
+	Settings        MapOfAny                       `json:"settings,omitempty"`
+	Translations    map[string]TemplateTranslation `json:"translations,omitempty"`
 }
 
 func (r *UpdateTemplateRequest) Validate() (template *Template, workspaceID string, err error) {
@@ -814,13 +814,14 @@ func (e *ErrEditorModeChange) Error() string {
 
 // TemplateDataRequest groups parameters for building template data
 type TemplateDataRequest struct {
-	WorkspaceID        string                         `json:"workspace_id"`
-	WorkspaceSecretKey string                         `json:"workspace_secret_key"`
-	ContactWithList    ContactWithList                `json:"contact_with_list"`
-	MessageID          string                         `json:"message_id"`
-	ProvidedData       MapOfAny                       `json:"provided_data,omitempty"`
-	TrackingSettings   notifuse_mjml.TrackingSettings `json:"tracking_settings"`
-	Broadcast          *Broadcast                     `json:"broadcast,omitempty"`
+	WorkspaceID         string                         `json:"workspace_id"`
+	WorkspaceSecretKey  string                         `json:"workspace_secret_key"`
+	WorkspaceWebsiteURL string                         `json:"workspace_website_url,omitempty"`
+	ContactWithList     ContactWithList                `json:"contact_with_list"`
+	MessageID           string                         `json:"message_id"`
+	ProvidedData        MapOfAny                       `json:"provided_data,omitempty"`
+	TrackingSettings    notifuse_mjml.TrackingSettings `json:"tracking_settings"`
+	Broadcast           *Broadcast                     `json:"broadcast,omitempty"`
 }
 
 // Validate ensures that the template data request has all required fields
@@ -960,10 +961,15 @@ func BuildTemplateData(req TemplateDataRequest) (MapOfAny, error) {
 		templateData["global_feed"] = req.Broadcast.DataFeed.GlobalFeedData
 	}
 
-	// Expose workspace base URL (resolved CustomEndpointURL, or API endpoint fallback).
-	// Trim any trailing slash so templates can compose links as "{{ workspace.base_url }}/path".
+	// Expose workspace URLs for composing links from relative paths. Trailing slashes are
+	// trimmed so templates can write "{{ workspace.base_url }}/path".
+	//   - base_url: the tracking endpoint (resolved CustomEndpointURL, or API endpoint fallback),
+	//     used for unsubscribe/tracking/notification-center links on the Notifuse domain.
+	//   - website_url: the workspace's public Website URL, for composing application links
+	//     (e.g. "{{ workspace.website_url }}/users/verify/xxx").
 	templateData["workspace"] = MapOfAny{
-		"base_url": strings.TrimRight(req.TrackingSettings.Endpoint, "/"),
+		"base_url":    strings.TrimRight(req.TrackingSettings.Endpoint, "/"),
+		"website_url": strings.TrimRight(req.WorkspaceWebsiteURL, "/"),
 	}
 
 	// Add tracking data

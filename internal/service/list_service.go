@@ -415,8 +415,9 @@ func (s *ListService) SubscribeToLists(ctx context.Context, payload *domain.Subs
 		}
 
 		req := domain.TemplateDataRequest{
-			WorkspaceID:        workspace.ID,
-			WorkspaceSecretKey: workspace.Settings.SecretKey,
+			WorkspaceID:         workspace.ID,
+			WorkspaceSecretKey:  workspace.Settings.SecretKey,
+			WorkspaceWebsiteURL: workspace.Settings.WebsiteURL,
 			ContactWithList: domain.ContactWithList{
 				Contact:  contact,
 				ListID:   listID,

@@ -322,11 +322,12 @@ func (e *EmailNodeExecutor) Execute(ctx context.Context, params NodeExecutionPar
 	}
 
 	templateData, err := domain.BuildTemplateData(domain.TemplateDataRequest{
-		WorkspaceID:        params.WorkspaceID,
-		WorkspaceSecretKey: workspace.Settings.SecretKey,
-		ContactWithList:    domain.ContactWithList{Contact: params.ContactData, ListID: listID, ListName: listName},
-		MessageID:          messageID,
-		TrackingSettings:   trackingSettings,
+		WorkspaceID:         params.WorkspaceID,
+		WorkspaceSecretKey:  workspace.Settings.SecretKey,
+		WorkspaceWebsiteURL: workspace.Settings.WebsiteURL,
+		ContactWithList:     domain.ContactWithList{Contact: params.ContactData, ListID: listID, ListName: listName},
+		MessageID:           messageID,
+		TrackingSettings:    trackingSettings,
 		ProvidedData: domain.MapOfAny{
 			"automation_id":   params.Automation.ID,
 			"automation_name": params.Automation.Name,

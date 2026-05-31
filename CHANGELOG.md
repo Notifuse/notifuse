@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [32.2] - 2026-05-31
+
+- **Feature**: Exposed `{{ workspace.website_url }}` in email templates — the workspace's public Website URL (trailing slash trimmed), distinct from `{{ workspace.base_url }}` (the tracking endpoint) — so templates can compose application links like `{{ workspace.website_url }}/users/verify/xxx` instead of pointing at the tracking domain (#342).
+
 ## [32.1] - 2026-05-29
 
 - **Feature**: Exposed `{{ workspace.base_url }}` in email templates — the resolved Custom Endpoint URL (or the default API endpoint), trailing slash trimmed — so templates can compose links from relative paths like `{{ workspace.base_url }}/users/verify/xxx` (#342).

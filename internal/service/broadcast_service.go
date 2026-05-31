@@ -498,8 +498,8 @@ func (s *BroadcastService) PauseBroadcast(ctx context.Context, request *domain.P
 			return pauseErr
 		}
 		s.logger.WithFields(map[string]interface{}{
-			"broadcast_id":        broadcast.ID,
-			"paused_queue_count":  pausedCount,
+			"broadcast_id":       broadcast.ID,
+			"paused_queue_count": pausedCount,
 		}).Info("Broadcast paused successfully")
 
 		// Create an event with acknowledgment callback
@@ -761,7 +761,7 @@ func (s *BroadcastService) CancelBroadcast(ctx context.Context, request *domain.
 			return deleteErr
 		}
 		s.logger.WithFields(map[string]interface{}{
-			"broadcast_id":         broadcast.ID,
+			"broadcast_id":          broadcast.ID,
 			"cancelled_queue_count": cancelledCount,
 		}).Info("Broadcast cancelled successfully")
 
@@ -980,8 +980,9 @@ func (s *BroadcastService) SendToIndividual(ctx context.Context, request *domain
 	}
 
 	req := domain.TemplateDataRequest{
-		WorkspaceID:        request.WorkspaceID,
-		WorkspaceSecretKey: workspace.Settings.SecretKey,
+		WorkspaceID:         request.WorkspaceID,
+		WorkspaceSecretKey:  workspace.Settings.SecretKey,
+		WorkspaceWebsiteURL: workspace.Settings.WebsiteURL,
 		ContactWithList: domain.ContactWithList{
 			Contact:  contact,
 			ListID:   broadcast.Audience.List, // Use list from broadcast audience for unsubscribe URL

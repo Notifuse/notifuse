@@ -752,6 +752,7 @@ func TestBroadcastOrchestrator_Process(t *testing.T) {
 					"marketing-provider-id",
 					"secret-key",
 					gomock.Any(),
+					gomock.Any(),
 					true,
 					"broadcast-123",
 					recipients,
@@ -882,6 +883,7 @@ func TestBroadcastOrchestrator_Process(t *testing.T) {
 					gomock.Any(),
 					"workspace-123",
 					"marketing-provider-id", "secret-key",
+					gomock.Any(),
 					gomock.Any(),
 					true,
 					"broadcast-123",
@@ -1325,6 +1327,7 @@ func TestBroadcastOrchestrator_Process(t *testing.T) {
 					"workspace-123",
 					"marketing-provider-id", "secret-key",
 					gomock.Any(),
+					gomock.Any(),
 					true,
 					"broadcast-456",
 					recipients,
@@ -1487,7 +1490,7 @@ func TestBroadcastOrchestrator_Process_ABTestStartSetsTestingAndCompletesTestPha
 	mockContactRepo.EXPECT().GetContactsForBroadcast(gomock.Any(), "workspace-123", bcast.Audience, 1, "").Return(recipients, nil)
 
 	// Send batch
-	mockMessageSender.EXPECT().SendBatch(gomock.Any(), "workspace-123", "marketing-provider-id", "secret-key", gomock.Any(), true, "broadcast-123", recipients, gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(1, 0, nil)
+	mockMessageSender.EXPECT().SendBatch(gomock.Any(), "workspace-123", "marketing-provider-id", "secret-key", gomock.Any(), gomock.Any(), true, "broadcast-123", recipients, gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(1, 0, nil)
 
 	// Save state
 	mockTaskRepo.EXPECT().SaveState(gomock.Any(), "workspace-123", "task-123", gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
@@ -1800,7 +1803,7 @@ func TestBroadcastOrchestrator_Process_AutoWinnerEvaluationPath(t *testing.T) {
 	mockContactRepo.EXPECT().GetContactsForBroadcast(gomock.Any(), "w", bcast.Audience, 1, "").Return([]*domain.ContactWithList{{Contact: &domain.Contact{Email: "w@x.com"}}}, nil)
 
 	// Send
-	mockMessageSender.EXPECT().SendBatch(gomock.Any(), "w", "pid", "k", gomock.Any(), true, "b", gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(1, 0, nil)
+	mockMessageSender.EXPECT().SendBatch(gomock.Any(), "w", "pid", "k", gomock.Any(), gomock.Any(), true, "b", gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(1, 0, nil)
 
 	// Save state
 	mockTaskRepo.EXPECT().SaveState(gomock.Any(), "w", "t", gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
@@ -1936,6 +1939,7 @@ func TestBroadcastOrchestrator_Process_ABTestWinnerPhaseProcessesRemainingRecipi
 		"workspace-123",
 		"marketing-provider-id", "secret-key",
 		gomock.Any(), // custom endpoint
+		gomock.Any(),
 		true,
 		"broadcast-123",
 		[]*domain.ContactWithList{recipient},
@@ -2891,6 +2895,7 @@ func TestBroadcastOrchestrator_Process_PartialBatchCursorUpdate(t *testing.T) {
 		"marketing-provider-id",
 		"secret-key",
 		gomock.Any(),
+		gomock.Any(),
 		true,
 		"broadcast-123",
 		recipients1,
@@ -2898,7 +2903,7 @@ func TestBroadcastOrchestrator_Process_PartialBatchCursorUpdate(t *testing.T) {
 		gomock.Any(),
 		gomock.Any(),
 		gomock.Any(),
-	).DoAndReturn(func(_ context.Context, _, _, _, _ interface{}, _ bool, _ string, _ []*domain.ContactWithList, _, _, _, _ interface{}) (int, int, error) {
+	).DoAndReturn(func(_ context.Context, _, _, _, _, _ interface{}, _ bool, _ string, _ []*domain.ContactWithList, _, _, _, _ interface{}) (int, int, error) {
 		sendBatchCalled = true
 		return 3, 0, nil // Only 3 sent due to internal timeout
 	})
@@ -2908,6 +2913,7 @@ func TestBroadcastOrchestrator_Process_PartialBatchCursorUpdate(t *testing.T) {
 		"workspace-123",
 		"marketing-provider-id",
 		"secret-key",
+		gomock.Any(),
 		gomock.Any(),
 		true,
 		"broadcast-123",
@@ -3061,7 +3067,7 @@ func TestProcessBroadcastTask_RecipientFeedFailure_PausesBroadcast(t *testing.T)
 
 	// SendBatch returns ErrBroadcastShouldPause
 	mockMessageSender.EXPECT().SendBatch(
-		gomock.Any(), "workspace-123", "marketing-provider-id", "secret-key", gomock.Any(), true, "broadcast-123",
+		gomock.Any(), "workspace-123", "marketing-provider-id", "secret-key", gomock.Any(), gomock.Any(), true, "broadcast-123",
 		recipients, gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
 	).Return(0, 0, fmt.Errorf("%w: recipient feed failed for user1@test.com: server error", broadcast.ErrBroadcastShouldPause))
 
@@ -3171,7 +3177,7 @@ func TestProcessBroadcastTask_RecipientFeedFailure_NotMarkedAsFailed(t *testing.
 
 	// SendBatch returns ErrBroadcastShouldPause
 	mockMessageSender.EXPECT().SendBatch(
-		gomock.Any(), "workspace-123", "marketing-provider-id", "secret-key", gomock.Any(), true, "broadcast-123",
+		gomock.Any(), "workspace-123", "marketing-provider-id", "secret-key", gomock.Any(), gomock.Any(), true, "broadcast-123",
 		recipients, gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
 	).Return(0, 0, fmt.Errorf("%w: recipient feed failed for user1@test.com: server error", broadcast.ErrBroadcastShouldPause))
 

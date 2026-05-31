@@ -98,6 +98,7 @@ func (s *queueMessageSender) SendBatch(
 	integrationID string,
 	workspaceSecretKey string,
 	endpoint string,
+	websiteURL string,
 	trackingEnabled bool,
 	broadcastID string,
 	recipients []*domain.ContactWithList,
@@ -164,12 +165,13 @@ func (s *queueMessageSender) SendBatch(
 
 		// Build template data with all system variables (unsubscribe_url, notification_center_url, etc.)
 		req := domain.TemplateDataRequest{
-			WorkspaceID:        workspaceID,
-			WorkspaceSecretKey: workspaceSecretKey,
-			ContactWithList:    *recipient,
-			MessageID:          messageID,
-			TrackingSettings:   trackingSettings,
-			Broadcast:          broadcast,
+			WorkspaceID:         workspaceID,
+			WorkspaceSecretKey:  workspaceSecretKey,
+			WorkspaceWebsiteURL: websiteURL,
+			ContactWithList:     *recipient,
+			MessageID:           messageID,
+			TrackingSettings:    trackingSettings,
+			Broadcast:           broadcast,
 		}
 		data, err := domain.BuildTemplateData(req)
 		if err != nil {
