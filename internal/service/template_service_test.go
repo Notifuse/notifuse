@@ -1049,8 +1049,9 @@ func TestCompileTemplate_Success(t *testing.T) {
 	mockAuthService := domainmocks.NewMockAuthService(ctrl)
 	mockRepo := domainmocks.NewMockTemplateRepository(ctrl)
 	mockLogger := &MockLogger{}
+	mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
 
-	svc := service.NewTemplateService(mockRepo, nil, mockAuthService, mockLogger, "https://api.example.com")
+	svc := service.NewTemplateService(mockRepo, mockWorkspaceRepo, mockAuthService, mockLogger, "https://api.example.com")
 
 	ctx := context.Background()
 	workspaceID := "ws_123"
@@ -1066,6 +1067,12 @@ func TestCompileTemplate_Success(t *testing.T) {
 		Permissions: domain.UserPermissions{
 			domain.PermissionResourceTemplates: {Read: true, Write: true},
 		},
+	}, nil)
+
+	// Workspace is loaded to inject the workspace.base_url / website_url template vars
+	mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(&domain.Workspace{
+		ID:       workspaceID,
+		Settings: domain.WorkspaceSettings{WebsiteURL: "https://example.com"},
 	}, nil)
 
 	// --- Act ---
@@ -1104,7 +1111,8 @@ func TestCompileTemplate_TreeToMjmlError(t *testing.T) {
 	mockAuthService := domainmocks.NewMockAuthService(ctrl)
 	mockRepo := domainmocks.NewMockTemplateRepository(ctrl)
 	mockLogger := &MockLogger{}
-	svc := service.NewTemplateService(mockRepo, nil, mockAuthService, mockLogger, "https://api.example.com")
+	mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
+	svc := service.NewTemplateService(mockRepo, mockWorkspaceRepo, mockAuthService, mockLogger, "https://api.example.com")
 
 	ctx := context.Background()
 	workspaceID := "ws_123"
@@ -1125,6 +1133,11 @@ func TestCompileTemplate_TreeToMjmlError(t *testing.T) {
 		Permissions: domain.UserPermissions{
 			domain.PermissionResourceTemplates: {Read: true, Write: true},
 		},
+	}, nil)
+
+	mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(&domain.Workspace{
+		ID:       workspaceID,
+		Settings: domain.WorkspaceSettings{WebsiteURL: "https://example.com"},
 	}, nil)
 
 	// --- Act ---
@@ -1153,8 +1166,9 @@ func TestCompileTemplate_AuthError(t *testing.T) {
 	mockAuthService := domainmocks.NewMockAuthService(ctrl)
 	mockRepo := domainmocks.NewMockTemplateRepository(ctrl)
 	mockLogger := &MockLogger{}
+	mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
 
-	svc := service.NewTemplateService(mockRepo, nil, mockAuthService, mockLogger, "https://api.example.com")
+	svc := service.NewTemplateService(mockRepo, mockWorkspaceRepo, mockAuthService, mockLogger, "https://api.example.com")
 
 	ctx := context.Background()
 	workspaceID := "ws_123"
@@ -1186,8 +1200,9 @@ func TestCompileTemplate_SystemCallBypassesAuth(t *testing.T) {
 	mockAuthService := domainmocks.NewMockAuthService(ctrl)
 	mockRepo := domainmocks.NewMockTemplateRepository(ctrl)
 	mockLogger := &MockLogger{}
+	mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
 
-	svc := service.NewTemplateService(mockRepo, nil, mockAuthService, mockLogger, "https://api.example.com")
+	svc := service.NewTemplateService(mockRepo, mockWorkspaceRepo, mockAuthService, mockLogger, "https://api.example.com")
 
 	// Create a system context that should bypass authentication
 	ctx := context.WithValue(context.Background(), domain.SystemCallKey, true)
@@ -1195,6 +1210,12 @@ func TestCompileTemplate_SystemCallBypassesAuth(t *testing.T) {
 	testTree := createValidTestTree(createTestTextBlock("txt1", "Test"))
 
 	// No auth service call expected since this is a system call
+
+	// Workspace is still loaded to inject the workspace template vars
+	mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(&domain.Workspace{
+		ID:       workspaceID,
+		Settings: domain.WorkspaceSettings{WebsiteURL: "https://example.com"},
+	}, nil)
 
 	// --- Act ---
 	resp, err := svc.CompileTemplate(ctx, domain.CompileTemplateRequest{
@@ -1217,8 +1238,9 @@ func TestCompileTemplate_InvalidTreeData(t *testing.T) {
 	mockAuthService := domainmocks.NewMockAuthService(ctrl)
 	mockRepo := domainmocks.NewMockTemplateRepository(ctrl)
 	mockLogger := &MockLogger{}
+	mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
 
-	svc := service.NewTemplateService(mockRepo, nil, mockAuthService, mockLogger, "https://api.example.com")
+	svc := service.NewTemplateService(mockRepo, mockWorkspaceRepo, mockAuthService, mockLogger, "https://api.example.com")
 
 	ctx := context.Background()
 	workspaceID := "ws_123"
@@ -1235,6 +1257,11 @@ func TestCompileTemplate_InvalidTreeData(t *testing.T) {
 		Permissions: domain.UserPermissions{
 			domain.PermissionResourceTemplates: {Read: true, Write: true},
 		},
+	}, nil)
+
+	mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(&domain.Workspace{
+		ID:       workspaceID,
+		Settings: domain.WorkspaceSettings{WebsiteURL: "https://example.com"},
 	}, nil)
 
 	// --- Act ---
@@ -1450,8 +1477,9 @@ func TestCompileTemplate_WithMjmlSource(t *testing.T) {
 	mockAuthService := domainmocks.NewMockAuthService(ctrl)
 	mockRepo := domainmocks.NewMockTemplateRepository(ctrl)
 	mockLogger := &MockLogger{}
+	mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
 
-	svc := service.NewTemplateService(mockRepo, nil, mockAuthService, mockLogger, "https://api.example.com")
+	svc := service.NewTemplateService(mockRepo, mockWorkspaceRepo, mockAuthService, mockLogger, "https://api.example.com")
 
 	ctx := context.Background()
 	workspaceID := "ws-123"
@@ -1468,6 +1496,11 @@ func TestCompileTemplate_WithMjmlSource(t *testing.T) {
 		},
 	}, nil)
 
+	mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(&domain.Workspace{
+		ID:       workspaceID,
+		Settings: domain.WorkspaceSettings{WebsiteURL: "https://example.com"},
+	}, nil)
+
 	resp, err := svc.CompileTemplate(ctx, domain.CompileTemplateRequest{
 		WorkspaceID: workspaceID,
 		MessageID:   "msg-123",
@@ -1479,6 +1512,318 @@ func TestCompileTemplate_WithMjmlSource(t *testing.T) {
 	assert.True(t, resp.Success)
 	require.NotNil(t, resp.HTML)
 	assert.Contains(t, *resp.HTML, "Hello World")
+}
+
+// TestCompileTemplate_InjectsWorkspaceData verifies the preview exposes
+// workspace.base_url / workspace.website_url (resolving the custom endpoint and
+// trimming trailing slashes), renders them via Liquid, and echoes the effective
+// data back so the console can display it.
+func TestCompileTemplate_InjectsWorkspaceData(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockAuthService := domainmocks.NewMockAuthService(ctrl)
+	mockRepo := domainmocks.NewMockTemplateRepository(ctrl)
+	mockLogger := &MockLogger{}
+	mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
+	svc := service.NewTemplateService(mockRepo, mockWorkspaceRepo, mockAuthService, mockLogger, "https://api.example.com")
+
+	ctx := context.Background()
+	workspaceID := "ws_123"
+	userID := "user_abc"
+	testTree := createValidTestTree(createTestTextBlock("txt1", "Visit {{ workspace.website_url }}/verify"))
+	customEndpoint := "https://track.example.com/"
+
+	mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{ID: userID}, &domain.UserWorkspace{
+		UserID:      userID,
+		WorkspaceID: workspaceID,
+		Role:        "member",
+		Permissions: domain.UserPermissions{
+			domain.PermissionResourceTemplates: {Read: true, Write: true},
+		},
+	}, nil)
+	mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(&domain.Workspace{
+		ID: workspaceID,
+		Settings: domain.WorkspaceSettings{
+			WebsiteURL:        "https://app.example.com/",
+			CustomEndpointURL: &customEndpoint,
+		},
+	}, nil)
+
+	resp, err := svc.CompileTemplate(ctx, domain.CompileTemplateRequest{
+		WorkspaceID:      workspaceID,
+		VisualEditorTree: testTree,
+		TemplateData:     notifuse_mjml.MapOfAny{},
+	})
+
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	require.True(t, resp.Success)
+
+	// Effective data is echoed back with the injected workspace object, trailing slashes trimmed.
+	require.NotNil(t, resp.TemplateData)
+	ws, ok := resp.TemplateData["workspace"].(notifuse_mjml.MapOfAny)
+	require.True(t, ok, "workspace object should be injected into the effective template data")
+	assert.Equal(t, "https://track.example.com", ws["base_url"], "base_url should resolve the custom endpoint with trailing slash trimmed")
+	assert.Equal(t, "https://app.example.com", ws["website_url"], "website_url should be trimmed")
+
+	// And it is actually rendered in the HTML via Liquid.
+	require.NotNil(t, resp.HTML)
+	assert.Contains(t, *resp.HTML, "https://app.example.com/verify")
+}
+
+// TestCompileTemplate_WorkspaceBaseURLFallsBackToAPIEndpoint verifies base_url falls
+// back to the configured API endpoint when no custom endpoint is set — matching send time.
+func TestCompileTemplate_WorkspaceBaseURLFallsBackToAPIEndpoint(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockAuthService := domainmocks.NewMockAuthService(ctrl)
+	mockRepo := domainmocks.NewMockTemplateRepository(ctrl)
+	mockLogger := &MockLogger{}
+	mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
+	svc := service.NewTemplateService(mockRepo, mockWorkspaceRepo, mockAuthService, mockLogger, "https://api.example.com")
+
+	ctx := context.Background()
+	workspaceID := "ws_123"
+	userID := "user_abc"
+	testTree := createValidTestTree(createTestTextBlock("txt1", "Hello"))
+
+	mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{ID: userID}, &domain.UserWorkspace{
+		UserID:      userID,
+		WorkspaceID: workspaceID,
+		Role:        "member",
+		Permissions: domain.UserPermissions{
+			domain.PermissionResourceTemplates: {Read: true, Write: true},
+		},
+	}, nil)
+	// No custom endpoint configured.
+	mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(&domain.Workspace{
+		ID:       workspaceID,
+		Settings: domain.WorkspaceSettings{WebsiteURL: "https://app.example.com"},
+	}, nil)
+
+	resp, err := svc.CompileTemplate(ctx, domain.CompileTemplateRequest{
+		WorkspaceID:      workspaceID,
+		VisualEditorTree: testTree,
+		TemplateData:     notifuse_mjml.MapOfAny{},
+		// A non-empty request endpoint distinct from the API endpoint proves the
+		// fallback resolves to s.apiEndpoint rather than echoing the request value.
+		TrackingSettings: notifuse_mjml.TrackingSettings{Endpoint: "https://other.example.com"},
+	})
+
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	require.NotNil(t, resp.TemplateData)
+	ws, ok := resp.TemplateData["workspace"].(notifuse_mjml.MapOfAny)
+	require.True(t, ok)
+	assert.Equal(t, "https://api.example.com", ws["base_url"], "base_url should fall back to the API endpoint, not the request endpoint")
+}
+
+// TestCompileTemplate_PreservesProvidedWorkspaceData verifies a complete caller-provided
+// workspace object (e.g. a historical message preview carrying the send-time snapshot,
+// decoded from JSON as a map[string]any) is preserved rather than overwritten — so the
+// workspace is NOT reloaded.
+func TestCompileTemplate_PreservesProvidedWorkspaceData(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockAuthService := domainmocks.NewMockAuthService(ctrl)
+	mockRepo := domainmocks.NewMockTemplateRepository(ctrl)
+	mockLogger := &MockLogger{}
+	mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
+	svc := service.NewTemplateService(mockRepo, mockWorkspaceRepo, mockAuthService, mockLogger, "https://api.example.com")
+
+	ctx := context.Background()
+	workspaceID := "ws_123"
+	userID := "user_abc"
+	testTree := createValidTestTree(createTestTextBlock("txt1", "Visit {{ workspace.website_url }}/verify"))
+
+	mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{ID: userID}, &domain.UserWorkspace{
+		UserID:      userID,
+		WorkspaceID: workspaceID,
+		Role:        "member",
+		Permissions: domain.UserPermissions{
+			domain.PermissionResourceTemplates: {Read: true, Write: true},
+		},
+	}, nil)
+	// GetByID must NOT be called when the caller already provides a complete workspace object.
+
+	resp, err := svc.CompileTemplate(ctx, domain.CompileTemplateRequest{
+		WorkspaceID:      workspaceID,
+		VisualEditorTree: testTree,
+		TemplateData: notifuse_mjml.MapOfAny{
+			// map[string]any mirrors how json.Unmarshal decodes the request body.
+			"workspace": map[string]any{
+				"base_url":    "https://snapshot.example.com",
+				"website_url": "https://old-app.example.com",
+			},
+		},
+	})
+
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	require.True(t, resp.Success)
+
+	ws, ok := resp.TemplateData["workspace"].(map[string]any)
+	require.True(t, ok)
+	assert.Equal(t, "https://old-app.example.com", ws["website_url"], "provided workspace data must be preserved")
+	assert.Equal(t, "https://snapshot.example.com", ws["base_url"], "provided workspace data must be preserved")
+	require.NotNil(t, resp.HTML)
+	assert.Contains(t, *resp.HTML, "https://old-app.example.com/verify")
+}
+
+// TestCompileTemplate_FillsMissingWorkspaceKeys verifies that a PARTIAL workspace object
+// (older templates whose saved test_data carries only base_url) gets the missing
+// website_url filled in from the workspace, while the provided base_url is preserved.
+func TestCompileTemplate_FillsMissingWorkspaceKeys(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockAuthService := domainmocks.NewMockAuthService(ctrl)
+	mockRepo := domainmocks.NewMockTemplateRepository(ctrl)
+	mockLogger := &MockLogger{}
+	mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
+	svc := service.NewTemplateService(mockRepo, mockWorkspaceRepo, mockAuthService, mockLogger, "https://api.example.com")
+
+	ctx := context.Background()
+	workspaceID := "ws_123"
+	userID := "user_abc"
+	testTree := createValidTestTree(createTestTextBlock("txt1", "Visit {{ workspace.website_url }}/verify"))
+
+	mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{ID: userID}, &domain.UserWorkspace{
+		UserID:      userID,
+		WorkspaceID: workspaceID,
+		Role:        "member",
+		Permissions: domain.UserPermissions{
+			domain.PermissionResourceTemplates: {Read: true, Write: true},
+		},
+	}, nil)
+	// The missing website_url is sourced from the workspace.
+	mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(&domain.Workspace{
+		ID:       workspaceID,
+		Settings: domain.WorkspaceSettings{WebsiteURL: "https://app.example.com/"},
+	}, nil)
+
+	resp, err := svc.CompileTemplate(ctx, domain.CompileTemplateRequest{
+		WorkspaceID:      workspaceID,
+		VisualEditorTree: testTree,
+		TemplateData: notifuse_mjml.MapOfAny{
+			// Only base_url provided (the pre-fix CreateTemplateDrawer shape); website_url is absent.
+			"workspace": map[string]any{
+				"base_url": "https://snapshot.example.com",
+			},
+		},
+	})
+
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	require.True(t, resp.Success)
+
+	ws, ok := resp.TemplateData["workspace"].(map[string]any)
+	require.True(t, ok)
+	assert.Equal(t, "https://snapshot.example.com", ws["base_url"], "provided base_url must be preserved")
+	assert.Equal(t, "https://app.example.com", ws["website_url"], "missing website_url should be filled (trailing slash trimmed)")
+	require.NotNil(t, resp.HTML)
+	assert.Contains(t, *resp.HTML, "https://app.example.com/verify")
+}
+
+// TestCompileTemplate_WorkspaceLoadFailureUsesFallback verifies the preview still renders
+// (with the request endpoint as base_url and an empty website_url) when the workspace
+// lookup fails, rather than failing the whole compile.
+func TestCompileTemplate_WorkspaceLoadFailureUsesFallback(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockAuthService := domainmocks.NewMockAuthService(ctrl)
+	mockRepo := domainmocks.NewMockTemplateRepository(ctrl)
+	mockLogger := &MockLogger{}
+	mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
+	svc := service.NewTemplateService(mockRepo, mockWorkspaceRepo, mockAuthService, mockLogger, "https://api.example.com")
+
+	ctx := context.Background()
+	workspaceID := "ws_123"
+	userID := "user_abc"
+	testTree := createValidTestTree(createTestTextBlock("txt1", "Hello"))
+
+	mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{ID: userID}, &domain.UserWorkspace{
+		UserID:      userID,
+		WorkspaceID: workspaceID,
+		Role:        "member",
+		Permissions: domain.UserPermissions{
+			domain.PermissionResourceTemplates: {Read: true, Write: true},
+		},
+	}, nil)
+	mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(nil, errors.New("workspace unavailable"))
+
+	resp, err := svc.CompileTemplate(ctx, domain.CompileTemplateRequest{
+		WorkspaceID:      workspaceID,
+		VisualEditorTree: testTree,
+		TemplateData:     notifuse_mjml.MapOfAny{},
+		TrackingSettings: notifuse_mjml.TrackingSettings{Endpoint: "https://fallback.example.com"},
+	})
+
+	require.NoError(t, err, "preview should not fail when the workspace lookup fails")
+	require.NotNil(t, resp)
+	require.NotNil(t, resp.TemplateData)
+	ws, ok := resp.TemplateData["workspace"].(notifuse_mjml.MapOfAny)
+	require.True(t, ok)
+	assert.Equal(t, "https://fallback.example.com", ws["base_url"], "base_url falls back to the request endpoint")
+	assert.Equal(t, "", ws["website_url"], "website_url is empty when the workspace can't be loaded")
+}
+
+// TestCompileTemplate_FillsMissingWorkspaceKeys_MapOfAny verifies the missing-key fill
+// also works when the provided workspace object is a notifuse_mjml.MapOfAny (built in Go)
+// rather than a map[string]any (decoded from JSON) — both underlying types are accepted.
+func TestCompileTemplate_FillsMissingWorkspaceKeys_MapOfAny(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockAuthService := domainmocks.NewMockAuthService(ctrl)
+	mockRepo := domainmocks.NewMockTemplateRepository(ctrl)
+	mockLogger := &MockLogger{}
+	mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
+	svc := service.NewTemplateService(mockRepo, mockWorkspaceRepo, mockAuthService, mockLogger, "https://api.example.com")
+
+	ctx := context.Background()
+	workspaceID := "ws_123"
+	userID := "user_abc"
+	testTree := createValidTestTree(createTestTextBlock("txt1", "Visit {{ workspace.website_url }}/verify"))
+
+	mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{ID: userID}, &domain.UserWorkspace{
+		UserID:      userID,
+		WorkspaceID: workspaceID,
+		Role:        "member",
+		Permissions: domain.UserPermissions{
+			domain.PermissionResourceTemplates: {Read: true, Write: true},
+		},
+	}, nil)
+	mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(&domain.Workspace{
+		ID:       workspaceID,
+		Settings: domain.WorkspaceSettings{WebsiteURL: "https://app.example.com"},
+	}, nil)
+
+	resp, err := svc.CompileTemplate(ctx, domain.CompileTemplateRequest{
+		WorkspaceID:      workspaceID,
+		VisualEditorTree: testTree,
+		TemplateData: notifuse_mjml.MapOfAny{
+			// Partial workspace as a MapOfAny (not map[string]any) — missing website_url.
+			"workspace": notifuse_mjml.MapOfAny{
+				"base_url": "https://snapshot.example.com",
+			},
+		},
+	})
+
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	require.True(t, resp.Success)
+
+	ws, ok := resp.TemplateData["workspace"].(notifuse_mjml.MapOfAny)
+	require.True(t, ok)
+	assert.Equal(t, "https://snapshot.example.com", ws["base_url"], "provided base_url must be preserved")
+	assert.Equal(t, "https://app.example.com", ws["website_url"], "missing website_url should be filled even for a MapOfAny")
+	require.NotNil(t, resp.HTML)
+	assert.Contains(t, *resp.HTML, "https://app.example.com/verify")
 }
 
 func TestTemplateService_UpdateEmailMetadataBlocks_CodeMode(t *testing.T) {

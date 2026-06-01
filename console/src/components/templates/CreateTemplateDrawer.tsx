@@ -288,14 +288,14 @@ export function CreateTemplateDrawer({
     // These example values show available template variables for preview
     // Note: Preview links (mid=preview) show a "Preview Mode" message in the notification center
     // Real emails use secure HMACs for authentication
+    // The `workspace` object (base_url / website_url) is intentionally omitted: the compile
+    // endpoint injects it server-side (single source of truth), so it renders in the preview
+    // and is echoed back without being hard-coded here.
     return {
       contact: {
         first_name: 'John',
         last_name: 'Doe',
         email: 'john.doe@example.com'
-      },
-      workspace: {
-        base_url: endpoint
       },
       list: {
         id: 'newsletter',

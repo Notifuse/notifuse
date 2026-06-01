@@ -37,6 +37,9 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
   const [renderedSubject, setRenderedSubject] = useState<string | null>(null)
   const [renderedSubjectPreview, setRenderedSubjectPreview] = useState<string | null>(null)
   const [selectedLanguage, setSelectedLanguage] = useState<string | null>(null)
+  // Effective template data returned by the compile endpoint (includes the workspace
+  // object the server injects). Displayed in the Template Data tab so it matches the render.
+  const [effectiveTestData, setEffectiveTestData] = useState<Record<string, unknown> | null>(null)
 
   const availableLanguages = useMemo(() => {
     if (messageHistory) return []
@@ -85,6 +88,7 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
     setPreviewMjml(null)
     setRenderedSubject(null)
     setRenderedSubjectPreview(null)
+    setEffectiveTestData(null)
     setActiveTabKey('1') // Reset to HTML tab on new fetch
 
     try {
@@ -145,6 +149,9 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
       // MJML-error paths, so update them either way before branching.
       setRenderedSubject(response.subject ?? null)
       setRenderedSubjectPreview(response.subject_preview ?? null)
+      // The server echoes back the effective template data (with the injected
+      // workspace object) so the Template Data tab matches what was rendered.
+      setEffectiveTestData(response.test_data ?? null)
 
       if (response.error) {
         setMjmlError(response.error)
@@ -183,6 +190,7 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
       setActiveTabKey('1')
       setRenderedSubject(null)
       setRenderedSubjectPreview(null)
+      setEffectiveTestData(null)
       setSelectedLanguage(null)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps -- fetchPreview is stable
@@ -214,8 +222,10 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
     })
   }
 
-  // Add Template Data tab regardless of preview status
-  const testData = templateData || record.test_data || {}
+  // Add Template Data tab regardless of preview status. Prefer the effective data the
+  // server rendered with (includes the injected workspace object); fall back to the
+  // local data before the first compile resolves.
+  const testData = effectiveTestData || templateData || record.test_data || {}
   items.push({
     key: '3',
     label: t`Template Data`,

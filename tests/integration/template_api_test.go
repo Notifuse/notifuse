@@ -346,6 +346,194 @@ func TestTemplateCompileWithSubject(t *testing.T) {
 	assert.NotNil(t, body.HTML, "response should still include compiled HTML")
 }
 
+// TestTemplateCompileInjectsWorkspaceURLs verifies the compile endpoint exposes
+// workspace.website_url / workspace.base_url to Liquid (injected server-side, so
+// any API consumer gets them — not just the console) and echoes the effective
+// template data back so the console can display it.
+func TestTemplateCompileInjectsWorkspaceURLs(t *testing.T) {
+	testutil.SkipIfShort(t)
+	testutil.SetupTestEnvironment()
+	defer testutil.CleanupTestEnvironment()
+
+	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
+		return app.NewApp(cfg)
+	})
+	defer func() { suite.Cleanup() }()
+
+	client := suite.APIClient
+
+	email := "test@example.com"
+	token := performCompleteSignInFlow(t, client, email)
+	client.SetToken(token)
+
+	websiteURL := "https://app.example.com"
+	// base_url resolution (custom endpoint / API-endpoint fallback / trimming) is covered
+	// by the unit tests. This test focuses on the website_url end-to-end path.
+	workspaceID := createTestWorkspaceWithWebsite(t, client, "Workspace URL Test", websiteURL)
+
+	// test_data intentionally omits a "workspace" key so the server injects it.
+	compileReq := map[string]interface{}{
+		"workspace_id": workspaceID,
+		"message_id":   "preview",
+		"test_data": map[string]interface{}{
+			"verify_path": "/users/verify/abc123",
+		},
+		"visual_editor_tree": map[string]interface{}{
+			"id":         "mjml-1",
+			"type":       "mjml",
+			"attributes": map[string]interface{}{},
+			"children": []interface{}{
+				map[string]interface{}{
+					"id":         "body-1",
+					"type":       "mj-body",
+					"attributes": map[string]interface{}{},
+					"children": []interface{}{
+						map[string]interface{}{
+							"id":         "section-1",
+							"type":       "mj-section",
+							"attributes": map[string]interface{}{},
+							"children": []interface{}{
+								map[string]interface{}{
+									"id":         "column-1",
+									"type":       "mj-column",
+									"attributes": map[string]interface{}{},
+									"children": []interface{}{
+										map[string]interface{}{
+											"id":         "text-1",
+											"type":       "mj-text",
+											"attributes": map[string]interface{}{},
+											"content":    "Verify: {{ workspace.website_url }}{{ verify_path }}",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	resp, err := client.CompileTemplate(compileReq)
+	require.NoError(t, err)
+	defer func() { _ = resp.Body.Close() }()
+	require.Equal(t, http.StatusOK, resp.StatusCode, "compile should return 200")
+
+	var body struct {
+		Success  bool                   `json:"success"`
+		HTML     *string                `json:"html"`
+		TestData map[string]interface{} `json:"test_data"`
+	}
+	require.NoError(t, json.NewDecoder(resp.Body).Decode(&body))
+
+	assert.True(t, body.Success, "compile should succeed")
+
+	// The composed application link renders from the workspace website URL.
+	require.NotNil(t, body.HTML, "response should include compiled HTML")
+	assert.Contains(t, *body.HTML, "https://app.example.com/users/verify/abc123",
+		"workspace.website_url should be composed with the relative path")
+
+	// The effective data is echoed back with the injected workspace object.
+	require.NotNil(t, body.TestData, "response should echo the effective test_data")
+	ws, ok := body.TestData["workspace"].(map[string]interface{})
+	require.True(t, ok, "effective test_data should contain the injected workspace object")
+	assert.Equal(t, websiteURL, ws["website_url"], "website_url should match the workspace setting")
+	_, hasBaseURL := ws["base_url"]
+	assert.True(t, hasBaseURL, "workspace object should include base_url")
+}
+
+// TestTemplateCompileFillsMissingWorkspaceURL covers the older-template shape end-to-end:
+// test_data already carries a partial workspace object (just base_url, as templates saved
+// before this change did). The server must preserve the provided base_url and fill in the
+// missing website_url — exercising the real JSON-decode (map[string]any) path.
+func TestTemplateCompileFillsMissingWorkspaceURL(t *testing.T) {
+	testutil.SkipIfShort(t)
+	testutil.SetupTestEnvironment()
+	defer testutil.CleanupTestEnvironment()
+
+	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
+		return app.NewApp(cfg)
+	})
+	defer func() { suite.Cleanup() }()
+
+	client := suite.APIClient
+
+	email := "test@example.com"
+	token := performCompleteSignInFlow(t, client, email)
+	client.SetToken(token)
+
+	websiteURL := "https://app.example.com"
+	workspaceID := createTestWorkspaceWithWebsite(t, client, "Partial Workspace Test", websiteURL)
+
+	compileReq := map[string]interface{}{
+		"workspace_id": workspaceID,
+		"message_id":   "preview",
+		"test_data": map[string]interface{}{
+			// Partial workspace object: base_url present, website_url missing.
+			"workspace": map[string]interface{}{
+				"base_url": "https://snapshot.example.com",
+			},
+		},
+		"visual_editor_tree": map[string]interface{}{
+			"id":         "mjml-1",
+			"type":       "mjml",
+			"attributes": map[string]interface{}{},
+			"children": []interface{}{
+				map[string]interface{}{
+					"id":         "body-1",
+					"type":       "mj-body",
+					"attributes": map[string]interface{}{},
+					"children": []interface{}{
+						map[string]interface{}{
+							"id":         "section-1",
+							"type":       "mj-section",
+							"attributes": map[string]interface{}{},
+							"children": []interface{}{
+								map[string]interface{}{
+									"id":         "column-1",
+									"type":       "mj-column",
+									"attributes": map[string]interface{}{},
+									"children": []interface{}{
+										map[string]interface{}{
+											"id":         "text-1",
+											"type":       "mj-text",
+											"attributes": map[string]interface{}{},
+											"content":    "Visit {{ workspace.website_url }}/verify",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	resp, err := client.CompileTemplate(compileReq)
+	require.NoError(t, err)
+	defer func() { _ = resp.Body.Close() }()
+	require.Equal(t, http.StatusOK, resp.StatusCode, "compile should return 200")
+
+	var body struct {
+		Success  bool                   `json:"success"`
+		HTML     *string                `json:"html"`
+		TestData map[string]interface{} `json:"test_data"`
+	}
+	require.NoError(t, json.NewDecoder(resp.Body).Decode(&body))
+
+	assert.True(t, body.Success, "compile should succeed")
+	require.NotNil(t, body.HTML)
+	assert.Contains(t, *body.HTML, "https://app.example.com/verify",
+		"missing website_url should be filled from the workspace")
+
+	require.NotNil(t, body.TestData)
+	ws, ok := body.TestData["workspace"].(map[string]interface{})
+	require.True(t, ok)
+	assert.Equal(t, "https://snapshot.example.com", ws["base_url"], "provided base_url must be preserved")
+	assert.Equal(t, websiteURL, ws["website_url"], "missing website_url must be filled")
+}
+
 // Helper functions for creating test data
 // These are currently unused but kept for potential future use
 

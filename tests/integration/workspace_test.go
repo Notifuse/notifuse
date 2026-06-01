@@ -1148,3 +1148,37 @@ func createTestWorkspace(t *testing.T, client *testutil.APIClient, name string) 
 
 	return workspaceID
 }
+
+// createTestWorkspaceWithWebsite creates a workspace with a website_url configured,
+// used to exercise the workspace.website_url template variable. (CustomEndpointURL is
+// intentionally not settable here: the create endpoint doesn't persist it — it only
+// goes through the DNS-verified settings-update flow.)
+func createTestWorkspaceWithWebsite(t *testing.T, client *testutil.APIClient, name, websiteURL string) string {
+	currentToken := client.GetToken()
+
+	rootEmail := "test@example.com" // matches the RootEmail in test config
+	rootToken := performCompleteSignInFlow(t, client, rootEmail)
+	client.SetToken(rootToken)
+
+	workspaceID := "test" + uuid.New().String()[:8]
+	createReq := domain.CreateWorkspaceRequest{
+		ID:   workspaceID,
+		Name: name,
+		Settings: domain.WorkspaceSettings{
+			Timezone:        "UTC",
+			DefaultLanguage: "en",
+			Languages:       []string{"en"},
+			WebsiteURL:      websiteURL,
+		},
+	}
+
+	resp, err := client.Post("/api/workspaces.create", createReq)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	require.Equal(t, http.StatusCreated, resp.StatusCode)
+
+	client.SetToken(currentToken)
+
+	return workspaceID
+}

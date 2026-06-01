@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [32.3] - 2026-06-01
+
+- **Improvement**: `{{ workspace.base_url }}` / `{{ workspace.website_url }}` now render in the template preview — the `/api/templates.compile` endpoint injects the workspace object server-side (filling only missing keys, so historical message snapshots are preserved), so any API consumer gets it, not just the console, and the Preview tab no longer renders `website_url` as empty (#342).
+
 ## [32.2] - 2026-05-31
 
 - **Feature**: Exposed `{{ workspace.website_url }}` in email templates — the workspace's public Website URL (trailing slash trimmed), distinct from `{{ workspace.base_url }}` (the tracking endpoint) — so templates can compose application links like `{{ workspace.website_url }}/users/verify/xxx` instead of pointing at the tracking domain (#342).

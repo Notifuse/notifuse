@@ -162,6 +162,7 @@ export interface CompileTemplateResponse {
   subject?: string // Rendered subject; only present when request.subject was set
   subject_preview?: string // Rendered subject preview; only present when request.subject_preview was set
   error?: MjmlCompileError // Use the structured error type, optional
+  test_data?: Record<string, unknown> // Effective template data used to render (includes the injected workspace object)
 }
 
 export interface TestEmailProviderRequest {

@@ -321,6 +321,7 @@ type CompileTemplateResponse struct {
 	Subject        *string     `json:"subject,omitempty"`         // Rendered email subject (Liquid processed); omit if not provided in request
 	SubjectPreview *string     `json:"subject_preview,omitempty"` // Rendered email subject preview (Liquid processed); omit if not provided in request
 	Error          *mjml.Error `json:"error,omitempty"`           // Pointer, omit if nil
+	TemplateData   MapOfAny    `json:"test_data,omitempty"`       // Effective template data used for rendering (includes the injected workspace object); omit if empty
 }
 
 // renderSubjectField applies the same Liquid rules used for the body to a header

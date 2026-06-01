@@ -423,5 +423,80 @@ func (s *TemplateService) CompileTemplate(ctx context.Context, payload domain.Co
 		payload.TrackingSettings.Endpoint = s.apiEndpoint
 	}
 
-	return notifuse_mjml.CompileTemplate(payload)
+	// Expose the workspace URLs so {{ workspace.base_url }} / {{ workspace.website_url }}
+	// render in the preview exactly as they do at send time (where BuildTemplateData
+	// injects them). The compile endpoint renders Liquid from the supplied test_data
+	// only, so we inject here — this also covers callers hitting the API directly, not
+	// just the console.
+	//
+	// Only missing keys are filled: a complete workspace object (e.g. a historical
+	// message's send-time snapshot, or an internal caller's BuildTemplateData output) is
+	// preserved untouched, while a partial one — such as older templates whose saved
+	// test_data carries just base_url — gets the remaining keys added. The value may be a
+	// plain map[string]any (decoded from a JSON request) or a notifuse_mjml.MapOfAny
+	// (built in Go); both share the same underlying type, so we accept either.
+	workspaceVal, hasWorkspace := payload.TemplateData["workspace"]
+	var existingWorkspace map[string]any
+	switch w := workspaceVal.(type) {
+	case map[string]any:
+		existingWorkspace = w
+	case notifuse_mjml.MapOfAny:
+		existingWorkspace = w
+	}
+	needBaseURL := !hasWorkspace
+	needWebsiteURL := !hasWorkspace
+	if existingWorkspace != nil {
+		_, hasBaseURL := existingWorkspace["base_url"]
+		_, hasWebsiteURL := existingWorkspace["website_url"]
+		needBaseURL = !hasBaseURL
+		needWebsiteURL = !hasWebsiteURL
+	}
+
+	if needBaseURL || needWebsiteURL {
+		baseURL := payload.TrackingSettings.Endpoint
+		websiteURL := ""
+		if ws, err := s.workspaceRepo.GetByID(ctx, payload.WorkspaceID); err == nil && ws != nil {
+			websiteURL = ws.Settings.WebsiteURL
+			// Resolve the base URL the same way as the send path: custom endpoint wins,
+			// otherwise fall back to the API endpoint.
+			if ws.Settings.CustomEndpointURL != nil && *ws.Settings.CustomEndpointURL != "" {
+				baseURL = *ws.Settings.CustomEndpointURL
+			} else {
+				baseURL = s.apiEndpoint
+			}
+		} else if err != nil {
+			// Degrade gracefully — render with the fallback URLs rather than failing the
+			// preview — but surface the lookup failure so a silently-wrong preview is traceable.
+			s.logger.WithField("workspace_id", payload.WorkspaceID).
+				WithField("error", err.Error()).
+				Warn("CompileTemplate: could not load workspace for template variables; using fallback URLs")
+		}
+		base := strings.TrimRight(baseURL, "/")
+		website := strings.TrimRight(websiteURL, "/")
+
+		if existingWorkspace != nil {
+			if needBaseURL {
+				existingWorkspace["base_url"] = base
+			}
+			if needWebsiteURL {
+				existingWorkspace["website_url"] = website
+			}
+		} else {
+			if payload.TemplateData == nil {
+				payload.TemplateData = notifuse_mjml.MapOfAny{}
+			}
+			payload.TemplateData["workspace"] = notifuse_mjml.MapOfAny{
+				"base_url":    base,
+				"website_url": website,
+			}
+		}
+	}
+
+	resp, err := notifuse_mjml.CompileTemplate(payload)
+	// Echo the effective template data back so the console can display exactly what
+	// was rendered (including the injected workspace object) in its Template Data tab.
+	if resp != nil {
+		resp.TemplateData = payload.TemplateData
+	}
+	return resp, err
 }
