@@ -60,6 +60,8 @@ var ValidEventKinds = []string{
 	// Email events
 	"email.sent", "email.delivered", "email.opened", "email.clicked",
 	"email.bounced", "email.complained", "email.unsubscribed",
+	// Inbound reply event (contact replied to an email we sent)
+	"email.replied",
 	// Custom events (require custom_event_name)
 	"custom_event",
 }

@@ -663,9 +663,19 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 		DECLARE
 			changes_json JSONB := '{}'::jsonb;
 			entity_id_value VARCHAR(255);
+			kind_value VARCHAR(50);
 		BEGIN
 			-- Use message_id if available, otherwise use inbound webhook event id
 			entity_id_value := COALESCE(NEW.message_id, NEW.id::text);
+
+			-- Reply events get a dedicated timeline kind ("email.replied") so
+			-- automations can trigger on them; all other inbound webhook events
+			-- keep the generic kind.
+			IF NEW.type = 'reply' THEN
+				kind_value := 'email.replied';
+			ELSE
+				kind_value := 'insert_inbound_webhook_event';
+			END IF;
 
 			changes_json := jsonb_build_object('type', jsonb_build_object('new', NEW.type), 'source', jsonb_build_object('new', NEW.source));
 			IF NEW.bounce_type IS NOT NULL AND NEW.bounce_type != '' THEN changes_json := changes_json || jsonb_build_object('bounce_type', jsonb_build_object('new', NEW.bounce_type)); END IF;
@@ -673,7 +683,7 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 			IF NEW.bounce_diagnostic IS NOT NULL AND NEW.bounce_diagnostic != '' THEN changes_json := changes_json || jsonb_build_object('bounce_diagnostic', jsonb_build_object('new', NEW.bounce_diagnostic)); END IF;
 			IF NEW.complaint_feedback_type IS NOT NULL AND NEW.complaint_feedback_type != '' THEN changes_json := changes_json || jsonb_build_object('complaint_feedback_type', jsonb_build_object('new', NEW.complaint_feedback_type)); END IF;
 			INSERT INTO contact_timeline (email, operation, entity_type, kind, entity_id, changes, created_at)
-			VALUES (NEW.recipient_email, 'insert', 'inbound_webhook_event', 'insert_inbound_webhook_event', entity_id_value, changes_json, CURRENT_TIMESTAMP);
+			VALUES (NEW.recipient_email, 'insert', 'inbound_webhook_event', kind_value, entity_id_value, changes_json, CURRENT_TIMESTAMP);
 			RETURN NEW;
 		END;
 		$$ LANGUAGE plpgsql;`,

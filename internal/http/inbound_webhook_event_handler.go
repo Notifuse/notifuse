@@ -34,6 +34,10 @@ func (h *InboundWebhookEventHandler) RegisterRoutes(mux *http.ServeMux) {
 	// Public webhooks endpoint for receiving events from email providers
 	mux.Handle("/webhooks/email", http.HandlerFunc(h.handleIncomingWebhook))
 
+	// Public endpoint for receiving inbound (reply) messages forwarded by a
+	// provider's inbound parsing feature (e.g. Mailgun Routes).
+	mux.Handle("/webhooks/email/inbound", http.HandlerFunc(h.handleIncomingReply))
+
 	// Authenticated endpoints for accessing inbound webhook event data
 	mux.Handle("/api/inboundWebhookEvents.list", requireAuth(http.HandlerFunc(h.handleList)))
 }
@@ -88,6 +92,52 @@ func (h *InboundWebhookEventHandler) handleIncomingWebhook(w http.ResponseWriter
 	}
 
 	// Return success
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"success": true,
+	})
+}
+
+// handleIncomingReply handles inbound (reply) messages forwarded by a provider's
+// inbound parsing feature. Unlike event webhooks, these are posted as form data
+// (multipart/form-data or application/x-www-form-urlencoded).
+// Format: /webhooks/email/inbound?workspace_id={id}&integration_id={id}
+func (h *InboundWebhookEventHandler) handleIncomingReply(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	workspaceID := r.URL.Query().Get("workspace_id")
+	integrationID := r.URL.Query().Get("integration_id")
+	if workspaceID == "" || integrationID == "" {
+		WriteJSONError(w, "Workspace ID and integration ID are required", http.StatusBadRequest)
+		return
+	}
+
+	// Parse the form. ParseMultipartForm transparently handles
+	// application/x-www-form-urlencoded bodies too, and populates r.PostForm.
+	// 25MB matches the typical provider inbound message size limit.
+	if err := r.ParseMultipartForm(25 << 20); err != nil && err != http.ErrNotMultipart {
+		h.logger.WithField("error", err.Error()).
+			WithField("workspace_id", workspaceID).
+			Error("Failed to parse inbound reply form")
+		WriteJSONError(w, "Failed to parse request body", http.StatusBadRequest)
+		return
+	}
+
+	h.logger.WithField("workspace_id", workspaceID).
+		WithField("integration_id", integrationID).
+		Info("Received inbound reply")
+
+	if err := h.service.ProcessInboundReply(r.Context(), workspaceID, integrationID, r.PostForm); err != nil {
+		h.logger.WithField("error", err.Error()).
+			WithField("workspace_id", workspaceID).
+			WithField("integration_id", integrationID).
+			Error("Failed to process inbound reply")
+		WriteJSONError(w, "Failed to process inbound reply", http.StatusBadRequest)
+		return
+	}
+
 	writeJSON(w, http.StatusOK, map[string]interface{}{
 		"success": true,
 	})

@@ -8,6 +8,8 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
+	"strings"
 	"testing"
 	"time"
 
@@ -326,4 +328,76 @@ type errorReader struct{}
 
 func (r *errorReader) Read(p []byte) (n int, err error) {
 	return 0, errors.New("simulated read error")
+}
+
+// Tests for handleIncomingReply
+
+func TestInboundWebhookEventHandler_handleIncomingReply_MethodNotAllowed(t *testing.T) {
+	handler, _, _ := setupInboundWebhookEventHandlerTest(t)
+
+	req := httptest.NewRequest(http.MethodGet, "/webhooks/email/inbound", nil)
+	w := httptest.NewRecorder()
+
+	handler.handleIncomingReply(w, req)
+
+	assert.Equal(t, http.StatusMethodNotAllowed, w.Code)
+}
+
+func TestInboundWebhookEventHandler_handleIncomingReply_MissingParams(t *testing.T) {
+	handler, _, _ := setupInboundWebhookEventHandlerTest(t)
+
+	req := httptest.NewRequest(http.MethodPost, "/webhooks/email/inbound", nil)
+	w := httptest.NewRecorder()
+
+	handler.handleIncomingReply(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	var response map[string]string
+	require.NoError(t, json.NewDecoder(w.Body).Decode(&response))
+	assert.Equal(t, "Workspace ID and integration ID are required", response["error"])
+}
+
+func TestInboundWebhookEventHandler_handleIncomingReply_Success(t *testing.T) {
+	handler, mockService, _ := setupInboundWebhookEventHandlerTest(t)
+
+	form := url.Values{}
+	form.Set("sender", "jane@example.com")
+	form.Set("subject", "Re: Welcome")
+	form.Set("Message-Id", "<reply-1@mail.example.com>")
+	body := form.Encode()
+
+	mockService.EXPECT().
+		ProcessInboundReply(gomock.Any(), "ws1", "int1", gomock.Any()).
+		DoAndReturn(func(_ context.Context, _, _ string, parsed url.Values) error {
+			assert.Equal(t, "jane@example.com", parsed.Get("sender"))
+			assert.Equal(t, "<reply-1@mail.example.com>", parsed.Get("Message-Id"))
+			return nil
+		})
+
+	req := httptest.NewRequest(http.MethodPost, "/webhooks/email/inbound?workspace_id=ws1&integration_id=int1", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	w := httptest.NewRecorder()
+
+	handler.handleIncomingReply(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	var response map[string]interface{}
+	require.NoError(t, json.NewDecoder(w.Body).Decode(&response))
+	assert.Equal(t, true, response["success"])
+}
+
+func TestInboundWebhookEventHandler_handleIncomingReply_ServiceError(t *testing.T) {
+	handler, mockService, _ := setupInboundWebhookEventHandlerTest(t)
+
+	mockService.EXPECT().
+		ProcessInboundReply(gomock.Any(), "ws1", "int1", gomock.Any()).
+		Return(errors.New("boom"))
+
+	req := httptest.NewRequest(http.MethodPost, "/webhooks/email/inbound?workspace_id=ws1&integration_id=int1", strings.NewReader("sender=jane%40example.com"))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	w := httptest.NewRecorder()
+
+	handler.handleIncomingReply(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
 }

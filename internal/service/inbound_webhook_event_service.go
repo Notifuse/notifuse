@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/mail"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -210,6 +212,150 @@ func (s *InboundWebhookEventService) ProcessWebhook(ctx context.Context, workspa
 	}
 
 	return nil
+}
+
+// ProcessInboundReply processes an inbound reply email forwarded by a provider's
+// inbound parsing feature. Currently only Mailgun Routes is supported.
+//
+// Matching strategy (MVP): the reply's sender address is matched to an existing
+// contact in the workspace. When a contact is found, an "email.replied" inbound
+// webhook event is stored, which the timeline trigger surfaces as the
+// "email.replied" timeline kind — allowing automations to react (stop-on-reply).
+//
+// Replies from addresses that don't match a known contact are ignored (and the
+// call still succeeds, so the provider does not retry).
+func (s *InboundWebhookEventService) ProcessInboundReply(ctx context.Context, workspaceID string, integrationID string, form url.Values) error {
+	// codecov:ignore:start
+	ctx, span := tracing.StartServiceSpan(ctx, "InboundWebhookEventService", "ProcessInboundReply")
+	defer tracing.EndSpan(span, nil)
+	tracing.AddAttribute(ctx, "workspaceID", workspaceID)
+	tracing.AddAttribute(ctx, "integrationID", integrationID)
+	// codecov:ignore:end
+
+	// Resolve the workspace and integration so we can confirm the provider.
+	workspace, err := s.workspaceRepo.GetByID(ctx, workspaceID)
+	if err != nil {
+		// codecov:ignore:start
+		tracing.MarkSpanError(ctx, err)
+		// codecov:ignore:end
+		return fmt.Errorf("failed to get workspace: %w", err)
+	}
+	var integration domain.Integration
+	found := false
+	for _, i := range workspace.Integrations {
+		if i.ID == integrationID {
+			integration = i
+			found = true
+			break
+		}
+	}
+	if !found {
+		return fmt.Errorf("integration not found: %s", integrationID)
+	}
+
+	var event *domain.InboundWebhookEvent
+	switch integration.EmailProvider.Kind {
+	case domain.EmailProviderKindMailgun:
+		event, err = s.parseMailgunInboundReply(integration.ID, form)
+	default:
+		// codecov:ignore:start
+		tracing.MarkSpanError(ctx, fmt.Errorf("inbound replies are not supported for provider kind: %s", integration.EmailProvider.Kind))
+		// codecov:ignore:end
+		return fmt.Errorf("inbound replies are not supported for provider kind: %s", integration.EmailProvider.Kind)
+	}
+	if err != nil {
+		// codecov:ignore:start
+		tracing.MarkSpanError(ctx, err)
+		// codecov:ignore:end
+		return fmt.Errorf("failed to parse inbound reply: %w", err)
+	}
+
+	// Match the sender to a known contact. If there is no matching contact we
+	// skip silently — we only care about replies from people we're emailing.
+	contact, err := s.contactRepo.GetContactByEmail(ctx, workspaceID, event.RecipientEmail)
+	if err != nil || contact == nil {
+		s.logger.WithField("workspace_id", workspaceID).
+			WithField("sender", event.RecipientEmail).
+			Info("Ignoring inbound reply from unknown contact")
+		return nil
+	}
+
+	// Store the event. The timeline trigger records it as an "email.replied"
+	// timeline entry, which fires any automation listening for replies.
+	if err := s.repo.StoreEvents(ctx, workspaceID, []*domain.InboundWebhookEvent{event}); err != nil {
+		// codecov:ignore:start
+		tracing.MarkSpanError(ctx, err)
+		// codecov:ignore:end
+		return fmt.Errorf("failed to store inbound reply event: %w", err)
+	}
+
+	return nil
+}
+
+// parseMailgunInboundReply builds a reply InboundWebhookEvent from a Mailgun
+// Routes inbound message POST (multipart/form-data or urlencoded fields).
+// See https://documentation.mailgun.com/docs/mailgun/user-manual/receive-forward-store/
+func (s *InboundWebhookEventService) parseMailgunInboundReply(integrationID string, form url.Values) (*domain.InboundWebhookEvent, error) {
+	// "sender" is the SMTP envelope sender (a bare address); fall back to
+	// parsing the "from" header (e.g. `Jane Doe <jane@example.com>`).
+	senderEmail := strings.TrimSpace(form.Get("sender"))
+	if senderEmail == "" {
+		senderEmail = extractEmailAddress(form.Get("from"))
+	} else {
+		senderEmail = extractEmailAddress(senderEmail)
+	}
+	if senderEmail == "" {
+		return nil, fmt.Errorf("inbound reply is missing a sender address")
+	}
+	senderEmail = strings.ToLower(senderEmail)
+
+	// Prefer the original message's id (In-Reply-To) so the event can later be
+	// attributed to the specific send; fall back to the reply's own Message-Id.
+	messageID := strings.TrimSpace(form.Get("In-Reply-To"))
+	if messageID == "" {
+		messageID = strings.TrimSpace(form.Get("Message-Id"))
+	}
+	messageID = strings.Trim(messageID, "<>")
+
+	// Mailgun includes a unix "timestamp" field (also used for signing).
+	timestamp := time.Now().UTC()
+	if ts := form.Get("timestamp"); ts != "" {
+		if seconds, convErr := strconv.ParseInt(ts, 10, 64); convErr == nil {
+			timestamp = time.Unix(seconds, 0).UTC()
+		}
+	}
+
+	var messageIDPtr *string
+	if messageID != "" {
+		messageIDPtr = &messageID
+	}
+
+	// RecipientEmail carries the matched contact (the reply's sender) so the
+	// timeline trigger attaches the "email.replied" entry to the right contact.
+	return domain.NewInboundWebhookEvent(
+		uuid.New().String(),
+		domain.EmailEventReply,
+		domain.WebhookSourceMailgun,
+		integrationID,
+		senderEmail,
+		messageIDPtr,
+		timestamp,
+		form.Encode(),
+	), nil
+}
+
+// extractEmailAddress returns the bare email address from a header value that
+// may be in "Name <addr@example.com>" form, or the trimmed input if it is
+// already a plain address.
+func extractEmailAddress(value string) string {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return ""
+	}
+	if addr, err := mail.ParseAddress(value); err == nil {
+		return addr.Address
+	}
+	return value
 }
 
 // dedupeStrings returns a new slice with duplicates removed, preserving the

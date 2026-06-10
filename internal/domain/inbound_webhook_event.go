@@ -26,6 +26,14 @@ const (
 	// EmailEventComplaint indicates a complaint was filed for the email
 	EmailEventComplaint EmailEventType = "complaint"
 
+	// EmailEventReply indicates the contact replied to an email we sent.
+	// Unlike the other (outbound-tracking) event types, a reply is an inbound
+	// message: the contact is the SENDER of the incoming email. It is matched
+	// back to a known contact by sender address and surfaced on the contact
+	// timeline as kind "email.replied" so automations can react to it
+	// (e.g. stop-on-reply sequences).
+	EmailEventReply EmailEventType = "reply"
+
 	// EmailEventAuthEmail indicates a Supabase auth email webhook
 	EmailEventAuthEmail EmailEventType = "auth_email"
 
@@ -199,6 +207,7 @@ func (p *InboundWebhookEventListParams) Validate() error {
 			string(EmailEventDelivered),
 			string(EmailEventBounce),
 			string(EmailEventComplaint),
+			string(EmailEventReply),
 		}
 		if !govalidator.IsIn(string(p.EventType), validEventTypes...) {
 			return fmt.Errorf("invalid event type: %s", p.EventType)
@@ -231,6 +240,13 @@ type InboundWebhookEventListResult struct {
 type InboundWebhookEventServiceInterface interface {
 	// ProcessWebhook processes a webhook event from an email provider
 	ProcessWebhook(ctx context.Context, workspaceID, integrationID string, rawPayload []byte) error
+
+	// ProcessInboundReply processes an inbound (reply) email forwarded by a
+	// provider's inbound parsing feature (e.g. Mailgun Routes). The parsed
+	// message fields are passed as form values. It matches the sender to a
+	// known contact and, when found, records an "email.replied" event so
+	// automations can react to it.
+	ProcessInboundReply(ctx context.Context, workspaceID, integrationID string, form url.Values) error
 
 	// ListEvents retrieves all inbound webhook events for a workspace
 	ListEvents(ctx context.Context, workspaceID string, params InboundWebhookEventListParams) (*InboundWebhookEventListResult, error)

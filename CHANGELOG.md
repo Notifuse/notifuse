@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [33.0] - 2026-06-10
+
+### Database Schema Changes
+
+- Migration v33.0 redefines the workspace-level `track_inbound_webhook_event_changes()` trigger function so inbound webhook events of type `reply` are recorded on the contact timeline with the dedicated kind `email.replied` (other inbound events keep their existing kind). No data or column changes.
+
+### Features
+
+- **Feature**: Inbound reply detection (stop-on-reply). A new public endpoint `POST /webhooks/email/inbound?workspace_id={id}&integration_id={id}` ingests reply emails forwarded by a provider's inbound parsing feature (Mailgun Routes first). The sender is matched to an existing contact and, when found, an `email.replied` event is recorded on the contact timeline. `email.replied` is now a valid automation trigger event kind, so sequence automations can react to replies (e.g. exit the journey). Replies from unknown senders are ignored. Matching is by sender address in this first cut; `In-Reply-To`/`Message-Id` is captured for future per-send attribution (#346).
+
 ## [32.2] - 2026-05-31
 
 - **Feature**: Exposed `{{ workspace.website_url }}` in email templates — the workspace's public Website URL (trailing slash trimmed), distinct from `{{ workspace.base_url }}` (the tracking endpoint) — so templates can compose application links like `{{ workspace.website_url }}/users/verify/xxx` instead of pointing at the tracking domain (#342).
