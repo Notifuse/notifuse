@@ -2118,12 +2118,12 @@ func TestTransactionalNotificationService_TestTemplate_WithChannelOptions(t *tes
 			gomock.Any(), // SendEmailProviderRequest
 			gomock.Any(), // isMarketing
 		).DoAndReturn(func(ctx context.Context, req domain.SendEmailProviderRequest, isMarketing bool) error {
-			// Verify the subject was overridden
-			assert.Equal(t, "Override Subject", req.Subject)
-			// Verify the from name was overridden
-			assert.Equal(t, "Custom Sender", req.FromName)
-			return nil
-		})
+		// Verify the subject was overridden
+		assert.Equal(t, "Override Subject", req.Subject)
+		// Verify the from name was overridden
+		assert.Equal(t, "Custom Sender", req.FromName)
+		return nil
+	})
 
 	// Expect message history creation with ChannelOptions
 	fromName := "Custom Sender"
@@ -2159,6 +2159,171 @@ func TestTransactionalNotificationService_TestTemplate_WithChannelOptions(t *tes
 	err := service.TestTemplate(ctx, workspaceID, templateID, integrationID, senderID, recipientEmail, "", emailOptions)
 
 	// Assertions
+	require.NoError(t, err)
+}
+
+func TestTransactionalNotificationService_TestTemplate_TemplateReplyToFallback(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockRepo := mocks.NewMockTransactionalNotificationRepository(ctrl)
+	mockMsgHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
+	mockTemplateService := mocks.NewMockTemplateService(ctrl)
+	mockContactService := mocks.NewMockContactService(ctrl)
+	mockEmailService := mocks.NewMockEmailServiceInterface(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	mockAuthService := mocks.NewMockAuthService(ctrl)
+
+	// Create a stub logger that simply returns itself for chaining calls
+	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+
+	ctx := context.Background()
+	workspaceID := "test-workspace"
+	templateID := uuid.New().String()
+	integrationID := "integration-1"
+	senderID := "sender-1"
+	recipientEmail := "test@example.com"
+
+	// Setup workspace
+	workspace := &domain.Workspace{
+		ID:   workspaceID,
+		Name: "Test Workspace",
+		Settings: domain.WorkspaceSettings{
+			SecretKey: "test-secret-key",
+		},
+		Integrations: []domain.Integration{
+			{
+				ID:   integrationID,
+				Name: "Test Integration",
+				Type: "email",
+				EmailProvider: domain.EmailProvider{
+					Kind: domain.EmailProviderKindSparkPost,
+					Senders: []domain.EmailSender{
+						{
+							ID:    senderID,
+							Email: "sender@example.com",
+							Name:  "Test Sender",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	// Setup template with a reply-to address
+	template := &domain.Template{
+		ID:   templateID,
+		Name: "Test Template",
+		Email: &domain.EmailTemplate{
+			Subject: "Test Subject",
+			VisualEditorTree: &notifuse_mjml.MJMLBlock{
+				BaseBlock: notifuse_mjml.NewBaseBlock("root", notifuse_mjml.MJMLComponentMjml),
+			},
+			ReplyTo: "template-reply@example.com",
+		},
+	}
+
+	// Setup HTML result
+	htmlResult := "<html><body>Test content</body></html>"
+	compilationResult := &domain.CompileTemplateResponse{
+		Success: true,
+		HTML:    &htmlResult,
+		Error:   nil,
+	}
+
+	service := &TransactionalNotificationService{
+		transactionalRepo:  mockRepo,
+		messageHistoryRepo: mockMsgHistoryRepo,
+		templateService:    mockTemplateService,
+		contactService:     mockContactService,
+		emailService:       mockEmailService,
+		logger:             mockLogger,
+		workspaceRepo:      mockWorkspaceRepo,
+		apiEndpoint:        "https://api.example.com",
+		authService:        mockAuthService,
+	}
+
+	// Expect authentication
+	mockAuthService.EXPECT().
+		AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
+		Return(ctx, &domain.User{ID: "user-123"}, &domain.UserWorkspace{
+			UserID:      "user-123",
+			WorkspaceID: workspaceID,
+			Role:        "member",
+			Permissions: domain.UserPermissions{
+				domain.PermissionResourceTransactional: {Read: true, Write: true},
+			},
+		}, nil).
+		Times(2)
+
+	// Expect get template
+	mockTemplateService.EXPECT().
+		GetTemplateByID(gomock.Any(), workspaceID, templateID, int64(0)).
+		Return(template, nil).
+		Times(2)
+
+	// Expect get workspace
+	mockWorkspaceRepo.EXPECT().
+		GetByID(gomock.Any(), workspaceID).
+		Return(workspace, nil).
+		Times(2)
+
+	// Expect upsert contact call
+	mockContactService.EXPECT().
+		UpsertContact(gomock.Any(), workspaceID, gomock.Any()).
+		Return(domain.UpsertContactOperation{
+			Email:  recipientEmail,
+			Action: domain.UpsertContactOperationUpdate,
+		}).
+		Times(2)
+
+	// Expect get contact by email after upsert
+	mockContactService.EXPECT().
+		GetContactByEmail(gomock.Any(), workspaceID, recipientEmail).
+		Return(&domain.Contact{
+			Email: recipientEmail,
+		}, nil).
+		Times(2)
+
+	// Expect compile template
+	mockTemplateService.EXPECT().
+		CompileTemplate(gomock.Any(), gomock.Any()).
+		Return(compilationResult, nil).
+		Times(2)
+
+	// Expect message history creation
+	mockMsgHistoryRepo.EXPECT().
+		Create(gomock.Any(), workspaceID, gomock.Any(), gomock.Any()).
+		Return(nil).
+		Times(2)
+
+	// 1) No reply-to in the options: the template's reply-to must be used
+	mockEmailService.EXPECT().
+		SendEmail(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, req domain.SendEmailProviderRequest, isMarketing bool) error {
+			assert.Equal(t, "template-reply@example.com", req.EmailOptions.ReplyTo)
+			return nil
+		})
+
+	err := service.TestTemplate(ctx, workspaceID, templateID, integrationID, senderID, recipientEmail, "", domain.EmailOptions{})
+	require.NoError(t, err)
+
+	// 2) Explicit reply-to in the options takes precedence over the template's
+	mockEmailService.EXPECT().
+		SendEmail(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, req domain.SendEmailProviderRequest, isMarketing bool) error {
+			assert.Equal(t, "explicit-reply@example.com", req.EmailOptions.ReplyTo)
+			return nil
+		})
+
+	err = service.TestTemplate(ctx, workspaceID, templateID, integrationID, senderID, recipientEmail, "", domain.EmailOptions{
+		ReplyTo: "explicit-reply@example.com",
+	})
 	require.NoError(t, err)
 }
 

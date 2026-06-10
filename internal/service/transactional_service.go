@@ -846,6 +846,13 @@ func (s *TransactionalNotificationService) TestTemplate(ctx context.Context, wor
 		processedSubject = overrideSubject
 	}
 
+	// Use the template's reply-to when none is provided in the options, so test
+	// emails honor it like real sends do (SendEmailForTemplate); an explicit
+	// reply-to from the test modal still takes precedence
+	if emailOptions.ReplyTo == "" && emailContent.ReplyTo != "" {
+		emailOptions.ReplyTo = emailContent.ReplyTo
+	}
+
 	// Create SendEmailProviderRequest
 	emailRequest := domain.SendEmailProviderRequest{
 		WorkspaceID:   workspaceID,
