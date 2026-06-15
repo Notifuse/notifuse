@@ -1369,12 +1369,14 @@ func TestGetContactsForBroadcast(t *testing.T) {
 				"list1", "Marketing List", // Additional values for list filtering - same list
 			)
 
-			// Expect query with JOINS for list filtering and excludeUnsubscribed (cursor-based pagination)
-		mock.ExpectQuery(`SELECT `+contactColumnsPattern+`, cl\.list_id, l\.name as list_name FROM contacts c JOIN contact_lists cl ON c\.email = cl\.email JOIN lists l ON cl\.list_id = l\.id WHERE cl\.list_id = \$1 AND l\.deleted_at IS NULL AND cl\.status <> \$2 AND cl\.status <> \$3 AND cl\.status <> \$4 ORDER BY c\.email ASC LIMIT 10`).
+			// Expect query with JOINS for list filtering, excludeUnsubscribed, and double opt-in guard (cursor-based pagination)
+		mock.ExpectQuery(`SELECT `+contactColumnsPattern+`, cl\.list_id, l\.name as list_name FROM contacts c JOIN contact_lists cl ON c\.email = cl\.email JOIN lists l ON cl\.list_id = l\.id WHERE cl\.list_id = \$1 AND l\.deleted_at IS NULL AND cl\.status <> \$2 AND cl\.status <> \$3 AND cl\.status <> \$4 AND \(l\.is_double_optin = \$5 OR cl\.status <> \$6\) ORDER BY c\.email ASC LIMIT 10`).
 			WithArgs("list1",
 				domain.ContactListStatusUnsubscribed,
 				domain.ContactListStatusBounced,
-				domain.ContactListStatusComplained).
+				domain.ContactListStatusComplained,
+				false,
+				domain.ContactListStatusPending).
 			WillReturnRows(rows)
 
 		// Call the method being tested (empty string for first batch cursor)
@@ -1516,12 +1518,14 @@ func TestGetContactsForBroadcast(t *testing.T) {
 			ExcludeUnsubscribed: true,
 		}
 
-		// Expect query with error (cursor-based pagination)
-		mock.ExpectQuery(`SELECT `+contactColumnsPattern+`, cl\.list_id, l\.name as list_name FROM contacts c JOIN contact_lists cl ON c\.email = cl\.email JOIN lists l ON cl\.list_id = l\.id WHERE cl\.list_id = \$1 AND l\.deleted_at IS NULL AND cl\.status <> \$2 AND cl\.status <> \$3 AND cl\.status <> \$4 ORDER BY c\.email ASC LIMIT 10`).
+		// Expect query with error (cursor-based pagination, includes double opt-in guard)
+		mock.ExpectQuery(`SELECT `+contactColumnsPattern+`, cl\.list_id, l\.name as list_name FROM contacts c JOIN contact_lists cl ON c\.email = cl\.email JOIN lists l ON cl\.list_id = l\.id WHERE cl\.list_id = \$1 AND l\.deleted_at IS NULL AND cl\.status <> \$2 AND cl\.status <> \$3 AND cl\.status <> \$4 AND \(l\.is_double_optin = \$5 OR cl\.status <> \$6\) ORDER BY c\.email ASC LIMIT 10`).
 			WithArgs("list1",
 				domain.ContactListStatusUnsubscribed,
 				domain.ContactListStatusBounced,
-				domain.ContactListStatusComplained).
+				domain.ContactListStatusComplained,
+				false,
+				domain.ContactListStatusPending).
 			WillReturnError(fmt.Errorf("database error"))
 
 		// Call the method being tested (empty string for first batch cursor)
@@ -1590,6 +1594,65 @@ func TestGetContactsForBroadcast(t *testing.T) {
 		assert.Equal(t, "", contacts[0].ListID)
 		assert.Equal(t, "", contacts[0].ListName)
 	})
+
+	// Issue #344: contacts with status='pending' on a double opt-in list must be excluded.
+	t.Run("should exclude pending contacts from a double opt-in list", func(t *testing.T) {
+		mockDB, mock, cleanup := setupMockDB(t)
+		defer cleanup()
+
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		workspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+		workspaceRepo.EXPECT().GetConnection(gomock.Any(), "workspace123").Return(mockDB, nil)
+
+		repo := NewContactRepository(workspaceRepo)
+
+		// Audience targets a list; ExcludeUnsubscribed is false to isolate the double opt-in guard.
+		audience := domain.AudienceSettings{
+			List:                "list-doi",
+			ExcludeUnsubscribed: false,
+		}
+
+		// The confirmed contact that should be returned.
+		now := time.Now().UTC().Truncate(time.Microsecond)
+		rows := sqlmock.NewRows([]string{
+			"email", "external_id", "timezone", "language",
+			"first_name", "last_name", "full_name", "phone", "address_line_1", "address_line_2",
+			"country", "postcode", "state", "job_title",
+			"custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4", "custom_string_5",
+			"custom_number_1", "custom_number_2", "custom_number_3", "custom_number_4", "custom_number_5",
+			"custom_datetime_1", "custom_datetime_2", "custom_datetime_3", "custom_datetime_4", "custom_datetime_5",
+			"custom_json_1", "custom_json_2", "custom_json_3", "custom_json_4",
+			"custom_json_5", "created_at", "updated_at", "db_created_at", "db_updated_at",
+			"list_id", "list_name",
+		}).AddRow(
+			"confirmed@example.com", nil, nil, nil,
+			nil, nil, nil, nil, nil, nil,
+			nil, nil, nil, nil,
+			nil, nil, nil, nil, nil,
+			nil, nil, nil, nil, nil,
+			nil, nil, nil, nil, nil,
+			nil, nil, nil, nil,
+			nil, now, now, now, now,
+			"list-doi", "Double Opt-In List",
+		)
+
+		// The query must include the double opt-in guard:
+		// (l.is_double_optin = $2 OR cl.status <> $3)
+		// This predicate, when evaluated by the DB, keeps only rows where either the list does
+		// NOT use double opt-in, or the contact's status is not 'pending'.
+		mock.ExpectQuery(`SELECT `+contactColumnsPattern+`, cl\.list_id, l\.name as list_name FROM contacts c JOIN contact_lists cl ON c\.email = cl\.email JOIN lists l ON cl\.list_id = l\.id WHERE cl\.list_id = \$1 AND l\.deleted_at IS NULL AND \(l\.is_double_optin = \$2 OR cl\.status <> \$3\) ORDER BY c\.email ASC LIMIT 10`).
+			WithArgs("list-doi", false, domain.ContactListStatusPending).
+			WillReturnRows(rows)
+
+		contacts, err := repo.GetContactsForBroadcast(context.Background(), "workspace123", audience, 10, "")
+
+		require.NoError(t, err)
+		require.Len(t, contacts, 1)
+		assert.Equal(t, "confirmed@example.com", contacts[0].Contact.Email)
+		assert.Equal(t, "list-doi", contacts[0].ListID)
+	})
 }
 
 func TestCountContactsForBroadcast(t *testing.T) {
@@ -1616,13 +1679,15 @@ func TestCountContactsForBroadcast(t *testing.T) {
 		// Set up expectations for the count query
 		rows := sqlmock.NewRows([]string{"count"}).AddRow(25)
 
-		// Expect query with JOINS for list filtering, soft-deleted lists filtering, and excludeUnsubscribed
-		// Note: SkipDuplicateEmails is false, so we expect COUNT(*) not COUNT(DISTINCT)
-		mock.ExpectQuery(`SELECT COUNT\(\*\) FROM contacts c JOIN contact_lists cl ON c\.email = cl\.email JOIN lists l ON cl\.list_id = l\.id WHERE cl\.list_id = \$1 AND l\.deleted_at IS NULL AND cl\.status <> \$2 AND cl\.status <> \$3 AND cl\.status <> \$4`).
+		// Expect query with JOINS for list filtering, soft-deleted lists filtering, excludeUnsubscribed,
+		// and the double opt-in guard (l.is_double_optin = $5 OR cl.status <> $6).
+		mock.ExpectQuery(`SELECT COUNT\(\*\) FROM contacts c JOIN contact_lists cl ON c\.email = cl\.email JOIN lists l ON cl\.list_id = l\.id WHERE cl\.list_id = \$1 AND l\.deleted_at IS NULL AND cl\.status <> \$2 AND cl\.status <> \$3 AND cl\.status <> \$4 AND \(l\.is_double_optin = \$5 OR cl\.status <> \$6\)`).
 			WithArgs("list1",
 				domain.ContactListStatusUnsubscribed,
 				domain.ContactListStatusBounced,
-				domain.ContactListStatusComplained).
+				domain.ContactListStatusComplained,
+				false,
+				domain.ContactListStatusPending).
 			WillReturnRows(rows)
 
 		// Call the method being tested
@@ -1791,13 +1856,15 @@ func TestCountContactsForBroadcast(t *testing.T) {
 		// Set up expectations for the count query
 		rows := sqlmock.NewRows([]string{"count"}).AddRow(15)
 
-		// Expect query with JOINs for both list, lists table (for soft-delete filter), and segment filtering
-		// The query should join contact_lists, lists, then also join contact_segments
-		mock.ExpectQuery(`SELECT COUNT\(\*\) FROM contacts c JOIN contact_lists cl ON c\.email = cl\.email JOIN lists l ON cl\.list_id = l\.id JOIN contact_segments cs ON c\.email = cs\.email WHERE cl\.list_id = \$1 AND l\.deleted_at IS NULL AND cl\.status <> \$2 AND cl\.status <> \$3 AND cl\.status <> \$4 AND cs\.segment_id IN \(\$5\)`).
+		// Expect query with JOINs for both list, lists table (for soft-delete filter), segment filtering,
+		// and the double opt-in guard (l.is_double_optin = $5 OR cl.status <> $6).
+		mock.ExpectQuery(`SELECT COUNT\(\*\) FROM contacts c JOIN contact_lists cl ON c\.email = cl\.email JOIN lists l ON cl\.list_id = l\.id JOIN contact_segments cs ON c\.email = cs\.email WHERE cl\.list_id = \$1 AND l\.deleted_at IS NULL AND cl\.status <> \$2 AND cl\.status <> \$3 AND cl\.status <> \$4 AND \(l\.is_double_optin = \$5 OR cl\.status <> \$6\) AND cs\.segment_id IN \(\$7\)`).
 			WithArgs("list1",
 				domain.ContactListStatusUnsubscribed,
 				domain.ContactListStatusBounced,
 				domain.ContactListStatusComplained,
+				false,
+				domain.ContactListStatusPending,
 				"segment1").
 			WillReturnRows(rows)
 
@@ -1807,6 +1874,38 @@ func TestCountContactsForBroadcast(t *testing.T) {
 		// Assertions
 		require.NoError(t, err)
 		assert.Equal(t, 15, count)
+	})
+
+	// Issue #344: pending contacts on a double opt-in list must not be counted.
+	t.Run("should exclude pending contacts when counting for a double opt-in list", func(t *testing.T) {
+		mockDB, mock, cleanup := setupMockDB(t)
+		defer cleanup()
+
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		workspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+		workspaceRepo.EXPECT().GetConnection(gomock.Any(), "workspace123").Return(mockDB, nil)
+
+		repo := NewContactRepository(workspaceRepo)
+
+		// Audience targets a list; ExcludeUnsubscribed is false to isolate the double opt-in guard.
+		audience := domain.AudienceSettings{
+			List:                "list-doi",
+			ExcludeUnsubscribed: false,
+		}
+
+		rows := sqlmock.NewRows([]string{"count"}).AddRow(3)
+
+		// Only confirmed contacts (status != 'pending') from a double opt-in list are counted.
+		mock.ExpectQuery(`SELECT COUNT\(\*\) FROM contacts c JOIN contact_lists cl ON c\.email = cl\.email JOIN lists l ON cl\.list_id = l\.id WHERE cl\.list_id = \$1 AND l\.deleted_at IS NULL AND \(l\.is_double_optin = \$2 OR cl\.status <> \$3\)`).
+			WithArgs("list-doi", false, domain.ContactListStatusPending).
+			WillReturnRows(rows)
+
+		count, err := repo.CountContactsForBroadcast(context.Background(), "workspace123", audience)
+
+		require.NoError(t, err)
+		assert.Equal(t, 3, count)
 	})
 }
 

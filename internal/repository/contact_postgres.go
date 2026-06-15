@@ -1397,6 +1397,15 @@ func (r *contactRepository) GetContactsForBroadcast(
 			query = query.Where(sq.NotEq{"cl.status": domain.ContactListStatusBounced})
 			query = query.Where(sq.NotEq{"cl.status": domain.ContactListStatusComplained})
 		}
+
+		// Exclude contacts that have not completed double opt-in when the list requires it.
+		// When l.is_double_optin is true, a contact_list row with status='pending' means the
+		// subscriber clicked the sign-up form but never confirmed via the confirmation email.
+		// Sending to them violates the double opt-in contract (issue #344).
+		query = query.Where(sq.Or{
+			sq.Eq{"l.is_double_optin": false},
+			sq.NotEq{"cl.status": domain.ContactListStatusPending},
+		})
 	} else {
 		// For non-list based audiences (e.g., segments in the future)
 		includeListID = false
@@ -1672,6 +1681,15 @@ func (r *contactRepository) CountContactsForBroadcast(
 			query = query.Where(sq.NotEq{"cl.status": domain.ContactListStatusBounced})
 			query = query.Where(sq.NotEq{"cl.status": domain.ContactListStatusComplained})
 		}
+
+		// Exclude contacts that have not completed double opt-in when the list requires it.
+		// When l.is_double_optin is true, a contact_list row with status='pending' means the
+		// subscriber clicked the sign-up form but never confirmed via the confirmation email.
+		// Sending to them violates the double opt-in contract (issue #344).
+		query = query.Where(sq.Or{
+			sq.Eq{"l.is_double_optin": false},
+			sq.NotEq{"cl.status": domain.ContactListStatusPending},
+		})
 	}
 
 	// Handle segments filtering
