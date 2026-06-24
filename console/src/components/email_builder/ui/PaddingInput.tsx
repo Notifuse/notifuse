@@ -24,10 +24,13 @@ interface MjmlPaddingProps {
 type PaddingInputProps = IndividualPaddingProps | MjmlPaddingProps
 
 const isIndividualPadding = (props: PaddingInputProps): props is IndividualPaddingProps => {
-  return (
-    typeof (props as IndividualPaddingProps).value === 'object' ||
-    (props as IndividualPaddingProps).value === undefined
-  )
+  // Only an explicit object value selects individual (per-side) mode. An `undefined`
+  // value must fall through to MJML shorthand (string) mode — otherwise single-attribute
+  // callers like mj-button / mj-social `inner-padding` would emit an object into a string
+  // field, which the backend serializes as the Go map literal `map[bottom:0px top:0px]`,
+  // producing invalid CSS that strict clients (Gmail) drop.
+  const value = (props as IndividualPaddingProps).value
+  return typeof value === 'object' && value !== null
 }
 
 /**
