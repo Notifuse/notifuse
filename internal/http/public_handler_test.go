@@ -393,6 +393,54 @@ func TestNotificationCenterHandler_handleUnsubscribeOneClick(t *testing.T) {
 		assert.Equal(t, http.StatusBadRequest, rec.Code)
 	})
 
+	// The notification center SPA (first-party browser fetch) posts a JSON body with the
+	// identifying params and no query string. This path was silently broken in v34.0 when
+	// the handler was made RFC 8058-strict (issue #371): it must keep working, authorized
+	// by the email_hmac that ListService verifies.
+	t.Run("unsubscribes via notification center SPA JSON body", func(t *testing.T) {
+		var captured *domain.UnsubscribeFromListsRequest
+		mockListService.EXPECT().
+			UnsubscribeFromLists(gomock.Any(), gomock.Any(), false).
+			DoAndReturn(func(_ context.Context, p *domain.UnsubscribeFromListsRequest, _ bool) error {
+				captured = p
+				return nil
+			})
+
+		body := `{"wid":"ws123","email":"test@example.com","email_hmac":"deadbeef","lids":["list1"],"mid":"msg-1"}`
+		req := httptest.NewRequest(http.MethodPost, "/unsubscribe-oneclick", strings.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		rec := httptest.NewRecorder()
+
+		handler.handleUnsubscribeOneClick(rec, req)
+
+		assert.Equal(t, http.StatusOK, rec.Code)
+		assert.JSONEq(t, `{"success":true}`, rec.Body.String())
+		require.NotNil(t, captured, "service must be called - the contact must actually be unsubscribed")
+		assert.Equal(t, "ws123", captured.WorkspaceID)
+		assert.Equal(t, "test@example.com", captured.Email)
+		assert.Equal(t, "deadbeef", captured.EmailHMAC)
+		assert.Equal(t, []string{"list1"}, captured.ListIDs)
+		assert.Equal(t, "msg-1", captured.MessageID)
+	})
+
+	// A JSON body that does not structurally identify a contact + list(s) is a 400, with
+	// no service call - same guarantee as the malformed one-click link.
+	jsonRejectCases := []struct{ name, body string }{
+		{"empty object", `{}`},
+		{"missing lids", `{"wid":"ws123","email":"test@example.com"}`},
+		{"missing wid", `{"email":"test@example.com","lids":["list1"]}`},
+		{"malformed json", `{"wid":`},
+	}
+	for _, jc := range jsonRejectCases {
+		t.Run("rejects invalid SPA JSON body: "+jc.name, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodPost, "/unsubscribe-oneclick", strings.NewReader(jc.body))
+			req.Header.Set("Content-Type", "application/json")
+			rec := httptest.NewRecorder()
+			handler.handleUnsubscribeOneClick(rec, req)
+			assert.Equal(t, http.StatusBadRequest, rec.Code)
+		})
+	}
+
 	t.Run("service error returns 500", func(t *testing.T) {
 		mockListService.EXPECT().
 			UnsubscribeFromLists(gomock.Any(), gomock.Any(), false).
