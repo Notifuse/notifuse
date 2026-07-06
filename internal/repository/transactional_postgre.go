@@ -35,15 +35,32 @@ func (r *TransactionalNotificationRepository) Create(ctx context.Context, worksp
 	notification.CreatedAt = now
 	notification.UpdatedAt = now
 
+	// Insert, or resurrect a previously soft-deleted notification sharing the same id.
+	// The id is the primary key, so a plain INSERT would collide with a soft-deleted
+	// row (which Get/List/Delete all hide via "deleted_at IS NULL"), making a deleted
+	// id impossible to recreate. ON CONFLICT overwrites only when the existing row is
+	// soft-deleted; an active row is left untouched so the affected-rows guard below
+	// still reports a conflict.
 	query := `
 		INSERT INTO transactional_notifications (
 			id, name, description, channels, tracking_settings, metadata, integration_id, created_at, updated_at
 		) VALUES (
 			$1, $2, $3, $4, $5, $6, $7, $8, $9
 		)
+		ON CONFLICT (id) DO UPDATE SET
+			name = EXCLUDED.name,
+			description = EXCLUDED.description,
+			channels = EXCLUDED.channels,
+			tracking_settings = EXCLUDED.tracking_settings,
+			metadata = EXCLUDED.metadata,
+			integration_id = EXCLUDED.integration_id,
+			created_at = EXCLUDED.created_at,
+			updated_at = EXCLUDED.updated_at,
+			deleted_at = NULL
+		WHERE transactional_notifications.deleted_at IS NOT NULL
 	`
 
-	_, err = db.ExecContext(
+	result, err := db.ExecContext(
 		ctx,
 		query,
 		notification.ID,
@@ -59,6 +76,15 @@ func (r *TransactionalNotificationRepository) Create(ctx context.Context, worksp
 
 	if err != nil {
 		return fmt.Errorf("failed to create transactional notification: %w", err)
+	}
+
+	// Zero affected rows means an active (non-deleted) notification already owns this id.
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+	if rowsAffected == 0 {
+		return fmt.Errorf("transactional notification with id %s already exists", notification.ID)
 	}
 
 	return nil

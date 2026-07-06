@@ -836,7 +836,7 @@ msgid "anytime"
 msgstr "いつでも"
 
 #: src/components/transactional/ApiCommandModal.tsx:976
-#: src/pages/TransactionalNotificationsPage.tsx:179
+#: src/pages/TransactionalNotificationsPage.tsx:193
 msgid "API Command"
 msgstr "APIコマンド"
 
@@ -1403,7 +1403,7 @@ msgstr "カテゴリとすべての関連投稿がWebから非公開になりま
 #: src/components/email_builder/blocks/MjGroupBlock.tsx:62
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:366
 #: src/components/email_builder/ui/BorderInput.tsx:375
-#: src/components/email_builder/ui/PaddingInput.tsx:184
+#: src/components/email_builder/ui/PaddingInput.tsx:187
 msgid "Bottom"
 msgstr "下"
 
@@ -1457,7 +1457,7 @@ msgstr "バウンスタイプ"
 #: src/components/messages/MessageHistoryTab.tsx:171
 #: src/components/messages/MessageHistoryTable.tsx:298
 #: src/pages/ContactsPage.tsx:385
-#: src/pages/TransactionalNotificationsPage.tsx:249
+#: src/pages/TransactionalNotificationsPage.tsx:264
 msgid "Bounced"
 msgstr "バウンス済み"
 
@@ -1681,6 +1681,7 @@ msgstr "ボタンサイズ"
 #: src/components/templates/CreateTemplateDrawer.tsx:503
 #: src/components/templates/SendTemplateModal.tsx:268
 #: src/components/templates/TemplateTranslationsTab.tsx:254
+#: src/components/transactional/ImportExportTransactional.tsx:414
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:173
 #: src/pages/BroadcastsPage.tsx:525
 #: src/pages/BroadcastsPage.tsx:547
@@ -1688,7 +1689,7 @@ msgstr "ボタンサイズ"
 #: src/pages/BroadcastsPage.tsx:1592
 #: src/pages/ListsPage.tsx:318
 #: src/pages/TemplatesPage.tsx:310
-#: src/pages/TransactionalNotificationsPage.tsx:147
+#: src/pages/TransactionalNotificationsPage.tsx:161
 msgid "Cancel"
 msgstr "キャンセル"
 
@@ -2336,6 +2337,10 @@ msgstr "基本フィールド"
 msgid "Cost"
 msgstr "コスト"
 
+#: src/components/transactional/ImportExportTransactional.tsx:441
+msgid "Could not parse the file. Please select a valid JSON export."
+msgstr ""
+
 #: src/components/analytics/NewContactsTable.tsx:178
 #: src/components/automations/config/TriggerConfigForm.tsx:121
 #: src/components/contacts/ContactDetailsDrawer.tsx:446
@@ -2437,8 +2442,8 @@ msgid "Create New Theme - {0}"
 msgstr "新規テーマを作成 - {0}"
 
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:192
-#: src/pages/TransactionalNotificationsPage.tsx:405
-#: src/pages/TransactionalNotificationsPage.tsx:457
+#: src/pages/TransactionalNotificationsPage.tsx:448
+#: src/pages/TransactionalNotificationsPage.tsx:517
 msgid "Create Notification"
 msgstr "通知を作成"
 
@@ -2483,7 +2488,7 @@ msgstr "最初のカテゴリを作成"
 msgid "Create your first list to get started"
 msgstr "最初のリストを作成して始めましょう"
 
-#: src/pages/TransactionalNotificationsPage.tsx:444
+#: src/pages/TransactionalNotificationsPage.tsx:489
 msgid "Create your first notification to get started"
 msgstr "最初の通知を作成して始めましょう"
 
@@ -2968,7 +2973,7 @@ msgstr "テンプレートを削除"
 msgid "Delete template?"
 msgstr "テンプレートを削除しますか？"
 
-#: src/pages/TransactionalNotificationsPage.tsx:143
+#: src/pages/TransactionalNotificationsPage.tsx:157
 msgid "Delete the notification?"
 msgstr "通知を削除しますか？"
 
@@ -3025,7 +3030,7 @@ msgstr "配信済み"
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:67
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:78
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:230
-#: src/pages/TransactionalNotificationsPage.tsx:215
+#: src/pages/TransactionalNotificationsPage.tsx:230
 msgid "Delivered"
 msgstr "配信済み"
 
@@ -3042,7 +3047,7 @@ msgstr "この画像を説明..."
 #: src/components/lists/ListDrawer.tsx:206
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:299
 #: src/pages/ListsPage.tsx:269
-#: src/pages/TransactionalNotificationsPage.tsx:264
+#: src/pages/TransactionalNotificationsPage.tsx:279
 msgid "Description"
 msgstr "説明"
 
@@ -3305,7 +3310,7 @@ msgstr "編集"
 #: src/components/settings/Integrations.tsx:1441
 #: src/components/settings/WebhookCard.tsx:245
 #: src/pages/ContactsPage.tsx:928
-#: src/pages/TransactionalNotificationsPage.tsx:155
+#: src/pages/TransactionalNotificationsPage.tsx:169
 msgid "Edit"
 msgstr "編集"
 
@@ -3882,7 +3887,7 @@ msgstr "オートメーションの読み込みエラー"
 #: src/components/messages/MessageHistoryTab.tsx:603
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:492
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:433
-#: src/pages/TransactionalNotificationsPage.tsx:371
+#: src/pages/TransactionalNotificationsPage.tsx:391
 msgid "Error loading data"
 msgstr "データの読み込みエラー"
 
@@ -4000,6 +4005,7 @@ msgstr "有効期限:"
 #: src/components/contacts/ExportContactsModal.tsx:323
 #: src/components/email_builder/MjmlCodeEditor.tsx:627
 #: src/components/templates/ImportExportButton.tsx:416
+#: src/components/transactional/ImportExportTransactional.tsx:139
 #: src/pages/ContactsPage.tsx:1011
 msgid "Export"
 msgstr "エクスポート"
@@ -4014,6 +4020,16 @@ msgstr ""
 
 #: src/components/email_builder/MjmlCodeEditor.tsx:631
 msgid "Export MJML"
+msgstr ""
+
+#. placeholder {0}: selected.length
+#: src/components/transactional/ImportExportTransactional.tsx:195
+msgid "Export selected ({0})"
+msgstr ""
+
+#. placeholder {0}: entries.length
+#: src/components/transactional/ImportExportTransactional.tsx:182
+msgid "Exported {0} notifications"
 msgstr ""
 
 #: src/components/contacts/ExportContactsModal.tsx:340
@@ -4055,7 +4071,7 @@ msgstr "失敗"
 #: src/pages/BroadcastsPage.tsx:352
 #: src/pages/BroadcastsPage.tsx:419
 #: src/pages/BroadcastsPage.tsx:1445
-#: src/pages/TransactionalNotificationsPage.tsx:232
+#: src/pages/TransactionalNotificationsPage.tsx:247
 msgid "Failed"
 msgstr "失敗"
 
@@ -4175,7 +4191,7 @@ msgstr "招待の削除に失敗しました"
 msgid "Failed to delete list"
 msgstr "リストの削除に失敗しました"
 
-#: src/pages/TransactionalNotificationsPage.tsx:354
+#: src/pages/TransactionalNotificationsPage.tsx:374
 msgid "Failed to delete notification"
 msgstr "通知の削除に失敗しました"
 
@@ -4224,6 +4240,14 @@ msgstr "JSONのエクスポートに失敗しました"
 msgid "Failed to export MJML"
 msgstr "MJMLのエクスポートに失敗しました"
 
+#: src/components/transactional/ImportExportTransactional.tsx:132
+msgid "Failed to export notification"
+msgstr ""
+
+#: src/components/transactional/ImportExportTransactional.tsx:186
+msgid "Failed to export notifications"
+msgstr ""
+
 #. placeholder {0}: response.error
 #: src/components/broadcasts/GlobalFeedSettings.tsx:61
 msgid "Failed to fetch data: {0}"
@@ -4256,6 +4280,10 @@ msgstr "ワークスペースメンバーの取得に失敗しました"
 #: src/components/templates/ImportExportButton.tsx:239
 msgid "Failed to import MJML template. Please check the MJML syntax."
 msgstr "MJMLテンプレートのインポートに失敗しました。MJML構文を確認してください。"
+
+#: src/components/transactional/ImportExportTransactional.tsx:230
+#~ msgid "Failed to import notification"
+#~ msgstr ""
 
 #: src/components/templates/ImportExportButton.tsx:191
 msgid "Failed to import template. Please check the file format."
@@ -4307,8 +4335,13 @@ msgstr "投稿の公開に失敗しました"
 msgid "Failed to publish theme"
 msgstr "テーマの公開に失敗しました"
 
+#: src/components/transactional/ImportExportTransactional.tsx:388
+msgid "Failed to read existing data"
+msgstr ""
+
 #: src/components/email_builder/MjmlCodeEditor.tsx:553
 #: src/components/templates/ImportExportButton.tsx:197
+#: src/components/transactional/ImportExportTransactional.tsx:445
 msgid "Failed to read the file"
 msgstr "ファイルの読み込みに失敗しました"
 
@@ -5105,7 +5138,7 @@ msgstr "アイコン/ファビコンURL"
 #: src/components/messages/MessageHistoryTable.tsx:211
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:355
 #: src/pages/ListsPage.tsx:267
-#: src/pages/TransactionalNotificationsPage.tsx:262
+#: src/pages/TransactionalNotificationsPage.tsx:277
 msgid "ID"
 msgstr "ID"
 
@@ -5221,6 +5254,7 @@ msgstr ""
 
 #: src/components/email_builder/MjmlCodeEditor.tsx:615
 #: src/components/templates/ImportExportButton.tsx:387
+#: src/components/transactional/ImportExportTransactional.tsx:453
 #: src/pages/ContactsPage.tsx:1004
 msgid "Import"
 msgstr "インポート"
@@ -5250,6 +5284,11 @@ msgstr "リストにコンタクトをインポート"
 #: src/components/email_builder/ui/ImportFontInput.tsx:219
 msgid "Import Custom Font"
 msgstr "カスタムフォントをインポート"
+
+#: src/components/transactional/ImportExportTransactional.tsx:431
+#: src/components/transactional/ImportExportTransactional.tsx:440
+msgid "Import Failed"
+msgstr ""
 
 #: src/components/email_builder/blocks/MjFontBlock.tsx:79
 #: src/components/email_builder/ui/ImportFontInput.tsx:22
@@ -5293,6 +5332,10 @@ msgstr "{0}件のコンタクトをインポートしました"
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:691
 msgid "Imported {0} contacts ({1} failed, see details below)"
 msgstr "{0}件のコンタクトをインポートしました（{1}件失敗、詳細は下記参照）"
+
+#: src/components/transactional/ImportExportTransactional.tsx:339
+msgid "Imported {succeeded} notification(s)"
+msgstr ""
 
 #: src/components/email_builder/ui/FontStyleInput.tsx:87
 msgid "Imported Fonts"
@@ -5447,6 +5490,10 @@ msgstr "無効なメール形式です"
 #. placeholder {0}: invalid.join(', ')
 #: src/components/settings/SystemSettingsDrawer.tsx:87
 msgid "Invalid email: {0}"
+msgstr ""
+
+#: src/components/transactional/ImportExportTransactional.tsx:432
+msgid "Invalid file format"
 msgstr ""
 
 #: src/components/blog_editor/components/youtube/YoutubeNodeView.tsx:233
@@ -5721,7 +5768,7 @@ msgstr "退出しました"
 #: src/components/automations/config/TriggerConfigForm.tsx:82
 #: src/components/email_builder/ui/BorderInput.tsx:380
 #: src/components/email_builder/ui/FontStyleInput.tsx:145
-#: src/components/email_builder/ui/PaddingInput.tsx:196
+#: src/components/email_builder/ui/PaddingInput.tsx:199
 msgid "Left"
 msgstr "左"
 
@@ -5941,7 +5988,7 @@ msgstr "Webhookステータスを読み込み中..."
 #: src/pages/ListsPage.tsx:149
 #: src/pages/LogsPage.tsx:18
 #: src/pages/TemplatesPage.tsx:147
-#: src/pages/TransactionalNotificationsPage.tsx:381
+#: src/pages/TransactionalNotificationsPage.tsx:401
 msgid "Loading..."
 msgstr "読み込み中..."
 
@@ -6005,7 +6052,7 @@ msgstr "ワークスペースメンバーを管理"
 
 #. placeholder {0}: integration.name
 #. placeholder {1}: integration.type
-#: src/pages/TransactionalNotificationsPage.tsx:132
+#: src/pages/TransactionalNotificationsPage.tsx:146
 msgid "Managed by {0} ({1} integration)"
 msgstr "{0}（{1}連携）によって管理"
 
@@ -6597,7 +6644,7 @@ msgstr "テーマがまだありません"
 msgid "No timeline events found for this contact"
 msgstr "このコンタクトのタイムラインイベントが見つかりません"
 
-#: src/pages/TransactionalNotificationsPage.tsx:442
+#: src/pages/TransactionalNotificationsPage.tsx:487
 msgid "No transactional notifications found"
 msgstr "トランザクション通知が見つかりません"
 
@@ -6699,9 +6746,23 @@ msgstr "注意: これは不正な構造のMJMLファイルが原因かもしれ
 msgid "Notes"
 msgstr "メモ"
 
+#. placeholder {0}: existingNotification.name
+#. placeholder {1}: entry.notification.id
+#: src/components/transactional/ImportExportTransactional.tsx:371
+msgid "Notification \"{0}\" ({1})"
+msgstr ""
+
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:89
 msgid "Notification created successfully"
 msgstr "通知を作成しました"
+
+#: src/components/transactional/ImportExportTransactional.tsx:129
+msgid "Notification exported successfully"
+msgstr ""
+
+#: src/components/transactional/ImportExportTransactional.tsx:227
+#~ msgid "Notification imported successfully"
+#~ msgstr ""
 
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:255
 msgid "Notification name"
@@ -6928,6 +6989,10 @@ msgstr "このテストメールのデフォルト送信者名を上書き"
 
 #: src/components/automations/config/EmailConfigForm.tsx:81
 msgid "Override the workspace default email provider for this node"
+msgstr ""
+
+#: src/components/transactional/ImportExportTransactional.tsx:400
+msgid "Overwrite existing data?"
 msgstr ""
 
 #: src/components/email_builder/blocks/MjColumnBlock.tsx:144
@@ -7452,7 +7517,7 @@ msgstr "プレビューモードが必要です"
 msgid "Preview Results"
 msgstr "結果をプレビュー"
 
-#: src/pages/TransactionalNotificationsPage.tsx:83
+#: src/pages/TransactionalNotificationsPage.tsx:89
 msgid "Preview template"
 msgstr "テンプレートをプレビュー"
 
@@ -8027,7 +8092,7 @@ msgstr "隆起"
 
 #: src/components/email_builder/ui/BorderInput.tsx:370
 #: src/components/email_builder/ui/FontStyleInput.tsx:153
-#: src/components/email_builder/ui/PaddingInput.tsx:169
+#: src/components/email_builder/ui/PaddingInput.tsx:172
 msgid "Right"
 msgstr "右"
 
@@ -8725,7 +8790,7 @@ msgstr "送信済み"
 #: src/components/messages/MessageHistoryTab.tsx:103
 #: src/components/messages/MessageHistoryTable.tsx:258
 #: src/pages/BroadcastsPage.tsx:1444
-#: src/pages/TransactionalNotificationsPage.tsx:198
+#: src/pages/TransactionalNotificationsPage.tsx:213
 msgid "Sent"
 msgstr "送信済み"
 
@@ -9103,6 +9168,10 @@ msgstr "ソーシャルシェアタイトル"
 msgid "Solid"
 msgstr "実線"
 
+#: src/components/transactional/ImportExportTransactional.tsx:343
+msgid "Some imports failed"
+msgstr ""
+
 #: src/components/templates/SendTemplateModal.tsx:150
 msgid "Something went wrong"
 msgstr "エラーが発生しました"
@@ -9445,6 +9514,12 @@ msgstr ""
 msgid "Template"
 msgstr "テンプレート"
 
+#. placeholder {0}: existingTemplate.name
+#. placeholder {1}: entry.template.id
+#: src/components/transactional/ImportExportTransactional.tsx:382
+msgid "Template \"{0}\" ({1})"
+msgstr ""
+
 #. placeholder {0}: field.key + 1
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:733
 msgid "Template {0}"
@@ -9547,7 +9622,7 @@ msgstr "テンプレートマークアップ使用可能"
 #: src/components/broadcasts/GlobalFeedSettings.tsx:122
 #: src/components/broadcasts/RecipientFeedSettings.tsx:130
 #: src/components/settings/Integrations.tsx:360
-#: src/pages/TransactionalNotificationsPage.tsx:173
+#: src/pages/TransactionalNotificationsPage.tsx:187
 msgid "Test"
 msgstr "テスト"
 
@@ -9730,6 +9805,10 @@ msgstr "メール本文には通知データのJSONペイロードを含める�
 msgid "The email body must contain valid JSON matching the format above"
 msgstr "メール本文には上記の形式に一致する有効なJSONを含める必要があります"
 
+#: src/components/transactional/ImportExportTransactional.tsx:405
+msgid "The following already exist and will be updated:"
+msgstr ""
+
 #: src/components/templates/ImportExportButton.tsx:498
 msgid "The following validation errors were found in your import:"
 msgstr "インポートで以下の検証エラーが見つかりました:"
@@ -9857,7 +9936,7 @@ msgstr "この操作により{0}件のコンタクトが購読解除されます
 msgid "This appears in browser tabs when viewing the email in a web browser and in some email clients. It's typically the same as or related to your email subject line."
 msgstr "これはブラウザでメールを表示する際のブラウザタブや一部のメールクライアントに表示されます。通常、メールの件名と同じか関連した内容です。"
 
-#: src/pages/TransactionalNotificationsPage.tsx:144
+#: src/pages/TransactionalNotificationsPage.tsx:158
 msgid "This cannot be undone."
 msgstr "この操作は元に戻せません。"
 
@@ -10111,7 +10190,7 @@ msgstr "ツールチップテキスト"
 #: src/components/email_builder/blocks/MjGroupBlock.tsx:60
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:364
 #: src/components/email_builder/ui/BorderInput.tsx:365
-#: src/components/email_builder/ui/PaddingInput.tsx:157
+#: src/components/email_builder/ui/PaddingInput.tsx:160
 msgid "Top"
 msgstr "上"
 
@@ -10171,11 +10250,11 @@ msgstr "トランザクションメール"
 msgid "Transactional ID"
 msgstr "トランザクションID"
 
-#: src/pages/TransactionalNotificationsPage.tsx:348
+#: src/pages/TransactionalNotificationsPage.tsx:368
 msgid "Transactional notification deleted successfully"
 msgstr "トランザクション通知が正常に削除されました"
 
-#: src/pages/TransactionalNotificationsPage.tsx:387
+#: src/pages/TransactionalNotificationsPage.tsx:407
 msgid "Transactional Notifications"
 msgstr "トランザクション通知"
 
@@ -11008,7 +11087,7 @@ msgid "Yes, delete"
 msgstr "はい、削除"
 
 #: src/pages/TemplatesPage.tsx:308
-#: src/pages/TransactionalNotificationsPage.tsx:146
+#: src/pages/TransactionalNotificationsPage.tsx:160
 msgid "Yes, Delete"
 msgstr "はい、削除"
 
@@ -11024,6 +11103,10 @@ msgstr "はい、再開"
 #: src/pages/BroadcastsPage.tsx:893
 msgid "Yes, Select Winner"
 msgstr "はい、優勝者を選択"
+
+#: src/components/transactional/ImportExportTransactional.tsx:413
+msgid "Yes, Update"
+msgstr ""
 
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:322
 msgid "You can only upload CSV files!"
@@ -11080,8 +11163,10 @@ msgstr "リストの書き込み権限がありません"
 msgid "You don't have write permission for templates"
 msgstr "テンプレートの書き込み権限がありません"
 
-#: src/pages/TransactionalNotificationsPage.tsx:398
-#: src/pages/TransactionalNotificationsPage.tsx:450
+#: src/pages/TransactionalNotificationsPage.tsx:427
+#: src/pages/TransactionalNotificationsPage.tsx:441
+#: src/pages/TransactionalNotificationsPage.tsx:496
+#: src/pages/TransactionalNotificationsPage.tsx:510
 msgid "You don't have write permission for transactional notifications"
 msgstr "トランザクション通知の書き込み権限がありません"
 

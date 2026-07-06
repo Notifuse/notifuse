@@ -11,8 +11,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/blogfeed"
+	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/pkg/cache"
 	"github.com/Notifuse/notifuse/pkg/logger"
 )
