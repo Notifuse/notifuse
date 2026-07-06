@@ -98,6 +98,55 @@ func TestTransactionalNotificationRepository_Create(t *testing.T) {
 		require.NoError(t, err)
 	})
 
+	t.Run("resurrects soft-deleted notification", func(t *testing.T) {
+		// ON CONFLICT updates the soft-deleted row, reporting one affected row.
+		mockWorkspaceRepo.EXPECT().
+			GetConnection(ctx, workspaceID).
+			Return(db, nil)
+
+		mock.ExpectExec(`INSERT INTO transactional_notifications`).
+			WithArgs(
+				notification.ID,
+				notification.Name,
+				notification.Description,
+				sqlmock.AnyArg(), // channels (complex type)
+				sqlmock.AnyArg(), // tracking_settings (complex type)
+				sqlmock.AnyArg(), // metadata (complex type)
+				notification.IntegrationID,
+				sqlmock.AnyArg(), // created_at
+				sqlmock.AnyArg(), // updated_at
+			).
+			WillReturnResult(sqlmock.NewResult(0, 1))
+
+		err := repo.Create(ctx, workspaceID, notification)
+		require.NoError(t, err)
+	})
+
+	t.Run("conflict with active notification", func(t *testing.T) {
+		// ON CONFLICT touches no rows when an active notification owns the id.
+		mockWorkspaceRepo.EXPECT().
+			GetConnection(ctx, workspaceID).
+			Return(db, nil)
+
+		mock.ExpectExec(`INSERT INTO transactional_notifications`).
+			WithArgs(
+				notification.ID,
+				notification.Name,
+				notification.Description,
+				sqlmock.AnyArg(), // channels (complex type)
+				sqlmock.AnyArg(), // tracking_settings (complex type)
+				sqlmock.AnyArg(), // metadata (complex type)
+				notification.IntegrationID,
+				sqlmock.AnyArg(), // created_at
+				sqlmock.AnyArg(), // updated_at
+			).
+			WillReturnResult(sqlmock.NewResult(0, 0))
+
+		err := repo.Create(ctx, workspaceID, notification)
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "already exists")
+	})
+
 	t.Run("workspace connection error", func(t *testing.T) {
 		mockWorkspaceRepo.EXPECT().
 			GetConnection(ctx, workspaceID).
