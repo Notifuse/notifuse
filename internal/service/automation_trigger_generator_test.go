@@ -662,3 +662,15 @@ func TestAutomationTriggerGenerator_Generate(t *testing.T) {
 		assert.NotContains(t, result.WHENClause, "NEW.changes ?")
 	})
 }
+
+func BenchmarkEmbedArgs(b *testing.B) {
+	sql := "NEW.kind = $1 AND NEW.email = $2 AND NEW.list_id = $3 AND NEW.status = $4"
+	args := []interface{}{"contact.created", "test@example.com", "list123", "active"}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		if _, err := embedArgs(sql, args); err != nil {
+			b.Fatal(err)
+		}
+	}
+}

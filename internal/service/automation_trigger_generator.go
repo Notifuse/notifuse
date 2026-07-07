@@ -207,6 +207,9 @@ func escapeString(s string) string {
 	return strings.ReplaceAll(s, "'", "''")
 }
 
+// placeholderRegex matches PostgreSQL placeholders ($1, $2, etc.)
+var placeholderRegex = regexp.MustCompile(`\$(\d+)`)
+
 // embedArgs replaces PostgreSQL placeholders ($1, $2, etc.) with properly escaped values.
 // This is necessary because PostgreSQL trigger WHEN clauses cannot use parameterized queries.
 // The function handles proper escaping to prevent SQL injection.
@@ -216,7 +219,6 @@ func embedArgs(sql string, args []interface{}) (string, error) {
 	}
 
 	// Find all placeholders and their positions
-	placeholderRegex := regexp.MustCompile(`\$(\d+)`)
 	matches := placeholderRegex.FindAllStringSubmatchIndex(sql, -1)
 
 	if len(matches) == 0 {

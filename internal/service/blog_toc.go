@@ -91,19 +91,25 @@ func getHeadingLevel(tagName string) int {
 	}
 }
 
+var (
+	anchorSeparatorRegex   = regexp.MustCompile(`[\s_]+`)
+	anchorInvalidCharRegex = regexp.MustCompile(`[^a-z0-9-]`)
+	anchorMultiHyphenRegex = regexp.MustCompile(`-+`)
+)
+
 // generateAnchorID creates a URL-friendly anchor ID from heading text
 func generateAnchorID(text string, index int) string {
 	// Convert to lowercase
 	id := strings.ToLower(text)
 
 	// Replace spaces and underscores with hyphens
-	id = regexp.MustCompile(`[\s_]+`).ReplaceAllString(id, "-")
+	id = anchorSeparatorRegex.ReplaceAllString(id, "-")
 
 	// Remove any characters that aren't lowercase letters, numbers, or hyphens
-	id = regexp.MustCompile(`[^a-z0-9-]`).ReplaceAllString(id, "")
+	id = anchorInvalidCharRegex.ReplaceAllString(id, "")
 
 	// Replace multiple consecutive hyphens with a single hyphen
-	id = regexp.MustCompile(`-+`).ReplaceAllString(id, "-")
+	id = anchorMultiHyphenRegex.ReplaceAllString(id, "-")
 
 	// Remove leading and trailing hyphens
 	id = strings.Trim(id, "-")

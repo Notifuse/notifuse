@@ -303,3 +303,28 @@ func TestGenerateAnchorID(t *testing.T) {
 		})
 	}
 }
+
+func BenchmarkExtractTableOfContents(b *testing.B) {
+	// Simulate a typical blog post with multiple headings
+	var sb strings.Builder
+	for i := 0; i < 10; i++ {
+		sb.WriteString("<h2>Section Title Number ")
+		sb.WriteString(string(rune('A' + i)))
+		sb.WriteString("</h2><p>Some paragraph content here.</p><h3>Sub-Section_With Special!Chars</h3><p>More content.</p>")
+	}
+	html := sb.String()
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, _, err := ExtractTableOfContents(html)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkGenerateAnchorID(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		generateAnchorID("Hello, World! This_Is a --- Heading", i)
+	}
+}
