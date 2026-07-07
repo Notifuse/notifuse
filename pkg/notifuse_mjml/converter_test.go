@@ -945,3 +945,41 @@ func TestMJLiquidNotPerBlockProcessed(t *testing.T) {
 		t.Errorf("Result should not contain <mj-liquid tag, got: %s", result)
 	}
 }
+
+func BenchmarkProcessLiquidContent(b *testing.B) {
+	content := "Hello {{ contact.first_name }}, welcome to {% if contact.language == 'en' %}our newsletter{% endif %}!"
+	data := map[string]interface{}{
+		"contact": map[string]interface{}{
+			"first_name": "Alice",
+			"language":   "en",
+		},
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		if _, err := processLiquidContent(content, data, "bench-block"); err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkProcessLiquidContentParallel(b *testing.B) {
+	content := "Hello {{ contact.first_name }}!"
+	data := map[string]interface{}{
+		"contact": map[string]interface{}{"first_name": "Alice"},
+	}
+
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			if _, err := processLiquidContent(content, data, "bench-block"); err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
+}
+
+func BenchmarkCamelToKebab(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		camelToKebab("backgroundColor")
+	}
+}
