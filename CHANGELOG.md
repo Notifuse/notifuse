@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [35.1] - 2026-07-08
+
+- **Security**: Bumped `golang.org/x/crypto` to 0.52.0 in both Go modules to resolve the SSH-related advisories (12 critical/high) flagged by Dependabot.
+
 ## [35.0] - 2026-07-03
 
 - **Fix**: The contacts multi-select no longer gets out of sync when deleting via the row's ⋯ menu — clicking a dropdown item invisibly toggled the row's selection (the click bubbles through the React portal to the row's select-on-click handler), and a deleted contact was never removed from the selection, leaving a phantom "N contacts selected" bar whose stale emails a later bulk *Add to list* would even re-create via upsert (#374).
