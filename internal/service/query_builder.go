@@ -784,9 +784,11 @@ func (qb *QueryBuilder) parseTimelineFilter(filter *domain.DimensionFilter, argI
 		return "", nil, argIndex, fmt.Errorf("filter cannot be nil")
 	}
 
-	// Timeline metadata is stored in JSONB, so we need to use JSON operators
-	// For now, support common timeline metadata fields
-	fieldPath := fmt.Sprintf("ct.metadata->>'%s'", filter.FieldName)
+	// Timeline event fields live in the contact_timeline.changes JSONB column, which the
+	// database triggers populate as {field: {old, new}} (an insert only sets "new"). Read
+	// the "new" value — the resulting value of the change. (There is no "metadata" column;
+	// referencing one produced SQL that failed at execution.)
+	fieldPath := fmt.Sprintf("ct.changes->'%s'->>'new'", filter.FieldName)
 
 	// Validate operator
 	sqlOp, ok := qb.allowedOperators[filter.Operator]

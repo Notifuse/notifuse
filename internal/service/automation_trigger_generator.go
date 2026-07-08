@@ -14,7 +14,7 @@ import (
 var AllowedContactFields = map[string]bool{
 	// Core fields
 	"external_id": true, "timezone": true, "language": true,
-	"first_name": true, "last_name": true, "phone": true, "photo_url": true,
+	"first_name": true, "last_name": true, "phone": true,
 	// Address fields
 	"address_line_1": true, "address_line_2": true,
 	"country": true, "postcode": true, "state": true,
@@ -30,6 +30,29 @@ var AllowedContactFields = map[string]bool{
 	// Custom JSON fields
 	"custom_json_1": true, "custom_json_2": true, "custom_json_3": true,
 	"custom_json_4": true, "custom_json_5": true,
+}
+
+// emailEventKindToTimelineKind maps automation "email.*" engagement trigger event kinds
+// to the kinds actually written into contact_timeline by track_message_history_changes().
+//
+// The console/domain layer uses the dotted "email.<verb>" convention, but the
+// message_history trigger writes "<verb>_<channel>" (e.g. "click_email"). Automation
+// triggers fire AFTER INSERT ON contact_timeline and match NEW.kind, so without this
+// translation the WHEN clause ("NEW.kind = 'email.clicked'") never matches an actual row
+// ("click_email") and the automation silently never fires.
+//
+// email.sent and email.delivered are deliberately NOT mapped. They would translate to the
+// generic insert_message_history / update_message_history kinds, but an "every_time"
+// automation with a send node would then loop: sending inserts a message_history row,
+// which re-fires the trigger, which sends again (only "once" frequency dedups). These two
+// kinds stay inert until that loop is guarded; the engagement kinds below are human-paced
+// (a recipient must open/click), so they cannot run away.
+var emailEventKindToTimelineKind = map[string]string{
+	"email.opened":       "open_email",
+	"email.clicked":      "click_email",
+	"email.bounced":      "bounce_email",
+	"email.complained":   "complain_email",
+	"email.unsubscribed": "unsubscribe_email",
 }
 
 // TriggerSQL contains the generated SQL statements for an automation trigger
@@ -108,6 +131,10 @@ func (g *AutomationTriggerGenerator) buildWHENClause(automation *domain.Automati
 	if trigger.EventKind == "custom_event" && trigger.CustomEventName != nil && *trigger.CustomEventName != "" {
 		// Custom event with specific name filter
 		conditions = append(conditions, fmt.Sprintf("NEW.kind = 'custom_event.%s'", escapeString(*trigger.CustomEventName)))
+	} else if timelineKind, ok := emailEventKindToTimelineKind[trigger.EventKind]; ok {
+		// Email engagement events are stored under the "<verb>_<channel>" kind convention
+		// (e.g. click_email); translate so the WHEN clause matches the timeline row.
+		conditions = append(conditions, fmt.Sprintf("NEW.kind = '%s'", escapeString(timelineKind)))
 	} else {
 		conditions = append(conditions, fmt.Sprintf("NEW.kind = '%s'", escapeString(trigger.EventKind)))
 	}

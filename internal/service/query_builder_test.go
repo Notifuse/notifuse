@@ -1213,7 +1213,7 @@ func TestQueryBuilder_ContactTimeline(t *testing.T) {
 		sql, args, err := qb.BuildSQL(tree)
 		require.NoError(t, err)
 
-		assert.Contains(t, sql, "ct.metadata->>'product_id' = $2")
+		assert.Contains(t, sql, "ct.changes->'product_id'->>'new' = $2")
 		assert.Equal(t, []interface{}{"purchase", "prod_123", 1}, args)
 	})
 
@@ -1241,8 +1241,8 @@ func TestQueryBuilder_ContactTimeline(t *testing.T) {
 		sql, args, err := qb.BuildSQL(tree)
 		require.NoError(t, err)
 
-		// Should cast JSONB field to numeric for comparison
-		assert.Contains(t, sql, "(ct.metadata->>'amount')::numeric >= $2")
+		// Should cast the JSONB "new" value to numeric for comparison
+		assert.Contains(t, sql, "(ct.changes->'amount'->>'new')::numeric >= $2")
 		assert.Equal(t, []interface{}{"purchase", 100.0, 1}, args)
 	})
 

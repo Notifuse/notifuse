@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [36.0] - 2026-07-08
+
+- **Fix**: Viewing the contacts of a segment no longer returns a server error. The `segments.contacts` endpoint ordered by a `created_at` column that `contact_segments` does not have, so every request failed; it now orders by `matched_at` (when the contact joined the segment).
+- **Fix**: Removed the "Photo URL" option from the automation *contact updated* trigger's field list — contacts have no photo-URL field, so an automation filtered on it could never fire.
+- **Fix**: Segment/automation conditions that filter contact-timeline events by a field value now work. The query builder referenced a non-existent `metadata` column on `contact_timeline` (event fields live in the `changes` JSONB as `{field: {old, new}}`), so any such condition failed at SQL execution; it now reads the field's new value from `changes`.
+- **Fix**: Automations triggered by an email engagement event (opened, clicked, bounced, complained, unsubscribed) now actually fire. The trigger listened for the dotted event kind (e.g. `email.clicked`), but the contact timeline records these events under a different name (e.g. `click_email`), so the trigger condition never matched and the automation silently never ran. The trigger generator now translates these event kinds to the names the timeline uses, and workspace migration v36 regenerates the triggers of already-live automations so the fix applies without needing to re-save them. (The `email.sent` and `email.delivered` triggers remain inert for now — enabling them for an "every time" automation with a send node could loop.) (#339)
+
 ## [35.1] - 2026-07-08
 
 - **Security**: Bumped `golang.org/x/crypto` to 0.52.0 in both Go modules to resolve the SSH-related advisories (12 critical/high) flagged by Dependabot.
