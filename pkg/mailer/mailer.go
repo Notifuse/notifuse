@@ -304,17 +304,24 @@ func (m *SMTPMailer) createSMTPClient() (*mail.Client, error) {
 		return nil, nil
 	}
 
-	// Determine TLS policy based on config
-	tlsPolicy := mail.TLSOpportunistic
-	if !m.config.UseTLS {
-		tlsPolicy = mail.NoTLS
-	}
-
 	// Build client options
 	clientOptions := []mail.Option{
 		mail.WithPort(m.config.SMTPPort),
-		mail.WithTLSPolicy(tlsPolicy),
 		mail.WithTimeout(10 * time.Second),
+	}
+
+	// Port 465 is implicit TLS (SMTPS): the server expects the TLS handshake
+	// immediately, with no STARTTLS negotiation. TLSPolicy only controls
+	// STARTTLS, so using it on port 465 leaves the client waiting forever for
+	// a plaintext banner the server will never send. Use WithSSL() instead.
+	if m.config.UseTLS && m.config.SMTPPort == 465 {
+		clientOptions = append(clientOptions, mail.WithSSL())
+	} else {
+		tlsPolicy := mail.TLSOpportunistic
+		if !m.config.UseTLS {
+			tlsPolicy = mail.NoTLS
+		}
+		clientOptions = append(clientOptions, mail.WithTLSPolicy(tlsPolicy))
 	}
 
 	// Only add authentication if username and password are provided

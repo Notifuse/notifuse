@@ -495,16 +495,23 @@ func (s *SetupService) TestSMTPConnection(ctx context.Context, config *SMTPTestC
 		return fmt.Errorf("SMTP port is required")
 	}
 
-	// Determine TLS policy based on config
-	tlsPolicy := mail.TLSMandatory
-	if !config.UseTLS {
-		tlsPolicy = mail.NoTLS
-	}
-
 	// Build client options
 	clientOptions := []mail.Option{
 		mail.WithPort(config.Port),
-		mail.WithTLSPolicy(tlsPolicy),
+	}
+
+	// Port 465 is implicit TLS (SMTPS): the server expects the TLS handshake
+	// immediately, with no STARTTLS negotiation. TLSPolicy only controls
+	// STARTTLS, so using it on port 465 leaves the client waiting forever for
+	// a plaintext banner the server will never send. Use WithSSL() instead.
+	if config.UseTLS && config.Port == 465 {
+		clientOptions = append(clientOptions, mail.WithSSL())
+	} else {
+		tlsPolicy := mail.TLSMandatory
+		if !config.UseTLS {
+			tlsPolicy = mail.NoTLS
+		}
+		clientOptions = append(clientOptions, mail.WithTLSPolicy(tlsPolicy))
 	}
 
 	// Only add authentication if username and password are provided

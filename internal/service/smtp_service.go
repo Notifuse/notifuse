@@ -254,6 +254,23 @@ func sendRawEmailWithSettings(settings *domain.SMTPSettings, from string, to []s
 		return fmt.Errorf("failed to connect: %w", err)
 	}
 
+	// Port 465 is implicit TLS (SMTPS): the server expects the TLS handshake
+	// immediately, before any plaintext SMTP command - there is no greeting
+	// or STARTTLS step. Establish TLS right away and skip the STARTTLS branch
+	// below, otherwise the read of the plaintext greeting blocks forever.
+	implicitTLS := settings.UseTLS && settings.Port == 465
+	if implicitTLS {
+		tlsConfig := &tls.Config{
+			ServerName: settings.Host,
+			MinVersion: tls.VersionTLS12,
+		}
+		tlsConn := tls.Client(conn, tlsConfig)
+		if err := tlsConn.Handshake(); err != nil {
+			return fmt.Errorf("TLS handshake failed: %w", err)
+		}
+		conn = tlsConn
+	}
+
 	smtpConn := newSMTPConnection(conn)
 	defer smtpConn.Close()
 
@@ -287,8 +304,8 @@ func sendRawEmailWithSettings(settings *domain.SMTPSettings, from string, to []s
 	// post-TLS EHLO below, since many servers only advertise AUTH after STARTTLS.
 	authMechs := parseAuthMechanisms(ehloLines)
 
-	// STARTTLS if enabled
-	if settings.UseTLS {
+	// STARTTLS if enabled (skip when already using implicit TLS on port 465)
+	if settings.UseTLS && !implicitTLS {
 		code, _, err = smtpConn.sendCommand("STARTTLS")
 		if err != nil {
 			return fmt.Errorf("STARTTLS command failed: %w", err)
