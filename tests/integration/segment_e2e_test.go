@@ -2600,7 +2600,7 @@ func testComprehensiveActivitySegments(t *testing.T, client *testutil.APIClient,
 	// Group A: Event Kind Coverage (6 tests)
 	// =========================================================================
 	t.Run("GroupA_EventKindCoverage", func(t *testing.T) {
-		kinds := []string{"open_email", "click_email", "bounce_email", "complain_email", "unsubscribe_email", "insert_message_history"}
+		kinds := []string{"email.opened", "email.clicked", "email.bounced", "email.complained", "email.unsubscribed", "email.sent"}
 
 		for _, kind := range kinds {
 			kind := kind // capture range variable
@@ -2626,9 +2626,9 @@ func testComprehensiveActivitySegments(t *testing.T, client *testutil.APIClient,
 				require.NoError(t, err)
 
 				// Contact B gets 1 event of a different kind
-				otherKind := "open_email"
-				if kind == "open_email" {
-					otherKind = "click_email"
+				otherKind := "email.opened"
+				if kind == "email.opened" {
+					otherKind = "email.clicked"
 				}
 				err = factory.CreateContactTimelineEvent(workspaceID, fmt.Sprintf("%s-no@acttest.com", marker), otherKind, map[string]interface{}{
 					"test": true,
@@ -2657,7 +2657,7 @@ func testComprehensiveActivitySegments(t *testing.T, client *testutil.APIClient,
 			testutil.WithContactEmail("act-countop-1evt@acttest.com"),
 			testutil.WithContactCustomString1(marker))
 		require.NoError(t, err)
-		err = factory.CreateContactTimelineEvent(workspaceID, c1.Email, "open_email", map[string]interface{}{"n": 1})
+		err = factory.CreateContactTimelineEvent(workspaceID, c1.Email, "email.opened", map[string]interface{}{"n": 1})
 		require.NoError(t, err)
 
 		// Contact with 3 events
@@ -2666,7 +2666,7 @@ func testComprehensiveActivitySegments(t *testing.T, client *testutil.APIClient,
 			testutil.WithContactCustomString1(marker))
 		require.NoError(t, err)
 		for i := 0; i < 3; i++ {
-			err = factory.CreateContactTimelineEvent(workspaceID, c3.Email, "open_email", map[string]interface{}{"n": i})
+			err = factory.CreateContactTimelineEvent(workspaceID, c3.Email, "email.opened", map[string]interface{}{"n": i})
 			require.NoError(t, err)
 		}
 
@@ -2676,7 +2676,7 @@ func testComprehensiveActivitySegments(t *testing.T, client *testutil.APIClient,
 			testutil.WithContactCustomString1(marker))
 		require.NoError(t, err)
 		for i := 0; i < 5; i++ {
-			err = factory.CreateContactTimelineEvent(workspaceID, c5.Email, "open_email", map[string]interface{}{"n": i})
+			err = factory.CreateContactTimelineEvent(workspaceID, c5.Email, "email.opened", map[string]interface{}{"n": i})
 			require.NoError(t, err)
 		}
 
@@ -2689,31 +2689,31 @@ func testComprehensiveActivitySegments(t *testing.T, client *testutil.APIClient,
 		markerLeaf := contactLeaf("custom_string_1", "equals", marker)
 
 		t.Run("at_least_3", func(t *testing.T) {
-			tree := andBranch(markerLeaf, timelineLeaf("open_email", "at_least", 3))
+			tree := andBranch(markerLeaf, timelineLeaf("email.opened", "at_least", 3))
 			count := previewSegment(t, workspaceID, tree)
 			assert.Equal(t, 2, count, "at_least 3: expected 2 contacts (3evt + 5evt)")
 		})
 
 		t.Run("at_most_3", func(t *testing.T) {
-			tree := andBranch(markerLeaf, timelineLeaf("open_email", "at_most", 3))
+			tree := andBranch(markerLeaf, timelineLeaf("email.opened", "at_most", 3))
 			count := previewSegment(t, workspaceID, tree)
 			assert.Equal(t, 3, count, "at_most 3: expected 3 contacts (0evt + 1evt + 3evt)")
 		})
 
 		t.Run("exactly_3", func(t *testing.T) {
-			tree := andBranch(markerLeaf, timelineLeaf("open_email", "exactly", 3))
+			tree := andBranch(markerLeaf, timelineLeaf("email.opened", "exactly", 3))
 			count := previewSegment(t, workspaceID, tree)
 			assert.Equal(t, 1, count, "exactly 3: expected 1 contact (3evt)")
 		})
 
 		t.Run("exactly_0", func(t *testing.T) {
-			tree := andBranch(markerLeaf, timelineLeaf("open_email", "exactly", 0))
+			tree := andBranch(markerLeaf, timelineLeaf("email.opened", "exactly", 0))
 			count := previewSegment(t, workspaceID, tree)
 			assert.Equal(t, 1, count, "exactly 0: expected 1 contact (0evt)")
 		})
 
 		t.Run("at_most_0", func(t *testing.T) {
-			tree := andBranch(markerLeaf, timelineLeaf("open_email", "at_most", 0))
+			tree := andBranch(markerLeaf, timelineLeaf("email.opened", "at_most", 0))
 			count := previewSegment(t, workspaceID, tree)
 			assert.Equal(t, 1, count, "at_most 0: expected 1 contact (0evt)")
 		})
@@ -2731,7 +2731,7 @@ func testComprehensiveActivitySegments(t *testing.T, client *testutil.APIClient,
 			testutil.WithContactEmail("act-tf-3d@acttest.com"),
 			testutil.WithContactCustomString1(marker))
 		require.NoError(t, err)
-		err = factory.CreateContactTimelineEventAt(workspaceID, cA.Email, "click_email", map[string]interface{}{"n": 1}, now.AddDate(0, 0, -3))
+		err = factory.CreateContactTimelineEventAt(workspaceID, cA.Email, "email.clicked", map[string]interface{}{"n": 1}, now.AddDate(0, 0, -3))
 		require.NoError(t, err)
 
 		// Contact B: event 10 days ago
@@ -2739,7 +2739,7 @@ func testComprehensiveActivitySegments(t *testing.T, client *testutil.APIClient,
 			testutil.WithContactEmail("act-tf-10d@acttest.com"),
 			testutil.WithContactCustomString1(marker))
 		require.NoError(t, err)
-		err = factory.CreateContactTimelineEventAt(workspaceID, cB.Email, "click_email", map[string]interface{}{"n": 1}, now.AddDate(0, 0, -10))
+		err = factory.CreateContactTimelineEventAt(workspaceID, cB.Email, "email.clicked", map[string]interface{}{"n": 1}, now.AddDate(0, 0, -10))
 		require.NoError(t, err)
 
 		// Contact C: event 60 days ago
@@ -2747,39 +2747,39 @@ func testComprehensiveActivitySegments(t *testing.T, client *testutil.APIClient,
 			testutil.WithContactEmail("act-tf-60d@acttest.com"),
 			testutil.WithContactCustomString1(marker))
 		require.NoError(t, err)
-		err = factory.CreateContactTimelineEventAt(workspaceID, cC.Email, "click_email", map[string]interface{}{"n": 1}, now.AddDate(0, 0, -60))
+		err = factory.CreateContactTimelineEventAt(workspaceID, cC.Email, "email.clicked", map[string]interface{}{"n": 1}, now.AddDate(0, 0, -60))
 		require.NoError(t, err)
 
 		markerLeaf := contactLeaf("custom_string_1", "equals", marker)
 
 		t.Run("anytime", func(t *testing.T) {
-			tree := andBranch(markerLeaf, timelineLeafWithTimeframe("click_email", "at_least", 1, "anytime", nil))
+			tree := andBranch(markerLeaf, timelineLeafWithTimeframe("email.clicked", "at_least", 1, "anytime", nil))
 			count := previewSegment(t, workspaceID, tree)
 			assert.Equal(t, 3, count, "anytime: expected all 3 contacts")
 		})
 
 		t.Run("in_the_last_7_days", func(t *testing.T) {
-			tree := andBranch(markerLeaf, timelineLeafWithTimeframe("click_email", "at_least", 1, "in_the_last_days", []string{"7"}))
+			tree := andBranch(markerLeaf, timelineLeafWithTimeframe("email.clicked", "at_least", 1, "in_the_last_days", []string{"7"}))
 			count := previewSegment(t, workspaceID, tree)
 			assert.Equal(t, 1, count, "in_the_last_7_days: expected 1 contact (A)")
 		})
 
 		t.Run("in_the_last_30_days", func(t *testing.T) {
-			tree := andBranch(markerLeaf, timelineLeafWithTimeframe("click_email", "at_least", 1, "in_the_last_days", []string{"30"}))
+			tree := andBranch(markerLeaf, timelineLeafWithTimeframe("email.clicked", "at_least", 1, "in_the_last_days", []string{"30"}))
 			count := previewSegment(t, workspaceID, tree)
 			assert.Equal(t, 2, count, "in_the_last_30_days: expected 2 contacts (A, B)")
 		})
 
 		t.Run("before_date", func(t *testing.T) {
 			cutoff := now.AddDate(0, 0, -15).Format(time.RFC3339)
-			tree := andBranch(markerLeaf, timelineLeafWithTimeframe("click_email", "at_least", 1, "before_date", []string{cutoff}))
+			tree := andBranch(markerLeaf, timelineLeafWithTimeframe("email.clicked", "at_least", 1, "before_date", []string{cutoff}))
 			count := previewSegment(t, workspaceID, tree)
 			assert.Equal(t, 1, count, "before_date (now-15d): expected 1 contact (C)")
 		})
 
 		t.Run("after_date", func(t *testing.T) {
 			cutoff := now.AddDate(0, 0, -15).Format(time.RFC3339)
-			tree := andBranch(markerLeaf, timelineLeafWithTimeframe("click_email", "at_least", 1, "after_date", []string{cutoff}))
+			tree := andBranch(markerLeaf, timelineLeafWithTimeframe("email.clicked", "at_least", 1, "after_date", []string{cutoff}))
 			count := previewSegment(t, workspaceID, tree)
 			assert.Equal(t, 2, count, "after_date (now-15d): expected 2 contacts (A, B)")
 		})
@@ -2787,7 +2787,7 @@ func testComprehensiveActivitySegments(t *testing.T, client *testutil.APIClient,
 		t.Run("in_date_range", func(t *testing.T) {
 			rangeStart := now.AddDate(0, 0, -15).Format(time.RFC3339)
 			rangeEnd := now.AddDate(0, 0, -5).Format(time.RFC3339)
-			tree := andBranch(markerLeaf, timelineLeafWithTimeframe("click_email", "at_least", 1, "in_date_range", []string{rangeStart, rangeEnd}))
+			tree := andBranch(markerLeaf, timelineLeafWithTimeframe("email.clicked", "at_least", 1, "in_date_range", []string{rangeStart, rangeEnd}))
 			count := previewSegment(t, workspaceID, tree)
 			assert.Equal(t, 1, count, "in_date_range (now-15d to now-5d): expected 1 contact (B)")
 		})
@@ -2822,12 +2822,12 @@ func testComprehensiveActivitySegments(t *testing.T, client *testutil.APIClient,
 		require.NoError(t, err)
 
 		// Create timeline events with entity_id pointing to message_history records
-		err = factory.CreateContactTimelineEvent(workspaceID, contactA.Email, "open_email", map[string]interface{}{
+		err = factory.CreateContactTimelineEvent(workspaceID, contactA.Email, "email.opened", map[string]interface{}{
 			"entity_id": msgA.ID,
 		})
 		require.NoError(t, err)
 
-		err = factory.CreateContactTimelineEvent(workspaceID, contactB.Email, "open_email", map[string]interface{}{
+		err = factory.CreateContactTimelineEvent(workspaceID, contactB.Email, "email.opened", map[string]interface{}{
 			"entity_id": msgB.ID,
 		})
 		require.NoError(t, err)
@@ -2835,36 +2835,36 @@ func testComprehensiveActivitySegments(t *testing.T, client *testutil.APIClient,
 		markerLeaf := contactLeaf("custom_string_1", "equals", marker)
 
 		t.Run("filter_by_template_a", func(t *testing.T) {
-			tree := andBranch(markerLeaf, timelineLeafWithTemplate("open_email", "at_least", 1, "template-welcome-a"))
+			tree := andBranch(markerLeaf, timelineLeafWithTemplate("email.opened", "at_least", 1, "template-welcome-a"))
 			count := previewSegment(t, workspaceID, tree)
 			assert.Equal(t, 1, count, "filter_by_template_a: expected 1 contact (A)")
 		})
 
 		t.Run("filter_by_template_b", func(t *testing.T) {
-			tree := andBranch(markerLeaf, timelineLeafWithTemplate("open_email", "at_least", 1, "template-promo-b"))
+			tree := andBranch(markerLeaf, timelineLeafWithTemplate("email.opened", "at_least", 1, "template-promo-b"))
 			count := previewSegment(t, workspaceID, tree)
 			assert.Equal(t, 1, count, "filter_by_template_b: expected 1 contact (B)")
 		})
 
 		t.Run("without_template_matches_both", func(t *testing.T) {
-			tree := andBranch(markerLeaf, timelineLeafWithTemplate("open_email", "at_least", 1, ""))
+			tree := andBranch(markerLeaf, timelineLeafWithTemplate("email.opened", "at_least", 1, ""))
 			count := previewSegment(t, workspaceID, tree)
 			assert.Equal(t, 2, count, "without_template: expected 2 contacts (both)")
 		})
 
 		t.Run("template_with_timeframe", func(t *testing.T) {
-			tree := andBranch(markerLeaf, timelineLeafFull("open_email", "at_least", 1, "in_the_last_days", []string{"1"}, "template-welcome-a"))
+			tree := andBranch(markerLeaf, timelineLeafFull("email.opened", "at_least", 1, "in_the_last_days", []string{"1"}, "template-welcome-a"))
 			count := previewSegment(t, workspaceID, tree)
 			assert.Equal(t, 1, count, "template_with_timeframe: expected 1 contact (A, created just now)")
 		})
 
 		t.Run("template_exactly_0", func(t *testing.T) {
-			tree := andBranch(markerLeaf, timelineLeafWithTemplate("open_email", "exactly", 0, "template-welcome-a"))
+			tree := andBranch(markerLeaf, timelineLeafWithTemplate("email.opened", "exactly", 0, "template-welcome-a"))
 			count := previewSegment(t, workspaceID, tree)
 			assert.Equal(t, 1, count, "template_exactly_0: expected 1 contact (B has 0 events for template A)")
 		})
 
-		t.Run("trigger_pipeline_insert_message_history", func(t *testing.T) {
+		t.Run("trigger_pipeline_email.sent", func(t *testing.T) {
 			pipelineMarker := "act-tmpl-pipeline"
 
 			// Create a NEW contact C
@@ -2875,23 +2875,23 @@ func testComprehensiveActivitySegments(t *testing.T, client *testutil.APIClient,
 
 			// Create message_history via factory — this fires the DB trigger
 			// track_message_history_changes() which INSERTs into contact_timeline
-			// with kind = 'insert_message_history' and entity_id = NEW.id
+			// with kind = 'email.sent' and entity_id = NEW.id
 			_, err = factory.CreateMessageHistory(workspaceID,
 				testutil.WithMessageHistoryContactEmail(contactC.Email),
 				testutil.WithMessageHistoryTemplateID("template-pipeline-c"))
 			require.NoError(t, err)
 
-			// Preview: AND(custom_string_1 = pipeline marker, insert_message_history at_least 1 + template_id)
+			// Preview: AND(custom_string_1 = pipeline marker, email.sent at_least 1 + template_id)
 			tree := andBranch(
 				contactLeaf("custom_string_1", "equals", pipelineMarker),
-				timelineLeafWithTemplate("insert_message_history", "at_least", 1, "template-pipeline-c"),
+				timelineLeafWithTemplate("email.sent", "at_least", 1, "template-pipeline-c"),
 			)
 			count := previewSegment(t, workspaceID, tree)
 			assert.Equal(t, 1, count, "trigger_pipeline: expected 1 contact via DB trigger chain")
 		})
 
 		t.Run("nonexistent_template_returns_zero", func(t *testing.T) {
-			tree := andBranch(markerLeaf, timelineLeafWithTemplate("open_email", "at_least", 1, "nonexistent"))
+			tree := andBranch(markerLeaf, timelineLeafWithTemplate("email.opened", "at_least", 1, "nonexistent"))
 			count := previewSegment(t, workspaceID, tree)
 			assert.Equal(t, 0, count, "nonexistent_template: expected 0 contacts")
 		})
@@ -2908,14 +2908,14 @@ func testComprehensiveActivitySegments(t *testing.T, client *testutil.APIClient,
 			testutil.WithListName("ComboTestList"))
 		require.NoError(t, err)
 
-		// Contact 1: country=US, 3 open_email events, IN list
+		// Contact 1: country=US, 3 email.opened events, IN list
 		c1, err := factory.CreateContact(workspaceID,
 			testutil.WithContactEmail("act-combo-1@acttest.com"),
 			testutil.WithContactCountry("US"),
 			testutil.WithContactCustomString1(marker))
 		require.NoError(t, err)
 		for i := 0; i < 3; i++ {
-			err = factory.CreateContactTimelineEvent(workspaceID, c1.Email, "open_email", map[string]interface{}{"n": i})
+			err = factory.CreateContactTimelineEvent(workspaceID, c1.Email, "email.opened", map[string]interface{}{"n": i})
 			require.NoError(t, err)
 		}
 		_, err = factory.CreateContactList(workspaceID,
@@ -2936,14 +2936,14 @@ func testComprehensiveActivitySegments(t *testing.T, client *testutil.APIClient,
 			testutil.WithContactListStatus(domain.ContactListStatusActive))
 		require.NoError(t, err)
 
-		// Contact 3: country=CA, 2 open_email events, NOT in list
+		// Contact 3: country=CA, 2 email.opened events, NOT in list
 		c3, err := factory.CreateContact(workspaceID,
 			testutil.WithContactEmail("act-combo-3@acttest.com"),
 			testutil.WithContactCountry("CA"),
 			testutil.WithContactCustomString1(marker))
 		require.NoError(t, err)
 		for i := 0; i < 2; i++ {
-			err = factory.CreateContactTimelineEvent(workspaceID, c3.Email, "open_email", map[string]interface{}{"n": i})
+			err = factory.CreateContactTimelineEvent(workspaceID, c3.Email, "email.opened", map[string]interface{}{"n": i})
 			require.NoError(t, err)
 		}
 
@@ -2957,19 +2957,19 @@ func testComprehensiveActivitySegments(t *testing.T, client *testutil.APIClient,
 		markerLeaf := contactLeaf("custom_string_1", "equals", marker)
 
 		t.Run("AND_timeline_plus_property", func(t *testing.T) {
-			// US AND open_email >= 1 → Contact 1 only
-			tree := andBranch(markerLeaf, contactLeaf("country", "equals", "US"), timelineLeaf("open_email", "at_least", 1))
+			// US AND email.opened >= 1 → Contact 1 only
+			tree := andBranch(markerLeaf, contactLeaf("country", "equals", "US"), timelineLeaf("email.opened", "at_least", 1))
 			count := previewSegment(t, workspaceID, tree)
 			assert.Equal(t, 1, count, "AND timeline+property: expected 1 (contact 1)")
 		})
 
 		t.Run("OR_timeline_or_property", func(t *testing.T) {
-			// marker AND (CA OR open_email >= 1) → Contacts 1, 3, 4
+			// marker AND (CA OR email.opened >= 1) → Contacts 1, 3, 4
 			tree := andBranch(
 				markerLeaf,
 				orBranch(
 					contactLeaf("country", "equals", "CA"),
-					timelineLeaf("open_email", "at_least", 1),
+					timelineLeaf("email.opened", "at_least", 1),
 				),
 			)
 			count := previewSegment(t, workspaceID, tree)
@@ -2977,19 +2977,19 @@ func testComprehensiveActivitySegments(t *testing.T, client *testutil.APIClient,
 		})
 
 		t.Run("AND_timeline_plus_list", func(t *testing.T) {
-			// marker AND in list AND open_email >= 1 → Contact 1
-			tree := andBranch(markerLeaf, listLeaf("in", comboList.ID), timelineLeaf("open_email", "at_least", 1))
+			// marker AND in list AND email.opened >= 1 → Contact 1
+			tree := andBranch(markerLeaf, listLeaf("in", comboList.ID), timelineLeaf("email.opened", "at_least", 1))
 			count := previewSegment(t, workspaceID, tree)
 			assert.Equal(t, 1, count, "AND timeline+list: expected 1 (contact 1)")
 		})
 
 		t.Run("OR_timeline_or_list", func(t *testing.T) {
-			// marker AND (in list OR open_email >= 1) → Contacts 1, 2, 3
+			// marker AND (in list OR email.opened >= 1) → Contacts 1, 2, 3
 			tree := andBranch(
 				markerLeaf,
 				orBranch(
 					listLeaf("in", comboList.ID),
-					timelineLeaf("open_email", "at_least", 1),
+					timelineLeaf("email.opened", "at_least", 1),
 				),
 			)
 			count := previewSegment(t, workspaceID, tree)
@@ -2997,28 +2997,28 @@ func testComprehensiveActivitySegments(t *testing.T, client *testutil.APIClient,
 		})
 
 		t.Run("NOT_in_list_AND_opened", func(t *testing.T) {
-			// marker AND NOT in list AND open_email >= 1 → Contact 3
-			tree := andBranch(markerLeaf, listLeaf("not_in", comboList.ID), timelineLeaf("open_email", "at_least", 1))
+			// marker AND NOT in list AND email.opened >= 1 → Contact 3
+			tree := andBranch(markerLeaf, listLeaf("not_in", comboList.ID), timelineLeaf("email.opened", "at_least", 1))
 			count := previewSegment(t, workspaceID, tree)
 			assert.Equal(t, 1, count, "NOT in list AND opened: expected 1 (contact 3)")
 		})
 
 		t.Run("three_way_AND", func(t *testing.T) {
-			// marker AND US AND in list AND open_email >= 1 → Contact 1
-			tree := andBranch(markerLeaf, contactLeaf("country", "equals", "US"), listLeaf("in", comboList.ID), timelineLeaf("open_email", "at_least", 1))
+			// marker AND US AND in list AND email.opened >= 1 → Contact 1
+			tree := andBranch(markerLeaf, contactLeaf("country", "equals", "US"), listLeaf("in", comboList.ID), timelineLeaf("email.opened", "at_least", 1))
 			count := previewSegment(t, workspaceID, tree)
 			assert.Equal(t, 1, count, "three_way_AND: expected 1 (contact 1)")
 		})
 
 		t.Run("nested_OR_under_AND", func(t *testing.T) {
-			// marker AND (US OR CA) AND open_email >= 3 → Contact 1
+			// marker AND (US OR CA) AND email.opened >= 3 → Contact 1
 			tree := andBranch(
 				markerLeaf,
 				orBranch(
 					contactLeaf("country", "equals", "US"),
 					contactLeaf("country", "equals", "CA"),
 				),
-				timelineLeaf("open_email", "at_least", 3),
+				timelineLeaf("email.opened", "at_least", 3),
 			)
 			count := previewSegment(t, workspaceID, tree)
 			assert.Equal(t, 1, count, "nested_OR_under_AND: expected 1 (contact 1)")

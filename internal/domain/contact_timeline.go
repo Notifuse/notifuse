@@ -17,7 +17,7 @@ type ContactTimelineEntry struct {
 	Email       string                 `json:"email"`
 	Operation   string                 `json:"operation"`   // 'insert', 'update', 'delete'
 	EntityType  string                 `json:"entity_type"` // 'contact', 'contact_list', 'message_history'
-	Kind        string                 `json:"kind"`        // operation_entityType (e.g., 'insert_contact', 'update_message_history')
+	Kind        string                 `json:"kind"`        // semantic dot-notation event kind (e.g., 'contact.created', 'email.clicked', 'email.updated')
 	Changes     map[string]interface{} `json:"changes"`
 	EntityID    *string                `json:"entity_id,omitempty"`   // NULL for contact, list_id for contact_list, message_id for message_history
 	EntityData  map[string]interface{} `json:"entity_data,omitempty"` // Joined entity data (contact, list, or message details)

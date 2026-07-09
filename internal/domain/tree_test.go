@@ -650,7 +650,7 @@ func TestTreeNode_HasRelativeDates(t *testing.T) {
 			Leaf: &TreeNodeLeaf{
 				Source: "contact_timeline",
 				ContactTimeline: &ContactTimelineCondition{
-					Kind:              "open_email",
+					Kind:              "email.opened",
 					CountOperator:     "at_least",
 					CountValue:        1,
 					TimeframeOperator: &inTheLastDays,
@@ -669,7 +669,7 @@ func TestTreeNode_HasRelativeDates(t *testing.T) {
 			Leaf: &TreeNodeLeaf{
 				Source: "contact_timeline",
 				ContactTimeline: &ContactTimelineCondition{
-					Kind:              "open_email",
+					Kind:              "email.opened",
 					CountOperator:     "at_least",
 					CountValue:        1,
 					TimeframeOperator: &anytime,
@@ -777,7 +777,7 @@ func TestTreeNode_HasRelativeDates(t *testing.T) {
 						Leaf: &TreeNodeLeaf{
 							Source: "contact_timeline",
 							ContactTimeline: &ContactTimelineCondition{
-								Kind:              "open_email",
+								Kind:              "email.opened",
 								CountOperator:     "at_least",
 								CountValue:        1,
 								TimeframeOperator: &inTheLastDays,
@@ -997,9 +997,9 @@ func TestContactTimelineCondition_Validate(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "valid with template_id and open_email kind",
+			name: "valid with template_id and email.opened kind",
 			cond: ContactTimelineCondition{
-				Kind:          "open_email",
+				Kind:          "email.opened",
 				CountOperator: "at_least",
 				CountValue:    1,
 				TemplateID:    stringPtr("template-123"),
@@ -1007,9 +1007,9 @@ func TestContactTimelineCondition_Validate(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "valid with template_id and click_email kind",
+			name: "valid with template_id and email.clicked kind",
 			cond: ContactTimelineCondition{
-				Kind:          "click_email",
+				Kind:          "email.clicked",
 				CountOperator: "at_least",
 				CountValue:    1,
 				TemplateID:    stringPtr("template-456"),
@@ -1017,9 +1017,9 @@ func TestContactTimelineCondition_Validate(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "valid with template_id and unsubscribe_email kind",
+			name: "valid with template_id and email.unsubscribed kind",
 			cond: ContactTimelineCondition{
-				Kind:          "unsubscribe_email",
+				Kind:          "email.unsubscribed",
 				CountOperator: "at_least",
 				CountValue:    1,
 				TemplateID:    stringPtr("template-789"),
@@ -1035,15 +1035,89 @@ func TestContactTimelineCondition_Validate(t *testing.T) {
 				TemplateID:    stringPtr("template-123"),
 			},
 			wantErr: true,
-			errMsg:  "template_id can only be used with email event kinds (open_email, click_email, bounce_email, complain_email, unsubscribe_email) or insert_message_history",
+			errMsg:  "template_id can only be used with email event kinds (email.opened, email.clicked, email.bounced, email.complained, email.unsubscribed) or email.sent",
 		},
 		{
-			name: "valid with template_id and insert_message_history kind",
+			name: "valid with template_id and email.sent kind",
 			cond: ContactTimelineCondition{
-				Kind:          "insert_message_history",
+				Kind:          "email.sent",
 				CountOperator: "at_least",
 				CountValue:    1,
 				TemplateID:    stringPtr("template-456"),
+			},
+			wantErr: false,
+		},
+		{
+			name: "valid with broadcast_id and email.clicked kind",
+			cond: ContactTimelineCondition{
+				Kind:          "email.clicked",
+				CountOperator: "at_least",
+				CountValue:    1,
+				BroadcastID:   stringPtr("broadcast-123"),
+			},
+			wantErr: false,
+		},
+		{
+			name: "valid with broadcast_id and email.opened kind (broadcast allowed on any email kind)",
+			cond: ContactTimelineCondition{
+				Kind:          "email.opened",
+				CountOperator: "at_least",
+				CountValue:    1,
+				BroadcastID:   stringPtr("broadcast-123"),
+			},
+			wantErr: false,
+		},
+		{
+			name: "valid with template_id and broadcast_id together on email.clicked",
+			cond: ContactTimelineCondition{
+				Kind:          "email.clicked",
+				CountOperator: "at_least",
+				CountValue:    1,
+				TemplateID:    stringPtr("template-1"),
+				BroadcastID:   stringPtr("broadcast-1"),
+			},
+			wantErr: false,
+		},
+		{
+			name: "broadcast_id with non-email kind",
+			cond: ContactTimelineCondition{
+				Kind:          "insert_contact",
+				CountOperator: "at_least",
+				CountValue:    1,
+				BroadcastID:   stringPtr("broadcast-123"),
+			},
+			wantErr: true,
+			errMsg:  "broadcast_id can only be used with email event kinds",
+		},
+		{
+			name: "valid with link_url and email.clicked kind",
+			cond: ContactTimelineCondition{
+				Kind:          "email.clicked",
+				CountOperator: "at_least",
+				CountValue:    1,
+				LinkURL:       stringPtr("/pricing"),
+			},
+			wantErr: false,
+		},
+		{
+			name: "link_url with non-click kind is rejected",
+			cond: ContactTimelineCondition{
+				Kind:          "email.opened",
+				CountOperator: "at_least",
+				CountValue:    1,
+				LinkURL:       stringPtr("/pricing"),
+			},
+			wantErr: true,
+			errMsg:  "link_url can only be used with the email.clicked event kind",
+		},
+		{
+			name: "broadcast_id and link_url together on email.clicked are valid",
+			cond: ContactTimelineCondition{
+				Kind:          "email.clicked",
+				CountOperator: "at_least",
+				CountValue:    1,
+				BroadcastID:   stringPtr("broadcast-9"),
+				LinkURL:       stringPtr("/pricing"),
 			},
 			wantErr: false,
 		},

@@ -2239,7 +2239,7 @@ func (s *DemoService) createSampleSegments(ctx context.Context, workspaceID stri
 						Leaf: &domain.TreeNodeLeaf{
 							Source: "contact_timeline",
 							ContactTimeline: &domain.ContactTimelineCondition{
-								Kind:              "open_email",
+								Kind:              "email.opened",
 								CountOperator:     "at_least",
 								CountValue:        3,
 								TimeframeOperator: &timeframeOperator,

@@ -297,9 +297,9 @@ func TestAutomationTriggerGenerator_Generate(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, result)
 
-		// The engagement kind maps to its timeline kind and the list condition embeds as a
-		// subquery ANDed into the WHEN clause.
-		assert.Contains(t, result.WHENClause, "NEW.kind = 'click_email'")
+		// The engagement kind matches the timeline kind verbatim and the list condition
+		// embeds as a subquery ANDed into the WHEN clause.
+		assert.Contains(t, result.WHENClause, "NEW.kind = 'email.clicked'")
 		assert.Contains(t, result.WHENClause, "EXISTS (SELECT 1 FROM contact_lists cl")
 		assert.Contains(t, result.WHENClause, "cl.email = NEW.email")
 		assert.Contains(t, result.WHENClause, "'premium_members'") // Embedded value
@@ -520,23 +520,19 @@ func TestAutomationTriggerGenerator_Generate(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, result)
 
-		// email.opened must be translated to the timeline kind "open_email" written
-		// by track_message_history_changes(); the dotted form never matches a row.
-		assert.Contains(t, result.WHENClause, "NEW.kind = 'open_email'")
-		assert.NotContains(t, result.WHENClause, "email.opened")
+		// email.opened now equals the timeline kind written by track_message_history_changes(),
+		// so the WHEN clause references it verbatim (no translation).
+		assert.Contains(t, result.WHENClause, "NEW.kind = 'email.opened'")
 		// Should NOT have entity_id filter for email events
 		assert.NotContains(t, result.WHENClause, "NEW.entity_id")
 	})
 
-	t.Run("email.* event kinds map to timeline kinds", func(t *testing.T) {
-		cases := map[string]string{
-			"email.opened":       "NEW.kind = 'open_email'",
-			"email.clicked":      "NEW.kind = 'click_email'",
-			"email.bounced":      "NEW.kind = 'bounce_email'",
-			"email.complained":   "NEW.kind = 'complain_email'",
-			"email.unsubscribed": "NEW.kind = 'unsubscribe_email'",
-		}
-		for eventKind, wantKind := range cases {
+	t.Run("email.* event kinds match the timeline kind verbatim", func(t *testing.T) {
+		// The contact timeline now stores these dotted kinds, so no translation is needed.
+		for _, eventKind := range []string{
+			"email.opened", "email.clicked", "email.bounced",
+			"email.complained", "email.unsubscribed",
+		} {
 			t.Run(eventKind, func(t *testing.T) {
 				automation := &domain.Automation{
 					ID:         "map" + strings.ReplaceAll(eventKind, ".", ""),
@@ -552,17 +548,16 @@ func TestAutomationTriggerGenerator_Generate(t *testing.T) {
 				require.NoError(t, err)
 				require.NotNil(t, result)
 
-				assert.Contains(t, result.WHENClause, wantKind)
-				// The dotted "email.*" form must never leak into the WHEN clause,
-				// or the trigger will never match a real contact_timeline row.
-				assert.NotContains(t, result.WHENClause, "'"+eventKind+"'")
+				assert.Contains(t, result.WHENClause, "NEW.kind = '"+eventKind+"'")
 			})
 		}
 	})
 
-	t.Run("email.sent and email.delivered are intentionally not mapped (loop risk)", func(t *testing.T) {
-		// These are left inert until the every_time send loop is guarded, so they fall
-		// through to the verbatim kind, which never matches a timeline row.
+	t.Run("legacy email.sent/email.delivered kinds are emitted verbatim", func(t *testing.T) {
+		// These were removed from ValidEventKinds, but a legacy live automation could still
+		// carry one; Generate must emit it verbatim rather than choke. email.delivered has no
+		// matching timeline kind (delivered lands in the generic email.updated), so it stays
+		// inert; the generator never collapses it into a generic message_history kind.
 		for _, eventKind := range []string{"email.sent", "email.delivered"} {
 			automation := &domain.Automation{
 				ID:         "unmapped" + strings.ReplaceAll(eventKind, ".", ""),

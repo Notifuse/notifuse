@@ -240,13 +240,13 @@ func TestLinkClickMailpitE2E(t *testing.T) {
 	t.Run("triggers fire once despite three clicks", func(t *testing.T) {
 		var clickRows, openRows int
 		require.NoError(t, workspaceDB.QueryRowContext(ctx,
-			`SELECT COUNT(*) FROM contact_timeline WHERE entity_id = $1 AND kind = 'click_email'`,
+			`SELECT COUNT(*) FROM contact_timeline WHERE entity_id = $1 AND kind = 'email.clicked'`,
 			messageID).Scan(&clickRows))
 		require.NoError(t, workspaceDB.QueryRowContext(ctx,
-			`SELECT COUNT(*) FROM contact_timeline WHERE entity_id = $1 AND kind = 'open_email'`,
+			`SELECT COUNT(*) FROM contact_timeline WHERE entity_id = $1 AND kind = 'email.opened'`,
 			messageID).Scan(&openRows))
-		assert.Equal(t, 1, clickRows, "exactly one click_email timeline row despite 3 clicks")
-		assert.Equal(t, 1, openRows, "exactly one open_email timeline row from the backfill")
+		assert.Equal(t, 1, clickRows, "exactly one email.clicked timeline row despite 3 clicks")
+		assert.Equal(t, 1, openRows, "exactly one email.opened timeline row from the backfill")
 	})
 
 	t.Run("broadcastLinkStats aggregates the real clicks", func(t *testing.T) {

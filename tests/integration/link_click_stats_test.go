@@ -174,7 +174,7 @@ func TestLinkClickStats(t *testing.T) {
 	})
 
 	t.Run("repeat clicks add no timeline rows", func(t *testing.T) {
-		events, err := factory.GetContactTimelineEvents(workspace.ID, contact.Email, "click_email")
+		events, err := factory.GetContactTimelineEvents(workspace.ID, contact.Email, "email.clicked")
 		require.NoError(t, err)
 		assert.Len(t, events, 1, "only the clicked_at transition inserts a timeline row")
 	})

@@ -13,6 +13,7 @@ import {
 import dayjs, { Dayjs } from 'dayjs'
 import { InputDimensionFilters } from './input_dimension_filters'
 import TemplateSelectorInput from '../templates/TemplateSelectorInput'
+import BroadcastSelectorInput from './BroadcastSelectorInput'
 import Messages from './messages'
 import { useLingui } from '@lingui/react/macro'
 
@@ -290,12 +291,12 @@ export const LeafActionForm = (props: LeafFormProps) => {
                 size="small"
                 placeholder={t`Select event`}
                 options={[
-                  { value: 'insert_message_history', label: t`New message (email...)` },
-                  { value: 'open_email', label: t`Open email` },
-                  { value: 'click_email', label: t`Click email` },
-                  { value: 'bounce_email', label: t`Bounce email` },
-                  { value: 'complain_email', label: t`Complain email` },
-                  { value: 'unsubscribe_email', label: t`Unsubscribe from list` }
+                  { value: 'email.sent', label: t`New message (email...)` },
+                  { value: 'email.opened', label: t`Open email` },
+                  { value: 'email.clicked', label: t`Click email` },
+                  { value: 'email.bounced', label: t`Bounce email` },
+                  { value: 'email.complained', label: t`Complain email` },
+                  { value: 'email.unsubscribed', label: t`Unsubscribe from list` }
                 ]}
               />
             </Form.Item>
@@ -306,7 +307,13 @@ export const LeafActionForm = (props: LeafFormProps) => {
         <Form.Item noStyle shouldUpdate>
           {(funcs) => {
             const kind = funcs.getFieldValue(['contact_timeline', 'kind'])
-            const emailKinds = ['open_email', 'click_email', 'bounce_email', 'complain_email', 'unsubscribe_email']
+            const emailKinds = [
+              'email.opened',
+              'email.clicked',
+              'email.bounced',
+              'email.complained',
+              'email.unsubscribed'
+            ]
 
             if (!emailKinds.includes(kind) || !props.workspaceId) {
               return null
@@ -314,22 +321,64 @@ export const LeafActionForm = (props: LeafFormProps) => {
 
             return (
               <div className="mb-2">
-                <Space>
-                  <span className="opacity-60" style={{ lineHeight: '32px' }}>
-                    {t`template`}
-                  </span>
-                  <Form.Item
-                    noStyle
-                    name={['contact_timeline', 'template_id']}
-                    colon={false}
-                  >
-                    <TemplateSelectorInput
-                      workspaceId={props.workspaceId}
-                      placeholder={t`Any template`}
-                      clearable={true}
-                      size="small"
-                    />
-                  </Form.Item>
+                <Space direction="vertical" size={4}>
+                  <Space>
+                    <span className="opacity-60" style={{ lineHeight: '32px' }}>
+                      {t`template`}
+                    </span>
+                    <Form.Item
+                      noStyle
+                      name={['contact_timeline', 'template_id']}
+                      colon={false}
+                    >
+                      <TemplateSelectorInput
+                        workspaceId={props.workspaceId}
+                        placeholder={t`Any template`}
+                        clearable={true}
+                        size="small"
+                      />
+                    </Form.Item>
+                    <span className="opacity-60" style={{ lineHeight: '32px' }}>
+                      {t`broadcast`}
+                    </span>
+                    <Form.Item
+                      noStyle
+                      name={['contact_timeline', 'broadcast_id']}
+                      colon={false}
+                      // Drop the value if the kind changes to one whose block hides it, so a
+                      // hidden broadcast filter is never silently submitted.
+                      preserve={false}
+                    >
+                      <BroadcastSelectorInput
+                        workspaceId={props.workspaceId}
+                        placeholder={t`Any broadcast`}
+                        size="small"
+                        style={{ minWidth: 180 }}
+                      />
+                    </Form.Item>
+                  </Space>
+                  {kind === 'email.clicked' && (
+                    <Space>
+                      <span className="opacity-60" style={{ lineHeight: '32px' }}>
+                        {t`clicked link contains`}
+                      </span>
+                      <Form.Item
+                        noStyle
+                        name={['contact_timeline', 'link_url']}
+                        colon={false}
+                        // Drop the value when switching away from email.clicked, otherwise a
+                        // stale link_url would be submitted with a kind the backend rejects.
+                        preserve={false}
+                      >
+                        <Input
+                          placeholder={t`e.g. /pricing`}
+                          allowClear
+                          size="small"
+                          style={{ minWidth: 200 }}
+                        />
+                      </Form.Item>
+                    </Space>
+                  )}
                 </Space>
               </div>
             )

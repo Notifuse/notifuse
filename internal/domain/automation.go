@@ -57,8 +57,10 @@ var ValidEventKinds = []string{
 	"list.bounced", "list.complained", "list.pending", "list.removed",
 	// Segment events (require segment_id)
 	"segment.joined", "segment.left",
-	// Email events
-	"email.sent", "email.delivered", "email.opened", "email.clicked",
+	// Email events. sent/delivered are intentionally excluded: email.sent fires once per
+	// message insert, so an "every_time" automation with a send node would loop; delivered
+	// lands in the generic email.updated kind. Enabling them needs a send-loop guard first.
+	"email.opened", "email.clicked",
 	"email.bounced", "email.complained", "email.unsubscribed",
 	// Custom events (require custom_event_name)
 	"custom_event",

@@ -21,16 +21,16 @@ import (
 )
 
 // TestAutomationEmailClickTrigger verifies that automations triggered by an email
-// click actually fire. The console stores the trigger event kind as "email.clicked",
-// but track_message_history_changes() records the click in contact_timeline under the
-// kind "click_email"; before the trigger-generator translated the kind, the WHEN clause
-// ("NEW.kind = 'email.clicked'") never matched and the automation silently never fired.
+// click actually fire. The contact timeline records email clicks under the dot-notation
+// kind "email.clicked" (uniformized with the console's trigger event kind), so the trigger
+// WHEN clause matches the row directly.
 //
 // Two subtests:
 //   - GeneratorFiresOnClick: a freshly-activated email.clicked automation enrolls the
-//     contact when a click_email timeline row is inserted.
-//   - MigrationHealsBrokenTrigger: an automation whose installed trigger still carries the
-//     old broken WHEN clause is repaired by the v36 workspace migration and then fires.
+//     contact when an email.clicked timeline row is inserted.
+//   - MigrationHealsBrokenTrigger: an automation whose installed trigger still carries a
+//     stale suffixed WHEN clause ("click_email") is regenerated to "email.clicked" by the
+//     v36 workspace migration and then fires.
 func TestAutomationEmailClickTrigger(t *testing.T) {
 	testutil.SkipIfShort(t)
 	testutil.SetupTestEnvironment()
@@ -142,7 +142,7 @@ func TestAutomationEmailClickTrigger(t *testing.T) {
 	}
 
 	insertClick := func(t *testing.T, email string) {
-		require.NoError(t, factory.CreateContactTimelineEvent(workspaceID, email, "click_email",
+		require.NoError(t, factory.CreateContactTimelineEvent(workspaceID, email, "email.clicked",
 			map[string]interface{}{"clicked_at": time.Now().UTC().Format(time.RFC3339)}))
 	}
 
@@ -162,10 +162,10 @@ func TestAutomationEmailClickTrigger(t *testing.T) {
 	t.Run("GeneratorFiresOnClick", func(t *testing.T) {
 		automationID := createLiveClickAutomation(t, "Email Click Fires E2E")
 
-		// The freshly generated trigger must listen for the real timeline kind.
+		// The freshly generated trigger must listen for the dot-notation timeline kind.
 		def := triggerDef(t, automationID)
-		assert.Contains(t, def, "click_email", "trigger WHEN must reference the timeline kind")
-		assert.NotContains(t, def, "email.clicked", "trigger WHEN must not use the dotted kind")
+		assert.Contains(t, def, "email.clicked", "trigger WHEN must reference the timeline kind")
+		assert.NotContains(t, def, "click_email", "trigger WHEN must not use the old suffixed kind")
 
 		email := "email-click-fires@example.com"
 		_, err := factory.CreateContact(workspaceID, testutil.WithContactEmail(email))
@@ -180,22 +180,22 @@ func TestAutomationEmailClickTrigger(t *testing.T) {
 	t.Run("MigrationHealsBrokenTrigger", func(t *testing.T) {
 		automationID := createLiveClickAutomation(t, "Email Click Heal E2E")
 
-		// Simulate the pre-fix state: re-install the trigger with the old broken WHEN
-		// clause that references the dotted event kind (which never matches a row).
+		// Simulate a stale pre-uniformization trigger: re-install it with the old suffixed
+		// WHEN clause ("click_email"), which no longer matches the dot-notation timeline rows.
 		name := triggerName(automationID)
 		_, err := workspaceDB.ExecContext(context.Background(), fmt.Sprintf(
 			`DROP TRIGGER IF EXISTS %s ON contact_timeline;
 			 CREATE TRIGGER %s AFTER INSERT ON contact_timeline FOR EACH ROW
-			 WHEN (NEW.kind = 'email.clicked') EXECUTE FUNCTION %s()`, name, name, name))
+			 WHEN (NEW.kind = 'click_email') EXECUTE FUNCTION %s()`, name, name, name))
 		require.NoError(t, err)
-		require.Contains(t, triggerDef(t, automationID), "email.clicked", "break should have taken effect")
+		require.Contains(t, triggerDef(t, automationID), "click_email", "stale trigger should be installed")
 
 		// Run the v36 workspace migration, which regenerates the trigger.
 		require.NoError(t, runMigration(t))
 
 		healed := triggerDef(t, automationID)
-		assert.Contains(t, healed, "click_email", "migration should heal the WHEN clause")
-		assert.NotContains(t, healed, "email.clicked", "migration should remove the dotted kind")
+		assert.Contains(t, healed, "email.clicked", "migration should heal the WHEN clause")
+		assert.NotContains(t, healed, "click_email", "migration should remove the old suffixed kind")
 
 		// End-to-end: the healed trigger now enrolls on a click.
 		email := "email-click-heal@example.com"
