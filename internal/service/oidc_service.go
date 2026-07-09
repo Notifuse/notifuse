@@ -270,7 +270,7 @@ func (s *OIDCService) HandleCallback(ctx context.Context, in domain.OIDCCallback
 	var claims struct {
 		Sub           string   `json:"sub"`
 		Email         string   `json:"email"`
-		EmailVerified bool     `json:"email_verified"`
+		EmailVerified *bool    `json:"email_verified"` // nil when IdP omits the claim (e.g. Azure via Cloudflare Access)
 		Name          string   `json:"name"`
 		Azp           string   `json:"azp"`
 		Aud           audience `json:"aud"` // tolerates string OR []string
@@ -314,7 +314,7 @@ func (s *OIDCService) HandleCallback(ctx context.Context, in domain.OIDCCallback
 
 // resolveOrProvisionUser implements the identity/linking state machine.
 func (s *OIDCService) resolveOrProvisionUser(
-	ctx context.Context, issuer, sub, email string, emailVerified bool, name string,
+	ctx context.Context, issuer, sub, email string, emailVerified *bool, name string,
 ) (*domain.User, error) {
 
 	// (1) Stable identity lookup by (issuer, sub). Email NOT used for auth here.
@@ -331,8 +331,10 @@ func (s *OIDCService) resolveOrProvisionUser(
 		return nil, fmt.Errorf("oidc federated lookup: %w", err)
 	}
 
-	// NOT FOUND -> first login. email_verified gate applies to every link/provision.
-	if !emailVerified {
+	// NOT FOUND -> first login.
+	// If the IdP explicitly asserts email_verified=false, reject.
+	// If the claim is absent (nil), the IdP doesn't support it — skip the check.
+	if emailVerified != nil && !*emailVerified {
 		if s.logger != nil {
 			s.logger.WithField("oidc_sub", sub).WithField("issuer", issuer).
 				Warn("OIDC first-login rejected: email_verified=false")
