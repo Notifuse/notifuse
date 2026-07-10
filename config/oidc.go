@@ -29,6 +29,13 @@ const oidcCallbackPath = "/api/user.oidc.callback"
 // defaultOIDCScopes is used when neither env nor DB supplies scopes.
 const defaultOIDCScopes = "openid email profile"
 
+// DefaultOIDCScopes is the canonical default OIDC scope set. Callers that
+// persist scopes (setup wizard, settings update) must use this when the
+// incoming value is empty so they do not write ParseScopes("") → "openid"
+// alone into the database (which would permanently override the runtime
+// default and drop email/profile claims from the authorize request).
+const DefaultOIDCScopes = defaultOIDCScopes
+
 // defaultOIDCButtonLabel is the fallback sign-in button text.
 const defaultOIDCButtonLabel = "Sign in with SSO"
 
@@ -147,9 +154,18 @@ func resolveOIDCConfig(env EnvValues, ss *SystemSettings, isInstalled bool, apiE
 	}
 
 	// Scopes: env raw, else DB raw, else default; always force-include openid.
+	//
+	// A DB value of exactly "openid" is treated as the legacy setup-wizard bug:
+	// the wizard has no scopes field, so setup called ParseScopes("") and
+	// persisted the result ("openid" only). That value then permanently overrode
+	// the runtime default and caused authorize requests to omit email/profile.
+	// Heal it to the full default. An explicit env OIDC_SCOPES=openid is left alone.
 	rawScopes := env.OIDCScopes
 	if rawScopes == "" && hasDB {
 		rawScopes = ss.OIDCScopes
+		if strings.TrimSpace(rawScopes) == "openid" {
+			rawScopes = defaultOIDCScopes
+		}
 	}
 	if rawScopes == "" {
 		rawScopes = defaultOIDCScopes

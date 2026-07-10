@@ -16,18 +16,18 @@ import (
 
 // SetupConfig represents the setup initialization configuration
 type SetupConfig struct {
-	RootEmail              string
-	APIEndpoint            string
-	SMTPHost               string
-	SMTPPort               int
-	SMTPUsername           string
-	SMTPPassword           string
-	SMTPFromEmail          string
-	SMTPFromName           string
-	SMTPUseTLS             bool
-	SMTPEHLOHostname       string
-	TelemetryEnabled       bool
-	CheckForUpdates        bool
+	RootEmail               string
+	APIEndpoint             string
+	SMTPHost                string
+	SMTPPort                int
+	SMTPUsername            string
+	SMTPPassword            string
+	SMTPFromEmail           string
+	SMTPFromName            string
+	SMTPUseTLS              bool
+	SMTPEHLOHostname        string
+	TelemetryEnabled        bool
+	CheckForUpdates         bool
 	SMTPBridgeEnabled       bool
 	SMTPBridgeDomain        string
 	SMTPBridgePort          int
@@ -61,8 +61,8 @@ type ConfigurationStatus struct {
 	SMTPConfigured        bool
 	APIEndpointConfigured bool
 	RootEmailConfigured   bool
-	SMTPBridgeConfigured   bool
-	OIDCConfigured         bool
+	SMTPBridgeConfigured  bool
+	OIDCConfigured        bool
 }
 
 // SetupService handles setup wizard operations
@@ -78,16 +78,16 @@ type SetupService struct {
 
 // EnvironmentConfig holds configuration from environment variables
 type EnvironmentConfig struct {
-	RootEmail              string
-	APIEndpoint            string
-	SMTPHost               string
-	SMTPPort               int
-	SMTPUsername           string
-	SMTPPassword           string
-	SMTPFromEmail          string
-	SMTPFromName           string
-	SMTPUseTLS             string // "true", "false", or "" (empty = not set, defaults to true)
-	SMTPEHLOHostname       string
+	RootEmail               string
+	APIEndpoint             string
+	SMTPHost                string
+	SMTPPort                int
+	SMTPUsername            string
+	SMTPPassword            string
+	SMTPFromEmail           string
+	SMTPFromName            string
+	SMTPUseTLS              string // "true", "false", or "" (empty = not set, defaults to true)
+	SMTPEHLOHostname        string
 	SMTPBridgeEnabled       string // "true", "false", or "" (empty = not set, allows setup wizard to configure)
 	SMTPBridgeDomain        string
 	SMTPBridgePort          int
@@ -135,8 +135,8 @@ func (s *SetupService) GetConfigurationStatus() *ConfigurationStatus {
 			SMTPConfigured:        false,
 			APIEndpointConfigured: false,
 			RootEmailConfigured:   false,
-			SMTPBridgeConfigured:   false,
-			OIDCConfigured:         false,
+			SMTPBridgeConfigured:  false,
+			OIDCConfigured:        false,
 		}
 	}
 
@@ -164,8 +164,8 @@ func (s *SetupService) GetConfigurationStatus() *ConfigurationStatus {
 		SMTPConfigured:        smtpConfigured,
 		APIEndpointConfigured: s.envConfig.APIEndpoint != "",
 		RootEmailConfigured:   s.envConfig.RootEmail != "",
-		SMTPBridgeConfigured:   smtpBridgeConfigured,
-		OIDCConfigured:         oidcConfigured,
+		SMTPBridgeConfigured:  smtpBridgeConfigured,
+		OIDCConfigured:        oidcConfigured,
 	}
 }
 
@@ -409,25 +409,32 @@ func (s *SetupService) Initialize(ctx context.Context, config *SetupConfig) erro
 		oidcAllowedDomains = config.OIDCAllowedDomains
 	}
 	// Persist scopes with "openid" forced in (single source of truth at read time too).
+	// Empty scopes must become the full default — NOT ParseScopes(""), which yields
+	// only "openid". The setup wizard has no oidc_scopes field, so the JSON payload
+	// always arrives empty; writing bare "openid" permanently overrides the runtime
+	// default and breaks providers that put email/profile claims behind those scopes.
 	if oidcEnabled {
+		if strings.TrimSpace(oidcScopes) == "" {
+			oidcScopes = appconfig.DefaultOIDCScopes
+		}
 		oidcScopes = strings.Join(appconfig.ParseScopes(oidcScopes), " ")
 	}
 
 	// Store system settings
 	systemConfig := &SystemConfig{
-		IsInstalled:            true,
-		RootEmail:              finalConfig.RootEmail,
-		APIEndpoint:            finalConfig.APIEndpoint,
-		SMTPHost:               smtpHost,
-		SMTPPort:               smtpPort,
-		SMTPUsername:           smtpUsername,
-		SMTPPassword:           smtpPassword,
-		SMTPFromEmail:          smtpFromEmail,
-		SMTPFromName:           smtpFromName,
-		SMTPUseTLS:             smtpUseTLS,
-		SMTPEHLOHostname:       smtpEHLOHostname,
-		TelemetryEnabled:       config.TelemetryEnabled,
-		CheckForUpdates:        config.CheckForUpdates,
+		IsInstalled:             true,
+		RootEmail:               finalConfig.RootEmail,
+		APIEndpoint:             finalConfig.APIEndpoint,
+		SMTPHost:                smtpHost,
+		SMTPPort:                smtpPort,
+		SMTPUsername:            smtpUsername,
+		SMTPPassword:            smtpPassword,
+		SMTPFromEmail:           smtpFromEmail,
+		SMTPFromName:            smtpFromName,
+		SMTPUseTLS:              smtpUseTLS,
+		SMTPEHLOHostname:        smtpEHLOHostname,
+		TelemetryEnabled:        config.TelemetryEnabled,
+		CheckForUpdates:         config.CheckForUpdates,
 		SMTPBridgeEnabled:       smtpBridgeEnabled,
 		SMTPBridgeDomain:        smtpBridgeDomain,
 		SMTPBridgePort:          smtpBridgePort,

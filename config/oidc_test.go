@@ -163,9 +163,9 @@ func TestResolveOIDCConfig_EnvWins(t *testing.T) {
 		OIDCButtonLabel:  "Env SSO",
 	}
 	ss := &SystemSettings{
-		OIDCEnabled:   true,
-		OIDCIssuerURL: "https://db-idp.example.com",
-		OIDCClientID:  "db-client",
+		OIDCEnabled:     true,
+		OIDCIssuerURL:   "https://db-idp.example.com",
+		OIDCClientID:    "db-client",
 		OIDCButtonLabel: "DB SSO",
 	}
 	c := resolveOIDCConfig(env, ss, true, "https://app.example.com")
@@ -183,14 +183,14 @@ func TestResolveOIDCConfig_EnvWins(t *testing.T) {
 func TestResolveOIDCConfig_DBFallbackWhenInstalled(t *testing.T) {
 	env := EnvValues{} // nothing from env
 	ss := &SystemSettings{
-		OIDCEnabled:        true,
-		OIDCIssuerURL:      "https://db-idp.example.com",
-		OIDCClientID:       "db-client",
-		OIDCClientSecret:   "db-secret",
-		OIDCScopes:         "openid email profile",
-		OIDCButtonLabel:    "DB SSO",
+		OIDCEnabled:         true,
+		OIDCIssuerURL:       "https://db-idp.example.com",
+		OIDCClientID:        "db-client",
+		OIDCClientSecret:    "db-secret",
+		OIDCScopes:          "openid email profile",
+		OIDCButtonLabel:     "DB SSO",
 		OIDCAutoCreateUsers: true,
-		OIDCAllowedDomains: "Corp.com, Sub.Corp.com",
+		OIDCAllowedDomains:  "Corp.com, Sub.Corp.com",
 	}
 	c := resolveOIDCConfig(env, ss, true, "https://app.example.com/")
 
@@ -222,6 +222,29 @@ func TestResolveOIDCConfig_RedirectDefaultScopesAndLabel(t *testing.T) {
 	assert.Equal(t, "https://app.example.com/api/user.oidc.callback", c.RedirectURI)
 	assert.Equal(t, []string{"openid", "email", "profile"}, c.Scopes, "default scopes when none provided")
 	assert.Equal(t, "Sign in with SSO", c.ButtonLabel, "default button label")
+}
+
+func TestResolveOIDCConfig_HealsLegacyDBOpenidOnly(t *testing.T) {
+	// Setup wizard used to call ParseScopes("") and persist "openid", which then
+	// permanently overrode the runtime default. Boot must heal that value.
+	env := EnvValues{}
+	ss := &SystemSettings{
+		OIDCEnabled:      true,
+		OIDCIssuerURL:    "https://db-idp.example.com",
+		OIDCClientID:     "db-client",
+		OIDCClientSecret: "db-secret",
+		OIDCScopes:       "openid",
+	}
+	c := resolveOIDCConfig(env, ss, true, "https://app.example.com")
+	assert.Equal(t, []string{"openid", "email", "profile"}, c.Scopes)
+}
+
+func TestResolveOIDCConfig_ExplicitEnvOpenidOnlyNotHealed(t *testing.T) {
+	// An operator who deliberately sets OIDC_SCOPES=openid must be respected.
+	env := EnvValues{OIDCScopes: "openid"}
+	ss := &SystemSettings{OIDCScopes: "openid email profile"}
+	c := resolveOIDCConfig(env, ss, true, "https://app.example.com")
+	assert.Equal(t, []string{"openid"}, c.Scopes)
 }
 
 func TestConfig_IsAllowedOIDCDomain(t *testing.T) {
