@@ -847,3 +847,57 @@ func TestSettingsHandler_Update_OIDCSecretMaskRetainsExisting(t *testing.T) {
 		"submitting the mask sentinel must retain the existing OIDC client secret")
 	assert.Equal(t, "Sign in with Acme", settingRepo.settings["oidc_button_label"], "the unrelated change must persist")
 }
+
+// TestSettingsHandler_Update_OIDCEmptyScopesDefaults ensures clearing/omitting scopes
+// with OIDC enabled persists the full default set, not bare "openid" from ParseScopes("").
+func TestSettingsHandler_Update_OIDCEmptyScopesDefaults(t *testing.T) {
+	handler, settingRepo, _, _ := setupSettingsHandler(t)
+
+	ctx := context.Background()
+	_ = settingRepo.Set(ctx, "is_installed", "true")
+	_ = settingRepo.Set(ctx, "root_email", testRootEmail)
+
+	update := SystemSettingsData{
+		RootEmail:        testRootEmail,
+		APIEndpoint:      "https://app.example.com",
+		OIDCEnabled:      true,
+		OIDCIssuerURL:    "https://idp.example.com",
+		OIDCClientID:     "cid",
+		OIDCClientSecret: "secret",
+		OIDCScopes:       "", // empty — must become default
+	}
+	body, _ := json.Marshal(update)
+	req := httptest.NewRequest(http.MethodPost, "/api/settings.update", bytes.NewBuffer(body))
+	req = reqWithUserContext(req, "root-user-id")
+	w := httptest.NewRecorder()
+	handler.handleUpdate(w, req)
+	require.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, "openid email profile", settingRepo.settings["oidc_scopes"])
+}
+
+// TestSettingsHandler_Update_OIDCExplicitScopesPreserved ensures a non-empty scopes
+// value is normalized via ParseScopes but not replaced with the full default.
+func TestSettingsHandler_Update_OIDCExplicitScopesPreserved(t *testing.T) {
+	handler, settingRepo, _, _ := setupSettingsHandler(t)
+
+	ctx := context.Background()
+	_ = settingRepo.Set(ctx, "is_installed", "true")
+	_ = settingRepo.Set(ctx, "root_email", testRootEmail)
+
+	update := SystemSettingsData{
+		RootEmail:        testRootEmail,
+		APIEndpoint:      "https://app.example.com",
+		OIDCEnabled:      true,
+		OIDCIssuerURL:    "https://idp.example.com",
+		OIDCClientID:     "cid",
+		OIDCClientSecret: "secret",
+		OIDCScopes:       "openid email", // intentional subset — must not expand to full default
+	}
+	body, _ := json.Marshal(update)
+	req := httptest.NewRequest(http.MethodPost, "/api/settings.update", bytes.NewBuffer(body))
+	req = reqWithUserContext(req, "root-user-id")
+	w := httptest.NewRecorder()
+	handler.handleUpdate(w, req)
+	require.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, "openid email", settingRepo.settings["oidc_scopes"])
+}

@@ -3,7 +3,9 @@ package service_test
 import (
 	"context"
 	"testing"
+	"time"
 
+	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/service"
 	"github.com/Notifuse/notifuse/pkg/logger"
 	"github.com/stretchr/testify/assert"
@@ -245,6 +247,144 @@ func TestSetupService_OIDC_StatusAndValidation(t *testing.T) {
 		})
 		require.NoError(t, err)
 	})
+}
+
+// stubUserRepo is a minimal UserRepository for Initialize tests that only need CreateUser.
+type stubUserRepo struct {
+	created []*domain.User
+}
+
+func (s *stubUserRepo) CreateUser(ctx context.Context, user *domain.User) error {
+	s.created = append(s.created, user)
+	return nil
+}
+func (s *stubUserRepo) GetUserByID(ctx context.Context, id string) (*domain.User, error) {
+	return nil, nil
+}
+func (s *stubUserRepo) GetUserByEmail(ctx context.Context, email string) (*domain.User, error) {
+	return nil, nil
+}
+func (s *stubUserRepo) GetUserByEmailInsensitive(ctx context.Context, email string) (*domain.User, error) {
+	return nil, nil
+}
+func (s *stubUserRepo) UpdateUserLanguage(ctx context.Context, userID string, language string) error {
+	return nil
+}
+func (s *stubUserRepo) CreateSession(ctx context.Context, session *domain.Session) error {
+	return nil
+}
+func (s *stubUserRepo) GetSessionByID(ctx context.Context, id string) (*domain.Session, error) {
+	return nil, nil
+}
+func (s *stubUserRepo) GetSessionsByUserID(ctx context.Context, userID string) ([]*domain.Session, error) {
+	return nil, nil
+}
+func (s *stubUserRepo) UpdateSession(ctx context.Context, session *domain.Session) error {
+	return nil
+}
+func (s *stubUserRepo) DeleteSession(ctx context.Context, id string) error { return nil }
+func (s *stubUserRepo) DeleteAllSessionsByUserID(ctx context.Context, userID string) error {
+	return nil
+}
+func (s *stubUserRepo) Delete(ctx context.Context, id string) error { return nil }
+
+// stubSettingRepo is a minimal SettingRepository that exposes stored values for assertions.
+type stubSettingRepo struct {
+	settings map[string]string
+}
+
+func newStubSettingRepo() *stubSettingRepo {
+	return &stubSettingRepo{settings: make(map[string]string)}
+}
+
+func (m *stubSettingRepo) Get(ctx context.Context, key string) (*domain.Setting, error) {
+	value, exists := m.settings[key]
+	if !exists {
+		return nil, &domain.ErrSettingNotFound{Key: key}
+	}
+	return &domain.Setting{Key: key, Value: value}, nil
+}
+func (m *stubSettingRepo) Set(ctx context.Context, key, value string) error {
+	m.settings[key] = value
+	return nil
+}
+func (m *stubSettingRepo) Delete(ctx context.Context, key string) error {
+	delete(m.settings, key)
+	return nil
+}
+func (m *stubSettingRepo) List(ctx context.Context) ([]*domain.Setting, error) {
+	out := make([]*domain.Setting, 0, len(m.settings))
+	for k, v := range m.settings {
+		out = append(out, &domain.Setting{Key: k, Value: v})
+	}
+	return out, nil
+}
+func (m *stubSettingRepo) GetLastCronRun(ctx context.Context) (*time.Time, error) { return nil, nil }
+func (m *stubSettingRepo) SetLastCronRun(ctx context.Context) error               { return nil }
+
+func TestSetupService_Initialize_OIDCEmptyScopesDefaults(t *testing.T) {
+	// Wizard never sends oidc_scopes; empty must become DefaultOIDCScopes, not bare openid.
+	repo := newStubSettingRepo()
+	userRepo := &stubUserRepo{}
+	settingService := service.NewSettingService(repo)
+	setupService := service.NewSetupService(
+		settingService,
+		&service.UserService{},
+		userRepo,
+		&mockLogger{},
+		"test-secret-key-for-encryption-32b",
+		nil,
+		nil,
+	)
+
+	err := setupService.Initialize(context.Background(), &service.SetupConfig{
+		RootEmail:        "admin@example.com",
+		APIEndpoint:      "https://app.example.com",
+		SMTPHost:         "smtp.example.com",
+		SMTPPort:         587,
+		SMTPFromEmail:    "noreply@example.com",
+		OIDCEnabled:      true,
+		OIDCIssuerURL:    "https://idp.example.com",
+		OIDCClientID:     "client-id",
+		OIDCClientSecret: "client-secret",
+		// OIDCScopes intentionally empty (wizard has no field)
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "openid email profile", repo.settings["oidc_scopes"])
+	assert.Equal(t, "true", repo.settings["oidc_enabled"])
+}
+
+func TestSetupService_Initialize_OIDCEnvScopesPersisted(t *testing.T) {
+	// Env-configured OIDC scopes win and are normalized via ParseScopes before persist.
+	repo := newStubSettingRepo()
+	userRepo := &stubUserRepo{}
+	settingService := service.NewSettingService(repo)
+	setupService := service.NewSetupService(
+		settingService,
+		&service.UserService{},
+		userRepo,
+		&mockLogger{},
+		"test-secret-key-for-encryption-32b",
+		nil,
+		&service.EnvironmentConfig{
+			OIDCEnabled:      "true",
+			OIDCIssuerURL:    "https://idp.example.com",
+			OIDCClientID:     "env-client",
+			OIDCClientSecret: "env-secret",
+			OIDCScopes:       "email profile", // openid forced by ParseScopes
+		},
+	)
+
+	err := setupService.Initialize(context.Background(), &service.SetupConfig{
+		RootEmail:     "admin@example.com",
+		APIEndpoint:   "https://app.example.com",
+		SMTPHost:      "smtp.example.com",
+		SMTPPort:      587,
+		SMTPFromEmail: "noreply@example.com",
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "openid email profile", repo.settings["oidc_scopes"])
+	assert.Equal(t, "env-client", repo.settings["oidc_client_id"])
 }
 
 func TestSetupService_GetEnvOverrides(t *testing.T) {

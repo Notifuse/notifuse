@@ -247,6 +247,20 @@ func TestResolveOIDCConfig_ExplicitEnvOpenidOnlyNotHealed(t *testing.T) {
 	assert.Equal(t, []string{"openid"}, c.Scopes)
 }
 
+func TestResolveOIDCConfig_DBOpenidEmailNotHealed(t *testing.T) {
+	// Non-legacy DB scopes must be kept as-is (heal only matches bare "openid").
+	env := EnvValues{}
+	ss := &SystemSettings{
+		OIDCEnabled:      true,
+		OIDCIssuerURL:    "https://db-idp.example.com",
+		OIDCClientID:     "db-client",
+		OIDCClientSecret: "db-secret",
+		OIDCScopes:       "openid email",
+	}
+	c := resolveOIDCConfig(env, ss, true, "https://app.example.com")
+	assert.Equal(t, []string{"openid", "email"}, c.Scopes)
+}
+
 func TestConfig_IsAllowedOIDCDomain(t *testing.T) {
 	c := &Config{OIDC: OIDCConfig{AllowedDomains: []string{"corp.com", "sub.corp.com"}}}
 
