@@ -48,17 +48,47 @@ import (
 //
 // Every step is idempotent: the timeline UPDATE and the segment/automation rewrites only touch
 // rows still carrying a legacy kind, so a re-run is a no-op.
-type V36Migration struct{}
+//
+// The system update heals the setup-wizard OIDC scopes bug: the wizard had no scopes
+// field, so setup persisted ParseScopes("") → bare "openid", and that stored value
+// overrode the "openid email profile" default at boot — authorize requests then lacked
+// the email/profile scopes and IdPs returned tokens without an email claim. Only a
+// value whose scope tokens reduce to exactly "openid" is rewritten (tolerating stray
+// whitespace/separators the old settings screen persisted raw); a deliberately
+// customized scope list is never touched. The migration requests a server restart
+// ONLY when it actually rewrote the row: the resolved OIDC config bakes the scopes in
+// during config.Load(), which runs BEFORE migrations, so without a restart a healed
+// row would not take effect until the next manual reboot.
+type V36Migration struct {
+	// healedScopes records whether UpdateSystem rewrote the oidc_scopes row; the
+	// registry holds one instance per process, and the manager consults
+	// ShouldRestartServer only after the migration executed.
+	healedScopes bool
+}
 
 func (m *V36Migration) GetMajorVersion() float64 { return 36.0 }
 
-func (m *V36Migration) HasSystemUpdate() bool { return false }
+func (m *V36Migration) HasSystemUpdate() bool { return true }
 
 func (m *V36Migration) HasWorkspaceUpdate() bool { return true }
 
-func (m *V36Migration) ShouldRestartServer() bool { return false }
+func (m *V36Migration) ShouldRestartServer() bool { return m.healedScopes }
 
 func (m *V36Migration) UpdateSystem(ctx context.Context, cfg *config.Config, db DBExecutor) error {
+	// Literal scope string (not config.DefaultOIDCScopes) so the migration stays
+	// frozen in time even if the runtime default later changes. The WHERE clause
+	// collapses separators/whitespace so raw legacy values like "openid " or
+	// ",openid" (persisted verbatim by the old settings screen) are healed too,
+	// while any value containing another scope token is left alone.
+	res, err := db.ExecContext(ctx,
+		`UPDATE settings SET value = 'openid email profile', updated_at = CURRENT_TIMESTAMP
+		 WHERE key = 'oidc_scopes' AND regexp_replace(value, '[,;[:space:]]+', '', 'g') = 'openid'`)
+	if err != nil {
+		return fmt.Errorf("v36: failed to heal oidc_scopes: %w", err)
+	}
+	if n, err := res.RowsAffected(); err == nil {
+		m.healedScopes = n > 0
+	}
 	return nil
 }
 

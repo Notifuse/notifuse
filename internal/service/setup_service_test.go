@@ -4,6 +4,9 @@ import (
 	"context"
 	"testing"
 
+	"github.com/golang/mock/gomock"
+
+	"github.com/Notifuse/notifuse/internal/domain/mocks"
 	"github.com/Notifuse/notifuse/internal/service"
 	"github.com/Notifuse/notifuse/pkg/logger"
 	"github.com/stretchr/testify/assert"
@@ -108,6 +111,92 @@ func (m *mockLogger) Panic(msg string)                                       {}
 func (m *mockLogger) WithField(key string, value interface{}) logger.Logger  { return m }
 func (m *mockLogger) WithFields(fields map[string]interface{}) logger.Logger { return m }
 func (m *mockLogger) WithError(err error) logger.Logger                      { return m }
+
+func TestSetupService_Initialize_OIDCScopes(t *testing.T) {
+	newSvc := func(t *testing.T) (*service.SetupService, map[string]string) {
+		t.Helper()
+		ctrl := gomock.NewController(t)
+		t.Cleanup(ctrl.Finish)
+
+		stored := make(map[string]string)
+		settingRepo := mocks.NewMockSettingRepository(ctrl)
+		settingRepo.EXPECT().Set(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().
+			DoAndReturn(func(_ context.Context, key, value string) error {
+				stored[key] = value
+				return nil
+			})
+		userRepo := mocks.NewMockUserRepository(ctrl)
+		userRepo.EXPECT().CreateUser(gomock.Any(), gomock.Any()).Return(nil)
+
+		svc := service.NewSetupService(
+			service.NewSettingService(settingRepo),
+			&service.UserService{},
+			userRepo,
+			&mockLogger{},
+			"test-secret-key-32-bytes-long!!",
+			nil,
+			&service.EnvironmentConfig{},
+		)
+		return svc, stored
+	}
+
+	base := func() *service.SetupConfig {
+		return &service.SetupConfig{
+			RootEmail:     "admin@example.com",
+			APIEndpoint:   "https://app.example.com",
+			SMTPHost:      "smtp.example.com",
+			SMTPPort:      587,
+			SMTPFromEmail: "noreply@example.com",
+		}
+	}
+
+	t.Run("enabled with empty scopes persists the full default", func(t *testing.T) {
+		// The wizard has no scopes field, so the request always arrives empty;
+		// persisting ParseScopes("") → bare "openid" would override the richer
+		// default at boot and strip email/profile from authorize requests.
+		svc, stored := newSvc(t)
+		cfg := base()
+		cfg.OIDCEnabled = true
+		cfg.OIDCIssuerURL = "https://idp.example.com"
+		cfg.OIDCClientID = "cid"
+		cfg.OIDCClientSecret = "secret"
+
+		require.NoError(t, svc.Initialize(context.Background(), cfg))
+		assert.Equal(t, "openid email profile", stored["oidc_scopes"])
+	})
+
+	t.Run("enabled with custom scopes forces openid first", func(t *testing.T) {
+		svc, stored := newSvc(t)
+		cfg := base()
+		cfg.OIDCEnabled = true
+		cfg.OIDCIssuerURL = "https://idp.example.com"
+		cfg.OIDCClientID = "cid"
+		cfg.OIDCClientSecret = "secret"
+		cfg.OIDCScopes = "email profile"
+
+		require.NoError(t, svc.Initialize(context.Background(), cfg))
+		assert.Equal(t, "openid email profile", stored["oidc_scopes"])
+	})
+
+	t.Run("separator-only scopes persist the full default", func(t *testing.T) {
+		svc, stored := newSvc(t)
+		cfg := base()
+		cfg.OIDCEnabled = true
+		cfg.OIDCIssuerURL = "https://idp.example.com"
+		cfg.OIDCClientID = "cid"
+		cfg.OIDCClientSecret = "secret"
+		cfg.OIDCScopes = " , ; "
+
+		require.NoError(t, svc.Initialize(context.Background(), cfg))
+		assert.Equal(t, "openid email profile", stored["oidc_scopes"])
+	})
+
+	t.Run("disabled leaves scopes empty", func(t *testing.T) {
+		svc, stored := newSvc(t)
+		require.NoError(t, svc.Initialize(context.Background(), base()))
+		assert.Equal(t, "", stored["oidc_scopes"])
+	})
+}
 
 func TestSetupService_Initialize(t *testing.T) {
 	// Test SetupService.Initialize - this was at 0% coverage

@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -268,12 +269,12 @@ func (s *OIDCService) HandleCallback(ctx context.Context, in domain.OIDCCallback
 		return "", fmt.Errorf("oidc nonce mismatch")
 	}
 	var claims struct {
-		Sub           string   `json:"sub"`
-		Email         string   `json:"email"`
-		EmailVerified bool     `json:"email_verified"`
-		Name          string   `json:"name"`
-		Azp           string   `json:"azp"`
-		Aud           audience `json:"aud"` // tolerates string OR []string
+		Sub           string        `json:"sub"`
+		Email         string        `json:"email"`
+		EmailVerified *flexibleBool `json:"email_verified"` // nil = claim absent; tolerates string "true"/"false"
+		Name          string        `json:"name"`
+		Azp           string        `json:"azp"`
+		Aud           audience      `json:"aud"` // tolerates string OR []string
 	}
 	if err := idToken.Claims(&claims); err != nil {
 		s.tracer.MarkSpanError(ctx, err)
@@ -292,7 +293,7 @@ func (s *OIDCService) HandleCallback(ctx context.Context, in domain.OIDCCallback
 	s.tracer.AddAttribute(ctx, "oidc.sub", sub)
 	s.tracer.AddAttribute(ctx, "oidc.issuer", issuer)
 
-	user, err := s.resolveOrProvisionUser(ctx, issuer, sub, email, claims.EmailVerified, claims.Name)
+	user, err := s.resolveOrProvisionUser(ctx, issuer, sub, email, (*bool)(claims.EmailVerified), claims.Name)
 	if err != nil {
 		return "", err // typed errors flow to the HTTP layer for redirect mapping
 	}
@@ -312,9 +313,37 @@ func (s *OIDCService) HandleCallback(ctx context.Context, in domain.OIDCCallback
 	return oneTimeCode, nil
 }
 
+// flexibleBool decodes a JSON boolean claim that some IdPs (or claim-mapping
+// bridges) emit as the STRING "true"/"false" instead of a bool. Without this,
+// the whole claims decode fails and every login errors before the
+// email_verified gate is reached. A JSON null sets the enclosing *flexibleBool
+// field to nil without calling this method — same as an absent claim.
+type flexibleBool bool
+
+func (b *flexibleBool) UnmarshalJSON(data []byte) error {
+	var v any
+	if err := json.Unmarshal(data, &v); err != nil {
+		return err
+	}
+	switch t := v.(type) {
+	case bool:
+		*b = flexibleBool(t)
+		return nil
+	case string:
+		parsed, err := strconv.ParseBool(t)
+		if err != nil {
+			return fmt.Errorf("boolean claim: %q is not a boolean", t)
+		}
+		*b = flexibleBool(parsed)
+		return nil
+	default:
+		return fmt.Errorf("boolean claim: unsupported JSON type %T", v)
+	}
+}
+
 // resolveOrProvisionUser implements the identity/linking state machine.
 func (s *OIDCService) resolveOrProvisionUser(
-	ctx context.Context, issuer, sub, email string, emailVerified bool, name string,
+	ctx context.Context, issuer, sub, email string, emailVerified *bool, name string,
 ) (*domain.User, error) {
 
 	// (1) Stable identity lookup by (issuer, sub). Email NOT used for auth here.
@@ -332,10 +361,22 @@ func (s *OIDCService) resolveOrProvisionUser(
 	}
 
 	// NOT FOUND -> first login. email_verified gate applies to every link/provision.
-	if !emailVerified {
+	// Explicit false ALWAYS rejects; an absent claim (nil) rejects unless
+	// OIDC_ALLOW_UNVERIFIED_EMAIL=true, because some IdPs (Microsoft Entra ID,
+	// Cloudflare Access) never emit the claim at all.
+	switch {
+	case emailVerified != nil && !*emailVerified:
 		if s.logger != nil {
 			s.logger.WithField("oidc_sub", sub).WithField("issuer", issuer).
 				Warn("OIDC first-login rejected: email_verified=false")
+		}
+		return nil, domain.ErrOIDCEmailNotVerified
+	case emailVerified == nil && !s.cfg.AllowUnverifiedEmail:
+		if s.logger != nil {
+			s.logger.WithField("oidc_sub", sub).WithField("issuer", issuer).
+				Warn("OIDC login rejected: email_verified claim absent from id_token. " +
+					"If your IdP (e.g. Entra ID, Cloudflare Access) never emits this claim, " +
+					"set OIDC_ALLOW_UNVERIFIED_EMAIL=true")
 		}
 		return nil, domain.ErrOIDCEmailNotVerified
 	}

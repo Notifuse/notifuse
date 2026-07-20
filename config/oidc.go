@@ -20,14 +20,23 @@ type OIDCConfig struct {
 	ButtonLabel     string
 	AutoCreateUsers bool
 	AllowedDomains  []string // lower-cased; gates JIT provisioning
+
+	// AllowUnverifiedEmail tolerates an id_token whose email_verified claim is
+	// ABSENT (some IdPs — Microsoft Entra ID, Cloudflare Access — never emit it).
+	// An explicit email_verified=false is always rejected regardless of this flag.
+	// Env-only (OIDC_ALLOW_UNVERIFIED_EMAIL): no DB setting exists.
+	AllowUnverifiedEmail bool
 }
 
 // oidcCallbackPath is the fixed callback route registered at the IdP. It must match
 // the route registered by the OIDC HTTP handler.
 const oidcCallbackPath = "/api/user.oidc.callback"
 
-// defaultOIDCScopes is used when neither env nor DB supplies scopes.
-const defaultOIDCScopes = "openid email profile"
+// DefaultOIDCScopes is used when neither env nor DB supplies scopes. Write paths
+// (setup wizard, settings update) must persist it when the submitted value is
+// empty: ParseScopes("") yields bare "openid", and a stored "openid" would
+// permanently override this richer default at resolve time.
+const DefaultOIDCScopes = "openid email profile"
 
 // defaultOIDCButtonLabel is the fallback sign-in button text.
 const defaultOIDCButtonLabel = "Sign in with SSO"
@@ -58,6 +67,19 @@ func (c OIDCConfig) Validate() error {
 		return fmt.Errorf("OIDC_AUTO_CREATE_USERS=true requires a non-empty OIDC_ALLOWED_DOMAINS allowlist")
 	}
 	return nil
+}
+
+// NormalizeScopesForStorage returns the canonical space-joined scope string that
+// write paths (setup wizard, settings update) must persist. When raw contains no
+// scope tokens at all (empty, whitespace, or separators only) the FULL default is
+// substituted: persisting ParseScopes("") → bare "openid" would permanently
+// override the richer default at resolve time and strip the email/profile scopes
+// from authorize requests. A deliberate explicit "openid" is respected.
+func NormalizeScopesForStorage(raw string) string {
+	if len(ParseRootEmails(raw)) == 0 {
+		raw = DefaultOIDCScopes
+	}
+	return strings.Join(ParseScopes(raw), " ")
 }
 
 // ParseScopes splits a space/comma/semicolon-separated scope string (reusing the
@@ -127,6 +149,10 @@ func resolveOIDCConfig(env EnvValues, ss *SystemSettings, isInstalled bool, apiE
 		}
 	}
 
+	// AllowUnverifiedEmail is env-only (no DB setting): parsed at the config edge
+	// with viper GetBool semantics (true/1/T/TRUE...), unset simply means false.
+	c.AllowUnverifiedEmail = env.OIDCAllowUnverifiedEmail
+
 	// String fields: env value, else DB.
 	if hasDB {
 		if c.IssuerURL == "" {
@@ -152,7 +178,7 @@ func resolveOIDCConfig(env EnvValues, ss *SystemSettings, isInstalled bool, apiE
 		rawScopes = ss.OIDCScopes
 	}
 	if rawScopes == "" {
-		rawScopes = defaultOIDCScopes
+		rawScopes = DefaultOIDCScopes
 	}
 	c.Scopes = ParseScopes(rawScopes)
 

@@ -163,9 +163,9 @@ func TestResolveOIDCConfig_EnvWins(t *testing.T) {
 		OIDCButtonLabel:  "Env SSO",
 	}
 	ss := &SystemSettings{
-		OIDCEnabled:   true,
-		OIDCIssuerURL: "https://db-idp.example.com",
-		OIDCClientID:  "db-client",
+		OIDCEnabled:     true,
+		OIDCIssuerURL:   "https://db-idp.example.com",
+		OIDCClientID:    "db-client",
 		OIDCButtonLabel: "DB SSO",
 	}
 	c := resolveOIDCConfig(env, ss, true, "https://app.example.com")
@@ -183,14 +183,14 @@ func TestResolveOIDCConfig_EnvWins(t *testing.T) {
 func TestResolveOIDCConfig_DBFallbackWhenInstalled(t *testing.T) {
 	env := EnvValues{} // nothing from env
 	ss := &SystemSettings{
-		OIDCEnabled:        true,
-		OIDCIssuerURL:      "https://db-idp.example.com",
-		OIDCClientID:       "db-client",
-		OIDCClientSecret:   "db-secret",
-		OIDCScopes:         "openid email profile",
-		OIDCButtonLabel:    "DB SSO",
+		OIDCEnabled:         true,
+		OIDCIssuerURL:       "https://db-idp.example.com",
+		OIDCClientID:        "db-client",
+		OIDCClientSecret:    "db-secret",
+		OIDCScopes:          "openid email profile",
+		OIDCButtonLabel:     "DB SSO",
 		OIDCAutoCreateUsers: true,
-		OIDCAllowedDomains: "Corp.com, Sub.Corp.com",
+		OIDCAllowedDomains:  "Corp.com, Sub.Corp.com",
 	}
 	c := resolveOIDCConfig(env, ss, true, "https://app.example.com/")
 
@@ -222,6 +222,62 @@ func TestResolveOIDCConfig_RedirectDefaultScopesAndLabel(t *testing.T) {
 	assert.Equal(t, "https://app.example.com/api/user.oidc.callback", c.RedirectURI)
 	assert.Equal(t, []string{"openid", "email", "profile"}, c.Scopes, "default scopes when none provided")
 	assert.Equal(t, "Sign in with SSO", c.ButtonLabel, "default button label")
+}
+
+func TestResolveOIDCConfig_AllowUnverifiedEmail(t *testing.T) {
+	ss := &SystemSettings{
+		OIDCEnabled:      true,
+		OIDCIssuerURL:    "https://db-idp.example.com",
+		OIDCClientID:     "db-client",
+		OIDCClientSecret: "db-secret",
+	}
+
+	c := resolveOIDCConfig(EnvValues{OIDCAllowUnverifiedEmail: true}, ss, true, "https://app.example.com")
+	assert.True(t, c.AllowUnverifiedEmail)
+
+	c = resolveOIDCConfig(EnvValues{}, ss, true, "https://app.example.com")
+	assert.False(t, c.AllowUnverifiedEmail,
+		"env-only flag: unset must stay false even when installed with DB-backed OIDC config")
+}
+
+func TestLoadWithOptions_OIDCAllowUnverifiedEmailSpellings(t *testing.T) {
+	// The flag is parsed with GetBool semantics: operators writing TRUE or 1
+	// (e.g. docker-compose YAML integer mapping) must not silently get false.
+	for _, spelling := range []string{"true", "TRUE", "True", "1"} {
+		cleanup := setOIDCBaseEnv(t, map[string]string{
+			"OIDC_ALLOW_UNVERIFIED_EMAIL": spelling,
+		})
+		cfg, err := LoadWithOptions(LoadOptions{})
+		cleanup()
+		require.NoError(t, err)
+		assert.True(t, cfg.OIDC.AllowUnverifiedEmail, "spelling %q must enable the flag", spelling)
+	}
+
+	cleanup := setOIDCBaseEnv(t, map[string]string{})
+	cfg, err := LoadWithOptions(LoadOptions{})
+	cleanup()
+	require.NoError(t, err)
+	assert.False(t, cfg.OIDC.AllowUnverifiedEmail, "unset must stay false")
+}
+
+func TestNormalizeScopesForStorage(t *testing.T) {
+	tests := []struct {
+		name string
+		in   string
+		want string
+	}{
+		{"empty gets the full default", "", "openid email profile"},
+		{"whitespace only gets the full default", "   ", "openid email profile"},
+		{"separators only get the full default", " , ; ", "openid email profile"},
+		{"custom scopes force openid first", "email profile", "openid email profile"},
+		{"explicit bare openid is respected", "openid", "openid"},
+		{"explicit subset is respected", "openid email", "openid email"},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, tc.want, NormalizeScopesForStorage(tc.in))
+		})
+	}
 }
 
 func TestConfig_IsAllowedOIDCDomain(t *testing.T) {

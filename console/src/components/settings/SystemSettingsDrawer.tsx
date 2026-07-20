@@ -338,6 +338,7 @@ export function SystemSettingsDrawer() {
                     }
                   ]}
                   help={renderEnvHint('smtp_port')}
+                  tooltip={t`Common ports: 587 (TLS), 465 (SSL), 25 (unencrypted)`}
                 >
                   <InputNumber
                     disabled={isOverridden('smtp_port')}

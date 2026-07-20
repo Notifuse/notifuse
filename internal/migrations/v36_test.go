@@ -20,7 +20,7 @@ func TestV36Migration_GetMajorVersion(t *testing.T) {
 
 func TestV36Migration_HasSystemUpdate(t *testing.T) {
 	m := &V36Migration{}
-	assert.False(t, m.HasSystemUpdate())
+	assert.True(t, m.HasSystemUpdate())
 }
 
 func TestV36Migration_HasWorkspaceUpdate(t *testing.T) {
@@ -30,19 +30,60 @@ func TestV36Migration_HasWorkspaceUpdate(t *testing.T) {
 
 func TestV36Migration_ShouldRestartServer(t *testing.T) {
 	m := &V36Migration{}
-	assert.False(t, m.ShouldRestartServer())
+	assert.False(t, m.ShouldRestartServer(), "no restart requested before the system update ran")
 }
 
-func TestV36Migration_UpdateSystem(t *testing.T) {
+func TestV36Migration_UpdateSystem_HealsScopes(t *testing.T) {
 	m := &V36Migration{}
 	cfg := &config.Config{}
 
-	db, _, err := sqlmock.New()
+	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
 	defer db.Close()
 
+	// A legacy bare-"openid" row is rewritten to the full default; the restart
+	// signal fires only because a row was actually healed.
+	mock.ExpectExec(`UPDATE settings SET value = 'openid email profile'`).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+
 	err = m.UpdateSystem(context.Background(), cfg, db)
 	assert.NoError(t, err)
+	assert.NoError(t, mock.ExpectationsWereMet())
+	assert.True(t, m.ShouldRestartServer(), "healing a row must request a restart")
+}
+
+func TestV36Migration_UpdateSystem_NoRowHealed_NoRestart(t *testing.T) {
+	m := &V36Migration{}
+	cfg := &config.Config{}
+
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer db.Close()
+
+	// The common case: no broken row exists — the upgrade must not force a
+	// pointless full process restart.
+	mock.ExpectExec(`UPDATE settings SET value = 'openid email profile'`).
+		WillReturnResult(sqlmock.NewResult(0, 0))
+
+	err = m.UpdateSystem(context.Background(), cfg, db)
+	assert.NoError(t, err)
+	assert.NoError(t, mock.ExpectationsWereMet())
+	assert.False(t, m.ShouldRestartServer(), "no heal, no restart")
+}
+
+func TestV36Migration_UpdateSystem_Error(t *testing.T) {
+	m := &V36Migration{}
+	cfg := &config.Config{}
+
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer db.Close()
+
+	mock.ExpectExec(`UPDATE settings`).WillReturnError(assert.AnError)
+
+	err = m.UpdateSystem(context.Background(), cfg, db)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "v36: failed to heal oidc_scopes")
 }
 
 func triggerConfigJSON(t *testing.T, kind string) []byte {

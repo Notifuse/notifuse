@@ -16,16 +16,16 @@ import (
 )
 
 const (
-	passwordMask    = "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022" // ••••••••
-	configuredMask  = "[configured]"
+	passwordMask   = "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022" // ••••••••
+	configuredMask = "[configured]"
 )
 
 // SystemSettingsData represents the editable system settings
 type SystemSettingsData struct {
-	RootEmail              string `json:"root_email"`
-	APIEndpoint            string `json:"api_endpoint"`
-	SMTPHost               string `json:"smtp_host"`
-	SMTPPort               int    `json:"smtp_port"`
+	RootEmail               string `json:"root_email"`
+	APIEndpoint             string `json:"api_endpoint"`
+	SMTPHost                string `json:"smtp_host"`
+	SMTPPort                int    `json:"smtp_port"`
 	SMTPUsername            string `json:"smtp_username"`
 	SMTPPassword            string `json:"smtp_password"`
 	SMTPFromEmail           string `json:"smtp_from_email"`
@@ -53,7 +53,7 @@ type SystemSettingsData struct {
 // SystemSettingsResponse wraps settings with env override info
 type SystemSettingsResponse struct {
 	Settings     SystemSettingsData `json:"settings"`
-	EnvOverrides map[string]bool   `json:"env_overrides"`
+	EnvOverrides map[string]bool    `json:"env_overrides"`
 }
 
 // SettingsHandler handles system settings endpoints (root user only)
@@ -323,6 +323,14 @@ func (h *SettingsHandler) handleUpdate(w http.ResponseWriter, r *http.Request) {
 		oidcClientSecret = currentConfig.OIDCClientSecret
 	}
 
+	// Canonicalize scopes exactly like the setup wizard: empty/token-less input
+	// becomes the full default (see NormalizeScopesForStorage — a stored bare
+	// value would override the richer default at boot), "openid" forced in.
+	oidcScopes := reqData.OIDCScopes
+	if reqData.OIDCEnabled {
+		oidcScopes = config.NormalizeScopesForStorage(oidcScopes)
+	}
+
 	// Build SystemConfig for persistence
 	newConfig := &service.SystemConfig{
 		IsInstalled:             true,
@@ -348,7 +356,7 @@ func (h *SettingsHandler) handleUpdate(w http.ResponseWriter, r *http.Request) {
 		OIDCClientID:            reqData.OIDCClientID,
 		OIDCClientSecret:        oidcClientSecret,
 		OIDCRedirectURI:         reqData.OIDCRedirectURI,
-		OIDCScopes:              reqData.OIDCScopes,
+		OIDCScopes:              oidcScopes,
 		OIDCButtonLabel:         reqData.OIDCButtonLabel,
 		OIDCAutoCreateUsers:     reqData.OIDCAutoCreateUsers,
 		OIDCAllowedDomains:      reqData.OIDCAllowedDomains,

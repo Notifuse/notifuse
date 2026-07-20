@@ -31,6 +31,21 @@ func getSMTPDialTimeout() time.Duration {
 	return 30 * time.Second
 }
 
+// implicitTLSPort is the port on which SMTP servers expect a TLS handshake
+// immediately after the TCP connection is opened (SMTPS), before any SMTP
+// greeting. Package variable so tests can substitute an ephemeral port.
+var implicitTLSPort = 465
+
+// smtpTLSConfig builds the client TLS configuration used for both implicit-TLS
+// and STARTTLS connections. Package variable so tests can trust a self-signed
+// certificate.
+var smtpTLSConfig = func(host string) *tls.Config {
+	return &tls.Config{
+		ServerName: host,
+		MinVersion: tls.VersionTLS12,
+	}
+}
+
 // smtpConnection wraps a connection to an SMTP server and provides low-level
 // command sending that avoids the SMTP extension issues (BODY=8BITMIME, SMTPUTF8)
 // that both go-mail and net/smtp.Client.Mail() add when the server advertises
@@ -254,6 +269,24 @@ func sendRawEmailWithSettings(settings *domain.SMTPSettings, from string, to []s
 		return fmt.Errorf("failed to connect: %w", err)
 	}
 
+	// On the SMTPS port the server starts with a TLS handshake instead of a
+	// plaintext greeting, so the connection must be upgraded before any SMTP
+	// exchange. STARTTLS is skipped later on such connections.
+	implicitTLS := settings.UseTLS && settings.Port == implicitTLSPort
+	if implicitTLS {
+		tlsConn := tls.Client(conn, smtpTLSConfig(settings.Host))
+		// The dialer timeout only covers the TCP connect; bound the handshake
+		// too, so a server that accepts the connection but never speaks TLS
+		// cannot block the sender forever.
+		conn.SetDeadline(time.Now().Add(getSMTPDialTimeout()))
+		if err := tlsConn.Handshake(); err != nil {
+			conn.Close()
+			return fmt.Errorf("implicit TLS handshake failed: %w", err)
+		}
+		conn.SetDeadline(time.Time{})
+		conn = tlsConn
+	}
+
 	smtpConn := newSMTPConnection(conn)
 	defer smtpConn.Close()
 
@@ -287,8 +320,8 @@ func sendRawEmailWithSettings(settings *domain.SMTPSettings, from string, to []s
 	// post-TLS EHLO below, since many servers only advertise AUTH after STARTTLS.
 	authMechs := parseAuthMechanisms(ehloLines)
 
-	// STARTTLS if enabled
-	if settings.UseTLS {
+	// STARTTLS if enabled (implicit-TLS connections are already encrypted)
+	if settings.UseTLS && !implicitTLS {
 		code, _, err = smtpConn.sendCommand("STARTTLS")
 		if err != nil {
 			return fmt.Errorf("STARTTLS command failed: %w", err)
@@ -297,15 +330,13 @@ func sendRawEmailWithSettings(settings *domain.SMTPSettings, from string, to []s
 			return fmt.Errorf("STARTTLS rejected with code: %d", code)
 		}
 
-		// Upgrade connection to TLS
-		tlsConfig := &tls.Config{
-			ServerName: settings.Host,
-			MinVersion: tls.VersionTLS12,
-		}
-		tlsConn := tls.Client(conn, tlsConfig)
+		// Upgrade connection to TLS, bounding the handshake like the dial
+		tlsConn := tls.Client(conn, smtpTLSConfig(settings.Host))
+		conn.SetDeadline(time.Now().Add(getSMTPDialTimeout()))
 		if err := tlsConn.Handshake(); err != nil {
 			return fmt.Errorf("TLS handshake failed: %w", err)
 		}
+		conn.SetDeadline(time.Time{})
 
 		// Replace connection with TLS connection
 		smtpConn = newSMTPConnection(tlsConn)
