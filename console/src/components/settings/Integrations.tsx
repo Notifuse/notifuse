@@ -72,7 +72,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { SettingsSectionHeader } from './SettingsSectionHeader'
 
 // Provider types that only support transactional emails, not marketing emails
-const transactionalEmailOnly: EmailProviderKind[] = []
+const transactionalEmailOnly: EmailProviderKind[] = ['mailjet']
 
 // Helper function to generate Supabase webhook URLs
 const generateSupabaseWebhookURL = (

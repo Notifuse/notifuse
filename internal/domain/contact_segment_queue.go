@@ -13,16 +13,13 @@ type ContactSegmentQueueItem struct {
 	QueuedAt time.Time `json:"queued_at"`
 }
 
-// ContactSegmentQueueRepository defines the interface for contact segment queue operations
+// ContactSegmentQueueRepository defines the interface for contact segment queue operations.
+// Claiming and re-enqueueing pending contacts is done by the queue processor
+// (ContactSegmentQueueProcessor.claimBatch/requeueBatch), which needs statement-level
+// control of transaction and cancellation semantics.
 type ContactSegmentQueueRepository interface {
-	// GetPendingEmails retrieves emails that need segment recomputation
-	GetPendingEmails(ctx context.Context, workspaceID string, limit int) ([]string, error)
-
 	// RemoveFromQueue removes an email from the queue after processing
 	RemoveFromQueue(ctx context.Context, workspaceID string, email string) error
-
-	// RemoveBatchFromQueue removes multiple emails from the queue
-	RemoveBatchFromQueue(ctx context.Context, workspaceID string, emails []string) error
 
 	// GetQueueSize returns the number of contacts in the queue
 	GetQueueSize(ctx context.Context, workspaceID string) (int, error)

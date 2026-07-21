@@ -33,6 +33,19 @@ const (
 	EmailProviderKindSendGrid  EmailProviderKind = "sendgrid"
 )
 
+// transactionalOnlyProviderKinds lists provider kinds that may only be used for
+// transactional emails (notifications, password resets, etc.) and cannot be
+// assigned as a marketing provider for broadcasts or campaigns.
+var transactionalOnlyProviderKinds = map[EmailProviderKind]bool{
+	EmailProviderKindMailjet: true,
+}
+
+// IsTransactionalOnly reports whether the provider kind is restricted to
+// transactional emails and cannot be used as a marketing email provider.
+func (k EmailProviderKind) IsTransactionalOnly() bool {
+	return transactionalOnlyProviderKinds[k]
+}
+
 // EmailSender represents an email sender with name and email address
 type EmailSender struct {
 	ID        string `json:"id"`

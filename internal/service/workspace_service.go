@@ -329,6 +329,19 @@ func (s *WorkspaceService) UpdateWorkspace(ctx context.Context, id string, name 
 	existingWorkspace.Settings.Timezone = settings.Timezone
 	existingWorkspace.Settings.FileManager = settings.FileManager
 	existingWorkspace.Settings.TransactionalEmailProviderID = settings.TransactionalEmailProviderID
+	// Reject a transactional-only provider (e.g. Mailjet) being NEWLY assigned as
+	// the marketing provider. Only the transition is guarded: settings forms
+	// resubmit the whole settings object, so an assignment that predates the
+	// restriction must not block unrelated settings saves. Grandfathered
+	// assignments are enforced at send time, in GetEmailProviderWithIntegrationID.
+	if settings.MarketingEmailProviderID != "" &&
+		settings.MarketingEmailProviderID != existingWorkspace.Settings.MarketingEmailProviderID {
+		integration := existingWorkspace.GetIntegrationByID(settings.MarketingEmailProviderID)
+		if integration != nil && integration.EmailProvider.Kind.IsTransactionalOnly() {
+			return nil, fmt.Errorf("%s can only be used as a transactional email provider, not a marketing provider", integration.EmailProvider.Kind)
+		}
+	}
+
 	existingWorkspace.Settings.MarketingEmailProviderID = settings.MarketingEmailProviderID
 	existingWorkspace.Settings.EmailTrackingEnabled = settings.EmailTrackingEnabled
 

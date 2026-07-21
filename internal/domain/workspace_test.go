@@ -2163,13 +2163,103 @@ func TestWorkspace_GetEmailProvider(t *testing.T) {
 						Name: "Marketing Provider",
 						Type: IntegrationTypeEmail,
 						EmailProvider: EmailProvider{
-							Kind:               EmailProviderKindMailjet,
+							Kind:               EmailProviderKindSMTP,
 							RateLimitPerMinute: 25,
 							Senders: []EmailSender{
 								{
 									ID:    "123e4567-e89b-12d3-a456-426614174000",
 									Email: "marketing@example.com",
 									Name:  "Marketing Sender",
+								},
+							},
+							SMTP: &SMTPSettings{
+								Host:     "smtp.example.com",
+								Port:     587,
+								Username: "marketing-user",
+								Password: "marketing-pass",
+							},
+						},
+						CreatedAt: now,
+						UpdatedAt: now,
+					},
+				},
+			},
+			isMarketing: true, // Marketing
+			expectedResult: &EmailProvider{
+				Kind: EmailProviderKindSMTP,
+				Senders: []EmailSender{
+					{
+						ID:    "123e4567-e89b-12d3-a456-426614174000",
+						Email: "marketing@example.com",
+						Name:  "Marketing Sender",
+					},
+				},
+				SMTP: &SMTPSettings{
+					Host:     "smtp.example.com",
+					Port:     587,
+					Username: "marketing-user",
+					Password: "marketing-pass",
+				},
+			},
+			expectedError: false,
+		},
+		{
+			// A transactional-only provider must be rejected at marketing
+			// resolution: this is the send-path backstop that covers
+			// assignments made before the restriction existed.
+			name: "marketing provider is transactional-only",
+			workspace: Workspace{
+				ID:   "test-workspace",
+				Name: "Test Workspace",
+				Settings: WorkspaceSettings{
+					MarketingEmailProviderID: "mailjet-provider",
+				},
+				Integrations: []Integration{
+					{
+						ID:   "mailjet-provider",
+						Name: "Mailjet Provider",
+						Type: IntegrationTypeEmail,
+						EmailProvider: EmailProvider{
+							Kind:               EmailProviderKindMailjet,
+							RateLimitPerMinute: 25,
+							Mailjet: &MailjetSettings{
+								APIKey:    "apikey-test",
+								SecretKey: "secretkey-test",
+							},
+						},
+						CreatedAt: now,
+						UpdatedAt: now,
+					},
+				},
+			},
+			isMarketing:     true, // Marketing
+			expectedResult:  nil,
+			expectedError:   true,
+			expectedErrText: "cannot be used as a marketing email provider",
+		},
+		{
+			// The same transactional-only provider stays fully usable for
+			// transactional email.
+			name: "transactional-only provider allowed as transactional",
+			workspace: Workspace{
+				ID:   "test-workspace",
+				Name: "Test Workspace",
+				Settings: WorkspaceSettings{
+					TransactionalEmailProviderID: "mailjet-provider",
+				},
+				Integrations: []Integration{
+					{
+						ID:   "mailjet-provider",
+						Name: "Mailjet Provider",
+						Type: IntegrationTypeEmail,
+						EmailProvider: EmailProvider{
+							Kind:               EmailProviderKindMailjet,
+							RateLimitPerMinute: 25,
+							Senders: []EmailSender{
+								{
+									ID:    "123e4567-e89b-12d3-a456-426614174000",
+									Email: "transactional@example.com",
+									Name:  "Transactional Sender",
 								},
 							},
 							Mailjet: &MailjetSettings{
@@ -2182,14 +2272,14 @@ func TestWorkspace_GetEmailProvider(t *testing.T) {
 					},
 				},
 			},
-			isMarketing: true, // Marketing
+			isMarketing: false, // Transactional
 			expectedResult: &EmailProvider{
 				Kind: EmailProviderKindMailjet,
 				Senders: []EmailSender{
 					{
 						ID:    "123e4567-e89b-12d3-a456-426614174000",
-						Email: "marketing@example.com",
-						Name:  "Marketing Sender",
+						Email: "transactional@example.com",
+						Name:  "Transactional Sender",
 					},
 				},
 				Mailjet: &MailjetSettings{

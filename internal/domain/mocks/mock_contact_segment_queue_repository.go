@@ -48,21 +48,6 @@ func (mr *MockContactSegmentQueueRepositoryMockRecorder) ClearQueue(arg0, arg1 i
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClearQueue", reflect.TypeOf((*MockContactSegmentQueueRepository)(nil).ClearQueue), arg0, arg1)
 }
 
-// GetPendingEmails mocks base method.
-func (m *MockContactSegmentQueueRepository) GetPendingEmails(arg0 context.Context, arg1 string, arg2 int) ([]string, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetPendingEmails", arg0, arg1, arg2)
-	ret0, _ := ret[0].([]string)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetPendingEmails indicates an expected call of GetPendingEmails.
-func (mr *MockContactSegmentQueueRepositoryMockRecorder) GetPendingEmails(arg0, arg1, arg2 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPendingEmails", reflect.TypeOf((*MockContactSegmentQueueRepository)(nil).GetPendingEmails), arg0, arg1, arg2)
-}
-
 // GetQueueSize mocks base method.
 func (m *MockContactSegmentQueueRepository) GetQueueSize(arg0 context.Context, arg1 string) (int, error) {
 	m.ctrl.T.Helper()
@@ -76,20 +61,6 @@ func (m *MockContactSegmentQueueRepository) GetQueueSize(arg0 context.Context, a
 func (mr *MockContactSegmentQueueRepositoryMockRecorder) GetQueueSize(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetQueueSize", reflect.TypeOf((*MockContactSegmentQueueRepository)(nil).GetQueueSize), arg0, arg1)
-}
-
-// RemoveBatchFromQueue mocks base method.
-func (m *MockContactSegmentQueueRepository) RemoveBatchFromQueue(arg0 context.Context, arg1 string, arg2 []string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RemoveBatchFromQueue", arg0, arg1, arg2)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// RemoveBatchFromQueue indicates an expected call of RemoveBatchFromQueue.
-func (mr *MockContactSegmentQueueRepositoryMockRecorder) RemoveBatchFromQueue(arg0, arg1, arg2 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveBatchFromQueue", reflect.TypeOf((*MockContactSegmentQueueRepository)(nil).RemoveBatchFromQueue), arg0, arg1, arg2)
 }
 
 // RemoveFromQueue mocks base method.

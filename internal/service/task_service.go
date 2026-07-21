@@ -23,6 +23,15 @@ import (
 // Maximum time a task can run before timing out
 const defaultMaxTaskRuntime = 50 // 50 seconds
 
+// directExecutionGrace is how long past a task's own timeout the direct-execution
+// context is allowed to run before it is hard-cancelled. Processors are expected
+// to stop on their own before their timeout, so this only ever fires on a call
+// that is genuinely stuck (e.g. blocked on a DB lock); the grace ensures a task
+// that merely runs right up to its budget is never cut. It bounds how long one
+// stuck task can freeze the in-process scheduler, which otherwise never ticks
+// again while a batch goroutine is blocked in an uncancellable DB call.
+const directExecutionGrace = 30 * time.Second
+
 // TaskService manages task execution and state
 type TaskService struct {
 	repo        domain.TaskRepository
@@ -451,6 +460,18 @@ func (s *TaskService) executeTasksDirectly(ctx context.Context, tasks []*domain.
 			defer wg.Done() // Signal completion when goroutine finishes
 
 			execCtx, execSpan := tracing.StartServiceSpan(ctx, "TaskService", "executeTaskDirectly")
+
+			// Bound the task's context by a hard backstop past its own timeout so a
+			// processor whose DB call hangs on a lock is cancelled instead of
+			// blocking forever. The whole batch is run under one wg.Wait() below;
+			// without this, a single stuck task freezes the in-process scheduler
+			// indefinitely. Processors stop on their own before
+			// `timeout`, so this deadline only fires on a genuinely stuck call; the
+			// grace keeps it from ever cutting a task that merely runs up to its
+			// budget. Terminal status writes in ExecuteTask use a detached context
+			// and are unaffected by this cancellation.
+			execCtx, cancelExec := context.WithDeadline(execCtx, timeout.Add(directExecutionGrace))
+			defer cancelExec()
 
 			// Set task attributes
 			tracing.AddAttribute(execCtx, "task_id", t.ID)
