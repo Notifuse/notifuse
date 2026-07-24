@@ -915,12 +915,17 @@ func (s *MailgunService) sendEmailWithAttachments(ctx context.Context, apiURL st
 
 		// Determine the field name based on disposition
 		fieldName := "attachment"
+		// Mailgun references an inline part by the file name supplied here as
+		// cid:<name>, so for inline attachments use the caller-provided
+		// content_id when present, else the filename.
+		formName := att.Filename
 		if att.Disposition == "inline" {
 			fieldName = "inline"
+			formName = att.EffectiveContentID()
 		}
 
 		// Create form file
-		part, err := writer.CreateFormFile(fieldName, att.Filename)
+		part, err := writer.CreateFormFile(fieldName, formName)
 		if err != nil {
 			return fmt.Errorf("attachment %d: failed to create form file: %w", i, err)
 		}

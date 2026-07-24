@@ -19,6 +19,10 @@ type Attachment struct {
 	Content     string `json:"content" validate:"required"` // base64 encoded
 	ContentType string `json:"content_type,omitempty"`
 	Disposition string `json:"disposition,omitempty"` // "attachment" (default) or "inline"
+	// ContentID is the MIME Content-ID for inline attachments, referenced from
+	// the HTML body as <img src="cid:...">. Only meaningful when Disposition is
+	// "inline". When empty, providers fall back to using the filename.
+	ContentID string `json:"content_id,omitempty"`
 }
 
 // AttachmentMetadata represents metadata stored in message_history
@@ -27,6 +31,7 @@ type AttachmentMetadata struct {
 	Filename    string `json:"filename"`
 	ContentType string `json:"content_type"`
 	Disposition string `json:"disposition"`
+	ContentID   string `json:"content_id,omitempty"`
 }
 
 // AttachmentRecord represents a stored attachment in the database
@@ -104,7 +109,47 @@ func (a *Attachment) Validate() error {
 		a.Disposition = "attachment"
 	}
 
+	// Validate content_id
+	if a.ContentID != "" {
+		if a.Disposition != "inline" {
+			return fmt.Errorf("content_id is only allowed when disposition is 'inline'")
+		}
+		if len(a.ContentID) > 255 {
+			return fmt.Errorf("content_id must be less than 255 characters")
+		}
+		// Content-ID becomes a MIME header value and a cid: URL reference, so keep
+		// it to a safe token: printable ASCII only, no whitespace, angle brackets
+		// or quotes. Non-ASCII would produce an invalid header on the raw-MIME
+		// providers (SES, SMTP).
+		if !isValidContentID(a.ContentID) {
+			return fmt.Errorf("content_id must contain only printable ASCII characters, without whitespace, angle brackets, or quotes")
+		}
+	}
+
 	return nil
+}
+
+// isValidContentID reports whether s is safe to use as a MIME Content-ID value.
+// It rejects whitespace, angle brackets, quotes and control characters, which
+// would break the Content-ID header or the cid: URL reference.
+func isValidContentID(s string) bool {
+	for _, r := range s {
+		// Allow only printable ASCII (0x21-0x7e), excluding characters that would
+		// break the Content-ID header or the cid: URL reference.
+		if r < '!' || r > '~' || r == '<' || r == '>' || r == '"' || r == '\'' {
+			return false
+		}
+	}
+	return true
+}
+
+// EffectiveContentID returns the Content-ID to use for an inline attachment,
+// falling back to the filename when no explicit content_id was provided.
+func (a *Attachment) EffectiveContentID() string {
+	if a.ContentID != "" {
+		return a.ContentID
+	}
+	return a.Filename
 }
 
 // DecodeContent decodes the base64 content
@@ -197,6 +242,7 @@ func (a *Attachment) ToMetadata(checksum string) *AttachmentMetadata {
 		Filename:    a.Filename,
 		ContentType: a.ContentType,
 		Disposition: a.Disposition,
+		ContentID:   a.ContentID,
 	}
 }
 

@@ -20,6 +20,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/sns"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // Helper function to create a mock SES service for testing
@@ -2392,6 +2393,81 @@ func TestSendEmail_WithInlineAttachment(t *testing.T) {
 		To:            "to@example.com",
 		Subject:       "Subject",
 		Content:       "<html><body><img src=\"cid:logo.png\"/></body></html>",
+		Provider:      provider,
+		EmailOptions:  domain.EmailOptions{Attachments: attachments},
+	}
+	err := service.SendEmail(context.Background(), request)
+
+	assert.NoError(t, err)
+}
+
+// Test SendEmail - inline attachment with an explicit content_id must be wrapped
+// in a multipart/related subtree and carry the caller-provided Content-ID.
+func TestSendEmail_InlineAttachment_MultipartRelatedAndContentID(t *testing.T) {
+	service, mockSESClient, _, _, _ := createMockSESService(t)
+
+	provider := &domain.EmailProvider{
+		SES: &domain.AmazonSESSettings{
+			AccessKey: "test-access-key",
+			SecretKey: "test-secret-key",
+			Region:    "us-east-1",
+		},
+	}
+
+	attachments := []domain.Attachment{
+		{
+			Filename:    "check-in-qr.png",
+			Content:     "iVBORw0KGgo=",
+			ContentType: "image/png",
+			Disposition: "inline",
+			ContentID:   "checkInQr",
+		},
+		{
+			Filename:    "receipt.pdf",
+			Content:     "JVBERi0=",
+			ContentType: "application/pdf",
+			Disposition: "attachment",
+		},
+	}
+
+	mockSESClient.EXPECT().
+		ListConfigurationSetsWithContext(gomock.Any(), gomock.Any()).
+		Return(&ses.ListConfigurationSetsOutput{}, nil)
+
+	mockSESClient.EXPECT().
+		SendRawEmailWithContext(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, input *ses.SendRawEmailInput, _ ...request.Option) (*ses.SendRawEmailOutput, error) {
+			require.NotNil(t, input.RawMessage)
+			rawData := string(input.RawMessage.Data)
+
+			// Top-level is multipart/mixed (holds the regular attachment), and the
+			// inline image lives inside a multipart/related subtree with the HTML.
+			assert.Contains(t, rawData, "multipart/mixed")
+			assert.Contains(t, rawData, "multipart/related")
+
+			// The inline part uses the caller-provided content_id, not the filename.
+			assert.Contains(t, rawData, "Content-Id: <checkInQr>")
+			assert.Contains(t, rawData, "Content-Disposition: inline; filename=\"check-in-qr.png\"")
+
+			// The regular attachment stays a normal attachment.
+			assert.Contains(t, rawData, "Content-Disposition: attachment; filename=\"receipt.pdf\"")
+
+			// The inline image's Content-ID must appear before the regular
+			// attachment, proving it is nested in the related subtree.
+			assert.Less(t, strings.Index(rawData, "checkInQr"), strings.Index(rawData, "receipt.pdf"))
+
+			return &ses.SendRawEmailOutput{}, nil
+		})
+
+	request := domain.SendEmailProviderRequest{
+		WorkspaceID:   "workspace",
+		IntegrationID: "test-integration-id",
+		MessageID:     "message",
+		FromAddress:   "from@example.com",
+		FromName:      "From",
+		To:            "to@example.com",
+		Subject:       "Subject",
+		Content:       "<html><body><img src=\"cid:checkInQr\"/></body></html>",
 		Provider:      provider,
 		EmailOptions:  domain.EmailOptions{Attachments: attachments},
 	}

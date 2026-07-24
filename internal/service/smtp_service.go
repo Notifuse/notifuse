@@ -615,8 +615,9 @@ func (s *SMTPService) SendEmail(ctx context.Context, request domain.SendEmailPro
 
 		// Add attachment or embed inline
 		if att.Disposition == "inline" {
-			// For inline attachments, set Content-ID for HTML references
-			contentID := att.Filename
+			// For inline attachments, set Content-ID for HTML references.
+			// Use the caller-provided content_id when present, else the filename.
+			contentID := att.EffectiveContentID()
 			fileOpts = append(fileOpts, mail.WithFileContentID(contentID))
 			if err := msg.EmbedReader(att.Filename, bytes.NewReader(content), fileOpts...); err != nil {
 				return fmt.Errorf("attachment %d: failed to embed inline: %w", i, err)
