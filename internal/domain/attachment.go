@@ -118,25 +118,28 @@ func (a *Attachment) Validate() error {
 			return fmt.Errorf("content_id must be less than 255 characters")
 		}
 		// Content-ID becomes a MIME header value and a cid: URL reference, so keep
-		// it to a safe token: printable ASCII only, no whitespace, angle brackets
-		// or quotes. Non-ASCII would produce an invalid header on the raw-MIME
-		// providers (SES, SMTP).
+		// it to a conservative token — see isValidContentID for why.
 		if !isValidContentID(a.ContentID) {
-			return fmt.Errorf("content_id must contain only printable ASCII characters, without whitespace, angle brackets, or quotes")
+			return fmt.Errorf("content_id may only contain letters, digits, and the characters . _ - @")
 		}
 	}
 
 	return nil
 }
 
-// isValidContentID reports whether s is safe to use as a MIME Content-ID value.
-// It rejects whitespace, angle brackets, quotes and control characters, which
-// would break the Content-ID header or the cid: URL reference.
+// isValidContentID reports whether s is safe to use both as a MIME Content-ID
+// header value and as a cid: URL reference in HTML. Only a conservative token
+// is accepted — letters, digits, and . _ - @ — because anything outside it
+// silently breaks one side or the other: parentheses are comment delimiters to
+// strict RFC 5322 header parsers, and # ? % are re-interpreted (fragment,
+// query, percent-decoding) when HTML engines parse the cid: URL, so the image
+// reference never matches.
 func isValidContentID(s string) bool {
 	for _, r := range s {
-		// Allow only printable ASCII (0x21-0x7e), excluding characters that would
-		// break the Content-ID header or the cid: URL reference.
-		if r < '!' || r > '~' || r == '<' || r == '>' || r == '"' || r == '\'' {
+		switch {
+		case r >= 'a' && r <= 'z', r >= 'A' && r <= 'Z', r >= '0' && r <= '9',
+			r == '.', r == '_', r == '-', r == '@':
+		default:
 			return false
 		}
 	}

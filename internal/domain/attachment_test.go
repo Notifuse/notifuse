@@ -180,6 +180,17 @@ func TestAttachment_Validate(t *testing.T) {
 			errMsg:  "content_id is only allowed when disposition is 'inline'",
 		},
 		{
+			name: "content_id with allowed special characters",
+			attachment: Attachment{
+				Filename:    "qr.png",
+				Content:     validBase64,
+				ContentType: "image/png",
+				Disposition: "inline",
+				ContentID:   "check-in_qr.2026@notifuse",
+			},
+			wantErr: false,
+		},
+		{
 			name: "content_id with whitespace is rejected",
 			attachment: Attachment{
 				Filename:    "qr.png",
@@ -188,7 +199,7 @@ func TestAttachment_Validate(t *testing.T) {
 				ContentID:   "check in qr",
 			},
 			wantErr: true,
-			errMsg:  "content_id must contain only printable ASCII",
+			errMsg:  "content_id may only contain letters, digits",
 		},
 		{
 			name: "content_id with angle brackets is rejected",
@@ -199,7 +210,7 @@ func TestAttachment_Validate(t *testing.T) {
 				ContentID:   "<checkInQr>",
 			},
 			wantErr: true,
-			errMsg:  "content_id must contain only printable ASCII",
+			errMsg:  "content_id may only contain letters, digits",
 		},
 		{
 			name: "content_id with non-ASCII is rejected",
@@ -210,7 +221,29 @@ func TestAttachment_Validate(t *testing.T) {
 				ContentID:   "façadeQr",
 			},
 			wantErr: true,
-			errMsg:  "content_id must contain only printable ASCII",
+			errMsg:  "content_id may only contain letters, digits",
+		},
+		{
+			name: "content_id with parentheses is rejected",
+			attachment: Attachment{
+				Filename:    "qr.png",
+				Content:     validBase64,
+				Disposition: "inline",
+				ContentID:   "qr(1)",
+			},
+			wantErr: true,
+			errMsg:  "content_id may only contain letters, digits",
+		},
+		{
+			name: "content_id with URL-significant characters is rejected",
+			attachment: Attachment{
+				Filename:    "qr.png",
+				Content:     validBase64,
+				Disposition: "inline",
+				ContentID:   "qr%20code#v1",
+			},
+			wantErr: true,
+			errMsg:  "content_id may only contain letters, digits",
 		},
 		{
 			name: "content_id too long is rejected",

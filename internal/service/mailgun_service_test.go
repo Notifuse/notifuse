@@ -1156,6 +1156,8 @@ func TestMailgunService_SendEmail(t *testing.T) {
 				assert.Contains(t, bodyStr, "filename=\"logo.png\"")
 				// Verify it's marked as inline (Mailgun uses "inline" field name for inline attachments)
 				assert.Contains(t, bodyStr, "name=\"inline\"")
+				// The part must carry the attachment's real content type, not octet-stream
+				assert.Contains(t, bodyStr, "Content-Type: image/png")
 
 				return resp, nil
 			})
@@ -1185,6 +1187,72 @@ func TestMailgunService_SendEmail(t *testing.T) {
 		err := service.SendEmail(ctx, request)
 
 		// Verify results
+		require.NoError(t, err)
+	})
+
+	t.Run("email with inline attachment using explicit content_id", func(t *testing.T) {
+		ctx := context.Background()
+
+		provider := &domain.EmailProvider{
+			Mailgun: &domain.MailgunSettings{
+				Domain: "example.com",
+				APIKey: "test-api-key",
+				Region: "US",
+			},
+		}
+
+		imageContent := "c2FtcGxlIGltYWdlIGNvbnRlbnQ=" // base64 of "sample image content"
+
+		resp := &http.Response{
+			StatusCode: http.StatusOK,
+			Body:       io.NopCloser(strings.NewReader(`{"id": "<message-id>", "message": "Queued. Thank you."}`)),
+		}
+
+		mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+		mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
+
+		mockHTTPClient.EXPECT().
+			Do(gomock.Any()).
+			DoAndReturn(func(req *http.Request) (*http.Response, error) {
+				body, err := io.ReadAll(req.Body)
+				require.NoError(t, err)
+				bodyStr := string(body)
+
+				// Mailgun derives the cid from the form filename, so the part is
+				// named after the content_id, not the original filename.
+				assert.Contains(t, bodyStr, "name=\"inline\"")
+				assert.Contains(t, bodyStr, "filename=\"checkInQr\"")
+				assert.NotContains(t, bodyStr, "filename=\"check-in-qr.png\"")
+				// The extension-less content_id gives Mailgun nothing to infer the
+				// type from, so the part must carry the explicit content type.
+				assert.Contains(t, bodyStr, "Content-Type: image/png")
+
+				return resp, nil
+			})
+
+		request := domain.SendEmailProviderRequest{
+			WorkspaceID:   workspaceID,
+			IntegrationID: "test-integration-id",
+			MessageID:     "test-message-id",
+			FromAddress:   fromAddress,
+			FromName:      fromName,
+			To:            to,
+			Subject:       subject,
+			Content:       content,
+			Provider:      provider,
+			EmailOptions: domain.EmailOptions{
+				Attachments: []domain.Attachment{
+					{
+						Filename:    "check-in-qr.png",
+						Content:     imageContent,
+						ContentType: "image/png",
+						Disposition: "inline",
+						ContentID:   "checkInQr",
+					},
+				},
+			},
+		}
+		err := service.SendEmail(ctx, request)
 		require.NoError(t, err)
 	})
 

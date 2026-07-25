@@ -1049,6 +1049,63 @@ func TestSMTPService_SendEmail_InlineAttachment(t *testing.T) {
 	messages := server.GetMessages()
 	require.Len(t, messages, 1)
 	assert.Contains(t, string(messages[0].data), "logo.png")
+	// RFC 2045: the Content-ID header value must be wrapped in angle brackets,
+	// or strict clients (Outlook desktop) won't resolve the cid: reference.
+	assert.Contains(t, string(messages[0].data), "Content-Id: <logo.png>")
+}
+
+func TestSMTPService_SendEmail_InlineAttachmentWithContentID(t *testing.T) {
+	server := newMockSMTPServer(t, true)
+	defer server.Close()
+
+	log := &noopLogger{}
+	service := NewSMTPService(log)
+
+	provider := &domain.EmailProvider{
+		Kind: domain.EmailProviderKindSMTP,
+		SMTP: &domain.SMTPSettings{
+			Host:     "127.0.0.1",
+			Port:     server.Port(),
+			Username: "",
+			Password: "",
+			UseTLS:   false,
+		},
+	}
+
+	request := domain.SendEmailProviderRequest{
+		WorkspaceID:   "workspace-123",
+		IntegrationID: "integration-123",
+		MessageID:     "message-123",
+		FromAddress:   "sender@example.com",
+		FromName:      "Test Sender",
+		To:            "recipient@example.com",
+		Subject:       "Test with Inline Image",
+		Content:       "<h1>Your QR</h1><img src=\"cid:checkInQr\">",
+		Provider:      provider,
+		EmailOptions: domain.EmailOptions{
+			Attachments: []domain.Attachment{
+				{
+					Filename:    "check-in-qr.png",
+					Content:     "iVBORw0KGgo=", // minimal PNG header in base64
+					ContentType: "image/png",
+					Disposition: "inline",
+					ContentID:   "checkInQr",
+				},
+			},
+		},
+	}
+
+	err := service.SendEmail(context.Background(), request)
+	require.NoError(t, err)
+
+	messages := server.GetMessages()
+	require.Len(t, messages, 1)
+	data := string(messages[0].data)
+	// The caller-provided content_id is used, angle-bracketed per RFC 2045,
+	// while the filename is preserved independently on Content-Disposition.
+	assert.Contains(t, data, "Content-Id: <checkInQr>")
+	assert.NotContains(t, data, "Content-Id: <check-in-qr.png>")
+	assert.Contains(t, data, "check-in-qr.png")
 }
 
 // ============================================================================

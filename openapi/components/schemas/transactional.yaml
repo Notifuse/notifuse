@@ -135,3 +135,12 @@ EmailAttachment:
       description: How the attachment should be displayed (defaults to 'attachment')
       example: attachment
       default: attachment
+    content_id:
+      type: string
+      description: >-
+        Content-ID for inline attachments, referenced from the HTML body as
+        <img src="cid:..."> . Only allowed when disposition is 'inline'.
+        May only contain letters, digits, and the characters . _ - @
+        (max 255 characters). Defaults to the filename when omitted.
+      example: checkInQr
+      maxLength: 255

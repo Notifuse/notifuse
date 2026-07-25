@@ -617,8 +617,12 @@ func (s *SMTPService) SendEmail(ctx context.Context, request domain.SendEmailPro
 		if att.Disposition == "inline" {
 			// For inline attachments, set Content-ID for HTML references.
 			// Use the caller-provided content_id when present, else the filename.
+			// RFC 2045 requires the header value to be wrapped in angle brackets
+			// (Content-ID: <id>); go-mail writes the value verbatim and only adds
+			// brackets itself when no Content-ID was set, so wrap it here. Strict
+			// clients (Outlook desktop) won't resolve a bracket-less Content-ID.
 			contentID := att.EffectiveContentID()
-			fileOpts = append(fileOpts, mail.WithFileContentID(contentID))
+			fileOpts = append(fileOpts, mail.WithFileContentID("<"+contentID+">"))
 			if err := msg.EmbedReader(att.Filename, bytes.NewReader(content), fileOpts...); err != nil {
 				return fmt.Errorf("attachment %d: failed to embed inline: %w", i, err)
 			}
