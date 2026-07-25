@@ -592,8 +592,8 @@ func (s *MailjetService) SendEmail(ctx context.Context, request domain.SendEmail
 				message.InlinedAttachments = append(message.InlinedAttachments, MailjetInlinedAttachment{
 					ContentType:   contentType,
 					Filename:      att.Filename,
-					Base64Content: att.Content,  // Already base64 encoded
-					ContentID:     att.Filename, // ContentID for referencing in HTML
+					Base64Content: att.Content,              // Already base64 encoded
+					ContentID:     att.EffectiveContentID(), // ContentID for referencing in HTML
 				})
 			} else {
 				// Regular attachments

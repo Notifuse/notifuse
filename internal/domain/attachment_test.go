@@ -146,6 +146,116 @@ func TestAttachment_Validate(t *testing.T) {
 			wantErr: true,
 			errMsg:  "file extension .exe is not supported by email service providers",
 		},
+		{
+			name: "valid content_id on inline attachment",
+			attachment: Attachment{
+				Filename:    "qr.png",
+				Content:     validBase64,
+				ContentType: "image/png",
+				Disposition: "inline",
+				ContentID:   "checkInQr",
+			},
+			wantErr: false,
+		},
+		{
+			name: "content_id on non-inline attachment is rejected",
+			attachment: Attachment{
+				Filename:    "qr.png",
+				Content:     validBase64,
+				ContentType: "image/png",
+				Disposition: "attachment",
+				ContentID:   "checkInQr",
+			},
+			wantErr: true,
+			errMsg:  "content_id is only allowed when disposition is 'inline'",
+		},
+		{
+			name: "content_id defaulting to attachment disposition is rejected",
+			attachment: Attachment{
+				Filename:  "qr.png",
+				Content:   validBase64,
+				ContentID: "checkInQr",
+			},
+			wantErr: true,
+			errMsg:  "content_id is only allowed when disposition is 'inline'",
+		},
+		{
+			name: "content_id with allowed special characters",
+			attachment: Attachment{
+				Filename:    "qr.png",
+				Content:     validBase64,
+				ContentType: "image/png",
+				Disposition: "inline",
+				ContentID:   "check-in_qr.2026@notifuse",
+			},
+			wantErr: false,
+		},
+		{
+			name: "content_id with whitespace is rejected",
+			attachment: Attachment{
+				Filename:    "qr.png",
+				Content:     validBase64,
+				Disposition: "inline",
+				ContentID:   "check in qr",
+			},
+			wantErr: true,
+			errMsg:  "content_id may only contain letters, digits",
+		},
+		{
+			name: "content_id with angle brackets is rejected",
+			attachment: Attachment{
+				Filename:    "qr.png",
+				Content:     validBase64,
+				Disposition: "inline",
+				ContentID:   "<checkInQr>",
+			},
+			wantErr: true,
+			errMsg:  "content_id may only contain letters, digits",
+		},
+		{
+			name: "content_id with non-ASCII is rejected",
+			attachment: Attachment{
+				Filename:    "qr.png",
+				Content:     validBase64,
+				Disposition: "inline",
+				ContentID:   "façadeQr",
+			},
+			wantErr: true,
+			errMsg:  "content_id may only contain letters, digits",
+		},
+		{
+			name: "content_id with parentheses is rejected",
+			attachment: Attachment{
+				Filename:    "qr.png",
+				Content:     validBase64,
+				Disposition: "inline",
+				ContentID:   "qr(1)",
+			},
+			wantErr: true,
+			errMsg:  "content_id may only contain letters, digits",
+		},
+		{
+			name: "content_id with URL-significant characters is rejected",
+			attachment: Attachment{
+				Filename:    "qr.png",
+				Content:     validBase64,
+				Disposition: "inline",
+				ContentID:   "qr%20code#v1",
+			},
+			wantErr: true,
+			errMsg:  "content_id may only contain letters, digits",
+		},
+		{
+			name: "content_id too long is rejected",
+			attachment: Attachment{
+				Filename:    "qr.png",
+				Content:     validBase64,
+				Disposition: "inline",
+				ContentID:   strings.Repeat("a", 256),
+			},
+			wantErr: true,
+			errMsg:  "content_id must be less than 255 characters",
+		},
 	}
 
 	for _, tt := range tests {
@@ -269,6 +379,46 @@ func TestAttachment_CalculateChecksum_Consistency(t *testing.T) {
 
 	require.NoError(t, err3)
 	assert.NotEqual(t, checksum1, checksum3)
+}
+
+func TestAttachment_EffectiveContentID(t *testing.T) {
+	tests := []struct {
+		name       string
+		attachment Attachment
+		want       string
+	}{
+		{
+			name:       "explicit content_id is used",
+			attachment: Attachment{Filename: "check-in-qr.png", ContentID: "checkInQr"},
+			want:       "checkInQr",
+		},
+		{
+			name:       "falls back to filename when content_id is empty",
+			attachment: Attachment{Filename: "check-in-qr.png"},
+			want:       "check-in-qr.png",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, tt.attachment.EffectiveContentID())
+		})
+	}
+}
+
+func TestAttachment_ToMetadata_IncludesContentID(t *testing.T) {
+	att := &Attachment{
+		Filename:    "qr.png",
+		ContentType: "image/png",
+		Disposition: "inline",
+		ContentID:   "checkInQr",
+	}
+	meta := att.ToMetadata("abc123")
+	assert.Equal(t, "abc123", meta.Checksum)
+	assert.Equal(t, "qr.png", meta.Filename)
+	assert.Equal(t, "image/png", meta.ContentType)
+	assert.Equal(t, "inline", meta.Disposition)
+	assert.Equal(t, "checkInQr", meta.ContentID)
 }
 
 func TestAttachment_DetectContentType(t *testing.T) {

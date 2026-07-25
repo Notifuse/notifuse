@@ -19,6 +19,10 @@ type Attachment struct {
 	Content     string `json:"content" validate:"required"` // base64 encoded
 	ContentType string `json:"content_type,omitempty"`
 	Disposition string `json:"disposition,omitempty"` // "attachment" (default) or "inline"
+	// ContentID is the MIME Content-ID for inline attachments, referenced from
+	// the HTML body as <img src="cid:...">. Only meaningful when Disposition is
+	// "inline". When empty, providers fall back to using the filename.
+	ContentID string `json:"content_id,omitempty"`
 }
 
 // AttachmentMetadata represents metadata stored in message_history
@@ -27,6 +31,7 @@ type AttachmentMetadata struct {
 	Filename    string `json:"filename"`
 	ContentType string `json:"content_type"`
 	Disposition string `json:"disposition"`
+	ContentID   string `json:"content_id,omitempty"`
 }
 
 // AttachmentRecord represents a stored attachment in the database
@@ -104,7 +109,50 @@ func (a *Attachment) Validate() error {
 		a.Disposition = "attachment"
 	}
 
+	// Validate content_id
+	if a.ContentID != "" {
+		if a.Disposition != "inline" {
+			return fmt.Errorf("content_id is only allowed when disposition is 'inline'")
+		}
+		if len(a.ContentID) > 255 {
+			return fmt.Errorf("content_id must be less than 255 characters")
+		}
+		// Content-ID becomes a MIME header value and a cid: URL reference, so keep
+		// it to a conservative token — see isValidContentID for why.
+		if !isValidContentID(a.ContentID) {
+			return fmt.Errorf("content_id may only contain letters, digits, and the characters . _ - @")
+		}
+	}
+
 	return nil
+}
+
+// isValidContentID reports whether s is safe to use both as a MIME Content-ID
+// header value and as a cid: URL reference in HTML. Only a conservative token
+// is accepted — letters, digits, and . _ - @ — because anything outside it
+// silently breaks one side or the other: parentheses are comment delimiters to
+// strict RFC 5322 header parsers, and # ? % are re-interpreted (fragment,
+// query, percent-decoding) when HTML engines parse the cid: URL, so the image
+// reference never matches.
+func isValidContentID(s string) bool {
+	for _, r := range s {
+		switch {
+		case r >= 'a' && r <= 'z', r >= 'A' && r <= 'Z', r >= '0' && r <= '9',
+			r == '.', r == '_', r == '-', r == '@':
+		default:
+			return false
+		}
+	}
+	return true
+}
+
+// EffectiveContentID returns the Content-ID to use for an inline attachment,
+// falling back to the filename when no explicit content_id was provided.
+func (a *Attachment) EffectiveContentID() string {
+	if a.ContentID != "" {
+		return a.ContentID
+	}
+	return a.Filename
 }
 
 // DecodeContent decodes the base64 content
@@ -197,6 +245,7 @@ func (a *Attachment) ToMetadata(checksum string) *AttachmentMetadata {
 		Filename:    a.Filename,
 		ContentType: a.ContentType,
 		Disposition: a.Disposition,
+		ContentID:   a.ContentID,
 	}
 }
 
