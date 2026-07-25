@@ -218,7 +218,12 @@
 /api/contacts.upsert:
   post:
     summary: Create or update a contact
-    description: Creates a new contact or updates an existing one based on email address. Returns information about whether the contact was created or updated.
+    description: |
+      Creates a new contact or updates an existing one. Contacts are matched **by email address only** — the email is the contact's unique identifier. `external_id` is stored but never used for matching, so sending an existing `external_id` with a new email address creates a second contact.
+
+      To change a contact's email address: upsert a contact with the new email and the full profile, re-create its list subscriptions (preserving unsubscribed/bounced/complained statuses — do not reset opt-outs), then delete the contact with the old email using `contacts.delete`. Message history and segment memberships are keyed to the email address and are not transferred.
+
+      Returns information about whether the contact was created or updated.
     operationId: upsertContact
     security:
       - BearerAuth: []
@@ -334,7 +339,10 @@
 /api/contacts.getByExternalID:
   get:
     summary: Get a contact by external ID
-    description: Retrieves a contact by their external ID within a specific workspace. The response always includes the contact's list subscriptions with their status (active, pending, unsubscribed, bounced, complained).
+    description: |
+      Retrieves a contact by their external ID within a specific workspace. The response always includes the contact's list subscriptions with their status (active, pending, unsubscribed, bounced, complained).
+
+      Note that `external_id` is not unique — if several contacts share the same external ID, only one of them is returned (which one is not defined). Contacts are uniquely identified by email address.
     operationId: getContactByExternalID
     security:
       - BearerAuth: []

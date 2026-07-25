@@ -16,6 +16,7 @@ import (
 	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestTaskService_ExecuteTask(t *testing.T) {
@@ -2886,4 +2887,183 @@ func TestTaskService_ExecutePendingTasks_DoesNotFollowRedirect(t *testing.T) {
 
 	assert.Equal(t, int32(1), atomic.LoadInt32(&dispatchHits), "dispatch endpoint should have been called exactly once")
 	assert.Equal(t, int32(0), atomic.LoadInt32(&loginHits), "login endpoint must not be reached — redirect must not be followed")
+}
+
+// TestTaskService_ExecuteTask_GraceDeadline covers the execution backstop that
+// lives inside ExecuteTask: the processor context carries a deadline of
+// timeoutAt+taskExecutionGrace regardless of entry path, a processor stuck in a
+// call that ignores that context is released at the deadline (task marked
+// failed, function returns), and a panicking processor fails its task instead
+// of crashing the process.
+func TestTaskService_ExecuteTask_GraceDeadline(t *testing.T) {
+	newService := func(t *testing.T) (*TaskService, *mocks.MockTaskRepository, *gomock.Controller) {
+		ctrl := gomock.NewController(t)
+		mockRepo := mocks.NewMockTaskRepository(ctrl)
+		mockSettingRepo := mocks.NewMockSettingRepository(ctrl)
+		mockLogger := pkgmocks.NewMockLogger(ctrl)
+
+		mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+		mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+		mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
+		mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
+		mockLogger.EXPECT().Warn(gomock.Any()).AnyTimes()
+		mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+
+		svc := NewTaskService(mockRepo, mockSettingRepo, mockLogger, nil, "http://localhost:8080")
+		svc.SetAutoExecuteImmediate(false)
+
+		mockRepo.EXPECT().
+			WithTransaction(gomock.Any(), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, fn func(*sql.Tx) error) error {
+				return fn(nil)
+			}).AnyTimes()
+
+		return svc, mockRepo, ctrl
+	}
+
+	registerProcessor := func(ctrl *gomock.Controller, svc *TaskService) *mocks.MockTaskProcessor {
+		mockProcessor := mocks.NewMockTaskProcessor(ctrl)
+		for _, supportedType := range getTaskTypes() {
+			mockProcessor.EXPECT().
+				CanProcess(supportedType).
+				Return(supportedType == "send_broadcast").
+				AnyTimes()
+		}
+		svc.RegisterProcessor(mockProcessor)
+		return mockProcessor
+	}
+
+	task := func() *domain.Task {
+		return &domain.Task{
+			ID:          "task123",
+			WorkspaceID: "workspace1",
+			Type:        "send_broadcast",
+			Status:      domain.TaskStatusPending,
+			MaxRuntime:  60,
+		}
+	}
+
+	t.Run("processor context carries the grace deadline", func(t *testing.T) {
+		svc, mockRepo, ctrl := newService(t)
+		defer ctrl.Finish()
+		mockProcessor := registerProcessor(ctrl, svc)
+
+		ctx := context.Background()
+		timeoutAt := time.Now().Add(60 * time.Second)
+		wantDeadline := timeoutAt.Add(taskExecutionGrace)
+
+		mockRepo.EXPECT().
+			GetTx(gomock.Any(), gomock.Any(), "workspace1", "task123").
+			Return(task(), nil)
+		// The stored lease must also carry the grace, so a re-dispatcher cannot
+		// reap this execution while it is still inside its grace window.
+		mockRepo.EXPECT().
+			MarkAsRunningTx(gomock.Any(), gomock.Any(), "workspace1", "task123", gomock.Any()).
+			DoAndReturn(func(_ context.Context, _ *sql.Tx, _, _ string, lease time.Time) error {
+				assert.WithinDuration(t, wantDeadline, lease, time.Second,
+					"lease must extend past the timeout by the grace")
+				return nil
+			})
+
+		var gotDeadline time.Time
+		var hadDeadline bool
+		mockProcessor.EXPECT().
+			Process(gomock.Any(), gomock.Any(), gomock.Any()).
+			DoAndReturn(func(procCtx context.Context, _ *domain.Task, procTimeout time.Time) (bool, error) {
+				gotDeadline, hadDeadline = procCtx.Deadline()
+				// The processor's own budget parameter stays the raw timeout.
+				assert.WithinDuration(t, timeoutAt, procTimeout, time.Second)
+				return true, nil
+			})
+		mockRepo.EXPECT().
+			MarkAsCompleted(gomock.Any(), "workspace1", "task123", gomock.Any()).
+			Return(nil)
+
+		err := svc.ExecuteTask(ctx, "workspace1", "task123", timeoutAt)
+		require.NoError(t, err)
+		require.True(t, hadDeadline, "processor context must carry a deadline on every entry path")
+		assert.WithinDuration(t, wantDeadline, gotDeadline, time.Second)
+	})
+
+	t.Run("stuck processor is released at the deadline", func(t *testing.T) {
+		svc, mockRepo, ctrl := newService(t)
+		defer ctrl.Finish()
+		mockProcessor := registerProcessor(ctrl, svc)
+
+		ctx := context.Background()
+		// Deadline fires ~700ms after start: timeoutAt sits in the past so that
+		// timeoutAt+grace lands just ahead of now. This simulates a processor
+		// stuck in a call that ignores context cancellation entirely.
+		timeoutAt := time.Now().Add(-taskExecutionGrace).Add(700 * time.Millisecond)
+
+		block := make(chan struct{})
+		t.Cleanup(func() { close(block) }) // release the zombie goroutine
+
+		mockRepo.EXPECT().
+			GetTx(gomock.Any(), gomock.Any(), "workspace1", "task123").
+			Return(task(), nil)
+		mockRepo.EXPECT().
+			MarkAsRunningTx(gomock.Any(), gomock.Any(), "workspace1", "task123", gomock.Any()).
+			Return(nil)
+		mockProcessor.EXPECT().
+			Process(gomock.Any(), gomock.Any(), gomock.Any()).
+			DoAndReturn(func(context.Context, *domain.Task, time.Time) (bool, error) {
+				<-block // ignores ctx: only the select's ctx.Done case can save the caller
+				return false, nil
+			})
+		mockRepo.EXPECT().
+			MarkAsFailed(gomock.Any(), "workspace1", "task123", gomock.Any()).
+			DoAndReturn(func(_ context.Context, _, _ string, msg string) error {
+				assert.Contains(t, msg, "exceeded timeout and grace")
+				return nil
+			})
+
+		start := time.Now()
+		err := svc.ExecuteTask(ctx, "workspace1", "task123", timeoutAt)
+		elapsed := time.Since(start)
+
+		require.Error(t, err)
+		var taskExecError *domain.ErrTaskExecution
+		require.True(t, errors.As(err, &taskExecError))
+		assert.Equal(t, "execution exceeded timeout and grace", taskExecError.Reason)
+		assert.Less(t, elapsed, 5*time.Second,
+			"a stuck processor must not hold ExecuteTask past the deadline")
+	})
+
+	t.Run("panicking processor fails the task instead of crashing", func(t *testing.T) {
+		svc, mockRepo, ctrl := newService(t)
+		defer ctrl.Finish()
+		mockProcessor := registerProcessor(ctrl, svc)
+
+		ctx := context.Background()
+		timeoutAt := time.Now().Add(60 * time.Second)
+
+		mockRepo.EXPECT().
+			GetTx(gomock.Any(), gomock.Any(), "workspace1", "task123").
+			Return(task(), nil)
+		mockRepo.EXPECT().
+			MarkAsRunningTx(gomock.Any(), gomock.Any(), "workspace1", "task123", gomock.Any()).
+			Return(nil)
+		mockProcessor.EXPECT().
+			Process(gomock.Any(), gomock.Any(), gomock.Any()).
+			DoAndReturn(func(context.Context, *domain.Task, time.Time) (bool, error) {
+				panic("boom: nil map write in a processor")
+			})
+		mockRepo.EXPECT().
+			MarkAsFailed(gomock.Any(), "workspace1", "task123", gomock.Any()).
+			DoAndReturn(func(_ context.Context, _, _ string, msg string) error {
+				assert.Contains(t, msg, "processor panicked")
+				assert.Contains(t, msg, "boom")
+				return nil
+			})
+
+		var err error
+		require.NotPanics(t, func() {
+			err = svc.ExecuteTask(ctx, "workspace1", "task123", timeoutAt)
+		})
+		require.Error(t, err)
+		var taskExecError *domain.ErrTaskExecution
+		require.True(t, errors.As(err, &taskExecError))
+		assert.Equal(t, "processor panicked", taskExecError.Reason)
+	})
 }

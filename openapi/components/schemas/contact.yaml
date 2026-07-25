@@ -8,12 +8,12 @@ ContactInput:
     email:
       type: string
       format: email
-      description: Email address of the contact
+      description: Email address of the contact. This is the contact's unique identifier — upserts always match contacts by email address.
       example: user@example.com
     external_id:
       type: string
       nullable: true
-      description: External identifier for the contact
+      description: Optional identifier for the contact in your own system (e.g. your user ID). Stored and searchable, but not unique and never used to match contacts during upserts — sending an existing external_id with a new email address creates a second contact.
       example: user_12345
     timezone:
       type: string
@@ -183,12 +183,12 @@ Contact:
     email:
       type: string
       format: email
-      description: Email address of the contact
+      description: Email address of the contact. This is the contact's unique identifier.
       example: user@example.com
     external_id:
       type: string
       nullable: true
-      description: External identifier for the contact
+      description: Identifier for the contact in your own system. Not unique — several contacts may share the same external_id.
       example: user_12345
     timezone:
       type: string
@@ -491,7 +491,7 @@ SubscriptionContact:
     external_id:
       type: string
       nullable: true
-      description: External identifier for the contact
+      description: Optional identifier for the contact in your own system. Not unique — contacts are identified by email address.
       example: user_12345
     timezone:
       type: string
