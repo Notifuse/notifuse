@@ -102,16 +102,38 @@ func preprocessMjmlForXML(mjmlString string) string {
 // MapOfAny represents a map of string to any value, used for template data
 type MapOfAny map[string]any
 
+// Per-notification tracking modes. The zero value ("") and TrackingModeInherit
+// both follow the workspace tracking flag; TrackingModeDisabled suppresses all
+// rewriting (redirect, pixel, and UTM parameters) because opted-out
+// notifications carry single-use auth URLs that must never be modified.
+const (
+	TrackingModeInherit  = "inherit"
+	TrackingModeDisabled = "disabled"
+)
+
+// ValidateTrackingMode rejects unknown tracking mode values.
+func ValidateTrackingMode(mode string) error {
+	switch mode {
+	case "", TrackingModeInherit, TrackingModeDisabled:
+		return nil
+	default:
+		return fmt.Errorf("invalid tracking_mode %q: must be %q or %q", mode, TrackingModeInherit, TrackingModeDisabled)
+	}
+}
+
 type TrackingSettings struct {
-	EnableTracking bool   `json:"enable_tracking"`
-	Endpoint       string `json:"endpoint,omitempty"`
-	UTMSource      string `json:"utm_source,omitempty"`
-	UTMMedium      string `json:"utm_medium,omitempty"`
-	UTMCampaign    string `json:"utm_campaign,omitempty"`
-	UTMContent     string `json:"utm_content,omitempty"`
-	UTMTerm        string `json:"utm_term,omitempty"`
-	WorkspaceID    string `json:"workspace_id,omitempty"`
-	MessageID      string `json:"message_id,omitempty"`
+	EnableTracking bool `json:"enable_tracking"`
+	// TrackingMode is the per-notification tri-state tracking preference; see
+	// the TrackingMode* constants. Stored canonically: inherit is the absent value.
+	TrackingMode string `json:"tracking_mode,omitempty"`
+	Endpoint     string `json:"endpoint,omitempty"`
+	UTMSource    string `json:"utm_source,omitempty"`
+	UTMMedium    string `json:"utm_medium,omitempty"`
+	UTMCampaign  string `json:"utm_campaign,omitempty"`
+	UTMContent   string `json:"utm_content,omitempty"`
+	UTMTerm      string `json:"utm_term,omitempty"`
+	WorkspaceID  string `json:"workspace_id,omitempty"`
+	MessageID    string `json:"message_id,omitempty"`
 }
 
 // Value implements the driver.Valuer interface for database storage
@@ -217,6 +239,12 @@ func (t *TrackingSettings) applyUTMParameters(sourceURL string) string {
 }
 
 func (t *TrackingSettings) GetTrackingURL(sourceURL string) string {
+	// The explicit per-notification opt-out suppresses everything, including
+	// UTM rewriting (single-use auth URLs must never be modified).
+	if t.TrackingMode == TrackingModeDisabled {
+		return sourceURL
+	}
+
 	// Ignore if URL is empty, a placeholder, mailto:, tel:, or already tracked (basic check)
 	if sourceURL == "" || strings.Contains(sourceURL, "{{") || strings.Contains(sourceURL, "{%") || strings.HasPrefix(sourceURL, "mailto:") || strings.HasPrefix(sourceURL, "tel:") {
 		return sourceURL
@@ -247,8 +275,8 @@ type CompileTemplateRequest struct {
 	MessageID              string           `json:"message_id"`
 	VisualEditorTree       EmailBlock       `json:"visual_editor_tree"`
 	MjmlSource             *string          `json:"mjml_source,omitempty"`
-	Subject                *string          `json:"subject,omitempty"`                  // Email subject; processed through Liquid using TemplateData
-	SubjectPreview         *string          `json:"subject_preview,omitempty"`          // Email subject preview (inbox preview text); processed through Liquid
+	Subject                *string          `json:"subject,omitempty"`         // Email subject; processed through Liquid using TemplateData
+	SubjectPreview         *string          `json:"subject_preview,omitempty"` // Email subject preview (inbox preview text); processed through Liquid
 	TemplateData           MapOfAny         `json:"test_data,omitempty"`
 	TrackingSettings       TrackingSettings `json:"tracking_settings,omitempty"`
 	Channel                string           `json:"channel,omitempty"`                  // "email" or "web"
@@ -608,6 +636,13 @@ func decodeHTMLEntitiesInURLAttributes(html string) string {
 }
 
 func TrackLinks(htmlString string, trackingSettings TrackingSettings) (updatedHTML string, err error) {
+	// The per-notification opt-out suppresses everything, including UTM
+	// rewriting: opted-out notifications carry single-use auth URLs that must
+	// not be modified in any way, even when a caller sets UTM fields.
+	if trackingSettings.TrackingMode == TrackingModeDisabled {
+		return htmlString, nil
+	}
+
 	// If tracking is disabled and no UTM parameters to add, return original HTML
 	if !trackingSettings.EnableTracking && trackingSettings.UTMSource == "" &&
 		trackingSettings.UTMMedium == "" && trackingSettings.UTMCampaign == "" &&

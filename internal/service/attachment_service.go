@@ -99,6 +99,7 @@ func (s *AttachmentService) GetAttachmentsForMessage(ctx context.Context, worksp
 			Filename:    meta.Filename,
 			ContentType: meta.ContentType,
 			Disposition: meta.Disposition,
+			ContentID:   meta.ContentID,
 			// Content is stored as binary, not returned in this method
 		})
 	}
@@ -125,6 +126,7 @@ func (s *AttachmentService) RetrieveAttachmentContent(ctx context.Context, works
 			Content:     record.Content,
 			ContentType: meta.ContentType,
 			Disposition: meta.Disposition,
+			ContentID:   meta.ContentID,
 		})
 	}
 
@@ -137,4 +139,5 @@ type AttachmentWithContent struct {
 	Content     []byte
 	ContentType string
 	Disposition string
+	ContentID   string
 }

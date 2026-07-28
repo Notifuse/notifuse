@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"regexp"
 	"strings"
@@ -315,6 +316,20 @@ func (s *TemplateService) UpdateTemplate(ctx context.Context, workspaceID string
 		return fmt.Errorf("failed to check if template exists: %w", err)
 	}
 
+	// The client's base revision (the version its edit was based on) rides in on
+	// template.Version. 0 (unset) preserves legacy last-writer-wins behavior.
+	baseVersion := template.Version
+
+	// Optimistic concurrency fast-path: reject an obviously stale save up front with a
+	// clean 409. This is best-effort UX; the repository re-checks atomically at INSERT
+	// time (see UpdateTemplate) to actually close the read-then-write race.
+	if baseVersion > 0 && baseVersion != existingTemplate.Version {
+		return &domain.ErrTemplateVersionConflict{
+			BaseVersion:   baseVersion,
+			LatestVersion: existingTemplate.Version,
+		}
+	}
+
 	// Set version from existing template *before* validation to satisfy the check
 	template.Version = existingTemplate.Version
 
@@ -350,8 +365,13 @@ func (s *TemplateService) UpdateTemplate(ctx context.Context, workspaceID string
 	template.CreatedAt = existingTemplate.CreatedAt
 	template.UpdatedAt = time.Now().UTC()
 
-	// Update template (this will create a new version in the repo)
-	if err := s.repo.UpdateTemplate(ctx, workspaceID, template); err != nil {
+	// Update template (this creates a new version in the repo and atomically rejects a
+	// stale-base save). Return the conflict unwrapped so the handler maps it to 409.
+	if err := s.repo.UpdateTemplate(ctx, workspaceID, template, baseVersion); err != nil {
+		var conflictErr *domain.ErrTemplateVersionConflict
+		if errors.As(err, &conflictErr) {
+			return conflictErr
+		}
 		s.logger.WithField("template_id", template.ID).Error(fmt.Sprintf("Failed to update template: %v", err))
 		return fmt.Errorf("failed to update template: %w", err)
 	}

@@ -100,6 +100,31 @@ func (s *MessageHistoryService) GetBroadcastStats(ctx context.Context, workspace
 	return stats, nil
 }
 
+// GetBroadcastLinkStats retrieves per-URL click statistics for a broadcast
+func (s *MessageHistoryService) GetBroadcastLinkStats(ctx context.Context, workspaceID, broadcastID, templateID string) ([]domain.LinkClickStats, error) {
+	var err error
+	ctx, _, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to authenticate user: %w", err)
+	}
+
+	// Check permission for reading message history
+	if !userWorkspace.HasPermission(domain.PermissionResourceMessageHistory, domain.PermissionTypeRead) {
+		return nil, domain.NewPermissionError(
+			domain.PermissionResourceMessageHistory,
+			domain.PermissionTypeRead,
+			"Insufficient permissions: read access to message history required",
+		)
+	}
+
+	stats, err := s.repo.GetBroadcastLinkStats(ctx, workspaceID, broadcastID, templateID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get broadcast link stats: %w", err)
+	}
+
+	return stats, nil
+}
+
 // GetBroadcastVariationStats retrieves statistics for a specific variation of a broadcast
 func (s *MessageHistoryService) GetBroadcastVariationStats(ctx context.Context, workspaceID, broadcastID, templateID string) (*domain.MessageHistoryStatusSum, error) {
 	var err error

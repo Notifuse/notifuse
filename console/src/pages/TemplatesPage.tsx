@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Typography,
@@ -10,6 +10,7 @@ import {
   message,
   Segmented,
   Tag,
+  Input,
   TableColumnType
 } from 'antd'
 import { useParams, useSearch, useNavigate } from '@tanstack/react-router'
@@ -47,6 +48,7 @@ const getIntegrationIcon = (integrationType: string) => {
 // Define search params interface
 interface TemplatesSearch {
   category?: string
+  q?: string
 }
 
 export function TemplatesPage() {
@@ -61,6 +63,19 @@ export function TemplatesPage() {
   const [workspace, setWorkspace] = useState<Workspace | null>(null)
   // Derive selectedCategory from search params, default to 'all'
   const selectedCategory = search.category || 'all'
+  // Search term derived from the URL; the box filters the (already-loaded)
+  // template list client-side, so no server round-trip is involved.
+  const searchQ = search.q ?? ''
+  // Local mirror of the search box: it is the source of truth for filtering so
+  // results update instantly as the user types. The URL is only updated after a
+  // short debounce, purely to make the term shareable and back/forward-friendly.
+  const [searchInput, setSearchInput] = useState(searchQ)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  // The last value we ourselves pushed to the URL via the debounce. Lets the
+  // URL->input sync effect ignore the echo of our own writes and only react to
+  // external changes (back/forward, deep links), so in-progress typing is never
+  // overwritten.
+  const lastNavigatedQRef = useRef<string | undefined>(undefined)
   // Add state for the test template modal
   const [testModalOpen, setTestModalOpen] = useState(false)
   const [templateToTest, setTemplateToTest] = useState<Template | null>(null)
@@ -71,6 +86,38 @@ export function TemplatesPage() {
       search: (prev) => ({ ...prev, category: category === 'all' ? undefined : category })
     })
   }
+
+  const handleSearchChange = (value: string) => {
+    setSearchInput(value)
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => {
+      const trimmed = value.trim()
+      // Record the value searchQ will become so the sync effect treats this as
+      // our own write and leaves the (possibly untrimmed) input untouched.
+      lastNavigatedQRef.current = trimmed
+      // replace: each keystroke updates the URL in place instead of pushing a
+      // history entry, so Back doesn't step through every intermediate term.
+      navigate({ replace: true, search: (prev) => ({ ...prev, q: trimmed || undefined }) })
+    }, 300)
+  }
+
+  // Mirror the URL query into the search box ONLY for external changes (browser
+  // back/forward, deep links). Our own debounced writes are skipped via
+  // lastNavigatedQRef so they never clobber what the user is typing.
+  useEffect(() => {
+    if (searchQ !== lastNavigatedQRef.current) {
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+      setSearchInput(searchQ)
+      lastNavigatedQRef.current = searchQ
+    }
+  }, [searchQ])
+
+  // Clear any pending debounce on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+    }
+  }, [])
 
   // Backend categories + All
   const categories = [
@@ -128,7 +175,16 @@ export function TemplatesPage() {
     deleteMutation.mutate({ workspace_id: workspaceId!, id: templateId })
   }
 
-  const hasTemplates = !isLoading && data?.templates && data.templates.length > 0
+  // Toolbar/empty-state visibility keys off the unfiltered list so a search that
+  // matches nothing doesn't hide the search box itself.
+  const allTemplates = data?.templates ?? []
+  const hasTemplates = !isLoading && allTemplates.length > 0
+  // Client-side name filter (case-insensitive substring), applied on top of the
+  // server-side category filter already reflected in `data`.
+  const normalizedQuery = searchInput.trim().toLowerCase()
+  const filteredTemplates = normalizedQuery
+    ? allTemplates.filter((tpl) => tpl.name.toLowerCase().includes(normalizedQuery))
+    : allTemplates
 
   // Add function to handle testing a template
   const handleTestTemplate = (template: Template) => {
@@ -366,13 +422,24 @@ export function TemplatesPage() {
         )}
       </div>
 
-      <div className="mb-4">
+      <div className="flex justify-between items-center mb-4 gap-4">
         <Segmented
           options={categories}
           // Use selectedCategory from search params as value
           value={selectedCategory}
           // Update search params on change
           onChange={(value) => setSelectedCategory(value as string)}
+        />
+        <Input.Search
+          allowClear
+          placeholder={t`Search by name`}
+          value={searchInput}
+          onChange={(e) => handleSearchChange(e.target.value)}
+          onBlur={() => {
+            const trimmed = searchInput.trim()
+            if (trimmed !== searchInput) setSearchInput(trimmed)
+          }}
+          className="max-w-xs"
         />
       </div>
 
@@ -381,9 +448,10 @@ export function TemplatesPage() {
       ) : hasTemplates ? (
         <Table
           columns={columns}
-          dataSource={data.templates}
+          dataSource={filteredTemplates}
           rowKey="id"
           pagination={{ hideOnSinglePage: true }}
+          locale={{ emptyText: t`No templates match your search` }}
           className="border border-gray-200 rounded-md"
         />
       ) : (

@@ -80,6 +80,8 @@ export interface ContactTimelineCondition {
   count_operator: CountOperator
   count_value: number
   template_id?: string
+  broadcast_id?: string
+  link_url?: string
   timeframe_operator?: TimeframeOperator
   timeframe_values?: string[]
   filters?: DimensionFilter[]

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Button, Drawer, Form, Input, Space, App, Row, Col } from 'antd'
+import { Button, Drawer, Form, Input, Select, Space, App, Row, Col } from 'antd'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useLingui } from '@lingui/react/macro'
 import {
@@ -110,7 +110,12 @@ export function UpsertTransactionalNotificationDrawer({
         name: notification.name,
         description: notification.description,
         channels: notification.channels,
-        tracking_settings: notification.tracking_settings,
+        tracking_settings: {
+          ...notification.tracking_settings,
+          // A stored absent mode means inherit; only an explicit opt-out shows as disabled
+          tracking_mode:
+            notification.tracking_settings?.tracking_mode === 'disabled' ? 'disabled' : 'inherit'
+        },
         metadata: notification.metadata || undefined
       })
     } else {
@@ -128,6 +133,7 @@ export function UpsertTransactionalNotificationDrawer({
           }
         },
         tracking_settings: {
+          tracking_mode: 'inherit',
           utm_source: domain || '',
           utm_medium: 'email',
           utm_campaign: 'transactional',
@@ -217,7 +223,10 @@ export function UpsertTransactionalNotificationDrawer({
                   updates: {
                     name: values.name,
                     description: values.description,
-                    channels: values.channels,
+                    // The server rejects any channels value on integration-managed
+                    // notifications (only description and tracking settings are
+                    // editable), so the field must be omitted for them.
+                    channels: notification.integration_id ? undefined : values.channels,
                     tracking_settings: values.tracking_settings,
                     metadata: values.metadata
                   }
@@ -300,6 +309,19 @@ export function UpsertTransactionalNotificationDrawer({
                 <Input.TextArea
                   rows={3}
                   placeholder={t`A brief description of this notification's purpose`}
+                />
+              </Form.Item>
+
+              <Form.Item
+                name={['tracking_settings', 'tracking_mode']}
+                label={t`Tracking`}
+                extra={t`When disabled, links in this notification are never rewritten: no click and open tracking and no UTM parameters.`}
+              >
+                <Select
+                  options={[
+                    { value: 'inherit', label: t`Follow workspace setting` },
+                    { value: 'disabled', label: t`Disabled for this notification` }
+                  ]}
                 />
               </Form.Item>
 

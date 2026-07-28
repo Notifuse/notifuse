@@ -1503,6 +1503,20 @@ func (s *DemoService) createSampleBroadcasts(ctx context.Context, workspaceID st
 		broadcast.CompletedAt = &completedTime
 		broadcast.UpdatedAt = completedTime
 
+		// The last broadcast is the A/B test; record its final variation as the selected
+		// winner (all of its messages were sent with that variation) so the Variations
+		// table highlights it. Derive the template id from the variation rather than
+		// hardcoding it, and set the test/winner phase timestamps so the record matches a
+		// genuine winner selection. WinningTemplate/*SentAt are top-level columns
+		// persisted by UpdateBroadcast below.
+		if i == len(broadcasts)-1 && len(variations) > 0 {
+			winner := variations[len(variations)-1].TemplateID
+			winnerSentTime := sentTime.Add(1 * time.Hour)
+			broadcast.WinningTemplate = &winner
+			broadcast.TestSentAt = &sentTime
+			broadcast.WinnerSentAt = &winnerSentTime
+		}
+
 		// Update the broadcast in the repository to reflect processed status
 		if err := s.broadcastRepo.UpdateBroadcast(ctx, broadcast); err != nil {
 			s.logger.WithField("broadcast_id", broadcast.ID).WithField("error", err.Error()).Warn("Failed to update broadcast status to processed")
@@ -1859,16 +1873,25 @@ func (s *DemoService) updateOpenedMessagesForBatch(ctx context.Context, workspac
 	return nil
 }
 
+// demoClickedURLs are deterministic destination URLs recorded with demo clicks
+// so demo workspaces show a populated per-link click table
+var demoClickedURLs = []string{
+	"https://example.com/products/new-arrivals",
+	"https://example.com/blog/getting-started",
+	"https://example.com/pricing",
+}
+
 // updateClickedMessagesForBatch updates message_history records with clicked_at timestamps
 func (s *DemoService) updateClickedMessagesForBatch(ctx context.Context, workspaceID string, messagesData []messageEngagementData) error {
-	for _, data := range messagesData {
+	for i, data := range messagesData {
 		if !data.engagement.shouldClick {
 			continue
 		}
 
 		// Use SetClicked to update the message (triggers timeline entry)
 		// SetClicked also sets opened_at if not already set
-		if err := s.messageHistoryRepo.SetClicked(ctx, workspaceID, data.message.ID, data.engagement.clickedTime); err != nil {
+		clickedURL := demoClickedURLs[i%len(demoClickedURLs)]
+		if err := s.messageHistoryRepo.SetClicked(ctx, workspaceID, data.message.ID, data.engagement.clickedTime, clickedURL); err != nil {
 			s.logger.WithField("message_id", data.message.ID).WithField("error", err.Error()).Debug("Failed to set clicked status")
 		}
 	}
@@ -2216,7 +2239,7 @@ func (s *DemoService) createSampleSegments(ctx context.Context, workspaceID stri
 						Leaf: &domain.TreeNodeLeaf{
 							Source: "contact_timeline",
 							ContactTimeline: &domain.ContactTimelineCondition{
-								Kind:              "open_email",
+								Kind:              "email.opened",
 								CountOperator:     "at_least",
 								CountValue:        3,
 								TimeframeOperator: &timeframeOperator,

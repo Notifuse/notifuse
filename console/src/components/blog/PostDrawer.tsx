@@ -27,6 +27,8 @@ import type { CreateBlogPostRequest, UpdateBlogPostRequest } from '../../service
 import { SEOSettingsForm } from '../seo/SEOSettingsForm'
 import { ImageURLInput } from '../common/ImageURLInput'
 import { templatesApi } from '../../services/api/template'
+import { ApiError } from '../../services/api/client'
+import { useTemplateConflictModal } from '../templates/useTemplateConflictModal'
 import { AuthorsTable } from './AuthorsTable'
 import {
   NotifuseEditor,
@@ -78,6 +80,7 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
   const [form] = Form.useForm()
   const queryClient = useQueryClient()
   const { message, modal } = App.useApp()
+  const { conflictModal, showConflict } = useTemplateConflictModal()
   const isEditMode = !!post
   const [formTouched, setFormTouched] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -96,6 +99,12 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
   const editorRef = useRef<NotifuseEditorRef>(null)
   const [canUndo, setCanUndo] = useState(false)
   const [canRedo, setCanRedo] = useState(false)
+
+  // The template revision this post's editor content is based on. Sent as base_version
+  // so the server rejects a stale-base overwrite (409) from a concurrent editor.
+  const baseVersionRef = useRef<number>(post?.settings.template.template_version ?? 0)
+  // Last submitted form values, so the conflict dialog can re-submit ("overwrite").
+  const lastValuesRef = useRef<PostFormValues | null>(null)
 
   // Table of Contents state
   const [tableOfContents, setTableOfContents] = useState<TOCAnchor[]>([])
@@ -321,6 +330,8 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
       templateData.template.version === post.settings.template.template_version
     ) {
       setBlogContent(templateData.template.web.content as TiptapNode)
+      // The editor now holds this exact revision; that's the base for the next save.
+      baseVersionRef.current = templateData.template.version
     } else if (!templateLoading && post && !templateData?.template?.web?.content) {
       // Template failed to load or doesn't exist - ensure content is cleared
       setBlogContent(null)
@@ -334,6 +345,26 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
     post?.settings.template.template_id,
     post?.settings.template.template_version
   ])
+
+  // Discard local edits and load the latest template revision into the editor, so the
+  // user can re-apply their changes on top of the newer version after a conflict.
+  const reloadLatestTemplate = async () => {
+    if (!post) return
+    try {
+      const { template: latest } = await templatesApi.get({
+        workspace_id: workspace.id,
+        id: post.settings.template.template_id
+        // version omitted → latest
+      })
+      baseVersionRef.current = latest.version
+      setBlogContent((latest.web?.content as TiptapNode) ?? null)
+      setEditorKeyCounter((prev) => prev + 1)
+    } catch {
+      // Surface the failure and leave the editor untouched, so the user isn't misled into
+      // thinking they're now on the latest revision when the reload didn't happen.
+      message.error(t`Could not load the latest version. Please try again.`)
+    }
+  }
 
   const createMutation = useMutation({
     mutationFn: async (values: PostFormValues) => {
@@ -387,6 +418,9 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
 
   const updateMutation = useMutation({
     mutationFn: async (values: PostFormValues) => {
+      // Remember the payload so the conflict dialog can re-submit it verbatim.
+      lastValuesRef.current = values
+
       // Get HTML and plain text from content
       const html = editorRef.current?.getHTML() || jsonToHtml(blogContent)
       const plainText = extractTextContent(blogContent)
@@ -404,7 +438,9 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
           content: blogContent, // Tiptap JSON
           html: html, // Pre-rendered HTML
           plain_text: plainText // Plain text for search
-        }
+        },
+        // Base revision the content was loaded from; server rejects a stale-base save.
+        base_version: baseVersionRef.current
       })
 
       // Fetch the updated template to get the new version
@@ -412,6 +448,9 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
         workspace_id: workspace.id,
         id: post!.settings.template.template_id
       })
+      // Advance the base to the just-saved revision so a subsequent save (e.g. an
+      // "overwrite" retry, or reopening the drawer) isn't a false conflict on our own edit.
+      baseVersionRef.current = updatedTemplate.template.version
 
       // Then update the blog post
       const updateRequest: UpdateBlogPostRequest = {
@@ -437,6 +476,29 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
       handleClose()
     },
     onError: (error: Error) => {
+      // 409: the template advanced past our base while editing. Let the user keep their
+      // work (overwrite) or load the latest (discard theirs) rather than losing changes.
+      if (error instanceof ApiError && error.status === 409) {
+        const latest = (error.data as { latest_version?: number } | undefined)?.latest_version
+        showConflict({
+          latestVersion: latest,
+          baseVersion: baseVersionRef.current,
+          onOverwrite: () => {
+            // Adopt the server's latest as the new base and re-submit. Fall back to 0
+            // (skip the check, force the write) when the version is unknown, so
+            // "overwrite" can never loop on a conflict it cannot resolve.
+            baseVersionRef.current = latest ?? 0
+            if (lastValuesRef.current) {
+              updateMutation.mutate(lastValuesRef.current)
+            }
+          },
+          onReload: () => {
+            void reloadLatestTemplate()
+          }
+        })
+        setLoading(false)
+        return
+      }
       message.error(t`Failed to update post: ${error.message}`)
       setLoading(false)
     }
@@ -577,6 +639,7 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
   }
 
   return (
+    <>
     <Drawer
       title={isEditMode ? t`Edit Post` : t`Create New Post`}
       width="100%"
@@ -862,5 +925,7 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
         currentMetadata={getCurrentMetadata()}
       />
     </Drawer>
+    {conflictModal}
+    </>
   )
 }

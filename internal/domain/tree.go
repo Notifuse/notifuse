@@ -46,6 +46,8 @@ type ContactTimelineCondition struct {
 	CountOperator     string             `json:"count_operator"` // "at_least", "at_most", "exactly"
 	CountValue        int                `json:"count_value"`
 	TemplateID        *string            `json:"template_id,omitempty"`
+	BroadcastID       *string            `json:"broadcast_id,omitempty"`       // scope to messages sent by a specific broadcast
+	LinkURL           *string            `json:"link_url,omitempty"`           // substring-matched against clicked destination URLs (email.clicked only)
 	TimeframeOperator *string            `json:"timeframe_operator,omitempty"` // "anytime", "in_date_range", "before_date", "after_date", "in_the_last_days"
 	TimeframeValues   []string           `json:"timeframe_values,omitempty"`
 	Filters           []*DimensionFilter `json:"filters,omitempty"`
@@ -199,16 +201,22 @@ func (c *ContactTimelineCondition) Validate() error {
 		return fmt.Errorf("count_value must be non-negative")
 	}
 
-	// Validate template_id is only used with email event kinds or insert_message_history
-	if c.TemplateID != nil && *c.TemplateID != "" {
-		templateKinds := map[string]bool{
-			"open_email": true, "click_email": true,
-			"bounce_email": true, "complain_email": true,
-			"unsubscribe_email": true, "insert_message_history": true,
-		}
-		if !templateKinds[c.Kind] {
-			return fmt.Errorf("template_id can only be used with email event kinds (open_email, click_email, bounce_email, complain_email, unsubscribe_email) or insert_message_history")
-		}
+	// template_id and broadcast_id scope to specific sent messages, so they are only
+	// meaningful for email event kinds (and email.sent).
+	emailScopedKinds := map[string]bool{
+		"email.opened": true, "email.clicked": true,
+		"email.bounced": true, "email.complained": true,
+		"email.unsubscribed": true, "email.sent": true,
+	}
+	if c.TemplateID != nil && *c.TemplateID != "" && !emailScopedKinds[c.Kind] {
+		return fmt.Errorf("template_id can only be used with email event kinds (email.opened, email.clicked, email.bounced, email.complained, email.unsubscribed) or email.sent")
+	}
+	if c.BroadcastID != nil && *c.BroadcastID != "" && !emailScopedKinds[c.Kind] {
+		return fmt.Errorf("broadcast_id can only be used with email event kinds (email.opened, email.clicked, email.bounced, email.complained, email.unsubscribed) or email.sent")
+	}
+	// link_url matches the clicked destination URL, which only exists for click events.
+	if c.LinkURL != nil && *c.LinkURL != "" && c.Kind != "email.clicked" {
+		return fmt.Errorf("link_url can only be used with the email.clicked event kind")
 	}
 
 	if c.TimeframeOperator != nil {

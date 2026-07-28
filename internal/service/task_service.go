@@ -12,6 +12,7 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
+	"runtime/debug"
 	"sync"
 	"time"
 
@@ -22,6 +23,19 @@ import (
 
 // Maximum time a task can run before timing out
 const defaultMaxTaskRuntime = 50 // 50 seconds
+
+// taskExecutionGrace is how long past a task's own timeout its execution context
+// is allowed to run before it is hard-cancelled. Processors are expected to stop
+// on their own before their timeout, so this only ever fires on a call that is
+// genuinely stuck (e.g. blocked on a DB lock); the grace ensures a task that
+// merely runs right up to its budget is never cut. The deadline is applied
+// inside ExecuteTask so every entry point gets the same bound: the in-process
+// scheduler (whose batch-wide wait a single stuck task would otherwise freeze
+// forever), the HTTP dispatch handler, and the synchronous segment-service
+// triggers that call with a background context. The stored lease is extended by
+// the same grace so a re-dispatched execution cannot overlap one that is still
+// inside its grace window.
+const taskExecutionGrace = 30 * time.Second
 
 // TaskService manages task execution and state
 type TaskService struct {
@@ -452,6 +466,9 @@ func (s *TaskService) executeTasksDirectly(ctx context.Context, tasks []*domain.
 
 			execCtx, execSpan := tracing.StartServiceSpan(ctx, "TaskService", "executeTaskDirectly")
 
+			// ExecuteTask bounds its own execution at timeout+taskExecutionGrace,
+			// so a stuck task cannot freeze the batch-wide wg.Wait() below.
+
 			// Set task attributes
 			tracing.AddAttribute(execCtx, "task_id", t.ID)
 			tracing.AddAttribute(execCtx, "workspace_id", t.WorkspaceID)
@@ -495,6 +512,17 @@ func (s *TaskService) ExecuteTask(ctx context.Context, workspace, taskID string,
 		tracing.MarkSpanError(ctx, ctx.Err())
 		return ctx.Err()
 	}
+
+	// Hard backstop for the whole execution: a processor whose DB call hangs on
+	// a lock is cancelled at timeout+grace instead of blocking its caller
+	// forever. Applied here — the choke point every entry path funnels through —
+	// so the in-process scheduler, the HTTP dispatch handler, and the
+	// synchronous segment-service triggers (which pass a background context) all
+	// get the same bound. If the caller's context carries an earlier deadline,
+	// the earlier one wins. Terminal status writes below use a detached bgCtx
+	// and are unaffected by this cancellation.
+	ctx, cancelExec := context.WithDeadline(ctx, timeoutAt.Add(taskExecutionGrace))
+	defer cancelExec()
 
 	// Get the task
 	var task *domain.Task
@@ -548,8 +576,15 @@ func (s *TaskService) ExecuteTask(ctx context.Context, workspace, taskID string,
 		// Use the passed timeoutAt parameter
 		tracing.AddAttribute(txCtx, "timeout_at", timeoutAt.Format(time.RFC3339))
 
-		// Mark task as running within the same transaction
-		if markErr := s.repo.MarkAsRunningTx(txCtx, tx, workspace, taskID, timeoutAt); markErr != nil {
+		// Mark task as running within the same transaction. The stored lease
+		// extends past the task's own timeout by the same grace as the execution
+		// context: GetNextBatch re-dispatches a running task once its lease
+		// expires, and a lease equal to the bare timeout would let a second
+		// execution start while the first is still inside its grace window —
+		// the graced one would then write terminal state over the row the new
+		// execution owns. With the grace included, the first execution is
+		// hard-cancelled at or before the moment it becomes reapable.
+		if markErr := s.repo.MarkAsRunningTx(txCtx, tx, workspace, taskID, timeoutAt.Add(taskExecutionGrace)); markErr != nil {
 			tracing.MarkSpanError(txCtx, markErr)
 			s.logger.WithFields(map[string]interface{}{
 				"task_id":      taskID,
@@ -582,6 +617,21 @@ func (s *TaskService) ExecuteTask(ctx context.Context, workspace, taskID string,
 
 	// Process the task in a goroutine
 	go func() {
+		// A panicking processor must fail its task, not kill the server: this
+		// goroutine has no other recover, so without this a panic in any
+		// processor (broadcast send, import, sync, ...) crashes the whole
+		// process and drops every in-flight task and request. The panic is
+		// converted to the normal failed-task path with its stack preserved.
+		defer func() {
+			if r := recover(); r != nil {
+				processErr <- &domain.ErrTaskExecution{
+					TaskID: taskID,
+					Reason: "processor panicked",
+					Err:    fmt.Errorf("%v\n%s", r, debug.Stack()),
+				}
+			}
+		}()
+
 		procCtx, procSpan := tracing.StartServiceSpan(ctx, "TaskService", "ProcessTask")
 		defer tracing.EndSpan(procSpan, nil)
 
@@ -631,6 +681,33 @@ func (s *TaskService) ExecuteTask(ctx context.Context, workspace, taskID string,
 
 	// Wait for completion, error, or timeout
 	select {
+	case <-ctx.Done():
+		// The grace deadline (or an earlier caller deadline) fired while the
+		// processor was still running — a genuinely stuck execution. Release
+		// the task with a detached write so the scheduler can re-dispatch it;
+		// without this case a processor blocked in a call that ignores context
+		// would hold this function (and, from the scheduler path, the whole
+		// batch) forever. The processor goroutine keeps unwinding on its own:
+		// its context-aware calls are cancelled by this same context, and its
+		// eventual channel send lands in a buffered channel nobody reads.
+		timeoutErr := &domain.ErrTaskExecution{
+			TaskID: taskID,
+			Reason: "execution exceeded timeout and grace",
+			Err:    ctx.Err(),
+		}
+		if markErr := s.repo.MarkAsFailed(bgCtx, workspace, taskID, timeoutErr.Error()); markErr != nil {
+			s.logger.WithFields(map[string]interface{}{
+				"task_id":      taskID,
+				"workspace_id": workspace,
+				"error":        markErr.Error(),
+			}).Error("Failed to mark timed-out task as failed")
+			return fmt.Errorf("failed to mark timed-out task as failed: %w", markErr)
+		}
+		s.logger.WithFields(map[string]interface{}{
+			"task_id":      taskID,
+			"workspace_id": workspace,
+		}).Error("Task execution timed out past its grace window")
+		return timeoutErr
 	case completed := <-done:
 		if completed {
 			// Check if this is a recurring task

@@ -682,7 +682,7 @@ func TestTemplateService_UpdateTemplate(t *testing.T) {
 		// GetByID is called first to check existence and preserve CreatedAt (version 0 means latest)
 		mockRepo.EXPECT().GetTemplateByID(ctx, workspaceID, templateID, int64(0)).Return(existingTemplate, nil)
 		// Expect UpdateTemplate call with correct fields preserved/updated
-		mockRepo.EXPECT().UpdateTemplate(ctx, workspaceID, gomock.Any()).DoAndReturn(func(_ context.Context, _ string, tmpl *domain.Template) error {
+		mockRepo.EXPECT().UpdateTemplate(ctx, workspaceID, gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, _ string, tmpl *domain.Template, _ int64) error {
 			assert.Equal(t, templateToUpdate.ID, tmpl.ID)
 			assert.Equal(t, templateToUpdate.Name, tmpl.Name)
 			assert.Equal(t, templateToUpdate.Channel, tmpl.Channel)
@@ -700,6 +700,88 @@ func TestTemplateService_UpdateTemplate(t *testing.T) {
 		// Check that the passed-in template's CreatedAt and UpdatedAt were updated by the service
 		assert.Equal(t, existingTemplate.CreatedAt, templateToUpdate.CreatedAt)
 		assert.WithinDuration(t, time.Now().UTC(), templateToUpdate.UpdatedAt, 5*time.Second)
+	})
+
+	t.Run("Version Conflict - stale base rejected", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		templateService, mockRepo, _, mockAuthService, _ := setupTemplateServiceTest(ctrl)
+		templateToUpdate := *updatedTemplateData // Use a copy
+		// Client edited version 1 but the live template is already at version 5.
+		templateToUpdate.Version = 1
+
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, &domain.UserWorkspace{
+			UserID:      userID,
+			WorkspaceID: workspaceID,
+			Role:        "member",
+			Permissions: domain.UserPermissions{
+				domain.PermissionResourceTemplates: {Read: true, Write: true},
+			},
+		}, nil)
+		conflictingExisting := *existingTemplate
+		conflictingExisting.Version = 5
+		mockRepo.EXPECT().GetTemplateByID(ctx, workspaceID, templateID, int64(0)).Return(&conflictingExisting, nil)
+		// UpdateTemplate must NOT be called when the base is stale.
+
+		err := templateService.UpdateTemplate(ctx, workspaceID, &templateToUpdate)
+
+		require.Error(t, err)
+		var conflictErr *domain.ErrTemplateVersionConflict
+		require.ErrorAs(t, err, &conflictErr)
+		assert.Equal(t, int64(1), conflictErr.BaseVersion)
+		assert.Equal(t, int64(5), conflictErr.LatestVersion)
+	})
+
+	t.Run("Version match - base equals latest succeeds", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		templateService, mockRepo, _, mockAuthService, _ := setupTemplateServiceTest(ctrl)
+		templateToUpdate := *updatedTemplateData            // Use a copy
+		templateToUpdate.Version = existingTemplate.Version // base matches latest
+
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, &domain.UserWorkspace{
+			UserID:      userID,
+			WorkspaceID: workspaceID,
+			Role:        "member",
+			Permissions: domain.UserPermissions{
+				domain.PermissionResourceTemplates: {Read: true, Write: true},
+			},
+		}, nil)
+		mockRepo.EXPECT().GetTemplateByID(ctx, workspaceID, templateID, int64(0)).Return(existingTemplate, nil)
+		mockRepo.EXPECT().UpdateTemplate(ctx, workspaceID, gomock.Any(), gomock.Any()).Return(nil)
+
+		err := templateService.UpdateTemplate(ctx, workspaceID, &templateToUpdate)
+
+		assert.NoError(t, err)
+	})
+
+	t.Run("Repo version conflict - atomic backstop surfaces unwrapped", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		templateService, mockRepo, _, mockAuthService, _ := setupTemplateServiceTest(ctrl)
+		templateToUpdate := *updatedTemplateData            // Use a copy
+		templateToUpdate.Version = existingTemplate.Version // passes the service fast-path check
+
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, &domain.UserWorkspace{
+			UserID:      userID,
+			WorkspaceID: workspaceID,
+			Role:        "member",
+			Permissions: domain.UserPermissions{
+				domain.PermissionResourceTemplates: {Read: true, Write: true},
+			},
+		}, nil)
+		mockRepo.EXPECT().GetTemplateByID(ctx, workspaceID, templateID, int64(0)).Return(existingTemplate, nil)
+		// The fast-path passes (base == existing), but the repo detects a concurrent race
+		// at INSERT time and returns the conflict; the service must surface it unwrapped.
+		mockRepo.EXPECT().UpdateTemplate(ctx, workspaceID, gomock.Any(), gomock.Any()).
+			Return(&domain.ErrTemplateVersionConflict{BaseVersion: existingTemplate.Version, LatestVersion: existingTemplate.Version + 3})
+
+		err := templateService.UpdateTemplate(ctx, workspaceID, &templateToUpdate)
+
+		require.Error(t, err)
+		var conflictErr *domain.ErrTemplateVersionConflict
+		require.ErrorAs(t, err, &conflictErr)
+		assert.Equal(t, existingTemplate.Version+3, conflictErr.LatestVersion)
 	})
 
 	t.Run("Authentication Failure", func(t *testing.T) {
@@ -807,7 +889,7 @@ func TestTemplateService_UpdateTemplate(t *testing.T) {
 			},
 		}, nil)
 		mockRepo.EXPECT().GetTemplateByID(ctx, workspaceID, templateID, int64(0)).Return(existingTemplate, nil)
-		mockRepo.EXPECT().UpdateTemplate(ctx, workspaceID, gomock.Any()).Return(repoErr)
+		mockRepo.EXPECT().UpdateTemplate(ctx, workspaceID, gomock.Any(), gomock.Any()).Return(repoErr)
 		mockLogger.EXPECT().WithField("template_id", templateID).Return(mockLogger)
 		mockLogger.EXPECT().Error(fmt.Sprintf("Failed to update template: %v", repoErr)).Return()
 
@@ -1371,7 +1453,7 @@ func TestTemplateService_UpdateTemplate_CodeMode(t *testing.T) {
 			},
 		}, nil)
 		mockRepo.EXPECT().GetTemplateByID(ctx, workspaceID, templateID, int64(0)).Return(existingCodeTemplate, nil)
-		mockRepo.EXPECT().UpdateTemplate(ctx, workspaceID, gomock.Any()).Return(nil)
+		mockRepo.EXPECT().UpdateTemplate(ctx, workspaceID, gomock.Any(), gomock.Any()).Return(nil)
 
 		err := templateService.UpdateTemplate(ctx, workspaceID, templateToUpdate)
 		assert.NoError(t, err)
@@ -1994,8 +2076,8 @@ func TestTemplateService_UpdateEmailMetadataBlocks_CodeMode(t *testing.T) {
 
 		mockRepo.EXPECT().GetTemplateByID(ctx, workspaceID, "tmpl-code-2", int64(0)).Return(existingTemplate, nil)
 
-		mockRepo.EXPECT().UpdateTemplate(ctx, workspaceID, gomock.Any()).DoAndReturn(
-			func(_ context.Context, _ string, tmplArg *domain.Template) error {
+		mockRepo.EXPECT().UpdateTemplate(ctx, workspaceID, gomock.Any(), gomock.Any()).DoAndReturn(
+			func(_ context.Context, _ string, tmplArg *domain.Template, _ int64) error {
 				require.NotNil(t, tmplArg.Email)
 				require.NotNil(t, tmplArg.Email.MjmlSource)
 				assert.Contains(t, *tmplArg.Email.MjmlSource, "<mj-title>Updated Template</mj-title>")
@@ -2193,8 +2275,8 @@ func TestTemplateService_UpdateEmailMetadataBlocks_Translations(t *testing.T) {
 		mockRepo.EXPECT().GetTemplateByID(ctx, workspaceID, "tmpl-trans-2", int64(0)).Return(existingTemplate, nil)
 		mockWorkspaceRepo.EXPECT().GetByID(ctx, workspaceID).Return(workspaceWithFr, nil)
 
-		mockRepo.EXPECT().UpdateTemplate(ctx, workspaceID, gomock.Any()).DoAndReturn(
-			func(_ context.Context, _ string, tmplArg *domain.Template) error {
+		mockRepo.EXPECT().UpdateTemplate(ctx, workspaceID, gomock.Any(), gomock.Any()).DoAndReturn(
+			func(_ context.Context, _ string, tmplArg *domain.Template, _ int64) error {
 				fr := tmplArg.Translations["fr"]
 				require.NotNil(t, fr.Email)
 				require.NotNil(t, fr.Email.MjmlSource)

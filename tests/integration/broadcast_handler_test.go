@@ -325,10 +325,12 @@ func testBroadcastCRUD(t *testing.T, client *testutil.APIClient, factory *testut
 			// This test simulates the scenario where old broadcasts have NULL pause_reason
 			// after a database migration. This is what caused the production bug.
 
-			// Get workspace database connection
+			// Get workspace database connection. This is the shared pool owned by
+			// the connection manager — do NOT Close() it here, or every later
+			// subtest reusing the same workspace pool fails with "sql: database is
+			// closed" (the manager hands back the cached, now-closed *sql.DB).
 			workspaceDB, err := factory.GetWorkspaceDB(workspaceID)
 			require.NoError(t, err)
-			defer func() { _ = workspaceDB.Close() }()
 
 			// Insert broadcast directly with NULL pause_reason (simulating migrated data)
 			broadcastID := "bc-null-test-" + testutil.GenerateRandomString(12)

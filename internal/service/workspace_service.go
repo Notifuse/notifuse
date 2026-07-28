@@ -329,6 +329,19 @@ func (s *WorkspaceService) UpdateWorkspace(ctx context.Context, id string, name 
 	existingWorkspace.Settings.Timezone = settings.Timezone
 	existingWorkspace.Settings.FileManager = settings.FileManager
 	existingWorkspace.Settings.TransactionalEmailProviderID = settings.TransactionalEmailProviderID
+	// Reject a transactional-only provider (e.g. Mailjet) being NEWLY assigned as
+	// the marketing provider. Only the transition is guarded: settings forms
+	// resubmit the whole settings object, so an assignment that predates the
+	// restriction must not block unrelated settings saves. Grandfathered
+	// assignments are enforced at send time, in GetEmailProviderWithIntegrationID.
+	if settings.MarketingEmailProviderID != "" &&
+		settings.MarketingEmailProviderID != existingWorkspace.Settings.MarketingEmailProviderID {
+		integration := existingWorkspace.GetIntegrationByID(settings.MarketingEmailProviderID)
+		if integration != nil && integration.EmailProvider.Kind.IsTransactionalOnly() {
+			return nil, fmt.Errorf("%s can only be used as a transactional email provider, not a marketing provider", integration.EmailProvider.Kind)
+		}
+	}
+
 	existingWorkspace.Settings.MarketingEmailProviderID = settings.MarketingEmailProviderID
 	existingWorkspace.Settings.EmailTrackingEnabled = settings.EmailTrackingEnabled
 
@@ -1462,7 +1475,12 @@ func (s *WorkspaceService) UpdateIntegration(ctx context.Context, req domain.Upd
 					existingIntegration.LLMProvider.Anthropic.EncryptedAPIKey
 			}
 
-			// Preserve OpenAI encrypted API key if not provided in update
+			// Preserve OpenAI encrypted API key if not provided in update.
+			// NOTE: only the secret (API key) is preserved here. Non-secret fields like
+			// model/base_url/reasoning_effort are taken verbatim from req (the whole
+			// OpenAI struct above is overwritten), so the frontend must always resend
+			// them or they reset to their zero value. Any future SECRET field needs its
+			// own preserve-on-blank branch like this one.
 			if req.LLMProvider.OpenAI != nil &&
 				req.LLMProvider.OpenAI.APIKey == "" &&
 				req.LLMProvider.OpenAI.EncryptedAPIKey == "" &&

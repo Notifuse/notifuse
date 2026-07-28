@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"os"
@@ -1025,12 +1026,24 @@ type MailpitMessage struct {
 		Name    string `json:"Name"`
 		Address string `json:"Address"`
 	} `json:"Cc"`
-	Subject string              `json:"Subject"`
-	Date    time.Time           `json:"Date"`
-	Text    string              `json:"Text"`
-	HTML    string              `json:"HTML"`
-	Size    int                 `json:"Size"`
-	Headers map[string][]string `json:"Headers,omitempty"`
+	Subject     string              `json:"Subject"`
+	Date        time.Time           `json:"Date"`
+	Text        string              `json:"Text"`
+	HTML        string              `json:"HTML"`
+	Size        int                 `json:"Size"`
+	Headers     map[string][]string `json:"Headers,omitempty"`
+	Inline      []MailpitPart       `json:"Inline"`
+	Attachments []MailpitPart       `json:"Attachments"`
+}
+
+// MailpitPart represents an inline or attachment MIME part as reported by the
+// Mailpit message API.
+type MailpitPart struct {
+	PartID      string `json:"PartID"`
+	FileName    string `json:"FileName"`
+	ContentType string `json:"ContentType"`
+	ContentID   string `json:"ContentID"`
+	Size        int    `json:"Size"`
 }
 
 // MailpitMessagesResponse represents the response from Mailpit's messages API
@@ -1197,6 +1210,27 @@ func GetMailpitMessage(t *testing.T, messageID string) (*MailpitMessage, error) 
 	}
 
 	return &msg, nil
+}
+
+// GetMailpitMessageRaw fetches the raw RFC 5322 source of a message from Mailpit.
+// This is used to assert on the on-the-wire MIME structure (e.g. multipart/related).
+func GetMailpitMessageRaw(t *testing.T, messageID string) (string, error) {
+	httpClient := &http.Client{Timeout: 5 * time.Second}
+	resp, err := httpClient.Get(fmt.Sprintf("http://localhost:8025/api/v1/message/%s/raw", messageID))
+	if err != nil {
+		return "", fmt.Errorf("failed to get raw message from Mailpit: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("unexpected status code from Mailpit raw endpoint: %d", resp.StatusCode)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("failed to read raw message body: %w", err)
+	}
+	return string(body), nil
 }
 
 // WaitForMailpitMessageByRecipient polls Mailpit until an email for the given recipient is found,

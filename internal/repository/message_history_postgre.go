@@ -667,31 +667,71 @@ func (r *MessageHistoryRepository) SetStatusesIfNotSet(ctx context.Context, work
 	return nil
 }
 
-func (r *MessageHistoryRepository) SetClicked(ctx context.Context, workspaceID, id string, timestamp time.Time) error {
+func (r *MessageHistoryRepository) SetClicked(ctx context.Context, workspaceID, id string, timestamp time.Time, clickedURL string) error {
 	// Get the workspace database connection
 	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
 	if err != nil {
 		return fmt.Errorf("failed to get workspace connection: %w", err)
 	}
 
-	// First query: Update clicked_at if it's null
-	clickQuery := `
-		UPDATE message_history 
-		SET 
-			clicked_at = $1,
-			updated_at = NOW()
-		WHERE id = $2 AND clicked_at IS NULL
-	`
+	if clickedURL == "" {
+		// First query: Update clicked_at if it's null
+		clickQuery := `
+			UPDATE message_history
+			SET
+				clicked_at = $1,
+				updated_at = NOW()
+			WHERE id = $2 AND clicked_at IS NULL
+		`
 
-	_, err = workspaceDB.ExecContext(ctx, clickQuery, timestamp, id)
-	if err != nil {
-		return fmt.Errorf("failed to set clicked: %w", err)
+		_, err = workspaceDB.ExecContext(ctx, clickQuery, timestamp, id)
+		if err != nil {
+			return fmt.Errorf("failed to set clicked: %w", err)
+		}
+	} else {
+		// First query: set clicked_at if null and upsert the per-URL click
+		// counters in clicked_links. The opened_at backfill must stay in a
+		// separate statement: the webhook trigger checks opened_at before
+		// clicked_at in an ELSIF chain, so a single statement setting both
+		// would swallow the email.clicked webhook.
+		// Both CASE branches are jsonb_typeof-guarded: a malformed value
+		// ('null'::jsonb or an array) would otherwise crash jsonb_set, and
+		// `jsonb ? text` matches array elements so even the key-exists check
+		// needs the guard. Malformed values self-heal into fresh objects.
+		clickQuery := `
+			UPDATE message_history
+			SET
+			    clicked_at = COALESCE(clicked_at, $1),
+			    updated_at = NOW(),
+			    clicked_links = CASE
+			        -- known URL: bump count, refresh last_at
+			        WHEN (CASE WHEN jsonb_typeof(clicked_links) = 'object' THEN clicked_links ELSE '{}'::jsonb END) ? $3 THEN
+			            jsonb_set(
+			                jsonb_set(clicked_links, ARRAY[$3, 'count'],
+			                    to_jsonb(COALESCE((clicked_links #>> ARRAY[$3, 'count'])::int, 0) + 1)),
+			                ARRAY[$3, 'last_at'], to_jsonb($1::timestamptz))
+			        -- new URL under the per-message cap (also self-heals malformed non-object values)
+			        WHEN (SELECT COUNT(*) FROM jsonb_object_keys(CASE WHEN jsonb_typeof(clicked_links) = 'object' THEN clicked_links ELSE '{}'::jsonb END)) < 50 THEN
+			            (CASE WHEN jsonb_typeof(clicked_links) = 'object' THEN clicked_links ELSE '{}'::jsonb END) || jsonb_build_object($3,
+			                jsonb_build_object('count', 1,
+			                    'first_at', to_jsonb($1::timestamptz),
+			                    'last_at',  to_jsonb($1::timestamptz)))
+			        -- at cap: leave map unchanged (bounds tuple width; repeat clicks rewrite ~1.4KB rows)
+			        ELSE clicked_links
+			    END
+			WHERE id = $2
+		`
+
+		_, err = workspaceDB.ExecContext(ctx, clickQuery, timestamp, id, clickedURL)
+		if err != nil {
+			return fmt.Errorf("failed to set clicked: %w", err)
+		}
 	}
 
 	// Second query: Update opened_at if it's null as a click means the message was opened
 	openQuery := `
-		UPDATE message_history 
-		SET 
+		UPDATE message_history
+		SET
 			opened_at = $1,
 			updated_at = NOW()
 		WHERE id = $2 AND opened_at IS NULL
@@ -1254,6 +1294,73 @@ func (r *MessageHistoryRepository) GetBroadcastVariationStats(ctx context.Contex
 	return stats, nil
 }
 
+// GetBroadcastLinkStats retrieves per-URL click statistics for a broadcast
+func (r *MessageHistoryRepository) GetBroadcastLinkStats(ctx context.Context, workspaceID, broadcastID, templateID string) ([]domain.LinkClickStats, error) {
+	// codecov:ignore:start
+	ctx, span := tracing.StartServiceSpan(ctx, "MessageHistoryRepository", "GetBroadcastLinkStats")
+	defer tracing.EndSpan(span, nil)
+	tracing.AddAttribute(ctx, "workspaceID", workspaceID)
+	tracing.AddAttribute(ctx, "broadcastID", broadcastID)
+	// codecov:ignore:end
+
+	// Get the workspace database connection
+	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
+	if err != nil {
+		// codecov:ignore:start
+		tracing.MarkSpanError(ctx, err)
+		// codecov:ignore:end
+		return nil, fmt.Errorf("failed to get workspace connection: %w", err)
+	}
+
+	// The jsonb_typeof guards are mandatory: IS NOT NULL does not protect
+	// jsonb_each from 'null'::jsonb or array values, and a non-object entry
+	// value would make SUM return SQL NULL (Scan into int64 then fails for
+	// the whole broadcast), so such entries are excluded and the sum coalesced.
+	query := `
+		SELECT e.key AS url,
+		       COALESCE(SUM((e.value->>'count')::int), 0) AS total_clicks,
+		       COUNT(*) AS unique_clicks
+		FROM message_history
+		CROSS JOIN LATERAL jsonb_each(clicked_links) AS e(key, value)
+		WHERE broadcast_id = $1
+		  AND ($2 = '' OR template_id = $2)
+		  AND jsonb_typeof(clicked_links) = 'object'
+		  AND jsonb_typeof(e.value) = 'object'
+		GROUP BY e.key
+		ORDER BY unique_clicks DESC, total_clicks DESC, e.key
+		LIMIT 200
+	`
+	// $2 (templateID): empty selects the whole broadcast; a non-empty value scopes the
+	// breakdown to a single A/B variation (the template its messages were sent with).
+
+	rows, err := workspaceDB.QueryContext(ctx, query, broadcastID, templateID)
+	if err != nil {
+		// codecov:ignore:start
+		tracing.MarkSpanError(ctx, err)
+		// codecov:ignore:end
+		return nil, fmt.Errorf("failed to get broadcast link stats: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	stats := make([]domain.LinkClickStats, 0)
+	for rows.Next() {
+		var stat domain.LinkClickStats
+		if err := rows.Scan(&stat.URL, &stat.TotalClicks, &stat.UniqueClicks); err != nil {
+			return nil, fmt.Errorf("failed to scan broadcast link stats: %w", err)
+		}
+		stats = append(stats, stat)
+	}
+
+	if err := rows.Err(); err != nil {
+		// codecov:ignore:start
+		tracing.MarkSpanError(ctx, err)
+		// codecov:ignore:end
+		return nil, fmt.Errorf("failed to iterate broadcast link stats: %w", err)
+	}
+
+	return stats, nil
+}
+
 // DeleteForEmail redacts the email address in all message history records for a specific email
 func (r *MessageHistoryRepository) DeleteForEmail(ctx context.Context, workspaceID, email string) error {
 	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
@@ -1261,9 +1368,10 @@ func (r *MessageHistoryRepository) DeleteForEmail(ctx context.Context, workspace
 		return fmt.Errorf("failed to get workspace connection: %w", err)
 	}
 
-	// Redact the email address by replacing it with a generic redacted identifier
+	// Redact the email address by replacing it with a generic redacted identifier;
+	// clicked_links is cleared too since recorded URLs may carry personal data
 	redactedEmail := "DELETED_EMAIL"
-	query := `UPDATE message_history SET contact_email = $1 WHERE contact_email = $2`
+	query := `UPDATE message_history SET contact_email = $1, clicked_links = NULL WHERE contact_email = $2`
 
 	result, err := workspaceDB.ExecContext(ctx, query, redactedEmail, email)
 	if err != nil {

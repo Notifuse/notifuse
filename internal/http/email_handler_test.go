@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
+	"github.com/Notifuse/notifuse/pkg/crypto"
 
 	"github.com/Notifuse/notifuse/internal/domain/mocks"
 	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
@@ -284,8 +285,9 @@ func TestEmailHandler_HandleClickRedirection(t *testing.T) {
 				"ts":  strconv.FormatInt(time.Now().Add(-10*time.Second).Unix(), 10), // 10 seconds ago
 			},
 			setupExpectations: func(mockEmailService *mocks.MockEmailServiceInterface) {
+				// Legacy /visit URLs are forgeable query params: aggregate-only
 				mockEmailService.EXPECT().
-					VisitLink(gomock.Any(), "message-123", "workspace-123").
+					VisitLink(gomock.Any(), "message-123", "workspace-123", "", gomock.Any()).
 					Return(nil)
 			},
 			expectedStatusCode: http.StatusSeeOther,
@@ -346,6 +348,83 @@ func TestEmailHandler_HandleClickRedirection(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestEmailHandler_HandleEncryptedClick(t *testing.T) {
+	oldTimestamp := strconv.FormatInt(time.Now().Add(-10*time.Second).Unix(), 10)
+	freshTimestamp := strconv.FormatInt(time.Now().Unix(), 10)
+
+	tests := []struct {
+		name               string
+		tokenPayload       string
+		userAgent          string
+		setupExpectations  func(*mocks.MockEmailServiceInterface)
+		expectedStatusCode int
+		expectedRedirectTo string
+	}{
+		{
+			name:         "records click with decrypted destination URL",
+			tokenPayload: "message-123\nworkspace-123\n" + oldTimestamp + "\nhttps://example.com/product",
+			userAgent:    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0",
+			setupExpectations: func(mockEmailService *mocks.MockEmailServiceInterface) {
+				mockEmailService.EXPECT().
+					VisitLink(gomock.Any(), "message-123", "workspace-123", "https://example.com/product", gomock.Any()).
+					Return(nil)
+			},
+			expectedStatusCode: http.StatusSeeOther,
+			expectedRedirectTo: "https://example.com/product",
+		},
+		{
+			name:               "bot user agent records nothing but still redirects",
+			tokenPayload:       "message-123\nworkspace-123\n" + oldTimestamp + "\nhttps://example.com/product",
+			userAgent:          "Googlebot/2.1 (+http://www.google.com/bot.html)",
+			setupExpectations:  func(*mocks.MockEmailServiceInterface) {},
+			expectedStatusCode: http.StatusSeeOther,
+			expectedRedirectTo: "https://example.com/product",
+		},
+		{
+			name:               "too-fast click records nothing but still redirects",
+			tokenPayload:       "message-123\nworkspace-123\n" + freshTimestamp + "\nhttps://example.com/product",
+			userAgent:          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0",
+			setupExpectations:  func(*mocks.MockEmailServiceInterface) {},
+			expectedStatusCode: http.StatusSeeOther,
+			expectedRedirectTo: "https://example.com/product",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockEmailService, _, handler, _ := setupEmailHandlerTest(t)
+
+			token, err := crypto.EncryptTrackingToken(tt.tokenPayload)
+			require.NoError(t, err)
+
+			req := httptest.NewRequest(http.MethodGet, "/r/"+token, nil)
+			req.Header.Set("User-Agent", tt.userAgent)
+
+			tt.setupExpectations(mockEmailService)
+
+			w := httptest.NewRecorder()
+			handler.handleEncryptedClick(w, req.WithContext(context.Background()))
+
+			assert.Equal(t, tt.expectedStatusCode, w.Code)
+			if tt.expectedRedirectTo != "" {
+				assert.Equal(t, tt.expectedRedirectTo, w.Header().Get("Location"))
+			}
+		})
+	}
+
+	t.Run("invalid token returns bad request", func(t *testing.T) {
+		_, _, handler, _ := setupEmailHandlerTest(t)
+
+		req := httptest.NewRequest(http.MethodGet, "/r/invalid-token", nil)
+		req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0")
+
+		w := httptest.NewRecorder()
+		handler.handleEncryptedClick(w, req.WithContext(context.Background()))
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+	})
 }
 
 func TestEmailHandler_HandleOpens(t *testing.T) {

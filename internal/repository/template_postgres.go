@@ -4,11 +4,13 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/Notifuse/notifuse/internal/domain"
+	"github.com/lib/pq"
 )
 
 type templateRepository struct {
@@ -262,21 +264,13 @@ func (r *templateRepository) GetTemplates(ctx context.Context, workspaceID strin
 	return templates, nil
 }
 
-func (r *templateRepository) UpdateTemplate(ctx context.Context, workspaceID string, template *domain.Template) error {
+func (r *templateRepository) UpdateTemplate(ctx context.Context, workspaceID string, template *domain.Template, baseVersion int64) error {
 	// Get the workspace database connection
 	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
 	if err != nil {
 		return fmt.Errorf("failed to get workspace connection: %w", err)
 	}
 
-	// Get the latest version
-	latestVersion, err := r.GetTemplateLatestVersion(ctx, workspaceID, template.ID)
-	if err != nil {
-		return fmt.Errorf("failed to get template latest version: %w", err)
-	}
-
-	// Increment version
-	template.Version = latestVersion + 1
 	template.UpdatedAt = time.Now().UTC()
 
 	// Normalize nil translations to empty map for consistent JSONB storage
@@ -291,30 +285,36 @@ func (r *templateRepository) UpdateTemplate(ctx context.Context, workspaceID str
 		return fmt.Errorf("failed to marshal translations: %w", err)
 	}
 
-	// Create a new version instead of updating the existing one
+	// Append-only versioning with atomic optimistic concurrency. The new version is
+	// computed as MAX(version)+1 inside the statement, and the row is only inserted when
+	// the caller's base_version still matches the latest ($14 = 0 skips the check for
+	// legacy last-writer-wins callers). This closes the read-then-write race two ways:
+	//   - base already stale before the statement ran → WHERE yields no row → ErrNoRows
+	//   - a concurrent writer with the same base committed first → the PRIMARY KEY
+	//     (id, version) rejects the loser with a unique violation (23505)
+	// Both map to a version conflict. RETURNING reports the newly-created version.
 	query := `
-		INSERT INTO templates (
-			id,
-			name,
-			version,
-			channel,
-			email,
-			web,
-			category,
-			template_macro_id,
-			integration_id,
-			test_data,
-			settings,
-			translations,
-			created_at,
-			updated_at
+		WITH curr AS (
+			SELECT COALESCE(MAX(version), 0) AS max_v
+			FROM templates
+			WHERE id = $1
 		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+		INSERT INTO templates (
+			id, name, version, channel, email, web, category,
+			template_macro_id, integration_id, test_data, settings, translations,
+			created_at, updated_at
+		)
+		SELECT
+			$1, $2, curr.max_v + 1, $3, $4, $5, $6,
+			$7, $8, $9, $10, $11,
+			$12, $13
+		FROM curr
+		WHERE $14 = 0 OR curr.max_v = $14
+		RETURNING version
 	`
-	_, err = workspaceDB.ExecContext(ctx, query,
+	err = workspaceDB.QueryRowContext(ctx, query,
 		template.ID,
 		template.Name,
-		template.Version,
 		template.Channel,
 		template.Email,
 		template.Web,
@@ -326,12 +326,31 @@ func (r *templateRepository) UpdateTemplate(ctx context.Context, workspaceID str
 		translationsJSON,
 		template.CreatedAt,
 		template.UpdatedAt,
-	)
+		baseVersion,
+	).Scan(&template.Version)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			// The base_version guard excluded the insert: the template advanced since.
+			return r.newVersionConflict(ctx, workspaceDB, template.ID, baseVersion)
+		}
+		var pqErr *pq.Error
+		if errors.As(err, &pqErr) && pqErr.Code == "23505" && pqErr.Constraint == "templates_pkey" {
+			// A concurrent save with the same base won the (id, version) race.
+			return r.newVersionConflict(ctx, workspaceDB, template.ID, baseVersion)
+		}
 		return fmt.Errorf("failed to update template: %w", err)
 	}
 
 	return nil
+}
+
+// newVersionConflict builds an ErrTemplateVersionConflict, reading the current latest
+// version (best-effort) so the client can rebase onto it.
+func (r *templateRepository) newVersionConflict(ctx context.Context, db *sql.DB, id string, baseVersion int64) error {
+	var latest int64
+	_ = db.QueryRowContext(ctx,
+		`SELECT COALESCE(MAX(version), 0) FROM templates WHERE id = $1`, id).Scan(&latest)
+	return &domain.ErrTemplateVersionConflict{BaseVersion: baseVersion, LatestVersion: latest}
 }
 
 func (r *templateRepository) DeleteTemplate(ctx context.Context, workspaceID string, id string) error {

@@ -16,7 +16,7 @@ export const AddToListNode: React.FC<AddToListNodeProps> = ({ data, selected }) 
   const { lists } = useAutomation()
   const config = data.config as AddToListNodeConfig
   const listName = lists.find((l) => l.id === config?.list_id)?.name
-  const status = config?.status || 'subscribed'
+  const status = config?.status || 'active'
 
   const connection = useConnection()
   const isConnecting = connection.inProgress
@@ -54,8 +54,8 @@ export const AddToListNode: React.FC<AddToListNodeProps> = ({ data, selected }) 
         ) : (
           <div className="flex items-center gap-2">
             <span className="text-sm truncate max-w-[180px]">{listName || t`Unknown list`}</span>
-            <Tag color={status === 'subscribed' ? 'green' : 'orange'} className="m-0">
-              {status}
+            <Tag color={status === 'active' ? 'green' : 'orange'} className="m-0">
+              {status === 'active' ? t`Subscribed` : t`Pending`}
             </Tag>
           </div>
         )}

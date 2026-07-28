@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -676,17 +677,19 @@ func TestEmailService_VisitLink(t *testing.T) {
 		templateService: mockTemplateService,
 		httpClient:      mockHTTPClient,
 		messageRepo:     mockMessageRepo,
+		apiEndpoint:     "https://api.notifuse.test",
 	}
 
 	ctx := context.Background()
 	workspaceID := "workspace-123"
 	messageID := "message-456"
+	requestHost := "click.notifuse.test"
 
-	t.Run("Successfully sets message as clicked", func(t *testing.T) {
+	t.Run("Successfully sets message as clicked without URL", func(t *testing.T) {
 		// Setup message repository mock to expect SetClicked
 		mockMessageRepo.EXPECT().
-			SetClicked(ctx, workspaceID, messageID, gomock.Any()).
-			DoAndReturn(func(_ context.Context, _, _ string, timestamp time.Time) error {
+			SetClicked(ctx, workspaceID, messageID, gomock.Any(), "").
+			DoAndReturn(func(_ context.Context, _, _ string, timestamp time.Time, _ string) error {
 				// Verify the timestamp is close to now
 				assert.True(t, time.Since(timestamp) < time.Second)
 				return nil
@@ -695,23 +698,87 @@ func TestEmailService_VisitLink(t *testing.T) {
 		// No logger error expected
 
 		// Call method under test
-		err := emailService.VisitLink(ctx, messageID, workspaceID)
+		err := emailService.VisitLink(ctx, messageID, workspaceID, "", requestHost)
 
 		// Assertions
+		require.NoError(t, err)
+	})
+
+	t.Run("Records the clicked URL", func(t *testing.T) {
+		clickedURL := "https://shop.example.com/product?utm_source=news"
+
+		mockMessageRepo.EXPECT().
+			SetClicked(ctx, workspaceID, messageID, gomock.Any(), clickedURL).
+			Return(nil)
+
+		err := emailService.VisitLink(ctx, messageID, workspaceID, clickedURL, requestHost)
+		require.NoError(t, err)
+	})
+
+	t.Run("Non-http scheme degrades to aggregate-only", func(t *testing.T) {
+		mockMessageRepo.EXPECT().
+			SetClicked(ctx, workspaceID, messageID, gomock.Any(), "").
+			Return(nil)
+
+		err := emailService.VisitLink(ctx, messageID, workspaceID, "mailto:someone@example.com", requestHost)
+		require.NoError(t, err)
+	})
+
+	t.Run("Overlong URL degrades to aggregate-only", func(t *testing.T) {
+		longURL := "https://example.com/?q=" + strings.Repeat("a", 2048)
+
+		mockMessageRepo.EXPECT().
+			SetClicked(ctx, workspaceID, messageID, gomock.Any(), "").
+			Return(nil)
+
+		err := emailService.VisitLink(ctx, messageID, workspaceID, longURL, requestHost)
+		require.NoError(t, err)
+	})
+
+	t.Run("URL pointing back at the request host degrades to aggregate-only", func(t *testing.T) {
+		// Unsubscribe/notification-center URLs embed the recipient's raw email
+		// and are built on the same endpoint that serves the click redirect.
+		mockMessageRepo.EXPECT().
+			SetClicked(ctx, workspaceID, messageID, gomock.Any(), "").
+			Return(nil)
+
+		err := emailService.VisitLink(ctx, messageID, workspaceID,
+			"https://click.notifuse.test/unsubscribe?email=someone@example.com", requestHost)
+		require.NoError(t, err)
+	})
+
+	t.Run("Host comparison is case-insensitive", func(t *testing.T) {
+		mockMessageRepo.EXPECT().
+			SetClicked(ctx, workspaceID, messageID, gomock.Any(), "").
+			Return(nil)
+
+		err := emailService.VisitLink(ctx, messageID, workspaceID,
+			"https://Click.Notifuse.Test/notification-center?email=someone@example.com", requestHost)
+		require.NoError(t, err)
+	})
+
+	t.Run("Empty request host still records external URLs", func(t *testing.T) {
+		clickedURL := "https://shop.example.com/product"
+
+		mockMessageRepo.EXPECT().
+			SetClicked(ctx, workspaceID, messageID, gomock.Any(), clickedURL).
+			Return(nil)
+
+		err := emailService.VisitLink(ctx, messageID, workspaceID, clickedURL, "")
 		require.NoError(t, err)
 	})
 
 	t.Run("Error setting clicked status", func(t *testing.T) {
 		// Setup message repository mock to return an error
 		mockMessageRepo.EXPECT().
-			SetClicked(ctx, workspaceID, messageID, gomock.Any()).
+			SetClicked(ctx, workspaceID, messageID, gomock.Any(), "").
 			Return(assert.AnError)
 
 		// Should log the error
 		mockLogger.EXPECT().Error(gomock.Any())
 
 		// Call method under test
-		err := emailService.VisitLink(ctx, messageID, workspaceID)
+		err := emailService.VisitLink(ctx, messageID, workspaceID, "", requestHost)
 
 		// Assertions
 		require.Error(t, err)
@@ -980,6 +1047,53 @@ func TestEmailService_SendEmailForTemplate(t *testing.T) {
 		require.NoError(t, err)
 	})
 
+	t.Run("TrackingMode survives the compile-request rebuild", func(t *testing.T) {
+		workspace := &domain.Workspace{
+			ID:       workspaceID,
+			Settings: domain.WorkspaceSettings{},
+		}
+		mockWorkspaceRepo.EXPECT().
+			GetByID(gomock.Any(), workspaceID).
+			Return(workspace, nil)
+		mockTemplateService.EXPECT().
+			GetTemplateByID(gomock.Any(), workspaceID, templateConfig.TemplateID, int64(0)).
+			Return(emailTemplate, nil)
+
+		// The compile request's TrackingSettings are rebuilt field by field —
+		// the per-notification opt-out must reach TrackLinks or opted-out auth
+		// URLs get UTM-rewritten (the UTMContent default always sets a UTM field).
+		mockTemplateService.EXPECT().
+			CompileTemplate(gomock.Any(), gomock.Any()).
+			DoAndReturn(func(_ context.Context, compileReq domain.CompileTemplateRequest) (*domain.CompileTemplateResponse, error) {
+				assert.Equal(t, notifuse_mjml.TrackingModeDisabled, compileReq.TrackingSettings.TrackingMode,
+					"tracking_mode must be propagated into the compile request")
+				assert.False(t, compileReq.TrackingSettings.EnableTracking)
+				return compileResult, nil
+			})
+		mockMessageRepo.EXPECT().
+			Create(gomock.Any(), workspaceID, gomock.Any(), gomock.Any()).
+			Return(nil)
+		mockSESService.EXPECT().
+			SendEmail(gomock.Any(), gomock.Any()).
+			Return(nil)
+
+		request := domain.SendEmailRequest{
+			WorkspaceID:    workspaceID,
+			IntegrationID:  "test-integration-id",
+			MessageID:      messageID,
+			Contact:        contact,
+			TemplateConfig: templateConfig,
+			MessageData:    messageData,
+			TrackingSettings: notifuse_mjml.TrackingSettings{
+				EnableTracking: false,
+				TrackingMode:   notifuse_mjml.TrackingModeDisabled,
+			},
+			EmailProvider: emailProvider,
+			EmailOptions:  options,
+		}
+		require.NoError(t, emailService.SendEmailForTemplate(ctx, request))
+	})
+
 	t.Run("sends email with subject override processed through Liquid", func(t *testing.T) {
 		// Setup workspace mock
 		workspace := &domain.Workspace{
@@ -1013,10 +1127,10 @@ func TestEmailService_SendEmailForTemplate(t *testing.T) {
 				gomock.Any(),
 				gomock.Any(),
 			).DoAndReturn(func(ctx context.Context, req domain.SendEmailProviderRequest) error {
-				// Verify the subject was overridden and Liquid processed
-				assert.Equal(t, "Override Test User", req.Subject)
-				return nil
-			})
+			// Verify the subject was overridden and Liquid processed
+			assert.Equal(t, "Override Test User", req.Subject)
+			return nil
+		})
 
 		// Call method under test with subject override
 		overrideSubject := "Override {{ name }}"
@@ -1073,10 +1187,10 @@ func TestEmailService_SendEmailForTemplate(t *testing.T) {
 				gomock.Any(),
 				gomock.Any(),
 			).DoAndReturn(func(ctx context.Context, req domain.SendEmailProviderRequest) error {
-				// Verify the subject is the template default (processed through Liquid)
-				assert.Equal(t, "Welcome to Our Service", req.Subject)
-				return nil
-			})
+			// Verify the subject is the template default (processed through Liquid)
+			assert.Equal(t, "Welcome to Our Service", req.Subject)
+			return nil
+		})
 
 		// Call method under test with empty subject override (should use template default)
 		emptySubject := ""

@@ -189,9 +189,11 @@ func (h *EmailHandler) handleClickRedirection(w http.ResponseWriter, r *http.Req
 		}
 	}
 
-	// Record click only if it passes bot detection
+	// Record click only if it passes bot detection.
+	// The legacy /visit URL comes from forgeable query params, so the clicked
+	// URL is never recorded per-link (aggregate-only).
 	if shouldRecord {
-		_ = h.emailService.VisitLink(r.Context(), messageID, workspaceID)
+		_ = h.emailService.VisitLink(r.Context(), messageID, workspaceID, "", r.Host)
 	}
 
 	// Always redirect regardless of whether we recorded
@@ -368,7 +370,7 @@ func (h *EmailHandler) handleEncryptedClick(w http.ResponseWriter, r *http.Reque
 	}
 
 	if shouldRecord {
-		_ = h.emailService.VisitLink(r.Context(), messageID, workspaceID)
+		_ = h.emailService.VisitLink(r.Context(), messageID, workspaceID, redirectTo, r.Host)
 	}
 
 	http.Redirect(w, r, redirectTo, http.StatusSeeOther)

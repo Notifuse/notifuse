@@ -722,13 +722,13 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
                   <div className="mb-2">
                     <span className="opacity-60 pr-3">{t`type`}</span>
                     <Tag bordered={false} color="blue">
-                      {node.leaf?.contact_timeline.kind === 'open_email' && t`Open email`}
-                      {node.leaf?.contact_timeline.kind === 'click_email' && t`Click email`}
-                      {node.leaf?.contact_timeline.kind === 'bounce_email' && t`Bounce email`}
-                      {node.leaf?.contact_timeline.kind === 'complain_email' && t`Complain email`}
-                      {node.leaf?.contact_timeline.kind === 'unsubscribe_email' &&
+                      {node.leaf?.contact_timeline.kind === 'email.opened' && t`Open email`}
+                      {node.leaf?.contact_timeline.kind === 'email.clicked' && t`Click email`}
+                      {node.leaf?.contact_timeline.kind === 'email.bounced' && t`Bounce email`}
+                      {node.leaf?.contact_timeline.kind === 'email.complained' && t`Complain email`}
+                      {node.leaf?.contact_timeline.kind === 'email.unsubscribed' &&
                         t`Unsubscribe from list`}
-                      {node.leaf?.contact_timeline.kind === 'insert_message_history' &&
+                      {node.leaf?.contact_timeline.kind === 'email.sent' &&
                         t`New message (email...)`}
                     </Tag>
                   </div>

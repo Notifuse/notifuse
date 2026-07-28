@@ -233,6 +233,29 @@ export function AIAssistantChat({
                     <XMarkdown openLinksInNewTab>{content as string}</XMarkdown>
                   )
                 },
+                thinking: {
+                  placement: 'start',
+                  variant: 'borderless',
+                  messageRender: (content) => (
+                    <details
+                      style={{
+                        fontSize: 12,
+                        color: '#8c8c8c',
+                        background: '#fafafa',
+                        border: '1px solid #f0f0f0',
+                        borderRadius: 6,
+                        padding: '6px 10px'
+                      }}
+                    >
+                      <summary style={{ cursor: 'pointer', userSelect: 'none' }}>
+                        {t`Thinking`}
+                      </summary>
+                      <div style={{ whiteSpace: 'pre-wrap', marginTop: 6 }}>
+                        {content as string}
+                      </div>
+                    </details>
+                  )
+                },
                 system: {
                   placement: 'start',
                   messageRender: (content) => {

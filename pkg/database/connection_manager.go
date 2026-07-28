@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -11,12 +12,9 @@ import (
 
 	"github.com/Notifuse/notifuse/config"
 	"github.com/Notifuse/notifuse/internal/database"
+	"github.com/lib/pq"
+	"golang.org/x/sync/singleflight"
 )
-
-// pingHealthCheckTimeout caps the GetWorkspaceConnection pool health check.
-// Kept short (sub-second) so a slow PG does not stall the caller, but long
-// enough that a healthy PG always responds even under broadcast WAL pressure.
-const pingHealthCheckTimeout = 500 * time.Millisecond
 
 // ConnectionManager manages database connections with a shared pool approach
 type ConnectionManager interface {
@@ -60,6 +58,12 @@ type ConnectionPoolStats struct {
 	WaitDuration    time.Duration `json:"wait_duration"`
 }
 
+// workspacePoolCreateTimeout bounds a single pool creation (connect + verify,
+// plus a one-time lazy database create). It exists so that pool creation, which
+// is detached from any individual caller's context (see GetWorkspaceConnection),
+// can never hang indefinitely on an unreachable server.
+const workspacePoolCreateTimeout = 30 * time.Second
+
 // connectionManager implements ConnectionManager
 type connectionManager struct {
 	mu                  sync.RWMutex
@@ -69,6 +73,8 @@ type connectionManager struct {
 	poolAccessTimes     map[string]time.Time // workspaceID -> last access time
 	maxConnections      int
 	maxConnectionsPerDB int
+	inflightPools       int                // pools reserved but not yet inserted, counted against capacity
+	createGroup         singleflight.Group // coalesces concurrent pool creation per workspace
 }
 
 var (
@@ -141,122 +147,129 @@ func (cm *connectionManager) GetSystemConnection() *sql.DB {
 	return cm.systemDB
 }
 
-// GetWorkspaceConnection returns a connection pool for a workspace database
+// GetWorkspaceConnection returns a connection pool for a workspace database.
+//
+// The returned *sql.DB is a long-lived, self-healing connection pool: it
+// validates connections and transparently retries on driver.ErrBadConn. We
+// therefore do NOT ping it on every call. A per-call ping added a full
+// round-trip to every query and, worse, a transient blip (or a ping merely slow
+// under broadcast WAL pressure) used to evict and Close an otherwise-healthy
+// pool out from under every goroutine still holding it, surfacing as spurious
+// "failed to get workspace connection" errors that vanish on retry.
 func (cm *connectionManager) GetWorkspaceConnection(ctx context.Context, workspaceID string) (*sql.DB, error) {
-	// Check if context is already cancelled before doing any work
-	select {
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	default:
+	if err := ctx.Err(); err != nil {
+		return nil, err
 	}
 
-	// Check if we already have a connection pool for this workspace
+	// Fast path: return the cached pool directly. Note: a pool whose workspace
+	// database was dropped out-of-band (e.g. by another instance in a
+	// multi-instance deployment) will linger here and error on use until
+	// CloseWorkspaceConnection is called — the single-instance self-hosted target
+	// deletes the pool on the same instance, so this is not reachable there.
 	cm.mu.RLock()
 	pool, ok := cm.workspacePools[workspaceID]
 	cm.mu.RUnlock()
-
 	if ok {
-		// Health-check the pool with a short, isolated context. Using the
-		// caller's ctx here is unsafe: a caller context that expires while
-		// Ping is in flight causes Ping to return ctx.Err(), which would
-		// falsely evict and close an otherwise-healthy pool — invalidating
-		// every other goroutine still holding the pool reference.
-		pingCtx, cancel := context.WithTimeout(context.Background(), pingHealthCheckTimeout)
-		pingErr := pool.PingContext(pingCtx)
-		cancel()
-
-		if pingErr == nil {
-			// Double-check it's still in the map (not closed by another goroutine)
-			cm.mu.RLock()
-			stillExists := cm.workspacePools[workspaceID] == pool
-			cm.mu.RUnlock()
-
-			if stillExists {
-				// Respect the caller's deadline before returning the pool.
-				if err := ctx.Err(); err != nil {
-					return nil, err
-				}
-				// Update access time for LRU tracking
-				cm.mu.Lock()
-				cm.poolAccessTimes[workspaceID] = time.Now()
-				cm.mu.Unlock()
-				return pool, nil
-			}
-		}
-
-		// Pool is stale or was closed, try to clean it up safely
 		cm.mu.Lock()
-		// Only delete if it's still the same pool instance
-		if cm.workspacePools[workspaceID] == pool {
-			delete(cm.workspacePools, workspaceID)
-			delete(cm.poolAccessTimes, workspaceID)
-			_ = pool.Close()
-		}
-		cm.mu.Unlock()
-	}
-
-	// Check context again before expensive pool creation
-	if ctx.Err() != nil {
-		return nil, ctx.Err()
-	}
-
-	// Need to create a new pool
-	cm.mu.Lock()
-
-	// Double-check after acquiring write lock (another goroutine may have created it)
-	if pool, ok := cm.workspacePools[workspaceID]; ok {
 		cm.poolAccessTimes[workspaceID] = time.Now()
 		cm.mu.Unlock()
 		return pool, nil
 	}
 
-	// Check if we have capacity for a new database connection pool
-	if !cm.hasCapacityForNewPool() {
-		// Release lock before calling closeLRUIdlePools (it acquires its own locks)
-		cm.mu.Unlock()
-
-		// Try to close least recently used idle pools
-		if cm.closeLRUIdlePools(1) > 0 {
-			// Successfully closed a pool, re-acquire lock and retry
-			cm.mu.Lock()
-			if !cm.hasCapacityForNewPool() {
-				cm.mu.Unlock()
-				return nil, &ConnectionLimitError{
-					MaxConnections:     cm.maxConnections,
-					CurrentConnections: cm.getTotalConnectionCount(),
-					WorkspaceID:        workspaceID,
-				}
-			}
-			// Lock still held, continue to pool creation
-		} else {
-			// Cannot close any pools - all are in use
-			return nil, &ConnectionLimitError{
-				MaxConnections:     cm.maxConnections,
-				CurrentConnections: cm.getTotalConnectionCount(),
-				WorkspaceID:        workspaceID,
-			}
+	// Slow path: create the pool. singleflight coalesces concurrent creators for
+	// the SAME workspace into a single creation, and — crucially — no global
+	// lock is held across the network I/O of pool creation, so creating one
+	// workspace's pool never blocks access to a different workspace.
+	v, err, _ := cm.createGroup.Do(workspaceID, func() (any, error) {
+		// Another caller may have finished creating it while we waited.
+		cm.mu.RLock()
+		existing, ok := cm.workspacePools[workspaceID]
+		cm.mu.RUnlock()
+		if ok {
+			return existing, nil
 		}
-	}
-	// Lock still held at this point
 
-	// Create new workspace connection pool
-	pool, err := cm.createWorkspacePool(ctx, workspaceID)
-	if err != nil {
+		// Reserve capacity (fast, in-memory; may evict LRU idle pools).
+		if err := cm.reserveCapacityForNewPool(workspaceID); err != nil {
+			return nil, err
+		}
+		defer cm.releasePoolReservation()
+
+		// Detach creation from the (arbitrary) first coalesced caller's context:
+		// singleflight serves every waiter from this one creation, so one
+		// caller's cancellation must not fail the others. A bounded timeout keeps
+		// a hung connect from wedging all waiters.
+		createCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), workspacePoolCreateTimeout)
+		defer cancel()
+
+		// Network I/O happens WITHOUT cm.mu held.
+		newPool, err := cm.createWorkspacePool(createCtx, workspaceID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create workspace pool: %w", err)
+		}
+
+		cm.mu.Lock()
+		cm.workspacePools[workspaceID] = newPool
+		cm.poolAccessTimes[workspaceID] = time.Now()
 		cm.mu.Unlock()
-		return nil, fmt.Errorf("failed to create workspace pool: %w", err)
+		return newPool, nil
+	})
+	if err != nil {
+		return nil, err
 	}
-
-	// Store in map with current access time
-	cm.workspacePools[workspaceID] = pool
-	cm.poolAccessTimes[workspaceID] = time.Now()
-	cm.mu.Unlock()
-
-	return pool, nil
+	return v.(*sql.DB), nil
 }
 
-// createWorkspacePool creates a new connection pool for a workspace database
+// reserveCapacityForNewPool verifies there is room for one more workspace pool
+// and, on success, records an in-flight reservation so that concurrent creations
+// of *distinct* workspaces cannot collectively overshoot maxConnections. The
+// caller must pair a successful reservation with releasePoolReservation. It
+// briefly takes cm.mu but never holds it across network I/O.
+func (cm *connectionManager) reserveCapacityForNewPool(workspaceID string) error {
+	cm.mu.Lock()
+	if cm.hasCapacityForNewPool() {
+		cm.inflightPools++
+		cm.mu.Unlock()
+		return nil
+	}
+	cm.mu.Unlock()
+
+	// Try to free capacity by closing least-recently-used idle pools.
+	cm.closeLRUIdlePools(1)
+
+	cm.mu.Lock()
+	defer cm.mu.Unlock()
+	if cm.hasCapacityForNewPool() {
+		cm.inflightPools++
+		return nil
+	}
+	return &ConnectionLimitError{
+		MaxConnections:     cm.maxConnections,
+		CurrentConnections: cm.getTotalConnectionCount(),
+		WorkspaceID:        workspaceID,
+	}
+}
+
+// releasePoolReservation releases an in-flight reservation taken by
+// reserveCapacityForNewPool, once the pool is either inserted into the map (and
+// thus counted via its own Stats) or creation has failed.
+func (cm *connectionManager) releasePoolReservation() {
+	cm.mu.Lock()
+	if cm.inflightPools > 0 {
+		cm.inflightPools--
+	}
+	cm.mu.Unlock()
+}
+
+// createWorkspacePool creates a new connection pool for a workspace database.
+//
+// The workspace database is normally provisioned up-front at workspace creation
+// (see workspaceRepository.CreateDatabase). We therefore connect directly and
+// only fall back to EnsureWorkspaceDatabaseExists — which connects to the
+// `postgres` admin database — when the workspace DB is genuinely missing. Doing
+// that admin-DB round-trip on every pool creation caused a storm of admin
+// connections whenever pools were recreated.
 func (cm *connectionManager) createWorkspacePool(ctx context.Context, workspaceID string) (*sql.DB, error) {
-	// Build workspace DSN
 	safeID := strings.ReplaceAll(workspaceID, "-", "_")
 	dbName := fmt.Sprintf("%s_ws_%s", cm.config.Database.Prefix, safeID)
 
@@ -269,34 +282,24 @@ func (cm *connectionManager) createWorkspacePool(ctx context.Context, workspaceI
 		cm.config.Database.SSLMode,
 	)
 
-	// Ensure database exists
-	if err := database.EnsureWorkspaceDatabaseExists(&cm.config.Database, workspaceID); err != nil {
-		return nil, err
-	}
-
-	// Open connection pool
-	db, err := sql.Open("postgres", dsn)
+	db, err := cm.openAndVerifyPool(ctx, dsn, workspaceID)
 	if err != nil {
-		// Don't include dsn in error (contains password)
-		return nil, fmt.Errorf("failed to open connection to workspace %s: %w", workspaceID, err)
+		// If the workspace database does not exist yet (e.g. first touch by a
+		// fresh process), create it once and retry — instead of paying an
+		// admin-DB round-trip on every pool creation.
+		if isDatabaseDoesNotExistErr(err) {
+			if ensureErr := database.EnsureWorkspaceDatabaseExists(&cm.config.Database, workspaceID); ensureErr != nil {
+				return nil, ensureErr
+			}
+			db, err = cm.openAndVerifyPool(ctx, dsn, workspaceID)
+		}
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	// Test connection with context
-	if err := db.PingContext(ctx); err != nil {
-		_ = db.Close()
-		// Don't include dsn in error (contains password)
-		return nil, fmt.Errorf("failed to connect to workspace %s database: %w", workspaceID, err)
-	}
-
-	// Verify pool actually works with a test query
-	var result int
-	if err := db.QueryRowContext(ctx, "SELECT 1").Scan(&result); err != nil {
-		_ = db.Close()
-		return nil, fmt.Errorf("failed to verify database access for workspace %s: %w", workspaceID, err)
-	}
-
-	// Configure small pool for this workspace database
-	// Each workspace DB gets only a few connections since queries are short-lived
+	// Configure small pool for this workspace database.
+	// Each workspace DB gets only a few connections since queries are short-lived.
 	db.SetMaxOpenConns(cm.maxConnectionsPerDB)
 	db.SetMaxIdleConns(1) // Keep 1 idle connection warm
 	db.SetConnMaxLifetime(cm.config.Database.ConnectionMaxLifetime)
@@ -305,13 +308,49 @@ func (cm *connectionManager) createWorkspacePool(ctx context.Context, workspaceI
 	return db, nil
 }
 
-// hasCapacityForNewPool checks if we have capacity for a new connection pool
-// Must be called with write lock held
+// openAndVerifyPool opens a connection pool for the given DSN and verifies it is
+// usable with a ping and a trivial query. Errors never include the DSN (which
+// contains the password).
+func (cm *connectionManager) openAndVerifyPool(ctx context.Context, dsn, workspaceID string) (*sql.DB, error) {
+	db, err := sql.Open("postgres", dsn)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open connection to workspace %s: %w", workspaceID, err)
+	}
+
+	if err := db.PingContext(ctx); err != nil {
+		_ = db.Close()
+		return nil, fmt.Errorf("failed to connect to workspace %s database: %w", workspaceID, err)
+	}
+
+	var result int
+	if err := db.QueryRowContext(ctx, "SELECT 1").Scan(&result); err != nil {
+		_ = db.Close()
+		return nil, fmt.Errorf("failed to verify database access for workspace %s: %w", workspaceID, err)
+	}
+
+	return db, nil
+}
+
+// isDatabaseDoesNotExistErr reports whether err is PostgreSQL's
+// invalid_catalog_name (3D000), i.e. the target database does not exist.
+func isDatabaseDoesNotExistErr(err error) bool {
+	var pqErr *pq.Error
+	if errors.As(err, &pqErr) {
+		return pqErr.Code == "3D000"
+	}
+	return false
+}
+
+// hasCapacityForNewPool checks if we have capacity for a new connection pool.
+// It reserves maxConnectionsPerDB for the pool being created plus for every
+// other pool currently in flight (reserved but not yet inserted), so concurrent
+// creations of distinct workspaces cannot collectively exceed maxConnections.
+// Must be called with write lock held.
 func (cm *connectionManager) hasCapacityForNewPool() bool {
 	currentTotal := cm.getTotalConnectionCount()
 
-	// Calculate projected total if we add a new pool
-	projectedTotal := currentTotal + cm.maxConnectionsPerDB
+	// Calculate projected total if we add this pool plus any already in flight.
+	projectedTotal := currentTotal + (cm.inflightPools+1)*cm.maxConnectionsPerDB
 
 	return projectedTotal <= cm.maxConnections
 }
@@ -520,8 +559,9 @@ func (e *ConnectionLimitError) Error() string {
 	)
 }
 
-// IsConnectionLimitError checks if an error is a connection limit error
+// IsConnectionLimitError checks if an error is a connection limit error,
+// including when it has been wrapped with fmt.Errorf("%w").
 func IsConnectionLimitError(err error) bool {
-	_, ok := err.(*ConnectionLimitError)
-	return ok
+	var e *ConnectionLimitError
+	return errors.As(err, &e)
 }

@@ -1459,3 +1459,116 @@ func TestQueueMessageSender_BuildQueueEntry(t *testing.T) {
 			"ReplyTo from template should be preserved in queue entry")
 	})
 }
+
+func TestQueueMessageSender_ABVariantsPerRecipientUTMContent(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockQueueRepo := mocks.NewMockEmailQueueRepository(ctrl)
+	mockBroadcastRepo := mocks.NewMockBroadcastRepository(ctrl)
+	mockMessageHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
+	mockTemplateRepo := mocks.NewMockTemplateRepository(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+
+	sender := NewQueueMessageSender(
+		mockQueueRepo,
+		mockBroadcastRepo,
+		mockMessageHistoryRepo,
+		mockTemplateRepo,
+		nil,
+		mockLogger,
+		nil,
+		"https://api.example.com",
+	)
+	qms := sender.(*queueMessageSender)
+
+	emailSender := domain.NewEmailSender("sender@example.com", "Sender")
+	emailProvider := &domain.EmailProvider{
+		Kind:    domain.EmailProviderKindSMTP,
+		Senders: []domain.EmailSender{emailSender},
+	}
+
+	endpoint := "https://api.test.com"
+	broadcast := &domain.Broadcast{
+		ID:          "broadcast-1",
+		WorkspaceID: "workspace-1",
+		Status:      domain.BroadcastStatusTesting,
+		UTMParameters: &domain.UTMParameters{
+			Source:   "newsletter",
+			Medium:   "email",
+			Campaign: "spring",
+			Content:  "", // empty: must default to each recipient's variant
+			Term:     "promo",
+		},
+	}
+	originalUTM := *broadcast.UTMParameters
+
+	templateA := createTestTemplateWithLink("template-a", emailSender.ID)
+	templateB := createTestTemplateWithLink("template-b", emailSender.ID)
+
+	entryA, err := qms.buildQueueEntry(context.Background(), "workspace-1", "integration-1",
+		endpoint, true, broadcast, "msg-1", "recipient1@example.com", templateA,
+		map[string]interface{}{}, emailProvider, "", "")
+	require.NoError(t, err)
+	entryB, err := qms.buildQueueEntry(context.Background(), "workspace-1", "integration-1",
+		endpoint, true, broadcast, "msg-2", "recipient2@example.com", templateB,
+		map[string]interface{}{}, emailProvider, "", "")
+	require.NoError(t, err)
+
+	// Each recipient's queued HTML must carry their own variant ID in the
+	// rewritten tracking links, and utm_term must propagate.
+	utmA := extractTrackedLinkUTMParams(t, entryA.Payload.HTMLContent, endpoint)
+	assert.Equal(t, "template-a", utmA.Get("utm_content"))
+	assert.Equal(t, "promo", utmA.Get("utm_term"))
+	utmB := extractTrackedLinkUTMParams(t, entryB.Payload.HTMLContent, endpoint)
+	assert.Equal(t, "template-b", utmB.Get("utm_content"))
+	assert.Equal(t, "promo", utmB.Get("utm_term"))
+
+	// The shared broadcast must never be mutated by per-recipient defaulting.
+	assert.Equal(t, originalUTM, *broadcast.UTMParameters,
+		"shared broadcast UTM parameters must not be mutated")
+}
+
+func TestQueueMessageSender_BuildQueueEntry_NilUTMParameters(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockQueueRepo := mocks.NewMockEmailQueueRepository(ctrl)
+	mockBroadcastRepo := mocks.NewMockBroadcastRepository(ctrl)
+	mockMessageHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
+	mockTemplateRepo := mocks.NewMockTemplateRepository(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+
+	sender := NewQueueMessageSender(
+		mockQueueRepo,
+		mockBroadcastRepo,
+		mockMessageHistoryRepo,
+		mockTemplateRepo,
+		nil,
+		mockLogger,
+		nil,
+		"https://api.example.com",
+	)
+	qms := sender.(*queueMessageSender)
+
+	emailSender := domain.NewEmailSender("sender@example.com", "Sender")
+	emailProvider := &domain.EmailProvider{
+		Kind:    domain.EmailProviderKindSMTP,
+		Senders: []domain.EmailSender{emailSender},
+	}
+
+	broadcast := &domain.Broadcast{
+		ID:          "broadcast-1",
+		WorkspaceID: "workspace-1",
+		// UTMParameters deliberately nil: stored broadcasts may carry SQL NULL
+	}
+
+	template := createTestTemplateWithLink("template-1", emailSender.ID)
+
+	entry, err := qms.buildQueueEntry(context.Background(), "workspace-1", "integration-1",
+		"https://api.test.com", true, broadcast, "msg-1", "recipient@example.com", template,
+		map[string]interface{}{}, emailProvider, "", "")
+	require.NoError(t, err)
+	require.NotNil(t, entry)
+	assert.Nil(t, broadcast.UTMParameters, "nil UTM parameters must stay nil on the shared broadcast")
+}

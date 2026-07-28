@@ -31,6 +31,18 @@ var modelPricing = map[string]struct {
 	"gemini-3.1-pro-preview": {2.0, 12.0},
 }
 
+// defaultMaxTokens is the fallback output budget when a request does not set one.
+// It is sized to leave headroom for reasoning models, whose hidden thinking shares
+// this budget with the visible/tool output; the previous 2048 was easily exhausted
+// by reasoning alone, truncating the tool call.
+const defaultMaxTokens = 8192
+
+// Truncation (the model hit its token cap before finishing — common with reasoning
+// models whose hidden thinking eats the budget) is reported as a non-terminal
+// `truncated` flag on the final "done" event, NOT as a Type:"error" event: an error
+// is terminal and the frontend replaces the streamed content with it, which would
+// wipe a partial answer. The user-facing wording lives in the console (i18n).
+
 // calculateCost calculates the cost in USD for a given model and token counts
 func calculateCost(model string, inputTokens, outputTokens int64) (inputCost, outputCost, totalCost float64) {
 	pricing, ok := modelPricing[model]
@@ -176,7 +188,7 @@ func (s *LLMService) streamChatAnthropic(
 	// Set default max tokens
 	maxTokens := int64(req.MaxTokens)
 	if maxTokens == 0 {
-		maxTokens = 2048
+		maxTokens = defaultMaxTokens
 	}
 
 	// Build streaming request parameters
@@ -252,6 +264,13 @@ func (s *LLMService) streamChatAnthropic(
 				}); err != nil {
 					return fmt.Errorf("failed to send event: %w", err)
 				}
+			case anthropic.ThinkingDelta:
+				if err := onEvent(domain.LLMChatEvent{
+					Type:    "thinking",
+					Content: deltaVariant.Thinking,
+				}); err != nil {
+					return fmt.Errorf("failed to send thinking event: %w", err)
+				}
 			}
 		}
 	}
@@ -260,6 +279,10 @@ func (s *LLMService) streamChatAnthropic(
 		s.logger.WithField("error", err.Error()).Error("Stream error from Anthropic")
 		return fmt.Errorf("stream error: %w", err)
 	}
+
+	// Truncation: extended thinking can exhaust the budget before the response
+	// completes. Report it as a non-destructive flag on the "done" event.
+	truncated := message.StopReason == anthropic.StopReasonMaxTokens
 
 	// Process accumulated tool use blocks - handle server-side vs client-side
 	var serverToolCalls []struct {
@@ -410,6 +433,13 @@ func (s *LLMService) streamChatAnthropic(
 					}); err != nil {
 						return fmt.Errorf("failed to send event: %w", err)
 					}
+				case anthropic.ThinkingDelta:
+					if err := onEvent(domain.LLMChatEvent{
+						Type:    "thinking",
+						Content: deltaVariant.Thinking,
+					}); err != nil {
+						return fmt.Errorf("failed to send thinking event: %w", err)
+					}
 				}
 			}
 		}
@@ -417,6 +447,11 @@ func (s *LLMService) streamChatAnthropic(
 		if err := stream.Err(); err != nil {
 			s.logger.WithField("error", err.Error()).Error("Stream error from Anthropic")
 			return fmt.Errorf("stream error: %w", err)
+		}
+
+		// Surface truncation in the agentic loop as well.
+		if message.StopReason == anthropic.StopReasonMaxTokens {
+			truncated = true
 		}
 
 		// Accumulate token counts
@@ -463,6 +498,7 @@ func (s *LLMService) streamChatAnthropic(
 	// Send done event with usage stats
 	return onEvent(domain.LLMChatEvent{
 		Type:         "done",
+		Truncated:    truncated,
 		InputTokens:  &totalInputTokens,
 		OutputTokens: &totalOutputTokens,
 		InputCost:    &inputCost,

@@ -54,6 +54,22 @@ func NewTransactionalNotificationService(
 	}
 }
 
+// effectiveTracking resolves the per-notification tracking mode against the
+// workspace kill-switch: only an explicit opt-out suppresses tracking, and no
+// mode can force tracking on when the workspace flag is off.
+func effectiveTracking(workspaceEnabled bool, mode string) bool {
+	return workspaceEnabled && mode != notifuse_mjml.TrackingModeDisabled
+}
+
+// canonicalTrackingMode normalizes the tri-state for storage: an explicit
+// "inherit" and the absent value are the same state, stored as "".
+func canonicalTrackingMode(mode string) string {
+	if mode == notifuse_mjml.TrackingModeInherit {
+		return ""
+	}
+	return mode
+}
+
 // CreateNotification creates a new transactional notification
 func (s *TransactionalNotificationService) CreateNotification(
 	ctx context.Context,
@@ -90,6 +106,8 @@ func (s *TransactionalNotificationService) CreateNotification(
 		"id":        params.ID,
 		"name":      params.Name,
 	}).Debug("Creating new transactional notification")
+
+	params.TrackingSettings.TrackingMode = canonicalTrackingMode(params.TrackingSettings.TrackingMode)
 
 	// Create the notification object
 	notification := &domain.TransactionalNotification{
@@ -196,8 +214,6 @@ func (s *TransactionalNotificationService) UpdateNotification(
 		if params.Description != "" {
 			notification.Description = params.Description
 		}
-		notification.TrackingSettings = params.TrackingSettings
-		notification.Metadata = params.Metadata
 	} else {
 		// For non-integration-managed notifications, allow all updates
 		if params.Name != "" {
@@ -225,9 +241,19 @@ func (s *TransactionalNotificationService) UpdateNotification(
 			}
 		}
 		notification.Channels = params.Channels
-		notification.TrackingSettings = params.TrackingSettings
-		notification.Metadata = params.Metadata
 	}
+
+	// tracking_mode is tri-state; an absent field (console UTM-only edits, API
+	// clients that don't know it) must not wipe a stored opt-out, while an
+	// explicit "inherit" is the deliberate reset (stored canonically as "").
+	switch params.TrackingSettings.TrackingMode {
+	case "":
+		params.TrackingSettings.TrackingMode = notification.TrackingSettings.TrackingMode
+	case notifuse_mjml.TrackingModeInherit:
+		params.TrackingSettings.TrackingMode = ""
+	}
+	notification.TrackingSettings = params.TrackingSettings
+	notification.Metadata = params.Metadata
 
 	// Save the updated notification
 	if err := s.transactionalRepo.Update(ctx, workspace, notification); err != nil {
@@ -578,7 +604,7 @@ func (s *TransactionalNotificationService) SendNotification(
 		)
 
 		// Prepare message data with contact and custom data
-		notification.TrackingSettings.EnableTracking = workspace.Settings.EmailTrackingEnabled
+		notification.TrackingSettings.EnableTracking = effectiveTracking(workspace.Settings.EmailTrackingEnabled, notification.TrackingSettings.TrackingMode)
 
 		// Resolve the tracking/base endpoint: custom endpoint if set, else the API endpoint.
 		notification.TrackingSettings.Endpoint = workspace.Settings.ResolveEndpoint(s.apiEndpoint)
@@ -640,7 +666,7 @@ func (s *TransactionalNotificationService) SendNotification(
 				trace.StringAttribute("integration_id", integrationID),
 			)
 
-			notification.TrackingSettings.EnableTracking = workspace.Settings.EmailTrackingEnabled
+			notification.TrackingSettings.EnableTracking = effectiveTracking(workspace.Settings.EmailTrackingEnabled, notification.TrackingSettings.TrackingMode)
 
 			notificationID := params.ID
 			request := domain.SendEmailRequest{
@@ -770,7 +796,7 @@ func (s *TransactionalNotificationService) TestTemplate(ctx context.Context, wor
 	endpoint := workspace.Settings.ResolveEndpoint(s.apiEndpoint)
 
 	trackingSettings := notifuse_mjml.TrackingSettings{
-		EnableTracking: true,
+		EnableTracking: workspace.Settings.EmailTrackingEnabled,
 		Endpoint:       endpoint,
 		WorkspaceID:    workspaceID,
 		MessageID:      messageID,

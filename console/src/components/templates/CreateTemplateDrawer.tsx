@@ -18,6 +18,8 @@ import {
 } from 'antd'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { templatesApi, type CreateTemplateRequest, type UpdateTemplateRequest } from '../../services/api/template'
+import { ApiError } from '../../services/api/client'
+import { useTemplateConflictModal } from './useTemplateConflictModal'
 import { templateBlocksApi } from '../../services/api/template_blocks'
 import type { Template, Workspace } from '../../services/api/types'
 import EmailBuilder from '../email_builder/EmailBuilder'
@@ -173,6 +175,15 @@ export function CreateTemplateDrawer({
   const [isOpen, setIsOpen] = useState(false)
   const [form] = Form.useForm()
   const queryClient = useQueryClient()
+  const { conflictModal, showConflict } = useTemplateConflictModal()
+  // The template revision the current editor content is based on. Sent as
+  // base_version on save so the server can reject a stale-base overwrite (409).
+  const baseVersionRef = useRef<number | undefined>(template?.version)
+  // Whether the user has edited since the drawer opened. Guards the freshen-on-open
+  // reseed so a background refetch never silently discards in-progress edits.
+  const dirtyRef = useRef(false)
+  // The last submitted form values, so the conflict dialog can re-submit ("overwrite").
+  const lastSubmittedValuesRef = useRef<Record<string, unknown> | null>(null)
   const [tab, setTab] = useState<string>('settings')
   const [loading, setLoading] = useState(false)
   const { message } = App.useApp()
@@ -230,6 +241,11 @@ export function CreateTemplateDrawer({
     return createDefaultBlocks()
   })
 
+  // Always-current snapshot of the tree, so async callers (the AI assistant reading
+  // the tree after its edits) never see a stale value captured in an old closure.
+  const visualEditorTreeRef = useRef(visualEditorTree)
+  visualEditorTreeRef.current = visualEditorTree
+
   // Add Form.useWatch for the email fields - must be called before conditional returns
   const senderID = Form.useWatch(['email', 'sender_id'], form)
   const emailSubject = Form.useWatch(['email', 'subject'], form)
@@ -260,7 +276,8 @@ export function CreateTemplateDrawer({
           ...(values as Omit<UpdateTemplateRequest, 'channel' | 'workspace_id' | 'id'>),
           channel: 'email',
           workspace_id: workspace.id,
-          id: template.id
+          id: template.id,
+          base_version: baseVersionRef.current
         })
       } else {
         return templatesApi.create({
@@ -270,14 +287,43 @@ export function CreateTemplateDrawer({
         })
       }
     },
-    onSuccess: () => {
+    onSuccess: (response) => {
       codeEditorRef.current?.clearDraft()
+      // Advance the base to the just-saved revision so a subsequent save isn't a false conflict.
+      baseVersionRef.current = response.template.version
+      dirtyRef.current = false
       message.success(template ? t`Template updated successfully` : t`Template created successfully`)
       handleClose()
       queryClient.invalidateQueries({ queryKey: ['templates', workspace.id] })
+      if (template) {
+        queryClient.invalidateQueries({ queryKey: ['template', workspace.id, template.id] })
+      }
       setLoading(false)
     },
     onError: (error) => {
+      // 409: the template advanced past our base while editing. Let the user decide
+      // between keeping their work (overwrite) or loading the latest (discard theirs).
+      if (error instanceof ApiError && error.status === 409) {
+        const latest = (error.data as { latest_version?: number } | undefined)?.latest_version
+        showConflict({
+          latestVersion: latest,
+          baseVersion: baseVersionRef.current,
+          onOverwrite: () => {
+            // Adopt the server's latest as the new base and re-submit. Fall back to 0
+            // (skip the check, force the write) when the server didn't report a version,
+            // so "overwrite" can never loop on a conflict it cannot resolve.
+            baseVersionRef.current = latest ?? 0
+            if (lastSubmittedValuesRef.current) {
+              createTemplateMutation.mutate(lastSubmittedValuesRef.current)
+            }
+          },
+          onReload: () => {
+            void freshenFromServer(true)
+          }
+        })
+        setLoading(false)
+        return
+      }
       message.error(template ? t`Failed to update template: ${error.message}` : t`Failed to create template: ${error.message}`)
       setLoading(false)
     }
@@ -326,6 +372,70 @@ export function CreateTemplateDrawer({
     setTranslationsState(loaded)
   }
 
+  // Reseed every editor surface from a freshly-fetched template revision.
+  const seedEditorFromLatest = (latest: Template) => {
+    setEditorMode(latest.email?.editor_mode === 'code' ? 'code' : 'visual')
+    if (latest.email?.editor_mode === 'code' && latest.email?.mjml_source) {
+      setMjmlSource(latest.email.mjml_source)
+    }
+    form.setFieldsValue({
+      name: latest.name,
+      id: latest.id || kebabCase(latest.name),
+      category: latest.category || undefined,
+      email: {
+        sender_id: latest.email?.sender_id || undefined,
+        reply_to: latest.email?.reply_to || undefined,
+        subject: latest.email?.subject || '',
+        subject_preview: latest.email?.subject_preview || '',
+        content: latest.email?.visual_editor_tree || '',
+        visual_editor_tree: latest.email?.visual_editor_tree || createDefaultBlocks()
+      },
+      test_data: latest.test_data || defaultTestData
+    })
+    loadTranslations(latest.translations)
+    if (latest.email?.visual_editor_tree) {
+      if (typeof latest.email.visual_editor_tree === 'object') {
+        setVisualEditorTree(latest.email.visual_editor_tree as unknown as EmailBlock)
+      } else {
+        try {
+          setVisualEditorTree(JSON.parse(latest.email.visual_editor_tree) as EmailBlock)
+        } catch (error) {
+          console.error('Error parsing visual editor tree:', error)
+        }
+      }
+    }
+  }
+
+  // Freshen the editor against the latest server revision. The list snapshot the drawer
+  // opens from can be stale (refetchOnWindowFocus is off), so we re-read on open to
+  // minimize conflicts. Reseeds only when safe (not dirty) or when forced by the user.
+  const freshenFromServer = async (force = false) => {
+    if (!template) return
+    try {
+      const { template: latest } = await templatesApi.get({
+        workspace_id: workspace.id,
+        id: template.id,
+        version: 0
+      })
+      if (latest.version === baseVersionRef.current) return
+      if (force || !dirtyRef.current) {
+        seedEditorFromLatest(latest)
+        baseVersionRef.current = latest.version
+        dirtyRef.current = false
+        if (!force) {
+          message.info(t`Loaded the latest version of this template (v${latest.version}).`)
+        }
+      }
+    } catch {
+      // A forced reload (from the conflict dialog) is user-initiated, so surface the
+      // failure. A background freshen-on-open stays silent — the current content is kept
+      // and the server-side 409 check still guards the save.
+      if (force) {
+        message.error(t`Could not load the latest version. Please try again.`)
+      }
+    }
+  }
+
   const showDrawer = () => {
     if (template) {
       // Set editor mode from existing template
@@ -348,6 +458,11 @@ export function CreateTemplateDrawer({
         test_data: template.test_data || defaultTestData
       })
       loadTranslations(template.translations)
+      // Track the revision this content is based on, then freshen against the server
+      // so a stale list snapshot doesn't lead to a silent overwrite of newer edits.
+      baseVersionRef.current = template.version
+      dirtyRef.current = false
+      void freshenFromServer()
     } else if (fromTemplate) {
       // Clone template functionality - lock to source template's editor mode
       setEditorMode(fromTemplate.email?.editor_mode === 'code' ? 'code' : 'visual')
@@ -408,6 +523,7 @@ export function CreateTemplateDrawer({
   }
 
   const handleImport = (tree: EmailBlock) => {
+    dirtyRef.current = true
     setVisualEditorTree(tree)
   }
 
@@ -552,6 +668,9 @@ export function CreateTemplateDrawer({
           <Form
             form={form}
             layout="vertical"
+            onValuesChange={() => {
+              dirtyRef.current = true
+            }}
             onFinish={(values) => {
               setLoading(true)
               if (editorMode === 'code') {
@@ -598,6 +717,8 @@ export function CreateTemplateDrawer({
                 values.translations = translations
               }
 
+              // Remember the payload so the conflict dialog can re-submit it verbatim.
+              lastSubmittedValuesRef.current = values
               createTemplateMutation.mutate(values)
             }}
             onFinishFailed={(info) => {
@@ -865,7 +986,10 @@ export function CreateTemplateDrawer({
                         <MjmlCodeEditor
                           ref={codeEditorRef}
                           mjmlSource={mjmlSource}
-                          onMjmlSourceChange={setMjmlSource}
+                          onMjmlSourceChange={(source) => {
+                            dirtyRef.current = true
+                            setMjmlSource(source)
+                          }}
                           onCompile={async (
                             mjml: string,
                             codeTestData?: Record<string, unknown>
@@ -918,7 +1042,12 @@ export function CreateTemplateDrawer({
                     return (
                       <EmailBuilder
                         tree={visualEditorTree}
-                        onTreeChange={setVisualEditorTree}
+                        onTreeChange={(tree) => {
+                          // Visual edits go through here; mark dirty so a freshen-on-open
+                          // refetch never silently reseeds over in-progress work.
+                          dirtyRef.current = true
+                          setVisualEditorTree(tree)
+                        }}
                         onCompile={async (
                           tree: EmailBlock,
                           builderTestData?: Record<string, unknown>
@@ -1013,7 +1142,10 @@ export function CreateTemplateDrawer({
                     workspace={workspace}
                     editorMode={editorMode}
                     translationsState={translationsState}
-                    onTranslationsStateChange={setTranslationsState}
+                    onTranslationsStateChange={(s) => {
+                      dirtyRef.current = true
+                      setTranslationsState(s)
+                    }}
                     defaultSubject={emailSubject}
                     defaultSubjectPreview={emailPreview}
                     defaultVisualEditorTree={visualEditorTree}
@@ -1155,10 +1287,40 @@ export function CreateTemplateDrawer({
               currentPreviewText={emailPreview}
               onUpdateSubject={(subject) => form.setFieldValue(['email', 'subject'], subject)}
               onUpdatePreviewText={(preview) => form.setFieldValue(['email', 'subject_preview'], preview)}
+              validateOnComplete={async () => {
+                // Compile the freshly-edited tree; surface MJML errors so a broken
+                // generation is never presented as success.
+                try {
+                  const response = await templatesApi.compile({
+                    workspace_id: workspace.id,
+                    message_id: 'preview',
+                    visual_editor_tree: visualEditorTreeRef.current,
+                    test_data: {},
+                    channel: 'email',
+                    tracking_settings: {
+                      enable_tracking: workspace.settings?.email_tracking_enabled || false,
+                      endpoint: workspace.settings?.custom_endpoint_url || undefined,
+                      workspace_id: workspace.id,
+                      message_id: 'preview'
+                    }
+                  })
+                  if (response.error) {
+                    const details = (response.error.details || [])
+                      .map((d) => (d.line ? `• line ${d.line}: ${d.message}` : `• ${d.message}`))
+                      .join('\n')
+                    const errorText = [response.error.message, details].filter(Boolean).join('\n')
+                    return { ok: false, errorText: errorText || 'MJML compilation failed' }
+                  }
+                  return { ok: true }
+                } catch (error) {
+                  return { ok: false, errorText: (error as Error).message || 'Compilation failed' }
+                }
+              }}
               callbacks={{
-                getEmailTree: () => visualEditorTree,
+                getEmailTree: () => visualEditorTreeRef.current,
                 setEmailTree: setVisualEditorTree,
                 onAddBlock: (parentId, blockType, position, content, attributes) => {
+                  dirtyRef.current = true
                   // Use functional updater to ensure we have the latest state
                   setVisualEditorTree(prevTree => {
                     // Create a new block with defaults
@@ -1188,6 +1350,7 @@ export function CreateTemplateDrawer({
                   })
                 },
                 onUpdateBlock: (blockId, updates) => {
+                  dirtyRef.current = true
                   // Use functional updater to ensure atomic updates
                   setVisualEditorTree(prevTree => {
                     const updatedTree = JSON.parse(JSON.stringify(prevTree)) as EmailBlock
@@ -1205,6 +1368,7 @@ export function CreateTemplateDrawer({
                   })
                 },
                 onDeleteBlock: (blockId) => {
+                  dirtyRef.current = true
                   setVisualEditorTree(prevTree => {
                     const updatedTree = EmailBlockClass.removeBlockFromTree(prevTree, blockId)
                     if (updatedTree) {
@@ -1218,6 +1382,7 @@ export function CreateTemplateDrawer({
                   })
                 },
                 onMoveBlock: (blockId, newParentId, position) => {
+                  dirtyRef.current = true
                   setVisualEditorTree(prevTree => {
                     const updatedTree = EmailBlockClass.moveBlockInTree(
                       prevTree,
@@ -1235,6 +1400,7 @@ export function CreateTemplateDrawer({
             />
         </Drawer>
       )}
+      {conflictModal}
     </>
   )
 }

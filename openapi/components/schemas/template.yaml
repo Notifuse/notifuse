@@ -364,6 +364,22 @@ TrackingSettings:
     enable_tracking:
       type: boolean
       description: Whether to enable click/open tracking
+    tracking_mode:
+      type: string
+      enum: [inherit, disabled]
+      description: |
+        Per-notification tri-state tracking preference. Absent or "inherit"
+        follows the workspace tracking flag (the workspace flag always acts
+        as a kill-switch and cannot be overridden). "disabled" suppresses all
+        rewriting for this notification — no click-tracking redirect, no open
+        pixel, and no UTM parameters — used for auth emails (e.g. Supabase
+        magic links) whose single-use URLs must never be modified. Update
+        semantics: an ABSENT tracking_mode field keeps the stored value (so
+        partial edits cannot wipe an opt-out; an empty string is treated as
+        absent); an explicit "inherit" resets the notification to follow the
+        workspace flag; an explicit "disabled" opts it out. Note that the
+        other tracking_settings fields (utm_*) are replaced wholesale on
+        update — only tracking_mode has keep-when-absent semantics.
     endpoint:
       type: string
       description: API endpoint for tracking redirects

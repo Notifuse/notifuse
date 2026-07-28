@@ -5,7 +5,20 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"sync"
 )
+
+// liquidEnginePool reuses SecureLiquidEngine instances across renders.
+// Creating an engine registers all standard tags on a fresh environment,
+// which is wasteful when rendering many blocks (e.g. during a broadcast).
+// A pool is used instead of a shared instance because liquid.Environment
+// caches strainer classes in an unsynchronized map during rendering, so a
+// single engine must not be used from multiple goroutines concurrently.
+var liquidEnginePool = sync.Pool{
+	New: func() interface{} {
+		return NewSecureLiquidEngine()
+	},
+}
 
 // ConvertJSONToMJML converts an EmailBlock JSON tree to MJML string
 func ConvertJSONToMJML(tree EmailBlock) string {
@@ -282,8 +295,8 @@ func processLiquidContent(content string, templateData map[string]interface{}, b
 	// Clean non-breaking spaces and other invisible characters from template variables
 	content = cleanLiquidTemplate(content)
 
-	// Create secure Liquid engine with timeout and size protections
-	engine := NewSecureLiquidEngine()
+	// Get a secure Liquid engine (timeout and size protections) from the pool
+	engine := liquidEnginePool.Get().(*SecureLiquidEngine)
 
 	// Use provided template data or initialize empty map if nil
 	var jsonData map[string]interface{}
@@ -296,26 +309,31 @@ func processLiquidContent(content string, templateData map[string]interface{}, b
 	// Render the content with Liquid (with security protections)
 	renderedContent, err := engine.RenderWithTimeout(content, jsonData)
 	if err != nil {
+		// Do not return the engine to the pool on error: on timeout the
+		// render goroutine is still running and still using the engine's
+		// environment, so repooling it would hand a busy engine to the next
+		// caller. Dropping the engine is cheap relative to that risk.
 		return content, fmt.Errorf("liquid rendering error in block (ID: %s): %w", blockID, err)
 	}
 
+	liquidEnginePool.Put(engine)
 	return renderedContent, nil
 }
+
+// liquidMarkupRegex finds Liquid template variables ({{ }}) and tags ({% %})
+var liquidMarkupRegex = regexp.MustCompile(`(\{\{[^}]*\}\}|\{%[^%]*%\})`)
 
 // cleanLiquidTemplate removes non-breaking spaces and other invisible characters from Liquid template variables
 func cleanLiquidTemplate(content string) string {
 	// Replace non-breaking spaces (\u00a0) with regular spaces within {{ }} and {% %} blocks
-	// This regex finds Liquid template variables and removes non-breaking spaces from them
-	liquidVarRegex := regexp.MustCompile(`(\{\{[^}]*\}\}|\{%[^%]*%\})`)
-
-	return liquidVarRegex.ReplaceAllStringFunc(content, func(match string) string {
+	return liquidMarkupRegex.ReplaceAllStringFunc(content, func(match string) string {
 		// Remove HTML entity non-breaking spaces that rich text editors (like Tiptap) commonly insert
 		cleaned := strings.ReplaceAll(match, "&nbsp;", " ")  // HTML named entity → regular space
 		cleaned = strings.ReplaceAll(cleaned, "&#160;", " ") // HTML numeric entity → regular space
 		cleaned = strings.ReplaceAll(cleaned, "&#xa0;", " ") // HTML hex entity → regular space
 		cleaned = strings.ReplaceAll(cleaned, "&#xA0;", " ") // HTML hex entity uppercase → regular space
 		// Remove Unicode non-breaking spaces and other invisible characters
-		cleaned = strings.ReplaceAll(cleaned, "\u00a0", "")  // Non-breaking space
+		cleaned = strings.ReplaceAll(cleaned, "\u00a0", "") // Non-breaking space
 		cleaned = strings.ReplaceAll(cleaned, "\u200b", "") // Zero-width space
 		cleaned = strings.ReplaceAll(cleaned, "\u2060", "") // Word joiner
 		cleaned = strings.ReplaceAll(cleaned, "\ufeff", "") // Byte order mark
@@ -544,11 +562,13 @@ func extractLiquidVariableName(value string) string {
 	return ""
 }
 
+// upperCaseRegex finds capital letters for camelCase to kebab-case conversion
+var upperCaseRegex = regexp.MustCompile("([A-Z])")
+
 // camelToKebab converts camelCase to kebab-case
 func camelToKebab(str string) string {
-	// Use regex to find capital letters and replace them with hyphen + lowercase
-	re := regexp.MustCompile("([A-Z])")
-	return re.ReplaceAllStringFunc(str, func(match string) string {
+	// Replace capital letters with hyphen + lowercase
+	return upperCaseRegex.ReplaceAllStringFunc(str, func(match string) string {
 		return "-" + strings.ToLower(match)
 	})
 }

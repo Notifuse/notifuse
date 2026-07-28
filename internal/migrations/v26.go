@@ -67,7 +67,11 @@ func (m *V26Migration) UpdateWorkspace(ctx context.Context, cfg *config.Config, 
 			FROM jsonb_array_elements(nodes) AS node
 		),
 		updated_at = NOW()
-		WHERE nodes IS NOT NULL
+		-- Guard on jsonb_typeof = 'array': a nil Nodes slice is marshalled to the
+		-- JSON scalar 'null' (not SQL NULL and not '[]'), and jsonb_array_elements
+		-- raises "cannot extract elements from a scalar" on it. This predicate also
+		-- excludes SQL NULL, so the previous "nodes IS NOT NULL" check is unneeded.
+		WHERE jsonb_typeof(nodes) = 'array'
 		AND EXISTS (
 			SELECT 1 FROM jsonb_array_elements(nodes) AS node
 			WHERE node->>'type' = 'add_to_list'

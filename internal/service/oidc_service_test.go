@@ -264,7 +264,7 @@ func TestResolve_FoundByIssuerSub_NoEmailLookup(t *testing.T) {
 	m.userRepo.EXPECT().GetUserByID(gomock.Any(), "u1").Return(&domain.User{ID: "u1"}, nil)
 	// No GetUserByEmail* expected — would fail the controller if called.
 
-	u, err := svc.resolveOrProvisionUser(context.Background(), testIssuer, "sub-1", "u1@corp.com", true, "U1")
+	u, err := svc.resolveOrProvisionUser(context.Background(), testIssuer, "sub-1", "u1@corp.com", boolPtr(true), "U1")
 	require.NoError(t, err)
 	assert.Equal(t, "u1", u.ID)
 }
@@ -276,7 +276,7 @@ func TestResolve_FirstLogin_EmailNotVerified(t *testing.T) {
 
 	m.fedRepo.EXPECT().GetByIssuerSubject(gomock.Any(), testIssuer, "sub-1").Return(nil, notFoundFI())
 
-	_, err := svc.resolveOrProvisionUser(context.Background(), testIssuer, "sub-1", "u1@corp.com", false, "")
+	_, err := svc.resolveOrProvisionUser(context.Background(), testIssuer, "sub-1", "u1@corp.com", boolPtr(false), "")
 	assert.ErrorIs(t, err, domain.ErrOIDCEmailNotVerified)
 }
 
@@ -297,9 +297,123 @@ func TestResolve_FirstLogin_BridgeInvitedUser_CaseInsensitive(t *testing.T) {
 			return nil
 		})
 
-	u, err := svc.resolveOrProvisionUser(context.Background(), testIssuer, "sub-1", "jane@corp.com", true, "")
+	u, err := svc.resolveOrProvisionUser(context.Background(), testIssuer, "sub-1", "jane@corp.com", boolPtr(true), "")
 	require.NoError(t, err)
 	assert.Equal(t, "u1", u.ID)
+}
+
+func TestFlexibleBool_UnmarshalJSON(t *testing.T) {
+	// Some IdPs / claim-mapping bridges emit email_verified as the STRING
+	// "true"/"false"; the decode must tolerate that instead of failing the whole
+	// claims struct. Absent and null both leave the pointer nil.
+	type claims struct {
+		EmailVerified *flexibleBool `json:"email_verified"`
+	}
+
+	var c claims
+	require.NoError(t, json.Unmarshal([]byte(`{"email_verified": true}`), &c))
+	require.NotNil(t, c.EmailVerified)
+	assert.True(t, bool(*c.EmailVerified))
+
+	c = claims{}
+	require.NoError(t, json.Unmarshal([]byte(`{"email_verified": "false"}`), &c))
+	require.NotNil(t, c.EmailVerified)
+	assert.False(t, bool(*c.EmailVerified))
+
+	c = claims{}
+	require.NoError(t, json.Unmarshal([]byte(`{"email_verified": "true"}`), &c))
+	require.NotNil(t, c.EmailVerified)
+	assert.True(t, bool(*c.EmailVerified))
+
+	c = claims{}
+	require.NoError(t, json.Unmarshal([]byte(`{}`), &c))
+	assert.Nil(t, c.EmailVerified, "absent claim stays nil")
+
+	c = claims{}
+	require.NoError(t, json.Unmarshal([]byte(`{"email_verified": null}`), &c))
+	assert.Nil(t, c.EmailVerified, "explicit null behaves like absent")
+
+	c = claims{}
+	assert.Error(t, json.Unmarshal([]byte(`{"email_verified": "maybe"}`), &c),
+		"a non-boolean string must still fail loudly")
+}
+
+func TestResolve_FirstLogin_ExplicitFalse_FlagOn_StillRejected(t *testing.T) {
+	// An explicit email_verified=false is rejected even with the tolerance flag on:
+	// the flag only rescues an ABSENT claim, never an IdP-asserted "unverified".
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	cfg := enabledCfg()
+	cfg.AllowUnverifiedEmail = true
+	svc, m := newTestOIDCService(t, ctrl, cfg, nil)
+
+	m.fedRepo.EXPECT().GetByIssuerSubject(gomock.Any(), testIssuer, "sub-1").Return(nil, notFoundFI())
+
+	_, err := svc.resolveOrProvisionUser(context.Background(), testIssuer, "sub-1", "u1@corp.com", boolPtr(false), "")
+	assert.ErrorIs(t, err, domain.ErrOIDCEmailNotVerified)
+}
+
+func TestResolve_FirstLogin_AbsentClaim_FlagOff_Rejected(t *testing.T) {
+	// Default posture: an id_token without email_verified is rejected on first login.
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	svc, m := newTestOIDCService(t, ctrl, enabledCfg(), nil)
+
+	m.fedRepo.EXPECT().GetByIssuerSubject(gomock.Any(), testIssuer, "sub-1").Return(nil, notFoundFI())
+
+	_, err := svc.resolveOrProvisionUser(context.Background(), testIssuer, "sub-1", "u1@corp.com", nil, "")
+	assert.ErrorIs(t, err, domain.ErrOIDCEmailNotVerified)
+}
+
+func TestResolve_FirstLogin_AbsentClaim_FlagOn_BridgesInvitedUser(t *testing.T) {
+	// With OIDC_ALLOW_UNVERIFIED_EMAIL=true, an absent claim proceeds to the normal
+	// invited-user bridge (Entra ID / Cloudflare Access never emit email_verified).
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	cfg := enabledCfg()
+	cfg.AllowUnverifiedEmail = true
+	svc, m := newTestOIDCService(t, ctrl, cfg, nil)
+
+	existing := &domain.User{ID: "u1", Email: "jane@corp.com"}
+	m.fedRepo.EXPECT().GetByIssuerSubject(gomock.Any(), testIssuer, "sub-1").Return(nil, notFoundFI())
+	m.userRepo.EXPECT().GetUserByEmailInsensitive(gomock.Any(), "jane@corp.com").Return(existing, nil)
+	m.fedRepo.EXPECT().GetByUserAndIssuer(gomock.Any(), "u1", testIssuer).Return(nil, notFoundFI())
+	m.fedRepo.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil)
+
+	u, err := svc.resolveOrProvisionUser(context.Background(), testIssuer, "sub-1", "jane@corp.com", nil, "")
+	require.NoError(t, err)
+	assert.Equal(t, "u1", u.ID)
+}
+
+func TestResolve_ReLogin_AbsentClaim_GateNotReached(t *testing.T) {
+	// An already-linked identity ((issuer,sub) hit) re-logs-in regardless of the
+	// claim or the flag — the email_verified gate only guards first logins.
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	svc, m := newTestOIDCService(t, ctrl, enabledCfg(), nil)
+
+	m.fedRepo.EXPECT().GetByIssuerSubject(gomock.Any(), testIssuer, "sub-1").
+		Return(&domain.FederatedIdentity{UserID: "u1", IDPIssuer: testIssuer, IDPSub: "sub-1"}, nil)
+	m.userRepo.EXPECT().GetUserByID(gomock.Any(), "u1").Return(&domain.User{ID: "u1"}, nil)
+
+	u, err := svc.resolveOrProvisionUser(context.Background(), testIssuer, "sub-1", "u1@corp.com", nil, "U1")
+	require.NoError(t, err)
+	assert.Equal(t, "u1", u.ID)
+}
+
+func TestResolve_FirstLogin_AbsentClaim_FlagOn_EmptyEmail_Rejected(t *testing.T) {
+	// The flag rescues a missing claim, not a missing email: an id_token with no
+	// email at all still cannot link or provision anything.
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	cfg := enabledCfg()
+	cfg.AllowUnverifiedEmail = true
+	svc, m := newTestOIDCService(t, ctrl, cfg, nil)
+
+	m.fedRepo.EXPECT().GetByIssuerSubject(gomock.Any(), testIssuer, "sub-1").Return(nil, notFoundFI())
+
+	_, err := svc.resolveOrProvisionUser(context.Background(), testIssuer, "sub-1", "", nil, "")
+	assert.ErrorIs(t, err, domain.ErrOIDCEmailNotVerified)
 }
 
 func TestResolve_FirstLogin_LinkConflict_DifferentSubSameIssuer(t *testing.T) {
@@ -314,7 +428,7 @@ func TestResolve_FirstLogin_LinkConflict_DifferentSubSameIssuer(t *testing.T) {
 	m.fedRepo.EXPECT().GetByUserAndIssuer(gomock.Any(), "u1", testIssuer).
 		Return(&domain.FederatedIdentity{UserID: "u1", IDPIssuer: testIssuer, IDPSub: "sub-OLD"}, nil)
 
-	_, err := svc.resolveOrProvisionUser(context.Background(), testIssuer, "sub-NEW", "jane@corp.com", true, "")
+	_, err := svc.resolveOrProvisionUser(context.Background(), testIssuer, "sub-NEW", "jane@corp.com", boolPtr(true), "")
 	assert.ErrorIs(t, err, domain.ErrOIDCIdentityConflict)
 }
 
@@ -327,7 +441,7 @@ func TestResolve_InvitedOnly_NoAccount_Rejected(t *testing.T) {
 	m.fedRepo.EXPECT().GetByIssuerSubject(gomock.Any(), testIssuer, "sub-1").Return(nil, notFoundFI())
 	m.userRepo.EXPECT().GetUserByEmailInsensitive(gomock.Any(), "ghost@corp.com").Return(nil, notFoundUsr())
 
-	_, err := svc.resolveOrProvisionUser(context.Background(), testIssuer, "sub-1", "ghost@corp.com", true, "")
+	_, err := svc.resolveOrProvisionUser(context.Background(), testIssuer, "sub-1", "ghost@corp.com", boolPtr(true), "")
 	assert.ErrorIs(t, err, domain.ErrOIDCAccountNotProvisioned)
 }
 
@@ -345,7 +459,7 @@ func TestResolve_Bridge_RootEmailGuard_RefusesFirstTimeLink(t *testing.T) {
 	m.fedRepo.EXPECT().GetByUserAndIssuer(gomock.Any(), "root-id", testIssuer).Return(nil, notFoundFI())
 	// MUST NOT link or mint: no fedRepo.Create expected.
 
-	_, err := svc.resolveOrProvisionUser(context.Background(), testIssuer, "attacker-sub", "root@corp.com", true, "")
+	_, err := svc.resolveOrProvisionUser(context.Background(), testIssuer, "attacker-sub", "root@corp.com", boolPtr(true), "")
 	assert.ErrorIs(t, err, domain.ErrOIDCAccountNotProvisioned,
 		"first-time linking a ROOT_EMAIL account must be refused (privilege escalation)")
 }
@@ -362,7 +476,7 @@ func TestResolve_Bridge_RootEmailGuard_CaseInsensitive(t *testing.T) {
 		Return(&domain.User{ID: "root-id", Email: "Root@Corp.com"}, nil)
 	m.fedRepo.EXPECT().GetByUserAndIssuer(gomock.Any(), "root-id", testIssuer).Return(nil, notFoundFI())
 
-	_, err := svc.resolveOrProvisionUser(context.Background(), testIssuer, "s", "root@corp.com", true, "")
+	_, err := svc.resolveOrProvisionUser(context.Background(), testIssuer, "s", "root@corp.com", boolPtr(true), "")
 	assert.ErrorIs(t, err, domain.ErrOIDCAccountNotProvisioned)
 }
 
@@ -377,7 +491,7 @@ func TestResolve_Bridge_AlreadyLinkedRoot_AllowsReLogin(t *testing.T) {
 		Return(&domain.FederatedIdentity{UserID: "root-id", IDPIssuer: testIssuer, IDPSub: "root-sub"}, nil)
 	m.userRepo.EXPECT().GetUserByID(gomock.Any(), "root-id").Return(&domain.User{ID: "root-id", Email: "root@corp.com"}, nil)
 
-	u, err := svc.resolveOrProvisionUser(context.Background(), testIssuer, "root-sub", "root@corp.com", true, "")
+	u, err := svc.resolveOrProvisionUser(context.Background(), testIssuer, "root-sub", "root@corp.com", boolPtr(true), "")
 	require.NoError(t, err, "an already-linked root identity (found by issuer,sub) must re-login")
 	assert.Equal(t, "root-id", u.ID)
 }
@@ -395,7 +509,7 @@ func TestResolve_JIT_RootEmailGuard_Refused(t *testing.T) {
 	m.userRepo.EXPECT().GetUserByEmailInsensitive(gomock.Any(), "root@corp.com").Return(nil, notFoundUsr())
 	// No CreateUser expected.
 
-	_, err := svc.resolveOrProvisionUser(context.Background(), testIssuer, "sub-1", "root@corp.com", true, "")
+	_, err := svc.resolveOrProvisionUser(context.Background(), testIssuer, "sub-1", "root@corp.com", boolPtr(true), "")
 	assert.ErrorIs(t, err, domain.ErrOIDCAccountNotProvisioned)
 }
 
@@ -410,7 +524,7 @@ func TestResolve_JIT_DomainNotAllowed(t *testing.T) {
 	m.fedRepo.EXPECT().GetByIssuerSubject(gomock.Any(), testIssuer, "sub-1").Return(nil, notFoundFI())
 	m.userRepo.EXPECT().GetUserByEmailInsensitive(gomock.Any(), "x@evil.com").Return(nil, notFoundUsr())
 
-	_, err := svc.resolveOrProvisionUser(context.Background(), testIssuer, "sub-1", "x@evil.com", true, "")
+	_, err := svc.resolveOrProvisionUser(context.Background(), testIssuer, "sub-1", "x@evil.com", boolPtr(true), "")
 	assert.ErrorIs(t, err, domain.ErrOIDCDomainNotAllowed)
 }
 
@@ -433,7 +547,7 @@ func TestResolve_JIT_CreatesUserAndLinks(t *testing.T) {
 		})
 	m.fedRepo.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil)
 
-	u, err := svc.resolveOrProvisionUser(context.Background(), testIssuer, "sub-1", "new@corp.com", true, "New User")
+	u, err := svc.resolveOrProvisionUser(context.Background(), testIssuer, "sub-1", "new@corp.com", boolPtr(true), "New User")
 	require.NoError(t, err)
 	assert.Equal(t, "new@corp.com", u.Email)
 }

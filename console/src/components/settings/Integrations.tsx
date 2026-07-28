@@ -72,7 +72,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { SettingsSectionHeader } from './SettingsSectionHeader'
 
 // Provider types that only support transactional emails, not marketing emails
-const transactionalEmailOnly: EmailProviderKind[] = []
+const transactionalEmailOnly: EmailProviderKind[] = ['mailjet']
 
 // Helper function to generate Supabase webhook URLs
 const generateSupabaseWebhookURL = (
@@ -1590,7 +1590,12 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
                 </Form.Item>
               </Col>
               <Col span={6}>
-                <Form.Item name={['smtp', 'port']} label={t`SMTP Port`} rules={[{ required: true }]}>
+                <Form.Item
+                  name={['smtp', 'port']}
+                  label={t`SMTP Port`}
+                  rules={[{ required: true }]}
+                  tooltip={t`Common ports: 587 (TLS), 465 (SSL), 25 (unencrypted)`}
+                >
                   <InputNumber min={1} max={65535} placeholder="587" disabled={!isOwner} />
                 </Form.Item>
               </Col>

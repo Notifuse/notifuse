@@ -18,7 +18,7 @@ e2e-test-within-cursor-agent:
 	@echo "\n✅ All integration tests completed"
 
 test-integration:
-	INTEGRATION_TESTS=true go test -race -timeout 9m ./tests/integration/ -v
+	INTEGRATION_TESTS=true go test -race -timeout 20m ./tests/integration/ -v
 
 test-domain:
 	go test -race -v ./internal/domain

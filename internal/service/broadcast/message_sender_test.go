@@ -4,6 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/url"
+	"regexp"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -11,10 +14,12 @@ import (
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/domain/mocks"
 	bmocks "github.com/Notifuse/notifuse/internal/service/broadcast/mocks"
+	"github.com/Notifuse/notifuse/pkg/crypto"
 	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
 	"github.com/Notifuse/notifuse/pkg/notifuse_mjml"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // TestMessageSenderCreation tests creation of the message sender
@@ -3300,4 +3305,379 @@ func TestSendBatch_WithRecipientFeed_NilSettings(t *testing.T) {
 // With the new behavior, feed errors cause immediate broadcast pause.
 func TestSendBatch_WithRecipientFeed_ConsecutiveFailuresReset(t *testing.T) {
 	t.Skip("Removed - consecutive failure counter no longer exists. Feed errors now cause immediate pause.")
+}
+
+// extractTrackedLinkUTMParams finds the first tracked link (/r/{token}) in the
+// compiled HTML, decrypts the token and returns the query parameters of the
+// destination URL embedded in it.
+func extractTrackedLinkUTMParams(t *testing.T, html string, endpoint string) url.Values {
+	t.Helper()
+
+	tokenRegex := regexp.MustCompile(regexp.QuoteMeta(endpoint) + `/r/([A-Za-z0-9_-]+)`)
+	matches := tokenRegex.FindStringSubmatch(html)
+	require.Len(t, matches, 2, "compiled HTML should contain a tracked /r/ link")
+
+	decrypted, err := crypto.DecryptTrackingToken(matches[1])
+	require.NoError(t, err)
+
+	// Token format: messageID\nworkspaceID\ntimestamp\ndestinationURL
+	parts := strings.SplitN(decrypted, "\n", 4)
+	require.Len(t, parts, 4, "tracking token should contain the destination URL")
+
+	destination, err := url.Parse(parts[3])
+	require.NoError(t, err)
+	return destination.Query()
+}
+
+// createTestTemplateWithLink builds a template whose body contains a trackable link
+func createTestTemplateWithLink(templateID string, senderID string) *domain.Template {
+	return &domain.Template{
+		ID: templateID,
+		Email: &domain.EmailTemplate{
+			SenderID:         senderID,
+			Subject:          "Test Subject",
+			VisualEditorTree: createValidTestTree(createTestTextBlock("txt1", `Visit <a href="https://example.com/promo">our shop</a>`)),
+		},
+	}
+}
+
+// TestSendToRecipient_ABVariantsUseOwnUTMContent verifies that when utm_content
+// is empty, each recipient's rewritten links carry the ID of the variant that
+// recipient actually received, and the shared broadcast is never mutated.
+func TestSendToRecipient_ABVariantsUseOwnUTMContent(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockBroadcastRepository := mocks.NewMockBroadcastRepository(ctrl)
+	mockMessageHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
+	mockTemplateRepo := mocks.NewMockTemplateRepository(ctrl)
+	mockEmailService := mocks.NewMockEmailServiceInterface(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+
+	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().Debug(gomock.Any()).Return().AnyTimes()
+	mockLogger.EXPECT().Info(gomock.Any()).Return().AnyTimes()
+	mockLogger.EXPECT().Warn(gomock.Any()).Return().AnyTimes()
+	mockLogger.EXPECT().Error(gomock.Any()).Return().AnyTimes()
+
+	ctx := context.Background()
+	workspaceID := "workspace-123"
+	endpoint := "https://api.test.com"
+	broadcast := &domain.Broadcast{
+		ID:          "broadcast-123",
+		WorkspaceID: workspaceID,
+		Name:        "Test Broadcast",
+		ChannelType: "email",
+		Audience:    domain.AudienceSettings{List: "list-1"},
+		Status:      domain.BroadcastStatusTesting,
+		UTMParameters: &domain.UTMParameters{
+			Source:   "newsletter",
+			Medium:   "email",
+			Campaign: "spring",
+			Content:  "", // empty: must default to each recipient's variant
+			Term:     "promo",
+		},
+	}
+	originalUTM := *broadcast.UTMParameters
+
+	emailSender := domain.NewEmailSender("sender@example.com", "Sender")
+	emailProvider := &domain.EmailProvider{
+		Kind:    domain.EmailProviderKindSMTP,
+		Senders: []domain.EmailSender{emailSender},
+		SMTP:    &domain.SMTPSettings{Host: "smtp.example.com", Port: 587, Username: "user", Password: "pass", UseTLS: true},
+	}
+	templateA := createTestTemplateWithLink("template-a", emailSender.ID)
+	templateB := createTestTemplateWithLink("template-b", emailSender.ID)
+
+	var sentRequests []domain.SendEmailProviderRequest
+	mockEmailService.EXPECT().
+		SendEmail(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, req domain.SendEmailProviderRequest, _ bool) error {
+			sentRequests = append(sentRequests, req)
+			return nil
+		}).Times(2)
+
+	sender := NewMessageSender(
+		mockBroadcastRepository,
+		mockMessageHistoryRepo,
+		mockTemplateRepo,
+		mockEmailService,
+		nil, // dataFeedFetcher
+		mockLogger,
+		TestConfig(),
+		"",
+	)
+
+	timeoutAt := time.Now().Add(30 * time.Second)
+	err := sender.SendToRecipient(ctx, workspaceID, "test-integration-id", endpoint, true, broadcast, "message-1", "recipient1@example.com", templateA, map[string]interface{}{}, emailProvider, timeoutAt, "", "")
+	require.NoError(t, err)
+	err = sender.SendToRecipient(ctx, workspaceID, "test-integration-id", endpoint, true, broadcast, "message-2", "recipient2@example.com", templateB, map[string]interface{}{}, emailProvider, timeoutAt, "", "")
+	require.NoError(t, err)
+
+	require.Len(t, sentRequests, 2)
+
+	// Each recipient's rewritten links must carry their own variant ID
+	utmParamsA := extractTrackedLinkUTMParams(t, sentRequests[0].Content, endpoint)
+	assert.Equal(t, "template-a", utmParamsA.Get("utm_content"))
+	assert.Equal(t, "promo", utmParamsA.Get("utm_term"))
+	assert.Equal(t, "newsletter", utmParamsA.Get("utm_source"))
+
+	utmParamsB := extractTrackedLinkUTMParams(t, sentRequests[1].Content, endpoint)
+	assert.Equal(t, "template-b", utmParamsB.Get("utm_content"))
+	assert.Equal(t, "promo", utmParamsB.Get("utm_term"))
+
+	// The shared broadcast must not have been mutated
+	assert.Equal(t, originalUTM, *broadcast.UTMParameters)
+	assert.Equal(t, "", broadcast.UTMParameters.Content)
+}
+
+// TestSendBatch_ABVariantsPerRecipientUTMContent verifies that in the batch loop
+// each recipient's template data AND rewritten links carry the ID of the variant
+// chosen for that recipient, that utm_term reaches the template data, and that
+// the shared broadcast is never mutated across recipients.
+func TestSendBatch_ABVariantsPerRecipientUTMContent(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockBroadcastRepository := mocks.NewMockBroadcastRepository(ctrl)
+	mockMessageHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
+	mockTemplateRepo := mocks.NewMockTemplateRepository(ctrl)
+	mockEmailService := mocks.NewMockEmailServiceInterface(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+
+	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().Debug(gomock.Any()).Return().AnyTimes()
+	mockLogger.EXPECT().Info(gomock.Any()).Return().AnyTimes()
+	mockLogger.EXPECT().Warn(gomock.Any()).Return().AnyTimes()
+	mockLogger.EXPECT().Error(gomock.Any()).Return().AnyTimes()
+
+	ctx := context.Background()
+	timeoutAt := time.Now().Add(30 * time.Second)
+	workspaceID := "workspace-123"
+	broadcastID := "broadcast-123"
+	endpoint := "https://api.test.com"
+
+	// A/B test phase with a single variation per batch: the random pick is
+	// deterministic, and swapping the variation between batches simulates two
+	// recipients receiving different variants from the same shared broadcast.
+	broadcast := &domain.Broadcast{
+		ID:          broadcastID,
+		WorkspaceID: workspaceID,
+		Name:        "Test Broadcast",
+		ChannelType: "email",
+		Audience:    domain.AudienceSettings{List: "list-1"},
+		Status:      domain.BroadcastStatusTesting,
+		UTMParameters: &domain.UTMParameters{
+			Source:   "newsletter",
+			Medium:   "email",
+			Campaign: "spring",
+			Content:  "", // empty: must default to each recipient's variant
+			Term:     "promo",
+		},
+		TestSettings: domain.BroadcastTestSettings{
+			Enabled: true,
+			Variations: []domain.BroadcastVariation{
+				{VariationName: "variation-a", TemplateID: "template-a"},
+			},
+		},
+	}
+	originalUTM := *broadcast.UTMParameters
+
+	emailSender := domain.NewEmailSender("sender@example.com", "Sender")
+	emailProvider := &domain.EmailProvider{
+		Kind:    domain.EmailProviderKindSMTP,
+		Senders: []domain.EmailSender{emailSender},
+		SMTP:    &domain.SMTPSettings{Host: "smtp.example.com", Port: 587, Username: "user", Password: "pass", UseTLS: true},
+	}
+	templates := map[string]*domain.Template{
+		"template-a": createTestTemplateWithLink("template-a", emailSender.ID),
+		"template-b": createTestTemplateWithLink("template-b", emailSender.ID),
+	}
+
+	mockBroadcastRepository.EXPECT().
+		GetBroadcast(ctx, workspaceID, broadcastID).
+		Return(broadcast, nil).Times(2)
+
+	var sentRequests []domain.SendEmailProviderRequest
+	mockEmailService.EXPECT().
+		SendEmail(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, req domain.SendEmailProviderRequest, _ bool) error {
+			sentRequests = append(sentRequests, req)
+			return nil
+		}).Times(2)
+
+	var recordedMessages []*domain.MessageHistory
+	mockMessageHistoryRepo.EXPECT().
+		Create(gomock.Any(), workspaceID, gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, _ string, _ string, msg *domain.MessageHistory) error {
+			recordedMessages = append(recordedMessages, msg)
+			return nil
+		}).Times(2)
+
+	sender := NewMessageSender(
+		mockBroadcastRepository,
+		mockMessageHistoryRepo,
+		mockTemplateRepo,
+		mockEmailService,
+		nil, // dataFeedFetcher
+		mockLogger,
+		TestConfig(),
+		"",
+	)
+
+	// First recipient receives variant A
+	recipients := []*domain.ContactWithList{
+		{Contact: &domain.Contact{Email: "recipient1@example.com"}, ListID: "list-1", ListName: "Test List"},
+	}
+	sent, failed, err := sender.SendBatch(ctx, workspaceID, "test-integration-id", "secret-key-123", endpoint, "", true, broadcastID, recipients, templates, emailProvider, timeoutAt, "")
+	require.NoError(t, err)
+	assert.Equal(t, 1, sent)
+	assert.Equal(t, 0, failed)
+
+	// Second recipient receives variant B
+	broadcast.TestSettings.Variations = []domain.BroadcastVariation{
+		{VariationName: "variation-b", TemplateID: "template-b"},
+	}
+	recipients = []*domain.ContactWithList{
+		{Contact: &domain.Contact{Email: "recipient2@example.com"}, ListID: "list-1", ListName: "Test List"},
+	}
+	sent, failed, err = sender.SendBatch(ctx, workspaceID, "test-integration-id", "secret-key-123", endpoint, "", true, broadcastID, recipients, templates, emailProvider, timeoutAt, "")
+	require.NoError(t, err)
+	assert.Equal(t, 1, sent)
+	assert.Equal(t, 0, failed)
+
+	require.Len(t, recordedMessages, 2)
+	require.Len(t, sentRequests, 2)
+
+	// Template-data surface: each recipient's message data carries their own variant
+	assert.Equal(t, "template-a", recordedMessages[0].TemplateID)
+	assert.Equal(t, "template-a", recordedMessages[0].MessageData.Data["utm_content"])
+	assert.Equal(t, "promo", recordedMessages[0].MessageData.Data["utm_term"])
+	assert.Equal(t, "template-b", recordedMessages[1].TemplateID)
+	assert.Equal(t, "template-b", recordedMessages[1].MessageData.Data["utm_content"])
+	assert.Equal(t, "promo", recordedMessages[1].MessageData.Data["utm_term"])
+
+	// Link surface: rewritten links carry the recipient's own variant
+	utmParamsA := extractTrackedLinkUTMParams(t, sentRequests[0].Content, endpoint)
+	assert.Equal(t, "template-a", utmParamsA.Get("utm_content"))
+	assert.Equal(t, "promo", utmParamsA.Get("utm_term"))
+	utmParamsB := extractTrackedLinkUTMParams(t, sentRequests[1].Content, endpoint)
+	assert.Equal(t, "template-b", utmParamsB.Get("utm_content"))
+	assert.Equal(t, "promo", utmParamsB.Get("utm_term"))
+
+	// The shared broadcast must not have been mutated
+	assert.Equal(t, originalUTM, *broadcast.UTMParameters)
+	assert.Equal(t, "", broadcast.UTMParameters.Content)
+}
+
+// TestSendBatch_ExplicitUTMContentNotOverridden verifies that an explicitly
+// configured utm_content is kept as-is on both surfaces instead of being
+// replaced by the recipient's template ID.
+func TestSendBatch_ExplicitUTMContentNotOverridden(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockBroadcastRepository := mocks.NewMockBroadcastRepository(ctrl)
+	mockMessageHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
+	mockTemplateRepo := mocks.NewMockTemplateRepository(ctrl)
+	mockEmailService := mocks.NewMockEmailServiceInterface(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+
+	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().Debug(gomock.Any()).Return().AnyTimes()
+	mockLogger.EXPECT().Info(gomock.Any()).Return().AnyTimes()
+	mockLogger.EXPECT().Warn(gomock.Any()).Return().AnyTimes()
+	mockLogger.EXPECT().Error(gomock.Any()).Return().AnyTimes()
+
+	ctx := context.Background()
+	timeoutAt := time.Now().Add(30 * time.Second)
+	workspaceID := "workspace-123"
+	broadcastID := "broadcast-123"
+	endpoint := "https://api.test.com"
+
+	broadcast := &domain.Broadcast{
+		ID:          broadcastID,
+		WorkspaceID: workspaceID,
+		Name:        "Test Broadcast",
+		ChannelType: "email",
+		Audience:    domain.AudienceSettings{List: "list-1"},
+		Status:      domain.BroadcastStatusTesting,
+		UTMParameters: &domain.UTMParameters{
+			Source:   "newsletter",
+			Medium:   "email",
+			Campaign: "spring",
+			Content:  "fixed-content",
+			Term:     "promo",
+		},
+		TestSettings: domain.BroadcastTestSettings{
+			Enabled: false,
+			Variations: []domain.BroadcastVariation{
+				{VariationName: "variation-a", TemplateID: "template-a"},
+			},
+		},
+	}
+	originalUTM := *broadcast.UTMParameters
+
+	emailSender := domain.NewEmailSender("sender@example.com", "Sender")
+	emailProvider := &domain.EmailProvider{
+		Kind:    domain.EmailProviderKindSMTP,
+		Senders: []domain.EmailSender{emailSender},
+		SMTP:    &domain.SMTPSettings{Host: "smtp.example.com", Port: 587, Username: "user", Password: "pass", UseTLS: true},
+	}
+	templates := map[string]*domain.Template{
+		"template-a": createTestTemplateWithLink("template-a", emailSender.ID),
+	}
+
+	mockBroadcastRepository.EXPECT().
+		GetBroadcast(ctx, workspaceID, broadcastID).
+		Return(broadcast, nil)
+
+	var sentRequests []domain.SendEmailProviderRequest
+	mockEmailService.EXPECT().
+		SendEmail(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, req domain.SendEmailProviderRequest, _ bool) error {
+			sentRequests = append(sentRequests, req)
+			return nil
+		})
+
+	var recordedMessages []*domain.MessageHistory
+	mockMessageHistoryRepo.EXPECT().
+		Create(gomock.Any(), workspaceID, gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, _ string, _ string, msg *domain.MessageHistory) error {
+			recordedMessages = append(recordedMessages, msg)
+			return nil
+		})
+
+	sender := NewMessageSender(
+		mockBroadcastRepository,
+		mockMessageHistoryRepo,
+		mockTemplateRepo,
+		mockEmailService,
+		nil, // dataFeedFetcher
+		mockLogger,
+		TestConfig(),
+		"",
+	)
+
+	recipients := []*domain.ContactWithList{
+		{Contact: &domain.Contact{Email: "recipient1@example.com"}, ListID: "list-1", ListName: "Test List"},
+	}
+	sent, failed, err := sender.SendBatch(ctx, workspaceID, "test-integration-id", "secret-key-123", endpoint, "", true, broadcastID, recipients, templates, emailProvider, timeoutAt, "")
+	require.NoError(t, err)
+	assert.Equal(t, 1, sent)
+	assert.Equal(t, 0, failed)
+
+	require.Len(t, recordedMessages, 1)
+	require.Len(t, sentRequests, 1)
+
+	// Both surfaces keep the explicitly configured value, not the template ID
+	assert.Equal(t, "fixed-content", recordedMessages[0].MessageData.Data["utm_content"])
+	utmParams := extractTrackedLinkUTMParams(t, sentRequests[0].Content, endpoint)
+	assert.Equal(t, "fixed-content", utmParams.Get("utm_content"))
+
+	// The shared broadcast must not have been mutated
+	assert.Equal(t, originalUTM, *broadcast.UTMParameters)
 }

@@ -293,6 +293,7 @@ export function ContactDetailsDrawer({
     onSuccess: () => {
       messageApi.success(t`Contact added to list successfully`)
       queryClient.invalidateQueries({ queryKey: ['contact_details', workspace.id, contactEmail] })
+      queryClient.invalidateQueries({ queryKey: ['contacts', workspace.id] })
       setSubscribeModalVisible(false)
       subscribeForm.resetFields()
       // Refresh timeline to show the subscription event

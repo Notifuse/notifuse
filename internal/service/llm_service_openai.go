@@ -12,6 +12,30 @@ import (
 	"github.com/openai/openai-go/v3/shared"
 )
 
+// extractReasoningDelta pulls streamed reasoning ("thinking") text from an
+// OpenAI-compatible delta. Reasoning models surface it in a non-standard field that
+// the typed SDK routes into ExtraFields: DeepSeek uses "reasoning_content",
+// OpenRouter and other proxies use "reasoning". Returns "" when there is none.
+func extractReasoningDelta(delta openai.ChatCompletionChunkChoiceDelta) string {
+	for _, key := range []string{"reasoning_content", "reasoning"} {
+		field, ok := delta.JSON.ExtraFields[key]
+		if !ok {
+			continue
+		}
+		// Note: Field.Valid() reports false for ExtraFields entries, so rely on Raw()
+		// (the verbatim JSON token) and skip absent/null values.
+		raw := field.Raw()
+		if raw == "" || raw == "null" {
+			continue
+		}
+		var s string
+		if err := json.Unmarshal([]byte(raw), &s); err == nil && s != "" {
+			return s
+		}
+	}
+	return ""
+}
+
 // streamChatOpenAI implements streaming chat with OpenAI or OpenAI-compatible APIs
 func (s *LLMService) streamChatOpenAI(
 	ctx context.Context,
@@ -64,7 +88,7 @@ func (s *LLMService) streamChatOpenAI(
 	// Set default max tokens
 	maxTokens := int64(req.MaxTokens)
 	if maxTokens == 0 {
-		maxTokens = 2048
+		maxTokens = defaultMaxTokens
 	}
 
 	// Build streaming request parameters
@@ -75,6 +99,12 @@ func (s *LLMService) streamChatOpenAI(
 		StreamOptions: openai.ChatCompletionStreamOptionsParam{
 			IncludeUsage: openai.Bool(true),
 		},
+	}
+
+	// Reasoning effort, only when configured. Sending it to non-reasoning models or
+	// providers that don't support it can 400, so omit it when empty.
+	if settings.ReasoningEffort != "" {
+		params.ReasoningEffort = shared.ReasoningEffort(settings.ReasoningEffort)
 	}
 
 	// Add tools if provided
@@ -106,11 +136,27 @@ func (s *LLMService) streamChatOpenAI(
 		chunk := stream.Current()
 		acc.AddChunk(chunk)
 
+		if len(chunk.Choices) == 0 {
+			continue
+		}
+		delta := chunk.Choices[0].Delta
+
+		// Stream reasoning ("thinking") deltas on a separate channel so they never
+		// mix into the visible answer or the tool-argument buffer.
+		if reasoning := extractReasoningDelta(delta); reasoning != "" {
+			if err := onEvent(domain.LLMChatEvent{
+				Type:    "thinking",
+				Content: reasoning,
+			}); err != nil {
+				return fmt.Errorf("failed to send thinking event: %w", err)
+			}
+		}
+
 		// Stream text deltas
-		if len(chunk.Choices) > 0 && chunk.Choices[0].Delta.Content != "" {
+		if delta.Content != "" {
 			if err := onEvent(domain.LLMChatEvent{
 				Type:    "text",
-				Content: chunk.Choices[0].Delta.Content,
+				Content: delta.Content,
 			}); err != nil {
 				return fmt.Errorf("failed to send event: %w", err)
 			}
@@ -121,6 +167,12 @@ func (s *LLMService) streamChatOpenAI(
 		s.logger.WithField("error", err.Error()).Error("Stream error from OpenAI")
 		return fmt.Errorf("stream error: %w", err)
 	}
+
+	// Truncation: a reasoning model can exhaust the budget on hidden thinking, leaving
+	// the tool-call JSON incomplete (it then fails to parse and is dropped below).
+	// Report it as a non-destructive flag on the "done" event (not a terminal error,
+	// which the frontend would use to replace any already-streamed content).
+	truncated := len(acc.Choices) > 0 && acc.Choices[0].FinishReason == "length"
 
 	// Process accumulated tool calls - handle server-side vs client-side
 	var serverToolCalls []struct {
@@ -234,10 +286,24 @@ func (s *LLMService) streamChatOpenAI(
 			chunk := stream.Current()
 			acc.AddChunk(chunk)
 
-			if len(chunk.Choices) > 0 && chunk.Choices[0].Delta.Content != "" {
+			if len(chunk.Choices) == 0 {
+				continue
+			}
+			delta := chunk.Choices[0].Delta
+
+			if reasoning := extractReasoningDelta(delta); reasoning != "" {
+				if err := onEvent(domain.LLMChatEvent{
+					Type:    "thinking",
+					Content: reasoning,
+				}); err != nil {
+					return fmt.Errorf("failed to send thinking event: %w", err)
+				}
+			}
+
+			if delta.Content != "" {
 				if err := onEvent(domain.LLMChatEvent{
 					Type:    "text",
-					Content: chunk.Choices[0].Delta.Content,
+					Content: delta.Content,
 				}); err != nil {
 					return fmt.Errorf("failed to send event: %w", err)
 				}
@@ -247,6 +313,11 @@ func (s *LLMService) streamChatOpenAI(
 		if err := stream.Err(); err != nil {
 			s.logger.WithField("error", err.Error()).Error("Stream error from OpenAI")
 			return fmt.Errorf("stream error: %w", err)
+		}
+
+		// Surface truncation in the agentic loop as well.
+		if len(acc.Choices) > 0 && acc.Choices[0].FinishReason == "length" {
+			truncated = true
 		}
 
 		// Accumulate token counts
@@ -291,6 +362,7 @@ func (s *LLMService) streamChatOpenAI(
 	// Send done event with usage stats
 	return onEvent(domain.LLMChatEvent{
 		Type:         "done",
+		Truncated:    truncated,
 		InputTokens:  &totalInputTokens,
 		OutputTokens: &totalOutputTokens,
 		InputCost:    &inputCost,

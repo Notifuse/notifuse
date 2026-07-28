@@ -1750,3 +1750,65 @@ func TestTestTemplateRequest_Validate(t *testing.T) {
 		})
 	}
 }
+
+func TestCreateTransactionalRequest_Validate_TrackingMode(t *testing.T) {
+	base := func() *CreateTransactionalRequest {
+		return &CreateTransactionalRequest{
+			WorkspaceID: "ws1",
+			Notification: TransactionalNotificationCreateParams{
+				ID:   "notif-1",
+				Name: "Test",
+				Channels: ChannelTemplates{
+					TransactionalChannelEmail: ChannelTemplate{TemplateID: "tpl-1"},
+				},
+			},
+		}
+	}
+
+	for _, valid := range []string{"", "inherit", "disabled"} {
+		req := base()
+		req.Notification.TrackingSettings.TrackingMode = valid
+		assert.NoError(t, req.Validate(), "mode %q must be accepted", valid)
+	}
+
+	req := base()
+	req.Notification.TrackingSettings.TrackingMode = "always"
+	err := req.Validate()
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid tracking_mode")
+}
+
+func TestUpdateTransactionalRequest_Validate_TrackingMode(t *testing.T) {
+	req := &UpdateTransactionalRequest{
+		WorkspaceID: "ws1",
+		ID:          "notif-1",
+		Updates: TransactionalNotificationUpdateParams{
+			Name: "Updated",
+		},
+	}
+	req.Updates.TrackingSettings.TrackingMode = "disabled"
+	assert.NoError(t, req.Validate())
+
+	req.Updates.TrackingSettings.TrackingMode = "bogus"
+	err := req.Validate()
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid tracking_mode")
+}
+
+func TestUpdateTransactionalRequest_Validate_TrackingModeOnlyUpdate(t *testing.T) {
+	// A tracking-settings-only update is a legitimate operation (opting a
+	// notification out of tracking, or resetting it) and must pass the
+	// at-least-one-field gate.
+	req := &UpdateTransactionalRequest{
+		WorkspaceID: "ws1",
+		ID:          "notif-1",
+	}
+	req.Updates.TrackingSettings.TrackingMode = "disabled"
+	assert.NoError(t, req.Validate())
+
+	// An entirely empty update is still rejected.
+	empty := &UpdateTransactionalRequest{WorkspaceID: "ws1", ID: "notif-1"}
+	err := empty.Validate()
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "at least one field")
+}

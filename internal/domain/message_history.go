@@ -104,21 +104,21 @@ func (d *MessageData) Scan(value interface{}) error {
 
 // MessageHistory represents a record of a message sent to a contact
 type MessageHistory struct {
-	ID              string               `json:"id"`
-	ExternalID      *string              `json:"external_id,omitempty"`     // For idempotency checks
-	SMTPMessageID   *string              `json:"smtp_message_id,omitempty"` // Recipient-visible RFC Message-ID for reply matching; set only for exit_on_reply sends
-	ContactEmail    string               `json:"contact_email"`
-	BroadcastID     *string              `json:"broadcast_id,omitempty"`
-	AutomationID                *string `json:"automation_id,omitempty"`                  // Automation this message was sent from (nullable for broadcasts/transactional)
-	TransactionalNotificationID *string `json:"transactional_notification_id,omitempty"` // Transactional notification this message was sent from
-	ListID                      *string `json:"list_id,omitempty"`                       // List this message was sent to (nullable for transactional emails)
-	TemplateID      string               `json:"template_id"`
-	TemplateVersion int64                `json:"template_version"`
-	Channel         string               `json:"channel"` // email, sms, push, etc.
-	StatusInfo      *string              `json:"status_info,omitempty"`
-	MessageData     MessageData          `json:"message_data"`
-	ChannelOptions  *ChannelOptions      `json:"channel_options,omitempty"` // Channel-specific delivery options
-	Attachments     []AttachmentMetadata `json:"attachments,omitempty"`
+	ID                          string               `json:"id"`
+	ExternalID                  *string              `json:"external_id,omitempty"`     // For idempotency checks
+	SMTPMessageID               *string              `json:"smtp_message_id,omitempty"` // Recipient-visible RFC Message-ID for reply matching; set only for exit_on_reply sends
+	ContactEmail                string               `json:"contact_email"`
+	BroadcastID                 *string              `json:"broadcast_id,omitempty"`
+	AutomationID                *string              `json:"automation_id,omitempty"`                 // Automation this message was sent from (nullable for broadcasts/transactional)
+	TransactionalNotificationID *string              `json:"transactional_notification_id,omitempty"` // Transactional notification this message was sent from
+	ListID                      *string              `json:"list_id,omitempty"`                       // List this message was sent to (nullable for transactional emails)
+	TemplateID                  string               `json:"template_id"`
+	TemplateVersion             int64                `json:"template_version"`
+	Channel                     string               `json:"channel"` // email, sms, push, etc.
+	StatusInfo                  *string              `json:"status_info,omitempty"`
+	MessageData                 MessageData          `json:"message_data"`
+	ChannelOptions              *ChannelOptions      `json:"channel_options,omitempty"` // Channel-specific delivery options
+	Attachments                 []AttachmentMetadata `json:"attachments,omitempty"`
 
 	// Event timestamps
 	SentAt         time.Time  `json:"sent_at"`
@@ -144,6 +144,13 @@ type MessageHistoryStatusSum struct {
 	TotalOpened       int `json:"total_opened"`
 	TotalClicked      int `json:"total_clicked"`
 	TotalUnsubscribed int `json:"total_unsubscribed"`
+}
+
+// LinkClickStats aggregates clicks for a single destination URL within a broadcast
+type LinkClickStats struct {
+	URL          string `json:"url"`
+	TotalClicks  int64  `json:"total_clicks"`
+	UniqueClicks int64  `json:"unique_clicks"` // messages that clicked this URL at least once
 }
 
 // MessageHistoryRepository defines methods for message history persistence
@@ -181,8 +188,9 @@ type MessageHistoryRepository interface {
 	// SetStatusesIfNotSet updates multiple message statuses in a batch if they haven't been set before
 	SetStatusesIfNotSet(ctx context.Context, workspaceID string, updates []MessageEventUpdate) error
 
-	// SetClicked sets the clicked_at timestamp and ensures opened_at is also set
-	SetClicked(ctx context.Context, workspaceID, id string, timestamp time.Time) error
+	// SetClicked sets the clicked_at timestamp and ensures opened_at is also set.
+	// When clickedURL is non-empty, the per-URL click counters in clicked_links are updated too.
+	SetClicked(ctx context.Context, workspaceID, id string, timestamp time.Time, clickedURL string) error
 
 	// SetOpened sets the opened_at timestamp if not already set
 	SetOpened(ctx context.Context, workspaceID, id string, timestamp time.Time) error
@@ -192,6 +200,11 @@ type MessageHistoryRepository interface {
 
 	// GetBroadcastVariationStats retrieves statistics for a specific variation of a broadcast
 	GetBroadcastVariationStats(ctx context.Context, workspaceID, broadcastID, templateID string) (*MessageHistoryStatusSum, error)
+
+	// GetBroadcastLinkStats retrieves per-URL click statistics for a broadcast.
+	// When templateID is non-empty, only clicks on messages sent with that template
+	// (i.e. that A/B variation) are counted; empty templateID covers the whole broadcast.
+	GetBroadcastLinkStats(ctx context.Context, workspaceID, broadcastID, templateID string) ([]LinkClickStats, error)
 
 	// DeleteForEmail deletes all message history records for a specific email
 	DeleteForEmail(ctx context.Context, workspaceID, email string) error
@@ -207,6 +220,11 @@ type MessageHistoryService interface {
 
 	// GetBroadcastVariationStats retrieves statistics for a specific variation of a broadcast
 	GetBroadcastVariationStats(ctx context.Context, workspaceID, broadcastID, templateID string) (*MessageHistoryStatusSum, error)
+
+	// GetBroadcastLinkStats retrieves per-URL click statistics for a broadcast.
+	// When templateID is non-empty, only clicks on messages sent with that template
+	// (i.e. that A/B variation) are counted; empty templateID covers the whole broadcast.
+	GetBroadcastLinkStats(ctx context.Context, workspaceID, broadcastID, templateID string) ([]LinkClickStats, error)
 }
 
 // MessageListParams contains parameters for listing messages with pagination and filtering

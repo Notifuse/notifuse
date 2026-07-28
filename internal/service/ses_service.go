@@ -1319,36 +1319,35 @@ func (s *SESService) sendRawEmail(ctx context.Context, sesClient domain.SESClien
 
 	buf.WriteString("MIME-Version: 1.0\r\n")
 
-	// Create multipart writer
-	writer := multipart.NewWriter(&buf)
-	boundary := writer.Boundary()
-	buf.WriteString(fmt.Sprintf("Content-Type: multipart/mixed; boundary=\"%s\"\r\n\r\n", boundary))
+	// writeHTMLPart writes the quoted-printable HTML body into the given writer.
+	writeHTMLPart := func(w *multipart.Writer) error {
+		htmlPart := textproto.MIMEHeader{}
+		htmlPart.Set("Content-Type", "text/html; charset=UTF-8")
+		htmlPart.Set("Content-Transfer-Encoding", "quoted-printable")
 
-	// Add HTML body part
-	htmlPart := textproto.MIMEHeader{}
-	htmlPart.Set("Content-Type", "text/html; charset=UTF-8")
-	htmlPart.Set("Content-Transfer-Encoding", "quoted-printable")
+		htmlWriter, err := w.CreatePart(htmlPart)
+		if err != nil {
+			return fmt.Errorf("failed to create HTML part: %w", err)
+		}
 
-	htmlWriter, err := writer.CreatePart(htmlPart)
-	if err != nil {
-		return fmt.Errorf("failed to create HTML part: %w", err)
+		// Wrap with quoted-printable encoder for RFC 2045 compliance (Issue #230)
+		qpWriter := quotedprintable.NewWriter(htmlWriter)
+		if _, err := qpWriter.Write([]byte(request.Content)); err != nil {
+			qpWriter.Close()
+			return fmt.Errorf("failed to write HTML content: %w", err)
+		}
+		if err := qpWriter.Close(); err != nil {
+			return fmt.Errorf("failed to close quoted-printable writer: %w", err)
+		}
+		return nil
 	}
 
-	// Wrap with quoted-printable encoder for RFC 2045 compliance (Issue #230)
-	qpWriter := quotedprintable.NewWriter(htmlWriter)
-	if _, err := qpWriter.Write([]byte(request.Content)); err != nil {
-		qpWriter.Close()
-		return fmt.Errorf("failed to write HTML content: %w", err)
-	}
-	if err := qpWriter.Close(); err != nil {
-		return fmt.Errorf("failed to close quoted-printable writer: %w", err)
-	}
-
-	// Add attachments
-	for i, att := range request.EmailOptions.Attachments {
+	// writeAttachmentPart writes a single attachment (inline or not) as a base64
+	// MIME part into the given writer.
+	writeAttachmentPart := func(w *multipart.Writer, att domain.Attachment, inline bool) error {
 		content, err := att.DecodeContent()
 		if err != nil {
-			return fmt.Errorf("attachment %d: failed to decode content: %w", i, err)
+			return fmt.Errorf("failed to decode content: %w", err)
 		}
 
 		attachPart := textproto.MIMEHeader{}
@@ -1363,41 +1362,91 @@ func (s *SESService) sendRawEmail(ctx context.Context, sesClient domain.SESClien
 		// Use base64 encoding for binary content (SES standard)
 		attachPart.Set("Content-Transfer-Encoding", "base64")
 
-		// Set disposition (attachment or inline)
-		disposition := att.Disposition
-		if disposition == "" {
-			disposition = "attachment"
-		}
-
-		// For inline attachments, we need to set Content-ID for referencing in HTML
-		if disposition == "inline" {
-			// Generate a simple Content-ID from filename (AWS SES approach)
-			contentID := strings.ReplaceAll(att.Filename, " ", "_")
+		if inline {
+			// Content-ID lets the HTML reference the image as cid:<id>. Use the
+			// caller-provided content_id when present, else the filename. Spaces
+			// are not valid in a Content-ID, so normalize them to underscores.
+			contentID := strings.ReplaceAll(att.EffectiveContentID(), " ", "_")
 			attachPart.Set("Content-ID", fmt.Sprintf("<%s>", contentID))
 			attachPart.Set("Content-Disposition", fmt.Sprintf("inline; filename=\"%s\"", att.Filename))
 		} else {
 			attachPart.Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", att.Filename))
 		}
 
-		attachWriter, err := writer.CreatePart(attachPart)
+		attachWriter, err := w.CreatePart(attachPart)
 		if err != nil {
-			return fmt.Errorf("attachment %d: failed to create part: %w", i, err)
+			return fmt.Errorf("failed to create part: %w", err)
 		}
 
 		// Write base64 encoded content with proper line wrapping (RFC 2045: max 76 chars per line)
 		encoded := base64.StdEncoding.EncodeToString(content)
-		// Split into 76-character lines for RFC compliance
 		for len(encoded) > 76 {
 			if _, err := attachWriter.Write([]byte(encoded[:76] + "\r\n")); err != nil {
-				return fmt.Errorf("attachment %d: failed to write content: %w", i, err)
+				return fmt.Errorf("failed to write content: %w", err)
 			}
 			encoded = encoded[76:]
 		}
-		// Write remaining content
 		if len(encoded) > 0 {
 			if _, err := attachWriter.Write([]byte(encoded + "\r\n")); err != nil {
-				return fmt.Errorf("attachment %d: failed to write content: %w", i, err)
+				return fmt.Errorf("failed to write content: %w", err)
 			}
+		}
+		return nil
+	}
+
+	// Partition attachments: inline images must live in a multipart/related
+	// subtree alongside the HTML body so clients embed them, whereas regular
+	// attachments stay at the top-level multipart/mixed. Placing inline images
+	// directly under multipart/mixed makes Gmail/Outlook render them as dangling
+	// attachments instead of embedding them.
+	var inlineAtts, regularAtts []domain.Attachment
+	for _, att := range request.EmailOptions.Attachments {
+		if att.Disposition == "inline" {
+			inlineAtts = append(inlineAtts, att)
+		} else {
+			regularAtts = append(regularAtts, att)
+		}
+	}
+
+	// Create top-level multipart/mixed writer
+	writer := multipart.NewWriter(&buf)
+	boundary := writer.Boundary()
+	buf.WriteString(fmt.Sprintf("Content-Type: multipart/mixed; boundary=\"%s\"\r\n\r\n", boundary))
+
+	// HTML body — wrapped in multipart/related when inline images are present.
+	if len(inlineAtts) > 0 {
+		relatedBoundary := multipart.NewWriter(&bytes.Buffer{}).Boundary()
+		relatedHeader := textproto.MIMEHeader{}
+		relatedHeader.Set("Content-Type", fmt.Sprintf("multipart/related; type=\"text/html\"; boundary=\"%s\"", relatedBoundary))
+		relatedPart, err := writer.CreatePart(relatedHeader)
+		if err != nil {
+			return fmt.Errorf("failed to create related part: %w", err)
+		}
+		related := multipart.NewWriter(relatedPart)
+		if err := related.SetBoundary(relatedBoundary); err != nil {
+			return fmt.Errorf("failed to set related boundary: %w", err)
+		}
+		if err := writeHTMLPart(related); err != nil {
+			return err
+		}
+		for i, att := range inlineAtts {
+			if err := writeAttachmentPart(related, att, true); err != nil {
+				return fmt.Errorf("inline attachment %d: %w", i, err)
+			}
+		}
+		if err := related.Close(); err != nil {
+			return fmt.Errorf("failed to close related writer: %w", err)
+		}
+	} else {
+		if err := writeHTMLPart(writer); err != nil {
+			return err
+		}
+	}
+
+	// Regular (non-inline) attachments at the top level
+	for i, att := range regularAtts {
+		if err := writeAttachmentPart(writer, att, false); err != nil {
+			return fmt.Errorf("attachment %d: %w", i, err)
 		}
 	}
 

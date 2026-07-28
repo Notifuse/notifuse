@@ -15,8 +15,11 @@ const SERVER_TOOLS = {
   SEARCH_WEB: 'search_web'
 } as const
 
+// Marker toolName for persistent error bubbles (styled distinctly).
+const ERROR_TOOL_NAME = '__error__'
+
 export function useAIAssistant(options: UseAIAssistantOptions): UseAIAssistantReturn {
-  const { workspace, config, tools, toolHandlers, buildSystemPrompt } = options
+  const { workspace, config, tools, toolHandlers, buildSystemPrompt, validateOnComplete } = options
   const { t } = useLingui()
 
   const [open, setOpen] = useState(false)
@@ -64,7 +67,8 @@ export function useAIAssistant(options: UseAIAssistantOptions): UseAIAssistantRe
     setMessages((prev) => {
       const assistantIndex = prev.findIndex((m) => m.key === assistantKey)
       const newToolMessage: ChatMessage = {
-        key: `tool-${Date.now()}`,
+        // Unique even when several tool calls resolve within the same millisecond.
+        key: `tool-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
         role: 'tool',
         content,
         toolName,
@@ -76,16 +80,17 @@ export function useAIAssistant(options: UseAIAssistantOptions): UseAIAssistantRe
       }
 
       const assistant = prev[assistantIndex]
-      if (!assistant.content.trim()) {
+      // If the assistant produced nothing visible (no text, no reasoning), replace its
+      // empty bubble with the tool result so no blank bubble is shown above it.
+      if (!assistant.content.trim() && !assistant.thinking?.trim()) {
         return [...prev.slice(0, assistantIndex), newToolMessage, ...prev.slice(assistantIndex + 1)]
       }
 
-      return [
-        ...prev.slice(0, assistantIndex),
-        newToolMessage,
-        { ...assistant, loading: false },
-        ...prev.slice(assistantIndex + 1)
-      ]
+      // Otherwise keep the assistant's text/reasoning and append the tool result AFTER
+      // it: tool calls stream after the assistant's message, so they belong below it,
+      // and appending preserves the order of multiple tool calls within one turn.
+      const cleared = prev.map((m) => (m.key === assistantKey ? { ...m, loading: false } : m))
+      return [...cleared, newToolMessage]
     })
   }
 
@@ -94,6 +99,17 @@ export function useAIAssistant(options: UseAIAssistantOptions): UseAIAssistantRe
     setMessages((prev) =>
       prev.map((m) =>
         m.key === assistantKey ? { ...m, content: m.content + event.content, loading: false } : m
+      )
+    )
+  }
+
+  const handleThinkingEvent = (event: LLMChatEvent, assistantKey: string) => {
+    if (!event.content) return
+    // Accumulate reasoning on a separate field; keep `loading` until the answer
+    // (text/tool) starts, so the assistant bubble still shows progress.
+    setMessages((prev) =>
+      prev.map((m) =>
+        m.key === assistantKey ? { ...m, thinking: (m.thinking || '') + event.content } : m
       )
     )
   }
@@ -135,6 +151,14 @@ export function useAIAssistant(options: UseAIAssistantOptions): UseAIAssistantRe
     }
     setMessages((prev) => prev.map((m) => (m.key === assistantKey ? { ...m, loading: false } : m)))
     setIsStreaming(false)
+    // Non-destructive notice: the response hit the token cap before finishing
+    // (common with reasoning models whose thinking eats the budget). The streamed
+    // content is kept; we just append a warning.
+    if (event.truncated) {
+      appendErrorMessage(
+        t`The response was cut off because it reached the token limit. Lower the reasoning effort, simplify the request, or raise the token limit, then try again.`
+      )
+    }
   }
 
   const handleErrorEvent = (event: LLMChatEvent, assistantKey: string) => {
@@ -144,6 +168,15 @@ export function useAIAssistant(options: UseAIAssistantOptions): UseAIAssistantRe
       )
     )
     setIsStreaming(false)
+  }
+
+  // Append a persistent error bubble (distinct from the transient antd toast) so a
+  // failure stays visible in the conversation rather than vanishing.
+  const appendErrorMessage = (content: string) => {
+    setMessages((prev) => [
+      ...prev,
+      { key: `error-${Date.now()}`, role: 'tool', toolName: ERROR_TOOL_NAME, content }
+    ])
   }
 
   const handleSend = async () => {
@@ -176,6 +209,10 @@ export function useAIAssistant(options: UseAIAssistantOptions): UseAIAssistantRe
 
     abortControllerRef.current = new AbortController()
 
+    // Track whether the assistant actually edited anything this turn; validation
+    // only matters when a client-side tool ran.
+    let clientToolRan = false
+
     try {
       await llmApi.streamChat(
         {
@@ -191,9 +228,13 @@ export function useAIAssistant(options: UseAIAssistantOptions): UseAIAssistantRe
             case 'text':
               handleTextEvent(event, assistantKey)
               break
+            case 'thinking':
+              handleThinkingEvent(event, assistantKey)
+              break
             case 'tool_use': {
               const handler = toolHandlers.get(event.tool_name || '')
               if (handler) {
+                clientToolRan = true
                 handler(event, (content, name) => insertToolMessage(assistantKey, content, name))
               }
               break
@@ -218,6 +259,29 @@ export function useAIAssistant(options: UseAIAssistantOptions): UseAIAssistantRe
         },
         { signal: abortControllerRef.current.signal }
       )
+
+      // After the turn: if the assistant edited the document, validate the result
+      // (e.g. compile MJML) and surface a persistent error rather than letting a
+      // broken output be presented as success.
+      if (
+        clientToolRan &&
+        validateOnComplete &&
+        !abortControllerRef.current.signal.aborted
+      ) {
+        try {
+          const result = await validateOnComplete()
+          if (!result.ok) {
+            appendErrorMessage(
+              t`The generated email has issues that prevent it from rendering:` +
+                (result.errorText ? `\n\n${result.errorText}` : '') +
+                '\n\n' +
+                t`Ask me to fix these issues.`
+            )
+          }
+        } catch (validationError) {
+          console.error('Validation after completion failed:', validationError)
+        }
+      }
     } catch (error) {
       console.error('Failed to stream:', error)
       setIsStreaming(false)
@@ -229,20 +293,36 @@ export function useAIAssistant(options: UseAIAssistantOptions): UseAIAssistantRe
     setCosts({ input: 0, output: 0, total: 0 })
   }
 
-  const bubbleItems: BubbleItem[] = messages.map((m) => {
+  const bubbleItems: BubbleItem[] = messages.flatMap((m) => {
+    const items: BubbleItem[] = []
+
+    // Render accumulated reasoning as a collapsible bubble above the answer.
+    if (m.thinking && m.thinking.trim()) {
+      items.push({ key: `${m.key}-thinking`, role: 'thinking', content: m.thinking })
+    }
+
+    // Skip a finished assistant message that only produced reasoning (no answer text);
+    // its thinking bubble above is enough and an empty answer bubble looks broken.
+    if (m.role === 'assistant' && !m.content.trim() && !m.loading && m.thinking?.trim()) {
+      return items
+    }
+
     const isServerTool =
       m.toolName === SERVER_TOOLS.SCRAPE_URL || m.toolName === SERVER_TOOLS.SEARCH_WEB
+    const isError = m.toolName === ERROR_TOOL_NAME
 
-    return {
+    items.push({
       key: m.key,
       role: m.role === 'user' ? 'user' : m.role === 'tool' ? 'system' : 'ai',
       content: m.content,
       loading: m.loading,
       ...(m.role === 'tool' && {
         styles: {
-          content: isServerTool
-            ? { background: '#e6f4ff' }
-            : { background: '#f6ffed', border: '1px solid #b7eb8f' }
+          content: isError
+            ? { background: '#fff2f0', border: '1px solid #ffccc7', whiteSpace: 'pre-wrap' }
+            : isServerTool
+              ? { background: '#e6f4ff' }
+              : { background: '#f6ffed', border: '1px solid #b7eb8f' }
         }
       }),
       ...(m.role === 'tool' && isServerTool && {
@@ -252,7 +332,9 @@ export function useAIAssistant(options: UseAIAssistantOptions): UseAIAssistantRe
           style: { background: '#1890ff', minWidth: 20, minHeight: 20 }
         }
       })
-    }
+    })
+
+    return items
   })
 
   return {

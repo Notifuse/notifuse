@@ -57,11 +57,14 @@ func (s *LLMService) streamChatGemini(
 	// Set default max tokens
 	maxTokens := int32(req.MaxTokens)
 	if maxTokens == 0 {
-		maxTokens = 2048
+		maxTokens = defaultMaxTokens
 	}
 
 	config := &genai.GenerateContentConfig{
 		MaxOutputTokens: maxTokens,
+		// Return the model's reasoning so it can be streamed on the "thinking" channel.
+		// The model reasons regardless; this only controls whether thoughts are returned.
+		ThinkingConfig: &genai.ThinkingConfig{IncludeThoughts: true},
 	}
 
 	// Add system prompt if provided
@@ -86,6 +89,9 @@ func (s *LLMService) streamChatGemini(
 		config.Tools = []*genai.Tool{{FunctionDeclarations: decls}}
 	}
 
+	// Set when any request finishes with MAX_TOKENS; reported on the final "done".
+	truncated := false
+
 	// streamOnce runs a single streaming request against the current `contents`,
 	// emits text + client-side tool_use events, and returns the model's parts
 	// (to append as the assistant turn) plus any server-side tool calls and the
@@ -94,6 +100,7 @@ func (s *LLMService) streamChatGemini(
 	streamOnce := func() (modelParts []*genai.Part, serverToolCalls []geminiToolCall, promptTokens, outputTokens int64, retErr error) {
 		var textBuilder strings.Builder
 		var fcParts []*genai.Part
+		var finishReason genai.FinishReason
 
 		for resp, streamErr := range client.Models.GenerateContentStream(ctx, model, contents, config) {
 			if streamErr != nil {
@@ -106,6 +113,13 @@ func (s *LLMService) streamChatGemini(
 				outputTokens = int64(resp.UsageMetadata.CandidatesTokenCount)
 			}
 
+			// Capture the finish reason before the content nil-check below: the final
+			// chunk can carry FinishReason with empty content (e.g. budget spent on
+			// reasoning), which would otherwise be skipped by the `continue`.
+			if len(resp.Candidates) > 0 && resp.Candidates[0].FinishReason != "" {
+				finishReason = resp.Candidates[0].FinishReason
+			}
+
 			if len(resp.Candidates) == 0 || resp.Candidates[0].Content == nil {
 				continue
 			}
@@ -115,8 +129,16 @@ func (s *LLMService) streamChatGemini(
 					continue
 				}
 
-				// Stream text deltas (skip the model's internal "thought" parts).
-				if part.Text != "" && !part.Thought {
+				// Stream the model's internal reasoning ("thought") parts on a
+				// separate channel; stream the visible answer as text.
+				if part.Text != "" && part.Thought {
+					if sendErr := onEvent(domain.LLMChatEvent{
+						Type:    "thinking",
+						Content: part.Text,
+					}); sendErr != nil {
+						return nil, nil, promptTokens, outputTokens, fmt.Errorf("failed to send thinking event: %w", sendErr)
+					}
+				} else if part.Text != "" {
 					if sendErr := onEvent(domain.LLMChatEvent{
 						Type:    "text",
 						Content: part.Text,
@@ -151,6 +173,13 @@ func (s *LLMService) streamChatGemini(
 					}
 				}
 			}
+		}
+
+		// Truncation: when the model spends the whole budget on reasoning it finishes
+		// with MAX_TOKENS (often with empty/partial parts). Report it as a
+		// non-destructive flag on the "done" event rather than a terminal error.
+		if finishReason == genai.FinishReasonMaxTokens {
+			truncated = true
 		}
 
 		// Assemble the assistant turn: text first (if any), then function calls.
@@ -266,6 +295,7 @@ func (s *LLMService) streamChatGemini(
 	// Send done event with usage stats
 	return onEvent(domain.LLMChatEvent{
 		Type:         "done",
+		Truncated:    truncated,
 		InputTokens:  &totalInputTokens,
 		OutputTokens: &totalOutputTokens,
 		InputCost:    &inputCost,

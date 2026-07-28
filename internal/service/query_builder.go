@@ -493,12 +493,35 @@ func (qb *QueryBuilder) parseContactTimelineConditions(timeline *domain.ContactT
 		}
 	}
 
-	// If template_id filter is specified, scope to specific template via message_history
+	// Scope to specific sent messages via message_history when template/broadcast/link
+	// filters are set. All are ANDed into one subquery on the message the timeline row
+	// points to (ct.entity_id = message_history.id). link_url does a case-insensitive
+	// substring match against the clicked destination URLs stored as keys of the
+	// clicked_links JSONB (populated for click events only).
+	var mhConds []string
 	if timeline.TemplateID != nil && *timeline.TemplateID != "" {
 		args = append(args, *timeline.TemplateID)
-		conditions = append(conditions, fmt.Sprintf(
-			"ct.entity_id IN (SELECT id FROM message_history WHERE template_id = $%d)", argIndex))
+		mhConds = append(mhConds, fmt.Sprintf("template_id = $%d", argIndex))
 		argIndex++
+	}
+	if timeline.BroadcastID != nil && *timeline.BroadcastID != "" {
+		args = append(args, *timeline.BroadcastID)
+		mhConds = append(mhConds, fmt.Sprintf("broadcast_id = $%d", argIndex))
+		argIndex++
+	}
+	if timeline.LinkURL != nil && *timeline.LinkURL != "" {
+		// Literal, case-insensitive substring match via strpos (NOT ILIKE): URLs routinely
+		// contain '%' (percent-encoding) and '_', which ILIKE would treat as wildcards.
+		// jsonb_object_keys errors on non-object values, so coerce a malformed clicked_links
+		// to an empty object first (same planner-independent guard the click-writer uses).
+		args = append(args, *timeline.LinkURL)
+		mhConds = append(mhConds, fmt.Sprintf(
+			"EXISTS (SELECT 1 FROM jsonb_object_keys(CASE WHEN jsonb_typeof(clicked_links) = 'object' THEN clicked_links ELSE '{}'::jsonb END) AS k WHERE strpos(lower(k), lower($%d)) > 0)", argIndex))
+		argIndex++
+	}
+	if len(mhConds) > 0 {
+		conditions = append(conditions, fmt.Sprintf(
+			"ct.entity_id IN (SELECT id FROM message_history WHERE %s)", strings.Join(mhConds, " AND ")))
 	}
 
 	// Build the subquery WHERE clause
@@ -784,9 +807,11 @@ func (qb *QueryBuilder) parseTimelineFilter(filter *domain.DimensionFilter, argI
 		return "", nil, argIndex, fmt.Errorf("filter cannot be nil")
 	}
 
-	// Timeline metadata is stored in JSONB, so we need to use JSON operators
-	// For now, support common timeline metadata fields
-	fieldPath := fmt.Sprintf("ct.metadata->>'%s'", filter.FieldName)
+	// Timeline event fields live in the contact_timeline.changes JSONB column, which the
+	// database triggers populate as {field: {old, new}} (an insert only sets "new"). Read
+	// the "new" value — the resulting value of the change. (There is no "metadata" column;
+	// referencing one produced SQL that failed at execution.)
+	fieldPath := fmt.Sprintf("ct.changes->'%s'->>'new'", filter.FieldName)
 
 	// Validate operator
 	sqlOp, ok := qb.allowedOperators[filter.Operator]
@@ -1319,12 +1344,35 @@ func (qb *QueryBuilder) parseContactTimelineConditionsWithEmailRef(timeline *dom
 		}
 	}
 
-	// If template_id filter is specified, scope to specific template via message_history
+	// Scope to specific sent messages via message_history when template/broadcast/link
+	// filters are set. All are ANDed into one subquery on the message the timeline row
+	// points to (ct.entity_id = message_history.id). link_url does a case-insensitive
+	// substring match against the clicked destination URLs stored as keys of the
+	// clicked_links JSONB (populated for click events only).
+	var mhConds []string
 	if timeline.TemplateID != nil && *timeline.TemplateID != "" {
 		args = append(args, *timeline.TemplateID)
-		conditions = append(conditions, fmt.Sprintf(
-			"ct.entity_id IN (SELECT id FROM message_history WHERE template_id = $%d)", argIndex))
+		mhConds = append(mhConds, fmt.Sprintf("template_id = $%d", argIndex))
 		argIndex++
+	}
+	if timeline.BroadcastID != nil && *timeline.BroadcastID != "" {
+		args = append(args, *timeline.BroadcastID)
+		mhConds = append(mhConds, fmt.Sprintf("broadcast_id = $%d", argIndex))
+		argIndex++
+	}
+	if timeline.LinkURL != nil && *timeline.LinkURL != "" {
+		// Literal, case-insensitive substring match via strpos (NOT ILIKE): URLs routinely
+		// contain '%' (percent-encoding) and '_', which ILIKE would treat as wildcards.
+		// jsonb_object_keys errors on non-object values, so coerce a malformed clicked_links
+		// to an empty object first (same planner-independent guard the click-writer uses).
+		args = append(args, *timeline.LinkURL)
+		mhConds = append(mhConds, fmt.Sprintf(
+			"EXISTS (SELECT 1 FROM jsonb_object_keys(CASE WHEN jsonb_typeof(clicked_links) = 'object' THEN clicked_links ELSE '{}'::jsonb END) AS k WHERE strpos(lower(k), lower($%d)) > 0)", argIndex))
+		argIndex++
+	}
+	if len(mhConds) > 0 {
+		conditions = append(conditions, fmt.Sprintf(
+			"ct.entity_id IN (SELECT id FROM message_history WHERE %s)", strings.Join(mhConds, " AND ")))
 	}
 
 	// Build the subquery WHERE clause

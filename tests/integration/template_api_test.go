@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"sync"
 	"testing"
 	"time"
 
@@ -278,9 +279,9 @@ func TestTemplateCompileWithSubject(t *testing.T) {
 	workspaceID := createTestWorkspace(t, client, "Compile Subject Test Workspace")
 
 	compileReq := map[string]interface{}{
-		"workspace_id": workspaceID,
-		"message_id":   "preview",
-		"subject":      "Hi {{ contact.first_name }}",
+		"workspace_id":    workspaceID,
+		"message_id":      "preview",
+		"subject":         "Hi {{ contact.first_name }}",
 		"subject_preview": "Welcome {{ contact.first_name }}",
 		"test_data": map[string]interface{}{
 			"contact": map[string]interface{}{
@@ -609,3 +610,203 @@ func createSimpleMJMLString() string {
 	</mjml>`
 }
 */
+
+// TestTemplateVersionConflict exercises the optimistic-concurrency guard end-to-end
+// against real Postgres: a save based on a stale revision is rejected with 409, while
+// a save based on the current revision (or with no base_version) succeeds. This is the
+// one path sqlmock cannot validate — the atomic `WHERE base_version = MAX(version)`
+// guard inside the CTE INSERT.
+func TestTemplateVersionConflict(t *testing.T) {
+	testutil.SkipIfShort(t)
+	testutil.SetupTestEnvironment()
+	defer testutil.CleanupTestEnvironment()
+
+	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
+		return app.NewApp(cfg)
+	})
+	defer func() { suite.Cleanup() }()
+
+	client := suite.APIClient
+	token := performCompleteSignInFlow(t, client, "test@example.com")
+	client.SetToken(token)
+	workspaceID := createTestWorkspace(t, client, "Version Conflict Workspace")
+
+	templateID := fmt.Sprintf("conflict-%d", time.Now().UnixNano()) // keep <= 32 chars
+	mjmlSrc := "<mjml><mj-body><mj-section><mj-column><mj-text>Hi</mj-text></mj-column></mj-section></mj-body></mjml>"
+	payload := func(name string, baseVersion *int) map[string]interface{} {
+		m := map[string]interface{}{
+			"workspace_id": workspaceID,
+			"id":           templateID,
+			"name":         name,
+			"channel":      "email",
+			"category":     "marketing",
+			"email": map[string]interface{}{
+				"editor_mode":      "code",
+				"mjml_source":      mjmlSrc,
+				"subject":          "Conflict Subject",
+				"compiled_preview": mjmlSrc,
+			},
+		}
+		if baseVersion != nil {
+			m["base_version"] = *baseVersion
+		}
+		return m
+	}
+
+	type updateResult struct {
+		Template struct {
+			Version int `json:"version"`
+		} `json:"template"`
+		Error         string `json:"error"`
+		LatestVersion int    `json:"latest_version"`
+		BaseVersion   int    `json:"base_version"`
+	}
+	doUpdate := func(name string, base *int) (int, updateResult) {
+		resp, err := client.Post("/api/templates.update", payload(name, base))
+		require.NoError(t, err)
+		defer func() { _ = resp.Body.Close() }()
+		var r updateResult
+		_ = json.NewDecoder(resp.Body).Decode(&r)
+		return resp.StatusCode, r
+	}
+
+	// Create the template (version 1).
+	createResp, err := client.CreateTemplate(payload("Conflict Base", nil))
+	require.NoError(t, err, "Should be able to create template")
+	require.Equal(t, http.StatusCreated, createResp.StatusCode, "Should be able to create template")
+	_ = createResp.Body.Close()
+
+	one, two := 1, 2
+
+	// Save based on the current version 1 → creates version 2.
+	status, r := doUpdate("Update from v1", &one)
+	require.Equal(t, http.StatusOK, status, "save based on the latest revision should succeed")
+	assert.Equal(t, 2, r.Template.Version)
+
+	// Save AGAIN based on the now-stale version 1 → rejected with 409.
+	status, r = doUpdate("Stale update from v1", &one)
+	require.Equal(t, http.StatusConflict, status, "save based on a stale revision must be rejected")
+	assert.Equal(t, 2, r.LatestVersion, "409 body should report the current latest version")
+	assert.Equal(t, 1, r.BaseVersion)
+
+	// Save based on the current version 2 → creates version 3.
+	status, r = doUpdate("Update from v2", &two)
+	require.Equal(t, http.StatusOK, status, "save based on the refreshed revision should succeed")
+	assert.Equal(t, 3, r.Template.Version)
+
+	// Legacy save with no base_version → last-writer-wins, creates version 4.
+	status, r = doUpdate("Legacy no base_version", nil)
+	require.Equal(t, http.StatusOK, status, "omitting base_version preserves last-writer-wins")
+	assert.Equal(t, 4, r.Template.Version)
+}
+
+// TestTemplateConcurrentSaveRace is the core proof that the optimistic-concurrency guard
+// is atomic under real concurrency (not just sequentially). It fires N simultaneous saves
+// all based on the same revision against real Postgres and asserts that EXACTLY ONE wins,
+// every other gets a clean 409 (never a 500 or a silent success), and the template
+// advances by exactly one version — i.e. no lost update and no double-write.
+func TestTemplateConcurrentSaveRace(t *testing.T) {
+	testutil.SkipIfShort(t)
+	testutil.SetupTestEnvironment()
+	defer testutil.CleanupTestEnvironment()
+
+	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
+		return app.NewApp(cfg)
+	})
+	defer func() { suite.Cleanup() }()
+
+	client := suite.APIClient
+	token := performCompleteSignInFlow(t, client, "test@example.com")
+	client.SetToken(token)
+	workspaceID := createTestWorkspace(t, client, "Concurrent Save Workspace")
+
+	templateID := fmt.Sprintf("race-%d", time.Now().UnixNano()) // keep <= 32 chars
+	mjmlSrc := "<mjml><mj-body><mj-section><mj-column><mj-text>Hi</mj-text></mj-column></mj-section></mj-body></mjml>"
+	payload := func(name string, baseVersion int) map[string]interface{} {
+		return map[string]interface{}{
+			"workspace_id": workspaceID,
+			"id":           templateID,
+			"name":         name,
+			"channel":      "email",
+			"category":     "marketing",
+			"base_version": baseVersion,
+			"email": map[string]interface{}{
+				"editor_mode":      "code",
+				"mjml_source":      mjmlSrc,
+				"subject":          "Race",
+				"compiled_preview": mjmlSrc,
+			},
+		}
+	}
+
+	// Create version 1.
+	createResp, err := client.CreateTemplate(payload("Race Base", 0))
+	require.NoError(t, err, "Should be able to create template")
+	require.Equal(t, http.StatusCreated, createResp.StatusCode)
+	_ = createResp.Body.Close()
+
+	// Fire N concurrent saves all based on version 1, released simultaneously to maximize
+	// contention. The PRIMARY KEY (id, version) and the atomic WHERE guard must let only one win.
+	const n = 8
+	type result struct {
+		status        int
+		latestVersion int
+	}
+	results := make(chan result, n)
+	start := make(chan struct{})
+	var wg sync.WaitGroup
+	for i := 0; i < n; i++ {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			<-start
+			resp, err := client.Post("/api/templates.update", payload(fmt.Sprintf("Racer %d", i), 1))
+			if err != nil {
+				results <- result{status: -1}
+				return
+			}
+			defer func() { _ = resp.Body.Close() }()
+			var body struct {
+				LatestVersion int `json:"latest_version"`
+			}
+			_ = json.NewDecoder(resp.Body).Decode(&body)
+			results <- result{status: resp.StatusCode, latestVersion: body.LatestVersion}
+		}(i)
+	}
+	close(start)
+	wg.Wait()
+	close(results)
+
+	okCount, conflictCount, otherCount := 0, 0, 0
+	for r := range results {
+		switch r.status {
+		case http.StatusOK:
+			okCount++
+		case http.StatusConflict:
+			conflictCount++
+			assert.Equal(t, 2, r.latestVersion, "409 body should report the winning version (2)")
+		default:
+			otherCount++
+			t.Logf("unexpected status from a concurrent save: %d", r.status)
+		}
+	}
+
+	assert.Equal(t, 1, okCount, "exactly one concurrent save must win")
+	assert.Equal(t, n-1, conflictCount, "every other concurrent save must get a clean 409 (not a 500 or a silent success)")
+	assert.Equal(t, 0, otherCount, "no concurrent save should error or return an unexpected status")
+
+	// The template must have advanced by exactly one version — proving no lost update and no double-write.
+	getResp, err := client.Get("/api/templates.get", map[string]string{
+		"workspace_id": workspaceID,
+		"id":           templateID,
+	})
+	require.NoError(t, err)
+	defer func() { _ = getResp.Body.Close() }()
+	var getBody struct {
+		Template struct {
+			Version int `json:"version"`
+		} `json:"template"`
+	}
+	require.NoError(t, json.NewDecoder(getResp.Body).Decode(&getBody))
+	assert.Equal(t, 2, getBody.Template.Version, "exactly one new version should exist after the race")
+}

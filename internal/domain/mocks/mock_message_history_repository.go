@@ -79,6 +79,21 @@ func (mr *MockMessageHistoryRepositoryMockRecorder) Get(arg0, arg1, arg2, arg3 i
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockMessageHistoryRepository)(nil).Get), arg0, arg1, arg2, arg3)
 }
 
+// GetBroadcastLinkStats mocks base method.
+func (m *MockMessageHistoryRepository) GetBroadcastLinkStats(arg0 context.Context, arg1, arg2, arg3 string) ([]domain.LinkClickStats, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetBroadcastLinkStats", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].([]domain.LinkClickStats)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetBroadcastLinkStats indicates an expected call of GetBroadcastLinkStats.
+func (mr *MockMessageHistoryRepositoryMockRecorder) GetBroadcastLinkStats(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBroadcastLinkStats", reflect.TypeOf((*MockMessageHistoryRepository)(nil).GetBroadcastLinkStats), arg0, arg1, arg2, arg3)
+}
+
 // GetBroadcastStats mocks base method.
 func (m *MockMessageHistoryRepository) GetBroadcastStats(arg0 context.Context, arg1, arg2 string) (*domain.MessageHistoryStatusSum, error) {
 	m.ctrl.T.Helper()
@@ -188,17 +203,17 @@ func (mr *MockMessageHistoryRepositoryMockRecorder) ListMessages(arg0, arg1, arg
 }
 
 // SetClicked mocks base method.
-func (m *MockMessageHistoryRepository) SetClicked(arg0 context.Context, arg1, arg2 string, arg3 time.Time) error {
+func (m *MockMessageHistoryRepository) SetClicked(arg0 context.Context, arg1, arg2 string, arg3 time.Time, arg4 string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SetClicked", arg0, arg1, arg2, arg3)
+	ret := m.ctrl.Call(m, "SetClicked", arg0, arg1, arg2, arg3, arg4)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // SetClicked indicates an expected call of SetClicked.
-func (mr *MockMessageHistoryRepositoryMockRecorder) SetClicked(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+func (mr *MockMessageHistoryRepositoryMockRecorder) SetClicked(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetClicked", reflect.TypeOf((*MockMessageHistoryRepository)(nil).SetClicked), arg0, arg1, arg2, arg3)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetClicked", reflect.TypeOf((*MockMessageHistoryRepository)(nil).SetClicked), arg0, arg1, arg2, arg3, arg4)
 }
 
 // SetOpened mocks base method.

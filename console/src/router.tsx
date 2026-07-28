@@ -62,6 +62,11 @@ export interface BroadcastsSearch {
   q?: string
 }
 
+export interface TemplatesSearch {
+  category?: string
+  q?: string
+}
+
 // Create the root route
 const rootRoute = createRootRoute({
   component: RootLayout
@@ -237,7 +242,20 @@ const workspaceSettingsRoute = createRoute({
 const workspaceTemplatesRoute = createRoute({
   getParentRoute: () => workspaceRoute,
   path: '/templates',
-  component: TemplatesPage
+  component: TemplatesPage,
+  validateSearch: (search: Record<string, unknown>): TemplatesSearch => {
+    // The default JSON.parse-based search parser coerces number/boolean-looking
+    // values (?q=123 -> number, ?q=a&q=b -> array), and the search box calls
+    // .trim() on q. Coerce every param to a clean string or undefined so a
+    // hand-written or shared URL can never feed a non-string into the page.
+    const normalize = (value: unknown): string | undefined => {
+      const single = Array.isArray(value) ? value[0] : value
+      if (typeof single !== 'string') return undefined
+      const trimmed = single.trim()
+      return trimmed === '' ? undefined : trimmed
+    }
+    return { category: normalize(search.category), q: normalize(search.q) }
+  }
 })
 
 const workspaceAnalyticsRoute = createRoute({

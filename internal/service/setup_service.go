@@ -16,18 +16,18 @@ import (
 
 // SetupConfig represents the setup initialization configuration
 type SetupConfig struct {
-	RootEmail              string
-	APIEndpoint            string
-	SMTPHost               string
-	SMTPPort               int
-	SMTPUsername           string
-	SMTPPassword           string
-	SMTPFromEmail          string
-	SMTPFromName           string
-	SMTPUseTLS             bool
-	SMTPEHLOHostname       string
-	TelemetryEnabled       bool
-	CheckForUpdates        bool
+	RootEmail               string
+	APIEndpoint             string
+	SMTPHost                string
+	SMTPPort                int
+	SMTPUsername            string
+	SMTPPassword            string
+	SMTPFromEmail           string
+	SMTPFromName            string
+	SMTPUseTLS              bool
+	SMTPEHLOHostname        string
+	TelemetryEnabled        bool
+	CheckForUpdates         bool
 	SMTPBridgeEnabled       bool
 	SMTPBridgeDomain        string
 	SMTPBridgePort          int
@@ -61,8 +61,8 @@ type ConfigurationStatus struct {
 	SMTPConfigured        bool
 	APIEndpointConfigured bool
 	RootEmailConfigured   bool
-	SMTPBridgeConfigured   bool
-	OIDCConfigured         bool
+	SMTPBridgeConfigured  bool
+	OIDCConfigured        bool
 }
 
 // SetupService handles setup wizard operations
@@ -78,16 +78,16 @@ type SetupService struct {
 
 // EnvironmentConfig holds configuration from environment variables
 type EnvironmentConfig struct {
-	RootEmail              string
-	APIEndpoint            string
-	SMTPHost               string
-	SMTPPort               int
-	SMTPUsername           string
-	SMTPPassword           string
-	SMTPFromEmail          string
-	SMTPFromName           string
-	SMTPUseTLS             string // "true", "false", or "" (empty = not set, defaults to true)
-	SMTPEHLOHostname       string
+	RootEmail               string
+	APIEndpoint             string
+	SMTPHost                string
+	SMTPPort                int
+	SMTPUsername            string
+	SMTPPassword            string
+	SMTPFromEmail           string
+	SMTPFromName            string
+	SMTPUseTLS              string // "true", "false", or "" (empty = not set, defaults to true)
+	SMTPEHLOHostname        string
 	SMTPBridgeEnabled       string // "true", "false", or "" (empty = not set, allows setup wizard to configure)
 	SMTPBridgeDomain        string
 	SMTPBridgePort          int
@@ -135,8 +135,8 @@ func (s *SetupService) GetConfigurationStatus() *ConfigurationStatus {
 			SMTPConfigured:        false,
 			APIEndpointConfigured: false,
 			RootEmailConfigured:   false,
-			SMTPBridgeConfigured:   false,
-			OIDCConfigured:         false,
+			SMTPBridgeConfigured:  false,
+			OIDCConfigured:        false,
 		}
 	}
 
@@ -164,8 +164,8 @@ func (s *SetupService) GetConfigurationStatus() *ConfigurationStatus {
 		SMTPConfigured:        smtpConfigured,
 		APIEndpointConfigured: s.envConfig.APIEndpoint != "",
 		RootEmailConfigured:   s.envConfig.RootEmail != "",
-		SMTPBridgeConfigured:   smtpBridgeConfigured,
-		OIDCConfigured:         oidcConfigured,
+		SMTPBridgeConfigured:  smtpBridgeConfigured,
+		OIDCConfigured:        oidcConfigured,
 	}
 }
 
@@ -408,26 +408,28 @@ func (s *SetupService) Initialize(ctx context.Context, config *SetupConfig) erro
 		oidcAutoCreate = config.OIDCAutoCreateUsers
 		oidcAllowedDomains = config.OIDCAllowedDomains
 	}
-	// Persist scopes with "openid" forced in (single source of truth at read time too).
+	// Canonicalize before persisting: empty/token-less input becomes the full
+	// default (see NormalizeScopesForStorage — a stored bare value would override
+	// the richer default at boot), "openid" is always forced in.
 	if oidcEnabled {
-		oidcScopes = strings.Join(appconfig.ParseScopes(oidcScopes), " ")
+		oidcScopes = appconfig.NormalizeScopesForStorage(oidcScopes)
 	}
 
 	// Store system settings
 	systemConfig := &SystemConfig{
-		IsInstalled:            true,
-		RootEmail:              finalConfig.RootEmail,
-		APIEndpoint:            finalConfig.APIEndpoint,
-		SMTPHost:               smtpHost,
-		SMTPPort:               smtpPort,
-		SMTPUsername:           smtpUsername,
-		SMTPPassword:           smtpPassword,
-		SMTPFromEmail:          smtpFromEmail,
-		SMTPFromName:           smtpFromName,
-		SMTPUseTLS:             smtpUseTLS,
-		SMTPEHLOHostname:       smtpEHLOHostname,
-		TelemetryEnabled:       config.TelemetryEnabled,
-		CheckForUpdates:        config.CheckForUpdates,
+		IsInstalled:             true,
+		RootEmail:               finalConfig.RootEmail,
+		APIEndpoint:             finalConfig.APIEndpoint,
+		SMTPHost:                smtpHost,
+		SMTPPort:                smtpPort,
+		SMTPUsername:            smtpUsername,
+		SMTPPassword:            smtpPassword,
+		SMTPFromEmail:           smtpFromEmail,
+		SMTPFromName:            smtpFromName,
+		SMTPUseTLS:              smtpUseTLS,
+		SMTPEHLOHostname:        smtpEHLOHostname,
+		TelemetryEnabled:        config.TelemetryEnabled,
+		CheckForUpdates:         config.CheckForUpdates,
 		SMTPBridgeEnabled:       smtpBridgeEnabled,
 		SMTPBridgeDomain:        smtpBridgeDomain,
 		SMTPBridgePort:          smtpBridgePort,
@@ -505,6 +507,12 @@ func (s *SetupService) TestSMTPConnection(ctx context.Context, config *SMTPTestC
 	clientOptions := []mail.Option{
 		mail.WithPort(config.Port),
 		mail.WithTLSPolicy(tlsPolicy),
+	}
+
+	// On the SMTPS port the server expects TLS from the first byte; WithSSL
+	// makes go-mail dial TLS-first and skip STARTTLS negotiation.
+	if config.UseTLS && config.Port == implicitTLSPort {
+		clientOptions = append(clientOptions, mail.WithSSL())
 	}
 
 	// Only add authentication if username and password are provided

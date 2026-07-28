@@ -260,7 +260,7 @@ export function useAutomationCanvas(): UseAutomationCanvasReturn {
           ]
         }
       case 'add_to_list':
-        return { list_id: '', status: 'subscribed' }
+        return { list_id: '', status: 'active' }
       case 'remove_from_list':
         return { list_id: '' }
       case 'filter':

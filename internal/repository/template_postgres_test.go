@@ -3,7 +3,9 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"database/sql/driver"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"regexp"
 	"testing"
@@ -14,6 +16,7 @@ import (
 	"github.com/Notifuse/notifuse/internal/repository/testutil"
 	"github.com/Notifuse/notifuse/pkg/notifuse_mjml"
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -742,7 +745,17 @@ func TestTemplateRepository_UpdateTemplate(t *testing.T) {
 	updatedTemplateBase.ID = existingTemplate.ID
 	updatedTemplateBase.CreatedAt = existingTemplate.CreatedAt // Keep original creation time
 
-	// === Test Case 1: Success ===
+	// insertArgs returns the 14 bound args for the atomic CTE INSERT. The new version is
+	// computed in SQL (curr.max_v + 1), so it is NOT bound; base_version is the last arg.
+	insertArgs := func(tmpl *domain.Template, base int64) []driver.Value {
+		return []driver.Value{
+			tmpl.ID, tmpl.Name, tmpl.Channel, mustMarshal(t, tmpl.Email), nil,
+			tmpl.Category, nil, tmpl.IntegrationID, mustMarshal(t, tmpl.TestData), mustMarshal(t, tmpl.Settings),
+			sqlmock.AnyArg(), tmpl.CreatedAt, sqlmock.AnyArg(), base,
+		}
+	}
+
+	// === Test Case 1: Success (base matches latest) ===
 	t.Run("Success", func(t *testing.T) {
 		db, mockSQL, cleanup := testutil.SetupMockDB(t)
 		defer cleanup()
@@ -750,24 +763,15 @@ func TestTemplateRepository_UpdateTemplate(t *testing.T) {
 		repo := NewTemplateRepository(mockWorkspaceRepo)
 		updatedTemplate := *updatedTemplateBase
 		updatedTemplate.Name = "Updated Success"
-		emailJSON := mustMarshal(t, updatedTemplate.Email)
-		settingsJSON := mustMarshal(t, updatedTemplate.Settings)
-		testDataJSON := mustMarshal(t, updatedTemplate.TestData)
 		expectedNewVersion := existingTemplate.Version + 1
 
-		// Expect TWO GetConnection calls: 1 in UpdateTemplate, 1 in GetTemplateLatestVersion
-		mockWorkspaceRepo.On("GetConnection", ctx, workspaceID).Return(db, nil).Twice()
-		latestVersionRows := sqlmock.NewRows([]string{"max_version"}).AddRow(existingTemplate.Version)
-		mockSQL.ExpectQuery(regexp.QuoteMeta(`SELECT MAX(version) FROM templates WHERE id = $1`)).
-			WithArgs(updatedTemplate.ID).
-			WillReturnRows(latestVersionRows)
-		mockSQL.ExpectExec(regexp.QuoteMeta(`INSERT INTO templates`)).WithArgs(
-			updatedTemplate.ID, updatedTemplate.Name, expectedNewVersion, updatedTemplate.Channel, emailJSON, nil,
-			updatedTemplate.Category, nil, updatedTemplate.IntegrationID, testDataJSON, settingsJSON,
-			sqlmock.AnyArg(), updatedTemplate.CreatedAt, sqlmock.AnyArg(),
-		).WillReturnResult(sqlmock.NewResult(1, 1))
+		// One GetConnection call now — the atomic CTE INSERT computes MAX+1 in a single statement.
+		mockWorkspaceRepo.On("GetConnection", ctx, workspaceID).Return(db, nil).Once()
+		mockSQL.ExpectQuery(regexp.QuoteMeta(`INSERT INTO templates`)).
+			WithArgs(insertArgs(&updatedTemplate, existingTemplate.Version)...).
+			WillReturnRows(sqlmock.NewRows([]string{"version"}).AddRow(expectedNewVersion))
 
-		err := repo.UpdateTemplate(ctx, workspaceID, &updatedTemplate)
+		err := repo.UpdateTemplate(ctx, workspaceID, &updatedTemplate, existingTemplate.Version)
 		require.NoError(t, err)
 		assert.Equal(t, expectedNewVersion, updatedTemplate.Version)
 		assert.True(t, updatedTemplate.UpdatedAt.After(existingTemplate.UpdatedAt))
@@ -775,98 +779,132 @@ func TestTemplateRepository_UpdateTemplate(t *testing.T) {
 		require.NoError(t, mockSQL.ExpectationsWereMet())
 	})
 
-	// === Test Case 2: GetConnection Error (First call) ===
-	t.Run("GetConnection Error (First call)", func(t *testing.T) {
-		mockWorkspaceRepo := new(MockWorkspaceRepository)
-		repo := NewTemplateRepository(mockWorkspaceRepo)
-		updatedTemplate := *updatedTemplateBase
-
-		// Expect ONE GetConnection call (the first one in UpdateTemplate which fails)
-		mockWorkspaceRepo.On("GetConnection", ctx, workspaceID).Return(nil, fmt.Errorf("connection error 1")).Once()
-		err := repo.UpdateTemplate(ctx, workspaceID, &updatedTemplate)
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "failed to get workspace connection")
-		mockWorkspaceRepo.AssertExpectations(t)
-	})
-
-	// === Test Case 3: GetLatestVersion Fails ===
-	t.Run("GetLatestVersion Fails", func(t *testing.T) {
+	// === Test Case 2: Legacy base_version 0 skips the check ===
+	t.Run("Legacy base_version 0 skips check", func(t *testing.T) {
 		db, mockSQL, cleanup := testutil.SetupMockDB(t)
 		defer cleanup()
-		updatedTemplate := *updatedTemplateBase
 		mockWorkspaceRepo := new(MockWorkspaceRepository)
 		repo := NewTemplateRepository(mockWorkspaceRepo)
+		updatedTemplate := *updatedTemplateBase
 
-		// Expect TWO GetConnection calls: 1 in UpdateTemplate, 1 in GetTemplateLatestVersion (both succeed)
-		mockWorkspaceRepo.On("GetConnection", ctx, workspaceID).Return(db, nil).Twice()
-		mockSQL.ExpectQuery(regexp.QuoteMeta(`SELECT MAX(version) FROM templates WHERE id = $1`)).
-			WithArgs(updatedTemplate.ID).
-			WillReturnError(fmt.Errorf("get latest version error")) // The SQL query fails
+		mockWorkspaceRepo.On("GetConnection", ctx, workspaceID).Return(db, nil).Once()
+		mockSQL.ExpectQuery(regexp.QuoteMeta(`INSERT INTO templates`)).
+			WithArgs(insertArgs(&updatedTemplate, 0)...).
+			WillReturnRows(sqlmock.NewRows([]string{"version"}).AddRow(int64(3)))
 
-		err := repo.UpdateTemplate(ctx, workspaceID, &updatedTemplate)
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "failed to get template latest version")
-		assert.Contains(t, err.Error(), "get latest version error")
+		err := repo.UpdateTemplate(ctx, workspaceID, &updatedTemplate, 0)
+		require.NoError(t, err)
+		assert.Equal(t, int64(3), updatedTemplate.Version)
 		mockWorkspaceRepo.AssertExpectations(t)
 		require.NoError(t, mockSQL.ExpectationsWereMet())
 	})
 
-	// === Test Case 4: GetConnection Error (Second call) ===
-	t.Run("GetConnection Error (Second call)", func(t *testing.T) {
-		db, mockSQL, cleanup := testutil.SetupMockDB(t) // Need DB for the first successful call
-		defer cleanup()
-		updatedTemplate := *updatedTemplateBase
+	// === Test Case 3: GetConnection Error ===
+	t.Run("GetConnection Error", func(t *testing.T) {
 		mockWorkspaceRepo := new(MockWorkspaceRepository)
 		repo := NewTemplateRepository(mockWorkspaceRepo)
+		updatedTemplate := *updatedTemplateBase
 
-		// Expect TWO GetConnection calls: 1 in UpdateTemplate (succeeds), 1 in GetTemplateLatestVersion (fails)
-		mockWorkspaceRepo.On("GetConnection", ctx, workspaceID).Return(db, nil).Once()
-		mockWorkspaceRepo.On("GetConnection", ctx, workspaceID).Return(nil, fmt.Errorf("connection error 2")).Once()
-
-		err := repo.UpdateTemplate(ctx, workspaceID, &updatedTemplate)
+		mockWorkspaceRepo.On("GetConnection", ctx, workspaceID).Return(nil, fmt.Errorf("connection error")).Once()
+		err := repo.UpdateTemplate(ctx, workspaceID, &updatedTemplate, existingTemplate.Version)
 		require.Error(t, err)
-		// The error comes from GetTemplateLatestVersion's GetConnection call
-		assert.Contains(t, err.Error(), "failed to get template latest version")
 		assert.Contains(t, err.Error(), "failed to get workspace connection")
-		assert.Contains(t, err.Error(), "connection error 2")
-		mockWorkspaceRepo.AssertExpectations(t) // Checks both GetConnection calls
-		// No SQL expectations should have been met
-		require.NoError(t, mockSQL.ExpectationsWereMet())
+		mockWorkspaceRepo.AssertExpectations(t)
 	})
 
-	// === Test Case 5: Insert Fails ===
+	// === Test Case 4: Insert Fails (generic error) ===
 	t.Run("Insert Fails", func(t *testing.T) {
 		db, mockSQL, cleanup := testutil.SetupMockDB(t)
 		defer cleanup()
 		updatedTemplate := *updatedTemplateBase
 		updatedTemplate.Name = "Updated Fail Insert"
-		emailJSON := mustMarshal(t, updatedTemplate.Email)
-		settingsJSON := mustMarshal(t, updatedTemplate.Settings)
-		testDataJSON := mustMarshal(t, updatedTemplate.TestData)
-		expectedNewVersion := existingTemplate.Version + 1
 		mockWorkspaceRepo := new(MockWorkspaceRepository)
 		repo := NewTemplateRepository(mockWorkspaceRepo)
 
-		// Expect TWO GetConnection calls: 1 in UpdateTemplate, 1 in GetTemplateLatestVersion (both succeed)
-		mockWorkspaceRepo.On("GetConnection", ctx, workspaceID).Return(db, nil).Twice()
-		latestVersionRows := sqlmock.NewRows([]string{"max_version"}).AddRow(existingTemplate.Version)
-		mockSQL.ExpectQuery(regexp.QuoteMeta(`SELECT MAX(version) FROM templates WHERE id = $1`)).
-			WithArgs(updatedTemplate.ID).
-			WillReturnRows(latestVersionRows)
-		// Expect the INSERT to fail
-		mockSQL.ExpectExec(regexp.QuoteMeta(`INSERT INTO templates`)).
-			WithArgs(
-				updatedTemplate.ID, updatedTemplate.Name, expectedNewVersion, updatedTemplate.Channel, emailJSON, nil,
-				updatedTemplate.Category, nil, updatedTemplate.IntegrationID, testDataJSON, settingsJSON,
-				sqlmock.AnyArg(), updatedTemplate.CreatedAt, sqlmock.AnyArg(),
-			).WillReturnError(fmt.Errorf("db insert error"))
+		mockWorkspaceRepo.On("GetConnection", ctx, workspaceID).Return(db, nil).Once()
+		mockSQL.ExpectQuery(regexp.QuoteMeta(`INSERT INTO templates`)).
+			WithArgs(insertArgs(&updatedTemplate, existingTemplate.Version)...).
+			WillReturnError(fmt.Errorf("db insert error"))
 
-		err := repo.UpdateTemplate(ctx, workspaceID, &updatedTemplate)
+		err := repo.UpdateTemplate(ctx, workspaceID, &updatedTemplate, existingTemplate.Version)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to update template")
 		assert.Contains(t, err.Error(), "db insert error")
-		mockWorkspaceRepo.AssertExpectations(t)           // Checks both GetConnection calls
-		require.NoError(t, mockSQL.ExpectationsWereMet()) // Checks both SQL expectations
+		mockWorkspaceRepo.AssertExpectations(t)
+		require.NoError(t, mockSQL.ExpectationsWereMet())
+	})
+
+	// === Test Case 5: Stale base (no row inserted) → version conflict ===
+	t.Run("Stale base returns version conflict", func(t *testing.T) {
+		db, mockSQL, cleanup := testutil.SetupMockDB(t)
+		defer cleanup()
+		updatedTemplate := *updatedTemplateBase
+		mockWorkspaceRepo := new(MockWorkspaceRepository)
+		repo := NewTemplateRepository(mockWorkspaceRepo)
+
+		mockWorkspaceRepo.On("GetConnection", ctx, workspaceID).Return(db, nil).Once()
+		// The WHERE base_version guard excludes the insert → no row → sql.ErrNoRows.
+		mockSQL.ExpectQuery(regexp.QuoteMeta(`INSERT INTO templates`)).
+			WillReturnError(sql.ErrNoRows)
+		// The conflict path reads the current latest version to report back.
+		mockSQL.ExpectQuery(regexp.QuoteMeta(`SELECT COALESCE(MAX(version), 0) FROM templates WHERE id = $1`)).
+			WithArgs(updatedTemplate.ID).
+			WillReturnRows(sqlmock.NewRows([]string{"coalesce"}).AddRow(int64(9)))
+
+		err := repo.UpdateTemplate(ctx, workspaceID, &updatedTemplate, 3)
+		require.Error(t, err)
+		var conflict *domain.ErrTemplateVersionConflict
+		require.ErrorAs(t, err, &conflict)
+		assert.Equal(t, int64(3), conflict.BaseVersion)
+		assert.Equal(t, int64(9), conflict.LatestVersion)
+		mockWorkspaceRepo.AssertExpectations(t)
+		require.NoError(t, mockSQL.ExpectationsWereMet())
+	})
+
+	// === Test Case 6: Concurrent equal-base race (PK unique violation) → version conflict ===
+	t.Run("Concurrent insert race returns version conflict", func(t *testing.T) {
+		db, mockSQL, cleanup := testutil.SetupMockDB(t)
+		defer cleanup()
+		updatedTemplate := *updatedTemplateBase
+		mockWorkspaceRepo := new(MockWorkspaceRepository)
+		repo := NewTemplateRepository(mockWorkspaceRepo)
+
+		mockWorkspaceRepo.On("GetConnection", ctx, workspaceID).Return(db, nil).Once()
+		mockSQL.ExpectQuery(regexp.QuoteMeta(`INSERT INTO templates`)).
+			WillReturnError(&pq.Error{Code: "23505", Constraint: "templates_pkey"})
+		mockSQL.ExpectQuery(regexp.QuoteMeta(`SELECT COALESCE(MAX(version), 0) FROM templates WHERE id = $1`)).
+			WithArgs(updatedTemplate.ID).
+			WillReturnRows(sqlmock.NewRows([]string{"coalesce"}).AddRow(int64(6)))
+
+		err := repo.UpdateTemplate(ctx, workspaceID, &updatedTemplate, 5)
+		require.Error(t, err)
+		var conflict *domain.ErrTemplateVersionConflict
+		require.ErrorAs(t, err, &conflict)
+		assert.Equal(t, int64(5), conflict.BaseVersion)
+		assert.Equal(t, int64(6), conflict.LatestVersion)
+		mockWorkspaceRepo.AssertExpectations(t)
+		require.NoError(t, mockSQL.ExpectationsWereMet())
+	})
+
+	// === Test Case 7: Unique violation on a different constraint is NOT a version conflict ===
+	t.Run("Non-pkey unique violation is a generic error", func(t *testing.T) {
+		db, mockSQL, cleanup := testutil.SetupMockDB(t)
+		defer cleanup()
+		updatedTemplate := *updatedTemplateBase
+		mockWorkspaceRepo := new(MockWorkspaceRepository)
+		repo := NewTemplateRepository(mockWorkspaceRepo)
+
+		mockWorkspaceRepo.On("GetConnection", ctx, workspaceID).Return(db, nil).Once()
+		mockSQL.ExpectQuery(regexp.QuoteMeta(`INSERT INTO templates`)).
+			WillReturnError(&pq.Error{Code: "23505", Constraint: "templates_some_other_key"})
+
+		err := repo.UpdateTemplate(ctx, workspaceID, &updatedTemplate, 5)
+		require.Error(t, err)
+		var conflict *domain.ErrTemplateVersionConflict
+		assert.False(t, errors.As(err, &conflict), "a non-pkey unique violation must not be reported as a version conflict")
+		assert.Contains(t, err.Error(), "failed to update template")
+		mockWorkspaceRepo.AssertExpectations(t)
+		require.NoError(t, mockSQL.ExpectationsWereMet())
 	})
 }
 

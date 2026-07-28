@@ -91,9 +91,7 @@ export const VALID_EVENT_KINDS = [
   // Segment events (require segment_id)
   'segment.joined',
   'segment.left',
-  // Email events
-  'email.sent',
-  'email.delivered',
+  // Email events (sent/delivered omitted: no matching timeline kind, triggers never fire)
   'email.opened',
   'email.clicked',
   'email.bounced',

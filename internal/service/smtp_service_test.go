@@ -3,6 +3,7 @@ package service
 import (
 	"bufio"
 	"context"
+	"crypto/tls"
 	"encoding/base64"
 	"fmt"
 	"net"
@@ -35,6 +36,10 @@ type mockSMTPServer struct {
 	authMode  string
 	loginUser string // decoded username captured during an AUTH LOGIN handshake
 	loginPass string // decoded password captured during an AUTH LOGIN handshake
+	// tlsCert, when set, enables STARTTLS support: the mock advertises
+	// STARTTLS and upgrades the connection with this certificate when the
+	// client requests it.
+	tlsCert *tls.Certificate
 }
 
 type capturedMessage struct {
@@ -119,7 +124,20 @@ func (s *mockSMTPServer) serve() {
 
 func (s *mockSMTPServer) handleConnection(conn net.Conn) {
 	defer s.wg.Done()
-	defer conn.Close()
+	// Close via closure: conn may be reassigned to a TLS conn mid-session by
+	// the STARTTLS case below, and the upgraded conn is the one to close.
+	defer func() { conn.Close() }()
+
+	// On a TLS listener the server-side handshake happens lazily on first
+	// I/O; bound it so a peer that never sends a ClientHello cannot block
+	// Close()'s wg.Wait() forever.
+	if tlsConn, ok := conn.(*tls.Conn); ok {
+		conn.SetDeadline(time.Now().Add(5 * time.Second))
+		if err := tlsConn.Handshake(); err != nil {
+			return
+		}
+		conn.SetDeadline(time.Time{})
+	}
 
 	reader := bufio.NewReader(conn)
 
@@ -207,6 +225,9 @@ func (s *mockSMTPServer) handleConnection(conn net.Conn) {
 			conn.Write([]byte("250-8BITMIME\r\n")) // Advertise 8BITMIME to test that we don't use it
 			conn.Write([]byte("250-SMTPUTF8\r\n")) // Advertise SMTPUTF8 to test that we don't use it
 			conn.Write([]byte("250-SIZE 10485760\r\n"))
+			if s.tlsCert != nil {
+				conn.Write([]byte("250-STARTTLS\r\n"))
+			}
 			switch s.authMode {
 			case "login_only":
 				conn.Write([]byte("250 AUTH LOGIN\r\n"))
@@ -215,6 +236,19 @@ func (s *mockSMTPServer) handleConnection(conn net.Conn) {
 			default:
 				conn.Write([]byte("250 AUTH PLAIN LOGIN\r\n"))
 			}
+
+		case strings.HasPrefix(upperLine, "STARTTLS"):
+			if s.tlsCert == nil {
+				conn.Write([]byte("454 TLS not available\r\n"))
+				continue
+			}
+			conn.Write([]byte("220 Ready to start TLS\r\n"))
+			tlsConn := tls.Server(conn, &tls.Config{Certificates: []tls.Certificate{*s.tlsCert}})
+			if err := tlsConn.Handshake(); err != nil {
+				return
+			}
+			conn = tlsConn
+			reader = bufio.NewReader(conn)
 
 		case strings.HasPrefix(upperLine, "AUTH LOGIN"):
 			// Prompt for the username; the username/password lines are handled by
@@ -1015,6 +1049,63 @@ func TestSMTPService_SendEmail_InlineAttachment(t *testing.T) {
 	messages := server.GetMessages()
 	require.Len(t, messages, 1)
 	assert.Contains(t, string(messages[0].data), "logo.png")
+	// RFC 2045: the Content-ID header value must be wrapped in angle brackets,
+	// or strict clients (Outlook desktop) won't resolve the cid: reference.
+	assert.Contains(t, string(messages[0].data), "Content-Id: <logo.png>")
+}
+
+func TestSMTPService_SendEmail_InlineAttachmentWithContentID(t *testing.T) {
+	server := newMockSMTPServer(t, true)
+	defer server.Close()
+
+	log := &noopLogger{}
+	service := NewSMTPService(log)
+
+	provider := &domain.EmailProvider{
+		Kind: domain.EmailProviderKindSMTP,
+		SMTP: &domain.SMTPSettings{
+			Host:     "127.0.0.1",
+			Port:     server.Port(),
+			Username: "",
+			Password: "",
+			UseTLS:   false,
+		},
+	}
+
+	request := domain.SendEmailProviderRequest{
+		WorkspaceID:   "workspace-123",
+		IntegrationID: "integration-123",
+		MessageID:     "message-123",
+		FromAddress:   "sender@example.com",
+		FromName:      "Test Sender",
+		To:            "recipient@example.com",
+		Subject:       "Test with Inline Image",
+		Content:       "<h1>Your QR</h1><img src=\"cid:checkInQr\">",
+		Provider:      provider,
+		EmailOptions: domain.EmailOptions{
+			Attachments: []domain.Attachment{
+				{
+					Filename:    "check-in-qr.png",
+					Content:     "iVBORw0KGgo=", // minimal PNG header in base64
+					ContentType: "image/png",
+					Disposition: "inline",
+					ContentID:   "checkInQr",
+				},
+			},
+		},
+	}
+
+	err := service.SendEmail(context.Background(), request)
+	require.NoError(t, err)
+
+	messages := server.GetMessages()
+	require.Len(t, messages, 1)
+	data := string(messages[0].data)
+	// The caller-provided content_id is used, angle-bracketed per RFC 2045,
+	// while the filename is preserved independently on Content-Disposition.
+	assert.Contains(t, data, "Content-Id: <checkInQr>")
+	assert.NotContains(t, data, "Content-Id: <check-in-qr.png>")
+	assert.Contains(t, data, "check-in-qr.png")
 }
 
 // ============================================================================

@@ -1582,9 +1582,50 @@ func TestUpdateTemplateRequest_Validate(t *testing.T) {
 					assert.Equal(t, tt.request.Web, template.Web)
 				}
 				assert.Equal(t, tt.request.Category, template.Category)
+				// BaseVersion is carried into Template.Version for the stale-base check.
+				assert.Equal(t, tt.request.BaseVersion, template.Version)
 			}
 		})
 	}
+}
+
+func TestUpdateTemplateRequest_Validate_BaseVersion(t *testing.T) {
+	newReq := func() *UpdateTemplateRequest {
+		return &UpdateTemplateRequest{
+			WorkspaceID: "workspace123",
+			ID:          "template123",
+			Name:        "Test Template",
+			Channel:     "email",
+			Email: &EmailTemplate{
+				SenderID:         "test123",
+				Subject:          "Test Subject",
+				CompiledPreview:  "<html>Test content</html>",
+				VisualEditorTree: createValidMJMLBlock(),
+			},
+			Category: string(TemplateCategoryMarketing),
+		}
+	}
+
+	t.Run("base_version carried into Version", func(t *testing.T) {
+		req := newReq()
+		req.BaseVersion = 7
+		template, _, err := req.Validate()
+		assert.NoError(t, err)
+		assert.NotNil(t, template)
+		assert.Equal(t, int64(7), template.Version)
+	})
+
+	t.Run("omitted base_version defaults to 0 (skips check)", func(t *testing.T) {
+		template, _, err := newReq().Validate()
+		assert.NoError(t, err)
+		assert.NotNil(t, template)
+		assert.Equal(t, int64(0), template.Version)
+	})
+}
+
+func TestErrTemplateVersionConflict_Error(t *testing.T) {
+	err := &ErrTemplateVersionConflict{BaseVersion: 4, LatestVersion: 9}
+	assert.Equal(t, "template was modified: edit is based on version 4 but latest is 9", err.Error())
 }
 
 func TestDeleteTemplateRequest_Validate(t *testing.T) {

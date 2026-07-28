@@ -58,14 +58,16 @@ jobs:
 
     services:
       postgres:
-        image: postgres:15
+        # Same major version as tests/compose.test.yaml and the documented
+        # production target, so CI exercises the SQL we actually ship against.
+        image: postgres:17
         env:
           POSTGRES_USER: notifuse_test
           POSTGRES_PASSWORD: test_password
           POSTGRES_DB: postgres
 
         options: >-
-          --health-cmd pg_isready
+          --health-cmd "pg_isready -U notifuse_test -d postgres"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -145,8 +147,13 @@ jobs:
             sleep 2
           done
 
-          # Run integration tests only with more timeout
-          go test -race -coverprofile=coverage-integration.txt -covermode=atomic -timeout=15m ./tests/integration/... -v
+          # Run integration tests only with more timeout. The -race suite runs
+          # ~10-12m of test time on a good hosted runner but slow runners have
+          # been observed inflating identical tests by 40-125%, pushing a
+          # healthy run past 20m into Go's panic-on-timeout with nothing hung
+          # (the running test at the kill was 1s old). 35m keeps hang
+          # detection while tolerating the runner lottery.
+          go test -race -coverprofile=coverage-integration.txt -covermode=atomic -timeout=35m ./tests/integration/... -v
 
       # - name: Upload integration test coverage to Codecov
       #   uses: codecov/codecov-action@v3

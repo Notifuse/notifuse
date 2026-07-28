@@ -92,15 +92,15 @@ func (mr *MockEmailServiceInterfaceMockRecorder) TestEmailProvider(arg0, arg1, a
 }
 
 // VisitLink mocks base method.
-func (m *MockEmailServiceInterface) VisitLink(arg0 context.Context, arg1, arg2 string) error {
+func (m *MockEmailServiceInterface) VisitLink(arg0 context.Context, arg1, arg2, arg3, arg4 string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "VisitLink", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "VisitLink", arg0, arg1, arg2, arg3, arg4)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // VisitLink indicates an expected call of VisitLink.
-func (mr *MockEmailServiceInterfaceMockRecorder) VisitLink(arg0, arg1, arg2 interface{}) *gomock.Call {
+func (mr *MockEmailServiceInterfaceMockRecorder) VisitLink(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "VisitLink", reflect.TypeOf((*MockEmailServiceInterface)(nil).VisitLink), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "VisitLink", reflect.TypeOf((*MockEmailServiceInterface)(nil).VisitLink), arg0, arg1, arg2, arg3, arg4)
 }

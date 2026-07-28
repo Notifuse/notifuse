@@ -10,6 +10,8 @@ import (
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/domain/mocks"
 	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
+
+	"github.com/Notifuse/notifuse/pkg/notifuse_mjml"
 )
 
 func TestCreateDefaultSupabaseNotifications_Success(t *testing.T) {
@@ -43,6 +45,7 @@ func TestCreateDefaultSupabaseNotifications_Success(t *testing.T) {
 			assert.NotNil(t, notification.IntegrationID)
 			assert.Equal(t, "integration-456", *notification.IntegrationID)
 			assert.False(t, notification.TrackingSettings.EnableTracking)
+			assert.Equal(t, notifuse_mjml.TrackingModeDisabled, notification.TrackingSettings.TrackingMode)
 
 			// Verify email channel is configured
 			emailChannel, exists := notification.Channels[domain.TransactionalChannelEmail]
@@ -202,6 +205,7 @@ func TestCreateDefaultSupabaseNotifications_VerifyTrackingDisabled(t *testing.T)
 	mockTransactionalRepo.EXPECT().Create(gomock.Any(), "workspace-123", gomock.Any()).
 		DoAndReturn(func(ctx context.Context, workspaceID string, notification *domain.TransactionalNotification) error {
 			assert.False(t, notification.TrackingSettings.EnableTracking, "Tracking should be disabled")
+			assert.Equal(t, notifuse_mjml.TrackingModeDisabled, notification.TrackingSettings.TrackingMode, "Supabase auth notifications must be created with tracking_mode disabled")
 			return nil
 		}).Times(6)
 

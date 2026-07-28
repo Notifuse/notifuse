@@ -56,13 +56,17 @@ export const LLMIntegration: React.FC<LLMIntegrationProps> = ({
         form.setFieldsValue({
           name: integration.name,
           model: provider.model || providerInfo?.defaultModel || 'gpt-4.1',
-          base_url: provider.base_url || ''
+          base_url: provider.base_url || '',
+          // Always read it back so handleSave can resend it (UpdateIntegration
+          // overwrites the whole settings object; an omitted field would be wiped).
+          reasoning_effort: provider.reasoning_effort || ''
         })
       } else {
         form.setFieldsValue({
           name: providerInfo?.name || 'OpenAI',
           model: providerInfo?.defaultModel || 'gpt-4.1',
-          base_url: ''
+          base_url: '',
+          reasoning_effort: ''
         })
       }
     } else if (providerKind === 'gemini') {
@@ -122,7 +126,10 @@ export const LLMIntegration: React.FC<LLMIntegrationProps> = ({
                 isString(values.api_key) && values.api_key !== '' ? values.api_key : undefined,
               model: isString(values.model) ? values.model : 'gpt-4o',
               base_url:
-                isString(values.base_url) && values.base_url !== '' ? values.base_url : undefined
+                isString(values.base_url) && values.base_url !== '' ? values.base_url : undefined,
+              // Always send the explicit value (empty = provider default) so editing the
+              // integration never silently resets it.
+              reasoning_effort: isString(values.reasoning_effort) ? values.reasoning_effort : ''
             }
           }),
           ...(providerKind === 'gemini' && {
@@ -209,6 +216,24 @@ export const LLMIntegration: React.FC<LLMIntegrationProps> = ({
             extra={t`Optional. For OpenAI-compatible providers (Ollama, vLLM, LiteLLM, Azure, etc.). Leave empty for the default OpenAI endpoint.`}
           >
             <Input placeholder="https://api.openai.com/v1" />
+          </Form.Item>
+
+          <Form.Item
+            label={t`Reasoning effort`}
+            name="reasoning_effort"
+            extra={t`Optional. Controls how much reasoning models think. Leave as Default for non-reasoning models; some providers ignore it.`}
+          >
+            <Select
+              options={[
+                { value: '', label: t`Default` },
+                { value: 'none', label: t`None` },
+                { value: 'minimal', label: t`Minimal` },
+                { value: 'low', label: t`Low` },
+                { value: 'medium', label: t`Medium` },
+                { value: 'high', label: t`High` },
+                { value: 'xhigh', label: t`Extra high` }
+              ]}
+            />
           </Form.Item>
         </>
       )}

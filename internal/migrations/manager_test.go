@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -539,9 +540,13 @@ func TestManager_RunMigrations_AdditionalCoverage(t *testing.T) {
 			},
 		}
 
-		// Mock GetCurrentDBVersion to return the latest migrated version (up to date)
+		// Mock GetCurrentDBVersion to return the current code version, i.e. the DB
+		// is already up to date. Derived from config.VERSION so this stays correct
+		// across version bumps instead of hardcoding the latest major.
+		codeVersion, err := GetCurrentCodeVersion()
+		require.NoError(t, err)
 		mock.ExpectQuery("SELECT value FROM settings WHERE key = 'db_version'").
-			WillReturnRows(sqlmock.NewRows([]string{"value"}).AddRow("34"))
+			WillReturnRows(sqlmock.NewRows([]string{"value"}).AddRow(fmt.Sprintf("%.0f", codeVersion)))
 
 		err = manager.RunMigrations(context.Background(), cfg, db)
 

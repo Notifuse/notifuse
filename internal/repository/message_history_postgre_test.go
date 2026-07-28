@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -928,6 +929,32 @@ func TestMessageHistoryRepository_GetByBroadcast(t *testing.T) {
 	})
 }
 
+// clickedLinksUpsertSQL mirrors the statement executed by SetClicked when a
+// clicked URL is recorded (whitespace-insensitive match via sqlmock)
+var clickedLinksUpsertSQL = regexp.QuoteMeta(`
+	UPDATE message_history
+	SET
+	    clicked_at = COALESCE(clicked_at, $1),
+	    updated_at = NOW(),
+	    clicked_links = CASE
+	        -- known URL: bump count, refresh last_at
+	        WHEN (CASE WHEN jsonb_typeof(clicked_links) = 'object' THEN clicked_links ELSE '{}'::jsonb END) ? $3 THEN
+	            jsonb_set(
+	                jsonb_set(clicked_links, ARRAY[$3, 'count'],
+	                    to_jsonb(COALESCE((clicked_links #>> ARRAY[$3, 'count'])::int, 0) + 1)),
+	                ARRAY[$3, 'last_at'], to_jsonb($1::timestamptz))
+	        -- new URL under the per-message cap (also self-heals malformed non-object values)
+	        WHEN (SELECT COUNT(*) FROM jsonb_object_keys(CASE WHEN jsonb_typeof(clicked_links) = 'object' THEN clicked_links ELSE '{}'::jsonb END)) < 50 THEN
+	            (CASE WHEN jsonb_typeof(clicked_links) = 'object' THEN clicked_links ELSE '{}'::jsonb END) || jsonb_build_object($3,
+	                jsonb_build_object('count', 1,
+	                    'first_at', to_jsonb($1::timestamptz),
+	                    'last_at',  to_jsonb($1::timestamptz)))
+	        -- at cap: leave map unchanged (bounds tuple width; repeat clicks rewrite ~1.4KB rows)
+	        ELSE clicked_links
+	    END
+	WHERE id = $2
+`)
+
 func TestMessageHistoryRepository_SetClicked(t *testing.T) {
 	mockWorkspaceRepo, repo, mock, db, cleanup := setupMessageHistoryTest(t)
 	defer cleanup()
@@ -935,10 +962,11 @@ func TestMessageHistoryRepository_SetClicked(t *testing.T) {
 	ctx := context.Background()
 	workspaceID := "workspace-123"
 	messageID := "msg-123"
+	clickedURL := "https://example.com/product?utm_source=news"
 	// Use a fixed timestamp to avoid timing issues in CI
 	timestamp := time.Date(2023, 1, 1, 12, 0, 0, 0, time.UTC)
 
-	t.Run("successful click update", func(t *testing.T) {
+	t.Run("successful click update without URL keeps legacy statement", func(t *testing.T) {
 		mockWorkspaceRepo.EXPECT().
 			GetConnection(gomock.Any(), workspaceID).
 			Return(db, nil)
@@ -953,7 +981,26 @@ func TestMessageHistoryRepository_SetClicked(t *testing.T) {
 			WithArgs(timestamp, messageID).
 			WillReturnResult(sqlmock.NewResult(1, 1))
 
-		err := repo.SetClicked(ctx, workspaceID, messageID, timestamp)
+		err := repo.SetClicked(ctx, workspaceID, messageID, timestamp, "")
+		require.NoError(t, err)
+	})
+
+	t.Run("successful click update with URL upserts clicked_links", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().
+			GetConnection(gomock.Any(), workspaceID).
+			Return(db, nil)
+
+		// Expect the clicked_at + clicked_links upsert query
+		mock.ExpectExec(clickedLinksUpsertSQL).
+			WithArgs(timestamp, messageID, clickedURL).
+			WillReturnResult(sqlmock.NewResult(1, 1))
+
+		// Expect the opened_at update query (must stay a separate statement)
+		mock.ExpectExec(`UPDATE message_history SET opened_at = \$1, updated_at = NOW\(\) WHERE id = \$2 AND opened_at IS NULL`).
+			WithArgs(timestamp, messageID).
+			WillReturnResult(sqlmock.NewResult(1, 1))
+
+		err := repo.SetClicked(ctx, workspaceID, messageID, timestamp, clickedURL)
 		require.NoError(t, err)
 	})
 
@@ -962,7 +1009,7 @@ func TestMessageHistoryRepository_SetClicked(t *testing.T) {
 			GetConnection(gomock.Any(), workspaceID).
 			Return(nil, errors.New("connection error"))
 
-		err := repo.SetClicked(ctx, workspaceID, messageID, timestamp)
+		err := repo.SetClicked(ctx, workspaceID, messageID, timestamp, "")
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "failed to get workspace connection")
 	})
@@ -977,7 +1024,22 @@ func TestMessageHistoryRepository_SetClicked(t *testing.T) {
 			WithArgs(timestamp, messageID).
 			WillReturnError(errors.New("execution error"))
 
-		err := repo.SetClicked(ctx, workspaceID, messageID, timestamp)
+		err := repo.SetClicked(ctx, workspaceID, messageID, timestamp, "")
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "failed to set clicked")
+	})
+
+	t.Run("clicked update error with URL", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().
+			GetConnection(gomock.Any(), workspaceID).
+			Return(db, nil)
+
+		// First query fails
+		mock.ExpectExec(clickedLinksUpsertSQL).
+			WithArgs(timestamp, messageID, clickedURL).
+			WillReturnError(errors.New("execution error"))
+
+		err := repo.SetClicked(ctx, workspaceID, messageID, timestamp, clickedURL)
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "failed to set clicked")
 	})
@@ -997,9 +1059,130 @@ func TestMessageHistoryRepository_SetClicked(t *testing.T) {
 			WithArgs(timestamp, messageID).
 			WillReturnError(errors.New("execution error"))
 
-		err := repo.SetClicked(ctx, workspaceID, messageID, timestamp)
+		err := repo.SetClicked(ctx, workspaceID, messageID, timestamp, "")
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "failed to set opened")
+	})
+}
+
+func TestMessageHistoryRepository_GetBroadcastLinkStats(t *testing.T) {
+	mockWorkspaceRepo, repo, mock, db, cleanup := setupMessageHistoryTest(t)
+	defer cleanup()
+
+	ctx := context.Background()
+	workspaceID := "workspace-123"
+	broadcastID := "broadcast-123"
+
+	expectedQuery := regexp.QuoteMeta(`
+		SELECT e.key AS url,
+		       COALESCE(SUM((e.value->>'count')::int), 0) AS total_clicks,
+		       COUNT(*) AS unique_clicks
+		FROM message_history
+		CROSS JOIN LATERAL jsonb_each(clicked_links) AS e(key, value)
+		WHERE broadcast_id = $1
+		  AND ($2 = '' OR template_id = $2)
+		  AND jsonb_typeof(clicked_links) = 'object'
+		  AND jsonb_typeof(e.value) = 'object'
+		GROUP BY e.key
+		ORDER BY unique_clicks DESC, total_clicks DESC, e.key
+		LIMIT 200
+	`)
+
+	t.Run("successful link stats retrieval ordered by unique clicks", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().
+			GetConnection(gomock.Any(), workspaceID).
+			Return(db, nil)
+
+		rows := sqlmock.NewRows([]string{"url", "total_clicks", "unique_clicks"}).
+			AddRow("https://example.com/a", int64(5), int64(3)).
+			AddRow("https://example.com/b", int64(2), int64(2))
+
+		mock.ExpectQuery(expectedQuery).
+			WithArgs(broadcastID, "").
+			WillReturnRows(rows)
+
+		stats, err := repo.GetBroadcastLinkStats(ctx, workspaceID, broadcastID, "")
+		require.NoError(t, err)
+		require.Len(t, stats, 2)
+		assert.Equal(t, domain.LinkClickStats{URL: "https://example.com/a", TotalClicks: 5, UniqueClicks: 3}, stats[0])
+		assert.Equal(t, domain.LinkClickStats{URL: "https://example.com/b", TotalClicks: 2, UniqueClicks: 2}, stats[1])
+	})
+
+	t.Run("scopes to a single variation when templateID is provided", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().
+			GetConnection(gomock.Any(), workspaceID).
+			Return(db, nil)
+
+		rows := sqlmock.NewRows([]string{"url", "total_clicks", "unique_clicks"}).
+			AddRow("https://example.com/a", int64(4), int64(2))
+
+		mock.ExpectQuery(expectedQuery).
+			WithArgs(broadcastID, "tpl-1").
+			WillReturnRows(rows)
+
+		stats, err := repo.GetBroadcastLinkStats(ctx, workspaceID, broadcastID, "tpl-1")
+		require.NoError(t, err)
+		require.Len(t, stats, 1)
+		assert.Equal(t, domain.LinkClickStats{URL: "https://example.com/a", TotalClicks: 4, UniqueClicks: 2}, stats[0])
+	})
+
+	t.Run("no clicked links returns empty slice", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().
+			GetConnection(gomock.Any(), workspaceID).
+			Return(db, nil)
+
+		mock.ExpectQuery(expectedQuery).
+			WithArgs(broadcastID, "").
+			WillReturnRows(sqlmock.NewRows([]string{"url", "total_clicks", "unique_clicks"}))
+
+		stats, err := repo.GetBroadcastLinkStats(ctx, workspaceID, broadcastID, "")
+		require.NoError(t, err)
+		require.NotNil(t, stats)
+		require.Empty(t, stats)
+	})
+
+	t.Run("workspace connection error", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().
+			GetConnection(gomock.Any(), workspaceID).
+			Return(nil, errors.New("connection error"))
+
+		stats, err := repo.GetBroadcastLinkStats(ctx, workspaceID, broadcastID, "")
+		require.Error(t, err)
+		require.Nil(t, stats)
+		require.Contains(t, err.Error(), "failed to get workspace connection")
+	})
+
+	t.Run("query error", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().
+			GetConnection(gomock.Any(), workspaceID).
+			Return(db, nil)
+
+		mock.ExpectQuery(expectedQuery).
+			WithArgs(broadcastID, "").
+			WillReturnError(errors.New("query error"))
+
+		stats, err := repo.GetBroadcastLinkStats(ctx, workspaceID, broadcastID, "")
+		require.Error(t, err)
+		require.Nil(t, stats)
+		require.Contains(t, err.Error(), "failed to get broadcast link stats")
+	})
+
+	t.Run("scan error", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().
+			GetConnection(gomock.Any(), workspaceID).
+			Return(db, nil)
+
+		rows := sqlmock.NewRows([]string{"url", "total_clicks", "unique_clicks"}).
+			AddRow("https://example.com/a", "not-a-number", int64(1))
+
+		mock.ExpectQuery(expectedQuery).
+			WithArgs(broadcastID, "").
+			WillReturnRows(rows)
+
+		stats, err := repo.GetBroadcastLinkStats(ctx, workspaceID, broadcastID, "")
+		require.Error(t, err)
+		require.Nil(t, stats)
+		require.Contains(t, err.Error(), "failed to scan broadcast link stats")
 	})
 }
 
@@ -2547,7 +2730,7 @@ func TestMessageHistoryRepository_DeleteForEmail(t *testing.T) {
 			GetConnection(gomock.Any(), workspaceID).
 			Return(db, nil)
 
-		mock.ExpectExec(`UPDATE message_history SET contact_email = \$1 WHERE contact_email = \$2`).
+		mock.ExpectExec(`UPDATE message_history SET contact_email = \$1, clicked_links = NULL WHERE contact_email = \$2`).
 			WithArgs("DELETED_EMAIL", email).
 			WillReturnResult(sqlmock.NewResult(0, 3)) // 3 rows affected
 
@@ -2560,7 +2743,7 @@ func TestMessageHistoryRepository_DeleteForEmail(t *testing.T) {
 			GetConnection(gomock.Any(), workspaceID).
 			Return(db, nil)
 
-		mock.ExpectExec(`UPDATE message_history SET contact_email = \$1 WHERE contact_email = \$2`).
+		mock.ExpectExec(`UPDATE message_history SET contact_email = \$1, clicked_links = NULL WHERE contact_email = \$2`).
 			WithArgs("DELETED_EMAIL", email).
 			WillReturnResult(sqlmock.NewResult(0, 0)) // 0 rows affected
 
@@ -2583,7 +2766,7 @@ func TestMessageHistoryRepository_DeleteForEmail(t *testing.T) {
 			GetConnection(gomock.Any(), workspaceID).
 			Return(db, nil)
 
-		mock.ExpectExec(`UPDATE message_history SET contact_email = \$1 WHERE contact_email = \$2`).
+		mock.ExpectExec(`UPDATE message_history SET contact_email = \$1, clicked_links = NULL WHERE contact_email = \$2`).
 			WithArgs("DELETED_EMAIL", email).
 			WillReturnError(errors.New("execution error"))
 
@@ -2599,7 +2782,7 @@ func TestMessageHistoryRepository_DeleteForEmail(t *testing.T) {
 
 		// Create a result that will error when RowsAffected is called
 		result := sqlmock.NewErrorResult(errors.New("rows affected error"))
-		mock.ExpectExec(`UPDATE message_history SET contact_email = \$1 WHERE contact_email = \$2`).
+		mock.ExpectExec(`UPDATE message_history SET contact_email = \$1, clicked_links = NULL WHERE contact_email = \$2`).
 			WithArgs("DELETED_EMAIL", email).
 			WillReturnResult(result)
 

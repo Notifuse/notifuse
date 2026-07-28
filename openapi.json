@@ -439,7 +439,7 @@
     "/api/contacts.upsert": {
       "post": {
         "summary": "Create or update a contact",
-        "description": "Creates a new contact or updates an existing one based on email address. Returns information about whether the contact was created or updated.",
+        "description": "Creates a new contact or updates an existing one. Contacts are matched **by email address only** — the email is the contact's unique identifier. `external_id` is stored but never used for matching, so sending an existing `external_id` with a new email address creates a second contact.\n\nTo change a contact's email address: upsert a contact with the new email and the full profile, re-create its list subscriptions (preserving unsubscribed/bounced/complained statuses — do not reset opt-outs), then delete the contact with the old email using `contacts.delete`. Message history and segment memberships are keyed to the email address and are not transferred.\n\nReturns information about whether the contact was created or updated.\n",
         "operationId": "upsertContact",
         "security": [
           {
@@ -627,7 +627,7 @@
     "/api/contacts.getByExternalID": {
       "get": {
         "summary": "Get a contact by external ID",
-        "description": "Retrieves a contact by their external ID within a specific workspace. The response always includes the contact's list subscriptions with their status (active, pending, unsubscribed, bounced, complained).",
+        "description": "Retrieves a contact by their external ID within a specific workspace. The response always includes the contact's list subscriptions with their status (active, pending, unsubscribed, bounced, complained).\n\nNote that `external_id` is not unique — if several contacts share the same external ID, only one of them is returned (which one is not defined). Contacts are uniquely identified by email address.\n",
         "operationId": "getContactByExternalID",
         "security": [
           {
@@ -4182,13 +4182,13 @@
           "email": {
             "type": "string",
             "format": "email",
-            "description": "Email address of the contact",
+            "description": "Email address of the contact. This is the contact's unique identifier.",
             "example": "user@example.com"
           },
           "external_id": {
             "type": "string",
             "nullable": true,
-            "description": "External identifier for the contact",
+            "description": "Identifier for the contact in your own system. Not unique — several contacts may share the same external_id.",
             "example": "user_12345"
           },
           "timezone": {
@@ -4434,13 +4434,13 @@
           "email": {
             "type": "string",
             "format": "email",
-            "description": "Email address of the contact",
+            "description": "Email address of the contact. This is the contact's unique identifier — upserts always match contacts by email address.",
             "example": "user@example.com"
           },
           "external_id": {
             "type": "string",
             "nullable": true,
-            "description": "External identifier for the contact",
+            "description": "Optional identifier for the contact in your own system (e.g. your user ID). Stored and searchable, but not unique and never used to match contacts during upserts — sending an existing external_id with a new email address creates a second contact.",
             "example": "user_12345"
           },
           "timezone": {
@@ -4772,7 +4772,7 @@
           "external_id": {
             "type": "string",
             "nullable": true,
-            "description": "External identifier for the contact",
+            "description": "Optional identifier for the contact in your own system. Not unique — contacts are identified by email address.",
             "example": "user_12345"
           },
           "timezone": {
@@ -5242,6 +5242,12 @@
             "description": "How the attachment should be displayed (defaults to 'attachment')",
             "example": "attachment",
             "default": "attachment"
+          },
+          "content_id": {
+            "type": "string",
+            "description": "Content-ID for inline attachments, referenced from the HTML body as <img src=\"cid:...\"> . Only allowed when disposition is 'inline'. May only contain letters, digits, and the characters . _ - @ (max 255 characters). Defaults to the filename when omitted.",
+            "example": "checkInQr",
+            "maxLength": 255
           }
         }
       },
@@ -6614,6 +6620,14 @@
           "enable_tracking": {
             "type": "boolean",
             "description": "Whether to enable click/open tracking"
+          },
+          "tracking_mode": {
+            "type": "string",
+            "enum": [
+              "inherit",
+              "disabled"
+            ],
+            "description": "Per-notification tri-state tracking preference. Absent or \"inherit\"\nfollows the workspace tracking flag (the workspace flag always acts\nas a kill-switch and cannot be overridden). \"disabled\" suppresses all\nrewriting for this notification — no click-tracking redirect, no open\npixel, and no UTM parameters — used for auth emails (e.g. Supabase\nmagic links) whose single-use URLs must never be modified. Update\nsemantics: an ABSENT tracking_mode field keeps the stored value (so\npartial edits cannot wipe an opt-out; an empty string is treated as\nabsent); an explicit \"inherit\" resets the notification to follow the\nworkspace flag; an explicit \"disabled\" opts it out. Note that the\nother tracking_settings fields (utm_*) are replaced wholesale on\nupdate — only tracking_mode has keep-when-absent semantics.\n"
           },
           "endpoint": {
             "type": "string",

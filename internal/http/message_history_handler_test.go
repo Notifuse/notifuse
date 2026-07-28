@@ -745,6 +745,279 @@ func TestMessageHistoryHandler_handleBroadcastStats_ServiceError(t *testing.T) {
 	assert.Equal(t, "Failed to get stats", response["error"])
 }
 
+func TestMessageHistoryHandler_handleBroadcastLinkStats_MethodNotAllowed(t *testing.T) {
+	handler, _, _, mockTracer, _ := setupMessageHistoryHandlerTest(t)
+
+	// Create a non-GET request
+	req := httptest.NewRequest(http.MethodPost, "/api/messages.broadcastLinkStats", nil)
+	w := httptest.NewRecorder()
+
+	// Mock the tracer
+	mockSpan := &trace.Span{}
+	mockTracer.EXPECT().
+		StartSpan(gomock.Any(), "MessageHistoryHandler.handleBroadcastLinkStats").
+		Return(context.Background(), mockSpan)
+	mockTracer.EXPECT().
+		EndSpan(mockSpan, nil)
+
+	// Call the handler
+	handler.handleBroadcastLinkStats(w, req)
+
+	// Check response
+	assert.Equal(t, http.StatusMethodNotAllowed, w.Code)
+
+	var response map[string]string
+	err := json.NewDecoder(w.Body).Decode(&response)
+	require.NoError(t, err)
+	assert.Equal(t, "Method not allowed", response["error"])
+}
+
+func TestMessageHistoryHandler_handleBroadcastLinkStats_MissingBroadcastID(t *testing.T) {
+	handler, _, _, mockTracer, _ := setupMessageHistoryHandlerTest(t)
+
+	// Create a request with no broadcast_id
+	req := httptest.NewRequest(http.MethodGet, "/api/messages.broadcastLinkStats?workspace_id=ws123", nil)
+	w := httptest.NewRecorder()
+
+	// Mock the tracer
+	mockSpan := &trace.Span{}
+	mockTracer.EXPECT().
+		StartSpan(gomock.Any(), "MessageHistoryHandler.handleBroadcastLinkStats").
+		Return(context.Background(), mockSpan)
+	mockTracer.EXPECT().
+		EndSpan(mockSpan, nil)
+
+	// Call the handler
+	handler.handleBroadcastLinkStats(w, req)
+
+	// Check response
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+
+	var response map[string]string
+	err := json.NewDecoder(w.Body).Decode(&response)
+	require.NoError(t, err)
+	assert.Equal(t, "broadcast_id is required", response["error"])
+}
+
+func TestMessageHistoryHandler_handleBroadcastLinkStats_MissingWorkspaceID(t *testing.T) {
+	handler, _, _, mockTracer, _ := setupMessageHistoryHandlerTest(t)
+
+	// Create a request with no workspace_id
+	req := httptest.NewRequest(http.MethodGet, "/api/messages.broadcastLinkStats?broadcast_id=bc123", nil)
+	w := httptest.NewRecorder()
+
+	// Mock the tracer
+	mockSpan := &trace.Span{}
+	mockTracer.EXPECT().
+		StartSpan(gomock.Any(), "MessageHistoryHandler.handleBroadcastLinkStats").
+		Return(context.Background(), mockSpan)
+	mockTracer.EXPECT().
+		EndSpan(mockSpan, nil)
+
+	// Call the handler
+	handler.handleBroadcastLinkStats(w, req)
+
+	// Check response
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+
+	var response map[string]string
+	err := json.NewDecoder(w.Body).Decode(&response)
+	require.NoError(t, err)
+	assert.Equal(t, "workspace_id is required", response["error"])
+}
+
+func TestMessageHistoryHandler_handleBroadcastLinkStats_ServiceError(t *testing.T) {
+	// Setup test with controller that doesn't finish early
+	ctrl := gomock.NewController(t)
+	mockService := mocks.NewMockMessageHistoryService(ctrl)
+	mockAuthService := mocks.NewMockAuthService(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+	mockTracer := pkgmocks.NewMockTracer(ctrl)
+
+	// Create key pair for testing
+	jwtSecret := []byte("test-jwt-secret-key-for-testing-32bytes")
+	handler := NewMessageHistoryHandlerWithTracer(
+		mockService,
+		mockAuthService,
+		func() ([]byte, error) { return jwtSecret, nil },
+		mockLogger,
+		mockTracer,
+	)
+
+	// Create a request with valid parameters
+	req := httptest.NewRequest(http.MethodGet, "/api/messages.broadcastLinkStats?workspace_id=ws123&broadcast_id=bc123", nil)
+	w := httptest.NewRecorder()
+
+	// Mock the tracer
+	mockSpan := &trace.Span{}
+	mockTracer.EXPECT().
+		StartSpan(gomock.Any(), "MessageHistoryHandler.handleBroadcastLinkStats").
+		Return(context.Background(), mockSpan)
+	mockTracer.EXPECT().
+		EndSpan(mockSpan, nil)
+
+	// Set up logger mock to expect error call
+	mockLogger.EXPECT().WithField("error", gomock.Any()).Return(mockLogger)
+	mockLogger.EXPECT().Error("Failed to get link stats").Times(1)
+
+	// Mock message history service to return error (the service performs the
+	// workspace authentication, so auth failures surface here too)
+	mockService.EXPECT().
+		GetBroadcastLinkStats(gomock.Any(), "ws123", "bc123", "").
+		Return(nil, errors.New("service error"))
+
+	// Call the handler
+	handler.handleBroadcastLinkStats(w, req)
+
+	// Check response
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
+
+	var response map[string]string
+	err := json.NewDecoder(w.Body).Decode(&response)
+	require.NoError(t, err)
+	assert.Equal(t, "Failed to get link stats", response["error"])
+}
+
+func TestMessageHistoryHandler_handleBroadcastVariationStats(t *testing.T) {
+	t.Run("success", func(t *testing.T) {
+		handler, mockService, _, mockTracer, _ := setupMessageHistoryHandlerTest(t)
+		req := httptest.NewRequest(http.MethodGet, "/api/messages.broadcastVariationStats?workspace_id=ws123&broadcast_id=bc123&template_id=tpl-1", nil)
+		w := httptest.NewRecorder()
+
+		mockSpan := &trace.Span{}
+		mockTracer.EXPECT().
+			StartSpan(gomock.Any(), "MessageHistoryHandler.handleBroadcastVariationStats").
+			Return(context.Background(), mockSpan)
+		mockTracer.EXPECT().EndSpan(mockSpan, nil)
+
+		mockService.EXPECT().
+			GetBroadcastVariationStats(gomock.Any(), "ws123", "bc123", "tpl-1").
+			Return(&domain.MessageHistoryStatusSum{TotalSent: 100, TotalOpened: 40, TotalClicked: 12}, nil)
+
+		handler.handleBroadcastVariationStats(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+		var response map[string]interface{}
+		require.NoError(t, json.NewDecoder(w.Body).Decode(&response))
+		assert.Equal(t, "tpl-1", response["template_id"])
+		stats, ok := response["stats"].(map[string]interface{})
+		require.True(t, ok)
+		assert.Equal(t, float64(100), stats["total_sent"])
+	})
+
+	t.Run("missing template_id returns 400", func(t *testing.T) {
+		handler, _, _, mockTracer, _ := setupMessageHistoryHandlerTest(t)
+		req := httptest.NewRequest(http.MethodGet, "/api/messages.broadcastVariationStats?workspace_id=ws123&broadcast_id=bc123", nil)
+		w := httptest.NewRecorder()
+
+		mockSpan := &trace.Span{}
+		mockTracer.EXPECT().
+			StartSpan(gomock.Any(), "MessageHistoryHandler.handleBroadcastVariationStats").
+			Return(context.Background(), mockSpan)
+		mockTracer.EXPECT().EndSpan(mockSpan, nil)
+
+		handler.handleBroadcastVariationStats(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+	})
+
+	t.Run("permission error returns 403", func(t *testing.T) {
+		handler, mockService, _, mockTracer, _ := setupMessageHistoryHandlerTest(t)
+		req := httptest.NewRequest(http.MethodGet, "/api/messages.broadcastVariationStats?workspace_id=ws123&broadcast_id=bc123&template_id=tpl-1", nil)
+		w := httptest.NewRecorder()
+
+		mockSpan := &trace.Span{}
+		mockTracer.EXPECT().
+			StartSpan(gomock.Any(), "MessageHistoryHandler.handleBroadcastVariationStats").
+			Return(context.Background(), mockSpan)
+		mockTracer.EXPECT().EndSpan(mockSpan, nil)
+
+		mockService.EXPECT().
+			GetBroadcastVariationStats(gomock.Any(), "ws123", "bc123", "tpl-1").
+			Return(nil, domain.NewPermissionError(domain.PermissionResourceMessageHistory, domain.PermissionTypeRead, "denied"))
+
+		handler.handleBroadcastVariationStats(w, req)
+
+		assert.Equal(t, http.StatusForbidden, w.Code)
+	})
+}
+
+func TestMessageHistoryHandler_handleBroadcastLinkStats_TemplateFilter(t *testing.T) {
+	handler, mockService, _, mockTracer, _ := setupMessageHistoryHandlerTest(t)
+
+	// template_id in the query string must reach the service as the variation filter.
+	req := httptest.NewRequest(http.MethodGet, "/api/messages.broadcastLinkStats?workspace_id=ws123&broadcast_id=bc123&template_id=tpl-1", nil)
+	w := httptest.NewRecorder()
+
+	mockSpan := &trace.Span{}
+	mockTracer.EXPECT().
+		StartSpan(gomock.Any(), "MessageHistoryHandler.handleBroadcastLinkStats").
+		Return(context.Background(), mockSpan)
+	mockTracer.EXPECT().EndSpan(mockSpan, nil)
+
+	mockService.EXPECT().
+		GetBroadcastLinkStats(gomock.Any(), "ws123", "bc123", "tpl-1").
+		Return([]domain.LinkClickStats{{URL: "https://example.com/a", TotalClicks: 4, UniqueClicks: 2}}, nil)
+
+	handler.handleBroadcastLinkStats(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+func TestMessageHistoryHandler_handleBroadcastLinkStats_Success(t *testing.T) {
+	handler, mockService, _, mockTracer, _ := setupMessageHistoryHandlerTest(t)
+
+	// Create a request with valid parameters
+	req := httptest.NewRequest(http.MethodGet, "/api/messages.broadcastLinkStats?workspace_id=ws123&broadcast_id=bc123", nil)
+	w := httptest.NewRecorder()
+
+	// Mock the link stats result
+	linkStats := []domain.LinkClickStats{
+		{URL: "https://example.com/a", TotalClicks: 12, UniqueClicks: 7},
+		{URL: "https://example.com/b", TotalClicks: 3, UniqueClicks: 3},
+	}
+
+	// Mock the tracer
+	mockSpan := &trace.Span{}
+	mockTracer.EXPECT().
+		StartSpan(gomock.Any(), "MessageHistoryHandler.handleBroadcastLinkStats").
+		Return(context.Background(), mockSpan)
+	mockTracer.EXPECT().
+		EndSpan(mockSpan, nil)
+
+	// Mock message history service
+	mockService.EXPECT().
+		GetBroadcastLinkStats(gomock.Any(), "ws123", "bc123", "").
+		Return(linkStats, nil)
+
+	// Call the handler
+	handler.handleBroadcastLinkStats(w, req)
+
+	// Check response
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var response map[string]interface{}
+	err := json.NewDecoder(w.Body).Decode(&response)
+	require.NoError(t, err)
+
+	// Check link stats in response
+	statsList, ok := response["link_stats"].([]interface{})
+	require.True(t, ok, "link_stats should be a list")
+	require.Len(t, statsList, 2)
+
+	first, ok := statsList[0].(map[string]interface{})
+	require.True(t, ok)
+	assert.Equal(t, "https://example.com/a", first["url"])
+	assert.Equal(t, float64(12), first["total_clicks"])
+	assert.Equal(t, float64(7), first["unique_clicks"])
+
+	second, ok := statsList[1].(map[string]interface{})
+	require.True(t, ok)
+	assert.Equal(t, "https://example.com/b", second["url"])
+	assert.Equal(t, float64(3), second["total_clicks"])
+	assert.Equal(t, float64(3), second["unique_clicks"])
+}
+
 func TestMessageHistoryHandler_handleBroadcastStats_Success(t *testing.T) {
 	handler, mockService, _, mockTracer, _ := setupMessageHistoryHandlerTest(t)
 

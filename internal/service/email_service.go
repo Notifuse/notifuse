@@ -3,6 +3,8 @@ package service
 import (
 	"context"
 	"fmt"
+	"net/url"
+	"strings"
 	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
@@ -209,15 +211,45 @@ func (s *EmailService) getProviderService(providerKind domain.EmailProviderKind)
 	}
 }
 
-func (s *EmailService) VisitLink(ctx context.Context, messageID string, workspaceID string) error {
+// maxRecordedClickedURLLength bounds the destination URLs persisted in clicked_links
+const maxRecordedClickedURLLength = 2048
+
+func (s *EmailService) VisitLink(ctx context.Context, messageID string, workspaceID string, clickedURL string, requestHost string) error {
 	// find the message by id
-	err := s.messageRepo.SetClicked(ctx, workspaceID, messageID, time.Now())
+	err := s.messageRepo.SetClicked(ctx, workspaceID, messageID, time.Now(), sanitizeClickedURL(clickedURL, requestHost))
 	if err != nil {
 		s.logger.Error(err.Error())
 		return fmt.Errorf("failed to set clicked: %w", err)
 	}
 
 	return nil
+}
+
+// sanitizeClickedURL decides whether a clicked destination URL may be recorded
+// per-link; it returns "" (aggregate-only) when the URL is not a plausible
+// http(s) destination or when it points back at the host serving the click
+// redirect: all links of one email (tracking redirect, unsubscribe,
+// notification center) are built from the same send-time endpoint, and the
+// unsubscribe/notification-center ones embed the recipient's raw email
+// address, which must not be persisted in clicked_links keys. Comparing
+// against the request host identifies that send-time endpoint without a
+// workspace lookup on the hot click path, and stays correct when the
+// workspace endpoint is later reconfigured.
+func sanitizeClickedURL(clickedURL string, requestHost string) string {
+	if clickedURL == "" || len(clickedURL) > maxRecordedClickedURLLength {
+		return ""
+	}
+
+	parsed, err := url.Parse(clickedURL)
+	if err != nil || (parsed.Scheme != "http" && parsed.Scheme != "https") {
+		return ""
+	}
+
+	if requestHost != "" && strings.EqualFold(parsed.Host, requestHost) {
+		return ""
+	}
+
+	return clickedURL
 }
 
 func (s *EmailService) OpenEmail(ctx context.Context, messageID string, workspaceID string) error {
@@ -303,13 +335,18 @@ func (s *EmailService) SendEmailForTemplate(ctx context.Context, request domain.
 	trackingSettings := notifuse_mjml.TrackingSettings{
 		Endpoint:       endpoint,
 		EnableTracking: request.TrackingSettings.EnableTracking,
-		UTMSource:      request.TrackingSettings.UTMSource,
-		UTMMedium:      request.TrackingSettings.UTMMedium,
-		UTMCampaign:    request.TrackingSettings.UTMCampaign,
-		UTMContent:     request.TrackingSettings.UTMContent,
-		UTMTerm:        request.TrackingSettings.UTMTerm,
-		WorkspaceID:    request.WorkspaceID,
-		MessageID:      request.MessageID,
+		// TrackingMode must survive this rebuild: it carries the per-notification
+		// full veto that TrackLinks enforces (no redirect, no pixel, no UTM) —
+		// without it, the UTMContent default above would still rewrite opted-out
+		// single-use auth URLs.
+		TrackingMode: request.TrackingSettings.TrackingMode,
+		UTMSource:    request.TrackingSettings.UTMSource,
+		UTMMedium:    request.TrackingSettings.UTMMedium,
+		UTMCampaign:  request.TrackingSettings.UTMCampaign,
+		UTMContent:   request.TrackingSettings.UTMContent,
+		UTMTerm:      request.TrackingSettings.UTMTerm,
+		WorkspaceID:  request.WorkspaceID,
+		MessageID:    request.MessageID,
 	}
 
 	compileTemplateRequest := domain.CompileTemplateRequest{

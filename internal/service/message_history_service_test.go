@@ -632,6 +632,153 @@ func TestMessageHistoryService_GetBroadcastStats(t *testing.T) {
 	}
 }
 
+func TestMessageHistoryService_GetBroadcastLinkStats(t *testing.T) {
+	testCases := []struct {
+		name          string
+		workspaceID   string
+		broadcastID   string
+		templateID    string
+		setupMocks    func(mockRepo *mocks.MockMessageHistoryRepository, mockAuthService *mocks.MockAuthService)
+		expectedStats []domain.LinkClickStats
+		expectedError string
+	}{
+		{
+			name:        "Success with link stats",
+			workspaceID: "workspace-123",
+			broadcastID: "broadcast-123",
+			setupMocks: func(mockRepo *mocks.MockMessageHistoryRepository, mockAuthService *mocks.MockAuthService) {
+				mockAuthService.EXPECT().
+					AuthenticateUserForWorkspace(gomock.Any(), "workspace-123").
+					Return(context.Background(), &domain.User{}, &domain.UserWorkspace{
+						UserID:      "user123",
+						WorkspaceID: "workspace-123",
+						Role:        "member",
+						Permissions: domain.UserPermissions{
+							domain.PermissionResourceMessageHistory: {Read: true, Write: true},
+						},
+					}, nil)
+
+				mockRepo.EXPECT().
+					GetBroadcastLinkStats(gomock.Any(), "workspace-123", "broadcast-123", "").
+					Return([]domain.LinkClickStats{
+						{URL: "https://example.com/a", TotalClicks: 5, UniqueClicks: 3},
+						{URL: "https://example.com/b", TotalClicks: 2, UniqueClicks: 2},
+					}, nil)
+			},
+			expectedStats: []domain.LinkClickStats{
+				{URL: "https://example.com/a", TotalClicks: 5, UniqueClicks: 3},
+				{URL: "https://example.com/b", TotalClicks: 2, UniqueClicks: 2},
+			},
+		},
+		{
+			name:        "Success scoped to a variation",
+			workspaceID: "workspace-123",
+			broadcastID: "broadcast-123",
+			templateID:  "tpl-1",
+			setupMocks: func(mockRepo *mocks.MockMessageHistoryRepository, mockAuthService *mocks.MockAuthService) {
+				mockAuthService.EXPECT().
+					AuthenticateUserForWorkspace(gomock.Any(), "workspace-123").
+					Return(context.Background(), &domain.User{}, &domain.UserWorkspace{
+						UserID:      "user123",
+						WorkspaceID: "workspace-123",
+						Role:        "member",
+						Permissions: domain.UserPermissions{
+							domain.PermissionResourceMessageHistory: {Read: true, Write: true},
+						},
+					}, nil)
+
+				mockRepo.EXPECT().
+					GetBroadcastLinkStats(gomock.Any(), "workspace-123", "broadcast-123", "tpl-1").
+					Return([]domain.LinkClickStats{
+						{URL: "https://example.com/a", TotalClicks: 4, UniqueClicks: 2},
+					}, nil)
+			},
+			expectedStats: []domain.LinkClickStats{
+				{URL: "https://example.com/a", TotalClicks: 4, UniqueClicks: 2},
+			},
+		},
+		{
+			name:        "Authentication error",
+			workspaceID: "workspace-123",
+			broadcastID: "broadcast-123",
+			setupMocks: func(mockRepo *mocks.MockMessageHistoryRepository, mockAuthService *mocks.MockAuthService) {
+				mockAuthService.EXPECT().
+					AuthenticateUserForWorkspace(gomock.Any(), "workspace-123").
+					Return(nil, nil, nil, errors.New("authentication failed"))
+			},
+			expectedError: "failed to authenticate user: authentication failed",
+		},
+		{
+			name:        "Permission denied",
+			workspaceID: "workspace-123",
+			broadcastID: "broadcast-123",
+			setupMocks: func(mockRepo *mocks.MockMessageHistoryRepository, mockAuthService *mocks.MockAuthService) {
+				mockAuthService.EXPECT().
+					AuthenticateUserForWorkspace(gomock.Any(), "workspace-123").
+					Return(context.Background(), &domain.User{}, &domain.UserWorkspace{
+						UserID:      "user123",
+						WorkspaceID: "workspace-123",
+						Role:        "member",
+						Permissions: domain.UserPermissions{},
+					}, nil)
+			},
+			expectedError: "Insufficient permissions: read access to message history required",
+		},
+		{
+			name:        "Repository error",
+			workspaceID: "workspace-123",
+			broadcastID: "broadcast-123",
+			setupMocks: func(mockRepo *mocks.MockMessageHistoryRepository, mockAuthService *mocks.MockAuthService) {
+				mockAuthService.EXPECT().
+					AuthenticateUserForWorkspace(gomock.Any(), "workspace-123").
+					Return(context.Background(), &domain.User{}, &domain.UserWorkspace{
+						UserID:      "user123",
+						WorkspaceID: "workspace-123",
+						Role:        "member",
+						Permissions: domain.UserPermissions{
+							domain.PermissionResourceMessageHistory: {Read: true, Write: true},
+						},
+					}, nil)
+
+				mockRepo.EXPECT().
+					GetBroadcastLinkStats(gomock.Any(), "workspace-123", "broadcast-123", "").
+					Return(nil, errors.New("database error"))
+			},
+			expectedError: "failed to get broadcast link stats: database error",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// Setup mocks
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			mockRepo := mocks.NewMockMessageHistoryRepository(ctrl)
+			mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+			mockLogger := pkgmocks.NewMockLogger(ctrl)
+			mockAuthService := mocks.NewMockAuthService(ctrl)
+			tc.setupMocks(mockRepo, mockAuthService)
+
+			// Create service with mocks
+			service := NewMessageHistoryService(mockRepo, mockWorkspaceRepo, mockLogger, mockAuthService)
+
+			// Call the method under test
+			stats, err := service.GetBroadcastLinkStats(context.Background(), tc.workspaceID, tc.broadcastID, tc.templateID)
+
+			// Verify expectations
+			if tc.expectedError != "" {
+				assert.Error(t, err)
+				assert.Contains(t, err.Error(), tc.expectedError)
+				assert.Nil(t, stats)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tc.expectedStats, stats)
+			}
+		})
+	}
+}
+
 func TestMessageHistoryService_GetBroadcastVariationStats(t *testing.T) {
 	testCases := []struct {
 		name          string

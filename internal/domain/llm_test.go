@@ -127,7 +127,7 @@ func TestLLMChatRequest_Validate(t *testing.T) {
 				MaxTokens: -1,
 			},
 			expectErr:   true,
-			expectedMsg: "max_tokens must be between 0 and 8192",
+			expectedMsg: "max_tokens must be between 0 and 32768",
 		},
 		{
 			name: "max_tokens too large",
@@ -137,10 +137,10 @@ func TestLLMChatRequest_Validate(t *testing.T) {
 				Messages: []LLMMessage{
 					{Role: "user", Content: "Hello"},
 				},
-				MaxTokens: 10000,
+				MaxTokens: 40000,
 			},
 			expectErr:   true,
-			expectedMsg: "max_tokens must be between 0 and 8192",
+			expectedMsg: "max_tokens must be between 0 and 32768",
 		},
 		{
 			name: "max_tokens at boundary",
@@ -150,7 +150,7 @@ func TestLLMChatRequest_Validate(t *testing.T) {
 				Messages: []LLMMessage{
 					{Role: "user", Content: "Hello"},
 				},
-				MaxTokens: 8192,
+				MaxTokens: 32768,
 			},
 			expectErr: false,
 		},

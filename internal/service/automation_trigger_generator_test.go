@@ -1,6 +1,7 @@
 package service
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/Notifuse/notifuse/internal/domain"
@@ -277,7 +278,7 @@ func TestAutomationTriggerGenerator_Generate(t *testing.T) {
 			ListID:     "list1",
 			RootNodeID: "node1",
 			Trigger: &domain.TimelineTriggerConfig{
-				EventKind: "email.delivered",
+				EventKind: "email.clicked",
 				Frequency: domain.TriggerFrequencyEveryTime,
 				Conditions: &domain.TreeNode{
 					Kind: "leaf",
@@ -296,7 +297,9 @@ func TestAutomationTriggerGenerator_Generate(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, result)
 
-		assert.Contains(t, result.WHENClause, "NEW.kind = 'email.delivered'")
+		// The engagement kind matches the timeline kind verbatim and the list condition
+		// embeds as a subquery ANDed into the WHEN clause.
+		assert.Contains(t, result.WHENClause, "NEW.kind = 'email.clicked'")
 		assert.Contains(t, result.WHENClause, "EXISTS (SELECT 1 FROM contact_lists cl")
 		assert.Contains(t, result.WHENClause, "cl.email = NEW.email")
 		assert.Contains(t, result.WHENClause, "'premium_members'") // Embedded value
@@ -517,9 +520,63 @@ func TestAutomationTriggerGenerator_Generate(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, result)
 
+		// email.opened now equals the timeline kind written by track_message_history_changes(),
+		// so the WHEN clause references it verbatim (no translation).
 		assert.Contains(t, result.WHENClause, "NEW.kind = 'email.opened'")
 		// Should NOT have entity_id filter for email events
 		assert.NotContains(t, result.WHENClause, "NEW.entity_id")
+	})
+
+	t.Run("email.* event kinds match the timeline kind verbatim", func(t *testing.T) {
+		// The contact timeline now stores these dotted kinds, so no translation is needed.
+		for _, eventKind := range []string{
+			"email.opened", "email.clicked", "email.bounced",
+			"email.complained", "email.unsubscribed",
+		} {
+			t.Run(eventKind, func(t *testing.T) {
+				automation := &domain.Automation{
+					ID:         "map" + strings.ReplaceAll(eventKind, ".", ""),
+					ListID:     "list1",
+					RootNodeID: "node1",
+					Trigger: &domain.TimelineTriggerConfig{
+						EventKind: eventKind,
+						Frequency: domain.TriggerFrequencyEveryTime,
+					},
+				}
+
+				result, err := gen.Generate(automation)
+				require.NoError(t, err)
+				require.NotNil(t, result)
+
+				assert.Contains(t, result.WHENClause, "NEW.kind = '"+eventKind+"'")
+			})
+		}
+	})
+
+	t.Run("legacy email.sent/email.delivered kinds are emitted verbatim", func(t *testing.T) {
+		// These were removed from ValidEventKinds, but a legacy live automation could still
+		// carry one; Generate must emit it verbatim rather than choke. email.delivered has no
+		// matching timeline kind (delivered lands in the generic email.updated), so it stays
+		// inert; the generator never collapses it into a generic message_history kind.
+		for _, eventKind := range []string{"email.sent", "email.delivered"} {
+			automation := &domain.Automation{
+				ID:         "unmapped" + strings.ReplaceAll(eventKind, ".", ""),
+				ListID:     "list1",
+				RootNodeID: "node1",
+				Trigger: &domain.TimelineTriggerConfig{
+					EventKind: eventKind,
+					Frequency: domain.TriggerFrequencyEveryTime,
+				},
+			}
+
+			result, err := gen.Generate(automation)
+			require.NoError(t, err)
+			require.NotNil(t, result)
+
+			assert.Contains(t, result.WHENClause, "NEW.kind = '"+eventKind+"'")
+			assert.NotContains(t, result.WHENClause, "insert_message_history")
+			assert.NotContains(t, result.WHENClause, "update_message_history")
+		}
 	})
 
 	t.Run("contact.updated with updated_fields filter", func(t *testing.T) {
@@ -603,6 +660,26 @@ func TestAutomationTriggerGenerator_Generate(t *testing.T) {
 		assert.Contains(t, err.Error(), "invalid updated_field")
 	})
 
+	t.Run("contact.updated with phantom photo_url field is rejected", func(t *testing.T) {
+		// photo_url is not a contact column and is never written into the timeline
+		// changes, so it must not be an allowed updated_field (a filter on it could
+		// never match and the automation would silently never fire).
+		automation := &domain.Automation{
+			ID:         "testphotourl",
+			ListID:     "list1",
+			RootNodeID: "node1",
+			Trigger: &domain.TimelineTriggerConfig{
+				EventKind:     "contact.updated",
+				UpdatedFields: []string{"photo_url"},
+				Frequency:     domain.TriggerFrequencyEveryTime,
+			},
+		}
+
+		_, err := gen.Generate(automation)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "invalid updated_field")
+	})
+
 	t.Run("contact.updated with SQL injection attempt in updated_fields is rejected", func(t *testing.T) {
 		automation := &domain.Automation{
 			ID:         "testsqlinjection",
@@ -661,4 +738,16 @@ func TestAutomationTriggerGenerator_Generate(t *testing.T) {
 		// Should NOT contain changes filter for non-contact.updated events
 		assert.NotContains(t, result.WHENClause, "NEW.changes ?")
 	})
+}
+
+func BenchmarkEmbedArgs(b *testing.B) {
+	sql := "NEW.kind = $1 AND NEW.email = $2 AND NEW.list_id = $3 AND NEW.status = $4"
+	args := []interface{}{"contact.created", "test@example.com", "list123", "active"}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		if _, err := embedArgs(sql, args); err != nil {
+			b.Fatal(err)
+		}
+	}
 }

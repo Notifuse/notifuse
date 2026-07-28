@@ -378,9 +378,9 @@ func (s *SendGridService) SendEmail(ctx context.Context, request domain.SendEmai
 				Disposition: disposition,
 			}
 
-			// For inline attachments, derive ContentID from filename
+			// For inline attachments, use the caller-provided content_id, else filename
 			if disposition == "inline" {
-				sgAttachment.ContentID = att.Filename
+				sgAttachment.ContentID = att.EffectiveContentID()
 			}
 
 			mailReq.Attachments = append(mailReq.Attachments, sgAttachment)

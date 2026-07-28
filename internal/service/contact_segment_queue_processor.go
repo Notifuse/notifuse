@@ -4,10 +4,20 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"runtime/debug"
+	"strings"
+	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/pkg/logger"
 )
+
+// detachedStatementTimeout bounds the claim and requeue statements, which run on
+// contexts detached from the caller's cancellation (see claimBatch/requeueBatch).
+// Both are fast, indexed, non-lock-blocking statements — normal execution is
+// milliseconds — so this only trips if the DB is unresponsive, where failing
+// fast is correct. It also caps how long a detached call can delay shutdown.
+const detachedStatementTimeout = 5 * time.Second
 
 // ContactSegmentQueueProcessor processes queued contacts for segment recomputation
 type ContactSegmentQueueProcessor struct {
@@ -39,34 +49,52 @@ func NewContactSegmentQueueProcessor(
 	}
 }
 
-// ProcessQueue processes pending contacts in the queue for segment recomputation
-// Uses a transaction to ensure row locks are held during processing
-// Returns the number of contacts successfully processed
+// ProcessQueue claims a batch of pending contacts and recomputes their segment
+// memberships. Returns the number of contacts successfully processed.
+//
+// Rows are claimed by DELETING them in a single atomic statement (a DELETE ...
+// RETURNING backed by a FOR UPDATE SKIP LOCKED sub-select) that commits on its
+// own, so NO transaction is held open across the per-contact work. Holding the
+// claim inside a transaction for the whole per-contact loop — while doing the
+// actual work on a separate pooled connection — left that transaction idle in
+// transaction with the queue rows still locked. Any concurrent write that
+// re-enqueued a claimed contact (every broadcast's message_history insert reaches
+// contact_segment_queue through the AFTER INSERT trigger cascade) then blocked
+// behind the idle claimer, a wait invisible to Postgres's deadlock detector,
+// freezing broadcasts and the task scheduler until the backend was killed.
+//
+// A contact whose recomputation fails (or is cut short by context cancellation)
+// is re-enqueued so it is retried on a later pass; because the claim already
+// removed it, nothing is silently dropped. A hard crash (or shutdown racing the
+// connection-pool close) between the claim commit and processing drops that
+// batch: those contacts recompute on their next event (or, for relative-date
+// segments, the daily rebuild).
 func (p *ContactSegmentQueueProcessor) ProcessQueue(ctx context.Context, workspaceID string) (int, error) {
+	// A cancelled caller (task timeout, shutdown) must not claim new work: the
+	// claim deliberately ignores cancellation once started (see claimBatch), so
+	// gate entry here instead.
+	if err := ctx.Err(); err != nil {
+		return 0, err
+	}
+
 	// Get workspace DB connection
 	workspaceDB, err := p.workspaceRepo.GetConnection(ctx, workspaceID)
 	if err != nil {
 		return 0, fmt.Errorf("failed to get workspace connection: %w", err)
 	}
 
-	// Start a transaction to hold locks during processing
-	tx, err := workspaceDB.BeginTx(ctx, nil)
+	// Claim a batch: atomically delete the rows and return their emails. The
+	// FOR UPDATE SKIP LOCKED makes concurrent claimers take disjoint sets; the
+	// surrounding DELETE removes exactly the claimed set. No open transaction is
+	// held across processing, so nothing stays locked beyond this one statement.
+	emails, err := p.claimBatch(ctx, workspaceDB, p.batchSize)
 	if err != nil {
-		return 0, fmt.Errorf("failed to begin transaction: %w", err)
-	}
-	defer func() {
-		_ = tx.Rollback()
-	}() // Rollback if not committed
-
-	// Get pending emails (locks them with FOR UPDATE SKIP LOCKED)
-	emails, err := p.getPendingEmailsInTx(ctx, tx, p.batchSize)
-	if err != nil {
-		return 0, fmt.Errorf("failed to get pending emails: %w", err)
+		return 0, err // claimBatch already wraps with context
 	}
 
 	if len(emails) == 0 {
 		p.logger.WithField("workspace_id", workspaceID).Debug("No pending contacts to process")
-		return 0, nil // Nothing to commit, just return
+		return 0, nil
 	}
 
 	p.logger.WithFields(map[string]interface{}{
@@ -77,6 +105,9 @@ func (p *ContactSegmentQueueProcessor) ProcessQueue(ctx context.Context, workspa
 	// Get all active segments for this workspace
 	segments, err := p.segmentRepo.GetSegments(ctx, workspaceID, false)
 	if err != nil {
+		// The claimed rows are already removed; re-enqueue them so this batch is
+		// retried rather than lost, then surface the error.
+		p.requeueOrLog(ctx, workspaceDB, emails)
 		return 0, fmt.Errorf("failed to get segments: %w", err)
 	}
 
@@ -89,70 +120,108 @@ func (p *ContactSegmentQueueProcessor) ProcessQueue(ctx context.Context, workspa
 	}
 
 	if len(activeSegments) == 0 {
-		p.logger.WithField("workspace_id", workspaceID).Debug("No active segments found, clearing queue")
-		// Remove from queue since there are no segments to update
-		if err := p.removeBatchFromQueueInTx(ctx, tx, emails); err != nil {
-			p.logger.WithField("error", err.Error()).Warn("Failed to clear queue")
-			return 0, err
-		}
-		if err := tx.Commit(); err != nil {
-			return 0, err
-		}
+		// No segments to evaluate; the claimed rows are already removed.
+		p.logger.WithField("workspace_id", workspaceID).Debug("No active segments found, queue cleared")
 		return len(emails), nil
 	}
 
-	processedEmails := make([]string, 0, len(emails))
+	// Process each claimed contact on the pooled connection. No locks are held,
+	// so a concurrent broadcast send (or any other re-enqueueing write) is never
+	// blocked by this worker.
+	failedEmails := make([]string, 0)
+	for i, email := range emails {
+		// Stop early if the caller's context is cancelled (e.g. the task hit its
+		// runtime budget) and re-enqueue whatever remains so it is retried.
+		if ctx.Err() != nil {
+			failedEmails = append(failedEmails, emails[i:]...)
+			break
+		}
 
-	// Process each queued contact
-	for _, email := range emails {
-		if err := p.processContact(ctx, workspaceID, workspaceDB, email, activeSegments); err != nil {
+		err := func() (procErr error) {
+			// A panic evaluating one contact must not kill the process: this is
+			// a permanent recurring task, so crashing here would re-claim the
+			// same contact after the debounce and crash again, forever. Convert
+			// to an error so the contact takes the normal failed-contact retry
+			// path below.
+			defer func() {
+				if r := recover(); r != nil {
+					procErr = fmt.Errorf("panic processing contact: %v\n%s", r, debug.Stack())
+				}
+			}()
+			return p.processContact(ctx, workspaceID, workspaceDB, email, activeSegments)
+		}()
+		if err != nil {
 			p.logger.WithFields(map[string]interface{}{
 				"email": email,
 				"error": err.Error(),
 			}).Error("Failed to process contact")
-			// Continue processing other contacts even if one fails
+			// Re-enqueue this contact so its recomputation is retried later.
+			failedEmails = append(failedEmails, email)
 			continue
 		}
-		processedEmails = append(processedEmails, email)
 	}
 
-	// Remove processed emails from queue within the transaction
-	if len(processedEmails) > 0 {
-		if err := p.removeBatchFromQueueInTx(ctx, tx, processedEmails); err != nil {
-			p.logger.WithField("error", err.Error()).Error("Failed to remove processed emails from queue")
-			return 0, err
-		}
+	if len(failedEmails) > 0 {
+		p.requeueOrLog(ctx, workspaceDB, failedEmails)
 	}
 
-	// Commit the transaction (releases locks)
-	if err := tx.Commit(); err != nil {
-		return 0, fmt.Errorf("failed to commit transaction: %w", err)
-	}
-
+	processedCount := len(emails) - len(failedEmails)
 	p.logger.WithFields(map[string]interface{}{
 		"workspace_id":    workspaceID,
-		"processed_count": len(processedEmails),
-		"failed_count":    len(emails) - len(processedEmails),
+		"processed_count": processedCount,
+		"failed_count":    len(failedEmails),
 	}).Info("Completed processing contact segment queue")
 
-	return len(processedEmails), nil
+	return processedCount, nil
 }
 
-// getPendingEmailsInTx gets pending emails within a transaction (with row locks)
-// Applies a 15-second debounce to avoid processing contacts that are being updated rapidly
-func (p *ContactSegmentQueueProcessor) getPendingEmailsInTx(ctx context.Context, tx *sql.Tx, limit int) ([]string, error) {
-	query := `
-		SELECT email
-		FROM contact_segment_queue
-		WHERE queued_at < NOW() - INTERVAL '15 seconds'
-		ORDER BY queued_at ASC
-		LIMIT $1
-		FOR UPDATE SKIP LOCKED
+// claimBatch atomically claims up to limit pending contacts: it deletes their
+// contact_segment_queue rows and returns the emails. The FOR UPDATE SKIP LOCKED
+// sub-select makes concurrent claimers take disjoint sets; the DELETE then
+// removes exactly what was claimed. A 15-second debounce (queued_at older than
+// 15s) avoids processing contacts that are being updated in rapid bursts.
+//
+// The claim runs on a context detached from the caller's cancellation, inside a
+// short transaction of its own. Detachment: once the DELETE reaches the server,
+// a caller-side cancel could commit the delete yet abort the row scan, losing
+// the claimed contacts; the statement cannot lock-block (SKIP LOCKED), so the
+// short detached timeout is a sufficient bound. The transaction makes the delete
+// and the row scan succeed or fail as a unit: any scan failure rolls back and
+// the rows survive for the next pass. Unlike the idle-in-transaction bug this
+// file fixes, nothing runs inside this transaction but the claim itself —
+// begin/query/scan/commit are consecutive statements on one connection, and the
+// commit happens BEFORE any per-contact work starts, so no lock is held while
+// contacts are processed.
+func (p *ContactSegmentQueueProcessor) claimBatch(ctx context.Context, db *sql.DB, limit int) ([]string, error) {
+	const query = `
+		WITH claimed AS (
+			SELECT email
+			FROM contact_segment_queue
+			WHERE queued_at < NOW() - INTERVAL '15 seconds'
+			ORDER BY queued_at ASC
+			LIMIT $1
+			FOR UPDATE SKIP LOCKED
+		)
+		DELETE FROM contact_segment_queue q
+		USING claimed
+		WHERE q.email = claimed.email
+		RETURNING q.email
 	`
 
-	rows, err := tx.QueryContext(ctx, query, limit)
+	claimCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), detachedStatementTimeout)
+	defer cancel()
+
+	tx, err := db.BeginTx(claimCtx, nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to query pending emails: %w", err)
+		return nil, fmt.Errorf("failed to claim pending emails: %w", err)
+	}
+	defer func() {
+		_ = tx.Rollback() // no-op after a successful Commit
+	}()
+
+	rows, err := tx.QueryContext(claimCtx, query, limit)
+	if err != nil {
+		return nil, fmt.Errorf("failed to claim pending emails: %w", err)
 	}
 	defer func() {
 		_ = rows.Close()
@@ -162,46 +231,72 @@ func (p *ContactSegmentQueueProcessor) getPendingEmailsInTx(ctx context.Context,
 	for rows.Next() {
 		var email string
 		if err := rows.Scan(&email); err != nil {
-			return nil, fmt.Errorf("failed to scan email: %w", err)
+			return nil, fmt.Errorf("failed to claim pending emails: %w", err)
 		}
 		emails = append(emails, email)
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("error iterating emails: %w", err)
+		return nil, fmt.Errorf("failed to claim pending emails: %w", err)
+	}
+
+	// The result set must be closed before the transaction can commit.
+	if err := rows.Close(); err != nil {
+		return nil, fmt.Errorf("failed to claim pending emails: %w", err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("failed to claim pending emails: %w", err)
 	}
 
 	return emails, nil
 }
 
-// removeBatchFromQueueInTx removes multiple emails from the queue within a transaction
-func (p *ContactSegmentQueueProcessor) removeBatchFromQueueInTx(ctx context.Context, tx *sql.Tx, emails []string) error {
+// requeueOrLog re-enqueues contacts whose processing did not complete, logging
+// (but not failing) if the re-enqueue itself errors — a failed re-enqueue only
+// means the contact waits for its next event, never a lost claim.
+func (p *ContactSegmentQueueProcessor) requeueOrLog(ctx context.Context, db *sql.DB, emails []string) {
+	if err := p.requeueBatch(ctx, db, emails); err != nil {
+		p.logger.WithFields(map[string]interface{}{
+			"count": len(emails),
+			"error": err.Error(),
+		}).Error("Failed to re-enqueue contacts for segment recomputation")
+	}
+}
+
+// requeueBatch re-inserts emails into contact_segment_queue so they are retried.
+// It runs on a context detached from the caller's cancellation/deadline: if the
+// batch is being cancelled (e.g. task timeout), we still want the un-processed
+// contacts back in the queue rather than silently dropped. ON CONFLICT refreshes
+// queued_at, keeping the row a newer event may have re-created while it was in
+// flight.
+func (p *ContactSegmentQueueProcessor) requeueBatch(ctx context.Context, db *sql.DB, emails []string) error {
 	if len(emails) == 0 {
 		return nil
 	}
 
-	// Convert emails to a format compatible with pq.Array
-	emailsArray := make([]interface{}, len(emails))
-	for i, email := range emails {
-		emailsArray[i] = email
-	}
+	// Dedup: a multi-row ON CONFLICT (email) DO UPDATE errors if the same key
+	// appears twice. Callers pass unique emails today; this keeps it robust.
+	emails = dedupeStrings(emails)
 
-	// Use string concatenation to build a proper array literal
-	placeholders := ""
+	reqCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), detachedStatementTimeout)
+	defer cancel()
+
+	placeholders := make([]string, len(emails))
 	args := make([]interface{}, len(emails))
 	for i, email := range emails {
-		if i > 0 {
-			placeholders += ","
-		}
-		placeholders += fmt.Sprintf("$%d", i+1)
+		placeholders[i] = fmt.Sprintf("($%d, NOW())", i+1)
 		args[i] = email
 	}
 
-	query := fmt.Sprintf("DELETE FROM contact_segment_queue WHERE email IN (%s)", placeholders)
+	query := fmt.Sprintf(`
+		INSERT INTO contact_segment_queue (email, queued_at)
+		VALUES %s
+		ON CONFLICT (email) DO UPDATE SET queued_at = EXCLUDED.queued_at
+	`, strings.Join(placeholders, ", "))
 
-	_, err := tx.ExecContext(ctx, query, args...)
-	if err != nil {
-		return fmt.Errorf("failed to remove emails from queue: %w", err)
+	if _, err := db.ExecContext(reqCtx, query, args...); err != nil {
+		return fmt.Errorf("failed to re-enqueue emails: %w", err)
 	}
 
 	return nil

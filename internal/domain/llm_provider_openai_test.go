@@ -112,4 +112,26 @@ func TestOpenAISettings_Validate(t *testing.T) {
 		err := settings.Validate(passphrase)
 		require.NoError(t, err)
 	})
+
+	t.Run("accepts every supported reasoning_effort and empty", func(t *testing.T) {
+		for _, effort := range []string{"", "none", "minimal", "low", "medium", "high", "xhigh"} {
+			settings := domain.OpenAISettings{Model: "gpt-4.1", ReasoningEffort: effort}
+			assert.NoError(t, settings.Validate(passphrase), "effort %q should be valid", effort)
+		}
+	})
+
+	t.Run("rejects unknown reasoning_effort", func(t *testing.T) {
+		for _, effort := range []string{"max", "ultra", "HIGH", "default", "1"} {
+			settings := domain.OpenAISettings{Model: "gpt-4.1", ReasoningEffort: effort}
+			err := settings.Validate(passphrase)
+			require.Error(t, err, "effort %q should be invalid", effort)
+			assert.Contains(t, err.Error(), "reasoning_effort")
+		}
+	})
+}
+
+func TestIsValidReasoningEffort(t *testing.T) {
+	assert.True(t, domain.IsValidReasoningEffort(""))
+	assert.True(t, domain.IsValidReasoningEffort("medium"))
+	assert.False(t, domain.IsValidReasoningEffort("turbo"))
 }

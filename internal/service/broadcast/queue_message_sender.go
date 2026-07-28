@@ -141,24 +141,26 @@ func (s *queueMessageSender) SendBatch(
 		// Generate message ID
 		messageID := fmt.Sprintf("%s_%s", workspaceID, uuid.New().String())
 
-		// Ensure UTM parameters object is present
-		if broadcast.UTMParameters == nil {
-			broadcast.UTMParameters = &domain.UTMParameters{}
+		// Default utm_content on a per-recipient copy: the broadcast is shared
+		// across recipients and A/B variants differ per recipient, so the shared
+		// UTM parameters must never be mutated.
+		var utmParams domain.UTMParameters
+		if broadcast.UTMParameters != nil {
+			utmParams = *broadcast.UTMParameters
 		}
-
-		if broadcast.UTMParameters.Content == "" {
-			broadcast.UTMParameters.Content = template.ID
+		if utmParams.Content == "" {
+			utmParams.Content = template.ID
 		}
 
 		// Build tracking settings for BuildTemplateData
 		trackingSettings := notifuse_mjml.TrackingSettings{
 			Endpoint:       endpoint,
 			EnableTracking: trackingEnabled,
-			UTMSource:      broadcast.UTMParameters.Source,
-			UTMMedium:      broadcast.UTMParameters.Medium,
-			UTMCampaign:    broadcast.UTMParameters.Campaign,
-			UTMContent:     broadcast.UTMParameters.Content,
-			UTMTerm:        broadcast.UTMParameters.Term,
+			UTMSource:      utmParams.Source,
+			UTMMedium:      utmParams.Medium,
+			UTMCampaign:    utmParams.Campaign,
+			UTMContent:     utmParams.Content,
+			UTMTerm:        utmParams.Term,
 			WorkspaceID:    workspaceID,
 			MessageID:      messageID,
 		}
@@ -277,24 +279,26 @@ func (s *queueMessageSender) buildQueueEntry(
 	contactLanguage string,
 	workspaceDefaultLanguage string,
 ) (*domain.EmailQueueEntry, error) {
-	// Ensure UTM parameters object is present
-	if broadcast.UTMParameters == nil {
-		broadcast.UTMParameters = &domain.UTMParameters{}
+	// Default utm_content on a per-recipient copy: the broadcast is shared
+	// across recipients and A/B variants differ per recipient, so the shared
+	// UTM parameters must never be mutated.
+	var utmParams domain.UTMParameters
+	if broadcast.UTMParameters != nil {
+		utmParams = *broadcast.UTMParameters
 	}
-
-	if broadcast.UTMParameters.Content == "" {
-		broadcast.UTMParameters.Content = template.ID
+	if utmParams.Content == "" {
+		utmParams.Content = template.ID
 	}
 
 	// Build tracking settings
 	trackingSettings := notifuse_mjml.TrackingSettings{
 		Endpoint:       endpoint,
 		EnableTracking: trackingEnabled,
-		UTMSource:      broadcast.UTMParameters.Source,
-		UTMMedium:      broadcast.UTMParameters.Medium,
-		UTMCampaign:    broadcast.UTMParameters.Campaign,
-		UTMContent:     broadcast.UTMParameters.Content,
-		UTMTerm:        broadcast.UTMParameters.Term,
+		UTMSource:      utmParams.Source,
+		UTMMedium:      utmParams.Medium,
+		UTMCampaign:    utmParams.Campaign,
+		UTMContent:     utmParams.Content,
+		UTMTerm:        utmParams.Term,
 		WorkspaceID:    workspaceID,
 		MessageID:      messageID,
 	}

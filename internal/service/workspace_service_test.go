@@ -1307,6 +1307,121 @@ func TestWorkspaceService_UpdateWorkspace(t *testing.T) {
 		assert.Equal(t, expectedWorkspace.Settings, workspace.Settings)
 	})
 
+	t.Run("reject transactional-only provider as marketing provider", func(t *testing.T) {
+		expectedUser := &domain.User{
+			ID: userID,
+		}
+
+		expectedUserWorkspace := &domain.UserWorkspace{
+			UserID:      userID,
+			WorkspaceID: workspaceID,
+			Role:        "owner",
+		}
+
+		mailjetIntegrationID := "mailjet-integration"
+
+		settings := domain.WorkspaceSettings{
+			Timezone:                 "UTC",
+			DefaultLanguage:          "en",
+			Languages:                []string{"en"},
+			MarketingEmailProviderID: mailjetIntegrationID,
+		}
+
+		existingWorkspace := &domain.Workspace{
+			ID:   workspaceID,
+			Name: "Original Workspace Name",
+			Integrations: []domain.Integration{
+				{
+					ID:   mailjetIntegrationID,
+					Name: "Mailjet",
+					Type: domain.IntegrationTypeEmail,
+					EmailProvider: domain.EmailProvider{
+						Kind: domain.EmailProviderKindMailjet,
+					},
+				},
+			},
+			CreatedAt: time.Now().Add(-24 * time.Hour),
+			UpdatedAt: time.Now().Add(-24 * time.Hour),
+		}
+
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, expectedUser, expectedUserWorkspace, nil)
+		mockRepo.EXPECT().GetByID(ctx, workspaceID).Return(existingWorkspace, nil)
+
+		workspace, err := service.UpdateWorkspace(ctx, workspaceID, "Updated Workspace", settings)
+		require.Error(t, err)
+		assert.Nil(t, workspace)
+		assert.Contains(t, err.Error(), "transactional")
+	})
+
+	t.Run("allow unchanged grandfathered transactional-only marketing provider", func(t *testing.T) {
+		// A workspace whose marketing provider was set to a transactional-only
+		// kind BEFORE the restriction existed must still be able to save
+		// unrelated settings changes: the console resubmits the full settings
+		// object, so the guard only fires when the assignment CHANGES.
+		// (Send-time resolution blocks the grandfathered provider instead.)
+		expectedUser := &domain.User{
+			ID: userID,
+		}
+
+		expectedUserWorkspace := &domain.UserWorkspace{
+			UserID:      userID,
+			WorkspaceID: workspaceID,
+			Role:        "owner",
+		}
+
+		mailjetIntegrationID := "mailjet-integration"
+
+		settings := domain.WorkspaceSettings{
+			Timezone:                 "Europe/Paris", // the unrelated change being saved
+			DefaultLanguage:          "en",
+			Languages:                []string{"en"},
+			MarketingEmailProviderID: mailjetIntegrationID, // unchanged, rides along
+		}
+
+		existingWorkspace := &domain.Workspace{
+			ID:   workspaceID,
+			Name: "Original Workspace Name",
+			Settings: domain.WorkspaceSettings{
+				Timezone:                 "UTC",
+				MarketingEmailProviderID: mailjetIntegrationID, // grandfathered
+			},
+			Integrations: []domain.Integration{
+				{
+					ID:   mailjetIntegrationID,
+					Name: "Mailjet",
+					Type: domain.IntegrationTypeEmail,
+					// A fully valid integration: unlike the reject case above,
+					// this save passes the guard and reaches workspace
+					// validation before the repo Update.
+					EmailProvider: domain.EmailProvider{
+						Kind:               domain.EmailProviderKindMailjet,
+						RateLimitPerMinute: 25,
+						Senders: []domain.EmailSender{
+							{
+								ID:    "123e4567-e89b-12d3-a456-426614174000",
+								Email: "sender@example.com",
+								Name:  "Sender",
+							},
+						},
+						Mailjet: &domain.MailjetSettings{},
+					},
+				},
+			},
+			CreatedAt: time.Now().Add(-24 * time.Hour),
+			UpdatedAt: time.Now().Add(-24 * time.Hour),
+		}
+
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, expectedUser, expectedUserWorkspace, nil)
+		mockRepo.EXPECT().GetByID(ctx, workspaceID).Return(existingWorkspace, nil)
+		mockRepo.EXPECT().Update(ctx, gomock.Any()).Return(nil)
+
+		workspace, err := service.UpdateWorkspace(ctx, workspaceID, "Updated Workspace", settings)
+		require.NoError(t, err)
+		require.NotNil(t, workspace)
+		assert.Equal(t, "Europe/Paris", workspace.Settings.Timezone)
+		assert.Equal(t, mailjetIntegrationID, workspace.Settings.MarketingEmailProviderID)
+	})
+
 	t.Run("authentication error", func(t *testing.T) {
 		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, nil, nil, assert.AnError)
 
@@ -2346,6 +2461,65 @@ func TestWorkspaceService_UpdateIntegration(t *testing.T) {
 				Gemini: &domain.GeminiSettings{
 					APIKey: "", // Empty - should preserve existing encrypted key
 					Model:  "gemini-3.1-pro-preview",
+				},
+			},
+		})
+		require.NoError(t, err)
+	})
+
+	t.Run("update openai LLM integration preserves key and carries reasoning_effort", func(t *testing.T) {
+		openaiIntegrationID := "openai123"
+		expectedUser := &domain.User{ID: userID}
+		expectedUserWorkspace := &domain.UserWorkspace{
+			UserID:      userID,
+			WorkspaceID: workspaceID,
+			Role:        "owner",
+		}
+
+		// Existing OpenAI integration with an encrypted key and no effort set.
+		existingIntegration := domain.Integration{
+			ID:   openaiIntegrationID,
+			Name: "Original OpenAI",
+			Type: domain.IntegrationTypeLLM,
+			LLMProvider: &domain.LLMProvider{
+				Kind: domain.LLMProviderKindOpenAI,
+				OpenAI: &domain.OpenAISettings{
+					EncryptedAPIKey: "encrypted-existing-openai-key",
+					Model:           "gpt-4.1",
+				},
+			},
+			CreatedAt: time.Now().Add(-24 * time.Hour),
+			UpdatedAt: time.Now().Add(-24 * time.Hour),
+		}
+
+		expectedWorkspace := &domain.Workspace{
+			ID:           workspaceID,
+			Name:         "Test Workspace",
+			Integrations: []domain.Integration{existingIntegration},
+		}
+
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, expectedUser, expectedUserWorkspace, nil)
+		mockRepo.EXPECT().GetByID(ctx, workspaceID).Return(expectedWorkspace, nil)
+		mockRepo.EXPECT().Update(ctx, gomock.Any()).DoAndReturn(func(ctx context.Context, workspace *domain.Workspace) error {
+			require.Equal(t, 1, len(workspace.Integrations))
+			openai := workspace.Integrations[0].LLMProvider.OpenAI
+			require.NotNil(t, openai)
+			// API key preserved (none provided), and reasoning_effort persisted.
+			require.Equal(t, "encrypted-existing-openai-key", openai.EncryptedAPIKey)
+			require.Equal(t, "high", openai.ReasoningEffort)
+			return nil
+		})
+
+		err := service.UpdateIntegration(ctx, domain.UpdateIntegrationRequest{
+			WorkspaceID:   workspaceID,
+			IntegrationID: openaiIntegrationID,
+			Name:          "Updated OpenAI",
+			LLMProvider: &domain.LLMProvider{
+				Kind: domain.LLMProviderKindOpenAI,
+				OpenAI: &domain.OpenAISettings{
+					APIKey:          "", // Empty - should preserve existing encrypted key
+					Model:           "gpt-4.1",
+					ReasoningEffort: "high",
 				},
 			},
 		})

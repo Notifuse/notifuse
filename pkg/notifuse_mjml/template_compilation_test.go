@@ -135,8 +135,8 @@ func TestTrackLinks(t *testing.T) {
 				MessageID:      "test-message",
 			},
 			expectedContains: []string{
-				`href="#section1"`,        // anchor should be unchanged
-				"track.example.com/r/",    // normal links should be tracked
+				`href="#section1"`,     // anchor should be unchanged
+				"track.example.com/r/", // normal links should be tracked
 			},
 			shouldError: false,
 		},
@@ -2606,5 +2606,76 @@ func TestCompileTemplateSubjectNoTemplateData(t *testing.T) {
 	assert.True(t, resp.Success)
 	if assert.NotNil(t, resp.Subject) {
 		assert.Equal(t, "Hi {{ contact.first_name }}", *resp.Subject)
+	}
+}
+
+func TestTrackLinks_DisabledModeSuppressesEverything(t *testing.T) {
+	html := `<html><body><a href="https://example.com/auth/confirm?token=abc">Confirm</a></body></html>`
+	settings := TrackingSettings{
+		// The explicit per-notification opt-out must win over everything else,
+		// even a caller that resolved EnableTracking wrong or set UTM fields
+		// (which alone would otherwise trigger URL rewriting).
+		TrackingMode:   TrackingModeDisabled,
+		EnableTracking: true,
+		UTMSource:      "auth",
+		UTMMedium:      "email",
+		Endpoint:       "https://api.example.com",
+		WorkspaceID:    "ws1",
+		MessageID:      "msg1",
+	}
+
+	result, err := TrackLinks(html, settings)
+	if err != nil {
+		t.Fatalf("TrackLinks returned error: %v", err)
+	}
+	if result != html {
+		t.Errorf("opted-out HTML must be returned unmodified (no redirect, no UTM, no pixel); got: %s", result)
+	}
+}
+
+func TestTrackLinks_InheritAndUnsetModesKeepRewriting(t *testing.T) {
+	html := `<html><body><a href="https://example.com/page">Link</a></body></html>`
+	for _, mode := range []string{"", TrackingModeInherit} {
+		settings := TrackingSettings{
+			TrackingMode:   mode,
+			EnableTracking: true,
+			Endpoint:       "https://api.example.com",
+			WorkspaceID:    "ws1",
+			MessageID:      "msg1",
+		}
+		result, err := TrackLinks(html, settings)
+		if err != nil {
+			t.Fatalf("mode %q: TrackLinks returned error: %v", mode, err)
+		}
+		if result == html {
+			t.Errorf("mode %q must not suppress rewriting when tracking is enabled", mode)
+		}
+		if !strings.Contains(result, "/r/") {
+			t.Errorf("mode %q: expected rewritten /r/ link, got: %s", mode, result)
+		}
+	}
+}
+
+func TestGetTrackingURL_DisabledModeReturnsURLUnmodified(t *testing.T) {
+	settings := &TrackingSettings{
+		TrackingMode:   TrackingModeDisabled,
+		EnableTracking: true,
+		UTMSource:      "auth",
+		Endpoint:       "https://api.example.com/visit",
+	}
+	src := "https://example.com/auth/confirm?token=abc"
+	if got := settings.GetTrackingURL(src); got != src {
+		t.Errorf("opted-out URL must be returned unmodified, got: %s", got)
+	}
+}
+
+func TestValidateTrackingMode(t *testing.T) {
+	for _, valid := range []string{"", TrackingModeInherit, TrackingModeDisabled} {
+		if err := ValidateTrackingMode(valid); err != nil {
+			t.Errorf("mode %q must be valid, got: %v", valid, err)
+		}
+	}
+	if err := ValidateTrackingMode("force_on"); err == nil {
+		t.Error("unknown mode must be rejected")
 	}
 }

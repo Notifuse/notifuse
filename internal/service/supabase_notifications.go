@@ -30,7 +30,7 @@ func (s *SupabaseService) CreateDefaultSupabaseNotifications(ctx context.Context
 			},
 		},
 		TrackingSettings: notifuse_mjml.TrackingSettings{
-			EnableTracking: false,
+			TrackingMode: notifuse_mjml.TrackingModeDisabled,
 		},
 		CreatedAt: time.Now().UTC(),
 		UpdatedAt: time.Now().UTC(),
@@ -53,7 +53,7 @@ func (s *SupabaseService) CreateDefaultSupabaseNotifications(ctx context.Context
 			},
 		},
 		TrackingSettings: notifuse_mjml.TrackingSettings{
-			EnableTracking: false,
+			TrackingMode: notifuse_mjml.TrackingModeDisabled,
 		},
 		CreatedAt: time.Now().UTC(),
 		UpdatedAt: time.Now().UTC(),
@@ -76,7 +76,7 @@ func (s *SupabaseService) CreateDefaultSupabaseNotifications(ctx context.Context
 			},
 		},
 		TrackingSettings: notifuse_mjml.TrackingSettings{
-			EnableTracking: false,
+			TrackingMode: notifuse_mjml.TrackingModeDisabled,
 		},
 		CreatedAt: time.Now().UTC(),
 		UpdatedAt: time.Now().UTC(),
@@ -99,7 +99,7 @@ func (s *SupabaseService) CreateDefaultSupabaseNotifications(ctx context.Context
 			},
 		},
 		TrackingSettings: notifuse_mjml.TrackingSettings{
-			EnableTracking: false,
+			TrackingMode: notifuse_mjml.TrackingModeDisabled,
 		},
 		CreatedAt: time.Now().UTC(),
 		UpdatedAt: time.Now().UTC(),
@@ -122,7 +122,7 @@ func (s *SupabaseService) CreateDefaultSupabaseNotifications(ctx context.Context
 			},
 		},
 		TrackingSettings: notifuse_mjml.TrackingSettings{
-			EnableTracking: false,
+			TrackingMode: notifuse_mjml.TrackingModeDisabled,
 		},
 		CreatedAt: time.Now().UTC(),
 		UpdatedAt: time.Now().UTC(),
@@ -145,7 +145,7 @@ func (s *SupabaseService) CreateDefaultSupabaseNotifications(ctx context.Context
 			},
 		},
 		TrackingSettings: notifuse_mjml.TrackingSettings{
-			EnableTracking: false,
+			TrackingMode: notifuse_mjml.TrackingModeDisabled,
 		},
 		CreatedAt: time.Now().UTC(),
 		UpdatedAt: time.Now().UTC(),

@@ -86,8 +86,6 @@ export const TriggerConfigForm: React.FC<TriggerConfigFormProps> = ({ config, on
       value: 'email',
       label: t`Email`,
       children: [
-        { value: 'email.sent', label: t`Sent` },
-        { value: 'email.delivered', label: t`Delivered` },
         { value: 'email.opened', label: t`Opened` },
         { value: 'email.clicked', label: t`Clicked` },
         { value: 'email.bounced', label: t`Bounced` },
@@ -107,7 +105,6 @@ export const TriggerConfigForm: React.FC<TriggerConfigFormProps> = ({ config, on
           { value: 'first_name', label: t`First Name` },
           { value: 'last_name', label: t`Last Name` },
           { value: 'phone', label: t`Phone` },
-          { value: 'photo_url', label: t`Photo URL` },
           { value: 'external_id', label: t`External ID` },
           { value: 'timezone', label: t`Timezone` },
           { value: 'language', label: t`Language` }

@@ -685,6 +685,9 @@ type UpdateTemplateRequest struct {
 	TestData        MapOfAny                       `json:"test_data,omitempty"`
 	Settings        MapOfAny                       `json:"settings,omitempty"`
 	Translations    map[string]TemplateTranslation `json:"translations,omitempty"`
+	// BaseVersion is the revision the edit is based on. 0 (unset) skips the
+	// optimistic-concurrency check and preserves legacy last-writer-wins behavior.
+	BaseVersion int64 `json:"base_version,omitempty"`
 }
 
 func (r *UpdateTemplateRequest) Validate() (template *Template, workspaceID string, err error) {
@@ -760,6 +763,9 @@ func (r *UpdateTemplateRequest) Validate() (template *Template, workspaceID stri
 		TestData:        r.TestData,
 		Settings:        r.Settings,
 		Translations:    r.Translations,
+		// Carry the client's base version into the service so it can detect a
+		// stale-base save. The service reconciles Version before persisting.
+		Version: r.BaseVersion,
 	}, r.WorkspaceID, nil
 }
 
@@ -821,8 +827,11 @@ type TemplateRepository interface {
 	// GetTemplates retrieves all templates
 	GetTemplates(ctx context.Context, workspaceID string, category string, channel string) ([]*Template, error)
 
-	// UpdateTemplate updates an existing template, creating a new version
-	UpdateTemplate(ctx context.Context, workspaceID string, template *Template) error
+	// UpdateTemplate creates a new version of an existing template. baseVersion is the
+	// revision the caller's edit was based on; the insert only proceeds when it still
+	// matches the latest version (baseVersion == 0 skips the check). Returns
+	// *ErrTemplateVersionConflict when a concurrent edit advanced the version.
+	UpdateTemplate(ctx context.Context, workspaceID string, template *Template, baseVersion int64) error
 
 	// DeleteTemplate deletes a template
 	DeleteTemplate(ctx context.Context, workspaceID string, id string) error
@@ -844,6 +853,17 @@ type ErrEditorModeChange struct {
 
 func (e *ErrEditorModeChange) Error() string {
 	return e.Message
+}
+
+// ErrTemplateVersionConflict is returned when an update is based on a stale revision:
+// the template was modified by someone else since the client loaded it.
+type ErrTemplateVersionConflict struct {
+	BaseVersion   int64
+	LatestVersion int64
+}
+
+func (e *ErrTemplateVersionConflict) Error() string {
+	return fmt.Sprintf("template was modified: edit is based on version %d but latest is %d", e.BaseVersion, e.LatestVersion)
 }
 
 // TemplateDataRequest groups parameters for building template data

@@ -906,9 +906,11 @@ func (s *SparkPostService) SendEmail(ctx context.Context, request domain.SendEma
 
 			// SparkPost handles inline images separately from regular attachments
 			if att.Disposition == "inline" {
-				// Use inline_images array for inline attachments
+				// Use inline_images array for inline attachments. SparkPost
+				// references inline images by their "name" as cid:<name>, so use
+				// the caller-provided content_id when present, else the filename.
 				emailReq.Content.InlineImages = append(emailReq.Content.InlineImages, InlineImage{
-					Name: att.Filename,
+					Name: att.EffectiveContentID(),
 					Type: contentType,
 					Data: att.Content, // Already base64 encoded
 				})

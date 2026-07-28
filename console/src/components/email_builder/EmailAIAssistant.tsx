@@ -20,6 +20,9 @@ interface EmailAIAssistantProps {
   currentPreviewText?: string
   onUpdateSubject?: (subject: string) => void
   onUpdatePreviewText?: (preview: string) => void
+  // Validates the current email after the assistant edits it (e.g. compiles MJML)
+  // and reports any errors so they can be surfaced instead of a silent broken result.
+  validateOnComplete?: () => Promise<{ ok: boolean; errorText?: string }>
   hidden?: boolean
 }
 
@@ -31,6 +34,10 @@ const config: AIAssistantConfig = {
   iconColor: '#764ba2',
   avatarColor: '#764ba2',
   placeholder: 'Ask me to design your email...',
+  // Kept at 8192: this is sent as max_tokens to every provider, and some reasoning
+  // models (e.g. DeepSeek-reasoner) hard-cap output at 8192 and 400 on higher values.
+  // When reasoning still exhausts the budget the backend flags `truncated` and the
+  // user is told to lower the reasoning effort rather than the request silently failing.
   maxTokens: 8192,
   notConfiguredGradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
 }
@@ -42,6 +49,7 @@ export function EmailAIAssistant({
   currentPreviewText,
   onUpdateSubject,
   onUpdatePreviewText,
+  validateOnComplete,
   hidden = false
 }: EmailAIAssistantProps) {
   const buildSystemPrompt = () => {
@@ -181,7 +189,8 @@ export function EmailAIAssistant({
     config,
     tools: EMAIL_AI_TOOLS,
     toolHandlers,
-    buildSystemPrompt
+    buildSystemPrompt,
+    validateOnComplete
   })
 
   return (

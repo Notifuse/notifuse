@@ -21,11 +21,12 @@ export interface LLMChatRequest {
 }
 
 export interface LLMChatEvent {
-  type: 'text' | 'tool_use' | 'server_tool_start' | 'server_tool_result' | 'done' | 'error'
+  type: 'text' | 'thinking' | 'tool_use' | 'server_tool_start' | 'server_tool_result' | 'done' | 'error'
   content?: string
   error?: string
   tool_name?: string
   tool_input?: Record<string, unknown>
+  truncated?: boolean // output hit the token cap before finishing (on 'done')
   input_tokens?: number
   output_tokens?: number
   input_cost?: number   // USD

@@ -8,6 +8,7 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
+	"net/textproto"
 	"net/url"
 	"regexp"
 	"slices"
@@ -915,12 +916,29 @@ func (s *MailgunService) sendEmailWithAttachments(ctx context.Context, apiURL st
 
 		// Determine the field name based on disposition
 		fieldName := "attachment"
+		// Mailgun references an inline part by the file name supplied here as
+		// cid:<name>, so for inline attachments use the caller-provided
+		// content_id when present, else the filename.
+		formName := att.Filename
 		if att.Disposition == "inline" {
 			fieldName = "inline"
+			formName = att.EffectiveContentID()
 		}
 
-		// Create form file
-		part, err := writer.CreateFormFile(fieldName, att.Filename)
+		// Build the form part by hand instead of CreateFormFile: that helper
+		// hardcodes Content-Type: application/octet-stream, and Mailgun would
+		// otherwise have to guess the type from the filename extension — which
+		// an extension-less content_id (e.g. "checkInQr") doesn't carry.
+		contentType := att.ContentType
+		if contentType == "" {
+			contentType = "application/octet-stream"
+		}
+		quoteEscaper := strings.NewReplacer("\\", "\\\\", `"`, `\"`)
+		partHeader := textproto.MIMEHeader{}
+		partHeader.Set("Content-Disposition",
+			fmt.Sprintf(`form-data; name="%s"; filename="%s"`, fieldName, quoteEscaper.Replace(formName)))
+		partHeader.Set("Content-Type", contentType)
+		part, err := writer.CreatePart(partHeader)
 		if err != nil {
 			return fmt.Errorf("attachment %d: failed to create form file: %w", i, err)
 		}

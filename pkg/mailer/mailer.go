@@ -297,6 +297,11 @@ func (m *SMTPMailer) SendCircuitBreakerAlert(email, workspaceName, broadcastName
 	return nil
 }
 
+// implicitTLSPort is the port on which SMTP servers expect a TLS handshake
+// immediately after the TCP connection is opened (SMTPS). Package variable
+// so tests can substitute an ephemeral port.
+var implicitTLSPort = 465
+
 // createSMTPClient creates and configures a new SMTP client
 func (m *SMTPMailer) createSMTPClient() (*mail.Client, error) {
 	// In test mode, return nil client to avoid SMTP connections
@@ -315,6 +320,12 @@ func (m *SMTPMailer) createSMTPClient() (*mail.Client, error) {
 		mail.WithPort(m.config.SMTPPort),
 		mail.WithTLSPolicy(tlsPolicy),
 		mail.WithTimeout(10 * time.Second),
+	}
+
+	// On the SMTPS port the server expects TLS from the first byte; WithSSL
+	// makes go-mail dial TLS-first and skip STARTTLS negotiation.
+	if m.config.UseTLS && m.config.SMTPPort == implicitTLSPort {
+		clientOptions = append(clientOptions, mail.WithSSL())
 	}
 
 	// Only add authentication if username and password are provided

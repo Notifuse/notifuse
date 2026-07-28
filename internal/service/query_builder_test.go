@@ -1037,7 +1037,7 @@ func TestQueryBuilder_ContactTimeline(t *testing.T) {
 			Leaf: &domain.TreeNodeLeaf{
 				Source: "contact_timeline",
 				ContactTimeline: &domain.ContactTimelineCondition{
-					Kind:          "open_email",
+					Kind:          "email.opened",
 					CountOperator: "exactly",
 					CountValue:    0,
 				},
@@ -1050,7 +1050,7 @@ func TestQueryBuilder_ContactTimeline(t *testing.T) {
 		assert.Contains(t, sql, "SELECT COUNT(*)")
 		assert.Contains(t, sql, "ct.kind = $1")
 		assert.Contains(t, sql, "= $2")
-		assert.Equal(t, []interface{}{"open_email", 0}, args)
+		assert.Equal(t, []interface{}{"email.opened", 0}, args)
 	})
 
 	t.Run("timeline event count - at most 0 (never)", func(t *testing.T) {
@@ -1059,7 +1059,7 @@ func TestQueryBuilder_ContactTimeline(t *testing.T) {
 			Leaf: &domain.TreeNodeLeaf{
 				Source: "contact_timeline",
 				ContactTimeline: &domain.ContactTimelineCondition{
-					Kind:          "click_email",
+					Kind:          "email.clicked",
 					CountOperator: "at_most",
 					CountValue:    0,
 				},
@@ -1070,7 +1070,7 @@ func TestQueryBuilder_ContactTimeline(t *testing.T) {
 		require.NoError(t, err)
 
 		assert.Contains(t, sql, "<= $2")
-		assert.Equal(t, []interface{}{"click_email", 0}, args)
+		assert.Equal(t, []interface{}{"email.clicked", 0}, args)
 	})
 
 	t.Run("timeline event count - at least 0 (always true)", func(t *testing.T) {
@@ -1213,7 +1213,7 @@ func TestQueryBuilder_ContactTimeline(t *testing.T) {
 		sql, args, err := qb.BuildSQL(tree)
 		require.NoError(t, err)
 
-		assert.Contains(t, sql, "ct.metadata->>'product_id' = $2")
+		assert.Contains(t, sql, "ct.changes->'product_id'->>'new' = $2")
 		assert.Equal(t, []interface{}{"purchase", "prod_123", 1}, args)
 	})
 
@@ -1241,8 +1241,8 @@ func TestQueryBuilder_ContactTimeline(t *testing.T) {
 		sql, args, err := qb.BuildSQL(tree)
 		require.NoError(t, err)
 
-		// Should cast JSONB field to numeric for comparison
-		assert.Contains(t, sql, "(ct.metadata->>'amount')::numeric >= $2")
+		// Should cast the JSONB "new" value to numeric for comparison
+		assert.Contains(t, sql, "(ct.changes->'amount'->>'new')::numeric >= $2")
 		assert.Equal(t, []interface{}{"purchase", 100.0, 1}, args)
 	})
 
@@ -1366,7 +1366,7 @@ func TestQueryBuilder_ContactTimeline(t *testing.T) {
 			Leaf: &domain.TreeNodeLeaf{
 				Source: "contact_timeline",
 				ContactTimeline: &domain.ContactTimelineCondition{
-					Kind:          "open_email",
+					Kind:          "email.opened",
 					CountOperator: "at_least",
 					CountValue:    1,
 					TemplateID:    &templateID,
@@ -1380,7 +1380,7 @@ func TestQueryBuilder_ContactTimeline(t *testing.T) {
 		assert.Contains(t, sql, "ct.kind = $1")
 		assert.Contains(t, sql, "ct.entity_id IN (SELECT id FROM message_history WHERE template_id = $2)")
 		assert.Contains(t, sql, ">= $3")
-		assert.Equal(t, []interface{}{"open_email", "welcome-email", 1}, args)
+		assert.Equal(t, []interface{}{"email.opened", "welcome-email", 1}, args)
 	})
 
 	t.Run("timeline without template_id - unchanged SQL", func(t *testing.T) {
@@ -1389,7 +1389,7 @@ func TestQueryBuilder_ContactTimeline(t *testing.T) {
 			Leaf: &domain.TreeNodeLeaf{
 				Source: "contact_timeline",
 				ContactTimeline: &domain.ContactTimelineCondition{
-					Kind:          "open_email",
+					Kind:          "email.opened",
 					CountOperator: "at_least",
 					CountValue:    1,
 				},
@@ -1400,7 +1400,80 @@ func TestQueryBuilder_ContactTimeline(t *testing.T) {
 		require.NoError(t, err)
 
 		assert.NotContains(t, sql, "message_history")
-		assert.Equal(t, []interface{}{"open_email", 1}, args)
+		assert.Equal(t, []interface{}{"email.opened", 1}, args)
+	})
+
+	t.Run("timeline with broadcast_id filter", func(t *testing.T) {
+		broadcastID := "summer-sale"
+		tree := &domain.TreeNode{
+			Kind: "leaf",
+			Leaf: &domain.TreeNodeLeaf{
+				Source: "contact_timeline",
+				ContactTimeline: &domain.ContactTimelineCondition{
+					Kind:          "email.clicked",
+					CountOperator: "at_least",
+					CountValue:    1,
+					BroadcastID:   &broadcastID,
+				},
+			},
+		}
+
+		sql, args, err := qb.BuildSQL(tree)
+		require.NoError(t, err)
+
+		assert.Contains(t, sql, "ct.entity_id IN (SELECT id FROM message_history WHERE broadcast_id = $2)")
+		assert.Equal(t, []interface{}{"email.clicked", "summer-sale", 1}, args)
+	})
+
+	t.Run("timeline with link_url contains filter", func(t *testing.T) {
+		linkURL := "/pricing"
+		tree := &domain.TreeNode{
+			Kind: "leaf",
+			Leaf: &domain.TreeNodeLeaf{
+				Source: "contact_timeline",
+				ContactTimeline: &domain.ContactTimelineCondition{
+					Kind:          "email.clicked",
+					CountOperator: "at_least",
+					CountValue:    1,
+					LinkURL:       &linkURL,
+				},
+			},
+		}
+
+		sql, args, err := qb.BuildSQL(tree)
+		require.NoError(t, err)
+
+		// Literal case-insensitive substring match against clicked_links keys (strpos, not
+		// ILIKE, so '%'/'_' in a URL are matched literally); a malformed clicked_links is
+		// coerced to an empty object so jsonb_object_keys never errors.
+		assert.Contains(t, sql, "CASE WHEN jsonb_typeof(clicked_links) = 'object'")
+		assert.Contains(t, sql, "strpos(lower(k), lower($2)) > 0")
+		assert.Equal(t, []interface{}{"email.clicked", "/pricing", 1}, args)
+	})
+
+	t.Run("timeline with broadcast_id and link_url combined", func(t *testing.T) {
+		broadcastID := "summer-sale"
+		linkURL := "/pricing"
+		tree := &domain.TreeNode{
+			Kind: "leaf",
+			Leaf: &domain.TreeNodeLeaf{
+				Source: "contact_timeline",
+				ContactTimeline: &domain.ContactTimelineCondition{
+					Kind:          "email.clicked",
+					CountOperator: "at_least",
+					CountValue:    1,
+					BroadcastID:   &broadcastID,
+					LinkURL:       &linkURL,
+				},
+			},
+		}
+
+		sql, args, err := qb.BuildSQL(tree)
+		require.NoError(t, err)
+
+		// Both scopes ANDed into a single message_history subquery.
+		assert.Contains(t, sql, "broadcast_id = $2 AND EXISTS (SELECT 1 FROM jsonb_object_keys(CASE WHEN jsonb_typeof(clicked_links)")
+		assert.Equal(t, []interface{}{"email.clicked", "summer-sale", "/pricing", 1}, args)
 	})
 
 	t.Run("timeline with template_id and timeframe", func(t *testing.T) {
@@ -1411,7 +1484,7 @@ func TestQueryBuilder_ContactTimeline(t *testing.T) {
 			Leaf: &domain.TreeNodeLeaf{
 				Source: "contact_timeline",
 				ContactTimeline: &domain.ContactTimelineCondition{
-					Kind:              "click_email",
+					Kind:              "email.clicked",
 					CountOperator:     "at_least",
 					CountValue:        2,
 					TemplateID:        &templateID,
@@ -1428,7 +1501,7 @@ func TestQueryBuilder_ContactTimeline(t *testing.T) {
 		assert.Contains(t, sql, "ct.entity_id IN (SELECT id FROM message_history WHERE template_id = $2)")
 		assert.Contains(t, sql, "ct.created_at > NOW() - INTERVAL '30 days'")
 		assert.Contains(t, sql, ">= $3")
-		assert.Equal(t, []interface{}{"click_email", "promo-email", 2}, args)
+		assert.Equal(t, []interface{}{"email.clicked", "promo-email", 2}, args)
 	})
 }
 
@@ -1869,7 +1942,7 @@ func TestQueryBuilder_BuildTriggerCondition(t *testing.T) {
 			Leaf: &domain.TreeNodeLeaf{
 				Source: "contact_timeline",
 				ContactTimeline: &domain.ContactTimelineCondition{
-					Kind:          "update_message_history",
+					Kind:          "email.updated",
 					CountOperator: "at_least",
 					CountValue:    5,
 				},
@@ -1884,7 +1957,7 @@ func TestQueryBuilder_BuildTriggerCondition(t *testing.T) {
 		assert.Contains(t, sql, "ct.email = NEW.email")
 		assert.Contains(t, sql, "ct.kind = $1")
 		assert.Contains(t, sql, ">= $2")
-		assert.Equal(t, []interface{}{"update_message_history", 5}, args)
+		assert.Equal(t, []interface{}{"email.updated", 5}, args)
 	})
 
 	t.Run("AND branch with multiple conditions", func(t *testing.T) {
@@ -2064,7 +2137,7 @@ func TestQueryBuilder_BuildTriggerCondition(t *testing.T) {
 			Leaf: &domain.TreeNodeLeaf{
 				Source: "contact_timeline",
 				ContactTimeline: &domain.ContactTimelineCondition{
-					Kind:          "open_email",
+					Kind:          "email.opened",
 					CountOperator: "at_least",
 					CountValue:    1,
 					TemplateID:    &templateID,
@@ -2077,6 +2150,32 @@ func TestQueryBuilder_BuildTriggerCondition(t *testing.T) {
 
 		assert.Contains(t, sql, "ct.email = NEW.email")
 		assert.Contains(t, sql, "ct.entity_id IN (SELECT id FROM message_history WHERE template_id = $2)")
-		assert.Equal(t, []interface{}{"open_email", "welcome-email", 1}, args)
+		assert.Equal(t, []interface{}{"email.opened", "welcome-email", 1}, args)
+	})
+
+	t.Run("timeline with broadcast_id and link_url using email ref", func(t *testing.T) {
+		broadcastID := "summer-sale"
+		linkURL := "/pricing"
+		tree := &domain.TreeNode{
+			Kind: "leaf",
+			Leaf: &domain.TreeNodeLeaf{
+				Source: "contact_timeline",
+				ContactTimeline: &domain.ContactTimelineCondition{
+					Kind:          "email.clicked",
+					CountOperator: "at_least",
+					CountValue:    1,
+					BroadcastID:   &broadcastID,
+					LinkURL:       &linkURL,
+				},
+			},
+		}
+
+		sql, args, err := qb.BuildTriggerCondition(tree, "NEW.email")
+		require.NoError(t, err)
+
+		// The automation filter/branch path (WithEmailRef) applies the same scoping.
+		assert.Contains(t, sql, "ct.email = NEW.email")
+		assert.Contains(t, sql, "broadcast_id = $2 AND EXISTS (SELECT 1 FROM jsonb_object_keys(CASE WHEN jsonb_typeof(clicked_links)")
+		assert.Equal(t, []interface{}{"email.clicked", "summer-sale", "/pricing", 1}, args)
 	})
 }

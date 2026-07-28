@@ -561,6 +561,16 @@ func TestTemplateHandler_HandleUpdate(t *testing.T) {
 			authenticate:   true,
 		},
 		{
+			name:        "Version Conflict",
+			requestBody: validRequest,
+			setupMock: func(m *mocks.MockTemplateService) {
+				m.EXPECT().UpdateTemplate(gomock.Any(), workspaceID, gomock.Any()).Return(&domain.ErrTemplateVersionConflict{BaseVersion: 4, LatestVersion: 9})
+			},
+			expectedStatus: http.StatusConflict,
+			expectBody:     false,
+			authenticate:   true,
+		},
+		{
 			name:           "Invalid Request Body (Bad JSON)",
 			requestBody:    "this is not json",
 			setupMock:      func(m *mocks.MockTemplateService) {},
@@ -863,6 +873,38 @@ func TestHandleCreate_CodeModeTemplate(t *testing.T) {
 	defer func() { _ = resp.Body.Close() }()
 
 	assert.Equal(t, http.StatusCreated, resp.StatusCode)
+}
+
+func TestTemplateHandler_HandleUpdate_VersionConflictBody(t *testing.T) {
+	workspaceID := "workspace123"
+	validRequest := domain.UpdateTemplateRequest{
+		WorkspaceID: workspaceID,
+		ID:          "template1",
+		Name:        "Updated Template",
+		Channel:     "email",
+		Category:    "transactional",
+		Email:       createTestEmailTemplate(),
+		BaseVersion: 4,
+	}
+
+	mockService, _, serverURL, secretKey, cleanup := setupTemplateHandlerTest(t)
+	defer cleanup()
+
+	mockService.EXPECT().UpdateTemplate(gomock.Any(), workspaceID, gomock.Any()).
+		Return(&domain.ErrTemplateVersionConflict{BaseVersion: 4, LatestVersion: 9})
+
+	updateURL := fmt.Sprintf("%s/api/templates.update", serverURL)
+	resp := sendRequest(t, http.MethodPost, updateURL, createTestToken(secretKey), validRequest)
+	defer func() { _ = resp.Body.Close() }()
+
+	assert.Equal(t, http.StatusConflict, resp.StatusCode)
+
+	var body map[string]interface{}
+	require.NoError(t, json.NewDecoder(resp.Body).Decode(&body))
+	// The frontend conflict dialog reads latest_version to offer reload/overwrite.
+	assert.Equal(t, float64(9), body["latest_version"])
+	assert.Equal(t, float64(4), body["base_version"])
+	assert.NotEmpty(t, body["error"])
 }
 
 func TestHandleUpdate_CodeModeTemplate(t *testing.T) {

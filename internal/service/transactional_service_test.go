@@ -412,6 +412,203 @@ func TestTransactionalNotificationService_UpdateNotification(t *testing.T) {
 			},
 		},
 		{
+			name: "Success_KeepsStoredTrackingModeWhenAbsentOnRegularUpdate",
+			id:   notificationID,
+			input: domain.TransactionalNotificationUpdateParams{
+				// Mirrors the console drawer: only UTM fields are submitted
+				TrackingSettings: notifuse_mjml.TrackingSettings{
+					UTMSource: "newsletter",
+				},
+			},
+			mockSetup: func() {
+				mockAuthService.EXPECT().
+					AuthenticateUserForWorkspace(gomock.Any(), workspace).
+					Return(ctx, &domain.User{ID: "user-123"}, &domain.UserWorkspace{
+						UserID:      "user-123",
+						WorkspaceID: workspace,
+						Role:        "member",
+						Permissions: domain.UserPermissions{
+							domain.PermissionResourceTransactional: {Read: true, Write: true},
+						},
+					}, nil)
+
+				// Stored notification opted out of tracking
+				mockRepo.EXPECT().
+					Get(gomock.Any(), workspace, notificationID).
+					Return(&domain.TransactionalNotification{
+						ID:   notificationID,
+						Name: "Opted Out",
+						TrackingSettings: notifuse_mjml.TrackingSettings{
+							TrackingMode: notifuse_mjml.TrackingModeDisabled,
+						},
+					}, nil)
+
+				// The stored opt-out survives the tracking settings replacement
+				mockRepo.EXPECT().
+					Update(gomock.Any(), workspace, gomock.Any()).
+					DoAndReturn(func(_ context.Context, _ string, notif *domain.TransactionalNotification) error {
+						assert.Equal(t, notifuse_mjml.TrackingModeDisabled, notif.TrackingSettings.TrackingMode)
+						assert.Equal(t, "newsletter", notif.TrackingSettings.UTMSource)
+						return nil
+					})
+			},
+			expectedError: false,
+			expectedResult: &domain.TransactionalNotification{
+				ID:   notificationID,
+				Name: "Opted Out",
+				TrackingSettings: notifuse_mjml.TrackingSettings{
+					TrackingMode: notifuse_mjml.TrackingModeDisabled,
+					UTMSource:    "newsletter",
+				},
+			},
+		},
+		{
+			name: "Success_KeepsStoredTrackingModeWhenAbsentOnIntegrationManagedUpdate",
+			id:   notificationID,
+			input: domain.TransactionalNotificationUpdateParams{
+				Description: "Updated Description",
+				TrackingSettings: notifuse_mjml.TrackingSettings{
+					UTMSource: "newsletter",
+				},
+			},
+			mockSetup: func() {
+				mockAuthService.EXPECT().
+					AuthenticateUserForWorkspace(gomock.Any(), workspace).
+					Return(ctx, &domain.User{ID: "user-123"}, &domain.UserWorkspace{
+						UserID:      "user-123",
+						WorkspaceID: workspace,
+						Role:        "member",
+						Permissions: domain.UserPermissions{
+							domain.PermissionResourceTransactional: {Read: true, Write: true},
+						},
+					}, nil)
+
+				// Integration-managed notification (e.g. Supabase auth email) with the opt-out set
+				integrationID := "supabase-integration"
+				mockRepo.EXPECT().
+					Get(gomock.Any(), workspace, notificationID).
+					Return(&domain.TransactionalNotification{
+						ID:            notificationID,
+						Name:          "Magic Link",
+						IntegrationID: &integrationID,
+						TrackingSettings: notifuse_mjml.TrackingSettings{
+							TrackingMode: notifuse_mjml.TrackingModeDisabled,
+						},
+					}, nil)
+
+				mockRepo.EXPECT().
+					Update(gomock.Any(), workspace, gomock.Any()).
+					DoAndReturn(func(_ context.Context, _ string, notif *domain.TransactionalNotification) error {
+						assert.Equal(t, notifuse_mjml.TrackingModeDisabled, notif.TrackingSettings.TrackingMode)
+						assert.Equal(t, "newsletter", notif.TrackingSettings.UTMSource)
+						assert.Equal(t, "Updated Description", notif.Description)
+						return nil
+					})
+			},
+			expectedError: false,
+			expectedResult: &domain.TransactionalNotification{
+				ID:          notificationID,
+				Name:        "Magic Link",
+				Description: "Updated Description",
+				TrackingSettings: notifuse_mjml.TrackingSettings{
+					TrackingMode: notifuse_mjml.TrackingModeDisabled,
+					UTMSource:    "newsletter",
+				},
+			},
+		},
+		{
+			name: "Success_ExplicitInheritResetsStoredOptOut",
+			id:   notificationID,
+			input: domain.TransactionalNotificationUpdateParams{
+				TrackingSettings: notifuse_mjml.TrackingSettings{
+					TrackingMode: notifuse_mjml.TrackingModeInherit,
+					UTMSource:    "newsletter",
+				},
+			},
+			mockSetup: func() {
+				mockAuthService.EXPECT().
+					AuthenticateUserForWorkspace(gomock.Any(), workspace).
+					Return(ctx, &domain.User{ID: "user-123"}, &domain.UserWorkspace{
+						UserID:      "user-123",
+						WorkspaceID: workspace,
+						Role:        "member",
+						Permissions: domain.UserPermissions{
+							domain.PermissionResourceTransactional: {Read: true, Write: true},
+						},
+					}, nil)
+
+				mockRepo.EXPECT().
+					Get(gomock.Any(), workspace, notificationID).
+					Return(&domain.TransactionalNotification{
+						ID:   notificationID,
+						Name: "Opted Out",
+						TrackingSettings: notifuse_mjml.TrackingSettings{
+							TrackingMode: notifuse_mjml.TrackingModeDisabled,
+						},
+					}, nil)
+
+				// The explicit reset clears the stored opt-out (canonicalized to "")
+				mockRepo.EXPECT().
+					Update(gomock.Any(), workspace, gomock.Any()).
+					DoAndReturn(func(_ context.Context, _ string, notif *domain.TransactionalNotification) error {
+						assert.Empty(t, notif.TrackingSettings.TrackingMode)
+						assert.Equal(t, "newsletter", notif.TrackingSettings.UTMSource)
+						return nil
+					})
+			},
+			expectedError: false,
+			expectedResult: &domain.TransactionalNotification{
+				ID:   notificationID,
+				Name: "Opted Out",
+				TrackingSettings: notifuse_mjml.TrackingSettings{
+					UTMSource: "newsletter",
+				},
+			},
+		},
+		{
+			name: "Success_ExplicitDisabledSetViaUpdate",
+			id:   notificationID,
+			input: domain.TransactionalNotificationUpdateParams{
+				TrackingSettings: notifuse_mjml.TrackingSettings{
+					TrackingMode: notifuse_mjml.TrackingModeDisabled,
+				},
+			},
+			mockSetup: func() {
+				mockAuthService.EXPECT().
+					AuthenticateUserForWorkspace(gomock.Any(), workspace).
+					Return(ctx, &domain.User{ID: "user-123"}, &domain.UserWorkspace{
+						UserID:      "user-123",
+						WorkspaceID: workspace,
+						Role:        "member",
+						Permissions: domain.UserPermissions{
+							domain.PermissionResourceTransactional: {Read: true, Write: true},
+						},
+					}, nil)
+
+				mockRepo.EXPECT().
+					Get(gomock.Any(), workspace, notificationID).
+					Return(&domain.TransactionalNotification{
+						ID:   notificationID,
+						Name: "Regular",
+					}, nil)
+
+				mockRepo.EXPECT().
+					Update(gomock.Any(), workspace, gomock.Any()).
+					DoAndReturn(func(_ context.Context, _ string, notif *domain.TransactionalNotification) error {
+						assert.Equal(t, notifuse_mjml.TrackingModeDisabled, notif.TrackingSettings.TrackingMode)
+						return nil
+					})
+			},
+			expectedError: false,
+			expectedResult: &domain.TransactionalNotification{
+				ID:   notificationID,
+				Name: "Regular",
+				TrackingSettings: notifuse_mjml.TrackingSettings{
+					TrackingMode: notifuse_mjml.TrackingModeDisabled,
+				},
+			},
+		},
+		{
 			name: "Error_NotificationNotFound",
 			id:   notificationID,
 			input: domain.TransactionalNotificationUpdateParams{
@@ -1238,6 +1435,220 @@ func TestTransactionalNotificationService_SendNotification(t *testing.T) {
 		require.NotEmpty(t, messageID)
 	})
 
+	t.Run("Success_DisabledModeSuppressesWorkspaceTracking", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		mockRepo := mocks.NewMockTransactionalNotificationRepository(ctrl)
+		mockMsgHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
+		mockTemplateService := mocks.NewMockTemplateService(ctrl)
+		mockContactService := mocks.NewMockContactService(ctrl)
+		mockEmailService := mocks.NewMockEmailServiceInterface(ctrl)
+		mockLogger := pkgmocks.NewMockLogger(ctrl)
+		mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+		mockAuthService := mocks.NewMockAuthService(ctrl)
+
+		// Create a stub logger that simply returns itself for chaining calls
+		mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+		mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+		mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
+		mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
+		mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+
+		service := &TransactionalNotificationService{
+			transactionalRepo:  mockRepo,
+			messageHistoryRepo: mockMsgHistoryRepo,
+			templateService:    mockTemplateService,
+			contactService:     mockContactService,
+			emailService:       mockEmailService,
+			logger:             mockLogger,
+			workspaceRepo:      mockWorkspaceRepo,
+			apiEndpoint:        "https://api.example.com",
+			authService:        mockAuthService,
+		}
+
+		// Workspace-level tracking is ON
+		trackingWorkspace := &domain.Workspace{
+			ID:   workspace,
+			Name: "Test Workspace",
+			Settings: domain.WorkspaceSettings{
+				TransactionalEmailProviderID: "integration-1",
+				SecretKey:                    "test-secret-key",
+				EmailTrackingEnabled:         true,
+			},
+			Integrations: workspaceObj.Integrations,
+		}
+
+		// Notification opted out of tracking (e.g. Supabase auth email)
+		optedOutNotification := &domain.TransactionalNotification{
+			ID:          notificationID,
+			Name:        "Magic Link",
+			Description: "Auth email",
+			Channels: map[domain.TransactionalChannel]domain.ChannelTemplate{
+				domain.TransactionalChannelEmail: {
+					TemplateID: templateID,
+				},
+			},
+			TrackingSettings: notifuse_mjml.TrackingSettings{
+				EnableTracking: false,
+				TrackingMode:   notifuse_mjml.TrackingModeDisabled,
+			},
+		}
+
+		params := domain.TransactionalNotificationSendParams{
+			ID:      notificationID,
+			Contact: contact,
+		}
+
+		mockAuthService.EXPECT().
+			AuthenticateUserForWorkspace(gomock.Any(), workspace).
+			Return(ctx, &domain.User{ID: "user-123"}, &domain.UserWorkspace{
+				UserID:      "user-123",
+				WorkspaceID: workspace,
+				Role:        "member",
+				Permissions: domain.UserPermissions{
+					domain.PermissionResourceTransactional: {Read: true, Write: true},
+				},
+			}, nil)
+
+		mockWorkspaceRepo.EXPECT().
+			GetByID(gomock.Any(), workspace).
+			Return(trackingWorkspace, nil)
+
+		mockRepo.EXPECT().
+			Get(gomock.Any(), workspace, notificationID).
+			Return(optedOutNotification, nil)
+
+		mockContactService.EXPECT().
+			UpsertContact(gomock.Any(), workspace, contact).
+			Return(domain.UpsertContactOperation{
+				Email:  contact.Email,
+				Action: domain.UpsertContactOperationUpdate,
+			})
+
+		mockContactService.EXPECT().
+			GetContactByEmail(gomock.Any(), workspace, contact.Email).
+			Return(contact, nil)
+
+		// The opt-out wins over the workspace flag
+		mockEmailService.EXPECT().
+			SendEmailForTemplate(gomock.Any(), gomock.Any()).
+			Do(func(_ context.Context, request domain.SendEmailRequest) {
+				assert.False(t, request.TrackingSettings.EnableTracking)
+				assert.Equal(t, notifuse_mjml.TrackingModeDisabled, request.TrackingSettings.TrackingMode)
+			}).Return(nil)
+
+		messageID, err := service.SendNotification(ctx, workspace, params)
+
+		require.NoError(t, err)
+		require.NotEmpty(t, messageID)
+	})
+
+	t.Run("Success_UnsetModeKeepsTracking", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		mockRepo := mocks.NewMockTransactionalNotificationRepository(ctrl)
+		mockMsgHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
+		mockTemplateService := mocks.NewMockTemplateService(ctrl)
+		mockContactService := mocks.NewMockContactService(ctrl)
+		mockEmailService := mocks.NewMockEmailServiceInterface(ctrl)
+		mockLogger := pkgmocks.NewMockLogger(ctrl)
+		mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+		mockAuthService := mocks.NewMockAuthService(ctrl)
+
+		// Create a stub logger that simply returns itself for chaining calls
+		mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+		mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+		mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
+		mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
+		mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+
+		service := &TransactionalNotificationService{
+			transactionalRepo:  mockRepo,
+			messageHistoryRepo: mockMsgHistoryRepo,
+			templateService:    mockTemplateService,
+			contactService:     mockContactService,
+			emailService:       mockEmailService,
+			logger:             mockLogger,
+			workspaceRepo:      mockWorkspaceRepo,
+			apiEndpoint:        "https://api.example.com",
+			authService:        mockAuthService,
+		}
+
+		// Workspace-level tracking is ON
+		trackingWorkspace := &domain.Workspace{
+			ID:   workspace,
+			Name: "Test Workspace",
+			Settings: domain.WorkspaceSettings{
+				TransactionalEmailProviderID: "integration-1",
+				SecretKey:                    "test-secret-key",
+				EmailTrackingEnabled:         true,
+			},
+			Integrations: workspaceObj.Integrations,
+		}
+
+		// Regular notification: zero-value TrackingSettings (console-created)
+		regularNotification := &domain.TransactionalNotification{
+			ID:          notificationID,
+			Name:        "Order Confirmation",
+			Description: "Regular notification",
+			Channels: map[domain.TransactionalChannel]domain.ChannelTemplate{
+				domain.TransactionalChannelEmail: {
+					TemplateID: templateID,
+				},
+			},
+		}
+
+		params := domain.TransactionalNotificationSendParams{
+			ID:      notificationID,
+			Contact: contact,
+		}
+
+		mockAuthService.EXPECT().
+			AuthenticateUserForWorkspace(gomock.Any(), workspace).
+			Return(ctx, &domain.User{ID: "user-123"}, &domain.UserWorkspace{
+				UserID:      "user-123",
+				WorkspaceID: workspace,
+				Role:        "member",
+				Permissions: domain.UserPermissions{
+					domain.PermissionResourceTransactional: {Read: true, Write: true},
+				},
+			}, nil)
+
+		mockWorkspaceRepo.EXPECT().
+			GetByID(gomock.Any(), workspace).
+			Return(trackingWorkspace, nil)
+
+		mockRepo.EXPECT().
+			Get(gomock.Any(), workspace, notificationID).
+			Return(regularNotification, nil)
+
+		mockContactService.EXPECT().
+			UpsertContact(gomock.Any(), workspace, contact).
+			Return(domain.UpsertContactOperation{
+				Email:  contact.Email,
+				Action: domain.UpsertContactOperationUpdate,
+			})
+
+		mockContactService.EXPECT().
+			GetContactByEmail(gomock.Any(), workspace, contact.Email).
+			Return(contact, nil)
+
+		// Without the opt-out, the workspace flag applies as before
+		mockEmailService.EXPECT().
+			SendEmailForTemplate(gomock.Any(), gomock.Any()).
+			Do(func(_ context.Context, request domain.SendEmailRequest) {
+				assert.True(t, request.TrackingSettings.EnableTracking)
+				assert.Empty(t, request.TrackingSettings.TrackingMode)
+			}).Return(nil)
+
+		messageID, err := service.SendNotification(ctx, workspace, params)
+
+		require.NoError(t, err)
+		require.NotEmpty(t, messageID)
+	})
+
 	t.Run("Error_NotificationNotFound", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
@@ -1975,6 +2386,146 @@ func TestTransactionalNotificationService_TestTemplate(t *testing.T) {
 
 	// Assertions
 	require.NoError(t, err)
+}
+
+func TestTransactionalNotificationService_TestTemplate_TrackingFollowsWorkspaceFlag(t *testing.T) {
+	for _, trackingEnabled := range []bool{true, false} {
+		name := "WorkspaceTrackingEnabled"
+		if !trackingEnabled {
+			name = "WorkspaceTrackingDisabled"
+		}
+		t.Run(name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			mockRepo := mocks.NewMockTransactionalNotificationRepository(ctrl)
+			mockMsgHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
+			mockTemplateService := mocks.NewMockTemplateService(ctrl)
+			mockContactService := mocks.NewMockContactService(ctrl)
+			mockEmailService := mocks.NewMockEmailServiceInterface(ctrl)
+			mockLogger := pkgmocks.NewMockLogger(ctrl)
+			mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+			mockAuthService := mocks.NewMockAuthService(ctrl)
+
+			// Create a stub logger that simply returns itself for chaining calls
+			mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+			mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+			mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
+			mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
+			mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+
+			ctx := context.Background()
+			workspaceID := "test-workspace"
+			templateID := uuid.New().String()
+			integrationID := "integration-1"
+			senderID := "sender-1"
+			recipientEmail := "test@example.com"
+
+			workspace := &domain.Workspace{
+				ID:   workspaceID,
+				Name: "Test Workspace",
+				Settings: domain.WorkspaceSettings{
+					SecretKey:            "test-secret-key",
+					EmailTrackingEnabled: trackingEnabled,
+				},
+				Integrations: []domain.Integration{
+					{
+						ID:   integrationID,
+						Name: "Test Integration",
+						Type: "email",
+						EmailProvider: domain.EmailProvider{
+							Kind: domain.EmailProviderKindSparkPost,
+							Senders: []domain.EmailSender{
+								{
+									ID:    senderID,
+									Email: "sender@example.com",
+									Name:  "Test Sender",
+								},
+							},
+						},
+					},
+				},
+			}
+
+			template := &domain.Template{
+				ID:   templateID,
+				Name: "Test Template",
+				Email: &domain.EmailTemplate{
+					Subject: "Test Subject",
+					VisualEditorTree: &notifuse_mjml.MJMLBlock{
+						BaseBlock: notifuse_mjml.NewBaseBlock("root", notifuse_mjml.MJMLComponentMjml),
+					},
+				},
+			}
+
+			htmlResult := "<html><body>Test content</body></html>"
+
+			service := &TransactionalNotificationService{
+				transactionalRepo:  mockRepo,
+				messageHistoryRepo: mockMsgHistoryRepo,
+				templateService:    mockTemplateService,
+				contactService:     mockContactService,
+				emailService:       mockEmailService,
+				logger:             mockLogger,
+				workspaceRepo:      mockWorkspaceRepo,
+				apiEndpoint:        "https://api.example.com",
+				authService:        mockAuthService,
+			}
+
+			mockAuthService.EXPECT().
+				AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
+				Return(ctx, &domain.User{ID: "user-123"}, &domain.UserWorkspace{
+					UserID:      "user-123",
+					WorkspaceID: workspaceID,
+					Role:        "member",
+					Permissions: domain.UserPermissions{
+						domain.PermissionResourceTransactional: {Read: true, Write: true},
+					},
+				}, nil)
+
+			mockTemplateService.EXPECT().
+				GetTemplateByID(gomock.Any(), workspaceID, templateID, int64(0)).
+				Return(template, nil)
+
+			mockWorkspaceRepo.EXPECT().
+				GetByID(gomock.Any(), workspaceID).
+				Return(workspace, nil)
+
+			mockContactService.EXPECT().
+				UpsertContact(gomock.Any(), workspaceID, gomock.Any()).
+				Return(domain.UpsertContactOperation{
+					Email:  recipientEmail,
+					Action: domain.UpsertContactOperationUpdate,
+				})
+
+			mockContactService.EXPECT().
+				GetContactByEmail(gomock.Any(), workspaceID, recipientEmail).
+				Return(&domain.Contact{Email: recipientEmail}, nil)
+
+			// Test sends follow the workspace tracking flag instead of always tracking
+			mockTemplateService.EXPECT().
+				CompileTemplate(gomock.Any(), gomock.Any()).
+				DoAndReturn(func(_ context.Context, req domain.CompileTemplateRequest) (*domain.CompileTemplateResponse, error) {
+					assert.Equal(t, trackingEnabled, req.TrackingSettings.EnableTracking)
+					return &domain.CompileTemplateResponse{
+						Success: true,
+						HTML:    &htmlResult,
+					}, nil
+				})
+
+			mockEmailService.EXPECT().
+				SendEmail(gomock.Any(), gomock.Any(), gomock.Any()).
+				Return(nil)
+
+			mockMsgHistoryRepo.EXPECT().
+				Create(gomock.Any(), workspaceID, gomock.Any(), gomock.Any()).
+				Return(nil)
+
+			err := service.TestTemplate(ctx, workspaceID, templateID, integrationID, senderID, recipientEmail, "", domain.EmailOptions{})
+
+			require.NoError(t, err)
+		})
+	}
 }
 
 func TestTransactionalNotificationService_TestTemplate_WithChannelOptions(t *testing.T) {
@@ -2846,4 +3397,32 @@ func TestTransactionalNotificationService_TestTemplate_WithLanguage(t *testing.T
 
 	err := service.TestTemplate(ctx, workspaceID, templateID, integrationID, senderID, recipientEmail, "fr", domain.EmailOptions{})
 	require.NoError(t, err)
+}
+
+func TestEffectiveTracking(t *testing.T) {
+	tests := []struct {
+		name             string
+		workspaceEnabled bool
+		mode             string
+		expected         bool
+	}{
+		{"workspace on, unset mode inherits", true, "", true},
+		{"workspace on, explicit inherit", true, notifuse_mjml.TrackingModeInherit, true},
+		{"workspace on, disabled wins", true, notifuse_mjml.TrackingModeDisabled, false},
+		{"workspace off is a kill-switch for unset", false, "", false},
+		{"workspace off is a kill-switch for inherit", false, notifuse_mjml.TrackingModeInherit, false},
+		{"workspace off, disabled", false, notifuse_mjml.TrackingModeDisabled, false},
+		{"unknown future mode degrades to inherit", true, "force_on", true},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, tc.expected, effectiveTracking(tc.workspaceEnabled, tc.mode))
+		})
+	}
+}
+
+func TestCanonicalTrackingMode(t *testing.T) {
+	assert.Equal(t, "", canonicalTrackingMode(""))
+	assert.Equal(t, "", canonicalTrackingMode(notifuse_mjml.TrackingModeInherit))
+	assert.Equal(t, notifuse_mjml.TrackingModeDisabled, canonicalTrackingMode(notifuse_mjml.TrackingModeDisabled))
 }

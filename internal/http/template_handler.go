@@ -156,6 +156,14 @@ func (h *TemplateHandler) handleUpdate(w http.ResponseWriter, r *http.Request) {
 			WriteJSONError(w, e.Message, http.StatusBadRequest)
 			return
 		}
+		if e, ok := err.(*domain.ErrTemplateVersionConflict); ok {
+			writeJSON(w, http.StatusConflict, map[string]interface{}{
+				"error":          e.Error(),
+				"latest_version": e.LatestVersion,
+				"base_version":   e.BaseVersion,
+			})
+			return
+		}
 		h.logger.WithField("error", err.Error()).Error("Failed to update template")
 		WriteJSONError(w, "Failed to update template", http.StatusInternalServerError)
 		return

@@ -291,6 +291,10 @@ func (req *CreateTransactionalRequest) Validate() error {
 		return NewValidationError("notification must have at least one channel")
 	}
 
+	if err := notifuse_mjml.ValidateTrackingMode(req.Notification.TrackingSettings.TrackingMode); err != nil {
+		return NewValidationError(err.Error())
+	}
+
 	return nil
 }
 
@@ -311,11 +315,16 @@ func (req *UpdateTransactionalRequest) Validate() error {
 		return NewValidationError("id is required")
 	}
 
+	if err := notifuse_mjml.ValidateTrackingMode(req.Updates.TrackingSettings.TrackingMode); err != nil {
+		return NewValidationError(err.Error())
+	}
+
 	// At least one field must be updated
 	if req.Updates.Name == "" &&
 		req.Updates.Description == "" &&
 		req.Updates.Channels == nil &&
-		req.Updates.Metadata == nil {
+		req.Updates.Metadata == nil &&
+		req.Updates.TrackingSettings == (notifuse_mjml.TrackingSettings{}) {
 		return NewValidationError("at least one field must be updated")
 	}
 

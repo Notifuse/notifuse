@@ -13,8 +13,8 @@ export const AddToListConfigForm: React.FC<AddToListConfigFormProps> = ({ config
   const { t } = useLingui()
   const { lists } = useAutomation()
 
-  const STATUS_OPTIONS = [
-    { label: t`Subscribed`, value: 'subscribed' },
+  const STATUS_OPTIONS: { label: string; value: AddToListNodeConfig['status'] }[] = [
+    { label: t`Subscribed`, value: 'active' },
     { label: t`Pending`, value: 'pending' }
   ]
 
@@ -22,7 +22,7 @@ export const AddToListConfigForm: React.FC<AddToListConfigFormProps> = ({ config
     onChange({ ...config, list_id: value })
   }
 
-  const handleStatusChange = (value: 'subscribed' | 'pending') => {
+  const handleStatusChange = (value: AddToListNodeConfig['status']) => {
     onChange({ ...config, status: value })
   }
 
@@ -51,7 +51,7 @@ export const AddToListConfigForm: React.FC<AddToListConfigFormProps> = ({ config
         extra={t`The status to assign when adding to the list`}
       >
         <Select
-          value={config.status || 'subscribed'}
+          value={config.status || 'active'}
           onChange={handleStatusChange}
           style={{ width: '100%' }}
           options={STATUS_OPTIONS}

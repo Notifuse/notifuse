@@ -6,6 +6,7 @@ export interface ChatMessage {
   key: string
   role: 'user' | 'assistant' | 'tool'
   content: string
+  thinking?: string // accumulated reasoning ("thinking") tokens for assistant messages
   loading?: boolean
   toolName?: string
 }
@@ -33,6 +34,11 @@ export interface UseAIAssistantOptions {
   tools: LLMTool[]
   toolHandlers: Map<string, ToolHandler>
   buildSystemPrompt: () => string
+  // Optional post-completion validation. Runs after a turn in which the assistant
+  // ran at least one client-side tool (i.e. it edited something). When it reports
+  // !ok, the returned errorText is surfaced as a persistent error in the chat so a
+  // broken result is never presented as success.
+  validateOnComplete?: () => Promise<{ ok: boolean; errorText?: string }>
 }
 
 export interface UseAIAssistantReturn {
@@ -55,7 +61,7 @@ export interface UseAIAssistantReturn {
 
 export interface BubbleItem {
   key: string
-  role: 'user' | 'ai' | 'system'
+  role: 'user' | 'ai' | 'system' | 'thinking'
   content: string
   loading?: boolean
   styles?: {

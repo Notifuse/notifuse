@@ -229,6 +229,23 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [testData, effectiveViewMode])
 
+  // Recompile when the tree content itself changes while in preview mode.
+  // The AI assistant mutates the tree (via setEmailTree/updateBlock/etc.) without
+  // switching view modes, so without this the preview keeps showing a stale render
+  // after the assistant edits the email. Keyed on a stable tree representation and
+  // debounced so a multi-step AI edit burst coalesces into a single compile.
+  // Deps are [treeKey] only (viewMode guarded inside) so entering preview does not
+  // double-compile alongside the testData/effectiveViewMode effect above.
+  const treeKey = useMemo(() => JSON.stringify(tree), [tree])
+  useEffect(() => {
+    if (effectiveViewMode !== 'preview') return
+    const timeoutId = setTimeout(() => {
+      compileEmail()
+    }, 400)
+    return () => clearTimeout(timeoutId)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [treeKey])
+
   // Handle forced view mode changes from tour
   useEffect(() => {
     if (forcedViewMode === 'preview') {

@@ -3,6 +3,10 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
+	"io"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
@@ -398,6 +402,230 @@ func TestLLMService_StreamChat_EmptyAPIKey_OpenAI(t *testing.T) {
 
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "API key is not configured")
+}
+
+// sseChatServer returns an httptest server that streams the given OpenAI
+// chat.completion.chunk JSON payloads as Server-Sent Events, terminated by [DONE].
+func sseChatServer(t *testing.T, chunks ...string) *httptest.Server {
+	t.Helper()
+	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "text/event-stream")
+		w.WriteHeader(http.StatusOK)
+		flusher, _ := w.(http.Flusher)
+		for _, c := range chunks {
+			fmt.Fprintf(w, "data: %s\n\n", c)
+			if flusher != nil {
+				flusher.Flush()
+			}
+		}
+		fmt.Fprint(w, "data: [DONE]\n\n")
+		if flusher != nil {
+			flusher.Flush()
+		}
+	}))
+}
+
+// When a reasoning model exhausts its budget (finish_reason == "length"), the
+// truncated tool call is dropped; the service must flag truncation on the terminal
+// "done" event (a non-destructive signal) rather than a silent no-op or a terminal
+// error that would wipe already-streamed content on the client.
+func TestLLMService_StreamChat_OpenAI_TruncationEmitsError(t *testing.T) {
+	service, mockAuthService, mockWorkspaceRepo := setupLLMServiceTest(t)
+
+	srv := sseChatServer(t,
+		`{"id":"1","object":"chat.completion.chunk","created":1,"model":"gpt-4.1","choices":[{"index":0,"delta":{"role":"assistant","content":"partial..."},"finish_reason":null}]}`,
+		`{"id":"1","object":"chat.completion.chunk","created":1,"model":"gpt-4.1","choices":[{"index":0,"delta":{},"finish_reason":"length"}],"usage":{"prompt_tokens":10,"completion_tokens":20,"total_tokens":30}}`,
+	)
+	defer srv.Close()
+
+	req := &domain.LLMChatRequest{
+		WorkspaceID:   "workspace123",
+		IntegrationID: "llm-integration",
+		Messages:      []domain.LLMMessage{{Role: "user", Content: "Design an email"}},
+	}
+
+	ctx := setupLLMContextWithAuth(mockAuthService, "workspace123", true, true)
+
+	workspace := &domain.Workspace{
+		ID:   "workspace123",
+		Name: "Test Workspace",
+		Integrations: []domain.Integration{
+			{
+				ID:   "llm-integration",
+				Name: "LLM Provider",
+				Type: domain.IntegrationTypeLLM,
+				LLMProvider: &domain.LLMProvider{
+					Kind: domain.LLMProviderKindOpenAI,
+					OpenAI: &domain.OpenAISettings{
+						APIKey:  "test-key",
+						Model:   "gpt-4.1",
+						BaseURL: srv.URL,
+					},
+				},
+				CreatedAt: time.Now(),
+				UpdatedAt: time.Now(),
+			},
+		},
+	}
+
+	mockWorkspaceRepo.EXPECT().
+		GetByID(gomock.Any(), "workspace123").
+		Return(workspace, nil).
+		Times(1)
+
+	var events []domain.LLMChatEvent
+	err := service.StreamChat(ctx, req, func(event domain.LLMChatEvent) error {
+		events = append(events, event)
+		return nil
+	})
+	assert.NoError(t, err)
+
+	// Truncation must be reported as a flag on the single terminal "done" event,
+	// and must NOT be emitted as a terminal "error" (which the client uses to
+	// replace already-streamed content).
+	var doneEvents, errorEvents int
+	var doneTruncated bool
+	for _, e := range events {
+		switch e.Type {
+		case "done":
+			doneEvents++
+			doneTruncated = e.Truncated
+		case "error":
+			errorEvents++
+		}
+	}
+	assert.Equal(t, 1, doneEvents, "expected exactly one terminal done event")
+	assert.Zero(t, errorEvents, "truncation must not be reported as a terminal error event")
+	assert.True(t, doneTruncated, "done event should be flagged truncated when finish_reason is 'length'")
+}
+
+// DeepSeek and other OpenAI-compatible reasoning models return their chain of
+// thought in a non-standard "reasoning_content" delta field. The service must
+// stream it as a separate "thinking" event, never mixed into the answer text.
+func TestLLMService_StreamChat_OpenAI_ReasoningEmitsThinking(t *testing.T) {
+	service, mockAuthService, mockWorkspaceRepo := setupLLMServiceTest(t)
+
+	srv := sseChatServer(t,
+		`{"id":"1","object":"chat.completion.chunk","created":1,"model":"deepseek-reasoner","choices":[{"index":0,"delta":{"role":"assistant","reasoning_content":"Let me think about the layout..."},"finish_reason":null}]}`,
+		`{"id":"1","object":"chat.completion.chunk","created":1,"model":"deepseek-reasoner","choices":[{"index":0,"delta":{"content":"Here is your email."},"finish_reason":null}]}`,
+		`{"id":"1","object":"chat.completion.chunk","created":1,"model":"deepseek-reasoner","choices":[{"index":0,"delta":{},"finish_reason":"stop"}],"usage":{"prompt_tokens":10,"completion_tokens":20,"total_tokens":30}}`,
+	)
+	defer srv.Close()
+
+	req := &domain.LLMChatRequest{
+		WorkspaceID:   "workspace123",
+		IntegrationID: "llm-integration",
+		Messages:      []domain.LLMMessage{{Role: "user", Content: "Design an email"}},
+	}
+
+	ctx := setupLLMContextWithAuth(mockAuthService, "workspace123", true, true)
+
+	workspace := &domain.Workspace{
+		ID:   "workspace123",
+		Name: "Test Workspace",
+		Integrations: []domain.Integration{
+			{
+				ID:   "llm-integration",
+				Name: "LLM Provider",
+				Type: domain.IntegrationTypeLLM,
+				LLMProvider: &domain.LLMProvider{
+					Kind: domain.LLMProviderKindOpenAI,
+					OpenAI: &domain.OpenAISettings{
+						APIKey:  "test-key",
+						Model:   "deepseek-reasoner",
+						BaseURL: srv.URL,
+					},
+				},
+				CreatedAt: time.Now(),
+				UpdatedAt: time.Now(),
+			},
+		},
+	}
+
+	mockWorkspaceRepo.EXPECT().
+		GetByID(gomock.Any(), "workspace123").
+		Return(workspace, nil).
+		Times(1)
+
+	var thinking, text string
+	err := service.StreamChat(ctx, req, func(event domain.LLMChatEvent) error {
+		switch event.Type {
+		case "thinking":
+			thinking += event.Content
+		case "text":
+			text += event.Content
+		}
+		return nil
+	})
+	assert.NoError(t, err)
+
+	assert.Contains(t, thinking, "think about the layout", "reasoning_content must stream as a thinking event")
+	assert.Equal(t, "Here is your email.", text, "answer text must not contain the reasoning")
+	assert.NotContains(t, text, "layout", "reasoning must not leak into the answer text")
+}
+
+// A configured reasoning_effort must be sent to the OpenAI API; an empty one must
+// be omitted (some models/providers 400 on it).
+func TestLLMService_StreamChat_OpenAI_ReasoningEffortPassthrough(t *testing.T) {
+	cases := []struct {
+		name        string
+		effort      string
+		wantInBody  bool
+		wantLiteral string
+	}{
+		{name: "configured", effort: "medium", wantInBody: true, wantLiteral: `"reasoning_effort":"medium"`},
+		{name: "empty omitted", effort: "", wantInBody: false},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			service, mockAuthService, mockWorkspaceRepo := setupLLMServiceTest(t)
+
+			var body string
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				b, _ := io.ReadAll(r.Body)
+				body = string(b)
+				w.Header().Set("Content-Type", "text/event-stream")
+				w.WriteHeader(http.StatusOK)
+				fmt.Fprint(w, `data: {"id":"1","object":"chat.completion.chunk","created":1,"model":"o4-mini","choices":[{"index":0,"delta":{"content":"ok"},"finish_reason":"stop"}],"usage":{"prompt_tokens":1,"completion_tokens":1,"total_tokens":2}}`+"\n\n")
+				fmt.Fprint(w, "data: [DONE]\n\n")
+			}))
+			defer srv.Close()
+
+			req := &domain.LLMChatRequest{
+				WorkspaceID:   "workspace123",
+				IntegrationID: "llm-integration",
+				Messages:      []domain.LLMMessage{{Role: "user", Content: "Hi"}},
+			}
+			ctx := setupLLMContextWithAuth(mockAuthService, "workspace123", true, true)
+			workspace := &domain.Workspace{
+				ID: "workspace123",
+				Integrations: []domain.Integration{{
+					ID:   "llm-integration",
+					Type: domain.IntegrationTypeLLM,
+					LLMProvider: &domain.LLMProvider{
+						Kind: domain.LLMProviderKindOpenAI,
+						OpenAI: &domain.OpenAISettings{
+							APIKey:          "test-key",
+							Model:           "o4-mini",
+							BaseURL:         srv.URL,
+							ReasoningEffort: tc.effort,
+						},
+					},
+				}},
+			}
+			mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), "workspace123").Return(workspace, nil).Times(1)
+
+			err := service.StreamChat(ctx, req, func(domain.LLMChatEvent) error { return nil })
+			assert.NoError(t, err)
+
+			if tc.wantInBody {
+				assert.Contains(t, body, tc.wantLiteral)
+			} else {
+				assert.NotContains(t, body, "reasoning_effort")
+			}
+		})
+	}
 }
 
 func TestLLMService_StreamChat_UnsupportedProvider(t *testing.T) {

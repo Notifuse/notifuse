@@ -1797,3 +1797,24 @@ func TestEmailOptions_ToChannelOptions(t *testing.T) {
 		assert.Empty(t, channelOptions.ReplyTo)
 	})
 }
+
+func TestEmailProviderKind_IsTransactionalOnly(t *testing.T) {
+	testCases := []struct {
+		kind     EmailProviderKind
+		expected bool
+	}{
+		{EmailProviderKindMailjet, true},
+		{EmailProviderKindSMTP, false},
+		{EmailProviderKindSES, false},
+		{EmailProviderKindSparkPost, false},
+		{EmailProviderKindPostmark, false},
+		{EmailProviderKindMailgun, false},
+		{EmailProviderKindSendGrid, false},
+	}
+
+	for _, tc := range testCases {
+		t.Run(string(tc.kind), func(t *testing.T) {
+			assert.Equal(t, tc.expected, tc.kind.IsTransactionalOnly())
+		})
+	}
+}

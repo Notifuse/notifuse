@@ -235,18 +235,22 @@ func (s *messageSender) SendToRecipient(ctx context.Context, workspaceID string,
 		return NewBroadcastError(ErrCodeRateLimitExceeded, "rate limiting interrupted", true, err)
 	}
 
-	if broadcast.UTMParameters.Content == "" {
-		broadcast.UTMParameters.Content = template.ID
+	// Default utm_content on a per-recipient copy: the broadcast is shared across
+	// recipients and A/B variants differ per recipient, so the shared UTM
+	// parameters must never be mutated.
+	utmParams := *broadcast.UTMParameters
+	if utmParams.Content == "" {
+		utmParams.Content = template.ID
 	}
 
 	trackingSettings := notifuse_mjml.TrackingSettings{
 		Endpoint:       endpoint,
 		EnableTracking: trackingEnabled,
-		UTMSource:      broadcast.UTMParameters.Source,
-		UTMMedium:      broadcast.UTMParameters.Medium,
-		UTMCampaign:    broadcast.UTMParameters.Campaign,
-		UTMContent:     broadcast.UTMParameters.Content,
-		UTMTerm:        broadcast.UTMParameters.Term,
+		UTMSource:      utmParams.Source,
+		UTMMedium:      utmParams.Medium,
+		UTMCampaign:    utmParams.Campaign,
+		UTMContent:     utmParams.Content,
+		UTMTerm:        utmParams.Term,
 		WorkspaceID:    workspaceID,
 		MessageID:      messageID,
 	}
@@ -524,19 +528,24 @@ func (s *messageSender) SendBatch(ctx context.Context, workspaceID string, integ
 		// Generate a unique message ID for tracking
 		messageID := generateMessageID(workspaceID)
 
+		// Default utm_content on a per-recipient copy before building the tracking
+		// settings, so this recipient's template data carries their own variant and
+		// the shared broadcast is never mutated across recipients.
+		utmParams := *broadcast.UTMParameters
+		if utmParams.Content == "" {
+			utmParams.Content = templateID
+		}
+
 		trackingSettings := notifuse_mjml.TrackingSettings{
 			Endpoint:       endpoint,
 			EnableTracking: trackingEnabled,
-			UTMSource:      broadcast.UTMParameters.Source,
-			UTMMedium:      broadcast.UTMParameters.Medium,
-			UTMCampaign:    broadcast.UTMParameters.Campaign,
-			UTMContent:     broadcast.UTMParameters.Content,
+			UTMSource:      utmParams.Source,
+			UTMMedium:      utmParams.Medium,
+			UTMCampaign:    utmParams.Campaign,
+			UTMContent:     utmParams.Content,
+			UTMTerm:        utmParams.Term,
 			WorkspaceID:    workspaceID,
 			MessageID:      messageID,
-		}
-
-		if broadcast.UTMParameters.Content == "" {
-			broadcast.UTMParameters.Content = templateID
 		}
 
 		// Build the template data with all options

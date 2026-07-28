@@ -31,11 +31,12 @@ type LLMMessage struct {
 
 // LLMChatEvent represents an SSE event sent during streaming
 type LLMChatEvent struct {
-	Type         string                 `json:"type"`                    // "text", "tool_use", "server_tool_start", "server_tool_result", "done", "error"
-	Content      string                 `json:"content,omitempty"`       // Text content for "text" events
+	Type         string                 `json:"type"`                    // "text", "thinking", "tool_use", "server_tool_start", "server_tool_result", "done", "error"
+	Content      string                 `json:"content,omitempty"`       // Text content for "text" and "thinking" events
 	Error        string                 `json:"error,omitempty"`         // Error message for "error" events
 	ToolName     string                 `json:"tool_name,omitempty"`     // Tool name for "tool_use" events
 	ToolInput    map[string]interface{} `json:"tool_input,omitempty"`    // Tool input for "tool_use" events
+	Truncated    bool                   `json:"truncated,omitempty"`     // Output hit the token cap before finishing (done event only)
 	InputTokens  *int64                 `json:"input_tokens,omitempty"`  // Token count (done event only)
 	OutputTokens *int64                 `json:"output_tokens,omitempty"` // Token count (done event only)
 	InputCost    *float64               `json:"input_cost,omitempty"`    // Cost in USD (done event only)
@@ -63,8 +64,8 @@ func (r *LLMChatRequest) Validate() error {
 			return fmt.Errorf("message %d: content is required", i)
 		}
 	}
-	if r.MaxTokens < 0 || r.MaxTokens > 8192 {
-		return fmt.Errorf("max_tokens must be between 0 and 8192")
+	if r.MaxTokens < 0 || r.MaxTokens > 32768 {
+		return fmt.Errorf("max_tokens must be between 0 and 32768")
 	}
 	return nil
 }

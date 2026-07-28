@@ -625,9 +625,9 @@ func (s *PostmarkService) SendEmail(ctx context.Context, request domain.SendEmai
 			}
 
 			// For inline attachments, set ContentID for HTML references
-			// Postmark format: "cid:filename" for referencing in HTML as <img src="cid:filename">
+			// Postmark format: "cid:<id>" for referencing in HTML as <img src="cid:<id>">
 			if att.Disposition == "inline" {
-				attachment.ContentID = fmt.Sprintf("cid:%s", att.Filename)
+				attachment.ContentID = fmt.Sprintf("cid:%s", att.EffectiveContentID())
 			}
 
 			attachments = append(attachments, attachment)

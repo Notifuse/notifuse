@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query'
+import { useQuery, useQueries, useQueryClient, keepPreviousData } from '@tanstack/react-query'
 import {
   Card,
   Row,
@@ -31,6 +31,10 @@ import {
 } from '../services/api/broadcast'
 import { listsApi } from '../services/api/list'
 import { taskApi } from '../services/api/task'
+import {
+  getBroadcastVariationStats,
+  MessageHistoryStatusSum
+} from '../services/api/messages_history'
 import { listSegments } from '../services/api/segment'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
@@ -60,6 +64,7 @@ import { SendOrScheduleModal } from '../components/broadcasts/SendOrScheduleModa
 import { useAuth, useWorkspacePermissions } from '../contexts/AuthContext'
 import TemplatePreviewDrawer from '../components/templates/TemplatePreviewDrawer'
 import { BroadcastStats, ProgressStats } from '../components/broadcasts/BroadcastStats'
+import { BroadcastLinkStats } from '../components/broadcasts/BroadcastLinkStats'
 import { SendingProgress } from '../components/broadcasts/SendingProgress'
 import { Integration, List, Sender } from '../services/api/types'
 import SendTemplateModal from '../components/templates/SendTemplateModal'
@@ -101,6 +106,20 @@ const getRemainingTestTime = (broadcast: Broadcast, testResults?: TestResultsRes
 
   // Use dayjs .to() method for natural time formatting
   return now.to(endTime, true) + ' remaining'
+}
+
+// Maps a variation's aggregate stats into the shape the Variations table's Opens/Clicks
+// columns (and the per-link Click rate) expect. Returns undefined for an unsent variation
+// (0 sent) so those rows stay N/A instead of showing 0% / NaN.
+const toVariationMetrics = (s?: MessageHistoryStatusSum) => {
+  if (!s || !s.total_sent) return undefined
+  return {
+    recipients: s.total_sent,
+    opens: s.total_opened,
+    open_rate: s.total_opened / s.total_sent,
+    clicks: s.total_clicked,
+    click_rate: s.total_clicked / s.total_sent
+  }
 }
 
 // Helper function to get status badge with tooltips
@@ -272,6 +291,25 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
   const [testModalOpen, setTestModalOpen] = useState(false)
   const [templateToTest, setTemplateToTest] = useState<Template | null>(null)
   const [progressStats, setProgressStats] = useState<ProgressStats | undefined>()
+
+  const variations = broadcast.test_settings.variations || []
+
+  // Per-variation aggregate stats. The A/B testResults endpoint only serves testing-phase
+  // broadcasts, so once a broadcast is processed these power the variation Opens/Clicks
+  // columns and the per-link Click rate denominator. Fetched lazily when details are open.
+  const variationStatsQueries = useQueries({
+    queries: variations.map((v) => ({
+      queryKey: ['broadcast-variation-stats', workspaceId, broadcast.id, v.template_id],
+      queryFn: () => getBroadcastVariationStats(workspaceId, broadcast.id, v.template_id),
+      enabled: showDetails && broadcast.status !== 'draft' && !!v.template_id,
+      staleTime: 60_000
+    }))
+  })
+  const variationStatsById: Record<string, MessageHistoryStatusSum> = {}
+  variations.forEach((v, i) => {
+    const stats = variationStatsQueries[i]?.data?.stats
+    if (v.template_id && stats) variationStatsById[v.template_id] = stats
+  })
 
   // Fetch task associated with this broadcast
   const { data: task, isLoading: isTaskLoading } = useQuery({
@@ -685,7 +723,12 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
                   )
 
                   const variationResult = testResults?.variation_results?.[variation.template_id]
-                  const isWinner = testResults?.winning_template === variation.template_id
+                  // Winner comes from live A/B results while testing, else from the
+                  // winning_template recorded on the broadcast (top-level column) — so a
+                  // sent broadcast still highlights it.
+                  const isWinner =
+                    (testResults?.winning_template || broadcast.winning_template) ===
+                    variation.template_id
 
                   return {
                     key: variation.template_id || index,
@@ -699,7 +742,10 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
                     subject: variation.template?.email?.subject || t`N/A`,
                     subjectPreview: variation.template?.email?.subject_preview,
                     replyTo: variation.template?.email?.reply_to || '-',
-                    metrics: variationResult || variation.metrics,
+                    metrics:
+                      variationResult ||
+                      toVariationMetrics(variationStatsById[variation.template_id]) ||
+                      variation.metrics,
                     variation,
                     templateId: variation.template_id
                   }
@@ -831,7 +877,8 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
                         broadcast.status === 'test_completed' &&
                         !broadcast.test_settings.auto_send_winner
                       return (
-                        <Space size="small">
+                        // Stop clicks here from toggling the row's expand-on-click.
+                        <Space size="small" onClick={(e) => e.stopPropagation()}>
                           {record.template && (
                             <Tooltip
                               title={
@@ -912,6 +959,24 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
                 pagination={false}
                 scroll={{ x: 'max-content' }}
                 rowClassName={(record) => (record.isWinner ? 'bg-green-50' : '')}
+                expandable={{
+                  // Only sent broadcasts have click data; a single-variation broadcast
+                  // opens its row by default so the links are visible without a click.
+                  rowExpandable: () => broadcast.status !== 'draft',
+                  // Clicking anywhere on the row toggles it (the Actions cell stops
+                  // propagation so its buttons still work).
+                  expandRowByClick: true,
+                  defaultExpandedRowKeys:
+                    variations.length === 1 ? [variations[0].template_id || 0] : [],
+                  expandedRowRender: (record) => (
+                    <BroadcastLinkStats
+                      workspaceId={workspaceId}
+                      broadcastId={broadcast.id}
+                      templateId={record.templateId}
+                      recipients={record.metrics?.recipients}
+                    />
+                  )
+                }}
               />
             </div>
 

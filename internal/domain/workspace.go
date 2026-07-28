@@ -695,27 +695,8 @@ func (w *Workspace) RemoveIntegration(id string) bool {
 
 // GetEmailProvider returns the email provider based on provider type
 func (w *Workspace) GetEmailProvider(isMarketing bool) (*EmailProvider, error) {
-	var integrationID string
-
-	// Get integration ID from settings based on provider type
-	if isMarketing {
-		integrationID = w.Settings.MarketingEmailProviderID
-	} else {
-		integrationID = w.Settings.TransactionalEmailProviderID
-	}
-
-	// If no integration ID is configured, return nil
-	if integrationID == "" {
-		return nil, nil
-	}
-
-	// Find the integration by ID
-	integration := w.GetIntegrationByID(integrationID)
-	if integration == nil {
-		return nil, fmt.Errorf("integration with ID %s not found", integrationID)
-	}
-
-	return &integration.EmailProvider, nil
+	provider, _, err := w.GetEmailProviderWithIntegrationID(isMarketing)
+	return provider, err
 }
 
 // GetEmailProviderWithIntegrationID returns both the email provider and integration ID based on provider type
@@ -738,6 +719,14 @@ func (w *Workspace) GetEmailProviderWithIntegrationID(isMarketing bool) (*EmailP
 	integration := w.GetIntegrationByID(integrationID)
 	if integration == nil {
 		return nil, "", fmt.Errorf("integration with ID %s not found", integrationID)
+	}
+
+	// A transactional-only provider (e.g. Mailjet, whose API rewrites unsubscribe
+	// links) must never serve marketing sends. Enforced here — the resolution
+	// point every send path goes through — so assignments made before the
+	// restriction existed are blocked too, not just new ones at settings-save.
+	if isMarketing && integration.EmailProvider.Kind.IsTransactionalOnly() {
+		return nil, "", fmt.Errorf("%s cannot be used as a marketing email provider", integration.EmailProvider.Kind)
 	}
 
 	return &integration.EmailProvider, integrationID, nil

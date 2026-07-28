@@ -471,12 +471,13 @@ func (s *SegmentService) GetSegmentContacts(ctx context.Context, workspaceID, se
 		return nil, fmt.Errorf("failed to get workspace database connection: %w", err)
 	}
 
-	// Query contact_segments table
+	// Query contact_segments table. Order by matched_at (when the contact joined the
+	// segment) — contact_segments has no created_at column, so ordering by it errored.
 	query := `
-		SELECT email 
-		FROM contact_segments 
-		WHERE segment_id = $1 
-		ORDER BY created_at DESC 
+		SELECT email
+		FROM contact_segments
+		WHERE segment_id = $1
+		ORDER BY matched_at DESC
 		LIMIT $2 OFFSET $3
 	`
 

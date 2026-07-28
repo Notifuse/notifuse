@@ -62,7 +62,13 @@ const theme: ThemeConfig = {
       fontSize: 12,
       colorTextHeading: 'rgb(51 65 85)',
       colorBgContainer: 'transparent',
-      rowHoverBg: 'transparent'
+      rowHoverBg: 'transparent',
+      // The container is transparent, so antd's default sort-highlight fills resolve to
+      // opaque black on the sorted column and hovered sortable headers. Keep them
+      // transparent to match the flat table style; the sort arrow still signals order.
+      headerSortActiveBg: 'transparent',
+      headerSortHoverBg: 'transparent',
+      bodySortBg: 'transparent'
     },
     Drawer: {
       colorBgElevated: '#F9F9F9'

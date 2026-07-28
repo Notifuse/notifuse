@@ -847,3 +847,52 @@ func TestSettingsHandler_Update_OIDCSecretMaskRetainsExisting(t *testing.T) {
 		"submitting the mask sentinel must retain the existing OIDC client secret")
 	assert.Equal(t, "Sign in with Acme", settingRepo.settings["oidc_button_label"], "the unrelated change must persist")
 }
+
+// oidcScopesUpdate posts a settings update with the given OIDC enabled/scopes values
+// and returns the persisted oidc_scopes. Empty scopes with OIDC enabled must persist
+// the full default: a stored "" or bare "openid" overrides the richer default at boot.
+func oidcScopesUpdate(t *testing.T, enabled bool, scopes string) string {
+	t.Helper()
+	handler, settingRepo, _, _ := setupSettingsHandler(t)
+
+	ctx := context.Background()
+	_ = settingRepo.Set(ctx, "is_installed", "true")
+	_ = settingRepo.Set(ctx, "root_email", testRootEmail)
+
+	update := SystemSettingsData{
+		RootEmail:   testRootEmail,
+		APIEndpoint: "https://app.example.com",
+		OIDCEnabled: enabled,
+		OIDCScopes:  scopes,
+	}
+	if enabled {
+		update.OIDCIssuerURL = "https://idp.example.com"
+		update.OIDCClientID = "cid"
+		update.OIDCClientSecret = "secret"
+	}
+	body, _ := json.Marshal(update)
+	req := httptest.NewRequest(http.MethodPost, "/api/settings.update", bytes.NewBuffer(body))
+	req = reqWithUserContext(req, "root-user-id")
+	w := httptest.NewRecorder()
+	handler.handleUpdate(w, req)
+	require.Equal(t, http.StatusOK, w.Code)
+	return settingRepo.settings["oidc_scopes"]
+}
+
+func TestSettingsHandler_Update_OIDCEmptyScopes_PersistsDefault(t *testing.T) {
+	assert.Equal(t, "openid email profile", oidcScopesUpdate(t, true, ""))
+}
+
+func TestSettingsHandler_Update_OIDCSeparatorOnlyScopes_PersistsDefault(t *testing.T) {
+	// A stray comma/semicolon left in a cleared field contains no scope tokens
+	// and must not sneak a bare "openid" into the DB.
+	assert.Equal(t, "openid email profile", oidcScopesUpdate(t, true, " , ; "))
+}
+
+func TestSettingsHandler_Update_OIDCCustomScopes_ForcesOpenID(t *testing.T) {
+	assert.Equal(t, "openid email profile", oidcScopesUpdate(t, true, "email profile"))
+}
+
+func TestSettingsHandler_Update_OIDCDisabled_ScopesUntouched(t *testing.T) {
+	assert.Equal(t, "", oidcScopesUpdate(t, false, ""))
+}

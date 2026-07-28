@@ -578,6 +578,58 @@ func TestAutomationNode_Validate(t *testing.T) {
 			wantErr: true,
 			errMsg:  "config is required",
 		},
+		{
+			name: "add_to_list node with valid active status",
+			node: &AutomationNode{
+				ID:           "node123",
+				AutomationID: "auto123",
+				Type:         NodeTypeAddToList,
+				Config: map[string]interface{}{
+					"list_id": "list123",
+					"status":  "active",
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "add_to_list node with invalid subscribed status",
+			node: &AutomationNode{
+				ID:           "node123",
+				AutomationID: "auto123",
+				Type:         NodeTypeAddToList,
+				Config: map[string]interface{}{
+					"list_id": "list123",
+					"status":  "subscribed",
+				},
+			},
+			wantErr: true,
+			errMsg:  "invalid add_to_list status",
+		},
+		{
+			name: "add_to_list node with invalid status is rejected even without a list",
+			node: &AutomationNode{
+				ID:           "node123",
+				AutomationID: "auto123",
+				Type:         NodeTypeAddToList,
+				Config: map[string]interface{}{
+					"status": "subscribed",
+				},
+			},
+			wantErr: true,
+			errMsg:  "invalid add_to_list status",
+		},
+		{
+			name: "add_to_list draft without status is valid",
+			node: &AutomationNode{
+				ID:           "node123",
+				AutomationID: "auto123",
+				Type:         NodeTypeAddToList,
+				Config: map[string]interface{}{
+					"list_id": "",
+				},
+			},
+			wantErr: false,
+		},
 	}
 
 	for _, tt := range tests {

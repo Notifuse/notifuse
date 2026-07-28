@@ -15,7 +15,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-const VERSION = "34.1"
+const VERSION = "36.0"
 
 type Config struct {
 	Server              ServerConfig
@@ -75,6 +75,11 @@ type EnvValues struct {
 	OIDCButtonLabel     string
 	OIDCAutoCreateUsers string // "true"/"false"/""
 	OIDCAllowedDomains  string // raw comma/semicolon/space list
+
+	// OIDCAllowUnverifiedEmail is env-only: no DB fallback, so it is NOT tri-state
+	// and is parsed at the config edge with GetBool semantics (unset == false).
+	// See OIDCConfig.AllowUnverifiedEmail.
+	OIDCAllowUnverifiedEmail bool
 }
 
 type DemoConfig struct {
@@ -644,6 +649,8 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 		OIDCButtonLabel:     v.GetString("OIDC_BUTTON_LABEL"),
 		OIDCAutoCreateUsers: oidcAutoCreateStr,
 		OIDCAllowedDomains:  v.GetString("OIDC_ALLOWED_DOMAINS"),
+
+		OIDCAllowUnverifiedEmail: v.GetBool("OIDC_ALLOW_UNVERIFIED_EMAIL"),
 	}
 
 	// Derive JWT secret from SECRET_KEY

@@ -123,9 +123,9 @@ export function ContactTimeline({
         return faFolderOpen
       case 'contact_segment':
         // Use kind to determine join vs leave
-        if (entry.kind === 'join_segment') {
+        if (entry.kind === 'segment.joined') {
           return faArrowRightToBracket
-        } else if (entry.kind === 'leave_segment') {
+        } else if (entry.kind === 'segment.left') {
           return faArrowRightFromBracket
         }
         return faClock
@@ -481,7 +481,7 @@ export function ContactTimeline({
         )
 
         // Map kind to action labels
-        const segmentActionLabel = entry.kind === 'join_segment' ? t`joined` : t`left`
+        const segmentActionLabel = entry.kind === 'segment.joined' ? t`joined` : t`left`
 
         return (
           <div>
