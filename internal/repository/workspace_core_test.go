@@ -786,13 +786,11 @@ func TestWorkspaceRepository_Delete_Postgres(t *testing.T) {
 
 	// Error from DeleteDatabase (revoke fails)
 	revokeQuery := fmt.Sprintf(`
-		REVOKE ALL PRIVILEGES ON DATABASE %s FROM PUBLIC;
-		REVOKE ALL PRIVILEGES ON DATABASE %s FROM %s;
-		REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public FROM PUBLIC;
-		REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public FROM %s;
-		REVOKE ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public FROM PUBLIC;
-		REVOKE ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public FROM %s;`,
-		dbName, dbName, dbConfig.User, dbConfig.User, dbConfig.User)
+		REVOKE CONNECT ON DATABASE %s FROM PUBLIC;
+		REVOKE CONNECT ON DATABASE %s FROM %s;`,
+		dbName, dbName, dbConfig.User)
+	assert.NotContains(t, revokeQuery, "ALL TABLES")
+	assert.NotContains(t, revokeQuery, "ALL SEQUENCES")
 	mock.ExpectExec(regexp.QuoteMeta(revokeQuery)).
 		WillReturnError(fmt.Errorf("perm denied"))
 	err := repo.Delete(context.Background(), workspaceID)

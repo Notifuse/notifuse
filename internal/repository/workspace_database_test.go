@@ -134,13 +134,11 @@ func TestWorkspaceRepository_DeleteDatabase(t *testing.T) {
 
 	// First test: error case
 	revokeQuery := fmt.Sprintf(`
-		REVOKE ALL PRIVILEGES ON DATABASE %s FROM PUBLIC;
-		REVOKE ALL PRIVILEGES ON DATABASE %s FROM %s;
-		REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public FROM PUBLIC;
-		REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public FROM %s;
-		REVOKE ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public FROM PUBLIC;
-		REVOKE ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public FROM %s;`,
-		dbName, dbName, dbConfig.User, dbConfig.User, dbConfig.User)
+		REVOKE CONNECT ON DATABASE %s FROM PUBLIC;
+		REVOKE CONNECT ON DATABASE %s FROM %s;`,
+		dbName, dbName, dbConfig.User)
+	assert.NotContains(t, revokeQuery, "ALL TABLES")
+	assert.NotContains(t, revokeQuery, "ALL SEQUENCES")
 	mock.ExpectExec(regexp.QuoteMeta(revokeQuery)).
 		WillReturnError(errors.New("permission denied"))
 

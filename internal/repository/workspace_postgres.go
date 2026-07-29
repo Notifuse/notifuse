@@ -344,15 +344,13 @@ func (r *workspaceRepository) DeleteDatabase(ctx context.Context, workspaceID st
 		fmt.Printf("Warning: failed to close workspace connection: %v\n", err)
 	}
 
-	// First, revoke all privileges to prevent new connections
+	// First, revoke CONNECT on the target database to prevent new connections.
+	// Schema/table/sequence privileges are intentionally not revoked here because
+	// this connection is to the system database, not the workspace database.
 	revokeQuery := fmt.Sprintf(`
-		REVOKE ALL PRIVILEGES ON DATABASE %s FROM PUBLIC;
-		REVOKE ALL PRIVILEGES ON DATABASE %s FROM %s;
-		REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public FROM PUBLIC;
-		REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public FROM %s;
-		REVOKE ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public FROM PUBLIC;
-		REVOKE ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public FROM %s;`,
-		dbName, dbName, r.dbConfig.User, r.dbConfig.User, r.dbConfig.User)
+		REVOKE CONNECT ON DATABASE %s FROM PUBLIC;
+		REVOKE CONNECT ON DATABASE %s FROM %s;`,
+		dbName, dbName, r.dbConfig.User)
 	if _, err := r.systemDB.ExecContext(ctx, revokeQuery); err != nil {
 		return err
 	}
