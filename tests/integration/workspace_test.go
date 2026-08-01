@@ -3,7 +3,9 @@ package integration
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/Notifuse/notifuse/internal/domain"
@@ -365,6 +367,13 @@ func TestWorkspaceCRUDSuite(t *testing.T) {
 			require.NoError(t, err)
 			assert.Equal(t, 1, count)
 
+			// The workspace database is created up front, so its later absence is a
+			// meaningful assertion rather than a vacuous one.
+			workspaceDBName := fmt.Sprintf("notifuse_test_ws_%s", strings.ReplaceAll(workspaceID, "-", "_"))
+			err = db.QueryRow("SELECT COUNT(*) FROM pg_database WHERE datname = $1", workspaceDBName).Scan(&count)
+			require.NoError(t, err)
+			require.Equal(t, 1, count, "workspace database %s should exist before deletion", workspaceDBName)
+
 			// Delete workspace
 			deleteReq := domain.DeleteWorkspaceRequest{
 				ID: workspaceID,
@@ -390,6 +399,12 @@ func TestWorkspaceCRUDSuite(t *testing.T) {
 			err = db.QueryRow("SELECT COUNT(*) FROM user_workspaces WHERE workspace_id = $1", workspaceID).Scan(&count)
 			require.NoError(t, err)
 			assert.Equal(t, 0, count)
+
+			// The workspace database itself must be gone, not merely unreferenced or
+			// left behind marked invalid by an aborted drop.
+			err = db.QueryRow("SELECT COUNT(*) FROM pg_database WHERE datname = $1", workspaceDBName).Scan(&count)
+			require.NoError(t, err)
+			assert.Equal(t, 0, count, "workspace database %s should be dropped", workspaceDBName)
 		})
 
 		t.Run("delete nonexistent workspace", func(t *testing.T) {

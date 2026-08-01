@@ -1976,6 +1976,35 @@ func TestOverrideMjPreviewInSource(t *testing.T) {
 		assert.Contains(t, result, "<mj-preview>Order {{ order_id }} confirmed</mj-preview>")
 	})
 
+	t.Run("replaces self-closing mj-preview", func(t *testing.T) {
+		mjml := `<mjml><mj-head><mj-preview /></mj-head><mj-body></mj-body></mjml>`
+		result := overrideMjPreviewInSource(mjml, "New preview")
+		assert.Contains(t, result, "<mj-preview>New preview</mj-preview>")
+		assert.Equal(t, 1, strings.Count(result, "<mj-preview"), "must replace the tag, not add a second one")
+	})
+
+	t.Run("replaces self-closing mj-preview without space", func(t *testing.T) {
+		mjml := `<mjml><mj-head><mj-preview/></mj-head><mj-body></mj-body></mjml>`
+		result := overrideMjPreviewInSource(mjml, "New preview")
+		assert.Contains(t, result, "<mj-preview>New preview</mj-preview>")
+		assert.Equal(t, 1, strings.Count(result, "<mj-preview"))
+	})
+
+	t.Run("keeps attributes of a self-closing mj-preview", func(t *testing.T) {
+		mjml := `<mjml><mj-head><mj-preview css-class="x" /></mj-head><mj-body></mj-body></mjml>`
+		result := overrideMjPreviewInSource(mjml, "New preview")
+		assert.Contains(t, result, `<mj-preview css-class="x">New preview</mj-preview>`)
+		assert.Equal(t, 1, strings.Count(result, "<mj-preview"))
+	})
+
+	t.Run("replaces content of a paired mj-preview carrying attributes", func(t *testing.T) {
+		mjml := `<mjml><mj-head><mj-preview css-class="x">Old preview</mj-preview></mj-head><mj-body></mj-body></mjml>`
+		result := overrideMjPreviewInSource(mjml, "New preview")
+		assert.Contains(t, result, `<mj-preview css-class="x">New preview</mj-preview>`)
+		assert.NotContains(t, result, "Old preview")
+		assert.Equal(t, 1, strings.Count(result, "<mj-preview"))
+	})
+
 	t.Run("creates mj-head when only mjml root exists", func(t *testing.T) {
 		mjml := `<mjml><mj-body></mj-body></mjml>`
 		result := overrideMjPreviewInSource(mjml, "Preview")
@@ -2910,6 +2939,68 @@ func TestCompileTemplateSubjectPreviewOverrideCodeModePreserveLiquid(t *testing.
 	require.NotNil(t, resp.MJML)
 	assert.Contains(t, *resp.MJML, "<mj-preview>{{ global_feed.subject }}</mj-preview>")
 	assert.NotContains(t, *resp.MJML, "Weekly digest")
+}
+
+func TestCompileTemplateSubjectPreviewOverrideCodeModeSelfClosingPreview(t *testing.T) {
+	// A hand-written self-closing <mj-preview /> must be replaced, not duplicated.
+	source := `<mjml><mj-head><mj-preview /></mj-head><mj-body><mj-section><mj-column><mj-text>hello</mj-text></mj-column></mj-section></mj-body></mjml>`
+	resp := compileCodeMode(t, "{{ global_feed.subject }}", globalFeedData("Weekly digest"), source, false)
+	require.True(t, resp.Success, "error: %v", resp.Error)
+	require.NotNil(t, resp.MJML)
+	require.NotNil(t, resp.HTML)
+	assert.Equal(t, 1, strings.Count(*resp.MJML, "<mj-preview"))
+	assert.Contains(t, *resp.HTML, "Weekly digest")
+}
+
+func TestCompileTemplateSubjectPreviewOverrideCodeModePreviewWithAttributes(t *testing.T) {
+	// A paired mj-preview carrying attributes must have its content replaced;
+	// injecting a second one ships the stale preview text to recipients.
+	source := `<mjml><mj-head><mj-preview css-class="x">OLD</mj-preview></mj-head><mj-body><mj-section><mj-column><mj-text>hello</mj-text></mj-column></mj-section></mj-body></mjml>`
+	resp := compileCodeMode(t, "{{ global_feed.subject }}", globalFeedData("Weekly digest"), source, false)
+	require.True(t, resp.Success, "error: %v", resp.Error)
+	require.NotNil(t, resp.MJML)
+	require.NotNil(t, resp.HTML)
+	assert.Equal(t, 1, strings.Count(*resp.MJML, "<mj-preview"))
+	assert.NotContains(t, *resp.HTML, "OLD")
+	assert.Contains(t, *resp.HTML, "Weekly digest")
+}
+
+func TestCompileTemplateSubjectPreviewOverrideFillsLiquidEmittedSelfClosingPreview(t *testing.T) {
+	// An mj-liquid block can emit a bare <mj-preview /> that the tree walk never
+	// sees, so updateBlockContent cannot place the override in it. The fallback
+	// must fill that tag rather than inject a second preview or drop the text.
+	liqBase := NewBaseBlock("liq", MJMLComponentMjLiquid)
+	liqBase.Content = stringPtr(`<mj-preview />`)
+
+	headBlock := &MJHeadBlock{BaseBlock: NewBaseBlock("head-1", MJMLComponentMjHead)}
+	headBlock.Children = []EmailBlock{&MJLiquidBlock{BaseBlock: liqBase}}
+
+	textBase := NewBaseBlock("text-1", MJMLComponentMjText)
+	textBase.Content = stringPtr("hello")
+	columnBlock := &MJColumnBlock{BaseBlock: NewBaseBlock("column-1", MJMLComponentMjColumn)}
+	columnBlock.Children = []EmailBlock{&MJTextBlock{BaseBlock: textBase}}
+	sectionBlock := &MJSectionBlock{BaseBlock: NewBaseBlock("section-1", MJMLComponentMjSection)}
+	sectionBlock.Children = []EmailBlock{columnBlock}
+	bodyBlock := &MJBodyBlock{BaseBlock: NewBaseBlock("body-1", MJMLComponentMjBody)}
+	bodyBlock.Children = []EmailBlock{sectionBlock}
+	root := &MJMLBlock{BaseBlock: NewBaseBlock("mjml-1", MJMLComponentMjml)}
+	root.Children = []EmailBlock{headBlock, bodyBlock}
+
+	override := "{{ global_feed.subject }}"
+	resp, err := CompileTemplate(CompileTemplateRequest{
+		WorkspaceID:            "ws",
+		MessageID:              "msg",
+		VisualEditorTree:       root,
+		SubjectPreviewOverride: &override,
+		TemplateData:           globalFeedData("Weekly digest"),
+	})
+	require.NoError(t, err)
+	require.True(t, resp.Success, "error: %v", resp.Error)
+	require.NotNil(t, resp.MJML)
+	require.NotNil(t, resp.HTML)
+	assert.Equal(t, 1, strings.Count(*resp.MJML, "<mj-preview"))
+	assert.Contains(t, *resp.MJML, "<mj-preview>Weekly digest</mj-preview>")
+	assert.Contains(t, *resp.HTML, "Weekly digest")
 }
 
 func TestCompileTemplateTreeMjPreviewRendersAngleBrackets(t *testing.T) {

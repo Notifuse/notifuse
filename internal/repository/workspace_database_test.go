@@ -6,10 +6,11 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
-	"strings"
 	"testing"
+	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -112,62 +113,237 @@ func TestWorkspaceRepository_CreateDatabase(t *testing.T) {
 }
 
 func TestWorkspaceRepository_DeleteDatabase(t *testing.T) {
-	db, mock, cleanup := testutil.SetupMockDB(t)
-	defer cleanup()
-
-	dbConfig := &config.DatabaseConfig{
-		Host:     "localhost",
-		Port:     5432,
-		User:     "postgres",
-		Password: "password",
-		DBName:   "notifuse_system",
-		Prefix:   "notifuse",
+	newRepo := func(t *testing.T, prefix string) (*workspaceRepository, sqlmock.Sqlmock, func()) {
+		db, mock, cleanup := testutil.SetupMockDB(t)
+		dbConfig := &config.DatabaseConfig{
+			Host:     "localhost",
+			Port:     5432,
+			User:     "postgres",
+			Password: "password",
+			DBName:   "notifuse_system",
+			Prefix:   prefix,
+		}
+		connMgr := newMockConnectionManager(db)
+		repo := NewWorkspaceRepository(db, dbConfig, "secret-key", connMgr).(*workspaceRepository)
+		return repo, mock, cleanup
 	}
 
-	connMgr := newMockConnectionManager(db)
-	repo := NewWorkspaceRepository(db, dbConfig, "secret-key", connMgr)
-	workspaceID := "testworkspace"
+	const workspaceID = "testworkspace"
+	const dbName = "notifuse_ws_testworkspace"
+	forceDropQuery := fmt.Sprintf(`DROP DATABASE IF EXISTS %s WITH (FORCE)`, pq.QuoteIdentifier(dbName))
 
-	// Test database drop error
-	safeID := strings.ReplaceAll(workspaceID, "-", "_")
-	dbName := fmt.Sprintf("%s_ws_%s", dbConfig.Prefix, safeID)
+	t.Run("drops the database with FORCE", func(t *testing.T) {
+		repo, mock, cleanup := newRepo(t, "notifuse")
+		defer cleanup()
 
-	// First test: error case
-	revokeQuery := fmt.Sprintf(`
-		REVOKE ALL PRIVILEGES ON DATABASE %s FROM PUBLIC;
-		REVOKE ALL PRIVILEGES ON DATABASE %s FROM %s;
-		REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public FROM PUBLIC;
-		REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public FROM %s;
-		REVOKE ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public FROM PUBLIC;
-		REVOKE ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public FROM %s;`,
-		dbName, dbName, dbConfig.User, dbConfig.User, dbConfig.User)
-	mock.ExpectExec(regexp.QuoteMeta(revokeQuery)).
-		WillReturnError(errors.New("permission denied"))
+		mock.ExpectExec(regexp.QuoteMeta(forceDropQuery)).
+			WillReturnResult(sqlmock.NewResult(0, 0))
 
-	err := repo.(*workspaceRepository).DeleteDatabase(context.Background(), workspaceID)
-	require.Error(t, err)
-	assert.Equal(t, "permission denied", err.Error())
+		require.NoError(t, repo.DeleteDatabase(context.Background(), workspaceID))
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
 
-	// Test successful database drop with proper connection termination
-	// Expect revoke privileges
-	mock.ExpectExec(regexp.QuoteMeta(revokeQuery)).
-		WillReturnResult(sqlmock.NewResult(0, 0))
+	t.Run("returns the drop error", func(t *testing.T) {
+		repo, mock, cleanup := newRepo(t, "notifuse")
+		defer cleanup()
 
-	// Expect terminate connections
-	terminateQuery := fmt.Sprintf(`
-		SELECT pg_terminate_backend(pid) 
-		FROM pg_stat_activity 
-		WHERE datname = '%s' 
-		AND pid <> pg_backend_pid()`, dbName)
-	mock.ExpectExec(regexp.QuoteMeta(terminateQuery)).
-		WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec(regexp.QuoteMeta(forceDropQuery)).
+			WillReturnError(errors.New("permission denied"))
 
-	// Expect drop database
-	mock.ExpectExec(fmt.Sprintf("DROP DATABASE IF EXISTS %s", dbName)).
-		WillReturnResult(sqlmock.NewResult(0, 0))
+		err := repo.DeleteDatabase(context.Background(), workspaceID)
+		require.Error(t, err)
+		assert.ErrorContains(t, err, "permission denied")
+		// The database name has to reach the operator: an unattributed privilege
+		// error is what made the original bug so hard to place.
+		assert.ErrorContains(t, err, dbName)
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
 
-	err = repo.(*workspaceRepository).DeleteDatabase(context.Background(), workspaceID)
-	require.NoError(t, err)
+	// Guards the shape the plain expectations cannot catch: a REVOKE concatenated
+	// into the same statement string as the drop. A REVOKE issued as its own Exec is
+	// already rejected by sqlmock as an unexpected call.
+	t.Run("never revokes privileges on the system database", func(t *testing.T) {
+		// Record the statements sqlmock compares against a pending expectation. This
+		// is not necessarily every statement sent, so it complements rather than
+		// replaces the strict expectations above.
+		var executed []string
+		matcher := sqlmock.QueryMatcherFunc(func(expectedSQL, actualSQL string) error {
+			executed = append(executed, actualSQL)
+			return sqlmock.QueryMatcherRegexp.Match(expectedSQL, actualSQL)
+		})
+		db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(matcher))
+		require.NoError(t, err)
+		defer func() { _ = db.Close() }()
+
+		dbConfig := &config.DatabaseConfig{
+			User:   "postgres",
+			DBName: "notifuse_system",
+			Prefix: "notifuse",
+		}
+		repo := NewWorkspaceRepository(db, dbConfig, "secret-key", newMockConnectionManager(db)).(*workspaceRepository)
+
+		mock.ExpectExec(regexp.QuoteMeta(forceDropQuery)).
+			WillReturnResult(sqlmock.NewResult(0, 0))
+
+		require.NoError(t, repo.DeleteDatabase(context.Background(), workspaceID))
+		require.NoError(t, mock.ExpectationsWereMet())
+
+		require.NotEmpty(t, executed, "expected the repository to issue at least one statement")
+		for _, q := range executed {
+			assert.NotContains(t, q, "REVOKE", "workspace deletion must not revoke privileges")
+			assert.NotContains(t, q, "ALL TABLES", "revokes on ALL TABLES resolve against the system database")
+			assert.NotContains(t, q, "ALL SEQUENCES", "revokes on ALL SEQUENCES resolve against the system database")
+		}
+	})
+
+	t.Run("falls back to terminate and plain drop on PostgreSQL older than 13", func(t *testing.T) {
+		repo, mock, cleanup := newRepo(t, "notifuse")
+		defer cleanup()
+
+		// PostgreSQL below 13 rejects WITH (FORCE) while parsing.
+		mock.ExpectExec(regexp.QuoteMeta(forceDropQuery)).
+			WillReturnError(&pq.Error{Code: pq.ErrorCode("42601"), Message: `syntax error at or near "WITH"`})
+
+		mock.ExpectExec(`SELECT pg_terminate_backend\(pid\)`).
+			WithArgs(dbName).
+			WillReturnResult(sqlmock.NewResult(0, 0))
+
+		mock.ExpectExec(regexp.QuoteMeta(fmt.Sprintf(`DROP DATABASE IF EXISTS %s`, pq.QuoteIdentifier(dbName)))).
+			WillReturnResult(sqlmock.NewResult(0, 0))
+
+		require.NoError(t, repo.DeleteDatabase(context.Background(), workspaceID))
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("returns the terminate error from the pre-13 fallback", func(t *testing.T) {
+		repo, mock, cleanup := newRepo(t, "notifuse")
+		defer cleanup()
+
+		mock.ExpectExec(regexp.QuoteMeta(forceDropQuery)).
+			WillReturnError(&pq.Error{Code: pq.ErrorCode("42601")})
+		mock.ExpectExec(`SELECT pg_terminate_backend\(pid\)`).
+			WithArgs(dbName).
+			WillReturnError(errors.New("insufficient privilege"))
+
+		err := repo.DeleteDatabase(context.Background(), workspaceID)
+		require.Error(t, err)
+		assert.ErrorContains(t, err, "insufficient privilege")
+		assert.ErrorContains(t, err, dbName)
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("returns the drop error from the pre-13 fallback", func(t *testing.T) {
+		repo, mock, cleanup := newRepo(t, "notifuse")
+		defer cleanup()
+
+		mock.ExpectExec(regexp.QuoteMeta(forceDropQuery)).
+			WillReturnError(&pq.Error{Code: pq.ErrorCode("42601")})
+		mock.ExpectExec(`SELECT pg_terminate_backend\(pid\)`).
+			WithArgs(dbName).
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec(regexp.QuoteMeta(fmt.Sprintf(`DROP DATABASE IF EXISTS %s`, pq.QuoteIdentifier(dbName)))).
+			WillReturnError(errors.New("being accessed by other users"))
+
+		err := repo.DeleteDatabase(context.Background(), workspaceID)
+		require.Error(t, err)
+		assert.ErrorContains(t, err, "being accessed by other users")
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	// Failing to close the pool must not abort the deletion: the drop terminates any
+	// surviving backend anyway.
+	t.Run("drops the database even if closing the pool fails", func(t *testing.T) {
+		db, mock, cleanup := testutil.SetupMockDB(t)
+		defer cleanup()
+
+		connMgr := newMockConnectionManager(db)
+		connMgr.closeErr = errors.New("pool already closed")
+		repo := NewWorkspaceRepository(db,
+			&config.DatabaseConfig{User: "postgres", DBName: "notifuse_system", Prefix: "notifuse"},
+			"secret-key", connMgr).(*workspaceRepository)
+
+		mock.ExpectExec(regexp.QuoteMeta(forceDropQuery)).
+			WillReturnResult(sqlmock.NewResult(0, 0))
+
+		require.NoError(t, repo.DeleteDatabase(context.Background(), workspaceID))
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("does not fall back on unrelated errors", func(t *testing.T) {
+		repo, mock, cleanup := newRepo(t, "notifuse")
+		defer cleanup()
+
+		mock.ExpectExec(regexp.QuoteMeta(forceDropQuery)).
+			WillReturnError(&pq.Error{Code: pq.ErrorCode("55006"), Message: "database is being accessed by other users"})
+
+		err := repo.DeleteDatabase(context.Background(), workspaceID)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "being accessed by other users")
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	// An aborted DROP DATABASE can leave the database marked invalid and unusable,
+	// so a cancelled caller context must not cancel the drop.
+	t.Run("completes the drop even when the caller context is already cancelled", func(t *testing.T) {
+		repo, mock, cleanup := newRepo(t, "notifuse")
+		defer cleanup()
+
+		mock.ExpectExec(regexp.QuoteMeta(forceDropQuery)).
+			WillReturnResult(sqlmock.NewResult(0, 0))
+
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel()
+
+		require.NoError(t, repo.DeleteDatabase(ctx, workspaceID))
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	// The production scenario is cancellation arriving while the drop is in flight,
+	// which is when an aborted DROP DATABASE leaves the database marked invalid.
+	t.Run("completes the drop when the caller context is cancelled mid-statement", func(t *testing.T) {
+		repo, mock, cleanup := newRepo(t, "notifuse")
+		defer cleanup()
+
+		mock.ExpectExec(regexp.QuoteMeta(forceDropQuery)).
+			WillDelayFor(200 * time.Millisecond).
+			WillReturnResult(sqlmock.NewResult(0, 0))
+
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		go func() {
+			time.Sleep(20 * time.Millisecond)
+			cancel()
+		}()
+
+		require.NoError(t, repo.DeleteDatabase(ctx, workspaceID))
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	// EnsureWorkspaceDatabaseExists creates the database with an unquoted identifier,
+	// so PostgreSQL stores it lower-cased. The drop has to target that same name.
+	t.Run("lower-cases the database name to match unquoted creation", func(t *testing.T) {
+		repo, mock, cleanup := newRepo(t, "Notifuse")
+		defer cleanup()
+
+		lowered := fmt.Sprintf(`DROP DATABASE IF EXISTS %s WITH (FORCE)`, pq.QuoteIdentifier("notifuse_ws_testworkspace"))
+		mock.ExpectExec(regexp.QuoteMeta(lowered)).
+			WillReturnResult(sqlmock.NewResult(0, 0))
+
+		require.NoError(t, repo.DeleteDatabase(context.Background(), workspaceID))
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("replaces hyphens in the workspace ID", func(t *testing.T) {
+		repo, mock, cleanup := newRepo(t, "notifuse")
+		defer cleanup()
+
+		hyphenated := fmt.Sprintf(`DROP DATABASE IF EXISTS %s WITH (FORCE)`, pq.QuoteIdentifier("notifuse_ws_test_ws_1"))
+		mock.ExpectExec(regexp.QuoteMeta(hyphenated)).
+			WillReturnResult(sqlmock.NewResult(0, 0))
+
+		require.NoError(t, repo.DeleteDatabase(context.Background(), "test-ws-1"))
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
 }
 
 func TestWorkspaceRepository_GetConnection(t *testing.T) {

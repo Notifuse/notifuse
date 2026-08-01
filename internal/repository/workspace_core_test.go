@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/golang/mock/gomock"
+	"github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -28,6 +29,8 @@ import (
 type mockConnectionManager struct {
 	workspaceDBs map[string]*sql.DB
 	systemDB     *sql.DB
+	// closeErr, when set, is returned by CloseWorkspaceConnection.
+	closeErr error
 }
 
 func newMockConnectionManager(systemDB *sql.DB) *mockConnectionManager {
@@ -51,7 +54,7 @@ func (m *mockConnectionManager) GetWorkspaceConnection(ctx context.Context, work
 
 func (m *mockConnectionManager) CloseWorkspaceConnection(workspaceID string) error {
 	delete(m.workspaceDBs, workspaceID)
-	return nil
+	return m.closeErr
 }
 
 func (m *mockConnectionManager) GetStats() pkgDatabase.ConnectionStats {
@@ -784,32 +787,17 @@ func TestWorkspaceRepository_Delete_Postgres(t *testing.T) {
 	safeID := strings.ReplaceAll(workspaceID, "-", "_")
 	dbName := fmt.Sprintf("%s_ws_%s", dbConfig.Prefix, safeID)
 
-	// Error from DeleteDatabase (revoke fails)
-	revokeQuery := fmt.Sprintf(`
-		REVOKE ALL PRIVILEGES ON DATABASE %s FROM PUBLIC;
-		REVOKE ALL PRIVILEGES ON DATABASE %s FROM %s;
-		REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public FROM PUBLIC;
-		REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public FROM %s;
-		REVOKE ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public FROM PUBLIC;
-		REVOKE ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public FROM %s;`,
-		dbName, dbName, dbConfig.User, dbConfig.User, dbConfig.User)
-	mock.ExpectExec(regexp.QuoteMeta(revokeQuery)).
+	// Error from DeleteDatabase (drop fails)
+	dropQuery := fmt.Sprintf(`DROP DATABASE IF EXISTS %s WITH (FORCE)`, pq.QuoteIdentifier(dbName))
+	mock.ExpectExec(regexp.QuoteMeta(dropQuery)).
 		WillReturnError(fmt.Errorf("perm denied"))
 	err := repo.Delete(context.Background(), workspaceID)
 	require.Error(t, err)
 
 	// Successful delete path
-	mock.ExpectExec(regexp.QuoteMeta(revokeQuery)).
+	mock.ExpectExec(regexp.QuoteMeta(dropQuery)).
 		WillReturnResult(sqlmock.NewResult(0, 0))
-	terminateQuery := fmt.Sprintf(`
-		SELECT pg_terminate_backend(pid) 
-		FROM pg_stat_activity 
-		WHERE datname = '%s' 
-		AND pid <> pg_backend_pid()`, dbName)
-	mock.ExpectExec(regexp.QuoteMeta(terminateQuery)).
-		WillReturnResult(sqlmock.NewResult(0, 0))
-	mock.ExpectExec(fmt.Sprintf("DROP DATABASE IF EXISTS %s", dbName)).
-		WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectBegin()
 
 	// user_workspaces
 	mock.ExpectExec(`DELETE FROM user_workspaces WHERE workspace_id = \$1`).
@@ -823,17 +811,15 @@ func TestWorkspaceRepository_Delete_Postgres(t *testing.T) {
 	mock.ExpectExec(`DELETE FROM workspaces WHERE id = \$1`).
 		WithArgs(workspaceID).
 		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectCommit()
 
 	err = repo.Delete(context.Background(), workspaceID)
 	require.NoError(t, err)
 
 	// Not found on final delete
-	mock.ExpectExec(regexp.QuoteMeta(revokeQuery)).
+	mock.ExpectExec(regexp.QuoteMeta(dropQuery)).
 		WillReturnResult(sqlmock.NewResult(0, 0))
-	mock.ExpectExec(regexp.QuoteMeta(terminateQuery)).
-		WillReturnResult(sqlmock.NewResult(0, 0))
-	mock.ExpectExec(fmt.Sprintf("DROP DATABASE IF EXISTS %s", dbName)).
-		WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectBegin()
 	mock.ExpectExec(`DELETE FROM user_workspaces WHERE workspace_id = \$1`).
 		WithArgs(workspaceID).
 		WillReturnResult(sqlmock.NewResult(0, 1))
@@ -843,47 +829,41 @@ func TestWorkspaceRepository_Delete_Postgres(t *testing.T) {
 	mock.ExpectExec(`DELETE FROM workspaces WHERE id = \$1`).
 		WithArgs(workspaceID).
 		WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectRollback()
 
 	err = repo.Delete(context.Background(), workspaceID)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "not found")
 
 	// Error on intermediate deletes
-	mock.ExpectExec(regexp.QuoteMeta(revokeQuery)).
+	mock.ExpectExec(regexp.QuoteMeta(dropQuery)).
 		WillReturnResult(sqlmock.NewResult(0, 0))
-	mock.ExpectExec(regexp.QuoteMeta(terminateQuery)).
-		WillReturnResult(sqlmock.NewResult(0, 0))
-	mock.ExpectExec(fmt.Sprintf("DROP DATABASE IF EXISTS %s", dbName)).
-		WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectBegin()
 	mock.ExpectExec(`DELETE FROM user_workspaces WHERE workspace_id = \$1`).
 		WithArgs(workspaceID).
 		WillReturnError(fmt.Errorf("uw error"))
+	mock.ExpectRollback()
 	err = repo.Delete(context.Background(), workspaceID)
 	require.Error(t, err)
 
 	// Next: fail invitations
-	mock.ExpectExec(regexp.QuoteMeta(revokeQuery)).
+	mock.ExpectExec(regexp.QuoteMeta(dropQuery)).
 		WillReturnResult(sqlmock.NewResult(0, 0))
-	mock.ExpectExec(regexp.QuoteMeta(terminateQuery)).
-		WillReturnResult(sqlmock.NewResult(0, 0))
-	mock.ExpectExec(fmt.Sprintf("DROP DATABASE IF EXISTS %s", dbName)).
-		WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectBegin()
 	mock.ExpectExec(`DELETE FROM user_workspaces WHERE workspace_id = \$1`).
 		WithArgs(workspaceID).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectExec(`DELETE FROM workspace_invitations WHERE workspace_id = \$1`).
 		WithArgs(workspaceID).
 		WillReturnError(fmt.Errorf("inv error"))
+	mock.ExpectRollback()
 	err = repo.Delete(context.Background(), workspaceID)
 	require.Error(t, err)
 
 	// Next: fail workspace delete exec
-	mock.ExpectExec(regexp.QuoteMeta(revokeQuery)).
+	mock.ExpectExec(regexp.QuoteMeta(dropQuery)).
 		WillReturnResult(sqlmock.NewResult(0, 0))
-	mock.ExpectExec(regexp.QuoteMeta(terminateQuery)).
-		WillReturnResult(sqlmock.NewResult(0, 0))
-	mock.ExpectExec(fmt.Sprintf("DROP DATABASE IF EXISTS %s", dbName)).
-		WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectBegin()
 	mock.ExpectExec(`DELETE FROM user_workspaces WHERE workspace_id = \$1`).
 		WithArgs(workspaceID).
 		WillReturnResult(sqlmock.NewResult(0, 1))
@@ -893,8 +873,13 @@ func TestWorkspaceRepository_Delete_Postgres(t *testing.T) {
 	mock.ExpectExec(`DELETE FROM workspaces WHERE id = \$1`).
 		WithArgs(workspaceID).
 		WillReturnError(fmt.Errorf("ws del error"))
+	mock.ExpectRollback()
 	err = repo.Delete(context.Background(), workspaceID)
 	require.Error(t, err)
+
+	// Without this, an un-issued Begin/Commit/Rollback would go unnoticed: the row
+	// cleanup being transactional is exactly what these expectations encode.
+	require.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestWorkspaceRepository_WithWorkspaceTransaction(t *testing.T) {

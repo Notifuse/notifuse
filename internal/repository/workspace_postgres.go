@@ -4,14 +4,41 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
+
+	"github.com/lib/pq"
 
 	"github.com/Notifuse/notifuse/config"
 	"github.com/Notifuse/notifuse/internal/database"
 	"github.com/Notifuse/notifuse/internal/domain"
 	pkgDatabase "github.com/Notifuse/notifuse/pkg/database"
+)
+
+const (
+	// pgSyntaxErrorCode is PostgreSQL's syntax_error. DROP DATABASE ... WITH (FORCE)
+	// was introduced in PostgreSQL 13; older servers reject it while parsing, so this
+	// code tells us the statement never ran and a fallback is safe.
+	pgSyntaxErrorCode = "42601"
+
+	// dropDatabaseTimeout bounds the workspace database drop. It is deliberately
+	// generous: DROP DATABASE marks the database invalid within milliseconds and
+	// only clears that mark once it completes, so a deadline that fires mid-drop
+	// produces exactly the unusable database this timeout is meant to avoid. The
+	// drop also forces an immediate checkpoint, whose cost scales with the whole
+	// server's dirty buffers rather than with the size of the workspace, so a busy
+	// server can legitimately take far longer than the drop itself suggests. This
+	// exists only to stop a wedged server from pinning a connection forever.
+	dropDatabaseTimeout = 5 * time.Minute
+
+	// deleteWorkspaceTimeout bounds a whole workspace deletion. Deletion is detached
+	// from the caller, and no statement_timeout is configured server-side, so without
+	// this a system-database row delete blocked on a lock would hold a connection from
+	// the small system pool indefinitely. It sits above dropDatabaseTimeout so that a
+	// slow drop still fails on its own, more specific deadline.
+	deleteWorkspaceTimeout = 10 * time.Minute
 )
 
 type workspaceRepository struct {
@@ -252,26 +279,47 @@ func (r *workspaceRepository) Update(ctx context.Context, workspace *domain.Work
 }
 
 func (r *workspaceRepository) Delete(ctx context.Context, id string) error {
-	// Delete the workspace database first
+	// Dropping the database is irreversible and the system-database rows are cleaned
+	// up afterwards, so the whole sequence has to survive the caller going away. If
+	// only the drop were detached, a client disconnecting mid-request would leave the
+	// workspace rows pointing at a database that no longer exists — and the next
+	// request for that workspace would silently recreate it empty.
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), deleteWorkspaceTimeout)
+	defer cancel()
+
+	// Delete the workspace database first. Dropping is much likelier to fail than the
+	// row cleanup below — it needs an exclusive lock and is refused while a prepared
+	// transaction, an active replication slot or a backend it cannot terminate is
+	// attached — so it goes first, where a failure aborts the whole operation without
+	// having changed anything and the caller can simply retry.
 	if err := r.DeleteDatabase(ctx, id); err != nil {
 		return err
 	}
 
+	// The row deletions have to land together. Removing the memberships without
+	// removing the workspace row leaves a workspace its owner can no longer see, and
+	// therefore can no longer delete, with no way back short of direct database access.
+	tx, err := r.systemDB.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
 	// Delete all user_workspaces entries for this workspace
 	deleteUserWorkspacesQuery := `DELETE FROM user_workspaces WHERE workspace_id = $1`
-	if _, err := r.systemDB.ExecContext(ctx, deleteUserWorkspacesQuery, id); err != nil {
+	if _, err := tx.ExecContext(ctx, deleteUserWorkspacesQuery, id); err != nil {
 		return err
 	}
 
 	// Delete all workspace invitations for this workspace
 	deleteInvitationsQuery := `DELETE FROM workspace_invitations WHERE workspace_id = $1`
-	if _, err := r.systemDB.ExecContext(ctx, deleteInvitationsQuery, id); err != nil {
+	if _, err := tx.ExecContext(ctx, deleteInvitationsQuery, id); err != nil {
 		return err
 	}
 
 	// Then delete the workspace record
 	query := `DELETE FROM workspaces WHERE id = $1`
-	result, err := r.systemDB.ExecContext(ctx, query, id)
+	result, err := tx.ExecContext(ctx, query, id)
 	if err != nil {
 		return err
 	}
@@ -282,7 +330,8 @@ func (r *workspaceRepository) Delete(ctx context.Context, id string) error {
 	if rows == 0 {
 		return &domain.ErrWorkspaceNotFound{WorkspaceID: id}
 	}
-	return nil
+
+	return tx.Commit()
 }
 
 // GetConnection returns a connection to the workspace database
@@ -336,7 +385,12 @@ func (r *workspaceRepository) CreateDatabase(ctx context.Context, workspaceID st
 func (r *workspaceRepository) DeleteDatabase(ctx context.Context, workspaceID string) error {
 	// Replace hyphens with underscores for PostgreSQL compatibility
 	safeID := strings.ReplaceAll(workspaceID, "-", "_")
-	dbName := fmt.Sprintf("%s_ws_%s", r.dbConfig.Prefix, safeID)
+	// The database was created through an unquoted CREATE DATABASE, so PostgreSQL
+	// folded its name to lower case. Fold here too: a quoted mixed-case name would
+	// not match the database that actually exists, and IF EXISTS would turn that
+	// miss into a silent success, orphaning the database.
+	dbName := strings.ToLower(fmt.Sprintf("%s_ws_%s", r.dbConfig.Prefix, safeID))
+	quotedDBName := pq.QuoteIdentifier(dbName)
 
 	// Close the workspace connection pool
 	if err := r.connectionManager.CloseWorkspaceConnection(workspaceID); err != nil {
@@ -344,34 +398,50 @@ func (r *workspaceRepository) DeleteDatabase(ctx context.Context, workspaceID st
 		fmt.Printf("Warning: failed to close workspace connection: %v\n", err)
 	}
 
-	// First, revoke all privileges to prevent new connections
-	revokeQuery := fmt.Sprintf(`
-		REVOKE ALL PRIVILEGES ON DATABASE %s FROM PUBLIC;
-		REVOKE ALL PRIVILEGES ON DATABASE %s FROM %s;
-		REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public FROM PUBLIC;
-		REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public FROM %s;
-		REVOKE ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public FROM PUBLIC;
-		REVOKE ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public FROM %s;`,
-		dbName, dbName, r.dbConfig.User, r.dbConfig.User, r.dbConfig.User)
-	if _, err := r.systemDB.ExecContext(ctx, revokeQuery); err != nil {
+	// An aborted DROP DATABASE can leave the database marked invalid in place: it
+	// then rejects every connection and is not recreated automatically, so only a
+	// manual drop recovers it. Detach from the caller's context so a disconnecting
+	// client cannot cancel the drop midway.
+	dropCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), dropDatabaseTimeout)
+	defer cancel()
+
+	// WITH (FORCE) terminates the remaining backends and drops the database as one
+	// operation, which closes the race where a connection is re-established between
+	// terminating backends and dropping.
+	dropQuery := fmt.Sprintf("DROP DATABASE IF EXISTS %s WITH (FORCE)", quotedDBName)
+	_, err := r.systemDB.ExecContext(dropCtx, dropQuery)
+	if err == nil {
+		return nil
+	}
+
+	// PostgreSQL below 13 rejects WITH (FORCE) while parsing, so nothing ran and it
+	// is safe to retry the pre-13 way.
+	var pqErr *pq.Error
+	if errors.As(err, &pqErr) && string(pqErr.Code) == pgSyntaxErrorCode {
+		if fallbackErr := r.dropDatabaseWithoutForce(dropCtx, dbName, quotedDBName); fallbackErr != nil {
+			return fmt.Errorf("failed to drop workspace database %s (server predates WITH (FORCE)): %w", dbName, fallbackErr)
+		}
+		return nil
+	}
+
+	return fmt.Errorf("failed to drop workspace database %s: %w", dbName, err)
+}
+
+// dropDatabaseWithoutForce drops a workspace database on PostgreSQL servers that
+// predate DROP DATABASE ... WITH (FORCE), by terminating the remaining backends
+// first. This leaves a window in which a new connection can block the drop; the
+// caller is expected to surface the resulting error.
+func (r *workspaceRepository) dropDatabaseWithoutForce(ctx context.Context, dbName, quotedDBName string) error {
+	terminateQuery := `
+		SELECT pg_terminate_backend(pid)
+		FROM pg_stat_activity
+		WHERE datname = $1
+		AND pid <> pg_backend_pid()`
+	if _, err := r.systemDB.ExecContext(ctx, terminateQuery, dbName); err != nil {
 		return err
 	}
 
-	// Then terminate all connections to the database
-	terminateQuery := fmt.Sprintf(`
-		SELECT pg_terminate_backend(pid) 
-		FROM pg_stat_activity 
-		WHERE datname = '%s' 
-		AND pid <> pg_backend_pid()`, dbName)
-	if _, err := r.systemDB.ExecContext(ctx, terminateQuery); err != nil {
-		return err
-	}
-
-	// Add a small delay to ensure connections are closed
-	time.Sleep(100 * time.Millisecond)
-
-	// Finally, drop the database
-	dropQuery := fmt.Sprintf("DROP DATABASE IF EXISTS %s", dbName)
+	dropQuery := fmt.Sprintf("DROP DATABASE IF EXISTS %s", quotedDBName)
 	if _, err := r.systemDB.ExecContext(ctx, dropQuery); err != nil {
 		return err
 	}

@@ -551,6 +551,11 @@ func CompileTemplate(req CompileTemplateRequest) (resp *CompileTemplateResponse,
 	// run, so rendering here (rather than injecting raw Liquid) is what gets the
 	// expression evaluated exactly once, and XML-escaping applies to the rendered
 	// value instead of the Liquid syntax.
+	// The condition tests for a *paired* tag on purpose: that is the signal the tree
+	// walk already placed the override in a real mj-preview block. A self-closing
+	// <mj-preview /> means it did not — an mj-liquid block can emit a bare tag the
+	// walk never sees — so it falls through here and overrideMjPreviewInSource fills
+	// it rather than injecting a second element.
 	if req.MjmlSource == nil && req.SubjectPreviewOverride != nil && *req.SubjectPreviewOverride != "" {
 		if !mjPreviewTagRegexp.MatchString(mjmlString) {
 			renderedOverride, overrideErr := renderSubjectField(req.SubjectPreviewOverride, req.TemplateData, req.Channel, req.PreserveLiquid, "email_subject_preview_override")
@@ -734,8 +739,14 @@ func TrackLinks(htmlString string, trackingSettings TrackingSettings) (updatedHT
 	return updatedHTML, nil
 }
 
-// mjPreviewTagRegexp matches <mj-preview>...</mj-preview> in MJML source.
-var mjPreviewTagRegexp = regexp.MustCompile(`(?is)(<mj-preview\s*>)([\s\S]*?)(</mj-preview\s*>)`)
+// mjPreviewTagRegexp matches a paired <mj-preview ...>...</mj-preview> in MJML
+// source, including one carrying attributes. The [^>]* cannot cross the tag
+// boundary, so content such as <br/> never confuses the match.
+var mjPreviewTagRegexp = regexp.MustCompile(`(?is)(<mj-preview\b[^>]*>)([\s\S]*?)(</mj-preview\s*>)`)
+
+// mjPreviewSelfClosingTagRegexp matches a self-closing <mj-preview ... />, the
+// form the converter emits for an mj-preview block with no content.
+var mjPreviewSelfClosingTagRegexp = regexp.MustCompile(`(?is)(<mj-preview\b[^>]*?)\s*/>`)
 
 // mjHeadTagRegexp matches the opening <mj-head...> tag.
 var mjHeadTagRegexp = regexp.MustCompile(`(?i)<mj-head[^>]*>`)
@@ -748,6 +759,13 @@ var mjmlRootTagRegexp = regexp.MustCompile(`(?i)<mjml[^>]*>`)
 // Fallback order: replace existing → inject after <mj-head> → create <mj-head> after <mjml>.
 func overrideMjPreviewInSource(mjmlSource string, previewText string) string {
 	escaped := escapeXMLContent(previewText)
+
+	// Expand a self-closing <mj-preview /> into a paired tag holding the text,
+	// keeping any attributes it carried.
+	if mjPreviewSelfClosingTagRegexp.MatchString(mjmlSource) {
+		return mjPreviewSelfClosingTagRegexp.ReplaceAllString(mjmlSource,
+			"${1}>"+escapeRegexpReplacement(escaped)+"</mj-preview>")
+	}
 
 	// Replace existing <mj-preview> content
 	if mjPreviewTagRegexp.MatchString(mjmlSource) {
