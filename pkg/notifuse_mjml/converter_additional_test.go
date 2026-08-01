@@ -73,7 +73,9 @@ func TestConvertBlockToMJMLWithError_LiquidFailure(t *testing.T) {
 func TestEscapeContent(t *testing.T) {
 	in := "<b>A&B</b>"
 	got := escapeContent(in)
-	want1 := "&lt;b&gt;A&amp;B&lt;/b&gt;"
+	// Numeric refs, not &lt;/&gt;: the MJML parser decodes the named entities
+	// back into markup before parsing. See escapeContent.
+	want1 := "&#60;b&#62;A&amp;B&#60;/b&#62;"
 	if got != want1 {
 		t.Fatalf("escapeContent mismatch: got %q want %q", got, want1)
 	}

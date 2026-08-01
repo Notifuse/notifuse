@@ -9,6 +9,7 @@ import (
 
 	"github.com/Notifuse/notifuse/pkg/notifuse_mjml"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // createValidMJMLBlock creates a valid MJML EmailBlock for testing EmailTemplate
@@ -2639,5 +2640,126 @@ func TestTemplate_Validate_Translations(t *testing.T) {
 		err := tmpl.Validate()
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "invalid translation language code")
+	})
+}
+
+// TestEmailTemplate_Validate_MissingVisualEditorTree covers email payloads whose "email"
+// object omits visual_editor_tree. VisualEditorTree is an interface, so decoding such a
+// payload leaves it nil and every method call on it dereferences a nil pointer. These
+// cases decode from JSON rather than building struct literals, because a struct literal
+// built in a test always assigns a tree and therefore cannot reach the nil state.
+func TestEmailTemplate_Validate_MissingVisualEditorTree(t *testing.T) {
+	t.Run("direct validate with nil tree returns error", func(t *testing.T) {
+		e := &EmailTemplate{Subject: "Test Subject"}
+		err := e.Validate(nil)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "visual_editor_tree is required")
+	})
+
+	t.Run("create request without visual_editor_tree", func(t *testing.T) {
+		payload := `{
+			"workspace_id": "workspace123",
+			"id": "test-template",
+			"name": "Test Template",
+			"category": "transactional",
+			"channel": "email",
+			"email": {
+				"subject": "Test - {{ nombre }}",
+				"html": "<p>Hola {{ nombre }}</p>"
+			}
+		}`
+		var req CreateTemplateRequest
+		require.NoError(t, json.Unmarshal([]byte(payload), &req))
+
+		template, workspaceID, err := req.Validate()
+		assert.Error(t, err)
+		assert.Nil(t, template)
+		assert.Empty(t, workspaceID)
+		assert.Contains(t, err.Error(), "visual_editor_tree is required")
+	})
+
+	t.Run("update request without visual_editor_tree", func(t *testing.T) {
+		payload := `{
+			"workspace_id": "workspace123",
+			"id": "test-template",
+			"name": "Test Template",
+			"category": "transactional",
+			"channel": "email",
+			"email": {"subject": "Test Subject"}
+		}`
+		var req UpdateTemplateRequest
+		require.NoError(t, json.Unmarshal([]byte(payload), &req))
+
+		template, workspaceID, err := req.Validate()
+		assert.Error(t, err)
+		assert.Nil(t, template)
+		assert.Empty(t, workspaceID)
+		assert.Contains(t, err.Error(), "visual_editor_tree is required")
+	})
+
+	t.Run("translation without visual_editor_tree", func(t *testing.T) {
+		payload := `{
+			"workspace_id": "workspace123",
+			"id": "test-template",
+			"name": "Test Template",
+			"category": "transactional",
+			"channel": "email",
+			"email": {
+				"subject": "Test Subject",
+				"visual_editor_tree": {"id": "root", "type": "mjml", "children": []}
+			},
+			"translations": {"fr": {"email": {"subject": "Sujet"}}}
+		}`
+		var req CreateTemplateRequest
+		require.NoError(t, json.Unmarshal([]byte(payload), &req))
+
+		_, _, err := req.Validate()
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "visual_editor_tree is required")
+	})
+
+	t.Run("template validate with nil tree", func(t *testing.T) {
+		tmpl := &Template{
+			ID:       "test-template",
+			Name:     "Test",
+			Version:  1,
+			Channel:  ChannelEmail,
+			Category: "marketing",
+			Email:    &EmailTemplate{Subject: "Test Subject"},
+		}
+		err := tmpl.Validate()
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "visual_editor_tree is required")
+	})
+
+	t.Run("explicit null tree returns error without panic", func(t *testing.T) {
+		var e EmailTemplate
+		require.NoError(t, json.Unmarshal([]byte(`{"subject":"Test","visual_editor_tree":null}`), &e))
+		err := e.Validate(nil)
+		assert.Error(t, err)
+	})
+
+	t.Run("code mode without tree stays valid", func(t *testing.T) {
+		mjml := "<mjml><mj-body></mj-body></mjml>"
+		payload := `{
+			"workspace_id": "workspace123",
+			"id": "code-template",
+			"name": "Code Template",
+			"category": "transactional",
+			"channel": "email",
+			"email": {
+				"editor_mode": "code",
+				"subject": "Test Subject",
+				"mjml_source": "` + mjml + `"
+			}
+		}`
+		var req CreateTemplateRequest
+		require.NoError(t, json.Unmarshal([]byte(payload), &req))
+
+		template, workspaceID, err := req.Validate()
+		require.NoError(t, err)
+		assert.Equal(t, "workspace123", workspaceID)
+		require.NotNil(t, template)
+		assert.Equal(t, mjml, template.Email.CompiledPreview)
 	})
 }

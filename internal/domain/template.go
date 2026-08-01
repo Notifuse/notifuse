@@ -356,6 +356,12 @@ func (e *EmailTemplate) Validate(testData MapOfAny) error {
 		}
 	} else {
 		// Visual mode validation (default)
+		// VisualEditorTree is an interface: an API payload whose "email" object omits
+		// visual_editor_tree entirely leaves it nil, so it must be checked before any
+		// method call on it.
+		if e.VisualEditorTree == nil {
+			return fmt.Errorf("invalid email template: visual_editor_tree is required, or set editor_mode to '%s' and provide mjml_source", EditorModeCode)
+		}
 		if e.VisualEditorTree.GetType() != notifuse_mjml.MJMLComponentMjml {
 			return fmt.Errorf("invalid email template: visual_editor_tree must have type 'mjml'")
 		}

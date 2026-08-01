@@ -587,11 +587,16 @@ func escapeAttributeValue(value string, attributeName string) string {
 	return value
 }
 
-// escapeContent escapes content for safe HTML output
+// escapeContent escapes content for safe insertion as element text content.
+// Angle brackets use numeric character references (&#60;/&#62;) rather than
+// &lt;/&gt; because the MJML parser pre-decodes the named entities back to raw
+// brackets before XML parsing, which would turn escaped text into markup and
+// fail the compile; numeric references survive that pre-decode untouched.
+// Keep in sync with escapeXMLContent in template_compilation.go.
 func escapeContent(content string) string {
 	content = strings.ReplaceAll(content, "&", "&amp;")
-	content = strings.ReplaceAll(content, "<", "&lt;")
-	content = strings.ReplaceAll(content, ">", "&gt;")
+	content = strings.ReplaceAll(content, "<", "&#60;")
+	content = strings.ReplaceAll(content, ">", "&#62;")
 	return content
 }
 

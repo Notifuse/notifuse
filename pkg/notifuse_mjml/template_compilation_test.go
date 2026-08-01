@@ -8,6 +8,7 @@ import (
 
 	"github.com/Notifuse/notifuse/pkg/crypto"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestTrackLinks(t *testing.T) {
@@ -1945,11 +1946,15 @@ func TestOverrideMjPreviewInSource(t *testing.T) {
 	})
 
 	t.Run("escapes XML special characters", func(t *testing.T) {
+		// Angle brackets must be numeric character references: the MJML parser
+		// pre-decodes named &lt;/&gt; entities back to raw brackets before XML
+		// parsing, so &lt;script&gt; would come back as live markup.
 		mjml := `<mjml><mj-head><mj-preview>Old</mj-preview></mj-head></mjml>`
 		result := overrideMjPreviewInSource(mjml, `<script>alert("xss")</script> & more`)
-		assert.Contains(t, result, "&lt;script&gt;")
+		assert.Contains(t, result, "&#60;script&#62;")
 		assert.Contains(t, result, "&amp; more")
 		assert.NotContains(t, result, "<script>")
+		assert.NotContains(t, result, "&lt;script&gt;")
 	})
 
 	t.Run("handles multiline existing content", func(t *testing.T) {
@@ -2607,6 +2612,338 @@ func TestCompileTemplateSubjectNoTemplateData(t *testing.T) {
 	if assert.NotNil(t, resp.Subject) {
 		assert.Equal(t, "Hi {{ contact.first_name }}", *resp.Subject)
 	}
+}
+
+// treeWithMjPreview builds a minimal visual tree whose head contains an
+// mj-preview block with the given content.
+func treeWithMjPreview(content string) EmailBlock {
+	previewBase := NewBaseBlock("preview-1", MJMLComponentMjPreview)
+	previewBase.Content = stringPtr(content)
+	previewBlock := &MJPreviewBlock{BaseBlock: previewBase}
+
+	headBlock := &MJHeadBlock{BaseBlock: NewBaseBlock("head-1", MJMLComponentMjHead)}
+	headBlock.Children = []EmailBlock{previewBlock}
+
+	textBase := NewBaseBlock("text-1", MJMLComponentMjText)
+	textBase.Content = stringPtr("hello")
+	textBlock := &MJTextBlock{BaseBlock: textBase}
+
+	columnBlock := &MJColumnBlock{BaseBlock: NewBaseBlock("column-1", MJMLComponentMjColumn)}
+	columnBlock.Children = []EmailBlock{textBlock}
+
+	sectionBlock := &MJSectionBlock{BaseBlock: NewBaseBlock("section-1", MJMLComponentMjSection)}
+	sectionBlock.Children = []EmailBlock{columnBlock}
+
+	bodyBlock := &MJBodyBlock{BaseBlock: NewBaseBlock("body-1", MJMLComponentMjBody)}
+	bodyBlock.Children = []EmailBlock{sectionBlock}
+
+	mjmlBlock := &MJMLBlock{BaseBlock: NewBaseBlock("mjml-1", MJMLComponentMjml)}
+	mjmlBlock.Children = []EmailBlock{headBlock, bodyBlock}
+	return mjmlBlock
+}
+
+// treeWithMjTitle builds a minimal visual tree whose head contains an mj-title
+// block with the given content.
+func treeWithMjTitle(content string) EmailBlock {
+	titleBase := NewBaseBlock("title-1", MJMLComponentMjTitle)
+	titleBase.Content = stringPtr(content)
+
+	headBlock := &MJHeadBlock{BaseBlock: NewBaseBlock("head-1", MJMLComponentMjHead)}
+	headBlock.Children = []EmailBlock{&MJTitleBlock{BaseBlock: titleBase}}
+
+	textBase := NewBaseBlock("text-1", MJMLComponentMjText)
+	textBase.Content = stringPtr("hello")
+
+	columnBlock := &MJColumnBlock{BaseBlock: NewBaseBlock("column-1", MJMLComponentMjColumn)}
+	columnBlock.Children = []EmailBlock{&MJTextBlock{BaseBlock: textBase}}
+
+	sectionBlock := &MJSectionBlock{BaseBlock: NewBaseBlock("section-1", MJMLComponentMjSection)}
+	sectionBlock.Children = []EmailBlock{columnBlock}
+
+	bodyBlock := &MJBodyBlock{BaseBlock: NewBaseBlock("body-1", MJMLComponentMjBody)}
+	bodyBlock.Children = []EmailBlock{sectionBlock}
+
+	mjmlBlock := &MJMLBlock{BaseBlock: NewBaseBlock("mjml-1", MJMLComponentMjml)}
+	mjmlBlock.Children = []EmailBlock{headBlock, bodyBlock}
+	return mjmlBlock
+}
+
+func globalFeedData(subject string) MapOfAny {
+	return MapOfAny{"global_feed": map[string]interface{}{"subject": subject}}
+}
+
+func TestCompileTemplateSubjectPreviewOverrideFallbackRendersLiquid(t *testing.T) {
+	// Visual tree without an mj-preview block: the override is injected as a new
+	// <mj-preview> tag, and Liquid in it must be rendered — not shipped literally.
+	override := "{{ global_feed.subject }}"
+	req := CompileTemplateRequest{
+		WorkspaceID:            "ws",
+		MessageID:              "msg",
+		VisualEditorTree:       minimalTree(),
+		SubjectPreviewOverride: &override,
+		TemplateData:           globalFeedData("Weekly digest"),
+	}
+
+	resp, err := CompileTemplate(req)
+	require.NoError(t, err)
+	require.True(t, resp.Success, "error: %v", resp.Error)
+	require.NotNil(t, resp.MJML)
+	require.NotNil(t, resp.HTML)
+	assert.Contains(t, *resp.MJML, "<mj-preview>Weekly digest</mj-preview>")
+	assert.Contains(t, *resp.HTML, "Weekly digest")
+	assert.NotContains(t, *resp.HTML, "{{ global_feed.subject }}")
+}
+
+func TestCompileTemplateSubjectPreviewOverrideFallbackEscapesRenderedValue(t *testing.T) {
+	// The rendered value — not the raw Liquid — must be escaped before being
+	// spliced into the MJML source, so data containing &, < or > still compiles.
+	override := "{{ global_feed.subject }}"
+	req := CompileTemplateRequest{
+		WorkspaceID:            "ws",
+		MessageID:              "msg",
+		VisualEditorTree:       minimalTree(),
+		SubjectPreviewOverride: &override,
+		TemplateData:           globalFeedData("Tom & Jerry <weekly>"),
+	}
+
+	resp, err := CompileTemplate(req)
+	require.NoError(t, err)
+	require.True(t, resp.Success, "error: %v", resp.Error)
+	require.NotNil(t, resp.MJML)
+	require.NotNil(t, resp.HTML)
+	assert.Contains(t, *resp.MJML, "Tom &amp; Jerry &#60;weekly&#62;")
+	assert.Contains(t, *resp.HTML, "Tom & Jerry")
+	assert.NotContains(t, *resp.HTML, "{{ global_feed.subject }}")
+}
+
+func TestCompileTemplateSubjectPreviewOverrideFallbackNoDoubleLiquid(t *testing.T) {
+	// A rendered value that itself looks like Liquid must not be evaluated a
+	// second time by the whole-string pass.
+	override := "{{ global_feed.subject }}"
+	req := CompileTemplateRequest{
+		WorkspaceID:            "ws",
+		MessageID:              "msg",
+		VisualEditorTree:       minimalTree(),
+		SubjectPreviewOverride: &override,
+		TemplateData:           globalFeedData("Use {{coupon}} now"),
+	}
+
+	resp, err := CompileTemplate(req)
+	require.NoError(t, err)
+	require.True(t, resp.Success, "error: %v", resp.Error)
+	require.NotNil(t, resp.HTML)
+	assert.Contains(t, *resp.HTML, "Use {{coupon}} now")
+}
+
+func TestCompileTemplateSubjectPreviewOverrideFallbackLiquidError(t *testing.T) {
+	// Malformed Liquid in the injected preview text surfaces as a compile error
+	// instead of being silently shipped to recipients.
+	override := "{{ global_feed.subject"
+	req := CompileTemplateRequest{
+		WorkspaceID:            "ws",
+		MessageID:              "msg",
+		VisualEditorTree:       minimalTree(),
+		SubjectPreviewOverride: &override,
+		TemplateData:           globalFeedData("Weekly digest"),
+	}
+
+	resp, err := CompileTemplate(req)
+	assert.NoError(t, err)
+	assert.False(t, resp.Success)
+	assert.NotNil(t, resp.Error)
+	assert.Nil(t, resp.HTML)
+}
+
+func TestCompileTemplateSubjectPreviewOverrideFallbackPreserveLiquid(t *testing.T) {
+	// MJML export (PreserveLiquid) keeps the Liquid syntax in the injected tag.
+	override := "{{ global_feed.subject }}"
+	req := CompileTemplateRequest{
+		WorkspaceID:            "ws",
+		MessageID:              "msg",
+		VisualEditorTree:       minimalTree(),
+		SubjectPreviewOverride: &override,
+		TemplateData:           globalFeedData("Weekly digest"),
+		PreserveLiquid:         true,
+	}
+
+	resp, err := CompileTemplate(req)
+	require.NoError(t, err)
+	require.True(t, resp.Success, "error: %v", resp.Error)
+	require.NotNil(t, resp.MJML)
+	assert.Contains(t, *resp.MJML, "<mj-preview>{{ global_feed.subject }}</mj-preview>")
+}
+
+func TestCompileTemplateSubjectPreviewOverrideFallbackNoData(t *testing.T) {
+	// No template data → Liquid processing is skipped everywhere, so the raw
+	// expression stays in place (mirrors subject/body behavior).
+	override := "{{ global_feed.subject }}"
+	req := CompileTemplateRequest{
+		WorkspaceID:            "ws",
+		MessageID:              "msg",
+		VisualEditorTree:       minimalTree(),
+		SubjectPreviewOverride: &override,
+	}
+
+	resp, err := CompileTemplate(req)
+	require.NoError(t, err)
+	require.True(t, resp.Success, "error: %v", resp.Error)
+	require.NotNil(t, resp.MJML)
+	assert.Contains(t, *resp.MJML, "<mj-preview>{{ global_feed.subject }}</mj-preview>")
+}
+
+func TestCompileTemplateSubjectPreviewOverrideFallbackWebChannel(t *testing.T) {
+	// Web channel skips personalization everywhere, so the injected preview keeps
+	// its Liquid syntax rather than rendering against contact data.
+	override := "{{ global_feed.subject }}"
+	req := CompileTemplateRequest{
+		WorkspaceID:            "ws",
+		MessageID:              "msg",
+		VisualEditorTree:       minimalTree(),
+		SubjectPreviewOverride: &override,
+		TemplateData:           globalFeedData("Weekly digest"),
+		Channel:                "web",
+	}
+
+	resp, err := CompileTemplate(req)
+	require.NoError(t, err)
+	require.True(t, resp.Success, "error: %v", resp.Error)
+	require.NotNil(t, resp.MJML)
+	assert.Contains(t, *resp.MJML, "<mj-preview>{{ global_feed.subject }}</mj-preview>")
+	assert.NotContains(t, *resp.MJML, "Weekly digest")
+}
+
+func TestCompileTemplateSubjectPreviewOverrideTreeBlockRendersLiquid(t *testing.T) {
+	// When the tree has an mj-preview block, the override lands in that block and
+	// goes through per-block Liquid rendering.
+	override := "{{ global_feed.subject }}"
+	req := CompileTemplateRequest{
+		WorkspaceID:            "ws",
+		MessageID:              "msg",
+		VisualEditorTree:       treeWithMjPreview("PLACEHOLDER"),
+		SubjectPreviewOverride: &override,
+		TemplateData:           globalFeedData("Weekly digest"),
+	}
+
+	resp, err := CompileTemplate(req)
+	require.NoError(t, err)
+	require.True(t, resp.Success, "error: %v", resp.Error)
+	require.NotNil(t, resp.HTML)
+	assert.Contains(t, *resp.HTML, "Weekly digest")
+	assert.NotContains(t, *resp.HTML, "PLACEHOLDER")
+	assert.NotContains(t, *resp.HTML, "{{ global_feed.subject }}")
+}
+
+// codeModeSource is a minimal code-mode document with no mj-preview block.
+const codeModeSource = `<mjml><mj-body><mj-section><mj-column><mj-text>hello</mj-text></mj-column></mj-section></mj-body></mjml>`
+
+func compileCodeMode(t *testing.T, override string, data MapOfAny, source string, preserveLiquid bool) *CompileTemplateResponse {
+	t.Helper()
+	resp, err := CompileTemplate(CompileTemplateRequest{
+		WorkspaceID:            "ws",
+		MessageID:              "msg",
+		MjmlSource:             &source,
+		SubjectPreviewOverride: &override,
+		TemplateData:           data,
+		PreserveLiquid:         preserveLiquid,
+	})
+	require.NoError(t, err)
+	return resp
+}
+
+func TestCompileTemplateSubjectPreviewOverrideCodeModeRendersLiquid(t *testing.T) {
+	// Code mode applies the override before its Liquid pass; Liquid renders.
+	resp := compileCodeMode(t, "{{ global_feed.subject }}", globalFeedData("Weekly digest"), codeModeSource, false)
+	require.True(t, resp.Success, "error: %v", resp.Error)
+	require.NotNil(t, resp.HTML)
+	assert.Contains(t, *resp.HTML, "Weekly digest")
+	assert.NotContains(t, *resp.HTML, "{{ global_feed.subject }}")
+}
+
+func TestCompileTemplateSubjectPreviewOverrideCodeModeEscapesRenderedValue(t *testing.T) {
+	// An ampersand in the rendered value must be escaped: escaping the Liquid
+	// syntax instead leaves a bare & in the MJML, which fails the XML parse.
+	resp := compileCodeMode(t, "{{ global_feed.subject }}", globalFeedData("News & Updates"), codeModeSource, false)
+	require.True(t, resp.Success, "error: %v", resp.Error)
+	require.NotNil(t, resp.MJML)
+	assert.Contains(t, *resp.MJML, "<mj-preview>News &amp; Updates</mj-preview>")
+}
+
+func TestCompileTemplateSubjectPreviewOverrideCodeModeEscapesAngleBrackets(t *testing.T) {
+	resp := compileCodeMode(t, "{{ global_feed.subject }}", globalFeedData("Tom & Jerry <weekly>"), codeModeSource, false)
+	require.True(t, resp.Success, "error: %v", resp.Error)
+	require.NotNil(t, resp.MJML)
+	assert.Contains(t, *resp.MJML, "<mj-preview>Tom &amp; Jerry &#60;weekly&#62;</mj-preview>")
+}
+
+func TestCompileTemplateSubjectPreviewOverrideCodeModeLiquidComparison(t *testing.T) {
+	// Escaping before Liquid turns `>` into an entity and the comparison silently
+	// degrades to a truthiness test, yielding the wrong branch.
+	override := "{% if a > b %}YES{% else %}NO{% endif %}"
+	resp := compileCodeMode(t, override, MapOfAny{"a": 1, "b": 2}, codeModeSource, false)
+	require.True(t, resp.Success, "error: %v", resp.Error)
+	require.NotNil(t, resp.MJML)
+	assert.Contains(t, *resp.MJML, "<mj-preview>NO</mj-preview>")
+	assert.NotContains(t, *resp.MJML, "YES")
+}
+
+func TestCompileTemplateSubjectPreviewOverrideCodeModeReplacesExisting(t *testing.T) {
+	// Code mode must replace an existing mj-preview, not add a second one.
+	source := `<mjml><mj-head><mj-preview>OLD</mj-preview></mj-head><mj-body><mj-section><mj-column><mj-text>hello</mj-text></mj-column></mj-section></mj-body></mjml>`
+	resp := compileCodeMode(t, "{{ global_feed.subject }}", globalFeedData("Weekly digest"), source, false)
+	require.True(t, resp.Success, "error: %v", resp.Error)
+	require.NotNil(t, resp.MJML)
+	assert.Contains(t, *resp.MJML, "<mj-preview>Weekly digest</mj-preview>")
+	assert.NotContains(t, *resp.MJML, "OLD")
+	assert.Equal(t, 1, strings.Count(*resp.MJML, "<mj-preview>"))
+}
+
+func TestCompileTemplateSubjectPreviewOverrideCodeModeLiquidError(t *testing.T) {
+	resp := compileCodeMode(t, "{{ global_feed.subject", globalFeedData("Weekly digest"), codeModeSource, false)
+	assert.False(t, resp.Success)
+	assert.NotNil(t, resp.Error)
+	assert.Nil(t, resp.HTML)
+}
+
+func TestCompileTemplateSubjectPreviewOverrideCodeModePreserveLiquid(t *testing.T) {
+	resp := compileCodeMode(t, "{{ global_feed.subject }}", globalFeedData("Weekly digest"), codeModeSource, true)
+	require.True(t, resp.Success, "error: %v", resp.Error)
+	require.NotNil(t, resp.MJML)
+	assert.Contains(t, *resp.MJML, "<mj-preview>{{ global_feed.subject }}</mj-preview>")
+	assert.NotContains(t, *resp.MJML, "Weekly digest")
+}
+
+func TestCompileTemplateTreeMjPreviewRendersAngleBrackets(t *testing.T) {
+	// Liquid in an mj-preview block rendering to a value containing angle brackets
+	// must still compile: escaping it with named entities fails, because the MJML
+	// parser decodes those back into markup before parsing.
+	req := CompileTemplateRequest{
+		WorkspaceID:      "ws",
+		MessageID:        "msg",
+		VisualEditorTree: treeWithMjPreview("{{ global_feed.subject }}"),
+		TemplateData:     globalFeedData("Tom & Jerry <weekly>"),
+	}
+
+	resp, err := CompileTemplate(req)
+	require.NoError(t, err)
+	require.True(t, resp.Success, "error: %v", resp.Error)
+	require.NotNil(t, resp.MJML)
+	assert.Contains(t, *resp.MJML, "Tom &amp; Jerry &#60;weekly&#62;")
+}
+
+func TestCompileTemplateTreeMjTitleRendersAngleBrackets(t *testing.T) {
+	// mj-title content goes through the same converter escaping as mj-preview.
+	req := CompileTemplateRequest{
+		WorkspaceID:      "ws",
+		MessageID:        "msg",
+		VisualEditorTree: treeWithMjTitle("{{ global_feed.subject }}"),
+		TemplateData:     globalFeedData("A & B <x>"),
+	}
+
+	resp, err := CompileTemplate(req)
+	require.NoError(t, err)
+	require.True(t, resp.Success, "error: %v", resp.Error)
+	require.NotNil(t, resp.MJML)
+	assert.Contains(t, *resp.MJML, "A &amp; B &#60;x&#62;")
 }
 
 func TestTrackLinks_DisabledModeSuppressesEverything(t *testing.T) {

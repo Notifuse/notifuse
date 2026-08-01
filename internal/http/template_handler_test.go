@@ -936,3 +936,62 @@ func TestHandleUpdate_CodeModeTemplate(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 }
+
+// TestHandleCreate_MissingVisualEditorTree posts a raw payload whose "email" object omits
+// visual_editor_tree. The body is a map rather than a marshalled domain.CreateTemplateRequest
+// so the request reaches the handler exactly as an external API client would send it; a
+// typed request always carries a tree and cannot reproduce the case.
+func TestHandleCreate_MissingVisualEditorTree(t *testing.T) {
+	mockService, _, serverURL, secretKey, cleanup := setupTemplateHandlerTest(t)
+	defer cleanup()
+
+	payload := map[string]interface{}{
+		"workspace_id": "workspace123",
+		"id":           "test-template",
+		"name":         "Test Template",
+		"category":     "transactional",
+		"channel":      "email",
+		"email": map[string]interface{}{
+			"subject": "Test - {{ nombre }}",
+			"html":    "<p>Hola {{ nombre }}</p>",
+		},
+	}
+
+	// Validation must reject the request before it reaches the service.
+	mockService.EXPECT().CreateTemplate(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+
+	apiURL := fmt.Sprintf("%s/api/templates.create", serverURL)
+	resp := sendRequest(t, http.MethodPost, apiURL, createTestToken(secretKey), payload)
+	defer func() { _ = resp.Body.Close() }()
+
+	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+
+	var body map[string]interface{}
+	require.NoError(t, json.NewDecoder(resp.Body).Decode(&body))
+	assert.Contains(t, body["error"], "visual_editor_tree is required")
+}
+
+// TestHandleUpdate_MissingVisualEditorTree is the templates.update counterpart.
+func TestHandleUpdate_MissingVisualEditorTree(t *testing.T) {
+	mockService, _, serverURL, secretKey, cleanup := setupTemplateHandlerTest(t)
+	defer cleanup()
+
+	payload := map[string]interface{}{
+		"workspace_id": "workspace123",
+		"id":           "test-template",
+		"name":         "Test Template",
+		"category":     "transactional",
+		"channel":      "email",
+		"email": map[string]interface{}{
+			"subject": "Test Subject",
+		},
+	}
+
+	mockService.EXPECT().UpdateTemplate(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+
+	apiURL := fmt.Sprintf("%s/api/templates.update", serverURL)
+	resp := sendRequest(t, http.MethodPost, apiURL, createTestToken(secretKey), payload)
+	defer func() { _ = resp.Body.Close() }()
+
+	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+}
