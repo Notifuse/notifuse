@@ -301,37 +301,41 @@ func (r *workspaceRepository) Delete(ctx context.Context, id string) error {
 	// therefore can no longer delete, with no way back short of direct database access.
 	tx, err := r.systemDB.BeginTx(ctx, nil)
 	if err != nil {
-		return fmt.Errorf("failed to begin transaction: %w", err)
+		return fmt.Errorf("failed to begin transaction deleting workspace %s: %w", id, err)
 	}
 	defer func() { _ = tx.Rollback() }()
 
 	// Delete all user_workspaces entries for this workspace
 	deleteUserWorkspacesQuery := `DELETE FROM user_workspaces WHERE workspace_id = $1`
 	if _, err := tx.ExecContext(ctx, deleteUserWorkspacesQuery, id); err != nil {
-		return err
+		return fmt.Errorf("failed to delete memberships of workspace %s: %w", id, err)
 	}
 
 	// Delete all workspace invitations for this workspace
 	deleteInvitationsQuery := `DELETE FROM workspace_invitations WHERE workspace_id = $1`
 	if _, err := tx.ExecContext(ctx, deleteInvitationsQuery, id); err != nil {
-		return err
+		return fmt.Errorf("failed to delete invitations of workspace %s: %w", id, err)
 	}
 
 	// Then delete the workspace record
 	query := `DELETE FROM workspaces WHERE id = $1`
 	result, err := tx.ExecContext(ctx, query, id)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to delete workspace %s: %w", id, err)
 	}
 	rows, err := result.RowsAffected()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to read rows affected deleting workspace %s: %w", id, err)
 	}
 	if rows == 0 {
 		return &domain.ErrWorkspaceNotFound{WorkspaceID: id}
 	}
 
-	return tx.Commit()
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("failed to commit deletion of workspace %s: %w", id, err)
+	}
+
+	return nil
 }
 
 // GetConnection returns a connection to the workspace database

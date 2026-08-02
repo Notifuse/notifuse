@@ -845,6 +845,8 @@ func TestWorkspaceRepository_Delete_Postgres(t *testing.T) {
 	mock.ExpectRollback()
 	err = repo.Delete(context.Background(), workspaceID)
 	require.Error(t, err)
+	assert.ErrorContains(t, err, "uw error")
+	assert.ErrorContains(t, err, workspaceID, "the failing workspace must be identifiable from the error")
 
 	// Next: fail invitations
 	mock.ExpectExec(regexp.QuoteMeta(dropQuery)).
@@ -859,6 +861,8 @@ func TestWorkspaceRepository_Delete_Postgres(t *testing.T) {
 	mock.ExpectRollback()
 	err = repo.Delete(context.Background(), workspaceID)
 	require.Error(t, err)
+	assert.ErrorContains(t, err, "inv error")
+	assert.ErrorContains(t, err, workspaceID)
 
 	// Next: fail workspace delete exec
 	mock.ExpectExec(regexp.QuoteMeta(dropQuery)).
@@ -876,6 +880,8 @@ func TestWorkspaceRepository_Delete_Postgres(t *testing.T) {
 	mock.ExpectRollback()
 	err = repo.Delete(context.Background(), workspaceID)
 	require.Error(t, err)
+	assert.ErrorContains(t, err, "ws del error")
+	assert.ErrorContains(t, err, workspaceID)
 
 	// Without this, an un-issued Begin/Commit/Rollback would go unnoticed: the row
 	// cleanup being transactional is exactly what these expectations encode.
