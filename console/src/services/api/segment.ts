@@ -39,6 +39,7 @@ export type FilterOperator =
   | 'before_date'
   | 'after_date'
   | 'in_the_last_days'
+  | 'not_in_the_last_days'
   | 'in_array'
 
 // Contact list operators
@@ -107,12 +108,19 @@ export type GoalComparisonOperator = 'gte' | 'lte' | 'eq' | 'between'
 export interface CustomEventsGoalCondition {
   goal_type: GoalType
   goal_name?: string
+  event_name?: string
   aggregate_operator: AggregateOperator
   operator: GoalComparisonOperator
   value: number
   value_2?: number // For between operator
   timeframe_operator: TimeframeOperator
   timeframe_values?: string[]
+  // Inverts the whole condition. The aggregation is compiled as an EXISTS subquery grouped by
+  // email, so a contact with no matching events can never satisfy it however the comparison is
+  // written — negating the leaf is the only way to express "has not done this".
+  negate?: boolean
+  // Filters on the event's properties payload
+  filters?: DimensionFilter[]
 }
 
 export interface TreeNodeLeaf {
@@ -184,6 +192,7 @@ export type Operator =
   | 'before_date'
   | 'after_date'
   | 'in_the_last_days'
+  | 'not_in_the_last_days'
   | 'in_array'
 
 // Field type renderer interfaces

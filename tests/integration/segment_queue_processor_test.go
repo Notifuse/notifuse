@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/Notifuse/notifuse/config"
@@ -101,6 +102,79 @@ func TestSegmentQueueProcessorIntegration(t *testing.T) {
 		assert.Equal(t, 1, timelineKindCount(t, db, matching, "segment.joined", segID))
 		assert.Equal(t, 1, timelineKindCount(t, db, other, "segment.left", segID))
 		assert.Equal(t, 0, segQueueSize(t, db), "queue must be fully drained; membership writes must not re-enqueue")
+	})
+
+	t.Run("segment SQL that reuses a bound placeholder still evaluates", func(t *testing.T) {
+		ws, err := factory.CreateWorkspace()
+		require.NoError(t, err)
+		db, err := suite.DBManager.GetWorkspaceDB(ws.ID)
+		require.NoError(t, err)
+
+		tag := uuid.New().String()[:8]
+		clicker := fmt.Sprintf("clicker-%s@example.com", tag)
+		quiet := fmt.Sprintf("quiet-%s@example.com", tag)
+		_, err = factory.CreateContact(ws.ID, testutil.WithContactEmail(clicker))
+		require.NoError(t, err)
+		_, err = factory.CreateContact(ws.ID, testutil.WithContactEmail(quiet))
+		require.NoError(t, err)
+
+		// Insert a real custom event so the production trigger writes contact_timeline.changes in
+		// its actual {field: {old, new}} shape — a hand-rolled changes payload would not match
+		// what the filter reads and would make this test pass for the wrong reason.
+		_, err = db.ExecContext(ctx, `
+			INSERT INTO custom_events
+				(event_name, external_id, email, properties, occurred_at, source, goal_type, goal_value)
+			VALUES ('shopify.order', $1, $2, '{}', NOW(), 'test', 'purchase', 10)`,
+			"dup_"+tag, clicker)
+		require.NoError(t, err)
+
+		// A multi-value `contains` on a timeline change key: the key is bound ONCE and referenced
+		// in BOTH comparisons, so the compiled query holds a repeated placeholder. processContact
+		// splices this query into a UNION and shifts its placeholders; shifting them by order of
+		// appearance rather than by their own number invented an extra placeholder here, and the
+		// whole UNION failed to bind — silently stopping membership updates for the contact
+		// across every segment.
+		qb := service.NewQueryBuilder()
+		generatedSQL, args, err := qb.BuildSQL(&domain.TreeNode{
+			Kind: "leaf",
+			Leaf: &domain.TreeNodeLeaf{
+				Source: "contact_timeline",
+				ContactTimeline: &domain.ContactTimelineCondition{
+					Kind:          "custom_event.shopify.order",
+					CountOperator: "at_least",
+					CountValue:    1,
+					Filters: []*domain.DimensionFilter{
+						{FieldName: "goal_type", FieldType: "string", Operator: "contains",
+							StringValues: []string{"purch", "subscr"}},
+					},
+				},
+			},
+		})
+		require.NoError(t, err)
+		require.Equal(t, 2, strings.Count(generatedSQL, "ct.changes->$2->>'new'"),
+			"this test is only meaningful while the compiled query reuses a placeholder")
+
+		segID := createSegmentWithSQL(t, db, "segdup"+tag[:4], generatedSQL,
+			domain.JSONArray(args), string(domain.SegmentStatusActive))
+
+		// A second segment so the splice also exercises a non-zero placeholder offset.
+		otherID := createSegmentWithSQL(t, db, "segall"+tag[:4],
+			"SELECT email FROM contacts WHERE email LIKE $1",
+			domain.JSONArray{"clicker-%"}, string(domain.SegmentStatusActive))
+
+		enqueueAged(t, db, clicker)
+		enqueueAged(t, db, quiet)
+
+		count, err := processor.ProcessQueue(ctx, ws.ID)
+		require.NoError(t, err)
+		assert.Equal(t, 2, count, "both contacts must be processed, not skipped by a bind failure")
+
+		assert.Equal(t, 1, memberCount(t, db, clicker, segID),
+			"the contact whose event matches must join the repeated-placeholder segment")
+		assert.Equal(t, 0, memberCount(t, db, quiet, segID))
+		assert.Equal(t, 1, memberCount(t, db, clicker, otherID),
+			"the second segment must still evaluate correctly after the placeholder shift")
+		assert.Equal(t, 0, segQueueSize(t, db), "a bind failure would have requeued the contacts")
 	})
 
 	t.Run("failed evaluation requeues with debounce then recovers", func(t *testing.T) {

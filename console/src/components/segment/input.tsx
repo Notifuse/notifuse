@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { cloneDeep, forEach, get, set } from 'lodash'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faPenToSquare, faTrashCan } from '@fortawesome/free-regular-svg-icons'
@@ -62,6 +62,9 @@ export type TreeNodeInputProps = {
   lists?: List[]
   workspaceId?: string
   customFieldLabels?: Record<string, string>
+  // Reports the tree as it would stand if the condition currently open in the form were confirmed,
+  // and undefined once no condition is open. Lets the drawer preview an in-progress condition.
+  onDraftTreeChange?: (draftTree: TreeNode | undefined) => void
 }
 
 const fieldTypeRendererDictionary: FieldTypeRendererDictionary = {
@@ -91,6 +94,24 @@ const getColorClass = (colorID: number): string => {
 export const TreeNodeInput = (props: TreeNodeInputProps) => {
   const { t } = useLingui()
   const [editingNodeLeaf, setEditingNodeLeaf] = useState<EditingNodeLeaf | undefined>(undefined)
+
+  const onDraftTreeChangeRef = useRef(props.onDraftTreeChange)
+  onDraftTreeChangeRef.current = props.onDraftTreeChange
+
+  // A draft only ever describes the condition open in the form. Whenever that changes — opened,
+  // confirmed, cancelled, or swapped for another condition — the committed tree takes over again.
+  useEffect(() => {
+    onDraftTreeChangeRef.current?.(undefined)
+  }, [editingNodeLeaf])
+
+  const onDraftLeafChange = (draftLeaf: TreeNode, path: string, pathKey: number) => {
+    if (!props.onDraftTreeChange || !props.value) return
+
+    const clonedTree = cloneDeep(props.value) as TreeNode
+    set(clonedTree, path + '[' + pathKey + ']', draftLeaf)
+
+    props.onDraftTreeChange(clonedTree)
+  }
 
   const { data: templatesData } = useQuery({
     queryKey: ['templates', props.workspaceId],
@@ -302,6 +323,7 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
       // Custom events goals use CustomEventsGoalCondition
       leaf.custom_events_goal = {
         goal_type: '*', // All goal types by default
+        negate: false, // "has", not "has not"
         aggregate_operator: 'count',
         operator: 'gte',
         value: 1, // At least 1 event makes sense as default
@@ -467,6 +489,9 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
               onChange={(updatedLeaf: TreeNode) => {
                 onUpdateNode(updatedLeaf, path, pathKey)
               }}
+              onDraftChange={(draftLeaf: TreeNode) => {
+                onDraftLeafChange(draftLeaf, path, pathKey)
+              }}
               source={node.leaf?.source as string}
               schema={schema}
               editingNodeLeaf={editingNodeLeaf as EditingNodeLeaf}
@@ -480,6 +505,9 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
               value={node}
               onChange={(updatedLeaf: TreeNode) => {
                 onUpdateNode(updatedLeaf, path, pathKey)
+              }}
+              onDraftChange={(draftLeaf: TreeNode) => {
+                onDraftLeafChange(draftLeaf, path, pathKey)
               }}
               source={node.leaf?.source as string}
               schema={schema}
@@ -496,6 +524,9 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
               onChange={(updatedLeaf: TreeNode) => {
                 onUpdateNode(updatedLeaf, path, pathKey)
               }}
+              onDraftChange={(draftLeaf: TreeNode) => {
+                onDraftLeafChange(draftLeaf, path, pathKey)
+              }}
               source={node.leaf?.source as string}
               schema={schema}
               editingNodeLeaf={editingNodeLeaf as EditingNodeLeaf}
@@ -509,6 +540,9 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
               value={node}
               onChange={(updatedLeaf: TreeNode) => {
                 onUpdateNode(updatedLeaf, path, pathKey)
+              }}
+              onDraftChange={(draftLeaf: TreeNode) => {
+                onDraftLeafChange(draftLeaf, path, pathKey)
               }}
               source={node.leaf?.source as string}
               schema={schema}
@@ -602,10 +636,29 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
               <div>
                 <div className="mb-2">
                   <Space>
-                    <span className="opacity-60">{t`type`}</span>
+                    <Tag bordered={false} color={goal.negate ? 'red' : 'blue'}>
+                      {goal.negate ? t`has not` : t`has`}
+                    </Tag>
+                    <span className="opacity-60">{t`goal type`}</span>
                     <Tag bordered={false} color="blue">
                       {goalTypeLabel}
                     </Tag>
+                    {goal.goal_name && (
+                      <>
+                        <span className="opacity-60">{t`goal name`}</span>
+                        <Tag bordered={false} color="blue">
+                          {goal.goal_name}
+                        </Tag>
+                      </>
+                    )}
+                    {goal.event_name && (
+                      <>
+                        <span className="opacity-60">{t`event`}</span>
+                        <Tag bordered={false} color="blue">
+                          {goal.event_name}
+                        </Tag>
+                      </>
+                    )}
                   </Space>
                 </div>
                 <div className="mb-2">
@@ -677,6 +730,18 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
                     )}
                   </Space>
                 </div>
+                {goal.filters && goal.filters.length > 0 && (
+                  <div className="mt-2">
+                    <Space>
+                      <span className="opacity-60">{t`with properties`}</span>
+                      {goal.filters.map((filter, index) => (
+                        <Tag key={index} bordered={false} color="blue">
+                          {filter.field_name}
+                        </Tag>
+                      ))}
+                    </Space>
+                  </div>
+                )}
               </div>
             </Space>
           </div>

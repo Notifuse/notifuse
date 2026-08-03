@@ -787,10 +787,42 @@ func TestContactSegmentQueueProcessor_RebindPlaceholders(t *testing.T) {
 			expected: "SELECT * FROM contacts",
 		},
 		{
+			// Offset 1 is a no-op shift, so a placeholder keeps its own number. This case
+			// previously expected "$1": the function renumbered placeholders by the order they
+			// appeared instead of shifting each by its own value.
 			name:     "multiple digit placeholder",
 			input:    "WHERE field = $10",
 			offset:   1,
-			expected: "WHERE field = $1",
+			expected: "WHERE field = $10",
+		},
+		{
+			name:     "multiple digit placeholder with a real shift",
+			input:    "WHERE a = $9 AND b = $10",
+			offset:   3,
+			expected: "WHERE a = $11 AND b = $12",
+		},
+		{
+			// The query builder binds a JSONB key once and references it in two comparisons
+			// (multi-value contains, NULL-inclusive relative dates). Renumbering by occurrence
+			// turned the second reference into a new placeholder, so the query asked for one
+			// more argument than was supplied and failed to bind — killing segment evaluation
+			// for the contact, since every segment is checked in a single UNION.
+			name:     "repeated placeholder keeps pointing at the same argument",
+			input:    "WHERE (c->$2->>'n' ILIKE $3 OR c->$2->>'n' ILIKE $4) AND kind = $1",
+			offset:   5,
+			expected: "WHERE (c->$6->>'n' ILIKE $7 OR c->$6->>'n' ILIKE $8) AND kind = $5",
+		},
+		{
+			name:     "placeholders out of ascending order",
+			input:    "WHERE b = $2 AND a = $1",
+			offset:   1,
+			expected: "WHERE b = $2 AND a = $1",
+		},
+		{
+			name:     "dollar sign that is not a placeholder is left alone",
+			input:    "WHERE price = 'US$ 5' AND a = $1",
+			offset:   2,
+			expected: "WHERE price = 'US$ 5' AND a = $2",
 		},
 	}
 

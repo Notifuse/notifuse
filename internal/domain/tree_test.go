@@ -1155,3 +1155,137 @@ func TestContactTimelineCondition_Validate(t *testing.T) {
 		})
 	}
 }
+
+func TestCustomEventsGoalCondition_NegateAndFilters(t *testing.T) {
+	base := func() *CustomEventsGoalCondition {
+		return &CustomEventsGoalCondition{
+			GoalType:          GoalTypePurchase,
+			AggregateOperator: "count",
+			Operator:          "gte",
+			Value:             1,
+			TimeframeOperator: "anytime",
+		}
+	}
+
+	t.Run("valid property filter", func(t *testing.T) {
+		g := base()
+		g.Negate = true
+		g.Filters = []*DimensionFilter{
+			{FieldName: "sku", FieldType: "string", Operator: "equals", StringValues: []string{"A-1"}},
+		}
+		require.NoError(t, g.Validate())
+	})
+
+	t.Run("nil filter is rejected", func(t *testing.T) {
+		g := base()
+		g.Filters = []*DimensionFilter{nil}
+		require.Error(t, g.Validate())
+	})
+
+	t.Run("json field type is still restricted to custom_json columns", func(t *testing.T) {
+		g := base()
+		g.Filters = []*DimensionFilter{
+			{FieldName: "sku", FieldType: "json", Operator: "equals", StringValues: []string{"A-1"}},
+		}
+		require.Error(t, g.Validate())
+	})
+
+	t.Run("negate and filters round-trip through MapOfAny", func(t *testing.T) {
+		g := base()
+		g.Negate = true
+		eventName := "shopify.order"
+		g.EventName = &eventName
+		g.Filters = []*DimensionFilter{
+			{FieldName: "sku", FieldType: "string", Operator: "equals", StringValues: []string{"A-1"}},
+		}
+
+		node := &TreeNode{Kind: "leaf", Leaf: &TreeNodeLeaf{Source: "custom_events_goals", CustomEventsGoal: g}}
+
+		asMap, err := node.ToMapOfAny()
+		require.NoError(t, err)
+
+		restored, err := TreeNodeFromMapOfAny(asMap)
+		require.NoError(t, err)
+		require.NotNil(t, restored.Leaf.CustomEventsGoal)
+
+		assert.True(t, restored.Leaf.CustomEventsGoal.Negate)
+		require.NotNil(t, restored.Leaf.CustomEventsGoal.EventName)
+		assert.Equal(t, "shopify.order", *restored.Leaf.CustomEventsGoal.EventName)
+		require.Len(t, restored.Leaf.CustomEventsGoal.Filters, 1)
+		assert.Equal(t, "sku", restored.Leaf.CustomEventsGoal.Filters[0].FieldName)
+	})
+
+	t.Run("an untouched condition serializes without the new keys", func(t *testing.T) {
+		node := &TreeNode{Kind: "leaf", Leaf: &TreeNodeLeaf{Source: "custom_events_goals", CustomEventsGoal: base()}}
+
+		asMap, err := node.ToMapOfAny()
+		require.NoError(t, err)
+
+		encoded, err := json.Marshal(asMap)
+		require.NoError(t, err)
+
+		assert.NotContains(t, string(encoded), "negate")
+		assert.NotContains(t, string(encoded), "event_name")
+		assert.NotContains(t, string(encoded), "filters")
+	})
+}
+
+func TestTreeNode_HasRelativeDates_NotInTheLastDays(t *testing.T) {
+	leaf := func(l *TreeNodeLeaf) *TreeNode { return &TreeNode{Kind: "leaf", Leaf: l} }
+
+	t.Run("contact filter with not_in_the_last_days", func(t *testing.T) {
+		node := leaf(&TreeNodeLeaf{
+			Source: "contacts",
+			Contact: &ContactCondition{Filters: []*DimensionFilter{
+				{FieldName: "custom_datetime_1", FieldType: "time", Operator: "not_in_the_last_days", StringValues: []string{"30"}},
+			}},
+		})
+		assert.True(t, node.HasRelativeDates())
+	})
+
+	t.Run("goal property filter with a relative operator", func(t *testing.T) {
+		node := leaf(&TreeNodeLeaf{
+			Source: "custom_events_goals",
+			CustomEventsGoal: &CustomEventsGoalCondition{
+				GoalType: GoalTypePurchase, AggregateOperator: "count", Operator: "gte", Value: 1,
+				TimeframeOperator: "anytime",
+				Filters: []*DimensionFilter{
+					{FieldName: "renewed_at", FieldType: "time", Operator: "in_the_last_days", StringValues: []string{"7"}},
+				},
+			},
+		})
+		assert.True(t, node.HasRelativeDates())
+	})
+
+	t.Run("timeline dimension filter with a relative operator", func(t *testing.T) {
+		anytime := "anytime"
+		node := leaf(&TreeNodeLeaf{
+			Source: "contact_timeline",
+			ContactTimeline: &ContactTimelineCondition{
+				Kind: "email.opened", CountOperator: "at_least", CountValue: 1, TimeframeOperator: &anytime,
+				Filters: []*DimensionFilter{
+					{FieldName: "occurred_at", FieldType: "time", Operator: "not_in_the_last_days", StringValues: []string{"7"}},
+				},
+			},
+		})
+		assert.True(t, node.HasRelativeDates())
+	})
+
+	t.Run("absolute operators do not schedule recomputation", func(t *testing.T) {
+		node := leaf(&TreeNodeLeaf{
+			Source: "contacts",
+			Contact: &ContactCondition{Filters: []*DimensionFilter{
+				{FieldName: "custom_datetime_1", FieldType: "time", Operator: "before_date", StringValues: []string{"2026-01-01"}},
+			}},
+		})
+		assert.False(t, node.HasRelativeDates())
+	})
+
+	t.Run("nil filter entries are skipped", func(t *testing.T) {
+		node := leaf(&TreeNodeLeaf{
+			Source:  "contacts",
+			Contact: &ContactCondition{Filters: []*DimensionFilter{nil}},
+		})
+		assert.False(t, node.HasRelativeDates())
+	})
+}

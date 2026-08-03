@@ -147,6 +147,28 @@ export class OperatorNotInDateRange implements IOperator {
   }
 }
 
+const formItemDayCount = (
+  <>
+    <Form.Item
+      name={['string_values', 0]}
+      dependencies={['operator']}
+      rules={[{ required: true, message: Messages.RequiredField }]}
+      style={{ display: 'inline-block', marginBottom: 0 }}
+      getValueProps={(value: unknown) => {
+        // Convert string to number for InputNumber
+        return { value: value ? parseInt(value as string) : undefined }
+      }}
+      getValueFromEvent={(value: unknown) => {
+        // Convert number back to string for API
+        return value !== null && value !== undefined ? String(value) : undefined
+      }}
+    >
+      <InputNumber min={1} step={1} placeholder="days" style={{ width: 100 }} />
+    </Form.Item>
+    <span style={{ marginLeft: 8 }}>days</span>
+  </>
+)
+
 export class OperatorInTheLastDays implements IOperator {
   type: Operator = 'in_the_last_days'
   label = 'in the last'
@@ -166,26 +188,32 @@ export class OperatorInTheLastDays implements IOperator {
   }
 
   renderFormItems() {
+    return formItemDayCount
+  }
+}
+
+// Matches contacts outside the window *and* contacts whose date was never set — someone who
+// never converted has not converted in the last 30 days either, and they are usually the point
+// of the segment.
+export class OperatorNotInTheLastDays implements IOperator {
+  type: Operator = 'not_in_the_last_days'
+  label = 'not in the last'
+
+  render(filter: DimensionFilter) {
     return (
       <>
-        <Form.Item
-          name={['string_values', 0]}
-          dependencies={['operator']}
-          rules={[{ required: true, message: Messages.RequiredField }]}
-          style={{ display: 'inline-block', marginBottom: 0 }}
-          getValueProps={(value: unknown) => {
-            // Convert string to number for InputNumber
-            return { value: value ? parseInt(value as string) : undefined }
-          }}
-          getValueFromEvent={(value: unknown) => {
-            // Convert number back to string for API
-            return value !== null && value !== undefined ? String(value) : undefined
-          }}
-        >
-          <InputNumber min={1} step={1} placeholder="days" style={{ width: 100 }} />
-        </Form.Item>
-        <span style={{ marginLeft: 8 }}>days</span>
+        <span className="opacity-60 pt-0.5">{this.label}</span>
+        <span>
+          <Tag bordered={false} color="blue">
+            {filter.string_values?.[0]}
+          </Tag>
+        </span>
+        <span className="opacity-60 pt-0.5">days (or never)</span>
       </>
     )
+  }
+
+  renderFormItems() {
+    return formItemDayCount
   }
 }

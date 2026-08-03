@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"runtime/debug"
+	"strconv"
 	"strings"
 	"time"
 
@@ -402,32 +403,45 @@ func (p *ContactSegmentQueueProcessor) processContact(ctx context.Context, works
 	return nil
 }
 
-// rebindPlaceholders rebinds SQL placeholders starting from the given offset
-// e.g., $1, $2, $3 becomes $5, $6, $7 if offset is 5
+// rebindPlaceholders shifts SQL placeholders by the given offset, so a segment query written
+// against $1..$n can be spliced into a larger UNION that already consumed argOffset-1 args.
+// e.g., $1, $2, $3 becomes $5, $6, $7 if offset is 5.
+//
+// The shift is computed from each placeholder's own number, not from the order it appears in.
+// Renumbering by occurrence silently corrupts any query that references the same placeholder
+// twice — which the query builder does whenever a JSONB key is bound once and used in two
+// comparisons (a multi-value `contains`, or a NULL-inclusive relative-date filter). Such a query
+// would gain a placeholder it has no argument for and fail to bind, taking down segment
+// evaluation for the whole contact, since every segment is checked in one UNION.
 func (p *ContactSegmentQueueProcessor) rebindPlaceholders(sql string, offset int) string {
-	result := ""
-	placeholderNum := 1
+	var result strings.Builder
 	i := 0
 
 	for i < len(sql) {
-		if sql[i] == '$' && i+1 < len(sql) {
+		if sql[i] == '$' && i+1 < len(sql) && sql[i+1] >= '0' && sql[i+1] <= '9' {
 			// Found a placeholder, extract the number
 			j := i + 1
 			for j < len(sql) && sql[j] >= '0' && sql[j] <= '9' {
 				j++
 			}
 
-			// Replace with new placeholder number
-			result += fmt.Sprintf("$%d", offset+placeholderNum-1)
-			placeholderNum++
+			num, err := strconv.Atoi(sql[i+1 : j])
+			if err != nil {
+				// Not a number we can shift; emit verbatim rather than corrupt the query.
+				result.WriteString(sql[i:j])
+				i = j
+				continue
+			}
+
+			result.WriteString(fmt.Sprintf("$%d", offset+num-1))
 			i = j
 		} else {
-			result += string(sql[i])
+			result.WriteByte(sql[i])
 			i++
 		}
 	}
 
-	return result
+	return result.String()
 }
 
 // GetQueueSize returns the number of contacts waiting to be processed

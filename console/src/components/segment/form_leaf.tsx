@@ -1,8 +1,9 @@
-import { Dispatch, SetStateAction } from 'react'
+import { Dispatch, SetStateAction, useEffect, useState } from 'react'
 import { cloneDeep } from 'lodash'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faClose } from '@fortawesome/free-solid-svg-icons'
 import { Button, Input, Form, Select, InputNumber, Space, DatePicker, Tag } from 'antd'
+import type { FormInstance } from 'antd'
 import { useForm } from 'antd/lib/form/Form'
 import {
   TreeNode,
@@ -12,6 +13,7 @@ import {
 } from '../../services/api/segment'
 import dayjs, { Dayjs } from 'dayjs'
 import { InputDimensionFilters } from './input_dimension_filters'
+import { InputEventPropertyFilters } from './input_event_property_filters'
 import TemplateSelectorInput from '../templates/TemplateSelectorInput'
 import BroadcastSelectorInput from './BroadcastSelectorInput'
 import Messages from './messages'
@@ -28,11 +30,64 @@ export type LeafFormProps = {
   lists?: Array<{ id: string; name: string }>
   customFieldLabels?: Record<string, string>
   workspaceId?: string
+  // Reports the condition as it currently stands in the form, before Confirm. The drawer previews
+  // this draft so the contacts count follows the condition while it is still being written.
+  onDraftChange?: (draftLeaf: TreeNode) => void
+}
+
+// Conditions that carry a timeframe. Each operator reads a different shape out of
+// timeframe_values (a day count, one date, or a range), so the values left behind by the previous
+// operator are never valid for the next one.
+const TIMEFRAME_CONDITION_KEYS = ['contact_timeline', 'custom_events_goal']
+
+const clearStaleTimeframeValues = (
+  form: FormInstance,
+  changedValues: Record<string, { timeframe_operator?: string } | undefined>
+) => {
+  TIMEFRAME_CONDITION_KEYS.forEach((conditionKey) => {
+    if (changedValues[conditionKey]?.timeframe_operator === undefined) return
+    form.setFieldValue([conditionKey, 'timeframe_values'], [])
+  })
+}
+
+// Builds the leaf as currently filled in, using the same merge as the Confirm handlers so the
+// previewed condition and the saved one are built the same way.
+const buildDraftLeaf = (props: LeafFormProps, form: FormInstance): TreeNode | undefined => {
+  if (!props.value) return undefined
+
+  const clonedLeaf = cloneDeep(props.value)
+  clonedLeaf.leaf = Object.assign(clonedLeaf.leaf as TreeNodeLeaf, form.getFieldsValue())
+
+  return clonedLeaf
+}
+
+// Returns the form's onValuesChange handler. The draft is emitted from an effect rather than
+// straight from the handler: picking a value can hide fields whose Form.Item drops itself from
+// the store as it unmounts, and that happens after the handler has run. Reading the form once the
+// render has settled is what keeps the draft equal to what Confirm would produce.
+const useLeafDraft = (props: LeafFormProps, form: FormInstance) => {
+  const [revision, setRevision] = useState(0)
+
+  useEffect(() => {
+    if (revision === 0 || !props.onDraftChange) return
+
+    const draftLeaf = buildDraftLeaf(props, form)
+    if (draftLeaf) props.onDraftChange(draftLeaf)
+    // Driven by the revision alone: re-running this for every prop change would emit a draft on
+    // every render, and the drawer re-renders in response to the draft.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [revision])
+
+  return (changedValues: Record<string, { timeframe_operator?: string } | undefined>) => {
+    clearStaleTimeframeValues(form, changedValues)
+    setRevision((current) => current + 1)
+  }
 }
 
 export const LeafContactForm = (props: LeafFormProps) => {
   const { t } = useLingui()
   const [form] = useForm()
+  const onValuesChange = useLeafDraft(props, form)
 
   const onSubmit = () => {
     form
@@ -61,7 +116,13 @@ export const LeafContactForm = (props: LeafFormProps) => {
   // console.log('props', props)
 
   return (
-    <Form component="div" layout="inline" form={form} initialValues={props.editingNodeLeaf.leaf}>
+    <Form
+      component="div"
+      layout="inline"
+      form={form}
+      initialValues={props.editingNodeLeaf.leaf}
+      onValuesChange={onValuesChange}
+    >
       <Form.Item
         style={{ margin: 0 }}
         name="source"
@@ -114,6 +175,7 @@ export const LeafContactForm = (props: LeafFormProps) => {
 export const LeafContactListForm = (props: LeafFormProps) => {
   const { t } = useLingui()
   const [form] = useForm()
+  const onValuesChange = useLeafDraft(props, form)
 
   const onSubmit = () => {
     form
@@ -144,7 +206,13 @@ export const LeafContactListForm = (props: LeafFormProps) => {
         )}
         {t`List subscription`}
       </Tag>
-      <Form component="div" layout="inline" form={form} initialValues={props.editingNodeLeaf.leaf}>
+      <Form
+        component="div"
+        layout="inline"
+        form={form}
+        initialValues={props.editingNodeLeaf.leaf}
+        onValuesChange={onValuesChange}
+      >
         <Form.Item name="source" noStyle>
           <Input hidden />
         </Form.Item>
@@ -227,6 +295,7 @@ export const LeafContactListForm = (props: LeafFormProps) => {
 export const LeafActionForm = (props: LeafFormProps) => {
   const { t } = useLingui()
   const [form] = useForm()
+  const onValuesChange = useLeafDraft(props, form)
 
   const onSubmit = () => {
     form
@@ -269,6 +338,7 @@ export const LeafActionForm = (props: LeafFormProps) => {
         layout="vertical"
         form={form}
         initialValues={props.editingNodeLeaf.leaf}
+        onValuesChange={onValuesChange}
       >
         <Form.Item name="source" noStyle>
           <Input hidden />
@@ -449,10 +519,10 @@ export const LeafActionForm = (props: LeafFormProps) => {
                           { required: true, type: 'array', min: 1, message: Messages.RequiredField }
                         ]}
                         dependencies={['contact_timeline', 'timeframe_operator']}
-                        getValueProps={(values: string[]) => {
+                        getValueProps={(values?: string[]) => {
                           // convert array to single value
                           return {
-                            value: parseInt(values[0])
+                            value: values?.[0] === undefined ? undefined : parseInt(values[0])
                           }
                         }}
                         getValueFromEvent={(args: number | null) => {
@@ -579,6 +649,7 @@ export const LeafActionForm = (props: LeafFormProps) => {
 export const LeafCustomEventsGoalForm = (props: LeafFormProps) => {
   const { t } = useLingui()
   const [form] = useForm()
+  const onValuesChange = useLeafDraft(props, form)
 
   const onSubmit = () => {
     form
@@ -616,6 +687,7 @@ export const LeafCustomEventsGoalForm = (props: LeafFormProps) => {
         layout="vertical"
         form={form}
         initialValues={props.editingNodeLeaf.leaf}
+        onValuesChange={onValuesChange}
       >
         <Form.Item name="source" noStyle>
           <Input hidden />
@@ -624,8 +696,26 @@ export const LeafCustomEventsGoalForm = (props: LeafFormProps) => {
         {/* Goal Type Selection */}
         <div className="mb-2">
           <Space>
+            {/* Negation wraps the whole condition rather than inverting the comparison: the
+                aggregation only sees contacts that have at least one matching event, so
+                "count is 0" can never match the people who never converted. */}
+            <Form.Item
+              noStyle
+              name={['custom_events_goal', 'negate']}
+              colon={false}
+              getValueProps={(value: boolean | undefined) => ({ value: value === true })}
+            >
+              <Select
+                style={{ width: 90 }}
+                size="small"
+                options={[
+                  { value: false, label: t`has` },
+                  { value: true, label: t`has not` }
+                ]}
+              />
+            </Form.Item>
             <span className="opacity-60" style={{ lineHeight: '32px' }}>
-              {t`type`}
+              {t`goal type`}
             </span>
             <Form.Item
               noStyle
@@ -639,6 +729,34 @@ export const LeafCustomEventsGoalForm = (props: LeafFormProps) => {
                   </Select.Option>
                 ))}
               </Select>
+            </Form.Item>
+          </Space>
+        </div>
+
+        {/* Narrow to a specific goal or event, rather than the whole goal type */}
+        <div className="mb-2">
+          <Space>
+            <span className="opacity-60" style={{ lineHeight: '32px' }}>
+              {t`goal name`}
+            </span>
+            <Form.Item noStyle name={['custom_events_goal', 'goal_name']} colon={false}>
+              <Input
+                placeholder={t`Any goal name`}
+                allowClear
+                size="small"
+                style={{ width: 170 }}
+              />
+            </Form.Item>
+            <span className="opacity-60" style={{ lineHeight: '32px' }}>
+              {t`event name`}
+            </span>
+            <Form.Item noStyle name={['custom_events_goal', 'event_name']} colon={false}>
+              <Input
+                placeholder={t`Any event`}
+                allowClear
+                size="small"
+                style={{ width: 170 }}
+              />
             </Form.Item>
           </Space>
         </div>
@@ -758,9 +876,9 @@ export const LeafCustomEventsGoalForm = (props: LeafFormProps) => {
                           { required: true, type: 'array', min: 1, message: Messages.RequiredField }
                         ]}
                         dependencies={['custom_events_goal', 'timeframe_operator']}
-                        getValueProps={(values: string[]) => {
+                        getValueProps={(values?: string[]) => {
                           return {
-                            value: values ? parseInt(values[0]) : undefined
+                            value: values?.[0] === undefined ? undefined : parseInt(values[0])
                           }
                         }}
                         getValueFromEvent={(args: number | null) => {
@@ -831,6 +949,18 @@ export const LeafCustomEventsGoalForm = (props: LeafFormProps) => {
                   return null
                 }
               }}
+            </Form.Item>
+          </Space>
+        </div>
+
+        {/* Filters on the event's own properties payload */}
+        <div className="mt-2">
+          <Space style={{ alignItems: 'start' }}>
+            <span className="opacity-60" style={{ lineHeight: '32px' }}>
+              {t`with properties`}
+            </span>
+            <Form.Item name={['custom_events_goal', 'filters']} noStyle colon={false}>
+              <InputEventPropertyFilters btnType="link" btnGhost={true} />
             </Form.Item>
           </Space>
         </div>

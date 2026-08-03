@@ -259,7 +259,10 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 			email VARCHAR(255) NOT NULL,
 			operation VARCHAR(20) NOT NULL,
 			entity_type VARCHAR(50) NOT NULL,
-			kind VARCHAR(50) NOT NULL DEFAULT '',
+			-- Wide enough for the longest kind the triggers build: 'custom_event.' plus an
+			-- event_name of up to 100 chars. VARCHAR(50) truncated nothing — it aborted the
+			-- custom_events insert outright, since the timeline writer is an AFTER INSERT trigger.
+			kind VARCHAR(150) NOT NULL DEFAULT '',
 			changes JSONB,
 			entity_id VARCHAR(255),
 			created_at TIMESTAMP WITH TIME ZONE NOT NULL,

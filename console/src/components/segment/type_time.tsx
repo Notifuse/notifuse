@@ -12,7 +12,8 @@ import {
   OperatorAfterDate,
   OperatorInDateRange,
   OperatorNotInDateRange,
-  OperatorInTheLastDays
+  OperatorInTheLastDays,
+  OperatorNotInTheLastDays
 } from './operator_time'
 
 // Note: This class contains string labels that cannot use useLingui as they are class properties.
@@ -25,7 +26,8 @@ export class FieldTypeTime implements FieldTypeRenderer {
     new OperatorAfterDate(),
     new OperatorInDateRange(),
     new OperatorNotInDateRange(),
-    new OperatorInTheLastDays()
+    new OperatorInTheLastDays(),
+    new OperatorNotInTheLastDays()
   ]
 
   render(filter: DimensionFilter) {

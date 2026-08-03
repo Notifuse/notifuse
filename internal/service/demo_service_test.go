@@ -14,6 +14,7 @@ import (
 	"github.com/Notifuse/notifuse/pkg/notifuse_mjml"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestDemoService_VerifyRootEmailHMAC(t *testing.T) {
@@ -932,4 +933,70 @@ func TestDemoService_GenerateEmail_DomainValidation(t *testing.T) {
 		}
 	}
 	assert.True(t, found, "unexpected domain: %s", domain)
+}
+
+// TestCreateSampleSegments_ProducesUsableSegments guards the demo workspace's showcase segments.
+// createSampleSegments only logs a warning when a segment is rejected, so an invalid tree would
+// leave the demo silently missing a segment that the product is meant to be demonstrating.
+func TestCreateSampleSegments_ProducesUsableSegments(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockSegmentService := domainmocks.NewMockSegmentService(ctrl)
+
+	var created []*domain.CreateSegmentRequest
+	mockSegmentService.EXPECT().
+		CreateSegment(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, req *domain.CreateSegmentRequest) (*domain.Segment, error) {
+			created = append(created, req)
+			return &domain.Segment{ID: req.ID}, nil
+		}).
+		AnyTimes()
+
+	svc := &DemoService{
+		logger:         logger.NewLoggerWithLevel("disabled"),
+		segmentService: mockSegmentService,
+	}
+
+	require.NoError(t, svc.createSampleSegments(context.Background(), "ws1"))
+	require.NotEmpty(t, created)
+
+	qb := NewQueryBuilder()
+	byID := map[string]*domain.CreateSegmentRequest{}
+	for _, req := range created {
+		byID[req.ID] = req
+
+		// Every showcase segment must be one the product would actually accept and run.
+		require.NotNil(t, req.Tree, "segment %s has no tree", req.ID)
+		require.NoError(t, req.Tree.Validate(), "segment %s does not validate", req.ID)
+		_, _, err := qb.BuildSQL(req.Tree)
+		require.NoError(t, err, "segment %s does not compile", req.ID)
+
+		// ...and one the console can reopen. The segment builder renders the root as a branch
+		// unconditionally, so a tree whose root is a bare leaf compiles and runs correctly but
+		// shows "A branch condition is required..." instead of the form when it is edited.
+		require.Equal(t, "branch", req.Tree.Kind,
+			"segment %s has a leaf at the root and cannot be edited in the console", req.ID)
+		require.NotNil(t, req.Tree.Branch, "segment %s has no branch at the root", req.ID)
+		require.NotEmpty(t, req.Tree.Branch.Leaves, "segment %s has an empty root branch", req.ID)
+	}
+
+	winback, ok := byID["winback_opportunities"]
+	require.True(t, ok, "the negation showcase segment must be created")
+
+	require.Len(t, winback.Tree.Branch.Leaves, 1)
+	goal := winback.Tree.Branch.Leaves[0].Leaf.CustomEventsGoal
+	require.NotNil(t, goal)
+	assert.True(t, goal.Negate, "the win-back segment is only a showcase if it is negated")
+	assert.Equal(t, "in_the_last_days", goal.TimeframeOperator)
+
+	// Negation has to wrap the leaf; inverting the comparison would silently exclude the
+	// contacts with no purchase history, who are ~30% of the demo workspace and the whole point.
+	sqlStr, _, err := qb.BuildSQL(winback.Tree)
+	require.NoError(t, err)
+	assert.Contains(t, sqlStr, "NOT EXISTS (SELECT 1 FROM custom_events ce")
+
+	// Relative window, so it must be flagged for daily recomputation or its membership freezes.
+	assert.True(t, winback.Tree.HasRelativeDates(),
+		"a rolling-window segment must be scheduled for recomputation")
 }

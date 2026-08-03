@@ -11,9 +11,11 @@ import {
   Tag,
   Progress,
   Popover,
+  Spin,
+  Tooltip,
   message
 } from 'antd'
-import React, { useMemo, useState, useEffect } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { debounce } from 'lodash'
 import { useParams } from '@tanstack/react-router'
 import { useAuth } from '../../contexts/AuthContext'
@@ -21,7 +23,7 @@ import { TreeNodeInput, HasLeaf } from './input'
 import { useQuery } from '@tanstack/react-query'
 import { listsApi } from '../../services/api/list'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faPlus, faInfoCircle } from '@fortawesome/free-solid-svg-icons'
+import { faPlus, faInfoCircle, faTriangleExclamation } from '@fortawesome/free-solid-svg-icons'
 import {
   Segment,
   createSegment,
@@ -32,46 +34,17 @@ import {
   UpdateSegmentRequest,
   PreviewSegmentRequest,
   PreviewSegmentResponse,
-  TreeNode,
-  DimensionFilter
+  TreeNode
 } from '../../services/api/segment'
 import { TIMEZONE_OPTIONS } from '../../lib/timezones'
 import { TableSchemas } from './table_schemas'
+import { treeHasRelativeDates } from './relative_dates'
+import { isTreeQueryable } from './tree_completeness'
 import { useLingui } from '@lingui/react/macro'
 
-// Helper function to check if a tree contains relative date filters
-const treeHasRelativeDates = (tree: TreeNode | null | undefined): boolean => {
-  if (!tree) return false
-
-  if (tree.kind === 'branch') {
-    // Check all child leaves recursively
-    if (tree.branch?.leaves) {
-      return tree.branch.leaves.some((leaf: TreeNode) => treeHasRelativeDates(leaf))
-    }
-    return false
-  }
-
-  if (tree.kind === 'leaf') {
-    // Check contact timeline conditions for relative date operators
-    if (tree.leaf?.contact_timeline) {
-      if (tree.leaf.contact_timeline.timeframe_operator === 'in_the_last_days') {
-        return true
-      }
-    }
-    // Check contact property filters for relative date operators
-    if (tree.leaf?.contact?.filters) {
-      const hasRelativeDateFilter = tree.leaf.contact.filters.some(
-        (filter: DimensionFilter) => (filter.operator as string) === 'in_the_last_days'
-      )
-      if (hasRelativeDateFilter) {
-        return true
-      }
-    }
-    return false
-  }
-
-  return false
-}
+const PREVIEW_LIMIT = 100
+// Long enough that a burst of typing inside a condition costs a single count query.
+const PREVIEW_DEBOUNCE_MS = 600
 
 const ButtonUpsertSegment = (props: {
   segment?: Segment
@@ -125,8 +98,11 @@ const DrawerSegment = (props: {
   const [form] = Form.useForm()
   const [loading, setLoading] = useState(false)
   const [loadingPreview, setLoadingPreview] = useState(false)
-  const [previewedData, setPreviewedData] = useState<string | undefined>() // track the tree hash to avoid re-render
   const [previewResponse, setPreviewResponse] = useState<PreviewSegmentResponse | undefined>()
+  const [previewedHash, setPreviewedHash] = useState<string | undefined>() // request behind previewResponse
+  const [previewError, setPreviewError] = useState<string | undefined>()
+  // Set while a condition is open in its form, so the count can follow it before it is confirmed
+  const [draftTree, setDraftTree] = useState<TreeNode | undefined>()
   const [idValidation, setIdValidation] = useState<{
     status: '' | 'validating' | 'error' | 'success'
     message: string
@@ -139,31 +115,6 @@ const DrawerSegment = (props: {
     }
     return null
   }, [workspaceId, workspaces])
-
-  // Auto-preview when editing an existing segment
-  useEffect(() => {
-    if (props.segment?.tree && workspaceId && HasLeaf(props.segment.tree)) {
-      // Trigger preview automatically for existing segments
-      const autoPreview = async () => {
-        setLoadingPreview(true)
-        const requestData: PreviewSegmentRequest = {
-          workspace_id: workspaceId,
-          tree: props.segment!.tree,
-          limit: 100
-        }
-        setPreviewedData(JSON.stringify(requestData))
-        try {
-          const res = await previewSegment(requestData)
-          setPreviewResponse(res)
-        } catch (error) {
-          console.error('Auto-preview error:', error)
-        }
-        setLoadingPreview(false)
-      }
-      autoPreview()
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- Only re-run on segment tree changes
-  }, [props.segment?.tree, workspaceId])
 
   // Fetch lists for the current workspace
   const { data: listsData } = useQuery({
@@ -224,29 +175,121 @@ const DrawerSegment = (props: {
     }
   }, [checkIdExists])
 
-  const preview = async () => {
-    if (loadingPreview || !workspaceId) return
-    setLoadingPreview(true)
+  // The committed tree, overridden by the condition currently being edited. A condition only
+  // reaches the tree on Confirm, so without the draft the count would ignore what is on screen.
+  const watchedTree = Form.useWatch<TreeNode | undefined>('tree', form)
+  const effectiveTree = draftTree ?? watchedTree ?? props.segment?.tree
 
-    const values = form.getFieldsValue()
+  // Only trees the backend can compile are worth a request; a half-filled condition keeps the
+  // last count on screen instead of replacing it with an error.
+  const previewHash = useMemo(() => {
+    if (!workspaceId || !effectiveTree || !isTreeQueryable(effectiveTree)) return undefined
+
     const requestData: PreviewSegmentRequest = {
       workspace_id: workspaceId,
-      tree: values.tree,
-      limit: 100
+      tree: effectiveTree,
+      limit: PREVIEW_LIMIT
+    }
+    return JSON.stringify(requestData)
+  }, [workspaceId, effectiveTree])
+
+  const requestSeqRef = useRef(0)
+  // The request queued in the debounce or already in flight — what an answer is on its way for,
+  // as opposed to previewedHash, which is the answer currently on screen.
+  const pendingHashRef = useRef<string | undefined>(undefined)
+  const hasRequestedRef = useRef(false)
+
+  const runPreview = useCallback(
+    async (tree: TreeNode, hash: string) => {
+      if (!workspaceId) return
+
+      const seq = ++requestSeqRef.current
+      hasRequestedRef.current = true
+      setLoadingPreview(true)
+
+      try {
+        const res = await previewSegment({
+          workspace_id: workspaceId,
+          tree: tree,
+          limit: PREVIEW_LIMIT
+        })
+        // A newer edit was requested in the meantime, that answer is the one that counts
+        if (seq !== requestSeqRef.current) return
+
+        setPreviewResponse(res)
+        setPreviewedHash(hash)
+        setPreviewError(undefined)
+      } catch (error) {
+        if (seq !== requestSeqRef.current) return
+
+        // No toast here: this runs on every edit, so the failure is reported on the circle itself
+        console.error('Preview error:', error)
+        setPreviewError(error instanceof Error ? error.message : t`Failed to preview segment`)
+      } finally {
+        if (seq === requestSeqRef.current) {
+          // Only release the marker this run owns; a newer edit may already be queued behind it
+          if (pendingHashRef.current === hash) pendingHashRef.current = undefined
+          setLoadingPreview(false)
+        }
+      }
+    },
+    [workspaceId, t]
+  )
+
+  // Held in a ref so the debounce survives re-renders: rebuilding it would cancel the call
+  // pending for the edit in progress, and typing re-renders constantly.
+  const runPreviewRef = useRef(runPreview)
+  runPreviewRef.current = runPreview
+
+  const debouncedPreview = useMemo(
+    () =>
+      debounce(
+        (tree: TreeNode, hash: string) => runPreviewRef.current(tree, hash),
+        PREVIEW_DEBOUNCE_MS
+      ),
+    []
+  )
+
+  useEffect(() => () => debouncedPreview.cancel(), [debouncedPreview])
+
+  // Refresh whenever the tree — committed or in progress — settles on something not counted yet
+  useEffect(() => {
+    if (!previewHash || !effectiveTree) return
+
+    if (previewHash === previewedHash) {
+      // The form is back on the count already displayed. Drop what is queued or in flight for the
+      // states in between: their answers would replace a count we know matches the form.
+      debouncedPreview.cancel()
+      requestSeqRef.current++
+      pendingHashRef.current = undefined
+      setLoadingPreview(false)
+      // Any error describes one of those abandoned states, not the count now on screen
+      setPreviewError(undefined)
+      return
     }
 
-    // compute data hash
-    setPreviewedData(JSON.stringify(requestData))
+    if (previewHash === pendingHashRef.current) return
 
-    try {
-      const res = await previewSegment(requestData)
-      setPreviewResponse(res)
-      setLoadingPreview(false)
-    } catch (error) {
-      console.error('Preview error:', error)
-      message.error(t`Failed to preview segment`)
-      setLoadingPreview(false)
+    pendingHashRef.current = previewHash
+    setPreviewError(undefined)
+
+    // The first count, i.e. opening an existing segment, has nothing to debounce against
+    if (!hasRequestedRef.current) {
+      runPreviewRef.current(effectiveTree, previewHash)
+      return
     }
+
+    debouncedPreview(effectiveTree, previewHash)
+    // runPreview is deliberately absent: it changes identity on every render (its `t` dependency
+    // does), which would re-run this on every render for no reason.
+  }, [previewHash, previewedHash, effectiveTree, debouncedPreview])
+
+  const previewNow = () => {
+    if (!previewHash || !effectiveTree) return
+
+    debouncedPreview.cancel()
+    pendingHashRef.current = previewHash
+    runPreview(effectiveTree, previewHash)
   }
 
   const initialValues = Object.assign(
@@ -324,6 +367,33 @@ const DrawerSegment = (props: {
       setLoading(false)
     }
   }
+  const hasPreview = previewResponse !== undefined
+  // The count on screen no longer answers what the form says: either a request is on its way, or
+  // the condition being edited is not complete enough to ask for one yet.
+  const isPreviewStale = hasPreview && previewedHash !== previewHash
+  // A count is on its way: either the request is out, or it is waiting out the debounce. Both are
+  // the same wait as far as the user is concerned, so both get the spinner.
+  const isPreviewRefreshing =
+    loadingPreview || (!!previewHash && previewHash !== previewedHash && !previewError)
+  // Stale with nothing on its way: the form as it stands cannot be counted, so the number is
+  // frozen until the condition is finished. A refresh merely waiting its turn is not this.
+  const isPreviewBlocked =
+    isPreviewStale &&
+    !previewHash &&
+    !loadingPreview &&
+    !previewError &&
+    !!effectiveTree &&
+    HasLeaf(effectiveTree)
+
+  let previewPercent = 0
+  if (previewResponse && previewResponse.total_count > 0) {
+    previewPercent =
+      props.totalContacts && props.totalContacts > 0
+        ? Math.min(100, (previewResponse.total_count / props.totalContacts) * 100)
+        : // Fallback to a fixed percentage when the workspace total is not available
+          50
+  }
+
   // Use the table schemas for segmentation
   const schemas = useMemo(() => {
     return {
@@ -522,7 +592,7 @@ const DrawerSegment = (props: {
               <Form.Item noStyle dependencies={['tree', 'timezone']}>
                 {() => {
                   const values = form.getFieldsValue()
-                  const hasRelativeDates = treeHasRelativeDates(values.tree)
+                  const hasRelativeDates = treeHasRelativeDates(effectiveTree)
                   const timezone = values.timezone || workspace?.settings.timezone || 'UTC'
 
                   if (hasRelativeDates) {
@@ -540,51 +610,51 @@ const DrawerSegment = (props: {
               </Form.Item>
             </Col>
             <Col span={6}>
-              <Form.Item noStyle dependencies={['tree']}>
-                {() => {
-                  if (loadingPreview) {
-                    return (
+              {/* Reserved whether or not the note is showing: it comes and goes as a condition is
+                  edited, and must move neither the circle nor the form below the row when it does */}
+              <div style={{ height: 32, marginBottom: 4, overflow: 'hidden' }}>
+                {isPreviewBlocked && (
+                  <div className="opacity-60" style={{ fontSize: 12, lineHeight: '16px' }}>
+                    {t`Complete the condition to refresh the count`}
+                  </div>
+                )}
+              </div>
+              <div style={{ position: 'relative', display: 'inline-block' }}>
+                <Spin spinning={isPreviewRefreshing} size="large">
+                  {/* Dimmed once the request has landed but the count still does not match the
+                      form, so a stale number is never mistaken for the answer to what is written */}
+                  <div
+                    style={{
+                      opacity: hasPreview && isPreviewStale && !isPreviewRefreshing ? 0.4 : 1,
+                      transition: 'opacity 0.2s'
+                    }}
+                  >
+                    {hasPreview ? (
                       <Progress
-                        format={() => (
-                          <Button type="primary" ghost loading={true}>
-                            {t`Preview`}
-                          </Button>
-                        )}
+                        format={() =>
+                          previewResponse!.total_count === 0 ? (
+                            <>{t`0 contacts`}</>
+                          ) : (
+                            <span className="text-base">{t`${previewResponse!.total_count} contacts`}</span>
+                          )
+                        }
                         type="circle"
-                        percent={0}
+                        percent={previewPercent}
                         size={150}
+                        status="normal"
+                        strokeColor={{
+                          '0%': '#4e6cff',
+                          '100%': '#8E2DE2'
+                        }}
                       />
-                    )
-                  }
-
-                  // check if tree has changed
-                  const values = form.getFieldsValue()
-                  let shouldPreview = false
-
-                  if (values.tree && workspaceId) {
-                    const data = {
-                      workspace_id: workspaceId,
-                      tree: values.tree,
-                      limit: 100
-                    }
-
-                    // compute data hash
-                    const dataHash = JSON.stringify(data)
-
-                    if (!previewedData || previewedData !== dataHash) {
-                      shouldPreview = true
-                    }
-                  }
-
-                  if (shouldPreview) {
-                    return (
+                    ) : (
                       <Progress
                         format={() => (
                           <Button
                             type="primary"
                             ghost
-                            onClick={preview}
-                            disabled={HasLeaf(values.tree) ? false : true}
+                            onClick={previewNow}
+                            disabled={!previewHash || isPreviewRefreshing}
                           >
                             {t`Preview`}
                           </Button>
@@ -593,109 +663,84 @@ const DrawerSegment = (props: {
                         percent={0}
                         size={150}
                       />
-                    )
-                  } else if (previewResponse && previewResponse.total_count >= 0) {
-                    const content =
-                      previewResponse.total_count === 0 ? (
-                        <>{t`0 contacts`}</>
-                      ) : (
-                        <span className="text-base">{t`${previewResponse.total_count} contacts`}</span>
-                      )
+                    )}
+                  </div>
+                </Spin>
 
-                    // Calculate percentage based on total contacts
-                    let percent = 0
-                    if (
-                      props.totalContacts &&
-                      props.totalContacts > 0 &&
-                      previewResponse.total_count > 0
-                    ) {
-                      percent = Math.min(100, (previewResponse.total_count / props.totalContacts) * 100)
-                    } else if (previewResponse.total_count > 0) {
-                      // Fallback to fixed percentage if total is not available
-                      percent = 50
-                    }
-
-                    return (
-                      <div style={{ position: 'relative', display: 'inline-block' }}>
-                        <Progress
-                          format={() => content}
-                          type="circle"
-                          percent={percent}
-                          size={150}
-                          status="normal"
-                          strokeColor={{
-                            '0%': '#4e6cff',
-                            '100%': '#8E2DE2'
-                          }}
-                        />
-                        <Popover
-                          title={t`Preview Results`}
-                          placement="left"
-                          content={
-                            <div style={{ width: 600, maxHeight: 600, overflow: 'auto' }}>
+                <div style={{ position: 'absolute', top: 0, right: 0 }}>
+                  {previewError ? (
+                    <Tooltip
+                      title={
+                        <>
+                          {previewError}
+                          <div>{t`Click to retry`}</div>
+                        </>
+                      }
+                    >
+                      <FontAwesomeIcon
+                        icon={faTriangleExclamation}
+                        onClick={previewNow}
+                        style={{ fontSize: '18px', color: '#faad14', cursor: 'pointer' }}
+                      />
+                    </Tooltip>
+                  ) : hasPreview ? (
+                    <Popover
+                      title={t`Preview Results`}
+                      placement="left"
+                      content={
+                        <div style={{ width: 600, maxHeight: 600, overflow: 'auto' }}>
+                          <p>
+                            <strong>{t`Matching contacts:`}</strong> {previewResponse!.total_count}
+                          </p>
+                          {previewResponse!.generated_sql && (
+                            <>
                               <p>
-                                <strong>{t`Matching contacts:`}</strong> {previewResponse.total_count}
+                                <strong>{t`Generated SQL:`}</strong>
                               </p>
-                              {previewResponse.generated_sql && (
-                                <>
-                                  <p>
-                                    <strong>{t`Generated SQL:`}</strong>
-                                  </p>
-                                  <pre
-                                    style={{
-                                      backgroundColor: '#f5f5f5',
-                                      padding: '8px',
-                                      borderRadius: '4px',
-                                      fontSize: '11px',
-                                      overflow: 'auto',
-                                      maxHeight: '200px'
-                                    }}
-                                  >
-                                    {previewResponse.generated_sql}
-                                  </pre>
-                                </>
-                              )}
-                              {previewResponse.sql_args && previewResponse.sql_args.length > 0 && (
-                                <>
-                                  <p>
-                                    <strong>{t`SQL Arguments:`}</strong>
-                                  </p>
-                                  <pre
-                                    style={{
-                                      backgroundColor: '#f5f5f5',
-                                      padding: '8px',
-                                      borderRadius: '4px',
-                                      fontSize: '11px',
-                                      overflow: 'auto',
-                                      maxHeight: '100px'
-                                    }}
-                                  >
-                                    {JSON.stringify(previewResponse.sql_args, null, 2)}
-                                  </pre>
-                                </>
-                              )}
-                            </div>
-                          }
-                        >
-                          <FontAwesomeIcon
-                            icon={faInfoCircle}
-                            style={{
-                              position: 'absolute',
-                              top: 0,
-                              right: 0,
-                              fontSize: '18px',
-                              color: '#1890ff',
-                              cursor: 'pointer'
-                            }}
-                          />
-                        </Popover>
-                      </div>
-                    )
-                  }
-
-                  return t`No preview available...`
-                }}
-              </Form.Item>
+                              <pre
+                                style={{
+                                  backgroundColor: '#f5f5f5',
+                                  padding: '8px',
+                                  borderRadius: '4px',
+                                  fontSize: '11px',
+                                  overflow: 'auto',
+                                  maxHeight: '200px'
+                                }}
+                              >
+                                {previewResponse!.generated_sql}
+                              </pre>
+                            </>
+                          )}
+                          {previewResponse!.sql_args && previewResponse!.sql_args.length > 0 && (
+                            <>
+                              <p>
+                                <strong>{t`SQL Arguments:`}</strong>
+                              </p>
+                              <pre
+                                style={{
+                                  backgroundColor: '#f5f5f5',
+                                  padding: '8px',
+                                  borderRadius: '4px',
+                                  fontSize: '11px',
+                                  overflow: 'auto',
+                                  maxHeight: '100px'
+                                }}
+                              >
+                                {JSON.stringify(previewResponse!.sql_args, null, 2)}
+                              </pre>
+                            </>
+                          )}
+                        </div>
+                      }
+                    >
+                      <FontAwesomeIcon
+                        icon={faInfoCircle}
+                        style={{ fontSize: '18px', color: '#1890ff', cursor: 'pointer' }}
+                      />
+                    </Popover>
+                  ) : null}
+                </div>
+              </div>
             </Col>
           </Row>
 
@@ -723,6 +768,7 @@ const DrawerSegment = (props: {
               lists={lists}
               workspaceId={workspaceId}
               customFieldLabels={workspace?.settings?.custom_field_labels}
+              onDraftTreeChange={setDraftTree}
             />
           </Form.Item>
         </Form>

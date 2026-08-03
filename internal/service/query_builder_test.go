@@ -1213,8 +1213,9 @@ func TestQueryBuilder_ContactTimeline(t *testing.T) {
 		sql, args, err := qb.BuildSQL(tree)
 		require.NoError(t, err)
 
-		assert.Contains(t, sql, "ct.changes->'product_id'->>'new' = $2")
-		assert.Equal(t, []interface{}{"purchase", "prod_123", 1}, args)
+		// The change key is bound as an argument, never spliced into the SQL text
+		assert.Contains(t, sql, "ct.changes->$2->>'new' = $3")
+		assert.Equal(t, []interface{}{"purchase", "product_id", "prod_123", 1}, args)
 	})
 
 	t.Run("timeline with number metadata filter", func(t *testing.T) {
@@ -1242,8 +1243,8 @@ func TestQueryBuilder_ContactTimeline(t *testing.T) {
 		require.NoError(t, err)
 
 		// Should cast the JSONB "new" value to numeric for comparison
-		assert.Contains(t, sql, "(ct.changes->'amount'->>'new')::numeric >= $2")
-		assert.Equal(t, []interface{}{"purchase", 100.0, 1}, args)
+		assert.Contains(t, sql, "(ct.changes->$2->>'new')::numeric >= $3")
+		assert.Equal(t, []interface{}{"purchase", "amount", 100.0, 1}, args)
 	})
 
 	t.Run("missing kind", func(t *testing.T) {
@@ -2178,4 +2179,425 @@ func TestQueryBuilder_BuildTriggerCondition(t *testing.T) {
 		assert.Contains(t, sql, "broadcast_id = $2 AND EXISTS (SELECT 1 FROM jsonb_object_keys(CASE WHEN jsonb_typeof(clicked_links)")
 		assert.Equal(t, []interface{}{"email.clicked", "summer-sale", "/pricing", 1}, args)
 	})
+}
+
+func TestQueryBuilder_NotInTheLastDays(t *testing.T) {
+	qb := NewQueryBuilder()
+
+	contactTree := func(filter *domain.DimensionFilter) *domain.TreeNode {
+		return &domain.TreeNode{
+			Kind: "leaf",
+			Leaf: &domain.TreeNodeLeaf{
+				Source:  "contacts",
+				Contact: &domain.ContactCondition{Filters: []*domain.DimensionFilter{filter}},
+			},
+		}
+	}
+
+	t.Run("includes rows whose date was never set", func(t *testing.T) {
+		sql, args, err := qb.BuildSQL(contactTree(&domain.DimensionFilter{
+			FieldName:    "custom_datetime_1",
+			FieldType:    "time",
+			Operator:     "not_in_the_last_days",
+			StringValues: []string{"30"},
+		}))
+		require.NoError(t, err)
+
+		// A bare NOT (col > ...) would evaluate to NULL for unset dates and drop those contacts,
+		// who are exactly the audience for "has not converted in the last 30 days".
+		assert.Contains(t, sql, "(custom_datetime_1 IS NULL OR custom_datetime_1 <= NOW() - INTERVAL '30 days')")
+		assert.Empty(t, args)
+	})
+
+	t.Run("is the complement of in_the_last_days", func(t *testing.T) {
+		positive, _, err := qb.BuildSQL(contactTree(&domain.DimensionFilter{
+			FieldName:    "custom_datetime_2",
+			FieldType:    "time",
+			Operator:     "in_the_last_days",
+			StringValues: []string{"7"},
+		}))
+		require.NoError(t, err)
+		assert.Contains(t, positive, "custom_datetime_2 > NOW() - INTERVAL '7 days'")
+		assert.NotContains(t, positive, "IS NULL")
+	})
+
+	t.Run("only the leading integer reaches the interval", func(t *testing.T) {
+		// The day count is the one value interpolated into the SQL text rather than bound, so it
+		// must never carry anything but an int. Sscanf stops at the first non-digit, which keeps
+		// a crafted suffix out of the query entirely.
+		sql, _, err := qb.BuildSQL(contactTree(&domain.DimensionFilter{
+			FieldName:    "custom_datetime_1",
+			FieldType:    "time",
+			Operator:     "not_in_the_last_days",
+			StringValues: []string{"30 days'; DROP TABLE contacts; --"},
+		}))
+		require.NoError(t, err)
+
+		assert.Contains(t, sql, "INTERVAL '30 days'")
+		assert.NotContains(t, sql, "DROP TABLE")
+	})
+
+	t.Run("rejects a day count with no digits", func(t *testing.T) {
+		_, _, err := qb.BuildSQL(contactTree(&domain.DimensionFilter{
+			FieldName:    "custom_datetime_1",
+			FieldType:    "time",
+			Operator:     "not_in_the_last_days",
+			StringValues: []string{"abc"},
+		}))
+		require.Error(t, err)
+	})
+
+	t.Run("rejects an unknown field", func(t *testing.T) {
+		_, _, err := qb.BuildSQL(contactTree(&domain.DimensionFilter{
+			FieldName:    "not_a_column",
+			FieldType:    "time",
+			Operator:     "not_in_the_last_days",
+			StringValues: []string{"30"},
+		}))
+		require.Error(t, err)
+	})
+}
+
+func TestQueryBuilder_CustomEventsGoal_Negate(t *testing.T) {
+	qb := NewQueryBuilder()
+
+	goalTree := func(goal *domain.CustomEventsGoalCondition) *domain.TreeNode {
+		return &domain.TreeNode{
+			Kind: "leaf",
+			Leaf: &domain.TreeNodeLeaf{Source: "custom_events_goals", CustomEventsGoal: goal},
+		}
+	}
+
+	base := func() *domain.CustomEventsGoalCondition {
+		return &domain.CustomEventsGoalCondition{
+			GoalType:          "purchase",
+			AggregateOperator: "count",
+			Operator:          "gte",
+			Value:             1,
+			TimeframeOperator: "in_the_last_days",
+			TimeframeValues:   []string{"30"},
+		}
+	}
+
+	t.Run("negate wraps the leaf in NOT EXISTS", func(t *testing.T) {
+		goal := base()
+		goal.Negate = true
+
+		sql, args, err := qb.BuildSQL(goalTree(goal))
+		require.NoError(t, err)
+
+		assert.Contains(t, sql, "NOT EXISTS (SELECT 1 FROM custom_events ce")
+		assert.Contains(t, sql, "ce.occurred_at > NOW() - INTERVAL '30 days'")
+		assert.Equal(t, []interface{}{"purchase", 1.0}, args)
+	})
+
+	t.Run("without negate the SQL is unchanged", func(t *testing.T) {
+		sql, _, err := qb.BuildSQL(goalTree(base()))
+		require.NoError(t, err)
+
+		assert.Contains(t, sql, "EXISTS (SELECT 1 FROM custom_events ce")
+		assert.NotContains(t, sql, "NOT EXISTS")
+	})
+
+	t.Run("negate applies in trigger context too", func(t *testing.T) {
+		goal := base()
+		goal.Negate = true
+
+		sql, _, err := qb.BuildTriggerCondition(goalTree(goal), "NEW.email")
+		require.NoError(t, err)
+
+		assert.Contains(t, sql, "NOT EXISTS (SELECT 1 FROM custom_events ce WHERE ce.email = NEW.email")
+	})
+}
+
+func TestQueryBuilder_CustomEventsGoal_EventFilters(t *testing.T) {
+	qb := NewQueryBuilder()
+
+	goalTree := func(goal *domain.CustomEventsGoalCondition) *domain.TreeNode {
+		return &domain.TreeNode{
+			Kind: "leaf",
+			Leaf: &domain.TreeNodeLeaf{Source: "custom_events_goals", CustomEventsGoal: goal},
+		}
+	}
+
+	t.Run("event_name is parameterized", func(t *testing.T) {
+		eventName := "shopify.order"
+		sql, args, err := qb.BuildSQL(goalTree(&domain.CustomEventsGoalCondition{
+			GoalType:          "purchase",
+			EventName:         &eventName,
+			AggregateOperator: "count",
+			Operator:          "gte",
+			Value:             1,
+			TimeframeOperator: "anytime",
+		}))
+		require.NoError(t, err)
+
+		assert.Contains(t, sql, "ce.event_name = $2")
+		assert.Equal(t, []interface{}{"purchase", "shopify.order", 1.0}, args)
+	})
+
+	t.Run("property filter binds the key as an argument", func(t *testing.T) {
+		sql, args, err := qb.BuildSQL(goalTree(&domain.CustomEventsGoalCondition{
+			GoalType:          "purchase",
+			AggregateOperator: "count",
+			Operator:          "gte",
+			Value:             1,
+			TimeframeOperator: "anytime",
+			Filters: []*domain.DimensionFilter{
+				{FieldName: "sku", FieldType: "string", Operator: "equals", StringValues: []string{"A-1"}},
+			},
+		}))
+		require.NoError(t, err)
+
+		assert.Contains(t, sql, "ce.properties->>$2 = $3")
+		assert.NotContains(t, sql, "'sku'")
+		assert.Equal(t, []interface{}{"purchase", "sku", "A-1", 1.0}, args)
+	})
+
+	t.Run("number property filter casts to numeric", func(t *testing.T) {
+		sql, args, err := qb.BuildSQL(goalTree(&domain.CustomEventsGoalCondition{
+			GoalType:          "purchase",
+			AggregateOperator: "sum",
+			Operator:          "gte",
+			Value:             1,
+			TimeframeOperator: "anytime",
+			Filters: []*domain.DimensionFilter{
+				{FieldName: "quantity", FieldType: "number", Operator: "gte", NumberValues: []float64{2}},
+			},
+		}))
+		require.NoError(t, err)
+
+		// Guarded: an event whose "quantity" holds a non-numeric value must yield NULL rather
+		// than abort the whole segment query.
+		assert.Contains(t, sql, "CASE WHEN ce.properties->>$2 ~ ")
+		assert.Contains(t, sql, "THEN (ce.properties->>$2)::numeric END >= $3")
+		assert.Equal(t, []interface{}{"purchase", "quantity", 2.0, 1.0}, args)
+	})
+
+	t.Run("multiple filters keep placeholder numbering sequential", func(t *testing.T) {
+		goalName := "checkout"
+		sql, args, err := qb.BuildSQL(goalTree(&domain.CustomEventsGoalCondition{
+			GoalType:          "purchase",
+			GoalName:          &goalName,
+			AggregateOperator: "count",
+			Operator:          "between",
+			Value:             1,
+			Value2:            func() *float64 { v := 5.0; return &v }(),
+			TimeframeOperator: "anytime",
+			Filters: []*domain.DimensionFilter{
+				{FieldName: "sku", FieldType: "string", Operator: "equals", StringValues: []string{"A-1"}},
+				{FieldName: "country", FieldType: "string", Operator: "equals", StringValues: []string{"FR"}},
+			},
+		}))
+		require.NoError(t, err)
+
+		// goal_type, goal_name, sku key, sku value, country key, country value, value, value_2
+		assert.Len(t, args, 8)
+		assert.Contains(t, sql, "$8")
+		assert.NotContains(t, sql, "$9")
+	})
+
+	t.Run("rejects a filter with no field name", func(t *testing.T) {
+		_, _, err := qb.BuildSQL(goalTree(&domain.CustomEventsGoalCondition{
+			GoalType:          "purchase",
+			AggregateOperator: "count",
+			Operator:          "gte",
+			Value:             1,
+			TimeframeOperator: "anytime",
+			Filters: []*domain.DimensionFilter{
+				{FieldName: "", FieldType: "string", Operator: "equals", StringValues: []string{"x"}},
+			},
+		}))
+		require.Error(t, err)
+	})
+}
+
+func TestQueryBuilder_JSONBKeysAreNeverInterpolated(t *testing.T) {
+	qb := NewQueryBuilder()
+
+	// A field name crafted to close the quote and append a sub-select. Interpolating it produced
+	// valid SQL whose result the segment preview count leaked one boolean at a time.
+	const hostile = `goal_value'->>'new' = (SELECT val FROM secrets) -- `
+
+	t.Run("timeline change key", func(t *testing.T) {
+		sql, args, err := qb.BuildSQL(&domain.TreeNode{
+			Kind: "leaf",
+			Leaf: &domain.TreeNodeLeaf{
+				Source: "contact_timeline",
+				ContactTimeline: &domain.ContactTimelineCondition{
+					Kind:          "custom_event.purchase",
+					CountOperator: "at_least",
+					CountValue:    1,
+					Filters: []*domain.DimensionFilter{
+						{FieldName: hostile, FieldType: "string", Operator: "equals", StringValues: []string{"10"}},
+					},
+				},
+			},
+		})
+		require.NoError(t, err)
+
+		assert.NotContains(t, sql, "SELECT val FROM secrets")
+		assert.NotContains(t, sql, "--")
+		assert.Contains(t, sql, "ct.changes->$2->>'new'")
+		assert.Contains(t, args, hostile)
+	})
+
+	t.Run("event property key", func(t *testing.T) {
+		sql, args, err := qb.BuildSQL(&domain.TreeNode{
+			Kind: "leaf",
+			Leaf: &domain.TreeNodeLeaf{
+				Source: "custom_events_goals",
+				CustomEventsGoal: &domain.CustomEventsGoalCondition{
+					GoalType:          "purchase",
+					AggregateOperator: "count",
+					Operator:          "gte",
+					Value:             1,
+					TimeframeOperator: "anytime",
+					Filters: []*domain.DimensionFilter{
+						{FieldName: hostile, FieldType: "string", Operator: "equals", StringValues: []string{"10"}},
+					},
+				},
+			},
+		})
+		require.NoError(t, err)
+
+		assert.NotContains(t, sql, "SELECT val FROM secrets")
+		assert.NotContains(t, sql, "--")
+		assert.Contains(t, sql, "ce.properties->>$2")
+		assert.Contains(t, args, hostile)
+	})
+}
+
+func TestQueryBuilder_RelativeDayOperatorsRequireADateField(t *testing.T) {
+	qb := NewQueryBuilder()
+
+	// These operators carry no SQL operator of their own and compare against NOW() - INTERVAL.
+	// Applied to anything but a timestamp they used to emit SQL that only failed once the
+	// segment ran — a syntax error for JSONB paths, a type error for text columns — far from
+	// the request that defined the filter.
+	for _, operator := range []string{"in_the_last_days", "not_in_the_last_days"} {
+		t.Run(operator+" on a text contact column is rejected", func(t *testing.T) {
+			_, _, err := qb.BuildSQL(&domain.TreeNode{
+				Kind: "leaf",
+				Leaf: &domain.TreeNodeLeaf{
+					Source: "contacts",
+					Contact: &domain.ContactCondition{Filters: []*domain.DimensionFilter{
+						{FieldName: "custom_string_1", FieldType: "string", Operator: operator, StringValues: []string{"30"}},
+					}},
+				},
+			})
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), "date field")
+		})
+
+		t.Run(operator+" on a custom_json path typed as string is rejected", func(t *testing.T) {
+			_, _, err := qb.BuildSQL(&domain.TreeNode{
+				Kind: "leaf",
+				Leaf: &domain.TreeNodeLeaf{
+					Source: "contacts",
+					Contact: &domain.ContactCondition{Filters: []*domain.DimensionFilter{
+						{FieldName: "custom_json_1", FieldType: "string", Operator: operator,
+							JSONPath: []string{"renewed_at"}, StringValues: []string{"30"}},
+					}},
+				},
+			})
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), "date value")
+		})
+
+		t.Run(operator+" on an event property typed as string is rejected", func(t *testing.T) {
+			_, _, err := qb.BuildSQL(&domain.TreeNode{
+				Kind: "leaf",
+				Leaf: &domain.TreeNodeLeaf{
+					Source: "custom_events_goals",
+					CustomEventsGoal: &domain.CustomEventsGoalCondition{
+						GoalType: "purchase", AggregateOperator: "count", Operator: "gte", Value: 1,
+						TimeframeOperator: "anytime",
+						Filters: []*domain.DimensionFilter{
+							{FieldName: "renewed_at", FieldType: "string", Operator: operator, StringValues: []string{"30"}},
+						},
+					},
+				},
+			})
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), "date value")
+		})
+	}
+
+	t.Run("not_in_the_last_days on a custom_json path typed as time casts and stays NULL-inclusive", func(t *testing.T) {
+		sql, args, err := qb.BuildSQL(&domain.TreeNode{
+			Kind: "leaf",
+			Leaf: &domain.TreeNodeLeaf{
+				Source: "contacts",
+				Contact: &domain.ContactCondition{Filters: []*domain.DimensionFilter{
+					{FieldName: "custom_json_1", FieldType: "time", Operator: "not_in_the_last_days",
+						JSONPath: []string{"renewed_at"}, StringValues: []string{"30"}},
+				}},
+			},
+		})
+		require.NoError(t, err)
+
+		assert.Contains(t, sql, "::timestamptz IS NULL OR")
+		assert.Contains(t, sql, "INTERVAL '30 days'")
+		assert.Empty(t, args)
+	})
+
+	t.Run("not_in_the_last_days on a time event property reuses one bound key", func(t *testing.T) {
+		sql, args, err := qb.BuildSQL(&domain.TreeNode{
+			Kind: "leaf",
+			Leaf: &domain.TreeNodeLeaf{
+				Source: "custom_events_goals",
+				CustomEventsGoal: &domain.CustomEventsGoalCondition{
+					GoalType: "purchase", AggregateOperator: "count", Operator: "gte", Value: 1,
+					TimeframeOperator: "anytime",
+					Filters: []*domain.DimensionFilter{
+						{FieldName: "renewed_at", FieldType: "time", Operator: "not_in_the_last_days", StringValues: []string{"30"}},
+					},
+				},
+			},
+		})
+		require.NoError(t, err)
+
+		// The key is bound once and referenced twice; the args must not gain a second copy.
+		assert.Equal(t, 2, strings.Count(sql, "(ce.properties->>$2)::timestamptz"))
+		assert.Equal(t, []interface{}{"purchase", "renewed_at", 1.0}, args)
+		assert.NotContains(t, sql, "$4")
+	})
+}
+
+func TestQueryBuilder_NotInTheLastDaysBoundary(t *testing.T) {
+	qb := NewQueryBuilder()
+
+	// The two operators must partition the non-NULL rows exactly: > for the window, <= outside
+	// it. A boundary row (exactly N days old) belongs to precisely one of them, and any drift
+	// here silently double-counts or strands contacts on the day their window rolls over.
+	positive, _, err := qb.BuildSQL(&domain.TreeNode{
+		Kind: "leaf",
+		Leaf: &domain.TreeNodeLeaf{
+			Source: "contacts",
+			Contact: &domain.ContactCondition{Filters: []*domain.DimensionFilter{
+				{FieldName: "custom_datetime_1", FieldType: "time", Operator: "in_the_last_days", StringValues: []string{"30"}},
+			}},
+		},
+	})
+	require.NoError(t, err)
+
+	negative, _, err := qb.BuildSQL(&domain.TreeNode{
+		Kind: "leaf",
+		Leaf: &domain.TreeNodeLeaf{
+			Source: "contacts",
+			Contact: &domain.ContactCondition{Filters: []*domain.DimensionFilter{
+				{FieldName: "custom_datetime_1", FieldType: "time", Operator: "not_in_the_last_days", StringValues: []string{"30"}},
+			}},
+		},
+	})
+	require.NoError(t, err)
+
+	assert.Contains(t, positive, "custom_datetime_1 > NOW() - INTERVAL '30 days'")
+	assert.Contains(t, negative, "custom_datetime_1 <= NOW() - INTERVAL '30 days'")
+	// Strictly complementary comparisons, so the boundary instant falls on exactly one side.
+	assert.NotContains(t, negative, "custom_datetime_1 < NOW()")
+	// Plus the NULLs, which the positive form can never match.
+	assert.Contains(t, negative, "custom_datetime_1 IS NULL OR")
+	assert.NotContains(t, positive, "IS NULL")
 }

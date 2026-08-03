@@ -2259,6 +2259,57 @@ func (s *DemoService) createSampleSegments(ctx context.Context, workspaceID stri
 		s.logger.Info("Created Engaged Users segment")
 	}
 
+	// Segment 4: Win-back Opportunities (negated goal) - demonstrates "has not done X in the last
+	// N days", the classic promotion audience: everyone except the people who already converted.
+	//
+	// The negation covers contacts with NO purchase at all as well as lapsed buyers, which is the
+	// whole point of it — the aggregation compiles to a subquery grouped by contact, so a contact
+	// with zero matching events produces no group and can never satisfy the comparison however it
+	// is written. Roughly 30% of demo contacts have no purchase history (see
+	// generateSampleCustomEvents), so this segment demonstrates that on real demo data.
+	//
+	// It is also self-checking: this segment and its mirror image (the same condition without the
+	// negation) partition the contact list exactly, so their sizes must add up to the total.
+	winbackSegment := &domain.CreateSegmentRequest{
+		WorkspaceID: workspaceID,
+		ID:          "winback_opportunities",
+		Name:        "Win-back Opportunities",
+		Color:       "volcano",
+		Timezone:    "UTC",
+		// The root must be a branch even for a single condition: the console's segment builder
+		// renders the root as a branch unconditionally, so a bare leaf compiles and runs correctly
+		// but cannot be opened for editing.
+		Tree: &domain.TreeNode{
+			Kind: "branch",
+			Branch: &domain.TreeNodeBranch{
+				Operator: "and",
+				Leaves: []*domain.TreeNode{
+					{
+						Kind: "leaf",
+						Leaf: &domain.TreeNodeLeaf{
+							Source: "custom_events_goals",
+							CustomEventsGoal: &domain.CustomEventsGoalCondition{
+								GoalType:          "purchase",
+								AggregateOperator: "count",
+								Operator:          "gte",
+								Value:             1.0,
+								TimeframeOperator: "in_the_last_days",
+								TimeframeValues:   []string{"90"},
+								Negate:            true,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	if _, err := s.segmentService.CreateSegment(ctx, winbackSegment); err != nil {
+		s.logger.WithField("error", err.Error()).Warn("Failed to create Win-back Opportunities segment")
+	} else {
+		s.logger.Info("Created Win-back Opportunities segment")
+	}
+
 	s.logger.WithField("workspace_id", workspaceID).Info("Sample segments created successfully")
 	return nil
 }

@@ -56,14 +56,25 @@ type ContactTimelineCondition struct {
 // CustomEventsGoalCondition represents conditions on goal aggregations from custom_events
 // Used for segmentation based on LTV, transaction counts, etc.
 type CustomEventsGoalCondition struct {
-	GoalType          string   `json:"goal_type"`           // purchase, subscription, lead, signup, booking, trial, other, or "*" for all
-	GoalName          *string  `json:"goal_name,omitempty"` // Optional filter by goal name
-	AggregateOperator string   `json:"aggregate_operator"`  // sum, count, avg, min, max
-	Operator          string   `json:"operator"`            // gte, lte, eq, between
+	GoalType          string   `json:"goal_type"`            // purchase, subscription, lead, signup, booking, trial, other, or "*" for all
+	GoalName          *string  `json:"goal_name,omitempty"`  // Optional filter by goal name
+	EventName         *string  `json:"event_name,omitempty"` // Optional filter by the custom event name (e.g. "shopify.order")
+	AggregateOperator string   `json:"aggregate_operator"`   // sum, count, avg, min, max
+	Operator          string   `json:"operator"`             // gte, lte, eq, between
 	Value             float64  `json:"value"`
 	Value2            *float64 `json:"value_2,omitempty"`  // For between operator
 	TimeframeOperator string   `json:"timeframe_operator"` // anytime, in_the_last_days, in_date_range, before_date, after_date
 	TimeframeValues   []string `json:"timeframe_values,omitempty"`
+
+	// Negate inverts the whole condition: it matches contacts that do NOT satisfy it, including
+	// contacts with no matching events at all. Without it the aggregation cannot express "did not
+	// happen" — the generated EXISTS subquery groups by email, so a contact with zero matching
+	// events produces zero groups and fails the check whatever the comparison says.
+	Negate bool `json:"negate,omitempty"`
+
+	// Filters narrow the matched events by their custom_events.properties payload.
+	// Field names are arbitrary property keys, so only the scalar field types apply.
+	Filters []*DimensionFilter `json:"filters,omitempty"`
 }
 
 // DimensionFilter represents a single filter condition on a field
@@ -308,6 +319,16 @@ func (g *CustomEventsGoalCondition) Validate() error {
 		return fmt.Errorf("timeframe_values required for timeframe_operator '%s'", g.TimeframeOperator)
 	}
 
+	// Validate property filters if present
+	for i, filter := range g.Filters {
+		if filter == nil {
+			return fmt.Errorf("filter %d is nil", i)
+		}
+		if err := filter.Validate(); err != nil {
+			return fmt.Errorf("filter %d: %w", i, err)
+		}
+	}
+
 	return nil
 }
 
@@ -479,18 +500,20 @@ func (t *TreeNode) HasRelativeDates() bool {
 				*t.Leaf.ContactTimeline.TimeframeOperator == "in_the_last_days" {
 				return true
 			}
+			if filtersHaveRelativeDates(t.Leaf.ContactTimeline.Filters) {
+				return true
+			}
 		}
 		// Check contact property filters for relative date operators
-		if t.Leaf.Contact != nil && t.Leaf.Contact.Filters != nil {
-			for _, filter := range t.Leaf.Contact.Filters {
-				if filter.Operator == "in_the_last_days" {
-					return true
-				}
-			}
+		if t.Leaf.Contact != nil && filtersHaveRelativeDates(t.Leaf.Contact.Filters) {
+			return true
 		}
 		// Check custom events goal conditions for relative date operators
 		if t.Leaf.CustomEventsGoal != nil {
 			if t.Leaf.CustomEventsGoal.TimeframeOperator == "in_the_last_days" {
+				return true
+			}
+			if filtersHaveRelativeDates(t.Leaf.CustomEventsGoal.Filters) {
 				return true
 			}
 		}
@@ -499,4 +522,19 @@ func (t *TreeNode) HasRelativeDates() bool {
 	default:
 		return false
 	}
+}
+
+// filtersHaveRelativeDates reports whether any filter uses an operator whose meaning moves with
+// the clock. Segments built from such filters must be rescheduled for daily recomputation —
+// leaving an operator out here makes its membership silently freeze at the day it was saved.
+func filtersHaveRelativeDates(filters []*DimensionFilter) bool {
+	for _, filter := range filters {
+		if filter == nil {
+			continue
+		}
+		if filter.Operator == "in_the_last_days" || filter.Operator == "not_in_the_last_days" {
+			return true
+		}
+	}
+	return false
 }
