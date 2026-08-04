@@ -22,8 +22,7 @@ import {
   Row,
   Col,
   Table,
-  AutoComplete,
-  Collapse
+  AutoComplete
 } from 'antd'
 import { useLingui } from '@lingui/react/macro'
 
@@ -583,6 +582,13 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
   const watchedSESRegion = Form.useWatch(['ses', 'region'], emailProviderForm)
   const watchedSESAccessKey = Form.useWatch(['ses', 'access_key'], emailProviderForm)
   const watchedSESSecretKey = Form.useWatch(['ses', 'secret_key'], emailProviderForm)
+
+  // The IAM permissions isolation needs are only worth reading once it is being turned on, so the
+  // list is revealed by the switch rather than sitting under it permanently.
+  const sesTenantIsolationEnabled = Form.useWatch(
+    ['ses', 'tenant_isolation_enabled'],
+    emailProviderForm
+  )
 
   const {
     tenantOptions: sesTenantOptions,
@@ -1672,85 +1678,6 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
             <Form.Item name={['ses', 'secret_key']} label={t`AWS Secret Key`}>
               <Input.Password placeholder={t`Secret Key`} disabled={!isOwner} />
             </Form.Item>
-
-            <Form.Item
-              name={['ses', 'tenant_isolation_enabled']}
-              label={t`SES tenant isolation`}
-              valuePropName="checked"
-              tooltip={t`Gives this integration its own SES reputation profile and its own suppression list, so another workspace's bounces can't pause or suppress this one. AWS bills per tenant per month, based on volume.`}
-              help={t`Needs these extra IAM permissions: ses:CreateTenant, ses:CreateTenantResourceAssociation, ses:GetTenant, ses:PutTenantSuppressionAttributes, ses:ListEmailIdentities. Add ses:ListTenants and ses:ListTenantResources for the pickers below, and ses:DeleteTenant plus ses:DeleteTenantResourceAssociation so the tenant is removed with the integration instead of billing forever.`}
-            >
-              <Switch disabled={!isOwner} />
-            </Form.Item>
-
-            <Collapse
-              ghost
-              size="small"
-              className="!mb-4"
-              items={[
-                {
-                  key: 'advanced',
-                  label: t`Advanced`,
-                  children: (
-                    <>
-                      <Form.Item
-                        name={['ses', 'configuration_set_name']}
-                        label={t`Configuration set`}
-                        help={t`Leave empty to use the one Notifuse manages for this integration.`}
-                        rules={[
-                          {
-                            pattern: /^[A-Za-z0-9_-]{1,64}$/,
-                            message: t`Up to 64 letters, numbers, hyphens or underscores.`
-                          }
-                        ]}
-                      >
-                        <AutoComplete
-                          allowClear
-                          disabled={!isOwner}
-                          options={sesConfigurationSetOptions}
-                          placeholder={t`notifuse-…`}
-                          filterOption={(input, option) =>
-                            String(option?.value ?? '')
-                              .toLowerCase()
-                              .includes(input.toLowerCase())
-                          }
-                        />
-                      </Form.Item>
-
-                      <Form.Item
-                        name={['ses', 'tenant_name']}
-                        label={t`SES tenant`}
-                        help={t`Use a tenant you manage yourself. Requires a configuration set associated with it in AWS.`}
-                        rules={[
-                          {
-                            pattern: /^[A-Za-z0-9_-]{1,64}$/,
-                            message: t`Up to 64 letters, numbers, hyphens or underscores.`
-                          }
-                        ]}
-                      >
-                        <AutoComplete
-                          allowClear
-                          disabled={!isOwner}
-                          options={sesTenantOptions}
-                          placeholder={t`my-tenant`}
-                          filterOption={(input, option) =>
-                            String(option?.value ?? '')
-                              .toLowerCase()
-                              .includes(input.toLowerCase())
-                          }
-                        />
-                      </Form.Item>
-
-                      {sesDiscoveryDenied && (
-                        <div className="text-xs text-gray-400 -mt-2 mb-2">
-                          {t`These AWS credentials can't list tenants or configuration sets (needs ses:ListTenants). Type the names instead.`}
-                        </div>
-                      )}
-                    </>
-                  )
-                }
-              ]}
-            />
           </>
         )}
 
@@ -2075,6 +2002,79 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
         )}
 
         {renderSendersField()}
+
+        {providerType === 'ses' && (
+          <>
+            <Form.Item
+              name={['ses', 'tenant_isolation_enabled']}
+              label={t`SES tenant isolation`}
+              valuePropName="checked"
+              tooltip={t`Gives this integration its own SES reputation profile and its own suppression list, so another workspace's bounces can't pause or suppress this one. AWS bills per tenant per month, based on volume.`}
+            >
+              <Switch disabled={!isOwner} />
+            </Form.Item>
+
+            {sesTenantIsolationEnabled && (
+              <div className="text-xs text-gray-400 -mt-2 mb-4">
+                {t`Needs these extra IAM permissions: ses:CreateTenant, ses:CreateTenantResourceAssociation, ses:GetTenant, ses:PutTenantSuppressionAttributes, ses:ListEmailIdentities. Add ses:ListTenants and ses:ListTenantResources for the pickers below, and ses:DeleteTenant plus ses:DeleteTenantResourceAssociation so the tenant is removed with the integration instead of billing forever.`}
+              </div>
+            )}
+
+            <Form.Item
+              name={['ses', 'configuration_set_name']}
+              label={t`Configuration set`}
+              help={t`Leave empty to use the one Notifuse manages for this integration.`}
+              rules={[
+                {
+                  pattern: /^[A-Za-z0-9_-]{1,64}$/,
+                  message: t`Up to 64 letters, numbers, hyphens or underscores.`
+                }
+              ]}
+            >
+              <AutoComplete
+                allowClear
+                disabled={!isOwner}
+                options={sesConfigurationSetOptions}
+                placeholder={t`notifuse-…`}
+                filterOption={(input, option) =>
+                  String(option?.value ?? '')
+                    .toLowerCase()
+                    .includes(input.toLowerCase())
+                }
+              />
+            </Form.Item>
+
+            <Form.Item
+              name={['ses', 'tenant_name']}
+              label={t`SES tenant`}
+              help={t`Use a tenant you manage yourself. Requires a configuration set associated with it in AWS.`}
+              rules={[
+                {
+                  pattern: /^[A-Za-z0-9_-]{1,64}$/,
+                  message: t`Up to 64 letters, numbers, hyphens or underscores.`
+                }
+              ]}
+            >
+              <AutoComplete
+                allowClear
+                disabled={!isOwner}
+                options={sesTenantOptions}
+                placeholder={t`my-tenant`}
+                filterOption={(input, option) =>
+                  String(option?.value ?? '')
+                    .toLowerCase()
+                    .includes(input.toLowerCase())
+                }
+              />
+            </Form.Item>
+
+            {sesDiscoveryDenied && (
+              <div className="text-xs text-gray-400 -mt-2 mb-2">
+                {t`These AWS credentials can't list tenants or configuration sets (needs ses:ListTenants). Type the names instead.`}
+              </div>
+            )}
+          </>
+        )}
       </>
     )
   }
