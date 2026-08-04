@@ -206,3 +206,204 @@ func insertV37Segment(t *testing.T, db *sql.DB, id string, tree *domain.TreeNode
 	require.NoError(t, err)
 	return id
 }
+
+// v37TriggerState is the part of a trigger's catalog entry that must survive the migration
+// untouched: its exact definition and whether it is enabled.
+type v37TriggerState struct {
+	Definition string
+	Enabled    string
+}
+
+// TestV37KindWideningWithDependentTriggers covers the case that made v37 fatal in the field.
+// PostgreSQL refuses ALTER COLUMN ... TYPE while any trigger depends on the column, and every
+// live automation installs exactly such a trigger on contact_timeline: its WHEN clause reads
+// NEW.kind. A workspace with one live automation therefore aborted the whole workspace
+// migration, and because the version is only written after every workspace succeeds, the server
+// failed to boot again on each restart.
+//
+// The migration has to drop those triggers, widen the column and put them back exactly as they
+// were — including their enabled state — inside its own transaction, so a failure anywhere
+// leaves the workspace with its automations intact.
+func TestV37KindWideningWithDependentTriggers(t *testing.T) {
+	testutil.SkipIfShort(t)
+	testutil.SetupTestEnvironment()
+	defer testutil.CleanupTestEnvironment()
+
+	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
+		return app.NewApp(cfg)
+	})
+	defer suite.Cleanup()
+
+	factory := suite.DataFactory
+	ctx := context.Background()
+
+	workspace, err := factory.CreateWorkspace()
+	require.NoError(t, err)
+
+	workspaceDB, err := factory.GetWorkspaceDB(workspace.ID)
+	require.NoError(t, err)
+
+	email := "v37triggers@example.com"
+	// Created before the automation trigger exists: contact.created would otherwise try to
+	// enroll the contact into an automation that has no row in the automations table.
+	_, err = factory.CreateContact(workspace.ID, testutil.WithContactEmail(email))
+	require.NoError(t, err)
+
+	// Put the column back to its pre-37 width.
+	_, err = workspaceDB.ExecContext(ctx,
+		`ALTER TABLE contact_timeline ALTER COLUMN kind TYPE VARCHAR(50)`)
+	require.NoError(t, err)
+
+	// The real thing: the DDL a live automation installs, straight from the generator the
+	// automation service uses, so this test tracks production and not a lookalike.
+	automation := &domain.Automation{
+		ID:         "98392e3e-98e4-47aa-b8c6-b95175ad5ba3",
+		Name:       "contact created",
+		Status:     domain.AutomationStatusLive,
+		RootNodeID: "root-node",
+		Trigger: &domain.TimelineTriggerConfig{
+			EventKind: "contact.created",
+			Frequency: domain.TriggerFrequencyEveryTime,
+		},
+	}
+	triggerSQL, err := service.NewAutomationTriggerGenerator(service.NewQueryBuilder()).Generate(automation)
+	require.NoError(t, err)
+	_, err = workspaceDB.ExecContext(ctx, triggerSQL.FunctionBody)
+	require.NoError(t, err)
+	_, err = workspaceDB.ExecContext(ctx, triggerSQL.TriggerDDL)
+	require.NoError(t, err)
+
+	// A probe trigger whose WHEN clause also reads kind, but which records into a table this
+	// test owns — the only way to prove a recreated trigger still fires.
+	_, err = workspaceDB.ExecContext(ctx, `
+		CREATE TABLE IF NOT EXISTS v37_probe (kind VARCHAR(150));
+		CREATE OR REPLACE FUNCTION v37_probe_fn() RETURNS TRIGGER AS $$
+		BEGIN
+			INSERT INTO v37_probe (kind) VALUES (NEW.kind);
+			RETURN NEW;
+		END;
+		$$ LANGUAGE plpgsql;
+		CREATE TRIGGER v37_probe_trigger AFTER INSERT ON contact_timeline
+			FOR EACH ROW WHEN (NEW.kind LIKE 'custom_event.%')
+			EXECUTE FUNCTION v37_probe_fn();
+
+		-- A deliberately disabled trigger: recreating it from its definition must not quietly
+		-- switch it back on.
+		CREATE TRIGGER v37_disabled_trigger AFTER INSERT ON contact_timeline
+			FOR EACH ROW WHEN (NEW.kind = 'contact.created')
+			EXECUTE FUNCTION v37_probe_fn();
+		ALTER TABLE contact_timeline DISABLE TRIGGER v37_disabled_trigger;
+
+		-- A column dependency with no WHEN clause at all: UPDATE OF kind blocks the ALTER just
+		-- the same, so matching on the WHEN clause alone would miss it.
+		CREATE TRIGGER v37_update_of_kind AFTER UPDATE OF kind ON contact_timeline
+			FOR EACH ROW EXECUTE FUNCTION v37_probe_fn();
+	`)
+	require.NoError(t, err)
+
+	before := v37TriggerStates(t, workspaceDB)
+	require.Contains(t, before, triggerSQL.TriggerName)
+	require.Contains(t, before, "contact_timeline_queue_trigger",
+		"the segment queue trigger must be part of the comparison, it has no column dependency")
+	require.Equal(t, "D", before["v37_disabled_trigger"].Enabled)
+
+	t.Run("the bare ALTER is refused while a trigger depends on the column", func(t *testing.T) {
+		// The premise of the fix. Rolled back so the migration below starts from a pre-37 column.
+		tx, txErr := workspaceDB.BeginTx(ctx, nil)
+		require.NoError(t, txErr)
+		defer func() { _ = tx.Rollback() }()
+
+		_, alterErr := tx.ExecContext(ctx,
+			`ALTER TABLE contact_timeline ALTER COLUMN kind TYPE VARCHAR(150)`)
+		require.Error(t, alterErr)
+		assert.Contains(t, alterErr.Error(), "cannot alter type of a column used in a trigger definition")
+	})
+
+	require.NoError(t, (&migrations.V37Migration{}).UpdateWorkspace(ctx, &config.Config{}, workspace, workspaceDB),
+		"a workspace with a live automation must migrate, not abort startup")
+
+	t.Run("the column is widened", func(t *testing.T) {
+		var length int
+		require.NoError(t, workspaceDB.QueryRowContext(ctx, `
+			SELECT character_maximum_length FROM information_schema.columns
+			WHERE table_name = 'contact_timeline' AND column_name = 'kind'`).Scan(&length))
+		assert.Equal(t, 150, length)
+	})
+
+	t.Run("every trigger is restored exactly as it was", func(t *testing.T) {
+		assert.Equal(t, before, v37TriggerStates(t, workspaceDB),
+			"definitions and enabled state must be identical, including the disabled one")
+	})
+
+	t.Run("a recreated trigger still fires", func(t *testing.T) {
+		longName := strings.Repeat("b", 100)
+		_, insertErr := workspaceDB.ExecContext(ctx, `
+			INSERT INTO custom_events (event_name, external_id, email, properties, occurred_at, source)
+			VALUES ($1, 'fires', $2, '{}', NOW(), 'test')`, longName, email)
+		require.NoError(t, insertErr, "the widened column must accept a 100 character event name")
+
+		var probed string
+		require.NoError(t, workspaceDB.QueryRowContext(ctx,
+			`SELECT kind FROM v37_probe ORDER BY kind LIMIT 1`).Scan(&probed))
+		assert.Equal(t, "custom_event."+longName, probed,
+			"the recreated WHEN trigger must fire on the widened column")
+	})
+
+	t.Run("re-running the migration leaves the triggers untouched", func(t *testing.T) {
+		// Trigger oids, not just definitions: a workspace that is already widened must not have
+		// its automation triggers dropped and recreated on every retry of the migration.
+		oidsBefore := v37TriggerOIDs(t, workspaceDB)
+
+		require.NoError(t, (&migrations.V37Migration{}).UpdateWorkspace(ctx, &config.Config{}, workspace, workspaceDB))
+
+		assert.Equal(t, before, v37TriggerStates(t, workspaceDB))
+		assert.Equal(t, oidsBefore, v37TriggerOIDs(t, workspaceDB),
+			"the triggers must be the same objects, not recreated equivalents")
+	})
+}
+
+// v37TriggerStates reads every non-internal trigger on contact_timeline with its exact
+// definition and enabled flag.
+func v37TriggerStates(t *testing.T, db *sql.DB) map[string]v37TriggerState {
+	t.Helper()
+
+	rows, err := db.QueryContext(context.Background(), `
+		SELECT tgname, tgenabled, pg_get_triggerdef(oid)
+		FROM pg_trigger
+		WHERE tgrelid = 'contact_timeline'::regclass AND NOT tgisinternal
+		ORDER BY tgname`)
+	require.NoError(t, err)
+	defer func() { _ = rows.Close() }()
+
+	states := map[string]v37TriggerState{}
+	for rows.Next() {
+		var name, enabled, def string
+		require.NoError(t, rows.Scan(&name, &enabled, &def))
+		states[name] = v37TriggerState{Definition: def, Enabled: enabled}
+	}
+	require.NoError(t, rows.Err())
+	return states
+}
+
+// v37TriggerOIDs reads the catalog identity of every non-internal trigger on contact_timeline.
+// A dropped and recreated trigger gets a new oid, so this distinguishes "left alone" from
+// "rebuilt identically".
+func v37TriggerOIDs(t *testing.T, db *sql.DB) map[string]int64 {
+	t.Helper()
+
+	rows, err := db.QueryContext(context.Background(), `
+		SELECT tgname, oid FROM pg_trigger
+		WHERE tgrelid = 'contact_timeline'::regclass AND NOT tgisinternal`)
+	require.NoError(t, err)
+	defer func() { _ = rows.Close() }()
+
+	oids := map[string]int64{}
+	for rows.Next() {
+		var name string
+		var oid int64
+		require.NoError(t, rows.Scan(&name, &oid))
+		oids[name] = oid
+	}
+	require.NoError(t, rows.Err())
+	return oids
+}
