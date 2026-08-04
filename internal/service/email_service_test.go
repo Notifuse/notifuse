@@ -235,53 +235,6 @@ func TestEmailService_NewEmailService(t *testing.T) {
 	})
 }
 
-func TestEmailService_CreateSESClient(t *testing.T) {
-	t.Run("successful SES client creation", func(t *testing.T) {
-		region := "us-east-1"
-		accessKey := "test-access-key"
-		secretKey := "test-secret-key"
-
-		client := CreateSESClient(region, accessKey, secretKey)
-
-		// Verify the client is created
-		require.NotNil(t, client)
-
-		// Verify the client is of the expected type
-		require.Implements(t, (*domain.SESClient)(nil), client)
-	})
-
-	t.Run("SES client creation with empty parameters", func(t *testing.T) {
-		// Test with empty parameters
-		client := CreateSESClient("", "", "")
-
-		// Client should still be created (AWS SDK handles validation)
-		require.NotNil(t, client)
-		require.Implements(t, (*domain.SESClient)(nil), client)
-	})
-
-	t.Run("SES client creation with different regions", func(t *testing.T) {
-		regions := []string{"us-east-1", "us-west-2", "eu-west-1", "ap-southeast-1"}
-
-		for _, region := range regions {
-			client := CreateSESClient(region, "test-key", "test-secret")
-			require.NotNil(t, client)
-			require.Implements(t, (*domain.SESClient)(nil), client)
-		}
-	})
-
-	t.Run("verify client independence", func(t *testing.T) {
-		// Create multiple clients to verify they are independent
-		client1 := CreateSESClient("us-east-1", "key1", "secret1")
-		client2 := CreateSESClient("us-west-2", "key2", "secret2")
-
-		require.NotNil(t, client1)
-		require.NotNil(t, client2)
-
-		// Verify they are different instances
-		require.NotEqual(t, client1, client2)
-	})
-}
-
 func TestEmailService_TestEmailProvider(t *testing.T) {
 	// Setup the controller
 	ctrl := gomock.NewController(t)

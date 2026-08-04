@@ -13,6 +13,8 @@ import (
 	"net/textproto"
 	"net/url"
 	"strings"
+	"sync"
+	"time"
 	"unicode"
 
 	"github.com/Notifuse/notifuse/internal/domain"
@@ -23,8 +25,38 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ses"
 	"github.com/aws/aws-sdk-go/service/sns"
+	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
+	awshttp "github.com/aws/aws-sdk-go-v2/aws/transport/http"
+	credentialsv2 "github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/service/sesv2"
+	sesv2types "github.com/aws/aws-sdk-go-v2/service/sesv2/types"
+	"github.com/aws/smithy-go"
 	"golang.org/x/net/idna"
+	"golang.org/x/sync/singleflight"
 )
+
+// sharedSESHTTPClient is process-wide on purpose. The AWS SDK v2 does NOT share connection pools
+// between client instances — "If connection pooling is enabled (aka HTTP KeepAlive) the client
+// will only share pooled connections with its own instance" (aws/transport/http/client.go) — so
+// building a client per send with a nil HTTPClient would cost a full TLS handshake per email.
+// The v1 SDK had no such problem because it defaults to the shared http.DefaultClient, which is
+// why the pre-existing per-send session construction was harmless.
+var sharedSESHTTPClient = awshttp.NewBuildableClient()
+
+// configSetMissTTL bounds how long a "the managed configuration set does not exist" answer is
+// trusted. It must be short enough that registering webhooks is picked up promptly, and long
+// enough that an integration without webhooks does not call ListConfigurationSets on every
+// single send — AWS allows that call "no more than once per second" per account and region, and
+// the SDK retries a throttle three times with backoff before returning.
+const configSetMissTTL = time.Minute
+
+// configSetCacheEntry memoises configuration-set resolution for legacy integrations that predate
+// the persisted ManagedConfigurationSet. A zero expiresAt means a positive result, cached for the
+// process lifetime and invalidated explicitly on unregister.
+type configSetCacheEntry struct {
+	name      string
+	expiresAt time.Time
+}
 
 // Custom domain errors for better testability
 var (
@@ -113,12 +145,17 @@ func formatFromHeader(name, address string) (string, error) {
 
 // SESService implements the domain.SESServiceInterface
 type SESService struct {
-	authService           domain.AuthService
-	logger                logger.Logger
-	sessionFactory        func(config domain.AmazonSESSettings) (*session.Session, error)
-	sesClientFactory      func(sess *session.Session) domain.SESWebhookClient
-	snsClientFactory      func(sess *session.Session) domain.SNSWebhookClient
-	sesEmailClientFactory func(sess *session.Session) domain.SESClient
+	authService        domain.AuthService
+	logger             logger.Logger
+	sessionFactory     func(config domain.AmazonSESSettings) (*session.Session, error)
+	sesClientFactory   func(sess *session.Session) domain.SESWebhookClient
+	snsClientFactory   func(sess *session.Session) domain.SNSWebhookClient
+	sesV2ClientFactory func(config domain.AmazonSESSettings) domain.SESv2Client
+
+	// configSetCache/configSetGroup keep the send path off ListConfigurationSets. See
+	// resolveConfigurationSet.
+	configSetCache sync.Map
+	configSetGroup singleflight.Group
 }
 
 // NewSESService creates a new instance of SESService with default factories
@@ -135,9 +172,7 @@ func NewSESService(authService domain.AuthService, logger logger.Logger) *SESSer
 		snsClientFactory: func(sess *session.Session) domain.SNSWebhookClient {
 			return sns.New(sess)
 		},
-		sesEmailClientFactory: func(sess *session.Session) domain.SESClient {
-			return ses.New(sess)
-		},
+		sesV2ClientFactory: newSESv2Client,
 	}
 }
 
@@ -148,16 +183,31 @@ func NewSESServiceWithClients(
 	sessionFactory func(config domain.AmazonSESSettings) (*session.Session, error),
 	sesClientFactory func(sess *session.Session) domain.SESWebhookClient,
 	snsClientFactory func(sess *session.Session) domain.SNSWebhookClient,
-	sesEmailClientFactory func(sess *session.Session) domain.SESClient,
+	sesV2ClientFactory func(config domain.AmazonSESSettings) domain.SESv2Client,
 ) *SESService {
 	return &SESService{
-		authService:           authService,
-		logger:                logger,
-		sessionFactory:        sessionFactory,
-		sesClientFactory:      sesClientFactory,
-		snsClientFactory:      snsClientFactory,
-		sesEmailClientFactory: sesEmailClientFactory,
+		authService:        authService,
+		logger:             logger,
+		sessionFactory:     sessionFactory,
+		sesClientFactory:   sesClientFactory,
+		snsClientFactory:   snsClientFactory,
+		sesV2ClientFactory: sesV2ClientFactory,
 	}
+}
+
+// newSESv2Client builds the SES v2 client used for sending and tenant management. Retries are
+// capped at 3 to match the v1 SDK default the send path had, and the HTTP client is shared so
+// connections are pooled across sends.
+func newSESv2Client(config domain.AmazonSESSettings) domain.SESv2Client {
+	return sesv2.NewFromConfig(awsv2.Config{
+		Region:           config.Region,
+		Credentials:      credentialsv2.NewStaticCredentialsProvider(config.AccessKey, config.SecretKey, ""),
+		HTTPClient: sharedSESHTTPClient,
+		// v1 defaulted to 3 RETRIES (aws/client/default_retryer.go:40), i.e. 4 attempts, while
+		// v2 counts total ATTEMPTS. Using 4 keeps the send path exactly as resilient to SES
+		// throttling as it was before the migration.
+		RetryMaxAttempts: 4,
+	})
 }
 
 // createSession creates an AWS session with the given configuration
@@ -193,18 +243,29 @@ func (s *SESService) ListConfigurationSets(ctx context.Context, config domain.Am
 		return nil, err
 	}
 
-	// List configuration sets
-	input := &ses.ListConfigurationSetsInput{}
-	result, err := sesClient.ListConfigurationSetsWithContext(ctx, input)
-	if err != nil {
-		s.logger.Error(fmt.Sprintf("Failed to list SES configuration sets: %v", err))
-		return nil, fmt.Errorf("failed to list SES configuration sets: %w", err)
-	}
-
-	// Extract configuration set names
+	// List configuration sets, following NextToken: AWS returns at most 1,000 per page, and
+	// ignoring pagination silently truncates the list for larger accounts — which would make
+	// an existing configuration set look absent.
 	var configSets []string
-	for _, configSet := range result.ConfigurationSets {
-		configSets = append(configSets, *configSet.Name)
+	input := &ses.ListConfigurationSetsInput{}
+
+	for {
+		result, err := sesClient.ListConfigurationSetsWithContext(ctx, input)
+		if err != nil {
+			s.logger.Error(fmt.Sprintf("Failed to list SES configuration sets: %v", err))
+			return nil, fmt.Errorf("failed to list SES configuration sets: %w", err)
+		}
+
+		for _, configSet := range result.ConfigurationSets {
+			if configSet != nil && configSet.Name != nil {
+				configSets = append(configSets, *configSet.Name)
+			}
+		}
+
+		if result.NextToken == nil || *result.NextToken == "" {
+			break
+		}
+		input.NextToken = result.NextToken
 	}
 
 	return configSets, nil
@@ -514,6 +575,16 @@ func (s *SESService) setupEventDestination(ctx context.Context, config domain.Am
 	return nil
 }
 
+// configurationSetFor returns the configuration set an integration uses and whether Notifuse
+// manages its lifecycle. An operator-supplied name is theirs: we attach our event destination to
+// it but never create or delete it.
+func configurationSetFor(cfg *domain.AmazonSESSettings, integrationID string) (name string, managed bool) {
+	if cfg != nil && cfg.ConfigurationSetName != "" {
+		return cfg.ConfigurationSetName, false
+	}
+	return fmt.Sprintf("notifuse-%s", integrationID), true
+}
+
 // RegisterWebhooks implements the domain.WebhookProvider interface for SES
 func (s *SESService) RegisterWebhooks(
 	ctx context.Context,
@@ -546,8 +617,7 @@ func (s *SESService) RegisterWebhooks(
 		}
 	}
 
-	// Create configuration set name
-	configSetName := fmt.Sprintf("notifuse-%s", integrationID)
+	configSetName, configSetManaged := configurationSetFor(providerConfig.SES, integrationID)
 
 	// First, create the SNS topic that will receive the events
 	topicConfig := domain.SESTopicConfig{
@@ -590,10 +660,11 @@ func (s *SESService) RegisterWebhooks(
 		IsRegistered:      true,
 		Endpoints:         []domain.WebhookEndpointStatus{},
 		ProviderDetails: map[string]interface{}{
-			"configuration_set": configSetName,
-			"integration_id":    integrationID,
-			"workspace_id":      workspaceID,
-			"aws_region":        providerConfig.SES.Region,
+			"configuration_set":         configSetName,
+			"configuration_set_managed": configSetManaged,
+			"integration_id":            integrationID,
+			"workspace_id":              workspaceID,
+			"aws_region":                providerConfig.SES.Region,
 			"delivery_topic":    topicARN,
 			"bounce_topic":      topicARN,
 			"complaint_topic":   topicARN,
@@ -642,7 +713,7 @@ func (s *SESService) GetWebhookStatus(
 	}
 
 	// Check if the configuration set exists
-	configSetName := fmt.Sprintf("notifuse-%s", integrationID)
+	configSetName, configSetManaged := configurationSetFor(providerConfig.SES, integrationID)
 	configSets, err := s.ListConfigurationSets(ctx, *providerConfig.SES)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list configuration sets: %w", err)
@@ -664,6 +735,14 @@ func (s *SESService) GetWebhookStatus(
 	destinations, err := s.ListEventDestinations(ctx, *providerConfig.SES, configSetName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list event destinations: %w", err)
+	}
+
+	// An operator-supplied configuration set normally exists with no event destination at all
+	// until webhooks are registered. Indexing into that slice unguarded took the request down.
+	if len(destinations) == 0 {
+		status.ProviderDetails["configuration_set"] = configSetName
+		status.ProviderDetails["configuration_set_managed"] = configSetManaged
+		return status, nil
 	}
 
 	// Now check which events are enabled
@@ -700,11 +779,20 @@ func (s *SESService) GetWebhookStatus(
 		IsRegistered:      true,
 		Endpoints:         activeEndpoints,
 		ProviderDetails: map[string]interface{}{
-			"configuration_set":  configSetName,
-			"integration_id":     integrationID,
-			"workspace_id":       workspaceID,
-			"inbound_registered": inboundRegistered,
+			"configuration_set":         configSetName,
+			"configuration_set_managed": configSetManaged,
+			"integration_id":            integrationID,
+			"workspace_id":              workspaceID,
+			"inbound_registered":        inboundRegistered,
 		},
+	}
+
+	// Drift: sends resolve their configuration set from settings, but the event destination
+	// lives wherever registration put it. Changing the override after registering leaves
+	// bounce and complaint events flowing to a set nothing sends through — silently.
+	if sending := providerConfig.SES.ResolveConfigurationSet(); sending != "" && sending != configSetName {
+		status.ProviderDetails["configuration_set_drift"] = true
+		status.ProviderDetails["sending_configuration_set"] = sending
 	}
 
 	return status, nil
@@ -728,7 +816,7 @@ func (s *SESService) UnregisterWebhooks(
 	s.unregisterInboundRoute(ctx, *providerConfig.SES, integrationID)
 
 	// Configuration set and destination naming pattern
-	configSetName := fmt.Sprintf("notifuse-%s", integrationID)
+	configSetName, configSetManaged := configurationSetFor(providerConfig.SES, integrationID)
 	destinationPattern := fmt.Sprintf("notifuse-destination-%s", integrationID)
 
 	// Check if the configuration set exists
@@ -773,12 +861,29 @@ func (s *SESService) UnregisterWebhooks(
 		}
 	}
 
-	// Clean up the configuration set
-	err = s.DeleteConfigurationSet(ctx, *providerConfig.SES, configSetName)
-	if err != nil {
+	// The configuration set outlives webhook registration on purpose.
+	//
+	// Deleting it here used to be safe because nothing else depended on it. It no longer is:
+	// sends resolve their configuration set from settings, so removing it while a tenant is
+	// configured would leave every message with a tenant and no configuration set — which SES
+	// rejects. An action whose purpose is "stop receiving bounce events" would silently take
+	// sending down. AWS also refuses to delete a set that is associated with a tenant at all.
+	// Full teardown belongs to integration deletion; see DeleteSendingResources.
+	tenantInPlay := providerConfig.SES.KnownTenant() != ""
+	switch {
+	case !configSetManaged:
 		s.logger.WithField("config_set_name", configSetName).
-			Error(fmt.Sprintf("Failed to delete SES configuration set: %v", err))
-		// Continue with SNS topics even if this fails
+			Info("Leaving operator-managed SES configuration set in place")
+	case tenantInPlay:
+		s.logger.WithField("config_set_name", configSetName).
+			Info("Leaving SES configuration set in place: a tenant sends through it")
+	default:
+		if err = s.DeleteConfigurationSet(ctx, *providerConfig.SES, configSetName); err != nil {
+			s.logger.WithField("config_set_name", configSetName).
+				Error(fmt.Sprintf("Failed to delete SES configuration set: %v", err))
+			// Continue with SNS topics even if this fails
+		}
+		s.invalidateConfigurationSetCache(integrationID, providerConfig.SES.Region)
 	}
 
 	// Clean up SNS topics
@@ -1098,6 +1203,75 @@ func (s *SESService) isInboundRegistered(ctx context.Context, config domain.Amaz
 	return false
 }
 
+// resolveConfigurationSet returns the configuration set a send should carry.
+//
+// An operator override or a persisted managed name answers without any AWS call at all. Only
+// integrations provisioned before the name was persisted fall through to a lookup, and that
+// lookup is memoised: AWS documents ListConfigurationSets as callable "no more than once per
+// second" per account and region, and the old code called it for EVERY email. Above one send per
+// second that throttles, and a throttled lookup used to mean the message went out with no
+// configuration set — losing its delivery, bounce and complaint tracking, silently.
+func (s *SESService) resolveConfigurationSet(ctx context.Context, cfg domain.AmazonSESSettings, integrationID string) string {
+	if name := cfg.ResolveConfigurationSet(); name != "" {
+		return name
+	}
+
+	key := integrationID + "|" + cfg.Region
+	if v, ok := s.configSetCache.Load(key); ok {
+		entry := v.(configSetCacheEntry)
+		if entry.expiresAt.IsZero() || time.Now().Before(entry.expiresAt) {
+			return entry.name
+		}
+	}
+
+	// singleflight collapses the cold-start stampede: the queue runs several workers per
+	// workspace and processes workspaces concurrently, so without it a restart would fire
+	// hundreds of concurrent calls at a once-per-second API.
+	v, _, _ := s.configSetGroup.Do(key, func() (interface{}, error) {
+		want := fmt.Sprintf("notifuse-%s", integrationID)
+
+		sets, err := s.ListConfigurationSets(ctx, cfg)
+		if err != nil {
+			// Throttled, denied or offline: degrade exactly as before by sending without a
+			// configuration set, but do not cache that as a definitive miss.
+			s.logger.WithField("integration_id", integrationID).
+				WithField("error", err.Error()).
+				Warn("Failed to resolve SES configuration set; sending without one")
+			return "", nil
+		}
+
+		for _, set := range sets {
+			if set == want {
+				s.configSetCache.Store(key, configSetCacheEntry{name: want})
+				return want, nil
+			}
+		}
+
+		s.configSetCache.Store(key, configSetCacheEntry{expiresAt: time.Now().Add(configSetMissTTL)})
+		return "", nil
+	})
+
+	name, _ := v.(string)
+	return name
+}
+
+// invalidateConfigurationSetCache drops the memoised answer for an integration, so a teardown or
+// a re-registration is picked up on the next send instead of at TTL expiry.
+func (s *SESService) invalidateConfigurationSetCache(integrationID, region string) {
+	s.configSetCache.Delete(integrationID + "|" + region)
+}
+
+// wrapSESError normalises an SDK v2 error into the message shape the rest of the system already
+// logs and surfaces. errors.As is required rather than a type assertion: v2 wraps API errors in
+// *smithy.OperationError and *awshttp.ResponseError.
+func wrapSESError(err error, action string) error {
+	var apiErr smithy.APIError
+	if errors.As(err, &apiErr) {
+		return fmt.Errorf("SES error: %s", apiErr.Error())
+	}
+	return fmt.Errorf("failed to %s: %w", action, err)
+}
+
 // SendEmail sends an email using AWS SES
 func (s *SESService) SendEmail(ctx context.Context, request domain.SendEmailProviderRequest) error {
 	// Validate the request
@@ -1114,14 +1288,9 @@ func (s *SESService) SendEmail(ctx context.Context, request domain.SendEmailProv
 		return ErrInvalidAWSCredentials
 	}
 
-	// Get SES email client using the factory method for testability
-	sess, err := s.sessionFactory(*request.Provider.SES)
-	if err != nil {
-		s.logger.Error(fmt.Sprintf("Failed to create AWS session: %v", err))
-		return fmt.Errorf("failed to create AWS session: %w", err)
-	}
-
-	sesEmailClient := s.sesEmailClientFactory(sess)
+	// Get the SES v2 client using the factory method for testability. Sending runs on v2
+	// because TenantName exists only there.
+	sesEmailClient := s.sesV2ClientFactory(*request.Provider.SES)
 
 	// Format the "From" header with name and email (RFC 2047 encoded for non-ASCII)
 	fromHeader, err := formatFromHeader(request.FromName, request.FromAddress)
@@ -1135,61 +1304,49 @@ func (s *SESService) SendEmail(ctx context.Context, request domain.SendEmailProv
 		return fmt.Errorf("failed to encode recipient: %w", err)
 	}
 
-	// Create the destination with required addresses
-	destination := &ses.Destination{
-		ToAddresses: []*string{aws.String(encodedTo)},
+	// Build the envelope. Every recipient class must be represented here, including CC:
+	// with raw content SES takes its recipients from this struct, not from the MIME headers.
+	destination, err := buildSESDestination(encodedTo, request.EmailOptions.CC, request.EmailOptions.BCC)
+	if err != nil {
+		return err
 	}
 
-	// Add CC addresses if provided (encode for international domains)
-	if len(request.EmailOptions.CC) > 0 {
-		var ccAddresses []*string
-		for _, ccAddress := range request.EmailOptions.CC {
-			if ccAddress != "" {
-				encodedCC, err := encodeEmailAddress(ccAddress)
-				if err != nil {
-					return fmt.Errorf("failed to encode CC recipient: %w", err)
-				}
-				ccAddresses = append(ccAddresses, aws.String(encodedCC))
-			}
-		}
-		if len(ccAddresses) > 0 {
-			destination.CcAddresses = ccAddresses
-		}
+	// Resolve the sending context once, from settings wherever possible. Neither of these
+	// costs an AWS call unless the integration predates the persisted configuration-set name.
+	configSetName := s.resolveConfigurationSet(ctx, *request.Provider.SES, request.IntegrationID)
+	tenantName := request.Provider.SES.ResolveTenant()
+
+	if tenantName != "" && configSetName == "" {
+		// SES requires a tenant-associated configuration set (or an identity with a default
+		// one). Let SES return its own precise error rather than inventing one here, but say
+		// loudly why the rejection is about to happen.
+		s.logger.WithField("integration_id", request.IntegrationID).
+			WithField("tenant", tenantName).
+			Warn("SES tenant is set but no configuration set could be resolved; the send will likely be rejected")
 	}
 
-	// Add BCC addresses if provided (encode for international domains)
-	if len(request.EmailOptions.BCC) > 0 {
-		var bccAddresses []*string
-		for _, bccAddress := range request.EmailOptions.BCC {
-			if bccAddress != "" {
-				encodedBCC, err := encodeEmailAddress(bccAddress)
-				if err != nil {
-					return fmt.Errorf("failed to encode BCC recipient: %w", err)
-				}
-				bccAddresses = append(bccAddresses, aws.String(encodedBCC))
-			}
-		}
-		if len(bccAddresses) > 0 {
-			destination.BccAddresses = bccAddresses
-		}
+	// Use the raw MIME path when attachments or List-Unsubscribe headers are needed.
+	if len(request.EmailOptions.Attachments) > 0 || request.EmailOptions.ListUnsubscribeURL != "" {
+		return s.sendRawEmail(ctx, sesEmailClient, request, configSetName, tenantName)
 	}
 
-	// Create the email input
-	input := &ses.SendEmailInput{
-		Destination: destination,
-		Message: &ses.Message{
-			Body: &ses.Body{
-				Html: &ses.Content{
-					Charset: aws.String("UTF-8"),
-					Data:    aws.String(request.Content),
+	input := &sesv2.SendEmailInput{
+		FromEmailAddress: awsv2.String(fromHeader),
+		Destination:      destination,
+		Content: &sesv2types.EmailContent{
+			Simple: &sesv2types.Message{
+				Body: &sesv2types.Body{
+					Html: &sesv2types.Content{
+						Charset: awsv2.String("UTF-8"),
+						Data:    awsv2.String(request.Content),
+					},
+				},
+				Subject: &sesv2types.Content{
+					Charset: awsv2.String("UTF-8"),
+					Data:    awsv2.String(request.Subject),
 				},
 			},
-			Subject: &ses.Content{
-				Charset: aws.String("UTF-8"),
-				Data:    aws.String(request.Subject),
-			},
 		},
-		Source: aws.String(fromHeader),
 	}
 
 	// Add ReplyTo if provided (encode for international domains)
@@ -1198,55 +1355,68 @@ func (s *SESService) SendEmail(ctx context.Context, request domain.SendEmailProv
 		if err != nil {
 			return fmt.Errorf("failed to encode reply-to address: %w", err)
 		}
-		input.ReplyToAddresses = []*string{aws.String(encodedReplyTo)}
+		input.ReplyToAddresses = []string{encodedReplyTo}
 	}
 
-	// Add configuration set if it exists - use integrationID instead of workspaceID
-	configSetName := fmt.Sprintf("notifuse-%s", request.IntegrationID)
-	configSets, err := s.ListConfigurationSets(ctx, *request.Provider.SES)
-
-	if err == nil {
-		for _, set := range configSets {
-			if set == configSetName {
-				input.ConfigurationSetName = aws.String(configSetName)
-				break
-			}
-		}
-	}
-
-	// Use SendRawEmail when attachments or List-Unsubscribe headers are needed
-	// (AWS SES V1 SendEmail API doesn't support custom headers)
-	if len(request.EmailOptions.Attachments) > 0 || request.EmailOptions.ListUnsubscribeURL != "" {
-		// Only pass configSetName if it was verified to exist (graceful degradation)
-		configSetToUse := ""
-		if input.ConfigurationSetName != nil {
-			configSetToUse = *input.ConfigurationSetName
-		}
-		return s.sendRawEmail(ctx, sesEmailClient, request, configSetToUse)
-	}
-
-	// Add custom messageID as a tag
-	if request.MessageID != "" {
-		input.Tags = []*ses.MessageTag{
-			{
-				Name:  aws.String("notifuse_message_id"),
-				Value: aws.String(request.MessageID),
-			},
-		}
-	}
+	applySESSendingContext(input, configSetName, tenantName, request.MessageID)
 
 	// Send the email
-	out, err := sesEmailClient.SendEmailWithContext(ctx, input)
+	out, err := sesEmailClient.SendEmail(ctx, input)
 	if err != nil {
-		if aerr, ok := err.(awserr.Error); ok {
-			return fmt.Errorf("SES error: %s", aerr.Error())
-		}
-		return fmt.Errorf("failed to send email: %w", err)
+		return wrapSESError(err, "send email")
 	}
 	// SES overwrites the Message-ID; capture the returned one for stop-on-reply matching.
 	captureSESMessageID(request, out.MessageId)
 
 	return nil
+}
+
+// buildSESDestination encodes every recipient class into an SES v2 envelope. CC belongs here as
+// much as To and BCC do: the v1 raw path wrote a Cc: header but left CC out of the envelope,
+// so CC recipients silently received nothing whenever the message also had a BCC.
+func buildSESDestination(encodedTo string, cc, bcc []string) (*sesv2types.Destination, error) {
+	destination := &sesv2types.Destination{ToAddresses: []string{encodedTo}}
+
+	for _, address := range cc {
+		if address == "" {
+			continue
+		}
+		encoded, err := encodeEmailAddress(address)
+		if err != nil {
+			return nil, fmt.Errorf("failed to encode CC recipient: %w", err)
+		}
+		destination.CcAddresses = append(destination.CcAddresses, encoded)
+	}
+
+	for _, address := range bcc {
+		if address == "" {
+			continue
+		}
+		encoded, err := encodeEmailAddress(address)
+		if err != nil {
+			return nil, fmt.Errorf("failed to encode BCC recipient: %w", err)
+		}
+		destination.BccAddresses = append(destination.BccAddresses, encoded)
+	}
+
+	return destination, nil
+}
+
+// applySESSendingContext attaches the configuration set, the tenant and the message-id tag.
+// Empty names stay nil rather than becoming empty strings, which SES rejects.
+func applySESSendingContext(input *sesv2.SendEmailInput, configSetName, tenantName, messageID string) {
+	if configSetName != "" {
+		input.ConfigurationSetName = awsv2.String(configSetName)
+	}
+	if tenantName != "" {
+		input.TenantName = awsv2.String(tenantName)
+	}
+	if messageID != "" {
+		input.EmailTags = []sesv2types.MessageTag{{
+			Name:  awsv2.String("notifuse_message_id"),
+			Value: awsv2.String(messageID),
+		}}
+	}
 }
 
 // captureSESMessageID writes the SES-returned MessageId into request.CapturedMessageID when
@@ -1263,7 +1433,7 @@ func captureSESMessageID(request domain.SendEmailProviderRequest, messageID *str
 // sendRawEmail sends email using SendRawEmail for attachments or custom headers
 // Following AWS SES raw MIME message construction as documented at:
 // https://docs.aws.amazon.com/ses/latest/dg/attachments.html
-func (s *SESService) sendRawEmail(ctx context.Context, sesClient domain.SESClient, request domain.SendEmailProviderRequest, configSetName string) error {
+func (s *SESService) sendRawEmail(ctx context.Context, sesClient domain.SESv2Client, request domain.SendEmailProviderRequest, configSetName, tenantName string) error {
 	var buf bytes.Buffer
 
 	// Encode From header (RFC 2047 for non-ASCII names, Punycode for domains)
@@ -1454,51 +1624,30 @@ func (s *SESService) sendRawEmail(ctx context.Context, sesClient domain.SESClien
 		return fmt.Errorf("failed to close multipart writer: %w", err)
 	}
 
-	// Create raw email input
-	rawInput := &ses.SendRawEmailInput{
-		RawMessage: &ses.RawMessage{
-			Data: buf.Bytes(),
+	// Build the envelope explicitly. BCC stays out of the MIME headers for privacy but must be
+	// in the envelope to be delivered, and CC must be here too — the previous implementation
+	// only ever set the envelope when a BCC existed, and then listed To+BCC only, so a message
+	// with both CC and BCC never reached its CC recipients.
+	destination, err := buildSESDestination(encodedTo, request.EmailOptions.CC, request.EmailOptions.BCC)
+	if err != nil {
+		return err
+	}
+
+	rawInput := &sesv2.SendEmailInput{
+		Destination: destination,
+		Content: &sesv2types.EmailContent{
+			Raw: &sesv2types.RawMessage{Data: buf.Bytes()},
 		},
 	}
 
-	// Add configuration set if available
-	if configSetName != "" {
-		rawInput.ConfigurationSetName = aws.String(configSetName)
-	}
-
-	// Add custom messageID as a tag (same as SendEmail API)
-	if request.MessageID != "" {
-		rawInput.Tags = []*ses.MessageTag{
-			{
-				Name:  aws.String("notifuse_message_id"),
-				Value: aws.String(request.MessageID),
-			},
-		}
-	}
-
-	// Add BCC addresses if provided (not in raw message headers for privacy)
-	if len(request.EmailOptions.BCC) > 0 {
-		var destinations []*string
-		destinations = append(destinations, aws.String(encodedTo))
-		for _, bcc := range request.EmailOptions.BCC {
-			if bcc != "" {
-				encodedBCC, err := encodeEmailAddress(bcc)
-				if err != nil {
-					return fmt.Errorf("failed to encode BCC recipient: %w", err)
-				}
-				destinations = append(destinations, aws.String(encodedBCC))
-			}
-		}
-		rawInput.Destinations = destinations
-	}
+	// FromEmailAddress is deliberately left unset: the envelope sender comes from the From
+	// header in the raw MIME, exactly as the v1 SendRawEmail path behaved.
+	applySESSendingContext(rawInput, configSetName, tenantName, request.MessageID)
 
 	// Send the raw email
-	out, err := sesClient.SendRawEmailWithContext(ctx, rawInput)
+	out, err := sesClient.SendEmail(ctx, rawInput)
 	if err != nil {
-		if aerr, ok := err.(awserr.Error); ok {
-			return fmt.Errorf("SES error: %s", aerr.Error())
-		}
-		return fmt.Errorf("failed to send raw email: %w", err)
+		return wrapSESError(err, "send raw email")
 	}
 	// SES overwrites the Message-ID; capture the returned one for stop-on-reply matching.
 	captureSESMessageID(request, out.MessageId)

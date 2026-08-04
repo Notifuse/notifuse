@@ -21,7 +21,9 @@ import {
   Tooltip,
   Row,
   Col,
-  Table
+  Table,
+  AutoComplete,
+  Collapse
 } from 'antd'
 import { useLingui } from '@lingui/react/macro'
 
@@ -38,6 +40,8 @@ import {
 } from '../../services/api/types'
 import { workspaceService } from '../../services/api/workspace'
 import { emailService } from '../../services/api/email'
+import { useSESDiscovery } from './useSESDiscovery'
+import { enableSESTenantIsolation, SESAccessDeniedError } from '../../services/api/ses'
 import { listsApi } from '../../services/api/list'
 import { INBOUND_REPLY_PROVIDER_KINDS } from '../../services/api/automation'
 import {
@@ -525,6 +529,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
 
   // Drawer state
   const [providerDrawerVisible, setProviderDrawerVisible] = useState(false)
+
   const [supabaseDrawerVisible, setSupabaseDrawerVisible] = useState(false)
   const [editingSupabaseIntegration, setEditingSupabaseIntegration] = useState<Integration | null>(
     null
@@ -571,6 +576,26 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
     fetchLists()
   // eslint-disable-next-line react-hooks/exhaustive-deps -- Only re-run on workspace change
   }, [workspace?.id])
+
+  // Credentials typed into the create drawer arrive keystroke by keystroke, so these are watched
+  // rather than read once: reading them when the drawer opens would leave the pickers
+  // permanently empty for a new integration.
+  const watchedSESRegion = Form.useWatch(['ses', 'region'], emailProviderForm)
+  const watchedSESAccessKey = Form.useWatch(['ses', 'access_key'], emailProviderForm)
+  const watchedSESSecretKey = Form.useWatch(['ses', 'secret_key'], emailProviderForm)
+
+  const {
+    tenantOptions: sesTenantOptions,
+    configurationSetOptions: sesConfigurationSetOptions,
+    denied: sesDiscoveryDenied
+  } = useSESDiscovery({
+    active: providerDrawerVisible && selectedProviderType === 'ses',
+    workspaceId: workspace?.id,
+    integrationId: editingIntegrationId,
+    region: watchedSESRegion,
+    accessKey: watchedSESAccessKey,
+    secretKey: watchedSESSecretKey
+  })
 
   if (!workspace) {
     return null
@@ -924,6 +949,69 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
   }
 
   // Save new or edited integration
+  // Provision managed SES tenant isolation after the integration itself is saved.
+  //
+  // Saving records the operator's intent; the tenant is a billable AWS resource, so creating it
+  // is a separate, confirmed step. Re-running it is safe and deliberate: EnsureTenantIsolation
+  // converges, which is how a sender added later gets associated instead of silently failing to
+  // send.
+  const provisionSESTenantIsolation = async (integrationId: string, provider: EmailProvider) => {
+    if (!workspace) return
+    if (provider.kind !== 'ses' || !provider.ses?.tenant_isolation_enabled) return
+
+    const alreadyProvisioned = Boolean(
+      getIntegrationById(integrationId)?.email_provider?.ses?.managed_tenant_name
+    )
+
+    if (!alreadyProvisioned) {
+      const confirmed = await new Promise<boolean>((resolve) => {
+        Modal.confirm({
+          title: t`Create an SES tenant for this integration?`,
+          content: t`Notifuse will create a tenant in your AWS account, give it its own suppression list, and associate this integration's configuration set and sender identities with it. AWS bills per tenant per month, based on volume.`,
+          okText: t`Create tenant`,
+          cancelText: t`Not now`,
+          onOk: () => resolve(true),
+          onCancel: () => resolve(false)
+        })
+      })
+      if (!confirmed) return
+    }
+
+    try {
+      const result = await enableSESTenantIsolation({
+        workspace_id: workspace.id,
+        integration_id: integrationId
+      })
+
+      if (result.provisioned_but_unsaved) {
+        message.warning(
+          t`Tenant ${result.tenant_name} exists in AWS but could not be saved here. Save again to finish — you are already being billed for it.`
+        )
+      } else if (!result.configuration_set_associated) {
+        // Recording the tenant now would make SES reject every send, so the server did not.
+        message.warning(
+          t`Tenant ${result.tenant_name} was created but its configuration set is not associated, so it is not in use yet. Missing permissions: ${(result.missing_permissions ?? []).join(', ') || 'none reported'}`
+        )
+      } else if (result.unverified_senders?.length) {
+        message.warning(
+          t`Reputation isolation is on. These senders have no verified identity and will fail to send: ${result.unverified_senders.join(', ')}`
+        )
+      } else {
+        message.success(t`Reputation isolation is active for this integration`)
+      }
+    } catch (error) {
+      if (error instanceof SESAccessDeniedError) {
+        message.warning(
+          t`Your AWS credentials cannot create SES tenants. Grant ses:CreateTenant and ses:CreateTenantResourceAssociation, then save again.`
+        )
+        return
+      }
+      message.error(
+        error instanceof Error ? error.message : t`Failed to enable reputation isolation`
+      )
+    }
+  }
+
   const saveEmailProvider = async (values: EmailProviderFormValues & { name?: string }) => {
     if (!workspace) return
 
@@ -954,6 +1042,8 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
 
         await workspaceService.updateIntegration(updateRequest)
         message.success(t`Integration updated successfully`)
+
+        await provisionSESTenantIsolation(editingIntegrationId, provider)
       }
       // Creating a new integration
       else {
@@ -964,8 +1054,12 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
           provider
         }
 
-        await workspaceService.createIntegration(createRequest)
+        const created = await workspaceService.createIntegration(createRequest)
         message.success(t`Integration created successfully`)
+
+        if (created?.integration_id) {
+          await provisionSESTenantIsolation(created.integration_id, provider)
+        }
       }
 
       // Refresh workspace data
@@ -1578,6 +1672,85 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
             <Form.Item name={['ses', 'secret_key']} label={t`AWS Secret Key`}>
               <Input.Password placeholder={t`Secret Key`} disabled={!isOwner} />
             </Form.Item>
+
+            <Form.Item
+              name={['ses', 'tenant_isolation_enabled']}
+              label={t`SES tenant isolation`}
+              valuePropName="checked"
+              tooltip={t`Gives this integration its own SES reputation profile and its own suppression list, so another workspace's bounces can't pause or suppress this one. AWS bills per tenant per month, based on volume.`}
+              help={t`Needs these extra IAM permissions: ses:CreateTenant, ses:CreateTenantResourceAssociation, ses:GetTenant, ses:PutTenantSuppressionAttributes, ses:ListEmailIdentities. Add ses:ListTenants and ses:ListTenantResources for the pickers below, and ses:DeleteTenant plus ses:DeleteTenantResourceAssociation so the tenant is removed with the integration instead of billing forever.`}
+            >
+              <Switch disabled={!isOwner} />
+            </Form.Item>
+
+            <Collapse
+              ghost
+              size="small"
+              className="!mb-4"
+              items={[
+                {
+                  key: 'advanced',
+                  label: t`Advanced`,
+                  children: (
+                    <>
+                      <Form.Item
+                        name={['ses', 'configuration_set_name']}
+                        label={t`Configuration set`}
+                        help={t`Leave empty to use the one Notifuse manages for this integration.`}
+                        rules={[
+                          {
+                            pattern: /^[A-Za-z0-9_-]{1,64}$/,
+                            message: t`Up to 64 letters, numbers, hyphens or underscores.`
+                          }
+                        ]}
+                      >
+                        <AutoComplete
+                          allowClear
+                          disabled={!isOwner}
+                          options={sesConfigurationSetOptions}
+                          placeholder={t`notifuse-…`}
+                          filterOption={(input, option) =>
+                            String(option?.value ?? '')
+                              .toLowerCase()
+                              .includes(input.toLowerCase())
+                          }
+                        />
+                      </Form.Item>
+
+                      <Form.Item
+                        name={['ses', 'tenant_name']}
+                        label={t`SES tenant`}
+                        help={t`Use a tenant you manage yourself. Requires a configuration set associated with it in AWS.`}
+                        rules={[
+                          {
+                            pattern: /^[A-Za-z0-9_-]{1,64}$/,
+                            message: t`Up to 64 letters, numbers, hyphens or underscores.`
+                          }
+                        ]}
+                      >
+                        <AutoComplete
+                          allowClear
+                          disabled={!isOwner}
+                          options={sesTenantOptions}
+                          placeholder={t`my-tenant`}
+                          filterOption={(input, option) =>
+                            String(option?.value ?? '')
+                              .toLowerCase()
+                              .includes(input.toLowerCase())
+                          }
+                        />
+                      </Form.Item>
+
+                      {sesDiscoveryDenied && (
+                        <div className="text-xs text-gray-400 -mt-2 mb-2">
+                          {t`These AWS credentials can't list tenants or configuration sets (needs ses:ListTenants). Type the names instead.`}
+                        </div>
+                      )}
+                    </>
+                  )
+                }
+              ]}
+            />
           </>
         )}
 
@@ -2033,9 +2206,46 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
         )
       }
     } else if (provider.kind === 'ses' && provider.ses) {
+      const ses = provider.ses
+      const configurationSet = ses.configuration_set_name || ses.managed_configuration_set
+      const tenant = ses.tenant_name || ses.managed_tenant_name
+
       items.push(
         <Descriptions.Item key="region" label={t`AWS Region`}>
-          {provider.ses.region}
+          {ses.region}
+        </Descriptions.Item>,
+        <Descriptions.Item key="configuration_set" label={t`Configuration set`}>
+          {configurationSet ? (
+            <>
+              <span className="font-mono text-xs">{configurationSet}</span>
+              <Tag bordered={false} color={ses.configuration_set_name ? 'purple' : 'blue'} className="!ml-2">
+                {ses.configuration_set_name ? t`custom` : t`managed`}
+              </Tag>
+            </>
+          ) : (
+            <Tag bordered={false} color="orange">
+              <FontAwesomeIcon icon={faExclamationTriangle} className="text-yellow-500 mr-1" />
+              {t`not created yet — register webhooks`}
+            </Tag>
+          )}
+        </Descriptions.Item>,
+        <Descriptions.Item key="reputation" label={t`Reputation`}>
+          {tenant ? (
+            <>
+              <Tag bordered={false} color="green">
+                {t`isolated`}
+              </Tag>
+              <span className="font-mono text-xs">{tenant}</span>
+            </>
+          ) : ses.tenant_isolation_enabled ? (
+            // Intent recorded but nothing provisioned: the state that must never look fine.
+            <Tag bordered={false} color="orange">
+              <FontAwesomeIcon icon={faExclamationTriangle} className="text-yellow-500 mr-1" />
+              {t`isolation requested but not provisioned`}
+            </Tag>
+          ) : (
+            <span className="text-gray-500">{t`shared with the rest of this AWS account`}</span>
+          )}
         </Descriptions.Item>
       )
     } else if (provider.kind === 'sparkpost' && provider.sparkpost) {

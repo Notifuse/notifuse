@@ -25,7 +25,7 @@ func sesProvider() *domain.EmailProvider {
 
 // expectIdentities stubs the two ListIdentities calls (Domain + EmailAddress) inboundRecipients
 // makes, returning the given domains for the Domain query and emails for the EmailAddress query.
-func expectIdentities(mockSES *mocks.MockSESClient, domains, emails []string) {
+func expectIdentities(mockSES *mocks.MockSESWebhookClient, domains, emails []string) {
 	mockSES.EXPECT().ListIdentitiesWithContext(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(_ context.Context, in *ses.ListIdentitiesInput, _ ...interface{}) (*ses.ListIdentitiesOutput, error) {
 			if aws.StringValue(in.IdentityType) == ses.IdentityTypeEmailAddress {

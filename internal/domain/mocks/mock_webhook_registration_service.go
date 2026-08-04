@@ -35,6 +35,20 @@ func (m *MockWebhookRegistrationService) EXPECT() *MockWebhookRegistrationServic
 	return m.recorder
 }
 
+// DeleteIntegrationResources mocks base method.
+func (m *MockWebhookRegistrationService) DeleteIntegrationResources(arg0 context.Context, arg1, arg2 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteIntegrationResources", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteIntegrationResources indicates an expected call of DeleteIntegrationResources.
+func (mr *MockWebhookRegistrationServiceMockRecorder) DeleteIntegrationResources(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteIntegrationResources", reflect.TypeOf((*MockWebhookRegistrationService)(nil).DeleteIntegrationResources), arg0, arg1, arg2)
+}
+
 // GetWebhookStatus mocks base method.
 func (m *MockWebhookRegistrationService) GetWebhookStatus(arg0 context.Context, arg1, arg2 string) (*domain.WebhookRegistrationStatus, error) {
 	m.ctrl.T.Helper()

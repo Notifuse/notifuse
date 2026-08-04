@@ -17,6 +17,11 @@ type WebhookRegistrationService interface {
 
 	// GetWebhookStatus gets the current status of webhooks for the email provider
 	GetWebhookStatus(ctx context.Context, workspaceID string, integrationID string) (*WebhookRegistrationStatus, error)
+
+	// DeleteIntegrationResources tears down everything the provider holds for this integration:
+	// its webhooks and any sending resources that deliberately outlive them, such as an SES
+	// configuration set and the tenant that bills monthly for as long as it exists.
+	DeleteIntegrationResources(ctx context.Context, workspaceID string, integrationID string) error
 }
 
 // WebhookRegistrationConfig defines the configuration for registering webhooks
@@ -120,6 +125,22 @@ func GenerateInboundWebhookURL(baseURL string, workspaceID string, integrationID
 // (reply) mail is delivered via a provider-side route/rule rather than a regular event
 // webhook (e.g. Mailgun Routes). The orchestration layer invokes it, when supported,
 // as part of webhook registration so stop-on-reply works without manual ESP setup.
+// SendingResourceTeardown is implemented by providers that create long-lived sending resources
+// which outlive webhook registration. Unregistering webhooks must not remove them — sends still
+// depend on them — so they are torn down only when the integration itself is deleted.
+type SendingResourceTeardown interface {
+	// DeleteSendingResources removes everything the provider created for this integration.
+	// Implementations are best-effort: a failure is reported but must never block deletion.
+	DeleteSendingResources(ctx context.Context, workspaceID string, integrationID string, providerConfig *EmailProvider) error
+}
+
+// TenantAssociator is implemented by providers whose sending resources must be re-attached to a
+// tenant after they are recreated. It must never CREATE a tenant: that is billable and belongs
+// to an explicit, confirmed action.
+type TenantAssociator interface {
+	AssociateExistingTenant(ctx context.Context, config AmazonSESSettings, integrationID string, senders []EmailSender) (*SESTenantProvisionResult, error)
+}
+
 type InboundRouteRegistrar interface {
 	// EnsureInboundRoute idempotently ensures a route exists that forwards inbound mail
 	// to inboundURL. Implementations must be a no-op when the route already exists.

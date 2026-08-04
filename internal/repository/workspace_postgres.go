@@ -229,6 +229,59 @@ func (r *workspaceRepository) List(ctx context.Context) ([]*domain.Workspace, er
 	return workspaces, rows.Err()
 }
 
+// PatchIntegrationSESSettings merges patch into the SES settings of one integration.
+//
+// This exists because Update() marshals and writes the entire integrations array: two
+// concurrent writers (a console edit and a background write of provisioned state, say) each
+// read, modify and write the whole thing, so the last one wins and the other's change vanishes.
+// Merging server-owned fields in a single statement removes that race for them, and skips the
+// encryption round-trip Update() performs on every stored secret.
+func (r *workspaceRepository) PatchIntegrationSESSettings(ctx context.Context, workspaceID string, integrationID string, patch map[string]interface{}) error {
+	if len(patch) == 0 {
+		return nil
+	}
+
+	encoded, err := json.Marshal(patch)
+	if err != nil {
+		return fmt.Errorf("failed to encode SES settings patch: %w", err)
+	}
+
+	// The index of the integration is resolved in the same statement, so no read happens in Go.
+	const query = `
+		UPDATE workspaces AS w
+		SET integrations = jsonb_set(
+				w.integrations,
+				ARRAY[(target.idx - 1)::text, 'email_provider', 'ses'],
+				COALESCE(w.integrations -> (target.idx - 1)::int -> 'email_provider' -> 'ses', '{}'::jsonb) || $3::jsonb,
+				true
+			),
+			updated_at = $4
+		FROM (
+			SELECT e.ordinality AS idx
+			FROM workspaces inner_w,
+				 jsonb_array_elements(inner_w.integrations) WITH ORDINALITY AS e(elem, ordinality)
+			WHERE inner_w.id = $1 AND e.elem ->> 'id' = $2
+			LIMIT 1
+		) AS target
+		WHERE w.id = $1
+	`
+
+	result, err := r.systemDB.ExecContext(ctx, query, workspaceID, integrationID, encoded, time.Now().UTC())
+	if err != nil {
+		return fmt.Errorf("failed to patch SES settings: %w", err)
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to read patch result: %w", err)
+	}
+	if rows == 0 {
+		return fmt.Errorf("integration %s not found in workspace %s", integrationID, workspaceID)
+	}
+
+	return nil
+}
+
 func (r *workspaceRepository) Update(ctx context.Context, workspace *domain.Workspace) error {
 	workspace.UpdatedAt = time.Now().UTC()
 

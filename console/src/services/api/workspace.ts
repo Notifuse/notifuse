@@ -92,6 +92,22 @@ export interface AmazonSES {
   access_key: string
   secret_key?: string
   encrypted_secret_key?: string
+
+  /**
+   * Managed tenant isolation: Notifuse provisions a tenant for this integration with its own
+   * reputation profile and suppression list. Mutually exclusive with tenant_name.
+   */
+  tenant_isolation_enabled?: boolean
+
+  /** Advanced: use a configuration set you manage instead of the one Notifuse creates. */
+  configuration_set_name?: string
+  /** Advanced: use a tenant you manage yourself. */
+  tenant_name?: string
+
+  /** Server-owned, read-only: written by webhook registration. */
+  managed_configuration_set?: string
+  /** Server-owned, read-only: written when isolation is provisioned. */
+  managed_tenant_name?: string
 }
 
 export type SMTPAuthType = 'basic' | 'oauth2'

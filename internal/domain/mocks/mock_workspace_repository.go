@@ -344,6 +344,20 @@ func (mr *MockWorkspaceRepositoryMockRecorder) List(arg0 interface{}) *gomock.Ca
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "List", reflect.TypeOf((*MockWorkspaceRepository)(nil).List), arg0)
 }
 
+// PatchIntegrationSESSettings mocks base method.
+func (m *MockWorkspaceRepository) PatchIntegrationSESSettings(arg0 context.Context, arg1, arg2 string, arg3 map[string]interface{}) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PatchIntegrationSESSettings", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// PatchIntegrationSESSettings indicates an expected call of PatchIntegrationSESSettings.
+func (mr *MockWorkspaceRepositoryMockRecorder) PatchIntegrationSESSettings(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PatchIntegrationSESSettings", reflect.TypeOf((*MockWorkspaceRepository)(nil).PatchIntegrationSESSettings), arg0, arg1, arg2, arg3)
+}
+
 // RemoveUserFromWorkspace mocks base method.
 func (m *MockWorkspaceRepository) RemoveUserFromWorkspace(arg0 context.Context, arg1, arg2 string) error {
 	m.ctrl.T.Helper()

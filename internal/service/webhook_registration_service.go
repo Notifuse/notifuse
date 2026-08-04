@@ -101,6 +101,36 @@ func (s *WebhookRegistrationService) RegisterWebhooks(
 		return nil, err
 	}
 
+	// Persist the configuration set SES sends through, so the send path can read it from
+	// settings instead of calling ListConfigurationSets — an API AWS allows "no more than once
+	// per second" per account and region, which every broadcast used to exceed. Best-effort:
+	// on failure the send path falls back to the (throttled, memoised) lookup.
+	if emailProvider.Kind == domain.EmailProviderKindSES && status != nil {
+		if name, ok := status.ProviderDetails["configuration_set"].(string); ok && name != "" {
+			if managed, _ := status.ProviderDetails["configuration_set_managed"].(bool); managed {
+				if err := s.persistSESManagedConfigurationSet(ctx, workspaceID, config.IntegrationID, name); err != nil {
+					s.logger.WithField("workspace_id", workspaceID).
+						WithField("integration_id", config.IntegrationID).
+						Warn("Failed to persist SES configuration set name: " + err.Error())
+				}
+			}
+		}
+	}
+
+	// Re-attach the configuration set to the tenant. Registration may have just recreated that
+	// set, which AWS treats as a new resource with no associations — leaving every tenant send
+	// rejected until it is restored. Creating nothing here, so it is safe to run implicitly.
+	if emailProvider.Kind == domain.EmailProviderKindSES && emailProvider.SES != nil &&
+		emailProvider.SES.ResolveTenant() != "" {
+		if associator, ok := provider.(domain.TenantAssociator); ok {
+			if _, err := associator.AssociateExistingTenant(ctx, *emailProvider.SES, config.IntegrationID, emailProvider.Senders); err != nil {
+				s.logger.WithField("workspace_id", workspaceID).
+					WithField("integration_id", config.IntegrationID).
+					Warn("Failed to re-associate SES tenant resources after registering webhooks: " + err.Error())
+			}
+		}
+	}
+
 	// For providers whose inbound (reply) mail arrives via a provider-side route rather
 	// than an event webhook (e.g. Mailgun Routes), also register that route so
 	// stop-on-reply works without manual ESP setup. Providers that don't support this
@@ -133,6 +163,29 @@ func (s *WebhookRegistrationService) RegisterWebhooks(
 	return status, nil
 }
 
+// persistSESManagedConfigurationSet records the configuration set Notifuse manages for this
+// integration so the send path never has to discover it. Mirrors persistSESInboundTopicARN.
+func (s *WebhookRegistrationService) persistSESManagedConfigurationSet(ctx context.Context, workspaceID, integrationID, name string) error {
+	if name == "" {
+		return nil
+	}
+	workspace, err := s.workspaceRepo.GetByID(ctx, workspaceID)
+	if err != nil {
+		return fmt.Errorf("failed to load workspace: %w", err)
+	}
+	integration := workspace.GetIntegrationByID(integrationID)
+	if integration == nil || integration.EmailProvider.SES == nil {
+		return fmt.Errorf("SES integration %s not found", integrationID)
+	}
+	if integration.EmailProvider.SES.ManagedConfigurationSet == name {
+		return nil // already persisted
+	}
+	// Atomic single-statement merge: a full-row Update here would race with a concurrent
+	// integration edit and silently lose one side.
+	return s.workspaceRepo.PatchIntegrationSESSettings(ctx, workspaceID, integrationID,
+		map[string]interface{}{"managed_configuration_set": name})
+}
+
 // persistSESInboundTopicARN saves the provisioned inbound SNS topic ARN onto the integration's
 // SES settings so the inbound parser can bind to it. Re-saving the workspace round-trips the
 // integration secrets through BeforeSave/AfterLoad encryption (same pattern as UpdateIntegration).
@@ -151,8 +204,43 @@ func (s *WebhookRegistrationService) persistSESInboundTopicARN(ctx context.Conte
 	if integration.EmailProvider.SES.InboundTopicARN == arn {
 		return nil // already persisted
 	}
-	integration.EmailProvider.SES.InboundTopicARN = arn // GetIntegrationByID returns a slice pointer
-	return s.workspaceRepo.Update(ctx, workspace)
+	return s.workspaceRepo.PatchIntegrationSESSettings(ctx, workspaceID, integrationID,
+		map[string]interface{}{"inbound_topic_arn": arn})
+}
+
+// DeleteIntegrationResources removes the provider-side resources an integration owns.
+//
+// Webhooks come off first, then anything that deliberately outlives them. For Amazon SES that
+// second step is what removes the configuration set and the tenant: unregistering webhooks
+// leaves both in place because sends still resolve them, so without this an operator who
+// enabled tenant isolation would keep paying AWS for a tenant they can no longer see.
+func (s *WebhookRegistrationService) DeleteIntegrationResources(ctx context.Context, workspaceID string, integrationID string) error {
+	emailProvider, err := s.getEmailProviderConfig(ctx, workspaceID, integrationID)
+	if err != nil {
+		return fmt.Errorf("failed to get email provider configuration: %w", err)
+	}
+
+	provider, ok := s.webhookProviders[emailProvider.Kind]
+	if !ok {
+		return fmt.Errorf("webhook registration not implemented for provider: %s", emailProvider.Kind)
+	}
+
+	// Best-effort: a provider-side failure must never prevent removing the integration.
+	if err := provider.UnregisterWebhooks(ctx, workspaceID, integrationID, emailProvider); err != nil {
+		s.logger.WithField("workspace_id", workspaceID).
+			WithField("integration_id", integrationID).
+			Warn("Failed to unregister webhooks during integration deletion: " + err.Error())
+	}
+
+	if teardown, ok := provider.(domain.SendingResourceTeardown); ok {
+		if err := teardown.DeleteSendingResources(ctx, workspaceID, integrationID, emailProvider); err != nil {
+			s.logger.WithField("workspace_id", workspaceID).
+				WithField("integration_id", integrationID).
+				Warn("Failed to delete provider sending resources during integration deletion: " + err.Error())
+		}
+	}
+
+	return nil
 }
 
 // GetWebhookStatus gets the status of webhooks for an email provider

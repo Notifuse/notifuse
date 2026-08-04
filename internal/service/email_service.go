@@ -11,10 +11,6 @@ import (
 	"github.com/Notifuse/notifuse/pkg/logger"
 	"github.com/Notifuse/notifuse/pkg/notifuse_mjml"
 	"github.com/Notifuse/notifuse/pkg/tracing"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/ses"
 	"github.com/google/uuid"
 	"go.opencensus.io/trace"
 )
@@ -88,14 +84,6 @@ func NewEmailService(
 	}
 }
 
-// CreateSESClient creates a new SES client with the provided credentials
-func CreateSESClient(region, accessKey, secretKey string) domain.SESClient {
-	sess, _ := session.NewSession(&aws.Config{
-		Region:      aws.String(region),
-		Credentials: credentials.NewStaticCredentials(accessKey, secretKey, ""),
-	})
-	return ses.New(sess)
-}
 
 // TestEmailProvider sends a test email to verify the provider configuration works
 func (s *EmailService) TestEmailProvider(ctx context.Context, workspaceID string, provider domain.EmailProvider, to string) error {

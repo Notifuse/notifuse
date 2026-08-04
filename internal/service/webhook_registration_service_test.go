@@ -299,10 +299,13 @@ func TestWebhookRegistrationService_persistSESInboundTopicARN(t *testing.T) {
 		defer ctrl.Finish()
 		mockRepo := mocks.NewMockWorkspaceRepository(ctrl)
 		mockRepo.EXPECT().GetByID(gomock.Any(), "ws-1").Return(newWS(), nil)
-		mockRepo.EXPECT().Update(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, w *domain.Workspace) error {
-			assert.Equal(t, "arn:topic", w.GetIntegrationByID("int-1").EmailProvider.SES.InboundTopicARN)
-			return nil
-		})
+		// Written through the atomic single-statement patch, not a full-row rewrite, so a
+		// concurrent integration edit cannot silently drop it.
+		mockRepo.EXPECT().
+			PatchIntegrationSESSettings(gomock.Any(), "ws-1", "int-1", map[string]interface{}{
+				"inbound_topic_arn": "arn:topic",
+			}).
+			Return(nil)
 		svc := &WebhookRegistrationService{workspaceRepo: mockRepo}
 		require.NoError(t, svc.persistSESInboundTopicARN(ctx, "ws-1", "int-1", "arn:topic"))
 	})

@@ -13,10 +13,11 @@ import (
 	"github.com/Notifuse/notifuse/internal/domain/mocks"
 	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ses"
+	"github.com/aws/aws-sdk-go-v2/service/sesv2"
+	"github.com/aws/smithy-go"
 	"github.com/aws/aws-sdk-go/service/sns"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
@@ -24,9 +25,16 @@ import (
 )
 
 // Helper function to create a mock SES service for testing
-func createMockSESService(t *testing.T) (*SESService, *mocks.MockSESClient, *mocks.MockSNSClient, *mocks.MockAuthService, *pkgmocks.MockLogger) {
+func createMockSESService(t *testing.T) (*SESService, *mocks.MockSESWebhookClient, *mocks.MockSNSClient, *mocks.MockAuthService, *pkgmocks.MockLogger) {
+	svc, ses, sns, auth, log, _ := createMockSESServiceWithV2(t)
+	return svc, ses, sns, auth, log
+}
+
+// createMockSESServiceWithV2 also exposes the SES v2 client, which is the one the send path uses.
+func createMockSESServiceWithV2(t *testing.T) (*SESService, *mocks.MockSESWebhookClient, *mocks.MockSNSClient, *mocks.MockAuthService, *pkgmocks.MockLogger, *mocks.MockSESv2Client) {
 	ctrl := gomock.NewController(t)
-	mockSES := mocks.NewMockSESClient(ctrl)
+	mockSES := mocks.NewMockSESWebhookClient(ctrl)
+	mockSESv2 := mocks.NewMockSESv2Client(ctrl)
 	mockSNS := mocks.NewMockSNSClient(ctrl)
 	mockAuth := mocks.NewMockAuthService(ctrl)
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
@@ -52,15 +60,16 @@ func createMockSESService(t *testing.T) (*SESService, *mocks.MockSESClient, *moc
 		func(_ *session.Session) domain.SNSWebhookClient {
 			return mockSNS
 		},
-		func(_ *session.Session) domain.SESClient {
-			return mockSES
+		func(_ domain.AmazonSESSettings) domain.SESv2Client {
+			return mockSESv2
 		},
-	), mockSES, mockSNS, mockAuth, mockLogger
+	), mockSES, mockSNS, mockAuth, mockLogger, mockSESv2
 }
 
-func createMockSESServiceWithSessionError(t *testing.T) (*SESService, *mocks.MockSESClient, *mocks.MockSNSClient, *mocks.MockAuthService, *pkgmocks.MockLogger) {
+func createMockSESServiceWithSessionError(t *testing.T) (*SESService, *mocks.MockSESWebhookClient, *mocks.MockSNSClient, *mocks.MockAuthService, *pkgmocks.MockLogger) {
 	ctrl := gomock.NewController(t)
-	mockSES := mocks.NewMockSESClient(ctrl)
+	mockSES := mocks.NewMockSESWebhookClient(ctrl)
+	mockSESv2 := mocks.NewMockSESv2Client(ctrl)
 	mockSNS := mocks.NewMockSNSClient(ctrl)
 	mockAuth := mocks.NewMockAuthService(ctrl)
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
@@ -86,8 +95,8 @@ func createMockSESServiceWithSessionError(t *testing.T) (*SESService, *mocks.Moc
 		func(_ *session.Session) domain.SNSWebhookClient {
 			return mockSNS
 		},
-		func(_ *session.Session) domain.SESClient {
-			return mockSES
+		func(_ domain.AmazonSESSettings) domain.SESv2Client {
+			return mockSESv2
 		},
 	), mockSES, mockSNS, mockAuth, mockLogger
 }
@@ -124,7 +133,7 @@ func TestNewSESService(t *testing.T) {
 	assert.NotNil(t, service.sessionFactory)
 	assert.NotNil(t, service.sesClientFactory)
 	assert.NotNil(t, service.snsClientFactory)
-	assert.NotNil(t, service.sesEmailClientFactory)
+	assert.NotNil(t, service.sesV2ClientFactory)
 
 	// Test that the factories work correctly
 	config := getValidSESConfig()
@@ -141,7 +150,7 @@ func TestNewSESService(t *testing.T) {
 	snsClient := service.snsClientFactory(session)
 	assert.NotNil(t, snsClient)
 
-	sesEmailClient := service.sesEmailClientFactory(session)
+	sesEmailClient := service.sesV2ClientFactory(config)
 	assert.NotNil(t, sesEmailClient)
 }
 
@@ -162,11 +171,11 @@ func TestNewSESServiceWithClients(t *testing.T) {
 	snsClientFactory := func(_ *session.Session) domain.SNSWebhookClient {
 		return nil
 	}
-	sesEmailClientFactory := func(_ *session.Session) domain.SESClient {
+	sesV2ClientFactory := func(_ domain.AmazonSESSettings) domain.SESv2Client {
 		return nil
 	}
 
-	service := NewSESServiceWithClients(mockAuth, mockLogger, sessionFactory, sesClientFactory, snsClientFactory, sesEmailClientFactory)
+	service := NewSESServiceWithClients(mockAuth, mockLogger, sessionFactory, sesClientFactory, snsClientFactory, sesV2ClientFactory)
 
 	assert.NotNil(t, service)
 	assert.Equal(t, mockAuth, service.authService)
@@ -222,7 +231,7 @@ func TestGetClients_SessionError(t *testing.T) {
 
 // Test ListConfigurationSets - success
 func TestListConfigurationSets_Success(t *testing.T) {
-	service, mockSESClient, _, _, _ := createMockSESService(t)
+	service, mockSESClient, _, _, _, _ := createMockSESServiceWithV2(t)
 	config := getValidSESConfig()
 
 	mockOutput := &ses.ListConfigurationSetsOutput{
@@ -246,7 +255,7 @@ func TestListConfigurationSets_Success(t *testing.T) {
 
 // Test ListConfigurationSets - error
 func TestListConfigurationSets_Error(t *testing.T) {
-	service, mockSESClient, _, _, _ := createMockSESService(t)
+	service, mockSESClient, _, _, _, _ := createMockSESServiceWithV2(t)
 	config := getValidSESConfig()
 
 	mockSESClient.EXPECT().
@@ -274,7 +283,7 @@ func TestListConfigurationSets_InvalidCredentials(t *testing.T) {
 
 // Test CreateConfigurationSet - success
 func TestCreateConfigurationSet_Success(t *testing.T) {
-	service, mockSESClient, _, _, _ := createMockSESService(t)
+	service, mockSESClient, _, _, _, _ := createMockSESServiceWithV2(t)
 	config := getValidSESConfig()
 	configSetName := "test-config-set"
 
@@ -292,7 +301,7 @@ func TestCreateConfigurationSet_Success(t *testing.T) {
 
 // Test CreateConfigurationSet - error
 func TestCreateConfigurationSet_Error(t *testing.T) {
-	service, mockSESClient, _, _, _ := createMockSESService(t)
+	service, mockSESClient, _, _, _, _ := createMockSESServiceWithV2(t)
 	config := getValidSESConfig()
 	configSetName := "test-config-set"
 
@@ -308,7 +317,7 @@ func TestCreateConfigurationSet_Error(t *testing.T) {
 
 // Test DeleteConfigurationSet - success
 func TestDeleteConfigurationSet_Success(t *testing.T) {
-	service, mockSESClient, _, _, _ := createMockSESService(t)
+	service, mockSESClient, _, _, _, _ := createMockSESServiceWithV2(t)
 	config := getValidSESConfig()
 	configSetName := "test-config-set"
 
@@ -326,7 +335,7 @@ func TestDeleteConfigurationSet_Success(t *testing.T) {
 
 // Test DeleteConfigurationSet - error
 func TestDeleteConfigurationSet_Error(t *testing.T) {
-	service, mockSESClient, _, _, _ := createMockSESService(t)
+	service, mockSESClient, _, _, _, _ := createMockSESServiceWithV2(t)
 	config := getValidSESConfig()
 	configSetName := "test-config-set"
 
@@ -547,7 +556,7 @@ func TestDeleteSNSTopic_Error(t *testing.T) {
 
 // Test CreateEventDestination - success
 func TestCreateEventDestination_Success(t *testing.T) {
-	service, mockSESClient, _, _, _ := createMockSESService(t)
+	service, mockSESClient, _, _, _, _ := createMockSESServiceWithV2(t)
 	config := getValidSESConfig()
 
 	destination := domain.SESConfigurationSetEventDestination{
@@ -617,7 +626,7 @@ func TestCreateEventDestination_EmptyTopicARN(t *testing.T) {
 
 // Test CreateEventDestination - AWS error
 func TestCreateEventDestination_AWSError(t *testing.T) {
-	service, mockSESClient, _, _, _ := createMockSESService(t)
+	service, mockSESClient, _, _, _, _ := createMockSESServiceWithV2(t)
 	config := getValidSESConfig()
 
 	destination := domain.SESConfigurationSetEventDestination{
@@ -642,7 +651,7 @@ func TestCreateEventDestination_AWSError(t *testing.T) {
 
 // Test UpdateEventDestination - success
 func TestUpdateEventDestination_Success(t *testing.T) {
-	service, mockSESClient, _, _, _ := createMockSESService(t)
+	service, mockSESClient, _, _, _, _ := createMockSESServiceWithV2(t)
 	config := getValidSESConfig()
 
 	destination := domain.SESConfigurationSetEventDestination{
@@ -671,7 +680,7 @@ func TestUpdateEventDestination_Success(t *testing.T) {
 
 // Test UpdateEventDestination - error
 func TestUpdateEventDestination_Error(t *testing.T) {
-	service, mockSESClient, _, _, _ := createMockSESService(t)
+	service, mockSESClient, _, _, _, _ := createMockSESServiceWithV2(t)
 	config := getValidSESConfig()
 
 	destination := domain.SESConfigurationSetEventDestination{
@@ -696,7 +705,7 @@ func TestUpdateEventDestination_Error(t *testing.T) {
 
 // Test DeleteEventDestination - success
 func TestDeleteEventDestination_Success(t *testing.T) {
-	service, mockSESClient, _, _, _ := createMockSESService(t)
+	service, mockSESClient, _, _, _, _ := createMockSESServiceWithV2(t)
 	config := getValidSESConfig()
 	configSetName := "test-config-set"
 	destinationName := "test-destination"
@@ -716,7 +725,7 @@ func TestDeleteEventDestination_Success(t *testing.T) {
 
 // Test DeleteEventDestination - error
 func TestDeleteEventDestination_Error(t *testing.T) {
-	service, mockSESClient, _, _, _ := createMockSESService(t)
+	service, mockSESClient, _, _, _, _ := createMockSESServiceWithV2(t)
 	config := getValidSESConfig()
 	configSetName := "test-config-set"
 	destinationName := "test-destination"
@@ -733,7 +742,7 @@ func TestDeleteEventDestination_Error(t *testing.T) {
 
 // Test ListEventDestinations - success
 func TestListEventDestinations_Success(t *testing.T) {
-	service, mockSESClient, _, _, _ := createMockSESService(t)
+	service, mockSESClient, _, _, _, _ := createMockSESServiceWithV2(t)
 	config := getValidSESConfig()
 	configSetName := "test-config-set"
 
@@ -778,7 +787,7 @@ func TestListEventDestinations_Success(t *testing.T) {
 
 // Test ListEventDestinations - skip non-SNS destinations
 func TestListEventDestinations_SkipNonSNS(t *testing.T) {
-	service, mockSESClient, _, _, _ := createMockSESService(t)
+	service, mockSESClient, _, _, _, _ := createMockSESServiceWithV2(t)
 	config := getValidSESConfig()
 	configSetName := "test-config-set"
 
@@ -814,7 +823,7 @@ func TestListEventDestinations_SkipNonSNS(t *testing.T) {
 
 // Test ListEventDestinations - error
 func TestListEventDestinations_Error(t *testing.T) {
-	service, mockSESClient, _, _, _ := createMockSESService(t)
+	service, mockSESClient, _, _, _, _ := createMockSESServiceWithV2(t)
 	config := getValidSESConfig()
 	configSetName := "test-config-set"
 
@@ -860,7 +869,7 @@ func TestSetupSNSTopic(t *testing.T) {
 
 // Test SetupConfigurationSet - new configuration set
 func TestSetupConfigurationSet_NewConfigSet(t *testing.T) {
-	service, mockSESClient, _, _, _ := createMockSESService(t)
+	service, mockSESClient, _, _, _, _ := createMockSESServiceWithV2(t)
 	config := getValidSESConfig()
 	configSetName := "test-config-set"
 
@@ -883,7 +892,7 @@ func TestSetupConfigurationSet_NewConfigSet(t *testing.T) {
 
 // Test SetupConfigurationSet - existing configuration set
 func TestSetupConfigurationSet_ExistingConfigSet(t *testing.T) {
-	service, mockSESClient, _, _, _ := createMockSESService(t)
+	service, mockSESClient, _, _, _, _ := createMockSESServiceWithV2(t)
 	config := getValidSESConfig()
 	configSetName := "test-config-set"
 
@@ -905,7 +914,7 @@ func TestSetupConfigurationSet_ExistingConfigSet(t *testing.T) {
 
 // Test SetupConfigurationSet - list error
 func TestSetupConfigurationSet_ListError(t *testing.T) {
-	service, mockSESClient, _, _, _ := createMockSESService(t)
+	service, mockSESClient, _, _, _, _ := createMockSESServiceWithV2(t)
 	config := getValidSESConfig()
 	configSetName := "test-config-set"
 
@@ -921,7 +930,7 @@ func TestSetupConfigurationSet_ListError(t *testing.T) {
 
 // Test SetupConfigurationSet - create error
 func TestSetupConfigurationSet_CreateError(t *testing.T) {
-	service, mockSESClient, _, _, _ := createMockSESService(t)
+	service, mockSESClient, _, _, _, _ := createMockSESServiceWithV2(t)
 	config := getValidSESConfig()
 	configSetName := "test-config-set"
 
@@ -943,7 +952,7 @@ func TestSetupConfigurationSet_CreateError(t *testing.T) {
 
 // Test SetupEventDestination - new destination
 func TestSetupEventDestination_NewDestination(t *testing.T) {
-	service, mockSESClient, _, _, _ := createMockSESService(t)
+	service, mockSESClient, _, _, _, _ := createMockSESServiceWithV2(t)
 	config := getValidSESConfig()
 
 	eventDestination := domain.SESConfigurationSetEventDestination{
@@ -975,7 +984,7 @@ func TestSetupEventDestination_NewDestination(t *testing.T) {
 
 // Test SetupEventDestination - existing destination
 func TestSetupEventDestination_ExistingDestination(t *testing.T) {
-	service, mockSESClient, _, _, _ := createMockSESService(t)
+	service, mockSESClient, _, _, _, _ := createMockSESServiceWithV2(t)
 	config := getValidSESConfig()
 
 	eventDestination := domain.SESConfigurationSetEventDestination{
@@ -1016,7 +1025,7 @@ func TestSetupEventDestination_ExistingDestination(t *testing.T) {
 
 // Test SetupEventDestination - list error
 func TestSetupEventDestination_ListError(t *testing.T) {
-	service, mockSESClient, _, _, _ := createMockSESService(t)
+	service, mockSESClient, _, _, _, _ := createMockSESServiceWithV2(t)
 	config := getValidSESConfig()
 
 	eventDestination := domain.SESConfigurationSetEventDestination{
@@ -1041,7 +1050,7 @@ func TestSetupEventDestination_ListError(t *testing.T) {
 
 // Test RegisterWebhooks - success
 func TestRegisterWebhooks_Success(t *testing.T) {
-	service, mockSESClient, mockSNSClient, _, _ := createMockSESService(t)
+	service, mockSESClient, mockSNSClient, _, _, _ := createMockSESServiceWithV2(t)
 
 	workspaceID := "test-workspace"
 	integrationID := "test-integration"
@@ -1150,7 +1159,7 @@ func TestRegisterWebhooks_SNSTopicError(t *testing.T) {
 
 // Test RegisterWebhooks - configuration set error
 func TestRegisterWebhooks_ConfigSetError(t *testing.T) {
-	service, mockSESClient, mockSNSClient, _, _ := createMockSESService(t)
+	service, mockSESClient, mockSNSClient, _, _, _ := createMockSESServiceWithV2(t)
 
 	workspaceID := "test-workspace"
 	integrationID := "test-integration"
@@ -1188,7 +1197,7 @@ func TestRegisterWebhooks_ConfigSetError(t *testing.T) {
 
 // Test RegisterWebhooks - event destination error
 func TestRegisterWebhooks_EventDestinationError(t *testing.T) {
-	service, mockSESClient, mockSNSClient, _, _ := createMockSESService(t)
+	service, mockSESClient, mockSNSClient, _, _, _ := createMockSESServiceWithV2(t)
 
 	workspaceID := "test-workspace"
 	integrationID := "test-integration"
@@ -1232,7 +1241,7 @@ func TestRegisterWebhooks_EventDestinationError(t *testing.T) {
 
 // Test GetWebhookStatus - success with registered webhooks
 func TestGetWebhookStatus_RegisteredWebhooks(t *testing.T) {
-	service, mockSESClient, _, _, _ := createMockSESService(t)
+	service, mockSESClient, _, _, _, _ := createMockSESServiceWithV2(t)
 	mockSESClient.EXPECT().DescribeActiveReceiptRuleSetWithContext(gomock.Any(), gomock.Any()).Return(&ses.DescribeActiveReceiptRuleSetOutput{}, nil).AnyTimes() // Phase 3: inbound status check
 
 	workspaceID := "test-workspace"
@@ -1284,7 +1293,7 @@ func TestGetWebhookStatus_RegisteredWebhooks(t *testing.T) {
 
 // Test GetWebhookStatus - not registered
 func TestGetWebhookStatus_NotRegistered(t *testing.T) {
-	service, mockSESClient, _, _, _ := createMockSESService(t)
+	service, mockSESClient, _, _, _, _ := createMockSESServiceWithV2(t)
 	mockSESClient.EXPECT().DescribeActiveReceiptRuleSetWithContext(gomock.Any(), gomock.Any()).Return(&ses.DescribeActiveReceiptRuleSetOutput{}, nil).AnyTimes() // Phase 3: inbound status check
 
 	workspaceID := "test-workspace"
@@ -1337,7 +1346,7 @@ func TestGetWebhookStatus_InvalidConfig(t *testing.T) {
 
 // Test GetWebhookStatus - list configuration sets error
 func TestGetWebhookStatus_ListConfigSetsError(t *testing.T) {
-	service, mockSESClient, _, _, _ := createMockSESService(t)
+	service, mockSESClient, _, _, _, _ := createMockSESServiceWithV2(t)
 	mockSESClient.EXPECT().DescribeActiveReceiptRuleSetWithContext(gomock.Any(), gomock.Any()).Return(&ses.DescribeActiveReceiptRuleSetOutput{}, nil).AnyTimes() // Phase 3: inbound status check
 
 	workspaceID := "test-workspace"
@@ -1364,7 +1373,7 @@ func TestGetWebhookStatus_ListConfigSetsError(t *testing.T) {
 
 // Test GetWebhookStatus - list event destinations error
 func TestGetWebhookStatus_ListEventDestinationsError(t *testing.T) {
-	service, mockSESClient, _, _, _ := createMockSESService(t)
+	service, mockSESClient, _, _, _, _ := createMockSESServiceWithV2(t)
 	mockSESClient.EXPECT().DescribeActiveReceiptRuleSetWithContext(gomock.Any(), gomock.Any()).Return(&ses.DescribeActiveReceiptRuleSetOutput{}, nil).AnyTimes() // Phase 3: inbound status check
 
 	workspaceID := "test-workspace"
@@ -1401,7 +1410,7 @@ func TestGetWebhookStatus_ListEventDestinationsError(t *testing.T) {
 
 // Test UnregisterWebhooks - success
 func TestUnregisterWebhooks_Success(t *testing.T) {
-	service, mockSESClient, mockSNSClient, _, _ := createMockSESService(t)
+	service, mockSESClient, mockSNSClient, _, _, _ := createMockSESServiceWithV2(t)
 	mockSESClient.EXPECT().DescribeActiveReceiptRuleSetWithContext(gomock.Any(), gomock.Any()).Return(&ses.DescribeActiveReceiptRuleSetOutput{}, nil).AnyTimes() // Phase 3: inbound status check
 
 	workspaceID := "test-workspace"
@@ -1466,7 +1475,7 @@ func TestUnregisterWebhooks_Success(t *testing.T) {
 
 // Test UnregisterWebhooks - configuration set does not exist
 func TestUnregisterWebhooks_ConfigSetNotExists(t *testing.T) {
-	service, mockSESClient, _, _, _ := createMockSESService(t)
+	service, mockSESClient, _, _, _, _ := createMockSESServiceWithV2(t)
 	mockSESClient.EXPECT().DescribeActiveReceiptRuleSetWithContext(gomock.Any(), gomock.Any()).Return(&ses.DescribeActiveReceiptRuleSetOutput{}, nil).AnyTimes() // Phase 3: inbound status check
 
 	workspaceID := "test-workspace"
@@ -1513,7 +1522,7 @@ func TestUnregisterWebhooks_InvalidConfig(t *testing.T) {
 
 // Test UnregisterWebhooks - partial cleanup failure
 func TestUnregisterWebhooks_PartialFailure(t *testing.T) {
-	service, mockSESClient, mockSNSClient, _, _ := createMockSESService(t)
+	service, mockSESClient, mockSNSClient, _, _, _ := createMockSESServiceWithV2(t)
 	mockSESClient.EXPECT().DescribeActiveReceiptRuleSetWithContext(gomock.Any(), gomock.Any()).Return(&ses.DescribeActiveReceiptRuleSetOutput{}, nil).AnyTimes() // Phase 3: inbound status check
 
 	workspaceID := "test-workspace"
@@ -1577,7 +1586,7 @@ func TestUnregisterWebhooks_PartialFailure(t *testing.T) {
 
 // Test SendEmail - success
 func TestSendEmail_Success(t *testing.T) {
-	service, mockSESClient, _, _, _ := createMockSESService(t)
+	service, mockSESClient, _, _, _, mockSESv2 := createMockSESServiceWithV2(t)
 
 	workspaceID := "test-workspace"
 	messageID := "test-message-id"
@@ -1603,11 +1612,11 @@ func TestSendEmail_Success(t *testing.T) {
 		}, nil)
 
 	// Mock send email
-	mockSESClient.EXPECT().
-		SendEmailWithContext(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(_ context.Context, input *ses.SendEmailInput, _ ...request.Option) (*ses.SendEmailOutput, error) {
+	mockSESv2.EXPECT().
+		SendEmail(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, input *sesv2.SendEmailInput, _ ...func(*sesv2.Options)) (*sesv2.SendEmailOutput, error) {
 			assert.Nil(t, input.ConfigurationSetName)
-			return &ses.SendEmailOutput{}, nil
+			return &sesv2.SendEmailOutput{}, nil
 		})
 
 	request := domain.SendEmailProviderRequest{
@@ -1631,7 +1640,7 @@ func TestSendEmail_Success(t *testing.T) {
 // request.CapturedMessageID, so the worker can store the recipient-visible RFC Message-ID
 // for stop-on-reply matching (SES overwrites any Message-ID we set).
 func TestSendEmail_CapturesMessageID(t *testing.T) {
-	service, mockSESClient, _, _, _ := createMockSESService(t)
+	service, mockSESClient, _, _, _, mockSESv2 := createMockSESServiceWithV2(t)
 
 	provider := &domain.EmailProvider{
 		SES: &domain.AmazonSESSettings{AccessKey: "k", SecretKey: "s", Region: "us-east-1"},
@@ -1640,9 +1649,9 @@ func TestSendEmail_CapturesMessageID(t *testing.T) {
 		ListConfigurationSetsWithContext(gomock.Any(), gomock.Any()).
 		Return(&ses.ListConfigurationSetsOutput{ConfigurationSets: []*ses.ConfigurationSet{}}, nil)
 	returnedID := "0000018f-ses-id"
-	mockSESClient.EXPECT().
-		SendEmailWithContext(gomock.Any(), gomock.Any()).
-		Return(&ses.SendEmailOutput{MessageId: &returnedID}, nil)
+	mockSESv2.EXPECT().
+		SendEmail(gomock.Any(), gomock.Any()).
+		Return(&sesv2.SendEmailOutput{MessageId: &returnedID}, nil)
 
 	captured := ""
 	request := domain.SendEmailProviderRequest{
@@ -1715,7 +1724,7 @@ func TestSendEmail_InvalidCredentials(t *testing.T) {
 
 // Test SendEmail - AWS error
 func TestSendEmail_AWSError(t *testing.T) {
-	service, mockSESClient, _, _, _ := createMockSESService(t)
+	service, mockSESClient, _, _, _, mockSESv2 := createMockSESServiceWithV2(t)
 
 	provider := &domain.EmailProvider{
 		SES: &domain.AmazonSESSettings{
@@ -1729,8 +1738,8 @@ func TestSendEmail_AWSError(t *testing.T) {
 		ListConfigurationSetsWithContext(gomock.Any(), gomock.Any()).
 		Return(&ses.ListConfigurationSetsOutput{}, nil)
 
-	mockSESClient.EXPECT().
-		SendEmailWithContext(gomock.Any(), gomock.Any()).
+	mockSESv2.EXPECT().
+		SendEmail(gomock.Any(), gomock.Any()).
 		Return(nil, errors.New("AWS send error"))
 
 	request := domain.SendEmailProviderRequest{
@@ -1751,9 +1760,9 @@ func TestSendEmail_AWSError(t *testing.T) {
 	assert.Contains(t, err.Error(), "failed to send email")
 }
 
-// Test SendEmail - AWS error with awserr
+// Test SendEmail - AWS API error surfaces as "SES error"
 func TestSendEmail_AWSErrorWithAWSErr(t *testing.T) {
-	service, mockSESClient, _, _, _ := createMockSESService(t)
+	service, mockSESClient, _, _, _, mockSESv2 := createMockSESServiceWithV2(t)
 
 	provider := &domain.EmailProvider{
 		SES: &domain.AmazonSESSettings{
@@ -1767,9 +1776,9 @@ func TestSendEmail_AWSErrorWithAWSErr(t *testing.T) {
 		ListConfigurationSetsWithContext(gomock.Any(), gomock.Any()).
 		Return(&ses.ListConfigurationSetsOutput{}, nil)
 
-	awsErr := awserr.New("MessageRejected", "Email address not verified", nil)
-	mockSESClient.EXPECT().
-		SendEmailWithContext(gomock.Any(), gomock.Any()).
+	awsErr := &smithy.GenericAPIError{Code: "MessageRejected", Message: "Email address not verified"}
+	mockSESv2.EXPECT().
+		SendEmail(gomock.Any(), gomock.Any()).
 		Return(nil, awsErr)
 
 	request := domain.SendEmailProviderRequest{
@@ -1793,7 +1802,7 @@ func TestSendEmail_AWSErrorWithAWSErr(t *testing.T) {
 
 // Test SendEmail - empty CC and BCC arrays
 func TestSendEmail_EmptyCCBCC(t *testing.T) {
-	service, mockSESClient, _, _, _ := createMockSESService(t)
+	service, mockSESClient, _, _, _, mockSESv2 := createMockSESServiceWithV2(t)
 
 	provider := &domain.EmailProvider{
 		SES: &domain.AmazonSESSettings{
@@ -1807,17 +1816,17 @@ func TestSendEmail_EmptyCCBCC(t *testing.T) {
 		ListConfigurationSetsWithContext(gomock.Any(), gomock.Any()).
 		Return(&ses.ListConfigurationSetsOutput{}, nil)
 
-	mockSESClient.EXPECT().
-		SendEmailWithContext(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(_ context.Context, input *ses.SendEmailInput, _ ...request.Option) (*ses.SendEmailOutput, error) {
+	mockSESv2.EXPECT().
+		SendEmail(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, input *sesv2.SendEmailInput, _ ...func(*sesv2.Options)) (*sesv2.SendEmailOutput, error) {
 			assert.Nil(t, input.Destination.CcAddresses)
 			assert.Nil(t, input.Destination.BccAddresses)
 			assert.Nil(t, input.ReplyToAddresses)
 			// Expect message ID tag
-			assert.Len(t, input.Tags, 1)
-			assert.Equal(t, "notifuse_message_id", *input.Tags[0].Name)
-			assert.Equal(t, "test-message-id", *input.Tags[0].Value)
-			return &ses.SendEmailOutput{}, nil
+			assert.Len(t, input.EmailTags, 1)
+			assert.Equal(t, "notifuse_message_id", *input.EmailTags[0].Name)
+			assert.Equal(t, "test-message-id", *input.EmailTags[0].Value)
+			return &sesv2.SendEmailOutput{}, nil
 		})
 
 	request := domain.SendEmailProviderRequest{
@@ -1839,7 +1848,7 @@ func TestSendEmail_EmptyCCBCC(t *testing.T) {
 
 // Test SendEmail - CC and BCC with empty strings
 func TestSendEmail_CCBCCWithEmptyStrings(t *testing.T) {
-	service, mockSESClient, _, _, _ := createMockSESService(t)
+	service, mockSESClient, _, _, _, mockSESv2 := createMockSESServiceWithV2(t)
 
 	provider := &domain.EmailProvider{
 		SES: &domain.AmazonSESSettings{
@@ -1853,13 +1862,13 @@ func TestSendEmail_CCBCCWithEmptyStrings(t *testing.T) {
 		ListConfigurationSetsWithContext(gomock.Any(), gomock.Any()).
 		Return(&ses.ListConfigurationSetsOutput{}, nil)
 
-	mockSESClient.EXPECT().
-		SendEmailWithContext(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(_ context.Context, input *ses.SendEmailInput, _ ...request.Option) (*ses.SendEmailOutput, error) {
+	mockSESv2.EXPECT().
+		SendEmail(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, input *sesv2.SendEmailInput, _ ...func(*sesv2.Options)) (*sesv2.SendEmailOutput, error) {
 			// Should filter out empty strings
 			assert.Nil(t, input.Destination.CcAddresses)
 			assert.Nil(t, input.Destination.BccAddresses)
-			return &ses.SendEmailOutput{}, nil
+			return &sesv2.SendEmailOutput{}, nil
 		})
 
 	request := domain.SendEmailProviderRequest{
@@ -1881,7 +1890,7 @@ func TestSendEmail_CCBCCWithEmptyStrings(t *testing.T) {
 
 // Test SendEmail - list configuration sets error (should continue)
 func TestSendEmail_ListConfigSetsError(t *testing.T) {
-	service, mockSESClient, _, _, _ := createMockSESService(t)
+	service, mockSESClient, _, _, _, mockSESv2 := createMockSESServiceWithV2(t)
 
 	provider := &domain.EmailProvider{
 		SES: &domain.AmazonSESSettings{
@@ -1895,12 +1904,12 @@ func TestSendEmail_ListConfigSetsError(t *testing.T) {
 		ListConfigurationSetsWithContext(gomock.Any(), gomock.Any()).
 		Return(nil, errors.New("list error"))
 
-	mockSESClient.EXPECT().
-		SendEmailWithContext(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(_ context.Context, input *ses.SendEmailInput, _ ...request.Option) (*ses.SendEmailOutput, error) {
+	mockSESv2.EXPECT().
+		SendEmail(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, input *sesv2.SendEmailInput, _ ...func(*sesv2.Options)) (*sesv2.SendEmailOutput, error) {
 			// Should not have configuration set name
 			assert.Nil(t, input.ConfigurationSetName)
-			return &ses.SendEmailOutput{}, nil
+			return &sesv2.SendEmailOutput{}, nil
 		})
 
 	request := domain.SendEmailProviderRequest{
@@ -1921,35 +1930,40 @@ func TestSendEmail_ListConfigSetsError(t *testing.T) {
 }
 
 // Test SendEmail - session factory error
-func TestSendEmail_SessionFactoryError(t *testing.T) {
+func TestSendEmail_DoesNotUseSessionFactory(t *testing.T) {
+	// Sending moved to the SES v2 client, which is built directly from settings. A broken
+	// session factory (v1, still used by webhook and inbound management) must not affect it.
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
 	mockAuthService := mocks.NewMockAuthService(ctrl)
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
+	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().Warn(gomock.Any()).AnyTimes()
+	mockSESv2 := mocks.NewMockSESv2Client(ctrl)
 
-	// Create service with failing session factory
 	service := NewSESServiceWithClients(
 		mockAuthService,
 		mockLogger,
 		func(config domain.AmazonSESSettings) (*session.Session, error) {
+			t.Fatal("send path must not build an AWS session")
 			return nil, errors.New("session creation failed")
 		},
-		nil, // sesClientFactory not used in this test
-		nil, // snsClientFactory not used in this test
-		nil, // sesEmailClientFactory not used in this test
+		nil, // sesClientFactory not used by the send path
+		nil, // snsClientFactory not used by the send path
+		func(_ domain.AmazonSESSettings) domain.SESv2Client { return mockSESv2 },
 	)
 
 	provider := &domain.EmailProvider{
 		SES: &domain.AmazonSESSettings{
-			AccessKey: "test-access-key",
-			SecretKey: "test-secret-key",
-			Region:    "us-east-1",
+			AccessKey:               "test-access-key",
+			SecretKey:               "test-secret-key",
+			Region:                  "us-east-1",
+			ManagedConfigurationSet: "notifuse-test-integration-id",
 		},
 	}
 
-	// Expect logger to be called for the error
-	mockLogger.EXPECT().Error(gomock.Any()).Times(1)
+	mockSESv2.EXPECT().SendEmail(gomock.Any(), gomock.Any()).Return(&sesv2.SendEmailOutput{}, nil)
 
 	request := domain.SendEmailProviderRequest{
 		WorkspaceID:   "workspace",
@@ -1963,15 +1977,12 @@ func TestSendEmail_SessionFactoryError(t *testing.T) {
 		Provider:      provider,
 		EmailOptions:  domain.EmailOptions{},
 	}
-	err := service.SendEmail(context.Background(), request)
 
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to create AWS session")
+	assert.NoError(t, service.SendEmail(context.Background(), request))
 }
 
-// Test SendEmail - with CC and BCC addresses
 func TestSendEmail_WithCCAndBCC(t *testing.T) {
-	service, mockSESClient, _, _, _ := createMockSESService(t)
+	service, mockSESClient, _, _, _, mockSESv2 := createMockSESServiceWithV2(t)
 
 	provider := &domain.EmailProvider{
 		SES: &domain.AmazonSESSettings{
@@ -1988,20 +1999,20 @@ func TestSendEmail_WithCCAndBCC(t *testing.T) {
 		ListConfigurationSetsWithContext(gomock.Any(), gomock.Any()).
 		Return(&ses.ListConfigurationSetsOutput{}, nil)
 
-	mockSESClient.EXPECT().
-		SendEmailWithContext(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(_ context.Context, input *ses.SendEmailInput, _ ...request.Option) (*ses.SendEmailOutput, error) {
+	mockSESv2.EXPECT().
+		SendEmail(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, input *sesv2.SendEmailInput, _ ...func(*sesv2.Options)) (*sesv2.SendEmailOutput, error) {
 			// Verify CC addresses
 			assert.Len(t, input.Destination.CcAddresses, 2)
-			assert.Equal(t, "cc1@example.com", *input.Destination.CcAddresses[0])
-			assert.Equal(t, "cc2@example.com", *input.Destination.CcAddresses[1])
+			assert.Equal(t, "cc1@example.com", input.Destination.CcAddresses[0])
+			assert.Equal(t, "cc2@example.com", input.Destination.CcAddresses[1])
 
 			// Verify BCC addresses
 			assert.Len(t, input.Destination.BccAddresses, 2)
-			assert.Equal(t, "bcc1@example.com", *input.Destination.BccAddresses[0])
-			assert.Equal(t, "bcc2@example.com", *input.Destination.BccAddresses[1])
+			assert.Equal(t, "bcc1@example.com", input.Destination.BccAddresses[0])
+			assert.Equal(t, "bcc2@example.com", input.Destination.BccAddresses[1])
 
-			return &ses.SendEmailOutput{}, nil
+			return &sesv2.SendEmailOutput{}, nil
 		})
 
 	request := domain.SendEmailProviderRequest{
@@ -2023,7 +2034,7 @@ func TestSendEmail_WithCCAndBCC(t *testing.T) {
 
 // Test SendEmail - with ReplyTo
 func TestSendEmail_WithReplyTo(t *testing.T) {
-	service, mockSESClient, _, _, _ := createMockSESService(t)
+	service, mockSESClient, _, _, _, mockSESv2 := createMockSESServiceWithV2(t)
 
 	provider := &domain.EmailProvider{
 		SES: &domain.AmazonSESSettings{
@@ -2039,14 +2050,14 @@ func TestSendEmail_WithReplyTo(t *testing.T) {
 		ListConfigurationSetsWithContext(gomock.Any(), gomock.Any()).
 		Return(&ses.ListConfigurationSetsOutput{}, nil)
 
-	mockSESClient.EXPECT().
-		SendEmailWithContext(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(_ context.Context, input *ses.SendEmailInput, _ ...request.Option) (*ses.SendEmailOutput, error) {
+	mockSESv2.EXPECT().
+		SendEmail(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, input *sesv2.SendEmailInput, _ ...func(*sesv2.Options)) (*sesv2.SendEmailOutput, error) {
 			// Verify ReplyTo address
 			assert.Len(t, input.ReplyToAddresses, 1)
-			assert.Equal(t, replyTo, *input.ReplyToAddresses[0])
+			assert.Equal(t, replyTo, input.ReplyToAddresses[0])
 
-			return &ses.SendEmailOutput{}, nil
+			return &sesv2.SendEmailOutput{}, nil
 		})
 
 	request := domain.SendEmailProviderRequest{
@@ -2068,7 +2079,7 @@ func TestSendEmail_WithReplyTo(t *testing.T) {
 
 // Test SendEmail - with configuration set found
 func TestSendEmail_WithConfigurationSet(t *testing.T) {
-	service, mockSESClient, _, _, _ := createMockSESService(t)
+	service, mockSESClient, _, _, _, mockSESv2 := createMockSESServiceWithV2(t)
 
 	workspaceID := "test-workspace"
 	integrationID := "test-integration-id"
@@ -2091,14 +2102,14 @@ func TestSendEmail_WithConfigurationSet(t *testing.T) {
 			},
 		}, nil)
 
-	mockSESClient.EXPECT().
-		SendEmailWithContext(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(_ context.Context, input *ses.SendEmailInput, _ ...request.Option) (*ses.SendEmailOutput, error) {
+	mockSESv2.EXPECT().
+		SendEmail(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, input *sesv2.SendEmailInput, _ ...func(*sesv2.Options)) (*sesv2.SendEmailOutput, error) {
 			// Verify configuration set is set
 			assert.NotNil(t, input.ConfigurationSetName)
 			assert.Equal(t, configSetName, *input.ConfigurationSetName)
 
-			return &ses.SendEmailOutput{}, nil
+			return &sesv2.SendEmailOutput{}, nil
 		})
 
 	request := domain.SendEmailProviderRequest{
@@ -2120,7 +2131,7 @@ func TestSendEmail_WithConfigurationSet(t *testing.T) {
 
 // Test SendEmail - with message ID tag
 func TestSendEmail_WithMessageIDTag(t *testing.T) {
-	service, mockSESClient, _, _, _ := createMockSESService(t)
+	service, mockSESClient, _, _, _, mockSESv2 := createMockSESServiceWithV2(t)
 
 	messageID := "test-message-123"
 
@@ -2136,15 +2147,15 @@ func TestSendEmail_WithMessageIDTag(t *testing.T) {
 		ListConfigurationSetsWithContext(gomock.Any(), gomock.Any()).
 		Return(&ses.ListConfigurationSetsOutput{}, nil)
 
-	mockSESClient.EXPECT().
-		SendEmailWithContext(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(_ context.Context, input *ses.SendEmailInput, _ ...request.Option) (*ses.SendEmailOutput, error) {
+	mockSESv2.EXPECT().
+		SendEmail(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, input *sesv2.SendEmailInput, _ ...func(*sesv2.Options)) (*sesv2.SendEmailOutput, error) {
 			// Verify message ID tag
-			assert.Len(t, input.Tags, 1)
-			assert.Equal(t, "notifuse_message_id", *input.Tags[0].Name)
-			assert.Equal(t, messageID, *input.Tags[0].Value)
+			assert.Len(t, input.EmailTags, 1)
+			assert.Equal(t, "notifuse_message_id", *input.EmailTags[0].Name)
+			assert.Equal(t, messageID, *input.EmailTags[0].Value)
 
-			return &ses.SendEmailOutput{}, nil
+			return &sesv2.SendEmailOutput{}, nil
 		})
 
 	request := domain.SendEmailProviderRequest{
@@ -2166,7 +2177,7 @@ func TestSendEmail_WithMessageIDTag(t *testing.T) {
 
 // Test SendEmail - verify email structure
 func TestSendEmail_VerifyEmailStructure(t *testing.T) {
-	service, mockSESClient, _, _, _ := createMockSESService(t)
+	service, mockSESClient, _, _, _, mockSESv2 := createMockSESServiceWithV2(t)
 
 	fromAddress := "from@example.com"
 	fromName := "Test Sender"
@@ -2186,24 +2197,24 @@ func TestSendEmail_VerifyEmailStructure(t *testing.T) {
 		ListConfigurationSetsWithContext(gomock.Any(), gomock.Any()).
 		Return(&ses.ListConfigurationSetsOutput{}, nil)
 
-	mockSESClient.EXPECT().
-		SendEmailWithContext(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(_ context.Context, input *ses.SendEmailInput, _ ...request.Option) (*ses.SendEmailOutput, error) {
+	mockSESv2.EXPECT().
+		SendEmail(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, input *sesv2.SendEmailInput, _ ...func(*sesv2.Options)) (*sesv2.SendEmailOutput, error) {
 			// Verify source format
 			expectedSource := fmt.Sprintf("%s <%s>", fromName, fromAddress)
-			assert.Equal(t, expectedSource, *input.Source)
+			assert.Equal(t, expectedSource, *input.FromEmailAddress)
 
 			// Verify destination
 			assert.Len(t, input.Destination.ToAddresses, 1)
-			assert.Equal(t, to, *input.Destination.ToAddresses[0])
+			assert.Equal(t, to, input.Destination.ToAddresses[0])
 
 			// Verify message structure
-			assert.Equal(t, subject, *input.Message.Subject.Data)
-			assert.Equal(t, "UTF-8", *input.Message.Subject.Charset)
-			assert.Equal(t, content, *input.Message.Body.Html.Data)
-			assert.Equal(t, "UTF-8", *input.Message.Body.Html.Charset)
+			assert.Equal(t, subject, *input.Content.Simple.Subject.Data)
+			assert.Equal(t, "UTF-8", *input.Content.Simple.Subject.Charset)
+			assert.Equal(t, content, *input.Content.Simple.Body.Html.Data)
+			assert.Equal(t, "UTF-8", *input.Content.Simple.Body.Html.Charset)
 
-			return &ses.SendEmailOutput{}, nil
+			return &sesv2.SendEmailOutput{}, nil
 		})
 
 	request := domain.SendEmailProviderRequest{
@@ -2225,7 +2236,7 @@ func TestSendEmail_VerifyEmailStructure(t *testing.T) {
 
 // Test SendEmail - with single attachment
 func TestSendEmail_WithSingleAttachment(t *testing.T) {
-	service, mockSESClient, _, _, _ := createMockSESService(t)
+	service, mockSESClient, _, _, _, mockSESv2 := createMockSESServiceWithV2(t)
 
 	provider := &domain.EmailProvider{
 		SES: &domain.AmazonSESSettings{
@@ -2249,20 +2260,20 @@ func TestSendEmail_WithSingleAttachment(t *testing.T) {
 		ListConfigurationSetsWithContext(gomock.Any(), gomock.Any()).
 		Return(&ses.ListConfigurationSetsOutput{}, nil)
 
-	mockSESClient.EXPECT().
-		SendRawEmailWithContext(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(_ context.Context, input *ses.SendRawEmailInput, _ ...request.Option) (*ses.SendRawEmailOutput, error) {
+	mockSESv2.EXPECT().
+		SendEmail(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, input *sesv2.SendEmailInput, _ ...func(*sesv2.Options)) (*sesv2.SendEmailOutput, error) {
 			// Verify raw message is not nil
-			assert.NotNil(t, input.RawMessage)
-			assert.NotNil(t, input.RawMessage.Data)
+			assert.NotNil(t, input.Content.Raw)
+			assert.NotNil(t, input.Content.Raw.Data)
 
 			// Verify the raw message contains attachment references
-			rawData := string(input.RawMessage.Data)
+			rawData := string(input.Content.Raw.Data)
 			assert.Contains(t, rawData, "test.txt")
 			assert.Contains(t, rawData, "text/plain")
 			assert.Contains(t, rawData, "Content-Disposition: attachment")
 
-			return &ses.SendRawEmailOutput{}, nil
+			return &sesv2.SendEmailOutput{}, nil
 		})
 
 	request := domain.SendEmailProviderRequest{
@@ -2284,7 +2295,7 @@ func TestSendEmail_WithSingleAttachment(t *testing.T) {
 
 // Test SendEmail - with multiple attachments
 func TestSendEmail_WithMultipleAttachments(t *testing.T) {
-	service, mockSESClient, _, _, _ := createMockSESService(t)
+	service, mockSESClient, _, _, _, mockSESv2 := createMockSESServiceWithV2(t)
 
 	provider := &domain.EmailProvider{
 		SES: &domain.AmazonSESSettings{
@@ -2313,11 +2324,11 @@ func TestSendEmail_WithMultipleAttachments(t *testing.T) {
 		ListConfigurationSetsWithContext(gomock.Any(), gomock.Any()).
 		Return(&ses.ListConfigurationSetsOutput{}, nil)
 
-	mockSESClient.EXPECT().
-		SendRawEmailWithContext(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(_ context.Context, input *ses.SendRawEmailInput, _ ...request.Option) (*ses.SendRawEmailOutput, error) {
-			assert.NotNil(t, input.RawMessage)
-			rawData := string(input.RawMessage.Data)
+	mockSESv2.EXPECT().
+		SendEmail(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, input *sesv2.SendEmailInput, _ ...func(*sesv2.Options)) (*sesv2.SendEmailOutput, error) {
+			assert.NotNil(t, input.Content.Raw)
+			rawData := string(input.Content.Raw.Data)
 
 			// Verify both attachments are present
 			assert.Contains(t, rawData, "document.pdf")
@@ -2325,7 +2336,7 @@ func TestSendEmail_WithMultipleAttachments(t *testing.T) {
 			assert.Contains(t, rawData, "image.png")
 			assert.Contains(t, rawData, "image/png")
 
-			return &ses.SendRawEmailOutput{}, nil
+			return &sesv2.SendEmailOutput{}, nil
 		})
 
 	request := domain.SendEmailProviderRequest{
@@ -2347,7 +2358,7 @@ func TestSendEmail_WithMultipleAttachments(t *testing.T) {
 
 // Test SendEmail - with inline attachment
 func TestSendEmail_WithInlineAttachment(t *testing.T) {
-	service, mockSESClient, _, _, _ := createMockSESService(t)
+	service, mockSESClient, _, _, _, mockSESv2 := createMockSESServiceWithV2(t)
 
 	provider := &domain.EmailProvider{
 		SES: &domain.AmazonSESSettings{
@@ -2370,18 +2381,18 @@ func TestSendEmail_WithInlineAttachment(t *testing.T) {
 		ListConfigurationSetsWithContext(gomock.Any(), gomock.Any()).
 		Return(&ses.ListConfigurationSetsOutput{}, nil)
 
-	mockSESClient.EXPECT().
-		SendRawEmailWithContext(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(_ context.Context, input *ses.SendRawEmailInput, _ ...request.Option) (*ses.SendRawEmailOutput, error) {
-			assert.NotNil(t, input.RawMessage)
-			rawData := string(input.RawMessage.Data)
+	mockSESv2.EXPECT().
+		SendEmail(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, input *sesv2.SendEmailInput, _ ...func(*sesv2.Options)) (*sesv2.SendEmailOutput, error) {
+			assert.NotNil(t, input.Content.Raw)
+			rawData := string(input.Content.Raw.Data)
 
 			// Verify inline disposition and Content-ID (note: canonicalized as Content-Id)
 			assert.Contains(t, rawData, "logo.png")
 			assert.Contains(t, rawData, "Content-Disposition: inline")
 			assert.Contains(t, rawData, "Content-Id: <logo.png>")
 
-			return &ses.SendRawEmailOutput{}, nil
+			return &sesv2.SendEmailOutput{}, nil
 		})
 
 	request := domain.SendEmailProviderRequest{
@@ -2404,7 +2415,7 @@ func TestSendEmail_WithInlineAttachment(t *testing.T) {
 // Test SendEmail - inline attachment with an explicit content_id must be wrapped
 // in a multipart/related subtree and carry the caller-provided Content-ID.
 func TestSendEmail_InlineAttachment_MultipartRelatedAndContentID(t *testing.T) {
-	service, mockSESClient, _, _, _ := createMockSESService(t)
+	service, mockSESClient, _, _, _, mockSESv2 := createMockSESServiceWithV2(t)
 
 	provider := &domain.EmailProvider{
 		SES: &domain.AmazonSESSettings{
@@ -2434,11 +2445,11 @@ func TestSendEmail_InlineAttachment_MultipartRelatedAndContentID(t *testing.T) {
 		ListConfigurationSetsWithContext(gomock.Any(), gomock.Any()).
 		Return(&ses.ListConfigurationSetsOutput{}, nil)
 
-	mockSESClient.EXPECT().
-		SendRawEmailWithContext(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(_ context.Context, input *ses.SendRawEmailInput, _ ...request.Option) (*ses.SendRawEmailOutput, error) {
-			require.NotNil(t, input.RawMessage)
-			rawData := string(input.RawMessage.Data)
+	mockSESv2.EXPECT().
+		SendEmail(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, input *sesv2.SendEmailInput, _ ...func(*sesv2.Options)) (*sesv2.SendEmailOutput, error) {
+			require.NotNil(t, input.Content.Raw)
+			rawData := string(input.Content.Raw.Data)
 
 			// Top-level is multipart/mixed (holds the regular attachment), and the
 			// inline image lives inside a multipart/related subtree with the HTML.
@@ -2456,7 +2467,7 @@ func TestSendEmail_InlineAttachment_MultipartRelatedAndContentID(t *testing.T) {
 			// attachment, proving it is nested in the related subtree.
 			assert.Less(t, strings.Index(rawData, "checkInQr"), strings.Index(rawData, "receipt.pdf"))
 
-			return &ses.SendRawEmailOutput{}, nil
+			return &sesv2.SendEmailOutput{}, nil
 		})
 
 	request := domain.SendEmailProviderRequest{
@@ -2478,7 +2489,7 @@ func TestSendEmail_InlineAttachment_MultipartRelatedAndContentID(t *testing.T) {
 
 // Test SendEmail - with attachment without content type (auto-detect)
 func TestSendEmail_WithAttachmentNoContentType(t *testing.T) {
-	service, mockSESClient, _, _, _ := createMockSESService(t)
+	service, mockSESClient, _, _, _, mockSESv2 := createMockSESServiceWithV2(t)
 
 	provider := &domain.EmailProvider{
 		SES: &domain.AmazonSESSettings{
@@ -2501,17 +2512,17 @@ func TestSendEmail_WithAttachmentNoContentType(t *testing.T) {
 		ListConfigurationSetsWithContext(gomock.Any(), gomock.Any()).
 		Return(&ses.ListConfigurationSetsOutput{}, nil)
 
-	mockSESClient.EXPECT().
-		SendRawEmailWithContext(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(_ context.Context, input *ses.SendRawEmailInput, _ ...request.Option) (*ses.SendRawEmailOutput, error) {
-			assert.NotNil(t, input.RawMessage)
-			rawData := string(input.RawMessage.Data)
+	mockSESv2.EXPECT().
+		SendEmail(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, input *sesv2.SendEmailInput, _ ...func(*sesv2.Options)) (*sesv2.SendEmailOutput, error) {
+			assert.NotNil(t, input.Content.Raw)
+			rawData := string(input.Content.Raw.Data)
 
 			// Verify default content type is set
 			assert.Contains(t, rawData, "application/octet-stream")
 			assert.Contains(t, rawData, "data.bin")
 
-			return &ses.SendRawEmailOutput{}, nil
+			return &sesv2.SendEmailOutput{}, nil
 		})
 
 	request := domain.SendEmailProviderRequest{
@@ -2533,7 +2544,7 @@ func TestSendEmail_WithAttachmentNoContentType(t *testing.T) {
 
 // Test SendEmail - with attachment decode error
 func TestSendEmail_WithAttachmentDecodeError(t *testing.T) {
-	service, mockSESClient, _, _, _ := createMockSESService(t)
+	service, mockSESClient, _, _, _, _ := createMockSESServiceWithV2(t)
 
 	provider := &domain.EmailProvider{
 		SES: &domain.AmazonSESSettings{
@@ -2577,7 +2588,7 @@ func TestSendEmail_WithAttachmentDecodeError(t *testing.T) {
 
 // Test SendEmail - with attachments and CC/BCC
 func TestSendEmail_WithAttachmentsAndCCBCC(t *testing.T) {
-	service, mockSESClient, _, _, _ := createMockSESService(t)
+	service, mockSESClient, _, _, _, mockSESv2 := createMockSESServiceWithV2(t)
 
 	provider := &domain.EmailProvider{
 		SES: &domain.AmazonSESSettings{
@@ -2603,29 +2614,26 @@ func TestSendEmail_WithAttachmentsAndCCBCC(t *testing.T) {
 		ListConfigurationSetsWithContext(gomock.Any(), gomock.Any()).
 		Return(&ses.ListConfigurationSetsOutput{}, nil)
 
-	mockSESClient.EXPECT().
-		SendRawEmailWithContext(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(_ context.Context, input *ses.SendRawEmailInput, _ ...request.Option) (*ses.SendRawEmailOutput, error) {
-			assert.NotNil(t, input.RawMessage)
-			rawData := string(input.RawMessage.Data)
+	mockSESv2.EXPECT().
+		SendEmail(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, input *sesv2.SendEmailInput, _ ...func(*sesv2.Options)) (*sesv2.SendEmailOutput, error) {
+			assert.NotNil(t, input.Content.Raw)
+			rawData := string(input.Content.Raw.Data)
 
 			// Verify CC is in headers (but not BCC for privacy)
 			assert.Contains(t, rawData, "Cc: cc@example.com")
 			assert.NotContains(t, rawData, "Bcc:")
 
-			// Verify BCC is in destinations
-			assert.Len(t, input.Destinations, 2) // to + bcc
-			destinations := make([]string, len(input.Destinations))
-			for i, dest := range input.Destinations {
-				destinations[i] = *dest
-			}
-			assert.Contains(t, destinations, "to@example.com")
-			assert.Contains(t, destinations, "bcc@example.com")
+			// Every recipient class must be in the envelope. CC used to be omitted here,
+			// so a message with both CC and BCC never reached its CC recipients.
+			assert.Equal(t, []string{"to@example.com"}, input.Destination.ToAddresses)
+			assert.Equal(t, []string{"cc@example.com"}, input.Destination.CcAddresses)
+			assert.Equal(t, []string{"bcc@example.com"}, input.Destination.BccAddresses)
 
 			// Verify attachment
 			assert.Contains(t, rawData, "report.pdf")
 
-			return &ses.SendRawEmailOutput{}, nil
+			return &sesv2.SendEmailOutput{}, nil
 		})
 
 	request := domain.SendEmailProviderRequest{
@@ -2651,7 +2659,7 @@ func TestSendEmail_WithAttachmentsAndCCBCC(t *testing.T) {
 
 // Test SendEmail - with attachments and ReplyTo
 func TestSendEmail_WithAttachmentsAndReplyTo(t *testing.T) {
-	service, mockSESClient, _, _, _ := createMockSESService(t)
+	service, mockSESClient, _, _, _, mockSESv2 := createMockSESServiceWithV2(t)
 
 	provider := &domain.EmailProvider{
 		SES: &domain.AmazonSESSettings{
@@ -2676,11 +2684,11 @@ func TestSendEmail_WithAttachmentsAndReplyTo(t *testing.T) {
 		ListConfigurationSetsWithContext(gomock.Any(), gomock.Any()).
 		Return(&ses.ListConfigurationSetsOutput{}, nil)
 
-	mockSESClient.EXPECT().
-		SendRawEmailWithContext(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(_ context.Context, input *ses.SendRawEmailInput, _ ...request.Option) (*ses.SendRawEmailOutput, error) {
-			assert.NotNil(t, input.RawMessage)
-			rawData := string(input.RawMessage.Data)
+	mockSESv2.EXPECT().
+		SendEmail(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, input *sesv2.SendEmailInput, _ ...func(*sesv2.Options)) (*sesv2.SendEmailOutput, error) {
+			assert.NotNil(t, input.Content.Raw)
+			rawData := string(input.Content.Raw.Data)
 
 			// Verify Reply-To header
 			assert.Contains(t, rawData, fmt.Sprintf("Reply-To: %s", replyTo))
@@ -2688,7 +2696,7 @@ func TestSendEmail_WithAttachmentsAndReplyTo(t *testing.T) {
 			// Verify attachment
 			assert.Contains(t, rawData, "file.txt")
 
-			return &ses.SendRawEmailOutput{}, nil
+			return &sesv2.SendEmailOutput{}, nil
 		})
 
 	request := domain.SendEmailProviderRequest{
@@ -2713,7 +2721,7 @@ func TestSendEmail_WithAttachmentsAndReplyTo(t *testing.T) {
 
 // Test SendEmail - with attachments and configuration set
 func TestSendEmail_WithAttachmentsAndConfigSet(t *testing.T) {
-	service, mockSESClient, _, _, _ := createMockSESService(t)
+	service, mockSESClient, _, _, _, mockSESv2 := createMockSESServiceWithV2(t)
 
 	integrationID := "test-integration"
 	configSetName := fmt.Sprintf("notifuse-%s", integrationID)
@@ -2744,18 +2752,18 @@ func TestSendEmail_WithAttachmentsAndConfigSet(t *testing.T) {
 			},
 		}, nil)
 
-	mockSESClient.EXPECT().
-		SendRawEmailWithContext(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(_ context.Context, input *ses.SendRawEmailInput, _ ...request.Option) (*ses.SendRawEmailOutput, error) {
+	mockSESv2.EXPECT().
+		SendEmail(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, input *sesv2.SendEmailInput, _ ...func(*sesv2.Options)) (*sesv2.SendEmailOutput, error) {
 			// Verify configuration set is included
 			assert.NotNil(t, input.ConfigurationSetName)
 			assert.Equal(t, configSetName, *input.ConfigurationSetName)
 
 			// Verify attachment
-			rawData := string(input.RawMessage.Data)
+			rawData := string(input.Content.Raw.Data)
 			assert.Contains(t, rawData, "doc.pdf")
 
-			return &ses.SendRawEmailOutput{}, nil
+			return &sesv2.SendEmailOutput{}, nil
 		})
 
 	request := domain.SendEmailProviderRequest{
@@ -2777,7 +2785,7 @@ func TestSendEmail_WithAttachmentsAndConfigSet(t *testing.T) {
 
 // Test SendEmail - raw email without configuration set should not include ConfigurationSetName
 func TestSendEmail_RawEmail_NoConfigurationSet(t *testing.T) {
-	service, mockSESClient, _, _, _ := createMockSESService(t)
+	service, mockSESClient, _, _, _, mockSESv2 := createMockSESServiceWithV2(t)
 
 	provider := &domain.EmailProvider{
 		SES: &domain.AmazonSESSettings{
@@ -2803,17 +2811,17 @@ func TestSendEmail_RawEmail_NoConfigurationSet(t *testing.T) {
 			ConfigurationSets: []*ses.ConfigurationSet{},
 		}, nil)
 
-	mockSESClient.EXPECT().
-		SendRawEmailWithContext(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(_ context.Context, input *ses.SendRawEmailInput, _ ...request.Option) (*ses.SendRawEmailOutput, error) {
+	mockSESv2.EXPECT().
+		SendEmail(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, input *sesv2.SendEmailInput, _ ...func(*sesv2.Options)) (*sesv2.SendEmailOutput, error) {
 			// Verify configuration set is NOT included (graceful degradation)
 			assert.Nil(t, input.ConfigurationSetName, "ConfigurationSetName should be nil when config set doesn't exist")
 
 			// Verify attachment is still present
-			rawData := string(input.RawMessage.Data)
+			rawData := string(input.Content.Raw.Data)
 			assert.Contains(t, rawData, "doc.pdf")
 
-			return &ses.SendRawEmailOutput{}, nil
+			return &sesv2.SendEmailOutput{}, nil
 		})
 
 	request := domain.SendEmailProviderRequest{
@@ -2835,7 +2843,7 @@ func TestSendEmail_RawEmail_NoConfigurationSet(t *testing.T) {
 
 // Test SendEmail - with attachments, AWS SendRawEmail error
 func TestSendEmail_WithAttachmentsAWSError(t *testing.T) {
-	service, mockSESClient, _, _, _ := createMockSESService(t)
+	service, mockSESClient, _, _, _, mockSESv2 := createMockSESServiceWithV2(t)
 
 	provider := &domain.EmailProvider{
 		SES: &domain.AmazonSESSettings{
@@ -2858,9 +2866,9 @@ func TestSendEmail_WithAttachmentsAWSError(t *testing.T) {
 		ListConfigurationSetsWithContext(gomock.Any(), gomock.Any()).
 		Return(&ses.ListConfigurationSetsOutput{}, nil)
 
-	awsErr := awserr.New("MessageRejected", "Message too large", nil)
-	mockSESClient.EXPECT().
-		SendRawEmailWithContext(gomock.Any(), gomock.Any()).
+	awsErr := &smithy.GenericAPIError{Code: "MessageRejected", Message: "Message too large"}
+	mockSESv2.EXPECT().
+		SendEmail(gomock.Any(), gomock.Any()).
 		Return(nil, awsErr)
 
 	request := domain.SendEmailProviderRequest{
@@ -2884,7 +2892,7 @@ func TestSendEmail_WithAttachmentsAWSError(t *testing.T) {
 
 // Test SendEmail - with attachments, generic error
 func TestSendEmail_WithAttachmentsGenericError(t *testing.T) {
-	service, mockSESClient, _, _, _ := createMockSESService(t)
+	service, mockSESClient, _, _, _, mockSESv2 := createMockSESServiceWithV2(t)
 
 	provider := &domain.EmailProvider{
 		SES: &domain.AmazonSESSettings{
@@ -2907,8 +2915,8 @@ func TestSendEmail_WithAttachmentsGenericError(t *testing.T) {
 		ListConfigurationSetsWithContext(gomock.Any(), gomock.Any()).
 		Return(&ses.ListConfigurationSetsOutput{}, nil)
 
-	mockSESClient.EXPECT().
-		SendRawEmailWithContext(gomock.Any(), gomock.Any()).
+	mockSESv2.EXPECT().
+		SendEmail(gomock.Any(), gomock.Any()).
 		Return(nil, errors.New("network error"))
 
 	request := domain.SendEmailProviderRequest{
@@ -2931,7 +2939,7 @@ func TestSendEmail_WithAttachmentsGenericError(t *testing.T) {
 
 // Test SendEmail - verify MIME structure with attachments
 func TestSendEmail_VerifyMIMEStructureWithAttachments(t *testing.T) {
-	service, mockSESClient, _, _, _ := createMockSESService(t)
+	service, mockSESClient, _, _, _, mockSESv2 := createMockSESServiceWithV2(t)
 
 	provider := &domain.EmailProvider{
 		SES: &domain.AmazonSESSettings{
@@ -2954,11 +2962,11 @@ func TestSendEmail_VerifyMIMEStructureWithAttachments(t *testing.T) {
 		ListConfigurationSetsWithContext(gomock.Any(), gomock.Any()).
 		Return(&ses.ListConfigurationSetsOutput{}, nil)
 
-	mockSESClient.EXPECT().
-		SendRawEmailWithContext(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(_ context.Context, input *ses.SendRawEmailInput, _ ...request.Option) (*ses.SendRawEmailOutput, error) {
-			assert.NotNil(t, input.RawMessage)
-			rawData := string(input.RawMessage.Data)
+	mockSESv2.EXPECT().
+		SendEmail(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, input *sesv2.SendEmailInput, _ ...func(*sesv2.Options)) (*sesv2.SendEmailOutput, error) {
+			assert.NotNil(t, input.Content.Raw)
+			rawData := string(input.Content.Raw.Data)
 
 			// Verify MIME headers
 			assert.Contains(t, rawData, "MIME-Version: 1.0")
@@ -2978,12 +2986,12 @@ func TestSendEmail_VerifyMIMEStructureWithAttachments(t *testing.T) {
 			assert.Contains(t, rawData, "Content-Disposition: attachment; filename=\"test.txt\"")
 
 			// Verify tags are included in SendRawEmail
-			assert.NotNil(t, input.Tags, "Tags should be set for SendRawEmail")
-			assert.Len(t, input.Tags, 1)
-			assert.Equal(t, "notifuse_message_id", *input.Tags[0].Name)
-			assert.Equal(t, "test-message-id", *input.Tags[0].Value)
+			assert.NotNil(t, input.EmailTags, "Tags should be set for SendRawEmail")
+			assert.Len(t, input.EmailTags, 1)
+			assert.Equal(t, "notifuse_message_id", *input.EmailTags[0].Name)
+			assert.Equal(t, "test-message-id", *input.EmailTags[0].Value)
 
-			return &ses.SendRawEmailOutput{}, nil
+			return &sesv2.SendEmailOutput{}, nil
 		})
 
 	request := domain.SendEmailProviderRequest{
@@ -3005,7 +3013,7 @@ func TestSendEmail_VerifyMIMEStructureWithAttachments(t *testing.T) {
 
 // Test SendEmail - with List-Unsubscribe headers (RFC-8058)
 func TestSendEmail_WithListUnsubscribeHeaders(t *testing.T) {
-	service, mockSESClient, _, _, _ := createMockSESService(t)
+	service, mockSESClient, _, _, _, mockSESv2 := createMockSESServiceWithV2(t)
 
 	provider := &domain.EmailProvider{
 		SES: &domain.AmazonSESSettings{
@@ -3019,23 +3027,23 @@ func TestSendEmail_WithListUnsubscribeHeaders(t *testing.T) {
 		ListConfigurationSetsWithContext(gomock.Any(), gomock.Any()).
 		Return(&ses.ListConfigurationSetsOutput{}, nil)
 
-	mockSESClient.EXPECT().
-		SendRawEmailWithContext(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(_ context.Context, input *ses.SendRawEmailInput, _ ...request.Option) (*ses.SendRawEmailOutput, error) {
-			assert.NotNil(t, input.RawMessage)
-			rawData := string(input.RawMessage.Data)
+	mockSESv2.EXPECT().
+		SendEmail(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, input *sesv2.SendEmailInput, _ ...func(*sesv2.Options)) (*sesv2.SendEmailOutput, error) {
+			assert.NotNil(t, input.Content.Raw)
+			rawData := string(input.Content.Raw.Data)
 
 			// Verify RFC-8058 List-Unsubscribe headers are present
 			assert.Contains(t, rawData, "List-Unsubscribe: <https://example.com/unsubscribe/abc123>")
 			assert.Contains(t, rawData, "List-Unsubscribe-Post: List-Unsubscribe=One-Click")
 
 			// Verify tags are included in SendRawEmail
-			assert.NotNil(t, input.Tags, "Tags should be set for SendRawEmail")
-			assert.Len(t, input.Tags, 1)
-			assert.Equal(t, "notifuse_message_id", *input.Tags[0].Name)
-			assert.Equal(t, "test-message-id", *input.Tags[0].Value)
+			assert.NotNil(t, input.EmailTags, "Tags should be set for SendRawEmail")
+			assert.Len(t, input.EmailTags, 1)
+			assert.Equal(t, "notifuse_message_id", *input.EmailTags[0].Name)
+			assert.Equal(t, "test-message-id", *input.EmailTags[0].Value)
 
-			return &ses.SendRawEmailOutput{}, nil
+			return &sesv2.SendEmailOutput{}, nil
 		})
 
 	request := domain.SendEmailProviderRequest{
@@ -3059,7 +3067,7 @@ func TestSendEmail_WithListUnsubscribeHeaders(t *testing.T) {
 
 // Test SendEmail - with List-Unsubscribe headers and attachments
 func TestSendEmail_WithListUnsubscribeAndAttachments(t *testing.T) {
-	service, mockSESClient, _, _, _ := createMockSESService(t)
+	service, mockSESClient, _, _, _, mockSESv2 := createMockSESServiceWithV2(t)
 
 	provider := &domain.EmailProvider{
 		SES: &domain.AmazonSESSettings{
@@ -3082,11 +3090,11 @@ func TestSendEmail_WithListUnsubscribeAndAttachments(t *testing.T) {
 		ListConfigurationSetsWithContext(gomock.Any(), gomock.Any()).
 		Return(&ses.ListConfigurationSetsOutput{}, nil)
 
-	mockSESClient.EXPECT().
-		SendRawEmailWithContext(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(_ context.Context, input *ses.SendRawEmailInput, _ ...request.Option) (*ses.SendRawEmailOutput, error) {
-			assert.NotNil(t, input.RawMessage)
-			rawData := string(input.RawMessage.Data)
+	mockSESv2.EXPECT().
+		SendEmail(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, input *sesv2.SendEmailInput, _ ...func(*sesv2.Options)) (*sesv2.SendEmailOutput, error) {
+			assert.NotNil(t, input.Content.Raw)
+			rawData := string(input.Content.Raw.Data)
 
 			// Verify RFC-8058 List-Unsubscribe headers are present
 			assert.Contains(t, rawData, "List-Unsubscribe: <https://example.com/unsubscribe/xyz789>")
@@ -3096,7 +3104,7 @@ func TestSendEmail_WithListUnsubscribeAndAttachments(t *testing.T) {
 			assert.Contains(t, rawData, "test.txt")
 			assert.Contains(t, rawData, "Content-Disposition: attachment")
 
-			return &ses.SendRawEmailOutput{}, nil
+			return &sesv2.SendEmailOutput{}, nil
 		})
 
 	request := domain.SendEmailProviderRequest{
@@ -3284,7 +3292,7 @@ func TestFormatFromHeader(t *testing.T) {
 }
 
 func TestSendEmail_WithNonASCIIFromName(t *testing.T) {
-	service, mockSES, _, _, _ := createMockSESService(t)
+	service, mockSES, _, _, _, mockSESv2 := createMockSESServiceWithV2(t)
 
 	provider := domain.EmailProvider{
 		SES: &domain.AmazonSESSettings{
@@ -3302,16 +3310,16 @@ func TestSendEmail_WithNonASCIIFromName(t *testing.T) {
 		}, nil)
 
 	// Capture and verify the SendEmail input
-	mockSES.EXPECT().
-		SendEmailWithContext(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(_ context.Context, input *ses.SendEmailInput, _ ...request.Option) (*ses.SendEmailOutput, error) {
+	mockSESv2.EXPECT().
+		SendEmail(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, input *sesv2.SendEmailInput, _ ...func(*sesv2.Options)) (*sesv2.SendEmailOutput, error) {
 			// Verify From header is RFC 2047 encoded
-			source := *input.Source
+			source := *input.FromEmailAddress
 			assert.Contains(t, source, "=?UTF-8?b?")
 			assert.Contains(t, source, "?=")
 			assert.Contains(t, source, "<jose@example.com>")
 
-			return &ses.SendEmailOutput{}, nil
+			return &sesv2.SendEmailOutput{}, nil
 		})
 
 	request := domain.SendEmailProviderRequest{
@@ -3331,7 +3339,7 @@ func TestSendEmail_WithNonASCIIFromName(t *testing.T) {
 }
 
 func TestSendEmail_WithInternationalDomain(t *testing.T) {
-	service, mockSES, _, _, _ := createMockSESService(t)
+	service, mockSES, _, _, _, mockSESv2 := createMockSESServiceWithV2(t)
 
 	provider := domain.EmailProvider{
 		SES: &domain.AmazonSESSettings{
@@ -3349,14 +3357,14 @@ func TestSendEmail_WithInternationalDomain(t *testing.T) {
 		}, nil)
 
 	// Capture and verify the SendEmail input
-	mockSES.EXPECT().
-		SendEmailWithContext(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(_ context.Context, input *ses.SendEmailInput, _ ...request.Option) (*ses.SendEmailOutput, error) {
+	mockSESv2.EXPECT().
+		SendEmail(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, input *sesv2.SendEmailInput, _ ...func(*sesv2.Options)) (*sesv2.SendEmailOutput, error) {
 			// Verify To address has Punycode domain
-			toAddress := *input.Destination.ToAddresses[0]
+			toAddress := input.Destination.ToAddresses[0]
 			assert.Equal(t, "user@xn--mnchen-3ya.de", toAddress)
 
-			return &ses.SendEmailOutput{}, nil
+			return &sesv2.SendEmailOutput{}, nil
 		})
 
 	request := domain.SendEmailProviderRequest{
@@ -3376,7 +3384,7 @@ func TestSendEmail_WithInternationalDomain(t *testing.T) {
 }
 
 func TestSendRawEmail_WithNonASCIISubject(t *testing.T) {
-	service, mockSES, _, _, _ := createMockSESService(t)
+	service, mockSES, _, _, _, mockSESv2 := createMockSESServiceWithV2(t)
 
 	provider := domain.EmailProvider{
 		SES: &domain.AmazonSESSettings{
@@ -3394,15 +3402,15 @@ func TestSendRawEmail_WithNonASCIISubject(t *testing.T) {
 		}, nil)
 
 	// Capture and verify the SendRawEmail input
-	mockSES.EXPECT().
-		SendRawEmailWithContext(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(_ context.Context, input *ses.SendRawEmailInput, _ ...request.Option) (*ses.SendRawEmailOutput, error) {
-			rawData := string(input.RawMessage.Data)
+	mockSESv2.EXPECT().
+		SendEmail(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, input *sesv2.SendEmailInput, _ ...func(*sesv2.Options)) (*sesv2.SendEmailOutput, error) {
+			rawData := string(input.Content.Raw.Data)
 
 			// Verify Subject is RFC 2047 encoded (Go's mime package uses lowercase 'b')
 			assert.Contains(t, rawData, "Subject: =?UTF-8?b?")
 
-			return &ses.SendRawEmailOutput{}, nil
+			return &sesv2.SendEmailOutput{}, nil
 		})
 
 	request := domain.SendEmailProviderRequest{
@@ -3461,7 +3469,7 @@ func TestSendEmail_QuotedPrintableEncoding(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			service, mockSES, _, _, _ := createMockSESService(t)
+			service, mockSES, _, _, _, mockSESv2 := createMockSESServiceWithV2(t)
 
 			provider := domain.EmailProvider{
 				SES: &domain.AmazonSESSettings{
@@ -3475,11 +3483,11 @@ func TestSendEmail_QuotedPrintableEncoding(t *testing.T) {
 				ListConfigurationSetsWithContext(gomock.Any(), gomock.Any()).
 				Return(&ses.ListConfigurationSetsOutput{}, nil)
 
-			mockSES.EXPECT().
-				SendRawEmailWithContext(gomock.Any(), gomock.Any()).
-				DoAndReturn(func(_ context.Context, input *ses.SendRawEmailInput, _ ...request.Option) (*ses.SendRawEmailOutput, error) {
-					assert.NotNil(t, input.RawMessage)
-					rawData := string(input.RawMessage.Data)
+			mockSESv2.EXPECT().
+				SendEmail(gomock.Any(), gomock.Any()).
+				DoAndReturn(func(_ context.Context, input *sesv2.SendEmailInput, _ ...func(*sesv2.Options)) (*sesv2.SendEmailOutput, error) {
+					assert.NotNil(t, input.Content.Raw)
+					rawData := string(input.Content.Raw.Data)
 
 					// Verify Content-Transfer-Encoding header is present
 					assert.Contains(t, rawData, "Content-Transfer-Encoding: quoted-printable",
@@ -3488,7 +3496,7 @@ func TestSendEmail_QuotedPrintableEncoding(t *testing.T) {
 					// Verify the content is actually QP encoded
 					assert.Contains(t, rawData, tc.expectedEncoded, tc.description)
 
-					return &ses.SendRawEmailOutput{}, nil
+					return &sesv2.SendEmailOutput{}, nil
 				})
 
 			request := domain.SendEmailProviderRequest{
@@ -3514,7 +3522,7 @@ func TestSendEmail_QuotedPrintableEncoding(t *testing.T) {
 // TestSendEmail_QuotedPrintableRoundTrip verifies that QP-encoded content
 // can be decoded back to the original content (Issue #230)
 func TestSendEmail_QuotedPrintableRoundTrip(t *testing.T) {
-	service, mockSES, _, _, _ := createMockSESService(t)
+	service, mockSES, _, _, _, mockSESv2 := createMockSESServiceWithV2(t)
 
 	provider := domain.EmailProvider{
 		SES: &domain.AmazonSESSettings{
@@ -3531,11 +3539,11 @@ func TestSendEmail_QuotedPrintableRoundTrip(t *testing.T) {
 		ListConfigurationSetsWithContext(gomock.Any(), gomock.Any()).
 		Return(&ses.ListConfigurationSetsOutput{}, nil)
 
-	mockSES.EXPECT().
-		SendRawEmailWithContext(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(_ context.Context, input *ses.SendRawEmailInput, _ ...request.Option) (*ses.SendRawEmailOutput, error) {
-			capturedRawData = string(input.RawMessage.Data)
-			return &ses.SendRawEmailOutput{}, nil
+	mockSESv2.EXPECT().
+		SendEmail(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, input *sesv2.SendEmailInput, _ ...func(*sesv2.Options)) (*sesv2.SendEmailOutput, error) {
+			capturedRawData = string(input.Content.Raw.Data)
+			return &sesv2.SendEmailOutput{}, nil
 		})
 
 	request := domain.SendEmailProviderRequest{

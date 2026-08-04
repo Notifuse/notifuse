@@ -3,29 +3,16 @@ package domain
 import (
 	"context"
 	"fmt"
+	"regexp"
 
 	"github.com/Notifuse/notifuse/pkg/crypto"
 	"github.com/aws/aws-sdk-go/aws/request"
-	"github.com/aws/aws-sdk-go/service/ses"
 	"github.com/aws/aws-sdk-go/service/sns"
 )
 
 //go:generate mockgen -destination mocks/mock_ses_service.go -package mocks github.com/Notifuse/notifuse/internal/domain SESServiceInterface
-//go:generate mockgen -destination mocks/mock_ses_client.go -package mocks github.com/Notifuse/notifuse/internal/domain SESClient
 //go:generate mockgen -destination mocks/mock_sns_client.go -package mocks github.com/Notifuse/notifuse/internal/domain SNSClient
 
-// SESWebhookClient defines the interface for SES client operations related to webhook management
-type SESClient interface {
-	ListConfigurationSetsWithContext(ctx context.Context, input *ses.ListConfigurationSetsInput, opts ...request.Option) (*ses.ListConfigurationSetsOutput, error)
-	CreateConfigurationSetWithContext(ctx context.Context, input *ses.CreateConfigurationSetInput, opts ...request.Option) (*ses.CreateConfigurationSetOutput, error)
-	DeleteConfigurationSetWithContext(ctx context.Context, input *ses.DeleteConfigurationSetInput, opts ...request.Option) (*ses.DeleteConfigurationSetOutput, error)
-	DescribeConfigurationSetWithContext(ctx context.Context, input *ses.DescribeConfigurationSetInput, opts ...request.Option) (*ses.DescribeConfigurationSetOutput, error)
-	CreateConfigurationSetEventDestinationWithContext(ctx context.Context, input *ses.CreateConfigurationSetEventDestinationInput, opts ...request.Option) (*ses.CreateConfigurationSetEventDestinationOutput, error)
-	UpdateConfigurationSetEventDestinationWithContext(ctx context.Context, input *ses.UpdateConfigurationSetEventDestinationInput, opts ...request.Option) (*ses.UpdateConfigurationSetEventDestinationOutput, error)
-	DeleteConfigurationSetEventDestinationWithContext(ctx context.Context, input *ses.DeleteConfigurationSetEventDestinationInput, opts ...request.Option) (*ses.DeleteConfigurationSetEventDestinationOutput, error)
-	SendEmailWithContext(ctx context.Context, input *ses.SendEmailInput, opts ...request.Option) (*ses.SendEmailOutput, error)
-	SendRawEmailWithContext(ctx context.Context, input *ses.SendRawEmailInput, opts ...request.Option) (*ses.SendRawEmailOutput, error)
-}
 
 // SNSWebhookClient defines the interface for SNS client operations related to webhook management
 type SNSClient interface {
@@ -188,6 +175,85 @@ type AmazonSESSettings struct {
 	// TopicArn doesn't match this are rejected. For manual SES inbound setups this must be set
 	// explicitly (the SNS topic ARN that the receipt rule publishes to).
 	InboundTopicARN string `json:"inbound_topic_arn,omitempty"`
+
+	// --- tenant isolation: operator intent -------------------------------------------------
+
+	// TenantIsolationEnabled turns on Notifuse-managed SES tenant isolation: a tenant per
+	// integration with its own reputation profile and its own suppression list, so another
+	// workspace's bounces cannot pause or suppress this one. Provisioning is explicit and
+	// billable, so this flag only records the request; ManagedTenantName records what was
+	// actually created in AWS.
+	TenantIsolationEnabled bool `json:"tenant_isolation_enabled,omitempty"`
+
+	// --- advanced overrides (escape hatch) -------------------------------------------------
+
+	// ConfigurationSetName overrides the auto-managed "notifuse-<integrationID>" configuration
+	// set. Empty means Notifuse manages it.
+	ConfigurationSetName string `json:"configuration_set_name,omitempty"`
+
+	// TenantName scopes sends to a tenant the operator manages themselves. Mutually exclusive
+	// with TenantIsolationEnabled: two sources of truth for the same value is not a state worth
+	// having.
+	TenantName string `json:"tenant_name,omitempty"`
+
+	// --- derived state, written by provisioning; never form fields -------------------------
+
+	// ManagedConfigurationSet is the "notifuse-<integrationID>" set created during webhook
+	// registration. It is persisted so the send path never has to call ListConfigurationSets,
+	// which AWS limits to once per second per account+region.
+	ManagedConfigurationSet string `json:"managed_configuration_set,omitempty"`
+
+	// ManagedTenantName is the tenant Notifuse created and associated. Empty while isolation is
+	// requested but not yet provisioned — a state the UI surfaces rather than hides.
+	ManagedTenantName string `json:"managed_tenant_name,omitempty"`
+}
+
+// sesResourceNameRegex matches the SES naming rule shared by tenants and configuration sets:
+// "up to 64 alphanumeric characters, including letters, numbers, hyphens (-) and underscores (_)".
+var sesResourceNameRegex = regexp.MustCompile(`^[A-Za-z0-9_-]{1,64}$`)
+
+// ResolveConfigurationSet returns the configuration set to send through: the operator's override
+// first, then the set Notifuse manages. An empty result means "none resolved" — the caller decides
+// whether to look one up or send without.
+func (a *AmazonSESSettings) ResolveConfigurationSet() string {
+	if a.ConfigurationSetName != "" {
+		return a.ConfigurationSetName
+	}
+	return a.ManagedConfigurationSet
+}
+
+// ResolveTenant returns the tenant a SEND should be scoped to: the operator's own tenant first,
+// then the one Notifuse manages — and that one only while isolation is actually switched on.
+//
+// The flag is what makes the switch two-way. ManagedTenantName is a record of what exists in AWS,
+// not permission to use it: without this check, turning isolation off would leave every message
+// still scoped to a tenant the operator believes they have disabled, and the only way to stop
+// would be to delete the integration.
+func (a *AmazonSESSettings) ResolveTenant() string {
+	if a.TenantName != "" {
+		return a.TenantName
+	}
+	if !a.TenantIsolationEnabled {
+		return ""
+	}
+	return a.ManagedTenantName
+}
+
+// KnownTenant returns any tenant this integration is associated with in AWS, whether or not it is
+// currently used for sending. Teardown and verification need this rather than ResolveTenant:
+// a tenant that isolation was switched off for still exists, still holds the configuration set
+// association that blocks deletion, and still bills.
+func (a *AmazonSESSettings) KnownTenant() string {
+	if a.ManagedTenantName != "" {
+		return a.ManagedTenantName
+	}
+	return a.TenantName
+}
+
+// OwnsManagedTenant reports whether Notifuse created the tenant, and may therefore delete it.
+// An operator's own tenant is never ours to remove.
+func (a *AmazonSESSettings) OwnsManagedTenant() bool {
+	return a.ManagedTenantName != ""
 }
 
 func (a *AmazonSESSettings) DecryptSecretKey(passphrase string) error {
@@ -209,13 +275,29 @@ func (a *AmazonSESSettings) EncryptSecretKey(passphrase string) error {
 }
 
 func (a *AmazonSESSettings) Validate(passphrase string) error {
-	// Check if any field is set to determine if we should validate
+	// Check if any field is set to determine if we should validate. The tenant fields count:
+	// a blob carrying only a tenant name must report the missing region rather than pass as
+	// "not configured".
 	isConfigured := a.Region != "" || a.AccessKey != "" ||
-		a.EncryptedSecretKey != "" || a.SecretKey != ""
+		a.EncryptedSecretKey != "" || a.SecretKey != "" ||
+		a.TenantIsolationEnabled || a.TenantName != "" || a.ConfigurationSetName != ""
 
 	// If no fields are set, consider it valid (optional config)
 	if !isConfigured {
 		return nil
+	}
+
+	// Managed isolation and a hand-managed tenant are two sources of truth for the same value.
+	if a.TenantIsolationEnabled && a.TenantName != "" {
+		return fmt.Errorf("tenant isolation cannot be enabled while an explicit tenant name is set: clear one of them")
+	}
+
+	if a.ConfigurationSetName != "" && !sesResourceNameRegex.MatchString(a.ConfigurationSetName) {
+		return fmt.Errorf("invalid configuration set name: up to 64 letters, numbers, hyphens or underscores")
+	}
+
+	if a.TenantName != "" && !sesResourceNameRegex.MatchString(a.TenantName) {
+		return fmt.Errorf("invalid tenant name: up to 64 letters, numbers, hyphens or underscores")
 	}
 
 	// If any field is set, validate required fields are present

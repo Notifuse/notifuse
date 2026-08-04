@@ -948,6 +948,12 @@ type WorkspaceRepository interface {
 	GetWorkspaceByCustomDomain(ctx context.Context, hostname string) (*Workspace, error)
 	List(ctx context.Context) ([]*Workspace, error)
 	Update(ctx context.Context, workspace *Workspace) error
+
+	// PatchIntegrationSESSettings merges patch into one integration's SES settings in a single
+	// statement. Update() rewrites the whole row, so a read-modify-write there races with any
+	// concurrent integration edit and silently loses one side's changes. Server-owned fields
+	// are written through this instead.
+	PatchIntegrationSESSettings(ctx context.Context, workspaceID string, integrationID string, patch map[string]interface{}) error
 	Delete(ctx context.Context, id string) error
 
 	// User workspace management

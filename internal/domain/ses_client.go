@@ -7,6 +7,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/sns"
 )
 
+//go:generate mockgen -destination mocks/mock_ses_webhook_client.go -package mocks github.com/Notifuse/notifuse/internal/domain SESWebhookClient
+
 // SESWebhookClient defines the interface for interacting with AWS SES service
 type SESWebhookClient interface {
 	CreateConfigurationSetWithContext(ctx aws.Context, input *ses.CreateConfigurationSetInput, opts ...request.Option) (*ses.CreateConfigurationSetOutput, error)

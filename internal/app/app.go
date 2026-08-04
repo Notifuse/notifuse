@@ -167,6 +167,7 @@ type App struct {
 	mailjetService   *service.MailjetService
 	sparkPostService *service.SparkPostService
 	sesService       *service.SESService
+	sesDiscoveryService *service.SESDiscoveryService
 	sendGridService  *service.SendGridService
 
 	// Cache
@@ -640,6 +641,7 @@ func (a *App) InitServices() error {
 	a.mailjetService = service.NewMailjetService(httpClient, a.authService, a.logger)
 	a.sparkPostService = service.NewSparkPostService(httpClient, a.authService, a.logger)
 	a.sesService = service.NewSESService(a.authService, a.logger)
+	a.sesDiscoveryService = service.NewSESDiscoveryService(a.workspaceRepo, a.authService, a.sesService, a.logger)
 	a.sendGridService = service.NewSendGridService(httpClient, a.authService, a.logger)
 
 	// Initialize email service
@@ -1184,6 +1186,7 @@ func (a *App) InitHandlers() error {
 	transactionalHandler := httpHandler.NewTransactionalNotificationHandler(a.transactionalNotificationService, getJWTSecret, a.logger, a.config.IsDemo())
 	inboundWebhookEventHandler := httpHandler.NewInboundWebhookEventHandler(a.inboundWebhookEventService, getJWTSecret, a.rateLimiter, a.logger)
 	webhookRegistrationHandler := httpHandler.NewWebhookRegistrationHandler(a.webhookRegistrationService, getJWTSecret, a.logger)
+	sesHandler := httpHandler.NewSESHandler(a.sesDiscoveryService, getJWTSecret, a.logger)
 	supabaseWebhookHandler := httpHandler.NewSupabaseWebhookHandler(a.supabaseService, a.logger)
 	messageHistoryHandler := httpHandler.NewMessageHistoryHandler(
 		a.messageHistoryService,
@@ -1259,6 +1262,7 @@ func (a *App) InitHandlers() error {
 	transactionalHandler.RegisterRoutes(a.mux)
 	inboundWebhookEventHandler.RegisterRoutes(a.mux)
 	webhookRegistrationHandler.RegisterRoutes(a.mux)
+	sesHandler.RegisterRoutes(a.mux)
 	supabaseWebhookHandler.RegisterRoutes(a.mux)
 	messageHistoryHandler.RegisterRoutes(a.mux)
 	notificationCenterHandler.RegisterRoutes(a.mux)

@@ -1395,6 +1395,26 @@ func (s *WorkspaceService) CreateIntegration(ctx context.Context, req domain.Cre
 }
 
 // UpdateIntegration updates an existing integration in a workspace
+// preserveDerivedSESFields copies server-owned SES state from the stored integration onto the
+// updated one. These fields are written by webhook registration and tenant provisioning, never by
+// a client, so a client's value (or absence of one) must not win.
+func preserveDerivedSESFields(updated *domain.Integration, existing *domain.Integration) {
+	if existing == nil || existing.EmailProvider.SES == nil {
+		return
+	}
+	if updated.EmailProvider.SES == nil {
+		return
+	}
+
+	updated.EmailProvider.SES.ManagedConfigurationSet = existing.EmailProvider.SES.ManagedConfigurationSet
+	updated.EmailProvider.SES.ManagedTenantName = existing.EmailProvider.SES.ManagedTenantName
+
+	// InboundTopicARN predates this change and had the same exposure.
+	if updated.EmailProvider.SES.InboundTopicARN == "" {
+		updated.EmailProvider.SES.InboundTopicARN = existing.EmailProvider.SES.InboundTopicARN
+	}
+}
+
 func (s *WorkspaceService) UpdateIntegration(ctx context.Context, req domain.UpdateIntegrationRequest) error {
 	// Authenticate user and verify they are an owner of the workspace
 	// (platform admins are synthesized as owners).
@@ -1435,6 +1455,11 @@ func (s *WorkspaceService) UpdateIntegration(ctx context.Context, req domain.Upd
 	switch existingIntegration.Type {
 	case domain.IntegrationTypeEmail:
 		updatedIntegration.EmailProvider = req.Provider
+		// Derived state belongs to the server, not the client. Without this, any caller whose
+		// payload omits these fields — which is every API client that isn't our console —
+		// silently wipes them: the SES tenant and configuration set stop being sent, and
+		// stop-on-reply breaks because the inbound topic ARN is gone.
+		preserveDerivedSESFields(&updatedIntegration, existingIntegration)
 	case domain.IntegrationTypeSupabase:
 		// Preserve existing encrypted keys if new keys are not provided
 		if req.SupabaseSettings != nil {
@@ -1570,30 +1595,22 @@ func (s *WorkspaceService) DeleteIntegration(ctx context.Context, workspaceID, i
 	// Handle type-specific cleanup before removing the integration
 	switch integration.Type {
 	case domain.IntegrationTypeEmail:
-		// Attempt to unregister webhooks for email integrations (except SMTP which doesn't support webhooks)
+		// Tear down the provider-side resources this integration owns (except SMTP, which has
+		// none). This is deliberately unconditional: it used to run only when webhooks were
+		// registered, but SES resources now outlive webhook registration on purpose — an
+		// integration whose webhooks were unregistered still owns a configuration set and,
+		// when isolation is enabled, a tenant that AWS bills monthly. Gating on registration
+		// would strand both with no way to remove them.
 		if s.webhookRegService != nil && integration.EmailProvider.Kind != domain.EmailProviderKindSMTP {
-			// Try to get webhook status to check what's registered
-			status, err := s.webhookRegService.GetWebhookStatus(ctx, workspaceID, integrationID)
-			if err != nil {
-				// Just log the error, don't prevent deletion
+			s.logger.WithField("workspace_id", workspaceID).
+				WithField("integration_id", integrationID).
+				Info("Removing provider resources for integration that is being deleted")
+
+			if err := s.webhookRegService.DeleteIntegrationResources(ctx, workspaceID, integrationID); err != nil {
 				s.logger.WithField("workspace_id", workspaceID).
 					WithField("integration_id", integrationID).
 					WithField("error", err.Error()).
-					Warn("Failed to get webhook status during integration deletion")
-			} else if status != nil && status.IsRegistered {
-				// Log that we're removing webhooks
-				s.logger.WithField("workspace_id", workspaceID).
-					WithField("integration_id", integrationID).
-					Info("Unregistering webhooks for integration that is being deleted")
-
-				// Use the dedicated method to unregister webhooks
-				err := s.webhookRegService.UnregisterWebhooks(ctx, workspaceID, integrationID)
-				if err != nil {
-					s.logger.WithField("workspace_id", workspaceID).
-						WithField("integration_id", integrationID).
-						WithField("error", err.Error()).
-						Warn("Failed to unregister webhooks during integration deletion, continuing with deletion anyway")
-				}
+					Warn("Failed to remove provider resources during integration deletion, continuing with deletion anyway")
 			}
 		}
 

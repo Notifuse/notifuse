@@ -12,7 +12,6 @@ import (
 
 //go:generate mockgen -destination mocks/mock_email_service.go -package mocks github.com/Notifuse/notifuse/internal/domain EmailServiceInterface
 //go:generate mockgen -destination mocks/mock_http_client.go -package mocks github.com/Notifuse/notifuse/internal/domain HTTPClient
-//go:generate mockgen -destination mocks/mock_ses_client.go -package mocks github.com/Notifuse/notifuse/internal/domain SESClient
 //go:generate mockgen -destination mocks/mock_email_provider_service.go -package mocks github.com/Notifuse/notifuse/internal/domain EmailProviderService
 
 // HTTPClient defines the interface for HTTP operations
