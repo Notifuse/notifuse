@@ -565,7 +565,7 @@ msgstr ""
 msgid "Add Custom Header"
 msgstr ""
 
-#: src/components/settings/Integrations.tsx:2408
+#: src/components/settings/Integrations.tsx:2426
 msgid "Add Integration"
 msgstr "連携を追加"
 
@@ -586,7 +586,7 @@ msgstr "ノードを追加"
 msgid "Add notes about this version..."
 msgstr "このバージョンについてメモを追加..."
 
-#: src/components/settings/Integrations.tsx:2150
+#: src/components/settings/Integrations.tsx:2168
 msgid "Add one or more email senders. The first sender will be used as the default."
 msgstr "1つ以上のメール送信者を追加してください。最初の送信者がデフォルトとして使用されます。"
 
@@ -594,9 +594,9 @@ msgstr "1つ以上のメール送信者を追加してください。最初の�
 msgid "Add path"
 msgstr "パスを追加"
 
-#: src/components/settings/Integrations.tsx:2109
-#: src/components/settings/Integrations.tsx:2165
-#: src/components/settings/Integrations.tsx:2452
+#: src/components/settings/Integrations.tsx:2127
+#: src/components/settings/Integrations.tsx:2183
+#: src/components/settings/Integrations.tsx:2470
 msgid "Add Sender"
 msgstr "送信者を追加"
 
@@ -869,7 +869,7 @@ msgid "API Command"
 msgstr "APIコマンド"
 
 #: src/components/settings/Integrations.tsx:1889
-#: src/components/settings/Integrations.tsx:2253
+#: src/components/settings/Integrations.tsx:2271
 #: src/components/settings/SystemSettingsDrawer.tsx:277
 #: src/pages/SetupWizard.tsx:379
 msgid "API Endpoint"
@@ -1082,7 +1082,7 @@ msgstr "認証メールフック"
 msgid "Auth Email Hook Secret"
 msgstr "認証メールフックシークレット"
 
-#: src/components/settings/Integrations.tsx:2191
+#: src/components/settings/Integrations.tsx:2209
 msgid "Authentication"
 msgstr "認証"
 
@@ -1209,7 +1209,7 @@ msgid "AWS Access Key"
 msgstr "AWSアクセスキー"
 
 #: src/components/settings/Integrations.tsx:1614
-#: src/components/settings/Integrations.tsx:2214
+#: src/components/settings/Integrations.tsx:2232
 msgid "AWS Region"
 msgstr "AWSリージョン"
 
@@ -1704,12 +1704,12 @@ msgstr "ボタンサイズ"
 #: src/components/settings/BlogSettings.tsx:185
 #: src/components/settings/CustomFieldsConfiguration.tsx:291
 #: src/components/settings/EditPermissionsModal.tsx:121
-#: src/components/settings/Integrations.tsx:2334
-#: src/components/settings/Integrations.tsx:2457
-#: src/components/settings/Integrations.tsx:2492
-#: src/components/settings/Integrations.tsx:2539
-#: src/components/settings/Integrations.tsx:2587
-#: src/components/settings/Integrations.tsx:2634
+#: src/components/settings/Integrations.tsx:2352
+#: src/components/settings/Integrations.tsx:2475
+#: src/components/settings/Integrations.tsx:2510
+#: src/components/settings/Integrations.tsx:2557
+#: src/components/settings/Integrations.tsx:2605
+#: src/components/settings/Integrations.tsx:2652
 #: src/components/settings/SystemSettingsDrawer.tsx:170
 #: src/components/settings/WebhookCard.tsx:348
 #: src/components/settings/WebhooksSettings.tsx:213
@@ -2161,8 +2161,8 @@ msgstr "条件"
 msgid "Configuration for {nodeType} is not available in Phase 2"
 msgstr "{nodeType}の設定はフェーズ2では利用できません"
 
-#: src/components/settings/Integrations.tsx:2025
-#: src/components/settings/Integrations.tsx:2217
+#: src/components/settings/Integrations.tsx:2024
+#: src/components/settings/Integrations.tsx:2235
 msgid "Configuration set"
 msgstr ""
 
@@ -2242,7 +2242,7 @@ msgstr "確認"
 msgid "Confirmed"
 msgstr "確認済み"
 
-#: src/components/settings/Integrations.tsx:2401
+#: src/components/settings/Integrations.tsx:2419
 msgid "Connect and manage external services"
 msgstr "外部サービスを接続・管理"
 
@@ -2250,11 +2250,11 @@ msgstr "外部サービスを接続・管理"
 msgid "Connection Details"
 msgstr "接続詳細"
 
-#: src/components/settings/Integrations.tsx:2430
+#: src/components/settings/Integrations.tsx:2448
 msgid "Consider connecting a marketing email provider to send newsletters, promotional campaigns, and announcements to engage with your audience."
 msgstr "オーディエンスとのエンゲージメントのためにニュースレター、プロモーション、お知らせを送信するマーケティングメールプロバイダーの接続を検討してください。"
 
-#: src/components/settings/Integrations.tsx:2425
+#: src/components/settings/Integrations.tsx:2443
 msgid "Consider connecting a transactional email provider to be able to use transactional emails for account notifications, password resets, and other important system messages."
 msgstr "アカウント通知、パスワードリセット、その他の重要なシステムメッセージにトランザクションメールを使用するために、トランザクションメールプロバイダーの接続を検討してください。"
 
@@ -2637,7 +2637,7 @@ msgstr "CSVにはヘッダー行と少なくとも1つのデータ行が必要�
 msgid "Current Segment Tree JSON"
 msgstr "現在のセグメントツリーJSON"
 
-#: src/components/settings/Integrations.tsx:2222
+#: src/components/settings/Integrations.tsx:2240
 msgid "custom"
 msgstr ""
 
@@ -3068,7 +3068,7 @@ msgstr "通知を削除しますか？"
 msgid "Delete this integration?"
 msgstr "この連携を削除しますか？"
 
-#: src/components/settings/Integrations.tsx:2129
+#: src/components/settings/Integrations.tsx:2147
 msgid "Delete this sender?"
 msgstr "この送信者を削除しますか？"
 
@@ -3241,7 +3241,7 @@ msgid "Documentation"
 msgstr "ドキュメント"
 
 #: src/components/settings/Integrations.tsx:1937
-#: src/components/settings/Integrations.tsx:2262
+#: src/components/settings/Integrations.tsx:2280
 #: src/pages/SetupWizard.tsx:605
 msgid "Domain"
 msgstr "ドメイン"
@@ -3500,7 +3500,7 @@ msgstr "投稿を編集"
 msgid "Edit segment"
 msgstr "セグメントを編集"
 
-#: src/components/settings/Integrations.tsx:2452
+#: src/components/settings/Integrations.tsx:2470
 msgid "Edit Sender"
 msgstr "送信者を編集"
 
@@ -3544,7 +3544,7 @@ msgid "Editor mode"
 msgstr ""
 
 #: src/components/settings/Integrations.tsx:1877
-#: src/components/settings/Integrations.tsx:2203
+#: src/components/settings/Integrations.tsx:2221
 #: src/components/settings/SystemSettingsDrawer.tsx:432
 #: src/pages/SetupWizard.tsx:523
 msgid "EHLO Hostname"
@@ -3575,7 +3575,7 @@ msgstr "メール"
 #: src/components/contacts/ExportContactsModal.tsx:50
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:338
 #: src/components/messages/MessageHistoryTab.tsx:219
-#: src/components/settings/Integrations.tsx:2467
+#: src/components/settings/Integrations.tsx:2485
 #: src/components/settings/WorkspaceMembers.tsx:78
 #: src/components/timeline/ContactTimeline.tsx:511
 #: src/pages/ContactsPage.tsx:369
@@ -3655,7 +3655,7 @@ msgstr "メールオプション:"
 msgid "Email Preview"
 msgstr "メールプレビュー"
 
-#: src/components/settings/Integrations.tsx:2420
+#: src/components/settings/Integrations.tsx:2438
 msgid "Email Provider Configuration Needed"
 msgstr "メールプロバイダの設定が必要です"
 
@@ -3696,12 +3696,12 @@ msgid "Email:"
 msgstr "メール:"
 
 #: src/components/settings/Integrations.tsx:2000
-#: src/components/settings/Integrations.tsx:2289
+#: src/components/settings/Integrations.tsx:2307
 msgid "emails per day"
 msgstr "メール/日"
 
 #: src/components/settings/Integrations.tsx:1999
-#: src/components/settings/Integrations.tsx:2288
+#: src/components/settings/Integrations.tsx:2306
 msgid "emails per hour"
 msgstr "メール/時間"
 
@@ -3805,7 +3805,7 @@ msgstr "ワークスペース名を入力"
 msgid "Enter a unique alphanumeric ID"
 msgstr "一意の英数字IDを入力"
 
-#: src/components/settings/Integrations.tsx:2505
+#: src/components/settings/Integrations.tsx:2523
 msgid "Enter an email address to receive a test email:"
 msgstr "テストメールを受け取るメールアドレスを入力:"
 
@@ -5587,7 +5587,7 @@ msgstr "連携が見つからないか、メールプロバイダーではあり
 msgid "Integration updated successfully"
 msgstr "連携を更新しました"
 
-#: src/components/settings/Integrations.tsx:2400
+#: src/components/settings/Integrations.tsx:2418
 #: src/components/settings/SettingsSidebar.tsx:55
 msgid "Integrations"
 msgstr "連携"
@@ -5710,11 +5710,11 @@ msgstr "に含まれる"
 msgid "is not in"
 msgstr "に含まれない"
 
-#: src/components/settings/Integrations.tsx:2236
+#: src/components/settings/Integrations.tsx:2254
 msgid "isolated"
 msgstr ""
 
-#: src/components/settings/Integrations.tsx:2244
+#: src/components/settings/Integrations.tsx:2262
 msgid "isolation requested but not provisioned"
 msgstr ""
 
@@ -5883,7 +5883,7 @@ msgstr "任意のフィールド変更でトリガーするには空のままに
 msgid "Leave empty to use a random contact from the broadcast audience."
 msgstr ""
 
-#: src/components/settings/Integrations.tsx:2026
+#: src/components/settings/Integrations.tsx:2027
 msgid "Leave empty to use the one Notifuse manages for this integration."
 msgstr ""
 
@@ -6194,7 +6194,7 @@ msgstr "ラッパーをメールビューポート全幅に広げ、コンテナ
 msgid "Manage your workspace members"
 msgstr "ワークスペースメンバーを管理"
 
-#: src/components/settings/Integrations.tsx:2222
+#: src/components/settings/Integrations.tsx:2240
 msgid "managed"
 msgstr ""
 
@@ -6282,7 +6282,7 @@ msgid "Message ID"
 msgstr "メッセージID"
 
 #: src/components/settings/Integrations.tsx:1926
-#: src/components/settings/Integrations.tsx:2271
+#: src/components/settings/Integrations.tsx:2289
 msgid "Message Stream"
 msgstr ""
 
@@ -6465,7 +6465,7 @@ msgstr "マイWebhook"
 msgid "my-custom-class"
 msgstr "my-custom-class"
 
-#: src/components/settings/Integrations.tsx:2062
+#: src/components/settings/Integrations.tsx:2080
 msgid "my-tenant"
 msgstr ""
 
@@ -6486,7 +6486,7 @@ msgstr "N/A"
 #: src/components/settings/Integrations.tsx:1345
 #: src/components/settings/Integrations.tsx:1504
 #: src/components/settings/Integrations.tsx:1571
-#: src/components/settings/Integrations.tsx:2477
+#: src/components/settings/Integrations.tsx:2495
 #: src/components/settings/WebhooksSettings.tsx:224
 msgid "Name"
 msgstr "名前"
@@ -6500,7 +6500,7 @@ msgstr "名前は255文字未満である必要があります"
 msgid "Name:"
 msgstr "名前:"
 
-#: src/components/settings/Integrations.tsx:2019
+#: src/components/settings/Integrations.tsx:2015
 msgid "Needs these extra IAM permissions: ses:CreateTenant, ses:CreateTenantResourceAssociation, ses:GetTenant, ses:PutTenantSuppressionAttributes, ses:ListEmailIdentities. Add ses:ListTenants and ses:ListTenantResources for the pickers below, and ses:DeleteTenant plus ses:DeleteTenantResourceAssociation so the tenant is removed with the integration instead of billing forever."
 msgstr ""
 
@@ -6894,7 +6894,7 @@ msgstr "未設定"
 msgid "Not connected"
 msgstr "未接続"
 
-#: src/components/settings/Integrations.tsx:2228
+#: src/components/settings/Integrations.tsx:2246
 msgid "not created yet — register webhooks"
 msgstr ""
 
@@ -6951,7 +6951,7 @@ msgstr "通知を更新しました"
 msgid "Notifuse will create a tenant in your AWS account, give it its own suppression list, and associate this integration's configuration set and sender identities with it. AWS bills per tenant per month, based on volume."
 msgstr ""
 
-#: src/components/settings/Integrations.tsx:2038
+#: src/components/settings/Integrations.tsx:2039
 msgid "notifuse-…"
 msgstr ""
 
@@ -7893,7 +7893,7 @@ msgstr "プッシュ"
 msgid "Queued emails will not be sent. In-flight sends will complete."
 msgstr ""
 
-#: src/components/settings/Integrations.tsx:2285
+#: src/components/settings/Integrations.tsx:2303
 msgid "Rate Limit for Marketing"
 msgstr "マーケティングのレート制限"
 
@@ -8052,7 +8052,7 @@ msgid "Regenerate secret?"
 msgstr "シークレットを再生成しますか？"
 
 #: src/components/settings/Integrations.tsx:1943
-#: src/components/settings/Integrations.tsx:2265
+#: src/components/settings/Integrations.tsx:2283
 msgid "Region"
 msgstr "リージョン"
 
@@ -8182,7 +8182,7 @@ msgstr "Reply-To"
 msgid "Report An Issue"
 msgstr "問題を報告"
 
-#: src/components/settings/Integrations.tsx:2232
+#: src/components/settings/Integrations.tsx:2250
 msgid "Reputation"
 msgstr ""
 
@@ -8407,8 +8407,8 @@ msgstr "サンプル値"
 
 #: src/components/settings/Integrations.tsx:1907
 #: src/components/settings/Integrations.tsx:1971
-#: src/components/settings/Integrations.tsx:2256
-#: src/components/settings/Integrations.tsx:2277
+#: src/components/settings/Integrations.tsx:2274
+#: src/components/settings/Integrations.tsx:2295
 msgid "Sandbox Mode"
 msgstr "サンドボックスモード"
 
@@ -8426,11 +8426,11 @@ msgstr "サンドボックスモード"
 #: src/components/file_manager/buttonSettings.tsx:312
 #: src/components/lists/ListDrawer.tsx:170
 #: src/components/settings/CustomFieldsConfiguration.tsx:293
-#: src/components/settings/Integrations.tsx:2337
-#: src/components/settings/Integrations.tsx:2460
-#: src/components/settings/Integrations.tsx:2547
-#: src/components/settings/Integrations.tsx:2595
-#: src/components/settings/Integrations.tsx:2642
+#: src/components/settings/Integrations.tsx:2355
+#: src/components/settings/Integrations.tsx:2478
+#: src/components/settings/Integrations.tsx:2565
+#: src/components/settings/Integrations.tsx:2613
+#: src/components/settings/Integrations.tsx:2660
 #: src/components/settings/SystemSettingsDrawer.tsx:239
 #: src/components/settings/WebhooksSettings.tsx:215
 #: src/components/templates/CreateTemplateDrawer.tsx:640
@@ -8979,7 +8979,7 @@ msgstr "ブロードキャストを送信または予約"
 msgid "Send Test"
 msgstr "テストを送信"
 
-#: src/components/settings/Integrations.tsx:2501
+#: src/components/settings/Integrations.tsx:2519
 #: src/components/templates/SendTemplateModal.tsx:263
 #: src/components/templates/SendTemplateModal.tsx:277
 #: src/pages/BroadcastsPage.tsx:887
@@ -9003,7 +9003,7 @@ msgid "Sender Name"
 msgstr "送信者名"
 
 #: src/components/settings/Integrations.tsx:378
-#: src/components/settings/Integrations.tsx:2148
+#: src/components/settings/Integrations.tsx:2166
 msgid "Senders"
 msgstr "送信者"
 
@@ -9080,7 +9080,7 @@ msgstr "サーバーが正常に再起動されました！サインインでき
 msgid "Server Token"
 msgstr "サーバートークン"
 
-#: src/components/settings/Integrations.tsx:2049
+#: src/components/settings/Integrations.tsx:2050
 msgid "SES tenant"
 msgstr ""
 
@@ -9092,7 +9092,7 @@ msgstr ""
 msgid "Set as default marketing email provider"
 msgstr "デフォルトのマーケティングメールプロバイダーに設定"
 
-#: src/components/settings/Integrations.tsx:2118
+#: src/components/settings/Integrations.tsx:2136
 msgid "Set as default sender"
 msgstr "デフォルトの送信者に設定"
 
@@ -9201,7 +9201,7 @@ msgstr "セットアップ完了！"
 msgid "Share link"
 msgstr ""
 
-#: src/components/settings/Integrations.tsx:2247
+#: src/components/settings/Integrations.tsx:2265
 msgid "shared with the rest of this AWS account"
 msgstr ""
 
@@ -9335,7 +9335,7 @@ msgid "SMTP domain"
 msgstr "SMTPドメイン"
 
 #: src/components/settings/Integrations.tsx:1688
-#: src/components/settings/Integrations.tsx:2182
+#: src/components/settings/Integrations.tsx:2200
 #: src/components/settings/SystemSettingsDrawer.tsx:316
 #: src/pages/SetupWizard.tsx:454
 msgid "SMTP Host"
@@ -9377,7 +9377,7 @@ msgstr "SMTPプロバイダーは苦情Webhookをサポートしていないた�
 msgid "SMTP provider doesn't support delivery webhooks, so delivery status cannot be tracked"
 msgstr "SMTPプロバイダーは配信Webhookをサポートしていないため、配信ステータスを追跡できません"
 
-#: src/components/settings/Integrations.tsx:2185
+#: src/components/settings/Integrations.tsx:2203
 msgid "SMTP User"
 msgstr "SMTPユーザー"
 
@@ -9875,7 +9875,7 @@ msgstr "テンプレート:"
 msgid "Templates"
 msgstr "テンプレート"
 
-#: src/components/settings/Integrations.tsx:2130
+#: src/components/settings/Integrations.tsx:2148
 msgid "Templates using this sender will need to be updated to use a different sender."
 msgstr "この送信者を使用しているテンプレートは、別の送信者を使用するように更新する必要があります。"
 
@@ -9923,7 +9923,7 @@ msgstr "テストデータが正常に更新されました"
 msgid "Test duration (hours)"
 msgstr "テスト期間（時間）"
 
-#: src/components/settings/Integrations.tsx:2487
+#: src/components/settings/Integrations.tsx:2505
 msgid "Test Email Provider"
 msgstr "メールプロバイダーをテスト"
 
@@ -9945,7 +9945,7 @@ msgstr "テスト失敗: {0}"
 msgid "Test in different email clients as support varies"
 msgstr "サポート状況は異なるため、様々なメールクライアントでテストしてください"
 
-#: src/components/settings/Integrations.tsx:2335
+#: src/components/settings/Integrations.tsx:2353
 msgid "Test Integration"
 msgstr "連携テスト"
 
@@ -10167,7 +10167,7 @@ msgstr "テーマが正常に更新されました"
 msgid "Theme Versions"
 msgstr "テーマバージョン"
 
-#: src/components/settings/Integrations.tsx:2073
+#: src/components/settings/Integrations.tsx:2091
 msgid "These AWS credentials can't list tenants or configuration sets (needs ses:ListTenants). Type the names instead."
 msgstr ""
 
@@ -10346,7 +10346,7 @@ msgstr "このメールプロバイダーのWebhookエンドポイントを登�
 msgid "This will replace all content with the default language template. Continue?"
 msgstr ""
 
-#: src/components/settings/Integrations.tsx:2513
+#: src/components/settings/Integrations.tsx:2531
 msgid "This will send a real test email to the address provided."
 msgstr "指定されたアドレスに実際のテストメールが送信されます。"
 
@@ -10448,7 +10448,7 @@ msgstr "TLS証明書（Base64）"
 msgid "TLS certificate is required"
 msgstr "TLS証明書は必須です"
 
-#: src/components/settings/Integrations.tsx:2188
+#: src/components/settings/Integrations.tsx:2206
 msgid "TLS Enabled"
 msgstr "TLS有効"
 
@@ -10618,6 +10618,10 @@ msgstr "変換"
 #: src/components/blog_editor/menus/block-actions/BlockTransformPopover.tsx:94
 msgid "Turn Into"
 msgstr "変換"
+
+#: src/components/settings/Integrations.tsx:2069
+msgid "Turn off SES tenant isolation to use your own tenant, or clear this field."
+msgstr ""
 
 #: src/components/segment/form_leaf.tsx:351
 #: src/components/segment/input.tsx:788
@@ -10801,8 +10805,8 @@ msgstr "購読解除"
 msgid "Untitled"
 msgstr "無題"
 
-#: src/components/settings/Integrations.tsx:2030
-#: src/components/settings/Integrations.tsx:2054
+#: src/components/settings/Integrations.tsx:2031
+#: src/components/settings/Integrations.tsx:2058
 msgid "Up to 64 letters, numbers, hyphens or underscores."
 msgstr ""
 
@@ -10928,7 +10932,7 @@ msgstr "使用"
 msgid "Use a different email"
 msgstr "別のメールを使用"
 
-#: src/components/settings/Integrations.tsx:2050
+#: src/components/settings/Integrations.tsx:2054
 msgid "Use a tenant you manage yourself. Requires a configuration set associated with it in AWS."
 msgstr ""
 
