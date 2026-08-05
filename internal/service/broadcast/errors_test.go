@@ -1,10 +1,13 @@
 package broadcast
 
 import (
+	"context"
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestBroadcastError_Error(t *testing.T) {
@@ -131,4 +134,47 @@ func TestIsRetryable(t *testing.T) {
 			assert.Equal(t, tc.expected, result)
 		})
 	}
+}
+
+// TestIsInterrupted pins which failures count as "the run was cut short"
+// rather than "the broadcast is broken". Only context cancellation qualifies:
+// these used to surface as BROADCAST_NOT_FOUND, sending everyone reading the
+// logs looking for a deleted broadcast.
+func TestIsInterrupted(t *testing.T) {
+	tests := []struct {
+		name string
+		err  error
+		want bool
+	}{
+		{"nil", nil, false},
+		{"cancelled", context.Canceled, true},
+		{"deadline exceeded", context.DeadlineExceeded, true},
+		{"wrapped in fmt.Errorf", fmt.Errorf("get connection: %w", context.Canceled), true},
+		{"wrapped in a BroadcastError", NewBroadcastError(ErrCodeSendFailed, "enqueue", true, context.Canceled), true},
+		{"unrelated error", errors.New("boom"), false},
+		{"unrelated BroadcastError", NewBroadcastError(ErrCodeTemplateMissing, "missing", false, nil), false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, IsInterrupted(tt.err))
+		})
+	}
+}
+
+// TestWrapIfInterrupted checks the conversion used by the recipient-fetch paths.
+func TestWrapIfInterrupted(t *testing.T) {
+	t.Run("converts a cancellation", func(t *testing.T) {
+		wrapped, ok := wrapIfInterrupted(fmt.Errorf("get connection: %w", context.Canceled))
+		require.True(t, ok)
+		assert.Equal(t, ErrCodeInterrupted, wrapped.Code)
+		assert.True(t, wrapped.Retryable)
+		assert.ErrorIs(t, wrapped, context.Canceled)
+	})
+
+	t.Run("leaves other errors to the caller", func(t *testing.T) {
+		wrapped, ok := wrapIfInterrupted(errors.New("no such broadcast"))
+		assert.False(t, ok)
+		assert.Nil(t, wrapped)
+	})
 }

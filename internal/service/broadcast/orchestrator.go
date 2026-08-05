@@ -246,6 +246,9 @@ func (o *BroadcastOrchestrator) GetTotalRecipientCount(ctx context.Context, work
 			"error":        err.Error(),
 		}).Error("Failed to get broadcast for recipient count")
 		// codecov:ignore:end
+		if interrupted, ok := wrapIfInterrupted(err); ok {
+			return 0, interrupted
+		}
 		return 0, NewBroadcastError(ErrCodeBroadcastNotFound, "broadcast not found", false, err)
 	}
 
@@ -301,6 +304,9 @@ func (o *BroadcastOrchestrator) FetchBatch(ctx context.Context, workspaceID, bro
 			"error":        err.Error(),
 		}).Error("Failed to get broadcast for recipient fetch")
 		// codecov:ignore:end
+		if interrupted, ok := wrapIfInterrupted(err); ok {
+			return nil, interrupted
+		}
 		return nil, NewBroadcastError(ErrCodeBroadcastNotFound, "broadcast not found", false, err)
 	}
 
@@ -480,16 +486,41 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 				return
 			}
 
+			// An interruption is not the broadcast's fault, so it ends up paused
+			// (with the reason on the row) rather than failed: paused is
+			// resumable from the console and picks up at the saved cursor,
+			// while failed is terminal. Already-enqueued rows are deliberately
+			// left alone — those emails are committed and should keep going out.
+			// Ask the context, not just the error. A cancellation that lands
+			// inside the enqueue transaction surfaces as sql.ErrTxDone — the
+			// database/sql watchdog has already rolled back, so Commit reports
+			// "transaction has already been committed or rolled back" and the
+			// chain carries no context error at all. That is the single most
+			// likely shape of a real interruption, and classifying it off the
+			// error alone marks the broadcast failed instead of resumable.
+			interrupted := IsInterrupted(err) || ctx.Err() != nil
+			targetStatus := domain.BroadcastStatusFailed
+			if interrupted {
+				targetStatus = domain.BroadcastStatusPaused
+			}
+
 			o.logger.WithFields(map[string]interface{}{
-				"task_id":      task.ID,
-				"broadcast_id": broadcastID,
-				"retry_count":  task.RetryCount,
-				"max_retries":  task.MaxRetries,
-				"error":        err.Error(),
-			}).Info("Task failed on last retry attempt, marking broadcast as failed")
+				"task_id":       task.ID,
+				"broadcast_id":  broadcastID,
+				"retry_count":   task.RetryCount,
+				"max_retries":   task.MaxRetries,
+				"error":         err.Error(),
+				"target_status": string(targetStatus),
+			}).Info("Task failed on last retry attempt, finalizing broadcast status")
+
+			// These writes must not ride on ctx: the most common way to get
+			// here is that very context being cancelled, and the failed write
+			// left the broadcast stranded in "processing" for good, with its
+			// task dead and no way back.
+			finalizeCtx := context.WithoutCancel(ctx)
 
 			// Get the broadcast
-			broadcast, getBroadcastErr := o.broadcastRepo.GetBroadcast(ctx, task.WorkspaceID, broadcastID)
+			broadcast, getBroadcastErr := o.broadcastRepo.GetBroadcast(finalizeCtx, task.WorkspaceID, broadcastID)
 			if getBroadcastErr != nil {
 				o.logger.WithFields(map[string]interface{}{
 					"task_id":      task.ID,
@@ -499,23 +530,30 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 				return
 			}
 
-			// Update broadcast status to failed
-			broadcast.Status = domain.BroadcastStatusFailed
+			broadcast.Status = targetStatus
 			broadcast.UpdatedAt = time.Now().UTC()
+			if interrupted {
+				pausedAt := time.Now().UTC()
+				broadcast.PausedAt = &pausedAt
+				reason := fmt.Sprintf("Sending was interrupted and stopped after %d attempts: %v. Resume to continue where it left off.",
+					task.RetryCount+1, err)
+				broadcast.PauseReason = &reason
+			}
 
 			// Save the updated broadcast
-			updateErr := o.broadcastRepo.UpdateBroadcast(ctx, broadcast)
+			updateErr := o.broadcastRepo.UpdateBroadcast(finalizeCtx, broadcast)
 			if updateErr != nil {
 				o.logger.WithFields(map[string]interface{}{
 					"task_id":      task.ID,
 					"broadcast_id": broadcastID,
 					"error":        updateErr.Error(),
-				}).Error("Failed to update broadcast status to failed")
+				}).Error("Failed to update broadcast status after max retries")
 			} else {
 				o.logger.WithFields(map[string]interface{}{
 					"task_id":      task.ID,
 					"broadcast_id": broadcastID,
-				}).Info("Broadcast marked as failed due to max retries reached")
+					"status":       string(targetStatus),
+				}).Info("Broadcast finalized after max retries reached")
 			}
 
 		}
@@ -751,6 +789,20 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 						o.logger.WithField("broadcast_id", broadcast.ID).Info("A/B test phase started - broadcast status updated to testing")
 					}
 				}
+			case domain.BroadcastStatusTesting:
+				// The test phase is already under way, but this run has no phase
+				// in its state — the run that started the phase ended before it
+				// could persist one (a failed run writes no state). Without this
+				// the phase falls through to the default below and the run sends
+				// the *entire* audience as a single blast, mixing variations,
+				// then leaves the broadcast stuck in "testing" because none of
+				// the completion branches match an empty phase.
+				//
+				// Deliberately not extended to test_completed: reaching that
+				// status persists the phase on the way out, so the same gap is
+				// far narrower there, and what a recovered run should do with an
+				// already-finished test phase is not established.
+				broadcastState.Phase = "test"
 			case domain.BroadcastStatusWinnerSelected:
 				// Winner has been selected, proceed to winner phase
 				broadcastState.Phase = "winner"
@@ -1223,7 +1275,15 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 				"error":        sendErr.Error(),
 			}).Error("Error sending batch")
 			// codecov:ignore:end
-			// Continue despite errors as we want to make progress
+
+			// End the run here. A batch-level failure means the enqueue
+			// transaction never committed, so nothing was written for anyone in
+			// the batch; carrying on would advance the offset and the keyset
+			// cursor past recipients who were never enqueued and never will be.
+			// Leaving both untouched lets the next run re-process the same
+			// batch from the same cursor.
+			err = sendErr
+			return false, err
 		}
 
 		// Update progress counters

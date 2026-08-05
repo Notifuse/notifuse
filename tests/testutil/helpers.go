@@ -136,6 +136,25 @@ func NewIntegrationTestSuiteWithLiveScheduler(t *testing.T, appFactory func(*con
 // production Cloud path: tasks must execute in-process, never via HTTP self-dispatch.
 // All other helpers (factory, APIClient) work identically to the live-scheduler suite.
 func NewIntegrationTestSuiteWithDirectScheduler(t *testing.T, appFactory func(*config.Config) AppInterface) *IntegrationTestSuite {
+	return NewIntegrationTestSuiteWithDirectSchedulerCtx(t, context.Background(), appFactory)
+}
+
+// NewIntegrationTestSuiteWithDirectSchedulerCtx is NewIntegrationTestSuiteWithDirectScheduler
+// with the scheduler's context supplied by the caller.
+//
+// Cancelling that context interrupts whatever slice is executing: in
+// direct-execution mode it is the ancestor of the context ExecuteTask hands the
+// processor (scheduler.Start → run → executeTasks → ExecutePendingTasks →
+// executeTasksDirectly → ExecuteTask). This is how a test reaches the
+// interruption path — the release-without-spending-a-retry branch and the
+// pause-with-a-reason outcome — which nothing else can trigger now that the
+// HTTP handlers detach from their request.
+//
+// Prefer this over driving app.Shutdown(): shutdown also tears down the
+// connection pool, which races the very writes the assertions look for. Note
+// that the background workers share this context too, so cancelling also stops
+// the email queue worker.
+func NewIntegrationTestSuiteWithDirectSchedulerCtx(t *testing.T, ctx context.Context, appFactory func(*config.Config) AppInterface) *IntegrationTestSuite {
 	if os.Getenv("INTEGRATION_TESTS") != "true" {
 		t.Skip("Skipping integration test. Set INTEGRATION_TESTS=true to run.")
 	}
@@ -147,7 +166,7 @@ func NewIntegrationTestSuiteWithDirectScheduler(t *testing.T, appFactory func(*c
 	require.NoError(t, suite.DBManager.WaitForDatabase(30), "Database not ready")
 
 	suite.ServerManager = NewServerManagerWithLiveScheduler(appFactory, suite.DBManager)
-	require.NoError(t, suite.ServerManager.StartLiveDirect(context.Background()),
+	require.NoError(t, suite.ServerManager.StartLiveDirect(ctx),
 		"Failed to start direct-scheduler test server")
 
 	suite.APIClient = NewAPIClient(suite.ServerManager.GetURL())

@@ -169,14 +169,28 @@ func TestScheduledBroadcast_PastDue_IssuesGH317(t *testing.T) {
 		// This subtest pins down the invariant: after one cron tick the state
 		// row must carry TotalRecipients>0 for the task, so tick 2 bypasses the
 		// init block and actually sends.
-		execResp, err := client.ExecutePendingTasks(10)
-		require.NoError(t, err)
-		execResp.Body.Close()
+		// Keep ticking while polling, exactly as the internal scheduler would.
+		// A single trigger is not enough to assert on: /api/cron acknowledges
+		// and runs the tick in the background, and a tick that fires before the
+		// task is due finds nothing to do (task_count=0) with no second chance.
+		var taskStatus string
+		var taskProgress float64
+		var sendState map[string]interface{}
+		deadline1 := time.Now().Add(15 * time.Second)
+		for time.Now().Before(deadline1) {
+			execResp, err := client.ExecutePendingTasks(10)
+			require.NoError(t, err)
+			execResp.Body.Close()
 
-		// Short settle so the task-service goroutine finishes its MarkAsPending.
-		time.Sleep(500 * time.Millisecond)
+			time.Sleep(500 * time.Millisecond)
 
-		taskStatus, taskProgress, sendState := getTaskStateDetail(t, client, workspace.ID, taskID)
+			taskStatus, taskProgress, sendState = getTaskStateDetail(t, client, workspace.ID, taskID)
+			if sendState != nil && sendState["total_recipients"] != nil {
+				if total, ok := sendState["total_recipients"].(float64); ok && total > 0 {
+					break
+				}
+			}
+		}
 		t.Logf("after tick 1: task_status=%s progress=%.1f send_state=%+v", taskStatus, taskProgress, sendState)
 
 		assert.Equal(t, string(domain.TaskStatusPending), taskStatus,

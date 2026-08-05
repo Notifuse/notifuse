@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -1710,6 +1711,7 @@ func TestTaskRepository_MarkAsPending(t *testing.T) {
 				sqlmock.AnyArg(), // updated_at
 				nextRunAfter,
 				nil, // timeout_after
+				0,   // retry_count reset: a completed slice is a success
 				id,
 				workspace,
 			).
@@ -1731,6 +1733,7 @@ func TestTaskRepository_MarkAsPending(t *testing.T) {
 				sqlmock.AnyArg(),
 				nextRunAfter,
 				nil,
+				0, // retry_count
 				id,
 				workspace,
 			).
@@ -1772,6 +1775,7 @@ func TestTaskRepository_MarkAsPendingTx(t *testing.T) {
 				sqlmock.AnyArg(), // updated_at
 				nextRunAfter,
 				nil, // timeout_after
+				0,   // retry_count reset: a completed slice is a success
 				id,
 				workspace,
 			).
@@ -1798,6 +1802,7 @@ func TestTaskRepository_MarkAsPendingTx(t *testing.T) {
 				sqlmock.AnyArg(),
 				nextRunAfter,
 				nil,
+				0, // retry_count
 				id,
 				workspace,
 			).
@@ -1824,6 +1829,7 @@ func TestTaskRepository_MarkAsPendingTx(t *testing.T) {
 				sqlmock.AnyArg(), // updated_at
 				nextRunAfter,
 				nil, // timeout_after
+				0,   // retry_count
 				id,
 				workspace,
 			).
@@ -1839,5 +1845,142 @@ func TestTaskRepository_MarkAsPendingTx(t *testing.T) {
 		assert.NoError(t, err)
 		_ = tx.Commit()
 		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+}
+
+// setupTaskMockCapturingSQL records every statement the repository executes so
+// a test can assert on what a query does *not* contain — Go's regexp has no
+// negative lookahead, so an ExpectExec pattern cannot express that.
+func setupTaskMockCapturingSQL(t *testing.T, seen *[]string) (*sql.DB, sqlmock.Sqlmock, *TaskRepository) {
+	t.Helper()
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherFunc(
+		func(expectedSQL, actualSQL string) error {
+			*seen = append(*seen, actualSQL)
+			return sqlmock.QueryMatcherRegexp.Match(expectedSQL, actualSQL)
+		})))
+	require.NoError(t, err)
+	return db, mock, NewTaskRepository(db).(*TaskRepository)
+}
+
+// TestTaskRepository_MarkAsPaused_DoesNotTouchRetryCount pins that pausing is a
+// user action rather than a failed attempt. The increment that used to live
+// here burned the retry budget of a healthy broadcast: three pause/resume
+// cycles left it one hiccup away from being marked failed for good.
+func TestTaskRepository_MarkAsPaused_DoesNotTouchRetryCount(t *testing.T) {
+	var executed []string
+	db, mock, repo := setupTaskMockCapturingSQL(t, &executed)
+	defer func() { _ = db.Close() }()
+
+	ctx := context.Background()
+	workspace := "test-workspace"
+	taskID := uuid.New().String()
+	nextRunAfter := time.Now().UTC().Add(5 * time.Minute)
+
+	mock.ExpectBegin()
+	mock.ExpectExec("UPDATE tasks SET").
+		WithArgs(
+			string(domain.TaskStatusPaused),
+			float64(25),
+			sqlmock.AnyArg(), // state JSON
+			sqlmock.AnyArg(), // updated_at
+			nextRunAfter,
+			nil, // timeout_after
+			taskID,
+			workspace,
+		).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectCommit()
+
+	err := repo.MarkAsPaused(ctx, workspace, taskID, nextRunAfter, 25, &domain.TaskState{})
+	assert.NoError(t, err)
+	assert.NoError(t, mock.ExpectationsWereMet())
+	require.Len(t, executed, 1)
+	assert.NotContains(t, executed[0], "retry_count",
+		"pausing must not consume the retry budget")
+}
+
+// TestTaskRepository_ReleaseTask covers re-queueing an interrupted execution.
+func TestTaskRepository_ReleaseTask(t *testing.T) {
+	ctx := context.Background()
+	workspace := "test-workspace"
+	taskID := uuid.New().String()
+	nextRunAfter := time.Now().UTC().Add(30 * time.Second)
+
+	t.Run("re-queues without touching retry_count, progress or state", func(t *testing.T) {
+		var executed []string
+		db, mock, repo := setupTaskMockCapturingSQL(t, &executed)
+		defer func() { _ = db.Close() }()
+
+		// The whole point of ReleaseTask: an interruption is not a failed
+		// attempt, and the row's saved progress belongs to the processor
+		// goroutine that may still be unwinding.
+		mock.ExpectBegin()
+		mock.ExpectExec("UPDATE tasks SET").
+			WithArgs(
+				string(domain.TaskStatusPending),
+				"interrupted",
+				sqlmock.AnyArg(), // updated_at
+				nextRunAfter,
+				nil, // timeout_after
+				taskID,
+				workspace,
+				string(domain.TaskStatusRunning), // ownership guard
+			).
+			WillReturnResult(sqlmock.NewResult(0, 1))
+		mock.ExpectCommit()
+
+		err := repo.ReleaseTask(ctx, workspace, taskID, "interrupted", nextRunAfter)
+		assert.NoError(t, err)
+		assert.NoError(t, mock.ExpectationsWereMet())
+		require.Len(t, executed, 1)
+		for _, forbidden := range []string{"retry_count", "progress", "state"} {
+			assert.NotContains(t, executed[0], forbidden,
+				"ReleaseTask must not write %s", forbidden)
+		}
+	})
+
+	t.Run("only releases a task this execution still owns", func(t *testing.T) {
+		var executed []string
+		db, mock, repo := setupTaskMockCapturingSQL(t, &executed)
+		defer func() { _ = db.Close() }()
+
+		mock.ExpectBegin()
+		mock.ExpectExec("UPDATE tasks SET").
+			WithArgs(
+				string(domain.TaskStatusPending),
+				"interrupted",
+				sqlmock.AnyArg(),
+				nextRunAfter,
+				nil,
+				taskID,
+				workspace,
+				string(domain.TaskStatusRunning),
+			).
+			WillReturnResult(sqlmock.NewResult(0, 1))
+		mock.ExpectCommit()
+
+		require.NoError(t, repo.ReleaseTask(ctx, workspace, taskID, "interrupted", nextRunAfter))
+		require.Len(t, executed, 1)
+
+		// The bound "running" above proves the value; this proves it is used as
+		// a WHERE guard rather than something the update sets.
+		whereClause := executed[0][strings.Index(executed[0], " WHERE "):]
+		assert.Contains(t, whereClause, "status",
+			"the release must guard on the row still being running, so a concurrent terminal write wins")
+	})
+
+	t.Run("reports ErrTaskNotRunning when something else moved the task on", func(t *testing.T) {
+		db, mock, repo := setupTaskMock(t)
+		defer func() { _ = db.Close() }()
+
+		mock.ExpectBegin()
+		mock.ExpectExec("UPDATE tasks SET").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectRollback()
+
+		err := repo.ReleaseTask(ctx, workspace, taskID, "interrupted", nextRunAfter)
+		// A typed sentinel, so the caller can tell "someone else owns this now"
+		// (benign) from a genuine write failure.
+		assert.ErrorIs(t, err, domain.ErrTaskNotRunning)
 	})
 }

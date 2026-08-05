@@ -354,6 +354,34 @@ func (mr *MockTaskRepositoryMockRecorder) MarkAsRunningTx(arg0, arg1, arg2, arg3
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MarkAsRunningTx", reflect.TypeOf((*MockTaskRepository)(nil).MarkAsRunningTx), arg0, arg1, arg2, arg3, arg4)
 }
 
+// ReleaseTask mocks base method.
+func (m *MockTaskRepository) ReleaseTask(arg0 context.Context, arg1, arg2, arg3 string, arg4 time.Time) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ReleaseTask", arg0, arg1, arg2, arg3, arg4)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ReleaseTask indicates an expected call of ReleaseTask.
+func (mr *MockTaskRepositoryMockRecorder) ReleaseTask(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReleaseTask", reflect.TypeOf((*MockTaskRepository)(nil).ReleaseTask), arg0, arg1, arg2, arg3, arg4)
+}
+
+// ReleaseTaskTx mocks base method.
+func (m *MockTaskRepository) ReleaseTaskTx(arg0 context.Context, arg1 *sql.Tx, arg2, arg3, arg4 string, arg5 time.Time) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ReleaseTaskTx", arg0, arg1, arg2, arg3, arg4, arg5)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ReleaseTaskTx indicates an expected call of ReleaseTaskTx.
+func (mr *MockTaskRepositoryMockRecorder) ReleaseTaskTx(arg0, arg1, arg2, arg3, arg4, arg5 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReleaseTaskTx", reflect.TypeOf((*MockTaskRepository)(nil).ReleaseTaskTx), arg0, arg1, arg2, arg3, arg4, arg5)
+}
+
 // SaveState mocks base method.
 func (m *MockTaskRepository) SaveState(arg0 context.Context, arg1, arg2 string, arg3 float64, arg4 *domain.TaskState) error {
 	m.ctrl.T.Helper()

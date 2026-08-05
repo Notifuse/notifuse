@@ -151,9 +151,15 @@ jobs:
           # ~10-12m of test time on a good hosted runner but slow runners have
           # been observed inflating identical tests by 40-125%, pushing a
           # healthy run past 20m into Go's panic-on-timeout with nothing hung
-          # (the running test at the kill was 1s old). 35m keeps hang
-          # detection while tolerating the runner lottery.
-          go test -race -coverprofile=coverage-integration.txt -covermode=atomic -timeout=35m ./tests/integration/... -v
+          # (the running test at the kill was 1s old).
+          #
+          # -tags integration pulls in the scheduler/dispatch suite. Without the
+          # flag those files build out and the HTTP dispatch branch and the lease
+          # reap go completely untested. It costs ~2m: the whole suite measures
+          # ~15.7m locally with -race, against ~14m before. At the top of the
+          # observed inflation range that lands on ~35m, so the budget goes to
+          # 45m to keep the same margin the 35m was chosen for.
+          go test -race -tags integration -coverprofile=coverage-integration.txt -covermode=atomic -timeout=45m ./tests/integration/... -v
 
       # - name: Upload integration test coverage to Codecov
       #   uses: codecov/codecov-action@v3

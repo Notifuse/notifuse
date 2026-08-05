@@ -564,7 +564,11 @@ func TestQueueMessageSender_SendBatch(t *testing.T) {
 
 		assert.Error(t, err)
 		assert.Equal(t, 0, sent)
-		assert.Equal(t, 1, failed)
+		// Nothing was written — the enqueue is a single transaction — so the
+		// batch must not be reported as processed. Counting it made the
+		// orchestrator advance its cursor past recipients who never got the
+		// email and never would.
+		assert.Equal(t, 0, failed)
 	})
 
 	t.Run("populates system variables via BuildTemplateData", func(t *testing.T) {

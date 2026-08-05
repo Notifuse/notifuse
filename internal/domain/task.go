@@ -38,6 +38,13 @@ const (
 var (
 	// ErrTaskNotFound is returned when a task cannot be found
 	ErrTaskNotFound = errors.New("task not found")
+
+	// ErrTaskNotRunning is returned when an operation that only the owning
+	// execution may perform finds the task in some other state — typically
+	// because something else (a cancelled broadcast, a pause) already moved it
+	// on. The caller should leave that write alone rather than treat it as a
+	// failure.
+	ErrTaskNotRunning = errors.New("task is no longer running")
 )
 
 // Note: ErrTaskAlreadyRunning is defined in errors.go as a struct type with TaskID context
@@ -233,6 +240,12 @@ type TaskRepository interface {
 	MarkAsPending(ctx context.Context, workspace, id string, nextRunAfter time.Time, progress float64, state *TaskState) error
 	MarkAsPendingTx(ctx context.Context, tx *sql.Tx, workspace, id string, nextRunAfter time.Time, progress float64, state *TaskState) error
 
+	// ReleaseTask re-queues a task whose execution was interrupted by something
+	// outside its control (shutdown, a dispatcher hanging up) without consuming
+	// its retry budget or touching its saved progress.
+	ReleaseTask(ctx context.Context, workspace, id string, reason string, nextRunAfter time.Time) error
+	ReleaseTaskTx(ctx context.Context, tx *sql.Tx, workspace, id string, reason string, nextRunAfter time.Time) error
+
 	// GetTaskByIntegrationID retrieves the active task for a specific integration
 	GetTaskByIntegrationID(ctx context.Context, workspace, integrationID string) (*Task, error)
 	GetTaskByIntegrationIDTx(ctx context.Context, tx *sql.Tx, workspace, integrationID string) (*Task, error)
@@ -251,6 +264,14 @@ type TaskFilter struct {
 // TaskProcessor defines the interface for task execution
 type TaskProcessor interface {
 	// Process executes or continues a task, returns whether the task has been completed
+	//
+	// Cancellation contract: an error that wraps context.Canceled means "this
+	// run was cut short from outside" — the task service re-queues the task
+	// without consuming its retry budget. A processor must therefore never
+	// surface a cancellation it caused itself (e.g. from its own
+	// context.WithCancel) as the returned error, or the task will retry
+	// forever. Bound internal work with context.WithTimeout instead, whose
+	// context.DeadlineExceeded is correctly treated as a real failure.
 	Process(ctx context.Context, task *Task, timeoutAt time.Time) (completed bool, err error)
 
 	// CanProcess returns whether this processor can handle the given task type

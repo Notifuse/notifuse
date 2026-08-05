@@ -1,6 +1,7 @@
 package broadcast
 
 import (
+	"context"
 	"errors"
 	"fmt"
 )
@@ -39,6 +40,12 @@ const (
 	ErrCodeTaskStateInvalid   ErrorCode = "TASK_STATE_INVALID"
 	ErrCodeTaskTimeout        ErrorCode = "TASK_TIMEOUT"
 	ErrCodeBroadcastCancelled ErrorCode = "BROADCAST_CANCELLED"
+	// ErrCodeInterrupted marks a run cut short by its context going away
+	// (server shutdown, a dispatcher hanging up) rather than by anything wrong
+	// with the broadcast. Distinguishing it matters: these used to surface as
+	// BROADCAST_NOT_FOUND, which sent everyone reading the logs looking for a
+	// deleted broadcast.
+	ErrCodeInterrupted ErrorCode = "INTERRUPTED"
 
 	// Recipient feed errors
 	ErrCodeRecipientFeedFailed  ErrorCode = "RECIPIENT_FEED_FAILED"
@@ -94,6 +101,27 @@ func NewBroadcastErrorWithTask(code ErrorCode, message string, taskID string, re
 		Retryable: retryable,
 		Err:       err,
 	}
+}
+
+// IsInterrupted reports whether err was caused by the run's context going
+// away rather than by a problem with the broadcast itself. Such a run has lost
+// nothing — its progress is checkpointed — so it should be resumed, never
+// treated as a permanent failure.
+func IsInterrupted(err error) bool {
+	if err == nil {
+		return false
+	}
+	return errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded)
+}
+
+// wrapIfInterrupted converts a context cancellation into an INTERRUPTED
+// broadcast error, leaving every other error to the caller's own
+// classification.
+func wrapIfInterrupted(err error) (*BroadcastError, bool) {
+	if !IsInterrupted(err) {
+		return nil, false
+	}
+	return NewBroadcastError(ErrCodeInterrupted, "broadcast run interrupted", true, err), true
 }
 
 // IsRetryable returns whether the error is retryable

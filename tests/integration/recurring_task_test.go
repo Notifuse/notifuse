@@ -428,3 +428,76 @@ func testRecurringTaskResetNonFailedTask(t *testing.T, client *testutil.APIClien
 func ptrString(s string) *string {
 	return &s
 }
+
+// TestRecurringTask_SuccessfulRunClearsRetryBudget pins blast radius rather than
+// a feature: making max_retries a consecutive-failure budget changed
+// MarkAsPending, which every task type goes through — not just broadcasts.
+// A recurring task that used to die after three failures now has its budget
+// repaid by any run that makes progress.
+//
+// Two traps this test has to avoid, either of which would make it worthless:
+//   - It must not be driven with TriggerTask. That endpoint calls MarkAsPending
+//     itself, so the assertion would pass without the task ever executing.
+//   - It must not use sync_integration. That processor talks to an external
+//     provider; in this environment the run is as likely to fail as to succeed,
+//     and a failed run increments the counter instead of clearing it.
+//
+// process_contact_segment_queue is the right vehicle: permanent, recurring, and
+// it completes against the local database with nothing external in the path. A
+// short max_runtime makes it return immediately — it stops looping as soon as
+// the timeout is less than its 5s cleanup buffer away.
+func TestRecurringTask_SuccessfulRunClearsRetryBudget(t *testing.T) {
+	testutil.SkipIfShort(t)
+	testutil.SetupTestEnvironment()
+	defer testutil.CleanupTestEnvironment()
+
+	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
+		return app.NewApp(cfg)
+	})
+	defer suite.Cleanup()
+
+	client := suite.APIClient
+	factory := suite.DataFactory
+
+	user, err := factory.CreateUser()
+	require.NoError(t, err)
+	workspace, err := factory.CreateWorkspace()
+	require.NoError(t, err)
+	require.NoError(t, factory.AddUserToWorkspace(user.ID, workspace.ID, "owner"))
+	require.NoError(t, client.Login(user.Email, "password"))
+	client.SetWorkspaceID(workspace.ID)
+
+	task, err := factory.CreateTask(workspace.ID,
+		testutil.WithTaskType("process_contact_segment_queue"),
+		testutil.WithTaskStatus(domain.TaskStatusPending),
+		testutil.WithTaskRecurringInterval(60),
+		testutil.WithTaskMaxRuntime(3),
+		testutil.WithTaskMaxRetries(3),
+	)
+	require.NoError(t, err)
+
+	// Stand in for a task that has already spent part of its budget on
+	// transient failures.
+	_, err = suite.DBManager.GetDB().Exec(
+		`UPDATE tasks SET retry_count = 2 WHERE id = $1`, task.ID)
+	require.NoError(t, err)
+
+	resp, err := client.ExecuteTask(map[string]interface{}{
+		"workspace_id": workspace.ID,
+		"id":           task.ID,
+	})
+	require.NoError(t, err)
+	resp.Body.Close()
+	require.Equal(t, http.StatusOK, resp.StatusCode, "the run should have succeeded")
+
+	var status string
+	var retryCount int
+	require.NoError(t, suite.DBManager.GetDB().QueryRow(
+		`SELECT status, retry_count FROM tasks WHERE id = $1`, task.ID).Scan(&status, &retryCount))
+
+	t.Logf("after one successful run: status=%s retry_count=%d", status, retryCount)
+	assert.Equal(t, 0, retryCount,
+		"a run that made progress must repay the retry budget, whatever the task type")
+	assert.Equal(t, string(domain.TaskStatusPending), status,
+		"a permanent recurring task stays queued for its next run")
+}

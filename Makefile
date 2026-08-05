@@ -17,8 +17,10 @@ e2e-test-within-cursor-agent:
 	@./run-integration-tests.sh "Test" 2>&1 | grep -E "PASS|FAIL|^ok|===|^---" || true
 	@echo "\n✅ All integration tests completed"
 
+# -tags integration is required: without it the scheduler/dispatch tests are
+# silently excluded, which is exactly the machinery most likely to regress.
 test-integration:
-	INTEGRATION_TESTS=true go test -race -timeout 20m ./tests/integration/ -v
+	INTEGRATION_TESTS=true go test -race -tags integration -timeout 20m ./tests/integration/ -v
 
 test-domain:
 	go test -race -v ./internal/domain

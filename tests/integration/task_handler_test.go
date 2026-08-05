@@ -402,7 +402,9 @@ func testTaskExecution(t *testing.T, client *testutil.APIClient, factory *testut
 			require.NoError(t, err)
 			defer func() { _ = resp.Body.Close() }()
 
-			assert.Equal(t, http.StatusOK, resp.StatusCode)
+			// 202: the endpoint acknowledges the trigger and runs the batch in
+			// the background, so a caller with a short timeout never waits.
+			assert.Equal(t, http.StatusAccepted, resp.StatusCode)
 
 			var result map[string]interface{}
 			err = json.NewDecoder(resp.Body).Decode(&result)
@@ -429,7 +431,7 @@ func testTaskExecution(t *testing.T, client *testutil.APIClient, factory *testut
 			require.NoError(t, err)
 			defer func() { _ = resp.Body.Close() }()
 
-			assert.Equal(t, http.StatusOK, resp.StatusCode)
+			assert.Equal(t, http.StatusAccepted, resp.StatusCode)
 
 			// Verify successful response
 			var result map[string]interface{}
@@ -562,7 +564,7 @@ func testTaskAuthentication(t *testing.T, client *testutil.APIClient, factory *t
 
 		// The cron endpoint should be accessible without authentication
 		assert.NotEqual(t, http.StatusUnauthorized, resp.StatusCode)
-		assert.Equal(t, http.StatusOK, resp.StatusCode)
+		assert.Equal(t, http.StatusAccepted, resp.StatusCode)
 
 		// Verify successful response
 		var result map[string]interface{}
@@ -845,7 +847,7 @@ func TestTaskAuthentication(t *testing.T) {
 
 			// Should not be unauthorized
 			assert.NotEqual(t, http.StatusUnauthorized, resp.StatusCode)
-			assert.Equal(t, http.StatusOK, resp.StatusCode)
+			assert.Equal(t, http.StatusAccepted, resp.StatusCode)
 
 			// Verify task was actually processed
 			time.Sleep(2 * time.Second)

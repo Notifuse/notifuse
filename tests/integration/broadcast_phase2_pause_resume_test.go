@@ -53,6 +53,15 @@ func setupPhase2(t *testing.T, contactCount int, rateLimitPerMinute int) *phase2
 		return app.NewApp(cfg)
 	})
 
+	return setupPhase2WithSuite(t, suite, contactCount, rateLimitPerMinute)
+}
+
+// setupPhase2WithSuite seeds the same fixtures onto a suite the caller built.
+// Tests that need a different server wiring — a running scheduler on a
+// cancellable context, say — construct the suite themselves and seed it here.
+func setupPhase2WithSuite(t *testing.T, suite *testutil.IntegrationTestSuite, contactCount int, rateLimitPerMinute int) *phase2Harness {
+	t.Helper()
+
 	client := suite.APIClient
 	factory := suite.DataFactory
 

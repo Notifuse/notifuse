@@ -1,10 +1,13 @@
 package http
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
@@ -18,6 +21,10 @@ type TaskHandler struct {
 	getJWTSecret func() ([]byte, error)
 	logger       logger.Logger
 	secretKey    string
+	// cronRunning serialises /api/cron so a public, unauthenticated endpoint
+	// that now answers immediately cannot be used to spawn unbounded
+	// background runs.
+	cronRunning atomic.Bool
 }
 
 // NewTaskHandler creates a new task handler
@@ -176,28 +183,51 @@ func (h *TaskHandler) ExecutePendingTasks(w http.ResponseWriter, r *http.Request
 	// Log that manual trigger is being used (internal scheduler should handle this)
 	h.logger.Info("Manual cron trigger via HTTP endpoint - internal scheduler should handle this automatically")
 
-	startTime := time.Now()
-
 	var executeRequest domain.ExecutePendingTasksRequest
 	if err := executeRequest.FromURLParams(r.URL.Query()); err != nil {
 		WriteJSONError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	// Execute tasks
-	if err := h.taskService.ExecutePendingTasks(r.Context(), executeRequest.MaxTasks); err != nil {
-		h.logger.WithField("error", err.Error()).Error("Failed to execute tasks")
-		WriteJSONError(w, "Failed to execute tasks", http.StatusInternalServerError)
+	// Only one cron run at a time. This endpoint is public, and since the
+	// in-process execution mode landed it does real work rather than just
+	// dispatching, so answering immediately without this guard would let any
+	// caller spawn unbounded background runs. It also mirrors TaskScheduler,
+	// whose ticker loop already serialises its runs.
+	if !h.cronRunning.CompareAndSwap(false, true) {
+		writeJSON(w, http.StatusAccepted, map[string]interface{}{
+			"success":         true,
+			"message":         "Task execution already in progress",
+			"already_running": true,
+		})
 		return
 	}
 
-	elapsed := time.Since(startTime)
+	// Detach from the request: with in-process execution the tasks run right
+	// here, so a caller that gives up (a cron client's timeout, a proxy's
+	// read timeout) would otherwise cancel every task it just started, mid
+	// database transaction. Answer immediately and let the work finish.
+	execCtx := context.WithoutCancel(r.Context())
+	maxTasks := executeRequest.MaxTasks
 
-	writeJSON(w, http.StatusOK, map[string]interface{}{
+	go func() {
+		defer h.cronRunning.Store(false)
+		defer func() {
+			if rec := recover(); rec != nil {
+				h.logger.WithField("panic", fmt.Sprintf("%v", rec)).
+					Error("Panic during background cron execution")
+			}
+		}()
+
+		if err := h.taskService.ExecutePendingTasks(execCtx, maxTasks); err != nil {
+			h.logger.WithField("error", err.Error()).Error("Failed to execute tasks")
+		}
+	}()
+
+	writeJSON(w, http.StatusAccepted, map[string]interface{}{
 		"success":   true,
-		"message":   "Task execution initiated",
-		"max_tasks": executeRequest.MaxTasks,
-		"elapsed":   elapsed.String(),
+		"message":   "Task execution started",
+		"max_tasks": maxTasks,
 	})
 }
 
@@ -230,8 +260,16 @@ func (h *TaskHandler) ExecuteTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Detach from the request connection. Task execution is bounded by the
+	// task's own timeout+grace deadline, applied in ExecuteTask; tying it to
+	// the caller's connection instead meant the dispatcher's HTTP client
+	// timeout cancelled a running task mid-batch — aborting the enqueue
+	// transaction and stranding the recipients it was writing. The 60s
+	// graceful-shutdown window covers an in-flight run.
+	execCtx := context.WithoutCancel(r.Context())
+
 	// Get the task to calculate timeout
-	task, err := h.taskService.GetTask(r.Context(), executeRequest.WorkspaceID, executeRequest.ID)
+	task, err := h.taskService.GetTask(execCtx, executeRequest.WorkspaceID, executeRequest.ID)
 	if err != nil {
 		WriteJSONError(w, err.Error(), http.StatusNotFound)
 		return
@@ -245,7 +283,7 @@ func (h *TaskHandler) ExecuteTask(w http.ResponseWriter, r *http.Request) {
 	// in CEST) and the recurring task is never re-picked within that window.
 	timeoutAt := time.Now().UTC().Add(time.Duration(task.MaxRuntime) * time.Second)
 
-	if err := h.taskService.ExecuteTask(r.Context(), executeRequest.WorkspaceID, executeRequest.ID, timeoutAt); err != nil {
+	if err := h.taskService.ExecuteTask(execCtx, executeRequest.WorkspaceID, executeRequest.ID, timeoutAt); err != nil {
 		// Handle different error types with appropriate status codes
 		switch e := err.(type) {
 		case *domain.ErrNotFound:

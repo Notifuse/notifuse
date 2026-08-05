@@ -249,7 +249,12 @@ func (s *queueMessageSender) SendBatch(
 			"batch_size":   len(entries),
 			"error":        err.Error(),
 		}).Error("Failed to enqueue batch")
-		return 0, len(recipients), NewBroadcastError(ErrCodeSendFailed, "failed to enqueue batch", true, err)
+		// Nothing was written: the enqueue is a single transaction. Reporting
+		// the batch as processed (sent+failed) made the orchestrator advance
+		// its offset and keyset cursor past recipients that were never
+		// enqueued, so they were skipped for good while the broadcast still
+		// declared itself processed.
+		return 0, 0, NewBroadcastError(ErrCodeSendFailed, "failed to enqueue batch", true, err)
 	}
 
 	s.logger.WithFields(map[string]interface{}{

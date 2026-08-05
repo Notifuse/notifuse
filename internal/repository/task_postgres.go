@@ -920,7 +920,13 @@ func (r *TaskRepository) MarkAsPausedTx(ctx context.Context, tx *sql.Tx, workspa
 
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
-	// Update task with the provided progress and state
+	// Update task with the provided progress and state.
+	//
+	// retry_count is deliberately untouched: pausing is a user action (a paused
+	// broadcast routes here through handleBroadcastPaused), not a failed
+	// attempt. Counting it burned the retry budget of a perfectly healthy
+	// broadcast — three pause/resume cycles left it one hiccup from being
+	// marked failed for good.
 	query := psql.Update("tasks").
 		Set("status", domain.TaskStatusPaused).
 		Set("progress", progress). // Use the provided progress
@@ -928,7 +934,6 @@ func (r *TaskRepository) MarkAsPausedTx(ctx context.Context, tx *sql.Tx, workspa
 		Set("updated_at", now).
 		Set("next_run_after", nextRunAfter).
 		Set("timeout_after", nil).
-		Set("retry_count", sq.Expr("retry_count + 1")). // Increment retry count
 		Where(sq.Eq{
 			"id":           id,
 			"workspace_id": workspace,
@@ -975,7 +980,15 @@ func (r *TaskRepository) MarkAsPendingTx(ctx context.Context, tx *sql.Tx, worksp
 
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
-	// Update task with the provided progress and state
+	// Update task with the provided progress and state.
+	//
+	// retry_count is reset because reaching this point means the run succeeded:
+	// the processor completed a slice of work and asked to continue. max_retries
+	// is therefore a consecutive-failure budget, not a lifetime one — a
+	// broadcast that legitimately spans dozens of slices used to accumulate
+	// retries that were never repaid, so three transient failures hours apart
+	// killed it. The failure path builds its own UPDATE in MarkAsFailedTx and is
+	// unaffected.
 	query := psql.Update("tasks").
 		Set("status", domain.TaskStatusPending).
 		Set("progress", progress).
@@ -983,6 +996,7 @@ func (r *TaskRepository) MarkAsPendingTx(ctx context.Context, tx *sql.Tx, worksp
 		Set("updated_at", now).
 		Set("next_run_after", nextRunAfter).
 		Set("timeout_after", nil).
+		Set("retry_count", 0).
 		Where(sq.Eq{
 			"id":           id,
 			"workspace_id": workspace,
@@ -1118,6 +1132,73 @@ func (r *TaskRepository) GetTaskByBroadcastIDTx(ctx context.Context, tx *sql.Tx,
 	}
 
 	return &task, nil
+}
+
+// ReleaseTask returns an interrupted task to the pending queue without
+// consuming its retry budget.
+//
+// Used when an execution was cut short by something that is not the task's
+// fault — the server shutting down, or a dispatcher hanging up mid-run. The
+// work already done is preserved and the task is simply re-queued; counting
+// such an interruption as a failed attempt is what let three deploys (or three
+// proxy timeouts) permanently kill a broadcast.
+//
+// nextRunAfter is a parameter rather than "now" because GetNextBatch picks up
+// any pending task whose next_run_after has elapsed: a caller whose processor
+// goroutine may still be unwinding must leave a gap, or a second execution can
+// start alongside the first.
+//
+// Deliberately writes neither retry_count nor progress/state — it can run while
+// the processor goroutine is still alive, and marshalling the shared TaskState
+// from here would race with it.
+func (r *TaskRepository) ReleaseTask(ctx context.Context, workspace, id string, reason string, nextRunAfter time.Time) error {
+	return r.WithTransaction(ctx, func(tx *sql.Tx) error {
+		return r.ReleaseTaskTx(ctx, tx, workspace, id, reason, nextRunAfter)
+	})
+}
+
+// ReleaseTaskTx re-queues an interrupted task within an existing transaction.
+func (r *TaskRepository) ReleaseTaskTx(ctx context.Context, tx *sql.Tx, workspace, id string, reason string, nextRunAfter time.Time) error {
+	now := time.Now().UTC()
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+	query := psql.Update("tasks").
+		Set("status", domain.TaskStatusPending).
+		Set("error_message", reason).
+		Set("updated_at", now).
+		Set("next_run_after", nextRunAfter).
+		Set("timeout_after", nil).
+		Where(sq.And{
+			sq.Eq{"id": id},
+			sq.Eq{"workspace_id": workspace},
+			// Only an execution that still owns the row may hand it back.
+			// Without this, a release racing a concurrent terminal write —
+			// cancelling a broadcast marks its task failed — would resurrect
+			// the task to pending and undo that decision.
+			sq.Eq{"status": string(domain.TaskStatusRunning)},
+		})
+
+	sqlQuery, args, err := query.ToSql()
+	if err != nil {
+		return fmt.Errorf("failed to build release query: %w", err)
+	}
+
+	result, err := tx.ExecContext(ctx, sqlQuery, args...)
+	if err != nil {
+		return fmt.Errorf("failed to release task: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+	if rowsAffected == 0 {
+		// Either the task is gone or something else already moved it on. Both
+		// mean "not ours to re-queue"; the caller decides how loud to be.
+		return domain.ErrTaskNotRunning
+	}
+
+	return nil
 }
 
 // GetTaskByIntegrationID retrieves an active task by integration ID
