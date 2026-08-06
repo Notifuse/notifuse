@@ -530,6 +530,7 @@ func TestTaskRepository_MarkAsRunning(t *testing.T) {
 			sqlmock.AnyArg(), // updated_at
 			sqlmock.AnyArg(), // last_run_at
 			timeoutAfter,
+			nil, // error_message — cleared on claim
 			taskID,
 			workspace,
 			string(domain.TaskStatusPending), // status check in WHERE
@@ -552,6 +553,7 @@ func TestTaskRepository_MarkAsRunning(t *testing.T) {
 			sqlmock.AnyArg(), // updated_at
 			sqlmock.AnyArg(), // last_run_at
 			timeoutAfter,
+			nil, // error_message — cleared on claim
 			taskID,
 			workspace,
 			string(domain.TaskStatusPending), // status check in WHERE
@@ -577,6 +579,7 @@ func TestTaskRepository_MarkAsRunning(t *testing.T) {
 			sqlmock.AnyArg(), // updated_at
 			sqlmock.AnyArg(), // last_run_at
 			timeoutAfter,
+			nil, // error_message — cleared on claim
 			taskID,
 			workspace,
 			string(domain.TaskStatusPending), // status check in WHERE
@@ -614,6 +617,7 @@ func TestTaskRepository_MarkAsRunning_ConcurrentProtection(t *testing.T) {
 			sqlmock.AnyArg(), // updated_at
 			sqlmock.AnyArg(), // last_run_at
 			timeoutAfter,
+			nil, // error_message — cleared on claim
 			taskID,
 			workspace,
 			string(domain.TaskStatusPending),
@@ -630,6 +634,56 @@ func TestTaskRepository_MarkAsRunning_ConcurrentProtection(t *testing.T) {
 	assert.ErrorAs(t, err, &alreadyRunningErr)
 	assert.Equal(t, taskID, alreadyRunningErr.TaskID)
 	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+// TestTaskRepository_MarkAsRunning_ClearsErrorMessage pins that claiming a task
+// wipes the reason it stopped last time. ReleaseTask records an interruption
+// reason on every interrupted run — that is, on every restart — and neither
+// MarkAsRunningTx nor MarkAsPendingTx used to clear it, only MarkAsCompletedTx
+// at the very end. So one restart mid-send left a red error on the console for
+// a broadcast that was sending perfectly well, for every remaining slice.
+//
+// The reason must survive while the task sits pending (it explains why the task
+// is waiting) and disappear the moment it runs again, which is why the clear
+// belongs here, on the claim, and not in MarkAsPendingTx.
+func TestTaskRepository_MarkAsRunning_ClearsErrorMessage(t *testing.T) {
+	var executed []string
+	db, mock, repo := setupTaskMockCapturingSQL(t, &executed)
+	defer func() { _ = db.Close() }()
+
+	ctx := context.Background()
+	workspace := "test-workspace"
+	taskID := uuid.New().String()
+	timeoutAfter := time.Now().UTC().Add(5 * time.Minute)
+
+	mock.ExpectBegin()
+	mock.ExpectExec("UPDATE tasks SET").
+		WithArgs(
+			domain.TaskStatusRunning,
+			sqlmock.AnyArg(), // updated_at
+			sqlmock.AnyArg(), // last_run_at
+			timeoutAfter,
+			nil, // error_message — cleared on claim
+			taskID,
+			workspace,
+			string(domain.TaskStatusPending), // status check in WHERE
+			string(domain.TaskStatusPaused),  // status check in WHERE
+			string(domain.TaskStatusRunning), // stale-running reap — status check in WHERE
+			sqlmock.AnyArg(),                 // stale-running reap — now for timeout_after comparison
+		).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectCommit()
+
+	err := repo.MarkAsRunning(ctx, workspace, taskID, timeoutAfter)
+	assert.NoError(t, err)
+	assert.NoError(t, mock.ExpectationsWereMet())
+	// Assert on the statement itself, not just the bound arguments: the
+	// positional lists above would still pass if the SET clauses were reordered,
+	// and they are duplicated across the other MarkAsRunning tests. This is what
+	// actually pins the column being written.
+	require.Len(t, executed, 1)
+	assert.Contains(t, executed[0], "error_message",
+		"claiming a task must clear the reason its previous attempt stopped")
 }
 
 func TestTaskRepository_MarkAsCompleted(t *testing.T) {

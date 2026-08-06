@@ -750,6 +750,13 @@ func (r *TaskRepository) MarkAsRunningTx(ctx context.Context, tx *sql.Tx, worksp
 		Set("updated_at", now).
 		Set("last_run_at", now).
 		Set("timeout_after", timeoutAfter).
+		// Clear the reason the previous attempt stopped. ReleaseTask records an
+		// interruption reason on every interrupted run, and MarkAsPendingTx —
+		// which runs after every successful slice — does not touch this column,
+		// so without this a single restart left a stale error on display for the
+		// rest of a broadcast that was in fact sending fine. The reason still
+		// survives while the task sits pending, where it explains the wait.
+		Set("error_message", nil).
 		Where(sq.And{
 			sq.Eq{"id": id},
 			sq.Eq{"workspace_id": workspace},

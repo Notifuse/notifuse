@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [37.3] - 2026-08-06
+
+- **Fix**: A broadcast that was interrupted once no longer displays that error for the rest of its send. Recording why a run was cut short — which now happens on every restart, since an interruption stops consuming the retry budget — wrote a reason that nothing cleared until the whole broadcast finished, so a send progressing perfectly well kept showing a red error from a restart that happened slices ago. The reason is now cleared when the task is claimed again, and still shown while the task is waiting to resume.
+
 ## [37.2] - 2026-08-05
 
 - **Improvement**: A broadcast no longer dies when the connection that triggered it goes away. Task execution ran on the triggering HTTP request's context, so the dispatcher's own 53s client timeout — only 3s above a 50s broadcast slice — cancelled the run mid-batch, aborting the enqueue transaction and surfacing as `sql: transaction has already been committed or rolled back` followed by a misleading `[BROADCAST_NOT_FOUND] ... context canceled`. Execution is now bounded by the task's own deadline instead of the caller's connection, and each dispatch waits for as long as its task may legitimately run rather than a fixed 53s (which also silently truncated the 300s segment-recompute tasks).
