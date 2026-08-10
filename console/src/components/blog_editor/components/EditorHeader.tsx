@@ -76,7 +76,7 @@ export function EditorHeader() {
           />
         </Flex>
 
-        <Divider type="vertical" style={{ height: '24px', margin: 0 }} />
+        <Divider orientation="vertical" style={{ height: '24px', margin: 0 }} />
       </Flex>
     </header>
   )

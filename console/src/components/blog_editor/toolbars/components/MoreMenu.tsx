@@ -92,7 +92,7 @@ export function MoreMenu({ hideWhenUnavailable = false }: MoreMenuProps) {
       open={open}
       onOpenChange={setOpen}
       placement="topRight"
-      styles={{ body: { padding: 3 } }}
+      styles={{ container: { padding: 3 } }}
     >
       <Tooltip title={t`More options`} placement="top" open={open ? false : undefined}>
         <Button

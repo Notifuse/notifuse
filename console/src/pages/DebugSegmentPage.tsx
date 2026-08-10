@@ -47,7 +47,7 @@ export function DebugSegmentPage() {
 
   return (
     <div style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto' }}>
-      <Space direction="vertical" size="large" style={{ width: '100%' }}>
+      <Space orientation="vertical" size="large" style={{ width: '100%' }}>
         <div>
           <Title level={2}>{t`Debug Segment Builder`}</Title>
           <Paragraph>

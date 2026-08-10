@@ -291,7 +291,7 @@ export const EmailMetricsChart: React.FC<EmailMetricsChartProps> = ({
       {/* Error Alert */}
       {error && (
         <Alert
-          message={t`Error`}
+          title={t`Error`}
           description={error}
           type="error"
           showIcon
@@ -322,7 +322,7 @@ export const EmailMetricsChart: React.FC<EmailMetricsChartProps> = ({
                   </Space>
                 }
                 value={stats.count_sent}
-                valueStyle={{ fontSize: '16px' }}
+                styles={{ content: { fontSize: '16px' } }}
                 formatter={formatStat}
               />
             </div>
@@ -349,7 +349,7 @@ export const EmailMetricsChart: React.FC<EmailMetricsChartProps> = ({
                   </Space>
                 }
                 value={getRate(stats.count_delivered, stats.count_sent)}
-                valueStyle={{ fontSize: '16px' }}
+                styles={{ content: { fontSize: '16px' } }}
                 formatter={formatStat}
               />
             </div>
@@ -376,7 +376,7 @@ export const EmailMetricsChart: React.FC<EmailMetricsChartProps> = ({
                   </Space>
                 }
                 value={getRate(stats.count_opened, stats.count_sent)}
-                valueStyle={{ fontSize: '16px' }}
+                styles={{ content: { fontSize: '16px' } }}
                 formatter={formatStat}
               />
             </div>
@@ -403,7 +403,7 @@ export const EmailMetricsChart: React.FC<EmailMetricsChartProps> = ({
                   </Space>
                 }
                 value={getRate(stats.count_clicked, stats.count_sent)}
-                valueStyle={{ fontSize: '16px' }}
+                styles={{ content: { fontSize: '16px' } }}
                 formatter={formatStat}
               />
             </div>
@@ -430,7 +430,7 @@ export const EmailMetricsChart: React.FC<EmailMetricsChartProps> = ({
                   </Space>
                 }
                 value={getRate(stats.count_bounced, stats.count_sent)}
-                valueStyle={{ fontSize: '16px' }}
+                styles={{ content: { fontSize: '16px' } }}
                 formatter={formatStat}
               />
             </div>
@@ -457,7 +457,7 @@ export const EmailMetricsChart: React.FC<EmailMetricsChartProps> = ({
                   </Space>
                 }
                 value={getRate(stats.count_complained, stats.count_sent)}
-                valueStyle={{ fontSize: '16px' }}
+                styles={{ content: { fontSize: '16px' } }}
                 formatter={formatStat}
               />
             </div>
@@ -484,7 +484,7 @@ export const EmailMetricsChart: React.FC<EmailMetricsChartProps> = ({
                   </Space>
                 }
                 value={getRate(stats.count_unsubscribed, stats.count_sent)}
-                valueStyle={{ fontSize: '16px' }}
+                styles={{ content: { fontSize: '16px' } }}
                 formatter={formatStat}
               />
             </div>
@@ -511,7 +511,7 @@ export const EmailMetricsChart: React.FC<EmailMetricsChartProps> = ({
                   </Space>
                 }
                 value={getRate(stats.count_failed, stats.count_sent)}
-                valueStyle={{ fontSize: '16px' }}
+                styles={{ content: { fontSize: '16px' } }}
                 formatter={formatStat}
               />
             </div>

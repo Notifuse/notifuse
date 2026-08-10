@@ -289,10 +289,10 @@ export function UpsertAutomationDrawer({
 
       <Drawer
         placement="right"
-        width="100%"
+        size="100%"
         onClose={handleClose}
         open={isOpen}
-        destroyOnClose
+        destroyOnHidden
         closable={false}
         styles={{
           body: { padding: 0, display: 'flex', flexDirection: 'column', height: '100%' }

@@ -7,6 +7,14 @@ import { SystemSettingsDrawer } from './SystemSettingsDrawer'
 import { settingsApi } from '../../services/api/settings'
 import type { SystemSettingsData, SystemSettingsResponse } from '../../types/settings'
 
+// antd's TextArea always mounts a ResizeObserver; jsdom doesn't provide one.
+class ResizeObserverStub {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+vi.stubGlobal('ResizeObserver', ResizeObserverStub)
+
 // Lingui macro falls back to the source string when no catalog is loaded.
 i18n.loadAndActivate({ locale: 'en', messages: {} })
 

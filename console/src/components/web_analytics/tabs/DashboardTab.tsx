@@ -98,7 +98,7 @@ export function DashboardTab() {
       <SdkVersionWarning />
 
       {seriesResult.error ? (
-        <Alert type="error" showIcon message={t`Could not load the dashboard`} className="mb-4" />
+        <Alert type="error" showIcon title={t`Could not load the dashboard`} className="mb-4" />
       ) : null}
 
       <div className="overflow-hidden rounded-md border border-gray-200">

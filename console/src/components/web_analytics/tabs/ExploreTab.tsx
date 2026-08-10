@@ -348,7 +348,7 @@ export function ExploreTab() {
           type="error"
           showIcon
           className="mb-4"
-          message={t`Could not load this report`}
+          title={t`Could not load this report`}
           description={
             rootResult.error instanceof Error ? rootResult.error.message : undefined
           }

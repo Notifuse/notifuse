@@ -26,7 +26,7 @@ export function LogoutPage() {
         minHeight: '100vh'
       }}
     >
-      <Spin size="large" tip={t`Signing out...`} fullscreen />
+      <Spin size="large" description={t`Signing out...`} fullscreen />
     </div>
   )
 }

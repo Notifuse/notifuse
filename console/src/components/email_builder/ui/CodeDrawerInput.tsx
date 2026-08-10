@@ -129,7 +129,7 @@ const CodeDrawerInput: React.FC<CodeDrawerInputProps> = ({
           placement="right"
           open={isDrawerOpen}
           onClose={handleDrawerCancel}
-          width="60vw"
+          size="60vw"
           styles={{
             body: { padding: 0 }
           }}
@@ -169,7 +169,7 @@ const CodeDrawerInput: React.FC<CodeDrawerInputProps> = ({
         placement="right"
         open={isDrawerOpen}
         onClose={handleDrawerCancel}
-        width="60vw"
+        size="60vw"
         styles={{
           body: { padding: 0 }
         }}

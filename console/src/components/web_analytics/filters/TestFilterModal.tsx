@@ -84,10 +84,10 @@ export function TestFilterModal(props: TestFilterModalProps) {
       <div className="flex flex-col gap-1">
         {visible.map((condition, index) => (
           <div key={index} className="inline-flex items-center gap-1 text-sm">
-            <Tag bordered={false} color="green">
+            <Tag variant="filled" color="green">
               {getSourceFieldLabel(condition.field)}
             </Tag>
-            <Tag bordered={false} color="blue">
+            <Tag variant="filled" color="blue">
               {vocabulary.operators[condition.operator]}
             </Tag>
             {condition.value ? <Tag>{condition.value}</Tag> : null}
@@ -245,11 +245,11 @@ export function TestFilterModal(props: TestFilterModalProps) {
                       {row.filter.operations.map((operation, index) => (
                         <div key={index} className="inline-flex items-center gap-1 text-sm">
                           <Tooltip title={operation.dimension}>
-                            <Tag bordered={false} color="purple">
+                            <Tag variant="filled" color="purple">
                               {getDimensionLabel(operation.dimension, customDimensionLabels)}
                             </Tag>
                           </Tooltip>
-                          <Tag bordered={false} color="orange">
+                          <Tag variant="filled" color="orange">
                             {vocabulary.actionShorthands[operation.action]}
                           </Tag>
                           {operation.action !== 'unset_value' && operation.value ? (

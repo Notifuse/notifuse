@@ -16,20 +16,20 @@ export function PostStatusTag({ post }: PostStatusTagProps) {
 
     if (isFuture) {
       return (
-        <Tag color="orange" bordered={false}>
+        <Tag color="orange" variant="filled">
           {t`Scheduled`}
         </Tag>
       )
     }
 
     return (
-      <Tag color="green" bordered={false}>
+      <Tag color="green" variant="filled">
         {t`Published`}
       </Tag>
     )
   }
   return (
-    <Tag color="blue" bordered={false}>
+    <Tag color="blue" variant="filled">
       {t`Draft`}
     </Tag>
   )

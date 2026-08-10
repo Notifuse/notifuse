@@ -327,7 +327,7 @@ export function WebhookCard({
         <div style={{ columnCount: 3, columnGap: '1rem' }}>
           {(webhook.settings.event_types || []).map((type) => (
             <div key={type} style={{ breakInside: 'avoid' }}>
-              <Tag bordered={false} color="green" className="text-xs !mb-1">
+              <Tag variant="filled" color="green" className="text-xs !mb-1">
                 {formatEventType(type)}
               </Tag>
             </div>

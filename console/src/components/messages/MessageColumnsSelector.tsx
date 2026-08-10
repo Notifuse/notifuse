@@ -85,7 +85,7 @@ export function MessageColumnsSelector({
       placement="bottomRight"
       trigger="click"
       classNames={{
-        body: 'w-[450px]'
+        container: 'w-[450px]'
       }}
     >
       <Tooltip title={t`Select columns`} placement="left">

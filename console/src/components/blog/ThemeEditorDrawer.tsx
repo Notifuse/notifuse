@@ -322,7 +322,7 @@ export function ThemeEditorDrawer({
         }
         open={open}
         onClose={handleCancel}
-        width="100%"
+        size="100%"
         closable={false}
         styles={{ body: { padding: 0, height: 'calc(100vh - 55px)' } }}
       >

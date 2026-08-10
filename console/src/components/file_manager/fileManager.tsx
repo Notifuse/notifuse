@@ -615,7 +615,7 @@ export const FileManager = (props: FileManagerProps) => {
     return (
       <Alert
         style={styles.marginBottomSmall}
-        message={
+        title={
           <>
             {t`File storage is not configured.`}
             <ButtonFilesSettings

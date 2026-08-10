@@ -201,9 +201,9 @@ export function UpsertTransactionalNotificationDrawer({
         <Drawer
           title={<>{notification ? t`Edit notification` : t`Create a notification`}</>}
           closable={true}
-          width={600}
+          size={600}
           keyboard={false}
-          maskClosable={false}
+          mask={{ closable: false }}
           open={isOpen}
           onClose={handleClose}
           className="drawer-no-transition drawer-body-no-padding"

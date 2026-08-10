@@ -6,7 +6,7 @@ import { Suggestion } from '@tiptap/suggestion'
 import type { SuggestionKeyDownProps, SuggestionProps } from '@tiptap/suggestion'
 import type { Editor } from '@tiptap/react'
 import { Menu } from 'antd'
-import type { MenuProps } from 'antd'
+import type { MenuProps, MenuRef } from 'antd'
 
 // --- Hooks ---
 import { useFloatingMenu } from '../../hooks/useFloatingMenu'
@@ -39,6 +39,7 @@ export const EmojiMenu = ({ editor: providedEditor }: EmojiMenuProps) => {
   const [internalQuery, setInternalQuery] = useState<string>('')
 
   const configRef = useRef(emojiConfig)
+  const menuRef = useRef<MenuRef>(null)
 
   const { ref, style, getFloatingProps, isMounted } = useFloatingMenu(
     show,
@@ -274,6 +275,29 @@ export const EmojiMenu = ({ editor: providedEditor }: EmojiMenuProps) => {
   const selectedItem = selectedIndex !== undefined ? internalItems[selectedIndex] : undefined
   const selectedKey = selectedItem?.id
 
+  // Arrow keys can move the highlight past the scrollable area, so follow the selection.
+  // Menu items are built from `items`, so the element is looked up by key on the menu ref
+  // instead of being captured by a ref on a child.
+  useEffect(() => {
+    if (!selectedKey) {
+      return
+    }
+
+    const itemElement = menuRef.current?.menu?.findItem({ key: selectedKey })
+    const container = itemElement?.closest<HTMLElement>('[data-suggestion-menu]')
+
+    if (!itemElement || !container) {
+      return
+    }
+
+    const itemRect = itemElement.getBoundingClientRect()
+    const containerRect = container.getBoundingClientRect()
+
+    if (itemRect.top < containerRect.top || itemRect.bottom > containerRect.bottom) {
+      itemElement.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+    }
+  }, [selectedKey])
+
   if (!isMounted || !show || !editor) {
     return null
   }
@@ -290,6 +314,7 @@ export const EmojiMenu = ({ editor: providedEditor }: EmojiMenuProps) => {
       onPointerDown={(e) => e.preventDefault()}
     >
       <Menu
+        ref={menuRef}
         className="suggestion-menu-core"
         data-suggestion-menu
         mode="vertical"

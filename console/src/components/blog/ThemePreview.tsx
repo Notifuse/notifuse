@@ -77,14 +77,14 @@ export function ThemePreview({ files, workspace, view }: ThemePreviewProps) {
             zIndex: 10
           }}
         >
-          <Spin size="large" tip={t`Rendering preview...`} />
+          <Spin size="large" description={t`Rendering preview...`} />
         </div>
       )}
 
       {!isRendering && renderResult && !renderResult.success && (
         <div style={{ padding: 24 }}>
           <Alert
-            message={t`Template Error`}
+            title={t`Template Error`}
             description={
               <div>
                 <p>{renderResult.error}</p>

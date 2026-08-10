@@ -25,10 +25,10 @@ function ConditionTags(props: { conditions: WebFilterCondition[] }) {
     <>
       {props.conditions.map((condition, index) => (
         <div key={index} className="inline-flex flex-wrap items-center gap-1 text-sm">
-          <Tag bordered={false} color="green">
+          <Tag variant="filled" color="green">
             {getSourceFieldLabel(condition.field)}
           </Tag>
-          <Tag bordered={false} color="blue">
+          <Tag variant="filled" color="blue">
             {vocabulary.operators[condition.operator]}
           </Tag>
           {condition.value ? <Tag>{condition.value}</Tag> : null}
@@ -111,10 +111,10 @@ function MobileFilterCard(props: MobileFilterCardProps) {
             <div className="space-y-2">
               {props.filter.operations.map((operation, index) => (
                 <div key={index} className="flex flex-wrap items-center gap-1 text-sm">
-                  <Tag bordered={false} color="purple">
+                  <Tag variant="filled" color="purple">
                     {getDimensionLabel(operation.dimension, props.customDimensionLabels)}
                   </Tag>
-                  <Tag bordered={false} color="orange">
+                  <Tag variant="filled" color="orange">
                     {vocabulary.actionShorthands[operation.action]}
                   </Tag>
                   {operation.action !== 'unset_value' && operation.value ? (
@@ -233,11 +233,11 @@ export function FilterTable(props: FilterTableProps) {
           {record.operations.map((operation, index) => (
             <div key={index} className="inline-flex flex-wrap items-center gap-1 text-sm">
               <Tooltip title={operation.dimension}>
-                <Tag bordered={false} color="purple">
+                <Tag variant="filled" color="purple">
                   {getDimensionLabel(operation.dimension, customDimensionLabels)}
                 </Tag>
               </Tooltip>
-              <Tag bordered={false} color="orange">
+              <Tag variant="filled" color="orange">
                 {vocabulary.actionShorthands[operation.action]}
               </Tag>
               {operation.action !== 'unset_value' && operation.value ? (

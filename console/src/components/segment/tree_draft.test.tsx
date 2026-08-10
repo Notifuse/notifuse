@@ -64,6 +64,8 @@ const renderTree = (onDraftTreeChange: (tree: TreeNode | undefined) => void) => 
 const editCondition = (index: number) =>
   fireEvent.click(document.querySelectorAll('[data-icon="pen-to-square"]')[index])
 
+const openSelect = (index: number) => fireEvent.mouseDown(screen.getAllByRole('combobox')[index])
+
 const lastCall = (mock: ReturnType<typeof vi.fn>) =>
   mock.mock.calls[mock.mock.calls.length - 1][0] as TreeNode | undefined
 
@@ -75,7 +77,7 @@ describe('TreeNodeInput — draft tree', () => {
     editCondition(1)
 
     // Selects, in order: the branch's ALL/ANY, then the open condition's operator and list
-    fireEvent.mouseDown(document.querySelectorAll('.ant-select-selector')[2])
+    openSelect(2)
     fireEvent.click(await screen.findByTitle('Product updates'))
 
     await waitFor(() => expect(lastCall(onDraftTreeChange)).toBeDefined())
@@ -91,7 +93,7 @@ describe('TreeNodeInput — draft tree', () => {
     renderTree(onDraftTreeChange)
 
     editCondition(0)
-    fireEvent.mouseDown(document.querySelectorAll('.ant-select-selector')[2])
+    openSelect(2)
     fireEvent.click(await screen.findByTitle('Product updates'))
     await waitFor(() => expect(lastCall(onDraftTreeChange)).toBeDefined())
 
@@ -106,7 +108,7 @@ describe('TreeNodeInput — draft tree', () => {
     const { container } = renderTree(onDraftTreeChange)
 
     editCondition(0)
-    fireEvent.mouseDown(document.querySelectorAll('.ant-select-selector')[2])
+    openSelect(2)
     fireEvent.click(await screen.findByTitle('Product updates'))
     await waitFor(() => expect(lastCall(onDraftTreeChange)).toBeDefined())
 
@@ -120,7 +122,7 @@ describe('TreeNodeInput — draft tree', () => {
     renderTree(onDraftTreeChange)
 
     editCondition(0)
-    fireEvent.mouseDown(document.querySelectorAll('.ant-select-selector')[2])
+    openSelect(2)
     fireEvent.click(await screen.findByTitle('Product updates'))
     await waitFor(() => expect(lastCall(onDraftTreeChange)).toBeDefined())
 

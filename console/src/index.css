@@ -58,12 +58,15 @@ th.ant-table-cell.contacts-fixed-col {
 .ant-table-tbody > tr:hover > td.ant-table-cell.contacts-fixed-col {
   background-color: #F9F9F9;
 }
-/* antd v5 doesn't expose --ant-control-item-bg-active as a CSS variable on
- * :root — it generates selected-row styles at runtime with the literal color.
- * Use the same literal value so our higher-specificity selector matches. */
-.ant-table-tbody > tr.ant-table-row-selected > td.ant-table-cell.contacts-fixed-col,
-.ant-table-tbody > tr.ant-table-row-selected:hover > td.ant-table-cell.contacts-fixed-col {
-  background-color: rgb(244, 240, 255);
+/* antd v6 emits its tokens as CSS variables by default and puts them on every
+ * component root, so the selected-row color is finally readable by name here
+ * instead of being pinned to a literal; the old literal stays as the fallback
+ * in case the variable is ever turned off. `.ant-table-row` is in the selector
+ * because v6 added that class to its own selected-row rule — without it ours
+ * no longer outranks antd's and the fixed column keeps the grey above. */
+.ant-table-tbody > tr.ant-table-row.ant-table-row-selected > td.ant-table-cell.contacts-fixed-col,
+.ant-table-tbody > tr.ant-table-row.ant-table-row-selected:hover > td.ant-table-cell.contacts-fixed-col {
+  background-color: var(--ant-control-item-bg-active, rgb(244, 240, 255));
 }
 
 .drawer-body-no-padding .ant-drawer-body {
@@ -119,8 +122,12 @@ th.ant-table-cell.contacts-fixed-col {
   border-left-color: #ff4d4f !important;
 }
 
-/* Required mark inscreses the line height of the form item creating discrepancy when using 2 columns */
-:where(.css-dev-only-do-not-override-1d0rgb4).ant-form-item .ant-form-item-label > label.ant-form-item-required::before {
+/* Required mark inscreses the line height of the form item creating discrepancy when using 2 columns.
+ * This mirrors antd's own selector for the asterisk minus the generated hash class it
+ * scopes with: that hash changes with every antd release and is not even emitted in
+ * production builds, so naming it here would only ever match one dev build. Equal
+ * specificity is enough to win because antd prepends its runtime styles above this file. */
+.ant-form-item .ant-form-item-label > label.ant-form-item-required::before {
   font-family: inherit;
 }
 

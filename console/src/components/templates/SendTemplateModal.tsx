@@ -394,7 +394,7 @@ export default function SendTemplateModal({
                   {t`Max 3MB per file, 10MB total, 20 files maximum`}
                 </Text>
                 {attachments.length > 0 && (
-                  <Space direction="vertical" className="mt-2 w-full">
+                  <Space orientation="vertical" className="mt-2 w-full">
                     {attachments.map((att, index) => {
                       // Calculate approximate file size from base64
                       const sizeBytes = (att.content.length * 3) / 4

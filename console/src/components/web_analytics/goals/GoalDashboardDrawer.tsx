@@ -113,7 +113,7 @@ export function GoalDashboardDrawer(props: GoalDashboardDrawerProps) {
       onClose={props.onClose}
       afterOpenChange={props.afterOpenChange}
       placement="right"
-      width="100%"
+      size="100%"
       styles={{ body: { background: 'var(--background)' } }}
       title={
         <div className="flex items-center gap-2">
@@ -126,7 +126,7 @@ export function GoalDashboardDrawer(props: GoalDashboardDrawerProps) {
     >
       <div className={series.isFetching ? 'opacity-75 transition-opacity' : ''}>
         {series.error ? (
-          <Alert type="error" showIcon message={t`Could not load this goal`} className="mb-4" />
+          <Alert type="error" showIcon title={t`Could not load this goal`} className="mb-4" />
         ) : null}
 
         <div className="overflow-hidden rounded-md border border-gray-200">

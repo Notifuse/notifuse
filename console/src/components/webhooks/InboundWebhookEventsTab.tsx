@@ -368,7 +368,7 @@ export const InboundWebhookEventsTab: React.FC<InboundWebhookEventsTabProps> = (
       render: (type: EmailEventType) => {
         const config = eventTypeConfig[type]
         return (
-          <Tag bordered={false} color={config?.color || 'default'}>
+          <Tag variant="filled" color={config?.color || 'default'}>
             {config?.icon} {config?.label || type}
           </Tag>
         )

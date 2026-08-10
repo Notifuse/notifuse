@@ -156,7 +156,7 @@ export const renderCategoryTag = (category: string) => {
   }
 
   return (
-    <Tag bordered={false} color={color}>
+    <Tag variant="filled" color={color}>
       {category.charAt(0).toUpperCase() + category.slice(1).replace('_', '-')}
     </Tag>
   )
@@ -607,8 +607,8 @@ export function CreateTemplateDrawer({
           }
           closable={true}
           keyboard={false}
-          maskClosable={false}
-          width={'100%'}
+          mask={{ closable: false }}
+          size={'100%'}
           open={isOpen}
           onClose={handleClose}
           className="drawer-no-transition drawer-body-no-padding"

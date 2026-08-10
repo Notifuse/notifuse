@@ -317,7 +317,7 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
           <Descriptions.Item label={t`CC`}>
             <Space size={[0, 4]} wrap>
               {messageHistory.channel_options.cc.map((email, idx) => (
-                <Tag bordered={false} key={idx} color="blue" className="text-xs">
+                <Tag variant="filled" key={idx} color="blue" className="text-xs">
                   {email}
                 </Tag>
               ))}
@@ -329,7 +329,7 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
           <Descriptions.Item label={t`BCC`}>
             <Space size={[0, 4]} wrap>
               {messageHistory.channel_options.bcc.map((email, idx) => (
-                <Tag bordered={false} key={idx} color="purple" className="text-xs">
+                <Tag variant="filled" key={idx} color="purple" className="text-xs">
                   {email}
                 </Tag>
               ))}
@@ -358,14 +358,14 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
           error &&
           !mjmlError && ( // General error (not MJML compilation error)
             <div className="p-4">
-              <Alert message={t`Error loading preview`} description={error} type="error" showIcon />
+              <Alert title={t`Error loading preview`} description={error} type="error" showIcon />
             </div>
           )}
         {!isLoading && mjmlError && (
           // MJML Compilation Error
           <div className="p-4 overflow-auto flex-grow flex flex-col">
             <Alert
-              message={t`MJML Compilation Error: ${mjmlError.message}`}
+              title={t`MJML Compilation Error: ${mjmlError.message}`}
               type="error"
               showIcon
               description={
@@ -415,12 +415,11 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
       <Drawer
         title={`${record.name}`}
         placement="right"
-        width={650}
+        size={650}
         open={isOpen}
         onClose={() => setIsOpen(false)}
-        destroyOnClose={true}
-        maskClosable={true}
-        mask={true}
+        destroyOnHidden={true}
+        mask={{ enabled: true, closable: true }}
         keyboard={true}
         forceRender={false}
       >

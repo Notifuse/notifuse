@@ -128,7 +128,7 @@ export const LeafContactForm = (props: LeafFormProps) => {
         name="source"
         colon={false}
         label={
-          <Tag bordered={false} color="cyan">
+          <Tag variant="filled" color="cyan">
             {props.schema.icon && (
               <FontAwesomeIcon icon={props.schema.icon} style={{ marginRight: 8 }} />
             )}
@@ -200,7 +200,7 @@ export const LeafContactListForm = (props: LeafFormProps) => {
 
   return (
     <Space style={{ alignItems: 'start' }}>
-      <Tag bordered={false} color="cyan">
+      <Tag variant="filled" color="cyan">
         {props.schema.icon && (
           <FontAwesomeIcon icon={props.schema.icon} style={{ marginRight: 8 }} />
         )}
@@ -327,7 +327,7 @@ export const LeafActionForm = (props: LeafFormProps) => {
 
   return (
     <Space style={{ alignItems: 'start' }}>
-      <Tag bordered={false} color="cyan">
+      <Tag variant="filled" color="cyan">
         {props.schema.icon && (
           <FontAwesomeIcon icon={props.schema.icon} style={{ marginRight: 8 }} />
         )}
@@ -391,7 +391,7 @@ export const LeafActionForm = (props: LeafFormProps) => {
 
             return (
               <div className="mb-2">
-                <Space direction="vertical" size={4}>
+                <Space orientation="vertical" size={4}>
                   <Space>
                     <span className="opacity-60" style={{ lineHeight: '32px' }}>
                       {t`template`}
@@ -624,7 +624,6 @@ export const LeafActionForm = (props: LeafFormProps) => {
                 <InputDimensionFilters
                   schema={props.schema}
                   btnType="link"
-                  btnGhost={true}
                   customFieldLabels={props.customFieldLabels}
                 />
               </Form.Item>
@@ -676,7 +675,7 @@ export const LeafCustomEventsGoalForm = (props: LeafFormProps) => {
 
   return (
     <Space style={{ alignItems: 'start' }}>
-      <Tag bordered={false} color="cyan">
+      <Tag variant="filled" color="cyan">
         {props.schema.icon && (
           <FontAwesomeIcon icon={props.schema.icon} style={{ marginRight: 8 }} />
         )}
@@ -960,7 +959,7 @@ export const LeafCustomEventsGoalForm = (props: LeafFormProps) => {
               {t`with properties`}
             </span>
             <Form.Item name={['custom_events_goal', 'filters']} noStyle colon={false}>
-              <InputEventPropertyFilters btnType="link" btnGhost={true} />
+              <InputEventPropertyFilters btnType="link" />
             </Form.Item>
           </Space>
         </div>

@@ -13,6 +13,14 @@ import {
   localeNames,
 } from '../i18n'
 
+// antd's popups observe their own size to stay aligned; jsdom has no ResizeObserver.
+class ResizeObserverStub {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+vi.stubGlobal('ResizeObserver', ResizeObserverStub)
+
 // Mock localStorage
 const localStorageMock = (() => {
   let store: Record<string, string> = {}

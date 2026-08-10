@@ -195,7 +195,7 @@ export function BulkActionsBar({
         destroyOnHidden
       >
         <div className="flex flex-col gap-4 py-4">
-          <Alert type="info" message={listPickerDescription} />
+          <Alert type="info" title={listPickerDescription} />
           <div className="flex flex-col gap-2">
             <Text>{t`Target list:`}</Text>
             <Select
@@ -226,7 +226,7 @@ export function BulkActionsBar({
         <div className="flex flex-col gap-4 py-4">
           <Alert
             type="warning"
-            message={
+            title={
               <Plural
                 value={selectedCount}
                 one="This will permanently delete # contact. This action cannot be undone."

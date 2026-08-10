@@ -97,7 +97,7 @@ export function BackfillStatus(props: BackfillStatusProps) {
 
         {state ? (
           <div className="mt-2 text-sm text-gray-500">
-            <Space split="·" wrap>
+            <Space separator="·" wrap>
               {partitionTotal > 0 ? (
                 <span>{t`Partition ${state.partition_index} of ${partitionTotal}`}</span>
               ) : null}
@@ -115,7 +115,7 @@ export function BackfillStatus(props: BackfillStatusProps) {
         type="error"
         showIcon
         className="!mb-4"
-        message={t`The last backfill failed`}
+        title={t`The last backfill failed`}
         description={
           <div className="mt-2 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
             <Text type="secondary">{status.error_message || t`No error message was recorded.`}</Text>
@@ -145,7 +145,7 @@ export function BackfillStatus(props: BackfillStatusProps) {
     <Alert
       type="info"
       className="!mb-4"
-      message={t`Rule changes only apply to new traffic`}
+      title={t`Rule changes only apply to new traffic`}
       description={
         <div className="mt-2 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
           <Text type="secondary">

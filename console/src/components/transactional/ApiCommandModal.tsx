@@ -996,7 +996,7 @@ public class NotificationSender {
         <div>
           <Alert
             type="info"
-            message={
+            title={
               <div>
                 <div>
                   {t`If the contact email doesn't exist in your workspace, it will be automatically created.`}

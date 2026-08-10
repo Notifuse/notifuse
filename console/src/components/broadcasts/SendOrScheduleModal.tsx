@@ -165,7 +165,7 @@ export function SendOrScheduleModal({
       open={visible}
       onCancel={onClose}
       footer={null}
-      destroyOnClose
+      destroyOnHidden
       afterOpenChange={(visible) => {
         if (visible) handleOpen()
       }}
@@ -173,7 +173,7 @@ export function SendOrScheduleModal({
       <Form form={form} layout="vertical" onFinish={handleSubmit}>
         {!hasMarketingEmailProvider && (
           <Alert
-            message={t`Marketing Email Provider Required`}
+            title={t`Marketing Email Provider Required`}
             description={t`You don't have a marketing email provider configured. Please set up an email provider in your workspace settings to send broadcasts.`}
             type="warning"
             showIcon

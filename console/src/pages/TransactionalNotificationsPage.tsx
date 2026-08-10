@@ -199,7 +199,7 @@ const TransactionalNotificationCard: React.FC<{
               </Space>
             }
             value={isLoadingStats ? '-' : stats.sent}
-            valueStyle={{ fontSize: '16px' }}
+            styles={{ content: { fontSize: '16px' } }}
             prefix={isLoadingStats ? <Spin size="small" /> : undefined}
           />
         </Col>
@@ -216,7 +216,7 @@ const TransactionalNotificationCard: React.FC<{
               </Space>
             }
             value={isLoadingStats ? '-' : getRate(stats.delivered, stats.sent)}
-            valueStyle={{ fontSize: '16px' }}
+            styles={{ content: { fontSize: '16px' } }}
             prefix={isLoadingStats ? <Spin size="small" /> : undefined}
           />
         </Col>
@@ -233,7 +233,7 @@ const TransactionalNotificationCard: React.FC<{
               </Space>
             }
             value={isLoadingStats ? '-' : stats.failed}
-            valueStyle={{ fontSize: '16px' }}
+            styles={{ content: { fontSize: '16px' } }}
             prefix={isLoadingStats ? <Spin size="small" /> : undefined}
           />
         </Col>
@@ -250,7 +250,7 @@ const TransactionalNotificationCard: React.FC<{
               </Space>
             }
             value={isLoadingStats ? '-' : stats.bounced}
-            valueStyle={{ fontSize: '16px' }}
+            styles={{ content: { fontSize: '16px' } }}
             prefix={isLoadingStats ? <Spin size="small" /> : undefined}
           />
         </Col>

@@ -87,7 +87,7 @@ export function RootLayout() {
       <div
         style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}
       >
-        <Spin size="large" tip={t`Loading...`} fullscreen />
+        <Spin size="large" description={t`Loading...`} fullscreen />
       </div>
     )
   }

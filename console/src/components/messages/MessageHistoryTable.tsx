@@ -239,7 +239,7 @@ export function MessageHistoryTable({
         const listName = list?.name || record.list_id
 
         return (
-          <Tag bordered={false} color="blue" className="text-xs">
+          <Tag variant="filled" color="blue" className="text-xs">
             {listName}
           </Tag>
         )
@@ -254,7 +254,7 @@ export function MessageHistoryTable({
         if (record.sent_at)
           events.push(
             <Tooltip key="sent" title={formatDate(record.sent_at)}>
-              <Tag bordered={false} color="blue">
+              <Tag variant="filled" color="blue">
                 <FontAwesomeIcon icon={faPaperPlane} className="opacity-70" /> {t`Sent`}
               </Tag>
             </Tooltip>
@@ -262,7 +262,7 @@ export function MessageHistoryTable({
         if (record.delivered_at)
           events.push(
             <Tooltip key="delivered" title={formatDate(record.delivered_at)}>
-              <Tag bordered={false} color="green">
+              <Tag variant="filled" color="green">
                 <FontAwesomeIcon icon={faCircleCheck} className="opacity-70" /> {t`Delivered`}
               </Tag>
             </Tooltip>
@@ -270,7 +270,7 @@ export function MessageHistoryTable({
         if (record.failed_at)
           events.push(
             <Tooltip key="failed" title={formatDate(record.failed_at)}>
-              <Tag bordered={false} color="red">
+              <Tag variant="filled" color="red">
                 <FontAwesomeIcon icon={faCircleXmark} className="opacity-70" /> {t`Failed`}
               </Tag>
             </Tooltip>
@@ -278,7 +278,7 @@ export function MessageHistoryTable({
         if (record.opened_at)
           events.push(
             <Tooltip key="opened" title={formatDate(record.opened_at)}>
-              <Tag bordered={false} color="cyan">
+              <Tag variant="filled" color="cyan">
                 <FontAwesomeIcon icon={faEye} className="opacity-70" /> {t`Opened`}
               </Tag>
             </Tooltip>
@@ -286,7 +286,7 @@ export function MessageHistoryTable({
         if (record.clicked_at)
           events.push(
             <Tooltip key="clicked" title={formatDate(record.clicked_at)}>
-              <Tag bordered={false} color="geekblue">
+              <Tag variant="filled" color="geekblue">
                 <FontAwesomeIcon icon={faArrowPointer} className="opacity-70" /> {t`Clicked`}
               </Tag>
             </Tooltip>
@@ -294,7 +294,7 @@ export function MessageHistoryTable({
         if (record.bounced_at)
           events.push(
             <Tooltip key="bounced" title={formatDate(record.bounced_at)}>
-              <Tag bordered={false} color="volcano">
+              <Tag variant="filled" color="volcano">
                 <FontAwesomeIcon icon={faTriangleExclamation} className="opacity-70" /> {t`Bounced`}
               </Tag>
             </Tooltip>
@@ -302,7 +302,7 @@ export function MessageHistoryTable({
         if (record.complained_at)
           events.push(
             <Tooltip key="complained" title={formatDate(record.complained_at)}>
-              <Tag bordered={false} color="red">
+              <Tag variant="filled" color="red">
                 <FontAwesomeIcon icon={faFaceFrown} className="opacity-70" /> {t`Complained`}
               </Tag>
             </Tooltip>
@@ -310,7 +310,7 @@ export function MessageHistoryTable({
         if (record.unsubscribed_at)
           events.push(
             <Tooltip key="unsubscribed" title={formatDate(record.unsubscribed_at)}>
-              <Tag bordered={false} color="red">
+              <Tag variant="filled" color="red">
                 <FontAwesomeIcon icon={faBan} className="opacity-70" /> {t`Unsubscribed`}
               </Tag>
             </Tooltip>

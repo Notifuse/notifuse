@@ -144,7 +144,7 @@ export function BroadcastStats({
                 </Space>
               }
               value={stats.total_sent}
-              valueStyle={{ fontSize: '16px' }}
+              styles={{ content: { fontSize: '16px' } }}
               formatter={formatStat}
             />
           </div>
@@ -178,7 +178,7 @@ export function BroadcastStats({
                 </Space>
               }
               value={isSmtpProvider ? '-' : getRate(stats.total_delivered, stats.total_sent)}
-              valueStyle={{ fontSize: '16px' }}
+              styles={{ content: { fontSize: '16px' } }}
               formatter={formatStat}
             />
           </div>
@@ -202,7 +202,7 @@ export function BroadcastStats({
                 </Space>
               }
               value={getRate(stats.total_opened, stats.total_sent)}
-              valueStyle={{ fontSize: '16px' }}
+              styles={{ content: { fontSize: '16px' } }}
               formatter={formatStat}
             />
           </div>
@@ -226,7 +226,7 @@ export function BroadcastStats({
                 </Space>
               }
               value={getRate(stats.total_clicked, stats.total_sent)}
-              valueStyle={{ fontSize: '16px' }}
+              styles={{ content: { fontSize: '16px' } }}
               formatter={formatStat}
             />
           </div>
@@ -250,7 +250,7 @@ export function BroadcastStats({
                 </Space>
               }
               value={getRate(stats.total_failed, stats.total_sent)}
-              valueStyle={{ fontSize: '16px' }}
+              styles={{ content: { fontSize: '16px' } }}
               formatter={formatStat}
             />
           </div>
@@ -284,7 +284,7 @@ export function BroadcastStats({
                 </Space>
               }
               value={isSmtpProvider ? '-' : getRate(stats.total_bounced, stats.total_sent)}
-              valueStyle={{ fontSize: '16px' }}
+              styles={{ content: { fontSize: '16px' } }}
               formatter={formatStat}
             />
           </div>
@@ -318,7 +318,7 @@ export function BroadcastStats({
                 </Space>
               }
               value={isSmtpProvider ? '-' : getRate(stats.total_complained, stats.total_sent)}
-              valueStyle={{ fontSize: '16px' }}
+              styles={{ content: { fontSize: '16px' } }}
               formatter={formatStat}
             />
           </div>
@@ -342,7 +342,7 @@ export function BroadcastStats({
                 </Space>
               }
               value={getRate(stats.total_unsubscribed, stats.total_sent)}
-              valueStyle={{ fontSize: '16px' }}
+              styles={{ content: { fontSize: '16px' } }}
               formatter={formatStat}
             />
           </div>

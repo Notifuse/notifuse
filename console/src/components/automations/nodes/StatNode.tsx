@@ -102,18 +102,18 @@ export const StatNode: React.FC<StatNodeProps> = ({ data }) => {
             <Statistic
               title={t`Inflight`}
               value={nodeStats.entered}
-              valueStyle={{ fontSize: 14, color: '#374151' }}
+              styles={{ content: { fontSize: 14, color: '#374151' } }}
             />
             <Statistic
               title={t`Completed`}
               value={nodeStats.completed}
-              valueStyle={{ fontSize: 14, color: '#16a34a' }}
+              styles={{ content: { fontSize: 14, color: '#16a34a' } }}
             />
             {showFailedRate && (
               <Statistic
                 title={t`Failed`}
                 value={nodeStats.failed}
-                valueStyle={{ fontSize: 14, color: '#dc2626' }}
+                styles={{ content: { fontSize: 14, color: '#dc2626' } }}
               />
             )}
           </div>
@@ -167,17 +167,17 @@ export const FilterStatNode: React.FC<StatNodeProps> = ({ data }) => {
             <Statistic
               title={t`Inflight`}
               value={nodeStats.entered}
-              valueStyle={{ fontSize: 14, color: '#374151' }}
+              styles={{ content: { fontSize: 14, color: '#374151' } }}
             />
             <Statistic
               title={t`Completed`}
               value={nodeStats.completed}
-              valueStyle={{ fontSize: 14, color: '#16a34a' }}
+              styles={{ content: { fontSize: 14, color: '#16a34a' } }}
             />
             <Statistic
               title={t`Failed`}
               value={nodeStats.skipped}
-              valueStyle={{ fontSize: 14, color: '#ea580c' }}
+              styles={{ content: { fontSize: 14, color: '#ea580c' } }}
             />
           </div>
         </div>
@@ -249,18 +249,18 @@ export const ABTestStatNode: React.FC<StatNodeProps> = ({ data }) => {
             <Statistic
               title={t`Inflight`}
               value={nodeStats.entered}
-              valueStyle={{ fontSize: 14, color: '#374151' }}
+              styles={{ content: { fontSize: 14, color: '#374151' } }}
             />
             <Statistic
               title={t`Completed`}
               value={nodeStats.completed}
-              valueStyle={{ fontSize: 14, color: '#16a34a' }}
+              styles={{ content: { fontSize: 14, color: '#16a34a' } }}
             />
             {nodeStats.failed > 0 && (
               <Statistic
                 title={t`Failed`}
                 value={nodeStats.failed}
-                valueStyle={{ fontSize: 14, color: '#dc2626' }}
+                styles={{ content: { fontSize: 14, color: '#dc2626' } }}
               />
             )}
           </div>

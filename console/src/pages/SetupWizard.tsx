@@ -332,7 +332,7 @@ export default function SetupWizard() {
                     onClick={handleDone}
                     loading={loading}
                     icon={!loading && <ArrowRightOutlined />}
-                    iconPosition="end"
+                    iconPlacement="end"
                     disabled={loading}
                   >
                     {loading ? t`Waiting for server restart...` : t`Go to Sign In`}
@@ -403,7 +403,7 @@ export default function SetupWizard() {
                   {/* SMTP Configuration Section */}
                   {!configStatus.smtp_configured && (
                     <>
-                      <Divider orientation="center" style={{ marginTop: 32, marginBottom: 24 }}>
+                      <Divider titlePlacement="center" style={{ marginTop: 32, marginBottom: 24 }}>
                         {t`SMTP Configuration`}
                       </Divider>
 
@@ -792,7 +792,7 @@ export default function SetupWizard() {
                     loading={loading}
                     size="large"
                     icon={<CheckOutlined />}
-                    iconPosition="end"
+                    iconPlacement="end"
                     block
                   >
                     {loading ? t`Setting up...` : t`Complete Setup`}

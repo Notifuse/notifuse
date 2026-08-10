@@ -544,7 +544,7 @@ export function ContactsPage() {
       title: t`Lists`,
       key: 'lists',
       render: (_: unknown, record: Contact) => (
-        <Space direction="vertical" size={2}>
+        <Space orientation="vertical" size={2}>
           {record.contact_lists.map(
             (list: { list_id: string; status?: string; created_at?: string }) => {
               let color = 'blue'
@@ -609,7 +609,7 @@ export function ContactsPage() {
 
               return (
                 <Tooltip key={list.list_id} title={tooltipTitle}>
-                  <Tag bordered={false} color={color} style={{ marginBottom: '2px' }}>
+                  <Tag variant="filled" color={color} style={{ marginBottom: '2px' }}>
                     {icon}
                     {listName}
                   </Tag>
@@ -625,7 +625,7 @@ export function ContactsPage() {
       title: t`Segments`,
       key: 'segments',
       render: (_: unknown, record: Contact) => (
-        <Space direction="vertical" size={2}>
+        <Space orientation="vertical" size={2}>
           {record.contact_segments?.map(
             (segment: {
               segment_id: string
@@ -658,7 +658,7 @@ export function ContactsPage() {
 
               return (
                 <Tooltip key={segment.segment_id} title={tooltipTitle}>
-                  <Tag bordered={false} color={segmentColor} style={{ marginBottom: '2px' }}>
+                  <Tag variant="filled" color={segmentColor} style={{ marginBottom: '2px' }}>
                     {segmentName}
                   </Tag>
                 </Tooltip>
@@ -930,7 +930,9 @@ export function ContactsPage() {
       fixed: 'right' as const,
       align: 'right' as const,
       onHeaderCell: () => ({ className: 'contacts-fixed-col' }),
-      onCell: () => ({ className: 'contacts-fixed-col' }),
+      // `contacts-actions-col` is only on the body cells: it is what the row
+      // click handler looks for to leave the controls in this column alone.
+      onCell: () => ({ className: 'contacts-fixed-col contacts-actions-col' }),
       render: (_: unknown, record: Contact) => {
         const menuItems: MenuProps['items'] = [
           {
@@ -997,7 +999,7 @@ export function ContactsPage() {
         <div className="flex items-center gap-3">
           <div className="text-2xl font-medium">{t`Contacts`}</div>
           {totalContactsData?.total_contacts !== undefined && (
-            <Tag bordered={false} color="blue">
+            <Tag variant="filled" color="blue">
               {numbro(totalContactsData.total_contacts).format({
                 thousandSeparated: true,
                 mantissa: 0
@@ -1141,13 +1143,10 @@ export function ContactsPage() {
             // is outside the row, and such a click must not toggle selection.
             if (!e.currentTarget.contains(target)) return
             // Ignore clicks inside the selection column (checkbox handles itself)
-            // or the fixed-right actions column (dropdown + detail drawer).
-            if (
-              target.closest(
-                '.ant-table-selection-column, .ant-table-cell-fix-right'
-              )
-            )
-              return
+            // or the actions column (dropdown + detail drawer). The actions cell
+            // is matched through the class we set on it ourselves, because antd
+            // renames its own fixed-cell classes between major versions.
+            if (target.closest('.ant-table-selection-column, .contacts-actions-col')) return
             setSelectedEmails((prev) =>
               prev.includes(record.email)
                 ? prev.filter((email) => email !== record.email)

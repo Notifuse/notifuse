@@ -392,7 +392,7 @@ export function ImageNodeView(props: NodeViewProps) {
         </Tooltip>
       </div>
 
-      <Divider type="vertical" style={{ height: '20px', margin: '0 4px' }} />
+      <Divider orientation="vertical" style={{ height: '20px', margin: '0 4px' }} />
 
       <div className="notifuse-editor-toolbar-section">
         <Tooltip title={t`Toggle caption`}>
@@ -455,9 +455,9 @@ export function ImageNodeView(props: NodeViewProps) {
         open={selected}
         placement="top"
         arrow={false}
-        overlayClassName="image-toolbar-popover"
+        classNames={{ root: "image-toolbar-popover" }}
         styles={{
-          body: {
+          container: {
             padding: '4px',
             background: 'white',
             border: '1px solid #e8e8e8',

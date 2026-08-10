@@ -32,7 +32,7 @@ export class OperatorContains implements IOperator {
           {values.map((value, i) => {
             return (
               <>
-                <Tag bordered={false} color="blue" key={value}>
+                <Tag variant="filled" color="blue" key={value}>
                   {value}
                 </Tag>
                 {i < values.length - 1 && <span className="pr-2">or</span>}
@@ -149,7 +149,7 @@ export class OperatorContains implements IOperator {
         return (
           <Alert
             type="error"
-            message={'contains form item not implemented for type: ' + fieldType}
+            title={'contains form item not implemented for type: ' + fieldType}
           />
         )
     }

@@ -170,7 +170,7 @@ export function DimensionTableWidget(props: DimensionTableWidgetProps) {
       <Drawer
         open={expanded}
         onClose={() => setExpanded(false)}
-        width={640}
+        size={640}
         title={
           <div className="flex items-center gap-2">
             {props.title}

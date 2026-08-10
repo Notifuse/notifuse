@@ -52,7 +52,7 @@ const MjBodySettingsPanel: React.FC<MjBodySettingsPanelProps> = ({
 
       {showWarning && (
         <Alert
-          message={t`Email widths above 650px may not display correctly in some email clients`}
+          title={t`Email widths above 650px may not display correctly in some email clients`}
           type="warning"
           style={{ marginTop: '8px' }}
         />

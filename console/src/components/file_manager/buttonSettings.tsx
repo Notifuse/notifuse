@@ -209,7 +209,7 @@ const ButtonFilesSettings = (props: ButtonFilesSettingsProps) => {
 
 
         <Alert
-          message={
+          title={
             selectedProvider
               ? t`Configuring ${selectedProvider.name}`
               : t`Your files can be uploaded to any S3 compatible storage.`

@@ -204,7 +204,7 @@ export function WebhooksSettings({ workspaceId }: WebhooksSettingsProps) {
       {/* Create/Edit Drawer */}
       <Drawer
         title={editingSubscription ? t`Edit Webhook` : t`Create Webhook`}
-        width={500}
+        size={500}
         open={drawerVisible}
         onClose={() => setDrawerVisible(false)}
         footer={

@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
 import { useLingui } from '@lingui/react/macro'
-import { Button, Card, Col, Drawer, Dropdown, Input, Popconfirm, Row, Switch } from 'antd'
+import { Button, Card, Col, Drawer, Dropdown, Input, Popconfirm, Row, Space, Switch } from 'antd'
 import { DownOutlined } from '@ant-design/icons'
 import { SUPPORTED_LANGUAGES } from '../../lib/languages'
 import type { Workspace } from '../../services/api/types'
@@ -195,7 +195,7 @@ const TemplateTranslationsTab: React.FC<TemplateTranslationsTabProps> = ({
               key={lang}
               title={`${langName} (${lang})`}
               style={{ backgroundColor: '#fff', width: 900 }}
-              bodyStyle={enabled && langState ? undefined : { display: 'none' }}
+              styles={{ body: enabled && langState ? undefined : { display: 'none' } }}
               extra={
                 <Switch
                   checked={enabled}
@@ -226,7 +226,8 @@ const TemplateTranslationsTab: React.FC<TemplateTranslationsTabProps> = ({
                         placeholder={t`Preview text`}
                       />
                     </div>
-                    <Button.Group style={{ display: 'flex' }}>
+                    {/* display:flex overrides the compact default inline-flex so the block button can fill the row */}
+                    <Space.Compact style={{ display: 'flex' }}>
                       <Button type="primary" block onClick={() => setEditorDrawerLang(lang)}>
                         {t`Open email editor`}
                       </Button>
@@ -263,7 +264,7 @@ const TemplateTranslationsTab: React.FC<TemplateTranslationsTabProps> = ({
                       >
                         <Button type="primary" icon={<DownOutlined />} />
                       </Dropdown>
-                    </Button.Group>
+                    </Space.Compact>
                   </Col>
                   <Col span={12}>
                     <div className="flex justify-center" style={{ transform: 'scale(0.8)', transformOrigin: 'top center', height: 208 }}>
@@ -286,12 +287,12 @@ const TemplateTranslationsTab: React.FC<TemplateTranslationsTabProps> = ({
       {editorDrawerLang && activeLangState && (
         <Drawer
           title={t`Edit ${SUPPORTED_LANGUAGES[editorDrawerLang] || editorDrawerLang} translation`}
-          width="100%"
+          size="100%"
           open={!!editorDrawerLang}
           onClose={() => setEditorDrawerLang(null)}
           className="drawer-no-transition drawer-body-no-padding"
           keyboard={false}
-          maskClosable={false}
+          mask={{ closable: false }}
           extra={
             <Button type="primary" onClick={() => setEditorDrawerLang(null)}>
               {t`Done`}

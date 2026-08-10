@@ -221,7 +221,7 @@ export function TemplatesPage() {
               <Text strong>{text}</Text>
             </Tooltip>
             {record.email?.editor_mode === 'code' && (
-              <Tag bordered={false} color="geekblue">{t`Code`}</Tag>
+              <Tag variant="filled" color="geekblue">{t`Code`}</Tag>
             )}
           </Space>
         )
@@ -248,7 +248,7 @@ export function TemplatesPage() {
           }
         }
         return (
-          <Tag bordered={false} color="blue">
+          <Tag variant="filled" color="blue">
             {t`default`}
           </Tag>
         )

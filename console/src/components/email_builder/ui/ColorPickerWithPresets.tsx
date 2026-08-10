@@ -60,7 +60,7 @@ const ColorPickerWithPresets: React.FC<ColorPickerWithPresetsProps> = ({
           <Presets />
         </div>
       </Col>
-      <Divider type="vertical" style={{ height: 'auto' }} />
+      <Divider orientation="vertical" style={{ height: 'auto' }} />
       <Col flex="auto">
         <Picker />
       </Col>

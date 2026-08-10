@@ -550,11 +550,11 @@ export function BulkUpdateDrawer({ workspaceId, lists, buttonProps }: BulkUpdate
 
       <Drawer
         title={t`Bulk Update Contacts`}
-        width={800}
+        size={800}
         onClose={onClose}
         open={open}
         closable={!progress.isRunning}
-        maskClosable={!progress.isRunning}
+        mask={{ closable: !progress.isRunning }}
         extra={
           <Space>
             {!progress.isRunning && !uploadComplete && canSubmit && (
@@ -618,7 +618,7 @@ export function BulkUpdateDrawer({ workspaceId, lists, buttonProps }: BulkUpdate
         {csvData && operation && !progress.isRunning && !uploadComplete && (
           <Alert
             type="warning"
-            message={operation === 'delete'
+            title={operation === 'delete'
               ? t`This action will permanently delete ${csvData.emails.length} contact(s)`
               : t`This action will unsubscribe ${csvData.emails.length} contact(s)`}
             showIcon
@@ -697,7 +697,7 @@ export function BulkUpdateDrawer({ workspaceId, lists, buttonProps }: BulkUpdate
               {paused && (
                 <Alert
                   type="warning"
-                  message={t`Processing paused`}
+                  title={t`Processing paused`}
                   description={t`Click Resume to continue processing`}
                   className="mt-2"
                 />
@@ -748,7 +748,7 @@ export function BulkUpdateDrawer({ workspaceId, lists, buttonProps }: BulkUpdate
         {uploadComplete && (
           <Alert
             type={progress.failed === 0 ? 'success' : 'warning'}
-            message={t`Operation Complete`}
+            title={t`Operation Complete`}
             description={t`Processed ${progress.total} contacts: ${progress.successful} successful, ${progress.failed} failed`}
             showIcon
             className="mb-4"

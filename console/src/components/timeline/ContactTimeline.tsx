@@ -186,7 +186,7 @@ export function ContactTimeline({
       <div className="flex items-center gap-2 mb-2 flex-wrap">
         {prefixContent}
         {category && <Text strong>{category}</Text>}
-        <Tag bordered={false} color={color}>
+        <Tag variant="filled" color={color}>
           {actionLabel}
         </Tag>
         <Tooltip title={`${dayjs(entry.created_at).format('LLLL')} in ${timezone}`}>
@@ -239,7 +239,7 @@ export function ContactTimeline({
           <div className="text-sm">
             <Text type="secondary">{t`List:`}</Text> {listDisplay}{' '}
             <Text type="secondary">{t`with status`}</Text>{' '}
-            <Tag bordered={false} color={getStatusColor(newStatus)}>
+            <Tag variant="filled" color={getStatusColor(newStatus)}>
               {newStatus}
             </Tag>
           </div>
@@ -256,14 +256,14 @@ export function ContactTimeline({
                 {' — '}
                 <Text type="secondary">{oldStatus}</Text>
                 <Text type="secondary"> → </Text>
-                <Tag bordered={false} color={getStatusColor(newStatus)}>
+                <Tag variant="filled" color={getStatusColor(newStatus)}>
                   {newStatus}
                 </Tag>
               </>
             ) : (
               <>
                 {' → '}
-                <Tag bordered={false} color={getStatusColor(newStatus)}>
+                <Tag variant="filled" color={getStatusColor(newStatus)}>
                   {newStatus}
                 </Tag>
               </>
@@ -359,7 +359,7 @@ export function ContactTimeline({
           title={t`Raw JSON`}
           placement="rightTop"
           trigger="click"
-          overlayStyle={{ maxWidth: '600px' }}
+          styles={{ root: { maxWidth: '600px' } }}
         >
           <Button size="small" type="text">
             {t`View Raw JSON`}
@@ -469,13 +469,13 @@ export function ContactTimeline({
         const segmentDisplay = segment ? (
           <Tooltip title={t`ID: ${segmentId}`}>
             <span>
-              <Tag bordered={false} color={segment.color}>
+              <Tag variant="filled" color={segment.color}>
                 {segment.name}
               </Tag>
             </span>
           </Tooltip>
         ) : (
-          <Tag bordered={false} color="blue">
+          <Tag variant="filled" color="blue">
             {segmentId}
           </Tag>
         )
@@ -668,18 +668,18 @@ export function ContactTimeline({
             <div className="flex items-center gap-2 mb-2 flex-wrap">
               <Tooltip title={eventName}>
                 <span>
-                  <Tag color="purple" bordered={false}>{formattedEventName}</Tag>
+                  <Tag color="purple" variant="filled">{formattedEventName}</Tag>
                 </span>
               </Tooltip>
               {goalValue !== undefined && goalValue !== null && (
-                <Tag color="cyan" bordered={false}>
+                <Tag color="cyan" variant="filled">
                   {goalType === 'purchase' || goalType === 'subscription' ? '$' : ''}
                   {goalValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </Tag>
               )}
               {customEventData?.source && getSourceBadge(customEventData.source)}
               {entry.operation === 'update' && (
-                <Tag color="orange" bordered={false}>
+                <Tag color="orange" variant="filled">
                   {t`updated`}
                 </Tag>
               )}
@@ -761,7 +761,7 @@ export function ContactTimeline({
                 <Text code>{entry.entity_id || t`Unknown`}</Text>
               )}
               {!isStart && exitReason && exitReason !== 'completed' && (
-                <Tag className="ml-2" bordered={false}>{exitReason}</Tag>
+                <Tag className="ml-2" variant="filled">{exitReason}</Tag>
               )}
             </div>
           </div>
@@ -805,7 +805,7 @@ export function ContactTimeline({
       <Timeline
         className="contact-timeline"
         items={entries.map((entry) => ({
-          dot: (
+          icon: (
             <Popover
               content={
                 <pre className="text-xs max-w-lg max-h-96 overflow-auto bg-gray-50 p-2 rounded">
@@ -821,7 +821,7 @@ export function ContactTimeline({
               </div>
             </Popover>
           ),
-          children: renderEntityDetails(entry)
+          content: renderEntityDetails(entry)
         }))}
       />
 

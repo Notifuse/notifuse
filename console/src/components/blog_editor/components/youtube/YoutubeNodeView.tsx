@@ -569,7 +569,7 @@ export function YoutubeNodeView(props: NodeViewProps) {
         </Tooltip>
       </div>
 
-      <Divider type="vertical" style={{ height: '20px', margin: '0 4px' }} />
+      <Divider orientation="vertical" style={{ height: '20px', margin: '0 4px' }} />
 
       <div className="notifuse-editor-toolbar-section">
         <Tooltip title={t`Toggle caption`}>
@@ -642,9 +642,9 @@ export function YoutubeNodeView(props: NodeViewProps) {
         open={selected}
         placement="top"
         arrow={false}
-        overlayClassName="youtube-toolbar-popover"
+        classNames={{ root: "youtube-toolbar-popover" }}
         styles={{
-          body: {
+          container: {
             padding: '4px',
             background: 'white',
             border: '1px solid #e8e8e8',

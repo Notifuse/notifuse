@@ -99,7 +99,7 @@ export function CategoryDrawer({ open, onClose, category, workspaceId }: Categor
   return (
     <Drawer
       title={isEditMode ? t`Edit Category` : t`Create New Category`}
-      width={500}
+      size={500}
       onClose={handleClose}
       open={open}
       styles={{

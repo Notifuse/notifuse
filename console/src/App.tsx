@@ -50,17 +50,24 @@ const theme: ThemeConfig = {
     Card: {
       //   headerBg: '#f0f0f0',
       headerFontSize: 16,
-      borderRadius: 4,
+      // Card sizes every corner from borderRadiusLG alone. The other radius tokens never
+      // reached the card, and overriding a global token per component now emits a scoped
+      // CSS variable, so they would only reround the buttons, inputs and popups nested
+      // inside cards.
       borderRadiusLG: 4,
-      borderRadiusSM: 4,
-      borderRadiusXS: 4,
       colorBorderSecondary: 'var(--color-gray-200)',
       colorBgContainer: '#F9F9F9'
     },
     Table: {
       headerBg: 'transparent',
-      fontSize: 12,
-      colorTextHeading: 'rgb(51 65 85)',
+      // Sized and coloured through the cell/header tokens instead of the global fontSize
+      // and colorTextHeading: those cascade out of the table wrapper as CSS variables and
+      // would shrink and recolour every antd component rendered inside a cell.
+      cellFontSize: 12,
+      cellFontSizeMD: 12,
+      cellFontSizeSM: 12,
+      headerColor: 'rgb(51 65 85)',
+      footerColor: 'rgb(51 65 85)',
       colorBgContainer: 'transparent',
       rowHoverBg: 'transparent',
       // The container is transparent, so antd's default sort-highlight fills resolve to
@@ -71,10 +78,14 @@ const theme: ThemeConfig = {
       bodySortBg: 'transparent'
     },
     Drawer: {
+      // Drawer paints its panel straight from colorBgElevated and exposes no background
+      // token of its own, so this override has to stay on the global token.
       colorBgElevated: '#F9F9F9'
     },
     Modal: {
-      colorBgElevated: '#F9F9F9'
+      // contentBg is the only thing Modal derived from colorBgElevated, and setting it
+      // directly keeps the override from cascading into the dialog's popups and sliders.
+      contentBg: '#F9F9F9'
     },
     Timeline: {
       dotBg: '#F9F9F9'

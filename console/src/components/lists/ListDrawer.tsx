@@ -155,7 +155,7 @@ export function CreateListDrawer({
       </Button>
       <Drawer
         title={isEditMode ? t`Edit List` : t`Create New List`}
-        width={400}
+        size={400}
         onClose={onClose}
         open={open}
         styles={{

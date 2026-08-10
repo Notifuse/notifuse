@@ -148,7 +148,7 @@ export function CsvExportModal(props: CsvExportModalProps) {
         type="info"
         showIcon
         className="!mt-4"
-        message={t`What gets exported`}
+        title={t`What gets exported`}
         description={
           <ul className="mt-2 list-disc space-y-1 pl-5">
             <li>

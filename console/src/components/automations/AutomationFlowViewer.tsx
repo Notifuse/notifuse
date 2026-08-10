@@ -220,7 +220,7 @@ const AutomationFlowViewerInner: React.FC<AutomationFlowViewerProps> = ({
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
-        <Spin tip={t`Loading stats...`} />
+        <Spin description={t`Loading stats...`} />
       </div>
     )
   }

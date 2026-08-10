@@ -231,7 +231,7 @@ export function SystemSettingsDrawer() {
       <Drawer
         title={t`System Settings`}
         placement="right"
-        width={900}
+        size={900}
         onClose={() => setOpen(false)}
         open={open}
         extra={

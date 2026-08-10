@@ -37,7 +37,7 @@ export function useTemplateConflictModal(): {
       open={info !== null}
       title={t`Template changed by someone else`}
       onCancel={close}
-      maskClosable={false}
+      mask={{ closable: false }}
       footer={[
         <Button key="keep" onClick={close}>
           {t`Keep editing`}

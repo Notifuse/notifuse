@@ -97,7 +97,7 @@ export function BreakdownDrawer(props: BreakdownDrawerProps) {
       open={props.open}
       onClose={props.onClose}
       placement="right"
-      width="100%"
+      size="100%"
       title={
         <div className="flex items-center gap-2">
           <span className="text-gray-400">

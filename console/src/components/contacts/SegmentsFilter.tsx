@@ -1,6 +1,6 @@
-import React from 'react'
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query'
-import { Space, Dropdown, Modal, Badge, Tag, Popover, message, Progress } from 'antd'
+import { Space, Dropdown, Button, Modal, Badge, Tag, Popover, message, Progress } from 'antd'
+import { EllipsisOutlined } from '@ant-design/icons'
 import { useLingui } from '@lingui/react/macro'
 import { deleteSegment, rebuildSegment, type Segment } from '../../services/api/segment'
 import { taskApi } from '../../services/api/task'
@@ -93,91 +93,93 @@ function SegmentButton({
   const statusBadge = getStatusBadge()
 
   return (
-    <Dropdown.Button
-      key={segment.id}
-      size="small"
-      onClick={onToggle}
-      buttonsRender={([leftButton, rightButton]) => [
-        React.cloneElement(leftButton as React.ReactElement, {
-          color: isSelected ? 'primary' : 'default',
-          variant: 'outlined'
-        }),
-        React.cloneElement(rightButton as React.ReactElement, {
-          color: isSelected ? 'primary' : 'default',
-          variant: 'outlined'
-        })
-      ]}
-      menu={{
-        items: [
-          {
-            key: 'update',
-            label: (
-              <ButtonUpsertSegment
-                segment={segment}
-                totalContacts={totalContacts}
-                onSuccess={() => {
-                  queryClient.invalidateQueries({ queryKey: ['segments', workspaceId] })
-                }}
-              >
-                <span>{t`Update`}</span>
-              </ButtonUpsertSegment>
-            )
-          },
-          {
-            key: 'rebuild',
-            label: t`Rebuild`,
-            onClick: () => {
-              Modal.confirm({
-                title: t`Rebuild segment`,
-                content: t`Are you sure you want to rebuild "${segment.name}"? This will recalculate segment membership.`,
-                okText: t`Yes`,
-                cancelText: t`No`,
-                onOk: () => {
-                  onRebuild(segment.id)
-                }
-              })
-            }
-          },
-          {
-            key: 'delete',
-            label: <span style={{ color: '#ff4d4f' }}>{t`Delete`}</span>,
-            onClick: () => {
-              Modal.confirm({
-                title: t`Delete segment`,
-                content: t`Are you sure you want to delete "${segment.name}"?`,
-                okText: t`Yes`,
-                cancelText: t`No`,
-                okButtonProps: { danger: true },
-                onOk: () => {
-                  onDelete(segment.id)
-                }
-              })
-            }
-          }
-        ]
-      }}
-    >
-      <Space size="small">
-        <Popover title={statusBadge.title} content={statusBadge.content}>
-          <span>
-            <Badge status={statusBadge.status as "success" | "processing" | "error" | "default" | "warning"} />
-          </span>
-        </Popover>
-        <Tag bordered={false} color={segment.color} style={{ margin: 0 }}>
-          {segment.name}
-          {segment.users_count !== undefined && (
-            <span style={{ marginLeft: '4px', opacity: 0.8 }}>
-              (
-              {numbro(segment.users_count).format({
-                thousandSeparated: true,
-                mantissa: 0
-              })}
-              )
+    <Space.Compact key={segment.id} size="small" block>
+      <Button
+        color={isSelected ? 'primary' : 'default'}
+        variant="outlined"
+        onClick={onToggle}
+      >
+        <Space size="small">
+          <Popover title={statusBadge.title} content={statusBadge.content}>
+            <span>
+              <Badge status={statusBadge.status as "success" | "processing" | "error" | "default" | "warning"} />
             </span>
-          )}
-        </Tag>
-      </Space>
-    </Dropdown.Button>
+          </Popover>
+          <Tag variant="filled" color={segment.color} style={{ margin: 0 }}>
+            {segment.name}
+            {segment.users_count !== undefined && (
+              <span style={{ marginLeft: '4px', opacity: 0.8 }}>
+                (
+                {numbro(segment.users_count).format({
+                  thousandSeparated: true,
+                  mantissa: 0
+                })}
+                )
+              </span>
+            )}
+          </Tag>
+        </Space>
+      </Button>
+      <Dropdown
+        // A bare Dropdown anchors to bottomLeft, so the menu would hang off the left of the caret
+        placement="bottomRight"
+        menu={{
+          items: [
+            {
+              key: 'update',
+              label: (
+                <ButtonUpsertSegment
+                  segment={segment}
+                  totalContacts={totalContacts}
+                  onSuccess={() => {
+                    queryClient.invalidateQueries({ queryKey: ['segments', workspaceId] })
+                  }}
+                >
+                  <span>{t`Update`}</span>
+                </ButtonUpsertSegment>
+              )
+            },
+            {
+              key: 'rebuild',
+              label: t`Rebuild`,
+              onClick: () => {
+                Modal.confirm({
+                  title: t`Rebuild segment`,
+                  content: t`Are you sure you want to rebuild "${segment.name}"? This will recalculate segment membership.`,
+                  okText: t`Yes`,
+                  cancelText: t`No`,
+                  onOk: () => {
+                    onRebuild(segment.id)
+                  }
+                })
+              }
+            },
+            {
+              key: 'delete',
+              label: <span style={{ color: '#ff4d4f' }}>{t`Delete`}</span>,
+              onClick: () => {
+                Modal.confirm({
+                  title: t`Delete segment`,
+                  content: t`Are you sure you want to delete "${segment.name}"?`,
+                  okText: t`Yes`,
+                  cancelText: t`No`,
+                  okButtonProps: { danger: true },
+                  onOk: () => {
+                    onDelete(segment.id)
+                  }
+                })
+              }
+            }
+          ]
+        }}
+      >
+        <Button
+          color={isSelected ? 'primary' : 'default'}
+          variant="outlined"
+          icon={<EllipsisOutlined />}
+        />
+      </Dropdown>
+    </Space.Compact>
   )
 }
 

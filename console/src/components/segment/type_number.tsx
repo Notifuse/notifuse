@@ -27,7 +27,7 @@ export class FieldTypeNumber implements FieldTypeRenderer {
   render(filter: DimensionFilter) {
     const operator = this.operators.find((x) => x.type === filter.operator)
     if (!operator)
-      return <Alert type="error" message={'operator not found for: {filter.operator'} />
+      return <Alert type="error" title={'operator not found for: {filter.operator'} />
     return <>{operator.render(filter)}</>
   }
 
@@ -39,7 +39,7 @@ export class FieldTypeNumber implements FieldTypeRenderer {
             // size="small"
             placeholder="select a value"
             // style={{ width: '150px' }}
-            dropdownMatchSelectWidth={false}
+            popupMatchSelectWidth={false}
             options={this.operators.map((op: IOperator) => {
               return {
                 value: op.type,

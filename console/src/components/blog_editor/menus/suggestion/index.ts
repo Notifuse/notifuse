@@ -5,6 +5,5 @@
 
 export { EmojiMenu } from './EmojiMenu'
 export { SlashMenu } from './SlashMenu'
-export { SuggestionMenuItem } from './SuggestionMenuItem'
 export * from './types'
 export * from './configs'

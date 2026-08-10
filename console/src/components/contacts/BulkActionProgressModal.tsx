@@ -40,7 +40,7 @@ export function BulkActionProgressModal({
       open={open}
       onCancel={isDone ? onClose : undefined}
       closable={isDone}
-      maskClosable={false}
+      mask={{ closable: false }}
       keyboard={false}
       width={720}
       footer={
@@ -111,14 +111,14 @@ export function BulkActionProgressModal({
         {isPaused && (
           <Alert
             type="warning"
-            message={t`Processing paused`}
+            title={t`Processing paused`}
             description={t`Click Resume to continue processing.`}
           />
         )}
         {progress.cancelled && (
           <Alert
             type="warning"
-            message={t`Operation cancelled`}
+            title={t`Operation cancelled`}
             description={t`Processing was stopped before completion.`}
           />
         )}

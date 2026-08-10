@@ -90,7 +90,7 @@ export function WorkspaceMembers({
       render: (role: string, record: WorkspaceMember) => {
         if (record.type === 'api_key') {
           return (
-            <Tag bordered={false} color="purple">
+            <Tag variant="filled" color="purple">
               {t`API Key`}
             </Tag>
           )
@@ -100,7 +100,7 @@ export function WorkspaceMembers({
           : role.charAt(0).toUpperCase() + role.slice(1)
 
         return (
-          <Tag bordered={false} color={role === 'owner' ? 'gold' : 'blue'}>
+          <Tag variant="filled" color={role === 'owner' ? 'gold' : 'blue'}>
             {roleDisplay}
           </Tag>
         )
@@ -636,7 +636,7 @@ export function WorkspaceMembers({
         ) : (
           <>
             <Alert
-              message={t`API Key Created Successfully`}
+              title={t`API Key Created Successfully`}
               description={t`This token will only be displayed once. Please save it in a secure location. It cannot be retrieved again.`}
               type="warning"
               showIcon

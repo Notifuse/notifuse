@@ -128,7 +128,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
             <Statistic
               title={t`Total Contacts`}
               value={totalContacts as number}
-              valueStyle={{ fontSize: '24px', fontWeight: 'bold' }}
+              styles={{ content: { fontSize: '24px', fontWeight: 'bold' } }}
               formatter={(value) => formatStat(value as number, totalContactsLoading)}
             />
           </div>
@@ -140,7 +140,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
             <Statistic
               title={t`New Contacts`}
               value={newContactsCount as number}
-              valueStyle={{ fontSize: '24px', fontWeight: 'bold' }}
+              styles={{ content: { fontSize: '24px', fontWeight: 'bold' } }}
               formatter={(value) => formatStat(value as number, newContactsLoading)}
             />
           </div>

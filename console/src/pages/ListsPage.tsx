@@ -191,7 +191,7 @@ export function ListsPage() {
           ))}
         </Row>
       ) : hasLists ? (
-        <Space direction="vertical" size="large">
+        <Space orientation="vertical" size="large">
           {data.lists.map((list: List) => (
             <Card
               title={
@@ -269,11 +269,11 @@ export function ListsPage() {
                 <Descriptions.Item label={t`Description`}>{list.description}</Descriptions.Item>
                 <Descriptions.Item label={t`Visibility`}>
                   {list.is_public ? (
-                    <Tag bordered={false} color="green">
+                    <Tag variant="filled" color="green">
                       {t`Public`}
                     </Tag>
                   ) : (
-                    <Tag bordered={false} color="volcano">
+                    <Tag variant="filled" color="volcano">
                       {t`Private`}
                     </Tag>
                   )}

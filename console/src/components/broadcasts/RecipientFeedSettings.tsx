@@ -179,7 +179,7 @@ export function RecipientFeedSettings({
                 <>
                   {testResult.error ? (
                     <Alert
-                      message={t`Test Failed`}
+                      title={t`Test Failed`}
                       description={testResult.error}
                       type="error"
                       className="mb-2"

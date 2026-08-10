@@ -1,12 +1,18 @@
-import { Button, Popover, Select } from 'antd'
+import { Avatar, Button, Popover, Select } from 'antd'
 import { CloseOutlined } from '@ant-design/icons'
 import { Sparkles, User } from 'lucide-react'
 import { Bubble, Sender } from '@ant-design/x'
+import type { BubbleItemType } from '@ant-design/x'
 import { XMarkdown } from '@ant-design/x-markdown'
 import '@ant-design/x-markdown/dist/x-markdown.css'
 import { useLingui } from '@lingui/react/macro'
 import { getLLMProviderIcon } from '../integrations/LLMProviders'
 import type { AIAssistantChatProps } from './types'
+
+// Bubble.List reserves the "system" role for Bubble.System, a full-width centered
+// banner. Tool results are ordinary start-placed bubbles with their own avatar and
+// background, so they ride a custom role key instead.
+const TOOL_ROLE = 'tool'
 
 export function AIAssistantChat({
   workspace,
@@ -29,6 +35,15 @@ export function AIAssistantChat({
   chatBoxTop = 66
 }: AIAssistantChatProps) {
   const { t } = useLingui()
+
+  // The hook describes avatars declaratively; Bubble takes a rendered node.
+  const listItems: BubbleItemType[] = bubbleItems.map(({ avatar, role, ...item }) => ({
+    ...item,
+    role: role === 'system' ? TOOL_ROLE : role,
+    ...(avatar && {
+      avatar: <Avatar icon={avatar.icon} size={avatar.size} style={avatar.style} />
+    })
+  }))
 
   // Render setup prompt when no LLM integration
   if (!llmIntegration) {
@@ -214,29 +229,28 @@ export function AIAssistantChat({
             <Bubble.List
               autoScroll
               style={{ height: '100%' }}
-              items={bubbleItems}
-              roles={{
+              items={listItems}
+              role={{
                 user: {
                   placement: 'end',
-                  avatar: {
-                    icon: <User size={12} />,
-                    style: { background: '#1890ff' }
-                  }
+                  avatar: <Avatar icon={<User size={12} />} style={{ background: '#1890ff' }} />
                 },
                 ai: {
                   placement: 'start',
-                  avatar: {
-                    icon: <Sparkles size={12} />,
-                    style: { background: config.avatarColor }
-                  },
-                  messageRender: (content) => (
-                    <XMarkdown openLinksInNewTab>{content as string}</XMarkdown>
+                  avatar: (
+                    <Avatar
+                      icon={<Sparkles size={12} />}
+                      style={{ background: config.avatarColor }}
+                    />
+                  ),
+                  contentRender: (content: string) => (
+                    <XMarkdown openLinksInNewTab>{content}</XMarkdown>
                   )
                 },
                 thinking: {
                   placement: 'start',
                   variant: 'borderless',
-                  messageRender: (content) => (
+                  contentRender: (content: string) => (
                     <details
                       style={{
                         fontSize: 12,
@@ -250,16 +264,13 @@ export function AIAssistantChat({
                       <summary style={{ cursor: 'pointer', userSelect: 'none' }}>
                         {t`Thinking`}
                       </summary>
-                      <div style={{ whiteSpace: 'pre-wrap', marginTop: 6 }}>
-                        {content as string}
-                      </div>
+                      <div style={{ whiteSpace: 'pre-wrap', marginTop: 6 }}>{content}</div>
                     </details>
                   )
                 },
-                system: {
+                [TOOL_ROLE]: {
                   placement: 'start',
-                  messageRender: (content) => {
-                    const text = content as string
+                  contentRender: (text: string) => {
                     const urlRegex = /(https?:\/\/[^\s]+)/g
                     const parts = text.split(urlRegex)
                     return (

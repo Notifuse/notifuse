@@ -117,7 +117,7 @@ export function GoalsTab() {
   return (
     <div className={goalsResult.isFetching ? 'opacity-75 transition-opacity' : ''}>
       {goalsResult.error ? (
-        <Alert type="error" showIcon message={t`Could not load the goals`} className="mb-4" />
+        <Alert type="error" showIcon title={t`Could not load the goals`} className="mb-4" />
       ) : null}
 
       {isLoading && goals.length === 0 ? (

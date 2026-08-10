@@ -67,7 +67,7 @@ function OperationRow(props: OperationRowProps) {
           showSearch
           optionFilterProp="label"
           open={isOpen}
-          onDropdownVisibleChange={setIsOpen}
+          onOpenChange={setIsOpen}
         />
       </div>
       <Select<WebFilterAction, ActionOption>

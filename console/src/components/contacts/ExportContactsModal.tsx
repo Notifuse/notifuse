@@ -358,7 +358,7 @@ export function ExportContactsModal({
 
         {/* Error display */}
         {error && (
-          <Alert message={error} type={error.includes('No contacts') ? 'info' : 'error'} showIcon />
+          <Alert title={error} type={error.includes('No contacts') ? 'info' : 'error'} showIcon />
         )}
       </div>
     </Modal>

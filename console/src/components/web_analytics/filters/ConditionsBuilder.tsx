@@ -64,7 +64,7 @@ function ConditionRow(props: ConditionRowProps) {
           showSearch
           optionFilterProp="label"
           open={isOpen}
-          onDropdownVisibleChange={setIsOpen}
+          onOpenChange={setIsOpen}
         />
       </div>
       <Select

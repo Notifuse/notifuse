@@ -46,8 +46,8 @@ msgstr "(Annullato)"
 #: src/components/web_analytics/explore/BreakdownDrawer.tsx:189
 #: src/components/web_analytics/explore/BreakdownDrawer.tsx:192
 #: src/components/web_analytics/explore/CsvExportModal.tsx:98
-#: src/components/web_analytics/explore/ExploreSummary.tsx:127
-#: src/components/web_analytics/explore/ExploreTable.tsx:60
+#: src/components/web_analytics/explore/ExploreSummary.tsx:75
+#: src/components/web_analytics/explore/ExploreTable.tsx:62
 msgid "(empty)"
 msgstr ""
 
@@ -610,7 +610,7 @@ msgstr "Aggiungi elementi figlio come mj-font, mj-style o mj-preview per configu
 msgid "Add column in group"
 msgstr "Aggiungi colonna nel gruppo"
 
-#: src/components/web_analytics/filters/ConditionsBuilder.tsx:159
+#: src/components/web_analytics/filters/ConditionsBuilder.tsx:160
 msgid "Add condition"
 msgstr ""
 
@@ -672,7 +672,7 @@ msgstr "Aggiungi note su questa versione..."
 msgid "Add one or more email senders. The first sender will be used as the default."
 msgstr "Aggiungi uno o più mittenti email. Il primo mittente sarà utilizzato come predefinito."
 
-#: src/components/web_analytics/filters/OperationsBuilder.tsx:181
+#: src/components/web_analytics/filters/OperationsBuilder.tsx:182
 msgid "Add operation"
 msgstr ""
 
@@ -932,7 +932,7 @@ msgid "Amazon SES (inbound-smtp.<region>.amazonaws.com, in a region that support
 msgstr ""
 
 #. placeholder {0}: context.minSessions
-#: src/components/web_analytics/explore/ExploreSummary.tsx:138
+#: src/components/web_analytics/explore/ExploreSummary.tsx:87
 msgid "Among combinations with at least {0} sessions."
 msgstr ""
 
@@ -1187,7 +1187,7 @@ msgstr ""
 msgid "At least one domain is required when auto-create is enabled"
 msgstr ""
 
-#: src/components/web_analytics/filters/FilterFormDrawer.tsx:184
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:185
 msgid "At least one operation is required"
 msgstr ""
 
@@ -1331,7 +1331,7 @@ msgstr "Automazione aggiornata con successo"
 msgid "Automation:"
 msgstr "Automazione:"
 
-#: src/layouts/WorkspaceLayout.tsx:449
+#: src/layouts/WorkspaceLayout.tsx:426
 #: src/pages/AutomationsPage.tsx:157
 msgid "Automations"
 msgstr "Automazioni"
@@ -1501,7 +1501,7 @@ msgstr "Hook prima della creazione utente"
 msgid "Belonging to at least one of the following segments"
 msgstr "Appartenente ad almeno uno dei seguenti segmenti"
 
-#: src/components/web_analytics/explore/ExploreSummary.tsx:119
+#: src/components/web_analytics/explore/ExploreSummary.tsx:64
 msgid "Best performing combination:"
 msgstr ""
 
@@ -1509,7 +1509,7 @@ msgstr ""
 msgid "Best practices:"
 msgstr "Migliori pratiche:"
 
-#: src/components/web_analytics/explore/ExploreSummary.tsx:148
+#: src/components/web_analytics/explore/ExploreSummary.tsx:97
 msgid "Best TimeScore"
 msgstr ""
 
@@ -1667,7 +1667,7 @@ msgid "Bounce email"
 msgstr "Email bounce"
 
 #: src/components/web_analytics/explore/ExploreSummary.tsx:51
-#: src/components/web_analytics/explore/ExploreTable.tsx:139
+#: src/components/web_analytics/explore/ExploreTable.tsx:141
 #: src/components/web_analytics/FilterBuilder.tsx:83
 #: src/components/web_analytics/tabs/DashboardTab.tsx:30
 msgid "Bounce Rate"
@@ -1828,7 +1828,7 @@ msgid "Broadcast updated successfully"
 msgstr "Broadcast aggiornato con successo"
 
 #: src/components/analytics/EmailMetricsChart.tsx:285
-#: src/layouts/WorkspaceLayout.tsx:423
+#: src/layouts/WorkspaceLayout.tsx:400
 #: src/pages/BroadcastsPage.tsx:1473
 msgid "Broadcasts"
 msgstr "Broadcast"
@@ -2335,7 +2335,7 @@ msgid "Code Editor"
 msgstr "Editor di codice"
 
 #: src/components/email_builder/ui/CodePreview.tsx:61
-#: src/layouts/WorkspaceLayout.tsx:567
+#: src/layouts/WorkspaceLayout.tsx:570
 msgid "Collapse"
 msgstr "Comprimi"
 
@@ -2686,7 +2686,7 @@ msgstr "Padding contenitore"
 msgid "contains"
 msgstr ""
 
-#: src/layouts/WorkspaceLayout.tsx:415
+#: src/layouts/WorkspaceLayout.tsx:462
 msgid "Content"
 msgstr ""
 
@@ -2781,7 +2781,7 @@ msgstr ""
 msgid "Could not load this goal"
 msgstr ""
 
-#: src/components/web_analytics/tabs/ExploreTab.tsx:358
+#: src/components/web_analytics/tabs/ExploreTab.tsx:351
 msgid "Could not load this report"
 msgstr ""
 
@@ -3626,7 +3626,7 @@ msgstr ""
 msgid "Diagnostic:"
 msgstr "Diagnostica:"
 
-#: src/components/web_analytics/explore/ExploreTable.tsx:81
+#: src/components/web_analytics/explore/ExploreTable.tsx:83
 #: src/components/web_analytics/filters/TestFilterModal.tsx:176
 msgid "Dimension"
 msgstr ""
@@ -3726,7 +3726,7 @@ msgstr "Vuoi eliminare definitivamente questo file dal tuo storage?"
 msgid "Do you want to send \"{0}\" immediately or schedule it for later?"
 msgstr "Vuoi inviare \"{0}\" immediatamente o programmarlo per dopo?"
 
-#: src/layouts/WorkspaceLayout.tsx:643
+#: src/layouts/WorkspaceLayout.tsx:646
 msgid "Documentation"
 msgstr "Documentazione"
 
@@ -4590,7 +4590,7 @@ msgstr "Tipi Evento"
 msgid "Events"
 msgstr "Eventi"
 
-#: src/components/web_analytics/filters/FilterFormDrawer.tsx:191
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:192
 msgid "Every \"set\" operation needs a value"
 msgstr ""
 
@@ -4599,7 +4599,7 @@ msgid "Every domain"
 msgstr ""
 
 #. placeholder {0}: context.minSessions
-#: src/components/web_analytics/explore/ExploreTable.tsx:229
+#: src/components/web_analytics/explore/ExploreTable.tsx:234
 msgid "Every sub-item has fewer than {0} sessions. Lower the threshold to see them."
 msgstr ""
 
@@ -5765,7 +5765,7 @@ msgstr "Altezza"
 
 #: src/components/email_builder/MjmlCodeEditor.tsx:702
 #: src/components/templates/CreateTemplateDrawer.tsx:138
-#: src/layouts/WorkspaceLayout.tsx:669
+#: src/layouts/WorkspaceLayout.tsx:672
 msgid "Help"
 msgstr "Aiuto"
 
@@ -6859,7 +6859,7 @@ msgstr "Anteprima Logo"
 msgid "Logo URL"
 msgstr "URL Logo"
 
-#: src/layouts/WorkspaceLayout.tsx:681
+#: src/layouts/WorkspaceLayout.tsx:684
 msgid "Logout"
 msgstr "Esci"
 
@@ -6997,7 +6997,7 @@ msgid "Median"
 msgstr ""
 
 #: src/components/web_analytics/explore/ExploreSummary.tsx:52
-#: src/components/web_analytics/explore/ExploreTable.tsx:155
+#: src/components/web_analytics/explore/ExploreTable.tsx:157
 #: src/components/web_analytics/FilterBuilder.tsx:84
 #: src/components/web_analytics/tabs/DashboardTab.tsx:31
 msgid "Median Scroll Depth"
@@ -7016,7 +7016,7 @@ msgstr ""
 msgid "Median Scroll Depth (previous)"
 msgstr ""
 
-#: src/components/web_analytics/explore/ExploreTable.tsx:118
+#: src/components/web_analytics/explore/ExploreTable.tsx:120
 msgid "Median session duration. Green meets the reference, cyan exceeds it."
 msgstr ""
 
@@ -7371,7 +7371,7 @@ msgstr "Nuovo Tema"
 msgid "New Window"
 msgstr "Nuova Finestra"
 
-#: src/layouts/WorkspaceLayout.tsx:621
+#: src/layouts/WorkspaceLayout.tsx:624
 #: src/pages/CreateWorkspacePage.tsx:104
 msgid "New workspace"
 msgstr "Nuovo spazio di lavoro"
@@ -7520,7 +7520,7 @@ msgstr "Nessun dato disponibile"
 msgid "No data for this period"
 msgstr ""
 
-#: src/components/web_analytics/explore/ExploreTable.tsx:203
+#: src/components/web_analytics/explore/ExploreTable.tsx:208
 msgid "No data found"
 msgstr ""
 
@@ -9312,7 +9312,7 @@ msgstr "Rispondi A:"
 msgid "Reply-To"
 msgstr "Reply-To"
 
-#: src/layouts/WorkspaceLayout.tsx:656
+#: src/layouts/WorkspaceLayout.tsx:659
 msgid "Report An Issue"
 msgstr "Segnala un Problema"
 
@@ -10144,7 +10144,7 @@ msgstr "Seleziona a quale segmento si applica questo trigger"
 msgid "Select Winner"
 msgstr "Seleziona vincitore"
 
-#: src/layouts/WorkspaceLayout.tsx:593
+#: src/layouts/WorkspaceLayout.tsx:596
 #: src/pages/DashboardPage.tsx:31
 msgid "Select workspace"
 msgstr "Seleziona workspace"
@@ -10333,7 +10333,7 @@ msgstr ""
 #: src/components/web_analytics/explore/BreakdownDrawer.tsx:198
 #: src/components/web_analytics/explore/CsvExportModal.tsx:45
 #: src/components/web_analytics/explore/ExploreSummary.tsx:49
-#: src/components/web_analytics/explore/ExploreTable.tsx:87
+#: src/components/web_analytics/explore/ExploreTable.tsx:89
 #: src/components/web_analytics/tabs/DashboardTab.tsx:28
 #: src/components/web_analytics/tabs/DashboardTab.tsx:92
 #: src/components/web_analytics/TrafficHeatmapWidget.tsx:56
@@ -11389,7 +11389,7 @@ msgstr "L'automazione inizierà a elaborare i contatti che corrispondono al trig
 msgid "The automation will stop processing new contacts."
 msgstr "L'automazione smetterà di elaborare nuovi contatti."
 
-#: src/components/web_analytics/explore/ExploreSummary.tsx:143
+#: src/components/web_analytics/explore/ExploreSummary.tsx:92
 msgid "The best-performing combination could not be loaded."
 msgstr ""
 
@@ -11764,7 +11764,7 @@ msgstr "volte"
 #: src/components/web_analytics/DimensionTableWidget.tsx:91
 #: src/components/web_analytics/explore/BreakdownDrawer.tsx:205
 #: src/components/web_analytics/explore/CsvExportModal.tsx:47
-#: src/components/web_analytics/explore/ExploreTable.tsx:120
+#: src/components/web_analytics/explore/ExploreTable.tsx:122
 #: src/components/web_analytics/FilterBuilder.tsx:82
 #: src/components/web_analytics/tabs/DashboardTab.tsx:93
 #: src/components/web_analytics/TrafficHeatmapWidget.tsx:57
@@ -12018,7 +12018,7 @@ msgstr ""
 
 #: src/components/analytics/EmailMetricsChart.tsx:286
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:408
-#: src/layouts/WorkspaceLayout.tsx:461
+#: src/layouts/WorkspaceLayout.tsx:438
 #: src/pages/TemplatesPage.tsx:126
 msgid "Transactional"
 msgstr "Transazionale"
@@ -12612,7 +12612,7 @@ msgid "Video starts at this timestamp (MM:SS, HH:MM:SS, or seconds)"
 msgstr "Il video inizia a questo timestamp (MM:SS, HH:MM:SS, o secondi)"
 
 #: src/components/web_analytics/explore/BreakdownModal.tsx:116
-#: src/components/web_analytics/explore/ExploreTable.tsx:176
+#: src/components/web_analytics/explore/ExploreTable.tsx:178
 msgid "View breakdown"
 msgstr ""
 

@@ -77,8 +77,14 @@ const renderActivityForm = (
 const lastDraft = (onDraftChange: ReturnType<typeof vi.fn>) =>
   onDraftChange.mock.calls[onDraftChange.mock.calls.length - 1][0] as TreeNode
 
-const openSelect = (index: number) =>
-  fireEvent.mouseDown(document.querySelectorAll('.ant-select-selector')[index])
+const openSelect = (index: number) => fireEvent.mouseDown(screen.getAllByRole('combobox')[index])
+
+/**
+ * The select currently displaying `value`. Both the control and the matching dropdown option
+ * carry the value as a title, so the combobox they wrap is what tells them apart.
+ */
+const selectShowing = (value: string) =>
+  screen.getAllByTitle(value).find((element) => element.querySelector('[role="combobox"]'))
 
 describe('leaf forms — draft reporting', () => {
   it('reports a list condition before it is confirmed', async () => {
@@ -210,12 +216,6 @@ describe('leaf forms — draft reporting', () => {
     openSelect(1)
     fireEvent.click(await screen.findByTitle('Newsletter'))
 
-    await waitFor(() =>
-      expect(
-        Array.from(document.querySelectorAll('.ant-select-selection-item')).map(
-          (item) => item.textContent
-        )
-      ).toContain('Newsletter')
-    )
+    await waitFor(() => expect(selectShowing('Newsletter')).toBeTruthy())
   })
 })

@@ -94,9 +94,9 @@ export function FilterFormDrawer(props: FilterFormDrawerProps) {
         title={isEditing ? t`Edit rule` : t`Create rule`}
         open={open}
         onClose={props.onClose}
-        width={800}
+        size={800}
         placement="right"
-        destroyOnClose
+        destroyOnHidden
         styles={{ wrapper: { maxWidth: '100%' } }}
         footer={
           <div className="flex justify-between">

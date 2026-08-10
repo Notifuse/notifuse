@@ -783,8 +783,8 @@ export function ContactsCsvUploadDrawer({
       placement="right"
       onClose={handleCloseDrawer}
       open={isVisible}
-      width={700}
-      maskClosable={false}
+      size={700}
+      mask={{ closable: false }}
       styles={{
         body: {
           padding: '24px'
@@ -873,7 +873,7 @@ export function ContactsCsvUploadDrawer({
 
       {uploadError && (
         <Alert
-          message={t`Upload Error`}
+          title={t`Upload Error`}
           description={uploadError}
           type="error"
           style={{ marginTop: 16, marginBottom: 24 }}
@@ -883,7 +883,7 @@ export function ContactsCsvUploadDrawer({
       {uploadComplete && (
         <div style={{ marginTop: 24, marginBottom: 24 }}>
           <Alert
-            message={t`Upload Complete`}
+            title={t`Upload Complete`}
             description={t`Processed ${totalRows.toLocaleString()} contacts: ${successCount.toLocaleString()} successful, ${failureCount.toLocaleString()} failed`}
             type={failureCount === 0 ? 'success' : 'warning'}
             showIcon
@@ -1045,7 +1045,7 @@ export function ContactsCsvUploadDrawer({
 
             {/* Validation indicator for email field */}
             {!mappings.email && (
-              <Alert message={t`Email mapping required`} type="warning" showIcon className="!mb-4" />
+              <Alert title={t`Email mapping required`} type="warning" showIcon className="!mb-4" />
             )}
 
             {csvData.headers.map((header, headerIndex) => {
@@ -1075,7 +1075,7 @@ export function ContactsCsvUploadDrawer({
                     >
                       <Text strong>{header}</Text>
                       {isEmailMapped && (
-                        <Tag bordered={false} color="red" style={{ marginLeft: 8 }}>
+                        <Tag variant="filled" color="red" style={{ marginLeft: 8 }}>
                           {t`Email (Required)`}
                         </Tag>
                       )}

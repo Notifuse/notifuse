@@ -621,7 +621,7 @@ export function ContactDetailsDrawer({
 
       <Drawer
         title={t`Contact Details`}
-        width={1200}
+        size={1200}
         placement="right"
         className="drawer-body-no-padding"
         onClose={handleClose}
@@ -663,7 +663,7 @@ export function ContactDetailsDrawer({
                       const segment = segments.find((s) => s.id === cs.segment_id)
                       if (!segment) return null
                       return (
-                        <Tag key={cs.segment_id} bordered={false} color={segment.color}>
+                        <Tag key={cs.segment_id} variant="filled" color={segment.color}>
                           {segment.name}
                         </Tag>
                       )
@@ -984,7 +984,7 @@ export function ContactDetailsDrawer({
                     key: 'status',
                     width: '20%',
                     render: (status: string) => (
-                      <Tag bordered={false} color={getStatusColor(status)}>
+                      <Tag variant="filled" color={getStatusColor(status)}>
                         {status}
                       </Tag>
                     )

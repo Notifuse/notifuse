@@ -135,7 +135,7 @@ export const SupabaseIntegration: React.FC<SupabaseIntegrationProps> = ({
       </Form.Item>
 
       <div className="mt-12">
-        <Divider orientation="center" plain>
+        <Divider titlePlacement="center" plain>
           {t`Auth Email Hook`}
         </Divider>
       </div>
@@ -155,7 +155,7 @@ export const SupabaseIntegration: React.FC<SupabaseIntegrationProps> = ({
       </Form.Item>
 
       <div className="mt-12">
-        <Divider orientation="center" plain>
+        <Divider titlePlacement="center" plain>
           {t`User Created Hook`}
         </Divider>
       </div>

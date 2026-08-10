@@ -102,7 +102,7 @@ export function PublishModal({ post, visible, onClose, workspaceId, workspace }:
       open={visible}
       onCancel={onClose}
       footer={null}
-      destroyOnClose
+      destroyOnHidden
       width={500}
     >
       <Form form={form} layout="vertical" onFinish={handleSubmit}>
@@ -115,7 +115,7 @@ export function PublishModal({ post, visible, onClose, workspaceId, workspace }:
             onChange={(e) => setPublishMode(e.target.value)}
             className="w-full"
           >
-            <Space direction="vertical" className="w-full">
+            <Space orientation="vertical" className="w-full">
               <Radio value="now">{t`Publish Now`}</Radio>
               <Radio value="custom">{t`Set Publication Date`}</Radio>
             </Space>

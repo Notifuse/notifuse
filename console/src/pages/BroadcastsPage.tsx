@@ -910,7 +910,6 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
                                   <Button
                                     size="small"
                                     type="text"
-                                    ghost
                                     icon={<FontAwesomeIcon icon={faEye} className="opacity-70" />}
                                   />
                                 </TemplatePreviewDrawer>
@@ -918,7 +917,6 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
                                 <Button
                                   size="small"
                                   type="text"
-                                  ghost
                                   icon={<FontAwesomeIcon icon={faEye} className="opacity-70" />}
                                   disabled
                                 />
@@ -992,11 +990,11 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
                         {broadcast.audience.segments.map((segmentId) => {
                           const segment = segments.find((s) => s.id === segmentId)
                           return segment ? (
-                            <Tag key={segment.id} color={segment.color} bordered={false}>
+                            <Tag key={segment.id} color={segment.color} variant="filled">
                               {segment.name}
                             </Tag>
                           ) : (
-                            <Tag key={segmentId} bordered={false}>
+                            <Tag key={segmentId} variant="filled">
                               {t`Unknown segment`} ({segmentId})
                             </Tag>
                           )
@@ -1060,7 +1058,7 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
 
                   {broadcast.paused_at && (
                     <Descriptions.Item label={t`Paused`}>
-                      <Space direction="vertical" size="small">
+                      <Space orientation="vertical" size="small">
                         <div>{dayjs(broadcast.paused_at).fromNow()}</div>
                         {broadcast.pause_reason && (
                           <div className="text-orange-600 text-sm">
@@ -1528,7 +1526,7 @@ export function BroadcastsPage() {
 
       {!hasMarketingEmailProvider && (
         <Alert
-          message={t`Email Provider Required`}
+          title={t`Email Provider Required`}
           description={t`You don't have a marketing email provider configured. Please set up an email provider in your workspace settings to send broadcasts.`}
           type="warning"
           showIcon

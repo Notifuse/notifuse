@@ -33,7 +33,9 @@ export function DateFilterInput({ field, value, onChange, className }: FilterInp
     <DatePicker
       placeholder={t`Filter by ${field.label}`}
       value={value as Date}
-      onChange={(date) => onChange(date)}
+      // Clearing the field has always emitted null; only the typing changed. Callers already
+      // receive it and decide what an empty filter means, so forward it instead of swallowing it.
+      onChange={(date) => onChange(date as Date)}
       className={className}
     />
   )

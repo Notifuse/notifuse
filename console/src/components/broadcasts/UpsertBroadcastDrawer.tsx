@@ -387,8 +387,8 @@ export function UpsertBroadcastDrawer({
           title={<>{broadcast ? t`Edit broadcast` : t`Create a broadcast`}</>}
           closable={true}
           keyboard={false}
-          maskClosable={false}
-          width="700px"
+          mask={{ closable: false }}
+          size="700px"
           open={isOpen}
           onClose={handleClose}
           className="drawer-no-transition drawer-body-no-padding"
@@ -481,7 +481,7 @@ export function UpsertBroadcastDrawer({
               <Tabs
                 activeKey={tab}
                 onChange={handleTabChange}
-                tabPosition="left"
+                tabPlacement="start"
                 className="vertical-tabs"
                 style={{ minHeight: 'calc(100vh - 65px)' }}
                 items={[
@@ -560,7 +560,7 @@ export function UpsertBroadcastDrawer({
                           if (!segment) return option.label
 
                           return (
-                            <Tag color={segment.color} bordered={false}>
+                            <Tag color={segment.color} variant="filled">
                               {segment.name}
                               {segment.users_count !== undefined && (
                                 <span className="ml-1">
@@ -577,7 +577,7 @@ export function UpsertBroadcastDrawer({
                           return (
                             <Tag
                               color={segment.color}
-                              bordered={false}
+                              variant="filled"
                               closable={props.closable}
                               onClose={props.onClose}
                               style={{ marginRight: 3 }}

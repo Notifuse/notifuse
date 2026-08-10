@@ -60,7 +60,7 @@ export class OperatorBeforeDate implements IOperator {
       <>
         <span className="opacity-60 pt-0.5">{this.label}</span>
         <span>
-          <Tag bordered={false} color="blue">
+          <Tag variant="filled" color="blue">
             {formatDateDisplay(filter.string_values?.[0])}
           </Tag>
         </span>
@@ -82,7 +82,7 @@ export class OperatorAfterDate implements IOperator {
       <>
         <span className="opacity-60 pt-0.5">{this.label}</span>
         <span>
-          <Tag bordered={false} color="blue">
+          <Tag variant="filled" color="blue">
             {formatDateDisplay(filter.string_values?.[0])}
           </Tag>
         </span>
@@ -104,11 +104,11 @@ export class OperatorInDateRange implements IOperator {
       <>
         <span className="opacity-60 pt-0.5">{this.label}</span>
         <span>
-          <Tag bordered={false} color="blue">
+          <Tag variant="filled" color="blue">
             {formatDateDisplay(filter.string_values?.[0])}
           </Tag>
           &rarr;
-          <Tag bordered={false} className="ml-3" color="blue">
+          <Tag variant="filled" className="ml-3" color="blue">
             {formatDateDisplay(filter.string_values?.[1])}
           </Tag>
         </span>
@@ -130,11 +130,11 @@ export class OperatorNotInDateRange implements IOperator {
       <>
         <span className="opacity-60 pt-0.5">{this.label}</span>
         <span>
-          <Tag bordered={false} color="blue">
+          <Tag variant="filled" color="blue">
             {formatDateDisplay(filter.string_values?.[0])}
           </Tag>
           &rarr;
-          <Tag bordered={false} className="ml-3" color="blue">
+          <Tag variant="filled" className="ml-3" color="blue">
             {formatDateDisplay(filter.string_values?.[1])}
           </Tag>
         </span>
@@ -178,7 +178,7 @@ export class OperatorInTheLastDays implements IOperator {
       <>
         <span className="opacity-60 pt-0.5">{this.label}</span>
         <span>
-          <Tag bordered={false} color="blue">
+          <Tag variant="filled" color="blue">
             {filter.string_values?.[0]}
           </Tag>
         </span>
@@ -204,7 +204,7 @@ export class OperatorNotInTheLastDays implements IOperator {
       <>
         <span className="opacity-60 pt-0.5">{this.label}</span>
         <span>
-          <Tag bordered={false} color="blue">
+          <Tag variant="filled" color="blue">
             {filter.string_values?.[0]}
           </Tag>
         </span>

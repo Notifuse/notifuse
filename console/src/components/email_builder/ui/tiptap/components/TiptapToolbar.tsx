@@ -249,7 +249,7 @@ export const EmojiButton: React.FC<EmojiButtonProps> = ({ onEmojiSelect, title }
       trigger="click"
       placement="bottom"
       arrow={false}
-      overlayClassName="tiptap-emoji-popover"
+      classNames={{ root: "tiptap-emoji-popover" }}
       title={title}
       open={visible}
       onOpenChange={setVisible}
@@ -410,7 +410,7 @@ export const LinkButton: React.FC<LinkButtonProps> = ({ editor, title }) => {
       }
       trigger="click"
       arrow={false}
-      overlayClassName="tiptap-link-popover"
+      classNames={{ root: "tiptap-link-popover" }}
       title={t`Insert Link`}
       open={visible}
       onOpenChange={setVisible}

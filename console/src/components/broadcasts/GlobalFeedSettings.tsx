@@ -176,7 +176,7 @@ export function GlobalFeedSettings({
                   </Highlight>
                 </>
               ) : (
-                <Alert type="error" message={t`No data returned`} />
+                <Alert type="error" title={t`No data returned`} />
               )}
             </div>
           </Modal>

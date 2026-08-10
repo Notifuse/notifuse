@@ -145,7 +145,7 @@ const MjStyleSettingsPanel: React.FC<MjStyleSettingsPanelProps> = ({
           placement="right"
           open={isDrawerOpen}
           onClose={handleDrawerCancel}
-          width="60vw"
+          size="60vw"
           styles={{
             body: { padding: 0 }
           }}

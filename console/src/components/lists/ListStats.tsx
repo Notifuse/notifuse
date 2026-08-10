@@ -68,7 +68,7 @@ export function ListStats({ workspaceId, listId }: ListStatsProps) {
             </Link>
           }
           value={stats.total_active}
-          valueStyle={{ fontSize: '16px' }}
+          styles={{ content: { fontSize: '16px' } }}
           formatter={formatStat}
         />
       </Col>
@@ -92,7 +92,7 @@ export function ListStats({ workspaceId, listId }: ListStatsProps) {
             </Link>
           }
           value={stats.total_pending}
-          valueStyle={{ fontSize: '16px' }}
+          styles={{ content: { fontSize: '16px' } }}
           formatter={formatStat}
         />
       </Col>
@@ -112,7 +112,7 @@ export function ListStats({ workspaceId, listId }: ListStatsProps) {
             </Link>
           }
           value={stats.total_unsubscribed}
-          valueStyle={{ fontSize: '16px' }}
+          styles={{ content: { fontSize: '16px' } }}
           formatter={formatStat}
         />
       </Col>
@@ -136,7 +136,7 @@ export function ListStats({ workspaceId, listId }: ListStatsProps) {
             </Link>
           }
           value={stats.total_bounced}
-          valueStyle={{ fontSize: '16px' }}
+          styles={{ content: { fontSize: '16px' } }}
           formatter={formatStat}
         />
       </Col>
@@ -160,7 +160,7 @@ export function ListStats({ workspaceId, listId }: ListStatsProps) {
             </Link>
           }
           value={stats.total_complained}
-          valueStyle={{ fontSize: '16px' }}
+          styles={{ content: { fontSize: '16px' } }}
           formatter={formatStat}
         />
       </Col>

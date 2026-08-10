@@ -32,7 +32,7 @@ const TableTag = (props: TableTagProps) => {
   }
 
   return (
-    <Tag style={{ margin: 0 }} bordered={false} color={color}>
+    <Tag style={{ margin: 0 }} variant="filled" color={color}>
       {icon && <FontAwesomeIcon icon={icon} style={{ width: 18, marginRight: 8 }} />}
       {label}
     </Tag>

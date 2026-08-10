@@ -106,11 +106,16 @@ const AddPropertyFilterButton = (props: {
   const [form] = Form.useForm()
   const [modalVisible, setModalVisible] = useState(false)
 
+  const btnType = props.btnType || 'primary'
+  // antd never paints a link/text button as ghost, it only warns, so keep ghost to the
+  // bordered variants
+  const btnGhost = btnType === 'link' || btnType === 'text' ? undefined : props.btnGhost
+
   return (
     <>
       <Button
-        type={props.btnType || 'primary'}
-        ghost={props.btnGhost}
+        type={btnType}
+        ghost={btnGhost}
         size="small"
         onClick={() => setModalVisible(true)}
       >

@@ -171,7 +171,7 @@ const TemplateSelectorInput: React.FC<TemplateSelectorInputProps> = ({
 
       <Drawer
         title={t`Select Template`}
-        width={600}
+        size={600}
         onClose={onClose}
         open={open}
         styles={{

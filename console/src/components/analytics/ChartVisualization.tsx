@@ -387,7 +387,7 @@ export const ChartVisualization: React.FC<ChartVisualizationProps> = ({
   }
 
   if (error) {
-    return <Alert message={t`Error`} description={error} type="error" showIcon />
+    return <Alert title={t`Error`} description={error} type="error" showIcon />
   }
 
   if (!data || !data.data.length) {

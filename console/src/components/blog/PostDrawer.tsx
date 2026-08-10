@@ -642,11 +642,11 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
     <>
     <Drawer
       title={isEditMode ? t`Edit Post` : t`Create New Post`}
-      width="100%"
+      size="100%"
       onClose={handleClose}
       open={open}
       keyboard={false}
-      maskClosable={false}
+      mask={{ closable: false }}
       className={'drawer-no-transition drawer-body-no-padding'}
       extra={
         <div className="text-right">
@@ -799,7 +799,7 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
 
                 {templateLoading || (post && !blogContent) ? (
                   <div className="flex items-center justify-center h-full">
-                    <Space direction="vertical" align="center">
+                    <Space orientation="vertical" align="center">
                       <div>{t`Loading template...`}</div>
                     </Space>
                   </div>

@@ -47,7 +47,7 @@ export function ThemePresetPreviewDrawer({
       }
       open={open}
       onClose={onClose}
-      width={1000}
+      size={1000}
       styles={{ body: { padding: 0, height: 'calc(100vh - 55px)' } }}
     >
       <Tabs

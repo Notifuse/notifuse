@@ -35,7 +35,7 @@ export class FieldTypeJSON implements FieldTypeRenderer {
   render(filter: DimensionFilter) {
     const operator = this.operators.find((x) => x.type === filter.operator)
     if (!operator) {
-      return <Alert type="error" message={`operator not found for: ${filter.operator}`} />
+      return <Alert type="error" title={`operator not found for: ${filter.operator}`} />
     }
 
     // Show JSON path as cyan tags
@@ -46,7 +46,7 @@ export class FieldTypeJSON implements FieldTypeRenderer {
           {pathSegments.map((seg, idx) => {
             const isIndex = /^\d+$/.test(seg)
             return (
-              <Tag key={idx} color={isIndex ? 'purple' : 'cyan'} bordered={false}>
+              <Tag key={idx} color={isIndex ? 'purple' : 'cyan'} variant="filled">
                 {isIndex ? `[${seg}]` : seg}
               </Tag>
             )
@@ -128,7 +128,7 @@ export class FieldTypeJSON implements FieldTypeRenderer {
               >
                 <Select
                   placeholder="select an operator"
-                  dropdownMatchSelectWidth={false}
+                  popupMatchSelectWidth={false}
                   options={filteredOperators.map((op: IOperator) => ({
                     value: op.type,
                     label: op.label

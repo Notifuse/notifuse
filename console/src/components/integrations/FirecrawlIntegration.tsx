@@ -98,7 +98,7 @@ export const FirecrawlIntegration: React.FC<FirecrawlIntegrationProps> = ({
       </Form.Item>
 
       <Alert
-        message={t`Available Tools`}
+        title={t`Available Tools`}
         description={
           <ul className="list-disc pl-4 mt-2">
             <li>

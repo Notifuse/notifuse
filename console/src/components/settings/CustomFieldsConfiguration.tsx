@@ -247,7 +247,7 @@ export function CustomFieldsConfiguration({
                   {Object.entries(CUSTOM_FIELDS_BY_TYPE).map(([type, fields]) => (
                     <Col span={6} key={type}>
                       <div style={{ fontWeight: 'bold', marginBottom: 8 }}>{type}</div>
-                      <Space direction="vertical">
+                      <Space orientation="vertical">
                         {fields.map((fieldKey) => {
                           const isAvailable =
                             availableFields.some((f) => f.key === fieldKey) ||

@@ -408,7 +408,7 @@ const DrawerSegment = (props: {
     <Drawer
       title={props.segment ? t`Update segment` : t`New segment`}
       open={true}
-      width={'90%'}
+      size={'90%'}
       onClose={() => props.setDrawserVisible(false)}
       styles={{ body: { paddingBottom: 80 } }}
       extra={
@@ -468,7 +468,7 @@ const DrawerSegment = (props: {
                       options={[
                         {
                           label: (
-                            <Tag bordered={false} color="magenta">
+                            <Tag variant="filled" color="magenta">
                               magenta
                             </Tag>
                           ),
@@ -476,7 +476,7 @@ const DrawerSegment = (props: {
                         },
                         {
                           label: (
-                            <Tag bordered={false} color="red">
+                            <Tag variant="filled" color="red">
                               red
                             </Tag>
                           ),
@@ -484,7 +484,7 @@ const DrawerSegment = (props: {
                         },
                         {
                           label: (
-                            <Tag bordered={false} color="volcano">
+                            <Tag variant="filled" color="volcano">
                               volcano
                             </Tag>
                           ),
@@ -492,7 +492,7 @@ const DrawerSegment = (props: {
                         },
                         {
                           label: (
-                            <Tag bordered={false} color="orange">
+                            <Tag variant="filled" color="orange">
                               orange
                             </Tag>
                           ),
@@ -500,7 +500,7 @@ const DrawerSegment = (props: {
                         },
                         {
                           label: (
-                            <Tag bordered={false} color="gold">
+                            <Tag variant="filled" color="gold">
                               gold
                             </Tag>
                           ),
@@ -508,7 +508,7 @@ const DrawerSegment = (props: {
                         },
                         {
                           label: (
-                            <Tag bordered={false} color="lime">
+                            <Tag variant="filled" color="lime">
                               lime
                             </Tag>
                           ),
@@ -516,7 +516,7 @@ const DrawerSegment = (props: {
                         },
                         {
                           label: (
-                            <Tag bordered={false} color="green">
+                            <Tag variant="filled" color="green">
                               green
                             </Tag>
                           ),
@@ -524,7 +524,7 @@ const DrawerSegment = (props: {
                         },
                         {
                           label: (
-                            <Tag bordered={false} color="cyan">
+                            <Tag variant="filled" color="cyan">
                               cyan
                             </Tag>
                           ),
@@ -532,7 +532,7 @@ const DrawerSegment = (props: {
                         },
                         {
                           label: (
-                            <Tag bordered={false} color="blue">
+                            <Tag variant="filled" color="blue">
                               blue
                             </Tag>
                           ),
@@ -540,7 +540,7 @@ const DrawerSegment = (props: {
                         },
                         {
                           label: (
-                            <Tag bordered={false} color="geekblue">
+                            <Tag variant="filled" color="geekblue">
                               geekblue
                             </Tag>
                           ),
@@ -548,7 +548,7 @@ const DrawerSegment = (props: {
                         },
                         {
                           label: (
-                            <Tag bordered={false} color="purple">
+                            <Tag variant="filled" color="purple">
                               purple
                             </Tag>
                           ),
@@ -556,7 +556,7 @@ const DrawerSegment = (props: {
                         },
                         {
                           label: (
-                            <Tag bordered={false} color="grey">
+                            <Tag variant="filled" color="grey">
                               grey
                             </Tag>
                           ),
@@ -600,7 +600,7 @@ const DrawerSegment = (props: {
                       <Alert
                         type="info"
                         showIcon
-                        message={t`This segment uses relative date filters and will be automatically recomputed daily at 5:00 AM (${timezone})`}
+                        title={t`This segment uses relative date filters and will be automatically recomputed daily at 5:00 AM (${timezone})`}
                         style={{ marginBottom: 16 }}
                       />
                     )

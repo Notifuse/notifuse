@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 import { i18n } from '@lingui/core'
 import { I18nProvider } from '@lingui/react'
 import { InputEventPropertyFilters } from './input_event_property_filters'
@@ -86,9 +86,11 @@ describe('InputEventPropertyFilters add flow', () => {
     return screen.findByText('Filter on an event property')
   }
 
+  const modalSelects = () => within(screen.getByRole('dialog')).getAllByRole('combobox')
+
   const pickOperator = async (label: string) => {
     // The operator select is the second combobox in the modal (after the value type)
-    const selects = document.querySelectorAll('.ant-modal .ant-select-selector')
+    const selects = modalSelects()
     fireEvent.mouseDown(selects[selects.length - 1])
     fireEvent.click(await screen.findByTitle(label))
   }
@@ -127,11 +129,10 @@ describe('InputEventPropertyFilters add flow', () => {
     fireEvent.change(screen.getByPlaceholderText('e.g. sku'), { target: { value: 'renewed_at' } })
 
     // Switch the value type to Date
-    const typeSelect = document.querySelectorAll('.ant-modal .ant-select-selector')[0]
-    fireEvent.mouseDown(typeSelect)
+    fireEvent.mouseDown(modalSelects()[0])
     fireEvent.click(await screen.findByTitle('Date'))
 
-    const selects = document.querySelectorAll('.ant-modal .ant-select-selector')
+    const selects = modalSelects()
     fireEvent.mouseDown(selects[selects.length - 1])
 
     expect(await screen.findByTitle('not in the last')).toBeTruthy()

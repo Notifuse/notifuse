@@ -1,3 +1,4 @@
+import '../__tests__/resizeObserverMock'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -202,6 +203,19 @@ describe('ContactsPage row delete and bulk selection', () => {
     fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }))
     await waitFor(() => {
       expect(screen.queryByText(/contacts? selected/)).toBeNull()
+    })
+  })
+
+  it('toggles selection when clicking a regular cell of the row', async () => {
+    render(<ContactsPage />, { wrapper: createWrapper() })
+
+    const aliceCell = await screen.findByText('alice@example.com')
+    fireEvent.click(aliceCell)
+    await screen.findByText('1 contact selected')
+
+    fireEvent.click(aliceCell)
+    await waitFor(() => {
+      expect(screen.queryByText('1 contact selected')).toBeNull()
     })
   })
 

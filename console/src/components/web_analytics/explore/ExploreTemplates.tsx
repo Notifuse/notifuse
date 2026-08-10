@@ -118,7 +118,7 @@ export function ExploreTemplates(props: ExploreTemplatesProps) {
               {template.dimensions.length > 0 ? (
                 <div className="mb-3 flex flex-col items-start gap-1">
                   {template.dimensions.map((dimension) => (
-                    <Tag key={dimension} color="blue" bordered={false} className="!mr-0">
+                    <Tag key={dimension} color="blue" variant="filled" className="!mr-0">
                       {getDimensionLabel(dimension, context.customDimensionLabels)}
                     </Tag>
                   ))}
@@ -131,7 +131,7 @@ export function ExploreTemplates(props: ExploreTemplatesProps) {
                     <Tag
                       key={`${filter.dimension}-${index}`}
                       color="orange"
-                      bordered={false}
+                      variant="filled"
                       className="!mr-0"
                     >
                       {getDimensionLabel(filter.dimension, context.customDimensionLabels)}{' '}

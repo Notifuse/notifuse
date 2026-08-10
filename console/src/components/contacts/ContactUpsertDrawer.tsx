@@ -490,7 +490,7 @@ export function ContactUpsertDrawer({
 
       <Drawer
         title={contact ? t`Update Contact` : t`Add Contact`}
-        width={500}
+        size={500}
         open={drawerVisible}
         onClose={handleClose}
         extra={

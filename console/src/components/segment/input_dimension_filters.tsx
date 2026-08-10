@@ -64,7 +64,7 @@ export const InputDimensionFilters = (props: {
                     {!fieldTypeRenderer && (
                       <Alert
                         type="error"
-                        message={t`type ${filter.field_type} is not implemented`}
+                        title={t`type ${filter.field_type} is not implemented`}
                       />
                     )}
                     {fieldTypeRenderer && (
@@ -133,6 +133,11 @@ const AddFilterButton = (props: {
     setModalVisible(true)
   }
 
+  const btnType = props.btnType || 'primary'
+  // antd never paints a link/text button as ghost, it only warns, so keep ghost to the
+  // bordered variants
+  const btnGhost = btnType === 'link' || btnType === 'text' ? undefined : props.btnGhost
+
   // clone fields, and remove existing filters
   const availableFields = clone(props.schema.fields)
   if (props.existingFilters) {
@@ -145,8 +150,8 @@ const AddFilterButton = (props: {
     <>
       <Button
         className={props.existingFilters && props.existingFilters.length > 0 ? 'mt-3' : ''}
-        type={props.btnType || 'primary'}
-        ghost={props.btnGhost}
+        type={btnType}
+        ghost={btnGhost}
         onClick={onClicked}
         size="small"
       >
@@ -192,7 +197,7 @@ const AddFilterButton = (props: {
                   // style={{ width: 200 }}
                   listHeight={500}
                   showSearch
-                  dropdownMatchSelectWidth={false}
+                  popupMatchSelectWidth={false}
                   placeholder={t`Select a field`}
                   options={map(availableFields, (field, fieldName) => {
                     // console.log('field', field)
@@ -253,7 +258,7 @@ const AddFilterButton = (props: {
                     return (
                       <Alert
                         type="error"
-                        message={t`type ${selectedField.type} is not implemented`}
+                        title={t`type ${selectedField.type} is not implemented`}
                       />
                     )
 

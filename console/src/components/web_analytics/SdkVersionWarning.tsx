@@ -79,7 +79,7 @@ export function SdkVersionWarning(): ReactNode {
       type="warning"
       showIcon
       className="mb-4"
-      message={
+      title={
         <div className="flex items-center justify-between gap-4">
           <span>
             {t`Visitors are being tracked by more than one SDK version (${older.join(

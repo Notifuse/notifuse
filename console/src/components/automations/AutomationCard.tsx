@@ -259,28 +259,28 @@ export const AutomationCard: React.FC<AutomationCardProps> = ({
               <Statistic
                 title={t`Enrolled`}
                 value={automation.stats.enrolled}
-                valueStyle={{ fontSize: '20px' }}
+                styles={{ content: { fontSize: '20px' } }}
               />
             </Col>
             <Col span={6}>
               <Statistic
                 title={t`Completed`}
                 value={automation.stats.completed}
-                valueStyle={{ fontSize: '20px', color: '#52c41a' }}
+                styles={{ content: { fontSize: '20px', color: '#52c41a' } }}
               />
             </Col>
             <Col span={6}>
               <Statistic
                 title={t`Exited`}
                 value={automation.stats.exited}
-                valueStyle={{ fontSize: '20px', color: '#faad14' }}
+                styles={{ content: { fontSize: '20px', color: '#faad14' } }}
               />
             </Col>
             <Col span={6}>
               <Statistic
                 title={t`Failed`}
                 value={automation.stats.failed}
-                valueStyle={{ fontSize: '20px', color: '#ff4d4f' }}
+                styles={{ content: { fontSize: '20px', color: '#ff4d4f' } }}
               />
             </Col>
           </Row>
@@ -315,7 +315,7 @@ export const AutomationCard: React.FC<AutomationCardProps> = ({
       <Drawer
         title={t`Flow Stats: ${automation.name}`}
         placement="right"
-        width="100%"
+        size="100%"
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
       >

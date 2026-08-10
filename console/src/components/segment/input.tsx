@@ -469,7 +469,7 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
             {deleteButton(path, pathKey, false)}
           </Flex>
           <div>
-            <Alert type="error" message={t`source ${node.leaf?.source} not found`} />
+            <Alert type="error" title={t`source ${node.leaf?.source} not found`} />
           </div>
         </div>
       )
@@ -581,18 +581,18 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
 
           <div>
             <Space style={{ alignItems: 'center' }}>
-              <Tag bordered={false} color="cyan">
+              <Tag variant="filled" color="cyan">
                 {schema.icon && <FontAwesomeIcon icon={schema.icon} style={{ marginRight: 8 }} />}
                 {t`List subscription`}
               </Tag>
               <span className="opacity-60">{isInList ? t`is in` : t`is not in`}</span>
-              <Tag bordered={false} color="green">
+              <Tag variant="filled" color="green">
                 {listName}
               </Tag>
               {isInList && contactList.status && (
                 <>
                   <span className="opacity-60">{t`with status`}</span>
-                  <Tag bordered={false} color="purple">
+                  <Tag variant="filled" color="purple">
                     {statusLabel}
                   </Tag>
                 </>
@@ -629,24 +629,24 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
 
           <div>
             <Space style={{ alignItems: 'start' }}>
-              <Tag bordered={false} color="cyan">
+              <Tag variant="filled" color="cyan">
                 {schema.icon && <FontAwesomeIcon icon={schema.icon} style={{ marginRight: 8 }} />}
                 {t`Goal`}
               </Tag>
               <div>
                 <div className="mb-2">
                   <Space>
-                    <Tag bordered={false} color={goal.negate ? 'red' : 'blue'}>
+                    <Tag variant="filled" color={goal.negate ? 'red' : 'blue'}>
                       {goal.negate ? t`has not` : t`has`}
                     </Tag>
                     <span className="opacity-60">{t`goal type`}</span>
-                    <Tag bordered={false} color="blue">
+                    <Tag variant="filled" color="blue">
                       {goalTypeLabel}
                     </Tag>
                     {goal.goal_name && (
                       <>
                         <span className="opacity-60">{t`goal name`}</span>
-                        <Tag bordered={false} color="blue">
+                        <Tag variant="filled" color="blue">
                           {goal.goal_name}
                         </Tag>
                       </>
@@ -654,7 +654,7 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
                     {goal.event_name && (
                       <>
                         <span className="opacity-60">{t`event`}</span>
-                        <Tag bordered={false} color="blue">
+                        <Tag variant="filled" color="blue">
                           {goal.event_name}
                         </Tag>
                       </>
@@ -663,20 +663,20 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
                 </div>
                 <div className="mb-2">
                   <Space>
-                    <Tag bordered={false} color="blue">
+                    <Tag variant="filled" color="blue">
                       {aggregateLabel}
                     </Tag>
                     <span className="opacity-60">{t`is`}</span>
-                    <Tag bordered={false} color="blue">
+                    <Tag variant="filled" color="blue">
                       {operatorLabel}
                     </Tag>
-                    <Tag bordered={false} color="blue">
+                    <Tag variant="filled" color="blue">
                       {goal.value}
                     </Tag>
                     {goal.operator === 'between' && goal.value_2 !== undefined && (
                       <>
                         <span className="opacity-60">{t`and`}</span>
-                        <Tag bordered={false} color="blue">
+                        <Tag variant="filled" color="blue">
                           {goal.value_2}
                         </Tag>
                       </>
@@ -687,14 +687,14 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
                   <Space>
                     <span className="opacity-60">{t`timeframe`}</span>
                     {goal.timeframe_operator === 'anytime' && (
-                      <Tag bordered={false} color="blue">
+                      <Tag variant="filled" color="blue">
                         {t`anytime`}
                       </Tag>
                     )}
                     {goal.timeframe_operator === 'in_the_last_days' && (
                       <>
                         <span className="opacity-60">{t`in the last`}</span>
-                        <Tag bordered={false} color="blue">
+                        <Tag variant="filled" color="blue">
                           {goal.timeframe_values?.[0]}
                         </Tag>
                         <span className="opacity-60">{t`days`}</span>
@@ -703,11 +703,11 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
                     {goal.timeframe_operator === 'in_date_range' && (
                       <>
                         <span className="opacity-60">{t`between`}</span>
-                        <Tag bordered={false} color="blue">
+                        <Tag variant="filled" color="blue">
                           {formatDateDisplay(goal.timeframe_values?.[0])}
                         </Tag>
                         <span className="opacity-60">&rarr;</span>
-                        <Tag bordered={false} color="blue">
+                        <Tag variant="filled" color="blue">
                           {formatDateDisplay(goal.timeframe_values?.[1])}
                         </Tag>
                       </>
@@ -715,7 +715,7 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
                     {goal.timeframe_operator === 'before_date' && (
                       <>
                         <span className="opacity-60">{t`before`}</span>
-                        <Tag bordered={false} color="blue">
+                        <Tag variant="filled" color="blue">
                           {formatDateDisplay(goal.timeframe_values?.[0])}
                         </Tag>
                       </>
@@ -723,7 +723,7 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
                     {goal.timeframe_operator === 'after_date' && (
                       <>
                         <span className="opacity-60">{t`after`}</span>
-                        <Tag bordered={false} color="blue">
+                        <Tag variant="filled" color="blue">
                           {formatDateDisplay(goal.timeframe_values?.[0])}
                         </Tag>
                       </>
@@ -735,7 +735,7 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
                     <Space>
                       <span className="opacity-60">{t`with properties`}</span>
                       {goal.filters.map((filter, index) => (
-                        <Tag key={index} bordered={false} color="blue">
+                        <Tag key={index} variant="filled" color="blue">
                           {filter.field_name}
                         </Tag>
                       ))}
@@ -770,13 +770,13 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
         <div>
           <Space style={{ alignItems: 'start' }}>
             {isContactSource && (
-              <Tag bordered={false} color="cyan">
+              <Tag variant="filled" color="cyan">
                 {schema.icon && <FontAwesomeIcon icon={schema.icon} style={{ marginRight: 8 }} />}
                 {t`Contact property`}
               </Tag>
             )}
             {isContactTimelineSource && (
-              <Tag bordered={false} color="cyan">
+              <Tag variant="filled" color="cyan">
                 {schema.icon && <FontAwesomeIcon icon={schema.icon} style={{ marginRight: 8 }} />}
                 {t`Activity`}
               </Tag>
@@ -786,7 +786,7 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
                 <>
                   <div className="mb-2">
                     <span className="opacity-60 pr-3">{t`type`}</span>
-                    <Tag bordered={false} color="blue">
+                    <Tag variant="filled" color="blue">
                       {node.leaf?.contact_timeline.kind === 'email.opened' && t`Open email`}
                       {node.leaf?.contact_timeline.kind === 'email.clicked' && t`Click email`}
                       {node.leaf?.contact_timeline.kind === 'email.bounced' && t`Bounce email`}
@@ -800,7 +800,7 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
                   {node.leaf?.contact_timeline?.template_id && (
                     <div className="mb-2">
                       <span className="opacity-60 pr-3">{t`template`}</span>
-                      <Tag bordered={false} color="blue">
+                      <Tag variant="filled" color="blue">
                         {templatesData?.templates?.find(
                           (tpl) => tpl.id === node.leaf?.contact_timeline?.template_id
                         )?.name || node.leaf?.contact_timeline?.template_id}
@@ -809,12 +809,12 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
                   )}
                   <Space>
                     <span className="opacity-60">{t`happened`}</span>
-                    <Tag bordered={false} color="blue">
+                    <Tag variant="filled" color="blue">
                       {node.leaf?.contact_timeline.count_operator === 'at_least' && t`at least`}
                       {node.leaf?.contact_timeline.count_operator === 'at_most' && t`at most`}
                       {node.leaf?.contact_timeline.count_operator === 'exactly' && t`exactly`}
                     </Tag>
-                    <Tag bordered={false} color="blue">
+                    <Tag variant="filled" color="blue">
                       {node.leaf?.contact_timeline.count_value}
                     </Tag>
                     <span className="opacity-60">{t`times`}</span>
@@ -824,14 +824,14 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
                     <Space>
                       <span className="opacity-60">{t`timeframe`}</span>
                       {node.leaf?.contact_timeline.timeframe_operator === 'anytime' && (
-                        <Tag bordered={false} color="blue">
+                        <Tag variant="filled" color="blue">
                           {t`anytime`}
                         </Tag>
                       )}
                       {node.leaf?.contact_timeline.timeframe_operator === 'in_the_last_days' && (
                         <>
                           <span className="opacity-60">{t`in the last`}</span>
-                          <Tag bordered={false} color="blue">
+                          <Tag variant="filled" color="blue">
                             {node.leaf?.contact_timeline.timeframe_values?.[0]}
                           </Tag>
                           <span className="opacity-60">{t`days`}</span>
@@ -840,11 +840,11 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
                       {node.leaf?.contact_timeline.timeframe_operator === 'in_date_range' && (
                         <>
                           <span className="opacity-60">{t`between`}</span>
-                          <Tag bordered={false} color="blue">
+                          <Tag variant="filled" color="blue">
                             {formatDateDisplay(node.leaf?.contact_timeline.timeframe_values?.[0])}
                           </Tag>
                           &rarr;
-                          <Tag className="ml-3" bordered={false} color="blue">
+                          <Tag className="ml-3" variant="filled" color="blue">
                             {formatDateDisplay(node.leaf?.contact_timeline.timeframe_values?.[1])}
                           </Tag>
                         </>
@@ -852,7 +852,7 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
                       {node.leaf?.contact_timeline.timeframe_operator === 'before_date' && (
                         <>
                           <span className="opacity-60">{t`before`}</span>
-                          <Tag bordered={false} color="blue">
+                          <Tag variant="filled" color="blue">
                             {formatDateDisplay(node.leaf?.contact_timeline.timeframe_values?.[0])}
                           </Tag>
                         </>
@@ -860,7 +860,7 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
                       {node.leaf?.contact_timeline.timeframe_operator === 'after_date' && (
                         <>
                           <span className="opacity-60">{t`after`}</span>
-                          <Tag bordered={false} color="blue">
+                          <Tag variant="filled" color="blue">
                             {formatDateDisplay(node.leaf?.contact_timeline.timeframe_values?.[0])}
                           </Tag>
                         </>
@@ -888,7 +888,7 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
                               {!fieldTypeRenderer && (
                                 <Alert
                                   type="error"
-                                  message={t`type ${rendererType} is not implemented`}
+                                  title={t`type ${rendererType} is not implemented`}
                                 />
                               )}
                               {fieldTypeRenderer && (

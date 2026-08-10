@@ -55,7 +55,7 @@ export class OperatorEquals implements IOperator {
         value = (
           <Alert
             type="error"
-            message={'equals operator not implemented for type: ' + filter.field_type}
+            title={'equals operator not implemented for type: ' + filter.field_type}
           />
         )
     }
@@ -63,7 +63,7 @@ export class OperatorEquals implements IOperator {
       <>
         <span className="opacity-60 pt-0.5">{this.label}</span>
         <span>
-          <Tag bordered={false} color="blue">
+          <Tag variant="filled" color="blue">
             {value}
           </Tag>
         </span>
@@ -198,7 +198,7 @@ export class OperatorEquals implements IOperator {
         )
       default:
         return (
-          <Alert type="error" message={'equals form item not implemented for type: ' + fieldType} />
+          <Alert type="error" title={'equals form item not implemented for type: ' + fieldType} />
         )
     }
 

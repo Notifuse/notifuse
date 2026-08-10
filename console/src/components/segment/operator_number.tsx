@@ -22,7 +22,7 @@ export class OperatorNumber implements IOperator {
       <>
         <span className="opacity-60 pt-0.5">{this.label}</span>
         <span>
-          <Tag bordered={false} color="blue">
+          <Tag variant="filled" color="blue">
             {filter.number_values?.[0]}
           </Tag>
         </span>

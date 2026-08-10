@@ -147,7 +147,7 @@ export function Filter({ fields, activeFilters, className }: FilterProps) {
 
   return (
     <div className={className}>
-      <Space direction="vertical" className="w-full">
+      <Space orientation="vertical" className="w-full">
         <Space wrap>
           {fields.map((field) => (
             <Popover

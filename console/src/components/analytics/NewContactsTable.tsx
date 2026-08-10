@@ -73,7 +73,7 @@ export const NewContactsTable: React.FC<NewContactsTableProps> = ({ workspace })
       title: t`Lists`,
       key: 'lists',
       render: (record: Contact) => (
-        <Space direction="vertical" size={2}>
+        <Space orientation="vertical" size={2}>
           {record.contact_lists.map(
             (list: { list_id: string; status?: string; created_at?: string }) => {
               let color = 'blue'
@@ -139,7 +139,7 @@ export const NewContactsTable: React.FC<NewContactsTableProps> = ({ workspace })
               return (
                 <Tooltip key={list.list_id} title={tooltipTitle}>
                   <Tag
-                    bordered={false}
+                    variant="filled"
                     color={color}
                     style={{ marginBottom: '2px' }}
                     className="text-xs"

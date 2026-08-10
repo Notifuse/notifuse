@@ -134,14 +134,18 @@ const openDrawer = (tree: TreeNode) => {
   return result
 }
 
-/** The select currently displaying `value`, addressed by what it shows rather than by position. */
+/**
+ * The select currently displaying `value`, addressed by what it shows rather than by position.
+ * Both the control and the matching dropdown option carry the value as a title, so the combobox
+ * they wrap is what tells them apart.
+ */
 const selectShowing = (value: string) => {
-  const item = screen
+  const control = screen
     .getAllByTitle(value)
-    .find((element) => element.classList.contains('ant-select-selection-item'))
+    .find((element) => element.querySelector('[role="combobox"]'))
 
-  if (!item) throw new Error(`no select is showing "${value}"`)
-  return item.closest('.ant-select-selector') as Element
+  if (!control) throw new Error(`no select is showing "${value}"`)
+  return control
 }
 
 const editFirstCondition = () =>

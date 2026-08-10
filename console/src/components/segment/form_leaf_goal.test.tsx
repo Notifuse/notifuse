@@ -58,7 +58,7 @@ describe('LeafCustomEventsGoalForm', () => {
     renderForm(baseGoal, onChange)
 
     // The negation select is the first one in the form
-    fireEvent.mouseDown(document.querySelectorAll('.ant-select-selector')[0])
+    fireEvent.mouseDown(screen.getAllByRole('combobox')[0])
     fireEvent.click(await screen.findByTitle('has not'))
     submit()
 

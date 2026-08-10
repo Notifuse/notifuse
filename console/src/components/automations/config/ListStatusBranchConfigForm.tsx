@@ -38,7 +38,7 @@ export const ListStatusBranchConfigForm: React.FC<ListStatusBranchConfigFormProp
       <Alert
         type="info"
         showIcon
-        message={t`Branch Logic`}
+        title={t`Branch Logic`}
         description={
           <ul className="mt-2 space-y-1 text-xs list-disc pl-4">
             <li>

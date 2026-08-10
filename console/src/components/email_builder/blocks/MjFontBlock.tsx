@@ -30,7 +30,7 @@ const MjFontSettingsPanel: React.FC<MjFontSettingsPanelProps> = ({
     <PanelLayout title={t`Font Attributes`}>
       <Alert
         type="info"
-        message={
+        title={
           <>
             <div className="text-xs text-gray-600">
               <div className="font-medium mb-1">

@@ -129,7 +129,7 @@ export const AddNodeButton: React.FC<AddNodeButtonProps> = ({
           open={menuOpen}
           onOpenChange={setMenuOpen}
           arrow={false}
-          overlayInnerStyle={{ padding: 0 }}
+          styles={{ container: { padding: 0 } }}
         >
           <button
             className={`add-node-button flex items-center justify-center ${buttonSize} rounded-full ${shadowSize} border-2 border-white cursor-pointer transition-transform hover:scale-110`}

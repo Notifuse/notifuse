@@ -215,7 +215,7 @@ const EmailIntegration = ({
         <Tooltip
           title={t`Forwards inbound replies to Notifuse so automations can stop when a contact replies (Exit on reply). Registering webhooks creates the provider-side route; you must also point your domain's MX records at your email provider.`}
         >
-          <Tag bordered={false} color={inboundRegistered ? 'green' : 'orange'}>
+          <Tag variant="filled" color={inboundRegistered ? 'green' : 'orange'}>
             {inboundRegistered ? (
               <FontAwesomeIcon icon={faCheck} className="text-green-500 mr-1" />
             ) : (
@@ -246,15 +246,15 @@ const EmailIntegration = ({
       return (
         <Descriptions.Item label={t`Webhooks`}>
           <div className="mb-2">
-            <Tag bordered={false} color="orange">
+            <Tag variant="filled" color="orange">
               <FontAwesomeIcon icon={faExclamationTriangle} className="text-yellow-500 mr-1" />
               {t`delivered`}
             </Tag>
-            <Tag bordered={false} color="orange">
+            <Tag variant="filled" color="orange">
               <FontAwesomeIcon icon={faExclamationTriangle} className="text-yellow-500 mr-1" />
               {t`bounce`}
             </Tag>
-            <Tag bordered={false} color="orange">
+            <Tag variant="filled" color="orange">
               <FontAwesomeIcon icon={faExclamationTriangle} className="text-yellow-500 mr-1" />
               {t`complaint`}
             </Tag>
@@ -283,7 +283,7 @@ const EmailIntegration = ({
               {webhookStatus.endpoints.map((endpoint, index) => (
                 <span key={index}>
                   <Tooltip title={endpoint.webhook_id + ' - ' + endpoint.url}>
-                    <Tag bordered={false} color={endpoint.active ? 'green' : 'orange'}>
+                    <Tag variant="filled" color={endpoint.active ? 'green' : 'orange'}>
                       {endpoint.active ? (
                         <FontAwesomeIcon icon={faCheck} className="text-green-500 mr-1" />
                       ) : (
@@ -323,7 +323,7 @@ const EmailIntegration = ({
             )}
           </div>
           {webhookStatus.error && (
-            <Alert message={webhookStatus.error} type="error" showIcon className="mt-2" />
+            <Alert title={webhookStatus.error} type="error" showIcon className="mt-2" />
           )}
         </div>
       </Descriptions.Item>
@@ -382,7 +382,7 @@ const EmailIntegration = ({
                 <div key={sender.id || index} className="mb-1">
                   {sender.name} &lt;{sender.email}&gt;
                   {sender.is_default && (
-                    <Tag bordered={false} color="blue" className="!ml-2">
+                    <Tag variant="filled" color="blue" className="!ml-2">
                       {t`Default`}
                     </Tag>
                   )}
@@ -398,23 +398,23 @@ const EmailIntegration = ({
             {isIntegrationInUse(integration.id) ? (
               <>
                 {purposes.includes('Marketing Emails') && (
-                  <Tag bordered={false} color="blue">
+                  <Tag variant="filled" color="blue">
                     <FontAwesomeIcon icon={faPaperPlane} className="mr-1" /> {t`Marketing Emails`}
                   </Tag>
                 )}
                 {purposes.includes('Transactional Emails') && (
-                  <Tag bordered={false} color="purple">
+                  <Tag variant="filled" color="purple">
                     <FontAwesomeIcon icon={faTerminal} className="mr-1" /> {t`Transactional Emails`}
                   </Tag>
                 )}
                 {purposes.length === 0 && (
-                  <Tag bordered={false} color="red">
+                  <Tag variant="filled" color="red">
                     {t`Not assigned`}
                   </Tag>
                 )}
               </>
             ) : (
-              <Tag bordered={false} color="red">
+              <Tag variant="filled" color="red">
                 {t`Not assigned`}
               </Tag>
             )}
@@ -1345,8 +1345,8 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
                     <Descriptions.Item label={t`Name`}>{integration.name}</Descriptions.Item>
                     <Descriptions.Item label={t`Auth Email Hook`}>
                       {hasAuthEmailHook ? (
-                        <Space direction="vertical">
-                          <Tag bordered={false} color="green" className="mb-2">
+                        <Space orientation="vertical">
+                          <Tag variant="filled" color="green" className="mb-2">
                             <FontAwesomeIcon icon={faCheck} className="mr-1" /> {t`Configured`}
                           </Tag>
                           <div className="mt-2 text-xs text-gray-500">{t`Webhook endpoint:`}</div>
@@ -1375,15 +1375,15 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
                           />
                         </Space>
                       ) : (
-                        <Tag bordered={false} color="default">
+                        <Tag variant="filled" color="default">
                           {t`Not configured`}
                         </Tag>
                       )}
                     </Descriptions.Item>
                     <Descriptions.Item label={t`Before User Created Hook`}>
                       {hasBeforeUserCreatedHook ? (
-                        <Space direction="vertical">
-                          <Tag bordered={false} color="green" className="mb-2">
+                        <Space orientation="vertical">
+                          <Tag variant="filled" color="green" className="mb-2">
                             <FontAwesomeIcon icon={faCheck} className="mr-1" /> {t`Configured`}
                           </Tag>
                           <div className="mt-2 text-xs text-gray-500">{t`Webhook endpoint:`}</div>
@@ -1412,7 +1412,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
                           />
                         </Space>
                       ) : (
-                        <Tag bordered={false} color="default">
+                        <Tag variant="filled" color="default">
                           {t`Not configured`}
                         </Tag>
                       )}
@@ -1422,7 +1422,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
                         {addToLists.map((listId) => {
                           const list = lists.find((l) => l.id === listId)
                           return (
-                            <Tag key={listId} bordered={false} color="blue" className="mb-1">
+                            <Tag key={listId} variant="filled" color="blue" className="mb-1">
                               {list?.name || listId}
                             </Tag>
                           )
@@ -1431,7 +1431,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
                     )}
                     {hasBeforeUserCreatedHook && customJsonField && (
                       <Descriptions.Item label={t`User Metadata Field`}>
-                        <Tag bordered={false} color="purple">
+                        <Tag variant="filled" color="purple">
                           {workspace.settings?.custom_field_labels?.[customJsonField] ||
                             customJsonField}
                         </Tag>
@@ -1439,7 +1439,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
                     )}
                     {hasBeforeUserCreatedHook && (
                       <Descriptions.Item label={t`Reject Disposable Email`}>
-                        <Tag bordered={false} color={rejectDisposableEmail ? 'green' : 'default'}>
+                        <Tag variant="filled" color={rejectDisposableEmail ? 'green' : 'default'}>
                           {rejectDisposableEmail ? (
                             <>
                               <FontAwesomeIcon icon={faCheck} className="mr-1" /> {t`Enabled`}
@@ -1503,7 +1503,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
                   <Descriptions bordered size="small" column={1} className="mt-2">
                     <Descriptions.Item label={t`Name`}>{integration.name}</Descriptions.Item>
                     <Descriptions.Item label={t`Model`}>
-                      <Tag bordered={false} color="purple">
+                      <Tag variant="filled" color="purple">
                         {provider.kind === 'openai'
                           ? provider.openai?.model || 'Not configured'
                           : provider.kind === 'gemini'
@@ -1513,13 +1513,13 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
                     </Descriptions.Item>
                     {provider.kind === 'openai' && provider.openai?.base_url && (
                       <Descriptions.Item label={t`Base URL`}>
-                        <Tag bordered={false} color="blue">
+                        <Tag variant="filled" color="blue">
                           {provider.openai.base_url}
                         </Tag>
                       </Descriptions.Item>
                     )}
                     <Descriptions.Item label={t`API Key`}>
-                      <Tag bordered={false} color="green">
+                      <Tag variant="filled" color="green">
                         <FontAwesomeIcon icon={faCheck} className="mr-1" /> {t`Configured`}
                       </Tag>
                     </Descriptions.Item>
@@ -1570,16 +1570,16 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
                   <Descriptions bordered size="small" column={1} className="mt-2">
                     <Descriptions.Item label={t`Name`}>{integration.name}</Descriptions.Item>
                     <Descriptions.Item label={t`API Key`}>
-                      <Tag bordered={false} color="green">
+                      <Tag variant="filled" color="green">
                         <FontAwesomeIcon icon={faCheck} className="mr-1" /> {t`Configured`}
                       </Tag>
                     </Descriptions.Item>
                     <Descriptions.Item label={t`Tools`}>
                       <Space>
-                        <Tag bordered={false} color="blue">
+                        <Tag variant="filled" color="blue">
                           scrape_url
                         </Tag>
-                        <Tag bordered={false} color="blue">
+                        <Tag variant="filled" color="blue">
                           search_web
                         </Tag>
                       </Space>
@@ -2108,7 +2108,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
           <span>
             {text}
             {record.is_default && (
-              <Tag bordered={false} color="blue" className="!ml-2">
+              <Tag variant="filled" color="blue" className="!ml-2">
                 Default
               </Tag>
             )}
@@ -2236,12 +2236,12 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
           {configurationSet ? (
             <>
               <span className="font-mono text-xs">{configurationSet}</span>
-              <Tag bordered={false} color={ses.configuration_set_name ? 'purple' : 'blue'} className="!ml-2">
+              <Tag variant="filled" color={ses.configuration_set_name ? 'purple' : 'blue'} className="!ml-2">
                 {ses.configuration_set_name ? t`custom` : t`managed`}
               </Tag>
             </>
           ) : (
-            <Tag bordered={false} color="orange">
+            <Tag variant="filled" color="orange">
               <FontAwesomeIcon icon={faExclamationTriangle} className="text-yellow-500 mr-1" />
               {t`not created yet — register webhooks`}
             </Tag>
@@ -2250,14 +2250,14 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
         <Descriptions.Item key="reputation" label={t`Reputation`}>
           {tenant ? (
             <>
-              <Tag bordered={false} color="green">
+              <Tag variant="filled" color="green">
                 {t`isolated`}
               </Tag>
               <span className="font-mono text-xs">{tenant}</span>
             </>
           ) : ses.tenant_isolation_enabled ? (
             // Intent recorded but nothing provisioned: the state that must never look fine.
-            <Tag bordered={false} color="orange">
+            <Tag variant="filled" color="orange">
               <FontAwesomeIcon icon={faExclamationTriangle} className="text-yellow-500 mr-1" />
               {t`isolation requested but not provisioned`}
             </Tag>
@@ -2343,7 +2343,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
             ? `Edit ${selectedProviderType?.toUpperCase() || ''} Integration`
             : `Add New ${selectedProviderType?.toUpperCase() || ''} Integration`
         }
-        width={600}
+        size={600}
         open={providerDrawerVisible}
         onClose={closeProviderDrawer}
         footer={
@@ -2435,7 +2435,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
           {(!workspace.settings.transactional_email_provider_id ||
             !workspace.settings.marketing_email_provider_id) && (
             <Alert
-              message={t`Email Provider Configuration Needed`}
+              title={t`Email Provider Configuration Needed`}
               description={
                 <div>
                   {!workspace.settings.transactional_email_provider_id && (
@@ -2528,7 +2528,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
           style={{ marginBottom: 16 }}
         />
         <Alert
-          message={t`This will send a real test email to the address provided.`}
+          title={t`This will send a real test email to the address provided.`}
           type="info"
           showIcon
         />
@@ -2539,7 +2539,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
         title={
           editingSupabaseIntegration ? 'Edit SUPABASE Integration' : 'Add New SUPABASE Integration'
         }
-        width={600}
+        size={600}
         open={supabaseDrawerVisible}
         onClose={() => {
           setSupabaseDrawerVisible(false)
@@ -2567,7 +2567,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
             </Space>
           </div>
         }
-        destroyOnClose
+        destroyOnHidden
       >
         <SupabaseIntegration
           integration={editingSupabaseIntegration || undefined}
@@ -2585,7 +2585,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
             ? `Edit ${getLLMProviderName(selectedLLMProvider || 'anthropic').toUpperCase()} Integration`
             : `Add New ${getLLMProviderName(selectedLLMProvider || 'anthropic').toUpperCase()} Integration`
         }
-        width={600}
+        size={600}
         open={llmDrawerVisible}
         onClose={() => {
           setLLMDrawerVisible(false)
@@ -2615,7 +2615,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
             </Space>
           </div>
         }
-        destroyOnClose
+        destroyOnHidden
       >
         {selectedLLMProvider && (
           <LLMIntegration
@@ -2634,7 +2634,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
         title={
           editingFirecrawlIntegration ? 'Edit Firecrawl Integration' : 'Add Firecrawl Integration'
         }
-        width={600}
+        size={600}
         open={firecrawlDrawerVisible}
         onClose={() => {
           setFirecrawlDrawerVisible(false)
@@ -2662,7 +2662,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
             </Space>
           </div>
         }
-        destroyOnClose
+        destroyOnHidden
       >
         <FirecrawlIntegration
           integration={editingFirecrawlIntegration || undefined}
