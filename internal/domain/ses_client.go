@@ -30,6 +30,8 @@ type SESWebhookClient interface {
 	ListIdentitiesWithContext(ctx aws.Context, input *ses.ListIdentitiesInput, opts ...request.Option) (*ses.ListIdentitiesOutput, error)
 }
 
+//go:generate mockgen -destination mocks/mock_sns_client.go -package mocks -mock_names SNSWebhookClient=MockSNSClient github.com/Notifuse/notifuse/internal/domain SNSWebhookClient
+
 // SNSWebhookClient defines the interface for interacting with AWS SNS service
 type SNSWebhookClient interface {
 	CreateTopicWithContext(ctx aws.Context, input *sns.CreateTopicInput, opts ...request.Option) (*sns.CreateTopicOutput, error)

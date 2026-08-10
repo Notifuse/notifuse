@@ -4,6 +4,7 @@ import {
   TagsOutlined,
   SettingOutlined,
   ExclamationCircleOutlined,
+  LineChartOutlined,
   MailOutlined
 } from '@ant-design/icons'
 import { useLingui } from '@lingui/react/macro'
@@ -16,6 +17,7 @@ export type SettingsSection =
   | 'smtp-bridge'
   | 'general'
   | 'blog'
+  | 'web-analytics'
   | 'danger-zone'
 
 interface SettingsSidebarProps {
@@ -96,6 +98,11 @@ export function SettingsSidebar({ activeSection, onSectionChange, isOwner }: Set
         </svg>
       ),
       label: t`Blog`
+    },
+    {
+      key: 'web-analytics',
+      icon: <LineChartOutlined />,
+      label: t`Web Analytics`
     },
     {
       key: 'custom-fields',

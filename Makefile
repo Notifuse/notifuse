@@ -43,6 +43,18 @@ test-database:
 test-pkg:
 	go test -race -v ./pkg/...
 
+sdk-build:
+	cd web_analytics_sdk && npm run build
+
+sdk-test:
+	cd web_analytics_sdk && npm test
+
+# Browser suite: drives the built bundle in Chromium against an in-memory
+# collector. Needs the bundle (sdk-build) and, once per machine, the browser
+# (cd web_analytics_sdk && npm run test:e2e:install).
+sdk-test-e2e: sdk-build
+	cd web_analytics_sdk && npm run test:e2e
+
 # Comprehensive test coverage command
 coverage:
 	@echo "Running comprehensive tests and generating coverage report..."

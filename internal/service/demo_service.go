@@ -39,6 +39,7 @@ type DemoService struct {
 	inboundWebhookEventRepo          domain.InboundWebhookEventRepository
 	broadcastRepo                    domain.BroadcastRepository
 	customEventRepo                  domain.CustomEventRepository
+	webAnalyticsRepo                 domain.WebAnalyticsRepository
 	webhookSubscriptionService       *WebhookSubscriptionService
 }
 
@@ -114,6 +115,7 @@ func NewDemoService(
 	inboundWebhookEventRepo domain.InboundWebhookEventRepository,
 	broadcastRepo domain.BroadcastRepository,
 	customEventRepo domain.CustomEventRepository,
+	webAnalyticsRepo domain.WebAnalyticsRepository,
 	webhookSubscriptionService *WebhookSubscriptionService,
 ) *DemoService {
 	return &DemoService{
@@ -140,6 +142,7 @@ func NewDemoService(
 		inboundWebhookEventRepo:          inboundWebhookEventRepo,
 		broadcastRepo:                    broadcastRepo,
 		customEventRepo:                  customEventRepo,
+		webAnalyticsRepo:                 webAnalyticsRepo,
 		webhookSubscriptionService:       webhookSubscriptionService,
 	}
 }
@@ -243,9 +246,9 @@ func (s *DemoService) createDemoWorkspace(ctx context.Context) error {
 	workspace, err := s.workspaceService.CreateWorkspace(
 		authenticatedCtx,
 		workspaceID,
-		"Demo Workspace",
-		"https://demo.notifuse.com",
-		"https://www.notifuse.com/apple-touch-icon.png",
+		"Apple",
+		"https://www.apple.com",
+		"https://www.apple.com/ac/structured-data/images/knowledge_graph_logo.png",
 		"https://demo.notifuse.com/cover.png",
 		"UTC",
 		fileManagerSettings,
@@ -346,6 +349,15 @@ func (s *DemoService) addSampleData(ctx context.Context, workspaceID string) err
 	if err := s.createSampleSegments(ctx, workspaceID); err != nil {
 		s.logger.WithField("error", err.Error()).Warn("Failed to create sample segments")
 		return err
+	}
+
+	// Step 9: Generate web analytics history. Runs after contacts because a
+	// share of the sessions are attributed to them, and detached from the
+	// caller's context so a client that hangs up mid-write cannot leave the
+	// demo with half a year of history.
+	if err := s.seedWebAnalytics(context.WithoutCancel(ctx), workspaceID); err != nil {
+		s.logger.WithField("error", err.Error()).Warn("Failed to generate demo web analytics")
+		// Non-fatal: the rest of the demo is still usable without it.
 	}
 
 	s.logger.WithField("workspace_id", workspaceID).Info("Comprehensive sample data added successfully")
@@ -487,13 +499,6 @@ func (s *DemoService) generateSampleCustomEvents(ctx context.Context, workspaceI
 		return nil
 	}
 
-	// Sample product names for realistic demo data
-	productNames := []string{
-		"Premium Subscription", "Basic Plan", "Pro License", "Enterprise Package",
-		"Widget Pack", "Service Credit", "Annual Membership", "Monthly Bundle",
-		"Starter Kit", "Professional Tools", "Digital Download", "Consulting Hour",
-	}
-
 	totalEvents := 0
 
 	// 70% of contacts have purchase history
@@ -516,9 +521,9 @@ func (s *DemoService) generateSampleCustomEvents(ctx context.Context, workspaceI
 				purchaseTime = time.Now().Add(-time.Duration(rand.Intn(30*24)) * time.Hour)
 			}
 
-			// Generate purchase value (between $10 and $500)
-			purchaseValue := 10.0 + rand.Float64()*490.0
-			purchaseValue = float64(int(purchaseValue*100)) / 100 // Round to 2 decimal places
+			// Product and price come from one draw, so an order for a Mac Pro
+			// is never billed at the price of a HomePod.
+			product, purchaseValue := randomDemoProduct()
 
 			goalType := "purchase"
 			goalName := "E-commerce Purchase"
@@ -528,7 +533,7 @@ func (s *DemoService) generateSampleCustomEvents(ctx context.Context, workspaceI
 				Email:      contact.Email,
 				EventName:  "purchase",
 				Properties: map[string]interface{}{
-					"product_name": getRandomElement(productNames),
+					"product_name": product.Name,
 					"quantity":     1 + rand.Intn(3),
 					"currency":     "USD",
 					"order_id":     fmt.Sprintf("ORD-%d", 10000+rand.Intn(90000)),

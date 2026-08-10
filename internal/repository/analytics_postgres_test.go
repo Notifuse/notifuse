@@ -22,7 +22,7 @@ func TestNewAnalyticsRepository(t *testing.T) {
 	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
 	mockLogger := logger.NewLogger()
 
-	repo := NewAnalyticsRepository(mockWorkspaceRepo, mockLogger)
+	repo := NewAnalyticsRepository(mockWorkspaceRepo, mockLogger, "")
 
 	assert.NotNil(t, repo)
 	assert.Implements(t, (*domain.AnalyticsRepository)(nil), repo)
@@ -53,6 +53,10 @@ func TestAnalyticsRepository_Query_Success(t *testing.T) {
 	mockLogger := logger.NewLogger()
 
 	mockWorkspaceRepo.EXPECT().
+		GetByID(gomock.Any(), "workspace-123").
+		Return(&domain.Workspace{ID: "workspace-123"}, nil).
+		AnyTimes()
+	mockWorkspaceRepo.EXPECT().
 		GetConnection(gomock.Any(), "workspace-123").
 		Return(db, nil)
 
@@ -60,7 +64,7 @@ func TestAnalyticsRepository_Query_Success(t *testing.T) {
 	sqlMock.ExpectQuery("SELECT (.+) FROM test_schema").WillReturnRows(rows)
 
 	// Execute test
-	repo := NewAnalyticsRepository(mockWorkspaceRepo, mockLogger)
+	repo := NewAnalyticsRepository(mockWorkspaceRepo, mockLogger, "")
 	query := analytics.Query{
 		Schema:   "test_schema",
 		Measures: []string{"count"},
@@ -83,7 +87,12 @@ func TestAnalyticsRepository_Query_UnknownSchema(t *testing.T) {
 	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
 	mockLogger := logger.NewLogger()
 
-	repo := NewAnalyticsRepository(mockWorkspaceRepo, mockLogger)
+	mockWorkspaceRepo.EXPECT().
+		GetByID(gomock.Any(), "workspace-123").
+		Return(&domain.Workspace{ID: "workspace-123"}, nil).
+		AnyTimes()
+
+	repo := NewAnalyticsRepository(mockWorkspaceRepo, mockLogger, "")
 	query := analytics.Query{
 		Schema:   "unknown_schema",
 		Measures: []string{"count"},
@@ -116,10 +125,14 @@ func TestAnalyticsRepository_Query_DatabaseError(t *testing.T) {
 	mockLogger := logger.NewLogger()
 
 	mockWorkspaceRepo.EXPECT().
+		GetByID(gomock.Any(), "workspace-123").
+		Return(&domain.Workspace{ID: "workspace-123"}, nil).
+		AnyTimes()
+	mockWorkspaceRepo.EXPECT().
 		GetConnection(gomock.Any(), "workspace-123").
 		Return(nil, assert.AnError)
 
-	repo := NewAnalyticsRepository(mockWorkspaceRepo, mockLogger)
+	repo := NewAnalyticsRepository(mockWorkspaceRepo, mockLogger, "")
 	query := analytics.Query{
 		Schema:   "test_schema",
 		Measures: []string{"count"},
@@ -148,7 +161,12 @@ func TestAnalyticsRepository_GetSchemas(t *testing.T) {
 	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
 	mockLogger := logger.NewLogger()
 
-	repo := NewAnalyticsRepository(mockWorkspaceRepo, mockLogger)
+	mockWorkspaceRepo.EXPECT().
+		GetByID(gomock.Any(), "workspace-123").
+		Return(&domain.Workspace{ID: "workspace-123"}, nil).
+		AnyTimes()
+
+	repo := NewAnalyticsRepository(mockWorkspaceRepo, mockLogger, "")
 
 	schemas, err := repo.GetSchemas(context.Background(), "workspace-123")
 

@@ -1,0 +1,96 @@
+# Notifuse with AlloyDB Omni instead of vanilla PostgreSQL.
+#
+# AlloyDB Omni is Google's PostgreSQL-compatible database with an in-memory
+# columnar engine that dramatically accelerates analytical scans — exactly the
+# ad-hoc GROUP BY aggregations the web analytics feature runs over
+# web_sessions / web_pages / web_goals. Use this compose file when your
+# workspaces track enough traffic that dashboard queries on vanilla Postgres
+# feel slow (tens of millions of sessions per month).
+#
+# Notes:
+#   - AlloyDB Omni 17.x is PostgreSQL-17 compatible; every Notifuse feature
+#     works unchanged (the schema deliberately uses no PG18-only DDL).
+#   - The columnar engine caches hot columns automatically. Historical monthly
+#     partitions are immutable, so they columnarize extremely well; only the
+#     current month keeps taking upserts.
+#   - Licensing: AlloyDB Omni ships under Google's own terms; review them
+#     before production use. See https://cloud.google.com/alloydb/omni
+#
+# Usage: docker compose -f compose.alloydb.yaml up -d
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - '8081:8080'
+      - '587:587'
+    environment:
+      - SERVER_PORT=${SERVER_PORT:-8080}
+      - SERVER_HOST=${SERVER_HOST:-0.0.0.0}
+      - ENVIRONMENT=${ENVIRONMENT:-production}
+
+      - DB_HOST=${DB_HOST:-alloydb}
+      - DB_PORT=${DB_PORT:-5432}
+      - DB_USER=${DB_USER:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD:-postgres}
+      - DB_PREFIX=${DB_PREFIX:-notifuse}
+      - DB_NAME=${DB_NAME:-notifuse_system}
+      - DB_SSLMODE=${DB_SSLMODE:-disable}
+
+      - SECRET_KEY=${SECRET_KEY:?set SECRET_KEY in your environment}
+
+      # Web analytics geo dimensions use the GeoLite2 City database shipped in
+      # the image. Override it with a fresher copy by dropping it in ./data as
+      # GeoLite2-City.mmdb, or by setting an explicit path here.
+      # - GEOIP_DB_PATH=/app/data/GeoLite2-City.mmdb
+    depends_on:
+      - alloydb
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
+    networks:
+      - notifuse-network
+    healthcheck:
+      test:
+        ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:8080/healthz']
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  alloydb:
+    image: google/alloydbomni:17.5.0
+    ports:
+      - '5433:5432'
+    environment:
+      - POSTGRES_USER=${DB_USER:-postgres}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-postgres}
+      - POSTGRES_DB=${POSTGRES_DB:-postgres}
+    command:
+      - '-c'
+      - 'google_columnar_engine.enabled=on'
+      # Memory reserved for the columnar store, in MB. Size it to hold your
+      # hottest web analytics partitions.
+      - '-c'
+      - 'google_columnar_engine.memory_size_in_mb=1024'
+    volumes:
+      - alloydb-data:/var/lib/postgresql/data
+    restart: unless-stopped
+    networks:
+      - notifuse-network
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+volumes:
+  alloydb-data:
+    driver: local
+
+networks:
+  notifuse-network:
+    driver: bridge

@@ -91,7 +91,7 @@ func TestSQLBuilder_BuildSQL(t *testing.T) {
 					Granularity: "day",
 				}},
 			},
-			expectedSQL: "SELECT (COUNT(*)) AS count, (DATE_TRUNC('day', created_at)) AS created_at_day FROM message_history GROUP BY created_at_day",
+			expectedSQL: "SELECT (COUNT(*)) AS count, (DATE_TRUNC('day', created_at AT TIME ZONE 'UTC')) AS created_at_day FROM message_history GROUP BY created_at_day",
 		},
 		{
 			name: "query with timezone",
@@ -159,8 +159,13 @@ func TestSQLBuilder_BuildSQL(t *testing.T) {
 					DateRange:   &[2]string{"2024-01-01", "2024-12-31"},
 				}},
 			},
-			expectedSQL:  "SELECT (COUNT(*)) AS count, (DATE_TRUNC('day', created_at)) AS created_at_day FROM message_history WHERE created_at >= $1 AND created_at <= $2 GROUP BY created_at_day",
-			expectedArgs: []interface{}{"2024-01-01", "2024-12-31"},
+			expectedSQL: "SELECT (COUNT(*)) AS count, (DATE_TRUNC('day', created_at AT TIME ZONE 'UTC')) AS created_at_day FROM message_history WHERE created_at >= $1 AND created_at <= $2 GROUP BY created_at_day",
+			// A bare end date covers its whole day, so the bound is the last
+			// instant of 2024-12-31 rather than its midnight.
+			expectedArgs: []interface{}{
+				time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC),
+				time.Date(2024, 12, 31, 23, 59, 59, int(999*time.Millisecond), time.UTC),
+			},
 		},
 		{
 			name: "query with order by",
@@ -205,8 +210,12 @@ func TestSQLBuilder_BuildSQL(t *testing.T) {
 				},
 				Limit: intPtr(100),
 			},
-			expectedSQL:  "SELECT (COUNT(*)) AS count, (COUNT(*) FILTER (WHERE sent_at IS NOT NULL)) AS count_sent, contact_email AS contact_email, (DATE_TRUNC('day', created_at)) AS created_at_day FROM message_history WHERE broadcast_id <> $1 AND created_at >= $2 AND created_at <= $3 GROUP BY contact_email, created_at_day ORDER BY created_at DESC LIMIT 100",
-			expectedArgs: []interface{}{"test-broadcast", "2024-01-01", "2024-12-31"},
+			expectedSQL: "SELECT (COUNT(*)) AS count, (COUNT(*) FILTER (WHERE sent_at IS NOT NULL)) AS count_sent, contact_email AS contact_email, (DATE_TRUNC('day', created_at AT TIME ZONE 'UTC')) AS created_at_day FROM message_history WHERE broadcast_id <> $1 AND created_at >= $2 AND created_at <= $3 GROUP BY contact_email, created_at_day ORDER BY created_at DESC LIMIT 100",
+			expectedArgs: []interface{}{
+				"test-broadcast",
+				time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC),
+				time.Date(2024, 12, 31, 23, 59, 59, int(999*time.Millisecond), time.UTC),
+			},
 		},
 		{
 			name: "invalid measure",
@@ -405,7 +414,7 @@ func TestSQLBuilder_buildTimeDimensionSQL(t *testing.T) {
 				Granularity: "hour",
 			},
 			timezone:    "UTC",
-			expectedSQL: "DATE_TRUNC('hour', created_at)",
+			expectedSQL: "DATE_TRUNC('hour', created_at AT TIME ZONE 'UTC')",
 		},
 		{
 			name: "day granularity",
@@ -414,7 +423,7 @@ func TestSQLBuilder_buildTimeDimensionSQL(t *testing.T) {
 				Granularity: "day",
 			},
 			timezone:    "UTC",
-			expectedSQL: "DATE_TRUNC('day', created_at)",
+			expectedSQL: "DATE_TRUNC('day', created_at AT TIME ZONE 'UTC')",
 		},
 		{
 			name: "week granularity",
@@ -423,7 +432,7 @@ func TestSQLBuilder_buildTimeDimensionSQL(t *testing.T) {
 				Granularity: "week",
 			},
 			timezone:    "UTC",
-			expectedSQL: "DATE_TRUNC('week', created_at)",
+			expectedSQL: "DATE_TRUNC('week', created_at AT TIME ZONE 'UTC')",
 		},
 		{
 			name: "month granularity",
@@ -432,7 +441,7 @@ func TestSQLBuilder_buildTimeDimensionSQL(t *testing.T) {
 				Granularity: "month",
 			},
 			timezone:    "UTC",
-			expectedSQL: "DATE_TRUNC('month', created_at)",
+			expectedSQL: "DATE_TRUNC('month', created_at AT TIME ZONE 'UTC')",
 		},
 		{
 			name: "year granularity",
@@ -441,7 +450,7 @@ func TestSQLBuilder_buildTimeDimensionSQL(t *testing.T) {
 				Granularity: "year",
 			},
 			timezone:    "UTC",
-			expectedSQL: "DATE_TRUNC('year', created_at)",
+			expectedSQL: "DATE_TRUNC('year', created_at AT TIME ZONE 'UTC')",
 		},
 		{
 			name: "with timezone",

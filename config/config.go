@@ -15,7 +15,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-const VERSION = "37.3"
+const VERSION = "38.0"
 
 type Config struct {
 	Server              ServerConfig
@@ -36,6 +36,8 @@ type Config struct {
 	APIEndpoint         string
 	WebhookEndpoint     string
 	LogLevel            string
+	GeoIPDBPath         string // MaxMind GeoLite2/GeoIP2 City .mmdb for web analytics; empty falls back to the shipped database (geoip.DefaultPaths)
+	AnalyticsWorkMem    string // per-query work_mem for analytics aggregations (e.g. "64MB")
 	Version             string
 	IsInstalled         bool // NEW: Indicates if setup wizard has been completed
 	MaxUsers            int  // 0 = unlimited (backward compat for self-hosted)
@@ -430,6 +432,8 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 	v.SetDefault("DB_CONNECTION_MAX_LIFETIME", "10m")
 	v.SetDefault("DB_CONNECTION_MAX_IDLE_TIME", "5m")
 	v.SetDefault("ENVIRONMENT", "production")
+	v.SetDefault("GEOIP_DB_PATH", "")
+	v.SetDefault("ANALYTICS_WORK_MEM", "64MB")
 	v.SetDefault("LOG_LEVEL", "info")
 	v.SetDefault("VERSION", VERSION)
 
@@ -926,16 +930,18 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 			BatchSize: v.GetInt("AUTOMATION_SCHEDULER_BATCH_SIZE"),
 		},
 
-		RootEmail:       rootEmail,
-		Environment:     v.GetString("ENVIRONMENT"),
-		APIEndpoint:     apiEndpoint,
-		WebhookEndpoint: v.GetString("WEBHOOK_ENDPOINT"),
-		LogLevel:        v.GetString("LOG_LEVEL"),
-		Version:         v.GetString("VERSION"),
-		IsInstalled:     isInstalled,
-		MaxUsers:        v.GetInt("MAX_USERS"),
-		MaxWorkspaces:   v.GetInt("MAX_WORKSPACES"),
-		EnvValues:       envVals, // Store env values for setup service
+		RootEmail:        rootEmail,
+		Environment:      v.GetString("ENVIRONMENT"),
+		APIEndpoint:      apiEndpoint,
+		WebhookEndpoint:  v.GetString("WEBHOOK_ENDPOINT"),
+		LogLevel:         v.GetString("LOG_LEVEL"),
+		GeoIPDBPath:      v.GetString("GEOIP_DB_PATH"),
+		AnalyticsWorkMem: v.GetString("ANALYTICS_WORK_MEM"),
+		Version:          v.GetString("VERSION"),
+		IsInstalled:      isInstalled,
+		MaxUsers:         v.GetInt("MAX_USERS"),
+		MaxWorkspaces:    v.GetInt("MAX_WORKSPACES"),
+		EnvValues:        envVals, // Store env values for setup service
 	}
 
 	if config.WebhookEndpoint == "" {

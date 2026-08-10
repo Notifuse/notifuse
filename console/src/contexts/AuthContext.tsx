@@ -150,7 +150,8 @@ export function useWorkspacePermissions(workspaceId: string) {
           workspace: { read: true, write: true },
           message_history: { read: true, write: true },
           blog: { read: true, write: true },
-          automations: { read: true, write: true }
+          automations: { read: true, write: true },
+          web_analytics: { read: true, write: true }
         })
         setLoading(false)
         return
@@ -173,7 +174,8 @@ export function useWorkspacePermissions(workspaceId: string) {
             workspace: { read: false, write: false },
             message_history: { read: false, write: false },
             blog: { read: false, write: false },
-            automations: { read: false, write: false }
+            automations: { read: false, write: false },
+            web_analytics: { read: false, write: false }
           })
         }
       } catch (error) {

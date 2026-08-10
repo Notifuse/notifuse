@@ -27,6 +27,7 @@ import { FileManagerSettings } from '../components/file_manager/interfaces'
 import { workspaceService } from '../services/api/workspace'
 import { isRootUser } from '../services/api/auth'
 import {
+  AppstoreOutlined,
   FolderOpenOutlined,
   LineChartOutlined,
   SettingOutlined,
@@ -35,6 +36,9 @@ import {
 } from '@ant-design/icons'
 
 const { Content, Sider, Header } = Layout
+
+/** Web analytics sub-entries, mirroring the routes under /web-analytics. */
+const WEB_ANALYTICS_SECTIONS = ['dashboard', 'live', 'explore', 'goals', 'filters']
 
 // Helper function to generate Gravatar URL from email
 const getGravatarUrl = (email: string | undefined, size: number = 32): string => {
@@ -76,7 +80,9 @@ export function WorkspaceLayout() {
           workspace: { read: true, write: true },
           message_history: { read: true, write: true },
           blog: { read: true, write: true },
-          automations: { read: true, write: true }
+          automations: { read: true, write: true },
+          llm: { read: true, write: true },
+          web_analytics: { read: true, write: true }
         })
         setLoadingPermissions(false)
         return
@@ -99,7 +105,9 @@ export function WorkspaceLayout() {
             workspace: { read: false, write: false },
             message_history: { read: false, write: false },
             blog: { read: false, write: false },
-            automations: { read: false, write: false }
+            automations: { read: false, write: false },
+            llm: { read: false, write: false },
+            web_analytics: { read: false, write: false }
           })
         }
       } catch (error) {
@@ -114,7 +122,9 @@ export function WorkspaceLayout() {
           workspace: { read: false, write: false },
           message_history: { read: false, write: false },
           blog: { read: false, write: false },
-          automations: { read: false, write: false }
+          automations: { read: false, write: false },
+          llm: { read: false, write: false },
+          web_analytics: { read: false, write: false }
         })
       } finally {
         setLoadingPermissions(false)
@@ -135,7 +145,16 @@ export function WorkspaceLayout() {
   // Determine which key should be selected based on the current path
   let selectedKey = 'analytics' // Default to analytics/dashboard
   if (currentPath.includes('/settings')) {
+    // Must be checked before '/web-analytics': the web analytics settings live
+    // at /settings/web-analytics and belong to the settings entry.
     selectedKey = 'settings'
+  } else if (currentPath.includes('/web-analytics')) {
+    // /web-analytics alone redirects to the dashboard, so an unrecognized
+    // trailing segment lands on the same entry the user ends up looking at.
+    const section = currentPath.split('/web-analytics/')[1]?.split('/')[0] ?? ''
+    selectedKey = WEB_ANALYTICS_SECTIONS.includes(section)
+      ? `web-analytics-${section}`
+      : 'web-analytics-dashboard'
   } else if (currentPath.includes('/lists')) {
     selectedKey = 'lists'
   } else if (currentPath.includes('/templates')) {
@@ -203,12 +222,73 @@ export function WorkspaceLayout() {
     hasAccess('message_history') && {
       key: 'analytics',
       // icon: <FontAwesomeIcon icon={faChartLine} size="sm" style={{ opacity: 0.7 }} />,
-      icon: <LineChartOutlined />,
+      icon: <AppstoreOutlined />,
       label: (
         <Link to="/console/workspace/$workspaceId" params={{ workspaceId }}>
           {t`Dashboard`}
         </Link>
       )
+    },
+    hasAccess('web_analytics') && {
+      key: 'web-analytics',
+      icon: <LineChartOutlined />,
+      // A submenu rather than a link: clicking the parent expands the section
+      // instead of navigating, which is what the caret on the right announces.
+      label: t`Web Analytics`,
+      children: [
+        {
+          key: 'web-analytics-dashboard',
+          label: (
+            <Link
+              to="/console/workspace/$workspaceId/web-analytics/$tab"
+              params={{ workspaceId, tab: 'dashboard' }}
+            >
+              {t`Dashboard`}
+            </Link>
+          )
+        },
+        {
+          key: 'web-analytics-live',
+          label: (
+            <Link to="/console/workspace/$workspaceId/web-analytics/live" params={{ workspaceId }}>
+              {t`Live`}
+            </Link>
+          )
+        },
+        {
+          key: 'web-analytics-explore',
+          label: (
+            <Link
+              to="/console/workspace/$workspaceId/web-analytics/$tab"
+              params={{ workspaceId, tab: 'explore' }}
+            >
+              {t`Explore`}
+            </Link>
+          )
+        },
+        {
+          key: 'web-analytics-goals',
+          label: (
+            <Link
+              to="/console/workspace/$workspaceId/web-analytics/$tab"
+              params={{ workspaceId, tab: 'goals' }}
+            >
+              {t`Goals`}
+            </Link>
+          )
+        },
+        {
+          key: 'web-analytics-filters',
+          label: (
+            <Link
+              to="/console/workspace/$workspaceId/web-analytics/$tab"
+              params={{ workspaceId, tab: 'filters' }}
+            >
+              {t`Filters`}
+            </Link>
+          )
+        }
+      ]
     },
     hasAccess('contacts') && {
       key: 'contacts',
@@ -433,6 +513,9 @@ export function WorkspaceLayout() {
             <Menu
               mode="inline"
               selectedKeys={[selectedKey]}
+              // Only the initial state: landing on a web analytics route shows
+              // the section expanded, and from there the caret is the user's.
+              defaultOpenKeys={currentPath.includes('/web-analytics') ? ['web-analytics'] : []}
               style={{
                 height: 'calc(100% - 120px)',
                 borderRight: 0,

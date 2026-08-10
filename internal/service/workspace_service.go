@@ -174,6 +174,7 @@ func (s *WorkspaceService) CreateWorkspace(ctx context.Context, id string, name 
 		randomSecretKey = "secret_key_for_dev_env"
 	}
 
+	webAnalyticsDefaults := domain.DefaultWebFilters()
 	workspace := &domain.Workspace{
 		ID:   id,
 		Name: name,
@@ -187,6 +188,16 @@ func (s *WorkspaceService) CreateWorkspace(ctx context.Context, id string, name 
 			EmailTrackingEnabled: true,
 			DefaultLanguage:      defaultLanguage,
 			Languages:            languages,
+			WebAnalytics: &domain.WebAnalyticsSettings{
+				Enabled:                false,
+				BounceThresholdSeconds: domain.WebAnalyticsDefaultBounceThresholdSeconds,
+				Filters:                webAnalyticsDefaults,
+				FiltersVersion:         domain.ComputeWebFiltersVersion(webAnalyticsDefaults),
+				GeoEnabled:             true,
+				GeoStoreCity:           true,
+				GeoStoreRegion:         true,
+				GeoCoordsPrecision:     2,
+			},
 		},
 		CreatedAt: time.Now().UTC(),
 		UpdatedAt: time.Now().UTC(),
@@ -899,6 +910,51 @@ func (s *WorkspaceService) SetBlogSettings(ctx context.Context, workspaceID stri
 
 	if err := s.repo.Update(ctx, existingWorkspace); err != nil {
 		s.logger.WithField("workspace_id", workspaceID).WithField("error", err.Error()).Error("Failed to update blog settings")
+		return err
+	}
+
+	return nil
+}
+
+// SetWebAnalyticsSettings replaces the workspace's web analytics settings.
+// Like blog settings, it is gated by the feature's own permission rather than
+// workspace:write, and it preserves every other workspace setting.
+func (s *WorkspaceService) SetWebAnalyticsSettings(ctx context.Context, workspaceID string, settings *domain.WebAnalyticsSettings) error {
+	var userWorkspace *domain.UserWorkspace
+	var err error
+	ctx, _, userWorkspace, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	if err != nil {
+		return fmt.Errorf("failed to authenticate user: %w", err)
+	}
+
+	if !userWorkspace.HasPermission(domain.PermissionResourceWebAnalytics, domain.PermissionTypeWrite) {
+		return domain.NewPermissionError(
+			domain.PermissionResourceWebAnalytics,
+			domain.PermissionTypeWrite,
+			"Insufficient permissions: write access to web_analytics required",
+		)
+	}
+
+	if err := settings.Validate(); err != nil {
+		return err
+	}
+
+	// The filters version drives backfill staleness detection; never trust a
+	// client-supplied hash.
+	if settings != nil {
+		settings.FiltersVersion = domain.ComputeWebFiltersVersion(settings.Filters)
+	}
+
+	existingWorkspace, err := s.repo.GetByID(ctx, workspaceID)
+	if err != nil {
+		s.logger.WithField("workspace_id", workspaceID).WithField("error", err.Error()).Error("Failed to get existing workspace")
+		return err
+	}
+
+	existingWorkspace.Settings.WebAnalytics = settings
+
+	if err := s.repo.Update(ctx, existingWorkspace); err != nil {
+		s.logger.WithField("workspace_id", workspaceID).WithField("error", err.Error()).Error("Failed to update web analytics settings")
 		return err
 	}
 

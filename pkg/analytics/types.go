@@ -24,6 +24,7 @@ type Query struct {
 	Timezone       *string           `json:"timezone,omitempty"`
 	TimeDimensions []TimeDimension   `json:"timeDimensions,omitempty"`
 	Filters        []Filter          `json:"filters,omitempty"`
+	Having         []Filter          `json:"having,omitempty"` // metric filters on aggregated measures (SQL HAVING)
 	Limit          *int              `json:"limit,omitempty"`
 	Offset         *int              `json:"offset,omitempty"`
 	Order          map[string]string `json:"order,omitempty"`
@@ -62,6 +63,20 @@ type SchemaDefinition struct {
 	Name       string                         `json:"name"`
 	Measures   map[string]MeasureDefinition   `json:"measures"`
 	Dimensions map[string]DimensionDefinition `json:"dimensions"`
+
+	// PartitionHint, when set, tells the builder that the schema's table is
+	// range-partitioned on Column and that any time-dimension dateRange can be
+	// widened by the slacks and applied to Column as well — turning a filter
+	// on the (row-level) time column into plan-time partition pruning.
+	// Internal query-planning metadata: not exposed through analytics.schemas.
+	PartitionHint *PartitionHint `json:"-"`
+}
+
+// PartitionHint describes the partition-pruning predicate of a schema.
+type PartitionHint struct {
+	Column      string        // the DATE partition key column
+	SlackBefore time.Duration // widening before the range start
+	SlackAfter  time.Duration // widening after the range end
 }
 
 // MeasureFilter defines a filter condition for measures (Cube.js compatible)
@@ -115,8 +130,15 @@ func (q *Query) GetOffset() int {
 	return 0
 }
 
+// Querier is the querying capability Query needs — satisfied by *sql.DB and
+// *sql.Tx, so callers can wrap execution in a transaction (e.g. to SET LOCAL
+// work_mem for heavy aggregate sorts).
+type Querier interface {
+	QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error)
+}
+
 // Query executes the analytics query against the database and returns an analytics response
-func (q *Query) Query(ctx context.Context, db *sql.DB, schema SchemaDefinition) (*Response, error) {
+func (q *Query) Query(ctx context.Context, db Querier, schema SchemaDefinition) (*Response, error) {
 	// Validate that the query schema name matches the provided schema
 	if q.Schema != schema.Name {
 		return nil, ErrInvalidSchema

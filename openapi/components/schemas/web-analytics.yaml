@@ -1,0 +1,236 @@
+WebTrackPayload:
+  type: object
+  required: [workspace_id, session_id, actions, created_at, updated_at]
+  properties:
+    workspace_id:
+      type: string
+    session_id:
+      type: string
+      description: Client-generated UUIDv7; its embedded timestamp must fall within [now-48h, now+10min].
+    actions:
+      type: array
+      maxItems: 1000
+      description: The FULL cumulative list of session actions (re-sent on every beat).
+      items:
+        oneOf:
+          - $ref: '#/WebPageviewAction'
+          - $ref: '#/WebGoalAction'
+    attributes:
+      $ref: '#/WebSessionAttributes'
+    created_at:
+      type: integer
+      format: int64
+      description: Session creation, epoch ms (must be within 24h of server time).
+    updated_at:
+      type: integer
+      format: int64
+    sdk_version:
+      type: string
+    sent_at:
+      type: integer
+      format: int64
+      description: Stamped at each HTTP attempt; drives clock-skew correction beyond 5s.
+    user_id:
+      type: string
+      maxLength: 256
+      nullable: true
+    dimensions:
+      type: object
+      additionalProperties:
+        type: string
+      description: Custom dimensions custom_1..custom_10.
+    seq:
+      type: integer
+      format: int64
+      minimum: 0
+      description: Monotonic per-session beat counter; the server only applies strictly newer beats.
+
+WebPageviewAction:
+  type: object
+  required: [type, path, page_number]
+  properties:
+    type:
+      type: string
+      enum: [pageview]
+    path:
+      type: string
+      maxLength: 2048
+    page_number:
+      type: integer
+      minimum: 1
+    duration:
+      type: integer
+      description: Engaged (visible and focused) time on the page, ms.
+    scroll:
+      type: integer
+      minimum: 0
+      maximum: 100
+    entered_at:
+      type: integer
+      format: int64
+    exited_at:
+      type: integer
+      format: int64
+
+WebGoalAction:
+  type: object
+  required: [type, name, path, page_number, timestamp]
+  properties:
+    type:
+      type: string
+      enum: [goal]
+    name:
+      type: string
+      maxLength: 100
+    path:
+      type: string
+      maxLength: 2048
+    page_number:
+      type: integer
+      minimum: 1
+    timestamp:
+      type: integer
+      format: int64
+      description: Original client timestamp; part of the goal's dedup key.
+    value:
+      type: number
+      minimum: 0
+    properties:
+      type: object
+      additionalProperties:
+        type: string
+
+WebSessionAttributes:
+  type: object
+  required: [landing_page]
+  properties:
+    referrer:
+      type: string
+    landing_page:
+      type: string
+    utm_source: { type: string }
+    utm_medium: { type: string }
+    utm_campaign: { type: string }
+    utm_term: { type: string }
+    utm_content: { type: string }
+    utm_id: { type: string }
+    utm_id_from: { type: string }
+    screen_width: { type: integer }
+    screen_height: { type: integer }
+    viewport_width: { type: integer }
+    viewport_height: { type: integer }
+    user_agent:
+      type: string
+      description: Raw user agent; browser/OS/device are parsed server-side.
+    connection_type: { type: string }
+    language: { type: string }
+    timezone: { type: string }
+
+WebFilterCondition:
+  type: object
+  required: [field, operator]
+  properties:
+    field:
+      type: string
+    operator:
+      type: string
+      enum: [equals, not_equals, contains, not_contains, is_empty, is_not_empty, regex]
+    value:
+      type: string
+
+WebFilterOperation:
+  type: object
+  required: [dimension, action]
+  properties:
+    dimension:
+      type: string
+    action:
+      type: string
+      enum: [set_value, unset_value, set_default_value]
+    value:
+      type: string
+
+WebFilter:
+  type: object
+  required: [id, name, priority, conditions, operations, enabled]
+  properties:
+    id: { type: string }
+    name: { type: string }
+    priority:
+      type: integer
+      minimum: 0
+      maximum: 1000
+    order: { type: integer }
+    tags:
+      type: array
+      items: { type: string }
+    conditions:
+      type: array
+      items:
+        $ref: '#/WebFilterCondition'
+    operations:
+      type: array
+      items:
+        $ref: '#/WebFilterOperation'
+    enabled: { type: boolean }
+    version: { type: string }
+
+WebAnalyticsSettings:
+  type: object
+  nullable: true
+  properties:
+    enabled: { type: boolean }
+    allowed_domains:
+      type: array
+      items: { type: string }
+      description: Origins allowed to send beats ("example.com", "*.example.com"); empty allows all.
+    bounce_threshold_seconds:
+      type: integer
+      description: Sessions with less engaged time count as bounces (default 10).
+    filters:
+      type: array
+      items:
+        $ref: '#/WebFilter'
+    filters_version:
+      type: string
+      readOnly: true
+    custom_dimension_labels:
+      type: object
+      additionalProperties: { type: string }
+    geo_enabled: { type: boolean }
+    geo_store_city: { type: boolean }
+    geo_store_region: { type: boolean }
+    geo_coordinates_precision:
+      type: integer
+      minimum: 0
+      maximum: 2
+
+WebAnalyticsBackfillRequest:
+  type: object
+  required: [workspace_id]
+  properties:
+    workspace_id:
+      type: string
+
+WebAnalyticsBackfillResponse:
+  type: object
+  properties:
+    backfill:
+      type: object
+      nullable: true
+      properties:
+        task_id: { type: string }
+        status:
+          type: string
+          enum: [pending, running, completed, failed, paused]
+        progress:
+          type: number
+        state:
+          type: object
+          properties:
+            filters_version: { type: string }
+            partition_index: { type: integer }
+            rows_updated:
+              type: integer
+              format: int64
+        error_message: { type: string }

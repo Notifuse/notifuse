@@ -298,6 +298,20 @@ func (mr *MockWorkspaceServiceInterfaceMockRecorder) SetUserPermissions(arg0, ar
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetUserPermissions", reflect.TypeOf((*MockWorkspaceServiceInterface)(nil).SetUserPermissions), arg0, arg1, arg2, arg3)
 }
 
+// SetWebAnalyticsSettings mocks base method.
+func (m *MockWorkspaceServiceInterface) SetWebAnalyticsSettings(arg0 context.Context, arg1 string, arg2 *domain.WebAnalyticsSettings) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetWebAnalyticsSettings", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetWebAnalyticsSettings indicates an expected call of SetWebAnalyticsSettings.
+func (mr *MockWorkspaceServiceInterfaceMockRecorder) SetWebAnalyticsSettings(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetWebAnalyticsSettings", reflect.TypeOf((*MockWorkspaceServiceInterface)(nil).SetWebAnalyticsSettings), arg0, arg1, arg2)
+}
+
 // TransferOwnership mocks base method.
 func (m *MockWorkspaceServiceInterface) TransferOwnership(arg0 context.Context, arg1, arg2, arg3 string) error {
 	m.ctrl.T.Helper()

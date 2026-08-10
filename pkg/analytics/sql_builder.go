@@ -84,7 +84,28 @@ func (sb *SQLBuilder) BuildSQL(query Query, schema SchemaDefinition) (string, []
 	selectBuilder = selectBuilder.From(schema.Name)
 
 	// Add WHERE clauses for filters
+	var pruneStart, pruneEnd *time.Time
 	for _, filter := range query.Filters {
+		// A range filter on a time dimension prunes partitions just as well as
+		// a time dimension does. Breakdowns carry their range this way because
+		// a granularity would split every row per bucket, and without this
+		// they would scan the whole history instead of one partition.
+		if filter.Operator == "inDateRange" && len(filter.Values) == 2 {
+			if dimensionDef, exists := schema.Dimensions[filter.Member]; exists && dimensionDef.Type == "time" {
+				timezone := query.GetDefaultTimezone()
+				start, startErr := parseDateRangeBound(filter.Values[0], timezone)
+				end, endErr := parseDateRangeBound(filter.Values[1], timezone)
+				if startErr == nil && endErr == nil {
+					if pruneStart == nil || start.Before(*pruneStart) {
+						pruneStart = &start
+					}
+					if pruneEnd == nil || end.After(*pruneEnd) {
+						pruneEnd = &end
+					}
+				}
+			}
+		}
+
 		// Check if filter member exists in schema
 		var memberSQL string
 		if measureDef, exists := schema.Measures[filter.Member]; exists {
@@ -110,26 +131,70 @@ func (sb *SQLBuilder) BuildSQL(query Query, schema SchemaDefinition) (string, []
 		selectBuilder = selectBuilder.Where(condition)
 	}
 
-	// Add time dimension date range filters
+	// Add time dimension date range filters.
+	//
+	// The bounds are compared against the bare column so indexes (BRIN) and
+	// partition pruning stay usable: for non-UTC timezones the local bounds
+	// are converted to UTC instants in Go instead of wrapping the column in
+	// AT TIME ZONE (which is kept only inside DATE_TRUNC bucketing). The UTC
+	// path binds the raw strings, byte-identical to the historical SQL.
 	for _, timeDim := range query.TimeDimensions {
-		if timeDim.DateRange != nil {
-			dimensionDef := schema.Dimensions[timeDim.Dimension]
-			dimensionSQL := dimensionDef.SQL
-			if dimensionSQL == "" {
-				dimensionSQL = timeDim.Dimension
-			}
-
-			// Convert timezone if needed
-			if query.Timezone != nil && *query.Timezone != "UTC" {
-				sanitizedTimezone := sb.sanitizeTimezone(*query.Timezone)
-				if sanitizedTimezone != "" {
-					dimensionSQL = fmt.Sprintf("%s AT TIME ZONE '%s'", dimensionSQL, sanitizedTimezone)
-				}
-			}
-
-			selectBuilder = selectBuilder.Where(squirrel.GtOrEq{dimensionSQL: timeDim.DateRange[0]})
-			selectBuilder = selectBuilder.Where(squirrel.LtOrEq{dimensionSQL: timeDim.DateRange[1]})
+		if timeDim.DateRange == nil {
+			continue
 		}
+		dimensionDef := schema.Dimensions[timeDim.Dimension]
+		dimensionSQL := dimensionDef.SQL
+		if dimensionSQL == "" {
+			dimensionSQL = timeDim.Dimension
+		}
+
+		timezone := query.GetDefaultTimezone()
+		startLocal, startErr := parseDateRangeBound(timeDim.DateRange[0], timezone)
+		endLocal, endErr := parseDateRangeBound(timeDim.DateRange[1], timezone)
+
+		// A bare date names a whole day, so the range's last day belongs to
+		// it. Anything else would make a time series silently lose its most
+		// recent day — and a single-day range ("today") return nothing at all
+		// — since the gap filler only accepts date-only bounds and leaves the
+		// caller no way to say "up to the end of that day".
+		if endErr == nil && isDateOnlyBound(timeDim.DateRange[1]) {
+			endLocal = endLocal.AddDate(0, 0, 1).Add(-time.Millisecond)
+		}
+
+		if startErr == nil && endErr == nil {
+			if pruneStart == nil || startLocal.Before(*pruneStart) {
+				pruneStart = &startLocal
+			}
+			if pruneEnd == nil || endLocal.After(*pruneEnd) {
+				pruneEnd = &endLocal
+			}
+
+			// Both bounds are instants now, so the column is compared bare and
+			// stays sargable whatever the timezone.
+			selectBuilder = selectBuilder.Where(squirrel.GtOrEq{dimensionSQL: startLocal.UTC()})
+			selectBuilder = selectBuilder.Where(squirrel.LtOrEq{dimensionSQL: endLocal.UTC()})
+			continue
+		}
+
+		if timezone != "UTC" {
+			// Unparseable bounds: keep the legacy (non-sargable) comparison so
+			// exotic formats behave as before.
+			sanitizedTimezone := sb.sanitizeTimezone(timezone)
+			if sanitizedTimezone != "" {
+				dimensionSQL = fmt.Sprintf("%s AT TIME ZONE '%s'", dimensionSQL, sanitizedTimezone)
+			}
+		}
+
+		selectBuilder = selectBuilder.Where(squirrel.GtOrEq{dimensionSQL: timeDim.DateRange[0]})
+		selectBuilder = selectBuilder.Where(squirrel.LtOrEq{dimensionSQL: timeDim.DateRange[1]})
+	}
+
+	// Partition pruning: widen the requested range by the schema's slacks and
+	// constrain the partition key column so the planner can skip partitions.
+	if schema.PartitionHint != nil && pruneStart != nil && pruneEnd != nil {
+		hint := schema.PartitionHint
+		selectBuilder = selectBuilder.Where(squirrel.GtOrEq{hint.Column: pruneStart.UTC().Add(-hint.SlackBefore).Format("2006-01-02")})
+		selectBuilder = selectBuilder.Where(squirrel.LtOrEq{hint.Column: pruneEnd.UTC().Add(hint.SlackAfter).Format("2006-01-02")})
 	}
 
 	// Add GROUP BY clause
@@ -150,6 +215,24 @@ func (sb *SQLBuilder) BuildSQL(query Query, schema SchemaDefinition) (string, []
 
 	if len(groupByColumns) > 0 {
 		selectBuilder = selectBuilder.GroupBy(groupByColumns...)
+	}
+
+	// Metric filters (HAVING): conditions on fully-aggregated measures.
+	for _, having := range query.Having {
+		measureDef, exists := schema.Measures[having.Member]
+		if !exists {
+			return "", nil, fmt.Errorf("having member '%s' is not a measure in schema", having.Member)
+		}
+		measureSQL := measureDef.SQL
+		if measureSQL == "" {
+			measureSQL = having.Member
+		}
+		aggregateSQL := sb.buildMeasureSQL(measureDef.Type, measureSQL, measureDef.Filters)
+		condition, err := sb.buildFilterCondition(aggregateSQL, having)
+		if err != nil {
+			return "", nil, fmt.Errorf("failed to build having condition: %w", err)
+		}
+		selectBuilder = selectBuilder.Having(condition)
 	}
 
 	// Add ORDER BY clause
@@ -195,6 +278,29 @@ func (sb *SQLBuilder) BuildSQL(query Query, schema SchemaDefinition) (string, []
 	return sql, args, nil
 }
 
+// isDateOnlyBound reports whether a bound names a day rather than an instant.
+func isDateOnlyBound(value string) bool {
+	_, err := time.Parse("2006-01-02", value)
+	return err == nil
+}
+
+// parseDateRangeBound parses a dateRange bound in the query's timezone.
+// Accepted formats mirror what the console sends: a bare date (interpreted at
+// local midnight, matching the historical text comparison), a date-time, or
+// RFC 3339.
+func parseDateRangeBound(value string, timezone string) (time.Time, error) {
+	loc, err := time.LoadLocation(timezone)
+	if err != nil {
+		return time.Time{}, err
+	}
+	for _, layout := range []string{"2006-01-02", "2006-01-02 15:04:05", time.RFC3339} {
+		if parsed, err := time.ParseInLocation(layout, value, loc); err == nil {
+			return parsed, nil
+		}
+	}
+	return time.Time{}, fmt.Errorf("unsupported dateRange bound: %q", value)
+}
+
 // buildTimeDimensionSQL generates SQL for time dimension grouping based on granularity
 func (sb *SQLBuilder) buildTimeDimensionSQL(timeDim TimeDimension, dimensionDef DimensionDefinition, timezone string) (string, error) {
 	dimensionSQL := dimensionDef.SQL
@@ -202,12 +308,16 @@ func (sb *SQLBuilder) buildTimeDimensionSQL(timeDim TimeDimension, dimensionDef 
 		dimensionSQL = timeDim.Dimension
 	}
 
-	// Apply timezone conversion if needed
-	if timezone != "UTC" {
-		sanitizedTimezone := sb.sanitizeTimezone(timezone)
-		if sanitizedTimezone != "" {
-			dimensionSQL = fmt.Sprintf("%s AT TIME ZONE '%s'", dimensionSQL, sanitizedTimezone)
-		}
+	// Bucket in the query's timezone — including UTC.
+	//
+	// DATE_TRUNC on a timestamptz truncates in the *database session's* zone,
+	// so omitting this for UTC does not mean "group by UTC days", it means
+	// "group by whatever days the server happens to use". On a server set to
+	// anything else the buckets come back shifted by its offset, which then
+	// fails to line up with the UTC keys the gap filler generates and zeroes
+	// out the entire series.
+	if sanitizedTimezone := sb.sanitizeTimezone(timezone); sanitizedTimezone != "" {
+		dimensionSQL = fmt.Sprintf("%s AT TIME ZONE '%s'", dimensionSQL, sanitizedTimezone)
 	}
 
 	switch timeDim.Granularity {
@@ -402,6 +512,13 @@ func (sb *SQLBuilder) applyMeasureFilters(baseSQL string, filters []MeasureFilte
 
 // sanitizeTimezone validates and sanitizes timezone strings to prevent SQL injection
 func (sb *SQLBuilder) sanitizeTimezone(timezone string) string {
+	return SanitizeTimezone(timezone)
+}
+
+// SanitizeTimezone returns a timezone name safe to inline into SQL, or an
+// empty string when the input cannot be one. Schemas that bake a timezone into
+// a dimension expression need the same guarantee the builder does.
+func SanitizeTimezone(timezone string) string {
 	// Remove any quotes or dangerous characters
 	timezone = strings.ReplaceAll(timezone, "'", "")
 	timezone = strings.ReplaceAll(timezone, "\"", "")
@@ -468,9 +585,16 @@ func ScanRows(rows *sql.Rows) ([]map[string]interface{}, error) {
 			if b, ok := val.([]byte); ok {
 				val = string(b)
 			}
-			// Convert time.Time to string for date dimensions
+			// Convert time.Time to string for date dimensions.
+			//
+			// Normalized to UTC first. A bucket built without AT TIME ZONE
+			// stays a timestamptz, which the driver hands back in the database
+			// session's zone — so on a server set to anything but UTC the same
+			// instant would serialize with an offset while the gap filler
+			// generates its keys in UTC. Every real bucket would then miss its
+			// key and be replaced by a zero-filled one, flattening the chart.
 			if t, ok := val.(time.Time); ok {
-				val = t.Format(time.RFC3339)
+				val = t.UTC().Format(time.RFC3339)
 			}
 			row[col] = val
 		}
@@ -495,8 +619,12 @@ func ProcessRows(rows *sql.Rows, query Query) ([]map[string]interface{}, error) 
 
 	// Check if this is a time series query that needs gap filling
 	if !query.HasTimeDimensions() {
-		// For non-time series queries, generate zero values if data is empty
-		if len(data) == 0 {
+		// A totals query with nothing to total still has an answer — zero — and
+		// a KPI tile would otherwise have to render a blank. A *breakdown* with
+		// nothing to break down does not: inventing a row there puts a phantom
+		// entry with an empty dimension at the top of every table, which reads
+		// as real data and hides the widget's own empty state.
+		if len(data) == 0 && len(query.Dimensions) == 0 {
 			return generateZeroValueRow(query), nil
 		}
 		return data, nil

@@ -497,6 +497,23 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 		}
 	}
 
+	// Web analytics: partitioned parents (shared DDL with the v38 migration)
+	// plus the current and next monthly partitions so ingestion works
+	// immediately; the maintenance worker keeps creating them afterwards.
+	for _, query := range schema.WebAnalyticsTableDefinitions() {
+		if _, err := db.Exec(query); err != nil {
+			return fmt.Errorf("failed to create web analytics table: %w", err)
+		}
+	}
+	currentMonth := time.Now().UTC()
+	for _, month := range []time.Time{currentMonth, currentMonth.AddDate(0, 1, 0)} {
+		for _, table := range schema.WebAnalyticsTableNames {
+			if _, err := db.Exec(schema.WebAnalyticsPartitionDDL(table, month)); err != nil {
+				return fmt.Errorf("failed to create web analytics partition: %w", err)
+			}
+		}
+	}
+
 	// Create trigger functions and triggers for contact timeline
 	triggerQueries := []string{
 		// Contact changes trigger function

@@ -31,3 +31,9 @@ console/.claude/settings.local.json
 service.test
 
 integration.test
+
+# MaxMind GeoIP databases. The City database shipped with Notifuse is tracked
+# on purpose (see data/GeoLite2-City.mmdb); any other .mmdb is a local download
+# and has no business in the history — they weigh ~60 MB each.
+*.mmdb
+!data/GeoLite2-City.mmdb

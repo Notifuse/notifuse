@@ -66,9 +66,19 @@ type TaskState struct {
 	Message  string  `json:"message,omitempty"`
 
 	// Specialized states for different task types - only one will be used based on task type
-	SendBroadcast   *SendBroadcastState   `json:"send_broadcast,omitempty"`
-	BuildSegment    *BuildSegmentState    `json:"build_segment,omitempty"`
-	IntegrationSync *IntegrationSyncState `json:"integration_sync,omitempty"`
+	SendBroadcast        *SendBroadcastState        `json:"send_broadcast,omitempty"`
+	BuildSegment         *BuildSegmentState         `json:"build_segment,omitempty"`
+	IntegrationSync      *IntegrationSyncState      `json:"integration_sync,omitempty"`
+	WebAnalyticsBackfill *WebAnalyticsBackfillState `json:"web_analytics_backfill,omitempty"`
+}
+
+// WebAnalyticsBackfillState is the resumable state of an attribution-rules
+// backfill: partitions of web_sessions and web_goals rewritten one per step.
+type WebAnalyticsBackfillState struct {
+	FiltersVersion string   `json:"filters_version"`      // rule-set hash the run applies
+	Partitions     []string `json:"partitions,omitempty"` // remaining work, resolved at start
+	PartitionIndex int      `json:"partition_index"`
+	RowsUpdated    int64    `json:"rows_updated"`
 }
 
 // Value implements the driver.Valuer interface for TaskState

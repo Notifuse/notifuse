@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [38.0] - 2026-08-08
+
+- **Feature**: Web Analytics — the Staminads feature set, rebuilt on PostgreSQL. A ~21 KB gzipped cookieless browser SDK (`/na.js`) streams sessions, pageviews and goals into monthly-partitioned tables per workspace, with engaged-time metrics (TimeScore, bounce rate), editable channel-attribution rules (39 defaults, with historical backfill), goals with values, 10 custom dimensions, geo resolution from a bundled MaxMind GeoLite2 City database, and a console section with Dashboard, Explore, Goals, Filters and Settings tabs plus a live view. The v38 migration adds the tables to existing workspaces and grants the new web analytics permission to existing members and pending invitations; the feature is off until enabled in a workspace's Web Analytics settings. For high-traffic installs, `compose.alloydb.yaml` runs the same schema on AlloyDB Omni's columnar engine.
+
+- **Fix**: Web analytics cyclic time dimensions (hour of day, day of week, is weekend, year, month, day, week number) are now extracted in the query's timezone instead of UTC. "Traffic by hour of day" asks about the visitor's local morning, so read in UTC it placed a 9am peak in Los Angeles at 4pm — and the heat map's own click-to-filter then disagreed with the chart above it.
+- **Fix**: `analytics.query` no longer answers an empty breakdown with one invented row. A grouped query that matched nothing returned a single row with an empty dimension and zero measures, which reads as real data and hides a table's own empty state. Ungrouped totals still answer zero, because a KPI has to render a number.
+- **Fix**: `analytics.query` now covers the whole of a date range's last day. A `timeDimensions` range ending on a bare date stopped at that day's midnight, so a report ending today showed nothing for today and a single-day range came back empty — the console compensated by asking for tomorrow instead. Bounds given as an explicit timestamp are still used exactly as sent.
+
 ## [37.3] - 2026-08-06
 
 - **Fix**: A broadcast that was interrupted once no longer displays that error for the rest of its send. Recording why a run was cut short — which now happens on every restart, since an interruption stops consuming the retry budget — wrote a reason that nothing cleared until the whole broadcast finished, so a send progressing perfectly well kept showing a red error from a restart that happened slices ago. The reason is now cleared when the task is claimed again, and still shown while the task is waiting to resume.

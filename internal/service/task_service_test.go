@@ -812,6 +812,11 @@ func TestTaskService_RegisterProcessor(t *testing.T) {
 			Return(false).
 			Times(1)
 
+		mockProcessor.EXPECT().
+			CanProcess(domain.WebAnalyticsBackfillTaskType).
+			Return(false).
+			Times(1)
+
 		// Register the processor
 		taskService.RegisterProcessor(mockProcessor)
 

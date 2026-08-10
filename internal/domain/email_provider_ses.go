@@ -6,22 +6,9 @@ import (
 	"regexp"
 
 	"github.com/Notifuse/notifuse/pkg/crypto"
-	"github.com/aws/aws-sdk-go/aws/request"
-	"github.com/aws/aws-sdk-go/service/sns"
 )
 
 //go:generate mockgen -destination mocks/mock_ses_service.go -package mocks github.com/Notifuse/notifuse/internal/domain SESServiceInterface
-//go:generate mockgen -destination mocks/mock_sns_client.go -package mocks github.com/Notifuse/notifuse/internal/domain SNSClient
-
-
-// SNSWebhookClient defines the interface for SNS client operations related to webhook management
-type SNSClient interface {
-	CreateTopicWithContext(ctx context.Context, input *sns.CreateTopicInput, opts ...request.Option) (*sns.CreateTopicOutput, error)
-	DeleteTopicWithContext(ctx context.Context, input *sns.DeleteTopicInput, opts ...request.Option) (*sns.DeleteTopicOutput, error)
-	SubscribeWithContext(ctx context.Context, input *sns.SubscribeInput, opts ...request.Option) (*sns.SubscribeOutput, error)
-	GetTopicAttributesWithContext(ctx context.Context, input *sns.GetTopicAttributesInput, opts ...request.Option) (*sns.GetTopicAttributesOutput, error)
-}
-
 // SESWebhookPayload represents an Amazon SES webhook payload
 type SESWebhookPayload struct {
 	Type              string                         `json:"Type"`

@@ -1,0 +1,233 @@
+/**
+ * Notifuse Analytics SDK v6.0
+ * Ultra-reliable web analytics for tracking TimeScore metrics
+ * V3 Session Payload Architecture
+ */
+import type { NotifuseAnalyticsConfig, GoalData, SessionDebugInfo } from './types';
+export declare class NotifuseAnalyticsSDK {
+    private config;
+    private storage;
+    private tabStorage;
+    private sessionManager;
+    private sessionState;
+    private sender;
+    private deviceDetector;
+    private scrollTracker;
+    private navigationTracker;
+    private crossDomainLinker;
+    private deviceInfo;
+    private heartbeatTimeout;
+    private sendDebounceTimeout;
+    private heartbeatState;
+    private isMobileDevice;
+    private isTracking;
+    private isPaused;
+    private isInitialized;
+    private initPromise;
+    private flushed;
+    /**
+     * Initialize the SDK (called by index.ts from global config or manual init)
+     * Returns the init promise so callers can await if needed
+     */
+    init(userConfig: NotifuseAnalyticsConfig): Promise<void>;
+    /**
+     * Async initialization logic
+     */
+    private initializeAsync;
+    /**
+     * Bind browser events
+     */
+    private bindEvents;
+    /**
+     * Visibility change handler
+     */
+    private onVisibilityChange;
+    /**
+     * Come back from a hidden, blurred or frozen page.
+     *
+     * Each of those paths ran flushOnce(), which finalized the current page to
+     * send a complete beacon. Reopening it is what makes the visitor's time
+     * after they return count towards the page they returned to.
+     */
+    private resumeTracking;
+    /**
+     * Window focus handler
+     */
+    private onFocus;
+    /**
+     * Window blur handler
+     */
+    private onBlur;
+    /**
+     * Page freeze handler (mobile)
+     */
+    private onFreeze;
+    /**
+     * Page resume handler (mobile)
+     */
+    private onResume;
+    /**
+     * Page unload handler
+     */
+    private onUnload;
+    /**
+     * Page show handler (bfcache)
+     */
+    private onPageShow;
+    /**
+     * Flush once (deduplicate unload events)
+     */
+    private flushOnce;
+    /**
+     * Navigation callback
+     */
+    private onNavigation;
+    /**
+     * Start heartbeat with tiered intervals
+     */
+    private startHeartbeat;
+    /**
+     * Resume heartbeat after visibility/focus change
+     */
+    private resumeHeartbeat;
+    /**
+     * Schedule next heartbeat based on current tier
+     */
+    private scheduleNextHeartbeat;
+    /**
+     * Check if we should send a ping right now.
+     * Guards against race conditions with visibility changes.
+     */
+    private shouldSendPing;
+    /**
+     * Send ping event with SessionState payload
+     */
+    private sendPingEvent;
+    /**
+     * Stop heartbeat with optional time accumulation
+     */
+    private stopHeartbeat;
+    /**
+     * Get total active time in milliseconds
+     */
+    private getTotalActiveMs;
+    /**
+     * Check and update max duration flag
+     */
+    private checkAndUpdateMaxDuration;
+    /**
+     * Get current tier based on active time
+     */
+    private getCurrentTier;
+    /**
+     * Get current interval based on tier and device type
+     */
+    private getCurrentInterval;
+    /**
+     * Reset heartbeat state completely
+     */
+    private resetHeartbeatState;
+    /**
+     * Reset page active time only (for SPA navigation)
+     */
+    private resetPageActiveTime;
+    /**
+     * Get current page's accumulated focus time in milliseconds.
+     * This only counts time when the tab is visible/focused.
+     * Used by SessionState to set accurate page duration.
+     */
+    private getPageActiveMs;
+    /**
+     * Validate and normalize heartbeat tiers
+     */
+    private validateTiers;
+    /**
+     * Schedule a debounced send (for rapid navigations)
+     */
+    private scheduleDebouncedSend;
+    /**
+     * Send session payload to server
+     * V3: Always sends all actions, always includes attributes.
+     * Server uses ReplacingMergeTree to deduplicate events.
+     */
+    private sendPayload;
+    /**
+     * Build session attributes from current state
+     */
+    private buildAttributes;
+    /**
+     * Get session ID
+     */
+    getSessionId(): Promise<string>;
+    /**
+     * Get focus duration in milliseconds
+     * In V3, this is calculated from pageview durations in actions[].
+     * Current page uses live focus time from heartbeatState.
+     */
+    getFocusDuration(): Promise<number>;
+    /**
+     * Get total duration in milliseconds
+     */
+    getTotalDuration(): Promise<number>;
+    /**
+     * Track page view
+     */
+    trackPageView(url?: string): Promise<void>;
+    /**
+     * Track goal (immediate send)
+     */
+    trackGoal(data: GoalData): Promise<void>;
+    /**
+     * Set custom dimension
+     */
+    setDimension(index: number, value: string): Promise<void>;
+    /**
+     * Set multiple dimensions
+     */
+    setDimensions(dimensions: Record<number, string>): Promise<void>;
+    /**
+     * Get dimension value
+     */
+    getDimension(index: number): Promise<string | null>;
+    /**
+     * Clear all dimensions
+     */
+    clearDimensions(): Promise<void>;
+    /**
+     * Set user ID for tracking authenticated users
+     */
+    setUserId(id: string | null): Promise<void>;
+    /**
+     * Get current user ID
+     */
+    getUserId(): Promise<string | null>;
+    /**
+     * Pause tracking
+     */
+    pause(): Promise<void>;
+    /**
+     * Resume tracking
+     */
+    resume(): Promise<void>;
+    /**
+     * Reset session
+     */
+    reset(): Promise<void>;
+    /**
+     * Get current configuration (defensive copy)
+     */
+    getConfig(): Readonly<NotifuseAnalyticsConfig> | null;
+    /**
+     * Get debug info
+     */
+    debug(): SessionDebugInfo;
+    /**
+     * Decorate URL with cross-domain session params
+     * Use this for programmatic navigation (window.location.href, window.open)
+     */
+    decorateUrl(url: string): Promise<string>;
+    /**
+     * Ensure SDK is initialized (awaits init promise if needed)
+     */
+    private ensureInitialized;
+}

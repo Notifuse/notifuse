@@ -38,6 +38,20 @@ Notifuse is a modern, self-hosted emailing platform that allows you to send news
 - **Real-time Analytics**: Monitor delivery rates, opens, clicks, and conversions
 - **Campaign Reports**: Comprehensive reporting and analytics dashboard
 
+### 🌐 Web Analytics (Staminads)
+
+Privacy-first, cookieless web analytics built in — the [Staminads](https://github.com/staminads) feature set merged into Notifuse, running entirely on PostgreSQL (no ClickHouse, no extra services):
+
+- **Engaged-time sessions**: sessions measure real visible/focused time (TimeScore), not wall-clock guesses; bounce rate is engagement-based
+- **Channel attribution**: 39 default rules classify traffic (paid click-ids like gclid/fbclid, organic search, social, email) — fully editable per workspace, with one-click backfill of historical data when rules change
+- **Goals & custom dimensions**: conversion tracking with values and properties, plus 10 custom dimension slots (`custom_1..custom_10`)
+- **Cookieless & GDPR-friendly**: no cookies, no visitor fingerprinting, IPs used only for optional geo lookup and never stored
+- **Tiny SDK**: ~13 KB script served by your own Notifuse instance (`/na.js`); user agents are parsed server-side
+- **Setup**: enable Web Analytics on a workspace, paste the snippet from its settings page, done. Country, region and city come from the MaxMind GeoLite2 City database shipped in the image at `/app/geoip/GeoLite2-City.mmdb` — to keep it fresher, drop your own copy into the mounted `data/` directory as `GeoLite2-City.mmdb` (it takes precedence) or set `GEOIP_DB_PATH` (see [geoipupdate](https://github.com/maxmind/geoipupdate)). This product includes GeoLite2 data created by MaxMind, available from [maxmind.com](https://www.maxmind.com)
+- **Data retention**: every session is kept for as long as you keep it. Monthly partitions (`web_sessions_y2026m08` and its `web_pages_*` / `web_goals_*` siblings) are created automatically, and expiring old data is a deliberate `DROP TABLE` on the partitions you no longer want — instant, and the disk comes back immediately
+- **Scale path**: data lives in monthly-partitioned tables per workspace; heavy-traffic installs can run [AlloyDB Omni](https://cloud.google.com/alloydb/omni) via `compose.alloydb.yaml` and get columnar-engine acceleration for dashboard queries with zero schema changes
+- **Requirements**: PostgreSQL 17 or newer (the shipped compose file stays on 17 — upgrading a major version needs `pg_upgrade`, and PostgreSQL 18 also changed its data directory layout)
+
 ### 🎨 Advanced Features
 
 - **S3 File Manager**: Integrated file management with CDN delivery

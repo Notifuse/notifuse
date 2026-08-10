@@ -74,6 +74,23 @@ func DefaultValidate(query Query, schemas map[string]SchemaDefinition) error {
 		}
 	}
 
+	// Validate having (metric filters): members must be aggregated measures.
+	for _, having := range query.Having {
+		if _, exists := schema.Measures[having.Member]; !exists {
+			return errors.New("having member must be a measure of the schema")
+		}
+		validHavingOperators := map[string]bool{
+			"equals": true, "notEquals": true,
+			"gt": true, "gte": true, "lt": true, "lte": true,
+		}
+		if !validHavingOperators[having.Operator] {
+			return ErrUnsupportedOperator
+		}
+		if len(having.Values) == 0 {
+			return errors.New("having values cannot be empty")
+		}
+	}
+
 	// Validate timezone if provided
 	if query.Timezone != nil {
 		_, err := time.LoadLocation(*query.Timezone)

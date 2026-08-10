@@ -15,6 +15,16 @@ servers:
         description: Your unique Notifuse domain
         default: demo.notifuse.com
 paths:
+  /track:
+    $ref: './paths/web-analytics.yaml#/~1track'
+  /api/workspaces.setWebAnalyticsSettings:
+    $ref: './paths/web-analytics.yaml#/~1api~1workspaces.setWebAnalyticsSettings'
+  /api/webAnalytics.backfillStart:
+    $ref: './paths/web-analytics.yaml#/~1api~1webAnalytics.backfillStart'
+  /api/webAnalytics.backfillStatus:
+    $ref: './paths/web-analytics.yaml#/~1api~1webAnalytics.backfillStatus'
+  /api/webAnalytics.backfillCancel:
+    $ref: './paths/web-analytics.yaml#/~1api~1webAnalytics.backfillCancel'
   /api/transactional.send:
     $ref: './paths/transactional.yaml#/~1api~1transactional.send'
   /api/contacts.list:

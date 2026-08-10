@@ -29,6 +29,7 @@ const (
 	PermissionResourceBlog           PermissionResource = "blog"
 	PermissionResourceAutomations    PermissionResource = "automations"
 	PermissionResourceLLM            PermissionResource = "llm"
+	PermissionResourceWebAnalytics   PermissionResource = "web_analytics"
 )
 
 // PermissionType defines the types of permissions (read/write)
@@ -50,6 +51,7 @@ var FullPermissions = UserPermissions{
 	PermissionResourceBlog:           ResourcePermissions{Read: true, Write: true},
 	PermissionResourceAutomations:    ResourcePermissions{Read: true, Write: true},
 	PermissionResourceLLM:            ResourcePermissions{Read: true, Write: true},
+	PermissionResourceWebAnalytics:   ResourcePermissions{Read: true, Write: true},
 }
 
 // ResourcePermissions defines read/write permissions for a specific resource
@@ -353,22 +355,23 @@ func (b *BlogSettings) Scan(value interface{}) error {
 
 // WorkspaceSettings contains configurable workspace settings
 type WorkspaceSettings struct {
-	WebsiteURL                   string              `json:"website_url,omitempty"`
-	LogoURL                      string              `json:"logo_url,omitempty"`
-	CoverURL                     string              `json:"cover_url,omitempty"`
-	Timezone                     string              `json:"timezone"`
-	FileManager                  FileManagerSettings `json:"file_manager,omitempty"`
-	TransactionalEmailProviderID string              `json:"transactional_email_provider_id,omitempty"`
-	MarketingEmailProviderID     string              `json:"marketing_email_provider_id,omitempty"`
-	EncryptedSecretKey           string              `json:"encrypted_secret_key,omitempty"`
-	EmailTrackingEnabled         bool                `json:"email_tracking_enabled"`
-	TemplateBlocks               []TemplateBlock     `json:"template_blocks,omitempty"`
-	CustomEndpointURL            *string             `json:"custom_endpoint_url,omitempty"`
-	CustomFieldLabels            map[string]string   `json:"custom_field_labels,omitempty"`
-	BlogEnabled                  bool                `json:"blog_enabled"`            // Enable blog feature at workspace level
-	BlogSettings                 *BlogSettings       `json:"blog_settings,omitempty"` // Blog styling and SEO settings
-	DefaultLanguage              string              `json:"default_language"`
-	Languages                    []string            `json:"languages"`
+	WebsiteURL                   string                `json:"website_url,omitempty"`
+	LogoURL                      string                `json:"logo_url,omitempty"`
+	CoverURL                     string                `json:"cover_url,omitempty"`
+	Timezone                     string                `json:"timezone"`
+	FileManager                  FileManagerSettings   `json:"file_manager,omitempty"`
+	TransactionalEmailProviderID string                `json:"transactional_email_provider_id,omitempty"`
+	MarketingEmailProviderID     string                `json:"marketing_email_provider_id,omitempty"`
+	EncryptedSecretKey           string                `json:"encrypted_secret_key,omitempty"`
+	EmailTrackingEnabled         bool                  `json:"email_tracking_enabled"`
+	TemplateBlocks               []TemplateBlock       `json:"template_blocks,omitempty"`
+	CustomEndpointURL            *string               `json:"custom_endpoint_url,omitempty"`
+	CustomFieldLabels            map[string]string     `json:"custom_field_labels,omitempty"`
+	BlogEnabled                  bool                  `json:"blog_enabled"`            // Enable blog feature at workspace level
+	BlogSettings                 *BlogSettings         `json:"blog_settings,omitempty"` // Blog styling and SEO settings
+	WebAnalytics                 *WebAnalyticsSettings `json:"web_analytics,omitempty"` // Web analytics configuration
+	DefaultLanguage              string                `json:"default_language"`
+	Languages                    []string              `json:"languages"`
 
 	// decoded secret key, not stored in the database
 	SecretKey string `json:"-"`
@@ -465,6 +468,10 @@ func (ws *WorkspaceSettings) Validate(passphrase string) error {
 	}
 	if !found {
 		return fmt.Errorf("default language %s must be in the languages list", ws.DefaultLanguage)
+	}
+
+	if err := ws.WebAnalytics.Validate(); err != nil {
+		return fmt.Errorf("invalid web analytics settings: %w", err)
 	}
 
 	return nil
@@ -1062,6 +1069,10 @@ type WorkspaceServiceInterface interface {
 
 	// Blog management
 	SetBlogSettings(ctx context.Context, workspaceID string, enabled bool, settings *BlogSettings) error
+
+	// SetWebAnalyticsSettings replaces the workspace's web analytics settings
+	// (gated by web_analytics:write; recomputes the filters version).
+	SetWebAnalyticsSettings(ctx context.Context, workspaceID string, settings *WebAnalyticsSettings) error
 }
 
 // Request/Response types
@@ -1355,6 +1366,32 @@ func (r *SetBlogSettingsRequest) Validate() (workspaceID string, enabled bool, s
 	}
 
 	return r.WorkspaceID, r.BlogEnabled, r.BlogSettings, nil
+}
+
+// SetWebAnalyticsSettingsRequest defines the request structure for replacing a
+// workspace's web analytics settings via the dedicated, web_analytics:write
+// gated endpoint.
+type SetWebAnalyticsSettingsRequest struct {
+	WorkspaceID string                `json:"workspace_id"`
+	Settings    *WebAnalyticsSettings `json:"settings"`
+}
+
+// Validate validates the request and returns the workspace ID and the
+// (possibly nil) settings. Nil settings clear the stored configuration.
+func (r *SetWebAnalyticsSettingsRequest) Validate() (workspaceID string, settings *WebAnalyticsSettings, err error) {
+	if r.WorkspaceID == "" {
+		return "", nil, fmt.Errorf("invalid set web analytics settings request: workspace_id is required")
+	}
+	if !govalidator.IsAlphanumeric(r.WorkspaceID) {
+		return "", nil, fmt.Errorf("invalid set web analytics settings request: workspace_id must be alphanumeric")
+	}
+	if len(r.WorkspaceID) > 32 {
+		return "", nil, fmt.Errorf("invalid set web analytics settings request: workspace_id length must be between 1 and 32")
+	}
+	if err := r.Settings.Validate(); err != nil {
+		return "", nil, err
+	}
+	return r.WorkspaceID, r.Settings, nil
 }
 
 type InviteMemberRequest struct {

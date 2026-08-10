@@ -35,10 +35,22 @@ var _ domain.AnalyticsService = (*AnalyticsService)(nil)
 // Query executes an analytics query for a workspace
 func (s *AnalyticsService) Query(ctx context.Context, workspaceID string, query analytics.Query) (*analytics.Response, error) {
 	// Authenticate user and verify they have access to the workspace
-	ctx, user, _, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	ctx, user, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 	if err != nil {
 		s.logger.WithField("workspace_id", workspaceID).WithField("error", err.Error()).Error("Failed to authenticate user for analytics query")
 		return nil, fmt.Errorf("failed to authenticate user: %w", err)
+	}
+
+	// Web analytics carries visitor-level data (paths, geo, user ids) and has
+	// its own permission, which the console uses to hide the section. Workspace
+	// membership alone must not be enough to read it through this endpoint.
+	if domain.IsWebAnalyticsSchema(query.Schema) &&
+		!userWorkspace.HasPermission(domain.PermissionResourceWebAnalytics, domain.PermissionTypeRead) {
+		return nil, domain.NewPermissionError(
+			domain.PermissionResourceWebAnalytics,
+			domain.PermissionTypeRead,
+			"Insufficient permissions: read access to web_analytics required",
+		)
 	}
 
 	// Get schemas for validation

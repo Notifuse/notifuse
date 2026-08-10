@@ -36,6 +36,11 @@ export interface AnalyticsQuery {
       | 'afterDate'
     values: string[]
   }[]
+  having?: {
+    member: string // Must be a measure of the schema
+    operator: 'equals' | 'notEquals' | 'gt' | 'gte' | 'lt' | 'lte'
+    values: string[]
+  }[] // Metric filters, rendered as SQL HAVING on the aggregated measure
   limit?: number // Result limit (default: 1000)
   offset?: number // Pagination offset
   order?: {
@@ -103,6 +108,15 @@ class AnalyticsService {
       AnalyticsService.instance = new AnalyticsService(config)
     }
     return AnalyticsService.instance
+  }
+
+  // A dashboard made of many small widgets is starved by the shared
+  // singleton, which runs one request at a time so a single heavy page can't
+  // monopolize the workspace database. Such a page gets its own client with
+  // its own concurrency and cache budget instead of retuning the singleton
+  // for everyone.
+  public static create(config: AnalyticsServiceConfig = {}): AnalyticsService {
+    return new AnalyticsService(config)
   }
 
   public configure(config: AnalyticsServiceConfig): void {

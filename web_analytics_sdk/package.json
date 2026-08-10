@@ -1,0 +1,66 @@
+{
+  "name": "@notifuse/web-analytics-sdk",
+  "version": "38.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Ultra-reliable web analytics SDK for tracking TimeScore metrics with millisecond precision",
+  "main": "dist/notifuse-analytics.cjs.js",
+  "module": "dist/notifuse-analytics.esm.js",
+  "browser": "dist/notifuse-analytics.min.js",
+  "types": "dist/notifuse-analytics.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "sync-version": "node scripts/sync-version.cjs",
+    "prebuild": "npm run sync-version",
+    "dev": "rollup -c -w",
+    "build": "rollup -c",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "type-check": "tsc --noEmit",
+    "lint": "eslint .",
+    "clean": "rm -rf dist",
+    "test:e2e:install": "playwright install chromium"
+  },
+  "keywords": [
+    "analytics",
+    "tracking",
+    "timescore",
+    "web-analytics",
+    "engagement",
+    "duration",
+    "focus-time"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "@playwright/test": "^1.57.0",
+    "@rollup/plugin-commonjs": "^25.0.7",
+    "@rollup/plugin-node-resolve": "^15.2.3",
+    "@rollup/plugin-replace": "^6.0.3",
+    "@rollup/plugin-terser": "^1.0.0",
+    "@rollup/plugin-typescript": "^11.1.6",
+    "@types/express": "^5.0.6",
+    "@types/node": "^20.11.0",
+    "eslint": "^9.39.5",
+    "express": "^5.2.1",
+    "globals": "^15.15.0",
+    "jsdom": "^27.4.0",
+    "playwright": "^1.41.0",
+    "rollup": "^4.9.6",
+    "rollup-plugin-dts": "^6.1.0",
+    "tslib": "^2.6.2",
+    "tsx": "^4.21.0",
+    "typescript": "^5.3.3",
+    "typescript-eslint": "^8.66.0",
+    "vitest": "^3.2.7"
+  },
+  "dependencies": {
+    "ua-parser-js": "^2.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

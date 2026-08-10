@@ -217,6 +217,7 @@ func getTaskTypes() []string {
 		"process_contact_segment_queue",
 		"check_segment_recompute",
 		"sync_integration",
+		domain.WebAnalyticsBackfillTaskType,
 	}
 }
 

@@ -1,0 +1,144 @@
+/track:
+  post:
+    summary: Ingest a web analytics beat
+    description: >
+      Public collect endpoint used by the Notifuse Analytics browser SDK. Each
+      beat carries the full cumulative session state (all pageviews and goals),
+      so the server can rebuild the session from any single payload. Beats are
+      typically sent as text/plain to avoid CORS preflights; the body is JSON
+      regardless of Content-Type. Silently-dropped traffic (disabled feature,
+      disallowed origin, bot user agents) still receives success responses.
+    operationId: trackWebAnalyticsBeat
+    tags: [Web Analytics]
+    security: [] # public collect endpoint
+    requestBody:
+      required: true
+      content:
+        text/plain:
+          schema:
+            $ref: '../components/schemas/web-analytics.yaml#/WebTrackPayload'
+        application/json:
+          schema:
+            $ref: '../components/schemas/web-analytics.yaml#/WebTrackPayload'
+    responses:
+      '200':
+        description: Beat accepted (or silently dropped)
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+      '400':
+        description: Malformed payload (invalid session id, timestamps out of window, oversized)
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                error:
+                  type: string
+
+/api/workspaces.setWebAnalyticsSettings:
+  post:
+    summary: Replace the workspace's web analytics settings
+    description: >
+      Gated by the web_analytics write permission (like blog settings, members
+      manage the feature without workspace write access). The attribution
+      filters version is recomputed server-side. Passing null settings clears
+      the configuration.
+    operationId: setWebAnalyticsSettings
+    tags: [Web Analytics]
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [workspace_id]
+            properties:
+              workspace_id:
+                type: string
+              settings:
+                $ref: '../components/schemas/web-analytics.yaml#/WebAnalyticsSettings'
+    responses:
+      '200':
+        description: Settings updated
+      '400':
+        description: Validation failed
+      '403':
+        description: Missing web_analytics write permission
+
+/api/webAnalytics.backfillStart:
+  post:
+    summary: Start an attribution backfill
+    description: >
+      Rewrites historical web_sessions and web_goals rows with the current
+      attribution rules, one monthly partition per step. Fails while a run is
+      already pending or running.
+    operationId: webAnalyticsBackfillStart
+    tags: [Web Analytics]
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/web-analytics.yaml#/WebAnalyticsBackfillRequest'
+    responses:
+      '200':
+        description: Backfill task created
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/web-analytics.yaml#/WebAnalyticsBackfillResponse'
+      '400':
+        description: A backfill is already in progress
+      '403':
+        description: Missing web_analytics write permission
+
+/api/webAnalytics.backfillStatus:
+  post:
+    summary: Get the latest backfill run
+    operationId: webAnalyticsBackfillStatus
+    tags: [Web Analytics]
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/web-analytics.yaml#/WebAnalyticsBackfillRequest'
+    responses:
+      '200':
+        description: Latest run (null when none exists)
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/web-analytics.yaml#/WebAnalyticsBackfillResponse'
+
+/api/webAnalytics.backfillCancel:
+  post:
+    summary: Cancel the in-flight backfill run
+    operationId: webAnalyticsBackfillCancel
+    tags: [Web Analytics]
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/web-analytics.yaml#/WebAnalyticsBackfillRequest'
+    responses:
+      '200':
+        description: Run cancelled
+      '400':
+        description: No backfill in progress

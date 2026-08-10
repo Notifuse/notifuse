@@ -1,0 +1,272 @@
+package service
+
+import (
+	"fmt"
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"github.com/Notifuse/notifuse/internal/domain"
+	"github.com/Notifuse/notifuse/pkg/geoip"
+)
+
+// testUUIDv7At builds a UUIDv7 string embedding the given timestamp.
+func testUUIDv7At(ts time.Time) string {
+	ms := ts.UnixMilli()
+	var b [16]byte
+	b[0], b[1], b[2] = byte(ms>>40), byte(ms>>32), byte(ms>>24)
+	b[3], b[4], b[5] = byte(ms>>16), byte(ms>>8), byte(ms)
+	b[6] = 0x71
+	b[7] = 0x23
+	b[8] = 0x91
+	b[9] = 0x45
+	for i := 10; i < 16; i++ {
+		b[i] = 0xAB
+	}
+	return fmt.Sprintf("%x-%x-%x-%x-%x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:16])
+}
+
+func TestWebClockSkew(t *testing.T) {
+	receivedAt := time.Date(2026, 8, 8, 12, 0, 0, 0, time.UTC)
+	ms := func(t time.Time) *int64 { v := t.UnixMilli(); return &v }
+
+	assert.Equal(t, time.Duration(0), webClockSkew(nil, receivedAt), "no sent_at: trust client clocks")
+	assert.Equal(t, time.Duration(0), webClockSkew(ms(receivedAt.Add(-3*time.Second)), receivedAt), "within threshold: no correction")
+	assert.Equal(t, time.Duration(0), webClockSkew(ms(receivedAt.Add(4*time.Second)), receivedAt))
+	assert.Equal(t, 10*time.Second, webClockSkew(ms(receivedAt.Add(-10*time.Second)), receivedAt), "client 10s behind: shift forward")
+	assert.Equal(t, -2*time.Minute, webClockSkew(ms(receivedAt.Add(2*time.Minute)), receivedAt), "client ahead: shift back")
+}
+
+func TestWebURLParts(t *testing.T) {
+	cases := []struct {
+		raw, domain, path string
+	}{
+		{"https://www.Example.com/pricing?utm_source=x", "www.example.com", "/pricing"},
+		{"https://example.com", "example.com", "/"},
+		{"https://example.com:8443/a/b", "example.com", "/a/b"},
+		{"http://news.ycombinator.com/item", "news.ycombinator.com", "/item"},
+		{"", "", ""},
+		{"   ", "", ""},
+		{"not a url", "", ""},
+		{"/relative/only", "", ""},
+	}
+	for _, tc := range cases {
+		domain, path := webURLParts(tc.raw)
+		assert.Equal(t, tc.domain, domain, tc.raw)
+		assert.Equal(t, tc.path, path, tc.raw)
+	}
+}
+
+func TestBoundDimension(t *testing.T) {
+	// Device, browser and OS are parsed in the browser (ua-parser-js with
+	// Client Hints) and arrive as plain client input, so the server only
+	// defaults and bounds them.
+	assert.Equal(t, "desktop", boundDimension("", "desktop"), "missing value falls back")
+	assert.Equal(t, "desktop", boundDimension("   ", "desktop"), "blank value falls back")
+	assert.Equal(t, "", boundDimension("", ""), "no fallback stays empty")
+	assert.Equal(t, "Chrome", boundDimension("Chrome", "Unknown"))
+	assert.Len(t, boundDimension(strings.Repeat("x", 5000), "Unknown"), 200, "hostile length is capped")
+}
+
+func TestApplyWebGeo(t *testing.T) {
+	lat, lon := 48.8566, 2.3522
+	raw := geoip.Result{Country: "FR", Region: "Île-de-France", City: "Paris", Latitude: &lat, Longitude: &lon}
+
+	t.Run("geo disabled wipes everything", func(t *testing.T) {
+		out := applyWebGeo(raw, &domain.WebAnalyticsSettings{GeoEnabled: false})
+		assert.Equal(t, domain.WebGeoResult{}, out)
+	})
+
+	t.Run("privacy knobs drop city/region and fuzz coordinates", func(t *testing.T) {
+		out := applyWebGeo(raw, &domain.WebAnalyticsSettings{
+			GeoEnabled: true, GeoStoreCity: false, GeoStoreRegion: false, GeoCoordsPrecision: 0,
+		})
+		assert.Equal(t, "FR", out.Country)
+		assert.Empty(t, out.City)
+		assert.Empty(t, out.Region)
+		require.NotNil(t, out.Latitude)
+		assert.InDelta(t, 49, *out.Latitude, 1e-9)
+		assert.InDelta(t, 2, *out.Longitude, 1e-9)
+	})
+
+	t.Run("full precision keeps two decimals", func(t *testing.T) {
+		out := applyWebGeo(raw, &domain.WebAnalyticsSettings{
+			GeoEnabled: true, GeoStoreCity: true, GeoStoreRegion: true, GeoCoordsPrecision: 2,
+		})
+		assert.Equal(t, "Paris", out.City)
+		assert.InDelta(t, 48.86, *out.Latitude, 1e-9)
+	})
+}
+
+func webTestSettings() *domain.WebAnalyticsSettings {
+	return &domain.WebAnalyticsSettings{
+		Enabled:            true,
+		GeoEnabled:         true,
+		GeoStoreCity:       true,
+		GeoStoreRegion:     true,
+		GeoCoordsPrecision: 2,
+		Filters:            domain.DefaultWebFilters(),
+	}
+}
+
+func TestBuildWebRows(t *testing.T) {
+	receivedAt := time.Date(2026, 8, 8, 12, 0, 0, 0, time.UTC)
+	sessionStart := receivedAt.Add(-10 * time.Minute)
+	sessionID := testUUIDv7At(sessionStart)
+	userID := "  user-42  "
+
+	basePayload := func() *domain.WebTrackPayload {
+		sentAt := receivedAt.UnixMilli()
+		return &domain.WebTrackPayload{
+			WorkspaceID: "ws1",
+			SessionID:   sessionID,
+			Seq:         7,
+			CreatedAt:   sessionStart.UnixMilli(),
+			UpdatedAt:   receivedAt.Add(-2 * time.Second).UnixMilli(),
+			SentAt:      &sentAt,
+			SDKVersion:  "1.0.0",
+			UserID:      &userID,
+			Dimensions:  map[string]string{"custom_2": "pro-plan", "ignored": "x"},
+			Attributes: &domain.WebSessionAttributes{
+				Referrer:    "https://www.Google.com/search",
+				LandingPage: "https://shop.example.com/landing?q=1",
+				UTMSource:   "google",
+				UTMMedium:   "cpc",
+				UserAgent:   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/126.0.0.0 Safari/537.36",
+				// Parsed in the browser by the SDK and sent as-is.
+				Device: "desktop", Browser: "Chrome", OS: "macOS",
+				ScreenWidth: 2560, ScreenHeight: 1440,
+				Language: "fr-FR", Timezone: "Europe/Paris",
+			},
+			Actions: []domain.WebTrackAction{
+				{Type: "pageview", Path: "/landing", PageNumber: 1, Duration: 1000, Scroll: 30,
+					EnteredAt: sessionStart.UnixMilli(), ExitedAt: sessionStart.Add(30 * time.Second).UnixMilli()},
+				{Type: "pageview", Path: "/pricing", PageNumber: 2, Duration: 3000, Scroll: 80,
+					EnteredAt: sessionStart.Add(30 * time.Second).UnixMilli(), ExitedAt: sessionStart.Add(2 * time.Minute).UnixMilli()},
+				// 20000 makes the durations skewed (median 3000 != mean 8000),
+				// so median/mean confusion cannot slip through.
+				{Type: "pageview", Path: "/checkout", PageNumber: 3, Duration: 20000, Scroll: 55,
+					EnteredAt: sessionStart.Add(2 * time.Minute).UnixMilli(), ExitedAt: sessionStart.Add(3 * time.Minute).UnixMilli()},
+				{Type: "goal", Name: "purchase", Path: "/checkout", PageNumber: 3, Value: 49.9,
+					Timestamp:  sessionStart.Add(3 * time.Minute).UnixMilli(),
+					Properties: map[string]string{"plan": "pro"}},
+			},
+		}
+	}
+
+	t.Run("session aggregates: sum duration, median, exit, counts", func(t *testing.T) {
+		session, pages, goals, err := BuildWebRows(basePayload(), webTestSettings(), geoip.Result{}, receivedAt)
+		require.NoError(t, err)
+
+		assert.Equal(t, int64(7), session.BeatSeq)
+		assert.Equal(t, 3, session.PageviewCount)
+		assert.Equal(t, int64(24000), session.DurationMs, "duration is the SUM of page focus (decided fix), not the max (20000)")
+		assert.Equal(t, int64(3000), session.MedianPageDurationMs, "median of 1000/3000/20000, not the mean (8000)")
+		assert.Equal(t, 80, session.MaxScroll)
+		assert.Equal(t, "/checkout", session.ExitPath)
+		assert.Equal(t, 1, session.GoalCount)
+		assert.InDelta(t, 49.9, session.GoalValue, 1e-9)
+		assert.Equal(t, "user-42", *session.UserID, "user id trimmed")
+		assert.Equal(t, "1.0.0", session.SDKVersion)
+
+		require.Len(t, pages, 3)
+		assert.True(t, pages[0].IsLanding)
+		assert.Equal(t, domain.WebEntryTypeLanding, pages[0].EntryType)
+		assert.False(t, pages[0].IsExit)
+		assert.False(t, pages[1].IsExit)
+		assert.True(t, pages[2].IsExit, "last page carries the exit flag")
+		assert.Equal(t, domain.WebEntryTypeNavigation, pages[2].EntryType)
+
+		require.Len(t, goals, 1)
+		assert.Equal(t, "purchase", goals[0].GoalName)
+		assert.Equal(t, map[string]string{"plan": "pro"}, goals[0].Properties)
+	})
+
+	t.Run("uuid drives session_date and identity; timestamps corrected only beyond skew threshold", func(t *testing.T) {
+		payload := basePayload()
+		// Client clock 10 minutes ahead: sent_at says "now + 10min".
+		sentAt := receivedAt.Add(10 * time.Minute).UnixMilli()
+		payload.SentAt = &sentAt
+
+		session, pages, goals, err := BuildWebRows(payload, webTestSettings(), geoip.Result{}, receivedAt)
+		require.NoError(t, err)
+
+		assert.Equal(t, time.Date(2026, 8, 8, 0, 0, 0, 0, time.UTC), session.SessionDate)
+		// created_at shifted back by 10 minutes.
+		assert.Equal(t, sessionStart.Add(-10*time.Minute).UnixMilli(), session.CreatedAt.UnixMilli())
+		assert.Equal(t, pages[0].EnteredAt.UnixMilli(), sessionStart.Add(-10*time.Minute).UnixMilli())
+		// The goal's dedup key keeps the ORIGINAL client timestamp; only
+		// goal_at is corrected.
+		assert.Equal(t, sessionStart.Add(3*time.Minute).UnixMilli(), goals[0].ClientTsMs)
+		assert.Equal(t, sessionStart.Add(-7*time.Minute).UnixMilli(), goals[0].GoalAt.UnixMilli())
+	})
+
+	t.Run("attribution: URL parsing, UA parsing, filters and custom dimensions", func(t *testing.T) {
+		session, _, goals, err := BuildWebRows(basePayload(), webTestSettings(), geoip.Result{}, receivedAt)
+		require.NoError(t, err)
+
+		assert.Equal(t, "www.google.com", session.ReferrerDomain)
+		assert.Equal(t, "/search", session.ReferrerPath)
+		assert.Equal(t, "shop.example.com", session.LandingDomain)
+		assert.Equal(t, "/landing", session.LandingPath)
+		assert.False(t, session.IsDirect)
+
+		assert.Equal(t, "desktop", session.Device)
+		assert.Equal(t, "Chrome", session.Browser)
+		assert.Equal(t, "macOS", session.OS)
+
+		// google + cpc UTM → Google Ads via default rules.
+		assert.Equal(t, "google-ads", session.Channel)
+		assert.Equal(t, "search-paid", session.ChannelGroup)
+		assert.Equal(t, "google-ads", goals[0].Channel, "goal snapshot carries attribution")
+
+		assert.Equal(t, "pro-plan", session.Custom2)
+		assert.Empty(t, session.Custom1)
+	})
+
+	t.Run("direct traffic and geo knobs", func(t *testing.T) {
+		payload := basePayload()
+		payload.Attributes.Referrer = ""
+		payload.Attributes.UTMSource = ""
+		payload.Attributes.UTMMedium = ""
+		lat, lon := 48.8566, 2.3522
+		geo := geoip.Result{Country: "FR", Region: "IDF", City: "Paris", Latitude: &lat, Longitude: &lon}
+
+		session, _, _, err := BuildWebRows(payload, webTestSettings(), geo, receivedAt)
+		require.NoError(t, err)
+
+		assert.True(t, session.IsDirect)
+		assert.Equal(t, "direct", session.Channel)
+		assert.Equal(t, "FR", session.Country)
+		assert.Equal(t, "Paris", session.City)
+		assert.InDelta(t, 48.86, *session.Latitude, 1e-9)
+	})
+
+	t.Run("nil settings: no filters, defaults still sane", func(t *testing.T) {
+		session, _, _, err := BuildWebRows(basePayload(), nil, geoip.Result{}, receivedAt)
+		require.NoError(t, err)
+		assert.Empty(t, session.Channel, "no rules, no channel")
+		assert.Equal(t, "desktop", session.Device)
+	})
+
+	t.Run("invalid session id is rejected", func(t *testing.T) {
+		payload := basePayload()
+		payload.SessionID = "8a9c1a1e-6f0e-4d17-9d5a-6b1f6e2d3c4b"
+		_, _, _, err := BuildWebRows(payload, webTestSettings(), geoip.Result{}, receivedAt)
+		assert.Error(t, err)
+	})
+}
+
+func TestMedianInt64(t *testing.T) {
+	assert.Equal(t, int64(0), medianInt64(nil))
+	assert.Equal(t, int64(5), medianInt64([]int64{5}))
+	// Skewed data on purpose: with symmetric values the mean equals the median,
+	// so a mean-instead-of-median regression would pass unnoticed.
+	assert.Equal(t, int64(2000), medianInt64([]int64{30000, 1000, 2000}), "odd count: middle value, not the mean (11000)")
+	assert.Equal(t, int64(2500), medianInt64([]int64{90000, 1000, 2000, 3000}), "even count: mean of middle two (2500), not of all (24000)")
+	assert.Equal(t, int64(10), medianInt64([]int64{10, 10, 10, 1000000}), "one huge outlier must not move the median")
+	assert.Equal(t, int64(2), medianInt64([]int64{1, 2}), "1.5 rounds to 2")
+}

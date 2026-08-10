@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { createRootRoute, createRoute, useParams, useNavigate } from '@tanstack/react-router'
+import { createRootRoute, createRoute, redirect, useParams, useNavigate } from '@tanstack/react-router'
 import { RootLayout } from './layouts/RootLayout'
 import { WorkspaceLayout } from './layouts/WorkspaceLayout'
 import { SignInPage } from './pages/SignInPage'
@@ -17,6 +17,14 @@ import { AutomationsPage } from './pages/AutomationsPage'
 import { TransactionalNotificationsPage } from './pages/TransactionalNotificationsPage'
 import { LogsPage } from './pages/LogsPage'
 import { AnalyticsPage } from './pages/AnalyticsPage'
+import { WebAnalyticsPage } from './pages/WebAnalyticsPage'
+import { WebAnalyticsLivePage } from './pages/WebAnalyticsLivePage'
+import {
+  DATE_PRESETS,
+  type ComparisonMode,
+  type DatePreset
+} from './components/web_analytics/lib/types'
+import { WEB_ANALYTICS_TABS, type WebAnalyticsSearch } from './components/web_analytics/context'
 import { DebugSegmentPage } from './pages/DebugSegmentPage'
 import { BlogPage } from './pages/BlogPage'
 import SetupWizard from './pages/SetupWizard'
@@ -264,6 +272,81 @@ const workspaceAnalyticsRoute = createRoute({
   component: AnalyticsPage
 })
 
+// eslint-disable-next-line react-refresh/only-export-components -- Internal redirect component
+const WebAnalyticsRedirect = () => {
+  const { workspaceId } = useParams({ from: '/console/workspace/$workspaceId/web-analytics' })
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    navigate({
+      to: '/console/workspace/$workspaceId/web-analytics/$tab',
+      params: { workspaceId, tab: 'dashboard' },
+      replace: true
+    })
+  }, [workspaceId, navigate])
+
+  return null
+}
+
+const workspaceWebAnalyticsRedirectRoute = createRoute({
+  getParentRoute: () => workspaceRoute,
+  path: '/web-analytics',
+  component: WebAnalyticsRedirect
+})
+
+const workspaceWebAnalyticsLiveRoute = createRoute({
+  getParentRoute: () => workspaceRoute,
+  path: '/web-analytics/live',
+  component: WebAnalyticsLivePage
+})
+
+const workspaceWebAnalyticsRoute = createRoute({
+  getParentRoute: () => workspaceRoute,
+  path: '/web-analytics/$tab',
+  component: WebAnalyticsPage,
+  // An unknown section used to render the dashboard under whatever URL was
+  // typed, so the address bar and the highlighted sidebar entry disagreed.
+  // Rewrite it instead, and replace so Back leaves the section entirely.
+  beforeLoad: ({ params }) => {
+    if (!(WEB_ANALYTICS_TABS as readonly string[]).includes(params.tab)) {
+      throw redirect({
+        to: '/console/workspace/$workspaceId/web-analytics/$tab',
+        params: { workspaceId: params.workspaceId, tab: 'dashboard' },
+        replace: true
+      })
+    }
+  },
+  // Without coercion a numeric-looking value arrives as a number and the
+  // string handling downstream (JSON.parse, split) throws on it.
+  validateSearch: (search: Record<string, unknown>): WebAnalyticsSearch => {
+    const text = (value: unknown): string | undefined => {
+      if (value === undefined || value === null) return undefined
+      const trimmed = String(value).trim()
+      return trimmed === '' ? undefined : trimmed
+    }
+    const period = text(search.period)
+    const comparison = text(search.comparison)
+    const minSessions = Number(search.minSessions)
+
+    return {
+      period:
+        period && DATE_PRESETS.includes(period as DatePreset) ? (period as DatePreset) : undefined,
+      timezone: text(search.timezone),
+      comparison:
+        comparison === 'previous_period' || comparison === 'previous_year' || comparison === 'none'
+          ? (comparison as ComparisonMode)
+          : undefined,
+      customStart: text(search.customStart),
+      customEnd: text(search.customEnd),
+      filters: text(search.filters),
+      metricFilters: text(search.metricFilters),
+      minSessions: Number.isFinite(minSessions) && minSessions > 1 ? minSessions : undefined,
+      dimensions: text(search.dimensions),
+      tag: text(search.tag)
+    }
+  }
+})
+
 const workspaceNewSegmentRoute = createRoute({
   getParentRoute: () => workspaceRoute,
   path: '/debug-segment',
@@ -301,6 +384,9 @@ const routeTree = rootRoute.addChildren([
     workspaceSettingsRoute,
     workspaceTemplatesRoute,
     workspaceAnalyticsRoute,
+    workspaceWebAnalyticsRedirectRoute,
+    workspaceWebAnalyticsLiveRoute,
+    workspaceWebAnalyticsRoute,
     workspaceNewSegmentRoute,
     workspaceBlogRoute
   ])

@@ -10,6 +10,7 @@ import { SMTPBridgeSettings } from '../components/settings/SMTPBridgeSettings'
 import { Integrations } from '../components/settings/Integrations'
 import { CustomFieldsConfiguration } from '../components/settings/CustomFieldsConfiguration'
 import { BlogSettings } from '../components/settings/BlogSettings'
+import { WebAnalyticsSettings } from '../components/settings/WebAnalyticsSettings'
 import { WebhooksSettings } from '../components/settings/WebhooksSettings'
 import { useAuth } from '../contexts/AuthContext'
 import { DeleteWorkspaceSection } from '../components/settings/DeleteWorkspace'
@@ -28,6 +29,7 @@ export function WorkspaceSettingsPage() {
   const [isOwner, setIsOwner] = useState(false)
   const [canManageCustomFields, setCanManageCustomFields] = useState(false)
   const [canManageBlog, setCanManageBlog] = useState(false)
+  const [canManageWebAnalytics, setCanManageWebAnalytics] = useState(false)
   const { refreshWorkspaces, user, workspaces } = useAuth()
   const navigate = useNavigate()
 
@@ -40,6 +42,7 @@ export function WorkspaceSettingsPage() {
     'smtp-bridge',
     'general',
     'blog',
+    'web-analytics',
     'danger-zone'
   ]
 
@@ -90,6 +93,13 @@ export function WorkspaceSettingsPage() {
         setCanManageBlog(
           currentUserMember?.role === 'owner' ||
             currentUserMember?.permissions?.blog?.write === true
+        )
+        // Web analytics settings can be managed by owners or members with
+        // web_analytics:write permission (mirrors the backend
+        // HasPermission(web_analytics, write) check).
+        setCanManageWebAnalytics(
+          currentUserMember?.role === 'owner' ||
+            currentUserMember?.permissions?.web_analytics?.write === true
         )
       }
     } catch (error) {
@@ -164,6 +174,14 @@ export function WorkspaceSettingsPage() {
             workspace={workspace}
             onWorkspaceUpdate={handleWorkspaceUpdate}
             canManage={canManageBlog}
+          />
+        )
+      case 'web-analytics':
+        return (
+          <WebAnalyticsSettings
+            workspace={workspace}
+            onWorkspaceUpdate={handleWorkspaceUpdate}
+            canManage={canManageWebAnalytics}
           />
         )
       case 'danger-zone':

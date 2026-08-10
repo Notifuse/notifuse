@@ -53,6 +53,7 @@ type AppInterface interface {
 	GetEmailQueueWorker() *queue.EmailQueueWorker
 	GetAutomationScheduler() *service.AutomationScheduler
 	GetTaskScheduler() *service.TaskScheduler
+	GetWebAnalyticsBuffer() *service.WebAnalyticsBuffer
 }
 
 // NewServerManager creates a new server manager for testing

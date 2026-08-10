@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SPA Test Page</title>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      padding: 20px;
+      margin: 0;
+    }
+    nav {
+      background: #333;
+      padding: 10px;
+      margin-bottom: 20px;
+    }
+    nav a {
+      color: white;
+      margin-right: 15px;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    nav a:hover {
+      text-decoration: underline;
+    }
+    .page {
+      padding: 20px;
+      min-height: 1500px;
+      background: linear-gradient(180deg, #f5f5f5 0%, #e0e0e0 100%);
+    }
+    #status {
+      position: fixed;
+      bottom: 10px;
+      right: 10px;
+      padding: 10px;
+      background: #333;
+      color: white;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <a onclick="navigate('/home')">Home</a>
+    <a onclick="navigate('/products')">Products</a>
+    <a onclick="navigate('/about')">About</a>
+    <a onclick="navigate('/contact')">Contact</a>
+    <a onclick="navigateHash('#section1')">Hash Nav</a>
+  </nav>
+
+  <div id="content" class="page">
+    <h1 id="page-title">Home</h1>
+    <p id="page-path">Current path: /home</p>
+    <div style="margin: 500px 0;">
+      <h2 id="section1">Section 1</h2>
+      <p>Scroll content area</p>
+    </div>
+    <div style="margin: 500px 0;">
+      <h2 id="section2">Section 2</h2>
+      <p>More scroll content</p>
+    </div>
+  </div>
+
+  <div id="status">Loading SDK...</div>
+
+  <script src="/dist/notifuse-analytics.min.js"></script>
+  <script>
+    // Page content for each route
+    const pages = {
+      '/home': { title: 'Home', content: 'Welcome to the home page' },
+      '/products': { title: 'Products', content: 'Browse our products' },
+      '/about': { title: 'About', content: 'Learn about us' },
+      '/contact': { title: 'Contact', content: 'Get in touch' },
+    };
+
+    // Flag to check if SDK is initialized
+    window.SDK_INITIALIZED = false;
+
+    // Land on /home before the SDK initializes so it records a single
+    // pageview -- but keep the query string: dropping it here would hide the
+    // UTM params from attribution entirely.
+    if (!location.pathname || location.pathname === '/spa-page.html') {
+      history.replaceState({ path: '/home' }, '', '/home' + location.search);
+    }
+
+    // Initialize SDK
+    window.SDK_READY = NotifuseAnalytics.init({
+      workspace_id: 'test_workspace',
+      endpoint: 'http://localhost:4555',
+      debug: true,
+      trackSPA: true,
+    });
+
+    window.SDK_READY.then(() => {
+      window.SDK_INITIALIZED = true;
+      document.getElementById('status').textContent = 'SDK Ready | Path: ' + location.pathname;
+    }).catch((err) => {
+      document.getElementById('status').textContent = 'SDK Error: ' + err.message;
+    });
+
+    // SPA navigation using pushState
+    function navigate(path) {
+      const page = pages[path] || { title: 'Unknown', content: 'Page not found' };
+
+      // Update URL
+      history.pushState({ path }, '', path);
+
+      // Update content
+      document.getElementById('page-title').textContent = page.title;
+      document.getElementById('page-path').textContent = 'Current path: ' + path;
+      document.title = page.title + ' - SPA Test';
+
+      // Scroll to top (like real SPA)
+      window.scrollTo(0, 0);
+
+      updateStatus('Navigated to: ' + path);
+    }
+
+    // Hash navigation
+    function navigateHash(hash) {
+      location.hash = hash;
+      updateStatus('Hash changed to: ' + hash);
+    }
+
+    // Handle browser back/forward
+    window.addEventListener('popstate', (event) => {
+      const path = event.state?.path || '/home';
+      const page = pages[path] || { title: 'Home', content: 'Welcome' };
+
+      document.getElementById('page-title').textContent = page.title;
+      document.getElementById('page-path').textContent = 'Current path: ' + path;
+
+      updateStatus('Popstate to: ' + path);
+    });
+
+    function updateStatus(msg) {
+      document.getElementById('status').textContent = 'SDK Ready | ' + msg;
+    }
+
+
+  </script>
+</body>
+</html>

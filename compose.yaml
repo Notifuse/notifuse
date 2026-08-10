@@ -63,6 +63,14 @@ services:
       start_period: 10s
 
   postgres:
+    # Pinned to 17 deliberately. Bumping the major version here would break
+    # every existing install: the server refuses to start on a data directory
+    # from an older major without pg_upgrade, and postgres:18 also moved PGDATA
+    # to /var/lib/postgresql/18/docker (declaring VOLUME /var/lib/postgresql),
+    # so the volume mounted below would no longer receive the data at all.
+    # Notifuse runs on 17+; to move to 18, migrate with pg_upgrade and mount
+    # the volume at /var/lib/postgresql. For faster analytics, prefer
+    # compose.alloydb.yaml.
     image: postgres:17-alpine
     ports:
       - '5433:5432'

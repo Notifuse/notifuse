@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SDK Test Page</title>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      padding: 20px;
+      margin: 0;
+    }
+    .content {
+      height: 2000px;
+      background: linear-gradient(180deg, #f0f0f0 0%, #d0d0d0 100%);
+      padding: 20px;
+    }
+    .section {
+      margin: 200px 0;
+      padding: 20px;
+      background: white;
+      border-radius: 8px;
+    }
+    button {
+      padding: 10px 20px;
+      margin: 5px;
+      cursor: pointer;
+    }
+    #status {
+      margin-top: 20px;
+      padding: 10px;
+      background: #e0e0e0;
+      border-radius: 4px;
+      font-family: monospace;
+    }
+  </style>
+</head>
+<body>
+  <h1>SDK Test Page</h1>
+
+  <div id="controls">
+    <button id="btn-track" onclick="trackCustomEvent()">Track Custom Event</button>
+    <button id="btn-goal" onclick="trackGoal()">Track Goal</button>
+    <button id="btn-dimension" onclick="setDimension()">Set Dimension</button>
+    <button id="btn-session-id" onclick="showSessionId()">Show Session ID</button>
+  </div>
+
+  <div id="status">SDK Status: Loading...</div>
+
+  <div class="content">
+    <div class="section" id="section-1">
+      <h2>Section 1 (25%)</h2>
+      <p>Scroll down to trigger scroll milestones.</p>
+    </div>
+
+    <div class="section" id="section-2">
+      <h2>Section 2 (50%)</h2>
+      <p>Halfway through the page.</p>
+    </div>
+
+    <div class="section" id="section-3">
+      <h2>Section 3 (75%)</h2>
+      <p>Almost at the bottom.</p>
+    </div>
+
+    <div class="section" id="section-4">
+      <h2>Section 4 (100%)</h2>
+      <p>End of page.</p>
+    </div>
+  </div>
+
+  <script src="/dist/notifuse-analytics.min.js"></script>
+  <script>
+    // Flag to check if SDK is initialized
+    window.SDK_INITIALIZED = false;
+
+    // Initialize SDK
+    window.SDK_READY = NotifuseAnalytics.init({
+      workspace_id: 'test_workspace',
+      endpoint: 'http://localhost:4555',
+      debug: true,
+    });
+
+    window.SDK_READY.then(() => {
+      window.SDK_INITIALIZED = true;
+      document.getElementById('status').textContent = 'SDK Status: Ready';
+    }).catch((err) => {
+      document.getElementById('status').textContent = 'SDK Status: Error - ' + err.message;
+    });
+
+    async function trackCustomEvent() {
+      await NotifuseAnalytics.trackGoal({ action: 'button_click', properties: { button: 'custom' } });
+      updateStatus('Tracked: button_click');
+    }
+
+    async function trackGoal() {
+      await NotifuseAnalytics.trackGoal({ action: 'signup', value: 99.99, currency: 'USD' });
+      updateStatus('Tracked: goal (signup, $99.99)');
+    }
+
+    async function setDimension() {
+      await NotifuseAnalytics.setDimension(1, 'test_value_' + Date.now());
+      updateStatus('Set dimension 1');
+    }
+
+    async function showSessionId() {
+      const sessionId = await NotifuseAnalytics.getSessionId();
+      updateStatus('Session ID: ' + sessionId);
+    }
+
+    function updateStatus(msg) {
+      document.getElementById('status').textContent = 'SDK Status: ' + msg;
+    }
+  </script>
+</body>
+</html>

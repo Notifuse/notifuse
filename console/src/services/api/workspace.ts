@@ -49,6 +49,7 @@ export interface WorkspaceSettings {
   custom_field_labels?: Record<string, string>
   blog_enabled?: boolean
   blog_settings?: BlogSettings
+  web_analytics?: import('./web_analytics').WebAnalyticsSettings
   default_language: string
   languages: string[]
 }
@@ -389,6 +390,7 @@ export interface UserPermissions {
   blog: ResourcePermissions
   automations: ResourcePermissions
   llm: ResourcePermissions
+  web_analytics: ResourcePermissions
 }
 
 // Set User Permissions types

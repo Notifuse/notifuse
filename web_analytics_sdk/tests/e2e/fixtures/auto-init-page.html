@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Auto-Init Test Page</title>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      padding: 20px;
+      margin: 0;
+    }
+    .content {
+      height: 2000px;
+      background: linear-gradient(180deg, #f0f0f0 0%, #d0d0d0 100%);
+      padding: 20px;
+    }
+    #status {
+      margin-top: 20px;
+      padding: 10px;
+      background: #e0e0e0;
+      border-radius: 4px;
+      font-family: monospace;
+    }
+  </style>
+</head>
+<body>
+  <h1>Auto-Init Test Page (Production Setup)</h1>
+  <p>This page mimics the production SDK installation pattern.</p>
+
+  <div id="status">SDK Status: Loading...</div>
+
+  <div class="content">
+    <div class="section" id="section-1">
+      <h2>Section 1 (25%)</h2>
+      <p>Scroll down to trigger scroll milestones.</p>
+    </div>
+  </div>
+
+  <!-- Production-style SDK installation -->
+  <script>
+  window.NotifuseAnalyticsConfig = {
+    workspace_id: 'test_workspace',
+    endpoint: 'http://localhost:4555',
+    debug: true,
+  };
+  </script>
+  <!-- Note: NOT async in this test to ensure deterministic behavior -->
+  <script src="/dist/notifuse-analytics.min.js"></script>
+  <script>
+    // Wait for SDK to be ready
+    window.SDK_INITIALIZED = false;
+
+    // Poll for initialization (since auto-init doesn't provide a promise)
+    function checkInit() {
+      try {
+        const config = NotifuseAnalytics.getConfig();
+        if (config) {
+          window.SDK_INITIALIZED = true;
+          document.getElementById('status').textContent = 'SDK Status: Ready (auto-init)';
+          return;
+        }
+      } catch (e) {
+        // Not ready yet
+      }
+      setTimeout(checkInit, 50);
+    }
+
+    // Also create a promise that resolves when ready
+    window.SDK_READY = new Promise((resolve) => {
+      function waitForReady() {
+        try {
+          const config = NotifuseAnalytics.getConfig();
+          if (config) {
+            resolve();
+            return;
+          }
+        } catch (e) {
+          // Not ready yet
+        }
+        setTimeout(waitForReady, 50);
+      }
+      waitForReady();
+    });
+
+    checkInit();
+  </script>
+</body>
+</html>
