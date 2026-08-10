@@ -320,6 +320,106 @@ func TestWebAnalyticsConsoleQueryShapes(t *testing.T) {
 		}
 		assert.Equal(t, float64(5), total, fmt.Sprintf("all five sessions sit inside the window: %v", byChannel))
 	})
+
+	t.Run("explore summary: the best-performing combination of the whole report", func(t *testing.T) {
+		// The "Best TimeScore" tile is the one query on the page that groups by
+		// every dimension of the report at once, orders by a median rather than
+		// a count, and asks for a single row.
+		//
+		// Keep this request body in step with the expectation in
+		// console/src/components/web_analytics/lib/query.test.ts: that test
+		// proves the console still builds this shape, this one proves
+		// PostgreSQL executes it and picks the right winner. Neither is much
+		// use without the other.
+		//
+		// Ten days back, in its own window: every other subtest here ranges
+		// over the last week, so these rows are invisible to all of them.
+		bestAt := now.AddDate(0, 0, -10).Truncate(24 * time.Hour).Add(9 * time.Hour)
+		for _, table := range schema.WebAnalyticsTableNames {
+			_, err := wsDB.Exec(schema.WebAnalyticsPartitionDDL(table, bestAt))
+			require.NoError(t, err)
+		}
+
+		// One outstanding session on its own, and a merely good pair. The
+		// single session wins on median and loses on count, which is exactly
+		// what separates "best-performing" from "busiest".
+		insertSession(0x31, bestAt, "referral", "hn", "", 90000, 1)
+		insertSession(0x32, bestAt.Add(time.Hour), "paid-social", "meta", "", 40000, 1)
+		insertSession(0x33, bestAt.Add(2*time.Hour), "paid-social", "meta", "", 60000, 1)
+		insertSession(0x34, bestAt.Add(3*time.Hour), "organic-search", "ddg", "", 5000, 1)
+
+		bestStart := instant(now.AddDate(0, 0, -11).Truncate(24 * time.Hour))
+		bestEnd := instant(now.AddDate(0, 0, -9).Truncate(24 * time.Hour).Add(24*time.Hour - time.Millisecond))
+
+		bestQuery := func(having []map[string]interface{}) map[string]interface{} {
+			query := map[string]interface{}{
+				"schema":     "web_sessions",
+				"measures":   []string{"sessions", "median_duration"},
+				"dimensions": []string{"channel", "utm_source"},
+				"timezone":   "UTC",
+				"filters":    []map[string]interface{}{rangeFilter(bestStart, bestEnd)},
+				"order":      map[string]string{"median_duration": "desc"},
+				"limit":      1,
+			}
+			if having != nil {
+				query["having"] = having
+			}
+			return query
+		}
+
+		// Ordering by an ordered-set aggregate is the part that could simply
+		// fail to parse; that it returns the 90s row rather than the pair is
+		// the part that could silently be sorted by the wrong column.
+		top := waRunQuery(t, suite, workspace.ID, bestQuery(nil))
+
+		require.Len(t, top.Data, 1, "the tile reads a single row")
+		assert.Equal(t, "referral", top.Data[0]["channel"])
+		assert.Equal(t, "hn", top.Data[0]["utm_source"])
+		assert.Equal(t, 90.0, waNumber(t, top.Data[0]["median_duration"]))
+
+		// Every grouped dimension comes back keyed by its own name. The
+		// console's staleness guard depends entirely on this: a row missing a
+		// key is how it recognises a result left over from a previous
+		// dimension list, rather than a genuinely empty value.
+		//
+		// A computed dimension is the case worth pinning. `channel` is a plain
+		// column that would answer to its own name with or without an alias,
+		// but day_of_week is `(EXTRACT(ISODOW FROM ...))::int` and would come
+		// back under whatever PostgreSQL chose to call it.
+		isoDow := int(bestAt.Weekday())
+		if isoDow == 0 {
+			isoDow = 7 // Go counts Sunday as 0; ISODOW counts it as 7.
+		}
+		computed := waRunQuery(t, suite, workspace.ID, map[string]interface{}{
+			"schema":     "web_sessions",
+			"measures":   []string{"sessions", "median_duration"},
+			"dimensions": []string{"channel", "day_of_week"},
+			"timezone":   "UTC",
+			"filters":    []map[string]interface{}{rangeFilter(bestStart, bestEnd)},
+			"order":      map[string]string{"median_duration": "desc"},
+			"limit":      1,
+		})
+
+		require.Len(t, computed.Data, 1)
+		assert.Equal(t, "referral", computed.Data[0]["channel"])
+		_, present := computed.Data[0]["day_of_week"]
+		require.True(t, present, "the row carries a day_of_week column, not an engine-chosen name")
+		assert.Equal(t, float64(isoDow), waNumber(t, computed.Data[0]["day_of_week"]))
+
+		// With the threshold the winner changes hands: the 90s combination is
+		// a single visitor and drops out. This is the rule the four totals
+		// tiles beside it deliberately do not apply, and the only layer that
+		// can prove it is this one, because it is enforced in SQL.
+		filtered := waRunQuery(t, suite, workspace.ID, bestQuery([]map[string]interface{}{
+			{"member": "sessions", "operator": "gte", "values": []string{"2"}},
+		}))
+
+		require.Len(t, filtered.Data, 1)
+		assert.Equal(t, "paid-social", filtered.Data[0]["channel"])
+		assert.Equal(t, "meta", filtered.Data[0]["utm_source"])
+		assert.Equal(t, 50.0, waNumber(t, filtered.Data[0]["median_duration"]),
+			"the median of a 40s and a 60s session")
+	})
 }
 
 // TestWebAnalyticsLiveWindow covers the one query in the console that does not

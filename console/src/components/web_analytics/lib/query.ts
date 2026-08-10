@@ -152,6 +152,34 @@ export function buildWebQuery(options: WebQueryOptions): AnalyticsQuery {
   return query
 }
 
+/**
+ * The explore report's best-performing combination.
+ *
+ * Grouped by every dimension at once — unlike the drill-down, which asks one
+ * level at a time — because the winner is a property of the whole report
+ * rather than of a level. A single row comes back carrying both the TimeScore
+ * and the dimension values that achieved it.
+ *
+ * `base` is the drill-down's own level options, so the filters, threshold and
+ * timezone stay in step with the table below. The two overrides must therefore
+ * come after it.
+ */
+export function buildBestCombinationQuery(
+  base: Omit<WebQueryOptions, 'range' | 'dimensions'>,
+  dimensions: string[],
+  range: ResolvedRange
+): AnalyticsQuery {
+  return buildWebQuery({
+    ...base,
+    dimensions,
+    // Ordering by sessions would name the busiest combination rather than the
+    // best-performing one — a plausible number in the wrong tile.
+    order: { median_duration: 'desc' },
+    limit: 1,
+    range
+  })
+}
+
 export function useWebQuery(
   workspaceId: string,
   query: AnalyticsQuery | null,

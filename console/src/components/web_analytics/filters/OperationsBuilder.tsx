@@ -174,9 +174,10 @@ export function OperationsBuilder(props: OperationsBuilderProps) {
         type="primary"
         ghost
         block
+        size="small"
         icon={<PlusOutlined />}
         onClick={addOperation}
-        className="mt-3"
+        className="!mt-4"
       >
         {t`Add operation`}
       </Button>

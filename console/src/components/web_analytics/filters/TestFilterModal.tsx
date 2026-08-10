@@ -109,9 +109,9 @@ export function TestFilterModal(props: TestFilterModalProps) {
       onCancel={handleClose}
       footer={null}
       width={900}
-      className="max-md:!top-0 max-md:!m-0 max-md:!max-w-full max-md:!pb-0"
+      className="!top-5 max-md:!top-0 max-md:!m-0 max-md:!max-w-full max-md:!pb-0"
     >
-      <div className="mt-8">
+      <div>
         {!singleResult && !multiResults ? (
           <div className="space-y-4">
             <p className="text-xs text-gray-500">

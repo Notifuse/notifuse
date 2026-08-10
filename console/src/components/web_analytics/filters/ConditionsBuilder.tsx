@@ -152,9 +152,10 @@ export function ConditionsBuilder(props: ConditionsBuilderProps) {
         type="primary"
         ghost
         block
+        size="small"
         icon={<PlusOutlined />}
         onClick={addCondition}
-        className="mt-3"
+        className="!mt-4"
       >
         {t`Add condition`}
       </Button>

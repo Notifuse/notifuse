@@ -1,10 +1,11 @@
 import { ReactNode, useCallback, useMemo, useState } from 'react'
 import ReactECharts from 'echarts-for-react'
 import { Empty, Spin } from 'antd'
+import { i18n } from '@lingui/core'
 import { useLingui } from '@lingui/react/macro'
 import { useWebAnalytics } from './context'
 import { WidgetTabs } from './WidgetTabs'
-import { DAY_OF_WEEK_SHORT, HOUR_LABELS } from './lib/dictionaries'
+import { HOUR_LABELS, weekdayLabel } from './lib/dictionaries'
 import { formatValue, toNumber } from './lib/format'
 import { mergeWidgetFilters } from './lib/dimensions'
 import { getTimescoreCellColor } from './lib/heatmap'
@@ -19,7 +20,7 @@ export interface HeatmapTab {
   format: 'number' | 'duration'
 }
 
-const DAY_LABELS = [1, 2, 3, 4, 5, 6, 7].map((day) => DAY_OF_WEEK_SHORT[day])
+
 
 interface TrafficHeatmapWidgetProps {
   title: string
@@ -110,6 +111,14 @@ export function TrafficHeatmapWidget(props: TrafficHeatmapWidgetProps): ReactNod
 
   const maxValue = useMemo(() => cells.reduce((max, cell) => Math.max(max, cell[2]), 0), [cells])
 
+  // Built here rather than at module scope: the labels follow the console's
+  // locale, which is not known when the module is first evaluated. Memoized on
+  // the locale so the option below keeps its own memo.
+  const dayLabels = useMemo(
+    () => [1, 2, 3, 4, 5, 6, 7].map((day) => weekdayLabel(day, i18n.locale, 'short') ?? String(day)),
+    [i18n.locale]
+  )
+
   const option = useMemo(() => {
     // A duration is judged against the TimeScore reference rather than against
     // the busiest cell, so its colours are set per cell instead of by a scale.
@@ -127,7 +136,7 @@ export function TrafficHeatmapWidget(props: TrafficHeatmapWidgetProps): ReactNod
           const cell = coordinates(params)
           if (!cell) return ''
           const [hour, day, value] = cell
-          return `<div style="font-weight:500">${DAY_LABELS[day]} ${HOUR_LABELS[hour]}</div><div>${
+          return `<div style="font-weight:500">${dayLabels[day]} ${HOUR_LABELS[hour]}</div><div>${
             activeTab.label
           }: ${formatValue(value, activeTab.format)}</div>`
         }
@@ -142,7 +151,7 @@ export function TrafficHeatmapWidget(props: TrafficHeatmapWidgetProps): ReactNod
       },
       yAxis: {
         type: 'category',
-        data: DAY_LABELS,
+        data: dayLabels,
         // Categories run bottom-up by default, which would print the week
         // upside down.
         inverse: true,
@@ -181,7 +190,7 @@ export function TrafficHeatmapWidget(props: TrafficHeatmapWidgetProps): ReactNod
         }
       ]
     }
-  }, [cells, maxValue, activeTab])
+  }, [cells, maxValue, activeTab, dayLabels])
 
   const onEvents = useMemo(
     () => ({

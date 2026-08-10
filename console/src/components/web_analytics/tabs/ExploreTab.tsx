@@ -16,13 +16,16 @@ import {
   findMaxMeasure,
   insertChildrenIntoTree,
   mergeComparisonData,
+  rowCoversDimensions,
   setRowLoading
 } from '../lib/exploreRows'
 import { changePercent } from '../lib/format'
 import {
+  buildBestCombinationQuery,
   buildWebQuery,
   readMeasure,
   useWebComparisonQuery,
+  useWebQuery,
   webAnalyticsClient
 } from '../lib/query'
 import { ResolvedRange, SESSION_METRIC_KEYS, WebDimensionFilter } from '../lib/types'
@@ -112,6 +115,28 @@ export function ExploreTab() {
       ? buildWebQuery({ ...totalsBase, range: context.resolvedCompare })
       : null
   )
+
+  // The best combination is a property of the whole report, not of a level, so
+  // this is the one query that groups by every dimension at once. Ordering by
+  // TimeScore and taking a single row returns the winner and the values that
+  // achieved it together, which is what the summary tooltip names.
+  const bestResult = useWebQuery(
+    context.workspaceId,
+    hasDimensions ? buildBestCombinationQuery(levelBase, dimensions, context.resolved) : null
+  )
+
+  // `keepPreviousData` serves the previous report's winner while a new
+  // dimension list is in flight, and that row has no column for a dimension
+  // just added.
+  const bestRow = bestResult.data?.data?.[0]
+  const bestIsCurrent = rowCoversDimensions(bestRow, dimensions)
+  const bestTimeScore = bestIsCurrent ? readMeasure(bestRow, 'median_duration') : undefined
+
+  // The server value is the true maximum across every combination, so it is
+  // what the heat scale should be anchored to. The running client max stays as
+  // a floor: `minSessions` can drop a combination from the query above while
+  // the tree still shows a row that beats what survived.
+  const heatCeiling = Math.max(bestValue, bestTimeScore ?? 0)
 
   const totalsCurrent = totalsResult.current
   const totalsPrevious = totalsResult.previous
@@ -334,7 +359,11 @@ export function ExploreTab() {
         totals={totals}
         showComparison={showComparison}
         loading={totalsResult.isLoading}
-        bestValue={bestValue}
+        bestValue={heatCeiling}
+        bestTimeScore={bestTimeScore}
+        bestCombination={bestIsCurrent ? bestRow : undefined}
+        bestError={Boolean(bestResult.error)}
+        dimensions={dimensions}
       />
 
       <ExploreTable
@@ -344,7 +373,8 @@ export function ExploreTab() {
         onExpand={handleExpand}
         onExpandedRowsChange={setExpandedRowKeys}
         loadingRows={loadingRows}
-        bestValue={bestValue}
+        bestValue={heatCeiling}
+        bestCombination={bestIsCurrent ? bestRow : undefined}
         loading={rootResult.isLoading && reportData.length === 0}
         totals={totals}
         onBreakdownClick={openBreakdown}

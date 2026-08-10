@@ -1,3 +1,4 @@
+import { weekdayLabel } from './dictionaries'
 import { WebDimensionFilter, WebSchema } from './types'
 
 export type DimensionType = 'string' | 'number' | 'boolean'
@@ -249,4 +250,27 @@ export const DIMENSION_EXAMPLES: Record<string, string[]> = {
   goal_name: ['signup', 'purchase'],
   goal_path: ['/thank-you', '/checkout/success'],
   user_id: ['user_123', 'a1b2c3']
+}
+
+/**
+ * Display form of a dimension value.
+ *
+ * The locale and the empty label are passed in rather than resolved here so
+ * the function stays pure and testable; the caller owns both. Shared by the
+ * drill-down, the breakdown drawer and the summary tooltip so they cannot
+ * disagree about how a weekday or a missing value reads.
+ *
+ * Note the strict comparisons: 0 and false are values a numeric or boolean
+ * dimension really can take, and must not be mistaken for absent ones.
+ */
+export function formatDimensionValue(
+  dimension: string,
+  value: unknown,
+  options: { emptyLabel: string; locale: string }
+): string {
+  if (value === null || value === undefined || value === '') return options.emptyLabel
+  if (dimension === 'day_of_week' && typeof value === 'number') {
+    return weekdayLabel(value, options.locale) ?? String(value)
+  }
+  return String(value)
 }

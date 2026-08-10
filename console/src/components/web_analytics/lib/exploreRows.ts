@@ -256,3 +256,55 @@ export function findMaxMeasure(rows: ExploreRow[], measure: string): number {
   visit(rows)
   return max
 }
+
+/**
+ * Whether a result row was produced by a query over exactly these dimensions.
+ *
+ * React Query serves the previous result as placeholder data while a new key
+ * is in flight, so a row can outlive the dimension list that produced it. Such
+ * a row has no column at all for a dimension just added, and rendering that
+ * gap would claim a blank value where there is only a pending one.
+ *
+ * Presence is tested with `in`, not truthiness: the engine selects every
+ * grouped dimension, so a key that exists holding '' or null is a real empty
+ * value and must count as covered.
+ */
+export function rowCoversDimensions(
+  row: Record<string, unknown> | undefined,
+  dimensions: string[]
+): boolean {
+  if (!row) return false
+  return dimensions.every((dimension) => dimension in row)
+}
+
+/**
+ * Whether a row lies on the path to the best-performing combination.
+ *
+ * A row at depth i carries a value for every dimension from 0 to i — the
+ * drill-down groups by the whole prefix, not just the level — so matching all
+ * of them marks the winner and every ancestor above it. That is what makes the
+ * highlight read as a path down the tree rather than one stray row the reader
+ * has to expand three levels to find.
+ *
+ * A dimension missing from `best` returns false rather than being skipped: an
+ * absent key means the winning row came from a different dimension list, and
+ * pointing at the wrong path is worse than pointing at none.
+ */
+export function isBestPathRow(
+  row: ExploreRow,
+  dimensions: string[],
+  best: Record<string, unknown> | undefined
+): boolean {
+  if (!best) return false
+  const covered = dimensions.slice(0, row.dimensionIndex + 1)
+  if (covered.length === 0) return false
+
+  return covered.every((dimension) => {
+    if (!(dimension in best)) return false
+    const bestValue = best[dimension]
+    // "No value" arrives as null from one query and '' from another, so the
+    // two have to compare equal or a winning empty branch never highlights.
+    if (isEmptyValue(bestValue)) return isEmptyValue(row[dimension])
+    return row[dimension] === bestValue
+  })
+}

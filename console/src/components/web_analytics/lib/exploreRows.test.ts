@@ -7,7 +7,9 @@ import {
   findMaxMeasure,
   generateRowKey,
   insertChildrenIntoTree,
+  isBestPathRow,
   mergeComparisonData,
+  rowCoversDimensions,
   setRowLoading
 } from './exploreRows'
 import { WebDimensionFilter } from './types'
@@ -326,5 +328,95 @@ describe('findMaxMeasure', () => {
 
   it('is zero on an empty report', () => {
     expect(findMaxMeasure([], 'median_duration')).toBe(0)
+  })
+})
+
+describe('rowCoversDimensions', () => {
+  it('accepts a row carrying a column for every dimension', () => {
+    expect(rowCoversDimensions({ country: 'FR', device: 'desktop', sessions: 4 }, ['country', 'device'])).toBe(true)
+  })
+
+  it('rejects a row from a shorter dimension list', () => {
+    // This is the case that matters: React Query serves the previous result
+    // as placeholder data while a new key is in flight, so adding a dimension
+    // leaves the old winner on screen. Reading `device` off that row yields
+    // undefined, which renders as "(empty)" — a blank value claimed where
+    // there is only a pending one.
+    expect(rowCoversDimensions({ country: 'FR', sessions: 4 }, ['country', 'device'])).toBe(false)
+  })
+
+  it('counts an empty value as covered', () => {
+    // Presence, not truthiness. The engine selects every grouped dimension,
+    // so a key holding '' or null is a session that genuinely had no value
+    // there — quite different from a column the query never asked for.
+    expect(rowCoversDimensions({ country: '', device: null }, ['country', 'device'])).toBe(true)
+  })
+
+  it('rejects a missing row', () => {
+    expect(rowCoversDimensions(undefined, ['country'])).toBe(false)
+  })
+
+  it('ignores measures and other extra columns', () => {
+    expect(rowCoversDimensions({ country: 'FR', sessions: 4, median_duration: 12 }, ['country'])).toBe(true)
+  })
+})
+
+describe('isBestPathRow', () => {
+  const dimensions = ['channel', 'utm_source', 'device']
+  const best = { channel: 'referral', utm_source: 'hn', device: 'desktop' }
+  const row = (dimensionIndex: number, values: Record<string, unknown>) =>
+    ({ key: 'k', dimensionIndex, ...values }) as unknown as ExploreRow
+
+  it('marks the winning leaf', () => {
+    expect(
+      isBestPathRow(row(2, { channel: 'referral', utm_source: 'hn', device: 'desktop' }), dimensions, best)
+    ).toBe(true)
+  })
+
+  it('marks the ancestors above it, which is what makes it a path', () => {
+    // A root row is only asked about its own dimension. Requiring the deeper
+    // ones to match too would leave the winner highlighted three levels down
+    // with nothing above it pointing the way.
+    expect(isBestPathRow(row(0, { channel: 'referral' }), dimensions, best)).toBe(true)
+    expect(isBestPathRow(row(1, { channel: 'referral', utm_source: 'hn' }), dimensions, best)).toBe(true)
+  })
+
+  it('leaves a sibling that shares a prefix alone', () => {
+    // Same channel, different source: on the path as far as level 0, off it at
+    // level 1. Comparing only the row's own dimension would light this up.
+    expect(isBestPathRow(row(1, { channel: 'referral', utm_source: 'google' }), dimensions, best)).toBe(false)
+  })
+
+  it('leaves a row whose own value matches but whose ancestors do not', () => {
+    // The case that makes this a path rather than a set of matching rows: the
+    // source is the winner's, but it was reached through a different channel.
+    // Comparing only the row's own dimension — the obvious implementation —
+    // marks this one, and the reader follows a branch that never won.
+    expect(
+      isBestPathRow(row(1, { channel: 'organic-search', utm_source: 'hn' }), dimensions, best)
+    ).toBe(false)
+  })
+
+  it('leaves an unrelated branch alone', () => {
+    expect(isBestPathRow(row(0, { channel: 'organic-search' }), dimensions, best)).toBe(false)
+  })
+
+  it('treats null and the empty string as the same absence', () => {
+    // A winning branch can genuinely have no value: the engine returns '' for
+    // a missing dimension and null through some paths, and a strict comparison
+    // between the two would never highlight it.
+    const emptyBest = { channel: 'referral', utm_source: '' }
+    expect(isBestPathRow(row(1, { channel: 'referral', utm_source: null }), dimensions, emptyBest)).toBe(true)
+    expect(isBestPathRow(row(1, { channel: 'referral', utm_source: 'hn' }), dimensions, emptyBest)).toBe(false)
+  })
+
+  it('highlights nothing when there is no winner', () => {
+    expect(isBestPathRow(row(0, { channel: 'referral' }), dimensions, undefined)).toBe(false)
+  })
+
+  it('refuses to guess from a winner missing that dimension', () => {
+    // A stale winner from a shorter report has no column for a dimension just
+    // added. Skipping it would mark a path the current report never produced.
+    expect(isBestPathRow(row(1, { channel: 'referral', utm_source: 'hn' }), dimensions, { channel: 'referral' })).toBe(false)
   })
 })

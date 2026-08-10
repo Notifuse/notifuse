@@ -209,3 +209,14 @@ th.ant-table-cell.contacts-fixed-col {
     --nav-fade-bottom: 0px;
   }
 }
+
+/* The path to the best-performing combination in the explore report.
+ *
+ * An inset shadow rather than a border-left: a real border would add 4px to
+ * the cell and shift every highlighted row's text out of line with the rest.
+ * The colour is the top of the TimeScore heat scale — hue 142 + 38 in
+ * getHeatMapColor — so the bar and the best row's dot are the same green-cyan
+ * rather than two unrelated accents. */
+.ant-table-tbody > tr.best-timescore-row > td:first-child {
+  box-shadow: inset 4px 0 0 0 hsl(180, 70%, 50%);
+}

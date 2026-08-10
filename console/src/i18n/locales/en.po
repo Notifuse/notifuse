@@ -44,8 +44,10 @@ msgstr "(Cancelled)"
 #: src/components/web_analytics/explore/BreakdownDrawer.tsx:74
 #: src/components/web_analytics/explore/BreakdownDrawer.tsx:120
 #: src/components/web_analytics/explore/BreakdownDrawer.tsx:189
+#: src/components/web_analytics/explore/BreakdownDrawer.tsx:192
 #: src/components/web_analytics/explore/CsvExportModal.tsx:98
-#: src/components/web_analytics/explore/ExploreTable.tsx:48
+#: src/components/web_analytics/explore/ExploreSummary.tsx:127
+#: src/components/web_analytics/explore/ExploreTable.tsx:60
 msgid "(empty)"
 msgstr "(empty)"
 
@@ -929,6 +931,11 @@ msgstr "Always set to the specified value"
 msgid "Amazon SES (inbound-smtp.<region>.amazonaws.com, in a region that supports email receiving)"
 msgstr "Amazon SES (inbound-smtp.<region>.amazonaws.com, in a region that supports email receiving)"
 
+#. placeholder {0}: context.minSessions
+#: src/components/web_analytics/explore/ExploreSummary.tsx:138
+msgid "Among combinations with at least {0} sessions."
+msgstr "Among combinations with at least {0} sessions."
+
 #: src/components/contacts/ExportContactsModal.tsx:283
 msgid "An error occurred during export"
 msgstr "An error occurred during export"
@@ -1324,7 +1331,7 @@ msgstr "Automation updated successfully"
 msgid "Automation:"
 msgstr "Automation:"
 
-#: src/layouts/WorkspaceLayout.tsx:403
+#: src/layouts/WorkspaceLayout.tsx:449
 #: src/pages/AutomationsPage.tsx:157
 msgid "Automations"
 msgstr "Automations"
@@ -1494,9 +1501,17 @@ msgstr "Before User Created Hook"
 msgid "Belonging to at least one of the following segments"
 msgstr "Belonging to at least one of the following segments"
 
+#: src/components/web_analytics/explore/ExploreSummary.tsx:119
+msgid "Best performing combination:"
+msgstr "Best performing combination:"
+
 #: src/components/email_builder/blocks/MjTitleBlock.tsx:48
 msgid "Best practices:"
 msgstr "Best practices:"
+
+#: src/components/web_analytics/explore/ExploreSummary.tsx:148
+msgid "Best TimeScore"
+msgstr "Best TimeScore"
 
 #: src/components/segment/input.tsx:705
 #: src/components/segment/input.tsx:842
@@ -1537,7 +1552,7 @@ msgstr "Blocks"
 #: src/components/settings/BlogSettings.tsx:205
 #: src/components/settings/BlogSettings.tsx:238
 #: src/components/settings/SettingsSidebar.tsx:100
-#: src/layouts/WorkspaceLayout.tsx:440
+#: src/layouts/WorkspaceLayout.tsx:271
 msgid "Blog"
 msgstr "Blog"
 
@@ -1651,8 +1666,8 @@ msgstr "Bounce Diagnostic:"
 msgid "Bounce email"
 msgstr "Bounce email"
 
-#: src/components/web_analytics/explore/ExploreSummary.tsx:31
-#: src/components/web_analytics/explore/ExploreTable.tsx:128
+#: src/components/web_analytics/explore/ExploreSummary.tsx:51
+#: src/components/web_analytics/explore/ExploreTable.tsx:139
 #: src/components/web_analytics/FilterBuilder.tsx:83
 #: src/components/web_analytics/tabs/DashboardTab.tsx:30
 msgid "Bounce Rate"
@@ -1813,7 +1828,7 @@ msgid "Broadcast updated successfully"
 msgstr "Broadcast updated successfully"
 
 #: src/components/analytics/EmailMetricsChart.tsx:285
-#: src/layouts/WorkspaceLayout.tsx:377
+#: src/layouts/WorkspaceLayout.tsx:423
 #: src/pages/BroadcastsPage.tsx:1473
 msgid "Broadcasts"
 msgstr "Broadcasts"
@@ -2320,7 +2335,7 @@ msgid "Code Editor"
 msgstr "Code Editor"
 
 #: src/components/email_builder/ui/CodePreview.tsx:61
-#: src/layouts/WorkspaceLayout.tsx:573
+#: src/layouts/WorkspaceLayout.tsx:567
 msgid "Collapse"
 msgstr "Collapse"
 
@@ -2630,7 +2645,7 @@ msgstr "Contact re-enters each time the event occurs"
 msgid "Contact updated successfully"
 msgstr "Contact updated successfully"
 
-#: src/layouts/WorkspaceLayout.tsx:332
+#: src/layouts/WorkspaceLayout.tsx:381
 #: src/pages/ContactsPage.tsx:998
 msgid "Contacts"
 msgstr "Contacts"
@@ -2670,6 +2685,10 @@ msgstr "Container Padding"
 #: src/components/web_analytics/lib/filterCatalog.ts:218
 msgid "contains"
 msgstr "contains"
+
+#: src/layouts/WorkspaceLayout.tsx:415
+msgid "Content"
+msgstr "Content"
 
 #: src/components/web_analytics/explore/ExploreTemplates.tsx:62
 msgid "Content quality by traffic source"
@@ -2762,7 +2781,7 @@ msgstr "Could not load this breakdown"
 msgid "Could not load this goal"
 msgstr "Could not load this goal"
 
-#: src/components/web_analytics/tabs/ExploreTab.tsx:326
+#: src/components/web_analytics/tabs/ExploreTab.tsx:358
 msgid "Could not load this report"
 msgstr "Could not load this report"
 
@@ -3251,8 +3270,8 @@ msgstr "Daily"
 msgid "Danger Zone"
 msgstr "Danger Zone"
 
-#: src/layouts/WorkspaceLayout.tsx:244
-#: src/layouts/WorkspaceLayout.tsx:262
+#: src/layouts/WorkspaceLayout.tsx:293
+#: src/layouts/WorkspaceLayout.tsx:311
 #: src/pages/AnalyticsPage.tsx:77
 #: src/pages/WebAnalyticsLivePage.tsx:125
 msgid "Dashboard"
@@ -3607,7 +3626,7 @@ msgstr "Devices and tech"
 msgid "Diagnostic:"
 msgstr "Diagnostic:"
 
-#: src/components/web_analytics/explore/ExploreTable.tsx:70
+#: src/components/web_analytics/explore/ExploreTable.tsx:81
 #: src/components/web_analytics/filters/TestFilterModal.tsx:176
 msgid "Dimension"
 msgstr "Dimension"
@@ -3707,7 +3726,7 @@ msgstr "Do you want to permanently delete this file from your storage?"
 msgid "Do you want to send \"{0}\" immediately or schedule it for later?"
 msgstr "Do you want to send \"{0}\" immediately or schedule it for later?"
 
-#: src/layouts/WorkspaceLayout.tsx:649
+#: src/layouts/WorkspaceLayout.tsx:643
 msgid "Documentation"
 msgstr "Documentation"
 
@@ -4580,7 +4599,7 @@ msgid "Every domain"
 msgstr "Every domain"
 
 #. placeholder {0}: context.minSessions
-#: src/components/web_analytics/explore/ExploreTable.tsx:211
+#: src/components/web_analytics/explore/ExploreTable.tsx:229
 msgid "Every sub-item has fewer than {0} sessions. Lower the threshold to see them."
 msgstr "Every sub-item has fewer than {0} sessions. Lower the threshold to see them."
 
@@ -4640,7 +4659,7 @@ msgstr "Expand"
 msgid "Expires:"
 msgstr "Expires:"
 
-#: src/layouts/WorkspaceLayout.tsx:281
+#: src/layouts/WorkspaceLayout.tsx:330
 #: src/pages/WebAnalyticsPage.tsx:74
 msgid "Explore"
 msgstr "Explore"
@@ -5187,7 +5206,7 @@ msgstr "Failed to update web analytics settings"
 msgid "Failed to update workspace settings"
 msgstr "Failed to update workspace settings"
 
-#: src/layouts/WorkspaceLayout.tsx:233
+#: src/layouts/WorkspaceLayout.tsx:246
 msgid "Failed to update workspace settings: {errorMessage}"
 msgstr "Failed to update workspace settings: {errorMessage}"
 
@@ -5265,7 +5284,7 @@ msgid "File is too large. Maximum size is 1MB."
 msgstr "File is too large. Maximum size is 1MB."
 
 #: src/components/file_manager/context.tsx:155
-#: src/layouts/WorkspaceLayout.tsx:467
+#: src/layouts/WorkspaceLayout.tsx:279
 #: src/pages/FileManagerPage.tsx:119
 msgid "File Manager"
 msgstr "File Manager"
@@ -5322,7 +5341,7 @@ msgid "Filter on an event property"
 msgstr "Filter on an event property"
 
 #: src/components/messages/MessageHistoryTab.tsx:586
-#: src/layouts/WorkspaceLayout.tsx:303
+#: src/layouts/WorkspaceLayout.tsx:352
 #: src/pages/WebAnalyticsPage.tsx:76
 msgid "Filters"
 msgstr "Filters"
@@ -5648,7 +5667,7 @@ msgstr "Goal:"
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:260
 #: src/components/web_analytics/tabs/DashboardTab.tsx:242
 #: src/components/web_analytics/tabs/DashboardTab.tsx:252
-#: src/layouts/WorkspaceLayout.tsx:292
+#: src/layouts/WorkspaceLayout.tsx:341
 #: src/pages/WebAnalyticsPage.tsx:75
 msgid "Goals"
 msgstr "Goals"
@@ -5746,7 +5765,7 @@ msgstr "Height"
 
 #: src/components/email_builder/MjmlCodeEditor.tsx:702
 #: src/components/templates/CreateTemplateDrawer.tsx:138
-#: src/layouts/WorkspaceLayout.tsx:675
+#: src/layouts/WorkspaceLayout.tsx:669
 msgid "Help"
 msgstr "Help"
 
@@ -6733,7 +6752,7 @@ msgid "List:"
 msgstr "List:"
 
 #: src/components/analytics/NewContactsTable.tsx:73
-#: src/layouts/WorkspaceLayout.tsx:342
+#: src/layouts/WorkspaceLayout.tsx:391
 #: src/pages/ContactsPage.tsx:424
 #: src/pages/ContactsPage.tsx:544
 #: src/pages/ListsPage.tsx:155
@@ -6747,7 +6766,7 @@ msgstr "Lists refreshed"
 #: src/components/automations/AutomationCard.tsx:65
 #: src/components/blog/RecentThemesTable.tsx:128
 #: src/components/web_analytics/LiveButton.tsx:46
-#: src/layouts/WorkspaceLayout.tsx:270
+#: src/layouts/WorkspaceLayout.tsx:319
 msgid "Live"
 msgstr "Live"
 
@@ -6840,11 +6859,11 @@ msgstr "Logo Preview"
 msgid "Logo URL"
 msgstr "Logo URL"
 
-#: src/layouts/WorkspaceLayout.tsx:687
+#: src/layouts/WorkspaceLayout.tsx:681
 msgid "Logout"
 msgstr "Logout"
 
-#: src/layouts/WorkspaceLayout.tsx:476
+#: src/layouts/WorkspaceLayout.tsx:470
 #: src/pages/LogsPage.tsx:28
 msgid "Logs"
 msgstr "Logs"
@@ -6977,8 +6996,8 @@ msgstr "Maximum range is 2 years. Dates are read in {timezone}."
 msgid "Median"
 msgstr "Median"
 
-#: src/components/web_analytics/explore/ExploreSummary.tsx:32
-#: src/components/web_analytics/explore/ExploreTable.tsx:144
+#: src/components/web_analytics/explore/ExploreSummary.tsx:52
+#: src/components/web_analytics/explore/ExploreTable.tsx:155
 #: src/components/web_analytics/FilterBuilder.tsx:84
 #: src/components/web_analytics/tabs/DashboardTab.tsx:31
 msgid "Median Scroll Depth"
@@ -6997,11 +7016,11 @@ msgstr "Median Scroll Depth (change %)"
 msgid "Median Scroll Depth (previous)"
 msgstr "Median Scroll Depth (previous)"
 
-#: src/components/web_analytics/explore/ExploreTable.tsx:107
+#: src/components/web_analytics/explore/ExploreTable.tsx:118
 msgid "Median session duration. Green meets the reference, cyan exceeds it."
 msgstr "Median session duration. Green meets the reference, cyan exceeds it."
 
-#: src/components/web_analytics/explore/ExploreSummary.tsx:30
+#: src/components/web_analytics/explore/ExploreSummary.tsx:50
 #: src/components/web_analytics/tabs/DashboardTab.tsx:29
 msgid "Median TimeScore"
 msgstr "Median TimeScore"
@@ -7352,7 +7371,7 @@ msgstr "New Theme"
 msgid "New Window"
 msgstr "New Window"
 
-#: src/layouts/WorkspaceLayout.tsx:627
+#: src/layouts/WorkspaceLayout.tsx:621
 #: src/pages/CreateWorkspacePage.tsx:104
 msgid "New workspace"
 msgstr "New workspace"
@@ -7493,7 +7512,7 @@ msgstr "No CSV data available"
 
 #: src/components/analytics/ChartVisualization.tsx:395
 #: src/components/web_analytics/DimensionTableWidget.tsx:283
-#: src/components/web_analytics/TrafficHeatmapWidget.tsx:220
+#: src/components/web_analytics/TrafficHeatmapWidget.tsx:229
 msgid "No data available"
 msgstr "No data available"
 
@@ -7501,7 +7520,7 @@ msgstr "No data available"
 msgid "No data for this period"
 msgstr "No data for this period"
 
-#: src/components/web_analytics/explore/ExploreTable.tsx:191
+#: src/components/web_analytics/explore/ExploreTable.tsx:203
 msgid "No data found"
 msgstr "No data found"
 
@@ -9293,7 +9312,7 @@ msgstr "Reply To:"
 msgid "Reply-To"
 msgstr "Reply-To"
 
-#: src/layouts/WorkspaceLayout.tsx:662
+#: src/layouts/WorkspaceLayout.tsx:656
 msgid "Report An Issue"
 msgstr "Report An Issue"
 
@@ -10125,7 +10144,7 @@ msgstr "Select which segment this trigger applies to"
 msgid "Select Winner"
 msgstr "Select Winner"
 
-#: src/layouts/WorkspaceLayout.tsx:599
+#: src/layouts/WorkspaceLayout.tsx:593
 #: src/pages/DashboardPage.tsx:31
 msgid "Select workspace"
 msgstr "Select workspace"
@@ -10313,11 +10332,11 @@ msgstr "Session"
 #: src/components/web_analytics/DimensionTableWidget.tsx:90
 #: src/components/web_analytics/explore/BreakdownDrawer.tsx:198
 #: src/components/web_analytics/explore/CsvExportModal.tsx:45
-#: src/components/web_analytics/explore/ExploreSummary.tsx:29
-#: src/components/web_analytics/explore/ExploreTable.tsx:76
+#: src/components/web_analytics/explore/ExploreSummary.tsx:49
+#: src/components/web_analytics/explore/ExploreTable.tsx:87
 #: src/components/web_analytics/tabs/DashboardTab.tsx:28
 #: src/components/web_analytics/tabs/DashboardTab.tsx:92
-#: src/components/web_analytics/TrafficHeatmapWidget.tsx:55
+#: src/components/web_analytics/TrafficHeatmapWidget.tsx:56
 #: src/pages/WebAnalyticsLivePage.tsx:113
 msgid "Sessions"
 msgstr "Sessions"
@@ -10464,7 +10483,7 @@ msgid "Setting up..."
 msgstr "Setting up..."
 
 #: src/components/settings/SettingsSidebar.tsx:135
-#: src/layouts/WorkspaceLayout.tsx:485
+#: src/layouts/WorkspaceLayout.tsx:479
 msgid "Settings"
 msgstr "Settings"
 
@@ -11180,7 +11199,7 @@ msgstr "Template Variables:"
 msgid "Template:"
 msgstr "Template:"
 
-#: src/layouts/WorkspaceLayout.tsx:368
+#: src/layouts/WorkspaceLayout.tsx:260
 #: src/pages/TemplatesPage.tsx:404
 msgid "Templates"
 msgstr "Templates"
@@ -11369,6 +11388,10 @@ msgstr "The automation will start processing contacts that match the trigger."
 #: src/components/automations/AutomationCard.tsx:234
 msgid "The automation will stop processing new contacts."
 msgstr "The automation will stop processing new contacts."
+
+#: src/components/web_analytics/explore/ExploreSummary.tsx:143
+msgid "The best-performing combination could not be loaded."
+msgstr "The best-performing combination could not be loaded."
 
 #: src/pages/BroadcastsPage.tsx:582
 msgid "The broadcast will continue sending from where it was paused."
@@ -11741,10 +11764,10 @@ msgstr "times"
 #: src/components/web_analytics/DimensionTableWidget.tsx:91
 #: src/components/web_analytics/explore/BreakdownDrawer.tsx:205
 #: src/components/web_analytics/explore/CsvExportModal.tsx:47
-#: src/components/web_analytics/explore/ExploreTable.tsx:109
+#: src/components/web_analytics/explore/ExploreTable.tsx:120
 #: src/components/web_analytics/FilterBuilder.tsx:82
 #: src/components/web_analytics/tabs/DashboardTab.tsx:93
-#: src/components/web_analytics/TrafficHeatmapWidget.tsx:56
+#: src/components/web_analytics/TrafficHeatmapWidget.tsx:57
 msgid "TimeScore"
 msgstr "TimeScore"
 
@@ -11761,7 +11784,7 @@ msgstr "TimeScore (previous)"
 msgid "TimeScore (seconds)"
 msgstr "TimeScore (seconds)"
 
-#: src/components/web_analytics/explore/ExploreSummary.tsx:35
+#: src/components/web_analytics/explore/ExploreSummary.tsx:55
 #: src/components/web_analytics/tabs/DashboardTab.tsx:34
 msgid "TimeScore is the median engaged time across all sessions"
 msgstr "TimeScore is the median engaged time across all sessions"
@@ -11995,7 +12018,7 @@ msgstr "Traffic no filter rule has classified"
 
 #: src/components/analytics/EmailMetricsChart.tsx:286
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:408
-#: src/layouts/WorkspaceLayout.tsx:415
+#: src/layouts/WorkspaceLayout.tsx:461
 #: src/pages/TemplatesPage.tsx:126
 msgid "Transactional"
 msgstr "Transactional"
@@ -12156,7 +12179,7 @@ msgstr "Unknown"
 msgid "Unknown date"
 msgstr "Unknown date"
 
-#: src/layouts/WorkspaceLayout.tsx:232
+#: src/layouts/WorkspaceLayout.tsx:245
 msgid "Unknown error"
 msgstr "Unknown error"
 
@@ -12589,7 +12612,7 @@ msgid "Video starts at this timestamp (MM:SS, HH:MM:SS, or seconds)"
 msgstr "Video starts at this timestamp (MM:SS, HH:MM:SS, or seconds)"
 
 #: src/components/web_analytics/explore/BreakdownModal.tsx:116
-#: src/components/web_analytics/explore/ExploreTable.tsx:165
+#: src/components/web_analytics/explore/ExploreTable.tsx:176
 msgid "View breakdown"
 msgstr "View breakdown"
 
@@ -12671,7 +12694,7 @@ msgstr "We'll automatically detect and use your website's favicon"
 #: src/components/settings/WebAnalyticsSettings.tsx:142
 #: src/components/settings/WebAnalyticsSettings.tsx:152
 #: src/components/settings/WebAnalyticsSettings.tsx:187
-#: src/layouts/WorkspaceLayout.tsx:253
+#: src/layouts/WorkspaceLayout.tsx:302
 #: src/pages/BroadcastsPage.tsx:1082
 #: src/pages/WebAnalyticsPage.tsx:73
 msgid "Web Analytics"
@@ -12932,14 +12955,14 @@ msgstr "Workspace Name"
 msgid "Workspace name must be at least 3 characters long"
 msgstr "Workspace name must be at least 3 characters long"
 
-#: src/layouts/WorkspaceLayout.tsx:211
+#: src/layouts/WorkspaceLayout.tsx:224
 #: src/pages/AnalyticsPage.tsx:68
 #: src/pages/FileManagerPage.tsx:56
 msgid "Workspace not found"
 msgstr "Workspace not found"
 
 #: src/components/settings/GeneralSettings.tsx:80
-#: src/layouts/WorkspaceLayout.tsx:229
+#: src/layouts/WorkspaceLayout.tsx:242
 msgid "Workspace settings updated successfully"
 msgstr "Workspace settings updated successfully"
 

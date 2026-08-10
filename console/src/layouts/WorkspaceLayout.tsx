@@ -1,10 +1,10 @@
 import { Layout, Menu, Select, Space, Button, Dropdown, message, Avatar } from 'antd'
+import type { MenuProps } from 'antd'
 import { Outlet, Link, useParams, useMatches, useNavigate } from '@tanstack/react-router'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { useLingui } from '@lingui/react/macro'
 import md5 from 'blueimp-md5'
 import {
-  faImage,
   faPaperPlane,
   faFileLines,
   faQuestionCircle
@@ -40,6 +40,14 @@ const { Content, Sider, Header } = Layout
 /** Web analytics sub-entries, mirroring the routes under /web-analytics. */
 const WEB_ANALYTICS_SECTIONS = ['dashboard', 'live', 'explore', 'goals', 'filters']
 
+/** Collapsible sidebar groups, and the path fragments living inside each. */
+const MENU_GROUPS: Record<string, string[]> = {
+  'web-analytics': ['/web-analytics'],
+  content: ['/templates', '/blog', '/file-manager']
+}
+
+type MenuItem = NonNullable<MenuProps['items']>[number]
+
 // Helper function to generate Gravatar URL from email
 const getGravatarUrl = (email: string | undefined, size: number = 32): string => {
   if (!email) return ''
@@ -62,20 +70,25 @@ export function WorkspaceLayout() {
   const isSettingsPage = currentPath.includes('/settings') || currentPath.includes('/blog')
 
   // The web analytics settings live at /settings/web-analytics and belong to
-  // the settings entry, so they must not count as being inside the section.
-  const inWebAnalytics = !currentPath.includes('/settings') && currentPath.includes('/web-analytics')
+  // the settings entry, so a settings path belongs to no group.
+  const activeGroup = currentPath.includes('/settings')
+    ? null
+    : (Object.entries(MENU_GROUPS).find(([, fragments]) =>
+        fragments.some((fragment) => currentPath.includes(fragment))
+      )?.[0] ?? null)
+  const inWebAnalytics = activeGroup === 'web-analytics'
 
-  const [openKeys, setOpenKeys] = useState<string[]>(inWebAnalytics ? ['web-analytics'] : [])
+  const [openKeys, setOpenKeys] = useState<string[]>(activeGroup ? [activeGroup] : [])
 
-  // Entering the section reveals it and leaving reclaims the five rows it
-  // costs, so the sidebar only pays for the section you are actually in.
-  // Depending on the two flags rather than the path leaves a manual toggle
+  // Entering a group reveals it and leaving reclaims the rows it costs, so the
+  // sidebar only pays for the group you are actually in. One group at a time,
+  // and depending on the two flags rather than the path leaves a manual toggle
   // alone for as long as you stay put. While collapsed the rail shows flyouts
   // and rc-menu drives openKeys itself; this restores them on expanding back.
   useEffect(() => {
     if (collapsed) return
-    setOpenKeys(inWebAnalytics ? ['web-analytics'] : [])
-  }, [inWebAnalytics, collapsed])
+    setOpenKeys(activeGroup ? [activeGroup] : [])
+  }, [activeGroup, collapsed])
 
   // Fetch user permissions for the current workspace
   useEffect(() => {
@@ -234,6 +247,42 @@ export function WorkspaceLayout() {
     }
   }
 
+  // Templates, Blog and File Manager are the material you author and reuse.
+  // Built here rather than inline so the group can be dropped entirely when a
+  // member can reach none of it, instead of showing an empty expandable row.
+  // Children carry no icons, matching the Web Analytics submenu.
+  const contentChildren: MenuItem[] = []
+  if (hasAccess('templates')) {
+    contentChildren.push({
+      key: 'templates',
+      label: (
+        <Link to="/console/workspace/$workspaceId/templates" params={{ workspaceId }}>
+          {t`Templates`}
+        </Link>
+      )
+    })
+  }
+  if (hasAccess('workspace')) {
+    contentChildren.push(
+      {
+        key: 'blog',
+        label: (
+          <Link to="/console/workspace/$workspaceId/blog" params={{ workspaceId }}>
+            {t`Blog`}
+          </Link>
+        )
+      },
+      {
+        key: 'file-manager',
+        label: (
+          <Link to="/console/workspace/$workspaceId/file-manager" params={{ workspaceId }}>
+            {t`File Manager`}
+          </Link>
+        )
+      }
+    )
+  }
+
   const menuItems = [
     hasAccess('message_history') && {
       key: 'analytics',
@@ -343,32 +392,6 @@ export function WorkspaceLayout() {
         </Link>
       )
     },
-    hasAccess('templates') && {
-      key: 'templates',
-      icon: (
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="lucide lucide-layout-panel-top-icon lucide-layout-panel-top opacity-70"
-        >
-          <rect width="18" height="7" x="3" y="3" rx="1" />
-          <rect width="7" height="7" x="3" y="14" rx="1" />
-          <rect width="7" height="7" x="14" y="14" rx="1" />
-        </svg>
-      ),
-      label: (
-        <Link to="/console/workspace/$workspaceId/templates" params={{ workspaceId }}>
-          {t`Templates`}
-        </Link>
-      )
-    },
     hasAccess('broadcasts') && {
       key: 'broadcasts',
       icon: <FontAwesomeIcon icon={faPaperPlane} size="sm" style={{ opacity: 0.7 }} />,
@@ -416,8 +439,8 @@ export function WorkspaceLayout() {
         </Link>
       )
     },
-    hasAccess('workspace') && {
-      key: 'blog',
+    contentChildren.length > 0 && {
+      key: 'content',
       icon: (
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -429,44 +452,15 @@ export function WorkspaceLayout() {
           strokeWidth="2"
           strokeLinecap="round"
           strokeLinejoin="round"
-          className="lucide lucide-pen-line-icon lucide-pen-line"
+          className="lucide lucide-files-icon lucide-files opacity-70"
         >
-          <path d="M13 21h8" />
-          <path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z" />
+          <path d="M20 7h-3a2 2 0 0 1-2-2V2" />
+          <path d="M9 18a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h7l4 4v10a2 2 0 0 1-2 2Z" />
+          <path d="M3 7.6v12.8A1.6 1.6 0 0 0 4.6 22h9.8" />
         </svg>
       ),
-      label: (
-        <Link to="/console/workspace/$workspaceId/blog" params={{ workspaceId }}>
-          {t`Blog`}
-        </Link>
-      )
-    },
-    hasAccess('workspace') && {
-      key: 'file-manager',
-      icon: <FontAwesomeIcon icon={faImage} size="sm" style={{ opacity: 0.6 }} />,
-      // icon: (
-      //   <svg
-      //     xmlns="http://www.w3.org/2000/svg"
-      //     width="16"
-      //     height="16"
-      //     viewBox="0 0 24 24"
-      //     fill="none"
-      //     stroke="currentColor"
-      //     strokeWidth="2"
-      //     strokeLinecap="round"
-      //     strokeLinejoin="round"
-      //     className="lucide lucide-image-icon lucide-image opacity-70"
-      //   >
-      //     <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
-      //     <circle cx="9" cy="9" r="2" />
-      //     <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
-      //   </svg>
-      // ),
-      label: (
-        <Link to="/console/workspace/$workspaceId/file-manager" params={{ workspaceId }}>
-          {t`File Manager`}
-        </Link>
-      )
+      label: t`Content`,
+      children: contentChildren
     },
     hasAccess('message_history') && {
       key: 'logs',
@@ -539,7 +533,10 @@ export function WorkspaceLayout() {
                   borderRight: 0,
                   backgroundColor: '#F9F9F9',
                   fontSize: '13px',
-                  fontWeight: 600
+                  // Item labels are <Link> anchors, which index.css pins to 500.
+                  // Submenu titles are plain text and inherit this instead, so it
+                  // has to match or the group rows read heavier than the rest.
+                  fontWeight: 500
                 }}
                 items={loadingPermissions ? [] : menuItems}
                 theme="light"

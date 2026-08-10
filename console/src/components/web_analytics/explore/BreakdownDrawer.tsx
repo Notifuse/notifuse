@@ -1,9 +1,9 @@
 import { Divider, Drawer, Space, Table, Tag } from 'antd'
 import { useQueries } from '@tanstack/react-query'
+import { i18n } from '@lingui/core'
 import { useLingui } from '@lingui/react/macro'
 import { useWebAnalytics } from '../context'
-import { getDimensionLabel } from '../lib/dimensions'
-import { DAYS_OF_WEEK } from '../lib/dictionaries'
+import { formatDimensionValue, getDimensionLabel } from '../lib/dimensions'
 import { ExploreRow } from '../lib/exploreRows'
 import { formatDuration, formatNumber, toNumber } from '../lib/format'
 import { getHeatMapStyle } from '../lib/heatmap'
@@ -188,10 +188,10 @@ function BreakdownTable(props: BreakdownTableProps) {
             if (value === null || value === '' || value === undefined) {
               return <span className="text-gray-400">{t`(empty)`}</span>
             }
-            if (props.dimension === 'day_of_week' && typeof value === 'number') {
-              return DAYS_OF_WEEK[value] ?? String(value)
-            }
-            return String(value)
+            return formatDimensionValue(props.dimension, value, {
+              emptyLabel: t`(empty)`,
+              locale: i18n.locale
+            })
           }
         },
         {

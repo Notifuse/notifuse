@@ -44,27 +44,47 @@ export const BROWSERS = [
 ] as const
 
 /**
- * PostgreSQL EXTRACT(ISODOW) numbering, which the day_of_week dimension is
- * built on: Monday is 1 and Sunday is 7.
+ * Monday of the reference week. The day_of_week dimension is PostgreSQL
+ * EXTRACT(ISODOW), where Monday is 1 and Sunday is 7, so day N is simply the
+ * Nth of January 2024 — which happens to start on a Monday.
  */
-export const DAYS_OF_WEEK: Record<number, string> = {
-  1: 'Monday',
-  2: 'Tuesday',
-  3: 'Wednesday',
-  4: 'Thursday',
-  5: 'Friday',
-  6: 'Saturday',
-  7: 'Sunday'
-}
+const ISO_WEEK_START = { year: 2024, monthIndex: 0 }
 
-export const DAY_OF_WEEK_SHORT: Record<number, string> = {
-  1: 'Mon',
-  2: 'Tue',
-  3: 'Wed',
-  4: 'Thu',
-  5: 'Fri',
-  6: 'Sat',
-  7: 'Sun'
+// Constructing an Intl formatter is not cheap and a table can ask for a label
+// per row, so they are built once per locale and width. Bounded by the eight
+// supported locales.
+const weekdayFormatters = new Map<string, Intl.DateTimeFormat>()
+
+/**
+ * Weekday name for an ISODOW number, in the console's active locale.
+ *
+ * These come from Intl rather than the message catalogue on purpose: weekday
+ * names are locale data every runtime already carries, and routing them
+ * through translations would ask eight catalogues to restate what the platform
+ * knows — and get it wrong in the meantime.
+ *
+ * Returns undefined for anything outside 1-7, leaving the caller to decide how
+ * to render a value the dimension should never have produced.
+ */
+export function weekdayLabel(
+  isoDow: number,
+  locale: string,
+  width: 'long' | 'short' = 'long'
+): string | undefined {
+  if (!Number.isInteger(isoDow) || isoDow < 1 || isoDow > 7) return undefined
+
+  // Intl rejects an empty tag, which is what the locale is before the first
+  // catalogue finishes loading.
+  const tag = locale || 'en'
+  const key = `${tag}:${width}`
+  let formatter = weekdayFormatters.get(key)
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat(tag, { weekday: width, timeZone: 'UTC' })
+    weekdayFormatters.set(key, formatter)
+  }
+  return formatter.format(
+    new Date(Date.UTC(ISO_WEEK_START.year, ISO_WEEK_START.monthIndex, isoDow))
+  )
 }
 
 /** "12a", "1a", … "11p" — the hour labels of the traffic heat map. */

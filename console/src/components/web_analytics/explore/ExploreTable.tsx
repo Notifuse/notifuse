@@ -3,12 +3,12 @@ import { Button, Empty, Table, Tooltip } from 'antd'
 import { EyeOutlined } from '@ant-design/icons'
 import type { ColumnsType } from 'antd/es/table'
 import { Loader2, SquareMinus, SquarePlus, TriangleAlert } from 'lucide-react'
+import { i18n } from '@lingui/core'
 import { useLingui } from '@lingui/react/macro'
 import { useWebAnalytics } from '../context'
 import { Delta } from '../Delta'
-import { getDimensionLabel } from '../lib/dimensions'
-import { DAYS_OF_WEEK } from '../lib/dictionaries'
-import { canExpandRow, ExploreRow, ExploreTotals } from '../lib/exploreRows'
+import { formatDimensionValue, getDimensionLabel } from '../lib/dimensions'
+import { canExpandRow, ExploreRow, ExploreTotals, isBestPathRow } from '../lib/exploreRows'
 import { formatDuration, formatNumber } from '../lib/format'
 import { getHeatMapStyle } from '../lib/heatmap'
 import { TIMESCORE_REFERENCE_SECONDS } from '../lib/types'
@@ -32,8 +32,10 @@ interface ExploreTableProps {
   onExpand: (expanded: boolean, record: ExploreRow) => void
   onExpandedRowsChange: (keys: Key[]) => void
   loadingRows: Set<string>
-  /** Highest TimeScore loaded so far; scales the heat map. */
+  /** Highest TimeScore across every combination; scales the heat map. */
   bestValue: number
+  /** The winning row, whose path down the tree is marked. */
+  bestCombination?: Record<string, unknown>
   loading?: boolean
   totals?: ExploreTotals
   onBreakdownClick: (row: ExploreRow) => void
@@ -56,11 +58,10 @@ export function ExploreTable(props: ExploreTableProps) {
     const dimension = props.dimensions[record.dimensionIndex] ?? props.dimensions[0]
     const value = record[dimension]
     const isEmpty = value === null || value === '' || value === undefined
-    const display = isEmpty
-      ? t`(empty)`
-      : dimension === 'day_of_week' && typeof value === 'number'
-        ? (DAYS_OF_WEEK[value] ?? String(value))
-        : String(value)
+    const display = formatDimensionValue(dimension, value, {
+      emptyLabel: t`(empty)`,
+      locale: i18n.locale
+    })
 
     return (
       <span className="whitespace-nowrap">
@@ -194,6 +195,9 @@ export function ExploreTable(props: ExploreTableProps) {
     <div className="overflow-hidden rounded-md">
       <Table<ExploreRow>
         className="border border-gray-200 rounded-md"
+        rowClassName={(record) =>
+          isBestPathRow(record, props.dimensions, props.bestCombination) ? 'best-timescore-row' : ''
+        }
         columns={columns}
         dataSource={props.data}
         rowKey="key"

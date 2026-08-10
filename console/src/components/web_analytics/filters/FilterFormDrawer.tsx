@@ -176,6 +176,7 @@ export function FilterFormDrawer(props: FilterFormDrawerProps) {
           <Form.Item
             name="operations"
             label={t`Operations`}
+            className="mt-6"
             validateTrigger={[]}
             rules={[
               {
