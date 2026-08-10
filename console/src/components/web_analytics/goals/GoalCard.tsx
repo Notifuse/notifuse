@@ -82,7 +82,7 @@ export function GoalCard({ goalName, totals, onOpenDashboard }: GoalCardProps) {
   const previous = context.showComparison ? toPoints(series.previous?.data) : []
 
   return (
-    <div className="overflow-hidden rounded-md bg-white">
+    <div className="overflow-hidden rounded-md border border-gray-200">
       <div className="flex items-center justify-between gap-2 px-4 pb-2 pt-3">
         <span className="truncate font-medium text-gray-800" title={goalName}>
           {goalName}

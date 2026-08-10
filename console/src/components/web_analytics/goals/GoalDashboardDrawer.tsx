@@ -129,7 +129,7 @@ export function GoalDashboardDrawer(props: GoalDashboardDrawerProps) {
           <Alert type="error" showIcon message={t`Could not load this goal`} className="mb-4" />
         ) : null}
 
-        <div className="overflow-hidden rounded-md bg-white">
+        <div className="overflow-hidden rounded-md border border-gray-200">
           <MetricSummary
             metrics={GOAL_METRICS}
             totals={series.isLoading ? {} : totals}

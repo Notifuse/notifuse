@@ -40,13 +40,12 @@ msgstr ""
 msgid "(Cancelled)"
 msgstr "(キャンセル済み)"
 
-#: src/components/web_analytics/DimensionTableWidget.tsx:325
+#: src/components/web_analytics/DimensionTableWidget.tsx:350
 #: src/components/web_analytics/explore/BreakdownDrawer.tsx:74
 #: src/components/web_analytics/explore/BreakdownDrawer.tsx:120
 #: src/components/web_analytics/explore/BreakdownDrawer.tsx:189
 #: src/components/web_analytics/explore/CsvExportModal.tsx:98
 #: src/components/web_analytics/explore/ExploreTable.tsx:48
-#: src/pages/WebAnalyticsLivePage.tsx:145
 msgid "(empty)"
 msgstr ""
 
@@ -261,6 +260,10 @@ msgstr ""
 #: src/components/transactional/ApiCommandModal.tsx:818
 msgid "{language} code copied to clipboard!"
 msgstr "{language}コードをクリップボードにコピーしました"
+
+#: src/pages/WebAnalyticsLivePage.tsx:133
+msgid "{liveSessions} live now"
+msgstr ""
 
 #: src/components/contacts/ExportContactsModal.tsx:119
 msgid "{minutes}m {remainingSeconds}s"
@@ -511,8 +514,8 @@ msgid "Active filters"
 msgstr "アクティブフィルター"
 
 #: src/pages/WebAnalyticsLivePage.tsx:71
-msgid "Active sessions"
-msgstr ""
+#~ msgid "Active sessions"
+#~ msgstr ""
 
 #: src/pages/WebAnalyticsLivePage.tsx:45
 #~ msgid "Active Sessions"
@@ -634,7 +637,7 @@ msgstr ""
 msgid "Add Custom Header"
 msgstr ""
 
-#: src/components/web_analytics/explore/DimensionSelector.tsx:153
+#: src/components/web_analytics/explore/DimensionSelector.tsx:230
 msgid "Add dimension"
 msgstr ""
 
@@ -849,7 +852,7 @@ msgstr ""
 msgid "All contact fields are optional except email."
 msgstr "メール以外のすべてのコンタクトフィールドはオプションです。"
 
-#: src/components/web_analytics/explore/DimensionSelector.tsx:99
+#: src/components/web_analytics/explore/DimensionSelector.tsx:174
 msgid "All dimensions selected"
 msgstr ""
 
@@ -1321,7 +1324,7 @@ msgstr "オートメーションを更新しました"
 msgid "Automation:"
 msgstr "オートメーション:"
 
-#: src/layouts/WorkspaceLayout.tsx:387
+#: src/layouts/WorkspaceLayout.tsx:403
 #: src/pages/AutomationsPage.tsx:157
 msgid "Automations"
 msgstr "オートメーション"
@@ -1371,8 +1374,8 @@ msgid "Back"
 msgstr ""
 
 #: src/pages/WebAnalyticsLivePage.tsx:64
-msgid "Back to the dashboard"
-msgstr ""
+#~ msgid "Back to the dashboard"
+#~ msgstr ""
 
 #: src/components/web_analytics/filters/BackfillStatus.tsx:57
 msgid "Backfill cancelled"
@@ -1534,7 +1537,7 @@ msgstr "ブロック"
 #: src/components/settings/BlogSettings.tsx:205
 #: src/components/settings/BlogSettings.tsx:238
 #: src/components/settings/SettingsSidebar.tsx:100
-#: src/layouts/WorkspaceLayout.tsx:424
+#: src/layouts/WorkspaceLayout.tsx:440
 msgid "Blog"
 msgstr "ブログ"
 
@@ -1810,7 +1813,7 @@ msgid "Broadcast updated successfully"
 msgstr "ブロードキャストを更新しました"
 
 #: src/components/analytics/EmailMetricsChart.tsx:285
-#: src/layouts/WorkspaceLayout.tsx:361
+#: src/layouts/WorkspaceLayout.tsx:377
 #: src/pages/BroadcastsPage.tsx:1473
 msgid "Broadcasts"
 msgstr "ブロードキャスト"
@@ -1879,8 +1882,14 @@ msgstr "ボタンパディング"
 msgid "Button Size"
 msgstr "ボタンサイズ"
 
+#: src/pages/WebAnalyticsLivePage.tsx:199
+msgid "Campaign"
+msgstr ""
+
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:190
 #: src/components/web_analytics/tabs/DashboardTab.tsx:186
+#: src/pages/WebAnalyticsLivePage.tsx:191
+#: src/pages/WebAnalyticsLivePage.tsx:198
 msgid "Campaigns"
 msgstr ""
 
@@ -2086,7 +2095,7 @@ msgstr "{0}のステータスを変更"
 
 #: src/components/messages/MessageHistoryTab.tsx:217
 #: src/components/web_analytics/explore/BreakdownModal.tsx:63
-#: src/components/web_analytics/explore/DimensionSelector.tsx:31
+#: src/components/web_analytics/explore/DimensionSelector.tsx:97
 #: src/components/web_analytics/FilterBuilder.tsx:55
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:173
 #: src/components/web_analytics/tabs/DashboardTab.tsx:166
@@ -2095,6 +2104,7 @@ msgstr "チャネル"
 
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:179
 #: src/components/web_analytics/tabs/DashboardTab.tsx:172
+#: src/pages/WebAnalyticsLivePage.tsx:216
 msgid "Channel group"
 msgstr ""
 
@@ -2106,7 +2116,8 @@ msgstr ""
 #: src/components/web_analytics/explore/ExploreTemplates.tsx:55
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:172
 #: src/components/web_analytics/tabs/DashboardTab.tsx:165
-#: src/pages/WebAnalyticsLivePage.tsx:94
+#: src/pages/WebAnalyticsLivePage.tsx:208
+#: src/pages/WebAnalyticsLivePage.tsx:215
 msgid "Channels"
 msgstr ""
 
@@ -2131,6 +2142,14 @@ msgstr "新しいテーマの出発点を選択してください。後ですべ
 #: src/components/blog/PublishModal.tsx:110
 msgid "Choose when to publish \"{0}\""
 msgstr "\"{0}\"の公開日時を選択"
+
+#: src/pages/WebAnalyticsLivePage.tsx:161
+msgid "Cities"
+msgstr ""
+
+#: src/pages/WebAnalyticsLivePage.tsx:161
+msgid "City"
+msgstr ""
 
 #: src/components/contacts/BulkActionsBar.tsx:183
 #: src/components/contacts/InlineEditableField.tsx:308
@@ -2301,7 +2320,7 @@ msgid "Code Editor"
 msgstr "コードエディター"
 
 #: src/components/email_builder/ui/CodePreview.tsx:61
-#: src/layouts/WorkspaceLayout.tsx:559
+#: src/layouts/WorkspaceLayout.tsx:573
 msgid "Collapse"
 msgstr "折りたたむ"
 
@@ -2611,7 +2630,7 @@ msgstr "イベント発生ごとにコンタクトが再エントリー"
 msgid "Contact updated successfully"
 msgstr "コンタクトを更新しました"
 
-#: src/layouts/WorkspaceLayout.tsx:316
+#: src/layouts/WorkspaceLayout.tsx:332
 #: src/pages/ContactsPage.tsx:998
 msgid "Contacts"
 msgstr "コンタクト"
@@ -2743,7 +2762,7 @@ msgstr ""
 msgid "Could not load this goal"
 msgstr ""
 
-#: src/components/web_analytics/tabs/ExploreTab.tsx:331
+#: src/components/web_analytics/tabs/ExploreTab.tsx:326
 msgid "Could not load this report"
 msgstr ""
 
@@ -2756,7 +2775,6 @@ msgstr ""
 
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:210
 #: src/components/web_analytics/tabs/DashboardTab.tsx:203
-#: src/pages/WebAnalyticsLivePage.tsx:102
 msgid "Countries"
 msgstr ""
 
@@ -3066,7 +3084,7 @@ msgid "Custom dimension labels"
 msgstr ""
 
 #: src/components/web_analytics/explore/BreakdownModal.tsx:73
-#: src/components/web_analytics/explore/DimensionSelector.tsx:41
+#: src/components/web_analytics/explore/DimensionSelector.tsx:107
 #: src/components/web_analytics/FilterBuilder.tsx:65
 msgid "Custom dimensions"
 msgstr ""
@@ -3233,9 +3251,10 @@ msgstr ""
 msgid "Danger Zone"
 msgstr "危険な操作"
 
-#: src/layouts/WorkspaceLayout.tsx:228
-#: src/layouts/WorkspaceLayout.tsx:246
+#: src/layouts/WorkspaceLayout.tsx:244
+#: src/layouts/WorkspaceLayout.tsx:262
 #: src/pages/AnalyticsPage.tsx:77
+#: src/pages/WebAnalyticsLivePage.tsx:125
 msgid "Dashboard"
 msgstr "ダッシュボード"
 
@@ -3563,10 +3582,11 @@ msgid "Detect from website URL"
 msgstr "WebサイトURLから検出"
 
 #: src/components/web_analytics/explore/BreakdownModal.tsx:67
-#: src/components/web_analytics/explore/DimensionSelector.tsx:35
+#: src/components/web_analytics/explore/DimensionSelector.tsx:101
 #: src/components/web_analytics/FilterBuilder.tsx:59
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:240
 #: src/components/web_analytics/tabs/DashboardTab.tsx:228
+#: src/pages/WebAnalyticsLivePage.tsx:187
 msgid "Device"
 msgstr ""
 
@@ -3574,7 +3594,8 @@ msgstr ""
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:239
 #: src/components/web_analytics/tabs/DashboardTab.tsx:224
 #: src/components/web_analytics/tabs/DashboardTab.tsx:228
-#: src/pages/WebAnalyticsLivePage.tsx:107
+#: src/pages/WebAnalyticsLivePage.tsx:182
+#: src/pages/WebAnalyticsLivePage.tsx:187
 msgid "Devices"
 msgstr ""
 
@@ -3686,7 +3707,7 @@ msgstr "このファイルをストレージから完全に削除しますか？
 msgid "Do you want to send \"{0}\" immediately or schedule it for later?"
 msgstr "「{0}」をすぐに送信しますか、それとも後でスケジュールしますか？"
 
-#: src/layouts/WorkspaceLayout.tsx:635
+#: src/layouts/WorkspaceLayout.tsx:649
 msgid "Documentation"
 msgstr "ドキュメント"
 
@@ -3768,7 +3789,7 @@ msgid "Drop files here to upload"
 msgstr "ここにファイルをドロップしてアップロード"
 
 #. placeholder {0}: examples.join(', ')
-#: src/components/web_analytics/explore/DimensionSelector.tsx:118
+#: src/components/web_analytics/explore/DimensionSelector.tsx:193
 msgid "e.g. {0}"
 msgstr ""
 
@@ -4611,7 +4632,7 @@ msgid "Exits"
 msgstr ""
 
 #: src/components/email_builder/ui/CodePreview.tsx:61
-#: src/components/web_analytics/DimensionTableWidget.tsx:108
+#: src/components/web_analytics/DimensionTableWidget.tsx:127
 msgid "Expand"
 msgstr "展開"
 
@@ -4619,8 +4640,8 @@ msgstr "展開"
 msgid "Expires:"
 msgstr "有効期限:"
 
-#: src/layouts/WorkspaceLayout.tsx:265
-#: src/pages/WebAnalyticsPage.tsx:59
+#: src/layouts/WorkspaceLayout.tsx:281
+#: src/pages/WebAnalyticsPage.tsx:74
 msgid "Explore"
 msgstr ""
 
@@ -4644,7 +4665,7 @@ msgid "Export MJML"
 msgstr ""
 
 #: src/components/web_analytics/explore/CsvExportModal.tsx:128
-#: src/components/web_analytics/tabs/ExploreTab.tsx:339
+#: src/pages/WebAnalyticsPage.tsx:97
 msgid "Export to CSV"
 msgstr ""
 
@@ -5166,7 +5187,7 @@ msgstr ""
 msgid "Failed to update workspace settings"
 msgstr "ワークスペース設定の更新に失敗しました"
 
-#: src/layouts/WorkspaceLayout.tsx:217
+#: src/layouts/WorkspaceLayout.tsx:233
 msgid "Failed to update workspace settings: {errorMessage}"
 msgstr "ワークスペース設定の更新に失敗しました: {errorMessage}"
 
@@ -5244,7 +5265,7 @@ msgid "File is too large. Maximum size is 1MB."
 msgstr ""
 
 #: src/components/file_manager/context.tsx:155
-#: src/layouts/WorkspaceLayout.tsx:451
+#: src/layouts/WorkspaceLayout.tsx:467
 #: src/pages/FileManagerPage.tsx:119
 msgid "File Manager"
 msgstr "ファイルマネージャー"
@@ -5301,8 +5322,8 @@ msgid "Filter on an event property"
 msgstr ""
 
 #: src/components/messages/MessageHistoryTab.tsx:586
-#: src/layouts/WorkspaceLayout.tsx:287
-#: src/pages/WebAnalyticsPage.tsx:61
+#: src/layouts/WorkspaceLayout.tsx:303
+#: src/pages/WebAnalyticsPage.tsx:76
 msgid "Filters"
 msgstr "フィルター"
 
@@ -5550,7 +5571,7 @@ msgid "Generated SQL:"
 msgstr "生成されたSQL:"
 
 #: src/components/web_analytics/explore/BreakdownModal.tsx:68
-#: src/components/web_analytics/explore/DimensionSelector.tsx:36
+#: src/components/web_analytics/explore/DimensionSelector.tsx:102
 #: src/components/web_analytics/FilterBuilder.tsx:60
 msgid "Geo"
 msgstr ""
@@ -5591,7 +5612,7 @@ msgstr "サインインへ"
 #: src/components/segment/form_leaf.tsx:683
 #: src/components/segment/input.tsx:634
 #: src/components/web_analytics/explore/BreakdownModal.tsx:71
-#: src/components/web_analytics/explore/DimensionSelector.tsx:39
+#: src/components/web_analytics/explore/DimensionSelector.tsx:105
 #: src/components/web_analytics/FilterBuilder.tsx:63
 #: src/components/web_analytics/tabs/DashboardTab.tsx:253
 msgid "Goal"
@@ -5627,8 +5648,8 @@ msgstr "ゴール:"
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:260
 #: src/components/web_analytics/tabs/DashboardTab.tsx:242
 #: src/components/web_analytics/tabs/DashboardTab.tsx:252
-#: src/layouts/WorkspaceLayout.tsx:276
-#: src/pages/WebAnalyticsPage.tsx:60
+#: src/layouts/WorkspaceLayout.tsx:292
+#: src/pages/WebAnalyticsPage.tsx:75
 msgid "Goals"
 msgstr ""
 
@@ -5725,7 +5746,7 @@ msgstr "高さ"
 
 #: src/components/email_builder/MjmlCodeEditor.tsx:702
 #: src/components/templates/CreateTemplateDrawer.tsx:138
-#: src/layouts/WorkspaceLayout.tsx:661
+#: src/layouts/WorkspaceLayout.tsx:675
 msgid "Help"
 msgstr "ヘルプ"
 
@@ -6440,7 +6461,7 @@ msgstr "ラベルは100文字以下である必要があります"
 
 #: src/components/web_analytics/explore/ExploreTemplates.tsx:61
 #: src/components/web_analytics/tabs/DashboardTab.tsx:141
-#: src/pages/WebAnalyticsLivePage.tsx:86
+#: src/pages/WebAnalyticsLivePage.tsx:149
 msgid "Landing pages"
 msgstr ""
 
@@ -6475,8 +6496,8 @@ msgid "Large images can significantly slow down email loading times for recipien
 msgstr "大きな画像は、特にモバイルデバイスや遅い接続では、受信者のメール読み込み時間を大幅に遅くする可能性があります。"
 
 #: src/pages/WebAnalyticsLivePage.tsx:57
-msgid "Last {WINDOW_MINUTES} minutes"
-msgstr ""
+#~ msgid "Last {WINDOW_MINUTES} minutes"
+#~ msgstr ""
 
 #: src/components/settings/WebhookCard.tsx:297
 msgid "Last 24 hours"
@@ -6581,7 +6602,7 @@ msgstr "文字間隔"
 msgid "Lighter"
 msgstr "ライター"
 
-#: src/components/web_analytics/DimensionTableWidget.tsx:158
+#: src/components/web_analytics/DimensionTableWidget.tsx:177
 msgid "Limited to the top {EXPANDED_ROWS} values for performance"
 msgstr ""
 
@@ -6712,7 +6733,7 @@ msgid "List:"
 msgstr "リスト:"
 
 #: src/components/analytics/NewContactsTable.tsx:73
-#: src/layouts/WorkspaceLayout.tsx:326
+#: src/layouts/WorkspaceLayout.tsx:342
 #: src/pages/ContactsPage.tsx:424
 #: src/pages/ContactsPage.tsx:544
 #: src/pages/ListsPage.tsx:155
@@ -6726,8 +6747,7 @@ msgstr "リストを更新しました"
 #: src/components/automations/AutomationCard.tsx:65
 #: src/components/blog/RecentThemesTable.tsx:128
 #: src/components/web_analytics/LiveButton.tsx:46
-#: src/layouts/WorkspaceLayout.tsx:254
-#: src/pages/WebAnalyticsLivePage.tsx:56
+#: src/layouts/WorkspaceLayout.tsx:270
 msgid "Live"
 msgstr "ライブ"
 
@@ -6820,11 +6840,11 @@ msgstr "ロゴプレビュー"
 msgid "Logo URL"
 msgstr "ロゴURL"
 
-#: src/layouts/WorkspaceLayout.tsx:673
+#: src/layouts/WorkspaceLayout.tsx:687
 msgid "Logout"
 msgstr "ログアウト"
 
-#: src/layouts/WorkspaceLayout.tsx:460
+#: src/layouts/WorkspaceLayout.tsx:476
 #: src/pages/LogsPage.tsx:28
 msgid "Logs"
 msgstr "ログ"
@@ -7203,13 +7223,13 @@ msgstr "その他のオプション"
 
 #: src/components/web_analytics/explore/DimensionSelector.tsx:164
 #: src/components/web_analytics/explore/DimensionSelector.tsx:165
-msgid "Move earlier"
-msgstr ""
+#~ msgid "Move earlier"
+#~ msgstr ""
 
 #: src/components/web_analytics/explore/DimensionSelector.tsx:175
 #: src/components/web_analytics/explore/DimensionSelector.tsx:176
-msgid "Move later"
-msgstr ""
+#~ msgid "Move later"
+#~ msgstr ""
 
 #: src/components/settings/SystemSettingsDrawer.tsx:557
 #: src/pages/SetupWizard.tsx:715
@@ -7332,7 +7352,7 @@ msgstr "新規テーマ"
 msgid "New Window"
 msgstr "新しいウィンドウ"
 
-#: src/layouts/WorkspaceLayout.tsx:613
+#: src/layouts/WorkspaceLayout.tsx:627
 #: src/pages/CreateWorkspacePage.tsx:104
 msgid "New workspace"
 msgstr "新規ワークスペース"
@@ -7421,6 +7441,7 @@ msgstr ""
 
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:187
 #: src/components/web_analytics/tabs/DashboardTab.tsx:183
+#: src/pages/WebAnalyticsLivePage.tsx:194
 msgid "No campaign data"
 msgstr ""
 
@@ -7432,8 +7453,16 @@ msgstr "カテゴリがまだありません"
 msgid "No category"
 msgstr "カテゴリなし"
 
+#: src/pages/WebAnalyticsLivePage.tsx:211
+msgid "No channel data"
+msgstr ""
+
 #: src/components/web_analytics/goals/GoalCard.tsx:149
 msgid "No chart data"
+msgstr ""
+
+#: src/pages/WebAnalyticsLivePage.tsx:159
+msgid "No city data"
 msgstr ""
 
 #: src/components/web_analytics/toolbar.tsx:156
@@ -7463,7 +7492,7 @@ msgid "No CSV data available"
 msgstr "CSVデータがありません"
 
 #: src/components/analytics/ChartVisualization.tsx:395
-#: src/components/web_analytics/DimensionTableWidget.tsx:258
+#: src/components/web_analytics/DimensionTableWidget.tsx:283
 #: src/components/web_analytics/TrafficHeatmapWidget.tsx:220
 msgid "No data available"
 msgstr "データがありません"
@@ -7485,11 +7514,12 @@ msgid "No default sender configured"
 msgstr "デフォルトの差出人が設定されていません"
 
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:234
+#: src/pages/WebAnalyticsLivePage.tsx:185
 msgid "No device data"
 msgstr ""
 
 #: src/components/web_analytics/explore/BreakdownModal.tsx:146
-#: src/components/web_analytics/explore/DimensionSelector.tsx:99
+#: src/components/web_analytics/explore/DimensionSelector.tsx:174
 msgid "No dimensions found"
 msgstr ""
 
@@ -7601,6 +7631,10 @@ msgstr "メモなし"
 msgid "No operations defined"
 msgstr ""
 
+#: src/pages/WebAnalyticsLivePage.tsx:145
+msgid "No pages"
+msgstr ""
+
 #: src/components/blog/PostsTable.tsx:369
 msgid "No posts in this category"
 msgstr "このカテゴリに投稿がありません"
@@ -7628,6 +7662,10 @@ msgstr "テスト用のプロバイダーが設定されていません"
 #: src/components/blog/PostsTable.tsx:368
 msgid "No published posts"
 msgstr "公開済みの投稿がありません"
+
+#: src/pages/WebAnalyticsLivePage.tsx:168
+msgid "No referrers"
+msgstr ""
 
 #: src/components/email_builder/ui/BackgroundInput.tsx:97
 msgid "No Repeat"
@@ -7997,7 +8035,7 @@ msgstr "開封率"
 #~ msgid "Open the settings tab to install the tracking snippet"
 #~ msgstr ""
 
-#: src/pages/WebAnalyticsPage.tsx:123
+#: src/pages/WebAnalyticsPage.tsx:171
 msgid "Open the workspace settings to install the tracking snippet"
 msgstr ""
 
@@ -8142,11 +8180,12 @@ msgid "Padding Settings"
 msgstr "パディング設定"
 
 #: src/components/web_analytics/tabs/DashboardTab.tsx:142
+#: src/pages/WebAnalyticsLivePage.tsx:150
 msgid "Page"
 msgstr ""
 
 #: src/components/web_analytics/explore/BreakdownModal.tsx:66
-#: src/components/web_analytics/explore/DimensionSelector.tsx:34
+#: src/components/web_analytics/explore/DimensionSelector.tsx:100
 #: src/components/web_analytics/FilterBuilder.tsx:58
 msgid "Pages"
 msgstr ""
@@ -8156,7 +8195,6 @@ msgstr ""
 #~ msgstr ""
 
 #: src/components/web_analytics/CountryMapView.tsx:67
-#: src/pages/WebAnalyticsLivePage.tsx:76
 msgid "Pageviews"
 msgstr ""
 
@@ -9080,11 +9118,13 @@ msgstr ""
 
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:167
 #: src/components/web_analytics/tabs/DashboardTab.tsx:160
+#: src/pages/WebAnalyticsLivePage.tsx:173
 msgid "Referrer domain"
 msgstr ""
 
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:166
 #: src/components/web_analytics/tabs/DashboardTab.tsx:159
+#: src/pages/WebAnalyticsLivePage.tsx:172
 msgid "Referrers"
 msgstr ""
 
@@ -9159,8 +9199,8 @@ msgstr "削除"
 msgid "Remove custom field label"
 msgstr "カスタムフィールドラベルを削除"
 
-#: src/components/web_analytics/explore/DimensionSelector.tsx:185
-#: src/components/web_analytics/explore/DimensionSelector.tsx:186
+#: src/components/web_analytics/explore/DimensionSelector.tsx:72
+#: src/components/web_analytics/explore/DimensionSelector.tsx:73
 msgid "Remove dimension"
 msgstr ""
 
@@ -9253,7 +9293,7 @@ msgstr "返信先:"
 msgid "Reply-To"
 msgstr "Reply-To"
 
-#: src/layouts/WorkspaceLayout.tsx:648
+#: src/layouts/WorkspaceLayout.tsx:662
 msgid "Report An Issue"
 msgstr "問題を報告"
 
@@ -9689,7 +9729,7 @@ msgstr ""
 msgid "Search by name"
 msgstr ""
 
-#: src/components/web_analytics/explore/DimensionSelector.tsx:89
+#: src/components/web_analytics/explore/DimensionSelector.tsx:164
 msgid "Search dimensions"
 msgstr ""
 
@@ -10085,7 +10125,7 @@ msgstr "このトリガーを適用するセグメントを選択"
 msgid "Select Winner"
 msgstr "勝者を選択"
 
-#: src/layouts/WorkspaceLayout.tsx:585
+#: src/layouts/WorkspaceLayout.tsx:599
 #: src/pages/DashboardPage.tsx:31
 msgid "Select workspace"
 msgstr "ワークスペースを選択"
@@ -10264,13 +10304,13 @@ msgid "SES tenant isolation"
 msgstr ""
 
 #: src/components/web_analytics/explore/BreakdownModal.tsx:70
-#: src/components/web_analytics/explore/DimensionSelector.tsx:38
+#: src/components/web_analytics/explore/DimensionSelector.tsx:104
 #: src/components/web_analytics/FilterBuilder.tsx:62
 msgid "Session"
 msgstr ""
 
 #: src/components/web_analytics/CountryMapView.tsx:65
-#: src/components/web_analytics/DimensionTableWidget.tsx:72
+#: src/components/web_analytics/DimensionTableWidget.tsx:90
 #: src/components/web_analytics/explore/BreakdownDrawer.tsx:198
 #: src/components/web_analytics/explore/CsvExportModal.tsx:45
 #: src/components/web_analytics/explore/ExploreSummary.tsx:29
@@ -10278,7 +10318,7 @@ msgstr ""
 #: src/components/web_analytics/tabs/DashboardTab.tsx:28
 #: src/components/web_analytics/tabs/DashboardTab.tsx:92
 #: src/components/web_analytics/TrafficHeatmapWidget.tsx:55
-#: src/pages/WebAnalyticsLivePage.tsx:147
+#: src/pages/WebAnalyticsLivePage.tsx:113
 msgid "Sessions"
 msgstr ""
 
@@ -10424,7 +10464,7 @@ msgid "Setting up..."
 msgstr "セットアップ中..."
 
 #: src/components/settings/SettingsSidebar.tsx:135
-#: src/layouts/WorkspaceLayout.tsx:469
+#: src/layouts/WorkspaceLayout.tsx:485
 msgid "Settings"
 msgstr "設定"
 
@@ -11140,7 +11180,7 @@ msgstr "テンプレート変数:"
 msgid "Template:"
 msgstr "テンプレート:"
 
-#: src/layouts/WorkspaceLayout.tsx:352
+#: src/layouts/WorkspaceLayout.tsx:368
 #: src/pages/TemplatesPage.tsx:404
 msgid "Templates"
 msgstr "テンプレート"
@@ -11673,7 +11713,7 @@ msgstr "このラッパーにはセクションがありません。コンテン
 #: src/components/blog/PublishModal.tsx:149
 #: src/components/broadcasts/SendOrScheduleModal.tsx:228
 #: src/components/web_analytics/explore/BreakdownModal.tsx:69
-#: src/components/web_analytics/explore/DimensionSelector.tsx:37
+#: src/components/web_analytics/explore/DimensionSelector.tsx:103
 #: src/components/web_analytics/FilterBuilder.tsx:61
 msgid "Time"
 msgstr "時間"
@@ -11698,7 +11738,7 @@ msgstr "タイムライン"
 msgid "times"
 msgstr "回"
 
-#: src/components/web_analytics/DimensionTableWidget.tsx:73
+#: src/components/web_analytics/DimensionTableWidget.tsx:91
 #: src/components/web_analytics/explore/BreakdownDrawer.tsx:205
 #: src/components/web_analytics/explore/CsvExportModal.tsx:47
 #: src/components/web_analytics/explore/ExploreTable.tsx:109
@@ -11868,6 +11908,10 @@ msgstr ""
 msgid "Top Center"
 msgstr "上中央"
 
+#: src/pages/WebAnalyticsLivePage.tsx:156
+msgid "Top Cities"
+msgstr ""
+
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:385
 msgid "Top Frame"
 msgstr "トップフレーム"
@@ -11877,7 +11921,12 @@ msgid "Top Left"
 msgstr "左上"
 
 #: src/components/web_analytics/tabs/DashboardTab.tsx:136
+#: src/pages/WebAnalyticsLivePage.tsx:142
 msgid "Top Pages"
+msgstr ""
+
+#: src/pages/WebAnalyticsLivePage.tsx:165
+msgid "Top Referrers"
 msgstr ""
 
 #: src/components/email_builder/ui/BackgroundInput.tsx:106
@@ -11931,7 +11980,7 @@ msgid "Tracking (opens & clicks) should be enabled in your workspace settings to
 msgstr "この機能を使用するには、ワークスペース設定でトラッキング（開封＆クリック）を有効にする必要があります"
 
 #: src/components/web_analytics/explore/BreakdownModal.tsx:65
-#: src/components/web_analytics/explore/DimensionSelector.tsx:33
+#: src/components/web_analytics/explore/DimensionSelector.tsx:99
 #: src/components/web_analytics/FilterBuilder.tsx:57
 msgid "Traffic"
 msgstr ""
@@ -11946,7 +11995,7 @@ msgstr ""
 
 #: src/components/analytics/EmailMetricsChart.tsx:286
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:408
-#: src/layouts/WorkspaceLayout.tsx:399
+#: src/layouts/WorkspaceLayout.tsx:415
 #: src/pages/TemplatesPage.tsx:126
 msgid "Transactional"
 msgstr "トランザクション"
@@ -12095,6 +12144,7 @@ msgstr ""
 #: src/components/blog/PostsTable.tsx:170
 #: src/components/contacts/SegmentsFilter.tsx:89
 #: src/components/timeline/ContactTimeline.tsx:761
+#: src/components/web_analytics/LiveSessionMap.tsx:49
 #: src/pages/BroadcastsPage.tsx:1148
 #: src/pages/BroadcastsPage.tsx:1159
 msgid "Unknown"
@@ -12106,7 +12156,7 @@ msgstr "不明"
 msgid "Unknown date"
 msgstr "日付不明"
 
-#: src/layouts/WorkspaceLayout.tsx:216
+#: src/layouts/WorkspaceLayout.tsx:232
 msgid "Unknown error"
 msgstr "不明なエラー"
 
@@ -12399,7 +12449,7 @@ msgid "Used for"
 msgstr "用途"
 
 #: src/components/web_analytics/explore/BreakdownModal.tsx:72
-#: src/components/web_analytics/explore/DimensionSelector.tsx:40
+#: src/components/web_analytics/explore/DimensionSelector.tsx:106
 #: src/components/web_analytics/FilterBuilder.tsx:64
 msgid "User"
 msgstr ""
@@ -12439,7 +12489,7 @@ msgid "Using {0}..."
 msgstr "{0}を使用中..."
 
 #: src/components/web_analytics/explore/BreakdownModal.tsx:64
-#: src/components/web_analytics/explore/DimensionSelector.tsx:32
+#: src/components/web_analytics/explore/DimensionSelector.tsx:98
 #: src/components/web_analytics/FilterBuilder.tsx:56
 msgid "UTM"
 msgstr ""
@@ -12621,13 +12671,13 @@ msgstr "ウェブサイトのファビコンを自動検出して使用します
 #: src/components/settings/WebAnalyticsSettings.tsx:142
 #: src/components/settings/WebAnalyticsSettings.tsx:152
 #: src/components/settings/WebAnalyticsSettings.tsx:187
-#: src/layouts/WorkspaceLayout.tsx:237
+#: src/layouts/WorkspaceLayout.tsx:253
 #: src/pages/BroadcastsPage.tsx:1082
-#: src/pages/WebAnalyticsPage.tsx:58
+#: src/pages/WebAnalyticsPage.tsx:73
 msgid "Web Analytics"
 msgstr "Webアナリティクス"
 
-#: src/pages/WebAnalyticsPage.tsx:117
+#: src/pages/WebAnalyticsPage.tsx:165
 msgid "Web analytics is not set up on this workspace yet."
 msgstr ""
 
@@ -12882,14 +12932,14 @@ msgstr "ワークスペース名"
 msgid "Workspace name must be at least 3 characters long"
 msgstr "ワークスペース名は3文字以上必要です"
 
-#: src/layouts/WorkspaceLayout.tsx:195
+#: src/layouts/WorkspaceLayout.tsx:211
 #: src/pages/AnalyticsPage.tsx:68
 #: src/pages/FileManagerPage.tsx:56
 msgid "Workspace not found"
 msgstr "ワークスペースが見つかりません"
 
 #: src/components/settings/GeneralSettings.tsx:80
-#: src/layouts/WorkspaceLayout.tsx:213
+#: src/layouts/WorkspaceLayout.tsx:229
 msgid "Workspace settings updated successfully"
 msgstr "ワークスペース設定が正常に更新されました"
 

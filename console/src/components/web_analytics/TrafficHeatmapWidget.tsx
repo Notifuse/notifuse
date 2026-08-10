@@ -204,7 +204,7 @@ export function TrafficHeatmapWidget(props: TrafficHeatmapWidgetProps): ReactNod
   const hasData = (rows?.length ?? 0) > 0
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
+    <div className="rounded-lg border border-gray-200 overflow-hidden">
       <div className="px-4 pt-4 pb-4">
         <h3 className="text-base font-semibold text-gray-900">{title}</h3>
       </div>

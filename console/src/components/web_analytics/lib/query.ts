@@ -26,6 +26,17 @@ export const webAnalyticsClient = AnalyticsService.create({
   cacheTTL: 60_000
 })
 
+/**
+ * The live view cannot share the client above: a one-minute cache would answer
+ * every poll from memory, so the page would claim to refresh every few seconds
+ * while showing minute-old numbers. It also fans out wider — a map plus six
+ * breakdowns at once — so it gets its own concurrency budget.
+ */
+export const webAnalyticsLiveClient = AnalyticsService.create({
+  maxConcurrency: 8,
+  cacheTTL: 5_000
+})
+
 export interface WebQueryOptions {
   schema: WebSchema
   measures: string[]
@@ -144,11 +155,12 @@ export function buildWebQuery(options: WebQueryOptions): AnalyticsQuery {
 export function useWebQuery(
   workspaceId: string,
   query: AnalyticsQuery | null,
-  options?: { enabled?: boolean; refetchInterval?: number }
+  options?: { enabled?: boolean; refetchInterval?: number; client?: AnalyticsService }
 ): UseQueryResult<AnalyticsResponse> {
+  const client = options?.client ?? webAnalyticsClient
   return useQuery<AnalyticsResponse>({
     queryKey: ['web-analytics', workspaceId, query],
-    queryFn: () => webAnalyticsClient.query(query as AnalyticsQuery, workspaceId),
+    queryFn: () => client.query(query as AnalyticsQuery, workspaceId),
     enabled: query != null && options?.enabled !== false,
     placeholderData: keepPreviousData,
     refetchInterval: options?.refetchInterval,
@@ -165,20 +177,23 @@ export function useWebComparisonQuery(
   workspaceId: string,
   current: AnalyticsQuery | null,
   previous: AnalyticsQuery | null,
-  options?: { enabled?: boolean }
+  options?: { enabled?: boolean; refetchInterval?: number; client?: AnalyticsService }
 ) {
   const enabled = options?.enabled !== false
+  const client = options?.client ?? webAnalyticsClient
   const results = useQueries({
     queries: [
       {
         queryKey: ['web-analytics', workspaceId, current],
-        queryFn: () => webAnalyticsClient.query(current as AnalyticsQuery, workspaceId),
+        queryFn: () => client.query(current as AnalyticsQuery, workspaceId),
         enabled: current != null && enabled,
-        placeholderData: keepPreviousData
+        placeholderData: keepPreviousData,
+        refetchInterval: options?.refetchInterval,
+        refetchIntervalInBackground: false
       },
       {
         queryKey: ['web-analytics', workspaceId, previous],
-        queryFn: () => webAnalyticsClient.query(previous as AnalyticsQuery, workspaceId),
+        queryFn: () => client.query(previous as AnalyticsQuery, workspaceId),
         enabled: previous != null && enabled,
         placeholderData: keepPreviousData
       }

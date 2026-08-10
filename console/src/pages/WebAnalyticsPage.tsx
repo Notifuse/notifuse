@@ -1,6 +1,7 @@
-import { ReactNode, Suspense, lazy } from 'react'
+import { ReactNode, Suspense, lazy, useState } from 'react'
 import { Link, useParams } from '@tanstack/react-router'
-import { Skeleton } from 'antd'
+import { Button, Skeleton, Tooltip } from 'antd'
+import { Download } from 'lucide-react'
 import { useLingui } from '@lingui/react/macro'
 import {
   WEB_ANALYTICS_TABS,
@@ -9,6 +10,9 @@ import {
   useWebAnalytics
 } from '../components/web_analytics/context'
 import { ComparisonPicker, DateRangePicker } from '../components/web_analytics/toolbar'
+import { CsvExportModal } from '../components/web_analytics/explore/CsvExportModal'
+import { DimensionSelector } from '../components/web_analytics/explore/DimensionSelector'
+import { MinSessionsInput } from '../components/web_analytics/explore/MinSessionsInput'
 import { FilterBuilder } from '../components/web_analytics/FilterBuilder'
 import { DashboardTab } from '../components/web_analytics/tabs/DashboardTab'
 import { FiltersTab } from '../components/web_analytics/tabs/FiltersTab'
@@ -46,10 +50,21 @@ export function WebAnalyticsPage() {
 // which one to render.
 function WebAnalyticsSection(props: { workspaceId: string; tab: WebAnalyticsTab }) {
   const { t } = useLingui()
-  const { settings } = useWebAnalytics()
+  const { settings, dimensions, setDimensions } = useWebAnalytics()
 
   const activeTab = WEB_ANALYTICS_TABS.includes(props.tab) ? props.tab : 'dashboard'
-  const showToolbar = DATA_SECTIONS.includes(activeTab)
+
+  // Explore opens on the report picker, which answers "which report" rather
+  // than reading data. A range and a segment narrow a report you already have,
+  // so they only earn their row once one is chosen.
+  const pickingReport = activeTab === 'explore' && dimensions.length === 0
+  const showToolbar = DATA_SECTIONS.includes(activeTab) && !pickingReport
+
+  // Explore builds its own report, so it owns a row the other tabs do not: the
+  // dimensions that define it. That row displaces its period controls up
+  // beside the title, and the export button rides along with them.
+  const isExplore = activeTab === 'explore'
+  const [csvOpen, setCsvOpen] = useState(false)
 
   // The dashboard is the feature's landing page and keeps its name; the other
   // sections title themselves, since the sidebar entry is all that says where
@@ -76,30 +91,63 @@ function WebAnalyticsSection(props: { workspaceId: string; tab: WebAnalyticsTab 
     filters: <FiltersTab />
   }
 
+  const periodControls = (
+    <div className="flex flex-wrap items-center gap-2">
+      {isExplore ? (
+        <Tooltip title={t`Export to CSV`}>
+          <Button
+            type="text"
+            size="small"
+            icon={<Download size={16} />}
+            onClick={() => setCsvOpen(true)}
+          />
+        </Tooltip>
+      ) : null}
+      <DateRangePicker />
+      <ComparisonPicker />
+    </div>
+  )
+
   return (
     <div className="p-4 md:p-6">
-      <div className="mb-4 flex items-center gap-3">
-        <div className="text-2xl font-medium">{titles[activeTab]}</div>
-        {settings?.enabled ? <LiveButton /> : null}
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="text-2xl font-medium">{titles[activeTab]}</div>
+          {/* The dashboard is the section's landing page, so the live count
+              belongs there; on the other tabs it is a second, unrelated period
+              sitting next to a title about the one you chose. */}
+          {activeTab === 'dashboard' && settings?.enabled ? <LiveButton /> : null}
+        </div>
+        {showToolbar && settings && isExplore ? periodControls : null}
       </div>
 
+      {/* Dimensions above filters: the dimensions are the report, the filters
+          only narrow it, so they read in the order they are applied. */}
+      {showToolbar && settings && isExplore ? (
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+          <DimensionSelector value={dimensions} onChange={setDimensions} />
+          <MinSessionsInput />
+        </div>
+      ) : null}
+
       {showToolbar && settings ? (
-        // The period controls sit with the filter bar rather than in the page
-        // header: both narrow the same question, and a reader scanning a chart
-        // looks for "which range" beside "which segment", not two rows away.
+        // On the other tabs the period controls sit with the filter bar rather
+        // than in the page header: both narrow the same question, and a reader
+        // scanning a chart looks for "which range" beside "which segment".
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
           <FilterBuilder
             schema={activeTab === 'goals' ? 'web_goals' : 'web_sessions'}
             allowMetricFilters={activeTab === 'explore'}
           />
-          <div className="flex flex-wrap items-center gap-2">
-            <DateRangePicker />
-            <ComparisonPicker />
-          </div>
+          {isExplore ? null : periodControls}
         </div>
       ) : null}
 
       {settings ? panes[activeTab] : <NotConfigured workspaceId={props.workspaceId} />}
+
+      {/* Lives here rather than in the tab because its trigger moved up to the
+          page header; the modal reads the report it exports from context. */}
+      <CsvExportModal open={csvOpen} onCancel={() => setCsvOpen(false)} />
     </div>
   )
 }

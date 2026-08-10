@@ -123,13 +123,13 @@ export function GoalsTab() {
       {isLoading && goals.length === 0 ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {[0, 1, 2].map((index) => (
-            <div key={index} className="rounded-md bg-white p-4">
+            <div key={index} className="rounded-md border border-gray-200 p-4">
               <Skeleton active paragraph={{ rows: 4 }} />
             </div>
           ))}
         </div>
       ) : goals.length === 0 ? (
-        <div className="rounded-md bg-white py-12">
+        <div className="rounded-md border border-gray-200 py-12">
           <Empty description={t`No goals tracked yet`} image={Empty.PRESENTED_IMAGE_SIMPLE} />
         </div>
       ) : (

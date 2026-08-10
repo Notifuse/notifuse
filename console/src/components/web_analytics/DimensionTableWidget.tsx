@@ -10,9 +10,15 @@ import { formatValue } from './lib/format'
 import { WidgetTabs } from './WidgetTabs'
 import { mergeWidgetFilters } from './lib/dimensions'
 import { getHeatMapStyle } from './lib/heatmap'
-import { buildWebQuery, mergeComparisonRows, useWebComparisonQuery } from './lib/query'
+import {
+  buildWebQuery,
+  mergeComparisonRows,
+  useWebComparisonQuery,
+  webAnalyticsLiveClient
+} from './lib/query'
 import {
   DimensionRow,
+  ResolvedRange,
   TIMESCORE_REFERENCE_SECONDS,
   ValueFormat,
   WebDimensionFilter,
@@ -43,6 +49,17 @@ export interface DimensionTabConfig {
   type?: 'table' | 'country_map'
 }
 
+/**
+ * Turns a widget into a live one: it reads a rolling window measured on last
+ * activity instead of the page's period, and polls. Set only by the live view.
+ */
+export interface LiveOverride {
+  range: ResolvedRange
+  /** Dimension the window applies to, e.g. `updated_at` for "still here". */
+  timeDimension: string
+  refetchInterval: number
+}
+
 interface DimensionTableWidgetProps {
   title: string
   infoTooltip?: string
@@ -50,6 +67,7 @@ interface DimensionTableWidgetProps {
   columns?: ColumnConfig[]
   iconPrefix?: (value: string, tabKey: string) => ReactNode
   emptyText?: string
+  live?: LiveOverride
 }
 
 const VISIBLE_ROWS = 7
@@ -81,7 +99,8 @@ export function DimensionTableWidget(props: DimensionTableWidgetProps) {
 
   const rows = useDimensionRows(tab, columns, {
     order: isMap ? tab.order : { [sortBy]: sortDirection },
-    limit
+    limit,
+    live: props.live
   })
 
   const toggleSort = (key: string) => {
@@ -121,7 +140,7 @@ export function DimensionTableWidget(props: DimensionTableWidgetProps) {
   )
 
   return (
-    <div className="overflow-hidden rounded-md bg-white">
+    <div className="overflow-hidden rounded-md border border-gray-200">
       {header}
       {isMap ? (
         <div className="px-4 pb-4">
@@ -187,7 +206,7 @@ export function DimensionTableWidget(props: DimensionTableWidgetProps) {
 function useDimensionRows(
   tab: DimensionTabConfig,
   columns: ColumnConfig[],
-  options: { order?: Record<string, 'asc' | 'desc'>; limit: number }
+  options: { order?: Record<string, 'asc' | 'desc'>; limit: number; live?: LiveOverride }
 ) {
   const context = useWebAnalytics()
   const schema = tab.schema ?? 'web_sessions'
@@ -205,16 +224,22 @@ function useDimensionRows(
     filters,
     order: options.order,
     limit: options.limit,
-    timezone: context.timezone
+    timezone: context.timezone,
+    timeDimension: options.live?.timeDimension
   }
 
-  const current = buildWebQuery({ ...base, range: context.resolved })
+  const current = buildWebQuery({ ...base, range: options.live?.range ?? context.resolved })
+  // "Now" has no period to be compared against, so a live widget never asks
+  // for one however the page's comparison toggle is set.
   const previous =
-    context.showComparison && context.resolvedCompare
+    !options.live && context.showComparison && context.resolvedCompare
       ? buildWebQuery({ ...base, range: context.resolvedCompare })
       : null
 
-  const result = useWebComparisonQuery(context.workspaceId, current, previous)
+  const result = useWebComparisonQuery(context.workspaceId, current, previous, {
+    refetchInterval: options.live?.refetchInterval,
+    client: options.live ? webAnalyticsLiveClient : undefined
+  })
   const currentRows = result.current?.data
   const previousRows = result.previous?.data
 

@@ -40,13 +40,12 @@ msgstr ""
 msgid "(Cancelled)"
 msgstr "(Cancel·lat)"
 
-#: src/components/web_analytics/DimensionTableWidget.tsx:325
+#: src/components/web_analytics/DimensionTableWidget.tsx:350
 #: src/components/web_analytics/explore/BreakdownDrawer.tsx:74
 #: src/components/web_analytics/explore/BreakdownDrawer.tsx:120
 #: src/components/web_analytics/explore/BreakdownDrawer.tsx:189
 #: src/components/web_analytics/explore/CsvExportModal.tsx:98
 #: src/components/web_analytics/explore/ExploreTable.tsx:48
-#: src/pages/WebAnalyticsLivePage.tsx:145
 msgid "(empty)"
 msgstr ""
 
@@ -261,6 +260,10 @@ msgstr ""
 #: src/components/transactional/ApiCommandModal.tsx:818
 msgid "{language} code copied to clipboard!"
 msgstr "Codi {language} copiat al porta-retalls!"
+
+#: src/pages/WebAnalyticsLivePage.tsx:133
+msgid "{liveSessions} live now"
+msgstr ""
 
 #: src/components/contacts/ExportContactsModal.tsx:119
 msgid "{minutes}m {remainingSeconds}s"
@@ -511,8 +514,8 @@ msgid "Active filters"
 msgstr "Filtres actius"
 
 #: src/pages/WebAnalyticsLivePage.tsx:71
-msgid "Active sessions"
-msgstr ""
+#~ msgid "Active sessions"
+#~ msgstr ""
 
 #: src/pages/WebAnalyticsLivePage.tsx:45
 #~ msgid "Active Sessions"
@@ -634,7 +637,7 @@ msgstr ""
 msgid "Add Custom Header"
 msgstr ""
 
-#: src/components/web_analytics/explore/DimensionSelector.tsx:153
+#: src/components/web_analytics/explore/DimensionSelector.tsx:230
 msgid "Add dimension"
 msgstr ""
 
@@ -849,7 +852,7 @@ msgstr ""
 msgid "All contact fields are optional except email."
 msgstr "Tots els camps de contacte són opcionals excepte el correu electrònic."
 
-#: src/components/web_analytics/explore/DimensionSelector.tsx:99
+#: src/components/web_analytics/explore/DimensionSelector.tsx:174
 msgid "All dimensions selected"
 msgstr ""
 
@@ -1321,7 +1324,7 @@ msgstr "Automatització actualitzada correctament"
 msgid "Automation:"
 msgstr "Automatització:"
 
-#: src/layouts/WorkspaceLayout.tsx:387
+#: src/layouts/WorkspaceLayout.tsx:403
 #: src/pages/AutomationsPage.tsx:157
 msgid "Automations"
 msgstr "Automatitzacions"
@@ -1371,8 +1374,8 @@ msgid "Back"
 msgstr ""
 
 #: src/pages/WebAnalyticsLivePage.tsx:64
-msgid "Back to the dashboard"
-msgstr ""
+#~ msgid "Back to the dashboard"
+#~ msgstr ""
 
 #: src/components/web_analytics/filters/BackfillStatus.tsx:57
 msgid "Backfill cancelled"
@@ -1534,7 +1537,7 @@ msgstr "Blocs"
 #: src/components/settings/BlogSettings.tsx:205
 #: src/components/settings/BlogSettings.tsx:238
 #: src/components/settings/SettingsSidebar.tsx:100
-#: src/layouts/WorkspaceLayout.tsx:424
+#: src/layouts/WorkspaceLayout.tsx:440
 msgid "Blog"
 msgstr "Blog"
 
@@ -1810,7 +1813,7 @@ msgid "Broadcast updated successfully"
 msgstr "Difusió actualitzada correctament"
 
 #: src/components/analytics/EmailMetricsChart.tsx:285
-#: src/layouts/WorkspaceLayout.tsx:361
+#: src/layouts/WorkspaceLayout.tsx:377
 #: src/pages/BroadcastsPage.tsx:1473
 msgid "Broadcasts"
 msgstr "Difusions"
@@ -1879,8 +1882,14 @@ msgstr "Farciment del botó"
 msgid "Button Size"
 msgstr "Mida del botó"
 
+#: src/pages/WebAnalyticsLivePage.tsx:199
+msgid "Campaign"
+msgstr ""
+
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:190
 #: src/components/web_analytics/tabs/DashboardTab.tsx:186
+#: src/pages/WebAnalyticsLivePage.tsx:191
+#: src/pages/WebAnalyticsLivePage.tsx:198
 msgid "Campaigns"
 msgstr ""
 
@@ -2086,7 +2095,7 @@ msgstr "Canviar estat per a {0}"
 
 #: src/components/messages/MessageHistoryTab.tsx:217
 #: src/components/web_analytics/explore/BreakdownModal.tsx:63
-#: src/components/web_analytics/explore/DimensionSelector.tsx:31
+#: src/components/web_analytics/explore/DimensionSelector.tsx:97
 #: src/components/web_analytics/FilterBuilder.tsx:55
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:173
 #: src/components/web_analytics/tabs/DashboardTab.tsx:166
@@ -2095,6 +2104,7 @@ msgstr "Canal"
 
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:179
 #: src/components/web_analytics/tabs/DashboardTab.tsx:172
+#: src/pages/WebAnalyticsLivePage.tsx:216
 msgid "Channel group"
 msgstr ""
 
@@ -2106,7 +2116,8 @@ msgstr ""
 #: src/components/web_analytics/explore/ExploreTemplates.tsx:55
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:172
 #: src/components/web_analytics/tabs/DashboardTab.tsx:165
-#: src/pages/WebAnalyticsLivePage.tsx:94
+#: src/pages/WebAnalyticsLivePage.tsx:208
+#: src/pages/WebAnalyticsLivePage.tsx:215
 msgid "Channels"
 msgstr ""
 
@@ -2131,6 +2142,14 @@ msgstr "Trieu un punt de partida per al vostre nou tema. Podeu personalitzar-ho 
 #: src/components/blog/PublishModal.tsx:110
 msgid "Choose when to publish \"{0}\""
 msgstr "Trieu quan publicar \"{0}\""
+
+#: src/pages/WebAnalyticsLivePage.tsx:161
+msgid "Cities"
+msgstr ""
+
+#: src/pages/WebAnalyticsLivePage.tsx:161
+msgid "City"
+msgstr ""
 
 #: src/components/contacts/BulkActionsBar.tsx:183
 #: src/components/contacts/InlineEditableField.tsx:308
@@ -2301,7 +2320,7 @@ msgid "Code Editor"
 msgstr "Editor de codi"
 
 #: src/components/email_builder/ui/CodePreview.tsx:61
-#: src/layouts/WorkspaceLayout.tsx:559
+#: src/layouts/WorkspaceLayout.tsx:573
 msgid "Collapse"
 msgstr "Contraure"
 
@@ -2611,7 +2630,7 @@ msgstr "El contacte torna a entrar cada vegada que es produeix l'esdeveniment"
 msgid "Contact updated successfully"
 msgstr "Contacte actualitzat correctament"
 
-#: src/layouts/WorkspaceLayout.tsx:316
+#: src/layouts/WorkspaceLayout.tsx:332
 #: src/pages/ContactsPage.tsx:998
 msgid "Contacts"
 msgstr "Contactes"
@@ -2743,7 +2762,7 @@ msgstr ""
 msgid "Could not load this goal"
 msgstr ""
 
-#: src/components/web_analytics/tabs/ExploreTab.tsx:331
+#: src/components/web_analytics/tabs/ExploreTab.tsx:326
 msgid "Could not load this report"
 msgstr ""
 
@@ -2756,7 +2775,6 @@ msgstr ""
 
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:210
 #: src/components/web_analytics/tabs/DashboardTab.tsx:203
-#: src/pages/WebAnalyticsLivePage.tsx:102
 msgid "Countries"
 msgstr ""
 
@@ -3066,7 +3084,7 @@ msgid "Custom dimension labels"
 msgstr ""
 
 #: src/components/web_analytics/explore/BreakdownModal.tsx:73
-#: src/components/web_analytics/explore/DimensionSelector.tsx:41
+#: src/components/web_analytics/explore/DimensionSelector.tsx:107
 #: src/components/web_analytics/FilterBuilder.tsx:65
 msgid "Custom dimensions"
 msgstr ""
@@ -3233,9 +3251,10 @@ msgstr ""
 msgid "Danger Zone"
 msgstr "Zona de perill"
 
-#: src/layouts/WorkspaceLayout.tsx:228
-#: src/layouts/WorkspaceLayout.tsx:246
+#: src/layouts/WorkspaceLayout.tsx:244
+#: src/layouts/WorkspaceLayout.tsx:262
 #: src/pages/AnalyticsPage.tsx:77
+#: src/pages/WebAnalyticsLivePage.tsx:125
 msgid "Dashboard"
 msgstr "Dashboard"
 
@@ -3563,10 +3582,11 @@ msgid "Detect from website URL"
 msgstr "Detectar des de l'URL del lloc web"
 
 #: src/components/web_analytics/explore/BreakdownModal.tsx:67
-#: src/components/web_analytics/explore/DimensionSelector.tsx:35
+#: src/components/web_analytics/explore/DimensionSelector.tsx:101
 #: src/components/web_analytics/FilterBuilder.tsx:59
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:240
 #: src/components/web_analytics/tabs/DashboardTab.tsx:228
+#: src/pages/WebAnalyticsLivePage.tsx:187
 msgid "Device"
 msgstr ""
 
@@ -3574,7 +3594,8 @@ msgstr ""
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:239
 #: src/components/web_analytics/tabs/DashboardTab.tsx:224
 #: src/components/web_analytics/tabs/DashboardTab.tsx:228
-#: src/pages/WebAnalyticsLivePage.tsx:107
+#: src/pages/WebAnalyticsLivePage.tsx:182
+#: src/pages/WebAnalyticsLivePage.tsx:187
 msgid "Devices"
 msgstr ""
 
@@ -3686,7 +3707,7 @@ msgstr "Voleu eliminar permanentment aquest fitxer del vostre emmagatzematge?"
 msgid "Do you want to send \"{0}\" immediately or schedule it for later?"
 msgstr "Voleu enviar \"{0}\" immediatament o programar-ho per més tard?"
 
-#: src/layouts/WorkspaceLayout.tsx:635
+#: src/layouts/WorkspaceLayout.tsx:649
 msgid "Documentation"
 msgstr "Documentació"
 
@@ -3768,7 +3789,7 @@ msgid "Drop files here to upload"
 msgstr "Deixeu anar fitxers aquí per pujar"
 
 #. placeholder {0}: examples.join(', ')
-#: src/components/web_analytics/explore/DimensionSelector.tsx:118
+#: src/components/web_analytics/explore/DimensionSelector.tsx:193
 msgid "e.g. {0}"
 msgstr ""
 
@@ -4611,7 +4632,7 @@ msgid "Exits"
 msgstr ""
 
 #: src/components/email_builder/ui/CodePreview.tsx:61
-#: src/components/web_analytics/DimensionTableWidget.tsx:108
+#: src/components/web_analytics/DimensionTableWidget.tsx:127
 msgid "Expand"
 msgstr "Expandir"
 
@@ -4619,8 +4640,8 @@ msgstr "Expandir"
 msgid "Expires:"
 msgstr "Caduca:"
 
-#: src/layouts/WorkspaceLayout.tsx:265
-#: src/pages/WebAnalyticsPage.tsx:59
+#: src/layouts/WorkspaceLayout.tsx:281
+#: src/pages/WebAnalyticsPage.tsx:74
 msgid "Explore"
 msgstr ""
 
@@ -4644,7 +4665,7 @@ msgid "Export MJML"
 msgstr ""
 
 #: src/components/web_analytics/explore/CsvExportModal.tsx:128
-#: src/components/web_analytics/tabs/ExploreTab.tsx:339
+#: src/pages/WebAnalyticsPage.tsx:97
 msgid "Export to CSV"
 msgstr ""
 
@@ -5166,7 +5187,7 @@ msgstr ""
 msgid "Failed to update workspace settings"
 msgstr "No s'han pogut actualitzar els paràmetres de l'espai de treball"
 
-#: src/layouts/WorkspaceLayout.tsx:217
+#: src/layouts/WorkspaceLayout.tsx:233
 msgid "Failed to update workspace settings: {errorMessage}"
 msgstr "No s'han pogut actualitzar els paràmetres de l'espai de treball: {errorMessage}"
 
@@ -5244,7 +5265,7 @@ msgid "File is too large. Maximum size is 1MB."
 msgstr ""
 
 #: src/components/file_manager/context.tsx:155
-#: src/layouts/WorkspaceLayout.tsx:451
+#: src/layouts/WorkspaceLayout.tsx:467
 #: src/pages/FileManagerPage.tsx:119
 msgid "File Manager"
 msgstr "Gestor de fitxers"
@@ -5301,8 +5322,8 @@ msgid "Filter on an event property"
 msgstr ""
 
 #: src/components/messages/MessageHistoryTab.tsx:586
-#: src/layouts/WorkspaceLayout.tsx:287
-#: src/pages/WebAnalyticsPage.tsx:61
+#: src/layouts/WorkspaceLayout.tsx:303
+#: src/pages/WebAnalyticsPage.tsx:76
 msgid "Filters"
 msgstr "Filtres"
 
@@ -5550,7 +5571,7 @@ msgid "Generated SQL:"
 msgstr "SQL generat:"
 
 #: src/components/web_analytics/explore/BreakdownModal.tsx:68
-#: src/components/web_analytics/explore/DimensionSelector.tsx:36
+#: src/components/web_analytics/explore/DimensionSelector.tsx:102
 #: src/components/web_analytics/FilterBuilder.tsx:60
 msgid "Geo"
 msgstr ""
@@ -5591,7 +5612,7 @@ msgstr "Anar a iniciar sessió"
 #: src/components/segment/form_leaf.tsx:683
 #: src/components/segment/input.tsx:634
 #: src/components/web_analytics/explore/BreakdownModal.tsx:71
-#: src/components/web_analytics/explore/DimensionSelector.tsx:39
+#: src/components/web_analytics/explore/DimensionSelector.tsx:105
 #: src/components/web_analytics/FilterBuilder.tsx:63
 #: src/components/web_analytics/tabs/DashboardTab.tsx:253
 msgid "Goal"
@@ -5627,8 +5648,8 @@ msgstr "Objectiu:"
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:260
 #: src/components/web_analytics/tabs/DashboardTab.tsx:242
 #: src/components/web_analytics/tabs/DashboardTab.tsx:252
-#: src/layouts/WorkspaceLayout.tsx:276
-#: src/pages/WebAnalyticsPage.tsx:60
+#: src/layouts/WorkspaceLayout.tsx:292
+#: src/pages/WebAnalyticsPage.tsx:75
 msgid "Goals"
 msgstr ""
 
@@ -5725,7 +5746,7 @@ msgstr "Alçada"
 
 #: src/components/email_builder/MjmlCodeEditor.tsx:702
 #: src/components/templates/CreateTemplateDrawer.tsx:138
-#: src/layouts/WorkspaceLayout.tsx:661
+#: src/layouts/WorkspaceLayout.tsx:675
 msgid "Help"
 msgstr "Ajuda"
 
@@ -6440,7 +6461,7 @@ msgstr "L'etiqueta ha de tenir com a màxim 100 caràcters"
 
 #: src/components/web_analytics/explore/ExploreTemplates.tsx:61
 #: src/components/web_analytics/tabs/DashboardTab.tsx:141
-#: src/pages/WebAnalyticsLivePage.tsx:86
+#: src/pages/WebAnalyticsLivePage.tsx:149
 msgid "Landing pages"
 msgstr ""
 
@@ -6475,8 +6496,8 @@ msgid "Large images can significantly slow down email loading times for recipien
 msgstr "Les imatges grans poden alentir significativament els temps de càrrega del correu per als destinataris, especialment en dispositius mòbils o connexions lentes."
 
 #: src/pages/WebAnalyticsLivePage.tsx:57
-msgid "Last {WINDOW_MINUTES} minutes"
-msgstr ""
+#~ msgid "Last {WINDOW_MINUTES} minutes"
+#~ msgstr ""
 
 #: src/components/settings/WebhookCard.tsx:297
 msgid "Last 24 hours"
@@ -6581,7 +6602,7 @@ msgstr "Espaiat de lletres"
 msgid "Lighter"
 msgstr "Més clar"
 
-#: src/components/web_analytics/DimensionTableWidget.tsx:158
+#: src/components/web_analytics/DimensionTableWidget.tsx:177
 msgid "Limited to the top {EXPANDED_ROWS} values for performance"
 msgstr ""
 
@@ -6712,7 +6733,7 @@ msgid "List:"
 msgstr "Llista:"
 
 #: src/components/analytics/NewContactsTable.tsx:73
-#: src/layouts/WorkspaceLayout.tsx:326
+#: src/layouts/WorkspaceLayout.tsx:342
 #: src/pages/ContactsPage.tsx:424
 #: src/pages/ContactsPage.tsx:544
 #: src/pages/ListsPage.tsx:155
@@ -6726,8 +6747,7 @@ msgstr "Llistes actualitzades"
 #: src/components/automations/AutomationCard.tsx:65
 #: src/components/blog/RecentThemesTable.tsx:128
 #: src/components/web_analytics/LiveButton.tsx:46
-#: src/layouts/WorkspaceLayout.tsx:254
-#: src/pages/WebAnalyticsLivePage.tsx:56
+#: src/layouts/WorkspaceLayout.tsx:270
 msgid "Live"
 msgstr "En directe"
 
@@ -6820,11 +6840,11 @@ msgstr "Previsualització del logotip"
 msgid "Logo URL"
 msgstr "URL del logotip"
 
-#: src/layouts/WorkspaceLayout.tsx:673
+#: src/layouts/WorkspaceLayout.tsx:687
 msgid "Logout"
 msgstr "Tancar sessió"
 
-#: src/layouts/WorkspaceLayout.tsx:460
+#: src/layouts/WorkspaceLayout.tsx:476
 #: src/pages/LogsPage.tsx:28
 msgid "Logs"
 msgstr "Registres"
@@ -7203,13 +7223,13 @@ msgstr "Més opcions"
 
 #: src/components/web_analytics/explore/DimensionSelector.tsx:164
 #: src/components/web_analytics/explore/DimensionSelector.tsx:165
-msgid "Move earlier"
-msgstr ""
+#~ msgid "Move earlier"
+#~ msgstr ""
 
 #: src/components/web_analytics/explore/DimensionSelector.tsx:175
 #: src/components/web_analytics/explore/DimensionSelector.tsx:176
-msgid "Move later"
-msgstr ""
+#~ msgid "Move later"
+#~ msgstr ""
 
 #: src/components/settings/SystemSettingsDrawer.tsx:557
 #: src/pages/SetupWizard.tsx:715
@@ -7332,7 +7352,7 @@ msgstr "Nou tema"
 msgid "New Window"
 msgstr "Nova finestra"
 
-#: src/layouts/WorkspaceLayout.tsx:613
+#: src/layouts/WorkspaceLayout.tsx:627
 #: src/pages/CreateWorkspacePage.tsx:104
 msgid "New workspace"
 msgstr "Nou espai de treball"
@@ -7421,6 +7441,7 @@ msgstr ""
 
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:187
 #: src/components/web_analytics/tabs/DashboardTab.tsx:183
+#: src/pages/WebAnalyticsLivePage.tsx:194
 msgid "No campaign data"
 msgstr ""
 
@@ -7432,8 +7453,16 @@ msgstr "Encara no hi ha categories"
 msgid "No category"
 msgstr "Sense categoria"
 
+#: src/pages/WebAnalyticsLivePage.tsx:211
+msgid "No channel data"
+msgstr ""
+
 #: src/components/web_analytics/goals/GoalCard.tsx:149
 msgid "No chart data"
+msgstr ""
+
+#: src/pages/WebAnalyticsLivePage.tsx:159
+msgid "No city data"
 msgstr ""
 
 #: src/components/web_analytics/toolbar.tsx:156
@@ -7463,7 +7492,7 @@ msgid "No CSV data available"
 msgstr "No hi ha dades CSV disponibles"
 
 #: src/components/analytics/ChartVisualization.tsx:395
-#: src/components/web_analytics/DimensionTableWidget.tsx:258
+#: src/components/web_analytics/DimensionTableWidget.tsx:283
 #: src/components/web_analytics/TrafficHeatmapWidget.tsx:220
 msgid "No data available"
 msgstr "No hi ha dades disponibles"
@@ -7485,11 +7514,12 @@ msgid "No default sender configured"
 msgstr "No s'ha configurat cap remitent per defecte"
 
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:234
+#: src/pages/WebAnalyticsLivePage.tsx:185
 msgid "No device data"
 msgstr ""
 
 #: src/components/web_analytics/explore/BreakdownModal.tsx:146
-#: src/components/web_analytics/explore/DimensionSelector.tsx:99
+#: src/components/web_analytics/explore/DimensionSelector.tsx:174
 msgid "No dimensions found"
 msgstr ""
 
@@ -7601,6 +7631,10 @@ msgstr "Sense notes"
 msgid "No operations defined"
 msgstr ""
 
+#: src/pages/WebAnalyticsLivePage.tsx:145
+msgid "No pages"
+msgstr ""
+
 #: src/components/blog/PostsTable.tsx:369
 msgid "No posts in this category"
 msgstr "No hi ha publicacions a aquesta categoria"
@@ -7628,6 +7662,10 @@ msgstr "No s'ha configurat cap proveïdor per a proves"
 #: src/components/blog/PostsTable.tsx:368
 msgid "No published posts"
 msgstr "No hi ha publicacions publicades"
+
+#: src/pages/WebAnalyticsLivePage.tsx:168
+msgid "No referrers"
+msgstr ""
 
 #: src/components/email_builder/ui/BackgroundInput.tsx:97
 msgid "No Repeat"
@@ -7997,7 +8035,7 @@ msgstr "Taxa d'obertura"
 #~ msgid "Open the settings tab to install the tracking snippet"
 #~ msgstr ""
 
-#: src/pages/WebAnalyticsPage.tsx:123
+#: src/pages/WebAnalyticsPage.tsx:171
 msgid "Open the workspace settings to install the tracking snippet"
 msgstr ""
 
@@ -8142,11 +8180,12 @@ msgid "Padding Settings"
 msgstr "Configuració de farciment"
 
 #: src/components/web_analytics/tabs/DashboardTab.tsx:142
+#: src/pages/WebAnalyticsLivePage.tsx:150
 msgid "Page"
 msgstr ""
 
 #: src/components/web_analytics/explore/BreakdownModal.tsx:66
-#: src/components/web_analytics/explore/DimensionSelector.tsx:34
+#: src/components/web_analytics/explore/DimensionSelector.tsx:100
 #: src/components/web_analytics/FilterBuilder.tsx:58
 msgid "Pages"
 msgstr ""
@@ -8156,7 +8195,6 @@ msgstr ""
 #~ msgstr ""
 
 #: src/components/web_analytics/CountryMapView.tsx:67
-#: src/pages/WebAnalyticsLivePage.tsx:76
 msgid "Pageviews"
 msgstr ""
 
@@ -9080,11 +9118,13 @@ msgstr ""
 
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:167
 #: src/components/web_analytics/tabs/DashboardTab.tsx:160
+#: src/pages/WebAnalyticsLivePage.tsx:173
 msgid "Referrer domain"
 msgstr ""
 
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:166
 #: src/components/web_analytics/tabs/DashboardTab.tsx:159
+#: src/pages/WebAnalyticsLivePage.tsx:172
 msgid "Referrers"
 msgstr ""
 
@@ -9159,8 +9199,8 @@ msgstr "Treure"
 msgid "Remove custom field label"
 msgstr "Eliminar etiqueta de camp personalitzat"
 
-#: src/components/web_analytics/explore/DimensionSelector.tsx:185
-#: src/components/web_analytics/explore/DimensionSelector.tsx:186
+#: src/components/web_analytics/explore/DimensionSelector.tsx:72
+#: src/components/web_analytics/explore/DimensionSelector.tsx:73
 msgid "Remove dimension"
 msgstr ""
 
@@ -9253,7 +9293,7 @@ msgstr "Respondre a:"
 msgid "Reply-To"
 msgstr "Respondre a"
 
-#: src/layouts/WorkspaceLayout.tsx:648
+#: src/layouts/WorkspaceLayout.tsx:662
 msgid "Report An Issue"
 msgstr "Informar d'un problema"
 
@@ -9689,7 +9729,7 @@ msgstr ""
 msgid "Search by name"
 msgstr ""
 
-#: src/components/web_analytics/explore/DimensionSelector.tsx:89
+#: src/components/web_analytics/explore/DimensionSelector.tsx:164
 msgid "Search dimensions"
 msgstr ""
 
@@ -10085,7 +10125,7 @@ msgstr "Seleccioneu a quin segment s'aplica aquest activador"
 msgid "Select Winner"
 msgstr "Seleccionar guanyador"
 
-#: src/layouts/WorkspaceLayout.tsx:585
+#: src/layouts/WorkspaceLayout.tsx:599
 #: src/pages/DashboardPage.tsx:31
 msgid "Select workspace"
 msgstr "Seleccionar espai de treball"
@@ -10264,13 +10304,13 @@ msgid "SES tenant isolation"
 msgstr ""
 
 #: src/components/web_analytics/explore/BreakdownModal.tsx:70
-#: src/components/web_analytics/explore/DimensionSelector.tsx:38
+#: src/components/web_analytics/explore/DimensionSelector.tsx:104
 #: src/components/web_analytics/FilterBuilder.tsx:62
 msgid "Session"
 msgstr ""
 
 #: src/components/web_analytics/CountryMapView.tsx:65
-#: src/components/web_analytics/DimensionTableWidget.tsx:72
+#: src/components/web_analytics/DimensionTableWidget.tsx:90
 #: src/components/web_analytics/explore/BreakdownDrawer.tsx:198
 #: src/components/web_analytics/explore/CsvExportModal.tsx:45
 #: src/components/web_analytics/explore/ExploreSummary.tsx:29
@@ -10278,7 +10318,7 @@ msgstr ""
 #: src/components/web_analytics/tabs/DashboardTab.tsx:28
 #: src/components/web_analytics/tabs/DashboardTab.tsx:92
 #: src/components/web_analytics/TrafficHeatmapWidget.tsx:55
-#: src/pages/WebAnalyticsLivePage.tsx:147
+#: src/pages/WebAnalyticsLivePage.tsx:113
 msgid "Sessions"
 msgstr ""
 
@@ -10424,7 +10464,7 @@ msgid "Setting up..."
 msgstr "Configurant..."
 
 #: src/components/settings/SettingsSidebar.tsx:135
-#: src/layouts/WorkspaceLayout.tsx:469
+#: src/layouts/WorkspaceLayout.tsx:485
 msgid "Settings"
 msgstr "Configuració"
 
@@ -11140,7 +11180,7 @@ msgstr "Variables de plantilla:"
 msgid "Template:"
 msgstr "Plantilla:"
 
-#: src/layouts/WorkspaceLayout.tsx:352
+#: src/layouts/WorkspaceLayout.tsx:368
 #: src/pages/TemplatesPage.tsx:404
 msgid "Templates"
 msgstr "Plantilles"
@@ -11673,7 +11713,7 @@ msgstr "Aquest contenidor no té seccions. Afegiu una secció per mostrar contin
 #: src/components/blog/PublishModal.tsx:149
 #: src/components/broadcasts/SendOrScheduleModal.tsx:228
 #: src/components/web_analytics/explore/BreakdownModal.tsx:69
-#: src/components/web_analytics/explore/DimensionSelector.tsx:37
+#: src/components/web_analytics/explore/DimensionSelector.tsx:103
 #: src/components/web_analytics/FilterBuilder.tsx:61
 msgid "Time"
 msgstr "Hora"
@@ -11698,7 +11738,7 @@ msgstr "Cronologia"
 msgid "times"
 msgstr "vegades"
 
-#: src/components/web_analytics/DimensionTableWidget.tsx:73
+#: src/components/web_analytics/DimensionTableWidget.tsx:91
 #: src/components/web_analytics/explore/BreakdownDrawer.tsx:205
 #: src/components/web_analytics/explore/CsvExportModal.tsx:47
 #: src/components/web_analytics/explore/ExploreTable.tsx:109
@@ -11868,6 +11908,10 @@ msgstr ""
 msgid "Top Center"
 msgstr "Centre superior"
 
+#: src/pages/WebAnalyticsLivePage.tsx:156
+msgid "Top Cities"
+msgstr ""
+
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:385
 msgid "Top Frame"
 msgstr "Marc superior"
@@ -11877,7 +11921,12 @@ msgid "Top Left"
 msgstr "Superior esquerra"
 
 #: src/components/web_analytics/tabs/DashboardTab.tsx:136
+#: src/pages/WebAnalyticsLivePage.tsx:142
 msgid "Top Pages"
+msgstr ""
+
+#: src/pages/WebAnalyticsLivePage.tsx:165
+msgid "Top Referrers"
 msgstr ""
 
 #: src/components/email_builder/ui/BackgroundInput.tsx:106
@@ -11931,7 +11980,7 @@ msgid "Tracking (opens & clicks) should be enabled in your workspace settings to
 msgstr "El seguiment (obertures i clics) hauria d'estar habilitat a la configuració de l'espai de treball per utilitzar aquesta funcionalitat"
 
 #: src/components/web_analytics/explore/BreakdownModal.tsx:65
-#: src/components/web_analytics/explore/DimensionSelector.tsx:33
+#: src/components/web_analytics/explore/DimensionSelector.tsx:99
 #: src/components/web_analytics/FilterBuilder.tsx:57
 msgid "Traffic"
 msgstr ""
@@ -11946,7 +11995,7 @@ msgstr ""
 
 #: src/components/analytics/EmailMetricsChart.tsx:286
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:408
-#: src/layouts/WorkspaceLayout.tsx:399
+#: src/layouts/WorkspaceLayout.tsx:415
 #: src/pages/TemplatesPage.tsx:126
 msgid "Transactional"
 msgstr "Transaccional"
@@ -12095,6 +12144,7 @@ msgstr ""
 #: src/components/blog/PostsTable.tsx:170
 #: src/components/contacts/SegmentsFilter.tsx:89
 #: src/components/timeline/ContactTimeline.tsx:761
+#: src/components/web_analytics/LiveSessionMap.tsx:49
 #: src/pages/BroadcastsPage.tsx:1148
 #: src/pages/BroadcastsPage.tsx:1159
 msgid "Unknown"
@@ -12106,7 +12156,7 @@ msgstr "Desconegut"
 msgid "Unknown date"
 msgstr "Data desconeguda"
 
-#: src/layouts/WorkspaceLayout.tsx:216
+#: src/layouts/WorkspaceLayout.tsx:232
 msgid "Unknown error"
 msgstr "Error desconegut"
 
@@ -12399,7 +12449,7 @@ msgid "Used for"
 msgstr "Utilitzat per a"
 
 #: src/components/web_analytics/explore/BreakdownModal.tsx:72
-#: src/components/web_analytics/explore/DimensionSelector.tsx:40
+#: src/components/web_analytics/explore/DimensionSelector.tsx:106
 #: src/components/web_analytics/FilterBuilder.tsx:64
 msgid "User"
 msgstr ""
@@ -12439,7 +12489,7 @@ msgid "Using {0}..."
 msgstr "Utilitzant {0}..."
 
 #: src/components/web_analytics/explore/BreakdownModal.tsx:64
-#: src/components/web_analytics/explore/DimensionSelector.tsx:32
+#: src/components/web_analytics/explore/DimensionSelector.tsx:98
 #: src/components/web_analytics/FilterBuilder.tsx:56
 msgid "UTM"
 msgstr ""
@@ -12621,13 +12671,13 @@ msgstr "Detectarem i utilitzarem automàticament el favicon del vostre lloc web"
 #: src/components/settings/WebAnalyticsSettings.tsx:142
 #: src/components/settings/WebAnalyticsSettings.tsx:152
 #: src/components/settings/WebAnalyticsSettings.tsx:187
-#: src/layouts/WorkspaceLayout.tsx:237
+#: src/layouts/WorkspaceLayout.tsx:253
 #: src/pages/BroadcastsPage.tsx:1082
-#: src/pages/WebAnalyticsPage.tsx:58
+#: src/pages/WebAnalyticsPage.tsx:73
 msgid "Web Analytics"
 msgstr "Analítica web"
 
-#: src/pages/WebAnalyticsPage.tsx:117
+#: src/pages/WebAnalyticsPage.tsx:165
 msgid "Web analytics is not set up on this workspace yet."
 msgstr ""
 
@@ -12882,14 +12932,14 @@ msgstr "Nom de l'espai de treball"
 msgid "Workspace name must be at least 3 characters long"
 msgstr "El nom de l'espai de treball ha de tenir almenys 3 caràcters"
 
-#: src/layouts/WorkspaceLayout.tsx:195
+#: src/layouts/WorkspaceLayout.tsx:211
 #: src/pages/AnalyticsPage.tsx:68
 #: src/pages/FileManagerPage.tsx:56
 msgid "Workspace not found"
 msgstr "Espai de treball no trobat"
 
 #: src/components/settings/GeneralSettings.tsx:80
-#: src/layouts/WorkspaceLayout.tsx:213
+#: src/layouts/WorkspaceLayout.tsx:229
 msgid "Workspace settings updated successfully"
 msgstr "Configuració de l'espai de treball actualitzada correctament"
 

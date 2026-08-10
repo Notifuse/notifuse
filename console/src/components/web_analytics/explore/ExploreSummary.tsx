@@ -36,7 +36,7 @@ export function ExploreSummary(props: ExploreSummaryProps) {
   }
 
   return (
-    <div className="mb-4 grid grid-cols-2 overflow-hidden rounded-md bg-white md:grid-cols-4">
+    <div className="mb-4 grid grid-cols-2 overflow-hidden rounded-md border border-gray-200 md:grid-cols-4">
       {SESSION_METRICS.map((metric, index) => {
         const value = props.totals?.[metric.key as keyof ExploreTotals] as number | undefined
         const change = props.totals?.[

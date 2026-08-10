@@ -13,6 +13,18 @@ import { formatDuration, formatNumber } from '../lib/format'
 import { getHeatMapStyle } from '../lib/heatmap'
 import { TIMESCORE_REFERENCE_SECONDS } from '../lib/types'
 
+/**
+ * One box shared by every expand-icon state, including the blank one standing
+ * in for rows that cannot expand.
+ *
+ * It has to be inline-flex rather than a plain span: `width` does not apply to
+ * a non-replaced inline element, so the blank spacer collapsed to nothing and
+ * leaf rows started a whole icon further left than expandable ones. The fixed
+ * 16px box holds the 14px glyphs, and `align-middle` centres it on the line
+ * rather than letting an inline SVG hang off the text baseline.
+ */
+const EXPAND_ICON_BOX = 'mr-2 inline-flex h-4 w-4 items-center justify-center align-middle'
+
 interface ExploreTableProps {
   data: ExploreRow[]
   dimensions: string[]
@@ -181,6 +193,7 @@ export function ExploreTable(props: ExploreTableProps) {
   return (
     <div className="overflow-hidden rounded-md">
       <Table<ExploreRow>
+        className="border border-gray-200 rounded-md"
         columns={columns}
         dataSource={props.data}
         rowKey="key"
@@ -198,9 +211,15 @@ export function ExploreTable(props: ExploreTableProps) {
           onExpandedRowsChange: (keys) => props.onExpandedRowsChange([...keys]),
           rowExpandable: (record) => canExpandRow(record, props.dimensions),
           expandIcon: ({ expanded, record }) => {
-            if (!canExpandRow(record, props.dimensions)) return <span className="mr-2 w-4" />
+            if (!canExpandRow(record, props.dimensions)) {
+              return <span className={EXPAND_ICON_BOX} />
+            }
             if (props.loadingRows.has(record.key)) {
-              return <Loader2 size={14} className="mr-2 animate-spin text-gray-400" />
+              return (
+                <span className={`${EXPAND_ICON_BOX} text-gray-400`}>
+                  <Loader2 size={14} className="animate-spin" />
+                </span>
+              )
             }
             // An expanded row with nothing under it is almost always the
             // threshold at work, not missing data; saying so beats an empty
@@ -210,14 +229,14 @@ export function ExploreTable(props: ExploreTableProps) {
                 <Tooltip
                   title={t`Every sub-item has fewer than ${context.minSessions} sessions. Lower the threshold to see them.`}
                 >
-                  <span className="mr-2 cursor-help text-amber-500">
+                  <span className={`${EXPAND_ICON_BOX} cursor-help text-amber-500`}>
                     <TriangleAlert size={14} />
                   </span>
                 </Tooltip>
               )
             }
             return (
-              <span className="mr-2 text-gray-500">
+              <span className={`${EXPAND_ICON_BOX} text-gray-500`}>
                 {expanded ? <SquareMinus size={14} /> : <SquarePlus size={14} />}
               </span>
             )

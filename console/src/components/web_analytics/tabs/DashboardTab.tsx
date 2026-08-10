@@ -101,7 +101,7 @@ export function DashboardTab() {
         <Alert type="error" showIcon message={t`Could not load the dashboard`} className="mb-4" />
       ) : null}
 
-      <div className="overflow-hidden rounded-md bg-white">
+      <div className="overflow-hidden rounded-md border border-gray-200">
         <MetricSummary
           metrics={SESSION_METRICS}
           totals={totals}
@@ -131,7 +131,7 @@ export function DashboardTab() {
         </div>
       </div>
 
-      <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+      <div className="mt-6 grid grid-cols-1 gap-x-4 gap-y-6 md:grid-cols-2">
         <DimensionTableWidget
           title={t`Top Pages`}
           columns={sessionColumns}
@@ -176,7 +176,7 @@ export function DashboardTab() {
         />
       </div>
 
-      <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+      <div className="mt-6 grid grid-cols-1 gap-x-4 gap-y-6 md:grid-cols-2">
         <DimensionTableWidget
           title={t`Top Campaigns`}
           columns={sessionColumns}
@@ -218,7 +218,7 @@ export function DashboardTab() {
         />
       </div>
 
-      <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+      <div className="mt-6 grid grid-cols-1 gap-x-4 gap-y-6 md:grid-cols-2">
         <TrafficHeatmapWidget title={t`Traffic by day and hour`} />
         <DimensionTableWidget
           title={t`Devices`}
@@ -237,7 +237,7 @@ export function DashboardTab() {
         />
       </div>
 
-      <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+      <div className="mt-6 grid grid-cols-1 gap-x-4 gap-y-6 md:grid-cols-2">
         <DimensionTableWidget
           title={t`Goals`}
           infoTooltip={t`Goal conversions and their total value`}

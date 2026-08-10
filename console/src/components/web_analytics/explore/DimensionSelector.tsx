@@ -1,8 +1,24 @@
 import { useMemo, useState } from 'react'
 import { Button, Dropdown, Empty, Input, Tooltip } from 'antd'
 import { CloseOutlined, PlusCircleOutlined, SearchOutlined } from '@ant-design/icons'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useLingui } from '@lingui/react/macro'
+import {
+  DndContext,
+  DragEndEvent,
+  KeyboardSensor,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors
+} from '@dnd-kit/core'
+import {
+  SortableContext,
+  arrayMove,
+  horizontalListSortingStrategy,
+  sortableKeyboardCoordinates,
+  useSortable
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import { useWebAnalytics } from '../context'
 import {
   DIMENSION_EXAMPLES,
@@ -14,6 +30,56 @@ import {
 interface DimensionSelectorProps {
   value: string[]
   onChange: (dimensions: string[]) => void
+}
+
+interface SortableDimensionChipProps {
+  dimension: string
+  label: string
+  isLast: boolean
+  onRemove: () => void
+}
+
+/**
+ * One level of the drill-down. Dragging it is what changes which level it is,
+ * so the whole chip is the handle rather than a separate grip.
+ */
+function SortableDimensionChip(props: SortableDimensionChipProps) {
+  const { t } = useLingui()
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: props.dimension
+  })
+
+  return (
+    <span
+      ref={setNodeRef}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+        // The chip stays in the row while dragging so the gap it leaves shows
+        // where dropping it now would put it.
+        opacity: isDragging ? 0.5 : 1
+      }}
+      className="inline-flex items-center"
+    >
+      <span
+        {...attributes}
+        {...listeners}
+        className="inline-flex cursor-grab items-center gap-1 rounded border border-blue-200 bg-blue-50 py-0.5 pl-2 pr-1 text-xs text-blue-700 active:cursor-grabbing"
+      >
+        <span>{props.label}</span>
+        <button
+          type="button"
+          aria-label={t`Remove dimension`}
+          title={t`Remove dimension`}
+          onClick={props.onRemove}
+          className="text-blue-400 hover:text-blue-700"
+        >
+          <CloseOutlined className="text-[10px]" />
+        </button>
+      </span>
+      {props.isLast ? null : <span className="mx-1 text-gray-400">›</span>}
+    </span>
+  )
 }
 
 /**
@@ -71,13 +137,22 @@ export function DimensionSelector(props: DimensionSelectorProps) {
     props.onChange(props.value.filter((candidate) => candidate !== dimension))
   }
 
-  const move = (index: number, offset: number) => {
-    const target = index + offset
-    if (target < 0 || target >= props.value.length) return
-    const next = [...props.value]
-    const [moved] = next.splice(index, 1)
-    next.splice(target, 0, moved)
-    props.onChange(next)
+  const sensors = useSensors(
+    // Without a threshold, pressing the remove button would begin a drag
+    // instead of clicking it.
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    // Lets the order be changed from the keyboard, which the chips used to
+    // offer as a pair of nudge arrows.
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  )
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+    const from = props.value.indexOf(String(active.id))
+    const to = props.value.indexOf(String(over.id))
+    if (from < 0 || to < 0) return
+    props.onChange(arrayMove(props.value, from, to))
   }
 
   const picker = (
@@ -138,63 +213,35 @@ export function DimensionSelector(props: DimensionSelectorProps) {
   )
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <Dropdown
-        trigger={['click']}
-        open={open}
-        disabled={allSelected}
-        onOpenChange={(next) => {
-          setOpen(next)
-          if (!next) setSearch('')
-        }}
-        popupRender={() => picker}
-      >
-        <Button type="link" size="small" icon={<PlusCircleOutlined />} disabled={allSelected}>
-          {t`Add dimension`}
-        </Button>
-      </Dropdown>
+    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+      <SortableContext items={props.value} strategy={horizontalListSortingStrategy}>
+        <div className="flex flex-wrap items-center gap-2">
+          <Dropdown
+            trigger={['click']}
+            open={open}
+            disabled={allSelected}
+            onOpenChange={(next) => {
+              setOpen(next)
+              if (!next) setSearch('')
+            }}
+            popupRender={() => picker}
+          >
+            <Button type="link" size="small" icon={<PlusCircleOutlined />} disabled={allSelected}>
+              {t`Add dimension`}
+            </Button>
+          </Dropdown>
 
-      {props.value.map((dimension, index) => (
-        <span key={dimension} className="inline-flex items-center">
-          <span className="inline-flex items-center gap-1 rounded border border-blue-200 bg-blue-50 py-0.5 pl-1 pr-1.5 text-xs text-blue-700">
-            {/* Drag and drop would need a dependency this console does not
-                carry, so the level of a dimension is nudged one step at a time. */}
-            <button
-              type="button"
-              aria-label={t`Move earlier`}
-              title={t`Move earlier`}
-              disabled={index === 0}
-              onClick={() => move(index, -1)}
-              className="text-blue-400 hover:text-blue-700 disabled:cursor-default disabled:opacity-30"
-            >
-              <ChevronLeft size={12} />
-            </button>
-            <span>{getDimensionLabel(dimension, context.customDimensionLabels)}</span>
-            <button
-              type="button"
-              aria-label={t`Move later`}
-              title={t`Move later`}
-              disabled={index === props.value.length - 1}
-              onClick={() => move(index, 1)}
-              className="text-blue-400 hover:text-blue-700 disabled:cursor-default disabled:opacity-30"
-            >
-              <ChevronRight size={12} />
-            </button>
-            <button
-              type="button"
-              aria-label={t`Remove dimension`}
-              title={t`Remove dimension`}
-              onClick={() => remove(dimension)}
-              className="ml-0.5 text-blue-400 hover:text-blue-700"
-            >
-              <CloseOutlined className="text-[10px]" />
-            </button>
-          </span>
-          {index < props.value.length - 1 ? (
-            <span className="mx-1 text-gray-400">›</span>
-          ) : null}
-        </span>
-      ))}
-    </div>
+          {props.value.map((dimension, index) => (
+            <SortableDimensionChip
+              key={dimension}
+              dimension={dimension}
+              label={getDimensionLabel(dimension, context.customDimensionLabels)}
+              isLast={index === props.value.length - 1}
+              onRemove={() => remove(dimension)}
+            />
+          ))}
+        </div>
+      </SortableContext>
+    </DndContext>
   )
 }

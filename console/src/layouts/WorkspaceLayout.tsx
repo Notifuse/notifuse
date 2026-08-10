@@ -61,6 +61,22 @@ export function WorkspaceLayout() {
   const currentPath = matches[matches.length - 1]?.pathname || ''
   const isSettingsPage = currentPath.includes('/settings') || currentPath.includes('/blog')
 
+  // The web analytics settings live at /settings/web-analytics and belong to
+  // the settings entry, so they must not count as being inside the section.
+  const inWebAnalytics = !currentPath.includes('/settings') && currentPath.includes('/web-analytics')
+
+  const [openKeys, setOpenKeys] = useState<string[]>(inWebAnalytics ? ['web-analytics'] : [])
+
+  // Entering the section reveals it and leaving reclaims the five rows it
+  // costs, so the sidebar only pays for the section you are actually in.
+  // Depending on the two flags rather than the path leaves a manual toggle
+  // alone for as long as you stay put. While collapsed the rail shows flyouts
+  // and rc-menu drives openKeys itself; this restores them on expanding back.
+  useEffect(() => {
+    if (collapsed) return
+    setOpenKeys(inWebAnalytics ? ['web-analytics'] : [])
+  }, [inWebAnalytics, collapsed])
+
   // Fetch user permissions for the current workspace
   useEffect(() => {
     const fetchUserPermissions = async () => {
@@ -148,7 +164,7 @@ export function WorkspaceLayout() {
     // Must be checked before '/web-analytics': the web analytics settings live
     // at /settings/web-analytics and belong to the settings entry.
     selectedKey = 'settings'
-  } else if (currentPath.includes('/web-analytics')) {
+  } else if (inWebAnalytics) {
     // /web-analytics alone redirects to the dashboard, so an unrecognized
     // trailing segment lands on the same entry the user ends up looking at.
     const section = currentPath.split('/web-analytics/')[1]?.split('/')[0] ?? ''
@@ -484,17 +500,20 @@ export function WorkspaceLayout() {
               height: '100vh',
               left: 0,
               top: 0,
-              overflow: 'auto',
+              // The nav inside owns the scrolling; the panel must not also
+              // scroll, or the logo and the collapse button travel with it.
+              overflow: 'hidden',
               zIndex: 10,
               backgroundColor: '#F9F9F9'
             }}
             collapsible
             collapsed={collapsed}
             trigger={null}
-            className="border-r border-gray-200"
+            className="workspace-sider border-r border-gray-200"
           >
             <div
               style={{
+                flex: '0 0 auto',
                 padding: '16px 0 16px 27px',
                 textAlign: 'center',
                 borderBottom: '1px solid #f0f0f0'
@@ -510,42 +529,37 @@ export function WorkspaceLayout() {
                 }}
               />
             </div>
-            <Menu
-              mode="inline"
-              selectedKeys={[selectedKey]}
-              // Only the initial state: landing on a web analytics route shows
-              // the section expanded, and from there the caret is the user's.
-              defaultOpenKeys={currentPath.includes('/web-analytics') ? ['web-analytics'] : []}
-              style={{
-                height: 'calc(100% - 120px)',
-                borderRight: 0,
-                backgroundColor: '#F9F9F9',
-                fontSize: '13px',
-                fontWeight: 600
-              }}
-              items={loadingPermissions ? [] : menuItems}
-              theme="light"
-            />
+            <div className="workspace-sider-nav">
+              <Menu
+                mode="inline"
+                selectedKeys={[selectedKey]}
+                openKeys={openKeys}
+                onOpenChange={setOpenKeys}
+                style={{
+                  borderRight: 0,
+                  backgroundColor: '#F9F9F9',
+                  fontSize: '13px',
+                  fontWeight: 600
+                }}
+                items={loadingPermissions ? [] : menuItems}
+                theme="light"
+              />
+            </div>
             <div
               style={{
-                position: 'fixed',
-                bottom: 0,
-                left: 0,
-                width: collapsed ? '80px' : '249px',
+                flex: '0 0 auto',
                 padding: '16px',
-                // backgroundColor: '#F9F9F9',
-                zIndex: 1
+                borderTop: '1px solid #f0f0f0',
+                backgroundColor: '#F9F9F9'
               }}
             >
               <div
                 style={{
-                  borderBottom: '1px solid #f0f0f0',
                   textAlign: 'center',
                   fontSize: '9px',
                   color: '#000',
                   opacity: 0.7,
-                  marginBottom: '8px',
-                  paddingBottom: '8px'
+                  marginBottom: '8px'
                 }}
               >
                 v{window.VERSION || '1.0'}

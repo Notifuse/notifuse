@@ -88,6 +88,15 @@ th.ant-table-cell.contacts-fixed-col {
 .vertical-tabs .ant-tabs-nav {
   padding-top: 32px;
 }
+/* Tags read as a fill, not an outline. Three quarters of the call sites
+ * already pass `bordered={false}`, so this is what makes the rest match
+ * instead of leaving two looks side by side in one cell. Transparent rather
+ * than `none` keeps the 1px box, so nothing reflows; !important because antd
+ * injects its component styles at runtime, after this file. */
+.ant-tag {
+  border-color: transparent !important;
+}
+
 /* Custom Alert styling with left border */
 .ant-alert {
   border: none !important;
@@ -115,3 +124,88 @@ th.ant-table-cell.contacts-fixed-col {
   font-family: inherit;
 }
 
+
+/* ---------------------------------------------------------------------------
+   Workspace sidebar
+   The panel itself never scrolls: the logo and the footer are fixed rows and
+   only the nav between them overflows. That is what keeps menu items from
+   sliding under the collapse button, and keeps the scrollbar out of it.
+--------------------------------------------------------------------------- */
+.workspace-sider > .ant-layout-sider-children {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+@property --nav-fade-top {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 0px;
+}
+
+@property --nav-fade-bottom {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 0px;
+}
+
+.workspace-sider-nav {
+  --nav-fade-size: 28px;
+  flex: 1 1 auto;
+  /* A flex item refuses to shrink below its content height without this, so
+     the overflow would escape the nav instead of scrolling inside it. */
+  min-height: 0;
+  overflow-y: auto;
+  /* Hitting either end stops there rather than scrolling the page behind. */
+  overscroll-behavior: contain;
+  /* Reserve the gutter so expanding a submenu doesn't shift the labels. */
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    #000 var(--nav-fade-top),
+    #000 calc(100% - var(--nav-fade-bottom)),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    #000 var(--nav-fade-top),
+    #000 calc(100% - var(--nav-fade-bottom)),
+    transparent 100%
+  );
+}
+
+/* Each cut edge fades only while it hides something. A scroll timeline is
+   inactive when its container doesn't overflow, which leaves both fades at
+   their 0px initial value — as does a browser without scroll-driven
+   animations, so the nav simply renders unfaded there. */
+@supports (animation-timeline: scroll()) {
+  .workspace-sider-nav {
+    animation-name: workspace-nav-fade-top, workspace-nav-fade-bottom;
+    animation-timing-function: linear;
+    animation-fill-mode: both;
+    animation-timeline: scroll(self block);
+    animation-range: 0px var(--nav-fade-size), calc(100% - var(--nav-fade-size)) 100%;
+  }
+}
+
+@keyframes workspace-nav-fade-top {
+  from {
+    --nav-fade-top: 0px;
+  }
+  to {
+    --nav-fade-top: var(--nav-fade-size);
+  }
+}
+
+@keyframes workspace-nav-fade-bottom {
+  from {
+    --nav-fade-bottom: var(--nav-fade-size);
+  }
+  to {
+    --nav-fade-bottom: 0px;
+  }
+}

@@ -1,17 +1,13 @@
 import { Key, useCallback, useEffect, useMemo, useState } from 'react'
-import { Alert, Button, Tooltip } from 'antd'
+import { Alert } from 'antd'
 import { useQueryClient } from '@tanstack/react-query'
-import { Download } from 'lucide-react'
 import { useLingui } from '@lingui/react/macro'
 import { useWebAnalytics } from '../context'
 import { BreakdownDrawer, buildBreakdownQuery } from '../explore/BreakdownDrawer'
 import { BreakdownModal } from '../explore/BreakdownModal'
-import { CsvExportModal } from '../explore/CsvExportModal'
-import { DimensionSelector } from '../explore/DimensionSelector'
 import { ExploreSummary } from '../explore/ExploreSummary'
 import { ExploreTable } from '../explore/ExploreTable'
 import { ExploreTemplates } from '../explore/ExploreTemplates'
-import { MinSessionsInput } from '../explore/MinSessionsInput'
 import {
   buildExploreRows,
   calculateChildrenDimensionsAndFilters,
@@ -57,7 +53,6 @@ export function ExploreTab() {
   const [expandedRowKeys, setExpandedRowKeys] = useState<Key[]>([])
   const [loadingRows, setLoadingRows] = useState<Set<string>>(new Set())
   const [bestValue, setBestValue] = useState(0)
-  const [csvOpen, setCsvOpen] = useState(false)
   const [breakdown, setBreakdown] = useState<BreakdownState | null>(null)
   const [pendingFilters, setPendingFilters] = useState<WebDimensionFilter[] | null>(null)
 
@@ -335,23 +330,6 @@ export function ExploreTab() {
         />
       ) : null}
 
-      <div className="mb-2 flex justify-end">
-        <Tooltip title={t`Export to CSV`}>
-          <Button
-            type="text"
-            size="small"
-            icon={<Download size={16} />}
-            disabled={reportData.length === 0}
-            onClick={() => setCsvOpen(true)}
-          />
-        </Tooltip>
-      </div>
-
-      <div className="mb-2 flex flex-wrap items-center gap-2">
-        <DimensionSelector value={dimensions} onChange={context.setDimensions} />
-        <MinSessionsInput />
-      </div>
-
       <ExploreSummary
         totals={totals}
         showComparison={showComparison}
@@ -398,7 +376,6 @@ export function ExploreTab() {
         />
       ) : null}
 
-      <CsvExportModal open={csvOpen} onCancel={() => setCsvOpen(false)} />
     </div>
   )
 }
