@@ -153,6 +153,15 @@ func (h *WebAnalyticsHandler) handleTrack(w http.ResponseWriter, r *http.Request
 	r.Body = http.MaxBytesReader(w, r.Body, webTrackMaxBodyBytes)
 	var payload domain.WebTrackPayload
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		// An oversized body gets its own status. A generic 400 tells a client
+		// nothing actionable, and this is the one failure it CAN recover from
+		// by trimming its oldest actions or rotating the session — worth saying
+		// so, because actions[] only grows and every later beat would fail too.
+		var tooLarge *http.MaxBytesError
+		if errors.As(err, &tooLarge) {
+			h.writeTrackResponse(w, r, http.StatusRequestEntityTooLarge, false, "payload too large")
+			return
+		}
 		h.writeTrackResponse(w, r, http.StatusBadRequest, false, "invalid JSON payload")
 		return
 	}
@@ -232,4 +241,3 @@ func (h *WebAnalyticsHandler) serveSDK(w http.ResponseWriter, r *http.Request, c
 	}
 	_, _ = w.Write(h.sdkJS)
 }
-

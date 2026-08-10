@@ -50,3 +50,22 @@ export function generateUUIDv7(): string {
     randomHex.slice(7, 19), // 12 random hex chars
   ].join('-');
 }
+
+/**
+ * Random identifier for one browser tab, as a JS-safe integer.
+ *
+ * Lands in a BIGINT column that forms part of the web_pages and web_goals
+ * primary keys, so it only has to be unique among one session's tabs — a UUID
+ * would add 16 bytes to the highest-volume partitioned table and widen its PK
+ * index for uniqueness nobody needs. 53 bits keeps the value an exact float64
+ * integer, so it survives JSON round-tripping without precision loss.
+ */
+export function generateTabId(): number {
+  if (typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function') {
+    const buf = new Uint32Array(2);
+    crypto.getRandomValues(buf);
+    // 21 high bits + 32 low bits = 53.
+    return (buf[0] % 0x200000) * 0x100000000 + buf[1] + 1;
+  }
+  return Math.floor(Math.random() * Number.MAX_SAFE_INTEGER) + 1;
+}

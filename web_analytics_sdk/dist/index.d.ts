@@ -34,6 +34,6 @@
  * Existing dimension values take priority over URL parameters.
  */
 import type { NotifuseAnalyticsConfig, NotifuseAnalyticsAPI, GoalData, SessionDebugInfo } from './types';
-declare const NotifuseAnalytics: NotifuseAnalyticsAPI;
 export type { NotifuseAnalyticsConfig, NotifuseAnalyticsAPI, GoalData, SessionDebugInfo, };
-export default NotifuseAnalytics;
+declare const _default: NotifuseAnalyticsAPI;
+export default _default;

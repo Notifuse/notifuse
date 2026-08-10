@@ -16,11 +16,14 @@ export interface SessionStateConfig {
     workspace_id: string;
     session_id: string;
     created_at: number;
+    /** Identifies this tab as a distinct writer under the shared session id. */
+    tab_id?: number;
 }
 export declare class SessionState {
     private actions;
     private currentPageIndex;
     private seq;
+    private readonly tabId;
     private getPageFocusMs;
     private readonly workspaceId;
     private readonly sessionId;
@@ -60,6 +63,16 @@ export declare class SessionState {
      * Update the current page's duration when navigating away.
      * Uses focus time from SDK's heartbeatState via callback.
      */
+    /**
+     * Write a page's final duration and exit stamp, both clamped.
+     *
+     * The two clamps guard one failure: a backward wall-clock step. A negative
+     * duration or an exited_at before entered_at is rejected by the server, and
+     * since completed pages are never recomputed the bad value rides along in
+     * every later beat of the session — so one clock glitch becomes permanent,
+     * total loss for that visitor unless it is caught here.
+     */
+    private closePage;
     private finalizeCurrentPageDuration;
     private getNextPageNumber;
 }

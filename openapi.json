@@ -7991,11 +7991,6 @@
             "format": "int64",
             "description": "Stamped at each HTTP attempt; drives clock-skew correction beyond 5s."
           },
-          "user_id": {
-            "type": "string",
-            "maxLength": 256,
-            "nullable": true
-          },
           "dimensions": {
             "type": "object",
             "additionalProperties": {
@@ -8159,11 +8154,6 @@
             "type": "integer",
             "minimum": 0,
             "maximum": 2
-          },
-          "retention_months": {
-            "type": "integer",
-            "minimum": 0,
-            "description": "Monthly partitions older than this are dropped (0 keeps data forever)."
           }
         }
       },

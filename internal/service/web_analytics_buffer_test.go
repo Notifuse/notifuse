@@ -51,7 +51,7 @@ func TestWebAnalyticsBufferDebounce(t *testing.T) {
 	t.Run("first beat flushes on the next tick", func(t *testing.T) {
 		buffer, repo, _ := newBufferForTest(t)
 		s, p, g := bufSession("s1", 1, 0)
-		buffer.Add("ws1", s, p, g)
+		buffer.Add("ws1", 0, s, p, g)
 
 		repo.EXPECT().FlushBatch(gomock.Any(), "ws1", gomock.Len(1), gomock.Len(1), gomock.Len(0)).Return(nil)
 		buffer.flushDue(ctx)
@@ -62,14 +62,14 @@ func TestWebAnalyticsBufferDebounce(t *testing.T) {
 		buffer, repo, now := newBufferForTest(t)
 
 		s, p, g := bufSession("s1", 1, 0)
-		buffer.Add("ws1", s, p, g)
+		buffer.Add("ws1", 0, s, p, g)
 		repo.EXPECT().FlushBatch(gomock.Any(), "ws1", gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 		buffer.flushDue(ctx)
 
 		// A heartbeat 10s later: dirty, but not due.
 		*now = now.Add(10 * time.Second)
 		s2, p2, g2 := bufSession("s1", 2, 0)
-		buffer.Add("ws1", s2, p2, g2)
+		buffer.Add("ws1", 0, s2, p2, g2)
 		buffer.flushDue(ctx)
 
 		// 60s after the first flush: due again, latest beat wins.
@@ -87,13 +87,13 @@ func TestWebAnalyticsBufferDebounce(t *testing.T) {
 		buffer, repo, now := newBufferForTest(t)
 
 		s, p, g := bufSession("s1", 1, 0)
-		buffer.Add("ws1", s, p, g)
+		buffer.Add("ws1", 0, s, p, g)
 		repo.EXPECT().FlushBatch(gomock.Any(), "ws1", gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 		buffer.flushDue(ctx)
 
 		*now = now.Add(5 * time.Second)
 		s2, p2, g2 := bufSession("s1", 2, 1)
-		buffer.Add("ws1", s2, p2, g2)
+		buffer.Add("ws1", 0, s2, p2, g2)
 		repo.EXPECT().FlushBatch(gomock.Any(), "ws1", gomock.Any(), gomock.Any(), gomock.Len(1)).Return(nil)
 		buffer.flushDue(ctx)
 	})
@@ -102,14 +102,14 @@ func TestWebAnalyticsBufferDebounce(t *testing.T) {
 		buffer, repo, now := newBufferForTest(t)
 
 		s, p, g := bufSession("s1", 1, 0)
-		buffer.Add("ws1", s, p, g)
+		buffer.Add("ws1", 0, s, p, g)
 		repo.EXPECT().FlushBatch(gomock.Any(), "ws1", gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 		buffer.flushDue(ctx)
 
 		*now = now.Add(3 * time.Second)
 		s2, p2, g2 := bufSession("s1", 2, 0)
-		buffer.Add("ws1", s2, p2, g2) // the visitor's last beat
-		buffer.flushDue(ctx)          // not due yet
+		buffer.Add("ws1", 0, s2, p2, g2) // the visitor's last beat
+		buffer.flushDue(ctx)             // not due yet
 
 		*now = now.Add(70 * time.Second)
 		repo.EXPECT().FlushBatch(gomock.Any(), "ws1", gomock.Any(), gomock.Any(), gomock.Any()).
@@ -124,9 +124,9 @@ func TestWebAnalyticsBufferDebounce(t *testing.T) {
 		buffer, repo, _ := newBufferForTest(t)
 
 		s5, p5, g5 := bufSession("s1", 5, 0)
-		buffer.Add("ws1", s5, p5, g5)
+		buffer.Add("ws1", 0, s5, p5, g5)
 		s3, p3, g3 := bufSession("s1", 3, 0)
-		buffer.Add("ws1", s3, p3, g3)
+		buffer.Add("ws1", 0, s3, p3, g3)
 
 		repo.EXPECT().FlushBatch(gomock.Any(), "ws1", gomock.Any(), gomock.Any(), gomock.Any()).
 			DoAndReturn(func(_ context.Context, _ string, sessions []*domain.WebSession, _ []*domain.WebPage, _ []*domain.WebGoal) error {
@@ -140,8 +140,8 @@ func TestWebAnalyticsBufferDebounce(t *testing.T) {
 		buffer, repo, _ := newBufferForTest(t)
 		s1, p1, g1 := bufSession("s1", 1, 0)
 		s2, p2, g2 := bufSession("s2", 1, 0)
-		buffer.Add("ws1", s1, p1, g1)
-		buffer.Add("ws2", s2, p2, g2)
+		buffer.Add("ws1", 0, s1, p1, g1)
+		buffer.Add("ws2", 0, s2, p2, g2)
 
 		repo.EXPECT().FlushBatch(gomock.Any(), "ws1", gomock.Len(1), gomock.Any(), gomock.Any()).Return(nil)
 		repo.EXPECT().FlushBatch(gomock.Any(), "ws2", gomock.Len(1), gomock.Any(), gomock.Any()).Return(nil)
@@ -155,7 +155,7 @@ func TestWebAnalyticsBufferFailureHandling(t *testing.T) {
 	t.Run("one retry, then the session is dropped", func(t *testing.T) {
 		buffer, repo, _ := newBufferForTest(t)
 		s, p, g := bufSession("s1", 1, 0)
-		buffer.Add("ws1", s, p, g)
+		buffer.Add("ws1", 0, s, p, g)
 
 		repo.EXPECT().FlushBatch(gomock.Any(), "ws1", gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New("db down"))
 		buffer.flushDue(ctx)
@@ -171,13 +171,13 @@ func TestWebAnalyticsBufferFailureHandling(t *testing.T) {
 	t.Run("a newer beat during a failed flush resets the retry state", func(t *testing.T) {
 		buffer, repo, _ := newBufferForTest(t)
 		s, p, g := bufSession("s1", 1, 0)
-		buffer.Add("ws1", s, p, g)
+		buffer.Add("ws1", 0, s, p, g)
 
 		repo.EXPECT().FlushBatch(gomock.Any(), "ws1", gomock.Any(), gomock.Any(), gomock.Any()).
 			DoAndReturn(func(_ context.Context, _ string, _ []*domain.WebSession, _ []*domain.WebPage, _ []*domain.WebGoal) error {
 				// Beat 2 arrives while the flush of beat 1 is failing.
 				s2, p2, g2 := bufSession("s1", 2, 0)
-				buffer.Add("ws1", s2, p2, g2)
+				buffer.Add("ws1", 0, s2, p2, g2)
 				return errors.New("db down")
 			})
 		buffer.flushDue(ctx)
@@ -197,13 +197,13 @@ func TestWebAnalyticsBufferLifecycle(t *testing.T) {
 	t.Run("FlushAll ignores debouncing", func(t *testing.T) {
 		buffer, repo, now := newBufferForTest(t)
 		s, p, g := bufSession("s1", 1, 0)
-		buffer.Add("ws1", s, p, g)
+		buffer.Add("ws1", 0, s, p, g)
 		repo.EXPECT().FlushBatch(gomock.Any(), "ws1", gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(2)
 		buffer.flushDue(context.Background())
 
 		*now = now.Add(time.Second)
 		s2, p2, g2 := bufSession("s1", 2, 0)
-		buffer.Add("ws1", s2, p2, g2)
+		buffer.Add("ws1", 0, s2, p2, g2)
 		buffer.FlushAll(context.Background())
 	})
 
@@ -211,7 +211,7 @@ func TestWebAnalyticsBufferLifecycle(t *testing.T) {
 		buffer, repo, _ := newBufferForTest(t)
 		buffer.nowFn = time.Now
 		s, p, g := bufSession("s1", 1, 0)
-		buffer.Add("ws1", s, p, g)
+		buffer.Add("ws1", 0, s, p, g)
 
 		flushed := make(chan struct{})
 		repo.EXPECT().FlushBatch(gomock.Any(), "ws1", gomock.Any(), gomock.Any(), gomock.Any()).
@@ -239,7 +239,7 @@ func TestWebAnalyticsBufferLifecycle(t *testing.T) {
 	t.Run("clean sessions are evicted after the idle horizon", func(t *testing.T) {
 		buffer, repo, now := newBufferForTest(t)
 		s, p, g := bufSession("s1", 1, 0)
-		buffer.Add("ws1", s, p, g)
+		buffer.Add("ws1", 0, s, p, g)
 		repo.EXPECT().FlushBatch(gomock.Any(), "ws1", gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 		buffer.flushDue(context.Background())
 		assert.Equal(t, 1, buffer.PendingSessions("ws1"))
@@ -265,7 +265,7 @@ func TestWebAnalyticsBufferConcurrency(t *testing.T) {
 			defer wg.Done()
 			for i := 0; i < 200; i++ {
 				s, p, g := bufSession(fmt.Sprintf("s-%d-%d", worker, i%20), int64(i), i%3)
-				buffer.Add(fmt.Sprintf("ws%d", worker%3), s, p, g)
+				buffer.Add(fmt.Sprintf("ws%d", worker%3), 0, s, p, g)
 				if i%50 == 0 {
 					buffer.FlushAll(context.Background())
 				}

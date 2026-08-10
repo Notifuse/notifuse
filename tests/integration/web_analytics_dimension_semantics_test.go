@@ -62,7 +62,7 @@ func TestWebAnalyticsDimensionSemantics(t *testing.T) {
 	insert := func(salt byte, at time.Time, userID interface{}, durationMs int) {
 		_, err := wsDB.Exec(`
 			INSERT INTO web_sessions (session_date, id, beat_seq, created_at, updated_at,
-				duration_ms, pageview_count, channel, user_id)
+				duration_ms, pageview_count, channel, contact_email)
 			VALUES ($1, $2, 1, $3, $3, $4, 1, 'direct', $5)`,
 			at.Format("2006-01-02"), waUUIDv7At(at, salt), at, durationMs, userID)
 		require.NoError(t, err)
@@ -148,16 +148,16 @@ func TestWebAnalyticsDimensionSemantics(t *testing.T) {
 	})
 
 	t.Run("the anonymous visitors bucket stays selectable", func(t *testing.T) {
-		// user_id is the one exposed dimension that is nullable. Grouped raw it
+		// contact_email is the one exposed dimension that is nullable. Grouped raw it
 		// produces a NULL bucket that no filter the console can build would
 		// ever match again, so drilling into it would look like "no data".
 		breakdown := waRunQuery(t, suite, workspace.ID, map[string]interface{}{
 			"schema": "web_sessions", "measures": []string{"sessions"},
-			"dimensions": []string{"user_id"},
+			"dimensions": []string{"contact_email"},
 		})
 		byUser := map[string]float64{}
 		for _, row := range breakdown.Data {
-			value, _ := row["user_id"].(string)
+			value, _ := row["contact_email"].(string)
 			byUser[value] += waNumber(t, row["sessions"])
 		}
 		assert.Equal(t, map[string]float64{"user_a": 1, "": 1}, byUser)
@@ -165,7 +165,7 @@ func TestWebAnalyticsDimensionSemantics(t *testing.T) {
 		empty := waRunQuery(t, suite, workspace.ID, map[string]interface{}{
 			"schema": "web_sessions", "measures": []string{"sessions"},
 			"filters": []map[string]interface{}{
-				{"member": "user_id", "operator": "equals", "values": []string{""}},
+				{"member": "contact_email", "operator": "equals", "values": []string{""}},
 			},
 		})
 		require.Len(t, empty.Data, 1)
@@ -173,14 +173,14 @@ func TestWebAnalyticsDimensionSemantics(t *testing.T) {
 			"is-empty must select the very rows the breakdown showed as empty")
 
 		identified := waRunQuery(t, suite, workspace.ID, map[string]interface{}{
-			"schema": "web_sessions", "measures": []string{"sessions", "users"},
+			"schema": "web_sessions", "measures": []string{"sessions", "contacts"},
 			"filters": []map[string]interface{}{
-				{"member": "user_id", "operator": "notEquals", "values": []string{""}},
+				{"member": "contact_email", "operator": "notEquals", "values": []string{""}},
 			},
 		})
 		require.Len(t, identified.Data, 1)
 		assert.Equal(t, float64(1), waNumber(t, identified.Data[0]["sessions"]))
-		assert.Equal(t, float64(1), waNumber(t, identified.Data[0]["users"]),
+		assert.Equal(t, float64(1), waNumber(t, identified.Data[0]["contacts"]),
 			"the distinct-user count still ignores the anonymous rows")
 	})
 

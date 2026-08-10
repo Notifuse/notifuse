@@ -151,7 +151,7 @@ interface SessionDebugInfo {
  * Existing dimension values take priority over URL parameters.
  */
 
-declare const NotifuseAnalytics: NotifuseAnalyticsAPI;
+declare const _default: NotifuseAnalyticsAPI;
 
-export { NotifuseAnalytics as default };
+export { _default as default };
 export type { GoalData, NotifuseAnalyticsAPI, NotifuseAnalyticsConfig, SessionDebugInfo };

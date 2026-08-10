@@ -493,6 +493,8 @@ func (a *App) InitServices() error {
 	a.rateLimiter.SetPolicy("subscribe:ip", 50, 1*time.Minute)       // Public subscribe by IP
 	a.rateLimiter.SetPolicy("preferences:email", 20, 1*time.Minute)  // Public preferences by email
 	a.rateLimiter.SetPolicy("preferences:ip", 100, 1*time.Minute)    // Public preferences by IP
+	a.rateLimiter.SetPolicy("wa_identify:email", 120, 1*time.Minute) // Identified beats per contact (heartbeat is 10-30s)
+	a.rateLimiter.SetPolicy("wa_identify:ip", 600, 1*time.Minute)    // Identified beats per source IP (offices share one)
 	a.rateLimiter.SetPolicy("inbound:ip", 240, 1*time.Minute)        // Public inbound replies by source IP (generous; providers share IPs)
 	a.rateLimiter.SetPolicy("inbound:workspace", 120, 1*time.Minute) // Public inbound replies by workspace
 	// OIDC policies are registered UNCONDITIONALLY (even when OIDC is disabled):
@@ -1009,10 +1011,12 @@ func (a *App) InitServices() error {
 	a.webAnalyticsBuffer = service.NewWebAnalyticsBuffer(a.webAnalyticsRepo, a.logger, service.DefaultWebAnalyticsBufferConfig())
 	a.webAnalyticsService = service.NewWebAnalyticsService(
 		a.workspaceRepo,
+		a.contactRepo,
 		a.webAnalyticsBuffer,
 		geoResolver,
 		a.authService,
 		a.taskRepo,
+		a.rateLimiter,
 		a.logger,
 	)
 

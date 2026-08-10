@@ -7,6 +7,8 @@ import type { InternalConfig, Session } from '../types';
 vi.mock('../utils/uuid', () => ({
   generateUUIDv4: vi.fn(() => 'mock-uuid-v4-' + Math.random().toString(36).slice(2, 10)),
   generateUUIDv7: vi.fn(() => 'mock-uuid-v7-' + Math.random().toString(36).slice(2, 10)),
+  // Distinct safe integers, so tests can assert two tabs are different writers.
+  generateTabId: vi.fn(() => Math.floor(Math.random() * 900000) + 100000),
 }));
 
 // Mock UTM parsing
@@ -423,10 +425,11 @@ describe('SessionManager', () => {
   });
 
   describe('tab ID', () => {
-    it('getTabId() returns a UUIDv4', async () => {
-      // Tab ID is created in the SessionManager constructor
-      const tabId = sessionManager.getTabId();
-      expect(tabId).toMatch(/^mock-uuid-v4-/);
+    it('getTabId() returns a stable safe integer', () => {
+      // Was a UUIDv4: tab_id is now part of a BIGINT primary key column.
+      const id = sessionManager.getTabId();
+      expect(Number.isSafeInteger(id)).toBe(true);
+      expect(sessionManager.getTabId()).toBe(id);
     });
 
     it('getTabId() returns same ID within tab session', () => {
@@ -471,23 +474,131 @@ describe('SessionManager', () => {
     });
   });
 
-  describe('updateSession', () => {
-    it('updates session with partial updates', () => {
-      const session = sessionManager.getOrCreateSession();
-      const originalCreatedAt = session.created_at;
+  describe('tab identity (W0.1)', () => {
+    it('mints a positive safe integer, not a UUID', () => {
+      // tab_id lands in a BIGINT column that is part of the web_pages and
+      // web_goals primary keys. A UUID would cost 16 bytes on the highest-volume
+      // partitioned table and widen its PK index, for uniqueness far beyond what
+      // "distinct among one session's tabs" needs.
+      const tabId = sessionManager.getTabId();
+      expect(typeof tabId).toBe('number');
+      expect(Number.isSafeInteger(tabId)).toBe(true);
+      expect(tabId).toBeGreaterThan(0);
+    });
 
-      vi.advanceTimersByTime(1000);
+    it('is stable within a tab and persisted to sessionStorage', () => {
+      const first = sessionManager.getTabId();
+      expect(sessionManager.getTabId()).toBe(first);
+      // sessionStorage is the correct lifetime: it survives a reload — so the
+      // tab keeps numbering its pages from where it left off — and dies with the
+      // tab, so a new tab is a genuinely new writer.
+      expect(JSON.parse(mockSessionStorage._store['nf_tab_id'])).toBe(first);
+    });
 
-      sessionManager.updateSession({
-        focus_duration_ms: 5000,
-        max_scroll_percent: 75,
-      });
+    it('differs between tabs, which is what makes them disjoint writers', () => {
+      // A second tab means a second sessionStorage: that is exactly why tab_id
+      // lives there while the session id lives in the shared localStorage.
+      vi.stubGlobal('sessionStorage', createMockStorage());
+      const otherTab = new SessionManager(storage, new TabStorage(), config);
+      expect(otherTab.getTabId()).not.toBe(sessionManager.getTabId());
+    });
 
-      const updatedSession = sessionManager.getSession();
-      expect(updatedSession?.focus_duration_ms).toBe(5000);
-      expect(updatedSession?.max_scroll_percent).toBe(75);
-      expect(updatedSession?.created_at).toBe(originalCreatedAt);
-      expect(updatedSession?.updated_at).toBe(Date.now());
+    it('replaces a legacy UUID tab id rather than sending it as a number', () => {
+      mockSessionStorage._store['nf_tab_id'] = JSON.stringify('8a9c1a1e-6f0e-4d17-9d5a-6b1f6e2d3c4b');
+      const fresh = new SessionManager(storage, new TabStorage(), config);
+      expect(Number.isSafeInteger(fresh.getTabId())).toBe(true);
+    });
+  });
+
+  describe('session lifetime (W0.3)', () => {
+    const makeStored = (overrides: Partial<Session>): Session => ({
+      id: 'stored-id',
+      workspace_id: 'ws_123',
+      created_at: Date.now(),
+      updated_at: Date.now(),
+      last_active_at: Date.now(),
+      focus_duration_ms: 0,
+      total_duration_ms: 0,
+      referrer: null,
+      landing_page: 'https://example.com',
+      utm: null,
+      max_scroll_percent: 0,
+      interaction_count: 0,
+      sdk_version: '38.0',
+      sequence: 1,
+      dimensions: {},
+      userId: null,
+      ...overrides,
+    });
+
+    const load = (session: Session) => {
+      mockLocalStorage._store['nf_session'] = JSON.stringify(session);
+      storage = new Storage();
+      return new SessionManager(storage, tabStorage, config);
+    };
+
+    it('expires a session past the absolute age cap even when activity is recent', () => {
+      // The server rejects a session id older than 48h outright, and nothing in
+      // the SDK reacts to that 400 by rotating — so a pinned tab goes silent
+      // forever. Rotating at 24h leaves a full day of headroom for a queued beat
+      // to still be replayed against the id it was minted under.
+      const sm = load(
+        makeStored({
+          id: 'ancient',
+          created_at: Date.now() - 25 * 60 * 60 * 1000,
+          last_active_at: Date.now() - 1000,
+        })
+      );
+      expect(sm.getOrCreateSession().id).not.toBe('ancient');
+    });
+
+    it('keeps a 23h-old session that is still active', () => {
+      const sm = load(
+        makeStored({
+          id: 'still-fine',
+          created_at: Date.now() - 23 * 60 * 60 * 1000,
+          last_active_at: Date.now() - 1000,
+        })
+      );
+      expect(sm.getOrCreateSession().id).toBe('still-fine');
+    });
+
+    it('touch() refreshes last_active_at and persists it', () => {
+      // Without this the 30-minute window measures time since page LOAD, not
+      // since activity: a visitor reading one long article is handed a brand new
+      // session on their next navigation, splitting engaged time and attribution.
+      const sm = load(makeStored({ id: 'active' }));
+      sm.getOrCreateSession();
+      sm.getSession()!.last_active_at = Date.now() - 5 * 60 * 1000;
+
+      expect(sm.touch()).toBe(true);
+      expect(Date.now() - sm.getSession()!.last_active_at).toBeLessThan(1000);
+      expect(JSON.parse(mockLocalStorage._store['nf_session']).last_active_at).toBe(
+        sm.getSession()!.last_active_at
+      );
+    });
+
+    it('touch() reports expiry rather than silently continuing', () => {
+      // The expiry check runs once at init today, so a window that lapses while
+      // the tab stays open is never noticed. touch() is what lets the caller
+      // rotate at the moment it actually happens.
+      const sm = load(makeStored({ id: 'lapsing' }));
+      sm.getOrCreateSession();
+      sm.getSession()!.last_active_at = Date.now() - 31 * 60 * 1000;
+      expect(sm.touch()).toBe(false);
+    });
+
+    it('a rotated session inherits identity and dimensions', () => {
+      mockLocalStorage._store['nf_user_id'] = JSON.stringify('user@example.com');
+      mockLocalStorage._store['nf_dimensions'] = JSON.stringify({ 1: 'pro' });
+      const sm = load(
+        makeStored({ id: 'ancient', created_at: Date.now() - 25 * 60 * 60 * 1000 })
+      );
+
+      const next = sm.getOrCreateSession();
+      expect(next.id).not.toBe('ancient');
+      expect(next.userId).toBe('user@example.com');
+      expect(next.dimensions).toEqual({ 1: 'pro' });
     });
   });
 

@@ -59,9 +59,17 @@ export declare class SessionManager {
      */
     getSession(): Session | null;
     /**
-     * Update session
+     * Record activity on the current session, returning false when it has expired
+     * and the caller must rotate.
+     *
+     * Two bugs live here if nothing calls this. last_active_at would only ever be
+     * written at page load, so the inactivity window would measure time since load
+     * rather than since activity — fragmenting a long read into several sessions.
+     * And the expiry check would run once per load and never again, so a tab left
+     * open would never rotate, eventually crossing the server's id bound and being
+     * rejected permanently.
      */
-    updateSession(updates: Partial<Session>): void;
+    touch(): boolean;
     /**
      * Save session to storage
      */
@@ -69,7 +77,7 @@ export declare class SessionManager {
     /**
      * Get tab ID (unique per browser tab)
      */
-    getTabId(): string;
+    getTabId(): number;
     /**
      * Get or create tab ID
      */

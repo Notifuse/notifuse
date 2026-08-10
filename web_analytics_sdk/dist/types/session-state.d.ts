@@ -76,6 +76,8 @@ export interface SessionAttributes {
 export interface SessionPayload {
     workspace_id: string;
     session_id: string;
+    /** The writing tab; 0 when unknown. Part of the child tables' primary keys. */
+    tab_id: number;
     actions: Action[];
     attributes?: SessionAttributes;
     created_at: number;

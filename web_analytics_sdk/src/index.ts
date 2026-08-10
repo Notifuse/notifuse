@@ -75,10 +75,50 @@ export type {
   SessionDebugInfo,
 };
 
-// Auto-initialize from global config
-if (typeof window !== 'undefined' && window.NotifuseAnalyticsConfig) {
-  sdk.init(window.NotifuseAnalyticsConfig);
+/**
+ * Make installing the bundle idempotent.
+ *
+ * The same bundle is served at /na.js and /na.<hash>.js, so a site mid-migration
+ * (legacy hardcoded tag plus a tag-manager tag) evaluates it twice. The
+ * re-entrancy guard inside the SDK is per-instance, so nothing would stop the
+ * second copy initialising — and both copies would then share one session id,
+ * one persisted snapshot key and one tab_id, clobbering each other's actions and
+ * colliding on seq. tab_id cannot separate them: sessionStorage is per tab, not
+ * per instance, so the fix has to be here, at the install.
+ *
+ * Returning the FIRST wrapper matters as much as skipping the second init: the
+ * UMD wrapper assigns window.NotifuseAnalytics from this default export, so a
+ * fresh object would leave the global pointing at a dead instance and every
+ * later trackGoal() would land there. First install wins — a customer may have
+ * an older cached hash alongside the new one, and tearing down a running
+ * instance to promote a newer bundle is more dangerous than running the older
+ * one until the duplicate tag is removed.
+ *
+ * A plain flag is enough: script evaluation is atomic on a single thread, so
+ * there is no race even with async tags.
+ */
+const INSTALL_KEY = '__notifuseAnalytics';
+type InstallHost = Record<string, NotifuseAnalyticsAPI | undefined>;
+const host = (typeof window !== 'undefined' ? window : undefined) as unknown as
+  | InstallHost
+  | undefined;
+const alreadyInstalled = host?.[INSTALL_KEY];
+
+if (!alreadyInstalled) {
+  if (host) {
+    host[INSTALL_KEY] = NotifuseAnalytics;
+  }
+  // Auto-initialize from global config
+  if (typeof window !== 'undefined' && window.NotifuseAnalyticsConfig) {
+    sdk.init(window.NotifuseAnalyticsConfig);
+  }
+} else {
+  console.warn(
+    '[NotifuseAnalytics] SDK already loaded on this page; ignoring the duplicate ' +
+      'install. Remove the extra script tag — two copies would corrupt each ' +
+      "other's session data."
+  );
 }
 
 // Default export for UMD/ESM/CJS
-export default NotifuseAnalytics;
+export default alreadyInstalled ?? NotifuseAnalytics;

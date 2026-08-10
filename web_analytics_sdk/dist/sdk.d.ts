@@ -212,6 +212,25 @@ export declare class NotifuseAnalyticsSDK {
     /**
      * Reset session
      */
+    /**
+     * Roll onto a fresh session id while keeping identity and custom dimensions.
+     *
+     * Distinct from reset(), which deliberately forgets the visitor. Rotation
+     * happens when the inactivity window lapses or the id reaches its absolute
+     * age. Whatever the old session accumulated since its last successful beat is
+     * sent FIRST, under the old id — without that, every rotation silently drops
+     * its own tail, trading a 48h cliff for a small guaranteed loss each time.
+     */
+    private rotateSession;
+    /**
+     * Record activity, rotating the session if its window has lapsed.
+     *
+     * Returns false when a rotation happened, so a caller that was about to open a
+     * pageview knows the rotation already did it. Calling this on every beat,
+     * navigation and goal is what makes the session window measure activity rather
+     * than time since page load.
+     */
+    private ensureFreshSession;
     reset(): Promise<void>;
     /**
      * Get current configuration (defensive copy)

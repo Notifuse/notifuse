@@ -116,7 +116,7 @@ const CATALOG: DimensionInfo[] = [
   define('goal_path', 'Goal Path', 'Goal', 'string', ['web_goals']),
   define('goal_value', 'Goal Value', 'Goal', 'number', ['web_goals']),
 
-  define('user_id', 'User ID', 'User', 'string', ALL_SCHEMAS)
+  define('contact_email', 'Contact Email', 'User', 'string', ALL_SCHEMAS)
 ]
 
 for (let slot = 1; slot <= 10; slot++) {
@@ -249,7 +249,7 @@ export const DIMENSION_EXAMPLES: Record<string, string[]> = {
   sdk_version: ['1.0.0', '1.1.2'],
   goal_name: ['signup', 'purchase'],
   goal_path: ['/thank-you', '/checkout/success'],
-  user_id: ['user_123', 'a1b2c3']
+  contact_email: ['alice@example.com', 'bob@example.com']
 }
 
 /**

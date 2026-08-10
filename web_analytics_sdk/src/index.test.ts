@@ -9,7 +9,10 @@ describe('Notifuse Analytics SDK - Global Config Pattern', () => {
   beforeEach(() => {
     // Save original
     originalConfig = window.NotifuseAnalyticsConfig;
-    // Reset modules to allow fresh import
+    // Reset modules to allow fresh import. A real page load starts with a clean
+    // window, so the install marker has to go too — otherwise every later import
+    // aliases the first instance, which is exactly what the guard is for.
+    delete (window as unknown as Record<string, unknown>).__notifuseAnalytics;
     vi.resetModules();
   });
 
@@ -21,6 +24,46 @@ describe('Notifuse Analytics SDK - Global Config Pattern', () => {
       delete window.NotifuseAnalyticsConfig;
     }
     vi.resetModules();
+  });
+
+  describe('double install (W0.1)', () => {
+    it('a second evaluation aliases the first instead of racing it', async () => {
+      // The bundle is served at both /na.js and /na.<hash>.js, and the README
+      // recommends the hashed URL — so "legacy hardcoded tag plus a GTM tag" is
+      // an ordinary mid-migration state. Two live instances share one session id,
+      // one nf_session_state key and one tab_id, so they clobber each other's
+      // actions and their seq counters collide; tab_id cannot separate them
+      // because sessionStorage is per-tab, not per-instance.
+      window.NotifuseAnalyticsConfig = {
+        workspace_id: 'test-ws',
+        endpoint: 'https://api.example.com',
+      };
+
+      const first = (await import('./index')).default;
+      vi.resetModules();
+      const second = (await import('./index')).default;
+
+      // Identity, not merely equivalence: the UMD wrapper assigns
+      // window.NotifuseAnalytics from the default export, so returning a fresh
+      // object would leave the global pointing at a dead second instance and
+      // every later trackGoal() would land there.
+      expect(second).toBe(first);
+    });
+
+    it('warns so a duplicated tag is discoverable', async () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      window.NotifuseAnalyticsConfig = {
+        workspace_id: 'test-ws',
+        endpoint: 'https://api.example.com',
+      };
+
+      await import('./index');
+      vi.resetModules();
+      await import('./index');
+
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining('already loaded'));
+      warn.mockRestore();
+    });
   });
 
   describe('initialization', () => {

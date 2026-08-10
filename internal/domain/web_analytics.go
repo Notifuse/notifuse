@@ -2,11 +2,15 @@ package domain
 
 import (
 	"context"
+	"crypto/hmac"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
+
+	"github.com/Notifuse/notifuse/pkg/crypto"
 )
 
 //go:generate mockgen -destination mocks/mock_web_analytics_repository.go -package mocks github.com/Notifuse/notifuse/internal/domain WebAnalyticsRepository
@@ -20,8 +24,22 @@ const (
 	WebTrackMaxPathLength = 2048
 	// WebTrackMaxGoalNameLength caps goal names.
 	WebTrackMaxGoalNameLength = 100
-	// WebTrackMaxUserIDLength caps the first-party user id.
-	WebTrackMaxUserIDLength = 256
+	// WebTrackMaxEmailLength matches contacts.email VARCHAR(255).
+	WebTrackMaxEmailLength = 255
+	// WebTrackMaxHMACLength bounds the hex-encoded SHA-256 credential.
+	WebTrackMaxHMACLength = 64
+	// WebTrackMaxIdentifyTokenLength bounds the encrypted nf_id parameter.
+	WebTrackMaxIdentifyTokenLength = 512
+
+	// Goal property bounds. These exist because actions[] is cumulative: the SDK
+	// re-sends every action of the session on every beat, so an unbounded
+	// properties map is carried forever and eventually pushes the serialized
+	// body past webTrackMaxBodyBytes — after which EVERY later beat of that
+	// session is rejected, permanently, with no client-side recovery. Bounding
+	// here means an oversized map costs its own action and nothing else.
+	WebTrackMaxGoalPropertyKeys        = 50
+	WebTrackMaxGoalPropertyValueLength = 1024
+	WebTrackMaxGoalPropertiesBytes     = 8 * 1024
 	// WebTrackMaxDimensionValueLength caps custom dimension values (custom_1..custom_10).
 	WebTrackMaxDimensionValueLength = 256
 	// WebTrackTimeBounds is the accepted clock window for beat timestamps,
@@ -29,11 +47,22 @@ const (
 	WebTrackTimeBounds = 24 * time.Hour
 
 	// WebSessionIDMaxAge and WebSessionIDMaxFuture bound the timestamp embedded
-	// in the UUIDv7 session id. The window is wider than WebTrackTimeBounds
+	// in the UUIDv7 session id. The past bound is wider than WebTrackTimeBounds
 	// because a session can keep beating for up to 24h after it started and the
 	// SDK offline queue holds beats for up to 24h.
+	//
+	// The future bound is exactly WebTrackTimeBounds, and both halves of that
+	// matter. It cannot be tighter: the SDK mints the id from the device clock,
+	// so a visitor whose clock runs fast inherits the entire skew in the id, and
+	// a tighter bound rejects every beat they will ever send — permanently,
+	// because the SDK reads a 400 as unretryable and never rotates. It cannot be
+	// much wider either: session_date is derived from the id, and the repository
+	// creates missing partitions on demand, so this bound is what stops a client
+	// minting partitions arbitrarily far ahead. Correcting the id against the
+	// payload's sent_at is not an option — sent_at is client-supplied too, so it
+	// bounds nothing against a hostile caller.
 	WebSessionIDMaxAge    = 48 * time.Hour
-	WebSessionIDMaxFuture = 10 * time.Minute
+	WebSessionIDMaxFuture = WebTrackTimeBounds
 
 	// WebEntryTypeLanding marks the first page of a session.
 	WebEntryTypeLanding = "landing"
@@ -117,27 +146,30 @@ type WebSession struct {
 	Latitude  *float64 `json:"latitude,omitempty"`
 	Longitude *float64 `json:"longitude,omitempty"`
 
-	SDKVersion   string  `json:"sdk_version"`
-	UserID       *string `json:"user_id,omitempty"`
-	ContactEmail *string `json:"contact_email,omitempty"` // reserved for email-click auto-linking
+	SDKVersion string `json:"sdk_version"`
+	// ContactEmail is the verified contact this session belongs to, or nil when
+	// anonymous. Sticky in the upsert: a later beat that does not know the
+	// contact must never erase it.
+	ContactEmail *string `json:"contact_email,omitempty"`
 }
 
 // WebPage is one row of the web_pages table (one pageview).
 type WebPage struct {
 	SessionDate time.Time `json:"session_date"` // the session's date, not the page's
 	SessionID   string    `json:"session_id"`
+	TabID       int64     `json:"tab_id"` // the writing tab; see the schema package
 	PageNumber  int       `json:"page_number"`
 	BeatSeq     int64     `json:"beat_seq"`
 
-	Path       string    `json:"path"`
-	EnteredAt  time.Time `json:"entered_at"`
-	ExitedAt   time.Time `json:"exited_at"`
-	DurationMs int64     `json:"duration_ms"`
-	MaxScroll  int       `json:"max_scroll"`
-	IsLanding  bool      `json:"is_landing"`
-	IsExit     bool      `json:"is_exit"`
-	EntryType  string    `json:"entry_type"`
-	UserID     *string   `json:"user_id,omitempty"`
+	Path         string    `json:"path"`
+	EnteredAt    time.Time `json:"entered_at"`
+	ExitedAt     time.Time `json:"exited_at"`
+	DurationMs   int64     `json:"duration_ms"`
+	MaxScroll    int       `json:"max_scroll"`
+	IsLanding    bool      `json:"is_landing"`
+	IsExit       bool      `json:"is_exit"`
+	EntryType    string    `json:"entry_type"`
+	ContactEmail *string   `json:"contact_email,omitempty"`
 }
 
 // WebGoal is one row of the web_goals table (one conversion event), carrying a
@@ -145,6 +177,7 @@ type WebPage struct {
 type WebGoal struct {
 	SessionDate time.Time `json:"session_date"`
 	SessionID   string    `json:"session_id"`
+	TabID       int64     `json:"tab_id"`
 	GoalName    string    `json:"goal_name"`
 	// ClientTsMs is the goal's original client timestamp in epoch ms, before
 	// clock-skew correction, so retried beats dedup onto the same row.
@@ -207,7 +240,7 @@ type WebGoal struct {
 	Latitude  *float64 `json:"latitude,omitempty"`
 	Longitude *float64 `json:"longitude,omitempty"`
 
-	UserID *string `json:"user_id,omitempty"`
+	ContactEmail *string `json:"contact_email,omitempty"`
 }
 
 // WebSessionAttributes is the session-level context the SDK sends with every
@@ -293,8 +326,35 @@ func (a *WebTrackAction) Validate() error {
 		if a.Value < 0 {
 			return fmt.Errorf("goal value must be >= 0")
 		}
+		if err := validateGoalProperties(a.Properties); err != nil {
+			return err
+		}
 	default:
 		return fmt.Errorf("unknown action type: %q", a.Type)
+	}
+	return nil
+}
+
+// validateGoalProperties bounds a goal's properties three ways: key count, the
+// length of any one value, and the total serialized size. All three are needed —
+// many small keys, one huge value, and a merely large map each reach the same
+// cumulative-payload wedge by a different route.
+func validateGoalProperties(props map[string]string) error {
+	if len(props) == 0 {
+		return nil
+	}
+	if len(props) > WebTrackMaxGoalPropertyKeys {
+		return fmt.Errorf("goal properties exceed %d keys", WebTrackMaxGoalPropertyKeys)
+	}
+	total := 0
+	for key, value := range props {
+		if len(value) > WebTrackMaxGoalPropertyValueLength {
+			return fmt.Errorf("goal property %q exceeds %d characters", key, WebTrackMaxGoalPropertyValueLength)
+		}
+		total += len(key) + len(value)
+		if total > WebTrackMaxGoalPropertiesBytes {
+			return fmt.Errorf("goal properties exceed %d bytes", WebTrackMaxGoalPropertiesBytes)
+		}
 	}
 	return nil
 }
@@ -310,13 +370,26 @@ type WebTrackPayload struct {
 	// CreatedAt is accepted for wire compatibility but ignored: the session
 	// start is derived from the UUIDv7 session id, the single source of truth
 	// that also decides the partition.
-	CreatedAt int64 `json:"created_at"` // epoch ms (ignored)
-	UpdatedAt int64 `json:"updated_at"` // epoch ms
-	SDKVersion  string                `json:"sdk_version,omitempty"`
-	SentAt      *int64                `json:"sent_at,omitempty"` // stamped at each HTTP attempt
-	UserID      *string               `json:"user_id,omitempty"`
-	Dimensions  map[string]string     `json:"dimensions,omitempty"` // custom_1..custom_10
-	Seq         int64                 `json:"seq"`                  // monotonic per-session beat counter
+	CreatedAt  int64  `json:"created_at"` // epoch ms (ignored)
+	UpdatedAt  int64  `json:"updated_at"` // epoch ms
+	SDKVersion string `json:"sdk_version,omitempty"`
+	// TabID identifies the writing tab. Tabs share a session id (localStorage)
+	// but keep their own cumulative actions and their own seq (sessionStorage),
+	// so they are disjoint writers. Absent (0) from an older SDK, which then
+	// behaves exactly as it does today.
+	TabID  int64  `json:"tab_id,omitempty"`
+	SentAt *int64 `json:"sent_at,omitempty"` // stamped at each HTTP attempt
+
+	// Identity credentials. /track is public and unauthenticated, so none of
+	// these is believed until ResolveWebIdentity checks it against the
+	// workspace secret. Either the pair (from identify()) or the token (from an
+	// email-click link) may be present; never both in practice.
+	ContactEmail     *string `json:"contact_email,omitempty"`
+	ContactEmailHMAC *string `json:"contact_email_hmac,omitempty"`
+	IdentifyToken    *string `json:"identify_token,omitempty"`
+
+	Dimensions map[string]string `json:"dimensions,omitempty"` // custom_1..custom_10
+	Seq        int64             `json:"seq"`                  // monotonic per-session beat counter
 }
 
 // Validate checks the payload against the server clock. It does not resolve
@@ -343,9 +416,6 @@ func (p *WebTrackPayload) Validate(now time.Time) error {
 	if err := validateEpochMsWindow("updated_at", p.UpdatedAt, now); err != nil {
 		return err
 	}
-	if p.UserID != nil && len(*p.UserID) > WebTrackMaxUserIDLength {
-		return fmt.Errorf("user_id exceeds %d characters", WebTrackMaxUserIDLength)
-	}
 	for key, value := range p.Dimensions {
 		if !IsCustomDimensionKey(key) {
 			// Unknown keys are ignored at build time; only bound their size so
@@ -359,12 +429,28 @@ func (p *WebTrackPayload) Validate(now time.Time) error {
 	if len(p.Dimensions) > 50 {
 		return fmt.Errorf("too many dimensions")
 	}
+	p.dropInvalidActions()
+	return nil
+}
+
+// dropInvalidActions removes actions that fail their own validation, in place.
+//
+// A malformed action must never reject the whole beat. actions[] is cumulative
+// — the SDK re-sends every action of the session on every beat — so one bad
+// entry rejected wholesale becomes a 400 on every subsequent beat of that
+// session, forever, and the SDK treats a 400 as permanent. The blast radius of
+// a client-side arithmetic slip has to be the action, not the session.
+//
+// A beat left with no actions is not an error either: Track already treats an
+// empty action list as a silent success.
+func (p *WebTrackPayload) dropInvalidActions() {
+	kept := p.Actions[:0]
 	for i := range p.Actions {
-		if err := p.Actions[i].Validate(); err != nil {
-			return fmt.Errorf("action %d: %w", i, err)
+		if p.Actions[i].Validate() == nil {
+			kept = append(kept, p.Actions[i])
 		}
 	}
-	return nil
+	p.Actions = kept
 }
 
 func validateEpochMsWindow(field string, epochMs int64, now time.Time) error {
@@ -390,6 +476,109 @@ func IsCustomDimensionKey(key string) bool {
 		return true
 	}
 	return false
+}
+
+// webIdentifyHMACPrefix domain-separates the analytics identity credential from
+// every other HMAC computed over a bare email with the same workspace secret.
+//
+// ComputeEmailHMAC authorizes subscription changes (notification center,
+// unsubscribe, one-click) and is printed into every email Notifuse sends.
+// Without this prefix the two would be interchangeable: an unsubscribe HMAC
+// scraped from a forwarded email would silently identify a visitor, and an
+// analytics credential lifted out of page JS by any third-party script would
+// let its holder change that contact's subscriptions.
+const webIdentifyHMACPrefix = "wa_identify:"
+
+// ComputeWebIdentifyHMAC is what a customer's server mints for identify().
+func ComputeWebIdentifyHMAC(email string, secretKey string) string {
+	return crypto.ComputeHMAC256([]byte(webIdentifyHMACPrefix+email), secretKey)
+}
+
+// webIdentifyTokenPayload is what an email-click link carries, encrypted.
+type webIdentifyTokenPayload struct {
+	Email     string `json:"e"`
+	ExpiresAt int64  `json:"x"` // unix seconds
+	Version   int    `json:"v"`
+}
+
+// BuildWebIdentifyToken mints the opaque nf_id parameter for a tracked link.
+//
+// AES-256-GCM keyed by the workspace secret, so it is authenticated AND
+// confidential: the address never appears in a URL that would otherwise flow
+// into the customer's own analytics, their server logs and any third-party
+// Referer. Deliberately NOT crypto.EncryptTrackingToken, which uses a hardcoded
+// obfuscation key and is therefore forgeable from the open-source repository.
+func BuildWebIdentifyToken(email string, secretKey string, ttl time.Duration, now time.Time) (string, error) {
+	if secretKey == "" {
+		return "", fmt.Errorf("workspace secret key is required to mint an identify token")
+	}
+	body, err := json.Marshal(webIdentifyTokenPayload{
+		Email:     email,
+		ExpiresAt: now.Add(ttl).Unix(),
+		Version:   1,
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to encode identify token: %w", err)
+	}
+	return crypto.EncryptString(string(body), secretKey)
+}
+
+// ResolveWebIdentity returns the verified contact address a beat carries, or
+// ok=false when it carries none that can be trusted.
+//
+// It only proves who the caller is; it does not prove the events are real, and
+// it does not check that the address belongs to a contact. That gate lives in
+// the service layer, which has database access.
+//
+// A malformed credential fails closed rather than falling through to the next
+// one — otherwise an attacker could downgrade past whichever check they cannot
+// satisfy. Bounds live here rather than in Validate because an over-long field
+// must cost the identity, not the whole beat.
+func ResolveWebIdentity(p *WebTrackPayload, secretKey string, now time.Time) (string, bool) {
+	if p == nil || secretKey == "" {
+		return "", false
+	}
+
+	if p.IdentifyToken != nil {
+		if len(*p.IdentifyToken) > WebTrackMaxIdentifyTokenLength {
+			return "", false
+		}
+		decrypted, err := crypto.DecryptFromHexString(*p.IdentifyToken, secretKey)
+		if err != nil {
+			return "", false
+		}
+		var token webIdentifyTokenPayload
+		if err := json.Unmarshal([]byte(decrypted), &token); err != nil {
+			return "", false
+		}
+		if token.ExpiresAt <= now.Unix() {
+			return "", false
+		}
+		return normalizedIdentity(token.Email)
+	}
+
+	if p.ContactEmail == nil || p.ContactEmailHMAC == nil {
+		return "", false
+	}
+	if len(*p.ContactEmail) > WebTrackMaxEmailLength || len(*p.ContactEmailHMAC) > WebTrackMaxHMACLength {
+		return "", false
+	}
+	// Verify against the RAW address: the customer signed what they sent, not
+	// what we would normalize it to.
+	if !hmac.Equal([]byte(ComputeWebIdentifyHMAC(*p.ContactEmail, secretKey)), []byte(*p.ContactEmailHMAC)) {
+		return "", false
+	}
+	return normalizedIdentity(*p.ContactEmail)
+}
+
+// normalizedIdentity lowercases and trims so the value matches contacts.email,
+// which is stored normalized.
+func normalizedIdentity(email string) (string, bool) {
+	normalized := NormalizeEmail(email)
+	if normalized == "" || len(normalized) > WebTrackMaxEmailLength {
+		return "", false
+	}
+	return normalized, true
 }
 
 // SessionDateFromUUIDv7 derives the partition date and the session start time

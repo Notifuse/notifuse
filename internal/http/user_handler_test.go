@@ -384,7 +384,7 @@ func TestUserHandler_GetCurrentUser_WithSessionVerification(t *testing.T) {
 	t.Run("unauthorized when session verification fails", func(t *testing.T) {
 		mockUserSvc.EXPECT().
 			VerifyUserSession(gomock.Any(), userID, sessionID).
-			Return(nil, fmt.Errorf("session not found"))
+			Return(nil, fmt.Errorf("%w: session not found", domain.ErrSessionAuthFailed))
 
 		req := httptest.NewRequest(http.MethodGet, "/api/user.me", nil)
 		ctx := context.WithValue(req.Context(), domain.UserIDKey, userID)
@@ -400,6 +400,30 @@ func TestUserHandler_GetCurrentUser_WithSessionVerification(t *testing.T) {
 		err := json.NewDecoder(rec.Body).Decode(&response)
 		require.NoError(t, err)
 		assert.Equal(t, "Session expired or invalid", response["error"])
+	})
+
+	// A 401 makes the console delete the stored token and leave the page it is on,
+	// so an unanswerable session lookup — a database blip, not a rejected caller —
+	// must not be reported that way.
+	t.Run("server error when session verification is unanswerable", func(t *testing.T) {
+		mockUserSvc.EXPECT().
+			VerifyUserSession(gomock.Any(), userID, sessionID).
+			Return(nil, fmt.Errorf("pq: password authentication failed for user"))
+
+		req := httptest.NewRequest(http.MethodGet, "/api/user.me", nil)
+		ctx := context.WithValue(req.Context(), domain.UserIDKey, userID)
+		ctx = context.WithValue(ctx, domain.UserTypeKey, string(domain.UserTypeUser))
+		ctx = context.WithValue(ctx, domain.SessionIDKey, sessionID)
+		req = req.WithContext(ctx)
+		rec := httptest.NewRecorder()
+
+		handler.GetCurrentUser(rec, req)
+
+		assert.Equal(t, http.StatusInternalServerError, rec.Code)
+		var response map[string]interface{}
+		err := json.NewDecoder(rec.Body).Decode(&response)
+		require.NoError(t, err)
+		assert.Equal(t, "Failed to verify session", response["error"])
 	})
 
 	t.Run("unauthorized when session ID missing for user type", func(t *testing.T) {

@@ -57,11 +57,13 @@ func TestUpsertSuffix(t *testing.T) {
 	t.Run("sessions: guard, conflict target, created_at never updated, sticky contact_email", func(t *testing.T) {
 		suffix := webSessionUpsertSuffix
 		assert.True(t, strings.HasPrefix(suffix, "ON CONFLICT (session_date, id) DO UPDATE SET "))
-		assert.Contains(t, suffix, "WHERE EXCLUDED.beat_seq > web_sessions.beat_seq")
+		// The guard is gone: one row, N per-tab writers with independent counters.
+		// See TestWebAnalyticsPerWriterKeys for why that is safe.
+		assert.NotContains(t, suffix, "WHERE EXCLUDED.beat_seq >")
 		assert.NotContains(t, suffix, "created_at = EXCLUDED.created_at")
 		assert.NotContains(t, suffix, "id = EXCLUDED.id")
 		assert.NotContains(t, suffix, "session_date = EXCLUDED.session_date")
-		assert.Contains(t, suffix, "updated_at = EXCLUDED.updated_at")
+		assert.Contains(t, suffix, "updated_at = GREATEST(EXCLUDED.updated_at, web_sessions.updated_at)")
 		assert.Contains(t, suffix, "duration_ms = EXCLUDED.duration_ms")
 		assert.Contains(t, suffix, "contact_email = COALESCE(EXCLUDED.contact_email, web_sessions.contact_email)")
 		assert.NotContains(t, suffix, "contact_email = EXCLUDED.contact_email")
@@ -74,21 +76,23 @@ func TestUpsertSuffix(t *testing.T) {
 		suffix := webSessionUpsertSuffix
 		assert.NotContains(t, suffix, "created_at",
 			"created_at must not appear anywhere in the DO UPDATE SET assignments")
-		// updated_at, by contrast, must advance on every beat.
-		assert.Contains(t, suffix, "updated_at = EXCLUDED.updated_at")
+		// updated_at, by contrast, must advance — but only forwards, or a beat
+		// replayed from the offline queue would rewind the session's last
+		// activity and corrupt Live.
+		assert.Contains(t, suffix, "updated_at = GREATEST(EXCLUDED.updated_at, web_sessions.updated_at)")
 	})
 
 	t.Run("pages: PK excluded, everything else refreshed under the guard", func(t *testing.T) {
 		suffix := webPageUpsertSuffix
-		assert.True(t, strings.HasPrefix(suffix, "ON CONFLICT (session_date, session_id, page_number) DO UPDATE SET "))
+		assert.True(t, strings.HasPrefix(suffix, "ON CONFLICT (session_date, session_id, tab_id, page_number) DO UPDATE SET "))
 		assert.Contains(t, suffix, "WHERE EXCLUDED.beat_seq > web_pages.beat_seq")
 		assert.Contains(t, suffix, "is_exit = EXCLUDED.is_exit")
 		assert.NotContains(t, suffix, "page_number = EXCLUDED.page_number")
 	})
 
-	t.Run("goals: four-column dedup key excluded", func(t *testing.T) {
+	t.Run("goals: five-column dedup key excluded", func(t *testing.T) {
 		suffix := webGoalUpsertSuffix
-		assert.True(t, strings.HasPrefix(suffix, "ON CONFLICT (session_date, session_id, goal_name, client_ts_ms) DO UPDATE SET "))
+		assert.True(t, strings.HasPrefix(suffix, "ON CONFLICT (session_date, session_id, tab_id, goal_name, client_ts_ms) DO UPDATE SET "))
 		assert.Contains(t, suffix, "WHERE EXCLUDED.beat_seq > web_goals.beat_seq")
 		assert.NotContains(t, suffix, "client_ts_ms = EXCLUDED.client_ts_ms")
 		assert.Contains(t, suffix, "properties = EXCLUDED.properties")
@@ -107,6 +111,71 @@ func anyArgsExcept(size int, pinned map[int]driver.Value) []driver.Value {
 		}
 	}
 	return args
+}
+
+func TestWebAnalyticsPerWriterKeys(t *testing.T) {
+	t.Run("pages and goals conflict on the writer as well as the session", func(t *testing.T) {
+		// Two tabs share a session_id but number their pages independently, so
+		// without tab_id in the conflict target tab B's page 1 overwrites tab A's.
+		assert.True(t, strings.HasPrefix(webPageUpsertSuffix,
+			"ON CONFLICT (session_date, session_id, tab_id, page_number) DO UPDATE SET "))
+		assert.True(t, strings.HasPrefix(webGoalUpsertSuffix,
+			"ON CONFLICT (session_date, session_id, tab_id, goal_name, client_ts_ms) DO UPDATE SET "))
+		assert.Contains(t, webPageColumns, "tab_id")
+		assert.Contains(t, webGoalColumns, "tab_id")
+	})
+
+	t.Run("per-writer beat_seq guard survives on the child tables", func(t *testing.T) {
+		// Within one tab the counter IS monotonic, so the guard still means
+		// "ignore a stale replay" — it just no longer compares two unrelated tabs.
+		assert.Contains(t, webPageUpsertSuffix, "WHERE EXCLUDED.beat_seq > web_pages.beat_seq")
+		assert.Contains(t, webGoalUpsertSuffix, "WHERE EXCLUDED.beat_seq > web_goals.beat_seq")
+	})
+
+	t.Run("the session row has no beat_seq guard and merges order-free", func(t *testing.T) {
+		// One session row, N writers with independent counters: a guard would let
+		// the highest-seq tab block every other tab's beats forever. It is only
+		// safe to drop because every column now has an order-free merge rule —
+		// aggregates recomputed from the child rows, updated_at by GREATEST, and
+		// attribution kept from the first writer that supplied it.
+		assert.NotContains(t, webSessionUpsertSuffix, "WHERE EXCLUDED.beat_seq >")
+		assert.Contains(t, webSessionUpsertSuffix,
+			"updated_at = GREATEST(EXCLUDED.updated_at, web_sessions.updated_at)")
+		assert.Contains(t, webSessionUpsertSuffix,
+			"landing_page = COALESCE(NULLIF(web_sessions.landing_page, ''), EXCLUDED.landing_page)")
+		assert.Contains(t, webSessionUpsertSuffix,
+			"utm_source = COALESCE(NULLIF(web_sessions.utm_source, ''), EXCLUDED.utm_source)")
+		// created_at stays untouched, and the sticky contact_email rule survives.
+		assert.NotContains(t, webSessionUpsertSuffix, "created_at")
+		assert.Contains(t, webSessionUpsertSuffix,
+			"contact_email = COALESCE(EXCLUDED.contact_email, web_sessions.contact_email)")
+	})
+
+	t.Run("dedupe keys separate writers", func(t *testing.T) {
+		date := time.Date(2024, 5, 10, 0, 0, 0, 0, time.UTC)
+		pages := []*domain.WebPage{
+			{SessionDate: date, SessionID: "s", TabID: 1, PageNumber: 1, Path: "/tab-a"},
+			{SessionDate: date, SessionID: "s", TabID: 2, PageNumber: 1, Path: "/tab-b"},
+		}
+		out := dedupeByKey(pages, webPageDedupeKey)
+		assert.Len(t, out, 2, "two tabs' page 1 are different rows, not a duplicate")
+
+		goals := []*domain.WebGoal{
+			{SessionDate: date, SessionID: "s", TabID: 1, GoalName: "buy", ClientTsMs: 5},
+			{SessionDate: date, SessionID: "s", TabID: 2, GoalName: "buy", ClientTsMs: 5},
+		}
+		assert.Len(t, dedupeByKey(goals, webGoalDedupeKey), 2)
+	})
+}
+
+// expectRollups matches the three statements that run after the child inserts to
+// re-derive the session row and the entry/exit flags from web_pages/web_goals.
+// They are what make the session's aggregates order-free across a session's
+// tabs, which is why the session upsert no longer carries a beat_seq guard.
+func expectRollups(mock sqlmock.Sqlmock) {
+	mock.ExpectExec("UPDATE web_sessions").WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec("UPDATE web_sessions").WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec("UPDATE web_pages").WillReturnResult(sqlmock.NewResult(0, 1))
 }
 
 func TestFlushBatch(t *testing.T) {
@@ -137,22 +206,23 @@ func TestFlushBatch(t *testing.T) {
 		mock.ExpectBegin()
 		mock.ExpectExec("INSERT INTO web_sessions").
 			WithArgs(anyArgsExcept(2*len(webSessionColumns), map[int]driver.Value{
-				1:                        "aa0e8400-e29b-41d4-a716-446655440000",
-				len(webSessionColumns)+1: "zz0e8400-e29b-41d4-a716-446655440000",
+				1:                          "aa0e8400-e29b-41d4-a716-446655440000",
+				len(webSessionColumns) + 1: "zz0e8400-e29b-41d4-a716-446655440000",
 			})...).
 			WillReturnResult(sqlmock.NewResult(0, 2))
 		mock.ExpectExec("INSERT INTO web_pages").
 			WithArgs(anyArgsExcept(2*len(webPageColumns), map[int]driver.Value{
-				2:                     int64(1), // first row is page_number 1 after sorting
-				len(webPageColumns)+2: int64(2),
+				3:                       int64(1), // first row is page_number 1 after sorting (tab_id now precedes it)
+				len(webPageColumns) + 3: int64(2),
 			})...).
 			WillReturnResult(sqlmock.NewResult(0, 2))
 		mock.ExpectExec("INSERT INTO web_goals").
 			WithArgs(anyArgsExcept(2*len(webGoalColumns), map[int]driver.Value{
-				3:                     int64(100), // client_ts_ms ascending after sorting
-				len(webGoalColumns)+3: int64(200),
+				4:                       int64(100), // client_ts_ms ascending after sorting (tab_id now precedes goal_name)
+				len(webGoalColumns) + 4: int64(200),
 			})...).
 			WillReturnResult(sqlmock.NewResult(0, 2))
+		expectRollups(mock)
 		mock.ExpectCommit()
 
 		require.NoError(t, repo.FlushBatch(context.Background(), waTestWorkspace, sessions, pages, goals))
@@ -181,11 +251,12 @@ func TestFlushBatch(t *testing.T) {
 		mock.ExpectBegin()
 		// Exactly one row each: the later action wins.
 		mock.ExpectExec("INSERT INTO web_pages").
-			WithArgs(anyArgsExcept(len(webPageColumns), map[int]driver.Value{4: "/second"})...).
+			WithArgs(anyArgsExcept(len(webPageColumns), map[int]driver.Value{5: "/second"})...).
 			WillReturnResult(sqlmock.NewResult(0, 1))
 		mock.ExpectExec("INSERT INTO web_goals").
-			WithArgs(anyArgsExcept(len(webGoalColumns), map[int]driver.Value{3: int64(500)})...).
+			WithArgs(anyArgsExcept(len(webGoalColumns), map[int]driver.Value{4: int64(500)})...).
 			WillReturnResult(sqlmock.NewResult(0, 1))
+		// No sessions in this batch, so nothing to roll up.
 		mock.ExpectCommit()
 
 		require.NoError(t, repo.FlushBatch(context.Background(), waTestWorkspace, nil, pages, goals))
@@ -209,6 +280,7 @@ func TestFlushBatch(t *testing.T) {
 				7: int64(2147483647), // median_page_duration_ms
 			})...).
 			WillReturnResult(sqlmock.NewResult(0, 1))
+		expectRollups(mock)
 		mock.ExpectCommit()
 
 		require.NoError(t, repo.FlushBatch(context.Background(), waTestWorkspace, []*domain.WebSession{session}, nil, nil))
@@ -234,6 +306,7 @@ func TestFlushBatch(t *testing.T) {
 
 		mock.ExpectBegin()
 		mock.ExpectExec("INSERT INTO web_sessions").WillReturnResult(sqlmock.NewResult(0, 1))
+		expectRollups(mock)
 		mock.ExpectCommit()
 
 		require.NoError(t, repo.FlushBatch(context.Background(), waTestWorkspace, sessions, nil, nil))

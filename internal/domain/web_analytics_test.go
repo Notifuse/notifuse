@@ -75,8 +75,8 @@ func TestSessionDateFromUUIDv7(t *testing.T) {
 		assert.NoError(t, err)
 	})
 
-	t.Run("rejects ids more than 10min in the future", func(t *testing.T) {
-		_, _, err := SessionDateFromUUIDv7(uuidV7At(now.Add(11*time.Minute)), now)
+	t.Run("rejects ids beyond the future bound", func(t *testing.T) {
+		_, _, err := SessionDateFromUUIDv7(uuidV7At(now.Add(WebSessionIDMaxFuture+time.Minute)), now)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "future")
 	})
@@ -211,69 +211,39 @@ func TestWebTrackPayloadValidate(t *testing.T) {
 		assert.ErrorContains(t, p.Validate(now), "actions")
 	})
 
-	t.Run("unknown action type rejected", func(t *testing.T) {
-		p := trackPayloadJSON(t, now, map[string]interface{}{
-			"actions": []map[string]interface{}{{"type": "click", "path": "/p", "page_number": 1}},
+	// A malformed action is dropped, never fatal: actions[] is cumulative, so a
+	// beat rejected for one bad entry would reject every later beat of that
+	// session too. Asserting the action is *gone* still proves
+	// WebTrackAction.Validate rejects the shape — if it stopped rejecting, the
+	// action would survive and these would fail.
+	for _, tc := range []struct {
+		name   string
+		action map[string]interface{}
+	}{
+		{"unknown action type", map[string]interface{}{"type": "click", "path": "/p", "page_number": 1}},
+		{"pageview scroll out of range", map[string]interface{}{"type": "pageview", "path": "/p", "page_number": 1, "scroll": 101}},
+		{"pageview exited before entered", map[string]interface{}{
+			"type": "pageview", "path": "/p", "page_number": 1,
+			"entered_at": now.UnixMilli(), "exited_at": now.Add(-time.Minute).UnixMilli(),
+		}},
+		{"goal without name", map[string]interface{}{"type": "goal", "path": "/p", "page_number": 1, "timestamp": now.UnixMilli()}},
+		{"goal name too long", map[string]interface{}{
+			"type": "goal", "path": "/p", "page_number": 1,
+			"name": strings.Repeat("g", WebTrackMaxGoalNameLength+1), "timestamp": now.UnixMilli(),
+		}},
+		{"path too long", map[string]interface{}{
+			"type": "pageview", "path": "/" + strings.Repeat("a", WebTrackMaxPathLength), "page_number": 1,
+		}},
+		{"page_number below one", map[string]interface{}{"type": "pageview", "path": "/p", "page_number": 0}},
+	} {
+		t.Run(tc.name+" is dropped, not fatal", func(t *testing.T) {
+			p := trackPayloadJSON(t, now, map[string]interface{}{
+				"actions": []map[string]interface{}{tc.action},
+			})
+			require.NoError(t, p.Validate(now))
+			assert.Empty(t, p.Actions)
 		})
-		assert.ErrorContains(t, p.Validate(now), "unknown action type")
-	})
-
-	t.Run("pageview scroll out of range", func(t *testing.T) {
-		p := trackPayloadJSON(t, now, map[string]interface{}{
-			"actions": []map[string]interface{}{{"type": "pageview", "path": "/p", "page_number": 1, "scroll": 101}},
-		})
-		assert.ErrorContains(t, p.Validate(now), "scroll")
-	})
-
-	t.Run("pageview exited before entered", func(t *testing.T) {
-		p := trackPayloadJSON(t, now, map[string]interface{}{
-			"actions": []map[string]interface{}{{
-				"type": "pageview", "path": "/p", "page_number": 1,
-				"entered_at": now.UnixMilli(), "exited_at": now.Add(-time.Minute).UnixMilli(),
-			}},
-		})
-		assert.ErrorContains(t, p.Validate(now), "exited_at")
-	})
-
-	t.Run("goal without name rejected", func(t *testing.T) {
-		p := trackPayloadJSON(t, now, map[string]interface{}{
-			"actions": []map[string]interface{}{{
-				"type": "goal", "path": "/p", "page_number": 1, "timestamp": now.UnixMilli(),
-			}},
-		})
-		assert.ErrorContains(t, p.Validate(now), "goal name")
-	})
-
-	t.Run("goal name too long", func(t *testing.T) {
-		p := trackPayloadJSON(t, now, map[string]interface{}{
-			"actions": []map[string]interface{}{{
-				"type": "goal", "path": "/p", "page_number": 1,
-				"name": strings.Repeat("g", WebTrackMaxGoalNameLength+1), "timestamp": now.UnixMilli(),
-			}},
-		})
-		assert.ErrorContains(t, p.Validate(now), "goal name")
-	})
-
-	t.Run("path too long", func(t *testing.T) {
-		p := trackPayloadJSON(t, now, map[string]interface{}{
-			"actions": []map[string]interface{}{{
-				"type": "pageview", "path": "/" + strings.Repeat("a", WebTrackMaxPathLength), "page_number": 1,
-			}},
-		})
-		assert.ErrorContains(t, p.Validate(now), "path")
-	})
-
-	t.Run("page_number below one rejected", func(t *testing.T) {
-		p := trackPayloadJSON(t, now, map[string]interface{}{
-			"actions": []map[string]interface{}{{"type": "pageview", "path": "/p", "page_number": 0}},
-		})
-		assert.ErrorContains(t, p.Validate(now), "page_number")
-	})
-
-	t.Run("user_id too long", func(t *testing.T) {
-		p := trackPayloadJSON(t, now, map[string]interface{}{"user_id": strings.Repeat("u", WebTrackMaxUserIDLength+1)})
-		assert.ErrorContains(t, p.Validate(now), "user_id")
-	})
+	}
 
 	t.Run("oversized stm dimension value rejected, unknown keys tolerated", func(t *testing.T) {
 		p := trackPayloadJSON(t, now, map[string]interface{}{
@@ -353,4 +323,266 @@ func TestWebAnalyticsSettings(t *testing.T) {
 		assert.True(t, back.WebAnalytics.Enabled)
 		assert.Equal(t, 12, back.WebAnalytics.BounceThresholdSeconds)
 	})
+}
+
+// TestSessionDateFromUUIDv7ClockSkew covers W0.2: a device clock running fast is
+// the common case, not an attack. The SDK mints the session id from Date.now(),
+// so the id inherits the whole skew, and rejecting it means that visitor records
+// nothing at all — the SDK treats the 400 as permanent and never retries.
+func TestSessionDateFromUUIDv7ClockSkew(t *testing.T) {
+	now := time.Date(2026, 8, 8, 15, 0, 0, 0, time.UTC)
+
+	for _, skew := range []time.Duration{15 * time.Minute, time.Hour, 20 * time.Hour} {
+		t.Run("accepts a clock "+skew.String()+" fast", func(t *testing.T) {
+			_, _, err := SessionDateFromUUIDv7(uuidV7At(now.Add(skew)), now)
+			assert.NoError(t, err)
+		})
+	}
+
+	t.Run("future bound matches the beat window", func(t *testing.T) {
+		// Keeping the two windows equal is what stops the id from silently
+		// overriding updated_at as the binding constraint on the future side,
+		// and it bounds partition creation to one day ahead — which the
+		// maintenance worker already provisions.
+		assert.Equal(t, WebTrackTimeBounds, WebSessionIDMaxFuture)
+	})
+
+	t.Run("still rejects beyond the beat window", func(t *testing.T) {
+		_, _, err := SessionDateFromUUIDv7(uuidV7At(now.Add(WebTrackTimeBounds+time.Hour)), now)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "future")
+	})
+
+	t.Run("session_date is stable across UTC midnight", func(t *testing.T) {
+		// The regression test for the clamp that must NOT be applied: session_date
+		// is a pure function of the id, so a clock-fast visitor's session cannot
+		// change partition — and therefore primary key — as the server's day rolls.
+		id := uuidV7At(time.Date(2026, 8, 9, 0, 5, 0, 0, time.UTC))
+		before, _, err1 := SessionDateFromUUIDv7(id, time.Date(2026, 8, 8, 23, 50, 0, 0, time.UTC))
+		after, _, err2 := SessionDateFromUUIDv7(id, time.Date(2026, 8, 9, 0, 10, 0, 0, time.UTC))
+		require.NoError(t, err1)
+		require.NoError(t, err2)
+		assert.Equal(t, before, after)
+	})
+}
+
+// TestWebTrackPayloadDropsMalformedActions covers W0.4 (server half): actions[]
+// is cumulative, so one poisoned entry rejected wholesale would reject every
+// subsequent beat of that session forever. One bad action must cost one action.
+func TestWebTrackPayloadDropsMalformedActions(t *testing.T) {
+	now := time.Date(2026, 8, 8, 15, 0, 0, 0, time.UTC)
+	pageview := func(n int, dur int64) map[string]interface{} {
+		return map[string]interface{}{
+			"type": "pageview", "path": fmt.Sprintf("/p%d", n), "page_number": n,
+			"duration": dur, "scroll": 10,
+			"entered_at": now.Add(-time.Minute).UnixMilli(), "exited_at": now.UnixMilli(),
+		}
+	}
+
+	t.Run("one negative-duration action among five is dropped, the rest survive", func(t *testing.T) {
+		p := trackPayloadJSON(t, now, map[string]interface{}{
+			"actions": []map[string]interface{}{
+				pageview(1, 100), pageview(2, 100), pageview(3, -5), pageview(4, 100), pageview(5, 100),
+			},
+		})
+		require.NoError(t, p.Validate(now))
+		require.Len(t, p.Actions, 4)
+		for _, a := range p.Actions {
+			assert.NotEqual(t, "/p3", a.Path)
+		}
+	})
+
+	t.Run("a nameless goal is dropped without taking the pageviews with it", func(t *testing.T) {
+		p := trackPayloadJSON(t, now, map[string]interface{}{
+			"actions": []map[string]interface{}{
+				pageview(1, 100),
+				{"type": "goal", "name": "", "page_number": 1, "timestamp": now.UnixMilli()},
+				{"type": "goal", "name": "purchase", "page_number": 1, "timestamp": now.UnixMilli(), "value": 9.99},
+			},
+		})
+		require.NoError(t, p.Validate(now))
+		require.Len(t, p.Actions, 2)
+		assert.Equal(t, "purchase", p.Actions[1].Name)
+	})
+
+	t.Run("an all-malformed payload validates to an empty action list", func(t *testing.T) {
+		// The service already treats zero actions as a silent success, so the beat
+		// is accepted and records nothing — never a 400 the SDK reads as permanent.
+		p := trackPayloadJSON(t, now, map[string]interface{}{
+			"actions": []map[string]interface{}{pageview(1, -1)},
+		})
+		require.NoError(t, p.Validate(now))
+		assert.Empty(t, p.Actions)
+	})
+
+	t.Run("payload-level failures still reject", func(t *testing.T) {
+		p := trackPayloadJSON(t, now, map[string]interface{}{"workspace_id": ""})
+		assert.Error(t, p.Validate(now))
+	})
+}
+
+// TestResolveWebIdentity covers W2: /track is public and unauthenticated, so an
+// email on the wire is worth nothing until a signature ties it to the
+// workspace secret. These cases are the difference between "a contact was
+// identified" and "anyone can write to any contact's timeline".
+func TestResolveWebIdentity(t *testing.T) {
+	now := time.Date(2026, 8, 10, 12, 0, 0, 0, time.UTC)
+	const secret = "workspace-secret-key"
+	const other = "a-different-workspace-secret"
+	email := "Alice@Example.com" // deliberately mixed case
+
+	ptr := func(s string) *string { return &s }
+
+	t.Run("a valid HMAC identifies the contact, normalized for storage", func(t *testing.T) {
+		// Verify against the RAW address the customer signed, then normalize —
+		// doing it the other way round fails every HMAC ever minted.
+		got, ok := ResolveWebIdentity(&WebTrackPayload{
+			ContactEmail:     ptr(email),
+			ContactEmailHMAC: ptr(ComputeWebIdentifyHMAC(email, secret)),
+		}, secret, now)
+		require.True(t, ok)
+		assert.Equal(t, "alice@example.com", got)
+	})
+
+	t.Run("the analytics HMAC is domain-separated from the subscription one", func(t *testing.T) {
+		// ComputeEmailHMAC already authorizes subscription writes and ships in
+		// every email Notifuse sends. If the two were interchangeable, an
+		// unsubscribe link scraped from a forwarded email would identify, and an
+		// analytics credential lifted from page JS could change subscriptions.
+		assert.NotEqual(t, ComputeEmailHMAC(email, secret), ComputeWebIdentifyHMAC(email, secret))
+
+		_, ok := ResolveWebIdentity(&WebTrackPayload{
+			ContactEmail:     ptr(email),
+			ContactEmailHMAC: ptr(ComputeEmailHMAC(email, secret)),
+		}, secret, now)
+		assert.False(t, ok, "a notification-center HMAC must not identify")
+	})
+
+	for _, tc := range []struct {
+		name    string
+		payload *WebTrackPayload
+	}{
+		{"wrong hmac", &WebTrackPayload{ContactEmail: ptr(email), ContactEmailHMAC: ptr("deadbeef")}},
+		{"hmac for a different email", &WebTrackPayload{
+			ContactEmail: ptr(email), ContactEmailHMAC: ptr(ComputeWebIdentifyHMAC("mallory@example.com", secret))}},
+		{"hmac under another workspace's secret", &WebTrackPayload{
+			ContactEmail: ptr(email), ContactEmailHMAC: ptr(ComputeWebIdentifyHMAC(email, other))}},
+		{"email without hmac", &WebTrackPayload{ContactEmail: ptr(email)}},
+		{"hmac without email", &WebTrackPayload{ContactEmailHMAC: ptr("abc")}},
+		{"nothing at all", &WebTrackPayload{}},
+		{"over-length email", &WebTrackPayload{
+			ContactEmail: ptr(strings.Repeat("e", WebTrackMaxEmailLength+1)), ContactEmailHMAC: ptr("x")}},
+	} {
+		t.Run(tc.name+" is rejected", func(t *testing.T) {
+			_, ok := ResolveWebIdentity(tc.payload, secret, now)
+			assert.False(t, ok)
+		})
+	}
+
+	t.Run("a signed token identifies without exposing the address in the URL", func(t *testing.T) {
+		token, err := BuildWebIdentifyToken(email, secret, 30*24*time.Hour, now)
+		require.NoError(t, err)
+		assert.NotContains(t, token, "alice", "the address must not be readable in the URL")
+
+		got, ok := ResolveWebIdentity(&WebTrackPayload{IdentifyToken: &token}, secret, now)
+		require.True(t, ok)
+		assert.Equal(t, "alice@example.com", got)
+	})
+
+	t.Run("an expired token is rejected", func(t *testing.T) {
+		token, err := BuildWebIdentifyToken(email, secret, time.Hour, now.Add(-2*time.Hour))
+		require.NoError(t, err)
+		_, ok := ResolveWebIdentity(&WebTrackPayload{IdentifyToken: &token}, secret, now)
+		assert.False(t, ok)
+	})
+
+	t.Run("a token minted for another workspace is rejected", func(t *testing.T) {
+		token, err := BuildWebIdentifyToken(email, other, time.Hour, now)
+		require.NoError(t, err)
+		_, ok := ResolveWebIdentity(&WebTrackPayload{IdentifyToken: &token}, secret, now)
+		assert.False(t, ok)
+	})
+
+	t.Run("an invalid token fails closed instead of falling through to the hmac", func(t *testing.T) {
+		// Trying the next credential after a bad token would let an attacker
+		// downgrade past whichever check they cannot satisfy.
+		_, ok := ResolveWebIdentity(&WebTrackPayload{
+			IdentifyToken:    ptr("not-a-token"),
+			ContactEmail:     ptr(email),
+			ContactEmailHMAC: ptr(ComputeWebIdentifyHMAC(email, secret)),
+		}, secret, now)
+		assert.False(t, ok)
+	})
+
+	t.Run("an empty workspace secret never identifies", func(t *testing.T) {
+		// A workspace with no secret must not accept an HMAC computed over "".
+		_, ok := ResolveWebIdentity(&WebTrackPayload{
+			ContactEmail:     ptr(email),
+			ContactEmailHMAC: ptr(ComputeWebIdentifyHMAC(email, "")),
+		}, "", now)
+		assert.False(t, ok)
+	})
+}
+
+// TestWebTrackGoalPropertiesBounds covers W2b: goal properties were bounded by
+// nothing at all, and actions[] is cumulative — so one fat properties map is
+// re-sent on every later beat until the body crosses the server's 1MB cap, at
+// which point EVERY subsequent beat of that session is rejected, forever. This
+// is a permanent wedge an honest customer can reach, not merely an abuse vector.
+func TestWebTrackGoalPropertiesBounds(t *testing.T) {
+	now := time.Date(2026, 8, 10, 12, 0, 0, 0, time.UTC)
+
+	goal := func(props map[string]string) map[string]interface{} {
+		return map[string]interface{}{
+			"type": "goal", "name": "purchase", "page_number": 1,
+			"timestamp": now.UnixMilli(), "properties": props,
+		}
+	}
+	pageview := map[string]interface{}{
+		"type": "pageview", "path": "/p", "page_number": 1,
+		"duration": 10, "scroll": 5,
+		"entered_at": now.Add(-time.Minute).UnixMilli(), "exited_at": now.UnixMilli(),
+	}
+
+	t.Run("a reasonable properties map survives", func(t *testing.T) {
+		p := trackPayloadJSON(t, now, map[string]interface{}{
+			"actions": []map[string]interface{}{goal(map[string]string{"plan": "pro", "seats": "12"})},
+		})
+		require.NoError(t, p.Validate(now))
+		require.Len(t, p.Actions, 1)
+		assert.Equal(t, "pro", p.Actions[0].Properties["plan"])
+	})
+
+	for _, tc := range []struct {
+		name  string
+		props map[string]string
+	}{
+		{"too many keys", func() map[string]string {
+			m := map[string]string{}
+			for i := 0; i <= WebTrackMaxGoalPropertyKeys; i++ {
+				m[fmt.Sprintf("k%d", i)] = "v"
+			}
+			return m
+		}()},
+		{"an over-long value", map[string]string{"blob": strings.Repeat("x", WebTrackMaxGoalPropertyValueLength+1)}},
+		{"over the total byte budget", func() map[string]string {
+			m := map[string]string{}
+			per := WebTrackMaxGoalPropertyValueLength
+			for i := 0; i < (WebTrackMaxGoalPropertiesBytes/per)+2; i++ {
+				m[fmt.Sprintf("k%d", i)] = strings.Repeat("y", per)
+			}
+			return m
+		}()},
+	} {
+		t.Run(tc.name+" costs the action, never the beat", func(t *testing.T) {
+			// Dropping the action is what stops the wedge: the oversized goal
+			// never enters the cumulative array, so the NEXT beat is unaffected.
+			p := trackPayloadJSON(t, now, map[string]interface{}{
+				"actions": []map[string]interface{}{pageview, goal(tc.props)},
+			})
+			require.NoError(t, p.Validate(now))
+			require.Len(t, p.Actions, 1, "the pageview must survive the bad goal")
+			assert.Equal(t, WebActionTypePageview, p.Actions[0].Type)
+		})
+	}
 }

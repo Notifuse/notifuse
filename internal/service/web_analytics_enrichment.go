@@ -115,14 +115,14 @@ type webAttribution struct {
 
 	UTMSource, UTMMedium, UTMCampaign, UTMTerm, UTMContent, UTMID, UTMIDFrom string
 	Channel, ChannelGroup                                                    string
-	Custom [10]string
+	Custom                                                                   [10]string
 
 	ScreenWidth, ScreenHeight, ViewportWidth, ViewportHeight int
 	Device, Browser, BrowserType, OS, UserAgent, ConnType    string
 	Language, Timezone                                       string
 
-	Geo    domain.WebGeoResult
-	UserID *string
+	Geo          domain.WebGeoResult
+	ContactEmail *string
 }
 
 // filterFields builds the source-field map the rules engine reads. path is
@@ -212,7 +212,7 @@ func webCustomSlot(key string) (string, int, bool) {
 
 // BuildWebRows turns one validated beat into its final rows. geo is the raw
 // lookup result (zero value when disabled/unavailable).
-func BuildWebRows(payload *domain.WebTrackPayload, settings *domain.WebAnalyticsSettings, geo geoip.Result, receivedAt time.Time) (*domain.WebSession, []*domain.WebPage, []*domain.WebGoal, error) {
+func BuildWebRows(payload *domain.WebTrackPayload, settings *domain.WebAnalyticsSettings, geo geoip.Result, receivedAt time.Time, contactEmail *string) (*domain.WebSession, []*domain.WebPage, []*domain.WebGoal, error) {
 	sessionDate, sessionStart, err := domain.SessionDateFromUUIDv7(payload.SessionID, receivedAt)
 	if err != nil {
 		return nil, nil, nil, err
@@ -234,8 +234,8 @@ func BuildWebRows(payload *domain.WebTrackPayload, settings *domain.WebAnalytics
 		ViewportWidth: attrs.ViewportWidth, ViewportHeight: attrs.ViewportHeight,
 		UserAgent: attrs.UserAgent, ConnType: attrs.ConnectionType,
 		Language: attrs.Language, Timezone: attrs.Timezone,
-		Geo:    applyWebGeo(geo, settings),
-		UserID: normalizedUserID(payload.UserID),
+		Geo:          applyWebGeo(geo, settings),
+		ContactEmail: contactEmail,
 	}
 	attribution.ReferrerDomain, attribution.ReferrerPath = webURLParts(attrs.Referrer)
 	attribution.LandingDomain, attribution.LandingPath = webURLParts(attrs.LandingPage)
@@ -306,8 +306,8 @@ func BuildWebRows(payload *domain.WebTrackPayload, settings *domain.WebAnalytics
 		Language: attribution.Language, Timezone: attribution.Timezone,
 		Country: attribution.Geo.Country, Region: attribution.Geo.Region, City: attribution.Geo.City,
 		Latitude: attribution.Geo.Latitude, Longitude: attribution.Geo.Longitude,
-		SDKVersion: payload.SDKVersion,
-		UserID:     attribution.UserID,
+		SDKVersion:   payload.SDKVersion,
+		ContactEmail: attribution.ContactEmail,
 	}
 
 	// Page rows + session aggregates.
@@ -338,10 +338,15 @@ func BuildWebRows(payload *domain.WebTrackPayload, settings *domain.WebAnalytics
 			ExitedAt:    correctedMs(pv.ExitedAt, skew),
 			DurationMs:  pv.Duration,
 			MaxScroll:   pv.Scroll,
-			IsLanding:   pv.PageNumber == 1,
-			IsExit:      pv.PageNumber == maxPageNumber,
-			EntryType:   entryType,
-			UserID:      attribution.UserID,
+			// Provisional: these are this TAB's first and last page. The rollup
+			// after the insert recomputes them across all of the session's tabs,
+			// otherwise a three-tab visitor registers three entries and three
+			// exits and inflates Entries, Exits and Exit Rate.
+			IsLanding:    pv.PageNumber == 1,
+			IsExit:       pv.PageNumber == maxPageNumber,
+			EntryType:    entryType,
+			TabID:        payload.TabID,
+			ContactEmail: attribution.ContactEmail,
 		}
 		pages = append(pages, page)
 
@@ -398,7 +403,8 @@ func BuildWebRows(payload *domain.WebTrackPayload, settings *domain.WebAnalytics
 			Language: goalAttribution.Language, Timezone: goalAttribution.Timezone,
 			Country: goalAttribution.Geo.Country, Region: goalAttribution.Geo.Region, City: goalAttribution.Geo.City,
 			Latitude: goalAttribution.Geo.Latitude, Longitude: goalAttribution.Geo.Longitude,
-			UserID: goalAttribution.UserID,
+			TabID:        payload.TabID,
+			ContactEmail: goalAttribution.ContactEmail,
 		}
 		goals = append(goals, goal)
 		goalValueSum += ga.Value
@@ -410,15 +416,19 @@ func BuildWebRows(payload *domain.WebTrackPayload, settings *domain.WebAnalytics
 	return session, pages, goals, nil
 }
 
-func normalizedUserID(userID *string) *string {
-	if userID == nil {
+// normalizedContactEmail lowercases and trims a verified address so it matches
+// contacts.email, which is stored normalized. Callers must verify the signature
+// against the RAW address first — the customer signed what they sent, not what
+// we normalize it to.
+func normalizedContactEmail(email *string) *string {
+	if email == nil {
 		return nil
 	}
-	trimmed := strings.TrimSpace(*userID)
-	if trimmed == "" {
+	normalized := domain.NormalizeEmail(*email)
+	if normalized == "" {
 		return nil
 	}
-	return &trimmed
+	return &normalized
 }
 
 func medianInt64(values []int64) int64 {

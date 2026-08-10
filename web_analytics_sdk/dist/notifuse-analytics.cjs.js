@@ -214,19 +214,6 @@ const STORAGE_KEYS = {
  * Uses native crypto.randomUUID() when available (2-3x faster),
  * falls back to crypto.getRandomValues() for older browsers
  */
-function generateUUIDv4() {
-    // Native implementation when available (Chrome 92+, Firefox 95+, Safari 15.4+)
-    if (crypto.randomUUID) {
-        return crypto.randomUUID();
-    }
-    // Secure fallback using getRandomValues (all ES2017+ browsers)
-    const bytes = new Uint8Array(16);
-    crypto.getRandomValues(bytes);
-    bytes[6] = (bytes[6] & 0x0f) | 0x40; // Version 4
-    bytes[8] = (bytes[8] & 0x3f) | 0x80; // Variant 10
-    const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
-    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
-}
 /**
  * Generate a UUIDv7 (time-sortable)
  * Format: timestamp (48 bits) + version (4 bits) + random (12 bits) + variant (2 bits) + random (62 bits)
@@ -249,6 +236,24 @@ function generateUUIDv7() {
             randomHex.slice(4, 7), // Variant + 3 random hex
         randomHex.slice(7, 19), // 12 random hex chars
     ].join('-');
+}
+/**
+ * Random identifier for one browser tab, as a JS-safe integer.
+ *
+ * Lands in a BIGINT column that forms part of the web_pages and web_goals
+ * primary keys, so it only has to be unique among one session's tabs — a UUID
+ * would add 16 bytes to the highest-volume partitioned table and widen its PK
+ * index for uniqueness nobody needs. 53 bits keeps the value an exact float64
+ * integer, so it survives JSON round-tripping without precision loss.
+ */
+function generateTabId() {
+    if (typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function') {
+        const buf = new Uint32Array(2);
+        crypto.getRandomValues(buf);
+        // 21 high bits + 32 low bits = 53.
+        return (buf[0] % 0x200000) * 0x100000000 + buf[1] + 1;
+    }
+    return Math.floor(Math.random() * Number.MAX_SAFE_INTEGER) + 1;
 }
 
 /**
@@ -299,6 +304,15 @@ function parseUTMParams(url, adClickIds = DEFAULT_AD_CLICK_IDS) {
  */
 const SDK_VERSION$1 = "38.0";
 const CLOCK_SKEW_TOLERANCE$1 = 60; // seconds
+// Absolute lifetime of one session id, independent of activity.
+//
+// The server rejects any session id whose embedded timestamp is older than 48h
+// (WebSessionIDMaxAge) and the SDK has no path back from that 400 — it never
+// rotates in response — so a pinned tab or a kiosk display goes silent forever.
+// Rotating at half the server bound leaves a full day of headroom for a beat
+// sitting in the offline queue to still be replayed against the id it was
+// minted under. Deliberately not configurable: raising it re-opens the cliff.
+const SESSION_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 class SessionManager {
     constructor(storage, tabStorage, config) {
         this.session = null;
@@ -441,7 +455,10 @@ class SessionManager {
      * Check if session has expired
      */
     isSessionExpired(session) {
-        return Date.now() - session.last_active_at > this.config.sessionTimeout;
+        const now = Date.now();
+        if (now - session.last_active_at > this.config.sessionTimeout)
+            return true;
+        return now - session.created_at > SESSION_MAX_AGE_MS;
     }
     /**
      * Check if UTM has any values
@@ -456,16 +473,26 @@ class SessionManager {
         return this.session;
     }
     /**
-     * Update session
+     * Record activity on the current session, returning false when it has expired
+     * and the caller must rotate.
+     *
+     * Two bugs live here if nothing calls this. last_active_at would only ever be
+     * written at page load, so the inactivity window would measure time since load
+     * rather than since activity — fragmenting a long read into several sessions.
+     * And the expiry check would run once per load and never again, so a tab left
+     * open would never rotate, eventually crossing the server's id bound and being
+     * rejected permanently.
      */
-    updateSession(updates) {
+    touch() {
         if (!this.session)
-            return;
-        Object.assign(this.session, updates, {
-            updated_at: Date.now(),
-            last_active_at: Date.now(),
-        });
+            return false;
+        if (this.isSessionExpired(this.session))
+            return false;
+        const now = Date.now();
+        this.session.last_active_at = now;
+        this.session.updated_at = now;
         this.saveSession();
+        return true;
     }
     /**
      * Save session to storage
@@ -485,11 +512,15 @@ class SessionManager {
      * Get or create tab ID
      */
     getOrCreateTabId() {
-        let tabId = this.tabStorage.get(STORAGE_KEYS.TAB_ID);
-        if (!tabId) {
-            tabId = generateUUIDv4();
-            this.tabStorage.set(STORAGE_KEYS.TAB_ID, tabId);
+        const stored = this.tabStorage.get(STORAGE_KEYS.TAB_ID);
+        // Anything that is not a safe integer is replaced, which also migrates the
+        // UUID string an earlier build wrote here — sending that as a BIGINT would
+        // be rejected outright.
+        if (typeof stored === 'number' && Number.isSafeInteger(stored) && stored > 0) {
+            return stored;
         }
+        const tabId = generateTabId();
+        this.tabStorage.set(STORAGE_KEYS.TAB_ID, tabId);
         return tabId;
     }
     /**
@@ -680,6 +711,7 @@ class SessionState {
         this.workspaceId = config.workspace_id;
         this.sessionId = config.session_id;
         this.createdAt = config.created_at;
+        this.tabId = config.tab_id ?? 0;
     }
     // === Focus Time Callback ===
     /**
@@ -792,13 +824,13 @@ class SessionState {
             const action = this.actions[this.currentPageIndex];
             if (action && action.type === 'pageview') {
                 // Get focus time from SDK (or 0 if no getter set)
-                action.duration = this.getPageFocusMs ? this.getPageFocusMs() : 0;
-                action.exited_at = Date.now();
+                this.closePage(action, Date.now());
             }
         }
         const payload = {
             workspace_id: this.workspaceId,
             session_id: this.sessionId,
+            tab_id: this.tabId,
             actions: [...this.actions],
             // Always include attributes (no optimization)
             attributes,
@@ -824,8 +856,7 @@ class SessionState {
         const action = this.actions[this.currentPageIndex];
         if (action && action.type === 'pageview') {
             // Update final duration and exit time
-            action.duration = this.getPageFocusMs ? this.getPageFocusMs() : 0;
-            action.exited_at = Date.now();
+            this.closePage(action, Date.now());
         }
         // Clear current page index
         this.currentPageIndex = null;
@@ -898,6 +929,20 @@ class SessionState {
      * Update the current page's duration when navigating away.
      * Uses focus time from SDK's heartbeatState via callback.
      */
+    /**
+     * Write a page's final duration and exit stamp, both clamped.
+     *
+     * The two clamps guard one failure: a backward wall-clock step. A negative
+     * duration or an exited_at before entered_at is rejected by the server, and
+     * since completed pages are never recomputed the bad value rides along in
+     * every later beat of the session — so one clock glitch becomes permanent,
+     * total loss for that visitor unless it is caught here.
+     */
+    closePage(action, exitTime) {
+        const focus = this.getPageFocusMs ? this.getPageFocusMs() : 0;
+        action.duration = focus > 0 ? focus : 0;
+        action.exited_at = exitTime > action.entered_at ? exitTime : action.entered_at;
+    }
     finalizeCurrentPageDuration(exitTime) {
         if (this.currentPageIndex === null)
             return;
@@ -905,8 +950,7 @@ class SessionState {
         if (!action || action.type !== 'pageview')
             return;
         // Get focus time from SDK (or 0 if no getter set)
-        action.duration = this.getPageFocusMs ? this.getPageFocusMs() : 0;
-        action.exited_at = exitTime;
+        this.closePage(action, exitTime);
     }
     getNextPageNumber() {
         // Find highest page_number in actions
@@ -927,11 +971,12 @@ class SessionState {
 const QUEUE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 const TIMEOUT_MS = 10000; // 10 seconds
 class Sender {
-    constructor(endpoint, storage, debug = false) {
+    constructor(endpoint, storage, debug = false, tabId = 0) {
         this.isFlushing = false;
         this.endpoint = endpoint;
         this.storage = storage;
         this.debug = debug;
+        this.queueKey = `${STORAGE_KEYS.PENDING_QUEUE}_${tabId}`;
         // Listen for online event to flush queue
         if (typeof window !== 'undefined') {
             window.addEventListener('online', () => this.handleOnline());
@@ -954,67 +999,125 @@ class Sender {
         return typeof navigator !== 'undefined' && navigator.onLine === false;
     }
     /**
+     * Classify a failed send by whether retrying this exact payload could ever
+     * succeed.
+     *
+     * The server answers 200 for everything it wants the client NOT to retry —
+     * unknown workspace, feature disabled, disallowed domain, bot user-agent — so
+     * a 4xx means the payload itself is unacceptable and will stay unacceptable;
+     * retrying it forever only poisons the queue. 408 and 429 are the exceptions:
+     * they are about timing, not content. 5xx and network failures are transient
+     * by definition, and in a cumulative-snapshot model the retry is one
+     * idempotent re-POST that supersedes everything before it.
+     */
+    classifyStatus(status) {
+        if (status >= 200 && status < 300)
+            return 'ok';
+        if (status === 408 || status === 429)
+            return 'retryable';
+        if (status >= 400 && status < 500)
+            return 'permanent';
+        return 'retryable';
+    }
+    /**
+     * Write the payload to durable storage before any send is attempted.
+     *
+     * Persist-then-send is the only ordering that survives the tab dying
+     * mid-flight, and it is safe precisely because duplicates are free: the
+     * server's `EXCLUDED.beat_seq > beat_seq` guard makes a replayed beat a
+     * no-op, while a dropped one costs everything since the last success.
+     */
+    persist(payload) {
+        const id = `${payload.session_id}:${payload.seq}`;
+        const queue = this.getQueue().filter((item) => item.id !== id);
+        queue.push({ id, payload, queuedAt: Date.now() });
+        this.saveQueue(queue);
+        return id;
+    }
+    /** Remove one settled beat, leaving concurrently-added ones untouched. */
+    dequeue(id) {
+        this.saveQueue(this.getQueue().filter((item) => item.id !== id));
+    }
+    /**
+     * One HTTP attempt, always bounded by a timeout — without one a single hung
+     * connection stalls a drain indefinitely.
+     */
+    async attempt(payload) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
+        try {
+            const response = await fetch(`${this.endpoint}/track`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
+                body: this.stringifyWithSentAt(payload), // Fresh sent_at at send time
+                keepalive: true,
+                signal: controller.signal,
+            });
+            if (response.ok) {
+                const data = await Promise.resolve(response.json?.()).catch(() => undefined);
+                return { outcome: 'ok', data };
+            }
+            const status = typeof response.status === 'number' ? response.status : 500;
+            return {
+                outcome: this.classifyStatus(status),
+                error: `HTTP ${response.status}: ${response.statusText}`,
+            };
+        }
+        catch (error) {
+            // The abort is our own timeout firing, not a server signal; keep the
+            // friendlier label callers already match on.
+            const aborted = error instanceof Error && error.name === 'AbortError';
+            return {
+                outcome: 'retryable',
+                error: aborted
+                    ? 'Request timeout'
+                    : error instanceof Error
+                        ? error.message
+                        : 'Unknown error',
+            };
+        }
+        finally {
+            clearTimeout(timeoutId);
+        }
+    }
+    /**
      * Get pending queue from storage
      */
     getQueue() {
-        return this.storage.get(STORAGE_KEYS.PENDING_QUEUE) || [];
+        return this.storage.get(this.queueKey) || [];
     }
     /**
      * Save queue to storage (with size limit)
      */
     saveQueue(queue) {
         const trimmed = queue.slice(-100);
-        this.storage.set(STORAGE_KEYS.PENDING_QUEUE, trimmed);
+        this.storage.set(this.queueKey, trimmed);
     }
     /**
-     * Add payload to offline queue
+     * Drain the durable queue.
+     *
+     * Each item is removed only once its own send has settled in a way that means
+     * it will never succeed again — a 2xx, or a permanent rejection. The previous
+     * implementation blanked the whole queue before sending anything, so a tab
+     * closed mid-drain took every un-sent item with it.
      */
-    enqueue(payload) {
-        const queue = this.getQueue();
-        queue.push({ payload, queuedAt: Date.now() });
-        this.saveQueue(queue);
-        if (this.debug) {
-            console.log('[NotifuseAnalytics] Payload queued for later (offline)');
-        }
-    }
-    /**
-     * Flush queue when back online
-     */
-    async handleOnline() {
+    async flushQueue() {
         if (this.isFlushing)
             return;
         this.isFlushing = true;
-        if (this.debug) {
-            console.log('[NotifuseAnalytics] Back online, flushing queue');
-        }
         try {
-            const queue = this.getQueue();
-            if (queue.length === 0)
-                return;
-            // Clear queue immediately to prevent duplicates
-            this.storage.set(STORAGE_KEYS.PENDING_QUEUE, []);
             const now = Date.now();
-            const failedItems = [];
-            let expiredCount = 0;
-            for (const item of queue) {
-                // Skip expired items
+            for (const item of this.getQueue()) {
                 if (now - item.queuedAt > QUEUE_TTL_MS) {
-                    expiredCount++;
+                    this.dequeue(item.id);
                     continue;
                 }
-                // Send directly without re-queuing
-                const result = await this.sendSessionDirect(item.payload);
-                if (!result.success) {
-                    failedItems.push(item);
+                if (this.isOffline())
+                    break;
+                const result = await this.attempt(item.payload);
+                if (result.outcome !== 'retryable') {
+                    this.dequeue(item.id);
                 }
-            }
-            if (expiredCount > 0 && this.debug) {
-                console.log(`[NotifuseAnalytics] Discarded ${expiredCount} expired queue items`);
-            }
-            // Merge failed items back with any new items added during flush
-            if (failedItems.length > 0) {
-                const currentQueue = this.getQueue();
-                this.saveQueue([...failedItems, ...currentQueue]);
             }
         }
         finally {
@@ -1022,97 +1125,64 @@ class Sender {
         }
     }
     /**
-     * Internal send without offline queue logic (for flush)
+     * Flush queue when back online.
+     *
+     * The `online` edge is only one of the triggers: a fresh page load can never
+     * observe it, so the SDK also calls flushQueue() at init. Without that, the
+     * commonest offline pattern — browse offline, close the tab, reconnect with
+     * no page open — leaves the queue untouched until its TTL discards it.
      */
-    async sendSessionDirect(payload) {
-        const url = `${this.endpoint}/track`;
-        try {
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
-                body: this.stringifyWithSentAt(payload), // Fresh sent_at at send time
-                keepalive: true,
-            });
-            if (!response.ok) {
-                return {
-                    success: false,
-                    error: `HTTP ${response.status}: ${response.statusText}`,
-                };
-            }
-            // V3: Server returns success, no checkpoint needed
-            await response.json();
-            return { success: true };
+    async handleOnline() {
+        if (this.debug) {
+            console.log('[NotifuseAnalytics] Back online, flushing queue');
         }
-        catch (error) {
-            return {
-                success: false,
-                error: error instanceof Error ? error.message : 'Unknown error',
-            };
-        }
+        await this.flushQueue();
     }
     /**
-     * Send session payload via fetch
+     * Send session payload via fetch.
+     *
+     * Retry eligibility comes from the outcome, never from navigator.onLine: that
+     * is a link-layer signal and stays true behind a captive portal, a dead
+     * upstream, a CSP block or an ad-blocker, which is most real-world failure.
      */
     async sendSession(payload) {
-        // Queue if offline
+        const id = this.persist(payload);
         if (this.isOffline()) {
-            this.enqueue(payload);
             return { success: false, error: 'offline', queued: true };
         }
-        const url = `${this.endpoint}/track`;
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
         if (this.debug) {
             console.log('[NotifuseAnalytics] Sending session payload:', payload);
         }
-        try {
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'text/plain;charset=UTF-8',
-                },
-                body: this.stringifyWithSentAt(payload), // Fresh sent_at at send time
-                keepalive: true,
-                signal: controller.signal,
-            });
-            clearTimeout(timeoutId);
-            if (!response.ok) {
-                return {
-                    success: false,
-                    error: `HTTP ${response.status}: ${response.statusText}`,
-                };
-            }
-            // V3: Server returns success, no checkpoint needed
-            const data = await response.json();
+        const result = await this.attempt(payload);
+        if (result.outcome !== 'retryable') {
+            this.dequeue(id);
+        }
+        if (result.outcome === 'ok') {
             if (this.debug) {
-                console.log('[NotifuseAnalytics] Session response:', data);
+                console.log('[NotifuseAnalytics] Session response:', result.data);
             }
             return { success: true };
         }
-        catch (error) {
-            clearTimeout(timeoutId);
-            if (this.debug) {
-                console.error('[NotifuseAnalytics] Send failed:', error);
-            }
-            // Queue on timeout for retry
-            if (error instanceof Error && error.name === 'AbortError') {
-                this.enqueue(payload);
-                return { success: false, error: 'Request timeout', queued: true };
-            }
-            return {
-                success: false,
-                error: error instanceof Error ? error.message : 'Unknown error',
-            };
+        if (this.debug) {
+            console.error('[NotifuseAnalytics] Send failed:', result.error);
         }
+        return {
+            success: false,
+            error: result.error,
+            queued: result.outcome === 'retryable',
+        };
     }
     /**
      * Send session payload via sendBeacon (for unload)
      * IMPORTANT: sent_at is set fresh at each send attempt, not cached.
      */
     sendSessionBeacon(payload) {
-        // Queue if offline
+        // The terminal beat is the one whose loss is unrecoverable, and none of the
+        // transports below can confirm delivery. So it is persisted first and left
+        // queued: the next page load replays it once, and the server's beat_seq
+        // guard turns that replay into a no-op if it did arrive.
+        this.persist(payload);
         if (this.isOffline()) {
-            this.enqueue(payload);
             return false;
         }
         const url = `${this.endpoint}/track`;
@@ -1158,9 +1228,13 @@ class Sender {
                 // Fall through to fetch fallback
             }
         }
-        // 3. Fallback to fetch with keepalive (also used for large payloads)
+        // 3. Fallback to fetch with keepalive (also used for large payloads).
+        // A keepalive body over the origin's 64KiB budget, a CSP violation or a
+        // blocker all reject the promise rather than throwing synchronously, so the
+        // catch below cannot see them — hence the explicit .catch(), which also
+        // stops an unhandled rejection leaking into the customer's error tracking.
         try {
-            fetch(url, {
+            const pending = fetch(url, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'text/plain;charset=UTF-8',
@@ -1168,6 +1242,13 @@ class Sender {
                 body: this.stringifyWithSentAt(payload), // Fresh sent_at
                 keepalive: true,
             });
+            if (pending && typeof pending.catch === 'function') {
+                pending.catch(() => {
+                    if (this.debug) {
+                        console.warn('[NotifuseAnalytics] keepalive fetch rejected; beat stays queued');
+                    }
+                });
+            }
             if (this.debug) {
                 console.log('[NotifuseAnalytics] Session sent via fetch keepalive');
             }
@@ -1864,6 +1945,29 @@ function parseCustomDimensions(url) {
 }
 
 /**
+ * Monotonic time source for measuring elapsed intervals.
+ *
+ * Date.now() is a wall clock and steps backwards: an NTP correction after
+ * suspend, a VM restore, a phone re-syncing after airplane mode. Any interval
+ * computed as a Date.now() delta can therefore come out negative — and because
+ * actions[] is cumulative and completed pages are never recomputed, a single
+ * negative duration is re-sent on every later beat and rejected by the server
+ * every time, turning one clock glitch into permanent loss for that session.
+ *
+ * performance.now() is monotonic by specification. Use this for every elapsed
+ * measurement, and keep Date.now() for wall-clock stamps (entered_at,
+ * exited_at, goal timestamps) that genuinely mean "what time was it".
+ *
+ * Never mix the two in one subtraction: their epochs are unrelated.
+ */
+function monotonicNow() {
+    if (typeof performance !== 'undefined' && typeof performance.now === 'function') {
+        return performance.now();
+    }
+    return Date.now();
+}
+
+/**
  * Notifuse Analytics SDK v6.0
  * Ultra-reliable web analytics for tracking TimeScore metrics
  * V3 Session Payload Architecture
@@ -2065,7 +2169,14 @@ class NotifuseAnalyticsSDK {
             CrossDomainLinker.stripParam(this.config.crossDomainParam);
         }
         // Initialize sender
-        this.sender = new Sender(this.config.endpoint, this.storage, this.config.debug);
+        this.sender = new Sender(this.config.endpoint, this.storage, this.config.debug, this.sessionManager.getTabId());
+        // Drain anything left over from a previous visit. The `online` event is the
+        // only other trigger, and a fresh page load can never observe it — so
+        // without this the commonest offline pattern (browse offline, close the tab,
+        // reconnect with no page open, come back later) leaves those beats sitting
+        // in storage until the TTL silently discards them. Fire-and-forget: a replay
+        // must never delay this page's own first beat.
+        this.sender.flushQueue().catch(() => { });
         // Initialize scroll tracker
         if (this.config.trackScroll) {
             this.scrollTracker = new ScrollTracker();
@@ -2094,6 +2205,7 @@ class NotifuseAnalyticsSDK {
             workspace_id: this.config.workspace_id,
             session_id: session.id,
             created_at: session.created_at,
+            tab_id: this.sessionManager.getTabId(),
         };
         this.sessionState = new SessionState(sessionStateConfig);
         this.sessionState.restore(); // Restore from sessionStorage if available
@@ -2107,7 +2219,7 @@ class NotifuseAnalyticsSDK {
         this.isTracking = true;
         this.isInitialized = true;
         // Initialize heartbeat state
-        const now = Date.now();
+        const now = monotonicNow();
         this.heartbeatState.pageStartTime = now;
         this.heartbeatState.activeStartTime = now;
         // Start heartbeat
@@ -2224,7 +2336,7 @@ class NotifuseAnalyticsSDK {
         // Clear existing heartbeat
         this.stopHeartbeat(false); // Don't accumulate time (we're starting fresh)
         // Record when we became active
-        const now = Date.now();
+        const now = monotonicNow();
         this.heartbeatState.activeStartTime = now;
         this.heartbeatState.isActive = true;
         this.heartbeatState.lastPingTime = now;
@@ -2242,7 +2354,7 @@ class NotifuseAnalyticsSDK {
             return;
         }
         // Resume with fresh timing
-        const now = Date.now();
+        const now = monotonicNow();
         this.heartbeatState.activeStartTime = now;
         this.heartbeatState.pageStartTime = now;
         this.heartbeatState.isActive = true;
@@ -2273,13 +2385,13 @@ class NotifuseAnalyticsSDK {
         }
         // Calculate target time with drift compensation
         const targetTime = this.heartbeatState.lastPingTime + interval;
-        const now = Date.now();
+        const now = monotonicNow();
         const delay = Math.max(0, targetTime - now);
         // Schedule next ping
         this.heartbeatTimeout = setTimeout(() => {
             // CRITICAL: Check visibility and state before sending
             if (this.shouldSendPing()) {
-                const actualTime = Date.now();
+                const actualTime = monotonicNow();
                 const drift = actualTime - targetTime;
                 // Log excessive drift in debug mode
                 if (drift > 1000 && this.config?.debug) {
@@ -2320,8 +2432,12 @@ class NotifuseAnalyticsSDK {
         if (this.scrollTracker) {
             this.sessionState.updateScroll(this.scrollTracker.getMaxScrollPercent());
         }
-        // Send periodic payload (non-blocking)
-        this.sendPayload().catch(() => { });
+        // Send periodic payload (non-blocking). ensureFreshSession both records the
+        // activity this beat represents and rotates a session that has aged out; it
+        // sends on its own when it rotates, so only the un-rotated path sends here.
+        this.ensureFreshSession()
+            .then((same) => (same ? this.sendPayload() : undefined))
+            .catch(() => { });
     }
     /**
      * Stop heartbeat with optional time accumulation
@@ -2329,7 +2445,7 @@ class NotifuseAnalyticsSDK {
     stopHeartbeat(accumulateTime = true) {
         // Accumulate active time before stopping
         if (accumulateTime && this.heartbeatState.isActive) {
-            const now = Date.now();
+            const now = monotonicNow();
             const activeTime = now - this.heartbeatState.activeStartTime;
             this.heartbeatState.accumulatedActiveMs += activeTime;
             // Also accumulate page active time
@@ -2348,7 +2464,7 @@ class NotifuseAnalyticsSDK {
     getTotalActiveMs() {
         let total = this.heartbeatState.accumulatedActiveMs;
         if (this.heartbeatState.isActive) {
-            total += Date.now() - this.heartbeatState.activeStartTime;
+            total += monotonicNow() - this.heartbeatState.activeStartTime;
         }
         return total;
     }
@@ -2416,7 +2532,7 @@ class NotifuseAnalyticsSDK {
             lastPingTime: 0,
             currentTierIndex: 0,
             pageActiveMs: 0,
-            pageStartTime: Date.now(),
+            pageStartTime: monotonicNow(),
         };
     }
     /**
@@ -2425,7 +2541,7 @@ class NotifuseAnalyticsSDK {
     resetPageActiveTime() {
         // Keep session time, reset page time
         this.heartbeatState.pageActiveMs = 0;
-        this.heartbeatState.pageStartTime = Date.now();
+        this.heartbeatState.pageStartTime = monotonicNow();
     }
     /**
      * Get current page's accumulated focus time in milliseconds.
@@ -2436,7 +2552,7 @@ class NotifuseAnalyticsSDK {
         let total = this.heartbeatState.pageActiveMs;
         if (this.heartbeatState.isActive) {
             // Add time since last focus start
-            total += Date.now() - this.heartbeatState.pageStartTime;
+            total += monotonicNow() - this.heartbeatState.pageStartTime;
         }
         return total;
     }
@@ -2574,7 +2690,10 @@ class NotifuseAnalyticsSDK {
         const session = this.sessionManager?.getSession();
         if (!session)
             return 0;
-        return Date.now() - session.created_at;
+        // created_at is a wall-clock stamp, so this subtraction stays on the wall
+        // clock — but clamp it, because a backward step would otherwise report a
+        // negative session age.
+        return Math.max(0, Date.now() - session.created_at);
     }
     /**
      * Track page view
@@ -2587,6 +2706,10 @@ class NotifuseAnalyticsSDK {
         if (this.scrollTracker) {
             this.sessionState.updateScroll(this.scrollTracker.getMaxScrollPercent());
         }
+        // A lapsed window rotates here rather than silently waiting for the next
+        // full page load; the rotation opens the pageview on the new session itself.
+        if (!(await this.ensureFreshSession(url)))
+            return;
         const path = url || window.location.pathname;
         this.sessionState.addPageview(path);
         // Reset scroll tracking
@@ -2605,6 +2728,9 @@ class NotifuseAnalyticsSDK {
         await this.ensureInitialized();
         if (!this.sessionState)
             return;
+        // Rotate first if the window lapsed, so the goal lands on the live session
+        // rather than one the server will reject.
+        await this.ensureFreshSession();
         // Add goal to SessionState
         this.sessionState.addGoal(data.action, data.value, data.properties);
         // Cancel any pending debounced send
@@ -2688,6 +2814,49 @@ class NotifuseAnalyticsSDK {
     /**
      * Reset session
      */
+    /**
+     * Roll onto a fresh session id while keeping identity and custom dimensions.
+     *
+     * Distinct from reset(), which deliberately forgets the visitor. Rotation
+     * happens when the inactivity window lapses or the id reaches its absolute
+     * age. Whatever the old session accumulated since its last successful beat is
+     * sent FIRST, under the old id — without that, every rotation silently drops
+     * its own tail, trading a 48h cliff for a small guaranteed loss each time.
+     */
+    async rotateSession(path) {
+        if (!this.sessionManager || !this.config || !this.sessionState)
+            return;
+        this.sessionState.finalizeForUnload();
+        await this.sendPayload();
+        const session = this.sessionManager.getOrCreateSession();
+        this.sessionState = new SessionState({
+            workspace_id: this.config.workspace_id,
+            session_id: session.id,
+            created_at: session.created_at,
+            tab_id: this.sessionManager.getTabId(),
+        });
+        this.sessionState.setFocusTimeGetter(() => this.getPageActiveMs());
+        this.sessionState.addPageview(path || window.location.pathname);
+        this.scrollTracker?.reset();
+        this.resetHeartbeatState();
+        this.startHeartbeat();
+    }
+    /**
+     * Record activity, rotating the session if its window has lapsed.
+     *
+     * Returns false when a rotation happened, so a caller that was about to open a
+     * pageview knows the rotation already did it. Calling this on every beat,
+     * navigation and goal is what makes the session window measure activity rather
+     * than time since page load.
+     */
+    async ensureFreshSession(path) {
+        if (!this.sessionManager)
+            return true;
+        if (this.sessionManager.touch())
+            return true;
+        await this.rotateSession(path);
+        return false;
+    }
     async reset() {
         await this.ensureInitialized();
         if (!this.sessionManager || !this.config)
@@ -2700,6 +2869,7 @@ class NotifuseAnalyticsSDK {
             workspace_id: this.config.workspace_id,
             session_id: session.id,
             created_at: session.created_at,
+            tab_id: this.sessionManager.getTabId(),
         };
         this.sessionState = new SessionState(sessionStateConfig);
         // Wire up focus time getter for accurate page duration tracking
@@ -2815,10 +2985,47 @@ const NotifuseAnalytics = {
     debug: () => sdk.debug(),
     decorateUrl: (url) => sdk.decorateUrl(url),
 };
-// Auto-initialize from global config
-if (typeof window !== 'undefined' && window.NotifuseAnalyticsConfig) {
-    sdk.init(window.NotifuseAnalyticsConfig);
+/**
+ * Make installing the bundle idempotent.
+ *
+ * The same bundle is served at /na.js and /na.<hash>.js, so a site mid-migration
+ * (legacy hardcoded tag plus a tag-manager tag) evaluates it twice. The
+ * re-entrancy guard inside the SDK is per-instance, so nothing would stop the
+ * second copy initialising — and both copies would then share one session id,
+ * one persisted snapshot key and one tab_id, clobbering each other's actions and
+ * colliding on seq. tab_id cannot separate them: sessionStorage is per tab, not
+ * per instance, so the fix has to be here, at the install.
+ *
+ * Returning the FIRST wrapper matters as much as skipping the second init: the
+ * UMD wrapper assigns window.NotifuseAnalytics from this default export, so a
+ * fresh object would leave the global pointing at a dead instance and every
+ * later trackGoal() would land there. First install wins — a customer may have
+ * an older cached hash alongside the new one, and tearing down a running
+ * instance to promote a newer bundle is more dangerous than running the older
+ * one until the duplicate tag is removed.
+ *
+ * A plain flag is enough: script evaluation is atomic on a single thread, so
+ * there is no race even with async tags.
+ */
+const INSTALL_KEY = '__notifuseAnalytics';
+const host = (typeof window !== 'undefined' ? window : undefined);
+const alreadyInstalled = host?.[INSTALL_KEY];
+if (!alreadyInstalled) {
+    if (host) {
+        host[INSTALL_KEY] = NotifuseAnalytics;
+    }
+    // Auto-initialize from global config
+    if (typeof window !== 'undefined' && window.NotifuseAnalyticsConfig) {
+        sdk.init(window.NotifuseAnalyticsConfig);
+    }
 }
+else {
+    console.warn('[NotifuseAnalytics] SDK already loaded on this page; ignoring the duplicate ' +
+        'install. Remove the extra script tag — two copies would corrupt each ' +
+        "other's session data.");
+}
+// Default export for UMD/ESM/CJS
+var index = alreadyInstalled ?? NotifuseAnalytics;
 
-module.exports = NotifuseAnalytics;
+module.exports = index;
 //# sourceMappingURL=notifuse-analytics.cjs.js.map

@@ -62,12 +62,15 @@ func TestWebAnalyticsHandlerTrack(t *testing.T) {
 		assert.Contains(t, rec.Body.String(), `"success":false`)
 	})
 
-	t.Run("oversized body rejected", func(t *testing.T) {
+	t.Run("oversized body gets 413, not a generic 400", func(t *testing.T) {
+		// The distinction is actionable: a client can recover from "too large"
+		// by trimming its oldest actions or rotating the session, and must,
+		// because actions[] only grows and every later beat would fail too.
 		_, _, mux := newWebAnalyticsHandlerForTest(t, nil)
 		huge := `{"workspace_id":"` + strings.Repeat("a", 1<<20) + `"}`
 		rec := httptest.NewRecorder()
 		mux.ServeHTTP(rec, trackRequest(t, huge, nil))
-		assert.Equal(t, http.StatusBadRequest, rec.Code)
+		assert.Equal(t, http.StatusRequestEntityTooLarge, rec.Code)
 	})
 
 	t.Run("bot user agents short-circuit without touching the service", func(t *testing.T) {

@@ -397,7 +397,89 @@ func TestUserService_VerifyUserSession(t *testing.T) {
 
 		require.Error(t, err)
 		require.Nil(t, result)
-		require.Equal(t, ErrSessionExpired, err)
+		require.ErrorIs(t, err, ErrSessionExpired)
+		require.ErrorIs(t, err, domain.ErrSessionAuthFailed)
+	})
+
+	// The handler answers 401 for ErrSessionAuthFailed and 500 otherwise, and the
+	// console signs the user out on any 401 — so which errors carry the marker is
+	// the contract, not an implementation detail.
+	t.Run("unknown session is an auth failure", func(t *testing.T) {
+		mockRepo.EXPECT().
+			GetSessionByID(gomock.Any(), sessionID).
+			Return(nil, &domain.ErrSessionNotFound{Message: "session not found"})
+
+		result, err := service.VerifyUserSession(context.Background(), userID, sessionID)
+
+		require.Error(t, err)
+		require.Nil(t, result)
+		require.ErrorIs(t, err, domain.ErrSessionAuthFailed)
+	})
+
+	t.Run("session belonging to another user is an auth failure", func(t *testing.T) {
+		mockRepo.EXPECT().
+			GetSessionByID(gomock.Any(), sessionID).
+			Return(&domain.Session{
+				ID:        sessionID,
+				UserID:    "someone-else",
+				ExpiresAt: time.Now().Add(1 * time.Hour),
+			}, nil)
+
+		result, err := service.VerifyUserSession(context.Background(), userID, sessionID)
+
+		require.Error(t, err)
+		require.Nil(t, result)
+		require.ErrorIs(t, err, domain.ErrSessionAuthFailed)
+	})
+
+	t.Run("missing user record is an auth failure", func(t *testing.T) {
+		mockRepo.EXPECT().
+			GetSessionByID(gomock.Any(), sessionID).
+			Return(&domain.Session{
+				ID:        sessionID,
+				UserID:    userID,
+				ExpiresAt: time.Now().Add(1 * time.Hour),
+			}, nil)
+		mockRepo.EXPECT().
+			GetUserByID(gomock.Any(), userID).
+			Return(nil, &domain.ErrUserNotFound{Message: "user not found"})
+
+		result, err := service.VerifyUserSession(context.Background(), userID, sessionID)
+
+		require.Error(t, err)
+		require.Nil(t, result)
+		require.ErrorIs(t, err, domain.ErrSessionAuthFailed)
+	})
+
+	t.Run("session lookup failure is not an auth failure", func(t *testing.T) {
+		mockRepo.EXPECT().
+			GetSessionByID(gomock.Any(), sessionID).
+			Return(nil, errors.New("pq: password authentication failed for user"))
+
+		result, err := service.VerifyUserSession(context.Background(), userID, sessionID)
+
+		require.Error(t, err)
+		require.Nil(t, result)
+		require.NotErrorIs(t, err, domain.ErrSessionAuthFailed)
+	})
+
+	t.Run("user lookup failure is not an auth failure", func(t *testing.T) {
+		mockRepo.EXPECT().
+			GetSessionByID(gomock.Any(), sessionID).
+			Return(&domain.Session{
+				ID:        sessionID,
+				UserID:    userID,
+				ExpiresAt: time.Now().Add(1 * time.Hour),
+			}, nil)
+		mockRepo.EXPECT().
+			GetUserByID(gomock.Any(), userID).
+			Return(nil, errors.New("connection reset by peer"))
+
+		result, err := service.VerifyUserSession(context.Background(), userID, sessionID)
+
+		require.Error(t, err)
+		require.Nil(t, result)
+		require.NotErrorIs(t, err, domain.ErrSessionAuthFailed)
 	})
 }
 

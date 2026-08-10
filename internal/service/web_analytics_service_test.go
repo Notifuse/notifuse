@@ -43,7 +43,7 @@ func newWebAnalyticsServiceForTest(t *testing.T, settings *domain.WebAnalyticsSe
 	}
 
 	buffer := NewWebAnalyticsBuffer(webRepo, logger.NewLogger(), WebAnalyticsBufferConfig{})
-	svc := NewWebAnalyticsService(workspaceRepo, buffer, geo, mocks.NewMockAuthService(ctrl), mocks.NewMockTaskRepository(ctrl), logger.NewLogger())
+	svc := NewWebAnalyticsService(workspaceRepo, nil, buffer, geo, mocks.NewMockAuthService(ctrl), mocks.NewMockTaskRepository(ctrl), nil, logger.NewLogger())
 	return svc, workspaceRepo, webRepo, geo
 }
 

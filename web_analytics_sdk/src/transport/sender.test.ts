@@ -35,6 +35,7 @@ describe('Sender', () => {
   const createPayload = (): SessionPayload => ({
     workspace_id: 'ws-123',
     session_id: 'session-123',
+    tab_id: 7,
     seq: 1,
     actions: [
       {
@@ -274,9 +275,11 @@ describe('Sender', () => {
 
       await sender.sendSession(createPayload());
 
+      // Every failure path now reports a normalised message rather than the raw
+      // Error, so one classifier can decide retryability for all of them.
       expect(console.error).toHaveBeenCalledWith(
         '[NotifuseAnalytics] Send failed:',
-        expect.any(Error)
+        expect.any(String)
       );
     });
 
@@ -318,7 +321,7 @@ describe('Sender', () => {
         expect(fetchMock).not.toHaveBeenCalled();
 
         // Verify queued in storage (Storage class adds 'nf_' prefix to 'pending')
-        const queue = JSON.parse(mockLocalStorage._store['nf_pending'] || '[]');
+        const queue = JSON.parse(mockLocalStorage._store['nf_pending_0'] || '[]');
         expect(queue.length).toBe(1);
       });
 
@@ -327,7 +330,7 @@ describe('Sender', () => {
 
         expect(result).toBe(false);
 
-        const queue = JSON.parse(mockLocalStorage._store['nf_pending'] || '[]');
+        const queue = JSON.parse(mockLocalStorage._store['nf_pending_0'] || '[]');
         expect(queue.length).toBe(1);
       });
     });
@@ -347,24 +350,26 @@ describe('Sender', () => {
         expect(fetchMock).toHaveBeenCalled();
 
         // Queue should be empty
-        const queue = JSON.parse(mockLocalStorage._store['nf_pending'] || '[]');
+        const queue = JSON.parse(mockLocalStorage._store['nf_pending_0'] || '[]');
         expect(queue.length).toBe(0);
       });
 
       it('removes successfully sent items from queue', async () => {
         // Queue multiple payloads
         vi.stubGlobal('navigator', { onLine: false, sendBeacon: vi.fn() });
-        await sender.sendSession(createPayload());
-        await sender.sendSession(createPayload());
+        // Two distinct beats: the queue is keyed by session_id:seq, so persisting
+        // the same beat twice deliberately collapses to one entry.
+        await sender.sendSession({ ...createPayload(), seq: 1 });
+        await sender.sendSession({ ...createPayload(), seq: 2 });
 
-        let queue = JSON.parse(mockLocalStorage._store['nf_pending'] || '[]');
+        let queue = JSON.parse(mockLocalStorage._store['nf_pending_0'] || '[]');
         expect(queue.length).toBe(2);
 
         // Come back online
         vi.stubGlobal('navigator', { onLine: true, sendBeacon: vi.fn() });
         await sender.handleOnline();
 
-        queue = JSON.parse(mockLocalStorage._store['nf_pending'] || '[]');
+        queue = JSON.parse(mockLocalStorage._store['nf_pending_0'] || '[]');
         expect(queue.length).toBe(0);
       });
 
@@ -379,7 +384,7 @@ describe('Sender', () => {
         await sender.handleOnline();
 
         // Should still be in queue
-        const queue = JSON.parse(mockLocalStorage._store['nf_pending'] || '[]');
+        const queue = JSON.parse(mockLocalStorage._store['nf_pending_0'] || '[]');
         expect(queue.length).toBe(1);
       });
     });
@@ -393,7 +398,7 @@ describe('Sender', () => {
           await sender.sendSession(createPayload());
         }
 
-        const queue = JSON.parse(mockLocalStorage._store['nf_pending'] || '[]');
+        const queue = JSON.parse(mockLocalStorage._store['nf_pending_0'] || '[]');
         expect(queue.length).toBeLessThanOrEqual(100); // Max 100 items
       });
 
@@ -414,7 +419,7 @@ describe('Sender', () => {
         expect(fetchMock).not.toHaveBeenCalled();
 
         // Queue should be empty (expired item discarded)
-        const queue = JSON.parse(mockLocalStorage._store['nf_pending'] || '[]');
+        const queue = JSON.parse(mockLocalStorage._store['nf_pending_0'] || '[]');
         expect(queue.length).toBe(0);
       });
     });
@@ -498,7 +503,7 @@ describe('Sender', () => {
 
       expect(result.queued).toBe(true);
 
-      const queue = JSON.parse(mockLocalStorage._store['nf_pending'] || '[]');
+      const queue = JSON.parse(mockLocalStorage._store['nf_pending_0'] || '[]');
       expect(queue.length).toBe(1);
     });
   });
@@ -576,6 +581,131 @@ describe('Sender', () => {
       expect(sentBody.sent_at).toBeDefined();
       // sent_at should reflect when it was actually sent (after advancing time)
       expect(sentBody.sent_at).toBeGreaterThan(Date.now() - 5000);
+    });
+  });
+
+  describe('per-tab queue isolation (W0.1)', () => {
+    it('two tabs do not share one queue key', async () => {
+      // The queue lived under a single origin-wide key mutated by non-atomic
+      // read-modify-write from every tab. Two tabs regaining connectivity both
+      // read it and both wrote it back, so the second one's write erased items
+      // the first had just re-queued after a failure.
+      fetchMock.mockRejectedValue(new TypeError('Failed to fetch'));
+
+      const tabA = new Sender('https://api.example.com', mockStorage, false, 111);
+      const tabB = new Sender('https://api.example.com', mockStorage, false, 222);
+      await tabA.sendSession({ ...createPayload(), session_id: 's', seq: 1 });
+      await tabB.sendSession({ ...createPayload(), session_id: 's', seq: 1 });
+
+      expect(JSON.parse(mockLocalStorage._store['nf_pending_111'])).toHaveLength(1);
+      expect(JSON.parse(mockLocalStorage._store['nf_pending_222'])).toHaveLength(1);
+    });
+
+    it('a drain in one tab leaves the other tab backlog intact', async () => {
+      fetchMock.mockRejectedValue(new TypeError('Failed to fetch'));
+      const tabA = new Sender('https://api.example.com', mockStorage, false, 111);
+      const tabB = new Sender('https://api.example.com', mockStorage, false, 222);
+      await tabA.sendSession(createPayload());
+      await tabB.sendSession(createPayload());
+
+      fetchMock.mockResolvedValue({ ok: true, json: () => Promise.resolve({ success: true }) });
+      await tabA.flushQueue();
+
+      expect(JSON.parse(mockLocalStorage._store['nf_pending_111'])).toHaveLength(0);
+      expect(JSON.parse(mockLocalStorage._store['nf_pending_222'])).toHaveLength(1);
+    });
+  });
+
+  describe('delivery outcomes (W0.5)', () => {
+    const queue = () => JSON.parse(mockLocalStorage._store['nf_pending_0'] ?? '[]');
+
+    it('enqueues a rejected fetch even though navigator reports online', () => {
+      // navigator.onLine is a link-layer signal: it stays true behind a captive
+      // portal, a dead upstream, a CSP block or an ad-blocker — which is most
+      // real-world failure. Keying retry on it means almost nothing is ever
+      // retried, and the last beat of a session is lost outright.
+      fetchMock.mockRejectedValue(new TypeError('Failed to fetch'));
+      return sender.sendSession(createPayload()).then((result) => {
+        expect(result.success).toBe(false);
+        expect(queue()).toHaveLength(1);
+      });
+    });
+
+    it('keeps the payload queued on a 5xx and drops it on a 2xx', async () => {
+      fetchMock.mockResolvedValue({ ok: false, status: 503, statusText: 'Service Unavailable' });
+      await sender.sendSession(createPayload());
+      expect(queue()).toHaveLength(1);
+
+      fetchMock.mockResolvedValue({ ok: true, json: () => Promise.resolve({ success: true }) });
+      await sender.sendSession(createPayload());
+      expect(queue()).toHaveLength(0);
+    });
+
+    it('drops a 400 without ever retrying it', async () => {
+      // The server answers 200 for everything it wants un-retried, so a 400 means
+      // this exact payload can never succeed. Retrying it forever poisons the
+      // queue and evicts payloads that could still land.
+      fetchMock.mockResolvedValue({ ok: false, status: 400, statusText: 'Bad Request' });
+      await sender.sendSession(createPayload());
+      expect(queue()).toHaveLength(0);
+    });
+
+    it('persists the payload before the request settles', async () => {
+      // Persist-then-send is the only ordering that survives the tab dying
+      // mid-flight. Duplicates are free under the beat_seq guard; drops are not.
+      let queuedDuringFlight = -1;
+      fetchMock.mockImplementation(() => {
+        queuedDuringFlight = queue().length;
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ success: true }) });
+      });
+
+      await sender.sendSession(createPayload());
+      expect(queuedDuringFlight).toBe(1);
+      expect(queue()).toHaveLength(0);
+    });
+
+    it('a drain that fails partway leaves the unsent items queued', async () => {
+      fetchMock.mockRejectedValue(new TypeError('Failed to fetch'));
+      for (const seq of [1, 2, 3]) {
+        await sender.sendSession({ ...createPayload(), seq });
+      }
+      expect(queue()).toHaveLength(3);
+
+      let call = 0;
+      fetchMock.mockImplementation(() => {
+        call += 1;
+        return call === 1
+          ? Promise.resolve({ ok: true, json: () => Promise.resolve({ success: true }) })
+          : Promise.reject(new TypeError('Failed to fetch'));
+      });
+
+      await sender.flushQueue();
+      expect(queue()).toHaveLength(2);
+    });
+
+    it('flushQueue drains without an online event ever firing', async () => {
+      // The only drain trigger today is window's `online` edge, which a fresh
+      // page load can never observe — so the commonest offline pattern leaves
+      // the queue untouched until its TTL silently discards it.
+      fetchMock.mockRejectedValue(new TypeError('Failed to fetch'));
+      await sender.sendSession(createPayload());
+      expect(queue()).toHaveLength(1);
+
+      fetchMock.mockResolvedValue({ ok: true, json: () => Promise.resolve({ success: true }) });
+      await sender.flushQueue();
+      expect(queue()).toHaveLength(0);
+    });
+
+    it('leaves the terminal beat queued so the next load can replay it', () => {
+      // No transport on the unload path can confirm delivery — sendBeacon returns
+      // only "queued by the UA", fetchLater returns before anything is sent, and
+      // the keepalive fetch rejects asynchronously. The guarantee therefore lives
+      // in the queue, not in the return value: one redundant request on the next
+      // page load, which the beat_seq guard no-ops, buys back the one beat whose
+      // loss is unrecoverable.
+      sendBeaconMock.mockReturnValue(false);
+      sender.sendSessionBeacon(createPayload());
+      expect(queue()).toHaveLength(1);
     });
   });
 

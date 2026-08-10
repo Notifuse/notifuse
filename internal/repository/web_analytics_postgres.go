@@ -48,17 +48,17 @@ var webSessionColumns = []string{
 	"screen_width", "screen_height", "viewport_width", "viewport_height",
 	"device", "browser", "browser_type", "os", "user_agent", "connection_type",
 	"language", "timezone", "country", "region", "city", "latitude", "longitude",
-	"user_id", "sdk_version", "contact_email",
+	"contact_email", "sdk_version",
 }
 
 var webPageColumns = []string{
-	"session_date", "session_id", "page_number",
+	"session_date", "session_id", "tab_id", "page_number",
 	"beat_seq", "path", "entered_at", "exited_at", "duration_ms", "max_scroll",
-	"is_landing", "is_exit", "entry_type", "user_id",
+	"is_landing", "is_exit", "entry_type", "contact_email",
 }
 
 var webGoalColumns = []string{
-	"session_date", "session_id", "goal_name", "client_ts_ms",
+	"session_date", "session_id", "tab_id", "goal_name", "client_ts_ms",
 	"beat_seq", "goal_at", "goal_value", "path", "page_number", "properties",
 	"referrer", "referrer_domain", "referrer_path", "is_direct",
 	"landing_page", "landing_domain", "landing_path",
@@ -68,12 +68,67 @@ var webGoalColumns = []string{
 	"screen_width", "screen_height", "viewport_width", "viewport_height",
 	"device", "browser", "browser_type", "os", "user_agent", "connection_type",
 	"language", "timezone", "country", "region", "city", "latitude", "longitude",
-	"user_id",
+	"contact_email",
 }
 
-// upsertSuffix builds the ON CONFLICT clause: overwrite every non-key column
-// from EXCLUDED, guarded so only a strictly newer beat wins. skip lists
-// columns that must never be updated after first insert.
+// webSessionStickyColumns are the attribution facts that describe the SESSION,
+// not whichever tab happened to beat last.
+//
+// A second tab opened from a link inside the site carries its own landing page
+// and a referrer pointing at the first tab's page. Letting it overwrite the
+// session row would silently rewrite the visit's acquisition source, so the
+// first writer that supplies a non-empty value keeps it. Only TEXT columns
+// belong here; the rest of the attribution block (device, browser, geo) is
+// identical across a session's tabs, and screen/viewport genuinely differ per
+// window, where last-writer-wins is fine.
+var webSessionStickyColumns = func() map[string]bool {
+	cols := []string{
+		"referrer", "referrer_domain", "referrer_path",
+		"landing_page", "landing_domain", "landing_path",
+		"utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content", "utm_id", "utm_id_from",
+		"channel", "channel_group",
+	}
+	for i := 1; i <= 10; i++ {
+		cols = append(cols, fmt.Sprintf("custom_%d", i))
+	}
+	set := make(map[string]bool, len(cols))
+	for _, c := range cols {
+		set[c] = true
+	}
+	return set
+}()
+
+// upsertAssignment picks the merge rule for one column.
+//
+// web_sessions is the interesting case: it is a single row written by every tab
+// of the session, so no rule may depend on arrival order. Aggregates are simply
+// taken from EXCLUDED here and then recomputed from the child rows by the
+// rollup that runs after the page insert; timestamps take the later value;
+// attribution sticks to the first writer.
+func upsertAssignment(table, c string) string {
+	if c == "contact_email" {
+		// Server-managed linkage: sticky once set, beats never clear it.
+		return "contact_email = COALESCE(EXCLUDED.contact_email, " + table + ".contact_email)"
+	}
+	if table == "web_sessions" {
+		switch {
+		case c == "updated_at" || c == "beat_seq":
+			return fmt.Sprintf("%s = GREATEST(EXCLUDED.%s, %s.%s)", c, c, table, c)
+		case webSessionStickyColumns[c]:
+			return fmt.Sprintf("%s = COALESCE(NULLIF(%s.%s, ''), EXCLUDED.%s)", c, table, c, c)
+		}
+	}
+	return c + " = EXCLUDED." + c
+}
+
+// upsertSuffix builds the ON CONFLICT clause. skip lists columns that must never
+// be updated after first insert.
+//
+// The beat_seq guard applies to the child tables only. There, tab_id is part of
+// the conflict target, so the comparison is between beats of the SAME writer and
+// genuinely means "ignore a stale replay". On web_sessions there is no single
+// writer, and a guard would let the tab with the highest counter block every
+// other tab's beats for the life of the session.
 func upsertSuffix(table string, columns, conflictCols, skip []string) string {
 	skipSet := make(map[string]bool, len(conflictCols)+len(skip))
 	for _, c := range conflictCols {
@@ -87,15 +142,14 @@ func upsertSuffix(table string, columns, conflictCols, skip []string) string {
 		if skipSet[c] {
 			continue
 		}
-		if c == "contact_email" {
-			// Server-managed linkage: sticky once set, beats never clear it.
-			assignments = append(assignments, "contact_email = COALESCE(EXCLUDED.contact_email, "+table+".contact_email)")
-			continue
-		}
-		assignments = append(assignments, c+" = EXCLUDED."+c)
+		assignments = append(assignments, upsertAssignment(table, c))
 	}
-	return fmt.Sprintf("ON CONFLICT (%s) DO UPDATE SET %s WHERE EXCLUDED.beat_seq > %s.beat_seq",
-		strings.Join(conflictCols, ", "), strings.Join(assignments, ", "), table)
+	guard := ""
+	if table != "web_sessions" {
+		guard = fmt.Sprintf(" WHERE EXCLUDED.beat_seq > %s.beat_seq", table)
+	}
+	return fmt.Sprintf("ON CONFLICT (%s) DO UPDATE SET %s%s",
+		strings.Join(conflictCols, ", "), strings.Join(assignments, ", "), guard)
 }
 
 // Upsert suffixes are built once and shared with the tests, so a change at
@@ -105,9 +159,9 @@ var (
 	webSessionUpsertSuffix = upsertSuffix("web_sessions", webSessionColumns,
 		[]string{"session_date", "id"}, []string{"created_at"})
 	webPageUpsertSuffix = upsertSuffix("web_pages", webPageColumns,
-		[]string{"session_date", "session_id", "page_number"}, nil)
+		[]string{"session_date", "session_id", "tab_id", "page_number"}, nil)
 	webGoalUpsertSuffix = upsertSuffix("web_goals", webGoalColumns,
-		[]string{"session_date", "session_id", "goal_name", "client_ts_ms"}, nil)
+		[]string{"session_date", "session_id", "tab_id", "goal_name", "client_ts_ms"}, nil)
 )
 
 func clampSmallint(v int) int {
@@ -156,6 +210,106 @@ func dedupeByKey[T any](rows []T, key func(T) string) []T {
 	return out
 }
 
+// webPageDedupeKey and webGoalDedupeKey mirror the primary keys exactly. They
+// must include tab_id, or two tabs' page 1 collapse into one row inside a single
+// batch — before the database ever sees them.
+func webPageDedupeKey(p *domain.WebPage) string {
+	return fmt.Sprintf("%s|%s|%d|%d", p.SessionDate.Format("2006-01-02"), p.SessionID, p.TabID, p.PageNumber)
+}
+
+func webGoalDedupeKey(g *domain.WebGoal) string {
+	return fmt.Sprintf("%s|%s|%d|%s|%d", g.SessionDate.Format("2006-01-02"), g.SessionID, g.TabID, g.GoalName, g.ClientTsMs)
+}
+
+// Rollup statements. Every tab of a session writes the same web_sessions row, so
+// no aggregate can be trusted from a single payload — whichever tab beat last
+// would otherwise decide the session's pageview count and duration. Recomputing
+// from the child rows makes those columns order-free, and that is precisely what
+// allows the session upsert to drop its beat_seq guard.
+//
+// They run as their own statements after the child inserts, deliberately. A
+// subquery inside the session INSERT would read web_pages before this beat's
+// pages existed; and even reordered, READ COMMITTED lets an updating command see
+// the new version of the row it blocked on but not other rows, so a concurrent
+// tab's pages could still be invisible. A new statement takes a fresh snapshot.
+const webSessionPageRollup = `
+UPDATE web_sessions s SET
+	pageview_count = LEAST(agg.pageviews, 32767)::smallint,
+	duration_ms = LEAST(agg.total_duration, 2147483647)::int,
+	max_scroll = agg.max_scroll,
+	median_page_duration_ms = LEAST(agg.median_duration, 2147483647)::int,
+	exit_path = agg.exit_path
+FROM (
+	SELECT session_id,
+		COUNT(*) AS pageviews,
+		COALESCE(SUM(duration_ms), 0) AS total_duration,
+		COALESCE(MAX(max_scroll), 0) AS max_scroll,
+		COALESCE(ROUND(PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY duration_ms)), 0) AS median_duration,
+		(ARRAY_AGG(path ORDER BY exited_at DESC, page_number DESC))[1] AS exit_path
+	FROM web_pages
+	WHERE session_date = $1 AND session_id = ANY($2)
+	GROUP BY session_id
+) agg
+WHERE s.session_date = $1 AND s.id = agg.session_id`
+
+const webSessionGoalRollup = `
+UPDATE web_sessions s SET
+	goal_count = LEAST(agg.goals, 32767)::smallint,
+	goal_value = agg.total_value
+FROM (
+	SELECT session_id, COUNT(*) AS goals, COALESCE(SUM(goal_value), 0) AS total_value
+	FROM web_goals
+	WHERE session_date = $1 AND session_id = ANY($2)
+	GROUP BY session_id
+) agg
+WHERE s.session_date = $1 AND s.id = agg.session_id`
+
+// webPageEntryExitRollup recomputes is_landing/is_exit across ALL of a session's
+// tabs. Both are written per-payload from a tab's own ordinals, so a visitor with
+// three tabs would otherwise register three entries and three exits, inflating
+// the Entries, Exits and Exit Rate measures for exactly the multi-tab users this
+// work exists to serve. Neither column is indexed, so these updates stay HOT.
+//
+// It picks exactly ONE row for each flag rather than comparing every row against
+// MIN/MAX: pages within a beat routinely share an exit timestamp (only the
+// current page's is refreshed on each build), so a timestamp equality test would
+// mark several rows as the exit and inflate the Exits and Exit Rate measures.
+// page_number breaks the tie, which is the right answer within a tab; tab_id
+// breaks it across tabs, arbitrarily but deterministically.
+const webPageEntryExitRollup = `
+UPDATE web_pages p SET
+	is_landing = (p.tab_id = agg.first_tab AND p.page_number = agg.first_page),
+	is_exit = (p.tab_id = agg.last_tab AND p.page_number = agg.last_page)
+FROM (
+	SELECT session_id,
+		(ARRAY_AGG(tab_id ORDER BY entered_at ASC, tab_id ASC, page_number ASC))[1] AS first_tab,
+		(ARRAY_AGG(page_number ORDER BY entered_at ASC, tab_id ASC, page_number ASC))[1] AS first_page,
+		(ARRAY_AGG(tab_id ORDER BY exited_at DESC, tab_id DESC, page_number DESC))[1] AS last_tab,
+		(ARRAY_AGG(page_number ORDER BY exited_at DESC, tab_id DESC, page_number DESC))[1] AS last_page
+	FROM web_pages
+	WHERE session_date = $1 AND session_id = ANY($2)
+	GROUP BY session_id
+) agg
+WHERE p.session_date = $1 AND p.session_id = agg.session_id`
+
+// rollupSessions re-derives the session row and the entry/exit flags for every
+// session touched by this batch, one statement per partition date so the
+// planner can still prune.
+func rollupSessions(ctx context.Context, tx *sql.Tx, sessions []*domain.WebSession) error {
+	byDate := make(map[time.Time][]string, 4)
+	for _, s := range sessions {
+		byDate[s.SessionDate] = append(byDate[s.SessionDate], s.ID)
+	}
+	for date, ids := range byDate {
+		for _, stmt := range []string{webSessionPageRollup, webSessionGoalRollup, webPageEntryExitRollup} {
+			if _, err := tx.ExecContext(ctx, stmt, date, pq.Array(ids)); err != nil {
+				return fmt.Errorf("failed to roll up web analytics session aggregates: %w", err)
+			}
+		}
+	}
+	return nil
+}
+
 func webSessionValues(s *domain.WebSession) []interface{} {
 	return []interface{}{
 		s.SessionDate, s.ID, s.CreatedAt,
@@ -170,15 +324,15 @@ func webSessionValues(s *domain.WebSession) []interface{} {
 		clampSmallint(s.ScreenWidth), clampSmallint(s.ScreenHeight), clampSmallint(s.ViewportWidth), clampSmallint(s.ViewportHeight),
 		s.Device, s.Browser, s.BrowserType, s.OS, s.UserAgent, s.ConnectionType,
 		s.Language, s.Timezone, s.Country, s.Region, s.City, s.Latitude, s.Longitude,
-		s.UserID, s.SDKVersion, s.ContactEmail,
+		s.ContactEmail, s.SDKVersion,
 	}
 }
 
 func webPageValues(p *domain.WebPage) []interface{} {
 	return []interface{}{
-		p.SessionDate, p.SessionID, clampSmallint(p.PageNumber),
+		p.SessionDate, p.SessionID, p.TabID, clampSmallint(p.PageNumber),
 		p.BeatSeq, p.Path, p.EnteredAt, p.ExitedAt, clampInt32(p.DurationMs), clampSmallint(p.MaxScroll),
-		p.IsLanding, p.IsExit, p.EntryType, p.UserID,
+		p.IsLanding, p.IsExit, p.EntryType, p.ContactEmail,
 	}
 }
 
@@ -192,7 +346,7 @@ func webGoalValues(g *domain.WebGoal) ([]interface{}, error) {
 		properties = raw
 	}
 	return []interface{}{
-		g.SessionDate, g.SessionID, g.GoalName, g.ClientTsMs,
+		g.SessionDate, g.SessionID, g.TabID, g.GoalName, g.ClientTsMs,
 		g.BeatSeq, g.GoalAt, g.GoalValue, g.Path, clampSmallint(g.PageNumber), properties,
 		g.Referrer, g.ReferrerDomain, g.ReferrerPath, g.IsDirect,
 		g.LandingPage, g.LandingDomain, g.LandingPath,
@@ -202,7 +356,7 @@ func webGoalValues(g *domain.WebGoal) ([]interface{}, error) {
 		clampSmallint(g.ScreenWidth), clampSmallint(g.ScreenHeight), clampSmallint(g.ViewportWidth), clampSmallint(g.ViewportHeight),
 		g.Device, g.Browser, g.BrowserType, g.OS, g.UserAgent, g.ConnectionType,
 		g.Language, g.Timezone, g.Country, g.Region, g.City, g.Latitude, g.Longitude,
-		g.UserID,
+		g.ContactEmail,
 	}, nil
 }
 
@@ -228,6 +382,9 @@ func (r *webAnalyticsRepository) FlushBatch(ctx context.Context, workspaceID str
 		if pages[i].SessionID != pages[j].SessionID {
 			return pages[i].SessionID < pages[j].SessionID
 		}
+		if pages[i].TabID != pages[j].TabID {
+			return pages[i].TabID < pages[j].TabID
+		}
 		return pages[i].PageNumber < pages[j].PageNumber
 	})
 	sort.Slice(goals, func(i, j int) bool {
@@ -237,18 +394,24 @@ func (r *webAnalyticsRepository) FlushBatch(ctx context.Context, workspaceID str
 		if goals[i].SessionID != goals[j].SessionID {
 			return goals[i].SessionID < goals[j].SessionID
 		}
+		if goals[i].TabID != goals[j].TabID {
+			return goals[i].TabID < goals[j].TabID
+		}
 		if goals[i].GoalName != goals[j].GoalName {
 			return goals[i].GoalName < goals[j].GoalName
 		}
 		return goals[i].ClientTsMs < goals[j].ClientTsMs
 	})
 
-	pages = dedupeByKey(pages, func(p *domain.WebPage) string {
-		return fmt.Sprintf("%s|%s|%d", p.SessionDate.Format("2006-01-02"), p.SessionID, p.PageNumber)
+	// Two tabs of one session each contribute a session row to the batch, and a
+	// single INSERT ... ON CONFLICT cannot affect the same row twice. Collapsing
+	// them is safe because the aggregates are recomputed from the child tables
+	// by the rollup, and the child rows carry every tab.
+	sessions = dedupeByKey(sessions, func(s *domain.WebSession) string {
+		return s.SessionDate.Format("2006-01-02") + "|" + s.ID
 	})
-	goals = dedupeByKey(goals, func(g *domain.WebGoal) string {
-		return fmt.Sprintf("%s|%s|%s|%d", g.SessionDate.Format("2006-01-02"), g.SessionID, g.GoalName, g.ClientTsMs)
-	})
+	pages = dedupeByKey(pages, webPageDedupeKey)
+	goals = dedupeByKey(goals, webGoalDedupeKey)
 
 	db, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
 	if err != nil {
@@ -309,6 +472,12 @@ func (r *webAnalyticsRepository) flushOnce(ctx context.Context, db *sql.DB, sess
 			builder = builder.Values(values...)
 		}
 		if err := execBuilder(ctx, tx, builder, "web_goals"); err != nil {
+			return err
+		}
+	}
+
+	if len(sessions) > 0 {
+		if err := rollupSessions(ctx, tx, sessions); err != nil {
 			return err
 		}
 	}

@@ -183,7 +183,7 @@ func TestWebAnalyticsServiceBackfillRPCs(t *testing.T) {
 		taskRepo := mocks.NewMockTaskRepository(ctrl)
 		webRepo := mocks.NewMockWebAnalyticsRepository(ctrl)
 		buffer := NewWebAnalyticsBuffer(webRepo, logger.NewLogger(), WebAnalyticsBufferConfig{})
-		svc := NewWebAnalyticsService(mocks.NewMockWorkspaceRepository(ctrl), buffer, nil, auth, taskRepo, logger.NewLogger())
+		svc := NewWebAnalyticsService(mocks.NewMockWorkspaceRepository(ctrl), nil, buffer, nil, auth, taskRepo, nil, logger.NewLogger())
 		return svc, auth, taskRepo
 	}
 

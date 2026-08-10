@@ -244,10 +244,9 @@ func TestDemoWebAnalyticsSessionIdentity(t *testing.T) {
 	t.Run("a minority of visitors are known contacts", func(t *testing.T) {
 		identified := 0
 		for _, session := range batch.Sessions {
-			if session.UserID != nil {
+			if session.ContactEmail != nil {
 				identified++
-				assert.NotNil(t, session.ContactEmail)
-				assert.Equal(t, *session.UserID, *session.ContactEmail)
+				assert.Contains(t, *session.ContactEmail, "@", "the demo identity is a contact address")
 			}
 		}
 		share := float64(identified) / float64(len(batch.Sessions))

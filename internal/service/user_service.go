@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/hmac"
 	"crypto/rand"
+	"errors"
 	"fmt"
 	"time"
 
@@ -354,29 +355,42 @@ func (s *UserService) VerifyUserSession(ctx context.Context, userID string, sess
 		s.tracer.AddAttribute(ctx, "user.id", userID)
 		s.tracer.AddAttribute(ctx, "session.id", sessionID)
 
+		// Failures that mean "not authenticated" are wrapped in
+		// domain.ErrSessionAuthFailed; everything else is a lookup that could not be
+		// answered and must stay distinguishable, so callers do not sign a user out
+		// over a transient database error.
+
 		// First check if the session is valid and not expired
 		session, err := s.repo.GetSessionByID(ctx, sessionID)
 		if err != nil {
 			s.logger.WithField("user_id", userID).WithField("session_id", sessionID).WithField("error", err.Error()).Error("Failed to get session by ID")
+			var notFound *domain.ErrSessionNotFound
+			if errors.As(err, &notFound) {
+				return nil, fmt.Errorf("%w: %w", domain.ErrSessionAuthFailed, err)
+			}
 			return nil, err
 		}
 
 		// Verify that the session belongs to the user
 		if session.UserID != userID {
 			s.logger.WithField("user_id", userID).WithField("session_id", sessionID).WithField("session_user_id", session.UserID).Error("Session does not belong to user")
-			return nil, fmt.Errorf("session does not belong to user")
+			return nil, fmt.Errorf("%w: session does not belong to user", domain.ErrSessionAuthFailed)
 		}
 
 		// Check if session is expired
 		if time.Now().After(session.ExpiresAt) {
 			s.logger.WithField("user_id", userID).WithField("session_id", sessionID).WithField("expires_at", session.ExpiresAt).Error("Session expired")
-			return nil, ErrSessionExpired
+			return nil, fmt.Errorf("%w: %w", domain.ErrSessionAuthFailed, ErrSessionExpired)
 		}
 
 		// Get user details
 		user, err := s.repo.GetUserByID(ctx, userID)
 		if err != nil {
 			s.logger.WithField("user_id", userID).WithField("error", err.Error()).Error("Failed to get user by ID")
+			var notFound *domain.ErrUserNotFound
+			if errors.As(err, &notFound) {
+				return nil, fmt.Errorf("%w: %w", domain.ErrSessionAuthFailed, err)
+			}
 			return nil, err
 		}
 

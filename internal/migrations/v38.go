@@ -75,6 +75,14 @@ func (m *V38Migration) UpdateWorkspace(ctx context.Context, cfg *config.Config, 
 		}
 	}
 
+	// Keep the webhook trigger in step with internal/database/init.go: bridged
+	// web goals must not fan out to third-party subscribers. Both paths have to
+	// carry the same function body or a fresh install and an upgraded one behave
+	// differently for the same data.
+	if _, err := db.ExecContext(ctx, schema.WebhookCustomEventsTriggerFunction()); err != nil {
+		return fmt.Errorf("v38: failed to update webhook custom events trigger for workspace %s: %w", workspace.ID, err)
+	}
+
 	now := time.Now().UTC()
 	for _, month := range []time.Time{now, now.AddDate(0, 1, 0)} {
 		for _, table := range schema.WebAnalyticsTableNames {

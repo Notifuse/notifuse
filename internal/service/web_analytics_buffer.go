@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"strconv"
 	"sync"
 	"time"
 
@@ -60,6 +61,11 @@ type webWorkspaceBuffer struct {
 	flushing bool
 }
 
+// webBufferKey identifies one writer: a tab within a session.
+func webBufferKey(sessionID string, tabID int64) string {
+	return sessionID + "|" + strconv.FormatInt(tabID, 10)
+}
+
 // WebAnalyticsBuffer is safe for concurrent use.
 type WebAnalyticsBuffer struct {
 	repo   domain.WebAnalyticsRepository
@@ -101,7 +107,7 @@ func NewWebAnalyticsBuffer(repo domain.WebAnalyticsRepository, log logger.Logger
 
 // Add stores the beat's rows, collapsing onto any buffered older beat of the
 // same session (highest beat_seq wins; ties keep the latest arrival).
-func (b *WebAnalyticsBuffer) Add(workspaceID string, session *domain.WebSession, pages []*domain.WebPage, goals []*domain.WebGoal) {
+func (b *WebAnalyticsBuffer) Add(workspaceID string, tabID int64, session *domain.WebSession, pages []*domain.WebPage, goals []*domain.WebGoal) {
 	if session == nil {
 		return
 	}
@@ -116,13 +122,21 @@ func (b *WebAnalyticsBuffer) Add(workspaceID string, session *domain.WebSession,
 		b.workspaces[workspaceID] = ws
 	}
 
-	entry := ws.sessions[session.ID]
+	// Buffer per WRITER, not per session. Tabs share a session id but keep
+	// independent seq counters, so an entry keyed on the session alone would
+	// hold whichever tab beat highest and then discard every beat from every
+	// other tab — before the per-tab primary keys ever got a chance to apply.
+	// The wholesale replacement below is likewise only correct per writer: a
+	// beat carries that tab's complete cumulative state, and nobody else's.
+	key := webBufferKey(session.ID, tabID)
+	entry := ws.sessions[key]
 	if entry == nil {
 		entry = &webBufferedSession{}
-		ws.sessions[session.ID] = entry
+		ws.sessions[key] = entry
 	} else if entry.session != nil && session.BeatSeq < entry.session.BeatSeq {
-		// Out-of-order arrival (offline queue replay): the buffered state is
-		// newer, keep it. The repository guard would reject the write anyway.
+		// Out-of-order arrival (offline queue replay) from this same tab: the
+		// buffered state is newer, keep it. The repository guard would reject
+		// the write anyway.
 		return
 	}
 

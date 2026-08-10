@@ -30,12 +30,15 @@ export interface SessionStateConfig {
   workspace_id: string;
   session_id: string;
   created_at: number;
+  /** Identifies this tab as a distinct writer under the shared session id. */
+  tab_id?: number;
 }
 
 export class SessionState {
   private actions: Action[] = [];
   private currentPageIndex: number | null = null;
   private seq = 0;
+  private readonly tabId: number;
   private getPageFocusMs: (() => number) | null = null;
 
   private readonly workspaceId: string;
@@ -46,6 +49,7 @@ export class SessionState {
     this.workspaceId = config.workspace_id;
     this.sessionId = config.session_id;
     this.createdAt = config.created_at;
+    this.tabId = config.tab_id ?? 0;
   }
 
   // === Focus Time Callback ===
@@ -198,14 +202,14 @@ export class SessionState {
       const action = this.actions[this.currentPageIndex];
       if (action && action.type === 'pageview') {
         // Get focus time from SDK (or 0 if no getter set)
-        action.duration = this.getPageFocusMs ? this.getPageFocusMs() : 0;
-        action.exited_at = Date.now();
+        this.closePage(action, Date.now());
       }
     }
 
     const payload: SessionPayload = {
       workspace_id: this.workspaceId,
       session_id: this.sessionId,
+      tab_id: this.tabId,
       actions: [...this.actions],
       // Always include attributes (no optimization)
       attributes,
@@ -236,8 +240,7 @@ export class SessionState {
     const action = this.actions[this.currentPageIndex];
     if (action && action.type === 'pageview') {
       // Update final duration and exit time
-      action.duration = this.getPageFocusMs ? this.getPageFocusMs() : 0;
-      action.exited_at = Date.now();
+      this.closePage(action, Date.now());
     }
 
     // Clear current page index
@@ -319,6 +322,21 @@ export class SessionState {
    * Update the current page's duration when navigating away.
    * Uses focus time from SDK's heartbeatState via callback.
    */
+  /**
+   * Write a page's final duration and exit stamp, both clamped.
+   *
+   * The two clamps guard one failure: a backward wall-clock step. A negative
+   * duration or an exited_at before entered_at is rejected by the server, and
+   * since completed pages are never recomputed the bad value rides along in
+   * every later beat of the session — so one clock glitch becomes permanent,
+   * total loss for that visitor unless it is caught here.
+   */
+  private closePage(action: PageviewAction, exitTime: number): void {
+    const focus = this.getPageFocusMs ? this.getPageFocusMs() : 0;
+    action.duration = focus > 0 ? focus : 0;
+    action.exited_at = exitTime > action.entered_at ? exitTime : action.entered_at;
+  }
+
   private finalizeCurrentPageDuration(exitTime: number): void {
     if (this.currentPageIndex === null) return;
 
@@ -326,8 +344,7 @@ export class SessionState {
     if (!action || action.type !== 'pageview') return;
 
     // Get focus time from SDK (or 0 if no getter set)
-    action.duration = this.getPageFocusMs ? this.getPageFocusMs() : 0;
-    action.exited_at = exitTime;
+    this.closePage(action, exitTime);
   }
 
   private getNextPageNumber(): number {

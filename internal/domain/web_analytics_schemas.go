@@ -93,7 +93,7 @@ func WebAnalyticsSchemas(settings *WebAnalyticsSettings, timezone string) map[st
 			// Nullable, unlike every other dimension here: folding NULL into the
 			// empty string keeps the anonymous bucket selectable by the same
 			// "is empty" filter that works everywhere else.
-			"user_id": {Type: "string", Title: "User ID", SQL: "COALESCE(user_id, '')"},
+			"contact_email": {Type: "string", Title: "Contact Email", SQL: "COALESCE(contact_email, '')"},
 
 			// Cyclic time dimensions (UTC, Staminads parity).
 			"hour_of_day": {Type: "number", Title: "Hour of Day", SQL: fmt.Sprintf("(EXTRACT(HOUR FROM %s))::int", localTime(timeColumn))},
@@ -151,8 +151,8 @@ func WebAnalyticsSchemas(settings *WebAnalyticsSettings, timezone string) map[st
 					Filters:     []analytics.MeasureFilter{{SQL: "goal_count > 0"}},
 					Description: "Sessions that fired at least one goal"},
 				"goal_value": {Type: "sum", Title: "Goal Value", SQL: "goal_value"},
-				"users": {Type: "count_distinct", Title: "Identified Users", SQL: "user_id",
-					Description: "Distinct identified user ids (setUserId)"},
+				"contacts": {Type: "count_distinct", Title: "Identified Contacts", SQL: "contact_email",
+					Description: "Distinct contacts identified via identify()"},
 			},
 			Dimensions: sessionsDimensions,
 		},
@@ -180,7 +180,7 @@ func WebAnalyticsSchemas(settings *WebAnalyticsSettings, timezone string) map[st
 				"is_landing_page": {Type: "string", Title: "Is Landing Page", SQL: "(is_landing::text)"},
 				"is_exit_page":    {Type: "string", Title: "Is Exit Page", SQL: "(is_exit::text)"},
 				"page_entry_type": {Type: "string", Title: "Entry Type", SQL: "entry_type"},
-				"user_id":         {Type: "string", Title: "User ID", SQL: "COALESCE(user_id, '')"},
+				"contact_email":   {Type: "string", Title: "Contact Email", SQL: "COALESCE(contact_email, '')"},
 			},
 		},
 		"web_goals": {

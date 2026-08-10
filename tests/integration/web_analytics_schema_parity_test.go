@@ -97,7 +97,7 @@ func TestWebAnalyticsSchemaParity(t *testing.T) {
 	assert.Contains(t, initSchema, "web_sessions.session_date date notnull=true")
 	assert.Contains(t, initSchema, "web_sessions.beat_seq bigint notnull=true")
 	assert.Contains(t, initSchema, "USING brin (created_at)")
-	assert.Contains(t, initSchema, "WHERE (user_id IS NOT NULL)")
+	assert.Contains(t, initSchema, "WHERE (contact_email IS NOT NULL)")
 	assert.Contains(t, initSchema, "fillfactor=85", "partitions must carry the HOT-update fillfactor")
 
 	// Partitioned parents hold no rows themselves; the monthly children do.

@@ -25,6 +25,7 @@ import { isBot } from './detection/bot';
 import { DEFAULT_AD_CLICK_IDS } from './utils/utm';
 import { CrossDomainLinker, DEFAULT_CROSS_DOMAIN_PARAM } from './core/cross-domain';
 import { parseCustomDimensions } from './utils/custom-dimensions';
+import { monotonicNow } from './utils/clock';
 
 // Heartbeat constants
 const MIN_HEARTBEAT_INTERVAL = 5000; // 5 seconds minimum
@@ -190,7 +191,20 @@ export class NotifuseAnalyticsSDK {
     }
 
     // Initialize sender
-    this.sender = new Sender(this.config.endpoint, this.storage, this.config.debug);
+    this.sender = new Sender(
+      this.config.endpoint,
+      this.storage,
+      this.config.debug,
+      this.sessionManager.getTabId()
+    );
+
+    // Drain anything left over from a previous visit. The `online` event is the
+    // only other trigger, and a fresh page load can never observe it — so
+    // without this the commonest offline pattern (browse offline, close the tab,
+    // reconnect with no page open, come back later) leaves those beats sitting
+    // in storage until the TTL silently discards them. Fire-and-forget: a replay
+    // must never delay this page's own first beat.
+    this.sender.flushQueue().catch(() => {});
 
     // Initialize scroll tracker
     if (this.config.trackScroll) {
@@ -225,6 +239,7 @@ export class NotifuseAnalyticsSDK {
       workspace_id: this.config.workspace_id,
       session_id: session.id,
       created_at: session.created_at,
+      tab_id: this.sessionManager.getTabId(),
     };
     this.sessionState = new SessionState(sessionStateConfig);
     this.sessionState.restore(); // Restore from sessionStorage if available
@@ -243,7 +258,7 @@ export class NotifuseAnalyticsSDK {
     this.isInitialized = true;
 
     // Initialize heartbeat state
-    const now = Date.now();
+    const now = monotonicNow();
     this.heartbeatState.pageStartTime = now;
     this.heartbeatState.activeStartTime = now;
 
@@ -448,7 +463,7 @@ export class NotifuseAnalyticsSDK {
     this.stopHeartbeat(false); // Don't accumulate time (we're starting fresh)
 
     // Record when we became active
-    const now = Date.now();
+    const now = monotonicNow();
     this.heartbeatState.activeStartTime = now;
     this.heartbeatState.isActive = true;
     this.heartbeatState.lastPingTime = now;
@@ -469,7 +484,7 @@ export class NotifuseAnalyticsSDK {
     }
 
     // Resume with fresh timing
-    const now = Date.now();
+    const now = monotonicNow();
     this.heartbeatState.activeStartTime = now;
     this.heartbeatState.pageStartTime = now;
     this.heartbeatState.isActive = true;
@@ -504,14 +519,14 @@ export class NotifuseAnalyticsSDK {
 
     // Calculate target time with drift compensation
     const targetTime = this.heartbeatState.lastPingTime + interval;
-    const now = Date.now();
+    const now = monotonicNow();
     const delay = Math.max(0, targetTime - now);
 
     // Schedule next ping
     this.heartbeatTimeout = setTimeout(() => {
       // CRITICAL: Check visibility and state before sending
       if (this.shouldSendPing()) {
-        const actualTime = Date.now();
+        const actualTime = monotonicNow();
         const drift = actualTime - targetTime;
 
         // Log excessive drift in debug mode
@@ -562,8 +577,12 @@ export class NotifuseAnalyticsSDK {
       this.sessionState.updateScroll(this.scrollTracker.getMaxScrollPercent());
     }
 
-    // Send periodic payload (non-blocking)
-    this.sendPayload().catch(() => {});
+    // Send periodic payload (non-blocking). ensureFreshSession both records the
+    // activity this beat represents and rotates a session that has aged out; it
+    // sends on its own when it rotates, so only the un-rotated path sends here.
+    this.ensureFreshSession()
+      .then((same) => (same ? this.sendPayload() : undefined))
+      .catch(() => {});
   }
 
   /**
@@ -572,7 +591,7 @@ export class NotifuseAnalyticsSDK {
   private stopHeartbeat(accumulateTime: boolean = true): void {
     // Accumulate active time before stopping
     if (accumulateTime && this.heartbeatState.isActive) {
-      const now = Date.now();
+      const now = monotonicNow();
       const activeTime = now - this.heartbeatState.activeStartTime;
       this.heartbeatState.accumulatedActiveMs += activeTime;
 
@@ -595,7 +614,7 @@ export class NotifuseAnalyticsSDK {
   private getTotalActiveMs(): number {
     let total = this.heartbeatState.accumulatedActiveMs;
     if (this.heartbeatState.isActive) {
-      total += Date.now() - this.heartbeatState.activeStartTime;
+      total += monotonicNow() - this.heartbeatState.activeStartTime;
     }
     return total;
   }
@@ -674,7 +693,7 @@ export class NotifuseAnalyticsSDK {
       lastPingTime: 0,
       currentTierIndex: 0,
       pageActiveMs: 0,
-      pageStartTime: Date.now(),
+      pageStartTime: monotonicNow(),
     };
   }
 
@@ -684,7 +703,7 @@ export class NotifuseAnalyticsSDK {
   private resetPageActiveTime(): void {
     // Keep session time, reset page time
     this.heartbeatState.pageActiveMs = 0;
-    this.heartbeatState.pageStartTime = Date.now();
+    this.heartbeatState.pageStartTime = monotonicNow();
   }
 
   /**
@@ -696,7 +715,7 @@ export class NotifuseAnalyticsSDK {
     let total = this.heartbeatState.pageActiveMs;
     if (this.heartbeatState.isActive) {
       // Add time since last focus start
-      total += Date.now() - this.heartbeatState.pageStartTime;
+      total += monotonicNow() - this.heartbeatState.pageStartTime;
     }
     return total;
   }
@@ -851,7 +870,10 @@ export class NotifuseAnalyticsSDK {
     await this.ensureInitialized();
     const session = this.sessionManager?.getSession();
     if (!session) return 0;
-    return Date.now() - session.created_at;
+    // created_at is a wall-clock stamp, so this subtraction stays on the wall
+    // clock — but clamp it, because a backward step would otherwise report a
+    // negative session age.
+    return Math.max(0, Date.now() - session.created_at);
   }
 
   /**
@@ -865,6 +887,10 @@ export class NotifuseAnalyticsSDK {
     if (this.scrollTracker) {
       this.sessionState.updateScroll(this.scrollTracker.getMaxScrollPercent());
     }
+
+    // A lapsed window rotates here rather than silently waiting for the next
+    // full page load; the rotation opens the pageview on the new session itself.
+    if (!(await this.ensureFreshSession(url))) return;
 
     const path = url || window.location.pathname;
     this.sessionState.addPageview(path);
@@ -888,6 +914,10 @@ export class NotifuseAnalyticsSDK {
   async trackGoal(data: GoalData): Promise<void> {
     await this.ensureInitialized();
     if (!this.sessionState) return;
+
+    // Rotate first if the window lapsed, so the goal lands on the live session
+    // rather than one the server will reject.
+    await this.ensureFreshSession();
 
     // Add goal to SessionState
     this.sessionState.addGoal(data.action, data.value, data.properties);
@@ -987,6 +1017,51 @@ export class NotifuseAnalyticsSDK {
   /**
    * Reset session
    */
+  /**
+   * Roll onto a fresh session id while keeping identity and custom dimensions.
+   *
+   * Distinct from reset(), which deliberately forgets the visitor. Rotation
+   * happens when the inactivity window lapses or the id reaches its absolute
+   * age. Whatever the old session accumulated since its last successful beat is
+   * sent FIRST, under the old id — without that, every rotation silently drops
+   * its own tail, trading a 48h cliff for a small guaranteed loss each time.
+   */
+  private async rotateSession(path?: string): Promise<void> {
+    if (!this.sessionManager || !this.config || !this.sessionState) return;
+
+    this.sessionState.finalizeForUnload();
+    await this.sendPayload();
+
+    const session = this.sessionManager.getOrCreateSession();
+    this.sessionState = new SessionState({
+      workspace_id: this.config.workspace_id,
+      session_id: session.id,
+      created_at: session.created_at,
+      tab_id: this.sessionManager.getTabId(),
+    });
+    this.sessionState.setFocusTimeGetter(() => this.getPageActiveMs());
+    this.sessionState.addPageview(path || window.location.pathname);
+
+    this.scrollTracker?.reset();
+    this.resetHeartbeatState();
+    this.startHeartbeat();
+  }
+
+  /**
+   * Record activity, rotating the session if its window has lapsed.
+   *
+   * Returns false when a rotation happened, so a caller that was about to open a
+   * pageview knows the rotation already did it. Calling this on every beat,
+   * navigation and goal is what makes the session window measure activity rather
+   * than time since page load.
+   */
+  private async ensureFreshSession(path?: string): Promise<boolean> {
+    if (!this.sessionManager) return true;
+    if (this.sessionManager.touch()) return true;
+    await this.rotateSession(path);
+    return false;
+  }
+
   async reset(): Promise<void> {
     await this.ensureInitialized();
     if (!this.sessionManager || !this.config) return;
@@ -1000,6 +1075,7 @@ export class NotifuseAnalyticsSDK {
       workspace_id: this.config.workspace_id,
       session_id: session.id,
       created_at: session.created_at,
+      tab_id: this.sessionManager.getTabId(),
     };
     this.sessionState = new SessionState(sessionStateConfig);
 

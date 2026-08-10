@@ -73,7 +73,7 @@ const OPERATOR_MAP: Record<DimensionFilterOperator, EngineFilter['operator']> = 
   lt: 'lt',
   lte: 'lte',
   // Dimensions are stored NOT NULL DEFAULT '', and the one that is not
-  // (user_id) is exposed through COALESCE, so "empty" is always an equality
+  // (contact_email) is exposed through COALESCE, so "empty" is always an equality
   // with the empty string rather than a NULL test.
   isEmpty: 'equals',
   isNotEmpty: 'notEquals'

@@ -13,6 +13,20 @@ import (
 // WebAnalyticsPartitionDDL — at workspace init, by the maintenance worker, and
 // on demand by the repository when an insert misses its partition.
 
+// Each browser tab is a disjoint writer under one shared session_id, identified
+// by tab_id in the child tables' primary keys. Tabs share a session id (it lives
+// in localStorage) but keep their own cumulative action list and their own beat
+// counter (both live in sessionStorage), so without tab_id in the key two tabs
+// both number their pages from 1 and silently overwrite each other's rows —
+// arbitrated only by a race between two unrelated counters. A cross-domain
+// adoption is the same case: sessionStorage is origin-scoped, so the adopting
+// origin naturally mints its own tab_id and becomes another disjoint writer.
+//
+// tab_id is BIGINT rather than a UUID because it only has to be unique among one
+// session's tabs, and web_pages is the highest-volume partitioned table. DEFAULT 0
+// is what keeps a payload from an SDK that does not send one behaving exactly as
+// it does today.
+
 // WebAnalyticsTableNames lists the partitioned parent tables.
 var WebAnalyticsTableNames = []string{"web_sessions", "web_pages", "web_goals"}
 
@@ -25,6 +39,11 @@ const WebAnalyticsPartitionFillfactor = 85
 // webAnalyticsAttributionColumns is the session-attribution column block shared
 // verbatim by web_sessions and web_goals (goals carry a denormalized snapshot
 // so goal reports never join the sessions table).
+//
+// contact_email lives here rather than on web_sessions alone so goal reports can
+// answer "which contact converted" without a join. It replaces the opaque
+// user_id: identity is now a verified contact address, never a customer-supplied
+// string, so there is nothing left for a second column to hold.
 const webAnalyticsAttributionColumns = `
 	referrer TEXT NOT NULL DEFAULT '',
 	referrer_domain TEXT NOT NULL DEFAULT '',
@@ -69,7 +88,7 @@ const webAnalyticsAttributionColumns = `
 	city TEXT NOT NULL DEFAULT '',
 	latitude REAL,
 	longitude REAL,
-	user_id TEXT,`
+	contact_email TEXT,`
 
 // WebAnalyticsTableDefinitions returns the DDL creating the three partitioned
 // parents and their (cascading) indexes. Idempotent; PostgreSQL 16+ syntax
@@ -91,16 +110,16 @@ func WebAnalyticsTableDefinitions() []string {
 	exit_path TEXT NOT NULL DEFAULT '',` +
 			webAnalyticsAttributionColumns + `
 	sdk_version TEXT NOT NULL DEFAULT '',
-	contact_email TEXT,
 	PRIMARY KEY (session_date, id)
 ) PARTITION BY RANGE (session_date)`,
 
 		`CREATE INDEX IF NOT EXISTS idx_web_sessions_created_at_brin ON web_sessions USING BRIN (created_at)`,
-		`CREATE INDEX IF NOT EXISTS idx_web_sessions_user_id ON web_sessions (user_id) WHERE user_id IS NOT NULL`,
+		`CREATE INDEX IF NOT EXISTS idx_web_sessions_contact_email ON web_sessions (contact_email) WHERE contact_email IS NOT NULL`,
 
 		`CREATE TABLE IF NOT EXISTS web_pages (
 	session_date DATE NOT NULL,
 	session_id UUID NOT NULL,
+	tab_id BIGINT NOT NULL DEFAULT 0,
 	page_number SMALLINT NOT NULL,
 	beat_seq BIGINT NOT NULL DEFAULT 0,
 	path TEXT NOT NULL DEFAULT '',
@@ -111,16 +130,17 @@ func WebAnalyticsTableDefinitions() []string {
 	is_landing BOOLEAN NOT NULL DEFAULT FALSE,
 	is_exit BOOLEAN NOT NULL DEFAULT FALSE,
 	entry_type TEXT NOT NULL DEFAULT 'navigation',
-	user_id TEXT,
-	PRIMARY KEY (session_date, session_id, page_number)
+	contact_email TEXT,
+	PRIMARY KEY (session_date, session_id, tab_id, page_number)
 ) PARTITION BY RANGE (session_date)`,
 
 		`CREATE INDEX IF NOT EXISTS idx_web_pages_entered_at_brin ON web_pages USING BRIN (entered_at)`,
-		`CREATE INDEX IF NOT EXISTS idx_web_pages_user_id ON web_pages (user_id) WHERE user_id IS NOT NULL`,
+		`CREATE INDEX IF NOT EXISTS idx_web_pages_contact_email ON web_pages (contact_email) WHERE contact_email IS NOT NULL`,
 
 		`CREATE TABLE IF NOT EXISTS web_goals (
 	session_date DATE NOT NULL,
 	session_id UUID NOT NULL,
+	tab_id BIGINT NOT NULL DEFAULT 0,
 	goal_name TEXT NOT NULL,
 	client_ts_ms BIGINT NOT NULL,
 	beat_seq BIGINT NOT NULL DEFAULT 0,
@@ -130,11 +150,11 @@ func WebAnalyticsTableDefinitions() []string {
 	page_number SMALLINT NOT NULL DEFAULT 1,
 	properties JSONB,` +
 			webAnalyticsAttributionColumns + `
-	PRIMARY KEY (session_date, session_id, goal_name, client_ts_ms)
+	PRIMARY KEY (session_date, session_id, tab_id, goal_name, client_ts_ms)
 ) PARTITION BY RANGE (session_date)`,
 
 		`CREATE INDEX IF NOT EXISTS idx_web_goals_goal_at_brin ON web_goals USING BRIN (goal_at)`,
-		`CREATE INDEX IF NOT EXISTS idx_web_goals_user_id ON web_goals (user_id) WHERE user_id IS NOT NULL`,
+		`CREATE INDEX IF NOT EXISTS idx_web_goals_contact_email ON web_goals (contact_email) WHERE contact_email IS NOT NULL`,
 	}
 }
 

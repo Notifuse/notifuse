@@ -83,6 +83,8 @@ export interface SessionAttributes {
 export interface SessionPayload {
   workspace_id: string;
   session_id: string;
+  /** The writing tab; 0 when unknown. Part of the child tables' primary keys. */
+  tab_id: number;
   actions: Action[];
   // current_page removed - page is now in actions[] with duration updating
   // checkpoint removed - always send all actions, server deduplicates

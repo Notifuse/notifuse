@@ -116,7 +116,6 @@ func TestBuildWebRows(t *testing.T) {
 	receivedAt := time.Date(2026, 8, 8, 12, 0, 0, 0, time.UTC)
 	sessionStart := receivedAt.Add(-10 * time.Minute)
 	sessionID := testUUIDv7At(sessionStart)
-	userID := "  user-42  "
 
 	basePayload := func() *domain.WebTrackPayload {
 		sentAt := receivedAt.UnixMilli()
@@ -128,7 +127,6 @@ func TestBuildWebRows(t *testing.T) {
 			UpdatedAt:   receivedAt.Add(-2 * time.Second).UnixMilli(),
 			SentAt:      &sentAt,
 			SDKVersion:  "1.0.0",
-			UserID:      &userID,
 			Dimensions:  map[string]string{"custom_2": "pro-plan", "ignored": "x"},
 			Attributes: &domain.WebSessionAttributes{
 				Referrer:    "https://www.Google.com/search",
@@ -158,7 +156,7 @@ func TestBuildWebRows(t *testing.T) {
 	}
 
 	t.Run("session aggregates: sum duration, median, exit, counts", func(t *testing.T) {
-		session, pages, goals, err := BuildWebRows(basePayload(), webTestSettings(), geoip.Result{}, receivedAt)
+		session, pages, goals, err := BuildWebRows(basePayload(), webTestSettings(), geoip.Result{}, receivedAt, nil)
 		require.NoError(t, err)
 
 		assert.Equal(t, int64(7), session.BeatSeq)
@@ -169,7 +167,9 @@ func TestBuildWebRows(t *testing.T) {
 		assert.Equal(t, "/checkout", session.ExitPath)
 		assert.Equal(t, 1, session.GoalCount)
 		assert.InDelta(t, 49.9, session.GoalValue, 1e-9)
-		assert.Equal(t, "user-42", *session.UserID, "user id trimmed")
+		// Identity is no longer carried by the beat: it arrives verified, via the
+		// W2 ingest path, so a payload alone leaves the session anonymous.
+		assert.Nil(t, session.ContactEmail)
 		assert.Equal(t, "1.0.0", session.SDKVersion)
 
 		require.Len(t, pages, 3)
@@ -191,7 +191,7 @@ func TestBuildWebRows(t *testing.T) {
 		sentAt := receivedAt.Add(10 * time.Minute).UnixMilli()
 		payload.SentAt = &sentAt
 
-		session, pages, goals, err := BuildWebRows(payload, webTestSettings(), geoip.Result{}, receivedAt)
+		session, pages, goals, err := BuildWebRows(payload, webTestSettings(), geoip.Result{}, receivedAt, nil)
 		require.NoError(t, err)
 
 		assert.Equal(t, time.Date(2026, 8, 8, 0, 0, 0, 0, time.UTC), session.SessionDate)
@@ -205,7 +205,7 @@ func TestBuildWebRows(t *testing.T) {
 	})
 
 	t.Run("attribution: URL parsing, UA parsing, filters and custom dimensions", func(t *testing.T) {
-		session, _, goals, err := BuildWebRows(basePayload(), webTestSettings(), geoip.Result{}, receivedAt)
+		session, _, goals, err := BuildWebRows(basePayload(), webTestSettings(), geoip.Result{}, receivedAt, nil)
 		require.NoError(t, err)
 
 		assert.Equal(t, "www.google.com", session.ReferrerDomain)
@@ -235,7 +235,7 @@ func TestBuildWebRows(t *testing.T) {
 		lat, lon := 48.8566, 2.3522
 		geo := geoip.Result{Country: "FR", Region: "IDF", City: "Paris", Latitude: &lat, Longitude: &lon}
 
-		session, _, _, err := BuildWebRows(payload, webTestSettings(), geo, receivedAt)
+		session, _, _, err := BuildWebRows(payload, webTestSettings(), geo, receivedAt, nil)
 		require.NoError(t, err)
 
 		assert.True(t, session.IsDirect)
@@ -246,7 +246,7 @@ func TestBuildWebRows(t *testing.T) {
 	})
 
 	t.Run("nil settings: no filters, defaults still sane", func(t *testing.T) {
-		session, _, _, err := BuildWebRows(basePayload(), nil, geoip.Result{}, receivedAt)
+		session, _, _, err := BuildWebRows(basePayload(), nil, geoip.Result{}, receivedAt, nil)
 		require.NoError(t, err)
 		assert.Empty(t, session.Channel, "no rules, no channel")
 		assert.Equal(t, "desktop", session.Device)
@@ -255,7 +255,7 @@ func TestBuildWebRows(t *testing.T) {
 	t.Run("invalid session id is rejected", func(t *testing.T) {
 		payload := basePayload()
 		payload.SessionID = "8a9c1a1e-6f0e-4d17-9d5a-6b1f6e2d3c4b"
-		_, _, _, err := BuildWebRows(payload, webTestSettings(), geoip.Result{}, receivedAt)
+		_, _, _, err := BuildWebRows(payload, webTestSettings(), geoip.Result{}, receivedAt, nil)
 		assert.Error(t, err)
 	})
 }

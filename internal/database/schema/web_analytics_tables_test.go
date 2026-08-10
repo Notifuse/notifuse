@@ -24,14 +24,32 @@ func TestWebAnalyticsTableDefinitions(t *testing.T) {
 		assert.Contains(t, joined, "USING BRIN (created_at)")
 		assert.Contains(t, joined, "USING BRIN (entered_at)")
 		assert.Contains(t, joined, "USING BRIN (goal_at)")
-		assert.Equal(t, 3, strings.Count(joined, "WHERE user_id IS NOT NULL"), "partial user_id index on each table")
+		assert.Equal(t, 3, strings.Count(joined, "WHERE contact_email IS NOT NULL"), "partial identity index on each table")
 	})
 
-	t.Run("primary keys embed the partition key", func(t *testing.T) {
+	t.Run("primary keys embed the partition key and the writer", func(t *testing.T) {
 		joined := strings.Join(defs, "\n")
 		assert.Contains(t, joined, "PRIMARY KEY (session_date, id)")
-		assert.Contains(t, joined, "PRIMARY KEY (session_date, session_id, page_number)")
-		assert.Contains(t, joined, "PRIMARY KEY (session_date, session_id, goal_name, client_ts_ms)")
+		// tab_id makes each browser tab a disjoint writer under one shared
+		// session_id. Without it two tabs both number their pages from 1 and
+		// overwrite each other's rows, arbitrated only by a beat_seq race
+		// between two independent per-tab counters.
+		assert.Contains(t, joined, "PRIMARY KEY (session_date, session_id, tab_id, page_number)")
+		assert.Contains(t, joined, "PRIMARY KEY (session_date, session_id, tab_id, goal_name, client_ts_ms)")
+	})
+
+	t.Run("tab_id is a defaulted BIGINT on both child tables", func(t *testing.T) {
+		// BIGINT rather than a UUID: web_pages is the highest-volume partitioned
+		// table and tab_id only has to be unique among one session's tabs, so 16
+		// bytes per row plus a wider PK index would be paid for nothing.
+		// DEFAULT 0 is the migration property — a payload from an SDK that does
+		// not send tab_id lands on writer 0 and behaves exactly as it does today.
+		for _, stmt := range defs {
+			if strings.Contains(stmt, "CREATE TABLE IF NOT EXISTS web_pages (") ||
+				strings.Contains(stmt, "CREATE TABLE IF NOT EXISTS web_goals (") {
+				assert.Contains(t, stmt, "tab_id BIGINT NOT NULL DEFAULT 0")
+			}
+		}
 	})
 
 	t.Run("attribution snapshot present on sessions and goals", func(t *testing.T) {
@@ -46,12 +64,14 @@ func TestWebAnalyticsTableDefinitions(t *testing.T) {
 		}
 		require.NotEmpty(t, sessions)
 		require.NotEmpty(t, goals)
-		for _, col := range []string{"utm_source", "channel_group", "custom_10", "referrer_domain", "country", "beat_seq", "user_id"} {
+		for _, col := range []string{"utm_source", "channel_group", "custom_10", "referrer_domain", "country", "beat_seq", "contact_email"} {
 			assert.Contains(t, sessions, col)
 			assert.Contains(t, goals, col)
 		}
+		// contact_email now lives in the shared attribution block, so goal reports
+		// can name the converting contact without joining web_sessions.
 		assert.Contains(t, sessions, "contact_email")
-		assert.NotContains(t, goals, "contact_email")
+		assert.Contains(t, goals, "contact_email")
 		assert.Contains(t, goals, "properties JSONB")
 	})
 }

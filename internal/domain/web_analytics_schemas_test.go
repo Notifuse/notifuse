@@ -151,8 +151,8 @@ func TestWebAnalyticsSchemasTimezone(t *testing.T) {
 		// equality with ''. Left raw, the anonymous bucket would be a NULL that
 		// no filter the console can build is able to select again.
 		for _, schema := range []string{"web_sessions", "web_pages", "web_goals"} {
-			assert.Equal(t, "COALESCE(user_id, '')",
-				WebAnalyticsSchemas(nil, "UTC")[schema].Dimensions["user_id"].SQL, schema)
+			assert.Equal(t, "COALESCE(contact_email, '')",
+				WebAnalyticsSchemas(nil, "UTC")[schema].Dimensions["contact_email"].SQL, schema)
 		}
 	})
 }

@@ -237,13 +237,13 @@ func (g *demoWebAnalyticsGenerator) generateSession(
 	// Identity is decided before the rules run so a rule could, in principle,
 	// key on it the way a real workspace might.
 	if identity, ok := g.pickIdentity(); ok {
-		attribution.UserID = &identity
+		attribution.ContactEmail = &identity
 	}
 
 	// Custom slots the generator owns. custom_1 is deliberately left for the
 	// product-category rules to fill.
 	attribution.Custom[1] = "anonymous"
-	if attribution.UserID != nil {
+	if attribution.ContactEmail != nil {
 		attribution.Custom[1] = "logged_in"
 	}
 	attribution.Custom[2] = "control"
@@ -298,18 +298,14 @@ func (g *demoWebAnalyticsGenerator) generateSession(
 		Country: geo.Country, Region: geo.Region, City: geo.City,
 		Latitude: floatPtr(geo.Latitude), Longitude: floatPtr(geo.Longitude),
 
-		SDKVersion: demoSDKVersion,
-		UserID:     attribution.UserID,
-	}
-	if attribution.UserID != nil {
-		email := *attribution.UserID
-		session.ContactEmail = &email
+		SDKVersion:   demoSDKVersion,
+		ContactEmail: attribution.ContactEmail,
 	}
 
 	for _, page := range pages {
 		page.SessionDate = sessionDate
 		page.SessionID = sessionID
-		page.UserID = attribution.UserID
+		page.ContactEmail = attribution.ContactEmail
 	}
 
 	goals := g.buildGoals(session, attribution, landing, pages, sessionDuration, maxScroll, period)
@@ -536,7 +532,7 @@ func (g *demoWebAnalyticsGenerator) newGoal(
 		OS: session.OS, ConnectionType: session.ConnectionType,
 		Language: session.Language, Timezone: session.Timezone,
 		Country: session.Country, Region: session.Region, City: session.City,
-		UserID: session.UserID,
+		ContactEmail: session.ContactEmail,
 	}
 }
 

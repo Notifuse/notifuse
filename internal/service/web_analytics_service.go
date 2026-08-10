@@ -9,11 +9,19 @@ import (
 	"github.com/Notifuse/notifuse/pkg/cache"
 	"github.com/Notifuse/notifuse/pkg/geoip"
 	"github.com/Notifuse/notifuse/pkg/logger"
+	"github.com/Notifuse/notifuse/pkg/ratelimiter"
 )
 
 // workspaceSettingsCacheTTL matches Staminads' 60s workspace cache: beats
 // arrive every few seconds per visitor and must not hammer the system DB.
 const workspaceSettingsCacheTTL = 60 * time.Second
+
+// Rate-limit namespaces for the identified ingest path. Sized well above a
+// legitimate visitor's 10-30s heartbeat so a real session is never throttled.
+const (
+	webIdentifyEmailLimit = "wa_identify:email"
+	webIdentifyIPLimit    = "wa_identify:ip"
+)
 
 // WebAnalyticsGeoLookup abstracts pkg/geoip for tests.
 type WebAnalyticsGeoLookup interface {
@@ -23,8 +31,18 @@ type WebAnalyticsGeoLookup interface {
 // WebAnalyticsService ingests tracking beats: resolve workspace → silent
 // gates (enabled, allowed domains) → validate → enrich → buffer. It also
 // exposes the console-facing attribution backfill controls.
+// webAnalyticsWorkspace is what one cache entry holds. The secret key rides
+// along because ResolveWebIdentity needs it on every identified beat and
+// GetByID already decrypts it — fetching the workspace and then throwing the
+// secret away would mean a second system-DB read per beat.
+type webAnalyticsWorkspace struct {
+	Settings  *domain.WebAnalyticsSettings
+	SecretKey string
+}
+
 type WebAnalyticsService struct {
 	workspaceRepo  domain.WorkspaceRepository
+	contactRepo    domain.ContactRepository
 	buffer         *WebAnalyticsBuffer
 	geo            WebAnalyticsGeoLookup
 	authService    domain.AuthService
@@ -32,6 +50,7 @@ type WebAnalyticsService struct {
 	logger         logger.Logger
 	nowFn          func() time.Time
 	workspaceCache *cache.InMemoryCache
+	rateLimiter    *ratelimiter.RateLimiter
 }
 
 // ErrWebTrackInvalidPayload wraps payload validation failures so the handler
@@ -45,19 +64,23 @@ func (e *ErrWebTrackInvalidPayload) Unwrap() error { return e.Err }
 // back the console-facing backfill RPCs.
 func NewWebAnalyticsService(
 	workspaceRepo domain.WorkspaceRepository,
+	contactRepo domain.ContactRepository,
 	buffer *WebAnalyticsBuffer,
 	geo WebAnalyticsGeoLookup,
 	authService domain.AuthService,
 	taskRepo domain.TaskRepository,
+	rateLimiter *ratelimiter.RateLimiter,
 	log logger.Logger,
 ) *WebAnalyticsService {
 	return &WebAnalyticsService{
 		workspaceRepo:  workspaceRepo,
+		contactRepo:    contactRepo,
 		buffer:         buffer,
 		geo:            geo,
 		authService:    authService,
 		taskRepo:       taskRepo,
 		logger:         log,
+		rateLimiter:    rateLimiter,
 		nowFn:          time.Now,
 		workspaceCache: cache.NewInMemoryCache(5 * time.Minute),
 	}
@@ -200,10 +223,11 @@ func (s *WebAnalyticsService) Track(ctx context.Context, payload *domain.WebTrac
 		receivedAt = s.nowFn()
 	}
 
-	settings := s.webAnalyticsSettings(ctx, payload.WorkspaceID)
-	if settings == nil || !settings.Enabled {
+	resolved := s.webAnalyticsWorkspace(ctx, payload.WorkspaceID)
+	if resolved == nil || resolved.Settings == nil || !resolved.Settings.Enabled {
 		return nil // silent: unknown workspace or feature disabled
 	}
+	settings := resolved.Settings
 
 	// Domain restriction against Origin, falling back to Referer. A rejection
 	// is silent success (Staminads behavior): the SDK must not retry it.
@@ -244,18 +268,20 @@ func (s *WebAnalyticsService) Track(ctx context.Context, payload *domain.WebTrac
 		}
 	}
 
-	session, pages, goals, err := BuildWebRows(payload, settings, geoResult, receivedAt)
+	contactEmail := s.resolveContactIdentity(ctx, payload, resolved.SecretKey, meta.ClientIP)
+
+	session, pages, goals, err := BuildWebRows(payload, settings, geoResult, receivedAt, contactEmail)
 	if err != nil {
 		return &ErrWebTrackInvalidPayload{Err: err}
 	}
 
-	s.buffer.Add(payload.WorkspaceID, session, pages, goals)
+	s.buffer.Add(payload.WorkspaceID, payload.TabID, session, pages, goals)
 	return nil
 }
 
 // webAnalyticsSettings resolves the workspace's web analytics settings with a
 // short TTL cache. Returns nil for unknown workspaces or absent settings.
-func (s *WebAnalyticsService) webAnalyticsSettings(ctx context.Context, workspaceID string) *domain.WebAnalyticsSettings {
+func (s *WebAnalyticsService) webAnalyticsWorkspace(ctx context.Context, workspaceID string) *webAnalyticsWorkspace {
 	if workspaceID == "" {
 		return nil
 	}
@@ -264,15 +290,78 @@ func (s *WebAnalyticsService) webAnalyticsSettings(ctx context.Context, workspac
 		if err != nil || workspace == nil {
 			// Cache the miss too: unknown workspace ids must not turn into a
 			// system-DB query per hostile beat.
-			return (*domain.WebAnalyticsSettings)(nil), nil
+			return (*webAnalyticsWorkspace)(nil), nil
 		}
-		return workspace.Settings.WebAnalytics, nil
+		return &webAnalyticsWorkspace{
+			Settings:  workspace.Settings.WebAnalytics,
+			SecretKey: workspace.Settings.SecretKey,
+		}, nil
 	})
 	if err != nil {
 		return nil
 	}
-	settings, _ := cached.(*domain.WebAnalyticsSettings)
-	return settings
+	resolved, _ := cached.(*webAnalyticsWorkspace)
+	return resolved
+}
+
+func (s *WebAnalyticsService) webAnalyticsSettings(ctx context.Context, workspaceID string) *domain.WebAnalyticsSettings {
+	resolved := s.webAnalyticsWorkspace(ctx, workspaceID)
+	if resolved == nil {
+		return nil
+	}
+	return resolved.Settings
+}
+
+// resolveContactIdentity verifies the beat's credential and then requires the
+// address to already be a contact.
+//
+// The signature proves who the caller is, never that the address belongs to
+// anyone — so without this second gate a workspace's own signing key would let
+// it store the email of people who are not contacts, and erasure would be
+// unenforceable because a deleted contact's next beat would re-stamp it. Both
+// problems disappear by refusing to remember an address we do not already hold.
+//
+// Every outcome is a silent drop of the IDENTITY only: a bad credential, an
+// unknown address or a database hiccup must never cost the visitor their
+// pageview.
+func (s *WebAnalyticsService) resolveContactIdentity(ctx context.Context, payload *domain.WebTrackPayload, secretKey, clientIP string) *string {
+	email, ok := domain.ResolveWebIdentity(payload, secretKey, s.nowFn())
+	if !ok {
+		return nil
+	}
+	if s.contactRepo == nil {
+		return nil
+	}
+
+	// Throttle the IDENTIFIED path only, and before the contact lookup so an
+	// abusive caller cannot spend database reads. Anonymous traffic is the
+	// normal firehose and stays unthrottled. Exceeding the limit costs the
+	// identity, never the beat — and never a 429, which the SDK would queue for
+	// retry against something retrying cannot fix.
+	if s.rateLimiter != nil {
+		if !s.rateLimiter.Allow(webIdentifyEmailLimit, payload.WorkspaceID+"|"+email) {
+			return nil
+		}
+		if clientIP != "" && !s.rateLimiter.Allow(webIdentifyIPLimit, clientIP) {
+			return nil
+		}
+	}
+
+	// An identified visitor beats every 10-30s, so this must not be a query per
+	// beat. The TTL bounds how long a freshly created contact stays unrecognised
+	// and how long a deleted one keeps resolving.
+	key := "wa:contact:" + payload.WorkspaceID + ":" + email
+	known, err := s.workspaceCache.GetOrSet(key, workspaceSettingsCacheTTL, func() (interface{}, error) {
+		contact, err := s.contactRepo.GetContactByEmail(ctx, payload.WorkspaceID, email)
+		return err == nil && contact != nil, nil
+	})
+	if err != nil {
+		return nil
+	}
+	if exists, _ := known.(bool); !exists {
+		return nil
+	}
+	return &email
 }
 
 // InvalidateWorkspaceCache drops the cached settings of one workspace (used

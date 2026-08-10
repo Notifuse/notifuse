@@ -7,6 +7,7 @@ import type { InternalConfig } from '../types';
 vi.mock('../utils/uuid', () => ({
   generateUUIDv4: vi.fn(() => 'mock-uuid-v4-' + Math.random().toString(36).slice(2, 10)),
   generateUUIDv7: vi.fn(() => 'mock-uuid-v7-' + Math.random().toString(36).slice(2, 10)),
+  generateTabId: vi.fn(() => 123456),
 }));
 
 // Mock UTM parsing

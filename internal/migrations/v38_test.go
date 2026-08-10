@@ -92,6 +92,11 @@ func expectV38WorkspaceDDL(mock sqlmock.Sqlmock) {
 	for range schema.WebAnalyticsTableDefinitions() {
 		mock.ExpectExec("(?s)CREATE (TABLE|INDEX) IF NOT EXISTS").WillReturnResult(sqlmock.NewResult(0, 0))
 	}
+	// Upgrading workspaces must also pick up the webhook trigger body that keeps
+	// bridged web goals from fanning out to third-party subscribers — the
+	// new-workspace path installs the same function from the same source.
+	mock.ExpectExec("(?s)CREATE OR REPLACE FUNCTION webhook_custom_events_trigger").
+		WillReturnResult(sqlmock.NewResult(0, 0))
 	now := time.Now().UTC()
 	for _, month := range []time.Time{now, now.AddDate(0, 1, 0)} {
 		for _, table := range schema.WebAnalyticsTableNames {

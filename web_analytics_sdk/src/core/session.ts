@@ -5,11 +5,21 @@
 
 import type { Session, UTMParams, CustomDimensions, InternalConfig } from '../types';
 import { Storage, TabStorage, STORAGE_KEYS } from '../storage/storage';
-import { generateUUIDv4, generateUUIDv7 } from '../utils/uuid';
+import { generateTabId, generateUUIDv7 } from '../utils/uuid';
 import { parseUTMParams } from '../utils/utm';
 
 const SDK_VERSION = __SDK_VERSION__;
 const CLOCK_SKEW_TOLERANCE = 60; // seconds
+
+// Absolute lifetime of one session id, independent of activity.
+//
+// The server rejects any session id whose embedded timestamp is older than 48h
+// (WebSessionIDMaxAge) and the SDK has no path back from that 400 — it never
+// rotates in response — so a pinned tab or a kiosk display goes silent forever.
+// Rotating at half the server bound leaves a full day of headroom for a beat
+// sitting in the offline queue to still be replayed against the id it was
+// minted under. Deliberately not configurable: raising it re-opens the cliff.
+const SESSION_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
 /**
  * Cross-domain session input (from URL parameters)
@@ -25,7 +35,7 @@ export class SessionManager {
   private tabStorage: TabStorage;
   private config: InternalConfig;
   private session: Session | null = null;
-  private tabId: string;
+  private tabId: number;
   private debug: boolean;
   private crossDomainInput: CrossDomainInput | null = null;
 
@@ -190,7 +200,9 @@ export class SessionManager {
    * Check if session has expired
    */
   private isSessionExpired(session: Session): boolean {
-    return Date.now() - session.last_active_at > this.config.sessionTimeout;
+    const now = Date.now();
+    if (now - session.last_active_at > this.config.sessionTimeout) return true;
+    return now - session.created_at > SESSION_MAX_AGE_MS;
   }
 
   /**
@@ -210,17 +222,25 @@ export class SessionManager {
   }
 
   /**
-   * Update session
+   * Record activity on the current session, returning false when it has expired
+   * and the caller must rotate.
+   *
+   * Two bugs live here if nothing calls this. last_active_at would only ever be
+   * written at page load, so the inactivity window would measure time since load
+   * rather than since activity — fragmenting a long read into several sessions.
+   * And the expiry check would run once per load and never again, so a tab left
+   * open would never rotate, eventually crossing the server's id bound and being
+   * rejected permanently.
    */
-  updateSession(updates: Partial<Session>): void {
-    if (!this.session) return;
+  touch(): boolean {
+    if (!this.session) return false;
+    if (this.isSessionExpired(this.session)) return false;
 
-    Object.assign(this.session, updates, {
-      updated_at: Date.now(),
-      last_active_at: Date.now(),
-    });
-
+    const now = Date.now();
+    this.session.last_active_at = now;
+    this.session.updated_at = now;
     this.saveSession();
+    return true;
   }
 
   /**
@@ -234,19 +254,23 @@ export class SessionManager {
   /**
    * Get tab ID (unique per browser tab)
    */
-  getTabId(): string {
+  getTabId(): number {
     return this.tabId;
   }
 
   /**
    * Get or create tab ID
    */
-  private getOrCreateTabId(): string {
-    let tabId = this.tabStorage.get<string>(STORAGE_KEYS.TAB_ID);
-    if (!tabId) {
-      tabId = generateUUIDv4();
-      this.tabStorage.set(STORAGE_KEYS.TAB_ID, tabId);
+  private getOrCreateTabId(): number {
+    const stored = this.tabStorage.get<unknown>(STORAGE_KEYS.TAB_ID);
+    // Anything that is not a safe integer is replaced, which also migrates the
+    // UUID string an earlier build wrote here — sending that as a BIGINT would
+    // be rejected outright.
+    if (typeof stored === 'number' && Number.isSafeInteger(stored) && stored > 0) {
+      return stored;
     }
+    const tabId = generateTabId();
+    this.tabStorage.set(STORAGE_KEYS.TAB_ID, tabId);
     return tabId;
   }
 

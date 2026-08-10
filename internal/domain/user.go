@@ -2,6 +2,7 @@ package domain
 
 import (
 	"context"
+	"errors"
 	"time"
 )
 
@@ -151,3 +152,13 @@ type ErrSessionNotFound struct {
 func (e *ErrSessionNotFound) Error() string {
 	return e.Message
 }
+
+// ErrSessionAuthFailed wraps every session-verification failure that means the
+// caller is not authenticated: an unknown, expired, or mismatched session. It
+// deliberately does NOT cover a lookup that could not be answered, such as a
+// database error.
+//
+// Handlers must answer the two cases differently. The console discards the stored
+// token and leaves the current page on any 401, so reporting a transient database
+// failure that way signs the user out and throws away the URL they were on.
+var ErrSessionAuthFailed = errors.New("session authentication failed")
