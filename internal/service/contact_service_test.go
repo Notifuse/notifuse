@@ -32,6 +32,7 @@ func createContactServiceWithMocks(ctrl *gomock.Controller) (*ContactService, *m
 		mockInboundWebhookEventRepo,
 		mockContactListRepo,
 		mockContactTimelineRepo,
+		nil, // web analytics repo: optional, and these tests do not exercise it
 		mockLogger,
 	)
 

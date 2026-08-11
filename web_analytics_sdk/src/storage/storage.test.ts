@@ -286,7 +286,8 @@ describe('STORAGE_KEYS', () => {
       PENDING_QUEUE: 'pending',
       TAB_ID: 'tab_id',
       DIMENSIONS: 'dimensions',
-      USER_ID: 'user_id',
+      IDENTITY: 'identity',
+        LEGACY_USER_ID: 'user_id',
     });
   });
 });

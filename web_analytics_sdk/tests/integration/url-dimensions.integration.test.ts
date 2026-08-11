@@ -10,6 +10,7 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { SessionManager } from '../../src/core/session';
+import { DEFAULT_CROSS_DOMAIN_PARAM } from '../../src/core/cross-domain';
 import { Storage, TabStorage } from '../../src/storage/storage';
 import { parseCustomDimensions } from '../../src/utils/custom-dimensions';
 import type { InternalConfig } from '../../src/types';
@@ -35,6 +36,7 @@ describe('URL Dimensions Integration', () => {
     crossDomains: [],
     crossDomainExpiry: 120,
     crossDomainStripParams: true,
+    crossDomainParam: DEFAULT_CROSS_DOMAIN_PARAM,
     ...overrides,
   });
 

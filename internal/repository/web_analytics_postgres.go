@@ -364,6 +364,36 @@ func webGoalValues(g *domain.WebGoal) ([]interface{}, error) {
 // key first so two replicas flushing overlapping sessions lock rows in the
 // same order and cannot deadlock. A flush that hits a missing monthly
 // partition creates the needed partitions and retries once.
+// AnonymizeContact clears contact_email for one address across the three web
+// analytics tables.
+//
+// Without it, deleting a contact leaves their email stamped on every session,
+// page and goal they ever produced — and the sticky COALESCE in the upsert means
+// no later beat can ever clear it. The ingest-side contact gate stops NEW beats
+// re-stamping a deleted contact; this erases what was already written.
+//
+// Partition pruning cannot help here (the address is not the partition key), so
+// this is a full scan of the workspace's web tables. It runs once per contact
+// deletion, which is rare, and the partial contact_email indexes keep it to the
+// identified rows only.
+func (r *webAnalyticsRepository) AnonymizeContact(ctx context.Context, workspaceID string, email string) error {
+	if strings.TrimSpace(email) == "" {
+		return nil
+	}
+	db, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
+	if err != nil {
+		return fmt.Errorf("failed to get workspace connection: %w", err)
+	}
+	for _, table := range schema.WebAnalyticsTableNames {
+		if _, err := db.ExecContext(ctx,
+			fmt.Sprintf(`UPDATE %s SET contact_email = NULL WHERE contact_email = $1`, table), email,
+		); err != nil {
+			return fmt.Errorf("failed to anonymize %s: %w", table, err)
+		}
+	}
+	return nil
+}
+
 func (r *webAnalyticsRepository) FlushBatch(ctx context.Context, workspaceID string, sessions []*domain.WebSession, pages []*domain.WebPage, goals []*domain.WebGoal) error {
 	if len(sessions) == 0 && len(pages) == 0 && len(goals) == 0 {
 		return nil

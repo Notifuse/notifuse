@@ -1,0 +1,26 @@
+{
+  // The build config excludes tests/ so it can emit d.ts from src/ alone, which
+  // left the Playwright and Vitest suites unchecked: an API rename only surfaced
+  // when a runner executed the file. This config typechecks src and tests
+  // together and emits nothing.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    // An extending config cannot unset an inherited output directory: "null"
+    // resolves back to the package root, which "rootDir": "." then maps every
+    // source onto 1:1, so anything that stopped noEmit from applying would
+    // splatter .js and .d.ts beside every file in src/, tests/ and the root.
+    // Redirecting both to a throwaway directory makes that structurally
+    // harmless instead of leaving it to noEmit alone. They are redirected
+    // rather than disabled because turning declaration off while the build's
+    // declarationDir is still inherited is itself an error (TS5069).
+    "outDir": "./node_modules/.cache/tsc-typecheck",
+    "declarationDir": "./node_modules/.cache/tsc-typecheck",
+    // Tests sit outside src/, so the build's rootDir would reject them.
+    "rootDir": ".",
+    // vitest.config.ts sets globals: true, so describe/it/expect are ambient.
+    "types": ["node", "vitest/globals"]
+  },
+  "include": ["src/**/*", "tests/**/*", "*.config.ts", "*.config.js"],
+  "exclude": ["node_modules", "dist"]
+}

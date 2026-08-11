@@ -112,6 +112,15 @@ describe('calculateChildrenDimensionsAndFilters', () => {
 })
 
 describe('mergeComparisonData', () => {
+  it('survives a null current set, which the API really does return', () => {
+    // The query API answers "data": null for a breakdown that matched nothing —
+    // an empty workspace, or any filter combination with no matches — while its
+    // TypeScript type declares an array. Explore called .map on it and the page
+    // crashed with "can't access property map, current is null".
+    expect(mergeComparisonData(null, [{ country: 'FR', sessions: 1 }], 'country')).toEqual([])
+    expect(mergeComparisonData(undefined, undefined, 'country')).toEqual([])
+  })
+
   it('attaches the comparison measures of the matching value', () => {
     const merged = mergeComparisonData(
       [{ device: 'desktop', sessions: 120, median_duration: 40 }],

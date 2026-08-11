@@ -171,9 +171,11 @@ export function ExploreTab() {
       return
     }
 
+    // `data` is typed as an array but the API can still answer null for a
+    // breakdown that matched nothing, so the type does not protect this call.
     const rows = showComparison
-      ? mergeComparisonData(rootCurrent.data, rootPrevious?.data, dimensions[0])
-      : rootCurrent.data
+      ? mergeComparisonData(rootCurrent.data ?? [], rootPrevious?.data, dimensions[0])
+      : (rootCurrent.data ?? [])
 
     const exploreRows = buildExploreRows(rows, dimensions, 0, null, showComparison)
     setReportData(exploreRows)
@@ -213,8 +215,8 @@ export function ExploreTab() {
 
         const childDimension = dimensions[childDimensionIndex]
         const rows = showComparison
-          ? mergeComparisonData(current.data, previous?.data, childDimension)
-          : current.data
+          ? mergeComparisonData(current.data ?? [], previous?.data, childDimension)
+          : (current.data ?? [])
 
         const childRows = buildExploreRows(
           rows,

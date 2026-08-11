@@ -3,7 +3,7 @@
  * Ultra-reliable web analytics for tracking TimeScore metrics
  * V3 Session Payload Architecture
  */
-import type { NotifuseAnalyticsConfig, GoalData, SessionDebugInfo } from './types';
+import type { WebIdentity, NotifuseAnalyticsConfig, GoalData, SessionDebugInfo } from './types';
 export declare class NotifuseAnalyticsSDK {
     private config;
     private storage;
@@ -194,13 +194,25 @@ export declare class NotifuseAnalyticsSDK {
      */
     clearDimensions(): Promise<void>;
     /**
-     * Set user ID for tracking authenticated users
+     * Attach a verified contact identity.
+     *
+     * The hmac must be minted server-side by the customer over the raw address
+     * with their workspace secret. /track is public and unauthenticated, so an
+     * unsigned address is discarded — passing one would look like identification
+     * while silently doing nothing.
      */
-    setUserId(id: string | null): Promise<void>;
+    identify(email: string, hmac: string): Promise<void>;
     /**
-     * Get current user ID
+     * Current identity, or null when anonymous.
      */
-    getUserId(): Promise<string | null>;
+    getIdentity(): Promise<WebIdentity | null>;
+    /**
+     * Stop future beats carrying the identity.
+     *
+     * Does NOT anonymize what has already been recorded — see
+     * SessionManager.clearIdentity.
+     */
+    clearIdentity(): Promise<void>;
     /**
      * Pause tracking
      */

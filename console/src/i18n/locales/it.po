@@ -156,7 +156,7 @@ msgid "{0} rows rewritten"
 msgstr ""
 
 #. placeholder {0}: stored?.bounce_threshold_seconds ?? DEFAULT_SETTINGS.bounce_threshold_seconds
-#: src/components/settings/WebAnalyticsSettings.tsx:171
+#: src/components/settings/WebAnalyticsSettings.tsx:200
 msgid "{0} seconds"
 msgstr ""
 
@@ -243,7 +243,7 @@ msgstr "{0}-{1} di {total} automazioni"
 
 #. placeholder {0}: range[0]
 #. placeholder {1}: range[1]
-#: src/pages/BroadcastsPage.tsx:1589
+#: src/pages/BroadcastsPage.tsx:1587
 msgid "{0}-{1} of {total} broadcasts"
 msgstr "{0}-{1} di {total} broadcast"
 
@@ -263,7 +263,7 @@ msgstr ""
 msgid "{language} code copied to clipboard!"
 msgstr "Codice {language} copiato negli appunti!"
 
-#: src/pages/WebAnalyticsLivePage.tsx:133
+#: src/pages/WebAnalyticsLivePage.tsx:134
 msgid "{liveSessions} live now"
 msgstr ""
 
@@ -319,7 +319,7 @@ msgstr "• Assicurati che tutti i tag XML siano chiusi correttamente"
 msgid "• Verify that component attributes are valid"
 msgstr "• Verifica che gli attributi dei componenti siano validi"
 
-#: src/components/segment/input_dimension_filters.tsx:153
+#: src/components/segment/input_dimension_filters.tsx:158
 msgid "+ Add filter"
 msgstr "+ Aggiungi filtro"
 
@@ -327,7 +327,7 @@ msgstr "+ Aggiungi filtro"
 msgid "+ add from name, CC, BCC, reply-to, attachments"
 msgstr "+ aggiungi nome mittente, CC, BCC, reply-to, allegati"
 
-#: src/components/segment/input_event_property_filters.tsx:117
+#: src/components/segment/input_event_property_filters.tsx:122
 msgid "+ Add property filter"
 msgstr ""
 
@@ -467,7 +467,7 @@ msgstr "È richiesto un valore..."
 #: src/components/automations/nodes/ABTestNode.tsx:47
 #: src/components/automations/nodes/StatNode.tsx:58
 #: src/components/automations/nodes/StatNode.tsx:243
-#: src/pages/BroadcastsPage.tsx:1118
+#: src/pages/BroadcastsPage.tsx:1116
 msgid "A/B Test"
 msgstr "A/B Test"
 
@@ -540,7 +540,7 @@ msgstr "Attività"
 #: src/components/broadcasts/HeadersEditor.tsx:102
 #: src/components/segment/input_json_path.tsx:98
 #: src/components/web_analytics/tabs/FiltersTab.tsx:130
-#: src/pages/ContactsPage.tsx:1063
+#: src/pages/ContactsPage.tsx:1065
 msgid "Add"
 msgstr "Aggiungi"
 
@@ -557,7 +557,7 @@ msgstr "Aggiungi {0}"
 msgid "Add a caption..."
 msgstr "Aggiungi una didascalia..."
 
-#: src/components/segment/input_dimension_filters.tsx:159
+#: src/components/segment/input_dimension_filters.tsx:164
 msgid "Add a filter"
 msgstr "Aggiungi un filtro"
 
@@ -766,16 +766,16 @@ msgstr "dopo"
 
 #. placeholder {0}: broadcast.test_settings.test_duration_hours
 #. placeholder {1}: broadcast.test_settings.auto_send_winner_metric === 'open_rate' ? t`opens` : t`clicks`
-#: src/pages/BroadcastsPage.tsx:1136
+#: src/pages/BroadcastsPage.tsx:1134
 msgid "After {0} hours based on highest {1}"
 msgstr "Dopo {0} ore in base al maggior numero di {1}"
 
 #: src/components/segment/form_leaf.tsx:499
-#: src/components/segment/form_leaf.tsx:856
+#: src/components/segment/form_leaf.tsx:855
 msgid "after date"
 msgstr "dopo la data"
 
-#: src/components/segment/form_leaf.tsx:772
+#: src/components/segment/form_leaf.tsx:771
 msgid "Aggregate"
 msgstr "Aggrega"
 
@@ -783,7 +783,7 @@ msgstr "Aggrega"
 #~ msgid "Aggregated across all A/B variations."
 #~ msgstr ""
 
-#: src/components/ai-assistant/AIAssistantChat.tsx:105
+#: src/components/ai-assistant/AIAssistantChat.tsx:120
 msgid "AI Assistant Not Configured"
 msgstr "Assistente AI non configurato"
 
@@ -829,7 +829,7 @@ msgstr "Allineamento"
 
 #: src/components/analytics/EmailMetricsChart.tsx:284
 #: src/components/web_analytics/tabs/FiltersTab.tsx:152
-#: src/pages/BroadcastsPage.tsx:1505
+#: src/pages/BroadcastsPage.tsx:1503
 #: src/pages/TemplatesPage.tsx:124
 msgid "All"
 msgstr "Tutti"
@@ -884,8 +884,8 @@ msgstr "Tutte le email transazionali (notifiche, reimpostazione password, ecc.) 
 msgid "Allow receiving emails to trigger transactional notifications. Requires TLS certificates."
 msgstr "Consenti la ricezione di email per attivare notifiche transazionali. Richiede certificati TLS."
 
-#: src/components/settings/WebAnalyticsSettings.tsx:166
-#: src/components/settings/WebAnalyticsSettings.tsx:208
+#: src/components/settings/WebAnalyticsSettings.tsx:195
+#: src/components/settings/WebAnalyticsSettings.tsx:237
 msgid "Allowed domains"
 msgstr ""
 
@@ -952,7 +952,7 @@ msgstr "Ancora"
 msgid "Anchor ID"
 msgstr "ID ancora"
 
-#: src/components/segment/form_leaf.tsx:812
+#: src/components/segment/form_leaf.tsx:811
 #: src/components/segment/input.tsx:678
 msgid "and"
 msgstr "e"
@@ -969,7 +969,7 @@ msgstr "QUALSIASI"
 msgid "Any broadcast"
 msgstr ""
 
-#: src/components/segment/form_leaf.tsx:755
+#: src/components/segment/form_leaf.tsx:754
 msgid "Any event"
 msgstr ""
 
@@ -977,7 +977,7 @@ msgstr ""
 msgid "Any field change triggers automation"
 msgstr "Qualsiasi modifica del campo attiva l'automazione"
 
-#: src/components/segment/form_leaf.tsx:744
+#: src/components/segment/form_leaf.tsx:743
 msgid "Any goal name"
 msgstr ""
 
@@ -986,7 +986,7 @@ msgid "Any template"
 msgstr ""
 
 #: src/components/segment/form_leaf.tsx:496
-#: src/components/segment/form_leaf.tsx:853
+#: src/components/segment/form_leaf.tsx:852
 #: src/components/segment/input.tsx:691
 #: src/components/segment/input.tsx:828
 msgid "anytime"
@@ -1069,12 +1069,12 @@ msgid "Are you sure you want to delete"
 msgstr "Sei sicuro di voler eliminare"
 
 #. placeholder {0}: segment.name
-#: src/components/contacts/SegmentsFilter.tsx:147
+#: src/components/contacts/SegmentsFilter.tsx:163
 msgid "Are you sure you want to delete \"{0}\"?"
 msgstr "Sei sicuro di voler eliminare \"{0}\"?"
 
 #. placeholder {0}: broadcastToDelete.name
-#: src/pages/BroadcastsPage.tsx:1673
+#: src/pages/BroadcastsPage.tsx:1671
 msgid "Are you sure you want to delete the broadcast \"{0}\"?"
 msgstr "Sei sicuro di voler eliminare il broadcast \"{0}\"?"
 
@@ -1123,7 +1123,7 @@ msgid "Are you sure you want to publish theme v{0}? This will make it live on yo
 msgstr "Sei sicuro di voler pubblicare il tema v{0}? Questo lo renderà attivo sul tuo blog."
 
 #. placeholder {0}: segment.name
-#: src/components/contacts/SegmentsFilter.tsx:132
+#: src/components/contacts/SegmentsFilter.tsx:148
 msgid "Are you sure you want to rebuild \"{0}\"? This will recalculate segment membership."
 msgstr "Sei sicuro di voler ricostruire \"{0}\"? Questo ricalcolerà l'appartenenza al segmento."
 
@@ -1150,7 +1150,7 @@ msgid "Are you sure you want to remove this variation?"
 msgstr "Sei sicuro di voler rimuovere questa variante?"
 
 #. placeholder {0}: record.templateName
-#: src/pages/BroadcastsPage.tsx:938
+#: src/pages/BroadcastsPage.tsx:936
 msgid "Are you sure you want to select \"{0}\" as the winner? The broadcast will be sent to the remaining recipients."
 msgstr "Sei sicuro di voler selezionare \"{0}\" come vincitore? Il broadcast sarà inviato ai destinatari rimanenti."
 
@@ -1220,7 +1220,7 @@ msgstr ""
 #~ msgid "Attribution rules saved. Run a backfill to rewrite historical data."
 #~ msgstr ""
 
-#: src/pages/BroadcastsPage.tsx:985
+#: src/pages/BroadcastsPage.tsx:983
 msgid "Audience"
 msgstr "Pubblico"
 
@@ -1287,7 +1287,7 @@ msgstr ""
 msgid "Auto-reply"
 msgstr ""
 
-#: src/pages/BroadcastsPage.tsx:1127
+#: src/pages/BroadcastsPage.tsx:1125
 msgid "Auto-send Winner"
 msgstr "Invio automatico vincitore"
 
@@ -1479,7 +1479,7 @@ msgstr "BCC"
 msgid "BCC Recipients"
 msgstr "Destinatari BCC"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:209
+#: src/components/settings/WebAnalyticsSettings.tsx:238
 msgid "Beats from other origins are silently ignored. Wildcards like *.example.com are supported; empty allows every domain."
 msgstr ""
 
@@ -1489,7 +1489,7 @@ msgid "before"
 msgstr "prima"
 
 #: src/components/segment/form_leaf.tsx:498
-#: src/components/segment/form_leaf.tsx:855
+#: src/components/segment/form_leaf.tsx:854
 msgid "before date"
 msgstr "prima della data"
 
@@ -1686,11 +1686,11 @@ msgstr ""
 msgid "Bounce Rate (previous)"
 msgstr ""
 
-#: src/components/settings/WebAnalyticsSettings.tsx:170
+#: src/components/settings/WebAnalyticsSettings.tsx:199
 msgid "Bounce threshold"
 msgstr ""
 
-#: src/components/settings/WebAnalyticsSettings.tsx:224
+#: src/components/settings/WebAnalyticsSettings.tsx:253
 msgid "Bounce threshold (seconds)"
 msgstr ""
 
@@ -1772,27 +1772,27 @@ msgid "Broadcast"
 msgstr "Broadcast"
 
 #. placeholder {0}: broadcast.name
-#: src/pages/BroadcastsPage.tsx:1420
+#: src/pages/BroadcastsPage.tsx:1418
 msgid "Broadcast \"{0}\" cancelled successfully"
 msgstr "Broadcast \"{0}\" annullato con successo"
 
 #. placeholder {0}: broadcastToDelete.name
-#: src/pages/BroadcastsPage.tsx:1362
+#: src/pages/BroadcastsPage.tsx:1360
 msgid "Broadcast \"{0}\" deleted successfully"
 msgstr "Broadcast \"{0}\" eliminato con successo"
 
 #. placeholder {0}: broadcast.name
-#: src/pages/BroadcastsPage.tsx:1388
+#: src/pages/BroadcastsPage.tsx:1386
 msgid "Broadcast \"{0}\" paused successfully"
 msgstr "Broadcast \"{0}\" messo in pausa con successo"
 
 #. placeholder {0}: broadcast.name
-#: src/pages/BroadcastsPage.tsx:1458
+#: src/pages/BroadcastsPage.tsx:1456
 msgid "Broadcast \"{0}\" refreshed"
 msgstr "Broadcast \"{0}\" aggiornato"
 
 #. placeholder {0}: broadcast.name
-#: src/pages/BroadcastsPage.tsx:1404
+#: src/pages/BroadcastsPage.tsx:1402
 msgid "Broadcast \"{0}\" resumed successfully"
 msgstr "Broadcast \"{0}\" ripreso con successo"
 
@@ -1815,7 +1815,7 @@ msgstr "Broadcast creato con successo"
 msgid "Broadcast ID"
 msgstr "ID broadcast"
 
-#: src/pages/BroadcastsPage.tsx:1684
+#: src/pages/BroadcastsPage.tsx:1682
 msgid "Broadcast ID copied to clipboard"
 msgstr "ID broadcast copiato negli appunti"
 
@@ -1829,7 +1829,7 @@ msgstr "Broadcast aggiornato con successo"
 
 #: src/components/analytics/EmailMetricsChart.tsx:285
 #: src/layouts/WorkspaceLayout.tsx:400
-#: src/pages/BroadcastsPage.tsx:1473
+#: src/pages/BroadcastsPage.tsx:1471
 msgid "Broadcasts"
 msgstr "Broadcast"
 
@@ -1868,7 +1868,7 @@ msgstr "In costruzione"
 msgid "Building segment"
 msgstr "Costruzione segmento"
 
-#: src/pages/ContactsPage.tsx:1043
+#: src/pages/ContactsPage.tsx:1045
 msgid "Bulk Update"
 msgstr "Aggiornamento di massa"
 
@@ -1897,14 +1897,18 @@ msgstr "Spaziatura pulsante"
 msgid "Button Size"
 msgstr "Dimensione pulsante"
 
-#: src/pages/WebAnalyticsLivePage.tsx:199
+#: src/components/settings/WebAnalyticsSettings.tsx:362
+msgid "Call identify() once you know who the visitor is. The signature must be computed on your server with your workspace secret key — the tracking endpoint is public, so an unsigned address is ignored."
+msgstr ""
+
+#: src/pages/WebAnalyticsLivePage.tsx:201
 msgid "Campaign"
 msgstr ""
 
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:190
 #: src/components/web_analytics/tabs/DashboardTab.tsx:186
-#: src/pages/WebAnalyticsLivePage.tsx:191
-#: src/pages/WebAnalyticsLivePage.tsx:198
+#: src/pages/WebAnalyticsLivePage.tsx:193
+#: src/pages/WebAnalyticsLivePage.tsx:200
 msgid "Campaigns"
 msgstr ""
 
@@ -1951,8 +1955,8 @@ msgstr ""
 #: src/components/file_manager/fileManager.tsx:1020
 #: src/components/file_manager/fileManager.tsx:1130
 #: src/components/segment/button_upsert.tsx:417
-#: src/components/segment/input_dimension_filters.tsx:162
-#: src/components/segment/input_event_property_filters.tsx:125
+#: src/components/segment/input_dimension_filters.tsx:167
+#: src/components/segment/input_event_property_filters.tsx:130
 #: src/components/segment/input.tsx:407
 #: src/components/settings/BlogSettings.tsx:185
 #: src/components/settings/CustomFieldsConfiguration.tsx:291
@@ -1970,7 +1974,7 @@ msgstr ""
 #: src/components/settings/WorkspaceMembers.tsx:597
 #: src/components/templates/CreateTemplateDrawer.tsx:619
 #: src/components/templates/SendTemplateModal.tsx:268
-#: src/components/templates/TemplateTranslationsTab.tsx:254
+#: src/components/templates/TemplateTranslationsTab.tsx:255
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:179
 #: src/components/web_analytics/explore/BreakdownModal.tsx:108
 #: src/components/web_analytics/explore/CsvExportModal.tsx:134
@@ -1983,8 +1987,8 @@ msgstr ""
 #: src/components/web_analytics/toolbar.tsx:119
 #: src/pages/BroadcastsPage.tsx:563
 #: src/pages/BroadcastsPage.tsx:585
-#: src/pages/BroadcastsPage.tsx:941
-#: src/pages/BroadcastsPage.tsx:1657
+#: src/pages/BroadcastsPage.tsx:939
+#: src/pages/BroadcastsPage.tsx:1655
 #: src/pages/ListsPage.tsx:318
 #: src/pages/TemplatesPage.tsx:366
 #: src/pages/TransactionalNotificationsPage.tsx:147
@@ -2012,7 +2016,7 @@ msgid "Cancel Upload?"
 msgstr "Annullare il caricamento?"
 
 #: src/pages/BroadcastsPage.tsx:392
-#: src/pages/BroadcastsPage.tsx:1075
+#: src/pages/BroadcastsPage.tsx:1073
 msgid "Cancelled"
 msgstr "Annullato"
 
@@ -2119,7 +2123,7 @@ msgstr "Canale"
 
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:179
 #: src/components/web_analytics/tabs/DashboardTab.tsx:172
-#: src/pages/WebAnalyticsLivePage.tsx:216
+#: src/pages/WebAnalyticsLivePage.tsx:218
 msgid "Channel group"
 msgstr ""
 
@@ -2131,8 +2135,8 @@ msgstr ""
 #: src/components/web_analytics/explore/ExploreTemplates.tsx:55
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:172
 #: src/components/web_analytics/tabs/DashboardTab.tsx:165
-#: src/pages/WebAnalyticsLivePage.tsx:208
-#: src/pages/WebAnalyticsLivePage.tsx:215
+#: src/pages/WebAnalyticsLivePage.tsx:210
+#: src/pages/WebAnalyticsLivePage.tsx:217
 msgid "Channels"
 msgstr ""
 
@@ -2158,12 +2162,16 @@ msgstr "Scegli un punto di partenza per il tuo nuovo tema. Potrai personalizzare
 msgid "Choose when to publish \"{0}\""
 msgstr "Scegli quando pubblicare \"{0}\""
 
-#: src/pages/WebAnalyticsLivePage.tsx:161
+#: src/pages/WebAnalyticsLivePage.tsx:163
 msgid "Cities"
 msgstr ""
 
-#: src/pages/WebAnalyticsLivePage.tsx:161
+#: src/pages/WebAnalyticsLivePage.tsx:163
 msgid "City"
+msgstr ""
+
+#: src/components/settings/WebAnalyticsSettings.tsx:310
+msgid "City level (~1km precision)"
 msgstr ""
 
 #: src/components/contacts/BulkActionsBar.tsx:183
@@ -2186,7 +2194,7 @@ msgstr "Cancella tutto"
 msgid "Clear field"
 msgstr "Cancella campo"
 
-#: src/pages/BroadcastsPage.tsx:1603
+#: src/pages/BroadcastsPage.tsx:1601
 msgid "Clear filters"
 msgstr ""
 
@@ -2255,7 +2263,7 @@ msgstr "Cliccato"
 msgid "clicked link contains"
 msgstr ""
 
-#: src/pages/BroadcastsPage.tsx:1136
+#: src/pages/BroadcastsPage.tsx:1134
 msgid "clicks"
 msgstr "click"
 
@@ -2381,7 +2389,7 @@ msgstr "Porte comuni: 587 (TLS), 465 (SSL), 25 (non criptato)"
 msgid "Compare TimeScore across campaign sources"
 msgstr ""
 
-#: src/components/segment/form_leaf.tsx:788
+#: src/components/segment/form_leaf.tsx:787
 msgid "Comparison"
 msgstr "Confronto"
 
@@ -2449,7 +2457,7 @@ msgstr "completato"
 #: src/components/automations/nodes/StatNode.tsx:173
 #: src/components/automations/nodes/StatNode.tsx:255
 #: src/pages/BroadcastsPage.tsx:388
-#: src/pages/BroadcastsPage.tsx:1056
+#: src/pages/BroadcastsPage.tsx:1054
 msgid "Completed"
 msgstr "Completato"
 
@@ -2513,7 +2521,7 @@ msgstr "Configura insieme nome font e URL del file CSS"
 msgid "Configure how your blog's RSS and JSON feeds are generated."
 msgstr ""
 
-#: src/components/ai-assistant/AIAssistantChat.tsx:117
+#: src/components/ai-assistant/AIAssistantChat.tsx:132
 msgid "Configure Integration"
 msgstr "Configura integrazione"
 
@@ -2526,7 +2534,7 @@ msgid "Configure outgoing webhooks to receive real-time notifications when event
 msgstr "Configura webhook in uscita per ricevere notifiche in tempo reale quando si verificano eventi nel tuo workspace."
 
 #: src/components/broadcasts/SendOrScheduleModal.tsx:187
-#: src/pages/BroadcastsPage.tsx:1542
+#: src/pages/BroadcastsPage.tsx:1540
 msgid "Configure Provider"
 msgstr "Configura provider"
 
@@ -2552,10 +2560,10 @@ msgstr "Configurazione {0}"
 #: src/components/segment/button_upsert.tsx:426
 #: src/components/segment/form_leaf.tsx:163
 #: src/components/segment/form_leaf.tsx:287
-#: src/components/segment/form_leaf.tsx:641
-#: src/components/segment/form_leaf.tsx:974
-#: src/components/segment/input_dimension_filters.tsx:160
-#: src/components/segment/input_event_property_filters.tsx:124
+#: src/components/segment/form_leaf.tsx:640
+#: src/components/segment/form_leaf.tsx:973
+#: src/components/segment/input_dimension_filters.tsx:165
+#: src/components/segment/input_event_property_filters.tsx:129
 msgid "Confirm"
 msgstr "Conferma"
 
@@ -2641,12 +2649,16 @@ msgstr "Proprietà contatto"
 msgid "Contact re-enters each time the event occurs"
 msgstr "Il contatto rientra ogni volta che l'evento si verifica"
 
+#: src/components/settings/WebAnalyticsSettings.tsx:264
+msgid "Contact timeline"
+msgstr ""
+
 #: src/components/contacts/ContactUpsertDrawer.tsx:330
 msgid "Contact updated successfully"
 msgstr "Contatto aggiornato con successo"
 
 #: src/layouts/WorkspaceLayout.tsx:381
-#: src/pages/ContactsPage.tsx:998
+#: src/pages/ContactsPage.tsx:1000
 msgid "Contacts"
 msgstr "Contatti"
 
@@ -2719,14 +2731,24 @@ msgstr ""
 #~ msgid "Converting Sessions"
 #~ msgstr ""
 
-#: src/components/settings/WebAnalyticsSettings.tsx:262
-msgid "Coordinate precision"
-msgstr ""
+#: src/components/settings/WebAnalyticsSettings.tsx:288
+#~ msgid "Coordinate precision"
+#~ msgstr ""
 
 #: src/components/web_analytics/tabs/SettingsTab.tsx:143
 #~ msgid "Coordinate precision (decimals)"
 #~ msgstr ""
 
+#: src/components/settings/WebAnalyticsSettings.tsx:301
+#: src/components/settings/WebAnalyticsSettings.tsx:305
+msgid "Coordinates precision"
+msgstr ""
+
+#: src/components/common/CodeSnippet.tsx:45
+msgid "Copied"
+msgstr ""
+
+#: src/components/common/CodeSnippet.tsx:45
 #: src/components/settings/Integrations.tsx:1371
 #: src/components/settings/Integrations.tsx:1408
 #: src/components/settings/WebhookCard.tsx:287
@@ -2738,7 +2760,11 @@ msgstr "Copia"
 msgid "Copy {0} Code"
 msgstr "Copia codice {0}"
 
-#: src/pages/BroadcastsPage.tsx:1677
+#: src/components/settings/WebAnalyticsSettings.tsx:100
+#~ msgid "Copy code"
+#~ msgstr ""
+
+#: src/pages/BroadcastsPage.tsx:1675
 msgid "Copy to clipboard"
 msgstr "Copia negli appunti"
 
@@ -2756,7 +2782,7 @@ msgstr "Copia endpoint webhook"
 msgid "Core Fields"
 msgstr "Campi principali"
 
-#: src/components/ai-assistant/AIAssistantChat.tsx:330
+#: src/components/ai-assistant/AIAssistantChat.tsx:341
 msgid "Cost"
 msgstr "Costo"
 
@@ -2781,7 +2807,7 @@ msgstr ""
 msgid "Could not load this goal"
 msgstr ""
 
-#: src/components/web_analytics/tabs/ExploreTab.tsx:351
+#: src/components/web_analytics/tabs/ExploreTab.tsx:353
 msgid "Could not load this report"
 msgstr ""
 
@@ -2811,6 +2837,10 @@ msgstr ""
 #: src/pages/ContactsPage.tsx:700
 msgid "Country"
 msgstr "Paese"
+
+#: src/components/settings/WebAnalyticsSettings.tsx:308
+msgid "Country level (~111km precision)"
+msgstr ""
 
 #: src/components/broadcasts/BroadcastLinkStats.tsx:95
 msgid "Counts may include automated security-scanner and Apple Mail prefetch clicks; Unique clicks is the most reliable human signal."
@@ -2866,8 +2896,8 @@ msgid "Create Automation"
 msgstr "Crea automation"
 
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:383
-#: src/pages/BroadcastsPage.tsx:1488
-#: src/pages/BroadcastsPage.tsx:1626
+#: src/pages/BroadcastsPage.tsx:1486
+#: src/pages/BroadcastsPage.tsx:1624
 msgid "Create Broadcast"
 msgstr "Crea broadcast"
 
@@ -2962,7 +2992,7 @@ msgstr "Crea la tua prima automation"
 msgid "Create your first blog post to get started"
 msgstr "Crea il tuo primo post del blog per iniziare"
 
-#: src/pages/BroadcastsPage.tsx:1611
+#: src/pages/BroadcastsPage.tsx:1609
 msgid "Create your first broadcast to get started"
 msgstr "Crea il tuo primo broadcast per iniziare"
 
@@ -3098,7 +3128,7 @@ msgstr "Campi data personalizzati"
 msgid "Custom Datetime Fields"
 msgstr "Campi datetime personalizzati"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:273
+#: src/components/settings/WebAnalyticsSettings.tsx:327
 msgid "Custom dimension labels"
 msgstr ""
 
@@ -3273,7 +3303,7 @@ msgstr "Zona di pericolo"
 #: src/layouts/WorkspaceLayout.tsx:293
 #: src/layouts/WorkspaceLayout.tsx:311
 #: src/pages/AnalyticsPage.tsx:77
-#: src/pages/WebAnalyticsLivePage.tsx:125
+#: src/pages/WebAnalyticsLivePage.tsx:126
 msgid "Dashboard"
 msgstr "Dashboard"
 
@@ -3284,12 +3314,12 @@ msgstr "Tratteggiato"
 
 #: src/components/blog/PublishModal.tsx:131
 #: src/components/broadcasts/SendOrScheduleModal.tsx:207
-#: src/components/segment/input_event_property_filters.tsx:177
+#: src/components/segment/input_event_property_filters.tsx:182
 msgid "Date"
 msgstr "Data"
 
 #: src/components/segment/form_leaf.tsx:536
-#: src/components/segment/form_leaf.tsx:891
+#: src/components/segment/form_leaf.tsx:890
 #: src/components/segment/input.tsx:700
 #: src/components/segment/input.tsx:837
 msgid "days"
@@ -3381,7 +3411,7 @@ msgstr "Ritardo"
 #: src/components/contacts/BulkActionsBar.tsx:177
 #: src/components/contacts/BulkActionsBar.tsx:219
 #: src/components/contacts/DeleteContactModal.tsx:40
-#: src/components/contacts/SegmentsFilter.tsx:143
+#: src/components/contacts/SegmentsFilter.tsx:159
 #: src/components/file_manager/fileManager.tsx:773
 #: src/components/file_manager/fileManager.tsx:778
 #: src/components/file_manager/fileManager.tsx:951
@@ -3396,8 +3426,8 @@ msgstr "Ritardo"
 #: src/components/web_analytics/filters/FilterTable.tsx:136
 #: src/components/web_analytics/filters/FilterTable.tsx:291
 #: src/components/web_analytics/filters/OperationsBuilder.tsx:104
-#: src/pages/BroadcastsPage.tsx:1667
-#: src/pages/ContactsPage.tsx:944
+#: src/pages/BroadcastsPage.tsx:1665
+#: src/pages/ContactsPage.tsx:946
 #: src/pages/ListsPage.tsx:328
 msgid "Delete"
 msgstr "Elimina"
@@ -3428,7 +3458,7 @@ msgid "Delete Block"
 msgstr "Elimina blocco"
 
 #: src/pages/BroadcastsPage.tsx:625
-#: src/pages/BroadcastsPage.tsx:1652
+#: src/pages/BroadcastsPage.tsx:1650
 msgid "Delete Broadcast"
 msgstr "Elimina broadcast"
 
@@ -3486,7 +3516,7 @@ msgstr "Elimina nodo"
 msgid "Delete Post"
 msgstr "Elimina post"
 
-#: src/components/contacts/SegmentsFilter.tsx:146
+#: src/components/contacts/SegmentsFilter.tsx:162
 msgid "Delete segment"
 msgstr "Elimina segment"
 
@@ -3605,7 +3635,7 @@ msgstr "Rileva da URL sito web"
 #: src/components/web_analytics/FilterBuilder.tsx:59
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:240
 #: src/components/web_analytics/tabs/DashboardTab.tsx:228
-#: src/pages/WebAnalyticsLivePage.tsx:187
+#: src/pages/WebAnalyticsLivePage.tsx:189
 msgid "Device"
 msgstr ""
 
@@ -3613,8 +3643,8 @@ msgstr ""
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:239
 #: src/components/web_analytics/tabs/DashboardTab.tsx:224
 #: src/components/web_analytics/tabs/DashboardTab.tsx:228
-#: src/pages/WebAnalyticsLivePage.tsx:182
-#: src/pages/WebAnalyticsLivePage.tsx:187
+#: src/pages/WebAnalyticsLivePage.tsx:184
+#: src/pages/WebAnalyticsLivePage.tsx:189
 msgid "Devices"
 msgstr ""
 
@@ -3659,7 +3689,7 @@ msgstr "Disabilita webhook"
 #: src/components/settings/BlogSettings.tsx:214
 #: src/components/settings/GeneralSettings.tsx:143
 #: src/components/settings/Integrations.tsx:1449
-#: src/components/settings/WebAnalyticsSettings.tsx:161
+#: src/components/settings/WebAnalyticsSettings.tsx:190
 #: src/components/templates/TemplateTranslationsTab.tsx:204
 msgid "Disabled"
 msgstr "Disabilitato"
@@ -3750,7 +3780,7 @@ msgstr "Non indicizzare e non seguire i link"
 msgid "Don't index, but follow links"
 msgstr "Non indicizzare, ma segui i link"
 
-#: src/components/templates/TemplateTranslationsTab.tsx:297
+#: src/components/templates/TemplateTranslationsTab.tsx:298
 msgid "Done"
 msgstr ""
 
@@ -3787,7 +3817,7 @@ msgstr "Scaricati {0} file"
 
 #: src/components/automations/AutomationCard.tsx:63
 #: src/components/blog/PostStatusTag.tsx:33
-#: src/pages/BroadcastsPage.tsx:1506
+#: src/pages/BroadcastsPage.tsx:1504
 msgid "Draft"
 msgstr "Bozza"
 
@@ -3840,7 +3870,7 @@ msgstr "es. password_reset"
 msgid "e.g. Set channel for Google Ads"
 msgstr ""
 
-#: src/components/segment/input_event_property_filters.tsx:162
+#: src/components/segment/input_event_property_filters.tsx:167
 msgid "e.g. sku"
 msgstr ""
 
@@ -3909,13 +3939,13 @@ msgstr "modifica"
 #: src/components/settings/Integrations.tsx:1541
 #: src/components/settings/WebhookCard.tsx:245
 #: src/components/web_analytics/filters/FilterTable.tsx:140
-#: src/pages/ContactsPage.tsx:938
+#: src/pages/ContactsPage.tsx:940
 #: src/pages/TransactionalNotificationsPage.tsx:155
 msgid "Edit"
 msgstr "Modifica"
 
 #. placeholder {0}: SUPPORTED_LANGUAGES[editorDrawerLang] || editorDrawerLang
-#: src/components/templates/TemplateTranslationsTab.tsx:288
+#: src/components/templates/TemplateTranslationsTab.tsx:289
 msgid "Edit {0} translation"
 msgstr ""
 
@@ -4167,7 +4197,7 @@ msgstr "Anteprima email"
 msgid "Email Provider Configuration Needed"
 msgstr "Configurazione provider email necessaria"
 
-#: src/pages/BroadcastsPage.tsx:1531
+#: src/pages/BroadcastsPage.tsx:1529
 msgid "Email Provider Required"
 msgstr "Provider email richiesto"
 
@@ -4177,7 +4207,7 @@ msgid "Email subject"
 msgstr "Subject email"
 
 #: src/components/templates/CreateTemplateDrawer.tsx:967
-#: src/components/templates/TemplateTranslationsTab.tsx:272
+#: src/components/templates/TemplateTranslationsTab.tsx:273
 msgid "Email Subject"
 msgstr "Subject email"
 
@@ -4213,7 +4243,7 @@ msgstr "email al giorno"
 msgid "emails per hour"
 msgstr "email all'ora"
 
-#: src/components/blog_editor/menus/suggestion/EmojiMenu.tsx:289
+#: src/components/blog_editor/menus/suggestion/EmojiMenu.tsx:313
 msgid "Emoji Suggestions"
 msgstr "Suggerimenti emoji"
 
@@ -4237,6 +4267,10 @@ msgstr "Abilita blog"
 #: src/components/blog_editor/components/youtube/YoutubeNodeView.tsx:404
 msgid "Enable closed captions by default"
 msgstr "Abilita sottotitoli per impostazione predefinita"
+
+#: src/components/settings/WebAnalyticsSettings.tsx:282
+msgid "Enable geo-location tracking"
+msgstr ""
 
 #: src/pages/SetupWizard.tsx:687
 msgid "Enable Single Sign-On (OpenID Connect)"
@@ -4267,7 +4301,7 @@ msgstr ""
 msgid "Enable to fetch personalized data for each recipient before sending their email. The data will be accessible in your templates using the \"recipient_feed\" variable."
 msgstr ""
 
-#: src/components/settings/WebAnalyticsSettings.tsx:199
+#: src/components/settings/WebAnalyticsSettings.tsx:228
 msgid "Enable web analytics"
 msgstr ""
 
@@ -4280,7 +4314,7 @@ msgstr "Abilita webhook"
 #: src/components/settings/Integrations.tsx:1445
 #: src/components/settings/SystemSettingsDrawer.tsx:459
 #: src/components/settings/SystemSettingsDrawer.tsx:543
-#: src/components/settings/WebAnalyticsSettings.tsx:156
+#: src/components/settings/WebAnalyticsSettings.tsx:185
 #: src/components/templates/TemplateTranslationsTab.tsx:203
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:146
 msgid "Enabled"
@@ -4355,7 +4389,7 @@ msgstr "Inserisci URL immagine di sfondo"
 msgid "Enter BCC email addresses"
 msgstr "Inserisci indirizzi email BCC"
 
-#: src/pages/BroadcastsPage.tsx:1690
+#: src/pages/BroadcastsPage.tsx:1688
 msgid "Enter broadcast ID to confirm"
 msgstr "Inserisci ID broadcast per confermare"
 
@@ -4565,7 +4599,7 @@ msgstr ""
 msgid "Event"
 msgstr "Evento"
 
-#: src/components/segment/form_leaf.tsx:751
+#: src/components/segment/form_leaf.tsx:750
 msgid "event name"
 msgstr ""
 
@@ -4594,7 +4628,7 @@ msgstr "Eventi"
 msgid "Every \"set\" operation needs a value"
 msgstr ""
 
-#: src/components/settings/WebAnalyticsSettings.tsx:167
+#: src/components/settings/WebAnalyticsSettings.tsx:196
 msgid "Every domain"
 msgstr ""
 
@@ -4622,7 +4656,7 @@ msgstr "Estratto"
 msgid "Excerpt only"
 msgstr ""
 
-#: src/pages/BroadcastsPage.tsx:1017
+#: src/pages/BroadcastsPage.tsx:1015
 msgid "Exclude Unsubscribed"
 msgstr "Escludi Disiscritti"
 
@@ -4660,14 +4694,14 @@ msgid "Expires:"
 msgstr "Scade:"
 
 #: src/layouts/WorkspaceLayout.tsx:330
-#: src/pages/WebAnalyticsPage.tsx:74
+#: src/pages/WebAnalyticsPage.tsx:75
 msgid "Explore"
 msgstr ""
 
 #: src/components/contacts/ExportContactsModal.tsx:323
 #: src/components/email_builder/MjmlCodeEditor.tsx:627
 #: src/components/templates/ImportExportButton.tsx:416
-#: src/pages/ContactsPage.tsx:1021
+#: src/pages/ContactsPage.tsx:1023
 msgid "Export"
 msgstr "Esporta"
 
@@ -4684,7 +4718,7 @@ msgid "Export MJML"
 msgstr ""
 
 #: src/components/web_analytics/explore/CsvExportModal.tsx:128
-#: src/pages/WebAnalyticsPage.tsx:97
+#: src/pages/WebAnalyticsPage.tsx:98
 msgid "Export to CSV"
 msgstr ""
 
@@ -4730,7 +4764,7 @@ msgstr "fallito"
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:242
 #: src/pages/BroadcastsPage.tsx:390
 #: src/pages/BroadcastsPage.tsx:457
-#: src/pages/BroadcastsPage.tsx:1510
+#: src/pages/BroadcastsPage.tsx:1508
 #: src/pages/TransactionalNotificationsPage.tsx:232
 msgid "Failed"
 msgstr "Fallito"
@@ -4747,7 +4781,7 @@ msgstr "Impossibile attivare l'automation"
 msgid "Failed to add to list: {error}"
 msgstr "Impossibile aggiungere alla lista: {error}"
 
-#: src/pages/BroadcastsPage.tsx:1425
+#: src/pages/BroadcastsPage.tsx:1423
 msgid "Failed to cancel broadcast"
 msgstr "Impossibile annullare il broadcast"
 
@@ -4763,6 +4797,7 @@ msgstr "Impossibile compilare l'anteprima del template."
 msgid "Failed to complete setup"
 msgstr "Impossibile completare la configurazione"
 
+#: src/components/common/CodeSnippet.tsx:33
 #: src/components/transactional/ApiCommandModal.tsx:821
 msgid "Failed to copy to clipboard"
 msgstr "Impossibile copiare negli appunti"
@@ -4822,7 +4857,7 @@ msgstr "Impossibile creare lo spazio di lavoro"
 msgid "Failed to delete automation"
 msgstr "Impossibile eliminare l'automation"
 
-#: src/pages/BroadcastsPage.tsx:1375
+#: src/pages/BroadcastsPage.tsx:1373
 msgid "Failed to delete broadcast"
 msgstr "Impossibile eliminare il broadcast"
 
@@ -4859,7 +4894,7 @@ msgstr "Impossibile eliminare la notifica"
 msgid "Failed to delete post"
 msgstr "Impossibile eliminare il post"
 
-#: src/components/contacts/SegmentsFilter.tsx:206
+#: src/components/contacts/SegmentsFilter.tsx:208
 msgid "Failed to delete segment"
 msgstr "Impossibile eliminare il segmento"
 
@@ -4965,7 +5000,7 @@ msgstr "Impossibile caricare le sottoscrizioni webhook"
 msgid "Failed to pause automation"
 msgstr "Impossibile mettere in pausa l'automation"
 
-#: src/pages/BroadcastsPage.tsx:1393
+#: src/pages/BroadcastsPage.tsx:1391
 msgid "Failed to pause broadcast"
 msgstr "Impossibile mettere in pausa il broadcast"
 
@@ -4996,7 +5031,7 @@ msgstr "Impossibile pubblicare il tema"
 msgid "Failed to read the file"
 msgstr "Impossibile leggere il file"
 
-#: src/components/contacts/SegmentsFilter.tsx:222
+#: src/components/contacts/SegmentsFilter.tsx:224
 msgid "Failed to rebuild segment"
 msgstr "Impossibile ricostruire il segmento"
 
@@ -5033,7 +5068,7 @@ msgstr "Impossibile inviare nuovamente l'invito"
 msgid "Failed to resend magic code"
 msgstr "Impossibile inviare nuovamente il codice magico"
 
-#: src/pages/BroadcastsPage.tsx:1409
+#: src/pages/BroadcastsPage.tsx:1407
 msgid "Failed to resume broadcast"
 msgstr "Impossibile riprendere il broadcast"
 
@@ -5198,7 +5233,7 @@ msgstr "Impossibile aggiornare lo stato: {error}"
 msgid "Failed to update template: {0}"
 msgstr "Impossibile aggiornare il template: {0}"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:129
+#: src/components/settings/WebAnalyticsSettings.tsx:155
 msgid "Failed to update web analytics settings"
 msgstr ""
 
@@ -5323,7 +5358,7 @@ msgstr "Filtro"
 #: src/components/filters/FilterInputs.tsx:9
 #: src/components/filters/FilterInputs.tsx:22
 #: src/components/filters/FilterInputs.tsx:34
-#: src/components/filters/FilterInputs.tsx:52
+#: src/components/filters/FilterInputs.tsx:54
 msgid "Filter by {0}"
 msgstr "Filtra per {0}"
 
@@ -5336,18 +5371,18 @@ msgstr "Filtra per: {0}"
 msgid "Filter Conditions"
 msgstr "Condizioni di Filtro"
 
-#: src/components/segment/input_event_property_filters.tsx:123
+#: src/components/segment/input_event_property_filters.tsx:128
 msgid "Filter on an event property"
 msgstr ""
 
 #: src/components/messages/MessageHistoryTab.tsx:586
 #: src/layouts/WorkspaceLayout.tsx:352
-#: src/pages/WebAnalyticsPage.tsx:76
+#: src/pages/WebAnalyticsPage.tsx:77
 msgid "Filters"
 msgstr "Filtri"
 
 #: src/components/web_analytics/explore/BreakdownDrawer.tsx:112
-#: src/pages/ContactsPage.tsx:1076
+#: src/pages/ContactsPage.tsx:1078
 msgid "Filters:"
 msgstr "Filtri:"
 
@@ -5595,13 +5630,17 @@ msgstr "SQL Generato:"
 msgid "Geo"
 msgstr ""
 
+#: src/components/settings/WebAnalyticsSettings.tsx:277
+msgid "Geographic data collection"
+msgstr ""
+
 #: src/components/web_analytics/explore/ExploreTemplates.tsx:85
 msgid "Geography"
 msgstr ""
 
-#: src/components/settings/WebAnalyticsSettings.tsx:235
-msgid "Geolocation privacy"
-msgstr ""
+#: src/components/settings/WebAnalyticsSettings.tsx:261
+#~ msgid "Geolocation privacy"
+#~ msgstr ""
 
 #: src/components/settings/Integrations.tsx:2012
 msgid "Gives this integration its own SES reputation profile and its own suppression list, so another workspace's bounces can't pause or suppress this one. AWS bills per tenant per month, based on volume."
@@ -5628,7 +5667,7 @@ msgstr "L'URL del feed globale è richiesto quando abilitato"
 msgid "Go to Sign In"
 msgstr "Vai al Login"
 
-#: src/components/segment/form_leaf.tsx:683
+#: src/components/segment/form_leaf.tsx:682
 #: src/components/segment/input.tsx:634
 #: src/components/web_analytics/explore/BreakdownModal.tsx:71
 #: src/components/web_analytics/explore/DimensionSelector.tsx:105
@@ -5645,12 +5684,12 @@ msgstr ""
 msgid "Goal dashboard"
 msgstr ""
 
-#: src/components/segment/form_leaf.tsx:740
+#: src/components/segment/form_leaf.tsx:739
 #: src/components/segment/input.tsx:648
 msgid "goal name"
 msgstr ""
 
-#: src/components/segment/form_leaf.tsx:718
+#: src/components/segment/form_leaf.tsx:717
 #: src/components/segment/input.tsx:642
 msgid "goal type"
 msgstr ""
@@ -5668,7 +5707,7 @@ msgstr "Obiettivo:"
 #: src/components/web_analytics/tabs/DashboardTab.tsx:242
 #: src/components/web_analytics/tabs/DashboardTab.tsx:252
 #: src/layouts/WorkspaceLayout.tsx:341
-#: src/pages/WebAnalyticsPage.tsx:75
+#: src/pages/WebAnalyticsPage.tsx:76
 msgid "Goals"
 msgstr ""
 
@@ -5713,7 +5752,7 @@ msgstr "Attributi Gruppo"
 msgid "happened"
 msgstr "accaduto"
 
-#: src/components/segment/form_leaf.tsx:712
+#: src/components/segment/form_leaf.tsx:711
 #: src/components/segment/input.tsx:640
 msgid "has"
 msgstr ""
@@ -5722,7 +5761,7 @@ msgstr ""
 msgid "Has Error"
 msgstr "Ha Errori"
 
-#: src/components/segment/form_leaf.tsx:713
+#: src/components/segment/form_leaf.tsx:712
 #: src/components/segment/input.tsx:640
 msgid "has not"
 msgstr ""
@@ -5932,7 +5971,7 @@ msgstr "L'ID può contenere solo lettere minuscole e numeri"
 msgid "ID can only contain lowercase letters, numbers, and underscores"
 msgstr "L'ID può contenere solo lettere minuscole, numeri e underscore"
 
-#: src/pages/BroadcastsPage.tsx:1698
+#: src/pages/BroadcastsPage.tsx:1696
 #: src/pages/ListsPage.tsx:346
 msgid "ID doesn't match"
 msgstr "L'ID non corrisponde"
@@ -5997,6 +6036,10 @@ msgstr "Identifica che tipo di link è stato utilizzato (es. email, cpc, banner)
 msgid "Identifies which site sent the traffic (e.g. google, newsletter)"
 msgstr "Identifica quale sito ha inviato il traffico (es. google, newsletter)"
 
+#: src/components/settings/WebAnalyticsSettings.tsx:360
+msgid "Identify a visitor"
+msgstr ""
+
 #: src/components/email_builder/blocks/MjImageBlock.tsx:91
 msgid "If \"true\", will be full width on mobile even if width is set"
 msgstr "Se \"true\", sarà a larghezza completa su mobile anche se la larghezza è impostata"
@@ -6036,7 +6079,7 @@ msgstr ""
 
 #: src/components/email_builder/MjmlCodeEditor.tsx:615
 #: src/components/templates/ImportExportButton.tsx:387
-#: src/pages/ContactsPage.tsx:1014
+#: src/pages/ContactsPage.tsx:1016
 msgid "Import"
 msgstr "Importa"
 
@@ -6122,21 +6165,21 @@ msgid "in"
 msgstr ""
 
 #. placeholder {0}: broadcast.schedule.timezone
-#: src/pages/BroadcastsPage.tsx:1043
+#: src/pages/BroadcastsPage.tsx:1041
 msgid "in {0}"
 msgstr "in {0}"
 
 #: src/components/segment/form_leaf.tsx:497
-#: src/components/segment/form_leaf.tsx:854
+#: src/components/segment/form_leaf.tsx:853
 msgid "in date range"
 msgstr "in intervallo di date"
 
-#: src/pages/BroadcastsPage.tsx:1042
+#: src/pages/BroadcastsPage.tsx:1040
 msgid "in recipients timezone"
 msgstr "nel fuso orario dei destinatari"
 
 #: src/components/segment/form_leaf.tsx:500
-#: src/components/segment/form_leaf.tsx:857
+#: src/components/segment/form_leaf.tsx:856
 #: src/components/segment/input.tsx:696
 #: src/components/segment/input.tsx:833
 msgid "in the last"
@@ -6198,7 +6241,7 @@ msgstr "Bordo interno"
 msgid "Inner border radius"
 msgstr "Raggio bordo interno"
 
-#: src/components/ai-assistant/AIAssistantChat.tsx:323
+#: src/components/ai-assistant/AIAssistantChat.tsx:334
 msgid "Input"
 msgstr "Input"
 
@@ -6221,8 +6264,12 @@ msgstr "Inserisci Link"
 msgid "Inset"
 msgstr "Rientrante"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:300
+#: src/components/settings/WebAnalyticsSettings.tsx:354
 msgid "Install"
+msgstr ""
+
+#: src/components/web_analytics/InstallOverlay.tsx:59
+msgid "Install the tracking snippet"
 msgstr ""
 
 #: src/components/settings/Integrations.tsx:1064
@@ -6360,8 +6407,12 @@ msgstr "Invito inviato a {inviteEmail}"
 msgid "Invite Member"
 msgstr "Invita Membro"
 
+#: src/components/settings/WebAnalyticsSettings.tsx:322
+msgid "IP addresses are never stored — only used for geo lookup. Country is always included when geo tracking is enabled."
+msgstr ""
+
 #: src/components/file_manager/context.tsx:201
-#: src/components/segment/form_leaf.tsx:781
+#: src/components/segment/form_leaf.tsx:780
 #: src/components/segment/input.tsx:669
 msgid "is"
 msgstr "è"
@@ -6470,7 +6521,7 @@ msgstr "chiave o indice"
 msgid "Keywords"
 msgstr "Parole Chiave"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:285
+#: src/components/settings/WebAnalyticsSettings.tsx:339
 msgid "Label"
 msgstr ""
 
@@ -6480,7 +6531,7 @@ msgstr "L'etichetta deve essere di massimo 100 caratteri"
 
 #: src/components/web_analytics/explore/ExploreTemplates.tsx:61
 #: src/components/web_analytics/tabs/DashboardTab.tsx:141
-#: src/pages/WebAnalyticsLivePage.tsx:149
+#: src/pages/WebAnalyticsLivePage.tsx:151
 msgid "Landing pages"
 msgstr ""
 
@@ -6697,7 +6748,7 @@ msgstr ""
 #: src/components/messages/MessageHistoryTable.tsx:229
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:225
 #: src/components/web_analytics/tabs/DashboardTab.tsx:216
-#: src/pages/BroadcastsPage.tsx:1009
+#: src/pages/BroadcastsPage.tsx:1007
 #: src/pages/ContactsPage.tsx:379
 msgid "List"
 msgstr "Lista"
@@ -6777,7 +6828,7 @@ msgstr "Integrazione LLM salvata con successo"
 #: src/components/messages/MessageHistoryTable.tsx:445
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:554
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:506
-#: src/pages/ContactsPage.tsx:1170
+#: src/pages/ContactsPage.tsx:1169
 msgid "Load More"
 msgstr "Carica Altri"
 
@@ -6834,7 +6885,7 @@ msgstr "Caricamento stato webhook..."
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:440
 #: src/layouts/RootLayout.tsx:90
 #: src/pages/ContactsPage.tsx:531
-#: src/pages/ContactsPage.tsx:1162
+#: src/pages/ContactsPage.tsx:1161
 #: src/pages/ListsPage.tsx:149
 #: src/pages/LogsPage.tsx:18
 #: src/pages/TemplatesPage.tsx:203
@@ -6842,9 +6893,9 @@ msgstr "Caricamento stato webhook..."
 msgid "Loading..."
 msgstr "Caricamento..."
 
-#: src/components/settings/WebAnalyticsSettings.tsx:241
-msgid "Locations are resolved from the IP address on the server; the IP itself is never stored."
-msgstr ""
+#: src/components/settings/WebAnalyticsSettings.tsx:267
+#~ msgid "Locations are resolved from the IP address on the server; the IP itself is never stored."
+#~ msgstr ""
 
 #: src/components/settings/GeneralSettings.tsx:118
 msgid "Logo"
@@ -6874,6 +6925,10 @@ msgstr "Loop"
 
 #: src/components/integrations/LLMIntegration.tsx:231
 msgid "Low"
+msgstr ""
+
+#: src/components/settings/WebAnalyticsSettings.tsx:302
+msgid "Lower precision = more privacy"
 msgstr ""
 
 #: src/components/email_builder/ui/FontStyleInput.tsx:131
@@ -7255,7 +7310,7 @@ msgstr "Altre opzioni"
 msgid "Must be a valid https URL"
 msgstr ""
 
-#: src/components/segment/input_event_property_filters.tsx:171
+#: src/components/segment/input_event_property_filters.tsx:176
 msgid "Must match how the value is stored on the event. Dates are compared as ISO-8601."
 msgstr ""
 
@@ -7318,7 +7373,7 @@ msgstr "Il nome deve essere di meno di 255 caratteri"
 msgid "Name:"
 msgstr "Nome:"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:275
+#: src/components/settings/WebAnalyticsSettings.tsx:329
 msgid "Naming a slot renames it everywhere it appears: dashboards, the explore picker and attribution rules."
 msgstr ""
 
@@ -7334,7 +7389,7 @@ msgstr "Nuova Categoria"
 msgid "New Contacts"
 msgstr "Nuovi Contatti"
 
-#: src/components/ai-assistant/AIAssistantChat.tsx:317
+#: src/components/ai-assistant/AIAssistantChat.tsx:328
 msgid "New conversation"
 msgstr "Nuova conversazione"
 
@@ -7397,8 +7452,8 @@ msgstr "Prossima Esecuzione"
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:250
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:782
 #: src/components/contacts/ContactUpsertDrawer.tsx:540
-#: src/components/contacts/SegmentsFilter.tsx:134
-#: src/components/contacts/SegmentsFilter.tsx:149
+#: src/components/contacts/SegmentsFilter.tsx:150
+#: src/components/contacts/SegmentsFilter.tsx:165
 #: src/components/messages/MessageHistoryTab.tsx:108
 #: src/components/messages/MessageHistoryTab.tsx:121
 #: src/components/messages/MessageHistoryTab.tsx:134
@@ -7450,17 +7505,17 @@ msgstr "Nessuna automation ancora"
 msgid "No backfill has run yet. Run one to apply these rules to historical sessions and goals."
 msgstr ""
 
-#: src/pages/BroadcastsPage.tsx:1609
+#: src/pages/BroadcastsPage.tsx:1607
 msgid "No broadcasts found"
 msgstr "Nessun broadcast trovato"
 
-#: src/pages/BroadcastsPage.tsx:1597
+#: src/pages/BroadcastsPage.tsx:1595
 msgid "No broadcasts match your filters"
 msgstr ""
 
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:187
 #: src/components/web_analytics/tabs/DashboardTab.tsx:183
-#: src/pages/WebAnalyticsLivePage.tsx:194
+#: src/pages/WebAnalyticsLivePage.tsx:196
 msgid "No campaign data"
 msgstr ""
 
@@ -7472,7 +7527,7 @@ msgstr "Nessuna categoria ancora"
 msgid "No category"
 msgstr "Nessuna categoria"
 
-#: src/pages/WebAnalyticsLivePage.tsx:211
+#: src/pages/WebAnalyticsLivePage.tsx:213
 msgid "No channel data"
 msgstr ""
 
@@ -7480,7 +7535,7 @@ msgstr ""
 msgid "No chart data"
 msgstr ""
 
-#: src/pages/WebAnalyticsLivePage.tsx:159
+#: src/pages/WebAnalyticsLivePage.tsx:161
 msgid "No city data"
 msgstr ""
 
@@ -7492,7 +7547,7 @@ msgstr ""
 msgid "No conditions"
 msgstr "Nessuna condizione"
 
-#: src/pages/ContactsPage.tsx:1161
+#: src/pages/ContactsPage.tsx:1160
 msgid "No contacts found. Add some contacts to get started."
 msgstr "Nessun contatto trovato. Aggiungi alcuni contatti per iniziare."
 
@@ -7533,7 +7588,7 @@ msgid "No default sender configured"
 msgstr "Nessun mittente predefinito configurato"
 
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:234
-#: src/pages/WebAnalyticsLivePage.tsx:185
+#: src/pages/WebAnalyticsLivePage.tsx:187
 msgid "No device data"
 msgstr ""
 
@@ -7650,7 +7705,7 @@ msgstr "Nessuna nota"
 msgid "No operations defined"
 msgstr ""
 
-#: src/pages/WebAnalyticsLivePage.tsx:145
+#: src/pages/WebAnalyticsLivePage.tsx:147
 msgid "No pages"
 msgstr ""
 
@@ -7682,7 +7737,7 @@ msgstr "Nessun provider configurato per il test"
 msgid "No published posts"
 msgstr "Nessun post pubblicato"
 
-#: src/pages/WebAnalyticsLivePage.tsx:168
+#: src/pages/WebAnalyticsLivePage.tsx:170
 msgid "No referrers"
 msgstr ""
 
@@ -7755,6 +7810,10 @@ msgstr "Nessun tema ancora"
 #: src/components/timeline/ContactTimeline.tsx:798
 msgid "No timeline events found for this contact"
 msgstr "Nessun evento della cronologia trovato per questo contatto"
+
+#: src/components/web_analytics/InstallOverlay.tsx:61
+msgid "No traffic in the last 24 hours"
+msgstr ""
 
 #: src/pages/TransactionalNotificationsPage.tsx:442
 msgid "No transactional notifications found"
@@ -7858,7 +7917,7 @@ msgstr "Non nella Lista"
 msgid "Not now"
 msgstr ""
 
-#: src/components/settings/WebAnalyticsSettings.tsx:177
+#: src/components/settings/WebAnalyticsSettings.tsx:206
 msgid "Not resolved"
 msgstr ""
 
@@ -7894,6 +7953,10 @@ msgstr "Nota: questo potrebbe essere causato da un file MJML strutturato in modo
 msgid "Notes"
 msgstr "Note"
 
+#: src/components/web_analytics/InstallOverlay.tsx:68
+msgid "Nothing has been recorded over the last 24 hours. Check that this snippet is still installed on your website."
+msgstr ""
+
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:89
 msgid "Notification created successfully"
 msgstr "Notifica creata con successo"
@@ -7915,7 +7978,7 @@ msgid "notifuse-…"
 msgstr ""
 
 #: src/components/templates/CreateTemplateDrawer.tsx:969
-#: src/components/templates/TemplateTranslationsTab.tsx:274
+#: src/components/templates/TemplateTranslationsTab.tsx:275
 msgid "Now"
 msgstr "Ora"
 
@@ -7929,13 +7992,13 @@ msgstr "Ora"
 msgid "Null"
 msgstr "Nullo"
 
-#: src/components/segment/input_event_property_filters.tsx:176
+#: src/components/segment/input_event_property_filters.tsx:181
 msgid "Number"
 msgstr ""
 
-#: src/components/settings/WebAnalyticsSettings.tsx:263
-msgid "Number of decimals kept. Two decimals is roughly one kilometer."
-msgstr ""
+#: src/components/settings/WebAnalyticsSettings.tsx:289
+#~ msgid "Number of decimals kept. Two decimals is roughly one kilometer."
+#~ msgstr ""
 
 #: src/components/settings/BlogSettings.tsx:378
 msgid "Number of posts to display per page on category pages"
@@ -8003,6 +8066,10 @@ msgstr "Una volta per contatto"
 msgid "Only clicks recorded since per-link tracking was enabled appear here; earlier clicks still count toward the variation's Clicks total."
 msgstr ""
 
+#: src/components/settings/WebAnalyticsSettings.tsx:270
+msgid "Only goals from visitors identified with identify() are recorded, and only when the address already belongs to a contact. Recorded goals can trigger automations and change segment membership. Obtaining consent to store web activity against a contact is your responsibility."
+msgstr ""
+
 #: src/components/file_manager/fileManager.tsx:1046
 msgid "Only lowercase alphanumeric characters, underscore, and dash are allowed."
 msgstr "Sono consentiti solo caratteri alfanumerici minuscoli, underscore e trattino."
@@ -8022,7 +8089,7 @@ msgstr "Solo i proprietari dello spazio di lavoro possono modificare le integraz
 msgid "Open email"
 msgstr "Apri email"
 
-#: src/components/templates/TemplateTranslationsTab.tsx:231
+#: src/components/templates/TemplateTranslationsTab.tsx:232
 msgid "Open email editor"
 msgstr ""
 
@@ -8055,7 +8122,11 @@ msgstr "Tasso di Apertura"
 #~ msgstr ""
 
 #: src/pages/WebAnalyticsPage.tsx:171
-msgid "Open the workspace settings to install the tracking snippet"
+#~ msgid "Open the workspace settings to install the tracking snippet"
+#~ msgstr ""
+
+#: src/components/web_analytics/InstallOverlay.tsx:96
+msgid "Open web analytics settings"
 msgstr ""
 
 #: src/components/timeline/ContactTimeline.tsx:504
@@ -8069,7 +8140,7 @@ msgstr "aperto"
 msgid "Opened"
 msgstr "Aperto"
 
-#: src/pages/BroadcastsPage.tsx:1136
+#: src/pages/BroadcastsPage.tsx:1134
 msgid "opens"
 msgstr "aperture"
 
@@ -8158,7 +8229,7 @@ msgstr "Altro"
 msgid "Outgoing Webhooks"
 msgstr "Webhook in Uscita"
 
-#: src/components/ai-assistant/AIAssistantChat.tsx:324
+#: src/components/ai-assistant/AIAssistantChat.tsx:335
 msgid "Output"
 msgstr "Output"
 
@@ -8199,7 +8270,7 @@ msgid "Padding Settings"
 msgstr "Impostazioni Padding"
 
 #: src/components/web_analytics/tabs/DashboardTab.tsx:142
-#: src/pages/WebAnalyticsLivePage.tsx:150
+#: src/pages/WebAnalyticsLivePage.tsx:152
 msgid "Page"
 msgstr ""
 
@@ -8234,7 +8305,7 @@ msgstr ""
 msgid "Password"
 msgstr "Password"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:302
+#: src/components/settings/WebAnalyticsSettings.tsx:356
 msgid "Paste this snippet before the closing </head> tag of your website."
 msgstr ""
 
@@ -8270,7 +8341,7 @@ msgstr "Mettere in pausa il broadcast?"
 
 #: src/components/automations/AutomationCard.tsx:67
 #: src/pages/BroadcastsPage.tsx:394
-#: src/pages/BroadcastsPage.tsx:1062
+#: src/pages/BroadcastsPage.tsx:1060
 msgid "Paused"
 msgstr "In Pausa"
 
@@ -8403,7 +8474,7 @@ msgstr "Controlla il modulo per errori."
 msgid "Please choose a different segment name"
 msgstr ""
 
-#: src/components/settings/WebAnalyticsSettings.tsx:226
+#: src/components/settings/WebAnalyticsSettings.tsx:255
 msgid "Please enter a bounce threshold"
 msgstr ""
 
@@ -8415,9 +8486,9 @@ msgstr "Inserisci un nome per il broadcast"
 msgid "Please enter a category name"
 msgstr "Inserisci un nome categoria"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:264
-msgid "Please enter a coordinate precision"
-msgstr ""
+#: src/components/settings/WebAnalyticsSettings.tsx:290
+#~ msgid "Please enter a coordinate precision"
+#~ msgstr ""
 
 #: src/components/settings/CustomFieldsConfiguration.tsx:282
 msgid "Please enter a custom label"
@@ -8447,7 +8518,7 @@ msgstr "Inserisci un nome notifica"
 msgid "Please enter a post title"
 msgstr "Inserisci un titolo post"
 
-#: src/components/segment/input_event_property_filters.tsx:153
+#: src/components/segment/input_event_property_filters.tsx:158
 msgid "Please enter a property name"
 msgstr ""
 
@@ -8559,11 +8630,11 @@ msgstr "Seleziona un campo personalizzato"
 msgid "Please select a date"
 msgstr "Seleziona una data"
 
-#: src/components/segment/input_dimension_filters.tsx:189
+#: src/components/segment/input_dimension_filters.tsx:194
 msgid "Please select a field"
 msgstr "Seleziona un campo"
 
-#: src/components/segment/form_leaf.tsx:723
+#: src/components/segment/form_leaf.tsx:722
 msgid "Please select a goal type"
 msgstr "Seleziona un tipo di obiettivo"
 
@@ -8614,7 +8685,7 @@ msgstr "Seleziona un orario"
 msgid "Please select a timezone"
 msgstr "Seleziona un fuso orario"
 
-#: src/components/segment/form_leaf.tsx:770
+#: src/components/segment/form_leaf.tsx:769
 msgid "Please select aggregate"
 msgstr "Seleziona un aggregato"
 
@@ -8642,7 +8713,7 @@ msgstr "Seleziona un'operazione"
 msgid "Please select at least one event type"
 msgstr "Seleziona almeno un tipo di evento"
 
-#: src/components/segment/form_leaf.tsx:786
+#: src/components/segment/form_leaf.tsx:785
 msgid "Please select operator"
 msgstr "Seleziona un operatore"
 
@@ -8791,7 +8862,7 @@ msgid "Preview Text Settings"
 msgstr "Impostazioni Testo Anteprima"
 
 #: src/components/templates/CreateTemplateDrawer.tsx:968
-#: src/components/templates/TemplateTranslationsTab.tsx:273
+#: src/components/templates/TemplateTranslationsTab.tsx:274
 msgid "Preview text will appear here..."
 msgstr "Il testo di anteprima apparirà qui..."
 
@@ -8934,7 +9005,7 @@ msgstr ""
 msgid "Progress"
 msgstr "Progresso"
 
-#: src/components/segment/input_event_property_filters.tsx:151
+#: src/components/segment/input_event_property_filters.tsx:156
 msgid "Property name"
 msgstr ""
 
@@ -9056,7 +9127,7 @@ msgstr "Pronto per l'invio"
 msgid "Ready to use"
 msgstr "Pronto all'uso"
 
-#: src/pages/BroadcastsPage.tsx:1067
+#: src/pages/BroadcastsPage.tsx:1065
 msgid "Reason:"
 msgstr "Motivo:"
 
@@ -9064,11 +9135,11 @@ msgstr "Motivo:"
 msgid "Reasoning effort"
 msgstr ""
 
-#: src/components/contacts/SegmentsFilter.tsx:128
+#: src/components/contacts/SegmentsFilter.tsx:144
 msgid "Rebuild"
 msgstr "Ricostruisci"
 
-#: src/components/contacts/SegmentsFilter.tsx:131
+#: src/components/contacts/SegmentsFilter.tsx:147
 msgid "Rebuild segment"
 msgstr "Ricostruisci segmento"
 
@@ -9103,11 +9174,11 @@ msgid "recipient@example.com"
 msgstr "destinatario@esempio.com"
 
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:98
-#: src/pages/BroadcastsPage.tsx:1145
+#: src/pages/BroadcastsPage.tsx:1143
 msgid "Recommended"
 msgstr "Consigliato"
 
-#: src/pages/BroadcastsPage.tsx:1143
+#: src/pages/BroadcastsPage.tsx:1141
 msgid "Recommended Winner"
 msgstr "Vincitore Consigliato"
 
@@ -9120,6 +9191,18 @@ msgstr "Consigliato: 150-160 caratteri"
 #: src/components/seo/SEOSettingsForm.tsx:151
 msgid "Recommended: 50-60 characters"
 msgstr "Consigliato: 50-60 caratteri"
+
+#: src/components/settings/WebAnalyticsSettings.tsx:291
+msgid "Record the city of visitors"
+msgstr ""
+
+#: src/components/settings/WebAnalyticsSettings.tsx:297
+msgid "Record the region or state of visitors"
+msgstr ""
+
+#: src/components/settings/WebAnalyticsSettings.tsx:268
+msgid "Record web goals on the contact timeline"
+msgstr ""
 
 #: src/components/blog_editor/components/EditorHeader.tsx:69
 #: src/components/blog/PostDrawer.tsx:666
@@ -9137,13 +9220,13 @@ msgstr ""
 
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:167
 #: src/components/web_analytics/tabs/DashboardTab.tsx:160
-#: src/pages/WebAnalyticsLivePage.tsx:173
+#: src/pages/WebAnalyticsLivePage.tsx:175
 msgid "Referrer domain"
 msgstr ""
 
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:166
 #: src/components/web_analytics/tabs/DashboardTab.tsx:159
-#: src/pages/WebAnalyticsLivePage.tsx:172
+#: src/pages/WebAnalyticsLivePage.tsx:174
 msgid "Referrers"
 msgstr ""
 
@@ -9180,6 +9263,10 @@ msgstr "Rigenerare il segreto?"
 #: src/components/settings/Integrations.tsx:2283
 msgid "Region"
 msgstr "Regione"
+
+#: src/components/settings/WebAnalyticsSettings.tsx:309
+msgid "Regional (~11km precision)"
+msgstr ""
 
 #: src/components/settings/Integrations.tsx:271
 #: src/components/settings/Integrations.tsx:320
@@ -9368,8 +9455,8 @@ msgstr "Reinvia codice"
 msgid "Resend invitation"
 msgstr "Reinvia invito"
 
-#: src/components/templates/TemplateTranslationsTab.tsx:253
-#: src/components/templates/TemplateTranslationsTab.tsx:256
+#: src/components/templates/TemplateTranslationsTab.tsx:254
+#: src/components/templates/TemplateTranslationsTab.tsx:257
 #: src/pages/DebugSegmentPage.tsx:83
 msgid "Reset"
 msgstr "Reimposta"
@@ -9382,15 +9469,15 @@ msgstr "Reimposta formattazione"
 msgid "reset the filter"
 msgstr "reimposta il filtro"
 
-#: src/components/templates/TemplateTranslationsTab.tsx:240
+#: src/components/templates/TemplateTranslationsTab.tsx:241
 msgid "Reset translation"
 msgstr ""
 
-#: src/components/settings/WebAnalyticsSettings.tsx:239
-msgid "Resolve visitor locations (country)"
-msgstr ""
+#: src/components/settings/WebAnalyticsSettings.tsx:265
+#~ msgid "Resolve visitor locations (country)"
+#~ msgstr ""
 
-#: src/components/settings/WebAnalyticsSettings.tsx:177
+#: src/components/settings/WebAnalyticsSettings.tsx:206
 msgid "Resolved"
 msgstr ""
 
@@ -9596,7 +9683,7 @@ msgstr "Chiave segreta S3"
 msgid "Same Window"
 msgstr "Stessa Finestra"
 
-#: src/pages/BroadcastsPage.tsx:1120
+#: src/pages/BroadcastsPage.tsx:1118
 msgid "Sample Percentage"
 msgstr "Percentuale Campione"
 
@@ -9662,7 +9749,7 @@ msgstr "Salva Blocco"
 #: src/components/email_builder/ui/CodeDrawerInput.tsx:182
 #: src/components/settings/BlogSettings.tsx:444
 #: src/components/settings/GeneralSettings.tsx:299
-#: src/components/settings/WebAnalyticsSettings.tsx:293
+#: src/components/settings/WebAnalyticsSettings.tsx:347
 msgid "Save Changes"
 msgstr "Salva Modifiche"
 
@@ -9713,8 +9800,8 @@ msgid "Schedule for later delivery"
 msgstr "Pianifica per consegna successiva"
 
 #: src/components/blog/PostStatusTag.tsx:20
-#: src/pages/BroadcastsPage.tsx:1036
-#: src/pages/BroadcastsPage.tsx:1507
+#: src/pages/BroadcastsPage.tsx:1034
+#: src/pages/BroadcastsPage.tsx:1505
 msgid "Scheduled"
 msgstr "Pianificato"
 
@@ -9743,7 +9830,7 @@ msgstr "Larghezza schermo sotto la quale viene attivato il layout mobile. Valori
 msgid "Search"
 msgstr ""
 
-#: src/pages/BroadcastsPage.tsx:1515
+#: src/pages/BroadcastsPage.tsx:1513
 #: src/pages/TemplatesPage.tsx:435
 msgid "Search by name"
 msgstr ""
@@ -9774,7 +9861,7 @@ msgstr "Cerca nel web e restituisce URL pertinenti"
 msgid "Searching: \"{0}\""
 msgstr "Ricerca: \"{0}\""
 
-#: src/components/segment/form_leaf.tsx:823
+#: src/components/segment/form_leaf.tsx:822
 msgid "Second value must be greater than first value"
 msgstr "Il secondo valore deve essere maggiore del primo valore"
 
@@ -9815,11 +9902,11 @@ msgstr "Segmento"
 msgid "Segment Conditions"
 msgstr "Condizioni segmento"
 
-#: src/components/contacts/SegmentsFilter.tsx:202
+#: src/components/contacts/SegmentsFilter.tsx:204
 msgid "Segment deleted successfully"
 msgstr "Segmento eliminato con successo"
 
-#: src/components/contacts/SegmentsFilter.tsx:218
+#: src/components/contacts/SegmentsFilter.tsx:220
 msgid "Segment rebuild started successfully"
 msgstr "Ricostruzione segmento avviata con successo"
 
@@ -9831,8 +9918,8 @@ msgstr "Albero segmento registrato nella console!"
 msgid "Segment tree reset"
 msgstr "Albero segmento reimpostato"
 
-#: src/components/contacts/SegmentsFilter.tsx:228
-#: src/pages/BroadcastsPage.tsx:990
+#: src/components/contacts/SegmentsFilter.tsx:230
+#: src/pages/BroadcastsPage.tsx:988
 #: src/pages/ContactsPage.tsx:425
 #: src/pages/ContactsPage.tsx:625
 msgid "Segments"
@@ -9844,7 +9931,7 @@ msgstr "Segmenti"
 #: src/components/settings/BlogSettings.tsx:352
 #: src/components/templates/TemplateSelectorInput.tsx:238
 #: src/components/web_analytics/explore/ExploreTemplates.tsx:153
-#: src/pages/BroadcastsPage.tsx:948
+#: src/pages/BroadcastsPage.tsx:946
 msgid "Select"
 msgstr "Seleziona"
 
@@ -9871,7 +9958,7 @@ msgid "Select a custom date range"
 msgstr ""
 
 #: src/components/contacts/ContactUpsertDrawer.tsx:558
-#: src/components/segment/input_dimension_filters.tsx:196
+#: src/components/segment/input_dimension_filters.tsx:201
 msgid "Select a field"
 msgstr "Seleziona un campo"
 
@@ -10116,7 +10203,7 @@ msgstr "Seleziona fuso orario"
 msgid "Select timezone..."
 msgstr "Seleziona fuso orario..."
 
-#: src/components/segment/form_leaf.tsx:725
+#: src/components/segment/form_leaf.tsx:724
 msgid "Select type"
 msgstr "Seleziona tipo"
 
@@ -10140,7 +10227,7 @@ msgstr "Seleziona da quale lista rimuovere il contatto"
 msgid "Select which segment this trigger applies to"
 msgstr "Seleziona a quale segmento si applica questo trigger"
 
-#: src/pages/BroadcastsPage.tsx:937
+#: src/pages/BroadcastsPage.tsx:935
 msgid "Select Winner"
 msgstr "Seleziona vincitore"
 
@@ -10157,7 +10244,7 @@ msgstr "Seleziona il tuo provider storage per precompilare la configurazione:"
 msgid "Selected dimensions, in order:"
 msgstr ""
 
-#: src/pages/BroadcastsPage.tsx:1154
+#: src/pages/BroadcastsPage.tsx:1152
 msgid "Selected Winner"
 msgstr "Vincitore selezionato"
 
@@ -10232,7 +10319,7 @@ msgid "Sender"
 msgstr "Mittente"
 
 #: src/components/templates/CreateTemplateDrawer.tsx:966
-#: src/components/templates/TemplateTranslationsTab.tsx:271
+#: src/components/templates/TemplateTranslationsTab.tsx:272
 msgid "Sender Name"
 msgstr "Nome mittente"
 
@@ -10241,7 +10328,7 @@ msgstr "Nome mittente"
 msgid "Senders"
 msgstr "Mittenti"
 
-#: src/pages/BroadcastsPage.tsx:1508
+#: src/pages/BroadcastsPage.tsx:1506
 msgid "Sending"
 msgstr ""
 
@@ -10263,7 +10350,7 @@ msgstr "inviato"
 #: src/components/messages/MessageHistoryTab.tsx:101
 #: src/components/messages/MessageHistoryTab.tsx:103
 #: src/components/messages/MessageHistoryTable.tsx:258
-#: src/pages/BroadcastsPage.tsx:1509
+#: src/pages/BroadcastsPage.tsx:1507
 #: src/pages/TransactionalNotificationsPage.tsx:198
 msgid "Sent"
 msgstr "Inviato"
@@ -10337,7 +10424,7 @@ msgstr ""
 #: src/components/web_analytics/tabs/DashboardTab.tsx:28
 #: src/components/web_analytics/tabs/DashboardTab.tsx:92
 #: src/components/web_analytics/TrafficHeatmapWidget.tsx:56
-#: src/pages/WebAnalyticsLivePage.tsx:113
+#: src/pages/WebAnalyticsLivePage.tsx:114
 msgid "Sessions"
 msgstr ""
 
@@ -10353,7 +10440,7 @@ msgstr ""
 msgid "Sessions (previous)"
 msgstr ""
 
-#: src/components/settings/WebAnalyticsSettings.tsx:225
+#: src/components/settings/WebAnalyticsSettings.tsx:254
 msgid "Sessions with less engaged time than this count as bounces."
 msgstr ""
 
@@ -10824,7 +10911,7 @@ msgstr "Inizia a scrivere..."
 msgid "started"
 msgstr "iniziato"
 
-#: src/pages/BroadcastsPage.tsx:1050
+#: src/pages/BroadcastsPage.tsx:1048
 msgid "Started"
 msgstr "Iniziato"
 
@@ -10874,12 +10961,20 @@ msgstr "Impostazioni storage"
 msgid "Storage settings (Read-only mode)"
 msgstr "Impostazioni storage (modalità sola lettura)"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:254
-msgid "Store city"
+#: src/components/settings/WebAnalyticsSettings.tsx:280
+#~ msgid "Store city"
+#~ msgstr ""
+
+#: src/components/settings/WebAnalyticsSettings.tsx:290
+msgid "Store city name"
 msgstr ""
 
-#: src/components/settings/WebAnalyticsSettings.tsx:248
-msgid "Store region"
+#: src/components/settings/WebAnalyticsSettings.tsx:274
+#~ msgid "Store region"
+#~ msgstr ""
+
+#: src/components/settings/WebAnalyticsSettings.tsx:296
+msgid "Store region/state name"
 msgstr ""
 
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:557
@@ -11324,7 +11419,7 @@ msgstr "testo"
 
 #: src/components/email_builder/blocks/MjButtonBlock.tsx:198
 #: src/components/email_builder/blocks/MjTextBlock.tsx:45
-#: src/components/segment/input_event_property_filters.tsx:175
+#: src/components/segment/input_event_property_filters.tsx:180
 msgid "Text"
 msgstr "Testo"
 
@@ -11376,6 +11471,10 @@ msgstr "Trasformazione testo"
 #: src/components/transactional/ApiCommandModal.tsx:558
 msgid "The"
 msgstr "Il"
+
+#: src/components/settings/WebAnalyticsSettings.tsx:366
+msgid "The address must already belong to a contact: identifying someone who is not one records nothing, by design. Visitors arriving from a tracked email link are identified automatically, with no code."
+msgstr ""
 
 #: src/components/settings/SystemSettingsDrawer.tsx:155
 msgid "The API endpoint has changed. After restart, the console will be available at:"
@@ -11554,7 +11653,7 @@ msgstr ""
 msgid "These parameters are automatically added to the URL of the broadcast. They are used by web analytics tools to analyze the performance of your campaign."
 msgstr "Questi parametri vengono aggiunti automaticamente all'URL del broadcast. Sono utilizzati dagli strumenti di web analytics per analizzare le prestazioni della tua campagna."
 
-#: src/components/ai-assistant/AIAssistantChat.tsx:251
+#: src/components/ai-assistant/AIAssistantChat.tsx:265
 msgid "Thinking"
 msgstr ""
 
@@ -11570,7 +11669,7 @@ msgstr ""
 msgid "This action cannot be undone."
 msgstr "Questa azione non può essere annullata."
 
-#: src/pages/BroadcastsPage.tsx:1675
+#: src/pages/BroadcastsPage.tsx:1673
 msgid "This action cannot be undone. To confirm, please enter the broadcast ID:"
 msgstr "Questa azione non può essere annullata. Per confermare, inserisci l'ID del broadcast:"
 
@@ -11652,7 +11751,7 @@ msgstr "Questa notifica è gestita da un'integrazione e il template non può ess
 #~ msgid "This post's template was saved as version {latest} while you were editing. Overwrite it with your changes, or reload the latest version (your changes will be lost)?"
 #~ msgstr ""
 
-#: src/components/segment/input_event_property_filters.tsx:157
+#: src/components/segment/input_event_property_filters.tsx:162
 msgid "This property is already filtered"
 msgstr ""
 
@@ -11717,7 +11816,7 @@ msgstr "Questo rimuoverà permanentemente il contatto e le sue iscrizioni."
 msgid "This will register or update webhook endpoints for this email provider."
 msgstr "Questo registrerà o aggiornerà gli endpoint webhook per questo provider email."
 
-#: src/components/templates/TemplateTranslationsTab.tsx:241
+#: src/components/templates/TemplateTranslationsTab.tsx:242
 msgid "This will replace all content with the default language template. Continue?"
 msgstr ""
 
@@ -11746,7 +11845,7 @@ msgid "Time patterns"
 msgstr ""
 
 #: src/components/segment/form_leaf.tsx:489
-#: src/components/segment/form_leaf.tsx:846
+#: src/components/segment/form_leaf.tsx:845
 #: src/components/segment/input.tsx:688
 #: src/components/segment/input.tsx:825
 msgid "timeframe"
@@ -11884,7 +11983,7 @@ msgstr "per prevenire invii duplicati"
 #~ msgstr ""
 
 #. placeholder {0}: config.title
-#: src/components/ai-assistant/AIAssistantChat.tsx:107
+#: src/components/ai-assistant/AIAssistantChat.tsx:122
 msgid "To use the {0}, you need to configure the Anthropic integration in your workspace settings."
 msgstr "Per usare {0}, devi configurare l'integrazione Anthropic nelle impostazioni del tuo workspace."
 
@@ -11931,7 +12030,7 @@ msgstr ""
 msgid "Top Center"
 msgstr "Alto centro"
 
-#: src/pages/WebAnalyticsLivePage.tsx:156
+#: src/pages/WebAnalyticsLivePage.tsx:158
 msgid "Top Cities"
 msgstr ""
 
@@ -11944,11 +12043,11 @@ msgid "Top Left"
 msgstr "Alto sinistra"
 
 #: src/components/web_analytics/tabs/DashboardTab.tsx:136
-#: src/pages/WebAnalyticsLivePage.tsx:142
+#: src/pages/WebAnalyticsLivePage.tsx:144
 msgid "Top Pages"
 msgstr ""
 
-#: src/pages/WebAnalyticsLivePage.tsx:165
+#: src/pages/WebAnalyticsLivePage.tsx:167
 msgid "Top Referrers"
 msgstr ""
 
@@ -11986,7 +12085,11 @@ msgstr "Contatti totali"
 msgid "Total Value"
 msgstr ""
 
-#: src/components/settings/WebAnalyticsSettings.tsx:188
+#: src/components/settings/WebAnalyticsSettings.tsx:283
+msgid "Track visitor country, region, city, and coordinates"
+msgstr ""
+
+#: src/components/settings/WebAnalyticsSettings.tsx:217
 msgid "Track website traffic with a first-party script. Beats are stored in this workspace's database, so no data leaves your infrastructure."
 msgstr ""
 
@@ -12066,7 +12169,7 @@ msgstr "Evento trigger"
 msgid "Trigger on specific field changes"
 msgstr "Attiva su modifiche di campi specifici"
 
-#: src/pages/BroadcastsPage.tsx:1600
+#: src/pages/BroadcastsPage.tsx:1598
 msgid "Try adjusting your search or status filter"
 msgstr ""
 
@@ -12103,7 +12206,7 @@ msgstr "Tipo"
 #. placeholder {0}: filter.field_type
 #. placeholder {0}: selectedField.type
 #: src/components/segment/input_dimension_filters.tsx:67
-#: src/components/segment/input_dimension_filters.tsx:256
+#: src/components/segment/input_dimension_filters.tsx:261
 msgid "type {0} is not implemented"
 msgstr "il tipo {0} non è implementato"
 
@@ -12168,8 +12271,8 @@ msgstr ""
 #: src/components/contacts/SegmentsFilter.tsx:89
 #: src/components/timeline/ContactTimeline.tsx:761
 #: src/components/web_analytics/LiveSessionMap.tsx:49
-#: src/pages/BroadcastsPage.tsx:1148
-#: src/pages/BroadcastsPage.tsx:1159
+#: src/pages/BroadcastsPage.tsx:1146
+#: src/pages/BroadcastsPage.tsx:1157
 msgid "Unknown"
 msgstr "Sconosciuto"
 
@@ -12185,7 +12288,7 @@ msgstr "Errore sconosciuto"
 
 #: src/components/automations/nodes/AddToListNode.tsx:56
 #: src/components/automations/nodes/RemoveFromListNode.tsx:53
-#: src/pages/BroadcastsPage.tsx:1012
+#: src/pages/BroadcastsPage.tsx:1010
 msgid "Unknown list"
 msgstr "Lista sconosciuta"
 
@@ -12193,7 +12296,7 @@ msgstr "Lista sconosciuta"
 msgid "Unknown List"
 msgstr "Lista sconosciuta"
 
-#: src/pages/BroadcastsPage.tsx:1000
+#: src/pages/BroadcastsPage.tsx:998
 msgid "Unknown segment"
 msgstr "Segmento sconosciuto"
 
@@ -12288,7 +12391,7 @@ msgid "Up to 64 letters, numbers, hyphens or underscores."
 msgstr ""
 
 #: src/components/blog_editor/toolbars/components/LinkPopover.tsx:123
-#: src/components/contacts/SegmentsFilter.tsx:122
+#: src/components/contacts/SegmentsFilter.tsx:138
 #: src/components/email_builder/ui/BlockToolbar.tsx:209
 msgid "Update"
 msgstr "Aggiorna"
@@ -12517,7 +12620,7 @@ msgstr "Utilizzo di {0}..."
 msgid "UTM"
 msgstr ""
 
-#: src/pages/BroadcastsPage.tsx:1097
+#: src/pages/BroadcastsPage.tsx:1095
 msgid "UTM Campaign"
 msgstr "UTM Campaign"
 
@@ -12525,19 +12628,19 @@ msgstr "UTM Campaign"
 msgid "UTM campaigns"
 msgstr ""
 
-#: src/pages/BroadcastsPage.tsx:1109
+#: src/pages/BroadcastsPage.tsx:1107
 msgid "UTM Content"
 msgstr "UTM Content"
 
-#: src/pages/BroadcastsPage.tsx:1091
+#: src/pages/BroadcastsPage.tsx:1089
 msgid "UTM Medium"
 msgstr "UTM Medium"
 
-#: src/pages/BroadcastsPage.tsx:1085
+#: src/pages/BroadcastsPage.tsx:1083
 msgid "UTM Source"
 msgstr "UTM Source"
 
-#: src/pages/BroadcastsPage.tsx:1103
+#: src/pages/BroadcastsPage.tsx:1101
 msgid "UTM Term"
 msgstr "UTM Term"
 
@@ -12546,7 +12649,7 @@ msgid "Validation Error"
 msgstr "Errore di validazione"
 
 #: src/components/broadcasts/HeadersEditor.tsx:40
-#: src/components/segment/form_leaf.tsx:801
+#: src/components/segment/form_leaf.tsx:800
 #: src/components/web_analytics/FilterBuilder.tsx:263
 #: src/components/web_analytics/FilterBuilder.tsx:271
 #: src/components/web_analytics/filters/ConditionsBuilder.tsx:89
@@ -12557,11 +12660,11 @@ msgstr "Errore di validazione"
 msgid "Value"
 msgstr "Valore"
 
-#: src/components/segment/form_leaf.tsx:831
+#: src/components/segment/form_leaf.tsx:830
 msgid "Value 2"
 msgstr "Valore 2"
 
-#: src/components/segment/input_event_property_filters.tsx:167
+#: src/components/segment/input_event_property_filters.tsx:172
 msgid "Value type"
 msgstr ""
 
@@ -12611,6 +12714,10 @@ msgstr "Allineamento verticale"
 msgid "Video starts at this timestamp (MM:SS, HH:MM:SS, or seconds)"
 msgstr "Il video inizia a questo timestamp (MM:SS, HH:MM:SS, o secondi)"
 
+#: src/components/web_analytics/InstallOverlay.tsx:99
+msgid "View anyway"
+msgstr ""
+
 #: src/components/web_analytics/explore/BreakdownModal.tsx:116
 #: src/components/web_analytics/explore/ExploreTable.tsx:178
 msgid "View breakdown"
@@ -12653,7 +12760,7 @@ msgstr ""
 msgid "Visibility"
 msgstr "Visibilità"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:176
+#: src/components/settings/WebAnalyticsSettings.tsx:205
 msgid "Visitor locations"
 msgstr ""
 
@@ -12691,17 +12798,29 @@ msgid "We'll automatically detect and use your website's favicon"
 msgstr "Rileveremo e useremo automaticamente la favicon del tuo sito web"
 
 #: src/components/settings/SettingsSidebar.tsx:105
-#: src/components/settings/WebAnalyticsSettings.tsx:142
-#: src/components/settings/WebAnalyticsSettings.tsx:152
-#: src/components/settings/WebAnalyticsSettings.tsx:187
+#: src/components/settings/WebAnalyticsSettings.tsx:171
+#: src/components/settings/WebAnalyticsSettings.tsx:181
+#: src/components/settings/WebAnalyticsSettings.tsx:216
 #: src/layouts/WorkspaceLayout.tsx:302
-#: src/pages/BroadcastsPage.tsx:1082
-#: src/pages/WebAnalyticsPage.tsx:73
+#: src/pages/BroadcastsPage.tsx:1080
+#: src/pages/WebAnalyticsPage.tsx:74
 msgid "Web Analytics"
 msgstr "Web Analytics"
 
-#: src/pages/WebAnalyticsPage.tsx:165
+#: src/components/web_analytics/InstallOverlay.tsx:66
+msgid "Web analytics is enabled on this workspace, but no visit has been recorded yet. Paste this snippet before the closing </head> tag of your website."
+msgstr ""
+
+#: src/components/web_analytics/InstallOverlay.tsx:62
+msgid "Web analytics is not enabled"
+msgstr ""
+
+#: src/components/web_analytics/InstallOverlay.tsx:71
 msgid "Web analytics is not set up on this workspace yet."
+msgstr ""
+
+#: src/components/web_analytics/InstallOverlay.tsx:70
+msgid "Web analytics is turned off for this workspace. Turn it on in the workspace settings to start collecting traffic."
 msgstr ""
 
 #: src/pages/WebAnalyticsSettingsPage.tsx:75
@@ -12712,7 +12831,7 @@ msgstr ""
 #~ msgid "Web analytics settings saved"
 #~ msgstr ""
 
-#: src/components/settings/WebAnalyticsSettings.tsx:126
+#: src/components/settings/WebAnalyticsSettings.tsx:152
 msgid "Web analytics settings updated successfully"
 msgstr ""
 
@@ -12776,7 +12895,7 @@ msgstr "Webhook registrati con successo"
 msgid "Website"
 msgstr "Sito web"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:143
+#: src/components/settings/WebAnalyticsSettings.tsx:172
 msgid "Website traffic tracking settings"
 msgstr ""
 
@@ -12811,7 +12930,7 @@ msgstr "Benvenuto nel mio blog dove condivido approfondimenti su..."
 msgid "What gets exported"
 msgstr ""
 
-#: src/components/settings/WebAnalyticsSettings.tsx:201
+#: src/components/settings/WebAnalyticsSettings.tsx:230
 msgid "When disabled, incoming beats are rejected and the dashboards stop updating."
 msgstr ""
 
@@ -12877,7 +12996,7 @@ msgstr "Verrà rimosso"
 msgid "Will resume from row {0}"
 msgstr "Riprenderà dalla riga {0}"
 
-#: src/pages/BroadcastsPage.tsx:1156
+#: src/pages/BroadcastsPage.tsx:1154
 msgid "Winner"
 msgstr "Vincitore"
 
@@ -12897,7 +13016,7 @@ msgstr "Con errori"
 msgid "with filters"
 msgstr "con filtri"
 
-#: src/components/segment/form_leaf.tsx:960
+#: src/components/segment/form_leaf.tsx:959
 #: src/components/segment/input.tsx:736
 msgid "with properties"
 msgstr ""
@@ -13001,8 +13120,8 @@ msgstr ""
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:249
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:781
 #: src/components/contacts/ContactUpsertDrawer.tsx:539
-#: src/components/contacts/SegmentsFilter.tsx:133
-#: src/components/contacts/SegmentsFilter.tsx:148
+#: src/components/contacts/SegmentsFilter.tsx:149
+#: src/components/contacts/SegmentsFilter.tsx:164
 #: src/components/messages/MessageHistoryTab.tsx:107
 #: src/components/messages/MessageHistoryTab.tsx:120
 #: src/components/messages/MessageHistoryTab.tsx:133
@@ -13060,7 +13179,7 @@ msgstr "Si, metti in pausa"
 msgid "Yes, resume"
 msgstr "Si, riprendi"
 
-#: src/pages/BroadcastsPage.tsx:940
+#: src/pages/BroadcastsPage.tsx:938
 msgid "Yes, Select Winner"
 msgstr "Si, seleziona vincitore"
 
@@ -13073,7 +13192,7 @@ msgid "You can only upload CSV files!"
 msgstr "Puoi caricare solo file CSV!"
 
 #: src/components/broadcasts/SendOrScheduleModal.tsx:177
-#: src/pages/BroadcastsPage.tsx:1532
+#: src/pages/BroadcastsPage.tsx:1530
 msgid "You don't have a marketing email provider configured. Please set up an email provider in your workspace settings to send broadcasts."
 msgstr "Non hai configurato un provider email per il marketing. Configura un provider email nelle impostazioni del workspace per inviare broadcast."
 
@@ -13096,15 +13215,15 @@ msgstr "Non hai i permessi di scrittura per le automazioni"
 #: src/pages/BroadcastsPage.tsx:601
 #: src/pages/BroadcastsPage.tsx:624
 #: src/pages/BroadcastsPage.tsx:640
-#: src/pages/BroadcastsPage.tsx:932
-#: src/pages/BroadcastsPage.tsx:1479
-#: src/pages/BroadcastsPage.tsx:1617
+#: src/pages/BroadcastsPage.tsx:930
+#: src/pages/BroadcastsPage.tsx:1477
+#: src/pages/BroadcastsPage.tsx:1615
 msgid "You don't have write permission for broadcasts"
 msgstr "Non hai i permessi di scrittura per i broadcast"
 
 #: src/components/contacts/BulkActionsBar.tsx:52
-#: src/pages/ContactsPage.tsx:1033
-#: src/pages/ContactsPage.tsx:1052
+#: src/pages/ContactsPage.tsx:1035
+#: src/pages/ContactsPage.tsx:1054
 msgid "You don't have write permission for contacts"
 msgstr "Non hai i permessi di scrittura per i contatti"
 

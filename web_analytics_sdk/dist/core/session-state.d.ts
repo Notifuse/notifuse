@@ -11,6 +11,7 @@
  * - No checkpoint - always send all actions, server uses ReplacingMergeTree
  * - No attributesSent optimization - always include attributes
  */
+import type { WebIdentity } from '../types';
 import type { Action, CurrentPage, SessionPayload, SessionAttributes } from '../types/session-state';
 export interface SessionStateConfig {
     workspace_id: string;
@@ -44,7 +45,7 @@ export declare class SessionState {
     updateScroll(scrollPercent: number): void;
     addGoal(name: string, value?: number, properties?: Record<string, string>): boolean;
     buildPayload(attributes: SessionAttributes, options?: {
-        userId?: string | null;
+        identity?: WebIdentity | null;
         dimensions?: Record<string, string>;
     }): SessionPayload;
     finalizeForUnload(): void;

@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"testing"
 	"time"
 
@@ -3657,4 +3658,278 @@ func TestWebhookNodeExecutor_Execute_EmptyResponse(t *testing.T) {
 	assert.Equal(t, 204, result.Output["status_code"])
 	// Empty response should result in nil map
 	assert.Nil(t, result.Output["response"])
+}
+
+// createTestTemplateWithLink builds a template whose body carries a single
+// anchor to the given destination — the only thing the identity pass has to
+// write onto.
+func createTestTemplateWithLink(href string) *domain.Template {
+	template := createTestTemplate()
+	template.Email.VisualEditorTree = createValidMJMLTree(
+		createTestTextBlock("txt1", fmt.Sprintf(`<a href="%s">Shop</a>`, href)),
+	)
+	return template
+}
+
+// automationIdentifyTokenPattern reads the minted credential back out of the
+// compiled email. The token is hex, so it survives both URL and HTML-attribute
+// encoding of the surrounding query string.
+var automationIdentifyTokenPattern = regexp.MustCompile(`nf_id=([0-9a-fA-F]+)`)
+
+// assertNoIdentityOnLink states a negative together with its control: the link
+// must be there and must carry no identity. Without the control, "no nf_id in
+// this HTML" would hold just as well for HTML that compiled to nothing at all,
+// which is the failure mode that would hide a broken send behind a green test.
+func assertNoIdentityOnLink(t *testing.T, html string, linkHref string) {
+	t.Helper()
+
+	require.Contains(t, html, linkHref, "the compiled body must still carry the link the identity pass declined to write on")
+	assert.NotContains(t, html, "nf_id")
+}
+
+// enqueueAutomationEmail runs one email node against a workspace carrying the
+// given web analytics settings and returns the HTML that was queued for sending.
+// The automation path compiles in-process, so the queued body is where the
+// identity token is observable.
+func enqueueAutomationEmail(t *testing.T, webAnalytics *domain.WebAnalyticsSettings, contactEmail string, linkHref string) string {
+	t.Helper()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockEmailQueueRepo := mocks.NewMockEmailQueueRepository(ctrl)
+	mockTemplateRepo := mocks.NewMockTemplateRepository(ctrl)
+	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	mockListRepo := mocks.NewMockListRepository(ctrl)
+	mockContactListRepo := mocks.NewMockContactListRepository(ctrl)
+	mockLogger := setupMockLoggerForNodeExecutor(ctrl)
+
+	executor := NewEmailNodeExecutor(mockEmailQueueRepo, mockTemplateRepo, mockWorkspaceRepo, mockListRepo, mockContactListRepo, "https://api.example.com", mockLogger)
+
+	workspace := createTestWorkspaceWithEmailProvider()
+	workspace.Settings.WebAnalytics = webAnalytics
+	// Click tracking off keeps the destination URL — and the nf_id written onto
+	// it — readable in the HTML instead of encrypted inside a redirect token.
+	// A workspace running web analytics with click tracking off is a supported
+	// combination, not a test-only one.
+	workspace.Settings.EmailTrackingEnabled = false
+
+	mockWorkspaceRepo.EXPECT().
+		GetByID(gomock.Any(), "ws1").
+		Return(workspace, nil)
+	mockTemplateRepo.EXPECT().
+		GetTemplateByID(gomock.Any(), "ws1", "tpl123", int64(0)).
+		Return(createTestTemplateWithLink(linkHref), nil)
+
+	var queuedHTML string
+	mockEmailQueueRepo.EXPECT().
+		Enqueue(gomock.Any(), "ws1", gomock.Any()).
+		DoAndReturn(func(_ context.Context, _ string, entries []*domain.EmailQueueEntry) error {
+			require.Len(t, entries, 1)
+			queuedHTML = entries[0].Payload.HTMLContent
+			return nil
+		})
+
+	params := NodeExecutionParams{
+		WorkspaceID: "ws1",
+		Node: &domain.AutomationNode{
+			ID:         "email_node1",
+			Type:       domain.NodeTypeEmail,
+			NextNodeID: strPtr("next_node"),
+			Config: map[string]interface{}{
+				"template_id": "tpl123",
+			},
+		},
+		Contact: &domain.ContactAutomation{
+			ID:           "ca1",
+			ContactEmail: contactEmail,
+		},
+		ContactData: &domain.Contact{Email: contactEmail},
+		Automation: &domain.Automation{
+			ID:   "auto1",
+			Name: "Test Automation",
+		},
+	}
+
+	result, err := executor.Execute(context.Background(), params)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+
+	return queuedHTML
+}
+
+// TestEmailNodeExecutor_Execute_WebIdentity covers the "identified with no code"
+// path for automation sends: without a per-contact token on the tracked links,
+// the recipient lands on the customer's site anonymously.
+func TestEmailNodeExecutor_Execute_WebIdentity(t *testing.T) {
+	const allowedLink = "https://shop.example.com/product"
+	const secretKey = "test-secret-key-for-automation-1234" // as set by createTestWorkspaceWithEmailProvider
+
+	t.Run("Writes the contact's token onto a link to a declared domain", func(t *testing.T) {
+		html := enqueueAutomationEmail(t, &domain.WebAnalyticsSettings{
+			Enabled:        true,
+			AllowedDomains: []string{"shop.example.com"},
+		}, "recipient@example.com", allowedLink)
+
+		match := automationIdentifyTokenPattern.FindStringSubmatch(html)
+		require.NotNil(t, match, "the tracked link must carry an nf_id parameter:\n%s", html)
+
+		resolved, ok := domain.ResolveWebIdentity(
+			&domain.WebTrackPayload{IdentifyToken: &match[1]}, secretKey, time.Now())
+		require.True(t, ok, "the token must resolve against the workspace secret")
+		assert.Equal(t, "recipient@example.com", resolved)
+	})
+
+	t.Run("Leaves a link to an undeclared domain untouched", func(t *testing.T) {
+		// Same send, different destination: the credential is for the workspace's
+		// own sites, never for whatever third-party link the email contains.
+		const partnerLink = "https://partner.example.net/offer"
+		html := enqueueAutomationEmail(t, &domain.WebAnalyticsSettings{
+			Enabled:        true,
+			AllowedDomains: []string{"shop.example.com"},
+		}, "recipient@example.com", partnerLink)
+
+		assertNoIdentityOnLink(t, html, partnerLink)
+	})
+
+	t.Run("Writes nothing when the workspace has no web analytics settings", func(t *testing.T) {
+		html := enqueueAutomationEmail(t, nil, "recipient@example.com", allowedLink)
+
+		assertNoIdentityOnLink(t, html, allowedLink)
+	})
+
+	t.Run("Writes nothing when web analytics is configured but disabled", func(t *testing.T) {
+		html := enqueueAutomationEmail(t, &domain.WebAnalyticsSettings{
+			Enabled:        false,
+			AllowedDomains: []string{"shop.example.com"},
+		}, "recipient@example.com", allowedLink)
+
+		assertNoIdentityOnLink(t, html, allowedLink)
+	})
+
+	t.Run("Writes nothing when no destination domain is declared", func(t *testing.T) {
+		// An empty allowlist means "accept beats from any host" to the tracker.
+		// Read the same way here, it would append a bearer identity for the
+		// contact to every link in the email, wherever it points.
+		//
+		// This subtest cannot pin the executor's own emptiness check, because
+		// applyIdentityParam declines an empty host list too and the HTML comes
+		// out identical either way. That gate is pinned on the settings struct,
+		// in TestEmailNodeExecutor_buildTrackingSettings_WebIdentityGate.
+		html := enqueueAutomationEmail(t, &domain.WebAnalyticsSettings{
+			Enabled:        true,
+			AllowedDomains: nil,
+		}, "recipient@example.com", allowedLink)
+
+		assertNoIdentityOnLink(t, html, allowedLink)
+	})
+
+	t.Run("Each enrolled contact gets their own token", func(t *testing.T) {
+		// Decrypting both tokens is the check. Comparing the two ciphertexts
+		// would not be: EncryptString draws a fresh nonce per call, so even two
+		// mints of the same address come out different.
+		webAnalytics := &domain.WebAnalyticsSettings{
+			Enabled:        true,
+			AllowedDomains: []string{"shop.example.com"},
+		}
+
+		aliceMatch := automationIdentifyTokenPattern.FindStringSubmatch(
+			enqueueAutomationEmail(t, webAnalytics, "alice@example.com", allowedLink))
+		bobMatch := automationIdentifyTokenPattern.FindStringSubmatch(
+			enqueueAutomationEmail(t, webAnalytics, "bob@example.com", allowedLink))
+		require.NotNil(t, aliceMatch)
+		require.NotNil(t, bobMatch)
+
+		alice, ok := domain.ResolveWebIdentity(
+			&domain.WebTrackPayload{IdentifyToken: &aliceMatch[1]}, secretKey, time.Now())
+		require.True(t, ok)
+		assert.Equal(t, "alice@example.com", alice)
+
+		bob, ok := domain.ResolveWebIdentity(
+			&domain.WebTrackPayload{IdentifyToken: &bobMatch[1]}, secretKey, time.Now())
+		require.True(t, ok)
+		assert.Equal(t, "bob@example.com", bob)
+	})
+}
+
+// TestEmailNodeExecutor_buildTrackingSettings_WebIdentityGate pins the mint gate
+// on the settings the executor builds instead of on the compiled email, because
+// the compiled email cannot see it: drop the "at least one allowed domain"
+// condition and a token is minted for the contact, yet applyIdentityParam still
+// writes nothing, since it returns early on an empty host list as well. The HTML
+// is byte-identical either way. What changed is what these settings carry into
+// the compiler — a live bearer credential for the contact, held one host check
+// away from every link in the email.
+func TestEmailNodeExecutor_buildTrackingSettings_WebIdentityGate(t *testing.T) {
+	const secretKey = "test-secret-key-for-automation-1234" // as set by createTestWorkspaceWithEmailProvider
+
+	build := func(t *testing.T, webAnalytics *domain.WebAnalyticsSettings) notifuse_mjml.TrackingSettings {
+		t.Helper()
+
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		executor := NewEmailNodeExecutor(nil, nil, nil, nil, nil, "https://api.example.com", setupMockLoggerForNodeExecutor(ctrl))
+
+		workspace := createTestWorkspaceWithEmailProvider()
+		workspace.Settings.WebAnalytics = webAnalytics
+
+		return executor.buildTrackingSettings(NodeExecutionParams{
+			WorkspaceID: "ws1",
+			ContactData: &domain.Contact{Email: "recipient@example.com"},
+			Automation:  &domain.Automation{ID: "auto1", Name: "Test Automation"},
+		}, workspace, "tpl123", "msg1")
+	}
+
+	// assertBuiltWithoutIdentity is the control every closed-gate case shares:
+	// the rest of the settings must still be assembled, so an empty
+	// IdentifyToken cannot be an empty struct returned by some earlier bail-out.
+	assertBuiltWithoutIdentity := func(t *testing.T, settings notifuse_mjml.TrackingSettings) {
+		t.Helper()
+
+		assert.Empty(t, settings.IdentifyToken, "no identity may be minted while the gate is closed")
+		assert.Empty(t, settings.IdentifyAllowedHosts, "hosts without a token would let a later token be handed out")
+
+		assert.Equal(t, "https://api.example.com", settings.Endpoint)
+		assert.Equal(t, "automation", settings.UTMSource)
+		assert.Equal(t, "Test Automation", settings.UTMCampaign)
+		assert.Equal(t, "tpl123", settings.UTMContent)
+		assert.Equal(t, "msg1", settings.MessageID)
+	}
+
+	t.Run("declared destinations mint this contact's identity", func(t *testing.T) {
+		settings := build(t, &domain.WebAnalyticsSettings{
+			Enabled:        true,
+			AllowedDomains: []string{"shop.example.com", "*.eu.example.com"},
+		})
+
+		require.NotEmpty(t, settings.IdentifyToken)
+		resolved, ok := domain.ResolveWebIdentity(
+			&domain.WebTrackPayload{IdentifyToken: &settings.IdentifyToken}, secretKey, time.Now())
+		require.True(t, ok, "the minted token must resolve against the workspace secret")
+		assert.Equal(t, "recipient@example.com", resolved)
+
+		// The token travels with the hosts it may be handed to, and only those.
+		assert.Equal(t, []string{"shop.example.com", "*.eu.example.com"}, settings.IdentifyAllowedHosts)
+	})
+
+	t.Run("enabled with an empty allowlist mints nothing", func(t *testing.T) {
+		// The condition this case exists for. An empty allowlist means "accept
+		// beats from any host" at the workspace level; read the same way here,
+		// an enabled workspace that declared no domain would have a bearer
+		// identity for the contact minted into the settings of a send whose
+		// links may point anywhere.
+		assertBuiltWithoutIdentity(t, build(t, &domain.WebAnalyticsSettings{Enabled: true}))
+	})
+
+	t.Run("configured but disabled mints nothing", func(t *testing.T) {
+		assertBuiltWithoutIdentity(t, build(t, &domain.WebAnalyticsSettings{
+			Enabled:        false,
+			AllowedDomains: []string{"shop.example.com"},
+		}))
+	})
+
+	t.Run("no web analytics settings mint nothing", func(t *testing.T) {
+		assertBuiltWithoutIdentity(t, build(t, nil))
+	})
 }

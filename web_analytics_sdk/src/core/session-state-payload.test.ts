@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { SessionState } from './session-state';
 import type { SessionAttributes } from '../types/session-state';
 
-describe('SessionState - Payload with user_id and dimensions', () => {
+describe('SessionState - Payload with identity and dimensions', () => {
   let sessionState: SessionState;
   const mockAttributes: SessionAttributes = {
     landing_page: 'https://example.com/',
@@ -38,24 +38,25 @@ describe('SessionState - Payload with user_id and dimensions', () => {
     vi.useRealTimers();
   });
 
-  describe('buildPayload includes user_id', () => {
-    it('includes user_id when provided', () => {
+  describe('buildPayload includes the verified identity', () => {
+    it('includes the signed address when provided', () => {
       const payload = sessionState.buildPayload(mockAttributes, {
-        userId: 'user_123',
+        identity: { email: 'user_123', hmac: 'sig' },
       });
 
-      expect(payload.user_id).toBe('user_123');
+      expect(payload.contact_email).toBe('user_123')
+      expect(payload.contact_email_hmac).toBe('sig');
     });
 
-    it('includes user_id as null when not set', () => {
+    it('omits identity fields when anonymous', () => {
       const payload = sessionState.buildPayload(mockAttributes, {
-        userId: null,
+        identity: null,
       });
 
-      expect(payload.user_id).toBeNull();
+      expect(payload.contact_email).toBeUndefined();
     });
 
-    it('omits user_id when not provided in options', () => {
+    it('omits identity fields when not provided in options', () => {
       const payload = sessionState.buildPayload(mockAttributes);
 
       expect(payload).not.toHaveProperty('user_id');
@@ -106,33 +107,34 @@ describe('SessionState - Payload with user_id and dimensions', () => {
     });
   });
 
-  describe('buildPayload includes both user_id and dimensions', () => {
-    it('includes both user_id and dimensions when both provided', () => {
+  describe('buildPayload includes both identity and dimensions', () => {
+    it('includes both identity and dimensions when both provided', () => {
       const dimensions = {
         custom_1: 'campaign_a',
         custom_2: 'variant_b',
       };
 
       const payload = sessionState.buildPayload(mockAttributes, {
-        userId: 'user_xyz',
+        identity: { email: 'user_xyz', hmac: 'sig' },
         dimensions,
       });
 
-      expect(payload.user_id).toBe('user_xyz');
+      expect(payload.contact_email).toBe('user_xyz')
+      expect(payload.contact_email_hmac).toBe('sig');
       expect(payload.dimensions).toEqual(dimensions);
     });
 
-    it('includes user_id null with dimensions', () => {
+    it('includes dimensions while anonymous', () => {
       const dimensions = {
         custom_1: 'campaign_a',
       };
 
       const payload = sessionState.buildPayload(mockAttributes, {
-        userId: null,
+        identity: null,
         dimensions,
       });
 
-      expect(payload.user_id).toBeNull();
+      expect(payload.contact_email).toBeUndefined();
       expect(payload.dimensions).toEqual(dimensions);
     });
   });
@@ -142,7 +144,7 @@ describe('SessionState - Payload with user_id and dimensions', () => {
       sessionState.addPageview('/test-page');
 
       const payload = sessionState.buildPayload(mockAttributes, {
-        userId: 'user_test',
+        identity: { email: 'user_test', hmac: 'sig' },
         dimensions: { custom_1: 'test' },
       });
 
@@ -156,7 +158,8 @@ describe('SessionState - Payload with user_id and dimensions', () => {
       expect(payload.sdk_version).toBeDefined();
 
       // New fields
-      expect(payload.user_id).toBe('user_test');
+      expect(payload.contact_email).toBe('user_test')
+      expect(payload.contact_email_hmac).toBe('sig');
       expect(payload.dimensions).toEqual({ custom_1: 'test' });
     });
   });

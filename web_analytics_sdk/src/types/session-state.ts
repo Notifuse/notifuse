@@ -85,6 +85,10 @@ export interface SessionPayload {
   session_id: string;
   /** The writing tab; 0 when unknown. Part of the child tables' primary keys. */
   tab_id: number;
+  /** Verified-identity credentials; the server discards any it cannot check. */
+  contact_email?: string;
+  contact_email_hmac?: string;
+  identify_token?: string;
   actions: Action[];
   // current_page removed - page is now in actions[] with duration updating
   // checkpoint removed - always send all actions, server deduplicates

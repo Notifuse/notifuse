@@ -26,7 +26,7 @@
     "/track": {
       "post": {
         "summary": "Ingest a web analytics beat",
-        "description": "Public collect endpoint used by the Notifuse Analytics browser SDK. Each beat carries the full cumulative session state (all pageviews and goals), so the server can rebuild the session from any single payload. Beats are typically sent as text/plain to avoid CORS preflights; the body is JSON regardless of Content-Type. Silently-dropped traffic (disabled feature, disallowed origin, bot user agents) still receives success responses.\n",
+        "description": "Public collect endpoint used by the Notifuse Analytics browser SDK. Each beat carries the full cumulative session state (all pageviews and goals), so the server can rebuild the session from any single payload. Beats are typically sent as text/plain to avoid CORS preflights; the body is JSON regardless of Content-Type. Silently-dropped traffic (disabled feature, disallowed origin, bot user agents) still receives success responses.\n\nThe endpoint is public and unauthenticated, so the identity fields (contact_email + contact_email_hmac, or identify_token) are claims until they verify against the workspace secret. One that does not verify is not an error: the beat is recorded anonymously. A single malformed action is dropped the same way, leaving the rest of the beat intact.\n\nVerifying the credential is the FIRST of three gates, not the only one. An address that clears all three is attached to the session; failing any of them costs the identity alone, silently — the beat is still stored and the response is still a 200 with no error. Success and every failure are therefore indistinguishable on the wire:\n\n1. Signature (or token decryption) must verify against the workspace secret. The recipe is in the contact_email_hmac schema; getting the domain-separation prefix wrong is the usual cause.\n\n2. Rate limits, applied to the IDENTIFIED path only (anonymous traffic is the normal firehose and stays unthrottled) and before the contact lookup, so an abusive caller cannot spend database reads: 120 identified beats per minute per workspace + address, and 600 per minute per client IP (that one counted across all workspaces, since an office shares one IP) — both sized around the SDK's 10-30s heartbeat. Exceeding either is deliberately never a 429, which the SDK would only queue for a retry that cannot fix it.\n\n3. The address must ALREADY be a contact in the workspace. A signature proves who the caller is, never that the address belongs to anyone, so without this gate a workspace's own signing key could store the email of people who are not contacts, and erasure would be unenforceable — a deleted contact's next beat would re-stamp the address. The answer is cached for 60 seconds, so a freshly created contact can stay unidentified and a deleted one keep resolving for about that long.\n\nThis is why a correctly-signed beat for an address that is not a contact is indistinguishable from a bad signature: both return 200 and record the session anonymously.\n",
         "operationId": "trackWebAnalyticsBeat",
         "tags": [
           "Web Analytics"
@@ -64,7 +64,25 @@
             }
           },
           "400": {
-            "description": "Malformed payload (invalid session id, timestamps out of window, oversized)",
+            "description": "Malformed payload. The full set of causes: an unparseable body; a missing or blank workspace_id; a session_id that is not a UUIDv7 or whose embedded timestamp falls outside [now-48h, now+24h]; an updated_at more than 24h from server time; a negative seq; more actions than the schema's maxItems; a custom_1..custom_10 dimension value over 256 characters; or more than 50 dimension entries. Row building re-derives the session date from session_id and surfaces any failure the same way, which today can only be that same session_id rule.\n\nNever returned for an unverifiable, throttled or unknown identity, and never for a single out-of-range ACTION — that one action is dropped and the beat is kept. An oversized actions ARRAY is a different rule and IS a 400: see maxItems on the actions property.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Body over 1 MB. Distinguished from a 400 because it is the one failure the client can act on: actions[] only grows, so every later beat of that session fails too until it trims its oldest actions or rotates the session.",
             "content": {
               "application/json": {
                 "schema": {
@@ -87,7 +105,7 @@
     "/api/workspaces.setWebAnalyticsSettings": {
       "post": {
         "summary": "Replace the workspace's web analytics settings",
-        "description": "Gated by the web_analytics write permission (like blog settings, members manage the feature without workspace write access). The attribution filters version is recomputed server-side. Passing null settings clears the configuration.\n",
+        "description": "Gated by the web_analytics write permission (like blog settings, members manage the feature without workspace write access). The attribution filters version is recomputed server-side. Passing null settings clears the configuration.\n\nSwitching settings.contact_bridge_enabled from off to on additionally requires the contacts write permission, because that is the one field here that stops shaping reporting and starts writing to contacts: it turns verified web goals into custom events, and so into contact timeline entries, segment recomputation and automation enrolments. Only the transition is gated, so a member with web_analytics write but not contacts write can still edit every other setting on a workspace where the bridge is already on, and can still turn it off.\n",
         "operationId": "setWebAnalyticsSettings",
         "tags": [
           "Web Analytics"
@@ -126,7 +144,7 @@
             "description": "Validation failed"
           },
           "403": {
-            "description": "Missing web_analytics write permission"
+            "description": "Either of two distinct permission failures, both returned as a 403 with the missing resource named in the error message: the caller lacks web_analytics write, or the request flips contact_bridge_enabled from off to on and the caller lacks contacts write."
           }
         }
       }
@@ -7795,6 +7813,7 @@
       },
       "WebPageviewAction": {
         "type": "object",
+        "description": "One pageview of the cumulative action list. Breaking any bound below drops this action alone; the rest of the beat is still accepted.",
         "required": [
           "type",
           "path",
@@ -7813,11 +7832,15 @@
           },
           "page_number": {
             "type": "integer",
-            "minimum": 1
+            "minimum": 1,
+            "maximum": 1000
           },
           "duration": {
             "type": "integer",
-            "description": "Engaged (visible and focused) time on the page, ms."
+            "format": "int64",
+            "minimum": 0,
+            "maximum": 86400000,
+            "description": "Engaged (visible and focused) time on the page, ms. Capped at a day, which is more engaged time than one page can plausibly collect."
           },
           "scroll": {
             "type": "integer",
@@ -7826,16 +7849,23 @@
           },
           "entered_at": {
             "type": "integer",
-            "format": "int64"
+            "format": "int64",
+            "minimum": 0,
+            "maximum": 100000000000000,
+            "description": "Epoch ms, bounded to what a timestamp column can hold rather than to a window: a replayed offline beat legitimately carries an old timestamp."
           },
           "exited_at": {
             "type": "integer",
-            "format": "int64"
+            "format": "int64",
+            "minimum": 0,
+            "maximum": 100000000000000,
+            "description": "Epoch ms; when both are set, must be >= entered_at."
           }
         }
       },
       "WebGoalAction": {
         "type": "object",
+        "description": "One conversion of the cumulative action list. Breaking any bound below drops this action alone; the rest of the beat is still accepted.",
         "required": [
           "type",
           "name",
@@ -7860,22 +7890,29 @@
           },
           "page_number": {
             "type": "integer",
-            "minimum": 1
+            "minimum": 1,
+            "maximum": 1000
           },
           "timestamp": {
             "type": "integer",
             "format": "int64",
-            "description": "Original client timestamp; part of the goal's dedup key."
+            "minimum": 1,
+            "maximum": 100000000000000,
+            "description": "Original client timestamp in epoch ms; part of the goal's dedup key, so a retried beat lands on the same row. Bounded to what a timestamp column can hold, not to a window."
           },
           "value": {
             "type": "number",
-            "minimum": 0
+            "minimum": 0,
+            "maximum": 1000000000000
           },
           "properties": {
             "type": "object",
+            "maxProperties": 50,
             "additionalProperties": {
-              "type": "string"
-            }
+              "type": "string",
+              "maxLength": 1024
+            },
+            "description": "At most 50 keys, 1024 characters per value and 8 KB in total: the action list is cumulative, so an unbounded map is re-sent forever and would eventually push the body past the 1 MB limit."
           }
         }
       },
@@ -7924,9 +7961,25 @@
           "viewport_height": {
             "type": "integer"
           },
+          "device": {
+            "type": "string",
+            "description": "Device class, one of desktop, mobile or tablet. Detected IN THE BROWSER by the SDK, not re-parsed from user_agent server-side: modern browsers freeze the UA string and expose the real device, OS and version only through the Client Hints API, which never reaches the server. Client input, so it is trimmed to 200 characters and stored as sent. Defaults to \"desktop\" when absent or blank."
+          },
+          "browser": {
+            "type": "string",
+            "description": "Browser name from the same in-browser detection (\"Chrome\", \"Safari\", …). Defaults to \"Unknown\" when absent or blank."
+          },
+          "browser_type": {
+            "type": "string",
+            "description": "Qualifier for non-ordinary clients the SDK recognises — crawler, inapp, email, fetcher, cli — and empty for a normal browser. Note the server's own bot filtering works off the request User-Agent header, not this field, which is client input like the rest."
+          },
+          "os": {
+            "type": "string",
+            "description": "Operating system from the same in-browser detection (\"macOS\", \"Windows\", \"iPadOS\", …). Defaults to \"Unknown\" when absent or blank."
+          },
           "user_agent": {
             "type": "string",
-            "description": "Raw user agent; browser/OS/device are parsed server-side."
+            "description": "Raw user agent, stored as sent and usable as an attribution filter dimension. It is NOT parsed into device/browser/os — those arrive already resolved in the fields above. Falls back to the request's User-Agent header when the attribute is absent."
           },
           "connection_type": {
             "type": "string"
@@ -7945,7 +7998,6 @@
           "workspace_id",
           "session_id",
           "actions",
-          "created_at",
           "updated_at"
         ],
         "properties": {
@@ -7954,12 +8006,12 @@
           },
           "session_id": {
             "type": "string",
-            "description": "Client-generated UUIDv7; its embedded timestamp must fall within [now-48h, now+10min]."
+            "description": "Client-generated UUIDv7. Its embedded timestamp is the single source of truth for the session start and for the partition the rows land in, and must fall within [now-48h, now+24h]. The past bound is the wider one because a session can keep beating for 24h after it started and the SDK offline queue holds beats for another 24h; the future bound is the same 24h as the other timestamps, since the id is minted from the device clock and a visitor whose clock runs fast inherits the whole skew."
           },
           "actions": {
             "type": "array",
             "maxItems": 1000,
-            "description": "The FULL cumulative list of session actions (re-sent on every beat).",
+            "description": "The FULL cumulative list of session actions (re-sent on every beat).\n\nTwo rules apply here and they are easy to conflate. One ACTION that breaks its own bounds is DROPPED on its own and the rest of the beat is still recorded — never a 400, because the list is cumulative and rejecting the beat would reject every later beat of that session too, permanently. The LIST exceeding maxItems is the opposite: it is a 400 for the whole beat, and because actions[] only ever grows, every later beat fails the same way until the client trims its oldest actions or rotates the session — the same remedy as the 413.",
             "items": {
               "oneOf": [
                 {
@@ -7977,19 +8029,40 @@
           "created_at": {
             "type": "integer",
             "format": "int64",
-            "description": "Session creation, epoch ms (must be within 24h of server time)."
+            "description": "Session creation, epoch ms. Optional, and never read: the session start comes from the UUIDv7 session_id instead, so a stored session start can never disagree with the partition its rows landed in. Accepted for wire compatibility with SDKs that still send it, discarded on arrival — not listed as required, so a generated client is not forced to invent a value the server throws away."
           },
           "updated_at": {
             "type": "integer",
-            "format": "int64"
+            "format": "int64",
+            "description": "Beat timestamp, epoch ms; must be within 24h of server time."
           },
           "sdk_version": {
             "type": "string"
+          },
+          "tab_id": {
+            "type": "integer",
+            "format": "int64",
+            "description": "The writing tab. Tabs share a session id but keep their own cumulative actions and their own seq, so they are disjoint writers. Absent (or 0) from an older SDK."
           },
           "sent_at": {
             "type": "integer",
             "format": "int64",
             "description": "Stamped at each HTTP attempt; drives clock-skew correction beyond 5s."
+          },
+          "contact_email": {
+            "type": "string",
+            "maxLength": 255,
+            "description": "Contact address claimed for this session, signed by contact_email_hmac. /track is public and unauthenticated, so no identity field is believed until it verifies against the workspace secret. Send either this pair or identify_token, never both.\n\nA valid signature is necessary but NOT sufficient: the identified path is rate limited, and the address must already be a contact in the workspace. Both extra gates are described under the /track operation. Every rejection along the way — bad signature, throttled, unknown address — costs the identity only: the beat is still recorded, just anonymously, and the response is the same 200 with no error. There is nothing on the wire distinguishing a working integration from a broken one, so verify against a contact that exists and check that the session actually shows up identified."
+          },
+          "contact_email_hmac": {
+            "type": "string",
+            "maxLength": 64,
+            "description": "HMAC-SHA-256 of a DOMAIN-SEPARATED string, minted on the customer's server (never in the browser, which would hand the workspace secret to every visitor). The exact recipe, which must be followed literally:\n\nsignature = lowercase_hex( HMAC_SHA256( key = workspace secret key, message = \"wa_identify:\" + contact_email ) )\n\nThe message is the ASCII prefix \"wa_identify:\" concatenated with the address — signing bare \"alice@example.com\" instead of \"wa_identify:alice@example.com\" is the failure mode to check first. The result is the 64 lowercase hex characters of the digest, compared as bytes, so uppercase hex or base64 will not match.\n\nThe prefix exists to keep this credential from being interchangeable with the email HMAC that authorizes subscription changes (notification center, unsubscribe, one-click), which is computed over the bare address with the same workspace secret and is printed into every email Notifuse sends. Without the prefix, an unsubscribe HMAC scraped from a forwarded email would silently identify a visitor, and this analytics credential lifted out of page JS by any third-party script would let its holder change that contact's subscriptions.\n\nSigned and verified over the RAW address exactly as it appears in contact_email, before any normalization: sign the same bytes you send. Normalization (trim, lowercase) happens only after the signature checks out, to match the stored contact."
+          },
+          "identify_token": {
+            "type": "string",
+            "maxLength": 512,
+            "description": "Opaque encrypted credential carried by an email-click link (the nf_id parameter), and the alternative to the contact_email / contact_email_hmac pair rather than a companion to it. Expired or undecryptable tokens cost the identity only, not the beat. Once decrypted, the address it carries passes through the same two further gates as a signed contact_email (rate limit, then contact-must-exist)."
           },
           "dimensions": {
             "type": "object",
@@ -8140,6 +8213,10 @@
             "additionalProperties": {
               "type": "string"
             }
+          },
+          "contact_bridge_enabled": {
+            "type": "boolean",
+            "description": "Turns verified web goals into custom events, and so into contact timeline entries, segment recomputation and automation enrolments. Off by default: enabling it is the admin's deliberate act, and consent for storing web activity against a contact is theirs to obtain."
           },
           "geo_enabled": {
             "type": "boolean"

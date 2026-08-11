@@ -121,7 +121,9 @@ export function calculateChildrenDimensionsAndFilters(
  * how that moved.
  */
 export function mergeComparisonData(
-  current: Record<string, unknown>[],
+  // Nullable on purpose: the query API answers null, not [], for a breakdown
+  // that matched nothing, and its declared type says otherwise.
+  current: Record<string, unknown>[] | null | undefined,
   previous: Record<string, unknown>[] | undefined,
   dimension: string
 ): Record<string, unknown>[] {
@@ -130,7 +132,7 @@ export function mergeComparisonData(
     previousByValue.set(String(row[dimension] ?? ''), row)
   }
 
-  return current.map((row) => {
+  return (current ?? []).map((row) => {
     const match = previousByValue.get(String(row[dimension] ?? ''))
     const merged: Record<string, unknown> = { ...row }
     for (const measure of SESSION_METRIC_KEYS) {

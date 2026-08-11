@@ -69,6 +69,7 @@ type AppInterface interface {
 	GetAutomationScheduler() *service.AutomationScheduler
 	GetTaskScheduler() *service.TaskScheduler
 	GetWebAnalyticsBuffer() *service.WebAnalyticsBuffer
+	GetWebAnalyticsRepository() domain.WebAnalyticsRepository
 
 	// Server status methods
 	IsServerCreated() bool
@@ -612,6 +613,7 @@ func (a *App) InitServices() error {
 		a.inboundWebhookEventRepo,
 		a.contactListRepo,
 		a.contactTimelineRepo,
+		a.webAnalyticsRepo,
 		a.logger,
 	)
 
@@ -1009,6 +1011,15 @@ func (a *App) InitServices() error {
 		a.logger.WithField("path", geoPath).Info("GeoIP database loaded")
 	}
 	a.webAnalyticsBuffer = service.NewWebAnalyticsBuffer(a.webAnalyticsRepo, a.logger, service.DefaultWebAnalyticsBufferConfig())
+
+	// The bridge hangs off the BUFFER, never off the repository: the demo data
+	// generator calls FlushBatch directly, and hooking there would bridge its
+	// whole synthetic history into the contact timeline in one shot.
+	a.webAnalyticsBuffer.SetContactBridge(service.NewWebAnalyticsContactBridge(
+		a.contactRepo,
+		a.customEventRepo,
+		a.logger,
+	))
 	a.webAnalyticsService = service.NewWebAnalyticsService(
 		a.workspaceRepo,
 		a.contactRepo,
@@ -1862,6 +1873,12 @@ func (a *App) GetWorkspaceRepository() domain.WorkspaceRepository {
 
 func (a *App) GetContactRepository() domain.ContactRepository {
 	return a.contactRepo
+}
+
+// GetWebAnalyticsRepository exposes the repository for tests that need to assert
+// on the analytics tables directly.
+func (a *App) GetWebAnalyticsRepository() domain.WebAnalyticsRepository {
+	return a.webAnalyticsRepo
 }
 
 func (a *App) GetListRepository() domain.ListRepository {

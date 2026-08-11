@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
+  Alert,
   App,
   Button,
   Col,
@@ -10,8 +11,7 @@ import {
   InputNumber,
   Row,
   Select,
-  Switch,
-  Typography
+  Switch
 } from 'antd'
 import { CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons'
 import { useLingui } from '@lingui/react/macro'
@@ -19,14 +19,17 @@ import { Workspace } from '../../services/api/types'
 import { workspaceService } from '../../services/api/workspace'
 import {
   buildInstallSnippet,
+  resolveTrackingEndpoint,
   WebAnalyticsSettings as WebAnalyticsSettingsValues,
   webAnalyticsService
 } from '../../services/api/web_analytics'
+import { CodeSnippet } from '../common/CodeSnippet'
 import { SettingsSectionHeader } from './SettingsSectionHeader'
 
 const DEFAULT_SETTINGS: WebAnalyticsSettingsValues = {
   enabled: false,
   allowed_domains: [],
+  contact_bridge_enabled: false,
   bounce_threshold_seconds: 10,
   geo_enabled: true,
   geo_store_city: true,
@@ -36,6 +39,27 @@ const DEFAULT_SETTINGS: WebAnalyticsSettingsValues = {
 
 /** Slots the backend accepts: custom_1..custom_10. */
 const CUSTOM_DIMENSION_SLOTS = Array.from({ length: 10 }, (_, index) => index + 1)
+
+interface ToggleRowProps {
+  name: string
+  title: string
+  description: string
+}
+
+/** Label + description on the left, switch aligned on the right. */
+function ToggleRow({ name, title, description }: ToggleRowProps) {
+  return (
+    <div className="flex items-start justify-between gap-6">
+      <div>
+        <div className="font-medium">{title}</div>
+        <div className="text-sm text-gray-500">{description}</div>
+      </div>
+      <Form.Item name={name} valuePropName="checked" noStyle>
+        <Switch aria-label={title} />
+      </Form.Item>
+    </div>
+  )
+}
 
 interface WebAnalyticsSettingsProps {
   workspace: Workspace | null
@@ -47,6 +71,7 @@ interface WebAnalyticsFormValues {
   enabled: boolean
   allowed_domains?: string[]
   bounce_threshold_seconds?: number
+  contact_bridge_enabled: boolean
   geo_enabled: boolean
   geo_store_city: boolean
   geo_store_region: boolean
@@ -75,6 +100,7 @@ export function WebAnalyticsSettings({
     form.setFieldsValue({
       enabled: settings.enabled,
       allowed_domains: settings.allowed_domains ?? [],
+      contact_bridge_enabled: settings.contact_bridge_enabled ?? false,
       bounce_threshold_seconds: settings.bounce_threshold_seconds,
       geo_enabled: settings.geo_enabled,
       geo_store_city: settings.geo_store_city,
@@ -91,16 +117,16 @@ export function WebAnalyticsSettings({
   }, [stored, form, canManage])
 
   // The tracking snippet must point at the domain the SDK will actually beat to.
-  const endpoint = useMemo(() => {
-    return (
-      workspace?.settings?.custom_endpoint_url ||
-      window.API_ENDPOINT?.trim().replace(/\/+$/, '') ||
-      window.location.origin
-    )
-  }, [workspace])
+  const endpoint = useMemo(() => resolveTrackingEndpoint(workspace), [workspace])
 
-  const handleSaveSettings = async (values: WebAnalyticsFormValues) => {
+  const handleSaveSettings = async () => {
     if (!workspace) return
+
+    // The nested geo fields are unmounted while geo tracking is off, and
+    // onFinish only reports mounted fields — reading the whole store keeps the
+    // hidden city/region/precision choices instead of resetting them to the
+    // defaults on the next save.
+    const values = form.getFieldsValue(true) as WebAnalyticsFormValues
 
     setSavingSettings(true)
     try {
@@ -134,6 +160,9 @@ export function WebAnalyticsSettings({
   }
 
   const snippet = workspace ? buildInstallSnippet(endpoint, workspace.id) : ''
+
+  const identifySnippet =
+    'NotifuseAnalytics.identify("alice@example.com", "<hmac from your server>")'
 
   if (!canManage) {
     return (
@@ -232,41 +261,66 @@ export function WebAnalyticsSettings({
 
         <Divider className="!my-8" />
 
-        <div className="text-xl font-medium mb-8">{t`Geolocation privacy`}</div>
+        <div className="text-xl font-medium mb-8">{t`Contact timeline`}</div>
 
         <Form.Item
-          name="geo_enabled"
-          label={t`Resolve visitor locations (country)`}
+          name="contact_bridge_enabled"
+          label={t`Record web goals on the contact timeline`}
           valuePropName="checked"
-          tooltip={t`Locations are resolved from the IP address on the server; the IP itself is never stored.`}
+          tooltip={t`Only goals from visitors identified with identify() are recorded, and only when the address already belongs to a contact. Recorded goals can trigger automations and change segment membership. Obtaining consent to store web activity against a contact is your responsibility.`}
         >
           <Switch />
         </Form.Item>
 
-        <Row gutter={24}>
-          <Col span={8}>
-            <Form.Item name="geo_store_region" label={t`Store region`} valuePropName="checked">
-              <Switch disabled={!geoEnabled} />
-            </Form.Item>
-          </Col>
+        <Divider className="!my-8" />
 
-          <Col span={8}>
-            <Form.Item name="geo_store_city" label={t`Store city`} valuePropName="checked">
-              <Switch disabled={!geoEnabled} />
-            </Form.Item>
-          </Col>
+        <div className="text-xl font-medium mb-8">{t`Geographic data collection`}</div>
 
-          <Col span={8}>
-            <Form.Item
-              name="geo_coordinates_precision"
-              label={t`Coordinate precision`}
-              tooltip={t`Number of decimals kept. Two decimals is roughly one kilometer.`}
-              rules={[{ required: true, message: t`Please enter a coordinate precision` }]}
-            >
-              <InputNumber min={0} max={2} disabled={!geoEnabled} className="w-full" />
-            </Form.Item>
-          </Col>
-        </Row>
+        <div className="space-y-4">
+          <ToggleRow
+            name="geo_enabled"
+            title={t`Enable geo-location tracking`}
+            description={t`Track visitor country, region, city, and coordinates`}
+          />
+
+          {geoEnabled && (
+            <div className="ml-6 space-y-4 border-l-2 border-gray-100 pl-4">
+              <ToggleRow
+                name="geo_store_city"
+                title={t`Store city name`}
+                description={t`Record the city of visitors`}
+              />
+
+              <ToggleRow
+                name="geo_store_region"
+                title={t`Store region/state name`}
+                description={t`Record the region or state of visitors`}
+              />
+
+              <div>
+                <div className="font-medium">{t`Coordinates precision`}</div>
+                <div className="mb-2 text-sm text-gray-500">{t`Lower precision = more privacy`}</div>
+                <Form.Item name="geo_coordinates_precision" noStyle>
+                  <Select
+                    aria-label={t`Coordinates precision`}
+                    className="w-full"
+                    options={[
+                      { value: 0, label: t`Country level (~111km precision)` },
+                      { value: 1, label: t`Regional (~11km precision)` },
+                      { value: 2, label: t`City level (~1km precision)` }
+                    ]}
+                  />
+                </Form.Item>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <Alert
+          className="!mt-6"
+          type="info"
+          title={t`IP addresses are never stored — only used for geo lookup. Country is always included when geo tracking is enabled.`}
+        />
 
         <Divider className="!my-8" />
 
@@ -301,9 +355,16 @@ export function WebAnalyticsSettings({
       <div className="text-gray-500 mb-4">
         {t`Paste this snippet before the closing </head> tag of your website.`}
       </div>
-      <Typography.Paragraph copyable={{ text: snippet }}>
-        <pre className="overflow-x-auto rounded bg-gray-50 p-3 text-xs">{snippet}</pre>
-      </Typography.Paragraph>
+      <CodeSnippet code={snippet} language="markup" />
+
+      <div className="text-xl font-medium mb-2 mt-8">{t`Identify a visitor`}</div>
+      <div className="text-gray-500 mb-4">
+        {t`Call identify() once you know who the visitor is. The signature must be computed on your server with your workspace secret key — the tracking endpoint is public, so an unsigned address is ignored.`}
+      </div>
+      <CodeSnippet code={identifySnippet} language="javascript" />
+      <div className="text-gray-500">
+        {t`The address must already belong to a contact: identifying someone who is not one records nothing, by design. Visitors arriving from a tracked email link are identified automatically, with no code.`}
+      </div>
     </>
   )
 }

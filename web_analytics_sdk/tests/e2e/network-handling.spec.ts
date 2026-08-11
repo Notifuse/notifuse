@@ -48,7 +48,6 @@ test.describe('Network Handling', () => {
 
     // Disable sendBeacon
     await page.addInitScript(() => {
-      // @ts-expect-error - Mocking navigator
       navigator.sendBeacon = () => false;
     });
 

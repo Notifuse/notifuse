@@ -2,6 +2,7 @@ package notifuse_mjml
 
 import (
 	"encoding/json"
+	"reflect"
 	"regexp"
 	"strings"
 	"testing"
@@ -3105,5 +3106,454 @@ func TestValidateTrackingMode(t *testing.T) {
 	}
 	if err := ValidateTrackingMode("force_on"); err == nil {
 		t.Error("unknown mode must be rejected")
+	}
+}
+
+// decodeTrackedDestination extracts the first /r/{token} redirect in html and
+// returns the destination URL encrypted inside it, so a test can assert on what
+// the recipient's browser will actually be sent to.
+func decodeTrackedDestination(t *testing.T, html string, endpoint string) string {
+	t.Helper()
+
+	tokenRegex := regexp.MustCompile(regexp.QuoteMeta(endpoint) + `/r/([^"']+)`)
+	m := tokenRegex.FindStringSubmatch(html)
+	require.NotNil(t, m, "expected a /r/{token} tracking link, got: %s", html)
+
+	plaintext, err := crypto.DecryptTrackingToken(m[1])
+	require.NoError(t, err, "failed to decrypt tracking token")
+
+	// Payload format: messageID\nworkspaceID\ntimestamp\ndestinationURL
+	parts := strings.Split(plaintext, "\n")
+	require.Len(t, parts, 4, "unexpected token payload: %q", plaintext)
+	return parts[3]
+}
+
+// TestTrackLinks_IdentityTokenRidesInsideEncryptedPayload is the whole point of
+// applying the token before the redirect is built: the credential must travel
+// encrypted, never as readable text in the email HTML.
+func TestTrackLinks_IdentityTokenRidesInsideEncryptedPayload(t *testing.T) {
+	settings := TrackingSettings{
+		EnableTracking:       true,
+		Endpoint:             "https://track.example.com",
+		WorkspaceID:          "ws-1",
+		MessageID:            "msg-1",
+		UTMSource:            "newsletter",
+		IdentifyToken:        "tok-abc123",
+		IdentifyAllowedHosts: []string{"shop.example.com"},
+	}
+
+	html := `<html><body><a href="https://shop.example.com/product?ref=email">Buy</a></body></html>`
+
+	result, err := TrackLinks(html, settings)
+	require.NoError(t, err)
+
+	// The parameter rides inside the /r/ payload rather than appearing verbatim
+	// in the href. That is obfuscation against pixel-blockers, not
+	// confidentiality: the payload below is decrypted here with no secret.
+	assert.NotContains(t, result, "nf_id",
+		"the identity parameter must ride on the redirect's destination, not on the href itself")
+
+	destination := decodeTrackedDestination(t, result, "https://track.example.com")
+	assert.Contains(t, destination, "nf_id=tok-abc123")
+	assert.Contains(t, destination, "utm_source=newsletter", "UTM rewriting must still apply")
+	assert.Contains(t, destination, "ref=email", "pre-existing query params must survive")
+}
+
+// TestTrackLinks_IdentityTokenSkipsNonAllowlistedHost keeps the credential away
+// from third-party links the email happens to contain.
+func TestTrackLinks_IdentityTokenSkipsNonAllowlistedHost(t *testing.T) {
+	settings := TrackingSettings{
+		EnableTracking:       true,
+		Endpoint:             "https://track.example.com",
+		WorkspaceID:          "ws-1",
+		MessageID:            "msg-1",
+		IdentifyToken:        "tok-abc123",
+		IdentifyAllowedHosts: []string{"shop.example.com"},
+	}
+
+	html := `<html><body><a href="https://partner.example.net/offer">Partner</a></body></html>`
+
+	result, err := TrackLinks(html, settings)
+	require.NoError(t, err)
+
+	destination := decodeTrackedDestination(t, result, "https://track.example.com")
+	assert.NotContains(t, destination, "nf_id",
+		"a host outside the allowlist must never receive the identity token")
+	assert.Equal(t, "https://partner.example.net/offer", destination)
+}
+
+// TestTrackLinks_IdentityTokenEmptyAllowlistAppendsNothing guards the fail-open
+// trap: the workspace-level MatchesAllowedDomain treats an empty allowed-domains
+// list as "every host", which here would hand a bearer identity to any domain on
+// the internet. Unconfigured must mean nowhere.
+func TestTrackLinks_IdentityTokenEmptyAllowlistAppendsNothing(t *testing.T) {
+	settings := TrackingSettings{
+		IdentifyToken:        "tok-abc123",
+		IdentifyAllowedHosts: nil,
+	}
+
+	html := `<html><body><a href="https://anywhere.example.org/page">Link</a></body></html>`
+
+	result, err := TrackLinks(html, settings)
+	require.NoError(t, err)
+	assert.Equal(t, html, result, "an empty allowlist must leave every link untouched")
+}
+
+// TestTrackLinks_IdentityTokenWildcardMatchesApexAndSubdomain mirrors the
+// workspace allowed-domains semantics for "*.example.com".
+func TestTrackLinks_IdentityTokenWildcardMatchesApexAndSubdomain(t *testing.T) {
+	tests := []struct {
+		name       string
+		linkURL    string
+		wantsToken bool
+	}{
+		{name: "apex", linkURL: "https://example.com/page", wantsToken: true},
+		{name: "subdomain", linkURL: "https://shop.example.com/page", wantsToken: true},
+		{name: "deep subdomain", linkURL: "https://eu.shop.example.com/page", wantsToken: true},
+		{name: "uppercase host", linkURL: "https://SHOP.Example.COM/page", wantsToken: true},
+		{name: "host with port", linkURL: "https://shop.example.com:8443/page", wantsToken: true},
+		{name: "suffix lookalike", linkURL: "https://notexample.com/page", wantsToken: false},
+		{name: "attacker suffix", linkURL: "https://example.com.evil.net/page", wantsToken: false},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			settings := TrackingSettings{
+				IdentifyToken:        "tok-abc123",
+				IdentifyAllowedHosts: []string{" *.EXAMPLE.com "},
+			}
+
+			result, err := TrackLinks(`<a href="`+test.linkURL+`">Link</a>`, settings)
+			require.NoError(t, err)
+
+			if test.wantsToken {
+				assert.Contains(t, result, "nf_id=tok-abc123")
+			} else {
+				assert.NotContains(t, result, "nf_id")
+			}
+		})
+	}
+}
+
+// TestTrackLinks_IdentityTokenLeavesSpecialLinksUntouched covers the same
+// defensive shape applyUTMParameters has.
+func TestTrackLinks_IdentityTokenLeavesSpecialLinksUntouched(t *testing.T) {
+	settings := TrackingSettings{
+		IdentifyToken:        "tok-abc123",
+		IdentifyAllowedHosts: []string{"example.com"},
+	}
+
+	html := `<html><body>` +
+		`<a href="mailto:hello@example.com">Mail</a>` +
+		`<a href="tel:+33123456789">Call</a>` +
+		`<a href="{{ unsubscribe_url }}">Unsubscribe</a>` +
+		`<a href="{% if x %}https://example.com{% endif %}">Conditional</a>` +
+		`<a href="#top">Top</a>` +
+		`</body></html>`
+
+	result, err := TrackLinks(html, settings)
+	require.NoError(t, err)
+	assert.Equal(t, html, result)
+}
+
+// TestApplyIdentityParam_DefensiveCases exercises the guards directly, since
+// TrackLinks filters some of these out before the method is reached.
+func TestApplyIdentityParam_DefensiveCases(t *testing.T) {
+	settings := &TrackingSettings{
+		IdentifyToken:        "tok-abc123",
+		IdentifyAllowedHosts: []string{"example.com"},
+	}
+
+	unchanged := []string{
+		"",
+		"mailto:hello@example.com",
+		"tel:+33123456789",
+		"{{ unsubscribe_url }}",
+		"{% if x %}https://example.com{% endif %}",
+		"://example.com/broken",
+		"/relative/path",
+	}
+	for _, sourceURL := range unchanged {
+		assert.Equal(t, sourceURL, settings.applyIdentityParam(sourceURL))
+	}
+
+	// A link that already carries an identity keeps the one it has.
+	preIdentified := "https://example.com/page?nf_id=someone-else"
+	assert.Equal(t, preIdentified, settings.applyIdentityParam(preIdentified))
+
+	// No token minted: nothing to append, whatever the allowlist says.
+	noToken := &TrackingSettings{IdentifyAllowedHosts: []string{"example.com"}}
+	assert.Equal(t, "https://example.com/page", noToken.applyIdentityParam("https://example.com/page"))
+}
+
+// TestApplyIdentityParam_PreservesURLBytes pins the byte-exactness of the
+// append: these are links a customer hand-built in their template, and every
+// case below is one that re-serialising through url.Values corrupts —
+// "sid=1;2" and "discount=50%off" are dropped outright by Encode(), the ids
+// list gets its commas and slashes percent-escaped, and the surviving pairs
+// come back in alphabetical order.
+func TestApplyIdentityParam_PreservesURLBytes(t *testing.T) {
+	settings := &TrackingSettings{
+		IdentifyToken:        "tok-abc123",
+		IdentifyAllowedHosts: []string{"example.com"},
+	}
+
+	tests := []struct {
+		name    string
+		linkURL string
+		want    string
+	}{
+		{
+			name:    "semicolon separated value",
+			linkURL: "https://example.com/page?utm_source=x&sid=1;2",
+			want:    "https://example.com/page?utm_source=x&sid=1;2&nf_id=tok-abc123",
+		},
+		{
+			name:    "bare percent sign",
+			linkURL: "https://example.com/page?discount=50%off",
+			want:    "https://example.com/page?discount=50%off&nf_id=tok-abc123",
+		},
+		{
+			name:    "order, slashes and commas kept",
+			linkURL: "https://example.com/page?utm_campaign=spring&redirect=/home&ids=1,2,3",
+			want:    "https://example.com/page?utm_campaign=spring&redirect=/home&ids=1,2,3&nf_id=tok-abc123",
+		},
+		{
+			name:    "valueless flag keeps its missing equals sign",
+			linkURL: "https://example.com/page?flag&utm_source=x",
+			want:    "https://example.com/page?flag&utm_source=x&nf_id=tok-abc123",
+		},
+		{
+			name:    "fragment stays last",
+			linkURL: "https://example.com/page?a=1#section",
+			want:    "https://example.com/page?a=1&nf_id=tok-abc123#section",
+		},
+		{
+			name:    "fragment without query",
+			linkURL: "https://example.com/page#section",
+			want:    "https://example.com/page?nf_id=tok-abc123#section",
+		},
+		{
+			name:    "no query gains a question mark",
+			linkURL: "https://example.com/page",
+			want:    "https://example.com/page?nf_id=tok-abc123",
+		},
+		{
+			name:    "empty query reuses its question mark",
+			linkURL: "https://example.com/page?",
+			want:    "https://example.com/page?nf_id=tok-abc123",
+		},
+		{
+			name:    "port survives",
+			linkURL: "https://example.com:8443/page?a=1",
+			want:    "https://example.com:8443/page?a=1&nf_id=tok-abc123",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			assert.Equal(t, test.want, settings.applyIdentityParam(test.linkURL))
+		})
+	}
+}
+
+// TestTrackLinks_IdentityTokenKeepsHandBuiltQuery is the end-to-end version:
+// applyUTMParameters already returns a link carrying its own utm_* untouched,
+// and the identity pass must not undo that by rewriting the query.
+func TestTrackLinks_IdentityTokenKeepsHandBuiltQuery(t *testing.T) {
+	settings := TrackingSettings{
+		EnableTracking:       false,
+		UTMSource:            "newsletter",
+		IdentifyToken:        "tok-abc123",
+		IdentifyAllowedHosts: []string{"example.com"},
+	}
+
+	html := `<html><body><a href="https://example.com/page?utm_source=x&sid=1;2#top">Link</a></body></html>`
+
+	result, err := TrackLinks(html, settings)
+	require.NoError(t, err)
+	assert.Equal(t,
+		`<html><body><a href="https://example.com/page?utm_source=x&sid=1;2&nf_id=tok-abc123#top">Link</a></body></html>`,
+		result)
+}
+
+// TestTrackLinks_IdentityTokenSuppressedWhenTrackingDisabled: the per-notification
+// opt-out carries single-use auth URLs that must not be modified in any way.
+func TestTrackLinks_IdentityTokenSuppressedWhenTrackingDisabled(t *testing.T) {
+	settings := TrackingSettings{
+		TrackingMode:         TrackingModeDisabled,
+		EnableTracking:       true,
+		Endpoint:             "https://track.example.com",
+		WorkspaceID:          "ws-1",
+		MessageID:            "msg-1",
+		IdentifyToken:        "tok-abc123",
+		IdentifyAllowedHosts: []string{"example.com"},
+	}
+
+	html := `<html><body><a href="https://example.com/auth/confirm?token=abc">Confirm</a></body></html>`
+
+	result, err := TrackLinks(html, settings)
+	require.NoError(t, err)
+	assert.Equal(t, html, result)
+}
+
+// TestTrackLinks_IdentityTokenAppliedWithClickTrackingOff covers a workspace
+// running web analytics with link tracking off: the early return must not skip
+// the identity pass.
+func TestTrackLinks_IdentityTokenAppliedWithClickTrackingOff(t *testing.T) {
+	settings := TrackingSettings{
+		EnableTracking:       false,
+		IdentifyToken:        "tok-abc123",
+		IdentifyAllowedHosts: []string{"example.com"},
+	}
+
+	html := `<html><body><a href="https://example.com/page">Link</a></body></html>`
+
+	result, err := TrackLinks(html, settings)
+	require.NoError(t, err)
+	assert.Contains(t, result, "https://example.com/page?nf_id=tok-abc123")
+	assert.NotContains(t, result, "/r/", "click tracking stays off")
+	assert.NotContains(t, result, "<img", "the open pixel stays off too")
+}
+
+// TestTrackingSettings_ValueOmitsIdentityCredentials is the persistence check
+// behind the json:"-" tags: TrackingSettings is stored as
+// transactional_notifications.tracking_settings, and a per-recipient credential
+// must never land in that column.
+func TestTrackingSettings_ValueOmitsIdentityCredentials(t *testing.T) {
+	settings := TrackingSettings{
+		EnableTracking:       true,
+		Endpoint:             "https://track.example.com",
+		WorkspaceID:          "ws-1",
+		MessageID:            "msg-1",
+		IdentifyToken:        "tok-secret",
+		IdentifyAllowedHosts: []string{"shop.example.com"},
+	}
+
+	value, err := settings.Value()
+	require.NoError(t, err)
+	stored, ok := value.([]byte)
+	require.True(t, ok, "Value() must return the JSON bytes the column stores")
+
+	assert.NotContains(t, string(stored), "tok-secret")
+	assert.NotContains(t, string(stored), "shop.example.com")
+	assert.NotContains(t, string(stored), "identify")
+
+	var restored TrackingSettings
+	require.NoError(t, restored.Scan(stored))
+	assert.Empty(t, restored.IdentifyToken)
+	assert.Empty(t, restored.IdentifyAllowedHosts)
+
+	// Everything that is meant to be persisted still round-trips.
+	assert.True(t, restored.EnableTracking)
+	assert.Equal(t, "https://track.example.com", restored.Endpoint)
+	assert.Equal(t, "ws-1", restored.WorkspaceID)
+	assert.Equal(t, "msg-1", restored.MessageID)
+}
+
+// TestTrackingSettings_IsZero walks the struct by reflection instead of listing
+// the fields by hand: a hand-written list is a copy of the very enumeration
+// IsZero makes, so both can be forgotten together. A field added to
+// TrackingSettings and missed in IsZero fails here, which is what
+// UpdateTransactionalRequest.Validate depends on: it reads IsZero as "the
+// caller sent no tracking settings", so a field IsZero cannot see makes an
+// update that sets only that field come back as "at least one field must be
+// updated".
+func TestTrackingSettings_IsZero(t *testing.T) {
+	assert.True(t, TrackingSettings{}.IsZero())
+
+	structType := reflect.TypeOf(TrackingSettings{})
+	for i := 0; i < structType.NumField(); i++ {
+		field := structType.Field(i)
+		t.Run(field.Name, func(t *testing.T) {
+			if !field.IsExported() {
+				t.Skipf("unexported field %s cannot be set through reflection", field.Name)
+			}
+
+			probe := reflect.New(structType).Elem()
+			setNonZeroValue(t, probe.Field(i))
+
+			settings, ok := probe.Interface().(TrackingSettings)
+			require.True(t, ok)
+			assert.False(t, settings.IsZero(),
+				"IsZero() must report a struct with only %s set as non-zero", field.Name)
+		})
+	}
+}
+
+// setNonZeroValue writes a distinguishable value into one struct field. An
+// unhandled kind fails the test rather than being skipped: a new field of an
+// unknown type is exactly the case this test exists to catch, so it has to be
+// taught here before it can pass.
+func setNonZeroValue(t *testing.T, field reflect.Value) {
+	t.Helper()
+
+	switch field.Kind() {
+	case reflect.Bool:
+		field.SetBool(true)
+	case reflect.String:
+		field.SetString("non-zero")
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		field.SetInt(1)
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		field.SetUint(1)
+	case reflect.Float32, reflect.Float64:
+		field.SetFloat(1)
+	case reflect.Slice:
+		element := reflect.New(field.Type().Elem()).Elem()
+		setNonZeroValue(t, element)
+		field.Set(reflect.Append(reflect.MakeSlice(field.Type(), 0, 1), element))
+	case reflect.Map:
+		key := reflect.New(field.Type().Key()).Elem()
+		setNonZeroValue(t, key)
+		value := reflect.New(field.Type().Elem()).Elem()
+		setNonZeroValue(t, value)
+		field.Set(reflect.MakeMap(field.Type()))
+		field.SetMapIndex(key, value)
+	case reflect.Pointer:
+		pointed := reflect.New(field.Type().Elem())
+		setNonZeroValue(t, pointed.Elem())
+		field.Set(pointed)
+	default:
+		t.Fatalf("no non-zero value known for kind %s: teach setNonZeroValue about it, "+
+			"then make sure TrackingSettings.IsZero() accounts for the new field", field.Kind())
+	}
+}
+
+func TestMatchesAllowedHost(t *testing.T) {
+	tests := []struct {
+		name         string
+		hostname     string
+		allowedHosts []string
+		want         bool
+	}{
+		{name: "exact match", hostname: "example.com", allowedHosts: []string{"example.com"}, want: true},
+		{name: "case insensitive", hostname: "Example.COM", allowedHosts: []string{"example.com"}, want: true},
+		{name: "trims configured spaces", hostname: "example.com", allowedHosts: []string{"  example.com "}, want: true},
+		{name: "exact entry excludes subdomain", hostname: "shop.example.com", allowedHosts: []string{"example.com"}, want: false},
+		{name: "wildcard covers apex", hostname: "example.com", allowedHosts: []string{"*.example.com"}, want: true},
+		{name: "wildcard covers subdomain", hostname: "shop.example.com", allowedHosts: []string{"*.example.com"}, want: true},
+		{name: "wildcard rejects lookalike", hostname: "notexample.com", allowedHosts: []string{"*.example.com"}, want: false},
+		// A wildcard over a bare TLD would hand the recipient's identity to
+		// every link in the email pointing at that TLD, so it matches nothing —
+		// not the TLD itself, and not anything under it.
+		{name: "bare TLD wildcard matches nothing", hostname: "example.com", allowedHosts: []string{"*.com"}, want: false},
+		{name: "bare TLD wildcard matches no subdomain", hostname: "shop.example.com", allowedHosts: []string{"*.com"}, want: false},
+		{name: "bare TLD wildcard does not match the TLD", hostname: "com", allowedHosts: []string{"*.com"}, want: false},
+		{name: "empty wildcard suffix matches nothing", hostname: "example.com", allowedHosts: []string{"*."}, want: false},
+		{name: "bare TLD entry does not disable later entries", hostname: "shop.example.com", allowedHosts: []string{"*.com", "*.example.com"}, want: true},
+		// Multi-label wildcards stay legitimate.
+		{name: "multi label wildcard covers apex", hostname: "example.co.uk", allowedHosts: []string{"*.example.co.uk"}, want: true},
+		{name: "multi label wildcard covers subdomain", hostname: "shop.example.co.uk", allowedHosts: []string{"*.example.co.uk"}, want: true},
+		{name: "second entry matches", hostname: "b.com", allowedHosts: []string{"a.com", "b.com"}, want: true},
+		{name: "empty list matches nothing", hostname: "example.com", allowedHosts: nil, want: false},
+		{name: "empty host matches nothing", hostname: "", allowedHosts: []string{"example.com"}, want: false},
+		{name: "blank entries are ignored", hostname: "", allowedHosts: []string{"  "}, want: false},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			assert.Equal(t, test.want, MatchesAllowedHost(test.hostname, test.allowedHosts))
+		})
 	}
 }

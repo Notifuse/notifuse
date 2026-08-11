@@ -235,6 +235,21 @@ func TestWebTrackPayloadValidate(t *testing.T) {
 			"type": "pageview", "path": "/" + strings.Repeat("a", WebTrackMaxPathLength), "page_number": 1,
 		}},
 		{"page_number below one", map[string]interface{}{"type": "pageview", "path": "/p", "page_number": 0}},
+		// Magnitude, not just sign: each of these lands in a narrow Postgres
+		// column, and flushOnce runs a whole workspace batch in ONE transaction —
+		// so an out-of-range value used to abort every other visitor's rows too,
+		// and the buffer then deleted those sessions after two failed attempts.
+		{"page_number beyond the action cap", map[string]interface{}{"type": "pageview", "path": "/p", "page_number": 40000}},
+		{"duration beyond a day", map[string]interface{}{"type": "pageview", "path": "/p", "page_number": 1, "duration": int64(WebTrackMaxDurationMs) + 1}},
+		{"pageview timestamp beyond TIMESTAMPTZ range", map[string]interface{}{
+			"type": "pageview", "path": "/p", "page_number": 1,
+			"entered_at": int64(9223372036854775807), "exited_at": int64(9223372036854775807)}},
+		{"goal value beyond the column range", map[string]interface{}{
+			"type": "goal", "name": "purchase", "page_number": 1,
+			"timestamp": now.UnixMilli(), "value": 1e300}},
+		{"goal timestamp beyond TIMESTAMPTZ range", map[string]interface{}{
+			"type": "goal", "name": "purchase", "page_number": 1,
+			"timestamp": int64(9223372036854775807)}},
 	} {
 		t.Run(tc.name+" is dropped, not fatal", func(t *testing.T) {
 			p := trackPayloadJSON(t, now, map[string]interface{}{
@@ -306,6 +321,59 @@ func TestWebAnalyticsSettings(t *testing.T) {
 		assert.True(t, s.MatchesAllowedDomain("a.b.shop.io"))
 		assert.False(t, s.MatchesAllowedDomain("evilshop.io"))
 		assert.False(t, s.MatchesAllowedDomain(""))
+	})
+
+	// The matching loop is shared with notifuse_mjml.MatchesAllowedHost, which
+	// reads the same list for a different purpose. These are the cases where a
+	// regression would not fail loudly: it would quietly stop accepting a
+	// customer's beats, or quietly start accepting a stranger's.
+	t.Run("beat-origin matching survives delegation to the shared matcher", func(t *testing.T) {
+		s := &WebAnalyticsSettings{AllowedDomains: []string{" Example.COM ", "*.Shop.IO"}}
+		assert.True(t, s.MatchesAllowedDomain("example.com"), "stored whitespace and case must still match")
+		assert.True(t, s.MatchesAllowedDomain(" APP.shop.io "))
+		assert.False(t, s.MatchesAllowedDomain("shop.io.evil.com"), "the wildcard is a suffix, not a substring")
+
+		// A blank entry is not a wildcard: it must widen nothing.
+		blank := &WebAnalyticsSettings{AllowedDomains: []string{"", "example.com"}}
+		assert.True(t, blank.MatchesAllowedDomain("example.com"))
+		assert.False(t, blank.MatchesAllowedDomain("other.com"))
+		assert.False(t, blank.MatchesAllowedDomain(""))
+
+		// A "*.com" stored before validateAllowedDomain refused it is skipped by
+		// the shared matcher, so it admits no origin here either. Deliberate: an
+		// entry the product will not accept must not keep letting traffic in on
+		// one side while the other ignores it. Such a workspace has to name its
+		// own domain, which is also what makes its beats identifiable again.
+		legacy := &WebAnalyticsSettings{AllowedDomains: []string{"*.com", "shop.example.com"}}
+		assert.False(t, legacy.MatchesAllowedDomain("anything.com"))
+		assert.True(t, legacy.MatchesAllowedDomain("shop.example.com"), "the other entries keep working")
+	})
+
+	// Empty means "every origin may beat" here and "no host receives an identity
+	// token" in notifuse_mjml.MatchesAllowedHost. Sharing the loop must not have
+	// dragged that rule across: an unconfigured workspace losing its own traffic
+	// is a silent outage.
+	t.Run("an empty list still accepts every origin", func(t *testing.T) {
+		s := &WebAnalyticsSettings{Enabled: true}
+		assert.True(t, s.MatchesAllowedDomain("anything.example"))
+		assert.True(t, (&WebAnalyticsSettings{AllowedDomains: []string{}}).MatchesAllowedDomain("anything.example"))
+	})
+
+	// The list gates release of a per-recipient identity token as well as beat
+	// origins, so a wildcard over a bare suffix would hand every recipient's
+	// identity to every .com link in the workspace's emails.
+	t.Run("a wildcard over an effective TLD is rejected at save time", func(t *testing.T) {
+		for _, d := range []string{"*.com", "*.io", "*.", "*.localhost"} {
+			err := (&WebAnalyticsSettings{AllowedDomains: []string{d}}).Validate()
+			assert.ErrorContains(t, err, "allowed domain", "%q must not be storable", d)
+			assert.ErrorContains(t, err, "*.example.com", "the message must show what a usable wildcard looks like")
+		}
+		assert.NoError(t, (&WebAnalyticsSettings{AllowedDomains: []string{"*.example.com", "*.shop.example.com"}}).Validate())
+
+		// Honest limit of a dot count: a public suffix of two labels reads the
+		// same as a registrable domain without a public-suffix list, so this
+		// check alone is not what keeps such a value from ever matching.
+		assert.NoError(t, (&WebAnalyticsSettings{AllowedDomains: []string{"*.co.uk"}}).Validate())
 	})
 
 	t.Run("JSON round-trip inside workspace settings omits when nil", func(t *testing.T) {
@@ -524,6 +592,56 @@ func TestResolveWebIdentity(t *testing.T) {
 	})
 }
 
+// TestBuildWebIdentifyTokenBound pins the mint bound to the resolve bound. The
+// token is hex-encoded AES-GCM, so its length grows with the address, while
+// WebTrackMaxEmailLength admits contacts whose token overshoots
+// WebTrackMaxIdentifyTokenLength. Such a token used to mint happily, ride in
+// every link of the email, and be dropped at the beat without a word: the
+// identity never happened and nothing said why. It has to fail where the
+// address is still in hand.
+func TestBuildWebIdentifyTokenBound(t *testing.T) {
+	now := time.Date(2026, 8, 10, 12, 0, 0, 0, time.UTC)
+	const secret = "workspace-secret-key"
+
+	// Grow an otherwise legal address until the minted token stops resolving,
+	// deriving the frontier from the code rather than restating a number that
+	// would rot the moment the payload or the encoding changes.
+	longest, shortestRejected := 0, 0
+	for n := len("@example.com") + 1; n <= WebTrackMaxEmailLength; n++ {
+		email := strings.Repeat("a", n-len("@example.com")) + "@example.com"
+		require.Len(t, email, n)
+		token, err := BuildWebIdentifyToken(email, secret, WebIdentifyTokenTTL, now)
+		if err != nil {
+			if shortestRejected == 0 {
+				shortestRejected = n
+			}
+			assert.Empty(t, token, "a rejected mint must not hand back a token to append")
+			continue
+		}
+		require.Zero(t, shortestRejected, "acceptance must not resume after a rejection at %d", shortestRejected)
+		longest = n
+		require.LessOrEqual(t, len(token), WebTrackMaxIdentifyTokenLength)
+
+		got, ok := ResolveWebIdentity(&WebTrackPayload{IdentifyToken: &token}, secret, now)
+		require.True(t, ok, "a %d-character address minted a token the beat then discarded", n)
+		assert.Equal(t, strings.ToLower(email), got)
+	}
+
+	t.Logf("longest identifiable address: %d characters (of the %d a contact may have)", longest, WebTrackMaxEmailLength)
+	require.NotZero(t, longest, "no address at all could be identified")
+	require.NotZero(t, shortestRejected,
+		"every address up to WebTrackMaxEmailLength now fits: the mint bound is dead code and this test no longer guards anything")
+	assert.Equal(t, longest+1, shortestRejected, "the frontier must be a single step, not a range of silent failures")
+
+	t.Run("the error names both bounds so the operator can act on it", func(t *testing.T) {
+		email := strings.Repeat("a", shortestRejected-len("@example.com")) + "@example.com"
+		_, err := BuildWebIdentifyToken(email, secret, WebIdentifyTokenTTL, now)
+		require.Error(t, err)
+		assert.ErrorContains(t, err, fmt.Sprintf("%d", WebTrackMaxIdentifyTokenLength))
+		assert.ErrorContains(t, err, fmt.Sprintf("%d-character address", len(email)))
+	})
+}
+
 // TestWebTrackGoalPropertiesBounds covers W2b: goal properties were bounded by
 // nothing at all, and actions[] is cumulative — so one fat properties map is
 // re-sent on every later beat until the body crosses the server's 1MB cap, at
@@ -585,4 +703,74 @@ func TestWebTrackGoalPropertiesBounds(t *testing.T) {
 			assert.Equal(t, WebActionTypePageview, p.Actions[0].Type)
 		})
 	}
+}
+
+// TestWebTrackActionAcceptsFractionalMilliseconds pins the wire contract against
+// a payload captured verbatim from a real headless Chrome running the shipped
+// minified bundle.
+//
+// The SDK accumulates focus time from performance.now(), so "duration" arrives
+// fractional. encoding/json refuses a fractional number for an int64 field and
+// that error rejects the ENTIRE payload, so a single ordinary pageview sank the
+// whole session with a 400 and web analytics recorded nothing at all from real
+// browsers. Every other test here hand-builds actions with round integers,
+// which is exactly why none of them could see it.
+func TestWebTrackActionAcceptsFractionalMilliseconds(t *testing.T) {
+	t.Run("a beat captured from a real browser decodes", func(t *testing.T) {
+		// Verbatim capture — do not tidy the numbers. Their untidiness is the
+		// property under test.
+		const captured = `{"workspace_id":"wire_test","session_id":"019ff09b-720d-7a50-b187-f498b227c39a","tab_id":5297670035850299,"actions":[{"type":"pageview","path":"/","page_number":1,"duration":1473.3999999761581,"scroll":0,"entered_at":1786448146957,"exited_at":1786448148431},{"type":"pageview","path":"/pricing","page_number":2,"duration":100.69999998807907,"scroll":0,"entered_at":1786448148431,"exited_at":1786448148531},{"type":"goal","name":"wire_goal","path":"/pricing","page_number":2,"timestamp":1786448149930,"value":42}],"attributes":{"landing_page":"http://127.0.0.1:57124/"},"created_at":1786448146957,"updated_at":1786448149931,"sdk_version":"38.0","seq":3}`
+
+		var p WebTrackPayload
+		require.NoError(t, json.Unmarshal([]byte(captured), &p),
+			"a real browser beat must decode; a fractional duration must not sink the payload")
+		require.Len(t, p.Actions, 3)
+
+		// Rounded, not truncated: storage is integer milliseconds.
+		assert.Equal(t, int64(1473), p.Actions[0].Duration)
+		assert.Equal(t, int64(101), p.Actions[1].Duration, "100.699… rounds up, it is not truncated to 100")
+
+		// Integer-valued fields must survive the float round-trip exactly. The
+		// goal timestamp is baked into the dedup ExternalID, so a value that
+		// shifted by one would silently duplicate every conversion.
+		assert.Equal(t, int64(1786448146957), p.Actions[0].EnteredAt)
+		assert.Equal(t, int64(1786448148431), p.Actions[0].ExitedAt)
+		assert.Equal(t, int64(1786448149930), p.Actions[2].Timestamp)
+		assert.Equal(t, float64(42), p.Actions[2].Value)
+
+		// Non-ms fields must still decode through the shadowed alias.
+		assert.Equal(t, "pageview", p.Actions[0].Type)
+		assert.Equal(t, "/pricing", p.Actions[1].Path)
+		assert.Equal(t, 2, p.Actions[1].PageNumber)
+		assert.Equal(t, "wire_goal", p.Actions[2].Name)
+		assert.Equal(t, int64(5297670035850299), p.TabID)
+	})
+
+	t.Run("a fractional epoch timestamp keeps millisecond identity", func(t *testing.T) {
+		// float64 holds a millisecond epoch exactly (well under 2^53), so
+		// rounding must not perturb it.
+		var a WebTrackAction
+		require.NoError(t, json.Unmarshal([]byte(
+			`{"type":"goal","name":"g","path":"/","page_number":1,"timestamp":1786448149930.4}`), &a))
+		assert.Equal(t, int64(1786448149930), a.Timestamp)
+	})
+
+	t.Run("a non-finite duration is zeroed rather than becoming a garbage integer", func(t *testing.T) {
+		// JSON has no literal for these, but a client can still emit the
+		// strings; encoding/json rejects them, and the action must not be left
+		// carrying an int64 built from NaN.
+		var a WebTrackAction
+		err := json.Unmarshal([]byte(`{"type":"pageview","path":"/","page_number":1,"duration":1e400}`), &a)
+		require.Error(t, err, "an out-of-range float is still a decode error")
+		assert.Zero(t, a.Duration)
+	})
+
+	t.Run("an integer duration still decodes unchanged", func(t *testing.T) {
+		var a WebTrackAction
+		require.NoError(t, json.Unmarshal([]byte(
+			`{"type":"pageview","path":"/","page_number":1,"duration":1500,"entered_at":10,"exited_at":20}`), &a))
+		assert.Equal(t, int64(1500), a.Duration)
+		assert.Equal(t, int64(10), a.EnteredAt)
+		assert.Equal(t, int64(20), a.ExitedAt)
+	})
 }

@@ -84,7 +84,6 @@ func NewEmailService(
 	}
 }
 
-
 // TestEmailProvider sends a test email to verify the provider configuration works
 func (s *EmailService) TestEmailProvider(ctx context.Context, workspaceID string, provider domain.EmailProvider, to string) error {
 	ctx, span := tracing.StartServiceSpan(ctx, "EmailService", "TestEmailProvider")
@@ -223,8 +222,16 @@ func (s *EmailService) VisitLink(ctx context.Context, messageID string, workspac
 // against the request host identifies that send-time endpoint without a
 // workspace lookup on the hot click path, and stays correct when the
 // workspace endpoint is later reconfigured.
+//
+// It also strips the web analytics identity token from the URLs it does keep.
+// A recorded URL becomes a JSONB *key* in clicked_links and per-link reporting
+// aggregates those keys across a broadcast, but the token is minted per
+// recipient over a fresh random nonce: left in place it would turn one row per
+// link into one row per recipient, and persist a bearer identity credential in
+// the workspace database — the same two hazards the request-host check avoids
+// for the unsubscribe links.
 func sanitizeClickedURL(clickedURL string, requestHost string) string {
-	if clickedURL == "" || len(clickedURL) > maxRecordedClickedURLLength {
+	if clickedURL == "" {
 		return ""
 	}
 
@@ -237,7 +244,70 @@ func sanitizeClickedURL(clickedURL string, requestHost string) string {
 		return ""
 	}
 
-	return clickedURL
+	// The parameter name has to be the one notifuse_mjml WRITES onto a tracked
+	// link, not a copy of the literal: a second definition drifting from the
+	// first would silently stop matching, and the per-recipient credential the
+	// strip exists to remove would become a clicked_links JSONB key.
+	recorded := stripQueryParam(clickedURL, domain.WebIdentifyQueryParam)
+
+	// The cap is measured on what we are about to persist, not on what arrived:
+	// it exists to bound the clicked_links key, and the token adds ~150
+	// characters that never reach that key. Checking the raw URL first would
+	// drop an otherwise recordable click for the length of a parameter this
+	// function has just removed.
+	if len(recorded) > maxRecordedClickedURLLength {
+		return ""
+	}
+
+	return recorded
+}
+
+// stripQueryParam removes every occurrence of one query parameter from a URL,
+// working on the raw string rather than re-serialising a parsed url.URL. A
+// template link can reach here still carrying an unrendered Liquid placeholder,
+// and url.URL.String() would percent-escape its braces and spaces — recording a
+// link under a key that no longer matches the one the template ships. Raw
+// surgery also keeps parameter order, the fragment, userinfo and the port
+// exactly as they were, and leaves URLs without the parameter byte-identical,
+// so keys recorded before this existed keep aggregating with new ones.
+func stripQueryParam(rawURL string, name string) string {
+	// The query is what sits between the first '?' and the fragment. Anything
+	// after '#' stays untouched: a token there is not what the SDK reads, and
+	// the fragment never reaches the customer's server anyway.
+	head, fragment := rawURL, ""
+	if hash := strings.IndexByte(rawURL, '#'); hash >= 0 {
+		head, fragment = rawURL[:hash], rawURL[hash:]
+	}
+
+	mark := strings.IndexByte(head, '?')
+	if mark < 0 {
+		return rawURL
+	}
+
+	base, query := head[:mark], head[mark+1:]
+	pairs := strings.Split(query, "&")
+	kept := make([]string, 0, len(pairs))
+	for _, pair := range pairs {
+		key := pair
+		if eq := strings.IndexByte(pair, '='); eq >= 0 {
+			key = pair[:eq]
+		}
+		if key == name {
+			continue
+		}
+		kept = append(kept, pair)
+	}
+
+	if len(kept) == len(pairs) {
+		return rawURL
+	}
+	if len(kept) == 0 {
+		// The '?' goes with the last parameter: a link that carried nothing but
+		// the token must record as the bare destination, not as "…/product?".
+		return base + fragment
+	}
+
+	return base + "?" + strings.Join(kept, "&") + fragment
 }
 
 func (s *EmailService) OpenEmail(ctx context.Context, messageID string, workspaceID string) error {
@@ -320,6 +390,56 @@ func (s *EmailService) SendEmailForTemplate(ctx context.Context, request domain.
 	// Resolve the tracking/base endpoint: custom endpoint if set, else the API endpoint.
 	endpoint := workspace.Settings.ResolveEndpoint(s.apiEndpoint)
 
+	// Mint the web analytics identity for THIS recipient, so the rebuild below
+	// can carry it as one more field: what is not listed in that literal is what
+	// gets silently dropped.
+	//
+	// The gate is the feature being on AND at least one declared destination.
+	// The emptiness check is deliberately not delegated: an empty allowlist means
+	// "accept beats from any host" to the tracker, and carrying that reading over
+	// here would append a contact's identity to every link in the email, whoever
+	// it points at. The per-link host match runs later, in TrackLinks, against
+	// these same hosts.
+	//
+	// The third condition is who receives the message. The token names exactly
+	// one contact, every tracked link in the body carries that same token, and
+	// this send delivers the body to To plus every CC and BCC address — which
+	// arrive verbatim from the transactional.send request (and from the SMTP
+	// bridge's own headers, see smtp_bridge_handler.go). So a notification
+	// configured with a CC would hand each of those inboxes a working, week-long
+	// bearer identity for the actual recipient: whoever clicks from there is
+	// recorded as that contact, and with the contact bridge on, their web goals
+	// become that contact's timeline entries, segment recomputations and
+	// automation enrolments. Nothing downstream can tell those clicks apart, so
+	// the only safe reading is that a message with additional recipients cannot
+	// promise it reaches only the contact it identifies. No token at all costs
+	// that send its visit attribution, which is the cheaper failure.
+	singleRecipient := len(request.EmailOptions.CC) == 0 && len(request.EmailOptions.BCC) == 0
+
+	var identifyToken string
+	var identifyAllowedHosts []string
+	if wa := workspace.Settings.WebAnalytics; singleRecipient && wa != nil && wa.Enabled && len(wa.AllowedDomains) > 0 {
+		token, err := domain.BuildWebIdentifyToken(
+			request.Contact.Email,
+			workspace.Settings.SecretKey,
+			domain.WebIdentifyTokenTTL,
+			time.Now().UTC(),
+		)
+		if err != nil {
+			// Identity is an analytics enrichment on top of the send; the send is
+			// the legitimate work. A token that cannot be built costs the visit its
+			// attribution, never the email.
+			s.logger.WithFields(map[string]interface{}{
+				"error":      err.Error(),
+				"workspace":  request.WorkspaceID,
+				"message_id": request.MessageID,
+			}).Error("Failed to mint the web analytics identity token, sending without it")
+		} else {
+			identifyToken = token
+			identifyAllowedHosts = wa.AllowedDomains
+		}
+	}
+
 	trackingSettings := notifuse_mjml.TrackingSettings{
 		Endpoint:       endpoint,
 		EnableTracking: request.TrackingSettings.EnableTracking,
@@ -335,6 +455,10 @@ func (s *EmailService) SendEmailForTemplate(ctx context.Context, request domain.
 		UTMTerm:      request.TrackingSettings.UTMTerm,
 		WorkspaceID:  request.WorkspaceID,
 		MessageID:    request.MessageID,
+		// Request-scoped, and both json:"-": the credential reaches the compiler
+		// without ever reaching a stored tracking_settings row.
+		IdentifyToken:        identifyToken,
+		IdentifyAllowedHosts: identifyAllowedHosts,
 	}
 
 	compileTemplateRequest := domain.CompileTemplateRequest{

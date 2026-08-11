@@ -111,6 +111,16 @@ const (
 	TrackingModeDisabled = "disabled"
 )
 
+// WebIdentifyQueryParam is the URL parameter a tracked link carries so the web
+// analytics SDK can adopt the recipient's identity with no customer code: the
+// SDK reads it on landing, strips it from the address bar and sends it on the
+// next beat (web_analytics_sdk/src/sdk.ts).
+//
+// The literal lives here rather than in internal/domain because that package
+// imports this one — the link-rewriting pass below is the only Go code that
+// writes the parameter, and the reverse import would be a cycle.
+const WebIdentifyQueryParam = "nf_id"
+
 // ValidateTrackingMode rejects unknown tracking mode values.
 func ValidateTrackingMode(mode string) error {
 	switch mode {
@@ -134,6 +144,34 @@ type TrackingSettings struct {
 	UTMTerm      string `json:"utm_term,omitempty"`
 	WorkspaceID  string `json:"workspace_id,omitempty"`
 	MessageID    string `json:"message_id,omitempty"`
+	// IdentifyToken is the encrypted identity minted for THIS recipient and
+	// appended to tracked links as nf_id. It is a bearer credential: whoever
+	// holds it is treated as that contact, so it is excluded from the JSON —
+	// TrackingSettings is persisted as transactional_notifications.tracking_settings
+	// and a per-recipient credential must never reach the database.
+	IdentifyToken string `json:"-"`
+	// IdentifyAllowedHosts are the workspace's web analytics allowed domains,
+	// the only hosts the token above may be handed to. Request-scoped like the
+	// token, hence also excluded from the persisted JSON.
+	IdentifyAllowedHosts []string `json:"-"`
+}
+
+// IsZero reports whether no field is set. Callers use it to tell "no tracking
+// settings supplied" from a real change; IdentifyAllowedHosts makes the struct
+// non-comparable, so `== TrackingSettings{}` is not available for that check.
+func (t TrackingSettings) IsZero() bool {
+	return !t.EnableTracking &&
+		t.TrackingMode == "" &&
+		t.Endpoint == "" &&
+		t.UTMSource == "" &&
+		t.UTMMedium == "" &&
+		t.UTMCampaign == "" &&
+		t.UTMContent == "" &&
+		t.UTMTerm == "" &&
+		t.WorkspaceID == "" &&
+		t.MessageID == "" &&
+		t.IdentifyToken == "" &&
+		len(t.IdentifyAllowedHosts) == 0
 }
 
 // Value implements the driver.Valuer interface for database storage
@@ -236,6 +274,133 @@ func (t *TrackingSettings) applyUTMParameters(sourceURL string) string {
 	parsedURL.RawQuery = queryParams.Encode()
 
 	return parsedURL.String()
+}
+
+// MatchesAllowedHost reports whether hostname is covered by allowedHosts, using
+// the workspace web analytics allowed-domains semantics: "*.example.com" covers
+// the apex as well as any subdomain, comparison is case-insensitive and
+// surrounding whitespace is tolerated.
+//
+// Unlike the workspace-level check, an empty list matches NOTHING here: this
+// gate decides whether a per-recipient identity credential is appended to a
+// link, so an unconfigured allowlist has to mean "no host" rather than "every
+// host on the internet". For the same reason a wildcard over a bare TLD
+// ("*.com") matches nothing at all.
+func MatchesAllowedHost(hostname string, allowedHosts []string) bool {
+	host := strings.ToLower(strings.TrimSpace(hostname))
+	if host == "" {
+		return false
+	}
+	for _, d := range allowedHosts {
+		allowed := strings.ToLower(strings.TrimSpace(d))
+		if allowed == "" {
+			continue
+		}
+		if wild, ok := strings.CutPrefix(allowed, "*."); ok {
+			// "*.com" matches nothing: a wildcard over a bare TLD would hand
+			// this recipient's identity to every link in the email that happens
+			// to point at that TLD, which is a different order of mistake from
+			// the over-broad origin it would let through on the beat side. The
+			// entry is skipped rather than treated as an error because this is
+			// stored workspace configuration: one saved before it was validated
+			// must lose its match without taking the rest of the allowlist with
+			// it. The test is "the suffix contains a dot", not a public suffix
+			// lookup, so "*.example.com" and "*.example.co.uk" keep working
+			// (and the over-wide "*.co.uk" still gets through).
+			if !strings.Contains(wild, ".") {
+				continue
+			}
+			if host == wild || strings.HasSuffix(host, "."+wild) {
+				return true
+			}
+			continue
+		}
+		if host == allowed {
+			return true
+		}
+	}
+	return false
+}
+
+// applyIdentityParam appends the per-recipient identity token to sourceURL as
+// the nf_id parameter and returns the result. Like applyUTMParameters, the URL
+// is returned unchanged when it is empty, a Liquid placeholder, a mailto:/tel:
+// link, cannot be parsed, or already carries the parameter.
+//
+// It is additionally a no-op unless a token was minted AND the destination host
+// is on the allowlist: the token identifies one contact to whoever holds it, so
+// it may only be handed to the sites the workspace declared, never to whatever
+// third-party link the email happens to contain.
+//
+// The parameter is appended by raw string surgery, so every other byte of the
+// link survives exactly as its author wrote it. Rebuilding the URL through
+// url.Values instead loses data: Encode() round-trips the query through a
+// key/value map, which silently drops pairs it cannot split ("sid=1;2"),
+// re-escapes bytes that were written literally ("discount=50%off") and reorders
+// what is left. These are hand-built customer links — an order-dependent
+// signature or a legacy semicolon separator has to come out the other side
+// intact. internal/service/email_service.go's stripQueryParam does the same
+// surgery for the inverse operation, and the two agree on what a pair is: split
+// on '&', the key is what precedes the first '='.
+func (t *TrackingSettings) applyIdentityParam(sourceURL string) string {
+	if t.IdentifyToken == "" || len(t.IdentifyAllowedHosts) == 0 {
+		return sourceURL
+	}
+
+	if sourceURL == "" || strings.Contains(sourceURL, "{{") || strings.Contains(sourceURL, "{%") ||
+		strings.HasPrefix(sourceURL, "mailto:") || strings.HasPrefix(sourceURL, "tel:") {
+		return sourceURL
+	}
+
+	// url.Parse is used to read the host for the allowlist gate and to reject
+	// input that is not a URL at all. The string it would rebuild is never used.
+	parsedURL, err := url.Parse(sourceURL)
+	if err != nil {
+		return sourceURL
+	}
+
+	if !MatchesAllowedHost(parsedURL.Hostname(), t.IdentifyAllowedHosts) {
+		return sourceURL
+	}
+
+	// The query is what sits between the first '?' and the fragment. The pair is
+	// appended at the end of the query and never after '#': a parameter in the
+	// fragment stays in the browser and would never reach the destination.
+	head, fragment := sourceURL, ""
+	if hash := strings.IndexByte(sourceURL, '#'); hash >= 0 {
+		head, fragment = sourceURL[:hash], sourceURL[hash:]
+	}
+
+	// Only the value we add is escaped; the token is ours, everything else in
+	// the query is left byte-for-byte as it arrived.
+	pair := WebIdentifyQueryParam + "=" + url.QueryEscape(t.IdentifyToken)
+
+	mark := strings.IndexByte(head, '?')
+	if mark < 0 {
+		return head + "?" + pair + fragment
+	}
+
+	query := head[mark+1:]
+
+	// A link that already carries an identity keeps it: the author may have
+	// built the URL themselves, and overwriting it would silently change who
+	// the landing page attributes the visit to.
+	for _, existing := range strings.Split(query, "&") {
+		key := existing
+		if eq := strings.IndexByte(existing, '='); eq >= 0 {
+			key = existing[:eq]
+		}
+		if key == WebIdentifyQueryParam {
+			return sourceURL
+		}
+	}
+
+	if query == "" {
+		// "…/page?" already carries the separator the pair needs.
+		return head + pair + fragment
+	}
+
+	return head + "&" + pair + fragment
 }
 
 func (t *TrackingSettings) GetTrackingURL(sourceURL string) string {
@@ -677,10 +842,14 @@ func TrackLinks(htmlString string, trackingSettings TrackingSettings) (updatedHT
 		return htmlString, nil
 	}
 
-	// If tracking is disabled and no UTM parameters to add, return original HTML
+	// If tracking is disabled and there is nothing else to write onto the links,
+	// return the original HTML. An identity token counts: a workspace can run web
+	// analytics with click tracking off, and the recipient still has to be
+	// identified on landing.
 	if !trackingSettings.EnableTracking && trackingSettings.UTMSource == "" &&
 		trackingSettings.UTMMedium == "" && trackingSettings.UTMCampaign == "" &&
-		trackingSettings.UTMContent == "" && trackingSettings.UTMTerm == "" {
+		trackingSettings.UTMContent == "" && trackingSettings.UTMTerm == "" &&
+		trackingSettings.IdentifyToken == "" {
 		return htmlString, nil
 	}
 
@@ -707,6 +876,23 @@ func TrackLinks(htmlString string, trackingSettings TrackingSettings) (updatedHT
 
 		// Append UTM parameters to the destination URL
 		destinationURL := trackingSettings.applyUTMParameters(originalURL)
+
+		// Then the identity token, on the destination URL rather than on the
+		// redirect built below. That is the whole reason for the ordering: the
+		// redirect encrypts the destination it will send the recipient to, so a
+		// parameter added after it exists would never reach the landing page.
+		//
+		// It buys no confidentiality, and none is claimed. With click tracking
+		// off there is no redirect at all and the token sits in the href as
+		// plain text; with it on, the /r/ token is obfuscation aimed at
+		// pixel-blockers, not a secret — crypto.EncryptTrackingToken uses a
+		// hardcoded key, so anyone with the source can read it back. The token
+		// is therefore readable by anyone who can read the email, which is
+		// acceptable because the email is addressed to that contact. The
+		// exposure that remains is forwarding: whoever receives the forward is
+		// taken for the original recipient until the token expires.
+		destinationURL = trackingSettings.applyIdentityParam(destinationURL)
+
 		trackedURL := destinationURL
 
 		if trackingSettings.EnableTracking {

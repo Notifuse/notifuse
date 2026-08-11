@@ -1,5 +1,5 @@
 import { ReactNode, Suspense, lazy, useState } from 'react'
-import { Link, useParams } from '@tanstack/react-router'
+import { useParams } from '@tanstack/react-router'
 import { Button, Skeleton, Tooltip } from 'antd'
 import { Download } from 'lucide-react'
 import { useLingui } from '@lingui/react/macro'
@@ -9,6 +9,7 @@ import {
   WebAnalyticsTab,
   useWebAnalytics
 } from '../components/web_analytics/context'
+import { WebAnalyticsGate } from '../components/web_analytics/InstallOverlay'
 import { ComparisonPicker, DateRangePicker } from '../components/web_analytics/toolbar'
 import { CsvExportModal } from '../components/web_analytics/explore/CsvExportModal'
 import { DimensionSelector } from '../components/web_analytics/explore/DimensionSelector'
@@ -41,14 +42,14 @@ export function WebAnalyticsPage() {
 
   return (
     <WebAnalyticsProvider workspaceId={workspaceId}>
-      <WebAnalyticsSection workspaceId={workspaceId} tab={tab as WebAnalyticsTab} />
+      <WebAnalyticsSection tab={tab as WebAnalyticsTab} />
     </WebAnalyticsProvider>
   )
 }
 
 // Sections are reached from the workspace sidebar; the route param alone says
 // which one to render.
-function WebAnalyticsSection(props: { workspaceId: string; tab: WebAnalyticsTab }) {
+function WebAnalyticsSection(props: { tab: WebAnalyticsTab }) {
   const { t } = useLingui()
   const { settings, dimensions, setDimensions } = useWebAnalytics()
 
@@ -108,19 +109,10 @@ function WebAnalyticsSection(props: { workspaceId: string; tab: WebAnalyticsTab 
     </div>
   )
 
-  return (
-    <div className="p-4 md:p-6">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="text-2xl font-medium">{titles[activeTab]}</div>
-          {/* The dashboard is the section's landing page, so the live count
-              belongs there; on the other tabs it is a second, unrelated period
-              sitting next to a title about the one you chose. */}
-          {activeTab === 'dashboard' && settings?.enabled ? <LiveButton /> : null}
-        </div>
-        {showToolbar && settings && isExplore ? periodControls : null}
-      </div>
-
+  // Everything the period applies to sits inside the gate, so an install
+  // problem covers the controls that would only produce more empty reports.
+  const body = (
+    <>
       {/* Dimensions above filters: the dimensions are the report, the filters
           only narrow it, so they read in the order they are applied. */}
       {showToolbar && settings && isExplore ? (
@@ -143,33 +135,32 @@ function WebAnalyticsSection(props: { workspaceId: string; tab: WebAnalyticsTab 
         </div>
       ) : null}
 
-      {settings ? panes[activeTab] : <NotConfigured workspaceId={props.workspaceId} />}
+      {panes[activeTab]}
+    </>
+  )
+
+  return (
+    <div className="p-4 md:p-6">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="text-2xl font-medium">{titles[activeTab]}</div>
+          {/* The dashboard is the section's landing page, so the live count
+              belongs there; on the other tabs it is a second, unrelated period
+              sitting next to a title about the one you chose. */}
+          {activeTab === 'dashboard' && settings?.enabled ? <LiveButton /> : null}
+        </div>
+        {showToolbar && settings && isExplore ? periodControls : null}
+      </div>
+
+      {/* The filters tab configures attribution rather than reading it, so a
+          quiet day must not stand between the operator and their rules. */}
+      <WebAnalyticsGate mode={DATA_SECTIONS.includes(activeTab) ? 'data' : 'config'}>
+        {body}
+      </WebAnalyticsGate>
 
       {/* Lives here rather than in the tab because its trigger moved up to the
           page header; the modal reads the report it exports from context. */}
       <CsvExportModal open={csvOpen} onCancel={() => setCsvOpen(false)} />
-    </div>
-  )
-}
-
-/**
- * Web analytics only appears in the workspace once its settings exist. Until
- * then every data tab would query tables the schema resolver does not expose,
- * so they point at the workspace settings instead of failing one widget at a
- * time.
- */
-function NotConfigured(props: { workspaceId: string }) {
-  const { t } = useLingui()
-  return (
-    <div className="rounded-md bg-white p-8 text-center text-gray-500">
-      <p className="mb-4">{t`Web analytics is not set up on this workspace yet.`}</p>
-      <Link
-        to="/console/workspace/$workspaceId/settings/$section"
-        params={{ workspaceId: props.workspaceId, section: 'web-analytics' }}
-        className="text-[var(--primary)]"
-      >
-        {t`Open the workspace settings to install the tracking snippet`}
-      </Link>
     </div>
   )
 }

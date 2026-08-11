@@ -2,12 +2,14 @@ package service
 
 import (
 	"context"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/domain/mocks"
+	"github.com/Notifuse/notifuse/pkg/crypto"
 	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
 	"github.com/Notifuse/notifuse/pkg/notifuse_mjml"
 	"github.com/golang/mock/gomock"
@@ -736,6 +738,159 @@ func TestEmailService_VisitLink(t *testing.T) {
 		// Assertions
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to set clicked")
+	})
+}
+
+// TestSanitizeClickedURL_CollapsesPerRecipientIdentityTokens is the assertion the
+// whole strip exists for. The recorded URL becomes a JSONB key in clicked_links
+// and per-link reporting groups by that key, so a token that varies per
+// recipient would turn one row per link into one row per recipient.
+func TestSanitizeClickedURL_CollapsesPerRecipientIdentityTokens(t *testing.T) {
+	const secretKey = "workspace-secret-key-32-chars-min!"
+	const link = "https://shop.example.com/product?utm_source=news"
+	const requestHost = "click.notifuse.test"
+
+	now := time.Now()
+
+	t.Run("Two recipients clicking the same link record one key", func(t *testing.T) {
+		aliceToken, err := domain.BuildWebIdentifyToken("alice@example.com", secretKey, domain.WebIdentifyTokenTTL, now)
+		require.NoError(t, err)
+		bobToken, err := domain.BuildWebIdentifyToken("bob@example.com", secretKey, domain.WebIdentifyTokenTTL, now)
+		require.NoError(t, err)
+
+		aliceURL := link + "&" + domain.WebIdentifyQueryParam + "=" + aliceToken
+		bobURL := link + "&" + domain.WebIdentifyQueryParam + "=" + bobToken
+		require.NotEqual(t, aliceURL, bobURL, "the two recipients must not share a destination URL, or the test proves nothing")
+
+		recordedForAlice := sanitizeClickedURL(aliceURL, requestHost)
+		recordedForBob := sanitizeClickedURL(bobURL, requestHost)
+
+		assert.Equal(t, link, recordedForAlice)
+		assert.Equal(t, recordedForAlice, recordedForBob, "both clicks must aggregate under a single clicked_links key")
+		assert.NotContains(t, recordedForAlice, domain.WebIdentifyQueryParam, "no bearer identity credential may reach the workspace database")
+	})
+
+	t.Run("Two sends to the same recipient also record one key", func(t *testing.T) {
+		// The token is encrypted over a fresh random nonce per call, so even one
+		// recipient receiving the same campaign twice carries two distinct URLs.
+		first, err := domain.BuildWebIdentifyToken("alice@example.com", secretKey, domain.WebIdentifyTokenTTL, now)
+		require.NoError(t, err)
+		second, err := domain.BuildWebIdentifyToken("alice@example.com", secretKey, domain.WebIdentifyTokenTTL, now)
+		require.NoError(t, err)
+		require.NotEqual(t, first, second, "EncryptString must seed a fresh nonce per call")
+
+		assert.Equal(t,
+			sanitizeClickedURL(link+"&"+domain.WebIdentifyQueryParam+"="+first, requestHost),
+			sanitizeClickedURL(link+"&"+domain.WebIdentifyQueryParam+"="+second, requestHost))
+	})
+}
+
+func TestSanitizeClickedURL_IdentifyTokenStripping(t *testing.T) {
+	const requestHost = "click.notifuse.test"
+
+	testCases := []struct {
+		name     string
+		url      string
+		expected string
+	}{
+		{
+			name:     "URL without an identify token is recorded byte-identical",
+			url:      "https://shop.example.com/product?utm_source=news&utm_medium=email",
+			expected: "https://shop.example.com/product?utm_source=news&utm_medium=email",
+		},
+		{
+			name:     "Identify token as the only parameter leaves no dangling question mark",
+			url:      "https://shop.example.com/product?nf_id=abc123",
+			expected: "https://shop.example.com/product",
+		},
+		{
+			name:     "Identify token among other parameters keeps their order",
+			url:      "https://shop.example.com/product?utm_source=news&nf_id=abc123&utm_medium=email",
+			expected: "https://shop.example.com/product?utm_source=news&utm_medium=email",
+		},
+		{
+			name:     "Identify token first",
+			url:      "https://shop.example.com/product?nf_id=abc123&utm_source=news",
+			expected: "https://shop.example.com/product?utm_source=news",
+		},
+		{
+			name:     "Identify token without a value",
+			url:      "https://shop.example.com/product?nf_id&utm_source=news",
+			expected: "https://shop.example.com/product?utm_source=news",
+		},
+		{
+			name:     "A parameter merely starting with the token name is kept",
+			url:      "https://shop.example.com/product?nf_ident=1&nf_id=abc123",
+			expected: "https://shop.example.com/product?nf_ident=1",
+		},
+		{
+			name:     "The fragment is not a query string",
+			url:      "https://shop.example.com/product?utm_source=news#nf_id=abc123",
+			expected: "https://shop.example.com/product?utm_source=news#nf_id=abc123",
+		},
+		{
+			name:     "The fragment survives the strip",
+			url:      "https://shop.example.com/product?nf_id=abc123#reviews",
+			expected: "https://shop.example.com/product#reviews",
+		},
+		{
+			name:     "An unrendered Liquid placeholder is preserved verbatim",
+			url:      "https://shop.example.com/{{ contact.first_name }}?nf_id=abc123&utm_source=news",
+			expected: "https://shop.example.com/{{ contact.first_name }}?utm_source=news",
+		},
+		{
+			name:     "Userinfo and port are preserved",
+			url:      "http://user:pw@shop.example.com:8443/product?nf_id=abc123",
+			expected: "http://user:pw@shop.example.com:8443/product",
+		},
+		{
+			name:     "Unparseable URL degrades to aggregate-only",
+			url:      "https://shop.example.com/%zz?nf_id=abc123",
+			expected: "",
+		},
+		{
+			name:     "A token on a link back to the request host does not rescue it",
+			url:      "https://click.notifuse.test/unsubscribe?email=someone@example.com&nf_id=abc123",
+			expected: "",
+		},
+		{
+			name:     "A token on a non-http scheme does not rescue it",
+			url:      "ftp://files.example.com/report.pdf?nf_id=abc123",
+			expected: "",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, tc.expected, sanitizeClickedURL(tc.url, requestHost))
+		})
+	}
+}
+
+func TestSanitizeClickedURL_LengthCapIgnoresTheIdentifyToken(t *testing.T) {
+	const secretKey = "workspace-secret-key-32-chars-min!"
+	const requestHost = "click.notifuse.test"
+
+	token, err := domain.BuildWebIdentifyToken("alice@example.com", secretKey, domain.WebIdentifyTokenTTL, time.Now())
+	require.NoError(t, err)
+
+	t.Run("A URL only over the cap because of the token is still recorded", func(t *testing.T) {
+		prefix := "https://shop.example.com/product?q="
+		atCap := prefix + strings.Repeat("a", maxRecordedClickedURLLength-len(prefix))
+		withToken := atCap + "&" + domain.WebIdentifyQueryParam + "=" + token
+
+		require.Len(t, atCap, maxRecordedClickedURLLength)
+		require.Greater(t, len(withToken), maxRecordedClickedURLLength, "the token must be what pushes this URL over the cap")
+
+		assert.Equal(t, atCap, sanitizeClickedURL(withToken, requestHost))
+	})
+
+	t.Run("A URL still over the cap once stripped degrades to aggregate-only", func(t *testing.T) {
+		prefix := "https://shop.example.com/product?q="
+		overCap := prefix + strings.Repeat("a", maxRecordedClickedURLLength-len(prefix)+1)
+		withToken := overCap + "&" + domain.WebIdentifyQueryParam + "=" + token
+
+		assert.Empty(t, sanitizeClickedURL(withToken, requestHost))
 	})
 }
 
@@ -1725,4 +1880,334 @@ func TestEmailService_SendEmailForTemplate(t *testing.T) {
 		// Assertions
 		require.NoError(t, err)
 	})
+}
+
+// resolveIdentifyToken is the server side of the round trip: it answers who a
+// minted token identifies, exactly as /track does on the next beat.
+func resolveIdentifyToken(t *testing.T, token string, secretKey string) (string, bool) {
+	t.Helper()
+	return domain.ResolveWebIdentity(&domain.WebTrackPayload{IdentifyToken: &token}, secretKey, time.Now())
+}
+
+// capturedTrackingEndpoint is the API endpoint the capturing helper's service
+// runs on, and therefore the prefix of the /r/{token} links TrackLinks builds
+// from the settings it captures.
+const capturedTrackingEndpoint = "https://track.notifuse.test"
+
+// sendForTemplateCapturingTracking runs one send through SendEmailForTemplate
+// against a workspace carrying the given web analytics settings, and returns the
+// TrackingSettings the compiler was handed — the only place the identity fields
+// are observable, since they are request-scoped and never persisted.
+func sendForTemplateCapturingTracking(t *testing.T, webAnalytics *domain.WebAnalyticsSettings, contactEmail string, secretKey string) notifuse_mjml.TrackingSettings {
+	t.Helper()
+	return sendForTemplateCapturingTrackingWithOptions(t, webAnalytics, contactEmail, secretKey, domain.EmailOptions{})
+}
+
+// sendForTemplateCapturingTrackingWithOptions is the same send with the caller's
+// EmailOptions attached, so a test can state who else the message goes to.
+func sendForTemplateCapturingTrackingWithOptions(t *testing.T, webAnalytics *domain.WebAnalyticsSettings, contactEmail string, secretKey string, emailOptions domain.EmailOptions) notifuse_mjml.TrackingSettings {
+	t.Helper()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+
+	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	mockTemplateService := mocks.NewMockTemplateService(ctrl)
+	mockMessageRepo := mocks.NewMockMessageHistoryRepository(ctrl)
+	mockSESService := mocks.NewMockEmailProviderService(ctrl)
+
+	emailService := EmailService{
+		logger:          mockLogger,
+		workspaceRepo:   mockWorkspaceRepo,
+		templateService: mockTemplateService,
+		messageRepo:     mockMessageRepo,
+		sesService:      mockSESService,
+		// The workspace below declares no custom endpoint, so this is what
+		// ResolveEndpoint hands the compiler and what the /r/ links are built on.
+		apiEndpoint: capturedTrackingEndpoint,
+	}
+
+	const workspaceID = "workspace-123"
+	emailSender := domain.NewEmailSender("sender@example.com", "Sender Name")
+	emailTemplate := &domain.Template{
+		ID:   "template-789",
+		Name: "Welcome Email",
+		Email: &domain.EmailTemplate{
+			Subject:  "Welcome",
+			SenderID: emailSender.ID,
+			VisualEditorTree: &notifuse_mjml.MJMLBlock{
+				BaseBlock: notifuse_mjml.NewBaseBlock("root", notifuse_mjml.MJMLComponentMjml),
+			},
+		},
+	}
+	compiledHTML := "<h1>Welcome!</h1>"
+
+	mockWorkspaceRepo.EXPECT().
+		GetByID(gomock.Any(), workspaceID).
+		Return(&domain.Workspace{
+			ID: workspaceID,
+			Settings: domain.WorkspaceSettings{
+				SecretKey:    secretKey,
+				WebAnalytics: webAnalytics,
+			},
+		}, nil)
+	mockTemplateService.EXPECT().
+		GetTemplateByID(gomock.Any(), workspaceID, emailTemplate.ID, int64(0)).
+		Return(emailTemplate, nil)
+
+	var captured notifuse_mjml.TrackingSettings
+	mockTemplateService.EXPECT().
+		CompileTemplate(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, req domain.CompileTemplateRequest) (*domain.CompileTemplateResponse, error) {
+			captured = req.TrackingSettings
+			return &domain.CompileTemplateResponse{Success: true, HTML: &compiledHTML}, nil
+		})
+	mockMessageRepo.EXPECT().
+		Create(gomock.Any(), workspaceID, gomock.Any(), gomock.Any()).
+		Return(nil)
+	mockSESService.EXPECT().
+		SendEmail(gomock.Any(), gomock.Any()).
+		Return(nil)
+
+	request := domain.SendEmailRequest{
+		WorkspaceID:    workspaceID,
+		IntegrationID:  "test-integration-id",
+		MessageID:      "message-456",
+		Contact:        &domain.Contact{Email: contactEmail},
+		TemplateConfig: domain.ChannelTemplate{TemplateID: emailTemplate.ID},
+		TrackingSettings: notifuse_mjml.TrackingSettings{
+			EnableTracking: true,
+		},
+		EmailProvider: &domain.EmailProvider{
+			Kind:    domain.EmailProviderKindSES,
+			Senders: []domain.EmailSender{emailSender},
+			SES:     &domain.AmazonSESSettings{Region: "us-east-1"},
+		},
+		EmailOptions: emailOptions,
+	}
+	require.NoError(t, emailService.SendEmailForTemplate(context.Background(), request))
+
+	return captured
+}
+
+// TestEmailService_SendEmailForTemplate_WebIdentity covers the "identified with
+// no code" path: the transactional/automation send has to hand the compiler a
+// credential for THIS recipient, or the tracked links land on the customer's
+// site anonymously and the visit is never attributed.
+func TestEmailService_SendEmailForTemplate_WebIdentity(t *testing.T) {
+	const secretKey = "workspace-secret-key-32-chars-min!"
+	const contactEmail = "test@example.com"
+
+	t.Run("Mints the recipient's token when web analytics runs on declared domains", func(t *testing.T) {
+		tracking := sendForTemplateCapturingTracking(t, &domain.WebAnalyticsSettings{
+			Enabled:        true,
+			AllowedDomains: []string{"shop.example.com", "*.blog.example.com"},
+		}, contactEmail, secretKey)
+
+		require.NotEmpty(t, tracking.IdentifyToken)
+		assert.Equal(t, []string{"shop.example.com", "*.blog.example.com"}, tracking.IdentifyAllowedHosts,
+			"the token may only be handed to the hosts the workspace declared")
+
+		resolved, ok := resolveIdentifyToken(t, tracking.IdentifyToken, secretKey)
+		require.True(t, ok, "the token must survive the round trip through the workspace secret")
+		assert.Equal(t, contactEmail, resolved)
+	})
+
+	t.Run("Mints nothing when the workspace has no web analytics settings", func(t *testing.T) {
+		tracking := sendForTemplateCapturingTracking(t, nil, contactEmail, secretKey)
+
+		assert.Empty(t, tracking.IdentifyToken)
+		assert.Empty(t, tracking.IdentifyAllowedHosts)
+	})
+
+	t.Run("Mints nothing when web analytics is configured but disabled", func(t *testing.T) {
+		tracking := sendForTemplateCapturingTracking(t, &domain.WebAnalyticsSettings{
+			Enabled:        false,
+			AllowedDomains: []string{"shop.example.com"},
+		}, contactEmail, secretKey)
+
+		assert.Empty(t, tracking.IdentifyToken)
+		assert.Empty(t, tracking.IdentifyAllowedHosts)
+	})
+
+	t.Run("Mints nothing when no destination domain is declared", func(t *testing.T) {
+		// The one case worth stating twice: an empty allowlist means "accept
+		// beats from any host" to the tracker. If the mint site read it the same
+		// way, every link in the email — including third-party ones — would carry
+		// a bearer identity for the recipient.
+		tracking := sendForTemplateCapturingTracking(t, &domain.WebAnalyticsSettings{
+			Enabled:        true,
+			AllowedDomains: nil,
+		}, contactEmail, secretKey)
+
+		assert.Empty(t, tracking.IdentifyToken)
+		assert.Empty(t, tracking.IdentifyAllowedHosts)
+	})
+
+	t.Run("Each recipient gets their own token", func(t *testing.T) {
+		webAnalytics := &domain.WebAnalyticsSettings{
+			Enabled:        true,
+			AllowedDomains: []string{"shop.example.com"},
+		}
+
+		aliceTracking := sendForTemplateCapturingTracking(t, webAnalytics, "alice@example.com", secretKey)
+		bobTracking := sendForTemplateCapturingTracking(t, webAnalytics, "bob@example.com", secretKey)
+
+		require.NotEqual(t, aliceTracking.IdentifyToken, bobTracking.IdentifyToken,
+			"a token hoisted above the per-recipient work would identify everyone as the first recipient")
+
+		alice, ok := resolveIdentifyToken(t, aliceTracking.IdentifyToken, secretKey)
+		require.True(t, ok)
+		assert.Equal(t, "alice@example.com", alice)
+
+		bob, ok := resolveIdentifyToken(t, bobTracking.IdentifyToken, secretKey)
+		require.True(t, ok)
+		assert.Equal(t, "bob@example.com", bob)
+	})
+
+	t.Run("A workspace without a secret key still sends, without identity", func(t *testing.T) {
+		// Minting is the only thing that fails here, and it must cost the visit
+		// its attribution rather than the email: sendForTemplateCapturingTracking
+		// asserts the send itself succeeded.
+		tracking := sendForTemplateCapturingTracking(t, &domain.WebAnalyticsSettings{
+			Enabled:        true,
+			AllowedDomains: []string{"shop.example.com"},
+		}, contactEmail, "")
+
+		assert.Empty(t, tracking.IdentifyToken)
+		assert.Empty(t, tracking.IdentifyAllowedHosts)
+	})
+}
+
+// TestEmailService_SendEmailForTemplate_WebIdentityAdditionalRecipients covers
+// who else receives the message. The identity token names one contact and rides
+// on every tracked link in the body, so any inbox that receives that body holds
+// a working credential for the recipient — and CC/BCC arrive verbatim from the
+// transactional.send request, which means a single misconfigured notification
+// hands the token out automatically, to people neither party can see.
+func TestEmailService_SendEmailForTemplate_WebIdentityAdditionalRecipients(t *testing.T) {
+	const secretKey = "workspace-secret-key-32-chars-min!"
+	const contactEmail = "test@example.com"
+
+	webAnalytics := func() *domain.WebAnalyticsSettings {
+		return &domain.WebAnalyticsSettings{
+			Enabled:        true,
+			AllowedDomains: []string{"shop.example.com"},
+		}
+	}
+
+	t.Run("Mints nothing when the send carries a CC", func(t *testing.T) {
+		tracking := sendForTemplateCapturingTrackingWithOptions(t, webAnalytics(), contactEmail, secretKey,
+			domain.EmailOptions{CC: []string{"colleague@example.com"}})
+
+		assert.Empty(t, tracking.IdentifyToken, "a CC'd inbox must not receive a bearer identity for the recipient")
+		assert.Empty(t, tracking.IdentifyAllowedHosts)
+	})
+
+	t.Run("Mints nothing when the send carries a BCC", func(t *testing.T) {
+		// Worse than CC: the recipient cannot even see who else was handed their
+		// identity.
+		tracking := sendForTemplateCapturingTrackingWithOptions(t, webAnalytics(), contactEmail, secretKey,
+			domain.EmailOptions{BCC: []string{"archive@example.com"}})
+
+		assert.Empty(t, tracking.IdentifyToken)
+		assert.Empty(t, tracking.IdentifyAllowedHosts)
+	})
+
+	t.Run("Mints nothing when both are set", func(t *testing.T) {
+		tracking := sendForTemplateCapturingTrackingWithOptions(t, webAnalytics(), contactEmail, secretKey,
+			domain.EmailOptions{CC: []string{"a@example.com"}, BCC: []string{"b@example.com"}})
+
+		assert.Empty(t, tracking.IdentifyToken)
+		assert.Empty(t, tracking.IdentifyAllowedHosts)
+	})
+
+	t.Run("Other email options do not suppress the identity", func(t *testing.T) {
+		// The gate is about additional RECIPIENTS, not about EmailOptions being
+		// populated: a send that only overrides the subject still reaches exactly
+		// one mailbox.
+		subject := "Overridden"
+		tracking := sendForTemplateCapturingTrackingWithOptions(t, webAnalytics(), contactEmail, secretKey,
+			domain.EmailOptions{Subject: &subject, ReplyTo: "support@example.com"})
+
+		require.NotEmpty(t, tracking.IdentifyToken)
+		resolved, ok := resolveIdentifyToken(t, tracking.IdentifyToken, secretKey)
+		require.True(t, ok)
+		assert.Equal(t, contactEmail, resolved)
+	})
+
+	t.Run("An empty CC slice is not an additional recipient", func(t *testing.T) {
+		tracking := sendForTemplateCapturingTrackingWithOptions(t, webAnalytics(), contactEmail, secretKey,
+			domain.EmailOptions{CC: []string{}, BCC: []string{}})
+
+		assert.NotEmpty(t, tracking.IdentifyToken)
+	})
+}
+
+// TestSanitizeClickedURL_StripsWhatTrackLinksWrites is the cross-package
+// assertion. Every other strip test builds its URLs by concatenating this
+// package's idea of the parameter name, so it can only prove the strip is
+// self-consistent. The name that matters is the one notifuse_mjml WRITES onto a
+// tracked link, one package away, and the only way to prove the two agree is to
+// run the real chain: mint through SendEmailForTemplate, rewrite through
+// TrackLinks, decrypt the /r/ token the recipient's browser would follow, then
+// record it. If the two constants ever drift apart, this is the test that fails
+// instead of a per-recipient credential quietly becoming a clicked_links key.
+func TestSanitizeClickedURL_StripsWhatTrackLinksWrites(t *testing.T) {
+	const secretKey = "workspace-secret-key-32-chars-min!"
+	const requestHost = "track.notifuse.test"
+	const linkHTML = `<a href="https://shop.example.com/product?utm_source=news">Buy now</a>`
+
+	webAnalytics := &domain.WebAnalyticsSettings{
+		Enabled:        true,
+		AllowedDomains: []string{"shop.example.com"},
+	}
+
+	// destinationFor sends to one recipient and returns the URL that recipient's
+	// browser is redirected to — the string /r/ hands to VisitLink as clickedURL.
+	destinationFor := func(recipient string) string {
+		t.Helper()
+
+		tracking := sendForTemplateCapturingTracking(t, webAnalytics, recipient, secretKey)
+		require.NotEmpty(t, tracking.IdentifyToken, "the send must have minted a token, or this test proves nothing")
+
+		trackedHTML, err := notifuse_mjml.TrackLinks(linkHTML, tracking)
+		require.NoError(t, err)
+
+		tokenRegex := regexp.MustCompile(regexp.QuoteMeta(capturedTrackingEndpoint) + `/r/([^"']+)`)
+		m := tokenRegex.FindStringSubmatch(trackedHTML)
+		require.NotNil(t, m, "expected a /r/{token} tracking link, got: %s", trackedHTML)
+
+		// Payload format: messageID\nworkspaceID\ntimestamp\ndestinationURL
+		plaintext, err := crypto.DecryptTrackingToken(m[1])
+		require.NoError(t, err)
+		parts := strings.Split(plaintext, "\n")
+		require.Len(t, parts, 4, "unexpected token payload: %q", plaintext)
+		return parts[3]
+	}
+
+	aliceDestination := destinationFor("alice@example.com")
+	bobDestination := destinationFor("bob@example.com")
+
+	require.Contains(t, aliceDestination, domain.WebIdentifyQueryParam+"=",
+		"TrackLinks must have written the identity parameter onto the destination")
+	require.NotEqual(t, aliceDestination, bobDestination,
+		"the two recipients must land on different URLs, or the strip is not being exercised")
+
+	aliceKey := sanitizeClickedURL(aliceDestination, requestHost)
+	bobKey := sanitizeClickedURL(bobDestination, requestHost)
+
+	require.NotEmpty(t, aliceKey, "the destination is on a third-party host and must stay recordable")
+	assert.Equal(t, aliceKey, bobKey, "both clicks must aggregate under a single clicked_links key")
+	assert.NotContains(t, aliceKey, domain.WebIdentifyQueryParam,
+		"no bearer identity credential may reach the workspace database")
+	assert.Contains(t, aliceKey, "https://shop.example.com/product", "the destination itself must survive the strip")
+	assert.Contains(t, aliceKey, "utm_source=news", "the campaign parameters must survive the strip")
 }

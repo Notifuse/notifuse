@@ -12,6 +12,7 @@
  * - No attributesSent optimization - always include attributes
  */
 
+import type { WebIdentity } from '../types';
 import type {
   Action,
   PageviewAction,
@@ -195,7 +196,7 @@ export class SessionState {
 
   buildPayload(
     attributes: SessionAttributes,
-    options?: { userId?: string | null; dimensions?: Record<string, string> }
+    options?: { identity?: WebIdentity | null; dimensions?: Record<string, string> }
   ): SessionPayload {
     // Update current page's duration and exited_at before building payload
     if (this.currentPageIndex !== null) {
@@ -220,8 +221,17 @@ export class SessionState {
     };
 
     // Add user_id if provided in options
-    if (options && 'userId' in options) {
-      payload.user_id = options.userId;
+    // Spread the credential the visitor actually holds. An unsigned address is
+    // never stored client-side, so there is no shape here that the server would
+    // silently discard.
+    if (options && 'identity' in options) {
+      const identity = options.identity;
+      if (identity?.token) {
+        payload.identify_token = identity.token;
+      } else if (identity?.email && identity.hmac) {
+        payload.contact_email = identity.email;
+        payload.contact_email_hmac = identity.hmac;
+      }
     }
 
     // Add dimensions if provided in options

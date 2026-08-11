@@ -562,8 +562,14 @@ func ScanRows(rows *sql.Rows) ([]map[string]interface{}, error) {
 		return nil, fmt.Errorf("failed to get columns: %w", err)
 	}
 
-	// Parse results
-	var data []map[string]interface{}
+	// Parse results.
+	//
+	// Non-nil from the start: a nil slice marshals to JSON null, and every
+	// consumer's type declares `data` as an array. A breakdown that matched
+	// nothing would hand the client null where it promised a list, and the
+	// client would call .map on it — an empty workspace, or any filter
+	// combination with no matches, is enough to crash the page.
+	data := make([]map[string]interface{}, 0)
 	for rows.Next() {
 		// Create a slice of interface{} to hold the values
 		values := make([]interface{}, len(columns))

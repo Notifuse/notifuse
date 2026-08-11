@@ -951,6 +951,29 @@ func (s *WorkspaceService) SetWebAnalyticsSettings(ctx context.Context, workspac
 		return err
 	}
 
+	// Turning the contact bridge ON needs contacts:write as well.
+	//
+	// Every other field here only shapes reporting, but this one starts writing
+	// rows into contact_timeline, queueing segment recomputation and enrolling
+	// contacts into automations — all resources a web-analytics-only member has
+	// no permission over. Deleting a single contact already requires
+	// contacts:write; switching on a feature that writes to every contact's
+	// timeline cannot require less.
+	//
+	// Only the transition is gated, so a member without contacts:write can still
+	// edit unrelated settings on a workspace where the bridge is already on.
+	if settings != nil && settings.ContactBridgeEnabled {
+		alreadyOn := existingWorkspace.Settings.WebAnalytics != nil &&
+			existingWorkspace.Settings.WebAnalytics.ContactBridgeEnabled
+		if !alreadyOn && !userWorkspace.HasPermission(domain.PermissionResourceContacts, domain.PermissionTypeWrite) {
+			return domain.NewPermissionError(
+				domain.PermissionResourceContacts,
+				domain.PermissionTypeWrite,
+				"Insufficient permissions: write access to contacts required to record web goals on contact timelines",
+			)
+		}
+	}
+
 	existingWorkspace.Settings.WebAnalytics = settings
 
 	if err := s.repo.Update(ctx, existingWorkspace); err != nil {

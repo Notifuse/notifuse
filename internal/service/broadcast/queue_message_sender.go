@@ -59,8 +59,10 @@ func (s *queueMessageSender) SendToRecipient(
 	ctx context.Context,
 	workspaceID string,
 	integrationID string,
+	workspaceSecretKey string,
 	endpoint string,
 	trackingEnabled bool,
+	webAnalytics *domain.WebAnalyticsSettings,
 	broadcast *domain.Broadcast,
 	messageID string,
 	email string,
@@ -72,7 +74,7 @@ func (s *queueMessageSender) SendToRecipient(
 	workspaceDefaultLanguage string,
 ) error {
 	// Build the email payload
-	entry, err := s.buildQueueEntry(ctx, workspaceID, integrationID, endpoint, trackingEnabled, broadcast, messageID, email, template, data, emailProvider, contactLanguage, workspaceDefaultLanguage)
+	entry, err := s.buildQueueEntry(ctx, workspaceID, integrationID, workspaceSecretKey, endpoint, trackingEnabled, webAnalytics, broadcast, messageID, email, template, data, emailProvider, contactLanguage, workspaceDefaultLanguage)
 	if err != nil {
 		return err
 	}
@@ -100,6 +102,7 @@ func (s *queueMessageSender) SendBatch(
 	endpoint string,
 	websiteURL string,
 	trackingEnabled bool,
+	webAnalytics *domain.WebAnalyticsSettings,
 	broadcastID string,
 	recipients []*domain.ContactWithList,
 	templates map[string]*domain.Template,
@@ -152,7 +155,13 @@ func (s *queueMessageSender) SendBatch(
 			utmParams.Content = template.ID
 		}
 
-		// Build tracking settings for BuildTemplateData
+		// Build tracking settings for BuildTemplateData. Deliberately no identity
+		// token: BuildTemplateData reads the endpoint and the UTM fields and never
+		// looks at IdentifyToken, and the settings the link rewriter sees are built
+		// in buildQueueEntry below, which mints this recipient's own token there.
+		// Minting a second one here would encrypt a live per-recipient credential
+		// once more per contact in the batch loop and park it in a struct nothing
+		// reads.
 		trackingSettings := notifuse_mjml.TrackingSettings{
 			Endpoint:       endpoint,
 			EnableTracking: trackingEnabled,
@@ -222,7 +231,7 @@ func (s *queueMessageSender) SendBatch(
 		}
 
 		// Build queue entry
-		entry, err := s.buildQueueEntry(ctx, workspaceID, integrationID, endpoint, trackingEnabled, broadcast, messageID, recipient.Contact.Email, template, data, emailProvider, contactLanguage, workspaceDefaultLanguage)
+		entry, err := s.buildQueueEntry(ctx, workspaceID, integrationID, workspaceSecretKey, endpoint, trackingEnabled, webAnalytics, broadcast, messageID, recipient.Contact.Email, template, data, emailProvider, contactLanguage, workspaceDefaultLanguage)
 		if err != nil {
 			s.logger.WithFields(map[string]interface{}{
 				"broadcast_id": broadcastID,
@@ -273,8 +282,10 @@ func (s *queueMessageSender) buildQueueEntry(
 	ctx context.Context,
 	workspaceID string,
 	integrationID string,
+	workspaceSecretKey string,
 	endpoint string,
 	trackingEnabled bool,
+	webAnalytics *domain.WebAnalyticsSettings,
 	broadcast *domain.Broadcast,
 	messageID string,
 	email string,
@@ -295,17 +306,33 @@ func (s *queueMessageSender) buildQueueEntry(
 		utmParams.Content = template.ID
 	}
 
+	// This function builds one entry for one recipient, so the token minted
+	// here is that recipient's own. A mint failure is logged and the entry is
+	// built without it: an unidentified visit costs analytics precision, a
+	// dropped entry costs the email.
+	identifyToken, identifyAllowedHosts, identifyErr := mintIdentifyToken(email, workspaceSecretKey, webAnalytics)
+	if identifyErr != nil {
+		s.logger.WithFields(map[string]interface{}{
+			"broadcast_id": broadcast.ID,
+			"workspace_id": workspaceID,
+			"recipient":    email,
+			"error":        identifyErr.Error(),
+		}).Warn("Failed to mint web analytics identity token, enqueueing without it")
+	}
+
 	// Build tracking settings
 	trackingSettings := notifuse_mjml.TrackingSettings{
-		Endpoint:       endpoint,
-		EnableTracking: trackingEnabled,
-		UTMSource:      utmParams.Source,
-		UTMMedium:      utmParams.Medium,
-		UTMCampaign:    utmParams.Campaign,
-		UTMContent:     utmParams.Content,
-		UTMTerm:        utmParams.Term,
-		WorkspaceID:    workspaceID,
-		MessageID:      messageID,
+		Endpoint:             endpoint,
+		EnableTracking:       trackingEnabled,
+		UTMSource:            utmParams.Source,
+		UTMMedium:            utmParams.Medium,
+		UTMCampaign:          utmParams.Campaign,
+		UTMContent:           utmParams.Content,
+		UTMTerm:              utmParams.Term,
+		WorkspaceID:          workspaceID,
+		MessageID:            messageID,
+		IdentifyToken:        identifyToken,
+		IdentifyAllowedHosts: identifyAllowedHosts,
 	}
 
 	// Resolve language variant
@@ -352,7 +379,17 @@ func (s *queueMessageSender) buildQueueEntry(
 		return nil, fmt.Errorf("failed to process subject: %w", err)
 	}
 
-	// Build the queue entry
+	// Build the queue entry.
+	//
+	// Note what this stores: htmlContent carries this recipient's nf_id on every
+	// allowed link, and Payload is persisted as JSONB in the workspace's
+	// email_queue table. The row is deleted when the entry is sent
+	// (MarkAsSent) and when the worker gives up on it, but for as long as it
+	// waits — a long queue, or a broadcast paused mid-send, whose entries keep
+	// status 'paused' until it is resumed or deleted — a credential that stays
+	// valid for domain.WebIdentifyTokenTTL sits in the database. Only the
+	// TrackingSettings struct itself stays out of storage; the HTML it produced
+	// does not.
 	entry := &domain.EmailQueueEntry{
 		ID:            uuid.New().String(),
 		Status:        domain.EmailQueueStatusPending,

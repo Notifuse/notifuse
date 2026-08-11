@@ -3,7 +3,7 @@
  * Handles session creation, persistence, and expiry
  */
 
-import type { Session, UTMParams, CustomDimensions, InternalConfig } from '../types';
+import type { Session, UTMParams, CustomDimensions, InternalConfig, WebIdentity } from '../types';
 import { Storage, TabStorage, STORAGE_KEYS } from '../storage/storage';
 import { generateTabId, generateUUIDv7 } from '../utils/uuid';
 import { parseUTMParams } from '../utils/utm';
@@ -20,6 +20,31 @@ const CLOCK_SKEW_TOLERANCE = 60; // seconds
 // sitting in the offline queue to still be replayed against the id it was
 // minted under. Deliberately not configurable: raising it re-opens the cliff.
 const SESSION_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Length of a string in UTF-8 bytes.
+ *
+ * TextEncoder exists in every browser the SDK targets, but the SDK is dropped
+ * into pages it does not control and globals do get stripped there, so a
+ * missing one degrades to hand-counting rather than throwing a ReferenceError
+ * on a call that used to work.
+ */
+function utf8Length(value: string): number {
+  if (typeof TextEncoder !== 'undefined') {
+    return new TextEncoder().encode(value).length;
+  }
+  // for..of walks code points, so a surrogate pair arrives once as its combined
+  // code point and is counted as the single 4-byte character it encodes to.
+  let bytes = 0;
+  for (const char of value) {
+    const code = char.codePointAt(0)!;
+    if (code <= 0x7f) bytes += 1;
+    else if (code <= 0x7ff) bytes += 2;
+    else if (code <= 0xffff) bytes += 3;
+    else bytes += 4;
+  }
+  return bytes;
+}
 
 /**
  * Cross-domain session input (from URL parameters)
@@ -45,6 +70,9 @@ export class SessionManager {
     this.config = config;
     this.debug = config.debug;
     this.tabId = this.getOrCreateTabId();
+    // One-time migration, not part of session creation: a resumed session would
+    // otherwise leave the dead key sitting in storage indefinitely.
+    this.storage.remove(STORAGE_KEYS.LEGACY_USER_ID);
   }
 
   /**
@@ -78,6 +106,12 @@ export class SessionManager {
       stored.last_active_at = Date.now();
       stored.updated_at = Date.now();
       stored.sequence++;
+      // Identity comes from its own key, not from the session blob. touch()
+      // writes the whole in-memory session back on every beat, so a second tab
+      // still holding a pre-identification copy would otherwise clobber the
+      // blob with identity:null and every later page load would resume
+      // anonymous — with the credential still sitting intact in storage.
+      stored.identity = this.loadIdentity();
       this.session = stored;
       this.saveSession();
 
@@ -147,7 +181,7 @@ export class SessionManager {
       sdk_version: SDK_VERSION,
       sequence: 0,
       dimensions: this.loadDimensions(),
-      userId: this.loadUserId(),
+      identity: this.loadIdentity(),
     };
 
     this.session = session;
@@ -183,7 +217,7 @@ export class SessionManager {
       sdk_version: SDK_VERSION,
       sequence: 0,
       dimensions: this.loadDimensions(),
-      userId: this.loadUserId(),
+      identity: this.loadIdentity(),
     };
 
     this.session = session;
@@ -368,53 +402,68 @@ export class SessionManager {
   // User ID
 
   /**
-   * Set user ID for tracking authenticated users
+   * Attach a verified contact identity to this visitor.
+   *
+   * The address is stored EXACTLY as given: the customer's server signed that
+   * raw string, so lowercasing it here would invalidate every HMAC they mint.
+   * Normalization happens server-side, after the signature is checked.
    */
-  setUserId(id: string | null): void {
-    if (id !== null && typeof id !== 'string') {
-      throw new Error('User ID must be a string or null');
+  setIdentity(identity: WebIdentity): void {
+    if (!identity || (!identity.token && !(identity.email && identity.hmac))) {
+      throw new Error('Identity requires either a token or an email with its hmac');
     }
-
-    if (id !== null && id.length > 256) {
-      throw new Error('User ID must be 256 characters or less');
+    // Bytes, not characters: the server's gate is Go's len() over the RAW
+    // address, so a multibyte SMTPUTF8/IDN address that clears a code-unit
+    // check here is dropped server-side in silence — the beat succeeds, the
+    // visit is recorded, the contact is simply never attached — which is
+    // exactly the outcome this throw exists to prevent. It mirrors that raw
+    // gate closely rather than agreeing with it exactly: the server applies
+    // the same bound a second time to the lowercased address, and a couple of
+    // Latin code points (U+023A, U+023E) grow from 2 bytes to 3 when
+    // lowercased, so an address accepted here at 255 bytes can still be
+    // dropped at 256.
+    if (identity.email && utf8Length(identity.email) > 255) {
+      throw new Error('Identity email must be 255 bytes or less');
     }
-
     if (!this.session) return;
 
-    this.session.userId = id;
-    this.saveUserId();
+    this.session.identity = identity;
+    this.storage.set(STORAGE_KEYS.IDENTITY, identity);
     this.saveSession();
 
     if (this.debug) {
-      console.log('[NotifuseAnalytics] Set user ID:', id);
+      console.log('[NotifuseAnalytics] Identity set');
     }
   }
 
-  /**
-   * Get current user ID
-   */
-  getUserId(): string | null {
+  getIdentity(): WebIdentity | null {
     if (!this.session) return null;
-    return this.session.userId;
+    return this.session.identity;
   }
 
   /**
-   * Load user ID from storage
+   * Stop future beats carrying the identity.
+   *
+   * This does NOT anonymize the session already recorded: the server keeps a
+   * contact_email once set, deliberately, so a beat that simply has not read
+   * its stored identity yet cannot un-attribute a visit. Erasure is a
+   * contact-deletion operation, not a client-side one.
    */
-  private loadUserId(): string | null {
-    return this.storage.get<string>(STORAGE_KEYS.USER_ID) || null;
-  }
-
-  /**
-   * Save user ID to storage
-   */
-  private saveUserId(): void {
+  clearIdentity(): void {
+    this.storage.remove(STORAGE_KEYS.IDENTITY);
     if (!this.session) return;
-    if (this.session.userId === null) {
-      this.storage.remove(STORAGE_KEYS.USER_ID);
-    } else {
-      this.storage.set(STORAGE_KEYS.USER_ID, this.session.userId);
-    }
+    this.session.identity = null;
+    this.saveSession();
+  }
+
+  /**
+   * Load the stored identity, discarding anything an older build left behind.
+   */
+  private loadIdentity(): WebIdentity | null {
+    const stored = this.storage.get<WebIdentity>(STORAGE_KEYS.IDENTITY);
+    if (!stored) return null;
+    if (stored.token || (stored.email && stored.hmac)) return stored;
+    return null;
   }
 
   /**
@@ -449,7 +498,7 @@ export class SessionManager {
   reset(): Session {
     this.storage.remove(STORAGE_KEYS.SESSION);
     this.storage.remove(STORAGE_KEYS.DIMENSIONS);
-    this.storage.remove(STORAGE_KEYS.USER_ID);
+    this.storage.remove(STORAGE_KEYS.IDENTITY);
     this.session = null;
     return this.createSession();
   }

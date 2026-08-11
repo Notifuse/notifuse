@@ -50,6 +50,20 @@ func (mr *MockWebAnalyticsRepositoryMockRecorder) AnalyzePartitions(arg0, arg1, 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AnalyzePartitions", reflect.TypeOf((*MockWebAnalyticsRepository)(nil).AnalyzePartitions), arg0, arg1, arg2)
 }
 
+// AnonymizeContact mocks base method.
+func (m *MockWebAnalyticsRepository) AnonymizeContact(arg0 context.Context, arg1, arg2 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AnonymizeContact", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// AnonymizeContact indicates an expected call of AnonymizeContact.
+func (mr *MockWebAnalyticsRepositoryMockRecorder) AnonymizeContact(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AnonymizeContact", reflect.TypeOf((*MockWebAnalyticsRepository)(nil).AnonymizeContact), arg0, arg1, arg2)
+}
+
 // BackfillPartition mocks base method.
 func (m *MockWebAnalyticsRepository) BackfillPartition(arg0 context.Context, arg1, arg2 string, arg3 []domain.WebFilter) (int64, error) {
 	m.ctrl.T.Helper()

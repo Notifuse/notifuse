@@ -180,7 +180,7 @@ func TestSendToRecipientSuccess(t *testing.T) {
 
 	// Test
 	timeoutAt := time.Now().Add(30 * time.Second)
-	err := sender.SendToRecipient(ctx, workspaceID, "test-integration-id", "https://api.test.com", tracking, broadcast, "message-123", "test@example.com", template, map[string]interface{}{}, emailProvider, timeoutAt, "", "")
+	err := sender.SendToRecipient(ctx, workspaceID, "test-integration-id", "", "https://api.test.com", tracking, nil, broadcast, "message-123", "test@example.com", template, map[string]interface{}{}, emailProvider, timeoutAt, "", "")
 	assert.NoError(t, err)
 }
 
@@ -254,7 +254,7 @@ func TestSendToRecipientCompileFailure(t *testing.T) {
 
 	// Test - this should fail due to template compilation issues
 	timeoutAt := time.Now().Add(30 * time.Second)
-	err := sender.SendToRecipient(ctx, workspaceID, "test-integration-id", "https://api.test.com", tracking, broadcast, "message-123", "test@example.com", template, map[string]interface{}{}, emailProvider, timeoutAt, "", "")
+	err := sender.SendToRecipient(ctx, workspaceID, "test-integration-id", "", "https://api.test.com", tracking, nil, broadcast, "message-123", "test@example.com", template, map[string]interface{}{}, emailProvider, timeoutAt, "", "")
 	assert.Error(t, err)
 	broadcastErr, ok := err.(*BroadcastError)
 	assert.True(t, ok)
@@ -302,11 +302,11 @@ func TestWithMockMessageSender(t *testing.T) {
 	messageID := "test-message-id"
 	timeoutAt := time.Now().Add(30 * time.Second)
 	mockSender.EXPECT().
-		SendToRecipient(ctx, workspaceID, "test-integration-id", "https://api.test.com", trackingEnabled, broadcast, messageID, recipientEmail, template, templateData, nil, timeoutAt, "", "").
+		SendToRecipient(ctx, workspaceID, "test-integration-id", gomock.Any(), "https://api.test.com", trackingEnabled, gomock.Any(), broadcast, messageID, recipientEmail, template, templateData, nil, timeoutAt, "", "").
 		Return(nil)
 
 	// Use the mock (normally this would be in the system under test)
-	err := mockSender.SendToRecipient(ctx, workspaceID, "test-integration-id", "https://api.test.com", trackingEnabled, broadcast, messageID, recipientEmail, template, templateData, nil, timeoutAt, "", "")
+	err := mockSender.SendToRecipient(ctx, workspaceID, "test-integration-id", "", "https://api.test.com", trackingEnabled, nil, broadcast, messageID, recipientEmail, template, templateData, nil, timeoutAt, "", "")
 
 	// Verify the result
 	assert.NoError(t, err)
@@ -322,11 +322,11 @@ func TestWithMockMessageSender(t *testing.T) {
 	// Set up expectations with specific return values
 	timeoutAt = time.Now().Add(30 * time.Second)
 	mockSender.EXPECT().
-		SendBatch(ctx, workspaceID, "test-integration-id", workspaceSecretKey, "https://api.example.com", "", trackingEnabled, broadcast.ID, mockContacts, mockTemplates, nil, timeoutAt, "").
+		SendBatch(ctx, workspaceID, "test-integration-id", workspaceSecretKey, "https://api.example.com", "", trackingEnabled, gomock.Any(), broadcast.ID, mockContacts, mockTemplates, nil, timeoutAt, "").
 		Return(1, 0, nil)
 
 	// Use the mock
-	sent, failed, err := mockSender.SendBatch(ctx, workspaceID, "test-integration-id", workspaceSecretKey, "https://api.example.com", "", trackingEnabled, broadcast.ID, mockContacts, mockTemplates, nil, timeoutAt, "")
+	sent, failed, err := mockSender.SendBatch(ctx, workspaceID, "test-integration-id", workspaceSecretKey, "https://api.example.com", "", trackingEnabled, nil, broadcast.ID, mockContacts, mockTemplates, nil, timeoutAt, "")
 
 	// Verify results
 	assert.NoError(t, err)
@@ -376,11 +376,11 @@ func TestErrorHandlingWithMock(t *testing.T) {
 	mockError := errors.New("send failed: service unavailable")
 	messageID := "test-message-id"
 	mockSender.EXPECT().
-		SendToRecipient(ctx, workspaceID, "test-integration-id", "https://api.test.com", trackingEnabled, broadcast, messageID, recipientEmail, template, templateData, nil, timeoutAt, "", "").
+		SendToRecipient(ctx, workspaceID, "test-integration-id", gomock.Any(), "https://api.test.com", trackingEnabled, gomock.Any(), broadcast, messageID, recipientEmail, template, templateData, nil, timeoutAt, "", "").
 		Return(mockError)
 
 	// Call the method
-	err := mockSender.SendToRecipient(ctx, workspaceID, "test-integration-id", "https://api.test.com", trackingEnabled, broadcast, messageID, recipientEmail, template, templateData, nil, timeoutAt, "", "")
+	err := mockSender.SendToRecipient(ctx, workspaceID, "test-integration-id", "", "https://api.test.com", trackingEnabled, nil, broadcast, messageID, recipientEmail, template, templateData, nil, timeoutAt, "", "")
 
 	// Verify error handling
 	assert.Error(t, err)
@@ -397,10 +397,10 @@ func TestErrorHandlingWithMock(t *testing.T) {
 	batchError := errors.New("batch processing failed")
 
 	mockSender.EXPECT().
-		SendBatch(ctx, workspaceID, "test-integration-id", workspaceSecretKey, "https://api.example.com", "", trackingEnabled, broadcast.ID, mockContacts, mockTemplates, nil, timeoutAt, "").
+		SendBatch(ctx, workspaceID, "test-integration-id", workspaceSecretKey, "https://api.example.com", "", trackingEnabled, gomock.Any(), broadcast.ID, mockContacts, mockTemplates, nil, timeoutAt, "").
 		Return(0, 0, batchError)
 
-	sent, failed, err := mockSender.SendBatch(ctx, workspaceID, "test-integration-id", workspaceSecretKey, "https://api.example.com", "", trackingEnabled, broadcast.ID, mockContacts, mockTemplates, nil, timeoutAt, "")
+	sent, failed, err := mockSender.SendBatch(ctx, workspaceID, "test-integration-id", workspaceSecretKey, "https://api.example.com", "", trackingEnabled, nil, broadcast.ID, mockContacts, mockTemplates, nil, timeoutAt, "")
 	assert.Error(t, err)
 	assert.Equal(t, batchError, err)
 	assert.Equal(t, 0, sent)
@@ -527,7 +527,7 @@ func TestSendBatch(t *testing.T) {
 		},
 	}
 	templates := map[string]*domain.Template{"template-123": template}
-	sent, failed, err := sender.SendBatch(ctx, workspaceID, "test-integration-id", "secret-key-123", "https://api.example.com", "", tracking, broadcastID, recipients, templates, emailProvider, timeoutAt, "")
+	sent, failed, err := sender.SendBatch(ctx, workspaceID, "test-integration-id", "secret-key-123", "https://api.example.com", "", tracking, nil, broadcastID, recipients, templates, emailProvider, timeoutAt, "")
 	assert.NoError(t, err)
 	assert.Equal(t, 2, sent)
 	assert.Equal(t, 0, failed)
@@ -577,7 +577,7 @@ func TestSendBatch_EmptyRecipients(t *testing.T) {
 	)
 
 	// Call the method being tested with empty recipients
-	sent, failed, err := sender.SendBatch(ctx, workspaceID, "test-integration-id", workspaceSecretKey, "https://api.example.com", "", trackingEnabled, broadcastID, []*domain.ContactWithList{},
+	sent, failed, err := sender.SendBatch(ctx, workspaceID, "test-integration-id", workspaceSecretKey, "https://api.example.com", "", trackingEnabled, nil, broadcastID, []*domain.ContactWithList{},
 		map[string]*domain.Template{}, emailProvider, timeoutAt, "")
 
 	// Verify results
@@ -645,7 +645,7 @@ func TestSendBatch_CircuitBreakerOpen(t *testing.T) {
 	messageSenderImpl.circuitBreaker.RecordFailure(fmt.Errorf("test error"))
 
 	// Call the method being tested
-	sent, failed, err := sender.SendBatch(ctx, workspaceID, "test-integration-id", workspaceSecretKey, "https://api.example.com", "", trackingEnabled, broadcastID, recipients,
+	sent, failed, err := sender.SendBatch(ctx, workspaceID, "test-integration-id", workspaceSecretKey, "https://api.example.com", "", trackingEnabled, nil, broadcastID, recipients,
 		map[string]*domain.Template{}, emailProvider, timeoutAt, "")
 
 	// Verify results
@@ -792,7 +792,7 @@ func TestSendBatch_WithFailure(t *testing.T) {
 		},
 	}
 	templates := map[string]*domain.Template{"template-123": template}
-	sent, failed, err := sender.SendBatch(ctx, workspaceID, "test-integration-id", "secret-key-123", "https://api.example.com", "", tracking, broadcastID, recipients, templates, emailProvider, timeoutAt, "")
+	sent, failed, err := sender.SendBatch(ctx, workspaceID, "test-integration-id", "secret-key-123", "https://api.example.com", "", tracking, nil, broadcastID, recipients, templates, emailProvider, timeoutAt, "")
 	assert.NoError(t, err)
 	assert.Equal(t, 0, sent)
 	assert.Equal(t, 1, failed)
@@ -911,7 +911,7 @@ func TestSendBatch_RecordMessageFails(t *testing.T) {
 		},
 	}
 	templates := map[string]*domain.Template{"template-123": template}
-	sent, failed, err := sender.SendBatch(ctx, workspaceID, "test-integration-id", "secret-key-123", "https://api.example.com", "", tracking, broadcastID, recipients, templates, emailProvider, timeoutAt, "")
+	sent, failed, err := sender.SendBatch(ctx, workspaceID, "test-integration-id", "secret-key-123", "https://api.example.com", "", tracking, nil, broadcastID, recipients, templates, emailProvider, timeoutAt, "")
 	assert.NoError(t, err)
 	assert.Equal(t, 1, sent)
 	assert.Equal(t, 0, failed)
@@ -1008,7 +1008,7 @@ func TestSendToRecipientWithLiquidSubject(t *testing.T) {
 		Return(nil)
 
 	// Call the method
-	err := sender.SendToRecipient(ctx, workspaceID, "test-integration-id", "https://api.test.com", tracking, broadcast, messageID, email, template, templateData, emailProvider, timeoutAt, "", "")
+	err := sender.SendToRecipient(ctx, workspaceID, "test-integration-id", "", "https://api.test.com", tracking, nil, broadcast, messageID, email, template, templateData, emailProvider, timeoutAt, "", "")
 
 	// Verify
 	assert.NoError(t, err)
@@ -1193,7 +1193,7 @@ func TestSendToRecipient_ErrorCases(t *testing.T) {
 			SendEmail(gomock.Any(), gomock.Any(), gomock.Any()).
 			Return(nil)
 
-		err := sender.SendToRecipient(ctx, workspaceID, "test-integration-id", "https://api.test.com", tracking, broadcast, "message-123", "test@example.com", template, map[string]interface{}{}, emailProvider, timeoutAt, "", "")
+		err := sender.SendToRecipient(ctx, workspaceID, "test-integration-id", "", "https://api.test.com", tracking, nil, broadcast, "message-123", "test@example.com", template, map[string]interface{}{}, emailProvider, timeoutAt, "", "")
 		assert.NoError(t, err)
 		// UTM parameters should be initialized to non-nil
 		assert.NotNil(t, broadcast.UTMParameters)
@@ -1252,7 +1252,7 @@ func TestSendToRecipient_ErrorCases(t *testing.T) {
 			},
 		}
 
-		err := sender.SendToRecipient(ctx, workspaceID, "test-integration-id", "https://api.test.com", tracking, broadcast, "message-123", "test@example.com", template, map[string]interface{}{}, emptyEmailProvider, timeoutAt, "", "")
+		err := sender.SendToRecipient(ctx, workspaceID, "test-integration-id", "", "https://api.test.com", tracking, nil, broadcast, "message-123", "test@example.com", template, map[string]interface{}{}, emptyEmailProvider, timeoutAt, "", "")
 		assert.Error(t, err)
 		broadcastErr, ok := err.(*BroadcastError)
 		assert.True(t, ok)
@@ -1325,7 +1325,7 @@ func TestSendToRecipient_ErrorCases(t *testing.T) {
 			Return(nil).
 			MaxTimes(1) // Allow 0 or 1 calls
 
-		err := sender.SendToRecipient(ctx, workspaceID, "test-integration-id", "https://api.test.com", tracking, broadcast, "message-123", "test@example.com", template, templateData, emailProvider, timeoutAt, "", "")
+		err := sender.SendToRecipient(ctx, workspaceID, "test-integration-id", "", "https://api.test.com", tracking, nil, broadcast, "message-123", "test@example.com", template, templateData, emailProvider, timeoutAt, "", "")
 		// This might succeed or fail depending on the Liquid processor implementation
 		// If it fails, it should be a template compile error
 		if err != nil {
@@ -1404,7 +1404,7 @@ func TestSendToRecipient_ErrorCases(t *testing.T) {
 			Return(nil).
 			Times(1)
 
-		err := sender.SendToRecipient(ctx, workspaceID, "test-integration-id", "https://api.test.com", tracking, broadcast, "message-1", "test@example.com", template, map[string]interface{}{}, emailProvider, timeoutAt, "", "")
+		err := sender.SendToRecipient(ctx, workspaceID, "test-integration-id", "", "https://api.test.com", tracking, nil, broadcast, "message-1", "test@example.com", template, map[string]interface{}{}, emailProvider, timeoutAt, "", "")
 		assert.NoError(t, err)
 
 		// Create a context that will be cancelled quickly
@@ -1423,7 +1423,7 @@ func TestSendToRecipient_ErrorCases(t *testing.T) {
 		// Second message should fail due to context cancellation
 		// Note: Error could be ErrCodeRateLimitExceeded (cancelled during rate limiting)
 		// or ErrCodeSendFailed (cancelled during email send)
-		err = sender.SendToRecipient(cancelCtx, workspaceID, "test-integration-id", "https://api.test.com", tracking, broadcast, "message-2", "test@example.com", template, map[string]interface{}{}, emailProvider, timeoutAt, "", "")
+		err = sender.SendToRecipient(cancelCtx, workspaceID, "test-integration-id", "", "https://api.test.com", tracking, nil, broadcast, "message-2", "test@example.com", template, map[string]interface{}{}, emailProvider, timeoutAt, "", "")
 		assert.Error(t, err)
 		broadcastErr, ok := err.(*BroadcastError)
 		if assert.True(t, ok, "Expected error to be a BroadcastError but got: %T", err) {
@@ -1519,7 +1519,7 @@ func TestSendToRecipient_LanguageResolution(t *testing.T) {
 				return nil
 			})
 
-		err := sender.SendToRecipient(ctx, workspaceID, "test-integration-id", "https://api.test.com", tracking, broadcast, "message-fr", "fr-user@example.com", template, map[string]interface{}{}, emailProvider, timeoutAt, "fr", "en")
+		err := sender.SendToRecipient(ctx, workspaceID, "test-integration-id", "", "https://api.test.com", tracking, nil, broadcast, "message-fr", "fr-user@example.com", template, map[string]interface{}{}, emailProvider, timeoutAt, "fr", "en")
 		assert.NoError(t, err)
 	})
 
@@ -1532,7 +1532,7 @@ func TestSendToRecipient_LanguageResolution(t *testing.T) {
 				return nil
 			})
 
-		err := sender.SendToRecipient(ctx, workspaceID, "test-integration-id", "https://api.test.com", tracking, broadcast, "message-default", "default-user@example.com", template, map[string]interface{}{}, emailProvider, timeoutAt, "", "en")
+		err := sender.SendToRecipient(ctx, workspaceID, "test-integration-id", "", "https://api.test.com", tracking, nil, broadcast, "message-default", "default-user@example.com", template, map[string]interface{}{}, emailProvider, timeoutAt, "", "en")
 		assert.NoError(t, err)
 	})
 
@@ -1545,7 +1545,7 @@ func TestSendToRecipient_LanguageResolution(t *testing.T) {
 				return nil
 			})
 
-		err := sender.SendToRecipient(ctx, workspaceID, "test-integration-id", "https://api.test.com", tracking, broadcast, "message-unknown", "de-user@example.com", template, map[string]interface{}{}, emailProvider, timeoutAt, "de", "en")
+		err := sender.SendToRecipient(ctx, workspaceID, "test-integration-id", "", "https://api.test.com", tracking, nil, broadcast, "message-unknown", "de-user@example.com", template, map[string]interface{}{}, emailProvider, timeoutAt, "de", "en")
 		assert.NoError(t, err)
 	})
 
@@ -1555,7 +1555,7 @@ func TestSendToRecipient_LanguageResolution(t *testing.T) {
 			Email: nil,
 		}
 
-		err := sender.SendToRecipient(ctx, workspaceID, "test-integration-id", "https://api.test.com", tracking, broadcast, "message-nil", "user@example.com", nilEmailTemplate, map[string]interface{}{}, emailProvider, timeoutAt, "", "en")
+		err := sender.SendToRecipient(ctx, workspaceID, "test-integration-id", "", "https://api.test.com", tracking, nil, broadcast, "message-nil", "user@example.com", nilEmailTemplate, map[string]interface{}{}, emailProvider, timeoutAt, "", "en")
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "email content not available")
 	})
@@ -1606,7 +1606,7 @@ func TestSendBatch_AdvancedScenarios(t *testing.T) {
 			GetBroadcast(ctx, workspaceID, broadcastID).
 			Return(nil, nil)
 
-		sent, failed, err := sender.SendBatch(ctx, workspaceID, "test-integration-id", "secret-key", "https://api.example.com", "", true, broadcastID, recipients, map[string]*domain.Template{}, nil, timeoutAt, "")
+		sent, failed, err := sender.SendBatch(ctx, workspaceID, "test-integration-id", "secret-key", "https://api.example.com", "", true, nil, broadcastID, recipients, map[string]*domain.Template{}, nil, timeoutAt, "")
 
 		assert.Error(t, err)
 		assert.Equal(t, 0, sent)
@@ -1673,7 +1673,7 @@ func TestSendBatch_AdvancedScenarios(t *testing.T) {
 		// Use a timeout that's already passed
 		pastTimeout := time.Now().Add(-1 * time.Second)
 
-		sent, failed, err := sender.SendBatch(ctx, workspaceID, "test-integration-id", "secret-key", "https://api.example.com", "", true, broadcastID, recipients, templates, emailProvider, pastTimeout, "")
+		sent, failed, err := sender.SendBatch(ctx, workspaceID, "test-integration-id", "secret-key", "https://api.example.com", "", true, nil, broadcastID, recipients, templates, emailProvider, pastTimeout, "")
 
 		// Should return immediately without processing any recipients
 		assert.NoError(t, err)
@@ -1764,7 +1764,7 @@ func TestSendBatch_AdvancedScenarios(t *testing.T) {
 			}).
 			Return(nil).Times(2)
 
-		sent, failed, err := sender.SendBatch(ctx, workspaceID, "test-integration-id", "secret-key", "https://api.example.com", "", true, broadcastID, recipients, templates, emailProvider, timeoutAt, "")
+		sent, failed, err := sender.SendBatch(ctx, workspaceID, "test-integration-id", "secret-key", "https://api.example.com", "", true, nil, broadcastID, recipients, templates, emailProvider, timeoutAt, "")
 
 		assert.NoError(t, err)
 		assert.Equal(t, 2, sent)
@@ -1845,7 +1845,7 @@ func TestSendBatch_AdvancedScenarios(t *testing.T) {
 			}).
 			Return(nil)
 
-		sent, failed, err := sender.SendBatch(ctx, workspaceID, "test-integration-id", "secret-key", "https://api.example.com", "", true, broadcastID, recipients, templates, emailProvider, timeoutAt, "")
+		sent, failed, err := sender.SendBatch(ctx, workspaceID, "test-integration-id", "secret-key", "https://api.example.com", "", true, nil, broadcastID, recipients, templates, emailProvider, timeoutAt, "")
 
 		assert.NoError(t, err)
 		assert.Equal(t, 1, sent)
@@ -1929,7 +1929,7 @@ func TestSendBatch_AdvancedScenarios(t *testing.T) {
 			}).
 			Return(nil).Times(3)
 
-		sent, failed, err := sender.SendBatch(ctx, workspaceID, "test-integration-id", "secret-key", "https://api.example.com", "", true, broadcastID, recipients, templates, emailProvider, timeoutAt, "")
+		sent, failed, err := sender.SendBatch(ctx, workspaceID, "test-integration-id", "secret-key", "https://api.example.com", "", true, nil, broadcastID, recipients, templates, emailProvider, timeoutAt, "")
 
 		assert.NoError(t, err) // SendBatch itself doesn't return error, just counts
 		assert.Equal(t, 0, sent)
@@ -2159,7 +2159,7 @@ func TestSendBatch_TemplateDataBuildFailure(t *testing.T) {
 		}).
 		Return(nil).AnyTimes()
 
-	sent, failed, err := sender.SendBatch(ctx, workspaceID, "test-integration-id", "secret-key", "https://api.example.com", "", true, broadcastID, recipients, templates, emailProvider, timeoutAt, "")
+	sent, failed, err := sender.SendBatch(ctx, workspaceID, "test-integration-id", "secret-key", "https://api.example.com", "", true, nil, broadcastID, recipients, templates, emailProvider, timeoutAt, "")
 
 	// Should handle the case gracefully
 	assert.NoError(t, err)
@@ -2263,7 +2263,7 @@ func TestSendBatch_EmptyEmailContact(t *testing.T) {
 		}).
 		Return(nil).Times(1)
 
-	sent, failed, err := sender.SendBatch(ctx, workspaceID, "test-integration-id", "secret-key", "https://api.example.com", "", true, broadcastID, recipients, templates, emailProvider, timeoutAt, "")
+	sent, failed, err := sender.SendBatch(ctx, workspaceID, "test-integration-id", "secret-key", "https://api.example.com", "", true, nil, broadcastID, recipients, templates, emailProvider, timeoutAt, "")
 
 	assert.NoError(t, err)
 	assert.Equal(t, 1, sent)
@@ -2337,7 +2337,7 @@ func TestSendBatch_NoVariations(t *testing.T) {
 		GetBroadcast(ctx, workspaceID, broadcastID).
 		Return(broadcast, nil)
 
-	sent, failed, err := sender.SendBatch(ctx, workspaceID, "test-integration-id", "secret-key", "https://api.example.com", "", true, broadcastID, recipients, templates, emailProvider, timeoutAt, "")
+	sent, failed, err := sender.SendBatch(ctx, workspaceID, "test-integration-id", "secret-key", "https://api.example.com", "", true, nil, broadcastID, recipients, templates, emailProvider, timeoutAt, "")
 
 	assert.NoError(t, err)
 	assert.Equal(t, 0, sent)
@@ -2406,7 +2406,7 @@ func TestSendToRecipient_CompilationFailsWithNilHTML(t *testing.T) {
 		},
 	}
 
-	err := sender.SendToRecipient(ctx, workspaceID, "test-integration-id", "https://api.test.com", tracking, broadcast, "message-123", "test@example.com", template, map[string]interface{}{}, emailProvider, timeoutAt, "", "")
+	err := sender.SendToRecipient(ctx, workspaceID, "test-integration-id", "", "https://api.test.com", tracking, nil, broadcast, "message-123", "test@example.com", template, map[string]interface{}{}, emailProvider, timeoutAt, "", "")
 
 	// Should fail with template compilation error
 	assert.Error(t, err)
@@ -2489,7 +2489,7 @@ func TestSendToRecipient_CircuitBreakerSuccessRecording(t *testing.T) {
 		SendEmail(gomock.Any(), gomock.Any(), gomock.Any()).
 		Return(nil)
 
-	err := sender.SendToRecipient(ctx, workspaceID, "test-integration-id", "https://api.test.com", tracking, broadcast, "message-123", "test@example.com", template, map[string]interface{}{}, emailProvider, timeoutAt, "", "")
+	err := sender.SendToRecipient(ctx, workspaceID, "test-integration-id", "", "https://api.test.com", tracking, nil, broadcast, "message-123", "test@example.com", template, map[string]interface{}{}, emailProvider, timeoutAt, "", "")
 
 	assert.NoError(t, err)
 	// Circuit breaker should have recorded success and reset failures
@@ -2673,12 +2673,12 @@ func TestPerBroadcastRateLimit(t *testing.T) {
 			Return(nil).Times(2)
 
 		// First send should be fast
-		err := sender.SendToRecipient(ctx, workspaceID, "test-integration-id", "https://api.test.com", tracking, broadcast, "message-1", "test1@example.com", template, map[string]interface{}{}, emailProvider, timeoutAt, "", "")
+		err := sender.SendToRecipient(ctx, workspaceID, "test-integration-id", "", "https://api.test.com", tracking, nil, broadcast, "message-1", "test1@example.com", template, map[string]interface{}{}, emailProvider, timeoutAt, "", "")
 		assert.NoError(t, err)
 
 		// Second send should be delayed due to broadcast rate limit
 		start := time.Now()
-		err = sender.SendToRecipient(ctx, workspaceID, "test-integration-id", "https://api.test.com", tracking, broadcast, "message-2", "test2@example.com", template, map[string]interface{}{}, emailProvider, timeoutAt, "", "")
+		err = sender.SendToRecipient(ctx, workspaceID, "test-integration-id", "", "https://api.test.com", tracking, nil, broadcast, "message-2", "test2@example.com", template, map[string]interface{}{}, emailProvider, timeoutAt, "", "")
 		elapsed := time.Since(start)
 		assert.NoError(t, err)
 
@@ -2806,7 +2806,7 @@ func TestSendBatch_WithRecipientFeed_Success(t *testing.T) {
 	}
 	templates := map[string]*domain.Template{"template-123": template}
 
-	sent, failed, err := sender.SendBatch(ctx, workspaceID, "test-integration-id", "secret-key-123", "https://api.example.com", "", tracking, broadcastID, recipients, templates, emailProvider, timeoutAt, "")
+	sent, failed, err := sender.SendBatch(ctx, workspaceID, "test-integration-id", "secret-key-123", "https://api.example.com", "", tracking, nil, broadcastID, recipients, templates, emailProvider, timeoutAt, "")
 	assert.NoError(t, err)
 	assert.Equal(t, 1, sent)
 	assert.Equal(t, 0, failed)
@@ -2920,7 +2920,7 @@ func TestSendBatch_WithRecipientFeed_PauseOnFailure(t *testing.T) {
 	}
 	templates := map[string]*domain.Template{"template-123": template}
 
-	sent, failed, err := sender.SendBatch(ctx, workspaceID, "test-integration-id", "secret-key-123", "https://api.example.com", "", tracking, broadcastID, recipients, templates, emailProvider, timeoutAt, "")
+	sent, failed, err := sender.SendBatch(ctx, workspaceID, "test-integration-id", "secret-key-123", "https://api.example.com", "", tracking, nil, broadcastID, recipients, templates, emailProvider, timeoutAt, "")
 	// Broadcast should pause on first feed failure
 	assert.Error(t, err)
 	assert.True(t, errors.Is(err, ErrBroadcastShouldPause), "Expected ErrBroadcastShouldPause")
@@ -3068,7 +3068,7 @@ func TestSendBatch_WithBothFeeds(t *testing.T) {
 	}
 	templates := map[string]*domain.Template{"template-123": template}
 
-	sent, failed, err := sender.SendBatch(ctx, workspaceID, "test-integration-id", "secret-key-123", "https://api.example.com", "", tracking, broadcastID, recipients, templates, emailProvider, timeoutAt, "")
+	sent, failed, err := sender.SendBatch(ctx, workspaceID, "test-integration-id", "secret-key-123", "https://api.example.com", "", tracking, nil, broadcastID, recipients, templates, emailProvider, timeoutAt, "")
 	assert.NoError(t, err)
 	assert.Equal(t, 1, sent)
 	assert.Equal(t, 0, failed)
@@ -3184,7 +3184,7 @@ func TestSendBatch_WithRecipientFeed_Disabled(t *testing.T) {
 	}
 	templates := map[string]*domain.Template{"template-123": template}
 
-	sent, failed, err := sender.SendBatch(ctx, workspaceID, "test-integration-id", "secret-key-123", "https://api.example.com", "", tracking, broadcastID, recipients, templates, emailProvider, timeoutAt, "")
+	sent, failed, err := sender.SendBatch(ctx, workspaceID, "test-integration-id", "secret-key-123", "https://api.example.com", "", tracking, nil, broadcastID, recipients, templates, emailProvider, timeoutAt, "")
 	assert.NoError(t, err)
 	assert.Equal(t, 1, sent)
 	assert.Equal(t, 0, failed)
@@ -3295,7 +3295,7 @@ func TestSendBatch_WithRecipientFeed_NilSettings(t *testing.T) {
 	}
 	templates := map[string]*domain.Template{"template-123": template}
 
-	sent, failed, err := sender.SendBatch(ctx, workspaceID, "test-integration-id", "secret-key-123", "https://api.example.com", "", tracking, broadcastID, recipients, templates, emailProvider, timeoutAt, "")
+	sent, failed, err := sender.SendBatch(ctx, workspaceID, "test-integration-id", "secret-key-123", "https://api.example.com", "", tracking, nil, broadcastID, recipients, templates, emailProvider, timeoutAt, "")
 	assert.NoError(t, err)
 	assert.Equal(t, 1, sent)
 	assert.Equal(t, 0, failed)
@@ -3410,9 +3410,9 @@ func TestSendToRecipient_ABVariantsUseOwnUTMContent(t *testing.T) {
 	)
 
 	timeoutAt := time.Now().Add(30 * time.Second)
-	err := sender.SendToRecipient(ctx, workspaceID, "test-integration-id", endpoint, true, broadcast, "message-1", "recipient1@example.com", templateA, map[string]interface{}{}, emailProvider, timeoutAt, "", "")
+	err := sender.SendToRecipient(ctx, workspaceID, "test-integration-id", "", endpoint, true, nil, broadcast, "message-1", "recipient1@example.com", templateA, map[string]interface{}{}, emailProvider, timeoutAt, "", "")
 	require.NoError(t, err)
-	err = sender.SendToRecipient(ctx, workspaceID, "test-integration-id", endpoint, true, broadcast, "message-2", "recipient2@example.com", templateB, map[string]interface{}{}, emailProvider, timeoutAt, "", "")
+	err = sender.SendToRecipient(ctx, workspaceID, "test-integration-id", "", endpoint, true, nil, broadcast, "message-2", "recipient2@example.com", templateB, map[string]interface{}{}, emailProvider, timeoutAt, "", "")
 	require.NoError(t, err)
 
 	require.Len(t, sentRequests, 2)
@@ -3531,7 +3531,7 @@ func TestSendBatch_ABVariantsPerRecipientUTMContent(t *testing.T) {
 	recipients := []*domain.ContactWithList{
 		{Contact: &domain.Contact{Email: "recipient1@example.com"}, ListID: "list-1", ListName: "Test List"},
 	}
-	sent, failed, err := sender.SendBatch(ctx, workspaceID, "test-integration-id", "secret-key-123", endpoint, "", true, broadcastID, recipients, templates, emailProvider, timeoutAt, "")
+	sent, failed, err := sender.SendBatch(ctx, workspaceID, "test-integration-id", "secret-key-123", endpoint, "", true, nil, broadcastID, recipients, templates, emailProvider, timeoutAt, "")
 	require.NoError(t, err)
 	assert.Equal(t, 1, sent)
 	assert.Equal(t, 0, failed)
@@ -3543,7 +3543,7 @@ func TestSendBatch_ABVariantsPerRecipientUTMContent(t *testing.T) {
 	recipients = []*domain.ContactWithList{
 		{Contact: &domain.Contact{Email: "recipient2@example.com"}, ListID: "list-1", ListName: "Test List"},
 	}
-	sent, failed, err = sender.SendBatch(ctx, workspaceID, "test-integration-id", "secret-key-123", endpoint, "", true, broadcastID, recipients, templates, emailProvider, timeoutAt, "")
+	sent, failed, err = sender.SendBatch(ctx, workspaceID, "test-integration-id", "secret-key-123", endpoint, "", true, nil, broadcastID, recipients, templates, emailProvider, timeoutAt, "")
 	require.NoError(t, err)
 	assert.Equal(t, 1, sent)
 	assert.Equal(t, 0, failed)
@@ -3665,7 +3665,7 @@ func TestSendBatch_ExplicitUTMContentNotOverridden(t *testing.T) {
 	recipients := []*domain.ContactWithList{
 		{Contact: &domain.Contact{Email: "recipient1@example.com"}, ListID: "list-1", ListName: "Test List"},
 	}
-	sent, failed, err := sender.SendBatch(ctx, workspaceID, "test-integration-id", "secret-key-123", endpoint, "", true, broadcastID, recipients, templates, emailProvider, timeoutAt, "")
+	sent, failed, err := sender.SendBatch(ctx, workspaceID, "test-integration-id", "secret-key-123", endpoint, "", true, nil, broadcastID, recipients, templates, emailProvider, timeoutAt, "")
 	require.NoError(t, err)
 	assert.Equal(t, 1, sent)
 	assert.Equal(t, 0, failed)
@@ -3680,4 +3680,220 @@ func TestSendBatch_ExplicitUTMContentNotOverridden(t *testing.T) {
 
 	// The shared broadcast must not have been mutated
 	assert.Equal(t, originalUTM, *broadcast.UTMParameters)
+}
+
+// webIdentityTestSecret stands in for a workspace secret key: the identity
+// token is encrypted with it, so the tests decrypt with the same value.
+const webIdentityTestSecret = "workspace-secret-key-32-chars-min!"
+
+// assertIdentifies decrypts a minted nf_id back to the contact it names, the
+// way the web analytics beat endpoint does when the SDK forwards it.
+func assertIdentifies(t *testing.T, token string, email string) {
+	t.Helper()
+
+	require.NotEmpty(t, token, "the tracked link should carry an identity token")
+	resolved, ok := domain.ResolveWebIdentity(&domain.WebTrackPayload{IdentifyToken: &token}, webIdentityTestSecret, time.Now())
+	require.True(t, ok, "the minted token must resolve with the workspace secret")
+	assert.Equal(t, email, resolved)
+}
+
+// sendBatchTrackedLinks runs one broadcast through the direct sender and
+// returns, per recipient in send order, the query string of the destination
+// URL that recipient's tracked link points at.
+func sendBatchTrackedLinks(t *testing.T, secretKey string, webAnalytics *domain.WebAnalyticsSettings, emails []string) []url.Values {
+	t.Helper()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockBroadcastRepository := mocks.NewMockBroadcastRepository(ctrl)
+	mockMessageHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
+	mockTemplateRepo := mocks.NewMockTemplateRepository(ctrl)
+	mockEmailService := mocks.NewMockEmailServiceInterface(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+
+	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().Debug(gomock.Any()).Return().AnyTimes()
+	mockLogger.EXPECT().Info(gomock.Any()).Return().AnyTimes()
+	mockLogger.EXPECT().Warn(gomock.Any()).Return().AnyTimes()
+	mockLogger.EXPECT().Error(gomock.Any()).Return().AnyTimes()
+
+	ctx := context.Background()
+	workspaceID := "workspace-123"
+	broadcastID := "broadcast-123"
+	endpoint := "https://api.test.com"
+
+	emailSender := domain.NewEmailSender("sender@example.com", "Sender")
+	emailProvider := &domain.EmailProvider{
+		Kind:    domain.EmailProviderKindSMTP,
+		Senders: []domain.EmailSender{emailSender},
+		SMTP:    &domain.SMTPSettings{Host: "smtp.example.com", Port: 587, Username: "user", Password: "pass", UseTLS: true},
+	}
+
+	broadcast := &domain.Broadcast{
+		ID:            broadcastID,
+		WorkspaceID:   workspaceID,
+		Name:          "Test Broadcast",
+		ChannelType:   "email",
+		Audience:      domain.AudienceSettings{List: "list-1"},
+		Status:        domain.BroadcastStatusProcessing,
+		UTMParameters: &domain.UTMParameters{Source: "newsletter", Medium: "email"},
+		TestSettings: domain.BroadcastTestSettings{
+			Variations: []domain.BroadcastVariation{{VariationName: "variation-a", TemplateID: "template-a"}},
+		},
+	}
+	templates := map[string]*domain.Template{
+		"template-a": createTestTemplateWithLink("template-a", emailSender.ID),
+	}
+
+	recipients := make([]*domain.ContactWithList, 0, len(emails))
+	for _, email := range emails {
+		recipients = append(recipients, &domain.ContactWithList{
+			Contact:  &domain.Contact{Email: email},
+			ListID:   "list-1",
+			ListName: "Test List",
+		})
+	}
+
+	mockBroadcastRepository.EXPECT().GetBroadcast(ctx, workspaceID, broadcastID).Return(broadcast, nil)
+
+	var sentRequests []domain.SendEmailProviderRequest
+	mockEmailService.EXPECT().
+		SendEmail(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, req domain.SendEmailProviderRequest, _ bool) error {
+			sentRequests = append(sentRequests, req)
+			return nil
+		}).Times(len(emails))
+	mockMessageHistoryRepo.EXPECT().
+		Create(gomock.Any(), workspaceID, gomock.Any(), gomock.Any()).
+		Return(nil).Times(len(emails))
+
+	sender := NewMessageSender(
+		mockBroadcastRepository,
+		mockMessageHistoryRepo,
+		mockTemplateRepo,
+		mockEmailService,
+		nil, // dataFeedFetcher
+		mockLogger,
+		TestConfig(),
+		"",
+	)
+
+	sent, failed, err := sender.SendBatch(ctx, workspaceID, "test-integration-id", secretKey, endpoint, "", true, webAnalytics, broadcastID, recipients, templates, emailProvider, time.Now().Add(30*time.Second), "")
+	require.NoError(t, err)
+	require.Equal(t, len(emails), sent)
+	require.Equal(t, 0, failed)
+	require.Len(t, sentRequests, len(emails))
+
+	queries := make([]url.Values, 0, len(sentRequests))
+	for _, req := range sentRequests {
+		queries = append(queries, extractTrackedLinkUTMParams(t, req.Content, endpoint))
+	}
+	return queries
+}
+
+// TestSendBatch_WebIdentityTokenIsPerRecipient sends one broadcast to two
+// contacts and proves each link carries that contact's own identity. The token
+// is a bearer credential naming a single recipient, so one minted above the
+// recipient loop would attribute every visit of the campaign to the first
+// contact.
+//
+// Decrypting each token is what catches that. Comparing the two ciphertexts
+// would not: EncryptString draws a fresh nonce per call, so two mints of the
+// same address differ as well, and a token hoisted out of the loop would still
+// come back "different".
+func TestSendBatch_WebIdentityTokenIsPerRecipient(t *testing.T) {
+	webAnalytics := &domain.WebAnalyticsSettings{
+		Enabled:        true,
+		AllowedDomains: []string{"example.com"}, // the host createTestTemplateWithLink links to
+	}
+
+	queries := sendBatchTrackedLinks(t, webIdentityTestSecret, webAnalytics,
+		[]string{"recipient1@example.com", "recipient2@example.com"})
+
+	assertIdentifies(t, queries[0].Get(domain.WebIdentifyQueryParam), "recipient1@example.com")
+	assertIdentifies(t, queries[1].Get(domain.WebIdentifyQueryParam), "recipient2@example.com")
+}
+
+// TestSendBatch_WebIdentityGateClosed covers every way a workspace can fail to
+// authorize handing identities out. Nothing may be appended in any of them.
+func TestSendBatch_WebIdentityGateClosed(t *testing.T) {
+	testCases := []struct {
+		name         string
+		secretKey    string
+		webAnalytics *domain.WebAnalyticsSettings
+	}{
+		{
+			name:         "workspace does not use web analytics",
+			secretKey:    webIdentityTestSecret,
+			webAnalytics: nil,
+		},
+		{
+			name:         "web analytics configured but disabled",
+			secretKey:    webIdentityTestSecret,
+			webAnalytics: &domain.WebAnalyticsSettings{Enabled: false, AllowedDomains: []string{"example.com"}},
+		},
+		{
+			// The dangerous one: the workspace-level reading of the same list,
+			// MatchesAllowedDomain, answers true for every hostname when the
+			// allowlist is empty, so an enabled workspace that declared no
+			// domain must mint nothing rather than inherit that fail-open and
+			// carry a recipient's identity into the compiler.
+			name:         "enabled with no allowed domain",
+			secretKey:    webIdentityTestSecret,
+			webAnalytics: &domain.WebAnalyticsSettings{Enabled: true},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			queries := sendBatchTrackedLinks(t, tc.secretKey, tc.webAnalytics, []string{"recipient1@example.com"})
+
+			assert.Empty(t, queries[0].Get(domain.WebIdentifyQueryParam), "no identity token may be appended")
+			// The rest of the link rewriting must be untouched by the gate.
+			assert.Equal(t, "newsletter", queries[0].Get("utm_source"))
+		})
+	}
+}
+
+// TestMintIdentifyToken pins the gate itself, including the case SendBatch
+// cannot reach: a workspace with no secret key never gets that far, because
+// building the template data needs the same key to sign the unsubscribe links.
+func TestMintIdentifyToken(t *testing.T) {
+	t.Run("closed gates mint nothing", func(t *testing.T) {
+		closed := []struct {
+			name         string
+			secretKey    string
+			webAnalytics *domain.WebAnalyticsSettings
+		}{
+			{"no web analytics settings", webIdentityTestSecret, nil},
+			{"disabled", webIdentityTestSecret, &domain.WebAnalyticsSettings{Enabled: false, AllowedDomains: []string{"example.com"}}},
+			{"enabled with no allowed domain", webIdentityTestSecret, &domain.WebAnalyticsSettings{Enabled: true}},
+			{"no workspace secret key", "", &domain.WebAnalyticsSettings{Enabled: true, AllowedDomains: []string{"example.com"}}},
+		}
+
+		for _, tc := range closed {
+			t.Run(tc.name, func(t *testing.T) {
+				token, hosts, err := mintIdentifyToken("recipient@example.com", tc.secretKey, tc.webAnalytics)
+				require.NoError(t, err)
+				assert.Empty(t, token)
+				// Without hosts the link rewriter appends nothing, so the two
+				// must always travel together.
+				assert.Empty(t, hosts)
+			})
+		}
+	})
+
+	t.Run("open gate mints an identity for the declared hosts", func(t *testing.T) {
+		webAnalytics := &domain.WebAnalyticsSettings{
+			Enabled:        true,
+			AllowedDomains: []string{"example.com", "*.shop.example.com"},
+		}
+
+		token, hosts, err := mintIdentifyToken("recipient@example.com", webIdentityTestSecret, webAnalytics)
+		require.NoError(t, err)
+		assertIdentifies(t, token, "recipient@example.com")
+		assert.Equal(t, webAnalytics.AllowedDomains, hosts)
+	})
 }

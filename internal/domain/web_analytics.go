@@ -5,12 +5,14 @@ import (
 	"crypto/hmac"
 	"encoding/json"
 	"fmt"
+	"math"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
 
 	"github.com/Notifuse/notifuse/pkg/crypto"
+	"github.com/Notifuse/notifuse/pkg/notifuse_mjml"
 )
 
 //go:generate mockgen -destination mocks/mock_web_analytics_repository.go -package mocks github.com/Notifuse/notifuse/internal/domain WebAnalyticsRepository
@@ -29,6 +31,11 @@ const (
 	// WebTrackMaxHMACLength bounds the hex-encoded SHA-256 credential.
 	WebTrackMaxHMACLength = 64
 	// WebTrackMaxIdentifyTokenLength bounds the encrypted nf_id parameter.
+	// ResolveWebIdentity discards a longer token, so BuildWebIdentifyToken
+	// measures what it produced against this same constant and refuses the mint
+	// rather than putting a token on every link of an email that the beat would
+	// then drop without a word. Lowering this shortens the longest address that
+	// can be identified from an email click.
 	WebTrackMaxIdentifyTokenLength = 512
 
 	// Goal property bounds. These exist because actions[] is cumulative: the SDK
@@ -40,6 +47,21 @@ const (
 	WebTrackMaxGoalPropertyKeys        = 50
 	WebTrackMaxGoalPropertyValueLength = 1024
 	WebTrackMaxGoalPropertiesBytes     = 8 * 1024
+
+	// Upper bounds on the client's numbers. Sign and ordering were checked but
+	// never magnitude, and each of these lands in a narrow Postgres column —
+	// goal_value in REAL, the goal timestamp in TIMESTAMPTZ. flushOnce runs a
+	// whole workspace batch in ONE transaction, so one out-of-range value
+	// aborted every other visitor's rows with it, and after two failed attempts
+	// the buffer deletes those sessions outright. Bounding here means the
+	// offending action is dropped by dropInvalidActions and costs only itself.
+	WebTrackMaxDurationMs = 24 * 60 * 60 * 1000 // a day of engaged time on one page
+	WebTrackMaxGoalValue  = 1e12
+
+	// webMaxEpochMs keeps a client timestamp inside what TIMESTAMPTZ can hold
+	// without the year running away (roughly 5138). Deliberately not a window
+	// check: a replayed offline beat legitimately carries an old timestamp.
+	webMaxEpochMs = 100000000000000
 	// WebTrackMaxDimensionValueLength caps custom dimension values (custom_1..custom_10).
 	WebTrackMaxDimensionValueLength = 256
 	// WebTrackTimeBounds is the accepted clock window for beat timestamps,
@@ -244,8 +266,12 @@ type WebGoal struct {
 }
 
 // WebSessionAttributes is the session-level context the SDK sends with every
-// beat. Device/browser/os fields are optional legacy inputs: the server parses
-// the raw user agent itself and its result wins.
+// beat. Device, browser and OS are taken from the client as sent — the SDK
+// parses them in the browser, where Client Hints are available, and nothing
+// re-parses UserAgent server-side. Modern browsers freeze the UA string and
+// expose the real OS and version only through an API the server never sees, so
+// the client's answer is the better one. Being client input, the values are
+// bounded during enrichment rather than trusted verbatim.
 type WebSessionAttributes struct {
 	Referrer    string `json:"referrer,omitempty"`
 	LandingPage string `json:"landing_page"`
@@ -294,21 +320,73 @@ type WebTrackAction struct {
 	Properties map[string]string `json:"properties,omitempty"`
 }
 
+// UnmarshalJSON accepts fractional milliseconds for every ms-valued field.
+//
+// The SDK accumulates focus time from performance.now(), which is fractional,
+// so a real browser beat carries "duration":1473.3999999761581. encoding/json
+// refuses a fractional number for an int64 field, and that error rejects the
+// WHOLE payload — not the single action — so one ordinary pageview would sink
+// the entire session with a 400. Hand-built test payloads all use round
+// integers, which is why only a real browser can surface this.
+//
+// Rounding is the right resolution rather than widening the fields: storage is
+// integer milliseconds (web_pages.duration_ms is INTEGER), so the fraction has
+// nowhere to go. Doing it here keeps every consumer on int64, including the
+// goal timestamp that is baked into the dedup ExternalID — where rounding an
+// already-integer value is a no-op, so dedup is unaffected.
+func (a *WebTrackAction) UnmarshalJSON(data []byte) error {
+	// The alias sheds this method, so the embedded decode does not recurse.
+	// Shallower fields win over the embedded ones on a tag conflict, so the
+	// float64 shadows below are what actually receive the ms values.
+	type alias WebTrackAction
+	aux := struct {
+		Duration  *float64 `json:"duration,omitempty"`
+		EnteredAt *float64 `json:"entered_at,omitempty"`
+		ExitedAt  *float64 `json:"exited_at,omitempty"`
+		Timestamp *float64 `json:"timestamp,omitempty"`
+		*alias
+	}{alias: (*alias)(a)}
+
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+
+	// A NaN or ±Inf would round to an unusable int64, so leave those at zero
+	// and let Validate reject the action on its own terms rather than storing
+	// a garbage timestamp.
+	round := func(v *float64) int64 {
+		if v == nil || math.IsNaN(*v) || math.IsInf(*v, 0) {
+			return 0
+		}
+		return int64(math.Round(*v))
+	}
+	a.Duration = round(aux.Duration)
+	a.EnteredAt = round(aux.EnteredAt)
+	a.ExitedAt = round(aux.ExitedAt)
+	a.Timestamp = round(aux.Timestamp)
+	return nil
+}
+
 // Validate checks a single action.
 func (a *WebTrackAction) Validate() error {
 	if len(a.Path) > WebTrackMaxPathLength {
 		return fmt.Errorf("action path exceeds %d characters", WebTrackMaxPathLength)
 	}
-	if a.PageNumber < 1 {
-		return fmt.Errorf("action page_number must be >= 1")
+	if a.PageNumber < 1 || a.PageNumber > WebTrackMaxActions {
+		return fmt.Errorf("action page_number must be between 1 and %d", WebTrackMaxActions)
 	}
 	switch a.Type {
 	case WebActionTypePageview:
-		if a.Duration < 0 {
-			return fmt.Errorf("pageview duration must be >= 0")
+		if a.Duration < 0 || a.Duration > WebTrackMaxDurationMs {
+			return fmt.Errorf("pageview duration must be between 0 and %d ms", WebTrackMaxDurationMs)
 		}
 		if a.Scroll < 0 || a.Scroll > 100 {
 			return fmt.Errorf("pageview scroll must be between 0 and 100")
+		}
+		for _, stamp := range []int64{a.EnteredAt, a.ExitedAt} {
+			if stamp < 0 || stamp > webMaxEpochMs {
+				return fmt.Errorf("pageview timestamp is out of range")
+			}
 		}
 		if a.ExitedAt != 0 && a.EnteredAt != 0 && a.ExitedAt < a.EnteredAt {
 			return fmt.Errorf("pageview exited_at must be >= entered_at")
@@ -320,11 +398,11 @@ func (a *WebTrackAction) Validate() error {
 		if len(a.Name) > WebTrackMaxGoalNameLength {
 			return fmt.Errorf("goal name exceeds %d characters", WebTrackMaxGoalNameLength)
 		}
-		if a.Timestamp <= 0 {
-			return fmt.Errorf("goal timestamp is required")
+		if a.Timestamp <= 0 || a.Timestamp > webMaxEpochMs {
+			return fmt.Errorf("goal timestamp is required and must be a plausible epoch millisecond")
 		}
-		if a.Value < 0 {
-			return fmt.Errorf("goal value must be >= 0")
+		if a.Value < 0 || a.Value > WebTrackMaxGoalValue {
+			return fmt.Errorf("goal value must be between 0 and %g", WebTrackMaxGoalValue)
 		}
 		if err := validateGoalProperties(a.Properties); err != nil {
 			return err
@@ -501,6 +579,19 @@ type webIdentifyTokenPayload struct {
 	Version   int    `json:"v"`
 }
 
+// WebIdentifyQueryParam names the URL parameter a tracked link carries the
+// token in. The literal is owned by notifuse_mjml, which runs the link-rewriting
+// pass and cannot import this package (that import already goes the other way);
+// re-exporting it here keeps one definition for both sides.
+const WebIdentifyQueryParam = notifuse_mjml.WebIdentifyQueryParam
+
+// WebIdentifyTokenTTL is how long a minted nf_id stays usable. It is
+// deliberately much shorter than what the encryption itself would allow: a
+// forwarded email hands a third party a bearer identity for the original
+// recipient, so the window is sized to the realistic click window of a campaign
+// rather than to the credential's natural lifetime.
+const WebIdentifyTokenTTL = 7 * 24 * time.Hour
+
 // BuildWebIdentifyToken mints the opaque nf_id parameter for a tracked link.
 //
 // AES-256-GCM keyed by the workspace secret, so it is authenticated AND
@@ -508,6 +599,18 @@ type webIdentifyTokenPayload struct {
 // into the customer's own analytics, their server logs and any third-party
 // Referer. Deliberately NOT crypto.EncryptTrackingToken, which uses a hardcoded
 // obfuscation key and is therefore forgeable from the open-source repository.
+//
+// The minted token is measured against WebTrackMaxIdentifyTokenLength — the
+// very bound ResolveWebIdentity applies before it will decrypt an nf_id, and
+// the same constant on both ends on purpose. The token is hex-encoded AES-GCM,
+// so it grows with the address, while WebTrackMaxEmailLength admits contacts
+// long enough to push it past that bound. Unchecked, such a token mints
+// happily, rides in every link of the email, and is then dropped at the beat
+// with no log and no error: the identity silently never happens. Refusing here
+// surfaces it where the address is still in hand and a caller can report it.
+// Measuring the produced token rather than deriving a maximum address length
+// keeps the two ends tied to one constant, instead of to arithmetic that would
+// drift the moment the payload or the encoding changes.
 func BuildWebIdentifyToken(email string, secretKey string, ttl time.Duration, now time.Time) (string, error) {
 	if secretKey == "" {
 		return "", fmt.Errorf("workspace secret key is required to mint an identify token")
@@ -520,7 +623,15 @@ func BuildWebIdentifyToken(email string, secretKey string, ttl time.Duration, no
 	if err != nil {
 		return "", fmt.Errorf("failed to encode identify token: %w", err)
 	}
-	return crypto.EncryptString(string(body), secretKey)
+	token, err := crypto.EncryptString(string(body), secretKey)
+	if err != nil {
+		return "", err
+	}
+	if len(token) > WebTrackMaxIdentifyTokenLength {
+		return "", fmt.Errorf("identify token for a %d-character address is %d characters, over the %d ResolveWebIdentity accepts",
+			len(email), len(token), WebTrackMaxIdentifyTokenLength)
+	}
+	return token, nil
 }
 
 // ResolveWebIdentity returns the verified contact address a beat carries, or
@@ -619,6 +730,12 @@ type WebAnalyticsSettings struct {
 	FiltersVersion         string            `json:"filters_version,omitempty"`
 	CustomDimensionLabels  map[string]string `json:"custom_dimension_labels,omitempty"`
 
+	// ContactBridgeEnabled turns verified web goals into custom_events, and so
+	// into contact timeline entries, segment recomputation and automation
+	// enrolments. Off by default: enabling it is the admin's deliberate act, and
+	// consent for storing web activity against a contact is theirs to obtain.
+	ContactBridgeEnabled bool `json:"contact_bridge_enabled"`
+
 	GeoEnabled         bool `json:"geo_enabled"`
 	GeoStoreCity       bool `json:"geo_store_city"`
 	GeoStoreRegion     bool `json:"geo_store_region"`
@@ -666,12 +783,28 @@ func (s *WebAnalyticsSettings) Validate() error {
 
 // validateAllowedDomain accepts bare hostnames and single leading wildcards
 // ("example.com", "*.example.com").
+//
+// A wildcard over a single label ("*.com", "*.io") is refused. This list is not
+// only the beat-origin gate: it is also the allowlist deciding which link hosts
+// receive a recipient's identity token, and "*.com" there hands every recipient
+// a bearer identity to every .com link the email happens to contain.
+//
+// Two things this rule does NOT do, so nothing downstream should assume them.
+// It only runs when settings are saved, so a workspace that stored "*.com"
+// before it existed keeps that value — matching still has to cope with one.
+// And a label count cannot tell a public suffix from a registrable domain
+// without a public-suffix list, so "*.co.uk" still passes here.
 func validateAllowedDomain(domain string) error {
 	d := strings.TrimSpace(domain)
 	if d == "" {
 		return fmt.Errorf("allowed domain cannot be empty")
 	}
-	d = strings.TrimPrefix(d, "*.")
+	if wild, ok := strings.CutPrefix(d, "*."); ok {
+		if !strings.Contains(wild, ".") {
+			return fmt.Errorf("invalid allowed domain %q: a wildcard must cover your own domain, such as %q", domain, "*.example.com")
+		}
+		d = wild
+	}
 	if strings.ContainsAny(d, " */?#@") || strings.Contains(d, "://") {
 		return fmt.Errorf("invalid allowed domain: %q", domain)
 	}
@@ -679,29 +812,28 @@ func validateAllowedDomain(domain string) error {
 }
 
 // MatchesAllowedDomain reports whether hostname matches any configured allowed
-// domain, with "*.example.com" matching both subdomains and the apex. An empty
-// list allows every hostname (Staminads behavior).
+// domain, with "*.example.com" matching both subdomains and the apex.
+//
+// This is the beat-origin gate, and here an empty list allows every hostname
+// (Staminads behavior): a workspace that turned tracking on without naming a
+// domain still collects its traffic. That fail-open is the difference from
+// notifuse_mjml.MatchesAllowedHost, which reads the same list to decide whether
+// a link may carry a recipient's identity and therefore treats an empty list as
+// "no host at all". Same list, opposite defaults, because one drops analytics
+// and the other releases a bearer credential.
+//
+// Everything else is that shared implementation, entry by entry, so a value the
+// link rewriter refuses to trust is one no origin can beat under either. That
+// includes the wildcard over a bare suffix ("*.com") which the shared matcher
+// skips: validateAllowedDomain now refuses to store one, and an entry the
+// product will not accept must not quietly keep admitting traffic here. A
+// workspace still holding one from before that validation has to replace it
+// with its own domain ("*.example.com") for those origins to be accepted again.
 func (s *WebAnalyticsSettings) MatchesAllowedDomain(hostname string) bool {
 	if s == nil || len(s.AllowedDomains) == 0 {
 		return true
 	}
-	host := strings.ToLower(strings.TrimSpace(hostname))
-	if host == "" {
-		return false
-	}
-	for _, d := range s.AllowedDomains {
-		allowed := strings.ToLower(strings.TrimSpace(d))
-		if wild, ok := strings.CutPrefix(allowed, "*."); ok {
-			if host == wild || strings.HasSuffix(host, "."+wild) {
-				return true
-			}
-			continue
-		}
-		if host == allowed {
-			return true
-		}
-	}
-	return false
+	return notifuse_mjml.MatchesAllowedHost(hostname, s.AllowedDomains)
 }
 
 // WebRequestMeta carries request-level context the enrichment pipeline needs.
@@ -735,6 +867,13 @@ type WebAnalyticsRepository interface {
 	// empty. Implementations sort rows by primary key to keep concurrent
 	// flushes deadlock-free, and auto-create missing monthly partitions once.
 	FlushBatch(ctx context.Context, workspaceID string, sessions []*WebSession, pages []*WebPage, goals []*WebGoal) error
+
+	// AnonymizeContact clears the stored identity for one address across all
+	// three tables, so deleting a contact actually erases the link to their
+	// browsing. The rows themselves stay: they are anonymous analytics once the
+	// address is gone, and deleting them would silently rewrite historical
+	// traffic totals.
+	AnonymizeContact(ctx context.Context, workspaceID string, email string) error
 
 	// EnsureMonthlyPartitions creates the monthly partitions covering the given
 	// months for all three tables (idempotent).

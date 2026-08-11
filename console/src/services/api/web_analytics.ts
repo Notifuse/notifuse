@@ -46,6 +46,8 @@ export interface WebAnalyticsSettings {
   filters?: WebFilter[]
   filters_version?: string
   custom_dimension_labels?: Record<string, string>
+  /** Off by default; writing web goals into contact timelines is opt-in. */
+  contact_bridge_enabled?: boolean
   geo_enabled: boolean
   geo_store_city: boolean
   geo_store_region: boolean
@@ -145,6 +147,26 @@ export const webAnalyticsService = {
 }
 
 /** Install snippet shown on the settings page. */
+/**
+ * Origin the tracking snippet must beat to.
+ *
+ * A workspace serving analytics from its own domain wins; otherwise the API
+ * host this console talks to, and finally the page's own origin for a
+ * single-domain install.
+ *
+ * Typed structurally rather than as `Workspace`: the workspace module already
+ * imports this one for its settings type.
+ */
+export function resolveTrackingEndpoint(
+  workspace?: { settings?: { custom_endpoint_url?: string } } | null
+): string {
+  return (
+    workspace?.settings?.custom_endpoint_url ||
+    window.API_ENDPOINT?.trim().replace(/\/+$/, '') ||
+    window.location.origin
+  )
+}
+
 export function buildInstallSnippet(endpoint: string, workspaceId: string): string {
   const origin = endpoint.replace(/\/$/, '')
   return [

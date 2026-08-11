@@ -278,7 +278,7 @@ func TestDemoService_SubscribeContactsToList_Success(t *testing.T) {
 	mockInboundWebhookEventRepo := domainmocks.NewMockInboundWebhookEventRepository(ctrl)
 	mockContactTimelineRepo := domainmocks.NewMockContactTimelineRepository(ctrl)
 	mockCache := pkgmocks.NewMockCache(ctrl)
-	contactSvc := NewContactService(mockContactRepo, mockWorkspaceRepo, mockAuth, mockMessageHistoryRepo, mockInboundWebhookEventRepo, mockContactListRepo, mockContactTimelineRepo, logger.NewLoggerWithLevel("disabled"))
+	contactSvc := NewContactService(mockContactRepo, mockWorkspaceRepo, mockAuth, mockMessageHistoryRepo, mockInboundWebhookEventRepo, mockContactListRepo, mockContactTimelineRepo, nil, logger.NewLoggerWithLevel("disabled"))
 	listSvc := NewListService(mockListRepo, mockWorkspaceRepo, mockContactListRepo, mockContactRepo, mockMessageHistoryRepo, mockAuth, mockEmail, logger.NewLoggerWithLevel("disabled"), "https://api.test", mockCache)
 
 	svc := &DemoService{

@@ -76,7 +76,7 @@ func TestWebAnalyticsIdentityStickiness(t *testing.T) {
 			{SessionDate: sessionDate, SessionID: sessionID, GoalName: "signup", ClientTsMs: 4242,
 				BeatSeq: seq, GoalAt: now.Add(-2 * time.Minute), GoalValue: 5, ContactEmail: email},
 		}
-		buffer.Add(workspace.ID, 0, session, pages, goals)
+		buffer.Add(workspace.ID, 0, false, session, pages, goals)
 		buffer.FlushAll(ctx)
 	}
 
@@ -244,6 +244,40 @@ func TestWebAnalyticsIdentityRequiresKnownContact(t *testing.T) {
 		got := stored(t, sessionID)
 		require.NotNil(t, got)
 		assert.Equal(t, "known@example.com", *got)
+	})
+
+	t.Run("deleting the contact erases the identity from the analytics rows", func(t *testing.T) {
+		// The erasure guarantee the whole design rests on. The ingest gate stops
+		// NEW beats re-stamping a deleted contact, but the sticky COALESCE in the
+		// upsert means nothing can ever clear what was already written — so the
+		// deletion path has to do it explicitly.
+		contact, err := suite.DataFactory.CreateContact(workspace.ID, func(c *domain.Contact) {
+			c.Email = "erase-me@example.com"
+		})
+		require.NoError(t, err)
+
+		sessionID := waUUIDv7At(now.Add(-3*time.Minute), 0x94)
+		identifiedBeat(t, sessionID, contact.Email, 1)
+		require.NotNil(t, stored(t, sessionID), "precondition: the session is identified")
+
+		require.NoError(t, suite.ServerManager.GetApp().GetWebAnalyticsRepository().
+			AnonymizeContact(context.Background(), workspace.ID, contact.Email))
+
+		assert.Nil(t, stored(t, sessionID), "the session must no longer name the deleted contact")
+		var pages, goals int
+		require.NoError(t, wsDB.QueryRow(
+			`SELECT count(*) FROM web_pages WHERE contact_email = $1`, contact.Email).Scan(&pages))
+		require.NoError(t, wsDB.QueryRow(
+			`SELECT count(*) FROM web_goals WHERE contact_email = $1`, contact.Email).Scan(&goals))
+		assert.Equal(t, 0, pages)
+		assert.Equal(t, 0, goals)
+
+		// The rows themselves survive: they are anonymous traffic now, and
+		// deleting them would silently rewrite historical totals.
+		var sessions int
+		require.NoError(t, wsDB.QueryRow(
+			`SELECT count(*) FROM web_sessions WHERE id = $1`, sessionID).Scan(&sessions))
+		assert.Equal(t, 1, sessions)
 	})
 
 	t.Run("a forged signature is ignored but the pageview still lands", func(t *testing.T) {

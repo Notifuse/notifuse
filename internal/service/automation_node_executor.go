@@ -293,19 +293,8 @@ func (e *EmailNodeExecutor) Execute(ctx context.Context, params NodeExecutionPar
 	// 5. Generate message ID
 	messageID := fmt.Sprintf("%s_%s", params.WorkspaceID, uuid.New().String())
 
-	// 6. Setup tracking settings — custom endpoint if set, else the API endpoint.
-	endpoint := workspace.Settings.ResolveEndpoint(e.apiEndpoint)
-
-	trackingSettings := notifuse_mjml.TrackingSettings{
-		Endpoint:       endpoint,
-		EnableTracking: workspace.Settings.EmailTrackingEnabled,
-		UTMSource:      "automation",
-		UTMMedium:      "email",
-		UTMCampaign:    params.Automation.Name,
-		UTMContent:     config.TemplateID,
-		WorkspaceID:    params.WorkspaceID,
-		MessageID:      messageID,
-	}
+	// 6. Setup tracking settings, including this contact's web analytics identity
+	trackingSettings := e.buildTrackingSettings(params, workspace, config.TemplateID, messageID)
 
 	// 7. Build template data using shared domain.BuildTemplateData
 	var listID, listName string
@@ -388,7 +377,16 @@ func (e *EmailNodeExecutor) Execute(ctx context.Context, params NodeExecutionPar
 		contactAutomationID = &id
 	}
 
-	// 12. Create queue entry
+	// 12. Create queue entry.
+	//
+	// Note what this stores: htmlContent carries this contact's nf_id on every
+	// allowed link, and Payload is persisted as JSONB in the workspace's
+	// email_queue table. The row is deleted once the entry is sent (MarkAsSent)
+	// and once the worker gives up on it, but for as long as it waits — a backed
+	// up queue, or a source paused mid-send, whose entries keep status 'paused'
+	// until they are resumed or deleted — a credential that stays valid for
+	// domain.WebIdentifyTokenTTL sits in the database. Only the TrackingSettings
+	// struct itself stays out of storage; the HTML it produced does not.
 	entry := &domain.EmailQueueEntry{
 		ID:            uuid.New().String(),
 		Status:        domain.EmailQueueStatusPending,
@@ -444,6 +442,76 @@ func (e *EmailNodeExecutor) Execute(ctx context.Context, params NodeExecutionPar
 			"queued":      true,
 		}),
 	}, nil
+}
+
+// buildTrackingSettings assembles the settings one automation email is compiled
+// with: the endpoint its links are rewritten against, the automation's UTM
+// tagging, and the web analytics identity minted for THIS contact — one
+// enrolment, one recipient, one token. Callers must have validated
+// params.ContactData and params.Automation, as Execute does.
+//
+// The identity gate is the feature being on AND at least one declared
+// destination. An empty allowlist is not "no opinion": the workspace-level
+// reading of the same list, WebAnalyticsSettings.MatchesAllowedDomain, answers
+// true for every hostname when it is empty, so a workspace that enabled web
+// analytics without naming a domain must mint nothing here rather than inherit
+// that fail-open. The per-link host match runs later, in TrackLinks, against
+// these same hosts.
+//
+// Splitting this out of Execute is what makes that gate testable: with the
+// emptiness check gone, a token is minted but applyIdentityParam still writes
+// nothing, because it returns early on an empty host list too. The compiled HTML
+// therefore looks identical either way — what changed is that these settings now
+// carry a live per-contact credential into the compiler, held out of the email's
+// links by that one downstream check alone.
+func (e *EmailNodeExecutor) buildTrackingSettings(
+	params NodeExecutionParams,
+	workspace *domain.Workspace,
+	templateID string,
+	messageID string,
+) notifuse_mjml.TrackingSettings {
+	var identifyToken string
+	var identifyAllowedHosts []string
+	if wa := workspace.Settings.WebAnalytics; wa != nil && wa.Enabled && len(wa.AllowedDomains) > 0 {
+		token, err := domain.BuildWebIdentifyToken(
+			params.ContactData.Email,
+			workspace.Settings.SecretKey,
+			domain.WebIdentifyTokenTTL,
+			time.Now().UTC(),
+		)
+		if err != nil {
+			// Identity is an analytics enrichment on top of the send; the send is
+			// the legitimate work. A token that cannot be built costs the visit its
+			// attribution, never the automation's email.
+			e.logger.WithFields(map[string]interface{}{
+				"error":         err.Error(),
+				"workspace_id":  params.WorkspaceID,
+				"automation_id": params.Automation.ID,
+				"message_id":    messageID,
+			}).Error("Failed to mint the web analytics identity token, sending without it")
+		} else {
+			identifyToken = token
+			identifyAllowedHosts = wa.AllowedDomains
+		}
+	}
+
+	return notifuse_mjml.TrackingSettings{
+		// Custom endpoint if set, else the API endpoint.
+		Endpoint:       workspace.Settings.ResolveEndpoint(e.apiEndpoint),
+		EnableTracking: workspace.Settings.EmailTrackingEnabled,
+		UTMSource:      "automation",
+		UTMMedium:      "email",
+		UTMCampaign:    params.Automation.Name,
+		UTMContent:     templateID,
+		WorkspaceID:    params.WorkspaceID,
+		MessageID:      messageID,
+		// Request-scoped, and both json:"-": the credential reaches the compiler
+		// without ever reaching a stored tracking_settings row. That says nothing
+		// about the HTML the compiler returns, which Execute does persist — see
+		// the queue entry it builds.
+		IdentifyToken:        identifyToken,
+		IdentifyAllowedHosts: identifyAllowedHosts,
+	}
 }
 
 // parseEmailNodeConfig parses email node configuration from map

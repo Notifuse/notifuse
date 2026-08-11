@@ -93,42 +93,20 @@ export interface CapturedPayload {
   _raw_body: string;
 }
 
-// Goal data for trackGoal
-export interface GoalData {
-  action: string;
-  value?: number;
-  currency?: string;
-  properties?: Record<string, string>;
-}
+// The window global is typed with the SDK's own public interface rather than a
+// copy of it. A hand-maintained duplicate silently kept compiling after the API
+// changed, so the specs only failed once a browser ran them.
+export type { NotifuseAnalyticsAPI } from '../../src/types';
 
-// SDK API interface (all async except getConfig and debug)
-export interface NotifuseAnalyticsAPI {
-  init(config: { workspace_id: string; endpoint: string; debug?: boolean }): Promise<void>;
-  getSessionId(): Promise<string>;
-  getConfig(): Record<string, unknown> | null;
-  getFocusDuration(): Promise<number>;
-  getTotalDuration(): Promise<number>;
-  trackPageView(url?: string): Promise<void>;
-  trackGoal(data: GoalData): Promise<void>;
-  setDimension(index: number, value: string): Promise<void>;
-  setDimensions(dimensions: Record<number, string>): Promise<void>;
-  getDimension(index: number): Promise<string | null>;
-  clearDimensions(): Promise<void>;
-  pause(): Promise<void>;
-  resume(): Promise<void>;
-  reset(): Promise<void>;
-  debug(): Record<string, unknown>;
-}
-
-// Declare global types for browser context
+// Declare global types for browser context.
+// Window.NotifuseAnalyticsConfig and Window.chrome are already augmented by the
+// SDK sources, so only the fixture pages' own globals are declared here.
 declare global {
   interface Window {
     SDK_READY: Promise<void>;
     SDK_INITIALIZED: boolean;
-    NotifuseAnalyticsConfig?: Record<string, unknown>;
-    chrome?: { runtime: Record<string, unknown> };
   }
-  const NotifuseAnalytics: NotifuseAnalyticsAPI;
+  const NotifuseAnalytics: import('../../src/types').NotifuseAnalyticsAPI;
 }
 
 const stealthScript = `

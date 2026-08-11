@@ -275,7 +275,7 @@ func (s *WebAnalyticsService) Track(ctx context.Context, payload *domain.WebTrac
 		return &ErrWebTrackInvalidPayload{Err: err}
 	}
 
-	s.buffer.Add(payload.WorkspaceID, payload.TabID, session, pages, goals)
+	s.buffer.Add(payload.WorkspaceID, payload.TabID, settings.ContactBridgeEnabled, session, pages, goals)
 	return nil
 }
 
@@ -349,16 +349,10 @@ func (s *WebAnalyticsService) resolveContactIdentity(ctx context.Context, payloa
 
 	// An identified visitor beats every 10-30s, so this must not be a query per
 	// beat. The TTL bounds how long a freshly created contact stays unrecognised
-	// and how long a deleted one keeps resolving.
-	key := "wa:contact:" + payload.WorkspaceID + ":" + email
-	known, err := s.workspaceCache.GetOrSet(key, workspaceSettingsCacheTTL, func() (interface{}, error) {
-		contact, err := s.contactRepo.GetContactByEmail(ctx, payload.WorkspaceID, email)
-		return err == nil && contact != nil, nil
-	})
-	if err != nil {
-		return nil
-	}
-	if exists, _ := known.(bool); !exists {
+	// and how long a deleted one keeps resolving. Shares the helper with the
+	// bridge so both treat a transient lookup failure the same way: costly for
+	// this beat, never remembered.
+	if !webContactExists(ctx, s.workspaceCache, s.contactRepo, "wa:contact:", payload.WorkspaceID, email) {
 		return nil
 	}
 	return &email

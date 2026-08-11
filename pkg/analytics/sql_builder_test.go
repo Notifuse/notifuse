@@ -2,6 +2,7 @@ package analytics
 
 import (
 	"database/sql/driver"
+	"encoding/json"
 	"strings"
 	"testing"
 	"time"
@@ -2707,4 +2708,38 @@ func TestBuildMeasureSQL_EdgeCases(t *testing.T) {
 			assert.Equal(t, tt.expected, result, tt.description)
 		})
 	}
+}
+
+// TestProcessRowsEmptyBreakdownSerializesAsArray covers a JSON contract, not a
+// Go one: a breakdown that matches nothing must serialize as "data": [], never
+// "data": null.
+//
+// ScanRows builds its result with `var data []map[string]interface{}`, and a nil
+// Go slice marshals to null. Every consumer's type declares this field as an
+// array, so nothing warns — the client simply calls .map on null and the page
+// crashes. An empty workspace, or any filter combination that matches nothing,
+// is enough to trigger it.
+func TestProcessRowsEmptyBreakdownSerializesAsArray(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer func() { _ = db.Close() }()
+
+	mock.ExpectQuery("SELECT").WillReturnRows(sqlmock.NewRows([]string{"country", "sessions"}))
+	rows, err := db.Query("SELECT country, sessions FROM web_sessions")
+	require.NoError(t, err)
+	defer func() { _ = rows.Close() }()
+
+	data, err := ProcessRows(rows, Query{
+		Schema:     "web_sessions",
+		Measures:   []string{"sessions"},
+		Dimensions: []string{"country"},
+	})
+	require.NoError(t, err)
+
+	assert.NotNil(t, data, "an empty breakdown must be an empty slice, not nil")
+	assert.Len(t, data, 0, "and it must stay empty — no invented placeholder row")
+
+	encoded, err := json.Marshal(map[string]interface{}{"data": data})
+	require.NoError(t, err)
+	assert.JSONEq(t, `{"data":[]}`, string(encoded))
 }

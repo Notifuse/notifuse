@@ -45,5 +45,7 @@ export declare const STORAGE_KEYS: {
     readonly PENDING_QUEUE: "pending";
     readonly TAB_ID: "tab_id";
     readonly DIMENSIONS: "dimensions";
-    readonly USER_ID: "user_id";
+    readonly IDENTITY: "identity";
+    /** Written by builds before verified identity; purged on init. */
+    readonly LEGACY_USER_ID: "user_id";
 };

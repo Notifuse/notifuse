@@ -3,6 +3,7 @@ import { useLingui } from '@lingui/react/macro'
 import { ArrowLeft } from 'lucide-react'
 import { Dayjs } from 'dayjs'
 import { WebAnalyticsProvider, useWebAnalytics } from '../components/web_analytics/context'
+import { WebAnalyticsGate } from '../components/web_analytics/InstallOverlay'
 import {
   ColumnConfig,
   DimensionTableWidget,
@@ -135,90 +136,92 @@ function LiveView(props: { workspaceId: string }) {
         </div>
       </div>
 
-      <LiveSessionMap data={locations} loading={mapResult.isLoading} />
+      <WebAnalyticsGate>
+        <LiveSessionMap data={locations} loading={mapResult.isLoading} />
 
-      <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
-        <DimensionTableWidget
-          title={t`Top Pages`}
-          columns={columns}
-          live={live}
-          emptyText={t`No pages`}
-          tabs={[
-            {
-              key: 'landing',
-              label: t`Landing pages`,
-              dimensionLabel: t`Page`,
-              dimension: 'landing_path'
-            }
-          ]}
-        />
-        <DimensionTableWidget
-          title={t`Top Cities`}
-          columns={columns}
-          live={live}
-          emptyText={t`No city data`}
-          tabs={[
-            { key: 'cities', label: t`Cities`, dimensionLabel: t`City`, dimension: 'city' }
-          ]}
-        />
-        <DimensionTableWidget
-          title={t`Top Referrers`}
-          columns={columns}
-          live={live}
-          emptyText={t`No referrers`}
-          tabs={[
-            {
-              key: 'referrers',
-              label: t`Referrers`,
-              dimensionLabel: t`Referrer domain`,
-              dimension: 'referrer_domain'
-            }
-          ]}
-        />
-      </div>
+        <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
+          <DimensionTableWidget
+            title={t`Top Pages`}
+            columns={columns}
+            live={live}
+            emptyText={t`No pages`}
+            tabs={[
+              {
+                key: 'landing',
+                label: t`Landing pages`,
+                dimensionLabel: t`Page`,
+                dimension: 'landing_path'
+              }
+            ]}
+          />
+          <DimensionTableWidget
+            title={t`Top Cities`}
+            columns={columns}
+            live={live}
+            emptyText={t`No city data`}
+            tabs={[
+              { key: 'cities', label: t`Cities`, dimensionLabel: t`City`, dimension: 'city' }
+            ]}
+          />
+          <DimensionTableWidget
+            title={t`Top Referrers`}
+            columns={columns}
+            live={live}
+            emptyText={t`No referrers`}
+            tabs={[
+              {
+                key: 'referrers',
+                label: t`Referrers`,
+                dimensionLabel: t`Referrer domain`,
+                dimension: 'referrer_domain'
+              }
+            ]}
+          />
+        </div>
 
-      <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
-        <DimensionTableWidget
-          title={t`Devices`}
-          columns={columns}
-          live={live}
-          emptyText={t`No device data`}
-          tabs={[
-            { key: 'devices', label: t`Devices`, dimensionLabel: t`Device`, dimension: 'device' }
-          ]}
-        />
-        <DimensionTableWidget
-          title={t`Campaigns`}
-          columns={columns}
-          live={live}
-          emptyText={t`No campaign data`}
-          tabs={[
-            {
-              key: 'campaigns',
-              label: t`Campaigns`,
-              dimensionLabel: t`Campaign`,
-              dimension: 'utm_campaign',
-              // Most sessions carry no campaign at all; without this the table
-              // would be one giant "(empty)" row.
-              filters: [{ dimension: 'utm_campaign', operator: 'isNotEmpty', values: [] }]
-            }
-          ]}
-        />
-        <DimensionTableWidget
-          title={t`Channels`}
-          columns={columns}
-          live={live}
-          emptyText={t`No channel data`}
-          tabs={[
-            {
-              key: 'channels',
-              label: t`Channels`,
-              dimensionLabel: t`Channel group`,
-              dimension: 'channel_group'
-            }
-          ]}
-        />
-      </div>
+        <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
+          <DimensionTableWidget
+            title={t`Devices`}
+            columns={columns}
+            live={live}
+            emptyText={t`No device data`}
+            tabs={[
+              { key: 'devices', label: t`Devices`, dimensionLabel: t`Device`, dimension: 'device' }
+            ]}
+          />
+          <DimensionTableWidget
+            title={t`Campaigns`}
+            columns={columns}
+            live={live}
+            emptyText={t`No campaign data`}
+            tabs={[
+              {
+                key: 'campaigns',
+                label: t`Campaigns`,
+                dimensionLabel: t`Campaign`,
+                dimension: 'utm_campaign',
+                // Most sessions carry no campaign at all; without this the table
+                // would be one giant "(empty)" row.
+                filters: [{ dimension: 'utm_campaign', operator: 'isNotEmpty', values: [] }]
+              }
+            ]}
+          />
+          <DimensionTableWidget
+            title={t`Channels`}
+            columns={columns}
+            live={live}
+            emptyText={t`No channel data`}
+            tabs={[
+              {
+                key: 'channels',
+                label: t`Channels`,
+                dimensionLabel: t`Channel group`,
+                dimension: 'channel_group'
+              }
+            ]}
+          />
+        </div>
+      </WebAnalyticsGate>
     </div>
   )
 }

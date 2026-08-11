@@ -18,7 +18,10 @@ type ContactService struct {
 	inboundWebhookEventRepo domain.InboundWebhookEventRepository
 	contactListRepo         domain.ContactListRepository
 	contactTimelineRepo     domain.ContactTimelineRepository
-	logger                  logger.Logger
+	// webAnalyticsRepo is optional: installs without the feature wired still
+	// delete contacts normally.
+	webAnalyticsRepo domain.WebAnalyticsRepository
+	logger           logger.Logger
 }
 
 func NewContactService(
@@ -29,6 +32,7 @@ func NewContactService(
 	inboundWebhookEventRepo domain.InboundWebhookEventRepository,
 	contactListRepo domain.ContactListRepository,
 	contactTimelineRepo domain.ContactTimelineRepository,
+	webAnalyticsRepo domain.WebAnalyticsRepository,
 	logger logger.Logger,
 ) *ContactService {
 	return &ContactService{
@@ -39,6 +43,7 @@ func NewContactService(
 		inboundWebhookEventRepo: inboundWebhookEventRepo,
 		contactListRepo:         contactListRepo,
 		contactTimelineRepo:     contactTimelineRepo,
+		webAnalyticsRepo:        webAnalyticsRepo,
 		logger:                  logger,
 	}
 }
@@ -173,6 +178,16 @@ func (s *ContactService) DeleteContact(ctx context.Context, workspaceID string, 
 	if err := s.contactTimelineRepo.DeleteForEmail(ctx, workspaceID, email); err != nil {
 		s.logger.WithField("email", email).Error(fmt.Sprintf("Failed to delete contact timeline: %v", err))
 		return fmt.Errorf("failed to delete contact timeline: %w", err)
+	}
+
+	// Web analytics rows are anonymized rather than deleted: once the address is
+	// gone they are ordinary anonymous traffic, and removing them would rewrite
+	// historical session and pageview totals. Best-effort — the feature may not
+	// be enabled, and a contact deletion must not fail because analytics did.
+	if s.webAnalyticsRepo != nil {
+		if err := s.webAnalyticsRepo.AnonymizeContact(ctx, workspaceID, email); err != nil {
+			s.logger.WithField("email", email).Error(fmt.Sprintf("Failed to anonymize web analytics rows: %v", err))
+		}
 	}
 
 	// Finally delete the contact

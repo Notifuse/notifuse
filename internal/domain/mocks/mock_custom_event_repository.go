@@ -35,6 +35,20 @@ func (m *MockCustomEventRepository) EXPECT() *MockCustomEventRepositoryMockRecor
 	return m.recorder
 }
 
+// BatchInsertNew mocks base method.
+func (m *MockCustomEventRepository) BatchInsertNew(arg0 context.Context, arg1 string, arg2 []*domain.CustomEvent) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "BatchInsertNew", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// BatchInsertNew indicates an expected call of BatchInsertNew.
+func (mr *MockCustomEventRepositoryMockRecorder) BatchInsertNew(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BatchInsertNew", reflect.TypeOf((*MockCustomEventRepository)(nil).BatchInsertNew), arg0, arg1, arg2)
+}
+
 // BatchUpsert mocks base method.
 func (m *MockCustomEventRepository) BatchUpsert(arg0 context.Context, arg1 string, arg2 []*domain.CustomEvent) error {
 	m.ctrl.T.Helper()

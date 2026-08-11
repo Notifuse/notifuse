@@ -19,7 +19,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "type-check": "tsc --noEmit",
+    "type-check": "tsc --noEmit -p tsconfig.json && tsc -p tsconfig.test.json",
     "lint": "eslint .",
     "clean": "rm -rf dist",
     "test:e2e:install": "playwright install chromium"

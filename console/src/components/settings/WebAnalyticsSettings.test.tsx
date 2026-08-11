@@ -11,7 +11,10 @@ import { webAnalyticsService } from '../../services/api/web_analytics'
 // the web analytics tabs) and so cycles back into the module under test.
 // Stubbing the client keeps that graph out of this suite.
 vi.mock('../../services/api/client', () => ({
-  api: { post: vi.fn().mockResolvedValue({}), get: vi.fn().mockResolvedValue({}) }
+  api: {
+    post: vi.fn().mockResolvedValue({}),
+    get: vi.fn().mockResolvedValue({})
+  }
 }))
 
 vi.mock('../../services/api/workspace', () => ({
@@ -39,7 +42,17 @@ const makeWorkspace = (webAnalyticsOverrides: Record<string, unknown> = {}): Wor
         geo_store_city: true,
         geo_store_region: true,
         geo_coordinates_precision: 2,
-        filters: [{ id: 'f1', name: 'Paid', priority: 0, order: 0, conditions: [], operations: [], enabled: true }],
+        filters: [
+          {
+            id: 'f1',
+            name: 'Paid',
+            priority: 0,
+            order: 0,
+            conditions: [],
+            operations: [],
+            enabled: true
+          }
+        ],
         ...webAnalyticsOverrides
       }
     }
@@ -81,6 +94,24 @@ describe('WebAnalyticsSettings', () => {
     expect(screen.getByText(/analytics\.example\.com\/na\.js/)).toBeInTheDocument()
   })
 
+  it('copies the whole snippet from the floating copy button, not just the visible tokens', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined)
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText },
+      configurable: true
+    })
+
+    renderComponent(true)
+
+    // Install snippet first, identify snippet second.
+    const [installCopy] = screen.getAllByRole('button', { name: /^Copy$/i })
+    fireEvent.click(installCopy)
+
+    await waitFor(() => expect(writeText).toHaveBeenCalledTimes(1))
+    expect(writeText.mock.calls[0][0]).toContain('https://analytics.example.com/na.js')
+    expect(writeText.mock.calls[0][0]).toContain('window.NotifuseAnalyticsConfig')
+  })
+
   it('keeps the Save button disabled until the form is touched', () => {
     renderComponent(true)
     expect(screen.getByRole('button', { name: /Save Changes/i })).toBeDisabled()
@@ -89,7 +120,9 @@ describe('WebAnalyticsSettings', () => {
   it('saves via setSettings and preserves the attribution filters', async () => {
     renderComponent(true)
 
-    fireEvent.change(screen.getByLabelText(/Bounce threshold/i), { target: { value: '25' } })
+    fireEvent.change(screen.getByLabelText(/Bounce threshold/i), {
+      target: { value: '25' }
+    })
     fireEvent.click(screen.getByRole('button', { name: /Save Changes/i }))
 
     await waitFor(() => {
@@ -105,22 +138,126 @@ describe('WebAnalyticsSettings', () => {
     })
   })
 
-  it('drops blank custom dimension labels instead of storing empty names', async () => {
-    renderComponent(true)
+  it('does not silently switch the contact bridge back off on an unrelated save', async () => {
+    // setWebAnalyticsSettings replaces the whole settings object, and this panel
+    // rebuilds it from DEFAULT_SETTINGS plus an explicit field enumeration — so
+    // a flag missing from the defaults, the setFieldsValue list, the form or the
+    // save payload is silently reset on every save. For a consent flag that
+    // controls writing into contact timelines, that is the worst way to fail.
+    renderComponent(true, makeWorkspace({ contact_bridge_enabled: true }))
 
-    fireEvent.change(screen.getByLabelText('custom_1'), { target: { value: 'Plan' } })
+    fireEvent.change(screen.getByLabelText(/Bounce threshold/i), {
+      target: { value: '25' }
+    })
     fireEvent.click(screen.getByRole('button', { name: /Save Changes/i }))
 
     await waitFor(() => {
       expect(webAnalyticsService.setSettings).toHaveBeenCalledWith(
         'ws1',
-        expect.objectContaining({ custom_dimension_labels: { custom_1: 'Plan' } })
+        expect.objectContaining({ contact_bridge_enabled: true })
+      )
+    })
+  })
+
+  it('can turn the contact bridge on', async () => {
+    renderComponent(true)
+
+    fireEvent.click(screen.getByLabelText(/contact timeline/i))
+    fireEvent.click(screen.getByRole('button', { name: /Save Changes/i }))
+
+    await waitFor(() => {
+      expect(webAnalyticsService.setSettings).toHaveBeenCalledWith(
+        'ws1',
+        expect.objectContaining({ contact_bridge_enabled: true })
+      )
+    })
+  })
+
+  it('drops blank custom dimension labels instead of storing empty names', async () => {
+    renderComponent(true)
+
+    fireEvent.change(screen.getByLabelText('custom_1'), {
+      target: { value: 'Plan' }
+    })
+    fireEvent.click(screen.getByRole('button', { name: /Save Changes/i }))
+
+    await waitFor(() => {
+      expect(webAnalyticsService.setSettings).toHaveBeenCalledWith(
+        'ws1',
+        expect.objectContaining({
+          custom_dimension_labels: { custom_1: 'Plan' }
+        })
+      )
+    })
+  })
+
+  it('shows the nested geo options with a readable precision label when geo tracking is on', async () => {
+    renderComponent(true)
+
+    // Form.useWatch batches on a macrotask, so the nested block appears a tick
+    // after the stored settings are pushed into the form.
+    expect(await screen.findByLabelText('Store city name')).toBeInTheDocument()
+    expect(screen.getByLabelText('Store region/state name')).toBeInTheDocument()
+    // The raw decimal count means nothing to a reader; the picker spells it out.
+    expect(screen.getByText('City level (~1km precision)')).toBeInTheDocument()
+  })
+
+  it('hides the nested geo options while geo tracking is off', async () => {
+    renderComponent(true, makeWorkspace({ geo_enabled: false }))
+
+    await waitFor(() =>
+      expect(screen.getByLabelText('Enable geo-location tracking')).toBeInTheDocument()
+    )
+    expect(screen.queryByLabelText('Store city name')).toBeNull()
+    expect(screen.queryByLabelText('Store region/state name')).toBeNull()
+    expect(screen.queryByText('Coordinates precision')).toBeNull()
+  })
+
+  it('saves a nested geo toggle change', async () => {
+    renderComponent(true)
+
+    fireEvent.click(await screen.findByLabelText('Store city name'))
+    fireEvent.click(screen.getByRole('button', { name: /Save Changes/i }))
+
+    await waitFor(() => {
+      expect(webAnalyticsService.setSettings).toHaveBeenCalledWith(
+        'ws1',
+        expect.objectContaining({
+          geo_enabled: true,
+          geo_store_city: false,
+          geo_store_region: true
+        })
+      )
+    })
+  })
+
+  it('keeps the nested geo values when geo tracking is switched off', async () => {
+    // Turning the parent off unmounts the nested rows. Their values must still
+    // reach the payload, or DEFAULT_SETTINGS silently re-enables city/region
+    // storage the next time geo tracking is switched back on.
+    renderComponent(true, makeWorkspace({ geo_store_city: false, geo_coordinates_precision: 0 }))
+
+    fireEvent.click(await screen.findByLabelText('Enable geo-location tracking'))
+    fireEvent.click(screen.getByRole('button', { name: /Save Changes/i }))
+
+    await waitFor(() => {
+      expect(webAnalyticsService.setSettings).toHaveBeenCalledWith(
+        'ws1',
+        expect.objectContaining({
+          geo_enabled: false,
+          geo_store_city: false,
+          geo_coordinates_precision: 0
+        })
       )
     })
   })
 
   it('falls back to defaults when the workspace has no web analytics settings yet', () => {
-    const workspace = { id: 'ws1', name: 'My WS', settings: {} } as unknown as Workspace
+    const workspace = {
+      id: 'ws1',
+      name: 'My WS',
+      settings: {}
+    } as unknown as Workspace
     renderComponent(true, workspace)
     // Never-configured workspaces still get an editable form so the feature can
     // be switched on from here.

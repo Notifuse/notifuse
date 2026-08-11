@@ -48,8 +48,16 @@ type webBufferedSession struct {
 	pages   []*domain.WebPage
 	goals   []*domain.WebGoal
 
-	dirty            bool
-	failedAttempts   int
+	dirty          bool
+	failedAttempts int
+	// emittedGoals keys the goals already bridged to the contact timeline by
+	// their identity, never by an index into entry.goals: a later beat can carry
+	// FEWER goals than an earlier one (two tabs, an offline replay), so an
+	// integer cursor would slice out of range or silently skip.
+	emittedGoals map[string]struct{}
+	// bridgeEnabled is the workspace's opt-in as of the latest beat.
+	bridgeEnabled bool
+
 	lastArrival      time.Time
 	lastFlushedAt    time.Time
 	flushedGoalCount int
@@ -69,6 +77,7 @@ func webBufferKey(sessionID string, tabID int64) string {
 // WebAnalyticsBuffer is safe for concurrent use.
 type WebAnalyticsBuffer struct {
 	repo   domain.WebAnalyticsRepository
+	bridge *WebAnalyticsContactBridge
 	logger logger.Logger
 	cfg    WebAnalyticsBufferConfig
 	nowFn  func() time.Time
@@ -105,9 +114,20 @@ func NewWebAnalyticsBuffer(repo domain.WebAnalyticsRepository, log logger.Logger
 	}
 }
 
+// SetContactBridge attaches the timeline bridge. Separate from the constructor
+// so the bridge can be built after the buffer without a dependency cycle.
+func (b *WebAnalyticsBuffer) SetContactBridge(bridge *WebAnalyticsContactBridge) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	b.bridge = bridge
+}
+
 // Add stores the beat's rows, collapsing onto any buffered older beat of the
 // same session (highest beat_seq wins; ties keep the latest arrival).
-func (b *WebAnalyticsBuffer) Add(workspaceID string, tabID int64, session *domain.WebSession, pages []*domain.WebPage, goals []*domain.WebGoal) {
+// bridgeEnabled travels with the beat rather than being looked up at flush
+// time: the workspace's opt-in is already resolved (and cached) in Track, and
+// the buffer has no settings access of its own.
+func (b *WebAnalyticsBuffer) Add(workspaceID string, tabID int64, bridgeEnabled bool, session *domain.WebSession, pages []*domain.WebPage, goals []*domain.WebGoal) {
 	if session == nil {
 		return
 	}
@@ -143,6 +163,7 @@ func (b *WebAnalyticsBuffer) Add(workspaceID string, tabID int64, session *domai
 	entry.session = session
 	entry.pages = pages
 	entry.goals = goals
+	entry.bridgeEnabled = bridgeEnabled
 	entry.dirty = true
 	entry.failedAttempts = 0
 	entry.lastArrival = now
@@ -194,6 +215,7 @@ func (b *WebAnalyticsBuffer) flush(ctx context.Context, force bool) {
 	type flushed struct {
 		id      string
 		session *domain.WebSession
+		goals   []*domain.WebGoal
 	}
 	type workspaceFlush struct {
 		workspaceID string
@@ -223,7 +245,7 @@ func (b *WebAnalyticsBuffer) flush(ctx context.Context, force bool) {
 			if !forceWorkspace && !b.isDue(entry, now) {
 				continue
 			}
-			flushRun.entries = append(flushRun.entries, flushed{id: id, session: entry.session})
+			flushRun.entries = append(flushRun.entries, flushed{id: id, session: entry.session, goals: entry.goals})
 			flushRun.sessions = append(flushRun.sessions, entry.session)
 			flushRun.pages = append(flushRun.pages, entry.pages...)
 			flushRun.goals = append(flushRun.goals, entry.goals...)
@@ -249,6 +271,29 @@ func (b *WebAnalyticsBuffer) flush(ctx context.Context, force bool) {
 		b.mu.Lock()
 		ws := b.workspaces[run.workspaceID]
 		ws.flushing = false
+
+		// Select the goals this writer has not bridged yet, while holding the
+		// lock; emit them after releasing it. Emitting before the flush had
+		// committed would advertise a conversion the write might still lose, and
+		// emitting under b.mu — or inside the flush transaction — would hold
+		// contact_segment_queue row locks across a batch spanning many contacts.
+		var candidates []webBridgeCandidate
+		if err == nil && b.bridge != nil {
+			for _, sent := range run.entries {
+				entry := ws.sessions[sent.id]
+				if entry == nil || !entry.bridgeEnabled {
+					continue
+				}
+				for _, goal := range sent.goals {
+					key := webBridgeGoalKey(goal)
+					if _, seen := entry.emittedGoals[key]; seen {
+						continue
+					}
+					candidates = append(candidates, webBridgeCandidate{entryID: sent.id, key: key, goal: goal})
+				}
+			}
+		}
+
 		if err != nil {
 			b.logger.WithField("workspace_id", run.workspaceID).
 				WithField("sessions", len(run.sessions)).
@@ -280,7 +325,54 @@ func (b *WebAnalyticsBuffer) flush(ctx context.Context, force bool) {
 			}
 		}
 		b.mu.Unlock()
+
+		if len(candidates) > 0 {
+			goals := make([]*domain.WebGoal, 0, len(candidates))
+			for _, c := range candidates {
+				goals = append(goals, c.goal)
+			}
+
+			// Mark ONLY what was actually written. A goal that was anonymous at
+			// this flush, whose contact does not exist yet, or whose insert
+			// failed must stay unmarked so a later flush retries it — the SDK
+			// re-sends its whole cumulative action list, so the goal is still
+			// there. Marking on selection instead would silently drop every
+			// conversion fired before the visitor identified, which is exactly
+			// the case retroactive identification exists to serve.
+			written := b.bridge.EmitGoals(ctx, run.workspaceID, goals)
+			if len(written) > 0 {
+				b.mu.Lock()
+				for _, c := range candidates {
+					if !written[c.goal] {
+						continue
+					}
+					entry := ws.sessions[c.entryID]
+					if entry == nil {
+						continue // evicted mid-emit; the DB conflict guard covers a replay
+					}
+					if entry.emittedGoals == nil {
+						entry.emittedGoals = make(map[string]struct{}, len(candidates))
+					}
+					entry.emittedGoals[c.key] = struct{}{}
+				}
+				b.mu.Unlock()
+			}
+		}
 	}
+}
+
+// webBridgeCandidate pairs a goal with the writer it belongs to, so the cursor
+// can be advanced after the emit rather than before it.
+type webBridgeCandidate struct {
+	entryID string
+	key     string
+	goal    *domain.WebGoal
+}
+
+// webBridgeGoalKey identifies one goal within a writer's stream. It mirrors the
+// web_goals key minus the parts already fixed by the entry: session and tab.
+func webBridgeGoalKey(goal *domain.WebGoal) string {
+	return goal.GoalName + "|" + strconv.FormatInt(goal.ClientTsMs, 10)
 }
 
 func (b *WebAnalyticsBuffer) isDue(entry *webBufferedSession, now time.Time) bool {

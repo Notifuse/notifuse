@@ -279,8 +279,10 @@ describe('SessionState', () => {
 
       const payload = sessionState.buildPayload(mockAttributes);
 
-      // No more current_page field - page is in actions[]
-      expect(payload.current_page).toBeUndefined();
+      // No more current_page field - page is in actions[].
+      // Read through an index signature: the field is gone from the type, and
+      // the assertion is that it is gone from the wire payload too.
+      expect((payload as unknown as Record<string, unknown>).current_page).toBeUndefined();
 
       // Current page should be in actions with scroll
       const pageview = payload.actions[0] as PageviewAction;
@@ -308,7 +310,7 @@ describe('SessionState', () => {
       const payload = sessionState.buildPayload(mockAttributes);
 
       // No checkpoint field in V3 format
-      expect(payload.checkpoint).toBeUndefined();
+      expect((payload as unknown as Record<string, unknown>).checkpoint).toBeUndefined();
     });
 
     it('includes session metadata', () => {

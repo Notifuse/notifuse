@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Notifuse/notifuse/pkg/notifuse_mjml"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -1808,6 +1809,30 @@ func TestUpdateTransactionalRequest_Validate_TrackingModeOnlyUpdate(t *testing.T
 
 	// An entirely empty update is still rejected.
 	empty := &UpdateTransactionalRequest{WorkspaceID: "ws1", ID: "notif-1"}
+	err := empty.Validate()
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "at least one field")
+}
+
+func TestUpdateTransactionalRequest_Validate_IdentityOnlyTrackingSettings(t *testing.T) {
+	// TrackingSettings carries a slice since the web identity token landed, so
+	// the at-least-one-field gate compares with IsZero() instead of ==. A
+	// request whose only content is an identity token is still a real update.
+	req := &UpdateTransactionalRequest{
+		WorkspaceID: "ws1",
+		ID:          "notif-1",
+	}
+	req.Updates.TrackingSettings.IdentifyToken = "tok-abc123"
+	assert.NoError(t, req.Validate())
+
+	// And the genuinely empty struct still counts as "nothing to update".
+	empty := &UpdateTransactionalRequest{
+		WorkspaceID: "ws1",
+		ID:          "notif-1",
+		Updates: TransactionalNotificationUpdateParams{
+			TrackingSettings: notifuse_mjml.TrackingSettings{},
+		},
+	}
 	err := empty.Validate()
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "at least one field")

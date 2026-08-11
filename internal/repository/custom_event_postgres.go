@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
 )
@@ -77,6 +78,70 @@ func (r *customEventRepository) Upsert(ctx context.Context, workspaceID string, 
 		return fmt.Errorf("failed to upsert custom event: %w", err)
 	}
 
+	return nil
+}
+
+// BatchInsertNew inserts events that do not already exist and leaves existing
+// rows entirely alone.
+//
+// DO NOTHING rather than the mutable DO UPDATE that BatchUpsert uses. The
+// custom_events timeline trigger fires on INSERT *or* UPDATE and does no
+// diffing, so re-writing an unchanged event appends a second contact_timeline
+// row, queues another segment recomputation and re-enrols the contact in any
+// matching automation. For a source that re-sends its whole history on every
+// beat, that turns one conversion into an endless stream.
+//
+// It also protects against two subtler cases the mutable clause allows: an
+// occurred_at that drifts between beats (clock-skew correction is recomputed
+// per beat) would satisfy the "newer timestamp" guard, and a NULL deleted_at
+// would resurrect an event an admin had deliberately removed.
+func (r *customEventRepository) BatchInsertNew(ctx context.Context, workspaceID string, events []*domain.CustomEvent) error {
+	if len(events) == 0 {
+		return nil
+	}
+
+	db, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
+	if err != nil {
+		return fmt.Errorf("failed to get workspace connection: %w", err)
+	}
+
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	stmt, err := tx.PrepareContext(ctx, `
+		INSERT INTO custom_events (
+			event_name, external_id, email, properties, occurred_at,
+			source, integration_id, goal_name, goal_type, goal_value,
+			deleted_at, created_at, updated_at
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+		ON CONFLICT (event_name, external_id) DO NOTHING
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to prepare insert: %w", err)
+	}
+	defer stmt.Close()
+
+	now := time.Now()
+	for _, event := range events {
+		properties, err := json.Marshal(event.Properties)
+		if err != nil {
+			return fmt.Errorf("failed to marshal properties: %w", err)
+		}
+		if _, err := stmt.ExecContext(ctx,
+			event.EventName, event.ExternalID, event.Email, properties, event.OccurredAt,
+			event.Source, event.IntegrationID, event.GoalName, event.GoalType, event.GoalValue,
+			event.DeletedAt, now, now,
+		); err != nil {
+			return fmt.Errorf("failed to insert custom event: %w", err)
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("failed to commit: %w", err)
+	}
 	return nil
 }
 

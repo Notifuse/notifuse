@@ -19,14 +19,51 @@ import (
 //go:generate mockgen -destination=./mocks/mock_message_sender.go -package=mocks github.com/Notifuse/notifuse/internal/service/broadcast MessageSender
 
 // MessageSender is the interface for sending messages to recipients
+//
+// The senders never see the workspace, so the two values the web analytics
+// identity needs travel with the send: workspaceSecretKey encrypts the token
+// and webAnalytics decides whether there is one to mint at all.
 type MessageSender interface {
 	// SendToRecipient sends a message to a single recipient
-	SendToRecipient(ctx context.Context, workspaceID string, integrationID string, endpoint string, trackingEnabled bool, broadcast *domain.Broadcast, messageID string, email string,
+	SendToRecipient(ctx context.Context, workspaceID string, integrationID string, workspaceSecretKey string, endpoint string, trackingEnabled bool, webAnalytics *domain.WebAnalyticsSettings, broadcast *domain.Broadcast, messageID string, email string,
 		template *domain.Template, data map[string]interface{}, emailProvider *domain.EmailProvider, timeoutAt time.Time, contactLanguage string, workspaceDefaultLanguage string) error
 
 	// SendBatch sends messages to a batch of recipients
-	SendBatch(ctx context.Context, workspaceID string, integrationID string, workspaceSecretKey string, endpoint string, websiteURL string, trackingEnabled bool, broadcastID string, recipients []*domain.ContactWithList,
+	SendBatch(ctx context.Context, workspaceID string, integrationID string, workspaceSecretKey string, endpoint string, websiteURL string, trackingEnabled bool, webAnalytics *domain.WebAnalyticsSettings, broadcastID string, recipients []*domain.ContactWithList,
 		templates map[string]*domain.Template, emailProvider *domain.EmailProvider, timeoutAt time.Time, workspaceDefaultLanguage string) (sent int, failed int, err error)
+}
+
+// mintIdentifyToken builds the web analytics identity of ONE recipient — the
+// encrypted nf_id appended to tracked links, which identifies the visitor on
+// landing without a line of customer code — together with the hosts it may be
+// handed to.
+//
+// It belongs at the one place per send path where the compiled email is about
+// to be produced for a single contact — SendToRecipient for the direct sender,
+// buildQueueEntry for the queue sender — because only the settings handed to
+// the compiler carry the token onto the links. The token names the contact it
+// was minted for, so one minted per batch instead of per recipient would
+// attribute every visit of the campaign to its first recipient.
+//
+// An empty allowlist is not "no opinion": the workspace-level reading of the
+// same list, WebAnalyticsSettings.MatchesAllowedDomain, answers true for every
+// hostname when it is empty, so a workspace that enabled web analytics without
+// declaring a domain must mint nothing here rather than inherit that fail-open.
+// The link rewriter reads the list the opposite way — notifuse_mjml.
+// MatchesAllowedHost treats empty as "no host at all" — but leaving the whole
+// gate to it would still mint a live per-recipient credential, and hold it out
+// of the email's links by that one downstream check alone.
+func mintIdentifyToken(email string, workspaceSecretKey string, webAnalytics *domain.WebAnalyticsSettings) (token string, allowedHosts []string, err error) {
+	if workspaceSecretKey == "" || webAnalytics == nil || !webAnalytics.Enabled || len(webAnalytics.AllowedDomains) == 0 {
+		return "", nil, nil
+	}
+
+	token, err = domain.BuildWebIdentifyToken(email, workspaceSecretKey, domain.WebIdentifyTokenTTL, time.Now().UTC())
+	if err != nil {
+		return "", nil, err
+	}
+
+	return token, webAnalytics.AllowedDomains, nil
 }
 
 // CircuitBreaker provides circuit breaking functionality
@@ -199,7 +236,7 @@ func (s *messageSender) enforceRateLimit(ctx context.Context, integrationRateLim
 }
 
 // SendToRecipient sends a message to a single recipient
-func (s *messageSender) SendToRecipient(ctx context.Context, workspaceID string, integrationID string, endpoint string, trackingEnabled bool, broadcast *domain.Broadcast, messageID string, email string,
+func (s *messageSender) SendToRecipient(ctx context.Context, workspaceID string, integrationID string, workspaceSecretKey string, endpoint string, trackingEnabled bool, webAnalytics *domain.WebAnalyticsSettings, broadcast *domain.Broadcast, messageID string, email string,
 	template *domain.Template, data map[string]interface{}, emailProvider *domain.EmailProvider, timeoutAt time.Time, contactLanguage string, workspaceDefaultLanguage string) error {
 
 	// Ensure UTM parameters object is present to avoid nil dereference
@@ -243,16 +280,31 @@ func (s *messageSender) SendToRecipient(ctx context.Context, workspaceID string,
 		utmParams.Content = template.ID
 	}
 
+	// Identity of this recipient, for the links this email carries. Analytics
+	// identification is a nicety: a mint failure is logged and the email goes
+	// out without it, never at the cost of the send.
+	identifyToken, identifyAllowedHosts, identifyErr := mintIdentifyToken(email, workspaceSecretKey, webAnalytics)
+	if identifyErr != nil {
+		s.logger.WithFields(map[string]interface{}{
+			"broadcast_id": broadcast.ID,
+			"workspace_id": workspaceID,
+			"recipient":    email,
+			"error":        identifyErr.Error(),
+		}).Warn("Failed to mint web analytics identity token, sending without it")
+	}
+
 	trackingSettings := notifuse_mjml.TrackingSettings{
-		Endpoint:       endpoint,
-		EnableTracking: trackingEnabled,
-		UTMSource:      utmParams.Source,
-		UTMMedium:      utmParams.Medium,
-		UTMCampaign:    utmParams.Campaign,
-		UTMContent:     utmParams.Content,
-		UTMTerm:        utmParams.Term,
-		WorkspaceID:    workspaceID,
-		MessageID:      messageID,
+		Endpoint:             endpoint,
+		EnableTracking:       trackingEnabled,
+		UTMSource:            utmParams.Source,
+		UTMMedium:            utmParams.Medium,
+		UTMCampaign:          utmParams.Campaign,
+		UTMContent:           utmParams.Content,
+		UTMTerm:              utmParams.Term,
+		WorkspaceID:          workspaceID,
+		MessageID:            messageID,
+		IdentifyToken:        identifyToken,
+		IdentifyAllowedHosts: identifyAllowedHosts,
 	}
 
 	// Resolve language variant
@@ -384,7 +436,7 @@ func (s *messageSender) SendToRecipient(ctx context.Context, workspaceID string,
 }
 
 // SendBatch sends messages to a batch of recipients
-func (s *messageSender) SendBatch(ctx context.Context, workspaceID string, integrationID string, workspaceSecretKey string, endpoint string, websiteURL string, trackingEnabled bool, broadcastID string, recipients []*domain.ContactWithList,
+func (s *messageSender) SendBatch(ctx context.Context, workspaceID string, integrationID string, workspaceSecretKey string, endpoint string, websiteURL string, trackingEnabled bool, webAnalytics *domain.WebAnalyticsSettings, broadcastID string, recipients []*domain.ContactWithList,
 	templates map[string]*domain.Template, emailProvider *domain.EmailProvider, timeoutAt time.Time, workspaceDefaultLanguage string) (sent int, failed int, err error) {
 
 	// Track specific error types for better reporting
@@ -536,6 +588,13 @@ func (s *messageSender) SendBatch(ctx context.Context, workspaceID string, integ
 			utmParams.Content = templateID
 		}
 
+		// Deliberately no identity token on these settings: they are handed to
+		// BuildTemplateData alone, which reads the endpoint and the UTM fields and
+		// never looks at IdentifyToken. The settings the link rewriter actually
+		// sees are built inside SendToRecipient below, which mints this
+		// recipient's own token there. Minting a second one here would encrypt a
+		// live per-recipient credential once more per contact in the send loop and
+		// park it in a struct nothing reads.
 		trackingSettings := notifuse_mjml.TrackingSettings{
 			Endpoint:       endpoint,
 			EnableTracking: trackingEnabled,
@@ -620,7 +679,7 @@ func (s *messageSender) SendBatch(ctx context.Context, workspaceID string, integ
 		}
 
 		// Send to the recipient
-		err = s.SendToRecipient(ctx, workspaceID, integrationID, endpoint, trackingEnabled, broadcast, messageID, contact.Email, templates[templateID], recipientData, emailProvider, timeoutAt, contactLanguage, workspaceDefaultLanguage)
+		err = s.SendToRecipient(ctx, workspaceID, integrationID, workspaceSecretKey, endpoint, trackingEnabled, webAnalytics, broadcast, messageID, contact.Email, templates[templateID], recipientData, emailProvider, timeoutAt, contactLanguage, workspaceDefaultLanguage)
 		if err != nil {
 			// SendToRecipient already logs errors
 			failed++

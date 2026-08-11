@@ -2,7 +2,7 @@
  * Session management
  * Handles session creation, persistence, and expiry
  */
-import type { Session, CustomDimensions, InternalConfig } from '../types';
+import type { Session, CustomDimensions, InternalConfig, WebIdentity } from '../types';
 import { Storage, TabStorage } from '../storage/storage';
 /**
  * Cross-domain session input (from URL parameters)
@@ -115,21 +115,27 @@ export declare class SessionManager {
      */
     private saveDimensions;
     /**
-     * Set user ID for tracking authenticated users
+     * Attach a verified contact identity to this visitor.
+     *
+     * The address is stored EXACTLY as given: the customer's server signed that
+     * raw string, so lowercasing it here would invalidate every HMAC they mint.
+     * Normalization happens server-side, after the signature is checked.
      */
-    setUserId(id: string | null): void;
+    setIdentity(identity: WebIdentity): void;
+    getIdentity(): WebIdentity | null;
     /**
-     * Get current user ID
+     * Stop future beats carrying the identity.
+     *
+     * This does NOT anonymize the session already recorded: the server keeps a
+     * contact_email once set, deliberately, so a beat that simply has not read
+     * its stored identity yet cannot un-attribute a visit. Erasure is a
+     * contact-deletion operation, not a client-side one.
      */
-    getUserId(): string | null;
+    clearIdentity(): void;
     /**
-     * Load user ID from storage
+     * Load the stored identity, discarding anything an older build left behind.
      */
-    private loadUserId;
-    /**
-     * Save user ID to storage
-     */
-    private saveUserId;
+    private loadIdentity;
     /**
      * Apply dimensions from URL parameters
      * Only sets dimensions that don't already have values (existing wins)

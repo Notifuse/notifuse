@@ -8,6 +8,48 @@
       typically sent as text/plain to avoid CORS preflights; the body is JSON
       regardless of Content-Type. Silently-dropped traffic (disabled feature,
       disallowed origin, bot user agents) still receives success responses.
+
+
+      The endpoint is public and unauthenticated, so the identity fields
+      (contact_email + contact_email_hmac, or identify_token) are claims until
+      they verify against the workspace secret. One that does not verify is not
+      an error: the beat is recorded anonymously. A single malformed action is
+      dropped the same way, leaving the rest of the beat intact.
+
+
+      Verifying the credential is the FIRST of three gates, not the only one.
+      An address that clears all three is attached to the session; failing any
+      of them costs the identity alone, silently — the beat is still stored and
+      the response is still a 200 with no error. Success and every failure are
+      therefore indistinguishable on the wire:
+
+
+      1. Signature (or token decryption) must verify against the workspace
+      secret. The recipe is in the contact_email_hmac schema; getting the
+      domain-separation prefix wrong is the usual cause.
+
+
+      2. Rate limits, applied to the IDENTIFIED path only (anonymous traffic is
+      the normal firehose and stays unthrottled) and before the contact lookup,
+      so an abusive caller cannot spend database reads: 120 identified beats per
+      minute per workspace + address, and 600 per minute per client IP (that one
+      counted across all workspaces, since an office shares one IP) — both sized
+      around the SDK's 10-30s heartbeat. Exceeding either is deliberately never
+      a 429, which the SDK would only queue for a retry that cannot fix it.
+
+
+      3. The address must ALREADY be a contact in the workspace. A signature
+      proves who the caller is, never that the address belongs to anyone, so
+      without this gate a workspace's own signing key could store the email of
+      people who are not contacts, and erasure would be unenforceable — a
+      deleted contact's next beat would re-stamp the address. The answer is
+      cached for 60 seconds, so a freshly created contact can stay unidentified
+      and a deleted one keep resolving for about that long.
+
+
+      This is why a correctly-signed beat for an address that is not a contact
+      is indistinguishable from a bad signature: both return 200 and record the
+      session anonymously.
     operationId: trackWebAnalyticsBeat
     tags: [Web Analytics]
     security: [] # public collect endpoint
@@ -31,7 +73,37 @@
                 success:
                   type: boolean
       '400':
-        description: Malformed payload (invalid session id, timestamps out of window, oversized)
+        description: >-
+          Malformed payload. The full set of causes: an unparseable body; a
+          missing or blank workspace_id; a session_id that is not a UUIDv7 or
+          whose embedded timestamp falls outside [now-48h, now+24h]; an
+          updated_at more than 24h from server time; a negative seq; more
+          actions than the schema's maxItems; a custom_1..custom_10 dimension
+          value over 256 characters; or more than 50 dimension entries. Row
+          building re-derives the session date from session_id and surfaces any
+          failure the same way, which today can only be that same session_id
+          rule.
+
+
+          Never returned for an unverifiable, throttled or unknown identity, and
+          never for a single out-of-range ACTION — that one action is dropped
+          and the beat is kept. An oversized actions ARRAY is a different rule
+          and IS a 400: see maxItems on the actions property.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                error:
+                  type: string
+      '413':
+        description: >-
+          Body over 1 MB. Distinguished from a 400 because it is the one
+          failure the client can act on: actions[] only grows, so every later
+          beat of that session fails too until it trims its oldest actions or
+          rotates the session.
         content:
           application/json:
             schema:
@@ -50,6 +122,16 @@
       manage the feature without workspace write access). The attribution
       filters version is recomputed server-side. Passing null settings clears
       the configuration.
+
+
+      Switching settings.contact_bridge_enabled from off to on additionally
+      requires the contacts write permission, because that is the one field here
+      that stops shaping reporting and starts writing to contacts: it turns
+      verified web goals into custom events, and so into contact timeline
+      entries, segment recomputation and automation enrolments. Only the
+      transition is gated, so a member with web_analytics write but not contacts
+      write can still edit every other setting on a workspace where the bridge
+      is already on, and can still turn it off.
     operationId: setWebAnalyticsSettings
     tags: [Web Analytics]
     security:
@@ -72,7 +154,11 @@
       '400':
         description: Validation failed
       '403':
-        description: Missing web_analytics write permission
+        description: >-
+          Either of two distinct permission failures, both returned as a 403
+          with the missing resource named in the error message: the caller lacks
+          web_analytics write, or the request flips contact_bridge_enabled from
+          off to on and the caller lacks contacts write.
 
 /api/webAnalytics.backfillStart:
   post:

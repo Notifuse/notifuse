@@ -186,7 +186,7 @@ describe('SessionManager', () => {
         sdk_version: '38.0',
         sequence: 3,
         dimensions: {},
-        userId: null,
+      identity: null,
       };
 
       mockLocalStorage._store['nf_session'] = JSON.stringify(existingSession);
@@ -214,7 +214,7 @@ describe('SessionManager', () => {
         sdk_version: '38.0',
         sequence: 3,
         dimensions: {},
-        userId: null,
+      identity: null,
       };
 
       mockLocalStorage._store['nf_session'] = JSON.stringify(existingSession);
@@ -243,7 +243,7 @@ describe('SessionManager', () => {
         sdk_version: '38.0',
         sequence: 0,
         dimensions: {},
-        userId: null,
+      identity: null,
       };
 
       mockLocalStorage._store['nf_session'] = JSON.stringify(existingSession);
@@ -272,7 +272,7 @@ describe('SessionManager', () => {
         sdk_version: '38.0',
         sequence: 5,
         dimensions: {},
-        userId: null,
+      identity: null,
       };
 
       mockLocalStorage._store['nf_session'] = JSON.stringify(existingSession);
@@ -527,7 +527,7 @@ describe('SessionManager', () => {
       sdk_version: '38.0',
       sequence: 1,
       dimensions: {},
-      userId: null,
+      identity: null,
       ...overrides,
     });
 
@@ -589,7 +589,7 @@ describe('SessionManager', () => {
     });
 
     it('a rotated session inherits identity and dimensions', () => {
-      mockLocalStorage._store['nf_user_id'] = JSON.stringify('user@example.com');
+      mockLocalStorage._store['nf_identity'] = JSON.stringify({ email: 'user@example.com', hmac: 'sig' });
       mockLocalStorage._store['nf_dimensions'] = JSON.stringify({ 1: 'pro' });
       const sm = load(
         makeStored({ id: 'ancient', created_at: Date.now() - 25 * 60 * 60 * 1000 })
@@ -597,7 +597,7 @@ describe('SessionManager', () => {
 
       const next = sm.getOrCreateSession();
       expect(next.id).not.toBe('ancient');
-      expect(next.userId).toBe('user@example.com');
+      expect(next.identity).toEqual({ email: 'user@example.com', hmac: 'sig' });
       expect(next.dimensions).toEqual({ 1: 'pro' });
     });
   });
@@ -687,7 +687,7 @@ describe('SessionManager', () => {
         sdk_version: '38.0',
         sequence: 3,
         dimensions: {},
-        userId: null,
+      identity: null,
       };
 
       mockLocalStorage._store['nf_session'] = JSON.stringify(existingSession);
@@ -725,7 +725,7 @@ describe('SessionManager', () => {
         sdk_version: '38.0',
         sequence: 3,
         dimensions: {},
-        userId: null,
+      identity: null,
       };
 
       mockLocalStorage._store['nf_session'] = JSON.stringify(existingSession);

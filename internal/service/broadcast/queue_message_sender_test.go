@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/url"
 	"testing"
 	"time"
 
@@ -215,9 +216,9 @@ func TestQueueMessageSender_SendToRecipient(t *testing.T) {
 		err := sender.SendToRecipient(
 			context.Background(),
 			"workspace-1",
-			"integration-1",
+			"integration-1", "",
 			"https://api.test.com",
-			true,
+			true, nil,
 			broadcast,
 			"msg-1",
 			"recipient@example.com",
@@ -282,9 +283,9 @@ func TestQueueMessageSender_SendToRecipient(t *testing.T) {
 		err := sender.SendToRecipient(
 			context.Background(),
 			"workspace-1",
-			"integration-1",
+			"integration-1", "",
 			"https://api.test.com",
-			true,
+			true, nil,
 			broadcast,
 			"msg-1",
 			"recipient@example.com",
@@ -342,9 +343,9 @@ func TestQueueMessageSender_SendToRecipient(t *testing.T) {
 		err := sender.SendToRecipient(
 			context.Background(),
 			"workspace-1",
-			"integration-1",
+			"integration-1", "",
 			"https://api.test.com",
-			true,
+			true, nil,
 			broadcast,
 			"msg-1",
 			"recipient@example.com",
@@ -434,7 +435,7 @@ func TestQueueMessageSender_SendBatch(t *testing.T) {
 			"secret-key",
 			"https://api.example.com",
 			"",
-			true,
+			true, nil,
 			"broadcast-1",
 			recipients,
 			map[string]*domain.Template{"template-1": template},
@@ -476,7 +477,7 @@ func TestQueueMessageSender_SendBatch(t *testing.T) {
 			"secret-key",
 			"https://api.example.com",
 			"",
-			true,
+			true, nil,
 			"broadcast-1",
 			[]*domain.ContactWithList{}, // Empty
 			nil,
@@ -553,7 +554,7 @@ func TestQueueMessageSender_SendBatch(t *testing.T) {
 			"secret-key",
 			"https://api.example.com",
 			"",
-			true,
+			true, nil,
 			"broadcast-1",
 			recipients,
 			map[string]*domain.Template{"template-1": template},
@@ -669,7 +670,7 @@ func TestQueueMessageSender_SendBatch(t *testing.T) {
 			"test-secret-key",
 			"https://api.example.com",
 			"",
-			true,
+			true, nil,
 			"broadcast-1",
 			recipients,
 			map[string]*domain.Template{"template-1": template},
@@ -764,7 +765,7 @@ func TestQueueMessageSender_SendBatch(t *testing.T) {
 			"test-secret-key",
 			"https://api.example.com",
 			"",
-			true,
+			true, nil,
 			"broadcast-1",
 			recipients,
 			map[string]*domain.Template{"template-1": template},
@@ -881,7 +882,7 @@ func TestQueueSendBatch_WithRecipientFeed_Success(t *testing.T) {
 		"secret-key",
 		"https://api.example.com",
 		"",
-		true,
+		true, nil,
 		"broadcast-1",
 		recipients,
 		map[string]*domain.Template{"template-1": template},
@@ -977,7 +978,7 @@ func TestQueueSendBatch_WithRecipientFeed_FetchError_PausesBroadcast(t *testing.
 		"secret-key",
 		"https://api.example.com",
 		"",
-		true,
+		true, nil,
 		"broadcast-1",
 		recipients,
 		map[string]*domain.Template{"template-1": template},
@@ -1074,7 +1075,7 @@ func TestQueueSendBatch_WithRecipientFeed_Disabled(t *testing.T) {
 		"secret-key",
 		"https://api.example.com",
 		"",
-		true,
+		true, nil,
 		"broadcast-1",
 		recipients,
 		map[string]*domain.Template{"template-1": template},
@@ -1165,7 +1166,7 @@ func TestQueueSendBatch_WithRecipientFeed_NilFetcher(t *testing.T) {
 		"secret-key",
 		"https://api.example.com",
 		"",
-		true,
+		true, nil,
 		"broadcast-1",
 		recipients,
 		map[string]*domain.Template{"template-1": template},
@@ -1300,9 +1301,9 @@ func TestQueueMessageSender_BuildQueueEntry(t *testing.T) {
 		entry, err := qms.buildQueueEntry(
 			context.Background(),
 			"workspace-1",
-			"integration-1",
+			"integration-1", "",
 			"https://api.test.com",
-			true,
+			true, nil,
 			broadcast,
 			"msg-123",
 			"john@example.com",
@@ -1362,9 +1363,9 @@ func TestQueueMessageSender_BuildQueueEntry(t *testing.T) {
 		entry, err := qms.buildQueueEntry(
 			context.Background(),
 			"workspace-1",
-			"integration-1",
+			"integration-1", "",
 			"https://api.test.com",
-			true,
+			true, nil,
 			broadcast,
 			"msg-123",
 			"test@example.com",
@@ -1401,9 +1402,9 @@ func TestQueueMessageSender_BuildQueueEntry(t *testing.T) {
 		_, err := qms.buildQueueEntry(
 			context.Background(),
 			"workspace-1",
-			"integration-1",
+			"integration-1", "",
 			"https://api.test.com",
-			true,
+			true, nil,
 			broadcast,
 			"msg-123",
 			"test@example.com",
@@ -1444,9 +1445,9 @@ func TestQueueMessageSender_BuildQueueEntry(t *testing.T) {
 		entry, err := qms.buildQueueEntry(
 			context.Background(),
 			"workspace-1",
-			"integration-1",
+			"integration-1", "",
 			"https://api.test.com",
-			true,
+			true, nil,
 			broadcast,
 			"msg-123",
 			"test@example.com",
@@ -1510,12 +1511,12 @@ func TestQueueMessageSender_ABVariantsPerRecipientUTMContent(t *testing.T) {
 	templateA := createTestTemplateWithLink("template-a", emailSender.ID)
 	templateB := createTestTemplateWithLink("template-b", emailSender.ID)
 
-	entryA, err := qms.buildQueueEntry(context.Background(), "workspace-1", "integration-1",
-		endpoint, true, broadcast, "msg-1", "recipient1@example.com", templateA,
+	entryA, err := qms.buildQueueEntry(context.Background(), "workspace-1", "integration-1", "",
+		endpoint, true, nil, broadcast, "msg-1", "recipient1@example.com", templateA,
 		map[string]interface{}{}, emailProvider, "", "")
 	require.NoError(t, err)
-	entryB, err := qms.buildQueueEntry(context.Background(), "workspace-1", "integration-1",
-		endpoint, true, broadcast, "msg-2", "recipient2@example.com", templateB,
+	entryB, err := qms.buildQueueEntry(context.Background(), "workspace-1", "integration-1", "",
+		endpoint, true, nil, broadcast, "msg-2", "recipient2@example.com", templateB,
 		map[string]interface{}{}, emailProvider, "", "")
 	require.NoError(t, err)
 
@@ -1569,10 +1570,147 @@ func TestQueueMessageSender_BuildQueueEntry_NilUTMParameters(t *testing.T) {
 
 	template := createTestTemplateWithLink("template-1", emailSender.ID)
 
-	entry, err := qms.buildQueueEntry(context.Background(), "workspace-1", "integration-1",
-		"https://api.test.com", true, broadcast, "msg-1", "recipient@example.com", template,
+	entry, err := qms.buildQueueEntry(context.Background(), "workspace-1", "integration-1", "",
+		"https://api.test.com", true, nil, broadcast, "msg-1", "recipient@example.com", template,
 		map[string]interface{}{}, emailProvider, "", "")
 	require.NoError(t, err)
 	require.NotNil(t, entry)
 	assert.Nil(t, broadcast.UTMParameters, "nil UTM parameters must stay nil on the shared broadcast")
+}
+
+// enqueueBatchTrackedLinks runs one broadcast through the queue sender and
+// returns, per recipient in enqueue order, the query string of the destination
+// URL that recipient's tracked link points at.
+func enqueueBatchTrackedLinks(t *testing.T, secretKey string, webAnalytics *domain.WebAnalyticsSettings, emails []string) []url.Values {
+	t.Helper()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockQueueRepo := mocks.NewMockEmailQueueRepository(ctrl)
+	mockBroadcastRepo := mocks.NewMockBroadcastRepository(ctrl)
+	mockMessageHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
+	mockTemplateRepo := mocks.NewMockTemplateRepository(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+
+	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Warn(gomock.Any()).AnyTimes()
+
+	workspaceID := "workspace-1"
+	broadcastID := "broadcast-1"
+	endpoint := "https://api.test.com"
+
+	emailSender := domain.NewEmailSender("sender@example.com", "Test Sender")
+	emailProvider := &domain.EmailProvider{
+		Kind:    domain.EmailProviderKindSMTP,
+		Senders: []domain.EmailSender{emailSender},
+	}
+
+	broadcast := &domain.Broadcast{
+		ID:            broadcastID,
+		WorkspaceID:   workspaceID,
+		Name:          "Test Broadcast",
+		Audience:      domain.AudienceSettings{List: "list-1"},
+		UTMParameters: &domain.UTMParameters{Source: "newsletter", Medium: "email"},
+	}
+	templates := map[string]*domain.Template{
+		"template-a": createTestTemplateWithLink("template-a", emailSender.ID),
+	}
+
+	recipients := make([]*domain.ContactWithList, 0, len(emails))
+	for _, email := range emails {
+		recipients = append(recipients, &domain.ContactWithList{
+			Contact:  &domain.Contact{Email: email},
+			ListID:   "list-1",
+			ListName: "Test List",
+		})
+	}
+
+	mockBroadcastRepo.EXPECT().GetBroadcast(gomock.Any(), workspaceID, broadcastID).Return(broadcast, nil)
+
+	var enqueued []*domain.EmailQueueEntry
+	mockQueueRepo.EXPECT().Enqueue(gomock.Any(), workspaceID, gomock.Any()).
+		DoAndReturn(func(_ context.Context, _ string, entries []*domain.EmailQueueEntry) error {
+			enqueued = entries
+			return nil
+		})
+
+	sender := NewQueueMessageSender(
+		mockQueueRepo,
+		mockBroadcastRepo,
+		mockMessageHistoryRepo,
+		mockTemplateRepo,
+		nil,
+		mockLogger,
+		nil,
+		"https://api.example.com",
+	)
+
+	sent, failed, err := sender.SendBatch(
+		context.Background(),
+		workspaceID,
+		"integration-1",
+		secretKey,
+		endpoint,
+		"",
+		true, webAnalytics,
+		broadcastID,
+		recipients,
+		templates,
+		emailProvider,
+		time.Now().Add(5*time.Minute),
+		"",
+	)
+	require.NoError(t, err)
+	require.Equal(t, len(emails), sent)
+	require.Equal(t, 0, failed)
+	require.Len(t, enqueued, len(emails))
+
+	queries := make([]url.Values, 0, len(enqueued))
+	for _, entry := range enqueued {
+		queries = append(queries, extractTrackedLinkUTMParams(t, entry.Payload.HTMLContent, endpoint))
+	}
+	return queries
+}
+
+// TestQueueMessageSender_SendBatch_WebIdentityTokenIsPerRecipient is the queue
+// path's copy of the assertion that matters: the entry enqueued for the second
+// contact must not carry the first contact's identity. As on the direct path,
+// each token is decrypted back to the contact it names — two ciphertexts of the
+// same address differ too, so comparing them proves nothing.
+func TestQueueMessageSender_SendBatch_WebIdentityTokenIsPerRecipient(t *testing.T) {
+	webAnalytics := &domain.WebAnalyticsSettings{
+		Enabled:        true,
+		AllowedDomains: []string{"example.com"}, // the host createTestTemplateWithLink links to
+	}
+
+	queries := enqueueBatchTrackedLinks(t, webIdentityTestSecret, webAnalytics,
+		[]string{"recipient1@example.com", "recipient2@example.com"})
+
+	assertIdentifies(t, queries[0].Get(domain.WebIdentifyQueryParam), "recipient1@example.com")
+	assertIdentifies(t, queries[1].Get(domain.WebIdentifyQueryParam), "recipient2@example.com")
+}
+
+// TestQueueMessageSender_SendBatch_WebIdentityGateClosed mirrors the direct
+// sender's gate coverage, including the empty allowlist that would otherwise
+// match every host on the internet.
+func TestQueueMessageSender_SendBatch_WebIdentityGateClosed(t *testing.T) {
+	testCases := []struct {
+		name         string
+		webAnalytics *domain.WebAnalyticsSettings
+	}{
+		{"workspace does not use web analytics", nil},
+		{"web analytics configured but disabled", &domain.WebAnalyticsSettings{Enabled: false, AllowedDomains: []string{"example.com"}}},
+		{"enabled with no allowed domain", &domain.WebAnalyticsSettings{Enabled: true}},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			queries := enqueueBatchTrackedLinks(t, webIdentityTestSecret, tc.webAnalytics, []string{"recipient1@example.com"})
+
+			assert.Empty(t, queries[0].Get(domain.WebIdentifyQueryParam), "no identity token may be appended")
+			assert.Equal(t, "newsletter", queries[0].Get("utm_source"))
+		})
+	}
 }

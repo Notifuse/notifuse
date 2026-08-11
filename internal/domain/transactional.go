@@ -324,7 +324,7 @@ func (req *UpdateTransactionalRequest) Validate() error {
 		req.Updates.Description == "" &&
 		req.Updates.Channels == nil &&
 		req.Updates.Metadata == nil &&
-		req.Updates.TrackingSettings == (notifuse_mjml.TrackingSettings{}) {
+		req.Updates.TrackingSettings.IsZero() {
 		return NewValidationError("at least one field must be updated")
 	}
 

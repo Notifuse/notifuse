@@ -5,6 +5,7 @@
  */
 
 import type {
+  WebIdentity,
   NotifuseAnalyticsConfig,
   InternalConfig,
   GoalData,
@@ -31,6 +32,9 @@ import { monotonicNow } from './utils/clock';
 const MIN_HEARTBEAT_INTERVAL = 5000; // 5 seconds minimum
 const MIN_HEARTBEAT_MAX_DURATION = 60 * 1000; // 1 minute minimum
 const SEND_DEBOUNCE_MS = 100;
+
+/** URL parameter a tracked email link uses to hand over a verified identity. */
+const IDENTIFY_PARAM = 'nf_id';
 
 // Default heartbeat tiers
 const DEFAULT_HEARTBEAT_TIERS: HeartbeatTier[] = [
@@ -176,6 +180,19 @@ export class NotifuseAnalyticsSDK {
       });
     }
 
+    // Read and strip nf_id BEFORE the session is created.
+    //
+    // getOrCreateSession snapshots window.location.href as landing_page and
+    // persists it, and every later beat re-sends it — so stripping afterwards
+    // would leave the workspace-signed credential sitting in the customer's own
+    // landing-page reports, which is the exact leak the stripping exists to
+    // prevent. The token is applied below, once there is a session to attach it
+    // to; only the URL rewrite has to happen first.
+    const identifyToken = new URLSearchParams(window.location.search).get(IDENTIFY_PARAM);
+    if (identifyToken) {
+      CrossDomainLinker.stripParam(IDENTIFY_PARAM);
+    }
+
     // Get or create session (uses cross-domain payload if valid)
     const session = this.sessionManager.getOrCreateSession();
 
@@ -188,6 +205,22 @@ export class NotifuseAnalyticsSDK {
     // Strip _nf param from URL after processing
     if (crossDomainPayload && this.config.crossDomainStripParams) {
       CrossDomainLinker.stripParam(this.config.crossDomainParam);
+    }
+
+    // Adopt an identity handed over by a tracked email link.
+    //
+    // Stripped immediately: the parameter is a workspace-signed credential, and
+    // leaving it in the address bar puts it into the customer's own analytics,
+    // their server logs, and the Referer of every third-party asset the page
+    // loads. Stripping before the first beat also stops it being re-adopted on
+    // an SPA navigation.
+    //
+    // Deliberately NOT propagated through the cross-domain _nf handoff: that
+    // would spray the credential across every configured domain. A visitor who
+    // crosses domains is simply anonymous there until that origin identifies
+    // them itself.
+    if (identifyToken) {
+      this.sessionManager.setIdentity({ token: identifyToken });
     }
 
     // Initialize sender
@@ -399,7 +432,7 @@ export class NotifuseAnalyticsSDK {
     // Build and send via beacon
     const attributes = this.buildAttributes();
     const payload = this.sessionState.buildPayload(attributes, {
-      userId: this.sessionManager?.getUserId() ?? null,
+      identity: this.sessionManager?.getIdentity() ?? null,
       dimensions: this.sessionManager?.getDimensionsPayload() ?? {},
     });
     this.sender.sendSessionBeacon(payload);
@@ -778,7 +811,7 @@ export class NotifuseAnalyticsSDK {
 
     const attributes = this.buildAttributes();
     const payload = this.sessionState.buildPayload(attributes, {
-      userId: this.sessionManager?.getUserId() ?? null,
+      identity: this.sessionManager?.getIdentity() ?? null,
       dimensions: this.sessionManager?.getDimensionsPayload() ?? {},
     });
 
@@ -968,19 +1001,38 @@ export class NotifuseAnalyticsSDK {
   }
 
   /**
-   * Set user ID for tracking authenticated users
+   * Attach a verified contact identity.
+   *
+   * The hmac must be minted server-side by the customer over the raw address
+   * with their workspace secret. /track is public and unauthenticated, so an
+   * unsigned address is discarded — passing one would look like identification
+   * while silently doing nothing.
    */
-  async setUserId(id: string | null): Promise<void> {
+  async identify(email: string, hmac: string): Promise<void> {
     await this.ensureInitialized();
-    this.sessionManager?.setUserId(id);
+    if (typeof email !== 'string' || typeof hmac !== 'string' || !email || !hmac) {
+      throw new Error('identify(email, hmac) requires both arguments');
+    }
+    this.sessionManager?.setIdentity({ email, hmac });
   }
 
   /**
-   * Get current user ID
+   * Current identity, or null when anonymous.
    */
-  async getUserId(): Promise<string | null> {
+  async getIdentity(): Promise<WebIdentity | null> {
     await this.ensureInitialized();
-    return this.sessionManager?.getUserId() ?? null;
+    return this.sessionManager?.getIdentity() ?? null;
+  }
+
+  /**
+   * Stop future beats carrying the identity.
+   *
+   * Does NOT anonymize what has already been recorded — see
+   * SessionManager.clearIdentity.
+   */
+  async clearIdentity(): Promise<void> {
+    await this.ensureInitialized();
+    this.sessionManager?.clearIdentity();
   }
 
   /**

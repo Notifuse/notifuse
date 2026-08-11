@@ -64,6 +64,23 @@ export interface InternalConfig extends Required<Omit<NotifuseAnalyticsConfig, '
     crossDomainStripParams: boolean;
     crossDomainParam: string;
 }
+/**
+ * A verified contact identity.
+ *
+ * Either the customer's server signed the address (identify), or a tracked
+ * email link carried an opaque token Notifuse minted. Both are checked against
+ * the workspace secret server-side; an unsigned address is discarded, so the
+ * SDK never stores one on its own.
+ */
+export type WebIdentity = {
+    email: string;
+    hmac: string;
+    token?: undefined;
+} | {
+    token: string;
+    email?: undefined;
+    hmac?: undefined;
+};
 export interface Session {
     id: string;
     workspace_id: string;
@@ -80,7 +97,7 @@ export interface Session {
     sdk_version: string;
     sequence: number;
     dimensions: CustomDimensions;
-    userId: string | null;
+    identity: WebIdentity | null;
 }
 export interface UTMParams {
     source: string | null;
@@ -128,9 +145,10 @@ export interface NotifuseAnalyticsAPI {
     getDimension(index: number): Promise<string | null>;
     clearDimensions(): Promise<void>;
     /** Set authenticated user ID for tracking */
-    setUserId(id: string | null): Promise<void>;
+    identify(email: string, hmac: string): Promise<void>;
     /** Get current user ID */
-    getUserId(): Promise<string | null>;
+    getIdentity(): Promise<WebIdentity | null>;
+    clearIdentity(): Promise<void>;
     pause(): Promise<void>;
     resume(): Promise<void>;
     reset(): Promise<void>;

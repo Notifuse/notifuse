@@ -202,7 +202,9 @@ const STORAGE_KEYS = {
     PENDING_QUEUE: 'pending',
     TAB_ID: 'tab_id',
     DIMENSIONS: 'dimensions',
-    USER_ID: 'user_id',
+    IDENTITY: 'identity',
+    /** Written by builds before verified identity; purged on init. */
+    LEGACY_USER_ID: 'user_id',
 };
 
 /**
@@ -313,6 +315,34 @@ const CLOCK_SKEW_TOLERANCE$1 = 60; // seconds
 // sitting in the offline queue to still be replayed against the id it was
 // minted under. Deliberately not configurable: raising it re-opens the cliff.
 const SESSION_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+/**
+ * Length of a string in UTF-8 bytes.
+ *
+ * TextEncoder exists in every browser the SDK targets, but the SDK is dropped
+ * into pages it does not control and globals do get stripped there, so a
+ * missing one degrades to hand-counting rather than throwing a ReferenceError
+ * on a call that used to work.
+ */
+function utf8Length(value) {
+    if (typeof TextEncoder !== 'undefined') {
+        return new TextEncoder().encode(value).length;
+    }
+    // for..of walks code points, so a surrogate pair arrives once as its combined
+    // code point and is counted as the single 4-byte character it encodes to.
+    let bytes = 0;
+    for (const char of value) {
+        const code = char.codePointAt(0);
+        if (code <= 0x7f)
+            bytes += 1;
+        else if (code <= 0x7ff)
+            bytes += 2;
+        else if (code <= 0xffff)
+            bytes += 3;
+        else
+            bytes += 4;
+    }
+    return bytes;
+}
 class SessionManager {
     constructor(storage, tabStorage, config) {
         this.session = null;
@@ -322,6 +352,9 @@ class SessionManager {
         this.config = config;
         this.debug = config.debug;
         this.tabId = this.getOrCreateTabId();
+        // One-time migration, not part of session creation: a resumed session would
+        // otherwise leave the dead key sitting in storage indefinitely.
+        this.storage.remove(STORAGE_KEYS.LEGACY_USER_ID);
     }
     /**
      * Set cross-domain input (from URL parameters)
@@ -351,6 +384,12 @@ class SessionManager {
             stored.last_active_at = Date.now();
             stored.updated_at = Date.now();
             stored.sequence++;
+            // Identity comes from its own key, not from the session blob. touch()
+            // writes the whole in-memory session back on every beat, so a second tab
+            // still holding a pre-identification copy would otherwise clobber the
+            // blob with identity:null and every later page load would resume
+            // anonymous — with the credential still sitting intact in storage.
+            stored.identity = this.loadIdentity();
             this.session = stored;
             this.saveSession();
             if (this.debug) {
@@ -411,7 +450,7 @@ class SessionManager {
             sdk_version: SDK_VERSION$1,
             sequence: 0,
             dimensions: this.loadDimensions(),
-            userId: this.loadUserId(),
+            identity: this.loadIdentity(),
         };
         this.session = session;
         this.saveSession();
@@ -442,7 +481,7 @@ class SessionManager {
             sdk_version: SDK_VERSION$1,
             sequence: 0,
             dimensions: this.loadDimensions(),
-            userId: this.loadUserId(),
+            identity: this.loadIdentity(),
         };
         this.session = session;
         this.saveSession();
@@ -606,50 +645,68 @@ class SessionManager {
     }
     // User ID
     /**
-     * Set user ID for tracking authenticated users
+     * Attach a verified contact identity to this visitor.
+     *
+     * The address is stored EXACTLY as given: the customer's server signed that
+     * raw string, so lowercasing it here would invalidate every HMAC they mint.
+     * Normalization happens server-side, after the signature is checked.
      */
-    setUserId(id) {
-        if (id !== null && typeof id !== 'string') {
-            throw new Error('User ID must be a string or null');
+    setIdentity(identity) {
+        if (!identity || (!identity.token && !(identity.email && identity.hmac))) {
+            throw new Error('Identity requires either a token or an email with its hmac');
         }
-        if (id !== null && id.length > 256) {
-            throw new Error('User ID must be 256 characters or less');
+        // Bytes, not characters: the server's gate is Go's len() over the RAW
+        // address, so a multibyte SMTPUTF8/IDN address that clears a code-unit
+        // check here is dropped server-side in silence — the beat succeeds, the
+        // visit is recorded, the contact is simply never attached — which is
+        // exactly the outcome this throw exists to prevent. It mirrors that raw
+        // gate closely rather than agreeing with it exactly: the server applies
+        // the same bound a second time to the lowercased address, and a couple of
+        // Latin code points (U+023A, U+023E) grow from 2 bytes to 3 when
+        // lowercased, so an address accepted here at 255 bytes can still be
+        // dropped at 256.
+        if (identity.email && utf8Length(identity.email) > 255) {
+            throw new Error('Identity email must be 255 bytes or less');
         }
         if (!this.session)
             return;
-        this.session.userId = id;
-        this.saveUserId();
+        this.session.identity = identity;
+        this.storage.set(STORAGE_KEYS.IDENTITY, identity);
         this.saveSession();
         if (this.debug) {
-            console.log('[NotifuseAnalytics] Set user ID:', id);
+            console.log('[NotifuseAnalytics] Identity set');
         }
     }
-    /**
-     * Get current user ID
-     */
-    getUserId() {
+    getIdentity() {
         if (!this.session)
             return null;
-        return this.session.userId;
+        return this.session.identity;
     }
     /**
-     * Load user ID from storage
+     * Stop future beats carrying the identity.
+     *
+     * This does NOT anonymize the session already recorded: the server keeps a
+     * contact_email once set, deliberately, so a beat that simply has not read
+     * its stored identity yet cannot un-attribute a visit. Erasure is a
+     * contact-deletion operation, not a client-side one.
      */
-    loadUserId() {
-        return this.storage.get(STORAGE_KEYS.USER_ID) || null;
-    }
-    /**
-     * Save user ID to storage
-     */
-    saveUserId() {
+    clearIdentity() {
+        this.storage.remove(STORAGE_KEYS.IDENTITY);
         if (!this.session)
             return;
-        if (this.session.userId === null) {
-            this.storage.remove(STORAGE_KEYS.USER_ID);
-        }
-        else {
-            this.storage.set(STORAGE_KEYS.USER_ID, this.session.userId);
-        }
+        this.session.identity = null;
+        this.saveSession();
+    }
+    /**
+     * Load the stored identity, discarding anything an older build left behind.
+     */
+    loadIdentity() {
+        const stored = this.storage.get(STORAGE_KEYS.IDENTITY);
+        if (!stored)
+            return null;
+        if (stored.token || (stored.email && stored.hmac))
+            return stored;
+        return null;
     }
     /**
      * Apply dimensions from URL parameters
@@ -680,7 +737,7 @@ class SessionManager {
     reset() {
         this.storage.remove(STORAGE_KEYS.SESSION);
         this.storage.remove(STORAGE_KEYS.DIMENSIONS);
-        this.storage.remove(STORAGE_KEYS.USER_ID);
+        this.storage.remove(STORAGE_KEYS.IDENTITY);
         this.session = null;
         return this.createSession();
     }
@@ -840,8 +897,18 @@ class SessionState {
             seq: ++this.seq,
         };
         // Add user_id if provided in options
-        if (options && 'userId' in options) {
-            payload.user_id = options.userId;
+        // Spread the credential the visitor actually holds. An unsigned address is
+        // never stored client-side, so there is no shape here that the server would
+        // silently discard.
+        if (options && 'identity' in options) {
+            const identity = options.identity;
+            if (identity?.token) {
+                payload.identify_token = identity.token;
+            }
+            else if (identity?.email && identity.hmac) {
+                payload.contact_email = identity.email;
+                payload.contact_email_hmac = identity.hmac;
+            }
         }
         // Add dimensions if provided in options
         if (options && 'dimensions' in options) {
@@ -1976,6 +2043,8 @@ function monotonicNow() {
 const MIN_HEARTBEAT_INTERVAL = 5000; // 5 seconds minimum
 const MIN_HEARTBEAT_MAX_DURATION = 60 * 1000; // 1 minute minimum
 const SEND_DEBOUNCE_MS = 100;
+/** URL parameter a tracked email link uses to hand over a verified identity. */
+const IDENTIFY_PARAM = 'nf_id';
 // Default heartbeat tiers
 const DEFAULT_HEARTBEAT_TIERS = [
     // 0-3 min: High frequency (initial engagement is critical)
@@ -2157,6 +2226,18 @@ class NotifuseAnalyticsSDK {
                 expiry: this.config.crossDomainExpiry,
             });
         }
+        // Read and strip nf_id BEFORE the session is created.
+        //
+        // getOrCreateSession snapshots window.location.href as landing_page and
+        // persists it, and every later beat re-sends it — so stripping afterwards
+        // would leave the workspace-signed credential sitting in the customer's own
+        // landing-page reports, which is the exact leak the stripping exists to
+        // prevent. The token is applied below, once there is a session to attach it
+        // to; only the URL rewrite has to happen first.
+        const identifyToken = new URLSearchParams(window.location.search).get(IDENTIFY_PARAM);
+        if (identifyToken) {
+            CrossDomainLinker.stripParam(IDENTIFY_PARAM);
+        }
         // Get or create session (uses cross-domain payload if valid)
         const session = this.sessionManager.getOrCreateSession();
         // Apply URL dimensions (existing values take priority)
@@ -2167,6 +2248,21 @@ class NotifuseAnalyticsSDK {
         // Strip _nf param from URL after processing
         if (crossDomainPayload && this.config.crossDomainStripParams) {
             CrossDomainLinker.stripParam(this.config.crossDomainParam);
+        }
+        // Adopt an identity handed over by a tracked email link.
+        //
+        // Stripped immediately: the parameter is a workspace-signed credential, and
+        // leaving it in the address bar puts it into the customer's own analytics,
+        // their server logs, and the Referer of every third-party asset the page
+        // loads. Stripping before the first beat also stops it being re-adopted on
+        // an SPA navigation.
+        //
+        // Deliberately NOT propagated through the cross-domain _nf handoff: that
+        // would spray the credential across every configured domain. A visitor who
+        // crosses domains is simply anonymous there until that origin identifies
+        // them itself.
+        if (identifyToken) {
+            this.sessionManager.setIdentity({ token: identifyToken });
         }
         // Initialize sender
         this.sender = new Sender(this.config.endpoint, this.storage, this.config.debug, this.sessionManager.getTabId());
@@ -2284,7 +2380,7 @@ class NotifuseAnalyticsSDK {
         // Build and send via beacon
         const attributes = this.buildAttributes();
         const payload = this.sessionState.buildPayload(attributes, {
-            userId: this.sessionManager?.getUserId() ?? null,
+            identity: this.sessionManager?.getIdentity() ?? null,
             dimensions: this.sessionManager?.getDimensionsPayload() ?? {},
         });
         this.sender.sendSessionBeacon(payload);
@@ -2606,7 +2702,7 @@ class NotifuseAnalyticsSDK {
             return;
         const attributes = this.buildAttributes();
         const payload = this.sessionState.buildPayload(attributes, {
-            userId: this.sessionManager?.getUserId() ?? null,
+            identity: this.sessionManager?.getIdentity() ?? null,
             dimensions: this.sessionManager?.getDimensionsPayload() ?? {},
         });
         const result = await this.sender.sendSession(payload);
@@ -2772,18 +2868,36 @@ class NotifuseAnalyticsSDK {
         this.sessionManager?.clearDimensions();
     }
     /**
-     * Set user ID for tracking authenticated users
+     * Attach a verified contact identity.
+     *
+     * The hmac must be minted server-side by the customer over the raw address
+     * with their workspace secret. /track is public and unauthenticated, so an
+     * unsigned address is discarded — passing one would look like identification
+     * while silently doing nothing.
      */
-    async setUserId(id) {
+    async identify(email, hmac) {
         await this.ensureInitialized();
-        this.sessionManager?.setUserId(id);
+        if (typeof email !== 'string' || typeof hmac !== 'string' || !email || !hmac) {
+            throw new Error('identify(email, hmac) requires both arguments');
+        }
+        this.sessionManager?.setIdentity({ email, hmac });
     }
     /**
-     * Get current user ID
+     * Current identity, or null when anonymous.
      */
-    async getUserId() {
+    async getIdentity() {
         await this.ensureInitialized();
-        return this.sessionManager?.getUserId() ?? null;
+        return this.sessionManager?.getIdentity() ?? null;
+    }
+    /**
+     * Stop future beats carrying the identity.
+     *
+     * Does NOT anonymize what has already been recorded — see
+     * SessionManager.clearIdentity.
+     */
+    async clearIdentity() {
+        await this.ensureInitialized();
+        this.sessionManager?.clearIdentity();
     }
     /**
      * Pause tracking
@@ -2977,8 +3091,9 @@ const NotifuseAnalytics = {
     setDimensions: (dimensions) => sdk.setDimensions(dimensions),
     getDimension: (index) => sdk.getDimension(index),
     clearDimensions: () => sdk.clearDimensions(),
-    setUserId: (id) => sdk.setUserId(id),
-    getUserId: () => sdk.getUserId(),
+    identify: (email, hmac) => sdk.identify(email, hmac),
+    getIdentity: () => sdk.getIdentity(),
+    clearIdentity: () => sdk.clearIdentity(),
     pause: () => sdk.pause(),
     resume: () => sdk.resume(),
     reset: () => sdk.reset(),
