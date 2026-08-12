@@ -1388,7 +1388,7 @@ func (r *SetWebAnalyticsSettingsRequest) Validate() (workspaceID string, setting
 	if len(r.WorkspaceID) > 32 {
 		return "", nil, fmt.Errorf("invalid set web analytics settings request: workspace_id length must be between 1 and 32")
 	}
-	if err := r.Settings.Validate(); err != nil {
+	if err := r.Settings.ValidateForSave(); err != nil {
 		return "", nil, err
 	}
 	return r.WorkspaceID, r.Settings, nil

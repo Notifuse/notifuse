@@ -171,6 +171,29 @@ export function WorkspaceLayout() {
     return permissions?.read || permissions?.write || false
   }
 
+  // Group titles are plain text, so a click on one only toggles it. Opening a
+  // group also lands on its first entry, which is what the click was reaching
+  // for; closing it goes nowhere, so the caret keeps its meaning. The collapsed
+  // rail opens these submenus on hover, where navigating would follow the mouse.
+  const handleOpenChange: MenuProps['onOpenChange'] = (keys) => {
+    const opened = keys.find((key) => !openKeys.includes(key))
+    setOpenKeys(keys)
+    if (collapsed || !opened) return
+    if (opened === 'web-analytics') {
+      navigate({
+        to: '/console/workspace/$workspaceId/web-analytics/$tab',
+        params: { workspaceId, tab: 'dashboard' }
+      })
+    } else if (opened === 'content') {
+      // Mirrors the first child the group actually renders.
+      if (hasAccess('templates')) {
+        navigate({ to: '/console/workspace/$workspaceId/templates', params: { workspaceId } })
+      } else {
+        navigate({ to: '/console/workspace/$workspaceId/blog', params: { workspaceId } })
+      }
+    }
+  }
+
   // Determine which key should be selected based on the current path
   let selectedKey = 'analytics' // Default to analytics/dashboard
   if (currentPath.includes('/settings')) {
@@ -297,8 +320,8 @@ export function WorkspaceLayout() {
     hasAccess('web_analytics') && {
       key: 'web-analytics',
       icon: <LineChartOutlined />,
-      // A submenu rather than a link: clicking the parent expands the section
-      // instead of navigating, which is what the caret on the right announces.
+      // A submenu rather than a link: the caret on the right toggles the
+      // section, and handleOpenChange lands on the dashboard when it opens.
       label: t`Web Analytics`,
       children: [
         {
@@ -528,7 +551,7 @@ export function WorkspaceLayout() {
                 mode="inline"
                 selectedKeys={[selectedKey]}
                 openKeys={openKeys}
-                onOpenChange={setOpenKeys}
+                onOpenChange={handleOpenChange}
                 style={{
                   borderRight: 0,
                   backgroundColor: '#F9F9F9',

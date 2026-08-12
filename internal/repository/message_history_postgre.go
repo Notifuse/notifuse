@@ -933,7 +933,7 @@ func (r *MessageHistoryRepository) ListMessages(ctx context.Context, workspaceID
 			return nil, "", fmt.Errorf("invalid cursor format: expected timestamp~id")
 		}
 
-		cursorTime, err := time.Parse(time.RFC3339, cursorParts[0])
+		cursorTime, err := time.Parse(time.RFC3339Nano, cursorParts[0])
 		if err != nil {
 			// codecov:ignore:start
 			tracing.MarkSpanError(ctx, err)
@@ -1100,7 +1100,9 @@ func (r *MessageHistoryRepository) ListMessages(ctx context.Context, workspaceID
 	// Generate the next cursor based on the last item if we have results
 	if len(messages) > 0 && hasMore {
 		lastMessage := messages[len(messages)-1]
-		cursorStr := fmt.Sprintf("%s~%s", lastMessage.CreatedAt.Format(time.RFC3339), lastMessage.ID)
+		// Use RFC3339Nano to preserve sub-second precision and avoid skipping messages
+		// created within the same second (bulk broadcast sends share a created_at second)
+		cursorStr := fmt.Sprintf("%s~%s", lastMessage.CreatedAt.Format(time.RFC3339Nano), lastMessage.ID)
 		nextCursor = base64.StdEncoding.EncodeToString([]byte(cursorStr))
 	}
 

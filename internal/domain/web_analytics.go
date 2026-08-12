@@ -860,6 +860,29 @@ func (s *WebAnalyticsSettings) Validate() error {
 	return nil
 }
 
+// ValidateForSave adds the rules that only apply when an operator is saving the
+// web analytics settings themselves.
+//
+// Deliberately not folded into Validate: that one also runs on a plain
+// workspace update, so a workspace enabled before this rule existed would find
+// itself unable to change its name or timezone until someone filled in a domain
+// list it never needed. Here the operator is already editing this very screen.
+func (s *WebAnalyticsSettings) ValidateForSave() error {
+	if err := s.Validate(); err != nil {
+		return err
+	}
+	if s == nil {
+		return nil
+	}
+	// An empty list accepts beats from any origin, and silently withholds the
+	// identity token from every tracked email link. That is a defensible state
+	// to have been left in, but not one to switch collection on into.
+	if s.Enabled && len(s.AllowedDomains) == 0 {
+		return fmt.Errorf("allowed_domains must list at least one domain to enable web analytics")
+	}
+	return nil
+}
+
 // validateAllowedDomain accepts bare hostnames and single leading wildcards
 // ("example.com", "*.example.com").
 //

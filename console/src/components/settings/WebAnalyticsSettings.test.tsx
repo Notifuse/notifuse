@@ -17,6 +17,12 @@ vi.mock('../../services/api/client', () => ({
   }
 }))
 
+// The component guards navigation away from unsaved edits; the suite renders it
+// outside a router, so the blocker is stubbed idle.
+vi.mock('@tanstack/react-router', () => ({
+  useBlocker: () => ({ status: 'idle', proceed: undefined, reset: undefined })
+}))
+
 vi.mock('../../services/api/workspace', () => ({
   workspaceService: {
     update: vi.fn(),
@@ -89,7 +95,7 @@ describe('WebAnalyticsSettings', () => {
 
   it('renders the editable form and the install snippet when the user can manage', () => {
     renderComponent(true)
-    expect(screen.getByRole('button', { name: /Save Changes/i })).toBeInTheDocument()
+    expect(screen.getByLabelText(/Bounce threshold/i)).toBeInTheDocument()
     // The snippet must point at the workspace's custom endpoint.
     expect(screen.getByText(/analytics\.example\.com\/na\.js/)).toBeInTheDocument()
   })
@@ -112,9 +118,102 @@ describe('WebAnalyticsSettings', () => {
     expect(writeText.mock.calls[0][0]).toContain('window.NotifuseAnalyticsConfig')
   })
 
-  it('keeps the Save button disabled until the form is touched', () => {
+  it('holds the save bar back until the form is touched', () => {
     renderComponent(true)
-    expect(screen.getByRole('button', { name: /Save Changes/i })).toBeDisabled()
+    expect(screen.queryByRole('button', { name: /Save Changes/i })).toBeNull()
+    expect(screen.queryByText('You have unsaved changes')).toBeNull()
+  })
+
+  it('raises the save bar as soon as a field changes', () => {
+    renderComponent(true)
+
+    fireEvent.change(screen.getByLabelText(/Bounce threshold/i), { target: { value: '25' } })
+
+    expect(screen.getByText('You have unsaved changes')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Save Changes/i })).toBeEnabled()
+  })
+
+  it('restores the stored values on Discard instead of emptying the form', () => {
+    // resetFields() would blank the form: the values are pushed in through
+    // setFieldsValue, so there are no initialValues to fall back on.
+    renderComponent(true)
+
+    fireEvent.change(screen.getByLabelText(/Bounce threshold/i), { target: { value: '25' } })
+    fireEvent.click(screen.getByRole('button', { name: /^Discard$/i }))
+
+    expect(screen.getByLabelText(/Bounce threshold/i)).toHaveValue('10')
+    expect(screen.queryByText('You have unsaved changes')).toBeNull()
+  })
+
+  it('saves on Cmd/Ctrl+S once there are changes to save', async () => {
+    renderComponent(true)
+
+    fireEvent.keyDown(window, { key: 's', metaKey: true })
+    expect(webAnalyticsService.setSettings).not.toHaveBeenCalled()
+
+    fireEvent.change(screen.getByLabelText(/Bounce threshold/i), { target: { value: '25' } })
+    fireEvent.keyDown(window, { key: 's', metaKey: true })
+
+    await waitFor(() =>
+      expect(webAnalyticsService.setSettings).toHaveBeenCalledWith(
+        'ws1',
+        expect.objectContaining({ bounce_threshold_seconds: 25 })
+      )
+    )
+  })
+
+  it('refuses to enable web analytics without an allowed domain', async () => {
+    renderComponent(true, makeWorkspace({ enabled: false, allowed_domains: [] }))
+
+    fireEvent.click(screen.getByLabelText(/Enable web analytics/i))
+    fireEvent.click(screen.getByRole('button', { name: /Save Changes/i }))
+
+    await waitFor(() =>
+      expect(
+        screen.getByText('List at least one domain to enable web analytics')
+      ).toBeInTheDocument()
+    )
+    expect(webAnalyticsService.setSettings).not.toHaveBeenCalled()
+  })
+
+  it('saves once a domain is listed', async () => {
+    renderComponent(true, makeWorkspace({ enabled: false, allowed_domains: [] }))
+
+    fireEvent.click(screen.getByLabelText(/Enable web analytics/i))
+    fireEvent.click(screen.getByRole('button', { name: /Save Changes/i }))
+    await waitFor(() =>
+      expect(
+        screen.getByText('List at least one domain to enable web analytics')
+      ).toBeInTheDocument()
+    )
+
+    // mode="tags" commits the typed value on Enter.
+    const domains = screen.getByLabelText(/Allowed domains/i)
+    fireEvent.change(domains, { target: { value: 'example.com' } })
+    fireEvent.keyDown(domains, { key: 'Enter', keyCode: 13 })
+    fireEvent.click(screen.getByRole('button', { name: /Save Changes/i }))
+
+    await waitFor(() =>
+      expect(webAnalyticsService.setSettings).toHaveBeenCalledWith(
+        'ws1',
+        expect.objectContaining({ enabled: true, allowed_domains: ['example.com'] })
+      )
+    )
+  })
+
+  it('lets a switched-off workspace save with no allowed domain', async () => {
+    // The empty list is only refused as a way to turn collection on.
+    renderComponent(true, makeWorkspace({ enabled: false, allowed_domains: [] }))
+
+    fireEvent.change(screen.getByLabelText(/Bounce threshold/i), { target: { value: '25' } })
+    fireEvent.click(screen.getByRole('button', { name: /Save Changes/i }))
+
+    await waitFor(() =>
+      expect(webAnalyticsService.setSettings).toHaveBeenCalledWith(
+        'ws1',
+        expect.objectContaining({ enabled: false, bounce_threshold_seconds: 25 })
+      )
+    )
   })
 
   it('saves via setSettings and preserves the attribution filters', async () => {
@@ -261,7 +360,8 @@ describe('WebAnalyticsSettings', () => {
     renderComponent(true, workspace)
     // Never-configured workspaces still get an editable form so the feature can
     // be switched on from here.
-    expect(screen.getByRole('button', { name: /Save Changes/i })).toBeInTheDocument()
     expect(screen.getByLabelText(/Bounce threshold/i)).toHaveValue('10')
+    fireEvent.click(screen.getByLabelText(/Enable web analytics/i))
+    expect(screen.getByRole('button', { name: /Save Changes/i })).toBeInTheDocument()
   })
 })

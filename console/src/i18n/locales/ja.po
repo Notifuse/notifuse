@@ -156,7 +156,7 @@ msgid "{0} rows rewritten"
 msgstr ""
 
 #. placeholder {0}: stored?.bounce_threshold_seconds ?? DEFAULT_SETTINGS.bounce_threshold_seconds
-#: src/components/settings/WebAnalyticsSettings.tsx:214
+#: src/components/settings/WebAnalyticsSettings.tsx:260
 msgid "{0} seconds"
 msgstr ""
 
@@ -884,8 +884,8 @@ msgstr "今後、すべてのトランザクションメール (通知、パス�
 msgid "Allow receiving emails to trigger transactional notifications. Requires TLS certificates."
 msgstr "メール受信でトランザクション通知をトリガーします。TLS証明書が必要です。"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:195
-#: src/components/settings/WebAnalyticsSettings.tsx:251
+#: src/components/settings/WebAnalyticsSettings.tsx:241
+#: src/components/settings/WebAnalyticsSettings.tsx:300
 msgid "Allowed domains"
 msgstr ""
 
@@ -1686,11 +1686,11 @@ msgstr ""
 msgid "Bounce Rate (previous)"
 msgstr ""
 
-#: src/components/settings/WebAnalyticsSettings.tsx:213
+#: src/components/settings/WebAnalyticsSettings.tsx:259
 msgid "Bounce threshold"
 msgstr ""
 
-#: src/components/settings/WebAnalyticsSettings.tsx:267
+#: src/components/settings/WebAnalyticsSettings.tsx:331
 msgid "Bounce threshold (seconds)"
 msgstr ""
 
@@ -1897,7 +1897,7 @@ msgstr "ボタンパディング"
 msgid "Button Size"
 msgstr "ボタンサイズ"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:376
+#: src/components/settings/WebAnalyticsSettings.tsx:435
 msgid "Call identify() once you know who the visitor is. The signature must be computed on your server with your workspace secret key — the tracking endpoint is public, so an unsigned address is ignored."
 msgstr ""
 
@@ -2170,7 +2170,7 @@ msgstr ""
 msgid "City"
 msgstr ""
 
-#: src/components/settings/WebAnalyticsSettings.tsx:324
+#: src/components/settings/WebAnalyticsSettings.tsx:388
 msgid "City level (~1km precision)"
 msgstr ""
 
@@ -2649,7 +2649,7 @@ msgstr "コンタクトプロパティ"
 msgid "Contact re-enters each time the event occurs"
 msgstr "イベント発生ごとにコンタクトが再エントリー"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:278
+#: src/components/settings/WebAnalyticsSettings.tsx:342
 msgid "Contact timeline"
 msgstr ""
 
@@ -2739,16 +2739,16 @@ msgstr ""
 #~ msgid "Coordinate precision (decimals)"
 #~ msgstr ""
 
-#: src/components/settings/WebAnalyticsSettings.tsx:315
-#: src/components/settings/WebAnalyticsSettings.tsx:319
+#: src/components/settings/WebAnalyticsSettings.tsx:379
+#: src/components/settings/WebAnalyticsSettings.tsx:383
 msgid "Coordinates precision"
 msgstr ""
 
-#: src/components/common/CodeSnippet.tsx:45
+#: src/components/common/CodeSnippet.tsx:93
 msgid "Copied"
 msgstr ""
 
-#: src/components/common/CodeSnippet.tsx:45
+#: src/components/common/CodeSnippet.tsx:93
 #: src/components/settings/Integrations.tsx:1371
 #: src/components/settings/Integrations.tsx:1408
 #: src/components/settings/WebhookCard.tsx:287
@@ -2838,7 +2838,7 @@ msgstr ""
 msgid "Country"
 msgstr "国"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:322
+#: src/components/settings/WebAnalyticsSettings.tsx:386
 msgid "Country level (~111km precision)"
 msgstr ""
 
@@ -3128,7 +3128,7 @@ msgstr "カスタム日付フィールド"
 msgid "Custom Datetime Fields"
 msgstr "カスタム日時フィールド"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:341
+#: src/components/settings/WebAnalyticsSettings.tsx:405
 msgid "Custom dimension labels"
 msgstr ""
 
@@ -3689,7 +3689,7 @@ msgstr "Webhookを無効化"
 #: src/components/settings/BlogSettings.tsx:214
 #: src/components/settings/GeneralSettings.tsx:143
 #: src/components/settings/Integrations.tsx:1449
-#: src/components/settings/WebAnalyticsSettings.tsx:190
+#: src/components/settings/WebAnalyticsSettings.tsx:236
 #: src/components/templates/TemplateTranslationsTab.tsx:204
 msgid "Disabled"
 msgstr "無効"
@@ -3702,9 +3702,21 @@ msgstr ""
 msgid "Disabling the blog will remove all SEO settings and make your blog inaccessible to visitors. This action will affect your blog's visibility and search engine rankings."
 msgstr "ブログを無効化するとすべてのSEO設定が削除され、訪問者がブログにアクセスできなくなります。この操作はブログの可視性と検索エンジンランキングに影響します。"
 
+#: src/components/settings/WebAnalyticsSettings.tsx:455
+msgid "Discard"
+msgstr ""
+
+#: src/components/settings/WebAnalyticsSettings.tsx:472
+msgid "Discard changes"
+msgstr ""
+
 #: src/components/blog/ThemeEditorDrawer.tsx:457
 msgid "Discard Draft"
 msgstr "下書きを破棄"
+
+#: src/components/settings/WebAnalyticsSettings.tsx:471
+msgid "Discard unsaved changes?"
+msgstr ""
 
 #: src/components/blog_editor/components/youtube/YoutubeNodeView.tsx:452
 msgid "Display video player controls"
@@ -4163,7 +4175,7 @@ msgstr "メール連携"
 msgid "Email is required"
 msgstr "メールは必須です"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:207
+#: src/components/settings/WebAnalyticsSettings.tsx:253
 msgid "Email links cannot identify contacts until a domain is listed."
 msgstr ""
 
@@ -4272,7 +4284,7 @@ msgstr "ブログを有効化"
 msgid "Enable closed captions by default"
 msgstr "デフォルトで字幕を有効化"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:296
+#: src/components/settings/WebAnalyticsSettings.tsx:360
 msgid "Enable geo-location tracking"
 msgstr ""
 
@@ -4305,7 +4317,7 @@ msgstr ""
 msgid "Enable to fetch personalized data for each recipient before sending their email. The data will be accessible in your templates using the \"recipient_feed\" variable."
 msgstr ""
 
-#: src/components/settings/WebAnalyticsSettings.tsx:242
+#: src/components/settings/WebAnalyticsSettings.tsx:291
 msgid "Enable web analytics"
 msgstr ""
 
@@ -4318,7 +4330,7 @@ msgstr "Webhookを有効化"
 #: src/components/settings/Integrations.tsx:1445
 #: src/components/settings/SystemSettingsDrawer.tsx:459
 #: src/components/settings/SystemSettingsDrawer.tsx:543
-#: src/components/settings/WebAnalyticsSettings.tsx:185
+#: src/components/settings/WebAnalyticsSettings.tsx:231
 #: src/components/templates/TemplateTranslationsTab.tsx:203
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:146
 msgid "Enabled"
@@ -4632,7 +4644,7 @@ msgstr "イベント"
 msgid "Every \"set\" operation needs a value"
 msgstr ""
 
-#: src/components/settings/WebAnalyticsSettings.tsx:205
+#: src/components/settings/WebAnalyticsSettings.tsx:251
 msgid "Every domain"
 msgstr ""
 
@@ -4801,7 +4813,7 @@ msgstr "テンプレートプレビューのコンパイルに失敗しました
 msgid "Failed to complete setup"
 msgstr "セットアップの完了に失敗しました"
 
-#: src/components/common/CodeSnippet.tsx:33
+#: src/components/common/CodeSnippet.tsx:82
 #: src/components/transactional/ApiCommandModal.tsx:821
 msgid "Failed to copy to clipboard"
 msgstr "クリップボードへのコピーに失敗しました"
@@ -5237,7 +5249,7 @@ msgstr "ステータスの更新に失敗しました: {error}"
 msgid "Failed to update template: {0}"
 msgstr "テンプレートの更新に失敗しました: {0}"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:155
+#: src/components/settings/WebAnalyticsSettings.tsx:201
 msgid "Failed to update web analytics settings"
 msgstr ""
 
@@ -5634,7 +5646,7 @@ msgstr "生成されたSQL:"
 msgid "Geo"
 msgstr ""
 
-#: src/components/settings/WebAnalyticsSettings.tsx:291
+#: src/components/settings/WebAnalyticsSettings.tsx:355
 msgid "Geographic data collection"
 msgstr ""
 
@@ -6040,7 +6052,7 @@ msgstr "使用されたリンクの種類を識別します（例: email、cpc�
 msgid "Identifies which site sent the traffic (e.g. google, newsletter)"
 msgstr "トラフィックを送信したサイトを識別します（例: google、newsletter）"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:374
+#: src/components/settings/WebAnalyticsSettings.tsx:433
 msgid "Identify a visitor"
 msgstr ""
 
@@ -6268,11 +6280,11 @@ msgstr "リンクを挿入"
 msgid "Inset"
 msgstr "インセット"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:368
+#: src/components/settings/WebAnalyticsSettings.tsx:427
 msgid "Install"
 msgstr ""
 
-#: src/components/web_analytics/InstallOverlay.tsx:59
+#: src/components/web_analytics/InstallOverlay.tsx:68
 msgid "Install the tracking snippet"
 msgstr ""
 
@@ -6411,7 +6423,7 @@ msgstr "{inviteEmail}に招待を送信しました"
 msgid "Invite Member"
 msgstr "メンバーを招待"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:336
+#: src/components/settings/WebAnalyticsSettings.tsx:400
 msgid "IP addresses are never stored — only used for geo lookup. Country is always included when geo tracking is enabled."
 msgstr ""
 
@@ -6504,6 +6516,7 @@ msgstr "JSONペイロードが必要:"
 msgid "Justify"
 msgstr "両端揃え"
 
+#: src/components/settings/WebAnalyticsSettings.tsx:473
 #: src/components/templates/useTemplateConflictModal.tsx:43
 msgid "Keep editing"
 msgstr ""
@@ -6525,7 +6538,7 @@ msgstr "キーまたはインデックス"
 msgid "Keywords"
 msgstr "キーワード"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:353
+#: src/components/settings/WebAnalyticsSettings.tsx:417
 msgid "Label"
 msgstr ""
 
@@ -6762,6 +6775,10 @@ msgstr "リスト"
 msgid "List \"{0}\" deleted successfully"
 msgstr "リスト\"{0}\"を削除しました"
 
+#: src/components/settings/WebAnalyticsSettings.tsx:313
+msgid "List at least one domain to enable web analytics"
+msgstr ""
+
 #: src/components/lists/ListDrawer.tsx:66
 msgid "List created successfully"
 msgstr "リストを作成しました"
@@ -6931,7 +6948,7 @@ msgstr "ループ"
 msgid "Low"
 msgstr ""
 
-#: src/components/settings/WebAnalyticsSettings.tsx:316
+#: src/components/settings/WebAnalyticsSettings.tsx:380
 msgid "Lower precision = more privacy"
 msgstr ""
 
@@ -7377,7 +7394,7 @@ msgstr "名前は255文字未満である必要があります"
 msgid "Name:"
 msgstr "名前:"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:343
+#: src/components/settings/WebAnalyticsSettings.tsx:407
 msgid "Naming a slot renames it everywhere it appears: dashboards, the explore picker and attribution rules."
 msgstr ""
 
@@ -7815,7 +7832,7 @@ msgstr "テーマがまだありません"
 msgid "No timeline events found for this contact"
 msgstr "このコンタクトのタイムラインイベントが見つかりません"
 
-#: src/components/web_analytics/InstallOverlay.tsx:61
+#: src/components/web_analytics/InstallOverlay.tsx:70
 msgid "No traffic in the last 24 hours"
 msgstr ""
 
@@ -7921,7 +7938,7 @@ msgstr "リストに含まれない"
 msgid "Not now"
 msgstr ""
 
-#: src/components/settings/WebAnalyticsSettings.tsx:220
+#: src/components/settings/WebAnalyticsSettings.tsx:266
 msgid "Not resolved"
 msgstr ""
 
@@ -7957,7 +7974,7 @@ msgstr "注意: これは不正な構造のMJMLファイルが原因かもしれ
 msgid "Notes"
 msgstr "メモ"
 
-#: src/components/web_analytics/InstallOverlay.tsx:68
+#: src/components/web_analytics/InstallOverlay.tsx:77
 msgid "Nothing has been recorded over the last 24 hours. Check that this snippet is still installed on your website."
 msgstr ""
 
@@ -8070,7 +8087,7 @@ msgstr "コンタクトごとに1回"
 msgid "Only clicks recorded since per-link tracking was enabled appear here; earlier clicks still count toward the variation's Clicks total."
 msgstr ""
 
-#: src/components/settings/WebAnalyticsSettings.tsx:284
+#: src/components/settings/WebAnalyticsSettings.tsx:348
 msgid "Only goals from visitors identified with identify() are recorded, and only when the address already belongs to a contact. Recorded goals can trigger automations and change segment membership. Obtaining consent to store web activity against a contact is your responsibility."
 msgstr ""
 
@@ -8129,7 +8146,7 @@ msgstr "開封率"
 #~ msgid "Open the workspace settings to install the tracking snippet"
 #~ msgstr ""
 
-#: src/components/web_analytics/InstallOverlay.tsx:96
+#: src/components/web_analytics/InstallOverlay.tsx:105
 msgid "Open web analytics settings"
 msgstr ""
 
@@ -8309,7 +8326,7 @@ msgstr ""
 msgid "Password"
 msgstr "パスワード"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:370
+#: src/components/settings/WebAnalyticsSettings.tsx:429
 msgid "Paste this snippet before the closing </head> tag of your website."
 msgstr ""
 
@@ -8478,7 +8495,7 @@ msgstr "フォームにエラーがないか確認してください。"
 msgid "Please choose a different segment name"
 msgstr ""
 
-#: src/components/settings/WebAnalyticsSettings.tsx:269
+#: src/components/settings/WebAnalyticsSettings.tsx:333
 msgid "Please enter a bounce threshold"
 msgstr ""
 
@@ -9196,15 +9213,15 @@ msgstr "推奨: 150-160文字"
 msgid "Recommended: 50-60 characters"
 msgstr "推奨: 50-60文字"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:305
+#: src/components/settings/WebAnalyticsSettings.tsx:369
 msgid "Record the city of visitors"
 msgstr ""
 
-#: src/components/settings/WebAnalyticsSettings.tsx:311
+#: src/components/settings/WebAnalyticsSettings.tsx:375
 msgid "Record the region or state of visitors"
 msgstr ""
 
-#: src/components/settings/WebAnalyticsSettings.tsx:282
+#: src/components/settings/WebAnalyticsSettings.tsx:346
 msgid "Record web goals on the contact timeline"
 msgstr ""
 
@@ -9268,7 +9285,7 @@ msgstr "シークレットを再生成しますか？"
 msgid "Region"
 msgstr "リージョン"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:323
+#: src/components/settings/WebAnalyticsSettings.tsx:387
 msgid "Regional (~11km precision)"
 msgstr ""
 
@@ -9481,7 +9498,7 @@ msgstr ""
 #~ msgid "Resolve visitor locations (country)"
 #~ msgstr ""
 
-#: src/components/settings/WebAnalyticsSettings.tsx:220
+#: src/components/settings/WebAnalyticsSettings.tsx:266
 msgid "Resolved"
 msgstr ""
 
@@ -9753,7 +9770,7 @@ msgstr "ブロックを保存"
 #: src/components/email_builder/ui/CodeDrawerInput.tsx:182
 #: src/components/settings/BlogSettings.tsx:444
 #: src/components/settings/GeneralSettings.tsx:299
-#: src/components/settings/WebAnalyticsSettings.tsx:361
+#: src/components/settings/WebAnalyticsSettings.tsx:463
 msgid "Save Changes"
 msgstr "変更を保存"
 
@@ -10444,7 +10461,7 @@ msgstr ""
 msgid "Sessions (previous)"
 msgstr ""
 
-#: src/components/settings/WebAnalyticsSettings.tsx:268
+#: src/components/settings/WebAnalyticsSettings.tsx:332
 msgid "Sessions with less engaged time than this count as bounces."
 msgstr ""
 
@@ -10969,7 +10986,7 @@ msgstr "ストレージ設定（読み取り専用モード）"
 #~ msgid "Store city"
 #~ msgstr ""
 
-#: src/components/settings/WebAnalyticsSettings.tsx:304
+#: src/components/settings/WebAnalyticsSettings.tsx:368
 msgid "Store city name"
 msgstr ""
 
@@ -10977,7 +10994,7 @@ msgstr ""
 #~ msgid "Store region"
 #~ msgstr ""
 
-#: src/components/settings/WebAnalyticsSettings.tsx:310
+#: src/components/settings/WebAnalyticsSettings.tsx:374
 msgid "Store region/state name"
 msgstr ""
 
@@ -11476,7 +11493,7 @@ msgstr "テキスト変換"
 msgid "The"
 msgstr "The"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:380
+#: src/components/settings/WebAnalyticsSettings.tsx:439
 msgid "The address must already belong to a contact: identifying someone who is not one records nothing, by design. Visitors arriving from a tracked email link are identified automatically, with no code."
 msgstr ""
 
@@ -11739,8 +11756,12 @@ msgstr "これはコンテンツ構造ツリーです。ブロックをドラッ
 msgid "This is your visual email editor. Click on any element in your email to select it. Selected elements will be highlighted with a blue border and show editing options."
 msgstr "これはビジュアルメールエディターです。メール内の要素をクリックして選択できます。選択された要素は青い境界線でハイライトされ、編集オプションが表示されます。"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:252
-msgid "This list does two things. It filters incoming beats — other origins are silently ignored, and leaving it empty accepts every origin. It also gates email-click identification: a tracked link only carries an identity token for a domain listed here, so while this is empty no email link can identify a contact. Use *.example.com to cover both example.com and its subdomains — example.com on its own does not match www.example.com."
+#: src/components/settings/WebAnalyticsSettings.tsx:301
+#~ msgid "This list does two things. It filters incoming beats — other origins are silently ignored, and leaving it empty accepts every origin. It also gates email-click identification: a tracked link only carries an identity token for a domain listed here, so while this is empty no email link can identify a contact. Use *.example.com to cover both example.com and its subdomains — example.com on its own does not match www.example.com."
+#~ msgstr ""
+
+#: src/components/settings/WebAnalyticsSettings.tsx:301
+msgid "This list does two things. It filters incoming beats — other origins are silently ignored. It also gates email-click identification: a tracked link only carries an identity token for a domain listed here, so while this is empty no email link can identify a contact. Use *.example.com to cover both example.com and its subdomains — example.com on its own does not match www.example.com."
 msgstr ""
 
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:268
@@ -12093,11 +12114,11 @@ msgstr "コンタクト総数"
 msgid "Total Value"
 msgstr ""
 
-#: src/components/settings/WebAnalyticsSettings.tsx:297
+#: src/components/settings/WebAnalyticsSettings.tsx:361
 msgid "Track visitor country, region, city, and coordinates"
 msgstr ""
 
-#: src/components/settings/WebAnalyticsSettings.tsx:231
+#: src/components/settings/WebAnalyticsSettings.tsx:277
 msgid "Track website traffic with a first-party script. Beats are stored in this workspace's database, so no data leaves your infrastructure."
 msgstr ""
 
@@ -12722,7 +12743,7 @@ msgstr "垂直配置"
 msgid "Video starts at this timestamp (MM:SS, HH:MM:SS, or seconds)"
 msgstr "動画はこのタイムスタンプから開始（MM:SS、HH:MM:SS、または秒）"
 
-#: src/components/web_analytics/InstallOverlay.tsx:99
+#: src/components/web_analytics/InstallOverlay.tsx:108
 msgid "View anyway"
 msgstr ""
 
@@ -12768,7 +12789,7 @@ msgstr ""
 msgid "Visibility"
 msgstr "表示設定"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:219
+#: src/components/settings/WebAnalyticsSettings.tsx:265
 msgid "Visitor locations"
 msgstr ""
 
@@ -12806,28 +12827,28 @@ msgid "We'll automatically detect and use your website's favicon"
 msgstr "ウェブサイトのファビコンを自動検出して使用します"
 
 #: src/components/settings/SettingsSidebar.tsx:105
-#: src/components/settings/WebAnalyticsSettings.tsx:171
-#: src/components/settings/WebAnalyticsSettings.tsx:181
-#: src/components/settings/WebAnalyticsSettings.tsx:230
+#: src/components/settings/WebAnalyticsSettings.tsx:217
+#: src/components/settings/WebAnalyticsSettings.tsx:227
+#: src/components/settings/WebAnalyticsSettings.tsx:276
 #: src/layouts/WorkspaceLayout.tsx:302
 #: src/pages/BroadcastsPage.tsx:1080
 #: src/pages/WebAnalyticsPage.tsx:74
 msgid "Web Analytics"
 msgstr "Webアナリティクス"
 
-#: src/components/web_analytics/InstallOverlay.tsx:66
+#: src/components/web_analytics/InstallOverlay.tsx:75
 msgid "Web analytics is enabled on this workspace, but no visit has been recorded yet. Paste this snippet before the closing </head> tag of your website."
 msgstr ""
 
-#: src/components/web_analytics/InstallOverlay.tsx:62
+#: src/components/web_analytics/InstallOverlay.tsx:71
 msgid "Web analytics is not enabled"
 msgstr ""
 
-#: src/components/web_analytics/InstallOverlay.tsx:71
+#: src/components/web_analytics/InstallOverlay.tsx:80
 msgid "Web analytics is not set up on this workspace yet."
 msgstr ""
 
-#: src/components/web_analytics/InstallOverlay.tsx:70
+#: src/components/web_analytics/InstallOverlay.tsx:79
 msgid "Web analytics is turned off for this workspace. Turn it on in the workspace settings to start collecting traffic."
 msgstr ""
 
@@ -12839,7 +12860,7 @@ msgstr ""
 #~ msgid "Web analytics settings saved"
 #~ msgstr ""
 
-#: src/components/settings/WebAnalyticsSettings.tsx:152
+#: src/components/settings/WebAnalyticsSettings.tsx:198
 msgid "Web analytics settings updated successfully"
 msgstr ""
 
@@ -12903,7 +12924,7 @@ msgstr "Webhooksが正常に登録されました"
 msgid "Website"
 msgstr "ウェブサイト"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:172
+#: src/components/settings/WebAnalyticsSettings.tsx:218
 msgid "Website traffic tracking settings"
 msgstr ""
 
@@ -12938,7 +12959,7 @@ msgstr "私が洞察を共有するブログへようこそ..."
 msgid "What gets exported"
 msgstr ""
 
-#: src/components/settings/WebAnalyticsSettings.tsx:244
+#: src/components/settings/WebAnalyticsSettings.tsx:293
 msgid "When disabled, incoming beats are rejected and the dashboards stop updating."
 msgstr ""
 
@@ -13255,6 +13276,10 @@ msgstr "テンプレートの書き込み権限がありません"
 msgid "You don't have write permission for transactional notifications"
 msgstr "トランザクション通知の書き込み権限がありません"
 
+#: src/components/settings/WebAnalyticsSettings.tsx:453
+msgid "You have unsaved changes"
+msgstr ""
+
 #: src/components/blog/PostDrawer.tsx:548
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:248
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:152
@@ -13298,6 +13323,10 @@ msgstr "ファイルは任意のS3互換ストレージにアップロードで�
 #: src/pages/SetupWizard.tsx:323
 msgid "Your Notifuse instance has been successfully configured."
 msgstr "Notifuseインスタンスが正常に設定されました。"
+
+#: src/components/settings/WebAnalyticsSettings.tsx:478
+msgid "Your web analytics settings have not been saved. Leaving this page discards them."
+msgstr ""
 
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:616
 msgid "Your website or company name"

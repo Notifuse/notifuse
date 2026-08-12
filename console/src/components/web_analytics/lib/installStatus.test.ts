@@ -25,6 +25,18 @@ describe('deriveInstallState', () => {
     expect(deriveInstallState(probe({ checkTraffic: false }))).toBe('ok')
   })
 
+  it('lets a config screen through while collection is still switched off', () => {
+    // Attribution rules are written before the snippet goes live; gating them
+    // on `enabled` would make the rules editor unreachable.
+    expect(deriveInstallState(probe({ enabled: false, checkTraffic: false }))).toBe('ok')
+  })
+
+  it('still gates a config screen on a workspace that has no settings at all', () => {
+    expect(deriveInstallState(probe({ hasSettings: false, checkTraffic: false }))).toBe(
+      'not_configured'
+    )
+  })
+
   it('waits while the 24-hour probe is in flight', () => {
     expect(deriveInstallState(probe())).toBe('loading')
   })

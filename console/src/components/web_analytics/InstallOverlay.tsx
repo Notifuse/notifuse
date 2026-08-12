@@ -38,6 +38,15 @@ function writeDismissed(workspaceId: string): void {
 /** States where the operator is looking at an install problem, not a report. */
 const TRAFFIC_STATES: InstallState[] = ['never_received', 'stalled']
 
+/**
+ * Takes the blurred report out of the tab order and the accessibility tree.
+ * `pointer-events-none` only stops the mouse: without this, Tab walks through
+ * a dozen invisible controls — and opens their popups over the card — before
+ * reaching it. React 18's typings predate `inert`, and a boolean `true` is
+ * dropped with a DOM warning, so it is spread as the empty string.
+ */
+const INERT = { inert: '' } as unknown as { inert?: string }
+
 interface InstallCardProps {
   state: InstallState
   /** Provided only when there is something behind the card worth revealing. */
@@ -153,8 +162,11 @@ export function WebAnalyticsGate({ mode = 'data', children }: WebAnalyticsGatePr
     <div className="relative">
       {/* Capped: past the card the page would otherwise scroll on into
           content nothing is covering. */}
+      {/* aria-hidden and pointer-events-none stay as the floor for browsers
+          without inert; inert is what actually removes the tab stops. */}
       <div
         aria-hidden="true"
+        {...INERT}
         className="pointer-events-none max-h-[70vh] select-none overflow-hidden blur-[3px]"
       >
         {children}

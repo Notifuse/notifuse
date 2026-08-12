@@ -222,7 +222,7 @@ func (r *inboundWebhookEventRepository) ListEvents(ctx context.Context, workspac
 			return nil, fmt.Errorf("invalid cursor format: expected timestamp~id")
 		}
 
-		cursorTime, err := time.Parse(time.RFC3339, cursorParts[0])
+		cursorTime, err := time.Parse(time.RFC3339Nano, cursorParts[0])
 		if err != nil {
 			// codecov:ignore:start
 			tracing.MarkSpanError(ctx, err)
@@ -345,7 +345,9 @@ func (r *inboundWebhookEventRepository) ListEvents(ctx context.Context, workspac
 	// Generate the next cursor based on the last item if we have results
 	if len(events) > 0 && hasMore {
 		lastEvent := events[len(events)-1]
-		cursorStr := fmt.Sprintf("%s~%s", lastEvent.Timestamp.Format(time.RFC3339), lastEvent.ID)
+		// Use RFC3339Nano to preserve sub-second precision and avoid skipping events
+		// recorded within the same second
+		cursorStr := fmt.Sprintf("%s~%s", lastEvent.Timestamp.Format(time.RFC3339Nano), lastEvent.ID)
 		nextCursor = base64.StdEncoding.EncodeToString([]byte(cursorStr))
 	}
 

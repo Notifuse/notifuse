@@ -124,6 +124,15 @@ describe('WebAnalyticsGate', () => {
     )
   })
 
+  it('takes the blurred report out of the tab order', () => {
+    // Without inert, Tab walks the hidden widgets — and opens their popups over
+    // the card — before it ever reaches "View anyway".
+    const { container } = renderGate('never_received')
+    const backdrop = container.querySelector('[aria-hidden="true"]')
+    expect(backdrop).toHaveAttribute('inert')
+    expect(backdrop).toContainElement(screen.getByText('dashboard content'))
+  })
+
   it('reveals the report on "View anyway" and remembers it for the tab', () => {
     const { unmount } = renderGate('stalled')
     fireEvent.click(screen.getByRole('button', { name: 'View anyway' }))

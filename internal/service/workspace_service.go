@@ -935,7 +935,7 @@ func (s *WorkspaceService) SetWebAnalyticsSettings(ctx context.Context, workspac
 		)
 	}
 
-	if err := settings.Validate(); err != nil {
+	if err := settings.ValidateForSave(); err != nil {
 		return err
 	}
 

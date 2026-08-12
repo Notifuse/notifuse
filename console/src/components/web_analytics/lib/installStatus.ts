@@ -14,6 +14,13 @@ const ACTIVITY_TIME_DIMENSION = 'updated_at'
 /** Floor for the lifetime probe when the workspace has no creation date. */
 const EPOCH = '2000-01-01T00:00:00.000Z'
 
+/**
+ * The demo workspace, whose id `ResetDemo` hardcodes. Its history is generated
+ * in one pass per reset and never beats again, so a day later both probes read
+ * as a dead install — on a site none of its visitors could install anything on.
+ */
+const DEMO_WORKSPACE_ID = 'demo'
+
 export type InstallState =
   /** A probe is still in flight; show the page and let its widgets load. */
   | 'loading'
@@ -48,8 +55,11 @@ export interface InstallProbe {
  */
 export function deriveInstallState(probe: InstallProbe): InstallState {
   if (!probe.hasSettings) return 'not_configured'
-  if (!probe.enabled) return 'disabled'
+  // Ahead of the `enabled` check on purpose: attribution rules are written on
+  // a config screen precisely while collection is still off, so switching the
+  // feature on must not be a prerequisite for editing them.
   if (!probe.checkTraffic) return 'ok'
+  if (!probe.enabled) return 'disabled'
   // An API hiccup is not an install problem: hiding a working dashboard behind
   // a snippet is worse than showing whatever the widgets manage to load.
   if (probe.failed) return 'ok'
@@ -70,7 +80,7 @@ export function deriveInstallState(probe: InstallProbe): InstallState {
 export function useInstallStatus(options?: { checkTraffic?: boolean }): InstallState {
   const { workspaceId, workspace, settings, timezone } = useWebAnalytics()
 
-  const checkTraffic = options?.checkTraffic !== false
+  const checkTraffic = options?.checkTraffic !== false && workspaceId !== DEMO_WORKSPACE_ID
   const hasSettings = settings != null
   const enabled = settings?.enabled === true
   const probing = checkTraffic && hasSettings && enabled

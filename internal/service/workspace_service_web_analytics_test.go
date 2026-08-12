@@ -241,6 +241,34 @@ func TestWorkspaceService_SetWebAnalyticsSettings(t *testing.T) {
 		assert.ErrorContains(t, err, "geo_coordinates_precision")
 	})
 
+	t.Run("enabling with no allowed domain is rejected before any write", func(t *testing.T) {
+		service, _, mockAuthService, _, _, _, _ := newWorkspaceServiceForWebAnalyticsTest(t)
+
+		owner := &domain.UserWorkspace{UserID: userID, WorkspaceID: workspaceID, Role: "owner"}
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, owner, nil)
+
+		bad := validSettings()
+		bad.AllowedDomains = nil
+		err := service.SetWebAnalyticsSettings(ctx, workspaceID, bad)
+		assert.ErrorContains(t, err, "allowed_domains")
+	})
+
+	t.Run("switching collection off with no allowed domain still saves", func(t *testing.T) {
+		service, mockRepo, mockAuthService, _, _, _, _ := newWorkspaceServiceForWebAnalyticsTest(t)
+
+		owner := &domain.UserWorkspace{UserID: userID, WorkspaceID: workspaceID, Role: "owner"}
+		existing := &domain.Workspace{ID: workspaceID, Name: "WS", Settings: domain.WorkspaceSettings{Timezone: "UTC"}}
+
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, owner, nil)
+		mockRepo.EXPECT().GetByID(ctx, workspaceID).Return(existing, nil)
+		mockRepo.EXPECT().Update(ctx, gomock.Any()).Return(nil)
+
+		settings := validSettings()
+		settings.Enabled = false
+		settings.AllowedDomains = nil
+		require.NoError(t, service.SetWebAnalyticsSettings(ctx, workspaceID, settings))
+	})
+
 	t.Run("owner can clear settings with nil", func(t *testing.T) {
 		service, mockRepo, mockAuthService, _, _, _, _ := newWorkspaceServiceForWebAnalyticsTest(t)
 

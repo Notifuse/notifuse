@@ -298,6 +298,32 @@ func TestWebAnalyticsSettings(t *testing.T) {
 		assert.ErrorContains(t, (&WebAnalyticsSettings{CustomDimensionLabels: map[string]string{"custom_11": "x"}}).Validate(), "custom_1..custom_10")
 	})
 
+	t.Run("enabling requires at least one allowed domain", func(t *testing.T) {
+		enabled := &WebAnalyticsSettings{Enabled: true}
+		assert.ErrorContains(t, enabled.ValidateForSave(), "allowed_domains")
+
+		enabled.AllowedDomains = []string{"example.com"}
+		assert.NoError(t, enabled.ValidateForSave())
+	})
+
+	t.Run("the domain requirement does not reach a plain workspace update", func(t *testing.T) {
+		// Validate also runs when the workspace is renamed or its timezone
+		// changes. A workspace enabled before this rule existed must not be
+		// locked out of those.
+		assert.NoError(t, (&WebAnalyticsSettings{Enabled: true}).Validate())
+	})
+
+	t.Run("a disabled workspace may save an empty domain list", func(t *testing.T) {
+		assert.NoError(t, (&WebAnalyticsSettings{Enabled: false}).ValidateForSave())
+		var cleared *WebAnalyticsSettings
+		assert.NoError(t, cleared.ValidateForSave())
+	})
+
+	t.Run("ValidateForSave still applies the ordinary rules", func(t *testing.T) {
+		bad := &WebAnalyticsSettings{Enabled: true, AllowedDomains: []string{"example.com:443"}}
+		assert.ErrorContains(t, bad.ValidateForSave(), "without a port")
+	})
+
 	t.Run("valid settings pass, including a filter", func(t *testing.T) {
 		s := &WebAnalyticsSettings{
 			Enabled:                true,

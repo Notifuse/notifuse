@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   Alert,
   App,
@@ -9,11 +9,13 @@ import {
   Form,
   Input,
   InputNumber,
+  Modal,
   Row,
   Select,
   Switch
 } from 'antd'
 import { CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons'
+import { useBlocker } from '@tanstack/react-router'
 import { useLingui } from '@lingui/react/macro'
 import { Workspace } from '../../services/api/types'
 import { workspaceService } from '../../services/api/workspace'
@@ -61,6 +63,32 @@ function ToggleRow({ name, title, description }: ToggleRowProps) {
   )
 }
 
+/**
+ * The stored settings as the form holds them. Both the initial load and Discard
+ * read from here, so "restore what was saved" can never drift from "what was
+ * loaded" — every custom-dimension slot is materialised, blank ones included,
+ * because the save path is what strips them again.
+ */
+function toFormValues(stored?: WebAnalyticsSettingsValues): WebAnalyticsFormValues {
+  const settings = { ...DEFAULT_SETTINGS, ...(stored ?? {}) }
+  return {
+    enabled: settings.enabled,
+    allowed_domains: settings.allowed_domains ?? [],
+    contact_bridge_enabled: settings.contact_bridge_enabled ?? false,
+    bounce_threshold_seconds: settings.bounce_threshold_seconds,
+    geo_enabled: settings.geo_enabled,
+    geo_store_city: settings.geo_store_city,
+    geo_store_region: settings.geo_store_region,
+    geo_coordinates_precision: settings.geo_coordinates_precision,
+    custom_dimension_labels: Object.fromEntries(
+      CUSTOM_DIMENSION_SLOTS.map((slot) => [
+        `custom_${slot}`,
+        settings.custom_dimension_labels?.[`custom_${slot}`] ?? ''
+      ])
+    )
+  }
+}
+
 interface WebAnalyticsSettingsProps {
   workspace: Workspace | null
   onWorkspaceUpdate: (workspace: Workspace) => void
@@ -95,26 +123,44 @@ export function WebAnalyticsSettings({
 
   useEffect(() => {
     if (!canManage) return
-
-    const settings = { ...DEFAULT_SETTINGS, ...(stored ?? {}) }
-    form.setFieldsValue({
-      enabled: settings.enabled,
-      allowed_domains: settings.allowed_domains ?? [],
-      contact_bridge_enabled: settings.contact_bridge_enabled ?? false,
-      bounce_threshold_seconds: settings.bounce_threshold_seconds,
-      geo_enabled: settings.geo_enabled,
-      geo_store_city: settings.geo_store_city,
-      geo_store_region: settings.geo_store_region,
-      geo_coordinates_precision: settings.geo_coordinates_precision,
-      custom_dimension_labels: Object.fromEntries(
-        CUSTOM_DIMENSION_SLOTS.map((slot) => [
-          `custom_${slot}`,
-          settings.custom_dimension_labels?.[`custom_${slot}`] ?? ''
-        ])
-      )
-    })
+    form.setFieldsValue(toFormValues(stored))
     setFormTouched(false)
   }, [stored, form, canManage])
+
+  // resetFields() would empty the form: the values arrive through
+  // setFieldsValue above, so the form has no initialValues to reset to.
+  const handleDiscard = useCallback(() => {
+    form.setFieldsValue(toFormValues(stored))
+    setFormTouched(false)
+  }, [form, stored])
+
+  // The bar stays up through the save so the button can own the spinner; the
+  // shortcut and the leave guard step aside once the request is in flight.
+  const hasUnsavedChanges = canManage && formTouched
+  const unsaved = hasUnsavedChanges && !savingSettings
+
+  // Cmd/Ctrl+S is what a long form trains people to reach for. Only claim the
+  // shortcut while there is something to save, so the browser keeps it
+  // otherwise.
+  useEffect(() => {
+    if (!unsaved) return
+    const onKeyDown = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 's') {
+        event.preventDefault()
+        form.submit()
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [unsaved, form])
+
+  // Switching settings section is a route change, so leaving with unsaved edits
+  // is one click away and silent without this.
+  const blocker = useBlocker({
+    shouldBlockFn: () => unsaved,
+    enableBeforeUnload: () => unsaved,
+    withResolver: true
+  })
 
   // The tracking snippet must point at the domain the SDK will actually beat to.
   const endpoint = useMemo(() => resolveTrackingEndpoint(workspace), [workspace])
@@ -236,6 +282,9 @@ export function WebAnalyticsSettings({
         layout="vertical"
         onFinish={handleSaveSettings}
         onValuesChange={() => setFormTouched(true)}
+        // The save control floats over the page, so a rejected field can sit
+        // anywhere off screen when it is pressed.
+        scrollToFirstError
       >
         <Form.Item
           name="enabled"
@@ -249,7 +298,22 @@ export function WebAnalyticsSettings({
         <Form.Item
           name="allowed_domains"
           label={t`Allowed domains`}
-          tooltip={t`This list does two things. It filters incoming beats — other origins are silently ignored, and leaving it empty accepts every origin. It also gates email-click identification: a tracked link only carries an identity token for a domain listed here, so while this is empty no email link can identify a contact. Use *.example.com to cover both example.com and its subdomains — example.com on its own does not match www.example.com.`}
+          tooltip={t`This list does two things. It filters incoming beats — other origins are silently ignored. It also gates email-click identification: a tracked link only carries an identity token for a domain listed here, so while this is empty no email link can identify a contact. Use *.example.com to cover both example.com and its subdomains — example.com on its own does not match www.example.com.`}
+          // Re-runs the rule below the moment collection is switched on, rather
+          // than waiting for the save to bounce.
+          dependencies={['enabled']}
+          rules={[
+            ({ getFieldValue }) => ({
+              // Read through the form rather than a watched value: this has to
+              // hold at submit time whatever the render order was.
+              validator: (_, value: string[] | undefined) =>
+                !getFieldValue('enabled') || (value?.length ?? 0) > 0
+                  ? Promise.resolve()
+                  : Promise.reject(
+                      new Error(t`List at least one domain to enable web analytics`)
+                    )
+            })
+          ]}
         >
           <Select
             mode="tags"
@@ -356,11 +420,6 @@ export function WebAnalyticsSettings({
           ))}
         </Row>
 
-        <Form.Item>
-          <Button type="primary" htmlType="submit" loading={savingSettings} disabled={!formTouched}>
-            {t`Save Changes`}
-          </Button>
-        </Form.Item>
       </Form>
 
       <Divider className="!my-8" />
@@ -379,6 +438,45 @@ export function WebAnalyticsSettings({
       <div className="text-gray-500">
         {t`The address must already belong to a contact: identifying someone who is not one records nothing, by design. Visitors arriving from a tracked email link are identified automatically, with no code.`}
       </div>
+
+      {/* Last child on purpose: a bottom-anchored sticky can shift up across
+          its whole containing block, so the bar rides the viewport for the
+          entire section and settles here at the end. It appears only once
+          there is something to save, which is what makes it noticeable. */}
+      {hasUnsavedChanges ? (
+        <div className="sticky bottom-4 z-10 mt-8 flex justify-center">
+          <div
+            role="status"
+            aria-live="polite"
+            className="flex items-center gap-4 rounded-full border border-gray-200 bg-white/95 py-3 pl-7 pr-6 shadow-lg backdrop-blur"
+          >
+            <span className="text-sm text-gray-600">{t`You have unsaved changes`}</span>
+            <Button size="small" onClick={handleDiscard} disabled={savingSettings}>
+              {t`Discard`}
+            </Button>
+            <Button
+              type="primary"
+              size="small"
+              loading={savingSettings}
+              onClick={() => form.submit()}
+            >
+              {t`Save Changes`}
+            </Button>
+          </div>
+        </div>
+      ) : null}
+
+      <Modal
+        open={blocker.status === 'blocked'}
+        title={t`Discard unsaved changes?`}
+        okText={t`Discard changes`}
+        cancelText={t`Keep editing`}
+        okButtonProps={{ danger: true }}
+        onOk={() => blocker.proceed?.()}
+        onCancel={() => blocker.reset?.()}
+      >
+        <p>{t`Your web analytics settings have not been saved. Leaving this page discards them.`}</p>
+      </Modal>
     </>
   )
 }
