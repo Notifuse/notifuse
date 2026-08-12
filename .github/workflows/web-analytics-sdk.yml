@@ -1,0 +1,117 @@
+name: Web Analytics SDK
+
+# The browser SDK had no CI at all: its type-check, unit tests and e2e suite ran
+# only when someone remembered to run them locally. Two things rotted quietly as
+# a result — a Playwright spec kept asserting a storage key that had been made
+# per-tab, and the committed bundle drifted behind its own source.
+# The path list is duplicated rather than shared through a YAML anchor:
+# GitHub Actions does not support anchors or aliases in workflow files.
+on:
+  push:
+    branches: [dev, main]
+    paths:
+      - 'web_analytics_sdk/**'
+      # VERSION is injected into the bundle at build time (SDK_VERSION, which
+      # becomes the sdk_version on every session), so bumping it makes the
+      # committed dist stale even though nothing under web_analytics_sdk/ moved.
+      - 'config/config.go'
+      - '.github/workflows/web-analytics-sdk.yml'
+  pull_request:
+    branches: [dev, main]
+    paths:
+      - 'web_analytics_sdk/**'
+      - 'config/config.go'
+      - '.github/workflows/web-analytics-sdk.yml'
+
+jobs:
+  checks:
+    name: Type-check, unit tests, bundle freshness
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./web_analytics_sdk
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          # Pinned to the version used for development, not merely to something
+          # satisfying package.json engines: the bundle-freshness check below
+          # compares committed build output byte-for-byte, and a different
+          # toolchain can legitimately minify the same source differently.
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: web_analytics_sdk/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      # tsconfig.json covers src only. tsconfig.test.json adds tests/, which was
+      # excluded from every config until recently, so interface changes there
+      # failed at runtime instead of at tsc.
+      - name: Type-check (src and tests)
+        run: npm run type-check
+
+      - name: Unit tests
+        run: npx vitest run
+
+      # The Go binary serves dist/notifuse-analytics.min.js through //go:embed
+      # (web_analytics_sdk/embed.go), so the COMMITTED bundle is what every
+      # local run, every test and every fresh clone actually executes. Source
+      # changes are invisible to `go build` until the bundle is rebuilt and
+      # committed. The Dockerfile rebuilds from source at image build time,
+      # which means a stale bundle makes CI and production run different SDKs —
+      # the worst shape for this bug, since it hides in exactly the place tests
+      # look. Rebuilding and diffing is the whole check.
+      - name: Bundle is in sync with source
+        run: |
+          npm run build
+          if ! git diff --exit-code -- dist package.json; then
+            echo ""
+            echo "::error::The committed SDK bundle does not match its source."
+            echo "Run 'npm run build' in web_analytics_sdk/ and commit the dist/ changes."
+            echo "(package.json is also checked: its version is synced from config/config.go.)"
+            exit 1
+          fi
+
+  e2e:
+    name: End-to-end (Playwright)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./web_analytics_sdk
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: web_analytics_sdk/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Chromium only: the suite drives one browser, and this is the slow step.
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      # These run the real minified bundle against a local collector, so they
+      # cover the SDK-to-wire contract the unit tests mock out. playwright.config
+      # starts the static and collector servers itself.
+      - name: Run e2e tests
+        run: npx playwright test
+
+      - name: Upload report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: web_analytics_sdk/playwright-report/
+          retention-days: 7

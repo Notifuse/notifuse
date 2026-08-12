@@ -47,6 +47,64 @@ function utf8Length(value: string): number {
 }
 
 /**
+ * Length of a string in Unicode code points.
+ *
+ * Not String#length, which counts UTF-16 units and so reports 2 for a single
+ * astral character: the server counts code points, and a client bound that
+ * disagrees rejects addresses the server would have accepted.
+ */
+function charLength(value: string): number {
+  // Spreading walks code points, pairing surrogates back into one character.
+  return [...value].length;
+}
+
+// Mirrors of the server's ResolveWebIdentity gates (WebTrackMaxEmailLength,
+// WebTrackMaxHMACLength, WebTrackMaxIdentifyTokenLength). A credential that
+// overshoots any of them is discarded server-side in silence — the beat still
+// succeeds and the visit is still recorded, the contact is just never attached
+// — so the SDK refuses it up front instead of sending something it knows will
+// be ignored.
+// Counted in CHARACTERS, not bytes: the server compares this bound with
+// utf8.RuneCountInString because it mirrors a VARCHAR(255) column, and Postgres
+// counts VARCHAR in characters. Counting bytes here would reject an SMTPUTF8
+// address of 134 characters and 256 bytes that the contacts table stores
+// perfectly happily — the client refusing what the server would have accepted,
+// which is the same silent identity loss these bounds exist to prevent, only
+// one layer up.
+const MAX_IDENTITY_EMAIL_CHARS = 255;
+const MAX_IDENTITY_HMAC_BYTES = 64;
+// Must equal WebTrackMaxIdentifyTokenLength exactly, and it is the one of the
+// three that is derived rather than declared, so it moves when the address
+// bound moves. Server-side it reads 2 * (28 + 29 + 6 * 255): a token is the hex
+// of a 12-byte GCM nonce, the ciphertext and a 16-byte tag, over a JSON payload
+// of {"e":"<address>","x":<expiry>,"v":1}, where encoding/json may spend six
+// characters on one address byte.
+//
+// A LOWER value here is not the safe direction. Every gate in this file exists
+// because the server drops an over-long credential in silence — the beat still
+// succeeds, the visit is still recorded, the contact is simply never attached —
+// and a bound below the server's reproduces exactly that outcome one layer up,
+// on tokens the server would have read: at 512 the SDK discarded the mint of
+// any address past ~199 characters, including the ordinary 624-character token
+// of a 255-character address.
+const MAX_IDENTITY_TOKEN_BYTES = 3174;
+
+/**
+ * Whether every credential in an identity is inside the bounds the server will
+ * actually read.
+ *
+ * Shared by the accept path and the load path so the two cannot drift: a value
+ * rejected on the way in must not become acceptable simply by having been
+ * written to storage by an older build.
+ */
+function identityWithinBounds(identity: WebIdentity): boolean {
+  if (identity.email && charLength(identity.email) > MAX_IDENTITY_EMAIL_CHARS) return false;
+  if (identity.hmac && utf8Length(identity.hmac) > MAX_IDENTITY_HMAC_BYTES) return false;
+  if (identity.token && utf8Length(identity.token) > MAX_IDENTITY_TOKEN_BYTES) return false;
+  return true;
+}
+
+/**
  * Cross-domain session input (from URL parameters)
  */
 export interface CrossDomainInput {
@@ -422,8 +480,38 @@ export class SessionManager {
     // Latin code points (U+023A, U+023E) grow from 2 bytes to 3 when
     // lowercased, so an address accepted here at 255 bytes can still be
     // dropped at 256.
-    if (identity.email && utf8Length(identity.email) > 255) {
-      throw new Error('Identity email must be 255 bytes or less');
+    if (identity.email && charLength(identity.email) > MAX_IDENTITY_EMAIL_CHARS) {
+      throw new Error('Identity email must be 255 characters or less');
+    }
+    // ResolveWebIdentity bounds the hmac before it will even run the signature
+    // comparison, so an over-long one is the same silent no-attach as an
+    // over-long address, and it has the same author: identify() is the only
+    // caller that supplies this pair. 64 is not a generous ceiling but the
+    // exact length of the credential the server computes — a hex-encoded
+    // SHA-256 — so a signature that overshoots it was mis-derived.
+    //
+    // Bytes, to mirror Go's len(), but unlike the address the unit cannot
+    // change the answer here: hex is ASCII, where the two counts coincide, and
+    // an hmac with multibyte characters in it fails the comparison whatever its
+    // length. The same goes for the token below.
+    if (identity.hmac && utf8Length(identity.hmac) > MAX_IDENTITY_HMAC_BYTES) {
+      throw new Error('Identity hmac must be 64 bytes or less');
+    }
+    // Dropped rather than thrown, alone among these checks, because the token
+    // is the one credential a stranger supplies: it is read from the nf_id URL
+    // parameter during init(), so anyone can link to the customer's site with
+    // ?nf_id=<megabytes>. init() runs before the sender is constructed and
+    // caches its own promise, so a throw there would not just skip the
+    // identity — it would leave the SDK dead for the rest of the page load and
+    // surface as an unhandled rejection inside code the customer never wrote.
+    // Nothing is lost by dropping quietly instead: BuildWebIdentifyToken
+    // refuses to mint a token over this bound, so no genuine link can carry
+    // one, and there is no caller mistake here for a throw to report.
+    if (identity.token && utf8Length(identity.token) > MAX_IDENTITY_TOKEN_BYTES) {
+      if (this.debug) {
+        console.warn('[NotifuseAnalytics] Ignored an oversized identify token');
+      }
+      return;
     }
     if (!this.session) return;
 
@@ -462,8 +550,18 @@ export class SessionManager {
   private loadIdentity(): WebIdentity | null {
     const stored = this.storage.get<WebIdentity>(STORAGE_KEYS.IDENTITY);
     if (!stored) return null;
-    if (stored.token || (stored.email && stored.hmac)) return stored;
-    return null;
+    if (!(stored.token || (stored.email && stored.hmac))) return null;
+    // Bounds are re-checked on the way out, not just on the way in. A visitor
+    // who was handed an oversized token before this check existed has it sitting
+    // in localStorage, and every beat would keep carrying a credential the
+    // server refuses to read — permanently, since nothing else ever revisits the
+    // stored value. Dropping the key lets that visitor recover on this page load
+    // instead of staying broken across SDK upgrades.
+    if (!identityWithinBounds(stored)) {
+      this.storage.remove(STORAGE_KEYS.IDENTITY);
+      return null;
+    }
+    return stored;
   }
 
   /**

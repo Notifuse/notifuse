@@ -193,7 +193,21 @@ export function WebAnalyticsSettings({
           </Descriptions.Item>
 
           <Descriptions.Item label={t`Allowed domains`}>
-            {stored?.allowed_domains?.length ? stored.allowed_domains.join(', ') : t`Every domain`}
+            {stored?.allowed_domains?.length ? (
+              stored.allowed_domains.join(', ')
+            ) : (
+              // An empty list is not simply permissive: it accepts beats from
+              // anywhere, but it also switches OFF email-click identification,
+              // because a tracked link only carries an identity token for a
+              // listed domain. Saying just "Every domain" reads as "nothing to
+              // configure" and hides that second half entirely.
+              <>
+                {t`Every domain`}
+                <div style={{ color: '#faad14', fontSize: 12 }}>
+                  {t`Email links cannot identify contacts until a domain is listed.`}
+                </div>
+              </>
+            )}
           </Descriptions.Item>
 
           <Descriptions.Item label={t`Bounce threshold`}>
@@ -235,7 +249,7 @@ export function WebAnalyticsSettings({
         <Form.Item
           name="allowed_domains"
           label={t`Allowed domains`}
-          tooltip={t`Beats from other origins are silently ignored. Wildcards like *.example.com are supported; empty allows every domain.`}
+          tooltip={t`This list does two things. It filters incoming beats — other origins are silently ignored, and leaving it empty accepts every origin. It also gates email-click identification: a tracked link only carries an identity token for a domain listed here, so while this is empty no email link can identify a contact. Use *.example.com to cover both example.com and its subdomains — example.com on its own does not match www.example.com.`}
         >
           <Select
             mode="tags"

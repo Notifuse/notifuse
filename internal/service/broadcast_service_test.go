@@ -316,6 +316,104 @@ func TestBroadcastService_SendToIndividual_Success(t *testing.T) {
 	require.NoError(t, err)
 }
 
+// TestBroadcastService_SendToIndividual_NeverMintsIdentityToken pins the
+// decision recorded at the TrackingSettings construction in SendToIndividual:
+// this path identifies nobody, whatever the workspace has configured. The
+// recipient address is typed by an operator into the send-to-individual box, so
+// a token here would hand a contact's week-long identity to whichever inbox
+// that address happens to be. Both branches of the contact lookup are covered
+// because a mint added later would most plausibly be gated on the contact
+// having been found — that variant has to fail here too.
+func TestBroadcastService_SendToIndividual_NeverMintsIdentityToken(t *testing.T) {
+	const secretKey = "sk_test_identity"
+	const recipient = "to@example.com"
+
+	// Everything the real send paths gate the mint on is satisfied here — feature
+	// on, a non-empty allowlist, a workspace secret key — and the probe proves a
+	// token is actually mintable from them. Without it an empty token below could
+	// equally mean a mint that failed, which pins nothing.
+	webAnalytics := &domain.WebAnalyticsSettings{
+		Enabled:              true,
+		AllowedDomains:       []string{"example.com", "*.example.com"},
+		ContactBridgeEnabled: true,
+	}
+	probe, err := domain.BuildWebIdentifyToken(recipient, secretKey, domain.WebIdentifyTokenTTL, time.Now().UTC())
+	require.NoError(t, err, "these settings must be able to mint, or this test pins nothing")
+	require.NotEmpty(t, probe)
+
+	testCases := []struct {
+		name       string
+		contact    *domain.Contact
+		contactErr error
+	}{
+		{name: "address belongs to a known contact", contact: &domain.Contact{Email: recipient}},
+		{name: "address matches no contact", contactErr: errors.New("contact not found")},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			d := setupBroadcastSvc(t)
+			defer d.ctrl.Finish()
+
+			ctx := context.Background()
+			req := &domain.SendToIndividualRequest{WorkspaceID: "w1", BroadcastID: "b1", RecipientEmail: recipient}
+			authOK(d.authService, ctx, req.WorkspaceID)
+
+			sender := domain.NewEmailSender("from@example.com", "From")
+			workspace := &domain.Workspace{
+				ID: "w1",
+				Settings: domain.WorkspaceSettings{
+					MarketingEmailProviderID: "mkt",
+					SecretKey:                secretKey,
+					EmailTrackingEnabled:     true,
+					WebAnalytics:             webAnalytics,
+				},
+				Integrations: domain.Integrations{
+					{ID: "mkt", Type: domain.IntegrationTypeEmail, EmailProvider: domain.EmailProvider{Kind: domain.EmailProviderKindSMTP, Senders: []domain.EmailSender{sender}}},
+				},
+			}
+			d.workspaceRepo.EXPECT().GetByID(ctx, req.WorkspaceID).Return(workspace, nil)
+
+			b := testBroadcast(req.WorkspaceID, req.BroadcastID)
+			b.TestSettings.Variations = []domain.BroadcastVariation{{VariationName: "A", TemplateID: "tplA"}}
+			d.repo.EXPECT().GetBroadcast(ctx, req.WorkspaceID, req.BroadcastID).Return(b, nil)
+
+			d.contactRepo.EXPECT().GetContactByEmail(ctx, req.WorkspaceID, req.RecipientEmail).Return(tc.contact, tc.contactErr)
+
+			template := &domain.Template{
+				ID:      "tplA",
+				Name:    "Template A",
+				Channel: "email",
+				Email: &domain.EmailTemplate{
+					SenderID:         sender.ID,
+					Subject:          "Hello",
+					CompiledPreview:  "<p>preview</p>",
+					VisualEditorTree: createMJMLRootBlock(),
+				},
+				Category:  string(domain.TemplateCategoryMarketing),
+				CreatedAt: time.Now(),
+				UpdatedAt: time.Now(),
+			}
+			d.templateSvc.EXPECT().GetTemplateByID(ctx, req.WorkspaceID, "tplA", int64(0)).Return(template, nil)
+
+			// The compiler is the only consumer of the identity: TrackLinks reads
+			// these settings to decide what rides on each rewritten link, so an
+			// empty token here is an email whose links identify nobody.
+			compiledHTML := "<html>ok</html>"
+			d.templateSvc.EXPECT().CompileTemplate(ctx, gomock.Any()).DoAndReturn(func(_ context.Context, payload domain.CompileTemplateRequest) (*domain.CompileTemplateResponse, error) {
+				assert.Empty(t, payload.TrackingSettings.IdentifyToken, "send-to-individual must not mint an identity for an operator-typed address")
+				assert.Empty(t, payload.TrackingSettings.IdentifyAllowedHosts, "no identity means no hosts to hand it to either")
+				return &domain.CompileTemplateResponse{Success: true, HTML: &compiledHTML}, nil
+			})
+
+			d.emailSvc.EXPECT().SendEmail(gomock.Any(), gomock.Any(), true).Return(nil)
+			d.messageHistoryRepo.EXPECT().Create(gomock.Any(), req.WorkspaceID, gomock.Any(), gomock.Any()).Return(nil)
+
+			require.NoError(t, d.svc.SendToIndividual(ctx, req))
+		})
+	}
+}
+
 func TestBroadcastService_GetTestResults_ComputesRecommendation(t *testing.T) {
 	d := setupBroadcastSvc(t)
 	defer d.ctrl.Finish()

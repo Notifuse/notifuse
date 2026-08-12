@@ -1907,6 +1907,16 @@ func sendForTemplateCapturingTracking(t *testing.T, webAnalytics *domain.WebAnal
 // EmailOptions attached, so a test can state who else the message goes to.
 func sendForTemplateCapturingTrackingWithOptions(t *testing.T, webAnalytics *domain.WebAnalyticsSettings, contactEmail string, secretKey string, emailOptions domain.EmailOptions) notifuse_mjml.TrackingSettings {
 	t.Helper()
+	return sendForTemplateCapturingTrackingWithRequestSettings(t, webAnalytics, contactEmail, secretKey, emailOptions,
+		notifuse_mjml.TrackingSettings{EnableTracking: true})
+}
+
+// sendForTemplateCapturingTrackingWithRequestSettings is the same send with the
+// caller's own request-level TrackingSettings, so a test can state the
+// per-notification tracking mode the transactional service resolved before the
+// send — the value SendEmailForTemplate carries into the compiler.
+func sendForTemplateCapturingTrackingWithRequestSettings(t *testing.T, webAnalytics *domain.WebAnalyticsSettings, contactEmail string, secretKey string, emailOptions domain.EmailOptions, requestTracking notifuse_mjml.TrackingSettings) notifuse_mjml.TrackingSettings {
+	t.Helper()
 
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -1977,14 +1987,12 @@ func sendForTemplateCapturingTrackingWithOptions(t *testing.T, webAnalytics *dom
 		Return(nil)
 
 	request := domain.SendEmailRequest{
-		WorkspaceID:    workspaceID,
-		IntegrationID:  "test-integration-id",
-		MessageID:      "message-456",
-		Contact:        &domain.Contact{Email: contactEmail},
-		TemplateConfig: domain.ChannelTemplate{TemplateID: emailTemplate.ID},
-		TrackingSettings: notifuse_mjml.TrackingSettings{
-			EnableTracking: true,
-		},
+		WorkspaceID:      workspaceID,
+		IntegrationID:    "test-integration-id",
+		MessageID:        "message-456",
+		Contact:          &domain.Contact{Email: contactEmail},
+		TemplateConfig:   domain.ChannelTemplate{TemplateID: emailTemplate.ID},
+		TrackingSettings: requestTracking,
 		EmailProvider: &domain.EmailProvider{
 			Kind:    domain.EmailProviderKindSES,
 			Senders: []domain.EmailSender{emailSender},
@@ -2148,6 +2156,100 @@ func TestEmailService_SendEmailForTemplate_WebIdentityAdditionalRecipients(t *te
 			domain.EmailOptions{CC: []string{}, BCC: []string{}})
 
 		assert.NotEmpty(t, tracking.IdentifyToken)
+	})
+}
+
+// TestEmailService_SendEmailForTemplate_WebIdentityTrackingMode covers the
+// per-notification opt-out. TrackingModeDisabled makes TrackLinks return the
+// HTML untouched — no redirect, no UTM, no nf_id — so a token minted for such a
+// send is a live 7-day bearer identity for the recipient that no link can ever
+// carry. It is minted, encrypted, handed to the compiler and dropped.
+//
+// Not hypothetical: every Supabase auth notification (signup confirmation, magic
+// link, recovery, invite, email change, reauth) is configured with this mode, so
+// on a workspace running web analytics each of those sends used to mint one.
+func TestEmailService_SendEmailForTemplate_WebIdentityTrackingMode(t *testing.T) {
+	const secretKey = "workspace-secret-key-32-chars-min!"
+	const contactEmail = "test@example.com"
+
+	webAnalytics := func() *domain.WebAnalyticsSettings {
+		return &domain.WebAnalyticsSettings{
+			Enabled:        true,
+			AllowedDomains: []string{"shop.example.com"},
+		}
+	}
+
+	send := func(t *testing.T, requestTracking notifuse_mjml.TrackingSettings) notifuse_mjml.TrackingSettings {
+		t.Helper()
+		return sendForTemplateCapturingTrackingWithRequestSettings(t, webAnalytics(), contactEmail, secretKey,
+			domain.EmailOptions{}, requestTracking)
+	}
+
+	t.Run("Mints nothing when the notification opts out of tracking", func(t *testing.T) {
+		// What the transactional service actually hands this method for an
+		// opted-out notification: effectiveTracking resolves EnableTracking to
+		// false, and the mode rides along.
+		tracking := send(t, notifuse_mjml.TrackingSettings{
+			TrackingMode:   notifuse_mjml.TrackingModeDisabled,
+			EnableTracking: false,
+		})
+
+		assert.Empty(t, tracking.IdentifyToken, "an email that carries no tracked link must not mint a credential")
+		assert.Empty(t, tracking.IdentifyAllowedHosts)
+	})
+
+	t.Run("Mints nothing when the opt-out arrives with tracking still flagged on", func(t *testing.T) {
+		// The mode is the veto on its own: TrackLinks returns the HTML untouched
+		// on TrackingModeDisabled before it ever reads EnableTracking, so a caller
+		// that did not resolve the two against each other must not mint either.
+		tracking := send(t, notifuse_mjml.TrackingSettings{
+			TrackingMode:   notifuse_mjml.TrackingModeDisabled,
+			EnableTracking: true,
+		})
+
+		assert.Empty(t, tracking.IdentifyToken)
+		assert.Empty(t, tracking.IdentifyAllowedHosts)
+	})
+
+	t.Run("Mints on an explicit inherit", func(t *testing.T) {
+		tracking := send(t, notifuse_mjml.TrackingSettings{
+			TrackingMode:   notifuse_mjml.TrackingModeInherit,
+			EnableTracking: true,
+		})
+
+		require.NotEmpty(t, tracking.IdentifyToken, "inherit defers to the workspace; it is not an opt-out")
+		resolved, ok := resolveIdentifyToken(t, tracking.IdentifyToken, secretKey)
+		require.True(t, ok)
+		assert.Equal(t, contactEmail, resolved)
+	})
+
+	t.Run("Mints on the absent mode", func(t *testing.T) {
+		// "" is what an inherit is stored as (canonicalTrackingMode) and what every
+		// notification that never set a mode carries, so this is the common path.
+		tracking := send(t, notifuse_mjml.TrackingSettings{EnableTracking: true})
+
+		require.NotEmpty(t, tracking.IdentifyToken)
+		resolved, ok := resolveIdentifyToken(t, tracking.IdentifyToken, secretKey)
+		require.True(t, ok)
+		assert.Equal(t, contactEmail, resolved)
+	})
+
+	t.Run("Mints when click tracking is off but the notification did not opt out", func(t *testing.T) {
+		// A workspace can run web analytics with email click tracking off, and the
+		// recipient still has to be identified on landing: TrackLinks' second early
+		// return counts an identity token as a reason to rewrite the links. Gating
+		// the mint on EnableTracking would silently undo that.
+		for _, mode := range []string{"", notifuse_mjml.TrackingModeInherit} {
+			tracking := send(t, notifuse_mjml.TrackingSettings{
+				TrackingMode:   mode,
+				EnableTracking: false,
+			})
+
+			require.NotEmpty(t, tracking.IdentifyToken, "mode %q with click tracking off must still identify the recipient", mode)
+			resolved, ok := resolveIdentifyToken(t, tracking.IdentifyToken, secretKey)
+			require.True(t, ok)
+			assert.Equal(t, contactEmail, resolved)
+		}
 	})
 }
 

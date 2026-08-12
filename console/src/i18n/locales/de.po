@@ -156,7 +156,7 @@ msgid "{0} rows rewritten"
 msgstr ""
 
 #. placeholder {0}: stored?.bounce_threshold_seconds ?? DEFAULT_SETTINGS.bounce_threshold_seconds
-#: src/components/settings/WebAnalyticsSettings.tsx:200
+#: src/components/settings/WebAnalyticsSettings.tsx:214
 msgid "{0} seconds"
 msgstr ""
 
@@ -885,7 +885,7 @@ msgid "Allow receiving emails to trigger transactional notifications. Requires T
 msgstr "E-Mail-Empfang zum Auslösen transaktionaler Benachrichtigungen erlauben. Erfordert TLS-Zertifikate."
 
 #: src/components/settings/WebAnalyticsSettings.tsx:195
-#: src/components/settings/WebAnalyticsSettings.tsx:237
+#: src/components/settings/WebAnalyticsSettings.tsx:251
 msgid "Allowed domains"
 msgstr ""
 
@@ -1480,8 +1480,8 @@ msgid "BCC Recipients"
 msgstr "BCC-Empfänger"
 
 #: src/components/settings/WebAnalyticsSettings.tsx:238
-msgid "Beats from other origins are silently ignored. Wildcards like *.example.com are supported; empty allows every domain."
-msgstr ""
+#~ msgid "Beats from other origins are silently ignored. Wildcards like *.example.com are supported; empty allows every domain."
+#~ msgstr ""
 
 #: src/components/segment/input.tsx:717
 #: src/components/segment/input.tsx:854
@@ -1686,11 +1686,11 @@ msgstr ""
 msgid "Bounce Rate (previous)"
 msgstr ""
 
-#: src/components/settings/WebAnalyticsSettings.tsx:199
+#: src/components/settings/WebAnalyticsSettings.tsx:213
 msgid "Bounce threshold"
 msgstr ""
 
-#: src/components/settings/WebAnalyticsSettings.tsx:253
+#: src/components/settings/WebAnalyticsSettings.tsx:267
 msgid "Bounce threshold (seconds)"
 msgstr ""
 
@@ -1897,7 +1897,7 @@ msgstr "Schaltflächen-Innenabstand"
 msgid "Button Size"
 msgstr "Schaltflächengröße"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:362
+#: src/components/settings/WebAnalyticsSettings.tsx:376
 msgid "Call identify() once you know who the visitor is. The signature must be computed on your server with your workspace secret key — the tracking endpoint is public, so an unsigned address is ignored."
 msgstr ""
 
@@ -2170,7 +2170,7 @@ msgstr ""
 msgid "City"
 msgstr ""
 
-#: src/components/settings/WebAnalyticsSettings.tsx:310
+#: src/components/settings/WebAnalyticsSettings.tsx:324
 msgid "City level (~1km precision)"
 msgstr ""
 
@@ -2649,7 +2649,7 @@ msgstr "Kontakteigenschaft"
 msgid "Contact re-enters each time the event occurs"
 msgstr "Kontakt tritt jedes Mal erneut ein, wenn das Ereignis auftritt"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:264
+#: src/components/settings/WebAnalyticsSettings.tsx:278
 msgid "Contact timeline"
 msgstr ""
 
@@ -2739,8 +2739,8 @@ msgstr ""
 #~ msgid "Coordinate precision (decimals)"
 #~ msgstr ""
 
-#: src/components/settings/WebAnalyticsSettings.tsx:301
-#: src/components/settings/WebAnalyticsSettings.tsx:305
+#: src/components/settings/WebAnalyticsSettings.tsx:315
+#: src/components/settings/WebAnalyticsSettings.tsx:319
 msgid "Coordinates precision"
 msgstr ""
 
@@ -2838,7 +2838,7 @@ msgstr ""
 msgid "Country"
 msgstr "Land"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:308
+#: src/components/settings/WebAnalyticsSettings.tsx:322
 msgid "Country level (~111km precision)"
 msgstr ""
 
@@ -3128,7 +3128,7 @@ msgstr "Benutzerdefinierte Datumsfelder"
 msgid "Custom Datetime Fields"
 msgstr "Benutzerdefinierte Datum/Zeit-Felder"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:327
+#: src/components/settings/WebAnalyticsSettings.tsx:341
 msgid "Custom dimension labels"
 msgstr ""
 
@@ -4163,6 +4163,10 @@ msgstr "E-Mail-Integration"
 msgid "Email is required"
 msgstr "E-Mail ist erforderlich"
 
+#: src/components/settings/WebAnalyticsSettings.tsx:207
+msgid "Email links cannot identify contacts until a domain is listed."
+msgstr ""
+
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:265
 msgid "Email mapping from previous session is invalid for this CSV. Please map fields manually."
 msgstr "E-Mail-Zuordnung aus vorheriger Sitzung ist für diese CSV ungültig. Bitte ordnen Sie Felder manuell zu."
@@ -4268,7 +4272,7 @@ msgstr "Blog aktivieren"
 msgid "Enable closed captions by default"
 msgstr "Untertitel standardmäßig aktivieren"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:282
+#: src/components/settings/WebAnalyticsSettings.tsx:296
 msgid "Enable geo-location tracking"
 msgstr ""
 
@@ -4301,7 +4305,7 @@ msgstr ""
 msgid "Enable to fetch personalized data for each recipient before sending their email. The data will be accessible in your templates using the \"recipient_feed\" variable."
 msgstr ""
 
-#: src/components/settings/WebAnalyticsSettings.tsx:228
+#: src/components/settings/WebAnalyticsSettings.tsx:242
 msgid "Enable web analytics"
 msgstr ""
 
@@ -4628,7 +4632,7 @@ msgstr "Ereignisse"
 msgid "Every \"set\" operation needs a value"
 msgstr ""
 
-#: src/components/settings/WebAnalyticsSettings.tsx:196
+#: src/components/settings/WebAnalyticsSettings.tsx:205
 msgid "Every domain"
 msgstr ""
 
@@ -5630,7 +5634,7 @@ msgstr "Generiertes SQL:"
 msgid "Geo"
 msgstr ""
 
-#: src/components/settings/WebAnalyticsSettings.tsx:277
+#: src/components/settings/WebAnalyticsSettings.tsx:291
 msgid "Geographic data collection"
 msgstr ""
 
@@ -6036,7 +6040,7 @@ msgstr "Identifiziert, welcher Linktyp verwendet wurde (z.B. email, cpc, banner)
 msgid "Identifies which site sent the traffic (e.g. google, newsletter)"
 msgstr "Identifiziert, welche Seite den Traffic gesendet hat (z.B. google, newsletter)"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:360
+#: src/components/settings/WebAnalyticsSettings.tsx:374
 msgid "Identify a visitor"
 msgstr ""
 
@@ -6264,7 +6268,7 @@ msgstr "Link einfügen"
 msgid "Inset"
 msgstr "Eingerückt"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:354
+#: src/components/settings/WebAnalyticsSettings.tsx:368
 msgid "Install"
 msgstr ""
 
@@ -6407,7 +6411,7 @@ msgstr "Einladung gesendet an {inviteEmail}"
 msgid "Invite Member"
 msgstr "Mitglied einladen"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:322
+#: src/components/settings/WebAnalyticsSettings.tsx:336
 msgid "IP addresses are never stored — only used for geo lookup. Country is always included when geo tracking is enabled."
 msgstr ""
 
@@ -6521,7 +6525,7 @@ msgstr "Schlüssel oder Index"
 msgid "Keywords"
 msgstr "Schlüsselwörter"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:339
+#: src/components/settings/WebAnalyticsSettings.tsx:353
 msgid "Label"
 msgstr ""
 
@@ -6927,7 +6931,7 @@ msgstr "Schleife"
 msgid "Low"
 msgstr ""
 
-#: src/components/settings/WebAnalyticsSettings.tsx:302
+#: src/components/settings/WebAnalyticsSettings.tsx:316
 msgid "Lower precision = more privacy"
 msgstr ""
 
@@ -7373,7 +7377,7 @@ msgstr "Name muss weniger als 255 Zeichen haben"
 msgid "Name:"
 msgstr "Name:"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:329
+#: src/components/settings/WebAnalyticsSettings.tsx:343
 msgid "Naming a slot renames it everywhere it appears: dashboards, the explore picker and attribution rules."
 msgstr ""
 
@@ -7917,7 +7921,7 @@ msgstr "Nicht in Liste"
 msgid "Not now"
 msgstr ""
 
-#: src/components/settings/WebAnalyticsSettings.tsx:206
+#: src/components/settings/WebAnalyticsSettings.tsx:220
 msgid "Not resolved"
 msgstr ""
 
@@ -8066,7 +8070,7 @@ msgstr "Einmal pro Kontakt"
 msgid "Only clicks recorded since per-link tracking was enabled appear here; earlier clicks still count toward the variation's Clicks total."
 msgstr ""
 
-#: src/components/settings/WebAnalyticsSettings.tsx:270
+#: src/components/settings/WebAnalyticsSettings.tsx:284
 msgid "Only goals from visitors identified with identify() are recorded, and only when the address already belongs to a contact. Recorded goals can trigger automations and change segment membership. Obtaining consent to store web activity against a contact is your responsibility."
 msgstr ""
 
@@ -8305,7 +8309,7 @@ msgstr ""
 msgid "Password"
 msgstr "Passwort"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:356
+#: src/components/settings/WebAnalyticsSettings.tsx:370
 msgid "Paste this snippet before the closing </head> tag of your website."
 msgstr ""
 
@@ -8474,7 +8478,7 @@ msgstr "Bitte überprüfen Sie das Formular auf Fehler."
 msgid "Please choose a different segment name"
 msgstr ""
 
-#: src/components/settings/WebAnalyticsSettings.tsx:255
+#: src/components/settings/WebAnalyticsSettings.tsx:269
 msgid "Please enter a bounce threshold"
 msgstr ""
 
@@ -9192,15 +9196,15 @@ msgstr "Empfohlen: 150-160 Zeichen"
 msgid "Recommended: 50-60 characters"
 msgstr "Empfohlen: 50-60 Zeichen"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:291
+#: src/components/settings/WebAnalyticsSettings.tsx:305
 msgid "Record the city of visitors"
 msgstr ""
 
-#: src/components/settings/WebAnalyticsSettings.tsx:297
+#: src/components/settings/WebAnalyticsSettings.tsx:311
 msgid "Record the region or state of visitors"
 msgstr ""
 
-#: src/components/settings/WebAnalyticsSettings.tsx:268
+#: src/components/settings/WebAnalyticsSettings.tsx:282
 msgid "Record web goals on the contact timeline"
 msgstr ""
 
@@ -9264,7 +9268,7 @@ msgstr "Geheimnis regenerieren?"
 msgid "Region"
 msgstr "Region"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:309
+#: src/components/settings/WebAnalyticsSettings.tsx:323
 msgid "Regional (~11km precision)"
 msgstr ""
 
@@ -9477,7 +9481,7 @@ msgstr ""
 #~ msgid "Resolve visitor locations (country)"
 #~ msgstr ""
 
-#: src/components/settings/WebAnalyticsSettings.tsx:206
+#: src/components/settings/WebAnalyticsSettings.tsx:220
 msgid "Resolved"
 msgstr ""
 
@@ -9749,7 +9753,7 @@ msgstr "Block speichern"
 #: src/components/email_builder/ui/CodeDrawerInput.tsx:182
 #: src/components/settings/BlogSettings.tsx:444
 #: src/components/settings/GeneralSettings.tsx:299
-#: src/components/settings/WebAnalyticsSettings.tsx:347
+#: src/components/settings/WebAnalyticsSettings.tsx:361
 msgid "Save Changes"
 msgstr "Änderungen speichern"
 
@@ -10440,7 +10444,7 @@ msgstr ""
 msgid "Sessions (previous)"
 msgstr ""
 
-#: src/components/settings/WebAnalyticsSettings.tsx:254
+#: src/components/settings/WebAnalyticsSettings.tsx:268
 msgid "Sessions with less engaged time than this count as bounces."
 msgstr ""
 
@@ -10965,7 +10969,7 @@ msgstr "Speichereinstellungen (Nur-Lese-Modus)"
 #~ msgid "Store city"
 #~ msgstr ""
 
-#: src/components/settings/WebAnalyticsSettings.tsx:290
+#: src/components/settings/WebAnalyticsSettings.tsx:304
 msgid "Store city name"
 msgstr ""
 
@@ -10973,7 +10977,7 @@ msgstr ""
 #~ msgid "Store region"
 #~ msgstr ""
 
-#: src/components/settings/WebAnalyticsSettings.tsx:296
+#: src/components/settings/WebAnalyticsSettings.tsx:310
 msgid "Store region/state name"
 msgstr ""
 
@@ -11472,7 +11476,7 @@ msgstr "Texttransformation"
 msgid "The"
 msgstr "Der/Die/Das"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:366
+#: src/components/settings/WebAnalyticsSettings.tsx:380
 msgid "The address must already belong to a contact: identifying someone who is not one records nothing, by design. Visitors arriving from a tracked email link are identified automatically, with no code."
 msgstr ""
 
@@ -11734,6 +11738,10 @@ msgstr "Dies ist Ihr Inhaltsstrukturbaum. Sie können Blöcke per Drag & Drop zi
 #: src/components/templates/CreateTemplateDrawer.tsx:1228
 msgid "This is your visual email editor. Click on any element in your email to select it. Selected elements will be highlighted with a blue border and show editing options."
 msgstr "Dies ist Ihr visueller E-Mail-Editor. Klicken Sie auf ein beliebiges Element in Ihrer E-Mail, um es auszuwählen. Ausgewählte Elemente werden mit einem blauen Rahmen hervorgehoben und zeigen Bearbeitungsoptionen."
+
+#: src/components/settings/WebAnalyticsSettings.tsx:252
+msgid "This list does two things. It filters incoming beats — other origins are silently ignored, and leaving it empty accepts every origin. It also gates email-click identification: a tracked link only carries an identity token for a domain listed here, so while this is empty no email link can identify a contact. Use *.example.com to cover both example.com and its subdomains — example.com on its own does not match www.example.com."
+msgstr ""
 
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:268
 msgid "This notification is managed by an integration and cannot be renamed"
@@ -12085,11 +12093,11 @@ msgstr "Kontakte insgesamt"
 msgid "Total Value"
 msgstr ""
 
-#: src/components/settings/WebAnalyticsSettings.tsx:283
+#: src/components/settings/WebAnalyticsSettings.tsx:297
 msgid "Track visitor country, region, city, and coordinates"
 msgstr ""
 
-#: src/components/settings/WebAnalyticsSettings.tsx:217
+#: src/components/settings/WebAnalyticsSettings.tsx:231
 msgid "Track website traffic with a first-party script. Beats are stored in this workspace's database, so no data leaves your infrastructure."
 msgstr ""
 
@@ -12760,7 +12768,7 @@ msgstr ""
 msgid "Visibility"
 msgstr "Sichtbarkeit"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:205
+#: src/components/settings/WebAnalyticsSettings.tsx:219
 msgid "Visitor locations"
 msgstr ""
 
@@ -12800,7 +12808,7 @@ msgstr "Wir erkennen automatisch das Favicon Ihrer Website und verwenden es"
 #: src/components/settings/SettingsSidebar.tsx:105
 #: src/components/settings/WebAnalyticsSettings.tsx:171
 #: src/components/settings/WebAnalyticsSettings.tsx:181
-#: src/components/settings/WebAnalyticsSettings.tsx:216
+#: src/components/settings/WebAnalyticsSettings.tsx:230
 #: src/layouts/WorkspaceLayout.tsx:302
 #: src/pages/BroadcastsPage.tsx:1080
 #: src/pages/WebAnalyticsPage.tsx:74
@@ -12930,7 +12938,7 @@ msgstr "Willkommen in meinem Blog, wo ich Einblicke teile über..."
 msgid "What gets exported"
 msgstr ""
 
-#: src/components/settings/WebAnalyticsSettings.tsx:230
+#: src/components/settings/WebAnalyticsSettings.tsx:244
 msgid "When disabled, incoming beats are rejected and the dashboards stop updating."
 msgstr ""
 

@@ -446,9 +446,16 @@ test.describe('Network Handling', () => {
     const offlineGoalSent = payloads.some((p) => hasGoal(p, 'offline_goal'));
     expect(offlineGoalSent).toBe(false);
 
-    // Verify queue has the payload stored
+    // Verify queue has the payload stored.
+    //
+    // The retry queue is keyed per tab (`nf_pending_<tabId>`), not under a
+    // single shared key: localStorage is shared across tabs and the queue is
+    // updated by a non-atomic read-modify-write, so one key means two tabs
+    // regaining connectivity at once erase each other's re-queued items. The
+    // tab id itself lives in sessionStorage, which is what makes it per-tab.
     const queuedItems = await page.evaluate(() => {
-      const stored = localStorage.getItem('nf_pending');
+      const tabId = JSON.parse(sessionStorage.getItem('nf_tab_id') ?? 'null');
+      const stored = localStorage.getItem(`nf_pending_${tabId}`);
       return stored ? JSON.parse(stored) : [];
     });
     expect(queuedItems.length).toBeGreaterThan(0);

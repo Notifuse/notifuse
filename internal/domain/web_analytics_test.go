@@ -6,7 +6,9 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"unicode/utf8"
 
+	"github.com/asaskevich/govalidator"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -376,6 +378,30 @@ func TestWebAnalyticsSettings(t *testing.T) {
 		assert.NoError(t, (&WebAnalyticsSettings{AllowedDomains: []string{"*.co.uk"}}).Validate())
 	})
 
+	// A port in an entry is a save-time trap. Every caller matches against
+	// url.Hostname(), which never carries one, so "example.com:443" reads like a
+	// correct entry and matches nothing at all — and when it is the workspace's
+	// only entry, that means no beat is accepted and no link is trusted with an
+	// identity. Refusing it at save is what tells the admin; entries stored
+	// before this existed keep working because MatchesAllowedHost drops a
+	// numeric port at match time.
+	t.Run("an entry carrying a port is rejected at save time", func(t *testing.T) {
+		for _, d := range []string{"example.com:443", "*.example.com:8080", "localhost:3000", "example.com:"} {
+			err := (&WebAnalyticsSettings{AllowedDomains: []string{d}}).Validate()
+			require.ErrorContainsf(t, err, "allowed domain", "%q must not be storable", d)
+			assert.ErrorContains(t, err, "without a port", "the message must say what to enter instead")
+			assert.ErrorContains(t, err, "example.com")
+		}
+
+		// The hostname alone still saves, wildcard or not.
+		assert.NoError(t, (&WebAnalyticsSettings{AllowedDomains: []string{"example.com", "*.example.com", "localhost"}}).Validate())
+
+		// A bare IP literal is not a host:port pair and keeps saving: it is what
+		// url.Hostname() yields for an IPv6 origin, brackets already stripped.
+		assert.NoError(t, (&WebAnalyticsSettings{AllowedDomains: []string{"::1", "127.0.0.1"}}).Validate())
+		assert.Error(t, (&WebAnalyticsSettings{AllowedDomains: []string{"[::1]:8080"}}).Validate())
+	})
+
 	t.Run("JSON round-trip inside workspace settings omits when nil", func(t *testing.T) {
 		ws := WorkspaceSettings{Timezone: "UTC"}
 		raw, err := json.Marshal(ws)
@@ -592,53 +618,247 @@ func TestResolveWebIdentity(t *testing.T) {
 	})
 }
 
-// TestBuildWebIdentifyTokenBound pins the mint bound to the resolve bound. The
-// token is hex-encoded AES-GCM, so its length grows with the address, while
-// WebTrackMaxEmailLength admits contacts whose token overshoots
-// WebTrackMaxIdentifyTokenLength. Such a token used to mint happily, ride in
-// every link of the email, and be dropped at the beat without a word: the
-// identity never happened and nothing said why. It has to fail where the
-// address is still in hand.
-func TestBuildWebIdentifyTokenBound(t *testing.T) {
+// TestWebIdentifyTokenBoundCoversEveryStorableAddress pins
+// WebTrackMaxIdentifyTokenLength to the encoding it bounds.
+//
+// A token is hex-encoded AES-GCM over a JSON payload carrying the address, so
+// its length is a function of the address. A bound picked by hand instead of
+// derived cut identification off around 199 characters while contacts.email
+// accepts 255: the platform stored addresses everywhere else, then refused to
+// mint their token, and the email went out with no identity on any link. The
+// bound has to be a function of WebTrackMaxEmailLength for the two halves to
+// agree.
+func TestWebIdentifyTokenBoundCoversEveryStorableAddress(t *testing.T) {
 	now := time.Date(2026, 8, 10, 12, 0, 0, 0, time.UTC)
 	const secret = "workspace-secret-key"
 
-	// Grow an otherwise legal address until the minted token stops resolving,
-	// deriving the frontier from the code rather than restating a number that
-	// would rot the moment the payload or the encoding changes.
-	longest, shortestRejected := 0, 0
-	for n := len("@example.com") + 1; n <= WebTrackMaxEmailLength; n++ {
-		email := strings.Repeat("a", n-len("@example.com")) + "@example.com"
-		require.Len(t, email, n)
+	// The bound is an arithmetic claim about three properties of the encoding.
+	// Checking each against what the encoder emits is what makes it a derivation
+	// rather than a number someone once measured and pasted.
+	t.Run("the constant is what its three terms say it is", func(t *testing.T) {
+		assert.Equal(t,
+			2*(webIdentifyTokenCipherOverheadBytes+webIdentifyTokenJSONScaffoldBytes+
+				webIdentifyTokenMaxJSONBytesPerByte*WebTrackMaxEmailLength),
+			WebTrackMaxIdentifyTokenLength)
+	})
+
+	t.Run("the JSON scaffold is the size the encoder gives it", func(t *testing.T) {
+		body, err := json.Marshal(webIdentifyTokenPayload{
+			ExpiresAt: now.Add(WebIdentifyTokenTTL).Unix(),
+			Version:   1,
+		})
+		require.NoError(t, err)
+		assert.Equal(t, webIdentifyTokenJSONScaffoldBytes, len(body),
+			"the payload around the address changed shape: %s", body)
+	})
+
+	t.Run("hex(nonce|ciphertext|tag) adds exactly the cipher overhead", func(t *testing.T) {
+		const email = "alice@example.com"
 		token, err := BuildWebIdentifyToken(email, secret, WebIdentifyTokenTTL, now)
-		if err != nil {
-			if shortestRejected == 0 {
-				shortestRejected = n
-			}
-			assert.Empty(t, token, "a rejected mint must not hand back a token to append")
-			continue
+		require.NoError(t, err)
+		body, err := json.Marshal(webIdentifyTokenPayload{
+			Email:     email,
+			ExpiresAt: now.Add(WebIdentifyTokenTTL).Unix(),
+			Version:   1,
+		})
+		require.NoError(t, err)
+		require.Zero(t, len(token)%2, "a hex encoding cannot have an odd length")
+		assert.Equal(t, webIdentifyTokenCipherOverheadBytes, len(token)/2-len(body),
+			"the nonce or the tag is not the size the bound assumes")
+	})
+
+	t.Run("no byte of an address can cost more than the budgeted expansion", func(t *testing.T) {
+		// Every byte value, not the printable ones: an invalid UTF-8 byte is
+		// written \ufffd, which is the same six characters as a \uXXXX escape.
+		for b := 0; b < 256; b++ {
+			encoded, err := json.Marshal(string([]byte{byte(b)}))
+			require.NoError(t, err)
+			assert.LessOrEqualf(t, len(encoded)-2, webIdentifyTokenMaxJSONBytesPerByte,
+				"byte %#02x encodes as %s", b, encoded)
 		}
-		require.Zero(t, shortestRejected, "acceptance must not resume after a rejection at %d", shortestRejected)
-		longest = n
-		require.LessOrEqual(t, len(token), WebTrackMaxIdentifyTokenLength)
+	})
+
+	t.Run("the longest storable address mints and resolves", func(t *testing.T) {
+		email := strings.Repeat("a", WebTrackMaxEmailLength-len("@example.com")) + "@example.com"
+		require.Len(t, email, WebTrackMaxEmailLength)
+		require.True(t, govalidator.IsEmail(email), "the fixture must be an address Contact.Validate accepts")
+
+		token, err := BuildWebIdentifyToken(email, secret, WebIdentifyTokenTTL, now)
+		require.NoError(t, err, "an address the platform stores must be identifiable from an email click")
+		t.Logf("a %d-character address mints a %d-character token (bound %d)",
+			len(email), len(token), WebTrackMaxIdentifyTokenLength)
 
 		got, ok := ResolveWebIdentity(&WebTrackPayload{IdentifyToken: &token}, secret, now)
-		require.True(t, ok, "a %d-character address minted a token the beat then discarded", n)
-		assert.Equal(t, strings.ToLower(email), got)
-	}
+		require.True(t, ok, "the beat discarded a token the mint accepted")
+		assert.Equal(t, email, got)
+	})
 
-	t.Logf("longest identifiable address: %d characters (of the %d a contact may have)", longest, WebTrackMaxEmailLength)
-	require.NotZero(t, longest, "no address at all could be identified")
-	require.NotZero(t, shortestRejected,
-		"every address up to WebTrackMaxEmailLength now fits: the mint bound is dead code and this test no longer guards anything")
-	assert.Equal(t, longest+1, shortestRejected, "the frontier must be a single step, not a range of silent failures")
+	// "&" is atext under RFC 5322 and govalidator accepts it, and encoding/json
+	// writes it \u0026 — six characters for one byte. This shape, not the 624
+	// characters a plain 255-byte address produces, is what the bound has to
+	// cover for "every storable address" to be true rather than nearly true.
+	t.Run("an address whose every byte escapes still mints and resolves", func(t *testing.T) {
+		email := strings.Repeat("&", WebTrackMaxEmailLength-len("@example.com")) + "@example.com"
+		require.Len(t, email, WebTrackMaxEmailLength)
+		require.True(t, govalidator.IsEmail(email), "the fixture must be an address Contact.Validate accepts")
 
-	t.Run("the error names both bounds so the operator can act on it", func(t *testing.T) {
-		email := strings.Repeat("a", shortestRejected-len("@example.com")) + "@example.com"
-		_, err := BuildWebIdentifyToken(email, secret, WebIdentifyTokenTTL, now)
+		token, err := BuildWebIdentifyToken(email, secret, WebIdentifyTokenTTL, now)
+		require.NoError(t, err)
+		t.Logf("an all-escaping %d-character address mints a %d-character token", len(email), len(token))
+
+		got, ok := ResolveWebIdentity(&WebTrackPayload{IdentifyToken: &token}, secret, now)
+		require.True(t, ok)
+		assert.Equal(t, email, got)
+	})
+
+	// A multibyte address is the other direction the bound could have been got
+	// wrong: WebTrackMaxEmailLength counts bytes, and encoding/json passes valid
+	// UTF-8 through unescaped, so an SMTPUTF8 address at the byte limit costs no
+	// more than an ASCII one and must not be treated as if it did.
+	t.Run("a multibyte address mints and resolves", func(t *testing.T) {
+		local := strings.Repeat("é", (WebTrackMaxEmailLength-len("@example.com"))/2)
+		email := local + "@example.com"
+		require.LessOrEqual(t, len(email), WebTrackMaxEmailLength)
+		require.Greater(t, utf8.RuneCountInString(email), 0)
+		require.True(t, govalidator.IsEmail(email), "the fixture must be an address Contact.Validate accepts")
+
+		token, err := BuildWebIdentifyToken(email, secret, WebIdentifyTokenTTL, now)
+		require.NoError(t, err)
+
+		got, ok := ResolveWebIdentity(&WebTrackPayload{IdentifyToken: &token}, secret, now)
+		require.True(t, ok)
+		assert.Equal(t, NormalizeEmail(email), got)
+	})
+
+	// The resolve half of the same bound, and the reason it is safe to raise:
+	// an oversized nf_id costs one length comparison, never a hex decode or an
+	// AES open.
+	t.Run("the beat drops an over-long token without reading it", func(t *testing.T) {
+		email := strings.Repeat("a", WebTrackMaxEmailLength-len("@example.com")) + "@example.com"
+		token, err := BuildWebIdentifyToken(email, secret, WebIdentifyTokenTTL, now)
+		require.NoError(t, err)
+
+		// A genuine token with junk appended: still hex, still the right prefix,
+		// just longer than the bound.
+		oversized := token + strings.Repeat("0", WebTrackMaxIdentifyTokenLength+1-len(token))
+		require.Greater(t, len(oversized), WebTrackMaxIdentifyTokenLength)
+		_, ok := ResolveWebIdentity(&WebTrackPayload{IdentifyToken: &oversized}, secret, now)
+		assert.False(t, ok)
+	})
+
+	t.Run("every length up to the schema limit mints and resolves", func(t *testing.T) {
+		// No frontier inside the storable range: a gap anywhere in here is a
+		// contact the product accepts and can never identify.
+		for n := len("@example.com") + 1; n <= WebTrackMaxEmailLength; n++ {
+			email := strings.Repeat("a", n-len("@example.com")) + "@example.com"
+			require.Len(t, email, n)
+
+			token, err := BuildWebIdentifyToken(email, secret, WebIdentifyTokenTTL, now)
+			require.NoErrorf(t, err, "a %d-character address is storable but could not be identified", n)
+			require.LessOrEqual(t, len(token), WebTrackMaxIdentifyTokenLength)
+
+			got, ok := ResolveWebIdentity(&WebTrackPayload{IdentifyToken: &token}, secret, now)
+			require.Truef(t, ok, "a %d-character address minted a token the beat then discarded", n)
+			require.Equal(t, email, got)
+		}
+	})
+
+	// Raising the bound must not turn the mint check into decoration. It still
+	// refuses anything the beat would discard — which is now only an address
+	// longer than the contacts schema can hold, or a payload that grew without
+	// the bound following it.
+	t.Run("the mint still refuses a token the beat would discard", func(t *testing.T) {
+		// The longest plain address the bound can carry, derived from the same
+		// terms rather than restated.
+		longest := WebTrackMaxIdentifyTokenLength/2 - webIdentifyTokenCipherOverheadBytes - webIdentifyTokenJSONScaffoldBytes
+		require.Greater(t, longest, WebTrackMaxEmailLength,
+			"the bound must clear every storable address with room to spare")
+
+		fits := strings.Repeat("a", longest-len("@example.com")) + "@example.com"
+		token, err := BuildWebIdentifyToken(fits, secret, WebIdentifyTokenTTL, now)
+		require.NoError(t, err)
+		assert.Equal(t, WebTrackMaxIdentifyTokenLength, len(token), "the last address that fits fills the bound exactly")
+
+		over := strings.Repeat("a", longest+1-len("@example.com")) + "@example.com"
+		token, err = BuildWebIdentifyToken(over, secret, WebIdentifyTokenTTL, now)
 		require.Error(t, err)
+		assert.Empty(t, token, "a rejected mint must not hand back a token to append")
+
+		// The message has to name both numbers: it is logged by a sender that
+		// carries on without the identity, so it is the only account of why a
+		// campaign's clicks are anonymous.
 		assert.ErrorContains(t, err, fmt.Sprintf("%d", WebTrackMaxIdentifyTokenLength))
-		assert.ErrorContains(t, err, fmt.Sprintf("%d-character address", len(email)))
+		assert.ErrorContains(t, err, fmt.Sprintf("%d-character address", len(over)))
+	})
+}
+
+// TestWebIdentifyTokenTTLStartsAtMint pins WHEN the identity window opens, so
+// nobody later reads WebIdentifyTokenTTL as seven days of clicking.
+//
+// The expiry is stamped into the token at the mint, and the queue paths mint at
+// compile time: a queued broadcast and an automation email bake the token into
+// the HTML stored in email_queue, so the clock starts when that row is written,
+// not when the provider accepts the message. An entry that
+// waits — paused broadcast, rate-limited queue, retrying entry — is delivered
+// with less window than the constant suggests, and one that waits longer than
+// the TTL is delivered already dead. Nothing reports that: the click resolves
+// to nothing, the beat still returns 200, and the visit is recorded anonymously.
+//
+// This test changes no behaviour. It is here so that the day someone assumes
+// delivery-relative expiry, the assumption fails in CI instead of in a
+// campaign's attribution.
+func TestWebIdentifyTokenTTLStartsAtMint(t *testing.T) {
+	const secret = "workspace-secret-key"
+	const email = "alice@example.com"
+	compiledAt := time.Date(2026, 8, 10, 12, 0, 0, 0, time.UTC)
+
+	token, err := BuildWebIdentifyToken(email, secret, WebIdentifyTokenTTL, compiledAt)
+	require.NoError(t, err)
+
+	t.Run("a queued entry burns its window while it waits", func(t *testing.T) {
+		// Compiled, enqueued, paused, resumed six days later.
+		deliveredAt := compiledAt.Add(6 * 24 * time.Hour)
+
+		_, ok := ResolveWebIdentity(&WebTrackPayload{IdentifyToken: &token}, secret, deliveredAt.Add(time.Hour))
+		assert.True(t, ok, "an hour after delivery is inside the seventh day of the window")
+
+		_, ok = ResolveWebIdentity(&WebTrackPayload{IdentifyToken: &token}, secret, deliveredAt.Add(2*24*time.Hour))
+		assert.False(t, ok,
+			"two days after delivery, but eight after the mint: the window is measured from the mint, so a click this soon after receiving the mail already resolves to nothing")
+	})
+
+	t.Run("an entry that waits longer than the TTL is delivered dead", func(t *testing.T) {
+		deliveredAt := compiledAt.Add(WebIdentifyTokenTTL + time.Minute)
+		_, ok := ResolveWebIdentity(&WebTrackPayload{IdentifyToken: &token}, secret, deliveredAt)
+		assert.False(t, ok, "no click on this mail can ever be identified")
+	})
+
+	t.Run("the expiry is absolute and to the second", func(t *testing.T) {
+		expiry := compiledAt.Add(WebIdentifyTokenTTL)
+
+		_, ok := ResolveWebIdentity(&WebTrackPayload{IdentifyToken: &token}, secret, expiry.Add(-time.Second))
+		assert.True(t, ok, "one second before expiry")
+
+		_, ok = ResolveWebIdentity(&WebTrackPayload{IdentifyToken: &token}, secret, expiry)
+		assert.False(t, ok, "the expiry second itself is out: the check is <=, not <")
+
+		// The payload holds unix seconds, so sub-second slack rounds the caller's
+		// way rather than expiring a token early.
+		_, ok = ResolveWebIdentity(&WebTrackPayload{IdentifyToken: &token}, secret, expiry.Add(-time.Millisecond))
+		assert.True(t, ok)
+	})
+
+	t.Run("the mint time is the only input to the window", func(t *testing.T) {
+		// Two tokens for the same contact, minted a day apart, expire a day
+		// apart. Nothing between the mint and the click can extend either.
+		later, err := BuildWebIdentifyToken(email, secret, WebIdentifyTokenTTL, compiledAt.Add(24*time.Hour))
+		require.NoError(t, err)
+
+		at := compiledAt.Add(WebIdentifyTokenTTL + time.Hour)
+		_, okEarly := ResolveWebIdentity(&WebTrackPayload{IdentifyToken: &token}, secret, at)
+		_, okLater := ResolveWebIdentity(&WebTrackPayload{IdentifyToken: &later}, secret, at)
+		assert.False(t, okEarly)
+		assert.True(t, okLater)
 	})
 }
 
@@ -772,5 +992,55 @@ func TestWebTrackActionAcceptsFractionalMilliseconds(t *testing.T) {
 		assert.Equal(t, int64(1500), a.Duration)
 		assert.Equal(t, int64(10), a.EnteredAt)
 		assert.Equal(t, int64(20), a.ExitedAt)
+	})
+}
+
+// TestWebIdentifyResolvesEveryStorableAddress closes the resolve-side half of
+// the frontier the mint-side bound opened.
+//
+// WebTrackMaxEmailLength is documented as matching contacts.email VARCHAR(255),
+// but it was compared with Go's len(), which counts BYTES, while Postgres counts
+// CHARACTERS. So an SMTPUTF8 address of 134 characters and 256 bytes is accepted
+// by Contact.Validate, stored happily in a VARCHAR(255) column, and mints a
+// perfectly good token — and was then discarded at the beat, silently, exactly
+// the failure mode raising the token bound was meant to end.
+func TestWebIdentifyResolvesEveryStorableAddress(t *testing.T) {
+	now := time.Date(2026, 8, 10, 12, 0, 0, 0, time.UTC)
+	const secret = "workspace-secret-key"
+
+	t.Run("a multibyte address that fits the column resolves", func(t *testing.T) {
+		email := strings.Repeat("é", 122) + "@example.com"
+		require.Equal(t, 134, len([]rune(email)), "fits VARCHAR(255), which counts characters")
+		require.Greater(t, len(email), WebTrackMaxEmailLength, "but overshoots a byte-counted bound")
+		require.NoError(t, (&Contact{Email: email}).Validate(), "the platform accepts this contact")
+
+		token, err := BuildWebIdentifyToken(email, secret, WebIdentifyTokenTTL, now)
+		require.NoError(t, err)
+
+		got, ok := ResolveWebIdentity(&WebTrackPayload{IdentifyToken: &token}, secret, now)
+		require.True(t, ok, "an address the platform stores must be identifiable from an email click")
+		assert.Equal(t, strings.ToLower(email), got)
+	})
+
+	t.Run("the hmac pair path agrees with the token path", func(t *testing.T) {
+		// Both entry points share normalizedIdentity, so a bound that counts the
+		// wrong unit would drop identify() calls too, not just email clicks.
+		email := strings.Repeat("é", 122) + "@example.com"
+		hmacHex := ComputeWebIdentifyHMAC(email, secret)
+		got, ok := ResolveWebIdentity(&WebTrackPayload{
+			ContactEmail: &email, ContactEmailHMAC: &hmacHex,
+		}, secret, now)
+		require.True(t, ok, "identify() must accept what the contacts table accepts")
+		assert.Equal(t, strings.ToLower(email), got)
+	})
+
+	t.Run("an address too long for the column is still refused", func(t *testing.T) {
+		// The bound must still bound: 256 CHARACTERS cannot be a contact.
+		email := strings.Repeat("a", 256-len("@example.com")) + "@example.com"
+		require.Equal(t, 256, len([]rune(email)))
+		token, err := BuildWebIdentifyToken(email, secret, WebIdentifyTokenTTL, now)
+		require.NoError(t, err, "the mint bound is about token size, not address length")
+		_, ok := ResolveWebIdentity(&WebTrackPayload{IdentifyToken: &token}, secret, now)
+		assert.False(t, ok, "an address that cannot be stored must not be resolved")
 	})
 }

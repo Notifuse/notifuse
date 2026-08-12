@@ -416,9 +416,24 @@ func (s *EmailService) SendEmailForTemplate(ctx context.Context, request domain.
 	// that send its visit attribution, which is the cheaper failure.
 	singleRecipient := len(request.EmailOptions.CC) == 0 && len(request.EmailOptions.BCC) == 0
 
+	// The last condition is the per-notification opt-out. TrackLinks returns the
+	// HTML untouched on TrackingModeDisabled — no redirect, no UTM and no nf_id —
+	// so a token minted for such a send is a live credential, valid for
+	// domain.WebIdentifyTokenTTL, that no link in the email can ever carry. The
+	// Supabase auth notifications are all configured that way, so without this
+	// term every signup confirmation, magic link and recovery mail on a workspace
+	// running web analytics mints one and throws it away.
+	//
+	// Only the explicit opt-out counts here: an absent mode and "inherit" are the
+	// same state, and EnableTracking being false is not one — a workspace can run
+	// web analytics with email click tracking off and still need the recipient
+	// identified on landing, which is why TrackLinks treats an identity token as
+	// its own reason to rewrite the links.
+	trackingOptedOut := request.TrackingSettings.TrackingMode == notifuse_mjml.TrackingModeDisabled
+
 	var identifyToken string
 	var identifyAllowedHosts []string
-	if wa := workspace.Settings.WebAnalytics; singleRecipient && wa != nil && wa.Enabled && len(wa.AllowedDomains) > 0 {
+	if wa := workspace.Settings.WebAnalytics; singleRecipient && !trackingOptedOut && wa != nil && wa.Enabled && len(wa.AllowedDomains) > 0 {
 		token, err := domain.BuildWebIdentifyToken(
 			request.Contact.Email,
 			workspace.Settings.SecretKey,

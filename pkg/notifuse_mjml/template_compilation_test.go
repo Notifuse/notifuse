@@ -3557,3 +3557,377 @@ func TestMatchesAllowedHost(t *testing.T) {
 		})
 	}
 }
+
+// TestTrackLinks_RewritesUppercaseHrefAttributes pins the case-insensitivity of
+// the link rewriter.
+//
+// HTML tag and attribute names are case-insensitive, and <A HREF="..."> is what
+// markup pasted from Word or Outlook routinely produces. While the regex was
+// case-sensitive such a link was skipped entirely — no click tracking, no UTM
+// parameters, no identity token — and because its lowercase neighbours in the
+// same email were rewritten normally, the loss was silent and partial.
+func TestTrackLinks_RewritesUppercaseHrefAttributes(t *testing.T) {
+	settings := TrackingSettings{
+		EnableTracking:       false, // isolate the rewrite from the /r/ wrapper
+		UTMSource:            "newsletter",
+		IdentifyToken:        "tok-abc123",
+		IdentifyAllowedHosts: []string{"shop.example.com"},
+	}
+
+	cases := []struct {
+		name string
+		html string
+	}{
+		{"uppercase attribute", `<a HREF="https://shop.example.com/p">x</a>`},
+		{"uppercase tag", `<A href="https://shop.example.com/p">x</A>`},
+		{"both uppercase", `<A HREF="https://shop.example.com/p">x</A>`},
+		{"mixed case, single quotes", `<A HrEf='https://shop.example.com/p'>x</A>`},
+		{"lowercase still works", `<a href="https://shop.example.com/p">x</a>`},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			out, err := TrackLinks(tc.html, settings)
+			require.NoError(t, err)
+			assert.Contains(t, out, "utm_source=newsletter", "the link must be rewritten at all")
+			assert.Contains(t, out, "nf_id=tok-abc123", "an uppercase href must still identify")
+		})
+	}
+
+	t.Run("the author's original casing survives the rewrite", func(t *testing.T) {
+		// Only the URL is replaced; the tag and attribute are echoed back from
+		// the captured groups, so a case-insensitive match must not normalise
+		// the markup around it.
+		out, err := TrackLinks(`<A HREF="https://shop.example.com/p">x</A>`, settings)
+		require.NoError(t, err)
+		assert.Contains(t, out, `<A HREF="`, "the rewriter must not rewrite the markup's case")
+	})
+
+	t.Run("a mixed-case block does not lose one link while keeping the other", func(t *testing.T) {
+		// The shape that made this invisible in production: neighbours in one
+		// block behaving differently.
+		html := `<a href="https://shop.example.com/lower">a</a><a HREF="https://shop.example.com/upper">b</a>`
+		out, err := TrackLinks(html, settings)
+		require.NoError(t, err)
+		assert.Equal(t, 2, strings.Count(out, "nf_id=tok-abc123"), "both links must carry the token")
+	})
+}
+
+// TestApplyUTMParameters_PreservesURLBytes pins the byte-exactness of the UTM
+// append, the same guarantee applyIdentityParam already gives. Every case below
+// is one that rebuilding the URL through url.Values corrupts: "sid=1;2" and
+// "discount=50%off" are dropped by ParseQuery outright (so the customer's
+// parameter disappears from the link the recipient follows), the surviving
+// pairs come back sorted alphabetically, a valueless key grows an "=", a
+// literal space becomes "+" and the path is re-escaped.
+func TestApplyUTMParameters_PreservesURLBytes(t *testing.T) {
+	settings := &TrackingSettings{UTMSource: "email"}
+
+	tests := []struct {
+		name    string
+		linkURL string
+		want    string
+	}{
+		{
+			name:    "semicolon separated value survives",
+			linkURL: "https://example.com/page?sid=1;2",
+			want:    "https://example.com/page?sid=1;2&utm_source=email",
+		},
+		{
+			name:    "bare percent sign survives",
+			linkURL: "https://example.com/page?discount=50%off",
+			want:    "https://example.com/page?discount=50%off&utm_source=email",
+		},
+		{
+			name:    "existing parameter order is kept",
+			linkURL: "https://example.com/page?z=1&a=2&sig=abc",
+			want:    "https://example.com/page?z=1&a=2&sig=abc&utm_source=email",
+		},
+		{
+			name:    "valueless flag keeps its missing equals sign",
+			linkURL: "https://example.com/page?flag",
+			want:    "https://example.com/page?flag&utm_source=email",
+		},
+		{
+			name:    "literal space in a value is not re-encoded",
+			linkURL: "https://example.com/page?a=hello world",
+			want:    "https://example.com/page?a=hello world&utm_source=email",
+		},
+		{
+			name:    "path bytes are not re-escaped",
+			linkURL: "https://example.com/my page?a=1",
+			want:    "https://example.com/my page?a=1&utm_source=email",
+		},
+		{
+			name:    "slashes and commas kept",
+			linkURL: "https://example.com/page?redirect=/home&ids=1,2,3",
+			want:    "https://example.com/page?redirect=/home&ids=1,2,3&utm_source=email",
+		},
+		{
+			name:    "fragment stays last",
+			linkURL: "https://example.com/page?a=1#section",
+			want:    "https://example.com/page?a=1&utm_source=email#section",
+		},
+		{
+			name:    "fragment without query",
+			linkURL: "https://example.com/page#section",
+			want:    "https://example.com/page?utm_source=email#section",
+		},
+		{
+			name:    "no query gains a question mark",
+			linkURL: "https://example.com/page",
+			want:    "https://example.com/page?utm_source=email",
+		},
+		{
+			name:    "empty query reuses its question mark",
+			linkURL: "https://example.com/page?",
+			want:    "https://example.com/page?utm_source=email",
+		},
+		{
+			name:    "port survives",
+			linkURL: "https://example.com:8443/page?a=1",
+			want:    "https://example.com:8443/page?a=1&utm_source=email",
+		},
+		{
+			name:    "unicode in a value survives",
+			linkURL: "https://example.com/page?q=café",
+			want:    "https://example.com/page?q=café&utm_source=email",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			assert.Equal(t, test.want, settings.applyUTMParameters(test.linkURL))
+		})
+	}
+}
+
+// TestApplyUTMParameters_AppendsConfiguredFieldsInAscendingKeyOrder documents
+// the shape of what gets added: only the configured fields, ascending by key,
+// with only our own values escaped.
+//
+// Ascending key order is what url.Values.Encode() emitted while this function
+// still re-serialised the query, and it is held deliberately. The rewritten URL
+// is the clicked_links key per-link stats aggregate on, so a link the author
+// left unparameterised — the common case — keeps producing the exact bytes it
+// produced before, and its click history does not split.
+func TestApplyUTMParameters_AppendsConfiguredFieldsInAscendingKeyOrder(t *testing.T) {
+	all := &TrackingSettings{
+		UTMSource:   "newsletter",
+		UTMMedium:   "email",
+		UTMCampaign: "spring sale/2024",
+		UTMContent:  "hero-button",
+		UTMTerm:     "running-shoes",
+	}
+	assert.Equal(t,
+		"https://example.com/p?utm_campaign=spring+sale%2F2024&utm_content=hero-button&utm_medium=email&utm_source=newsletter&utm_term=running-shoes",
+		all.applyUTMParameters("https://example.com/p"))
+
+	// A gap in the middle does not leave an empty pair behind.
+	sparse := &TrackingSettings{UTMSource: "newsletter", UTMContent: "hero"}
+	assert.Equal(t,
+		"https://example.com/p?a=1&utm_content=hero&utm_source=newsletter",
+		sparse.applyUTMParameters("https://example.com/p?a=1"))
+}
+
+// TestApplyUTMParameters_UnchangedShapesKeepTheirHistoricalBytes is the
+// continuity half of this rewrite. Per-link click stats aggregate on the
+// rewritten URL as a jsonb key, so every link whose output changes starts a new
+// bucket the day this ships. These are the shapes that must NOT change, and
+// they are the shapes most links have: the expected strings below are the ones
+// the previous url.Values implementation produced.
+func TestApplyUTMParameters_UnchangedShapesKeepTheirHistoricalBytes(t *testing.T) {
+	broadcast := &TrackingSettings{
+		UTMSource:   "newsletter",
+		UTMMedium:   "email",
+		UTMCampaign: "spring",
+	}
+	transactional := &TrackingSettings{UTMContent: "tpl-1"}
+
+	tests := []struct {
+		name     string
+		settings *TrackingSettings
+		linkURL  string
+		want     string
+	}{
+		{
+			name:     "no existing query, every utm field",
+			settings: broadcast,
+			linkURL:  "https://shop.example.com/product",
+			want:     "https://shop.example.com/product?utm_campaign=spring&utm_medium=email&utm_source=newsletter",
+		},
+		{
+			name:     "no existing query, single utm field",
+			settings: transactional,
+			linkURL:  "https://shop.example.com/product",
+			want:     "https://shop.example.com/product?utm_content=tpl-1",
+		},
+		{
+			name:     "one existing key sorting before utm_",
+			settings: broadcast,
+			linkURL:  "https://shop.example.com/product?ref=email",
+			want:     "https://shop.example.com/product?ref=email&utm_campaign=spring&utm_medium=email&utm_source=newsletter",
+		},
+		{
+			name:     "two existing keys already in ascending order",
+			settings: transactional,
+			linkURL:  "https://shop.example.com/product?a=1&b=2",
+			want:     "https://shop.example.com/product?a=1&b=2&utm_content=tpl-1",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			assert.Equal(t, test.want, test.settings.applyUTMParameters(test.linkURL))
+		})
+	}
+}
+
+// TestApplyUTMParameters_NothingConfiguredLeavesURLUntouched is the case that
+// runs on every send with UTM disabled: with no field set there is nothing to
+// append, so the link must come back byte-for-byte.
+func TestApplyUTMParameters_NothingConfiguredLeavesURLUntouched(t *testing.T) {
+	settings := &TrackingSettings{}
+
+	for _, linkURL := range []string{
+		"https://example.com/page?sid=1;2",
+		"https://example.com/page?discount=50%off",
+		"https://example.com/page?z=1&a=2&sig=abc",
+		"https://example.com/page?flag",
+		"https://example.com/page",
+		"https://example.com/page?",
+		"https://example.com/page?a=1#top",
+	} {
+		assert.Equal(t, linkURL, settings.applyUTMParameters(linkURL))
+	}
+}
+
+// TestApplyUTMParameters_LeavesLinksCarryingUTMAlone keeps the existing
+// "already tagged -> hands off" rule, including the forms url.Values used to
+// normalise away: an uppercase key and a percent-encoded underscore.
+func TestApplyUTMParameters_LeavesLinksCarryingUTMAlone(t *testing.T) {
+	settings := &TrackingSettings{UTMSource: "email", UTMMedium: "newsletter"}
+
+	for _, linkURL := range []string{
+		"https://example.com/page?utm_source=existing",
+		"https://example.com/page?a=1&utm_campaign=mine&b=2",
+		"https://example.com/page?UTM_SOURCE=existing",
+		"https://example.com/page?utm%5Fsource=existing",
+		"https://example.com/page?utm_source=x&sid=1;2",
+		"https://example.com/page?utm_term=x#top",
+	} {
+		assert.Equal(t, linkURL, settings.applyUTMParameters(linkURL))
+	}
+
+	// A value that merely looks like a utm key is not a utm key.
+	assert.Equal(t,
+		"https://example.com/page?ref=utm_source&utm_medium=newsletter&utm_source=email",
+		settings.applyUTMParameters("https://example.com/page?ref=utm_source"))
+}
+
+// TestApplyUTMParameters_DefensiveCases exercises the guards directly, since
+// TrackLinks filters some of these out before the method is reached.
+func TestApplyUTMParameters_DefensiveCases(t *testing.T) {
+	settings := &TrackingSettings{UTMSource: "email"}
+
+	for _, sourceURL := range []string{
+		"",
+		"mailto:hello@example.com",
+		"tel:+33123456789",
+		"{{ unsubscribe_url }}",
+		"{% if x %}https://example.com{% endif %}",
+		"://example.com/broken",
+		"https://example.com/50%off/page", // invalid percent-escape in the path
+	} {
+		assert.Equal(t, sourceURL, settings.applyUTMParameters(sourceURL))
+	}
+
+	// A relative link is still a link: it is what an mj-button pointing at the
+	// hosted page carries, and it must be tagged like any other.
+	assert.Equal(t, "/relative/path?utm_source=email", settings.applyUTMParameters("/relative/path"))
+}
+
+// TestTrackLinks_UTMKeepsHandBuiltQuery is the end-to-end version: a customer's
+// hand-built query must reach the recipient intact even though the send path
+// always has a utm_content to append.
+func TestTrackLinks_UTMKeepsHandBuiltQuery(t *testing.T) {
+	settings := TrackingSettings{
+		EnableTracking: false, // isolate the rewrite from the /r/ wrapper
+		UTMContent:     "tpl-123",
+	}
+
+	html := `<html><body><a href="https://example.com/page?sid=1;2&sig=abc#top">Link</a></body></html>`
+
+	result, err := TrackLinks(html, settings)
+	require.NoError(t, err)
+	assert.Equal(t,
+		`<html><body><a href="https://example.com/page?sid=1;2&sig=abc&utm_content=tpl-123#top">Link</a></body></html>`,
+		result)
+}
+
+// TestMatchesAllowedHost_PortInAllowlistEntry covers a stored allowlist entry
+// that carries a port. The hostname side never has one — every caller passes
+// url.Hostname(), which strips it — so an entry written as "example.com:443"
+// could never match anything at all, silently disabling that entry.
+func TestMatchesAllowedHost_PortInAllowlistEntry(t *testing.T) {
+	tests := []struct {
+		name         string
+		hostname     string
+		allowedHosts []string
+		want         bool
+	}{
+		{name: "exact entry with port", hostname: "example.com", allowedHosts: []string{"example.com:443"}, want: true},
+		{name: "port on the entry is not a host", hostname: "example.com", allowedHosts: []string{"example.com:8443"}, want: true},
+		{name: "wildcard entry with port covers apex", hostname: "example.com", allowedHosts: []string{"*.example.com:443"}, want: true},
+		{name: "wildcard entry with port covers subdomain", hostname: "shop.example.com", allowedHosts: []string{"*.example.com:443"}, want: true},
+		{name: "entry with port keeps its case insensitivity", hostname: "Example.COM", allowedHosts: []string{" EXAMPLE.com:443 "}, want: true},
+		{name: "entry with port still excludes a lookalike", hostname: "notexample.com", allowedHosts: []string{"example.com:443"}, want: false},
+		{name: "bare TLD wildcard with port still matches nothing", hostname: "example.com", allowedHosts: []string{"*.com:443"}, want: false},
+		{name: "ipv6 entry with port", hostname: "::1", allowedHosts: []string{"[::1]:8080"}, want: true},
+		{name: "bare ipv6 entry is not mistaken for a port", hostname: "::1", allowedHosts: []string{"::1"}, want: true},
+		// Only a numeric port comes off. net.SplitHostPort reads
+		// "https://example.com" as host "https" with port "//example.com", and
+		// letting that through would make the entry match the hostname "https",
+		// which it does not name. Everything below is a malformed entry that
+		// simply matches nothing — the direction that releases no identity.
+		{name: "a scheme is not a port", hostname: "https", allowedHosts: []string{"https://example.com"}, want: false},
+		{name: "a path is not a port", hostname: "example.com", allowedHosts: []string{"example.com:443/path"}, want: false},
+		{name: "a trailing colon names no port", hostname: "example.com", allowedHosts: []string{"example.com:"}, want: false},
+		{name: "wildcard with nothing but a port matches nothing", hostname: "example.com", allowedHosts: []string{"*.:443"}, want: false},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			assert.Equal(t, test.want, MatchesAllowedHost(test.hostname, test.allowedHosts))
+		})
+	}
+}
+
+// TestMatchesAllowedHost_ExactEntryNeverCoversSubdomains pins the matcher's
+// narrowness so a later "helpful" relaxation fails here.
+//
+// Only "*.example.com" covers the apex plus its subdomains; a bare
+// "example.com" is that host and nothing else. This matcher is shared with the
+// beat-origin gate (domain.WebAnalyticsSettings.MatchesAllowedDomain delegates
+// to it), so widening it would also start accepting analytics beats from
+// origins the workspace never listed — and on this side it would hand a
+// recipient's bearer identity to a host the workspace never named.
+func TestMatchesAllowedHost_ExactEntryNeverCoversSubdomains(t *testing.T) {
+	for _, hostname := range []string{
+		"www.example.com",
+		"shop.example.com",
+		"a.b.example.com",
+		"evil.example.com",
+	} {
+		assert.False(t, MatchesAllowedHost(hostname, []string{"example.com"}),
+			"a bare entry must cover its own host only: %s", hostname)
+		assert.False(t, MatchesAllowedHost(hostname, []string{"example.com:443"}),
+			"stripping the port must not widen the entry: %s", hostname)
+		assert.True(t, MatchesAllowedHost(hostname, []string{"*.example.com"}),
+			"only the wildcard covers subdomains: %s", hostname)
+	}
+
+	// The apex is still matched by both forms.
+	assert.True(t, MatchesAllowedHost("example.com", []string{"example.com"}))
+	assert.True(t, MatchesAllowedHost("example.com", []string{"*.example.com"}))
+}

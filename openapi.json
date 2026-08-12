@@ -8061,8 +8061,8 @@
           },
           "identify_token": {
             "type": "string",
-            "maxLength": 512,
-            "description": "Opaque encrypted credential carried by an email-click link (the nf_id parameter), and the alternative to the contact_email / contact_email_hmac pair rather than a companion to it. Expired or undecryptable tokens cost the identity only, not the beat. Once decrypted, the address it carries passes through the same two further gates as a signed contact_email (rate limit, then contact-must-exist)."
+            "maxLength": 3174,
+            "description": "Opaque encrypted credential carried by an email-click link (the nf_id parameter), and the alternative to the contact_email / contact_email_hmac pair rather than a companion to it. Expired or undecryptable tokens cost the identity only, not the beat. Once decrypted, the address it carries passes through the same two further gates as a signed contact_email (rate limit, then contact-must-exist).\n\nThe length limit is a ceiling on what the server will look at, not a size to aim for: it is derived from the longest address contacts can store, so that no token Notifuse mints can ever exceed it. Send the nf_id value back exactly as it arrived — a longer one is discarded before decryption, which costs the identity silently."
           },
           "dimensions": {
             "type": "object",

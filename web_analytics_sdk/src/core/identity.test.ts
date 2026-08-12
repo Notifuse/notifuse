@@ -18,6 +18,16 @@ vi.mock('../utils/utm', () => ({
   })),
 }));
 
+// Mirrors the server's WebTrackMaxIdentifyTokenLength (internal/domain/web_analytics.go).
+// That bound is derived, not chosen: a token is the hex of (12-byte GCM nonce ‖
+// ciphertext ‖ 16-byte tag) over a JSON payload carrying the address, and
+// encoding/json can spend six characters on a single address byte, so
+// 2 * (28 + 29 + 6 * 255) = 3174. Real mints land well below it — a plain
+// 255-character address produces 624 characters, an address of all "&" produces
+// 3054 — but every one of those is over the 512 this file used to assert, which
+// is the silent identity loss these boundary tests exist to catch.
+const MAX_TOKEN_BYTES = 3174;
+
 const createMockStorage = () => {
   const store: Record<string, string> = {};
   return {
@@ -137,37 +147,175 @@ describe('SessionManager - verified identity', () => {
     );
   });
 
-  it('rejects an address that fits in 255 characters but not in 255 bytes', () => {
-    // The server's bound is Go's len(), which counts UTF-8 bytes, so an
-    // SMTPUTF8/IDN address of multibyte characters clears a code-unit check
-    // here and is dropped server-side — where the beat still succeeds and the
-    // contact is simply never attached. Throwing is the only loud outcome.
-    const email = `${'é'.repeat(130)}@b.com`; // 136 UTF-16 units, 266 UTF-8 bytes
-    expect(email.length).toBeLessThanOrEqual(255);
-    expect(() => sessionManager.setIdentity({ email, hmac: 'h' })).toThrow(
-      'Identity email must be 255 bytes or less'
+  it('accepts a multibyte address the contacts table can store', () => {
+    // Deliberately inverted from the byte-counting version of this test. The
+    // bound mirrors contacts.email VARCHAR(255), and Postgres counts VARCHAR in
+    // CHARACTERS — so this address is a perfectly storable contact, and the
+    // server now resolves it. Refusing it here would be the client reproducing
+    // the very silent identity loss these bounds exist to prevent.
+    const email = `${'é'.repeat(130)}@b.com`; // 136 characters, 266 UTF-8 bytes
+    expect([...email].length).toBeLessThanOrEqual(255);
+    expect(() => sessionManager.setIdentity({ email, hmac: 'h' })).not.toThrow();
+    expect(sessionManager.getIdentity()?.email).toBe(email);
+  });
+
+  it('rejects an address longer than the column, counted in characters', () => {
+    // The bound must still bound: 256 characters cannot be stored, multibyte or
+    // not, so both of these are refused for the same reason.
+    const ascii256 = `${'a'.repeat(250)}@b.com`;
+    const multibyte256 = `${'é'.repeat(250)}@b.com`;
+    expect([...ascii256].length).toBe(256);
+    expect([...multibyte256].length).toBe(256);
+    expect(() => sessionManager.setIdentity({ email: ascii256, hmac: 'h' })).toThrow(
+      'Identity email must be 255 characters or less'
+    );
+    expect(() => sessionManager.setIdentity({ email: multibyte256, hmac: 'h' })).toThrow(
+      'Identity email must be 255 characters or less'
     );
   });
 
-  it('accepts a 255-byte address and rejects a 256-byte one', () => {
-    // The common path is all-ASCII, where bytes and characters coincide: the
-    // byte count must not shift the boundary that mailboxes actually sit on.
+  it('accepts a 255-character address and rejects a 256-character one', () => {
+    // The common path is all-ASCII, where characters and bytes coincide: the
+    // unit change must not shift the boundary real mailboxes sit on.
     const at255 = `${'a'.repeat(249)}@b.com`;
     const at256 = `${'a'.repeat(250)}@b.com`;
     expect(() => sessionManager.setIdentity({ email: at255, hmac: 'h' })).not.toThrow();
     expect(sessionManager.getIdentity()?.email).toBe(at255);
     expect(() => sessionManager.setIdentity({ email: at256, hmac: 'h' })).toThrow(
-      'Identity email must be 255 bytes or less'
+      'Identity email must be 255 characters or less'
     );
   });
 
-  it('still counts bytes on a page that has stripped TextEncoder', () => {
+  it('counts an astral character once, as the server does', () => {
+    // String#length would report 2 per emoji (UTF-16 surrogate pair) and reject
+    // an address the server counts as half that length.
+    const email = `${'𝔞'.repeat(200)}@b.com`; // 206 code points, 400 UTF-16 units
+    expect(email.length).toBeGreaterThan(255);
+    expect([...email].length).toBeLessThanOrEqual(255);
+    expect(() => sessionManager.setIdentity({ email, hmac: 'h' })).not.toThrow();
+  });
+
+  it('rejects an hmac the server would refuse to read', () => {
+    // ResolveWebIdentity bounds the hmac BEFORE it compares it, and an
+    // over-long one costs the identity rather than the beat: the beat still
+    // succeeds, the visit is still recorded, the contact is just never
+    // attached. Only the caller of identify() can fix that, so it throws.
+    expect(() =>
+      sessionManager.setIdentity({ email: 'a@b.com', hmac: 'a'.repeat(65) })
+    ).toThrow('Identity hmac must be 64 bytes or less');
+  });
+
+  it('accepts a 64-byte hmac and rejects a 65-byte one', () => {
+    // 64 is the exact length of the credential the server computes — a
+    // hex-encoded SHA-256 — not a generous ceiling, so a boundary off by one
+    // rejects every signature the customer can legitimately mint.
+    const at64 = 'a'.repeat(64);
+    expect(() => sessionManager.setIdentity({ email: 'a@b.com', hmac: at64 })).not.toThrow();
+    expect(sessionManager.getIdentity()).toEqual({ email: 'a@b.com', hmac: at64 });
+    expect(() =>
+      sessionManager.setIdentity({ email: 'a@b.com', hmac: 'a'.repeat(65) })
+    ).toThrow('Identity hmac must be 64 bytes or less');
+  });
+
+  it('drops an over-long nf_id token instead of throwing', () => {
+    // The only caller that supplies a token is the nf_id URL read on page
+    // load, so the value is a stranger's, not a developer's: anyone can link
+    // to the customer's site with ?nf_id=<megabytes>. Throwing there rejects
+    // init()'s promise before the sender is even constructed, which turns a
+    // crafted link into a dead SDK and an unhandled rejection in the host
+    // page. There is no developer mistake to report either — the server
+    // refuses to MINT a token over this bound, so no real link carries one.
+    expect(() => sessionManager.setIdentity({ token: 'a'.repeat(MAX_TOKEN_BYTES + 1) })).not.toThrow();
+    expect(sessionManager.getIdentity()).toBeNull();
+    expect(mockLocalStorage._store['nf_identity']).toBeUndefined();
+  });
+
+  it('accepts a token at the server bound and drops a one-over one without losing the stored identity', () => {
+    // The bound has to be the server's exactly. Lower, and a token the server
+    // would have read is dropped here instead — the same silent no-attach, just
+    // moved client-side. And dropping the over-long one must not clear what is
+    // already stored: a crafted link would otherwise log a visitor out of their
+    // own analytics identity.
+    const atBound = 'a'.repeat(MAX_TOKEN_BYTES);
+    sessionManager.setIdentity({ token: atBound });
+    expect(sessionManager.getIdentity()).toEqual({ token: atBound });
+
+    sessionManager.setIdentity({ token: 'a'.repeat(MAX_TOKEN_BYTES + 1) });
+    expect(sessionManager.getIdentity()).toEqual({ token: atBound });
+  });
+
+  it('accepts the token an ordinary 255-character address mints', () => {
+    // 624 characters: hex of the nonce, the tag and a JSON payload of
+    // {"e":"<255 chars>","x":<10 digits>,"v":1}. Nothing about it is exotic —
+    // it is what BuildWebIdentifyToken emits for the longest address the
+    // contacts table can hold — yet it sat 112 characters over the bound this
+    // file used to assert, so every such link identified nobody.
+    const minted = 'a'.repeat(624);
+    sessionManager.setIdentity({ token: minted });
+    expect(sessionManager.getIdentity()).toEqual({ token: minted });
+  });
+
+  it('measures the token in bytes, like the server', () => {
+    // The server's gate is Go's len() over the raw parameter, so the unit is
+    // bytes on both ends. No genuine token can tell the difference — a mint is
+    // hex, where a character is a byte — but a crafted nf_id can, and one the
+    // server will refuse to read must not be stored and re-sent on every beat.
+    const multibyte = 'é'.repeat(MAX_TOKEN_BYTES / 2 + 1); // 1588 characters, 3176 bytes
+    expect(multibyte.length).toBeLessThanOrEqual(MAX_TOKEN_BYTES);
+    sessionManager.setIdentity({ token: multibyte });
+    expect(sessionManager.getIdentity()).toBeNull();
+  });
+
+  it('refuses a stored credential the server would not read, and lets the visitor recover', () => {
+    // A visitor handed an oversized token before the bound existed has it
+    // sitting in localStorage. Nothing else ever revisits the stored value, so
+    // without a check here every beat would keep carrying a credential the
+    // server refuses to read — permanently, across SDK upgrades.
+    mockLocalStorage._store['nf_identity'] = JSON.stringify({ token: 'a'.repeat(MAX_TOKEN_BYTES + 1) });
+
+    const revived = new SessionManager(storage, new TabStorage(), config);
+    revived.getOrCreateSession();
+
+    expect(revived.getIdentity()).toBeNull();
+    // Dropped from storage, not merely ignored, so the next page load starts clean.
+    expect(mockLocalStorage._store['nf_identity']).toBeUndefined();
+  });
+
+  it('keeps a stored credential that is exactly at the bound', () => {
+    // The recovery path must not become a slow erasure of valid identities.
+    const atBound = 'a'.repeat(MAX_TOKEN_BYTES);
+    mockLocalStorage._store['nf_identity'] = JSON.stringify({ token: atBound });
+
+    const revived = new SessionManager(storage, new TabStorage(), config);
+    revived.getOrCreateSession();
+
+    expect(revived.getIdentity()).toEqual({ token: atBound });
+  });
+
+  it('refuses a stored hmac pair that overshoots the signature length', () => {
+    mockLocalStorage._store['nf_identity'] = JSON.stringify({
+      email: 'a@b.com',
+      hmac: 'f'.repeat(65),
+    });
+
+    const revived = new SessionManager(storage, new TabStorage(), config);
+    revived.getOrCreateSession();
+
+    expect(revived.getIdentity()).toBeNull();
+  });
+
+  it('still measures correctly on a page that has stripped TextEncoder', () => {
     // Consent tools and hardened embeds delete globals; the measurement has to
-    // survive that rather than blowing up a call that used to work.
+    // survive that rather than blowing up a call that used to work. The address
+    // no longer needs TextEncoder at all (characters, not bytes), but the hmac
+    // and token bounds still do, so the fallback has to hold for them.
     vi.stubGlobal('TextEncoder', undefined);
     expect(() =>
-      sessionManager.setIdentity({ email: `${'é'.repeat(130)}@b.com`, hmac: 'h' })
-    ).toThrow('Identity email must be 255 bytes or less');
+      sessionManager.setIdentity({ email: `${'a'.repeat(250)}@b.com`, hmac: 'h' })
+    ).toThrow('Identity email must be 255 characters or less');
     expect(() => sessionManager.setIdentity({ email: 'a@b.com', hmac: 'h' })).not.toThrow();
+    expect(() =>
+      sessionManager.setIdentity({ email: 'a@b.com', hmac: 'f'.repeat(65) })
+    ).toThrow('Identity hmac must be 64 bytes or less');
   });
 });

@@ -4,6 +4,7 @@ import (
 	"database/sql/driver"
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/url"
 	"regexp"
 	"strings"
@@ -232,54 +233,166 @@ func isNonTrackableURL(urlStr string) bool {
 	return false
 }
 
+// splitURLFragment splits sourceURL at the first '#'. The fragment keeps its
+// '#', so head+fragment is always the original string. A parameter belongs in
+// the query and never after '#': one written into the fragment stays in the
+// browser and would never reach the destination.
+func splitURLFragment(sourceURL string) (head string, fragment string) {
+	if hash := strings.IndexByte(sourceURL, '#'); hash >= 0 {
+		return sourceURL[:hash], sourceURL[hash:]
+	}
+	return sourceURL, ""
+}
+
+// rawQueryHasKey reports whether the raw query carries a pair whose key
+// satisfies match. Pairs are split the way internal/service/email_service.go's
+// stripQueryParam splits them, so the writer and the reader of these links
+// agree on what a pair is: split on '&', the key is what precedes the first
+// '='. The query is read as written, never decoded.
+func rawQueryHasKey(query string, match func(key string) bool) bool {
+	if query == "" {
+		return false
+	}
+	for _, pair := range strings.Split(query, "&") {
+		key := pair
+		if eq := strings.IndexByte(pair, '='); eq >= 0 {
+			key = pair[:eq]
+		}
+		if match(key) {
+			return true
+		}
+	}
+	return false
+}
+
+// rawQueryOf returns everything between the first '?' and the fragment, and
+// whether sourceURL carries a '?' at all — "no query" and "empty query" need
+// different separators when something is appended.
+func rawQueryOf(sourceURL string) (query string, hasQuery bool) {
+	head, _ := splitURLFragment(sourceURL)
+	mark := strings.IndexByte(head, '?')
+	if mark < 0 {
+		return "", false
+	}
+	return head[mark+1:], true
+}
+
+// appendToRawQuery appends addition (already escaped, "k=v" or "k=v&k=v") to
+// the end of sourceURL's query by raw string surgery, so every other byte of
+// the link survives exactly as its author wrote it.
+//
+// Rebuilding the URL through url.Values instead loses data: Encode()
+// round-trips the query through a key/value map, which silently drops pairs it
+// cannot split ("sid=1;2") or unescape ("discount=50%off"), re-escapes bytes
+// that were written literally, drops the '=' distinction of a valueless key and
+// reorders what is left — and url.URL.String() re-escapes the path on top of
+// that. These are hand-built customer links: an order-dependent signature or a
+// legacy semicolon separator has to come out the other side intact.
+func appendToRawQuery(sourceURL string, addition string) string {
+	head, fragment := splitURLFragment(sourceURL)
+
+	mark := strings.IndexByte(head, '?')
+	switch {
+	case mark < 0:
+		return head + "?" + addition + fragment
+	case mark == len(head)-1:
+		// "…/page?" already carries the separator the addition needs.
+		return head + addition + fragment
+	default:
+		return head + "&" + addition + fragment
+	}
+}
+
+// isUTMKey reports whether a raw query key is a UTM parameter. The key is
+// unescaped for the test only: "utm%5Fsource" is the same parameter as
+// "utm_source" to any consumer, and this rule decides whether the author
+// already tagged the link themselves.
+func isUTMKey(key string) bool {
+	if decoded, err := url.QueryUnescape(key); err == nil {
+		key = decoded
+	}
+	return strings.HasPrefix(strings.ToLower(key), "utm_")
+}
+
 // applyUTMParameters appends the configured UTM parameters to sourceURL and
 // returns the result. The URL is returned unchanged when it is empty, a Liquid
-// placeholder, a mailto:/tel: link, cannot be parsed, or already carries any
-// utm_* query parameter.
+// placeholder, a mailto:/tel: link, cannot be parsed, already carries any
+// utm_* query parameter, or when no UTM field is configured at all.
+//
+// The parameters are appended by raw string surgery — see appendToRawQuery for
+// what that protects and why. Only the values we add are escaped.
 func (t *TrackingSettings) applyUTMParameters(sourceURL string) string {
 	if sourceURL == "" || strings.Contains(sourceURL, "{{") || strings.Contains(sourceURL, "{%") ||
 		strings.HasPrefix(sourceURL, "mailto:") || strings.HasPrefix(sourceURL, "tel:") {
 		return sourceURL
 	}
 
-	parsedURL, err := url.Parse(sourceURL)
-	if err != nil {
+	// url.Parse is used to reject input that is not a URL at all. The string it
+	// would rebuild is never used.
+	if _, err := url.Parse(sourceURL); err != nil {
 		return sourceURL
 	}
 
-	queryParams := parsedURL.Query()
-
 	// If the URL already has UTM parameters, leave them untouched
-	for key := range queryParams {
-		if strings.HasPrefix(strings.ToLower(key), "utm_") {
-			return sourceURL
+	if query, hasQuery := rawQueryOf(sourceURL); hasQuery && rawQueryHasKey(query, isUTMKey) {
+		return sourceURL
+	}
+
+	// Configured fields only — an unset one must not leave an empty pair behind.
+	//
+	// They are appended in ascending key order, which is not how a human writes
+	// UTM (source, medium, campaign) but is exactly the order url.Values.Encode()
+	// emitted before this function stopped re-serialising the query. That is
+	// worth keeping: the rewritten URL is what the click handler records as a
+	// clicked_links key and per-link stats aggregate on that key
+	// (internal/repository/message_history_postgre.go groups by it), so any
+	// change to these bytes splits a link's history in two. Holding the order
+	// keeps the common shape — a link the author left unparameterised — byte
+	// identical to what shipped before.
+	var pairs []string
+	for _, param := range []struct{ key, value string }{
+		{"utm_campaign", t.UTMCampaign},
+		{"utm_content", t.UTMContent},
+		{"utm_medium", t.UTMMedium},
+		{"utm_source", t.UTMSource},
+		{"utm_term", t.UTMTerm},
+	} {
+		if param.value != "" {
+			pairs = append(pairs, param.key+"="+url.QueryEscape(param.value))
 		}
 	}
+	if len(pairs) == 0 {
+		return sourceURL
+	}
 
-	if t.UTMSource != "" {
-		queryParams.Add("utm_source", t.UTMSource)
-	}
-	if t.UTMMedium != "" {
-		queryParams.Add("utm_medium", t.UTMMedium)
-	}
-	if t.UTMCampaign != "" {
-		queryParams.Add("utm_campaign", t.UTMCampaign)
-	}
-	if t.UTMContent != "" {
-		queryParams.Add("utm_content", t.UTMContent)
-	}
-	if t.UTMTerm != "" {
-		queryParams.Add("utm_term", t.UTMTerm)
-	}
-	parsedURL.RawQuery = queryParams.Encode()
+	return appendToRawQuery(sourceURL, strings.Join(pairs, "&"))
+}
 
-	return parsedURL.String()
+// isNumericPort reports whether port is a decimal port number. Empty is not:
+// "example.com:" names no port.
+func isNumericPort(port string) bool {
+	if port == "" {
+		return false
+	}
+	for i := 0; i < len(port); i++ {
+		if port[i] < '0' || port[i] > '9' {
+			return false
+		}
+	}
+	return true
 }
 
 // MatchesAllowedHost reports whether hostname is covered by allowedHosts, using
 // the workspace web analytics allowed-domains semantics: "*.example.com" covers
-// the apex as well as any subdomain, comparison is case-insensitive and
-// surrounding whitespace is tolerated.
+// the apex as well as any subdomain, comparison is case-insensitive, and
+// surrounding whitespace and a port on a configured entry are tolerated.
+//
+// The match is deliberately narrow, and widening it is a security change, not a
+// convenience: a bare "example.com" covers that host and nothing else, so
+// "www.example.com" needs its own entry or the "*.example.com" form. The same
+// matcher backs domain.WebAnalyticsSettings.MatchesAllowedDomain, so relaxing
+// it here would also start admitting analytics beats from origins a workspace
+// never listed.
 //
 // Unlike the workspace-level check, an empty list matches NOTHING here: this
 // gate decides whether a per-recipient identity credential is appended to a
@@ -295,6 +408,22 @@ func MatchesAllowedHost(hostname string, allowedHosts []string) bool {
 		allowed := strings.ToLower(strings.TrimSpace(d))
 		if allowed == "" {
 			continue
+		}
+		// A stored entry may carry the port it was copied from
+		// ("example.com:443"). The hostname side never has one — every caller
+		// passes url.Hostname(), which strips it — so an entry keeping its port
+		// could never match anything at all, silently disabling itself. The
+		// port is dropped here rather than at save time because entries stored
+		// before that validation existed still have to work.
+		//
+		// Only a numeric port is dropped: net.SplitHostPort happily reads the
+		// scheme of a malformed "https://example.com" as the host, and turning
+		// such an entry into the shorter host "https" would make it match a
+		// hostname it does not name. It also unwraps the brackets of
+		// "[::1]:8080", while a bare "::1" has too many colons for it and is
+		// left exactly as written.
+		if entryHost, port, err := net.SplitHostPort(allowed); err == nil && isNumericPort(port) {
+			allowed = entryHost
 		}
 		if wild, ok := strings.CutPrefix(allowed, "*."); ok {
 			// "*.com" matches nothing: a wildcard over a bare TLD would hand
@@ -332,16 +461,10 @@ func MatchesAllowedHost(hostname string, allowedHosts []string) bool {
 // it may only be handed to the sites the workspace declared, never to whatever
 // third-party link the email happens to contain.
 //
-// The parameter is appended by raw string surgery, so every other byte of the
-// link survives exactly as its author wrote it. Rebuilding the URL through
-// url.Values instead loses data: Encode() round-trips the query through a
-// key/value map, which silently drops pairs it cannot split ("sid=1;2"),
-// re-escapes bytes that were written literally ("discount=50%off") and reorders
-// what is left. These are hand-built customer links — an order-dependent
-// signature or a legacy semicolon separator has to come out the other side
-// intact. internal/service/email_service.go's stripQueryParam does the same
-// surgery for the inverse operation, and the two agree on what a pair is: split
-// on '&', the key is what precedes the first '='.
+// The parameter is appended by raw string surgery (appendToRawQuery), so every
+// other byte of the link survives exactly as its author wrote it.
+// internal/service/email_service.go's stripQueryParam does the same surgery for
+// the inverse operation.
 func (t *TrackingSettings) applyIdentityParam(sourceURL string) string {
 	if t.IdentifyToken == "" || len(t.IdentifyAllowedHosts) == 0 {
 		return sourceURL
@@ -363,44 +486,18 @@ func (t *TrackingSettings) applyIdentityParam(sourceURL string) string {
 		return sourceURL
 	}
 
-	// The query is what sits between the first '?' and the fragment. The pair is
-	// appended at the end of the query and never after '#': a parameter in the
-	// fragment stays in the browser and would never reach the destination.
-	head, fragment := sourceURL, ""
-	if hash := strings.IndexByte(sourceURL, '#'); hash >= 0 {
-		head, fragment = sourceURL[:hash], sourceURL[hash:]
-	}
-
-	// Only the value we add is escaped; the token is ours, everything else in
-	// the query is left byte-for-byte as it arrived.
-	pair := WebIdentifyQueryParam + "=" + url.QueryEscape(t.IdentifyToken)
-
-	mark := strings.IndexByte(head, '?')
-	if mark < 0 {
-		return head + "?" + pair + fragment
-	}
-
-	query := head[mark+1:]
-
 	// A link that already carries an identity keeps it: the author may have
 	// built the URL themselves, and overwriting it would silently change who
 	// the landing page attributes the visit to.
-	for _, existing := range strings.Split(query, "&") {
-		key := existing
-		if eq := strings.IndexByte(existing, '='); eq >= 0 {
-			key = existing[:eq]
-		}
-		if key == WebIdentifyQueryParam {
+	if query, hasQuery := rawQueryOf(sourceURL); hasQuery {
+		if rawQueryHasKey(query, func(key string) bool { return key == WebIdentifyQueryParam }) {
 			return sourceURL
 		}
 	}
 
-	if query == "" {
-		// "…/page?" already carries the separator the pair needs.
-		return head + pair + fragment
-	}
-
-	return head + "&" + pair + fragment
+	// Only the value we add is escaped; the token is ours, everything else in
+	// the query is left byte-for-byte as it arrived.
+	return appendToRawQuery(sourceURL, WebIdentifyQueryParam+"="+url.QueryEscape(t.IdentifyToken))
 }
 
 func (t *TrackingSettings) GetTrackingURL(sourceURL string) string {
@@ -809,7 +906,12 @@ func CompileTemplate(req CompileTemplateRequest) (resp *CompileTemplateResponse,
 func decodeHTMLEntitiesInURLAttributes(html string) string {
 	// Pattern matches href="...", src="...", action="..." attributes
 	// Captures: (attribute=") (url content) (")
-	urlAttrRegex := regexp.MustCompile(`((?:href|src|action)=["'])([^"']+)(["'])`)
+	//
+	// Case-insensitive for the same reason the link rewriter is: an HREF= from
+	// pasted Word or Outlook markup is a perfectly valid attribute, and leaving
+	// it out here means its &amp; entities are never decoded, so the query
+	// string the recipient lands on is broken.
+	urlAttrRegex := regexp.MustCompile(`(?i)((?:href|src|action)=["'])([^"']+)(["'])`)
 
 	return urlAttrRegex.ReplaceAllStringFunc(html, func(match string) string {
 		parts := urlAttrRegex.FindStringSubmatch(match)
@@ -855,7 +957,14 @@ func TrackLinks(htmlString string, trackingSettings TrackingSettings) (updatedHT
 
 	// Use regex to find and replace href attributes in <a> tags
 	// This regex matches: <a ...href="url"... > or <a ...href='url'... >
-	hrefRegex := regexp.MustCompile(`(<a[^>]*\s+href=["'])([^"']+)(["'][^>]*>)`)
+	//
+	// Case-insensitive because HTML attribute and tag names are: markup pasted
+	// from Word or Outlook, and some third-party builders, emit <A HREF="...">.
+	// Without (?i) such a link is skipped by the rewriter entirely — no click
+	// tracking, no UTM parameters and no identity token — while its lowercase
+	// neighbour in the same block is rewritten, so the loss is silent and
+	// partial rather than obvious.
+	hrefRegex := regexp.MustCompile(`(?i)(<a[^>]*\s+href=["'])([^"']+)(["'][^>]*>)`)
 
 	updatedHTML = hrefRegex.ReplaceAllStringFunc(htmlString, func(match string) string {
 		// Extract the parts: opening tag with href=", URL, closing " and rest of tag

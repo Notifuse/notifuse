@@ -1032,6 +1032,21 @@ func (s *BroadcastService) SendToIndividual(ctx context.Context, request *domain
 	// Resolve the tracking/base endpoint: custom endpoint if set, else the API endpoint.
 	endpoint := workspace.Settings.ResolveEndpoint(s.apiEndpoint)
 
+	// Deliberately no identity token on these settings, unlike the broadcast
+	// senders in service/broadcast, which mint one per recipient. RecipientEmail
+	// here is typed by an operator into the send-to-individual box, and the
+	// contact lookup above is allowed to fail — the send continues on the address
+	// alone — so what this path holds is an inbox, not necessarily the contact it
+	// resembles. A token is a bearer credential valid for
+	// domain.WebIdentifyTokenTTL that every tracked link pointing at an allowlisted
+	// host would carry: minting one would record whoever clicks from that inbox as
+	// the contact whose address was typed, and with the contact bridge on, their
+	// web goals become that contact's timeline entries, segment recomputations and
+	// automation enrolments. TestTemplate in transactional_service.go does not mint
+	// either, on the same reasoning. The cost is that these sends contribute no
+	// visit attribution, which is the cheaper failure.
+	//
+	// Pinned by TestBroadcastService_SendToIndividual_NeverMintsIdentityToken.
 	trackingSettings := notifuse_mjml.TrackingSettings{
 		Endpoint:       endpoint,
 		EnableTracking: workspace.Settings.EmailTrackingEnabled,

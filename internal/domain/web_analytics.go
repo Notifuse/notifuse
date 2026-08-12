@@ -6,8 +6,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"net"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/google/uuid"
 
@@ -26,17 +28,66 @@ const (
 	WebTrackMaxPathLength = 2048
 	// WebTrackMaxGoalNameLength caps goal names.
 	WebTrackMaxGoalNameLength = 100
-	// WebTrackMaxEmailLength matches contacts.email VARCHAR(255).
+	// WebTrackMaxEmailLength matches contacts.email VARCHAR(255), and is counted
+	// in CHARACTERS for that reason — Postgres counts VARCHAR in characters, not
+	// bytes. Comparing it with Go's len() instead made an SMTPUTF8 address of 134
+	// characters and 256 bytes storable as a contact yet unidentifiable: it was
+	// accepted by Contact.Validate, sat happily in the column, minted a valid
+	// token, and was then discarded at the beat without a word.
 	WebTrackMaxEmailLength = 255
 	// WebTrackMaxHMACLength bounds the hex-encoded SHA-256 credential.
 	WebTrackMaxHMACLength = 64
-	// WebTrackMaxIdentifyTokenLength bounds the encrypted nf_id parameter.
-	// ResolveWebIdentity discards a longer token, so BuildWebIdentifyToken
-	// measures what it produced against this same constant and refuses the mint
-	// rather than putting a token on every link of an email that the beat would
-	// then drop without a word. Lowering this shortens the longest address that
-	// can be identified from an email click.
-	WebTrackMaxIdentifyTokenLength = 512
+	// The three terms WebTrackMaxIdentifyTokenLength is built from, each a
+	// property of the encoding BuildWebIdentifyToken uses rather than a budget
+	// anyone chose. TestWebIdentifyTokenBoundCoversEveryStorableAddress checks
+	// all three against what the encoder actually emits.
+	//
+	// crypto.EncryptString hex-encodes a 12-byte GCM nonce, the ciphertext (one
+	// byte per plaintext byte) and a 16-byte authentication tag.
+	webIdentifyTokenCipherOverheadBytes = 12 + 16
+	// The JSON around the address: {"e":"","x":9999999999,"v":1}. Counted rather
+	// than measured with len(), which would make this constant typed and every
+	// expression built from it typed with it. Unix seconds stay ten digits until
+	// the year 2286.
+	webIdentifyTokenJSONScaffoldBytes = 29
+	// The most encoding/json can spend on one byte of the address: \uXXXX, for
+	// a control character, one of the HTML-escaped "&<>", or a byte that is not
+	// valid UTF-8 (each of those becomes \ufffd).
+	webIdentifyTokenMaxJSONBytesPerByte = 6
+
+	// WebTrackMaxIdentifyTokenLength bounds the encrypted nf_id parameter at
+	// both ends: ResolveWebIdentity discards a longer token, and
+	// BuildWebIdentifyToken measures what it produced against this same
+	// constant and refuses the mint rather than putting a token on every link
+	// of an email that the beat would then drop without a word.
+	//
+	// It is derived from WebTrackMaxEmailLength, not chosen. A token is the hex
+	// of (nonce ‖ ciphertext ‖ tag) over a JSON payload carrying the address, so
+	// its length grows with the address: a hand-picked 512 stopped at 199
+	// characters while a contact may have 255, which made every longer address
+	// one the platform accepts everywhere else and can never identify from an
+	// email click — silently, since the mint refused and the send carried on.
+	// Deriving the bound is what keeps those two facts in agreement.
+	//
+	// The worst case is budgeted rather than the typical one: encoding/json can
+	// spend six characters on a single byte, and the bytes it does that to
+	// ("&", "<", ">") are legal in an address the contact validator accepts. A
+	// plain 255-character address mints 624 characters; one made of "&" mints
+	// 3054.
+	//
+	// Still a safe bound on a public unauthenticated endpoint, because it is a
+	// function of the longest address the contacts schema can hold and not of
+	// client whim: a longer nf_id is dropped by this length comparison before
+	// any hex decode or AES open, and what it does admit — under 1.6 kB of
+	// ciphertext — is small beside what a beat already carries, where one action
+	// path alone may be WebTrackMaxPathLength.
+	//
+	// Mirrored in three places outside this package: MAX_IDENTITY_TOKEN_BYTES in
+	// the SDK, the identify_token maxLength in the OpenAPI schema, and the drift
+	// test that compares this constant to that schema.
+	WebTrackMaxIdentifyTokenLength = 2 * (webIdentifyTokenCipherOverheadBytes +
+		webIdentifyTokenJSONScaffoldBytes +
+		webIdentifyTokenMaxJSONBytesPerByte*WebTrackMaxEmailLength)
 
 	// Goal property bounds. These exist because actions[] is cumulative: the SDK
 	// re-sends every action of the session on every beat, so an unbounded
@@ -585,11 +636,32 @@ type webIdentifyTokenPayload struct {
 // re-exporting it here keeps one definition for both sides.
 const WebIdentifyQueryParam = notifuse_mjml.WebIdentifyQueryParam
 
-// WebIdentifyTokenTTL is how long a minted nf_id stays usable. It is
-// deliberately much shorter than what the encryption itself would allow: a
-// forwarded email hands a third party a bearer identity for the original
-// recipient, so the window is sized to the realistic click window of a campaign
-// rather than to the credential's natural lifetime.
+// WebIdentifyTokenTTL is how long a minted nf_id stays usable, counted from the
+// mint — which is not, on every path, the moment the mail is delivered.
+//
+// The length is deliberately much shorter than what the encryption itself would
+// allow: a forwarded email hands a third party a bearer identity for the
+// original recipient, so the window is sized to the realistic click window of a
+// campaign rather than to the credential's natural lifetime.
+//
+// Where the clock starts is worth stating because not every send path mints at
+// delivery. The transactional send and the broadcast direct sender compile the
+// message and hand it to the provider in one go, so for them the two moments
+// coincide. The queue paths — a queued broadcast's buildQueueEntry, the
+// automation email executor — bake the token into the HTML they store in
+// email_queue, so the window opens when that row is written. An entry that then
+// waits spends part of its window before the recipient ever sees the mail: a
+// paused broadcast keeps status 'paused' until it is resumed or deleted, a large
+// queue drains behind the provider's rate limit, a failing entry retries. One
+// that waits longer than this TTL is delivered with an nf_id that is already
+// dead.
+//
+// What that costs, when it happens, is invisible from every side: the click
+// resolves to nothing, the beat still returns 200 and the visit is recorded
+// anonymously, and the SDK goes on re-sending the stored token on later beats
+// because an opaque token gives it no expiry to inspect. Nothing logs it.
+// Starting the clock at delivery instead would mean rewriting the links in the
+// worker, which is a larger change than a constant.
 const WebIdentifyTokenTTL = 7 * 24 * time.Hour
 
 // BuildWebIdentifyToken mints the opaque nf_id parameter for a tracked link.
@@ -602,15 +674,17 @@ const WebIdentifyTokenTTL = 7 * 24 * time.Hour
 //
 // The minted token is measured against WebTrackMaxIdentifyTokenLength — the
 // very bound ResolveWebIdentity applies before it will decrypt an nf_id, and
-// the same constant on both ends on purpose. The token is hex-encoded AES-GCM,
-// so it grows with the address, while WebTrackMaxEmailLength admits contacts
-// long enough to push it past that bound. Unchecked, such a token mints
-// happily, rides in every link of the email, and is then dropped at the beat
-// with no log and no error: the identity silently never happens. Refusing here
-// surfaces it where the address is still in hand and a caller can report it.
-// Measuring the produced token rather than deriving a maximum address length
-// keeps the two ends tied to one constant, instead of to arithmetic that would
-// drift the moment the payload or the encoding changes.
+// the same constant on both ends on purpose. That bound is now derived from
+// WebTrackMaxEmailLength, so no address a contact can actually have reaches it;
+// what is left for this check to catch is an address longer than the schema
+// stores, or a payload that grew without the constant following it. Either way
+// the failure belongs here, where the address is still in hand and the caller
+// can log it: a token over the bound would otherwise mint happily, ride in
+// every link of the email, and be dropped at the beat with no log and no error,
+// so the identity silently never happens. Measuring the produced token rather
+// than deriving a maximum address length keeps the two ends tied to one
+// constant, instead of to arithmetic that would drift the moment the payload or
+// the encoding changes.
 func BuildWebIdentifyToken(email string, secretKey string, ttl time.Duration, now time.Time) (string, error) {
 	if secretKey == "" {
 		return "", fmt.Errorf("workspace secret key is required to mint an identify token")
@@ -671,7 +745,10 @@ func ResolveWebIdentity(p *WebTrackPayload, secretKey string, now time.Time) (st
 	if p.ContactEmail == nil || p.ContactEmailHMAC == nil {
 		return "", false
 	}
-	if len(*p.ContactEmail) > WebTrackMaxEmailLength || len(*p.ContactEmailHMAC) > WebTrackMaxHMACLength {
+	// Characters, not bytes: the bound mirrors a VARCHAR(255) column. The hmac
+	// beside it stays byte-counted because it is hex, where the two agree.
+	if utf8.RuneCountInString(*p.ContactEmail) > WebTrackMaxEmailLength ||
+		len(*p.ContactEmailHMAC) > WebTrackMaxHMACLength {
 		return "", false
 	}
 	// Verify against the RAW address: the customer signed what they sent, not
@@ -686,7 +763,9 @@ func ResolveWebIdentity(p *WebTrackPayload, secretKey string, now time.Time) (st
 // which is stored normalized.
 func normalizedIdentity(email string) (string, bool) {
 	normalized := NormalizeEmail(email)
-	if normalized == "" || len(normalized) > WebTrackMaxEmailLength {
+	// Re-checked after normalization because lowercasing can change the length,
+	// and in characters for the same reason as the raw gate above.
+	if normalized == "" || utf8.RuneCountInString(normalized) > WebTrackMaxEmailLength {
 		return "", false
 	}
 	return normalized, true
@@ -807,6 +886,21 @@ func validateAllowedDomain(domain string) error {
 	}
 	if strings.ContainsAny(d, " */?#@") || strings.Contains(d, "://") {
 		return fmt.Errorf("invalid allowed domain: %q", domain)
+	}
+	// An entry carrying a port can never match. Both readings of this list
+	// compare against url.Hostname(), which has the port stripped off, so
+	// "example.com:443" looks like a correct entry, matches no origin and no
+	// link host, and disables itself in silence. Refusing it is how the admin
+	// finds out — it protects nothing already stored, where the port is dealt
+	// with at match time by MatchesAllowedHost.
+	//
+	// A bare IP literal is exempt: url.Hostname() yields "::1" for an IPv6
+	// origin, brackets already stripped, so that is the form such an entry has
+	// to be written in. Anything else containing a colon, including the
+	// bracketed "[::1]", cannot equal a hostname.
+	if net.ParseIP(d) == nil && strings.Contains(d, ":") {
+		return fmt.Errorf("invalid allowed domain %q: enter the hostname on its own, without a port (%q, not %q)",
+			domain, "example.com", "example.com:443")
 	}
 	return nil
 }
