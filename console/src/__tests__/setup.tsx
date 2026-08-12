@@ -77,6 +77,16 @@ Object.defineProperty(window, 'matchMedia', {
   }))
 })
 
+// Mock ResizeObserver for Ant Design components that measure themselves
+// (Input.TextArea with showCount/autoSize, Select dropdowns); jsdom has none.
+globalThis.ResizeObserver =
+  globalThis.ResizeObserver ??
+  class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  }
+
 // Mock window.getComputedStyle for Ant Design components
 window.getComputedStyle = () => {
   return {

@@ -83,8 +83,9 @@ func TestWebAnalyticsBackfillEndToEnd(t *testing.T) {
 	resp, err := suite.APIClient.Post("/api/workspaces.setWebAnalyticsSettings", map[string]interface{}{
 		"workspace_id": workspace.ID,
 		"settings": map[string]interface{}{
-			"enabled": true,
-			"filters": newFilters,
+			"enabled":         true,
+			"allowed_domains": []string{"example.com"},
+			"filters":         newFilters,
 		},
 	})
 	require.NoError(t, err)
@@ -167,7 +168,11 @@ func TestWebAnalyticsBackfillEndToEnd(t *testing.T) {
 	}}
 	resp, err = suite.APIClient.Post("/api/workspaces.setWebAnalyticsSettings", map[string]interface{}{
 		"workspace_id": workspace.ID,
-		"settings":     map[string]interface{}{"enabled": true, "filters": unmatchable},
+		"settings": map[string]interface{}{
+			"enabled":         true,
+			"allowed_domains": []string{"example.com"},
+			"filters":         unmatchable,
+		},
 	})
 	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, resp.StatusCode)

@@ -2,20 +2,17 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   Alert,
   App,
-  Button,
   Col,
   Descriptions,
   Divider,
   Form,
   Input,
   InputNumber,
-  Modal,
   Row,
   Select,
   Switch
 } from 'antd'
 import { CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons'
-import { useBlocker } from '@tanstack/react-router'
 import { useLingui } from '@lingui/react/macro'
 import { Workspace } from '../../services/api/types'
 import { workspaceService } from '../../services/api/workspace'
@@ -26,6 +23,7 @@ import {
   webAnalyticsService
 } from '../../services/api/web_analytics'
 import { CodeSnippet } from '../common/CodeSnippet'
+import { SettingsSaveBar } from './SettingsSaveBar'
 import { SettingsSectionHeader } from './SettingsSectionHeader'
 
 const DEFAULT_SETTINGS: WebAnalyticsSettingsValues = {
@@ -134,33 +132,7 @@ export function WebAnalyticsSettings({
     setFormTouched(false)
   }, [form, stored])
 
-  // The bar stays up through the save so the button can own the spinner; the
-  // shortcut and the leave guard step aside once the request is in flight.
   const hasUnsavedChanges = canManage && formTouched
-  const unsaved = hasUnsavedChanges && !savingSettings
-
-  // Cmd/Ctrl+S is what a long form trains people to reach for. Only claim the
-  // shortcut while there is something to save, so the browser keeps it
-  // otherwise.
-  useEffect(() => {
-    if (!unsaved) return
-    const onKeyDown = (event: KeyboardEvent) => {
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 's') {
-        event.preventDefault()
-        form.submit()
-      }
-    }
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
-  }, [unsaved, form])
-
-  // Switching settings section is a route change, so leaving with unsaved edits
-  // is one click away and silent without this.
-  const blocker = useBlocker({
-    shouldBlockFn: () => unsaved,
-    enableBeforeUnload: () => unsaved,
-    withResolver: true
-  })
 
   // The tracking snippet must point at the domain the SDK will actually beat to.
   const endpoint = useMemo(() => resolveTrackingEndpoint(workspace), [workspace])
@@ -439,44 +411,14 @@ export function WebAnalyticsSettings({
         {t`The address must already belong to a contact: identifying someone who is not one records nothing, by design. Visitors arriving from a tracked email link are identified automatically, with no code.`}
       </div>
 
-      {/* Last child on purpose: a bottom-anchored sticky can shift up across
-          its whole containing block, so the bar rides the viewport for the
-          entire section and settles here at the end. It appears only once
-          there is something to save, which is what makes it noticeable. */}
-      {hasUnsavedChanges ? (
-        <div className="sticky bottom-4 z-10 mt-8 flex justify-center">
-          <div
-            role="status"
-            aria-live="polite"
-            className="flex items-center gap-4 rounded-full border border-gray-200 bg-white/95 py-3 pl-7 pr-6 shadow-lg backdrop-blur"
-          >
-            <span className="text-sm text-gray-600">{t`You have unsaved changes`}</span>
-            <Button size="small" onClick={handleDiscard} disabled={savingSettings}>
-              {t`Discard`}
-            </Button>
-            <Button
-              type="primary"
-              size="small"
-              loading={savingSettings}
-              onClick={() => form.submit()}
-            >
-              {t`Save Changes`}
-            </Button>
-          </div>
-        </div>
-      ) : null}
-
-      <Modal
-        open={blocker.status === 'blocked'}
-        title={t`Discard unsaved changes?`}
-        okText={t`Discard changes`}
-        cancelText={t`Keep editing`}
-        okButtonProps={{ danger: true }}
-        onOk={() => blocker.proceed?.()}
-        onCancel={() => blocker.reset?.()}
-      >
-        <p>{t`Your web analytics settings have not been saved. Leaving this page discards them.`}</p>
-      </Modal>
+      {/* Last child on purpose — see SettingsSaveBar for why. */}
+      <SettingsSaveBar
+        dirty={hasUnsavedChanges}
+        saving={savingSettings}
+        onSave={() => form.submit()}
+        onDiscard={handleDiscard}
+        leaveWarning={t`Your web analytics settings have not been saved. Leaving this page discards them.`}
+      />
     </>
   )
 }

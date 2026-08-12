@@ -156,7 +156,7 @@ msgid "{0} rows rewritten"
 msgstr "{0} rows rewritten"
 
 #. placeholder {0}: stored?.bounce_threshold_seconds ?? DEFAULT_SETTINGS.bounce_threshold_seconds
-#: src/components/settings/WebAnalyticsSettings.tsx:260
+#: src/components/settings/WebAnalyticsSettings.tsx:232
 msgid "{0} seconds"
 msgstr "{0} seconds"
 
@@ -884,8 +884,8 @@ msgstr "All transactional emails (notifications, password resets, etc.) will be 
 msgid "Allow receiving emails to trigger transactional notifications. Requires TLS certificates."
 msgstr "Allow receiving emails to trigger transactional notifications. Requires TLS certificates."
 
-#: src/components/settings/WebAnalyticsSettings.tsx:241
-#: src/components/settings/WebAnalyticsSettings.tsx:300
+#: src/components/settings/WebAnalyticsSettings.tsx:213
+#: src/components/settings/WebAnalyticsSettings.tsx:272
 msgid "Allowed domains"
 msgstr "Allowed domains"
 
@@ -1113,7 +1113,7 @@ msgstr "Are you sure you want to delete this node?"
 msgid "Are you sure you want to delete this template?"
 msgstr "Are you sure you want to delete this template?"
 
-#: src/components/settings/BlogSettings.tsx:182
+#: src/components/settings/BlogSettings.tsx:202
 msgid "Are you sure you want to disable the blog? All SEO settings and blog visibility will be lost. This action cannot be undone."
 msgstr "Are you sure you want to disable the blog? All SEO settings and blog visibility will be lost. This action cannot be undone."
 
@@ -1331,7 +1331,7 @@ msgstr "Automation updated successfully"
 msgid "Automation:"
 msgstr "Automation:"
 
-#: src/layouts/WorkspaceLayout.tsx:426
+#: src/layouts/WorkspaceLayout.tsx:449
 #: src/pages/AutomationsPage.tsx:157
 msgid "Automations"
 msgstr "Automations"
@@ -1548,11 +1548,11 @@ msgstr "Blocklist"
 msgid "Blocks"
 msgstr "Blocks"
 
-#: src/components/settings/BlogSettings.tsx:197
-#: src/components/settings/BlogSettings.tsx:205
-#: src/components/settings/BlogSettings.tsx:238
+#: src/components/settings/BlogSettings.tsx:217
+#: src/components/settings/BlogSettings.tsx:225
+#: src/components/settings/BlogSettings.tsx:258
 #: src/components/settings/SettingsSidebar.tsx:100
-#: src/layouts/WorkspaceLayout.tsx:271
+#: src/layouts/WorkspaceLayout.tsx:294
 msgid "Blog"
 msgstr "Blog"
 
@@ -1560,19 +1560,19 @@ msgstr "Blog"
 msgid "Blog custom endpoint URL is not configured"
 msgstr "Blog custom endpoint URL is not configured"
 
-#: src/components/settings/BlogSettings.tsx:128
+#: src/components/settings/BlogSettings.tsx:148
 msgid "Blog enabled but theme creation failed. Please create a theme manually."
 msgstr "Blog enabled but theme creation failed. Please create a theme manually."
 
-#: src/components/settings/BlogSettings.tsx:155
+#: src/components/settings/BlogSettings.tsx:175
 msgid "Blog settings updated successfully"
 msgstr "Blog settings updated successfully"
 
-#: src/components/settings/BlogSettings.tsx:197
+#: src/components/settings/BlogSettings.tsx:217
 msgid "Blog styling and SEO settings"
 msgstr "Blog styling and SEO settings"
 
-#: src/components/settings/BlogSettings.tsx:319
+#: src/components/settings/BlogSettings.tsx:342
 msgid "Blog Title"
 msgstr "Blog Title"
 
@@ -1686,11 +1686,11 @@ msgstr "Bounce Rate (change %)"
 msgid "Bounce Rate (previous)"
 msgstr "Bounce Rate (previous)"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:259
+#: src/components/settings/WebAnalyticsSettings.tsx:231
 msgid "Bounce threshold"
 msgstr "Bounce threshold"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:331
+#: src/components/settings/WebAnalyticsSettings.tsx:303
 msgid "Bounce threshold (seconds)"
 msgstr "Bounce threshold (seconds)"
 
@@ -1828,7 +1828,7 @@ msgid "Broadcast updated successfully"
 msgstr "Broadcast updated successfully"
 
 #: src/components/analytics/EmailMetricsChart.tsx:285
-#: src/layouts/WorkspaceLayout.tsx:400
+#: src/layouts/WorkspaceLayout.tsx:423
 #: src/pages/BroadcastsPage.tsx:1471
 msgid "Broadcasts"
 msgstr "Broadcasts"
@@ -1897,7 +1897,7 @@ msgstr "Button Padding"
 msgid "Button Size"
 msgstr "Button Size"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:435
+#: src/components/settings/WebAnalyticsSettings.tsx:407
 msgid "Call identify() once you know who the visitor is. The signature must be computed on your server with your workspace secret key — the tracking endpoint is public, so an unsigned address is ignored."
 msgstr "Call identify() once you know who the visitor is. The signature must be computed on your server with your workspace secret key — the tracking endpoint is public, so an unsigned address is ignored."
 
@@ -1958,7 +1958,7 @@ msgstr "Campaigns"
 #: src/components/segment/input_dimension_filters.tsx:167
 #: src/components/segment/input_event_property_filters.tsx:130
 #: src/components/segment/input.tsx:407
-#: src/components/settings/BlogSettings.tsx:185
+#: src/components/settings/BlogSettings.tsx:205
 #: src/components/settings/CustomFieldsConfiguration.tsx:291
 #: src/components/settings/EditPermissionsModal.tsx:121
 #: src/components/settings/Integrations.tsx:2352
@@ -2170,7 +2170,7 @@ msgstr "Cities"
 msgid "City"
 msgstr "City"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:388
+#: src/components/settings/WebAnalyticsSettings.tsx:360
 msgid "City level (~1km precision)"
 msgstr "City level (~1km precision)"
 
@@ -2343,7 +2343,7 @@ msgid "Code Editor"
 msgstr "Code Editor"
 
 #: src/components/email_builder/ui/CodePreview.tsx:61
-#: src/layouts/WorkspaceLayout.tsx:570
+#: src/layouts/WorkspaceLayout.tsx:593
 msgid "Collapse"
 msgstr "Collapse"
 
@@ -2509,7 +2509,7 @@ msgstr "Configuration set"
 msgid "Configure"
 msgstr "Configure"
 
-#: src/components/settings/GeneralSettings.tsx:248
+#: src/components/settings/GeneralSettings.tsx:270
 msgid "Configure a custom domain for email links, notification center, and web publications. DNS verification will be performed before saving to ensure you control this domain."
 msgstr "Configure a custom domain for email links, notification center, and web publications. DNS verification will be performed before saving to ensure you control this domain."
 
@@ -2517,7 +2517,7 @@ msgstr "Configure a custom domain for email links, notification center, and web 
 msgid "Configure both the font name and CSS file URL together"
 msgstr "Configure both the font name and CSS file URL together"
 
-#: src/components/settings/BlogSettings.tsx:395
+#: src/components/settings/BlogSettings.tsx:418
 msgid "Configure how your blog's RSS and JSON feeds are generated."
 msgstr "Configure how your blog's RSS and JSON feeds are generated."
 
@@ -2538,7 +2538,7 @@ msgstr "Configure outgoing webhooks to receive real-time notifications when even
 msgid "Configure Provider"
 msgstr "Configure Provider"
 
-#: src/components/settings/BlogSettings.tsx:239
+#: src/components/settings/BlogSettings.tsx:259
 msgid "Configure styling and SEO settings for your blog. These settings will be applied to all blog pages."
 msgstr "Configure styling and SEO settings for your blog. These settings will be applied to all blog pages."
 
@@ -2649,7 +2649,7 @@ msgstr "Contact property"
 msgid "Contact re-enters each time the event occurs"
 msgstr "Contact re-enters each time the event occurs"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:342
+#: src/components/settings/WebAnalyticsSettings.tsx:314
 msgid "Contact timeline"
 msgstr "Contact timeline"
 
@@ -2657,7 +2657,7 @@ msgstr "Contact timeline"
 msgid "Contact updated successfully"
 msgstr "Contact updated successfully"
 
-#: src/layouts/WorkspaceLayout.tsx:381
+#: src/layouts/WorkspaceLayout.tsx:404
 #: src/pages/ContactsPage.tsx:1000
 msgid "Contacts"
 msgstr "Contacts"
@@ -2698,7 +2698,7 @@ msgstr "Container Padding"
 msgid "contains"
 msgstr "contains"
 
-#: src/layouts/WorkspaceLayout.tsx:462
+#: src/layouts/WorkspaceLayout.tsx:485
 msgid "Content"
 msgstr "Content"
 
@@ -2739,8 +2739,8 @@ msgstr "Conversions"
 #~ msgid "Coordinate precision (decimals)"
 #~ msgstr "Coordinate precision (decimals)"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:379
-#: src/components/settings/WebAnalyticsSettings.tsx:383
+#: src/components/settings/WebAnalyticsSettings.tsx:351
+#: src/components/settings/WebAnalyticsSettings.tsx:355
 msgid "Coordinates precision"
 msgstr "Coordinates precision"
 
@@ -2838,7 +2838,7 @@ msgstr "Countries"
 msgid "Country"
 msgstr "Country"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:386
+#: src/components/settings/WebAnalyticsSettings.tsx:358
 msgid "Country level (~111km precision)"
 msgstr "Country level (~111km precision)"
 
@@ -3128,7 +3128,7 @@ msgstr "Custom Date Fields"
 msgid "Custom Datetime Fields"
 msgstr "Custom Datetime Fields"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:405
+#: src/components/settings/WebAnalyticsSettings.tsx:377
 msgid "Custom dimension labels"
 msgstr "Custom dimension labels"
 
@@ -3138,12 +3138,12 @@ msgstr "Custom dimension labels"
 msgid "Custom dimensions"
 msgstr "Custom dimensions"
 
-#: src/components/settings/GeneralSettings.tsx:243
+#: src/components/settings/GeneralSettings.tsx:265
 msgid "Custom domain for email links (unsubscribe, tracking, notification center). By default, the config API endpoint is used. Leave empty to use the default."
 msgstr "Custom domain for email links (unsubscribe, tracking, notification center). By default, the config API endpoint is used. Leave empty to use the default."
 
-#: src/components/settings/GeneralSettings.tsx:148
-#: src/components/settings/GeneralSettings.tsx:242
+#: src/components/settings/GeneralSettings.tsx:167
+#: src/components/settings/GeneralSettings.tsx:264
 msgid "Custom Endpoint URL"
 msgstr "Custom Endpoint URL"
 
@@ -3294,14 +3294,14 @@ msgstr "Custom String Fields"
 msgid "Daily"
 msgstr "Daily"
 
-#: src/components/settings/BlogSettings.tsx:463
+#: src/components/settings/BlogSettings.tsx:476
 #: src/components/settings/DeleteWorkspace.tsx:45
 #: src/components/settings/SettingsSidebar.tsx:129
 msgid "Danger Zone"
 msgstr "Danger Zone"
 
-#: src/layouts/WorkspaceLayout.tsx:293
-#: src/layouts/WorkspaceLayout.tsx:311
+#: src/layouts/WorkspaceLayout.tsx:316
+#: src/layouts/WorkspaceLayout.tsx:334
 #: src/pages/AnalyticsPage.tsx:77
 #: src/pages/WebAnalyticsLivePage.tsx:126
 msgid "Dashboard"
@@ -3356,7 +3356,7 @@ msgstr "default"
 msgid "Default"
 msgstr "Default"
 
-#: src/components/settings/GeneralSettings.tsx:149
+#: src/components/settings/GeneralSettings.tsx:168
 msgid "Default (API endpoint)"
 msgstr "Default (API endpoint)"
 
@@ -3364,7 +3364,7 @@ msgstr "Default (API endpoint)"
 msgid "Default Attributes"
 msgstr "Default Attributes"
 
-#: src/components/settings/GeneralSettings.tsx:218
+#: src/components/settings/GeneralSettings.tsx:240
 msgid "Default Language"
 msgstr "Default Language"
 
@@ -3372,7 +3372,7 @@ msgstr "Default Language"
 msgid "Default sender"
 msgstr "Default sender"
 
-#: src/components/settings/BlogSettings.tsx:125
+#: src/components/settings/BlogSettings.tsx:145
 msgid "Default theme created and published"
 msgstr "Default theme created and published"
 
@@ -3665,12 +3665,12 @@ msgstr "Dimension"
 msgid "Dimensions:"
 msgstr "Dimensions:"
 
-#: src/components/settings/BlogSettings.tsx:183
-#: src/components/settings/BlogSettings.tsx:468
+#: src/components/settings/BlogSettings.tsx:203
+#: src/components/settings/BlogSettings.tsx:481
 msgid "Disable Blog"
 msgstr "Disable Blog"
 
-#: src/components/settings/BlogSettings.tsx:180
+#: src/components/settings/BlogSettings.tsx:200
 msgid "Disable Blog?"
 msgstr "Disable Blog?"
 
@@ -3686,10 +3686,10 @@ msgstr "Disable this webhook?"
 msgid "Disable webhook"
 msgstr "Disable webhook"
 
-#: src/components/settings/BlogSettings.tsx:214
-#: src/components/settings/GeneralSettings.tsx:143
+#: src/components/settings/BlogSettings.tsx:234
+#: src/components/settings/GeneralSettings.tsx:162
 #: src/components/settings/Integrations.tsx:1449
-#: src/components/settings/WebAnalyticsSettings.tsx:236
+#: src/components/settings/WebAnalyticsSettings.tsx:208
 #: src/components/templates/TemplateTranslationsTab.tsx:204
 msgid "Disabled"
 msgstr "Disabled"
@@ -3698,15 +3698,15 @@ msgstr "Disabled"
 msgid "Disabled for this notification"
 msgstr "Disabled for this notification"
 
-#: src/components/settings/BlogSettings.tsx:465
+#: src/components/settings/BlogSettings.tsx:478
 msgid "Disabling the blog will remove all SEO settings and make your blog inaccessible to visitors. This action will affect your blog's visibility and search engine rankings."
 msgstr "Disabling the blog will remove all SEO settings and make your blog inaccessible to visitors. This action will affect your blog's visibility and search engine rankings."
 
-#: src/components/settings/WebAnalyticsSettings.tsx:455
+#: src/components/settings/SettingsSaveBar.tsx:84
 msgid "Discard"
 msgstr "Discard"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:472
+#: src/components/settings/SettingsSaveBar.tsx:96
 msgid "Discard changes"
 msgstr "Discard changes"
 
@@ -3714,7 +3714,7 @@ msgstr "Discard changes"
 msgid "Discard Draft"
 msgstr "Discard Draft"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:471
+#: src/components/settings/SettingsSaveBar.tsx:95
 msgid "Discard unsaved changes?"
 msgstr "Discard unsaved changes?"
 
@@ -3734,11 +3734,11 @@ msgstr "Divider Attributes"
 msgid "Divider Width"
 msgstr "Divider Width"
 
-#: src/components/settings/GeneralSettings.tsx:260
+#: src/components/settings/GeneralSettings.tsx:282
 msgid "DNS Record Required:"
 msgstr "DNS Record Required:"
 
-#: src/components/settings/GeneralSettings.tsx:288
+#: src/components/settings/GeneralSettings.tsx:310
 msgid "DNS verification prevents domain squatting"
 msgstr "DNS verification prevents domain squatting"
 
@@ -3768,7 +3768,7 @@ msgstr "Do you want to permanently delete this file from your storage?"
 msgid "Do you want to send \"{0}\" immediately or schedule it for later?"
 msgstr "Do you want to send \"{0}\" immediately or schedule it for later?"
 
-#: src/layouts/WorkspaceLayout.tsx:646
+#: src/layouts/WorkspaceLayout.tsx:669
 msgid "Documentation"
 msgstr "Documentation"
 
@@ -4175,7 +4175,7 @@ msgstr "Email Integration"
 msgid "Email is required"
 msgstr "Email is required"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:253
+#: src/components/settings/WebAnalyticsSettings.tsx:225
 msgid "Email links cannot identify contacts until a domain is listed."
 msgstr "Email links cannot identify contacts until a domain is listed."
 
@@ -4195,8 +4195,8 @@ msgstr "Email mapping required"
 msgid "Email Metrics"
 msgstr "Email Metrics"
 
-#: src/components/settings/GeneralSettings.tsx:134
-#: src/components/settings/GeneralSettings.tsx:233
+#: src/components/settings/GeneralSettings.tsx:153
+#: src/components/settings/GeneralSettings.tsx:255
 msgid "Email Opens and Clicks Tracking"
 msgstr "Email Opens and Clicks Tracking"
 
@@ -4275,8 +4275,8 @@ msgstr "Enable A/B Testing"
 msgid "Enable Anonymous Telemetry"
 msgstr "Enable Anonymous Telemetry"
 
-#: src/components/settings/BlogSettings.tsx:280
-#: src/components/settings/BlogSettings.tsx:307
+#: src/components/settings/BlogSettings.tsx:303
+#: src/components/settings/BlogSettings.tsx:330
 msgid "Enable Blog"
 msgstr "Enable Blog"
 
@@ -4284,7 +4284,7 @@ msgstr "Enable Blog"
 msgid "Enable closed captions by default"
 msgstr "Enable closed captions by default"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:360
+#: src/components/settings/WebAnalyticsSettings.tsx:332
 msgid "Enable geo-location tracking"
 msgstr "Enable geo-location tracking"
 
@@ -4296,7 +4296,7 @@ msgstr "Enable Single Sign-On (OpenID Connect)"
 msgid "Enable SMTP Bridge Server"
 msgstr "Enable SMTP Bridge Server"
 
-#: src/components/settings/BlogSettings.tsx:282
+#: src/components/settings/BlogSettings.tsx:305
 msgid "Enable the blog feature to publish articles and content on your custom domain homepage. Your blog will be accessible at"
 msgstr "Enable the blog feature to publish articles and content on your custom domain homepage. Your blog will be accessible at"
 
@@ -4317,7 +4317,7 @@ msgstr "Enable to fetch global data that will be available to all recipients in 
 msgid "Enable to fetch personalized data for each recipient before sending their email. The data will be accessible in your templates using the \"recipient_feed\" variable."
 msgstr "Enable to fetch personalized data for each recipient before sending their email. The data will be accessible in your templates using the \"recipient_feed\" variable."
 
-#: src/components/settings/WebAnalyticsSettings.tsx:291
+#: src/components/settings/WebAnalyticsSettings.tsx:263
 msgid "Enable web analytics"
 msgstr "Enable web analytics"
 
@@ -4325,12 +4325,12 @@ msgstr "Enable web analytics"
 msgid "Enable webhook"
 msgstr "Enable webhook"
 
-#: src/components/settings/BlogSettings.tsx:209
-#: src/components/settings/GeneralSettings.tsx:138
+#: src/components/settings/BlogSettings.tsx:229
+#: src/components/settings/GeneralSettings.tsx:157
 #: src/components/settings/Integrations.tsx:1445
 #: src/components/settings/SystemSettingsDrawer.tsx:459
 #: src/components/settings/SystemSettingsDrawer.tsx:543
-#: src/components/settings/WebAnalyticsSettings.tsx:231
+#: src/components/settings/WebAnalyticsSettings.tsx:203
 #: src/components/templates/TemplateTranslationsTab.tsx:203
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:146
 msgid "Enabled"
@@ -4461,7 +4461,7 @@ msgstr "Enter file URL or use file manager"
 msgid "Enter height"
 msgstr "Enter height"
 
-#: src/components/settings/BlogSettings.tsx:347
+#: src/components/settings/BlogSettings.tsx:370
 msgid "Enter icon URL or select image"
 msgstr "Enter icon URL or select image"
 
@@ -4493,7 +4493,7 @@ msgstr "Enter list ID to confirm"
 msgid "Enter list name"
 msgstr "Enter list name"
 
-#: src/components/settings/BlogSettings.tsx:331
+#: src/components/settings/BlogSettings.tsx:354
 msgid "Enter logo URL or select image"
 msgstr "Enter logo URL or select image"
 
@@ -4533,7 +4533,7 @@ msgstr "Enter width"
 msgid "Enter workspace ID"
 msgstr "Enter workspace ID"
 
-#: src/components/settings/GeneralSettings.tsx:174
+#: src/components/settings/GeneralSettings.tsx:196
 msgid "Enter workspace name"
 msgstr "Enter workspace name"
 
@@ -4644,7 +4644,7 @@ msgstr "Events"
 msgid "Every \"set\" operation needs a value"
 msgstr "Every \"set\" operation needs a value"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:251
+#: src/components/settings/WebAnalyticsSettings.tsx:223
 msgid "Every domain"
 msgstr "Every domain"
 
@@ -4668,7 +4668,7 @@ msgstr "exactly"
 msgid "Excerpt"
 msgstr "Excerpt"
 
-#: src/components/settings/BlogSettings.tsx:423
+#: src/components/settings/BlogSettings.tsx:446
 msgid "Excerpt only"
 msgstr "Excerpt only"
 
@@ -4709,7 +4709,7 @@ msgstr "Expand"
 msgid "Expires:"
 msgstr "Expires:"
 
-#: src/layouts/WorkspaceLayout.tsx:330
+#: src/layouts/WorkspaceLayout.tsx:353
 #: src/pages/WebAnalyticsPage.tsx:75
 msgid "Explore"
 msgstr "Explore"
@@ -5192,7 +5192,7 @@ msgstr "Failed to unpublish post"
 msgid "Failed to update automation: {0}"
 msgstr "Failed to update automation: {0}"
 
-#: src/components/settings/BlogSettings.tsx:159
+#: src/components/settings/BlogSettings.tsx:179
 msgid "Failed to update blog settings"
 msgstr "Failed to update blog settings"
 
@@ -5249,15 +5249,15 @@ msgstr "Failed to update status: {error}"
 msgid "Failed to update template: {0}"
 msgstr "Failed to update template: {0}"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:201
+#: src/components/settings/WebAnalyticsSettings.tsx:173
 msgid "Failed to update web analytics settings"
 msgstr "Failed to update web analytics settings"
 
-#: src/components/settings/GeneralSettings.tsx:84
+#: src/components/settings/GeneralSettings.tsx:103
 msgid "Failed to update workspace settings"
 msgstr "Failed to update workspace settings"
 
-#: src/layouts/WorkspaceLayout.tsx:246
+#: src/layouts/WorkspaceLayout.tsx:269
 msgid "Failed to update workspace settings: {errorMessage}"
 msgstr "Failed to update workspace settings: {errorMessage}"
 
@@ -5265,7 +5265,7 @@ msgstr "Failed to update workspace settings: {errorMessage}"
 msgid "Failed to verify code"
 msgstr "Failed to verify code"
 
-#: src/components/settings/BlogSettings.tsx:344
+#: src/components/settings/BlogSettings.tsx:367
 msgid "Favicon for your blog. Recommended: 32x32px or 192x192px PNG"
 msgstr "Favicon for your blog. Recommended: 32x32px or 192x192px PNG"
 
@@ -5335,7 +5335,7 @@ msgid "File is too large. Maximum size is 1MB."
 msgstr "File is too large. Maximum size is 1MB."
 
 #: src/components/file_manager/context.tsx:155
-#: src/layouts/WorkspaceLayout.tsx:279
+#: src/layouts/WorkspaceLayout.tsx:302
 #: src/pages/FileManagerPage.tsx:119
 msgid "File Manager"
 msgstr "File Manager"
@@ -5392,7 +5392,7 @@ msgid "Filter on an event property"
 msgstr "Filter on an event property"
 
 #: src/components/messages/MessageHistoryTab.tsx:586
-#: src/layouts/WorkspaceLayout.tsx:352
+#: src/layouts/WorkspaceLayout.tsx:375
 #: src/pages/WebAnalyticsPage.tsx:77
 msgid "Filters"
 msgstr "Filters"
@@ -5571,7 +5571,7 @@ msgstr "From:"
 msgid "Full Access"
 msgstr "Full Access"
 
-#: src/components/settings/BlogSettings.tsx:422
+#: src/components/settings/BlogSettings.tsx:445
 msgid "Full content"
 msgstr "Full content"
 
@@ -5612,14 +5612,14 @@ msgstr "gemini-3.1-pro-preview or a custom model ID"
 msgid "General"
 msgstr "General"
 
-#: src/components/settings/BlogSettings.tsx:315
-#: src/components/settings/GeneralSettings.tsx:100
-#: src/components/settings/GeneralSettings.tsx:159
+#: src/components/settings/BlogSettings.tsx:338
+#: src/components/settings/GeneralSettings.tsx:119
+#: src/components/settings/GeneralSettings.tsx:178
 msgid "General Settings"
 msgstr "General Settings"
 
-#: src/components/settings/GeneralSettings.tsx:101
-#: src/components/settings/GeneralSettings.tsx:160
+#: src/components/settings/GeneralSettings.tsx:120
+#: src/components/settings/GeneralSettings.tsx:179
 msgid "General settings for your workspace"
 msgstr "General settings for your workspace"
 
@@ -5646,7 +5646,7 @@ msgstr "Generated SQL:"
 msgid "Geo"
 msgstr "Geo"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:355
+#: src/components/settings/WebAnalyticsSettings.tsx:327
 msgid "Geographic data collection"
 msgstr "Geographic data collection"
 
@@ -5722,7 +5722,7 @@ msgstr "Goal:"
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:260
 #: src/components/web_analytics/tabs/DashboardTab.tsx:242
 #: src/components/web_analytics/tabs/DashboardTab.tsx:252
-#: src/layouts/WorkspaceLayout.tsx:341
+#: src/layouts/WorkspaceLayout.tsx:364
 #: src/pages/WebAnalyticsPage.tsx:76
 msgid "Goals"
 msgstr "Goals"
@@ -5820,7 +5820,7 @@ msgstr "Height"
 
 #: src/components/email_builder/MjmlCodeEditor.tsx:702
 #: src/components/templates/CreateTemplateDrawer.tsx:138
-#: src/layouts/WorkspaceLayout.tsx:672
+#: src/layouts/WorkspaceLayout.tsx:695
 msgid "Help"
 msgstr "Help"
 
@@ -5967,7 +5967,7 @@ msgstr "Icon Settings"
 msgid "Icon Styling"
 msgstr "Icon Styling"
 
-#: src/components/settings/BlogSettings.tsx:343
+#: src/components/settings/BlogSettings.tsx:366
 msgid "Icon/Favicon URL"
 msgstr "Icon/Favicon URL"
 
@@ -6052,7 +6052,7 @@ msgstr "Identifies what type of link was used (e.g. email, cpc, banner)"
 msgid "Identifies which site sent the traffic (e.g. google, newsletter)"
 msgstr "Identifies which site sent the traffic (e.g. google, newsletter)"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:433
+#: src/components/settings/WebAnalyticsSettings.tsx:405
 msgid "Identify a visitor"
 msgstr "Identify a visitor"
 
@@ -6280,7 +6280,7 @@ msgstr "Insert Link"
 msgid "Inset"
 msgstr "Inset"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:427
+#: src/components/settings/WebAnalyticsSettings.tsx:399
 msgid "Install"
 msgstr "Install"
 
@@ -6423,7 +6423,7 @@ msgstr "Invitation sent to {inviteEmail}"
 msgid "Invite Member"
 msgstr "Invite Member"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:400
+#: src/components/settings/WebAnalyticsSettings.tsx:372
 msgid "IP addresses are never stored — only used for geo lookup. Country is always included when geo tracking is enabled."
 msgstr "IP addresses are never stored — only used for geo lookup. Country is always included when geo tracking is enabled."
 
@@ -6476,7 +6476,7 @@ msgstr "Issuer URL is required"
 msgid "Italic"
 msgstr "Italic"
 
-#: src/components/settings/BlogSettings.tsx:403
+#: src/components/settings/BlogSettings.tsx:426
 msgid "Items per feed"
 msgstr "Items per feed"
 
@@ -6516,7 +6516,7 @@ msgstr "JSON Payload Required:"
 msgid "Justify"
 msgstr "Justify"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:473
+#: src/components/settings/SettingsSaveBar.tsx:97
 #: src/components/templates/useTemplateConflictModal.tsx:43
 msgid "Keep editing"
 msgstr "Keep editing"
@@ -6538,7 +6538,7 @@ msgstr "key or index"
 msgid "Keywords"
 msgstr "Keywords"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:417
+#: src/components/settings/WebAnalyticsSettings.tsx:389
 msgid "Label"
 msgstr "Label"
 
@@ -6570,7 +6570,7 @@ msgstr "Landing pages"
 msgid "Language"
 msgstr "Language"
 
-#: src/components/settings/GeneralSettings.tsx:198
+#: src/components/settings/GeneralSettings.tsx:220
 msgid "Languages available for template translations in this workspace"
 msgstr "Languages available for template translations in this workspace"
 
@@ -6775,7 +6775,7 @@ msgstr "List"
 msgid "List \"{0}\" deleted successfully"
 msgstr "List \"{0}\" deleted successfully"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:313
+#: src/components/settings/WebAnalyticsSettings.tsx:285
 msgid "List at least one domain to enable web analytics"
 msgstr "List at least one domain to enable web analytics"
 
@@ -6824,7 +6824,7 @@ msgid "List:"
 msgstr "List:"
 
 #: src/components/analytics/NewContactsTable.tsx:73
-#: src/layouts/WorkspaceLayout.tsx:391
+#: src/layouts/WorkspaceLayout.tsx:414
 #: src/pages/ContactsPage.tsx:424
 #: src/pages/ContactsPage.tsx:544
 #: src/pages/ListsPage.tsx:155
@@ -6838,7 +6838,7 @@ msgstr "Lists refreshed"
 #: src/components/automations/AutomationCard.tsx:65
 #: src/components/blog/RecentThemesTable.tsx:128
 #: src/components/web_analytics/LiveButton.tsx:46
-#: src/layouts/WorkspaceLayout.tsx:319
+#: src/layouts/WorkspaceLayout.tsx:342
 msgid "Live"
 msgstr "Live"
 
@@ -6918,7 +6918,7 @@ msgstr "Loading..."
 #~ msgid "Locations are resolved from the IP address on the server; the IP itself is never stored."
 #~ msgstr "Locations are resolved from the IP address on the server; the IP itself is never stored."
 
-#: src/components/settings/GeneralSettings.tsx:118
+#: src/components/settings/GeneralSettings.tsx:137
 msgid "Logo"
 msgstr "Logo"
 
@@ -6926,16 +6926,16 @@ msgstr "Logo"
 msgid "Logo Preview"
 msgstr "Logo Preview"
 
-#: src/components/settings/BlogSettings.tsx:327
+#: src/components/settings/BlogSettings.tsx:350
 #: src/components/settings/LogoInput.tsx:25
 msgid "Logo URL"
 msgstr "Logo URL"
 
-#: src/layouts/WorkspaceLayout.tsx:684
+#: src/layouts/WorkspaceLayout.tsx:707
 msgid "Logout"
 msgstr "Logout"
 
-#: src/layouts/WorkspaceLayout.tsx:470
+#: src/layouts/WorkspaceLayout.tsx:493
 #: src/pages/LogsPage.tsx:28
 msgid "Logs"
 msgstr "Logs"
@@ -6948,7 +6948,7 @@ msgstr "Loop"
 msgid "Low"
 msgstr "Low"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:380
+#: src/components/settings/WebAnalyticsSettings.tsx:352
 msgid "Lower precision = more privacy"
 msgstr "Lower precision = more privacy"
 
@@ -6964,7 +6964,7 @@ msgstr "Magic code sent to your email"
 msgid "Mailgun (mxa.mailgun.org / mxb.mailgun.org)"
 msgstr "Mailgun (mxa.mailgun.org / mxb.mailgun.org)"
 
-#: src/components/settings/BlogSettings.tsx:328
+#: src/components/settings/BlogSettings.tsx:351
 msgid "Main logo for your blog. Recommended size: 200x50px or similar aspect ratio"
 msgstr "Main logo for your blog. Recommended size: 200x50px or similar aspect ratio"
 
@@ -7056,7 +7056,7 @@ msgstr "Max 3MB per file, 10MB total, 20 files maximum"
 msgid "Maximum 20 attachments allowed"
 msgstr "Maximum 20 attachments allowed"
 
-#: src/components/settings/BlogSettings.tsx:404
+#: src/components/settings/BlogSettings.tsx:427
 msgid "Maximum number of posts to include in the RSS/JSON feed (1–20)"
 msgstr "Maximum number of posts to include in the RSS/JSON feed (1–20)"
 
@@ -7156,7 +7156,7 @@ msgstr "Meta Description"
 #: src/components/seo/MissingMetaTagsWarning.tsx:26
 #: src/components/seo/SEOSettingsForm.tsx:36
 #: src/components/seo/SEOSettingsForm.tsx:150
-#: src/components/settings/BlogSettings.tsx:225
+#: src/components/settings/BlogSettings.tsx:245
 msgid "Meta Title"
 msgstr "Meta Title"
 
@@ -7335,8 +7335,8 @@ msgstr "Must be a valid https URL"
 msgid "Must match how the value is stored on the event. Dates are compared as ISO-8601."
 msgstr "Must match how the value is stored on the event. Dates are compared as ISO-8601."
 
-#: src/components/settings/BlogSettings.tsx:322
-#: src/components/settings/BlogSettings.tsx:433
+#: src/components/settings/BlogSettings.tsx:345
+#: src/components/settings/BlogSettings.tsx:456
 msgid "My Amazing Blog"
 msgstr "My Amazing Blog"
 
@@ -7390,11 +7390,11 @@ msgstr "Name is required"
 msgid "Name must be less than 255 characters"
 msgstr "Name must be less than 255 characters"
 
-#: src/components/settings/GeneralSettings.tsx:264
+#: src/components/settings/GeneralSettings.tsx:286
 msgid "Name:"
 msgstr "Name:"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:407
+#: src/components/settings/WebAnalyticsSettings.tsx:379
 msgid "Naming a slot renames it everywhere it appears: dashboards, the explore picker and attribution rules."
 msgstr "Naming a slot renames it everywhere it appears: dashboards, the explore picker and attribution rules."
 
@@ -7447,7 +7447,7 @@ msgstr "New Theme"
 msgid "New Window"
 msgstr "New Window"
 
-#: src/layouts/WorkspaceLayout.tsx:624
+#: src/layouts/WorkspaceLayout.tsx:647
 #: src/pages/CreateWorkspacePage.tsx:104
 msgid "New workspace"
 msgstr "New workspace"
@@ -7938,16 +7938,16 @@ msgstr "Not in List"
 msgid "Not now"
 msgstr "Not now"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:266
+#: src/components/settings/WebAnalyticsSettings.tsx:238
 msgid "Not resolved"
 msgstr "Not resolved"
 
 #: src/components/contacts/InlineEditableField.tsx:144
-#: src/components/settings/BlogSettings.tsx:222
-#: src/components/settings/BlogSettings.tsx:226
-#: src/components/settings/GeneralSettings.tsx:111
-#: src/components/settings/GeneralSettings.tsx:115
-#: src/components/settings/GeneralSettings.tsx:126
+#: src/components/settings/BlogSettings.tsx:242
+#: src/components/settings/BlogSettings.tsx:246
+#: src/components/settings/GeneralSettings.tsx:130
+#: src/components/settings/GeneralSettings.tsx:134
+#: src/components/settings/GeneralSettings.tsx:145
 #: src/components/settings/SMTPBridgeSettings.tsx:42
 #: src/components/settings/SMTPBridgeSettings.tsx:46
 #: src/components/templates/TemplatePreviewDrawer.tsx:300
@@ -8021,11 +8021,11 @@ msgstr "Number"
 #~ msgid "Number of decimals kept. Two decimals is roughly one kilometer."
 #~ msgstr "Number of decimals kept. Two decimals is roughly one kilometer."
 
-#: src/components/settings/BlogSettings.tsx:378
+#: src/components/settings/BlogSettings.tsx:401
 msgid "Number of posts to display per page on category pages"
 msgstr "Number of posts to display per page on category pages"
 
-#: src/components/settings/BlogSettings.tsx:362
+#: src/components/settings/BlogSettings.tsx:385
 msgid "Number of posts to display per page on the homepage"
 msgstr "Number of posts to display per page on the homepage"
 
@@ -8087,7 +8087,7 @@ msgstr "Once per contact"
 msgid "Only clicks recorded since per-link tracking was enabled appear here; earlier clicks still count toward the variation's Clicks total."
 msgstr "Only clicks recorded since per-link tracking was enabled appear here; earlier clicks still count toward the variation's Clicks total."
 
-#: src/components/settings/WebAnalyticsSettings.tsx:348
+#: src/components/settings/WebAnalyticsSettings.tsx:320
 msgid "Only goals from visitors identified with identify() are recorded, and only when the address already belongs to a contact. Recorded goals can trigger automations and change segment membership. Obtaining consent to store web activity against a contact is your responsibility."
 msgstr "Only goals from visitors identified with identify() are recorded, and only when the address already belongs to a contact. Recorded goals can trigger automations and change segment membership. Obtaining consent to store web activity against a contact is your responsibility."
 
@@ -8326,7 +8326,7 @@ msgstr "Partitions already rewritten keep their new values."
 msgid "Password"
 msgstr "Password"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:429
+#: src/components/settings/WebAnalyticsSettings.tsx:401
 msgid "Paste this snippet before the closing </head> tag of your website."
 msgstr "Paste this snippet before the closing </head> tag of your website."
 
@@ -8495,7 +8495,7 @@ msgstr "Please check the form for errors."
 msgid "Please choose a different segment name"
 msgstr "Please choose a different segment name"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:333
+#: src/components/settings/WebAnalyticsSettings.tsx:305
 msgid "Please enter a bounce threshold"
 msgstr "Please enter a bounce threshold"
 
@@ -8572,8 +8572,8 @@ msgstr "Please enter a valid email!"
 msgid "Please enter a valid image URL"
 msgstr "Please enter a valid image URL"
 
-#: src/components/settings/GeneralSettings.tsx:180
-#: src/components/settings/GeneralSettings.tsx:244
+#: src/components/settings/GeneralSettings.tsx:202
+#: src/components/settings/GeneralSettings.tsx:266
 #: src/components/settings/LogoInput.tsx:27
 #: src/components/settings/WebhooksSettings.tsx:235
 #: src/pages/CreateWorkspacePage.tsx:168
@@ -8621,7 +8621,7 @@ msgstr "Please enter integration name"
 msgid "Please enter reading time"
 msgstr "Please enter reading time"
 
-#: src/components/settings/GeneralSettings.tsx:172
+#: src/components/settings/GeneralSettings.tsx:194
 msgid "Please enter workspace name"
 msgstr "Please enter workspace name"
 
@@ -8677,8 +8677,8 @@ msgstr "Please select a list for unsubscribe operation"
 msgid "Please select a model"
 msgstr "Please select a model"
 
-#: src/components/settings/BlogSettings.tsx:363
-#: src/components/settings/BlogSettings.tsx:379
+#: src/components/settings/BlogSettings.tsx:386
+#: src/components/settings/BlogSettings.tsx:402
 msgid "Please select a page size"
 msgstr "Please select a page size"
 
@@ -8702,7 +8702,7 @@ msgstr "Please select a time"
 
 #: src/components/blog/PublishModal.tsx:188
 #: src/components/broadcasts/SendOrScheduleModal.tsx:269
-#: src/components/settings/GeneralSettings.tsx:190
+#: src/components/settings/GeneralSettings.tsx:212
 msgid "Please select a timezone"
 msgstr "Please select a timezone"
 
@@ -8804,11 +8804,11 @@ msgstr "Postmark Message Stream ID (e.g. \"outbound\" for transactional, \"broad
 msgid "Posts in {0}"
 msgstr "Posts in {0}"
 
-#: src/components/settings/BlogSettings.tsx:377
+#: src/components/settings/BlogSettings.tsx:400
 msgid "Posts on category pages"
 msgstr "Posts on category pages"
 
-#: src/components/settings/BlogSettings.tsx:361
+#: src/components/settings/BlogSettings.tsx:384
 msgid "Posts on homepage"
 msgstr "Posts on homepage"
 
@@ -9213,15 +9213,15 @@ msgstr "Recommended: 150-160 characters"
 msgid "Recommended: 50-60 characters"
 msgstr "Recommended: 50-60 characters"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:369
+#: src/components/settings/WebAnalyticsSettings.tsx:341
 msgid "Record the city of visitors"
 msgstr "Record the city of visitors"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:375
+#: src/components/settings/WebAnalyticsSettings.tsx:347
 msgid "Record the region or state of visitors"
 msgstr "Record the region or state of visitors"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:346
+#: src/components/settings/WebAnalyticsSettings.tsx:318
 msgid "Record web goals on the contact timeline"
 msgstr "Record web goals on the contact timeline"
 
@@ -9285,7 +9285,7 @@ msgstr "Regenerate secret?"
 msgid "Region"
 msgstr "Region"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:387
+#: src/components/settings/WebAnalyticsSettings.tsx:359
 msgid "Regional (~11km precision)"
 msgstr "Regional (~11km precision)"
 
@@ -9420,7 +9420,7 @@ msgstr "Reply To:"
 msgid "Reply-To"
 msgstr "Reply-To"
 
-#: src/layouts/WorkspaceLayout.tsx:659
+#: src/layouts/WorkspaceLayout.tsx:682
 msgid "Report An Issue"
 msgstr "Report An Issue"
 
@@ -9498,7 +9498,7 @@ msgstr "Reset translation"
 #~ msgid "Resolve visitor locations (country)"
 #~ msgstr "Resolve visitor locations (country)"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:266
+#: src/components/settings/WebAnalyticsSettings.tsx:238
 msgid "Resolved"
 msgstr "Resolved"
 
@@ -9621,7 +9621,7 @@ msgstr "Round"
 msgid "rows"
 msgstr "rows"
 
-#: src/components/settings/BlogSettings.tsx:394
+#: src/components/settings/BlogSettings.tsx:417
 msgid "RSS / Feeds"
 msgstr "RSS / Feeds"
 
@@ -9768,9 +9768,7 @@ msgstr "Save Block"
 #: src/components/email_builder/blocks/MjStyleBlock.tsx:158
 #: src/components/email_builder/ui/CodeDrawerInput.tsx:142
 #: src/components/email_builder/ui/CodeDrawerInput.tsx:182
-#: src/components/settings/BlogSettings.tsx:444
-#: src/components/settings/GeneralSettings.tsx:299
-#: src/components/settings/WebAnalyticsSettings.tsx:463
+#: src/components/settings/SettingsSaveBar.tsx:87
 msgid "Save Changes"
 msgstr "Save Changes"
 
@@ -9948,8 +9946,8 @@ msgstr "Segments"
 
 #: src/components/automations/nodes/EmailNode.tsx:48
 #: src/components/file_manager/fileManager.tsx:976
-#: src/components/settings/BlogSettings.tsx:336
-#: src/components/settings/BlogSettings.tsx:352
+#: src/components/settings/BlogSettings.tsx:359
+#: src/components/settings/BlogSettings.tsx:375
 #: src/components/templates/TemplateSelectorInput.tsx:238
 #: src/components/web_analytics/explore/ExploreTemplates.tsx:153
 #: src/pages/BroadcastsPage.tsx:946
@@ -10072,7 +10070,7 @@ msgstr "Select columns"
 msgid "Select confirmation email template"
 msgstr "Select confirmation email template"
 
-#: src/components/settings/BlogSettings.tsx:421
+#: src/components/settings/BlogSettings.tsx:444
 msgid "Select content mode"
 msgstr "Select content mode"
 
@@ -10112,7 +10110,7 @@ msgstr "Select event"
 msgid "Select event type to test:"
 msgstr "Select event type to test:"
 
-#: src/components/settings/BlogSettings.tsx:406
+#: src/components/settings/BlogSettings.tsx:429
 msgid "Select feed size"
 msgstr "Select feed size"
 
@@ -10170,8 +10168,8 @@ msgstr "Select lists to add contacts to"
 msgid "Select OAuth2 Provider"
 msgstr "Select OAuth2 Provider"
 
-#: src/components/settings/BlogSettings.tsx:365
-#: src/components/settings/BlogSettings.tsx:381
+#: src/components/settings/BlogSettings.tsx:388
+#: src/components/settings/BlogSettings.tsx:404
 msgid "Select page size"
 msgstr "Select page size"
 
@@ -10187,7 +10185,7 @@ msgstr "Select status"
 msgid "Select storage provider"
 msgstr "Select storage provider"
 
-#: src/components/settings/GeneralSettings.tsx:205
+#: src/components/settings/GeneralSettings.tsx:227
 msgid "Select supported languages"
 msgstr "Select supported languages"
 
@@ -10252,7 +10250,7 @@ msgstr "Select which segment this trigger applies to"
 msgid "Select Winner"
 msgstr "Select Winner"
 
-#: src/layouts/WorkspaceLayout.tsx:596
+#: src/layouts/WorkspaceLayout.tsx:619
 #: src/pages/DashboardPage.tsx:31
 msgid "Select workspace"
 msgstr "Select workspace"
@@ -10461,7 +10459,7 @@ msgstr "Sessions (change %)"
 msgid "Sessions (previous)"
 msgstr "Sessions (previous)"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:332
+#: src/components/settings/WebAnalyticsSettings.tsx:304
 msgid "Sessions with less engaged time than this count as bounces."
 msgstr "Sessions with less engaged time than this count as bounces."
 
@@ -10591,7 +10589,7 @@ msgid "Setting up..."
 msgstr "Setting up..."
 
 #: src/components/settings/SettingsSidebar.tsx:135
-#: src/layouts/WorkspaceLayout.tsx:479
+#: src/layouts/WorkspaceLayout.tsx:502
 msgid "Settings"
 msgstr "Settings"
 
@@ -10986,7 +10984,7 @@ msgstr "Storage settings (Read-only mode)"
 #~ msgid "Store city"
 #~ msgstr "Store city"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:368
+#: src/components/settings/WebAnalyticsSettings.tsx:340
 msgid "Store city name"
 msgstr "Store city name"
 
@@ -10994,7 +10992,7 @@ msgstr "Store city name"
 #~ msgid "Store region"
 #~ msgstr "Store region"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:374
+#: src/components/settings/WebAnalyticsSettings.tsx:346
 msgid "Store region/state name"
 msgstr "Store region/state name"
 
@@ -11125,7 +11123,7 @@ msgstr "Successfully processed {successful} contacts"
 msgid "Successfully signed in"
 msgstr "Successfully signed in"
 
-#: src/components/settings/BlogSettings.tsx:418
+#: src/components/settings/BlogSettings.tsx:441
 msgid "Summary-only feed"
 msgstr "Summary-only feed"
 
@@ -11137,7 +11135,7 @@ msgstr "Supabase integration saved successfully"
 msgid "Superscript"
 msgstr "Superscript"
 
-#: src/components/settings/GeneralSettings.tsx:197
+#: src/components/settings/GeneralSettings.tsx:219
 msgid "Supported Languages"
 msgstr "Supported Languages"
 
@@ -11315,7 +11313,7 @@ msgstr "Template Variables:"
 msgid "Template:"
 msgstr "Template:"
 
-#: src/layouts/WorkspaceLayout.tsx:260
+#: src/layouts/WorkspaceLayout.tsx:283
 #: src/pages/TemplatesPage.tsx:404
 msgid "Templates"
 msgstr "Templates"
@@ -11493,7 +11491,7 @@ msgstr "Text Transform"
 msgid "The"
 msgstr "The"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:439
+#: src/components/settings/WebAnalyticsSettings.tsx:411
 msgid "The address must already belong to a contact: identifying someone who is not one records nothing, by design. Visitors arriving from a tracked email link are identified automatically, with no code."
 msgstr "The address must already belong to a contact: identifying someone who is not one records nothing, by design. Visitors arriving from a tracked email link are identified automatically, with no code."
 
@@ -11578,11 +11576,11 @@ msgstr "The hostname your server identifies itself as when connecting to the SMT
 msgid "The last backfill failed"
 msgstr "The last backfill failed"
 
-#: src/components/settings/BlogSettings.tsx:320
+#: src/components/settings/BlogSettings.tsx:343
 msgid "The main title for your blog"
 msgstr "The main title for your blog"
 
-#: src/components/settings/GeneralSettings.tsx:219
+#: src/components/settings/GeneralSettings.tsx:241
 msgid "The primary language for template content. Translations are stored for other languages."
 msgstr "The primary language for template content. Translations are stored for other languages."
 
@@ -11760,7 +11758,7 @@ msgstr "This is your visual email editor. Click on any element in your email to 
 #~ msgid "This list does two things. It filters incoming beats — other origins are silently ignored, and leaving it empty accepts every origin. It also gates email-click identification: a tracked link only carries an identity token for a domain listed here, so while this is empty no email link can identify a contact. Use *.example.com to cover both example.com and its subdomains — example.com on its own does not match www.example.com."
 #~ msgstr "This list does two things. It filters incoming beats — other origins are silently ignored, and leaving it empty accepts every origin. It also gates email-click identification: a tracked link only carries an identity token for a domain listed here, so while this is empty no email link can identify a contact. Use *.example.com to cover both example.com and its subdomains — example.com on its own does not match www.example.com."
 
-#: src/components/settings/WebAnalyticsSettings.tsx:301
+#: src/components/settings/WebAnalyticsSettings.tsx:273
 msgid "This list does two things. It filters incoming beats — other origins are silently ignored. It also gates email-click identification: a tracked link only carries an identity token for a domain listed here, so while this is empty no email link can identify a contact. Use *.example.com to cover both example.com and its subdomains — example.com on its own does not match www.example.com."
 msgstr "This list does two things. It filters incoming beats — other origins are silently ignored. It also gates email-click identification: a tracked link only carries an identity token for a domain listed here, so while this is empty no email link can identify a contact. Use *.example.com to cover both example.com and its subdomains — example.com on its own does not match www.example.com."
 
@@ -11928,8 +11926,8 @@ msgstr "Timestamp"
 #: src/components/broadcasts/SendOrScheduleModal.tsx:265
 #: src/components/contacts/ContactDetailsDrawer.tsx:451
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:95
-#: src/components/settings/GeneralSettings.tsx:130
-#: src/components/settings/GeneralSettings.tsx:189
+#: src/components/settings/GeneralSettings.tsx:149
+#: src/components/settings/GeneralSettings.tsx:211
 #: src/components/web_analytics/toolbar.tsx:92
 #: src/pages/ContactsPage.tsx:432
 #: src/pages/ContactsPage.tsx:712
@@ -11957,7 +11955,7 @@ msgstr "Tips for fixing these errors:"
 #: src/components/blog/PostsTable.tsx:193
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:407
 #: src/components/email_builder/blocks/MjTitleBlock.tsx:34
-#: src/components/settings/BlogSettings.tsx:221
+#: src/components/settings/BlogSettings.tsx:241
 msgid "Title"
 msgstr "Title"
 
@@ -12114,11 +12112,11 @@ msgstr "Total Contacts"
 msgid "Total Value"
 msgstr "Total Value"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:361
+#: src/components/settings/WebAnalyticsSettings.tsx:333
 msgid "Track visitor country, region, city, and coordinates"
 msgstr "Track visitor country, region, city, and coordinates"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:277
+#: src/components/settings/WebAnalyticsSettings.tsx:249
 msgid "Track website traffic with a first-party script. Beats are stored in this workspace's database, so no data leaves your infrastructure."
 msgstr "Track website traffic with a first-party script. Beats are stored in this workspace's database, so no data leaves your infrastructure."
 
@@ -12150,7 +12148,7 @@ msgstr "Traffic no filter rule has classified"
 
 #: src/components/analytics/EmailMetricsChart.tsx:286
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:408
-#: src/layouts/WorkspaceLayout.tsx:438
+#: src/layouts/WorkspaceLayout.tsx:461
 #: src/pages/TemplatesPage.tsx:126
 msgid "Transactional"
 msgstr "Transactional"
@@ -12247,7 +12245,7 @@ msgstr "type {rendererType} is not implemented"
 msgid "Type {selectedCount} to confirm:"
 msgstr "Type {selectedCount} to confirm:"
 
-#: src/components/settings/GeneralSettings.tsx:262
+#: src/components/settings/GeneralSettings.tsx:284
 #: src/components/timeline/ContactTimeline.tsx:625
 msgid "Type:"
 msgstr "Type:"
@@ -12311,7 +12309,7 @@ msgstr "Unknown"
 msgid "Unknown date"
 msgstr "Unknown date"
 
-#: src/layouts/WorkspaceLayout.tsx:245
+#: src/layouts/WorkspaceLayout.tsx:268
 msgid "Unknown error"
 msgstr "Unknown error"
 
@@ -12697,7 +12695,7 @@ msgstr "Value 2"
 msgid "Value type"
 msgstr "Value type"
 
-#: src/components/settings/GeneralSettings.tsx:277
+#: src/components/settings/GeneralSettings.tsx:299
 msgid "Value:"
 msgstr "Value:"
 
@@ -12789,7 +12787,7 @@ msgstr "View snippet"
 msgid "Visibility"
 msgstr "Visibility"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:265
+#: src/components/settings/WebAnalyticsSettings.tsx:237
 msgid "Visitor locations"
 msgstr "Visitor locations"
 
@@ -12827,10 +12825,10 @@ msgid "We'll automatically detect and use your website's favicon"
 msgstr "We'll automatically detect and use your website's favicon"
 
 #: src/components/settings/SettingsSidebar.tsx:105
-#: src/components/settings/WebAnalyticsSettings.tsx:217
-#: src/components/settings/WebAnalyticsSettings.tsx:227
-#: src/components/settings/WebAnalyticsSettings.tsx:276
-#: src/layouts/WorkspaceLayout.tsx:302
+#: src/components/settings/WebAnalyticsSettings.tsx:189
+#: src/components/settings/WebAnalyticsSettings.tsx:199
+#: src/components/settings/WebAnalyticsSettings.tsx:248
+#: src/layouts/WorkspaceLayout.tsx:325
 #: src/pages/BroadcastsPage.tsx:1080
 #: src/pages/WebAnalyticsPage.tsx:74
 msgid "Web Analytics"
@@ -12860,7 +12858,7 @@ msgstr "Web analytics is turned off for this workspace. Turn it on in the worksp
 #~ msgid "Web analytics settings saved"
 #~ msgstr "Web analytics settings saved"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:198
+#: src/components/settings/WebAnalyticsSettings.tsx:170
 msgid "Web analytics settings updated successfully"
 msgstr "Web analytics settings updated successfully"
 
@@ -12924,12 +12922,12 @@ msgstr "Webhooks registered successfully"
 msgid "Website"
 msgstr "Website"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:218
+#: src/components/settings/WebAnalyticsSettings.tsx:190
 msgid "Website traffic tracking settings"
 msgstr "Website traffic tracking settings"
 
-#: src/components/settings/GeneralSettings.tsx:114
-#: src/components/settings/GeneralSettings.tsx:179
+#: src/components/settings/GeneralSettings.tsx:133
+#: src/components/settings/GeneralSettings.tsx:201
 #: src/pages/CreateWorkspacePage.tsx:163
 msgid "Website URL"
 msgstr "Website URL"
@@ -12951,7 +12949,7 @@ msgstr "Welcome"
 msgid "Welcome to Email Builder!"
 msgstr "Welcome to Email Builder!"
 
-#: src/components/settings/BlogSettings.tsx:434
+#: src/components/settings/BlogSettings.tsx:457
 msgid "Welcome to my blog where I share insights about..."
 msgstr "Welcome to my blog where I share insights about..."
 
@@ -12959,7 +12957,7 @@ msgstr "Welcome to my blog where I share insights about..."
 msgid "What gets exported"
 msgstr "What gets exported"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:293
+#: src/components/settings/WebAnalyticsSettings.tsx:265
 msgid "When disabled, incoming beats are rejected and the dashboards stop updating."
 msgstr "When disabled, incoming beats are rejected and the dashboards stop updating."
 
@@ -12967,7 +12965,7 @@ msgstr "When disabled, incoming beats are rejected and the dashboards stop updat
 msgid "When disabled, links in this notification are never rewritten: no click and open tracking and no UTM parameters."
 msgstr "When disabled, links in this notification are never rewritten: no click and open tracking and no UTM parameters."
 
-#: src/components/settings/GeneralSettings.tsx:234
+#: src/components/settings/GeneralSettings.tsx:256
 msgid "When enabled, links in the email will be tracked for opens and clicks"
 msgstr "When enabled, links in the email will be tracked for opens and clicks"
 
@@ -12975,7 +12973,7 @@ msgstr "When enabled, links in the email will be tracked for opens and clicks"
 msgid "When enabled, subscribers must confirm their subscription via email before being added to the list"
 msgstr "When enabled, subscribers must confirm their subscription via email before being added to the list"
 
-#: src/components/settings/BlogSettings.tsx:419
+#: src/components/settings/BlogSettings.tsx:442
 msgid "When enabled, the feed includes only excerpts instead of full article content"
 msgstr "When enabled, the feed includes only excerpts instead of full article content"
 
@@ -13089,12 +13087,12 @@ msgstr "Workspace Invitation"
 msgid "Workspace limit reached. Please upgrade your plan to create more workspaces."
 msgstr "Workspace limit reached. Please upgrade your plan to create more workspaces."
 
-#: src/components/settings/GeneralSettings.tsx:122
+#: src/components/settings/GeneralSettings.tsx:141
 msgid "Workspace logo"
 msgstr "Workspace logo"
 
-#: src/components/settings/GeneralSettings.tsx:110
-#: src/components/settings/GeneralSettings.tsx:171
+#: src/components/settings/GeneralSettings.tsx:129
+#: src/components/settings/GeneralSettings.tsx:193
 #: src/pages/CreateWorkspacePage.tsx:124
 msgid "Workspace Name"
 msgstr "Workspace Name"
@@ -13103,14 +13101,14 @@ msgstr "Workspace Name"
 msgid "Workspace name must be at least 3 characters long"
 msgstr "Workspace name must be at least 3 characters long"
 
-#: src/layouts/WorkspaceLayout.tsx:224
+#: src/layouts/WorkspaceLayout.tsx:247
 #: src/pages/AnalyticsPage.tsx:68
 #: src/pages/FileManagerPage.tsx:56
 msgid "Workspace not found"
 msgstr "Workspace not found"
 
-#: src/components/settings/GeneralSettings.tsx:80
-#: src/layouts/WorkspaceLayout.tsx:242
+#: src/components/settings/GeneralSettings.tsx:99
+#: src/layouts/WorkspaceLayout.tsx:265
 msgid "Workspace settings updated successfully"
 msgstr "Workspace settings updated successfully"
 
@@ -13276,7 +13274,7 @@ msgstr "You don't have write permission for templates"
 msgid "You don't have write permission for transactional notifications"
 msgstr "You don't have write permission for transactional notifications"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:453
+#: src/components/settings/SettingsSaveBar.tsx:82
 msgid "You have unsaved changes"
 msgstr "You have unsaved changes"
 
@@ -13294,7 +13292,7 @@ msgstr "You have unsaved changes. Are you sure you want to close?"
 msgid "You have unsaved changes. Are you sure you want to close? Your changes will be lost."
 msgstr "You have unsaved changes. Are you sure you want to close? Your changes will be lost."
 
-#: src/components/settings/BlogSettings.tsx:252
+#: src/components/settings/BlogSettings.tsx:272
 msgid "You must configure a Custom Endpoint URL in General Settings above before enabling the blog."
 msgstr "You must configure a Custom Endpoint URL in General Settings above before enabling the blog."
 
@@ -13316,6 +13314,10 @@ msgstr "You've been invited to join"
 msgid "Your AWS credentials cannot create SES tenants. Grant ses:CreateTenant and ses:CreateTenantResourceAssociation, then save again."
 msgstr "Your AWS credentials cannot create SES tenants. Grant ses:CreateTenant and ses:CreateTenantResourceAssociation, then save again."
 
+#: src/components/settings/BlogSettings.tsx:493
+msgid "Your blog settings have not been saved. Leaving this page discards them."
+msgstr "Your blog settings have not been saved. Leaving this page discards them."
+
 #: src/components/file_manager/buttonSettings.tsx:215
 msgid "Your files can be uploaded to any S3 compatible storage."
 msgstr "Your files can be uploaded to any S3 compatible storage."
@@ -13324,7 +13326,7 @@ msgstr "Your files can be uploaded to any S3 compatible storage."
 msgid "Your Notifuse instance has been successfully configured."
 msgstr "Your Notifuse instance has been successfully configured."
 
-#: src/components/settings/WebAnalyticsSettings.tsx:478
+#: src/components/settings/WebAnalyticsSettings.tsx:420
 msgid "Your web analytics settings have not been saved. Leaving this page discards them."
 msgstr "Your web analytics settings have not been saved. Leaving this page discards them."
 
@@ -13339,6 +13341,10 @@ msgstr "Your workspace API email (the email associated with your API key)"
 #: src/components/transactional/ApiCommandModal.tsx:538
 msgid "Your workspace API key"
 msgstr "Your workspace API key"
+
+#: src/components/settings/GeneralSettings.tsx:326
+msgid "Your workspace settings have not been saved. Leaving this page discards them."
+msgstr "Your workspace settings have not been saved. Leaving this page discards them."
 
 #: src/components/file_manager/fileManager.tsx:784
 msgid "Zip"

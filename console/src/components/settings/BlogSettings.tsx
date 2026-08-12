@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Button, Form, App, Descriptions, Input, Divider, Select, Row, Col } from 'antd'
 import {
   CheckCircleOutlined,
@@ -10,6 +10,7 @@ import { useLingui } from '@lingui/react/macro'
 import { Workspace } from '../../services/api/types'
 import { workspaceService } from '../../services/api/workspace'
 import { SEOSettingsForm } from '../seo/SEOSettingsForm'
+import { SettingsSaveBar } from './SettingsSaveBar'
 import { SettingsSectionHeader } from './SettingsSectionHeader'
 import { RecentThemesTable } from '../blog/RecentThemesTable'
 import { blogThemesApi } from '../../services/api/blog'
@@ -22,11 +23,69 @@ interface BlogSettingsProps {
   canManage: boolean
 }
 
+interface BlogSettingsFormValues {
+  blog_enabled?: boolean
+  blog_settings?: {
+    title?: string
+    logo_url?: string
+    icon_url?: string
+    home_page_size?: number
+    category_page_size?: number
+    feed_max_items?: number
+    feed_summary_only?: boolean
+    seo?: {
+      meta_title?: string
+      meta_description?: string
+      og_title?: string
+      og_description?: string
+      og_image?: string
+      canonical_url?: string
+      keywords?: string[]
+      meta_robots?: string
+    }
+  }
+}
+
+/**
+ * The stored blog settings as the form holds them. Both the initial load and
+ * Discard read from here, so "restore what was saved" can never drift from
+ * "what was loaded".
+ *
+ * Every field SEOSettingsForm renders has to be listed: the save replaces
+ * blog_settings wholesale, so a field the form shows but this builder forgets
+ * reaches the backend empty and wipes whatever was stored.
+ */
+function toFormValues(workspace: Workspace | null): BlogSettingsFormValues {
+  const stored = workspace?.settings.blog_settings
+  return {
+    blog_enabled: workspace?.settings.blog_enabled || false,
+    blog_settings: {
+      title: stored?.title || '',
+      logo_url: stored?.logo_url || '',
+      icon_url: stored?.icon_url || '',
+      home_page_size: stored?.home_page_size || 20,
+      category_page_size: stored?.category_page_size || 20,
+      feed_max_items: stored?.feed_max_items || 20,
+      feed_summary_only: stored?.feed_summary_only || false,
+      seo: {
+        meta_title: stored?.seo?.meta_title || '',
+        meta_description: stored?.seo?.meta_description || '',
+        og_title: stored?.seo?.og_title || '',
+        og_description: stored?.seo?.og_description || '',
+        og_image: stored?.seo?.og_image || '',
+        canonical_url: stored?.seo?.canonical_url || '',
+        keywords: stored?.seo?.keywords || [],
+        meta_robots: (stored?.seo?.meta_robots ?? 'index,follow') as string
+      }
+    }
+  }
+}
+
 export function BlogSettings({ workspace, onWorkspaceUpdate, canManage }: BlogSettingsProps) {
   const { t } = useLingui()
   const [savingSettings, setSavingSettings] = useState(false)
   const [formTouched, setFormTouched] = useState(false)
-  const [form] = Form.useForm()
+  const [form] = Form.useForm<BlogSettingsFormValues>()
   const { message, modal } = App.useApp()
   const queryClient = useQueryClient()
 
@@ -43,51 +102,18 @@ export function BlogSettings({ workspace, onWorkspaceUpdate, canManage }: BlogSe
     if (!canManage) return
 
     // Set form values from workspace data whenever workspace changes
-    form.setFieldsValue({
-      blog_enabled: workspace?.settings.blog_enabled || false,
-      blog_settings: {
-        title: workspace?.settings.blog_settings?.title || '',
-        logo_url: workspace?.settings.blog_settings?.logo_url || '',
-        icon_url: workspace?.settings.blog_settings?.icon_url || '',
-        home_page_size: workspace?.settings.blog_settings?.home_page_size || 20,
-        category_page_size: workspace?.settings.blog_settings?.category_page_size || 20,
-        feed_max_items: workspace?.settings.blog_settings?.feed_max_items || 20,
-        feed_summary_only: workspace?.settings.blog_settings?.feed_summary_only || false,
-        seo: {
-          meta_title: workspace?.settings.blog_settings?.seo?.meta_title || '',
-          meta_description: workspace?.settings.blog_settings?.seo?.meta_description || '',
-          og_title: workspace?.settings.blog_settings?.seo?.og_title || '',
-          og_description: workspace?.settings.blog_settings?.seo?.og_description || '',
-          og_image: workspace?.settings.blog_settings?.seo?.og_image || '',
-          keywords: workspace?.settings.blog_settings?.seo?.keywords || [],
-          meta_robots: (workspace?.settings.blog_settings?.seo?.meta_robots ?? 'index,follow') as string
-        }
-      }
-    })
+    form.setFieldsValue(toFormValues(workspace))
     setFormTouched(false)
   }, [workspace, form, canManage])
 
-  const handleSaveSettings = async (values: {
-    blog_enabled?: boolean
-    blog_settings?: {
-      title?: string
-      logo_url?: string
-      icon_url?: string
-      home_page_size?: number
-      category_page_size?: number
-      feed_max_items?: number
-      feed_summary_only?: boolean
-      seo?: {
-        meta_title?: string
-        meta_description?: string
-        og_title?: string
-        og_description?: string
-        og_image?: string
-        keywords?: string[]
-        meta_robots?: string
-      }
-    }
-  }) => {
+  // resetFields() would empty the form: the values arrive through
+  // setFieldsValue above, so the form has no initialValues to reset to.
+  const handleDiscard = useCallback(() => {
+    form.setFieldsValue(toFormValues(workspace))
+    setFormTouched(false)
+  }, [form, workspace])
+
+  const handleSaveSettings = async (values: BlogSettingsFormValues) => {
     if (!workspace) return
 
     setSavingSettings(true)
@@ -265,6 +291,9 @@ export function BlogSettings({ workspace, onWorkspaceUpdate, canManage }: BlogSe
         layout="vertical"
         onFinish={handleSaveSettings}
         onValuesChange={handleFormChange}
+        // The save control floats over the page, so a rejected field can sit
+        // anywhere off screen when it is pressed.
+        scrollToFirstError
       >
         {/* Show enable button only when blog is disabled */}
         {!workspace?.settings.blog_enabled && (
@@ -433,16 +462,6 @@ export function BlogSettings({ workspace, onWorkspaceUpdate, canManage }: BlogSe
               titlePlaceholder={t`My Amazing Blog`}
               descriptionPlaceholder={t`Welcome to my blog where I share insights about...`}
             />
-
-            <Button
-              type="primary"
-              htmlType="submit"
-              block
-              loading={savingSettings}
-              disabled={!formTouched}
-            >
-              {t`Save Changes`}
-            </Button>
           </>
         )}
       </Form>
@@ -470,6 +489,15 @@ export function BlogSettings({ workspace, onWorkspaceUpdate, canManage }: BlogSe
           </div>
         </>
       )}
+
+      {/* Last child on purpose — see SettingsSaveBar for why. */}
+      <SettingsSaveBar
+        dirty={canManage && formTouched}
+        saving={savingSettings}
+        onSave={() => form.submit()}
+        onDiscard={handleDiscard}
+        leaveWarning={t`Your blog settings have not been saved. Leaving this page discards them.`}
+      />
     </>
   )
 }

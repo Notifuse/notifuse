@@ -20,6 +20,12 @@ vi.mock('../../services/api/workspace', () => ({
   }
 }))
 
+// The save bar guards navigation away from unsaved edits; the suite renders the
+// section outside a router, so the blocker is stubbed idle.
+vi.mock('@tanstack/react-router', () => ({
+  useBlocker: () => ({ status: 'idle', proceed: undefined, reset: undefined })
+}))
+
 vi.mock('../../services/api/blog', () => ({
   blogThemesApi: {
     list: vi.fn().mockResolvedValue({ themes: [{ version: 1 }] }),
@@ -36,9 +42,9 @@ vi.mock('../blog/RecentThemesTable', () => ({
 vi.mock('../common/ImageURLInput', () => ({
   ImageURLInput: () => <input data-testid="image-url-input" />
 }))
-vi.mock('../seo/SEOSettingsForm', () => ({
-  SEOSettingsForm: () => <div data-testid="seo-form" />
-}))
+// SEOSettingsForm is rendered for real: stubbing it hid the fact that the
+// section loads the SEO block field by field, so a field the form renders but
+// the loader forgets is blanked on the next save.
 
 // Empty messages: the Lingui macro falls back to the source text as the message.
 i18n.loadAndActivate({ locale: 'en', messages: {} })
@@ -87,7 +93,109 @@ describe('BlogSettings', () => {
 
   it('renders the editable form when the user can manage and the blog is enabled', () => {
     renderComponent(true)
-    expect(screen.getByRole('button', { name: /Save Changes/i })).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('My Blog WS')).toBeInTheDocument()
+  })
+
+  it('holds the save bar back until the form is touched', () => {
+    renderComponent(true)
+    expect(screen.queryByRole('button', { name: /Save Changes/i })).toBeNull()
+    expect(screen.queryByText('You have unsaved changes')).toBeNull()
+  })
+
+  it('raises the save bar as soon as a field changes', () => {
+    renderComponent(true)
+
+    fireEvent.change(screen.getByPlaceholderText('My Blog WS'), {
+      target: { value: 'New Blog Title' }
+    })
+
+    expect(screen.getByText('You have unsaved changes')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Save Changes/i })).toBeEnabled()
+  })
+
+  it('restores the stored values on Discard instead of emptying the form', () => {
+    // resetFields() would blank the form: the values are pushed in through
+    // setFieldsValue, so there are no initialValues to fall back on.
+    renderComponent(true)
+
+    const titleInput = screen.getByPlaceholderText('My Blog WS')
+    fireEvent.change(titleInput, { target: { value: 'New Blog Title' } })
+    fireEvent.click(screen.getByRole('button', { name: /^Discard$/i }))
+
+    expect(titleInput).toHaveValue('Existing Title')
+    expect(screen.queryByText('You have unsaved changes')).toBeNull()
+  })
+
+  it('loads the stored canonical URL and keeps it on save', async () => {
+    // Every SEO key the form renders has to be listed in the loader: the save
+    // replaces blog_settings wholesale, so a field left unloaded reaches the
+    // backend empty and wipes what was stored.
+    renderComponent(
+      true,
+      makeWorkspace({
+        blog_settings: {
+          title: 'Existing Title',
+          seo: { canonical_url: 'https://example.com/canonical' }
+        }
+      })
+    )
+
+    expect(screen.getByPlaceholderText('https://example.com/original-post')).toHaveValue(
+      'https://example.com/canonical'
+    )
+
+    fireEvent.change(screen.getByPlaceholderText('My Blog WS'), {
+      target: { value: 'New Blog Title' }
+    })
+    fireEvent.click(screen.getByRole('button', { name: /Save Changes/i }))
+
+    await waitFor(() =>
+      expect(workspaceService.setBlogSettings).toHaveBeenCalledWith(
+        expect.objectContaining({
+          blog_settings: expect.objectContaining({
+            seo: expect.objectContaining({ canonical_url: 'https://example.com/canonical' })
+          })
+        })
+      )
+    )
+  })
+
+  it('restores the stored canonical URL on Discard', () => {
+    renderComponent(
+      true,
+      makeWorkspace({
+        blog_settings: {
+          title: 'Existing Title',
+          seo: { canonical_url: 'https://example.com/canonical' }
+        }
+      })
+    )
+
+    const canonical = screen.getByPlaceholderText('https://example.com/original-post')
+    fireEvent.change(canonical, { target: { value: 'https://example.com/other' } })
+    fireEvent.click(screen.getByRole('button', { name: /^Discard$/i }))
+
+    expect(canonical).toHaveValue('https://example.com/canonical')
+  })
+
+  it('saves on Cmd/Ctrl+S once there are changes to save', async () => {
+    renderComponent(true)
+
+    fireEvent.keyDown(window, { key: 's', metaKey: true })
+    expect(workspaceService.setBlogSettings).not.toHaveBeenCalled()
+
+    fireEvent.change(screen.getByPlaceholderText('My Blog WS'), {
+      target: { value: 'New Blog Title' }
+    })
+    fireEvent.keyDown(window, { key: 's', metaKey: true })
+
+    await waitFor(() =>
+      expect(workspaceService.setBlogSettings).toHaveBeenCalledWith(
+        expect.objectContaining({
+          blog_settings: expect.objectContaining({ title: 'New Blog Title' })
+        })
+      )
+    )
   })
 
   it('saves via setBlogSettings (not workspace.update)', async () => {

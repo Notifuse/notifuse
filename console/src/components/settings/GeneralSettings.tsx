@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { Button, Form, Input, Select, App, Switch, Descriptions } from 'antd'
+import { useCallback, useEffect, useState } from 'react'
+import { Form, Input, Select, App, Switch, Descriptions } from 'antd'
 import { CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons'
 import { useLingui } from '@lingui/react/macro'
 import { Workspace } from '../../services/api/types'
@@ -7,6 +7,7 @@ import { workspaceService } from '../../services/api/workspace'
 import { TIMEZONE_OPTIONS } from '../../lib/timezones'
 import { LANGUAGE_OPTIONS } from '../../lib/languages'
 import { LogoInput } from './LogoInput'
+import { SettingsSaveBar } from './SettingsSaveBar'
 import { SettingsSectionHeader } from './SettingsSectionHeader'
 
 interface GeneralSettingsProps {
@@ -15,11 +16,40 @@ interface GeneralSettingsProps {
   isOwner: boolean
 }
 
+interface GeneralSettingsFormValues {
+  name: string
+  website_url?: string
+  logo_url?: string
+  timezone: string
+  email_tracking_enabled: boolean
+  custom_endpoint_url?: string
+  languages?: string[]
+  default_language?: string
+}
+
+/**
+ * The stored workspace as the form holds it. Both the initial load and Discard
+ * read from here, so "restore what was saved" can never drift from "what was
+ * loaded".
+ */
+function toFormValues(workspace: Workspace | null): GeneralSettingsFormValues {
+  return {
+    name: workspace?.name || '',
+    website_url: workspace?.settings.website_url || '',
+    logo_url: workspace?.settings.logo_url || '',
+    timezone: workspace?.settings.timezone || 'UTC',
+    email_tracking_enabled: workspace?.settings.email_tracking_enabled || false,
+    custom_endpoint_url: workspace?.settings.custom_endpoint_url || '',
+    languages: workspace?.settings.languages || ['en'],
+    default_language: workspace?.settings.default_language || 'en'
+  }
+}
+
 export function GeneralSettings({ workspace, onWorkspaceUpdate, isOwner }: GeneralSettingsProps) {
   const { t } = useLingui()
   const [savingSettings, setSavingSettings] = useState(false)
   const [formTouched, setFormTouched] = useState(false)
-  const [form] = Form.useForm()
+  const [form] = Form.useForm<GeneralSettingsFormValues>()
   const { message } = App.useApp()
 
   useEffect(() => {
@@ -27,29 +57,18 @@ export function GeneralSettings({ workspace, onWorkspaceUpdate, isOwner }: Gener
     if (!isOwner) return
 
     // Set form values from workspace data whenever workspace changes
-    form.setFieldsValue({
-      name: workspace?.name || '',
-      website_url: workspace?.settings.website_url || '',
-      logo_url: workspace?.settings.logo_url || '',
-      timezone: workspace?.settings.timezone || 'UTC',
-      email_tracking_enabled: workspace?.settings.email_tracking_enabled || false,
-      custom_endpoint_url: workspace?.settings.custom_endpoint_url || '',
-      languages: workspace?.settings.languages || ['en'],
-      default_language: workspace?.settings.default_language || 'en'
-    })
+    form.setFieldsValue(toFormValues(workspace))
     setFormTouched(false)
   }, [workspace, form, isOwner])
 
-  const handleSaveSettings = async (values: {
-    name: string
-    website_url?: string
-    logo_url?: string
-    timezone: string
-    email_tracking_enabled: boolean
-    custom_endpoint_url?: string
-    languages?: string[]
-    default_language?: string
-  }) => {
+  // resetFields() would empty the form: the values arrive through
+  // setFieldsValue above, so the form has no initialValues to reset to.
+  const handleDiscard = useCallback(() => {
+    form.setFieldsValue(toFormValues(workspace))
+    setFormTouched(false)
+  }, [form, workspace])
+
+  const handleSaveSettings = async (values: GeneralSettingsFormValues) => {
     if (!workspace) return
 
     setSavingSettings(true)
@@ -165,6 +184,9 @@ export function GeneralSettings({ workspace, onWorkspaceUpdate, isOwner }: Gener
         layout="vertical"
         onFinish={handleSaveSettings}
         onValuesChange={handleFormChange}
+        // The save control floats over the page, so a rejected field can sit
+        // anywhere off screen when it is pressed.
+        scrollToFirstError
       >
         <Form.Item
           name="name"
@@ -293,13 +315,16 @@ export function GeneralSettings({ workspace, onWorkspaceUpdate, isOwner }: Gener
         >
           <Input placeholder="https://api.yourdomain.com" />
         </Form.Item>
-
-        <Form.Item>
-          <Button type="primary" htmlType="submit" loading={savingSettings} disabled={!formTouched}>
-            {t`Save Changes`}
-          </Button>
-        </Form.Item>
       </Form>
+
+      {/* Last child on purpose — see SettingsSaveBar for why. */}
+      <SettingsSaveBar
+        dirty={isOwner && formTouched}
+        saving={savingSettings}
+        onSave={() => form.submit()}
+        onDiscard={handleDiscard}
+        leaveWarning={t`Your workspace settings have not been saved. Leaving this page discards them.`}
+      />
     </>
   )
 }

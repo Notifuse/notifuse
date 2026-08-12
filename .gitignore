@@ -37,3 +37,9 @@ integration.test
 # and has no business in the history — they weigh ~60 MB each.
 *.mmdb
 !data/GeoLite2-City.mmdb
+
+plans/web-analytics-staminads-merge-plan.md
+
+plans/web-analytics-demo-fixtures-plan.md
+
+plans/ses-tenant-and-configuration-set-plan.md
