@@ -96,6 +96,21 @@ func (mr *MockEmailQueueRepositoryMockRecorder) DeleteBySourceTx(arg0, arg1, arg
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteBySourceTx", reflect.TypeOf((*MockEmailQueueRepository)(nil).DeleteBySourceTx), arg0, arg1, arg2, arg3)
 }
 
+// DeleteForEmail mocks base method.
+func (m *MockEmailQueueRepository) DeleteForEmail(arg0 context.Context, arg1, arg2 string) (int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteForEmail", arg0, arg1, arg2)
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DeleteForEmail indicates an expected call of DeleteForEmail.
+func (mr *MockEmailQueueRepositoryMockRecorder) DeleteForEmail(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteForEmail", reflect.TypeOf((*MockEmailQueueRepository)(nil).DeleteForEmail), arg0, arg1, arg2)
+}
+
 // Enqueue mocks base method.
 func (m *MockEmailQueueRepository) Enqueue(arg0 context.Context, arg1 string, arg2 []*domain.EmailQueueEntry) error {
 	m.ctrl.T.Helper()

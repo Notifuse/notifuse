@@ -83,10 +83,14 @@ func applyWebGeo(result geoip.Result, settings *domain.WebAnalyticsSettings) dom
 		return domain.WebGeoResult{}
 	}
 	out := domain.WebGeoResult{Country: result.Country}
-	storeRegion, storeCity, precision := true, true, 2
+	storeRegion, storeCity := true, true
 	if settings != nil {
-		storeRegion, storeCity, precision = settings.GeoStoreRegion, settings.GeoStoreCity, settings.GeoCoordsPrecision
+		storeRegion, storeCity = settings.GeoStoreRegion, settings.GeoStoreCity
 	}
+	// Not settings.GeoCoordsPrecision directly: a coordinate is a place name in
+	// another form, so it is capped by the finest name actually stored. See
+	// EffectiveGeoCoordsPrecision.
+	precision := settings.EffectiveGeoCoordsPrecision()
 	if storeRegion {
 		out.Region = result.Region
 	}
@@ -384,6 +388,7 @@ func BuildWebRows(payload *domain.WebTrackPayload, settings *domain.WebAnalytics
 			BeatSeq:     payload.Seq,
 			GoalAt:      correctedMs(ga.Timestamp, skew),
 			GoalValue:   ga.Value,
+			GoalType:    ga.GoalType,
 			Path:        ga.Path,
 			PageNumber:  ga.PageNumber,
 			Properties:  ga.Properties,

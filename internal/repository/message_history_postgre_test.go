@@ -2730,7 +2730,7 @@ func TestMessageHistoryRepository_DeleteForEmail(t *testing.T) {
 			GetConnection(gomock.Any(), workspaceID).
 			Return(db, nil)
 
-		mock.ExpectExec(`UPDATE message_history SET contact_email = \$1, clicked_links = NULL WHERE contact_email = \$2`).
+		mock.ExpectExec(`UPDATE message_history SET contact_email = \$1, clicked_links = NULL, message_data = '\{\}'::jsonb WHERE contact_email = \$2`).
 			WithArgs("DELETED_EMAIL", email).
 			WillReturnResult(sqlmock.NewResult(0, 3)) // 3 rows affected
 
@@ -2743,7 +2743,7 @@ func TestMessageHistoryRepository_DeleteForEmail(t *testing.T) {
 			GetConnection(gomock.Any(), workspaceID).
 			Return(db, nil)
 
-		mock.ExpectExec(`UPDATE message_history SET contact_email = \$1, clicked_links = NULL WHERE contact_email = \$2`).
+		mock.ExpectExec(`UPDATE message_history SET contact_email = \$1, clicked_links = NULL, message_data = '\{\}'::jsonb WHERE contact_email = \$2`).
 			WithArgs("DELETED_EMAIL", email).
 			WillReturnResult(sqlmock.NewResult(0, 0)) // 0 rows affected
 
@@ -2766,7 +2766,7 @@ func TestMessageHistoryRepository_DeleteForEmail(t *testing.T) {
 			GetConnection(gomock.Any(), workspaceID).
 			Return(db, nil)
 
-		mock.ExpectExec(`UPDATE message_history SET contact_email = \$1, clicked_links = NULL WHERE contact_email = \$2`).
+		mock.ExpectExec(`UPDATE message_history SET contact_email = \$1, clicked_links = NULL, message_data = '\{\}'::jsonb WHERE contact_email = \$2`).
 			WithArgs("DELETED_EMAIL", email).
 			WillReturnError(errors.New("execution error"))
 
@@ -2782,7 +2782,7 @@ func TestMessageHistoryRepository_DeleteForEmail(t *testing.T) {
 
 		// Create a result that will error when RowsAffected is called
 		result := sqlmock.NewErrorResult(errors.New("rows affected error"))
-		mock.ExpectExec(`UPDATE message_history SET contact_email = \$1, clicked_links = NULL WHERE contact_email = \$2`).
+		mock.ExpectExec(`UPDATE message_history SET contact_email = \$1, clicked_links = NULL, message_data = '\{\}'::jsonb WHERE contact_email = \$2`).
 			WithArgs("DELETED_EMAIL", email).
 			WillReturnResult(result)
 

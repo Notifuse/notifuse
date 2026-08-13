@@ -270,3 +270,159 @@ func TestMedianInt64(t *testing.T) {
 	assert.Equal(t, int64(10), medianInt64([]int64{10, 10, 10, 1000000}), "one huge outlier must not move the median")
 	assert.Equal(t, int64(2), medianInt64([]int64{1, 2}), "1.5 rounds to 2")
 }
+
+// The goal type is declared by the site and must survive enrichment unchanged.
+// Normalisation already happened during payload validation, so this stage only
+// has to carry the value across — but "only has to carry it" is exactly the kind
+// of step that gets forgotten when a field is added.
+func TestBuildWebRowsCarriesGoalType(t *testing.T) {
+	receivedAt := time.Date(2026, 8, 8, 12, 0, 0, 0, time.UTC)
+	sessionStart := receivedAt.Add(-10 * time.Minute)
+	sessionID := testUUIDv7At(sessionStart)
+
+	payloadWithGoalType := func(goalType string) *domain.WebTrackPayload {
+		sentAt := receivedAt.UnixMilli()
+		return &domain.WebTrackPayload{
+			WorkspaceID: "ws1",
+			SessionID:   sessionID,
+			Seq:         1,
+			CreatedAt:   sessionStart.UnixMilli(),
+			UpdatedAt:   receivedAt.UnixMilli(),
+			SentAt:      &sentAt,
+			SDKVersion:  "1.0.0",
+			Attributes:  &domain.WebSessionAttributes{LandingPage: "https://shop.example.com/"},
+			Actions: []domain.WebTrackAction{
+				{Type: "pageview", Path: "/checkout", PageNumber: 1,
+					EnteredAt: sessionStart.UnixMilli(), ExitedAt: sessionStart.Add(time.Minute).UnixMilli()},
+				{Type: "goal", Name: "purchase", Path: "/checkout", PageNumber: 1, Value: 49.9,
+					GoalType:  goalType,
+					Timestamp: sessionStart.Add(2 * time.Minute).UnixMilli()},
+			},
+		}
+	}
+
+	for _, goalType := range domain.ValidGoalTypes {
+		t.Run(goalType, func(t *testing.T) {
+			_, _, goals, err := BuildWebRows(payloadWithGoalType(goalType), webTestSettings(), geoip.Result{}, receivedAt, nil)
+			require.NoError(t, err)
+			require.Len(t, goals, 1)
+			assert.Equal(t, goalType, goals[0].GoalType)
+		})
+	}
+
+	t.Run("an untyped action reaches the row as empty, never as a guess", func(t *testing.T) {
+		_, _, goals, err := BuildWebRows(payloadWithGoalType(""), webTestSettings(), geoip.Result{}, receivedAt, nil)
+		require.NoError(t, err)
+		require.Len(t, goals, 1)
+		assert.Equal(t, "", goals[0].GoalType,
+			"enrichment must not invent a type; defaulting belongs to validation and to the bridge")
+	})
+}
+
+// TestApplyWebGeoClampsCoordinatesToStoredPlaceNames covers what the existing
+// TestApplyWebGeo does not: the case where the toggles and the precision setting
+// disagree.
+//
+// The old behaviour treated them as independent, so switching "Store city" off
+// while leaving the default precision of 2 — which the console labels "City level
+// (~1km)" — kept storing a city-accurate coordinate. The setting appeared
+// honoured and was not.
+func TestApplyWebGeoClampsCoordinatesToStoredPlaceNames(t *testing.T) {
+	lat, lon := 48.8566, 2.3522
+	raw := geoip.Result{Country: "FR", Region: "Île-de-France", City: "Paris", Latitude: &lat, Longitude: &lon}
+
+	t.Run("city off clamps a city-level precision down to region level", func(t *testing.T) {
+		out := applyWebGeo(raw, &domain.WebAnalyticsSettings{
+			GeoEnabled: true, GeoStoreCity: false, GeoStoreRegion: true, GeoCoordsPrecision: 2,
+		})
+		assert.Empty(t, out.City)
+		require.NotNil(t, out.Latitude)
+		assert.InDelta(t, 48.9, *out.Latitude, 1e-9, "~11km, not the ~1km the raw setting asked for")
+		assert.InDelta(t, 2.4, *out.Longitude, 1e-9)
+	})
+
+	t.Run("city and region off clamp to country level", func(t *testing.T) {
+		out := applyWebGeo(raw, &domain.WebAnalyticsSettings{
+			GeoEnabled: true, GeoStoreCity: false, GeoStoreRegion: false, GeoCoordsPrecision: 2,
+		})
+		assert.Empty(t, out.City)
+		assert.Empty(t, out.Region)
+		require.NotNil(t, out.Latitude)
+		assert.InDelta(t, 49, *out.Latitude, 1e-9)
+	})
+
+	// The guard against over-clamping: a workspace that stores city names has
+	// agreed to city-level detail, and must keep getting it.
+	t.Run("city on keeps the configured precision", func(t *testing.T) {
+		out := applyWebGeo(raw, &domain.WebAnalyticsSettings{
+			GeoEnabled: true, GeoStoreCity: true, GeoStoreRegion: false, GeoCoordsPrecision: 2,
+		})
+		assert.Equal(t, "Paris", out.City)
+		require.NotNil(t, out.Latitude)
+		assert.InDelta(t, 48.86, *out.Latitude, 1e-9)
+	})
+
+	// Coordinates are clamped, never dropped: an empty Live map reads as "nobody
+	// is online", which is a worse bug than a coarse pin.
+	t.Run("coordinates are never removed while geo is on", func(t *testing.T) {
+		out := applyWebGeo(raw, &domain.WebAnalyticsSettings{
+			GeoEnabled: true, GeoStoreCity: false, GeoStoreRegion: false, GeoCoordsPrecision: 0,
+		})
+		require.NotNil(t, out.Latitude, "the Live map still needs a pin")
+		require.NotNil(t, out.Longitude)
+	})
+
+	t.Run("nil settings behave as everything on", func(t *testing.T) {
+		out := applyWebGeo(raw, nil)
+		assert.Equal(t, "Paris", out.City)
+		require.NotNil(t, out.Latitude)
+		assert.InDelta(t, 48.86, *out.Latitude, 1e-9)
+	})
+}
+
+// The clamp has to reach goal rows too. Goals carry their own copy of the geo
+// columns, and they are never re-upserted by a later beat — so a coordinate
+// stored too finely on a goal row stays that way for good.
+func TestBuildWebRowsClampsGeoOnGoalRowsToo(t *testing.T) {
+	receivedAt := time.Date(2026, 8, 8, 12, 0, 0, 0, time.UTC)
+	sessionStart := receivedAt.Add(-10 * time.Minute)
+	sessionID := testUUIDv7At(sessionStart)
+	lat, lon := 48.8566, 2.3522
+	sentAt := receivedAt.UnixMilli()
+
+	payload := &domain.WebTrackPayload{
+		WorkspaceID: "ws1",
+		SessionID:   sessionID,
+		Seq:         1,
+		CreatedAt:   sessionStart.UnixMilli(),
+		UpdatedAt:   receivedAt.UnixMilli(),
+		SentAt:      &sentAt,
+		SDKVersion:  "1.0.0",
+		Attributes:  &domain.WebSessionAttributes{LandingPage: "https://shop.example.com/"},
+		Actions: []domain.WebTrackAction{
+			{Type: "pageview", Path: "/checkout", PageNumber: 1,
+				EnteredAt: sessionStart.UnixMilli(), ExitedAt: sessionStart.Add(time.Minute).UnixMilli()},
+			{Type: "goal", Name: "purchase", Path: "/checkout", PageNumber: 1, GoalType: "purchase",
+				Timestamp: sessionStart.Add(2 * time.Minute).UnixMilli()},
+		},
+	}
+
+	settings := &domain.WebAnalyticsSettings{
+		Enabled: true, GeoEnabled: true,
+		GeoStoreCity: false, GeoStoreRegion: false, GeoCoordsPrecision: 2,
+		Filters: domain.DefaultWebFilters(),
+	}
+	geo := geoip.Result{Country: "FR", Region: "Île-de-France", City: "Paris", Latitude: &lat, Longitude: &lon}
+
+	session, _, goals, err := BuildWebRows(payload, settings, geo, receivedAt, nil)
+	require.NoError(t, err)
+	require.Len(t, goals, 1)
+
+	require.NotNil(t, session.Latitude)
+	assert.InDelta(t, 49, *session.Latitude, 1e-9)
+
+	require.NotNil(t, goals[0].Latitude, "a goal row carries its own geo copy")
+	assert.InDelta(t, 49, *goals[0].Latitude, 1e-9,
+		"goal rows are never re-upserted, so an over-precise coordinate here is permanent")
+	assert.Empty(t, goals[0].City)
+}

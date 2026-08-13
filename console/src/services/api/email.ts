@@ -13,12 +13,20 @@ export const emailService = {
   testProvider: (
     workspaceId: string,
     provider: EmailProvider,
-    to: string
+    to: string,
+    /**
+     * The saved integration being tested, when there is one. Credentials are not
+     * served to clients, so the provider object above carries blanks for them;
+     * the server fills those from this integration. Omit it when testing a
+     * provider that has not been saved — the form still holds what was typed.
+     */
+    integrationId?: string
   ): Promise<TestEmailProviderResponse> => {
     return api.post<TestEmailProviderResponse>('/api/email.testProvider', {
       provider,
       to,
-      workspace_id: workspaceId
+      workspace_id: workspaceId,
+      ...(integrationId ? { integration_id: integrationId } : {})
     })
   }
 }

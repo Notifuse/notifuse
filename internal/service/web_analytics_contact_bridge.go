@@ -15,11 +15,16 @@ import (
 )
 
 const (
-	// webBridgeMaxGoalsPerSession caps how many goals one session may bridge.
-	// /track is public, and a single beat may carry up to WebTrackMaxActions
-	// goals — without a cap, one hostile payload becomes that many timeline
-	// rows, segment-queue entries and automation enrolments.
-	webBridgeMaxGoalsPerSession = 100
+	// webBridgeMaxGoalsPerSessionPerBatch caps how many goals one session may
+	// bridge in a single write. /track is public, and a single beat may carry up
+	// to WebTrackMaxActions goals — without a cap, one hostile payload becomes
+	// that many timeline rows, segment-queue entries and automation enrolments.
+	//
+	// It bounds one write, NOT a session's lifetime total: the counter lives in
+	// EmitGoals and restarts on every batch, so a visit that keeps converting
+	// across many flushes can exceed it overall. Sustained-rate protection is
+	// the rate limiter's job; this only stops a single payload spiking.
+	webBridgeMaxGoalsPerSessionPerBatch = 100
 
 	// webBridgeMaxGoalAge refuses to bridge an old conversion. The SDK's offline
 	// queue can replay a beat hours later, and automations trigger on the INSERT
@@ -89,14 +94,16 @@ func (b *WebAnalyticsContactBridge) EmitGoals(ctx context.Context, workspaceID s
 	accepted := make([]*domain.WebGoal, 0, len(goals))
 	skipped := 0
 
-	// Capped per SESSION, not per flush. A flush spanning many sessions can carry
-	// more than the cap legitimately, and cutting it off there would silently
-	// drop other people's conversions — and, since they are never marked
-	// written, retry them on every subsequent flush forever.
+	// Keyed per SESSION rather than applied to the batch as a whole: a batch
+	// spanning many sessions can carry more than the cap legitimately, and
+	// cutting it off there would silently drop other people's conversions — and,
+	// since they are never marked written, retry them on every flush forever.
+	//
+	// Not persisted, so it restarts on each call — see the constant.
 	perSession := map[string]int{}
 
 	for _, goal := range goals {
-		if perSession[goal.SessionID] >= webBridgeMaxGoalsPerSession {
+		if perSession[goal.SessionID] >= webBridgeMaxGoalsPerSessionPerBatch {
 			skipped++
 			written[goal] = true // a hostile session must not be retried forever
 			continue
@@ -148,7 +155,11 @@ func (b *WebAnalyticsContactBridge) EmitGoals(ctx context.Context, workspaceID s
 	if err := b.eventRepo.BatchInsertNew(ctx, workspaceID, events); err != nil {
 		b.logger.WithField("workspace_id", workspaceID).WithField("error", err.Error()).
 			Error("Failed to bridge web analytics goals into the contact timeline")
-		return written // nothing marked: the whole batch is retried
+		// Only the goals that could have been written are retried. `written`
+		// already carries the ones rejected above — too old, unusable name, over
+		// the cap — and those can never succeed, so re-examining them on every
+		// later flush would be pure waste.
+		return written
 	}
 	for _, goal := range accepted {
 		written[goal] = true
@@ -201,9 +212,20 @@ func (b *WebAnalyticsContactBridge) buildEvent(goal *domain.WebGoal, eventName s
 		value := math.Min(float64(goal.GoalValue), webBridgeMaxGoalValue)
 		event.GoalValue = &value
 	}
-	// GoalType is left nil on purpose: nothing on the web side can tell a
-	// purchase from a lead, and guessing would corrupt the revenue reports that
-	// key on it.
+	// The type comes from the site, the only party that knows whether a
+	// conversion was a purchase or a lead. It was left nil until the SDK began
+	// requiring one; guessing server-side would have corrupted the revenue
+	// reports that key on it.
+	//
+	// Stamped outside the goal-value guard above on purpose: a lead has a type
+	// but usually no value, and typing only the conversions with money attached
+	// would leave exactly the wrong half of the funnel unsegmentable.
+	goalType := goal.GoalType
+	if goalType == "" {
+		// Buffered before this shipped, or sent by a client that omitted it.
+		goalType = domain.GoalTypeOther
+	}
+	event.GoalType = &goalType
 	return event
 }
 

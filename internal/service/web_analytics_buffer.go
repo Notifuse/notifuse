@@ -55,8 +55,14 @@ type webBufferedSession struct {
 	// FEWER goals than an earlier one (two tabs, an offline replay), so an
 	// integer cursor would slice out of range or silently skip.
 	emittedGoals map[string]struct{}
-	// bridgeEnabled is the workspace's opt-in as of the latest beat.
-	bridgeEnabled bool
+	// everIdentified records whether any beat of this writer has carried a
+	// contact. Sticky, because contact_email is sticky in the database: a
+	// visitor who logs out mid-visit keeps beating anonymously against rows that
+	// are still identified, and their visit must keep converging.
+	everIdentified bool
+	// projectionAttempts counts consecutive failed projections for this writer,
+	// bounding the retry below the same way failedAttempts bounds the flush.
+	projectionAttempts int
 
 	lastArrival      time.Time
 	lastFlushedAt    time.Time
@@ -124,10 +130,13 @@ func (b *WebAnalyticsBuffer) SetContactBridge(bridge *WebAnalyticsContactBridge)
 
 // Add stores the beat's rows, collapsing onto any buffered older beat of the
 // same session (highest beat_seq wins; ties keep the latest arrival).
-// bridgeEnabled travels with the beat rather than being looked up at flush
-// time: the workspace's opt-in is already resolved (and cached) in Track, and
-// the buffer has no settings access of its own.
-func (b *WebAnalyticsBuffer) Add(workspaceID string, tabID int64, bridgeEnabled bool, session *domain.WebSession, pages []*domain.WebPage, goals []*domain.WebGoal) {
+//
+// No opt-in travels with the beat any more. Writing an identified visitor's
+// goals and navigation to their contact timeline used to be gated by two
+// workspace settings; calling identify() is now the opt-in, and Track only ever
+// resolves an identity when a valid credential is present. An anonymous beat
+// carries no contact_email and reaches no timeline by construction.
+func (b *WebAnalyticsBuffer) Add(workspaceID string, tabID int64, session *domain.WebSession, pages []*domain.WebPage, goals []*domain.WebGoal) {
 	if session == nil {
 		return
 	}
@@ -163,7 +172,9 @@ func (b *WebAnalyticsBuffer) Add(workspaceID string, tabID int64, bridgeEnabled 
 	entry.session = session
 	entry.pages = pages
 	entry.goals = goals
-	entry.bridgeEnabled = bridgeEnabled
+	if session.ContactEmail != nil && *session.ContactEmail != "" {
+		entry.everIdentified = true
+	}
 	entry.dirty = true
 	entry.failedAttempts = 0
 	entry.lastArrival = now
@@ -204,22 +215,24 @@ func (b *WebAnalyticsBuffer) flushDue(ctx context.Context) {
 	b.flush(ctx, false)
 }
 
+// webFlushedEntry pairs a session id with the exact row pointer that was handed
+// to the repository. They must travel together: FlushBatch sorts the slices it
+// receives in place (for deadlock-free lock ordering), so parallel id/row slices
+// would silently desync and the failure bookkeeping would retry and drop the
+// wrong sessions.
+type webFlushedEntry struct {
+	id             string
+	session        *domain.WebSession
+	goals          []*domain.WebGoal
+	everIdentified bool
+}
+
 func (b *WebAnalyticsBuffer) flush(ctx context.Context, force bool) {
 	now := b.nowFn()
 
-	// flushed pairs a session id with the exact row pointer that was handed to
-	// the repository. They must travel together: FlushBatch sorts the slices
-	// it receives in place (for deadlock-free lock ordering), so parallel
-	// id/row slices would silently desync and the failure bookkeeping below
-	// would retry and drop the wrong sessions.
-	type flushed struct {
-		id      string
-		session *domain.WebSession
-		goals   []*domain.WebGoal
-	}
 	type workspaceFlush struct {
 		workspaceID string
-		entries     []flushed
+		entries     []webFlushedEntry
 		sessions    []*domain.WebSession
 		pages       []*domain.WebPage
 		goals       []*domain.WebGoal
@@ -245,7 +258,7 @@ func (b *WebAnalyticsBuffer) flush(ctx context.Context, force bool) {
 			if !forceWorkspace && !b.isDue(entry, now) {
 				continue
 			}
-			flushRun.entries = append(flushRun.entries, flushed{id: id, session: entry.session, goals: entry.goals})
+			flushRun.entries = append(flushRun.entries, webFlushedEntry{id: id, session: entry.session, goals: entry.goals, everIdentified: entry.everIdentified})
 			flushRun.sessions = append(flushRun.sessions, entry.session)
 			flushRun.pages = append(flushRun.pages, entry.pages...)
 			flushRun.goals = append(flushRun.goals, entry.goals...)
@@ -281,7 +294,7 @@ func (b *WebAnalyticsBuffer) flush(ctx context.Context, force bool) {
 		if err == nil && b.bridge != nil {
 			for _, sent := range run.entries {
 				entry := ws.sessions[sent.id]
-				if entry == nil || !entry.bridgeEnabled {
+				if entry == nil {
 					continue
 				}
 				for _, goal := range sent.goals {
@@ -358,6 +371,127 @@ func (b *WebAnalyticsBuffer) flush(ctx context.Context, force bool) {
 				b.mu.Unlock()
 			}
 		}
+
+		if err == nil {
+			b.projectNavigation(ctx, run.workspaceID, run.entries)
+		}
+	}
+}
+
+// projectNavigation refreshes the contact timeline from the rows this flush just
+// committed, for the writers whose workspace opted in and whose visitor is
+// identified.
+//
+// There is no cursor and nothing to mark as done, unlike the goals bridge. A
+// goal is an event — emitting it twice would mean two conversions — whereas a
+// pageview row is a projection of state that is expected to be rewritten as the
+// visit continues, and the derived primary key makes a repeat harmless. That is
+// also why this does not need to know whether the session has ended: the last
+// flush of a visit writes its final state, whenever that turns out to be.
+//
+// A failure is logged and dropped, and that is a real gap on the LAST flush of a
+// visit: flush() marks the entry clean before the write, only a new beat
+// re-dirties it, and the final flush is the one carrying the settled state. A
+// visitor who never beats again after a failed projection gets no timeline rows
+// at all. Earlier flushes self-repair — the next one re-projects everything from
+// the database — and the analytics rows themselves are already persisted either
+// way, so the loss is the timeline copy of one visit rather than the visit.
+func (b *WebAnalyticsBuffer) projectNavigation(ctx context.Context, workspaceID string, entries []webFlushedEntry) {
+	var sessions []*domain.WebSession
+	for _, sent := range entries {
+		if sent.session == nil {
+			continue
+		}
+		// A writer that has never carried a contact cannot have a timeline to
+		// write to, and the statements would select nothing. Skipping it here is
+		// what stops a reporting-only workspace paying for the projection at all:
+		// a force-flush at MaxSessionsPerWorkspace would otherwise open a
+		// transaction per chunk, all of them matching zero rows, on the single
+		// flush goroutine every other workspace is waiting on.
+		//
+		// The test is "EVER identified", not "identified by this beat" — see the
+		// field's own comment.
+		if !sent.everIdentified {
+			continue
+		}
+		// Identity is NOT tested here. contact_email is sticky in the database —
+		// a beat that does not know the contact never clears it — so a visitor
+		// who logs out mid-visit keeps sending anonymous beats against rows that
+		// are still identified. Skipping those would freeze their timeline on
+		// whatever the last identified beat happened to say: a stale duration, an
+		// exit page that is not the exit, and none of the pages that followed.
+		// The projection filters on the persisted contact_email instead, which is
+		// the value that is actually true.
+		sessions = append(sessions, sent.session)
+	}
+	if len(sessions) == 0 {
+		return
+	}
+	err := b.repo.ProjectContactNavigation(ctx, workspaceID, sessions)
+	if err == nil {
+		b.clearProjectionAttempts(workspaceID, entries)
+		return
+	}
+	if err != nil {
+		b.logger.WithField("workspace_id", workspaceID).
+			WithField("sessions", len(sessions)).
+			WithField("error", err.Error()).
+			Error("Failed to record web navigation on the contact timeline")
+		b.retryProjection(workspaceID, entries)
+	}
+}
+
+// clearProjectionAttempts resets the retry budget after a projection lands.
+func (b *WebAnalyticsBuffer) clearProjectionAttempts(workspaceID string, entries []webFlushedEntry) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	ws := b.workspaces[workspaceID]
+	if ws == nil {
+		return
+	}
+	for _, sent := range entries {
+		if entry := ws.sessions[sent.id]; entry != nil {
+			entry.projectionAttempts = 0
+		}
+	}
+}
+
+// retryProjection re-dirties the writers whose projection failed, so the flush
+// scheduler comes back to them.
+//
+// Without this the LAST flush of a visit has no second chance: flush() marks an
+// entry clean before the write and only a new beat re-dirties it, so a visitor
+// who never beats again after a failed projection gets no timeline rows at all —
+// and the last flush is the one carrying the settled state. Earlier flushes
+// self-repair, because the next one re-projects everything from the database.
+//
+// Bounded by webBufferMaxFlushAttempts, mirroring the flush's own retry: a
+// projection that fails for a structural reason rather than a transient one
+// would otherwise keep its writer dirty forever, and a dirty writer is flushed
+// again — re-running FlushBatch's upserts every tick for a session nobody is
+// browsing any more.
+func (b *WebAnalyticsBuffer) retryProjection(workspaceID string, entries []webFlushedEntry) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	ws := b.workspaces[workspaceID]
+	if ws == nil {
+		return
+	}
+	for _, sent := range entries {
+		entry := ws.sessions[sent.id]
+		if entry == nil || !sent.everIdentified {
+			continue
+		}
+		entry.projectionAttempts++
+		if entry.projectionAttempts >= webBufferMaxFlushAttempts {
+			b.logger.WithField("workspace_id", workspaceID).
+				WithField("session_id", sent.id).
+				Error("Giving up on recording a visit's navigation after repeated failures")
+			continue
+		}
+		entry.dirty = true
 	}
 }
 

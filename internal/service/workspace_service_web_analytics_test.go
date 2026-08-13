@@ -84,7 +84,7 @@ func TestWorkspaceService_CreateWorkspace_SeedsWebAnalyticsDefaults(t *testing.T
 		require.NotNil(t, wa, name)
 		assert.False(t, wa.Enabled, "web analytics starts disabled")
 		assert.Equal(t, domain.WebAnalyticsDefaultBounceThresholdSeconds, wa.BounceThresholdSeconds)
-		assert.Len(t, wa.Filters, 39, "default attribution rules seeded")
+		assert.Len(t, wa.Filters, 40, "default attribution rules seeded")
 		assert.Equal(t, domain.ComputeWebFiltersVersion(wa.Filters), wa.FiltersVersion)
 		assert.True(t, wa.GeoEnabled)
 		assert.True(t, wa.GeoStoreCity)
@@ -133,84 +133,12 @@ func TestWorkspaceService_SetWebAnalyticsSettings(t *testing.T) {
 		require.NoError(t, service.SetWebAnalyticsSettings(ctx, workspaceID, settings))
 	})
 
-	t.Run("turning the contact bridge on also requires contacts write", func(t *testing.T) {
-		// Every other setting only shapes reporting. This one starts writing to
-		// contact_timeline, queueing segment recomputation and enrolling
-		// contacts into automations — resources a web-analytics-only member has
-		// no permission over. Deleting one contact already needs contacts:write.
-		service, mockRepo, mockAuthService, _, _, _, _ := newWorkspaceServiceForWebAnalyticsTest(t)
-
-		member := &domain.UserWorkspace{
-			UserID: userID, WorkspaceID: workspaceID, Role: "member",
-			Permissions: domain.UserPermissions{
-				domain.PermissionResourceWebAnalytics: {Read: true, Write: true},
-			},
-		}
-		existing := &domain.Workspace{ID: workspaceID, Name: "WS", Settings: domain.WorkspaceSettings{Timezone: "UTC"}}
-		settings := validSettings()
-		settings.ContactBridgeEnabled = true
-
-		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, member, nil)
-		mockRepo.EXPECT().GetByID(ctx, workspaceID).Return(existing, nil)
-
-		err := service.SetWebAnalyticsSettings(ctx, workspaceID, settings)
-		require.Error(t, err)
-		var permErr *domain.PermissionError
-		require.ErrorAs(t, err, &permErr)
-		assert.Equal(t, domain.PermissionResourceContacts, permErr.Resource)
-	})
-
-	t.Run("with contacts write the bridge can be turned on", func(t *testing.T) {
-		service, mockRepo, mockAuthService, _, _, _, _ := newWorkspaceServiceForWebAnalyticsTest(t)
-
-		member := &domain.UserWorkspace{
-			UserID: userID, WorkspaceID: workspaceID, Role: "member",
-			Permissions: domain.UserPermissions{
-				domain.PermissionResourceWebAnalytics: {Read: true, Write: true},
-				domain.PermissionResourceContacts:     {Read: true, Write: true},
-			},
-		}
-		existing := &domain.Workspace{ID: workspaceID, Name: "WS", Settings: domain.WorkspaceSettings{Timezone: "UTC"}}
-		settings := validSettings()
-		settings.ContactBridgeEnabled = true
-
-		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, member, nil)
-		mockRepo.EXPECT().GetByID(ctx, workspaceID).Return(existing, nil)
-		mockRepo.EXPECT().Update(ctx, gomock.Any()).DoAndReturn(func(_ context.Context, ws *domain.Workspace) error {
-			assert.True(t, ws.Settings.WebAnalytics.ContactBridgeEnabled)
-			return nil
-		})
-
-		require.NoError(t, service.SetWebAnalyticsSettings(ctx, workspaceID, settings))
-	})
-
-	t.Run("editing other settings is unaffected once the bridge is already on", func(t *testing.T) {
-		// Only the transition is gated: a member without contacts:write must
-		// still be able to change the bounce threshold on such a workspace.
-		service, mockRepo, mockAuthService, _, _, _, _ := newWorkspaceServiceForWebAnalyticsTest(t)
-
-		member := &domain.UserWorkspace{
-			UserID: userID, WorkspaceID: workspaceID, Role: "member",
-			Permissions: domain.UserPermissions{
-				domain.PermissionResourceWebAnalytics: {Read: true, Write: true},
-			},
-		}
-		existing := &domain.Workspace{
-			ID: workspaceID, Name: "WS",
-			Settings: domain.WorkspaceSettings{
-				Timezone:     "UTC",
-				WebAnalytics: &domain.WebAnalyticsSettings{ContactBridgeEnabled: true},
-			},
-		}
-		settings := validSettings()
-		settings.ContactBridgeEnabled = true
-
-		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, member, nil)
-		mockRepo.EXPECT().GetByID(ctx, workspaceID).Return(existing, nil)
-		mockRepo.EXPECT().Update(ctx, gomock.Any()).Return(nil)
-
-		require.NoError(t, service.SetWebAnalyticsSettings(ctx, workspaceID, settings))
-	})
+	// The six subtests that used to sit here covered a contacts:write gate on
+	// turning the two contact-timeline settings on. Both settings are gone —
+	// calling identify() is the opt-in now, and that decision is made in the
+	// customer's own code with the workspace secret rather than in this panel —
+	// so there is no transition left to gate. Base permission coverage continues
+	// below.
 
 	t.Run("member without web_analytics write is rejected", func(t *testing.T) {
 		service, _, mockAuthService, _, _, _, _ := newWorkspaceServiceForWebAnalyticsTest(t)

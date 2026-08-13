@@ -11,8 +11,8 @@ import (
 func TestDefaultWebFilters(t *testing.T) {
 	filters := DefaultWebFilters()
 
-	t.Run("exactly 39 rules, all valid and enabled", func(t *testing.T) {
-		require.Len(t, filters, 39)
+	t.Run("exactly 40 rules, all valid and enabled", func(t *testing.T) {
+		require.Len(t, filters, 40)
 		for _, f := range filters {
 			assert.NoError(t, f.Validate(), f.Name)
 			assert.True(t, f.Enabled, f.Name)

@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react'
 import { i18n, loadLocale, getInitialLocale, Locale, locales, localeNames } from '../i18n'
 import { AuthContext } from './AuthContext'
 
@@ -20,11 +20,29 @@ export function LocaleProvider({ children }: LocaleProviderProps) {
   const [locale, setLocaleState] = useState<Locale>(getInitialLocale())
   const [isLoading, setIsLoading] = useState(true)
 
+  // A locale bundle is fetched asynchronously and the provider can unmount while
+  // that is in flight — a route change during the initial load, or a test file
+  // ending. Every setState below an await is guarded by this: in the app such an
+  // update is dropped with a warning, and under vitest's per-file jsdom teardown
+  // it surfaces as an unhandled "window is not defined" that fails the run.
+  //
+  // Reset on mount, not just cleared on unmount, so a remount (StrictMode's
+  // double-invoke, or a provider that is torn down and rebuilt) does not leave
+  // the ref stuck false and silently suppress every later update.
+  const mountedRef = useRef(true)
+  useEffect(() => {
+    mountedRef.current = true
+    return () => {
+      mountedRef.current = false
+    }
+  }, [])
+
   // Load initial locale on mount
   useEffect(() => {
     const init = async () => {
       setIsLoading(true)
       await loadLocale(locale)
+      if (!mountedRef.current) return
       setIsLoading(false)
     }
     init()
@@ -34,6 +52,7 @@ export function LocaleProvider({ children }: LocaleProviderProps) {
     if (newLocale === locale) return
     setIsLoading(true)
     await loadLocale(newLocale)
+    if (!mountedRef.current) return
     setLocaleState(newLocale)
     setIsLoading(false)
   }, [locale])

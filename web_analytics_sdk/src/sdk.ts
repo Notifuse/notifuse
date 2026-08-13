@@ -13,7 +13,9 @@ import type {
   DeviceInfo,
   HeartbeatTier,
   HeartbeatState,
+  GoalType,
 } from './types';
+import { VALID_GOAL_TYPES } from './types';
 import type { SessionAttributes } from './types/session-state';
 import { Storage, TabStorage } from './storage/storage';
 import { SessionManager } from './core/session';
@@ -137,6 +139,20 @@ export class NotifuseAnalyticsSDK {
       ...DEFAULT_CONFIG,
       ...userConfig,
     } as InternalConfig;
+
+    // Fold extraAdClickIds into the effective list, so everything downstream
+    // keeps reading a single config.adClickIds. Applied AFTER the merge, so it
+    // extends whichever list won — the defaults, or a caller's replacement.
+    const extra = this.config.extraAdClickIds;
+    if (extra && extra.length > 0) {
+      const effective = [...this.config.adClickIds];
+      for (const id of extra) {
+        if (!effective.some((known) => known.toLowerCase() === id.toLowerCase())) {
+          effective.push(id);
+        }
+      }
+      this.config.adClickIds = effective;
+    }
 
     // Validate and normalize heartbeat tiers
     this.config.heartbeatTiers = this.validateTiers(this.config.heartbeatTiers);
@@ -946,6 +962,13 @@ export class NotifuseAnalyticsSDK {
    */
   async trackGoal(data: GoalData): Promise<void> {
     await this.ensureInitialized();
+    // Checked here, not before ensureInitialized: a call made before init should
+    // still say the SDK is not configured, which is the more useful complaint.
+    if (!data || !VALID_GOAL_TYPES.includes(data.type as GoalType)) {
+      throw new Error(
+        `trackGoal requires a type, one of: ${VALID_GOAL_TYPES.join(', ')}`,
+      );
+    }
     if (!this.sessionState) return;
 
     // Rotate first if the window lapsed, so the goal lands on the live session
@@ -953,7 +976,7 @@ export class NotifuseAnalyticsSDK {
     await this.ensureFreshSession();
 
     // Add goal to SessionState
-    this.sessionState.addGoal(data.action, data.value, data.properties);
+    this.sessionState.addGoal(data.action, data.type, data.value, data.properties);
 
     // Cancel any pending debounced send
     if (this.sendDebounceTimeout) {

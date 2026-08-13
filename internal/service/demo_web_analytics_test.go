@@ -44,7 +44,7 @@ func TestDemoEnableWebAnalytics(t *testing.T) {
 	}
 
 	t.Run("turns the feature on and keeps the workspace defaults", func(t *testing.T) {
-		// The 39 rules a real workspace starts from are what an operator will
+		// The default rules a real workspace starts from are what an operator will
 		// recognise; replacing them would hide the actual starting point.
 		service, workspaceRepo := newService(t)
 		workspace := demoWorkspace()

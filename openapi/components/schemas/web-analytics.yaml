@@ -358,13 +358,15 @@ WebAnalyticsSettings:
     custom_dimension_labels:
       type: object
       additionalProperties: { type: string }
-    contact_bridge_enabled:
+    identify_from_email_links:
       type: boolean
       description: >-
-        Turns verified web goals into custom events, and so into contact
-        timeline entries, segment recomputation and automation enrolments. Off
-        by default: enabling it is the admin's deliberate act, and consent for
-        storing web activity against a contact is theirs to obtain.
+        Adds a signed identity to the links of tracked emails, so a recipient
+        who clicks one is recognised on landing without any code on the
+        customer's site, and their visit is tied to their contact record. Off by
+        default: unlike identify(), which the customer's own server calls with
+        their own secret, this credential is minted by Notifuse for every
+        recipient of every tracked send, so it is theirs to ask for.
     geo_enabled: { type: boolean }
     geo_store_city: { type: boolean }
     geo_store_region: { type: boolean }

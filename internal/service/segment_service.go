@@ -16,6 +16,7 @@ type SegmentService struct {
 	workspaceRepo domain.WorkspaceRepository
 	taskService   domain.TaskService
 	queryBuilder  *QueryBuilder
+	authService   domain.AuthService
 	logger        logger.Logger
 }
 
@@ -24,19 +25,48 @@ func NewSegmentService(
 	segmentRepo domain.SegmentRepository,
 	workspaceRepo domain.WorkspaceRepository,
 	taskService domain.TaskService,
+	authService domain.AuthService,
 	logger logger.Logger,
 ) *SegmentService {
 	return &SegmentService{
 		segmentRepo:   segmentRepo,
 		workspaceRepo: workspaceRepo,
 		taskService:   taskService,
+		authService:   authService,
 		queryBuilder:  NewQueryBuilder(),
 		logger:        logger,
 	}
 }
 
 // CreateSegment creates a new segment
+// authorize confirms the caller is a member of the workspace they named.
+//
+// INVARIANT: every method below takes workspace_id from the request, and must
+// call this before touching a repository.
+//
+// Isolation is per-database, but opening a workspace database does not itself
+// establish any right to it — workspace_id selects a database and asserts
+// nothing more. This is what establishes the right.
+//
+// Membership rather than a permission level, matching the webhook subscription
+// fix: segments have no PermissionResource today and adding one denies every
+// existing member until a system migration backfills it. Granularity is a
+// separate change; it must not gate closing a cross-tenant hole.
+func (s *SegmentService) authorize(ctx context.Context, workspaceID string) (context.Context, error) {
+	ctx, _, _, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	if err != nil {
+		return ctx, fmt.Errorf("failed to authenticate user: %w", err)
+	}
+	return ctx, nil
+}
+
 func (s *SegmentService) CreateSegment(ctx context.Context, req *domain.CreateSegmentRequest) (*domain.Segment, error) {
+	if authCtx, err := s.authorize(ctx, req.WorkspaceID); err != nil {
+		return nil, err
+	} else {
+		ctx = authCtx
+	}
+
 	// Validate the request
 	segment, workspaceID, err := req.Validate()
 	if err != nil {
@@ -142,6 +172,12 @@ func (s *SegmentService) CreateSegment(ctx context.Context, req *domain.CreateSe
 
 // GetSegment retrieves a segment by ID
 func (s *SegmentService) GetSegment(ctx context.Context, req *domain.GetSegmentRequest) (*domain.Segment, error) {
+	if authCtx, err := s.authorize(ctx, req.WorkspaceID); err != nil {
+		return nil, err
+	} else {
+		ctx = authCtx
+	}
+
 	if req.WorkspaceID == "" {
 		return nil, fmt.Errorf("workspace_id is required")
 	}
@@ -167,6 +203,12 @@ func (s *SegmentService) GetSegment(ctx context.Context, req *domain.GetSegmentR
 
 // ListSegments retrieves all segments for a workspace
 func (s *SegmentService) ListSegments(ctx context.Context, req *domain.GetSegmentsRequest) ([]*domain.Segment, error) {
+	if authCtx, err := s.authorize(ctx, req.WorkspaceID); err != nil {
+		return nil, err
+	} else {
+		ctx = authCtx
+	}
+
 	if req.WorkspaceID == "" {
 		return nil, fmt.Errorf("workspace_id is required")
 	}
@@ -182,6 +224,12 @@ func (s *SegmentService) ListSegments(ctx context.Context, req *domain.GetSegmen
 
 // UpdateSegment updates an existing segment
 func (s *SegmentService) UpdateSegment(ctx context.Context, req *domain.UpdateSegmentRequest) (*domain.Segment, error) {
+	if authCtx, err := s.authorize(ctx, req.WorkspaceID); err != nil {
+		return nil, err
+	} else {
+		ctx = authCtx
+	}
+
 	// Validate the request
 	updates, workspaceID, err := req.Validate()
 	if err != nil {
@@ -318,6 +366,12 @@ func (s *SegmentService) UpdateSegment(ctx context.Context, req *domain.UpdateSe
 
 // DeleteSegment deletes a segment
 func (s *SegmentService) DeleteSegment(ctx context.Context, req *domain.DeleteSegmentRequest) error {
+	if authCtx, err := s.authorize(ctx, req.WorkspaceID); err != nil {
+		return err
+	} else {
+		ctx = authCtx
+	}
+
 	workspaceID, id, err := req.Validate()
 	if err != nil {
 		return fmt.Errorf("invalid request: %w", err)
@@ -337,6 +391,12 @@ func (s *SegmentService) DeleteSegment(ctx context.Context, req *domain.DeleteSe
 
 // RebuildSegment triggers a rebuild of segment membership
 func (s *SegmentService) RebuildSegment(ctx context.Context, workspaceID, segmentID string) error {
+	if authCtx, err := s.authorize(ctx, workspaceID); err != nil {
+		return err
+	} else {
+		ctx = authCtx
+	}
+
 	if workspaceID == "" {
 		return fmt.Errorf("workspace_id is required")
 	}
@@ -408,6 +468,12 @@ func (s *SegmentService) RebuildSegment(ctx context.Context, workspaceID, segmen
 // PreviewSegment executes the segment query and returns a preview of matching contacts
 // This does NOT save the results to the database
 func (s *SegmentService) PreviewSegment(ctx context.Context, workspaceID string, tree *domain.TreeNode, limit int) (*domain.PreviewSegmentResponse, error) {
+	if authCtx, err := s.authorize(ctx, workspaceID); err != nil {
+		return nil, err
+	} else {
+		ctx = authCtx
+	}
+
 	if workspaceID == "" {
 		return nil, fmt.Errorf("workspace_id is required")
 	}
@@ -452,6 +518,12 @@ func (s *SegmentService) PreviewSegment(ctx context.Context, workspaceID string,
 
 // GetSegmentContacts retrieves contacts that belong to a segment
 func (s *SegmentService) GetSegmentContacts(ctx context.Context, workspaceID, segmentID string, limit, offset int) ([]string, error) {
+	if authCtx, err := s.authorize(ctx, workspaceID); err != nil {
+		return nil, err
+	} else {
+		ctx = authCtx
+	}
+
 	if workspaceID == "" {
 		return nil, fmt.Errorf("workspace_id is required")
 	}

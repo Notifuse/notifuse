@@ -280,7 +280,11 @@ type InboundWebhookEventRepository interface {
 	// ListEvents retrieves all inbound webhook events for a workspace
 	ListEvents(ctx context.Context, workspaceID string, params InboundWebhookEventListParams) (*InboundWebhookEventListResult, error)
 
-	// DeleteForEmail deletes all inbound webhook events for a specific email
+	// DeleteForEmail redacts a contact out of every inbound webhook event.
+	//
+	// It does NOT delete the rows, despite the name: the events are provider
+	// facts about deliverability, not contact data, so the address and the raw
+	// payload are cleared and the rows stay.
 	DeleteForEmail(ctx context.Context, workspaceID, email string) error
 
 	// CountConsecutiveSoftBounces returns, for each given recipient email, the

@@ -22,16 +22,30 @@ import (
 // yields '' here but the default's value at ingest time. None of the shipped
 // default rules combine the two.
 
-// webFilterResetDimensions are cleared when no rule sets them (evaluator
-// parity: these dimensions only exist through rules).
+// webFilterResetDimensions are cleared when no rule sets them.
+//
+// The invariant is narrower than "every dimension a rule may write": it is
+// "every dimension whose ONLY source is a rule". channel and channel_group
+// qualify — nothing else ever writes them, so no matching rule genuinely means
+// no value, and clearing keeps a backfill in parity with the live evaluator.
+//
+// custom_1..custom_10 do NOT qualify, even though rules may write them. The
+// tracker fills them from the beat's own dimensions (see applyWebAttribution in
+// web_analytics_enrichment.go), so a workspace can populate them with no rule
+// involved. Clearing them on backfill destroyed data the site had supplied, and
+// since a backfill is triggered by editing an unrelated attribution rule, the
+// loss looked unconnected to the action that caused it.
+//
+// Consequence, accepted: a custom value written by a rule now survives that
+// rule's deletion, because nothing can tell it apart from a tracker-supplied one
+// after the fact. A workspace that wants such a value gone says so with an
+// unset_value rule, which still clears the rows it matches.
 var webFilterResetDimensions = map[string]bool{
 	"channel": true, "channel_group": true,
-	"custom_1": true, "custom_2": true, "custom_3": true, "custom_4": true, "custom_5": true,
-	"custom_6": true, "custom_7": true, "custom_8": true, "custom_9": true, "custom_10": true,
 }
 
 // webFilterSourceFieldSQL maps a rule source field to the SQL expression
-// yielding its evaluator representation ('' for empty, 'true'/'false' for
+// yielding its evaluator representation (” for empty, 'true'/'false' for
 // booleans).
 func webFilterSourceFieldSQL(field string) string {
 	if field == "is_direct" {
@@ -102,7 +116,7 @@ func compileWebFilterAssignment(dimension string, action string, value string) s
 // CompileWebFiltersToSetClause compiles the enabled rules into the SET clause
 // of a backfill UPDATE. Rules are evaluated as CASE branches per dimension,
 // set/unset by priority (descending, stable) first, then set_default_value
-// rules; reset-dimensions fall back to '' and passthrough dimensions keep
+// rules; reset-dimensions fall back to ” and passthrough dimensions keep
 // their stored value.
 func CompileWebFiltersToSetClause(filters []domain.WebFilter) (string, error) {
 	enabled := make([]domain.WebFilter, 0, len(filters))

@@ -235,6 +235,12 @@ export interface Integration {
   supabase_settings?: SupabaseIntegrationSettings
   llm_provider?: LLMProvider
   firecrawl_settings?: FirecrawlSettings
+  /**
+   * Last few characters of each configured credential, keyed like
+   * "smtp.password" or "mailjet.secret_key". Read-only: the server computes it
+   * on every read and never stores it. The credentials themselves are not returned.
+   */
+  credential_hints?: Record<string, string>
   created_at: string
   updated_at: string
 }

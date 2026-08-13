@@ -1681,8 +1681,9 @@ func enqueueBatchTrackedLinks(t *testing.T, secretKey string, webAnalytics *doma
 // same address differ too, so comparing them proves nothing.
 func TestQueueMessageSender_SendBatch_WebIdentityTokenIsPerRecipient(t *testing.T) {
 	webAnalytics := &domain.WebAnalyticsSettings{
-		Enabled:        true,
-		AllowedDomains: []string{"example.com"}, // the host createTestTemplateWithLink links to
+		Enabled:                true,
+		AllowedDomains:         []string{"example.com"}, // the host createTestTemplateWithLink links to
+		IdentifyFromEmailLinks: true,
 	}
 
 	queries := enqueueBatchTrackedLinks(t, webIdentityTestSecret, webAnalytics,

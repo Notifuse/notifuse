@@ -81,6 +81,21 @@ func (mr *MockContactRepositoryMockRecorder) CountContactsForBroadcast(arg0, arg
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountContactsForBroadcast", reflect.TypeOf((*MockContactRepository)(nil).CountContactsForBroadcast), arg0, arg1, arg2)
 }
 
+// CreateContactIfAbsent mocks base method.
+func (m *MockContactRepository) CreateContactIfAbsent(arg0 context.Context, arg1 string, arg2 *domain.Contact) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateContactIfAbsent", arg0, arg1, arg2)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateContactIfAbsent indicates an expected call of CreateContactIfAbsent.
+func (mr *MockContactRepositoryMockRecorder) CreateContactIfAbsent(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateContactIfAbsent", reflect.TypeOf((*MockContactRepository)(nil).CreateContactIfAbsent), arg0, arg1, arg2)
+}
+
 // DeleteContact mocks base method.
 func (m *MockContactRepository) DeleteContact(arg0 context.Context, arg1, arg2 string) error {
 	m.ctrl.T.Helper()

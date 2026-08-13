@@ -219,15 +219,21 @@ func TestSESService_ResolveConfigurationSet_CachesResults(t *testing.T) {
 			}).
 			Times(1)
 
-		var wg sync.WaitGroup
+		// Every goroutine must be running before the lookup is allowed to return, otherwise the
+		// stragglers simply read the answer the first one cached and the collapse is never
+		// exercised.
+		var started, wg sync.WaitGroup
 		results := make([]string, 50)
 		for i := 0; i < 50; i++ {
+			started.Add(1)
 			wg.Add(1)
 			go func(idx int) {
 				defer wg.Done()
+				started.Done()
 				results[idx] = service.resolveConfigurationSet(context.Background(), *sesSettings(), "int-1")
 			}(i)
 		}
+		started.Wait()
 		close(release)
 		wg.Wait()
 

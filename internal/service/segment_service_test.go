@@ -48,7 +48,7 @@ func TestSegmentService_CreateSegment(t *testing.T) {
 	mockLogger.EXPECT().Warn(gomock.Any()).AnyTimes()
 	mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
 
-	service := NewSegmentService(mockRepo, mockWorkspaceRepo, mockTaskService, mockLogger)
+	service := NewSegmentService(mockRepo, mockWorkspaceRepo, mockTaskService, newPermissiveAuthService(ctrl), mockLogger)
 	ctx := context.Background()
 
 	t.Run("successful create", func(t *testing.T) {
@@ -197,7 +197,7 @@ func TestSegmentService_GetSegment(t *testing.T) {
 	mockLogger.EXPECT().Warn(gomock.Any()).AnyTimes()
 
 	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
-	service := NewSegmentService(mockRepo, mockWorkspaceRepo, mockTaskService, mockLogger)
+	service := NewSegmentService(mockRepo, mockWorkspaceRepo, mockTaskService, newPermissiveAuthService(ctrl), mockLogger)
 	ctx := context.Background()
 
 	t.Run("successful get", func(t *testing.T) {
@@ -296,7 +296,7 @@ func TestSegmentService_ListSegments(t *testing.T) {
 	mockLogger.EXPECT().Warn(gomock.Any()).AnyTimes()
 
 	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
-	service := NewSegmentService(mockRepo, mockWorkspaceRepo, mockTaskService, mockLogger)
+	service := NewSegmentService(mockRepo, mockWorkspaceRepo, mockTaskService, newPermissiveAuthService(ctrl), mockLogger)
 	ctx := context.Background()
 
 	t.Run("successful list with counts", func(t *testing.T) {
@@ -409,7 +409,7 @@ func TestSegmentService_UpdateSegment(t *testing.T) {
 	mockLogger.EXPECT().Warn(gomock.Any()).AnyTimes()
 
 	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
-	service := NewSegmentService(mockRepo, mockWorkspaceRepo, mockTaskService, mockLogger)
+	service := NewSegmentService(mockRepo, mockWorkspaceRepo, mockTaskService, newPermissiveAuthService(ctrl), mockLogger)
 	ctx := context.Background()
 
 	t.Run("successful update without tree change", func(t *testing.T) {
@@ -636,7 +636,7 @@ func TestSegmentService_DeleteSegment(t *testing.T) {
 	mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
 
 	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
-	service := NewSegmentService(mockRepo, mockWorkspaceRepo, mockTaskService, mockLogger)
+	service := NewSegmentService(mockRepo, mockWorkspaceRepo, mockTaskService, newPermissiveAuthService(ctrl), mockLogger)
 	ctx := context.Background()
 
 	t.Run("successful delete", func(t *testing.T) {
@@ -702,7 +702,7 @@ func TestSegmentService_RebuildSegment(t *testing.T) {
 	mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
 
 	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
-	service := NewSegmentService(mockRepo, mockWorkspaceRepo, mockTaskService, mockLogger)
+	service := NewSegmentService(mockRepo, mockWorkspaceRepo, mockTaskService, newPermissiveAuthService(ctrl), mockLogger)
 	ctx := context.Background()
 
 	t.Run("successful rebuild", func(t *testing.T) {
@@ -806,7 +806,7 @@ func TestSegmentService_PreviewSegment(t *testing.T) {
 	mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
 
 	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
-	service := NewSegmentService(mockRepo, mockWorkspaceRepo, mockTaskService, mockLogger)
+	service := NewSegmentService(mockRepo, mockWorkspaceRepo, mockTaskService, newPermissiveAuthService(ctrl), mockLogger)
 	ctx := context.Background()
 
 	t.Run("successful preview", func(t *testing.T) {
@@ -931,7 +931,7 @@ func TestSegmentService_GetSegmentContacts(t *testing.T) {
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 
 	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
-	service := NewSegmentService(mockRepo, mockWorkspaceRepo, mockTaskService, mockLogger)
+	service := NewSegmentService(mockRepo, mockWorkspaceRepo, mockTaskService, newPermissiveAuthService(ctrl), mockLogger)
 	ctx := context.Background()
 
 	t.Run("validation errors", func(t *testing.T) {
@@ -1008,7 +1008,7 @@ func TestNewSegmentService(t *testing.T) {
 	mockTaskService := mocks.NewMockTaskService(ctrl)
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 
-	service := NewSegmentService(mockRepo, mockWorkspaceRepo, mockTaskService, mockLogger)
+	service := NewSegmentService(mockRepo, mockWorkspaceRepo, mockTaskService, newPermissiveAuthService(ctrl), mockLogger)
 
 	assert.NotNil(t, service)
 	assert.NotNil(t, service.segmentRepo)

@@ -24,6 +24,24 @@ import (
 //
 // See plan: /Users/pierre/.claude/plans/lets-plan-your-recommendation-quiet-dream.md
 
+// Deadlines for the asynchronous transitions these tests observe. Each one waits on work
+// another goroutine has to reach — the orchestrator noticing a pause between batches, the
+// drain worker rewriting queue rows — so none of them is a performance assertion. The
+// polling loops return the instant the condition holds, which means a generous deadline
+// costs a healthy run nothing and only ever changes how long a genuine failure takes to
+// report. Tight values bought no coverage and made a slow host look like a broken pause:
+// CI has measured identical tests inflating 40-125% on slow hosted runners (see the comment
+// in .github/workflows/go.yml), which is far more headroom than 3-5s leaves.
+const (
+	// statusFlipTimeout covers a broadcast reaching a new status after the API call that
+	// requested it.
+	statusFlipTimeout = 20 * time.Second
+
+	// queueSettleTimeout covers the email_queue rows catching up to a status that already
+	// flipped, which follows rather than races it.
+	queueSettleTimeout = 15 * time.Second
+)
+
 // phase2Harness bundles the common dependencies so each test stays compact.
 type phase2Harness struct {
 	suite        *testutil.IntegrationTestSuite
@@ -172,7 +190,7 @@ func (h *phase2Harness) scheduleAndExecute(t *testing.T) string {
 	require.Equal(t, http.StatusOK, scheduleResp.StatusCode)
 
 	// Event handler creates the task asynchronously.
-	taskID := h.waitForTaskID(t, 5*time.Second)
+	taskID := h.waitForTaskID(t, statusFlipTimeout)
 	h.taskID = taskID
 
 	// First invocation kicks things off.
@@ -216,7 +234,7 @@ func (h *phase2Harness) scheduleAsync(t *testing.T) string {
 	scheduleResp.Body.Close()
 	require.Equal(t, http.StatusOK, scheduleResp.StatusCode)
 
-	taskID := h.waitForTaskID(t, 5*time.Second)
+	taskID := h.waitForTaskID(t, statusFlipTimeout)
 	h.taskID = taskID
 	return taskID
 }
@@ -392,13 +410,13 @@ func TestBroadcastPhase2_PauseResume_DrainCompletes(t *testing.T) {
 	pauseResp.Body.Close()
 	require.Equal(t, http.StatusOK, pauseResp.StatusCode)
 
-	h.waitForBroadcastStatus(t, []string{"paused"}, 5*time.Second)
+	h.waitForBroadcastStatus(t, []string{"paused"}, statusFlipTimeout)
 
-	// Wait up to 3s for queue rows to settle: pending → paused.
+	// Wait for queue rows to settle: pending → paused.
 	waitForCondition(t, func() bool {
 		c := h.countQueue(t)
 		return c[domain.EmailQueueStatusPending] == 0 && c[domain.EmailQueueStatusPaused] > 0
-	}, 3*time.Second, "pending rows flipped to paused")
+	}, queueSettleTimeout, "pending rows flipped to paused")
 
 	paused := h.countQueue(t)
 	t.Logf("Queue after pause: %+v", paused)
@@ -426,13 +444,13 @@ func TestBroadcastPhase2_PauseResume_DrainCompletes(t *testing.T) {
 	resumeResp.Body.Close()
 	require.Equal(t, http.StatusOK, resumeResp.StatusCode)
 
-	h.waitForBroadcastStatus(t, []string{"processed"}, 5*time.Second)
+	h.waitForBroadcastStatus(t, []string{"processed"}, statusFlipTimeout)
 
 	// Queue rows should flip back.
 	waitForCondition(t, func() bool {
 		c := h.countQueue(t)
 		return c[domain.EmailQueueStatusPaused] == 0
-	}, 3*time.Second, "paused rows cleared after resume")
+	}, queueSettleTimeout, "paused rows cleared after resume")
 
 	// Broadcast-level state cleared.
 	bdAfterResume := h.getBroadcast(t)
@@ -487,7 +505,7 @@ func TestBroadcastPhase2_Resume_DoesNotReRunOrchestrator(t *testing.T) {
 	require.NoError(t, err)
 	pauseResp.Body.Close()
 	require.Equal(t, http.StatusOK, pauseResp.StatusCode)
-	h.waitForBroadcastStatus(t, []string{"paused"}, 5*time.Second)
+	h.waitForBroadcastStatus(t, []string{"paused"}, statusFlipTimeout)
 
 	// Resume.
 	resumeResp, err := h.client.ResumeBroadcast(map[string]interface{}{
@@ -497,7 +515,7 @@ func TestBroadcastPhase2_Resume_DoesNotReRunOrchestrator(t *testing.T) {
 	require.NoError(t, err)
 	resumeResp.Body.Close()
 	require.Equal(t, http.StatusOK, resumeResp.StatusCode)
-	h.waitForBroadcastStatus(t, []string{"processed"}, 5*time.Second)
+	h.waitForBroadcastStatus(t, []string{"processed"}, statusFlipTimeout)
 
 	// CRITICAL: simulate multiple cron ticks. If the resume handler regressed
 	// and flipped the task to Pending, any of these ticks would re-run the
@@ -561,7 +579,7 @@ func TestBroadcastPhase2_Cancel_DeletesQueueRows(t *testing.T) {
 	cancelResp.Body.Close()
 	require.Equal(t, http.StatusOK, cancelResp.StatusCode)
 
-	h.waitForBroadcastStatus(t, []string{"cancelled"}, 5*time.Second)
+	h.waitForBroadcastStatus(t, []string{"cancelled"}, statusFlipTimeout)
 
 	// DB assertions within a 3s window.
 	waitForCondition(t, func() bool {
@@ -569,7 +587,7 @@ func TestBroadcastPhase2_Cancel_DeletesQueueRows(t *testing.T) {
 		return c[domain.EmailQueueStatusPending] == 0 &&
 			c[domain.EmailQueueStatusFailed] == 0 &&
 			c[domain.EmailQueueStatusPaused] == 0
-	}, 3*time.Second, "pending/failed/paused rows deleted")
+	}, queueSettleTimeout, "pending/failed/paused rows deleted")
 
 	afterCancel := h.countQueue(t)
 	t.Logf("Queue after cancel: %+v", afterCancel)
@@ -674,7 +692,7 @@ func TestBroadcastPhase1_CancelDuringProcessing(t *testing.T) {
 	cancelResp.Body.Close()
 	require.Equal(t, http.StatusOK, cancelResp.StatusCode)
 
-	h.waitForBroadcastStatus(t, []string{"cancelled"}, 10*time.Second)
+	h.waitForBroadcastStatus(t, []string{"cancelled"}, statusFlipTimeout)
 
 	// Stop the pump and wait for it to drain.
 	close(stopPump)
@@ -687,7 +705,7 @@ func TestBroadcastPhase1_CancelDuringProcessing(t *testing.T) {
 		return c[domain.EmailQueueStatusPending] == 0 &&
 			c[domain.EmailQueueStatusFailed] == 0 &&
 			c[domain.EmailQueueStatusPaused] == 0
-	}, 10*time.Second, "queue fully cleared for broadcast")
+	}, queueSettleTimeout, "queue fully cleared for broadcast")
 
 	// Task was Running when cancelled. handleBroadcastCancelled marks it
 	// Failed, but there's a pre-existing race where a concurrent executor
@@ -772,7 +790,7 @@ func TestBroadcastPhase1_PauseResume_CompletesEnqueue(t *testing.T) {
 	pauseResp.Body.Close()
 	require.Equal(t, http.StatusOK, pauseResp.StatusCode)
 
-	h.waitForBroadcastStatus(t, []string{"paused"}, 10*time.Second)
+	h.waitForBroadcastStatus(t, []string{"paused"}, statusFlipTimeout)
 
 	// Stop the pump; orchestrator should have observed pause on its own poll.
 	close(stopPump)
@@ -791,7 +809,7 @@ func TestBroadcastPhase1_PauseResume_CompletesEnqueue(t *testing.T) {
 	waitForCondition(t, func() bool {
 		c := h.countQueue(t)
 		return c[domain.EmailQueueStatusPending] == 0 && c[domain.EmailQueueStatusPaused] > 0
-	}, 5*time.Second, "no pending rows remain")
+	}, queueSettleTimeout, "no pending rows remain")
 
 	// Queue state stabilizes: no new pending rows appear over a 2s window
 	// (the orchestrator has observed pause and exited).
@@ -821,7 +839,7 @@ func TestBroadcastPhase1_PauseResume_CompletesEnqueue(t *testing.T) {
 	require.Equal(t, http.StatusOK, resumeResp.StatusCode)
 
 	// Broadcast flips to processing (not processed — Phase-1 resume with start_now=true).
-	h.waitForBroadcastStatus(t, []string{"processing", "processed"}, 10*time.Second)
+	h.waitForBroadcastStatus(t, []string{"processing", "processed"}, statusFlipTimeout)
 
 	// Pump tasks again so orchestrator completes remaining enqueue.
 	stopPump2 := make(chan struct{})
@@ -885,7 +903,7 @@ func TestBroadcastPhase2_PauseWhenQueueEmpty(t *testing.T) {
 	pauseResp.Body.Close()
 	assert.Equal(t, http.StatusOK, pauseResp.StatusCode, "pause must succeed even with no queue rows")
 
-	h.waitForBroadcastStatus(t, []string{"paused"}, 5*time.Second)
+	h.waitForBroadcastStatus(t, []string{"paused"}, statusFlipTimeout)
 
 	q := h.countQueue(t)
 	assert.Equal(t, int64(0), q[domain.EmailQueueStatusPaused], "nothing to pause")
@@ -899,7 +917,7 @@ func TestBroadcastPhase2_PauseWhenQueueEmpty(t *testing.T) {
 	resumeResp.Body.Close()
 	assert.Equal(t, http.StatusOK, resumeResp.StatusCode)
 
-	h.waitForBroadcastStatus(t, []string{"processed"}, 5*time.Second)
+	h.waitForBroadcastStatus(t, []string{"processed"}, statusFlipTimeout)
 
 	// Ticks must not re-trigger orchestrator.
 	for i := 0; i < 3; i++ {
@@ -935,7 +953,7 @@ func TestBroadcastPhase2_PauseIdempotency(t *testing.T) {
 	require.NoError(t, err)
 	resp.Body.Close()
 	require.Equal(t, http.StatusOK, resp.StatusCode)
-	h.waitForBroadcastStatus(t, []string{"paused"}, 5*time.Second)
+	h.waitForBroadcastStatus(t, []string{"paused"}, statusFlipTimeout)
 
 	// Second pause must fail — the handler maps the service guard to 5xx.
 	resp2, err := h.client.PauseBroadcast(map[string]interface{}{
@@ -955,7 +973,7 @@ func TestBroadcastPhase2_PauseIdempotency(t *testing.T) {
 	require.NoError(t, err)
 	resumeResp.Body.Close()
 	require.Equal(t, http.StatusOK, resumeResp.StatusCode)
-	h.waitForBroadcastStatus(t, []string{"processed"}, 5*time.Second)
+	h.waitForBroadcastStatus(t, []string{"processed"}, statusFlipTimeout)
 
 	resumeResp2, err := h.client.ResumeBroadcast(map[string]interface{}{
 		"workspace_id": h.workspaceID,
@@ -1143,7 +1161,7 @@ func TestBroadcastPause_IsolatesBySourceID(t *testing.T) {
 	waitForCondition(t, func() bool {
 		return countFor(bcastA, domain.EmailQueueStatusPaused) == 10 &&
 			countFor(bcastB, domain.EmailQueueStatusPending) == 10
-	}, 3*time.Second, "A is paused, B is untouched")
+	}, queueSettleTimeout, "A is paused, B is untouched")
 
 	// Start worker, let B drain.
 	require.NoError(t, suite.ServerManager.StartBackgroundWorkers(ctx))

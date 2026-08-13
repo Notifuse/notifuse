@@ -859,3 +859,52 @@ func TestUserHandler_RegisterRoutes(t *testing.T) {
 		})
 	}
 }
+
+// user.me returns every workspace the caller belongs to, each with its
+// integrations. It is the widest of the workspace-serialising endpoints — one
+// call, all workspaces — and it lives in a different handler from the others, so
+// it is the one a reviewer of workspace_handler.go would never see.
+func TestUserHandler_GetCurrentUserRedactsCredentials(t *testing.T) {
+	handler, mockUserSvc, mockWorkspaceSvc, _ := setupUserHandlerTest(t)
+
+	const userID = "test-user"
+	const smtpPassword = "SENTINEL-user-me-smtp-password"
+
+	workspaceWithSecret := func(id string) *domain.Workspace {
+		return &domain.Workspace{
+			ID:   id,
+			Name: "Acme",
+			Integrations: domain.Integrations{{
+				ID:   "int-1",
+				Type: domain.IntegrationTypeEmail,
+				EmailProvider: domain.EmailProvider{
+					Kind: domain.EmailProviderKindSMTP,
+					SMTP: &domain.SMTPSettings{
+						Host:              "smtp.example.com",
+						Password:          smtpPassword,
+						EncryptedPassword: "ciphertext",
+					},
+				},
+			}},
+		}
+	}
+
+	mockUserSvc.EXPECT().
+		GetUserByID(gomock.Any(), userID).
+		Return(&domain.User{ID: userID, Email: "u@example.com"}, nil)
+	mockWorkspaceSvc.EXPECT().
+		ListWorkspaces(gomock.Any()).
+		Return([]*domain.Workspace{workspaceWithSecret("ws1"), workspaceWithSecret("ws2")}, nil)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/user.me", nil)
+	req = req.WithContext(context.WithValue(req.Context(), domain.UserIDKey, userID))
+	rec := httptest.NewRecorder()
+
+	handler.GetCurrentUser(rec, req)
+
+	require.Equal(t, http.StatusOK, rec.Code)
+	body := rec.Body.String()
+	assert.NotContains(t, body, smtpPassword, "a decrypted credential reached /api/user.me")
+	assert.Contains(t, body, "ciphertext", "the encrypted form still goes out, so the console can tell configured from unset")
+	assert.Contains(t, body, "smtp.example.com", "non-secret context survives")
+}

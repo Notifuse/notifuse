@@ -1242,8 +1242,14 @@ func TestQueryBuilder_ContactTimeline(t *testing.T) {
 		sql, args, err := qb.BuildSQL(tree)
 		require.NoError(t, err)
 
-		// Should cast the JSONB "new" value to numeric for comparison
-		assert.Contains(t, sql, "(ct.changes->$2->>'new')::numeric >= $3")
+		// Cast to numeric, but only for values that look numeric. `changes` is no
+		// longer trigger-written from typed columns alone — the web analytics
+		// projection stores visitor-supplied text under keys like `path` — so an
+		// unguarded cast would abort the whole statement on one odd row, and
+		// whether the kind predicate excludes that row first is plan-dependent.
+		assert.Contains(t, sql, "(ct.changes->$2->>'new')::numeric END >= $3")
+		assert.Contains(t, sql, "CASE WHEN ct.changes->$2->>'new' ~ ",
+			"a non-numeric value must yield NULL, not abort the segment")
 		assert.Equal(t, []interface{}{"purchase", "amount", 100.0, 1}, args)
 	})
 

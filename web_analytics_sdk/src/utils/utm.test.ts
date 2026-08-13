@@ -137,7 +137,7 @@ describe('UTM Parsing', () => {
   });
 
   describe('DEFAULT_AD_CLICK_IDS', () => {
-    it('contains all 9 expected ad click IDs', () => {
+    it('contains all 13 expected ad click IDs', () => {
       expect(DEFAULT_AD_CLICK_IDS).toEqual([
         'gclid',
         'fbclid',
@@ -148,6 +148,10 @@ describe('UTM Parsing', () => {
         'li_fat_id',
         'wbraid',
         'gbraid',
+        'epik',
+        'ScCid',
+        'rdt_cid',
+        'qclid',
       ]);
     });
   });
@@ -221,5 +225,48 @@ describe('UTM Parsing', () => {
       expect(result.domain).toBe('example.com');
       expect(result.path).toBe('/page');
     });
+  });
+});
+
+/**
+ * Ad networks are inconsistent about the casing of their click ids, and
+ * URLSearchParams.get is case-sensitive.
+ *
+ * The canonical spelling matters as much as the match: the seeded attribution
+ * rules compare utm_id_from with an exact equality, so reporting 'sccid' as seen
+ * would attribute the click to nothing at all — the same silent
+ * non-attribution the missing ids caused.
+ */
+describe('click id casing', () => {
+  it.each(['ScCid', 'sccid', 'SCCID', 'scCID'])('recognises %s', (asWritten) => {
+    const result = parseUTMParams(`https://example.com?${asWritten}=snap_123`);
+    expect(result.id).toBe('snap_123');
+    expect(result.id_from).toBe('ScCid');
+  });
+
+  it('reports the canonical spelling, not the one in the URL', () => {
+    const result = parseUTMParams('https://example.com?GCLID=gc_1');
+    expect(result.id_from).toBe('gclid');
+  });
+
+  it('still honours priority order rather than URL order', () => {
+    // The regression guard: matching case-insensitively is tempting to implement
+    // by iterating the URL's parameters, which silently re-keys priority from
+    // our order to whatever order the ad network wrote them in.
+    const result = parseUTMParams('https://example.com?FBCLID=fb_1&GCLID=gc_1');
+    expect(result.id_from).toBe('gclid');
+  });
+});
+
+describe('newly recognised click ids', () => {
+  it.each([
+    ['epik', 'Pinterest'],
+    ['ScCid', 'Snapchat'],
+    ['rdt_cid', 'Reddit'],
+    ['qclid', 'Quora'],
+  ])('captures %s (%s)', (param) => {
+    const result = parseUTMParams(`https://example.com?${param}=abc123`);
+    expect(result.id).toBe('abc123');
+    expect(result.id_from).toBe(param);
   });
 });

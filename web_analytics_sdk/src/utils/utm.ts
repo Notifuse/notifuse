@@ -15,6 +15,10 @@ export const DEFAULT_AD_CLICK_IDS = [
   'li_fat_id', // LinkedIn Ads
   'wbraid',    // Google Ads (iOS)
   'gbraid',    // Google Ads (cross-device)
+  'epik',      // Pinterest Ads
+  'ScCid',     // Snapchat Ads (canonical spelling; matched case-insensitively)
+  'rdt_cid',   // Reddit Ads
+  'qclid',     // Quora Ads
 ];
 
 /**
@@ -23,14 +27,29 @@ export const DEFAULT_AD_CLICK_IDS = [
 export function parseUTMParams(url: string, adClickIds: string[] = DEFAULT_AD_CLICK_IDS): UTMParams {
   const params = new URL(url).searchParams;
 
+  // Ad networks are inconsistent about the casing of their click ids (Snapchat
+  // documents ScCid, plenty of links carry sccid) and URLSearchParams.get is
+  // case-sensitive, so an exact lookup silently misses them.
+  const byLowerKey = new Map<string, string>();
+  for (const [key, value] of params) {
+    const lower = key.toLowerCase();
+    if (!byLowerKey.has(lower)) byLowerKey.set(lower, value);
+  }
+
   // Find ad click ID
   let utm_id: string | null = null;
   let utm_id_from: string | null = null;
 
+  // Iterating adClickIds rather than the URL's parameters is deliberate: it is
+  // what keeps priority OUR order instead of whatever order the network wrote
+  // them in. gclid must still win over fbclid when both are present.
   for (const param of adClickIds) {
-    const value = params.get(param);
+    const value = byLowerKey.get(param.toLowerCase());
     if (value) {
       utm_id = value;
+      // The canonical spelling, not the one seen in the URL: the seeded
+      // attribution rules compare utm_id_from with an exact equality, so
+      // reporting 'sccid' would attribute the click to nothing.
       utm_id_from = param;
       break; // Use first match
     }

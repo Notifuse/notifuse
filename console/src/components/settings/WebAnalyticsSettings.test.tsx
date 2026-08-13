@@ -237,13 +237,20 @@ describe('WebAnalyticsSettings', () => {
     })
   })
 
-  it('does not silently switch the contact bridge back off on an unrelated save', async () => {
-    // setWebAnalyticsSettings replaces the whole settings object, and this panel
-    // rebuilds it from DEFAULT_SETTINGS plus an explicit field enumeration — so
-    // a flag missing from the defaults, the setFieldsValue list, the form or the
-    // save payload is silently reset on every save. For a consent flag that
-    // controls writing into contact timelines, that is the worst way to fail.
-    renderComponent(true, makeWorkspace({ contact_bridge_enabled: true }))
+  // The four subtests that used to sit here covered the two contact-timeline
+  // switches — that they survived an unrelated save, and that each could be
+  // turned on independently. Both settings are gone: calling identify() is the
+  // opt-in now, so there is no switch left to preserve. The five-place rule they
+  // guarded still applies to every remaining field, and the geo tests below
+  // exercise it.
+
+  it('does not silently switch email-link identification back off on an unrelated save', async () => {
+    // The five-place rule. setWebAnalyticsSettings replaces the whole object and
+    // this panel rebuilds it from DEFAULT_SETTINGS plus an explicit enumeration,
+    // so a flag missing from any one of them is reset on every save. For the one
+    // switch that decides whether Notifuse ties recipients to their browsing,
+    // that is the worst way to fail.
+    renderComponent(true, makeWorkspace({ identify_from_email_links: true }))
 
     fireEvent.change(screen.getByLabelText(/Bounce threshold/i), {
       target: { value: '25' }
@@ -253,21 +260,7 @@ describe('WebAnalyticsSettings', () => {
     await waitFor(() => {
       expect(webAnalyticsService.setSettings).toHaveBeenCalledWith(
         'ws1',
-        expect.objectContaining({ contact_bridge_enabled: true })
-      )
-    })
-  })
-
-  it('can turn the contact bridge on', async () => {
-    renderComponent(true)
-
-    fireEvent.click(screen.getByLabelText(/contact timeline/i))
-    fireEvent.click(screen.getByRole('button', { name: /Save Changes/i }))
-
-    await waitFor(() => {
-      expect(webAnalyticsService.setSettings).toHaveBeenCalledWith(
-        'ws1',
-        expect.objectContaining({ contact_bridge_enabled: true })
+        expect.objectContaining({ identify_from_email_links: true })
       )
     })
   })

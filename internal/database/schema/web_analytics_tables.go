@@ -146,6 +146,7 @@ func WebAnalyticsTableDefinitions() []string {
 	beat_seq BIGINT NOT NULL DEFAULT 0,
 	goal_at TIMESTAMPTZ NOT NULL,
 	goal_value REAL NOT NULL DEFAULT 0,
+	goal_type TEXT NOT NULL DEFAULT '',
 	path TEXT NOT NULL DEFAULT '',
 	page_number SMALLINT NOT NULL DEFAULT 1,
 	properties JSONB,` +

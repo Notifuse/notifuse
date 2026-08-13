@@ -23,6 +23,21 @@ func setupWebhookSubscriptionTest(t *testing.T) (
 	*WebhookSubscriptionService,
 	*gomock.Controller,
 ) {
+	mockRepo, mockDeliveryRepo, mockLogger, _, service, ctrl := setupWebhookSubscriptionTestWithAuth(t)
+	return mockRepo, mockDeliveryRepo, mockLogger, service, ctrl
+}
+
+// setupWebhookSubscriptionTestWithAuth also exposes the auth mock, for the tests
+// that care who is asking. The plain harness above arms it permissively, so the
+// existing behaviour tests stay about behaviour.
+func setupWebhookSubscriptionTestWithAuth(t *testing.T) (
+	*mocks.MockWebhookSubscriptionRepository,
+	*mocks.MockWebhookDeliveryRepository,
+	*pkgmocks.MockLogger,
+	*mocks.MockAuthService,
+	*WebhookSubscriptionService,
+	*gomock.Controller,
+) {
 	ctrl := gomock.NewController(t)
 	mockRepo := mocks.NewMockWebhookSubscriptionRepository(ctrl)
 	mockDeliveryRepo := mocks.NewMockWebhookDeliveryRepository(ctrl)
@@ -36,10 +51,20 @@ func setupWebhookSubscriptionTest(t *testing.T) (
 	mockLogger.EXPECT().Warn(gomock.Any()).AnyTimes()
 	mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
 
-	// AuthService is not used by WebhookSubscriptionService methods, so pass nil
-	service := NewWebhookSubscriptionService(mockRepo, mockDeliveryRepo, nil, mockLogger)
+	mockAuthService := mocks.NewMockAuthService(ctrl)
+	mockAuthService.EXPECT().
+		AuthenticateUserForWorkspace(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, workspaceID string) (context.Context, *domain.User, *domain.UserWorkspace, error) {
+			return ctx, &domain.User{ID: "user-1"}, &domain.UserWorkspace{
+				UserID:      "user-1",
+				WorkspaceID: workspaceID,
+				Role:        "owner",
+			}, nil
+		}).AnyTimes()
 
-	return mockRepo, mockDeliveryRepo, mockLogger, service, ctrl
+	service := NewWebhookSubscriptionService(mockRepo, mockDeliveryRepo, mockAuthService, mockLogger)
+
+	return mockRepo, mockDeliveryRepo, mockLogger, mockAuthService, service, ctrl
 }
 
 func TestNewWebhookSubscriptionService(t *testing.T) {
@@ -50,12 +75,13 @@ func TestNewWebhookSubscriptionService(t *testing.T) {
 	mockDeliveryRepo := mocks.NewMockWebhookDeliveryRepository(ctrl)
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 
-	service := NewWebhookSubscriptionService(mockRepo, mockDeliveryRepo, nil, mockLogger)
+	mockAuthService := mocks.NewMockAuthService(ctrl)
+	service := NewWebhookSubscriptionService(mockRepo, mockDeliveryRepo, mockAuthService, mockLogger)
 
 	require.NotNil(t, service)
 	require.Equal(t, mockRepo, service.repo)
 	require.Equal(t, mockDeliveryRepo, service.deliveryRepo)
-	require.Nil(t, service.authService)
+	require.Equal(t, mockAuthService, service.authService)
 	require.Equal(t, mockLogger, service.logger)
 }
 
@@ -1358,4 +1384,84 @@ func TestWebhookSubscriptionService_Update_PreservesSecret(t *testing.T) {
 		true,
 	)
 	require.NoError(t, err)
+}
+
+// TestWebhookSubscriptionService_RejectsNonMembers pins the workspace boundary.
+//
+// Isolation is per-database, but workspace_id — which every one of these methods
+// takes straight from the caller — is only a database selector. The membership
+// check is what establishes the right to the data behind it.
+//
+// The assertion that matters is not the returned error: it is that NO repository
+// method is reached. The mocks below have no EXPECT() calls, so gomock fails the
+// test if any of them is touched.
+func TestWebhookSubscriptionService_RejectsNonMembers(t *testing.T) {
+	const victimWorkspace = "victim-workspace"
+
+	authFailure := errors.New("user is not a member of the workspace")
+
+	cases := []struct {
+		name string
+		call func(context.Context, *WebhookSubscriptionService) error
+	}{
+		{"Create", func(ctx context.Context, s *WebhookSubscriptionService) error {
+			_, err := s.Create(ctx, victimWorkspace, "n", "https://example.com/h", []string{"contact.created"}, nil)
+			return err
+		}},
+		{"GetByID", func(ctx context.Context, s *WebhookSubscriptionService) error {
+			_, err := s.GetByID(ctx, victimWorkspace, "sub-1")
+			return err
+		}},
+		{"List", func(ctx context.Context, s *WebhookSubscriptionService) error {
+			_, err := s.List(ctx, victimWorkspace)
+			return err
+		}},
+		{"Update", func(ctx context.Context, s *WebhookSubscriptionService) error {
+			_, err := s.Update(ctx, victimWorkspace, "sub-1", "n", "https://attacker.example.com/h", []string{"contact.created"}, nil, true)
+			return err
+		}},
+		{"Delete", func(ctx context.Context, s *WebhookSubscriptionService) error {
+			return s.Delete(ctx, victimWorkspace, "sub-1")
+		}},
+		{"Toggle", func(ctx context.Context, s *WebhookSubscriptionService) error {
+			_, err := s.Toggle(ctx, victimWorkspace, "sub-1", false)
+			return err
+		}},
+		{"RegenerateSecret", func(ctx context.Context, s *WebhookSubscriptionService) error {
+			_, err := s.RegenerateSecret(ctx, victimWorkspace, "sub-1")
+			return err
+		}},
+		{"GetDeliveries", func(ctx context.Context, s *WebhookSubscriptionService) error {
+			_, _, err := s.GetDeliveries(ctx, victimWorkspace, nil, 10, 0)
+			return err
+		}},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			mockRepo := mocks.NewMockWebhookSubscriptionRepository(ctrl)
+			mockDeliveryRepo := mocks.NewMockWebhookDeliveryRepository(ctrl)
+			mockLogger := pkgmocks.NewMockLogger(ctrl)
+			mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+			mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+			mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
+			mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
+			mockLogger.EXPECT().Warn(gomock.Any()).AnyTimes()
+			mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+
+			mockAuthService := mocks.NewMockAuthService(ctrl)
+			mockAuthService.EXPECT().
+				AuthenticateUserForWorkspace(gomock.Any(), victimWorkspace).
+				Return(nil, nil, nil, authFailure)
+
+			service := NewWebhookSubscriptionService(mockRepo, mockDeliveryRepo, mockAuthService, mockLogger)
+
+			err := tc.call(context.Background(), service)
+			require.Error(t, err, "a non-member must not be served")
+			assert.Contains(t, err.Error(), "failed to authenticate user")
+		})
+	}
 }

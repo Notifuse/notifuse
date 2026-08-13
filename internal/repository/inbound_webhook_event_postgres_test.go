@@ -513,7 +513,7 @@ func TestInboundWebhookEventRepository_DeleteForEmail(t *testing.T) {
 			GetConnection(gomock.Any(), workspaceID).
 			Return(db, nil)
 
-		mock.ExpectExec(`UPDATE inbound_webhook_events SET recipient_email = \$1 WHERE recipient_email = \$2`).
+		mock.ExpectExec(`UPDATE inbound_webhook_events SET recipient_email = \$1, raw_payload = '\{\}' WHERE recipient_email = \$2`).
 			WithArgs(redactedEmail, email).
 			WillReturnResult(sqlmock.NewResult(0, 3))
 
@@ -535,7 +535,7 @@ func TestInboundWebhookEventRepository_DeleteForEmail(t *testing.T) {
 			GetConnection(gomock.Any(), workspaceID).
 			Return(db2, nil)
 
-		mock2.ExpectExec(`UPDATE inbound_webhook_events SET recipient_email = \$1 WHERE recipient_email = \$2`).
+		mock2.ExpectExec(`UPDATE inbound_webhook_events SET recipient_email = \$1, raw_payload = '\{\}' WHERE recipient_email = \$2`).
 			WithArgs(redactedEmail, email).
 			WillReturnResult(sqlmock.NewResult(0, 0))
 
@@ -568,7 +568,7 @@ func TestInboundWebhookEventRepository_DeleteForEmail(t *testing.T) {
 			GetConnection(gomock.Any(), workspaceID).
 			Return(db3, nil)
 
-		mock3.ExpectExec(`UPDATE inbound_webhook_events SET recipient_email = \$1 WHERE recipient_email = \$2`).
+		mock3.ExpectExec(`UPDATE inbound_webhook_events SET recipient_email = \$1, raw_payload = '\{\}' WHERE recipient_email = \$2`).
 			WithArgs(redactedEmail, email).
 			WillReturnError(errors.New("execution error"))
 
@@ -588,7 +588,7 @@ func TestInboundWebhookEventRepository_DeleteForEmail(t *testing.T) {
 			GetConnection(gomock.Any(), workspaceID).
 			Return(db4, nil)
 
-		mock4.ExpectExec(`UPDATE inbound_webhook_events SET recipient_email = \$1 WHERE recipient_email = \$2`).
+		mock4.ExpectExec(`UPDATE inbound_webhook_events SET recipient_email = \$1, raw_payload = '\{\}' WHERE recipient_email = \$2`).
 			WithArgs(redactedEmail, email).
 			WillReturnResult(sqlmock.NewErrorResult(errors.New("rows affected error")))
 

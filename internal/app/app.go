@@ -496,6 +496,13 @@ func (a *App) InitServices() error {
 	a.rateLimiter.SetPolicy("preferences:ip", 100, 1*time.Minute)    // Public preferences by IP
 	a.rateLimiter.SetPolicy("wa_identify:email", 120, 1*time.Minute) // Identified beats per contact (heartbeat is 10-30s)
 	a.rateLimiter.SetPolicy("wa_identify:ip", 600, 1*time.Minute)    // Identified beats per source IP (offices share one)
+	// Contact creation through /track, per workspace. The two limits above bound
+	// how often ONE address beats, which a caller minting a fresh address per
+	// request never trips, so this is the only bound on contact-list growth from a
+	// leaked workspace secret. Generous because exceeding it only drops the
+	// identity for that beat: the SDK beats again in 10-30s, so a legitimate burst
+	// drains over the following minutes instead of being lost.
+	a.rateLimiter.SetPolicy("wa_identify:create", 300, 1*time.Minute)
 	a.rateLimiter.SetPolicy("inbound:ip", 240, 1*time.Minute)        // Public inbound replies by source IP (generous; providers share IPs)
 	a.rateLimiter.SetPolicy("inbound:workspace", 120, 1*time.Minute) // Public inbound replies by workspace
 	// OIDC policies are registered UNCONDITIONALLY (even when OIDC is disabled):
@@ -614,6 +621,10 @@ func (a *App) InitServices() error {
 		a.contactListRepo,
 		a.contactTimelineRepo,
 		a.webAnalyticsRepo,
+		a.emailQueueRepo,
+		a.customEventRepo,
+		a.segmentRepo,
+		a.contactSegmentQueueRepo,
 		a.logger,
 	)
 
@@ -843,6 +854,7 @@ func (a *App) InitServices() error {
 		a.segmentRepo,
 		a.workspaceRepo,
 		a.taskService,
+		a.authService,
 		a.logger,
 	)
 

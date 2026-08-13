@@ -12,7 +12,7 @@
  * - No attributesSent optimization - always include attributes
  */
 
-import type { WebIdentity } from '../types';
+import type { GoalType, WebIdentity } from '../types';
 import type {
   Action,
   PageviewAction,
@@ -147,6 +147,7 @@ export class SessionState {
 
   addGoal(
     name: string,
+    goalType: GoalType,
     value?: number,
     properties?: Record<string, string>,
   ): boolean {
@@ -167,6 +168,7 @@ export class SessionState {
     const goal: GoalAction = {
       type: 'goal',
       name,
+      goal_type: goalType,
       path: currentPage?.path || '/',
       page_number: currentPage?.page_number || 1,
       timestamp: Date.now(),

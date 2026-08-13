@@ -38,6 +38,7 @@ import {
   LeafContactListForm,
   LeafCustomEventsGoalForm
 } from './form_leaf'
+import { timelineChangesSchema } from './table_schemas'
 import { FieldTypeNumber } from './type_number'
 import { FieldTypeJSON } from './type_json'
 import styles from './input.module.css'
@@ -795,6 +796,8 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
                         t`Unsubscribe from list`}
                       {node.leaf?.contact_timeline.kind === 'email.sent' &&
                         t`New message (email...)`}
+                      {node.leaf?.contact_timeline.kind === 'web.pageview' && t`View web page`}
+                      {node.leaf?.contact_timeline.kind === 'web.session' && t`Visit website`}
                     </Tag>
                   </div>
                   {node.leaf?.contact_timeline?.template_id && (
@@ -874,7 +877,16 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
                   <table>
                     <tbody>
                       {filtersToShow.map((filter, key) => {
-                        const field = schema.fields[filter.field_name]
+                        // Activity filters name keys of the event's `changes`
+                        // payload, not columns of contact_timeline, so they
+                        // resolve against the kind's schema. Falling back to the
+                        // table schema found no field at all and threw on the
+                        // first render of a saved web filter.
+                        const filterSchema =
+                          (node.leaf?.source === 'contact_timeline' &&
+                            timelineChangesSchema(node.leaf?.contact_timeline?.kind)) ||
+                          schema
+                        const field = filterSchema.fields[filter.field_name]
                         // Use JSON renderer if filter has json_path, otherwise use the field_type renderer
                         const rendererType =
                           filter.json_path && filter.json_path.length > 0
@@ -895,10 +907,12 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
                                 <Space key={key}>
                                   <Popover
                                     title={'field: ' + filter.field_name}
-                                    content={field.description}
+                                    content={field?.description}
                                   >
                                     <b>
-                                      {props.customFieldLabels?.[filter.field_name] || field.title}
+                                      {props.customFieldLabels?.[filter.field_name] ||
+                                        field?.title ||
+                                        filter.field_name}
                                     </b>
                                   </Popover>
                                   {fieldTypeRenderer.render(filter, field, props.customFieldLabels)}

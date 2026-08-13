@@ -46,8 +46,8 @@ export interface WebAnalyticsSettings {
   filters?: WebFilter[]
   filters_version?: string
   custom_dimension_labels?: Record<string, string>
-  /** Off by default; writing web goals into contact timelines is opt-in. */
-  contact_bridge_enabled?: boolean
+  /** Off by default; letting Notifuse identify recipients from tracked email links is opt-in. */
+  identify_from_email_links?: boolean
   geo_enabled: boolean
   geo_store_city: boolean
   geo_store_region: boolean

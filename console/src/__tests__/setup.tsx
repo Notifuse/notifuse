@@ -1,4 +1,4 @@
-import { afterEach, vi } from 'vitest'
+import { afterAll, afterEach, vi } from 'vitest'
 import { cleanup } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import { i18n } from '@lingui/core'
@@ -171,4 +171,24 @@ vi.mock('@tanstack/react-router', async () => {
 // Clean up after each test
 afterEach(() => {
   cleanup()
+})
+
+// Let anything still scheduled fire before vitest tears the environment down.
+//
+// vitest.config.ts sets no `pool`, so `isolate: true` disposes the jsdom
+// environment after EVERY file, and antd's Form.Item debounce arms a 10ms timer
+// in @rc-component/util's useDelayState that the hook never cancels on unmount —
+// it exposes cancelPending and calls it from nowhere. cleanup() cannot help: it
+// unmounts the tree, and the timer was never registered against it. When that
+// timer lands after teardown it throws "window is not defined" as an unhandled
+// error, and vitest fails the whole run regardless of assertions.
+//
+// A real-time wait, not fake timers: the point is to let the real 10ms elapse.
+// It runs after the file's last test and last cleanup(), so no test can observe
+// it, and 63 files x 50ms is inside run-to-run noise.
+//
+// This neutralises the leak rather than removing it. Removing it means patching
+// useDelayState to cancel on unmount, upstream.
+afterAll(async () => {
+  await new Promise((resolve) => setTimeout(resolve, 50))
 })

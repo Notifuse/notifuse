@@ -94,6 +94,11 @@ func (h *WorkspaceHandler) handleList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Credentials are decrypted on load for the sending path; they must not
+	// leave the process. See domain.Workspace.Redact.
+	for _, ws := range workspaces {
+		ws.Redact()
+	}
 	writeJSON(w, http.StatusOK, workspaces)
 }
 
@@ -147,6 +152,8 @@ func (h *WorkspaceHandler) handleGet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	workspace.Redact()
+
 	// Wrap the workspace in a response object with a workspace field to match frontend expectations
 	writeJSON(w, http.StatusOK, map[string]interface{}{
 		"workspace": workspace,
@@ -196,6 +203,7 @@ func (h *WorkspaceHandler) handleCreate(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	workspace.Redact()
 	writeJSON(w, http.StatusCreated, workspace)
 }
 
@@ -247,6 +255,7 @@ func (h *WorkspaceHandler) handleUpdate(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	workspace.Redact()
 	writeJSON(w, http.StatusOK, workspace)
 }
 
@@ -800,6 +809,11 @@ func (h *WorkspaceHandler) handleVerifyInvitationToken(w http.ResponseWriter, r 
 		WriteJSONError(w, "Failed to get workspace", http.StatusInternalServerError)
 		return
 	}
+
+	// This route is public — no authentication at all (see RegisterRoutes) — so it
+	// redacts harder than the member-facing ones: no integrations, no credential
+	// hints, no S3 secret. The page shows the workspace's name.
+	workspace.RedactForPublic()
 
 	// Return invitation and workspace details
 	writeJSON(w, http.StatusOK, map[string]interface{}{

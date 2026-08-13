@@ -472,7 +472,7 @@ func (e *EmailNodeExecutor) buildTrackingSettings(
 ) notifuse_mjml.TrackingSettings {
 	var identifyToken string
 	var identifyAllowedHosts []string
-	if wa := workspace.Settings.WebAnalytics; wa != nil && wa.Enabled && len(wa.AllowedDomains) > 0 {
+	if wa := workspace.Settings.WebAnalytics; wa.CanIdentifyFromEmailLinks() {
 		token, err := domain.BuildWebIdentifyToken(
 			params.ContactData.Email,
 			workspace.Settings.SecretKey,

@@ -54,7 +54,13 @@ type MessageSender interface {
 // gate to it would still mint a live per-recipient credential, and hold it out
 // of the email's links by that one downstream check alone.
 func mintIdentifyToken(email string, workspaceSecretKey string, webAnalytics *domain.WebAnalyticsSettings) (token string, allowedHosts []string, err error) {
-	if workspaceSecretKey == "" || webAnalytics == nil || !webAnalytics.Enabled || len(webAnalytics.AllowedDomains) == 0 {
+	// The workspace has to have asked for this. Every other identity path starts
+	// in the customer's own code — identify() takes their secret to sign —
+	// whereas this token is minted by us, for every recipient of every tracked
+	// send, and identifying someone ties their browsing to their contact record:
+	// timeline entries, goals, automation enrolments. Enabling web analytics and
+	// leaving link tracking on is not a decision to do that.
+	if workspaceSecretKey == "" || !webAnalytics.CanIdentifyFromEmailLinks() {
 		return "", nil, nil
 	}
 

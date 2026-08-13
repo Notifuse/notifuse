@@ -434,6 +434,13 @@ type SegmentRepository interface {
 	// RemoveContactFromSegment removes a contact from a segment
 	RemoveContactFromSegment(ctx context.Context, workspaceID string, email string, segmentID string) error
 
+	// DeleteForEmail removes every segment membership a contact has.
+	//
+	// Separate from RemoveContactFromSegment because erasure does not know which
+	// segments the contact was in, and enumerating them first would race with the
+	// queue processor.
+	DeleteForEmail(ctx context.Context, workspaceID string, email string) error
+
 	// RemoveOldMemberships removes contact_segment records with old versions
 	RemoveOldMemberships(ctx context.Context, workspaceID string, segmentID string, currentVersion int64) error
 

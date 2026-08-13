@@ -155,13 +155,16 @@ func testSupabaseInstallation(t *testing.T, suite *testutil.IntegrationTestSuite
 
 		// Verify auth email hook settings
 		authEmailHook := supabaseSettings["auth_email_hook"].(map[string]interface{})
-		assert.NotEmpty(t, authEmailHook["encrypted_signature_key"])
-		assert.NotEmpty(t, authEmailHook["signature_key"], "decrypted signature_key should be in response for now")
+		assert.NotEmpty(t, authEmailHook["encrypted_signature_key"],
+			"the encrypted form still goes out, so the console can tell configured from unset")
+		assert.Empty(t, authEmailHook["signature_key"],
+			"decrypted credentials are not served to clients — see domain.Workspace.Redact")
 
 		// Verify before user created hook settings
 		beforeUserCreatedHook := supabaseSettings["before_user_created_hook"].(map[string]interface{})
 		assert.NotEmpty(t, beforeUserCreatedHook["encrypted_signature_key"])
-		assert.NotEmpty(t, beforeUserCreatedHook["signature_key"], "decrypted signature_key should be in response for now")
+		assert.Empty(t, beforeUserCreatedHook["signature_key"],
+			"decrypted credentials are not served to clients")
 		assert.Equal(t, "custom_json_1", beforeUserCreatedHook["custom_json_field"])
 
 		addUserToLists := beforeUserCreatedHook["add_user_to_lists"].([]interface{})

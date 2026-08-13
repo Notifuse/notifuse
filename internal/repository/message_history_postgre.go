@@ -1371,9 +1371,19 @@ func (r *MessageHistoryRepository) DeleteForEmail(ctx context.Context, workspace
 	}
 
 	// Redact the email address by replacing it with a generic redacted identifier;
-	// clicked_links is cleared too since recorded URLs may carry personal data
+	// clicked_links is cleared too since recorded URLs may carry personal data.
+	//
+	// message_data goes with them, and that one is load-bearing: it holds
+	// data.contact.email plus the address embedded in the notification-center and
+	// unsubscribe URLs, and messages.list DECRYPTS it before returning. Redacting
+	// contact_email alone left the real address in the same row, beside the
+	// "DELETED_EMAIL" label — a row that reads as anonymised and is not.
+	//
+	// Emptied rather than deleted: GetBroadcastStats sums the *_at timestamp
+	// columns on these rows, so dropping them would rewrite every broadcast's
+	// history. '{}' rather than NULL because the column is NOT NULL.
 	redactedEmail := "DELETED_EMAIL"
-	query := `UPDATE message_history SET contact_email = $1, clicked_links = NULL WHERE contact_email = $2`
+	query := `UPDATE message_history SET contact_email = $1, clicked_links = NULL, message_data = '{}'::jsonb WHERE contact_email = $2`
 
 	result, err := workspaceDB.ExecContext(ctx, query, redactedEmail, email)
 	if err != nil {

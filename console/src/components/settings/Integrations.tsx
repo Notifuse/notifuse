@@ -612,6 +612,16 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
     return workspace.integrations?.find((i) => i.id === id)
   }
 
+  // Placeholder for a credential field. The server returns only the last few
+  // characters of a configured credential, never the credential itself, so an
+  // owner can tell which key is in place. Leaving the field blank on save keeps
+  // the stored one — the server preserves it.
+  const secretPlaceholder = (hintKey: string, fallback: string): string => {
+    if (!editingIntegrationId) return fallback
+    const hint = getIntegrationById(editingIntegrationId)?.credential_hints?.[hintKey]
+    return hint ? `••••••••${hint}` : t`Leave blank to keep the current value`
+  }
+
   // Is the integration being used
   const isIntegrationInUse = (id: string): boolean => {
     return (
@@ -790,6 +800,10 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
       name: provider.charAt(0).toUpperCase() + provider.slice(1),
       senders: []
     })
+    // Creation, not an edit. Nothing else clears this, and both the required
+    // rules and the credential placeholders key off it — leaving a previous
+    // edit's id here would make a new integration's credentials optional.
+    setEditingIntegrationId(null)
     setProviderDrawerVisible(true)
   }
 
@@ -950,6 +964,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
   const closeProviderDrawer = () => {
     setProviderDrawerVisible(false)
     setSelectedProviderType(null)
+    setEditingIntegrationId(null)
     setSenders([])
     emailProviderForm.resetFields()
   }
@@ -1132,7 +1147,8 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
       const response = await emailService.testProvider(
         workspace.id,
         providerToTest,
-        testEmailAddress
+        testEmailAddress,
+        testingIntegrationId ?? undefined
       )
 
       if (response.success) {
@@ -1280,8 +1296,14 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
           }
 
           if (integration.type === 'supabase') {
-            const hasAuthEmailHook = !!integration.supabase_settings?.auth_email_hook?.signature_key
+            // The encrypted form, not the plaintext: credentials are no longer
+            // served to clients, so keying off signature_key would show every
+            // configured hook as unconfigured.
+            const hasAuthEmailHook =
+              !!integration.supabase_settings?.auth_email_hook?.encrypted_signature_key ||
+              !!integration.supabase_settings?.auth_email_hook?.signature_key
             const hasBeforeUserCreatedHook =
+              !!integration.supabase_settings?.before_user_created_hook?.encrypted_signature_key ||
               !!integration.supabase_settings?.before_user_created_hook?.signature_key
             const addToLists =
               integration.supabase_settings?.before_user_created_hook?.add_user_to_lists || []
@@ -1676,7 +1698,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
               <Input placeholder={t`Access Key`} disabled={!isOwner} />
             </Form.Item>
             <Form.Item name={['ses', 'secret_key']} label={t`AWS Secret Key`}>
-              <Input.Password placeholder={t`Secret Key`} disabled={!isOwner} />
+              <Input.Password placeholder={secretPlaceholder('ses.secret_key', t`Secret Key`)} disabled={!isOwner} />
             </Form.Item>
           </>
         )}
@@ -1800,11 +1822,19 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
                                 <Form.Item
                                   name={['smtp', 'oauth2_client_secret']}
                                   label="Client Secret"
-                                  rules={[{ required: true, message: 'Client Secret is required' }]}
+                                  rules={[
+                                    {
+                                      required: !editingIntegrationId,
+                                      message: 'Client Secret is required'
+                                    }
+                                  ]}
                                   tooltip={t`Create this in Azure Portal > App registrations > Your App > Certificates & secrets`}
                                 >
                                   <Input.Password
-                                    placeholder="Client Secret Value"
+                                    placeholder={secretPlaceholder(
+                                      'smtp.oauth2_client_secret',
+                                      t`Client Secret Value`
+                                    )}
                                     disabled={!isOwner}
                                   />
                                 </Form.Item>
@@ -1826,17 +1856,28 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
                                 <Form.Item
                                   name={['smtp', 'oauth2_client_secret']}
                                   label="Client Secret"
-                                  rules={[{ required: true, message: 'Client Secret is required' }]}
+                                  rules={[
+                                    {
+                                      required: !editingIntegrationId,
+                                      message: 'Client Secret is required'
+                                    }
+                                  ]}
                                   tooltip={t`Find this in Google Cloud Console > APIs & Services > Credentials`}
                                 >
-                                  <Input.Password placeholder="Client Secret" disabled={!isOwner} />
+                                  <Input.Password
+                                    placeholder={secretPlaceholder(
+                                      'smtp.oauth2_client_secret',
+                                      t`Client Secret`
+                                    )}
+                                    disabled={!isOwner}
+                                  />
                                 </Form.Item>
                                 <Form.Item
                                   name={['smtp', 'oauth2_refresh_token']}
                                   label="Refresh Token"
                                   rules={[
                                     {
-                                      required: true,
+                                      required: !editingIntegrationId,
                                       message: 'Refresh Token is required for Google'
                                     }
                                   ]}
@@ -1865,7 +1906,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
                     </Col>
                     <Col span={12}>
                       <Form.Item name={['smtp', 'password']} label={t`SMTP Password`}>
-                        <Input.Password placeholder="Password (optional)" disabled={!isOwner} />
+                        <Input.Password placeholder={secretPlaceholder('smtp.password', t`Password (optional)`)} disabled={!isOwner} />
                       </Form.Item>
                     </Col>
                   </Row>
@@ -1899,7 +1940,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
               />
             </Form.Item>
             <Form.Item name={['sparkpost', 'api_key']} label={t`SparkPost API Key`}>
-              <Input.Password placeholder="API Key" disabled={!isOwner} />
+              <Input.Password placeholder={secretPlaceholder('sparkpost.api_key', t`API Key`)} disabled={!isOwner} />
             </Form.Item>
             <Form.Item
               name={['sparkpost', 'sandbox_mode']}
@@ -1917,9 +1958,9 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
             <Form.Item
               name={['postmark', 'server_token']}
               label={t`Server Token`}
-              rules={[{ required: true }]}
+              rules={[{ required: !editingIntegrationId }]}
             >
-              <Input.Password placeholder="Server Token" disabled={!isOwner} />
+              <Input.Password placeholder={secretPlaceholder('postmark.server_token', t`Server Token`)} disabled={!isOwner} />
             </Form.Item>
             <Form.Item
               name={['postmark', 'message_stream']}
@@ -1937,8 +1978,8 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
             <Form.Item name={['mailgun', 'domain']} label={t`Domain`} rules={[{ required: true }]}>
               <Input placeholder="mail.yourdomain.com" disabled={!isOwner} />
             </Form.Item>
-            <Form.Item name={['mailgun', 'api_key']} label={t`API Key`} rules={[{ required: true }]}>
-              <Input.Password placeholder="API Key" disabled={!isOwner} />
+            <Form.Item name={['mailgun', 'api_key']} label={t`API Key`} rules={[{ required: !editingIntegrationId }]}>
+              <Input.Password placeholder={secretPlaceholder('mailgun.api_key', t`API Key`)} disabled={!isOwner} />
             </Form.Item>
             <Form.Item name={['mailgun', 'region']} label={t`Region`} initialValue="US">
               <Select
@@ -1955,15 +1996,15 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
 
         {providerType === 'mailjet' && (
           <>
-            <Form.Item name={['mailjet', 'api_key']} label={t`API Key`} rules={[{ required: true }]}>
-              <Input.Password placeholder="API Key" disabled={!isOwner} />
+            <Form.Item name={['mailjet', 'api_key']} label={t`API Key`} rules={[{ required: !editingIntegrationId }]}>
+              <Input.Password placeholder={secretPlaceholder('mailjet.api_key', t`API Key`)} disabled={!isOwner} />
             </Form.Item>
             <Form.Item
               name={['mailjet', 'secret_key']}
               label={t`Secret Key`}
-              rules={[{ required: true }]}
+              rules={[{ required: !editingIntegrationId }]}
             >
-              <Input.Password placeholder="Secret Key" disabled={!isOwner} />
+              <Input.Password placeholder={secretPlaceholder('mailjet.secret_key', t`Secret Key`)} disabled={!isOwner} />
             </Form.Item>
             <Form.Item
               name={['mailjet', 'sandbox_mode']}
@@ -1977,8 +2018,8 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
         )}
 
         {providerType === 'sendgrid' && (
-          <Form.Item name={['sendgrid', 'api_key']} label={t`API Key`} rules={[{ required: true }]}>
-            <Input.Password placeholder="API Key (starts with SG.)" disabled={!isOwner} />
+          <Form.Item name={['sendgrid', 'api_key']} label={t`API Key`} rules={[{ required: !editingIntegrationId }]}>
+            <Input.Password placeholder={secretPlaceholder('sendgrid.api_key', t`API Key (starts with SG.)`)} disabled={!isOwner} />
           </Form.Item>
         )}
 

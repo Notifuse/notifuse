@@ -3805,8 +3805,9 @@ func sendBatchTrackedLinks(t *testing.T, secretKey string, webAnalytics *domain.
 // come back "different".
 func TestSendBatch_WebIdentityTokenIsPerRecipient(t *testing.T) {
 	webAnalytics := &domain.WebAnalyticsSettings{
-		Enabled:        true,
-		AllowedDomains: []string{"example.com"}, // the host createTestTemplateWithLink links to
+		Enabled:                true,
+		AllowedDomains:         []string{"example.com"}, // the host createTestTemplateWithLink links to
+		IdentifyFromEmailLinks: true,
 	}
 
 	queries := sendBatchTrackedLinks(t, webIdentityTestSecret, webAnalytics,
@@ -3870,7 +3871,11 @@ func TestMintIdentifyToken(t *testing.T) {
 			{"no web analytics settings", webIdentityTestSecret, nil},
 			{"disabled", webIdentityTestSecret, &domain.WebAnalyticsSettings{Enabled: false, AllowedDomains: []string{"example.com"}}},
 			{"enabled with no allowed domain", webIdentityTestSecret, &domain.WebAnalyticsSettings{Enabled: true}},
-			{"no workspace secret key", "", &domain.WebAnalyticsSettings{Enabled: true, AllowedDomains: []string{"example.com"}}},
+			{"no workspace secret key", "", &domain.WebAnalyticsSettings{Enabled: true, AllowedDomains: []string{"example.com"}, IdentifyFromEmailLinks: true}},
+			// The gate that makes this path the workspace's decision rather than
+			// ours: everything else is configured, but nobody asked Notifuse to
+			// identify recipients on their behalf.
+			{"email-link identification not enabled", webIdentityTestSecret, &domain.WebAnalyticsSettings{Enabled: true, AllowedDomains: []string{"example.com"}}},
 		}
 
 		for _, tc := range closed {
@@ -3887,8 +3892,9 @@ func TestMintIdentifyToken(t *testing.T) {
 
 	t.Run("open gate mints an identity for the declared hosts", func(t *testing.T) {
 		webAnalytics := &domain.WebAnalyticsSettings{
-			Enabled:        true,
-			AllowedDomains: []string{"example.com", "*.shop.example.com"},
+			Enabled:                true,
+			AllowedDomains:         []string{"example.com", "*.shop.example.com"},
+			IdentifyFromEmailLinks: true,
 		}
 
 		token, hosts, err := mintIdentifyToken("recipient@example.com", webIdentityTestSecret, webAnalytics)

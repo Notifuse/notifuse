@@ -136,8 +136,12 @@ type Integration struct {
 	SupabaseSettings  *SupabaseIntegrationSettings `json:"supabase_settings,omitempty"`
 	LLMProvider       *LLMProvider                 `json:"llm_provider,omitempty"`
 	FirecrawlSettings *FirecrawlSettings           `json:"firecrawl_settings,omitempty"`
-	CreatedAt         time.Time                    `json:"created_at"`
-	UpdatedAt         time.Time                    `json:"updated_at"`
+	// CredentialHints maps a credential to its last few characters, so an owner
+	// can tell which key is configured without the key being served. Computed by
+	// Redact at the API boundary and cleared by BeforeSave — never stored.
+	CredentialHints map[string]string `json:"credential_hints,omitempty"`
+	CreatedAt       time.Time         `json:"created_at"`
+	UpdatedAt       time.Time         `json:"updated_at"`
 }
 
 // Validate validates the integration
@@ -194,6 +198,11 @@ func (i *Integration) Validate(passphrase string) error {
 
 // BeforeSave prepares an Integration for saving by encrypting secrets
 func (i *Integration) BeforeSave(secretkey string) error {
+	// Display-only, recomputed on every read. Persisting it would leave a stale
+	// hint behind after a rotation, and put a fragment of the secret in a column
+	// that is not meant to hold one.
+	i.CredentialHints = nil
+
 	// Encrypt based on integration type
 	switch i.Type {
 	case IntegrationTypeEmail:
@@ -1451,9 +1460,15 @@ func (r *InviteMemberRequest) Validate() error {
 // TestEmailProviderRequest is the request for testing an email provider
 // It includes the provider config, a recipient email, and the workspace ID
 type TestEmailProviderRequest struct {
-	Provider    EmailProvider `json:"provider"`
-	To          string        `json:"to"`
-	WorkspaceID string        `json:"workspace_id"`
+	Provider EmailProvider `json:"provider"`
+	To       string        `json:"to"`
+	// IntegrationID names the saved integration being tested, when there is one.
+	// Credentials are not served to clients, so a client testing a saved
+	// integration cannot send them back; blank ones are filled from this
+	// integration. Absent when testing a provider not yet saved, where the client
+	// still holds what it typed.
+	IntegrationID string `json:"integration_id,omitempty"`
+	WorkspaceID   string `json:"workspace_id"`
 }
 
 // TestEmailProviderResponse is the response for testing an email provider

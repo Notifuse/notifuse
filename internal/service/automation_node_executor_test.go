@@ -3767,8 +3767,9 @@ func TestEmailNodeExecutor_Execute_WebIdentity(t *testing.T) {
 
 	t.Run("Writes the contact's token onto a link to a declared domain", func(t *testing.T) {
 		html := enqueueAutomationEmail(t, &domain.WebAnalyticsSettings{
-			Enabled:        true,
-			AllowedDomains: []string{"shop.example.com"},
+			Enabled:                true,
+			IdentifyFromEmailLinks: true,
+			AllowedDomains:         []string{"shop.example.com"},
 		}, "recipient@example.com", allowedLink)
 
 		match := automationIdentifyTokenPattern.FindStringSubmatch(html)
@@ -3785,8 +3786,9 @@ func TestEmailNodeExecutor_Execute_WebIdentity(t *testing.T) {
 		// own sites, never for whatever third-party link the email contains.
 		const partnerLink = "https://partner.example.net/offer"
 		html := enqueueAutomationEmail(t, &domain.WebAnalyticsSettings{
-			Enabled:        true,
-			AllowedDomains: []string{"shop.example.com"},
+			Enabled:                true,
+			IdentifyFromEmailLinks: true,
+			AllowedDomains:         []string{"shop.example.com"},
 		}, "recipient@example.com", partnerLink)
 
 		assertNoIdentityOnLink(t, html, partnerLink)
@@ -3800,8 +3802,9 @@ func TestEmailNodeExecutor_Execute_WebIdentity(t *testing.T) {
 
 	t.Run("Writes nothing when web analytics is configured but disabled", func(t *testing.T) {
 		html := enqueueAutomationEmail(t, &domain.WebAnalyticsSettings{
-			Enabled:        false,
-			AllowedDomains: []string{"shop.example.com"},
+			Enabled:                false,
+			IdentifyFromEmailLinks: true,
+			AllowedDomains:         []string{"shop.example.com"},
 		}, "recipient@example.com", allowedLink)
 
 		assertNoIdentityOnLink(t, html, allowedLink)
@@ -3829,8 +3832,9 @@ func TestEmailNodeExecutor_Execute_WebIdentity(t *testing.T) {
 		// would not be: EncryptString draws a fresh nonce per call, so even two
 		// mints of the same address come out different.
 		webAnalytics := &domain.WebAnalyticsSettings{
-			Enabled:        true,
-			AllowedDomains: []string{"shop.example.com"},
+			Enabled:                true,
+			IdentifyFromEmailLinks: true,
+			AllowedDomains:         []string{"shop.example.com"},
 		}
 
 		aliceMatch := automationIdentifyTokenPattern.FindStringSubmatch(
@@ -3897,10 +3901,24 @@ func TestEmailNodeExecutor_buildTrackingSettings_WebIdentityGate(t *testing.T) {
 		assert.Equal(t, "msg1", settings.MessageID)
 	}
 
-	t.Run("declared destinations mint this contact's identity", func(t *testing.T) {
+	t.Run("mints nothing until the workspace asks for email-link identification", func(t *testing.T) {
+		// The gate was enforced on the broadcast sender alone for a while, which
+		// left this path and the transactional one identifying every recipient
+		// regardless of the setting — so each path carries its own case.
 		settings := build(t, &domain.WebAnalyticsSettings{
 			Enabled:        true,
-			AllowedDomains: []string{"shop.example.com", "*.eu.example.com"},
+			AllowedDomains: []string{"shop.example.com"},
+		})
+
+		assert.Empty(t, settings.IdentifyToken)
+		assert.Empty(t, settings.IdentifyAllowedHosts)
+	})
+
+	t.Run("declared destinations mint this contact's identity", func(t *testing.T) {
+		settings := build(t, &domain.WebAnalyticsSettings{
+			Enabled:                true,
+			IdentifyFromEmailLinks: true,
+			AllowedDomains:         []string{"shop.example.com", "*.eu.example.com"},
 		})
 
 		require.NotEmpty(t, settings.IdentifyToken)
@@ -3924,8 +3942,9 @@ func TestEmailNodeExecutor_buildTrackingSettings_WebIdentityGate(t *testing.T) {
 
 	t.Run("configured but disabled mints nothing", func(t *testing.T) {
 		assertBuiltWithoutIdentity(t, build(t, &domain.WebAnalyticsSettings{
-			Enabled:        false,
-			AllowedDomains: []string{"shop.example.com"},
+			Enabled:                false,
+			IdentifyFromEmailLinks: true,
+			AllowedDomains:         []string{"shop.example.com"},
 		}))
 	})
 

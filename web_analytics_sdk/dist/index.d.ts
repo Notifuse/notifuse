@@ -21,6 +21,7 @@
  * // Track goal
  * await NotifuseAnalytics.trackGoal({
  *   action: 'purchase',
+ *   type: 'purchase',
  *   value: 99.99,
  *   currency: 'USD',
  * });

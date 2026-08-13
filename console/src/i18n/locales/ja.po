@@ -82,6 +82,11 @@ msgstr ""
 msgid "{0} contacts"
 msgstr "{0}件のコンタクト"
 
+#. placeholder {0}: filter.field_name
+#: src/components/segment/input_dimension_filters.tsx:73
+msgid "{0} does not apply to this event"
+msgstr ""
+
 #. placeholder {0}: stats.count_bounced
 #: src/components/analytics/EmailMetricsChart.tsx:414
 msgid "{0} emails bounced back"
@@ -251,6 +256,18 @@ msgstr "{total}件のブロードキャスト中 {0}-{1}"
 msgid "{clicks} clicks out of {recipients} recipients"
 msgstr "{recipients}人中{clicks}クリック"
 
+#: src/components/timeline/ContactTimeline.tsx:796
+msgid "{goalCount} goals"
+msgstr ""
+
+#: src/components/timeline/ContactTimeline.tsx:210
+msgid "{hours}h"
+msgstr ""
+
+#: src/components/timeline/ContactTimeline.tsx:210
+msgid "{hours}h {remainingMinutes}m"
+msgstr ""
+
 #: src/components/settings/WebhookCard.tsx:143
 msgid "{label} copied to clipboard"
 msgstr "{label}をクリップボードにコピーしました"
@@ -267,15 +284,31 @@ msgstr "{language}コードをクリップボードにコピーしました"
 msgid "{liveSessions} live now"
 msgstr ""
 
+#: src/components/timeline/ContactTimeline.tsx:850
+msgid "{maxScroll}% scrolled"
+msgstr ""
+
+#: src/components/timeline/ContactTimeline.tsx:204
+msgid "{minutes}m"
+msgstr ""
+
 #: src/components/contacts/ExportContactsModal.tsx:119
 msgid "{minutes}m {remainingSeconds}s"
 msgstr "{minutes}分{remainingSeconds}秒"
+
+#: src/components/timeline/ContactTimeline.tsx:204
+msgid "{minutes}m {seconds}s"
+msgstr ""
 
 #: src/pages/BroadcastsPage.tsx:822
 msgid "{opens} opens out of {recipients} recipients"
 msgstr "{recipients}人中{opens}回開封"
 
-#: src/components/timeline/ContactTimeline.tsx:341
+#: src/components/timeline/ContactTimeline.tsx:788
+msgid "{pageviews} pages"
+msgstr ""
+
+#: src/components/timeline/ContactTimeline.tsx:377
 msgid "{propertyCount} properties"
 msgstr "{propertyCount}件のプロパティ"
 
@@ -299,6 +332,10 @@ msgstr ""
 #~ msgid "{selectedCount} contact(s) selected"
 #~ msgstr ""
 
+#: src/components/timeline/ContactTimeline.tsx:200
+msgid "{totalSeconds}s"
+msgstr ""
+
 #: src/components/email_builder/panels/Preview.tsx:218
 msgid "// No test data yet..."
 msgstr "// テストデータがまだありません..."
@@ -319,7 +356,7 @@ msgstr "• すべてのXMLタグが正しく閉じられているか確認し�
 msgid "• Verify that component attributes are valid"
 msgstr "• コンポーネント属性が有効か確認してください"
 
-#: src/components/segment/input_dimension_filters.tsx:158
+#: src/components/segment/input_dimension_filters.tsx:170
 msgid "+ Add filter"
 msgstr "+ フィルターを追加"
 
@@ -355,6 +392,14 @@ msgstr "0件のコンタクト"
 #: src/pages/BroadcastsPage.tsx:810
 msgid "0 opens out of 0 recipients"
 msgstr "0人中0回開封"
+
+#: src/components/timeline/ContactTimeline.tsx:796
+msgid "1 goal"
+msgstr ""
+
+#: src/components/timeline/ContactTimeline.tsx:788
+msgid "1 page"
+msgstr ""
 
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:490
 msgid "1. Audience"
@@ -425,7 +470,7 @@ msgstr "800 - 極太"
 msgid "900 - Black"
 msgstr "900 - 最太"
 
-#: src/components/segment/input.tsx:923
+#: src/components/segment/input.tsx:937
 msgid "A branch condition is required..."
 msgstr "分岐条件が必要です..."
 
@@ -460,7 +505,7 @@ msgstr ""
 msgid "A tree is required"
 msgstr "ツリーが必要です"
 
-#: src/components/segment/input.tsx:1012
+#: src/components/segment/input.tsx:1026
 msgid "A value is required..."
 msgstr "値が必要です..."
 
@@ -529,8 +574,8 @@ msgid "Active subscriber"
 msgstr "アクティブ購読者"
 
 #: src/components/contacts/ContactDetailsDrawer.tsx:1046
-#: src/components/segment/form_leaf.tsx:334
-#: src/components/segment/input.tsx:781
+#: src/components/segment/form_leaf.tsx:335
+#: src/components/segment/input.tsx:782
 #: src/components/segment/table_tag.tsx:30
 msgid "Activity"
 msgstr "アクティビティ"
@@ -557,7 +602,7 @@ msgstr "{0}を追加"
 msgid "Add a caption..."
 msgstr "キャプションを追加..."
 
-#: src/components/segment/input_dimension_filters.tsx:164
+#: src/components/segment/input_dimension_filters.tsx:176
 msgid "Add a filter"
 msgstr "フィルターを追加"
 
@@ -743,6 +788,10 @@ msgstr "住所1"
 msgid "Address Line 2"
 msgstr "住所2"
 
+#: src/components/settings/WebAnalyticsSettings.tsx:320
+msgid "Adds a signed identity to the links of tracked emails, so a recipient who clicks one is recognised on landing without any code on your site. Their visit is then tied to their contact record — timeline entries, goals and automation enrolments. Unlike identify(), which your own server calls, this one is minted by Notifuse for every recipient of every tracked send, which is why it is off by default."
+msgstr ""
+
 #: src/pages/SetupWizard.tsx:369
 msgid "Admin email is required"
 msgstr "管理者メールアドレスは必須です"
@@ -759,8 +808,8 @@ msgstr "詳細設定"
 msgid "Affects how columns stack on mobile devices"
 msgstr "モバイルデバイスでの列の積み重ね方に影響します"
 
-#: src/components/segment/input.tsx:725
-#: src/components/segment/input.tsx:862
+#: src/components/segment/input.tsx:726
+#: src/components/segment/input.tsx:865
 msgid "after"
 msgstr "以降"
 
@@ -770,12 +819,12 @@ msgstr "以降"
 msgid "After {0} hours based on highest {1}"
 msgstr "{0}時間後、最も高い{1}に基づいて"
 
-#: src/components/segment/form_leaf.tsx:499
-#: src/components/segment/form_leaf.tsx:855
+#: src/components/segment/form_leaf.tsx:510
+#: src/components/segment/form_leaf.tsx:885
 msgid "after date"
 msgstr "日付以降"
 
-#: src/components/segment/form_leaf.tsx:771
+#: src/components/segment/form_leaf.tsx:801
 msgid "Aggregate"
 msgstr "集計"
 
@@ -834,7 +883,7 @@ msgstr "配置"
 msgid "All"
 msgstr "すべて"
 
-#: src/components/segment/input.tsx:949
+#: src/components/segment/input.tsx:963
 msgid "ALL"
 msgstr "すべて"
 
@@ -936,6 +985,10 @@ msgstr ""
 msgid "Among combinations with at least {0} sessions."
 msgstr ""
 
+#: src/components/settings/WebAnalyticsSettings.tsx:411
+msgid "An address that is not a contact yet becomes one, carrying the country, language and timezone the visit reported; an existing contact is never modified. Visitors arriving from a tracked email link are identified automatically, with no code."
+msgstr ""
+
 #: src/components/contacts/ExportContactsModal.tsx:283
 msgid "An error occurred during export"
 msgstr "エクスポート中にエラーが発生しました"
@@ -952,24 +1005,24 @@ msgstr "アンカー"
 msgid "Anchor ID"
 msgstr "アンカーID"
 
-#: src/components/segment/form_leaf.tsx:811
-#: src/components/segment/input.tsx:678
+#: src/components/segment/form_leaf.tsx:841
+#: src/components/segment/input.tsx:679
 msgid "and"
 msgstr "かつ"
 
-#: src/components/segment/input.tsx:139
+#: src/components/segment/input.tsx:140
 msgid "AND | OR"
 msgstr "AND | OR"
 
-#: src/components/segment/input.tsx:950
+#: src/components/segment/input.tsx:964
 msgid "ANY"
 msgstr "いずれか"
 
-#: src/components/segment/form_leaf.tsx:424
+#: src/components/segment/form_leaf.tsx:435
 msgid "Any broadcast"
 msgstr ""
 
-#: src/components/segment/form_leaf.tsx:754
+#: src/components/segment/form_leaf.tsx:784
 msgid "Any event"
 msgstr ""
 
@@ -977,18 +1030,18 @@ msgstr ""
 msgid "Any field change triggers automation"
 msgstr "フィールドの変更でオートメーションをトリガー"
 
-#: src/components/segment/form_leaf.tsx:743
+#: src/components/segment/form_leaf.tsx:773
 msgid "Any goal name"
 msgstr ""
 
-#: src/components/segment/form_leaf.tsx:406
+#: src/components/segment/form_leaf.tsx:417
 msgid "Any template"
 msgstr ""
 
-#: src/components/segment/form_leaf.tsx:496
-#: src/components/segment/form_leaf.tsx:852
-#: src/components/segment/input.tsx:691
-#: src/components/segment/input.tsx:828
+#: src/components/segment/form_leaf.tsx:507
+#: src/components/segment/form_leaf.tsx:882
+#: src/components/segment/input.tsx:692
+#: src/components/segment/input.tsx:831
 msgid "anytime"
 msgstr "いつでも"
 
@@ -1113,7 +1166,7 @@ msgstr "このノードを削除してもよろしいですか?"
 msgid "Are you sure you want to delete this template?"
 msgstr "このテンプレートを削除してもよろしいですか?"
 
-#: src/components/settings/BlogSettings.tsx:202
+#: src/components/settings/BlogSettings.tsx:208
 msgid "Are you sure you want to disable the blog? All SEO settings and blog visibility will be lost. This action cannot be undone."
 msgstr "ブログを無効にしますか?すべてのSEO設定とブログの表示設定が失われます。この操作は元に戻せません。"
 
@@ -1174,8 +1227,8 @@ msgstr ""
 msgid "Ask me to help write your blog..."
 msgstr "ブログの執筆をお手伝いします..."
 
-#: src/components/segment/form_leaf.tsx:467
-#: src/components/segment/input.tsx:813
+#: src/components/segment/form_leaf.tsx:478
+#: src/components/segment/input.tsx:816
 msgid "at least"
 msgstr "少なくとも"
 
@@ -1195,8 +1248,8 @@ msgstr ""
 msgid "At least one root email is required"
 msgstr ""
 
-#: src/components/segment/form_leaf.tsx:468
-#: src/components/segment/input.tsx:814
+#: src/components/segment/form_leaf.tsx:479
+#: src/components/segment/input.tsx:817
 msgid "at most"
 msgstr "最大"
 
@@ -1224,7 +1277,7 @@ msgstr ""
 msgid "Audience"
 msgstr "オーディエンス"
 
-#: src/components/timeline/ContactTimeline.tsx:584
+#: src/components/timeline/ContactTimeline.tsx:620
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:82
 msgid "Auth Email"
 msgstr "認証メール"
@@ -1242,7 +1295,7 @@ msgstr "認証メールフックシークレット"
 msgid "Authentication"
 msgstr "認証"
 
-#: src/components/timeline/ContactTimeline.tsx:599
+#: src/components/timeline/ContactTimeline.tsx:635
 msgid "Authentication email sent via Supabase"
 msgstr "Supabase経由で認証メールを送信しました"
 
@@ -1283,7 +1336,7 @@ msgstr ""
 msgid "Auto-create users"
 msgstr ""
 
-#: src/components/timeline/ContactTimeline.tsx:583
+#: src/components/timeline/ContactTimeline.tsx:619
 msgid "Auto-reply"
 msgstr ""
 
@@ -1303,7 +1356,7 @@ msgstr "新規ユーザーを選択したリストに自動追加"
 msgid "Automatically send winner"
 msgstr "勝者を自動送信"
 
-#: src/components/timeline/ContactTimeline.tsx:751
+#: src/components/timeline/ContactTimeline.tsx:878
 msgid "Automation"
 msgstr "オートメーション"
 
@@ -1327,7 +1380,7 @@ msgstr "オートメーションを一時停止しました"
 msgid "Automation updated successfully"
 msgstr "オートメーションを更新しました"
 
-#: src/components/timeline/ContactTimeline.tsx:753
+#: src/components/timeline/ContactTimeline.tsx:880
 msgid "Automation:"
 msgstr "オートメーション:"
 
@@ -1483,13 +1536,13 @@ msgstr "BCC宛先"
 #~ msgid "Beats from other origins are silently ignored. Wildcards like *.example.com are supported; empty allows every domain."
 #~ msgstr ""
 
-#: src/components/segment/input.tsx:717
-#: src/components/segment/input.tsx:854
+#: src/components/segment/input.tsx:718
+#: src/components/segment/input.tsx:857
 msgid "before"
 msgstr "以前"
 
-#: src/components/segment/form_leaf.tsx:498
-#: src/components/segment/form_leaf.tsx:854
+#: src/components/segment/form_leaf.tsx:509
+#: src/components/segment/form_leaf.tsx:884
 msgid "before date"
 msgstr "日付以前"
 
@@ -1513,8 +1566,8 @@ msgstr "ベストプラクティス:"
 msgid "Best TimeScore"
 msgstr ""
 
-#: src/components/segment/input.tsx:705
-#: src/components/segment/input.tsx:842
+#: src/components/segment/input.tsx:706
+#: src/components/segment/input.tsx:845
 msgid "between"
 msgstr "の間"
 
@@ -1548,9 +1601,9 @@ msgstr "ブロックリスト"
 msgid "Blocks"
 msgstr "ブロック"
 
-#: src/components/settings/BlogSettings.tsx:217
-#: src/components/settings/BlogSettings.tsx:225
-#: src/components/settings/BlogSettings.tsx:258
+#: src/components/settings/BlogSettings.tsx:223
+#: src/components/settings/BlogSettings.tsx:231
+#: src/components/settings/BlogSettings.tsx:264
 #: src/components/settings/SettingsSidebar.tsx:100
 #: src/layouts/WorkspaceLayout.tsx:294
 msgid "Blog"
@@ -1560,19 +1613,19 @@ msgstr "ブログ"
 msgid "Blog custom endpoint URL is not configured"
 msgstr "ブログカスタムエンドポイントURLが設定されていません"
 
-#: src/components/settings/BlogSettings.tsx:148
+#: src/components/settings/BlogSettings.tsx:154
 msgid "Blog enabled but theme creation failed. Please create a theme manually."
 msgstr "ブログは有効ですがテーマの作成に失敗しました。手動でテーマを作成してください。"
 
-#: src/components/settings/BlogSettings.tsx:175
+#: src/components/settings/BlogSettings.tsx:181
 msgid "Blog settings updated successfully"
 msgstr "ブログ設定を更新しました"
 
-#: src/components/settings/BlogSettings.tsx:217
+#: src/components/settings/BlogSettings.tsx:223
 msgid "Blog styling and SEO settings"
 msgstr "ブログのスタイルとSEO設定"
 
-#: src/components/settings/BlogSettings.tsx:342
+#: src/components/settings/BlogSettings.tsx:348
 msgid "Blog Title"
 msgstr "ブログタイトル"
 
@@ -1646,7 +1699,7 @@ msgstr "右下"
 msgid "bounce"
 msgstr "バウンス"
 
-#: src/components/timeline/ContactTimeline.tsx:580
+#: src/components/timeline/ContactTimeline.tsx:616
 #: src/components/web_analytics/explore/BreakdownDrawer.tsx:219
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:72
 #: src/pages/TemplatesPage.tsx:130
@@ -1661,8 +1714,8 @@ msgstr "バウンスカテゴリ"
 msgid "Bounce Diagnostic:"
 msgstr "バウンス診断:"
 
-#: src/components/segment/form_leaf.tsx:367
-#: src/components/segment/input.tsx:792
+#: src/components/segment/form_leaf.tsx:376
+#: src/components/segment/input.tsx:793
 msgid "Bounce email"
 msgstr "バウンスメール"
 
@@ -1761,7 +1814,7 @@ msgstr "投稿の概要"
 msgid "Brief summary shown in post listings and previews"
 msgstr "投稿一覧やプレビューに表示される概要"
 
-#: src/components/segment/form_leaf.tsx:412
+#: src/components/segment/form_leaf.tsx:423
 msgid "broadcast"
 msgstr ""
 
@@ -1955,10 +2008,10 @@ msgstr ""
 #: src/components/file_manager/fileManager.tsx:1020
 #: src/components/file_manager/fileManager.tsx:1130
 #: src/components/segment/button_upsert.tsx:417
-#: src/components/segment/input_dimension_filters.tsx:167
+#: src/components/segment/input_dimension_filters.tsx:179
 #: src/components/segment/input_event_property_filters.tsx:130
-#: src/components/segment/input.tsx:407
-#: src/components/settings/BlogSettings.tsx:205
+#: src/components/segment/input.tsx:408
+#: src/components/settings/BlogSettings.tsx:211
 #: src/components/settings/CustomFieldsConfiguration.tsx:291
 #: src/components/settings/EditPermissionsModal.tsx:121
 #: src/components/settings/Integrations.tsx:2352
@@ -2067,7 +2120,7 @@ msgstr "カテゴリを削除しました"
 msgid "Category updated successfully"
 msgstr "カテゴリを更新しました"
 
-#: src/components/timeline/ContactTimeline.tsx:629
+#: src/components/timeline/ContactTimeline.tsx:665
 msgid "Category:"
 msgstr "カテゴリ:"
 
@@ -2202,8 +2255,8 @@ msgstr ""
 msgid "Clear value"
 msgstr ""
 
-#: src/components/segment/form_leaf.tsx:366
-#: src/components/segment/input.tsx:791
+#: src/components/segment/form_leaf.tsx:375
+#: src/components/segment/input.tsx:792
 msgid "Click email"
 msgstr "メールクリック"
 
@@ -2248,7 +2301,7 @@ msgstr ""
 msgid "Click to retry"
 msgstr ""
 
-#: src/components/timeline/ContactTimeline.tsx:506
+#: src/components/timeline/ContactTimeline.tsx:542
 msgid "clicked"
 msgstr "クリック"
 
@@ -2259,7 +2312,7 @@ msgstr "クリック"
 msgid "Clicked"
 msgstr "クリック済み"
 
-#: src/components/segment/form_leaf.tsx:433
+#: src/components/segment/form_leaf.tsx:444
 msgid "clicked link contains"
 msgstr ""
 
@@ -2389,7 +2442,7 @@ msgstr "一般的なポート: 587 (TLS)、465 (SSL)、25 (暗号化なし)"
 msgid "Compare TimeScore across campaign sources"
 msgstr ""
 
-#: src/components/segment/form_leaf.tsx:787
+#: src/components/segment/form_leaf.tsx:817
 msgid "Comparison"
 msgstr "比較"
 
@@ -2405,8 +2458,8 @@ msgstr ""
 msgid "Compiling..."
 msgstr ""
 
-#: src/components/segment/form_leaf.tsx:368
-#: src/components/segment/input.tsx:793
+#: src/components/segment/form_leaf.tsx:377
+#: src/components/segment/input.tsx:794
 msgid "Complain email"
 msgstr "苦情メール"
 
@@ -2424,7 +2477,7 @@ msgstr "苦情報告済み"
 msgid "complaint"
 msgstr "苦情"
 
-#: src/components/timeline/ContactTimeline.tsx:581
+#: src/components/timeline/ContactTimeline.tsx:617
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:77
 msgid "Complaint"
 msgstr "苦情"
@@ -2448,7 +2501,7 @@ msgstr "セットアップ完了"
 msgid "Complete the condition to refresh the count"
 msgstr ""
 
-#: src/components/timeline/ContactTimeline.tsx:746
+#: src/components/timeline/ContactTimeline.tsx:873
 msgid "completed"
 msgstr "完了"
 
@@ -2466,7 +2519,7 @@ msgstr "完了"
 msgid "condition"
 msgstr "条件"
 
-#: src/components/segment/input.tsx:1002
+#: src/components/segment/input.tsx:1016
 msgid "Condition"
 msgstr "条件"
 
@@ -2517,7 +2570,7 @@ msgstr "メールリンク、通知センター、Web公開用のカスタムド
 msgid "Configure both the font name and CSS file URL together"
 msgstr "フォント名とCSSファイルURLを一緒に設定してください"
 
-#: src/components/settings/BlogSettings.tsx:418
+#: src/components/settings/BlogSettings.tsx:424
 msgid "Configure how your blog's RSS and JSON feeds are generated."
 msgstr ""
 
@@ -2538,7 +2591,7 @@ msgstr "ワークスペースでイベントが発生した際にリアルタイ
 msgid "Configure Provider"
 msgstr "プロバイダーを設定"
 
-#: src/components/settings/BlogSettings.tsx:259
+#: src/components/settings/BlogSettings.tsx:265
 msgid "Configure styling and SEO settings for your blog. These settings will be applied to all blog pages."
 msgstr "ブログのスタイルとSEO設定を行います。これらの設定はすべてのブログページに適用されます。"
 
@@ -2558,11 +2611,11 @@ msgstr "{0}を設定中"
 #: src/components/filters/Filter.tsx:185
 #: src/components/filters/Filter.tsx:204
 #: src/components/segment/button_upsert.tsx:426
-#: src/components/segment/form_leaf.tsx:163
-#: src/components/segment/form_leaf.tsx:287
-#: src/components/segment/form_leaf.tsx:640
-#: src/components/segment/form_leaf.tsx:973
-#: src/components/segment/input_dimension_filters.tsx:165
+#: src/components/segment/form_leaf.tsx:164
+#: src/components/segment/form_leaf.tsx:288
+#: src/components/segment/form_leaf.tsx:670
+#: src/components/segment/form_leaf.tsx:1003
+#: src/components/segment/input_dimension_filters.tsx:177
 #: src/components/segment/input_event_property_filters.tsx:129
 msgid "Confirm"
 msgstr "確認"
@@ -2592,8 +2645,8 @@ msgid "Consider using the same text as your subject line"
 msgstr "件名と同じテキストを使用することを検討してください"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:56
-#: src/components/timeline/ContactTimeline.tsx:387
-#: src/components/timeline/ContactTimeline.tsx:456
+#: src/components/timeline/ContactTimeline.tsx:423
+#: src/components/timeline/ContactTimeline.tsx:492
 msgid "Contact"
 msgstr "コンタクト"
 
@@ -2635,12 +2688,16 @@ msgstr "コンタクトの購読ステータスが「アクティブ」"
 msgid "Contact has pending, unsubscribed, bounced, or complained status"
 msgstr "コンタクトのステータスが保留中、購読解除、バウンス、または苦情報告済み"
 
+#: src/components/settings/WebAnalyticsSettings.tsx:314
+msgid "Contact identification"
+msgstr ""
+
 #: src/components/automations/config/ListStatusBranchConfigForm.tsx:45
 msgid "Contact is not subscribed to this list"
 msgstr "コンタクトはこのリストを購読していません"
 
-#: src/components/segment/form_leaf.tsx:135
-#: src/components/segment/input.tsx:775
+#: src/components/segment/form_leaf.tsx:136
+#: src/components/segment/input.tsx:776
 #: src/components/segment/table_tag.tsx:20
 msgid "Contact property"
 msgstr "コンタクトプロパティ"
@@ -2649,9 +2706,9 @@ msgstr "コンタクトプロパティ"
 msgid "Contact re-enters each time the event occurs"
 msgstr "イベント発生ごとにコンタクトが再エントリー"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:314
-msgid "Contact timeline"
-msgstr ""
+#: src/components/settings/WebAnalyticsSettings.tsx:317
+#~ msgid "Contact timeline"
+#~ msgstr ""
 
 #: src/components/contacts/ContactUpsertDrawer.tsx:330
 msgid "Contact updated successfully"
@@ -3016,7 +3073,7 @@ msgstr "最初の投稿を作成"
 msgid "Create your first template to get started"
 msgstr "最初のテンプレートを作成して始めましょう"
 
-#: src/components/timeline/ContactTimeline.tsx:378
+#: src/components/timeline/ContactTimeline.tsx:414
 msgid "created"
 msgstr "作成済み"
 
@@ -3294,7 +3351,7 @@ msgstr "カスタム文字列フィールド"
 msgid "Daily"
 msgstr ""
 
-#: src/components/settings/BlogSettings.tsx:476
+#: src/components/settings/BlogSettings.tsx:482
 #: src/components/settings/DeleteWorkspace.tsx:45
 #: src/components/settings/SettingsSidebar.tsx:129
 msgid "Danger Zone"
@@ -3318,10 +3375,10 @@ msgstr "破線"
 msgid "Date"
 msgstr "日付"
 
-#: src/components/segment/form_leaf.tsx:536
-#: src/components/segment/form_leaf.tsx:890
-#: src/components/segment/input.tsx:700
-#: src/components/segment/input.tsx:837
+#: src/components/segment/form_leaf.tsx:547
+#: src/components/segment/form_leaf.tsx:920
+#: src/components/segment/input.tsx:701
+#: src/components/segment/input.tsx:840
 msgid "days"
 msgstr "日"
 
@@ -3372,7 +3429,7 @@ msgstr ""
 msgid "Default sender"
 msgstr "デフォルト送信者"
 
-#: src/components/settings/BlogSettings.tsx:145
+#: src/components/settings/BlogSettings.tsx:151
 msgid "Default theme created and published"
 msgstr "デフォルトテーマを作成・公開しました"
 
@@ -3415,7 +3472,7 @@ msgstr "遅延"
 #: src/components/file_manager/fileManager.tsx:773
 #: src/components/file_manager/fileManager.tsx:778
 #: src/components/file_manager/fileManager.tsx:951
-#: src/components/segment/input.tsx:405
+#: src/components/segment/input.tsx:406
 #: src/components/settings/Integrations.tsx:356
 #: src/components/settings/Integrations.tsx:1329
 #: src/components/settings/Integrations.tsx:1488
@@ -3564,7 +3621,7 @@ msgstr "このWebhookを削除しますか？"
 msgid "Delete Workspace"
 msgstr "ワークスペースを削除"
 
-#: src/components/timeline/ContactTimeline.tsx:380
+#: src/components/timeline/ContactTimeline.tsx:416
 msgid "deleted"
 msgstr "削除済み"
 
@@ -3582,7 +3639,7 @@ msgid "Deleted {deletedCount}, failed {failedCount}"
 msgstr "{deletedCount}件を削除、{failedCount}件が失敗"
 
 #: src/components/settings/Integrations.tsx:251
-#: src/components/timeline/ContactTimeline.tsx:502
+#: src/components/timeline/ContactTimeline.tsx:538
 msgid "delivered"
 msgstr "配信済み"
 
@@ -3593,7 +3650,7 @@ msgstr "配信済み"
 #: src/components/messages/MessageHistoryTab.tsx:116
 #: src/components/messages/MessageHistoryTable.tsx:266
 #: src/components/settings/WebhookCard.tsx:308
-#: src/components/timeline/ContactTimeline.tsx:579
+#: src/components/timeline/ContactTimeline.tsx:615
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:67
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:78
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:230
@@ -3652,7 +3709,7 @@ msgstr ""
 msgid "Devices and tech"
 msgstr ""
 
-#: src/components/timeline/ContactTimeline.tsx:636
+#: src/components/timeline/ContactTimeline.tsx:672
 msgid "Diagnostic:"
 msgstr "診断:"
 
@@ -3665,12 +3722,12 @@ msgstr ""
 msgid "Dimensions:"
 msgstr ""
 
-#: src/components/settings/BlogSettings.tsx:203
-#: src/components/settings/BlogSettings.tsx:481
+#: src/components/settings/BlogSettings.tsx:209
+#: src/components/settings/BlogSettings.tsx:487
 msgid "Disable Blog"
 msgstr "ブログを無効化"
 
-#: src/components/settings/BlogSettings.tsx:200
+#: src/components/settings/BlogSettings.tsx:206
 msgid "Disable Blog?"
 msgstr "ブログを無効化しますか？"
 
@@ -3686,7 +3743,7 @@ msgstr "このWebhookを無効化しますか？"
 msgid "Disable webhook"
 msgstr "Webhookを無効化"
 
-#: src/components/settings/BlogSettings.tsx:234
+#: src/components/settings/BlogSettings.tsx:240
 #: src/components/settings/GeneralSettings.tsx:162
 #: src/components/settings/Integrations.tsx:1449
 #: src/components/settings/WebAnalyticsSettings.tsx:208
@@ -3698,7 +3755,7 @@ msgstr "無効"
 msgid "Disabled for this notification"
 msgstr ""
 
-#: src/components/settings/BlogSettings.tsx:478
+#: src/components/settings/BlogSettings.tsx:484
 msgid "Disabling the blog will remove all SEO settings and make your blog inaccessible to visitors. This action will affect your blog's visibility and search engine rankings."
 msgstr "ブログを無効化するとすべてのSEO設定が削除され、訪問者がブログにアクセスできなくなります。この操作はブログの可視性と検索エンジンランキングに影響します。"
 
@@ -3742,15 +3799,15 @@ msgstr "DNS レコードが必要:"
 msgid "DNS verification prevents domain squatting"
 msgstr "DNS検証によりドメインスクワッティングを防止"
 
-#: src/components/segment/input.tsx:403
+#: src/components/segment/input.tsx:404
 msgid "Do you really want to remove this branch?"
 msgstr "この分岐を削除してもよろしいですか？"
 
-#: src/components/segment/input.tsx:403
+#: src/components/segment/input.tsx:404
 msgid "Do you really want to remove this condition?"
 msgstr "この条件を削除してもよろしいですか？"
 
-#: src/components/segment/input_dimension_filters.tsx:82
+#: src/components/segment/input_dimension_filters.tsx:94
 #: src/components/segment/input_event_property_filters.tsx:66
 msgid "Do you really want to remove this filter?"
 msgstr "このフィルターを削除してもよろしいですか？"
@@ -3854,7 +3911,7 @@ msgstr "ここにファイルをドロップしてアップロード"
 msgid "e.g. {0}"
 msgstr ""
 
-#: src/components/segment/form_leaf.tsx:444
+#: src/components/segment/form_leaf.tsx:455
 msgid "e.g. /pricing"
 msgstr ""
 
@@ -4127,7 +4184,7 @@ msgstr "メール"
 #: src/components/messages/MessageHistoryTab.tsx:219
 #: src/components/settings/Integrations.tsx:2485
 #: src/components/settings/WorkspaceMembers.tsx:79
-#: src/components/timeline/ContactTimeline.tsx:511
+#: src/components/timeline/ContactTimeline.tsx:547
 #: src/pages/ContactsPage.tsx:369
 #: src/pages/ContactsPage.tsx:536
 #: src/pages/SignInPage.tsx:208
@@ -4275,8 +4332,8 @@ msgstr "A/Bテストを有効化"
 msgid "Enable Anonymous Telemetry"
 msgstr "匿名テレメトリを有効化"
 
-#: src/components/settings/BlogSettings.tsx:303
-#: src/components/settings/BlogSettings.tsx:330
+#: src/components/settings/BlogSettings.tsx:309
+#: src/components/settings/BlogSettings.tsx:336
 msgid "Enable Blog"
 msgstr "ブログを有効化"
 
@@ -4296,7 +4353,7 @@ msgstr ""
 msgid "Enable SMTP Bridge Server"
 msgstr "SMTPリレーサーバーを有効化"
 
-#: src/components/settings/BlogSettings.tsx:305
+#: src/components/settings/BlogSettings.tsx:311
 msgid "Enable the blog feature to publish articles and content on your custom domain homepage. Your blog will be accessible at"
 msgstr "ブログ機能を有効にして、カスタムドメインのホームページに記事とコンテンツを公開します。ブログは以下でアクセス可能になります"
 
@@ -4325,7 +4382,7 @@ msgstr ""
 msgid "Enable webhook"
 msgstr "Webhookを有効化"
 
-#: src/components/settings/BlogSettings.tsx:229
+#: src/components/settings/BlogSettings.tsx:235
 #: src/components/settings/GeneralSettings.tsx:157
 #: src/components/settings/Integrations.tsx:1445
 #: src/components/settings/SystemSettingsDrawer.tsx:459
@@ -4340,7 +4397,7 @@ msgstr "有効"
 msgid "End date must be after the start date"
 msgstr ""
 
-#: src/components/timeline/ContactTimeline.tsx:742
+#: src/components/timeline/ContactTimeline.tsx:869
 msgid "ended"
 msgstr "終了"
 
@@ -4461,7 +4518,7 @@ msgstr "ファイルURLを入力またはファイルマネージャーを使用
 msgid "Enter height"
 msgstr "高さを入力"
 
-#: src/components/settings/BlogSettings.tsx:370
+#: src/components/settings/BlogSettings.tsx:376
 msgid "Enter icon URL or select image"
 msgstr "アイコンURLを入力または画像を選択"
 
@@ -4493,7 +4550,7 @@ msgstr "確認のためリストIDを入力"
 msgid "Enter list name"
 msgstr "リスト名を入力"
 
-#: src/components/settings/BlogSettings.tsx:354
+#: src/components/settings/BlogSettings.tsx:360
 msgid "Enter logo URL or select image"
 msgstr "ロゴURLを入力または画像を選択"
 
@@ -4537,9 +4594,17 @@ msgstr "ワークスペースIDを入力"
 msgid "Enter workspace name"
 msgstr "ワークスペース名を入力"
 
-#: src/components/timeline/ContactTimeline.tsx:777
+#: src/components/timeline/ContactTimeline.tsx:904
 msgid "Entity ID:"
 msgstr "エンティティID:"
+
+#: src/components/timeline/ContactTimeline.tsx:852
+msgid "entry page"
+msgstr ""
+
+#: src/components/timeline/ContactTimeline.tsx:807
+msgid "Entry:"
+msgstr ""
 
 #: src/components/web_analytics/FilterBuilder.tsx:37
 #: src/components/web_analytics/lib/filterCatalog.ts:216
@@ -4606,16 +4671,16 @@ msgstr ""
 msgid "Errors ({0} of {1} shown)"
 msgstr "エラー（{1}件中{0}件を表示）"
 
-#: src/components/segment/input.tsx:656
+#: src/components/segment/input.tsx:657
 msgid "event"
 msgstr ""
 
-#: src/components/timeline/ContactTimeline.tsx:587
+#: src/components/timeline/ContactTimeline.tsx:623
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:347
 msgid "Event"
 msgstr "イベント"
 
-#: src/components/segment/form_leaf.tsx:750
+#: src/components/segment/form_leaf.tsx:780
 msgid "event name"
 msgstr ""
 
@@ -4659,8 +4724,8 @@ msgstr ""
 msgid "Every time"
 msgstr "毎回"
 
-#: src/components/segment/form_leaf.tsx:469
-#: src/components/segment/input.tsx:815
+#: src/components/segment/form_leaf.tsx:480
+#: src/components/segment/input.tsx:818
 msgid "exactly"
 msgstr "正確に"
 
@@ -4668,7 +4733,7 @@ msgstr "正確に"
 msgid "Excerpt"
 msgstr "抜粋"
 
-#: src/components/settings/BlogSettings.tsx:446
+#: src/components/settings/BlogSettings.tsx:452
 msgid "Excerpt only"
 msgstr ""
 
@@ -4684,11 +4749,19 @@ msgstr ""
 msgid "Exit on reply"
 msgstr ""
 
+#: src/components/timeline/ContactTimeline.tsx:853
+msgid "exit page"
+msgstr ""
+
 #: src/components/web_analytics/tabs/DashboardTab.tsx:148
 msgid "Exit page"
 msgstr ""
 
-#: src/components/timeline/ContactTimeline.tsx:745
+#: src/components/timeline/ContactTimeline.tsx:812
+msgid "Exit:"
+msgstr ""
+
+#: src/components/timeline/ContactTimeline.tsx:872
 msgid "exited"
 msgstr "終了"
 
@@ -4757,7 +4830,7 @@ msgstr "外部ID"
 msgid "Extra high"
 msgstr ""
 
-#: src/components/timeline/ContactTimeline.tsx:744
+#: src/components/timeline/ContactTimeline.tsx:871
 msgid "failed"
 msgstr "失敗"
 
@@ -5192,7 +5265,7 @@ msgstr "投稿の非公開に失敗しました"
 msgid "Failed to update automation: {0}"
 msgstr "オートメーションの更新に失敗しました: {0}"
 
-#: src/components/settings/BlogSettings.tsx:179
+#: src/components/settings/BlogSettings.tsx:185
 msgid "Failed to update blog settings"
 msgstr "ブログ設定の更新に失敗しました"
 
@@ -5265,7 +5338,7 @@ msgstr "ワークスペース設定の更新に失敗しました: {errorMessage
 msgid "Failed to verify code"
 msgstr "コードの検証に失敗しました"
 
-#: src/components/settings/BlogSettings.tsx:367
+#: src/components/settings/BlogSettings.tsx:373
 msgid "Favicon for your blog. Recommended: 32x32px or 192x192px PNG"
 msgstr "ブログ用のファビコン。推奨: 32x32pxまたは192x192px PNG"
 
@@ -5281,7 +5354,7 @@ msgstr ""
 msgid "Feedback Type"
 msgstr "フィードバックタイプ"
 
-#: src/components/timeline/ContactTimeline.tsx:641
+#: src/components/timeline/ContactTimeline.tsx:677
 msgid "Feedback:"
 msgstr "フィードバック:"
 
@@ -5308,7 +5381,7 @@ msgid "field is required."
 msgstr "フィールドは必須です。"
 
 #. placeholder {0}: filter.field_name
-#: src/components/segment/input_dimension_filters.tsx:72
+#: src/components/segment/input_dimension_filters.tsx:84
 msgid "field: {0}"
 msgstr "フィールド: {0}"
 
@@ -5571,7 +5644,7 @@ msgstr "差出人:"
 msgid "Full Access"
 msgstr "フルアクセス"
 
-#: src/components/settings/BlogSettings.tsx:445
+#: src/components/settings/BlogSettings.tsx:451
 msgid "Full content"
 msgstr ""
 
@@ -5612,7 +5685,7 @@ msgstr ""
 msgid "General"
 msgstr "一般"
 
-#: src/components/settings/BlogSettings.tsx:338
+#: src/components/settings/BlogSettings.tsx:344
 #: src/components/settings/GeneralSettings.tsx:119
 #: src/components/settings/GeneralSettings.tsx:178
 msgid "General Settings"
@@ -5683,8 +5756,8 @@ msgstr "有効時はグローバルフィードのURLが必須です"
 msgid "Go to Sign In"
 msgstr "サインインへ"
 
-#: src/components/segment/form_leaf.tsx:682
-#: src/components/segment/input.tsx:634
+#: src/components/segment/form_leaf.tsx:712
+#: src/components/segment/input.tsx:635
 #: src/components/web_analytics/explore/BreakdownModal.tsx:71
 #: src/components/web_analytics/explore/DimensionSelector.tsx:105
 #: src/components/web_analytics/FilterBuilder.tsx:63
@@ -5700,13 +5773,13 @@ msgstr ""
 msgid "Goal dashboard"
 msgstr ""
 
-#: src/components/segment/form_leaf.tsx:739
-#: src/components/segment/input.tsx:648
+#: src/components/segment/form_leaf.tsx:769
+#: src/components/segment/input.tsx:649
 msgid "goal name"
 msgstr ""
 
-#: src/components/segment/form_leaf.tsx:717
-#: src/components/segment/input.tsx:642
+#: src/components/segment/form_leaf.tsx:747
+#: src/components/segment/input.tsx:643
 msgid "goal type"
 msgstr ""
 
@@ -5714,7 +5787,7 @@ msgstr ""
 msgid "Goal Types"
 msgstr "ゴールタイプ"
 
-#: src/components/timeline/ContactTimeline.tsx:699
+#: src/components/timeline/ContactTimeline.tsx:735
 msgid "Goal:"
 msgstr "ゴール:"
 
@@ -5763,13 +5836,13 @@ msgstr "グループ属性"
 #~ msgid "Group by"
 #~ msgstr ""
 
-#: src/components/segment/form_leaf.tsx:460
-#: src/components/segment/input.tsx:811
+#: src/components/segment/form_leaf.tsx:471
+#: src/components/segment/input.tsx:814
 msgid "happened"
 msgstr "発生"
 
-#: src/components/segment/form_leaf.tsx:711
-#: src/components/segment/input.tsx:640
+#: src/components/segment/form_leaf.tsx:741
+#: src/components/segment/input.tsx:641
 msgid "has"
 msgstr ""
 
@@ -5777,8 +5850,8 @@ msgstr ""
 msgid "Has Error"
 msgstr "エラーあり"
 
-#: src/components/segment/form_leaf.tsx:712
-#: src/components/segment/input.tsx:640
+#: src/components/segment/form_leaf.tsx:742
+#: src/components/segment/input.tsx:641
 msgid "has not"
 msgstr ""
 
@@ -5967,7 +6040,7 @@ msgstr "アイコン設定"
 msgid "Icon Styling"
 msgstr "アイコンスタイリング"
 
-#: src/components/settings/BlogSettings.tsx:366
+#: src/components/settings/BlogSettings.tsx:372
 msgid "Icon/Favicon URL"
 msgstr "アイコン/ファビコンURL"
 
@@ -6012,27 +6085,27 @@ msgstr "IDは32文字未満である必要があります"
 msgid "ID must contain only lowercase letters, numbers, underscores, and hyphens"
 msgstr "IDは小文字の英字、数字、アンダースコア、ハイフンのみ使用できます"
 
-#: src/components/timeline/ContactTimeline.tsx:706
+#: src/components/timeline/ContactTimeline.tsx:742
 #: src/pages/DashboardPage.tsx:91
 msgid "ID:"
 msgstr "ID:"
 
 #. placeholder {0}: entry.entity_id
 #. placeholder {0}: messageData.template_id
-#: src/components/timeline/ContactTimeline.tsx:516
-#: src/components/timeline/ContactTimeline.tsx:755
+#: src/components/timeline/ContactTimeline.tsx:552
+#: src/components/timeline/ContactTimeline.tsx:882
 msgid "ID: {0}"
 msgstr "ID: {0}"
 
-#: src/components/timeline/ContactTimeline.tsx:218
+#: src/components/timeline/ContactTimeline.tsx:254
 msgid "ID: {listId}"
 msgstr "ID: {listId}"
 
-#: src/components/timeline/ContactTimeline.tsx:470
+#: src/components/timeline/ContactTimeline.tsx:506
 msgid "ID: {segmentId}"
 msgstr "ID: {segmentId}"
 
-#: src/components/timeline/ContactTimeline.tsx:608
+#: src/components/timeline/ContactTimeline.tsx:644
 msgid "ID: {webhookTemplateId}"
 msgstr "ID: {webhookTemplateId}"
 
@@ -6054,6 +6127,10 @@ msgstr "トラフィックを送信したサイトを識別します（例: goog
 
 #: src/components/settings/WebAnalyticsSettings.tsx:405
 msgid "Identify a visitor"
+msgstr ""
+
+#: src/components/settings/WebAnalyticsSettings.tsx:318
+msgid "Identify recipients who click a tracked email link"
 msgstr ""
 
 #: src/components/email_builder/blocks/MjImageBlock.tsx:91
@@ -6185,8 +6262,8 @@ msgstr ""
 msgid "in {0}"
 msgstr "{0}で"
 
-#: src/components/segment/form_leaf.tsx:497
-#: src/components/segment/form_leaf.tsx:853
+#: src/components/segment/form_leaf.tsx:508
+#: src/components/segment/form_leaf.tsx:883
 msgid "in date range"
 msgstr "日付範囲内"
 
@@ -6194,10 +6271,10 @@ msgstr "日付範囲内"
 msgid "in recipients timezone"
 msgstr "受信者のタイムゾーンで"
 
-#: src/components/segment/form_leaf.tsx:500
-#: src/components/segment/form_leaf.tsx:856
-#: src/components/segment/input.tsx:696
-#: src/components/segment/input.tsx:833
+#: src/components/segment/form_leaf.tsx:511
+#: src/components/segment/form_leaf.tsx:886
+#: src/components/segment/input.tsx:697
+#: src/components/segment/input.tsx:836
 msgid "in the last"
 msgstr "過去"
 
@@ -6428,8 +6505,8 @@ msgid "IP addresses are never stored — only used for geo lookup. Country is al
 msgstr ""
 
 #: src/components/file_manager/context.tsx:201
-#: src/components/segment/form_leaf.tsx:780
-#: src/components/segment/input.tsx:669
+#: src/components/segment/form_leaf.tsx:810
+#: src/components/segment/input.tsx:670
 msgid "is"
 msgstr "である"
 
@@ -6438,8 +6515,8 @@ msgstr "である"
 msgid "is empty"
 msgstr ""
 
-#: src/components/segment/form_leaf.tsx:228
-#: src/components/segment/input.tsx:588
+#: src/components/segment/form_leaf.tsx:229
+#: src/components/segment/input.tsx:589
 msgid "is in"
 msgstr "に含まれる"
 
@@ -6448,8 +6525,8 @@ msgstr "に含まれる"
 msgid "is not empty"
 msgstr ""
 
-#: src/components/segment/form_leaf.tsx:229
-#: src/components/segment/input.tsx:588
+#: src/components/segment/form_leaf.tsx:230
+#: src/components/segment/input.tsx:589
 msgid "is not in"
 msgstr "に含まれない"
 
@@ -6476,7 +6553,7 @@ msgstr ""
 msgid "Italic"
 msgstr "イタリック"
 
-#: src/components/settings/BlogSettings.tsx:426
+#: src/components/settings/BlogSettings.tsx:432
 msgid "Items per feed"
 msgstr ""
 
@@ -6487,7 +6564,7 @@ msgstr ""
 msgid "Job Title"
 msgstr "役職"
 
-#: src/components/timeline/ContactTimeline.tsx:484
+#: src/components/timeline/ContactTimeline.tsx:520
 msgid "joined"
 msgstr "参加しました"
 
@@ -6504,7 +6581,7 @@ msgstr "JSON"
 msgid "JSON exported successfully"
 msgstr "JSONを正常にエクスポートしました"
 
-#: src/components/timeline/ContactTimeline.tsx:418
+#: src/components/timeline/ContactTimeline.tsx:454
 msgid "JSON Object"
 msgstr "JSONオブジェクト"
 
@@ -6657,7 +6734,7 @@ msgstr ""
 msgid "Leave empty to use the one Notifuse manages for this integration."
 msgstr ""
 
-#: src/components/timeline/ContactTimeline.tsx:484
+#: src/components/timeline/ContactTimeline.tsx:520
 msgid "left"
 msgstr "退出しました"
 
@@ -6799,8 +6876,8 @@ msgstr "リストID: {0}"
 msgid "List Status"
 msgstr "リストステータス"
 
-#: src/components/segment/form_leaf.tsx:207
-#: src/components/segment/input.tsx:586
+#: src/components/segment/form_leaf.tsx:208
+#: src/components/segment/input.tsx:587
 #: src/components/segment/table_tag.tsx:25
 msgid "List subscription"
 msgstr "リスト購読"
@@ -6817,9 +6894,9 @@ msgstr "確認するリスト"
 msgid "List updated successfully"
 msgstr "リストを更新しました"
 
-#: src/components/timeline/ContactTimeline.tsx:240
-#: src/components/timeline/ContactTimeline.tsx:253
-#: src/components/timeline/ContactTimeline.tsx:279
+#: src/components/timeline/ContactTimeline.tsx:276
+#: src/components/timeline/ContactTimeline.tsx:289
+#: src/components/timeline/ContactTimeline.tsx:315
 msgid "List:"
 msgstr "リスト:"
 
@@ -6853,7 +6930,7 @@ msgstr "LLM連携を保存しました"
 msgid "Load More"
 msgstr "もっと読み込む"
 
-#: src/components/timeline/ContactTimeline.tsx:831
+#: src/components/timeline/ContactTimeline.tsx:958
 msgid "Load More Events"
 msgstr "さらにイベントを読み込む"
 
@@ -6901,7 +6978,7 @@ msgstr "Webhookステータスを読み込み中..."
 #: src/components/blog_editor/NotifuseEditor.tsx:478
 #: src/components/messages/MessageHistoryTab.tsx:610
 #: src/components/templates/TemplateSelectorInput.tsx:145
-#: src/components/timeline/ContactTimeline.tsx:831
+#: src/components/timeline/ContactTimeline.tsx:958
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:499
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:440
 #: src/layouts/RootLayout.tsx:90
@@ -6926,7 +7003,7 @@ msgstr "ロゴ"
 msgid "Logo Preview"
 msgstr "ロゴプレビュー"
 
-#: src/components/settings/BlogSettings.tsx:350
+#: src/components/settings/BlogSettings.tsx:356
 #: src/components/settings/LogoInput.tsx:25
 msgid "Logo URL"
 msgstr "ロゴURL"
@@ -6964,7 +7041,7 @@ msgstr "マジックコードをメールに送信しました"
 msgid "Mailgun (mxa.mailgun.org / mxb.mailgun.org)"
 msgstr ""
 
-#: src/components/settings/BlogSettings.tsx:351
+#: src/components/settings/BlogSettings.tsx:357
 msgid "Main logo for your blog. Recommended size: 200x50px or similar aspect ratio"
 msgstr "ブログのメインロゴ。推奨サイズ: 200x50pxまたは同様のアスペクト比"
 
@@ -7056,7 +7133,7 @@ msgstr "ファイルあたり最大3MB、合計10MB、最大20ファイル"
 msgid "Maximum 20 attachments allowed"
 msgstr "添付ファイルは最大20個まで"
 
-#: src/components/settings/BlogSettings.tsx:427
+#: src/components/settings/BlogSettings.tsx:433
 msgid "Maximum number of posts to include in the RSS/JSON feed (1–20)"
 msgstr ""
 
@@ -7156,7 +7233,7 @@ msgstr "メタ説明"
 #: src/components/seo/MissingMetaTagsWarning.tsx:26
 #: src/components/seo/SEOSettingsForm.tsx:36
 #: src/components/seo/SEOSettingsForm.tsx:150
-#: src/components/settings/BlogSettings.tsx:245
+#: src/components/settings/BlogSettings.tsx:251
 msgid "Meta Title"
 msgstr "メタタイトル"
 
@@ -7335,8 +7412,8 @@ msgstr ""
 msgid "Must match how the value is stored on the event. Dates are compared as ISO-8601."
 msgstr ""
 
-#: src/components/settings/BlogSettings.tsx:345
-#: src/components/settings/BlogSettings.tsx:456
+#: src/components/settings/BlogSettings.tsx:351
+#: src/components/settings/BlogSettings.tsx:462
 msgid "My Amazing Blog"
 msgstr "マイブログ"
 
@@ -7422,8 +7499,8 @@ msgstr "新規フォルダ"
 msgid "New magic code sent to your email"
 msgstr "新しいマジックコードをメールに送信しました"
 
-#: src/components/segment/form_leaf.tsx:364
-#: src/components/segment/input.tsx:797
+#: src/components/segment/form_leaf.tsx:373
+#: src/components/segment/input.tsx:798
 msgid "New message (email...)"
 msgstr "新規メッセージ（メール...）"
 
@@ -7746,7 +7823,7 @@ msgstr "プレビューが利用できないか、テンプレートが空です
 #~ msgid "No preview available..."
 #~ msgstr "プレビューが利用できません..."
 
-#: src/components/timeline/ContactTimeline.tsx:296
+#: src/components/timeline/ContactTimeline.tsx:332
 msgid "No properties"
 msgstr "プロパティなし"
 
@@ -7828,7 +7905,7 @@ msgstr ""
 msgid "No themes yet"
 msgstr "テーマがまだありません"
 
-#: src/components/timeline/ContactTimeline.tsx:798
+#: src/components/timeline/ContactTimeline.tsx:925
 msgid "No timeline events found for this contact"
 msgstr "このコンタクトのタイムラインイベントが見つかりません"
 
@@ -7943,8 +8020,8 @@ msgid "Not resolved"
 msgstr ""
 
 #: src/components/contacts/InlineEditableField.tsx:144
-#: src/components/settings/BlogSettings.tsx:242
-#: src/components/settings/BlogSettings.tsx:246
+#: src/components/settings/BlogSettings.tsx:248
+#: src/components/settings/BlogSettings.tsx:252
 #: src/components/settings/GeneralSettings.tsx:130
 #: src/components/settings/GeneralSettings.tsx:134
 #: src/components/settings/GeneralSettings.tsx:145
@@ -8021,11 +8098,11 @@ msgstr ""
 #~ msgid "Number of decimals kept. Two decimals is roughly one kilometer."
 #~ msgstr ""
 
-#: src/components/settings/BlogSettings.tsx:401
+#: src/components/settings/BlogSettings.tsx:407
 msgid "Number of posts to display per page on category pages"
 msgstr "カテゴリーページで1ページあたりに表示する投稿数"
 
-#: src/components/settings/BlogSettings.tsx:385
+#: src/components/settings/BlogSettings.tsx:391
 msgid "Number of posts to display per page on the homepage"
 msgstr "ホームページで1ページあたりに表示する投稿数"
 
@@ -8050,11 +8127,11 @@ msgstr "斜体"
 msgid "Obtain this using the OAuth2 playground or your own OAuth flow"
 msgstr "OAuth2プレイグラウンドまたは独自のOAuthフローで取得してください"
 
-#: src/components/timeline/ContactTimeline.tsx:719
+#: src/components/timeline/ContactTimeline.tsx:755
 msgid "Occurred:"
 msgstr "発生日時:"
 
-#: src/components/segment/input.tsx:952
+#: src/components/segment/input.tsx:966
 msgid "of the following conditions match:"
 msgstr "の以下の条件に一致:"
 
@@ -8088,8 +8165,12 @@ msgid "Only clicks recorded since per-link tracking was enabled appear here; ear
 msgstr ""
 
 #: src/components/settings/WebAnalyticsSettings.tsx:320
-msgid "Only goals from visitors identified with identify() are recorded, and only when the address already belongs to a contact. Recorded goals can trigger automations and change segment membership. Obtaining consent to store web activity against a contact is your responsibility."
-msgstr ""
+#~ msgid "Only goals from visitors identified with identify() are recorded, and only when the address already belongs to a contact. Recorded goals can trigger automations and change segment membership. Obtaining consent to store web activity against a contact is your responsibility."
+#~ msgstr ""
+
+#: src/components/settings/WebAnalyticsSettings.tsx:323
+#~ msgid "Only goals from visitors identified with identify() are recorded. Recorded goals can trigger automations and change segment membership. Obtaining consent to store web activity against a contact is your responsibility."
+#~ msgstr ""
 
 #: src/components/file_manager/fileManager.tsx:1046
 msgid "Only lowercase alphanumeric characters, underscore, and dash are allowed."
@@ -8105,8 +8186,8 @@ msgstr "メールテンプレートごとに1つのブレークポイントの�
 msgid "Only workspace owners can modify integrations"
 msgstr "ワークスペースオーナーのみが連携を変更できます"
 
-#: src/components/segment/form_leaf.tsx:365
-#: src/components/segment/input.tsx:790
+#: src/components/segment/form_leaf.tsx:374
+#: src/components/segment/input.tsx:791
 msgid "Open email"
 msgstr "メール開封"
 
@@ -8150,7 +8231,7 @@ msgstr "開封率"
 msgid "Open web analytics settings"
 msgstr ""
 
-#: src/components/timeline/ContactTimeline.tsx:504
+#: src/components/timeline/ContactTimeline.tsx:540
 msgid "opened"
 msgstr "開封"
 
@@ -8651,11 +8732,11 @@ msgstr "カスタムフィールドを選択してください"
 msgid "Please select a date"
 msgstr "日付を選択してください"
 
-#: src/components/segment/input_dimension_filters.tsx:194
+#: src/components/segment/input_dimension_filters.tsx:206
 msgid "Please select a field"
 msgstr "フィールドを選択してください"
 
-#: src/components/segment/form_leaf.tsx:722
+#: src/components/segment/form_leaf.tsx:752
 msgid "Please select a goal type"
 msgstr "ゴールタイプを選択してください"
 
@@ -8665,7 +8746,7 @@ msgstr "JSONファイルを選択してください"
 
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:524
 #: src/components/contacts/ContactDetailsDrawer.tsx:1131
-#: src/components/segment/form_leaf.tsx:237
+#: src/components/segment/form_leaf.tsx:238
 msgid "Please select a list"
 msgstr "リストを選択してください"
 
@@ -8677,13 +8758,13 @@ msgstr "配信停止操作のリストを選択してください"
 msgid "Please select a model"
 msgstr "モデルを選択してください"
 
-#: src/components/settings/BlogSettings.tsx:386
-#: src/components/settings/BlogSettings.tsx:402
+#: src/components/settings/BlogSettings.tsx:392
+#: src/components/settings/BlogSettings.tsx:408
 msgid "Please select a page size"
 msgstr "ページサイズを選択してください"
 
 #: src/components/contacts/ContactDetailsDrawer.tsx:1105
-#: src/components/segment/form_leaf.tsx:265
+#: src/components/segment/form_leaf.tsx:266
 msgid "Please select a status"
 msgstr "ステータスを選択してください"
 
@@ -8706,7 +8787,7 @@ msgstr "時間を選択してください"
 msgid "Please select a timezone"
 msgstr "タイムゾーンを選択してください"
 
-#: src/components/segment/form_leaf.tsx:769
+#: src/components/segment/form_leaf.tsx:799
 msgid "Please select aggregate"
 msgstr "集計を選択してください"
 
@@ -8714,7 +8795,7 @@ msgstr "集計を選択してください"
 msgid "Please select an email template"
 msgstr "メールテンプレートを選択してください"
 
-#: src/components/segment/form_leaf.tsx:357
+#: src/components/segment/form_leaf.tsx:358
 msgid "Please select an event type"
 msgstr "イベントタイプを選択してください"
 
@@ -8734,7 +8815,7 @@ msgstr "操作を選択してください"
 msgid "Please select at least one event type"
 msgstr "イベントタイプを1つ以上選択してください"
 
-#: src/components/segment/form_leaf.tsx:785
+#: src/components/segment/form_leaf.tsx:815
 msgid "Please select operator"
 msgstr "演算子を選択してください"
 
@@ -8804,11 +8885,11 @@ msgstr ""
 msgid "Posts in {0}"
 msgstr "{0}の投稿"
 
-#: src/components/settings/BlogSettings.tsx:400
+#: src/components/settings/BlogSettings.tsx:406
 msgid "Posts on category pages"
 msgstr "カテゴリページの投稿数"
 
-#: src/components/settings/BlogSettings.tsx:384
+#: src/components/settings/BlogSettings.tsx:390
 msgid "Posts on homepage"
 msgstr "ホームページの投稿数"
 
@@ -8849,7 +8930,7 @@ msgstr "プレビュー（最初の10件）"
 msgid "Preview Coming Soon"
 msgstr "プレビューは近日公開"
 
-#: src/components/timeline/ContactTimeline.tsx:530
+#: src/components/timeline/ContactTimeline.tsx:566
 msgid "Preview email"
 msgstr "メールをプレビュー"
 
@@ -9102,7 +9183,7 @@ msgstr "マーケティングのレート制限"
 msgid "Rate limit for marketing emails (emails per minute)"
 msgstr "マーケティングメールのレート制限（1分あたりのメール数）"
 
-#: src/components/timeline/ContactTimeline.tsx:815
+#: src/components/timeline/ContactTimeline.tsx:942
 msgid "Raw Entry Data"
 msgstr "生のエントリデータ"
 
@@ -9114,7 +9195,7 @@ msgstr "Raw HTMLブロック"
 msgid "Raw HTML block - Click to add custom HTML content"
 msgstr "Raw HTMLブロック - クリックしてカスタムHTMLコンテンツを追加"
 
-#: src/components/timeline/ContactTimeline.tsx:359
+#: src/components/timeline/ContactTimeline.tsx:395
 msgid "Raw JSON"
 msgstr "Raw JSON"
 
@@ -9221,9 +9302,17 @@ msgstr ""
 msgid "Record the region or state of visitors"
 msgstr ""
 
-#: src/components/settings/WebAnalyticsSettings.tsx:318
-msgid "Record web goals on the contact timeline"
-msgstr ""
+#: src/components/settings/WebAnalyticsSettings.tsx:321
+#~ msgid "Record web goals on the contact timeline"
+#~ msgstr ""
+
+#: src/components/settings/WebAnalyticsSettings.tsx:330
+#~ msgid "Record web navigation on the contact timeline"
+#~ msgstr ""
+
+#: src/components/settings/WebAnalyticsSettings.tsx:332
+#~ msgid "Records each session and pageview of visitors identified with identify() as contact timeline entries. Unlike goals, navigation never triggers automations. A busy visit can add dozens of entries to a contact's timeline. Obtaining consent to store browsing history against a contact is your responsibility."
+#~ msgstr ""
 
 #: src/components/blog_editor/components/EditorHeader.tsx:69
 #: src/components/blog/PostDrawer.tsx:666
@@ -9363,7 +9452,7 @@ msgstr "この著者を削除しますか？"
 msgid "Remove variation"
 msgstr "バリエーションを削除"
 
-#: src/components/timeline/ContactTimeline.tsx:231
+#: src/components/timeline/ContactTimeline.tsx:267
 msgid "removed"
 msgstr "削除済み"
 
@@ -9395,7 +9484,7 @@ msgstr "X軸で繰り返し"
 msgid "Repeat Y"
 msgstr "Y軸で繰り返し"
 
-#: src/components/timeline/ContactTimeline.tsx:582
+#: src/components/timeline/ContactTimeline.tsx:618
 msgid "Replied"
 msgstr ""
 
@@ -9621,7 +9710,7 @@ msgstr "丸め"
 msgid "rows"
 msgstr "行"
 
-#: src/components/settings/BlogSettings.tsx:417
+#: src/components/settings/BlogSettings.tsx:423
 msgid "RSS / Feeds"
 msgstr ""
 
@@ -9880,7 +9969,7 @@ msgstr "ウェブを検索して関連URLを返します"
 msgid "Searching: \"{0}\""
 msgstr "検索中: 「{0}」"
 
-#: src/components/segment/form_leaf.tsx:822
+#: src/components/segment/form_leaf.tsx:852
 msgid "Second value must be greater than first value"
 msgstr "2番目の値は1番目の値より大きくする必要があります"
 
@@ -9913,7 +10002,7 @@ msgstr "ドキュメント:"
 #: src/components/automations/config/TriggerConfigForm.tsx:274
 #: src/components/contacts/ExportContactsModal.tsx:89
 #: src/components/segment/button_upsert.tsx:74
-#: src/components/timeline/ContactTimeline.tsx:488
+#: src/components/timeline/ContactTimeline.tsx:524
 msgid "Segment"
 msgstr "セグメント"
 
@@ -9946,8 +10035,8 @@ msgstr "セグメント"
 
 #: src/components/automations/nodes/EmailNode.tsx:48
 #: src/components/file_manager/fileManager.tsx:976
-#: src/components/settings/BlogSettings.tsx:359
-#: src/components/settings/BlogSettings.tsx:375
+#: src/components/settings/BlogSettings.tsx:365
+#: src/components/settings/BlogSettings.tsx:381
 #: src/components/templates/TemplateSelectorInput.tsx:238
 #: src/components/web_analytics/explore/ExploreTemplates.tsx:153
 #: src/pages/BroadcastsPage.tsx:946
@@ -9977,7 +10066,7 @@ msgid "Select a custom date range"
 msgstr ""
 
 #: src/components/contacts/ContactUpsertDrawer.tsx:558
-#: src/components/segment/input_dimension_filters.tsx:201
+#: src/components/segment/input_dimension_filters.tsx:213
 msgid "Select a field"
 msgstr "フィールドを選択"
 
@@ -9985,7 +10074,7 @@ msgstr "フィールドを選択"
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:529
 #: src/components/contacts/BulkActionsBar.tsx:203
 #: src/components/contacts/ContactDetailsDrawer.tsx:1138
-#: src/components/segment/form_leaf.tsx:239
+#: src/components/segment/form_leaf.tsx:240
 msgid "Select a list"
 msgstr "リストを選択"
 
@@ -10070,7 +10159,7 @@ msgstr "列を選択"
 msgid "Select confirmation email template"
 msgstr "確認メールテンプレートを選択"
 
-#: src/components/settings/BlogSettings.tsx:444
+#: src/components/settings/BlogSettings.tsx:450
 msgid "Select content mode"
 msgstr ""
 
@@ -10102,7 +10191,7 @@ msgstr "メールテンプレートを選択"
 msgid "Select email template..."
 msgstr "メールテンプレートを選択..."
 
-#: src/components/segment/form_leaf.tsx:362
+#: src/components/segment/form_leaf.tsx:363
 msgid "Select event"
 msgstr "イベントを選択"
 
@@ -10110,7 +10199,7 @@ msgstr "イベントを選択"
 msgid "Select event type to test:"
 msgstr "テストするイベントタイプを選択:"
 
-#: src/components/settings/BlogSettings.tsx:429
+#: src/components/settings/BlogSettings.tsx:435
 msgid "Select feed size"
 msgstr ""
 
@@ -10168,8 +10257,8 @@ msgstr "連絡先を追加するリストを選択"
 msgid "Select OAuth2 Provider"
 msgstr "OAuth2プロバイダーを選択"
 
-#: src/components/settings/BlogSettings.tsx:388
-#: src/components/settings/BlogSettings.tsx:404
+#: src/components/settings/BlogSettings.tsx:394
+#: src/components/settings/BlogSettings.tsx:410
 msgid "Select page size"
 msgstr "ページサイズを選択"
 
@@ -10177,7 +10266,7 @@ msgstr "ページサイズを選択"
 msgid "Select segments (optional)"
 msgstr "セグメントを選択（任意）"
 
-#: src/components/segment/form_leaf.tsx:268
+#: src/components/segment/form_leaf.tsx:269
 msgid "Select status"
 msgstr "ステータスを選択"
 
@@ -10222,7 +10311,7 @@ msgstr "タイムゾーンを選択"
 msgid "Select timezone..."
 msgstr "タイムゾーンを選択..."
 
-#: src/components/segment/form_leaf.tsx:724
+#: src/components/segment/form_leaf.tsx:754
 msgid "Select type"
 msgstr "タイプを選択"
 
@@ -10359,7 +10448,7 @@ msgstr "メールを送信中..."
 msgid "Sending test webhook..."
 msgstr "テストWebhookを送信中..."
 
-#: src/components/timeline/ContactTimeline.tsx:500
+#: src/components/timeline/ContactTimeline.tsx:536
 msgid "sent"
 msgstr "送信済み"
 
@@ -10851,9 +10940,13 @@ msgid "Something went wrong"
 msgstr "エラーが発生しました"
 
 #. placeholder {0}: node.leaf?.source
-#: src/components/segment/input.tsx:472
+#: src/components/segment/input.tsx:473
 msgid "source {0} not found"
 msgstr "ソース {0} が見つかりません"
+
+#: src/components/timeline/ContactTimeline.tsx:819
+msgid "Source:"
+msgstr ""
 
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:191
 #: src/components/web_analytics/tabs/DashboardTab.tsx:187
@@ -10926,7 +11019,7 @@ msgstr "ブログ記事を書き始めましょう..."
 msgid "Start writing..."
 msgstr "書き始める..."
 
-#: src/components/timeline/ContactTimeline.tsx:742
+#: src/components/timeline/ContactTimeline.tsx:869
 msgid "started"
 msgstr "開始"
 
@@ -10959,7 +11052,7 @@ msgstr "都道府県"
 msgid "Status"
 msgstr "ステータス"
 
-#: src/components/timeline/ContactTimeline.tsx:230
+#: src/components/timeline/ContactTimeline.tsx:266
 msgid "status changed"
 msgstr "ステータス変更"
 
@@ -11051,7 +11144,7 @@ msgstr "ニュースレターを購読（新機能のお知らせなど）"
 msgid "Subscribe users to these lists (Optional)"
 msgstr "ユーザーをこれらのリストに購読（任意）"
 
-#: src/components/timeline/ContactTimeline.tsx:229
+#: src/components/timeline/ContactTimeline.tsx:265
 msgid "subscribed"
 msgstr "購読済み"
 
@@ -11075,9 +11168,9 @@ msgid "Subscript"
 msgstr "下付き文字"
 
 #: src/components/settings/WebhooksSettings.tsx:300
-#: src/components/timeline/ContactTimeline.tsx:238
-#: src/components/timeline/ContactTimeline.tsx:251
-#: src/components/timeline/ContactTimeline.tsx:277
+#: src/components/timeline/ContactTimeline.tsx:274
+#: src/components/timeline/ContactTimeline.tsx:287
+#: src/components/timeline/ContactTimeline.tsx:313
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:68
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:353
 msgid "Subscription"
@@ -11123,7 +11216,7 @@ msgstr "{successful}件のコンタクトを正常に処理しました"
 msgid "Successfully signed in"
 msgstr "正常にサインインしました"
 
-#: src/components/settings/BlogSettings.tsx:441
+#: src/components/settings/BlogSettings.tsx:447
 msgid "Summary-only feed"
 msgstr ""
 
@@ -11210,8 +11303,8 @@ msgstr ""
 msgid "Telemetry"
 msgstr ""
 
-#: src/components/segment/form_leaf.tsx:397
-#: src/components/segment/input.tsx:802
+#: src/components/segment/form_leaf.tsx:408
+#: src/components/segment/input.tsx:805
 msgid "template"
 msgstr ""
 
@@ -11308,8 +11401,8 @@ msgstr "テンプレートが正常に更新されました"
 msgid "Template Variables:"
 msgstr "テンプレート変数:"
 
-#: src/components/timeline/ContactTimeline.tsx:514
-#: src/components/timeline/ContactTimeline.tsx:606
+#: src/components/timeline/ContactTimeline.tsx:550
+#: src/components/timeline/ContactTimeline.tsx:642
 msgid "Template:"
 msgstr "テンプレート:"
 
@@ -11491,9 +11584,9 @@ msgstr "テキスト変換"
 msgid "The"
 msgstr "The"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:411
-msgid "The address must already belong to a contact: identifying someone who is not one records nothing, by design. Visitors arriving from a tracked email link are identified automatically, with no code."
-msgstr ""
+#: src/components/settings/WebAnalyticsSettings.tsx:423
+#~ msgid "The address must already belong to a contact: identifying someone who is not one records nothing, by design. Visitors arriving from a tracked email link are identified automatically, with no code."
+#~ msgstr ""
 
 #: src/components/settings/SystemSettingsDrawer.tsx:155
 msgid "The API endpoint has changed. After restart, the console will be available at:"
@@ -11576,7 +11669,7 @@ msgstr ""
 msgid "The last backfill failed"
 msgstr ""
 
-#: src/components/settings/BlogSettings.tsx:343
+#: src/components/settings/BlogSettings.tsx:349
 msgid "The main title for your blog"
 msgstr "ブログのメインタイトル"
 
@@ -11871,10 +11964,10 @@ msgstr "時間"
 msgid "Time patterns"
 msgstr ""
 
-#: src/components/segment/form_leaf.tsx:489
-#: src/components/segment/form_leaf.tsx:845
-#: src/components/segment/input.tsx:688
-#: src/components/segment/input.tsx:825
+#: src/components/segment/form_leaf.tsx:500
+#: src/components/segment/form_leaf.tsx:875
+#: src/components/segment/input.tsx:689
+#: src/components/segment/input.tsx:828
 msgid "timeframe"
 msgstr "期間"
 
@@ -11882,8 +11975,8 @@ msgstr "期間"
 msgid "Timeline"
 msgstr "タイムライン"
 
-#: src/components/segment/form_leaf.tsx:482
-#: src/components/segment/input.tsx:820
+#: src/components/segment/form_leaf.tsx:493
+#: src/components/segment/input.tsx:823
 msgid "times"
 msgstr "回"
 
@@ -11955,7 +12048,7 @@ msgstr "これらのエラーを修正するヒント:"
 #: src/components/blog/PostsTable.tsx:193
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:407
 #: src/components/email_builder/blocks/MjTitleBlock.tsx:34
-#: src/components/settings/BlogSettings.tsx:241
+#: src/components/settings/BlogSettings.tsx:247
 msgid "Title"
 msgstr "タイトル"
 
@@ -12221,8 +12314,8 @@ msgstr ""
 #~ msgid "Two decimals is roughly one kilometer."
 #~ msgstr ""
 
-#: src/components/segment/form_leaf.tsx:351
-#: src/components/segment/input.tsx:788
+#: src/components/segment/form_leaf.tsx:352
+#: src/components/segment/input.tsx:789
 msgid "type"
 msgstr "タイプ"
 
@@ -12232,12 +12325,12 @@ msgstr "タイプ"
 
 #. placeholder {0}: filter.field_type
 #. placeholder {0}: selectedField.type
-#: src/components/segment/input_dimension_filters.tsx:67
-#: src/components/segment/input_dimension_filters.tsx:261
+#: src/components/segment/input_dimension_filters.tsx:79
+#: src/components/segment/input_dimension_filters.tsx:273
 msgid "type {0} is not implemented"
 msgstr "タイプ {0} は実装されていません"
 
-#: src/components/segment/input.tsx:891
+#: src/components/segment/input.tsx:903
 msgid "type {rendererType} is not implemented"
 msgstr "タイプ {rendererType} は実装されていません"
 
@@ -12246,7 +12339,7 @@ msgid "Type {selectedCount} to confirm:"
 msgstr ""
 
 #: src/components/settings/GeneralSettings.tsx:284
-#: src/components/timeline/ContactTimeline.tsx:625
+#: src/components/timeline/ContactTimeline.tsx:661
 msgid "Type:"
 msgstr "タイプ:"
 
@@ -12296,7 +12389,7 @@ msgstr ""
 
 #: src/components/blog/PostsTable.tsx:170
 #: src/components/contacts/SegmentsFilter.tsx:89
-#: src/components/timeline/ContactTimeline.tsx:761
+#: src/components/timeline/ContactTimeline.tsx:888
 #: src/components/web_analytics/LiveSessionMap.tsx:49
 #: src/pages/BroadcastsPage.tsx:1146
 #: src/pages/BroadcastsPage.tsx:1157
@@ -12319,15 +12412,19 @@ msgstr "不明なエラー"
 msgid "Unknown list"
 msgstr "不明なリスト"
 
-#: src/components/timeline/ContactTimeline.tsx:206
+#: src/components/timeline/ContactTimeline.tsx:242
 msgid "Unknown List"
 msgstr "不明なリスト"
+
+#: src/components/timeline/ContactTimeline.tsx:844
+msgid "Unknown page"
+msgstr ""
 
 #: src/pages/BroadcastsPage.tsx:998
 msgid "Unknown segment"
 msgstr "不明なセグメント"
 
-#: src/components/timeline/ContactTimeline.tsx:464
+#: src/components/timeline/ContactTimeline.tsx:500
 msgid "Unknown Segment"
 msgstr "不明なセグメント"
 
@@ -12383,8 +12480,8 @@ msgstr "購読解除"
 #: src/components/contacts/BulkActionsBar.tsx:96
 #: src/components/contacts/BulkActionsBar.tsx:162
 #: src/components/contacts/BulkUpdateDrawer.tsx:595
-#: src/components/segment/form_leaf.tsx:369
-#: src/components/segment/input.tsx:795
+#: src/components/segment/form_leaf.tsx:378
+#: src/components/segment/input.tsx:796
 #: src/pages/ContactsPage.tsx:336
 msgid "Unsubscribe from list"
 msgstr "リストから購読解除"
@@ -12444,8 +12541,8 @@ msgstr "セグメントを更新"
 msgid "Update Status"
 msgstr "ステータスを更新"
 
-#: src/components/timeline/ContactTimeline.tsx:379
-#: src/components/timeline/ContactTimeline.tsx:683
+#: src/components/timeline/ContactTimeline.tsx:415
+#: src/components/timeline/ContactTimeline.tsx:719
 msgid "updated"
 msgstr "更新済み"
 
@@ -12607,12 +12704,12 @@ msgstr "用途"
 msgid "User"
 msgstr ""
 
-#: src/components/timeline/ContactTimeline.tsx:585
+#: src/components/timeline/ContactTimeline.tsx:621
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:87
 msgid "User Created"
 msgstr "ユーザー作成"
 
-#: src/components/timeline/ContactTimeline.tsx:600
+#: src/components/timeline/ContactTimeline.tsx:636
 msgid "User created and synced from Supabase"
 msgstr "Supabaseからユーザーを作成し同期"
 
@@ -12676,7 +12773,7 @@ msgid "Validation Error"
 msgstr "検証エラー"
 
 #: src/components/broadcasts/HeadersEditor.tsx:40
-#: src/components/segment/form_leaf.tsx:800
+#: src/components/segment/form_leaf.tsx:830
 #: src/components/web_analytics/FilterBuilder.tsx:263
 #: src/components/web_analytics/FilterBuilder.tsx:271
 #: src/components/web_analytics/filters/ConditionsBuilder.tsx:89
@@ -12687,7 +12784,7 @@ msgstr "検証エラー"
 msgid "Value"
 msgstr "値"
 
-#: src/components/segment/form_leaf.tsx:830
+#: src/components/segment/form_leaf.tsx:860
 msgid "Value 2"
 msgstr "値2"
 
@@ -12767,7 +12864,7 @@ msgstr "ログを表示"
 msgid "View more"
 msgstr "もっと見る"
 
-#: src/components/timeline/ContactTimeline.tsx:365
+#: src/components/timeline/ContactTimeline.tsx:401
 msgid "View Raw JSON"
 msgstr "生のJSONを表示"
 
@@ -12779,6 +12876,15 @@ msgstr "SMTPリレーのドキュメントとセットアップガイドを表�
 msgid "View snippet"
 msgstr ""
 
+#: src/components/segment/form_leaf.tsx:379
+#: src/components/segment/input.tsx:799
+msgid "View web page"
+msgstr ""
+
+#: src/components/timeline/ContactTimeline.tsx:842
+msgid "viewed page"
+msgstr ""
+
 #: src/pages/WebAnalyticsOverviewPage.tsx:129
 #~ msgid "Views"
 #~ msgstr ""
@@ -12786,6 +12892,15 @@ msgstr ""
 #: src/pages/ListsPage.tsx:270
 msgid "Visibility"
 msgstr "表示設定"
+
+#: src/components/segment/form_leaf.tsx:380
+#: src/components/segment/input.tsx:800
+msgid "Visit website"
+msgstr ""
+
+#: src/components/timeline/ContactTimeline.tsx:783
+msgid "visited"
+msgstr ""
 
 #: src/components/settings/WebAnalyticsSettings.tsx:237
 msgid "Visitor locations"
@@ -12862,9 +12977,13 @@ msgstr ""
 msgid "Web analytics settings updated successfully"
 msgstr ""
 
+#: src/components/timeline/ContactTimeline.tsx:783
+msgid "Web session"
+msgstr ""
+
 #: src/components/automations/nodes/StatNode.tsx:59
 #: src/components/automations/nodes/WebhookNode.tsx:43
-#: src/components/timeline/ContactTimeline.tsx:594
+#: src/components/timeline/ContactTimeline.tsx:630
 msgid "Webhook"
 msgstr "Webhook"
 
@@ -12949,7 +13068,7 @@ msgstr "ようこそ"
 msgid "Welcome to Email Builder!"
 msgstr "メールビルダーへようこそ！"
 
-#: src/components/settings/BlogSettings.tsx:457
+#: src/components/settings/BlogSettings.tsx:463
 msgid "Welcome to my blog where I share insights about..."
 msgstr "私が洞察を共有するブログへようこそ..."
 
@@ -12973,7 +13092,7 @@ msgstr "有効にすると、メール内のリンクが開封とクリックで
 msgid "When enabled, subscribers must confirm their subscription via email before being added to the list"
 msgstr "有効にすると、購読者はリストに追加される前にメールで購読を確認する必要があります"
 
-#: src/components/settings/BlogSettings.tsx:442
+#: src/components/settings/BlogSettings.tsx:448
 msgid "When enabled, the feed includes only excerpts instead of full article content"
 msgstr ""
 
@@ -13039,18 +13158,18 @@ msgstr "勝利指標"
 msgid "With Errors"
 msgstr "エラーあり"
 
-#: src/components/segment/form_leaf.tsx:613
+#: src/components/segment/form_leaf.tsx:639
 msgid "with filters"
 msgstr "フィルター付き"
 
-#: src/components/segment/form_leaf.tsx:959
-#: src/components/segment/input.tsx:736
+#: src/components/segment/form_leaf.tsx:989
+#: src/components/segment/input.tsx:737
 msgid "with properties"
 msgstr ""
 
-#: src/components/segment/form_leaf.tsx:260
-#: src/components/segment/input.tsx:594
-#: src/components/timeline/ContactTimeline.tsx:241
+#: src/components/segment/form_leaf.tsx:261
+#: src/components/segment/input.tsx:595
+#: src/components/timeline/ContactTimeline.tsx:277
 msgid "with status"
 msgstr "ステータス付き"
 
@@ -13292,7 +13411,7 @@ msgstr "未保存の変更があります。閉じてもよろしいですか？
 msgid "You have unsaved changes. Are you sure you want to close? Your changes will be lost."
 msgstr "未保存の変更があります。閉じてもよろしいですか？変更は失われます。"
 
-#: src/components/settings/BlogSettings.tsx:272
+#: src/components/settings/BlogSettings.tsx:278
 msgid "You must configure a Custom Endpoint URL in General Settings above before enabling the blog."
 msgstr "ブログを有効にする前に、上の一般設定でカスタムエンドポイントURLを設定する必要があります。"
 
@@ -13314,7 +13433,7 @@ msgstr "招待されています"
 msgid "Your AWS credentials cannot create SES tenants. Grant ses:CreateTenant and ses:CreateTenantResourceAssociation, then save again."
 msgstr ""
 
-#: src/components/settings/BlogSettings.tsx:493
+#: src/components/settings/BlogSettings.tsx:499
 msgid "Your blog settings have not been saved. Leaving this page discards them."
 msgstr ""
 

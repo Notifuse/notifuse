@@ -45,6 +45,81 @@ func contactColumnsWithPrefix(prefix string) []string {
 	return cols
 }
 
+// contactInsertColumns is the column list every contacts INSERT writes, in the
+// order contactInsertArgs produces its values. db_created_at and db_updated_at
+// are absent on purpose: the schema defaults them.
+const contactInsertColumns = `email, external_id, timezone, language,
+		first_name, last_name, full_name, phone, address_line_1, address_line_2,
+		country, postcode, state, job_title,
+		custom_string_1, custom_string_2, custom_string_3, custom_string_4, custom_string_5,
+		custom_number_1, custom_number_2, custom_number_3, custom_number_4, custom_number_5,
+		custom_datetime_1, custom_datetime_2, custom_datetime_3, custom_datetime_4, custom_datetime_5,
+		custom_json_1, custom_json_2, custom_json_3, custom_json_4, custom_json_5,
+		created_at, updated_at`
+
+// contactInsertFieldCount is how many placeholders one contact occupies.
+const contactInsertFieldCount = 36
+
+// contactInsertArgs flattens a contact into contactInsertColumns order,
+// defaulting the application-level timestamps to now when the caller left them
+// zero.
+//
+// Shared by BulkUpsertContacts and CreateContactIfAbsent. UpsertContact's INSERT
+// branch still hand-builds the same 36 columns and its own NullableX conversions
+// — behaviour-identical, but it means "add a column here and both paths get it"
+// holds for two of the three, so a new column still has to be added there by
+// hand. Folding it in is a worthwhile cleanup and a larger one than this change
+// should carry.
+func contactInsertArgs(contact *domain.Contact, now time.Time) []interface{} {
+	createdAt := now
+	if !contact.CreatedAt.IsZero() {
+		createdAt = contact.CreatedAt.UTC()
+	}
+	updatedAt := now
+	if !contact.UpdatedAt.IsZero() {
+		updatedAt = contact.UpdatedAt.UTC()
+	}
+
+	return []interface{}{
+		contact.Email,
+		contactToNullString(contact.ExternalID),
+		contactToNullString(contact.Timezone),
+		contactToNullString(contact.Language),
+		contactToNullString(contact.FirstName),
+		contactToNullString(contact.LastName),
+		contactToNullString(contact.FullName),
+		contactToNullString(contact.Phone),
+		contactToNullString(contact.AddressLine1),
+		contactToNullString(contact.AddressLine2),
+		contactToNullString(contact.Country),
+		contactToNullString(contact.Postcode),
+		contactToNullString(contact.State),
+		contactToNullString(contact.JobTitle),
+		contactToNullString(contact.CustomString1),
+		contactToNullString(contact.CustomString2),
+		contactToNullString(contact.CustomString3),
+		contactToNullString(contact.CustomString4),
+		contactToNullString(contact.CustomString5),
+		contactToNullFloat64(contact.CustomNumber1),
+		contactToNullFloat64(contact.CustomNumber2),
+		contactToNullFloat64(contact.CustomNumber3),
+		contactToNullFloat64(contact.CustomNumber4),
+		contactToNullFloat64(contact.CustomNumber5),
+		contactToNullTime(contact.CustomDatetime1),
+		contactToNullTime(contact.CustomDatetime2),
+		contactToNullTime(contact.CustomDatetime3),
+		contactToNullTime(contact.CustomDatetime4),
+		contactToNullTime(contact.CustomDatetime5),
+		contactToNullJSON(contact.CustomJSON1),
+		contactToNullJSON(contact.CustomJSON2),
+		contactToNullJSON(contact.CustomJSON3),
+		contactToNullJSON(contact.CustomJSON4),
+		contactToNullJSON(contact.CustomJSON5),
+		createdAt,
+		updatedAt,
+	}
+}
+
 // NewContactRepository creates a new PostgreSQL contact repository
 func NewContactRepository(workspaceRepo domain.WorkspaceRepository) domain.ContactRepository {
 	return &contactRepository{
@@ -1170,6 +1245,49 @@ func contactToNullJSON(n *domain.NullableJSON) sql.NullString {
 // BulkUpsertContacts creates or updates multiple contacts in a single database operation
 // It uses PostgreSQL's INSERT ... ON CONFLICT to efficiently handle both inserts and updates
 // Returns per-contact results indicating whether each was inserted (IsNew=true) or updated (IsNew=false)
+// CreateContactIfAbsent inserts the contact and reports whether it landed,
+// leaving an existing row untouched.
+//
+// This is the write for callers that may only ever ADD a contact — today the web
+// analytics identify() path, which runs on a public endpoint. UpsertContact is
+// wrong there twice: it merges every non-null field over the stored contact, so
+// a geo-derived country would overwrite one a human had corrected, and it emits
+// a contact.updated timeline row and webhook for a contact nothing changed.
+//
+// DO NOTHING rather than a read followed by a write, because concurrent beats
+// for one new address race: both would see "absent", and the loser would take
+// the update path.
+func (r *contactRepository) CreateContactIfAbsent(ctx context.Context, workspaceID string, contact *domain.Contact) (bool, error) {
+	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
+	if err != nil {
+		return false, fmt.Errorf("failed to get workspace connection: %w", err)
+	}
+
+	placeholders := make([]string, contactInsertFieldCount)
+	for i := range placeholders {
+		placeholders[i] = "$" + strconv.Itoa(i+1)
+	}
+
+	query := `INSERT INTO contacts (
+		` + contactInsertColumns + `
+	) VALUES (` + strings.Join(placeholders, ", ") + `)
+	ON CONFLICT (email) DO NOTHING`
+
+	result, err := workspaceDB.ExecContext(ctx, query, contactInsertArgs(contact, time.Now().UTC())...)
+	if err != nil {
+		return false, fmt.Errorf("failed to create contact: %w", err)
+	}
+	affected, err := result.RowsAffected()
+	if err != nil {
+		// Unreachable with lib/pq, which always reports a row count. Kept because
+		// the driver is an interface: a driver that cannot answer leaves the
+		// caller unable to tell a create from a conflict, and the honest report
+		// is the error rather than a guess in either direction.
+		return false, fmt.Errorf("failed to read contact insert result: %w", err)
+	}
+	return affected > 0, nil
+}
+
 func (r *contactRepository) BulkUpsertContacts(ctx context.Context, workspaceID string, contacts []*domain.Contact) ([]domain.BulkUpsertResult, error) {
 	if len(contacts) == 0 {
 		return []domain.BulkUpsertResult{}, nil
@@ -1193,18 +1311,11 @@ func (r *contactRepository) BulkUpsertContacts(ctx context.Context, workspaceID 
 	// Build the multi-row INSERT statement
 	// We'll use a raw SQL query because squirrel doesn't handle complex ON CONFLICT well
 	var queryBuilder strings.Builder
-	args := make([]interface{}, 0, len(contacts)*36) // 36 fields per contact (db_created_at and db_updated_at are managed by DB)
+	args := make([]interface{}, 0, len(contacts)*contactInsertFieldCount) // db_created_at and db_updated_at are managed by DB
 	argIndex := 1
 
 	queryBuilder.WriteString(`INSERT INTO contacts (
-		email, external_id, timezone, language,
-		first_name, last_name, full_name, phone, address_line_1, address_line_2,
-		country, postcode, state, job_title,
-		custom_string_1, custom_string_2, custom_string_3, custom_string_4, custom_string_5,
-		custom_number_1, custom_number_2, custom_number_3, custom_number_4, custom_number_5,
-		custom_datetime_1, custom_datetime_2, custom_datetime_3, custom_datetime_4, custom_datetime_5,
-		custom_json_1, custom_json_2, custom_json_3, custom_json_4, custom_json_5,
-		created_at, updated_at
+		` + contactInsertColumns + `
 	) VALUES `)
 
 	// Add value placeholders for each contact
@@ -1214,8 +1325,8 @@ func (r *contactRepository) BulkUpsertContacts(ctx context.Context, workspaceID 
 		}
 		queryBuilder.WriteString("(")
 
-		// Add 36 placeholders for contact fields (excluding db_created_at and db_updated_at)
-		for j := 0; j < 36; j++ {
+		// Add the placeholders for contact fields (excluding db_created_at and db_updated_at)
+		for j := 0; j < contactInsertFieldCount; j++ {
 			if j > 0 {
 				queryBuilder.WriteString(", ")
 			}
@@ -1225,56 +1336,8 @@ func (r *contactRepository) BulkUpsertContacts(ctx context.Context, workspaceID 
 		}
 		queryBuilder.WriteString(")")
 
-		// Determine timestamps - use provided or default to now
-		createdAt := now
-		if !contact.CreatedAt.IsZero() {
-			createdAt = contact.CreatedAt.UTC()
-		}
-		updatedAt := now
-		if !contact.UpdatedAt.IsZero() {
-			updatedAt = contact.UpdatedAt.UTC()
-		}
-
-		// Add all field values in the correct order
 		// Note: db_created_at and db_updated_at are NOT included - they have DEFAULT CURRENT_TIMESTAMP in the schema
-		args = append(args,
-			contact.Email,                        // 1
-			contactToNullString(contact.ExternalID),     // 2
-			contactToNullString(contact.Timezone),       // 3
-			contactToNullString(contact.Language),       // 4
-			contactToNullString(contact.FirstName),      // 5
-			contactToNullString(contact.LastName),       // 6
-			contactToNullString(contact.FullName),       // 7
-			contactToNullString(contact.Phone),          // 8
-			contactToNullString(contact.AddressLine1),   // 9
-			contactToNullString(contact.AddressLine2),   // 10
-			contactToNullString(contact.Country),        // 11
-			contactToNullString(contact.Postcode),       // 12
-			contactToNullString(contact.State),          // 13
-			contactToNullString(contact.JobTitle),       // 14
-			contactToNullString(contact.CustomString1),  // 15
-			contactToNullString(contact.CustomString2),  // 16
-			contactToNullString(contact.CustomString3),  // 17
-			contactToNullString(contact.CustomString4),  // 18
-			contactToNullString(contact.CustomString5),  // 19
-			contactToNullFloat64(contact.CustomNumber1), // 20
-			contactToNullFloat64(contact.CustomNumber2), // 21
-			contactToNullFloat64(contact.CustomNumber3), // 22
-			contactToNullFloat64(contact.CustomNumber4), // 23
-			contactToNullFloat64(contact.CustomNumber5), // 24
-			contactToNullTime(contact.CustomDatetime1),  // 25
-			contactToNullTime(contact.CustomDatetime2),  // 26
-			contactToNullTime(contact.CustomDatetime3),  // 27
-			contactToNullTime(contact.CustomDatetime4),  // 28
-			contactToNullTime(contact.CustomDatetime5),  // 29
-			contactToNullJSON(contact.CustomJSON1),      // 30
-			contactToNullJSON(contact.CustomJSON2),      // 31
-			contactToNullJSON(contact.CustomJSON3),      // 32
-			contactToNullJSON(contact.CustomJSON4),      // 33
-			contactToNullJSON(contact.CustomJSON5),      // 34
-			createdAt,                            // 35 - application-level timestamp
-			updatedAt,                            // 36 - application-level timestamp
-		)
+		args = append(args, contactInsertArgs(contact, now)...)
 	}
 
 	// Add ON CONFLICT clause with merge semantics

@@ -59,7 +59,7 @@ var webPageColumns = []string{
 
 var webGoalColumns = []string{
 	"session_date", "session_id", "tab_id", "goal_name", "client_ts_ms",
-	"beat_seq", "goal_at", "goal_value", "path", "page_number", "properties",
+	"beat_seq", "goal_at", "goal_value", "goal_type", "path", "page_number", "properties",
 	"referrer", "referrer_domain", "referrer_path", "is_direct",
 	"landing_page", "landing_domain", "landing_path",
 	"utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content", "utm_id", "utm_id_from",
@@ -347,7 +347,7 @@ func webGoalValues(g *domain.WebGoal) ([]interface{}, error) {
 	}
 	return []interface{}{
 		g.SessionDate, g.SessionID, g.TabID, g.GoalName, g.ClientTsMs,
-		g.BeatSeq, g.GoalAt, g.GoalValue, g.Path, clampSmallint(g.PageNumber), properties,
+		g.BeatSeq, g.GoalAt, g.GoalValue, g.GoalType, g.Path, clampSmallint(g.PageNumber), properties,
 		g.Referrer, g.ReferrerDomain, g.ReferrerPath, g.IsDirect,
 		g.LandingPage, g.LandingDomain, g.LandingPath,
 		g.UTMSource, g.UTMMedium, g.UTMCampaign, g.UTMTerm, g.UTMContent, g.UTMID, g.UTMIDFrom,

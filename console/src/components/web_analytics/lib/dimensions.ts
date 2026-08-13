@@ -113,6 +113,7 @@ const CATALOG: DimensionInfo[] = [
   define('sdk_version', 'SDK Version', 'Session', 'string', ['web_sessions']),
 
   define('goal_name', 'Goal Name', 'Goal', 'string', ['web_goals']),
+  define('goal_type', 'Goal Type', 'Goal', 'string', ['web_goals']),
   define('goal_path', 'Goal Path', 'Goal', 'string', ['web_goals']),
   define('goal_value', 'Goal Value', 'Goal', 'number', ['web_goals']),
 
@@ -248,6 +249,7 @@ export const DIMENSION_EXAMPLES: Record<string, string[]> = {
   is_weekend: ['true', 'false'],
   sdk_version: ['1.0.0', '1.1.2'],
   goal_name: ['signup', 'purchase'],
+  goal_type: ['purchase', 'lead'],
   goal_path: ['/thank-you', '/checkout/success'],
   contact_email: ['alice@example.com', 'bob@example.com']
 }

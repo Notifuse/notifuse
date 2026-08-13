@@ -122,6 +122,20 @@ func (mr *MockWebAnalyticsRepositoryMockRecorder) ListPartitions(arg0, arg1, arg
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListPartitions", reflect.TypeOf((*MockWebAnalyticsRepository)(nil).ListPartitions), arg0, arg1, arg2)
 }
 
+// ProjectContactNavigation mocks base method.
+func (m *MockWebAnalyticsRepository) ProjectContactNavigation(arg0 context.Context, arg1 string, arg2 []*domain.WebSession) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ProjectContactNavigation", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ProjectContactNavigation indicates an expected call of ProjectContactNavigation.
+func (mr *MockWebAnalyticsRepositoryMockRecorder) ProjectContactNavigation(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ProjectContactNavigation", reflect.TypeOf((*MockWebAnalyticsRepository)(nil).ProjectContactNavigation), arg0, arg1, arg2)
+}
+
 // SetPartitionAutovacuum mocks base method.
 func (m *MockWebAnalyticsRepository) SetPartitionAutovacuum(arg0 context.Context, arg1, arg2 string, arg3 bool) error {
 	m.ctrl.T.Helper()

@@ -507,3 +507,25 @@ func scanEmailQueueEntry(rows *sql.Rows) (*domain.EmailQueueEntry, error) {
 
 	return &entry, nil
 }
+
+const deleteForEmailSQL = `
+	DELETE FROM email_queue
+	WHERE contact_email = $1
+`
+
+// DeleteForEmail removes every queued email addressed to a contact.
+//
+// No status filter: see the interface doc for why 'processing' is included here
+// but excluded from DeleteBySource.
+func (r *EmailQueueRepository) DeleteForEmail(ctx context.Context, workspaceID string, email string) (int64, error) {
+	db, err := r.getDB(ctx, workspaceID)
+	if err != nil {
+		return 0, fmt.Errorf("failed to get database connection: %w", err)
+	}
+
+	result, err := db.ExecContext(ctx, deleteForEmailSQL, email)
+	if err != nil {
+		return 0, fmt.Errorf("failed to delete queue entries for contact: %w", err)
+	}
+	return result.RowsAffected()
+}

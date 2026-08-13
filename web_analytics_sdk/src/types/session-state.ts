@@ -5,6 +5,8 @@
  * The SDK builds a cumulative actions[] array that gets sent to /api/track.
  */
 
+import type { GoalType } from '../types';
+
 export type ActionType = 'pageview' | 'goal';
 
 /**
@@ -24,8 +26,10 @@ export interface PageviewAction {
  * Goal action (conversion event)
  */
 export interface GoalAction {
+  /** The action discriminator — NOT the goal's own type, which is goal_type. */
   type: 'goal';
   name: string;
+  goal_type: GoalType;
   path: string;
   page_number: number;
   timestamp: number; // epoch ms

@@ -951,28 +951,10 @@ func (s *WorkspaceService) SetWebAnalyticsSettings(ctx context.Context, workspac
 		return err
 	}
 
-	// Turning the contact bridge ON needs contacts:write as well.
-	//
-	// Every other field here only shapes reporting, but this one starts writing
-	// rows into contact_timeline, queueing segment recomputation and enrolling
-	// contacts into automations — all resources a web-analytics-only member has
-	// no permission over. Deleting a single contact already requires
-	// contacts:write; switching on a feature that writes to every contact's
-	// timeline cannot require less.
-	//
-	// Only the transition is gated, so a member without contacts:write can still
-	// edit unrelated settings on a workspace where the bridge is already on.
-	if settings != nil && settings.ContactBridgeEnabled {
-		alreadyOn := existingWorkspace.Settings.WebAnalytics != nil &&
-			existingWorkspace.Settings.WebAnalytics.ContactBridgeEnabled
-		if !alreadyOn && !userWorkspace.HasPermission(domain.PermissionResourceContacts, domain.PermissionTypeWrite) {
-			return domain.NewPermissionError(
-				domain.PermissionResourceContacts,
-				domain.PermissionTypeWrite,
-				"Insufficient permissions: write access to contacts required to record web goals on contact timelines",
-			)
-		}
-	}
+	// No contacts:write gate here any more. It used to guard the two settings
+	// that switched contact-timeline writing on; both are gone, because calling
+	// identify() is now the opt-in and that decision is made in the customer's
+	// own code with the workspace secret, not in this panel.
 
 	existingWorkspace.Settings.WebAnalytics = settings
 
@@ -1477,6 +1459,111 @@ func (s *WorkspaceService) CreateIntegration(ctx context.Context, req domain.Cre
 // preserveDerivedSESFields copies server-owned SES state from the stored integration onto the
 // updated one. These fields are written by webhook registration and tenant provisioning, never by
 // a client, so a client's value (or absence of one) must not win.
+// hydrateEmailProviderCredentials fills blank credentials on a client-supplied
+// provider from the stored one.
+//
+// Sibling of preserveEmailProviderSecrets, and the difference is which form it
+// restores. That one runs on the SAVE path and restores the ciphertext, because
+// the value is on its way back to the database. This one runs on paths that
+// USE the provider immediately — testing an integration — where the provider
+// services sign with the plaintext, so the ciphertext would be no help.
+//
+// The stored provider comes from a workspace the repository loaded, so AfterLoad
+// has already decrypted it.
+//
+// Only a provider block the caller actually sent is touched, so switching kind
+// and testing before saving cannot borrow the previous provider's credential, and
+// a credential the caller typed always wins — otherwise a wrong new key would
+// appear to work.
+func hydrateEmailProviderCredentials(incoming *domain.EmailProvider, stored *domain.EmailProvider) {
+	if incoming == nil || stored == nil {
+		return
+	}
+	fill := func(target *string, value string) {
+		if *target == "" {
+			*target = value
+		}
+	}
+
+	if incoming.SES != nil && stored.SES != nil {
+		fill(&incoming.SES.SecretKey, stored.SES.SecretKey)
+	}
+	if incoming.SMTP != nil && stored.SMTP != nil {
+		fill(&incoming.SMTP.Password, stored.SMTP.Password)
+		fill(&incoming.SMTP.Username, stored.SMTP.Username)
+		fill(&incoming.SMTP.OAuth2ClientSecret, stored.SMTP.OAuth2ClientSecret)
+		fill(&incoming.SMTP.OAuth2RefreshToken, stored.SMTP.OAuth2RefreshToken)
+	}
+	if incoming.SparkPost != nil && stored.SparkPost != nil {
+		fill(&incoming.SparkPost.APIKey, stored.SparkPost.APIKey)
+	}
+	if incoming.Postmark != nil && stored.Postmark != nil {
+		fill(&incoming.Postmark.ServerToken, stored.Postmark.ServerToken)
+	}
+	if incoming.Mailgun != nil && stored.Mailgun != nil {
+		fill(&incoming.Mailgun.APIKey, stored.Mailgun.APIKey)
+	}
+	if incoming.Mailjet != nil && stored.Mailjet != nil {
+		fill(&incoming.Mailjet.APIKey, stored.Mailjet.APIKey)
+		fill(&incoming.Mailjet.SecretKey, stored.Mailjet.SecretKey)
+	}
+	if incoming.SendGrid != nil && stored.SendGrid != nil {
+		fill(&incoming.SendGrid.APIKey, stored.SendGrid.APIKey)
+	}
+}
+
+// preserveEmailProviderSecrets keeps a stored credential when the caller's payload
+// carries none for that provider.
+//
+// Workspaces do not serve decrypted credentials (domain.Workspace.Redact), so a
+// client cannot echo an integration's password back on save. Without this, the
+// wholesale `updatedIntegration.EmailProvider = req.Provider` below would wipe the
+// stored credential on any edit that does not mention it — changing a sender name
+// would silently break sending.
+//
+// Only a provider block the caller actually sent is touched, so switching kinds
+// cannot drag the previous provider's secret across. A caller that supplies either
+// a new plaintext value or its own ciphertext is rotating deliberately and wins.
+//
+// The Supabase and LLM branches of UpdateIntegration do the same.
+func preserveEmailProviderSecrets(updated *domain.Integration, existing *domain.Integration) {
+	if updated == nil || existing == nil {
+		return
+	}
+	keep := func(newPlain, newCipher *string, oldCipher string) {
+		if *newPlain == "" && *newCipher == "" {
+			*newCipher = oldCipher
+		}
+	}
+
+	u, e := &updated.EmailProvider, &existing.EmailProvider
+
+	if u.SES != nil && e.SES != nil {
+		keep(&u.SES.SecretKey, &u.SES.EncryptedSecretKey, e.SES.EncryptedSecretKey)
+	}
+	if u.SMTP != nil && e.SMTP != nil {
+		keep(&u.SMTP.Password, &u.SMTP.EncryptedPassword, e.SMTP.EncryptedPassword)
+		keep(&u.SMTP.OAuth2ClientSecret, &u.SMTP.EncryptedOAuth2ClientSecret, e.SMTP.EncryptedOAuth2ClientSecret)
+		keep(&u.SMTP.OAuth2RefreshToken, &u.SMTP.EncryptedOAuth2RefreshToken, e.SMTP.EncryptedOAuth2RefreshToken)
+	}
+	if u.SparkPost != nil && e.SparkPost != nil {
+		keep(&u.SparkPost.APIKey, &u.SparkPost.EncryptedAPIKey, e.SparkPost.EncryptedAPIKey)
+	}
+	if u.Postmark != nil && e.Postmark != nil {
+		keep(&u.Postmark.ServerToken, &u.Postmark.EncryptedServerToken, e.Postmark.EncryptedServerToken)
+	}
+	if u.Mailgun != nil && e.Mailgun != nil {
+		keep(&u.Mailgun.APIKey, &u.Mailgun.EncryptedAPIKey, e.Mailgun.EncryptedAPIKey)
+	}
+	if u.Mailjet != nil && e.Mailjet != nil {
+		keep(&u.Mailjet.APIKey, &u.Mailjet.EncryptedAPIKey, e.Mailjet.EncryptedAPIKey)
+		keep(&u.Mailjet.SecretKey, &u.Mailjet.EncryptedSecretKey, e.Mailjet.EncryptedSecretKey)
+	}
+	if u.SendGrid != nil && e.SendGrid != nil {
+		keep(&u.SendGrid.APIKey, &u.SendGrid.EncryptedAPIKey, e.SendGrid.EncryptedAPIKey)
+	}
+}
+
 func preserveDerivedSESFields(updated *domain.Integration, existing *domain.Integration) {
 	if existing == nil || existing.EmailProvider.SES == nil {
 		return
@@ -1534,6 +1621,7 @@ func (s *WorkspaceService) UpdateIntegration(ctx context.Context, req domain.Upd
 	switch existingIntegration.Type {
 	case domain.IntegrationTypeEmail:
 		updatedIntegration.EmailProvider = req.Provider
+		preserveEmailProviderSecrets(&updatedIntegration, existingIntegration)
 		// Derived state belongs to the server, not the client. Without this, any caller whose
 		// payload omits these fields — which is every API client that isn't our console —
 		// silently wipes them: the SES tenant and configuration set stop being sent, and

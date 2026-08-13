@@ -626,6 +626,12 @@ type ContactRepository interface {
 	// UpsertContact creates or updates a contact
 	UpsertContact(ctx context.Context, workspaceID string, contact *Contact) (bool, error)
 
+	// CreateContactIfAbsent inserts the contact and reports whether it landed,
+	// leaving an existing row untouched. For callers that may only ever ADD a
+	// contact, never modify one — an unauthenticated caller must not be able to
+	// rewrite a stored profile by naming its address.
+	CreateContactIfAbsent(ctx context.Context, workspaceID string, contact *Contact) (bool, error)
+
 	// BulkUpsertContacts creates or updates multiple contacts in a single operation
 	BulkUpsertContacts(ctx context.Context, workspaceID string, contacts []*Contact) ([]BulkUpsertResult, error)
 

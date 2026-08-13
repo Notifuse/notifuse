@@ -174,10 +174,7 @@ func TestEmailHandler_HandleTestEmailProvider(t *testing.T) {
 			},
 			setupMock: func(m *mocks.MockEmailServiceInterface) {
 				m.EXPECT().
-					TestEmailProvider(
-						gomock.Any(),
-						"workspace123",
-						gomock.Any(),
+					TestEmailProvider(gomock.Any(), "workspace123", gomock.Any(), gomock.Any(),
 						"test@example.com",
 					).
 					Return(errors.New("service error"))
@@ -208,10 +205,7 @@ func TestEmailHandler_HandleTestEmailProvider(t *testing.T) {
 			},
 			setupMock: func(m *mocks.MockEmailServiceInterface) {
 				m.EXPECT().
-					TestEmailProvider(
-						gomock.Any(),
-						"workspace123",
-						gomock.Any(),
+					TestEmailProvider(gomock.Any(), "workspace123", gomock.Any(), gomock.Any(),
 						"test@example.com",
 					).
 					Return(nil)

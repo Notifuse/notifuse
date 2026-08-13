@@ -335,7 +335,6 @@ func TestBroadcastService_SendToIndividual_NeverMintsIdentityToken(t *testing.T)
 	webAnalytics := &domain.WebAnalyticsSettings{
 		Enabled:              true,
 		AllowedDomains:       []string{"example.com", "*.example.com"},
-		ContactBridgeEnabled: true,
 	}
 	probe, err := domain.BuildWebIdentifyToken(recipient, secretKey, domain.WebIdentifyTokenTTL, time.Now().UTC())
 	require.NoError(t, err, "these settings must be able to mint, or this test pins nothing")

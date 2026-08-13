@@ -175,8 +175,13 @@ func (s *SMTPSettings) validateOAuth2(passphrase string) error {
 		return fmt.Errorf("oauth2_client_id is required for OAuth2 authentication")
 	}
 
-	// Client secret is always required
-	if s.OAuth2ClientSecret == "" {
+	// A client secret is required, but it may already be stored: workspaces do not
+	// serve decrypted credentials, so a client editing an existing integration
+	// echoes back a blank plaintext with the ciphertext intact. Demanding the
+	// plaintext here made such an integration impossible to edit at all — and this
+	// runs in UpdateIntegrationRequest.Validate, upstream of anything the service
+	// could restore. Every other provider's Validate already tolerates this.
+	if s.OAuth2ClientSecret == "" && s.EncryptedOAuth2ClientSecret == "" {
 		return fmt.Errorf("oauth2_client_secret is required for OAuth2 authentication")
 	}
 
@@ -187,16 +192,23 @@ func (s *SMTPSettings) validateOAuth2(passphrase string) error {
 		}
 	}
 
-	// Google-specific validation
+	// Google-specific validation. Same reasoning as the client secret above, and
+	// it matters more here: re-obtaining a refresh token means re-running the OAuth
+	// flow, not copying a value out of a console.
 	if s.OAuth2Provider == "google" {
-		if s.OAuth2RefreshToken == "" {
+		if s.OAuth2RefreshToken == "" && s.EncryptedOAuth2RefreshToken == "" {
 			return fmt.Errorf("oauth2_refresh_token is required for Google OAuth2")
 		}
 	}
 
-	// Encrypt OAuth2 client secret
-	if err := s.EncryptOAuth2ClientSecret(passphrase); err != nil {
-		return fmt.Errorf("failed to encrypt OAuth2 client secret: %w", err)
+	// Only when one was actually supplied. Encrypting the blank would overwrite
+	// the stored ciphertext with E("") and destroy the credential — silently,
+	// surfacing only at the next send. The refresh-token branch below already
+	// guarded this; this one did not.
+	if s.OAuth2ClientSecret != "" {
+		if err := s.EncryptOAuth2ClientSecret(passphrase); err != nil {
+			return fmt.Errorf("failed to encrypt OAuth2 client secret: %w", err)
+		}
 	}
 
 	// Encrypt OAuth2 refresh token if present (Google)

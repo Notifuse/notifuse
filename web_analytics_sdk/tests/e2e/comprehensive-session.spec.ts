@@ -126,6 +126,7 @@ test.describe('Comprehensive Session Verification', () => {
     await page.evaluate(() =>
       NotifuseAnalytics.trackGoal({
         action: 'purchase',
+        type: 'purchase',
         value: 99.99,
         properties: { product: 'test-item' },
       }),

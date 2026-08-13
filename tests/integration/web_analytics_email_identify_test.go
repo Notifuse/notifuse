@@ -85,7 +85,6 @@ func TestWebAnalyticsEmailIdentify(t *testing.T) {
 		w.Settings.EmailTrackingEnabled = true
 		w.Settings.WebAnalytics = &domain.WebAnalyticsSettings{
 			Enabled:              true,
-			ContactBridgeEnabled: true,
 			AllowedDomains:       []string{trackedHost},
 			Filters:              domain.DefaultWebFilters(),
 		}

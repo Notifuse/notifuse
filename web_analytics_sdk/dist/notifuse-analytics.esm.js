@@ -1,6 +1,28 @@
 import * as UAParser from 'ua-parser-js';
 
 /**
+ * Notifuse Analytics SDK Types
+ * V3 Session Payload Architecture
+ */
+// Goal
+/**
+ * Goal types, mirroring domain.ValidGoalTypes on the server.
+ *
+ * Keep this list in step with ValidGoalTypes in internal/domain/custom_event.go:
+ * a type this SDK allows but the server does not recognise is silently recorded
+ * as 'other', which is a confusing way to find out.
+ */
+const VALID_GOAL_TYPES = [
+    'purchase',
+    'subscription',
+    'lead',
+    'signup',
+    'booking',
+    'trial',
+    'other',
+];
+
+/**
  * Storage module with localStorage + memory fallback
  * Handles Safari Private Mode gracefully
  */
@@ -251,19 +273,38 @@ const DEFAULT_AD_CLICK_IDS = [
     'li_fat_id', // LinkedIn Ads
     'wbraid', // Google Ads (iOS)
     'gbraid', // Google Ads (cross-device)
+    'epik', // Pinterest Ads
+    'ScCid', // Snapchat Ads (canonical spelling; matched case-insensitively)
+    'rdt_cid', // Reddit Ads
+    'qclid', // Quora Ads
 ];
 /**
  * Parse UTM parameters from URL
  */
 function parseUTMParams(url, adClickIds = DEFAULT_AD_CLICK_IDS) {
     const params = new URL(url).searchParams;
+    // Ad networks are inconsistent about the casing of their click ids (Snapchat
+    // documents ScCid, plenty of links carry sccid) and URLSearchParams.get is
+    // case-sensitive, so an exact lookup silently misses them.
+    const byLowerKey = new Map();
+    for (const [key, value] of params) {
+        const lower = key.toLowerCase();
+        if (!byLowerKey.has(lower))
+            byLowerKey.set(lower, value);
+    }
     // Find ad click ID
     let utm_id = null;
     let utm_id_from = null;
+    // Iterating adClickIds rather than the URL's parameters is deliberate: it is
+    // what keeps priority OUR order instead of whatever order the network wrote
+    // them in. gclid must still win over fbclid when both are present.
     for (const param of adClickIds) {
-        const value = params.get(param);
+        const value = byLowerKey.get(param.toLowerCase());
         if (value) {
             utm_id = value;
+            // The canonical spelling, not the one seen in the URL: the seeded
+            // attribution rules compare utm_id_from with an exact equality, so
+            // reporting 'sccid' would attribute the click to nothing.
             utm_id_from = param;
             break; // Use first match
         }
@@ -921,7 +962,7 @@ class SessionState {
         }
     }
     // === Goal Tracking ===
-    addGoal(name, value, properties) {
+    addGoal(name, goalType, value, properties) {
         // Check MAX_ACTIONS limit
         if (this.actions.length >= MAX_ACTIONS) {
             console.warn(`[SessionState] MAX_ACTIONS (${MAX_ACTIONS}) reached, goal not added`);
@@ -934,6 +975,7 @@ class SessionState {
         const goal = {
             type: 'goal',
             name,
+            goal_type: goalType,
             path: currentPage?.path || '/',
             page_number: currentPage?.page_number || 1,
             timestamp: Date.now(),
@@ -2276,6 +2318,19 @@ class NotifuseAnalyticsSDK {
             ...DEFAULT_CONFIG,
             ...userConfig,
         };
+        // Fold extraAdClickIds into the effective list, so everything downstream
+        // keeps reading a single config.adClickIds. Applied AFTER the merge, so it
+        // extends whichever list won — the defaults, or a caller's replacement.
+        const extra = this.config.extraAdClickIds;
+        if (extra && extra.length > 0) {
+            const effective = [...this.config.adClickIds];
+            for (const id of extra) {
+                if (!effective.some((known) => known.toLowerCase() === id.toLowerCase())) {
+                    effective.push(id);
+                }
+            }
+            this.config.adClickIds = effective;
+        }
         // Validate and normalize heartbeat tiers
         this.config.heartbeatTiers = this.validateTiers(this.config.heartbeatTiers);
         // Validate heartbeat max duration
@@ -2899,13 +2954,18 @@ class NotifuseAnalyticsSDK {
      */
     async trackGoal(data) {
         await this.ensureInitialized();
+        // Checked here, not before ensureInitialized: a call made before init should
+        // still say the SDK is not configured, which is the more useful complaint.
+        if (!data || !VALID_GOAL_TYPES.includes(data.type)) {
+            throw new Error(`trackGoal requires a type, one of: ${VALID_GOAL_TYPES.join(', ')}`);
+        }
         if (!this.sessionState)
             return;
         // Rotate first if the window lapsed, so the goal lands on the live session
         // rather than one the server will reject.
         await this.ensureFreshSession();
         // Add goal to SessionState
-        this.sessionState.addGoal(data.action, data.value, data.properties);
+        this.sessionState.addGoal(data.action, data.type, data.value, data.properties);
         // Cancel any pending debounced send
         if (this.sendDebounceTimeout) {
             clearTimeout(this.sendDebounceTimeout);
@@ -3141,6 +3201,7 @@ class NotifuseAnalyticsSDK {
  * // Track goal
  * await NotifuseAnalytics.trackGoal({
  *   action: 'purchase',
+ *   type: 'purchase',
  *   value: 99.99,
  *   currency: 'USD',
  * });

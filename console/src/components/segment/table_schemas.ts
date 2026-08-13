@@ -345,11 +345,19 @@ export const ContactTimelineTableSchema: TableSchema = {
       description: 'Type of entity that changed',
       type: 'string',
       shown: true,
+      // Every entity_type a trigger or the web analytics projection writes into
+      // contact_timeline. Kept in step with the writers, not with what the UI
+      // happens to render — a missing value here is a filter nobody can build.
       options: [
         { value: 'contact', label: 'Contact' },
         { value: 'contact_list', label: 'Contact List' },
+        { value: 'contact_segment', label: 'Segment' },
         { value: 'message_history', label: 'Message History' },
-        { value: 'inbound_webhook_event', label: 'Inbound Webhook Event' }
+        { value: 'inbound_webhook_event', label: 'Inbound Webhook Event' },
+        { value: 'custom_event', label: 'Custom Event' },
+        { value: 'automation', label: 'Automation' },
+        { value: 'web_session', label: 'Web Visit' },
+        { value: 'web_page', label: 'Page View' }
       ]
     },
     entity_id: {
@@ -444,7 +452,216 @@ export const CustomEventsGoalsTableSchema: TableSchema = {
 }
 
 // Export all schemas as a map
+/**
+ * The `changes` keys of the web navigation timeline rows.
+ *
+ * These are NOT columns. A contact_timeline filter compiles to
+ * `ct.changes->'<field>'->>'new'`, so the field list has to be the keys the web
+ * analytics projection writes into `changes` — not the table's own columns,
+ * which is why the Activity condition cannot reuse ContactTimelineTableSchema
+ * for its filters. Keep each list in step with
+ * internal/repository/web_analytics_timeline_projection.go.
+ *
+ * Boolean keys (is_landing, is_exit, is_direct) are deliberately absent. The
+ * filter UI has no boolean renderer and never reads a field's `options`, so they
+ * would render as free text matching only the literals 'true'/'false' — and
+ * each is already expressible as a string: entry and exit pages through the
+ * visit's landing_path / exit_path, a direct visit through channel.
+ */
+
+export const WebPageviewChangesSchema: TableSchema = {
+  name: 'web_pageview_changes',
+  title: 'Page view',
+  description: 'A page an identified visitor viewed',
+  icon: faMousePointer,
+  fields: {
+    path: {
+      name: 'path',
+      title: 'Path',
+      description: 'Path of the page viewed, without the domain',
+      type: 'string',
+      shown: true
+    },
+    duration_ms: {
+      name: 'duration_ms',
+      title: 'Time on page (ms)',
+      description: 'Engaged time on the page, in milliseconds',
+      type: 'number',
+      shown: true
+    },
+    max_scroll: {
+      name: 'max_scroll',
+      title: 'Scroll depth (%)',
+      description: 'Furthest scroll position reached, as a percentage',
+      type: 'number',
+      shown: true
+    },
+    page_number: {
+      name: 'page_number',
+      title: 'Page number in visit',
+      description: 'Position of the page within the visit, starting at 1',
+      type: 'number',
+      shown: true
+    },
+    entry_type: {
+      name: 'entry_type',
+      title: 'Entry type',
+      description: 'How the visitor arrived on the page',
+      type: 'string',
+      shown: true
+    },
+    session_id: {
+      name: 'session_id',
+      title: 'Visit ID',
+      description: 'Identifier of the visit the page belongs to',
+      type: 'string',
+      shown: true
+    }
+  }
+}
+
+export const WebSessionChangesSchema: TableSchema = {
+  name: 'web_session_changes',
+  title: 'Web visit',
+  description: 'A visit by an identified visitor',
+  icon: faMousePointer,
+  fields: {
+    landing_path: {
+      name: 'landing_path',
+      title: 'Entry page',
+      description: 'Path of the first page of the visit',
+      type: 'string',
+      shown: true
+    },
+    exit_path: {
+      name: 'exit_path',
+      title: 'Exit page',
+      description: 'Path of the last page of the visit',
+      type: 'string',
+      shown: true
+    },
+    pageview_count: {
+      name: 'pageview_count',
+      title: 'Pages viewed',
+      description: 'Number of pages viewed during the visit',
+      type: 'number',
+      shown: true
+    },
+    duration_ms: {
+      name: 'duration_ms',
+      title: 'Visit duration (ms)',
+      description: 'Engaged time across the whole visit, in milliseconds',
+      type: 'number',
+      shown: true
+    },
+    max_scroll: {
+      name: 'max_scroll',
+      title: 'Scroll depth (%)',
+      description: 'Deepest scroll reached on any page of the visit',
+      type: 'number',
+      shown: true
+    },
+    goal_count: {
+      name: 'goal_count',
+      title: 'Goals reached',
+      description: 'Number of goals fired during the visit',
+      type: 'number',
+      shown: true
+    },
+    goal_value: {
+      name: 'goal_value',
+      title: 'Goal value',
+      description: 'Total value of the goals fired during the visit',
+      type: 'number',
+      shown: true
+    },
+    referrer_domain: {
+      name: 'referrer_domain',
+      title: 'Referrer domain',
+      description: 'Domain the visitor arrived from',
+      type: 'string',
+      shown: true
+    },
+    utm_source: {
+      name: 'utm_source',
+      title: 'UTM source',
+      description: 'utm_source of the visit',
+      type: 'string',
+      shown: true
+    },
+    utm_medium: {
+      name: 'utm_medium',
+      title: 'UTM medium',
+      description: 'utm_medium of the visit',
+      type: 'string',
+      shown: true
+    },
+    utm_campaign: {
+      name: 'utm_campaign',
+      title: 'UTM campaign',
+      description: 'utm_campaign of the visit',
+      type: 'string',
+      shown: true
+    },
+    channel: {
+      name: 'channel',
+      title: 'Channel',
+      description: 'Acquisition channel resolved from the attribution rules',
+      type: 'string',
+      shown: true
+    },
+    channel_group: {
+      name: 'channel_group',
+      title: 'Channel group',
+      description: 'Group the acquisition channel belongs to',
+      type: 'string',
+      shown: true
+    },
+    device: {
+      name: 'device',
+      title: 'Device',
+      description: 'Device category of the visit',
+      type: 'string',
+      shown: true
+    },
+    browser: {
+      name: 'browser',
+      title: 'Browser',
+      description: 'Browser used for the visit',
+      type: 'string',
+      shown: true
+    },
+    os: {
+      name: 'os',
+      title: 'Operating system',
+      description: 'Operating system used for the visit',
+      type: 'string',
+      shown: true
+    },
+    country: {
+      name: 'country',
+      title: 'Country',
+      description: 'Country the visit came from',
+      type: 'string',
+      shown: true
+    }
+  }
+}
+
+/**
+ * The filter schema for an Activity condition, or undefined when the kind has
+ * none. Only the web kinds are supported: their `changes` payload is written by
+ * the projection and therefore known, whereas the other kinds come from
+ * database triggers with a different shape per kind.
+ */
+export const timelineChangesSchema = (kind?: string): TableSchema | undefined => {
+  if (kind === 'web.pageview') return WebPageviewChangesSchema
+  if (kind === 'web.session') return WebSessionChangesSchema
+  return undefined
+}
+
 export const TableSchemas: { [key: string]: TableSchema } = {
+
   contacts: ContactsTableSchema,
   contact_lists: ContactListsTableSchema,
   contact_timeline: ContactTimelineTableSchema,

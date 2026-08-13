@@ -303,7 +303,7 @@ func TestEmailService_TestEmailProvider(t *testing.T) {
 			).Return(nil)
 
 		// Call method under test
-		err := emailService.TestEmailProvider(ctx, workspaceID, provider, toEmail)
+		err := emailService.TestEmailProvider(ctx, workspaceID, "", provider, toEmail)
 
 		// Assertions
 		require.NoError(t, err)
@@ -330,7 +330,7 @@ func TestEmailService_TestEmailProvider(t *testing.T) {
 			Return(ctx, nil, nil, assert.AnError)
 
 		// Call method under test
-		err := emailService.TestEmailProvider(ctx, workspaceID, provider, toEmail)
+		err := emailService.TestEmailProvider(ctx, workspaceID, "", provider, toEmail)
 
 		// Assertions
 		require.Error(t, err)
@@ -353,7 +353,7 @@ func TestEmailService_TestEmailProvider(t *testing.T) {
 			Return(ctx, &domain.User{ID: "user-123"}, nil, nil)
 
 		// Call method under test
-		err := emailService.TestEmailProvider(ctx, workspaceID, provider, toEmail)
+		err := emailService.TestEmailProvider(ctx, workspaceID, "", provider, toEmail)
 
 		// Assertions
 		require.Error(t, err)
@@ -387,7 +387,7 @@ func TestEmailService_TestEmailProvider(t *testing.T) {
 			).Return(assert.AnError)
 
 		// Call method under test
-		err := emailService.TestEmailProvider(ctx, workspaceID, provider, toEmail)
+		err := emailService.TestEmailProvider(ctx, workspaceID, "", provider, toEmail)
 
 		// Assertions
 		require.Error(t, err)
@@ -2015,8 +2015,9 @@ func TestEmailService_SendEmailForTemplate_WebIdentity(t *testing.T) {
 
 	t.Run("Mints the recipient's token when web analytics runs on declared domains", func(t *testing.T) {
 		tracking := sendForTemplateCapturingTracking(t, &domain.WebAnalyticsSettings{
-			Enabled:        true,
-			AllowedDomains: []string{"shop.example.com", "*.blog.example.com"},
+			Enabled:                true,
+			IdentifyFromEmailLinks: true,
+			AllowedDomains:         []string{"shop.example.com", "*.blog.example.com"},
 		}, contactEmail, secretKey)
 
 		require.NotEmpty(t, tracking.IdentifyToken)
@@ -2037,7 +2038,22 @@ func TestEmailService_SendEmailForTemplate_WebIdentity(t *testing.T) {
 
 	t.Run("Mints nothing when web analytics is configured but disabled", func(t *testing.T) {
 		tracking := sendForTemplateCapturingTracking(t, &domain.WebAnalyticsSettings{
-			Enabled:        false,
+			Enabled:                false,
+			IdentifyFromEmailLinks: true,
+			AllowedDomains:         []string{"shop.example.com"},
+		}, contactEmail, secretKey)
+
+		assert.Empty(t, tracking.IdentifyToken)
+		assert.Empty(t, tracking.IdentifyAllowedHosts)
+	})
+
+	t.Run("Mints nothing until the workspace asks for email-link identification", func(t *testing.T) {
+		// The gate that makes this path the workspace's decision rather than
+		// ours. It was enforced on the broadcast sender alone for a while, which
+		// left transactional and automation sends identifying every recipient
+		// regardless — so it is worth a case on each path, not just one.
+		tracking := sendForTemplateCapturingTracking(t, &domain.WebAnalyticsSettings{
+			Enabled:        true,
 			AllowedDomains: []string{"shop.example.com"},
 		}, contactEmail, secretKey)
 
@@ -2061,8 +2077,9 @@ func TestEmailService_SendEmailForTemplate_WebIdentity(t *testing.T) {
 
 	t.Run("Each recipient gets their own token", func(t *testing.T) {
 		webAnalytics := &domain.WebAnalyticsSettings{
-			Enabled:        true,
-			AllowedDomains: []string{"shop.example.com"},
+			Enabled:                true,
+			IdentifyFromEmailLinks: true,
+			AllowedDomains:         []string{"shop.example.com"},
 		}
 
 		aliceTracking := sendForTemplateCapturingTracking(t, webAnalytics, "alice@example.com", secretKey)
@@ -2085,8 +2102,9 @@ func TestEmailService_SendEmailForTemplate_WebIdentity(t *testing.T) {
 		// its attribution rather than the email: sendForTemplateCapturingTracking
 		// asserts the send itself succeeded.
 		tracking := sendForTemplateCapturingTracking(t, &domain.WebAnalyticsSettings{
-			Enabled:        true,
-			AllowedDomains: []string{"shop.example.com"},
+			Enabled:                true,
+			IdentifyFromEmailLinks: true,
+			AllowedDomains:         []string{"shop.example.com"},
 		}, contactEmail, "")
 
 		assert.Empty(t, tracking.IdentifyToken)
@@ -2106,8 +2124,9 @@ func TestEmailService_SendEmailForTemplate_WebIdentityAdditionalRecipients(t *te
 
 	webAnalytics := func() *domain.WebAnalyticsSettings {
 		return &domain.WebAnalyticsSettings{
-			Enabled:        true,
-			AllowedDomains: []string{"shop.example.com"},
+			Enabled:                true,
+			IdentifyFromEmailLinks: true,
+			AllowedDomains:         []string{"shop.example.com"},
 		}
 	}
 
@@ -2174,8 +2193,9 @@ func TestEmailService_SendEmailForTemplate_WebIdentityTrackingMode(t *testing.T)
 
 	webAnalytics := func() *domain.WebAnalyticsSettings {
 		return &domain.WebAnalyticsSettings{
-			Enabled:        true,
-			AllowedDomains: []string{"shop.example.com"},
+			Enabled:                true,
+			IdentifyFromEmailLinks: true,
+			AllowedDomains:         []string{"shop.example.com"},
 		}
 	}
 
@@ -2268,8 +2288,9 @@ func TestSanitizeClickedURL_StripsWhatTrackLinksWrites(t *testing.T) {
 	const linkHTML = `<a href="https://shop.example.com/product?utm_source=news">Buy now</a>`
 
 	webAnalytics := &domain.WebAnalyticsSettings{
-		Enabled:        true,
-		AllowedDomains: []string{"shop.example.com"},
+		Enabled:                true,
+		IdentifyFromEmailLinks: true,
+		AllowedDomains:         []string{"shop.example.com"},
 	}
 
 	// destinationFor sends to one recipient and returns the URL that recipient's

@@ -345,7 +345,6 @@ func waBrowserIdentityWorkspace(t *testing.T, suite *testutil.IntegrationTestSui
 	workspace, err := suite.DataFactory.CreateWorkspace(func(w *domain.Workspace) {
 		w.Settings.WebAnalytics = &domain.WebAnalyticsSettings{
 			Enabled:              true,
-			ContactBridgeEnabled: true,
 			Filters:              domain.DefaultWebFilters(),
 		}
 	})

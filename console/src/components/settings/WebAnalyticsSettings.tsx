@@ -29,7 +29,7 @@ import { SettingsSectionHeader } from './SettingsSectionHeader'
 const DEFAULT_SETTINGS: WebAnalyticsSettingsValues = {
   enabled: false,
   allowed_domains: [],
-  contact_bridge_enabled: false,
+  identify_from_email_links: false,
   bounce_threshold_seconds: 10,
   geo_enabled: true,
   geo_store_city: true,
@@ -72,7 +72,7 @@ function toFormValues(stored?: WebAnalyticsSettingsValues): WebAnalyticsFormValu
   return {
     enabled: settings.enabled,
     allowed_domains: settings.allowed_domains ?? [],
-    contact_bridge_enabled: settings.contact_bridge_enabled ?? false,
+    identify_from_email_links: settings.identify_from_email_links ?? false,
     bounce_threshold_seconds: settings.bounce_threshold_seconds,
     geo_enabled: settings.geo_enabled,
     geo_store_city: settings.geo_store_city,
@@ -97,7 +97,7 @@ interface WebAnalyticsFormValues {
   enabled: boolean
   allowed_domains?: string[]
   bounce_threshold_seconds?: number
-  contact_bridge_enabled: boolean
+  identify_from_email_links: boolean
   geo_enabled: boolean
   geo_store_city: boolean
   geo_store_region: boolean
@@ -311,13 +311,13 @@ export function WebAnalyticsSettings({
 
         <Divider className="!my-8" />
 
-        <div className="text-xl font-medium mb-8">{t`Contact timeline`}</div>
+        <div className="text-xl font-medium mb-8">{t`Contact identification`}</div>
 
         <Form.Item
-          name="contact_bridge_enabled"
-          label={t`Record web goals on the contact timeline`}
+          name="identify_from_email_links"
+          label={t`Identify recipients who click a tracked email link`}
           valuePropName="checked"
-          tooltip={t`Only goals from visitors identified with identify() are recorded, and only when the address already belongs to a contact. Recorded goals can trigger automations and change segment membership. Obtaining consent to store web activity against a contact is your responsibility.`}
+          tooltip={t`Adds a signed identity to the links of tracked emails, so a recipient who clicks one is recognised on landing without any code on your site. Their visit is then tied to their contact record — timeline entries, goals and automation enrolments. Unlike identify(), which your own server calls, this one is minted by Notifuse for every recipient of every tracked send, which is why it is off by default.`}
         >
           <Switch />
         </Form.Item>
@@ -408,7 +408,7 @@ export function WebAnalyticsSettings({
       </div>
       <CodeSnippet code={identifySnippet} language="javascript" />
       <div className="text-gray-500">
-        {t`The address must already belong to a contact: identifying someone who is not one records nothing, by design. Visitors arriving from a tracked email link are identified automatically, with no code.`}
+        {t`An address that is not a contact yet becomes one, carrying the country, language and timezone the visit reported; an existing contact is never modified. Visitors arriving from a tracked email link are identified automatically, with no code.`}
       </div>
 
       {/* Last child on purpose — see SettingsSaveBar for why. */}

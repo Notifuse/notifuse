@@ -43,7 +43,7 @@ Notifuse is a modern, self-hosted emailing platform that allows you to send news
 Privacy-first, cookieless web analytics built in — the [Staminads](https://github.com/staminads) feature set merged into Notifuse, running entirely on PostgreSQL (no ClickHouse, no extra services):
 
 - **Engaged-time sessions**: sessions measure real visible/focused time (TimeScore), not wall-clock guesses; bounce rate is engagement-based
-- **Channel attribution**: 39 default rules classify traffic (paid click-ids like gclid/fbclid, organic search, social, email) — fully editable per workspace, with one-click backfill of historical data when rules change
+- **Channel attribution**: 40 default rules classify traffic (paid click-ids like gclid/fbclid, organic search, social, email) — fully editable per workspace, with one-click backfill of historical data when rules change
 - **Goals & custom dimensions**: conversion tracking with values and properties, plus 10 custom dimension slots (`custom_1..custom_10`)
 - **Cookieless & GDPR-friendly**: no cookies, no visitor fingerprinting, IPs used only for optional geo lookup and never stored
 - **Tiny SDK**: ~13 KB script served by your own Notifuse instance (`/na.js`); user agents are parsed server-side

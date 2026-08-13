@@ -134,7 +134,7 @@ func (h *EmailHandler) handleTestEmailProvider(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	err := h.emailService.TestEmailProvider(r.Context(), req.WorkspaceID, req.Provider, req.To)
+	err := h.emailService.TestEmailProvider(r.Context(), req.WorkspaceID, req.IntegrationID, req.Provider, req.To)
 	resp := domain.TestEmailProviderResponse{Success: err == nil}
 	if err != nil {
 		resp.Error = err.Error()

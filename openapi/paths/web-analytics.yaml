@@ -124,14 +124,10 @@
       the configuration.
 
 
-      Switching settings.contact_bridge_enabled from off to on additionally
-      requires the contacts write permission, because that is the one field here
-      that stops shaping reporting and starts writing to contacts: it turns
-      verified web goals into custom events, and so into contact timeline
-      entries, segment recomputation and automation enrolments. Only the
-      transition is gated, so a member with web_analytics write but not contacts
-      write can still edit every other setting on a workspace where the bridge
-      is already on, and can still turn it off.
+      Writing an identified visitor's goals and navigation to their contact
+      timeline is not configured here and has no setting: calling identify()
+      with an HMAC is the opt-in, because minting that credential requires the
+      workspace secret.
     operationId: setWebAnalyticsSettings
     tags: [Web Analytics]
     security:
@@ -155,10 +151,8 @@
         description: Validation failed
       '403':
         description: >-
-          Either of two distinct permission failures, both returned as a 403
-          with the missing resource named in the error message: the caller lacks
-          web_analytics write, or the request flips contact_bridge_enabled from
-          off to on and the caller lacks contacts write.
+          The caller lacks web_analytics write, returned with the missing
+          resource named in the error message.
 
 /api/webAnalytics.backfillStart:
   post:

@@ -21,7 +21,20 @@ interface NotifuseAnalyticsConfig {
     debug?: boolean;
     sessionTimeout?: number;
     heartbeatInterval?: number;
+    /**
+     * REPLACES the recognised ad click ids entirely. Use [] to disable click-id
+     * capture. To add one while keeping the defaults, use extraAdClickIds.
+     */
     adClickIds?: string[];
+    /**
+     * Ad click ids to recognise IN ADDITION to the defaults.
+     *
+     * Exists because adClickIds replaces, and DEFAULT_AD_CLICK_IDS is not
+     * reachable from a script tag — the config object is authored before the
+     * bundle loads — so adding one id would otherwise mean pasting a copy of the
+     * whole list, which then goes stale as ids are added here.
+     */
+    extraAdClickIds?: string[];
     trackSPA?: boolean;
     trackScroll?: boolean;
     trackClicks?: boolean;
@@ -37,7 +50,9 @@ interface NotifuseAnalyticsConfig {
     /** Cross-domain URL parameter name (default: '_nf') */
     crossDomainParam?: string;
 }
-interface InternalConfig extends Required<Omit<NotifuseAnalyticsConfig, 'workspace_id' | 'endpoint' | 'heartbeatTiers' | 'crossDomains' | 'crossDomainExpiry' | 'crossDomainStripParams' | 'crossDomainParam'>> {
+interface InternalConfig extends Required<Omit<NotifuseAnalyticsConfig, 'workspace_id' | 'endpoint' | 'heartbeatTiers' | 'crossDomains' | 'crossDomainExpiry' | 'crossDomainStripParams' | 'crossDomainParam' | 'extraAdClickIds'>> {
+    /** Folded into adClickIds at init; nothing reads it afterwards. */
+    extraAdClickIds?: string[];
     workspace_id: string;
     endpoint: string;
     heartbeatTiers: HeartbeatTier[];
@@ -93,9 +108,24 @@ interface UTMParams {
 interface CustomDimensions {
     [key: number]: string;
 }
+/**
+ * Goal types, mirroring domain.ValidGoalTypes on the server.
+ *
+ * Keep this list in step with ValidGoalTypes in internal/domain/custom_event.go:
+ * a type this SDK allows but the server does not recognise is silently recorded
+ * as 'other', which is a confusing way to find out.
+ */
+declare const VALID_GOAL_TYPES: readonly ["purchase", "subscription", "lead", "signup", "booking", "trial", "other"];
+type GoalType = (typeof VALID_GOAL_TYPES)[number];
 interface GoalData {
     id?: string;
     action: string;
+    /**
+     * What kind of conversion this is. Required: only your site knows whether a
+     * goal is a purchase or a lead, and an untyped goal cannot be used by the
+     * goal-based segment conditions. Use 'other' if none of the rest fit.
+     */
+    type: GoalType;
     value?: number;
     currency?: string;
     properties?: Record<string, string>;
@@ -156,6 +186,7 @@ interface SessionDebugInfo {
  * // Track goal
  * await NotifuseAnalytics.trackGoal({
  *   action: 'purchase',
+ *   type: 'purchase',
  *   value: 99.99,
  *   currency: 'USD',
  * });

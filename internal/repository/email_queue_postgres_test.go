@@ -848,3 +848,55 @@ func TestEmailQueueRepository_DeleteBySourceTx(t *testing.T) {
 		assert.Equal(t, int64(6), n)
 	})
 }
+
+func TestEmailQueueRepository_DeleteForEmail(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("deletes every queued email for the address, whatever its status", func(t *testing.T) {
+		db, mock, cleanup := testutil.SetupMockDB(t)
+		defer cleanup()
+
+		repo := NewEmailQueueRepositoryWithDB(db)
+
+		// Deliberately unfiltered by status, unlike DeleteBySource. A 'processing'
+		// row left behind is reclaimed by FetchPending's stuck-entry clause after
+		// two minutes and sent to the address we were asked to erase.
+		mock.ExpectExec(`DELETE FROM email_queue\s+WHERE contact_email = \$1`).
+			WithArgs("deleted@example.com").
+			WillReturnResult(sqlmock.NewResult(0, 3))
+
+		n, err := repo.DeleteForEmail(ctx, "workspace-123", "deleted@example.com")
+		require.NoError(t, err)
+		assert.Equal(t, int64(3), n)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("reports zero when the contact had nothing queued", func(t *testing.T) {
+		db, mock, cleanup := testutil.SetupMockDB(t)
+		defer cleanup()
+
+		repo := NewEmailQueueRepositoryWithDB(db)
+
+		mock.ExpectExec(`DELETE FROM email_queue`).
+			WithArgs("nobody@example.com").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+
+		n, err := repo.DeleteForEmail(ctx, "workspace-123", "nobody@example.com")
+		require.NoError(t, err)
+		assert.Equal(t, int64(0), n)
+	})
+
+	t.Run("wraps database error", func(t *testing.T) {
+		db, mock, cleanup := testutil.SetupMockDB(t)
+		defer cleanup()
+
+		repo := NewEmailQueueRepositoryWithDB(db)
+
+		mock.ExpectExec(`DELETE FROM email_queue`).
+			WillReturnError(errors.New("db down"))
+
+		_, err := repo.DeleteForEmail(ctx, "workspace-123", "deleted@example.com")
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to delete queue entries for contact")
+	})
+}

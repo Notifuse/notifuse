@@ -147,7 +147,9 @@ describe('Notifuse Analytics SDK - Global Config Pattern', () => {
 
       const { default: NotifuseAnalytics } = await import('./index');
 
-      await expect(NotifuseAnalytics.trackGoal({ action: 'test' })).rejects.toThrow(
+      await expect(
+        NotifuseAnalytics.trackGoal({ action: 'test', type: 'other' }),
+      ).rejects.toThrow(
         'Notifuse Analytics not configured'
       );
     });
@@ -194,7 +196,7 @@ describe('Notifuse Analytics SDK - Global Config Pattern', () => {
 
       const { default: NotifuseAnalytics } = await import('./index');
 
-      const result = NotifuseAnalytics.trackGoal({ action: 'test' });
+      const result = NotifuseAnalytics.trackGoal({ action: 'test', type: 'other' });
       expect(result).toBeInstanceOf(Promise);
     });
 

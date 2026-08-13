@@ -161,7 +161,7 @@ describe('SessionState', () => {
     });
 
     it('adds goal action to actions array after pageview', () => {
-      sessionState.addGoal('purchase', 99.99);
+      sessionState.addGoal('purchase', 'other', 99.99);
 
       const actions = sessionState.getActions();
       // actions[0] = pageview (checkout), actions[1] = goal
@@ -178,7 +178,7 @@ describe('SessionState', () => {
     });
 
     it('adds goal with optional properties', () => {
-      sessionState.addGoal('signup', undefined, { plan: 'premium' });
+      sessionState.addGoal('signup', 'other', undefined, { plan: 'premium' });
 
       // Goal is second action after pageview
       const goal = sessionState.getActions()[1] as GoalAction;
@@ -187,7 +187,7 @@ describe('SessionState', () => {
     });
 
     it('goal does not affect currentPage index', () => {
-      sessionState.addGoal('add_to_cart', 50);
+      sessionState.addGoal('add_to_cart', 'other', 50);
 
       // currentPage should still point to checkout
       expect(sessionState.getCurrentPage()?.path).toBe('/checkout');
@@ -197,9 +197,9 @@ describe('SessionState', () => {
     });
 
     it('multiple goals on same page have same page_number', () => {
-      sessionState.addGoal('view_product');
-      sessionState.addGoal('add_to_cart', 50);
-      sessionState.addGoal('begin_checkout');
+      sessionState.addGoal('view_product', 'other');
+      sessionState.addGoal('add_to_cart', 'other', 50);
+      sessionState.addGoal('begin_checkout', 'other');
 
       // actions = [pageview, goal, goal, goal]
       const goals = sessionState
@@ -258,7 +258,7 @@ describe('SessionState', () => {
 
     it('includes all actions in payload (pages added immediately)', () => {
       sessionState.addPageview('/home');
-      sessionState.addGoal('signup');
+      sessionState.addGoal('signup', 'other');
       sessionState.addPageview('/dashboard');
 
       const payload = sessionState.buildPayload(mockAttributes);
@@ -375,7 +375,7 @@ describe('SessionState', () => {
 
     it('persist saves state to sessionStorage', () => {
       sessionState.addPageview('/home');
-      sessionState.addGoal('test');
+      sessionState.addGoal('test', 'other');
 
       sessionState.persist();
 
@@ -391,7 +391,7 @@ describe('SessionState', () => {
     it('restore loads state from sessionStorage', () => {
       // Setup initial state
       sessionState.addPageview('/home');
-      sessionState.addGoal('signup');
+      sessionState.addGoal('signup', 'other');
       sessionState.persist();
 
       // Create new instance and restore
@@ -422,7 +422,7 @@ describe('SessionState', () => {
     it('restore validates session_id matches', () => {
       // Store state with actual data
       sessionState.addPageview('/home');
-      sessionState.addGoal('test_goal');
+      sessionState.addGoal('test_goal', 'other');
       sessionState.persist();
 
       // Create state for different session
@@ -446,7 +446,7 @@ describe('SessionState', () => {
 
       // Add actions up to 89% (899 actions, should not warn yet)
       for (let i = 0; i < 899; i++) {
-        sessionState.addGoal(`goal_${i}`);
+        sessionState.addGoal(`goal_${i}`, 'other');
       }
 
       // Should not warn at 89%
@@ -454,7 +454,7 @@ describe('SessionState', () => {
       consoleSpy.mockClear();
 
       // Add one more to reach exactly 90% threshold (900 actions)
-      sessionState.addGoal('goal_900');
+      sessionState.addGoal('goal_900', 'other');
 
       // Should warn now (900 >= 1000 * 0.9)
       expect(consoleSpy).toHaveBeenCalledWith(
@@ -469,13 +469,13 @@ describe('SessionState', () => {
 
       // Add MAX_ACTIONS goals
       for (let i = 0; i < MAX_ACTIONS; i++) {
-        sessionState.addGoal(`goal_${i}`);
+        sessionState.addGoal(`goal_${i}`, 'other');
       }
 
       expect(sessionState.getActions()).toHaveLength(MAX_ACTIONS);
 
       // Try to add one more - should return false
-      const result = sessionState.addGoal('over_limit');
+      const result = sessionState.addGoal('over_limit', 'other');
 
       expect(result).toBe(false);
       // Should still be MAX_ACTIONS (extra action rejected)
@@ -493,7 +493,7 @@ describe('SessionState', () => {
 
       // Fill up with goals
       for (let i = 0; i < MAX_ACTIONS; i++) {
-        sessionState.addGoal(`goal_${i}`);
+        sessionState.addGoal(`goal_${i}`, 'other');
       }
 
       // addPageview should NOT work when at limit (pageviews now count toward limit)
@@ -507,15 +507,15 @@ describe('SessionState', () => {
 
     it('addGoal returns true when under limit, false when at limit', () => {
       // Should return true when under limit
-      expect(sessionState.addGoal('goal_1')).toBe(true);
+      expect(sessionState.addGoal('goal_1', 'other')).toBe(true);
 
       // Fill to MAX_ACTIONS - 1
       for (let i = 1; i < MAX_ACTIONS; i++) {
-        sessionState.addGoal(`goal_${i}`);
+        sessionState.addGoal(`goal_${i}`, 'other');
       }
 
       // Should return false when at limit
-      expect(sessionState.addGoal('over_limit')).toBe(false);
+      expect(sessionState.addGoal('over_limit', 'other')).toBe(false);
     });
   });
 

@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
@@ -21,6 +22,11 @@ const workspaceSettingsCacheTTL = 60 * time.Second
 const (
 	webIdentifyEmailLimit = "wa_identify:email"
 	webIdentifyIPLimit    = "wa_identify:ip"
+	// webIdentifyCreateLimit bounds how fast one workspace's contact list can
+	// grow through /track. The per-email and per-IP limits above cannot: they
+	// bound how often ONE address beats, and a caller minting a fresh address per
+	// request never trips either.
+	webIdentifyCreateLimit = "wa_identify:create"
 )
 
 // WebAnalyticsGeoLookup abstracts pkg/geoip for tests.
@@ -268,14 +274,18 @@ func (s *WebAnalyticsService) Track(ctx context.Context, payload *domain.WebTrac
 		}
 	}
 
-	contactEmail := s.resolveContactIdentity(ctx, payload, resolved.SecretKey, meta.ClientIP)
+	contactEmail := s.resolveContactIdentity(ctx, payload, resolved.SecretKey, meta.ClientIP, webContactSeed{
+		Country:  geoResult.Country,
+		Language: payload.Attributes.Language,
+		Timezone: payload.Attributes.Timezone,
+	})
 
 	session, pages, goals, err := BuildWebRows(payload, settings, geoResult, receivedAt, contactEmail)
 	if err != nil {
 		return &ErrWebTrackInvalidPayload{Err: err}
 	}
 
-	s.buffer.Add(payload.WorkspaceID, payload.TabID, settings.ContactBridgeEnabled, session, pages, goals)
+	s.buffer.Add(payload.WorkspaceID, payload.TabID, session, pages, goals)
 	return nil
 }
 
@@ -312,19 +322,71 @@ func (s *WebAnalyticsService) webAnalyticsSettings(ctx context.Context, workspac
 	return resolved.Settings
 }
 
-// resolveContactIdentity verifies the beat's credential and then requires the
-// address to already be a contact.
+// Column widths of the contacts fields a beat may seed. Mirrored here because
+// the alternative is discovering them from a failed INSERT on a public endpoint.
+const (
+	// contacts.country VARCHAR(100). Language needs no width constant: the
+	// supported-language allowlist bounds it far inside its own column.
+	webContactCountryMaxLength = 100
+)
+
+// fits reports whether a seed value is present and short enough to store.
 //
-// The signature proves who the caller is, never that the address belongs to
-// anyone — so without this second gate a workspace's own signing key would let
-// it store the email of people who are not contacts, and erasure would be
-// unenforceable because a deleted contact's next beat would re-stamp it. Both
-// problems disappear by refusing to remember an address we do not already hold.
+// len() counts bytes and the columns count characters, so this is conservative
+// in the only direction that matters: it can reject a value that would have fit,
+// never accept one that would abort the INSERT.
+func fits(value string, max int) bool {
+	return value != "" && len(value) <= max
+}
+
+// webSupportedLanguage maps a browser language tag onto a code the product
+// actually supports, or "" when none matches.
 //
-// Every outcome is a silent drop of the IDENTITY only: a bad credential, an
-// unknown address or a database hiccup must never cost the visitor their
-// pageview.
-func (s *WebAnalyticsService) resolveContactIdentity(ctx context.Context, payload *domain.WebTrackPayload, secretKey, clientIP string) *string {
+// The full tag is tried first and the primary subtag only as a fallback,
+// because SupportedLanguages carries both forms for the languages that need
+// them — "pt" and "pt-BR", "zh" and "zh-TW". Cutting at the hyphen
+// unconditionally turned a Brazilian visitor into "pt", which no pt-BR template
+// translation will ever match. The allowlist also replaces a hand-rolled
+// "two or three lowercase letters" test that happily stored "xx".
+func webSupportedLanguage(tag string) string {
+	tag = strings.TrimSpace(tag)
+	if domain.IsValidLanguage(tag) {
+		return tag
+	}
+	if primary, _, found := strings.Cut(tag, "-"); found && domain.IsValidLanguage(primary) {
+		return primary
+	}
+	return ""
+}
+
+// webContactSeed is the context a beat can contribute to a contact it creates.
+// Only what the visitor's own browser and the geo lookup already told us —
+// nothing is inferred, and an unusable value is dropped rather than guessed.
+type webContactSeed struct {
+	Country  string
+	Language string
+	Timezone string
+}
+
+// resolveContactIdentity verifies the beat's credential and resolves it to a
+// contact, creating one when the address is not held yet.
+//
+// Creating is safe precisely because of what the credential is: an HMAC over the
+// workspace secret, or a token Notifuse itself minted. Only the customer's own
+// server can produce one, so an address arriving here has already been vouched
+// for by the same authority that an API contact.create call carries. What the
+// signature does NOT prove is that the visitor is that person, which is why the
+// credential is domain-separated from the notification-center HMAC and why the
+// created contact joins no list.
+//
+// The cost of this decision, stated where it is taken: erasure no longer holds
+// by construction. A deleted contact whose browser still holds the credential is
+// re-created by its next beat, and only the customer can stop that by no longer
+// calling identify() for the address.
+//
+// Every outcome is a silent drop of the IDENTITY only: a bad credential, a
+// throttle or a database hiccup must never cost the visitor their pageview.
+func (s *WebAnalyticsService) resolveContactIdentity(ctx context.Context, payload *domain.WebTrackPayload, secretKey, clientIP string, seed webContactSeed) *string {
 	email, ok := domain.ResolveWebIdentity(payload, secretKey, s.nowFn())
 	if !ok {
 		return nil
@@ -352,10 +414,80 @@ func (s *WebAnalyticsService) resolveContactIdentity(ctx context.Context, payloa
 	// and how long a deleted one keeps resolving. Shares the helper with the
 	// bridge so both treat a transient lookup failure the same way: costly for
 	// this beat, never remembered.
-	if !webContactExists(ctx, s.workspaceCache, s.contactRepo, "wa:contact:", payload.WorkspaceID, email) {
+	if webContactExists(ctx, s.workspaceCache, s.contactRepo, "wa:contact:", payload.WorkspaceID, email) {
+		return &email
+	}
+	if !s.createContact(ctx, payload.WorkspaceID, email, seed) {
 		return nil
 	}
 	return &email
+}
+
+// createContact adds the verified address, reporting whether it may now be used
+// as an identity. Returns false for every uncertain outcome, so a session is
+// only ever stamped with an address the database actually holds.
+func (s *WebAnalyticsService) createContact(ctx context.Context, workspaceID, email string, seed webContactSeed) bool {
+	// Keyed per workspace, not per address: the limits upstream bound how often
+	// ONE address beats, which a caller minting a fresh address per request never
+	// trips. This is the only thing standing between a leaked workspace secret and
+	// an unbounded contact list.
+	if s.rateLimiter != nil && !s.rateLimiter.Allow(webIdentifyCreateLimit, workspaceID) {
+		s.logger.WithField("workspace_id", workspaceID).
+			Warn("Web analytics identify: contact creation throttled, identity dropped for this beat")
+		return false
+	}
+
+	// Each seed field is dropped rather than truncated when it does not fit its
+	// column, and that matters more than it looks: these values come from a
+	// public endpoint, nothing upstream bounds them (WebTrackPayload.Validate
+	// bounds paths, goal names and dimensions, but not the browser's reported
+	// language), and an over-long value makes the INSERT fail. Because the
+	// contact is then never created, the same visitor's every subsequent beat
+	// retries and fails identically — a permanent, silent identity outage for
+	// that one address. A missing country is a far smaller loss than that.
+	contact := &domain.Contact{Email: email}
+	if fits(seed.Country, webContactCountryMaxLength) {
+		contact.Country = &domain.NullableString{String: seed.Country}
+	}
+	// navigator.language is a BCP-47 tag ("en-US"); everything that consumes
+	// contacts.language treats it as a bare ISO 639-1 code — Template
+	// translations are looked up by exact map key, and the console renders the
+	// field from a fixed language list. Storing the full tag would silently send
+	// the default template instead of the English one and show an empty
+	// language on the contact.
+	if language := webSupportedLanguage(seed.Language); language != "" {
+		contact.Language = &domain.NullableString{String: language}
+	}
+	// Nothing downstream validates a contact's timezone — Contact.Validate checks
+	// only the email — so this is the only gate, not a redundant one. It bounds
+	// the length for free, since every accepted name is far inside the column.
+	//
+	// The allowlist, not time.LoadLocation: that one accepts "Local", which is
+	// not a zone at all but the process's own, and would land on the contact as
+	// a name nothing else in the product recognises. It also reads zoneinfo off
+	// disk, where this is a slice scan.
+	if domain.IsValidTimezone(seed.Timezone) {
+		contact.Timezone = &domain.NullableString{String: seed.Timezone}
+	}
+	now := s.nowFn().UTC()
+	contact.CreatedAt = now
+	contact.UpdatedAt = now
+
+	if err := contact.Validate(); err != nil {
+		s.logger.WithField("workspace_id", workspaceID).WithField("error", err.Error()).
+			Warn("Web analytics identify: refusing to create an invalid contact")
+		return false
+	}
+
+	// The boolean is deliberately discarded: false means a concurrent beat won the
+	// race, and the address is held either way — which is all the caller asked.
+	if _, err := s.contactRepo.CreateContactIfAbsent(ctx, workspaceID, contact); err != nil {
+		s.logger.WithField("workspace_id", workspaceID).WithField("error", err.Error()).
+			Error("Web analytics identify: failed to create the contact")
+		return false
+	}
+	s.workspaceCache.Set("wa:contact:"+workspaceID+":"+email, true, webBridgeContactCacheTTL)
+	return true
 }
 
 // InvalidateWorkspaceCache drops the cached settings of one workspace (used

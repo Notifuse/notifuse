@@ -61,13 +61,25 @@ export const InputDimensionFilters = (props: {
               return (
                 <tr key={key}>
                   <td style={{ lineHeight: '32px' }}>
-                    {!fieldTypeRenderer && (
+                    {/* A filter naming a field this schema does not have. The
+                        schema can change under an existing filter — the Activity
+                        condition swaps it when the event kind changes — and every
+                        line below dereferences `field`, so without this the whole
+                        segment builder throws during render. Show it and let it
+                        be deleted. */}
+                    {!field && (
+                      <Alert
+                        type="error"
+                        title={t`${filter.field_name} does not apply to this event`}
+                      />
+                    )}
+                    {field && !fieldTypeRenderer && (
                       <Alert
                         type="error"
                         title={t`type ${filter.field_type} is not implemented`}
                       />
                     )}
-                    {fieldTypeRenderer && (
+                    {field && fieldTypeRenderer && (
                       <Space>
                         <Popover title={t`field: ${filter.field_name}`} content={field.description}>
                           <b>{props.customFieldLabels?.[filter.field_name] || field.title}</b>

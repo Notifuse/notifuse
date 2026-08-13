@@ -76,7 +76,7 @@ test.describe('Mobile Emulation', () => {
 
     await page.waitForTimeout(500);
 
-    await page.evaluate(() => NotifuseAnalytics.trackGoal({ action: 'scroll_check' }));
+    await page.evaluate(() => NotifuseAnalytics.trackGoal({ action: 'scroll_check', type: 'other' }));
     await page.waitForTimeout(500);
 
     // Find payload with the goal
@@ -155,7 +155,7 @@ test.describe('Mobile Emulation', () => {
     // Wait a bit more focused
     await page.waitForTimeout(500);
 
-    await page.evaluate(() => NotifuseAnalytics.trackGoal({ action: 'freeze_check' }));
+    await page.evaluate(() => NotifuseAnalytics.trackGoal({ action: 'freeze_check', type: 'other' }));
     await page.waitForTimeout(500);
 
     // SDK should have handled freeze/resume events
@@ -280,7 +280,7 @@ test.describe('Mobile Emulation', () => {
     });
     await page.waitForTimeout(200);
 
-    await page.evaluate(() => NotifuseAnalytics.trackGoal({ action: 'scroll_final' }));
+    await page.evaluate(() => NotifuseAnalytics.trackGoal({ action: 'scroll_final', type: 'other' }));
     await page.waitForTimeout(500);
 
     // Find payload with the goal

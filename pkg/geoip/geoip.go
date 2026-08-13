@@ -187,8 +187,12 @@ func (r *Resolver) store(ip string, result Result) {
 	r.cache[ip] = cacheEntry{result: result, expiresAt: time.Now().Add(cacheTTL)}
 }
 
-// RoundCoord truncates a coordinate to the given number of decimals (0-2),
-// the per-workspace privacy fuzzing knob (2 decimals ≈ 1km).
+// RoundCoord rounds a coordinate to the given number of decimals (0-2), the
+// per-workspace privacy fuzzing knob (2 decimals ≈ 1km).
+//
+// Rounds, it does not truncate — it uses math.Round, so 48.8566 at 1 decimal is
+// 48.9, not 48.8. Callers should pass
+// WebAnalyticsSettings.EffectiveGeoCoordsPrecision rather than the raw setting.
 func RoundCoord(v float64, precision int) float64 {
 	if precision < 0 {
 		precision = 0

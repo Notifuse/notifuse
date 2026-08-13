@@ -179,6 +179,17 @@ type EmailQueueRepository interface {
 
 	// DeleteBySourceTx is the transactional variant of DeleteBySource.
 	DeleteBySourceTx(ctx context.Context, tx *sql.Tx, sourceType EmailQueueSourceType, sourceID string) (int64, error)
+
+	// DeleteForEmail removes every queued email addressed to a contact, so that
+	// deleting the contact also stops mail already waiting to go out to them.
+	// Returns the number of rows deleted.
+	//
+	// Unlike DeleteBySource this does NOT spare 'processing' entries. There the
+	// exclusion is right — the row is mid-send and will resolve itself. Here it
+	// would not: a worker that dies mid-send leaves the row in 'processing', and
+	// FetchPending reclaims anything stuck there for more than two minutes, which
+	// would then send to the address we were asked to erase.
+	DeleteForEmail(ctx context.Context, workspaceID string, email string) (int64, error)
 }
 
 // getEmailQueueRetryBase returns the base retry interval for exponential backoff.

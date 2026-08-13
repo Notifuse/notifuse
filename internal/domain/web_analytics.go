@@ -314,6 +314,11 @@ type WebGoal struct {
 	Longitude *float64 `json:"longitude,omitempty"`
 
 	ContactEmail *string `json:"contact_email,omitempty"`
+
+	// GoalType is asserted by the site, not verified by Notifuse — the same page
+	// already chooses the goal's name and value. Read revenue reporting with that
+	// in mind.
+	GoalType string `json:"goal_type"`
 }
 
 // WebSessionAttributes is the session-level context the SDK sends with every
@@ -365,7 +370,10 @@ type WebTrackAction struct {
 	ExitedAt  int64 `json:"exited_at,omitempty"`
 
 	// Goal fields
-	Name       string            `json:"name,omitempty"`
+	Name string `json:"name,omitempty"`
+	// GoalType is the goal's own type, NOT the action discriminator above. It
+	// cannot be called `type`: that key already says "goal" vs "pageview".
+	GoalType   string            `json:"goal_type,omitempty"`
 	Timestamp  int64             `json:"timestamp,omitempty"`
 	Value      float64           `json:"value,omitempty"`
 	Properties map[string]string `json:"properties,omitempty"`
@@ -419,6 +427,24 @@ func (a *WebTrackAction) UnmarshalJSON(data []byte) error {
 }
 
 // Validate checks a single action.
+// normalizeWebGoalType maps whatever a page sent onto a type the rest of the
+// product understands, and never fails.
+//
+// The SDK requires a valid type and throws without one, so this only ever sees
+// input from a stale cached bundle or a hand-rolled client. Rejecting those would
+// mean silently losing their conversions — dropInvalidActions removes a failing
+// action without telling anyone — so an unrecognised value becomes "other" and
+// the conversion is still recorded, just less precisely.
+func normalizeWebGoalType(goalType string) string {
+	normalized := strings.ToLower(strings.TrimSpace(goalType))
+	for _, valid := range ValidGoalTypes {
+		if normalized == valid {
+			return normalized
+		}
+	}
+	return GoalTypeOther
+}
+
 func (a *WebTrackAction) Validate() error {
 	if len(a.Path) > WebTrackMaxPathLength {
 		return fmt.Errorf("action path exceeds %d characters", WebTrackMaxPathLength)
@@ -443,6 +469,7 @@ func (a *WebTrackAction) Validate() error {
 			return fmt.Errorf("pageview exited_at must be >= entered_at")
 		}
 	case WebActionTypeGoal:
+		a.GoalType = normalizeWebGoalType(a.GoalType)
 		if strings.TrimSpace(a.Name) == "" {
 			return fmt.Errorf("goal name is required")
 		}
@@ -809,16 +836,46 @@ type WebAnalyticsSettings struct {
 	FiltersVersion         string            `json:"filters_version,omitempty"`
 	CustomDimensionLabels  map[string]string `json:"custom_dimension_labels,omitempty"`
 
-	// ContactBridgeEnabled turns verified web goals into custom_events, and so
-	// into contact timeline entries, segment recomputation and automation
-	// enrolments. Off by default: enabling it is the admin's deliberate act, and
-	// consent for storing web activity against a contact is theirs to obtain.
-	ContactBridgeEnabled bool `json:"contact_bridge_enabled"`
+	// IdentifyFromEmailLinks lets Notifuse mint an identity credential into the
+	// links of tracked emails, so a recipient who clicks one is identified on
+	// landing without a line of customer code.
+	//
+	// Off by default, and separate from everything below, because it is the one
+	// identity path the CUSTOMER does not initiate. identify(email, hmac) is
+	// their own server's decision, made with their own secret; this one is ours,
+	// made on their behalf for every recipient of every tracked broadcast. Left
+	// ungated it would tie a contact to their browsing — timeline entries, goals,
+	// automation enrolments — for any workspace that merely turned web analytics
+	// on and left link tracking enabled.
+	IdentifyFromEmailLinks bool `json:"identify_from_email_links"`
+
+	// There is deliberately no opt-in flag for writing to contact timelines.
+	// Calling identify() with an HMAC IS the opt-in: minting that credential
+	// requires the workspace secret, so the customer's own server has already
+	// decided this visitor may be tied to a contact. A workspace that does not
+	// want web activity on its timelines does not call identify().
+	//
+	// Two flags used to gate this — contact_bridge_enabled for goals and
+	// record_contact_navigation for sessions and pageviews — and both were
+	// removed once identify() became the consent checkpoint. A workspace can
+	// still use web analytics anonymously for reporting alone; it simply never
+	// identifies anyone.
 
 	GeoEnabled         bool `json:"geo_enabled"`
 	GeoStoreCity       bool `json:"geo_store_city"`
 	GeoStoreRegion     bool `json:"geo_store_region"`
 	GeoCoordsPrecision int  `json:"geo_coordinates_precision"` // decimals kept on lat/lon, 0-2
+}
+
+// CanIdentifyFromEmailLinks reports whether Notifuse may mint an identity into
+// the links of a tracked email.
+//
+// One predicate for every send path — broadcast, transactional and automation —
+// because three copies of it is exactly how the gate came to be enforced on one
+// path and not the other two. Nil-receiver safe: a workspace with no web
+// analytics settings identifies nobody.
+func (s *WebAnalyticsSettings) CanIdentifyFromEmailLinks() bool {
+	return s != nil && s.Enabled && s.IdentifyFromEmailLinks && len(s.AllowedDomains) > 0
 }
 
 // BounceThresholdMs returns the bounce threshold in milliseconds, applying the
@@ -829,6 +886,48 @@ func (s *WebAnalyticsSettings) BounceThresholdMs() int {
 		return WebAnalyticsDefaultBounceThresholdSeconds * 1000
 	}
 	return s.BounceThresholdSeconds * 1000
+}
+
+// EffectiveGeoCoordsPrecision is how many decimals of latitude and longitude may
+// actually be stored, given the place-name toggles.
+//
+// A coordinate is a place name expressed differently, so it cannot be more
+// precise than the finest name the workspace agreed to store:
+//
+//	city stored  -> up to 2 decimals (~1 km)
+//	region only  -> up to 1 decimal  (~11 km)
+//	neither      -> 0 decimals       (~111 km, country-scale)
+//
+// A ceiling, never a floor: the configured value still wins when it is coarser.
+//
+// Clamped rather than gated. Dropping the coordinates entirely would empty the
+// Live map, and an empty Live map reads as "nobody is online" — a more confusing
+// failure than a coarse pin.
+//
+// Nil-receiver safe: absent settings mean everything on, matching applyWebGeo.
+func (s *WebAnalyticsSettings) EffectiveGeoCoordsPrecision() int {
+	const maxPrecision = 2
+	if s == nil {
+		return maxPrecision
+	}
+
+	configured := s.GeoCoordsPrecision
+	if configured < 0 {
+		configured = 0
+	}
+	if configured > maxPrecision {
+		configured = maxPrecision
+	}
+
+	ceiling := 0
+	switch {
+	case s.GeoStoreCity:
+		ceiling = 2
+	case s.GeoStoreRegion:
+		ceiling = 1
+	}
+
+	return min(configured, ceiling)
 }
 
 // Validate checks the settings. Nil-receiver safe (absent settings are valid).
@@ -991,6 +1090,13 @@ type WebAnalyticsRepository interface {
 	// address is gone, and deleting them would silently rewrite historical
 	// traffic totals.
 	AnonymizeContact(ctx context.Context, workspaceID string, email string) error
+
+	// ProjectContactNavigation refreshes the contact timeline from the given
+	// sessions' persisted rows: one entry per pageview, one per session, for
+	// identified visitors only. Idempotent — calling it again with the same
+	// sessions is how a visit's final state ends up recorded. Must run after the
+	// flush has committed and outside its transaction.
+	ProjectContactNavigation(ctx context.Context, workspaceID string, sessions []*WebSession) error
 
 	// EnsureMonthlyPartitions creates the monthly partitions covering the given
 	// months for all three tables (idempotent).

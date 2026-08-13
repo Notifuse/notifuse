@@ -317,6 +317,26 @@ func (r *segmentRepository) AddContactToSegment(ctx context.Context, workspaceID
 	return nil
 }
 
+// DeleteForEmail removes every segment membership a contact has.
+//
+// ORDERING: this fires contact_segment_changes_trigger, which is AFTER INSERT OR
+// DELETE and whose DELETE branch INSERTs a `segment.left` row into
+// contact_timeline carrying OLD.email. Running it after the timeline purge would
+// therefore put the deleted address straight back on the timeline. It has to run
+// before — see ContactService.DeleteContact.
+func (r *segmentRepository) DeleteForEmail(ctx context.Context, workspaceID string, email string) error {
+	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
+	if err != nil {
+		return fmt.Errorf("failed to get workspace connection: %w", err)
+	}
+
+	if _, err = workspaceDB.ExecContext(ctx,
+		`DELETE FROM contact_segments WHERE email = $1`, email); err != nil {
+		return fmt.Errorf("failed to delete contact segments: %w", err)
+	}
+	return nil
+}
+
 // RemoveContactFromSegment removes a contact from a segment
 func (r *segmentRepository) RemoveContactFromSegment(ctx context.Context, workspaceID string, email string, segmentID string) error {
 	// Get the workspace database connection

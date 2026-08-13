@@ -32,6 +32,12 @@ service.test
 
 integration.test
 
+# Diagnostic dumps written by integration tests when they fail (currently
+# segment_queue_concurrency_test.go). They are timestamped, so every run leaves
+# another one and they never stop accumulating in git status. Two had been
+# committed before this rule existed and were untracked with it.
+tests/integration/diagnostics/*.json
+
 # MaxMind GeoIP databases. The City database shipped with Notifuse is tracked
 # on purpose (see data/GeoLite2-City.mmdb); any other .mmdb is a local download
 # and has no business in the history — they weigh ~60 MB each.

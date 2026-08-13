@@ -579,11 +579,18 @@ func (qb *QueryBuilder) parseTimelineFilter(filter *domain.DimensionFilter, argI
 	// database triggers populate as {field: {old, new}} (an insert only sets "new"). Read
 	// the "new" value — the resulting value of the change. (There is no "metadata" column;
 	// referencing one produced SQL that failed at execution.)
-	// Values here are written by the database triggers from typed columns, so they are uniform
-	// per key and a cast cannot be surprised by one odd row. Guarding them would also narrow
-	// which stored date formats still match, changing existing segments — so they are cast
-	// directly, unlike caller-supplied event properties below.
-	return qb.parseJSONBKeyFilter(filter, argIndex, "ct.changes->%s->>'new'", castDirectly)
+	// Cast defensively, not directly. That was safe while every value in `changes`
+	// came from a database trigger reading a typed column — uniform per key, so a
+	// cast could not meet an odd row. The web analytics projection broke that
+	// premise: it is an application writer, and several of its keys (path,
+	// landing_path, exit_path, referrer_domain, utm_*) hold text a visitor
+	// supplied to a public endpoint. A numeric or date operator against one of
+	// them — refused by the console, reachable through the API — would otherwise
+	// compile to (…)::numeric over free text and abort the whole statement, and
+	// whether the kind predicate filters the offending row first is plan-
+	// dependent. A segment would work until the planner changed its mind, then
+	// fail every recompute with its count frozen.
+	return qb.parseJSONBKeyFilter(filter, argIndex, "ct.changes->%s->>'new'", castDefensively)
 }
 
 // parseEventPropertyFilter parses a dimension filter against the custom_events.properties payload.

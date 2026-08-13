@@ -69,7 +69,7 @@ test.describe('Network Handling', () => {
     await page.evaluate(() => window.SDK_READY);
 
     // Track a goal (uses fetch with keepalive)
-    await page.evaluate(() => NotifuseAnalytics.trackGoal({ action: 'fetch_test' }));
+    await page.evaluate(() => NotifuseAnalytics.trackGoal({ action: 'fetch_test', type: 'other' }));
     await page.waitForTimeout(500);
 
     // Should still have received the event via fetch
@@ -104,7 +104,7 @@ test.describe('Network Handling', () => {
 
     // Track a goal - SDK awaits response for goal reliability
     const startTime = Date.now();
-    await page.evaluate(() => NotifuseAnalytics.trackGoal({ action: 'slow_test' }));
+    await page.evaluate(() => NotifuseAnalytics.trackGoal({ action: 'slow_test', type: 'other' }));
     const elapsed = Date.now() - startTime;
 
     // Should complete within delay + buffer (goals are awaited for reliability)
@@ -186,8 +186,8 @@ test.describe('Network Handling', () => {
     await page.evaluate(() => window.SDK_READY);
 
     // Track multiple goals
-    await page.evaluate(() => NotifuseAnalytics.trackGoal({ action: 'goal1' }));
-    await page.evaluate(() => NotifuseAnalytics.trackGoal({ action: 'goal2' }));
+    await page.evaluate(() => NotifuseAnalytics.trackGoal({ action: 'goal1', type: 'other' }));
+    await page.evaluate(() => NotifuseAnalytics.trackGoal({ action: 'goal2', type: 'other' }));
     await page.waitForTimeout(500);
 
     // Latest payload should have actions
@@ -230,7 +230,7 @@ test.describe('Network Handling', () => {
     await page.waitForTimeout(1000);
 
     // Track another goal - server now working
-    await page.evaluate(() => NotifuseAnalytics.trackGoal({ action: 'after_failure' }));
+    await page.evaluate(() => NotifuseAnalytics.trackGoal({ action: 'after_failure', type: 'other' }));
     await page.waitForTimeout(500);
 
     // Should have received the second request
@@ -328,11 +328,11 @@ test.describe('Network Handling', () => {
     await page.evaluate(() => window.SDK_READY);
 
     // Track several goals
-    await page.evaluate(() => NotifuseAnalytics.trackGoal({ action: 'goal_a' }));
+    await page.evaluate(() => NotifuseAnalytics.trackGoal({ action: 'goal_a', type: 'other' }));
     await page.waitForTimeout(200);
-    await page.evaluate(() => NotifuseAnalytics.trackGoal({ action: 'goal_b' }));
+    await page.evaluate(() => NotifuseAnalytics.trackGoal({ action: 'goal_b', type: 'other' }));
     await page.waitForTimeout(200);
-    await page.evaluate(() => NotifuseAnalytics.trackGoal({ action: 'goal_c' }));
+    await page.evaluate(() => NotifuseAnalytics.trackGoal({ action: 'goal_c', type: 'other' }));
     await page.waitForTimeout(500);
 
     // Get the latest payload
@@ -439,7 +439,7 @@ test.describe('Network Handling', () => {
     expect(isOffline).toBe(true);
 
     // Track goal while offline - should be queued
-    await page.evaluate(() => NotifuseAnalytics.trackGoal({ action: 'offline_goal' }));
+    await page.evaluate(() => NotifuseAnalytics.trackGoal({ action: 'offline_goal', type: 'other' }));
     await page.waitForTimeout(500);
 
     // Verify nothing sent yet (SDK queued it locally)
@@ -489,7 +489,7 @@ test.describe('Network Handling', () => {
     });
 
     // Track goal - should not crash
-    await page.evaluate(() => NotifuseAnalytics.trackGoal({ action: 'error_test' }));
+    await page.evaluate(() => NotifuseAnalytics.trackGoal({ action: 'error_test', type: 'other' }));
     await page.waitForTimeout(500);
 
     // SDK should still function
@@ -512,7 +512,7 @@ test.describe('Network Handling', () => {
     });
 
     // Track goal - should not crash
-    await page.evaluate(() => NotifuseAnalytics.trackGoal({ action: 'rate_limit_test' }));
+    await page.evaluate(() => NotifuseAnalytics.trackGoal({ action: 'rate_limit_test', type: 'other' }));
     await page.waitForTimeout(500);
 
     // SDK should still function
@@ -541,7 +541,7 @@ test.describe('Network Handling', () => {
     });
 
     // Track a goal (this will timeout)
-    await page.evaluate(() => NotifuseAnalytics.trackGoal({ action: 'timeout_test' }));
+    await page.evaluate(() => NotifuseAnalytics.trackGoal({ action: 'timeout_test', type: 'other' }));
 
     // Wait past timeout (10s + buffer)
     await page.waitForTimeout(11000);
@@ -551,7 +551,7 @@ test.describe('Network Handling', () => {
     expect(sessionId).toBeTruthy();
 
     // Should be able to track more goals
-    await page.evaluate(() => NotifuseAnalytics.trackGoal({ action: 'after_timeout' }));
+    await page.evaluate(() => NotifuseAnalytics.trackGoal({ action: 'after_timeout', type: 'other' }));
     // No error thrown = success
   });
 });

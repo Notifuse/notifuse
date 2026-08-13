@@ -2537,3 +2537,69 @@ func TestMarkEmailsAsBounced_ExecError(t *testing.T) {
 	assert.Contains(t, err.Error(), "failed to mark emails as bounced")
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
+
+// TestCreateContactIfAbsent covers the write the web analytics identify() path
+// needs: an insert that is a no-op when the address is already a contact.
+//
+// UpsertContact cannot serve this. It merges every non-null field of the
+// incoming contact over the stored one, so a beat carrying a geo-derived country
+// would silently rewrite an address a human had corrected — and, because two
+// beats for one new address race, the loser would emit a contact.updated webhook
+// for a contact it did not change. DO NOTHING makes "create only if absent"
+// atomic rather than a check followed by a write.
+func TestCreateContactIfAbsent(t *testing.T) {
+	newRepo := func(t *testing.T) (*contactRepository, sqlmock.Sqlmock, func()) {
+		t.Helper()
+		db, mock, cleanup := setupMockDB(t)
+		ctrl := gomock.NewController(t)
+		t.Cleanup(ctrl.Finish)
+		workspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+		workspaceRepo.EXPECT().GetConnection(gomock.Any(), "workspace123").Return(db, nil).AnyTimes()
+		return NewContactRepository(workspaceRepo).(*contactRepository), mock, cleanup
+	}
+
+	t.Run("inserts an absent contact and reports it as created", func(t *testing.T) {
+		repo, mock, cleanup := newRepo(t)
+		defer cleanup()
+
+		mock.ExpectExec(`INSERT INTO contacts .+ ON CONFLICT \(email\) DO NOTHING`).
+			WillReturnResult(sqlmock.NewResult(0, 1))
+
+		created, err := repo.CreateContactIfAbsent(context.Background(), "workspace123", &domain.Contact{
+			Email:    "visitor@example.com",
+			Country:  &domain.NullableString{String: "FR"},
+			Language: &domain.NullableString{String: "fr-FR"},
+		})
+		require.NoError(t, err)
+		assert.True(t, created)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("reports not-created when the address already exists", func(t *testing.T) {
+		repo, mock, cleanup := newRepo(t)
+		defer cleanup()
+
+		// Zero rows affected is the whole signal: the ON CONFLICT arm ran, so the
+		// stored contact was left exactly as it was.
+		mock.ExpectExec(`INSERT INTO contacts .+ ON CONFLICT \(email\) DO NOTHING`).
+			WillReturnResult(sqlmock.NewResult(0, 0))
+
+		created, err := repo.CreateContactIfAbsent(context.Background(), "workspace123",
+			&domain.Contact{Email: "known@example.com"})
+		require.NoError(t, err)
+		assert.False(t, created)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("surfaces a database failure instead of claiming creation", func(t *testing.T) {
+		repo, mock, cleanup := newRepo(t)
+		defer cleanup()
+
+		mock.ExpectExec(`INSERT INTO contacts`).WillReturnError(errors.New("connection reset"))
+
+		created, err := repo.CreateContactIfAbsent(context.Background(), "workspace123",
+			&domain.Contact{Email: "visitor@example.com"})
+		require.Error(t, err)
+		assert.False(t, created)
+	})
+}

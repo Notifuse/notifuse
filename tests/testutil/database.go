@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/Notifuse/notifuse/config"
@@ -13,7 +14,7 @@ import (
 	"github.com/Notifuse/notifuse/internal/migrations"
 	"github.com/Notifuse/notifuse/pkg/crypto"
 	"github.com/Notifuse/notifuse/pkg/logger"
-	_ "github.com/lib/pq"
+	"github.com/lib/pq"
 )
 
 // DatabaseManager manages test database lifecycle
@@ -274,9 +275,15 @@ func (dm *DatabaseManager) CleanupTestData() error {
 
 // Cleanup drops the test database and closes connections
 func (dm *DatabaseManager) Cleanup() error {
+	// Read the workspaces this test created before the system database goes away —
+	// it is the only record of which workspace databases belong to this run.
+	workspaceIDs := dm.createdWorkspaceIDs()
+
 	if dm.db != nil {
 		dm.db.Close()
 	}
+
+	dm.dropWorkspaceDatabases(workspaceIDs)
 
 	if dm.systemDB != nil && dm.dbName != "" {
 		// Terminate all connections to the test database before dropping it
@@ -301,6 +308,57 @@ func (dm *DatabaseManager) Cleanup() error {
 
 	dm.isSetup = false
 	return nil
+}
+
+// createdWorkspaceIDs lists the workspaces recorded in this run's system database.
+// Errors are not fatal: a suite that never seeded (the setup-wizard tests) or one whose
+// connection is already gone simply has no workspace databases worth dropping.
+func (dm *DatabaseManager) createdWorkspaceIDs() []string {
+	if dm.db == nil || !dm.isSetup {
+		return nil
+	}
+
+	rows, err := dm.db.Query("SELECT id FROM workspaces")
+	if err != nil {
+		return nil
+	}
+	defer rows.Close()
+
+	var ids []string
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			continue
+		}
+		ids = append(ids, id)
+	}
+	if err := rows.Err(); err != nil {
+		log.Printf("Warning: workspace listing stopped early, some workspace databases may be left behind: %v", err)
+	}
+	return ids
+}
+
+// dropWorkspaceDatabases removes the per-workspace databases a test created. Without this
+// every run leaves them behind forever: they are named after the workspace, not after the
+// system database, so dropping the latter never reaches them. Left unchecked they accumulate
+// into thousands of databases and gigabytes in the shared test container, which slows every
+// later run and is what makes tight polling deadlines start missing at random.
+func (dm *DatabaseManager) dropWorkspaceDatabases(workspaceIDs []string) {
+	if dm.systemDB == nil {
+		return
+	}
+
+	for _, workspaceID := range workspaceIDs {
+		// Mirrors database.GetWorkspaceDSN: hyphens are not valid unquoted in an identifier.
+		dbName := fmt.Sprintf("%s_ws_%s", dm.config.Prefix, strings.ReplaceAll(workspaceID, "-", "_"))
+
+		// FORCE terminates any connection the app left open, so a worker that outlived the
+		// test cannot keep the database alive. Requires PostgreSQL 13+; the test container
+		// is pinned to 17.
+		if _, err := dm.systemDB.Exec(fmt.Sprintf("DROP DATABASE IF EXISTS %s WITH (FORCE)", pq.QuoteIdentifier(dbName))); err != nil {
+			log.Printf("Warning: failed to drop workspace database %s: %v", dbName, err)
+		}
+	}
 }
 
 // runMigrations runs the database migrations

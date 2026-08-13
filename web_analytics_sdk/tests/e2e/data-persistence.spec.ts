@@ -149,7 +149,7 @@ test.describe('Data Persistence', () => {
     await page.evaluate(() => window.SDK_READY);
 
     // Track a goal
-    await page.evaluate(() => NotifuseAnalytics.trackGoal({ action: 'persist_test' }));
+    await page.evaluate(() => NotifuseAnalytics.trackGoal({ action: 'persist_test', type: 'other' }));
     await page.waitForTimeout(500);
 
     // Check sessionStorage has session state
@@ -188,7 +188,7 @@ test.describe('Data Persistence', () => {
     await page.evaluate(() => window.SDK_READY);
 
     // Track a goal
-    await page.evaluate(() => NotifuseAnalytics.trackGoal({ action: 'before_nav' }));
+    await page.evaluate(() => NotifuseAnalytics.trackGoal({ action: 'before_nav', type: 'other' }));
     await page.waitForTimeout(500);
 
     // Navigate to SPA page and back
@@ -204,7 +204,7 @@ test.describe('Data Persistence', () => {
     await page.waitForTimeout(500);
 
     // Track another goal
-    await page.evaluate(() => NotifuseAnalytics.trackGoal({ action: 'after_nav' }));
+    await page.evaluate(() => NotifuseAnalytics.trackGoal({ action: 'after_nav', type: 'other' }));
     await page.waitForTimeout(500);
 
     // Find payload with after_nav goal

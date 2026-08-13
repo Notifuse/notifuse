@@ -85,7 +85,7 @@ func NewEmailService(
 }
 
 // TestEmailProvider sends a test email to verify the provider configuration works
-func (s *EmailService) TestEmailProvider(ctx context.Context, workspaceID string, provider domain.EmailProvider, to string) error {
+func (s *EmailService) TestEmailProvider(ctx context.Context, workspaceID string, integrationID string, provider domain.EmailProvider, to string) error {
 	ctx, span := tracing.StartServiceSpan(ctx, "EmailService", "TestEmailProvider")
 	defer tracing.EndSpan(span, nil)
 
@@ -94,6 +94,24 @@ func (s *EmailService) TestEmailProvider(ctx context.Context, workspaceID string
 	if err != nil {
 		tracing.MarkSpanError(ctx, err)
 		return err
+	}
+
+	// Fill in credentials the client could not send. Workspaces do not serve
+	// decrypted credentials, so a client testing a SAVED integration posts blanks
+	// — and a test that authenticates with an empty key fails against
+	// configuration that works, which accuses the wrong thing.
+	//
+	// Skipped when no integration is named: the provider is not saved yet, so the
+	// client still holds whatever it typed and there is nothing to fill from.
+	if integrationID != "" {
+		if workspace, wsErr := s.workspaceRepo.GetByID(ctx, workspaceID); wsErr == nil && workspace != nil {
+			if stored := workspace.GetIntegrationByID(integrationID); stored != nil {
+				hydrateEmailProviderCredentials(&provider, &stored.EmailProvider)
+			}
+		}
+		// A lookup failure is deliberately not fatal: the test then runs with
+		// whatever the client sent and fails on its own terms, which is a clearer
+		// report than an error about loading a workspace.
 	}
 
 	// Validate the provider has the required fields
@@ -433,7 +451,7 @@ func (s *EmailService) SendEmailForTemplate(ctx context.Context, request domain.
 
 	var identifyToken string
 	var identifyAllowedHosts []string
-	if wa := workspace.Settings.WebAnalytics; singleRecipient && !trackingOptedOut && wa != nil && wa.Enabled && len(wa.AllowedDomains) > 0 {
+	if wa := workspace.Settings.WebAnalytics; singleRecipient && !trackingOptedOut && wa.CanIdentifyFromEmailLinks() {
 		token, err := domain.BuildWebIdentifyToken(
 			request.Contact.Email,
 			workspace.Settings.SecretKey,

@@ -478,7 +478,7 @@ func (g *demoWebAnalyticsGenerator) buildGoals(
 
 	cartAt := session.CreatedAt.Add(time.Duration(float64(sessionDuration) * (0.4 + g.rng.Float64()*0.2)))
 	goals := []*domain.WebGoal{
-		g.newGoal(session, attribution, "add_to_cart", cartAt, price, goalPath, pageNumber, product.Name),
+		g.newGoal(session, attribution, "add_to_cart", domain.GoalTypeOther, cartAt, price, goalPath, pageNumber, product.Name),
 	}
 	if g.rng.Float64() >= demoGoalCheckoutRate {
 		return goals
@@ -486,14 +486,14 @@ func (g *demoWebAnalyticsGenerator) buildGoals(
 
 	checkoutAt := cartAt.Add(time.Duration(5+g.rng.Intn(10)) * time.Second)
 	goals = append(goals,
-		g.newGoal(session, attribution, "checkout_start", checkoutAt, 0, goalPath, pageNumber, product.Name))
+		g.newGoal(session, attribution, "checkout_start", domain.GoalTypeOther, checkoutAt, 0, goalPath, pageNumber, product.Name))
 	if g.rng.Float64() >= demoGoalPurchaseRate {
 		return goals
 	}
 
 	purchaseAt := checkoutAt.Add(time.Duration(30+g.rng.Intn(90)) * time.Second)
 	goals = append(goals,
-		g.newGoal(session, attribution, "purchase", purchaseAt, price, goalPath, pageNumber, product.Name))
+		g.newGoal(session, attribution, "purchase", domain.GoalTypePurchase, purchaseAt, price, goalPath, pageNumber, product.Name))
 	return goals
 }
 
@@ -501,6 +501,7 @@ func (g *demoWebAnalyticsGenerator) newGoal(
 	session *domain.WebSession,
 	attribution *webAttribution,
 	name string,
+	goalType string,
 	at time.Time,
 	value float64,
 	path string,
@@ -511,6 +512,7 @@ func (g *demoWebAnalyticsGenerator) newGoal(
 		SessionDate: session.SessionDate,
 		SessionID:   session.ID,
 		GoalName:    name,
+		GoalType:    goalType,
 		ClientTsMs:  at.UnixMilli(),
 		BeatSeq:     session.BeatSeq,
 		GoalAt:      at,

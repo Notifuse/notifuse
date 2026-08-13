@@ -7,9 +7,14 @@ import (
 )
 
 // DefaultWebFilters returns the out-of-the-box channel attribution rule set
-// (ported from Staminads' default-filters fixture: 39 rules). Each call
-// generates fresh rule ids so every workspace owns unique identifiers, and
+// (ported from Staminads' default-filters fixture, plus one: 40 rules). Each
+// call generates fresh rule ids so every workspace owns unique identifiers, and
 // stamps the computed version hash on every rule.
+//
+// Every rule matching on utm_id_from must correspond to an id the browser SDK
+// actually captures, and vice versa. The two lists live in different languages
+// and different CI workflows; web_analytics_clickid_contract_test.go is what
+// keeps them honest.
 func DefaultWebFilters() []WebFilter {
 	now := time.Now().UTC().Format(time.RFC3339)
 	order := 0
@@ -52,6 +57,7 @@ func DefaultWebFilters() []WebFilter {
 	filters := []WebFilter{
 		// Paid channels via ad click ids (priority 900-831).
 		channelFilter("Google Ads (Click ID)", clickID("^(gclid|gbraid|wbraid)$", WebFilterOpRegex), "search-paid", "google-ads", 900),
+		channelFilter("Google Display (Click ID)", clickID("dclid", WebFilterOpEquals), "display-banner", "google-ads", 895),
 		channelFilter("Facebook Ads (Click ID)", clickID("fbclid", WebFilterOpEquals), "social-paid", "facebook-ads", 890),
 		channelFilter("Microsoft Ads (Click ID)", clickID("msclkid", WebFilterOpEquals), "search-paid", "microsoft-ads", 880),
 		channelFilter("TikTok Ads (Click ID)", clickID("ttclid", WebFilterOpEquals), "social-paid", "tiktok-ads", 870),

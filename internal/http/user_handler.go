@@ -281,6 +281,12 @@ func (h *UserHandler) GetCurrentUser(w http.ResponseWriter, r *http.Request) {
 	// Add workspace count to span for context
 	span.AddAttributes(trace.Int64Attribute("workspaces.count", int64(len(workspaces))))
 
+	// Credentials are decrypted on load for the sending path; they must not
+	// leave the process. See domain.Workspace.Redact.
+	for _, ws := range workspaces {
+		ws.Redact()
+	}
+
 	// Combine user and workspaces in response
 	response := map[string]interface{}{
 		"user":       user,

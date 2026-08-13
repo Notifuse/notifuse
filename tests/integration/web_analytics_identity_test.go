@@ -76,7 +76,7 @@ func TestWebAnalyticsIdentityStickiness(t *testing.T) {
 			{SessionDate: sessionDate, SessionID: sessionID, GoalName: "signup", ClientTsMs: 4242,
 				BeatSeq: seq, GoalAt: now.Add(-2 * time.Minute), GoalValue: 5, ContactEmail: email},
 		}
-		buffer.Add(workspace.ID, 0, false, session, pages, goals)
+		buffer.Add(workspace.ID, 0, session, pages, goals)
 		buffer.FlushAll(ctx)
 	}
 
@@ -159,14 +159,19 @@ func TestWebAnalyticsIdentityStickiness(t *testing.T) {
 	})
 }
 
-// TestWebAnalyticsIdentityRequiresKnownContact covers the ingest gate: a
-// signature proves who the caller is, never that the address belongs to anyone.
+// TestWebAnalyticsIdentityCreatesUnknownContact covers the ingest path: a
+// verified address that is not held yet becomes a contact.
 //
-// Storing an unknown-but-signed address would mean Notifuse retains the email of
-// people who are not contacts, and would leave erasure unenforceable — a deleted
-// contact's next beat would simply re-stamp the address. Requiring an existing
-// contact makes both problems disappear rather than needing a suppression list.
-func TestWebAnalyticsIdentityRequiresKnownContact(t *testing.T) {
+// Only the customer's own server can mint the credential, so an address reaching
+// here carries the same authority as an API contact.create call. What the
+// signature does not carry is permission to REWRITE a stored profile, which is
+// why the create is insert-if-absent and why this test pins "an existing contact
+// is left exactly as it was".
+//
+// The cost is asserted too: erasure stops holding by construction. A deleted
+// contact whose browser still holds the credential comes back on its next beat.
+// That is the decision, and it is pinned here so it cannot change unnoticed.
+func TestWebAnalyticsIdentityCreatesUnknownContact(t *testing.T) {
 	testutil.SkipIfShort(t)
 	testutil.SetupTestEnvironment()
 	defer testutil.CleanupTestEnvironment()
@@ -221,15 +226,63 @@ func TestWebAnalyticsIdentityRequiresKnownContact(t *testing.T) {
 		return email
 	}
 
-	t.Run("a signed address that is not a contact is dropped", func(t *testing.T) {
+	t.Run("a signed address that is not a contact is created and identifies the session", func(t *testing.T) {
 		sessionID := waUUIDv7At(now.Add(-3*time.Minute), 0x91)
 		identifiedBeat(t, sessionID, "stranger@example.com", 1)
 
-		assert.Nil(t, stored(t, sessionID), "an unknown address must not be retained")
+		got := stored(t, sessionID)
+		require.NotNil(t, got, "a verified address must identify the session")
+		assert.Equal(t, "stranger@example.com", *got)
+
 		var contacts int
 		require.NoError(t, wsDB.QueryRow(
 			`SELECT count(*) FROM contacts WHERE email = $1`, "stranger@example.com").Scan(&contacts))
-		assert.Equal(t, 0, contacts, "ingest must never create a contact")
+		assert.Equal(t, 1, contacts, "the verified address becomes a contact")
+
+		// The contact.created timeline row is the trigger's work, not the
+		// service's — asserting it here is what proves the contact was created
+		// through the ordinary path and is visible in the drawer like any other.
+		var timelineRows int
+		require.NoError(t, wsDB.QueryRow(
+			`SELECT count(*) FROM contact_timeline WHERE email = $1 AND kind = 'contact.created'`,
+			"stranger@example.com").Scan(&timelineRows))
+		assert.Equal(t, 1, timelineRows)
+
+		// A second beat for the same address must not create a second contact,
+		// nor emit a contact.updated row: an identified visitor beats every
+		// 10-30s, so anything per-beat here would be a write amplification bug.
+		identifiedBeat(t, waUUIDv7At(now.Add(-2*time.Minute), 0x95), "stranger@example.com", 1)
+		require.NoError(t, wsDB.QueryRow(
+			`SELECT count(*) FROM contacts WHERE email = $1`, "stranger@example.com").Scan(&contacts))
+		assert.Equal(t, 1, contacts, "repeat beats must not re-create the contact")
+		var updatedRows int
+		require.NoError(t, wsDB.QueryRow(
+			`SELECT count(*) FROM contact_timeline WHERE email = $1 AND kind = 'contact.updated'`,
+			"stranger@example.com").Scan(&updatedRows))
+		assert.Equal(t, 0, updatedRows, "a beat must never look like a profile edit")
+	})
+
+	t.Run("an existing contact is never rewritten by a beat", func(t *testing.T) {
+		// The anti-injection rule. The credential authenticates the customer's
+		// server, not the visitor, so anyone who lifts one HMAC out of a page must
+		// not be able to overwrite that contact's stored profile by beating.
+		_, err := suite.DataFactory.CreateContact(workspace.ID, func(c *domain.Contact) {
+			c.Email = "curated@example.com"
+			c.FirstName = &domain.NullableString{String: "Curated"}
+			c.Country = &domain.NullableString{String: "JP"}
+		})
+		require.NoError(t, err)
+
+		identifiedBeat(t, waUUIDv7At(now.Add(-3*time.Minute), 0x96), "curated@example.com", 1)
+
+		var firstName, country *string
+		require.NoError(t, wsDB.QueryRow(
+			`SELECT first_name, country FROM contacts WHERE email = $1`,
+			"curated@example.com").Scan(&firstName, &country))
+		require.NotNil(t, firstName)
+		assert.Equal(t, "Curated", *firstName, "a beat must not touch a stored profile")
+		require.NotNil(t, country)
+		assert.Equal(t, "JP", *country)
 	})
 
 	t.Run("the same beat identifies once the contact exists", func(t *testing.T) {
@@ -278,6 +331,32 @@ func TestWebAnalyticsIdentityRequiresKnownContact(t *testing.T) {
 		require.NoError(t, wsDB.QueryRow(
 			`SELECT count(*) FROM web_sessions WHERE id = $1`, sessionID).Scan(&sessions))
 		assert.Equal(t, 1, sessions)
+	})
+
+	t.Run("a deleted contact is re-created by the next beat", func(t *testing.T) {
+		// The stated cost of creating on identify(). Erasure used to hold by
+		// construction — the ingest gate dropped any address that was not already
+		// a contact, so a deleted one stayed deleted. It no longer does: the
+		// visitor's browser still holds the credential, and their next beat brings
+		// the contact back. Only the customer can stop that, by no longer calling
+		// identify() for the address.
+		//
+		// Uses an address that has not beaten before the deletion, so the 60s
+		// existence cache is cold and the re-create is observed immediately rather
+		// than a minute later.
+		_, err := suite.DataFactory.CreateContact(workspace.ID, func(c *domain.Contact) {
+			c.Email = "returning@example.com"
+		})
+		require.NoError(t, err)
+		_, err = wsDB.Exec(`DELETE FROM contacts WHERE email = $1`, "returning@example.com")
+		require.NoError(t, err)
+
+		identifiedBeat(t, waUUIDv7At(now.Add(-3*time.Minute), 0x97), "returning@example.com", 1)
+
+		var contacts int
+		require.NoError(t, wsDB.QueryRow(
+			`SELECT count(*) FROM contacts WHERE email = $1`, "returning@example.com").Scan(&contacts))
+		assert.Equal(t, 1, contacts, "a still-valid credential re-creates the contact")
 	})
 
 	t.Run("a forged signature is ignored but the pageview still lands", func(t *testing.T) {

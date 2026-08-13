@@ -64,7 +64,8 @@ NotifuseAnalytics.debug();                    // Get debug info
 
 // Manual tracking (async)
 await NotifuseAnalytics.trackPageView(url?);  // Track SPA navigation
-await NotifuseAnalytics.trackGoal({ action, value?, currency?, properties? });
+await NotifuseAnalytics.trackGoal({ action, type, value?, currency?, properties? });
+// type is REQUIRED: 'purchase' | 'subscription' | 'lead' | 'signup' | 'booking' | 'trial' | 'other'
 
 // Custom Dimensions (async)
 await NotifuseAnalytics.setDimension(1, 'premium');    // Set custom_1 = 'premium'
@@ -91,7 +92,8 @@ interface NotifuseAnalyticsConfig {
   // Optional
   debug?: boolean // Default: false
   sessionTimeout?: number // Default: 30 * 60 * 1000 (30 min)
-  adClickIds?: string[] // Default: ['gclid', 'fbclid', 'msclkid', ...]
+  adClickIds?: string[] // REPLACES the recognised click ids. [] disables capture.
+  extraAdClickIds?: string[] // ADDS to the 13 built-in click ids. Use this to add one.
   trackSPA?: boolean // Default: true
   trackScroll?: boolean // Default: true
 }
@@ -111,7 +113,7 @@ declare global {
 | `screen_view` | Page load, SPA navigation               | path, referrer, UTM       |
 | `ping`        | Heartbeat (10s desktop, 7s mobile)      | duration, max_scroll      |
 | `scroll`      | Scroll milestones (25%, 50%, 75%, 100%) | max_scroll                |
-| `goal`        | trackGoal() call                        | action, value, properties |
+| `goal`        | trackGoal() call                        | action, goal_type, value, properties |
 
 ## Ad Click ID Tracking
 
@@ -128,11 +130,23 @@ The SDK automatically captures advertising click IDs from URLs:
 | `li_fat_id` | LinkedIn Ads              |
 | `wbraid`    | Google Ads (iOS)          |
 | `gbraid`    | Google Ads (cross-device) |
+| `epik`      | Pinterest Ads             |
+| `ScCid`     | Snapchat Ads              |
+| `rdt_cid`   | Reddit Ads                |
+| `qclid`     | Quora Ads                 |
+
+Matching is case-insensitive — `?sccid=`, `?ScCid=` and `?SCCID=` are all
+recognised — but the canonical spelling above is what gets reported, so the
+built-in attribution rules match it.
 
 When found, the SDK sends:
 
-- `utm_id_from`: The parameter name (e.g., "gclid")
+- `utm_id_from`: The parameter name, in its canonical spelling (e.g. "gclid")
 - `utm_id`: The parameter value
+
+To recognise your own click id as well, use `extraAdClickIds: ['myclid']`. Use
+`adClickIds` only to replace the list outright, or `adClickIds: []` to capture
+none.
 
 ## Browser Support
 

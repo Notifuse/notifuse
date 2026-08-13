@@ -640,11 +640,24 @@ func testCustomFieldsPreservation(t *testing.T, client *testutil.APIClient, work
 	)
 	require.NoError(t, err)
 
+	// Every scanned column is asserted. Seven of these were read from the row and
+	// then never checked, which left the insert's column order guarded only where
+	// it happened to be asserted — a transposition anywhere in the middle of the
+	// list (phone into address_line_1, country into postcode) round-tripped
+	// through this test unnoticed. That list is a single shared ordering used by
+	// more than one insert path, so the whole of it needs pinning here.
 	assert.Equal(t, "ext_123", dbExternalID)
 	assert.Equal(t, "America/New_York", dbTimezone)
 	assert.Equal(t, "en-US", dbLanguage)
 	assert.Equal(t, "Full", dbFirstName)
 	assert.Equal(t, "Fields", dbLastName)
+	assert.Equal(t, "+1234567890", dbPhone)
+	assert.Equal(t, "123 Main St", dbAddressLine1)
+	assert.Equal(t, "Apt 4", dbAddressLine2)
+	assert.Equal(t, "US", dbCountry)
+	assert.Equal(t, "12345", dbPostcode)
+	assert.Equal(t, "NY", dbState)
+	assert.Equal(t, "Engineer", dbJobTitle)
 	assert.Equal(t, "value1", dbCustomString1)
 	assert.Equal(t, "value2", dbCustomString2)
 }

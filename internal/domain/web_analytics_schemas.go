@@ -124,6 +124,7 @@ func WebAnalyticsSchemas(settings *WebAnalyticsSettings, timezone string) map[st
 	goalsDimensions["goal_name"] = analytics.DimensionDefinition{Type: "string", Title: "Goal Name", SQL: "goal_name"}
 	goalsDimensions["goal_path"] = analytics.DimensionDefinition{Type: "string", Title: "Goal Path", SQL: "path"}
 	goalsDimensions["goal_value"] = analytics.DimensionDefinition{Type: "number", Title: "Goal Value", SQL: "goal_value"}
+	goalsDimensions["goal_type"] = analytics.DimensionDefinition{Type: "string", Title: "Goal Type", SQL: "goal_type"}
 
 	return map[string]analytics.SchemaDefinition{
 		"web_sessions": {
