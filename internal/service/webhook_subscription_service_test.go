@@ -1465,3 +1465,123 @@ func TestWebhookSubscriptionService_RejectsNonMembers(t *testing.T) {
 		})
 	}
 }
+
+// A webhook secret is a signing key, not ordinary workspace data.
+//
+// Each subscription carries its own, and whoever holds one can forge payloads
+// that the customer's downstream consumer will accept as genuine. Reading it is
+// therefore owner-only, matching how integrations and API keys are already gated
+// (workspace_service.go:324, 457, 778) rather than the read/write permission
+// model used for contacts or lists.
+//
+// The creator of a subscription still receives its secret once — they have to,
+// to configure the receiver — and that grants nothing about anyone else's.
+func TestWebhookSubscriptionSecretIsOwnerOnly(t *testing.T) {
+	const workspaceID = "ws-1"
+	const secret = "whsec_SENTINEL"
+
+	newService := func(t *testing.T, role string) (*WebhookSubscriptionService, *mocks.MockWebhookSubscriptionRepository) {
+		t.Helper()
+		ctrl := gomock.NewController(t)
+		t.Cleanup(ctrl.Finish)
+
+		repo := mocks.NewMockWebhookSubscriptionRepository(ctrl)
+		logger := pkgmocks.NewMockLogger(ctrl)
+		logger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(logger).AnyTimes()
+		logger.EXPECT().WithFields(gomock.Any()).Return(logger).AnyTimes()
+		logger.EXPECT().Info(gomock.Any()).AnyTimes()
+		logger.EXPECT().Debug(gomock.Any()).AnyTimes()
+		logger.EXPECT().Warn(gomock.Any()).AnyTimes()
+		logger.EXPECT().Error(gomock.Any()).AnyTimes()
+
+		auth := mocks.NewMockAuthService(ctrl)
+		auth.EXPECT().
+			AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
+			DoAndReturn(func(ctx context.Context, id string) (context.Context, *domain.User, *domain.UserWorkspace, error) {
+				return ctx, &domain.User{ID: "u1"}, &domain.UserWorkspace{
+					UserID: "u1", WorkspaceID: id, Role: role,
+				}, nil
+			}).AnyTimes()
+
+		return NewWebhookSubscriptionService(repo, mocks.NewMockWebhookDeliveryRepository(ctrl), auth, logger), repo
+	}
+
+	stored := func() *domain.WebhookSubscription {
+		return &domain.WebhookSubscription{ID: "sub-1", Name: "crm", URL: "https://x/h", Secret: secret}
+	}
+
+	t.Run("an owner reading a list still gets the secret", func(t *testing.T) {
+		svc, repo := newService(t, "owner")
+		repo.EXPECT().List(gomock.Any(), workspaceID).Return([]*domain.WebhookSubscription{stored()}, nil)
+
+		subs, err := svc.List(context.Background(), workspaceID)
+		require.NoError(t, err)
+		require.Len(t, subs, 1)
+		assert.Equal(t, secret, subs[0].Secret, "the console reveals it from this payload")
+	})
+
+	t.Run("a member reading a list does not", func(t *testing.T) {
+		svc, repo := newService(t, "member")
+		repo.EXPECT().List(gomock.Any(), workspaceID).Return([]*domain.WebhookSubscription{stored()}, nil)
+
+		subs, err := svc.List(context.Background(), workspaceID)
+		require.NoError(t, err)
+		require.Len(t, subs, 1)
+		assert.Empty(t, subs[0].Secret)
+		assert.Equal(t, "crm", subs[0].Name, "everything else is still readable")
+		assert.Equal(t, "https://x/h", subs[0].URL)
+	})
+
+	t.Run("a member reading one subscription does not", func(t *testing.T) {
+		svc, repo := newService(t, "member")
+		repo.EXPECT().GetByID(gomock.Any(), workspaceID, "sub-1").Return(stored(), nil)
+
+		sub, err := svc.GetByID(context.Background(), workspaceID, "sub-1")
+		require.NoError(t, err)
+		assert.Empty(t, sub.Secret)
+	})
+
+	t.Run("an owner reading one subscription does", func(t *testing.T) {
+		svc, repo := newService(t, "owner")
+		repo.EXPECT().GetByID(gomock.Any(), workspaceID, "sub-1").Return(stored(), nil)
+
+		sub, err := svc.GetByID(context.Background(), workspaceID, "sub-1")
+		require.NoError(t, err)
+		assert.Equal(t, secret, sub.Secret)
+	})
+
+	// Without this, gating the read is theatre: a member could rotate a secret to
+	// learn it — and in doing so break the customer's live integration.
+	t.Run("a member cannot regenerate a secret", func(t *testing.T) {
+		svc, repo := newService(t, "member")
+		// No EXPECT on the repo: it must not be reached at all.
+		_ = repo
+
+		_, err := svc.RegenerateSecret(context.Background(), workspaceID, "sub-1")
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "owner")
+	})
+
+	t.Run("an owner can regenerate and receives the new secret", func(t *testing.T) {
+		svc, repo := newService(t, "owner")
+		repo.EXPECT().GetByID(gomock.Any(), workspaceID, "sub-1").Return(stored(), nil)
+		repo.EXPECT().Update(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
+
+		sub, err := svc.RegenerateSecret(context.Background(), workspaceID, "sub-1")
+		require.NoError(t, err)
+		assert.NotEmpty(t, sub.Secret, "the owner needs it once, to update the receiver")
+		assert.NotEqual(t, secret, sub.Secret)
+	})
+
+	// Creating your own subscription hands you its own secret, which grants
+	// nothing about anyone else's — every subscription has a distinct one.
+	t.Run("a member creating a subscription still receives its secret", func(t *testing.T) {
+		svc, repo := newService(t, "member")
+		repo.EXPECT().Create(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
+
+		sub, err := svc.Create(context.Background(), workspaceID, "mine", "https://mine/h",
+			[]string{"contact.created"}, nil)
+		require.NoError(t, err)
+		assert.NotEmpty(t, sub.Secret)
+	})
+}

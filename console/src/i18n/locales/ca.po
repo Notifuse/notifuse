@@ -520,7 +520,7 @@ msgstr "Prova A/B"
 msgid "Accept Invitation"
 msgstr "Acceptar invitació"
 
-#: src/components/settings/Integrations.tsx:1676
+#: src/components/settings/Integrations.tsx:1698
 msgid "Access Key"
 msgstr "Clau d'accés"
 
@@ -692,7 +692,7 @@ msgstr ""
 msgid "Add filter"
 msgstr ""
 
-#: src/components/settings/Integrations.tsx:2426
+#: src/components/settings/Integrations.tsx:2467
 msgid "Add Integration"
 msgstr "Afegir integració"
 
@@ -713,7 +713,7 @@ msgstr "Afegir node"
 msgid "Add notes about this version..."
 msgstr "Afegir notes sobre aquesta versió..."
 
-#: src/components/settings/Integrations.tsx:2168
+#: src/components/settings/Integrations.tsx:2209
 msgid "Add one or more email senders. The first sender will be used as the default."
 msgstr "Afegiu un o més remitents de correu. El primer remitent s'utilitzarà per defecte."
 
@@ -729,9 +729,9 @@ msgstr "Afegir camí"
 #~ msgid "Add rule"
 #~ msgstr ""
 
-#: src/components/settings/Integrations.tsx:2127
-#: src/components/settings/Integrations.tsx:2183
-#: src/components/settings/Integrations.tsx:2470
+#: src/components/settings/Integrations.tsx:2168
+#: src/components/settings/Integrations.tsx:2224
+#: src/components/settings/Integrations.tsx:2511
 msgid "Add Sender"
 msgstr "Afegir remitent"
 
@@ -1050,8 +1050,8 @@ msgstr "en qualsevol moment"
 msgid "API Command"
 msgstr "Comanda API"
 
-#: src/components/settings/Integrations.tsx:1889
-#: src/components/settings/Integrations.tsx:2271
+#: src/components/settings/Integrations.tsx:1930
+#: src/components/settings/Integrations.tsx:2312
 #: src/components/settings/SystemSettingsDrawer.tsx:277
 #: src/pages/SetupWizard.tsx:379
 msgid "API Endpoint"
@@ -1067,14 +1067,21 @@ msgstr "Identificador API"
 
 #: src/components/integrations/FirecrawlIntegration.tsx:84
 #: src/components/integrations/LLMIntegration.tsx:175
-#: src/components/settings/Integrations.tsx:1521
-#: src/components/settings/Integrations.tsx:1572
-#: src/components/settings/Integrations.tsx:1940
-#: src/components/settings/Integrations.tsx:1958
-#: src/components/settings/Integrations.tsx:1980
+#: src/components/settings/Integrations.tsx:1543
+#: src/components/settings/Integrations.tsx:1594
+#: src/components/settings/Integrations.tsx:1943
+#: src/components/settings/Integrations.tsx:1981
+#: src/components/settings/Integrations.tsx:1982
+#: src/components/settings/Integrations.tsx:1999
+#: src/components/settings/Integrations.tsx:2000
+#: src/components/settings/Integrations.tsx:2021
 #: src/components/settings/WorkspaceMembers.tsx:94
 msgid "API Key"
 msgstr "Clau API"
+
+#: src/components/settings/Integrations.tsx:2022
+msgid "API Key (starts with SG.)"
+msgstr ""
 
 #: src/components/settings/WorkspaceMembers.tsx:300
 msgid "API key created successfully"
@@ -1283,7 +1290,7 @@ msgid "Auth Email"
 msgstr "Correu d'autenticació"
 
 #: src/components/integrations/SupabaseIntegration.tsx:139
-#: src/components/settings/Integrations.tsx:1346
+#: src/components/settings/Integrations.tsx:1368
 msgid "Auth Email Hook"
 msgstr "Ganxo de correu d'autenticació"
 
@@ -1291,7 +1298,7 @@ msgstr "Ganxo de correu d'autenticació"
 msgid "Auth Email Hook Secret"
 msgstr "Secret del ganxo de correu d'autenticació"
 
-#: src/components/settings/Integrations.tsx:2209
+#: src/components/settings/Integrations.tsx:2250
 msgid "Authentication"
 msgstr "Autenticació"
 
@@ -1299,7 +1306,7 @@ msgstr "Autenticació"
 msgid "Authentication email sent via Supabase"
 msgstr "Correu d'autenticació enviat via Supabase"
 
-#: src/components/settings/Integrations.tsx:1716
+#: src/components/settings/Integrations.tsx:1738
 msgid "Authentication Type"
 msgstr "Tipus d'autenticació"
 
@@ -1344,7 +1351,7 @@ msgstr ""
 msgid "Auto-send Winner"
 msgstr "Enviar guanyador automàticament"
 
-#: src/components/settings/Integrations.tsx:1421
+#: src/components/settings/Integrations.tsx:1443
 msgid "Auto-subscribe to Lists"
 msgstr "Subscripció automàtica a llistes"
 
@@ -1413,16 +1420,16 @@ msgstr "URL de l'avatar"
 msgid "Avoid special characters that might not display properly"
 msgstr "Eviteu caràcters especials que podrien no mostrar-se correctament"
 
-#: src/components/settings/Integrations.tsx:1673
+#: src/components/settings/Integrations.tsx:1695
 msgid "AWS Access Key"
 msgstr "Clau d'accés AWS"
 
-#: src/components/settings/Integrations.tsx:1614
-#: src/components/settings/Integrations.tsx:2232
+#: src/components/settings/Integrations.tsx:1636
+#: src/components/settings/Integrations.tsx:2273
 msgid "AWS Region"
 msgstr "Regió AWS"
 
-#: src/components/settings/Integrations.tsx:1678
+#: src/components/settings/Integrations.tsx:1700
 msgid "AWS Secret Key"
 msgstr "Clau secreta AWS"
 
@@ -1492,7 +1499,7 @@ msgid "Background Type"
 msgstr "Tipus de fons"
 
 #: src/components/integrations/LLMIntegration.tsx:214
-#: src/components/settings/Integrations.tsx:1515
+#: src/components/settings/Integrations.tsx:1537
 msgid "Base URL"
 msgstr ""
 
@@ -1516,7 +1523,7 @@ msgstr ""
 msgid "Base64 encoded TLS private key. Run: cat privkey.pem | base64 -w 0"
 msgstr "Clau privada TLS codificada en Base64. Executeu: cat privkey.pem | base64 -w 0"
 
-#: src/components/settings/Integrations.tsx:1721
+#: src/components/settings/Integrations.tsx:1743
 msgid "Basic Authentication (Username/Password)"
 msgstr "Autenticació bàsica (Usuari/Contrasenya)"
 
@@ -1546,7 +1553,7 @@ msgstr "Abans"
 msgid "before date"
 msgstr "abans de la data"
 
-#: src/components/settings/Integrations.tsx:1383
+#: src/components/settings/Integrations.tsx:1405
 msgid "Before User Created Hook"
 msgstr "Ganxo abans de crear usuari"
 
@@ -1633,7 +1640,7 @@ msgstr "Títol del blog"
 msgid "Body Attributes"
 msgstr "Atributs del cos"
 
-#: src/components/settings/WebhookCard.tsx:377
+#: src/components/settings/WebhookCard.tsx:383
 msgid "Body:"
 msgstr "Cos:"
 
@@ -2014,14 +2021,14 @@ msgstr ""
 #: src/components/settings/BlogSettings.tsx:211
 #: src/components/settings/CustomFieldsConfiguration.tsx:291
 #: src/components/settings/EditPermissionsModal.tsx:121
-#: src/components/settings/Integrations.tsx:2352
-#: src/components/settings/Integrations.tsx:2475
-#: src/components/settings/Integrations.tsx:2510
-#: src/components/settings/Integrations.tsx:2557
-#: src/components/settings/Integrations.tsx:2605
-#: src/components/settings/Integrations.tsx:2652
+#: src/components/settings/Integrations.tsx:2393
+#: src/components/settings/Integrations.tsx:2516
+#: src/components/settings/Integrations.tsx:2551
+#: src/components/settings/Integrations.tsx:2598
+#: src/components/settings/Integrations.tsx:2646
+#: src/components/settings/Integrations.tsx:2693
 #: src/components/settings/SystemSettingsDrawer.tsx:170
-#: src/components/settings/WebhookCard.tsx:348
+#: src/components/settings/WebhookCard.tsx:354
 #: src/components/settings/WebhooksSettings.tsx:213
 #: src/components/settings/WorkspaceMembers.tsx:552
 #: src/components/settings/WorkspaceMembers.tsx:597
@@ -2336,6 +2343,7 @@ msgstr ""
 msgid "Client ID is required"
 msgstr ""
 
+#: src/components/settings/Integrations.tsx:1870
 #: src/components/settings/SystemSettingsDrawer.tsx:582
 #: src/pages/SetupWizard.tsx:733
 msgid "Client Secret"
@@ -2343,6 +2351,10 @@ msgstr ""
 
 #: src/pages/SetupWizard.tsx:736
 msgid "Client Secret is required"
+msgstr ""
+
+#: src/components/settings/Integrations.tsx:1836
+msgid "Client Secret Value"
 msgstr ""
 
 #: src/components/templates/TemplateSelectorInput.tsx:231
@@ -2368,7 +2380,7 @@ msgstr "Clonar plantilla"
 #: src/components/broadcasts/GlobalFeedSettings.tsx:137
 #: src/components/contacts/BulkActionProgressModal.tsx:65
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:825
-#: src/components/settings/WebhookCard.tsx:345
+#: src/components/settings/WebhookCard.tsx:351
 #: src/components/settings/WorkspaceMembers.tsx:592
 #: src/components/transactional/ApiCommandModal.tsx:990
 msgid "Close"
@@ -2432,7 +2444,7 @@ msgstr ""
 msgid "Comma-separated. Only these domains may auto-create accounts."
 msgstr ""
 
-#: src/components/settings/Integrations.tsx:1697
+#: src/components/settings/Integrations.tsx:1719
 #: src/components/settings/SystemSettingsDrawer.tsx:341
 #: src/pages/SetupWizard.tsx:466
 msgid "Common ports: 587 (TLS), 465 (SSL), 25 (unencrypted)"
@@ -2543,8 +2555,8 @@ msgstr ""
 msgid "Configuration for {nodeType} is not available in Phase 2"
 msgstr "La configuració per a {nodeType} no està disponible a la Fase 2"
 
-#: src/components/settings/Integrations.tsx:2024
-#: src/components/settings/Integrations.tsx:2235
+#: src/components/settings/Integrations.tsx:2065
+#: src/components/settings/Integrations.tsx:2276
 msgid "Configuration set"
 msgstr ""
 
@@ -2557,8 +2569,8 @@ msgstr ""
 #: src/components/automations/nodes/RemoveFromListNode.tsx:51
 #: src/components/automations/nodes/TriggerNode.tsx:74
 #: src/components/automations/nodes/WebhookNode.tsx:54
-#: src/components/settings/Integrations.tsx:1175
-#: src/components/settings/Integrations.tsx:1223
+#: src/components/settings/Integrations.tsx:1191
+#: src/components/settings/Integrations.tsx:1239
 msgid "Configure"
 msgstr "Configurar"
 
@@ -2595,10 +2607,10 @@ msgstr "Configurar proveïdor"
 msgid "Configure styling and SEO settings for your blog. These settings will be applied to all blog pages."
 msgstr "Configureu l'estil i els paràmetres SEO per al vostre blog. Aquests paràmetres s'aplicaran a totes les pàgines del blog."
 
-#: src/components/settings/Integrations.tsx:1350
-#: src/components/settings/Integrations.tsx:1387
-#: src/components/settings/Integrations.tsx:1523
-#: src/components/settings/Integrations.tsx:1574
+#: src/components/settings/Integrations.tsx:1372
+#: src/components/settings/Integrations.tsx:1409
+#: src/components/settings/Integrations.tsx:1545
+#: src/components/settings/Integrations.tsx:1596
 msgid "Configured"
 msgstr "Configurat"
 
@@ -2624,7 +2636,7 @@ msgstr "Confirmar"
 msgid "Confirmed"
 msgstr "Confirmat"
 
-#: src/components/settings/Integrations.tsx:2419
+#: src/components/settings/Integrations.tsx:2460
 msgid "Connect and manage external services"
 msgstr "Connecteu i gestioneu serveis externs"
 
@@ -2632,11 +2644,11 @@ msgstr "Connecteu i gestioneu serveis externs"
 msgid "Connection Details"
 msgstr "Detalls de connexió"
 
-#: src/components/settings/Integrations.tsx:2448
+#: src/components/settings/Integrations.tsx:2489
 msgid "Consider connecting a marketing email provider to send newsletters, promotional campaigns, and announcements to engage with your audience."
 msgstr "Considereu connectar un proveïdor de correu de màrqueting per enviar butlletins, campanyes promocionals i anuncis per connectar amb la vostra audiència."
 
-#: src/components/settings/Integrations.tsx:2443
+#: src/components/settings/Integrations.tsx:2484
 msgid "Consider connecting a transactional email provider to be able to use transactional emails for account notifications, password resets, and other important system messages."
 msgstr "Considereu connectar un proveïdor de correu transaccional per poder utilitzar correus transaccionals per a notificacions de compte, restabliments de contrasenya i altres missatges importants del sistema."
 
@@ -2806,9 +2818,9 @@ msgid "Copied"
 msgstr ""
 
 #: src/components/common/CodeSnippet.tsx:93
-#: src/components/settings/Integrations.tsx:1371
-#: src/components/settings/Integrations.tsx:1408
-#: src/components/settings/WebhookCard.tsx:287
+#: src/components/settings/Integrations.tsx:1393
+#: src/components/settings/Integrations.tsx:1430
+#: src/components/settings/WebhookCard.tsx:292
 msgid "Copy"
 msgstr "Copiar"
 
@@ -2830,8 +2842,8 @@ msgstr "Copiar al porta-retalls"
 msgid "Copy URL"
 msgstr "Copiar URL"
 
-#: src/components/settings/Integrations.tsx:1360
-#: src/components/settings/Integrations.tsx:1397
+#: src/components/settings/Integrations.tsx:1382
+#: src/components/settings/Integrations.tsx:1419
 msgid "Copy Webhook endpoint"
 msgstr "Copiar punt final del webhook"
 
@@ -2932,7 +2944,7 @@ msgstr "Crear una notificació"
 msgid "Create an email template"
 msgstr "Crear una plantilla de correu"
 
-#: src/components/settings/Integrations.tsx:975
+#: src/components/settings/Integrations.tsx:990
 msgid "Create an SES tenant for this integration?"
 msgstr ""
 
@@ -3020,11 +3032,11 @@ msgstr ""
 msgid "Create Template"
 msgstr "Crear plantilla"
 
-#: src/components/settings/Integrations.tsx:977
+#: src/components/settings/Integrations.tsx:992
 msgid "Create tenant"
 msgstr ""
 
-#: src/components/settings/Integrations.tsx:1804
+#: src/components/settings/Integrations.tsx:1831
 msgid "Create this in Azure Portal > App registrations > Your App > Certificates & secrets"
 msgstr "Creeu-ho a Azure Portal > Registres d'aplicacions > La vostra aplicació > Certificats i secrets"
 
@@ -3132,7 +3144,7 @@ msgstr "El CSV ha de tenir com a mínim una fila de capçalera i una fila de dad
 msgid "Current Segment Tree JSON"
 msgstr "JSON de l'arbre de segment actual"
 
-#: src/components/settings/Integrations.tsx:2240
+#: src/components/settings/Integrations.tsx:2281
 msgid "custom"
 msgstr ""
 
@@ -3447,7 +3459,7 @@ msgstr "Per defecte és la meta descripció"
 msgid "Defaults to meta title"
 msgstr "Per defecte és el meta títol"
 
-#: src/components/settings/Integrations.tsx:1880
+#: src/components/settings/Integrations.tsx:1921
 #: src/pages/SetupWizard.tsx:526
 msgid "Defaults to SMTP host"
 msgstr ""
@@ -3474,9 +3486,9 @@ msgstr "Retard"
 #: src/components/file_manager/fileManager.tsx:951
 #: src/components/segment/input.tsx:406
 #: src/components/settings/Integrations.tsx:356
-#: src/components/settings/Integrations.tsx:1329
-#: src/components/settings/Integrations.tsx:1488
-#: src/components/settings/Integrations.tsx:1557
+#: src/components/settings/Integrations.tsx:1351
+#: src/components/settings/Integrations.tsx:1510
+#: src/components/settings/Integrations.tsx:1579
 #: src/components/settings/WebhookCard.tsx:239
 #: src/components/web_analytics/filters/ConditionsBuilder.tsx:98
 #: src/components/web_analytics/filters/FilterTable.tsx:132
@@ -3594,9 +3606,9 @@ msgid "Delete this condition?"
 msgstr ""
 
 #: src/components/settings/Integrations.tsx:350
-#: src/components/settings/Integrations.tsx:1323
-#: src/components/settings/Integrations.tsx:1482
-#: src/components/settings/Integrations.tsx:1551
+#: src/components/settings/Integrations.tsx:1345
+#: src/components/settings/Integrations.tsx:1504
+#: src/components/settings/Integrations.tsx:1573
 msgid "Delete this integration?"
 msgstr "Eliminar aquesta integració?"
 
@@ -3609,7 +3621,7 @@ msgstr ""
 msgid "Delete this rule?"
 msgstr ""
 
-#: src/components/settings/Integrations.tsx:2147
+#: src/components/settings/Integrations.tsx:2188
 msgid "Delete this sender?"
 msgstr "Eliminar aquest remitent?"
 
@@ -3649,7 +3661,7 @@ msgstr "Lliurat"
 #: src/components/messages/MessageHistoryTab.tsx:114
 #: src/components/messages/MessageHistoryTab.tsx:116
 #: src/components/messages/MessageHistoryTable.tsx:266
-#: src/components/settings/WebhookCard.tsx:308
+#: src/components/settings/WebhookCard.tsx:314
 #: src/components/timeline/ContactTimeline.tsx:615
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:67
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:78
@@ -3745,7 +3757,7 @@ msgstr "Desactivar webhook"
 
 #: src/components/settings/BlogSettings.tsx:240
 #: src/components/settings/GeneralSettings.tsx:162
-#: src/components/settings/Integrations.tsx:1449
+#: src/components/settings/Integrations.tsx:1471
 #: src/components/settings/WebAnalyticsSettings.tsx:208
 #: src/components/templates/TemplateTranslationsTab.tsx:204
 msgid "Disabled"
@@ -3829,8 +3841,8 @@ msgstr "Voleu enviar \"{0}\" immediatament o programar-ho per més tard?"
 msgid "Documentation"
 msgstr "Documentació"
 
-#: src/components/settings/Integrations.tsx:1937
-#: src/components/settings/Integrations.tsx:2280
+#: src/components/settings/Integrations.tsx:1978
+#: src/components/settings/Integrations.tsx:2321
 #: src/pages/SetupWizard.tsx:605
 msgid "Domain"
 msgstr "Domini"
@@ -4003,9 +4015,9 @@ msgstr "Editar"
 #: src/components/blog/PostsTable.tsx:349
 #: src/components/email_builder/ui/ImportFontInput.tsx:209
 #: src/components/settings/Integrations.tsx:340
-#: src/components/settings/Integrations.tsx:1313
-#: src/components/settings/Integrations.tsx:1472
-#: src/components/settings/Integrations.tsx:1541
+#: src/components/settings/Integrations.tsx:1335
+#: src/components/settings/Integrations.tsx:1494
+#: src/components/settings/Integrations.tsx:1563
 #: src/components/settings/WebhookCard.tsx:245
 #: src/components/web_analytics/filters/FilterTable.tsx:140
 #: src/pages/ContactsPage.tsx:940
@@ -4107,7 +4119,7 @@ msgstr ""
 msgid "Edit segment"
 msgstr "Editar segment"
 
-#: src/components/settings/Integrations.tsx:2470
+#: src/components/settings/Integrations.tsx:2511
 msgid "Edit Sender"
 msgstr "Editar remitent"
 
@@ -4150,8 +4162,8 @@ msgstr "Marcatge editable"
 msgid "Editor mode"
 msgstr ""
 
-#: src/components/settings/Integrations.tsx:1877
-#: src/components/settings/Integrations.tsx:2221
+#: src/components/settings/Integrations.tsx:1918
+#: src/components/settings/Integrations.tsx:2262
 #: src/components/settings/SystemSettingsDrawer.tsx:432
 #: src/pages/SetupWizard.tsx:523
 msgid "EHLO Hostname"
@@ -4182,7 +4194,7 @@ msgstr "Correu electrònic"
 #: src/components/contacts/ExportContactsModal.tsx:50
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:338
 #: src/components/messages/MessageHistoryTab.tsx:219
-#: src/components/settings/Integrations.tsx:2485
+#: src/components/settings/Integrations.tsx:2526
 #: src/components/settings/WorkspaceMembers.tsx:79
 #: src/components/timeline/ContactTimeline.tsx:547
 #: src/pages/ContactsPage.tsx:369
@@ -4197,12 +4209,12 @@ msgid "Email (Required)"
 msgstr "Correu (obligatori)"
 
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:383
-#: src/components/settings/Integrations.tsx:1752
+#: src/components/settings/Integrations.tsx:1774
 #: src/components/settings/WorkspaceMembers.tsx:561
 msgid "Email Address"
 msgstr "Adreça de correu electrònic"
 
-#: src/components/settings/Integrations.tsx:1754
+#: src/components/settings/Integrations.tsx:1776
 msgid "Email address is required for OAuth2"
 msgstr "L'adreça de correu és obligatòria per a OAuth2"
 
@@ -4266,7 +4278,7 @@ msgstr "Opcions de correu:"
 msgid "Email Preview"
 msgstr "Previsualització del correu"
 
-#: src/components/settings/Integrations.tsx:2438
+#: src/components/settings/Integrations.tsx:2479
 msgid "Email Provider Configuration Needed"
 msgstr "Es necessita configuració del proveïdor de correu"
 
@@ -4306,13 +4318,13 @@ msgstr "Les amplades de correu superiors a 650px poden no mostrar-se correctamen
 msgid "Email:"
 msgstr "Correu:"
 
-#: src/components/settings/Integrations.tsx:2000
-#: src/components/settings/Integrations.tsx:2307
+#: src/components/settings/Integrations.tsx:2041
+#: src/components/settings/Integrations.tsx:2348
 msgid "emails per day"
 msgstr "correus per dia"
 
-#: src/components/settings/Integrations.tsx:1999
-#: src/components/settings/Integrations.tsx:2306
+#: src/components/settings/Integrations.tsx:2040
+#: src/components/settings/Integrations.tsx:2347
 msgid "emails per hour"
 msgstr "correus per hora"
 
@@ -4384,7 +4396,7 @@ msgstr "Activar webhook"
 
 #: src/components/settings/BlogSettings.tsx:235
 #: src/components/settings/GeneralSettings.tsx:157
-#: src/components/settings/Integrations.tsx:1445
+#: src/components/settings/Integrations.tsx:1467
 #: src/components/settings/SystemSettingsDrawer.tsx:459
 #: src/components/settings/SystemSettingsDrawer.tsx:543
 #: src/components/settings/WebAnalyticsSettings.tsx:203
@@ -4426,7 +4438,7 @@ msgstr "Introduïu {0}"
 msgid "Enter a name for this block"
 msgstr "Introduïu un nom per a aquest bloc"
 
-#: src/components/settings/Integrations.tsx:1609
+#: src/components/settings/Integrations.tsx:1631
 msgid "Enter a name for this integration"
 msgstr "Introduïu un nom per a aquesta integració"
 
@@ -4438,7 +4450,7 @@ msgstr "Introduïu un nom per al vostre espai de treball"
 msgid "Enter a unique alphanumeric ID"
 msgstr "Introduïu un ID alfanumèric únic"
 
-#: src/components/settings/Integrations.tsx:2523
+#: src/components/settings/Integrations.tsx:2564
 msgid "Enter an email address to receive a test email:"
 msgstr "Introduïu una adreça de correu per rebre un correu de prova:"
 
@@ -4647,7 +4659,7 @@ msgstr "Error en carregar la plantilla: Dades de plantilla invàlides"
 msgid "Error parsing CSV: {0}"
 msgstr "Error en analitzar CSV: {0}"
 
-#: src/components/settings/WebhookCard.tsx:371
+#: src/components/settings/WebhookCard.tsx:377
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:480
 msgid "Error:"
 msgstr "Error:"
@@ -4848,7 +4860,7 @@ msgstr "Fallat"
 #: src/components/messages/MessageHistoryTab.tsx:127
 #: src/components/messages/MessageHistoryTab.tsx:129
 #: src/components/messages/MessageHistoryTable.tsx:274
-#: src/components/settings/WebhookCard.tsx:311
+#: src/components/settings/WebhookCard.tsx:317
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:80
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:242
 #: src/pages/BroadcastsPage.tsx:390
@@ -4963,7 +4975,7 @@ msgstr "No s'ha pogut eliminar el contacte"
 msgid "Failed to delete file: "
 msgstr "No s'ha pogut eliminar el fitxer: "
 
-#: src/components/settings/Integrations.tsx:1102
+#: src/components/settings/Integrations.tsx:1117
 msgid "Failed to delete integration"
 msgstr "No s'ha pogut eliminar la integració"
 
@@ -5012,7 +5024,7 @@ msgstr "No s'ha pogut descarregar el fitxer"
 msgid "Failed to download files"
 msgstr "No s'han pogut descarregar els fitxers"
 
-#: src/components/settings/Integrations.tsx:1016
+#: src/components/settings/Integrations.tsx:1031
 msgid "Failed to enable reputation isolation"
 msgstr ""
 
@@ -5173,18 +5185,18 @@ msgstr "No s'ha pogut desar el contacte. Si us plau, torneu-ho a provar."
 msgid "Failed to save field"
 msgstr "No s'ha pogut desar el camp"
 
-#: src/components/settings/Integrations.tsx:942
+#: src/components/settings/Integrations.tsx:956
 msgid "Failed to save Firecrawl integration"
 msgstr "No s'ha pogut desar la integració de Firecrawl"
 
 #: src/components/integrations/FirecrawlIntegration.tsx:69
 #: src/components/integrations/LLMIntegration.tsx:152
 #: src/components/integrations/SupabaseIntegration.tsx:123
-#: src/components/settings/Integrations.tsx:1079
+#: src/components/settings/Integrations.tsx:1094
 msgid "Failed to save integration"
 msgstr "No s'ha pogut desar la integració"
 
-#: src/components/settings/Integrations.tsx:892
+#: src/components/settings/Integrations.tsx:906
 msgid "Failed to save LLM integration"
 msgstr "No s'ha pogut desar la integració LLM"
 
@@ -5192,7 +5204,7 @@ msgstr "No s'ha pogut desar la integració LLM"
 msgid "Failed to save settings"
 msgstr ""
 
-#: src/components/settings/Integrations.tsx:839
+#: src/components/settings/Integrations.tsx:853
 msgid "Failed to save Supabase integration"
 msgstr "No s'ha pogut desar la integració de Supabase"
 
@@ -5226,7 +5238,7 @@ msgstr "Error en enviar el codi màgic"
 
 #. placeholder {0}: response.error
 #. placeholder {0}: response.error || 'Unknown error'
-#: src/components/settings/Integrations.tsx:1142
+#: src/components/settings/Integrations.tsx:1158
 #: src/components/templates/SendTemplateModal.tsx:140
 msgid "Failed to send test email: {0}"
 msgstr "No s'ha pogut enviar el correu de prova: {0}"
@@ -5235,11 +5247,11 @@ msgstr "No s'ha pogut enviar el correu de prova: {0}"
 msgid "Failed to send test webhook"
 msgstr "No s'ha pogut enviar el webhook de prova"
 
-#: src/components/settings/Integrations.tsx:660
+#: src/components/settings/Integrations.tsx:670
 msgid "Failed to set default provider"
 msgstr "No s'ha pogut establir el proveïdor per defecte"
 
-#: src/components/settings/Integrations.tsx:1146
+#: src/components/settings/Integrations.tsx:1162
 msgid "Failed to test email provider"
 msgstr "No s'ha pogut provar el proveïdor de correu"
 
@@ -5475,20 +5487,20 @@ msgstr "Filtres"
 msgid "Filters:"
 msgstr "Filtres:"
 
-#: src/components/settings/Integrations.tsx:1793
+#: src/components/settings/Integrations.tsx:1815
 msgid "Find this in Azure Portal > App registrations > Your App > Overview"
 msgstr "Trobeu-ho a Azure Portal > Registres d'aplicacions > La vostra aplicació > Visió general"
 
-#: src/components/settings/Integrations.tsx:1782
+#: src/components/settings/Integrations.tsx:1804
 msgid "Find this in Azure Portal > Azure Active Directory > Overview"
 msgstr "Trobeu-ho a Azure Portal > Azure Active Directory > Visió general"
 
-#: src/components/settings/Integrations.tsx:1822
-#: src/components/settings/Integrations.tsx:1830
+#: src/components/settings/Integrations.tsx:1852
+#: src/components/settings/Integrations.tsx:1865
 msgid "Find this in Google Cloud Console > APIs & Services > Credentials"
 msgstr "Trobeu-ho a Google Cloud Console > APIs i serveis > Credencials"
 
-#: src/components/settings/Integrations.tsx:939
+#: src/components/settings/Integrations.tsx:953
 msgid "Firecrawl integration saved successfully"
 msgstr "Integració de Firecrawl desada correctament"
 
@@ -5731,7 +5743,7 @@ msgstr ""
 #~ msgid "Geolocation privacy"
 #~ msgstr ""
 
-#: src/components/settings/Integrations.tsx:2012
+#: src/components/settings/Integrations.tsx:2053
 msgid "Gives this integration its own SES reputation profile and its own suppression list, so another workspace's bounces can't pause or suppress this one. AWS bills per tenant per month, based on volume."
 msgstr ""
 
@@ -5808,7 +5820,7 @@ msgstr ""
 msgid "Goals by day and hour"
 msgstr ""
 
-#: src/components/settings/Integrations.tsx:1746
+#: src/components/settings/Integrations.tsx:1768
 msgid "Google Workspace / Gmail"
 msgstr "Google Workspace / Gmail"
 
@@ -5909,7 +5921,7 @@ msgstr "Ajudeu-nos a millorar Notifuse enviant estadístiques d'ús anònimes. N
 msgid "Helps screen readers describe the image"
 msgstr "Ajuda els lectors de pantalla a descriure la imatge"
 
-#: src/components/settings/WebhookCard.tsx:269
+#: src/components/settings/WebhookCard.tsx:274
 msgid "Hide"
 msgstr "Amagar"
 
@@ -6365,11 +6377,11 @@ msgstr ""
 msgid "Install the tracking snippet"
 msgstr ""
 
-#: src/components/settings/Integrations.tsx:1064
+#: src/components/settings/Integrations.tsx:1079
 msgid "Integration created successfully"
 msgstr "Integració creada correctament"
 
-#: src/components/settings/Integrations.tsx:1099
+#: src/components/settings/Integrations.tsx:1114
 msgid "Integration deleted successfully"
 msgstr "Integració eliminada correctament"
 
@@ -6380,20 +6392,20 @@ msgstr "ID d'integració:"
 #: src/components/integrations/FirecrawlIntegration.tsx:76
 #: src/components/integrations/LLMIntegration.tsx:159
 #: src/components/integrations/SupabaseIntegration.tsx:130
-#: src/components/settings/Integrations.tsx:1608
+#: src/components/settings/Integrations.tsx:1630
 msgid "Integration Name"
 msgstr "Nom de la integració"
 
-#: src/components/settings/Integrations.tsx:767
-#: src/components/settings/Integrations.tsx:1119
+#: src/components/settings/Integrations.tsx:777
+#: src/components/settings/Integrations.tsx:1134
 msgid "Integration not found or not an email provider"
 msgstr "Integració no trobada o no és un proveïdor de correu"
 
-#: src/components/settings/Integrations.tsx:1050
+#: src/components/settings/Integrations.tsx:1065
 msgid "Integration updated successfully"
 msgstr "Integració actualitzada correctament"
 
-#: src/components/settings/Integrations.tsx:2418
+#: src/components/settings/Integrations.tsx:2459
 #: src/components/settings/SettingsSidebar.tsx:57
 msgid "Integrations"
 msgstr "Integracions"
@@ -6530,11 +6542,11 @@ msgstr ""
 msgid "is not in"
 msgstr "no està a"
 
-#: src/components/settings/Integrations.tsx:2254
+#: src/components/settings/Integrations.tsx:2295
 msgid "isolated"
 msgstr ""
 
-#: src/components/settings/Integrations.tsx:2262
+#: src/components/settings/Integrations.tsx:2303
 msgid "isolation requested but not provisioned"
 msgstr ""
 
@@ -6663,7 +6675,7 @@ msgstr "Les imatges grans poden alentir significativament els temps de càrrega 
 #~ msgid "Last {WINDOW_MINUTES} minutes"
 #~ msgstr ""
 
-#: src/components/settings/WebhookCard.tsx:297
+#: src/components/settings/WebhookCard.tsx:303
 msgid "Last 24 hours"
 msgstr "Últimes 24 hores"
 
@@ -6671,7 +6683,7 @@ msgstr "Últimes 24 hores"
 #~ msgid "last 30 minutes"
 #~ msgstr ""
 
-#: src/components/settings/WebhookCard.tsx:297
+#: src/components/settings/WebhookCard.tsx:303
 msgid "Last 7 days"
 msgstr "Últims 7 dies"
 
@@ -6709,6 +6721,10 @@ msgstr "Prospecte"
 msgid "Learn how to enable SMTP bridge"
 msgstr "Aprendre com activar la retransmissió SMTP"
 
+#: src/components/settings/Integrations.tsx:622
+msgid "Leave blank to keep the current value"
+msgstr ""
+
 #: src/components/integrations/FirecrawlIntegration.tsx:86
 #: src/components/integrations/LLMIntegration.tsx:177
 msgid "Leave blank to keep the existing API key"
@@ -6730,7 +6746,7 @@ msgstr "Deixeu buit per activar amb qualsevol canvi de camp"
 msgid "Leave empty to use a random contact from the broadcast audience."
 msgstr ""
 
-#: src/components/settings/Integrations.tsx:2027
+#: src/components/settings/Integrations.tsx:2068
 msgid "Leave empty to use the one Notifuse manages for this integration."
 msgstr ""
 
@@ -6919,7 +6935,7 @@ msgstr "Llistes actualitzades"
 msgid "Live"
 msgstr "En directe"
 
-#: src/components/settings/Integrations.tsx:889
+#: src/components/settings/Integrations.tsx:903
 msgid "LLM integration saved successfully"
 msgstr "Integració LLM desada correctament"
 
@@ -7061,7 +7077,7 @@ msgstr "Fa que el contenidor ocupi tota l'amplada de la vista del correu, ignora
 msgid "Manage your workspace members"
 msgstr "Gestioneu els membres del vostre espai de treball"
 
-#: src/components/settings/Integrations.tsx:2240
+#: src/components/settings/Integrations.tsx:2281
 msgid "managed"
 msgstr ""
 
@@ -7215,8 +7231,8 @@ msgstr "L'historial de missatges i els esdeveniments de webhook s'anonimitzaran 
 msgid "Message ID"
 msgstr "ID de missatge"
 
-#: src/components/settings/Integrations.tsx:1926
-#: src/components/settings/Integrations.tsx:2289
+#: src/components/settings/Integrations.tsx:1967
+#: src/components/settings/Integrations.tsx:2330
 msgid "Message Stream"
 msgstr ""
 
@@ -7241,7 +7257,7 @@ msgstr "Meta títol"
 msgid "Metrics"
 msgstr ""
 
-#: src/components/settings/Integrations.tsx:1744
+#: src/components/settings/Integrations.tsx:1766
 msgid "Microsoft 365 / Office 365"
 msgstr "Microsoft 365 / Office 365"
 
@@ -7365,7 +7381,7 @@ msgstr "Vista mòbil (400px)"
 #: src/components/integrations/LLMIntegration.tsx:195
 #: src/components/integrations/LLMIntegration.tsx:206
 #: src/components/integrations/LLMIntegration.tsx:243
-#: src/components/settings/Integrations.tsx:1505
+#: src/components/settings/Integrations.tsx:1527
 msgid "Model"
 msgstr "Model"
 
@@ -7429,7 +7445,7 @@ msgstr "El meu webhook"
 msgid "my-custom-class"
 msgstr "la-meva-classe-personalitzada"
 
-#: src/components/settings/Integrations.tsx:2080
+#: src/components/settings/Integrations.tsx:2121
 msgid "my-tenant"
 msgstr ""
 
@@ -7447,10 +7463,10 @@ msgstr "N/D"
 #: src/components/lists/ListDrawer.tsx:185
 #: src/components/segment/button_upsert.tsx:442
 #: src/components/settings/Integrations.tsx:377
-#: src/components/settings/Integrations.tsx:1345
-#: src/components/settings/Integrations.tsx:1504
-#: src/components/settings/Integrations.tsx:1571
-#: src/components/settings/Integrations.tsx:2495
+#: src/components/settings/Integrations.tsx:1367
+#: src/components/settings/Integrations.tsx:1526
+#: src/components/settings/Integrations.tsx:1593
+#: src/components/settings/Integrations.tsx:2536
 #: src/components/settings/WebhooksSettings.tsx:224
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:119
 #: src/components/web_analytics/filters/FilterTable.tsx:192
@@ -7475,7 +7491,7 @@ msgstr "Nom:"
 msgid "Naming a slot renames it everywhere it appears: dashboards, the explore picker and attribution rules."
 msgstr ""
 
-#: src/components/settings/Integrations.tsx:2015
+#: src/components/settings/Integrations.tsx:2056
 msgid "Needs these extra IAM permissions: ses:CreateTenant, ses:CreateTenantResourceAssociation, ses:GetTenant, ses:PutTenantSuppressionAttributes, ses:ListEmailIdentities. Add ses:ListTenants and ses:ListTenantResources for the pickers below, and ses:DeleteTenant plus ses:DeleteTenantResourceAssociation so the tenant is removed with the integration instead of billing forever."
 msgstr ""
 
@@ -7565,12 +7581,12 @@ msgstr "Propera execució"
 #: src/components/settings/Integrations.tsx:354
 #: src/components/settings/Integrations.tsx:430
 #: src/components/settings/Integrations.tsx:449
-#: src/components/settings/Integrations.tsx:1327
-#: src/components/settings/Integrations.tsx:1486
-#: src/components/settings/Integrations.tsx:1555
+#: src/components/settings/Integrations.tsx:1349
+#: src/components/settings/Integrations.tsx:1508
+#: src/components/settings/Integrations.tsx:1577
 #: src/components/settings/WebhookCard.tsx:193
 #: src/components/settings/WebhookCard.tsx:237
-#: src/components/settings/WebhookCard.tsx:279
+#: src/components/settings/WebhookCard.tsx:284
 #: src/components/settings/WorkspaceMembers.tsx:195
 #: src/components/settings/WorkspaceMembers.tsx:215
 #: src/components/settings/WorkspaceMembers.tsx:432
@@ -7827,7 +7843,7 @@ msgstr "No hi ha previsualització disponible o la plantilla és buida."
 msgid "No properties"
 msgstr "Sense propietats"
 
-#: src/components/settings/Integrations.tsx:1126
+#: src/components/settings/Integrations.tsx:1141
 msgid "No provider configured for testing"
 msgstr "No s'ha configurat cap proveïdor per a proves"
 
@@ -7979,8 +7995,8 @@ msgstr "No assignat"
 
 #: src/components/analytics/AnalyticsDashboard.tsx:164
 #: src/components/analytics/AnalyticsDashboard.tsx:188
-#: src/components/settings/Integrations.tsx:1379
-#: src/components/settings/Integrations.tsx:1416
+#: src/components/settings/Integrations.tsx:1401
+#: src/components/settings/Integrations.tsx:1438
 msgid "Not configured"
 msgstr "No configurat"
 
@@ -7993,7 +8009,7 @@ msgstr "No connectat"
 msgid "not contains"
 msgstr ""
 
-#: src/components/settings/Integrations.tsx:2246
+#: src/components/settings/Integrations.tsx:2287
 msgid "not created yet — register webhooks"
 msgstr ""
 
@@ -8011,7 +8027,7 @@ msgstr ""
 msgid "Not in List"
 msgstr "No és a la llista"
 
-#: src/components/settings/Integrations.tsx:978
+#: src/components/settings/Integrations.tsx:993
 msgid "Not now"
 msgstr ""
 
@@ -8067,11 +8083,11 @@ msgstr "Nom de la notificació"
 msgid "Notification updated successfully"
 msgstr "Notificació actualitzada correctament"
 
-#: src/components/settings/Integrations.tsx:976
+#: src/components/settings/Integrations.tsx:991
 msgid "Notifuse will create a tenant in your AWS account, give it its own suppression list, and associate this integration's configuration set and sender identities with it. AWS bills per tenant per month, based on volume."
 msgstr ""
 
-#: src/components/settings/Integrations.tsx:2039
+#: src/components/settings/Integrations.tsx:2080
 msgid "notifuse-…"
 msgstr ""
 
@@ -8106,11 +8122,11 @@ msgstr "Nombre de publicacions per mostrar per pàgina a les pàgines de categor
 msgid "Number of posts to display per page on the homepage"
 msgstr "Nombre de publicacions per mostrar per pàgina a la pàgina d'inici"
 
-#: src/components/settings/Integrations.tsx:1723
+#: src/components/settings/Integrations.tsx:1745
 msgid "OAuth2 (Microsoft 365 / Google)"
 msgstr "OAuth2 (Microsoft 365 / Google)"
 
-#: src/components/settings/Integrations.tsx:1739
+#: src/components/settings/Integrations.tsx:1761
 msgid "OAuth2 Provider"
 msgstr "Proveïdor OAuth2"
 
@@ -8123,7 +8139,7 @@ msgstr "Clau d'objecte: {segment}"
 msgid "Oblique"
 msgstr "Oblic"
 
-#: src/components/settings/Integrations.tsx:1843
+#: src/components/settings/Integrations.tsx:1884
 msgid "Obtain this using the OAuth2 playground or your own OAuth flow"
 msgstr "Obteniu-ho utilitzant el OAuth2 playground o el vostre propi flux OAuth"
 
@@ -8155,6 +8171,10 @@ msgstr "Una vegada"
 #: src/components/automations/config/TriggerConfigForm.tsx:332
 msgid "Once per contact"
 msgstr "Una vegada per contacte"
+
+#: src/components/settings/WebhookCard.tsx:265
+msgid "Only a workspace owner can view or rotate the signing secret"
+msgstr ""
 
 #: src/components/broadcasts/BroadcastLinkStats.tsx:186
 #~ msgid "Only clicks recorded since per-link tracking was enabled appear here; earlier clicks are still included in the Clicks total above."
@@ -8407,6 +8427,10 @@ msgstr ""
 msgid "Password"
 msgstr "Contrasenya"
 
+#: src/components/settings/Integrations.tsx:1909
+msgid "Password (optional)"
+msgstr ""
+
 #: src/components/settings/WebAnalyticsSettings.tsx:401
 msgid "Paste this snippet before the closing </head> tag of your website."
 msgstr ""
@@ -8558,7 +8582,7 @@ msgstr "Opcions de reproducció"
 msgid "Please add at least one author"
 msgstr "Si us plau, afegiu com a mínim un autor"
 
-#: src/components/settings/Integrations.tsx:1026
+#: src/components/settings/Integrations.tsx:1041
 msgid "Please add at least one sender before saving"
 msgstr "Si us plau, afegiu com a mínim un remitent abans de desar"
 
@@ -8803,7 +8827,7 @@ msgstr "Si us plau, seleccioneu un tipus d'esdeveniment"
 msgid "Please select an MJML file"
 msgstr "Si us plau, seleccioneu un fitxer MJML"
 
-#: src/components/settings/Integrations.tsx:1740
+#: src/components/settings/Integrations.tsx:1762
 msgid "Please select an OAuth2 provider"
 msgstr "Si us plau, seleccioneu un proveïdor OAuth2"
 
@@ -8876,7 +8900,7 @@ msgstr "Publicació actualitzada correctament"
 msgid "Postcode"
 msgstr "Codi postal"
 
-#: src/components/settings/Integrations.tsx:1928
+#: src/components/settings/Integrations.tsx:1969
 msgid "Postmark Message Stream ID (e.g. \"outbound\" for transactional, \"broadcast\" for marketing)"
 msgstr ""
 
@@ -9175,11 +9199,11 @@ msgstr "Enviar"
 msgid "Queued emails will not be sent. In-flight sends will complete."
 msgstr ""
 
-#: src/components/settings/Integrations.tsx:2303
+#: src/components/settings/Integrations.tsx:2344
 msgid "Rate Limit for Marketing"
 msgstr "Límit de velocitat per a màrqueting"
 
-#: src/components/settings/Integrations.tsx:1987
+#: src/components/settings/Integrations.tsx:2028
 msgid "Rate limit for marketing emails (emails per minute)"
 msgstr "Límit de velocitat per a correus de màrqueting (correus per minut)"
 
@@ -9361,16 +9385,16 @@ msgstr "Actualitzar la llista"
 msgid "Refreshing contact data..."
 msgstr "Actualitzant dades del contacte..."
 
-#: src/components/settings/WebhookCard.tsx:281
+#: src/components/settings/WebhookCard.tsx:286
 msgid "Regenerate"
 msgstr "Regenerar"
 
-#: src/components/settings/WebhookCard.tsx:275
+#: src/components/settings/WebhookCard.tsx:280
 msgid "Regenerate secret?"
 msgstr "Regenerar secret?"
 
-#: src/components/settings/Integrations.tsx:1943
-#: src/components/settings/Integrations.tsx:2283
+#: src/components/settings/Integrations.tsx:1984
+#: src/components/settings/Integrations.tsx:2324
 msgid "Region"
 msgstr "Regió"
 
@@ -9391,7 +9415,7 @@ msgstr "Registrar webhooks?"
 msgid "Regular expression"
 msgstr ""
 
-#: src/components/settings/Integrations.tsx:1441
+#: src/components/settings/Integrations.tsx:1463
 msgid "Reject Disposable Email"
 msgstr "Rebutjar correu d'un sol ús"
 
@@ -9513,16 +9537,16 @@ msgstr "Respondre a"
 msgid "Report An Issue"
 msgstr "Informar d'un problema"
 
-#: src/components/settings/Integrations.tsx:2250
+#: src/components/settings/Integrations.tsx:2291
 msgid "Reputation"
 msgstr ""
 
-#: src/components/settings/Integrations.tsx:1006
+#: src/components/settings/Integrations.tsx:1021
 msgid "Reputation isolation is active for this integration"
 msgstr ""
 
 #. placeholder {0}: result.unverified_senders.join(', ')
-#: src/components/settings/Integrations.tsx:1003
+#: src/components/settings/Integrations.tsx:1018
 msgid "Reputation isolation is on. These senders have no verified identity and will fail to send: {0}"
 msgstr ""
 
@@ -9801,10 +9825,10 @@ msgstr "Percentatge de mostra"
 msgid "Sample values"
 msgstr "Valors de mostra"
 
-#: src/components/settings/Integrations.tsx:1907
-#: src/components/settings/Integrations.tsx:1971
-#: src/components/settings/Integrations.tsx:2274
-#: src/components/settings/Integrations.tsx:2295
+#: src/components/settings/Integrations.tsx:1948
+#: src/components/settings/Integrations.tsx:2012
+#: src/components/settings/Integrations.tsx:2315
+#: src/components/settings/Integrations.tsx:2336
 msgid "Sandbox Mode"
 msgstr "Mode de caixa de proves"
 
@@ -9822,11 +9846,11 @@ msgstr "Mode de caixa de proves"
 #: src/components/file_manager/buttonSettings.tsx:312
 #: src/components/lists/ListDrawer.tsx:170
 #: src/components/settings/CustomFieldsConfiguration.tsx:293
-#: src/components/settings/Integrations.tsx:2355
-#: src/components/settings/Integrations.tsx:2478
-#: src/components/settings/Integrations.tsx:2565
-#: src/components/settings/Integrations.tsx:2613
-#: src/components/settings/Integrations.tsx:2660
+#: src/components/settings/Integrations.tsx:2396
+#: src/components/settings/Integrations.tsx:2519
+#: src/components/settings/Integrations.tsx:2606
+#: src/components/settings/Integrations.tsx:2654
+#: src/components/settings/Integrations.tsx:2701
 #: src/components/settings/SystemSettingsDrawer.tsx:239
 #: src/components/settings/WebhooksSettings.tsx:215
 #: src/components/templates/CreateTemplateDrawer.tsx:640
@@ -9973,12 +9997,13 @@ msgstr "Cercant: \"{0}\""
 msgid "Second value must be greater than first value"
 msgstr "El segon valor ha de ser més gran que el primer valor"
 
-#: src/components/settings/WebhookCard.tsx:288
+#: src/components/settings/WebhookCard.tsx:293
 msgid "Secret"
 msgstr "Secret"
 
-#: src/components/settings/Integrations.tsx:1679
-#: src/components/settings/Integrations.tsx:1963
+#: src/components/settings/Integrations.tsx:1701
+#: src/components/settings/Integrations.tsx:2004
+#: src/components/settings/Integrations.tsx:2007
 msgid "Secret Key"
 msgstr "Clau secreta"
 
@@ -10122,7 +10147,7 @@ msgstr "Seleccionar tot"
 msgid "Select an email integration"
 msgstr "Seleccioneu una integració de correu"
 
-#: src/components/settings/WebhookCard.tsx:395
+#: src/components/settings/WebhookCard.tsx:401
 msgid "Select an event type"
 msgstr "Seleccioneu un tipus d'esdeveniment"
 
@@ -10138,7 +10163,7 @@ msgstr ""
 msgid "Select Avatar"
 msgstr "Seleccionar avatar"
 
-#: src/components/settings/Integrations.tsx:1615
+#: src/components/settings/Integrations.tsx:1637
 msgid "Select AWS Region"
 msgstr "Seleccionar regió AWS"
 
@@ -10195,7 +10220,7 @@ msgstr "Seleccionar plantilla de correu..."
 msgid "Select event"
 msgstr "Seleccionar esdeveniment"
 
-#: src/components/settings/WebhookCard.tsx:389
+#: src/components/settings/WebhookCard.tsx:395
 msgid "Select event type to test:"
 msgstr "Seleccioneu el tipus d'esdeveniment per provar:"
 
@@ -10253,7 +10278,7 @@ msgstr "Seleccionar llistes (opcional)"
 msgid "Select lists to add contacts to"
 msgstr "Seleccionar llistes per afegir contactes"
 
-#: src/components/settings/Integrations.tsx:1742
+#: src/components/settings/Integrations.tsx:1764
 msgid "Select OAuth2 Provider"
 msgstr "Seleccionar proveïdor OAuth2"
 
@@ -10404,11 +10429,11 @@ msgid "Send or Schedule Broadcast"
 msgstr "Enviar o programar difusió"
 
 #: src/components/settings/WebhookCard.tsx:214
-#: src/components/settings/WebhookCard.tsx:355
+#: src/components/settings/WebhookCard.tsx:361
 msgid "Send Test"
 msgstr "Enviar prova"
 
-#: src/components/settings/Integrations.tsx:2519
+#: src/components/settings/Integrations.tsx:2560
 #: src/components/templates/SendTemplateModal.tsx:263
 #: src/components/templates/SendTemplateModal.tsx:277
 #: src/pages/BroadcastsPage.tsx:887
@@ -10432,7 +10457,7 @@ msgid "Sender Name"
 msgstr "Nom del remitent"
 
 #: src/components/settings/Integrations.tsx:378
-#: src/components/settings/Integrations.tsx:2166
+#: src/components/settings/Integrations.tsx:2207
 msgid "Senders"
 msgstr "Remitents"
 
@@ -10444,7 +10469,7 @@ msgstr ""
 msgid "Sending emails..."
 msgstr "Enviant correus..."
 
-#: src/components/settings/WebhookCard.tsx:385
+#: src/components/settings/WebhookCard.tsx:391
 msgid "Sending test webhook..."
 msgstr "Enviant webhook de prova..."
 
@@ -10505,15 +10530,16 @@ msgstr ""
 msgid "Server restarted successfully! You can now sign in."
 msgstr "Servidor reiniciat correctament! Ara podeu iniciar sessió."
 
-#: src/components/settings/Integrations.tsx:1919
+#: src/components/settings/Integrations.tsx:1960
+#: src/components/settings/Integrations.tsx:1963
 msgid "Server Token"
 msgstr "Token del servidor"
 
-#: src/components/settings/Integrations.tsx:2050
+#: src/components/settings/Integrations.tsx:2091
 msgid "SES tenant"
 msgstr ""
 
-#: src/components/settings/Integrations.tsx:2010
+#: src/components/settings/Integrations.tsx:2051
 msgid "SES tenant isolation"
 msgstr ""
 
@@ -10552,15 +10578,15 @@ msgstr ""
 msgid "Sessions with less engaged time than this count as bounces."
 msgstr ""
 
-#: src/components/settings/Integrations.tsx:657
+#: src/components/settings/Integrations.tsx:667
 msgid "Set as default marketing email provider"
 msgstr "Establir com a proveïdor de correu de màrqueting predeterminat"
 
-#: src/components/settings/Integrations.tsx:2136
+#: src/components/settings/Integrations.tsx:2177
 msgid "Set as default sender"
 msgstr "Establir com a remitent predeterminat"
 
-#: src/components/settings/Integrations.tsx:657
+#: src/components/settings/Integrations.tsx:667
 msgid "Set as default transactional email provider"
 msgstr "Establir com a proveïdor de correu transaccional predeterminat"
 
@@ -10694,11 +10720,11 @@ msgstr "Configuració completada!"
 msgid "Share link"
 msgstr ""
 
-#: src/components/settings/Integrations.tsx:2265
+#: src/components/settings/Integrations.tsx:2306
 msgid "shared with the rest of this AWS account"
 msgstr ""
 
-#: src/components/settings/WebhookCard.tsx:269
+#: src/components/settings/WebhookCard.tsx:274
 msgid "Show"
 msgstr "Mostrar"
 
@@ -10831,8 +10857,8 @@ msgstr ""
 msgid "SMTP domain"
 msgstr "Domini SMTP"
 
-#: src/components/settings/Integrations.tsx:1688
-#: src/components/settings/Integrations.tsx:2200
+#: src/components/settings/Integrations.tsx:1710
+#: src/components/settings/Integrations.tsx:2241
 #: src/components/settings/SystemSettingsDrawer.tsx:316
 #: src/pages/SetupWizard.tsx:454
 msgid "SMTP Host"
@@ -10842,7 +10868,7 @@ msgstr "Amfitrió SMTP"
 msgid "SMTP host is required"
 msgstr "L'amfitrió SMTP és obligatori"
 
-#: src/components/settings/Integrations.tsx:1867
+#: src/components/settings/Integrations.tsx:1908
 #: src/components/settings/SystemSettingsDrawer.tsx:384
 #: src/pages/SetupWizard.tsx:495
 msgid "SMTP Password"
@@ -10852,7 +10878,7 @@ msgstr "Contrasenya SMTP"
 msgid "SMTP port"
 msgstr "Port SMTP"
 
-#: src/components/settings/Integrations.tsx:1695
+#: src/components/settings/Integrations.tsx:1717
 #: src/components/settings/SystemSettingsDrawer.tsx:329
 #: src/pages/SetupWizard.tsx:463
 msgid "SMTP Port"
@@ -10874,11 +10900,11 @@ msgstr "El proveïdor SMTP no suporta webhooks de queixes, per tant les queixes 
 msgid "SMTP provider doesn't support delivery webhooks, so delivery status cannot be tracked"
 msgstr "El proveïdor SMTP no suporta webhooks de lliurament, per tant l'estat de lliurament no es pot rastrejar"
 
-#: src/components/settings/Integrations.tsx:2203
+#: src/components/settings/Integrations.tsx:2244
 msgid "SMTP User"
 msgstr "Usuari SMTP"
 
-#: src/components/settings/Integrations.tsx:1862
+#: src/components/settings/Integrations.tsx:1903
 #: src/components/settings/SystemSettingsDrawer.tsx:371
 #: src/pages/SetupWizard.tsx:490
 msgid "SMTP Username"
@@ -10961,7 +10987,7 @@ msgstr "Espai"
 msgid "Spacer Attributes"
 msgstr "Atributs d'espaiador"
 
-#: src/components/settings/Integrations.tsx:1901
+#: src/components/settings/Integrations.tsx:1942
 msgid "SparkPost API Key"
 msgstr "Clau API de SparkPost"
 
@@ -11198,7 +11224,7 @@ msgstr "Estat de subscripció actualitzat correctament"
 msgid "Success"
 msgstr "Èxit"
 
-#: src/components/settings/WebhookCard.tsx:315
+#: src/components/settings/WebhookCard.tsx:321
 msgid "Success Rate"
 msgstr "Taxa d'èxit"
 
@@ -11220,7 +11246,7 @@ msgstr "Sessió iniciada correctament"
 msgid "Summary-only feed"
 msgstr ""
 
-#: src/components/settings/Integrations.tsx:836
+#: src/components/settings/Integrations.tsx:850
 msgid "Supabase integration saved successfully"
 msgstr "Integració de Supabase desada correctament"
 
@@ -11411,7 +11437,7 @@ msgstr "Plantilla:"
 msgid "Templates"
 msgstr "Plantilles"
 
-#: src/components/settings/Integrations.tsx:2148
+#: src/components/settings/Integrations.tsx:2189
 msgid "Templates using this sender will need to be updated to use a different sender."
 msgstr "Les plantilles que utilitzen aquest remitent hauran de ser actualitzades per utilitzar un remitent diferent."
 
@@ -11421,13 +11447,13 @@ msgid "Templating markup allowed"
 msgstr "Marcatge de plantilles permès"
 
 #. placeholder {0}: result.tenant_name
-#: src/components/settings/Integrations.tsx:994
+#: src/components/settings/Integrations.tsx:1009
 msgid "Tenant {0} exists in AWS but could not be saved here. Save again to finish — you are already being billed for it."
 msgstr ""
 
 #. placeholder {0}: result.tenant_name
 #. placeholder {1}: (result.missing_permissions ?? []).join(', ') || 'none reported'
-#: src/components/settings/Integrations.tsx:999
+#: src/components/settings/Integrations.tsx:1014
 msgid "Tenant {0} was created but its configuration set is not associated, so it is not in use yet. Missing permissions: {1}"
 msgstr ""
 
@@ -11469,11 +11495,11 @@ msgstr "Dades de prova actualitzades correctament"
 msgid "Test duration (hours)"
 msgstr "Durada de la prova (hores)"
 
-#: src/components/settings/Integrations.tsx:2505
+#: src/components/settings/Integrations.tsx:2546
 msgid "Test Email Provider"
 msgstr "Provar proveïdor de correu"
 
-#: src/components/settings/Integrations.tsx:1139
+#: src/components/settings/Integrations.tsx:1155
 #: src/components/templates/SendTemplateModal.tsx:137
 msgid "Test email sent successfully"
 msgstr "Correu de prova enviat correctament"
@@ -11491,7 +11517,7 @@ msgstr "Test fallat: {0}"
 msgid "Test in different email clients as support varies"
 msgstr "Proveu en diferents clients de correu ja que el suport varia"
 
-#: src/components/settings/Integrations.tsx:2353
+#: src/components/settings/Integrations.tsx:2394
 msgid "Test Integration"
 msgstr "Provar integració"
 
@@ -11512,7 +11538,7 @@ msgid "Test Variants"
 msgstr "Variants de prova"
 
 #: src/components/settings/WebhookCard.tsx:212
-#: src/components/settings/WebhookCard.tsx:340
+#: src/components/settings/WebhookCard.tsx:346
 msgid "Test Webhook"
 msgstr "Provar webhook"
 
@@ -11636,7 +11662,7 @@ msgstr ""
 msgid "The currently published theme will be unpublished automatically."
 msgstr "El tema publicat actualment es despublicarà automàticament."
 
-#: src/components/settings/Integrations.tsx:1756
+#: src/components/settings/Integrations.tsx:1778
 msgid "The email address that will be used as the SMTP user for authentication"
 msgstr "L'adreça de correu que s'utilitzarà com a usuari SMTP per a l'autenticació"
 
@@ -11660,7 +11686,7 @@ msgstr "S'han trobat els següents errors de validació a la vostra importació:
 msgid "The generated email has issues that prevent it from rendering:"
 msgstr ""
 
-#: src/components/settings/Integrations.tsx:1878
+#: src/components/settings/Integrations.tsx:1919
 #: src/pages/SetupWizard.tsx:524
 msgid "The hostname your server identifies itself as when connecting to the SMTP server. Defaults to the SMTP host value if empty."
 msgstr ""
@@ -11745,7 +11771,7 @@ msgstr "Tema actualitzat correctament"
 msgid "Theme Versions"
 msgstr "Versions del tema"
 
-#: src/components/settings/Integrations.tsx:2091
+#: src/components/settings/Integrations.tsx:2132
 msgid "These AWS credentials can't list tenants or configuration sets (needs ses:ListTenants). Type the names instead."
 msgstr ""
 
@@ -11774,9 +11800,9 @@ msgstr ""
 #: src/components/contacts/DeleteContactModal.tsx:54
 #: src/components/settings/DeleteWorkspace.tsx:45
 #: src/components/settings/Integrations.tsx:351
-#: src/components/settings/Integrations.tsx:1324
-#: src/components/settings/Integrations.tsx:1483
-#: src/components/settings/Integrations.tsx:1552
+#: src/components/settings/Integrations.tsx:1346
+#: src/components/settings/Integrations.tsx:1505
+#: src/components/settings/Integrations.tsx:1574
 #: src/components/settings/WebhookCard.tsx:234
 msgid "This action cannot be undone."
 msgstr "Aquesta acció no es pot desfer."
@@ -11915,7 +11941,7 @@ msgstr "Aquest token només es mostrarà una vegada. Si us plau, deseu-lo en una
 msgid "This week"
 msgstr ""
 
-#: src/components/settings/WebhookCard.tsx:276
+#: src/components/settings/WebhookCard.tsx:281
 msgid "This will invalidate the current secret. You'll need to update your webhook receiver."
 msgstr "Això invalidarà el secret actual. Haureu d'actualitzar el vostre receptor de webhook."
 
@@ -11940,7 +11966,7 @@ msgstr "Això registrarà o actualitzarà els punts finals de webhook per a aque
 msgid "This will replace all content with the default language template. Continue?"
 msgstr ""
 
-#: src/components/settings/Integrations.tsx:2531
+#: src/components/settings/Integrations.tsx:2572
 msgid "This will send a real test email to the address provided."
 msgstr "Això enviarà un correu de prova real a l'adreça proporcionada."
 
@@ -12078,7 +12104,7 @@ msgstr "Certificat TLS (Base64)"
 msgid "TLS certificate is required"
 msgstr "El certificat TLS és obligatori"
 
-#: src/components/settings/Integrations.tsx:2206
+#: src/components/settings/Integrations.tsx:2247
 msgid "TLS Enabled"
 msgstr "TLS habilitat"
 
@@ -12125,7 +12151,7 @@ msgstr "Canvieu entre les vistes mòbil i escriptori per veure com es mostra el 
 msgid "Toggle caption"
 msgstr "Alternar llegenda"
 
-#: src/components/settings/Integrations.tsx:1577
+#: src/components/settings/Integrations.tsx:1599
 msgid "Tools"
 msgstr "Eines"
 
@@ -12306,7 +12332,7 @@ msgstr "Convertir en"
 msgid "Turn Into"
 msgstr "Convertir en"
 
-#: src/components/settings/Integrations.tsx:2069
+#: src/components/settings/Integrations.tsx:2110
 msgid "Turn off SES tenant isolation to use your own tenant, or clear this field."
 msgstr ""
 
@@ -12509,8 +12535,8 @@ msgstr "Baixes"
 msgid "Untitled"
 msgstr "Sense títol"
 
-#: src/components/settings/Integrations.tsx:2031
-#: src/components/settings/Integrations.tsx:2058
+#: src/components/settings/Integrations.tsx:2072
+#: src/components/settings/Integrations.tsx:2099
 msgid "Up to 64 letters, numbers, hyphens or underscores."
 msgstr ""
 
@@ -12636,7 +12662,7 @@ msgstr "Utilitzar"
 msgid "Use a different email"
 msgstr "Utilitzar un altre correu"
 
-#: src/components/settings/Integrations.tsx:2054
+#: src/components/settings/Integrations.tsx:2095
 msgid "Use a tenant you manage yourself. Requires a configuration set associated with it in AWS."
 msgstr ""
 
@@ -12684,7 +12710,7 @@ msgstr "Utilitzeu aquesta comanda curl per enviar una notificació transaccional
 msgid "Use This Theme"
 msgstr "Utilitzar aquest tema"
 
-#: src/components/settings/Integrations.tsx:1706
+#: src/components/settings/Integrations.tsx:1728
 #: src/components/settings/SystemSettingsDrawer.tsx:354
 #: src/pages/SetupWizard.tsx:480
 msgid "Use TLS"
@@ -12721,7 +12747,7 @@ msgstr "Hook d'usuari creat"
 msgid "User Created Hook Secret"
 msgstr "Secret del hook d'usuari creat"
 
-#: src/components/settings/Integrations.tsx:1433
+#: src/components/settings/Integrations.tsx:1455
 msgid "User Metadata Field"
 msgstr "Camp de metadades d'usuari"
 
@@ -12995,13 +13021,13 @@ msgstr "Webhook deshabilitat"
 msgid "Webhook enabled"
 msgstr "Webhook habilitat"
 
-#: src/components/settings/Integrations.tsx:1366
-#: src/components/settings/Integrations.tsx:1403
+#: src/components/settings/Integrations.tsx:1388
+#: src/components/settings/Integrations.tsx:1425
 msgid "Webhook endpoint copied to clipboard"
 msgstr "Punt final del webhook copiat al porta-retalls"
 
-#: src/components/settings/Integrations.tsx:1352
-#: src/components/settings/Integrations.tsx:1389
+#: src/components/settings/Integrations.tsx:1374
+#: src/components/settings/Integrations.tsx:1411
 msgid "Webhook endpoint:"
 msgstr "Punt final del webhook:"
 
@@ -13281,12 +13307,12 @@ msgstr ""
 #: src/components/settings/Integrations.tsx:353
 #: src/components/settings/Integrations.tsx:429
 #: src/components/settings/Integrations.tsx:448
-#: src/components/settings/Integrations.tsx:1326
-#: src/components/settings/Integrations.tsx:1485
-#: src/components/settings/Integrations.tsx:1554
+#: src/components/settings/Integrations.tsx:1348
+#: src/components/settings/Integrations.tsx:1507
+#: src/components/settings/Integrations.tsx:1576
 #: src/components/settings/WebhookCard.tsx:192
 #: src/components/settings/WebhookCard.tsx:236
-#: src/components/settings/WebhookCard.tsx:278
+#: src/components/settings/WebhookCard.tsx:283
 #: src/components/settings/WorkspaceMembers.tsx:194
 #: src/components/settings/WorkspaceMembers.tsx:214
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:153
@@ -13429,7 +13455,7 @@ msgstr "Esteu continuant una sessió de càrrega anterior de \"{fileName}\". La 
 msgid "You've been invited to join"
 msgstr "Heu estat convidat a unir-vos"
 
-#: src/components/settings/Integrations.tsx:1011
+#: src/components/settings/Integrations.tsx:1026
 msgid "Your AWS credentials cannot create SES tenants. Grant ses:CreateTenant and ses:CreateTenantResourceAssociation, then save again."
 msgstr ""
 

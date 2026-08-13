@@ -40,6 +40,36 @@ func (s *WebhookSubscriptionService) authorize(ctx context.Context, workspaceID 
 	return ctx, nil
 }
 
+// redactSecret blanks a subscription's signing secret for a non-owner.
+//
+// In place, on the objects the repository just built: they are freshly scanned
+// per call and shared with nothing, so there is no cached instance to corrupt.
+func redactSecret(sub *domain.WebhookSubscription, isOwner bool) {
+	if sub != nil && !isOwner {
+		sub.Secret = ""
+	}
+}
+
+// authorizeOwner is authorize plus the role check, for the operations that
+// involve a signing secret.
+//
+// A webhook secret is a key, not ordinary workspace data: whoever holds one can
+// forge payloads the customer's downstream consumer will accept as genuine. That
+// puts it with integrations and API keys, which are already owner-only
+// (workspace_service.go:324, 457, 778), rather than under the read/write
+// permission model used for contacts or lists.
+func (s *WebhookSubscriptionService) authorizeOwner(ctx context.Context, workspaceID string) (context.Context, bool, error) {
+	ctx, user, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	if err != nil {
+		return ctx, false, fmt.Errorf("failed to authenticate user: %w", err)
+	}
+	if userWorkspace == nil {
+		return ctx, false, fmt.Errorf("failed to authenticate user: no workspace membership")
+	}
+	_ = user
+	return ctx, userWorkspace.Role == "owner", nil
+}
+
 // WebhookSubscriptionService handles webhook subscription business logic
 type WebhookSubscriptionService struct {
 	repo         domain.WebhookSubscriptionRepository
@@ -186,30 +216,32 @@ func (s *WebhookSubscriptionService) Create(ctx context.Context, workspaceID str
 
 // GetByID retrieves a webhook subscription by ID
 func (s *WebhookSubscriptionService) GetByID(ctx context.Context, workspaceID, id string) (*domain.WebhookSubscription, error) {
-	if authCtx, err := s.authorize(ctx, workspaceID); err != nil {
+	ctx, isOwner, err := s.authorizeOwner(ctx, workspaceID)
+	if err != nil {
 		return nil, err
-	} else {
-		ctx = authCtx
 	}
 
 	sub, err := s.repo.GetByID(ctx, workspaceID, id)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get webhook subscription: %w", err)
 	}
+	redactSecret(sub, isOwner)
 	return sub, nil
 }
 
 // List retrieves all webhook subscriptions for a workspace
 func (s *WebhookSubscriptionService) List(ctx context.Context, workspaceID string) ([]*domain.WebhookSubscription, error) {
-	if authCtx, err := s.authorize(ctx, workspaceID); err != nil {
+	ctx, isOwner, err := s.authorizeOwner(ctx, workspaceID)
+	if err != nil {
 		return nil, err
-	} else {
-		ctx = authCtx
 	}
 
 	subs, err := s.repo.List(ctx, workspaceID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list webhook subscriptions: %w", err)
+	}
+	for _, sub := range subs {
+		redactSecret(sub, isOwner)
 	}
 	return subs, nil
 }
@@ -314,10 +346,14 @@ func (s *WebhookSubscriptionService) Toggle(ctx context.Context, workspaceID, id
 
 // RegenerateSecret generates a new secret for a webhook subscription
 func (s *WebhookSubscriptionService) RegenerateSecret(ctx context.Context, workspaceID, id string) (*domain.WebhookSubscription, error) {
-	if authCtx, err := s.authorize(ctx, workspaceID); err != nil {
+	ctx, isOwner, err := s.authorizeOwner(ctx, workspaceID)
+	if err != nil {
 		return nil, err
-	} else {
-		ctx = authCtx
+	}
+	// Gating the read alone would be theatre: a member could rotate a secret to
+	// learn it — and in doing so break the customer's live integration.
+	if !isOwner {
+		return nil, &domain.ErrUnauthorized{Message: "only a workspace owner may regenerate a webhook secret"}
 	}
 
 	// Get existing subscription
