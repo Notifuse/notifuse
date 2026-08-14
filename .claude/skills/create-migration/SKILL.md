@@ -69,6 +69,21 @@ func init() {
 ## Safety rules
 
 - **Idempotent**: use `IF NOT EXISTS` / `ADD COLUMN IF NOT EXISTS` so migrations can run more than once safely.
+- **Never amend an already-shipped `vN.go` to fix a database at N.** "Runs more than once safely" is
+  true of the SQL and false of the dispatcher: the manager selects
+  `migrationVersion > currentDBVersion` (`internal/migrations/manager.go:151`) and records only the
+  major integer. So editing `vN.go` reaches fresh installs and every database *below* N, and **never**
+  the databases already at N — which are exactly the ones a fix is usually for. It fails silently:
+  no error, no skipped-migration log, just a step that never runs where it was needed.
+  The fix is always a new major: bump `config/config.go` VERSION and add `vN+1.go`.
+- **A new table must be added in TWO places.** The migration `vN.go` is what existing databases run;
+  `internal/database/schema/*_tables.go` is what a *fresh install* runs. Write only the migration and
+  every new install lacks the table; write only the schema file and every upgrade lacks it. Neither
+  mistake fails at boot — it surfaces later as a missing-relation error on whichever population you
+  did not cover. Keep the two SQL texts byte-identical so they cannot drift.
+- **Statements that resolve a table via `::regclass` must run after that table exists.** A guard like
+  `conrelid = 'my_table'::regclass` is evaluated when the statement is planned, so placing it before
+  the `CREATE TABLE` in the same list throws `relation does not exist` rather than skipping politely.
 - **Transactional**: each migration runs in a transaction; failures roll back automatically.
 - **Backward compatible**: new columns get defaults so existing data keeps working.
 - Keep each migration focused on a single schema change; test against a copy of production data when feasible.

@@ -1,7 +1,9 @@
 services:
   postgres-test:
-    # Deliberately the oldest supported PostgreSQL (17 = the AlloyDB Omni
-    # floor): tests guard the compatibility floor while compose.yaml ships 18.
+    # Deliberately the oldest supported PostgreSQL: 17 is the compatibility
+    # floor, set by AlloyDB Omni. All DDL must stay valid here even if the
+    # shipped compose file ever moves ahead (see the pin rationale in
+    # compose.yaml, which stays on 17 for upgrade-safety reasons of its own).
     image: postgres:17
     command:
       - 'postgres'

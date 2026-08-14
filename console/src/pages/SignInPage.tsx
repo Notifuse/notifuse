@@ -7,8 +7,10 @@ import { SignInRequest, VerifyCodeRequest } from '../services/api/types'
 import { MainLayout } from '../layouts/MainLayout'
 import { useLingui } from '@lingui/react/macro'
 
-// mapOidcError translates a backend OIDC error code (the fixed enum emitted by the
-// callback handler) into a localized message. Kept in sync with §4.5 of the plan.
+// mapOidcError translates a backend OIDC error code into a localized message. The
+// code set is a fixed enum — never a raw IdP error — produced by mapCallbackError in
+// internal/http/oidc_handler.go. A new case there needs a new case here, or the user
+// gets the generic fallback.
 function mapOidcError(code: string, t: (s: TemplateStringsArray) => string): string {
   switch (code) {
     case 'not_provisioned':

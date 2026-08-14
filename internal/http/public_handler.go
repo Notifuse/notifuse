@@ -641,7 +641,14 @@ func parseInt(val string) (int, error) {
 	return result, err
 }
 
-// getClientIP extracts the client IP from the request, checking X-Forwarded-For first
+// getClientIP extracts the client IP from the request, checking X-Forwarded-For first.
+//
+// The header is taken as presented, so the value is client-supplied unless a trusted
+// proxy in front of the app overwrites it. Anything keyed on this IP — the rate
+// limiters above all are — is therefore only as strong as the deployment's proxy
+// configuration, and must never be the only thing standing between an attacker and a
+// guessable secret. Where a limit here is the sole control, the secret itself needs
+// enough entropy and a short enough life to survive without it.
 func getClientIP(r *http.Request) string {
 	// Check X-Forwarded-For header (if behind proxy)
 	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {

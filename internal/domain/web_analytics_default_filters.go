@@ -11,6 +11,11 @@ import (
 // call generates fresh rule ids so every workspace owns unique identifiers, and
 // stamps the computed version hash on every rule.
 //
+// Changing this set needs NO migration and no hash update: FiltersVersion is
+// always recomputed, never stored as a literal, and existing workspaces keep the
+// rules already in their settings — defaults are seeded only at workspace
+// creation. So an edit here changes what NEW workspaces start with, nothing else.
+//
 // Every rule matching on utm_id_from must correspond to an id the browser SDK
 // actually captures, and vice versa. The two lists live in different languages
 // and different CI workflows; web_analytics_clickid_contract_test.go is what

@@ -1,6 +1,9 @@
 # Notifuse — Project Instructions
 
-Self-hosted email marketing platform. Go backend (Clean Architecture, stdlib `http.ServeMux`, PostgreSQL 17) + React frontends (`console/` admin app, `notification_center/` embeddable widget). Dependency and version details live in `go.mod`, `console/package.json`, and `notification_center/package.json` — read those rather than trusting any list here.
+Self-hosted email marketing platform. Go backend (Clean Architecture, stdlib `http.ServeMux`, PostgreSQL 17) + React frontends (`console/` admin app, `notification_center/` embeddable widget).
+
+**User-facing documentation lives in a separate git repository**, `../docs` (Mintlify). Doc edits never
+show up in this repo's `git status` and ship as their own PR — easy to write and then forget to commit. Dependency and version details live in `go.mod`, `console/package.json`, and `notification_center/package.json` — read those rather than trusting any list here.
 
 ## Architecture
 
@@ -21,6 +24,12 @@ One system database plus one database per workspace; a schema change can touch e
 - Version format is `vMAJOR.minor`: bump MAJOR for database schema changes, minor for everything else. The code version lives in `config/config.go` (`VERSION`).
 - Each migration implements `MajorMigrationInterface`, registers itself via `init()`, and declares whether it updates the system DB, workspace DBs, or both. Migrations run automatically on startup.
 - Migrations must be idempotent (`IF NOT EXISTS`), run in transactions, preserve existing data via defaults, and be documented in `CHANGELOG.md`.
+- **Never amend a shipped `vN.go` to fix databases already at N.** The dispatcher selects
+  `migrationVersion > currentDBVersion`, so an amended `vN.go` reaches fresh installs and databases
+  below N and never those at N — silently. Always a new major.
+- **Changelog**: a defect in code that never shipped gets **no `Fix` bullet** — fold it into the
+  unreleased version's feature bullet. Only fixes to already-released behaviour get their own `Fix`
+  line; otherwise the entry describes a version nobody ran.
 - Full step-by-step walkthrough and example: use the `create-migration` skill.
 
 ## API conventions
@@ -51,6 +60,10 @@ GET  /api/contact.list
 - Backend test commands are defined in the `Makefile` — per-layer targets (`make test-domain`, `test-service`, `test-repo`, `test-http`, `test-migrations`, …), `make test-unit`, `make test-integration`, `make coverage`. Check the Makefile for the current list.
 - Frontend: `cd console && npm test`.
 - Every touched backend file needs corresponding unit tests in its layer; new features also need integration tests exercising the full stack.
+- **Never state a count in a test name or comment unless an assertion pins it.** A prose "39 rules"
+  beside a `len(...)`-derived assertion rots without ever failing CI. Either `require.Len(t, x, 39)` or
+  count-agnostic wording — and a test that asserts against the very constant it protects
+  (`assert.Len(t, got, someConst)`) pins nothing at all.
 
 ## Plans directory
 

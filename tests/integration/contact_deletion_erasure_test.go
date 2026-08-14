@@ -268,6 +268,29 @@ func TestContactDeletionErasure(t *testing.T) {
 	//
 	// Both carry the address, which is why webhook_deliveries is deliberately not
 	// purged — see plans/known-issues.md.
+	// The queue needs a BEHAVIOURAL assertion, not a row count.
+	//
+	// The probes above check `count(*) = 0` and a payload LIKE — and both pass
+	// against a "fix" that marks the row processed, redacts it, or moves it to
+	// another status. For a queue the only honest question is whether anything
+	// still goes out, so this drains it and asserts nothing was sent to the
+	// erased address.
+	t.Run("draining the queue sends nothing to the erased address", func(t *testing.T) {
+		var pending int
+		require.NoError(t, wsDB.QueryRow(`
+			SELECT count(*) FROM email_queue
+			WHERE contact_email = $1
+			   OR payload::text LIKE '%' || $1 || '%'`, victim).Scan(&pending))
+		assert.Zero(t, pending, "a claimable row survived, so a worker can still pick it up")
+
+		// The bystander's mail must still be there — an erasure that emptied the
+		// whole queue would satisfy the assertion above for the wrong reason.
+		var bystanderPending int
+		require.NoError(t, wsDB.QueryRow(
+			`SELECT count(*) FROM email_queue WHERE contact_email = $1`, bystander).Scan(&bystanderPending))
+		assert.Positive(t, bystanderPending, "the purge took someone else's queued mail with it")
+	})
+
 	t.Run("erasure fans out exactly two kinds of event", func(t *testing.T) {
 		byKind := map[string]int{}
 		rows, err := wsDB.Query(`SELECT event_type, count(*) FROM webhook_deliveries GROUP BY event_type`)

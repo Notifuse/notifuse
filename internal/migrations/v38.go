@@ -68,6 +68,23 @@ func (m *V38Migration) UpdateSystem(ctx context.Context, cfg *config.Config, db 
 	return nil
 }
 
+// NOTE for anyone adding a column to the web analytics tables.
+//
+// `web_goals.goal_type` was added by amending schema.WebAnalyticsTableDefinitions()
+// with no migration file and no VERSION bump. That was correct here, and the
+// reasoning is narrow enough to be worth stating:
+//
+//   - This function and internal/database/init.go both iterate the SAME shared
+//     definitions, so amending them covers fresh installs and every database
+//     below 38.
+//   - Folding a step into this file would no-op on exactly the databases that
+//     need it — see the dispatcher note in .claude/skills/create-migration.
+//   - 38.0 was unreleased, so no customer database had run the pre-amendment DDL.
+//     Only local/preview/demo were at 38.0, and they were rebuilt by hand.
+//
+// The trick dies the moment a migration inlines its own DDL instead of iterating
+// the shared definitions — and no test catches that. If 38.0 has shipped by the
+// time you read this, the answer is a new major, not another amendment.
 func (m *V38Migration) UpdateWorkspace(ctx context.Context, cfg *config.Config, workspace *domain.Workspace, db DBExecutor) error {
 	for _, query := range schema.WebAnalyticsTableDefinitions() {
 		if _, err := db.ExecContext(ctx, query); err != nil {

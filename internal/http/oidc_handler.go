@@ -41,7 +41,10 @@ func NewOIDCHandler(
 		rateLimiter: rateLimiter,
 		logger:      log,
 		tracer:      tracing.GetTracer(),
-		isSecure:    strings.HasPrefix(cfg.APIEndpoint, "https://"),
+		// Decided from the CONFIGURED endpoint, not the request: behind a TLS-terminating
+		// proxy r.TLS is nil on every request, so asking the request would silently drop
+		// Secure (and the __Host- prefix with it) on exactly the deployments that need it.
+		isSecure: strings.HasPrefix(cfg.APIEndpoint, "https://"),
 	}
 }
 
@@ -53,7 +56,9 @@ func (h *OIDCHandler) RegisterRoutes(mux *http.ServeMux) {
 }
 
 // flowCookieName returns the __Host--prefixed name only over HTTPS; dev HTTP drops
-// the prefix (which mandates Secure) so the cookie still works on localhost.
+// the prefix (which mandates Secure) so the cookie still works on localhost. The
+// prefix is what binds the flow cookie to this exact origin — a browser refuses to
+// accept a __Host- cookie carrying a Domain, so no sibling subdomain can plant one.
 func (h *OIDCHandler) flowCookieName() string {
 	if h.isSecure {
 		return "__Host-oidc_flow"
@@ -185,6 +190,13 @@ func (h *OIDCHandler) Callback(w http.ResponseWriter, r *http.Request) {
 
 // Exchange trades the one-time code (in the POST body) for the AuthResponse JSON,
 // byte-identical to VerifyCode. No cookie is involved → works cross-origin.
+//
+// Handing the code back in an HttpOnly __Host- cookie instead looks stronger and was
+// the earlier design, but it only holds when the console and the API share an origin.
+// Split across origins it fails twice over: a SameSite=Lax cookie is not sent on a
+// cross-site POST, and the wildcard CORS origin this API serves cannot be combined
+// with credentialed requests. Hence the fragment: it never reaches a server log or a
+// Referer header, and the code it carries is single-use and short-lived.
 func (h *OIDCHandler) Exchange(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)

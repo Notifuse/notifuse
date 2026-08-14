@@ -124,6 +124,12 @@ interface GoalData {
      * What kind of conversion this is. Required: only your site knows whether a
      * goal is a purchase or a lead, and an untyped goal cannot be used by the
      * goal-based segment conditions. Use 'other' if none of the rest fit.
+     *
+     * Making this REQUIRED was a one-time, pre-release allowance — 38.0 had not
+     * tagged, so no trackGoal caller existed anywhere. Do not cite it as
+     * precedent: after release, adding a required field to a public SDK type
+     * breaks every customer's site on their next bundle refresh. A new field must
+     * be optional, with the server supplying the default.
      */
     type: GoalType;
     value?: number;

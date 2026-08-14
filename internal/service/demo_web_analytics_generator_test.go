@@ -284,6 +284,29 @@ func TestDemoWebAnalyticsGoals(t *testing.T) {
 		bySession[goal.SessionID][goal.GoalName] = goal
 	}
 
+	// Demo data is the one dataset where a missing goal type is invisible until a
+	// prospect tries the feature: an untyped goal makes the Custom Events Goal
+	// segment condition match nothing, precisely where the product is being shown.
+	// The other subtests here pin shape, value, timing and count — dropping the
+	// type would pass every one of them.
+	t.Run("every demo goal carries a real type", func(t *testing.T) {
+		require.NotEmpty(t, batch.Goals)
+		valid := map[string]bool{}
+		for _, t := range domain.ValidGoalTypes {
+			valid[t] = true
+		}
+		seen := map[string]bool{}
+		for _, goal := range batch.Goals {
+			require.NotEmpty(t, goal.GoalType, "goal %q is untyped", goal.GoalName)
+			require.True(t, valid[goal.GoalType],
+				"goal %q carries %q, which is not a type the segment conditions accept",
+				goal.GoalName, goal.GoalType)
+			seen[goal.GoalType] = true
+		}
+		assert.Contains(t, seen, domain.GoalTypePurchase,
+			"a demo with no purchase-typed goal cannot demonstrate revenue reporting")
+	})
+
 	t.Run("the funnel narrows", func(t *testing.T) {
 		require.NotZero(t, byName["add_to_cart"], "no conversions at all")
 		assert.Greater(t, byName["add_to_cart"], byName["checkout_start"])

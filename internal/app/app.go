@@ -575,8 +575,11 @@ func (a *App) InitServices() error {
 
 	// OIDC service (second session-minter alongside magic-code). Always constructed;
 	// IsEnabled() gates everything, and provider init is lazy + self-healing, so this
-	// is cheap even when OIDC is disabled. The exchange-code store is process-local
-	// (single-instance; multi-replica needs sticky sessions — see plan §6.D).
+	// is cheap even when OIDC is disabled. The exchange-code store is process-local:
+	// a code minted on one replica cannot be redeemed on another, so multi-replica
+	// deployments need sticky sessions until a DB-backed store replaces it.
+	// The argument is the background CLEANUP interval, not the code lifetime — each
+	// entry carries its own TTL from oidcExchangeTTL at Set time.
 	a.oidcExchangeCache = cache.NewInMemoryCache(30 * time.Second)
 	a.oidcService = service.NewOIDCService(service.OIDCServiceConfig{
 		UserRepo:              a.userRepo,

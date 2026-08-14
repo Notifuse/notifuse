@@ -1338,7 +1338,14 @@ func (qb *QueryBuilder) parseCustomEventsGoalConditionWithEmailRef(goal *domain.
 		conditions = append(conditions, fmt.Sprintf("ce.goal_type = $%d", argIndex))
 		argIndex++
 	} else {
-		// For wildcard, just ensure goal_type is set
+		// Wildcard: the row must carry a type. Deliberate, not lazy.
+		//
+		// Untyped rows are made matchable by stamping goal_type at WRITE time
+		// (web_analytics_contact_bridge.go), never by relaxing this predicate.
+		// Relaxing it would change SQL already frozen in segments.generated_sql and
+		// in installed automation trigger functions, so it needs a recompile
+		// migration (v36 and v37 are the precedent) — and it would bypass the
+		// partial index at database/init.go:367, which is WHERE goal_type IS NOT NULL.
 		conditions = append(conditions, "ce.goal_type IS NOT NULL")
 	}
 

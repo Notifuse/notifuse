@@ -369,6 +369,15 @@ export const LeafActionForm = (props: LeafFormProps) => {
                 // (web.pageview -> email.opened -> web.session). Clearing here
                 // is the only place that catches every path.
                 onChange={() => form.setFieldValue(['contact_timeline', 'filters'], [])}
+                // Closed list, and DUPLICATED in input.tsx (the summary renderer),
+                // which prints nothing at all for a kind it does not recognise.
+                // Add here and you must add there.
+                //
+                // This is a console limit, not a domain one: ContactTimelineCondition
+                // .Validate accepts any non-empty Kind, so an API-built
+                // custom_event.* condition validates, compiles and then renders
+                // blank in the UI. Custom events reach segments through the Custom
+                // Events Goal condition instead — do not document the Activity route.
                 options={[
                   { value: 'email.sent', label: t`New message (email...)` },
                   { value: 'email.opened', label: t`Open email` },

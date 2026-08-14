@@ -63,6 +63,10 @@ func (c OIDCConfig) Validate() error {
 	if c.RedirectURI == "" {
 		return fmt.Errorf("OIDC redirect URI could not be derived (set OIDC_REDIRECT_URI or API_ENDPOINT)")
 	}
+	// An empty allowlist means "no domain is allowed", never "all domains" — the
+	// resolver applies it as a positive match. Pairing it with auto-create would
+	// therefore be inert rather than dangerous, but it reads as "let anyone in", so
+	// refuse to boot instead of leaving an operator guessing which way it went.
 	if c.AutoCreateUsers && len(c.AllowedDomains) == 0 {
 		return fmt.Errorf("OIDC_AUTO_CREATE_USERS=true requires a non-empty OIDC_ALLOWED_DOMAINS allowlist")
 	}

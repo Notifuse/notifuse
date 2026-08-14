@@ -31,7 +31,9 @@ func (m *V34Migration) UpdateSystem(ctx context.Context, cfg *config.Config, db 
 			UNIQUE (user_id, idp_issuer)
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_federated_identities_user_id ON federated_identities (user_id)`,
-		// Fix 2: functional index backing GetUserByEmailInsensitive (case-insensitive OIDC bridge).
+		// Functional index backing GetUserByEmailInsensitive: the OIDC bridge matches an
+		// invited account case-insensitively, and without this index that lookup cannot
+		// use the plain email index.
 		`CREATE INDEX IF NOT EXISTS idx_users_lower_email ON users (lower(email))`,
 		`DO $$
 		BEGIN

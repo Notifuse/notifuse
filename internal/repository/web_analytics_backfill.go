@@ -77,7 +77,10 @@ func compileWebFilterCondition(c domain.WebFilterCondition) (string, error) {
 	case domain.WebFilterOpRegex:
 		// Rule regexes are validated as RE2 at save time; PostgreSQL evaluates
 		// POSIX ARE, which agrees on the anchored/alternation patterns the
-		// fixtures use. Exotic patterns may diverge (documented).
+		// fixtures use. The two engines are not identical, so an exotic pattern
+		// can classify one way at ingest and the other way here — an accepted
+		// limit of running the same rules through two regex implementations, not
+		// a bug to chase. Keep rule patterns simple and anchored.
 		return fmt.Sprintf("(%s AND %s ~ %s)", nonEmpty, field, literal), nil
 	default:
 		return "", fmt.Errorf("unsupported backfill condition operator: %q", c.Operator)

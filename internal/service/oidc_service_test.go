@@ -5,6 +5,8 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -14,6 +16,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/oauth2"
 
 	"github.com/Notifuse/notifuse/config"
 	"github.com/Notifuse/notifuse/internal/domain"
@@ -645,4 +648,146 @@ func TestEnsureProvider_UnreachableIssuer_SelfHealRetryWindow(t *testing.T) {
 	err = svc.ensureProvider(context.Background())
 	assert.ErrorIs(t, err, domain.ErrOIDCNotConfigured)
 	assert.True(t, svc.lastAttempt.After(first), "must re-attempt after the retry window elapses")
+}
+
+// --- token-endpoint error sanitisation --------------------------------------
+//
+// oauth2.RetrieveError.Error() prints the endpoint's raw response body whenever the
+// response is not a well-formed OAuth error object. That error used to be %w-wrapped
+// and logged by the callback handler, so an unvetted IdP payload reached the log.
+
+func retrieveErr(status int, code string, body string) error {
+	return &oauth2.RetrieveError{
+		Response:  &http.Response{Status: fmt.Sprintf("%d %s", status, http.StatusText(status)), StatusCode: status},
+		Body:      []byte(body),
+		ErrorCode: code,
+	}
+}
+
+func TestSanitizeTokenExchangeError_DropsTheRawResponseBody(t *testing.T) {
+	const sentinel = "SENSITIVE-IDP-PAYLOAD-9f3a"
+	// No ErrorCode → oauth2 takes the branch that prints Body verbatim.
+	raw := retrieveErr(http.StatusBadGateway, "", "<html>gateway said "+sentinel+"</html>")
+	require.Contains(t, raw.Error(), sentinel,
+		"guard: if oauth2 stops printing the body this test is no longer testing anything")
+
+	got := sanitizeTokenExchangeError(raw)
+
+	assert.NotContains(t, got.Error(), sentinel, "the endpoint's response body must not survive into the error")
+	assert.Contains(t, got.Error(), "502", "the status is the diagnostic worth keeping")
+}
+
+func TestSanitizeTokenExchangeError_DoesNotWrapTheOriginal(t *testing.T) {
+	const sentinel = "SENSITIVE-IDP-PAYLOAD-9f3a"
+	got := sanitizeTokenExchangeError(retrieveErr(http.StatusBadRequest, "", sentinel))
+
+	// Sanitising the message is not enough: a wrapped original is still reachable by
+	// anything that walks the chain and calls Error() on what it finds.
+	var re *oauth2.RetrieveError
+	assert.False(t, errors.As(got, &re),
+		"the RetrieveError must not stay reachable through the error chain")
+}
+
+func TestSanitizeTokenExchangeError_KeepsARecognisableErrorCode(t *testing.T) {
+	got := sanitizeTokenExchangeError(retrieveErr(http.StatusBadRequest, "invalid_grant", `{"error":"invalid_grant"}`))
+
+	assert.Contains(t, got.Error(), "invalid_grant", "the RFC 6749 code is what tells an operator what broke")
+	assert.Contains(t, got.Error(), "400")
+}
+
+func TestSanitizeTokenExchangeError_RefusesAFreeTextErrorCode(t *testing.T) {
+	// The error field is IdP-controlled and the spec allows almost any printable
+	// character, so a payload can be smuggled through it just as easily as the body.
+	const smuggled = `{"access_token":"SENSITIVE-IDP-PAYLOAD-9f3a"}`
+	got := sanitizeTokenExchangeError(retrieveErr(http.StatusBadRequest, smuggled, ""))
+
+	assert.NotContains(t, got.Error(), "SENSITIVE-IDP-PAYLOAD-9f3a")
+	assert.Contains(t, got.Error(), "unrecognized")
+}
+
+func TestSafeOAuthErrorCode(t *testing.T) {
+	cases := map[string]string{
+		"":                      "",
+		"invalid_grant":         "invalid_grant",
+		"unauthorized_client":   "unauthorized_client",
+		"server_error.sub-code": "server_error.sub-code", // extension codes still pass
+		"has space":             "unrecognized",
+		`{"error":"x"}`:         "unrecognized",
+		"with\nnewline":         "unrecognized",
+		strings.Repeat("a", 65): "unrecognized",
+		strings.Repeat("a", 64): strings.Repeat("a", 64),
+	}
+	for in, want := range cases {
+		assert.Equal(t, want, safeOAuthErrorCode(in), "input %q", in)
+	}
+}
+
+func TestTruncateForLog(t *testing.T) {
+	assert.Equal(t, "short", truncateForLog("short", 256), "an ordinary message passes through untouched")
+
+	long := strings.Repeat("x", 300)
+	got := truncateForLog(long, 256)
+	assert.Len(t, []rune(got), 256+len([]rune("…(truncated)")))
+	assert.Contains(t, got, "truncated", "a trimmed message must say so, or it reads as the whole thing")
+
+	// Rune-based, so a multi-byte body cannot be cut mid-character into mojibake.
+	assert.Equal(t, "éé…(truncated)", truncateForLog("ééé", 2))
+}
+
+func TestSanitizeTokenExchangeError_KeepsTransportErrorsIntact(t *testing.T) {
+	// A dial/TLS/timeout failure carries Go's own text, not an endpoint payload, and
+	// is the most useful thing an operator can see. It must not be flattened away.
+	orig := errors.New(`Post "https://idp.example.com/token": dial tcp 10.0.0.1:443: connect: connection refused`)
+	got := sanitizeTokenExchangeError(orig)
+
+	assert.ErrorIs(t, got, orig, "a transport error must stay wrapped and inspectable")
+	assert.Contains(t, got.Error(), "connection refused")
+}
+
+// The API-client view: drive the real callback against an IdP whose token endpoint
+// answers with an unparseable body, and assert the caller never receives it. A unit
+// test of the helper proves the helper works, not that HandleCallback uses it.
+func TestHandleCallback_TokenEndpointBodyNeverReachesTheCaller(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	const sentinel = "SENSITIVE-IDP-PAYLOAD-9f3a"
+
+	var idp *httptest.Server
+	idp = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/.well-known/openid-configuration":
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"issuer":                 idp.URL,
+				"authorization_endpoint": idp.URL + "/auth",
+				"token_endpoint":         idp.URL + "/token",
+				"jwks_uri":               idp.URL + "/jwks",
+			})
+		case "/token":
+			// A reverse proxy in front of the IdP answering instead of the IdP: HTML,
+			// not an OAuth error object, so oauth2 falls back to printing it raw.
+			w.Header().Set("Content-Type", "text/html")
+			w.WriteHeader(http.StatusBadGateway)
+			_, _ = w.Write([]byte("<html>upstream failed: " + sentinel + "</html>"))
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer idp.Close()
+
+	cfg := enabledCfg()
+	cfg.IssuerURL = idp.URL
+	svc, _ := newTestOIDCService(t, ctrl, cfg, nil)
+
+	_, err := svc.HandleCallback(context.Background(), domain.OIDCCallbackInput{
+		Code:      "authz-code",
+		State:     "st",
+		FlowState: domain.OIDCFlowState{State: "st", Nonce: "n", Verifier: "verifier"},
+	})
+
+	require.Error(t, err)
+	assert.NotContains(t, err.Error(), sentinel,
+		"the token endpoint's response body must not reach the caller, which logs this error")
+	assert.Contains(t, err.Error(), "502", "the status must survive so the failure is still diagnosable")
 }

@@ -334,6 +334,20 @@ describe('SignInPage', () => {
       expect(authService.authService.oidcExchange).not.toHaveBeenCalled()
     })
 
+    // Asserting only that message.error fired lets an EMPTY toast pass, which is
+    // exactly what a rejected user would see if the localization stopped resolving.
+    it('renders actual text in the error toast, not an empty string', async () => {
+      mockSearch.oidc_error = 'not_provisioned'
+      renderWithProviders(<SignInPage />)
+      await waitFor(() => {
+        expect(mockMessage.error).toHaveBeenCalled()
+      })
+      const shown = mockMessage.error.mock.calls[0][0]
+      expect(typeof shown).toBe('string')
+      expect(shown).not.toBe('')
+      expect(shown).toMatch(/account/i)
+    })
+
     it('on oidcExchange rejection shows an error toast and does not navigate to /console', async () => {
       Object.defineProperty(window, 'location', {
         value: { ...window.location, hash: '#oidc_code=bad', pathname: '/console/signin', search: '' },

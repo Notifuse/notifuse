@@ -27,11 +27,10 @@ import (
 )
 
 const (
-	// oidcExchangeTTL is the SINGLE shared TTL for the one-time exchange code. The
-	// cache Set TTL and the optional cookie Max-Age both derive from this one
-	// constant so they can never drift.
+	// oidcExchangeTTL bounds the life of the one-time exchange code. Kept short
+	// deliberately: together with single-use GetAndDelete and 256-bit entropy it, not
+	// the per-IP rate limit, is what makes the code unguessable in practice.
 	oidcExchangeTTL       = 60 * time.Second
-	oidcExchangeMaxAge    = int(oidcExchangeTTL / time.Second) // cookie Max-Age, same source of truth
 	oidcExchangeKeyPrefix = "oidc:exchange:"
 
 	// oidcInitRetryWindow bounds how often a failed provider init is re-attempted so
@@ -47,13 +46,17 @@ type OIDCServiceConfig struct {
 	OIDCConfig            config.OIDCConfig
 	SessionExpiry         time.Duration
 	RateLimiter           *ratelimiter.RateLimiter
-	ExchangeCache         cache.Cache       // app wires an InMemoryCache
-	HTTPTimeout           time.Duration     // bounds discovery/JWKS/token-exchange HTTP calls (default 10s)
-	SecretKey             string            // AEAD passphrase for sealing the flow-state cookie
-	IsRootEmail           func(string) bool // config.IsRootEmail — guards JIT against ROOT_EMAIL
-	IsProduction          bool
-	Logger                logger.Logger
-	Tracer                tracing.Tracer
+	ExchangeCache         cache.Cache   // app wires an InMemoryCache
+	HTTPTimeout           time.Duration // bounds discovery/JWKS/token-exchange HTTP calls (default 10s)
+	SecretKey             string        // AEAD passphrase for sealing the flow-state cookie
+	// IsRootEmail guards both provisioning paths against a ROOT_EMAIL account. It is
+	// injected and nil-tolerant, so leaving it unset silently removes the guard — no
+	// compile error, no failing unit test. The app wires the case-INSENSITIVE matcher
+	// on purpose: an IdP that returns a differently-cased address must not slip past.
+	IsRootEmail  func(string) bool
+	IsProduction bool
+	Logger       logger.Logger
+	Tracer       tracing.Tracer
 }
 
 // OIDCService mints Notifuse sessions from a verified external OIDC identity. It is
@@ -146,7 +149,13 @@ func (s *OIDCService) ensureProvider(ctx context.Context) error {
 	if err != nil {
 		s.initErr = fmt.Errorf("oidc provider init (%s): %w", s.cfg.IssuerURL, err)
 		if s.logger != nil {
-			s.logger.WithField("issuer", s.cfg.IssuerURL).WithField("error", err.Error()).
+			// Discovery is an unauthenticated GET, so unlike the token endpoint its
+			// response cannot carry a secret and the text is worth keeping — a wrong
+			// OIDC_ISSUER_URL is the most common misconfiguration and the status is how
+			// you spot it. go-oidc does append the whole response body on a non-200,
+			// though, so bound it: an issuer behind a proxy can answer with a full HTML
+			// page, and that belongs nowhere near a log line.
+			s.logger.WithField("issuer", s.cfg.IssuerURL).WithField("error", truncateForLog(err.Error(), 256)).
 				Error("OIDC provider unreachable; routes will 503 and retry in ~30s (magic-code login unaffected)")
 		}
 		return domain.ErrOIDCNotConfigured
@@ -159,7 +168,11 @@ func (s *OIDCService) ensureProvider(ctx context.Context) error {
 		Endpoint:     provider.Endpoint(),
 		Scopes:       s.cfg.Scopes, // includes "openid"
 	}
-	// Pin asymmetric algs; leave all Skip*/Insecure* false.
+	// Pin asymmetric algs; leave all Skip*/Insecure* false. A symmetric alg would be
+	// forgeable by anyone holding the client secret, and each Skip* switch drops a
+	// check the rest of HandleCallback assumes has already passed. The key set is a
+	// self-refreshing RemoteKeySet rather than a snapshot, so issuer key rotation
+	// takes effect without a restart.
 	s.verifier = provider.Verifier(&gooidc.Config{
 		ClientID:             s.cfg.ClientID,
 		SupportedSigningAlgs: []string{gooidc.RS256, gooidc.ES256},
@@ -208,7 +221,9 @@ func (s *OIDCService) HandleCallback(ctx context.Context, in domain.OIDCCallback
 	if err := s.ensureProvider(ctx); err != nil {
 		return "", err
 	}
-	// (0) CSRF: cookie state must equal ?state=.
+	// (0) CSRF: cookie state must equal ?state=. The two emptiness tests are not
+	// redundant with the compare below — ConstantTimeCompare("", "") returns 1, so
+	// dropping them would let a callback carrying no state match a flow with none.
 	if in.State == "" || in.FlowState.State == "" ||
 		subtle.ConstantTimeCompare([]byte(in.State), []byte(in.FlowState.State)) != 1 {
 		s.tracer.AddAttribute(ctx, "error", "state_mismatch")
@@ -230,11 +245,13 @@ func (s *OIDCService) HandleCallback(ctx context.Context, in domain.OIDCCallback
 	netCtx, cancelNet := context.WithTimeout(ctx, s.httpTimeout)
 	defer cancelNet()
 
-	// Exchange code (PKCE verifier from flow-state).
+	// Exchange code (PKCE verifier from flow-state). The error is reduced to metadata
+	// before it goes anywhere — see sanitizeTokenExchangeError.
 	oauth2Token, err := s.oauthCfg.Exchange(netCtx, in.Code, oauth2.VerifierOption(in.FlowState.Verifier))
 	if err != nil {
-		s.tracer.MarkSpanError(ctx, err)
-		return "", fmt.Errorf("oidc code exchange: %w", err)
+		safeErr := sanitizeTokenExchangeError(err)
+		s.tracer.MarkSpanError(ctx, safeErr)
+		return "", safeErr
 	}
 	rawIDToken, ok := oauth2Token.Extra("id_token").(string)
 	if !ok || rawIDToken == "" {
@@ -262,7 +279,9 @@ func (s *OIDCService) HandleCallback(ctx context.Context, in domain.OIDCCallback
 		s.tracer.AddAttribute(ctx, "error", "idtoken_iss_mismatch")
 		return "", fmt.Errorf("oidc id_token issuer mismatch")
 	}
-	// Manual nonce equality — go-oidc Verify does NOT check nonce.
+	// Manual nonce equality — go-oidc Verify does NOT check nonce. As with the state
+	// compare above, the empty test carries its own weight: a token with no nonce at
+	// all would otherwise compare equal to an empty flow nonce.
 	if idToken.Nonce == "" ||
 		subtle.ConstantTimeCompare([]byte(idToken.Nonce), []byte(in.FlowState.Nonce)) != 1 {
 		s.tracer.AddAttribute(ctx, "error", "nonce_mismatch")
@@ -420,7 +439,16 @@ func (s *OIDCService) resolveOrProvisionUser(
 			}
 			return nil, domain.ErrOIDCAccountNotProvisioned
 		}
-		// LINK: bridge invited user to this identity.
+		// LINK: bridge invited user to this identity. This is the one place email
+		// decides anything, and it carries an accepted residual risk: an account that
+		// was invited but never signed in is matched on email alone, so an address
+		// deprovisioned and later reassigned at the same IdP would bridge the new
+		// holder onto the stale invitation. Three things bound it — email_verified is
+		// mandatory before any link, the bridge runs at most once per account (every
+		// later login keys off (issuer, sub) above), and the conflict branch refuses a
+		// second sub outright. Closing it fully means dropping the email bridge and
+		// requiring an explicit link action from an already-authenticated session,
+		// which costs every invited user a second sign-in method to get started.
 		if cerr := s.linkIdentity(ctx, existing.ID, issuer, sub); cerr != nil {
 			return nil, cerr
 		}
@@ -473,6 +501,10 @@ func (s *OIDCService) resolveOrProvisionUser(
 	}
 	if cerr := s.userRepo.CreateUser(ctx, newUser); cerr != nil {
 		var exists *domain.ErrUserExists
+		// Recovering onto the winner's row rather than failing is only safe because
+		// the email was lower-cased upstream and users.email is a case-SENSITIVE
+		// UNIQUE: the row this re-fetch finds is necessarily the one that just lost
+		// the race, not some pre-existing mixed-case account.
 		if errors.As(cerr, &exists) { // race: another login created it
 			if u, gerr := s.userRepo.GetUserByEmailInsensitive(ctx, email); gerr == nil {
 				newUser = u
@@ -496,6 +528,12 @@ func (s *OIDCService) resolveOrProvisionUser(
 // linkIdentity inserts (user_id, issuer, sub). A duplicate-key on EITHER unique
 // constraint is REFUSED as an identity conflict unless a re-read proves it is the
 // exact same link landing via a race (idempotent success).
+//
+// The two constraints fail for different reasons and both must refuse: a clash on
+// (idp_issuer, idp_sub) means a DIFFERENT user already holds that subject, and one
+// on (user_id, idp_issuer) means this user already has a different subject at this
+// issuer. Swallowing either as success is what would turn a recycled email into an
+// account takeover, so the refusal is the control, not an edge case.
 func (s *OIDCService) linkIdentity(ctx context.Context, userID, issuer, sub string) error {
 	err := s.fedRepo.Create(ctx, &domain.FederatedIdentity{
 		UserID: userID, IDPIssuer: issuer, IDPSub: sub,
@@ -650,6 +688,65 @@ func hasDistinctSecondAudience(aud audience, clientID string) bool {
 		}
 	}
 	return false
+}
+
+// truncateForLog caps a remote-supplied string at max runes, marking any cut so a
+// reader can tell the difference between a short message and a trimmed one.
+func truncateForLog(s string, max int) string {
+	r := []rune(s)
+	if len(r) <= max {
+		return s
+	}
+	return string(r[:max]) + "…(truncated)"
+}
+
+// sanitizeTokenExchangeError reduces a token-endpoint failure to metadata that is
+// safe to hand to a log sink.
+//
+// oauth2.RetrieveError.Error() prints the endpoint's raw response body verbatim
+// whenever the response is not a well-formed OAuth error object. Wrapping it with %w
+// would put an IdP payload nobody has inspected into every sink that renders the
+// error chain, so the original is deliberately NOT wrapped: nothing downstream can
+// walk back to the body. What survives is the HTTP status and the RFC 6749 error
+// code, which is what actually tells an operator what went wrong. error_description
+// is dropped on purpose — it is free text by design; read it at the IdP.
+func sanitizeTokenExchangeError(err error) error {
+	var re *oauth2.RetrieveError
+	if !errors.As(err, &re) {
+		// Transport-level failure (dial, TLS, timeout): the text is Go's own and
+		// carries no endpoint payload, so it is kept as-is for diagnosis.
+		return fmt.Errorf("oidc code exchange: %w", err)
+	}
+	status := "no response"
+	if re.Response != nil {
+		status = re.Response.Status
+	}
+	if code := safeOAuthErrorCode(re.ErrorCode); code != "" {
+		return fmt.Errorf("oidc code exchange rejected by token endpoint (%s, error=%s)", status, code)
+	}
+	return fmt.Errorf("oidc code exchange rejected by token endpoint (%s)", status)
+}
+
+// safeOAuthErrorCode passes through an error code that looks like the bare token RFC
+// 6749 defines and rejects anything else. The field is IdP-controlled, and the spec
+// permits nearly every printable character in it, so a code that is not a plain token
+// is treated as unusable rather than copied into a log. Extension codes real
+// providers emit still pass; a JSON fragment or a prose sentence does not.
+func safeOAuthErrorCode(code string) string {
+	if code == "" {
+		return ""
+	}
+	if len(code) > 64 {
+		return "unrecognized"
+	}
+	for _, r := range code {
+		isTokenChar := (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') ||
+			(r >= '0' && r <= '9') || r == '_' || r == '-' || r == '.'
+		if !isTokenChar {
+			return "unrecognized"
+		}
+	}
+	return code
 }
 
 // rejectAccessTokenTyp rejects a JWT whose header typ is an access-token type

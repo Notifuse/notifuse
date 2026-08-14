@@ -63,6 +63,10 @@ func (r *userRepository) CreateUser(ctx context.Context, user *domain.User) erro
 	return nil
 }
 
+// GetUserByEmail matches the address EXACTLY. That is load-bearing for magic-code and
+// root sign-in, and it is why GetUserByEmailInsensitive exists separately rather than
+// this one being relaxed: only the OIDC bridge wants case-insensitive matching. The
+// two look like duplicates and must not be collapsed into one.
 func (r *userRepository) GetUserByEmail(ctx context.Context, email string) (*domain.User, error) {
 	var user domain.User
 	query := `
@@ -363,7 +367,12 @@ func (r *userRepository) UpdateSession(ctx context.Context, session *domain.Sess
 	return nil
 }
 
-// Delete removes a user by their ID
+// Delete removes a user by their ID.
+//
+// Sessions are cleared by hand below; federated_identities is NOT, because it carries
+// the only foreign key in the system schema and its ON DELETE CASCADE does the work.
+// The dependency is invisible from here — a schema change that drops that FK would
+// leave orphaned SSO identities behind with nothing in this function to notice.
 func (r *userRepository) Delete(ctx context.Context, id string) error {
 	// First delete all sessions for this user
 	deleteSessionsQuery := `DELETE FROM user_sessions WHERE user_id = $1`

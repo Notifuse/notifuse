@@ -29,6 +29,14 @@ type ContactService struct {
 	logger                  logger.Logger
 }
 
+// NewContactService takes its dependencies positionally, which is defensible at
+// this arity only because the repository types are distinct interfaces — swapping
+// two of them does not compile.
+//
+// That stops being true if a fifth repository arrives, or if two of them ever
+// share a method set. At that point move to an options struct: the failure mode
+// otherwise is a purge that silently targets the wrong table, which no test would
+// catch because every mock would still be satisfied.
 func NewContactService(
 	repo domain.ContactRepository,
 	workspaceRepo domain.WorkspaceRepository,
@@ -206,7 +214,13 @@ func (s *ContactService) DeleteContact(ctx context.Context, workspaceID string, 
 	}
 
 	// The contact row goes first, and the order is load-bearing rather than
-	// stylistic. These are separate statements, not one transaction, and the web
+	// stylistic. Wrapping this in a transaction has been proposed and is WRONG:
+	// inside one, the contact-row DELETE stays invisible to a concurrent buffered
+	// beat until commit, so the projection's EXISTS guard would still pass and
+	// re-insert timeline rows after the in-transaction purge had already run —
+	// reintroducing precisely the bug described below.
+	//
+	// These are separate statements, not one transaction, and the web
 	// analytics projection guards on EXISTS (SELECT 1 FROM contacts ...) — so
 	// while the row survives, a beat buffered before the deletion can still flush
 	// and re-insert the timeline rows just purged below, leaving a deleted
@@ -229,6 +243,13 @@ func (s *ContactService) DeleteContact(ctx context.Context, workspaceID string, 
 			Info("Contact row already absent; continuing with dependent cleanup")
 	}
 
+	// Deleting these does not corrupt revenue reporting, which is worth stating
+	// because the web analytics comment below makes the opposite argument for its
+	// own table. custom_events is read only per-contact — repository lists, and the
+	// EXISTS subquery for segment membership — while workspace revenue dashboards
+	// aggregate web_goals, whose goal_value is untouched here. So this destroys
+	// only the erased contact's own history, exactly as contact_timeline already does.
+	//
 	// custom_events carries the address in a NOT NULL column, so it cannot be
 	// anonymised in place. Deleted rather than soft-deleted: the table has two
 	// AFTER INSERT OR UPDATE triggers, so an UPDATE would re-insert timeline rows

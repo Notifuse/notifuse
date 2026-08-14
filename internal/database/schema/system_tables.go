@@ -88,6 +88,11 @@ var TableDefinitions = []string{
 	`CREATE UNIQUE INDEX IF NOT EXISTS idx_tasks_workspace_broadcast_id ON tasks (workspace_id, broadcast_id) WHERE broadcast_id IS NOT NULL`,
 	// V34: OIDC / SSO — federated_identities keyed by the durable (idp_issuer, idp_sub) pair.
 	// FK to users(id) is added separately in MigrationStatements (no inline REFERENCES, per house style above).
+	// The two UNIQUEs do different jobs and neither is a duplicate of the other: the
+	// first says a subject belongs to one user, the second caps a user at one subject
+	// per issuer, which is what makes a link conflict detectable instead of letting
+	// subjects silently accumulate under one account. Dropping either one turns an
+	// email-recycling takeover from a refused login into a successful one.
 	`CREATE TABLE IF NOT EXISTS federated_identities (
 		id          UUID PRIMARY KEY,
 		user_id     UUID NOT NULL,
