@@ -84,9 +84,13 @@ func TestWebAnalyticsEmailIdentify(t *testing.T) {
 		// parameter only exists again after the redirect handler decrypts it.
 		w.Settings.EmailTrackingEnabled = true
 		w.Settings.WebAnalytics = &domain.WebAnalyticsSettings{
-			Enabled:              true,
-			AllowedDomains:       []string{trackedHost},
-			Filters:              domain.DefaultWebFilters(),
+			Enabled: true,
+			// The whole chain under test is off without this: it is the opt-in
+			// for the one identity path the customer does not initiate, so a
+			// workspace that merely enables web analytics mints nothing.
+			IdentifyFromEmailLinks: true,
+			AllowedDomains:         []string{trackedHost},
+			Filters:                domain.DefaultWebFilters(),
 		}
 	})
 	require.NoError(t, err)
@@ -210,6 +214,8 @@ func TestWebAnalyticsEmailIdentify(t *testing.T) {
 	require.True(t, ok, "the off-allowlist destination is missing from the email: %v", landingByHost)
 
 	trackedURL, err := url.Parse(trackedLanding)
+	require.NoError(t, err)
+	foreignURL, err := url.Parse(foreignLanding)
 	require.NoError(t, err)
 	emailToken := trackedURL.Query().Get(domain.WebIdentifyQueryParam)
 	require.NotEmpty(t, emailToken,
@@ -387,8 +393,15 @@ func TestWebAnalyticsEmailIdentify(t *testing.T) {
 	})
 
 	t.Run("a link off the allowlist leaves the visit anonymous", func(t *testing.T) {
+		// Replays whatever the foreign link actually carries, rather than a
+		// hard-coded empty token. The two differ only when the per-link gate is
+		// broken, and that is exactly the case this subtest exists to catch: with
+		// "" written in, it keeps passing while every recipient hands the partner
+		// site a working credential, because the beat it sends is one no such
+		// visitor would ever send. Normally this is "" and nothing changes.
+		foreignToken := foreignURL.Query().Get(domain.WebIdentifyQueryParam)
 		sessionID := waUUIDv7At(now.Add(-2*time.Minute), 0xE2)
-		postBeat(t, sessionID, "", foreignDest, "partner_link_signup")
+		postBeat(t, sessionID, foreignToken, foreignDest, "partner_link_signup")
 		// The row has to exist before NULL means anything: a dropped beat would
 		// produce no row at all, and "no identity" would be true for the wrong
 		// reason.
