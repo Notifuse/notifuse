@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -11,6 +12,7 @@ import (
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/service"
+	"github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -421,48 +423,213 @@ func TestAutomationRepository_Delete(t *testing.T) {
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
-func TestAutomationRepository_CreateAutomationTrigger(t *testing.T) {
-	db, mock, repo := setupAutomationMock(t)
-	defer func() { _ = db.Close() }()
+// withTriggerConditions attaches a contacts-source condition to the automation. The
+// compiler turns every supported leaf into a correlated subquery, which is why the
+// conditions live in the function body and get planned by a probe before install.
+func withTriggerConditions(automation *domain.Automation) *domain.Automation {
+	automation.Trigger.Conditions = &domain.TreeNode{
+		Kind: "leaf",
+		Leaf: &domain.TreeNodeLeaf{
+			Source: "contacts",
+			Contact: &domain.ContactCondition{
+				Filters: []*domain.DimensionFilter{
+					{
+						FieldName:    "country",
+						FieldType:    "string",
+						Operator:     "equals",
+						StringValues: []string{"US"},
+					},
+				},
+			},
+		},
+	}
+	return automation
+}
 
+func TestAutomationRepository_CreateAutomationTrigger(t *testing.T) {
 	ctx := context.Background()
 	workspaceID := "workspace-123"
-	automation := createTestAutomation("auto-123", workspaceID)
-	automation.Status = domain.AutomationStatusLive
 
-	// Test successful trigger creation (4 statements: drop trigger, drop function, create function, create trigger)
-	mock.ExpectExec("DROP TRIGGER IF EXISTS").
-		WillReturnResult(sqlmock.NewResult(0, 0))
-	mock.ExpectExec("DROP FUNCTION IF EXISTS").
-		WillReturnResult(sqlmock.NewResult(0, 0))
-	mock.ExpectExec("CREATE OR REPLACE FUNCTION").
-		WillReturnResult(sqlmock.NewResult(0, 0))
-	mock.ExpectExec("CREATE TRIGGER").
-		WillReturnResult(sqlmock.NewResult(0, 0))
+	t.Run("without conditions: no probe, all DDL in one transaction", func(t *testing.T) {
+		db, mock, repo := setupAutomationMock(t)
+		defer func() { _ = db.Close() }()
 
-	err := repo.CreateAutomationTrigger(ctx, workspaceID, automation)
-	assert.NoError(t, err)
-	assert.NoError(t, mock.ExpectationsWereMet())
+		automation := createTestAutomation("auto-123", workspaceID)
+		automation.Status = domain.AutomationStatusLive
 
-	// Test database error on drop trigger
-	mock.ExpectExec("DROP TRIGGER IF EXISTS").
-		WillReturnError(fmt.Errorf("database error"))
+		mock.ExpectBegin()
+		mock.ExpectExec("SET LOCAL lock_timeout").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("DROP TRIGGER IF EXISTS").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("DROP FUNCTION IF EXISTS").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("CREATE OR REPLACE FUNCTION").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("CREATE TRIGGER").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectCommit()
 
-	err = repo.CreateAutomationTrigger(ctx, workspaceID, automation)
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to drop existing trigger")
-	assert.NoError(t, mock.ExpectationsWereMet())
+		err := repo.CreateAutomationTrigger(ctx, workspaceID, automation)
+		assert.NoError(t, err)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
 
-	// Test database error on drop function
-	mock.ExpectExec("DROP TRIGGER IF EXISTS").
-		WillReturnResult(sqlmock.NewResult(0, 0))
-	mock.ExpectExec("DROP FUNCTION IF EXISTS").
-		WillReturnError(fmt.Errorf("database error"))
+	// The probe deliberately runs AFTER the DDL. Nothing is installed either way, because
+	// the transaction rolls back — but probing first would take ACCESS SHARE on
+	// contact_timeline and then upgrade to the ACCESS EXCLUSIVE the DROPs need, and two
+	// concurrent activations in one workspace would deadlock on that upgrade.
+	t.Run("with conditions: probe runs after the DDL, before the commit", func(t *testing.T) {
+		db, mock, repo := setupAutomationMock(t)
+		defer func() { _ = db.Close() }()
 
-	err = repo.CreateAutomationTrigger(ctx, workspaceID, automation)
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to drop existing function")
-	assert.NoError(t, mock.ExpectationsWereMet())
+		automation := withTriggerConditions(createTestAutomation("auto-123", workspaceID))
+		automation.Status = domain.AutomationStatusLive
+
+		mock.ExpectBegin()
+		mock.ExpectExec("SET LOCAL lock_timeout").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("DROP TRIGGER IF EXISTS").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("DROP FUNCTION IF EXISTS").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("CREATE OR REPLACE FUNCTION").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("CREATE TRIGGER").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectQuery("EXPLAIN SELECT").
+			WillReturnRows(sqlmock.NewRows([]string{"QUERY PLAN"}).AddRow("Result"))
+		mock.ExpectCommit()
+
+		err := repo.CreateAutomationTrigger(ctx, workspaceID, automation)
+		assert.NoError(t, err)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("probe failure rolls back the whole install", func(t *testing.T) {
+		db, mock, repo := setupAutomationMock(t)
+		defer func() { _ = db.Close() }()
+
+		automation := withTriggerConditions(createTestAutomation("auto-123", workspaceID))
+		automation.Status = domain.AutomationStatusLive
+
+		mock.ExpectBegin()
+		mock.ExpectExec("SET LOCAL lock_timeout").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("DROP TRIGGER IF EXISTS").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("DROP FUNCTION IF EXISTS").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("CREATE OR REPLACE FUNCTION").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("CREATE TRIGGER").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectQuery("EXPLAIN SELECT").
+			WillReturnError(&pq.Error{Code: "42703", Message: `column "nope" does not exist`})
+		// No commit expectation: the rollback is what leaves the previously installed
+		// trigger in place.
+		mock.ExpectRollback()
+
+		err := repo.CreateAutomationTrigger(ctx, workspaceID, automation)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "invalid trigger conditions")
+
+		// The condition came from the caller's trigger configuration, so it has to
+		// surface as a 400 rather than an opaque server error.
+		var conditionErr *domain.TriggerConditionError
+		assert.True(t, errors.As(err, &conditionErr))
+
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	// A lock timeout or a dropped connection says nothing about the conditions. Reporting
+	// it as a bad condition would answer 400 and tell the client not to retry something
+	// that would have worked.
+	t.Run("a transient probe failure is not blamed on the conditions", func(t *testing.T) {
+		db, mock, repo := setupAutomationMock(t)
+		defer func() { _ = db.Close() }()
+
+		automation := withTriggerConditions(createTestAutomation("auto-123", workspaceID))
+		automation.Status = domain.AutomationStatusLive
+
+		mock.ExpectBegin()
+		mock.ExpectExec("SET LOCAL lock_timeout").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("DROP TRIGGER IF EXISTS").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("DROP FUNCTION IF EXISTS").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("CREATE OR REPLACE FUNCTION").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("CREATE TRIGGER").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		// 55P03 lock_not_available — what SET LOCAL lock_timeout produces when another
+		// activation is holding ACCESS EXCLUSIVE on contact_timeline.
+		mock.ExpectQuery("EXPLAIN SELECT").
+			WillReturnError(&pq.Error{Code: "55P03", Message: "canceling statement due to lock timeout"})
+		mock.ExpectRollback()
+
+		err := repo.CreateAutomationTrigger(ctx, workspaceID, automation)
+		require.Error(t, err)
+
+		var conditionErr *domain.TriggerConditionError
+		assert.False(t, errors.As(err, &conditionErr),
+			"a lock timeout must not be reported to the caller as an invalid condition")
+
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("CREATE TRIGGER failure rolls back the drops", func(t *testing.T) {
+		db, mock, repo := setupAutomationMock(t)
+		defer func() { _ = db.Close() }()
+
+		automation := createTestAutomation("auto-123", workspaceID)
+		automation.Status = domain.AutomationStatusLive
+
+		mock.ExpectBegin()
+		mock.ExpectExec("SET LOCAL lock_timeout").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("DROP TRIGGER IF EXISTS").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("DROP FUNCTION IF EXISTS").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("CREATE OR REPLACE FUNCTION").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("CREATE TRIGGER").
+			WillReturnError(fmt.Errorf("database error"))
+		// Run as separate autocommitted statements, the two DROPs would already be
+		// committed at this point: the trigger the automation was running on before the
+		// re-activation is destroyed, and an orphan function is left behind. The
+		// rollback is what keeps the previously working trigger in place.
+		mock.ExpectRollback()
+
+		err := repo.CreateAutomationTrigger(ctx, workspaceID, automation)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to create trigger")
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("generator failure returns a condition error before any transaction", func(t *testing.T) {
+		db, mock, repo := setupAutomationMock(t)
+		defer func() { _ = db.Close() }()
+
+		automation := createTestAutomation("auto-123", workspaceID)
+		automation.Status = domain.AutomationStatusLive
+		automation.Trigger.EventKind = "contact.updated"
+		// "email" is not a settable contact field, so the generator rejects it.
+		automation.Trigger.UpdatedFields = []string{"email"}
+
+		// No ExpectBegin: reaching the driver at all would surface as a plain error
+		// instead of the TriggerConditionError asserted below.
+		err := repo.CreateAutomationTrigger(ctx, workspaceID, automation)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to generate trigger SQL")
+
+		var conditionErr *domain.TriggerConditionError
+		assert.True(t, errors.As(err, &conditionErr))
+
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
 }
 
 func TestAutomationRepository_DropAutomationTrigger(t *testing.T) {
@@ -491,6 +658,33 @@ func TestAutomationRepository_DropAutomationTrigger(t *testing.T) {
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to drop trigger")
 	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+// This id reaches DDL having passed through nothing: automations.delete checks only that
+// it is non-empty and never loads the row, so unlike the install path there is no length
+// cap and no format check behind it. The name is concatenated in as a bare identifier, and
+// lib/pq sends the statement with no arguments — over the simple query protocol, which
+// executes every statement in the string.
+func TestAutomationRepository_DropAutomationTrigger_RejectsInjectedIdentifier(t *testing.T) {
+	ctx := context.Background()
+	workspaceID := "workspace-123"
+
+	for _, automationID := range []string{
+		"x ON contact_timeline; DROP TABLE contacts; DROP TRIGGER IF EXISTS z",
+		"x();DROP TABLE contacts;SELECT now",
+		"auto 123",
+		`auto"quote`,
+	} {
+		db, mock, repo := setupAutomationMock(t)
+
+		// No statement expectation at all: reaching the driver is the failure.
+		err := repo.DropAutomationTrigger(ctx, workspaceID, automationID)
+		require.Error(t, err, "id %q must never be concatenated into DDL", automationID)
+		assert.Contains(t, err.Error(), "cannot be used in a trigger name")
+		assert.NoError(t, mock.ExpectationsWereMet())
+
+		_ = db.Close()
+	}
 }
 
 func TestAutomationRepository_GetContactAutomation(t *testing.T) {

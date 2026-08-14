@@ -1,8 +1,11 @@
 package service
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/pkg/logger"
@@ -42,6 +45,12 @@ func (s *AutomationService) Create(ctx context.Context, workspaceID string, auto
 			"Insufficient permissions: write access to automations required",
 		)
 	}
+
+	// Create runs no DDL, so an automation created as live would be a row claiming to be
+	// live with nothing listening on contact_timeline — it would show a Live badge, enrol
+	// nobody, and refuse activation as "already live". Overwritten rather than rejected,
+	// as in Update: clients echo the field back without meaning to set it.
+	automation.Status = domain.AutomationStatusDraft
 
 	if err := automation.Validate(); err != nil {
 		return fmt.Errorf("invalid automation: %w", err)
@@ -127,12 +136,81 @@ func (s *AutomationService) Update(ctx context.Context, workspaceID string, auto
 		}
 	}
 
+	existing, err := s.repo.GetByID(ctx, workspaceID, automation.ID)
+	if err != nil {
+		return fmt.Errorf("failed to get automation: %w", err)
+	}
+
+	// Status is not the caller's to set here. Transitions belong to activate and pause,
+	// which install and drop the trigger; honouring one would persist a live automation
+	// with no trigger installed — one that never fires and that nothing ever repairs.
+	//
+	// The stored value is kept rather than the request rejected, because the whole object
+	// is overwritten on update: every read-modify-write client sends back the status it
+	// read, and the console sends it on every save. Erroring would fail those saves for a
+	// field the caller never meant to change.
+	automation.Status = existing.Status
+
 	if err := s.repo.Update(ctx, workspaceID, automation); err != nil {
 		s.logger.WithField("automation_id", automation.ID).Error(fmt.Sprintf("failed to update automation: %v", err))
 		return fmt.Errorf("failed to update automation: %w", err)
 	}
 
+	// The installed trigger is compiled from the trigger config and the root node, so a
+	// live automation whose config just changed is running a trigger that no longer
+	// matches it.
+	//
+	// The row is written first and the trigger install compensated on failure, rather
+	// than the reverse. Installing first and then failing to write the row would leave a
+	// trigger compiled from a configuration the database does not store — and nothing
+	// would ever repair it, because the next edit compares against that stale stored row,
+	// finds no change, and skips regeneration.
+	if existing.Status != domain.AutomationStatusLive || !triggerInputsChanged(existing, automation) {
+		return nil
+	}
+
+	if err := s.repo.CreateAutomationTrigger(ctx, workspaceID, automation); err != nil {
+		// Detached from the request context: a client disconnect is one of the ways the
+		// install fails, and the compensation would then be cancelled by the very thing it
+		// exists to compensate for.
+		restoreCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
+		defer cancel()
+
+		if rollbackErr := s.repo.Update(restoreCtx, workspaceID, existing); rollbackErr != nil {
+			// The row now describes a configuration the installed trigger does not
+			// implement. Nothing detects that on its own, so it has to be said out loud —
+			// with the workspace, since each one is its own database.
+			s.logger.WithField("automation_id", automation.ID).
+				WithField("workspace_id", workspaceID).
+				Error(fmt.Sprintf("failed to restore automation after trigger update failed, stored config no longer matches the installed trigger: %v", rollbackErr))
+		}
+		return fmt.Errorf("failed to update automation trigger: %w", err)
+	}
+
 	return nil
+}
+
+// triggerInputsChanged reports whether anything the trigger generator reads has changed.
+// The generated function and WHEN clause are a function of the automation's id, root
+// node and trigger config, and of nothing else in the record — so comparing those is
+// enough to decide whether the installed trigger has to be rebuilt. It is worth the
+// comparison: DROP/CREATE TRIGGER takes ACCESS EXCLUSIVE on contact_timeline, which
+// every contact event in the workspace passes through.
+func triggerInputsChanged(existing, updated *domain.Automation) bool {
+	if existing.RootNodeID != updated.RootNodeID {
+		return true
+	}
+
+	existingTrigger, err := json.Marshal(existing.Trigger)
+	if err != nil {
+		return true
+	}
+	updatedTrigger, err := json.Marshal(updated.Trigger)
+	if err != nil {
+		return true
+	}
+
+	return !bytes.Equal(existingTrigger, updatedTrigger)
 }
 
 // Delete soft-deletes an automation (can delete live automations)
@@ -196,7 +274,15 @@ func (s *AutomationService) Activate(ctx context.Context, workspaceID, automatio
 		}
 	}
 
+	// Validate what is stored before generating DDL from it. A row written before a
+	// validation rule existed can still be structurally unusable, and the generator
+	// dereferences the trigger config without checking.
+	if err := automation.Validate(); err != nil {
+		return domain.NewTriggerConditionError(fmt.Sprintf("cannot activate automation: %v", err))
+	}
+
 	// Update status to live
+	previousStatus := automation.Status
 	automation.Status = domain.AutomationStatusLive
 	if err := s.repo.Update(ctx, workspaceID, automation); err != nil {
 		return fmt.Errorf("failed to update automation status: %w", err)
@@ -204,9 +290,23 @@ func (s *AutomationService) Activate(ctx context.Context, workspaceID, automatio
 
 	// Create the database trigger
 	if err := s.repo.CreateAutomationTrigger(ctx, workspaceID, automation); err != nil {
-		// Rollback status change
-		automation.Status = domain.AutomationStatusDraft
-		_ = s.repo.Update(ctx, workspaceID, automation)
+		// Roll the status back to where it was, not unconditionally to draft: a failed
+		// re-activation of a paused automation should leave it paused.
+		automation.Status = previousStatus
+
+		// Detached, for the same reason as in Update: a cancelled request must not also
+		// cancel the write that undoes it. The residue here is worse — a live row with no
+		// trigger installed.
+		restoreCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
+		defer cancel()
+
+		if rollbackErr := s.repo.Update(restoreCtx, workspaceID, automation); rollbackErr != nil {
+			// The row is now live with no trigger installed. Say so — silently
+			// discarding this leaves an automation that will never fire and no trace.
+			s.logger.WithField("automation_id", automationID).
+				WithField("workspace_id", workspaceID).
+				Error(fmt.Sprintf("failed to roll back automation status after trigger creation failed: %v", rollbackErr))
+		}
 		return fmt.Errorf("failed to create automation trigger: %w", err)
 	}
 

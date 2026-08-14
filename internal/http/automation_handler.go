@@ -2,6 +2,7 @@ package http
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/Notifuse/notifuse/internal/domain"
@@ -159,6 +160,13 @@ func (h *AutomationHandler) handleUpdate(w http.ResponseWriter, r *http.Request)
 			WriteJSONError(w, err.Error(), http.StatusForbidden)
 			return
 		}
+		// An update to a live automation regenerates its trigger, so the same
+		// caller-supplied trigger configuration can fail here too.
+		var conditionErr *domain.TriggerConditionError
+		if errors.As(err, &conditionErr) {
+			WriteJSONError(w, conditionErr.Error(), http.StatusBadRequest)
+			return
+		}
 		WriteJSONError(w, "Failed to update automation", http.StatusInternalServerError)
 		return
 	}
@@ -223,6 +231,14 @@ func (h *AutomationHandler) handleActivate(w http.ResponseWriter, r *http.Reques
 		h.logger.WithField("error", err.Error()).Error("Failed to activate automation")
 		if _, ok := err.(*domain.PermissionError); ok {
 			WriteJSONError(w, err.Error(), http.StatusForbidden)
+			return
+		}
+		// The trigger configuration is the caller's input, and PostgreSQL's complaint
+		// about it is the only thing that makes it diagnosable. errors.As, not a type
+		// assertion: the service wraps this on its way up.
+		var conditionErr *domain.TriggerConditionError
+		if errors.As(err, &conditionErr) {
+			WriteJSONError(w, conditionErr.Error(), http.StatusBadRequest)
 			return
 		}
 		WriteJSONError(w, "Failed to activate automation", http.StatusInternalServerError)

@@ -51,6 +51,26 @@ func createTestAutomationNodeService(id, automationID string, nodeType domain.No
 	}
 }
 
+// Helper function to build a valid trigger condition tree
+func testTriggerConditionsService(field, value string) *domain.TreeNode {
+	return &domain.TreeNode{
+		Kind: "leaf",
+		Leaf: &domain.TreeNodeLeaf{
+			Source: "contacts",
+			Contact: &domain.ContactCondition{
+				Filters: []*domain.DimensionFilter{
+					{
+						FieldName:    field,
+						FieldType:    "string",
+						Operator:     "equals",
+						StringValues: []string{value},
+					},
+				},
+			},
+		},
+	}
+}
+
 func TestAutomationService_Create(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -245,6 +265,7 @@ func TestAutomationService_Update(t *testing.T) {
 	t.Run("successful update with list_id", func(t *testing.T) {
 		automation := createTestAutomationService("auto-123", workspaceID)
 		automation.Name = "Updated Automation"
+		stored := createTestAutomationService("auto-123", workspaceID)
 
 		userWorkspace := &domain.UserWorkspace{
 			UserID:      "user-123",
@@ -254,6 +275,7 @@ func TestAutomationService_Update(t *testing.T) {
 		}
 		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, userWorkspace, nil)
 		// No GetNodes call needed when list_id is set
+		mockRepo.EXPECT().GetByID(ctx, workspaceID, automation.ID).Return(stored, nil)
 		mockRepo.EXPECT().Update(ctx, workspaceID, automation).Return(nil)
 
 		err := service.Update(ctx, workspaceID, automation)
@@ -314,6 +336,9 @@ func TestAutomationService_Update(t *testing.T) {
 		}
 		automation.RootNodeID = "node-1" // Must reference a valid node
 
+		stored := createTestAutomationService("auto-123", workspaceID)
+		stored.RootNodeID = "node-1"
+
 		userWorkspace := &domain.UserWorkspace{
 			UserID:      "user-123",
 			WorkspaceID: workspaceID,
@@ -321,10 +346,245 @@ func TestAutomationService_Update(t *testing.T) {
 			Permissions: domain.FullPermissions,
 		}
 		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, userWorkspace, nil)
+		mockRepo.EXPECT().GetByID(ctx, workspaceID, automation.ID).Return(stored, nil)
 		mockRepo.EXPECT().Update(ctx, workspaceID, automation).Return(nil)
 
 		err := service.Update(ctx, workspaceID, automation)
 		assert.NoError(t, err)
+	})
+
+	t.Run("live automation, trigger inputs unchanged - trigger not regenerated", func(t *testing.T) {
+		// DROP/CREATE TRIGGER takes ACCESS EXCLUSIVE on contact_timeline, the table every
+		// contact event passes through, so an edit that leaves the compiled trigger
+		// identical must not touch it.
+		automation := createTestAutomationService("auto-123", workspaceID)
+		automation.Status = domain.AutomationStatusLive
+		automation.Name = "Renamed while live"
+
+		stored := createTestAutomationService("auto-123", workspaceID)
+		stored.Status = domain.AutomationStatusLive
+
+		userWorkspace := &domain.UserWorkspace{
+			UserID:      "user-123",
+			WorkspaceID: workspaceID,
+			Role:        "admin",
+			Permissions: domain.FullPermissions,
+		}
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, userWorkspace, nil)
+		mockRepo.EXPECT().GetByID(ctx, workspaceID, automation.ID).Return(stored, nil)
+		mockRepo.EXPECT().CreateAutomationTrigger(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+		mockRepo.EXPECT().Update(ctx, workspaceID, automation).Return(nil)
+
+		err := service.Update(ctx, workspaceID, automation)
+		assert.NoError(t, err)
+	})
+
+	// The row is written before the trigger is installed. The reverse order would, on a
+	// failed row write, leave a trigger compiled from a configuration the database does
+	// not store — and nothing would repair it, because the next edit compares against
+	// that stale stored row, finds no change, and skips regeneration.
+	t.Run("live automation, event_kind changed - row written before the trigger", func(t *testing.T) {
+		automation := createTestAutomationService("auto-123", workspaceID)
+		automation.Status = domain.AutomationStatusLive
+		automation.Trigger.EventKind = "email.clicked"
+
+		stored := createTestAutomationService("auto-123", workspaceID)
+		stored.Status = domain.AutomationStatusLive
+
+		userWorkspace := &domain.UserWorkspace{
+			UserID:      "user-123",
+			WorkspaceID: workspaceID,
+			Role:        "admin",
+			Permissions: domain.FullPermissions,
+		}
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, userWorkspace, nil)
+		mockRepo.EXPECT().GetByID(ctx, workspaceID, automation.ID).Return(stored, nil)
+		gomock.InOrder(
+			mockRepo.EXPECT().Update(ctx, workspaceID, automation).Return(nil),
+			mockRepo.EXPECT().CreateAutomationTrigger(ctx, workspaceID, automation).Return(nil),
+		)
+
+		err := service.Update(ctx, workspaceID, automation)
+		assert.NoError(t, err)
+	})
+
+	// The compensating write is what keeps the stored configuration and the installed
+	// trigger describing the same automation.
+	t.Run("live automation, trigger install fails - the stored row is restored", func(t *testing.T) {
+		automation := createTestAutomationService("auto-123", workspaceID)
+		automation.Status = domain.AutomationStatusLive
+		automation.Trigger.EventKind = "email.clicked"
+
+		stored := createTestAutomationService("auto-123", workspaceID)
+		stored.Status = domain.AutomationStatusLive
+
+		userWorkspace := &domain.UserWorkspace{
+			UserID:      "user-123",
+			WorkspaceID: workspaceID,
+			Role:        "admin",
+			Permissions: domain.FullPermissions,
+		}
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, userWorkspace, nil)
+		mockRepo.EXPECT().GetByID(ctx, workspaceID, automation.ID).Return(stored, nil)
+		gomock.InOrder(
+			mockRepo.EXPECT().Update(ctx, workspaceID, automation).Return(nil),
+			mockRepo.EXPECT().CreateAutomationTrigger(ctx, workspaceID, automation).
+				Return(domain.NewTriggerConditionError("invalid trigger conditions: nope")),
+			// Detached context: the restore must not be cancelled by the request that failed.
+			mockRepo.EXPECT().Update(gomock.Not(gomock.Eq(ctx)), workspaceID, stored).Return(nil),
+		)
+
+		err := service.Update(ctx, workspaceID, automation)
+		assert.Error(t, err)
+
+		var conditionErr *domain.TriggerConditionError
+		assert.True(t, errors.As(err, &conditionErr), "the reason must survive to the handler")
+	})
+
+	t.Run("live automation, conditions changed - trigger regenerated", func(t *testing.T) {
+		automation := createTestAutomationService("auto-123", workspaceID)
+		automation.Status = domain.AutomationStatusLive
+		automation.Trigger.Conditions = testTriggerConditionsService("country", "US")
+
+		stored := createTestAutomationService("auto-123", workspaceID)
+		stored.Status = domain.AutomationStatusLive
+
+		userWorkspace := &domain.UserWorkspace{
+			UserID:      "user-123",
+			WorkspaceID: workspaceID,
+			Role:        "admin",
+			Permissions: domain.FullPermissions,
+		}
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, userWorkspace, nil)
+		mockRepo.EXPECT().GetByID(ctx, workspaceID, automation.ID).Return(stored, nil)
+		gomock.InOrder(
+			mockRepo.EXPECT().Update(ctx, workspaceID, automation).Return(nil),
+			mockRepo.EXPECT().CreateAutomationTrigger(ctx, workspaceID, automation).Return(nil),
+		)
+
+		err := service.Update(ctx, workspaceID, automation)
+		assert.NoError(t, err)
+	})
+
+	t.Run("live automation, root_node_id changed - trigger regenerated", func(t *testing.T) {
+		automation := createTestAutomationService("auto-123", workspaceID)
+		automation.Status = domain.AutomationStatusLive
+		automation.RootNodeID = "node-other"
+
+		stored := createTestAutomationService("auto-123", workspaceID)
+		stored.Status = domain.AutomationStatusLive
+
+		userWorkspace := &domain.UserWorkspace{
+			UserID:      "user-123",
+			WorkspaceID: workspaceID,
+			Role:        "admin",
+			Permissions: domain.FullPermissions,
+		}
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, userWorkspace, nil)
+		mockRepo.EXPECT().GetByID(ctx, workspaceID, automation.ID).Return(stored, nil)
+		gomock.InOrder(
+			mockRepo.EXPECT().Update(ctx, workspaceID, automation).Return(nil),
+			mockRepo.EXPECT().CreateAutomationTrigger(ctx, workspaceID, automation).Return(nil),
+		)
+
+		err := service.Update(ctx, workspaceID, automation)
+		assert.NoError(t, err)
+	})
+
+	t.Run("draft automation, trigger inputs changed - no trigger to regenerate", func(t *testing.T) {
+		automation := createTestAutomationService("auto-123", workspaceID)
+		automation.Trigger.EventKind = "email.clicked"
+
+		stored := createTestAutomationService("auto-123", workspaceID)
+
+		userWorkspace := &domain.UserWorkspace{
+			UserID:      "user-123",
+			WorkspaceID: workspaceID,
+			Role:        "admin",
+			Permissions: domain.FullPermissions,
+		}
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, userWorkspace, nil)
+		mockRepo.EXPECT().GetByID(ctx, workspaceID, automation.ID).Return(stored, nil)
+		mockRepo.EXPECT().CreateAutomationTrigger(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+		mockRepo.EXPECT().Update(ctx, workspaceID, automation).Return(nil)
+
+		err := service.Update(ctx, workspaceID, automation)
+		assert.NoError(t, err)
+	})
+
+	t.Run("an incoming status is ignored in favour of the stored one", func(t *testing.T) {
+		// Update installs no trigger, so writing the incoming "live" status would leave a
+		// row that claims to be live while nothing listens on contact_timeline — an
+		// automation that never fires and that nothing later repairs.
+		//
+		// The write still happens, with the stored status: the whole object is overwritten
+		// on update, so every read-modify-write client sends back the status it read, and
+		// the console sends it on every save. Failing those saves over a field the caller
+		// never meant to touch would be worse than ignoring it.
+		automation := createTestAutomationService("auto-123", workspaceID)
+		automation.Status = domain.AutomationStatusLive
+
+		stored := createTestAutomationService("auto-123", workspaceID)
+		stored.Status = domain.AutomationStatusDraft
+
+		userWorkspace := &domain.UserWorkspace{
+			UserID:      "user-123",
+			WorkspaceID: workspaceID,
+			Role:        "admin",
+			Permissions: domain.FullPermissions,
+		}
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, userWorkspace, nil)
+		mockRepo.EXPECT().GetByID(ctx, workspaceID, automation.ID).Return(stored, nil)
+		// No trigger work: the automation is not live, whatever the request claimed.
+		mockRepo.EXPECT().CreateAutomationTrigger(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+		mockRepo.EXPECT().Update(ctx, workspaceID, gomock.Any()).DoAndReturn(
+			func(_ context.Context, _ string, saved *domain.Automation) error {
+				assert.Equal(t, domain.AutomationStatusDraft, saved.Status,
+					"the stored status must survive an update that tried to change it")
+				return nil
+			})
+
+		err := service.Update(ctx, workspaceID, automation)
+		assert.NoError(t, err)
+	})
+
+	// The one case the compensating write cannot fix. It leaves the stored configuration
+	// describing an automation the installed trigger does not implement, which nothing
+	// detects on its own — so it has to be logged rather than swallowed.
+	t.Run("a failed restore after a failed trigger install is reported", func(t *testing.T) {
+		automation := createTestAutomationService("auto-123", workspaceID)
+		automation.Status = domain.AutomationStatusLive
+		automation.Trigger.Conditions = testTriggerConditionsService("country", "US")
+
+		stored := createTestAutomationService("auto-123", workspaceID)
+		stored.Status = domain.AutomationStatusLive
+
+		userWorkspace := &domain.UserWorkspace{
+			UserID:      "user-123",
+			WorkspaceID: workspaceID,
+			Role:        "admin",
+			Permissions: domain.FullPermissions,
+		}
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, userWorkspace, nil)
+		mockRepo.EXPECT().GetByID(ctx, workspaceID, automation.ID).Return(stored, nil)
+		gomock.InOrder(
+			mockRepo.EXPECT().Update(ctx, workspaceID, automation).Return(nil),
+			mockRepo.EXPECT().CreateAutomationTrigger(ctx, workspaceID, automation).
+				Return(domain.NewTriggerConditionError("invalid trigger conditions: column does not exist")),
+			mockRepo.EXPECT().Update(gomock.Not(gomock.Eq(ctx)), workspaceID, stored).Return(errors.New("db gone")),
+		)
+		// Both fields: with one database per workspace, the automation id alone does not
+		// say which database holds the mismatched trigger.
+		mockLogger.EXPECT().WithField("automation_id", automation.ID).Return(mockLogger)
+		mockLogger.EXPECT().WithField("workspace_id", workspaceID).Return(mockLogger)
+		mockLogger.EXPECT().Error(gomock.Any())
+
+		err := service.Update(ctx, workspaceID, automation)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to update automation trigger")
+
+		var conditionErr *domain.TriggerConditionError
+		assert.True(t, errors.As(err, &conditionErr), "the condition error must survive wrapping so the handler can answer 400")
 	})
 }
 
@@ -517,6 +777,139 @@ func TestAutomationService_Activate(t *testing.T) {
 
 		err := service.Activate(ctx, workspaceID, automationID)
 		assert.NoError(t, err)
+	})
+
+	t.Run("trigger creation failure rolls a paused automation back to paused", func(t *testing.T) {
+		userWorkspace := &domain.UserWorkspace{
+			UserID:      "user-123",
+			WorkspaceID: workspaceID,
+			Role:        "admin",
+			Permissions: domain.FullPermissions,
+		}
+		existingAutomation := createTestAutomationService(automationID, workspaceID)
+		existingAutomation.Status = domain.AutomationStatusPaused
+
+		var writtenStatuses []domain.AutomationStatus
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, userWorkspace, nil)
+		mockRepo.EXPECT().GetByID(ctx, workspaceID, automationID).Return(existingAutomation, nil)
+		mockRepo.EXPECT().Update(gomock.Any(), workspaceID, gomock.Any()).Times(2).
+			DoAndReturn(func(_ context.Context, _ string, a *domain.Automation) error {
+				writtenStatuses = append(writtenStatuses, a.Status)
+				return nil
+			})
+		mockRepo.EXPECT().CreateAutomationTrigger(ctx, workspaceID, gomock.Any()).Return(errors.New("cannot use subquery in trigger WHEN condition"))
+
+		err := service.Activate(ctx, workspaceID, automationID)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to create automation trigger")
+		assert.Equal(t, []domain.AutomationStatus{domain.AutomationStatusLive, domain.AutomationStatusPaused}, writtenStatuses)
+		assert.Equal(t, domain.AutomationStatusPaused, existingAutomation.Status)
+	})
+
+	t.Run("trigger creation failure rolls a draft automation back to draft", func(t *testing.T) {
+		userWorkspace := &domain.UserWorkspace{
+			UserID:      "user-123",
+			WorkspaceID: workspaceID,
+			Role:        "admin",
+			Permissions: domain.FullPermissions,
+		}
+		existingAutomation := createTestAutomationService(automationID, workspaceID)
+		existingAutomation.Status = domain.AutomationStatusDraft
+
+		var writtenStatuses []domain.AutomationStatus
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, userWorkspace, nil)
+		mockRepo.EXPECT().GetByID(ctx, workspaceID, automationID).Return(existingAutomation, nil)
+		mockRepo.EXPECT().Update(gomock.Any(), workspaceID, gomock.Any()).Times(2).
+			DoAndReturn(func(_ context.Context, _ string, a *domain.Automation) error {
+				writtenStatuses = append(writtenStatuses, a.Status)
+				return nil
+			})
+		mockRepo.EXPECT().CreateAutomationTrigger(ctx, workspaceID, gomock.Any()).Return(errors.New("trigger install failed"))
+
+		err := service.Activate(ctx, workspaceID, automationID)
+		assert.Error(t, err)
+		assert.Equal(t, []domain.AutomationStatus{domain.AutomationStatusLive, domain.AutomationStatusDraft}, writtenStatuses)
+		assert.Equal(t, domain.AutomationStatusDraft, existingAutomation.Status)
+	})
+
+	t.Run("stored automation that fails validation is refused before any DDL", func(t *testing.T) {
+		userWorkspace := &domain.UserWorkspace{
+			UserID:      "user-123",
+			WorkspaceID: workspaceID,
+			Role:        "admin",
+			Permissions: domain.FullPermissions,
+		}
+		existingAutomation := createTestAutomationService(automationID, workspaceID)
+		existingAutomation.Status = domain.AutomationStatusDraft
+		// A leaf node carrying no leaf payload: storable, but the generator would
+		// dereference it while compiling the guard.
+		existingAutomation.Trigger.Conditions = &domain.TreeNode{Kind: "leaf"}
+
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, userWorkspace, nil)
+		mockRepo.EXPECT().GetByID(ctx, workspaceID, automationID).Return(existingAutomation, nil)
+		mockRepo.EXPECT().CreateAutomationTrigger(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+		mockRepo.EXPECT().Update(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+
+		err := service.Activate(ctx, workspaceID, automationID)
+		assert.Error(t, err)
+
+		var conditionErr *domain.TriggerConditionError
+		assert.True(t, errors.As(err, &conditionErr), "an unusable stored configuration is a 400, not a 500")
+		assert.Contains(t, err.Error(), "invalid trigger conditions")
+		assert.Equal(t, domain.AutomationStatusDraft, existingAutomation.Status)
+	})
+}
+
+func TestAutomationService_TriggerInputsChanged(t *testing.T) {
+	t.Run("identical automations", func(t *testing.T) {
+		existing := createTestAutomationService("auto-123", "workspace-123")
+		updated := createTestAutomationService("auto-123", "workspace-123")
+
+		assert.False(t, triggerInputsChanged(existing, updated))
+	})
+
+	t.Run("root node changed", func(t *testing.T) {
+		existing := createTestAutomationService("auto-123", "workspace-123")
+		updated := createTestAutomationService("auto-123", "workspace-123")
+		updated.RootNodeID = "node-other"
+
+		assert.True(t, triggerInputsChanged(existing, updated))
+	})
+
+	t.Run("event kind changed", func(t *testing.T) {
+		existing := createTestAutomationService("auto-123", "workspace-123")
+		updated := createTestAutomationService("auto-123", "workspace-123")
+		updated.Trigger.EventKind = "email.clicked"
+
+		assert.True(t, triggerInputsChanged(existing, updated))
+	})
+
+	t.Run("conditions changed", func(t *testing.T) {
+		existing := createTestAutomationService("auto-123", "workspace-123")
+		existing.Trigger.Conditions = testTriggerConditionsService("country", "US")
+		updated := createTestAutomationService("auto-123", "workspace-123")
+		updated.Trigger.Conditions = testTriggerConditionsService("country", "FR")
+
+		assert.True(t, triggerInputsChanged(existing, updated))
+	})
+
+	t.Run("conditions removed", func(t *testing.T) {
+		existing := createTestAutomationService("auto-123", "workspace-123")
+		existing.Trigger.Conditions = testTriggerConditionsService("country", "US")
+		updated := createTestAutomationService("auto-123", "workspace-123")
+
+		assert.True(t, triggerInputsChanged(existing, updated))
+	})
+
+	t.Run("field the generator does not read", func(t *testing.T) {
+		// Renaming a live automation must not cost an ACCESS EXCLUSIVE lock on
+		// contact_timeline.
+		existing := createTestAutomationService("auto-123", "workspace-123")
+		updated := createTestAutomationService("auto-123", "workspace-123")
+		updated.Name = "Renamed"
+		updated.Stats = &domain.AutomationStats{Enrolled: 42}
+
+		assert.False(t, triggerInputsChanged(existing, updated))
 	})
 }
 

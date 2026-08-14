@@ -435,9 +435,9 @@ const AutomationFlowEditorInner: React.FC = () => {
       {/* Fixed Node Configuration Panel - Top Right */}
       {selectedNode && (
         <div
-          className={`absolute bg-white border border-gray-200 rounded-lg shadow-lg ${
-            selectedNode.data.nodeType === 'filter' ? 'w-[640px]' : 'w-[480px]'
-          }`}
+          // One width for every node type: the condition tree, the only thing that ever
+          // justified a wider panel, is edited in a drawer now.
+          className="absolute bg-white border border-gray-200 rounded-lg shadow-lg w-[480px]"
           style={{
             top: 16,
             right: 16,

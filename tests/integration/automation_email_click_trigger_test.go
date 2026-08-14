@@ -25,12 +25,9 @@ import (
 // kind "email.clicked" (uniformized with the console's trigger event kind), so the trigger
 // WHEN clause matches the row directly.
 //
-// Two subtests:
-//   - GeneratorFiresOnClick: a freshly-activated email.clicked automation enrolls the
-//     contact when an email.clicked timeline row is inserted.
-//   - MigrationHealsBrokenTrigger: an automation whose installed trigger still carries a
-//     stale suffixed WHEN clause ("click_email") is regenerated to "email.clicked" by the
-//     v36 workspace migration and then fires.
+// The subtests cover a freshly-activated automation firing, the v36 migration healing a
+// stale suffixed WHEN clause, v36 leaving a conditions-bearing automation alone, and v38
+// regenerating that same automation so its conditions are finally enforced.
 func TestAutomationEmailClickTrigger(t *testing.T) {
 	testutil.SkipIfShort(t)
 	testutil.SetupTestEnvironment()
@@ -208,25 +205,95 @@ func TestAutomationEmailClickTrigger(t *testing.T) {
 		require.NotNil(t, ca, "contact should be enrolled after the migration heals the trigger")
 	})
 
-	// A live email automation that gained trigger-level Conditions after activation would
-	// regenerate to a WHEN clause containing a subquery, which Postgres rejects. v36 must
-	// skip it rather than error — an errored workspace migration aborts the whole run and
-	// blocks server startup for the entire instance.
-	t.Run("MigrationSkipsAutomationWithSubqueryConditions", func(t *testing.T) {
-		automationID := createLiveClickAutomation(t, "Email Click Conditions E2E")
+	// runV38Migration executes v38 the same way, for the same reason: it guards each
+	// automation it regenerates with a SAVEPOINT.
+	runV38Migration := func(t *testing.T) error {
+		tx, err := workspaceDB.BeginTx(context.Background(), nil)
+		require.NoError(t, err)
+		if mErr := (&migrations.V38Migration{}).UpdateWorkspace(context.Background(), &config.Config{}, workspace, tx); mErr != nil {
+			_ = tx.Rollback()
+			return mErr
+		}
+		return tx.Commit()
+	}
 
-		// Inject a contact-source condition into the stored trigger config (as Update
-		// would), without regenerating the installed trigger.
+	// injectTriggerConditions writes a condition tree into the stored trigger config, the
+	// way an API update did before updates regenerated the trigger, leaving the installed
+	// trigger enforcing nothing.
+	injectTriggerConditions := func(t *testing.T, automationID, firstName string) {
 		_, err := workspaceDB.ExecContext(context.Background(),
 			`UPDATE automations SET trigger_config = jsonb_set(trigger_config, '{conditions}', $1::jsonb) WHERE id = $2`,
-			`{"kind":"leaf","leaf":{"source":"contacts","contact":{"filters":[{"field_name":"first_name","field_type":"string","operator":"equals","string_values":["x"]}]}}}`,
+			fmt.Sprintf(`{"kind":"leaf","leaf":{"source":"contacts","contact":{"filters":[{"field_name":"first_name","field_type":"string","operator":"equals","string_values":[%q]}]}}}`, firstName),
 			automationID)
 		require.NoError(t, err)
+	}
+
+	functionSource := func(t *testing.T, automationID string) string {
+		var src string
+		err := workspaceDB.QueryRowContext(context.Background(),
+			`SELECT prosrc FROM pg_proc WHERE proname = $1`, triggerName(automationID)).Scan(&src)
+		require.NoError(t, err, "trigger function %s should exist", triggerName(automationID))
+		return src
+	}
+
+	// v36 predates the fix: when it runs, trigger conditions still compile into the WHEN
+	// clause as a subquery, which PostgreSQL rejects. It must leave such an automation
+	// exactly as it found it rather than error — an errored workspace migration aborts the
+	// whole run and blocks server startup for the entire instance. v38 owns the repair.
+	t.Run("MigrationSkipsAutomationWithSubqueryConditions", func(t *testing.T) {
+		automationID := createLiveClickAutomation(t, "Email Click Conditions E2E")
+		injectTriggerConditions(t, automationID, "x")
+
+		before := triggerDef(t, automationID)
+		beforeSrc := functionSource(t, automationID)
 
 		// v36 must complete without error (the conditions automation is skipped).
 		require.NoError(t, runMigration(t), "v36 must not abort on an automation with subquery conditions")
 
-		// Its trigger is left intact (still present), not dropped.
-		require.NotEmpty(t, triggerDef(t, automationID), "skipped automation keeps its trigger")
+		// Both halves, because conditions now live in the function body: the trigger
+		// definition is byte-identical whether v36 skipped the automation or regenerated
+		// it in full, so asserting on that alone pins nothing. pg_proc.prosrc is the only
+		// observable that moves.
+		require.Equal(t, before, triggerDef(t, automationID), "v36 must leave the trigger byte-for-byte as it found it")
+		require.Equal(t, beforeSrc, functionSource(t, automationID), "v36 must leave the trigger function as it found it")
+	})
+
+	// The repair: v38 regenerates the automation v36 skipped, moving the conditions into
+	// the trigger function body where PostgreSQL accepts them.
+	t.Run("V38HealsAutomationWithConditions", func(t *testing.T) {
+		automationID := createLiveClickAutomation(t, "Email Click V38 Heal E2E")
+		injectTriggerConditions(t, automationID, "Matcher")
+
+		require.NotContains(t, functionSource(t, automationID), "IF (",
+			"the installed trigger should not enforce the conditions before the migration")
+
+		require.NoError(t, runV38Migration(t))
+
+		healed := functionSource(t, automationID)
+		assert.Contains(t, healed, "IF (", "conditions should now be evaluated inside the function")
+		assert.Contains(t, healed, "EXISTS (SELECT 1 FROM contacts", "the compiled condition should be in the body")
+		assert.NotContains(t, triggerDef(t, automationID), "(SELECT",
+			"a subquery in the WHEN clause is what PostgreSQL rejects (SQLSTATE 0A000)")
+
+		// End to end: only the contact the condition describes is enrolled.
+		matching := "email-click-v38-match@example.com"
+		_, err := factory.CreateContact(workspaceID, testutil.WithContactEmail(matching),
+			testutil.WithContactName("Matcher", "Last"))
+		require.NoError(t, err)
+
+		other := "email-click-v38-other@example.com"
+		_, err = factory.CreateContact(workspaceID, testutil.WithContactEmail(other),
+			testutil.WithContactName("Someone", "Else"))
+		require.NoError(t, err)
+
+		insertClick(t, matching)
+		insertClick(t, other)
+
+		require.NotNil(t, waitForEnrollment(t, factory, workspaceID, automationID, matching, 3*time.Second),
+			"the contact matching the condition should be enrolled")
+
+		ca, err := factory.FindContactAutomation(workspaceID, automationID, other)
+		require.NoError(t, err)
+		assert.Nil(t, ca, "the contact failing the condition should not be enrolled")
 	})
 }

@@ -193,6 +193,14 @@ func (c *TimelineTriggerConfig) Validate() error {
 		}
 	}
 
+	// Conditions reach the database as generated SQL, so a malformed tree must be
+	// caught here rather than at CREATE TRIGGER, where the caller only ever sees a 500.
+	if c.Conditions != nil {
+		if err := c.Conditions.Validate(); err != nil {
+			return fmt.Errorf("invalid trigger conditions: %w", err)
+		}
+	}
+
 	return nil
 }
 

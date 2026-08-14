@@ -3,6 +3,7 @@ package migrations
 import (
 	"context"
 	"encoding/json"
+	"strings"
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
@@ -283,7 +284,18 @@ func TestV36Migration_UpdateWorkspace_RegeneratesEmailTrigger(t *testing.T) {
 	cfg := &config.Config{}
 	workspace := &domain.Workspace{ID: "ws1"}
 
-	db, mock, err := sqlmock.New()
+	// Capture the function body v36 installs. v36 only ever regenerates automations without
+	// trigger conditions, and moving conditions into the function body must not have changed
+	// what that case emits.
+	var functionBody string
+	matcher := sqlmock.QueryMatcherFunc(func(expectedSQL, actualSQL string) error {
+		if strings.HasPrefix(actualSQL, "CREATE OR REPLACE FUNCTION automation_trigger_clickauto") {
+			functionBody = actualSQL
+		}
+		return sqlmock.QueryMatcherRegexp.Match(expectedSQL, actualSQL)
+	})
+
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(matcher))
 	require.NoError(t, err)
 	defer db.Close()
 
@@ -309,6 +321,12 @@ func TestV36Migration_UpdateWorkspace_RegeneratesEmailTrigger(t *testing.T) {
 	err = m.UpdateWorkspace(context.Background(), cfg, workspace, db)
 	assert.NoError(t, err)
 	assert.NoError(t, mock.ExpectationsWereMet())
+
+	// No conditions means no guard at all, not an always-true one: the body enrolls
+	// unconditionally, exactly as it did before conditions moved into the function body.
+	require.NotEmpty(t, functionBody)
+	assert.NotContains(t, functionBody, "IF ")
+	assert.NotContains(t, functionBody, "EXISTS")
 }
 
 func TestV36Migration_UpdateWorkspace_SkipsAutomationWithConditions(t *testing.T) {

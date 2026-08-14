@@ -13,6 +13,8 @@ import type {
   RemoveFromListNodeConfig,
   ListStatusBranchNodeConfig
 } from '../../../services/api/automation'
+import type { TreeNode } from '../../../services/api/segment'
+import { HasLeaf } from '../../segment/tree_completeness'
 
 // Node data stored in ReactFlow nodes
 export interface AutomationNodeData {
@@ -246,6 +248,7 @@ export function flowToAutomationNodes(
   })
 }
 
+
 // Build trigger config from trigger node
 export function buildTriggerConfig(
   nodes: Node<AutomationNodeData>[]
@@ -258,16 +261,66 @@ export function buildTriggerConfig(
     list_id?: string
     segment_id?: string
     custom_event_name?: string
+    updated_fields?: string[]
+    conditions?: TreeNode
     frequency?: 'once' | 'every_time'
   }
 
+  // Every field of TimelineTriggerConfig must be listed here: the update endpoint
+  // overwrites the whole automation, so anything omitted is destroyed on save. Conditions
+  // are edited in the trigger panel and can also arrive on an automation created through
+  // the API; they are omitted rather than sent empty because "nothing configured yet" is a
+  // leafless tree, which the server rejects outright.
   return {
     event_kind: config.event_kind || '',
     list_id: config.list_id,
     segment_id: config.segment_id,
     custom_event_name: config.custom_event_name,
+    updated_fields: config.updated_fields,
+    // Omitted rather than sent empty: the server rejects a branch with zero leaves.
+    conditions: HasLeaf(config.conditions) ? config.conditions : undefined,
     frequency: config.frequency || 'once'
   }
+}
+
+// Copy the saved trigger config onto the trigger node so a load -> save round trip
+// re-emits it. The stored trigger is authoritative: an automation created through
+// the API can carry trigger settings the node config has never seen.
+export function hydrateTriggerNodeConfig(
+  nodes: Node<AutomationNodeData>[],
+  trigger?: TimelineTriggerConfig
+): Node<AutomationNodeData>[] {
+  if (!trigger) return nodes
+
+  return nodes.map((node) => {
+    if (node.data.nodeType !== 'trigger') return node
+
+    return {
+      ...node,
+      data: {
+        ...node.data,
+        config: {
+          ...node.data.config,
+          event_kind: trigger.event_kind,
+          list_id: trigger.list_id,
+          segment_id: trigger.segment_id,
+          custom_event_name: trigger.custom_event_name,
+          // The one key the shipped console never sent: buildTriggerConfig omitted it, so
+          // for every automation saved before this release the user's field selection
+          // survives only in the node config. Overwriting it with the trigger's absent
+          // value would delete the last record of it, and the next save would persist the
+          // erasure. Conditions get no such fallback on purpose — the shipped console had
+          // no UI for them, so no node config can carry one, and clearing them in the
+          // drawer has to round-trip.
+          updated_fields:
+            trigger.updated_fields ??
+            (node.data.config as { updated_fields?: string[] }).updated_fields,
+          conditions: trigger.conditions,
+          frequency: trigger.frequency
+        }
+      }
+    }
+  })
 }
 
 // Find root node ID (the trigger node)

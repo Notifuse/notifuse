@@ -43,14 +43,9 @@ import { FieldTypeNumber } from './type_number'
 import { FieldTypeJSON } from './type_json'
 import styles from './input.module.css'
 
-export const HasLeaf = (node: TreeNode): boolean => {
-  if (node.kind === 'leaf') return true
-  if (!node.branch) return false
-
-  return node.branch.leaves.some((child: TreeNode) => {
-    return HasLeaf(child)
-  })
-}
+// Defined in ./tree_completeness so pure callers can use it without importing this module,
+// which pulls in antd and the whole editor. Re-exported here for the existing importers.
+export { HasLeaf } from './tree_completeness'
 
 export type SegmentSchemas = {
   [key: string]: TableSchema

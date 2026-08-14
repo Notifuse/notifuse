@@ -1,15 +1,9 @@
 import { router } from '../../router'
 
-export class ApiError extends Error {
-  constructor(
-    message: string,
-    public status: number,
-    public data?: unknown
-  ) {
-    super(message)
-    this.name = 'ApiError'
-  }
-}
+// Defined in ./errors so it can be imported without pulling in the router; re-exported
+// here because most call sites already import it from this module.
+export { ApiError } from './errors'
+import { ApiError } from './errors'
 
 async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {

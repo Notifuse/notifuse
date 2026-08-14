@@ -117,3 +117,43 @@ func TestPermissionError_Error(t *testing.T) {
 		t.Error("Error() should return the Message field")
 	}
 }
+
+func TestTriggerConditionError_Error(t *testing.T) {
+	err := NewTriggerConditionError("invalid trigger conditions: column \"country\" does not exist")
+
+	expected := "invalid trigger conditions: column \"country\" does not exist"
+	if err.Error() != expected {
+		t.Errorf("Expected error message '%s', got '%s'", expected, err.Error())
+	}
+
+	if err.Error() != err.Message {
+		t.Error("Error() should return the Message field")
+	}
+}
+
+// The HTTP handlers answer 400 by matching this type with errors.As after the service and
+// repository layers have wrapped it with %w, so the match must survive that wrapping.
+func TestTriggerConditionError_As(t *testing.T) {
+	original := NewTriggerConditionError("branch must have at least one leaf")
+	wrapped := fmt.Errorf("failed to create automation trigger: %w", original)
+	doubleWrapped := fmt.Errorf("activate automation: %w", wrapped)
+
+	var target *TriggerConditionError
+	if !errors.As(doubleWrapped, &target) {
+		t.Fatal("errors.As() failed to find TriggerConditionError through the wrapping")
+	}
+
+	if target != original {
+		t.Error("errors.As() should yield the original TriggerConditionError")
+	}
+
+	if target.Error() != "branch must have at least one leaf" {
+		t.Errorf("Expected message 'branch must have at least one leaf', got '%s'", target.Error())
+	}
+
+	// A different error type must not match, or every failure would answer 400.
+	var negative *TriggerConditionError
+	if errors.As(fmt.Errorf("wrapped: %w", &ErrNotFound{Entity: "automation", ID: "123"}), &negative) {
+		t.Error("errors.As() matched TriggerConditionError on an unrelated error")
+	}
+}

@@ -159,3 +159,56 @@ export const isTreeQueryable = (node: TreeNode | null | undefined): boolean => {
 
   return false
 }
+
+// Reports whether a tree carries any leaf at all. An editor hands back a branch with zero
+// leaves for "nothing configured", which is not the same thing as no conditions: the server
+// rejects an empty branch outright (TreeNodeBranch.Validate in internal/domain/tree.go).
+export const HasLeaf = (node: TreeNode | null | undefined): boolean => {
+  if (!node) return false
+  if (node.kind === 'leaf') return Boolean(node.leaf)
+
+  return (node.branch?.leaves ?? []).some((child: TreeNode) => HasLeaf(child))
+}
+
+// Reports whether any leaf in the tree reads from the given source, so a caller can show the
+// guidance that applies to one source without guessing from the shape of the form.
+export const treeUsesSource = (node: TreeNode | null | undefined, source: string): boolean => {
+  if (!node) return false
+  if (node.kind === 'leaf') return node.leaf?.source === source
+
+  return (node.branch?.leaves ?? []).some((child: TreeNode) => treeUsesSource(child, source))
+}
+
+/**
+ * Drops everything the server would reject, returning undefined when nothing survives.
+ *
+ * The tree editor commits a leaf the moment a source is picked, before any filter exists — so
+ * a user who opens the editor, picks "Contact property" and then changes their mind leaves a
+ * leaf behind that TreeNodeBranch.Validate refuses ("contact condition must have at least one
+ * filter"). Left in place it blocks every later save of the automation, including edits made
+ * since, and the panel meanwhile counts it as a configured condition.
+ *
+ * Identity is preserved when nothing is dropped, so a caller can tell a real change from a
+ * no-op and avoid writing to its config for nothing.
+ */
+export const pruneIncompleteConditions = (node: TreeNode | null | undefined): TreeNode | undefined => {
+  if (!node) return undefined
+
+  if (node.kind === 'leaf') {
+    return isLeafComplete(node.leaf) ? node : undefined
+  }
+
+  if (node.kind !== 'branch' || !node.branch) return undefined
+
+  const original = node.branch.leaves ?? []
+  const leaves = original
+    .map(pruneIncompleteConditions)
+    .filter((leaf): leaf is TreeNode => Boolean(leaf))
+
+  if (!leaves.length) return undefined
+
+  const unchanged =
+    leaves.length === original.length && leaves.every((leaf, index) => leaf === original[index])
+
+  return unchanged ? node : { ...node, branch: { ...node.branch, leaves } }
+}

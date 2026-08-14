@@ -1,11 +1,18 @@
 import React, { useMemo } from 'react'
-import { Form, Select, Input, Cascader, ConfigProvider } from 'antd'
+import { Form, Select, Input, Cascader, ConfigProvider, Alert } from 'antd'
 import { useQuery } from '@tanstack/react-query'
 import { useLingui } from '@lingui/react/macro'
+import { ConditionsField } from './ConditionsField'
+import { treeUsesSource } from '../../segment/tree_completeness'
+import type { TreeNode } from '../../../services/api/segment'
 import { listsApi } from '../../../services/api/list'
 import { listSegments } from '../../../services/api/segment'
 import { OptionSelector } from '../../ui/OptionSelector'
 import type { Workspace } from '../../../services/api/types'
+
+// Kinds that fire often enough that a condition is worth a word about cost: it runs for every
+// matching row written to contact_timeline.
+const FREQUENT_EVENT_KINDS = ['email.opened', 'email.clicked', 'contact.updated', 'custom_event']
 
 // Event kind cascader options are built inside the component to support i18n
 
@@ -36,6 +43,9 @@ interface TriggerConfig {
   segment_id?: string
   custom_event_name?: string
   updated_fields?: string[]
+  // Declared here as well as in TimelineTriggerConfig: without it the field survives only by
+  // the runtime {...config} spreads, invisible to the type checker.
+  conditions?: TreeNode
   frequency?: 'once' | 'every_time'
 }
 
@@ -212,10 +222,20 @@ export const TriggerConfigForm: React.FC<TriggerConfigFormProps> = ({ config, on
     onChange({ ...config, updated_fields: value.length > 0 ? value : undefined })
   }
 
+  const handleConditionsChange = (conditions: TreeNode) => {
+    onChange({ ...config, conditions })
+  }
+
+  const handleRemoveConditions = () => {
+    onChange({ ...config, conditions: undefined })
+  }
+
   const isListEvent = config.event_kind?.startsWith('list.')
   const isSegmentEvent = config.event_kind?.startsWith('segment.')
   const isCustomEvent = config.event_kind === 'custom_event'
   const isContactUpdated = config.event_kind === 'contact.updated'
+  const usesTimeline = treeUsesSource(config.conditions, 'contact_timeline')
+  const isFrequentEvent = Boolean(config.event_kind && FREQUENT_EVENT_KINDS.includes(config.event_kind))
 
   // Memoize cascader value to prevent flicker on re-render
   const cascaderValue = useMemo(() => getCascaderValue(config.event_kind), [config.event_kind])
@@ -340,6 +360,36 @@ export const TriggerConfigForm: React.FC<TriggerConfigFormProps> = ({ config, on
           ]}
         />
       </Form.Item>
+
+      <ConditionsField
+        title={t`Entry conditions`}
+        description={t`Only enroll contacts matching these conditions.`}
+        addLabel={t`Add entry conditions`}
+        value={config.conditions}
+        onChange={handleConditionsChange}
+        onClear={handleRemoveConditions}
+        notice={
+          <>
+            {usesTimeline && (
+              <Alert
+                type="info"
+                showIcon
+                className="mb-3"
+                title={t`A count of past activity includes the event that fires the automation, so "at least 3 opens" enrolls on the third open.`}
+              />
+            )}
+            {isFrequentEvent && (
+              <Alert
+                type="info"
+                showIcon
+                className="mb-3"
+                title={t`This event fires often. These conditions are evaluated for every matching event.`}
+              />
+            )}
+          </>
+        }
+      />
+
     </Form>
   )
 }

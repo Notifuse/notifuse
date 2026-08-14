@@ -4,12 +4,14 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/repository"
+	"github.com/Notifuse/notifuse/internal/service"
 	"github.com/Notifuse/notifuse/pkg/notifuse_mjml"
 	"github.com/google/uuid"
 )
@@ -2410,7 +2412,6 @@ func (tdf *TestDataFactory) ActivateAutomation(workspaceID, automationID string)
 	// Get automation to build trigger
 	var triggerJSON []byte
 	var rootNodeID string
-	var frequency string
 
 	err = workspaceDB.QueryRowContext(context.Background(),
 		`SELECT trigger_config, root_node_id FROM automations WHERE id = $1`,
@@ -2424,47 +2425,31 @@ func (tdf *TestDataFactory) ActivateAutomation(workspaceID, automationID string)
 	if err := json.Unmarshal(triggerJSON, &trigger); err != nil {
 		return fmt.Errorf("failed to unmarshal trigger: %w", err)
 	}
-	frequency = string(trigger.Frequency)
 
-	// Build event kind filter
-	eventKindFilter := fmt.Sprintf("NEW.kind = '%s'", trigger.EventKind)
-
-	// Create trigger function (remove hyphens from UUID for valid PostgreSQL identifier)
-	// Note: list_id is NOT passed to automation_enroll_contact - it's only for unsubscribe URLs
-	safeID := strings.ReplaceAll(automationID, "-", "")
-	functionName := fmt.Sprintf("automation_trigger_%s", safeID)
-	functionSQL := fmt.Sprintf(`
-		CREATE OR REPLACE FUNCTION %s()
-		RETURNS TRIGGER AS $$
-		BEGIN
-			PERFORM automation_enroll_contact(
-				'%s',
-				NEW.email,
-				'%s',
-				'%s'
-			);
-			RETURN NEW;
-		END;
-		$$ LANGUAGE plpgsql
-	`, functionName, automationID, rootNodeID, frequency)
-
-	_, err = workspaceDB.ExecContext(context.Background(), functionSQL)
+	// The production generator, not a hand-rolled equivalent. A lookalike can only emit
+	// what its author thought of — this one built a bare kind equality, so trigger
+	// conditions were structurally unreachable through the factory and no regression in
+	// the real generator was visible to any test that used it.
+	generator := service.NewAutomationTriggerGenerator(service.NewQueryBuilder())
+	triggerSQL, err := generator.Generate(&domain.Automation{
+		ID:         automationID,
+		RootNodeID: rootNodeID,
+		Trigger:    &trigger,
+	})
 	if err != nil {
-		return fmt.Errorf("failed to create trigger function: %w", err)
+		return fmt.Errorf("failed to generate trigger SQL: %w", err)
 	}
 
-	// Create trigger
-	triggerSQL := fmt.Sprintf(`
-		CREATE TRIGGER %s
-		AFTER INSERT ON contact_timeline
-		FOR EACH ROW
-		WHEN (%s)
-		EXECUTE FUNCTION %s()
-	`, functionName, eventKindFilter, functionName)
-
-	_, err = workspaceDB.ExecContext(context.Background(), triggerSQL)
-	if err != nil {
-		return fmt.Errorf("failed to create trigger: %w", err)
+	// Same order as AutomationRepository.CreateAutomationTrigger.
+	for _, stmt := range []string{
+		triggerSQL.DropTrigger,
+		triggerSQL.DropFunction,
+		triggerSQL.FunctionBody,
+		triggerSQL.TriggerDDL,
+	} {
+		if _, err := workspaceDB.ExecContext(context.Background(), stmt); err != nil {
+			return fmt.Errorf("failed to install automation trigger: %w", err)
+		}
 	}
 
 	// Update automation status to live
@@ -2486,7 +2471,10 @@ func (tdf *TestDataFactory) DeactivateAutomation(workspaceID, automationID strin
 		return fmt.Errorf("failed to get workspace DB: %w", err)
 	}
 
-	triggerName := fmt.Sprintf("automation_trigger_%s", automationID)
+	// Hyphens are stripped to match the identifier the generator produces; without this
+	// the DROP silently targets a trigger that does not exist and leaves the real one
+	// installed.
+	triggerName := fmt.Sprintf("automation_trigger_%s", strings.ReplaceAll(automationID, "-", ""))
 
 	// Drop trigger
 	_, err = workspaceDB.ExecContext(context.Background(),
@@ -2514,7 +2502,23 @@ func (tdf *TestDataFactory) DeactivateAutomation(workspaceID, automationID strin
 	return nil
 }
 
-// GetContactAutomation retrieves a contact automation record
+// FindContactAutomation returns the contact's latest enrollment in an automation, or
+// (nil, nil) when there is none. GetContactAutomation reports a missing row as an error,
+// which suits callers that require the enrollment to exist but leaves "this contact must
+// NOT be enrolled" with no clean way to assert itself.
+func (tdf *TestDataFactory) FindContactAutomation(workspaceID, automationID, email string) (*domain.ContactAutomation, error) {
+	ca, err := tdf.GetContactAutomation(workspaceID, automationID, email)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return ca, nil
+}
+
+// GetContactAutomation retrieves a contact automation record, reporting a missing one as
+// an error. Use FindContactAutomation when absence is a legitimate outcome.
 func (tdf *TestDataFactory) GetContactAutomation(workspaceID, automationID, email string) (*domain.ContactAutomation, error) {
 	workspaceDB, err := tdf.workspaceRepo.GetConnection(context.Background(), workspaceID)
 	if err != nil {

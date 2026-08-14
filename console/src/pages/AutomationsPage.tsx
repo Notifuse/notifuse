@@ -4,6 +4,7 @@ import { useParams } from '@tanstack/react-router'
 import { useState } from 'react'
 import { PlusOutlined } from '@ant-design/icons'
 import { useLingui } from '@lingui/react/macro'
+import { ApiError } from '../services/api/errors'
 import { automationApi, Automation } from '../services/api/automation'
 import { listsApi } from '../services/api/list'
 import { listSegments } from '../services/api/segment'
@@ -89,7 +90,11 @@ export function AutomationsPage() {
       queryClient.invalidateQueries({ queryKey: ['automations', workspaceId] })
     } catch (error) {
       console.error('Failed to activate automation:', error)
-      message.error(t`Failed to activate automation`)
+      // A rejected trigger configuration comes back as a 400 carrying the database's own
+      // explanation. It is the only thing that tells the user which condition to change,
+      // so it is shown as sent rather than replaced by the generic message.
+      const reason = error instanceof ApiError && error.status === 400 ? error.message : ''
+      message.error(reason || t`Failed to activate automation`)
     }
   }
 

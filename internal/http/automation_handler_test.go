@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -57,7 +58,6 @@ func createTestAutomation(id, workspaceID string) *domain.Automation {
 		UpdatedAt:  now,
 	}
 }
-
 
 func TestAutomationHandler_Create(t *testing.T) {
 	_, automationSvc, mux, secretKey := setupAutomationTest(t)
@@ -344,6 +344,138 @@ func TestAutomationHandler_Activate(t *testing.T) {
 
 		assert.Equal(t, http.StatusInternalServerError, w.Code)
 	})
+}
+
+// decodeErrorMessage reads the {"error": "..."} body written by WriteJSONError.
+func decodeErrorMessage(t *testing.T, w *httptest.ResponseRecorder) string {
+	t.Helper()
+	var response struct {
+		Error string `json:"error"`
+	}
+	require.NoError(t, json.NewDecoder(w.Body).Decode(&response))
+	return response.Error
+}
+
+func TestAutomationHandler_Activate_ErrorMapping(t *testing.T) {
+	_, automationSvc, mux, secretKey := setupAutomationTest(t)
+
+	const conditionMessage = "invalid trigger conditions: pq: column \"c.countryy\" does not exist"
+
+	testCases := []struct {
+		name            string
+		serviceErr      error
+		expectedStatus  int
+		expectedMessage string
+	}{
+		{
+			name:            "trigger condition error is surfaced verbatim as 400",
+			serviceErr:      domain.NewTriggerConditionError(conditionMessage),
+			expectedStatus:  http.StatusBadRequest,
+			expectedMessage: conditionMessage,
+		},
+		{
+			// The service wraps this error on its way up, which is why the handler
+			// matches with errors.As rather than a type assertion.
+			name:            "wrapped trigger condition error is surfaced verbatim as 400",
+			serviceErr:      fmt.Errorf("failed to create automation trigger: %w", domain.NewTriggerConditionError(conditionMessage)),
+			expectedStatus:  http.StatusBadRequest,
+			expectedMessage: conditionMessage,
+		},
+		{
+			name:            "unrelated error stays a generic 500",
+			serviceErr:      errors.New("database connection lost"),
+			expectedStatus:  http.StatusInternalServerError,
+			expectedMessage: "Failed to activate automation",
+		},
+		{
+			name:            "permission error stays 403",
+			serviceErr:      domain.NewPermissionError(domain.PermissionResourceAutomations, domain.PermissionTypeWrite, "user lacks automations:write"),
+			expectedStatus:  http.StatusForbidden,
+			expectedMessage: "user lacks automations:write",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			automationSvc.EXPECT().Activate(gomock.Any(), "workspace-123", "auto-123").Return(tc.serviceErr)
+
+			body, err := json.Marshal(domain.ActivateAutomationRequest{
+				WorkspaceID:  "workspace-123",
+				AutomationID: "auto-123",
+			})
+			require.NoError(t, err)
+
+			req := httptest.NewRequest(http.MethodPost, "/api/automations.activate", bytes.NewReader(body))
+			req.Header.Set("Authorization", "Bearer "+createTestToken(t, secretKey, "test-user"))
+
+			w := httptest.NewRecorder()
+			mux.ServeHTTP(w, req)
+
+			assert.Equal(t, tc.expectedStatus, w.Code)
+			assert.Equal(t, tc.expectedMessage, decodeErrorMessage(t, w))
+		})
+	}
+}
+
+func TestAutomationHandler_Update_ErrorMapping(t *testing.T) {
+	_, automationSvc, mux, secretKey := setupAutomationTest(t)
+
+	const conditionMessage = "invalid trigger conditions: cannot use subquery in trigger WHEN condition"
+
+	testCases := []struct {
+		name            string
+		serviceErr      error
+		expectedStatus  int
+		expectedMessage string
+	}{
+		{
+			name:            "trigger condition error is surfaced verbatim as 400",
+			serviceErr:      domain.NewTriggerConditionError(conditionMessage),
+			expectedStatus:  http.StatusBadRequest,
+			expectedMessage: conditionMessage,
+		},
+		{
+			// Updating a live automation regenerates its trigger, and the service wraps
+			// the failure before returning it.
+			name:            "wrapped trigger condition error is surfaced verbatim as 400",
+			serviceErr:      fmt.Errorf("failed to create automation trigger: %w", domain.NewTriggerConditionError(conditionMessage)),
+			expectedStatus:  http.StatusBadRequest,
+			expectedMessage: conditionMessage,
+		},
+		{
+			name:            "unrelated error stays a generic 500",
+			serviceErr:      errors.New("database connection lost"),
+			expectedStatus:  http.StatusInternalServerError,
+			expectedMessage: "Failed to update automation",
+		},
+		{
+			name:            "permission error stays 403",
+			serviceErr:      domain.NewPermissionError(domain.PermissionResourceAutomations, domain.PermissionTypeWrite, "user lacks automations:write"),
+			expectedStatus:  http.StatusForbidden,
+			expectedMessage: "user lacks automations:write",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			automationSvc.EXPECT().Update(gomock.Any(), "workspace-123", gomock.Any()).Return(tc.serviceErr)
+
+			body, err := json.Marshal(domain.UpdateAutomationRequest{
+				WorkspaceID: "workspace-123",
+				Automation:  createTestAutomation("auto-123", "workspace-123"),
+			})
+			require.NoError(t, err)
+
+			req := httptest.NewRequest(http.MethodPost, "/api/automations.update", bytes.NewReader(body))
+			req.Header.Set("Authorization", "Bearer "+createTestToken(t, secretKey, "test-user"))
+
+			w := httptest.NewRecorder()
+			mux.ServeHTTP(w, req)
+
+			assert.Equal(t, tc.expectedStatus, w.Code)
+			assert.Equal(t, tc.expectedMessage, decodeErrorMessage(t, w))
+		})
+	}
 }
 
 func TestAutomationHandler_Pause(t *testing.T) {

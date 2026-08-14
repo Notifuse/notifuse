@@ -294,6 +294,11 @@ export function UpsertAutomationDrawer({
         open={isOpen}
         destroyOnHidden
         closable={false}
+        // The condition editors inside the canvas are drawers of their own, and rc-drawer
+        // pushes a parent aside when a child opens — which would slide this full-screen
+        // editor 180px off. The transform is applied by the parent, so this is the only
+        // place it can be switched off; setting push on the child does nothing.
+        push={false}
         styles={{
           body: { padding: 0, display: 'flex', flexDirection: 'column', height: '100%' }
         }}

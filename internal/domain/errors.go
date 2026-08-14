@@ -88,6 +88,24 @@ func NewPermissionError(resource PermissionResource, permission PermissionType, 
 	}
 }
 
+// TriggerConditionError represents an automation trigger configuration that cannot be
+// compiled or installed — a bad condition tree, an unsupported value type, or a column
+// the workspace database does not have. The offending input came from the caller, so
+// this answers 400 with its message rather than a generic 500 with nothing in it.
+type TriggerConditionError struct {
+	Message string `json:"message"`
+}
+
+// Error implements the error interface
+func (e *TriggerConditionError) Error() string {
+	return e.Message
+}
+
+// NewTriggerConditionError creates a new trigger condition error
+func NewTriggerConditionError(message string) *TriggerConditionError {
+	return &TriggerConditionError{Message: message}
+}
+
 // ErrInsufficientPermissions is the default insufficient permissions error
 var ErrInsufficientPermissions = NewPermissionError(
 	PermissionResourceWorkspace,

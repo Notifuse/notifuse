@@ -2,6 +2,7 @@ package domain
 
 import (
 	"encoding/json"
+	"fmt"
 	"testing"
 	"time"
 
@@ -1732,4 +1733,194 @@ func TestABTestNodeConfig_Validate(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestTimelineTriggerConfig_Validate_Conditions drives the condition tree from raw JSON
+// rather than struct literals: the console sends JSON, and a struct literal cannot express
+// an absent field (a missing "kind", an empty "leaves" array) the way a client can.
+func TestTimelineTriggerConfig_Validate_Conditions(t *testing.T) {
+	tests := []struct {
+		name    string
+		body    string
+		wantErr bool
+		errMsg  string
+	}{
+		{
+			name:    "conditions omitted entirely",
+			body:    `{"event_kind":"contact.created","frequency":"once"}`,
+			wantErr: false,
+		},
+		{
+			name:    "conditions explicitly null",
+			body:    `{"event_kind":"contact.created","frequency":"once","conditions":null}`,
+			wantErr: false,
+		},
+		{
+			name: "valid contacts leaf",
+			body: `{"event_kind":"contact.created","frequency":"once","conditions":{
+				"kind":"leaf",
+				"leaf":{"source":"contacts","contact":{"filters":[
+					{"field_name":"country","field_type":"string","operator":"equals","string_values":["US"]}
+				]}}
+			}}`,
+			wantErr: false,
+		},
+		{
+			name: "valid branch of two leaves",
+			body: `{"event_kind":"contact.created","frequency":"once","conditions":{
+				"kind":"branch",
+				"branch":{"operator":"and","leaves":[
+					{"kind":"leaf","leaf":{"source":"contacts","contact":{"filters":[
+						{"field_name":"country","field_type":"string","operator":"equals","string_values":["US"]}
+					]}}},
+					{"kind":"leaf","leaf":{"source":"contact_lists","contact_list":{"operator":"in","list_id":"list123"}}}
+				]}
+			}}`,
+			wantErr: false,
+		},
+		{
+			name: "branch with zero leaves",
+			body: `{"event_kind":"contact.created","frequency":"once","conditions":{
+				"kind":"branch",
+				"branch":{"operator":"and","leaves":[]}
+			}}`,
+			wantErr: true,
+			errMsg:  "invalid trigger conditions: branch must have at least one leaf",
+		},
+		{
+			name: "branch with leaves key omitted",
+			body: `{"event_kind":"contact.created","frequency":"once","conditions":{
+				"kind":"branch",
+				"branch":{"operator":"and"}
+			}}`,
+			wantErr: true,
+			errMsg:  "invalid trigger conditions: branch must have at least one leaf",
+		},
+		{
+			name: "leaf with unsupported source",
+			body: `{"event_kind":"contact.created","frequency":"once","conditions":{
+				"kind":"leaf",
+				"leaf":{"source":"orders"}
+			}}`,
+			wantErr: true,
+			errMsg:  "invalid trigger conditions: invalid source: orders",
+		},
+		{
+			name: "leaf with source omitted",
+			body: `{"event_kind":"contact.created","frequency":"once","conditions":{
+				"kind":"leaf",
+				"leaf":{}
+			}}`,
+			wantErr: true,
+			errMsg:  "invalid trigger conditions: leaf must have 'source' field",
+		},
+		{
+			name: "tree node with empty kind",
+			body: `{"event_kind":"contact.created","frequency":"once","conditions":{
+				"kind":"",
+				"leaf":{"source":"contacts","contact":{"filters":[
+					{"field_name":"country","field_type":"string","operator":"equals","string_values":["US"]}
+				]}}
+			}}`,
+			wantErr: true,
+			errMsg:  "invalid trigger conditions: tree node must have 'kind' field",
+		},
+		{
+			name: "tree node with kind omitted",
+			body: `{"event_kind":"contact.created","frequency":"once","conditions":{
+				"leaf":{"source":"contacts","contact":{"filters":[
+					{"field_name":"country","field_type":"string","operator":"equals","string_values":["US"]}
+				]}}
+			}}`,
+			wantErr: true,
+			errMsg:  "invalid trigger conditions: tree node must have 'kind' field",
+		},
+		{
+			name: "nested branch leaf is validated too",
+			body: `{"event_kind":"contact.created","frequency":"once","conditions":{
+				"kind":"branch",
+				"branch":{"operator":"or","leaves":[
+					{"kind":"leaf","leaf":{"source":"contacts","contact":{"filters":[
+						{"field_name":"country","field_type":"string","operator":"equals","string_values":["US"]}
+					]}}},
+					{"kind":"leaf","leaf":{"source":"contacts","contact":{"filters":[
+						{"field_type":"string","operator":"equals","string_values":["US"]}
+					]}}}
+				]}
+			}}`,
+			wantErr: true,
+			errMsg:  "invalid trigger conditions: branch leaf 1: filter 0: filter must have 'field_name'",
+		},
+		{
+			name: "leaf declaring a source without its payload",
+			body: `{"event_kind":"contact.created","frequency":"once","conditions":{
+				"kind":"leaf",
+				"leaf":{"source":"contacts"}
+			}}`,
+			wantErr: true,
+			errMsg:  "invalid trigger conditions: leaf with source 'contacts' must have 'contact' field",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var cfg TimelineTriggerConfig
+			require.NoError(t, json.Unmarshal([]byte(tt.body), &cfg))
+
+			err := cfg.Validate()
+			if tt.wantErr {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tt.errMsg)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+// TestAutomation_Validate_TriggerConditions checks that a malformed condition tree fails the
+// whole automation: Automation.Validate is what the service calls before flipping to live.
+func TestAutomation_Validate_TriggerConditions(t *testing.T) {
+	const automationTemplate = `{
+		"id":"auto123",
+		"workspace_id":"ws123",
+		"name":"Welcome Series",
+		"status":"draft",
+		"list_id":"list123",
+		"root_node_id":"node123",
+		"trigger":{"event_kind":"contact.created","frequency":"once","conditions":%s}
+	}`
+
+	t.Run("valid conditions pass", func(t *testing.T) {
+		body := fmt.Sprintf(automationTemplate, `{
+			"kind":"leaf",
+			"leaf":{"source":"contacts","contact":{"filters":[
+				{"field_name":"country","field_type":"string","operator":"equals","string_values":["US"]}
+			]}}
+		}`)
+
+		var automation Automation
+		require.NoError(t, json.Unmarshal([]byte(body), &automation))
+		assert.NoError(t, automation.Validate())
+	})
+
+	t.Run("invalid conditions surface through Automation.Validate", func(t *testing.T) {
+		body := fmt.Sprintf(automationTemplate, `{"kind":"branch","branch":{"operator":"and","leaves":[]}}`)
+
+		var automation Automation
+		require.NoError(t, json.Unmarshal([]byte(body), &automation))
+
+		err := automation.Validate()
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "invalid trigger conditions")
+		assert.Contains(t, err.Error(), "branch must have at least one leaf")
+	})
+
+	t.Run("null conditions pass", func(t *testing.T) {
+		body := fmt.Sprintf(automationTemplate, `null`)
+
+		var automation Automation
+		require.NoError(t, json.Unmarshal([]byte(body), &automation))
+		assert.NoError(t, automation.Validate())
+	})
 }

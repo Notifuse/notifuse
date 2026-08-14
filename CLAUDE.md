@@ -27,6 +27,14 @@ One system database plus one database per workspace; a schema change can touch e
 - **Never amend a shipped `vN.go` to fix databases already at N.** The dispatcher selects
   `migrationVersion > currentDBVersion`, so an amended `vN.go` reaches fresh installs and databases
   below N and never those at N — silently. Always a new major.
+- **Altering `contacts`, `contact_lists`, `lists`, `custom_events` or `contact_timeline` means
+  regenerating automation trigger functions.** An automation's trigger conditions are compiled into its
+  PL/pgSQL function body, and a function body registers no `pg_depend` entries — so renaming or dropping a
+  column those conditions reference is not blocked and raises nothing at migration time. It arms a failure
+  that fires on the next write to `contact_timeline`, which every contact, list, message-history,
+  custom-event and inbound-webhook write feeds. `V38Migration.healAutomationTriggerConditions` is the
+  pattern: regenerate through the real generator, probe each condition before installing, savepoint per
+  automation.
 - **Changelog**: a defect in code that never shipped gets **no `Fix` bullet** — fold it into the
   unreleased version's feature bullet. Only fixes to already-released behaviour get their own `Fix`
   line; otherwise the entry describes a version nobody ran.

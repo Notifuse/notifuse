@@ -266,7 +266,9 @@ func (qb *QueryBuilder) parseContactConditions(contact *domain.ContactCondition,
 	var args []interface{}
 
 	for _, filter := range contact.Filters {
-		condition, newArgs, newArgIndex, err := qb.parseFilter(filter, argIndex)
+		// Segments: a value that cannot be cast fails the query outright, which is a
+		// person waiting on a report rather than a write path going down.
+		condition, newArgs, newArgIndex, err := qb.parseFilter(filter, argIndex, castDirectly)
 		if err != nil {
 			return "", nil, argIndex, err
 		}
@@ -288,7 +290,7 @@ func (qb *QueryBuilder) parseContactConditions(contact *domain.ContactCondition,
 }
 
 // parseFilter parses a single filter (field + operator + value)
-func (qb *QueryBuilder) parseFilter(filter *domain.DimensionFilter, argIndex int) (string, []interface{}, int, error) {
+func (qb *QueryBuilder) parseFilter(filter *domain.DimensionFilter, argIndex int, mode castMode) (string, []interface{}, int, error) {
 	if filter == nil {
 		return "", nil, argIndex, fmt.Errorf("filter cannot be nil")
 	}
@@ -301,7 +303,7 @@ func (qb *QueryBuilder) parseFilter(filter *domain.DimensionFilter, argIndex int
 
 	// Route JSON fields to specialized handler
 	if fieldCfg.fieldType == "json" {
-		return qb.buildJSONCondition(fieldCfg.dbColumn, filter, argIndex)
+		return qb.buildJSONCondition(fieldCfg.dbColumn, filter, argIndex, mode)
 	}
 
 	// Validate operator exists in whitelist
@@ -818,7 +820,7 @@ func (qb *QueryBuilder) buildCondition(dbColumn, operator string, sqlOp sqlOpera
 
 // buildJSONCondition builds SQL conditions for JSON/JSONB fields
 // Uses PostgreSQL 17 subscript notation and proper type casting
-func (qb *QueryBuilder) buildJSONCondition(dbColumn string, filter *domain.DimensionFilter, argIndex int) (string, []interface{}, int, error) {
+func (qb *QueryBuilder) buildJSONCondition(dbColumn string, filter *domain.DimensionFilter, argIndex int, mode castMode) (string, []interface{}, int, error) {
 	var args []interface{}
 
 	// Validate operator
@@ -862,7 +864,7 @@ func (qb *QueryBuilder) buildJSONCondition(dbColumn string, filter *domain.Dimen
 			return "", nil, argIndex, err
 		}
 		return qb.buildCondition(
-			fmt.Sprintf("(%s::text)::timestamptz", jsonPath), filter.Operator, sqlOp, values, argIndex)
+			castTimestamp(fmt.Sprintf("%s::text", jsonPath), mode), filter.Operator, sqlOp, values, argIndex)
 	}
 
 	// Handle array-specific operators
@@ -885,10 +887,10 @@ func (qb *QueryBuilder) buildJSONCondition(dbColumn string, filter *domain.Dimen
 		fieldExpr = fmt.Sprintf("%s::text", jsonPath)
 	case "number":
 		// Extract as text, then cast to numeric
-		fieldExpr = fmt.Sprintf("(%s::text)::numeric", jsonPath)
+		fieldExpr = castNumeric(fmt.Sprintf("%s::text", jsonPath), mode)
 	case "time":
 		// Extract as text, then cast to timestamptz
-		fieldExpr = fmt.Sprintf("(%s::text)::timestamptz", jsonPath)
+		fieldExpr = castTimestamp(fmt.Sprintf("%s::text", jsonPath), mode)
 	default:
 		return "", nil, argIndex, fmt.Errorf("invalid field_type for JSON field: %s", filter.FieldType)
 	}
@@ -1127,7 +1129,13 @@ func (qb *QueryBuilder) parseContactConditionsForTrigger(contact *domain.Contact
 	var args []interface{}
 
 	for _, filter := range contact.Filters {
-		condition, newArgs, newArgIndex, err := qb.parseFilter(filter, argIndex)
+		// Triggers: cast defensively. This expression runs inside a trigger function on
+		// contact_timeline, which is written by triggers on contacts, contact_lists,
+		// message_history, custom_events, contact_segments and inbound_webhook_events — so a
+		// cast that raises takes all of those writes down for the contact concerned, and the
+		// install probe cannot foresee it because EXPLAIN plans without executing. A contact
+		// whose custom_json value does not convert simply does not match.
+		condition, newArgs, newArgIndex, err := qb.parseFilter(filter, argIndex, castDefensively)
 		if err != nil {
 			return "", nil, argIndex, err
 		}

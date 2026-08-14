@@ -17,6 +17,7 @@ import {
   automationToFlow,
   flowToAutomationNodes,
   buildTriggerConfig,
+  hydrateTriggerNodeConfig,
   findRootNodeId,
   validateFlow,
   type AutomationNodeData
@@ -90,7 +91,7 @@ export function AutomationProvider({
     if (automation) {
       // Load existing automation
       const { nodes: flowNodes, edges: flowEdges } = automationToFlow(automation)
-      setNodes(flowNodes)
+      setNodes(hydrateTriggerNodeConfig(flowNodes, automation.trigger))
       setEdges(flowEdges)
       setName(automation.name)
       setListId(automation.list_id)

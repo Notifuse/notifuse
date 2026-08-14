@@ -2,8 +2,10 @@ package migrations
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"regexp"
+	"strings"
 	"testing"
 	"time"
 
@@ -89,6 +91,13 @@ func TestV38Migration_UpdateSystem(t *testing.T) {
 }
 
 func expectV38WorkspaceDDL(mock sqlmock.Sqlmock) {
+	expectV38WebAnalyticsDDL(mock)
+	// UpdateWorkspace ends by looking for live automations whose trigger carries conditions;
+	// the common case finds none.
+	mock.ExpectQuery(v38HealQuery).WillReturnRows(v38HealRows())
+}
+
+func expectV38WebAnalyticsDDL(mock sqlmock.Sqlmock) {
 	for range schema.WebAnalyticsTableDefinitions() {
 		mock.ExpectExec("(?s)CREATE (TABLE|INDEX) IF NOT EXISTS").WillReturnResult(sqlmock.NewResult(0, 0))
 	}
@@ -152,5 +161,325 @@ func TestV38Migration_UpdateWorkspace(t *testing.T) {
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "ws1")
 		assert.Contains(t, err.Error(), "boom")
+	})
+
+	t.Run("surfaces a failed automation heal with the workspace id", func(t *testing.T) {
+		db, mock, err := sqlmock.New()
+		require.NoError(t, err)
+		defer db.Close()
+
+		expectV38WebAnalyticsDDL(mock)
+		mock.ExpectQuery(v38HealQuery).WillReturnError(errors.New("boom"))
+
+		m := &V38Migration{}
+		err = m.UpdateWorkspace(context.Background(), &config.Config{}, workspace, db)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "ws1")
+		assert.Contains(t, err.Error(), "boom")
+	})
+}
+
+// v38HealQuery matches the query that selects the live automations to repair.
+const v38HealQuery = "SELECT a.id, a.root_node_id, a.trigger_config"
+
+func v38HealRows() *sqlmock.Rows {
+	return sqlmock.NewRows([]string{"id", "root_node_id", "trigger_config", "installed_def"})
+}
+
+// v38InstalledDef is what pg_get_triggerdef reports for an automation whose installed
+// trigger carries no field filter — the common case, and the one the heal may rewrite.
+const v38InstalledDef = "CREATE TRIGGER automation_trigger_x AFTER INSERT ON contact_timeline " +
+	"FOR EACH ROW WHEN ((new.kind = 'contact.created'::text)) EXECUTE FUNCTION automation_trigger_x()"
+
+// v38ConditionalTriggerConfig is a stored trigger_config carrying conditions: the shape the
+// heal step exists for. Its compiled guard references contacts.country, so it shows up
+// verbatim in the regenerated function body.
+func v38ConditionalTriggerConfig(t *testing.T) []byte {
+	t.Helper()
+	b, err := json.Marshal(domain.TimelineTriggerConfig{
+		EventKind: "contact.created",
+		Frequency: domain.TriggerFrequencyOnce,
+		Conditions: &domain.TreeNode{
+			Kind: "leaf",
+			Leaf: &domain.TreeNodeLeaf{
+				Source: "contacts",
+				Contact: &domain.ContactCondition{
+					Filters: []*domain.DimensionFilter{
+						{
+							FieldName:    "country",
+							FieldType:    "string",
+							Operator:     "equals",
+							StringValues: []string{"US"},
+						},
+					},
+				},
+			},
+		},
+	})
+	require.NoError(t, err)
+	return b
+}
+
+// v38StatementRecorder is the default regexp query matcher plus a record of every statement
+// the code under test issued. sqlmock reports an unexpected statement by returning an error
+// from Exec/Query, and healAutomationTriggerConditions deliberately swallows per-automation
+// errors, so a statement that must never run would otherwise leave every expectation
+// fulfilled and the test green.
+type v38StatementRecorder struct {
+	issued []string
+}
+
+func (r *v38StatementRecorder) Match(expectedSQL, actualSQL string) error {
+	// One statement can be offered to more than one expectation; record it once.
+	if len(r.issued) == 0 || r.issued[len(r.issued)-1] != actualSQL {
+		r.issued = append(r.issued, actualSQL)
+	}
+	return sqlmock.QueryMatcherRegexp.Match(expectedSQL, actualSQL)
+}
+
+func (r *v38StatementRecorder) all() string {
+	return strings.Join(r.issued, "\n")
+}
+
+func (r *v38StatementRecorder) firstWithPrefix(t *testing.T, prefix string) string {
+	t.Helper()
+	for _, stmt := range r.issued {
+		if strings.HasPrefix(strings.TrimSpace(stmt), prefix) {
+			return stmt
+		}
+	}
+	require.FailNowf(t, "statement not issued", "no statement starting with %q in:\n%s", prefix, r.all())
+	return ""
+}
+
+func TestV38Migration_HealAutomationTriggerConditions_QueryShape(t *testing.T) {
+	rec := &v38StatementRecorder{}
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(rec))
+	require.NoError(t, err)
+	defer db.Close()
+
+	mock.ExpectQuery(v38HealQuery).WillReturnRows(v38HealRows())
+
+	m := &V38Migration{}
+	require.NoError(t, m.healAutomationTriggerConditions(context.Background(), db))
+	require.Len(t, rec.issued, 1)
+	query := rec.issued[0]
+
+	// The query is the filter, so its text is what decides which automations get their
+	// trigger rewritten. It must NOT narrow to automations carrying conditions: updates
+	// never regenerated the trigger before this release, so an automation whose event_kind,
+	// list_id, segment_id or updated_fields was edited while live is running a trigger that
+	// does not match its stored configuration, conditions or no conditions. Nothing else
+	// will ever notice it, because a change is detected from here on by comparing the
+	// incoming row against the stored one — and a stale trigger makes neither disagree.
+	assert.NotContains(t, query, "conditions")
+
+	// Repair-only: an automation with no installed trigger has never fired and must be left
+	// alone rather than armed mid-migration.
+	assert.Contains(t, query, "pg_trigger")
+	assert.Contains(t, query, "status = 'live'")
+	assert.Contains(t, query, "deleted_at IS NULL")
+
+	// The name built here is compared against pg_trigger.tgname, which holds what PostgreSQL
+	// stored — and CREATE TRIGGER folds an unquoted identifier to lower case. Without lower()
+	// every automation whose id carries an upper-case letter is silently skipped by the
+	// repair. Console ids are lower-case uuids; ids supplied through the API need not be.
+	assert.Contains(t, query, "lower('automation_trigger_'")
+}
+
+func TestV38Migration_HealAutomationTriggerConditions(t *testing.T) {
+	m := &V38Migration{}
+	ctx := context.Background()
+
+	t.Run("regenerates the trigger of a live automation with conditions", func(t *testing.T) {
+		rec := &v38StatementRecorder{}
+		db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(rec))
+		require.NoError(t, err)
+		defer db.Close()
+
+		mock.ExpectQuery(v38HealQuery).WillReturnRows(
+			v38HealRows().AddRow("condauto", "node1", v38ConditionalTriggerConfig(t), v38InstalledDef))
+
+		mock.ExpectExec("^SAVEPOINT v38_automation_conditions$").WillReturnResult(sqlmock.NewResult(0, 0))
+		// Same order as the repository's trigger creation: drop trigger, drop function,
+		// create function, create trigger — and then the probe.
+		mock.ExpectExec("DROP TRIGGER IF EXISTS automation_trigger_condauto ON contact_timeline").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("DROP FUNCTION IF EXISTS automation_trigger_condauto").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("CREATE OR REPLACE FUNCTION automation_trigger_condauto").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("CREATE TRIGGER automation_trigger_condauto").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		// The probe runs last, matching the repository. Planning it first would take
+		// ACCESS SHARE on contact_timeline and then upgrade to the ACCESS EXCLUSIVE the
+		// DROPs need — the interleaving that deadlocks against an activation served by an
+		// instance still running during a rolling restart. The savepoint undoes the DDL
+		// either way, so a failed probe still leaves nothing installed.
+		mock.ExpectQuery("EXPLAIN SELECT").WillReturnRows(sqlmock.NewRows([]string{"QUERY PLAN"}))
+		mock.ExpectExec("^RELEASE SAVEPOINT v38_automation_conditions$").WillReturnResult(sqlmock.NewResult(0, 0))
+
+		require.NoError(t, m.healAutomationTriggerConditions(ctx, db))
+		assert.NoError(t, mock.ExpectationsWereMet())
+
+		// The repair is only worth anything if the conditions land in the function body: the
+		// WHEN clause compiles them to correlated subqueries, which PostgreSQL rejects at
+		// CREATE TRIGGER time (SQLSTATE 0A000).
+		functionBody := rec.firstWithPrefix(t, "CREATE OR REPLACE FUNCTION")
+		assert.Contains(t, functionBody, "country = 'US'")
+		assert.Contains(t, functionBody, "IF (")
+		triggerDDL := rec.firstWithPrefix(t, "CREATE TRIGGER")
+		assert.NotContains(t, triggerDDL, "SELECT")
+		assert.NotContains(t, triggerDDL, "EXISTS")
+	})
+
+	// The stored config is authoritative only because nothing quietly removed part of it —
+	// and something did. The console rebuilt trigger_config from a fixed list of fields that
+	// omitted updated_fields, and an update overwrites the column wholesale, so one console
+	// save of an API-created contact.updated automation dropped its field filter from the
+	// row while the narrow trigger stayed installed (updates ran no DDL). Regenerating from
+	// that row would widen it to every contact update.
+	t.Run("refuses to replace a narrower installed trigger with a broader one", func(t *testing.T) {
+		rec := &v38StatementRecorder{}
+		db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(rec))
+		require.NoError(t, err)
+		defer db.Close()
+
+		narrow := "CREATE TRIGGER automation_trigger_narrow AFTER INSERT ON contact_timeline " +
+			"FOR EACH ROW WHEN (((new.kind = 'contact.updated'::text) AND (new.changes ? 'first_name'::text))) " +
+			"EXECUTE FUNCTION automation_trigger_narrow()"
+
+		stripped, err := json.Marshal(domain.TimelineTriggerConfig{
+			EventKind: "contact.updated",
+			Frequency: domain.TriggerFrequencyOnce,
+		})
+		require.NoError(t, err)
+
+		mock.ExpectQuery(v38HealQuery).WillReturnRows(
+			v38HealRows().AddRow("narrow", "node1", stripped, narrow))
+
+		// No savepoint, no DDL: the automation is left exactly as it is.
+		require.NoError(t, m.healAutomationTriggerConditions(ctx, db))
+		assert.NoError(t, mock.ExpectationsWereMet())
+		assert.NotContains(t, rec.all(), "DROP TRIGGER",
+			"a trigger filtering on changed fields must not be replaced by one that does not")
+	})
+
+	t.Run("does nothing when no automation matches", func(t *testing.T) {
+		db, mock, err := sqlmock.New()
+		require.NoError(t, err)
+		defer db.Close()
+
+		mock.ExpectQuery(v38HealQuery).WillReturnRows(v38HealRows())
+
+		// No savepoint and no DDL: an unexpected statement here would come back as an error
+		// from ExecContext, and the savepoint failures are reported rather than swallowed.
+		require.NoError(t, m.healAutomationTriggerConditions(ctx, db))
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("skips an automation whose trigger config does not parse", func(t *testing.T) {
+		db, mock, err := sqlmock.New()
+		require.NoError(t, err)
+		defer db.Close()
+
+		// Its installed trigger was already unusable; nothing can be regenerated from this.
+		mock.ExpectQuery(v38HealQuery).WillReturnRows(
+			v38HealRows().AddRow("badjson", "node1", []byte("{not json"), v38InstalledDef))
+
+		require.NoError(t, m.healAutomationTriggerConditions(ctx, db))
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("skips an automation the generator rejects", func(t *testing.T) {
+		db, mock, err := sqlmock.New()
+		require.NoError(t, err)
+		defer db.Close()
+
+		// A NULL root_node_id leaves the generator with nothing to enroll into; skipped
+		// rather than aborting the workspace migration.
+		mock.ExpectQuery(v38HealQuery).WillReturnRows(
+			v38HealRows().AddRow("norootnode", nil, v38ConditionalTriggerConfig(t), v38InstalledDef))
+
+		require.NoError(t, m.healAutomationTriggerConditions(ctx, db))
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("installs nothing when the condition probe fails", func(t *testing.T) {
+		rec := &v38StatementRecorder{}
+		db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(rec))
+		require.NoError(t, err)
+		defer db.Close()
+
+		mock.ExpectQuery(v38HealQuery).WillReturnRows(
+			v38HealRows().AddRow("probefail", "node1", v38ConditionalTriggerConfig(t), v38InstalledDef))
+
+		mock.ExpectExec("^SAVEPOINT v38_automation_conditions$").WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("DROP TRIGGER IF EXISTS automation_trigger_probefail ON contact_timeline").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("DROP FUNCTION IF EXISTS automation_trigger_probefail").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("CREATE OR REPLACE FUNCTION automation_trigger_probefail").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("CREATE TRIGGER automation_trigger_probefail").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		// The condition names something this workspace does not have. CREATE FUNCTION only
+		// syntax-checks a plpgsql body, so it accepted the function a moment ago; keeping it
+		// would abort every write to contact_timeline for a workspace that was working
+		// before the upgrade. The savepoint is what takes it back out.
+		mock.ExpectQuery("EXPLAIN SELECT").WillReturnError(assert.AnError)
+		mock.ExpectExec("^ROLLBACK TO SAVEPOINT v38_automation_conditions$").WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("^RELEASE SAVEPOINT v38_automation_conditions$").WillReturnResult(sqlmock.NewResult(0, 0))
+
+		// Nil overall: failing hard would abort the whole workspace migration, never record
+		// the version, and re-fail on every restart, instance-wide. The fallback here is
+		// merely the status quo — a trigger that over-enrolls because it ignores conditions.
+		require.NoError(t, m.healAutomationTriggerConditions(ctx, db))
+		assert.NoError(t, mock.ExpectationsWereMet())
+
+		// The DDL ran, so what protects the workspace is the rollback, not the ordering.
+		// Assert it was issued and that nothing was released without it.
+		assert.Contains(t, rec.all(), "ROLLBACK TO SAVEPOINT v38_automation_conditions",
+			"a failed probe must take the freshly installed trigger back out")
+	})
+
+	t.Run("rolls back to the savepoint when a DDL statement fails", func(t *testing.T) {
+		db, mock, err := sqlmock.New()
+		require.NoError(t, err)
+		defer db.Close()
+
+		mock.ExpectQuery(v38HealQuery).WillReturnRows(
+			v38HealRows().AddRow("ddlfail", "node1", v38ConditionalTriggerConfig(t), v38InstalledDef))
+
+		mock.ExpectExec("^SAVEPOINT v38_automation_conditions$").WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("DROP TRIGGER IF EXISTS automation_trigger_ddlfail").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("DROP FUNCTION IF EXISTS automation_trigger_ddlfail").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("CREATE OR REPLACE FUNCTION automation_trigger_ddlfail").
+			WillReturnError(assert.AnError)
+		// The dropped trigger comes back with the savepoint, so the automation keeps the
+		// trigger it had.
+		mock.ExpectExec("^ROLLBACK TO SAVEPOINT v38_automation_conditions$").WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("^RELEASE SAVEPOINT v38_automation_conditions$").WillReturnResult(sqlmock.NewResult(0, 0))
+
+		require.NoError(t, m.healAutomationTriggerConditions(ctx, db),
+			"one automation's failure must not fail the migration")
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("reports a scan failure instead of skipping it", func(t *testing.T) {
+		db, mock, err := sqlmock.New()
+		require.NoError(t, err)
+		defer db.Close()
+
+		// A NULL id cannot be scanned. Infrastructure failures are not per-automation
+		// failures: they say the read itself is unreliable, so the migration stops.
+		mock.ExpectQuery(v38HealQuery).WillReturnRows(
+			v38HealRows().AddRow(nil, "node1", v38ConditionalTriggerConfig(t), v38InstalledDef))
+
+		err = m.healAutomationTriggerConditions(ctx, db)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to scan automation")
 	})
 }
