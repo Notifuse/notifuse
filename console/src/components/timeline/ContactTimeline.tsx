@@ -15,8 +15,7 @@ import {
   faFlagCheckered,
   faReply,
   faRobot,
-  faGlobe,
-  faFile
+  faGlobe
 } from '@fortawesome/free-solid-svg-icons'
 import { faUser, faFolderOpen, faPaperPlane, faEye } from '@fortawesome/free-regular-svg-icons'
 import {
@@ -33,6 +32,7 @@ import dayjs from '../../lib/dayjs'
 import TemplatePreviewDrawer from '../templates/TemplatePreviewDrawer'
 import { getProviderIcon } from '../integrations/EmailProviders'
 import { formatValue, formatEventName, getSourceBadge } from '../../utils/formatters'
+import { WebPageDrawer } from './WebPageDrawer'
 
 const { Text } = Typography
 
@@ -58,6 +58,9 @@ export function ContactTimeline({
   isLoadingMore = false
 }: ContactTimelineProps) {
   const { t } = useLingui()
+
+  // The page a "View website" button opened, null when the drawer is closed.
+  const [previewURL, setPreviewURL] = React.useState<string | null>(null)
 
   // Get color for contact list status
   const getStatusColor = (status: string) => {
@@ -161,7 +164,9 @@ export function ContactTimeline({
       case 'web_session':
         return faGlobe
       case 'web_page':
-        return faFile
+        // The same eye the email preview and the email-open row use: one icon
+        // for "someone looked at this", rather than a second variant of it.
+        return faEye
       case 'automation':
         if (entry.kind === 'automation.start') return faPlay
         if (entry.kind === 'automation.end') return faFlagCheckered
@@ -192,6 +197,29 @@ export function ContactTimeline({
     return undefined
   }
 
+  // Rebuilds the address a pageview refers to. web_pages stores paths only, so
+  // the host comes from the visit's landing domain, which the projection carries
+  // alongside the path.
+  //
+  // The workspace's own website URL is the fallback, for rows projected before
+  // the domain was recorded. It is only a fallback: a workspace can track a site
+  // that is not the one configured in its settings, and guessing wrong there
+  // sends someone to a page that was never visited.
+  const webPageURL = (entry: ContactTimelineEntry): string | null => {
+    const path = webChange<string>(entry, 'path')
+    if (!path) return null
+
+    const domain = webChange<string>(entry, 'landing_domain')
+    const origin = domain ? `https://${domain}` : workspace?.settings?.website_url
+    if (!origin) return null
+
+    try {
+      return new URL(path, origin).toString()
+    } catch {
+      return null
+    }
+  }
+
   // Engaged time, so a value under a second is real rather than a rounding
   // artefact and must not display as "0s" — Math.round takes everything below
   // 500ms to zero, and a bounce is exactly the visit that lands there.
@@ -215,16 +243,25 @@ export function ContactTimeline({
     category: string | null,
     actionLabel: string,
     actionColor?: string,
-    prefixContent?: React.ReactNode
+    prefixContent?: React.ReactNode,
+    // Sits between the action tag and the timestamp, for facts that belong to
+    // the headline rather than to the detail below it — the size of a visit,
+    // say, which is the first thing anyone scanning the timeline wants.
+    suffixContent?: React.ReactNode
   ) => {
     const color = actionColor || getActionTagColor(actionLabel)
     return (
       <div className="flex items-center gap-2 mb-2 flex-wrap">
         {prefixContent}
         {category && <Text strong>{category}</Text>}
-        <Tag variant="filled" color={color}>
-          {actionLabel}
-        </Tag>
+        {/* Empty when the category already says everything: a web session that
+            "visited" adds a word, not a fact. */}
+        {actionLabel && (
+          <Tag variant="filled" color={color}>
+            {actionLabel}
+          </Tag>
+        )}
+        {suffixContent}
         <Tooltip title={`${dayjs(entry.created_at).format('LLLL')} in ${timezone}`}>
           <span>
             <Text type="secondary" className="text-xs cursor-help">
@@ -684,8 +721,12 @@ export function ContactTimeline({
 
       case 'custom_event': {
         const customEventData = entry.entity_data as CustomEventEntityData | undefined
-        // Fallback to entry.kind for event name when entity_data is not available
-        const eventName = customEventData?.event_name || entry.kind
+        // Falls back to entry.kind when entity_data is absent, which is every time: the
+        // timeline query joins message and webhook entities but never custom events.
+        // The kind the trigger writes is 'custom_event.<name>', and formatting it whole
+        // rendered a cart conversion as "Custom Event Add To Cart".
+        const eventName =
+          customEventData?.event_name || entry.kind.replace(/^custom_event\./, '')
         const externalId = customEventData?.external_id || entry.entity_id
         // Get goal fields from entity_data or from changes (for timeline entries)
         const goalTypeChange = entry.changes?.goal_type
@@ -772,52 +813,77 @@ export function ContactTimeline({
         const landingPath = webChange<string>(entry, 'landing_path')
         const exitPath = webChange<string>(entry, 'exit_path')
         const referrerDomain = webChange<string>(entry, 'referrer_domain')
-        const utmSource = webChange<string>(entry, 'utm_source')
-        const utmCampaign = webChange<string>(entry, 'utm_campaign')
+        // The UTM chain, in the order a campaign is read: which source, through
+        // which medium, for which campaign, with which creative. Each part is
+        // labelled on hover, because "instagram / social / holiday-sale /
+        // video-hero-v2" is unreadable without knowing which slot is which.
+        const utmChain: Array<{ label: string; value: string }> = [
+          { label: t`UTM source`, value: webChange<string>(entry, 'utm_source') || '' },
+          { label: t`UTM medium`, value: webChange<string>(entry, 'utm_medium') || '' },
+          { label: t`UTM campaign`, value: webChange<string>(entry, 'utm_campaign') || '' },
+          { label: t`UTM content`, value: webChange<string>(entry, 'utm_content') || '' }
+        ].filter((part) => part.value !== '')
         const device = webChange<string>(entry, 'device')
         const country = webChange<string>(entry, 'country')
         const goalCount = webChange<number>(entry, 'goal_count')
 
+        // The shape of the visit, on the headline: it is what anyone scanning
+        // the timeline reads first, and it is a summary rather than a detail.
+        const sessionTags = (
+          <>
+            {pageviews !== undefined && (
+              <Tag variant="filled" color="blue">
+                {pageviews === 1 ? t`1 page` : t`${pageviews} pages`}
+              </Tag>
+            )}
+            {durationMs !== undefined && durationMs > 0 && (
+              <Tag variant="filled" color="cyan">{formatWebDuration(durationMs)}</Tag>
+            )}
+            {goalCount !== undefined && goalCount > 0 && (
+              <Tag variant="filled" color="purple">
+                {goalCount === 1 ? t`1 goal` : t`${goalCount} goals`}
+              </Tag>
+            )}
+          </>
+        )
+
         return (
           <div>
-            {renderEventHeader(entry, t`Web session`, t`visited`, 'geekblue')}
+            {renderEventHeader(entry, t`Web session`, '', 'geekblue', undefined, sessionTags)}
             <div className="space-y-1 text-sm">
-              <div className="flex items-center gap-2 flex-wrap">
-                {pageviews !== undefined && (
-                  <Tag variant="filled" color="blue">
-                    {pageviews === 1 ? t`1 page` : t`${pageviews} pages`}
-                  </Tag>
-                )}
-                {durationMs !== undefined && durationMs > 0 && (
-                  <Tag variant="filled" color="cyan">{formatWebDuration(durationMs)}</Tag>
-                )}
-                {goalCount !== undefined && goalCount > 0 && (
-                  <Tag variant="filled" color="purple">
-                    {goalCount === 1 ? t`1 goal` : t`${goalCount} goals`}
-                  </Tag>
-                )}
-              </div>
-              {/* Independent guards: landing_path is TEXT NOT NULL DEFAULT '',
+              {/* One property per line. Run together, an entry and an exit page
+                  read as a single path with a stray word in it, and paths are
+                  long enough to wrap anyway.
+
+                  Independent guards: landing_path is TEXT NOT NULL DEFAULT '',
                   so a visit that arrived without one used to lose its exit page
                   as well. */}
-              {(landingPath || exitPath) && (
-                <div>
-                  {landingPath && (
-                    <>
-                      <Text type="secondary">{t`Entry:`}</Text> {landingPath}{' '}
-                    </>
-                  )}
-                  {exitPath && exitPath !== landingPath && (
-                    <>
-                      <Text type="secondary">{t`Exit:`}</Text> {exitPath}
-                    </>
-                  )}
+              {landingPath && (
+                <div className="break-all">
+                  <Text type="secondary">{t`Entry:`}</Text> {landingPath}
                 </div>
               )}
-              {(referrerDomain || utmSource || utmCampaign) && (
-                <div>
+              {exitPath && exitPath !== landingPath && (
+                <div className="break-all">
+                  <Text type="secondary">{t`Exit:`}</Text> {exitPath}
+                </div>
+              )}
+              {referrerDomain && (
+                <div className="break-all">
+                  <Text type="secondary">{t`Referrer:`}</Text> {referrerDomain}
+                </div>
+              )}
+              {utmChain.length > 0 && (
+                <div className="break-all">
                   <Text type="secondary">{t`Source:`}</Text>{' '}
-                  {[referrerDomain, utmSource, utmCampaign].filter(Boolean).join(' \u00b7 ')}
+                  {utmChain.map((part, index) => (
+                    <React.Fragment key={part.label}>
+                      {index > 0 && <Text type="secondary"> / </Text>}
+                      <Tooltip title={part.label}>
+                        <span className="cursor-help">{part.value}</span>
+                      </Tooltip>
+                    </React.Fragment>
+                  ))}
                 </div>
               )}
               {(device || country) && (
@@ -836,12 +902,27 @@ export function ContactTimeline({
         const maxScroll = webChange<number>(entry, 'max_scroll')
         const isLanding = webChange<boolean>(entry, 'is_landing')
         const isExit = webChange<boolean>(entry, 'is_exit')
+        const url = webPageURL(entry)
 
         return (
           <div>
-            {renderEventHeader(entry, null, t`viewed page`, 'blue')}
+            {renderEventHeader(entry, t`Page view`, '', 'blue')}
             <div className="space-y-1 text-sm">
-              <div className="break-all">{path || t`Unknown page`}</div>
+              <div className="flex items-center gap-1">
+                <span className="break-all">{path || t`Unknown page`}</span>
+                {url && (
+                  <Tooltip title={t`View website`}>
+                    <Button
+                      size="small"
+                      type="text"
+                      className="p-0 h-auto"
+                      aria-label={t`View website`}
+                      icon={<FontAwesomeIcon icon={faEye} />}
+                      onClick={() => setPreviewURL(url)}
+                    />
+                  </Tooltip>
+                )}
+              </div>
               <div className="flex items-center gap-2 flex-wrap">
                 {durationMs !== undefined && durationMs > 0 && (
                   <Tag variant="filled" color="cyan">{formatWebDuration(durationMs)}</Tag>
@@ -959,6 +1040,12 @@ export function ContactTimeline({
           </Button>
         </div>
       )}
+
+      <WebPageDrawer
+        open={previewURL !== null}
+        url={previewURL}
+        onClose={() => setPreviewURL(null)}
+      />
     </div>
   )
 }

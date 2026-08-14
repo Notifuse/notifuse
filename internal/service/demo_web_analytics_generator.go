@@ -37,6 +37,32 @@ const (
 	// identity at all; this is what makes the web-to-email story visible.
 	demoIdentifiedShare = 0.12
 
+	// Visitor tiers. An identified population where everyone returns as often
+	// and buys as often as everyone else produces audiences that are all the
+	// same size — which is the one thing a segmentation demo must not do. The
+	// shares are of the contact list; the weights are relative visit frequency.
+	demoVisitorAdvocateShare = 0.08
+	demoVisitorRegularShare  = 0.22
+
+	demoVisitorAdvocateWeight = 10
+	demoVisitorRegularWeight  = 4
+	demoVisitorCasualWeight   = 1
+
+	demoVisitorAdvocateConversion = 3.0
+	demoVisitorRegularConversion  = 1.5
+	demoVisitorCasualConversion   = 0.8
+
+	// How often an identified visitor browses the product line they care about
+	// rather than whatever the weights would have given them. Below 1 so a
+	// contact still wanders, which is what a real browsing history looks like.
+	demoVisitorAffinityShare = 0.55
+
+	// Signed-in visitors convert several times better than anonymous ones: a
+	// saved address and payment method remove most of a checkout. It is also
+	// what keeps the purchase pool viable now that every purchase in the demo
+	// has to come from a real session rather than from invented order rows.
+	demoIdentifiedGoalFactor = 4.0
+
 	demoGoalAddToCartRate    = 0.04
 	demoGoalCheckoutRate     = 0.40
 	demoGoalPurchaseRate     = 0.50
@@ -84,13 +110,22 @@ var demoPageviewBuckets = []struct {
 	{13, 25, 2},
 }
 
+// demoIdentity is a contact the generator may attribute visits to, with the
+// date they became one. The date is not decoration: a contact drawer that shows
+// a purchase from before the contact existed, sorted below their own "Contact
+// created" entry, is the kind of detail that makes a demo look generated.
+type demoIdentity struct {
+	Email      string
+	KnownSince time.Time
+}
+
 type demoWebAnalyticsOptions struct {
 	Sessions int
 	Days     int
 	Now      time.Time
 	Seed     int64
-	// Contact emails used as visitor identities. May be empty.
-	Identities []string
+	// Contacts available as visitor identities. May be empty.
+	Identities []demoIdentity
 	// The workspace's attribution rules, applied exactly as ingest applies them.
 	Filters []domain.WebFilter
 	// Site the demo traffic lands on, e.g. "https://www.apple.com".
@@ -103,6 +138,31 @@ type demoWebAnalyticsBatch struct {
 	Goals    []*domain.WebGoal
 }
 
+// demoVisitor is one identified person.
+//
+// Everything on it is settled once and reused for every visit they make, which
+// is what turns a scatter of sessions into a journey: the same contact, on the
+// same Mac, from the same city, coming back to the same product line week after
+// week. Redrawing these per session — which is what the generator used to do —
+// produced contacts who browsed from New York on macOS and from Tokyo on
+// Android within the same hour, and a contact drawer that read as noise.
+type demoVisitor struct {
+	Email       string
+	Geo         demoGeo
+	Device      demoDevice
+	ProductLine string
+
+	// KnownSince is when they became a contact. No visit before it can be
+	// attributed to them — they were a stranger to the site until then.
+	KnownSince time.Time
+
+	// VisitWeight is how often this person comes back, relative to the others.
+	VisitWeight int
+	// ConversionFactor scales their whole funnel, so the advocates and the
+	// window shoppers do not end up in the same audiences.
+	ConversionFactor float64
+}
+
 type demoWebAnalyticsGenerator struct {
 	opts        demoWebAnalyticsOptions
 	rng         *rand.Rand
@@ -110,18 +170,81 @@ type demoWebAnalyticsGenerator struct {
 	dailyCounts []int
 	launchIndex int
 	landingHost string
+
+	// visitors, oldest contact first; visitorWeights[i] is the summed VisitWeight
+	// of visitors[0..i], so an eligibility prefix has a weight total in O(1).
+	visitors       []demoVisitor
+	visitorWeights []int
+	pagesByLine    map[string][]demoPage
+	productLines   []demoProductLine
 }
 
 func newDemoWebAnalyticsGenerator(opts demoWebAnalyticsOptions) *demoWebAnalyticsGenerator {
 	g := &demoWebAnalyticsGenerator{
-		opts:        opts,
-		rng:         rand.New(rand.NewSource(opts.Seed)),
-		firstDay:    opts.Now.UTC().Truncate(24*time.Hour).AddDate(0, 0, -(opts.Days - 1)),
-		launchIndex: opts.Days - 1 - demoLaunchDaysAgo,
-		landingHost: demoHostFromURL(opts.SiteURL),
+		opts:         opts,
+		rng:          rand.New(rand.NewSource(opts.Seed)),
+		firstDay:     opts.Now.UTC().Truncate(24*time.Hour).AddDate(0, 0, -(opts.Days - 1)),
+		launchIndex:  opts.Days - 1 - demoLaunchDaysAgo,
+		landingHost:  demoHostFromURL(opts.SiteURL),
+		pagesByLine:  demoPagesByProductLine(),
+		productLines: demoProductLines(),
 	}
 	g.dailyCounts = g.computeDailyCounts()
+	g.buildVisitors()
 	return g
+}
+
+// buildVisitors turns the contact list into people. Drawn from the seeded
+// generator like everything else, so the same reset produces the same
+// population and a screenshot of a contact's history still matches next month.
+//
+// The result is ordered oldest contact first, with a running weight total
+// alongside it, so a visit only has to consider the contacts that already
+// existed when it happened — see pickVisitor.
+func (g *demoWebAnalyticsGenerator) buildVisitors() {
+	g.visitors = make([]demoVisitor, 0, len(g.opts.Identities))
+	for _, identity := range g.opts.Identities {
+		if identity.Email == "" {
+			continue
+		}
+		visitor := demoVisitor{
+			Email:       identity.Email,
+			KnownSince:  identity.KnownSince,
+			Geo:         g.pickGeo(),
+			Device:      g.pickDevice(),
+			ProductLine: g.pickProductLine(),
+		}
+		switch draw := g.rng.Float64(); {
+		case draw < demoVisitorAdvocateShare:
+			visitor.VisitWeight = demoVisitorAdvocateWeight
+			visitor.ConversionFactor = demoVisitorAdvocateConversion
+		case draw < demoVisitorAdvocateShare+demoVisitorRegularShare:
+			visitor.VisitWeight = demoVisitorRegularWeight
+			visitor.ConversionFactor = demoVisitorRegularConversion
+		default:
+			visitor.VisitWeight = demoVisitorCasualWeight
+			visitor.ConversionFactor = demoVisitorCasualConversion
+		}
+		g.visitors = append(g.visitors, visitor)
+	}
+
+	// Ties broken by address so the order is total, not merely sorted: two
+	// contacts created in the same second would otherwise leave sort.Slice free
+	// to order them either way, and the whole point of the fixed seed is that it
+	// does not get to choose.
+	sort.Slice(g.visitors, func(i, j int) bool {
+		if g.visitors[i].KnownSince.Equal(g.visitors[j].KnownSince) {
+			return g.visitors[i].Email < g.visitors[j].Email
+		}
+		return g.visitors[i].KnownSince.Before(g.visitors[j].KnownSince)
+	})
+
+	g.visitorWeights = make([]int, len(g.visitors))
+	running := 0
+	for i, visitor := range g.visitors {
+		running += visitor.VisitWeight
+		g.visitorWeights[i] = running
+	}
 }
 
 // Days returns the number of day buckets, oldest first.
@@ -214,7 +337,25 @@ func (g *demoWebAnalyticsGenerator) generateSession(
 	midnight time.Time,
 	period string,
 ) (*domain.WebSession, []*domain.WebPage, []*domain.WebGoal) {
-	geo := g.pickGeo()
+	// Identity comes first, because an identified visit belongs to a person and
+	// that person owns the device it is made on and the place it is made from.
+	// Deciding those afterwards is what used to scatter one contact across
+	// continents. It also settles identity genuinely before the attribution
+	// rules run, which the previous ordering claimed but did not do.
+	//
+	// Eligibility is judged on the day rather than the exact start, because the
+	// start is not known yet: it is sampled in the visitor's own timezone, which
+	// the visitor has not been chosen to supply. A day's granularity is ample for
+	// a signup date.
+	visitor := g.pickVisitor(midnight)
+
+	var geo demoGeo
+	var device demoDevice
+	if visitor != nil {
+		geo, device = visitor.Geo, visitor.Device
+	} else {
+		geo, device = g.pickGeo(), g.pickDevice()
+	}
 	start := g.sessionStart(midnight, geo)
 
 	// A session sampled into the future (today's remaining hours) has not
@@ -223,22 +364,22 @@ func (g *demoWebAnalyticsGenerator) generateSession(
 		return nil, nil, nil
 	}
 
-	landing := g.pickPage(period)
+	landing := g.pickPageFor(visitor, period)
 	campaign, referrer := g.pickAcquisition(period)
-	device := g.pickDevice()
 
 	attribution := g.buildAttribution(landing, campaign, referrer, device, geo)
+	if visitor != nil {
+		// Copied rather than aliased: the visitor outlives every session it
+		// appears in, and thousands of rows sharing one *string is an aliasing
+		// hazard for the sake of a few kilobytes.
+		email := visitor.Email
+		attribution.ContactEmail = &email
+	}
 
 	pageCount := g.pickPageviewCount()
 	pages, sessionDuration, medianPageDuration, maxScroll := g.buildPages(
-		landing, attribution, campaign, referrer, device, geo, start, pageCount,
+		landing, visitor, campaign, referrer, device, geo, start, pageCount,
 	)
-
-	// Identity is decided before the rules run so a rule could, in principle,
-	// key on it the way a real workspace might.
-	if identity, ok := g.pickIdentity(); ok {
-		attribution.ContactEmail = &identity
-	}
 
 	// Custom slots the generator owns. custom_1 is deliberately left for the
 	// product-category rules to fill.
@@ -308,7 +449,7 @@ func (g *demoWebAnalyticsGenerator) generateSession(
 		page.ContactEmail = attribution.ContactEmail
 	}
 
-	goals := g.buildGoals(session, attribution, landing, pages, sessionDuration, maxScroll, period)
+	goals := g.buildGoals(session, attribution, visitor, landing, pages, sessionDuration, maxScroll, period)
 	session.GoalCount = len(goals)
 	for _, goal := range goals {
 		session.GoalValue += goal.GoalValue
@@ -376,7 +517,7 @@ func (g *demoWebAnalyticsGenerator) buildAttribution(
 // TimeScore that disagrees with the pages table is worse than no TimeScore.
 func (g *demoWebAnalyticsGenerator) buildPages(
 	landing demoPage,
-	attribution *webAttribution,
+	visitor *demoVisitor,
 	campaign *demoCampaign,
 	referrer demoReferrer,
 	device demoDevice,
@@ -415,7 +556,10 @@ func (g *demoWebAnalyticsGenerator) buildPages(
 		entryType := "navigation"
 		if number > 1 {
 			entryType = "spa"
-			path = g.pickPage("normal").Path
+			// Still the visitor's own taste: someone who came for the iPhone
+			// mostly keeps browsing iPhones, which is what makes a pageview
+			// history on the contact drawer read as a person shopping.
+			path = g.pickPageFor(visitor, "normal").Path
 		}
 
 		pages = append(pages, &domain.WebPage{
@@ -436,7 +580,6 @@ func (g *demoWebAnalyticsGenerator) buildPages(
 		cursor = exited
 	}
 
-	_ = attribution
 	return pages, sessionDuration, medianDuration(durations), maxScroll
 }
 
@@ -447,6 +590,7 @@ func (g *demoWebAnalyticsGenerator) buildPages(
 func (g *demoWebAnalyticsGenerator) buildGoals(
 	session *domain.WebSession,
 	attribution *webAttribution,
+	visitor *demoVisitor,
 	landing demoPage,
 	pages []*domain.WebPage,
 	sessionDuration time.Duration,
@@ -464,7 +608,8 @@ func (g *demoWebAnalyticsGenerator) buildGoals(
 		return nil
 	}
 
-	rate := demoGoalAddToCartRate * g.launchGoalFactor(period) * g.channelGoalFactor(attribution.ChannelGroup)
+	rate := demoGoalAddToCartRate * g.launchGoalFactor(period) *
+		g.channelGoalFactor(attribution.ChannelGroup) * g.identityGoalFactor(visitor)
 	engagement := math.Min(sessionDuration.Seconds()/300, 1.0)
 	rate *= 1 + engagement*0.5 + float64(maxScroll)/100*0.3
 
@@ -478,7 +623,7 @@ func (g *demoWebAnalyticsGenerator) buildGoals(
 
 	cartAt := session.CreatedAt.Add(time.Duration(float64(sessionDuration) * (0.4 + g.rng.Float64()*0.2)))
 	goals := []*domain.WebGoal{
-		g.newGoal(session, attribution, "add_to_cart", domain.GoalTypeOther, cartAt, price, goalPath, pageNumber, product.Name),
+		g.newGoal(session, "add_to_cart", domain.GoalTypeOther, cartAt, price, goalPath, pageNumber, product.Name),
 	}
 	if g.rng.Float64() >= demoGoalCheckoutRate {
 		return goals
@@ -486,20 +631,31 @@ func (g *demoWebAnalyticsGenerator) buildGoals(
 
 	checkoutAt := cartAt.Add(time.Duration(5+g.rng.Intn(10)) * time.Second)
 	goals = append(goals,
-		g.newGoal(session, attribution, "checkout_start", domain.GoalTypeOther, checkoutAt, 0, goalPath, pageNumber, product.Name))
+		g.newGoal(session, "checkout_start", domain.GoalTypeOther, checkoutAt, 0, goalPath, pageNumber, product.Name))
 	if g.rng.Float64() >= demoGoalPurchaseRate {
 		return goals
 	}
 
 	purchaseAt := checkoutAt.Add(time.Duration(30+g.rng.Intn(90)) * time.Second)
 	goals = append(goals,
-		g.newGoal(session, attribution, "purchase", domain.GoalTypePurchase, purchaseAt, price, goalPath, pageNumber, product.Name))
+		g.newGoal(session, "purchase", domain.GoalTypePurchase, purchaseAt, price, goalPath, pageNumber, product.Name))
 	return goals
+}
+
+// identityGoalFactor is the demo's argument for identifying visitors at all: a
+// signed-in customer converts several times better than an anonymous one, and
+// the per-person factor on top separates the advocates from the window
+// shoppers. Without the second term every identified contact would end up in
+// exactly the same audiences as every other.
+func (g *demoWebAnalyticsGenerator) identityGoalFactor(visitor *demoVisitor) float64 {
+	if visitor == nil {
+		return 1
+	}
+	return demoIdentifiedGoalFactor * visitor.ConversionFactor
 }
 
 func (g *demoWebAnalyticsGenerator) newGoal(
 	session *domain.WebSession,
-	attribution *webAttribution,
 	name string,
 	goalType string,
 	at time.Time,
@@ -642,20 +798,47 @@ func (g *demoWebAnalyticsGenerator) pageScroll(duration time.Duration) int {
 	}
 }
 
-func (g *demoWebAnalyticsGenerator) pickPage(period string) demoPage {
-	if len(demoLaunchPages) > 0 {
-		switch period {
-		case "launch":
-			if g.rng.Float64() < 0.7 {
-				return pickWeighted(g.rng, demoLaunchPages, func(p demoPage) int { return p.Weight })
-			}
-		case "post":
-			if g.rng.Float64() < 0.5 {
-				return pickWeighted(g.rng, demoLaunchPages, func(p demoPage) int { return p.Weight })
-			}
+// pickPageFor chooses a page for a visit, honouring the visitor's taste when
+// there is a visitor. The launch window outranks personal taste on purpose:
+// everybody looks at the new phone the week it ships, which is the whole point
+// of having a spike in the data.
+func (g *demoWebAnalyticsGenerator) pickPageFor(visitor *demoVisitor, period string) demoPage {
+	if page, ok := g.pickLaunchPage(period); ok {
+		return page
+	}
+	if visitor != nil && g.rng.Float64() < demoVisitorAffinityShare {
+		if pages := g.pagesByLine[visitor.ProductLine]; len(pages) > 0 {
+			return pickWeighted(g.rng, pages, func(p demoPage) int { return p.Weight })
 		}
 	}
 	return pickWeighted(g.rng, demoPages, func(p demoPage) int { return p.Weight })
+}
+
+func (g *demoWebAnalyticsGenerator) pickLaunchPage(period string) (demoPage, bool) {
+	if len(demoLaunchPages) == 0 {
+		return demoPage{}, false
+	}
+	switch period {
+	case "launch":
+		if g.rng.Float64() < 0.7 {
+			return pickWeighted(g.rng, demoLaunchPages, func(p demoPage) int { return p.Weight }), true
+		}
+	case "post":
+		if g.rng.Float64() < 0.5 {
+			return pickWeighted(g.rng, demoLaunchPages, func(p demoPage) int { return p.Weight }), true
+		}
+	}
+	return demoPage{}, false
+}
+
+// pickProductLine gives a visitor something to care about, weighted by how much
+// traffic the line gets — so the demo's iPhone shoppers outnumber its Vision Pro
+// shoppers the way the page weights say they should.
+func (g *demoWebAnalyticsGenerator) pickProductLine() string {
+	if len(g.productLines) == 0 {
+		return ""
+	}
+	return pickWeighted(g.rng, g.productLines, func(l demoProductLine) int { return l.Weight }).Name
 }
 
 func (g *demoWebAnalyticsGenerator) pickDevice() demoDevice {
@@ -722,11 +905,39 @@ func (g *demoWebAnalyticsGenerator) pickConnectionType(device string) string {
 	}
 }
 
-func (g *demoWebAnalyticsGenerator) pickIdentity() (string, bool) {
-	if len(g.opts.Identities) == 0 || g.rng.Float64() >= demoIdentifiedShare {
-		return "", false
+// pickVisitor decides whether a visit on the given day belongs to a known
+// contact, and to which one.
+//
+// Only contacts that already existed that day are eligible, so the identified
+// share of traffic grows across the window the way a mailing list does — and no
+// contact is ever shown browsing before they signed up.
+//
+// The draw is weighted by visit frequency rather than uniform: a uniform pick
+// gives every contact the same history, and an audience where everybody looks
+// alike cannot demonstrate segmentation.
+func (g *demoWebAnalyticsGenerator) pickVisitor(day time.Time) *demoVisitor {
+	if len(g.visitors) == 0 || g.rng.Float64() >= demoIdentifiedShare {
+		return nil
 	}
-	return g.opts.Identities[g.rng.Intn(len(g.opts.Identities))], true
+
+	// visitors are ordered by KnownSince, so the eligible ones are a prefix.
+	eligible := sort.Search(len(g.visitors), func(i int) bool {
+		return g.visitors[i].KnownSince.After(day)
+	})
+	if eligible == 0 {
+		return nil // nobody had signed up yet
+	}
+
+	total := g.visitorWeights[eligible-1]
+	if total <= 0 {
+		return nil
+	}
+	target := g.rng.Intn(total)
+	index := sort.Search(eligible, func(i int) bool { return g.visitorWeights[i] > target })
+	if index >= eligible {
+		index = eligible - 1
+	}
+	return &g.visitors[index]
 }
 
 func (g *demoWebAnalyticsGenerator) clickID() string {
@@ -753,6 +964,48 @@ func (g *demoWebAnalyticsGenerator) sessionID(start time.Time) string {
 }
 
 // ----------------------------------------------------------------- helpers
+
+// demoProductLine is one shoppable line of the catalogue, with the traffic
+// weight of every page that belongs to it.
+type demoProductLine struct {
+	Name   string
+	Weight int
+}
+
+// demoPagesByProductLine groups the catalogue so a visitor with a taste for one
+// line can be given pages from it. Pages with no line — the homepage, the shop
+// redirect — belong to nobody and are left out.
+func demoPagesByProductLine() map[string][]demoPage {
+	byLine := map[string][]demoPage{}
+	for _, page := range demoPages {
+		if page.ProductLine == "" {
+			continue
+		}
+		byLine[page.ProductLine] = append(byLine[page.ProductLine], page)
+	}
+	return byLine
+}
+
+// demoProductLines lists the lines with their summed page weights, sorted by
+// name. The sort is not cosmetic: it is drawn from with a seeded RNG, and Go
+// randomises map iteration, so an unsorted slice would make the demo different
+// on every reset despite the fixed seed.
+func demoProductLines() []demoProductLine {
+	totals := map[string]int{}
+	for _, page := range demoPages {
+		if page.ProductLine == "" {
+			continue
+		}
+		totals[page.ProductLine] += page.Weight
+	}
+
+	lines := make([]demoProductLine, 0, len(totals))
+	for name, weight := range totals {
+		lines = append(lines, demoProductLine{Name: name, Weight: weight})
+	}
+	sort.Slice(lines, func(i, j int) bool { return lines[i].Name < lines[j].Name })
+	return lines
+}
 
 func pickWeighted[T any](rng *rand.Rand, items []T, weight func(T) int) T {
 	total := 0

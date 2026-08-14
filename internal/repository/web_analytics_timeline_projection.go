@@ -100,7 +100,16 @@ SELECT
 		'is_landing', jsonb_build_object('new', p.is_landing),
 		'is_exit', jsonb_build_object('new', p.is_exit),
 		'entry_type', jsonb_build_object('new', p.entry_type),
-		'session_id', jsonb_build_object('new', p.session_id::text)
+		'session_id', jsonb_build_object('new', p.session_id::text),
+		-- The domain, so a path can be turned back into the address the visitor
+		-- actually opened. web_pages stores paths only, and the console cannot
+		-- guess the host: a workspace's configured website URL is a different
+		-- field that need not be the tracked one.
+		--
+		-- The visit's landing domain, since a page has no domain of its own here.
+		-- For a visit that crosses hosts this names where it began rather than
+		-- where this page was, which is the honest limit of what the table knows.
+		'landing_domain', jsonb_build_object('new', COALESCE(s.landing_domain, ''))
 	),
 	-- Clamped: entered_at is the visitor's own clock, bounded only by
 	-- webMaxEpochMs (~year 5138), and it becomes the row's created_at — which
@@ -123,6 +132,10 @@ FROM (
 		AND session_id = ANY($2)
 		AND contact_email IS NOT NULL
 ) p
+-- LEFT, not INNER: a pageview whose session row is somehow absent still belongs
+-- on the timeline. Losing the domain costs a button in the drawer; losing the
+-- row costs the visit.
+LEFT JOIN web_sessions s ON s.session_date = p.session_date AND s.id = p.session_id
 WHERE p.session_rank <= $3
 	AND EXISTS (SELECT 1 FROM contacts c WHERE c.email = p.contact_email)
 ORDER BY p.contact_email
@@ -160,6 +173,10 @@ SELECT
 		'utm_source', jsonb_build_object('new', s.utm_source),
 		'utm_medium', jsonb_build_object('new', s.utm_medium),
 		'utm_campaign', jsonb_build_object('new', s.utm_campaign),
+		-- The creative, which is what tells two variants of one campaign apart.
+		-- The drawer names the whole chain, and a campaign with its content
+		-- missing cannot be read back to the ad that produced the visit.
+		'utm_content', jsonb_build_object('new', s.utm_content),
 		'channel', jsonb_build_object('new', s.channel),
 		'channel_group', jsonb_build_object('new', s.channel_group),
 		'device', jsonb_build_object('new', s.device),

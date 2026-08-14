@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	"sort"
 	"testing"
 	"time"
 
@@ -24,10 +25,22 @@ func demoTestGenerator(t *testing.T, sessions, days int) *demoWebAnalyticsGenera
 		Days:       days,
 		Now:        time.Date(2026, 8, 9, 18, 30, 0, 0, time.UTC),
 		Seed:       1,
-		Identities: []string{"ada@example.com", "grace@example.com", "alan@example.com"},
+		Identities: demoTestIdentities("ada@example.com", "grace@example.com", "alan@example.com"),
 		Filters:    filters,
 		SiteURL:    "https://www.apple.com",
 	})
+}
+
+// demoTestKnownSince predates every generated window, so identity eligibility
+// is never what a test is accidentally measuring.
+var demoTestKnownSince = time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
+
+func demoTestIdentities(emails ...string) []demoIdentity {
+	identities := make([]demoIdentity, 0, len(emails))
+	for _, email := range emails {
+		identities = append(identities, demoIdentity{Email: email, KnownSince: demoTestKnownSince})
+	}
+	return identities
 }
 
 func demoGenerateAll(g *demoWebAnalyticsGenerator) demoWebAnalyticsBatch {
@@ -267,6 +280,250 @@ func TestDemoWebAnalyticsSessionIdentity(t *testing.T) {
 			session, ok := byID[goal.SessionID]
 			require.True(t, ok, "goal references a missing session")
 			assert.Equal(t, session.SessionDate, goal.SessionDate)
+		}
+	})
+}
+
+// demoIdentityTestGenerator builds a generator with a contact list big enough
+// for the visitor tiers to be populated. demoTestGenerator's three identities
+// cannot express an 8% advocate share.
+func demoIdentityTestGenerator(t *testing.T, sessions, days int) *demoWebAnalyticsGenerator {
+	t.Helper()
+	identities := make([]demoIdentity, 0, 200)
+	for i := 0; i < 200; i++ {
+		identities = append(identities, demoIdentity{
+			Email: fmt.Sprintf("contact%d@example.com", i),
+			// Every contact predates the window, so this generator measures the
+			// visitor model on its own rather than the signup curve.
+			KnownSince: demoTestKnownSince,
+		})
+	}
+	filters := append(domain.DefaultWebFilters(), demoChannelFilters()...)
+	filters = append(filters, demoProductCategoryFilters()...)
+
+	return newDemoWebAnalyticsGenerator(demoWebAnalyticsOptions{
+		Sessions:   sessions,
+		Days:       days,
+		Now:        time.Date(2026, 8, 9, 18, 30, 0, 0, time.UTC),
+		Seed:       7,
+		Identities: identities,
+		Filters:    filters,
+		SiteURL:    "https://www.apple.com",
+	})
+}
+
+func TestDemoWebAnalyticsVisitorsAreCoherentPeople(t *testing.T) {
+	batch := demoGenerateAll(demoIdentityTestGenerator(t, 30_000, 120))
+
+	byContact := map[string][]*domain.WebSession{}
+	for _, session := range batch.Sessions {
+		if session.ContactEmail != nil {
+			byContact[*session.ContactEmail] = append(byContact[*session.ContactEmail], session)
+		}
+	}
+	require.NotEmpty(t, byContact)
+
+	t.Run("a contact keeps one device and one place across every visit", func(t *testing.T) {
+		// Redrawn per session, a contact browsed from New York on macOS and from
+		// Tokyo on Android within the same hour, and the drawer read as noise
+		// rather than as somebody shopping.
+		for email, sessions := range byContact {
+			first := sessions[0]
+			for _, session := range sessions[1:] {
+				assert.Equal(t, first.Device, session.Device, "contact %s changed device", email)
+				assert.Equal(t, first.Browser, session.Browser, "contact %s changed browser", email)
+				assert.Equal(t, first.OS, session.OS, "contact %s changed OS", email)
+				assert.Equal(t, first.Country, session.Country, "contact %s moved country", email)
+				assert.Equal(t, first.City, session.City, "contact %s moved city", email)
+				assert.Equal(t, first.Language, session.Language, "contact %s changed language", email)
+				assert.Equal(t, first.Timezone, session.Timezone, "contact %s changed timezone", email)
+			}
+		}
+	})
+
+	t.Run("some contacts come back far more often than others", func(t *testing.T) {
+		// A uniform draw gives every contact the same history, and an audience
+		// where everybody looks alike cannot demonstrate segmentation.
+		counts := make([]int, 0, len(byContact))
+		for _, sessions := range byContact {
+			counts = append(counts, len(sessions))
+		}
+		sort.Ints(counts)
+
+		median := counts[len(counts)/2]
+		top := counts[len(counts)-1]
+		require.NotZero(t, median)
+		assert.Greater(t, top, median*3,
+			"the most frequent visitor (%d visits) barely outpaces the median (%d)", top, median)
+	})
+
+	t.Run("identified visitors convert better than anonymous ones", func(t *testing.T) {
+		// This is the demo's argument for identifying visitors at all, and it is
+		// what keeps a purchase pool now that every order comes from a session.
+		identifiedSessions, anonymousSessions := 0, 0
+		for _, session := range batch.Sessions {
+			if session.ContactEmail != nil {
+				identifiedSessions++
+			} else {
+				anonymousSessions++
+			}
+		}
+		identifiedCarts, anonymousCarts := 0, 0
+		for _, goal := range batch.Goals {
+			if goal.GoalName != "add_to_cart" {
+				continue
+			}
+			if goal.ContactEmail != nil {
+				identifiedCarts++
+			} else {
+				anonymousCarts++
+			}
+		}
+		require.NotZero(t, anonymousSessions)
+		require.NotZero(t, identifiedSessions)
+
+		identifiedRate := float64(identifiedCarts) / float64(identifiedSessions)
+		anonymousRate := float64(anonymousCarts) / float64(anonymousSessions)
+		assert.Greater(t, identifiedRate, anonymousRate*2,
+			"identified %.3f vs anonymous %.3f", identifiedRate, anonymousRate)
+	})
+
+	t.Run("a contact's goals and pages carry their own address", func(t *testing.T) {
+		byID := map[string]*domain.WebSession{}
+		for _, session := range batch.Sessions {
+			byID[session.ID] = session
+		}
+		for _, page := range batch.Pages {
+			assert.Equal(t, byID[page.SessionID].ContactEmail, page.ContactEmail)
+		}
+		for _, goal := range batch.Goals {
+			assert.Equal(t, byID[goal.SessionID].ContactEmail, goal.ContactEmail)
+		}
+	})
+}
+
+func TestDemoWebAnalyticsIdentityRespectsSignupDate(t *testing.T) {
+	// A contact drawer showing a purchase from before the contact existed —
+	// sorted below their own "Contact created" entry — is what a demo looks like
+	// when it is generated rather than lived. The old invented order rows were
+	// anchored to the contact's creation date; the web funnel has to be too.
+	now := time.Date(2026, 8, 9, 18, 30, 0, 0, time.UTC)
+	filters := append(domain.DefaultWebFilters(), demoProductCategoryFilters()...)
+
+	knownSince := map[string]time.Time{}
+	identities := make([]demoIdentity, 0, 60)
+	for i := 0; i < 60; i++ {
+		email := fmt.Sprintf("contact%d@example.com", i)
+		// Signup dates spread across the generated window, so most of them fall
+		// inside it and the gate is genuinely exercised.
+		since := now.AddDate(0, 0, -(i * 2))
+		knownSince[email] = since
+		identities = append(identities, demoIdentity{Email: email, KnownSince: since})
+	}
+
+	batch := demoGenerateAll(newDemoWebAnalyticsGenerator(demoWebAnalyticsOptions{
+		Sessions: 40_000, Days: 120, Now: now, Seed: 11,
+		Identities: identities, Filters: filters, SiteURL: "https://www.apple.com",
+	}))
+
+	t.Run("no visit is attributed to a contact who did not exist yet", func(t *testing.T) {
+		checked := 0
+		for _, session := range batch.Sessions {
+			if session.ContactEmail == nil {
+				continue
+			}
+			since, ok := knownSince[*session.ContactEmail]
+			require.True(t, ok, "unknown identity %s", *session.ContactEmail)
+			// A day's granularity: eligibility is judged on the session's day,
+			// because the exact start is sampled in the visitor's own timezone
+			// and so is not known until the visitor has been chosen.
+			assert.False(t, session.CreatedAt.Before(since.AddDate(0, 0, -1)),
+				"%s visited on %s but only signed up on %s",
+				*session.ContactEmail, session.CreatedAt, since)
+			checked++
+		}
+		require.NotZero(t, checked, "no identified sessions to check")
+	})
+
+	t.Run("no conversion predates its contact", func(t *testing.T) {
+		checked := 0
+		for _, goal := range batch.Goals {
+			if goal.ContactEmail == nil {
+				continue
+			}
+			assert.False(t, goal.GoalAt.Before(knownSince[*goal.ContactEmail].AddDate(0, 0, -1)),
+				"%s converted before signing up", *goal.ContactEmail)
+			checked++
+		}
+		require.NotZero(t, checked, "no identified goals to check")
+	})
+
+	t.Run("the newest contacts are still reachable", func(t *testing.T) {
+		// The gate must narrow the pool, not close it: if only the oldest
+		// contacts ever get attributed, the recent half of the list opens on an
+		// empty timeline.
+		seen := map[string]bool{}
+		for _, session := range batch.Sessions {
+			if session.ContactEmail != nil {
+				seen[*session.ContactEmail] = true
+			}
+		}
+		recent := 0
+		for email, since := range knownSince {
+			if since.After(now.AddDate(0, 0, -60)) && seen[email] {
+				recent++
+			}
+		}
+		assert.Greater(t, recent, 10, "only %d of the 30 newest contacts were ever identified", recent)
+	})
+}
+
+func TestDemoWebAnalyticsVisitorPool(t *testing.T) {
+	t.Run("an empty contact list leaves every visit anonymous", func(t *testing.T) {
+		g := newDemoWebAnalyticsGenerator(demoWebAnalyticsOptions{
+			Sessions: 2000, Days: 20,
+			Now:     time.Date(2026, 8, 9, 18, 30, 0, 0, time.UTC),
+			Seed:    3,
+			Filters: domain.DefaultWebFilters(), SiteURL: "https://www.apple.com",
+		})
+		batch := demoGenerateAll(g)
+		require.NotEmpty(t, batch.Sessions)
+		for _, session := range batch.Sessions {
+			assert.Nil(t, session.ContactEmail)
+		}
+	})
+
+	t.Run("blank addresses never become visitors", func(t *testing.T) {
+		// demoContactEmails filters these out, but a visitor with no address
+		// would identify sessions to the empty string, which the projection and
+		// the goal events would then have to guard against separately.
+		g := newDemoWebAnalyticsGenerator(demoWebAnalyticsOptions{
+			Sessions: 100, Days: 5,
+			Now:        time.Date(2026, 8, 9, 18, 30, 0, 0, time.UTC),
+			Seed:       3,
+			Identities: demoTestIdentities("", "ada@example.com", ""),
+			Filters:    domain.DefaultWebFilters(), SiteURL: "https://www.apple.com",
+		})
+		require.Len(t, g.visitors, 1)
+		assert.Equal(t, "ada@example.com", g.visitors[0].Email)
+	})
+
+	t.Run("the product lines are ordered, so a fixed seed stays fixed", func(t *testing.T) {
+		// They are summed out of a map, and Go randomises map iteration: an
+		// unsorted slice would hand pickWeighted a different order on every run
+		// and make the demo different after every reset despite the fixed seed.
+		lines := demoProductLines()
+		require.NotEmpty(t, lines)
+		assert.IsIncreasing(t, func() []string {
+			names := make([]string, 0, len(lines))
+			for _, line := range lines {
+				names = append(names, line.Name)
+			}
+			return names
+		}())
+		for _, line := range lines {
+			assert.NotEmpty(t, demoPagesByProductLine()[line.Name],
+				"line %s has a weight but no pages", line.Name)
 		}
 	})
 }

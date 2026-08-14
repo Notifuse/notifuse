@@ -21,8 +21,6 @@ import (
 // Integration tests for mid-flight broadcast pause/resume/cancel.
 // Verifies Phase-2 behavior (after orchestrator finishes enqueueing)
 // and Phase-1 regressions (orchestrator still in flight).
-//
-// See plan: /Users/pierre/.claude/plans/lets-plan-your-recommendation-quiet-dream.md
 
 // Deadlines for the asynchronous transitions these tests observe. Each one waits on work
 // another goroutine has to reach — the orchestrator noticing a pause between batches, the

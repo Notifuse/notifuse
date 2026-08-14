@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"testing"
 	"time"
@@ -986,14 +987,28 @@ func TestCreateSampleSegments_ProducesUsableSegments(t *testing.T) {
 	winback, ok := byID["winback_opportunities"]
 	require.True(t, ok, "the negation showcase segment must be created")
 
-	require.Len(t, winback.Tree.Branch.Leaves, 1)
-	goal := winback.Tree.Branch.Leaves[0].Leaf.CustomEventsGoal
-	require.NotNil(t, goal)
-	assert.True(t, goal.Negate, "the win-back segment is only a showcase if it is negated")
-	assert.Equal(t, "in_the_last_days", goal.TimeframeOperator)
+	// Two leaves, and the pairing is the point: bought at some time, did not buy lately. The
+	// negated leaf on its own also matches every contact who never bought, which on this demo is
+	// most of the workspace.
+	require.Len(t, winback.Tree.Branch.Leaves, 2)
+	var everBought, notLately *domain.CustomEventsGoalCondition
+	for _, leaf := range winback.Tree.Branch.Leaves {
+		goal := leaf.Leaf.CustomEventsGoal
+		require.NotNil(t, goal)
+		if goal.Negate {
+			notLately = goal
+		} else {
+			everBought = goal
+		}
+	}
+	require.NotNil(t, everBought, "a win-back audience has to have bought at some point")
+	require.NotNil(t, notLately, "the win-back segment is only a showcase if it is negated")
+	assert.Equal(t, "anytime", everBought.TimeframeOperator)
+	assert.Equal(t, domain.GoalTypePurchase, everBought.GoalType)
+	assert.Equal(t, "in_the_last_days", notLately.TimeframeOperator)
 
 	// Negation has to wrap the leaf; inverting the comparison would silently exclude the
-	// contacts with no purchase history, who are ~30% of the demo workspace and the whole point.
+	// contacts with no purchase in the window, who are the whole point of the segment.
 	sqlStr, _, err := qb.BuildSQL(winback.Tree)
 	require.NoError(t, err)
 	assert.Contains(t, sqlStr, "NOT EXISTS (SELECT 1 FROM custom_events ce")
@@ -1001,4 +1016,146 @@ func TestCreateSampleSegments_ProducesUsableSegments(t *testing.T) {
 	// Relative window, so it must be flagged for daily recomputation or its membership freezes.
 	assert.True(t, winback.Tree.HasRelativeDates(),
 		"a rolling-window segment must be scheduled for recomputation")
+
+	// The abandonment audiences: the goal the visitor fired on the site, crossed with the absence
+	// of the one that would have completed the funnel. They are the demo's answer to "what does
+	// web analytics buy me", so a demo missing either has lost the argument.
+	for _, abandonment := range []struct{ id, eventName string }{
+		{"cart_abandoners", "add_to_cart"},
+		{"checkout_abandoners", "checkout_start"},
+	} {
+		segment, ok := byID[abandonment.id]
+		require.True(t, ok, "%s must be created", abandonment.id)
+		require.Len(t, segment.Tree.Branch.Leaves, 2, "%s", abandonment.id)
+
+		var intent, absence *domain.CustomEventsGoalCondition
+		for _, leaf := range segment.Tree.Branch.Leaves {
+			goal := leaf.Leaf.CustomEventsGoal
+			require.NotNil(t, goal)
+			if goal.Negate {
+				absence = goal
+			} else {
+				intent = goal
+			}
+		}
+
+		require.NotNil(t, intent, "%s has no intent condition", abandonment.id)
+		require.NotNil(t, intent.EventName, "%s must match on the event name", abandonment.id)
+		// Matched by name, not by type: the cart and checkout steps carry no revenue and are both
+		// typed "other", so a type filter cannot tell them apart and both segments would hold the
+		// same contacts.
+		assert.Equal(t, abandonment.eventName, *intent.EventName)
+		assert.Equal(t, "in_the_last_days", intent.TimeframeOperator)
+
+		require.NotNil(t, absence, "%s must exclude the contacts who converted", abandonment.id)
+		assert.Equal(t, domain.GoalTypePurchase, absence.GoalType)
+		assert.Equal(t, "in_the_last_days", absence.TimeframeOperator)
+
+		sqlStr, _, err := qb.BuildSQL(segment.Tree)
+		require.NoError(t, err, "%s", abandonment.id)
+		assert.Contains(t, sqlStr, "NOT EXISTS (SELECT 1 FROM custom_events ce", "%s", abandonment.id)
+		assert.Contains(t, sqlStr, "ce.event_name = ", "%s", abandonment.id)
+	}
+
+	// The two abandonment audiences must not be the same audience under two names.
+	cartSQL, _, err := qb.BuildSQL(byID["cart_abandoners"].Tree)
+	require.NoError(t, err)
+	checkoutSQL, _, err := qb.BuildSQL(byID["checkout_abandoners"].Tree)
+	require.NoError(t, err)
+	assert.Equal(t, cartSQL, checkoutSQL,
+		"the two differ only in a bound argument, so identical SQL is expected here")
+	assert.NotEqual(t,
+		*byID["cart_abandoners"].Tree.Branch.Leaves[0].Leaf.CustomEventsGoal.EventName,
+		*byID["checkout_abandoners"].Tree.Branch.Leaves[0].Leaf.CustomEventsGoal.EventName,
+		"the two segments must select different events")
+}
+
+// TestCreateDemoWebhookSubscription_IsSwitchedOff guards the load decision.
+//
+// The demo ships a webhook subscription so the console has one to show, subscribed
+// to every event type. Enabled, it would write a webhook_deliveries row for every
+// contact, event and message the demo produces — the trigger functions fan out to
+// `enabled = true` subscriptions only — and the delivery worker would retry each
+// of those ten times against a URL that answers nothing.
+//
+// Nothing else would notice: Create hardcodes Enabled: true, so a refactor that
+// dropped the switch-off would leave a demo that looks identical and delivers
+// forever.
+func TestCreateDemoWebhookSubscription_IsSwitchedOff(t *testing.T) {
+	newService := func(t *testing.T) (*DemoService, *domainmocks.MockWebhookSubscriptionRepository) {
+		t.Helper()
+		ctrl := gomock.NewController(t)
+		t.Cleanup(ctrl.Finish)
+
+		repo := domainmocks.NewMockWebhookSubscriptionRepository(ctrl)
+		auth := domainmocks.NewMockAuthService(ctrl)
+		auth.EXPECT().
+			AuthenticateUserForWorkspace(gomock.Any(), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, workspaceID string) (context.Context, *domain.User, *domain.UserWorkspace, error) {
+				return ctx, &domain.User{ID: "root"}, &domain.UserWorkspace{
+					UserID: "root", WorkspaceID: workspaceID, Role: "owner",
+				}, nil
+			}).AnyTimes()
+
+		log := logger.NewLoggerWithLevel("disabled")
+		return &DemoService{
+			logger: log,
+			webhookSubscriptionService: NewWebhookSubscriptionService(
+				repo, domainmocks.NewMockWebhookDeliveryRepository(ctrl), auth, log),
+		}, repo
+	}
+
+	t.Run("the subscription is stored disabled", func(t *testing.T) {
+		svc, repo := newService(t)
+
+		var created *domain.WebhookSubscription
+		repo.EXPECT().Create(gomock.Any(), "demo", gomock.Any()).
+			DoAndReturn(func(_ context.Context, _ string, sub *domain.WebhookSubscription) error {
+				created = sub
+				return nil
+			})
+		repo.EXPECT().GetByID(gomock.Any(), "demo", gomock.Any()).
+			DoAndReturn(func(_ context.Context, _ string, id string) (*domain.WebhookSubscription, error) {
+				return created, nil
+			})
+
+		var stored *domain.WebhookSubscription
+		repo.EXPECT().Update(gomock.Any(), "demo", gomock.Any()).
+			DoAndReturn(func(_ context.Context, _ string, sub *domain.WebhookSubscription) error {
+				stored = sub
+				return nil
+			})
+
+		require.NoError(t, svc.createDemoWebhookSubscription(context.Background(), "demo"))
+
+		require.NotNil(t, stored)
+		assert.False(t, stored.Enabled, "an enabled demo webhook delivers on every seeded row")
+		// Still subscribed to everything, so the console has a full example to show.
+		assert.Equal(t, domain.WebhookEventTypes, stored.Settings.EventTypes)
+		assert.Equal(t, "https://webhook.site/demo", stored.URL)
+	})
+
+	t.Run("a subscription that cannot be switched off is removed", func(t *testing.T) {
+		// The failure mode has to land on "no webhook", never on "enabled webhook":
+		// the second is the one thing this function exists to prevent.
+		svc, repo := newService(t)
+
+		var created *domain.WebhookSubscription
+		repo.EXPECT().Create(gomock.Any(), "demo", gomock.Any()).
+			DoAndReturn(func(_ context.Context, _ string, sub *domain.WebhookSubscription) error {
+				created = sub
+				return nil
+			})
+		repo.EXPECT().GetByID(gomock.Any(), "demo", gomock.Any()).
+			DoAndReturn(func(_ context.Context, _ string, id string) (*domain.WebhookSubscription, error) {
+				return created, nil
+			})
+		repo.EXPECT().Update(gomock.Any(), "demo", gomock.Any()).
+			Return(errors.New("write failed"))
+		repo.EXPECT().Delete(gomock.Any(), "demo", gomock.Any()).Return(nil)
+
+		err := svc.createDemoWebhookSubscription(context.Background(), "demo")
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "disable the demo webhook subscription")
+	})
 }

@@ -55,6 +55,7 @@ type AppInterface interface {
 	GetTaskScheduler() *service.TaskScheduler
 	GetWebAnalyticsBuffer() *service.WebAnalyticsBuffer
 	GetWebAnalyticsRepository() domain.WebAnalyticsRepository
+	GetCustomEventRepository() domain.CustomEventRepository
 }
 
 // NewServerManager creates a new server manager for testing

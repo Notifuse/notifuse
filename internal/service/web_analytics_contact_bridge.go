@@ -134,7 +134,7 @@ func (b *WebAnalyticsContactBridge) EmitGoals(ctx context.Context, workspaceID s
 			continue // decision: link only, never create
 		}
 
-		events = append(events, b.buildEvent(goal, eventName, occurredAt))
+		events = append(events, buildWebGoalCustomEvent(goal, eventName, occurredAt))
 		accepted = append(accepted, goal)
 		perSession[goal.SessionID]++
 	}
@@ -167,7 +167,16 @@ func (b *WebAnalyticsContactBridge) EmitGoals(ctx context.Context, workspaceID s
 	return written
 }
 
-func (b *WebAnalyticsContactBridge) buildEvent(goal *domain.WebGoal, eventName string, occurredAt time.Time) *domain.CustomEvent {
+// buildWebGoalCustomEvent turns one web goal into the custom event that
+// represents it.
+//
+// Package-level rather than a method because the demo seeder writes the same
+// rows for its synthetic history, and it cannot go through the bridge: the
+// bridge hangs off the ingest buffer by design (internal/app/app.go), and its
+// staleness guard rejects anything older than a day, which is every row the
+// demo generates. Two copies of this payload would drift, and the drift would
+// only show up as a segment that matches on live traffic and not on the demo.
+func buildWebGoalCustomEvent(goal *domain.WebGoal, eventName string, occurredAt time.Time) *domain.CustomEvent {
 	// Client properties first, server context second: a visitor must not be able
 	// to forge session_id, path or the attribution keys by sending them as goal
 	// properties. Spreading them the other way round let them.

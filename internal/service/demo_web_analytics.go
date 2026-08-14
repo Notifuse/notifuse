@@ -14,10 +14,36 @@ import (
 // the console's date picker needs — Year to date and Previous 12 months are
 // empty below thirteen months — and the density is what makes an Explore
 // drill-down three levels deep survive its default ten-session threshold.
+//
+// A share of the visits belong to a seeded contact, and those reach the contact
+// as well as the dashboards, through the two paths a real workspace uses: the
+// navigation projection writes the visit and its pages onto the timeline, and
+// the conversions are recorded as custom events. Neither is demo-only
+// machinery — a segment built against this data behaves the same against live
+// traffic, which is the only reason a demo is worth showing.
 
 const (
 	demoWebAnalyticsSessions = 100_000
 	demoWebAnalyticsDays     = 400
+
+	// How far back a visit is also written onto the contact's timeline.
+	//
+	// Deliberately shorter than the history itself. The contact drawer paginates
+	// ten entries at a time and has no way to filter by entity type, so
+	// projecting all 400 days would put roughly fifty web rows in front of every
+	// contact and bury the email history the rest of the demo is about. Ninety
+	// days gives about fifteen entries to the four contacts in five who have a
+	// recent visit at all (measured in TestDemoWebAnalyticsAudiences) — enough to
+	// read as a browsing history, few enough that the drawer still reads as a
+	// story, and recent enough that the demo's own message history, which is only
+	// days old, still sits at the top.
+	//
+	// It matches the window the abandonment segments use, so a contact who is in
+	// Cart Abandoners has the visit that put them there visible on their timeline.
+	//
+	// The analytics tables keep the full 400 days regardless: this windows what
+	// is projected, never what is generated.
+	demoWebAnalyticsTimelineDays = 90
 
 	// A fixed seed, so two resets produce the same demo and a screenshot taken
 	// today still matches the data next month.
@@ -41,7 +67,7 @@ func (s *DemoService) seedWebAnalytics(ctx context.Context, workspaceID string) 
 		return err
 	}
 
-	identities, err := s.demoContactEmails(ctx, workspaceID)
+	identities, err := s.demoContactIdentities(ctx, workspaceID)
 	if err != nil {
 		// Identity linking is a nice-to-have; an empty list simply means every
 		// visitor stays anonymous.
@@ -67,7 +93,7 @@ func (s *DemoService) seedWebAnalytics(ctx context.Context, workspaceID string) 
 	}
 
 	started := time.Now()
-	sessions, pages, goals, err := s.flushDemoWebAnalytics(ctx, workspaceID, generator)
+	sessions, pages, goals, err := s.flushDemoWebAnalytics(ctx, workspaceID, generator, now)
 	if err != nil {
 		return err
 	}
@@ -89,10 +115,17 @@ func (s *DemoService) seedWebAnalytics(ctx context.Context, workspaceID string) 
 // first. Per-month batches keep both the transaction and peak memory bounded;
 // newest first means the ranges a visitor is most likely to open are populated
 // before the older history lands.
+//
+// Each month's analytics write is followed by the two steps that make the visit
+// visible on the contact: the navigation projection and the goal events. Both
+// run per month rather than once at the end so peak memory stays bounded by the
+// batch, and both run after FlushBatch has committed — the projection reads the
+// persisted rows, and neither may share the flush's transaction.
 func (s *DemoService) flushDemoWebAnalytics(
 	ctx context.Context,
 	workspaceID string,
 	generator *demoWebAnalyticsGenerator,
+	now time.Time,
 ) (sessions, pages, goals int, err error) {
 	byMonth := map[time.Time][]int{}
 	for day := 0; day < generator.Days(); day++ {
@@ -105,6 +138,8 @@ func (s *DemoService) flushDemoWebAnalytics(
 		months = append(months, month)
 	}
 	sortTimesDescending(months)
+
+	timelineFrom := now.AddDate(0, 0, -demoWebAnalyticsTimelineDays)
 
 	for _, month := range months {
 		batch := demoWebAnalyticsBatch{}
@@ -122,12 +157,93 @@ func (s *DemoService) flushDemoWebAnalytics(
 				"failed to write demo web analytics for %s: %w", month.Format("2006-01"), err)
 		}
 
+		s.projectDemoNavigation(ctx, workspaceID, batch.Sessions, timelineFrom)
+		s.seedDemoWebGoalEvents(ctx, workspaceID, batch.Goals)
+
 		sessions += len(batch.Sessions)
 		pages += len(batch.Pages)
 		goals += len(batch.Goals)
 	}
 
 	return sessions, pages, goals, nil
+}
+
+// projectDemoNavigation puts the recent identified visits on their contacts'
+// timelines, through the same projection the ingest buffer uses — so what the
+// demo shows is what a real workspace gets, not a demo-only rendering.
+//
+// Failures are logged and swallowed: a timeline the projection could not write
+// is a poorer demo, not a broken one, and the analytics history is already
+// committed by the time this runs.
+func (s *DemoService) projectDemoNavigation(
+	ctx context.Context,
+	workspaceID string,
+	sessions []*domain.WebSession,
+	from time.Time,
+) {
+	identified := make([]*domain.WebSession, 0, len(sessions))
+	for _, session := range sessions {
+		if session.ContactEmail == nil || *session.ContactEmail == "" {
+			continue // anonymous: there is no timeline to write it to
+		}
+		if session.CreatedAt.Before(from) {
+			continue
+		}
+		identified = append(identified, session)
+	}
+	if len(identified) == 0 {
+		return
+	}
+
+	if err := s.webAnalyticsRepo.ProjectContactNavigation(ctx, workspaceID, identified); err != nil {
+		s.logger.WithField("workspace_id", workspaceID).WithField("error", err.Error()).
+			Warn("Failed to project demo web navigation onto the contact timeline")
+	}
+}
+
+// seedDemoWebGoalEvents records the identified conversions as custom events,
+// which is what puts them on the contact timeline and what the Custom Events
+// Goal segment conditions aggregate over.
+//
+// The payload comes from the bridge's own builder, so a demo goal and a live one
+// are the same row — a segment written against the demo therefore behaves
+// identically against real traffic.
+//
+// Unlike the navigation projection this covers the whole history rather than the
+// recent window: these events are the demo's purchase record, and an "all-time
+// revenue" condition reading only the last quarter would be wrong.
+func (s *DemoService) seedDemoWebGoalEvents(
+	ctx context.Context,
+	workspaceID string,
+	goals []*domain.WebGoal,
+) {
+	if s.customEventRepo == nil || len(goals) == 0 {
+		return
+	}
+
+	events := make([]*domain.CustomEvent, 0, len(goals))
+	for _, goal := range goals {
+		if goal.ContactEmail == nil || *goal.ContactEmail == "" {
+			continue // anonymous: nothing to attach it to
+		}
+		eventName := normalizeWebGoalEventName(goal.GoalName)
+		if eventName == "" {
+			continue
+		}
+		events = append(events, buildWebGoalCustomEvent(
+			goal, eventName, time.UnixMilli(goal.ClientTsMs).UTC()))
+	}
+	if len(events) == 0 {
+		return
+	}
+
+	// BatchInsertNew, never Upsert: the timeline trigger fires on UPDATE as well
+	// as INSERT and does no diffing, so an upsert would add a second timeline row
+	// for every goal each time the demo is re-seeded.
+	if err := s.customEventRepo.BatchInsertNew(ctx, workspaceID, events); err != nil {
+		s.logger.WithField("workspace_id", workspaceID).WithField("error", err.Error()).
+			Warn("Failed to record demo web conversions as custom events")
+	}
 }
 
 // enableDemoWebAnalytics turns the feature on and appends the product-category
@@ -177,9 +293,12 @@ func (s *DemoService) enableDemoWebAnalytics(
 	return settings.Filters, nil
 }
 
-// demoContactEmails returns the seeded contacts' emails, used as visitor ids so
-// the analytics and the email side of the demo describe the same people.
-func (s *DemoService) demoContactEmails(ctx context.Context, workspaceID string) ([]string, error) {
+// demoContactIdentities returns the seeded contacts, used as visitor ids so the
+// analytics and the email side of the demo describe the same people.
+//
+// The creation date travels with the address: the generator will not attribute
+// a visit to somebody who was not a contact yet.
+func (s *DemoService) demoContactIdentities(ctx context.Context, workspaceID string) ([]demoIdentity, error) {
 	response, err := s.contactService.GetContacts(ctx, &domain.GetContactsRequest{
 		WorkspaceID: workspaceID,
 		Limit:       1000,
@@ -188,13 +307,17 @@ func (s *DemoService) demoContactEmails(ctx context.Context, workspaceID string)
 		return nil, err
 	}
 
-	emails := make([]string, 0, len(response.Contacts))
+	identities := make([]demoIdentity, 0, len(response.Contacts))
 	for _, contact := range response.Contacts {
-		if contact.Email != "" {
-			emails = append(emails, contact.Email)
+		if contact.Email == "" {
+			continue
 		}
+		identities = append(identities, demoIdentity{
+			Email:      contact.Email,
+			KnownSince: contact.CreatedAt.UTC(),
+		})
 	}
-	return emails, nil
+	return identities, nil
 }
 
 func (s *DemoService) analyzeDemoWebAnalytics(ctx context.Context, workspaceID string) {

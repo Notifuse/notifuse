@@ -2,11 +2,11 @@ package service
 
 import "math/rand"
 
-// The demo workspace is an Apple storefront: the same catalogue backs the
-// purchase events on the email side and, once the web analytics fixtures land,
-// the product pages and goal values on the analytics side. Keeping one table
-// means a contact's purchase and a session's conversion can never disagree
-// about what a MacBook Pro costs.
+// The demo workspace is an Apple storefront: this catalogue names the product
+// pages the generated traffic lands on and prices the conversions those visits
+// produce. A contact's purchase and the session that produced it read the same
+// row, so they can never disagree about what a MacBook Pro costs — the demo has
+// no orders from anywhere else to reconcile with.
 //
 // Prices are the US list prices the Staminads demo fixtures use.
 type demoProduct struct {
@@ -39,29 +39,22 @@ var demoAppleProducts = []demoProduct{
 	{"HomePod mini", 99, 99},
 }
 
-// randomDemoProduct returns a product and a price for it.
-func randomDemoProduct() (demoProduct, float64) {
-	product := demoAppleProducts[rand.Intn(len(demoAppleProducts))]
-	return product, demoPriceFor(product, nil)
-}
-
 // demoPriceFor prices one product. Configurable models are priced in $100 steps
 // the way Apple's own tiers are, except for ranges narrower than a step, which
-// would otherwise always collapse onto the minimum. Pass a seeded source to
-// keep a demo reset reproducible; nil uses the global one.
+// would otherwise always collapse onto the minimum.
+//
+// The source is required, not optional: every price in the demo belongs to a
+// generated session, and a draw from the global source would make the same reset
+// produce different revenue every time.
 func demoPriceFor(product demoProduct, rng *rand.Rand) float64 {
-	intn := rand.Intn
-	if rng != nil {
-		intn = rng.Intn
-	}
 	span := product.MaxPrice - product.MinPrice
 
 	switch {
 	case span <= 0:
 		return product.MinPrice
 	case span < 100:
-		return product.MinPrice + float64(intn(int(span)+1))
+		return product.MinPrice + float64(rng.Intn(int(span)+1))
 	default:
-		return product.MinPrice + float64(intn(int(span/100)+1))*100
+		return product.MinPrice + float64(rng.Intn(int(span/100)+1))*100
 	}
 }

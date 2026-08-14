@@ -70,6 +70,7 @@ type AppInterface interface {
 	GetTaskScheduler() *service.TaskScheduler
 	GetWebAnalyticsBuffer() *service.WebAnalyticsBuffer
 	GetWebAnalyticsRepository() domain.WebAnalyticsRepository
+	GetCustomEventRepository() domain.CustomEventRepository
 
 	// Server status methods
 	IsServerCreated() bool
@@ -1032,7 +1033,11 @@ func (a *App) InitServices() error {
 
 	// The bridge hangs off the BUFFER, never off the repository: the demo data
 	// generator calls FlushBatch directly, and hooking there would bridge its
-	// whole synthetic history into the contact timeline in one shot.
+	// whole synthetic history in one shot, on a path with no say in it. The demo
+	// does record its own conversions on the timeline, but explicitly and on its
+	// own terms — it shares the payload builder rather than the trigger, so it
+	// chooses what to write and the bridge's staleness guard keeps protecting the
+	// public ingest path (see seedDemoWebGoalEvents).
 	a.webAnalyticsBuffer.SetContactBridge(service.NewWebAnalyticsContactBridge(
 		a.contactRepo,
 		a.customEventRepo,
@@ -1897,6 +1902,10 @@ func (a *App) GetContactRepository() domain.ContactRepository {
 // on the analytics tables directly.
 func (a *App) GetWebAnalyticsRepository() domain.WebAnalyticsRepository {
 	return a.webAnalyticsRepo
+}
+
+func (a *App) GetCustomEventRepository() domain.CustomEventRepository {
+	return a.customEventRepo
 }
 
 func (a *App) GetListRepository() domain.ListRepository {

@@ -516,6 +516,13 @@ export const WebPageviewChangesSchema: TableSchema = {
       description: 'Identifier of the visit the page belongs to',
       type: 'string',
       shown: true
+    },
+    landing_domain: {
+      name: 'landing_domain',
+      title: 'Domain',
+      description: 'Domain the visit started on, which the path belongs to',
+      type: 'string',
+      shown: true
     }
   }
 }
@@ -600,6 +607,13 @@ export const WebSessionChangesSchema: TableSchema = {
       name: 'utm_campaign',
       title: 'UTM campaign',
       description: 'utm_campaign of the visit',
+      type: 'string',
+      shown: true
+    },
+    utm_content: {
+      name: 'utm_content',
+      title: 'UTM content',
+      description: 'utm_content of the visit, which names the creative',
       type: 'string',
       shown: true
     },
