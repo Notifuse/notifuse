@@ -355,6 +355,15 @@ func (s *DemoService) addSampleData(ctx context.Context, workspaceID string) err
 	// share of the sessions are attributed to them, and detached from the
 	// caller's context so a client that hangs up mid-write cannot leave the
 	// demo with half a year of history.
+	//
+	// It stays synchronous deliberately. At this volume the write is seconds, not
+	// minutes, and a goroutine whose only purpose is to let a manually-triggered
+	// admin endpoint return sooner is complexity with no user behind it. The point
+	// where that changes is a measured one: if seeding on the demo host ever runs
+	// past roughly 45 seconds, split it rather than backgrounding it wholesale —
+	// write the most recent ~35 days synchronously, since the default view is the
+	// last 7 days and the demo is complete the moment the response returns, and
+	// finish the older months behind the reset mutex.
 	if err := s.seedWebAnalytics(context.WithoutCancel(ctx), workspaceID); err != nil {
 		s.logger.WithField("error", err.Error()).Warn("Failed to generate demo web analytics")
 		// Non-fatal: the rest of the demo is still usable without it.

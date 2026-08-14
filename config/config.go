@@ -380,6 +380,11 @@ func loadSystemSettings(db *sql.DB, secretKey string) (*SystemSettings, error) {
 			}
 		}
 
+		// Dead read, pending removal (see plans/TODO.md): SettingService persists
+		// every other smtp_bridge_* field and not this one, and no UI submits it, so
+		// this always finds nothing and falls back to auto-resolve. TLS mode is
+		// environment-only by decision — SMTP_BRIDGE_TLS_MODE — and this line is what
+		// makes it look otherwise.
 		settings.SMTPBridgeTLSMode = settingsMap["smtp_bridge_tls_mode"]
 
 		// OIDC settings

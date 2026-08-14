@@ -28,6 +28,9 @@ type InboundWebhookEventService struct {
 	contactRepo        domain.ContactRepository
 	automationRepo     domain.AutomationRepository
 	replyParsers       map[domain.EmailProviderKind]domain.ReplyParser
+	// httpClient fetches the SNS SubscribeURL. It is SSRF-safe because that URL
+	// arrives in the request body of a public endpoint — see confirmSNSSubscription.
+	httpClient *http.Client
 }
 
 // NewInboundWebhookEventService creates a new InboundWebhookEventService
@@ -48,6 +51,7 @@ func NewInboundWebhookEventService(
 		messageHistoryRepo: messageHistoryRepo,
 		contactRepo:        contactRepo,
 		automationRepo:     automationRepo,
+		httpClient:         safehttpclient.New(),
 		replyParsers: map[domain.EmailProviderKind]domain.ReplyParser{
 			domain.EmailProviderKindMailgun: &MailgunReplyParser{},
 			// SES delivers replies via SNS (signed); the parser needs an SSRF-safe client
@@ -455,6 +459,35 @@ func extractXMessageIDFromHeaders(headers []domain.SESHeader) string {
 	return ""
 }
 
+// confirmSNSSubscription fetches an SNS SubscribeURL to complete a topic subscription.
+//
+// The URL is attacker-supplied — it arrives in the body of a public webhook endpoint
+// and nothing upstream has authenticated it — so it gets the same two guards the SES
+// reply parser applies: validateSNSURL restricts it to an https AWS SNS host, and the
+// SSRF-safe client refuses to connect to private or loopback addresses. Neither alone
+// is sufficient; keep both.
+//
+// The context is bounded but not the caller's: confirming a subscription is a side
+// effect worth finishing, and abandoning it because the client hung up would leave the
+// topic unconfirmed with nothing to retry it.
+func (s *InboundWebhookEventService) confirmSNSSubscription(subscribeURL string) (*http.Response, error) {
+	if err := validateSNSURL(subscribeURL); err != nil {
+		return nil, err
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), sesInboundFetchTimeout)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, subscribeURL, nil)
+	if err != nil {
+		return nil, err
+	}
+	client := s.httpClient
+	if client == nil {
+		client = safehttpclient.New()
+	}
+	return client.Do(req)
+}
+
 // processSESWebhook processes a webhook event from Amazon SES
 func (s *InboundWebhookEventService) processSESWebhook(integrationID string, rawPayload []byte) (events []*domain.InboundWebhookEvent, err error) {
 
@@ -470,8 +503,11 @@ func (s *InboundWebhookEventService) processSESWebhook(integrationID string, raw
 			WithField("topic_arn", snsPayload.TopicARN).
 			Info("Processing SNS subscription confirmation")
 
-		// Make a GET request to the SubscribeURL to confirm the subscription
-		resp, err := http.Get(snsPayload.SubscribeURL)
+		// Confirm the subscription by fetching the SubscribeURL. That URL comes
+		// straight out of the request body on a public endpoint, so it is treated as
+		// hostile input: it must be an https AWS SNS host, and the fetch goes through
+		// the SSRF-safe client so it cannot be aimed at a private address.
+		resp, err := s.confirmSNSSubscription(snsPayload.SubscribeURL)
 		if err != nil {
 			s.logger.WithField("error", err.Error()).
 				WithField("integration_id", integrationID).

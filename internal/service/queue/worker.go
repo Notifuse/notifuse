@@ -341,6 +341,16 @@ func (w *EmailQueueWorker) processEntry(workspace *domain.Workspace, entry *doma
 	// Stop-on-reply just-in-time guard: for automation sends flagged with a
 	// contact_automation_id, re-check the journey is still active right before
 	// sending. If a reply exited it after this email was enqueued, cancel the send.
+	//
+	// This check belongs HERE, at the actual provider call, and moving it earlier
+	// reopens the hole it exists to close. Stopping a journey has two async windows:
+	// a contact asleep in a delay, which the event interrupt closes by flipping the
+	// journey status so the scheduler stops picking it up; and an email already
+	// sitting in this queue, which nothing upstream can recall. The email node only
+	// enqueues, so a guard there proves nothing about the moment of sending. The
+	// third layer is the optimistic lock on the journey persist, which stops the
+	// executor writing over an exit that landed mid-tick. Remove any one and
+	// "exited" stops meaning no further mail goes out.
 	if w.automationRepo != nil && entry.Payload.ContactAutomationID != nil {
 		ca, lookupErr := w.automationRepo.GetContactAutomation(w.ctx, workspace.ID, *entry.Payload.ContactAutomationID)
 		if lookupErr != nil {

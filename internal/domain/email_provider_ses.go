@@ -181,6 +181,10 @@ type AmazonSESSettings struct {
 	// TenantName scopes sends to a tenant the operator manages themselves. Mutually exclusive
 	// with TenantIsolationEnabled: two sources of truth for the same value is not a state worth
 	// having.
+	//
+	// It is a typed field rather than a generic custom-header bag for a hard reason, not a
+	// stylistic one: AWS honours the X-SES-TENANT header over SMTP only and never on the v2
+	// API, which is the path used here. A header mechanism could not carry a tenant at all.
 	TenantName string `json:"tenant_name,omitempty"`
 
 	// --- derived state, written by provisioning; never form fields -------------------------

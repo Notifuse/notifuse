@@ -10,6 +10,13 @@ import (
 // same env-wins-over-DB precedence used for SMTP (see resolveOIDCConfig). The
 // ClientSecret is held in memory decrypted but is encrypted at rest in the DB and
 // must never be exposed to any client-facing path (serveConfigJS / settings GET).
+//
+// There is deliberately no "enforce SSO" / "disable magic code" switch here. SSO is
+// additive: magic-code login always remains available, which is what keeps an
+// unreachable IdP or a misconfigured issuer from locking every operator out of the
+// instance — including out of the settings page where they would fix it. Anyone
+// adding enforcement has to solve that first: an escape hatch that does not itself
+// depend on the IdP, such as ROOT_EMAIL keeping password access unconditionally.
 type OIDCConfig struct {
 	Enabled         bool
 	IssuerURL       string

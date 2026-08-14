@@ -364,23 +364,29 @@ func (b *BlogSettings) Scan(value interface{}) error {
 
 // WorkspaceSettings contains configurable workspace settings
 type WorkspaceSettings struct {
-	WebsiteURL                   string                `json:"website_url,omitempty"`
-	LogoURL                      string                `json:"logo_url,omitempty"`
-	CoverURL                     string                `json:"cover_url,omitempty"`
-	Timezone                     string                `json:"timezone"`
-	FileManager                  FileManagerSettings   `json:"file_manager,omitempty"`
-	TransactionalEmailProviderID string                `json:"transactional_email_provider_id,omitempty"`
-	MarketingEmailProviderID     string                `json:"marketing_email_provider_id,omitempty"`
-	EncryptedSecretKey           string                `json:"encrypted_secret_key,omitempty"`
-	EmailTrackingEnabled         bool                  `json:"email_tracking_enabled"`
-	TemplateBlocks               []TemplateBlock       `json:"template_blocks,omitempty"`
-	CustomEndpointURL            *string               `json:"custom_endpoint_url,omitempty"`
-	CustomFieldLabels            map[string]string     `json:"custom_field_labels,omitempty"`
-	BlogEnabled                  bool                  `json:"blog_enabled"`            // Enable blog feature at workspace level
-	BlogSettings                 *BlogSettings         `json:"blog_settings,omitempty"` // Blog styling and SEO settings
-	WebAnalytics                 *WebAnalyticsSettings `json:"web_analytics,omitempty"` // Web analytics configuration
-	DefaultLanguage              string                `json:"default_language"`
-	Languages                    []string              `json:"languages"`
+	WebsiteURL                   string              `json:"website_url,omitempty"`
+	LogoURL                      string              `json:"logo_url,omitempty"`
+	CoverURL                     string              `json:"cover_url,omitempty"`
+	Timezone                     string              `json:"timezone"`
+	FileManager                  FileManagerSettings `json:"file_manager,omitempty"`
+	TransactionalEmailProviderID string              `json:"transactional_email_provider_id,omitempty"`
+	MarketingEmailProviderID     string              `json:"marketing_email_provider_id,omitempty"`
+	EncryptedSecretKey           string              `json:"encrypted_secret_key,omitempty"`
+	EmailTrackingEnabled         bool                `json:"email_tracking_enabled"`
+	// TemplateBlocks live inside this settings blob rather than in their own table,
+	// which is why block CRUD emits no webhook events while template CRUD does:
+	// every webhook event in the product is produced by a row trigger writing to
+	// webhook_deliveries, and there are no block rows to trigger on. Adding them
+	// would mean inserting deliveries from the service layer — a second, parallel
+	// mechanism — so it is a deliberate initiative, not an oversight to patch.
+	TemplateBlocks    []TemplateBlock       `json:"template_blocks,omitempty"`
+	CustomEndpointURL *string               `json:"custom_endpoint_url,omitempty"`
+	CustomFieldLabels map[string]string     `json:"custom_field_labels,omitempty"`
+	BlogEnabled       bool                  `json:"blog_enabled"`            // Enable blog feature at workspace level
+	BlogSettings      *BlogSettings         `json:"blog_settings,omitempty"` // Blog styling and SEO settings
+	WebAnalytics      *WebAnalyticsSettings `json:"web_analytics,omitempty"` // Web analytics configuration
+	DefaultLanguage   string                `json:"default_language"`
+	Languages         []string              `json:"languages"`
 
 	// decoded secret key, not stored in the database
 	SecretKey string `json:"-"`

@@ -692,6 +692,10 @@ func (h *RootHandler) serveBlogFeed(w http.ResponseWriter, r *http.Request, work
 	w.Header().Set("Cache-Control", "public, max-age=0, s-maxage=300, must-revalidate")
 	w.Header().Set("Vary", "Accept-Encoding")
 
+	// HEAD builds and renders the whole feed and only then drops the body. The
+	// cheaper short-circuit — bailing out before BuildFeed — would let HEAD answer
+	// 200 for a feed whose GET fails with 500, and would have to duplicate the
+	// header block to stay honest. A feed is small and this path is cached.
 	if r.Method == http.MethodHead {
 		return
 	}

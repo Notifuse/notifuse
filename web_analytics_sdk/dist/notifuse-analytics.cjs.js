@@ -3232,8 +3232,24 @@ class NotifuseAnalyticsSDK {
  * ```
  * https://example.com/page?custom_1=campaign_a&custom_2=variant_b
  * ```
+ *
  * URL parameters custom_1 through custom_10 are automatically captured on init.
  * Existing dimension values take priority over URL parameters.
+ */
+/*
+ * Kept out of the JSDoc above on purpose: rollup emits that block into
+ * dist/*.d.ts and the unminified bundles, which ship to npm consumers. This
+ * note is for maintainers only.
+ *
+ * Renaming or re-shaping anything in the public API: `npm run type-check`
+ * passing does NOT mean the change is complete. These mirror the public surface
+ * and none of them is typechecked —
+ *   tests/e2e/fixtures/test-page.html   (inline JS)
+ *   tests/e2e/*.spec.ts                 (tsconfig excludes tests/)
+ *   README.md                           (examples)
+ *   the @example block above
+ *   ../../docs/web-analytics/*.mdx      (separate repository)
+ * Budget a manual grep sweep for the old name.
  */
 // Create singleton instance
 const sdk = new NotifuseAnalyticsSDK();

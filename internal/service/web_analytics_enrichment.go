@@ -35,6 +35,13 @@ func webClockSkew(sentAt *int64, receivedAt time.Time) time.Duration {
 	return skew
 }
 
+// correctedMs shifts a client timestamp by the measured skew. Apply it ONLY to
+// values that are read as times — created_at, updated_at, goal_at. Never to a
+// partition key or a dedup key: session_date is derived from the session id
+// itself and web_goals dedups on the raw client_ts_ms, both deliberately. Skew
+// is recomputed per beat from that beat's sent_at, so correcting a key would let
+// the same session or goal land in different rows on different beats, splitting
+// one visit in two with nothing to flag it.
 func correctedMs(epochMs int64, skew time.Duration) time.Time {
 	return time.UnixMilli(epochMs).Add(skew).UTC()
 }

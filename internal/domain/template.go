@@ -38,7 +38,13 @@ func validateTemplateID(id string) error {
 	return nil
 }
 
-// Channel constants for templates
+// Channel constants for templates.
+//
+// A template's channel is a classification, not a filter: it decides which content
+// object the template must carry, which Validate enforces below, and it scopes the
+// template list. It is unrelated to the per-block visibility feature that was
+// removed — that shared the word "channel" and nothing else, so finding a leftover
+// of that removal here is a false trail.
 const (
 	ChannelEmail = "email"
 	ChannelWeb   = "web"

@@ -22,6 +22,23 @@ import (
 // Everything is in-process and bounded; PostgreSQL remains the only store. A
 // crash loses at most the last few seconds of recency on in-flight sessions —
 // the same failure profile as Staminads' 2s ClickHouse buffer.
+//
+// Two designs were considered and rejected, and both get re-proposed easily:
+//
+//   - An external buffer (Redis) in front of Postgres. Beyond adding a second
+//     datastore to a self-hosted product, it loses the property this one has:
+//     unflushed state stays queryable by arbitrary GROUP BY, because it is in
+//     the same process as the reader. PostgreSQL is the only store, by design.
+//   - A raw-events table with rollups (the shape ClickHouse pushes you toward).
+//     Unnecessary here: a beat carries the whole cumulative session, so the
+//     final rows are computable from any single payload with no read-back.
+//     That is also why there are no materialized views — the enrichment step
+//     does what they did, synchronously.
+//
+// If exact aggregation ever outgrows the tables, the sanctioned next step is
+// deterministic hash sampling above a row threshold, not approximation
+// extensions: tdigest and TABLESAMPLE were declined for the operational burden
+// they put on self-hosted installs.
 type WebAnalyticsBufferConfig struct {
 	FlushTick               time.Duration // scheduler cadence
 	SessionFlushInterval    time.Duration // max staleness of a written session
@@ -199,6 +216,10 @@ func (b *WebAnalyticsBuffer) Start(ctx context.Context) {
 }
 
 // Stop drains everything synchronously; safe to call after Start returned.
+// Stop drains the buffer. The final flush is the whole point of this method, not
+// a courtesy: writes are debounced for up to IdleFlushAfter, so a shutdown that
+// only stopped the ticker would silently discard every session dirtied in the
+// last minute. It must also run while the database connections are still open.
 func (b *WebAnalyticsBuffer) Stop() {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()

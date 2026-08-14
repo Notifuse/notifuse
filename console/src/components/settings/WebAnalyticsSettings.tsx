@@ -105,6 +105,17 @@ interface WebAnalyticsFormValues {
   custom_dimension_labels?: Record<string, string>
 }
 
+// This panel is readable by any member who can reach /settings, and that is the
+// intended behaviour, not a missing gate: a settings *summary* is readable, only
+// writes are permission-gated. General and Blog work the same way, so singling this
+// one out would make the settings area inconsistent for no reason a user could infer.
+// Nothing here is a credential — the workspace secret is never serialised and
+// integration credentials are stripped at the API boundary.
+//
+// If that stance is ever reversed, it has to be backend-first and land with the
+// console in the same change: these values arrive in /api/user.me, so hiding the
+// panel alone is theatre, and with the settings absent this component falls back to
+// DEFAULT_SETTINGS and confidently renders a plausible, wrong configuration.
 export function WebAnalyticsSettings({
   workspace,
   onWorkspaceUpdate,

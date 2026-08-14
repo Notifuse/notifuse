@@ -31,6 +31,7 @@
  * ```
  * https://example.com/page?custom_1=campaign_a&custom_2=variant_b
  * ```
+ *
  * URL parameters custom_1 through custom_10 are automatically captured on init.
  * Existing dimension values take priority over URL parameters.
  */

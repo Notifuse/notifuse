@@ -333,6 +333,12 @@ func (s *WorkspaceService) UpdateWorkspace(ctx context.Context, id string, name 
 		return nil, err
 	}
 
+	// This assignment list is an allowlist, and the omissions are deliberate. Blog
+	// and web analytics settings are absent because each has its own endpoint gated
+	// on that feature's write permission — see SetBlogSettings. Adding them back
+	// here would let an owner saving general settings silently overwrite config a
+	// delegated manager owns, since these forms resubmit the whole settings object.
+	// Any new feature-scoped settings block belongs in its own setter, not here.
 	existingWorkspace.Name = name
 	existingWorkspace.Settings.WebsiteURL = settings.WebsiteURL
 	existingWorkspace.Settings.LogoURL = settings.LogoURL
@@ -874,6 +880,12 @@ func (s *WorkspaceService) SetCustomFieldLabels(ctx context.Context, workspaceID
 // this is gated on the granular blog:write permission so a delegated blog manager
 // can manage blog config. It loads the workspace and mutates only the blog fields,
 // preserving all other settings.
+//
+// It lives on WorkspaceService rather than BlogService because blog settings are
+// fields of the WorkspaceSettings entity, and workspace-entity writes all go
+// through this service's repository. Moving it to BlogService for feature cohesion
+// would split those writes across two services; the permission gate is orthogonal
+// and works from either home.
 func (s *WorkspaceService) SetBlogSettings(ctx context.Context, workspaceID string, enabled bool, settings *domain.BlogSettings) error {
 	var userWorkspace *domain.UserWorkspace
 	var err error

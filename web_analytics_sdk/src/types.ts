@@ -87,14 +87,11 @@ export interface NotifuseAnalyticsConfig {
 }
 
 export interface InternalConfig extends Required<Omit<NotifuseAnalyticsConfig, 'workspace_id' | 'endpoint' | 'heartbeatTiers' | 'crossDomains' | 'crossDomainExpiry' | 'crossDomainStripParams' | 'crossDomainParam' | 'extraAdClickIds'>> {
-  /**
-   * Folded into adClickIds at init; nothing reads it afterwards.
-   *
-   * Note for the next field of this shape: a config option consumed only during
-   * init must be added to the `Omit<...>` list above. `Required<>` otherwise
-   * forces DEFAULT_CONFIG and every test fixture to carry a field that is dead
-   * by the time anything reads the config.
-   */
+  // Note for the next field of this shape: a config option consumed only during
+  // init must be added to the `Omit<...>` list above. `Required<>` otherwise
+  // forces DEFAULT_CONFIG and every test fixture to carry a field that is dead
+  // by the time anything reads the config.
+  /** Folded into adClickIds at init; nothing reads it afterwards. */
   extraAdClickIds?: string[];
   workspace_id: string;
   endpoint: string;
@@ -195,13 +192,12 @@ export interface GoalData {
    * What kind of conversion this is. Required: only your site knows whether a
    * goal is a purchase or a lead, and an untyped goal cannot be used by the
    * goal-based segment conditions. Use 'other' if none of the rest fit.
-   *
-   * Making this REQUIRED was a one-time, pre-release allowance — 38.0 had not
-   * tagged, so no trackGoal caller existed anywhere. Do not cite it as
-   * precedent: after release, adding a required field to a public SDK type
-   * breaks every customer's site on their next bundle refresh. A new field must
-   * be optional, with the server supplying the default.
    */
+  // Making this REQUIRED was a one-time, pre-release allowance — 38.0 had not
+  // tagged, so no trackGoal caller existed anywhere. Do not cite it as
+  // precedent: after release, adding a required field to a public SDK type
+  // breaks every customer's site on their next bundle refresh. A new field must
+  // be optional, with the server supplying the default.
   type: GoalType;
   value?: number;
   currency?: string;

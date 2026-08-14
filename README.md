@@ -24,13 +24,25 @@ Notifuse is a modern, self-hosted emailing platform that allows you to send news
 - **List Management**: Advanced subscriber segmentation and list organization
 - **Contact Profiles**: Rich contact management with custom fields and detailed profiles
 
+### 🔀 Automations
+
+- **Visual Flow Builder**: Build multi-step journeys on a canvas — each automation is a graph of nodes with a single trigger as its root
+- **Node Types**: `delay`, `email`, `branch`, `filter`, `add_to_list`, `remove_from_list`, `ab_test`, `webhook`, and `list_status_branch`
+- **Timed Delays**: Wait minutes, hours or days between steps
+- **Branching & Filters**: Split a journey on contact conditions, or on a contact's status in a given list
+- **A/B Testing In-Flow**: Weighted variants inside an automation, not just on broadcasts
+- **Webhook Steps**: Call an external URL mid-journey, with retry budget
+- **Enrollment Control**: Enroll a contact `once` or `every_time` the trigger fires, with optional `exit_on_reply`
+- **Per-Contact State**: Every enrollment tracks its own status (`active`, `completed`, `exited`, `failed`) and current node, with a per-node history (`entered`, `processing`, `completed`, `failed`, `skipped`)
+- **Draft / Live / Paused**: Edit safely, then publish — paused automations hold their enrollments
+
 ### 🔧 Developer-Friendly
 
 - **Easy Setup**: Interactive setup wizard for quick deployment and configuration
 - **Transactional API**: Powerful REST API for automated email delivery
 - **Webhook Integration**: Real-time event notifications and integrations
 - **Liquid Templating**: Dynamic content with variables like `{{ contact.first_name }}`
-- **Multi-Provider Support**: Connect with Amazon SES, Mailgun, Postmark, Mailjet, SparkPost, and SMTP
+- **Multi-Provider Support**: Connect with Amazon SES, Mailgun, Postmark, Mailjet, SparkPost, SendGrid, and SMTP
 
 ### 📊 Analytics & Insights
 
@@ -46,7 +58,7 @@ Privacy-first, cookieless web analytics built in — the [Staminads](https://git
 - **Channel attribution**: 40 default rules classify traffic (paid click-ids like gclid/fbclid, organic search, social, email) — fully editable per workspace, with one-click backfill of historical data when rules change
 - **Goals & custom dimensions**: conversion tracking with values and properties, plus 10 custom dimension slots (`custom_1..custom_10`)
 - **Cookieless & GDPR-friendly**: no cookies, no visitor fingerprinting, IPs used only for optional geo lookup and never stored
-- **Tiny SDK**: ~13 KB script served by your own Notifuse instance (`/na.js`); user agents are parsed server-side
+- **Lightweight SDK**: ~21 KB gzipped script served by your own Notifuse instance (`/na.js`); the user agent is parsed in the browser, so the raw string is never sent to the server
 - **Setup**: enable Web Analytics on a workspace, paste the snippet from its settings page, done. Country, region and city come from the MaxMind GeoLite2 City database shipped in the image at `/app/geoip/GeoLite2-City.mmdb` — to keep it fresher, drop your own copy into the mounted `data/` directory as `GeoLite2-City.mmdb` (it takes precedence) or set `GEOIP_DB_PATH` (see [geoipupdate](https://github.com/maxmind/geoipupdate)). This product includes GeoLite2 data created by MaxMind, available from [maxmind.com](https://www.maxmind.com)
 - **Data retention**: every session is kept for as long as you keep it. Monthly partitions (`web_sessions_y2026m08` and its `web_pages_*` / `web_goals_*` siblings) are created automatically, and expiring old data is a deliberate `DROP TABLE` on the partitions you no longer want — instant, and the disk comes back immediately
 - **Scale path**: data lives in monthly-partitioned tables per workspace; heavy-traffic installs can run [AlloyDB Omni](https://cloud.google.com/alloydb/omni) via `compose.alloydb.yaml` and get columnar-engine acceleration for dashboard queries with zero schema changes
@@ -102,9 +114,14 @@ Notifuse follows clean architecture principles with clear separation of concerns
 
 ## 🤝 Contributing
 
-**Note:** We prefer well-described issues over pull requests. If you have a feature idea or found a bug, please open an issue first with a clear description of the problem or enhancement. This allows for discussion before implementation.
+**We don't accept pull requests.** Notifuse is developed in-house, and unsolicited pull requests will be closed without review — please don't spend your time on one.
 
-By submitting a pull request to this repository, you agree to transfer all intellectual property rights of your contribution to the repository owner. Your contribution will be licensed under the same terms as the project.
+Issues, on the other hand, are very welcome and are the best way to help:
+
+- **[Report a bug](https://github.com/Notifuse/notifuse/issues)** — steps to reproduce, your version, and what you expected instead
+- **[Request a feature](https://github.com/Notifuse/notifuse/issues)** — describe the problem you're trying to solve rather than a specific implementation
+
+The license grants you every right to fork Notifuse and modify it for your own use. If we ever invite a code contribution directly, we'll agree on the terms with you at that point.
 
 ## 📄 License
 

@@ -166,6 +166,10 @@ func RenderRSS(feed *domain.BlogFeed) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
+// formatRFC822 is named for the RSS 2.0 spec, which calls for RFC-822 dates, but
+// deliberately emits RFC1123Z — do not "correct" it to time.RFC822. RFC 822 has a
+// two-digit year, which RSS 2.0 itself amends to four digits and which readers
+// reject or mis-century. RFC1123Z is that four-digit form with a numeric offset.
 func formatRFC822(t time.Time) string {
 	return t.UTC().Format(time.RFC1123Z)
 }

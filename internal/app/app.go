@@ -933,8 +933,11 @@ func (a *App) InitServices() error {
 
 	// Initialize integration sync processor for recurring integration sync tasks
 	integrationSyncProcessor := service.NewIntegrationSyncProcessor(a.logger)
-	// TODO: Register integration-specific handlers here as integrations are added
-	// Example: integrationSyncProcessor.RegisterHandler("staminads", staminadsHandler)
+	// No handlers are registered yet, so this processor is dormant: the recurring
+	// machinery (backoff, consecutive-error accounting, reset/trigger) is built and
+	// tested, but nothing first-party drives it and only the task API can create a
+	// recurring task. Register handlers here as pull-based integrations are added
+	// — integrationSyncProcessor.RegisterHandler("<type>", handler).
 	a.taskService.RegisterProcessor(integrationSyncProcessor)
 
 	// Attribution backfill for web analytics (rewrites historical rows after

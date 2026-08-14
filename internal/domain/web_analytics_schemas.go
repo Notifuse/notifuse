@@ -95,7 +95,14 @@ func WebAnalyticsSchemas(settings *WebAnalyticsSettings, timezone string) map[st
 			// "is empty" filter that works everywhere else.
 			"contact_email": {Type: "string", Title: "Contact Email", SQL: "COALESCE(contact_email, '')"},
 
-			// Cyclic time dimensions (UTC, Staminads parity).
+			// Any dimension whose SQL is an expression rather than a bare column
+			// must parenthesize ITSELF. The query builder interpolates this string
+			// unwrapped into the select list, GROUP BY, filter comparisons and an
+			// "<sql> AT TIME ZONE '<tz>'" wrap — in the last two, an unbracketed
+			// expression binds to its final operand instead of the whole thing, and
+			// the result is a query that runs and quietly answers the wrong question.
+			//
+			// Cyclic time dimensions.
 			"hour_of_day": {Type: "number", Title: "Hour of Day", SQL: fmt.Sprintf("(EXTRACT(HOUR FROM %s))::int", localTime(timeColumn))},
 			"day_of_week": {Type: "number", Title: "Day of Week", SQL: fmt.Sprintf("(EXTRACT(ISODOW FROM %s))::int", localTime(timeColumn))},
 			"is_weekend":  {Type: "string", Title: "Is Weekend", SQL: fmt.Sprintf("(CASE WHEN EXTRACT(ISODOW FROM %s) IN (6, 7) THEN 'true' ELSE 'false' END)", localTime(timeColumn))},

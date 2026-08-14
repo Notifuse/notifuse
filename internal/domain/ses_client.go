@@ -9,7 +9,15 @@ import (
 
 //go:generate mockgen -destination mocks/mock_ses_webhook_client.go -package mocks github.com/Notifuse/notifuse/internal/domain SESWebhookClient
 
-// SESWebhookClient defines the interface for interacting with AWS SES service
+// SESWebhookClient defines the interface for interacting with AWS SES service.
+//
+// This side deliberately stays on AWS SDK **v1** while the send path uses v2, and the
+// two coexist in one binary on purpose. Only sending needed v2 (tenant support), and
+// configuration-set CRUD, SNS topics, event destinations and inbound receipt rules —
+// roughly nine hundred lines — gain nothing from being ported. Linters flag every v1
+// import as deprecated, which makes "finish the migration" a recurring suggestion:
+// it is a large, risky rewrite of working code with no feature behind it, so weigh it
+// on its own merits rather than as cleanup.
 type SESWebhookClient interface {
 	CreateConfigurationSetWithContext(ctx aws.Context, input *ses.CreateConfigurationSetInput, opts ...request.Option) (*ses.CreateConfigurationSetOutput, error)
 	DeleteConfigurationSetWithContext(ctx aws.Context, input *ses.DeleteConfigurationSetInput, opts ...request.Option) (*ses.DeleteConfigurationSetOutput, error)

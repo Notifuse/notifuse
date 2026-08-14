@@ -17,7 +17,12 @@ import (
 //go:generate mockgen -destination mocks/mock_blog_post_repository.go -package mocks github.com/Notifuse/notifuse/internal/domain BlogPostRepository
 //go:generate mockgen -destination mocks/mock_blog_theme_repository.go -package mocks github.com/Notifuse/notifuse/internal/domain BlogThemeRepository
 
-// Regular expression for validating slugs (lowercase letters, numbers, and hyphens)
+// Regular expression for validating slugs (lowercase letters, numbers, and hyphens).
+//
+// Downstream code relies on this being URL-safe rather than escaping it: slugs are
+// interpolated straight into feed discovery tags, sitemap entries and feed URLs.
+// Widening this pattern — unicode, dots, spaces — means auditing every one of
+// those call sites for encoding first, not just relaxing the regex.
 var slugRegex = regexp.MustCompile(`^[a-z0-9]+(?:-[a-z0-9]+)*$`)
 
 // Blog cache configuration

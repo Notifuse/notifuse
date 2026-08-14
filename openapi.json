@@ -6811,7 +6811,7 @@
               "email",
               "web"
             ],
-            "description": "Channel filter for block visibility"
+            "description": "Which channel this template targets. It selects the content object the template must carry: an `email` template supplies `email` and omits `web`, and a `web` template does the reverse."
           }
         }
       },

@@ -156,7 +156,16 @@ func (p *IntegrationSyncProcessor) updateSyncStateError(state *domain.Integratio
 	state.LastErrorType = classifyError(err)
 }
 
-// classifyError classifies an error as transient, permanent, or unknown
+// classifyError classifies an error as transient, permanent, or unknown.
+//
+// It matches on message text, which makes it only as reliable as the wording a
+// handler happens to use: reword an error and its retry behaviour changes with
+// nothing to flag it. Transient is checked before permanent, and anything
+// unrecognised stays unknown — which the caller retries with backoff. That
+// default is the deliberate way round: retrying something unretryable costs ten
+// backed-off attempts, while failing something transient stops a sync dead until
+// someone notices. A handler that knows better should classify its own errors
+// rather than hope its phrasing lands in one of these lists.
 func classifyError(err error) string {
 	if err == nil {
 		return domain.ErrorTypeUnknown

@@ -426,6 +426,15 @@ func (s *WebAnalyticsService) resolveContactIdentity(ctx context.Context, payloa
 // createContact adds the verified address, reporting whether it may now be used
 // as an identity. Returns false for every uncertain outcome, so a session is
 // only ever stamped with an address the database actually holds.
+//
+// Creating a contact here is not silent, and that was accepted rather than
+// overlooked: the contacts INSERT fires the change trigger, which writes a
+// contact.created row, which is a valid automation trigger kind. A workspace with
+// a welcome automation will therefore mail someone who did nothing but browse a
+// page that called identify(). Suppressing it would take a source marker on
+// contacts and a redefinition of the trigger; the judgement is that a signed
+// identify() is as deliberate an act as an API contact.create, and firing the
+// onboarding is usually the intent.
 func (s *WebAnalyticsService) createContact(ctx context.Context, workspaceID, email string, seed webContactSeed) bool {
 	// Keyed per workspace, not per address: the limits upstream bound how often
 	// ONE address beats, which a caller minting a fresh address per request never

@@ -282,6 +282,16 @@ type TaskProcessor interface {
 	// context.WithCancel) as the returned error, or the task will retry
 	// forever. Bound internal work with context.WithTimeout instead, whose
 	// context.DeadlineExceeded is correctly treated as a real failure.
+	//
+	// Recurring tasks invert what "completed" reads like, and this catches
+	// people out. For a task with a RecurringInterval, completed=true does not
+	// mean "succeeded" — it means "this run is over, schedule the next one".
+	// So a TRANSIENT failure should return (true, nil) after recording the
+	// failure in the task state: the service then reschedules with backoff
+	// derived from that state. Returning an error instead marks the task
+	// failed and stops it recurring at all, which is what you want only for a
+	// permanent failure — bad credentials, a deleted resource — or once
+	// consecutive failures have gone past the point of being worth retrying.
 	Process(ctx context.Context, task *Task, timeoutAt time.Time) (completed bool, err error)
 
 	// CanProcess returns whether this processor can handle the given task type

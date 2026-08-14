@@ -247,6 +247,15 @@ type WebPage struct {
 
 // WebGoal is one row of the web_goals table (one conversion event), carrying a
 // denormalized snapshot of the session attribution so goal reports never join.
+//
+// Keeping this table narrow and exposing goals through a view that joins back to
+// web_sessions was the reviewed alternative. It lost because goals are sparse:
+// duplicating a few dimensions onto the rare conversion row is cheap, while the
+// join would drag every goal report across the much larger sessions table. The
+// view remains the fallback if that sparsity assumption ever stops holding.
+// Dimensions are plain text rather than ENUMs for the same kind of reason — the
+// value sets (UTM sources, browsers, referrers) are open-ended, and each new
+// value would otherwise need a schema change.
 type WebGoal struct {
 	SessionDate time.Time `json:"session_date"`
 	SessionID   string    `json:"session_id"`

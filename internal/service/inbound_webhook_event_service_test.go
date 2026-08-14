@@ -5,13 +5,17 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/domain/mocks"
 	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
+	"github.com/Notifuse/notifuse/pkg/safehttpclient"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -3123,4 +3127,53 @@ func TestListEvents(t *testing.T) {
 		assert.Empty(t, result.NextCursor)
 		assert.False(t, result.HasMore)
 	})
+}
+
+// An SNS SubscribeURL arrives in the body of a public, unauthenticated endpoint, so
+// it is hostile input. The confirmation fetch must refuse anything that is not an
+// https AWS SNS host, and must not issue the request at all — reaching a loopback
+// address and discarding the response is still a probe of the internal network.
+//
+// This covers the host check only. The SSRF-safe client behind it is a second layer
+// against a host that passes that check and still resolves somewhere private, and no
+// test here exercises it: that needs a controlled DNS answer, not a URL. Removing the
+// safe client leaves this suite green, so do not read a pass as covering both.
+func TestProcessSESWebhook_RefusesHostileSubscribeURL(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	log := pkgmocks.NewMockLogger(ctrl)
+	log.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(log).AnyTimes()
+	log.EXPECT().WithFields(gomock.Any()).Return(log).AnyTimes()
+	log.EXPECT().Info(gomock.Any()).AnyTimes()
+	log.EXPECT().Error(gomock.Any()).AnyTimes()
+	log.EXPECT().Warn(gomock.Any()).AnyTimes()
+
+	var hits int32
+	victim := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		atomic.AddInt32(&hits, 1)
+	}))
+	defer victim.Close()
+
+	service := &InboundWebhookEventService{logger: log, httpClient: safehttpclient.New()}
+
+	for _, target := range []string{
+		victim.URL, // a loopback address is what an SSRF actually aims at
+		"http://sns.us-east-1.amazonaws.com/?Action=ConfirmSubscription",   // right host, plaintext
+		"https://sns.us-east-1.amazonaws.com.evil.example/?Action=Confirm", // suffix-matching trap
+		"https://evil.example.com/?Action=ConfirmSubscription",
+	} {
+		raw, err := json.Marshal(domain.SESWebhookPayload{
+			Type:         "SubscriptionConfirmation",
+			TopicARN:     "arn:aws:sns:us-east-1:123456789:test-topic",
+			SubscribeURL: target,
+		})
+		require.NoError(t, err)
+
+		_, err = service.processSESWebhook("integration1", raw)
+		require.Error(t, err, "SubscribeURL %q must be refused", target)
+	}
+
+	assert.Zero(t, atomic.LoadInt32(&hits),
+		"a refused SubscribeURL must not be fetched at all, not merely ignored")
 }

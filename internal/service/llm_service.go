@@ -13,6 +13,15 @@ import (
 
 // Model pricing per million tokens (USD)
 // Pricing from: https://claude.com/pricing
+//
+// Why this table exists at all: generation is charged per call, and the calls are not
+// the same size. Drafting a whole email costs roughly two orders of magnitude more
+// than scoring or classifying one — so a feature that generates content for every
+// send turns a modest workspace's bill into hundreds of dollars a month, while the
+// same volume of analysis costs a few. That gap, not any particular price here, is
+// the standing argument for keeping generation user-triggered and explicitly costed
+// rather than automatic, and for pushing bulk or background work to the cheapest
+// model that will do the job.
 var modelPricing = map[string]struct {
 	InputPerMTok  float64
 	OutputPerMTok float64

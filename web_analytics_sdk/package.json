@@ -33,7 +33,7 @@
     "duration",
     "focus-time"
   ],
-  "license": "MIT",
+  "license": "AGPL-3.0-or-later",
   "devDependencies": {
     "@eslint/js": "^9.39.5",
     "@playwright/test": "^1.57.0",

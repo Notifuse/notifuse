@@ -817,7 +817,12 @@ func (s *TaskService) ExecuteTask(ctx context.Context, workspace, taskID string,
 				tracing.AddAttribute(rescheduleCtx, "workspace_id", workspace)
 				tracing.AddAttribute(rescheduleCtx, "recurring_interval", *task.RecurringInterval)
 
-				// Calculate next run with backoff and jitter
+				// Calculate next run with backoff and jitter. The backoff is applied
+				// to a LOCAL copy on purpose: writing it back to
+				// task.RecurringInterval would make a temporary slowdown permanent,
+				// since nothing ever restores the original cadence once the
+				// integration recovers. The stored interval stays the configured one
+				// and the penalty lives in the task state instead.
 				interval := *task.RecurringInterval
 				if task.State != nil && task.State.IntegrationSync != nil {
 					if task.State.IntegrationSync.ConsecErrors > 0 {

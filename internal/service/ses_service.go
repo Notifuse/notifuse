@@ -1033,6 +1033,12 @@ func (s *SESService) EnsureInboundRoute(ctx context.Context, providerConfig *dom
 	}); err != nil && !isAWSErrCode(err, ses.ErrCodeAlreadyExistsException) {
 		return fmt.Errorf("failed to create inbound receipt rule: %w", err)
 	}
+	// Activation is reached ONLY on the path where no rule set was active. An AWS
+	// account has exactly one active receipt rule set per region, so activating ours
+	// unconditionally would deactivate whatever else the customer receives mail with
+	// — WorkMail, another product, their own rules — instantly and silently, from our
+	// side of the account. When a set is already active we add our rule into it
+	// instead. Do not lift this call out of that branch.
 	if _, err := sesClient.SetActiveReceiptRuleSetWithContext(ctx, &ses.SetActiveReceiptRuleSetInput{
 		RuleSetName: aws.String(sesInboundRuleSetName),
 	}); err != nil {

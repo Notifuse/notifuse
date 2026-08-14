@@ -180,6 +180,11 @@ func feedSanitizer() *bluemonday.Policy {
 	// Restrict URL schemes to safe ones. `data:` is dropped entirely — most
 	// feed readers don't render base64 images anyway, and allowing `data:`
 	// opens a wide surface (e.g., `data:text/html,...`).
+	//
+	// Allowing only `data:image/*` is not an option, so do not try: bluemonday
+	// matches on the SCHEME, and the media type lives inside the URI rather than
+	// in the scheme, so no scheme pattern can separate a PNG from inline HTML.
+	// The cost is that inline base64 images do not survive into feeds.
 	p.AllowURLSchemes("http", "https", "mailto", "tel")
 	return p
 }

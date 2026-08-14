@@ -188,6 +188,12 @@ func ParseWebAnalyticsPartitionName(name string) (table string, month time.Time,
 // monthly partition, with the HOT-friendly fillfactor applied per partition
 // (the partitioned parent has no storage, so WITH on the parent would be
 // ineffective).
+//
+// The fillfactor is deliberately mild. A far lower one (50) was considered for
+// the heartbeat update pattern and rejected: a partition is updated only while
+// its month is current, but it is scanned by dashboards forever, and halving
+// page density doubles that scan cost permanently. Reserving a little headroom
+// buys most of the HOT benefit without paying for it on every later read.
 func WebAnalyticsPartitionDDL(table string, month time.Time) string {
 	from := time.Date(month.Year(), month.Month(), 1, 0, 0, 0, 0, time.UTC)
 	to := from.AddDate(0, 1, 0)
