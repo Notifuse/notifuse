@@ -13,6 +13,7 @@ import (
 	"github.com/Notifuse/notifuse/pkg/logger"
 	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
 	"github.com/Notifuse/notifuse/pkg/notifuse_mjml"
+	"github.com/asaskevich/govalidator"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -172,6 +173,7 @@ func TestNewDemoService_Constructs(t *testing.T) {
 		nil, // customEventRepo
 		nil, // webAnalyticsRepo
 		nil, // webhookSubscriptionService
+		nil, // automationService
 	)
 	assert.NotNil(t, svc)
 }
@@ -351,19 +353,34 @@ func TestDemoService_CreateSampleTemplates_Smoke(t *testing.T) {
 		},
 	}
 
-	// Authenticate for each template creation (4 templates)
-	mockAuth.EXPECT().AuthenticateUserForWorkspace(ctx, "demo").Return(ctx, &domain.User{ID: "u1"}, userWorkspace, nil).Times(4)
+	// One authentication and one workspace lookup per template, whatever the seeder creates.
+	mockAuth.EXPECT().AuthenticateUserForWorkspace(ctx, "demo").Return(ctx, &domain.User{ID: "u1"}, userWorkspace, nil).AnyTimes()
 	mockWorkspaceRepo.EXPECT().GetByID(ctx, "demo").Return(&domain.Workspace{
 		ID: "demo",
 		Settings: domain.WorkspaceSettings{
 			DefaultLanguage: "en",
 			Languages:       []string{"en", "fr", "es"},
 		},
-	}, nil).Times(4)
-	mockTemplateRepo.EXPECT().CreateTemplate(ctx, "demo", gomock.Any()).Return(nil).Times(4)
+	}, nil).AnyTimes()
+
+	var created []string
+	mockTemplateRepo.EXPECT().
+		CreateTemplate(ctx, "demo", gomock.Any()).
+		DoAndReturn(func(_ context.Context, _ string, template *domain.Template) error {
+			created = append(created, template.ID)
+			return nil
+		}).
+		AnyTimes()
 
 	err := svc.createSampleTemplates(ctx, "demo")
 	assert.NoError(t, err)
+
+	// A CreateTemplate failure is only Warn-logged, so an automation's email node can end up pointing
+	// at a template that was never created without anything failing.
+	assert.Subset(t, created, []string{
+		"newsletter-weekly", "newsletter-weekly-v2", "welcome-email", "password-reset",
+		demoTemplateCartRecoveryA, demoTemplateCartRecoveryB, demoTemplateOrderThankYou, demoTemplateWinbackOffer,
+	})
 }
 
 func TestDemoService_CreateNewsletterStructures_NotNil(t *testing.T) {
@@ -569,12 +586,28 @@ func TestDemoService_CreateSampleLists_Success(t *testing.T) {
 		},
 	}
 
-	mockAuth.EXPECT().AuthenticateUserForWorkspace(ctx, "demo").Return(ctx, &domain.User{ID: "u1"}, userWorkspace, nil)
-	mockListRepo.EXPECT().CreateList(ctx, "demo", gomock.Any()).Return(nil)
-	mockCache.EXPECT().Clear()
+	mockAuth.EXPECT().AuthenticateUserForWorkspace(ctx, "demo").Return(ctx, &domain.User{ID: "u1"}, userWorkspace, nil).AnyTimes()
+	mockCache.EXPECT().Clear().AnyTimes()
+
+	var created []string
+	mockListRepo.EXPECT().
+		CreateList(ctx, "demo", gomock.Any()).
+		DoAndReturn(func(_ context.Context, _ string, list *domain.List) error {
+			created = append(created, list.ID)
+			return nil
+		}).
+		AnyTimes()
 
 	err := svc.createSampleLists(ctx, "demo")
 	assert.NoError(t, err)
+
+	// The automations move contacts between these two, and a list id that fails validation aborts
+	// the entire seed here — createSampleLists is one of the few steps that returns its error.
+	assert.ElementsMatch(t, []string{demoListNewsletter, demoListVIPClub}, created)
+	for _, id := range created {
+		assert.True(t, govalidator.IsAlphanumeric(id), "list id %q is not alphanumeric and cannot be created", id)
+		assert.LessOrEqual(t, len(id), 32, "list id %q exceeds the 32-character limit", id)
+	}
 }
 
 func TestDemoService_GenerateMessagesPerContact(t *testing.T) {
@@ -662,6 +695,7 @@ func TestNewDemoService_AllFields(t *testing.T) {
 		nil, // customEventRepo
 		nil, // webAnalyticsRepo
 		nil, // webhookSubscriptionService
+		nil, // automationService
 	)
 
 	assert.NotNil(t, svc)

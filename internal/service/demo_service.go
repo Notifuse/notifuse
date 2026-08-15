@@ -42,6 +42,9 @@ type DemoService struct {
 	customEventRepo                  domain.CustomEventRepository
 	webAnalyticsRepo                 domain.WebAnalyticsRepository
 	webhookSubscriptionService       *WebhookSubscriptionService
+	// Interface-typed, like segmentService above, so the seeded-automation guard tests can build a
+	// DemoService with a generated mock. *AutomationService satisfies it, so app.go passes its own.
+	automationService domain.AutomationService
 }
 
 // Sample data arrays for contact generation
@@ -118,6 +121,7 @@ func NewDemoService(
 	customEventRepo domain.CustomEventRepository,
 	webAnalyticsRepo domain.WebAnalyticsRepository,
 	webhookSubscriptionService *WebhookSubscriptionService,
+	automationService domain.AutomationService,
 ) *DemoService {
 	return &DemoService{
 		logger:                           logger,
@@ -145,6 +149,7 @@ func NewDemoService(
 		customEventRepo:                  customEventRepo,
 		webAnalyticsRepo:                 webAnalyticsRepo,
 		webhookSubscriptionService:       webhookSubscriptionService,
+		automationService:                automationService,
 	}
 }
 
@@ -414,6 +419,21 @@ func (s *DemoService) addSampleData(ctx context.Context, workspaceID string) err
 		return err
 	}
 
+	// Step 9: Create the showcase automations, last of all. Two reasons for the position, and both
+	// are load-bearing.
+	//
+	// After segments (step 8), because two of the five trigger on segment ids that do not exist
+	// until then. And after everything else, because activating an automation installs an AFTER
+	// INSERT trigger on contact_timeline: installed any earlier it would enroll a contact for every
+	// row the rest of the seed writes, and with every_time frequency and repeat buyers that burst
+	// collides with contact_automations' UNIQUE(automation_id, contact_email, entered_at) inside the
+	// custom-events batch transaction — which would abort it and take the demo's whole conversion
+	// history with it.
+	if err := s.createSampleAutomations(ctx, workspaceID); err != nil {
+		s.logger.WithField("error", err.Error()).Warn("Failed to create sample automations")
+		// Non-fatal: the rest of the demo is still usable without them.
+	}
+
 	s.logger.WithField("workspace_id", workspaceID).Info("Comprehensive sample data added successfully")
 	return nil
 }
@@ -592,6 +612,27 @@ func (s *DemoService) createSampleLists(ctx context.Context, workspaceID string)
 
 	if err := s.listService.CreateList(ctx, workspaceID, newsletterList); err != nil {
 		return fmt.Errorf("failed to create newsletter list: %w", err)
+	}
+
+	// A second list, so the automations that move contacts between audiences have somewhere to move
+	// them. With one list, add_to_list, remove_from_list and list_status_branch are all either no-ops
+	// or self-referential.
+	//
+	// The ID has to be alphanumeric — no hyphens, no underscores (domain/list.go, govalidator
+	// .IsAlphanumeric). "vip-club" fails validation here, and because this function returns its error
+	// that would abort the whole seed at step 2: no contacts, no analytics, no segments.
+	vipList := &domain.List{
+		ID:            "vipclub",
+		Name:          "VIP Club",
+		IsDoubleOptin: false,
+		IsPublic:      false,
+		Description:   "Top customers, promoted automatically after their first purchase",
+		CreatedAt:     time.Now(),
+		UpdatedAt:     time.Now(),
+	}
+
+	if err := s.listService.CreateList(ctx, workspaceID, vipList); err != nil {
+		return fmt.Errorf("failed to create VIP club list: %w", err)
 	}
 
 	s.logger.WithField("workspace_id", workspaceID).Info("Sample lists created successfully")
@@ -807,6 +848,12 @@ func (s *DemoService) createSampleTemplates(ctx context.Context, workspaceID str
 
 	if err := s.templateService.CreateTemplate(ctx, workspaceID, passwordResetTemplate); err != nil {
 		s.logger.WithField("error", err.Error()).Warn("Failed to create password reset template")
+	}
+
+	// The templates the showcase automations send. They live in their own file because they share one
+	// MJML builder rather than carrying a bespoke one each.
+	if err := s.createAutomationTemplates(ctx, workspaceID); err != nil {
+		s.logger.WithField("error", err.Error()).Warn("Failed to create automation templates")
 	}
 
 	s.logger.WithField("workspace_id", workspaceID).Info("Sample templates created successfully")

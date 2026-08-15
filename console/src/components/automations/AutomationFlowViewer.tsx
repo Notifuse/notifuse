@@ -11,7 +11,13 @@ import {
 } from '@xyflow/react'
 import { Spin } from 'antd'
 import { useLingui } from '@lingui/react/macro'
-import { StatNode, FilterStatNode, ABTestStatNode, type StatNodeData } from './nodes/StatNode'
+import {
+  StatNode,
+  FilterStatNode,
+  ABTestStatNode,
+  ListStatusStatNode,
+  type StatNodeData
+} from './nodes/StatNode'
 import { layoutNodes } from './utils/layoutNodes'
 import type {
   Automation,
@@ -35,7 +41,7 @@ const nodeTypes: NodeTypes = {
   remove_from_list: StatNode,
   ab_test: ABTestStatNode,
   webhook: StatNode,
-  list_status_branch: StatNode
+  list_status_branch: ListStatusStatNode
 }
 
 interface AutomationFlowViewerProps {
@@ -163,6 +169,7 @@ function automationToViewerFlow(
           sourceHandle: 'not_in_list',
           target: config.not_in_list_node_id,
           type: 'smoothstep',
+          label: 'Not in List',
           style: { stroke: '#9ca3af', strokeWidth: 2 }
         })
       }
@@ -173,6 +180,7 @@ function automationToViewerFlow(
           sourceHandle: 'active',
           target: config.active_node_id,
           type: 'smoothstep',
+          label: 'Active',
           style: { stroke: '#22c55e', strokeWidth: 2 }
         })
       }
@@ -183,6 +191,7 @@ function automationToViewerFlow(
           sourceHandle: 'non_active',
           target: config.non_active_node_id,
           type: 'smoothstep',
+          label: 'Non-Active',
           style: { stroke: '#f97316', strokeWidth: 2 }
         })
       }

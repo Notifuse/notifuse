@@ -280,7 +280,7 @@ msgstr ""
 msgid "{language} code copied to clipboard!"
 msgstr "Code {language} copié dans le presse-papiers !"
 
-#: src/components/automations/config/ConditionsField.tsx:87
+#: src/components/automations/config/ConditionsField.tsx:103
 msgid "{leafCount, plural, one {# condition} other {# conditions}}"
 msgstr ""
 
@@ -518,8 +518,8 @@ msgid "A value is required..."
 msgstr "Une valeur est requise..."
 
 #: src/components/automations/nodes/ABTestNode.tsx:47
-#: src/components/automations/nodes/StatNode.tsx:58
-#: src/components/automations/nodes/StatNode.tsx:243
+#: src/components/automations/nodes/StatNode.tsx:60
+#: src/components/automations/nodes/StatNode.tsx:326
 #: src/pages/BroadcastsPage.tsx:1116
 msgid "A/B Test"
 msgstr "Test A/B"
@@ -557,6 +557,7 @@ msgstr "Activer l automation ?"
 
 #: src/components/automations/config/ListStatusBranchConfigForm.tsx:48
 #: src/components/automations/nodes/ListStatusBranchNode.tsx:59
+#: src/components/automations/nodes/StatNode.tsx:257
 #: src/components/contacts/ContactDetailsDrawer.tsx:582
 #: src/components/contacts/SegmentsFilter.tsx:53
 #: src/components/lists/ListStats.tsx:66
@@ -770,7 +771,7 @@ msgid "Add to list"
 msgstr ""
 
 #: src/components/automations/nodes/AddToListNode.tsx:41
-#: src/components/automations/nodes/StatNode.tsx:56
+#: src/components/automations/nodes/StatNode.tsx:58
 msgid "Add to List"
 msgstr "Ajouter à la liste"
 
@@ -1789,7 +1790,7 @@ msgstr "Type de rebond"
 msgid "Bounced"
 msgstr "Rejeté"
 
-#: src/components/automations/nodes/StatNode.tsx:54
+#: src/components/automations/nodes/StatNode.tsx:56
 msgid "Branch"
 msgstr "Branche"
 
@@ -2534,9 +2535,10 @@ msgid "completed"
 msgstr "terminé"
 
 #: src/components/automations/AutomationCard.tsx:267
-#: src/components/automations/nodes/StatNode.tsx:108
-#: src/components/automations/nodes/StatNode.tsx:173
-#: src/components/automations/nodes/StatNode.tsx:255
+#: src/components/automations/nodes/StatNode.tsx:111
+#: src/components/automations/nodes/StatNode.tsx:176
+#: src/components/automations/nodes/StatNode.tsx:247
+#: src/components/automations/nodes/StatNode.tsx:338
 #: src/pages/BroadcastsPage.tsx:388
 #: src/pages/BroadcastsPage.tsx:1054
 msgid "Completed"
@@ -3489,7 +3491,7 @@ msgid "Define UTM parameters for links in your email for better campaign trackin
 msgstr "Définissez les paramètres UTM pour les liens de votre email pour un meilleur suivi des campagnes."
 
 #: src/components/automations/nodes/DelayNode.tsx:45
-#: src/components/automations/nodes/StatNode.tsx:52
+#: src/components/automations/nodes/StatNode.tsx:54
 msgid "Delay"
 msgstr "Délai"
 
@@ -3881,7 +3883,7 @@ msgstr "Ne pas indexer et ne pas suivre les liens"
 msgid "Don't index, but follow links"
 msgstr "Ne pas indexer, mais suivre les liens"
 
-#: src/components/automations/config/ConditionsField.tsx:107
+#: src/components/automations/config/ConditionsField.tsx:123
 #: src/components/templates/TemplateTranslationsTab.tsx:298
 msgid "Done"
 msgstr ""
@@ -4032,7 +4034,7 @@ msgstr "Chaque contact entre dans l automation une seule fois"
 msgid "edit"
 msgstr "modifier"
 
-#: src/components/automations/config/ConditionsField.tsx:92
+#: src/components/automations/config/ConditionsField.tsx:108
 #: src/components/automations/UpsertAutomationDrawer.tsx:286
 #: src/components/blog/PostsTable.tsx:349
 #: src/components/email_builder/ui/ImportFontInput.tsx:209
@@ -4206,7 +4208,7 @@ msgstr "email"
 #: src/components/analytics/NewContactsTable.tsx:67
 #: src/components/automations/config/TriggerConfigForm.tsx:97
 #: src/components/automations/nodes/EmailNode.tsx:39
-#: src/components/automations/nodes/StatNode.tsx:53
+#: src/components/automations/nodes/StatNode.tsx:55
 #: src/components/contacts/BulkUpdateDrawer.tsx:665
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:89
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:920
@@ -4875,9 +4877,9 @@ msgstr "échoué"
 #: src/components/analytics/EmailMetricsChart.tsx:273
 #: src/components/analytics/EmailMetricsChart.tsx:510
 #: src/components/automations/AutomationCard.tsx:281
-#: src/components/automations/nodes/StatNode.tsx:114
-#: src/components/automations/nodes/StatNode.tsx:178
-#: src/components/automations/nodes/StatNode.tsx:261
+#: src/components/automations/nodes/StatNode.tsx:117
+#: src/components/automations/nodes/StatNode.tsx:181
+#: src/components/automations/nodes/StatNode.tsx:344
 #: src/components/broadcasts/BroadcastStats.tsx:249
 #: src/components/contacts/BulkActionProgressModal.tsx:106
 #: src/components/contacts/BulkActionProgressModal.tsx:146
@@ -5476,8 +5478,8 @@ msgid "Fill in the fields of a hypothetical visit; empty fields count as empty v
 msgstr ""
 
 #: src/components/automations/nodes/FilterNode.tsx:48
-#: src/components/automations/nodes/StatNode.tsx:55
-#: src/components/automations/nodes/StatNode.tsx:161
+#: src/components/automations/nodes/StatNode.tsx:57
+#: src/components/automations/nodes/StatNode.tsx:164
 msgid "Filter"
 msgstr "Filtrer"
 
@@ -6350,9 +6352,10 @@ msgstr "Indexer et suivre les liens"
 msgid "Index, but don't follow links"
 msgstr "Indexer, mais ne pas suivre les liens"
 
-#: src/components/automations/nodes/StatNode.tsx:103
-#: src/components/automations/nodes/StatNode.tsx:168
-#: src/components/automations/nodes/StatNode.tsx:250
+#: src/components/automations/nodes/StatNode.tsx:106
+#: src/components/automations/nodes/StatNode.tsx:171
+#: src/components/automations/nodes/StatNode.tsx:242
+#: src/components/automations/nodes/StatNode.tsx:333
 msgid "Inflight"
 msgstr "En cours"
 
@@ -6917,6 +6920,8 @@ msgid "List ID: {0}"
 msgstr "ID de liste : {0}"
 
 #: src/components/automations/nodes/ListStatusBranchNode.tsx:38
+#: src/components/automations/nodes/StatNode.tsx:62
+#: src/components/automations/nodes/StatNode.tsx:235
 #: src/components/contacts/ExportContactsModal.tsx:80
 #: src/pages/ContactsPage.tsx:389
 msgid "List Status"
@@ -7001,7 +7006,7 @@ msgstr "Chargement de l historique des messages..."
 msgid "Loading setup..."
 msgstr "Chargement de la configuration..."
 
-#: src/components/automations/AutomationFlowViewer.tsx:223
+#: src/components/automations/AutomationFlowViewer.tsx:232
 msgid "Loading stats..."
 msgstr "Chargement des statistiques..."
 
@@ -7837,7 +7842,7 @@ msgstr "Pas de contenu MJML à exporter"
 msgid "No name"
 msgstr "Pas de nom"
 
-#: src/components/automations/AutomationFlowViewer.tsx:231
+#: src/components/automations/AutomationFlowViewer.tsx:240
 msgid "No nodes in this automation"
 msgstr "Aucun nœud dans cette automation"
 
@@ -7989,6 +7994,7 @@ msgstr "Nœuds"
 
 #: src/components/automations/config/ListStatusBranchConfigForm.tsx:51
 #: src/components/automations/nodes/ListStatusBranchNode.tsx:60
+#: src/components/automations/nodes/StatNode.tsx:258
 msgid "Non-Active"
 msgstr "Non actif"
 
@@ -8054,6 +8060,7 @@ msgstr ""
 
 #: src/components/automations/config/ListStatusBranchConfigForm.tsx:45
 #: src/components/automations/nodes/ListStatusBranchNode.tsx:58
+#: src/components/automations/nodes/StatNode.tsx:256
 msgid "Not in List"
 msgstr "Pas dans la liste"
 
@@ -9481,7 +9488,7 @@ msgstr "Rel"
 msgid "Reload latest"
 msgstr ""
 
-#: src/components/automations/config/ConditionsField.tsx:95
+#: src/components/automations/config/ConditionsField.tsx:111
 #: src/components/blog_editor/toolbars/components/LinkPopover.tsx:119
 msgid "Remove"
 msgstr "Retirer"
@@ -9510,7 +9517,7 @@ msgid "Remove from list"
 msgstr ""
 
 #: src/components/automations/nodes/RemoveFromListNode.tsx:39
-#: src/components/automations/nodes/StatNode.tsx:57
+#: src/components/automations/nodes/StatNode.tsx:59
 msgid "Remove from List"
 msgstr "Retirer de la liste"
 
@@ -12369,7 +12376,7 @@ msgid "Trial"
 msgstr "Essai"
 
 #: src/components/automations/AutomationCard.tsx:294
-#: src/components/automations/nodes/StatNode.tsx:51
+#: src/components/automations/nodes/StatNode.tsx:53
 #: src/components/automations/nodes/TriggerNode.tsx:63
 msgid "Trigger"
 msgstr "Déclencheur"
@@ -13100,7 +13107,7 @@ msgstr ""
 msgid "Web session"
 msgstr ""
 
-#: src/components/automations/nodes/StatNode.tsx:59
+#: src/components/automations/nodes/StatNode.tsx:61
 #: src/components/automations/nodes/WebhookNode.tsx:43
 #: src/components/timeline/ContactTimeline.tsx:667
 msgid "Webhook"

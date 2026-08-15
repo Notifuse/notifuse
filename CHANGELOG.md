@@ -26,6 +26,8 @@ All notable changes to this project will be documented in this file.
 - **Fix**: Deleting a contact now erases every copy of their address. Message history and inbound webhook events had their identifying column replaced with `DELETED_EMAIL` while the address remained inside the stored payload on the same row — both of which are returned by their list endpoints — and custom events, segment memberships and segment-queue entries were not cleaned at all.
 - **Fix**: Deleting a contact now cancels email already queued to them. Queued messages carry the address independently of the contact record, so a broadcast or automation send that had not yet drained would still arrive after the contact was erased.
 
+- **Fix**: A List Status node now renders in an automation's Flow Stats. It appeared there with no icon and no title, and all three of its branches were dropped, so everything downstream of it floated on the canvas disconnected from the flow it belongs to.
+
 - **Feature**: Automation triggers can filter who enters. A trigger now takes **entry conditions** — the same builder segments use, over contact properties, list memberships, past activity and goals — so an event enrolls only the contacts that match. Set them in the trigger panel under Entry conditions. A contact who does not match is never enrolled, which differs from a Filter node after the trigger: that enrolls first and then exits, and with **Once per contact** it uses up the contact's single entry. A count of past activity includes the event that fired the trigger, so "opened at least 3 emails" enrolls on the third open.
 
 ## [37.3] - 2026-08-06

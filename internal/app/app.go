@@ -958,6 +958,15 @@ func (a *App) InitServices() error {
 		a.logger,
 	)
 
+	// Initialize automation service. It is built here, ahead of the demo service, because the demo
+	// seeder creates its showcase automations through it — the same validated path a user's own
+	// automations take.
+	a.automationService = service.NewAutomationService(
+		a.automationRepo,
+		a.authService,
+		a.logger,
+	)
+
 	// Initialize demo service
 	a.demoService = service.NewDemoService(
 		a.logger,
@@ -985,6 +994,7 @@ func (a *App) InitServices() error {
 		a.customEventRepo,
 		a.webAnalyticsRepo,
 		a.webhookSubscriptionService,
+		a.automationService,
 	)
 
 	// Initialize telemetry service
@@ -1082,13 +1092,6 @@ func (a *App) InitServices() error {
 	)
 	// Enable the stop-on-reply just-in-time guard for automation sends.
 	a.emailQueueWorker.SetAutomationRepo(a.automationRepo)
-
-	// Initialize automation service
-	a.automationService = service.NewAutomationService(
-		a.automationRepo,
-		a.authService,
-		a.logger,
-	)
 
 	// Initialize Firecrawl service
 	firecrawlService := service.NewFirecrawlService(a.logger)

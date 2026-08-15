@@ -9,6 +9,7 @@ import {
   Filter,
   ListPlus,
   ListMinus,
+  ListChecks,
   FlaskConical,
   Webhook
 } from 'lucide-react'
@@ -26,7 +27,8 @@ const nodeIcons: Record<NodeType, React.ReactNode> = {
   add_to_list: <ListPlus size={16} />,
   remove_from_list: <ListMinus size={16} />,
   ab_test: <FlaskConical size={16} />,
-  webhook: <Webhook size={16} />
+  webhook: <Webhook size={16} />,
+  list_status_branch: <ListChecks size={16} />
 }
 
 // Labels are generated inside component for i18n support
@@ -56,7 +58,8 @@ export const StatNode: React.FC<StatNodeProps> = ({ data }) => {
     add_to_list: t`Add to List`,
     remove_from_list: t`Remove from List`,
     ab_test: t`A/B Test`,
-    webhook: t`Webhook`
+    webhook: t`Webhook`,
+    list_status_branch: t`List Status`
   }
 
   const nodeLabel = label || nodeLabels[nodeType]
@@ -194,6 +197,86 @@ export const FilterStatNode: React.FC<StatNodeProps> = ({ data }) => {
         position={Position.Bottom}
         id="no"
         style={{ background: '#ef4444', width: 8, height: 8, left: '70%' }}
+      />
+    </>
+  )
+}
+
+// For list status branch nodes that have three outputs
+export const ListStatusStatNode: React.FC<StatNodeProps> = ({ data }) => {
+  const { t } = useLingui()
+  const { stats } = data
+  const color = nodeTypeColors.list_status_branch
+
+  // Use 0 values when no stats available
+  const nodeStats = stats || { entered: 0, completed: 0, failed: 0, skipped: 0 }
+
+  return (
+    <>
+      <Handle
+        type="target"
+        position={Position.Top}
+        style={{ background: color, width: 8, height: 8 }}
+      />
+      <div
+        className="bg-white rounded shadow-sm"
+        style={{
+          width: '220px',
+          border: `1px solid ${color}30`,
+          overflow: 'hidden'
+        }}
+      >
+        {/* Header */}
+        <div
+          className="flex items-center gap-2 px-3 py-2"
+          style={{ borderBottom: `1px solid ${color}20` }}
+        >
+          <span style={{ color }}><ListChecks size={16} /></span>
+          <span className="text-sm font-medium text-gray-800">{t`List Status`}</span>
+        </div>
+
+        {/* Stats */}
+        <div className="px-3 py-2 bg-gray-50">
+          <div className="flex items-center justify-between">
+            <Statistic
+              title={t`Inflight`}
+              value={nodeStats.entered}
+              styles={{ content: { fontSize: 14, color: '#374151' } }}
+            />
+            <Statistic
+              title={t`Completed`}
+              value={nodeStats.completed}
+              styles={{ content: { fontSize: 14, color: '#16a34a' } }}
+            />
+          </div>
+        </div>
+
+        {/* Branch labels */}
+        <div className="px-3 py-1.5 border-t border-gray-100 flex justify-between text-xs">
+          <span className="text-gray-500">{t`Not in List`}</span>
+          <span className="text-green-600">{t`Active`}</span>
+          <span className="text-orange-500">{t`Non-Active`}</span>
+        </div>
+      </div>
+      {/* Three branch handles — the offsets below are mirrored by layoutNodes,
+          which positions each child from the handle's X, so they must stay in sync */}
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        id="not_in_list"
+        style={{ background: '#9ca3af', width: 8, height: 8, left: '20%' }}
+      />
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        id="active"
+        style={{ background: '#22c55e', width: 8, height: 8, left: '50%' }}
+      />
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        id="non_active"
+        style={{ background: '#f97316', width: 8, height: 8, left: '80%' }}
       />
     </>
   )
