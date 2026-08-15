@@ -156,7 +156,12 @@ const previewedTrees = () =>
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
-describe('segment drawer — contacts preview', () => {
+// Suite-wide timeout: these exercise the preview debounce against real timers, so each test
+// spends most of its budget waiting on purpose — several already allow 3000ms per assertion.
+// The slowest lands ~2.1s locally, which the GitHub runner stretches past vitest's 5s default
+// (observed CI/local ratios across this suite range 1.4x to 4.5x depending on contention).
+// Raised here rather than globally so the rest of the suite keeps a tight bound.
+describe('segment drawer — contacts preview', { timeout: 20_000 }, () => {
   beforeEach(() => {
     previewSegmentMock.mockReset()
     previewSegmentMock.mockResolvedValue(countOf(1243))

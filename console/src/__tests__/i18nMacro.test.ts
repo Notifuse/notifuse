@@ -60,7 +60,12 @@ const untransformedIn = (file: string): string[] => {
 }
 
 describe('Lingui macro coverage', () => {
+  // Explicit timeout: this runs Babel with the real macro over all ~489 source files, so it
+  // is CPU-bound and scales with the machine. It lands around 1.2s on a dev laptop but took
+  // 7.3s on a GitHub runner — two shared vCPUs, with the other 88 test files competing for
+  // them — which blew vitest's 5s default. Raised here rather than globally so the rest of
+  // the suite keeps a tight bound and a genuine hang still surfaces as one.
   it('leaves no translation tagged template untransformed', () => {
     expect(sourceFiles().flatMap(untransformedIn)).toEqual([])
-  })
+  }, 60_000)
 })
