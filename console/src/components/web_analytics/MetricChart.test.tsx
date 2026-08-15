@@ -27,7 +27,11 @@ interface TooltipParam {
 interface CapturedOption {
   grid: { top: string }
   series: CapturedSeries[]
-  tooltip: { formatter: (params: TooltipParam[]) => string }
+  tooltip: {
+    formatter: (params: TooltipParam[]) => string
+    confine?: boolean
+    extraCssText?: string
+  }
 }
 
 // services/api/client imports the router, which imports every page and cycles
@@ -159,6 +163,33 @@ describe('MetricChart annotations', () => {
     ])
     expect(html).toContain('Launch day')
     expect(html).toContain('Outage')
+  })
+
+  it('bounds the tooltip so a long description wraps instead of running off the chart', () => {
+    // A description is free text up to 500 characters and the tooltip box sizes
+    // to max-content, so without a width cap it renders as one unbroken line
+    // wider than the viewport, spilling off both edges.
+    renderChart({
+      annotations: [
+        annotation({
+          id: 'a',
+          title: 'Launch day',
+          description: 'x'.repeat(500),
+          annotated_at: '2026-08-14T09:00:00Z'
+        })
+      ]
+    })
+
+    const { confine, extraCssText } = option().tooltip
+    expect(confine).toBe(true)
+    expect(extraCssText).toMatch(/max-width:\s*\d+px/)
+    expect(extraCssText).toMatch(/white-space:\s*normal/)
+
+    // The full description still reaches the tooltip — it is bounded, not truncated.
+    const html = option().tooltip.formatter([
+      { axisValue: 'Aug 14', value: 5, seriesName: 'Aug 13-15', dataIndex: 1 }
+    ])
+    expect(html).toContain('x'.repeat(500))
   })
 
   it('keeps one vertical per bucket, in x-order, when the buckets differ', () => {
