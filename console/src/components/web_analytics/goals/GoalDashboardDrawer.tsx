@@ -3,7 +3,7 @@ import { Alert, Drawer, Tag } from 'antd'
 import { useLingui } from '@lingui/react/macro'
 import { useWebAnalytics } from '../context'
 import { ColumnConfig, DimensionTabConfig, DimensionTableWidget } from '../DimensionTableWidget'
-import { MetricChart } from '../MetricChart'
+import { MetricChart, useAnnotations } from '../MetricChart'
 import { MetricSummary } from '../MetricSummary'
 import { TrafficHeatmapWidget } from '../TrafficHeatmapWidget'
 import { CountryFlag, getDeviceIcon } from '../lib/icons'
@@ -89,6 +89,10 @@ export function GoalDashboardDrawer(props: GoalDashboardDrawerProps) {
   const metric = GOAL_METRICS.find((candidate) => candidate.key === selected) ?? GOAL_METRICS[0]
   const chartMetric: MetricConfig = { ...metric, label: labels[metric.key] ?? metric.label }
 
+  const annotations = useAnnotations(context.workspaceId, context.resolved, {
+    enabled: props.open
+  })
+
   const columns: ColumnConfig[] = [
     { key: 'goals', label: t`Count`, format: 'number' },
     { key: 'sum_goal_value', label: t`Value`, format: 'currency' }
@@ -151,6 +155,8 @@ export function GoalDashboardDrawer(props: GoalDashboardDrawerProps) {
               }
               loading={series.isLoading}
               height={200}
+              annotations={annotations}
+              timezone={context.timezone}
             />
           </div>
         </div>

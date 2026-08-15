@@ -505,6 +505,14 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 			return fmt.Errorf("failed to create web analytics table: %w", err)
 		}
 	}
+	// Annotations: dated markers drawn over the analytics charts (shared DDL
+	// with the v38 migration). Not partitioned, so no partition bootstrap.
+	for _, query := range schema.AnnotationsTableDefinitions() {
+		if _, err := db.Exec(query); err != nil {
+			return fmt.Errorf("failed to create annotations table: %w", err)
+		}
+	}
+
 	currentMonth := time.Now().UTC()
 	for _, month := range []time.Time{currentMonth, currentMonth.AddDate(0, 1, 0)} {
 		for _, table := range schema.WebAnalyticsTableNames {

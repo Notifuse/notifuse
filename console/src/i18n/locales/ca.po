@@ -169,7 +169,7 @@ msgid "{0} rows rewritten"
 msgstr ""
 
 #. placeholder {0}: stored?.bounce_threshold_seconds ?? DEFAULT_SETTINGS.bounce_threshold_seconds
-#: src/components/settings/WebAnalyticsSettings.tsx:243
+#: src/components/settings/WebAnalyticsSettings.tsx:245
 msgid "{0} seconds"
 msgstr ""
 
@@ -364,39 +364,39 @@ msgstr ""
 #~ msgid "{what} - failed"
 #~ msgstr ""
 
-#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:375
+#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:382
 msgid "{what} — {count} rows"
 msgstr ""
 
-#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:375
+#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:382
 msgid "{what} — 1 row"
 msgstr ""
 
-#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:376
+#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:383
 msgid "{what} — cancelled"
 msgstr ""
 
-#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:377
+#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:384
 msgid "{what} — failed"
 msgstr ""
 
-#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:381
+#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:388
 msgid "{what} per day"
 msgstr ""
 
-#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:380
+#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:387
 msgid "{what} per hour"
 msgstr ""
 
-#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:383
+#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:390
 msgid "{what} per month"
 msgstr ""
 
-#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:382
+#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:389
 msgid "{what} per week"
 msgstr ""
 
-#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:384
+#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:391
 msgid "{what} per year"
 msgstr ""
 
@@ -670,6 +670,8 @@ msgstr "Activitat"
 #: src/components/broadcasts/HeadersEditor.tsx:54
 #: src/components/broadcasts/HeadersEditor.tsx:102
 #: src/components/segment/input_json_path.tsx:98
+#: src/components/web_analytics/annotations/AnnotationFormModal.tsx:131
+#: src/components/web_analytics/tabs/AnnotationsTab.tsx:135
 #: src/components/web_analytics/tabs/FiltersTab.tsx:130
 #: src/pages/ContactsPage.tsx:1065
 msgid "Add"
@@ -695,6 +697,10 @@ msgstr "Afegir un filtre"
 #: src/components/contacts/ContactUpsertDrawer.tsx:555
 msgid "Add an optional field"
 msgstr "Afegir un camp opcional"
+
+#: src/components/web_analytics/annotations/AnnotationFormModal.tsx:126
+msgid "Add annotation"
+msgstr ""
 
 #: src/components/blog/AuthorsTable.tsx:130
 #: src/components/blog/AuthorsTable.tsx:134
@@ -865,6 +871,10 @@ msgstr "Afegir variant"
 msgid "Add Webhook"
 msgstr "Afegir webhook"
 
+#: src/components/web_analytics/annotations/AnnotationFormModal.tsx:189
+msgid "Additional context about this event"
+msgstr ""
+
 #: src/components/automations/config/TriggerConfigForm.tsx:124
 #: src/pages/ContactsPage.tsx:433
 #: src/pages/ContactsPage.tsx:718
@@ -883,7 +893,7 @@ msgstr "Línia d'adreça 1"
 msgid "Address Line 2"
 msgstr "Línia d'adreça 2"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:331
+#: src/components/settings/WebAnalyticsSettings.tsx:333
 msgid "Adds a signed identity to the links of tracked emails, so a recipient who clicks one is recognised on landing without any code on your site. Their visit is then tied to their contact record — timeline entries, goals and automation enrolments. Unlike identify(), which your own server calls, this one is minted by Notifuse for every recipient of every tracked send, which is why it is off by default."
 msgstr ""
 
@@ -972,6 +982,7 @@ msgid "Alignment"
 msgstr "Alineació"
 
 #: src/components/analytics/EmailMetricsChart.tsx:284
+#: src/components/web_analytics/tabs/AnnotationsTab.tsx:148
 #: src/components/web_analytics/tabs/FiltersTab.tsx:152
 #: src/pages/BroadcastsPage.tsx:1519
 #: src/pages/TemplatesPage.tsx:124
@@ -1037,8 +1048,8 @@ msgstr "Tots els correus transaccionals (notificacions, restabliments de contras
 msgid "Allow receiving emails to trigger transactional notifications. Requires TLS certificates."
 msgstr "Permet rebre correus per activar notificacions transaccionals. Requereix certificats TLS."
 
-#: src/components/settings/WebAnalyticsSettings.tsx:224
-#: src/components/settings/WebAnalyticsSettings.tsx:283
+#: src/components/settings/WebAnalyticsSettings.tsx:226
+#: src/components/settings/WebAnalyticsSettings.tsx:285
 msgid "Allowed domains"
 msgstr ""
 
@@ -1089,7 +1100,7 @@ msgstr ""
 msgid "Among combinations with at least {0} sessions."
 msgstr ""
 
-#: src/components/settings/WebAnalyticsSettings.tsx:422
+#: src/components/settings/WebAnalyticsSettings.tsx:424
 msgid "An address that is not a contact yet becomes one, carrying the country, language and timezone the visit reported; an existing contact is never modified. Visitors arriving from a tracked email link are identified automatically, with no code."
 msgstr ""
 
@@ -1101,7 +1112,7 @@ msgstr "S'ha produït un error durant l'exportació"
 msgid "An error occurred with the file manager"
 msgstr "S'ha produït un error amb el gestor de fitxers"
 
-#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:209
+#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:215
 msgid "Analytics Assistant"
 msgstr ""
 
@@ -1121,6 +1132,29 @@ msgstr "I"
 #: src/components/segment/input.tsx:135
 msgid "AND | OR"
 msgstr "I | O"
+
+#: src/components/web_analytics/annotations/AnnotationTable.tsx:50
+msgid "Annotation"
+msgstr ""
+
+#: src/components/web_analytics/tabs/AnnotationsTab.tsx:57
+msgid "Annotation added"
+msgstr ""
+
+#: src/components/web_analytics/tabs/AnnotationsTab.tsx:77
+msgid "Annotation deleted"
+msgstr ""
+
+#: src/components/web_analytics/tabs/AnnotationsTab.tsx:68
+msgid "Annotation updated"
+msgstr ""
+
+#: src/components/web_analytics/tabs/AnnotationsTab.tsx:133
+#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:374
+#: src/layouts/WorkspaceLayout.tsx:386
+#: src/pages/WebAnalyticsPage.tsx:98
+msgid "Annotations"
+msgstr ""
 
 #: src/components/segment/input.tsx:959
 msgid "ANY"
@@ -1334,7 +1368,7 @@ msgstr "Esteu segur que voleu utilitzar aquest fitxer?"
 msgid "Array index: {segment}"
 msgstr "Índex de matriu: {segment}"
 
-#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:217
+#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:223
 msgid "Ask about your traffic..."
 msgstr ""
 
@@ -1503,7 +1537,7 @@ msgstr "Automatització actualitzada correctament"
 msgid "Automation:"
 msgstr "Automatització:"
 
-#: src/layouts/WorkspaceLayout.tsx:449
+#: src/layouts/WorkspaceLayout.tsx:460
 #: src/pages/AutomationsPage.tsx:162
 msgid "Automations"
 msgstr "Automatitzacions"
@@ -1673,7 +1707,7 @@ msgstr "Ganxo abans de crear usuari"
 msgid "Belonging to at least one of the following segments"
 msgstr "Pertany com a mínim a un dels segments següents"
 
-#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:494
+#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:501
 msgid "Best and worst pages"
 msgstr ""
 
@@ -1862,11 +1896,11 @@ msgstr ""
 msgid "Bounce Rate (previous)"
 msgstr ""
 
-#: src/components/settings/WebAnalyticsSettings.tsx:242
+#: src/components/settings/WebAnalyticsSettings.tsx:244
 msgid "Bounce threshold"
 msgstr ""
 
-#: src/components/settings/WebAnalyticsSettings.tsx:314
+#: src/components/settings/WebAnalyticsSettings.tsx:316
 msgid "Bounce threshold (seconds)"
 msgstr ""
 
@@ -1944,6 +1978,9 @@ msgstr ""
 
 #: src/components/messages/MessageHistoryTable.tsx:131
 #: src/components/messages/MessageHistoryTable.tsx:185
+#: src/components/web_analytics/annotations/AnnotationTable.tsx:63
+#: src/components/web_analytics/annotations/AnnotationTable.tsx:123
+#: src/components/web_analytics/tabs/AnnotationsTab.tsx:150
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:397
 msgid "Broadcast"
 msgstr "Difusió"
@@ -2005,7 +2042,7 @@ msgid "Broadcast updated successfully"
 msgstr "Difusió actualitzada correctament"
 
 #: src/components/analytics/EmailMetricsChart.tsx:285
-#: src/layouts/WorkspaceLayout.tsx:423
+#: src/layouts/WorkspaceLayout.tsx:434
 #: src/pages/BroadcastsPage.tsx:1487
 msgid "Broadcasts"
 msgstr "Difusions"
@@ -2019,13 +2056,13 @@ msgstr "Navegar fitxers"
 msgid "Browse Images"
 msgstr "Navegar imatges"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:246
-#: src/components/web_analytics/tabs/DashboardTab.tsx:232
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:255
+#: src/components/web_analytics/tabs/DashboardTab.tsx:240
 msgid "Browser"
 msgstr ""
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:245
-#: src/components/web_analytics/tabs/DashboardTab.tsx:231
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:254
+#: src/components/web_analytics/tabs/DashboardTab.tsx:239
 msgid "Browsers"
 msgstr ""
 
@@ -2074,7 +2111,7 @@ msgstr "Farciment del botó"
 msgid "Button Size"
 msgstr "Mida del botó"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:418
+#: src/components/settings/WebAnalyticsSettings.tsx:420
 msgid "Call identify() once you know who the visitor is. The signature must be computed on your server with your workspace secret key — the tracking endpoint is public, so an unsigned address is ignored."
 msgstr ""
 
@@ -2082,8 +2119,8 @@ msgstr ""
 msgid "Campaign"
 msgstr ""
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:190
-#: src/components/web_analytics/tabs/DashboardTab.tsx:186
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:199
+#: src/components/web_analytics/tabs/DashboardTab.tsx:194
 #: src/pages/WebAnalyticsLivePage.tsx:193
 #: src/pages/WebAnalyticsLivePage.tsx:200
 msgid "Campaigns"
@@ -2295,25 +2332,25 @@ msgstr "Canviar estat per a {0}"
 #: src/components/web_analytics/explore/BreakdownModal.tsx:63
 #: src/components/web_analytics/explore/DimensionSelector.tsx:97
 #: src/components/web_analytics/FilterBuilder.tsx:55
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:173
-#: src/components/web_analytics/tabs/DashboardTab.tsx:166
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:182
+#: src/components/web_analytics/tabs/DashboardTab.tsx:174
 msgid "Channel"
 msgstr "Canal"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:179
-#: src/components/web_analytics/tabs/DashboardTab.tsx:172
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:188
+#: src/components/web_analytics/tabs/DashboardTab.tsx:180
 #: src/pages/WebAnalyticsLivePage.tsx:218
 msgid "Channel group"
 msgstr ""
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:178
-#: src/components/web_analytics/tabs/DashboardTab.tsx:171
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:187
+#: src/components/web_analytics/tabs/DashboardTab.tsx:179
 msgid "Channel groups"
 msgstr ""
 
 #: src/components/web_analytics/explore/ExploreTemplates.tsx:55
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:172
-#: src/components/web_analytics/tabs/DashboardTab.tsx:165
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:181
+#: src/components/web_analytics/tabs/DashboardTab.tsx:173
 #: src/pages/WebAnalyticsLivePage.tsx:210
 #: src/pages/WebAnalyticsLivePage.tsx:217
 msgid "Channels"
@@ -2349,7 +2386,7 @@ msgstr ""
 msgid "City"
 msgstr ""
 
-#: src/components/settings/WebAnalyticsSettings.tsx:371
+#: src/components/settings/WebAnalyticsSettings.tsx:373
 msgid "City level (~1km precision)"
 msgstr ""
 
@@ -2527,7 +2564,7 @@ msgid "Code Editor"
 msgstr "Editor de codi"
 
 #: src/components/email_builder/ui/CodePreview.tsx:61
-#: src/layouts/WorkspaceLayout.tsx:593
+#: src/layouts/WorkspaceLayout.tsx:604
 msgid "Collapse"
 msgstr "Contraure"
 
@@ -2535,6 +2572,7 @@ msgstr "Contraure"
 #: src/components/email_builder/blocks/MjDividerBlock.tsx:42
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:242
 #: src/components/email_builder/ui/BackgroundInput.tsx:257
+#: src/components/web_analytics/annotations/AnnotationFormModal.tsx:152
 msgid "Color"
 msgstr "Color"
 
@@ -2569,7 +2607,7 @@ msgstr ""
 msgid "Common ports: 587 (TLS), 465 (SSL), 25 (unencrypted)"
 msgstr "Ports comuns: 587 (TLS), 465 (SSL), 25 (sense xifrar)"
 
-#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:485
+#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:492
 msgid "Compare this period with the previous one and explain the biggest drivers of the change in sessions."
 msgstr ""
 
@@ -2581,7 +2619,7 @@ msgstr ""
 msgid "Comparison"
 msgstr "Comparació"
 
-#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:403
+#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:410
 msgid "Comparison — {detail}"
 msgstr ""
 
@@ -2830,7 +2868,7 @@ msgstr "El contacte té l'estat de subscripció \"actiu\""
 msgid "Contact has pending, unsubscribed, bounced, or complained status"
 msgstr "El contacte té estat pendent, donat de baixa, rebotat o amb queixa"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:325
+#: src/components/settings/WebAnalyticsSettings.tsx:327
 msgid "Contact identification"
 msgstr ""
 
@@ -2856,7 +2894,7 @@ msgstr "El contacte torna a entrar cada vegada que es produeix l'esdeveniment"
 msgid "Contact updated successfully"
 msgstr "Contacte actualitzat correctament"
 
-#: src/layouts/WorkspaceLayout.tsx:404
+#: src/layouts/WorkspaceLayout.tsx:415
 #: src/pages/ContactsPage.tsx:1000
 msgid "Contacts"
 msgstr "Contactes"
@@ -2901,7 +2939,7 @@ msgstr "Farciment del contenidor"
 msgid "contains"
 msgstr ""
 
-#: src/layouts/WorkspaceLayout.tsx:485
+#: src/layouts/WorkspaceLayout.tsx:496
 msgid "Content"
 msgstr ""
 
@@ -2913,7 +2951,7 @@ msgstr ""
 msgid "Content Structure Tree"
 msgstr "Arbre d'estructura del contingut"
 
-#: src/components/web_analytics/tabs/DashboardTab.tsx:189
+#: src/components/web_analytics/tabs/DashboardTab.tsx:197
 msgid "Contents"
 msgstr ""
 
@@ -2942,8 +2980,8 @@ msgstr ""
 #~ msgid "Coordinate precision (decimals)"
 #~ msgstr ""
 
-#: src/components/settings/WebAnalyticsSettings.tsx:362
-#: src/components/settings/WebAnalyticsSettings.tsx:366
+#: src/components/settings/WebAnalyticsSettings.tsx:364
+#: src/components/settings/WebAnalyticsSettings.tsx:368
 msgid "Coordinates precision"
 msgstr ""
 
@@ -2989,7 +3027,7 @@ msgstr "Camps principals"
 msgid "Cost"
 msgstr "Cost"
 
-#: src/components/web_analytics/tabs/DashboardTab.tsx:101
+#: src/components/web_analytics/tabs/DashboardTab.tsx:107
 msgid "Could not load the dashboard"
 msgstr ""
 
@@ -3006,7 +3044,7 @@ msgstr ""
 msgid "Could not load this breakdown"
 msgstr ""
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:129
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:136
 msgid "Could not load this goal"
 msgstr ""
 
@@ -3016,13 +3054,13 @@ msgstr ""
 
 #: src/components/web_analytics/goals/GoalCard.tsx:43
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:41
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:93
-#: src/components/web_analytics/tabs/DashboardTab.tsx:246
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:100
+#: src/components/web_analytics/tabs/DashboardTab.tsx:254
 msgid "Count"
 msgstr ""
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:210
-#: src/components/web_analytics/tabs/DashboardTab.tsx:203
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:219
+#: src/components/web_analytics/tabs/DashboardTab.tsx:211
 msgid "Countries"
 msgstr ""
 
@@ -3031,17 +3069,17 @@ msgstr ""
 #: src/components/contacts/ContactDetailsDrawer.tsx:447
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:94
 #: src/components/contacts/ExportContactsModal.tsx:65
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:218
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:226
-#: src/components/web_analytics/tabs/DashboardTab.tsx:211
-#: src/components/web_analytics/tabs/DashboardTab.tsx:216
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:227
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:235
+#: src/components/web_analytics/tabs/DashboardTab.tsx:219
+#: src/components/web_analytics/tabs/DashboardTab.tsx:224
 #: src/pages/ContactsPage.tsx:376
 #: src/pages/ContactsPage.tsx:430
 #: src/pages/ContactsPage.tsx:700
 msgid "Country"
 msgstr "País"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:369
+#: src/components/settings/WebAnalyticsSettings.tsx:371
 msgid "Country level (~111km precision)"
 msgstr ""
 
@@ -3331,7 +3369,7 @@ msgstr "Camps de data personalitzats"
 msgid "Custom Datetime Fields"
 msgstr "Camps de data i hora personalitzats"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:388
+#: src/components/settings/WebAnalyticsSettings.tsx:390
 msgid "Custom dimension labels"
 msgstr ""
 
@@ -3518,8 +3556,13 @@ msgstr "Discontinu"
 #: src/components/blog/PublishModal.tsx:131
 #: src/components/broadcasts/SendOrScheduleModal.tsx:207
 #: src/components/segment/input_event_property_filters.tsx:182
+#: src/components/web_analytics/annotations/AnnotationFormModal.tsx:137
 msgid "Date"
 msgstr "Data"
+
+#: src/components/web_analytics/annotations/AnnotationFormModal.tsx:138
+msgid "Date is required"
+msgstr ""
 
 #: src/components/segment/form_leaf.tsx:556
 #: src/components/segment/form_leaf.tsx:929
@@ -3625,6 +3668,10 @@ msgstr "Retard"
 #: src/components/settings/Integrations.tsx:1510
 #: src/components/settings/Integrations.tsx:1579
 #: src/components/settings/WebhookCard.tsx:239
+#: src/components/web_analytics/annotations/AnnotationTable.tsx:83
+#: src/components/web_analytics/annotations/AnnotationTable.tsx:86
+#: src/components/web_analytics/annotations/AnnotationTable.tsx:141
+#: src/components/web_analytics/annotations/AnnotationTable.tsx:145
 #: src/components/web_analytics/filters/ConditionsBuilder.tsx:98
 #: src/components/web_analytics/filters/FilterTable.tsx:132
 #: src/components/web_analytics/filters/FilterTable.tsx:136
@@ -3644,6 +3691,11 @@ msgstr "Eliminar"
 #: src/components/file_manager/fileManager.tsx:771
 msgid "Delete {0} selected item(s)?"
 msgstr "Eliminar {0} element(s) seleccionat(s)?"
+
+#: src/components/web_analytics/annotations/AnnotationTable.tsx:80
+#: src/components/web_analytics/annotations/AnnotationTable.tsx:138
+msgid "Delete annotation?"
+msgstr ""
 
 #: src/components/automations/AutomationCard.tsx:148
 msgid "Delete Automation"
@@ -3817,10 +3869,15 @@ msgstr "Descriviu aquesta imatge..."
 #: src/components/blog/CategoryDrawer.tsx:155
 #: src/components/lists/ListDrawer.tsx:206
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:308
+#: src/components/web_analytics/annotations/AnnotationFormModal.tsx:183
 #: src/pages/ListsPage.tsx:269
 #: src/pages/TransactionalNotificationsPage.tsx:264
 msgid "Description"
 msgstr "Descripció"
+
+#: src/components/web_analytics/annotations/AnnotationFormModal.tsx:185
+msgid "Description must be {MAX_DESCRIPTION_LENGTH} characters or less"
+msgstr ""
 
 #: src/components/seo/MissingMetaTagsWarning.tsx:52
 msgid "Description when shared on social media (og:description)"
@@ -3837,16 +3894,16 @@ msgstr "Detectar des de l'URL del lloc web"
 #: src/components/web_analytics/explore/BreakdownModal.tsx:67
 #: src/components/web_analytics/explore/DimensionSelector.tsx:101
 #: src/components/web_analytics/FilterBuilder.tsx:59
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:240
-#: src/components/web_analytics/tabs/DashboardTab.tsx:228
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:249
+#: src/components/web_analytics/tabs/DashboardTab.tsx:236
 #: src/pages/WebAnalyticsLivePage.tsx:189
 msgid "Device"
 msgstr ""
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:232
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:239
-#: src/components/web_analytics/tabs/DashboardTab.tsx:224
-#: src/components/web_analytics/tabs/DashboardTab.tsx:228
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:241
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:248
+#: src/components/web_analytics/tabs/DashboardTab.tsx:232
+#: src/components/web_analytics/tabs/DashboardTab.tsx:236
 #: src/pages/WebAnalyticsLivePage.tsx:184
 #: src/pages/WebAnalyticsLivePage.tsx:189
 msgid "Devices"
@@ -3893,7 +3950,7 @@ msgstr "Desactivar webhook"
 #: src/components/settings/BlogSettings.tsx:240
 #: src/components/settings/GeneralSettings.tsx:162
 #: src/components/settings/Integrations.tsx:1471
-#: src/components/settings/WebAnalyticsSettings.tsx:219
+#: src/components/settings/WebAnalyticsSettings.tsx:221
 #: src/components/templates/TemplateTranslationsTab.tsx:204
 msgid "Disabled"
 msgstr "Desactivat"
@@ -3972,7 +4029,7 @@ msgstr "Voleu eliminar permanentment aquest fitxer del vostre emmagatzematge?"
 msgid "Do you want to send \"{0}\" immediately or schedule it for later?"
 msgstr "Voleu enviar \"{0}\" immediatament o programar-ho per més tard?"
 
-#: src/layouts/WorkspaceLayout.tsx:669
+#: src/layouts/WorkspaceLayout.tsx:680
 msgid "Documentation"
 msgstr "Documentació"
 
@@ -4084,6 +4141,10 @@ msgstr "P. ex. Correu de restabliment de contrasenya"
 msgid "E.g. password_reset"
 msgstr "P. ex. password_reset"
 
+#: src/components/web_analytics/annotations/AnnotationFormModal.tsx:178
+msgid "e.g. Product launch"
+msgstr ""
+
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:123
 msgid "e.g. Set channel for Google Ads"
 msgstr ""
@@ -4161,6 +4222,8 @@ msgstr "Editar"
 #: src/components/settings/Integrations.tsx:1494
 #: src/components/settings/Integrations.tsx:1563
 #: src/components/settings/WebhookCard.tsx:245
+#: src/components/web_analytics/annotations/AnnotationTable.tsx:91
+#: src/components/web_analytics/annotations/AnnotationTable.tsx:154
 #: src/components/web_analytics/filters/FilterTable.tsx:140
 #: src/pages/ContactsPage.tsx:940
 #: src/pages/TransactionalNotificationsPage.tsx:155
@@ -4175,6 +4238,10 @@ msgstr ""
 #: src/components/blog_editor/components/image/ImageNodeView.tsx:427
 msgid "Edit alt text"
 msgstr "Editar text alternatiu"
+
+#: src/components/web_analytics/annotations/AnnotationFormModal.tsx:126
+msgid "Edit annotation"
+msgstr ""
 
 #: src/components/blog/AuthorsTable.tsx:134
 msgid "Edit Author"
@@ -4387,7 +4454,7 @@ msgstr "Integració de correu"
 msgid "Email is required"
 msgstr "El correu és obligatori"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:236
+#: src/components/settings/WebAnalyticsSettings.tsx:238
 msgid "Email links cannot identify contacts until a domain is listed."
 msgstr ""
 
@@ -4502,7 +4569,7 @@ msgstr "Activar blog"
 msgid "Enable closed captions by default"
 msgstr "Activar subtítols per defecte"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:343
+#: src/components/settings/WebAnalyticsSettings.tsx:345
 msgid "Enable geo-location tracking"
 msgstr ""
 
@@ -4535,7 +4602,7 @@ msgstr ""
 msgid "Enable to fetch personalized data for each recipient before sending their email. The data will be accessible in your templates using the \"recipient_feed\" variable."
 msgstr ""
 
-#: src/components/settings/WebAnalyticsSettings.tsx:274
+#: src/components/settings/WebAnalyticsSettings.tsx:276
 msgid "Enable web analytics"
 msgstr ""
 
@@ -4548,7 +4615,7 @@ msgstr "Activar webhook"
 #: src/components/settings/Integrations.tsx:1467
 #: src/components/settings/SystemSettingsDrawer.tsx:459
 #: src/components/settings/SystemSettingsDrawer.tsx:543
-#: src/components/settings/WebAnalyticsSettings.tsx:214
+#: src/components/settings/WebAnalyticsSettings.tsx:216
 #: src/components/templates/TemplateTranslationsTab.tsx:203
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:146
 msgid "Enabled"
@@ -4877,7 +4944,7 @@ msgstr "Esdeveniments"
 msgid "Every \"set\" operation needs a value"
 msgstr ""
 
-#: src/components/settings/WebAnalyticsSettings.tsx:234
+#: src/components/settings/WebAnalyticsSettings.tsx:236
 msgid "Every domain"
 msgstr ""
 
@@ -4921,7 +4988,7 @@ msgstr ""
 msgid "exit page"
 msgstr ""
 
-#: src/components/web_analytics/tabs/DashboardTab.tsx:148
+#: src/components/web_analytics/tabs/DashboardTab.tsx:156
 msgid "Exit page"
 msgstr ""
 
@@ -4937,7 +5004,7 @@ msgstr "sortit"
 msgid "Exited"
 msgstr "Sortit"
 
-#: src/components/web_analytics/tabs/DashboardTab.tsx:147
+#: src/components/web_analytics/tabs/DashboardTab.tsx:155
 msgid "Exits"
 msgstr ""
 
@@ -4950,9 +5017,9 @@ msgstr "Expandir"
 msgid "Expires:"
 msgstr "Caduca:"
 
-#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:365
+#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:371
 #: src/layouts/WorkspaceLayout.tsx:353
-#: src/pages/WebAnalyticsPage.tsx:84
+#: src/pages/WebAnalyticsPage.tsx:95
 msgid "Explore"
 msgstr ""
 
@@ -4976,7 +5043,7 @@ msgid "Export MJML"
 msgstr ""
 
 #: src/components/web_analytics/explore/CsvExportModal.tsx:128
-#: src/pages/WebAnalyticsPage.tsx:107
+#: src/pages/WebAnalyticsPage.tsx:124
 msgid "Export to CSV"
 msgstr ""
 
@@ -5492,7 +5559,7 @@ msgstr "No s'ha pogut actualitzar l'estat: {error}"
 msgid "Failed to update template: {0}"
 msgstr "No s'ha pogut actualitzar la plantilla: {0}"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:184
+#: src/components/settings/WebAnalyticsSettings.tsx:186
 msgid "Failed to update web analytics settings"
 msgstr ""
 
@@ -5640,21 +5707,21 @@ msgid "Filter on an event property"
 msgstr ""
 
 #: src/components/messages/MessageHistoryTab.tsx:586
-#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:367
+#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:373
 #: src/layouts/WorkspaceLayout.tsx:375
-#: src/pages/WebAnalyticsPage.tsx:86
+#: src/pages/WebAnalyticsPage.tsx:97
 msgid "Filters"
 msgstr "Filtres"
 
-#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:407
+#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:414
 msgid "Filters — {count} applied"
 msgstr ""
 
-#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:407
+#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:414
 msgid "Filters — 1 applied"
 msgstr ""
 
-#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:408
+#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:415
 msgid "Filters — cleared"
 msgstr ""
 
@@ -5911,7 +5978,7 @@ msgstr "SQL generat:"
 msgid "Geo"
 msgstr ""
 
-#: src/components/settings/WebAnalyticsSettings.tsx:338
+#: src/components/settings/WebAnalyticsSettings.tsx:340
 msgid "Geographic data collection"
 msgstr ""
 
@@ -5953,15 +6020,15 @@ msgstr "Anar a iniciar sessió"
 #: src/components/web_analytics/explore/BreakdownModal.tsx:71
 #: src/components/web_analytics/explore/DimensionSelector.tsx:105
 #: src/components/web_analytics/FilterBuilder.tsx:63
-#: src/components/web_analytics/tabs/DashboardTab.tsx:253
+#: src/components/web_analytics/tabs/DashboardTab.tsx:261
 msgid "Goal"
 msgstr "Objectiu"
 
-#: src/components/web_analytics/tabs/DashboardTab.tsx:243
+#: src/components/web_analytics/tabs/DashboardTab.tsx:251
 msgid "Goal conversions and their total value"
 msgstr ""
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:123
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:130
 msgid "Goal dashboard"
 msgstr ""
 
@@ -5984,12 +6051,12 @@ msgid "Goal:"
 msgstr "Objectiu:"
 
 #: src/components/web_analytics/CountryMapView.tsx:68
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:260
-#: src/components/web_analytics/tabs/DashboardTab.tsx:242
-#: src/components/web_analytics/tabs/DashboardTab.tsx:252
-#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:366
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:269
+#: src/components/web_analytics/tabs/DashboardTab.tsx:250
+#: src/components/web_analytics/tabs/DashboardTab.tsx:260
+#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:372
 #: src/layouts/WorkspaceLayout.tsx:364
-#: src/pages/WebAnalyticsPage.tsx:85
+#: src/pages/WebAnalyticsPage.tsx:96
 msgid "Goals"
 msgstr ""
 
@@ -5997,7 +6064,7 @@ msgstr ""
 #~ msgid "Goals by Channel"
 #~ msgstr ""
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:256
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:265
 msgid "Goals by day and hour"
 msgstr ""
 
@@ -6086,7 +6153,7 @@ msgstr "Alçada"
 
 #: src/components/email_builder/MjmlCodeEditor.tsx:702
 #: src/components/templates/CreateTemplateDrawer.tsx:138
-#: src/layouts/WorkspaceLayout.tsx:695
+#: src/layouts/WorkspaceLayout.tsx:706
 msgid "Help"
 msgstr "Ajuda"
 
@@ -6322,11 +6389,11 @@ msgstr "Identifica quin tipus d'enllaç s'ha utilitzat (p. ex. email, cpc, banne
 msgid "Identifies which site sent the traffic (e.g. google, newsletter)"
 msgstr "Identifica quin lloc ha enviat el tràfic (p. ex. google, newsletter)"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:416
+#: src/components/settings/WebAnalyticsSettings.tsx:418
 msgid "Identify a visitor"
 msgstr ""
 
-#: src/components/settings/WebAnalyticsSettings.tsx:329
+#: src/components/settings/WebAnalyticsSettings.tsx:331
 msgid "Identify recipients who click a tracked email link"
 msgstr ""
 
@@ -6555,7 +6622,7 @@ msgstr "Inserir enllaç"
 msgid "Inset"
 msgstr "Encastat"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:410
+#: src/components/settings/WebAnalyticsSettings.tsx:412
 msgid "Install"
 msgstr ""
 
@@ -6698,7 +6765,7 @@ msgstr "Invitació enviada a {inviteEmail}"
 msgid "Invite Member"
 msgstr "Convidar membre"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:383
+#: src/components/settings/WebAnalyticsSettings.tsx:385
 msgid "IP addresses are never stored — only used for geo lookup. Country is always included when geo tracking is enabled."
 msgstr ""
 
@@ -6813,7 +6880,7 @@ msgstr "clau o índex"
 msgid "Keywords"
 msgstr "Paraules clau"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:400
+#: src/components/settings/WebAnalyticsSettings.tsx:402
 msgid "Label"
 msgstr ""
 
@@ -6822,7 +6889,7 @@ msgid "Label must be at most 100 characters"
 msgstr "L'etiqueta ha de tenir com a màxim 100 caràcters"
 
 #: src/components/web_analytics/explore/ExploreTemplates.tsx:61
-#: src/components/web_analytics/tabs/DashboardTab.tsx:141
+#: src/components/web_analytics/tabs/DashboardTab.tsx:149
 #: src/pages/WebAnalyticsLivePage.tsx:151
 msgid "Landing pages"
 msgstr ""
@@ -7042,8 +7109,8 @@ msgstr ""
 #: src/components/messages/MessageHistoryTable.tsx:132
 #: src/components/messages/MessageHistoryTable.tsx:215
 #: src/components/messages/MessageHistoryTable.tsx:229
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:225
-#: src/components/web_analytics/tabs/DashboardTab.tsx:216
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:234
+#: src/components/web_analytics/tabs/DashboardTab.tsx:224
 #: src/pages/BroadcastsPage.tsx:1023
 #: src/pages/ContactsPage.tsx:379
 msgid "List"
@@ -7054,7 +7121,7 @@ msgstr "Llista"
 msgid "List \"{0}\" deleted successfully"
 msgstr "Llista \"{0}\" eliminada correctament"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:296
+#: src/components/settings/WebAnalyticsSettings.tsx:298
 msgid "List at least one domain to enable web analytics"
 msgstr ""
 
@@ -7106,7 +7173,7 @@ msgid "List:"
 msgstr "Llista:"
 
 #: src/components/analytics/NewContactsTable.tsx:73
-#: src/layouts/WorkspaceLayout.tsx:414
+#: src/layouts/WorkspaceLayout.tsx:425
 #: src/pages/ContactsPage.tsx:424
 #: src/pages/ContactsPage.tsx:544
 #: src/pages/ListsPage.tsx:155
@@ -7213,11 +7280,11 @@ msgstr "Previsualització del logotip"
 msgid "Logo URL"
 msgstr "URL del logotip"
 
-#: src/layouts/WorkspaceLayout.tsx:707
+#: src/layouts/WorkspaceLayout.tsx:718
 msgid "Logout"
 msgstr "Tancar sessió"
 
-#: src/layouts/WorkspaceLayout.tsx:493
+#: src/layouts/WorkspaceLayout.tsx:504
 #: src/pages/LogsPage.tsx:28
 msgid "Logs"
 msgstr "Registres"
@@ -7230,7 +7297,7 @@ msgstr "Bucle"
 msgid "Low"
 msgstr ""
 
-#: src/components/settings/WebAnalyticsSettings.tsx:363
+#: src/components/settings/WebAnalyticsSettings.tsx:365
 msgid "Lower precision = more privacy"
 msgstr ""
 
@@ -7276,8 +7343,12 @@ msgstr ""
 msgid "Managed by {0} ({1} integration)"
 msgstr "Gestionat per {0} (integració {1})"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:217
-#: src/components/web_analytics/tabs/DashboardTab.tsx:210
+#: src/components/web_analytics/tabs/AnnotationsTab.tsx:149
+msgid "Manual"
+msgstr ""
+
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:226
+#: src/components/web_analytics/tabs/DashboardTab.tsx:218
 msgid "Map"
 msgstr ""
 
@@ -7288,6 +7359,10 @@ msgstr ""
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:1042
 msgid "Map your CSV columns to contact fields. The"
 msgstr "Assigneu les columnes del vostre CSV als camps de contacte. El/La"
+
+#: src/components/web_analytics/tabs/AnnotationsTab.tsx:139
+msgid "Mark the dates that explain a chart — a launch, a campaign, an outage — and they appear as labelled verticals on the dashboard and goal charts."
+msgstr ""
 
 #: src/components/analytics/NewContactsTable.tsx:110
 #: src/pages/ContactsPage.tsx:581
@@ -7391,8 +7466,8 @@ msgstr ""
 msgid "Medium"
 msgstr ""
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:192
-#: src/components/web_analytics/tabs/DashboardTab.tsx:188
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:201
+#: src/components/web_analytics/tabs/DashboardTab.tsx:196
 msgid "Mediums"
 msgstr ""
 
@@ -7446,7 +7521,7 @@ msgstr "Meta títol"
 msgid "Metrics"
 msgstr ""
 
-#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:411
+#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:418
 msgid "Metrics and dimensions"
 msgstr ""
 
@@ -7680,7 +7755,7 @@ msgstr "El nom ha de tenir menys de 255 caràcters"
 msgid "Name:"
 msgstr "Nom:"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:390
+#: src/components/settings/WebAnalyticsSettings.tsx:392
 msgid "Naming a slot renames it everywhere it appears: dashboards, the explore picker and attribution rules."
 msgstr ""
 
@@ -7733,7 +7808,7 @@ msgstr "Nou tema"
 msgid "New Window"
 msgstr "Nova finestra"
 
-#: src/layouts/WorkspaceLayout.tsx:647
+#: src/layouts/WorkspaceLayout.tsx:658
 #: src/pages/CreateWorkspacePage.tsx:104
 msgid "New workspace"
 msgstr "Nou espai de treball"
@@ -7800,6 +7875,11 @@ msgstr "No hi ha contingut {0} per previsualitzar"
 msgid "No Access"
 msgstr "Sense accés"
 
+#: src/components/web_analytics/annotations/AnnotationTable.tsx:106
+#: src/components/web_analytics/annotations/AnnotationTable.tsx:171
+msgid "No annotations yet"
+msgstr ""
+
 #: src/components/ai-assistant/useAIAssistant.tsx:791
 msgid "No answer was returned. Please try again."
 msgstr ""
@@ -7824,8 +7904,8 @@ msgstr "No s'han trobat difusions"
 msgid "No broadcasts match your filters"
 msgstr ""
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:187
-#: src/components/web_analytics/tabs/DashboardTab.tsx:183
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:196
+#: src/components/web_analytics/tabs/DashboardTab.tsx:191
 #: src/pages/WebAnalyticsLivePage.tsx:196
 msgid "No campaign data"
 msgstr ""
@@ -7851,7 +7931,7 @@ msgid "No city data"
 msgstr ""
 
 #: src/components/web_analytics/toolbar.tsx:156
-#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:360
+#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:366
 msgid "No comparison"
 msgstr ""
 
@@ -7868,8 +7948,8 @@ msgid "No contacts match the current filters"
 msgstr "No hi ha contactes que coincideixin amb els filtres actuals"
 
 #: src/components/web_analytics/CountryMapView.tsx:168
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:212
-#: src/components/web_analytics/tabs/DashboardTab.tsx:205
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:221
+#: src/components/web_analytics/tabs/DashboardTab.tsx:213
 msgid "No country data"
 msgstr ""
 
@@ -7883,7 +7963,7 @@ msgstr "No hi ha dades CSV disponibles"
 msgid "No data available"
 msgstr "No hi ha dades disponibles"
 
-#: src/components/web_analytics/MetricChart.tsx:162
+#: src/components/web_analytics/MetricChart.tsx:275
 msgid "No data for this period"
 msgstr ""
 
@@ -7899,7 +7979,7 @@ msgstr ""
 msgid "No default sender configured"
 msgstr "No s'ha configurat cap remitent per defecte"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:234
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:243
 #: src/pages/WebAnalyticsLivePage.tsx:187
 msgid "No device data"
 msgstr ""
@@ -7941,11 +8021,11 @@ msgstr "Sense errors"
 msgid "No files selected"
 msgstr "No s'han seleccionat fitxers"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:258
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:267
 msgid "No goal data"
 msgstr ""
 
-#: src/components/web_analytics/tabs/DashboardTab.tsx:244
+#: src/components/web_analytics/tabs/DashboardTab.tsx:252
 msgid "No goals data"
 msgstr ""
 
@@ -8093,7 +8173,7 @@ msgstr "No hi ha configuració disponible per al contenidor d'atributs."
 msgid "No settings available for the head element."
 msgstr "No hi ha configuració disponible per a l'element de capçalera."
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:162
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:171
 msgid "No source data"
 msgstr ""
 
@@ -8235,7 +8315,7 @@ msgstr "No és a la llista"
 msgid "Not now"
 msgstr ""
 
-#: src/components/settings/WebAnalyticsSettings.tsx:249
+#: src/components/settings/WebAnalyticsSettings.tsx:251
 msgid "Not resolved"
 msgstr ""
 
@@ -8554,10 +8634,10 @@ msgstr ""
 msgid "Or select a popular Google Font"
 msgstr "O seleccioneu una font de Google popular"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:249
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:249
-#: src/components/web_analytics/tabs/DashboardTab.tsx:235
-#: src/components/web_analytics/tabs/DashboardTab.tsx:235
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:258
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:258
+#: src/components/web_analytics/tabs/DashboardTab.tsx:243
+#: src/components/web_analytics/tabs/DashboardTab.tsx:243
 msgid "OS"
 msgstr ""
 
@@ -8611,7 +8691,7 @@ msgstr "Farciment"
 msgid "Padding Settings"
 msgstr "Configuració de farciment"
 
-#: src/components/web_analytics/tabs/DashboardTab.tsx:142
+#: src/components/web_analytics/tabs/DashboardTab.tsx:150
 #: src/pages/WebAnalyticsLivePage.tsx:152
 msgid "Page"
 msgstr ""
@@ -8655,7 +8735,7 @@ msgstr "Contrasenya"
 msgid "Password (optional)"
 msgstr ""
 
-#: src/components/settings/WebAnalyticsSettings.tsx:412
+#: src/components/settings/WebAnalyticsSettings.tsx:414
 msgid "Paste this snippet before the closing </head> tag of your website."
 msgstr ""
 
@@ -8738,7 +8818,7 @@ msgstr "URL del feed per destinatari"
 msgid "Per-recipient feed URL is required when enabled"
 msgstr "L'URL del feed per destinatari és requerida quan està habilitat"
 
-#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:402
+#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:409
 msgid "Period — {detail}"
 msgstr ""
 
@@ -8833,7 +8913,7 @@ msgstr "Si us plau, comproveu el formulari per errors."
 msgid "Please choose a different segment name"
 msgstr ""
 
-#: src/components/settings/WebAnalyticsSettings.tsx:316
+#: src/components/settings/WebAnalyticsSettings.tsx:318
 msgid "Please enter a bounce threshold"
 msgstr ""
 
@@ -9285,9 +9365,9 @@ msgstr ""
 msgid "Previous month"
 msgstr ""
 
-#: src/components/web_analytics/MetricChart.tsx:65
+#: src/components/web_analytics/MetricChart.tsx:142
 #: src/components/web_analytics/toolbar.tsx:154
-#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:358
+#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:364
 msgid "Previous period"
 msgstr ""
 
@@ -9305,7 +9385,7 @@ msgstr ""
 
 #: src/components/web_analytics/toolbar.tsx:30
 #: src/components/web_analytics/toolbar.tsx:155
-#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:359
+#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:365
 msgid "Previous year"
 msgstr ""
 
@@ -9569,11 +9649,11 @@ msgstr "Recomanat: 150-160 caràcters"
 msgid "Recommended: 50-60 characters"
 msgstr "Recomanat: 50-60 caràcters"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:352
+#: src/components/settings/WebAnalyticsSettings.tsx:354
 msgid "Record the city of visitors"
 msgstr ""
 
-#: src/components/settings/WebAnalyticsSettings.tsx:358
+#: src/components/settings/WebAnalyticsSettings.tsx:360
 msgid "Record the region or state of visitors"
 msgstr ""
 
@@ -9603,8 +9683,8 @@ msgstr "Refer (Ctrl+Shift+Z)"
 msgid "Referral traffic"
 msgstr ""
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:167
-#: src/components/web_analytics/tabs/DashboardTab.tsx:160
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:176
+#: src/components/web_analytics/tabs/DashboardTab.tsx:168
 #: src/pages/WebAnalyticsLivePage.tsx:175
 msgid "Referrer domain"
 msgstr ""
@@ -9613,8 +9693,8 @@ msgstr ""
 msgid "Referrer:"
 msgstr ""
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:166
-#: src/components/web_analytics/tabs/DashboardTab.tsx:159
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:175
+#: src/components/web_analytics/tabs/DashboardTab.tsx:167
 #: src/pages/WebAnalyticsLivePage.tsx:174
 msgid "Referrers"
 msgstr ""
@@ -9653,7 +9733,7 @@ msgstr "Regenerar secret?"
 msgid "Region"
 msgstr "Regió"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:370
+#: src/components/settings/WebAnalyticsSettings.tsx:372
 msgid "Regional (~11km precision)"
 msgstr ""
 
@@ -9795,11 +9875,11 @@ msgstr "Respondre a:"
 msgid "Reply-To"
 msgstr "Respondre a"
 
-#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:409
+#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:416
 msgid "Report — {dimensions}"
 msgstr ""
 
-#: src/layouts/WorkspaceLayout.tsx:682
+#: src/layouts/WorkspaceLayout.tsx:693
 msgid "Report An Issue"
 msgstr "Informar d'un problema"
 
@@ -9881,7 +9961,7 @@ msgstr ""
 #~ msgid "Resolve visitor locations (country)"
 #~ msgstr ""
 
-#: src/components/settings/WebAnalyticsSettings.tsx:249
+#: src/components/settings/WebAnalyticsSettings.tsx:251
 msgid "Resolved"
 msgstr ""
 
@@ -10126,6 +10206,7 @@ msgstr "Mode de caixa de proves"
 #: src/components/templates/CreateTemplateDrawer.tsx:640
 #: src/components/templates/CreateTemplateDrawer.tsx:661
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:188
+#: src/components/web_analytics/annotations/AnnotationFormModal.tsx:131
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:109
 msgid "Save"
 msgstr "Desar"
@@ -10283,7 +10364,7 @@ msgid "Secret:"
 msgstr "Secret:"
 
 #. placeholder {0}: sectionLabels[section]
-#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:410
+#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:417
 msgid "Section — {0}"
 msgstr ""
 
@@ -10604,6 +10685,7 @@ msgstr "Seleccionar hora"
 #: src/components/blog/PublishModal.tsx:195
 #: src/components/broadcasts/SendOrScheduleModal.tsx:276
 #: src/components/contacts/ContactUpsertDrawer.tsx:430
+#: src/components/web_analytics/annotations/AnnotationFormModal.tsx:165
 #: src/pages/AnalyticsPage.tsx:86
 msgid "Select timezone"
 msgstr "Seleccionar fus horari"
@@ -10640,7 +10722,7 @@ msgstr "Seleccioneu a quin segment s'aplica aquest activador"
 msgid "Select Winner"
 msgstr "Seleccionar guanyador"
 
-#: src/layouts/WorkspaceLayout.tsx:619
+#: src/layouts/WorkspaceLayout.tsx:630
 #: src/pages/DashboardPage.tsx:31
 msgid "Select workspace"
 msgstr "Seleccionar espai de treball"
@@ -10841,7 +10923,7 @@ msgstr ""
 #: src/components/web_analytics/explore/ExploreSummary.tsx:49
 #: src/components/web_analytics/explore/ExploreTable.tsx:89
 #: src/components/web_analytics/tabs/DashboardTab.tsx:28
-#: src/components/web_analytics/tabs/DashboardTab.tsx:92
+#: src/components/web_analytics/tabs/DashboardTab.tsx:98
 #: src/components/web_analytics/TrafficHeatmapWidget.tsx:56
 #: src/pages/WebAnalyticsLivePage.tsx:114
 msgid "Sessions"
@@ -10859,7 +10941,7 @@ msgstr ""
 msgid "Sessions (previous)"
 msgstr ""
 
-#: src/components/settings/WebAnalyticsSettings.tsx:315
+#: src/components/settings/WebAnalyticsSettings.tsx:317
 msgid "Sessions with less engaged time than this count as bounces."
 msgstr ""
 
@@ -10989,7 +11071,7 @@ msgid "Setting up..."
 msgstr "Configurant..."
 
 #: src/components/settings/SettingsSidebar.tsx:135
-#: src/layouts/WorkspaceLayout.tsx:502
+#: src/layouts/WorkspaceLayout.tsx:513
 msgid "Settings"
 msgstr "Configuració"
 
@@ -11012,6 +11094,10 @@ msgstr ""
 #: src/components/settings/WebhookCard.tsx:274
 msgid "Show"
 msgstr "Mostrar"
+
+#: src/components/web_analytics/tabs/AnnotationsTab.tsx:160
+msgid "Show broadcast annotations on charts"
+msgstr ""
 
 #: src/components/blog_editor/components/youtube/YoutubeNodeView.tsx:442
 msgid "Show Controls"
@@ -11264,8 +11350,8 @@ msgstr "origen {0} no trobat"
 msgid "Source:"
 msgstr ""
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:191
-#: src/components/web_analytics/tabs/DashboardTab.tsx:187
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:200
+#: src/components/web_analytics/tabs/DashboardTab.tsx:195
 msgid "Sources"
 msgstr ""
 
@@ -11393,7 +11479,7 @@ msgstr "Configuració d'emmagatzematge (Mode només lectura)"
 #~ msgid "Store city"
 #~ msgstr ""
 
-#: src/components/settings/WebAnalyticsSettings.tsx:351
+#: src/components/settings/WebAnalyticsSettings.tsx:353
 msgid "Store city name"
 msgstr ""
 
@@ -11401,7 +11487,7 @@ msgstr ""
 #~ msgid "Store region"
 #~ msgstr ""
 
-#: src/components/settings/WebAnalyticsSettings.tsx:357
+#: src/components/settings/WebAnalyticsSettings.tsx:359
 msgid "Store region/state name"
 msgstr ""
 
@@ -11532,11 +11618,11 @@ msgstr "Processats {successful} contactes correctament"
 msgid "Successfully signed in"
 msgstr "Sessió iniciada correctament"
 
-#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:480
+#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:487
 msgid "Summarise the current period and tell me what changed versus the comparison period."
 msgstr ""
 
-#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:479
+#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:486
 msgid "Summarise this period"
 msgstr ""
 
@@ -11545,7 +11631,7 @@ msgstr ""
 #~ msgstr ""
 
 #. placeholder {0}: periodLabels[context.period]
-#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:386
+#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:393
 msgid "Summary of {0}"
 msgstr ""
 
@@ -11764,7 +11850,7 @@ msgstr ""
 msgid "Tenant {0} was created but its configuration set is not associated, so it is not in use yet. Missing permissions: {1}"
 msgstr ""
 
-#: src/components/web_analytics/tabs/DashboardTab.tsx:190
+#: src/components/web_analytics/tabs/DashboardTab.tsx:198
 msgid "Terms"
 msgstr ""
 
@@ -12127,6 +12213,7 @@ msgstr ""
 #: src/components/settings/Integrations.tsx:1505
 #: src/components/settings/Integrations.tsx:1574
 #: src/components/settings/WebhookCard.tsx:234
+#: src/components/web_analytics/annotations/AnnotationTable.tsx:29
 msgid "This action cannot be undone."
 msgstr "Aquesta acció no es pot desfer."
 
@@ -12147,6 +12234,10 @@ msgstr "Aquesta acció eliminarà permanentment {0} contacte(s)"
 #: src/components/contacts/BulkUpdateDrawer.tsx:623
 msgid "This action will unsubscribe {0} contact(s)"
 msgstr "Aquesta acció cancel·larà la subscripció de {0} contacte(s)"
+
+#: src/components/web_analytics/annotations/AnnotationTable.tsx:28
+msgid "This annotation was created automatically when a broadcast started. Deleting it will not affect the broadcast."
+msgstr ""
 
 #: src/components/email_builder/blocks/MjTitleBlock.tsx:35
 msgid "This appears in browser tabs when viewing the email in a web browser and in some email clients. It's typically the same as or related to your email subject line."
@@ -12220,7 +12311,7 @@ msgstr "Aquest és el vostre editor visual de correu. Feu clic a qualsevol eleme
 #~ msgid "This list does two things. It filters incoming beats — other origins are silently ignored, and leaving it empty accepts every origin. It also gates email-click identification: a tracked link only carries an identity token for a domain listed here, so while this is empty no email link can identify a contact. Use *.example.com to cover both example.com and its subdomains — example.com on its own does not match www.example.com."
 #~ msgstr ""
 
-#: src/components/settings/WebAnalyticsSettings.tsx:284
+#: src/components/settings/WebAnalyticsSettings.tsx:286
 msgid "This list does two things. It filters incoming beats — other origins are silently ignored. It also gates email-click identification: a tracked link only carries an identity token for a domain listed here, so while this is empty no email link can identify a contact. Use *.example.com to cover both example.com and its subdomains — example.com on its own does not match www.example.com."
 msgstr ""
 
@@ -12327,11 +12418,16 @@ msgstr "Aquest contenidor no té seccions. Afegiu una secció per mostrar contin
 
 #: src/components/blog/PublishModal.tsx:149
 #: src/components/broadcasts/SendOrScheduleModal.tsx:228
+#: src/components/web_analytics/annotations/AnnotationFormModal.tsx:146
 #: src/components/web_analytics/explore/BreakdownModal.tsx:69
 #: src/components/web_analytics/explore/DimensionSelector.tsx:103
 #: src/components/web_analytics/FilterBuilder.tsx:61
 msgid "Time"
 msgstr "Hora"
+
+#: src/components/web_analytics/annotations/AnnotationFormModal.tsx:147
+msgid "Time is required"
+msgstr ""
 
 #: src/components/web_analytics/explore/ExploreTemplates.tsx:79
 msgid "Time patterns"
@@ -12358,7 +12454,7 @@ msgstr "vegades"
 #: src/components/web_analytics/explore/CsvExportModal.tsx:47
 #: src/components/web_analytics/explore/ExploreTable.tsx:122
 #: src/components/web_analytics/FilterBuilder.tsx:82
-#: src/components/web_analytics/tabs/DashboardTab.tsx:93
+#: src/components/web_analytics/tabs/DashboardTab.tsx:99
 #: src/components/web_analytics/TrafficHeatmapWidget.tsx:57
 msgid "TimeScore"
 msgstr ""
@@ -12394,14 +12490,19 @@ msgstr "Marca de temps"
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:95
 #: src/components/settings/GeneralSettings.tsx:149
 #: src/components/settings/GeneralSettings.tsx:211
+#: src/components/web_analytics/annotations/AnnotationFormModal.tsx:159
 #: src/components/web_analytics/toolbar.tsx:92
 #: src/pages/ContactsPage.tsx:432
 #: src/pages/ContactsPage.tsx:712
 msgid "Timezone"
 msgstr "Fus horari"
 
-#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:404
+#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:411
 msgid "Timezone — {detail}"
+msgstr ""
+
+#: src/components/web_analytics/annotations/AnnotationFormModal.tsx:160
+msgid "Timezone is required"
 msgstr ""
 
 #: src/components/segment/button_upsert.tsx:573
@@ -12426,8 +12527,17 @@ msgstr "Consells per solucionar aquests errors:"
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:407
 #: src/components/email_builder/blocks/MjTitleBlock.tsx:34
 #: src/components/settings/BlogSettings.tsx:247
+#: src/components/web_analytics/annotations/AnnotationFormModal.tsx:172
 msgid "Title"
 msgstr "Títol"
+
+#: src/components/web_analytics/annotations/AnnotationFormModal.tsx:174
+msgid "Title is required"
+msgstr ""
+
+#: src/components/web_analytics/annotations/AnnotationFormModal.tsx:175
+msgid "Title must be {MAX_TITLE_LENGTH} characters or less"
+msgstr ""
 
 #: src/components/blog/PostDrawer.tsx:793
 msgid "Title must be less than 500 characters"
@@ -12522,8 +12632,8 @@ msgstr "Text de l'indicador"
 msgid "Top"
 msgstr "Superior"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:185
-#: src/components/web_analytics/tabs/DashboardTab.tsx:181
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:194
+#: src/components/web_analytics/tabs/DashboardTab.tsx:189
 msgid "Top Campaigns"
 msgstr ""
 
@@ -12543,7 +12653,7 @@ msgstr "Marc superior"
 msgid "Top Left"
 msgstr "Superior esquerra"
 
-#: src/components/web_analytics/tabs/DashboardTab.tsx:136
+#: src/components/web_analytics/tabs/DashboardTab.tsx:144
 #: src/pages/WebAnalyticsLivePage.tsx:144
 msgid "Top Pages"
 msgstr ""
@@ -12556,12 +12666,12 @@ msgstr ""
 msgid "Top Right"
 msgstr "Superior dreta"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:160
-#: src/components/web_analytics/tabs/DashboardTab.tsx:154
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:169
+#: src/components/web_analytics/tabs/DashboardTab.tsx:162
 msgid "Top Sources"
 msgstr ""
 
-#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:489
+#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:496
 msgid "Top traffic sources"
 msgstr ""
 
@@ -12590,11 +12700,11 @@ msgstr "Contactes totals"
 msgid "Total Value"
 msgstr ""
 
-#: src/components/settings/WebAnalyticsSettings.tsx:344
+#: src/components/settings/WebAnalyticsSettings.tsx:346
 msgid "Track visitor country, region, city, and coordinates"
 msgstr ""
 
-#: src/components/settings/WebAnalyticsSettings.tsx:260
+#: src/components/settings/WebAnalyticsSettings.tsx:262
 msgid "Track website traffic with a first-party script. Beats are stored in this workspace's database, so no data leaves your infrastructure."
 msgstr ""
 
@@ -12616,7 +12726,7 @@ msgstr "El seguiment (obertures i clics) hauria d'estar habilitat a la configura
 msgid "Traffic"
 msgstr ""
 
-#: src/components/web_analytics/tabs/DashboardTab.tsx:222
+#: src/components/web_analytics/tabs/DashboardTab.tsx:230
 msgid "Traffic by day and hour"
 msgstr ""
 
@@ -12626,7 +12736,7 @@ msgstr ""
 
 #: src/components/analytics/EmailMetricsChart.tsx:286
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:408
-#: src/layouts/WorkspaceLayout.tsx:461
+#: src/layouts/WorkspaceLayout.tsx:472
 #: src/pages/TemplatesPage.tsx:126
 msgid "Transactional"
 msgstr "Transaccional"
@@ -13181,8 +13291,8 @@ msgstr "Error de validació"
 #: src/components/web_analytics/filters/ConditionsBuilder.tsx:89
 #: src/components/web_analytics/filters/OperationsBuilder.tsx:95
 #: src/components/web_analytics/goals/GoalCard.tsx:45
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:94
-#: src/components/web_analytics/tabs/DashboardTab.tsx:247
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:101
+#: src/components/web_analytics/tabs/DashboardTab.tsx:255
 msgid "Value"
 msgstr "Valor"
 
@@ -13314,7 +13424,7 @@ msgstr ""
 #~ msgid "visited"
 #~ msgstr ""
 
-#: src/components/settings/WebAnalyticsSettings.tsx:248
+#: src/components/settings/WebAnalyticsSettings.tsx:250
 msgid "Visitor locations"
 msgstr ""
 
@@ -13352,13 +13462,13 @@ msgid "We'll automatically detect and use your website's favicon"
 msgstr "Detectarem i utilitzarem automàticament el favicon del vostre lloc web"
 
 #: src/components/settings/SettingsSidebar.tsx:105
-#: src/components/settings/WebAnalyticsSettings.tsx:200
-#: src/components/settings/WebAnalyticsSettings.tsx:210
-#: src/components/settings/WebAnalyticsSettings.tsx:259
-#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:364
+#: src/components/settings/WebAnalyticsSettings.tsx:202
+#: src/components/settings/WebAnalyticsSettings.tsx:212
+#: src/components/settings/WebAnalyticsSettings.tsx:261
+#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:370
 #: src/layouts/WorkspaceLayout.tsx:325
 #: src/pages/BroadcastsPage.tsx:1096
-#: src/pages/WebAnalyticsPage.tsx:83
+#: src/pages/WebAnalyticsPage.tsx:94
 msgid "Web Analytics"
 msgstr "Analítica web"
 
@@ -13386,7 +13496,7 @@ msgstr ""
 #~ msgid "Web analytics settings saved"
 #~ msgstr ""
 
-#: src/components/settings/WebAnalyticsSettings.tsx:181
+#: src/components/settings/WebAnalyticsSettings.tsx:183
 msgid "Web analytics settings updated successfully"
 msgstr ""
 
@@ -13459,7 +13569,7 @@ msgstr "Lloc web"
 msgid "Website preview"
 msgstr ""
 
-#: src/components/settings/WebAnalyticsSettings.tsx:201
+#: src/components/settings/WebAnalyticsSettings.tsx:203
 msgid "Website traffic tracking settings"
 msgstr ""
 
@@ -13494,7 +13604,11 @@ msgstr "Benvingut al meu blog on comparteixo reflexions sobre..."
 msgid "What gets exported"
 msgstr ""
 
-#: src/components/settings/WebAnalyticsSettings.tsx:276
+#: src/components/web_analytics/annotations/AnnotationTable.tsx:39
+msgid "When"
+msgstr ""
+
+#: src/components/settings/WebAnalyticsSettings.tsx:278
 msgid "When disabled, incoming beats are rejected and the dashboards stop updating."
 msgstr ""
 
@@ -13542,15 +13656,15 @@ msgstr ""
 msgid "When you select a block, its settings appear here. Modify colors, text, spacing, alignment, and other properties to customize your email design."
 msgstr "Quan seleccioneu un bloc, la seva configuració apareix aquí. Modifiqueu colors, text, espaiat, alineació i altres propietats per personalitzar el disseny del vostre correu."
 
-#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:490
+#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:497
 msgid "Which acquisition channels and campaigns brought the most sessions this period, and which ones grew or shrank?"
 msgstr ""
 
-#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:495
+#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:502
 msgid "Which landing pages bring the most sessions, and which ones have the worst bounce rate or engagement?"
 msgstr ""
 
-#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:484
+#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:491
 msgid "Why did traffic change?"
 msgstr ""
 
@@ -13883,7 +13997,7 @@ msgstr ""
 msgid "Your Notifuse instance has been successfully configured."
 msgstr "La vostra instància de Notifuse s'ha configurat correctament."
 
-#: src/components/settings/WebAnalyticsSettings.tsx:431
+#: src/components/settings/WebAnalyticsSettings.tsx:433
 msgid "Your web analytics settings have not been saved. Leaving this page discards them."
 msgstr ""
 

@@ -1,0 +1,161 @@
+Annotation:
+  type: object
+  required: [id, annotated_at, timezone, title, color, source, created_at, updated_at]
+  properties:
+    id:
+      type: string
+      description: Server-generated identifier (a UUID with its dashes removed).
+      example: 3f2504e04f8911d39a0c0305e82c3301
+    annotated_at:
+      type: string
+      format: date-time
+      description: The moment the annotation marks, as a real instant.
+      example: '2026-08-15T09:00:00Z'
+    timezone:
+      type: string
+      description: >-
+        IANA timezone the moment was entered in. This is display intent only —
+        annotated_at already fixes the instant, and filtering never uses this
+        field. It is what lets "9am in Tokyo" render back as 9am instead of the
+        reader's local equivalent.
+      example: Asia/Tokyo
+    title:
+      type: string
+      maxLength: 100
+      description: Counted in characters, not bytes.
+      example: Pricing page redesign
+    description:
+      type: string
+      maxLength: 500
+      description: Optional longer note. Counted in characters, not bytes.
+      example: Rolled out to all visitors after the A/B test.
+    color:
+      type: string
+      pattern: ^#[0-9A-Fa-f]{6}$
+      description: Six-digit hex colour used for the marker on the charts.
+      example: '#3b82f6'
+    source:
+      type: string
+      enum: [manual, broadcast]
+      description: >-
+        Who wrote the row. `manual` is anything typed by an operator or posted
+        to this API; `broadcast` rows are written automatically when a broadcast
+        starts sending. There is deliberately no API source — see the note on
+        annotations.create.
+      example: manual
+    source_id:
+      type: string
+      description: >-
+        The entity that caused an automatic annotation (a broadcast id today).
+        Always absent on manual rows, and never settable through the API. An
+        annotation outlives the entity it points at: deleting a broadcast leaves
+        its annotation, because the send did happen.
+      example: bcast_1234567890
+    created_at:
+      type: string
+      format: date-time
+    updated_at:
+      type: string
+      format: date-time
+
+CreateAnnotationRequest:
+  type: object
+  required: [workspace_id, annotated_at, title]
+  properties:
+    workspace_id:
+      type: string
+      example: ws_1234567890
+    annotated_at:
+      type: string
+      format: date-time
+      description: The moment to mark, as an RFC3339 instant.
+      example: '2026-08-15T09:00:00Z'
+    timezone:
+      type: string
+      description: >-
+        IANA timezone the moment was entered in, kept for display. Defaults to
+        the workspace timezone, then to UTC.
+      example: Asia/Tokyo
+    title:
+      type: string
+      maxLength: 100
+      example: Pricing page redesign
+    description:
+      type: string
+      maxLength: 500
+      example: Rolled out to all visitors after the A/B test.
+    color:
+      type: string
+      pattern: ^#[0-9A-Fa-f]{6}$
+      default: '#3b82f6'
+      example: '#3b82f6'
+    source:
+      type: string
+      enum: [manual]
+      description: >-
+        Only `manual` is accepted. Sending `broadcast` is rejected rather than
+        quietly downgraded: it would be claiming the slot of an automatic row.
+      default: manual
+
+UpdateAnnotationRequest:
+  type: object
+  required: [workspace_id, id, annotated_at, title]
+  properties:
+    workspace_id:
+      type: string
+      example: ws_1234567890
+    id:
+      type: string
+      example: 3f2504e04f8911d39a0c0305e82c3301
+    annotated_at:
+      type: string
+      format: date-time
+      example: '2026-08-15T09:00:00Z'
+    timezone:
+      type: string
+      description: Falls back to the annotation's stored timezone when omitted.
+      example: Asia/Tokyo
+    title:
+      type: string
+      maxLength: 100
+      example: Pricing page redesign
+    description:
+      type: string
+      maxLength: 500
+    color:
+      type: string
+      pattern: ^#[0-9A-Fa-f]{6}$
+      description: Falls back to the annotation's stored colour when omitted.
+      example: '#3b82f6'
+
+DeleteAnnotationRequest:
+  type: object
+  required: [workspace_id, id]
+  properties:
+    workspace_id:
+      type: string
+      example: ws_1234567890
+    id:
+      type: string
+      example: 3f2504e04f8911d39a0c0305e82c3301
+
+ListAnnotationsResponse:
+  type: object
+  properties:
+    annotations:
+      type: array
+      items:
+        $ref: '#/Annotation'
+
+AnnotationResponse:
+  type: object
+  properties:
+    annotation:
+      $ref: '#/Annotation'
+
+DeleteAnnotationResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true

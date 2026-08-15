@@ -55,7 +55,7 @@ func TestDatabaseMigrations(t *testing.T) {
 	}
 
 	// Check that workspace tables exist
-	workspaceTables := []string{"contacts", "lists", "contact_lists", "templates", "broadcasts", "message_history"}
+	workspaceTables := []string{"contacts", "lists", "contact_lists", "templates", "broadcasts", "message_history", "annotations"}
 	for _, table := range workspaceTables {
 		var exists bool
 		query := `SELECT EXISTS (

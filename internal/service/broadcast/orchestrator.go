@@ -625,6 +625,13 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 	// Track if broadcast was cancelled during processing
 	broadcastCancelledDuringProcessing := false
 
+	// A run that has neither moved the cursor nor enqueued anything is the run that
+	// begins sending. Captured here because it is about to stop being true: the send
+	// loop below advances both fields. TotalRecipients cannot be used for this — the
+	// counting block right below returns on every one of its exits, so by the time
+	// sending starts TotalRecipients is always non-zero.
+	isFirstSendingRun := broadcastState.RecipientOffset == 0 && broadcastState.EnqueuedCount == 0
+
 	// Phase 1: Get recipient count if not already set
 	if broadcastState.TotalRecipients == 0 {
 		count, countErr := o.GetTotalRecipientCount(ctx, task.WorkspaceID, broadcastState.BroadcastID)
@@ -881,6 +888,29 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 		// codecov:ignore:end
 		err = validateErr
 		return false, err
+	}
+
+	// Announce that this broadcast has started sending, once every gate that can still
+	// abort the run without mailing anyone has been cleared: the workspace and provider
+	// lookup, the winner-selection branches, and the two template checks directly above.
+	// Announcing any earlier writes an annotation for a send that never happened — a
+	// deleted template is enough — and nothing ever retracts one, so the chart would
+	// carry a vertical for a broadcast that mailed nobody.
+	//
+	// isFirstSendingRun was captured far above, before the counting block: that block
+	// returns on every exit, so the broadcast row is only ever in hand on a later task
+	// run. context.Background() matches the other publishes in this file — the
+	// announcement must outlive the request that triggered the run.
+	if isFirstSendingRun && o.eventBus != nil {
+		o.eventBus.Publish(context.Background(), domain.EventPayload{
+			Type:        domain.EventBroadcastSendingStarted,
+			WorkspaceID: task.WorkspaceID,
+			EntityID:    broadcast.ID,
+			Data: map[string]interface{}{
+				"broadcast_name": broadcast.Name,
+				"started_at":     o.timeProvider.Now().UTC().Format(time.RFC3339),
+			},
+		})
 	}
 
 	// Phase 3: Process recipients in batches with a timeout

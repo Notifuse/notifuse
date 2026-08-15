@@ -214,23 +214,25 @@ const PERIOD_CHOICES: string[] = [
 ]
 
 /**
- * Tabs navigate_to_tab may open: the data tabs, and deliberately NOT `filters`.
+ * Tabs navigate_to_tab may open: the data tabs, and deliberately NOT `filters`
+ * or `annotations`.
  *
- * The assistant is HIDDEN on the filters tab (shouldHideAssistant in
+ * The assistant is HIDDEN on both (shouldHideAssistant in
  * WebAnalyticsAIAssistant.tsx, passed as `hidden`, which sets display:'none' on the
- * whole panel at AIAssistantChat.tsx:176). Offering the value would let the model
+ * whole panel at AIAssistantChat.tsx:176). Offering either value would let the model
  * honour "show me the attribution rules" by making itself disappear mid-turn, with the
  * continuation round then writing its answer into an element nobody can see. The same
  * reasoning that hides the assistant there - every tool it owns would mutate state the
- * operator cannot see - says it must not send the operator there either.
+ * operator cannot see, and neither tab reads a report at all - says it must not send
+ * the operator there either.
  *
  * Derived from WEB_ANALYTICS_TABS rather than written out, so a tab added later is
- * navigable by default; the one exclusion is cross-checked against shouldHideAssistant
- * by a test, which is why the two are defined independently instead of one in terms of
- * the other.
+ * navigable by default; the two exclusions are cross-checked against
+ * shouldHideAssistant by a test, which is why the rules are defined independently
+ * instead of one in terms of the other.
  */
 export const NAVIGABLE_TABS: WebAnalyticsTab[] = WEB_ANALYTICS_TABS.filter(
-  (tab) => tab !== 'filters'
+  (tab) => tab !== 'filters' && tab !== 'annotations'
 )
 
 export const WEB_TOOL_NAMES = {

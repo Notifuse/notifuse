@@ -260,6 +260,594 @@
         }
       }
     },
+    "/api/annotations.list": {
+      "get": {
+        "summary": "List annotations",
+        "description": "Returns the workspace's annotations, most recent moment first. Every filter is optional; with none the most recent 100 rows come back.\n\nGated by the web_analytics read permission, like the rest of the web analytics surface.\n",
+        "operationId": "listAnnotations",
+        "tags": [
+          "Web Analytics"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of the workspace",
+            "example": "ws_1234567890"
+          },
+          {
+            "name": "start",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "description": "Only annotations at or after this instant. Must be RFC3339; a malformed value is a 400 rather than a dropped filter.",
+            "example": "2026-08-01T00:00:00Z"
+          },
+          {
+            "name": "end",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "description": "Only annotations at or before this instant. Must be RFC3339.",
+            "example": "2026-08-31T23:59:59Z"
+          },
+          {
+            "name": "sources",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Comma-separated list of sources to keep. Any value outside `manual`/`broadcast` is a 400.",
+            "example": "manual,broadcast"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 100,
+              "maximum": 1000
+            },
+            "description": "Maximum rows to return. Values above the maximum are clamped to it rather than refused.",
+            "example": 100
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Annotations matching the filters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListAnnotationsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - invalid query parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "missingWorkspaceId": {
+                    "value": {
+                      "error": "workspace_id is required"
+                    }
+                  },
+                  "malformedStart": {
+                    "value": {
+                      "error": "start must be an RFC3339 timestamp"
+                    }
+                  },
+                  "endBeforeStart": {
+                    "value": {
+                      "error": "invalid request: end must not be before start"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing authentication token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - missing required permission",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Insufficient permissions: read access to web analytics required"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Failed to list annotations"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/annotations.get": {
+      "get": {
+        "summary": "Get an annotation",
+        "description": "Retrieves a single annotation by ID. Requires the web_analytics read permission.",
+        "operationId": "getAnnotation",
+        "tags": [
+          "Web Analytics"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of the workspace",
+            "example": "ws_1234567890"
+          },
+          {
+            "name": "id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of the annotation",
+            "example": "3f2504e04f8911d39a0c0305e82c3301"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The annotation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnnotationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - missing query parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "id is required"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing authentication token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - missing required permission",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Insufficient permissions: read access to web analytics required"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No annotation with that ID in this workspace",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "annotation not found with ID: 3f2504e04f8911d39a0c0305e82c3301"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Failed to get annotation"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/annotations.create": {
+      "post": {
+        "summary": "Create an annotation",
+        "description": "Creates a manual annotation. Requires the web_analytics write permission.\n\n`source` is always stored as `manual` and `source_id` is always empty: only the platform writes automatic rows, so there is no way to attach a caller-supplied key to one. **This endpoint is therefore not idempotent** — a retried call (a CI job re-running a deploy marker, for instance) writes a second annotation. De-duplicate on the caller's side, or delete the extra row.\n\nOmitted `color` and `timezone` are filled in server-side: the default colour, and the workspace timezone falling back to UTC.\n",
+        "operationId": "createAnnotation",
+        "tags": [
+          "Web Analytics"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAnnotationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Annotation created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnnotationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - unparseable body, validation failed, or the instance runs in demo mode, where every mutating endpoint is closed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "invalidBody": {
+                    "value": {
+                      "error": "Invalid request body"
+                    }
+                  },
+                  "missingTitle": {
+                    "value": {
+                      "error": "invalid request: title is required"
+                    }
+                  },
+                  "invalidColor": {
+                    "value": {
+                      "error": "invalid request: color must be a hex color like #3b82f6"
+                    }
+                  },
+                  "systemSource": {
+                    "value": {
+                      "error": "invalid request: source must be \"manual\""
+                    }
+                  },
+                  "demoMode": {
+                    "value": {
+                      "error": "This operation is not allowed in demo mode"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing authentication token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - missing required permission",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Insufficient permissions: write access to web analytics required"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Failed to create annotation"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/annotations.update": {
+      "post": {
+        "summary": "Update an annotation",
+        "description": "Edits an annotation's moment, timezone and presentation. Requires the web_analytics write permission.\n\nAutomatic annotations are editable — an operator may want to reword a broadcast's title — but their origin is not: `source` and `source_id` are reloaded from storage and carried forward, so an edit can neither promote a manual row to a system one nor take over another broadcast's slot.\n",
+        "operationId": "updateAnnotation",
+        "tags": [
+          "Web Analytics"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateAnnotationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Annotation updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnnotationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - unparseable body, validation failed, or the instance runs in demo mode.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "missingId": {
+                    "value": {
+                      "error": "invalid request: id is required"
+                    }
+                  },
+                  "missingAnnotatedAt": {
+                    "value": {
+                      "error": "invalid request: annotated_at is required"
+                    }
+                  },
+                  "demoMode": {
+                    "value": {
+                      "error": "This operation is not allowed in demo mode"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing authentication token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - missing required permission",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Insufficient permissions: write access to web analytics required"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No annotation with that ID in this workspace",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "annotation not found with ID: 3f2504e04f8911d39a0c0305e82c3301"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Failed to update annotation"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/annotations.delete": {
+      "post": {
+        "summary": "Delete an annotation",
+        "description": "Deletes an annotation, automatic ones included — a broadcast annotation cannot come back by accident, since its broadcast has already started. Requires the web_analytics write permission.\n",
+        "operationId": "deleteAnnotation",
+        "tags": [
+          "Web Analytics"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeleteAnnotationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Annotation deleted. A body rather than a 204, so a delete is never indistinguishable from a proxy swallowing the response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteAnnotationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - unparseable body, missing id, or the instance runs in demo mode.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "missingId": {
+                    "value": {
+                      "error": "invalid request: id is required"
+                    }
+                  },
+                  "demoMode": {
+                    "value": {
+                      "error": "This operation is not allowed in demo mode"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing authentication token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - missing required permission",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Insufficient permissions: write access to web analytics required"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No annotation with that ID in this workspace",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "annotation not found with ID: 3f2504e04f8911d39a0c0305e82c3301"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Failed to delete annotation"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/transactional.send": {
       "post": {
         "summary": "Send a transactional notification",
@@ -8287,6 +8875,215 @@
                 "type": "string"
               }
             }
+          }
+        }
+      },
+      "Annotation": {
+        "type": "object",
+        "required": [
+          "id",
+          "annotated_at",
+          "timezone",
+          "title",
+          "color",
+          "source",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Server-generated identifier (a UUID with its dashes removed).",
+            "example": "3f2504e04f8911d39a0c0305e82c3301"
+          },
+          "annotated_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The moment the annotation marks, as a real instant.",
+            "example": "2026-08-15T09:00:00Z"
+          },
+          "timezone": {
+            "type": "string",
+            "description": "IANA timezone the moment was entered in. This is display intent only — annotated_at already fixes the instant, and filtering never uses this field. It is what lets \"9am in Tokyo\" render back as 9am instead of the reader's local equivalent.",
+            "example": "Asia/Tokyo"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 100,
+            "description": "Counted in characters, not bytes.",
+            "example": "Pricing page redesign"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "Optional longer note. Counted in characters, not bytes.",
+            "example": "Rolled out to all visitors after the A/B test."
+          },
+          "color": {
+            "type": "string",
+            "pattern": "^#[0-9A-Fa-f]{6}$",
+            "description": "Six-digit hex colour used for the marker on the charts.",
+            "example": "#3b82f6"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "manual",
+              "broadcast"
+            ],
+            "description": "Who wrote the row. `manual` is anything typed by an operator or posted to this API; `broadcast` rows are written automatically when a broadcast starts sending. There is deliberately no API source — see the note on annotations.create.",
+            "example": "manual"
+          },
+          "source_id": {
+            "type": "string",
+            "description": "The entity that caused an automatic annotation (a broadcast id today). Always absent on manual rows, and never settable through the API. An annotation outlives the entity it points at: deleting a broadcast leaves its annotation, because the send did happen.",
+            "example": "bcast_1234567890"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ListAnnotationsResponse": {
+        "type": "object",
+        "properties": {
+          "annotations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Annotation"
+            }
+          }
+        }
+      },
+      "AnnotationResponse": {
+        "type": "object",
+        "properties": {
+          "annotation": {
+            "$ref": "#/components/schemas/Annotation"
+          }
+        }
+      },
+      "CreateAnnotationRequest": {
+        "type": "object",
+        "required": [
+          "workspace_id",
+          "annotated_at",
+          "title"
+        ],
+        "properties": {
+          "workspace_id": {
+            "type": "string",
+            "example": "ws_1234567890"
+          },
+          "annotated_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The moment to mark, as an RFC3339 instant.",
+            "example": "2026-08-15T09:00:00Z"
+          },
+          "timezone": {
+            "type": "string",
+            "description": "IANA timezone the moment was entered in, kept for display. Defaults to the workspace timezone, then to UTC.",
+            "example": "Asia/Tokyo"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 100,
+            "example": "Pricing page redesign"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 500,
+            "example": "Rolled out to all visitors after the A/B test."
+          },
+          "color": {
+            "type": "string",
+            "pattern": "^#[0-9A-Fa-f]{6}$",
+            "default": "#3b82f6",
+            "example": "#3b82f6"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "manual"
+            ],
+            "description": "Only `manual` is accepted. Sending `broadcast` is rejected rather than quietly downgraded: it would be claiming the slot of an automatic row.",
+            "default": "manual"
+          }
+        }
+      },
+      "UpdateAnnotationRequest": {
+        "type": "object",
+        "required": [
+          "workspace_id",
+          "id",
+          "annotated_at",
+          "title"
+        ],
+        "properties": {
+          "workspace_id": {
+            "type": "string",
+            "example": "ws_1234567890"
+          },
+          "id": {
+            "type": "string",
+            "example": "3f2504e04f8911d39a0c0305e82c3301"
+          },
+          "annotated_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-08-15T09:00:00Z"
+          },
+          "timezone": {
+            "type": "string",
+            "description": "Falls back to the annotation's stored timezone when omitted.",
+            "example": "Asia/Tokyo"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 100,
+            "example": "Pricing page redesign"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "color": {
+            "type": "string",
+            "pattern": "^#[0-9A-Fa-f]{6}$",
+            "description": "Falls back to the annotation's stored colour when omitted.",
+            "example": "#3b82f6"
+          }
+        }
+      },
+      "DeleteAnnotationRequest": {
+        "type": "object",
+        "required": [
+          "workspace_id",
+          "id"
+        ],
+        "properties": {
+          "workspace_id": {
+            "type": "string",
+            "example": "ws_1234567890"
+          },
+          "id": {
+            "type": "string",
+            "example": "3f2504e04f8911d39a0c0305e82c3301"
+          }
+        }
+      },
+      "DeleteAnnotationResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
           }
         }
       }

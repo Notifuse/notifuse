@@ -57,7 +57,11 @@ const (
 // Sessions are generated with their channel left blank and classified by the
 // workspace's own rules, so the Filters tab governs real data: editing a rule
 // and running a backfill visibly changes the dashboards.
-func (s *DemoService) seedWebAnalytics(ctx context.Context, workspaceID string) error {
+// now is passed in rather than read here so that every part of the seeding run
+// that has to agree about "today" — the traffic window and the launch
+// annotation that points at its spike — is placed against one clock. Reading it
+// twice puts them a day apart whenever a reset straddles UTC midnight.
+func (s *DemoService) seedWebAnalytics(ctx context.Context, workspaceID string, now time.Time) error {
 	if s.webAnalyticsRepo == nil {
 		return fmt.Errorf("web analytics repository is not configured")
 	}
@@ -75,7 +79,7 @@ func (s *DemoService) seedWebAnalytics(ctx context.Context, workspaceID string) 
 			Warn("Failed to load demo contacts for web analytics identities")
 	}
 
-	now := time.Now().UTC()
+	now = now.UTC()
 	generator := newDemoWebAnalyticsGenerator(demoWebAnalyticsOptions{
 		Sessions:   demoWebAnalyticsSessions,
 		Days:       demoWebAnalyticsDays,

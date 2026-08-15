@@ -976,13 +976,18 @@ describe('renderCatalog', () => {
  * ========================================================================= */
 
 describe('NAVIGABLE_TABS', () => {
-  it('offers every section except the one the assistant is hidden on', () => {
-    // shouldHideAssistant hides the panel on `filters`; honouring "show me the
-    // attribution rules" by navigating there would make the assistant vanish
-    // mid-turn and write its answer into an invisible element.
-    expect(NAVIGABLE_TABS).not.toContain('filters')
+  it('offers every section except the ones the assistant is hidden on', () => {
+    // shouldHideAssistant hides the panel on `filters` and `annotations`;
+    // honouring "show me the attribution rules" by navigating there would make
+    // the assistant vanish mid-turn and write its answer into an invisible
+    // element. Spelled out here rather than imported from the component so this
+    // stays an independent statement of the same rule.
+    const HIDDEN: string[] = ['filters', 'annotations']
+    for (const tab of HIDDEN) {
+      expect(NAVIGABLE_TABS).not.toContain(tab)
+    }
     for (const tab of WEB_ANALYTICS_TABS) {
-      if (tab === 'filters') continue
+      if (HIDDEN.includes(tab)) continue
       expect(NAVIGABLE_TABS).toContain(tab)
     }
   })

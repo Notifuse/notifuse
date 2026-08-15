@@ -41,6 +41,7 @@ type DemoService struct {
 	broadcastRepo                    domain.BroadcastRepository
 	customEventRepo                  domain.CustomEventRepository
 	webAnalyticsRepo                 domain.WebAnalyticsRepository
+	annotationRepo                   domain.AnnotationRepository
 	webhookSubscriptionService       *WebhookSubscriptionService
 	// Interface-typed, like segmentService above, so the seeded-automation guard tests can build a
 	// DemoService with a generated mock. *AutomationService satisfies it, so app.go passes its own.
@@ -120,6 +121,7 @@ func NewDemoService(
 	broadcastRepo domain.BroadcastRepository,
 	customEventRepo domain.CustomEventRepository,
 	webAnalyticsRepo domain.WebAnalyticsRepository,
+	annotationRepo domain.AnnotationRepository,
 	webhookSubscriptionService *WebhookSubscriptionService,
 	automationService domain.AutomationService,
 ) *DemoService {
@@ -148,6 +150,7 @@ func NewDemoService(
 		broadcastRepo:                    broadcastRepo,
 		customEventRepo:                  customEventRepo,
 		webAnalyticsRepo:                 webAnalyticsRepo,
+		annotationRepo:                   annotationRepo,
 		webhookSubscriptionService:       webhookSubscriptionService,
 		automationService:                automationService,
 	}
@@ -346,6 +349,13 @@ func (s *DemoService) createDemoWebhookSubscription(ctx context.Context, workspa
 func (s *DemoService) addSampleData(ctx context.Context, workspaceID string) error {
 	s.logger.WithField("workspace_id", workspaceID).Info("Adding comprehensive sample data to demo workspace")
 
+	// One clock for the whole run. The traffic window (step 3b) and the launch
+	// annotation that marks its spike (step 10) are separated by the broadcasts,
+	// a thousand contacts' message history, the segments and the automations —
+	// long enough for a reset started just before UTC midnight to read two
+	// different days and leave the marker a day off the peak it explains.
+	now := time.Now().UTC()
+
 	// Step 1: Create sample templates first
 	if err := s.createSampleTemplates(ctx, workspaceID); err != nil {
 		s.logger.WithField("error", err.Error()).Warn("Failed to create sample templates")
@@ -382,7 +392,7 @@ func (s *DemoService) addSampleData(ctx context.Context, workspaceID string) err
 	// write the most recent ~35 days synchronously, since the default view is the
 	// last 7 days and the demo is complete the moment the response returns, and
 	// finish the older months behind the reset mutex.
-	if err := s.seedWebAnalytics(ctx, workspaceID); err != nil {
+	if err := s.seedWebAnalytics(ctx, workspaceID, now); err != nil {
 		s.logger.WithField("error", err.Error()).Warn("Failed to generate demo web analytics")
 		// Non-fatal: the rest of the demo is still usable without it.
 	}
@@ -431,6 +441,15 @@ func (s *DemoService) addSampleData(ctx context.Context, workspaceID string) err
 	// history with it.
 	if err := s.createSampleAutomations(ctx, workspaceID); err != nil {
 		s.logger.WithField("error", err.Error()).Warn("Failed to create sample automations")
+		// Non-fatal: the rest of the demo is still usable without them.
+	}
+
+	// Step 10: Annotate the charts. It has to run after the web analytics (step 3b),
+	// which is what puts the launch spike on the chart the manual annotation points
+	// at, and after the broadcasts (step 5), because one annotation per broadcast is
+	// read back from the broadcast rows.
+	if err := s.seedAnnotations(ctx, workspaceID, now); err != nil {
+		s.logger.WithField("error", err.Error()).Warn("Failed to seed demo annotations")
 		// Non-fatal: the rest of the demo is still usable without them.
 	}
 

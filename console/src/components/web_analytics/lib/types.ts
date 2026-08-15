@@ -12,7 +12,13 @@
  * imports nothing heavy. `context.tsx` re-exports both, so every existing
  * importer is unaffected.
  */
-export const WEB_ANALYTICS_TABS = ['dashboard', 'explore', 'goals', 'filters'] as const
+export const WEB_ANALYTICS_TABS = [
+  'dashboard',
+  'explore',
+  'goals',
+  'filters',
+  'annotations'
+] as const
 export type WebAnalyticsTab = (typeof WEB_ANALYTICS_TABS)[number]
 
 export const DATE_PRESETS = [

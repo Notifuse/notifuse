@@ -1375,6 +1375,9 @@ func TestBroadcastOrchestrator_Process(t *testing.T) {
 			mockMessageSender, mockBroadcastRepo, mockTemplateRepo, mockContactRepo, mockTaskRepo, mockWorkspaceRepo, mockLogger, mockTimeProvider := tc.setupMocks(ctrl)
 			mockEventBus := domainmocks.NewMockEventBus(ctrl)
 
+			// The run that begins sending announces itself; this test is not about that event.
+			mockEventBus.EXPECT().Publish(gomock.Any(), eventOfType(domain.EventBroadcastSendingStarted)).AnyTimes()
+
 			config := &broadcast.Config{
 				FetchBatchSize:      100,
 				MaxProcessTime:      30 * time.Second,
@@ -1430,6 +1433,9 @@ func TestBroadcastOrchestrator_Process_ABTestStartSetsTestingAndCompletesTestPha
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 	mockTimeProvider := mocks.NewMockTimeProvider(ctrl)
 	mockEventBus := domainmocks.NewMockEventBus(ctrl)
+
+	// The run that begins sending announces itself; this test is not about that event.
+	mockEventBus.EXPECT().Publish(gomock.Any(), eventOfType(domain.EventBroadcastSendingStarted)).AnyTimes()
 
 	// Logger expectations
 	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
@@ -1530,6 +1536,9 @@ func TestBroadcastOrchestrator_Process_WinnerPhaseMissingTemplate_Error(t *testi
 	mockTimeProvider := mocks.NewMockTimeProvider(ctrl)
 	mockEventBus := domainmocks.NewMockEventBus(ctrl)
 
+	// The run that begins sending announces itself; this test is not about that event.
+	mockEventBus.EXPECT().Publish(gomock.Any(), eventOfType(domain.EventBroadcastSendingStarted)).AnyTimes()
+
 	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
 	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
 	mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
@@ -1580,6 +1589,9 @@ func TestBroadcastOrchestrator_Process_ValidateTemplatesFailure(t *testing.T) {
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 	mockTimeProvider := mocks.NewMockTimeProvider(ctrl)
 	mockEventBus := domainmocks.NewMockEventBus(ctrl)
+
+	// The run that begins sending announces itself; this test is not about that event.
+	mockEventBus.EXPECT().Publish(gomock.Any(), eventOfType(domain.EventBroadcastSendingStarted)).AnyTimes()
 
 	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
 	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
@@ -1636,6 +1648,9 @@ func TestBroadcastOrchestrator_Process_BatchSizeZeroTriggersPhaseCompletion(t *t
 	mockTimeProvider := mocks.NewMockTimeProvider(ctrl)
 	mockEventBus := domainmocks.NewMockEventBus(ctrl)
 
+	// The run that begins sending announces itself; this test is not about that event.
+	mockEventBus.EXPECT().Publish(gomock.Any(), eventOfType(domain.EventBroadcastSendingStarted)).AnyTimes()
+
 	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
 	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
 	mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
@@ -1683,6 +1698,9 @@ func TestBroadcastOrchestrator_Process_EmptyRecipientsTriggersTestCompletion(t *
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 	mockTimeProvider := mocks.NewMockTimeProvider(ctrl)
 	mockEventBus := domainmocks.NewMockEventBus(ctrl)
+
+	// The run that begins sending announces itself; this test is not about that event.
+	mockEventBus.EXPECT().Publish(gomock.Any(), eventOfType(domain.EventBroadcastSendingStarted)).AnyTimes()
 
 	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
 	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
@@ -1734,6 +1752,9 @@ func TestBroadcastOrchestrator_Process_AutoWinnerEvaluationPath(t *testing.T) {
 	mockTimeProvider := mocks.NewMockTimeProvider(ctrl)
 	mockEventBus := domainmocks.NewMockEventBus(ctrl)
 	msgRepo := domainmocks.NewMockMessageHistoryRepository(ctrl)
+
+	// The run that begins sending announces itself; this test is not about that event.
+	mockEventBus.EXPECT().Publish(gomock.Any(), eventOfType(domain.EventBroadcastSendingStarted)).AnyTimes()
 
 	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
 	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
@@ -2792,6 +2813,9 @@ func TestBroadcastOrchestrator_Process_PartialBatchCursorUpdate(t *testing.T) {
 	mockTimeProvider := mocks.NewMockTimeProvider(ctrl)
 	mockEventBus := domainmocks.NewMockEventBus(ctrl)
 
+	// The run that begins sending announces itself; this test is not about that event.
+	mockEventBus.EXPECT().Publish(gomock.Any(), eventOfType(domain.EventBroadcastSendingStarted)).AnyTimes()
+
 	// Setup logger expectations
 	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
 	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
@@ -3080,8 +3104,11 @@ func TestProcessBroadcastTask_RecipientFeedFailure_PausesBroadcast(t *testing.T)
 		return nil
 	})
 
+	// This is also the run that begins sending, so it announces itself first
+	mockEventBus.EXPECT().Publish(gomock.Any(), eventOfType(domain.EventBroadcastSendingStarted)).Times(1)
+
 	// EventBus should publish a paused event
-	mockEventBus.EXPECT().Publish(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, event domain.EventPayload) {
+	mockEventBus.EXPECT().Publish(gomock.Any(), eventOfType(domain.EventBroadcastPaused)).DoAndReturn(func(_ context.Context, event domain.EventPayload) {
 		assert.Equal(t, domain.EventBroadcastPaused, event.Type)
 		assert.Equal(t, "workspace-123", event.WorkspaceID)
 		assert.Equal(t, "broadcast-123", event.EntityID)

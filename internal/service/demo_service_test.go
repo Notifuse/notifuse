@@ -172,6 +172,7 @@ func TestNewDemoService_Constructs(t *testing.T) {
 		nil, // broadcastRepo
 		nil, // customEventRepo
 		nil, // webAnalyticsRepo
+		nil, // annotationRepo
 		nil, // webhookSubscriptionService
 		nil, // automationService
 	)
@@ -694,6 +695,7 @@ func TestNewDemoService_AllFields(t *testing.T) {
 		nil, // broadcastRepo
 		nil, // customEventRepo
 		nil, // webAnalyticsRepo
+		nil, // annotationRepo
 		nil, // webhookSubscriptionService
 		nil, // automationService
 	)

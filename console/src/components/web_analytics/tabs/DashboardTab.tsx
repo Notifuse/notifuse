@@ -3,7 +3,7 @@ import { Alert } from 'antd'
 import { useLingui } from '@lingui/react/macro'
 import { useWebAnalytics } from '../context'
 import { DimensionTableWidget, ColumnConfig } from '../DimensionTableWidget'
-import { MetricChart } from '../MetricChart'
+import { MetricChart, useAnnotations } from '../MetricChart'
 import { MetricSummary } from '../MetricSummary'
 import { SdkVersionWarning } from '../SdkVersionWarning'
 import { TrafficHeatmapWidget } from '../TrafficHeatmapWidget'
@@ -88,6 +88,8 @@ export function DashboardTab() {
 
   const metric = SESSION_METRICS.find((candidate) => candidate.key === selectedMetric) ?? SESSION_METRICS[0]
 
+  const annotations = useAnnotations(context.workspaceId, context.resolved)
+
   const sessionColumns: ColumnConfig[] = [
     { key: 'sessions', label: t`Sessions`, format: 'number' },
     { key: 'median_duration', label: t`TimeScore`, format: 'duration', heatMap: true }
@@ -127,6 +129,8 @@ export function DashboardTab() {
             }
             loading={seriesResult.isLoading}
             height={220}
+            annotations={annotations}
+            timezone={context.timezone}
           />
         </div>
       </div>

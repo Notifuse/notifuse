@@ -12,11 +12,14 @@ vi.mock('../contexts/AuthContext', () => ({
   useAuth: vi.fn()
 }))
 
+// Read at render time, so a test can put the layout on any route before rendering.
+let currentPathname = '/console/workspace/ws1'
+
 vi.mock('@tanstack/react-router', () => ({
   Outlet: () => <div data-testid="outlet" />,
   Link: ({ children }: { children: ReactNode }) => <a>{children}</a>,
   useParams: () => ({ workspaceId: 'ws1' }),
-  useMatches: () => [{ pathname: '/console/workspace/ws1' }],
+  useMatches: () => [{ pathname: currentPathname }],
   useNavigate: vi.fn()
 }))
 
@@ -58,18 +61,21 @@ const grantAll = (value: boolean) => ({
   web_analytics: { read: value, write: value }
 })
 
+const signInAsRoot = () => {
+  vi.clearAllMocks()
+  currentPathname = '/console/workspace/ws1'
+  vi.mocked(useNavigate).mockReturnValue(mockNavigate as never)
+  vi.mocked(isRootUser).mockReturnValue(true)
+  vi.mocked(useAuth).mockReturnValue({
+    signout: vi.fn(),
+    refreshWorkspaces: vi.fn(),
+    workspaces: [{ id: 'ws1', name: 'Workspace One', settings: {} }],
+    user: { id: 'u1', email: 'root@example.com' }
+  } as never)
+}
+
 describe('WorkspaceLayout sidebar groups', () => {
-  beforeEach(() => {
-    vi.clearAllMocks()
-    vi.mocked(useNavigate).mockReturnValue(mockNavigate as never)
-    vi.mocked(isRootUser).mockReturnValue(true)
-    vi.mocked(useAuth).mockReturnValue({
-      signout: vi.fn(),
-      refreshWorkspaces: vi.fn(),
-      workspaces: [{ id: 'ws1', name: 'Workspace One', settings: {} }],
-      user: { id: 'u1', email: 'root@example.com' }
-    } as never)
-  })
+  beforeEach(signInAsRoot)
 
   const openGroup = async (label: string) => {
     render(<WorkspaceLayout />)
@@ -122,5 +128,39 @@ describe('WorkspaceLayout sidebar groups', () => {
       to: '/console/workspace/$workspaceId/blog',
       params: { workspaceId: 'ws1' }
     })
+  })
+})
+
+describe('WorkspaceLayout web analytics entries', () => {
+  beforeEach(signInAsRoot)
+
+  const selectedLabel = () => document.querySelector('.ant-menu-item-selected')?.textContent ?? null
+
+  it('lists Annotations under the Web Analytics group', async () => {
+    render(<WorkspaceLayout />)
+    await userEvent.click(await screen.findByText('Web Analytics'))
+
+    expect(screen.getByText('Annotations')).toBeInTheDocument()
+  })
+
+  it('highlights the annotations entry on the annotations route', async () => {
+    // WEB_ANALYTICS_SECTIONS is the one registration TypeScript cannot catch:
+    // a section missing from it falls through to the dashboard entry, so the
+    // sidebar says you are somewhere you are not.
+    currentPathname = '/console/workspace/ws1/web-analytics/annotations'
+
+    render(<WorkspaceLayout />)
+    await screen.findByText('Annotations')
+
+    expect(selectedLabel()).toBe('Annotations')
+  })
+
+  it('still highlights the filters entry on the filters route', async () => {
+    currentPathname = '/console/workspace/ws1/web-analytics/filters'
+
+    render(<WorkspaceLayout />)
+    await screen.findByText('Filters')
+
+    expect(selectedLabel()).toBe('Filters')
   })
 })

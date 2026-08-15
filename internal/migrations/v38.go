@@ -21,6 +21,10 @@ import (
 // identical schemas. The current and next monthly partitions are created here;
 // the web analytics maintenance worker keeps creating them going forward.
 //
+// It also creates the unpartitioned annotations table, from the same shared
+// definitions, so charts on an upgraded workspace have somewhere to read their
+// markers from.
+//
 // It also grants the new web_analytics permission to existing members and
 // pending invitations in the system database. Permissions are stored as a
 // frozen map per membership, and HasPermission denies any resource missing
@@ -94,6 +98,12 @@ func (m *V38Migration) UpdateSystem(ctx context.Context, cfg *config.Config, db 
 // the shared definitions — and no test catches that. If 38.0 has shipped by the
 // time you read this, the answer is a new major, not another amendment.
 func (m *V38Migration) UpdateWorkspace(ctx context.Context, cfg *config.Config, workspace *domain.Workspace, db DBExecutor) error {
+	for _, query := range schema.AnnotationsTableDefinitions() {
+		if _, err := db.ExecContext(ctx, query); err != nil {
+			return fmt.Errorf("v38: failed to create annotations table for workspace %s: %w", workspace.ID, err)
+		}
+	}
+
 	for _, query := range schema.WebAnalyticsTableDefinitions() {
 		if _, err := db.ExecContext(ctx, query); err != nil {
 			return fmt.Errorf("v38: failed to create web analytics table for workspace %s: %w", workspace.ID, err)

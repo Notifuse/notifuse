@@ -115,7 +115,7 @@ func TestDemoAutomationsSeedRealHistory(t *testing.T) {
 		&config.Config{Environment: "demo"},
 		nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
 		suite.ServerManager.GetApp().GetWorkspaceRepository(),
-		nil, nil, nil, nil, nil, nil, nil, nil,
+		nil, nil, nil, nil, nil, nil, nil, nil, nil,
 	)
 
 	require.NoError(t, demoSvc.SeedAutomationHistory(ctx, workspace.ID, automations))

@@ -19,6 +19,7 @@ import (
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/Notifuse/notifuse/config"
+	"github.com/Notifuse/notifuse/internal/domain"
 	pkgDatabase "github.com/Notifuse/notifuse/pkg/database"
 	"github.com/Notifuse/notifuse/pkg/mailer"
 	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
@@ -269,6 +270,7 @@ func TestAppInitRepositories(t *testing.T) {
 	assert.NotNil(t, appImpl.taskRepo)
 	assert.NotNil(t, appImpl.transactionalNotificationRepo)
 	assert.NotNil(t, appImpl.messageHistoryRepo)
+	assert.NotNil(t, appImpl.annotationRepo)
 }
 
 // TestAppStart tests the Start method
@@ -531,7 +533,69 @@ func TestAppInitServices(t *testing.T) {
 	assert.NotNil(t, appImpl.taskService, "Task service should be initialized")
 	assert.NotNil(t, appImpl.transactionalNotificationService, "TransactionalNotification service should be initialized")
 	assert.NotNil(t, appImpl.eventBus, "Event bus should be initialized")
+	assert.NotNil(t, appImpl.annotationService, "Annotation service should be initialized")
 	assert.NotNil(t, appImpl.supabaseService, "Supabase service should be initialized")
+}
+
+// TestAppInitServicesSubscribesAnnotationServiceToEventBus pins the annotation
+// service's event-bus subscription. Nothing else in the system notices its
+// absence: the broadcast orchestrator would keep publishing sending-started into
+// a bus with no handler and no broadcast would ever be annotated.
+//
+// The probe publishes an incomplete payload on purpose — the handler logs and
+// returns before touching any repository, so the log line is the observable proof
+// that a handler ran at all.
+func TestAppInitServicesSubscribesAnnotationServiceToEventBus(t *testing.T) {
+	mockDB, _, err := setupTestDBMock()
+	require.NoError(t, err)
+	defer func() { _ = mockDB.Close() }()
+
+	cfg := createTestConfig()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	handled := make(chan struct{})
+
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+	// Declared before the catch-all below: gomock matches expectations in
+	// declaration order, so a leading Error(gomock.Any()).AnyTimes() would absorb
+	// this one and the test would never see the handler run.
+	mockLogger.EXPECT().
+		Error("Cannot annotate broadcast send: incomplete event payload").
+		Do(func(string) { close(handled) }).
+		Times(1)
+	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Warn(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Fatal(gomock.Any()).AnyTimes()
+
+	app := NewApp(cfg, WithLogger(mockLogger), WithMockDB(mockDB))
+
+	err = pkgDatabase.InitializeConnectionManager(cfg, mockDB)
+	require.NoError(t, err)
+	defer pkgDatabase.ResetConnectionManager()
+
+	require.NoError(t, app.InitRepositories())
+	require.NoError(t, app.InitServices())
+
+	appImpl, ok := app.(*App)
+	require.True(t, ok, "app should be *App")
+
+	appImpl.eventBus.Publish(context.Background(), domain.EventPayload{
+		Type: domain.EventBroadcastSendingStarted,
+	})
+
+	// A plain Publish dispatches handlers into detached goroutines, so wait rather
+	// than read straight after.
+	select {
+	case <-handled:
+	case <-time.After(5 * time.Second):
+		t.Fatal("annotation service is not subscribed to broadcast.sending_started")
+	}
 }
 
 // TestAppInitSupabaseService tests that the Supabase service is properly initialized and linked
@@ -651,6 +715,24 @@ func TestAppInitHandlers(t *testing.T) {
 		assert.NotNil(t, handler, "Handler should be registered for route: %s", route)
 		// Pattern should match the route (or be empty for exact match)
 		assert.True(t, pattern == route || pattern == "", "Pattern should match route %s, got %s", route, pattern)
+	}
+
+	// The annotation routes are checked against the resolved pattern instead. An
+	// unregistered path also yields a non-nil handler (the NotFound one) and an
+	// empty pattern, so the loop above cannot tell a missing route from a present
+	// one; only an exact pattern match can.
+	annotationRoutes := []string{
+		"/api/annotations.list",
+		"/api/annotations.get",
+		"/api/annotations.create",
+		"/api/annotations.update",
+		"/api/annotations.delete",
+	}
+
+	for _, route := range annotationRoutes {
+		req := httptest.NewRequest("GET", route, nil)
+		_, pattern := mux.Handler(req)
+		assert.Equal(t, route, pattern, "Route should be registered: %s", route)
 	}
 }
 

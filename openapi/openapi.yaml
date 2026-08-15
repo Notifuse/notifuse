@@ -25,6 +25,16 @@ paths:
     $ref: './paths/web-analytics.yaml#/~1api~1webAnalytics.backfillStatus'
   /api/webAnalytics.backfillCancel:
     $ref: './paths/web-analytics.yaml#/~1api~1webAnalytics.backfillCancel'
+  /api/annotations.list:
+    $ref: './paths/annotations.yaml#/~1api~1annotations.list'
+  /api/annotations.get:
+    $ref: './paths/annotations.yaml#/~1api~1annotations.get'
+  /api/annotations.create:
+    $ref: './paths/annotations.yaml#/~1api~1annotations.create'
+  /api/annotations.update:
+    $ref: './paths/annotations.yaml#/~1api~1annotations.update'
+  /api/annotations.delete:
+    $ref: './paths/annotations.yaml#/~1api~1annotations.delete'
   /api/transactional.send:
     $ref: './paths/transactional.yaml#/~1api~1transactional.send'
   /api/contacts.list:

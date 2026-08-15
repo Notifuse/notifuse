@@ -38,7 +38,7 @@ import {
 const { Content, Sider, Header } = Layout
 
 /** Web analytics sub-entries, mirroring the routes under /web-analytics. */
-const WEB_ANALYTICS_SECTIONS = ['dashboard', 'live', 'explore', 'goals', 'filters']
+const WEB_ANALYTICS_SECTIONS = ['dashboard', 'live', 'explore', 'goals', 'filters', 'annotations']
 
 /** Collapsible sidebar groups, and the path fragments living inside each. */
 const MENU_GROUPS: Record<string, string[]> = {
@@ -373,6 +373,17 @@ export function WorkspaceLayout() {
               params={{ workspaceId, tab: 'filters' }}
             >
               {t`Filters`}
+            </Link>
+          )
+        },
+        {
+          key: 'web-analytics-annotations',
+          label: (
+            <Link
+              to="/console/workspace/$workspaceId/web-analytics/$tab"
+              params={{ workspaceId, tab: 'annotations' }}
+            >
+              {t`Annotations`}
             </Link>
           )
         }

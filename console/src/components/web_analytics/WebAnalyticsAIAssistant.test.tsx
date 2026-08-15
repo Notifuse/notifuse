@@ -728,6 +728,13 @@ describe('shouldHideAssistant', () => {
     expect(shouldHideAssistant('filters')).toBe(true)
   })
 
+  it('keeps the assistant off the annotations tab', () => {
+    // Annotations is a CRUD list, not a report: no period, no filter bar, nothing
+    // any tool could read or write, and the floating panel would sit over the row
+    // actions.
+    expect(shouldHideAssistant('annotations')).toBe(true)
+  })
+
   it('offers the assistant on every tab that shows a report', () => {
     const shown = WEB_ANALYTICS_TABS.filter((tab) => !shouldHideAssistant(tab))
     expect(shown).toEqual(['dashboard', 'explore', 'goals'])

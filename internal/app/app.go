@@ -128,6 +128,7 @@ type App struct {
 	automationRepo                domain.AutomationRepository
 	emailQueueRepo                domain.EmailQueueRepository
 	webAnalyticsRepo              domain.WebAnalyticsRepository
+	annotationRepo                domain.AnnotationRepository
 
 	// Services
 	authService                      *service.AuthService
@@ -160,6 +161,7 @@ type App struct {
 	taskScheduler                    *service.TaskScheduler
 	dnsVerificationService           *service.DNSVerificationService
 	customEventService               *service.CustomEventService
+	annotationService                *service.AnnotationService
 	webhookSubscriptionService       *service.WebhookSubscriptionService
 	webhookDeliveryWorker            *service.WebhookDeliveryWorker
 	automationService                *service.AutomationService
@@ -443,6 +445,7 @@ func (a *App) InitRepositories() error {
 	a.blogPostRepo = repository.NewBlogPostRepository(a.workspaceRepo)
 	a.blogThemeRepo = repository.NewBlogThemeRepository(a.workspaceRepo)
 	a.customEventRepo = repository.NewCustomEventRepository(a.workspaceRepo)
+	a.annotationRepo = repository.NewAnnotationRepository(a.workspaceRepo)
 	a.webhookSubscriptionRepo = repository.NewWebhookSubscriptionRepository(a.workspaceRepo)
 	a.webhookDeliveryRepo = repository.NewWebhookDeliveryRepository(a.workspaceRepo)
 
@@ -650,6 +653,18 @@ func (a *App) InitServices() error {
 		a.authService,
 		a.logger,
 	)
+
+	// Initialize annotation service
+	a.annotationService = service.NewAnnotationService(
+		a.annotationRepo,
+		a.workspaceRepo,
+		a.authService,
+		a.logger,
+	)
+	// Subscribe here rather than later: without this the broadcast orchestrator
+	// publishes its sending-started event into the void and no broadcast is ever
+	// annotated, with nothing else in the system noticing.
+	a.annotationService.RegisterWithEventBus(a.eventBus)
 
 	// Initialize http client
 	httpClient := &http.Client{
@@ -993,6 +1008,7 @@ func (a *App) InitServices() error {
 		a.broadcastRepo,
 		a.customEventRepo,
 		a.webAnalyticsRepo,
+		a.annotationRepo,
 		a.webhookSubscriptionService,
 		a.automationService,
 	)
@@ -1315,6 +1331,12 @@ func (a *App) InitHandlers() error {
 		getJWTSecret,
 		a.logger,
 	)
+	annotationHandler := httpHandler.NewAnnotationHandler(
+		a.annotationService,
+		getJWTSecret,
+		a.logger,
+		a.config.IsDemo(),
+	)
 	webhookSubscriptionHandler := httpHandler.NewWebhookSubscriptionHandler(
 		a.webhookSubscriptionService,
 		a.webhookDeliveryWorker,
@@ -1365,6 +1387,7 @@ func (a *App) InitHandlers() error {
 	contactTimelineHandler.RegisterRoutes(a.mux)
 	segmentHandler.RegisterRoutes(a.mux)
 	customEventHandler.RegisterRoutes(a.mux)
+	annotationHandler.RegisterRoutes(a.mux)
 	webhookSubscriptionHandler.RegisterRoutes(a.mux)
 	automationHandler.RegisterRoutes(a.mux)
 	llmHandler.RegisterRoutes(a.mux)

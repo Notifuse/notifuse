@@ -27,6 +27,10 @@ import (
 // upgraded one (the v38 migration) must end up with byte-identical tables,
 // indexes and storage parameters. Both call the same shared DDL source, and
 // this test fails loudly if that ever stops being true.
+//
+// The annotations table rides along: it is created from the same shared
+// definitions by the same two paths, and its partial unique index is the one
+// piece of this schema that a repository query has to name verbatim.
 func TestWebAnalyticsSchemaParity(t *testing.T) {
 	testutil.SkipIfShort(t)
 	testutil.SetupTestEnvironment()
@@ -71,6 +75,10 @@ func TestWebAnalyticsSchemaParity(t *testing.T) {
 		_, err := initDB.Exec(query)
 		require.NoError(t, err, query)
 	}
+	for _, query := range schema.AnnotationsTableDefinitions() {
+		_, err := initDB.Exec(query)
+		require.NoError(t, err, query)
+	}
 	now := time.Now().UTC()
 	for _, month := range []time.Time{now, now.AddDate(0, 1, 0)} {
 		for _, table := range schema.WebAnalyticsTableNames {
@@ -88,8 +96,8 @@ func TestWebAnalyticsSchemaParity(t *testing.T) {
 	// of every live automation. That step reads `automations`, which every workspace
 	// database reaching v38 has carried since v20 — so give this one the same table the
 	// migration will find in production. It stays empty: the heal step itself is covered
-	// end-to-end in automation_email_click_trigger_test.go, and only web_* relations are
-	// compared below.
+	// end-to-end in automation_email_click_trigger_test.go, and only the web_* relations
+	// and annotations are compared below.
 	_, err = migrDB.Exec(`
 		CREATE TABLE automations (
 			id VARCHAR(36) PRIMARY KEY,
@@ -125,6 +133,18 @@ func TestWebAnalyticsSchemaParity(t *testing.T) {
 	assert.Contains(t, initSchema, "WHERE (contact_email IS NOT NULL)")
 	assert.Contains(t, initSchema, "fillfactor=85", "partitions must carry the HOT-update fillfactor")
 
+	// The annotations unique index must be partial in both databases: it is the
+	// arbiter CreateFromSource names, and it must leave manual rows (source_id
+	// NULL) free to repeat.
+	const partialUniqueIndex = "CREATE UNIQUE INDEX idx_annotations_source ON public.annotations " +
+		"USING btree (source, source_id) WHERE (source_id IS NOT NULL)"
+	assert.Contains(t, initSchema, partialUniqueIndex)
+	assert.Contains(t, migrSchema, partialUniqueIndex)
+	assert.Contains(t, initSchema, "annotations.source_id character varying(255) notnull=false")
+
+	assertAnnotationConflictTargetResolves(t, initDB)
+	assertAnnotationConflictTargetResolves(t, migrDB)
+
 	// Partitioned parents hold no rows themselves; the monthly children do.
 	var partitionCount int
 	require.NoError(t, initDB.QueryRow(`
@@ -134,8 +154,58 @@ func TestWebAnalyticsSchemaParity(t *testing.T) {
 	assert.Equal(t, 6, partitionCount, "current + next month partitions for all three tables")
 }
 
+// assertAnnotationConflictTargetResolves executes the insert that
+// repository.CreateFromSource issues, twice, against a real database.
+//
+// PostgreSQL only accepts a partial unique index as an ON CONFLICT arbiter when
+// the statement repeats the index predicate; without it the insert raises 42P10
+// at runtime. sqlmock never parses SQL against a schema, so no unit test can see
+// that — this is the only guard in the repository, and the bug it catches has
+// already happened once here. Keep the statement byte-identical to the one in
+// internal/repository/annotation_postgres.go.
+func assertAnnotationConflictTargetResolves(t *testing.T, db *sql.DB) {
+	t.Helper()
+
+	const insertFromSource = `
+		INSERT INTO annotations (
+			id, annotated_at, timezone, title, description,
+			color, source, source_id, created_at, updated_at
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+		ON CONFLICT (source, source_id) WHERE source_id IS NOT NULL DO NOTHING
+	`
+
+	at := time.Date(2026, 8, 15, 9, 0, 0, 0, time.UTC)
+	insert := func(id string, sourceID interface{}) int64 {
+		res, err := db.Exec(insertFromSource, id, at, "UTC", "Broadcast sent", "",
+			"#7763f1", "broadcast", sourceID, at, at)
+		require.NoError(t, err, "ON CONFLICT must resolve against the partial unique index")
+		affected, err := res.RowsAffected()
+		require.NoError(t, err)
+		return affected
+	}
+
+	assert.Equal(t, int64(1), insert("ann_first", "bcast1"))
+	// Same (source, source_id): a task retry or a racing dispatcher collapses
+	// onto the first row rather than duplicating the annotation.
+	assert.Equal(t, int64(0), insert("ann_second", "bcast1"))
+
+	// Manual rows carry no source_id and fall outside the index predicate, so
+	// two of them at the same instant must both survive.
+	assert.Equal(t, int64(1), insert("ann_manual_a", nil))
+	assert.Equal(t, int64(1), insert("ann_manual_b", nil))
+
+	var count int
+	require.NoError(t, db.QueryRow(`SELECT COUNT(*) FROM annotations`).Scan(&count))
+	assert.Equal(t, 3, count)
+
+	_, err := db.Exec(`DELETE FROM annotations`)
+	require.NoError(t, err)
+}
+
 // dumpWebAnalyticsSchema renders columns, indexes and storage parameters of
-// every web_* relation as a stable, comparable string.
+// every web_* relation, plus annotations, as a stable, comparable string.
+// annotations is matched by name because it deliberately carries no web_
+// prefix — the rows annotate events that are not web analytics.
 func dumpWebAnalyticsSchema(t *testing.T, db *sql.DB) string {
 	t.Helper()
 	var out string
@@ -145,7 +215,7 @@ func dumpWebAnalyticsSchema(t *testing.T, db *sql.DB) string {
 		FROM pg_class c
 		JOIN pg_namespace n ON n.oid = c.relnamespace
 		JOIN pg_attribute a ON a.attrelid = c.oid
-		WHERE n.nspname = 'public' AND c.relname LIKE 'web\_%'
+		WHERE n.nspname = 'public' AND (c.relname LIKE 'web\_%' OR c.relname = 'annotations')
 		  AND a.attnum > 0 AND NOT a.attisdropped
 		ORDER BY c.relname, a.attname`)
 	require.NoError(t, err)
@@ -160,7 +230,7 @@ func dumpWebAnalyticsSchema(t *testing.T, db *sql.DB) string {
 
 	indexes, err := db.Query(`
 		SELECT indexdef FROM pg_indexes
-		WHERE schemaname = 'public' AND tablename LIKE 'web\_%'
+		WHERE schemaname = 'public' AND (tablename LIKE 'web\_%' OR tablename = 'annotations')
 		ORDER BY indexdef`)
 	require.NoError(t, err)
 	defer func() { _ = indexes.Close() }()
@@ -175,7 +245,8 @@ func dumpWebAnalyticsSchema(t *testing.T, db *sql.DB) string {
 		SELECT c.relname, COALESCE(array_to_string(c.reloptions, ','), '')
 		FROM pg_class c
 		JOIN pg_namespace n ON n.oid = c.relnamespace
-		WHERE n.nspname = 'public' AND c.relname LIKE 'web\_%' AND c.relkind = 'r'
+		WHERE n.nspname = 'public' AND (c.relname LIKE 'web\_%' OR c.relname = 'annotations')
+		  AND c.relkind = 'r'
 		ORDER BY c.relname`)
 	require.NoError(t, err)
 	defer func() { _ = options.Close() }()

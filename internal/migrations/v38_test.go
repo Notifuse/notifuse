@@ -91,10 +91,30 @@ func TestV38Migration_UpdateSystem(t *testing.T) {
 }
 
 func expectV38WorkspaceDDL(mock sqlmock.Sqlmock) {
-	expectV38WebAnalyticsDDL(mock)
+	expectV38SchemaDDL(mock)
 	// UpdateWorkspace ends by looking for live automations whose trigger carries conditions;
 	// the common case finds none.
 	mock.ExpectQuery(v38HealQuery).WillReturnRows(v38HealRows())
+}
+
+// expectV38SchemaDDL expects every DDL statement UpdateWorkspace issues, in the
+// order it issues them: annotations first, then web analytics.
+func expectV38SchemaDDL(mock sqlmock.Sqlmock) {
+	expectV38AnnotationsDDL(mock)
+	expectV38WebAnalyticsDDL(mock)
+}
+
+// The annotations statements are pinned by name rather than by the generic
+// "CREATE ... IF NOT EXISTS" shape used below, so that dropping one of them
+// fails here instead of being absorbed by the web analytics expectations. The
+// unique index expectation also pins its partial predicate: without WHERE
+// source_id IS NOT NULL the index is no longer the arbiter CreateFromSource
+// names in its ON CONFLICT, and every automatic annotation raises 42P10.
+func expectV38AnnotationsDDL(mock sqlmock.Sqlmock) {
+	mock.ExpectExec("CREATE TABLE IF NOT EXISTS annotations").WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_annotations_annotated_at").WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectExec("CREATE UNIQUE INDEX IF NOT EXISTS idx_annotations_source .*WHERE source_id IS NOT NULL").
+		WillReturnResult(sqlmock.NewResult(0, 0))
 }
 
 func expectV38WebAnalyticsDDL(mock sqlmock.Sqlmock) {
@@ -142,6 +162,12 @@ func TestV38Migration_UpdateWorkspace(t *testing.T) {
 		for _, stmt := range schema.WebAnalyticsTableDefinitions() {
 			assert.Contains(t, stmt, "IF NOT EXISTS")
 		}
+		for _, stmt := range schema.AnnotationsTableDefinitions() {
+			assert.Contains(t, stmt, "IF NOT EXISTS")
+		}
+		// expectV38AnnotationsDDL names each annotations statement individually,
+		// so a fourth definition would arrive there unexpected.
+		require.Len(t, schema.AnnotationsTableDefinitions(), 3)
 		assert.Contains(t, schema.WebAnalyticsPartitionDDL("web_sessions", time.Now()), "IF NOT EXISTS")
 
 		// And executing twice issues the same idempotent statements again.
@@ -162,6 +188,8 @@ func TestV38Migration_UpdateWorkspace(t *testing.T) {
 		require.NoError(t, err)
 		defer db.Close()
 
+		// The first statement UpdateWorkspace issues is the annotations CREATE TABLE;
+		// this pins the error wrapping, not which table failed.
 		mock.ExpectExec("(?s)CREATE (TABLE|INDEX) IF NOT EXISTS").WillReturnError(errors.New("boom"))
 
 		m := &V38Migration{}
@@ -176,7 +204,7 @@ func TestV38Migration_UpdateWorkspace(t *testing.T) {
 		require.NoError(t, err)
 		defer db.Close()
 
-		expectV38WebAnalyticsDDL(mock)
+		expectV38SchemaDDL(mock)
 		mock.ExpectQuery(v38HealQuery).WillReturnError(errors.New("boom"))
 
 		m := &V38Migration{}

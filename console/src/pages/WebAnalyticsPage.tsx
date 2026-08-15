@@ -31,6 +31,17 @@ const GoalsTab = lazy(() =>
     default: module.GoalsTab
   }))
 )
+// Annotations brings its own form modal, the timezone list and dayjs' timezone
+// plugin. It is also split for a second reason the others are not: it reaches
+// services/api/annotation, and services/api/client imports the router, which
+// imports this page - a STATIC import here closes that cycle back onto the tab,
+// and a suite testing the tab without stubbing the client gets a half-initialised
+// module. The dynamic import keeps it out of the static graph.
+const AnnotationsTab = lazy(() =>
+  import('../components/web_analytics/tabs/AnnotationsTab').then((module) => ({
+    default: module.AnnotationsTab
+  }))
+)
 
 // The assistant drags in @ant-design/x and @ant-design/x-markdown, neither of
 // which the dashboard needs to render its first chart. Split for the same
@@ -83,7 +94,8 @@ function WebAnalyticsSection(props: { tab: WebAnalyticsTab }) {
     dashboard: t`Web Analytics`,
     explore: t`Explore`,
     goals: t`Goals`,
-    filters: t`Filters`
+    filters: t`Filters`,
+    annotations: t`Annotations`
   }
 
   const panes: Record<WebAnalyticsTab, ReactNode> = {
@@ -98,7 +110,12 @@ function WebAnalyticsSection(props: { tab: WebAnalyticsTab }) {
         <GoalsTab />
       </Suspense>
     ),
-    filters: <FiltersTab />
+    filters: <FiltersTab />,
+    annotations: (
+      <Suspense fallback={<Skeleton active />}>
+        <AnnotationsTab />
+      </Suspense>
+    )
   }
 
   const periodControls = (
@@ -162,10 +179,19 @@ function WebAnalyticsSection(props: { tab: WebAnalyticsTab }) {
       </div>
 
       {/* The filters tab configures attribution rather than reading it, so a
-          quiet day must not stand between the operator and their rules. */}
-      <WebAnalyticsGate mode={DATA_SECTIONS.includes(activeTab) ? 'data' : 'config'}>
-        {body}
-      </WebAnalyticsGate>
+          quiet day must not stand between the operator and their rules.
+
+          Annotations skip the gate entirely: attribution rules are meaningless
+          without the tracker, but annotations are not. A workspace that only
+          sends broadcasts would otherwise be locked out of the very rows the
+          broadcast subscriber writes for it. */}
+      {activeTab === 'annotations' ? (
+        body
+      ) : (
+        <WebAnalyticsGate mode={DATA_SECTIONS.includes(activeTab) ? 'data' : 'config'}>
+          {body}
+        </WebAnalyticsGate>
+      )}
 
       {/* Lives here rather than in the tab because its trigger moved up to the
           page header; the modal reads the report it exports from context. */}
