@@ -84,6 +84,31 @@ func TestWebAnalyticsSchemaParity(t *testing.T) {
 	require.NoError(t, err)
 	defer func() { _ = migrDB.Close() }()
 
+	// v38 does more than create the web analytics tables: it also regenerates the trigger
+	// of every live automation. That step reads `automations`, which every workspace
+	// database reaching v38 has carried since v20 — so give this one the same table the
+	// migration will find in production. It stays empty: the heal step itself is covered
+	// end-to-end in automation_email_click_trigger_test.go, and only web_* relations are
+	// compared below.
+	_, err = migrDB.Exec(`
+		CREATE TABLE automations (
+			id VARCHAR(36) PRIMARY KEY,
+			workspace_id VARCHAR(36) NOT NULL,
+			name VARCHAR(255) NOT NULL,
+			status VARCHAR(20) DEFAULT 'draft',
+			list_id VARCHAR(36),
+			exit_on_reply BOOLEAN NOT NULL DEFAULT false,
+			trigger_config JSONB NOT NULL,
+			trigger_sql TEXT,
+			root_node_id VARCHAR(36),
+			nodes JSONB DEFAULT '[]',
+			stats JSONB DEFAULT '{}',
+			created_at TIMESTAMPTZ DEFAULT NOW(),
+			updated_at TIMESTAMPTZ DEFAULT NOW(),
+			deleted_at TIMESTAMPTZ
+		)`)
+	require.NoError(t, err)
+
 	migration := &migrations.V38Migration{}
 	require.NoError(t, migration.UpdateWorkspace(context.Background(), &config.Config{}, &domain.Workspace{ID: "ws"}, migrDB))
 	// Idempotency: re-running the migration must change nothing.
