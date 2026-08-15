@@ -8,8 +8,11 @@ import {
   useReactFlow,
   ReactFlowProvider,
   type Node,
+  type NodeChange,
+  type NodeMouseHandler,
   type NodeTypes,
   type EdgeTypes,
+  type OnNodesChange,
   BackgroundVariant
 } from '@xyflow/react'
 import { LayoutGrid } from 'lucide-react'
@@ -24,8 +27,23 @@ import { AddNodeButton } from './AddNodeButton'
 import { NodePalette } from './NodePalette'
 import { useAutomation } from './context'
 import { useAutomationCanvas } from './hooks'
-import type { AutomationNodeData } from './utils/flowConverter'
+import type { AutomationFlowNode, AutomationNodeData } from './utils/flowConverter'
 import type { NodeType } from '../../services/api/automation'
+
+// Placeholder nodes are render-only anchors that give the "add node" edges a target. They are
+// derived from the canvas state rather than part of it and carry no automation data, so the array
+// handed to ReactFlow is a union of the two node shapes.
+type PlaceholderFlowNode = Node<Record<string, never>, 'placeholder'>
+type CanvasFlowNode = AutomationFlowNode | PlaceholderFlowNode
+
+// Only the `add` and `replace` changes carry a whole node, so they are the only ones that can name
+// a placeholder. ReactFlow emits neither on its own — they originate from the imperative
+// addNodes/updateNode helpers, which this canvas never calls — and a placeholder must never reach
+// the canvas state anyway, since it is recomputed from the real nodes on every render.
+const isAutomationNodeChange = (
+  change: NodeChange<CanvasFlowNode>
+): change is NodeChange<AutomationFlowNode> =>
+  (change.type !== 'add' && change.type !== 'replace') || 'nodeType' in change.item.data
 
 // Define nodeTypes OUTSIDE component to prevent re-renders
 const nodeTypes: NodeTypes = {
@@ -201,7 +219,7 @@ const AutomationFlowEditorInner: React.FC = () => {
   // Compute placeholder nodes and edges for unconnected outputs
   const { nodesWithPlaceholders, edgesWithPlaceholders } = useMemo(() => {
     // Mark nodes with orphan status and add delete callback
-    const nodesWithOrphanStatus = nodes.map((node) => ({
+    const nodesWithOrphanStatus: AutomationFlowNode[] = nodes.map((node) => ({
       ...node,
       data: {
         ...node.data,
@@ -211,7 +229,7 @@ const AutomationFlowEditorInner: React.FC = () => {
     }))
 
     // Create invisible placeholder nodes for each unconnected output
-    const placeholderNodes: Node[] = unconnectedOutputs.map((output) => ({
+    const placeholderNodes: PlaceholderFlowNode[] = unconnectedOutputs.map((output) => ({
       id: `placeholder-${output.nodeId}-${output.handleId || 'default'}`,
       type: 'placeholder',
       position: output.position,
@@ -308,11 +326,20 @@ const AutomationFlowEditorInner: React.FC = () => {
   }, [updateButtonPositions])
 
   // Handle node click
-  const handleNodeClick = useCallback(
-    (_: React.MouseEvent, node: Node<AutomationNodeData>) => {
+  const handleNodeClick = useCallback<NodeMouseHandler<CanvasFlowNode>>(
+    (_, node) => {
       selectNode(node.id)
     },
     [selectNode]
+  )
+
+  // ReactFlow reports changes for the placeholder nodes too; the canvas state only knows about the
+  // real ones, so the placeholder-only change kinds are dropped before forwarding.
+  const handleNodesChange = useCallback<OnNodesChange<CanvasFlowNode>>(
+    (changes) => {
+      onNodesChange(changes.filter(isAutomationNodeChange))
+    },
+    [onNodesChange]
   )
 
   // Handle pane click (deselect)
@@ -324,7 +351,7 @@ const AutomationFlowEditorInner: React.FC = () => {
   const handleNodeUpdateFromPanel = useCallback(
     (nodeId: string, data: Partial<AutomationNodeData>) => {
       if (data.config) {
-        updateNodeConfig(nodeId, data.config as Record<string, unknown>)
+        updateNodeConfig(nodeId, data.config)
       }
     },
     [updateNodeConfig]
@@ -373,7 +400,7 @@ const AutomationFlowEditorInner: React.FC = () => {
         edges={edgesWithPlaceholders}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
-        onNodesChange={onNodesChange}
+        onNodesChange={handleNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         onNodeClick={handleNodeClick}

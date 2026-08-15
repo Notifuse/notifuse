@@ -19,6 +19,7 @@ import {
   type StatNodeData
 } from './nodes/StatNode'
 import { layoutNodes } from './utils/layoutNodes'
+import type { Structural } from './utils/flowConverter'
 import type {
   Automation,
   AutomationNodeStats,
@@ -44,6 +45,10 @@ const nodeTypes: NodeTypes = {
   list_status_branch: ListStatusStatNode
 }
 
+// ReactFlow's Edge allows `sourceHandle: string | null`, but every edge built below either names a
+// handle or omits it, and layoutNodes reads the handle as `string | undefined`.
+type ViewerEdge = Edge & { sourceHandle?: string }
+
 interface AutomationFlowViewerProps {
   automation: Automation
   nodeStats: Record<string, AutomationNodeStats> | null
@@ -58,7 +63,7 @@ const STATS_NODE_WIDTH = 220
 function automationToViewerFlow(
   automation: Automation,
   nodeStats: Record<string, AutomationNodeStats> | null
-): { nodes: Node<StatNodeData>[]; edges: Edge[] } {
+): { nodes: Node<StatNodeData>[]; edges: ViewerEdge[] } {
   if (!automation.nodes || automation.nodes.length === 0) {
     return { nodes: [], edges: [] }
   }
@@ -77,7 +82,7 @@ function automationToViewerFlow(
   }))
 
   // Generate edges from next_node_id relationships
-  const edges: Edge[] = []
+  const edges: ViewerEdge[] = []
 
   automation.nodes.forEach((node) => {
     // Standard next_node_id connection
@@ -94,7 +99,7 @@ function automationToViewerFlow(
 
     // Handle branch nodes with multiple paths
     if (node.type === 'branch' && node.config) {
-      const config = node.config as BranchNodeConfig
+      const config = node.config as Structural<BranchNodeConfig>
       if (config.paths) {
         config.paths.forEach((path) => {
           if (path.next_node_id) {
@@ -114,7 +119,7 @@ function automationToViewerFlow(
 
     // Handle filter nodes with continue/exit paths
     if (node.type === 'filter' && node.config) {
-      const config = node.config as FilterNodeConfig
+      const config = node.config as Structural<FilterNodeConfig>
       if (config.continue_node_id) {
         edges.push({
           id: `${node.id}-continue-${config.continue_node_id}`,
@@ -141,7 +146,7 @@ function automationToViewerFlow(
 
     // Handle A/B test nodes with multiple variants
     if (node.type === 'ab_test' && node.config) {
-      const config = node.config as ABTestNodeConfig
+      const config = node.config as Structural<ABTestNodeConfig>
       if (config.variants) {
         config.variants.forEach((variant) => {
           if (variant.next_node_id) {
@@ -161,7 +166,7 @@ function automationToViewerFlow(
 
     // Handle list status branch nodes with three paths
     if (node.type === 'list_status_branch' && node.config) {
-      const config = node.config as ListStatusBranchNodeConfig
+      const config = node.config as Structural<ListStatusBranchNodeConfig>
       if (config.not_in_list_node_id) {
         edges.push({
           id: `${node.id}-not_in_list-${config.not_in_list_node_id}`,

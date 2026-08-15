@@ -1,18 +1,24 @@
 import React from 'react'
-import { BaseEdge, EdgeLabelRenderer, getBezierPath, type EdgeProps } from '@xyflow/react'
+import { BaseEdge, EdgeLabelRenderer, getBezierPath, type Edge, type EdgeProps } from '@xyflow/react'
 import { Tooltip } from 'antd'
 import { X } from 'lucide-react'
 import { useLingui } from '@lingui/react/macro'
 import { AddNodeButton } from '../AddNodeButton'
 import type { NodeType } from '../../../services/api/automation'
 
-export interface AutomationEdgeData {
+// Type alias rather than an interface: ReactFlow constrains edge data to `Record<string, unknown>`,
+// which only an object-literal type alias satisfies (an interface has no implicit index signature).
+export type AutomationEdgeData = {
   onDelete?: () => void
   onInsert?: (nodeType: NodeType) => void
   hasListSelected?: boolean
 }
 
-export const AutomationEdge: React.FC<EdgeProps<AutomationEdgeData>> = ({
+// The edge type the automation editor works with. In ReactFlow v12 `EdgeProps` takes the edge type,
+// not the data type.
+export type AutomationFlowEdge = Edge<AutomationEdgeData>
+
+export const AutomationEdge: React.FC<EdgeProps<AutomationFlowEdge>> = ({
   sourceX,
   sourceY,
   targetX,

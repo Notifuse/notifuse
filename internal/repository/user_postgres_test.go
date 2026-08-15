@@ -9,6 +9,7 @@ import (
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -63,12 +64,55 @@ func TestCreateUser(t *testing.T) {
 
 	mock.ExpectExec(`INSERT INTO users \(id, email, name, type, language, created_at, updated_at\) VALUES \(\$1, \$2, \$3, \$4, \$5, \$6, \$7\)`).
 		WithArgs(duplicateUser.ID, duplicateUser.Email, duplicateUser.Name, duplicateUser.Type, sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg()).
-		WillReturnError(errors.New("pq: duplicate key value violates unique constraint \"users_email_key\""))
+		WillReturnError(&pq.Error{
+			Code:       "23505",
+			Constraint: "users_email_key",
+			Message:    `duplicate key value violates unique constraint "users_email_key"`,
+		})
 
 	err = repo.CreateUser(context.Background(), duplicateUser)
 	require.Error(t, err)
 	assert.IsType(t, &domain.ErrUserExists{}, err)
 	assert.Equal(t, "user already exists", err.Error())
+}
+
+// PostgreSQL translates error text per lc_messages, so duplicate detection must key off
+// the SQLSTATE. A miss here is not cosmetic: setup stops treating an already-present root
+// user as success, and the OIDC JIT path stops recovering onto the winner of a create race.
+func TestCreateUser_DuplicateDetectionIsSQLStateBased(t *testing.T) {
+	db, mock, cleanup := testutil.SetupMockDB(t)
+	defer cleanup()
+	repo := NewUserRepository(db)
+
+	const insert = `INSERT INTO users \(id, email, name, type, language, created_at, updated_at\) VALUES \(\$1, \$2, \$3, \$4, \$5, \$6, \$7\)`
+
+	t.Run("localized 23505 still maps to ErrUserExists", func(t *testing.T) {
+		u := &domain.User{ID: uuid.New().String(), Email: "fr@example.com", Name: "FR", Type: domain.UserTypeUser}
+		mock.ExpectExec(insert).
+			WithArgs(u.ID, u.Email, u.Name, u.Type, sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg()).
+			WillReturnError(&pq.Error{
+				Code:       "23505",
+				Constraint: "users_email_key",
+				Message:    "la valeur d'une cl\u00e9 dupliqu\u00e9e rompt la contrainte unique \u00ab users_email_key \u00bb",
+			})
+
+		err := repo.CreateUser(context.Background(), u)
+		var exists *domain.ErrUserExists
+		assert.True(t, errors.As(err, &exists), "expected *ErrUserExists, got %v", err)
+	})
+
+	t.Run("non-unique-violation error is not reported as a duplicate", func(t *testing.T) {
+		u := &domain.User{ID: uuid.New().String(), Email: "down@example.com", Name: "Down", Type: domain.UserTypeUser}
+		mock.ExpectExec(insert).
+			WithArgs(u.ID, u.Email, u.Name, u.Type, sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg()).
+			WillReturnError(&pq.Error{Code: "53300", Message: "sorry, too many clients already"})
+
+		err := repo.CreateUser(context.Background(), u)
+		require.Error(t, err)
+		var exists *domain.ErrUserExists
+		assert.False(t, errors.As(err, &exists), "an outage must not be reported as a duplicate user")
+		assert.Contains(t, err.Error(), "failed to create user")
+	})
 }
 
 func TestGetUserByEmail(t *testing.T) {

@@ -17,6 +17,7 @@ import {
   validateFlow,
   canHaveMultipleChildren,
   type AutomationNodeData,
+  type Structural,
   type ValidationError
 } from '../utils/flowConverter'
 import { layoutNodes } from '../utils/layoutNodes'
@@ -25,6 +26,18 @@ import type { NodeType, ABTestNodeConfig, FilterNodeConfig, ListStatusBranchNode
 
 // Editor uses larger nodes
 const EDITOR_NODE_WIDTH = 300
+
+// layoutNodes accepts a minimal structural edge whose sourceHandle is `string | undefined`,
+// while ReactFlow's Edge declares it `string | null`. Everything downstream reads it as
+// `sourceHandle || ''`, so null and undefined are already equivalent there; normalise at the
+// boundary instead of asserting the mismatch away.
+function toLayoutEdges(edges: Edge[]): { source: string; target: string; sourceHandle?: string }[] {
+  return edges.map(e => ({
+    source: e.source,
+    target: e.target,
+    sourceHandle: e.sourceHandle ?? undefined
+  }))
+}
 
 // Represents an unconnected output handle that needs a placeholder edge
 export interface UnconnectedOutput {
@@ -184,7 +197,7 @@ export function useAutomationCanvas(): UseAutomationCanvasReturn {
 
     // For A/B test nodes, update variant config with next_node_id
     if (sourceNode.data.nodeType === 'ab_test' && params.sourceHandle) {
-      const config = sourceNode.data.config as ABTestNodeConfig
+      const config = sourceNode.data.config as Structural<ABTestNodeConfig>
       if (config?.variants) {
         const updatedVariants = config.variants.map(v =>
           v.id === params.sourceHandle ? { ...v, next_node_id: params.target } : v
@@ -201,7 +214,7 @@ export function useAutomationCanvas(): UseAutomationCanvasReturn {
 
     // For filter nodes, update continue_node_id or exit_node_id based on sourceHandle
     if (sourceNode.data.nodeType === 'filter' && params.sourceHandle) {
-      const config = sourceNode.data.config as FilterNodeConfig
+      const config = sourceNode.data.config as Structural<FilterNodeConfig>
       const field = params.sourceHandle === 'continue' ? 'continue_node_id' : 'exit_node_id'
       setNodes(nds =>
         nds.map(n =>
@@ -214,7 +227,7 @@ export function useAutomationCanvas(): UseAutomationCanvasReturn {
 
     // For list_status_branch nodes, update the appropriate branch node ID based on sourceHandle
     if (sourceNode.data.nodeType === 'list_status_branch' && params.sourceHandle) {
-      const config = sourceNode.data.config as ListStatusBranchNodeConfig
+      const config = sourceNode.data.config as Structural<ListStatusBranchNodeConfig>
       const fieldMap: Record<string, string> = {
         not_in_list: 'not_in_list_node_id',
         active: 'active_node_id',
@@ -331,7 +344,7 @@ export function useAutomationCanvas(): UseAutomationCanvasReturn {
 
     // Update filter config when adding via handle
     if (sourceHandle && sourceNode.data.nodeType === 'filter') {
-      const config = sourceNode.data.config as FilterNodeConfig
+      const config = sourceNode.data.config as Structural<FilterNodeConfig>
       const field = sourceHandle === 'continue' ? 'continue_node_id' : 'exit_node_id'
       setNodes(nds => [
         ...nds.map(n =>
@@ -343,7 +356,7 @@ export function useAutomationCanvas(): UseAutomationCanvasReturn {
       ])
     } else if (sourceHandle && sourceNode.data.nodeType === 'list_status_branch') {
       // Update list_status_branch config when adding via handle
-      const config = sourceNode.data.config as ListStatusBranchNodeConfig
+      const config = sourceNode.data.config as Structural<ListStatusBranchNodeConfig>
       const fieldMap: Record<string, string> = {
         not_in_list: 'not_in_list_node_id',
         active: 'active_node_id',
@@ -364,7 +377,7 @@ export function useAutomationCanvas(): UseAutomationCanvasReturn {
       }
     } else if (sourceHandle && sourceNode.data.nodeType === 'ab_test') {
       // Update A/B test variant config when adding via handle
-      const config = sourceNode.data.config as ABTestNodeConfig
+      const config = sourceNode.data.config as Structural<ABTestNodeConfig>
       const updatedVariants = config?.variants?.map(v =>
         v.id === sourceHandle ? { ...v, next_node_id: newNodeId } : v
       )
@@ -468,7 +481,7 @@ export function useAutomationCanvas(): UseAutomationCanvasReturn {
     let updatedNewNode = newNode
 
     if (type === 'ab_test') {
-      const config = newNode.data.config as ABTestNodeConfig
+      const config = newNode.data.config as Structural<ABTestNodeConfig>
       const firstVariantId = config.variants?.[0]?.id || 'A'
       edgeFromNew = {
         id: `${newNodeId}-${firstVariantId}-${edge.target}`,
@@ -496,7 +509,7 @@ export function useAutomationCanvas(): UseAutomationCanvasReturn {
         type: 'smoothstep'
       }
       // Update continue_node_id in config
-      const config = newNode.data.config as FilterNodeConfig
+      const config = newNode.data.config as Structural<FilterNodeConfig>
       updatedNewNode = {
         ...newNode,
         data: { ...newNode.data, config: { ...config, continue_node_id: edge.target } }
@@ -511,7 +524,7 @@ export function useAutomationCanvas(): UseAutomationCanvasReturn {
         type: 'smoothstep'
       }
       // Update active_node_id in config
-      const config = newNode.data.config as ListStatusBranchNodeConfig
+      const config = newNode.data.config as Structural<ListStatusBranchNodeConfig>
       updatedNewNode = {
         ...newNode,
         data: { ...newNode.data, config: { ...config, active_node_id: edge.target } }
@@ -557,7 +570,7 @@ export function useAutomationCanvas(): UseAutomationCanvasReturn {
     if (edge.sourceHandle) {
       const sourceNode = nodes.find(n => n.id === edge.source)
       if (sourceNode?.data.nodeType === 'ab_test') {
-        const config = sourceNode.data.config as ABTestNodeConfig
+        const config = sourceNode.data.config as Structural<ABTestNodeConfig>
         if (config?.variants) {
           const updatedVariants = config.variants.map(v =>
             v.id === edge.sourceHandle ? { ...v, next_node_id: '' } : v
@@ -574,7 +587,7 @@ export function useAutomationCanvas(): UseAutomationCanvasReturn {
 
       // For filter nodes, clear continue_node_id or exit_node_id when edge is deleted
       if (sourceNode?.data.nodeType === 'filter') {
-        const config = sourceNode.data.config as FilterNodeConfig
+        const config = sourceNode.data.config as Structural<FilterNodeConfig>
         const field = edge.sourceHandle === 'continue' ? 'continue_node_id' : 'exit_node_id'
         setNodes(nds =>
           nds.map(n =>
@@ -587,7 +600,7 @@ export function useAutomationCanvas(): UseAutomationCanvasReturn {
 
       // For list_status_branch nodes, clear the appropriate branch node ID when edge is deleted
       if (sourceNode?.data.nodeType === 'list_status_branch') {
-        const config = sourceNode.data.config as ListStatusBranchNodeConfig
+        const config = sourceNode.data.config as Structural<ListStatusBranchNodeConfig>
         const fieldMap: Record<string, string> = {
           not_in_list: 'not_in_list_node_id',
           active: 'active_node_id',
@@ -637,7 +650,6 @@ export function useAutomationCanvas(): UseAutomationCanvasReturn {
 
   // Handle node drag stop - push history for position changes
   // Note: We ignore the event params, just need to know drag ended
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Event params required by ReactFlow callback signature
   const onNodeDragStop = useCallback((_event: React.MouseEvent, _node: Node, _nodes: Node[]) => {
     pushHistory()
   }, [pushHistory])
@@ -689,7 +701,7 @@ export function useAutomationCanvas(): UseAutomationCanvasReturn {
           })
         }
       } else if (node.data.nodeType === 'ab_test') {
-        const config = node.data.config as ABTestNodeConfig
+        const config = node.data.config as Structural<ABTestNodeConfig>
         const variants = config?.variants || []
         // Use measured width if available, fallback to 300px
         const nodeWidth = node.measured?.width || 300
@@ -796,7 +808,7 @@ export function useAutomationCanvas(): UseAutomationCanvasReturn {
 
     pushHistory()
 
-    const layoutedNodes = layoutNodes(nodes, edges, { nodeWidth: EDITOR_NODE_WIDTH })
+    const layoutedNodes = layoutNodes(nodes, toLayoutEdges(edges), { nodeWidth: EDITOR_NODE_WIDTH })
     setNodes(layoutedNodes)
     markAsChanged()
   }, [nodes, edges, setNodes, markAsChanged, pushHistory])

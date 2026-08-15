@@ -243,6 +243,15 @@ export interface EmailAIAgentCallbacks {
 }
 
 /**
+ * Render a single attribute value for the serialized tree summary.
+ * Returns undefined for falsy values so they are omitted, mirroring the
+ * truthiness check used when the summary is built.
+ */
+function displayAttribute(value: unknown): string | undefined {
+  return value ? String(value) : undefined
+}
+
+/**
  * Serialize the email tree for AI context
  * Simplifies the tree structure to reduce token usage while keeping essential info
  */
@@ -260,13 +269,28 @@ export function serializeEmailTree(tree: EmailBlock): string {
     }
 
     // Add key attributes
-    if (block.attributes) {
+    const attributes = block.attributes
+    if (attributes) {
       const keyAttrs: string[] = []
-      if (block.attributes.backgroundColor) keyAttrs.push(`bg: ${block.attributes.backgroundColor}`)
-      if (block.attributes.color) keyAttrs.push(`color: ${block.attributes.color}`)
-      if (block.attributes.width) keyAttrs.push(`width: ${block.attributes.width}`)
-      if (block.attributes.href) keyAttrs.push(`href: ${block.attributes.href}`)
-      if (block.attributes.src) keyAttrs.push(`src: ...`)
+      // Each MJML component has its own attribute shape, so a key is only read
+      // once `in` has proven it exists on the narrowed attribute bag.
+      if ('backgroundColor' in attributes) {
+        const backgroundColor = displayAttribute(attributes.backgroundColor)
+        if (backgroundColor) keyAttrs.push(`bg: ${backgroundColor}`)
+      }
+      if ('color' in attributes) {
+        const color = displayAttribute(attributes.color)
+        if (color) keyAttrs.push(`color: ${color}`)
+      }
+      if ('width' in attributes) {
+        const width = displayAttribute(attributes.width)
+        if (width) keyAttrs.push(`width: ${width}`)
+      }
+      if ('href' in attributes) {
+        const href = displayAttribute(attributes.href)
+        if (href) keyAttrs.push(`href: ${href}`)
+      }
+      if ('src' in attributes && attributes.src) keyAttrs.push(`src: ...`)
       if (keyAttrs.length > 0) {
         result += ` [${keyAttrs.join(', ')}]`
       }

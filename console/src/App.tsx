@@ -11,15 +11,23 @@ import frFR from 'antd/locale/fr_FR'
 import esES from 'antd/locale/es_ES'
 import deDE from 'antd/locale/de_DE'
 import caES from 'antd/locale/ca_ES'
+import ptBR from 'antd/locale/pt_BR'
+import jaJP from 'antd/locale/ja_JP'
+import itIT from 'antd/locale/it_IT'
 import type { Locale as AntdLocale } from 'antd/es/locale'
 import type { Locale } from './i18n'
 
+// Every locale in the app's supported set needs an entry: a missing key leaves
+// ConfigProvider without a locale and antd's own strings fall back to English.
 const antdLocales: Record<Locale, AntdLocale> = {
   en: enUS,
   fr: frFR,
   es: esES,
   de: deDE,
   ca: caES,
+  'pt-BR': ptBR,
+  ja: jaJP,
+  it: itIT,
 }
 
 const queryClient = new QueryClient({

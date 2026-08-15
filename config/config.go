@@ -228,7 +228,6 @@ type SystemSettings struct {
 	SMTPBridgePort          int
 	SMTPBridgeTLSCertBase64 string
 	SMTPBridgeTLSKeyBase64  string
-	SMTPBridgeTLSMode       string
 
 	// OIDC settings loaded from the DB (used only when the matching env var is unset).
 	OIDCEnabled         bool
@@ -379,13 +378,6 @@ func loadSystemSettings(db *sql.DB, secretKey string) (*SystemSettings, error) {
 				settings.SMTPBridgeTLSKeyBase64 = decrypted
 			}
 		}
-
-		// Dead read, pending removal (see plans/TODO.md): SettingService persists
-		// every other smtp_bridge_* field and not this one, and no UI submits it, so
-		// this always finds nothing and falls back to auto-resolve. TLS mode is
-		// environment-only by decision — SMTP_BRIDGE_TLS_MODE — and this line is what
-		// makes it look otherwise.
-		settings.SMTPBridgeTLSMode = settingsMap["smtp_bridge_tls_mode"]
 
 		// OIDC settings
 		if v, ok := settingsMap["oidc_enabled"]; ok {
@@ -773,9 +765,8 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 		if smtpBridgeConfig.TLSKeyBase64 == "" {
 			smtpBridgeConfig.TLSKeyBase64 = systemSettings.SMTPBridgeTLSKeyBase64
 		}
-		if smtpBridgeConfig.TLSMode == "" {
-			smtpBridgeConfig.TLSMode = systemSettings.SMTPBridgeTLSMode
-		}
+		// TLS mode deliberately has no database fallback: it is environment-only,
+		// via SMTP_BRIDGE_TLS. Unset means auto-resolve from the certs below.
 	} else {
 		// First-run: use env vars only
 		rootEmail = envVals.RootEmail

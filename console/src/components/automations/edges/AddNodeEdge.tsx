@@ -1,15 +1,20 @@
 import React from 'react'
-import { BaseEdge, EdgeLabelRenderer, getStraightPath, type EdgeProps } from '@xyflow/react'
+import { BaseEdge, EdgeLabelRenderer, getStraightPath, type Edge, type EdgeProps } from '@xyflow/react'
 
-export interface AddNodeEdgeData {
+// Type alias rather than an interface: ReactFlow constrains edge data to `Record<string, unknown>`,
+// which only an object-literal type alias satisfies (an interface has no implicit index signature).
+export type AddNodeEdgeData = {
   sourceNodeId: string
   sourceHandle?: string | null
   label?: string   // "Yes", "No"
   color?: string   // "#22c55e", "#ef4444"
 }
 
+// In ReactFlow v12 `EdgeProps` takes the edge type, not the data type.
+export type AddNodeFlowEdge = Edge<AddNodeEdgeData>
+
 // Simple dashed edge with optional label - the interactive button is rendered outside ReactFlow
-export const AddNodeEdge: React.FC<EdgeProps<AddNodeEdgeData>> = ({
+export const AddNodeEdge: React.FC<EdgeProps<AddNodeFlowEdge>> = ({
   sourceX,
   sourceY,
   targetX,

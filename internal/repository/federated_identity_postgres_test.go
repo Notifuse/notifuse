@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -79,12 +80,49 @@ func TestFederatedIdentityRepository_Create(t *testing.T) {
 	t.Run("unique violation maps to ErrFederatedIdentityExists", func(t *testing.T) {
 		mock.ExpectExec(`INSERT INTO federated_identities`).
 			WithArgs(sqlmock.AnyArg(), "user-1", "https://idp.example.com", "sub-999", sqlmock.AnyArg()).
-			WillReturnError(errors.New("pq: duplicate key value violates unique constraint \"federated_identities_user_id_idp_issuer_key\""))
+			WillReturnError(&pq.Error{
+				Code:       "23505",
+				Constraint: "federated_identities_user_id_idp_issuer_key",
+				Message:    `duplicate key value violates unique constraint "federated_identities_user_id_idp_issuer_key"`,
+			})
 
 		fi := &domain.FederatedIdentity{UserID: "user-1", IDPIssuer: "https://idp.example.com", IDPSub: "sub-999"}
 		err := repo.Create(context.Background(), fi)
 		var exists *domain.ErrFederatedIdentityExists
 		assert.True(t, errors.As(err, &exists), "expected *ErrFederatedIdentityExists, got %v", err)
+	})
+
+	// A server with lc_messages set to a non-English locale returns the same 23505 with
+	// translated text (this is verbatim what PostgreSQL 17 emits under fr_FR). Detection
+	// has to key off the SQLSTATE or OIDC reports auth_failed instead of link_conflict.
+	t.Run("localized unique violation still maps to ErrFederatedIdentityExists", func(t *testing.T) {
+		mock.ExpectExec(`INSERT INTO federated_identities`).
+			WithArgs(sqlmock.AnyArg(), "user-1", "https://idp.example.com", "sub-fr", sqlmock.AnyArg()).
+			WillReturnError(&pq.Error{
+				Code:       "23505",
+				Constraint: "federated_identities_idp_issuer_idp_sub_key",
+				Message:    "la valeur d'une cl\u00e9 dupliqu\u00e9e rompt la contrainte unique \u00ab federated_identities_idp_issuer_idp_sub_key \u00bb",
+			})
+
+		fi := &domain.FederatedIdentity{UserID: "user-1", IDPIssuer: "https://idp.example.com", IDPSub: "sub-fr"}
+		err := repo.Create(context.Background(), fi)
+		var exists *domain.ErrFederatedIdentityExists
+		assert.True(t, errors.As(err, &exists), "expected *ErrFederatedIdentityExists, got %v", err)
+	})
+
+	// The fall-through branch: an outage must stay an outage. Reporting it as a conflict
+	// would tell the caller the link is taken when the database was merely unreachable.
+	t.Run("non-unique-violation error is not reported as a conflict", func(t *testing.T) {
+		mock.ExpectExec(`INSERT INTO federated_identities`).
+			WithArgs(sqlmock.AnyArg(), "user-1", "https://idp.example.com", "sub-down", sqlmock.AnyArg()).
+			WillReturnError(&pq.Error{Code: "53300", Message: "sorry, too many clients already"})
+
+		fi := &domain.FederatedIdentity{UserID: "user-1", IDPIssuer: "https://idp.example.com", IDPSub: "sub-down"}
+		err := repo.Create(context.Background(), fi)
+		require.Error(t, err)
+		var exists *domain.ErrFederatedIdentityExists
+		assert.False(t, errors.As(err, &exists), "an outage must not be reported as an identity conflict")
+		assert.Contains(t, err.Error(), "failed to create federated identity")
 	})
 }
 

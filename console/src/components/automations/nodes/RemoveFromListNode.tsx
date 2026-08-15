@@ -5,15 +5,15 @@ import { useLingui } from '@lingui/react/macro'
 import { BaseNode } from './BaseNode'
 import { nodeTypeColors, getNodeDescription } from './constants'
 import { useAutomation } from '../context'
-import type { AutomationNodeData } from '../utils/flowConverter'
+import type { AutomationFlowNode, Structural } from '../utils/flowConverter'
 import type { RemoveFromListNodeConfig } from '../../../services/api/automation'
 
-type RemoveFromListNodeProps = NodeProps<AutomationNodeData>
+type RemoveFromListNodeProps = NodeProps<AutomationFlowNode>
 
 export const RemoveFromListNode: React.FC<RemoveFromListNodeProps> = ({ data, selected }) => {
   const { t } = useLingui()
   const { lists } = useAutomation()
-  const config = data.config as RemoveFromListNodeConfig
+  const config = data.config as Structural<RemoveFromListNodeConfig>
   const listName = lists.find((l) => l.id === config?.list_id)?.name
 
   const connection = useConnection()

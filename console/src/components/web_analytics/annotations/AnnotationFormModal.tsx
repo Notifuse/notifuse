@@ -13,7 +13,12 @@ const PRESET_COLORS = [
   '#22c55e', // green — launches and other good news
   '#ef4444', // red — incidents
   '#f59e0b', // amber — warnings
-  ANNOTATION_DEFAULT_COLOR // blue — informational
+  ANNOTATION_DEFAULT_COLOR, // blue — informational
+  // purple — campaigns. Kept in step with domain.AnnotationBroadcastColor: it is
+  // the colour every broadcast annotation is written with, so leaving it out of
+  // the row meant opening one for editing showed no swatch selected and the
+  // first click on any other colour lost it for good.
+  '#7763f1'
 ]
 
 const MAX_TITLE_LENGTH = 100
@@ -50,7 +55,7 @@ function ColorSwatches(props: { value?: string; onChange?: (color: string) => vo
           type="button"
           aria-label={preset}
           onClick={() => props.onChange?.(preset)}
-          className={`h-6 w-6 cursor-pointer rounded-full transition-all ${
+          className={`h-6 w-6 shrink-0 cursor-pointer rounded-full transition-all ${
             props.value === preset
               ? 'outline outline-1 outline-offset-2 outline-[var(--ant-color-primary)]'
               : 'hover:scale-105'
@@ -129,6 +134,9 @@ export function AnnotationFormModal(props: AnnotationFormModalProps) {
       onOk={handleOk}
       confirmLoading={saving}
       okText={annotation ? t`Save` : t`Add`}
+      // Wide enough that date, time and the five swatches share one line: at the
+      // default 520 the colour row wrapped under the pickers.
+      width={620}
     >
       <Form form={form} layout="vertical" className="mt-4">
         <div className="flex flex-wrap items-end gap-4">
@@ -149,7 +157,9 @@ export function AnnotationFormModal(props: AnnotationFormModalProps) {
             <TimePicker format="HH:mm" />
           </Form.Item>
 
-          <Form.Item name="color" label={t`Color`} className="w-full md:w-auto">
+          {/* shrink-0 so the swatches keep their size and stay beside the
+              pickers; below md the row still breaks and this goes full width. */}
+          <Form.Item name="color" label={t`Color`} className="w-full shrink-0 md:w-auto">
             <ColorSwatches />
           </Form.Item>
         </div>

@@ -28,8 +28,8 @@ import (
 const (
 	demoLaunchAnnotationTitle = "iPhone 17 & iPhone Air launch"
 
-	// One of the console's four colour presets. Green reads as a good day, which
-	// is what a 2.5x traffic spike is.
+	// One of the console's colour presets. Green reads as a good day, which is
+	// what a 2.5x traffic spike is.
 	demoLaunchAnnotationColor = "#22c55e"
 )
 

@@ -130,8 +130,15 @@ export interface MJMLBlock extends BaseBlock {
   attributes?: Record<string, never> // mjml doesn't have attributes
 }
 
+// Enforces that a component-keyed lookup table covers every member of
+// MJMLComponentType. A missing key makes the indexed access in
+// MJAttributeElementBlock illegal, which silently degrades its `attributes` to
+// `unknown` and breaks the whole block hierarchy; this turns that drift into a
+// local error on the table declaration instead.
+type RequireAllComponentTypes<T extends Record<MJMLComponentType, unknown>> = T
+
 // Helper type to extract attributes from each block type
-type ComponentAttributesMap = {
+type ComponentAttributesMap = RequireAllComponentTypes<{
   mjml: MJMLBlock['attributes']
   'mj-body': MJBodyBlock['attributes']
   'mj-wrapper': MJWrapperBlock['attributes']
@@ -155,13 +162,19 @@ type ComponentAttributesMap = {
   'mj-title': MJTitleBlock['attributes']
   'mj-raw': MJRawBlock['attributes']
   'mj-liquid': MJLiquidBlock['attributes']
-}
+  // mj-all and mj-class have no block of their own: they exist only as children of
+  // mj-attributes, where they carry default values for other components.
+  'mj-all': MJAllAttributes
+  'mj-class': MJClassAttributes
+}>
 
 // Individual attribute element within mj-attributes
 export interface MJAttributeElementBlock<T extends MJMLComponentType = MJMLComponentType>
   extends BaseBlock {
   type: T
   children?: never
+  // Legal because ComponentAttributesMap is exhaustive over MJMLComponentType,
+  // so `keyof ComponentAttributesMap` and the constraint on T are the same union.
   attributes?: ComponentAttributesMap[T]
 }
 
@@ -542,6 +555,22 @@ export type MJStyleAttributes = {
 export type MJHeadAttributes = Record<string, never>
 
 export type MJMLAttributes = Record<string, never>
+
+// mj-all applies default values to every component, so it accepts the shared
+// attribute groups rather than any single component's attribute set.
+export type MJAllAttributes = BackgroundAttributes &
+  BorderAttributes &
+  PaddingAttributes &
+  TextAttributes &
+  LayoutAttributes &
+  LinkAttributes &
+  ContainerAttributes &
+  CommonAttributes
+
+// mj-class declares a named set of defaults referenced by a component's mj-class attribute.
+export type MJClassAttributes = MJAllAttributes & {
+  name?: string
+}
 
 export type MJDividerAttributes = BorderAttributes &
   PaddingAttributes &

@@ -111,7 +111,7 @@ export interface UseAIAssistantReturn {
   setInputValue: (value: string) => void
   isStreaming: boolean
   costs: { input: number; output: number; total: number }
-  inputContainerRef: RefObject<HTMLDivElement | null>
+  inputContainerRef: RefObject<HTMLDivElement>
   llmIntegration: Integration | undefined
   llmIntegrations: Integration[]
   setSelectedLLMIntegrationId: (id: string) => void
@@ -159,7 +159,7 @@ export interface AIAssistantChatProps {
   setInputValue: (value: string) => void
   isStreaming: boolean
   costs: { input: number; output: number; total: number }
-  inputContainerRef: RefObject<HTMLDivElement | null>
+  inputContainerRef: RefObject<HTMLDivElement>
   llmIntegration: Integration | undefined
   llmIntegrations: Integration[]
   setSelectedLLMIntegrationId: (id: string) => void

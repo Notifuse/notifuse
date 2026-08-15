@@ -4,14 +4,14 @@ import { Filter } from 'lucide-react'
 import { useLingui } from '@lingui/react/macro'
 import { BaseNode } from './BaseNode'
 import { nodeTypeColors, getNodeDescription } from './constants'
-import type { AutomationNodeData } from '../utils/flowConverter'
+import type { AutomationFlowNode, Structural } from '../utils/flowConverter'
 import type { FilterNodeConfig } from '../../../services/api/automation'
 
-type FilterNodeProps = NodeProps<AutomationNodeData>
+type FilterNodeProps = NodeProps<AutomationFlowNode>
 
 export const FilterNode: React.FC<FilterNodeProps> = ({ data, selected }) => {
   const { t } = useLingui()
-  const config = data.config as FilterNodeConfig
+  const config = data.config as Structural<FilterNodeConfig>
   const hasConditions = config?.conditions !== undefined
 
   const connection = useConnection()

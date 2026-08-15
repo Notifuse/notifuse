@@ -52,7 +52,7 @@ export function GlobalFeedSettings({
       return broadcastApi.refreshGlobalFeed({
         workspace_id: workspaceId,
         broadcast_id: broadcastId,
-        url: settings.url,
+        url: settings.url ?? '',
         headers: settings.headers || []
       })
     },

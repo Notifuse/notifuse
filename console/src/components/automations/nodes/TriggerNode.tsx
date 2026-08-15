@@ -5,17 +5,14 @@ import { useLingui } from '@lingui/react/macro'
 import { BaseNode } from './BaseNode'
 import { nodeTypeColors, getNodeDescription } from './constants'
 import { useAutomation } from '../context'
-import type { AutomationNodeData } from '../utils/flowConverter'
+import type { AutomationFlowNode } from '../utils/flowConverter'
+import type { TimelineTriggerConfig } from '../../../services/api/automation'
 
-type TriggerNodeProps = NodeProps<AutomationNodeData>
+type TriggerNodeProps = NodeProps<AutomationFlowNode>
 
-interface TriggerConfig {
-  event_kind?: string
-  frequency?: string
-  list_id?: string
-  segment_id?: string
-  custom_event_name?: string
-}
+// The trigger's config bag is only partially filled until the trigger is configured, so read it as
+// a Partial of the API's trigger config rather than assuming event_kind/frequency are present.
+type TriggerConfig = Partial<TimelineTriggerConfig>
 
 export const TriggerNode: React.FC<TriggerNodeProps> = ({ data, selected }) => {
   const { t } = useLingui()

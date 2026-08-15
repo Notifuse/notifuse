@@ -3,7 +3,7 @@
 import { useContext, forwardRef, useImperativeHandle } from 'react'
 import { useLingui } from '@lingui/react/macro'
 import { EditorContent, EditorContext, useEditor } from '@tiptap/react'
-import type { Editor } from '@tiptap/core'
+import type { Content, Editor } from '@tiptap/core'
 
 // --- Tiptap Core Extensions ---
 import { StarterKit } from '@tiptap/starter-kit'
@@ -223,7 +223,9 @@ export interface NotifuseEditorRef {
   redo: () => void
   canUndo: () => boolean
   canRedo: () => boolean
-  setContent: (content: unknown) => void
+  // Tiptap's own document union (HTML string, JSON node, node array or null): the ref
+  // forwards straight to editor.commands.setContent, so it accepts exactly what that does.
+  setContent: (content: Content) => void
   editor: Editor | null
 }
 
@@ -466,7 +468,7 @@ export const EditorProvider = forwardRef<NotifuseEditorRef, EditorProviderProps>
       redo: () => editor?.chain().focus().redo().run(),
       canUndo: () => editor?.can().undo() ?? false,
       canRedo: () => editor?.can().redo() ?? false,
-      setContent: (content: unknown) => {
+      setContent: (content: Content) => {
         editor?.commands.setContent(content)
       },
       editor: editor

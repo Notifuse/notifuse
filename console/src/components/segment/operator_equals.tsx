@@ -71,7 +71,6 @@ export class OperatorEquals implements IOperator {
     )
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   renderFormItems(fieldType: FieldTypeValue, fieldName: string, _form: FormInstance) {
     const rule: Rule = { required: true, type: 'string', message: Messages.RequiredField }
     let input = <Input placeholder="enter a value" />

@@ -6,6 +6,20 @@ import {
 } from '../email-ai-tools'
 import type { EmailBlock } from '../types'
 
+/**
+ * `LLMTool.input_schema` (src/services/api/llm.ts) is declared as the bare
+ * `object` type, so the JSON-Schema shape the tools actually carry has to be
+ * restated here to read it without casting.
+ */
+interface ToolSchemaNode {
+  type?: string
+  description?: string
+  enum?: string[]
+  items?: ToolSchemaNode
+  properties?: Record<string, ToolSchemaNode>
+  required?: string[]
+}
+
 describe('Email AI Tools', () => {
   describe('Tool Definitions', () => {
     test('should have 7 tools defined', () => {
@@ -26,31 +40,34 @@ describe('Email AI Tools', () => {
     test('updateBlock tool should have correct schema', () => {
       const tool = EMAIL_AI_TOOLS.find(t => t.name === 'updateBlock')
       expect(tool).toBeDefined()
-      expect(tool?.input_schema.type).toBe('object')
-      expect(tool?.input_schema.required).toContain('blockId')
-      expect(tool?.input_schema.required).toContain('updates')
+      const schema: ToolSchemaNode | undefined = tool?.input_schema
+      expect(schema?.type).toBe('object')
+      expect(schema?.required).toContain('blockId')
+      expect(schema?.required).toContain('updates')
     })
 
     test('addBlock tool should have correct enum for blockType', () => {
       const tool = EMAIL_AI_TOOLS.find(t => t.name === 'addBlock')
       expect(tool).toBeDefined()
-      const properties = tool?.input_schema.properties as Record<string, { enum?: string[] }>
-      expect(properties.blockType.enum).toContain('mj-section')
-      expect(properties.blockType.enum).toContain('mj-column')
-      expect(properties.blockType.enum).toContain('mj-text')
-      expect(properties.blockType.enum).toContain('mj-button')
-      expect(properties.blockType.enum).toContain('mj-image')
+      const schema: ToolSchemaNode | undefined = tool?.input_schema
+      const properties = schema?.properties
+      expect(properties?.blockType.enum).toContain('mj-section')
+      expect(properties?.blockType.enum).toContain('mj-column')
+      expect(properties?.blockType.enum).toContain('mj-text')
+      expect(properties?.blockType.enum).toContain('mj-button')
+      expect(properties?.blockType.enum).toContain('mj-image')
     })
 
     test('setEmailTree tool should require tree with specific structure', () => {
       const tool = EMAIL_AI_TOOLS.find(t => t.name === 'setEmailTree')
       expect(tool).toBeDefined()
-      expect(tool?.input_schema.required).toContain('tree')
-      const properties = tool?.input_schema.properties as Record<string, { properties?: Record<string, { type?: string; enum?: string[]; items?: { type?: string } }> }>
-      expect(properties.tree.properties?.type.enum).toContain('mjml')
+      const schema: ToolSchemaNode | undefined = tool?.input_schema
+      expect(schema?.required).toContain('tree')
+      const properties = schema?.properties
+      expect(properties?.tree.properties?.type.enum).toContain('mjml')
       // OpenAI rejects array schemas without `items` (see issue #324)
-      expect(properties.tree.properties?.children.items).toBeDefined()
-      expect(properties.tree.properties?.children.items?.type).toBe('object')
+      expect(properties?.tree.properties?.children.items).toBeDefined()
+      expect(properties?.tree.properties?.children.items?.type).toBe('object')
     })
   })
 
@@ -108,15 +125,16 @@ describe('Email AI Tools', () => {
     })
 
     test('should include key attributes', () => {
+      // mj-button is the block that legitimately carries all three of the
+      // serializer's "key" attributes (mj-section has neither color nor width).
       const tree: EmailBlock = {
-        id: 'section-1',
-        type: 'mj-section',
+        id: 'button-1',
+        type: 'mj-button',
         attributes: {
           backgroundColor: '#ffffff',
           color: '#333333',
           width: '600px'
-        },
-        children: []
+        }
       }
 
       const result = serializeEmailTree(tree)

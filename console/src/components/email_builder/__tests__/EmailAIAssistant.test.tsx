@@ -1,5 +1,5 @@
 import { describe, test, expect, vi } from 'vitest'
-import type { EmailBlock } from '../types'
+import type { EmailBlock, MJTextBlock } from '../types'
 import type { EmailAIAgentCallbacks } from '../email-ai-tools'
 import { EmailBlockClass } from '../EmailBlockClass'
 
@@ -47,6 +47,19 @@ describe('EmailAIAssistant Callbacks', () => {
       }
     ]
   })
+
+  /**
+   * Narrows a lookup to a text block, so the text-only attributes the
+   * assertions read (color, fontSize) are reachable on the block type.
+   * Returns null when the block is missing or is not a text block, which makes
+   * the assertion that follows fail rather than silently read undefined.
+   */
+  const isTextBlock = (block: EmailBlock | null): block is MJTextBlock => block?.type === 'mj-text'
+
+  const findTextBlock = (tree: EmailBlock, id: string): MJTextBlock | null => {
+    const block = EmailBlockClass.findBlockById(tree, id)
+    return isTextBlock(block) ? block : null
+  }
 
   describe('onAddBlock callback implementation', () => {
     test('should create and insert a new block at specified position', () => {
@@ -101,7 +114,7 @@ describe('EmailAIAssistant Callbacks', () => {
         block.attributes = { ...block.attributes, ...updates.attributes }
       }
 
-      const updatedBlock = EmailBlockClass.findBlockById(updatedTree, blockId)
+      const updatedBlock = findTextBlock(updatedTree, blockId)
       expect(updatedBlock?.attributes?.color).toBe('#000000')
       expect(updatedBlock?.attributes?.fontSize).toBe('18px')
     })
@@ -134,7 +147,7 @@ describe('EmailAIAssistant Callbacks', () => {
         block.attributes = { ...block.attributes, fontSize: '20px' }
       }
 
-      const updatedBlock = EmailBlockClass.findBlockById(updatedTree, blockId)
+      const updatedBlock = findTextBlock(updatedTree, blockId)
       expect(updatedBlock?.attributes?.color).toBe('#333333')
       expect(updatedBlock?.attributes?.fontSize).toBe('20px')
     })
@@ -281,24 +294,28 @@ describe('EmailAIAssistant Callbacks', () => {
     })
 
     test('should detect invalid structure', () => {
-      const invalidTree: EmailBlock = {
-        id: 'mjml-1',
-        type: 'mjml',
-        children: [
+      // mj-text cannot be a direct child of mj-body, so this tree is not
+      // expressible as an EmailBlock literal — the type correctly forbids it.
+      // It is built from JSON instead, which is exactly how an invalid tree
+      // reaches setEmailTree in production: parsed from an LLM tool call.
+      const invalidTree = JSON.parse(`{
+        "id": "mjml-1",
+        "type": "mjml",
+        "children": [
           {
-            id: 'body-1',
-            type: 'mj-body',
-            children: [
+            "id": "body-1",
+            "type": "mj-body",
+            "children": [
               {
-                id: 'text-1',
-                type: 'mj-text', // Invalid: text cannot be direct child of body
-                content: '<p>Invalid</p>',
-                attributes: {}
+                "id": "text-1",
+                "type": "mj-text",
+                "content": "<p>Invalid</p>",
+                "attributes": {}
               }
             ]
           }
         ]
-      }
+      }`) as EmailBlock
 
       const errors = EmailBlockClass.validateStructure(invalidTree)
       expect(errors.length).toBeGreaterThan(0)

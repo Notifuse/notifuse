@@ -15,7 +15,7 @@ import {
   ListStatusBranchConfigForm
 } from './config'
 import { useAutomation } from './context'
-import type { AutomationNodeData } from './utils/flowConverter'
+import type { AutomationNodeData, Structural } from './utils/flowConverter'
 import type {
   DelayNodeConfig,
   EmailNodeConfig,
@@ -26,8 +26,36 @@ import type {
   WebhookNodeConfig,
   ListStatusBranchNodeConfig
 } from '../../services/api/automation'
+import type { TreeNode } from '../../services/api/segment'
 
 const { Title } = Typography
+
+// Mirrors TriggerConfigForm's own trigger config shape, which that module does not export.
+type TriggerFormConfig = {
+  event_kind?: string
+  list_id?: string
+  segment_id?: string
+  custom_event_name?: string
+  updated_fields?: string[]
+  conditions?: TreeNode
+  frequency?: 'once' | 'every_time'
+}
+
+// The per-type forms declare `onChange` against their own concrete config interface. An interface
+// carries no implicit index signature, so a `(config: Record<string, unknown>) => void` handler is
+// assignable to none of them. `Structural<T>` re-expresses each config as an anonymous object type
+// with the same members: it accepts the interface on the way in (parameters are contravariant) and
+// satisfies `Record<string, unknown>` on the way back out into the node's config bag.
+type NodeConfigUpdate =
+  | TriggerFormConfig
+  | Structural<DelayNodeConfig>
+  | Structural<EmailNodeConfig>
+  | Structural<ABTestNodeConfig>
+  | Structural<AddToListNodeConfig>
+  | Structural<RemoveFromListNodeConfig>
+  | Structural<FilterNodeConfig>
+  | Structural<WebhookNodeConfig>
+  | Structural<ListStatusBranchNodeConfig>
 
 interface NodeConfigPanelProps {
   selectedNode: Node<AutomationNodeData> | null
@@ -51,11 +79,15 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({
 
   const { nodeType, config } = selectedNode.data
 
-  const handleConfigChange = (newConfig: Record<string, unknown>) => {
+  const writeConfig = (newConfig: Record<string, unknown>) => {
     onNodeUpdate(selectedNode.id, {
       ...selectedNode.data,
       config: newConfig
     })
+  }
+
+  const handleConfigChange = (newConfig: NodeConfigUpdate) => {
+    writeConfig(newConfig)
   }
 
   const renderConfigForm = () => {
@@ -63,7 +95,7 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({
       case 'trigger':
         return (
           <TriggerConfigForm
-            config={config as { event_kind?: string; list_id?: string; segment_id?: string; custom_event_name?: string; updated_fields?: string[]; frequency?: 'once' | 'every_time' }}
+            config={config as TriggerFormConfig}
             onChange={handleConfigChange}
             workspaceId={workspaceId}
             workspace={workspace}
@@ -72,14 +104,14 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({
       case 'delay':
         return (
           <DelayConfigForm
-            config={config as DelayNodeConfig}
+            config={config as Structural<DelayNodeConfig>}
             onChange={handleConfigChange}
           />
         )
       case 'email':
         return (
           <EmailConfigForm
-            config={config as EmailNodeConfig}
+            config={config as Structural<EmailNodeConfig>}
             onChange={handleConfigChange}
             workspaceId={workspaceId}
             workspace={workspace}
@@ -88,42 +120,42 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({
       case 'ab_test':
         return (
           <ABTestConfigForm
-            config={config as ABTestNodeConfig}
+            config={config as Structural<ABTestNodeConfig>}
             onChange={handleConfigChange}
           />
         )
       case 'add_to_list':
         return (
           <AddToListConfigForm
-            config={config as AddToListNodeConfig}
+            config={config as Structural<AddToListNodeConfig>}
             onChange={handleConfigChange}
           />
         )
       case 'remove_from_list':
         return (
           <RemoveFromListConfigForm
-            config={config as RemoveFromListNodeConfig}
+            config={config as Structural<RemoveFromListNodeConfig>}
             onChange={handleConfigChange}
           />
         )
       case 'filter':
         return (
           <FilterConfigForm
-            config={config as FilterNodeConfig}
+            config={config as Structural<FilterNodeConfig>}
             onChange={handleConfigChange}
           />
         )
       case 'webhook':
         return (
           <WebhookConfigForm
-            config={config as WebhookNodeConfig}
+            config={config as Structural<WebhookNodeConfig>}
             onChange={handleConfigChange}
           />
         )
       case 'list_status_branch':
         return (
           <ListStatusBranchConfigForm
-            config={config as ListStatusBranchNodeConfig}
+            config={config as Structural<ListStatusBranchNodeConfig>}
             onChange={handleConfigChange}
           />
         )
@@ -169,7 +201,7 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({
               // renders as nothing on the canvas, so persisting one would be invisible dead weight
               // — while the value itself is stored as typed.
               onChange={(e) =>
-                handleConfigChange({
+                writeConfig({
                   ...config,
                   description: e.target.value.trim() ? e.target.value : undefined
                 })

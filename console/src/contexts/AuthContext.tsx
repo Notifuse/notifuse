@@ -94,7 +94,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refreshWorkspaces = async () => {
     const { workspaces } = await authService.getCurrentUser()
-    setWorkspaces(workspaces)
+    // getCurrentUser declares workspaces as Workspace[] | null; normalize before it reaches
+    // state that consumers index and map over.
+    setWorkspaces(workspaces ?? [])
   }
 
   // console.log('user', user)
@@ -125,6 +127,39 @@ export function useAuth() {
   return context
 }
 
+// Fallback permission sets used when there is no member record to read from: a root user (who
+// has everything) and a non-member or failed lookup (who has nothing). Both are annotated as
+// UserPermissions on purpose — that is what makes the compiler reject the set the moment a new
+// resource is added to the type, instead of leaving that resource silently absent here, which
+// every permission gate reads as "denied".
+const ROOT_USER_PERMISSIONS: UserPermissions = {
+  contacts: { read: true, write: true },
+  lists: { read: true, write: true },
+  templates: { read: true, write: true },
+  broadcasts: { read: true, write: true },
+  transactional: { read: true, write: true },
+  workspace: { read: true, write: true },
+  message_history: { read: true, write: true },
+  blog: { read: true, write: true },
+  automations: { read: true, write: true },
+  llm: { read: true, write: true },
+  web_analytics: { read: true, write: true }
+}
+
+const NO_PERMISSIONS: UserPermissions = {
+  contacts: { read: false, write: false },
+  lists: { read: false, write: false },
+  templates: { read: false, write: false },
+  broadcasts: { read: false, write: false },
+  transactional: { read: false, write: false },
+  workspace: { read: false, write: false },
+  message_history: { read: false, write: false },
+  blog: { read: false, write: false },
+  automations: { read: false, write: false },
+  llm: { read: false, write: false },
+  web_analytics: { read: false, write: false }
+}
+
 // Custom hook to get user permissions for a specific workspace
 // eslint-disable-next-line react-refresh/only-export-components -- Hook co-located with context
 export function useWorkspacePermissions(workspaceId: string) {
@@ -141,18 +176,7 @@ export function useWorkspacePermissions(workspaceId: string) {
 
       // If user is root, they have full permissions
       if (isRootUser(user.email)) {
-        setPermissions({
-          contacts: { read: true, write: true },
-          lists: { read: true, write: true },
-          templates: { read: true, write: true },
-          broadcasts: { read: true, write: true },
-          transactional: { read: true, write: true },
-          workspace: { read: true, write: true },
-          message_history: { read: true, write: true },
-          blog: { read: true, write: true },
-          automations: { read: true, write: true },
-          web_analytics: { read: true, write: true }
-        })
+        setPermissions(ROOT_USER_PERMISSIONS)
         setLoading(false)
         return
       }
@@ -165,33 +189,12 @@ export function useWorkspacePermissions(workspaceId: string) {
           setPermissions(currentUserMember.permissions)
         } else {
           // User is not a member of this workspace, set empty permissions
-          setPermissions({
-            contacts: { read: false, write: false },
-            lists: { read: false, write: false },
-            templates: { read: false, write: false },
-            broadcasts: { read: false, write: false },
-            transactional: { read: false, write: false },
-            workspace: { read: false, write: false },
-            message_history: { read: false, write: false },
-            blog: { read: false, write: false },
-            automations: { read: false, write: false },
-            web_analytics: { read: false, write: false }
-          })
+          setPermissions(NO_PERMISSIONS)
         }
       } catch (error) {
         console.error('Failed to fetch user permissions', error)
         // On error, assume no permissions
-        setPermissions({
-          contacts: { read: false, write: false },
-          lists: { read: false, write: false },
-          templates: { read: false, write: false },
-          broadcasts: { read: false, write: false },
-          transactional: { read: false, write: false },
-          workspace: { read: false, write: false },
-          message_history: { read: false, write: false },
-          blog: { read: false, write: false },
-          automations: { read: false, write: false }
-        })
+        setPermissions(NO_PERMISSIONS)
       } finally {
         setLoading(false)
       }

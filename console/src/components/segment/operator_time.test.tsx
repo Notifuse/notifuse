@@ -4,7 +4,7 @@ import { i18n } from '@lingui/core'
 import { I18nProvider } from '@lingui/react'
 import { FieldTypeTime } from './type_time'
 import { OperatorNotInTheLastDays, OperatorInTheLastDays } from './operator_time'
-import type { DimensionFilter } from '../../services/api/segment'
+import type { DimensionFilter, FieldTypeRenderer } from '../../services/api/segment'
 
 const renderOperator = (element: JSX.Element) =>
   render(<I18nProvider i18n={i18n}>{element}</I18nProvider>)
@@ -53,8 +53,12 @@ describe('not_in_the_last_days operator', () => {
       string_values: ['30']
     }
 
+    // Typed as the interface so the call matches how input.tsx and
+    // input_dimension_filters.tsx invoke it: (filter, schema).
+    const renderer: FieldTypeRenderer = new FieldTypeTime()
+
     const { container } = renderOperator(
-      new FieldTypeTime().render(filter, {
+      renderer.render(filter, {
         name: 'custom_datetime_1',
         title: 'Custom Date 1',
         type: 'time'

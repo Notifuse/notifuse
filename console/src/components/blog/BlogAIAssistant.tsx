@@ -20,6 +20,26 @@ interface BlogAIAssistantProps {
   currentMetadata?: BlogMetadata
 }
 
+/* ---------------------------------------------------------------------------
+ * Tool arguments arrive as `Record<string, unknown>` - whatever the model chose to
+ * send. These guards narrow a single value at a time, so a handler never has to
+ * assert a shape it has not checked.
+ * ------------------------------------------------------------------------- */
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function asString(value: unknown): string | undefined {
+  return typeof value === 'string' ? value : undefined
+}
+
+function asStringArray(value: unknown): string[] | undefined {
+  return Array.isArray(value) && value.every((item): item is string => typeof item === 'string')
+    ? value
+    : undefined
+}
+
 // Note: Config is created inside component to access t() for translations
 
 export function BlogAIAssistant({
@@ -81,10 +101,14 @@ export function BlogAIAssistant({
     [
       BLOG_TOOL_NAMES.UPDATE_CONTENT,
       (event, insert) => {
-        const input = event.tool_input as { content: Record<string, unknown>; message: string }
-        if (!input?.content) return
-        onUpdateContent(input.content)
-        const toolMsg = input.message || 'Content updated'
+        const input = event.tool_input
+        const content = input?.content
+        // The model can put anything in tool_input, so the Tiptap document is checked
+        // for real instead of asserted: a non-object `content` was already a no-op
+        // downstream (the editor only accepts a node whose type is "doc").
+        if (!isRecord(content)) return
+        onUpdateContent(content)
+        const toolMsg = asString(input?.message) || 'Content updated'
         insert(toolMsg, BLOG_TOOL_NAMES.UPDATE_CONTENT)
         message.success(toolMsg)
       }
@@ -92,20 +116,29 @@ export function BlogAIAssistant({
     [
       BLOG_TOOL_NAMES.UPDATE_METADATA,
       (event, insert) => {
-        const input = event.tool_input as BlogMetadata & { message: string }
+        const input = event.tool_input
         if (!input) return
 
+        // Every field is validated against the shape the tool schema promises, so a
+        // malformed value is dropped rather than written into the form.
         const metadata: BlogMetadata = {}
-        if (input.title !== undefined) metadata.title = input.title
-        if (input.excerpt !== undefined) metadata.excerpt = input.excerpt
-        if (input.meta_title !== undefined) metadata.meta_title = input.meta_title
-        if (input.meta_description !== undefined) metadata.meta_description = input.meta_description
-        if (input.keywords !== undefined) metadata.keywords = input.keywords
-        if (input.og_title !== undefined) metadata.og_title = input.og_title
-        if (input.og_description !== undefined) metadata.og_description = input.og_description
+        const title = asString(input.title)
+        if (title !== undefined) metadata.title = title
+        const excerpt = asString(input.excerpt)
+        if (excerpt !== undefined) metadata.excerpt = excerpt
+        const metaTitle = asString(input.meta_title)
+        if (metaTitle !== undefined) metadata.meta_title = metaTitle
+        const metaDescription = asString(input.meta_description)
+        if (metaDescription !== undefined) metadata.meta_description = metaDescription
+        const keywords = asStringArray(input.keywords)
+        if (keywords !== undefined) metadata.keywords = keywords
+        const ogTitle = asString(input.og_title)
+        if (ogTitle !== undefined) metadata.og_title = ogTitle
+        const ogDescription = asString(input.og_description)
+        if (ogDescription !== undefined) metadata.og_description = ogDescription
 
         onUpdateMetadata(metadata)
-        const toolMsg = input.message || 'Metadata updated'
+        const toolMsg = asString(input.message) || 'Metadata updated'
         insert(toolMsg, BLOG_TOOL_NAMES.UPDATE_METADATA)
         message.success(toolMsg)
       }

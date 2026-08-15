@@ -6,15 +6,15 @@ import { useLingui } from '@lingui/react/macro'
 import { BaseNode } from './BaseNode'
 import { nodeTypeColors, getNodeDescription } from './constants'
 import { useAutomation } from '../context'
-import type { AutomationNodeData } from '../utils/flowConverter'
+import type { AutomationFlowNode, Structural } from '../utils/flowConverter'
 import type { AddToListNodeConfig } from '../../../services/api/automation'
 
-type AddToListNodeProps = NodeProps<AutomationNodeData>
+type AddToListNodeProps = NodeProps<AutomationFlowNode>
 
 export const AddToListNode: React.FC<AddToListNodeProps> = ({ data, selected }) => {
   const { t } = useLingui()
   const { lists } = useAutomation()
-  const config = data.config as AddToListNodeConfig
+  const config = data.config as Structural<AddToListNodeConfig>
   const listName = lists.find((l) => l.id === config?.list_id)?.name
   const status = config?.status || 'active'
 

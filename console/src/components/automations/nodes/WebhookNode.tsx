@@ -4,14 +4,14 @@ import { Globe } from 'lucide-react'
 import { useLingui } from '@lingui/react/macro'
 import { BaseNode } from './BaseNode'
 import { nodeTypeColors, getNodeDescription } from './constants'
-import type { AutomationNodeData } from '../utils/flowConverter'
+import type { AutomationFlowNode, Structural } from '../utils/flowConverter'
 import type { WebhookNodeConfig } from '../../../services/api/automation'
 
-type WebhookNodeProps = NodeProps<AutomationNodeData>
+type WebhookNodeProps = NodeProps<AutomationFlowNode>
 
 export const WebhookNode: React.FC<WebhookNodeProps> = ({ data, selected }) => {
   const { t } = useLingui()
-  const config = data.config as WebhookNodeConfig
+  const config = data.config as Structural<WebhookNodeConfig>
   const hasUrl = !!config?.url
   const connection = useConnection()
   const isConnecting = connection.inProgress

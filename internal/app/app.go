@@ -554,7 +554,6 @@ func (a *App) InitServices() error {
 		SMTPBridgePort:          smtpBridgePort,
 		SMTPBridgeTLSCertBase64: smtpBridgeTLSCertBase64,
 		SMTPBridgeTLSKeyBase64:  smtpBridgeTLSKeyBase64,
-		SMTPBridgeTLSMode:       a.config.EnvValues.SMTPBridgeTLSMode,
 
 		OIDCEnabled:         a.config.EnvValues.OIDCEnabled,
 		OIDCIssuerURL:       a.config.EnvValues.OIDCIssuerURL,

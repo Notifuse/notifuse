@@ -3,11 +3,12 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 	"go.opencensus.io/trace"
 
 	"github.com/Notifuse/notifuse/internal/domain"
@@ -89,9 +90,15 @@ func (r *federatedIdentityRepository) Create(ctx context.Context, fi *domain.Fed
 	query := `INSERT INTO federated_identities (id, user_id, idp_issuer, idp_sub, created_at) VALUES ($1, $2, $3, $4, $5)`
 	_, err := r.systemDB.ExecContext(ctx, query, fi.ID, fi.UserID, fi.IDPIssuer, fi.IDPSub, fi.CreatedAt)
 	if err != nil {
-		// PostgreSQL unique violation (23505) on either UNIQUE constraint.
-		if strings.Contains(err.Error(), "duplicate key value violates unique constraint") ||
-			strings.Contains(err.Error(), "UNIQUE constraint failed") {
+		// Match the SQLSTATE, never the message. PostgreSQL translates error text per
+		// lc_messages, so a non-English server renders this same 23505 in its own locale
+		// and no text match survives it. The INSERT fails either way, so the takeover
+		// guard in OIDCService.linkIdentity still holds; what a missed match costs is the
+		// diagnosis - the caller can no longer tell a conflict from an outage, so a
+		// genuine same-link race stops resolving as an idempotent success and the user
+		// is sent to ?oidc_error=auth_failed, told to retry what cannot succeed.
+		var pqErr *pq.Error
+		if errors.As(err, &pqErr) && pqErr.Code == "23505" {
 			return &domain.ErrFederatedIdentityExists{Message: "federated identity already exists"}
 		}
 		return fmt.Errorf("failed to create federated identity: %w", err)

@@ -1,4 +1,3 @@
-import React from 'react'
 import { Progress, Typography, Space } from 'antd'
 import { useLingui } from '@lingui/react/macro'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'

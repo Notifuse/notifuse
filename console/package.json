@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "lingui compile && tsc && vite build",
+    "build": "lingui compile && tsc -b && vite build",
     "lint": "eslint . --max-warnings 0",
     "lingui:extract": "lingui extract",
     "lingui:compile": "lingui compile",

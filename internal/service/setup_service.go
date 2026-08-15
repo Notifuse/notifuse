@@ -93,7 +93,6 @@ type EnvironmentConfig struct {
 	SMTPBridgePort          int
 	SMTPBridgeTLSCertBase64 string
 	SMTPBridgeTLSKeyBase64  string
-	SMTPBridgeTLSMode       string // "off", "starttls", "implicit", or ""
 
 	// OIDC env values (Enabled/AutoCreateUsers are tri-state strings).
 	OIDCEnabled         string
@@ -229,9 +228,6 @@ func (s *SetupService) GetEnvOverrides() map[string]bool {
 	}
 	if s.envConfig.SMTPBridgeTLSKeyBase64 != "" {
 		result["smtp_bridge_tls_key_base64"] = true
-	}
-	if s.envConfig.SMTPBridgeTLSMode != "" {
-		result["smtp_bridge_tls_mode"] = true
 	}
 
 	// OIDC overrides (keys match the settings keys so the UI can lock fields).

@@ -29,6 +29,11 @@ export interface UseUndoRedoReturn {
    */
   push: (entry: HistoryEntry, coalesceKey?: string) => void
   clear: () => void
+  /**
+   * Internal — push the current state onto the future (redo) stack. The provider calls this when
+   * undoing so it can snapshot the state it is about to replace; nothing else should use it.
+   */
+  _pushToFuture: (entry: HistoryEntry) => void
 }
 
 export function useUndoRedo(): UseUndoRedoReturn {
@@ -140,5 +145,5 @@ export function useUndoRedo(): UseUndoRedoReturn {
     clear,
     // Internal - exposed for context to handle undo properly
     _pushToFuture: pushToFuture
-  }), [canUndo, canRedo, undo, redo, push, clear, pushToFuture]) as UseUndoRedoReturn & { _pushToFuture: (entry: HistoryEntry) => void }
+  }), [canUndo, canRedo, undo, redo, push, clear, pushToFuture])
 }

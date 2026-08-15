@@ -1,5 +1,5 @@
 import React from 'react'
-import { Handle, Position, type NodeProps } from '@xyflow/react'
+import { Handle, Position, type Node, type NodeProps } from '@xyflow/react'
 import { Statistic } from 'antd'
 import {
   Play,
@@ -33,14 +33,20 @@ const nodeIcons: Record<NodeType, React.ReactNode> = {
 
 // Labels are generated inside component for i18n support
 
-export interface StatNodeData {
+// Type alias rather than an interface: ReactFlow constrains node data to `Record<string, unknown>`,
+// which only an object-literal type alias satisfies (an interface has no implicit index signature).
+export type StatNodeData = {
   nodeType: NodeType
   label?: string
   stats?: AutomationNodeStats
   config?: Record<string, unknown>
 }
 
-type StatNodeProps = NodeProps<StatNodeData>
+// The read-only stat canvas' node type. In ReactFlow v12 the props helper takes the node type, not
+// the data type, so components below are typed `NodeProps<StatFlowNode>`.
+export type StatFlowNode = Node<StatNodeData>
+
+type StatNodeProps = NodeProps<StatFlowNode>
 
 // Shared by all four stat node shapes below, which otherwise repeat this header verbatim. min-w-0
 // is what lets the truncation take effect inside the flex row.
@@ -88,13 +94,9 @@ export const StatNode: React.FC<StatNodeProps> = ({ data }) => {
   // Use 0 values when no stats available
   const nodeStats = stats || { entered: 0, completed: 0, failed: 0, skipped: 0 }
 
-  // Calculate percentages for email and webhook nodes
+  // Only email and webhook nodes surface a Failed counter. Any node kind can record a failed
+  // execution, so a failure on another kind is counted by the API but not shown here.
   const showFailedRate = nodeType === 'email' || nodeType === 'webhook'
-  const total = nodeStats.entered
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Reserved for future rate display
-  const _completedRate = total > 0 ? Math.round((nodeStats.completed / total) * 100) : 0
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Reserved for future rate display
-  const _failedRate = total > 0 ? Math.round((nodeStats.failed / total) * 100) : 0
 
   return (
     <>

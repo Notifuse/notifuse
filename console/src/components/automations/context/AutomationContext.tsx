@@ -22,7 +22,7 @@ import {
   validateFlow,
   type AutomationNodeData
 } from '../utils/flowConverter'
-import { useUndoRedo, type HistoryEntry } from '../hooks/useUndoRedo'
+import { useUndoRedo } from '../hooks/useUndoRedo'
 import { layoutNodes } from '../utils/layoutNodes'
 import {
   AutomationContext,
@@ -49,7 +49,7 @@ export function AutomationProvider({
   segments = [],
   templates = [],
   onSaveSuccess,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Reserved for future use
+  // Reserved for future use
   onClose: _onClose,
   children
 }: AutomationProviderProps) {
@@ -78,8 +78,8 @@ export function AutomationProvider({
   // Undo/Redo hook
   const undoRedoHook = useUndoRedo()
   const { canUndo, canRedo, push: pushToHistory, clear: clearHistory } = undoRedoHook
-  // Access internal method for pushing to future stack
-  const pushToFuture = (undoRedoHook as unknown as { _pushToFuture: (entry: HistoryEntry) => void })._pushToFuture
+  // Internal method for pushing the current state onto the future (redo) stack.
+  const pushToFuture = undoRedoHook._pushToFuture
 
   const isEditing = !!automation
 
@@ -193,8 +193,16 @@ export function AutomationProvider({
       const newNodes = [...nodes, listStatusBranchNode, addToListNode]
       const newEdges = [...edges, triggerToStatusEdge, statusToAddEdge]
 
-      // Apply layout to organize nodes hierarchically
-      const layoutedNodes = layoutNodes(newNodes, newEdges, { nodeWidth: 300 })
+      // Apply layout to organize nodes hierarchically. layoutNodes takes a minimal structural
+      // edge whose sourceHandle is `string | undefined`, while ReactFlow's Edge declares it
+      // `string | null`; everything downstream reads it as `sourceHandle || ''`, so normalise
+      // at the boundary instead of asserting the mismatch away.
+      const layoutEdges = newEdges.map((e) => ({
+        source: e.source,
+        target: e.target,
+        sourceHandle: e.sourceHandle ?? undefined
+      }))
+      const layoutedNodes = layoutNodes(newNodes, layoutEdges, { nodeWidth: 300 })
 
       setNodes(layoutedNodes)
       setEdges(newEdges)

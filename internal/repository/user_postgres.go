@@ -3,11 +3,12 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 	"go.opencensus.io/trace"
 
 	"github.com/Notifuse/notifuse/internal/domain"
@@ -53,9 +54,14 @@ func (r *userRepository) CreateUser(ctx context.Context, user *domain.User) erro
 		user.UpdatedAt,
 	)
 	if err != nil {
-		// Check for duplicate key constraint violation (PostgreSQL error code 23505)
-		if strings.Contains(err.Error(), "duplicate key value violates unique constraint") ||
-			strings.Contains(err.Error(), "UNIQUE constraint failed") {
+		// Match the SQLSTATE, never the message: PostgreSQL translates error text per
+		// lc_messages, so a non-English server renders this same 23505 in its own locale
+		// and no text match survives it. Three callers branch on ErrUserExists and each
+		// degrades differently on a miss - setup stops treating an existing root user as
+		// success, the OIDC JIT path stops recovering onto the winner of a create race,
+		// and workspace API-user creation reports an outage instead of a duplicate.
+		var pqErr *pq.Error
+		if errors.As(err, &pqErr) && pqErr.Code == "23505" {
 			return &domain.ErrUserExists{Message: "user already exists"}
 		}
 		return fmt.Errorf("failed to create user: %w", err)

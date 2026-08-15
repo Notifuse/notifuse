@@ -40,6 +40,24 @@ const DEFAULT_SETTINGS: WebAnalyticsSettingsValues = {
 /** Slots the backend accepts: custom_1..custom_10. */
 const CUSTOM_DIMENSION_SLOTS = Array.from({ length: 10 }, (_, index) => index + 1)
 
+/**
+ * How many coordinate decimals the name toggles actually allow.
+ *
+ * A coordinate is a place name in another form, so the server never stores one
+ * finer than the finest name the workspace agreed to keep: city -> 2 decimals,
+ * region only -> 1, neither -> 0. Mirrors EffectiveGeoCoordsPrecision in
+ * internal/domain/web_analytics.go, which applies it on every write.
+ *
+ * The picked precision is a ceiling these toggles can lower, never raise — and
+ * it is only ever explained here, never written back down, because the server
+ * keeps honouring the stored value the moment the name toggle returns.
+ */
+function geoPrecisionCeiling(storeCity?: boolean, storeRegion?: boolean): number {
+  if (storeCity) return 2
+  if (storeRegion) return 1
+  return 0
+}
+
 interface ToggleRowProps {
   name: string
   title: string
@@ -129,6 +147,9 @@ export function WebAnalyticsSettings({
 
   const stored = workspace?.settings?.web_analytics
   const geoEnabled = Form.useWatch('geo_enabled', form)
+  const geoStoreCity = Form.useWatch('geo_store_city', form)
+  const geoStoreRegion = Form.useWatch('geo_store_region', form)
+  const geoPrecision = Form.useWatch('geo_coordinates_precision', form)
 
   useEffect(() => {
     if (!canManage) return
@@ -189,6 +210,17 @@ export function WebAnalyticsSettings({
   }
 
   const snippet = workspace ? buildInstallSnippet(endpoint, workspace.id) : ''
+
+  // The picker lists every precision, but the name toggles can put the finer
+  // ones out of reach — without this the form states a precision the stored
+  // coordinates will not have. Distances mirror the option labels below.
+  const precisionCapped =
+    geoPrecision !== undefined && geoPrecision > geoPrecisionCeiling(geoStoreCity, geoStoreRegion)
+  const precisionCapNotice = !precisionCapped
+    ? null
+    : geoStoreRegion
+      ? t`Store city name is off, so coordinates are stored at regional precision (~11km).`
+      : t`Store city name and Store region/state name are off, so coordinates are stored at country precision (~111km).`
 
   const identifySnippet =
     'NotifuseAnalytics.identify("alice@example.com", "<hmac from your server>")'
@@ -372,6 +404,9 @@ export function WebAnalyticsSettings({
                     ]}
                   />
                 </Form.Item>
+                {precisionCapNotice && (
+                  <div className="mt-2 text-sm text-amber-600">{precisionCapNotice}</div>
+                )}
               </div>
             </div>
           )}

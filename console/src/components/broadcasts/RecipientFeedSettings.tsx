@@ -59,7 +59,7 @@ export function RecipientFeedSettings({
         workspace_id: workspaceId,
         broadcast_id: broadcastId,
         contact_email: testEmail || undefined,
-        url: settings.url,
+        url: settings.url ?? '',
         headers: settings.headers || []
       })
     },

@@ -181,6 +181,14 @@ export const MJ_FONT_DEFAULTS = {
 // mj-html-attributes defaults (dynamic HTML attributes)
 export const MJ_HTML_ATTRIBUTES_DEFAULTS = {}
 
+// mj-all defaults (declares defaults for every component inside mj-attributes,
+// so it carries no default attributes of its own)
+export const MJ_ALL_DEFAULTS = {}
+
+// mj-class defaults (declares a named attribute set inside mj-attributes,
+// so it carries no default attributes of its own)
+export const MJ_CLASS_DEFAULTS = {}
+
 // mj-preview defaults
 export const MJ_PREVIEW_DEFAULTS = {
   content: ''
@@ -322,7 +330,9 @@ export const MJML_COMPONENT_DEFAULTS: Record<MJMLComponentType, Record<string, u
   'mj-divider': MJ_DIVIDER_DEFAULTS,
   'mj-spacer': MJ_SPACER_DEFAULTS,
   'mj-social': MJ_SOCIAL_DEFAULTS,
-  'mj-social-element': MJ_SOCIAL_ELEMENT_DEFAULTS
+  'mj-social-element': MJ_SOCIAL_ELEMENT_DEFAULTS,
+  'mj-all': MJ_ALL_DEFAULTS,
+  'mj-class': MJ_CLASS_DEFAULTS
 }
 
 /**

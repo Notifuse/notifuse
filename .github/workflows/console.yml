@@ -1,0 +1,69 @@
+name: Console
+
+# The console had no CI at all, and its own build script could not have caught a
+# type error anyway: package.json ran a bare `tsc`, which resolves to the root
+# tsconfig.json — a solution file with `"files": []` and nothing but references.
+# That reports success without reading a single source file. Only `tsc -b` walks
+# the referenced projects. Between the two, 293 type errors accumulated silently
+# and `npm run build` stayed green the whole time, including inside the release
+# image (Dockerfile stage 1 runs `npm run build`).
+# The path list is duplicated rather than shared through a YAML anchor:
+# GitHub Actions does not support anchors or aliases in workflow files.
+on:
+  push:
+    branches: [dev, main]
+    paths:
+      - 'console/**'
+      - '.github/workflows/console.yml'
+  pull_request:
+    branches: [dev, main]
+    paths:
+      - 'console/**'
+      - '.github/workflows/console.yml'
+
+jobs:
+  checks:
+    name: Type-check, unit tests, lint, build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./console
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          # Matches the console builder stage in the Dockerfile, so a build that
+          # passes here is the same build that ships.
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: console/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Run explicitly, and before the build, so the failure this workflow exists
+      # to catch reports itself as a type error rather than as a build failure.
+      # `-b` is load-bearing: a bare `tsc` here checks nothing at all.
+      - name: Type-check
+        run: npx tsc -b
+
+      - name: Unit tests
+        run: npx vitest run
+
+      # Deliberately not `npm run lint`: that script passes --max-warnings 0, and the
+      # tree carries 5 long-standing warnings (4 react-refresh/only-export-components,
+      # 1 react-hooks/exhaustive-deps), so it has never exited 0 and would red-flag this
+      # workflow on day one. Errors are the gate; warnings still print in the log.
+      # Switch this to `npm run lint` once those five are cleared.
+      - name: Lint
+        run: npx eslint .
+
+      # The full production pipeline (lingui compile -> tsc -b -> vite build), which
+      # is what Dockerfile stage 1 runs. Catches catalog and bundler failures that a
+      # type-check alone cannot see.
+      - name: Production build
+        run: npm run build

@@ -294,6 +294,45 @@ describe('WebAnalyticsSettings', () => {
     expect(screen.getByText('City level (~1km precision)')).toBeInTheDocument()
   })
 
+  it('explains the cap when the picked precision is finer than the name toggles allow', async () => {
+    // The server clamps coordinates to the finest place name actually stored,
+    // so a picker left on "City level" with city storage off states a precision
+    // the data will never have.
+    renderComponent(true)
+
+    expect(await screen.findByLabelText('Store city name')).toBeInTheDocument()
+    expect(
+      screen.queryByText(/coordinates are stored at regional precision/i)
+    ).toBeNull()
+
+    fireEvent.click(screen.getByLabelText('Store city name'))
+    expect(
+      await screen.findByText(
+        'Store city name is off, so coordinates are stored at regional precision (~11km).'
+      )
+    ).toBeInTheDocument()
+
+    fireEvent.click(screen.getByLabelText('Store region/state name'))
+    expect(
+      await screen.findByText(
+        'Store city name and Store region/state name are off, so coordinates are stored at country precision (~111km).'
+      )
+    ).toBeInTheDocument()
+
+    // Back on, and the picked value — never rewritten — applies again.
+    fireEvent.click(screen.getByLabelText('Store city name'))
+    await waitFor(() =>
+      expect(screen.queryByText(/coordinates are stored at/i)).toBeNull()
+    )
+  })
+
+  it('leaves the cap unexplained when the picked precision is already within reach', async () => {
+    renderComponent(true, makeWorkspace({ geo_store_city: false, geo_coordinates_precision: 1 }))
+
+    expect(await screen.findByLabelText('Store city name')).toBeInTheDocument()
+    expect(screen.queryByText(/coordinates are stored at/i)).toBeNull()
+  })
+
   it('hides the nested geo options while geo tracking is off', async () => {
     renderComponent(true, makeWorkspace({ geo_enabled: false }))
 

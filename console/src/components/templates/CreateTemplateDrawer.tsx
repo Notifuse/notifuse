@@ -42,7 +42,7 @@ import type { MjmlCompileError } from '../../services/api/template'
 import { SUPPORTED_LANGUAGES } from '../../lib/languages'
 import TemplateTranslationsTab from './TemplateTranslationsTab'
 import type { TranslationEditorState } from './TemplateTranslationsTab'
-import type { TemplateTranslation } from '../../services/api/template'
+import type { EmailTemplate, TemplateTranslation } from '../../services/api/template'
 
 /**
  * Validates liquid template tags in a string to ensure they are properly closed
@@ -105,6 +105,16 @@ interface CreateTemplateDrawerProps {
   onClose?: () => void
   forceCategory?: string
 }
+
+/**
+ * What the drawer actually submits for a translation.
+ *
+ * `EmailTemplate` marks `compiled_preview` and `visual_editor_tree` as required because
+ * that is what the API returns; a translation being SENT carries neither (the server
+ * compiles the preview, and code mode has no visual tree), so the payload is modelled
+ * as its own partial shape instead of being asserted into the response type.
+ */
+type TranslationEmailPayload = Partial<EmailTemplate> & Pick<EmailTemplate, 'subject'>
 
 const HEADER_HEIGHT = 66
 /**
@@ -697,10 +707,10 @@ export function CreateTemplateDrawer({
                   }
                 }
 
-                const translations: Record<string, TemplateTranslation> = {}
+                const translations: Record<string, { email: TranslationEmailPayload }> = {}
                 for (const [lang, state] of Object.entries(translationsState)) {
                   if (!state.enabled) continue
-                  const emailTranslation: Record<string, unknown> = {
+                  const emailTranslation: TranslationEmailPayload = {
                     subject: state.subject,
                     subject_preview: state.subjectPreview || ''
                   }
@@ -711,7 +721,7 @@ export function CreateTemplateDrawer({
                     emailTranslation.editor_mode = 'visual'
                     emailTranslation.visual_editor_tree = state.visualEditorTree || visualEditorTree
                   }
-                  translations[lang] = { email: emailTranslation as TemplateTranslation['email'] }
+                  translations[lang] = { email: emailTranslation }
                 }
                 // Always send translations (even empty) so disabling all clears them on the server
                 values.translations = translations

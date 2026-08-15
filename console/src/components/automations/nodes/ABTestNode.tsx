@@ -5,14 +5,14 @@ import { faFlask } from '@fortawesome/free-solid-svg-icons'
 import { useLingui } from '@lingui/react/macro'
 import { BaseNode } from './BaseNode'
 import { nodeTypeColors, getNodeDescription } from './constants'
-import type { AutomationNodeData } from '../utils/flowConverter'
+import type { AutomationFlowNode, Structural } from '../utils/flowConverter'
 import type { ABTestNodeConfig } from '../../../services/api/automation'
 
-type ABTestNodeProps = NodeProps<AutomationNodeData>
+type ABTestNodeProps = NodeProps<AutomationFlowNode>
 
 export const ABTestNode: React.FC<ABTestNodeProps> = ({ data, selected }) => {
   const { t } = useLingui()
-  const config = data.config as ABTestNodeConfig
+  const config = data.config as Structural<ABTestNodeConfig>
   const variants = config?.variants || []
 
   const connection = useConnection()

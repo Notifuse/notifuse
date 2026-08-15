@@ -46,6 +46,8 @@ export interface SESTenantProvisionResult {
   tenant_name: string
   created: boolean
   suppression_scoped: boolean
+  /** SES rejects a send whose configuration set is not associated with the named tenant. */
+  configuration_set_associated: boolean
   associated?: string[]
   unverified_senders?: string[]
   missing_permissions?: string[]

@@ -181,6 +181,29 @@ describe('AnnotationsTab', () => {
     })
   })
 
+  it('offers the broadcast purple as a preset, selected, when editing a broadcast annotation', async () => {
+    // The colour the backend writes every broadcast annotation with has to be in
+    // the swatch row: without it the form opened on nothing selected, and picking
+    // any other colour left no way back to the one the row started on.
+    vi.mocked(annotationService.list).mockResolvedValue([broadcastAnnotation])
+    renderTab()
+
+    fireEvent.click(await desktop().findByRole('button', { name: 'Edit' }))
+
+    const purple = await screen.findByRole('button', { name: '#7763f1' })
+    expect(purple.className).toContain('outline-offset-2')
+
+    // And it survives a round trip through another colour.
+    fireEvent.click(screen.getByRole('button', { name: '#ef4444' }))
+    fireEvent.click(purple)
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+    await waitFor(() => expect(annotationService.update).toHaveBeenCalled())
+    expect(annotationService.update).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'a2', color: '#7763f1' })
+    )
+  })
+
   it('marks a broadcast annotation and warns differently before deleting it', async () => {
     vi.mocked(annotationService.list).mockResolvedValue([broadcastAnnotation, tokyoAnnotation])
     renderTab()

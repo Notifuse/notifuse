@@ -102,7 +102,9 @@ interface NotificationStats {
 const TransactionalNotificationCard: React.FC<{
   notification: TransactionalNotification
   workspace: Workspace
-  permissions: UserPermissions | undefined
+  // null, not undefined: useWorkspacePermissions reports "not loaded / no permissions" as null,
+  // and this card is the only consumer of that value, so the boundary keeps the hook's shape.
+  permissions: UserPermissions | null
   stats: NotificationStats
   isLoadingStats: boolean
   onDelete: (n: TransactionalNotification) => void

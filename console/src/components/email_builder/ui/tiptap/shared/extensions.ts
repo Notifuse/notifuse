@@ -381,7 +381,7 @@ export const CustomLink = Mark.create({
         new Plugin({
           key: new PluginKey('handleClickLink'),
           props: {
-            handleClick: (view, pos, event) => {
+            handleClick: (view, _pos, event) => {
               // Only handle if editor is editable
               if (!view.editable) {
                 return false

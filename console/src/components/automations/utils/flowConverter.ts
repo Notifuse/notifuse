@@ -4,7 +4,6 @@ import type {
   Automation,
   AutomationNode,
   NodeType,
-  NodePosition,
   TimelineTriggerConfig,
   BranchNodeConfig,
   FilterNodeConfig,
@@ -16,14 +15,32 @@ import type {
 import type { TreeNode } from '../../../services/api/segment'
 import { HasLeaf } from '../../segment/tree_completeness'
 
-// Node data stored in ReactFlow nodes
-export interface AutomationNodeData {
+// Node data stored in ReactFlow nodes.
+// Declared as a type alias rather than an interface on purpose: ReactFlow constrains node data to
+// `Record<string, unknown>`, and only an object-literal type alias carries the implicit index
+// signature that satisfies it. An interface here makes every node typed on this data illegal and
+// degrades `data` to `unknown` in every custom node component.
+export type AutomationNodeData = {
   nodeType: NodeType
   config: Record<string, unknown>
   label: string
   isOrphan?: boolean
   onDelete?: () => void
 }
+
+// The node type every automation canvas works with. Custom node components take
+// `NodeProps<AutomationFlowNode>` - in ReactFlow v12 the props helpers are parameterised by the
+// node type, not by the data type.
+export type AutomationFlowNode = Node<AutomationNodeData>
+
+// A node's config bag is untyped (`Record<string, unknown>`) because that is what the API stores and
+// what ReactFlow's data constraint allows. The concrete config shapes are interfaces, which have no
+// index signature and are therefore not comparable with the bag, so a direct assertion is rejected.
+// Structural<T> re-expresses an interface as an anonymous object type - same members, same
+// optionality - which does get the implicit index signature, keeping each narrowing a single
+// checked assertion instead of a double cast. Exported because every module that reads a node's
+// config off the canvas needs the same narrowing.
+export type Structural<T> = { [K in keyof T]: T[K] }
 
 // Node types that support multiple outgoing connections
 const MULTI_CHILD_NODE_TYPES: NodeType[] = ['branch', 'filter', 'ab_test', 'list_status_branch']
@@ -55,7 +72,7 @@ export function generateId(): string {
 }
 
 // Create default trigger node for new automations
-export function createDefaultTriggerNode(): Node<AutomationNodeData> {
+export function createDefaultTriggerNode(): AutomationFlowNode {
   return {
     id: generateId(),
     type: 'trigger',
@@ -70,7 +87,7 @@ export function createDefaultTriggerNode(): Node<AutomationNodeData> {
 
 // Create initial nodes and edges for a new automation
 // Note: No exit node needed - any node without a next node terminates the automation
-export function createInitialFlow(): { nodes: Node<AutomationNodeData>[]; edges: Edge[] } {
+export function createInitialFlow(): { nodes: AutomationFlowNode[]; edges: Edge[] } {
   const triggerNode = createDefaultTriggerNode()
 
   return {
@@ -81,7 +98,7 @@ export function createInitialFlow(): { nodes: Node<AutomationNodeData>[]; edges:
 
 // Convert Automation to ReactFlow format
 export function automationToFlow(automation: Automation): {
-  nodes: Node<AutomationNodeData>[]
+  nodes: AutomationFlowNode[]
   edges: Edge[]
 } {
   if (!automation.nodes || automation.nodes.length === 0) {
@@ -89,7 +106,7 @@ export function automationToFlow(automation: Automation): {
   }
 
   // Convert automation nodes to ReactFlow nodes
-  const nodes: Node<AutomationNodeData>[] = automation.nodes.map((node) => ({
+  const nodes: AutomationFlowNode[] = automation.nodes.map((node) => ({
     id: node.id,
     type: node.type,
     position: node.position,
@@ -116,7 +133,7 @@ export function automationToFlow(automation: Automation): {
 
     // Handle branch nodes with multiple paths
     if (node.type === 'branch' && node.config) {
-      const config = node.config as BranchNodeConfig
+      const config = node.config as Structural<BranchNodeConfig>
       if (config.paths) {
         config.paths.forEach((path) => {
           if (path.next_node_id) {
@@ -135,7 +152,7 @@ export function automationToFlow(automation: Automation): {
 
     // Handle filter nodes with continue/exit paths
     if (node.type === 'filter' && node.config) {
-      const config = node.config as FilterNodeConfig
+      const config = node.config as Structural<FilterNodeConfig>
       if (config.continue_node_id) {
         edges.push({
           id: `${node.id}-continue-${config.continue_node_id}`,
@@ -160,7 +177,7 @@ export function automationToFlow(automation: Automation): {
 
     // Handle A/B test nodes with multiple variants
     if (node.type === 'ab_test' && node.config) {
-      const config = node.config as ABTestNodeConfig
+      const config = node.config as Structural<ABTestNodeConfig>
       if (config.variants) {
         config.variants.forEach((variant) => {
           if (variant.next_node_id) {
@@ -179,7 +196,7 @@ export function automationToFlow(automation: Automation): {
 
     // Handle list status branch nodes with three paths
     if (node.type === 'list_status_branch' && node.config) {
-      const config = node.config as ListStatusBranchNodeConfig
+      const config = node.config as Structural<ListStatusBranchNodeConfig>
       if (config.not_in_list_node_id) {
         edges.push({
           id: `${node.id}-not_in_list-${config.not_in_list_node_id}`,
@@ -215,7 +232,7 @@ export function automationToFlow(automation: Automation): {
 
 // Convert ReactFlow format back to Automation nodes
 export function flowToAutomationNodes(
-  nodes: Node<AutomationNodeData>[],
+  nodes: AutomationFlowNode[],
   edges: Edge[],
   automationId: string
 ): AutomationNode[] {
@@ -234,7 +251,7 @@ export function flowToAutomationNodes(
       automation_id: automationId,
       type: node.data.nodeType,
       config: node.data.config || {},
-      position: node.position as NodePosition,
+      position: node.position,
       created_at: new Date().toISOString()
     }
 
@@ -251,7 +268,7 @@ export function flowToAutomationNodes(
 
 // Build trigger config from trigger node
 export function buildTriggerConfig(
-  nodes: Node<AutomationNodeData>[]
+  nodes: AutomationFlowNode[]
 ): TimelineTriggerConfig | undefined {
   const triggerNode = nodes.find((n) => n.data.nodeType === 'trigger')
   if (!triggerNode) return undefined
@@ -287,9 +304,9 @@ export function buildTriggerConfig(
 // re-emits it. The stored trigger is authoritative: an automation created through
 // the API can carry trigger settings the node config has never seen.
 export function hydrateTriggerNodeConfig(
-  nodes: Node<AutomationNodeData>[],
+  nodes: AutomationFlowNode[],
   trigger?: TimelineTriggerConfig
-): Node<AutomationNodeData>[] {
+): AutomationFlowNode[] {
   if (!trigger) return nodes
 
   return nodes.map((node) => {
@@ -324,7 +341,7 @@ export function hydrateTriggerNodeConfig(
 }
 
 // Find root node ID (the trigger node)
-export function findRootNodeId(nodes: Node<AutomationNodeData>[]): string {
+export function findRootNodeId(nodes: AutomationFlowNode[]): string {
   const triggerNode = nodes.find((n) => n.data.nodeType === 'trigger')
   return triggerNode?.id || ''
 }
@@ -337,7 +354,7 @@ export interface ValidationError {
 }
 
 export function validateFlow(
-  nodes: Node<AutomationNodeData>[],
+  nodes: AutomationFlowNode[],
   edges: Edge[],
   listId?: string
 ): ValidationError[] {
@@ -411,7 +428,7 @@ export function validateFlow(
   nodes
     .filter((n) => n.data.nodeType === 'ab_test')
     .forEach((abTestNode) => {
-      const config = abTestNode.data.config as ABTestNodeConfig
+      const config = abTestNode.data.config as Structural<ABTestNodeConfig>
       if (!config.variants || config.variants.length < 2) {
         errors.push({
           nodeId: abTestNode.id,
@@ -444,7 +461,7 @@ export function validateFlow(
   nodes
     .filter((n) => n.data.nodeType === 'add_to_list')
     .forEach((node) => {
-      const config = node.data.config as AddToListNodeConfig
+      const config = node.data.config as Structural<AddToListNodeConfig>
       if (!config.list_id) {
         errors.push({
           nodeId: node.id,
@@ -465,7 +482,7 @@ export function validateFlow(
   nodes
     .filter((n) => n.data.nodeType === 'remove_from_list')
     .forEach((node) => {
-      const config = node.data.config as RemoveFromListNodeConfig
+      const config = node.data.config as Structural<RemoveFromListNodeConfig>
       if (!config.list_id) {
         errors.push({
           nodeId: node.id,
@@ -479,7 +496,7 @@ export function validateFlow(
   nodes
     .filter((n) => n.data.nodeType === 'filter')
     .forEach((node) => {
-      const config = node.data.config as FilterNodeConfig
+      const config = node.data.config as Structural<FilterNodeConfig>
       // Check if conditions exist and have at least one leaf
       const hasConditions = config.conditions?.kind === 'branch'
         ? (config.conditions.branch?.leaves?.length ?? 0) > 0
@@ -497,7 +514,7 @@ export function validateFlow(
   nodes
     .filter((n) => n.data.nodeType === 'list_status_branch')
     .forEach((node) => {
-      const config = node.data.config as ListStatusBranchNodeConfig
+      const config = node.data.config as Structural<ListStatusBranchNodeConfig>
       if (!config.list_id) {
         errors.push({
           nodeId: node.id,
@@ -512,11 +529,11 @@ export function validateFlow(
 
 // Check if a connection is valid
 export function isValidConnection(
-  sourceNodeType: NodeType,
+  _sourceNodeType: NodeType,
   targetNodeType: NodeType,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Reserved for future validation logic
+  // Reserved for future validation logic
   _existingEdges: Edge[],
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Reserved for future validation logic
+  // Reserved for future validation logic
   _targetNodeId: string
 ): boolean {
   // Cannot connect TO trigger node (it's the entry point)

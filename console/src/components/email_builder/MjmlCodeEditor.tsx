@@ -34,6 +34,9 @@ export interface MjmlCodeEditorRef {
   clearDraft: () => void
 }
 
+/** monaco.KeyCode value for the "S" key (KEY_S in monaco <= 0.30, KeyS after) */
+const KEY_CODE_S = 49
+
 const STARTER_TEMPLATE = `<mjml>
   <mj-head>
     <mj-attributes>
@@ -505,7 +508,16 @@ const MjmlCodeEditor = forwardRef<MjmlCodeEditorRef, MjmlCodeEditorProps>(({
         insertSpaces: true,
         wrapLineLength: 120,
         wrapAttributes: 'auto',
-        indentInnerHtml: true
+        indentInnerHtml: true,
+        // HTMLFormatConfiguration requires every key; the values below are the
+        // ones the formatter already falls back to when a key is omitted.
+        unformatted: '',
+        contentUnformatted: 'pre,textarea',
+        preserveNewLines: true,
+        maxPreserveNewLines: 32786,
+        indentHandlebars: false,
+        endWithNewline: false,
+        extraLiners: 'head,body,/html'
       },
       suggest: {
         html5: true
@@ -517,8 +529,12 @@ const MjmlCodeEditor = forwardRef<MjmlCodeEditorRef, MjmlCodeEditorProps>(({
     editorRef.current = editor
     monacoRef.current = monaco
 
-    // Add Cmd/Ctrl+S shortcut
-    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
+    // Add Cmd/Ctrl+S shortcut.
+    // The monaco-editor typings installed here are 0.25 (KeyCode.KEY_S) while
+    // @monaco-editor/react loads a much newer monaco at runtime, where the same
+    // member is spelled KeyCode.KeyS. Either spelling resolves to key code 49,
+    // so binding by value keeps the shortcut working against both enums.
+    editor.addCommand(monaco.KeyMod.CtrlCmd | KEY_CODE_S, () => {
       doCompile(editor.getValue())
     })
   }

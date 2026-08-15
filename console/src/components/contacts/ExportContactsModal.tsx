@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react'
+import { useState, useRef } from 'react'
 import { Modal, Button, Tag, Space, Alert, Spin } from 'antd'
 import { useLingui } from '@lingui/react/macro'
 import Papa from 'papaparse'

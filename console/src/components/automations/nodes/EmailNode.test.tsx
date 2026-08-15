@@ -4,7 +4,7 @@ import { i18n } from '@lingui/core'
 import { I18nProvider } from '@lingui/react'
 import type { NodeProps } from '@xyflow/react'
 import { EmailNode } from './EmailNode'
-import type { AutomationNodeData } from '../utils/flowConverter'
+import type { AutomationFlowNode, AutomationNodeData } from '../utils/flowConverter'
 import type { Template } from '../../../services/api/types'
 
 // EmailNode only needs Handle/Position/useConnection from @xyflow/react; render
@@ -27,10 +27,9 @@ const makeTemplate = (id: string, name: string, category: string): Template =>
   ({ id, name, category, channel: 'email' } as Template)
 
 const renderNode = (config: Record<string, unknown>) => {
-  const props = {
-    data: { nodeType: 'email', config } as unknown as AutomationNodeData,
-    selected: false
-  } as unknown as NodeProps<AutomationNodeData>
+  const data: AutomationNodeData = { nodeType: 'email', config, label: 'Email' }
+  // EmailNode only reads `data` and `selected`; the rest of NodeProps is inert here.
+  const props = { data, selected: false } as NodeProps<AutomationFlowNode>
   return render(
     <I18nProvider i18n={i18n}>
       <EmailNode {...props} />
