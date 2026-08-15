@@ -55,7 +55,8 @@ export interface AutomationContextType {
   canRedo: boolean
   undo: () => void
   redo: () => void
-  pushHistory: () => void
+  /** Snapshot for undo. A coalesceKey folds a run of edits into one step — see useUndoRedo.push. */
+  pushHistory: (coalesceKey?: string) => void
 
   // Operations
   save: () => Promise<void>

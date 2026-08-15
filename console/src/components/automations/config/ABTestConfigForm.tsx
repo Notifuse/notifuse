@@ -27,9 +27,11 @@ export const ABTestConfigForm: React.FC<ABTestConfigFormProps> = ({ config, onCh
   React.useEffect(() => {
     if (!initializedRef.current && (!config?.variants || config.variants.length === 0)) {
       initializedRef.current = true
-      onChange({ variants: DEFAULT_VARIANTS })
+      // Spread: replacing the whole config here would wipe sibling keys the panel owns,
+      // such as the node description.
+      onChange({ ...config, variants: DEFAULT_VARIANTS })
     }
-  }, [config?.variants, onChange])
+  }, [config, onChange])
 
   const totalWeight = variants.reduce((sum, v) => sum + (v.weight || 0), 0)
   const isWeightValid = totalWeight === 100

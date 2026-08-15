@@ -13,3 +13,12 @@ export const nodeTypeColors: Record<NodeType, string> = {
   webhook: '#9254de', // violet
   list_status_branch: '#389e0d' // green-7 (for list-related branching)
 }
+
+// The optional per-node description lives in the node's config bag, so read it defensively: a config
+// arriving from the API is untyped, and a blank string is "no description" rather than an empty line
+// on the card. Lives here because both canvases - the editor's nodes and the read-only stat nodes -
+// already import this module.
+export function getNodeDescription(config?: Record<string, unknown>): string | undefined {
+  const description = config?.description
+  return typeof description === 'string' && description.trim() !== '' ? description : undefined
+}

@@ -23,8 +23,11 @@ import {
   WebMetricFilter
 } from './lib/types'
 
-export const WEB_ANALYTICS_TABS = ['dashboard', 'explore', 'goals', 'filters'] as const
-export type WebAnalyticsTab = (typeof WEB_ANALYTICS_TABS)[number]
+// The tab tuple now lives in ./lib/types, the leaf module every web analytics
+// module already imports: the AI tool definitions need the names as a value, and
+// importing a value from here would pull the router into them. Re-exported so
+// every existing importer of this module keeps working unchanged.
+export { WEB_ANALYTICS_TABS, type WebAnalyticsTab } from './lib/types'
 
 /** URL state shared by every tab; see the route's validateSearch. */
 export interface WebAnalyticsSearch {

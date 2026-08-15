@@ -20,6 +20,7 @@ import {
   type ValidationError
 } from '../utils/flowConverter'
 import { layoutNodes } from '../utils/layoutNodes'
+import { textEditCoalesceKey } from '../utils/historyCoalescing'
 import type { NodeType, ABTestNodeConfig, FilterNodeConfig, ListStatusBranchNodeConfig } from '../../../services/api/automation'
 
 // Editor uses larger nodes
@@ -622,7 +623,8 @@ export function useAutomationCanvas(): UseAutomationCanvasReturn {
 
   // Update node config
   const updateNodeConfig = useCallback((nodeId: string, config: Record<string, unknown>) => {
-    pushHistory()
+    const previous = nodes.find(n => n.id === nodeId)?.data.config
+    pushHistory(textEditCoalesceKey(nodeId, previous, config))
     setNodes(nds =>
       nds.map(n =>
         n.id === nodeId
@@ -631,7 +633,7 @@ export function useAutomationCanvas(): UseAutomationCanvasReturn {
       )
     )
     markAsChanged()
-  }, [setNodes, markAsChanged, pushHistory])
+  }, [nodes, setNodes, markAsChanged, pushHistory])
 
   // Handle node drag stop - push history for position changes
   // Note: We ignore the event params, just need to know drag ended

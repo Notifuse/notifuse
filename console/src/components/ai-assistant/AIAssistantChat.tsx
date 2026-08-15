@@ -32,7 +32,9 @@ export function AIAssistantChat({
   bubbleItems,
   resetConversation,
   hidden = false,
-  chatBoxTop = 66
+  chatBoxTop = 66,
+  suggestions,
+  onSuggestion
 }: AIAssistantChatProps) {
   const { t } = useLingui()
 
@@ -226,6 +228,26 @@ export function AIAssistantChat({
 
           {/* Messages area */}
           <div style={{ flex: 1, overflow: 'hidden', padding: 12 }}>
+            {suggestions && suggestions.length > 0 && bubbleItems.length === 0 ? (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, paddingBottom: 12 }}>
+                {suggestions.map((suggestion) => (
+                  <Button
+                    key={suggestion.key}
+                    size="small"
+                    onClick={() => (onSuggestion ?? setInputValue)(suggestion.prompt)}
+                    disabled={isStreaming}
+                    style={{
+                      fontSize: 12,
+                      whiteSpace: 'normal',
+                      height: 'auto',
+                      padding: '4px 10px'
+                    }}
+                  >
+                    {suggestion.label}
+                  </Button>
+                ))}
+              </div>
+            ) : null}
             <Bubble.List
               autoScroll
               style={{ height: '100%' }}

@@ -162,12 +162,6 @@ type MessageHistoryRepository interface {
 	// On conflict, updates failed_at, status_info, and updated_at fields
 	Upsert(ctx context.Context, workspaceID string, secretKey string, message *MessageHistory) error
 
-	// Update updates an existing message history record
-	Update(ctx context.Context, workspaceID string, message *MessageHistory) error
-
-	// Get retrieves a message history by ID
-	Get(ctx context.Context, workspaceID string, secretKey string, id string) (*MessageHistory, error)
-
 	// GetByExternalID retrieves a message history by external ID for idempotency checks
 	GetByExternalID(ctx context.Context, workspaceID string, secretKey string, externalID string) (*MessageHistory, error)
 
@@ -175,12 +169,6 @@ type MessageHistoryRepository interface {
 	// (for matching an inbound reply's In-Reply-To). Returns (nil, nil) when there
 	// is no match. Only id, contact_email and automation_id are populated.
 	GetBySMTPMessageID(ctx context.Context, workspaceID string, smtpMessageID string) (*MessageHistory, error)
-
-	// GetByContact retrieves message history for a specific contact
-	GetByContact(ctx context.Context, workspaceID string, secretKey string, contactEmail string, limit, offset int) ([]*MessageHistory, int, error)
-
-	// GetByBroadcast retrieves message history for a specific broadcast
-	GetByBroadcast(ctx context.Context, workspaceID string, secretKey string, broadcastID string, limit, offset int) ([]*MessageHistory, int, error)
 
 	// ListMessages retrieves message history with cursor-based pagination and filtering
 	ListMessages(ctx context.Context, workspaceID string, secretKey string, params MessageListParams) ([]*MessageHistory, string, error)

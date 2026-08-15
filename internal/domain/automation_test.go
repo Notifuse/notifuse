@@ -1924,3 +1924,77 @@ func TestAutomation_Validate_TriggerConditions(t *testing.T) {
 		assert.NoError(t, automation.Validate())
 	})
 }
+
+// Every node config type carries the optional canvas description through an embedded struct rather
+// than a repeated field. Embedding only does the right thing because encoding/json flattens an
+// anonymous field: were it nested under "NodeConfigDescription", the key the console actually writes
+// would be dropped silently, on every node type at once.
+func TestNodeConfigDescription_JSONRoundTrip(t *testing.T) {
+	const description = "Welcome - day 1"
+
+	delay := &DelayNodeConfig{}
+	email := &EmailNodeConfig{}
+	branch := &BranchNodeConfig{}
+	filter := &FilterNodeConfig{}
+	addToList := &AddToListNodeConfig{}
+	removeFromList := &RemoveFromListNodeConfig{}
+	listStatus := &ListStatusBranchNodeConfig{}
+	abTest := &ABTestNodeConfig{}
+	webhook := &WebhookNodeConfig{}
+
+	tests := []struct {
+		name string
+		into interface{}
+		body string
+		got  func() string
+		zero interface{}
+	}{
+		{"delay", delay, `{"description":%q,"duration":2,"unit":"days"}`, func() string { return delay.Description }, DelayNodeConfig{}},
+		{"email", email, `{"description":%q,"template_id":"tmpl123"}`, func() string { return email.Description }, EmailNodeConfig{}},
+		{"branch", branch, `{"description":%q,"paths":[],"default_path_id":"a"}`, func() string { return branch.Description }, BranchNodeConfig{}},
+		{"filter", filter, `{"description":%q,"conditions":null,"continue_node_id":"a","exit_node_id":"b"}`, func() string { return filter.Description }, FilterNodeConfig{}},
+		{"add_to_list", addToList, `{"description":%q,"list_id":"list123","status":"active"}`, func() string { return addToList.Description }, AddToListNodeConfig{}},
+		{"remove_from_list", removeFromList, `{"description":%q,"list_id":"list123"}`, func() string { return removeFromList.Description }, RemoveFromListNodeConfig{}},
+		{"list_status_branch", listStatus, `{"description":%q,"list_id":"list123"}`, func() string { return listStatus.Description }, ListStatusBranchNodeConfig{}},
+		{"ab_test", abTest, `{"description":%q,"variants":[]}`, func() string { return abTest.Description }, ABTestNodeConfig{}},
+		{"webhook", webhook, `{"description":%q,"url":"https://example.com"}`, func() string { return webhook.Description }, WebhookNodeConfig{}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			body := fmt.Sprintf(tt.body, description)
+			require.NoError(t, json.Unmarshal([]byte(body), tt.into))
+			assert.Equal(t, description, tt.got())
+
+			// A node the author never described must not gain an empty key: the console omits it
+			// rather than sending "", and a stored config should round-trip unchanged.
+			encoded, err := json.Marshal(tt.zero)
+			require.NoError(t, err)
+			assert.NotContains(t, string(encoded), `"description"`)
+		})
+	}
+}
+
+// The filter node shipped with this key before every other node type had it, so its stored shape has
+// to keep decoding exactly as before - description alongside a real condition tree.
+func TestFilterNodeConfig_DescriptionWithConditions(t *testing.T) {
+	body := `{
+		"description": "Active users only",
+		"conditions": {"kind": "branch", "branch": {"operator": "and", "leaves": [
+			{"kind": "leaf", "leaf": {"table": "contacts", "filters": [
+				{"field_name": "email", "field_type": "string", "operator": "is_set"}
+			]}}
+		]}},
+		"continue_node_id": "node-yes",
+		"exit_node_id": "node-no"
+	}`
+
+	var config FilterNodeConfig
+	require.NoError(t, json.Unmarshal([]byte(body), &config))
+
+	assert.Equal(t, "Active users only", config.Description)
+	require.NotNil(t, config.Conditions)
+	assert.Equal(t, "branch", config.Conditions.Kind)
+	assert.Equal(t, "node-yes", config.ContinueNodeID)
+	assert.Equal(t, "node-no", config.ExitNodeID)
+}

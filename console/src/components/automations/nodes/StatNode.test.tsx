@@ -2,7 +2,13 @@ import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { i18n } from '@lingui/core'
 import { I18nProvider } from '@lingui/react'
-import { StatNode, FilterStatNode, ListStatusStatNode, type StatNodeData } from './StatNode'
+import {
+  StatNode,
+  FilterStatNode,
+  ListStatusStatNode,
+  ABTestStatNode,
+  type StatNodeData
+} from './StatNode'
 import type { NodeType, AutomationNodeStats } from '../../../services/api/automation'
 
 // The stat nodes only need Handle/Position from @xyflow/react. Render each Handle
@@ -171,5 +177,33 @@ describe('ListStatusStatNode', () => {
       (el) => el.textContent
     )
     expect(values).toEqual(['0', '0'])
+  })
+})
+
+// Flow Stats used to show no descriptions at all, not even the filter node's, so a flow that read
+// clearly in the editor lost its annotations the moment you opened its numbers.
+describe('stat node descriptions', () => {
+  const variants: Array<[string, StatNodeComponent, Partial<StatNodeData>]> = [
+    ['StatNode', asStatNode(StatNode), { nodeType: 'email' }],
+    ['FilterStatNode', asStatNode(FilterStatNode), { nodeType: 'filter' }],
+    ['ListStatusStatNode', asStatNode(ListStatusStatNode), { nodeType: 'list_status_branch' }],
+    ['ABTestStatNode', asStatNode(ABTestStatNode), { nodeType: 'ab_test' }]
+  ]
+
+  variants.forEach(([name, Component, data]) => {
+    it(`shows the node description on ${name}`, () => {
+      renderNode(Component, { ...data, config: { description: 'Welcome — day 1' } })
+
+      const description = screen.getByText('Welcome — day 1')
+      expect(description).toBeInTheDocument()
+      expect(description).toHaveAttribute('title', 'Welcome — day 1')
+    })
+
+    it(`renders no description element on ${name} when the node has none`, () => {
+      const { container } = renderNode(Component, { ...data, config: {} })
+
+      expect(container.querySelector('[title]')).toBeNull()
+      expect(headerTitle(container)?.textContent?.trim()).toBeTruthy()
+    })
   })
 })

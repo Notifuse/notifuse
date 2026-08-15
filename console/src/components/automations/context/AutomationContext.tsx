@@ -204,9 +204,10 @@ export function AutomationProvider({
     setHasUnsavedChanges(true)
   }, [nodes, edges, message, t])
 
-  // Push current canvas state to history (call BEFORE making changes)
-  const pushHistory = useCallback(() => {
-    pushToHistory({ nodes, edges })
+  // Push current canvas state to history (call BEFORE making changes). Pass a coalesceKey to fold a
+  // run of edits — typing in one field — into a single undo step; see useUndoRedo.push.
+  const pushHistory = useCallback((coalesceKey?: string) => {
+    pushToHistory({ nodes, edges }, coalesceKey)
   }, [nodes, edges, pushToHistory])
 
   // Undo - restore previous state

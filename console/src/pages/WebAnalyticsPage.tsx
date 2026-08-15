@@ -32,6 +32,15 @@ const GoalsTab = lazy(() =>
   }))
 )
 
+// The assistant drags in @ant-design/x and @ant-design/x-markdown, neither of
+// which the dashboard needs to render its first chart. Split for the same
+// reason the explore and goals tabs are.
+const WebAnalyticsAIAssistant = lazy(() =>
+  import('../components/web_analytics/WebAnalyticsAIAssistant').then((module) => ({
+    default: module.WebAnalyticsAIAssistant
+  }))
+)
+
 /** Sections that read analytics data, and so share the period toolbar. */
 const DATA_SECTIONS: WebAnalyticsTab[] = ['dashboard', 'explore', 'goals']
 
@@ -51,7 +60,7 @@ export function WebAnalyticsPage() {
 // which one to render.
 function WebAnalyticsSection(props: { tab: WebAnalyticsTab }) {
   const { t } = useLingui()
-  const { settings, dimensions, setDimensions } = useWebAnalytics()
+  const { settings, dimensions, setDimensions, workspace } = useWebAnalytics()
 
   const activeTab = WEB_ANALYTICS_TABS.includes(props.tab) ? props.tab : 'dashboard'
 
@@ -161,6 +170,18 @@ function WebAnalyticsSection(props: { tab: WebAnalyticsTab }) {
       {/* Lives here rather than in the tab because its trigger moved up to the
           page header; the modal reads the report it exports from context. */}
       <CsvExportModal open={csvOpen} onCancel={() => setCsvOpen(false)} />
+
+      {/* Deliberately outside the gate: the gate fronts a report that has nothing
+          to show, and a workspace whose tracker stopped yesterday still owns the
+          history the assistant is there to explain. It stays inside the provider
+          because every one of its tools reads or writes that context, and it
+          floats rather than taking layout space, so its position in this list is
+          about ownership, not about where it appears. */}
+      {workspace && settings?.enabled ? (
+        <Suspense fallback={null}>
+          <WebAnalyticsAIAssistant workspace={workspace} tab={activeTab} />
+        </Suspense>
+      ) : null}
     </div>
   )
 }

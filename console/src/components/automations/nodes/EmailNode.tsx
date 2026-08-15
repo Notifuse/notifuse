@@ -3,7 +3,7 @@ import { Handle, Position, useConnection, type NodeProps } from '@xyflow/react'
 import { Mail } from 'lucide-react'
 import { useLingui } from '@lingui/react/macro'
 import { BaseNode } from './BaseNode'
-import { nodeTypeColors } from './constants'
+import { nodeTypeColors, getNodeDescription } from './constants'
 import { useAutomation } from '../context'
 import type { AutomationNodeData } from '../utils/flowConverter'
 import type { EmailNodeConfig } from '../../../services/api/automation'
@@ -37,6 +37,7 @@ export const EmailNode: React.FC<EmailNodeProps> = ({ data, selected }) => {
       <BaseNode
         type="email"
         label={t`Email`}
+        description={getNodeDescription(data.config)}
         icon={<Mail size={16} color={selected ? undefined : nodeTypeColors.email} />}
         selected={selected}
         isOrphan={data.isOrphan}

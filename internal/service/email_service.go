@@ -654,14 +654,19 @@ func (s *EmailService) SendEmailForTemplate(ctx context.Context, request domain.
 	err = s.SendEmail(ctx, providerRequest, false)
 
 	if err != nil {
-		// Update message history with error status
-		messageHistory.FailedAt = &now
-		messageHistory.UpdatedAt = now
+		// Record the failure with a targeted status write, not a whole-row update.
+		// Create() encrypted message_data on the way in and left this struct
+		// holding the plaintext template data, so writing the row back from it
+		// would store the blob in clear — and would restore every other column
+		// from a copy taken before the send. The queue worker's upsert leaves the
+		// same columns alone on a retry for the same reason.
 		errorMsg := err.Error()
-		messageHistory.StatusInfo = &errorMsg
-
-		// Attempt to update the message history record
-		updateErr := s.messageRepo.Update(ctx, request.WorkspaceID, messageHistory)
+		updateErr := s.messageRepo.SetStatusesIfNotSet(ctx, request.WorkspaceID, []domain.MessageEventUpdate{{
+			ID:         request.MessageID,
+			Event:      domain.MessageEventFailed,
+			Timestamp:  now,
+			StatusInfo: &errorMsg,
+		}})
 		if updateErr != nil {
 			s.logger.WithFields(map[string]interface{}{
 				"error":      updateErr.Error(),

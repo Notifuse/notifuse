@@ -294,6 +294,9 @@ func TestAutomation(t *testing.T) {
 	t.Run("EmailThenListOps_Issue327", func(t *testing.T) {
 		testAutomationEmailThenListOps(t, factory, client, workspace.ID)
 	})
+	t.Run("NodeDescriptions", func(t *testing.T) {
+		testAutomationNodeDescriptions(t, factory, client, workspace.ID)
+	})
 	t.Run("PrintBugReport", func(t *testing.T) {
 		printBugReport(t)
 	})
@@ -3702,4 +3705,138 @@ func testAutomationIntegrationOverride(t *testing.T, factory *testutil.TestDataF
 	assert.Equal(t, overrideIntegration.ID, queueEntry.IntegrationID,
 		"email_queue entry should use the override integration, not the workspace default")
 	t.Logf("Integration override verified: email_queue entry has integration_id=%s", queueEntry.IntegrationID)
+}
+
+// Node descriptions are author-facing labels stored inside each node's config bag. Nothing in the
+// backend declares them beyond a struct tag - the config is an untyped map all the way to JSONB -
+// so this covers the one thing that could silently break them: a write/read round trip through the
+// real HTTP handlers and Postgres, on a node type that is not the Filter node they started on.
+func testAutomationNodeDescriptions(t *testing.T, factory *testutil.TestDataFactory, client *testutil.APIClient, workspaceID string) {
+	list, err := factory.CreateList(workspaceID)
+	require.NoError(t, err)
+
+	automationID := shortuuid.New()
+	triggerNodeID := shortuuid.New()
+	delayNodeID := shortuuid.New()
+	addToListNodeID := shortuuid.New()
+
+	descriptions := map[string]string{
+		triggerNodeID:   "Anyone who signs up",
+		delayNodeID:     "Let them read the welcome first",
+		addToListNodeID: "Onboarding cohort",
+	}
+
+	createReq := map[string]interface{}{
+		"workspace_id": workspaceID,
+		"automation": map[string]interface{}{
+			"id":           automationID,
+			"workspace_id": workspaceID,
+			"name":         "Described Nodes E2E",
+			"status":       "draft",
+			"trigger": map[string]interface{}{
+				"event_kind": "custom_event", "custom_event_name": "described_nodes_e2e",
+				"frequency": "once",
+			},
+			"root_node_id": triggerNodeID,
+			"nodes": []map[string]interface{}{
+				{
+					"id":            triggerNodeID,
+					"automation_id": automationID,
+					"type":          "trigger",
+					"config":        map[string]interface{}{"description": descriptions[triggerNodeID]},
+					"next_node_id":  delayNodeID,
+					"position":      map[string]interface{}{"x": 0, "y": 0},
+				},
+				{
+					"id":            delayNodeID,
+					"automation_id": automationID,
+					"type":          "delay",
+					"config":        map[string]interface{}{"duration": 5, "unit": "minutes", "description": descriptions[delayNodeID]},
+					"next_node_id":  addToListNodeID,
+					"position":      map[string]interface{}{"x": 0, "y": 100},
+				},
+				{
+					"id":            addToListNodeID,
+					"automation_id": automationID,
+					"type":          "add_to_list",
+					"config":        map[string]interface{}{"list_id": list.ID, "status": "active", "description": descriptions[addToListNodeID]},
+					"position":      map[string]interface{}{"x": 0, "y": 200},
+				},
+			},
+			"stats": map[string]interface{}{"enrolled": 0, "completed": 0, "exited": 0, "failed": 0},
+		},
+	}
+
+	createResp, err := client.CreateAutomation(createReq)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusCreated, createResp.StatusCode)
+	createResp.Body.Close()
+
+	getResp, err := client.GetAutomation(automationID)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, getResp.StatusCode)
+	defer getResp.Body.Close()
+
+	var body struct {
+		Automation struct {
+			Nodes []struct {
+				ID     string                 `json:"id"`
+				Type   string                 `json:"type"`
+				Config map[string]interface{} `json:"config"`
+			} `json:"nodes"`
+		} `json:"automation"`
+	}
+	require.NoError(t, json.NewDecoder(getResp.Body).Decode(&body))
+	require.Len(t, body.Automation.Nodes, len(descriptions))
+
+	for _, node := range body.Automation.Nodes {
+		want, ok := descriptions[node.ID]
+		require.True(t, ok, "unexpected node %s returned", node.ID)
+		assert.Equal(t, want, node.Config["description"], "description of the %s node", node.Type)
+	}
+
+	// The type-specific settings must survive alongside it - a description is an addition to the
+	// config bag, not a replacement of it.
+	for _, node := range body.Automation.Nodes {
+		if node.Type == "delay" {
+			assert.EqualValues(t, 5, node.Config["duration"])
+			assert.Equal(t, "minutes", node.Config["unit"])
+		}
+	}
+
+	// A node saved without a description must not come back carrying an empty one: the console
+	// omits the key rather than sending "", and the stored config has to reflect that.
+	updateReq := createReq
+	automation := updateReq["automation"].(map[string]interface{})
+	nodes := automation["nodes"].([]map[string]interface{})
+	delete(nodes[1]["config"].(map[string]interface{}), "description")
+
+	updateResp, err := client.UpdateAutomation(updateReq)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, updateResp.StatusCode)
+	updateResp.Body.Close()
+
+	getResp2, err := client.GetAutomation(automationID)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, getResp2.StatusCode)
+	defer getResp2.Body.Close()
+
+	var body2 struct {
+		Automation struct {
+			Nodes []struct {
+				ID     string                 `json:"id"`
+				Config map[string]interface{} `json:"config"`
+			} `json:"nodes"`
+		} `json:"automation"`
+	}
+	require.NoError(t, json.NewDecoder(getResp2.Body).Decode(&body2))
+
+	for _, node := range body2.Automation.Nodes {
+		if node.ID == delayNodeID {
+			assert.NotContains(t, node.Config, "description", "cleared description should not persist")
+		}
+		if node.ID == addToListNodeID {
+			assert.Equal(t, descriptions[addToListNodeID], node.Config["description"], "sibling descriptions must be untouched")
+		}
+	}
 }

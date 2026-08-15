@@ -3,6 +3,7 @@ import type { Node } from '@xyflow/react'
 import {
   automationToFlow,
   buildTriggerConfig,
+  flowToAutomationNodes,
   hydrateTriggerNodeConfig,
   type AutomationNodeData
 } from './flowConverter'
@@ -321,5 +322,68 @@ describe('hydrateTriggerNodeConfig updated_fields', () => {
     )
 
     expect(nodes[0].data.config.conditions).toBeUndefined()
+  })
+})
+
+// The description is stored in the node's config bag, which the converter copies verbatim in both
+// directions. Nothing here knows the key exists, and that is exactly what has to keep being true.
+describe('node descriptions survive the converter', () => {
+  it('carries a description from the API into the canvas node data', () => {
+    const automation = {
+      id: 'auto-1',
+      workspace_id: 'ws-1',
+      name: 'Welcome',
+      status: 'draft',
+      list_id: 'list-1',
+      root_node_id: 'trigger-1',
+      nodes: [
+        {
+          id: 'delay-1',
+          automation_id: 'auto-1',
+          type: 'delay',
+          config: { duration: 2, unit: 'days', description: 'Let them read it first' },
+          position: { x: 0, y: 150 },
+          created_at: '2026-01-01T00:00:00Z'
+        }
+      ],
+      created_at: '2026-01-01T00:00:00Z',
+      updated_at: '2026-01-01T00:00:00Z'
+    } as unknown as Automation
+
+    const { nodes } = automationToFlow(automation)
+
+    expect(nodes[0].data.config).toMatchObject({ description: 'Let them read it first' })
+  })
+
+  it('emits the description back on save alongside the type-specific settings', () => {
+    const node: Node<AutomationNodeData> = {
+      id: 'delay-1',
+      type: 'delay',
+      position: { x: 0, y: 150 },
+      data: {
+        nodeType: 'delay',
+        config: { duration: 2, unit: 'days', description: 'Let them read it first' },
+        label: 'Delay'
+      }
+    }
+
+    const [saved] = flowToAutomationNodes([node], [], 'auto-1')
+
+    expect(saved.config).toEqual({
+      duration: 2,
+      unit: 'days',
+      description: 'Let them read it first'
+    })
+  })
+
+  it('does not drop the trigger node description when the stored trigger is applied', () => {
+    // hydrateTriggerNodeConfig overwrites the trigger's own keys from automation.trigger, which
+    // has no description of its own — the node's must survive that merge.
+    const nodes = hydrateTriggerNodeConfig(
+      [triggerNode({ event_kind: 'contact.created', description: 'Anyone new' })],
+      { event_kind: 'contact.created', frequency: 'once' } as TimelineTriggerConfig
+    )
+
+    expect(nodes[0].data.config.description).toBe('Anyone new')
   })
 })

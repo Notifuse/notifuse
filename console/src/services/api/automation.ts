@@ -129,12 +129,20 @@ export interface NodePosition {
 }
 
 // Node configuration types
-export interface DelayNodeConfig {
+
+// Every node config carries an optional author-facing description, shown under the node's title on
+// the canvas so a flow can be read without opening each node. It lives in the config bag because the
+// backend stores that verbatim (AutomationNode.Config is an untyped map), so no schema change.
+export interface NodeConfigBase {
+  description?: string
+}
+
+export interface DelayNodeConfig extends NodeConfigBase {
   duration: number
   unit: 'minutes' | 'hours' | 'days'
 }
 
-export interface EmailNodeConfig {
+export interface EmailNodeConfig extends NodeConfigBase {
   template_id: string
   integration_id?: string
   subject_override?: string
@@ -148,29 +156,28 @@ export interface BranchPath {
   next_node_id: string
 }
 
-export interface BranchNodeConfig {
+export interface BranchNodeConfig extends NodeConfigBase {
   paths: BranchPath[]
   default_path_id: string
 }
 
-export interface FilterNodeConfig {
-  description?: string
+export interface FilterNodeConfig extends NodeConfigBase {
   conditions?: TreeNode
   continue_node_id: string
   exit_node_id: string
 }
 
-export interface AddToListNodeConfig {
+export interface AddToListNodeConfig extends NodeConfigBase {
   list_id: string
   status: 'active' | 'pending'
   metadata?: Record<string, unknown>
 }
 
-export interface RemoveFromListNodeConfig {
+export interface RemoveFromListNodeConfig extends NodeConfigBase {
   list_id: string
 }
 
-export interface ListStatusBranchNodeConfig {
+export interface ListStatusBranchNodeConfig extends NodeConfigBase {
   list_id: string
   not_in_list_node_id: string
   active_node_id: string
@@ -184,11 +191,11 @@ export interface ABTestVariant {
   next_node_id: string
 }
 
-export interface ABTestNodeConfig {
+export interface ABTestNodeConfig extends NodeConfigBase {
   variants: ABTestVariant[]
 }
 
-export interface WebhookNodeConfig {
+export interface WebhookNodeConfig extends NodeConfigBase {
   url: string
   secret?: string // Optional Authorization Bearer token
 }

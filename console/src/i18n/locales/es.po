@@ -13,17 +13,21 @@ msgstr ""
 "Language-Team: \n"
 "Plural-Forms: \n"
 
-#: src/components/ai-assistant/useAIAssistant.tsx:137
+#: src/components/ai-assistant/useAIAssistant.tsx:252
 msgid " - Done"
 msgstr " - Hecho"
 
-#: src/components/ai-assistant/useAIAssistant.tsx:137
+#: src/components/ai-assistant/useAIAssistant.tsx:252
 msgid " - Failed"
 msgstr " - Fallido"
 
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:868
 msgid " (Paused)"
 msgstr " (Pausado)"
+
+#: src/components/ai-assistant/useAIAssistant.tsx:146
+msgid "- cancelled"
+msgstr ""
 
 #. placeholder {0}: csvData.emails.length - 10
 #: src/components/contacts/BulkUpdateDrawer.tsx:671
@@ -36,7 +40,7 @@ msgstr "... y {0} correos más"
 msgid "(always matches)"
 msgstr ""
 
-#: src/components/ai-assistant/useAIAssistant.tsx:56
+#: src/components/ai-assistant/useAIAssistant.tsx:147
 msgid "(Cancelled)"
 msgstr "(Cancelado)"
 
@@ -256,6 +260,10 @@ msgstr "{0}-{1} de {total} envíos masivos"
 msgid "{clicks} clicks out of {recipients} recipients"
 msgstr "{clicks} clics de {recipients} destinatarios"
 
+#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:170
+msgid "{count} filters applied"
+msgstr ""
+
 #: src/components/timeline/ContactTimeline.tsx:844
 msgid "{goalCount} goals"
 msgstr ""
@@ -338,6 +346,18 @@ msgstr ""
 
 #: src/components/timeline/ContactTimeline.tsx:228
 msgid "{totalSeconds}s"
+msgstr ""
+
+#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:165
+msgid "{what} - {count} rows"
+msgstr ""
+
+#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:166
+msgid "{what} - cancelled"
+msgstr ""
+
+#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:167
+msgid "{what} - failed"
 msgstr ""
 
 #: src/components/email_builder/panels/Preview.tsx:218
@@ -518,8 +538,8 @@ msgid "A value is required..."
 msgstr "Se requiere un valor..."
 
 #: src/components/automations/nodes/ABTestNode.tsx:47
-#: src/components/automations/nodes/StatNode.tsx:60
-#: src/components/automations/nodes/StatNode.tsx:326
+#: src/components/automations/nodes/StatNode.tsx:81
+#: src/components/automations/nodes/StatNode.tsx:338
 #: src/pages/BroadcastsPage.tsx:1116
 msgid "A/B Test"
 msgstr "Prueba A/B"
@@ -556,8 +576,8 @@ msgid "Activate automation?"
 msgstr "¿Activar automatización?"
 
 #: src/components/automations/config/ListStatusBranchConfigForm.tsx:48
-#: src/components/automations/nodes/ListStatusBranchNode.tsx:59
-#: src/components/automations/nodes/StatNode.tsx:257
+#: src/components/automations/nodes/ListStatusBranchNode.tsx:60
+#: src/components/automations/nodes/StatNode.tsx:272
 #: src/components/contacts/ContactDetailsDrawer.tsx:582
 #: src/components/contacts/SegmentsFilter.tsx:53
 #: src/components/lists/ListStats.tsx:66
@@ -705,7 +725,7 @@ msgstr ""
 msgid "Add filter"
 msgstr ""
 
-#: src/components/automations/config/FilterConfigForm.tsx:42
+#: src/components/automations/config/FilterConfigForm.tsx:30
 msgid "Add filter conditions"
 msgstr ""
 
@@ -771,7 +791,7 @@ msgid "Add to list"
 msgstr ""
 
 #: src/components/automations/nodes/AddToListNode.tsx:41
-#: src/components/automations/nodes/StatNode.tsx:58
+#: src/components/automations/nodes/StatNode.tsx:79
 msgid "Add to List"
 msgstr "Añadir a lista"
 
@@ -779,7 +799,7 @@ msgstr "Añadir a lista"
 msgid "Add to Lists"
 msgstr "Añadir a listas"
 
-#: src/components/automations/config/ABTestConfigForm.tsx:160
+#: src/components/automations/config/ABTestConfigForm.tsx:162
 msgid "Add Variant"
 msgstr "Añadir variante"
 
@@ -849,7 +869,7 @@ msgstr "Agregar"
 #~ msgid "Aggregated across all A/B variations."
 #~ msgstr ""
 
-#: src/components/ai-assistant/AIAssistantChat.tsx:120
+#: src/components/ai-assistant/AIAssistantChat.tsx:122
 msgid "AI Assistant Not Configured"
 msgstr "Asistente de IA no configurado"
 
@@ -1013,6 +1033,10 @@ msgstr "Ocurrió un error durante la exportación"
 #: src/pages/FileManagerPage.tsx:37
 msgid "An error occurred with the file manager"
 msgstr "Ocurrió un error con el administrador de archivos"
+
+#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:67
+msgid "Analytics Assistant"
+msgstr ""
 
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:340
 msgid "Anchor"
@@ -1182,7 +1206,7 @@ msgstr "¿Estás seguro de que quieres eliminar este bloque?"
 msgid "Are you sure you want to delete this header?"
 msgstr ""
 
-#: src/components/automations/nodes/BaseNode.tsx:39
+#: src/components/automations/nodes/BaseNode.tsx:49
 msgid "Are you sure you want to delete this node?"
 msgstr "¿Estás seguro de que quieres eliminar este nodo?"
 
@@ -1243,7 +1267,11 @@ msgstr "¿Estás seguro de que quieres usar este archivo?"
 msgid "Array index: {segment}"
 msgstr "Índice de arreglo: {segment}"
 
-#: src/components/ai-assistant/useAIAssistant.tsx:278
+#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:75
+msgid "Ask about your traffic..."
+msgstr ""
+
+#: src/components/ai-assistant/useAIAssistant.tsx:688
 msgid "Ask me to fix these issues."
 msgstr ""
 
@@ -1388,7 +1416,7 @@ msgstr "Automatización"
 msgid "Automation activated successfully"
 msgstr "Automatización activada exitosamente"
 
-#: src/components/automations/context/AutomationContext.tsx:248
+#: src/components/automations/context/AutomationContext.tsx:249
 msgid "Automation created successfully"
 msgstr "Automatización creada exitosamente"
 
@@ -1400,7 +1428,7 @@ msgstr "Automatización eliminada exitosamente"
 msgid "Automation paused successfully"
 msgstr "Automatización pausada exitosamente"
 
-#: src/components/automations/context/AutomationContext.tsx:263
+#: src/components/automations/context/AutomationContext.tsx:264
 msgid "Automation updated successfully"
 msgstr "Automatización actualizada exitosamente"
 
@@ -1577,6 +1605,10 @@ msgstr "Hook antes de crear usuario"
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:541
 msgid "Belonging to at least one of the following segments"
 msgstr "Perteneciente a al menos uno de los siguientes segmentos"
+
+#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:230
+msgid "Best and worst pages"
+msgstr ""
 
 #: src/components/web_analytics/explore/ExploreSummary.tsx:64
 msgid "Best performing combination:"
@@ -1790,7 +1822,7 @@ msgstr "Tipo de rebote"
 msgid "Bounced"
 msgstr "Rebotado"
 
-#: src/components/automations/nodes/StatNode.tsx:56
+#: src/components/automations/nodes/StatNode.tsx:77
 msgid "Branch"
 msgstr "Rama"
 
@@ -1992,7 +2024,8 @@ msgstr ""
 #: src/components/automations/AutomationCard.tsx:157
 #: src/components/automations/AutomationCard.tsx:213
 #: src/components/automations/AutomationCard.tsx:237
-#: src/components/automations/nodes/BaseNode.tsx:42
+#: src/components/automations/config/ConditionsField.tsx:120
+#: src/components/automations/nodes/BaseNode.tsx:52
 #: src/components/automations/UpsertAutomationDrawer.tsx:100
 #: src/components/automations/UpsertAutomationDrawer.tsx:127
 #: src/components/automations/UpsertAutomationDrawer.tsx:165
@@ -2217,7 +2250,7 @@ msgstr ""
 msgid "Channels"
 msgstr ""
 
-#: src/components/automations/nodes/ListStatusBranchNode.tsx:53
+#: src/components/automations/nodes/ListStatusBranchNode.tsx:54
 msgid "Check"
 msgstr "Verificar"
 
@@ -2467,6 +2500,10 @@ msgstr ""
 msgid "Common ports: 587 (TLS), 465 (SSL), 25 (unencrypted)"
 msgstr "Puertos comunes: 587 (TLS), 465 (SSL), 25 (sin cifrar)"
 
+#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:221
+msgid "Compare this period with the previous one and explain the biggest drivers of the change in sessions."
+msgstr ""
+
 #: src/components/web_analytics/explore/ExploreTemplates.tsx:50
 msgid "Compare TimeScore across campaign sources"
 msgstr ""
@@ -2535,17 +2572,16 @@ msgid "completed"
 msgstr "completado"
 
 #: src/components/automations/AutomationCard.tsx:267
-#: src/components/automations/nodes/StatNode.tsx:111
-#: src/components/automations/nodes/StatNode.tsx:176
-#: src/components/automations/nodes/StatNode.tsx:247
-#: src/components/automations/nodes/StatNode.tsx:338
+#: src/components/automations/nodes/StatNode.tsx:130
+#: src/components/automations/nodes/StatNode.tsx:193
+#: src/components/automations/nodes/StatNode.tsx:262
+#: src/components/automations/nodes/StatNode.tsx:351
 #: src/pages/BroadcastsPage.tsx:388
 #: src/pages/BroadcastsPage.tsx:1054
 msgid "Completed"
 msgstr "Completado"
 
 #: src/components/automations/nodes/FilterNode.tsx:66
-#: src/components/automations/nodes/FilterNode.tsx:76
 msgid "condition"
 msgstr "condición"
 
@@ -2554,7 +2590,6 @@ msgid "Condition"
 msgstr "Condición"
 
 #: src/components/automations/nodes/FilterNode.tsx:66
-#: src/components/automations/nodes/FilterNode.tsx:76
 msgid "conditions"
 msgstr "condiciones"
 
@@ -2581,12 +2616,12 @@ msgstr ""
 #: src/components/analytics/AnalyticsDashboard.tsx:166
 #: src/components/analytics/AnalyticsDashboard.tsx:190
 #: src/components/automations/NodeConfigPanel.tsx:144
-#: src/components/automations/nodes/ABTestNode.tsx:59
-#: src/components/automations/nodes/AddToListNode.tsx:53
+#: src/components/automations/nodes/ABTestNode.tsx:60
+#: src/components/automations/nodes/AddToListNode.tsx:54
 #: src/components/automations/nodes/DelayNode.tsx:20
-#: src/components/automations/nodes/RemoveFromListNode.tsx:51
-#: src/components/automations/nodes/TriggerNode.tsx:74
-#: src/components/automations/nodes/WebhookNode.tsx:54
+#: src/components/automations/nodes/RemoveFromListNode.tsx:52
+#: src/components/automations/nodes/TriggerNode.tsx:75
+#: src/components/automations/nodes/WebhookNode.tsx:55
 #: src/components/settings/Integrations.tsx:1191
 #: src/components/settings/Integrations.tsx:1239
 msgid "Configure"
@@ -2604,7 +2639,7 @@ msgstr "Configura tanto el nombre de la fuente como la URL del archivo CSS junto
 msgid "Configure how your blog's RSS and JSON feeds are generated."
 msgstr ""
 
-#: src/components/ai-assistant/AIAssistantChat.tsx:132
+#: src/components/ai-assistant/AIAssistantChat.tsx:134
 msgid "Configure Integration"
 msgstr "Configurar integración"
 
@@ -2749,7 +2784,7 @@ msgstr "Contacto actualizado exitosamente"
 msgid "Contacts"
 msgstr "Contactos"
 
-#: src/components/automations/config/FilterConfigForm.tsx:41
+#: src/components/automations/config/FilterConfigForm.tsx:29
 msgid "Contacts matching these conditions follow the 'Yes' path. Others follow 'No'."
 msgstr "Los contactos que coincidan con estas condiciones seguirán la ruta 'Sí'. Los demás seguirán 'No'."
 
@@ -2873,7 +2908,7 @@ msgstr "Copiar punto final del webhook"
 msgid "Core Fields"
 msgstr "Campos principales"
 
-#: src/components/ai-assistant/AIAssistantChat.tsx:341
+#: src/components/ai-assistant/AIAssistantChat.tsx:363
 msgid "Cost"
 msgstr "Costo"
 
@@ -3491,11 +3526,11 @@ msgid "Define UTM parameters for links in your email for better campaign trackin
 msgstr "Define parámetros UTM para enlaces en tu correo para mejor seguimiento de campañas."
 
 #: src/components/automations/nodes/DelayNode.tsx:45
-#: src/components/automations/nodes/StatNode.tsx:54
+#: src/components/automations/nodes/StatNode.tsx:75
 msgid "Delay"
 msgstr "Retraso"
 
-#: src/components/automations/nodes/BaseNode.tsx:41
+#: src/components/automations/nodes/BaseNode.tsx:51
 #: src/components/blog/DeleteCategoryModal.tsx:29
 #: src/components/blog/DeletePostModal.tsx:29
 #: src/components/blog/PostsTable.tsx:341
@@ -3598,8 +3633,8 @@ msgstr "Eliminar invitación"
 msgid "Delete List"
 msgstr "Eliminar lista"
 
-#: src/components/automations/nodes/BaseNode.tsx:38
-#: src/components/automations/nodes/BaseNode.tsx:45
+#: src/components/automations/nodes/BaseNode.tsx:48
+#: src/components/automations/nodes/BaseNode.tsx:55
 msgid "Delete node"
 msgstr "Eliminar nodo"
 
@@ -3700,7 +3735,7 @@ msgstr "ID de entrega:"
 msgid "Describe this image..."
 msgstr "Describe esta imagen..."
 
-#: src/components/automations/config/FilterConfigForm.tsx:30
+#: src/components/automations/NodeConfigPanel.tsx:163
 #: src/components/blog/CategoryDrawer.tsx:155
 #: src/components/lists/ListDrawer.tsx:206
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:308
@@ -3813,7 +3848,7 @@ msgstr ""
 msgid "Display video player controls"
 msgstr "Mostrar controles del reproductor de vídeo"
 
-#: src/components/automations/config/ABTestConfigForm.tsx:169
+#: src/components/automations/config/ABTestConfigForm.tsx:171
 msgid "Distribute evenly"
 msgstr "Distribuir uniformemente"
 
@@ -3883,7 +3918,7 @@ msgstr "No indexar y no seguir enlaces"
 msgid "Don't index, but follow links"
 msgstr "No indexar, pero seguir enlaces"
 
-#: src/components/automations/config/ConditionsField.tsx:123
+#: src/components/automations/config/ConditionsField.tsx:137
 #: src/components/templates/TemplateTranslationsTab.tsx:298
 msgid "Done"
 msgstr ""
@@ -3987,8 +4022,8 @@ msgid "e.g. welcome_series"
 msgstr "ej. welcome_series"
 
 #: src/components/automations/config/FilterConfigForm.tsx:34
-msgid "e.g., Active users only"
-msgstr "ej., Solo usuarios activos"
+#~ msgid "e.g., Active users only"
+#~ msgstr "ej., Solo usuarios activos"
 
 #: src/components/settings/CustomFieldsConfiguration.tsx:286
 msgid "e.g., Company Name, Industry, etc."
@@ -4025,6 +4060,10 @@ msgstr "ej., compra"
 #: src/components/email_builder/ui/ImportFontInput.tsx:130
 msgid "e.g., Raleway, Open Sans"
 msgstr "ej., Raleway, Open Sans"
+
+#: src/components/automations/NodeConfigPanel.tsx:177
+msgid "e.g., Welcome — day 1"
+msgstr ""
 
 #: src/components/automations/config/TriggerConfigForm.tsx:353
 msgid "Each contact enters the automation only once"
@@ -4208,7 +4247,7 @@ msgstr "correo electrónico"
 #: src/components/analytics/NewContactsTable.tsx:67
 #: src/components/automations/config/TriggerConfigForm.tsx:97
 #: src/components/automations/nodes/EmailNode.tsx:39
-#: src/components/automations/nodes/StatNode.tsx:55
+#: src/components/automations/nodes/StatNode.tsx:76
 #: src/components/contacts/BulkUpdateDrawer.tsx:665
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:89
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:920
@@ -4223,8 +4262,8 @@ msgstr "correo electrónico"
 #: src/components/timeline/ContactTimeline.tsx:584
 #: src/pages/ContactsPage.tsx:369
 #: src/pages/ContactsPage.tsx:536
-#: src/pages/SignInPage.tsx:210
-#: src/pages/SignInPage.tsx:217
+#: src/pages/SignInPage.tsx:218
+#: src/pages/SignInPage.tsx:225
 msgid "Email"
 msgstr "Correo electrónico"
 
@@ -4606,7 +4645,7 @@ msgstr "Introduce la dirección de correo de respuesta"
 msgid "Enter spacing"
 msgstr "Introduce el espaciado"
 
-#: src/pages/SignInPage.tsx:246
+#: src/pages/SignInPage.tsx:254
 msgid "Enter the 6-digit code sent to {email}"
 msgstr "Introduce el código de 6 dígitos enviado a {email}"
 
@@ -4693,7 +4732,10 @@ msgid "Error:"
 msgstr "Error:"
 
 #. placeholder {0}: event.error
-#: src/components/ai-assistant/useAIAssistant.tsx:167
+#. placeholder {0}: toErrorText(error)
+#: src/components/ai-assistant/useAIAssistant.tsx:287
+#: src/components/ai-assistant/useAIAssistant.tsx:526
+#: src/components/ai-assistant/useAIAssistant.tsx:531
 msgid "Error: {0}"
 msgstr "Error: {0}"
 
@@ -4823,7 +4865,7 @@ msgid "Expires:"
 msgstr "Expira:"
 
 #: src/layouts/WorkspaceLayout.tsx:353
-#: src/pages/WebAnalyticsPage.tsx:75
+#: src/pages/WebAnalyticsPage.tsx:84
 msgid "Explore"
 msgstr ""
 
@@ -4847,7 +4889,7 @@ msgid "Export MJML"
 msgstr ""
 
 #: src/components/web_analytics/explore/CsvExportModal.tsx:128
-#: src/pages/WebAnalyticsPage.tsx:98
+#: src/pages/WebAnalyticsPage.tsx:107
 msgid "Export to CSV"
 msgstr ""
 
@@ -4877,9 +4919,9 @@ msgstr "fallido"
 #: src/components/analytics/EmailMetricsChart.tsx:273
 #: src/components/analytics/EmailMetricsChart.tsx:510
 #: src/components/automations/AutomationCard.tsx:281
-#: src/components/automations/nodes/StatNode.tsx:117
-#: src/components/automations/nodes/StatNode.tsx:181
-#: src/components/automations/nodes/StatNode.tsx:344
+#: src/components/automations/nodes/StatNode.tsx:136
+#: src/components/automations/nodes/StatNode.tsx:198
+#: src/components/automations/nodes/StatNode.tsx:357
 #: src/components/broadcasts/BroadcastStats.tsx:249
 #: src/components/contacts/BulkActionProgressModal.tsx:106
 #: src/components/contacts/BulkActionProgressModal.tsx:146
@@ -4936,7 +4978,7 @@ msgid "Failed to create API key"
 msgstr "Error al crear clave API"
 
 #. placeholder {0}: error.message
-#: src/components/automations/context/AutomationContext.tsx:253
+#: src/components/automations/context/AutomationContext.tsx:254
 msgid "Failed to create automation: {0}"
 msgstr "Error al crear automatización: {0}"
 
@@ -5193,7 +5235,7 @@ msgstr "Error al renderizar vista previa"
 msgid "Failed to resend invitation"
 msgstr "Error al reenviar invitación"
 
-#: src/pages/SignInPage.tsx:190
+#: src/pages/SignInPage.tsx:198
 msgid "Failed to resend magic code"
 msgstr "Error al reenviar el código mágico"
 
@@ -5260,7 +5302,7 @@ msgstr "Error al seleccionar ganador"
 msgid "Failed to send broadcast"
 msgstr "Error al enviar envío masivo"
 
-#: src/pages/SignInPage.tsx:95
+#: src/pages/SignInPage.tsx:74
 msgid "Failed to send magic code"
 msgstr "Error al enviar el código mágico"
 
@@ -5301,7 +5343,7 @@ msgid "Failed to unpublish post"
 msgstr "Error al despublicar publicación"
 
 #. placeholder {0}: error.message
-#: src/components/automations/context/AutomationContext.tsx:268
+#: src/components/automations/context/AutomationContext.tsx:269
 msgid "Failed to update automation: {0}"
 msgstr "Error al actualizar automatización: {0}"
 
@@ -5374,7 +5416,7 @@ msgstr "Error al actualizar configuración del espacio de trabajo"
 msgid "Failed to update workspace settings: {errorMessage}"
 msgstr "Error al actualizar configuración del espacio de trabajo: {errorMessage}"
 
-#: src/pages/SignInPage.tsx:66
+#: src/pages/SignInPage.tsx:45
 msgid "Failed to verify code"
 msgstr "Error al verificar el código"
 
@@ -5408,7 +5450,7 @@ msgid "Fetching data..."
 msgstr ""
 
 #. placeholder {0}: toolInput.url
-#: src/components/ai-assistant/useAIAssistant.tsx:121
+#: src/components/ai-assistant/useAIAssistant.tsx:236
 msgid "Fetching: {0}"
 msgstr "Obteniendo: {0}"
 
@@ -5478,8 +5520,8 @@ msgid "Fill in the fields of a hypothetical visit; empty fields count as empty v
 msgstr ""
 
 #: src/components/automations/nodes/FilterNode.tsx:48
-#: src/components/automations/nodes/StatNode.tsx:57
-#: src/components/automations/nodes/StatNode.tsx:164
+#: src/components/automations/nodes/StatNode.tsx:78
+#: src/components/automations/nodes/StatNode.tsx:180
 msgid "Filter"
 msgstr "Filtro"
 
@@ -5496,7 +5538,7 @@ msgstr "Filtrar por {0}"
 msgid "Filter by: {0}"
 msgstr "Filtrar por: {0}"
 
-#: src/components/automations/config/FilterConfigForm.tsx:40
+#: src/components/automations/config/FilterConfigForm.tsx:28
 msgid "Filter conditions"
 msgstr "Condiciones de filtro"
 
@@ -5510,9 +5552,13 @@ msgstr ""
 
 #: src/components/messages/MessageHistoryTab.tsx:586
 #: src/layouts/WorkspaceLayout.tsx:375
-#: src/pages/WebAnalyticsPage.tsx:77
+#: src/pages/WebAnalyticsPage.tsx:86
 msgid "Filters"
 msgstr "Filtros"
+
+#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:171
+msgid "Filters cleared"
+msgstr ""
 
 #: src/components/web_analytics/explore/BreakdownDrawer.tsx:112
 #: src/pages/ContactsPage.tsx:1078
@@ -5840,7 +5886,7 @@ msgstr "Objetivo:"
 #: src/components/web_analytics/tabs/DashboardTab.tsx:242
 #: src/components/web_analytics/tabs/DashboardTab.tsx:252
 #: src/layouts/WorkspaceLayout.tsx:364
-#: src/pages/WebAnalyticsPage.tsx:76
+#: src/pages/WebAnalyticsPage.tsx:85
 msgid "Goals"
 msgstr ""
 
@@ -6055,6 +6101,10 @@ msgstr "https://ejemplo.com o {{ url }}"
 #: src/components/email_builder/ui/ImportFontInput.tsx:141
 msgid "https://fonts.googleapis.com/css?family=... or {{ font_url }}"
 msgstr "https://fonts.googleapis.com/css?family=... o {{ font_url }}"
+
+#: src/components/ai-assistant/useAIAssistant.tsx:673
+msgid "I ran {maxRounds} rounds of tool calls without reaching an answer and stopped there. Ask a narrower question and I will try again."
+msgstr ""
 
 #: src/components/segment/button_upsert.tsx:461
 msgid "i.e: Big spenders..."
@@ -6352,10 +6402,10 @@ msgstr "Indexar y seguir enlaces"
 msgid "Index, but don't follow links"
 msgstr "Indexar, pero no seguir enlaces"
 
-#: src/components/automations/nodes/StatNode.tsx:106
-#: src/components/automations/nodes/StatNode.tsx:171
-#: src/components/automations/nodes/StatNode.tsx:242
-#: src/components/automations/nodes/StatNode.tsx:333
+#: src/components/automations/nodes/StatNode.tsx:125
+#: src/components/automations/nodes/StatNode.tsx:188
+#: src/components/automations/nodes/StatNode.tsx:257
+#: src/components/automations/nodes/StatNode.tsx:346
 msgid "Inflight"
 msgstr "En vuelo"
 
@@ -6379,7 +6429,7 @@ msgstr "Borde interior"
 msgid "Inner border radius"
 msgstr "Radio de borde interior"
 
-#: src/components/ai-assistant/AIAssistantChat.tsx:334
+#: src/components/ai-assistant/AIAssistantChat.tsx:356
 msgid "Input"
 msgstr "Entrada"
 
@@ -6920,8 +6970,8 @@ msgid "List ID: {0}"
 msgstr "ID de lista: {0}"
 
 #: src/components/automations/nodes/ListStatusBranchNode.tsx:38
-#: src/components/automations/nodes/StatNode.tsx:62
-#: src/components/automations/nodes/StatNode.tsx:235
+#: src/components/automations/nodes/StatNode.tsx:83
+#: src/components/automations/nodes/StatNode.tsx:249
 #: src/components/contacts/ExportContactsModal.tsx:80
 #: src/pages/ContactsPage.tsx:389
 msgid "List Status"
@@ -7084,7 +7134,7 @@ msgstr ""
 msgid "lowercase"
 msgstr "minúsculas"
 
-#: src/pages/SignInPage.tsx:93
+#: src/pages/SignInPage.tsx:72
 msgid "Magic code sent to your email"
 msgstr "Código mágico enviado a tu correo"
 
@@ -7538,7 +7588,7 @@ msgstr "Nueva categoría"
 msgid "New Contacts"
 msgstr "Nuevos contactos"
 
-#: src/components/ai-assistant/AIAssistantChat.tsx:328
+#: src/components/ai-assistant/AIAssistantChat.tsx:350
 msgid "New conversation"
 msgstr "Nueva conversación"
 
@@ -7546,7 +7596,7 @@ msgstr "Nueva conversación"
 msgid "New folder"
 msgstr "Nueva carpeta"
 
-#: src/pages/SignInPage.tsx:188
+#: src/pages/SignInPage.tsx:196
 msgid "New magic code sent to your email"
 msgstr "Nuevo código mágico enviado a tu correo"
 
@@ -7592,7 +7642,7 @@ msgstr "Siguiente"
 msgid "Next Run"
 msgstr "Próxima ejecución"
 
-#: src/components/automations/nodes/FilterNode.tsx:83
+#: src/components/automations/nodes/FilterNode.tsx:72
 #: src/components/blog/AuthorsTable.tsx:107
 #: src/components/blog/PostDrawer.tsx:282
 #: src/components/blog/PostDrawer.tsx:550
@@ -7692,7 +7742,7 @@ msgstr ""
 msgid "No comparison"
 msgstr ""
 
-#: src/components/automations/nodes/FilterNode.tsx:60
+#: src/components/automations/nodes/FilterNode.tsx:61
 msgid "No conditions"
 msgstr "Sin condiciones"
 
@@ -7850,6 +7900,10 @@ msgstr "No hay nodos en esta automatización"
 msgid "No notes"
 msgstr "Sin notas"
 
+#: src/pages/SignInPage.tsx:96
+msgid "No Notifuse account is linked to that identity. Ask an administrator to invite you first."
+msgstr ""
+
 #: src/components/web_analytics/filters/TestFilterModal.tsx:201
 msgid "No operations defined"
 msgstr ""
@@ -7993,8 +8047,8 @@ msgid "Nodes"
 msgstr "Nodos"
 
 #: src/components/automations/config/ListStatusBranchConfigForm.tsx:51
-#: src/components/automations/nodes/ListStatusBranchNode.tsx:60
-#: src/components/automations/nodes/StatNode.tsx:258
+#: src/components/automations/nodes/ListStatusBranchNode.tsx:61
+#: src/components/automations/nodes/StatNode.tsx:273
 msgid "Non-Active"
 msgstr "No activo"
 
@@ -8036,7 +8090,7 @@ msgstr "No asignado"
 msgid "Not configured"
 msgstr "No configurado"
 
-#: src/components/automations/nodes/BaseNode.tsx:32
+#: src/components/automations/nodes/BaseNode.tsx:42
 msgid "Not connected"
 msgstr "No conectado"
 
@@ -8059,8 +8113,8 @@ msgid "not in"
 msgstr ""
 
 #: src/components/automations/config/ListStatusBranchConfigForm.tsx:45
-#: src/components/automations/nodes/ListStatusBranchNode.tsx:58
-#: src/components/automations/nodes/StatNode.tsx:256
+#: src/components/automations/nodes/ListStatusBranchNode.tsx:59
+#: src/components/automations/nodes/StatNode.tsx:271
 msgid "Not in List"
 msgstr "No está en lista"
 
@@ -8311,6 +8365,10 @@ msgstr "abierto"
 msgid "Opened"
 msgstr "Abierto"
 
+#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:173
+msgid "Opened the {section} section"
+msgstr ""
+
 #: src/pages/BroadcastsPage.tsx:1134
 msgid "opens"
 msgstr "aperturas"
@@ -8375,7 +8433,7 @@ msgstr "Opcional. Si se proporciona, se envía como Authorization: Bearer <secre
 msgid "Optionally filter contacts by segments within the selected lists"
 msgstr "Opcionalmente filtra contactos por segmentos dentro de las listas seleccionadas"
 
-#: src/pages/SignInPage.tsx:228
+#: src/pages/SignInPage.tsx:236
 msgid "or"
 msgstr ""
 
@@ -8400,7 +8458,7 @@ msgstr "Otro"
 msgid "Outgoing Webhooks"
 msgstr "Webhooks salientes"
 
-#: src/components/ai-assistant/AIAssistantChat.tsx:335
+#: src/components/ai-assistant/AIAssistantChat.tsx:357
 msgid "Output"
 msgstr "Salida"
 
@@ -8530,7 +8588,7 @@ msgstr "Payload:"
 
 #: src/components/automations/config/AddToListConfigForm.tsx:18
 #: src/components/automations/config/TriggerConfigForm.tsx:83
-#: src/components/automations/nodes/AddToListNode.tsx:58
+#: src/components/automations/nodes/AddToListNode.tsx:59
 #: src/components/contacts/ContactDetailsDrawer.tsx:583
 #: src/components/lists/ListStats.tsx:90
 #: src/components/settings/WorkspaceMembers.tsx:117
@@ -8565,6 +8623,10 @@ msgstr "URL del feed por destinatario"
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:408
 msgid "Per-recipient feed URL is required when enabled"
 msgstr "La URL del feed por destinatario es requerida cuando está habilitado"
+
+#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:169
+msgid "Period set to {summary}"
+msgstr ""
 
 #: src/pages/SetupWizard.tsx:567
 msgid "Periodically check for new Notifuse versions and security updates. A popup will list new versions available."
@@ -8714,7 +8776,7 @@ msgstr "Por favor, introduce un slug"
 msgid "Please enter a URL"
 msgstr "Por favor, introduce una URL"
 
-#: src/pages/SignInPage.tsx:254
+#: src/pages/SignInPage.tsx:262
 msgid "Please enter a valid 6-digit code!"
 msgstr "¡Por favor introduce un código de 6 dígitos válido!"
 
@@ -8722,7 +8784,7 @@ msgstr "¡Por favor introduce un código de 6 dígitos válido!"
 msgid "Please enter a valid email"
 msgstr "Por favor, introduce un correo válido"
 
-#: src/pages/SignInPage.tsx:214
+#: src/pages/SignInPage.tsx:222
 msgid "Please enter a valid email!"
 msgstr "¡Por favor introduce un correo válido!"
 
@@ -8759,7 +8821,7 @@ msgstr "Por favor, introduce un identificador API"
 msgid "Please enter an API key name"
 msgstr "Por favor, introduce un nombre de clave API"
 
-#: src/components/automations/context/AutomationContext.tsx:277
+#: src/components/automations/context/AutomationContext.tsx:278
 #: src/components/automations/UpsertAutomationDrawer.tsx:113
 msgid "Please enter an automation name"
 msgstr "Por favor, introduce un nombre de automatización"
@@ -8788,11 +8850,11 @@ msgstr "Por favor, introduce el nombre del espacio de trabajo"
 msgid "Please enter your API key"
 msgstr "Por favor, introduce tu clave API"
 
-#: src/pages/SignInPage.tsx:251
+#: src/pages/SignInPage.tsx:259
 msgid "Please input the magic code!"
 msgstr "¡Por favor introduce el código mágico!"
 
-#: src/pages/SignInPage.tsx:213
+#: src/pages/SignInPage.tsx:221
 msgid "Please input your email!"
 msgstr "¡Por favor introduce tu correo!"
 
@@ -9248,6 +9310,10 @@ msgstr "Compra"
 msgid "Push"
 msgstr "Push"
 
+#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:164
+msgid "Querying {what}"
+msgstr ""
+
 #: src/pages/BroadcastsPage.tsx:607
 msgid "Queued emails will not be sent. In-flight sends will complete."
 msgstr ""
@@ -9293,6 +9359,10 @@ msgstr "Leído"
 #: src/components/seo/OpenGraphPreview.tsx:26
 msgid "Read the latest post from this broadcast."
 msgstr "Lee la última publicación de este envío masivo."
+
+#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:174
+msgid "Reading the available metrics"
+msgstr ""
 
 #: src/components/blog/PostDrawer.tsx:874
 msgid "Reading Time"
@@ -9488,14 +9558,15 @@ msgstr "Rel"
 msgid "Reload latest"
 msgstr ""
 
-#: src/components/automations/config/ConditionsField.tsx:111
+#: src/components/automations/config/ConditionsField.tsx:119
+#: src/components/automations/config/ConditionsField.tsx:124
 #: src/components/blog_editor/toolbars/components/LinkPopover.tsx:119
 msgid "Remove"
 msgstr "Quitar"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:418
-#~ msgid "Remove conditions"
-#~ msgstr ""
+#: src/components/automations/config/ConditionsField.tsx:116
+msgid "Remove conditions"
+msgstr ""
 
 #: src/components/settings/CustomFieldsConfiguration.tsx:210
 msgid "Remove custom field label"
@@ -9517,7 +9588,7 @@ msgid "Remove from list"
 msgstr ""
 
 #: src/components/automations/nodes/RemoveFromListNode.tsx:39
-#: src/components/automations/nodes/StatNode.tsx:59
+#: src/components/automations/nodes/StatNode.tsx:80
 msgid "Remove from List"
 msgstr "Eliminar de lista"
 
@@ -9599,6 +9670,10 @@ msgstr "Responder a"
 msgid "Report An Issue"
 msgstr "Reportar un problema"
 
+#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:172
+msgid "Report grouped by {dimensions}"
+msgstr ""
+
 #: src/components/settings/Integrations.tsx:2291
 msgid "Reputation"
 msgstr ""
@@ -9643,7 +9718,7 @@ msgstr ""
 msgid "Requires a padding"
 msgstr "Requiere un relleno"
 
-#: src/pages/SignInPage.tsx:285
+#: src/pages/SignInPage.tsx:293
 msgid "Resend code"
 msgstr "Reenviar código"
 
@@ -10051,7 +10126,7 @@ msgid "Searches the web and returns relevant URLs"
 msgstr "Busca en la web y devuelve URLs relevantes"
 
 #. placeholder {0}: toolInput.query
-#: src/components/ai-assistant/useAIAssistant.tsx:123
+#: src/components/ai-assistant/useAIAssistant.tsx:238
 msgid "Searching: \"{0}\""
 msgstr "Buscando: \"{0}\""
 
@@ -10120,7 +10195,7 @@ msgstr "Árbol de segmento restablecido"
 msgid "Segments"
 msgstr "Segmentos"
 
-#: src/components/automations/nodes/EmailNode.tsx:48
+#: src/components/automations/nodes/EmailNode.tsx:49
 #: src/components/file_manager/fileManager.tsx:976
 #: src/components/settings/BlogSettings.tsx:365
 #: src/components/settings/BlogSettings.tsx:381
@@ -10157,7 +10232,7 @@ msgstr ""
 msgid "Select a field"
 msgstr "Selecciona un campo"
 
-#: src/components/automations/nodes/ListStatusBranchNode.tsx:50
+#: src/components/automations/nodes/ListStatusBranchNode.tsx:51
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:529
 #: src/components/contacts/BulkActionsBar.tsx:203
 #: src/components/contacts/ContactDetailsDrawer.tsx:1138
@@ -10474,7 +10549,7 @@ msgstr "Envía una notificación transaccional usando TypeScript/JavaScript:"
 msgid "Send Invitation"
 msgstr "Enviar invitación"
 
-#: src/pages/SignInPage.tsx:222
+#: src/pages/SignInPage.tsx:230
 msgid "Send Magic Code"
 msgstr "Enviar código mágico"
 
@@ -10815,13 +10890,13 @@ msgstr "Mostrar más ({0} restantes)"
 msgid "Showing the top 200 links by unique clicks."
 msgstr ""
 
-#: src/pages/SignInPage.tsx:200
+#: src/pages/SignInPage.tsx:208
 msgid "Sign In"
 msgstr "Iniciar sesión"
 
 #: src/components/settings/SystemSettingsDrawer.tsx:603
 #: src/pages/SetupWizard.tsx:747
-#: src/pages/SignInPage.tsx:239
+#: src/pages/SignInPage.tsx:247
 msgid "Sign in with SSO"
 msgstr ""
 
@@ -10838,8 +10913,13 @@ msgstr "Registro"
 msgid "Since"
 msgstr "Desde"
 
-#: src/pages/SignInPage.tsx:115
+#: src/pages/SignInPage.tsx:106
+#: src/pages/SignInPage.tsx:123
 msgid "Single sign-on failed. Please try again or use a magic code."
+msgstr ""
+
+#: src/pages/SignInPage.tsx:102
+msgid "Single sign-on is temporarily unavailable. Please try a magic code."
 msgstr ""
 
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:173
@@ -11238,7 +11318,7 @@ msgstr "suscrito"
 
 #: src/components/automations/config/AddToListConfigForm.tsx:17
 #: src/components/automations/config/TriggerConfigForm.tsx:77
-#: src/components/automations/nodes/AddToListNode.tsx:58
+#: src/components/automations/nodes/AddToListNode.tsx:59
 msgid "Subscribed"
 msgstr "Suscrito"
 
@@ -11299,10 +11379,23 @@ msgstr "Exitoso"
 msgid "Successfully processed {successful} contacts"
 msgstr "Procesados exitosamente {successful} contactos"
 
-#: src/pages/SignInPage.tsx:59
-#: src/pages/SignInPage.tsx:110
+#: src/pages/SignInPage.tsx:38
+#: src/pages/SignInPage.tsx:118
 msgid "Successfully signed in"
 msgstr "Sesión iniciada correctamente"
+
+#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:216
+msgid "Summarise the current period and tell me what changed versus the comparison period."
+msgstr ""
+
+#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:215
+msgid "Summarise this period"
+msgstr ""
+
+#. placeholder {0}: periodLabels[context.period]
+#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:168
+msgid "Summarising {0}"
+msgstr ""
 
 #: src/components/settings/BlogSettings.tsx:447
 msgid "Summary-only feed"
@@ -11473,7 +11566,7 @@ msgstr "Plantilla importada exitosamente"
 msgid "Template name"
 msgstr "Nombre de plantilla"
 
-#: src/components/automations/nodes/EmailNode.tsx:46
+#: src/components/automations/nodes/EmailNode.tsx:47
 msgid "Template set"
 msgstr "Conjunto de plantillas"
 
@@ -11595,7 +11688,7 @@ msgstr ""
 msgid "Test sample size (%)"
 msgstr "Tamaño de muestra de prueba (%)"
 
-#: src/components/automations/config/ABTestConfigForm.tsx:115
+#: src/components/automations/config/ABTestConfigForm.tsx:117
 msgid "Test Variants"
 msgstr "Variantes de prueba"
 
@@ -11744,7 +11837,7 @@ msgstr ""
 msgid "The following validation errors were found in your import:"
 msgstr "Se encontraron los siguientes errores de validación en tu importación:"
 
-#: src/components/ai-assistant/useAIAssistant.tsx:275
+#: src/components/ai-assistant/useAIAssistant.tsx:685
 msgid "The generated email has issues that prevent it from rendering:"
 msgstr ""
 
@@ -11769,7 +11862,7 @@ msgstr ""
 msgid "The requested workspace could not be found."
 msgstr "No se pudo encontrar el espacio de trabajo solicitado."
 
-#: src/components/ai-assistant/useAIAssistant.tsx:159
+#: src/components/ai-assistant/useAIAssistant.tsx:279
 msgid "The response was cut off because it reached the token limit. Lower the reasoning effort, simplify the request, or raise the token limit, then try again."
 msgstr ""
 
@@ -11817,6 +11910,10 @@ msgstr "El campo user_metadata en Supabase se guardará en este campo JSON perso
 msgid "The webhook will stop receiving events."
 msgstr "El webhook dejará de recibir eventos."
 
+#: src/components/automations/config/ConditionsField.tsx:117
+msgid "The whole condition tree will be deleted."
+msgstr ""
+
 #: src/components/file_manager/buttonSettings.tsx:138
 msgid "The workspace settings have been updated!"
 msgstr "¡La configuración del espacio de trabajo ha sido actualizada!"
@@ -11857,8 +11954,12 @@ msgstr ""
 msgid "These parameters are automatically added to the URL of the broadcast. They are used by web analytics tools to analyze the performance of your campaign."
 msgstr "Estos parámetros se añaden automáticamente a la URL del envío masivo. Son usados por herramientas de analíticas web para analizar el rendimiento de tu campaña."
 
-#: src/components/ai-assistant/AIAssistantChat.tsx:265
+#: src/components/ai-assistant/AIAssistantChat.tsx:287
 msgid "Thinking"
+msgstr ""
+
+#: src/pages/SignInPage.tsx:100
+msgid "This account is already linked to a different single sign-on identity."
 msgstr ""
 
 #: src/components/automations/AutomationCard.tsx:153
@@ -12203,7 +12304,7 @@ msgstr "para prevenir envíos duplicados"
 #~ msgstr ""
 
 #. placeholder {0}: config.title
-#: src/components/ai-assistant/AIAssistantChat.tsx:122
+#: src/components/ai-assistant/AIAssistantChat.tsx:124
 msgid "To use the {0}, you need to configure the Anthropic integration in your workspace settings."
 msgstr "Para usar {0}, necesitas configurar la integración de Anthropic en la configuración de tu espacio de trabajo."
 
@@ -12224,6 +12325,10 @@ msgstr "Alterna entre vistas móvil y de escritorio para ver cómo aparece tu co
 #: src/components/blog_editor/toolbars/components/CodeBlockToolbar.tsx:244
 msgid "Toggle caption"
 msgstr "Alternar leyenda"
+
+#: src/pages/SignInPage.tsx:104
+msgid "Too many sign-in attempts. Please wait a moment and try again."
+msgstr ""
 
 #: src/components/settings/Integrations.tsx:1599
 msgid "Tools"
@@ -12280,7 +12385,11 @@ msgstr "Superior derecha"
 msgid "Top Sources"
 msgstr ""
 
-#: src/components/automations/config/ABTestConfigForm.tsx:166
+#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:225
+msgid "Top traffic sources"
+msgstr ""
+
+#: src/components/automations/config/ABTestConfigForm.tsx:168
 #: src/components/contacts/SegmentsFilter.tsx:77
 msgid "Total"
 msgstr "Total"
@@ -12376,7 +12485,7 @@ msgid "Trial"
 msgstr "Prueba"
 
 #: src/components/automations/AutomationCard.tsx:294
-#: src/components/automations/nodes/StatNode.tsx:53
+#: src/components/automations/nodes/StatNode.tsx:74
 #: src/components/automations/nodes/TriggerNode.tsx:63
 msgid "Trigger"
 msgstr "Disparador"
@@ -12506,8 +12615,8 @@ msgstr "Fecha desconocida"
 msgid "Unknown error"
 msgstr "Error desconocido"
 
-#: src/components/automations/nodes/AddToListNode.tsx:56
-#: src/components/automations/nodes/RemoveFromListNode.tsx:53
+#: src/components/automations/nodes/AddToListNode.tsx:57
+#: src/components/automations/nodes/RemoveFromListNode.tsx:54
 #: src/pages/BroadcastsPage.tsx:1010
 msgid "Unknown list"
 msgstr "Lista desconocida"
@@ -12732,7 +12841,7 @@ msgstr "URL:"
 msgid "Use"
 msgstr "Usar"
 
-#: src/pages/SignInPage.tsx:277
+#: src/pages/SignInPage.tsx:285
 msgid "Use a different email"
 msgstr "Usar otro correo"
 
@@ -12834,7 +12943,7 @@ msgid "Users"
 msgstr ""
 
 #. placeholder {0}: event.tool_name
-#: src/components/ai-assistant/useAIAssistant.tsx:119
+#: src/components/ai-assistant/useAIAssistant.tsx:234
 msgid "Using {0}..."
 msgstr "Usando {0}..."
 
@@ -12912,7 +13021,7 @@ msgstr ""
 msgid "Value:"
 msgstr "Valor:"
 
-#: src/components/automations/config/ABTestConfigForm.tsx:127
+#: src/components/automations/config/ABTestConfigForm.tsx:129
 msgid "Variant name"
 msgstr "Nombre de variante"
 
@@ -12921,7 +13030,7 @@ msgstr "Nombre de variante"
 msgid "Variations"
 msgstr "Variaciones"
 
-#: src/pages/SignInPage.tsx:267
+#: src/pages/SignInPage.tsx:275
 msgid "Verify Code"
 msgstr "Verificar código"
 
@@ -13071,7 +13180,7 @@ msgstr "Detectaremos y usaremos automáticamente el favicon de tu sitio web"
 #: src/components/settings/WebAnalyticsSettings.tsx:259
 #: src/layouts/WorkspaceLayout.tsx:325
 #: src/pages/BroadcastsPage.tsx:1080
-#: src/pages/WebAnalyticsPage.tsx:74
+#: src/pages/WebAnalyticsPage.tsx:83
 msgid "Web Analytics"
 msgstr "Analíticas web"
 
@@ -13107,7 +13216,7 @@ msgstr ""
 msgid "Web session"
 msgstr ""
 
-#: src/components/automations/nodes/StatNode.tsx:61
+#: src/components/automations/nodes/StatNode.tsx:82
 #: src/components/automations/nodes/WebhookNode.tsx:43
 #: src/components/timeline/ContactTimeline.tsx:667
 msgid "Webhook"
@@ -13254,6 +13363,18 @@ msgstr ""
 msgid "When you select a block, its settings appear here. Modify colors, text, spacing, alignment, and other properties to customize your email design."
 msgstr "Cuando seleccionas un bloque, su configuración aparece aquí. Modifica colores, texto, espaciado, alineación y otras propiedades para personalizar el diseño de tu correo."
 
+#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:226
+msgid "Which acquisition channels and campaigns brought the most sessions this period, and which ones grew or shrank?"
+msgstr ""
+
+#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:231
+msgid "Which landing pages bring the most sessions, and which ones have the worst bounce rate or engagement?"
+msgstr ""
+
+#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:220
+msgid "Why did traffic change?"
+msgstr ""
+
 #: src/components/email_builder/blocks/MjBodyBlock.tsx:44
 #: src/components/email_builder/blocks/MjButtonBlock.tsx:344
 #: src/components/email_builder/blocks/MjColumnBlock.tsx:42
@@ -13387,7 +13508,7 @@ msgstr ""
 msgid "Yearly"
 msgstr ""
 
-#: src/components/automations/nodes/FilterNode.tsx:82
+#: src/components/automations/nodes/FilterNode.tsx:71
 #: src/components/blog/AuthorsTable.tsx:106
 #: src/components/blog/PostDrawer.tsx:281
 #: src/components/blog/PostDrawer.tsx:549
@@ -13570,6 +13691,10 @@ msgstr ""
 #: src/components/file_manager/buttonSettings.tsx:215
 msgid "Your files can be uploaded to any S3 compatible storage."
 msgstr "Tus archivos pueden subirse a cualquier almacenamiento compatible con S3."
+
+#: src/pages/SignInPage.tsx:98
+msgid "Your identity provider has not verified your email address."
+msgstr ""
 
 #: src/pages/SetupWizard.tsx:323
 msgid "Your Notifuse instance has been successfully configured."

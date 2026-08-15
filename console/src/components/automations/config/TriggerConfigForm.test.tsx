@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { i18n } from '@lingui/core'
 import { I18nProvider } from '@lingui/react'
@@ -131,7 +131,11 @@ describe('TriggerConfigForm entry conditions', () => {
       conditions: contactsTree
     })
 
+    // Removal is behind a Popconfirm whose OK button repeats the trigger's label, so confirm
+    // inside the popup rather than by text alone.
     await userEvent.click(screen.getByText('Remove'))
+    const popup = await screen.findByRole('tooltip')
+    await userEvent.click(within(popup).getByText('Remove'))
 
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ conditions: undefined }))
   })

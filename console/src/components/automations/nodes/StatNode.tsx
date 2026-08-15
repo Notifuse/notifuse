@@ -14,7 +14,7 @@ import {
   Webhook
 } from 'lucide-react'
 import { useLingui } from '@lingui/react/macro'
-import { nodeTypeColors } from './constants'
+import { nodeTypeColors, getNodeDescription } from './constants'
 import type { NodeType, AutomationNodeStats, ABTestNodeConfig } from '../../../services/api/automation'
 
 // Icons for each node type
@@ -42,9 +42,30 @@ export interface StatNodeData {
 
 type StatNodeProps = NodeProps<StatNodeData>
 
+// Shared by all four stat node shapes below, which otherwise repeat this header verbatim. min-w-0
+// is what lets the truncation take effect inside the flex row.
+const StatNodeHeader: React.FC<{
+  color: string
+  icon: React.ReactNode
+  label: string
+  description?: string
+}> = ({ color, icon, label, description }) => (
+  <div className="flex items-center gap-2 px-3 py-2" style={{ borderBottom: `1px solid ${color}20` }}>
+    <span style={{ color }}>{icon}</span>
+    <div className="min-w-0">
+      <div className="text-sm font-medium text-gray-800 truncate">{label}</div>
+      {description && (
+        <div className="text-xs text-gray-500 truncate" title={description}>
+          {description}
+        </div>
+      )}
+    </div>
+  </div>
+)
+
 export const StatNode: React.FC<StatNodeProps> = ({ data }) => {
   const { t } = useLingui()
-  const { nodeType, label, stats } = data
+  const { nodeType, label, stats, config } = data
   const color = nodeTypeColors[nodeType] || '#6b7280'
   const icon = nodeIcons[nodeType]
 
@@ -90,14 +111,12 @@ export const StatNode: React.FC<StatNodeProps> = ({ data }) => {
           overflow: 'hidden'
         }}
       >
-        {/* Header */}
-        <div
-          className="flex items-center gap-2 px-3 py-2"
-          style={{ borderBottom: `1px solid ${color}20` }}
-        >
-          <span style={{ color }}>{icon}</span>
-          <span className="text-sm font-medium text-gray-800 truncate">{nodeLabel}</span>
-        </div>
+        <StatNodeHeader
+          color={color}
+          icon={icon}
+          label={nodeLabel}
+          description={getNodeDescription(config)}
+        />
 
         {/* Stats */}
         <div className="px-3 py-2 bg-gray-50">
@@ -134,7 +153,7 @@ export const StatNode: React.FC<StatNodeProps> = ({ data }) => {
 // For filter nodes that have multiple outputs
 export const FilterStatNode: React.FC<StatNodeProps> = ({ data }) => {
   const { t } = useLingui()
-  const { stats } = data
+  const { stats, config } = data
   const color = nodeTypeColors.filter
 
   // Use 0 values when no stats available
@@ -155,14 +174,12 @@ export const FilterStatNode: React.FC<StatNodeProps> = ({ data }) => {
           overflow: 'hidden'
         }}
       >
-        {/* Header */}
-        <div
-          className="flex items-center gap-2 px-3 py-2"
-          style={{ borderBottom: `1px solid ${color}20` }}
-        >
-          <span style={{ color }}><Filter size={16} /></span>
-          <span className="text-sm font-medium text-gray-800">{t`Filter`}</span>
-        </div>
+        <StatNodeHeader
+          color={color}
+          icon={<Filter size={16} />}
+          label={t`Filter`}
+          description={getNodeDescription(config)}
+        />
 
         {/* Stats */}
         <div className="px-3 py-2 bg-gray-50">
@@ -205,7 +222,7 @@ export const FilterStatNode: React.FC<StatNodeProps> = ({ data }) => {
 // For list status branch nodes that have three outputs
 export const ListStatusStatNode: React.FC<StatNodeProps> = ({ data }) => {
   const { t } = useLingui()
-  const { stats } = data
+  const { stats, config } = data
   const color = nodeTypeColors.list_status_branch
 
   // Use 0 values when no stats available
@@ -226,14 +243,12 @@ export const ListStatusStatNode: React.FC<StatNodeProps> = ({ data }) => {
           overflow: 'hidden'
         }}
       >
-        {/* Header */}
-        <div
-          className="flex items-center gap-2 px-3 py-2"
-          style={{ borderBottom: `1px solid ${color}20` }}
-        >
-          <span style={{ color }}><ListChecks size={16} /></span>
-          <span className="text-sm font-medium text-gray-800">{t`List Status`}</span>
-        </div>
+        <StatNodeHeader
+          color={color}
+          icon={<ListChecks size={16} />}
+          label={t`List Status`}
+          description={getNodeDescription(config)}
+        />
 
         {/* Stats */}
         <div className="px-3 py-2 bg-gray-50">
@@ -317,14 +332,12 @@ export const ABTestStatNode: React.FC<StatNodeProps> = ({ data }) => {
           overflow: 'hidden'
         }}
       >
-        {/* Header */}
-        <div
-          className="flex items-center gap-2 px-3 py-2"
-          style={{ borderBottom: `1px solid ${color}20` }}
-        >
-          <span style={{ color }}><FlaskConical size={16} /></span>
-          <span className="text-sm font-medium text-gray-800">{t`A/B Test`}</span>
-        </div>
+        <StatNodeHeader
+          color={color}
+          icon={<FlaskConical size={16} />}
+          label={t`A/B Test`}
+          description={getNodeDescription(config)}
+        />
 
         {/* Stats */}
         <div className="px-3 py-2 bg-gray-50">

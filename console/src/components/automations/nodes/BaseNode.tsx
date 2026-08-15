@@ -4,10 +4,19 @@ import { Tooltip, Popconfirm } from 'antd'
 import { useLingui } from '@lingui/react/macro'
 import type { NodeType } from '../../../services/api/automation'
 
+// The card's own geometry, kept in one place so the description's cap cannot drift from it. The
+// description is the only nowrap line on the card, so without a cap it would stretch the node to
+// the length of the text instead of truncating.
+const CARD_MIN_WIDTH = 300
+const CARD_PADDING_X = 12
+const DESCRIPTION_MAX_WIDTH = CARD_MIN_WIDTH - CARD_PADDING_X * 2
+
 interface BaseNodeProps {
   type: NodeType
   label: string
   icon: React.ReactNode
+  /** Optional author-written note, shown under the label so the flow reads without opening nodes. */
+  description?: string
   selected?: boolean
   isOrphan?: boolean
   children?: React.ReactNode
@@ -18,6 +27,7 @@ export const BaseNode: React.FC<BaseNodeProps> = ({
   type,
   label,
   icon,
+  description,
   selected,
   isOrphan,
   children,
@@ -53,8 +63,8 @@ export const BaseNode: React.FC<BaseNodeProps> = ({
       <div
         className="automation-node bg-white rounded"
         style={{
-          padding: '8px 12px',
-          minWidth: '300px',
+          padding: `8px ${CARD_PADDING_X}px`,
+          minWidth: CARD_MIN_WIDTH,
           border: selected ? '1px solid #7763F1' : isOrphan ? '1px solid #f97316' : '1px solid #e5e7eb',
           boxShadow: selected ? '0 4px 12px rgba(119,99,241,0.3)' : 'none'
         }}
@@ -63,6 +73,16 @@ export const BaseNode: React.FC<BaseNodeProps> = ({
           <span style={{ color: selected ? '#7763F1' : '#6b7280' }}>{icon}</span>
           <span style={{ fontSize: '16px', fontWeight: 500 }}>{label}</span>
         </div>
+        {description && (
+          // Truncated to keep every card the same height; the full text stays reachable on hover.
+          <div
+            className="text-xs text-gray-500 truncate mt-0.5"
+            style={{ maxWidth: DESCRIPTION_MAX_WIDTH }}
+            title={description}
+          >
+            {description}
+          </div>
+        )}
         {children && <div style={{ fontSize: '14px', color: '#888', marginTop: '8px' }}>{children}</div>}
       </div>
     </div>

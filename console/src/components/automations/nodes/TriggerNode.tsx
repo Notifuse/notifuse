@@ -3,7 +3,7 @@ import { Handle, Position, type NodeProps } from '@xyflow/react'
 import { Zap } from 'lucide-react'
 import { useLingui } from '@lingui/react/macro'
 import { BaseNode } from './BaseNode'
-import { nodeTypeColors } from './constants'
+import { nodeTypeColors, getNodeDescription } from './constants'
 import { useAutomation } from '../context'
 import type { AutomationNodeData } from '../utils/flowConverter'
 
@@ -61,6 +61,7 @@ export const TriggerNode: React.FC<TriggerNodeProps> = ({ data, selected }) => {
       <BaseNode
         type="trigger"
         label={t`Trigger`}
+        description={getNodeDescription(data.config)}
         icon={<Zap size={16} color={selected ? undefined : nodeTypeColors.trigger} />}
         selected={selected}
       >

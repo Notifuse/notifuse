@@ -7,27 +7,6 @@ import { SignInRequest, VerifyCodeRequest } from '../services/api/types'
 import { MainLayout } from '../layouts/MainLayout'
 import { useLingui } from '@lingui/react/macro'
 
-// mapOidcError translates a backend OIDC error code into a localized message. The
-// code set is a fixed enum — never a raw IdP error — produced by mapCallbackError in
-// internal/http/oidc_handler.go. A new case there needs a new case here, or the user
-// gets the generic fallback.
-function mapOidcError(code: string, t: (s: TemplateStringsArray) => string): string {
-  switch (code) {
-    case 'not_provisioned':
-      return t`No Notifuse account is linked to that identity. Ask an administrator to invite you first.`
-    case 'email_unverified':
-      return t`Your identity provider has not verified your email address.`
-    case 'link_conflict':
-      return t`This account is already linked to a different single sign-on identity.`
-    case 'provider_unavailable':
-      return t`Single sign-on is temporarily unavailable. Please try a magic code.`
-    case 'rate_limited':
-      return t`Too many sign-in attempts. Please wait a moment and try again.`
-    default:
-      return t`Single sign-on failed. Please try again or use a magic code.`
-  }
-}
-
 export function SignInPage() {
   const { t } = useLingui()
   const { signin } = useAuth()
@@ -101,6 +80,35 @@ export function SignInPage() {
     [handleCodeSubmit, message, t]
   )
 
+  // mapOidcError translates a backend OIDC error code into a localized message. The
+  // code set is a fixed enum — never a raw IdP error — produced by mapCallbackError in
+  // internal/http/oidc_handler.go. A new case there needs a new case here, or the user
+  // gets the generic fallback.
+  //
+  // It has to live inside the component: the Lingui macro only rewrites t`…` where `t`
+  // is bound to useLingui() in the same scope. Taking `t` as a parameter leaves the
+  // tagged templates untransformed, so they are never extracted and every locale falls
+  // back to the English source text.
+  const mapOidcError = useCallback(
+    (code: string): string => {
+      switch (code) {
+        case 'not_provisioned':
+          return t`No Notifuse account is linked to that identity. Ask an administrator to invite you first.`
+        case 'email_unverified':
+          return t`Your identity provider has not verified your email address.`
+        case 'link_conflict':
+          return t`This account is already linked to a different single sign-on identity.`
+        case 'provider_unavailable':
+          return t`Single sign-on is temporarily unavailable. Please try a magic code.`
+        case 'rate_limited':
+          return t`Too many sign-in attempts. Please wait a moment and try again.`
+        default:
+          return t`Single sign-on failed. Please try again or use a magic code.`
+      }
+    },
+    [t]
+  )
+
   const handleOidcExchange = useCallback(
     async (code: string) => {
       try {
@@ -131,7 +139,7 @@ export function SignInPage() {
 
     if (search.oidc_error) {
       hasExchangedOidc.current = true
-      message.error(mapOidcError(search.oidc_error, t))
+      message.error(mapOidcError(search.oidc_error))
       navigate({ to: '/console/signin', search: {}, replace: true })
       return
     }
@@ -145,7 +153,7 @@ export function SignInPage() {
       window.history.replaceState(null, '', window.location.pathname + window.location.search)
       void handleOidcExchange(code)
     }
-  }, [search.oidc_error, navigate, message, t, handleOidcExchange])
+  }, [search.oidc_error, navigate, message, mapOidcError, handleOidcExchange])
 
   // Initialize email from URL parameter or demo mode
   useEffect(() => {

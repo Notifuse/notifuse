@@ -2,6 +2,19 @@
 // internal/domain/web_analytics_schemas.go so a dimension or measure id can be
 // pasted straight into an analytics query.
 
+/**
+ * The web analytics sections, in the order they are rendered as tabs.
+ *
+ * Lives here rather than beside the context that consumes it because the AI
+ * tool definitions need the names as a VALUE, for the navigate_to_tab enum, and
+ * value-importing them from `context.tsx` would drag services/api/workspace →
+ * services/api/client → the router into a module whose whole point is that it
+ * imports nothing heavy. `context.tsx` re-exports both, so every existing
+ * importer is unaffected.
+ */
+export const WEB_ANALYTICS_TABS = ['dashboard', 'explore', 'goals', 'filters'] as const
+export type WebAnalyticsTab = (typeof WEB_ANALYTICS_TABS)[number]
+
 export const DATE_PRESETS = [
   'today',
   'yesterday',

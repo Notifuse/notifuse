@@ -492,8 +492,16 @@ func (e *NodeExecution) Validate() error {
 
 // Node configuration types
 
+// NodeConfigDescription is the optional author-facing description shown under a node's title on the
+// automation canvas. It is display-only - no executor reads it - and lives in the node's config bag,
+// so it needs no schema change. Embedded rather than repeated so the JSON key is defined once.
+type NodeConfigDescription struct {
+	Description string `json:"description,omitempty"`
+}
+
 // DelayNodeConfig configures a delay node
 type DelayNodeConfig struct {
+	NodeConfigDescription
 	Duration int    `json:"duration"`
 	Unit     string `json:"unit"` // "minutes", "hours", "days"
 }
@@ -514,6 +522,7 @@ func (c DelayNodeConfig) Validate() error {
 
 // EmailNodeConfig configures an email node
 type EmailNodeConfig struct {
+	NodeConfigDescription
 	TemplateID      string  `json:"template_id"`
 	IntegrationID   *string `json:"integration_id,omitempty"`
 	SubjectOverride *string `json:"subject_override,omitempty"`
@@ -538,13 +547,14 @@ type BranchPath struct {
 
 // BranchNodeConfig configures a branch node
 type BranchNodeConfig struct {
+	NodeConfigDescription
 	Paths         []BranchPath `json:"paths"`
 	DefaultPathID string       `json:"default_path_id"`
 }
 
 // FilterNodeConfig configures a filter node
 type FilterNodeConfig struct {
-	Description    string    `json:"description,omitempty"`
+	NodeConfigDescription
 	Conditions     *TreeNode `json:"conditions"`
 	ContinueNodeID string    `json:"continue_node_id"`
 	ExitNodeID     string    `json:"exit_node_id"`
@@ -552,6 +562,7 @@ type FilterNodeConfig struct {
 
 // AddToListNodeConfig configures an add-to-list node
 type AddToListNodeConfig struct {
+	NodeConfigDescription
 	ListID   string                 `json:"list_id"`
 	Status   string                 `json:"status"` // "active", "pending"
 	Metadata map[string]interface{} `json:"metadata,omitempty"`
@@ -570,6 +581,7 @@ func (c AddToListNodeConfig) Validate() error {
 
 // RemoveFromListNodeConfig configures a remove-from-list node
 type RemoveFromListNodeConfig struct {
+	NodeConfigDescription
 	ListID string `json:"list_id"`
 }
 
@@ -584,6 +596,7 @@ func (c RemoveFromListNodeConfig) Validate() error {
 // ListStatusBranchNodeConfig configures a list status branch node
 // This node checks a contact's subscription status in a list and branches accordingly
 type ListStatusBranchNodeConfig struct {
+	NodeConfigDescription
 	ListID          string `json:"list_id"`             // List to check status in
 	NotInListNodeID string `json:"not_in_list_node_id"` // Next node when contact is not in list
 	ActiveNodeID    string `json:"active_node_id"`      // Next node when status is "active"
@@ -628,6 +641,7 @@ func (v ABTestVariant) Validate() error {
 
 // ABTestNodeConfig configures an A/B test node
 type ABTestNodeConfig struct {
+	NodeConfigDescription
 	Variants []ABTestVariant `json:"variants"`
 }
 
@@ -660,6 +674,7 @@ func (c ABTestNodeConfig) Validate() error {
 
 // WebhookNodeConfig configures a webhook node
 type WebhookNodeConfig struct {
+	NodeConfigDescription
 	URL    string  `json:"url"`
 	Secret *string `json:"secret,omitempty"` // Optional: becomes Authorization: Bearer <secret>
 }

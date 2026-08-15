@@ -519,15 +519,7 @@ func TestMessageHistoryDataFactory(t *testing.T) {
 		require.NoError(t, err)
 
 		// Verify message exists in database using repository
-		app := suite.ServerManager.GetApp()
-		messageHistoryRepo := app.GetMessageHistoryRepository()
-		workspaceRepo := app.GetWorkspaceRepository()
-		ws, err := workspaceRepo.GetByID(context.Background(), workspace.ID)
-		require.NoError(t, err)
-
-		retrievedMessage, err := messageHistoryRepo.Get(context.Background(), workspace.ID, ws.Settings.SecretKey, message.ID)
-		require.NoError(t, err)
-		require.NotNil(t, retrievedMessage)
+		retrievedMessage := fetchMessageByID(t, suite.ServerManager.GetApp(), workspace.ID, message.ID)
 		assert.Equal(t, contact.Email, retrievedMessage.ContactEmail)
 		assert.Equal(t, template.ID, retrievedMessage.TemplateID)
 	})
@@ -637,16 +629,8 @@ func TestMessageDataEncryption(t *testing.T) {
 			})
 		require.NoError(t, err)
 
-		// Retrieve the message using the repository (should decrypt automatically)
-		app := suite.ServerManager.GetApp()
-		messageHistoryRepo := app.GetMessageHistoryRepository()
-		workspaceRepo := app.GetWorkspaceRepository()
-		ws, err := workspaceRepo.GetByID(context.Background(), workspace.ID)
-		require.NoError(t, err)
-
-		retrievedMessage, err := messageHistoryRepo.Get(context.Background(), workspace.ID, ws.Settings.SecretKey, message.ID)
-		require.NoError(t, err)
-		require.NotNil(t, retrievedMessage)
+		// Retrieve the message the way messages.list does (decrypts automatically)
+		retrievedMessage := fetchMessageByID(t, suite.ServerManager.GetApp(), workspace.ID, message.ID)
 
 		// Verify the decrypted data matches the original
 		assert.Equal(t, originalData["email"], retrievedMessage.MessageData.Data["email"])
@@ -713,13 +697,7 @@ func TestMessageDataEncryption(t *testing.T) {
 		require.NoError(t, err)
 
 		// Retrieve the legacy message (should work without decryption)
-		messageHistoryRepo := app.GetMessageHistoryRepository()
-		ws, err := workspaceRepo.GetByID(context.Background(), workspace.ID)
-		require.NoError(t, err)
-
-		retrievedMessage, err := messageHistoryRepo.Get(context.Background(), workspace.ID, ws.Settings.SecretKey, messageID)
-		require.NoError(t, err)
-		require.NotNil(t, retrievedMessage)
+		retrievedMessage := fetchMessageByID(t, app, workspace.ID, messageID)
 
 		// Verify the legacy data is readable
 		assert.Equal(t, "Old Message", retrievedMessage.MessageData.Data["subject"])

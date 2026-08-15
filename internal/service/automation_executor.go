@@ -18,7 +18,6 @@ type AutomationExecutor struct {
 	contactListRepo domain.ContactListRepository
 	templateRepo    domain.TemplateRepository
 	emailQueueRepo  domain.EmailQueueRepository
-	messageRepo     domain.MessageHistoryRepository
 	timelineRepo    domain.ContactTimelineRepository
 	nodeExecutors   map[domain.NodeType]NodeExecutor
 	logger          logger.Logger
@@ -34,7 +33,6 @@ func NewAutomationExecutor(
 	listRepo domain.ListRepository,
 	templateRepo domain.TemplateRepository,
 	emailQueueRepo domain.EmailQueueRepository,
-	messageRepo domain.MessageHistoryRepository,
 	timelineRepo domain.ContactTimelineRepository,
 	log logger.Logger,
 	apiEndpoint string,
@@ -61,7 +59,6 @@ func NewAutomationExecutor(
 		contactListRepo: contactListRepo,
 		templateRepo:    templateRepo,
 		emailQueueRepo:  emailQueueRepo,
-		messageRepo:     messageRepo,
 		timelineRepo:    timelineRepo,
 		nodeExecutors:   executors,
 		logger:          log,

@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Button, Drawer, Space } from 'antd'
+import { Button, Drawer, Popconfirm, Space } from 'antd'
 import { PlusOutlined, EditOutlined } from '@ant-design/icons'
 import { useLingui } from '@lingui/react/macro'
 import { Plural } from '@lingui/react/macro'
@@ -107,9 +107,23 @@ export const ConditionsField: React.FC<ConditionsFieldProps> = ({
             <Button type="link" size="small" icon={<EditOutlined />} onClick={() => setOpen(true)}>
               {t`Edit`}
             </Button>
-            <Button type="link" size="small" danger onClick={onClear}>
-              {t`Remove`}
-            </Button>
+            {/* Confirmed, because one click here discards a whole tree that took real work to
+                build, and the summary shows only a count — there is nothing on screen to make the
+                loss obvious afterwards. A generic title rather than the field's own `title` prop:
+                lowercasing a translated noun to splice into a sentence breaks in languages that
+                capitalise them. */}
+            <Popconfirm
+              title={t`Remove conditions`}
+              description={t`The whole condition tree will be deleted.`}
+              onConfirm={onClear}
+              okText={t`Remove`}
+              cancelText={t`Cancel`}
+              okButtonProps={{ danger: true }}
+            >
+              <Button type="link" size="small" danger>
+                {t`Remove`}
+              </Button>
+            </Popconfirm>
           </Space>
         </div>
       )}

@@ -66,4 +66,14 @@ describe('EmailNode', () => {
 
     expect(screen.getByText('Select')).toBeInTheDocument()
   })
+
+  it('shows the author description alongside the template name', () => {
+    // Every node type carries an optional description; this covers the wiring from the config bag
+    // through to BaseNode, which the other eight node components repeat verbatim.
+    mockTemplates = [makeTemplate('welcome-pdf', 'Send Checklist PDF', 'welcome')]
+    renderNode({ template_id: 'welcome-pdf', description: 'Welcome — day 1' })
+
+    expect(screen.getByText('Welcome — day 1')).toBeInTheDocument()
+    expect(screen.getByText('Send Checklist PDF')).toBeInTheDocument()
+  })
 })

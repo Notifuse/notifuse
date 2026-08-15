@@ -1116,7 +1116,6 @@ func (a *App) InitServices() error {
 		a.listRepo,
 		a.templateRepo,
 		a.emailQueueRepo,
-		a.messageHistoryRepo,
 		a.contactTimelineRepo,
 		a.logger,
 		a.config.APIEndpoint,

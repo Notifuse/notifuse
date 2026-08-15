@@ -1,5 +1,5 @@
 import React from 'react'
-import { Typography, Empty } from 'antd'
+import { Typography, Empty, Form, Input } from 'antd'
 import { X } from 'lucide-react'
 import { useLingui } from '@lingui/react/macro'
 import type { Node } from '@xyflow/react'
@@ -155,6 +155,30 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({
       {/* key by node id so switching between same-type nodes remounts the form
           and resets any internal form state (defense-in-depth for stale config) */}
       <div key={selectedNode.id} className="p-3 overflow-y-auto flex-1">
+        {/* Every node type takes a description, so it is edited here rather than repeated in each
+            of the per-type forms below. It is stored in the node's config like any other setting. */}
+        <Form layout="vertical" className="nodrag">
+          {/* htmlFor/id by hand: a Form.Item with no `name` generates no field id, so without
+              these the label is not associated with the input for assistive tech. */}
+          <Form.Item label={t`Description`} htmlFor="node-description">
+            <Input
+              id="node-description"
+              value={(config as { description?: string }).description || ''}
+              // undefined rather than '': clearing the box should drop the key instead of storing a
+              // blank. Emptiness is judged on the trimmed value — a description of only spaces
+              // renders as nothing on the canvas, so persisting one would be invisible dead weight
+              // — while the value itself is stored as typed.
+              onChange={(e) =>
+                handleConfigChange({
+                  ...config,
+                  description: e.target.value.trim() ? e.target.value : undefined
+                })
+              }
+              placeholder={t`e.g., Welcome — day 1`}
+              maxLength={100}
+            />
+          </Form.Item>
+        </Form>
         {renderConfigForm()}
       </div>
     </div>

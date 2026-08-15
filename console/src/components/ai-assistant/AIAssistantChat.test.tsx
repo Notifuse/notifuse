@@ -5,7 +5,12 @@ import { App, ConfigProvider } from 'antd'
 import { i18n } from '@lingui/core'
 import { I18nProvider } from '@lingui/react'
 import { AIAssistantChat } from './AIAssistantChat'
-import type { AIAssistantChatProps, AIAssistantConfig, BubbleItem } from './types'
+import type {
+  AIAssistantChatProps,
+  AIAssistantConfig,
+  AIAssistantSuggestion,
+  BubbleItem
+} from './types'
 import type { Integration, Workspace } from '../../services/api/workspace'
 
 // The Sender's auto-sizing textarea mounts a ResizeObserver; jsdom has none.
@@ -198,5 +203,102 @@ describe('AIAssistantChat', () => {
     expect(loadingButton).not.toBeNull()
     fireEvent.click(loadingButton as HTMLElement)
     expect(handleCancel).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('AIAssistantChat empty-state suggestions', () => {
+  const suggestions: AIAssistantSuggestion[] = [
+    { key: 'top-pages', label: 'Top pages', prompt: 'What are my top pages this week?' },
+    { key: 'sources', label: 'Traffic sources', prompt: 'Where is my traffic coming from?' }
+  ]
+
+  // The chips are siblings of the bubble list inside the messages area, so that
+  // element is the scope in which "is there a chip row?" can be answered without
+  // catching the composer's own buttons.
+  const messagesArea = (container: HTMLElement) => {
+    const list = container.querySelector('.ant-bubble-list')
+    expect(list).not.toBeNull()
+    return (list as HTMLElement).parentElement as HTMLElement
+  }
+
+  it('shows no starter chips when the caller passes none, leaving the message list alone', () => {
+    // Both shipped assistants spread a hook return that carries no `suggestions`;
+    // if the guard ever inverted they would grow a stray chip row.
+    const { container } = renderChat()
+
+    const area = messagesArea(container)
+    expect(area.querySelectorAll('button')).toHaveLength(0)
+    expect(area.querySelector('.ant-bubble-list')).toBeInTheDocument()
+  })
+
+  it('renders the identical panel for an empty suggestion list and for no list at all', () => {
+    const omitted = renderChat()
+    const omittedHtml = messagesArea(omitted.container).innerHTML
+    omitted.unmount()
+
+    const empty = renderChat({ suggestions: [] })
+
+    expect(messagesArea(empty.container).innerHTML).toBe(omittedHtml)
+  })
+
+  it('offers the starter chips only until the conversation has its first message', () => {
+    const { container, rerender } = renderChat({ suggestions })
+
+    expect(screen.getByRole('button', { name: 'Top pages' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Traffic sources' })).toBeInTheDocument()
+    expect(messagesArea(container).querySelectorAll('button')).toHaveLength(suggestions.length)
+
+    // Once the user has asked something the chips must get out of the way of the
+    // transcript rather than sitting above every answer.
+    rerender(
+      <I18nProvider i18n={i18n}>
+        <ConfigProvider>
+          <App>
+            <AIAssistantChat
+              {...baseProps}
+              suggestions={suggestions}
+              bubbleItems={[{ key: 'm1', role: 'user', content: 'What are my top pages this week?' }]}
+            />
+          </App>
+        </ConfigProvider>
+      </I18nProvider>
+    )
+
+    expect(screen.queryByRole('button', { name: 'Top pages' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Traffic sources' })).not.toBeInTheDocument()
+  })
+
+  it('hands the clicked chip prompt to the caller, not its label', () => {
+    const onSuggestion = vi.fn()
+    const setInputValue = vi.fn()
+    renderChat({ suggestions, onSuggestion, setInputValue })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Traffic sources' }))
+
+    expect(onSuggestion).toHaveBeenCalledTimes(1)
+    expect(onSuggestion).toHaveBeenCalledWith('Where is my traffic coming from?')
+    // The custom handler owns the click entirely; the composer must not also be filled.
+    expect(setInputValue).not.toHaveBeenCalled()
+  })
+
+  it('fills the composer with the prompt when the caller gives no chip handler', () => {
+    const setInputValue = vi.fn()
+    renderChat({ suggestions, setInputValue })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Top pages' }))
+
+    expect(setInputValue).toHaveBeenCalledWith('What are my top pages this week?')
+  })
+
+  it('blocks the starter chips while a response is streaming', () => {
+    // Clicking a chip mid-stream would queue a second turn against a busy hook.
+    const onSuggestion = vi.fn()
+    renderChat({ suggestions, onSuggestion, isStreaming: true })
+
+    const chip = screen.getByRole('button', { name: 'Top pages' })
+    expect(chip).toBeDisabled()
+
+    fireEvent.click(chip)
+    expect(onSuggestion).not.toHaveBeenCalled()
   })
 })

@@ -1592,13 +1592,19 @@ func TestEmailService_SendEmailForTemplate(t *testing.T) {
 				gomock.Any(),
 			).Return(assert.AnError)
 
-		// Setup message repository mock to update with error status
+		// The failure is recorded as a status write, never a row rewrite: the
+		// in-memory copy still holds the plaintext template data, so anything
+		// carrying message_data back to the row would undo the encryption Create
+		// applied. gomock fails the test if any other repository call is made.
 		mockMessageRepo.EXPECT().
-			Update(gomock.Any(), workspaceID, gomock.Any()).
-			DoAndReturn(func(_ context.Context, wsID string, msgHistory *domain.MessageHistory) error {
-				// Verify message history error properties
-				assert.Equal(t, messageID, msgHistory.ID)
-				assert.NotNil(t, msgHistory.StatusInfo)
+			SetStatusesIfNotSet(gomock.Any(), workspaceID, gomock.Any()).
+			DoAndReturn(func(_ context.Context, wsID string, updates []domain.MessageEventUpdate) error {
+				require.Len(t, updates, 1)
+				assert.Equal(t, messageID, updates[0].ID)
+				assert.Equal(t, domain.MessageEventFailed, updates[0].Event)
+				assert.False(t, updates[0].Timestamp.IsZero())
+				require.NotNil(t, updates[0].StatusInfo)
+				assert.Contains(t, *updates[0].StatusInfo, assert.AnError.Error())
 
 				return nil
 			})
@@ -1660,9 +1666,9 @@ func TestEmailService_SendEmailForTemplate(t *testing.T) {
 				gomock.Any(),
 			).Return(assert.AnError)
 
-		// Setup message repository mock to fail updating with error status
+		// Setup message repository mock to fail recording the error status
 		mockMessageRepo.EXPECT().
-			Update(gomock.Any(), workspaceID, gomock.Any()).
+			SetStatusesIfNotSet(gomock.Any(), workspaceID, gomock.Any()).
 			Return(assert.AnError)
 
 		// Logger should log both errors

@@ -151,12 +151,7 @@ func testHardBounceUpdatesContactListStatus(t *testing.T, suite *testutil.Integr
 	time.Sleep(100 * time.Millisecond)
 
 	// Verify message history was updated with bounced_at
-	messageHistoryRepo := app.GetMessageHistoryRepository()
-	workspaceRepo := app.GetWorkspaceRepository()
-	workspace, err := workspaceRepo.GetByID(context.Background(), workspaceID)
-	require.NoError(t, err)
-	updatedMessage, err := messageHistoryRepo.Get(context.Background(), workspaceID, workspace.Settings.SecretKey, messageID)
-	require.NoError(t, err)
+	updatedMessage := fetchMessageByID(t, app, workspaceID, messageID)
 	assert.NotNil(t, updatedMessage.BouncedAt, "Message should have bounced_at set")
 
 	// Verify contact list status was updated to bounced by the trigger
@@ -227,12 +222,7 @@ func testComplaintUpdatesContactListStatus(t *testing.T, suite *testutil.Integra
 	time.Sleep(100 * time.Millisecond)
 
 	// Verify message history was updated with complained_at
-	messageHistoryRepo := app.GetMessageHistoryRepository()
-	workspaceRepo := app.GetWorkspaceRepository()
-	workspace, err := workspaceRepo.GetByID(context.Background(), workspaceID)
-	require.NoError(t, err)
-	updatedMessage, err := messageHistoryRepo.Get(context.Background(), workspaceID, workspace.Settings.SecretKey, messageID)
-	require.NoError(t, err)
+	updatedMessage := fetchMessageByID(t, app, workspaceID, messageID)
 	assert.NotNil(t, updatedMessage.ComplainedAt, "Message should have complained_at set")
 
 	// Verify contact list status was updated to complained by the trigger
@@ -304,12 +294,7 @@ func testSoftBounceDoesNotUpdateContactListStatus(t *testing.T, suite *testutil.
 	time.Sleep(100 * time.Millisecond)
 
 	// Verify message history was NOT updated with bounced_at (soft bounces don't set it)
-	messageHistoryRepo := app.GetMessageHistoryRepository()
-	workspaceRepo := app.GetWorkspaceRepository()
-	workspace, err := workspaceRepo.GetByID(context.Background(), workspaceID)
-	require.NoError(t, err)
-	updatedMessage, err := messageHistoryRepo.Get(context.Background(), workspaceID, workspace.Settings.SecretKey, messageID)
-	require.NoError(t, err)
+	updatedMessage := fetchMessageByID(t, app, workspaceID, messageID)
 	assert.Nil(t, updatedMessage.BouncedAt, "Soft bounce should not set bounced_at")
 
 	// Verify contact list status remains active

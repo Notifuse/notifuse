@@ -1,5 +1,5 @@
 import React from 'react'
-import { Form, Input } from 'antd'
+import { Form } from 'antd'
 import { useLingui } from '@lingui/react/macro'
 import { ConditionsField } from './ConditionsField'
 import type { FilterNodeConfig } from '../../../services/api/automation'
@@ -21,21 +21,9 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({ config, onCh
     onChange({ ...config, conditions: undefined })
   }
 
-  const handleDescriptionChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    onChange({ ...config, description: e.target.value })
-  }
-
   return (
+    // The description field lives in NodeConfigPanel now: every node type has one.
     <Form layout="vertical" className="nodrag">
-      <Form.Item label={t`Description`}>
-        <Input
-          value={config.description || ''}
-          onChange={handleDescriptionChange}
-          placeholder={t`e.g., Active users only`}
-          maxLength={100}
-        />
-      </Form.Item>
-
       <ConditionsField
         title={t`Filter conditions`}
         description={t`Contacts matching these conditions follow the 'Yes' path. Others follow 'No'.`}

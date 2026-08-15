@@ -4,7 +4,7 @@ import { UserPlus } from 'lucide-react'
 import { Tag } from 'antd'
 import { useLingui } from '@lingui/react/macro'
 import { BaseNode } from './BaseNode'
-import { nodeTypeColors } from './constants'
+import { nodeTypeColors, getNodeDescription } from './constants'
 import { useAutomation } from '../context'
 import type { AutomationNodeData } from '../utils/flowConverter'
 import type { AddToListNodeConfig } from '../../../services/api/automation'
@@ -39,6 +39,7 @@ export const AddToListNode: React.FC<AddToListNodeProps> = ({ data, selected }) 
       <BaseNode
         type="add_to_list"
         label={t`Add to List`}
+        description={getNodeDescription(data.config)}
         icon={
           <UserPlus
             size={16}

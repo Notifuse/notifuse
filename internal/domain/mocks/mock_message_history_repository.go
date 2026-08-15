@@ -64,21 +64,6 @@ func (mr *MockMessageHistoryRepositoryMockRecorder) DeleteForEmail(arg0, arg1, a
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteForEmail", reflect.TypeOf((*MockMessageHistoryRepository)(nil).DeleteForEmail), arg0, arg1, arg2)
 }
 
-// Get mocks base method.
-func (m *MockMessageHistoryRepository) Get(arg0 context.Context, arg1, arg2, arg3 string) (*domain.MessageHistory, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Get", arg0, arg1, arg2, arg3)
-	ret0, _ := ret[0].(*domain.MessageHistory)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// Get indicates an expected call of Get.
-func (mr *MockMessageHistoryRepositoryMockRecorder) Get(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockMessageHistoryRepository)(nil).Get), arg0, arg1, arg2, arg3)
-}
-
 // GetBroadcastLinkStats mocks base method.
 func (m *MockMessageHistoryRepository) GetBroadcastLinkStats(arg0 context.Context, arg1, arg2, arg3 string) ([]domain.LinkClickStats, error) {
 	m.ctrl.T.Helper()
@@ -122,38 +107,6 @@ func (m *MockMessageHistoryRepository) GetBroadcastVariationStats(arg0 context.C
 func (mr *MockMessageHistoryRepositoryMockRecorder) GetBroadcastVariationStats(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBroadcastVariationStats", reflect.TypeOf((*MockMessageHistoryRepository)(nil).GetBroadcastVariationStats), arg0, arg1, arg2, arg3)
-}
-
-// GetByBroadcast mocks base method.
-func (m *MockMessageHistoryRepository) GetByBroadcast(arg0 context.Context, arg1, arg2, arg3 string, arg4, arg5 int) ([]*domain.MessageHistory, int, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetByBroadcast", arg0, arg1, arg2, arg3, arg4, arg5)
-	ret0, _ := ret[0].([]*domain.MessageHistory)
-	ret1, _ := ret[1].(int)
-	ret2, _ := ret[2].(error)
-	return ret0, ret1, ret2
-}
-
-// GetByBroadcast indicates an expected call of GetByBroadcast.
-func (mr *MockMessageHistoryRepositoryMockRecorder) GetByBroadcast(arg0, arg1, arg2, arg3, arg4, arg5 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetByBroadcast", reflect.TypeOf((*MockMessageHistoryRepository)(nil).GetByBroadcast), arg0, arg1, arg2, arg3, arg4, arg5)
-}
-
-// GetByContact mocks base method.
-func (m *MockMessageHistoryRepository) GetByContact(arg0 context.Context, arg1, arg2, arg3 string, arg4, arg5 int) ([]*domain.MessageHistory, int, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetByContact", arg0, arg1, arg2, arg3, arg4, arg5)
-	ret0, _ := ret[0].([]*domain.MessageHistory)
-	ret1, _ := ret[1].(int)
-	ret2, _ := ret[2].(error)
-	return ret0, ret1, ret2
-}
-
-// GetByContact indicates an expected call of GetByContact.
-func (mr *MockMessageHistoryRepositoryMockRecorder) GetByContact(arg0, arg1, arg2, arg3, arg4, arg5 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetByContact", reflect.TypeOf((*MockMessageHistoryRepository)(nil).GetByContact), arg0, arg1, arg2, arg3, arg4, arg5)
 }
 
 // GetByExternalID mocks base method.
@@ -242,20 +195,6 @@ func (m *MockMessageHistoryRepository) SetStatusesIfNotSet(arg0 context.Context,
 func (mr *MockMessageHistoryRepositoryMockRecorder) SetStatusesIfNotSet(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetStatusesIfNotSet", reflect.TypeOf((*MockMessageHistoryRepository)(nil).SetStatusesIfNotSet), arg0, arg1, arg2)
-}
-
-// Update mocks base method.
-func (m *MockMessageHistoryRepository) Update(arg0 context.Context, arg1 string, arg2 *domain.MessageHistory) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Update", arg0, arg1, arg2)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// Update indicates an expected call of Update.
-func (mr *MockMessageHistoryRepositoryMockRecorder) Update(arg0, arg1, arg2 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockMessageHistoryRepository)(nil).Update), arg0, arg1, arg2)
 }
 
 // Upsert mocks base method.

@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { SignInPage } from '../pages/SignInPage'
@@ -346,6 +348,25 @@ describe('SignInPage', () => {
       expect(typeof shown).toBe('string')
       expect(shown).not.toBe('')
       expect(shown).toMatch(/account/i)
+    })
+
+    // No runtime assertion can see this regression: the test mock binds `t` to i18n._
+    // whatever scope it is called from, and in a real build an untransformed t`…` still
+    // returns its source string — so the toast reads correctly in English either way and
+    // only a non-English user notices. The catalog is the only place it shows.
+    it('extracts every OIDC error message into the source catalog', () => {
+      const catalog = readFileSync(join(import.meta.dirname, '../i18n/locales/en.po'), 'utf8')
+      const messages = [
+        'No Notifuse account is linked to that identity. Ask an administrator to invite you first.',
+        'Your identity provider has not verified your email address.',
+        'This account is already linked to a different single sign-on identity.',
+        'Single sign-on is temporarily unavailable. Please try a magic code.',
+        'Too many sign-in attempts. Please wait a moment and try again.',
+        'Single sign-on failed. Please try again or use a magic code.'
+      ]
+      for (const message of messages) {
+        expect(catalog).toContain(`msgid "${message}"`)
+      }
     })
 
     it('on oidcExchange rejection shows an error toast and does not navigate to /console', async () => {

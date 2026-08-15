@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { i18n } from '@lingui/core'
 import { I18nProvider } from '@lingui/react'
@@ -114,6 +114,14 @@ const renderField = (value?: TreeNode, handlers: { onChange?: (tree: TreeNode) =
   return { onChange, onClear }
 }
 
+// Removing a tree is behind a Popconfirm, whose OK button repeats the trigger's own label — so the
+// confirmation has to be clicked inside the popup rather than by text alone.
+const confirmRemove = async () => {
+  await userEvent.click(screen.getByText('Remove'))
+  const popup = await screen.findByRole('tooltip')
+  await userEvent.click(within(popup).getByText('Remove'))
+}
+
 describe('ConditionsField', () => {
   it('shows the add affordance and no editor when there is nothing configured', () => {
     renderField(undefined)
@@ -208,9 +216,19 @@ describe('ConditionsField', () => {
   it('clears through the caller rather than emitting an empty tree', async () => {
     const { onClear, onChange } = renderField(oneLeafTree)
 
-    await userEvent.click(screen.getByText('Remove'))
+    await confirmRemove()
 
     expect(onClear).toHaveBeenCalled()
+    expect(onChange).not.toHaveBeenCalled()
+  })
+
+  it('keeps the tree when the removal is not confirmed', async () => {
+    const { onClear, onChange } = renderField(oneLeafTree)
+
+    await userEvent.click(screen.getByText('Remove'))
+    await userEvent.click(await screen.findByText('Cancel'))
+
+    expect(onClear).not.toHaveBeenCalled()
     expect(onChange).not.toHaveBeenCalled()
   })
 })
