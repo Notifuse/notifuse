@@ -315,24 +315,26 @@ func (r *AutomationRepository) Update(ctx context.Context, workspaceID string, a
 	return r.UpdateTx(ctx, nil, workspaceID, automation)
 }
 
-// UpdateTx updates an automation within a transaction
-func (r *AutomationRepository) UpdateTx(ctx context.Context, tx *sql.Tx, workspaceID string, automation *domain.Automation) error {
+// automationUpdateBuilder builds the column writes every automation update performs, and
+// stamps updated_at. The WHERE clause is the caller's: UpdateTx matches the row, and
+// UpdateIfStatus adds the status predicate that makes the write optimistic.
+//
+// NOTE: Stats are NOT updated here - they should only be modified via atomic methods
+// like IncrementAutomationStat or UpdateAutomationStats to prevent accidental resets
+func automationUpdateBuilder(workspaceID string, automation *domain.Automation) (sq.UpdateBuilder, error) {
 	triggerJSON, err := json.Marshal(automation.Trigger)
 	if err != nil {
-		return fmt.Errorf("failed to marshal trigger config: %w", err)
+		return sq.UpdateBuilder{}, fmt.Errorf("failed to marshal trigger config: %w", err)
 	}
 
 	nodesJSON, err := json.Marshal(automation.Nodes)
 	if err != nil {
-		return fmt.Errorf("failed to marshal nodes: %w", err)
+		return sq.UpdateBuilder{}, fmt.Errorf("failed to marshal nodes: %w", err)
 	}
-
-	// NOTE: Stats are NOT updated here - they should only be modified via atomic methods
-	// like IncrementAutomationStat or UpdateAutomationStats to prevent accidental resets
 
 	automation.UpdatedAt = time.Now().UTC()
 
-	query, args, err := automationPsql.
+	return automationPsql.
 		Update("automations").
 		Set("name", automation.Name).
 		Set("status", automation.Status).
@@ -343,8 +345,17 @@ func (r *AutomationRepository) UpdateTx(ctx context.Context, tx *sql.Tx, workspa
 		Set("nodes", nodesJSON).
 		Set("exit_on_reply", automation.ExitOnReply).
 		Set("updated_at", automation.UpdatedAt).
-		Where(sq.Eq{"id": automation.ID, "workspace_id": workspaceID}).
-		ToSql()
+		Where(sq.Eq{"id": automation.ID, "workspace_id": workspaceID}), nil
+}
+
+// UpdateTx updates an automation within a transaction
+func (r *AutomationRepository) UpdateTx(ctx context.Context, tx *sql.Tx, workspaceID string, automation *domain.Automation) error {
+	builder, err := automationUpdateBuilder(workspaceID, automation)
+	if err != nil {
+		return err
+	}
+
+	query, args, err := builder.ToSql()
 	if err != nil {
 		return fmt.Errorf("failed to build query: %w", err)
 	}
@@ -376,6 +387,47 @@ func (r *AutomationRepository) UpdateTx(ctx context.Context, tx *sql.Tx, workspa
 	}
 
 	return nil
+}
+
+// UpdateIfStatus persists the automation only while its stored status is still
+// expectedStatus (optimistic lock). Returns false (without error) when no row was updated —
+// another transition moved the status between the caller's read and this write.
+//
+// The three status transitions all read the row, decide whether to install or drop the
+// trigger, and only then write. Without the predicate, Update writes back the status it read
+// a moment earlier, so a Pause landing in between is silently reverted to live while the
+// trigger it dropped is never reinstalled — an automation showing Live that enrols nobody,
+// which nothing in the product detects or repairs.
+func (r *AutomationRepository) UpdateIfStatus(ctx context.Context, workspaceID string, automation *domain.Automation, expectedStatus domain.AutomationStatus) (bool, error) {
+	builder, err := automationUpdateBuilder(workspaceID, automation)
+	if err != nil {
+		return false, err
+	}
+
+	query, args, err := builder.Where(sq.Eq{"status": expectedStatus}).ToSql()
+	if err != nil {
+		return false, fmt.Errorf("failed to build query: %w", err)
+	}
+
+	db, err := r.getDB(ctx, workspaceID)
+	if err != nil {
+		return false, fmt.Errorf("failed to get database connection: %w", err)
+	}
+
+	result, err := db.ExecContext(ctx, query, args...)
+	if err != nil {
+		return false, fmt.Errorf("failed to update automation: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return false, fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	// Deliberately not an error: losing a race is a normal outcome the caller turns into a
+	// 409, and "automation not found" — what the unconditional Update says for the same zero
+	// rows — would be a lie the caller cannot act on.
+	return rowsAffected > 0, nil
 }
 
 // UpdateContactAutomationIfActive persists the contact automation only while its

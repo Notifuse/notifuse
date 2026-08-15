@@ -2,10 +2,13 @@ package http
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/domain/mocks"
 	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
 
@@ -157,4 +160,78 @@ func (f *failingResponseWriter) Write(b []byte) (int, error) {
 func (f *failingResponseWriter) WriteHeader(statusCode int) {
 	f.status = statusCode
 	f.ResponseWriter.WriteHeader(statusCode)
+}
+
+func TestWritePermissionError(t *testing.T) {
+	denial := domain.NewPermissionError(
+		domain.PermissionResourceAutomations,
+		domain.PermissionTypeWrite,
+		"Insufficient permissions: write access to automations required",
+	)
+
+	testCases := []struct {
+		name            string
+		err             error
+		expectedHandled bool
+		expectedStatus  int
+		expectedMessage string
+	}{
+		{
+			name:            "bare permission error",
+			err:             denial,
+			expectedHandled: true,
+			expectedStatus:  http.StatusForbidden,
+			expectedMessage: denial.Message,
+		},
+		{
+			// Services wrap on the way up — the authenticate step that precedes every
+			// permission check already does. A type assertion would miss this and the
+			// caller would answer an opaque 500 to what is really a 403.
+			name:            "wrapped permission error",
+			err:             fmt.Errorf("failed to authenticate: %w", denial),
+			expectedHandled: true,
+			expectedStatus:  http.StatusForbidden,
+			expectedMessage: denial.Message,
+		},
+		{
+			name:            "twice-wrapped permission error",
+			err:             fmt.Errorf("create failed: %w", fmt.Errorf("invalid template for channel email: %w", denial)),
+			expectedHandled: true,
+			expectedStatus:  http.StatusForbidden,
+			expectedMessage: denial.Message,
+		},
+		{
+			name:            "unrelated error is left to the caller",
+			err:             errors.New("database connection lost"),
+			expectedHandled: false,
+		},
+		{
+			name:            "nil error is left to the caller",
+			err:             nil,
+			expectedHandled: false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			w := httptest.NewRecorder()
+
+			handled := writePermissionError(w, tc.err)
+
+			assert.Equal(t, tc.expectedHandled, handled)
+			if !tc.expectedHandled {
+				// Nothing written, so the caller's own mapping still applies.
+				assert.Equal(t, http.StatusOK, w.Code)
+				assert.Empty(t, w.Body.String())
+				return
+			}
+
+			assert.Equal(t, tc.expectedStatus, w.Code)
+
+			var response map[string]string
+			require.NoError(t, json.NewDecoder(w.Body).Decode(&response))
+			// The permission message itself, not the wrapping prose around it.
+			assert.Equal(t, tc.expectedMessage, response["error"])
+		})
+	}
 }

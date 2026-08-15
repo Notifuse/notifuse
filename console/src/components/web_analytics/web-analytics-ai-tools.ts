@@ -16,6 +16,7 @@ import {
   DATE_PRESETS,
   DIMENSION_FILTER_OPERATORS,
   METRIC_FILTER_OPERATORS,
+  SESSION_METRICS,
   WEB_ANALYTICS_TABS,
   type ComparisonMode,
   type DatePreset,
@@ -348,6 +349,26 @@ const IGNORE_DASHBOARD_FILTERS_PROPERTY = {
     'Set to true ONLY to answer a question about the whole site while the dashboard is filtered to a segment ("how does mobile compare to everyone?"). Leave it out to stay consistent with what is on screen.'
 } as const
 
+/**
+ * The granularity vocabulary, written as a Record KEYED BY the Granularity type
+ * so a bucket added to lib/types.ts fails to compile here instead of silently
+ * becoming a value the schema never offers and the validator always refuses.
+ *
+ * It feeds the schema enum and `parseGranularity` from the same place: the
+ * granularity flows into the engine query AND into the name of the output
+ * column the model is told to read, so a value the two disagree about produces
+ * a table whose bucket column is missing from every row.
+ */
+const GRANULARITY_CHOICES: Record<Granularity, true> = {
+  hour: true,
+  day: true,
+  week: true,
+  month: true,
+  year: true
+}
+
+export const GRANULARITIES = Object.keys(GRANULARITY_CHOICES) as Granularity[]
+
 const METRIC_FILTERS_PROPERTY = {
   type: 'array',
   description:
@@ -400,7 +421,7 @@ export const QUERY_WEB_ANALYTICS_TOOL: LLMTool = {
       ...PERIOD_PROPERTIES,
       granularity: {
         type: 'string',
-        enum: ['hour', 'day', 'week', 'month', 'year'],
+        enum: [...GRANULARITIES],
         description:
           'Set this to get one row per time bucket instead of an aggregate. Choose a bucket that yields a readable number of rows: hour for a day or two, day up to a few months, week or month beyond that.'
       },
@@ -619,6 +640,32 @@ export function fail(message: string): never {
   throw new ToolInputError(message)
 }
 
+/**
+ * UI state a tool of THIS round has already asked for, which the page has not
+ * committed yet.
+ *
+ * Every tool of a round is dispatched synchronously against one frozen snapshot
+ * of the page, and the system prompt actively encourages batching a UI write
+ * with the query that reads it: `set_dashboard_period` + `query_web_analytics`
+ * in the same round leaves the query reading the OLD window while its sibling
+ * acknowledgement announces the new one. The overlay is how a handler sees what
+ * its siblings asked for, and it is read through a GETTER at handler-execution
+ * time - snapshotting it would reintroduce the very staleness it exists to fix.
+ *
+ * Every field is optional and means "unchanged this round"; an absent key is
+ * never a request to clear.
+ */
+export interface PendingUiState {
+  period?: DatePreset
+  customStart?: string
+  customEnd?: string
+  comparison?: ComparisonMode
+  filters?: WebDimensionFilter[]
+  minSessions?: number
+  dimensions?: string[]
+  tab?: WebAnalyticsTab
+}
+
 /** What every date-taking handler needs from the page it is embedded in. */
 export interface ToolDateContext {
   timezone: string
@@ -628,6 +675,45 @@ export interface ToolDateContext {
   currentCustomEnd?: string
   /** Already resolved by the page, so "current" honours a user-picked range. */
   currentResolved: ResolvedRange
+}
+
+/**
+ * The date context as of the pending overlay, for a round that changes the
+ * period and reads it in the same breath.
+ *
+ * `currentResolved` is pre-baked by the page, so handing it back for
+ * period:"current" answers with the window the dashboard showed BEFORE the
+ * sibling tool ran. Recomputing here - through the same two functions the
+ * dashboard itself uses - is what makes the two tools of one round agree.
+ * With nothing pending the context is returned unchanged, so the ordinary case
+ * still answers with the exact range the page resolved.
+ */
+export function withPendingDates(
+  context: ToolDateContext,
+  pending: PendingUiState
+): ToolDateContext {
+  if (!pending.period) return context
+  const custom =
+    pending.period === 'custom'
+      ? {
+          start: pending.customStart ?? context.currentCustomStart ?? '',
+          end: pending.customEnd ?? context.currentCustomEnd ?? ''
+        }
+      : undefined
+  // A custom period with no dates would fall back to "the last 7 days" inside
+  // computeDateRange, which is a window nobody asked for; keeping what the page
+  // resolved is the honest answer until the navigation lands.
+  if (custom && (!custom.start || !custom.end)) return context
+  return {
+    ...context,
+    currentPeriod: pending.period,
+    currentCustomStart: custom?.start,
+    currentCustomEnd: custom?.end,
+    currentResolved: resolveRange(
+      computeDateRange(pending.period, context.timezone, custom, context.workspaceCreatedAt),
+      context.timezone
+    )
+  }
 }
 
 export function resolveSchema(raw: unknown): WebSchema {
@@ -687,13 +773,27 @@ export function resolveToolRange(
   return { range, preset, label: `${preset} (${range.startDay}..${range.endDay})` }
 }
 
-/** The comparison window for a resolved tool range, using the dashboard's own arithmetic. */
+/**
+ * The comparison window for a resolved tool range, using the dashboard's own
+ * arithmetic - and null whenever that arithmetic would invent a window that
+ * cannot hold data.
+ *
+ * computeComparisonRange (lib/dates.ts:120-130) returns null for mode "none"
+ * and otherwise ALWAYS subtracts, so it happily produces a window entirely
+ * before the workspace existed. Two ways that happens: `all_time` already
+ * starts at the first session, so anything preceding it is empty by
+ * construction; and any early period compared year-over-year lands before the
+ * first session too. Querying it is not merely wasteful - every change cell
+ * comes back blank, which reads as "no change" when the truth is "there is
+ * nothing to compare against". Returning null lets the caller say so.
+ */
 export function resolveComparisonRange(
   context: ToolDateContext,
   resolved: { preset: DatePreset; custom?: { start: string; end: string } },
   mode: ComparisonMode
 ): ResolvedRange | null {
   if (mode === 'none') return null
+  if (resolved.preset === 'all_time') return null
   const currentRaw = computeDateRange(
     resolved.preset,
     context.timezone,
@@ -701,7 +801,16 @@ export function resolveComparisonRange(
     context.workspaceCreatedAt
   )
   const previousRaw = computeComparisonRange(currentRaw, mode)
-  return previousRaw ? resolveRange(previousRaw, context.timezone) : null
+  if (!previousRaw) return null
+  // Deliberately NOT also refused when the window predates the workspace record.
+  // `workspaceCreatedAt` is when the ROW was written, not when the earliest session
+  // happened, and analytics data is routinely older than that: a seeded demo, an
+  // import, a historical backfill. Refusing on it told an operator with 7,764
+  // sessions in the preceding month that "nothing precedes this range", while the
+  // dashboard beside them - whose computeComparisonRange applies no such test -
+  // charted that same comparison happily. A window with genuinely no data reports
+  // zeroes, which is what the dashboard shows and what the operator can read.
+  return resolveRange(previousRaw, context.timezone)
 }
 
 /** Rejects a dimension that is unknown, wrong-schema, or withheld as PII. */
@@ -739,6 +848,56 @@ export function assertCatalogDimension(name: unknown): string {
     fail(`unknown dimension "${dimension}"; call ${WEB_TOOL_NAMES.CATALOG} for the list`)
   }
   return dimension
+}
+
+/**
+ * The schemas every widget of the dashboard reads. The filter bar is page-wide,
+ * so a filter it carries has to be expressible on ALL of them.
+ */
+export const DASHBOARD_FILTER_SCHEMAS: WebSchema[] = ['web_sessions', 'web_goals']
+
+/**
+ * Scope check for the page-wide filter bar.
+ *
+ * A dimension the visible widgets cannot use (`page_path`, which lives only on
+ * web_pages) is not an error anywhere downstream: every widget simply drops it,
+ * the screen does not change, and the acknowledgement still reports the filter
+ * as applied. Refusing it here with the usable scope named is what lets the
+ * model correct itself instead of narrating a filter nobody is subject to.
+ *
+ * assertCatalogDimension runs FIRST so a withheld name is still refused as PII
+ * rather than as the wrong schema - the reason matters to what the model does
+ * next, and to what it repeats to the operator.
+ */
+export function assertDashboardFilterDimension(name: unknown): string {
+  const dimension = assertCatalogDimension(name)
+  const info = DIMENSIONS[dimension]
+  if (!DASHBOARD_FILTER_SCHEMAS.some((schema) => info.schemas.includes(schema))) {
+    fail(
+      `dimension "${dimension}" cannot be applied to the dashboard filter bar: every widget on the ` +
+        `page reads ${DASHBOARD_FILTER_SCHEMAS.join(' or ')}, and "${dimension}" exists only on ` +
+        `${info.schemas.join(', ')}. Usable here are the dimensions ${WEB_TOOL_NAMES.CATALOG} lists ` +
+        `for ${DASHBOARD_FILTER_SCHEMAS.join(' or ')}; to narrow page-level data instead, pass the ` +
+        `filter to ${WEB_TOOL_NAMES.QUERY} with the schema that carries it`
+    )
+  }
+  return dimension
+}
+
+/** Rejects a bucket the engine has no column for; undefined means "no bucketing". */
+export function parseGranularity(raw: unknown): Granularity | undefined {
+  if (raw === undefined || raw === null) return undefined
+  const value = typeof raw === 'string' ? raw.trim() : raw
+  // An omitted granularity is the aggregate query, not an error; anything else
+  // that is not a bucket name is refused rather than quietly dropped, since
+  // dropping it answers a different question from the one that was asked.
+  if (value === '') return undefined
+  // hasOwn, not a bare index: GRANULARITY_CHOICES is a plain object, so
+  // "constructor" and "toString" both index to something truthy.
+  if (typeof value !== 'string' || !hasOwn(GRANULARITY_CHOICES, value)) {
+    fail(`unknown granularity "${String(raw)}"; expected one of ${GRANULARITIES.join(', ')}`)
+  }
+  return value as Granularity
 }
 
 export function assertMeasures(raw: unknown, schema: WebSchema): string[] {
@@ -805,7 +964,26 @@ export function parseMetricFilters(raw: unknown, schema: WebSchema): WebMetricFi
     if (!METRIC_FILTER_OPERATORS.includes(operator)) {
       fail(`metric filter operator must be one of ${METRIC_FILTER_OPERATORS.join(', ')}`)
     }
-    return { metric, operator, values: [toNumber(record.value)] }
+    // The threshold is checked as hard as the metric and the operator are.
+    // `required` in the schema is a hint no provider is obliged to enforce, and
+    // toNumber maps both an absent value and "one hundred" to 0: the query then
+    // compiles to HAVING sessions >= 0, which removes nothing at all, while the
+    // model is told the threshold applied and reports the long tail as filtered.
+    // A numeric string is still accepted - that is how models usually send one.
+    const raw = record.value
+    const value =
+      typeof raw === 'number'
+        ? raw
+        : typeof raw === 'string' && raw.trim() !== ''
+          ? Number(raw.trim())
+          : Number.NaN
+    if (!Number.isFinite(value)) {
+      fail(
+        `metric filter on "${metric}" needs a numeric value; received "${String(raw)}". ` +
+          `Pass the threshold as a number, for example {"metric":"${metric}","operator":"${operator}","value":100}`
+      )
+    }
+    return { metric, operator, values: [value] }
   })
 }
 
@@ -912,18 +1090,72 @@ export function bucketColumnFor(schema: WebSchema, granularity: Granularity): st
   return timeBucketColumn(dimension, granularity)
 }
 
+/**
+ * Operator-facing name for a measure id.
+ *
+ * The four session metrics take their wording from SESSION_METRICS, so a step line
+ * and the KPI tile above it call the same number the same thing rather than drifting
+ * into two vocabularies. The rest are named here because MEASURES_BY_SCHEMA holds
+ * sentence-long descriptions written FOR THE MODEL - "Median engaged time per
+ * session, in seconds (the "TimeScore")" is not a label - and only the ids that
+ * title-case badly need an entry.
+ *
+ * An unknown id title-cases rather than falling through raw, the same shape
+ * getDimensionLabel uses, so a measure added to a schema is readable here before
+ * anyone remembers this map exists.
+ */
+const MEASURE_LABELS: Record<string, string> = {
+  ...Object.fromEntries(SESSION_METRICS.map((metric) => [metric.key, metric.label])),
+  avg_scroll: 'Average Scroll Depth',
+  pages_per_session: 'Pages per Session',
+  median_page_duration: 'Median Time on Page',
+  page_count: 'Page Views',
+  page_duration: 'Time on Page',
+  page_scroll: 'Scroll Depth',
+  landing_page_count: 'Landing Page Views',
+  exit_page_count: 'Exit Page Views',
+  sum_goal_value: 'Total Goal Value',
+  avg_goal_value: 'Average Goal Value',
+  unique_sessions_with_goals: 'Converting Sessions'
+}
+
+export function getMeasureLabel(name: string): string {
+  const known = MEASURE_LABELS[name]
+  if (known) return known
+  return name
+    .split('_')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ')
+}
+
+/** Dimension ids as the operator's own names, in the drill-down order they were asked in. */
+export function describeDimensions(names: string[], labels?: Record<string, string>): string {
+  return names.map((name) => getDimensionLabel(name, labels)).join(' / ')
+}
+
+/**
+ * What a query step line is ABOUT, in the operator's words.
+ *
+ * DIMENSION-LED, because the grouping is the part that differs between two steps of
+ * one batch: three measures by channel_group and the same three by utm_campaign are
+ * the same sentence for forty-five characters, and the panel wraps well before the
+ * end of it - so the measure list buried the one word the operator was scanning for.
+ * The measures are what an ungrouped query is about, so they lead only when there is
+ * no grouping to lead with.
+ *
+ * Never an id on either side: a workspace that renamed custom_3 to "Plan" reads
+ * "Plan", and `median_page_duration` reads as a metric name rather than a column.
+ *
+ * Bucketing is deliberately NOT expressed here. "per day" is a word, and the words
+ * on this line are built with `t` by the component that owns the panel.
+ */
 export function describeQuery(spec: {
   measures: string[]
   dimensions: string[]
-  granularity?: Granularity
   labels?: Record<string, string>
 }): string {
-  const what = spec.measures.join(', ')
-  if (spec.granularity) return `${what} per ${spec.granularity}`
-  if (spec.dimensions.length > 0) {
-    return `${what} by ${spec.dimensions.map((d) => getDimensionLabel(d, spec.labels)).join(' / ')}`
-  }
-  return what
+  if (spec.dimensions.length > 0) return describeDimensions(spec.dimensions, spec.labels)
+  return spec.measures.map(getMeasureLabel).join(', ')
 }
 
 /** The catalog tool's body. Pure, so the PII omission is directly assertable. */

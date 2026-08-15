@@ -83,8 +83,7 @@ func (h *WebAnalyticsHandler) decodeBackfillRequest(w http.ResponseWriter, r *ht
 }
 
 func (h *WebAnalyticsHandler) writeBackfillError(w http.ResponseWriter, workspaceID string, err error) {
-	if _, ok := err.(*domain.PermissionError); ok {
-		WriteJSONError(w, err.Error(), http.StatusForbidden)
+	if writePermissionError(w, err) {
 		return
 	}
 	h.logger.WithField("workspace_id", workspaceID).WithField("error", err.Error()).Error("Web analytics backfill request failed")

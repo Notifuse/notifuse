@@ -723,6 +723,12 @@ type AutomationRepository interface {
 	List(ctx context.Context, workspaceID string, filter AutomationFilter) ([]*Automation, int, error)
 	Update(ctx context.Context, workspaceID string, automation *Automation) error
 	UpdateTx(ctx context.Context, tx *sql.Tx, workspaceID string, automation *Automation) error
+	// UpdateIfStatus persists the automation only while its stored status is still
+	// expectedStatus (optimistic lock). Returns false (no error) when no row was updated —
+	// another transition changed the status between the caller's read and this write — so a
+	// status transition can stop instead of overwriting it from a stale read, and before
+	// emitting the trigger DDL its stale read decided on.
+	UpdateIfStatus(ctx context.Context, workspaceID string, automation *Automation, expectedStatus AutomationStatus) (bool, error)
 	Delete(ctx context.Context, workspaceID, id string) error
 	DeleteTx(ctx context.Context, tx *sql.Tx, workspaceID, id string) error
 

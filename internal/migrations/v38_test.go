@@ -106,6 +106,14 @@ func expectV38WebAnalyticsDDL(mock sqlmock.Sqlmock) {
 	// new-workspace path installs the same function from the same source.
 	mock.ExpectExec("(?s)CREATE OR REPLACE FUNCTION webhook_custom_events_trigger").
 		WillReturnResult(sqlmock.NewResult(0, 0))
+	// And the enrolment guard. A trigger outlives its automation being live — Pause drops it
+	// only after writing the status, Delete discards a failed drop, and two concurrent
+	// transitions can leave it installed against a paused row — so the function every
+	// installed trigger calls is where "is this automation still running?" has to be asked.
+	// The regex pins the guard, not just the install: a body that lost it would still match
+	// on the name alone.
+	mock.ExpectExec("(?s)CREATE OR REPLACE FUNCTION automation_enroll_contact.*status = 'live'").
+		WillReturnResult(sqlmock.NewResult(0, 0))
 	now := time.Now().UTC()
 	for _, month := range []time.Time{now, now.AddDate(0, 1, 0)} {
 		for _, table := range schema.WebAnalyticsTableNames {

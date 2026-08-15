@@ -98,7 +98,8 @@ export const GOAL_ROWS = 8
 /**
  * Headroom under the hook's MAX_RESULT_CHARS_PER_TOOL (6000), and derived from the
  * column lists above rather than guessed: header block ~320, totals ~330, series
- * ~1590 at the bucket ceiling, ~510 per six-column breakdown, goals ~385. A full
+ * ~1590 at the bucket ceiling, ~510 per six-column breakdown (plus at most one char a
+ * row, where a baseline of zero prints `0` rather than blank), goals ~385. A full
  * six-breakdown report therefore lands near 5700 - deliberately OVER this budget, so
  * the drop order is exercised on a wide workspace instead of being decoration, and the
  * ~800 chars left under 6000 absorb the `[omitted for size: …]` line and values longer
@@ -266,7 +267,14 @@ async function renderSeries(snapshot: InsightSnapshot): Promise<string> {
   // dimension map, so this file does not repeat it; the series is always web_sessions.
   const bucketColumn = bucketColumnFor('web_sessions', snapshot.granularity)
   const stride = Math.ceil(rows.length / MAX_SERIES_BUCKETS)
-  const kept = stride > 1 ? rows.filter((_row, index) => index % stride === 0) : rows
+  // ANCHORED ON THE NEWEST BUCKET, counting backwards. A stride counted forwards from
+  // index 0 keeps the oldest bucket and drops the newest whenever the row count is not
+  // an exact multiple of the stride - which is the clipped recent end this function
+  // exists to avoid, reintroduced by the sampling itself. Counting back from the last
+  // row keeps the end of the series the operator actually asked about and drops from
+  // the far end instead; the kept count is the same either way.
+  const kept =
+    stride > 1 ? rows.filter((_row, index) => (rows.length - 1 - index) % stride === 0) : rows
   const lines = ['bucket,sessions']
   for (const row of kept) {
     lines.push(`${renderCell(row[bucketColumn])},${toNumber(row.sessions)}`)
@@ -297,10 +305,20 @@ async function renderBreakdown(
   breakdown: { dimension: string; requireNonEmpty?: boolean },
   spec: BreakdownSpec
 ): Promise<string> {
-  const [current, previous] = await Promise.all([
-    runBreakdown(snapshot, snapshot.range, breakdown.dimension, spec),
-    compare ? runBreakdown(snapshot, compare, breakdown.dimension, spec) : Promise.resolve([])
-  ])
+  const current = await runBreakdown(snapshot, snapshot.range, breakdown.dimension, spec)
+  // The comparison window is fetched AFTER the current one and SCOPED TO ITS VALUES,
+  // rather than as a second independent top-N. Two independent top-Ns leave every row
+  // that was outside the previous window's top-N with no `prev_` value at all - and
+  // the biggest riser is precisely the row most likely to have been outside it, so the
+  // one row the operator most wants marked as a riser is the one that renders blank.
+  // Asking for these values by name means the comparison query can always answer for a
+  // row that is on screen, which is what lets a blank cell below mean "no traffic then"
+  // instead of "not in the other window's top-N".
+  const values = current.map((row) => String(row[breakdown.dimension] ?? ''))
+  const previous =
+    compare && values.length > 0
+      ? await runBreakdown(snapshot, compare, breakdown.dimension, spec, values)
+      : []
   const merged = mergeComparisonRows(current, previous, breakdown.dimension, spec.measures)
   const rows = breakdown.requireNonEmpty
     ? merged.filter((row) => String(row.dimension_value).length > 0)
@@ -323,7 +341,15 @@ async function renderBreakdown(
           // A change column is RECOMPUTED through changePct, never printed from the
           // row: the merge stores the unrounded quotient. Everything else prints the
           // row's own value.
-          if (!column.endsWith(CHANGE_SUFFIX)) return renderCell(row[column])
+          if (!column.endsWith(CHANGE_SUFFIX)) {
+            // mergeComparisonRows omits `prev_<measure>` entirely when the comparison
+            // window returned no row for this value. That window was asked for these
+            // exact values, so nothing came back because nothing happened: print the
+            // zero, and leave the blank to the change cell, where blank already means
+            // "no baseline" everywhere else in the report.
+            if (column.startsWith('prev_') && row[column] === undefined) return '0'
+            return renderCell(row[column])
+          }
           const measure = column.slice(0, -CHANGE_SUFFIX.length)
           return changePct(toNumber(row[measure]), toNumber(row[`prev_${measure}`]))
         })
@@ -403,12 +429,17 @@ async function runSeries(snapshot: InsightSnapshot): Promise<Record<string, unkn
 /**
  * One breakdown window. Returns the ROW ARRAY, because mergeComparisonRows joins two
  * of them on the dimension value.
+ *
+ * `only` restricts the grouping to a given set of dimension values, and is how the
+ * comparison window is fetched: its top-N is not the current window's top-N, so it is
+ * asked for the values already on screen instead of for its own leaders.
  */
 async function runBreakdown(
   snapshot: InsightSnapshot,
   range: ResolvedRange,
   dimension: string,
-  spec: BreakdownSpec
+  spec: BreakdownSpec,
+  only?: string[]
 ): Promise<Record<string, unknown>[]> {
   const response = await snapshot.run(
     buildWebQuery({
@@ -419,9 +450,13 @@ async function runBreakdown(
       // Per schema again, and against the spec's own schema rather than web_sessions:
       // the goals section runs on web_goals, where a landing_path filter would fail
       // the query outright.
-      filters: filtersForSchema(snapshot.filters, spec.schema),
+      filters: [
+        ...filtersForSchema(snapshot.filters, spec.schema),
+        ...(only ? [{ dimension, operator: 'in' as const, values: only }] : [])
+      ],
       // buildWebQuery orders a grouped query by its first measure descending, so the
-      // rows the limit keeps are the ones worth spending the row budget on.
+      // rows the limit keeps are the ones worth spending the row budget on. On an
+      // `only` query it can drop nothing: that call passes at most spec.rows values.
       limit: spec.rows,
       timezone: snapshot.timezone
     })

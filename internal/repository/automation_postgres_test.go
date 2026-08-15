@@ -1728,3 +1728,93 @@ func TestAutomationRepository_ListContactAutomations_DataQueryError(t *testing.T
 	assert.Nil(t, cas)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
+
+// UpdateIfStatus is the optimistic lock the three status transitions write through. Without
+// it, Update writes back the status it read a moment earlier, so a Pause that lands between
+// that read and that write is silently reverted to live — and the trigger it dropped is never
+// reinstalled, leaving an automation that shows Live and enrols nobody.
+func TestAutomationRepository_UpdateIfStatus(t *testing.T) {
+	ctx := context.Background()
+	workspaceID := "workspace-123"
+
+	t.Run("writes and reports true when the stored status still matches", func(t *testing.T) {
+		db, mock, repo := setupAutomationMock(t)
+		defer func() { _ = db.Close() }()
+
+		automation := createTestAutomation("auto-123", workspaceID)
+		automation.Status = domain.AutomationStatusPaused
+
+		// The predicate belongs in the WHERE clause, not in a re-read before it: a re-read
+		// narrows the window, only the predicate closes it.
+		mock.ExpectExec(`UPDATE automations SET .* WHERE .*status`).
+			WithArgs(
+				automation.Name,
+				automation.Status,
+				automation.ListID,
+				sqlmock.AnyArg(), // trigger_config JSON
+				automation.TriggerSQL,
+				automation.RootNodeID,
+				sqlmock.AnyArg(), // nodes JSON
+				automation.ExitOnReply,
+				sqlmock.AnyArg(), // updated_at
+				automation.ID,
+				workspaceID,
+				domain.AutomationStatusLive, // expected status
+			).
+			WillReturnResult(sqlmock.NewResult(0, 1))
+
+		updated, err := repo.UpdateIfStatus(ctx, workspaceID, automation, domain.AutomationStatusLive)
+		assert.NoError(t, err)
+		assert.True(t, updated)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("reports false without an error when another transition got there first", func(t *testing.T) {
+		db, mock, repo := setupAutomationMock(t)
+		defer func() { _ = db.Close() }()
+
+		automation := createTestAutomation("auto-123", workspaceID)
+		automation.Status = domain.AutomationStatusPaused
+
+		mock.ExpectExec(`UPDATE automations SET .* WHERE .*status`).
+			WillReturnResult(sqlmock.NewResult(0, 0))
+
+		// Not an error: a lost race is a normal outcome the caller turns into a 409, and
+		// "automation not found" — what the unconditional Update says — would be a lie.
+		updated, err := repo.UpdateIfStatus(ctx, workspaceID, automation, domain.AutomationStatusLive)
+		assert.NoError(t, err)
+		assert.False(t, updated)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("surfaces a database error", func(t *testing.T) {
+		db, mock, repo := setupAutomationMock(t)
+		defer func() { _ = db.Close() }()
+
+		automation := createTestAutomation("auto-123", workspaceID)
+
+		mock.ExpectExec(`UPDATE automations SET`).
+			WillReturnError(errors.New("connection reset"))
+
+		updated, err := repo.UpdateIfStatus(ctx, workspaceID, automation, domain.AutomationStatusLive)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "connection reset")
+		assert.False(t, updated)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("surfaces a rows-affected error", func(t *testing.T) {
+		db, mock, repo := setupAutomationMock(t)
+		defer func() { _ = db.Close() }()
+
+		automation := createTestAutomation("auto-123", workspaceID)
+
+		mock.ExpectExec(`UPDATE automations SET`).
+			WillReturnResult(sqlmock.NewErrorResult(errors.New("driver does not support RowsAffected")))
+
+		updated, err := repo.UpdateIfStatus(ctx, workspaceID, automation, domain.AutomationStatusLive)
+		assert.Error(t, err)
+		assert.False(t, updated)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+}

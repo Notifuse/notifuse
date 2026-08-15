@@ -68,8 +68,7 @@ func (h *BlogThemeHandler) HandleCreate(w http.ResponseWriter, r *http.Request) 
 	theme, err := h.service.CreateTheme(ctx, &req)
 	if err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to create theme")
-		if permErr, ok := err.(*domain.PermissionError); ok {
-			WriteJSONError(w, permErr.Error(), http.StatusForbidden)
+		if writePermissionError(w, err) {
 			return
 		}
 		WriteJSONError(w, err.Error(), http.StatusInternalServerError)
@@ -112,8 +111,7 @@ func (h *BlogThemeHandler) HandleGet(w http.ResponseWriter, r *http.Request) {
 	theme, err := h.service.GetTheme(ctx, version)
 	if err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to get theme")
-		if permErr, ok := err.(*domain.PermissionError); ok {
-			WriteJSONError(w, permErr.Error(), http.StatusForbidden)
+		if writePermissionError(w, err) {
 			return
 		}
 		WriteJSONError(w, err.Error(), http.StatusNotFound)
@@ -144,8 +142,7 @@ func (h *BlogThemeHandler) HandleGetPublished(w http.ResponseWriter, r *http.Req
 	theme, err := h.service.GetPublishedTheme(ctx)
 	if err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to get published theme")
-		if permErr, ok := err.(*domain.PermissionError); ok {
-			WriteJSONError(w, permErr.Error(), http.StatusForbidden)
+		if writePermissionError(w, err) {
 			return
 		}
 		WriteJSONError(w, err.Error(), http.StatusNotFound)
@@ -183,8 +180,7 @@ func (h *BlogThemeHandler) HandleUpdate(w http.ResponseWriter, r *http.Request) 
 	theme, err := h.service.UpdateTheme(ctx, &req)
 	if err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to update theme")
-		if permErr, ok := err.(*domain.PermissionError); ok {
-			WriteJSONError(w, permErr.Error(), http.StatusForbidden)
+		if writePermissionError(w, err) {
 			return
 		}
 		WriteJSONError(w, err.Error(), http.StatusBadRequest)
@@ -221,8 +217,7 @@ func (h *BlogThemeHandler) HandlePublish(w http.ResponseWriter, r *http.Request)
 
 	if err := h.service.PublishTheme(ctx, &req); err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to publish theme")
-		if permErr, ok := err.(*domain.PermissionError); ok {
-			WriteJSONError(w, permErr.Error(), http.StatusForbidden)
+		if writePermissionError(w, err) {
 			return
 		}
 		WriteJSONError(w, err.Error(), http.StatusBadRequest)
@@ -276,8 +271,7 @@ func (h *BlogThemeHandler) HandleList(w http.ResponseWriter, r *http.Request) {
 	response, err := h.service.ListThemes(ctx, &req)
 	if err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to list themes")
-		if permErr, ok := err.(*domain.PermissionError); ok {
-			WriteJSONError(w, permErr.Error(), http.StatusForbidden)
+		if writePermissionError(w, err) {
 			return
 		}
 		WriteJSONError(w, err.Error(), http.StatusInternalServerError)

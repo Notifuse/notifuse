@@ -157,3 +157,40 @@ func TestTriggerConditionError_As(t *testing.T) {
 		t.Error("errors.As() matched TriggerConditionError on an unrelated error")
 	}
 }
+
+func TestAutomationConflictError_Error(t *testing.T) {
+	err := NewAutomationConflictError("auto-123", AutomationStatusLive)
+
+	expected := "automation auto-123 was concurrently changed: it was no longer live"
+	if err.Error() != expected {
+		t.Errorf("Expected error message '%s', got '%s'", expected, err.Error())
+	}
+}
+
+// The handlers answer 409 by matching this type with errors.As after the service has wrapped
+// it with %w, so the match must survive that wrapping.
+func TestAutomationConflictError_As(t *testing.T) {
+	original := NewAutomationConflictError("auto-123", AutomationStatusLive)
+	doubleWrapped := fmt.Errorf("pause automation: %w", fmt.Errorf("failed to update automation status: %w", original))
+
+	var target *AutomationConflictError
+	if !errors.As(doubleWrapped, &target) {
+		t.Fatal("errors.As() failed to find AutomationConflictError through the wrapping")
+	}
+	if target != original {
+		t.Error("errors.As() should yield the original AutomationConflictError")
+	}
+	if target.AutomationID != "auto-123" {
+		t.Errorf("Expected automation ID 'auto-123', got '%s'", target.AutomationID)
+	}
+	if target.ExpectedStatus != AutomationStatusLive {
+		t.Errorf("Expected status live, got '%s'", target.ExpectedStatus)
+	}
+
+	// A conflict must not be confused with a bad trigger configuration: one is a 409 the
+	// caller can retry after reloading, the other a 400 they cannot retry at all.
+	var conditionErr *TriggerConditionError
+	if errors.As(doubleWrapped, &conditionErr) {
+		t.Error("errors.As() matched TriggerConditionError on a conflict error")
+	}
+}

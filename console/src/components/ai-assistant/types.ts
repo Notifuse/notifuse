@@ -93,6 +93,14 @@ export interface UseAIAssistantOptions {
   // a non-silent ToolResult is followed by another request carrying that output, up to
   // this many rounds. Clamped to 1..5 by the hook.
   maxToolRounds?: number
+  // Icon per tool name, for the step line a tool posts while it runs.
+  //
+  // The hook knows only the two tools the SERVER runs (scrape_url, search_web) and
+  // supplies their icons itself; every feature tool is named by the consumer, so its
+  // icon comes from here rather than from a list the hook would have to grow for each
+  // new feature. An entry here wins over the built-in default for the same name, and a
+  // tool with no entry at all still gets a neutral mark so the step lines stay aligned.
+  toolIcons?: Record<string, ReactNode>
 }
 
 export interface UseAIAssistantReturn {
@@ -118,6 +126,10 @@ export interface BubbleItem {
   role: 'user' | 'ai' | 'system' | 'thinking'
   content: string
   loading?: boolean
+  // antd's Bubble variant, set per item so one role can carry two weights: a tool step
+  // is 'borderless' - no fill, no border, it recedes behind the answer - while a failed
+  // or errored tool keeps the default filled treatment and stays loud.
+  variant?: 'filled' | 'outlined' | 'shadow' | 'borderless'
   styles?: {
     content?: React.CSSProperties
   }
@@ -157,6 +169,12 @@ export interface AIAssistantChatProps {
   resetConversation: () => void
   hidden?: boolean
   chatBoxTop?: number
+  /**
+   * Panel width in px. Defaults to the historical 420, which suits a prose
+   * assistant; a feature whose answers carry small metric tables can ask for more
+   * without changing the panel for the others.
+   */
+  width?: number
   /** Starters for the empty state. Omit for the historical blank panel. */
   suggestions?: AIAssistantSuggestion[]
   /** Chip click. Defaults to filling the composer without sending. */

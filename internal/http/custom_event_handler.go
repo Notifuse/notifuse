@@ -50,8 +50,7 @@ func (h *CustomEventHandler) UpsertCustomEvent(w http.ResponseWriter, r *http.Re
 	event, err := h.service.UpsertEvent(r.Context(), &req)
 	if err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to upsert custom event")
-		if _, ok := err.(*domain.PermissionError); ok {
-			WriteJSONError(w, err.Error(), http.StatusForbidden)
+		if writePermissionError(w, err) {
 			return
 		}
 		if _, ok := err.(domain.ValidationError); ok {
@@ -80,8 +79,7 @@ func (h *CustomEventHandler) ImportCustomEvents(w http.ResponseWriter, r *http.R
 	eventIDs, err := h.service.ImportEvents(r.Context(), &req)
 	if err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to import custom events")
-		if _, ok := err.(*domain.PermissionError); ok {
-			WriteJSONError(w, err.Error(), http.StatusForbidden)
+		if writePermissionError(w, err) {
 			return
 		}
 		if _, ok := err.(domain.ValidationError); ok {
@@ -113,8 +111,7 @@ func (h *CustomEventHandler) GetCustomEvent(w http.ResponseWriter, r *http.Reque
 	event, err := h.service.GetEvent(r.Context(), workspaceID, eventName, externalID)
 	if err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to get custom event")
-		if _, ok := err.(*domain.PermissionError); ok {
-			WriteJSONError(w, err.Error(), http.StatusForbidden)
+		if writePermissionError(w, err) {
 			return
 		}
 		WriteJSONError(w, "Custom event not found", http.StatusNotFound)
@@ -172,8 +169,7 @@ func (h *CustomEventHandler) ListCustomEvents(w http.ResponseWriter, r *http.Req
 	events, err := h.service.ListEvents(r.Context(), req)
 	if err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to list custom events")
-		if _, ok := err.(*domain.PermissionError); ok {
-			WriteJSONError(w, err.Error(), http.StatusForbidden)
+		if writePermissionError(w, err) {
 			return
 		}
 		if _, ok := err.(domain.ValidationError); ok {

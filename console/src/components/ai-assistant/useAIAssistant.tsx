@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect } from 'react'
-import { Search, Globe } from 'lucide-react'
+import { useState, useRef, useEffect, type ReactNode, type CSSProperties } from 'react'
+import { Search, Globe, Circle } from 'lucide-react'
 import { useLingui } from '@lingui/react/macro'
 import { llmApi, LLMChatEvent, LLMMessage } from '../../services/api/llm'
 import type {
@@ -29,6 +29,50 @@ const SERVER_TOOLS = {
 // Marker toolName for persistent error bubbles (styled distinctly).
 const ERROR_TOOL_NAME = '__error__'
 
+// Icons for the tools the SERVER runs. A consumer entry for the same name wins, so a
+// feature that scrapes with its own affordance can say so.
+const DEFAULT_TOOL_ICONS: Record<string, ReactNode> = {
+  [SERVER_TOOLS.SCRAPE_URL]: <Globe size={11} />,
+  [SERVER_TOOLS.SEARCH_WEB]: <Search size={11} />
+}
+// A tool nobody supplied an icon for still gets a mark: an avatar-less line would sit
+// flush against the panel edge while its neighbours are indented, and the column of
+// steps is what makes the trace scannable.
+const FALLBACK_TOOL_ICON = <Circle size={7} />
+
+// A step is a caption, not a bubble: no fill, no border, secondary colour, small type.
+// Process must recede so the answer is the only thing on the thread with weight.
+const STEP_CONTENT_STYLE: CSSProperties = {
+  background: 'transparent',
+  border: 'none',
+  padding: 0,
+  fontSize: 12,
+  lineHeight: 1.6,
+  color: '#8c8c8c',
+  whiteSpace: 'pre-wrap'
+}
+// A failure is the one thing on the process side that must NOT recede: it keeps the
+// filled red bubble it has always had, so a step that broke cannot read as a step that
+// merely finished.
+const ERROR_CONTENT_STYLE: CSSProperties = {
+  background: '#fff2f0',
+  border: '1px solid #ffccc7',
+  whiteSpace: 'pre-wrap'
+}
+// Sized for a step line rather than a chat bubble: it marks the line, it does not
+// announce a speaker.
+const STEP_AVATAR_SIZE = 16
+const STEP_AVATAR_STYLE: CSSProperties = {
+  background: 'transparent',
+  color: '#bfbfbf',
+  minWidth: STEP_AVATAR_SIZE,
+  minHeight: STEP_AVATAR_SIZE
+}
+
+// Elapsed time earns its place on a step only when it explains a wait; under a second
+// the number is noise repeated on every line.
+const MIN_ELAPSED_SUFFIX_MS = 1000
+
 // Hard ceiling on assistant round trips per user turn, whatever a consumer asks for.
 const MAX_TOOL_ROUNDS_CEILING = 5
 // Total handler executions across all rounds of one turn: a model that emits 40
@@ -38,6 +82,16 @@ const MAX_TOOL_CALLS_PER_TURN = 12
 const TOOL_TIMEOUT_MS = 20_000
 
 const toErrorText = (e: unknown) => (e instanceof Error ? e.message : String(e))
+
+// A dispatched call once its handler has settled. `result` is absent for a pure
+// side-effect handler; `fingerprint` for a call that was refused rather than run.
+interface SettledEntry {
+  id: string
+  name: string
+  input: Record<string, unknown>
+  fingerprint?: string
+  result?: ToolResult
+}
 
 interface RoundOutcome {
   text: string
@@ -55,7 +109,8 @@ export function useAIAssistant(options: UseAIAssistantOptions): UseAIAssistantRe
     toolHandlers,
     buildSystemPrompt,
     validateOnComplete,
-    maxToolRounds
+    maxToolRounds,
+    toolIcons
   } = options
   const { t } = useLingui()
 
@@ -88,6 +143,13 @@ export function useAIAssistant(options: UseAIAssistantOptions): UseAIAssistantRe
   const turnIdRef = useRef(0)
   const seqRef = useRef(0)
   const nextKey = (prefix: string) => `${prefix}-${Date.now()}-${++seqRef.current}`
+
+  // Synchronous twin of isStreaming, owned by handleSend and cleared the moment the
+  // turn is over. State cannot guard re-entrancy: two submits dispatched in the same
+  // tick - the web analytics chip auto-send effect firing beside a manual Enter - both
+  // read the pre-render `isStreaming === false` and both pass, leaving turn A streaming,
+  // accruing cost and running client tools with nobody watching it.
+  const sendingRef = useRef(false)
 
   // Unmount ends the turn, exactly as Stop does.
   //
@@ -135,6 +197,9 @@ export function useAIAssistant(options: UseAIAssistantOptions): UseAIAssistantRe
     // Orphan the in-flight turn even if its fetch has already resolved.
     turnIdRef.current += 1
     abortControllerRef.current?.abort()
+    // The cancelled turn's own `finally` is turn-guarded and will no longer clear this,
+    // so Stop has to - or the composer stays blocked for the rest of the session.
+    sendingRef.current = false
     setIsStreaming(false)
     setMessages((prev) =>
       prev
@@ -188,6 +253,16 @@ export function useAIAssistant(options: UseAIAssistantOptions): UseAIAssistantRe
     })
   }
 
+  // Compact elapsed time for a finished step, or '' when the step was quick enough that
+  // the number would tell the reader nothing. One decimal while the digit still carries
+  // information, whole seconds past ten.
+  const elapsedSuffix = (startedAt: number) => {
+    const ms = Date.now() - startedAt
+    if (ms < MIN_ELAPSED_SUFFIX_MS) return ''
+    const seconds = ms < 10_000 ? (ms / 1000).toFixed(1) : String(Math.round(ms / 1000))
+    return t` · ${seconds}s`
+  }
+
   // Two-phase tool bubble: posted with a spinner the moment the model calls the tool,
   // rewritten in place when the async work finishes. The empty-assistant replacement
   // inside insertToolMessage means a text-less round hands its spinner to this bubble
@@ -195,27 +270,55 @@ export function useAIAssistant(options: UseAIAssistantOptions): UseAIAssistantRe
   const startToolProgress = (
     assistantKey: string,
     content: string,
-    toolName: string
+    toolName: string,
+    // False once the hook has stopped waiting for the call that owns this bubble, or
+    // once a newer turn replaced the one it belongs to. See runToolHandler.
+    writable: () => boolean = () => true
   ): ToolBubbleHandle => {
     const key = nextKey('tool')
+    // Timed here rather than by the consumer: every handler that narrates itself gets
+    // the duration for free, and none of them can measure the gap between the model
+    // asking for the tool and the handler starting.
+    const startedAt = Date.now()
     insertToolMessage(assistantKey, content, toolName, true, key)
     return {
-      update: (next, opts) =>
+      update: (next, opts) => {
+        if (!writable()) return
+        // A failed step already says what went wrong; a stopwatch appended to it reads
+        // as a measurement of the failure and pushes the reason further from the eye.
+        const text = opts?.failed ? next : next + elapsedSuffix(startedAt)
         setMessages((prev) =>
           prev.map((m) =>
-            m.key === key ? { ...m, content: next, loading: false, failed: opts?.failed } : m
+            m.key === key ? { ...m, content: text, loading: false, failed: opts?.failed } : m
           )
         )
+      }
     }
   }
 
-  const handleTextEvent = (event: LLMChatEvent, assistantKey: string) => {
+  // `alive` gates the branches that APPEND rather than rewrite. Rewriting on a key was
+  // self-guarding - a stopped or reset turn has no such message left, so the map was a
+  // no-op - but an append would land in a conversation that has moved on.
+  const handleTextEvent = (event: LLMChatEvent, assistantKey: string, alive: () => boolean) => {
     if (!event.content) return
-    setMessages((prev) =>
-      prev.map((m) =>
-        m.key === assistantKey ? { ...m, content: m.content + event.content, loading: false } : m
-      )
-    )
+    setMessages((prev) => {
+      if (prev.some((m) => m.key === assistantKey)) {
+        return prev.map((m) =>
+          m.key === assistantKey ? { ...m, content: m.content + event.content, loading: false } : m
+        )
+      }
+      if (!alive()) return prev
+      // The round's assistant bubble is SPLICED OUT by insertToolMessage when the model
+      // called a tool before writing any prose. Text streaming after that tool_use would
+      // otherwise match nothing and vanish from the thread - while still being accrued
+      // into the round's `text` and pushed onto the wire transcript, so the model would
+      // be told it said something the user never saw. Re-open the bubble below the tool
+      // result instead; the key is reused so the rest of the round accumulates on it.
+      return [
+        ...prev,
+        { key: assistantKey, role: 'assistant', content: event.content ?? '', loading: false }
+      ]
+    })
   }
 
   const handleThinkingEvent = (event: LLMChatEvent, assistantKey: string) => {
@@ -281,12 +384,28 @@ export function useAIAssistant(options: UseAIAssistantOptions): UseAIAssistantRe
     }
   }
 
-  const handleErrorEvent = (event: LLMChatEvent, assistantKey: string) => {
-    setMessages((prev) =>
-      prev.map((m) =>
-        m.key === assistantKey ? { ...m, content: t`Error: ${event.error}`, loading: false } : m
-      )
-    )
+  // Write a failure into the round's assistant bubble - or, when that bubble is gone,
+  // append a persistent error one instead.
+  //
+  // The bubble really does disappear on the ordinary path: a round whose model output
+  // was a tool call before any prose has its empty assistant message SPLICED OUT by
+  // insertToolMessage, so a `map` on assistantKey matches nothing and the failure is
+  // written nowhere. onError then declines to write a second time (sawErrorEvent), and
+  // the operator watches the progress bubble stop with no error and no answer.
+  const writeErrorForRound = (assistantKey: string, content: string, alive: () => boolean) => {
+    setMessages((prev) => {
+      if (prev.some((m) => m.key === assistantKey)) {
+        return prev.map((m) => (m.key === assistantKey ? { ...m, content, loading: false } : m))
+      }
+      // Nothing to rewrite AND the turn is over: a stopped or reset turn must not push
+      // its failure into the conversation that replaced it.
+      if (!alive()) return prev
+      return [...prev, { key: nextKey('error'), role: 'tool', toolName: ERROR_TOOL_NAME, content }]
+    })
+  }
+
+  const handleErrorEvent = (event: LLMChatEvent, assistantKey: string, alive: () => boolean) => {
+    writeErrorForRound(assistantKey, t`Error: ${event.error}`, alive)
     // isStreaming is cleared by handleSend when the round loop exits (see handleDoneEvent).
   }
 
@@ -295,7 +414,7 @@ export function useAIAssistant(options: UseAIAssistantOptions): UseAIAssistantRe
   const appendErrorMessage = (content: string) => {
     setMessages((prev) => [
       ...prev,
-      { key: `error-${Date.now()}`, role: 'tool', toolName: ERROR_TOOL_NAME, content }
+      { key: nextKey('error'), role: 'tool', toolName: ERROR_TOOL_NAME, content }
     ])
   }
 
@@ -308,33 +427,58 @@ export function useAIAssistant(options: UseAIAssistantOptions): UseAIAssistantRe
     round: number,
     name: string
   ): Promise<ToolResult | void> => {
+    const turn = turnIdRef.current
+    // Per-call abort, chained to the turn's. The turn signal cancels every handler of
+    // the round at once, which is not what a timeout means: only the call that overran
+    // must be stopped. And it has to be actually stopped - resolving the wrapper alone
+    // left the handler querying, and repainting, long after the model was handed the
+    // timeout and apologised for it.
+    const call = new AbortController()
+    const onTurnAbort = () => call.abort()
+    if (signal.aborted) call.abort()
+    else signal.addEventListener('abort', onTurnAbort, { once: true })
+    const releaseTurnListener = () => signal.removeEventListener('abort', onTurnAbort)
+
+    // Every write a handler makes goes through this. It is false once the hook has
+    // stopped waiting for the call (timed out, cancelled) and false once a newer turn -
+    // or resetConversation - has replaced this one, so a late handler can neither
+    // repaint its bubble as a success beside the model's timeout apology, nor drop a
+    // stale line into a conversation that has just been cleared.
+    const writable = () => turnIdRef.current === turn && !call.signal.aborted
+
     let returned: void | ToolResult | Promise<ToolResult | void>
     try {
       returned = handler(
         event,
-        (content, toolName) => insertToolMessage(assistantKey, content, toolName),
+        (content, toolName) => {
+          if (writable()) insertToolMessage(assistantKey, content, toolName)
+        },
         {
-          signal,
+          signal: call.signal,
           round,
-          progress: (content, toolName = name) => startToolProgress(assistantKey, content, toolName)
+          progress: (content, toolName = name) =>
+            startToolProgress(assistantKey, content, toolName, writable)
         }
       )
     } catch (err) {
       // A synchronous throw would otherwise be swallowed by streamChat's parse
       // try/catch, leaving the model waiting for a result that never comes.
+      releaseTurnListener()
       return Promise.resolve({ content: toErrorText(err), isError: true })
     }
 
     // Synchronous handler (every Blog and Email handler): resolve immediately, no
     // timer, no listener, no behaviour change.
     if (!returned || typeof (returned as Promise<unknown>).then !== 'function') {
+      releaseTurnListener()
       return Promise.resolve(returned as ToolResult | void)
     }
 
     // addEventListener('abort', …) never fires on a signal that is ALREADY aborted, so
     // without this line a tool_use arriving after Stop parks the turn for the full
     // TOOL_TIMEOUT_MS with nothing left to cancel it.
-    if (signal.aborted) {
+    if (call.signal.aborted) {
+      releaseTurnListener()
       return Promise.resolve({ content: `tool "${name}" cancelled`, isError: true })
     }
 
@@ -344,16 +488,20 @@ export function useAIAssistant(options: UseAIAssistantOptions): UseAIAssistantRe
         if (settled) return
         settled = true
         clearTimeout(timer)
-        signal.removeEventListener('abort', onAbort)
+        call.signal.removeEventListener('abort', onAbort)
+        releaseTurnListener()
         resolve(r)
       }
       const onAbort = () => finish({ content: `tool "${name}" cancelled`, isError: true })
-      const timer = setTimeout(
-        () =>
-          finish({ content: `tool "${name}" timed out after ${TOOL_TIMEOUT_MS}ms`, isError: true }),
-        TOOL_TIMEOUT_MS
-      )
-      signal.addEventListener('abort', onAbort, { once: true })
+      const timer = setTimeout(() => {
+        finish({ content: `tool "${name}" timed out after ${TOOL_TIMEOUT_MS}ms`, isError: true })
+        // Aborted AFTER the wrapper settled, so the outcome stays "timed out" rather
+        // than being rewritten as "cancelled" by the listener above: settling first
+        // detaches it. What the abort still does is stop the abandoned handler's work
+        // and close its writes.
+        call.abort()
+      }, TOOL_TIMEOUT_MS)
+      call.signal.addEventListener('abort', onAbort, { once: true })
       ;(returned as Promise<ToolResult | void>).then(finish, (err) =>
         finish({ content: toErrorText(err), isError: true })
       )
@@ -369,8 +517,9 @@ export function useAIAssistant(options: UseAIAssistantOptions): UseAIAssistantRe
     alreadyRun: Set<string> // fingerprints executed in EARLIER rounds of this turn
     budget: { left: number }
     integrationId: string
+    alive: () => boolean // false once this turn has been stopped, reset or superseded
   }): Promise<RoundOutcome> => {
-    const { transcript, assistantKey, controller, round, looping, alreadyRun, budget } = args
+    const { transcript, assistantKey, controller, round, looping, alreadyRun, budget, alive } = args
     let text = ''
     let terminated = false
     let ranHandler = false
@@ -379,11 +528,12 @@ export function useAIAssistant(options: UseAIAssistantOptions): UseAIAssistantRe
     // onError only console.errors and clears the flag; under the new onError body,
     // which writes a visible bubble, it would produce two bubbles for one failure.
     let sawErrorEvent = false
-    const fingerprints: string[] = []
     const pending: Array<{
       id: string
       name: string
       input: Record<string, unknown>
+      // Set only for calls a handler actually ran; refusals carry none, and never did.
+      fingerprint?: string
       promise: Promise<ToolResult | void>
     }> = []
 
@@ -402,7 +552,7 @@ export function useAIAssistant(options: UseAIAssistantOptions): UseAIAssistantRe
         switch (event.type) {
           case 'text':
             text += event.content || ''
-            handleTextEvent(event, assistantKey)
+            handleTextEvent(event, assistantKey, alive)
             break
           case 'thinking':
             handleThinkingEvent(event, assistantKey)
@@ -473,12 +623,12 @@ export function useAIAssistant(options: UseAIAssistantOptions): UseAIAssistantRe
             }
 
             budget.left -= 1
-            fingerprints.push(fingerprint)
             ranHandler = true
             pending.push({
               id,
               name,
               input,
+              fingerprint,
               promise: runToolHandler(handler, event, assistantKey, controller.signal, round, name)
             })
             break
@@ -497,7 +647,7 @@ export function useAIAssistant(options: UseAIAssistantOptions): UseAIAssistantRe
             if (event.truncated) terminated = true
             break
           case 'error':
-            handleErrorEvent(event, assistantKey)
+            handleErrorEvent(event, assistantKey, alive)
             terminated = true
             sawErrorEvent = true
             break
@@ -521,17 +671,14 @@ export function useAIAssistant(options: UseAIAssistantOptions): UseAIAssistantRe
         // Without this write the round's empty assistant bubble is cleared of `loading`
         // and then skipped by the bubbleItems predicate, and the user watches the
         // spinner stop with no message at all.
+        if (!alive()) return
         if (text.trim()) {
           // A round that already streamed prose keeps it; the failure is appended.
           appendErrorMessage(t`Error: ${toErrorText(error)}`)
         } else {
-          setMessages((prev) =>
-            prev.map((m) =>
-              m.key === assistantKey
-                ? { ...m, content: t`Error: ${toErrorText(error)}`, loading: false }
-                : m
-            )
-          )
+          // Not a plain map on the key: the round's assistant bubble is gone whenever a
+          // tool call preceded the failure, and the error would be written nowhere.
+          writeErrorForRound(assistantKey, t`Error: ${toErrorText(error)}`, alive)
         }
       },
       { signal: controller.signal }
@@ -540,17 +687,25 @@ export function useAIAssistant(options: UseAIAssistantOptions): UseAIAssistantRe
     // Anthropic and OpenAI emit tool_use only after the stream completes, and `done` is
     // emitted last in all three providers, so this settles almost immediately unless a
     // handler is genuinely async.
-    const settled = await Promise.all(
-      pending.map((p) =>
-        p.promise.then(
-          (r) => ({ id: p.id, name: p.name, input: p.input, result: r ?? undefined }),
-          (err: unknown) => ({
-            id: p.id,
-            name: p.name,
-            input: p.input,
-            result: { content: toErrorText(err), isError: true } as ToolResult
-          })
-        )
+    const settled: SettledEntry[] = await Promise.all(
+      pending.map(
+        (p): Promise<SettledEntry> =>
+          p.promise.then(
+            (r) => ({
+              id: p.id,
+              name: p.name,
+              input: p.input,
+              fingerprint: p.fingerprint,
+              result: r ?? undefined
+            }),
+            (err: unknown) => ({
+              id: p.id,
+              name: p.name,
+              input: p.input,
+              fingerprint: p.fingerprint,
+              result: { content: toErrorText(err), isError: true }
+            })
+          )
       )
     )
 
@@ -559,14 +714,21 @@ export function useAIAssistant(options: UseAIAssistantOptions): UseAIAssistantRe
       settled: settled.filter(
         (c): c is SettledToolCall => !!c.result && typeof c.result.content === 'string'
       ),
-      fingerprints,
+      // Recorded from the OUTCOME, not from the dispatch. A call that timed out or
+      // failed handed the model nothing, so the retry it makes next round is a first
+      // attempt at getting the data - refusing it as a cross-round duplicate would
+      // leave the turn with no way to recover from one slow query.
+      fingerprints: settled
+        .filter((c) => c.fingerprint && !c.result?.isError)
+        .map((c) => c.fingerprint as string),
       terminated,
       ranHandler
     }
   }
 
   const handleSend = async () => {
-    if (!inputValue.trim() || !llmIntegration || isStreaming) return
+    if (!inputValue.trim() || !llmIntegration || isStreaming || sendingRef.current) return
+    sendingRef.current = true
 
     const integration = llmIntegration
     const maxRounds = Math.min(Math.max(1, maxToolRounds ?? 1), MAX_TOOL_ROUNDS_CEILING)
@@ -574,11 +736,17 @@ export function useAIAssistant(options: UseAIAssistantOptions): UseAIAssistantRe
     const question = inputValue
 
     const myTurn = ++turnIdRef.current
+    // Bumping the turn id orphans the previous turn's writes; only the abort actually
+    // ENDS it. handleCancel, resetConversation and the unmount effect all pair the two,
+    // and so must this: without it a turn superseded here keeps streaming, keeps
+    // accruing cost, and keeps running client tools against the page.
+    abortControllerRef.current?.abort()
     const controller = new AbortController()
     abortControllerRef.current = controller
     const alive = () => turnIdRef.current === myTurn && !controller.signal.aborted
 
-    setMessages((prev) => [...prev, { key: nextKey('user'), role: 'user', content: question }])
+    const userKey = nextKey('user')
+    setMessages((prev) => [...prev, { key: userKey, role: 'user', content: question }])
     setInputValue('')
     setIsStreaming(true)
 
@@ -597,6 +765,35 @@ export function useAIAssistant(options: UseAIAssistantOptions): UseAIAssistantRe
     let clientToolRan = false
     let hitRoundCap = false
 
+    // Drop the spinners and guarantee the turn left SOMETHING on screen.
+    //
+    // bubbleItems is right to skip a finished assistant message with no answer text: on
+    // a continuation round the tool bubble IS the output, and an empty bubble beside it
+    // looks broken. The gap is a whole turn that ends that way - a provider returning an
+    // empty completion, or a handler that narrates nothing - where every bubble the turn
+    // produced is skipped and the operator is left looking at their own question with no
+    // reply and no error. Idempotent: the `finally` path runs it again and finds the
+    // placeholder already standing.
+    const endTurn = () => {
+      setMessages((prev) => {
+        const cleared = prev.map((m) => (m.loading ? { ...m, loading: false } : m))
+        const userIndex = cleared.findIndex((m) => m.key === userKey)
+        if (userIndex === -1) return cleared
+        const answered = cleared
+          .slice(userIndex + 1)
+          .some((m) => m.content.trim() || m.thinking?.trim())
+        if (answered) return cleared
+        return [
+          ...cleared,
+          {
+            key: nextKey('assistant'),
+            role: 'assistant',
+            content: t`No answer was returned. Please try again.`
+          }
+        ]
+      })
+    }
+
     try {
       for (let round = 1; round <= maxRounds; round++) {
         const assistantKey = nextKey('assistant')
@@ -613,7 +810,8 @@ export function useAIAssistant(options: UseAIAssistantOptions): UseAIAssistantRe
           looping,
           alreadyRun,
           budget,
-          integrationId: integration.id
+          integrationId: integration.id,
+          alive
         })
         clientToolRan = clientToolRan || outcome.ranHandler
         outcome.fingerprints.forEach((f) => alreadyRun.add(f))
@@ -651,7 +849,11 @@ export function useAIAssistant(options: UseAIAssistantOptions): UseAIAssistantRe
         transcript.push({ role: 'user', content: encodeToolResults(returning) })
 
         if (round === maxRounds) {
-          hitRoundCap = true
+          // Reaching the last round is not the same as failing to answer: a model that
+          // wrote its conclusion AND asked for one more query in the same round has
+          // already answered, and "I never reached an answer" printed in red under a
+          // complete answer reads as a bug. Warn only when the round produced no prose.
+          hitRoundCap = !outcome.text.trim()
           break
         }
       }
@@ -664,8 +866,9 @@ export function useAIAssistant(options: UseAIAssistantOptions): UseAIAssistantRe
       // never settles would leave isStreaming true forever and handleSend would
       // early-return for the rest of the session.
       if (turnIdRef.current === myTurn) {
+        sendingRef.current = false
         setIsStreaming(false)
-        setMessages((prev) => prev.map((m) => (m.loading ? { ...m, loading: false } : m)))
+        endTurn()
       }
 
       if (hitRoundCap && alive()) {
@@ -680,7 +883,10 @@ export function useAIAssistant(options: UseAIAssistantOptions): UseAIAssistantRe
       if (clientToolRan && validateOnComplete && alive()) {
         try {
           const result = await validateOnComplete()
-          if (!result.ok) {
+          // Re-checked AFTER the await, not only before it: templatesApi.compile has no
+          // timeout and no AbortSignal, so a validation that resolves late would
+          // otherwise drop its error into whatever turn has since replaced this one.
+          if (!result.ok && alive()) {
             appendErrorMessage(
               t`The generated email has issues that prevent it from rendering:` +
                 (result.errorText ? `\n\n${result.errorText}` : '') +
@@ -700,8 +906,9 @@ export function useAIAssistant(options: UseAIAssistantOptions): UseAIAssistantRe
       // touch the state of the turn that replaced it. This path matters when the round
       // loop threw: the flag was then never cleared above, so clear it here too.
       if (turnIdRef.current === myTurn) {
+        sendingRef.current = false
         setIsStreaming(false)
-        setMessages((prev) => prev.map((m) => (m.loading ? { ...m, loading: false } : m)))
+        endTurn()
       }
     }
   }
@@ -712,9 +919,18 @@ export function useAIAssistant(options: UseAIAssistantOptions): UseAIAssistantRe
     // anything to the list we just cleared.
     turnIdRef.current += 1
     abortControllerRef.current?.abort()
+    // As in handleCancel: the orphaned turn will no longer clear this for us.
+    sendingRef.current = false
     setMessages([])
     setCosts({ input: 0, output: 0, total: 0 })
     setIsStreaming(false)
+  }
+
+  // Consumer first, then the two server tools, then a neutral mark. `??` rather than
+  // `||` so a consumer can deliberately pass an icon React treats as falsy.
+  const resolveToolIcon = (toolName?: string): ReactNode => {
+    if (!toolName) return FALLBACK_TOOL_ICON
+    return toolIcons?.[toolName] ?? DEFAULT_TOOL_ICONS[toolName] ?? FALLBACK_TOOL_ICON
   }
 
   const bubbleItems: BubbleItem[] = messages.flatMap((m) => {
@@ -732,8 +948,6 @@ export function useAIAssistant(options: UseAIAssistantOptions): UseAIAssistantRe
       return items
     }
 
-    const isServerTool =
-      m.toolName === SERVER_TOOLS.SCRAPE_URL || m.toolName === SERVER_TOOLS.SEARCH_WEB
     const isError = m.toolName === ERROR_TOOL_NAME || m.failed === true
 
     items.push({
@@ -742,22 +956,22 @@ export function useAIAssistant(options: UseAIAssistantOptions): UseAIAssistantRe
       content: m.content,
       loading: m.loading,
       ...(m.role === 'tool' && {
-        styles: {
-          content: isError
-            ? { background: '#fff2f0', border: '1px solid #ffccc7', whiteSpace: 'pre-wrap' }
-            : isServerTool
-              ? { background: '#e6f4ff' }
-              : { background: '#f6ffed', border: '1px solid #b7eb8f' }
-        }
-      }),
-      ...(m.role === 'tool' &&
-        isServerTool && {
-          avatar: {
-            icon: m.toolName === 'search_web' ? <Search size={10} /> : <Globe size={10} />,
-            size: 20,
-            style: { background: '#1890ff', minWidth: 20, minHeight: 20 }
-          }
-        })
+        // A running or finished step is a quiet line; only a failure keeps the weight
+        // of a bubble.
+        ...(isError ? {} : { variant: 'borderless' as const }),
+        styles: { content: isError ? ERROR_CONTENT_STYLE : STEP_CONTENT_STYLE },
+        // An error carries no avatar: it is not part of the step column, and a mark
+        // beside it would only compete with the red.
+        ...(isError
+          ? {}
+          : {
+              avatar: {
+                icon: resolveToolIcon(m.toolName),
+                size: STEP_AVATAR_SIZE,
+                style: STEP_AVATAR_STYLE
+              }
+            })
+      })
     })
 
     return items

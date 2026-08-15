@@ -1156,93 +1156,9 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 		schema.WebhookCustomEventsTriggerFunction(),
 		`DROP TRIGGER IF EXISTS webhook_custom_events ON custom_events`,
 		`CREATE TRIGGER webhook_custom_events AFTER INSERT OR UPDATE ON custom_events FOR EACH ROW EXECUTE FUNCTION webhook_custom_events_trigger()`,
-		// Automation enroll contact function
-		`CREATE OR REPLACE FUNCTION automation_enroll_contact(
-			p_automation_id VARCHAR(36),
-			p_contact_email VARCHAR(255),
-			p_root_node_id VARCHAR(36),
-			p_frequency VARCHAR(20)
-		) RETURNS VOID AS $$
-		DECLARE
-			v_already_triggered BOOLEAN;
-			v_new_id VARCHAR(36);
-		BEGIN
-			-- 1. For "once" frequency, check if already triggered
-			IF p_frequency = 'once' THEN
-				SELECT EXISTS(
-					SELECT 1 FROM automation_trigger_log
-					WHERE automation_id = p_automation_id
-					AND contact_email = p_contact_email
-				) INTO v_already_triggered;
-
-				IF v_already_triggered THEN
-					RETURN;  -- Already triggered for this contact, skip
-				END IF;
-
-				-- Record trigger for deduplication
-				INSERT INTO automation_trigger_log (id, automation_id, contact_email, triggered_at)
-				VALUES (gen_random_uuid()::text, p_automation_id, p_contact_email, NOW())
-				ON CONFLICT (automation_id, contact_email) DO NOTHING;
-			END IF;
-
-			-- 2. Generate new ID for contact_automation
-			v_new_id := gen_random_uuid()::text;
-
-			-- 3. Enroll contact in automation
-			INSERT INTO contact_automations (
-				id, automation_id, contact_email, current_node_id,
-				status, entered_at, scheduled_at
-			) VALUES (
-				v_new_id,
-				p_automation_id,
-				p_contact_email,
-				p_root_node_id,
-				'active',
-				NOW(),
-				NOW()
-			);
-
-			-- 4. Increment enrolled stat
-			UPDATE automations
-			SET stats = jsonb_set(
-				COALESCE(stats, '{}'::jsonb),
-				'{enrolled}',
-				to_jsonb(COALESCE((stats->>'enrolled')::int, 0) + 1)
-			),
-			updated_at = NOW()
-			WHERE id = p_automation_id;
-
-			-- 5. Log node execution entry
-			INSERT INTO automation_node_executions (
-				id, contact_automation_id, automation_id, node_id, node_type, action, entered_at, output
-			) VALUES (
-				gen_random_uuid()::text,
-				v_new_id,
-				p_automation_id,
-				p_root_node_id,
-				'trigger',
-				'entered',
-				NOW(),
-				'{}'::jsonb
-			);
-
-			-- 6. Create automation.start timeline event
-			INSERT INTO contact_timeline (email, operation, entity_type, kind, entity_id, changes, created_at)
-			VALUES (
-				p_contact_email,
-				'insert',
-				'automation',
-				'automation.start',
-				p_automation_id,
-				jsonb_build_object(
-					'automation_id', jsonb_build_object('new', p_automation_id),
-					'root_node_id', jsonb_build_object('new', p_root_node_id)
-				),
-				NOW()
-			);
-
-		END;
-		$$ LANGUAGE plpgsql`,
+		// Automation enroll contact function, shared with the v38 migration so an
+		// upgraded workspace and a fresh one enrol identically.
+		schema.AutomationEnrollContactFunction(),
 	}
 
 	for _, query := range triggerQueries {

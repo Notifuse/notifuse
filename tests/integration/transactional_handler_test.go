@@ -573,15 +573,24 @@ func testTransactionalTemplateTest(t *testing.T, client *testutil.APIClient, fac
 			require.NoError(t, err)
 			defer func() { _ = resp.Body.Close() }()
 
-			assert.Equal(t, http.StatusOK, resp.StatusCode)
+			// 404, not a 200 carrying the failure in the body. The service wraps the
+			// lookup ("failed to retrieve template: %w"), so the handler's not-found
+			// branch reaches the cause only by unwrapping; while it type-asserted
+			// instead, a missing template answered 200 with success:false, which is
+			// what this subtest used to pin.
+			require.Equal(t, http.StatusNotFound, resp.StatusCode)
 
 			var result map[string]interface{}
 			err = json.NewDecoder(resp.Body).Decode(&result)
 			require.NoError(t, err)
 
-			assert.Contains(t, result, "success")
-			assert.False(t, result["success"].(bool))
-			assert.Contains(t, result, "error")
+			assert.Equal(t, "Template not found", result["error"])
+			// An error response carries no success field. Read with the comma-ok
+			// form: a bare assertion here panics on the nil this very subtest
+			// produced, and a panic takes the whole package binary down with it —
+			// every test after this file stops running, silently.
+			success, hasSuccess := result["success"].(bool)
+			assert.False(t, hasSuccess, "unexpected success field: %v", success)
 		})
 	})
 }

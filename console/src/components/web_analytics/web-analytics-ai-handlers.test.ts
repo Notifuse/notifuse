@@ -8,7 +8,12 @@ import {
   type WebAnalyticsAiLabels
 } from './web-analytics-ai-handlers'
 import { buildPeriodSummary, type InsightSnapshot } from './web-analytics-insights'
-import { REDACTED_FILTER_VALUE, WEB_TOOL_NAMES } from './web-analytics-ai-tools'
+import {
+  MAX_SERIES_ROWS,
+  REDACTED_FILTER_VALUE,
+  WEB_TOOL_NAMES,
+  type PendingUiState
+} from './web-analytics-ai-tools'
 import type { ResolvedRange, WebDimensionFilter } from './lib/types'
 
 // The insight battery is a ~17-query fan-out of its own, already covered where it
@@ -51,8 +56,15 @@ const labels: WebAnalyticsAiLabels = {
   rows: (what, count) => `${what} - ${count} rows`,
   cancelled: (what) => `cancelled ${what}`,
   failed: (what) => `failed ${what}`,
+  series: (what, granularity) => `${what} per ${granularity}`,
   summary: () => 'period summary',
-  periodSet: (summary) => `period set: ${summary}`,
+  // Deterministic and value-bearing, so an assertion can see WHICH search params
+  // the handler handed the operator's line - the model's own summary is a
+  // different string built beside it.
+  periodSet: (change) =>
+    `period set: ${[change.period, change.customStart, change.customEnd, change.comparison, change.timezone]
+      .filter(Boolean)
+      .join('|')}`,
   filtersApplied: (count) => `filters applied: ${count}`,
   filtersCleared: () => 'filters cleared',
   reportOpened: (dimensions) => `report opened: ${dimensions}`,
@@ -74,6 +86,11 @@ function createHarness(overrides: Partial<WebAnalyticsAiDeps> = {}) {
   // vitest runs it happily.
   const applyUiState = vi.fn(async (_change: Parameters<WebAnalyticsAiDeps['applyUiState']>[0]) => {})
   const insert = vi.fn()
+  // What a sibling tool of the same round has already asked the page for. Mutable
+  // and read through the getter, so a test can stage it AFTER the handlers were
+  // built - which is exactly the ordering production has, and the reason a
+  // snapshotted overlay would fix nothing.
+  const pending: { current: PendingUiState } = { current: {} }
   const posted: { content: string; toolName?: string }[] = []
   const updates: { content: string; failed?: boolean }[] = []
   const controller = new AbortController()
@@ -100,6 +117,7 @@ function createHarness(overrides: Partial<WebAnalyticsAiDeps> = {}) {
     currentGranularity: 'day',
     query,
     applyUiState,
+    pendingUiState: () => pending.current,
     labels,
     ...overrides
   }
@@ -113,7 +131,7 @@ function createHarness(overrides: Partial<WebAnalyticsAiDeps> = {}) {
     return (await handler(event, insert, ctx)) as ToolResult | undefined
   }
 
-  return { deps, query, applyUiState, insert, posted, updates, controller, handlers, run }
+  return { deps, query, applyUiState, insert, pending, posted, updates, controller, handlers, run }
 }
 
 /** The cube query the handler compiled and handed to the injected client. */
@@ -121,6 +139,10 @@ const sentQuery = (
   query: ReturnType<typeof createHarness>['query'],
   index = 0
 ): AnalyticsQuery => query.mock.calls[index][0]
+
+/** The single navigation a UI handler issued. */
+const navigation = (applyUiState: ReturnType<typeof createHarness>['applyUiState'], index = 0) =>
+  applyUiState.mock.calls[index][0]
 
 const lines = (content: string) => content.split('\n')
 
@@ -259,8 +281,8 @@ describe('query_web_analytics', () => {
       dimensions: ['device']
     })
 
-    expect(posted).toEqual([{ content: 'running sessions by Device', toolName: undefined }])
-    expect(updates).toEqual([{ content: 'sessions by Device - 1 rows', failed: undefined }])
+    expect(posted).toEqual([{ content: 'running Device', toolName: undefined }])
+    expect(updates).toEqual([{ content: 'Device - 1 rows', failed: undefined }])
   })
 
   it('marks the progress bubble failed when the query fails', async () => {
@@ -269,7 +291,7 @@ describe('query_web_analytics', () => {
 
     await run(WEB_TOOL_NAMES.QUERY, { schema: 'web_sessions', measures: ['sessions'] })
 
-    expect(updates).toEqual([{ content: 'failed sessions', failed: true }])
+    expect(updates).toEqual([{ content: 'failed Sessions', failed: true }])
   })
 
   it('abandons the result once the run is aborted', async () => {
@@ -286,7 +308,7 @@ describe('query_web_analytics', () => {
     })
 
     expect(result).toBeUndefined()
-    expect(updates).toEqual([{ content: 'cancelled sessions', failed: undefined }])
+    expect(updates).toEqual([{ content: 'cancelled Sessions', failed: undefined }])
   })
 
   it('leads a time series with its bucket column', async () => {
@@ -306,6 +328,110 @@ describe('query_web_analytics', () => {
     // a whole series of empty cells.
     expect(lines(result!.content)[1]).toBe('created_at_day,sessions')
     expect(lines(result!.content)[2]).toBe('2026-08-08,12')
+  })
+
+  it('asks for a whole ungrouped series rather than an arbitrary slice of it', async () => {
+    const { run, query } = createHarness()
+    query.mockResolvedValue(respond([{ created_at_day: '2026-08-08', sessions: 12 }]))
+
+    await run(WEB_TOOL_NAMES.QUERY, {
+      schema: 'web_sessions',
+      measures: ['sessions'],
+      granularity: 'day'
+    })
+
+    // A series with nothing to group by gets no ORDER BY, so a LIMIT keeps whichever
+    // buckets the plan produced first - and the engine gap-fills the rest back in as
+    // zeros, so the answer is not even shorter for it. It is bounded by the period.
+    expect(sentQuery(query).limit).toBeUndefined()
+  })
+
+  it('still caps a series that is grouped, which the engine does order', async () => {
+    const { run, query } = createHarness()
+    query.mockResolvedValue(respond([{ created_at_day: '2026-08-08', device: 'mobile', sessions: 12 }]))
+
+    await run(WEB_TOOL_NAMES.QUERY, {
+      schema: 'web_sessions',
+      measures: ['sessions'],
+      dimensions: ['device'],
+      granularity: 'day'
+    })
+
+    expect(sentQuery(query).limit).toBe(MAX_SERIES_ROWS * 2)
+  })
+
+  it('downsamples a long series across the whole span instead of dropping its recent end', async () => {
+    const { run, query } = createHarness()
+    const buckets = 720
+    const day = (index: number) => new Date(Date.UTC(2025, 0, 1 + index)).toISOString().slice(0, 10)
+    const rows = Array.from({ length: buckets }, (_row, index) => ({
+      created_at_day: day(index),
+      sessions: index
+    }))
+    // Handed back newest-first: the engine emits no ORDER BY for this shape, so the
+    // row order is whatever the plan produced and the handler cannot assume one.
+    query.mockResolvedValue(respond([...rows].reverse()))
+
+    const result = await run(WEB_TOOL_NAMES.QUERY, {
+      schema: 'web_sessions',
+      measures: ['sessions'],
+      granularity: 'day'
+    })
+
+    const stride = Math.ceil(buckets / MAX_SERIES_ROWS)
+    const kept = 180
+    const body = lines(result!.content)
+    // header, column names, the kept buckets, the row count, the note.
+    expect(body).toHaveLength(kept + 4)
+    expect(body[1]).toBe('created_at_day,sessions')
+    // Oldest first, and the newest bucket is the one the anchor guarantees: keeping
+    // the FIRST 200 of 720 would end the series seven months before the period does,
+    // which the model reports as traffic having stopped.
+    expect(body[2]).toBe(`${day(3)},3`)
+    expect(body[kept + 1]).toBe(`${day(buckets - 1)},${buckets - 1}`)
+    expect(body[body.length - 1]).toBe(
+      `note: downsampled, not truncated - one bucket in every ${stride} is shown, ` +
+        `${kept} of ${buckets}, ending on the most recent`
+    )
+    expect(result!.content).not.toContain('showing first')
+  })
+
+  it('prints every bucket of a series that fits, with no sampling note', async () => {
+    const { run, query } = createHarness()
+    const rows = [
+      { created_at_day: '2026-08-09', sessions: 20 },
+      { created_at_day: '2026-08-08', sessions: 10 }
+    ]
+    query.mockResolvedValue(respond(rows))
+
+    const result = await run(WEB_TOOL_NAMES.QUERY, {
+      schema: 'web_sessions',
+      measures: ['sessions'],
+      granularity: 'day'
+    })
+
+    expect(lines(result!.content).slice(1)).toEqual([
+      'created_at_day,sessions',
+      '2026-08-08,10',
+      '2026-08-09,20',
+      '(2 rows)'
+    ])
+  })
+
+  it('refuses a granularity the engine has no bucket for', async () => {
+    const { run, query } = createHarness()
+
+    const result = await run(WEB_TOOL_NAMES.QUERY, {
+      schema: 'web_sessions',
+      measures: ['sessions'],
+      granularity: 'fortnight'
+    })
+
+    // Dropped instead of refused, it answers a different question from the one asked:
+    // a single total presented as a trend.
+    expect(result!.isError).toBe(true)
+    expect(result!.content).toContain('unknown granularity "fortnight"')
+    expect(query).not.toHaveBeenCalled()
   })
 
   it('applies the dashboard filters by default, so the answer matches the chart on screen', async () => {
@@ -583,13 +709,34 @@ describe('compare_periods', () => {
       period: 'current',
       schema: 'web_sessions',
       measures: ['sessions'],
-      comparison: 'off'
+      comparison: 'vs_preceding_window'
     })
 
-    // Two identical windows silently reported as "no change" is the failure this
+    // all_time already starts at the first session, so the window before it holds
+    // nothing. Two windows silently reported as "no change" is the failure this
     // avoids: an error the model can narrate is strictly better.
     expect(result!.isError).toBe(true)
     expect(result!.content).toBe('period "all_time" has no window before it to compare against')
+    expect(query).not.toHaveBeenCalled()
+  })
+
+  it('says what "off" means here rather than blaming the period for it', async () => {
+    const { run, query } = createHarness()
+
+    const result = await run(WEB_TOOL_NAMES.COMPARE, {
+      ...week,
+      schema: 'web_sessions',
+      measures: ['sessions'],
+      comparison: 'off'
+    })
+
+    // "off" belongs to set_dashboard_period and is not in this tool's enum. The
+    // period in this call HAS a preceding window, so reporting it as one that does
+    // not exist would send the model looking for a different period.
+    expect(result!.isError).toBe(true)
+    expect(result!.content).toContain('compare_periods always reports two windows')
+    expect(result!.content).toContain('vs_preceding_window')
+    expect(result!.content).not.toContain('no window before it')
     expect(query).not.toHaveBeenCalled()
   })
 
@@ -606,8 +753,8 @@ describe('compare_periods', () => {
       dimensions: ['device']
     })
 
-    expect(posted).toEqual([{ content: 'running sessions by Device', toolName: undefined }])
-    expect(updates).toEqual([{ content: 'sessions by Device - 1 rows', failed: undefined }])
+    expect(posted).toEqual([{ content: 'running Device', toolName: undefined }])
+    expect(updates).toEqual([{ content: 'Device - 1 rows', failed: undefined }])
   })
 })
 
@@ -748,7 +895,7 @@ describe('UI tools', () => {
     {
       name: WEB_TOOL_NAMES.SET_REPORT,
       input: { dimensions: ['device'] },
-      expected: 'explore report opened: drill-down device'
+      expected: 'explore report opened: drill-down device, filters: none, minimum sessions per row: none'
     },
     { name: WEB_TOOL_NAMES.NAVIGATE, input: { tab: 'goals' }, expected: 'now showing the goals section' }
   ]
@@ -793,8 +940,75 @@ describe('UI tools', () => {
         minSessions: 25
       }
     })
-    expect(insert).toHaveBeenCalledWith('report opened: device / browser', WEB_TOOL_NAMES.SET_REPORT)
-    expect(result!.content).toBe('explore report opened: drill-down device > browser, 1 filter(s)')
+    expect(insert).toHaveBeenCalledWith('report opened: Device / Browser', WEB_TOOL_NAMES.SET_REPORT)
+    // The RESULTING state, so the next round describes the report that is on screen.
+    expect(result!.content).toBe(
+      'explore report opened: drill-down device > browser, filters: country equals FR, ' +
+        'minimum sessions per row: 25'
+    )
+  })
+
+  it('leaves the filter bar and the threshold alone when the report names neither', async () => {
+    const { run, applyUiState } = createHarness({
+      currentFilters: [filter('device', ['mobile'])],
+      currentMinSessions: 25
+    })
+
+    const result = await run(WEB_TOOL_NAMES.SET_REPORT, { dimensions: ['landing_path'] })
+
+    // A search param written as undefined is DROPPED by the route's validateSearch, so
+    // writing the two optional params unconditionally silently reset the operator's own
+    // segment and threshold to the page defaults every time a report was opened.
+    expect(Object.keys(navigation(applyUiState).search ?? {})).toEqual(['dimensions'])
+    // ...and the acknowledgement states what survived, or the model goes on describing
+    // a segment nobody is looking at.
+    expect(result!.content).toBe(
+      'explore report opened: drill-down landing_path, filters: device equals mobile, ' +
+        'minimum sessions per row: 25'
+    )
+  })
+
+  it('clears the filter bar and the threshold when the report says so explicitly', async () => {
+    const { run, applyUiState } = createHarness({
+      currentFilters: [filter('device', ['mobile'])],
+      currentMinSessions: 25
+    })
+
+    const result = await run(WEB_TOOL_NAMES.SET_REPORT, {
+      dimensions: ['landing_path'],
+      filters: [],
+      min_sessions: 1
+    })
+
+    // An empty list and a threshold that hides nothing are how the two are cleared:
+    // both keys are written, as the absent params the dashboard reads as "no filter"
+    // and "no threshold".
+    expect(navigation(applyUiState).search).toEqual({
+      dimensions: 'landing_path',
+      filters: undefined,
+      minSessions: undefined
+    })
+    expect(Object.keys(navigation(applyUiState).search ?? {}).sort()).toEqual([
+      'dimensions',
+      'filters',
+      'minSessions'
+    ])
+    expect(result!.content).toBe(
+      'explore report opened: drill-down landing_path, filters: none, minimum sessions per row: none'
+    )
+  })
+
+  it('withholds a contact_email value from the report acknowledgement it carried forward', async () => {
+    const { run } = createHarness({
+      currentFilters: [filter('contact_email', ['someone@example.com'])]
+    })
+
+    const result = await run(WEB_TOOL_NAMES.SET_REPORT, { dimensions: ['device'] })
+
+    // The bar the report inherits is the operator's, and it can hold an address the
+    // model must never read - the same door set_dashboard_filters guards.
+    expect(result!.content).toContain(`contact_email equals ${REDACTED_FILTER_VALUE}`)
+    expect(result!.content).not.toContain('someone@example.com')
   })
 
   it('replaces the whole filter bar in replace mode, so repeating an instruction is idempotent', async () => {
@@ -845,6 +1059,22 @@ describe('UI tools', () => {
     expect(applyUiState).toHaveBeenCalledWith({ search: { filters: undefined } })
     expect(insert).toHaveBeenCalledWith('filters cleared', WEB_TOOL_NAMES.SET_FILTERS)
     expect(result!.content).toBe('dashboard filters cleared')
+  })
+
+  it('refuses a filter dimension no widget on the page can group by', async () => {
+    const { run, applyUiState } = createHarness()
+
+    const result = await run(WEB_TOOL_NAMES.SET_FILTERS, {
+      mode: 'replace',
+      filters: [{ dimension: 'page_path', operator: 'equals', values: ['/pricing'] }]
+    })
+
+    // page_path lives only on web_pages, so every widget on the page drops it: the
+    // screen would not change while the acknowledgement reported the filter applied.
+    expect(result!.isError).toBe(true)
+    expect(result!.content).toContain('cannot be applied to the dashboard filter bar')
+    expect(result!.content).toContain('web_sessions or web_goals')
+    expect(applyUiState).not.toHaveBeenCalled()
   })
 
   it('refuses a filter mode it does not know', async () => {
@@ -971,6 +1201,160 @@ describe('UI tools', () => {
     expect(applyUiState).toHaveBeenCalledWith({ tab: 'explore' })
     expect(insert).toHaveBeenCalledWith('navigated: explore', WEB_TOOL_NAMES.NAVIGATE)
   })
+})
+
+/**
+ * A round's tools are dispatched synchronously against ONE frozen deps snapshot,
+ * and the system prompt actively encourages batching a UI write with the query
+ * that reads it. Everything below stages the overlay AFTER the handlers were
+ * built - the ordering production has - so a snapshot taken at build time would
+ * fail every one of them.
+ */
+describe('a sibling tool of the same round', () => {
+  const staged: PendingUiState = {
+    period: 'custom',
+    customStart: '2026-07-01',
+    customEnd: '2026-07-31'
+  }
+
+  it('changes the window query_web_analytics reads, not just the one it announces', async () => {
+    const { run, query, pending } = createHarness()
+    pending.current = staged
+    query.mockResolvedValue(respond([{ sessions: 10 }]))
+
+    const result = await run(WEB_TOOL_NAMES.QUERY, {
+      schema: 'web_sessions',
+      measures: ['sessions']
+    })
+
+    // The pre-baked currentResolved is the window the page showed BEFORE the sibling
+    // ran; answering under it contradicts the acknowledgement the model already read.
+    expect(sentQuery(query).filters).toContainEqual({
+      member: 'created_at',
+      operator: 'inDateRange',
+      values: ['2026-07-01T00:00:00.000Z', '2026-07-31T23:59:59.999Z']
+    })
+    expect(lines(result!.content)[0]).toContain('2026-07-01..2026-07-31')
+  })
+
+  it('changes the window compare_periods reads', async () => {
+    const { run, pending } = createHarness()
+    pending.current = staged
+
+    const result = await run(WEB_TOOL_NAMES.COMPARE, {
+      period: 'current',
+      schema: 'web_sessions',
+      measures: ['sessions'],
+      comparison: 'vs_preceding_window'
+    })
+
+    expect(lines(result!.content)[0]).toContain('current 2026-07-01..2026-07-31')
+    expect(lines(result!.content)[0]).toContain('previous 2026-05-31..2026-06-30')
+  })
+
+  it('changes the period and the comparison summarize_period reports on', async () => {
+    const { run, pending } = createHarness({ currentComparison: 'none' })
+    pending.current = { ...staged, comparison: 'previous_year' }
+
+    await run(WEB_TOOL_NAMES.SUMMARIZE, {})
+
+    const snapshot = packer.mock.calls[0][0]
+    expect(snapshot.periodLabel).toBe('custom (2026-07-01..2026-07-31)')
+    expect(snapshot.compareLabel).toBe('previous_year (2025-07-01..2025-07-31)')
+  })
+
+  it('changes the filters a query is computed under', async () => {
+    const { run, query, pending } = createHarness({ currentFilters: [filter('country', ['FR'])] })
+    pending.current = { filters: [filter('device', ['mobile'])] }
+    query.mockResolvedValue(respond([{ sessions: 10 }]))
+
+    const result = await run(WEB_TOOL_NAMES.QUERY, {
+      schema: 'web_sessions',
+      measures: ['sessions']
+    })
+
+    expect(sentQuery(query).filters).not.toContainEqual(
+      expect.objectContaining({ member: 'country' })
+    )
+    expect(result!.content).toContain('filters: device equals mobile')
+  })
+
+  it('lets two set_dashboard_filters calls of one round both take effect', async () => {
+    const { run, applyUiState, pending } = createHarness()
+    // What the first call of the round staged; without reading it the second call
+    // computes "add" against an empty bar and drops it, while both acknowledgements
+    // tell the model the bar holds two filters.
+    pending.current = { filters: [filter('country', ['FR'])] }
+
+    const result = await run(WEB_TOOL_NAMES.SET_FILTERS, {
+      mode: 'add',
+      filters: [{ dimension: 'device', operator: 'equals', values: ['mobile'] }]
+    })
+
+    expect(navigation(applyUiState).search).toEqual({
+      filters: JSON.stringify([filter('country', ['FR']), filter('device', ['mobile'])])
+    })
+    expect(result!.content).toBe(
+      'dashboard filters (add): country equals FR AND device equals mobile'
+    )
+  })
+
+  it('does not switch a comparison the round just set back off', async () => {
+    const { run, applyUiState, pending } = createHarness({ currentComparison: 'none' })
+    // Staged by an earlier set_dashboard_period call of this same round.
+    pending.current = { comparison: 'previous_year' }
+
+    // A null is how a model expresses "leave this one alone", and it lands inside the
+    // branch that writes the param - so the value written is the fallback. Taken from
+    // the pre-round page it would write 'none' over the comparison the round turned
+    // on, two acknowledgements apart.
+    const result = await run(WEB_TOOL_NAMES.SET_PERIOD, {
+      period: 'previous_28_days',
+      comparison: null
+    })
+
+    expect(navigation(applyUiState).search).toMatchObject({ comparison: 'previous_year' })
+    expect(result!.content).toBe(
+      'dashboard updated: period previous_28_days, comparison previous_year'
+    )
+  })
+
+  it('leaves the explore report carrying the filters the round already applied', async () => {
+    const { run, applyUiState, pending } = createHarness({ currentFilters: [] })
+    pending.current = { filters: [filter('device', ['mobile'])], minSessions: 30 }
+
+    const result = await run(WEB_TOOL_NAMES.SET_REPORT, { dimensions: ['landing_path'] })
+
+    expect(Object.keys(navigation(applyUiState).search ?? {})).toEqual(['dimensions'])
+    expect(result!.content).toBe(
+      'explore report opened: drill-down landing_path, filters: device equals mobile, ' +
+        'minimum sessions per row: 30'
+    )
+  })
+
+  it('does not report a section as newly opened when the round already opened it', async () => {
+    const { run, applyUiState, pending } = createHarness({ currentTab: 'dashboard' })
+    pending.current = { tab: 'explore', dimensions: ['device', 'browser'] }
+
+    const result = await run(WEB_TOOL_NAMES.NAVIGATE, { tab: 'explore' })
+
+    expect(applyUiState).toHaveBeenCalledWith({ tab: 'explore' })
+    expect(result!.content).toBe('already showing the explore section, grouped by device > browser')
+  })
+
+  it('tells the model an empty explore section is empty, so it can fill it', async () => {
+    const { run } = createHarness({ currentTab: 'dashboard', currentDimensions: [] })
+
+    const result = await run(WEB_TOOL_NAMES.NAVIGATE, { tab: 'explore' })
+
+    // Explore renders whatever drill-down the URL carries, which is frequently none;
+    // the model cannot see that the section it just opened is blank.
+    expect(result!.content).toBe(
+      `now showing the explore section, with no drill-down configured yet - ` +
+        `use ${WEB_TOOL_NAMES.SET_REPORT} to build one`
+    )
+  })
+
 })
 
 describe('the handler registry', () => {

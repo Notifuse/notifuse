@@ -151,9 +151,20 @@ func (s *AutomationService) Update(ctx context.Context, workspaceID string, auto
 	// field the caller never meant to change.
 	automation.Status = existing.Status
 
-	if err := s.repo.Update(ctx, workspaceID, automation); err != nil {
+	// Through the status predicate, so the status read a moment ago cannot be written back
+	// over a transition that has landed since. Without it, a Pause completing between the
+	// read above and this write is silently reverted to live — and the trigger it dropped is
+	// never reinstalled, leaving an automation that shows Live and enrols nobody.
+	updated, err := s.repo.UpdateIfStatus(ctx, workspaceID, automation, existing.Status)
+	if err != nil {
 		s.logger.WithField("automation_id", automation.ID).Error(fmt.Sprintf("failed to update automation: %v", err))
 		return fmt.Errorf("failed to update automation: %w", err)
+	}
+	if !updated {
+		// The trigger decision below was taken from the row this write just failed to match,
+		// so there is nothing safe to do with it.
+		return fmt.Errorf("failed to update automation: %w",
+			domain.NewAutomationConflictError(automation.ID, existing.Status))
 	}
 
 	// The installed trigger is compiled from the trigger config and the root node, so a
@@ -281,11 +292,18 @@ func (s *AutomationService) Activate(ctx context.Context, workspaceID, automatio
 		return domain.NewTriggerConditionError(fmt.Sprintf("cannot activate automation: %v", err))
 	}
 
-	// Update status to live
+	// Update status to live, through the status predicate: the "already live" check above
+	// read the row a moment ago, and installing the trigger for an automation another admin
+	// has since paused would arm what they just disarmed.
 	previousStatus := automation.Status
 	automation.Status = domain.AutomationStatusLive
-	if err := s.repo.Update(ctx, workspaceID, automation); err != nil {
+	updated, err := s.repo.UpdateIfStatus(ctx, workspaceID, automation, previousStatus)
+	if err != nil {
 		return fmt.Errorf("failed to update automation status: %w", err)
+	}
+	if !updated {
+		return fmt.Errorf("failed to update automation status: %w",
+			domain.NewAutomationConflictError(automationID, previousStatus))
 	}
 
 	// Create the database trigger
@@ -334,20 +352,50 @@ func (s *AutomationService) Pause(ctx context.Context, workspaceID, automationID
 		return fmt.Errorf("failed to get automation: %w", err)
 	}
 
-	// Check if live
-	if automation.Status != domain.AutomationStatusLive {
+	// An automation that is already paused is accepted, and only its trigger dropped: that
+	// is the state an interrupted pause leaves behind, and refusing it here would make the
+	// leftover trigger undroppable except by activating the automation again first.
+	if automation.Status != domain.AutomationStatusLive && automation.Status != domain.AutomationStatusPaused {
 		return fmt.Errorf("automation is not live")
 	}
 
-	// Drop the database trigger first
-	if err := s.repo.DropAutomationTrigger(ctx, workspaceID, automationID); err != nil {
-		return fmt.Errorf("failed to drop automation trigger: %w", err)
+	// The status is written before the trigger is dropped, not after.
+	//
+	// Both orders can be interrupted between the two steps — the drop is the only DDL path
+	// with no lock_timeout, so it can block on a busy contact_timeline for longer than the
+	// caller waits. What differs is the residue. Dropping first leaves a live automation with
+	// no trigger: it shows a Live badge, enrols nobody, and nothing in the product detects or
+	// repairs it. Writing first leaves a paused automation with its trigger still installed —
+	// which enrols nobody either, because automation_enroll_contact refuses to enrol for an
+	// automation that is not live, and which a retry of this same call repairs.
+	if automation.Status == domain.AutomationStatusLive {
+		automation.Status = domain.AutomationStatusPaused
+		updated, err := s.repo.UpdateIfStatus(ctx, workspaceID, automation, domain.AutomationStatusLive)
+		if err != nil {
+			return fmt.Errorf("failed to update automation status: %w", err)
+		}
+		if !updated {
+			// Dropping the trigger now would disarm an automation someone else has just
+			// re-armed, having read a row that no longer says what it said.
+			return fmt.Errorf("failed to update automation status: %w",
+				domain.NewAutomationConflictError(automationID, domain.AutomationStatusLive))
+		}
 	}
 
-	// Update status to paused
-	automation.Status = domain.AutomationStatusPaused
-	if err := s.repo.Update(ctx, workspaceID, automation); err != nil {
-		return fmt.Errorf("failed to update automation status: %w", err)
+	// Detached from the request context, for the same reason as the compensating writes in
+	// Update and Activate: a client that gives up waiting must not cancel the drop, or the
+	// disconnect would leave behind exactly the orphan this ordering exists to make safe.
+	dropCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 30*time.Second)
+	defer cancel()
+
+	if err := s.repo.DropAutomationTrigger(dropCtx, workspaceID, automationID); err != nil {
+		// The automation is paused either way: the scheduler and the executor both stop at
+		// it, and the leftover trigger enrols nobody. Rolling the status back to match the
+		// trigger would resume an automation the admin asked to stop.
+		s.logger.WithField("automation_id", automationID).
+			WithField("workspace_id", workspaceID).
+			Error(fmt.Sprintf("automation is paused but its trigger is still installed, retry the pause to drop it: %v", err))
+		return fmt.Errorf("failed to drop automation trigger: %w", err)
 	}
 
 	return nil

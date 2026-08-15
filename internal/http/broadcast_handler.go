@@ -92,8 +92,7 @@ func (h *BroadcastHandler) HandleList(w http.ResponseWriter, r *http.Request) {
 
 	response, err := h.service.ListBroadcasts(r.Context(), params)
 	if err != nil {
-		if _, ok := err.(*domain.PermissionError); ok {
-			WriteJSONError(w, err.Error(), http.StatusForbidden)
+		if writePermissionError(w, err) {
 			return
 		}
 		h.logger.WithField("error", err.Error()).Error("Failed to list broadcasts")
@@ -130,8 +129,7 @@ func (h *BroadcastHandler) HandleGet(w http.ResponseWriter, r *http.Request) {
 
 	broadcast, err := h.service.GetBroadcast(r.Context(), req.WorkspaceID, req.ID)
 	if err != nil {
-		if _, ok := err.(*domain.PermissionError); ok {
-			WriteJSONError(w, err.Error(), http.StatusForbidden)
+		if writePermissionError(w, err) {
 			return
 		}
 		if _, ok := err.(*domain.ErrBroadcastNotFound); ok {
@@ -194,8 +192,7 @@ func (h *BroadcastHandler) HandleCreate(w http.ResponseWriter, r *http.Request) 
 
 	broadcast, err := h.service.CreateBroadcast(r.Context(), &req)
 	if err != nil {
-		if _, ok := err.(*domain.PermissionError); ok {
-			WriteJSONError(w, err.Error(), http.StatusForbidden)
+		if writePermissionError(w, err) {
 			return
 		}
 		h.logger.WithField("error", err.Error()).Error("Failed to create broadcast")
@@ -242,8 +239,7 @@ func (h *BroadcastHandler) HandleUpdate(w http.ResponseWriter, r *http.Request) 
 
 	updatedBroadcast, err := h.service.UpdateBroadcast(r.Context(), &req)
 	if err != nil {
-		if _, ok := err.(*domain.PermissionError); ok {
-			WriteJSONError(w, err.Error(), http.StatusForbidden)
+		if writePermissionError(w, err) {
 			return
 		}
 		h.logger.WithField("error", err.Error()).Error("Failed to update broadcast")
@@ -277,8 +273,7 @@ func (h *BroadcastHandler) HandleSchedule(w http.ResponseWriter, r *http.Request
 
 	err := h.service.ScheduleBroadcast(r.Context(), &req)
 	if err != nil {
-		if _, ok := err.(*domain.PermissionError); ok {
-			WriteJSONError(w, err.Error(), http.StatusForbidden)
+		if writePermissionError(w, err) {
 			return
 		}
 		if _, ok := err.(*domain.ErrBroadcastNotFound); ok {
@@ -316,8 +311,7 @@ func (h *BroadcastHandler) HandlePause(w http.ResponseWriter, r *http.Request) {
 
 	err := h.service.PauseBroadcast(r.Context(), &req)
 	if err != nil {
-		if _, ok := err.(*domain.PermissionError); ok {
-			WriteJSONError(w, err.Error(), http.StatusForbidden)
+		if writePermissionError(w, err) {
 			return
 		}
 		if _, ok := err.(*domain.ErrBroadcastNotFound); ok {
@@ -355,8 +349,7 @@ func (h *BroadcastHandler) HandleResume(w http.ResponseWriter, r *http.Request) 
 
 	err := h.service.ResumeBroadcast(r.Context(), &req)
 	if err != nil {
-		if _, ok := err.(*domain.PermissionError); ok {
-			WriteJSONError(w, err.Error(), http.StatusForbidden)
+		if writePermissionError(w, err) {
 			return
 		}
 		if _, ok := err.(*domain.ErrBroadcastNotFound); ok {
@@ -394,8 +387,7 @@ func (h *BroadcastHandler) HandleCancel(w http.ResponseWriter, r *http.Request) 
 
 	err := h.service.CancelBroadcast(r.Context(), &req)
 	if err != nil {
-		if _, ok := err.(*domain.PermissionError); ok {
-			WriteJSONError(w, err.Error(), http.StatusForbidden)
+		if writePermissionError(w, err) {
 			return
 		}
 		if _, ok := err.(*domain.ErrBroadcastNotFound); ok {
@@ -433,8 +425,7 @@ func (h *BroadcastHandler) HandleSendToIndividual(w http.ResponseWriter, r *http
 
 	err := h.service.SendToIndividual(r.Context(), &req)
 	if err != nil {
-		if _, ok := err.(*domain.PermissionError); ok {
-			WriteJSONError(w, err.Error(), http.StatusForbidden)
+		if writePermissionError(w, err) {
 			return
 		}
 		if _, ok := err.(*domain.ErrBroadcastNotFound); ok {
@@ -472,8 +463,7 @@ func (h *BroadcastHandler) HandleDelete(w http.ResponseWriter, r *http.Request) 
 
 	err := h.service.DeleteBroadcast(r.Context(), &req)
 	if err != nil {
-		if _, ok := err.(*domain.PermissionError); ok {
-			WriteJSONError(w, err.Error(), http.StatusForbidden)
+		if writePermissionError(w, err) {
 			return
 		}
 		if _, ok := err.(*domain.ErrBroadcastNotFound); ok {
@@ -510,8 +500,7 @@ func (h *BroadcastHandler) HandleGetTestResults(w http.ResponseWriter, r *http.R
 
 	results, err := h.service.GetTestResults(r.Context(), req.WorkspaceID, req.ID)
 	if err != nil {
-		if _, ok := err.(*domain.PermissionError); ok {
-			WriteJSONError(w, err.Error(), http.StatusForbidden)
+		if writePermissionError(w, err) {
 			return
 		}
 		h.logger.WithFields(map[string]interface{}{
@@ -547,8 +536,7 @@ func (h *BroadcastHandler) HandleSelectWinner(w http.ResponseWriter, r *http.Req
 
 	err := h.service.SelectWinner(r.Context(), req.WorkspaceID, req.ID, req.TemplateID)
 	if err != nil {
-		if _, ok := err.(*domain.PermissionError); ok {
-			WriteJSONError(w, err.Error(), http.StatusForbidden)
+		if writePermissionError(w, err) {
 			return
 		}
 		h.logger.WithFields(map[string]interface{}{
@@ -588,8 +576,7 @@ func (h *BroadcastHandler) HandleRefreshGlobalFeed(w http.ResponseWriter, r *htt
 	response, err := h.service.RefreshGlobalFeed(r.Context(), &req)
 	if err != nil {
 		// Check for specific error types
-		if _, ok := err.(*domain.PermissionError); ok {
-			WriteJSONError(w, err.Error(), http.StatusForbidden)
+		if writePermissionError(w, err) {
 			return
 		}
 		if _, ok := err.(*domain.ErrBroadcastNotFound); ok {
@@ -626,8 +613,7 @@ func (h *BroadcastHandler) HandleTestRecipientFeed(w http.ResponseWriter, r *htt
 	response, err := h.service.TestRecipientFeed(r.Context(), &req)
 	if err != nil {
 		// Check for specific error types
-		if _, ok := err.(*domain.PermissionError); ok {
-			WriteJSONError(w, err.Error(), http.StatusForbidden)
+		if writePermissionError(w, err) {
 			return
 		}
 		if _, ok := err.(*domain.ErrBroadcastNotFound); ok {

@@ -85,10 +85,11 @@ export function SignInPage() {
   // internal/http/oidc_handler.go. A new case there needs a new case here, or the user
   // gets the generic fallback.
   //
-  // It has to live inside the component: the Lingui macro only rewrites t`…` where `t`
-  // is bound to useLingui() in the same scope. Taking `t` as a parameter leaves the
-  // tagged templates untransformed, so they are never extracted and every locale falls
-  // back to the English source text.
+  // It has to live inside the component so `t` resolves to the useLingui() binding —
+  // nesting it in a callback is fine, shadowing it is not. Declared at module level
+  // taking `t` as a parameter, the macro cannot rewrite these tagged templates, and what
+  // that parameter receives at runtime is i18n._, which answers "" to a tagged-template
+  // call. The toast then opened with no message in it at all, in every language.
   const mapOidcError = useCallback(
     (code: string): string => {
       switch (code) {

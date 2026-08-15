@@ -350,10 +350,11 @@ describe('SignInPage', () => {
       expect(shown).toMatch(/account/i)
     })
 
-    // No runtime assertion can see this regression: the test mock binds `t` to i18n._
-    // whatever scope it is called from, and in a real build an untransformed t`…` still
-    // returns its source string — so the toast reads correctly in English either way and
-    // only a non-English user notices. The catalog is the only place it shows.
+    // The empty toast the test above guards against is exactly what shipped, and that
+    // test could not see it: the suite's macro mock resolves t`…` through i18n._ per
+    // template string, whatever scope it is written in. The real macro rewrites only what
+    // it can resolve to the useLingui() binding, and what it leaves alone reaches i18n._
+    // as a tagged template, which answers "". Extraction is where that becomes visible.
     it('extracts every OIDC error message into the source catalog', () => {
       const catalog = readFileSync(join(import.meta.dirname, '../i18n/locales/en.po'), 'utf8')
       const messages = [
@@ -364,9 +365,9 @@ describe('SignInPage', () => {
         'Too many sign-in attempts. Please wait a moment and try again.',
         'Single sign-on failed. Please try again or use a magic code.'
       ]
-      for (const message of messages) {
-        expect(catalog).toContain(`msgid "${message}"`)
-      }
+      // Report the missing ones rather than asserting per message: a failing toContain
+      // against the catalog dumps the whole half-megabyte file as the received value.
+      expect(messages.filter((m) => !catalog.includes(`msgid "${m}"`))).toEqual([])
     })
 
     it('on oidcExchange rejection shows an error toast and does not navigate to /console', async () => {

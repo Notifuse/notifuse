@@ -531,3 +531,26 @@ describe('buildWebAnalyticsSystemPrompt', () => {
     expect(built).toContain(REDACTED_FILTER_VALUE)
   })
 })
+
+describe('WEB_ANALYTICS_AI_SYSTEM_PROMPT output width', () => {
+  // The panel is a fixed 420px, so roughly 330px of usable text. A model left to
+  // its own devices reaches for a markdown table and picks the column count from
+  // the data, not from the container - which is how a six-column breakdown ends up
+  // as a strip the reader has to drag sideways. The rendering side of this is the
+  // scroll wrapper in AIAssistantChat; this is the side that stops it happening.
+  it('tells the model the reply is read in a narrow panel, not a document', () => {
+    expect(WEB_ANALYTICS_AI_SYSTEM_PROMPT).toMatch(/narrow side panel/i)
+  })
+
+  it('caps a table at the column count the panel can actually show', () => {
+    expect(WEB_ANALYTICS_AI_SYSTEM_PROMPT).toMatch(/TWO OR THREE columns/i)
+    // The alternative has to be named, or "no wide table" reads as "no table".
+    expect(WEB_ANALYTICS_AI_SYSTEM_PROMPT).toMatch(/bullets instead/i)
+  })
+
+  it('sends a long breakdown to the explore report rather than into the reply', () => {
+    // The tool exists and is wired; without this the model pastes twenty rows into
+    // a bubble instead of opening the report the operator can sort and export.
+    expect(WEB_ANALYTICS_AI_SYSTEM_PROMPT).toContain(WEB_TOOL_NAMES.SET_REPORT)
+  })
+})

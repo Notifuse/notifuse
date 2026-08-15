@@ -3426,3 +3426,267 @@ func TestCanonicalTrackingMode(t *testing.T) {
 	assert.Equal(t, "", canonicalTrackingMode(notifuse_mjml.TrackingModeInherit))
 	assert.Equal(t, notifuse_mjml.TrackingModeDisabled, canonicalTrackingMode(notifuse_mjml.TrackingModeDisabled))
 }
+
+// TestTransactionalNotificationService_PermissionGates pins list, update and delete to
+// the transactional permission. They authenticated workspace membership and stopped
+// there, so a member whose transactional access had been revoked could still read,
+// edit and delete notifications — the console offers the permission and the API
+// ignored it. Create already checks write and get already checks read; these three
+// follow the same split.
+func TestTransactionalNotificationService_PermissionGates(t *testing.T) {
+	const workspace = "test-workspace"
+	notificationID := uuid.New().String()
+
+	// A member holding every permission except transactional: enough to be in the
+	// workspace, not enough to touch transactional notifications.
+	noTransactional := &domain.UserWorkspace{
+		UserID:      "user-123",
+		WorkspaceID: workspace,
+		Role:        "member",
+		Permissions: domain.UserPermissions{
+			domain.PermissionResourceTemplates: {Read: true, Write: true},
+			domain.PermissionResourceContacts:  {Read: true, Write: true},
+		},
+	}
+	// Read granted, write withheld — the case that separates list from update/delete.
+	readOnly := &domain.UserWorkspace{
+		UserID:      "user-123",
+		WorkspaceID: workspace,
+		Role:        "member",
+		Permissions: domain.UserPermissions{
+			domain.PermissionResourceTransactional: {Read: true, Write: false},
+		},
+	}
+
+	testCases := []struct {
+		name               string
+		userWorkspace      *domain.UserWorkspace
+		call               func(context.Context, *TransactionalNotificationService) error
+		expectedPermission domain.PermissionType
+	}{
+		{
+			name:          "list without transactional read",
+			userWorkspace: noTransactional,
+			call: func(ctx context.Context, s *TransactionalNotificationService) error {
+				_, _, err := s.ListNotifications(ctx, workspace, nil, 10, 0)
+				return err
+			},
+			expectedPermission: domain.PermissionTypeRead,
+		},
+		{
+			name:          "update without transactional write",
+			userWorkspace: readOnly,
+			call: func(ctx context.Context, s *TransactionalNotificationService) error {
+				_, err := s.UpdateNotification(ctx, workspace, notificationID, domain.TransactionalNotificationUpdateParams{
+					Name: "Renamed",
+				})
+				return err
+			},
+			expectedPermission: domain.PermissionTypeWrite,
+		},
+		{
+			name:          "delete without transactional write",
+			userWorkspace: readOnly,
+			call: func(ctx context.Context, s *TransactionalNotificationService) error {
+				return s.DeleteNotification(ctx, workspace, notificationID)
+			},
+			expectedPermission: domain.PermissionTypeWrite,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			mockRepo := mocks.NewMockTransactionalNotificationRepository(ctrl)
+			mockAuthService := mocks.NewMockAuthService(ctrl)
+			mockLogger := pkgmocks.NewMockLogger(ctrl)
+			mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+			mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+			mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
+			mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
+			mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+
+			ctx := context.Background()
+			mockAuthService.EXPECT().
+				AuthenticateUserForWorkspace(gomock.Any(), workspace).
+				Return(ctx, &domain.User{ID: "user-123"}, tc.userWorkspace, nil)
+
+			// No repository call may happen: the denial has to land before any work.
+			service := NewTransactionalNotificationService(
+				mockRepo,
+				mocks.NewMockMessageHistoryRepository(ctrl),
+				mocks.NewMockTemplateService(ctrl),
+				mocks.NewMockContactService(ctrl),
+				mocks.NewMockEmailServiceInterface(ctrl),
+				mockAuthService,
+				mockLogger,
+				mocks.NewMockWorkspaceRepository(ctrl),
+				"https://api.example.com",
+			)
+
+			err := tc.call(ctx, service)
+
+			require.Error(t, err)
+			var permErr *domain.PermissionError
+			require.ErrorAs(t, err, &permErr, "denial must be a *domain.PermissionError so the handler answers 403")
+			assert.Equal(t, domain.PermissionResourceTransactional, permErr.Resource)
+			assert.Equal(t, tc.expectedPermission, permErr.Permission)
+		})
+	}
+}
+
+// An owner holds every permission implicitly, with no permissions map at all — the
+// gates must not lock out the role that is meant to bypass them.
+func TestTransactionalNotificationService_PermissionGates_OwnerBypasses(t *testing.T) {
+	const workspace = "test-workspace"
+	notificationID := uuid.New().String()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockRepo := mocks.NewMockTransactionalNotificationRepository(ctrl)
+	mockAuthService := mocks.NewMockAuthService(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+
+	ctx := context.Background()
+	owner := &domain.UserWorkspace{UserID: "user-123", WorkspaceID: workspace, Role: "owner"}
+	mockAuthService.EXPECT().
+		AuthenticateUserForWorkspace(gomock.Any(), workspace).
+		Return(ctx, &domain.User{ID: "user-123"}, owner, nil).
+		Times(2)
+
+	service := NewTransactionalNotificationService(
+		mockRepo,
+		mocks.NewMockMessageHistoryRepository(ctrl),
+		mocks.NewMockTemplateService(ctrl),
+		mocks.NewMockContactService(ctrl),
+		mocks.NewMockEmailServiceInterface(ctrl),
+		mockAuthService,
+		mockLogger,
+		mocks.NewMockWorkspaceRepository(ctrl),
+		"https://api.example.com",
+	)
+
+	mockRepo.EXPECT().
+		List(gomock.Any(), workspace, gomock.Any(), gomock.Any(), gomock.Any()).
+		Return([]*domain.TransactionalNotification{}, 0, nil)
+	_, _, err := service.ListNotifications(ctx, workspace, nil, 10, 0)
+	require.NoError(t, err)
+
+	mockRepo.EXPECT().
+		Get(gomock.Any(), workspace, notificationID).
+		Return(&domain.TransactionalNotification{ID: notificationID}, nil)
+	mockRepo.EXPECT().
+		Delete(gomock.Any(), workspace, notificationID).
+		Return(nil)
+	require.NoError(t, service.DeleteNotification(ctx, workspace, notificationID))
+}
+
+// TestTransactionalNotificationService_SendNotification_SystemCallSkipsAuth pins the
+// path the SMTP bridge and the Supabase webhook use. Both build a context carrying
+// SystemCallKey because they have already authenticated the caller themselves, and
+// SendNotification then skips authentication entirely — which also means it never
+// obtains a UserWorkspace. Any permission check added to this method has to live
+// inside that same branch: outside it, HasPermission dereferences a nil pointer and
+// every bridge send panics.
+//
+// The auth service mock carries NO expectation on purpose. gomock fails the test if
+// AuthenticateUserForWorkspace is called at all, so this asserts the bypass itself
+// rather than merely asserting that the send happened to succeed.
+func TestTransactionalNotificationService_SendNotification_SystemCallSkipsAuth(t *testing.T) {
+	const workspace = "test-workspace"
+	notificationID := uuid.New().String()
+	templateID := uuid.New().String()
+
+	notification := &domain.TransactionalNotification{
+		ID:   notificationID,
+		Name: "Test Notification",
+		Channels: map[domain.TransactionalChannel]domain.ChannelTemplate{
+			domain.TransactionalChannelEmail: {TemplateID: templateID},
+		},
+	}
+
+	workspaceObj := &domain.Workspace{
+		ID:   workspace,
+		Name: "Test Workspace",
+		Settings: domain.WorkspaceSettings{
+			TransactionalEmailProviderID: "integration-1",
+			SecretKey:                    "test-secret-key",
+		},
+		Integrations: []domain.Integration{
+			{
+				ID:   "integration-1",
+				Name: "Test Integration",
+				Type: "email",
+				EmailProvider: domain.EmailProvider{
+					Kind:    domain.EmailProviderKindSparkPost,
+					Senders: []domain.EmailSender{domain.NewEmailSender("test@example.com", "Test Sender")},
+					SparkPost: &domain.SparkPostSettings{
+						EncryptedAPIKey: "encrypted-api-key",
+					},
+				},
+			},
+		},
+	}
+
+	contact := &domain.Contact{Email: "recipient@example.com"}
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockRepo := mocks.NewMockTransactionalNotificationRepository(ctrl)
+	mockMsgHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
+	mockTemplateService := mocks.NewMockTemplateService(ctrl)
+	mockContactService := mocks.NewMockContactService(ctrl)
+	mockEmailService := mocks.NewMockEmailServiceInterface(ctrl)
+	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	mockAuthService := mocks.NewMockAuthService(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+
+	service := &TransactionalNotificationService{
+		transactionalRepo:  mockRepo,
+		messageHistoryRepo: mockMsgHistoryRepo,
+		templateService:    mockTemplateService,
+		contactService:     mockContactService,
+		emailService:       mockEmailService,
+		logger:             mockLogger,
+		workspaceRepo:      mockWorkspaceRepo,
+		apiEndpoint:        "https://api.example.com",
+		authService:        mockAuthService,
+	}
+
+	mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), workspace).Return(workspaceObj, nil)
+	mockRepo.EXPECT().Get(gomock.Any(), workspace, notificationID).Return(notification, nil)
+	mockContactService.EXPECT().
+		UpsertContact(gomock.Any(), workspace, contact).
+		Return(domain.UpsertContactOperation{Email: contact.Email, Action: domain.UpsertContactOperationUpdate})
+	mockContactService.EXPECT().
+		GetContactByEmail(gomock.Any(), workspace, contact.Email).
+		Return(contact, nil)
+	mockEmailService.EXPECT().
+		SendEmailForTemplate(gomock.Any(), gomock.Any()).
+		Return(nil)
+
+	// The context the SMTP bridge and the Supabase webhook build.
+	systemCtx := context.WithValue(context.Background(), domain.SystemCallKey, true)
+
+	messageID, err := service.SendNotification(systemCtx, workspace, domain.TransactionalNotificationSendParams{
+		ID:      notificationID,
+		Contact: contact,
+	})
+
+	require.NoError(t, err)
+	require.NotEmpty(t, messageID)
+}

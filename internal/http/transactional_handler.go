@@ -2,6 +2,7 @@ package http
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strings"
 
@@ -72,6 +73,9 @@ func (h *TransactionalNotificationHandler) handleList(w http.ResponseWriter, r *
 		req.Offset,
 	)
 	if err != nil {
+		if writePermissionError(w, err) {
+			return
+		}
 		h.logger.WithField("error", err.Error()).Error("Failed to list transactional notifications")
 		WriteJSONError(w, "Failed to list notifications", http.StatusInternalServerError)
 		return
@@ -97,6 +101,9 @@ func (h *TransactionalNotificationHandler) handleGet(w http.ResponseWriter, r *h
 
 	notification, err := h.service.GetNotification(r.Context(), req.WorkspaceID, req.ID)
 	if err != nil {
+		if writePermissionError(w, err) {
+			return
+		}
 		if strings.Contains(err.Error(), "not found") {
 			WriteJSONError(w, "Notification not found", http.StatusNotFound)
 			return
@@ -131,6 +138,10 @@ func (h *TransactionalNotificationHandler) handleCreate(w http.ResponseWriter, r
 
 	notification, err := h.service.CreateNotification(r.Context(), req.WorkspaceID, req.Notification)
 	if err != nil {
+		if writePermissionError(w, err) {
+			return
+		}
+
 		h.logger.WithField("error", err.Error()).Error("Failed to create transactional notification")
 
 		if strings.Contains(err.Error(), "invalid template") {
@@ -167,6 +178,9 @@ func (h *TransactionalNotificationHandler) handleUpdate(w http.ResponseWriter, r
 
 	notification, err := h.service.UpdateNotification(r.Context(), req.WorkspaceID, req.ID, req.Updates)
 	if err != nil {
+		if writePermissionError(w, err) {
+			return
+		}
 		if strings.Contains(err.Error(), "not found") {
 			WriteJSONError(w, "Notification not found", http.StatusNotFound)
 			return
@@ -204,6 +218,9 @@ func (h *TransactionalNotificationHandler) handleDelete(w http.ResponseWriter, r
 	}
 
 	if err := h.service.DeleteNotification(r.Context(), req.WorkspaceID, req.ID); err != nil {
+		if writePermissionError(w, err) {
+			return
+		}
 		if strings.Contains(err.Error(), "not found") {
 			WriteJSONError(w, "Notification not found", http.StatusNotFound)
 			return
@@ -238,6 +255,10 @@ func (h *TransactionalNotificationHandler) handleSend(w http.ResponseWriter, r *
 
 	messageID, err := h.service.SendNotification(r.Context(), req.WorkspaceID, req.Notification)
 	if err != nil {
+		if writePermissionError(w, err) {
+			return
+		}
+
 		h.logger.WithField("error", err.Error()).Error("Failed to send transactional notification")
 
 		if strings.Contains(err.Error(), "not found") ||
@@ -286,7 +307,12 @@ func (h *TransactionalNotificationHandler) handleTestTemplate(w http.ResponseWri
 
 	// If there's an error, include it in the response
 	if err != nil {
-		if _, ok := err.(*domain.ErrTemplateNotFound); ok {
+		if writePermissionError(w, err) {
+			return
+		}
+
+		var notFound *domain.ErrTemplateNotFound
+		if errors.As(err, &notFound) {
 			WriteJSONError(w, "Template not found", http.StatusNotFound)
 			return
 		}

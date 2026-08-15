@@ -108,6 +108,14 @@ func (m *V38Migration) UpdateWorkspace(ctx context.Context, cfg *config.Config, 
 		return fmt.Errorf("v38: failed to update webhook custom events trigger for workspace %s: %w", workspace.ID, err)
 	}
 
+	// Same reasoning for the enrolment function: it now refuses to enrol for an automation
+	// that is not live, which is what makes a trigger left installed against a paused, draft
+	// or soft-deleted row harmless. Existing workspaces need it precisely because their
+	// triggers are the ones that may already have outlived their automation.
+	if _, err := db.ExecContext(ctx, schema.AutomationEnrollContactFunction()); err != nil {
+		return fmt.Errorf("v38: failed to update automation enroll function for workspace %s: %w", workspace.ID, err)
+	}
+
 	now := time.Now().UTC()
 	for _, month := range []time.Time{now, now.AddDate(0, 1, 0)} {
 		for _, table := range schema.WebAnalyticsTableNames {

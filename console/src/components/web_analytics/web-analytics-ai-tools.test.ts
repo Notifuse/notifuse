@@ -1,7 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   BLOCKED_DIMENSIONS,
+  DASHBOARD_FILTER_SCHEMAS,
   DEFAULT_BREAKDOWN_ROWS,
+  GRANULARITIES,
   MAX_BREAKDOWN_ROWS,
   MEASURES_BY_SCHEMA,
   NAVIGABLE_TABS,
@@ -11,24 +13,31 @@ import {
   ToolInputError,
   WEB_ANALYTICS_AI_TOOLS,
   WEB_TOOL_NAMES,
+  assertDashboardFilterDimension,
   assertMeasures,
   assertOrderKey,
   assertQueryableDimension,
   bucketColumnFor,
   clampLimit,
+  describeDimensions,
+  describeQuery,
   dropBlockedFilters,
+  getMeasureLabel,
   formatChangePercent,
   formatRows,
   parseComparisonMode,
   parseFilters,
+  parseGranularity,
   parseMetricFilters,
   redactBlockedFilterValues,
   renderCatalog,
   resolveComparisonRange,
   resolveToolRange,
+  withPendingDates,
   type ToolDateContext
 } from './web-analytics-ai-tools'
-import { DIMENSIONS } from './lib/dimensions'
+import { DIMENSIONS, dimensionsForSchema, getDimensionLabel } from './lib/dimensions'
+import { SESSION_METRICS } from './lib/types'
 import {
   DATE_PRESETS,
   PRESET_GROUPS,
@@ -146,6 +155,21 @@ describe('tool schemas as the three providers read them', () => {
         if (/rfc\s?3339|iso\s?8601|timestamp|instant/i.test(description)) {
           problems.push(`${path}.properties.${key}: describes an instant`)
         }
+      }
+    })
+    expect(problems).toEqual([])
+  })
+
+  it('offers exactly the granularities the validator accepts', () => {
+    // A bucket offered in the schema and refused by the validator is a tool
+    // call the model is invited to make and that always fails.
+    const problems: string[] = []
+    walkAllTools((node, path) => {
+      if (!isNode(node.properties)) return
+      const granularity = node.properties.granularity
+      if (!isNode(granularity) || !Array.isArray(granularity.enum)) return
+      if (granularity.enum.join(',') !== GRANULARITIES.join(',')) {
+        problems.push(`${path}.properties.granularity.enum: ${granularity.enum.join(',')}`)
       }
     })
     expect(problems).toEqual([])
@@ -319,6 +343,85 @@ describe('resolveComparisonRange', () => {
     const context = dateContext()
     const current = resolveToolRange(context, { period: 'previous_7_days' })
     expect(resolveComparisonRange(context, current, 'none')).toBeNull()
+  })
+
+  it('refuses to compare all_time against a window that precedes the first session', () => {
+    // all_time already starts at the workspace's first session, so whatever
+    // comes before it is empty by construction. Returning a range would query
+    // it, come back with zeroes, and render every change cell blank - which
+    // reads as "no change" rather than "there is nothing to compare against".
+    const context = dateContext({ workspaceCreatedAt: '2026-01-10T00:00:00.000Z' })
+    const current = resolveToolRange(context, { period: 'all_time' })
+    for (const mode of ['previous_period', 'previous_year'] as const) {
+      expect(resolveComparisonRange(context, current, mode)).toBeNull()
+    }
+  })
+
+  it('compares against a window older than the workspace record, where imported and seeded data lives', () => {
+    // The workspace ROW is younger than its analytics data whenever the data was
+    // seeded, imported or backfilled - which is every demo workspace. Refusing on
+    // the creation date told an operator holding thousands of sessions in the
+    // preceding month that nothing preceded their range, while the dashboard beside
+    // them charted that same comparison.
+    const context = dateContext({ workspaceCreatedAt: '2026-01-10T00:00:00.000Z' })
+    const current = resolveToolRange(context, { period: 'previous_7_days' })
+    const previous = resolveComparisonRange(context, current, 'previous_year')
+    expect(previous).not.toBeNull()
+    // previous_year is the same calendar dates a year back, not the preceding window.
+    expect(previous?.startDay).toBe('2025-03-08')
+    expect(previous?.endDay).toBe('2025-03-14')
+  })
+
+  it('still compares against the ordinary preceding window', () => {
+    const context = dateContext({ workspaceCreatedAt: '2026-01-10T00:00:00.000Z' })
+    const current = resolveToolRange(context, { period: 'previous_7_days' })
+    const previous = resolveComparisonRange(context, current, 'previous_period')
+    expect(previous?.startDay).toBe('2026-03-01')
+    expect(previous?.endDay).toBe('2026-03-07')
+  })
+})
+
+describe('withPendingDates', () => {
+  beforeEach(() => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-03-14T20:00:00Z'))
+  })
+  afterEach(() => vi.useRealTimers())
+
+  it('resolves "current" against a period a sibling tool asked for this round', () => {
+    // set_dashboard_period and query_web_analytics are dispatched in the same
+    // synchronous round against one frozen snapshot: without the overlay the
+    // query answers for the window the dashboard showed BEFORE its sibling ran,
+    // while that sibling announces the new one.
+    const context = dateContext()
+    const effective = withPendingDates(context, { period: 'previous_30_days' })
+    const resolved = resolveToolRange(effective, { period: 'current' })
+    expect(resolved.preset).toBe('previous_30_days')
+    expect(resolved.range.startDay).toBe('2026-02-13')
+    expect(resolved.range.endDay).toBe('2026-03-14')
+    expect(resolved.range).not.toBe(context.currentResolved)
+  })
+
+  it('carries a pending custom range into both the bounds and the label', () => {
+    const effective = withPendingDates(dateContext(), {
+      period: 'custom',
+      customStart: '2026-01-05',
+      customEnd: '2026-01-09'
+    })
+    const resolved = resolveToolRange(effective, { period: 'current' })
+    expect(resolved.preset).toBe('custom')
+    expect(resolved.custom).toEqual({ start: '2026-01-05', end: '2026-01-09' })
+    expect(resolved.range.startDay).toBe('2026-01-05')
+    expect(resolved.range.endDay).toBe('2026-01-09')
+  })
+
+  it('keeps the page-resolved range when nothing about the period is pending', () => {
+    const context = dateContext()
+    expect(withPendingDates(context, {})).toBe(context)
+    expect(withPendingDates(context, { filters: [], tab: 'explore' })).toBe(context)
+    // A custom period with no dates would silently fall back to "the last 7
+    // days" inside computeDateRange, a window nobody asked for.
+    expect(withPendingDates(context, { period: 'custom' })).toBe(context)
   })
 })
 
@@ -620,6 +723,135 @@ describe('parseMetricFilters', () => {
       parseMetricFilters([{ metric: 'page_count', operator: 'equals', value: 1 }], 'web_pages')
     ).toThrow(/metric filter operator must be one of/)
   })
+
+  it('refuses a threshold that is missing or not a number', () => {
+    // The schema's `required` is a hint no provider is obliged to enforce, and
+    // a value that coerced to 0 would compile to HAVING page_count > 0: a
+    // filter that removes nothing, while the model is told the threshold
+    // applied and reports the long tail as excluded.
+    const bad: unknown[] = [undefined, null, '', '   ', 'one hundred', true, {}, [], Infinity]
+    for (const value of bad) {
+      let message = ''
+      try {
+        parseMetricFilters([{ metric: 'page_count', operator: 'gt', value }], 'web_pages')
+      } catch (error) {
+        message = (error as Error).message
+      }
+      expect(message).toContain('needs a numeric value')
+      expect(message).toContain('page_count')
+    }
+  })
+
+  it('keeps zero as a threshold, which is a real one', () => {
+    expect(parseMetricFilters([{ metric: 'page_count', operator: 'gt', value: 0 }], 'web_pages')).toEqual(
+      [{ metric: 'page_count', operator: 'gt', values: [0] }]
+    )
+  })
+})
+
+describe('parseGranularity', () => {
+  it('accepts every bucket the schema offers and nothing else', () => {
+    for (const granularity of GRANULARITIES) {
+      expect(parseGranularity(granularity)).toBe(granularity)
+    }
+    // It reaches both the engine query and the name of the output column the
+    // model is told to read, so an unvalidated value produces a table whose
+    // bucket column is missing from every row.
+    for (const bad of ['daily', 'minute', 'DAY', 'constructor', 'toString', 7]) {
+      expect(() => parseGranularity(bad)).toThrow(ToolInputError)
+    }
+  })
+
+  it('lists the buckets it accepts when refusing one', () => {
+    let message = ''
+    try {
+      parseGranularity('daily')
+    } catch (error) {
+      message = (error as Error).message
+    }
+    expect(message).toContain('daily')
+    for (const granularity of GRANULARITIES) expect(message).toContain(granularity)
+  })
+
+  it('treats an absent granularity as an aggregate query rather than an error', () => {
+    expect(parseGranularity(undefined)).toBeUndefined()
+    expect(parseGranularity(null)).toBeUndefined()
+    expect(parseGranularity('')).toBeUndefined()
+  })
+
+  it('names an output column for every bucket it accepts', () => {
+    // The validator and bucketColumnFor must cover the same vocabulary, or a
+    // granularity passes validation and then names a column nothing returns.
+    for (const schema of SCHEMAS) {
+      for (const granularity of GRANULARITIES) {
+        expect(bucketColumnFor(schema, granularity)).toMatch(new RegExp(`_${granularity}$`))
+      }
+    }
+  })
+})
+
+/* ===========================================================================
+ * DASHBOARD FILTER SCOPE — the filter bar is page-wide, so it can only carry
+ * dimensions every visible widget can express.
+ * ========================================================================= */
+
+describe('assertDashboardFilterDimension', () => {
+  it('refuses a dimension the visible widgets cannot use and names the usable scope', () => {
+    // page_path lives only on web_pages: applied to the bar, every widget drops
+    // it, the screen does not change, and the acknowledgement still reports the
+    // filter as applied.
+    let message = ''
+    try {
+      assertDashboardFilterDimension('page_path')
+    } catch (error) {
+      message = (error as Error).message
+    }
+    expect(message).toContain('page_path')
+    for (const schema of DASHBOARD_FILTER_SCHEMAS) expect(message).toContain(schema)
+    expect(message).toContain(WEB_TOOL_NAMES.CATALOG)
+  })
+
+  it('accepts every dimension the dashboard widgets can express, and no page-only one', () => {
+    const usable = new Set(
+      DASHBOARD_FILTER_SCHEMAS.flatMap((schema) =>
+        dimensionsForSchema(schema).map((dimension) => dimension.name)
+      )
+    )
+    const problems: string[] = []
+    for (const name of Object.keys(DIMENSIONS)) {
+      if (BLOCKED_DIMENSIONS.has(name)) continue
+      let accepted = true
+      try {
+        assertDashboardFilterDimension(name)
+      } catch {
+        accepted = false
+      }
+      if (accepted !== usable.has(name)) {
+        problems.push(`${name}: ${accepted ? 'accepted' : 'refused'} but usable=${usable.has(name)}`)
+      }
+    }
+    expect(problems).toEqual([])
+    // The check is only meaningful if both sides are non-empty.
+    expect(usable.size).toBeGreaterThan(0)
+    expect(Object.keys(DIMENSIONS).length).toBeGreaterThan(usable.size)
+  })
+
+  it('reports a withheld dimension as PII rather than as the wrong schema', () => {
+    // contact_email IS valid on the dashboard schemas, so the scope check would
+    // wave it through; the reason a refusal gives is what the model repeats to
+    // the operator.
+    for (const dimension of [...BLOCKED_DIMENSIONS]) {
+      expect(() => assertDashboardFilterDimension(dimension)).toThrow(
+        /identifies individual visitors/
+      )
+    }
+  })
+
+  it('sends the model to the catalog for a dimension that does not exist', () => {
+    for (const name of ['bounce_source', ...PROTOTYPE_KEYS]) {
+      expect(() => assertDashboardFilterDimension(name)).toThrow(/unknown dimension/)
+    }
+  })
 })
 
 describe('clampLimit', () => {
@@ -804,5 +1036,74 @@ describe('period enums', () => {
       }
     })
     expect(problems).toEqual([])
+  })
+})
+
+
+describe('step line descriptors', () => {
+  it('leads with the grouping, so two steps of one batch differ at the first character', () => {
+    const measures = ['sessions', 'bounce_rate', 'median_duration']
+    const byChannel = describeQuery({ measures, dimensions: ['channel_group'] })
+    const byCampaign = describeQuery({ measures, dimensions: ['utm_campaign'] })
+
+    // The defect this replaces: both lines opened with the same measure list and
+    // wrapped before the dimension, so the only part that differed was the part the
+    // operator could not see.
+    expect(byChannel).toBe('Channel Group')
+    expect(byCampaign).toBe('UTM Campaign')
+    expect(byChannel[0]).not.toBe(byCampaign[0])
+  })
+
+  it('names a drill-down by every level it groups on', () => {
+    expect(describeQuery({ measures: ['sessions'], dimensions: ['device', 'browser'] })).toBe(
+      'Device / Browser'
+    )
+  })
+
+  it("uses the workspace's own name for a custom slot rather than the slot number", () => {
+    expect(
+      describeQuery({
+        measures: ['sessions'],
+        dimensions: ['custom_3'],
+        labels: { custom_3: 'Plan' }
+      })
+    ).toBe('Plan')
+  })
+
+  it('falls back to what an ungrouped query measured, named rather than identified', () => {
+    expect(describeQuery({ measures: ['sessions', 'median_page_duration'], dimensions: [] })).toBe(
+      'Sessions, Median Time on Page'
+    )
+  })
+
+  it('never puts a raw measure id in front of an operator', () => {
+    const raw: string[] = []
+    for (const schema of SCHEMAS) {
+      for (const measure of Object.keys(MEASURES_BY_SCHEMA[schema])) {
+        const label = getMeasureLabel(measure)
+        if (label.includes('_') || label === '') raw.push(`${schema}.${measure} -> "${label}"`)
+      }
+    }
+    expect(raw).toEqual([])
+  })
+
+  it('calls the dashboard metrics what the KPI tiles above the panel call them', () => {
+    // The link, not the wording: rename a tile and the assistant follows it rather
+    // than growing a second vocabulary for the same number.
+    for (const metric of SESSION_METRICS) {
+      expect(getMeasureLabel(metric.key)).toBe(metric.label)
+    }
+  })
+
+  it('title-cases a measure nobody has named yet instead of leaking the column', () => {
+    expect(getMeasureLabel('refund_amount')).toBe('Refund Amount')
+  })
+
+  it('describes dimensions the same way wherever they are listed', () => {
+    // set_explore_report builds its line from the same helper, so a drill-down and a
+    // query that group on the same thing cannot read differently.
+    expect(describeDimensions(['channel_group', 'custom_1'], { custom_1: 'Plan' })).toBe(
+      `${getDimensionLabel('channel_group')} / Plan`
+    )
   })
 })

@@ -122,47 +122,51 @@ const toVariationMetrics = (s?: MessageHistoryStatusSum) => {
   }
 }
 
-// Helper function to get status badge with tooltips
-const getStatusBadge = (
-  broadcast: Broadcast,
-  remainingTime?: string | null,
-  progressStats?: ProgressStats,
-  t?: (strings: TemplateStringsArray, ...values: unknown[]) => string
-) => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const translate = t || ((s: TemplateStringsArray) => s[0] as any)
+// The status badge for a broadcast, with its explanatory tooltip.
+interface StatusBadgeProps {
+  broadcast: Broadcast
+  remainingTime?: string | null
+  progressStats?: ProgressStats
+}
+
+// A component rather than a helper handed `t`: the Lingui macro only rewrites t`…` where
+// `t` resolves to the useLingui() binding, so threaded in as a parameter every message
+// below stayed untransformed. What the parameter actually received at runtime is i18n._,
+// which answers "" to a tagged template — so each badge and tooltip here rendered blank.
+const StatusBadge = ({ broadcast, remainingTime, progressStats }: StatusBadgeProps) => {
+  const { t } = useLingui()
   switch (broadcast.status) {
     case 'draft':
       return (
-        <Tooltip title={translate`This broadcast is a draft and has not been scheduled or sent yet.`}>
+        <Tooltip title={t`This broadcast is a draft and has not been scheduled or sent yet.`}>
           <span>
-            <Badge status="default" text={translate`Draft`} />
+            <Badge status="default" text={t`Draft`} />
           </span>
         </Tooltip>
       )
     case 'scheduled':
       return (
-        <Tooltip title={translate`This broadcast is scheduled and will start sending at the specified time.`}>
+        <Tooltip title={t`This broadcast is scheduled and will start sending at the specified time.`}>
           <span>
-            <Badge status="processing" text={translate`Scheduled`} />
+            <Badge status="processing" text={t`Scheduled`} />
           </span>
         </Tooltip>
       )
     case 'processing':
       return (
-        <Tooltip title={translate`Preparing emails for delivery. Contacts are being added to the sending queue.`}>
+        <Tooltip title={t`Preparing emails for delivery. Contacts are being added to the sending queue.`}>
           <span>
-            <Badge status="processing" text={translate`Preparing...`} />
+            <Badge status="processing" text={t`Preparing...`} />
           </span>
         </Tooltip>
       )
     case 'paused':
       return (
         <Tooltip
-          title={broadcast.pause_reason || translate`Sending has been paused. You can resume at any time.`}
+          title={broadcast.pause_reason || t`Sending has been paused. You can resume at any time.`}
         >
           <Space size="small">
-            <Badge status="warning" text={translate`Paused`} />
+            <Badge status="warning" text={t`Paused`} />
             {broadcast.pause_reason && (
               <FontAwesomeIcon
                 icon={faCircleQuestion}
@@ -175,50 +179,50 @@ const getStatusBadge = (
       )
     case 'processed': {
       if (progressStats && progressStats.remaining > 0) {
-        const tooltipText = translate`Emails are being delivered. ${progressStats.processed.toLocaleString()} sent, ${progressStats.remaining.toLocaleString()} remaining.`
+        const tooltipText = t`Emails are being delivered. ${progressStats.processed.toLocaleString()} sent, ${progressStats.remaining.toLocaleString()} remaining.`
         return (
           <Tooltip title={tooltipText}>
             <span>
               <Badge
                 status="warning"
-                text={translate`Sending ${progressStats.remaining.toLocaleString()} remaining`}
+                text={t`Sending ${progressStats.remaining.toLocaleString()} remaining`}
               />
             </span>
           </Tooltip>
         )
       }
       const completeTooltip = progressStats
-        ? translate`All ${progressStats.enqueuedCount.toLocaleString()} emails have been processed.`
-        : translate`All emails have been sent.`
+        ? t`All ${progressStats.enqueuedCount.toLocaleString()} emails have been processed.`
+        : t`All emails have been sent.`
       return (
         <Tooltip title={completeTooltip}>
           <span>
-            <Badge status="success" text={translate`Complete`} />
+            <Badge status="success" text={t`Complete`} />
           </span>
         </Tooltip>
       )
     }
     case 'cancelled':
       return (
-        <Tooltip title={translate`This broadcast was cancelled before completion.`}>
+        <Tooltip title={t`This broadcast was cancelled before completion.`}>
           <span>
-            <Badge status="error" text={translate`Cancelled`} />
+            <Badge status="error" text={t`Cancelled`} />
           </span>
         </Tooltip>
       )
     case 'failed':
       return (
-        <Tooltip title={translate`This broadcast failed due to an error. Check the logs for details.`}>
+        <Tooltip title={t`This broadcast failed due to an error. Check the logs for details.`}>
           <span>
-            <Badge status="error" text={translate`Failed`} />
+            <Badge status="error" text={t`Failed`} />
           </span>
         </Tooltip>
       )
     case 'testing':
       return (
-        <Tooltip title={translate`A/B test is in progress. Emails are being sent to the test group.`}>
+        <Tooltip title={t`A/B test is in progress. Emails are being sent to the test group.`}>
           <Space size="small">
-            <Badge status="processing" text={translate`A/B Testing`} />
+            <Badge status="processing" text={t`A/B Testing`} />
             {remainingTime && (
               <Text type="secondary" style={{ fontSize: '12px' }}>
                 ({remainingTime})
@@ -229,17 +233,17 @@ const getStatusBadge = (
       )
     case 'test_completed':
       return (
-        <Tooltip title={translate`A/B test has completed. Select a winner to send to the remaining recipients.`}>
+        <Tooltip title={t`A/B test has completed. Select a winner to send to the remaining recipients.`}>
           <span>
-            <Badge status="success" text={translate`Test Completed`} />
+            <Badge status="success" text={t`Test Completed`} />
           </span>
         </Tooltip>
       )
     case 'winner_selected':
       return (
-        <Tooltip title={translate`A winner has been selected. Emails are being sent to the remaining recipients.`}>
+        <Tooltip title={t`A winner has been selected. Emails are being sent to the remaining recipients.`}>
           <span>
-            <Badge status="success" text={translate`Winner Selected`} />
+            <Badge status="success" text={t`Winner Selected`} />
           </span>
         </Tooltip>
       )
@@ -490,7 +494,11 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
                 trigger="hover"
               >
                 <span className="cursor-help">
-                  {getStatusBadge(broadcast, remainingTestTime, progressStats, t)}
+                  <StatusBadge
+                    broadcast={broadcast}
+                    remainingTime={remainingTestTime}
+                    progressStats={progressStats}
+                  />
                   <FontAwesomeIcon
                     icon={faCircleQuestion}
                     style={{ opacity: 0.7 }}
@@ -500,11 +508,19 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
               </Popover>
             ) : isTaskLoading ? (
               <span className="text-gray-400">
-                {getStatusBadge(broadcast, remainingTestTime, progressStats, t)}
+                <StatusBadge
+                  broadcast={broadcast}
+                  remainingTime={remainingTestTime}
+                  progressStats={progressStats}
+                />
                 <FontAwesomeIcon icon={faSpinner} spin className="ml-2" />
               </span>
             ) : (
-              getStatusBadge(broadcast, remainingTestTime, progressStats, t)
+              <StatusBadge
+                broadcast={broadcast}
+                remainingTime={remainingTestTime}
+                progressStats={progressStats}
+              />
             )}
           </div>
         </Space>

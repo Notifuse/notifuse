@@ -172,9 +172,19 @@ func (s *TransactionalNotificationService) UpdateNotification(
 
 	// Authenticate user for workspace
 	var err error
-	ctx, _, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspace)
+	var userWorkspace *domain.UserWorkspace
+	ctx, _, userWorkspace, err = s.authService.AuthenticateUserForWorkspace(ctx, workspace)
 	if err != nil {
 		return nil, fmt.Errorf("failed to authenticate user for workspace: %w", err)
+	}
+
+	// Check permission for writing transactional notifications
+	if !userWorkspace.HasPermission(domain.PermissionResourceTransactional, domain.PermissionTypeWrite) {
+		return nil, domain.NewPermissionError(
+			domain.PermissionResourceTransactional,
+			domain.PermissionTypeWrite,
+			"Insufficient permissions: write access to transactional notifications required",
+		)
 	}
 
 	s.logger.WithFields(map[string]interface{}{
@@ -341,9 +351,19 @@ func (s *TransactionalNotificationService) ListNotifications(
 
 	// Authenticate user for workspace
 	var err error
-	ctx, _, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspace)
+	var userWorkspace *domain.UserWorkspace
+	ctx, _, userWorkspace, err = s.authService.AuthenticateUserForWorkspace(ctx, workspace)
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to authenticate user for workspace: %w", err)
+	}
+
+	// Check permission for reading transactional notifications
+	if !userWorkspace.HasPermission(domain.PermissionResourceTransactional, domain.PermissionTypeRead) {
+		return nil, 0, domain.NewPermissionError(
+			domain.PermissionResourceTransactional,
+			domain.PermissionTypeRead,
+			"Insufficient permissions: read access to transactional notifications required",
+		)
 	}
 
 	span.AddAttributes(
@@ -408,9 +428,19 @@ func (s *TransactionalNotificationService) DeleteNotification(
 
 	// Authenticate user for workspace
 	var err error
-	ctx, _, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspace)
+	var userWorkspace *domain.UserWorkspace
+	ctx, _, userWorkspace, err = s.authService.AuthenticateUserForWorkspace(ctx, workspace)
 	if err != nil {
 		return fmt.Errorf("failed to authenticate user for workspace: %w", err)
+	}
+
+	// Check permission for writing transactional notifications
+	if !userWorkspace.HasPermission(domain.PermissionResourceTransactional, domain.PermissionTypeWrite) {
+		return domain.NewPermissionError(
+			domain.PermissionResourceTransactional,
+			domain.PermissionTypeWrite,
+			"Insufficient permissions: write access to transactional notifications required",
+		)
 	}
 
 	s.logger.WithFields(map[string]interface{}{

@@ -106,6 +106,32 @@ func NewTriggerConditionError(message string) *TriggerConditionError {
 	return &TriggerConditionError{Message: message}
 }
 
+// AutomationConflictError reports a status transition that was computed from a row another
+// transition has since changed. Activate, Pause and Update each read the automation, decide
+// whether to install or drop its trigger, and write the row back; writing through a status
+// predicate means the loser of a race stops instead of overwriting the winner from a stale
+// read — and, more importantly, stops before emitting DDL from a decision that no longer
+// holds.
+//
+// It answers 409 rather than 500: nothing is broken and nothing about the request was wrong.
+// Reloading and retrying is exactly what works.
+type AutomationConflictError struct {
+	AutomationID   string           `json:"automation_id"`
+	ExpectedStatus AutomationStatus `json:"expected_status"`
+}
+
+// Error implements the error interface. The observed status is deliberately absent: a write
+// that matched no row does not report what the row became, and re-reading it to find out
+// would be one more racy read reported as fact.
+func (e *AutomationConflictError) Error() string {
+	return fmt.Sprintf("automation %s was concurrently changed: it was no longer %s", e.AutomationID, e.ExpectedStatus)
+}
+
+// NewAutomationConflictError creates a new automation conflict error
+func NewAutomationConflictError(automationID string, expectedStatus AutomationStatus) *AutomationConflictError {
+	return &AutomationConflictError{AutomationID: automationID, ExpectedStatus: expectedStatus}
+}
+
 // ErrInsufficientPermissions is the default insufficient permissions error
 var ErrInsufficientPermissions = NewPermissionError(
 	PermissionResourceWorkspace,

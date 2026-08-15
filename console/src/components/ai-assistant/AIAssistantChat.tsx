@@ -14,6 +14,21 @@ import type { AIAssistantChatProps } from './types'
 // background, so they ride a custom role key instead.
 const TOOL_ROLE = 'tool'
 
+// Splitting on a capturing group interleaves the parts: even indices are the text
+// between the matches, odd indices are the matches themselves. That parity IS the
+// answer to "is this part a link?", so no second regex - and no regex state - is
+// consulted to classify a part.
+//
+// The previous code re-tested each part with this same /g regex inside the map.
+// A global regex carries lastIndex from one .test() to the next, so the verdict for a
+// part depended on the length of the part before it; that is a coin toss dressed as a
+// check, and it decides whether text is rendered as an anchor.
+//
+// Shared at module scope safely: String.split clones the pattern internally and never
+// touches the original's lastIndex.
+const URL_SPLIT_PATTERN = /(https?:\/\/[^\s]+)/g
+const isUrlPart = (index: number) => index % 2 === 1
+
 export function AIAssistantChat({
   workspace,
   config,
@@ -33,6 +48,7 @@ export function AIAssistantChat({
   resetConversation,
   hidden = false,
   chatBoxTop = 66,
+  width = 420,
   suggestions,
   onSuggestion
 }: AIAssistantChatProps) {
@@ -170,7 +186,7 @@ export function AIAssistantChat({
             top: chatBoxTop,
             bottom: 24,
             right: 24,
-            width: 420,
+            width,
             backgroundColor: '#fff',
             borderRadius: 12,
             boxShadow: '0 6px 24px rgba(0,0,0,0.15)',
@@ -265,8 +281,17 @@ export function AIAssistantChat({
                       style={{ background: config.avatarColor }}
                     />
                   ),
+                  // The panel is a few hundred px wide, and the padding and avatar
+                  // column take another ~90 off that - narrower than any markdown
+                  // table with more than about three columns, at any width the panel
+                  // can sensibly take without covering the page behind it. The
+                  // prompt asks the model to keep tables narrow, but a model will
+                  // sometimes emit a wide one anyway, so the table scrolls inside its
+                  // own bubble rather than pushing the conversation out of shape.
                   contentRender: (content: string) => (
-                    <XMarkdown openLinksInNewTab>{content}</XMarkdown>
+                    <div className="[&_table]:block [&_table]:max-w-full [&_table]:overflow-x-auto">
+                      <XMarkdown openLinksInNewTab>{content}</XMarkdown>
+                    </div>
                   )
                 },
                 thinking: {
@@ -293,12 +318,11 @@ export function AIAssistantChat({
                 [TOOL_ROLE]: {
                   placement: 'start',
                   contentRender: (text: string) => {
-                    const urlRegex = /(https?:\/\/[^\s]+)/g
-                    const parts = text.split(urlRegex)
+                    const parts = text.split(URL_SPLIT_PATTERN)
                     return (
                       <span>
                         {parts.map((part, i) =>
-                          urlRegex.test(part) ? (
+                          isUrlPart(i) ? (
                             <a
                               key={i}
                               href={part}

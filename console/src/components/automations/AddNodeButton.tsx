@@ -20,23 +20,6 @@ export const ADD_NODE_MENU_ITEMS: { key: NodeType; label: string; icon: React.Re
   { key: 'webhook', label: 'Webhook', icon: <Globe size={14} style={{ color: '#9254de' }} /> }
 ]
 
-// Helper to get translated label for a node type
-export const getNodeTypeLabel = (key: NodeType, t: (str: TemplateStringsArray) => string): string => {
-  const labels: Record<NodeType, string> = {
-    trigger: t`Trigger`,
-    delay: t`Delay`,
-    email: t`Email`,
-    filter: t`Filter`,
-    ab_test: t`A/B Test`,
-    list_status_branch: t`List Status`,
-    add_to_list: t`Add to List`,
-    remove_from_list: t`Remove from List`,
-    webhook: t`Webhook`,
-    branch: t`Branch`
-  }
-  return labels[key] || key
-}
-
 interface AddNodeButtonProps {
   onSelectNodeType: (nodeType: NodeType) => void
   hasListSelected: boolean
@@ -82,6 +65,29 @@ export const AddNodeButton: React.FC<AddNodeButtonProps> = ({
   )
 
 
+  // Labels live in here so `t` resolves to the useLingui() binding. Declared at module
+  // level taking `t` as a parameter, the macro cannot rewrite these tagged templates and
+  // what such a call reaches at runtime is i18n._, which answers "" to a tagged template
+  // — every label came back empty and the menu fell through to the raw node keys.
+  const getNodeTypeLabel = useCallback(
+    (key: NodeType): string => {
+      const labels: Record<NodeType, string> = {
+        trigger: t`Trigger`,
+        delay: t`Delay`,
+        email: t`Email`,
+        filter: t`Filter`,
+        ab_test: t`A/B Test`,
+        list_status_branch: t`List Status`,
+        add_to_list: t`Add to List`,
+        remove_from_list: t`Remove from List`,
+        webhook: t`Webhook`,
+        branch: t`Branch`
+      }
+      return labels[key] || key
+    },
+    [t]
+  )
+
   const buttonSize = size === 'small' ? 'w-6 h-6' : 'w-7 h-7'
   const shadowSize = size === 'small' ? 'shadow-md' : 'shadow-lg'
   const iconSize = size === 'small' ? 14 : 16
@@ -90,7 +96,7 @@ export const AddNodeButton: React.FC<AddNodeButtonProps> = ({
     <div className="py-1 min-w-[180px]">
       {ADD_NODE_MENU_ITEMS.map((item) => {
         const isDisabled = item.key === 'email' && !hasListSelected
-        const translatedLabel = getNodeTypeLabel(item.key, t)
+        const translatedLabel = getNodeTypeLabel(item.key)
         const button = (
           <button
             key={item.key}

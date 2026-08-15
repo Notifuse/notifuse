@@ -432,8 +432,7 @@ func (h *WorkspaceHandler) handleSetCustomFieldLabels(w http.ResponseWriter, r *
 	}
 
 	if err := h.workspaceService.SetCustomFieldLabels(r.Context(), workspaceID, labels); err != nil {
-		if _, ok := err.(*domain.PermissionError); ok {
-			WriteJSONError(w, err.Error(), http.StatusForbidden)
+		if writePermissionError(w, err) {
 			return
 		}
 		if _, ok := err.(*domain.ErrUnauthorized); ok {
@@ -474,8 +473,7 @@ func (h *WorkspaceHandler) handleSetBlogSettings(w http.ResponseWriter, r *http.
 	}
 
 	if err := h.workspaceService.SetBlogSettings(r.Context(), workspaceID, enabled, settings); err != nil {
-		if _, ok := err.(*domain.PermissionError); ok {
-			WriteJSONError(w, err.Error(), http.StatusForbidden)
+		if writePermissionError(w, err) {
 			return
 		}
 		if _, ok := err.(*domain.ErrUnauthorized); ok {
@@ -516,8 +514,7 @@ func (h *WorkspaceHandler) handleSetWebAnalyticsSettings(w http.ResponseWriter, 
 	}
 
 	if err := h.workspaceService.SetWebAnalyticsSettings(r.Context(), workspaceID, settings); err != nil {
-		if _, ok := err.(*domain.PermissionError); ok {
-			WriteJSONError(w, err.Error(), http.StatusForbidden)
+		if writePermissionError(w, err) {
 			return
 		}
 		if _, ok := err.(*domain.ErrUnauthorized); ok {

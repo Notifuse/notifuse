@@ -118,6 +118,55 @@ function breakdownRows(dimension: string, window: Window): Record<string, unknow
   ]
 }
 
+/**
+ * The riser case, on channel_group only: one row that leads the current window and sat
+ * behind a wall of bulk rows in the previous one.
+ *
+ * This fixture behaves like the engine rather than like a canned answer — it honours
+ * the `in` filter and the limit — because that is the only way the assertion can tell a
+ * scoped comparison query from an independent top-N. Every other dimension falls back
+ * to the shared rows.
+ */
+// Extends the row shape the runners actually return: an interface without an index
+// signature is not assignable to Record<string, unknown>, and these fixtures are
+// handed straight back to the battery as engine rows.
+interface ChannelRow extends Record<string, unknown> {
+  channel_group: string
+  sessions: number
+  bounce_rate: number
+  median_duration: number
+}
+
+const PREVIOUS_CHANNELS: ChannelRow[] = [
+  ...Array.from({ length: 10 }, (_row, index) => ({
+    channel_group: `bulk-${index}`,
+    sessions: 900 - index,
+    bounce_rate: 40,
+    median_duration: 60
+  })),
+  { channel_group: 'riser', sessions: 120, bounce_rate: 51.5, median_duration: 70 }
+]
+
+function risingChannelGroup(
+  dimension: string,
+  window: Window,
+  query: AnalyticsQuery
+): Record<string, unknown>[] {
+  if (dimension !== 'channel_group') return breakdownRows(dimension, window)
+  if (window === 'current') {
+    return [{ channel_group: 'riser', sessions: 4200, bounce_rate: 44.1, median_duration: 92 }]
+  }
+  const scoping = (query.filters ?? []).find(
+    (filter) => filter.member === dimension && filter.operator === 'in'
+  )
+  const matched = scoping
+    ? PREVIOUS_CHANNELS.filter((row) => scoping.values.includes(row.channel_group))
+    : PREVIOUS_CHANNELS
+  return [...matched]
+    .sort((left, right) => right.sessions - left.sessions)
+    .slice(0, query.limit ?? matched.length)
+}
+
 function goalRows(window: Window): Record<string, unknown>[] {
   const goals = window === 'current' ? 244 : 300
   return [{ goal_name: 'signup', goals, sum_goal_value: goals * 10 }]
@@ -127,7 +176,16 @@ interface Fixtures {
   range?: ResolvedRange
   totals?: Record<Window, Record<string, unknown>>
   series?: Record<string, unknown>[]
-  breakdown?: (dimension: string, window: Window) => Record<string, unknown>[]
+  /**
+   * The QUERY is handed over too, because the comparison window is not an independent
+   * top-N any more: a fixture that wants to prove the scoping filter is honoured has
+   * to be able to read it. Fixtures that do not care keep the two-argument shape.
+   */
+  breakdown?: (
+    dimension: string,
+    window: Window,
+    query: AnalyticsQuery
+  ) => Record<string, unknown>[]
   goals?: (window: Window) => Record<string, unknown>[]
   /** Returns an error message to reject the matching query with. */
   fail?: (call: Classified) => string | undefined
@@ -151,7 +209,7 @@ function makeRun(fixtures: Fixtures = {}) {
       case 'goals':
         return respond((fixtures.goals ?? goalRows)(call.window))
       default:
-        return respond((fixtures.breakdown ?? breakdownRows)(call.dimension, call.window))
+        return respond((fixtures.breakdown ?? breakdownRows)(call.dimension, call.window, query))
     }
   }
   return { run, queries, calls }
@@ -235,8 +293,13 @@ describe('buildPeriodSummary', () => {
     expect(series[series.length - 1]).toBe(
       'note: downsampled - one bucket in every 3 is shown, 67 of 200'
     )
-    expect(series[1]).toBe('bucket-0,0')
-    expect(series[2]).toBe('bucket-3,3')
+    // 200 rows at a stride of 3 leaves a remainder, so the two anchorings differ: kept
+    // last, the sample ends on bucket-199; anchored on index 0 it would end on
+    // bucket-198 and throw away the newest bucket - the recent end of the series the
+    // operator asked about, and the very truncation downsampling replaces.
+    expect(series[series.length - 2]).toBe('bucket-199,199')
+    expect(series[1]).toBe('bucket-1,1')
+    expect(series[2]).toBe('bucket-4,4')
   })
 
   it('omits a require-non-empty breakdown that holds nothing but the empty value', async () => {
@@ -349,6 +412,42 @@ describe('buildPeriodSummary', () => {
     expect(rows[2]).toBe('channel_group-b,500,0,,68.3,31')
   })
 
+  it('asks the comparison window for the rows on screen, so the biggest riser has a baseline', async () => {
+    const { run, queries, calls } = makeRun({ breakdown: risingChannelGroup })
+    const summary = await buildPeriodSummary(snapshotOf(run))
+    const rows = section(summary, '## by channel_group (top 8)').split('\n')
+
+    // 120 sessions in the previous window put `riser` far outside its top 8, so two
+    // independent top-Ns never intersect on it and the change cell renders blank — for
+    // the one row of the report the operator most wants marked as a riser.
+    expect(rows[1]).toBe('riser,4200,120,3400,44.1,92')
+    const comparison = calls.findIndex(
+      (call) =>
+        call.kind === 'breakdown' &&
+        call.dimension === 'channel_group' &&
+        call.window === 'previous'
+    )
+    const scoping = queries[comparison].filters?.find((filter) => filter.operator === 'in')
+    expect(scoping).toEqual({ member: 'channel_group', operator: 'in', values: ['riser'] })
+  })
+
+  it('prints a zero baseline for a row the comparison window genuinely has no data for', async () => {
+    const { run } = makeRun({
+      breakdown: (dimension, window) =>
+        window === 'current'
+          ? breakdownRows(dimension, window)
+          : breakdownRows(dimension, window).slice(0, 1)
+    })
+    const summary = await buildPeriodSummary(snapshotOf(run))
+    const rows = section(summary, '## by channel_group (top 8)').split('\n')
+
+    // The comparison window was asked for BOTH values by name, so a row it did not
+    // answer for had no traffic then — printed as the 0 it is rather than as the empty
+    // cell that used to mean "not in the other window's top-N". The blank stays on the
+    // change column, where blank means "no baseline" everywhere in this report.
+    expect(rows[2]).toBe('channel_group-b,500,0,,68.3,31')
+  })
+
   it('renders a failed section as unavailable and still ships the rest', async () => {
     const { run } = makeRun({
       fail: (call) => (call.dimension === 'country' ? 'engine timeout' : undefined)
@@ -370,13 +469,21 @@ describe('buildPeriodSummary', () => {
     const summary = await buildPeriodSummary(snapshotOf(run, { filters }))
 
     for (const [index, query] of queries.entries()) {
+      const call = calls[index]
       const members = (query.filters ?? [])
         .filter((filter) => filter.operator !== 'inDateRange')
         .map((filter) => filter.member)
       // goal_name only exists on web_goals and exit_path only on web_sessions; sending
       // either to the other schema fails the WHOLE query rather than being ignored,
       // blanking a section the dashboard beside it still shows.
-      expect(members).toEqual(calls[index].kind === 'goals' ? ['goal_name'] : ['exit_path'])
+      const expected = call.kind === 'goals' ? ['goal_name'] : ['exit_path']
+      // A comparison window carries one filter more — the values the current window
+      // returned — and it is the grouping dimension of that same query, so the scoping
+      // never smuggles a member the schema cannot take.
+      if ((call.kind === 'breakdown' || call.kind === 'goals') && call.window === 'previous') {
+        expected.push(call.dimension)
+      }
+      expect(members).toEqual(expected)
     }
     // The header still names both, because the summary must describe the dashboard the
     // operator is actually looking at.

@@ -133,6 +133,70 @@ describe('AIAssistantChat', () => {
     expect(link).toHaveAttribute('target', '_blank')
   })
 
+  it('linkifies every URL in a tool line, whatever the length of the one before it', () => {
+    // Classification used to run a /g regex's .test() once per part inside the map, so
+    // each verdict inherited the previous part's lastIndex. Two URLs in one line are
+    // the shortest reproduction of "the answer depends on what came before".
+    renderChat({
+      bubbleItems: [
+        {
+          key: 'm1',
+          role: 'system',
+          content: 'Compared https://example.com/very/long/report/path/2026 and https://ex.io/b'
+        }
+      ]
+    })
+
+    expect(
+      screen.getByRole('link', { name: 'https://example.com/very/long/report/path/2026' })
+    ).toHaveAttribute('href', 'https://example.com/very/long/report/path/2026')
+    expect(screen.getByRole('link', { name: 'https://ex.io/b' })).toHaveAttribute(
+      'href',
+      'https://ex.io/b'
+    )
+    // The prose around them stays prose.
+    expect(screen.getAllByRole('link')).toHaveLength(2)
+  })
+
+  it('renders a borderless step line without the filled bubble treatment', () => {
+    // The hook asks for the quiet variant per item; the panel must pass it through, or
+    // every step goes back to carrying the same weight as the answer.
+    const { container } = renderChat({
+      bubbleItems: [
+        {
+          key: 'm1',
+          role: 'system',
+          content: 'Channel Group - 10 rows',
+          variant: 'borderless',
+          avatar: { icon: null, size: 16, style: { background: 'transparent' } }
+        }
+      ]
+    })
+
+    expect(container.querySelector('.ant-bubble-content-borderless')).toBeInTheDocument()
+    expect(container.querySelector('.ant-bubble-content-filled')).toBeNull()
+    // The avatar keeps the line indented in the step column.
+    expect(container.querySelector('.ant-avatar')).toBeInTheDocument()
+  })
+
+  it('keeps a failed step loud, with the filled bubble the hook gives it', () => {
+    const { container } = renderChat({
+      bubbleItems: [
+        {
+          key: 'm1',
+          role: 'system',
+          content: 'Channel Group - failed',
+          styles: { content: { background: '#fff2f0' } }
+        }
+      ]
+    })
+
+    const content = container.querySelector<HTMLElement>('.ant-bubble-content')
+    expect(content).toBeInTheDocument()
+    expect(container.querySelector('.ant-bubble-content-borderless')).toBeNull()
+    expect(content?.style.background).toBe('rgb(255, 242, 240)')
+  })
+
   it('collapses reasoning into a Thinking disclosure', () => {
     renderChat({
       bubbleItems: [{ key: 'm1-thinking', role: 'thinking', content: 'Weighing two subject lines' }]
@@ -300,5 +364,23 @@ describe('AIAssistantChat empty-state suggestions', () => {
 
     fireEvent.click(chip)
     expect(onSuggestion).not.toHaveBeenCalled()
+  })
+})
+
+describe('AIAssistantChat panel width', () => {
+  // The Blog and Email assistants render prose and pass no width; the analytics one
+  // carries small metric tables and asks for more. The default is the fence that
+  // keeps a change made for one of them off the other two.
+  const panelOf = (container: HTMLElement) =>
+    container.querySelector<HTMLElement>('div[style*="position: fixed"][style*="width"]')
+
+  it('keeps the historical width when the caller asks for none', () => {
+    const { container } = render(<AIAssistantChat {...baseProps} open />)
+    expect(panelOf(container)?.style.width).toBe('420px')
+  })
+
+  it('widens the panel for a caller that asks for it', () => {
+    const { container } = render(<AIAssistantChat {...baseProps} open width={520} />)
+    expect(panelOf(container)?.style.width).toBe('520px')
   })
 })

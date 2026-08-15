@@ -1,8 +1,16 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
+import type { ReactElement, ReactNode } from 'react'
+import { Globe, Search } from 'lucide-react'
 import { useAIAssistant } from './useAIAssistant'
 import { llmApi, type LLMChatEvent, type LLMChatRequest, type LLMTool } from '../../services/api/llm'
-import type { AIAssistantConfig, ToolHandler, ToolResult, UseAIAssistantOptions } from './types'
+import type {
+  AIAssistantConfig,
+  BubbleItem,
+  ToolHandler,
+  ToolResult,
+  UseAIAssistantOptions
+} from './types'
 import { TOOL_RESULTS_HEADER } from './wire'
 import { buildWebAnalyticsToolHandlers } from '../web_analytics/web-analytics-ai-handlers'
 import type { AnalyticsResponse } from '../../services/api/analytics'
@@ -559,9 +567,16 @@ describe('useAIAssistant handler failure modes', () => {
         // Never resolves: a cold workspace whose queries simply do not come back.
         query: () => new Promise<AnalyticsResponse>(() => {}),
         applyUiState: async () => {},
+        // Nothing staged: this turn runs one tool, and the overlay only ever holds
+        // what a sibling tool of the same round already asked the page for.
+        pendingUiState: () => ({}),
         labels: {
           running: (what) => `Querying ${what}`,
           rows: (what, count) => `${what} - ${count} rows`,
+          // Unused by this case, which only runs summarize_period - but the labels
+          // are a complete contract, and an absent one is a typecheck error rather
+          // than an `undefined` that would surface as a blank step line.
+          series: (what, granularity) => `${what} per ${granularity}`,
           cancelled: (what) => `${what} - cancelled`,
           failed: (what) => `${what} - failed`,
           summary: () => 'Summarising the period',
@@ -644,6 +659,255 @@ describe('useAIAssistant handler failure modes', () => {
     const results = lastTurnOf(calls[1].messages)
     expect(results).toContain('now showing the pages section')
     expect(results).toContain('/pricing,120')
+  })
+})
+
+describe('useAIAssistant failure visibility', () => {
+  let consoleError: ReturnType<typeof vi.spyOn>
+
+  beforeEach(() => {
+    consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+  })
+
+  afterEach(() => {
+    consoleError.mockRestore()
+  })
+
+  it('shows the failure when the stream errors after a tool bubble took the assistant slot', async () => {
+    // A round whose first output is a tool call has its empty assistant bubble spliced
+    // out by insertToolMessage, so an error frame arriving afterwards had nothing left
+    // to rewrite - and onError declines to write twice for the same frame. The operator
+    // watched the bubble stop with no error and no answer.
+    vi.mocked(llmApi.streamChat).mockImplementation(async (_params, onEvent, onError) => {
+      onEvent(toolUse('query_web_analytics'))
+      onEvent({ type: 'error', error: 'provider exploded' } as LLMChatEvent)
+      onError?.(new Error('provider exploded'))
+    })
+    const handlers = new Map<string, ToolHandler>([
+      [
+        'query_web_analytics',
+        (_event, _insert, ctx) => {
+          ctx.progress('Querying sessions by day')
+          return { content: 'sessions\n42' }
+        }
+      ]
+    ])
+
+    const { result } = renderAssistant({ toolHandlers: handlers, maxToolRounds: 4 })
+    await send(result, 'how many sessions?')
+
+    const visible = result.current.bubbleItems.filter((b) => b.content.includes('provider exploded'))
+    expect(visible, 'the failure must be visible exactly once').toHaveLength(1)
+  })
+
+  it('shows the failure when the request is refused after a tool bubble took the assistant slot', async () => {
+    // Same key mismatch on the transport path: a plain HTTP 400 reaches onError only.
+    vi.mocked(llmApi.streamChat).mockImplementation(async (_params, onEvent, onError) => {
+      onEvent(toolUse('query_web_analytics'))
+      onError?.(new Error('HTTP error: 400'))
+    })
+    const handlers = new Map<string, ToolHandler>([
+      [
+        'query_web_analytics',
+        (_event, _insert, ctx) => {
+          ctx.progress('Querying sessions by day')
+          return { content: 'sessions\n42' }
+        }
+      ]
+    ])
+
+    const { result } = renderAssistant({ toolHandlers: handlers, maxToolRounds: 4 })
+    await send(result, 'how many sessions?')
+
+    const visible = result.current.bubbleItems.filter((b) => b.content.includes('HTTP error: 400'))
+    expect(visible).toHaveLength(1)
+  })
+
+  it('shows answer text that streams after a tool call, not only sends it to the model', async () => {
+    // The text is accrued into the round and pushed onto the wire transcript either
+    // way, so losing it on screen tells the model it said something the user never saw.
+    const { messagesAt } = scriptRounds([
+      [toolUse('query_web_analytics'), text('Sessions are up 12%.'), done()],
+      [text('Anything else?'), done()]
+    ])
+    const handlers = new Map<string, ToolHandler>([
+      [
+        'query_web_analytics',
+        (_event, _insert, ctx) => {
+          ctx.progress('Querying sessions by day')
+          return { content: 'sessions\n42' }
+        }
+      ]
+    ])
+
+    const { result } = renderAssistant({ toolHandlers: handlers, maxToolRounds: 4 })
+    await send(result, 'how many sessions?')
+
+    expect(messagesAt(2)[1]).toEqual({ role: 'assistant', content: 'Sessions are up 12%.' })
+    expect(result.current.bubbleItems.some((b) => b.content === 'Sessions are up 12%.')).toBe(true)
+  })
+
+  it('leaves something on screen when a turn produces no text and no tool bubble', async () => {
+    // bubbleItems skips a finished assistant message with no answer text - right for a
+    // continuation round, where the tool bubble is the output. A whole turn that ends
+    // that way rendered nothing at all, leaving the operator on their own question.
+    scriptRounds([[done()]])
+
+    const { result } = renderAssistant()
+    await send(result, 'hello')
+
+    const replies = result.current.bubbleItems.filter((b) => b.role !== 'user')
+    expect(replies).toHaveLength(1)
+    expect(replies[0].content.trim()).not.toBe('')
+  })
+
+  it('does not claim it never reached an answer when the capped round did answer', async () => {
+    // The last round may stream a complete answer AND ask for one more query; a red
+    // "I ran out of rounds" under a good answer reads as a bug.
+    const { calls } = scriptRounds([
+      [toolUse('query_web_analytics', { r: 1 }), done()],
+      [text('Sessions are up 12%.'), toolUse('query_web_analytics', { r: 2 }), done()]
+    ])
+    const handlers = new Map<string, ToolHandler>([
+      ['query_web_analytics', () => ({ content: 'sessions\n42' })]
+    ])
+
+    const { result } = renderAssistant({ toolHandlers: handlers, maxToolRounds: 2 })
+    await send(result, 'how many sessions?')
+
+    expect(calls).toHaveLength(2)
+    expect(result.current.messages.some((m) => m.content === 'Sessions are up 12%.')).toBe(true)
+    expect(result.current.messages.some((m) => m.toolName === '__error__')).toBe(false)
+  })
+})
+
+describe('useAIAssistant abandoned tool calls', () => {
+  it('stops a timed-out handler and drops the writes it makes afterwards', async () => {
+    vi.useFakeTimers()
+    try {
+      const gate = deferred<void>()
+      let handlerSignal: AbortSignal | undefined
+      const { calls } = scriptRounds([
+        [toolUse('query_web_analytics'), done()],
+        [text('That query timed out; try a shorter period.'), done()]
+      ])
+      const handlers = new Map<string, ToolHandler>([
+        [
+          'query_web_analytics',
+          async (_event, _insert, ctx) => {
+            handlerSignal = ctx.signal
+            const bubble = ctx.progress('Querying sessions by day')
+            await gate.promise
+            bubble.update('Querying sessions by day - 7 rows')
+            return { content: 'sessions\n42' }
+          }
+        ]
+      ])
+
+      const { result } = renderAssistant({ toolHandlers: handlers, maxToolRounds: 4 })
+      act(() => result.current.setInputValue('sessions by day'))
+      let turn!: Promise<void>
+      await act(async () => {
+        turn = result.current.handleSend()
+        await vi.advanceTimersByTimeAsync(0)
+      })
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(20_000)
+        gate.resolve()
+        await turn
+      })
+
+      expect(lastTurnOf(calls[1].messages)).toContain('timed out after 20000ms')
+      // The handler is told to stop, rather than left querying behind the apology...
+      expect(handlerSignal?.aborted).toBe(true)
+      // ...and its late repaint never lands beside it.
+      const bubble = result.current.messages.find((m) => m.role === 'tool')
+      expect(bubble?.content).toBe('Querying sessions by day')
+      expect(bubble?.loading).toBe(false)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('drops a late handler write into a conversation that was reset', async () => {
+    // insertToolMessage APPENDS when it cannot find the round's assistant bubble, so an
+    // unguarded late narration reappears in a thread the operator has just cleared.
+    const gate = deferred<void>()
+    scriptRounds([[toolUse('setEmailTree'), done()]])
+    const handlers = new Map<string, ToolHandler>([
+      [
+        'setEmailTree',
+        async (_event, insert) => {
+          await gate.promise
+          insert('Email updated', 'setEmailTree')
+        }
+      ]
+    ])
+
+    const { result } = renderAssistant({ toolHandlers: handlers, maxToolRounds: 4 })
+    await sendWithoutWaiting(result, 'build it')
+
+    act(() => result.current.resetConversation())
+    await act(async () => {
+      gate.resolve()
+      await flush()
+    })
+
+    expect(result.current.messages).toEqual([])
+  })
+
+  it('lets the model retry a call that failed instead of refusing it as a duplicate', async () => {
+    // The fingerprint used to be recorded at dispatch, so a call that came back with an
+    // error still poisoned the retry: the model was told "the earlier result stands"
+    // when the earlier result was a failure.
+    const { calls } = scriptRounds([
+      [toolUse('query_web_analytics', { measures: ['sessions'] }), done()],
+      [toolUse('query_web_analytics', { measures: ['sessions'] }), done()],
+      [text('Sessions are up.'), done()]
+    ])
+    let attempts = 0
+    const handlers = new Map<string, ToolHandler>([
+      [
+        'query_web_analytics',
+        () => {
+          attempts += 1
+          return attempts === 1
+            ? { content: 'analytics backend unreachable', isError: true }
+            : { content: 'day,sessions\n2026-08-14,4210' }
+        }
+      ]
+    ])
+
+    const { result } = renderAssistant({ toolHandlers: handlers, maxToolRounds: 4 })
+    await send(result, 'how many sessions?')
+
+    expect(attempts).toBe(2)
+    expect(calls).toHaveLength(3)
+    expect(lastTurnOf(calls[2].messages)).toContain('4210')
+  })
+
+  it('still refuses to repeat a call that succeeded', async () => {
+    const { calls } = scriptRounds([
+      [toolUse('query_web_analytics', { measures: ['sessions'] }), done()],
+      [toolUse('query_web_analytics', { measures: ['sessions'] }), done()]
+    ])
+    let attempts = 0
+    const handlers = new Map<string, ToolHandler>([
+      [
+        'query_web_analytics',
+        () => {
+          attempts += 1
+          return { content: 'sessions\n42' }
+        }
+      ]
+    ])
+
+    const { result } = renderAssistant({ toolHandlers: handlers, maxToolRounds: 4 })
+    await send(result, 'how many sessions?')
+
+    expect(attempts).toBe(1)
+    expect(calls).toHaveLength(2)
   })
 })
 
@@ -985,6 +1249,71 @@ describe('useAIAssistant turn identity and streaming state', () => {
     ).toBe(false)
   })
 
+  it('runs one turn when two submits land in the same tick', async () => {
+    // The web analytics chip auto-send effect firing beside a manual Enter: both read
+    // the pre-render isStreaming === false, and the second turn used to leave the first
+    // one streaming, accruing cost and running client tools.
+    const { calls } = scriptRounds([
+      [text('First.'), done()],
+      [text('Second.'), done()]
+    ])
+
+    const { result } = renderAssistant()
+    act(() => result.current.setInputValue('hello'))
+    await act(async () => {
+      void result.current.handleSend()
+      void result.current.handleSend()
+      await flush()
+    })
+
+    expect(calls).toHaveLength(1)
+    expect(result.current.messages.filter((m) => m.role === 'user')).toHaveLength(1)
+  })
+
+  it('ends the previous turn when a new one starts', async () => {
+    // Bumping the turn id orphans the old turn's writes; only the abort stops its
+    // request. handleCancel, resetConversation and unmount all pair the two.
+    const signals: Array<AbortSignal | undefined> = []
+    vi.mocked(llmApi.streamChat).mockImplementation(async (_params, onEvent, _onError, options) => {
+      signals.push(options?.signal)
+      onEvent(text('Answer.'))
+      onEvent(done())
+    })
+
+    const { result } = renderAssistant()
+    await send(result, 'first question')
+    expect(signals[0]?.aborted).toBe(false)
+
+    await send(result, 'second question')
+    expect(signals[0]?.aborted).toBe(true)
+    expect(signals[1]?.aborted).toBe(false)
+  })
+
+  it('drops a validation error that resolves after the turn was replaced', async () => {
+    // templatesApi.compile has no timeout and no AbortSignal, so this resolves whenever
+    // it resolves - possibly into a conversation two questions further on.
+    const gate = deferred<{ ok: boolean; errorText?: string }>()
+    scriptRounds([
+      [toolUse('setEmailTree'), text('Done.'), done()],
+      [text('Second answer.'), done()]
+    ])
+    const handlers = new Map<string, ToolHandler>([['setEmailTree', () => {}]])
+    const validateOnComplete = vi.fn(() => gate.promise)
+
+    const { result } = renderAssistant({ toolHandlers: handlers, validateOnComplete })
+    await sendWithoutWaiting(result, 'build it')
+    expect(validateOnComplete).toHaveBeenCalledTimes(1)
+
+    await send(result, 'now tweak it')
+
+    await act(async () => {
+      gate.resolve({ ok: false, errorText: 'line 3: mj-button width must be px' })
+      await flush()
+    })
+
+    expect(result.current.messages.some((m) => m.content.includes('mj-button width'))).toBe(false)
+  })
+
   it('accumulates cost across every round of a turn', async () => {
     scriptRounds([
       [
@@ -1003,5 +1332,263 @@ describe('useAIAssistant turn identity and streaming state', () => {
     expect(result.current.costs.input).toBeCloseTo(0.05)
     expect(result.current.costs.output).toBeCloseTo(0.07)
     expect(result.current.costs.total).toBeCloseTo(0.12)
+  })
+})
+
+describe('useAIAssistant quiet tool steps', () => {
+  /** Run one tool that narrates itself, and return the step bubble it left behind. */
+  async function runStep(options: {
+    toolName?: string
+    update?: { text: string; failed?: boolean }
+    toolIcons?: Record<string, ReactNode>
+  }) {
+    const name = options.toolName ?? 'query_web_analytics'
+    scriptRounds([[toolUse(name), done()]])
+    const handlers = new Map<string, ToolHandler>([
+      [
+        name,
+        (_event, _insert, ctx) => {
+          const bubble = ctx.progress('Channel Group')
+          if (options.update) bubble.update(options.update.text, { failed: options.update.failed })
+          return { content: 'rows' }
+        }
+      ]
+    ])
+
+    const { result } = renderAssistant({
+      toolHandlers: handlers,
+      maxToolRounds: 4,
+      toolIcons: options.toolIcons
+    })
+    await send(result, 'sessions by channel group')
+
+    const message = result.current.messages.find((m) => m.role === 'tool')
+    const item = result.current.bubbleItems.find((b) => b.key === message?.key)
+    expect(item).toBeDefined()
+    return { item: item as BubbleItem, message, result }
+  }
+
+  it('renders a finished tool step as a borderless line with no fill and no border', async () => {
+    const { item } = await runStep({ update: { text: 'Channel Group - 10 rows' } })
+
+    expect(item.variant).toBe('borderless')
+    expect(item.styles?.content?.background).toBe('transparent')
+    expect(item.styles?.content?.border).toBe('none')
+  })
+
+  it('gives a step smaller, secondary type so the answer keeps the weight', async () => {
+    const { item, result } = await runStep({ update: { text: 'Channel Group - 10 rows' } })
+    const answer = result.current.bubbleItems.find((b) => b.role === 'ai')
+
+    expect(item.styles?.content?.fontSize).toBe(12)
+    expect(item.styles?.content?.color).toBe('#8c8c8c')
+    // The answer is left entirely alone: no style, no variant, no avatar override.
+    expect(answer?.styles).toBeUndefined()
+    expect(answer?.variant).toBeUndefined()
+  })
+
+  it('keeps the step visible after the turn ends instead of clearing the trace', async () => {
+    const { item, result } = await runStep({ update: { text: 'Channel Group - 10 rows' } })
+
+    expect(result.current.isStreaming).toBe(false)
+    expect(item.content).toBe('Channel Group - 10 rows')
+  })
+
+  it('keeps a failed step loud: filled red, never the quiet variant', async () => {
+    const { item } = await runStep({ update: { text: 'Channel Group - failed', failed: true } })
+
+    expect(item.variant).toBeUndefined()
+    expect(item.styles?.content?.background).toBe('#fff2f0')
+    expect(item.styles?.content?.border).toBe('1px solid #ffccc7')
+  })
+
+  it('keeps an error bubble loud when the round itself fails', async () => {
+    // The round's assistant bubble is spliced out by the step line, so the failure is
+    // appended as its own error bubble - the one place the loud treatment has to hold
+    // without a `failed` flag to key off.
+    scriptRounds([
+      [toolUse('query_web_analytics'), { type: 'error', error: 'provider exploded' } as LLMChatEvent]
+    ])
+    const handlers = new Map<string, ToolHandler>([
+      [
+        'query_web_analytics',
+        (_event, _insert, ctx) => {
+          ctx.progress('Channel Group')
+          return { content: 'rows' }
+        }
+      ]
+    ])
+
+    const { result } = renderAssistant({ toolHandlers: handlers, maxToolRounds: 4 })
+    await send(result, 'sessions by channel group')
+
+    const errorItem = result.current.bubbleItems.find((b) => b.content.includes('provider exploded'))
+    expect(errorItem?.variant).toBeUndefined()
+    expect(errorItem?.styles?.content?.background).toBe('#fff2f0')
+  })
+})
+
+describe('useAIAssistant step icons', () => {
+  const serverToolStart = (name: string): LLMChatEvent =>
+    ({ type: 'server_tool_start', tool_name: name, tool_input: { url: 'https://ex.io' } }) as LLMChatEvent
+
+  async function iconFor(options: {
+    events: LLMChatEvent[]
+    toolIcons?: Record<string, ReactNode>
+    handlers?: Map<string, ToolHandler>
+  }) {
+    scriptRounds([[...options.events, done()]])
+    const { result } = renderAssistant({
+      toolHandlers: options.handlers ?? new Map(),
+      maxToolRounds: 4,
+      toolIcons: options.toolIcons
+    })
+    await send(result, 'look it up')
+
+    const message = result.current.messages.find((m) => m.role === 'tool')
+    return result.current.bubbleItems.find((b) => b.key === message?.key)?.avatar
+  }
+
+  it('keeps the built-in icons for the two tools the server runs', async () => {
+    const scrape = await iconFor({ events: [serverToolStart('scrape_url')] })
+    const search = await iconFor({ events: [serverToolStart('search_web')] })
+
+    expect((scrape?.icon as ReactElement)?.type).toBe(Globe)
+    expect((search?.icon as ReactElement)?.type).toBe(Search)
+  })
+
+  it('sizes the step avatar below the 20px chat-bubble avatar', async () => {
+    const avatar = await iconFor({ events: [serverToolStart('scrape_url')] })
+
+    expect(avatar?.size).toBeLessThan(20)
+    expect(avatar?.style.background).toBe('transparent')
+  })
+
+  it('lets a consumer icon win over the built-in default for the same tool', async () => {
+    const consumerIcon = <span data-testid="consumer-globe" />
+    const avatar = await iconFor({
+      events: [serverToolStart('scrape_url')],
+      toolIcons: { scrape_url: consumerIcon }
+    })
+
+    expect(avatar?.icon).toBe(consumerIcon)
+  })
+
+  it('resolves a feature tool the hook has never heard of from the consumer map', async () => {
+    const consumerIcon = <span data-testid="consumer-chart" />
+    const handlers = new Map<string, ToolHandler>([
+      [
+        'query_web_analytics',
+        (_event, _insert, ctx) => {
+          ctx.progress('Channel Group')
+          return { content: 'rows' }
+        }
+      ]
+    ])
+    const avatar = await iconFor({
+      events: [toolUse('query_web_analytics')],
+      handlers,
+      toolIcons: { query_web_analytics: consumerIcon }
+    })
+
+    expect(avatar?.icon).toBe(consumerIcon)
+  })
+
+  it('falls back to a neutral mark, keeping an unlabelled tool in the step column', async () => {
+    const handlers = new Map<string, ToolHandler>([
+      [
+        'query_web_analytics',
+        (_event, _insert, ctx) => {
+          ctx.progress('Channel Group')
+          return { content: 'rows' }
+        }
+      ]
+    ])
+    const fallback = await iconFor({ events: [toolUse('query_web_analytics')], handlers })
+    const known = await iconFor({ events: [serverToolStart('scrape_url')] })
+
+    expect(fallback?.icon).toBeTruthy()
+    // Same avatar box as an iconned step, or the lines lose their shared left edge.
+    expect(fallback?.size).toBe(known?.size)
+  })
+})
+
+describe('useAIAssistant step duration', () => {
+  let nowSpy: ReturnType<typeof vi.spyOn>
+
+  beforeEach(() => {
+    nowSpy = vi.spyOn(Date, 'now')
+  })
+
+  afterEach(() => {
+    nowSpy.mockRestore()
+  })
+
+  /** Run a step that takes `elapsedMs` of wall clock between progress() and update(). */
+  async function stepTaking(elapsedMs: number, opts: { failed?: boolean } = {}) {
+    const startedAt = 1_700_000_000_000
+    nowSpy.mockReturnValue(startedAt)
+    scriptRounds([[toolUse('query_web_analytics'), done()]])
+    const handlers = new Map<string, ToolHandler>([
+      [
+        'query_web_analytics',
+        (_event, _insert, ctx) => {
+          const bubble = ctx.progress('Channel Group')
+          nowSpy.mockReturnValue(startedAt + elapsedMs)
+          bubble.update('Channel Group - 10 rows', opts)
+          return { content: 'rows' }
+        }
+      ]
+    ])
+
+    const { result } = renderAssistant({ toolHandlers: handlers, maxToolRounds: 4 })
+    await send(result, 'sessions by channel group')
+    return result.current.messages.find((m) => m.role === 'tool')?.content
+  }
+
+  it('appends the elapsed time to a step slow enough to be worth reading', async () => {
+    expect(await stepTaking(1400)).toBe('Channel Group - 10 rows · 1.4s')
+  })
+
+  it('drops the decimal once the wait is measured in whole seconds', async () => {
+    expect(await stepTaking(12_400)).toBe('Channel Group - 10 rows · 12s')
+  })
+
+  it('says nothing about a step that finished before the number could mean anything', async () => {
+    // A stopwatch on every line is noise; it earns its place only when it explains a wait.
+    expect(await stepTaking(180)).toBe('Channel Group - 10 rows')
+  })
+
+  it('leaves the boundary case unmarked and the one just past it marked', async () => {
+    expect(await stepTaking(999)).toBe('Channel Group - 10 rows')
+    expect(await stepTaking(1000)).toBe('Channel Group - 10 rows · 1.0s')
+  })
+
+  it('never appends a duration to a failure, whose text is the thing to read', async () => {
+    expect(await stepTaking(4200, { failed: true })).toBe('Channel Group - 10 rows')
+  })
+
+  it('does not time a bubble the consumer never finishes', async () => {
+    // insertToolMessage's one-shot path posts a line with no handle to update, so there
+    // is nothing to append to and nothing to corrupt.
+    const startedAt = 1_700_000_000_000
+    nowSpy.mockReturnValue(startedAt)
+    scriptRounds([[toolUse('query_web_analytics'), done()]])
+    const handlers = new Map<string, ToolHandler>([
+      [
+        'query_web_analytics',
+        (_event, insert) => {
+          nowSpy.mockReturnValue(startedAt + 5_000)
+          insert('Applied the channel group filter', 'query_web_analytics')
+        }
+      ]
+    ])
+
+    const { result } = renderAssistant({ toolHandlers: handlers, maxToolRounds: 4 })
+    await send(result, 'filter by channel group')
+
+    expect(result.current.messages.find((m) => m.role === 'tool')?.content).toBe(
+      'Applied the channel group filter'
+    )
   })
 })
