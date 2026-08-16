@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"encoding/hex"
 	"strings"
 	"testing"
 	"time"
@@ -28,6 +29,30 @@ func TestUsageSigningKey(t *testing.T) {
 	t.Run("differs per installation", func(t *testing.T) {
 		assert.NotEqual(t, UsageSigningKey("abc"), UsageSigningKey("abd"))
 	})
+}
+
+// TestUsageSignatureGoldenVector pins the wire format against fixed inputs.
+//
+// The control plane is a separate Go module and cannot import this package, so
+// it reimplements this scheme. Nothing else would catch the two copies drifting:
+// a change here would keep every test in this repository green while silently
+// locking out every caller. The manager carries the identical vector, so
+// whichever side is edited fails first.
+//
+// Changing these constants means changing the wire format. Bump the version
+// prefix and keep the old branch instead.
+func TestUsageSignatureGoldenVector(t *testing.T) {
+	const (
+		secret       = "golden-vector-secret"
+		keyHex       = "9d1c6fc70542f7901782f00e82e6210d7ddacef8d392d0854a88c0b4d2f6d104"
+		timestamp    = int64(1755345600)
+		path         = "/api/usage.get"
+		expectedSign = "v1,CBjjN9MyWfv41F0BemwrgCfZhx2UIrIn4QpRFThXOcU="
+	)
+
+	key := UsageSigningKey(secret)
+	assert.Equal(t, keyHex, hex.EncodeToString(key), "the key derivation is part of the contract")
+	assert.Equal(t, expectedSign, SignUsageRequest(key, timestamp, path))
 }
 
 func TestVerifyUsageSignature(t *testing.T) {
