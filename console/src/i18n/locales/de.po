@@ -153,7 +153,7 @@ msgstr "{0} in {1}"
 
 #. placeholder {0}: processed.toLocaleString()
 #. placeholder {1}: enqueuedCount.toLocaleString()
-#: src/components/broadcasts/SendingProgress.tsx:59
+#: src/components/broadcasts/SendingProgress.tsx:58
 msgid "{0} of {1}"
 msgstr "{0} von {1}"
 
@@ -256,11 +256,11 @@ msgstr "{0}-{1} von {total} Automatisierungen"
 
 #. placeholder {0}: range[0]
 #. placeholder {1}: range[1]
-#: src/pages/BroadcastsPage.tsx:1603
+#: src/pages/BroadcastsPage.tsx:1624
 msgid "{0}-{1} of {total} broadcasts"
 msgstr "{0}-{1} von {total} Kampagnen"
 
-#: src/pages/BroadcastsPage.tsx:873
+#: src/pages/BroadcastsPage.tsx:884
 msgid "{clicks} clicks out of {recipients} recipients"
 msgstr "{clicks} Klicks von {recipients} Empfängern"
 
@@ -284,7 +284,7 @@ msgstr ""
 msgid "{label} copied to clipboard"
 msgstr "{label} in Zwischenablage kopiert"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:693
+#: src/components/templates/CreateTemplateDrawer.tsx:703
 msgid "{langName} translation is missing required fields (subject and preview)"
 msgstr ""
 
@@ -316,7 +316,7 @@ msgstr "{minutes}m {remainingSeconds}s"
 msgid "{minutes}m {seconds}s"
 msgstr ""
 
-#: src/pages/BroadcastsPage.tsx:838
+#: src/pages/BroadcastsPage.tsx:849
 msgid "{opens} opens out of {recipients} recipients"
 msgstr "{opens} Öffnungen von {recipients} Empfängern"
 
@@ -445,7 +445,7 @@ msgstr ""
 msgid "+{hiddenCount} more"
 msgstr ""
 
-#: src/pages/BroadcastsPage.tsx:857
+#: src/pages/BroadcastsPage.tsx:868
 msgid "0 clicks out of 0 recipients"
 msgstr "0 Klicks von 0 Empfängern"
 
@@ -453,7 +453,7 @@ msgstr "0 Klicks von 0 Empfängern"
 msgid "0 contacts"
 msgstr "0 Kontakte"
 
-#: src/pages/BroadcastsPage.tsx:826
+#: src/pages/BroadcastsPage.tsx:837
 msgid "0 opens out of 0 recipients"
 msgstr "0 Öffnungen von 0 Empfängern"
 
@@ -469,7 +469,7 @@ msgstr ""
 msgid "1. Audience"
 msgstr "1. Zielgruppe"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:767
+#: src/components/templates/CreateTemplateDrawer.tsx:777
 msgid "1. Settings"
 msgstr "1. Einstellungen"
 
@@ -477,12 +477,12 @@ msgstr "1. Einstellungen"
 msgid "100 - Thin"
 msgstr "100 - Dünn"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:773
+#: src/components/templates/CreateTemplateDrawer.tsx:783
 msgid "2. Template"
 msgstr "2. Vorlage"
 
 #. placeholder {0}: workspace.settings.default_language
-#: src/components/templates/CreateTemplateDrawer.tsx:772
+#: src/components/templates/CreateTemplateDrawer.tsx:782
 msgid "2. Template ({0})"
 msgstr ""
 
@@ -498,7 +498,7 @@ msgstr "200 - Extra leicht"
 msgid "3. Data Feeds"
 msgstr ""
 
-#: src/components/templates/CreateTemplateDrawer.tsx:779
+#: src/components/templates/CreateTemplateDrawer.tsx:789
 msgid "3. Translations"
 msgstr ""
 
@@ -577,27 +577,27 @@ msgstr "Ein Baum ist erforderlich"
 msgid "A value is required..."
 msgstr "Ein Wert ist erforderlich..."
 
-#: src/pages/BroadcastsPage.tsx:244
+#: src/pages/BroadcastsPage.tsx:245
 msgid "A winner has been selected. Emails are being sent to the remaining recipients."
 msgstr ""
 
 #: src/components/automations/AddNodeButton.tsx:79
 #: src/components/automations/nodes/ABTestNode.tsx:47
-#: src/components/automations/nodes/StatNode.tsx:81
-#: src/components/automations/nodes/StatNode.tsx:338
-#: src/pages/BroadcastsPage.tsx:1132
+#: src/components/automations/nodes/StatNode.tsx:87
+#: src/components/automations/nodes/StatNode.tsx:340
+#: src/pages/BroadcastsPage.tsx:1153
 msgid "A/B Test"
 msgstr "A/B-Test"
 
-#: src/pages/BroadcastsPage.tsx:236
+#: src/pages/BroadcastsPage.tsx:237
 msgid "A/B test has completed. Select a winner to send to the remaining recipients."
 msgstr ""
 
-#: src/pages/BroadcastsPage.tsx:223
+#: src/pages/BroadcastsPage.tsx:224
 msgid "A/B test is in progress. Emails are being sent to the test group."
 msgstr ""
 
-#: src/pages/BroadcastsPage.tsx:225
+#: src/pages/BroadcastsPage.tsx:226
 msgid "A/B Testing"
 msgstr ""
 
@@ -616,7 +616,7 @@ msgstr "Aktion"
 
 #: src/components/blog/PostsTable.tsx:296
 #: src/components/blog/RecentThemesTable.tsx:179
-#: src/pages/BroadcastsPage.tsx:887
+#: src/pages/BroadcastsPage.tsx:898
 msgid "Actions"
 msgstr "Aktionen"
 
@@ -634,7 +634,7 @@ msgstr "Automatisierung aktivieren?"
 
 #: src/components/automations/config/ListStatusBranchConfigForm.tsx:48
 #: src/components/automations/nodes/ListStatusBranchNode.tsx:60
-#: src/components/automations/nodes/StatNode.tsx:272
+#: src/components/automations/nodes/StatNode.tsx:274
 #: src/components/contacts/ContactDetailsDrawer.tsx:582
 #: src/components/contacts/SegmentsFilter.tsx:53
 #: src/components/lists/ListStats.tsx:66
@@ -855,7 +855,7 @@ msgstr ""
 
 #: src/components/automations/AddNodeButton.tsx:81
 #: src/components/automations/nodes/AddToListNode.tsx:41
-#: src/components/automations/nodes/StatNode.tsx:79
+#: src/components/automations/nodes/StatNode.tsx:85
 msgid "Add to List"
 msgstr "Zur Liste hinzufügen"
 
@@ -920,7 +920,7 @@ msgstr "nach"
 
 #. placeholder {0}: broadcast.test_settings.test_duration_hours
 #. placeholder {1}: broadcast.test_settings.auto_send_winner_metric === 'open_rate' ? t`opens` : t`clicks`
-#: src/pages/BroadcastsPage.tsx:1150
+#: src/pages/BroadcastsPage.tsx:1171
 msgid "After {0} hours based on highest {1}"
 msgstr "Nach {0} Stunden basierend auf höchsten {1}"
 
@@ -941,7 +941,7 @@ msgstr "Aggregieren"
 msgid "AI Assistant Not Configured"
 msgstr "KI-Assistent nicht konfiguriert"
 
-#: src/components/blog/BlogAIAssistant.tsx:35
+#: src/components/blog/BlogAIAssistant.tsx:55
 msgid "AI Blog Assistant"
 msgstr "KI-Blog-Assistent"
 
@@ -984,7 +984,7 @@ msgstr "Ausrichtung"
 #: src/components/analytics/EmailMetricsChart.tsx:284
 #: src/components/web_analytics/tabs/AnnotationsTab.tsx:124
 #: src/components/web_analytics/tabs/FiltersTab.tsx:152
-#: src/pages/BroadcastsPage.tsx:1519
+#: src/pages/BroadcastsPage.tsx:1540
 #: src/pages/TemplatesPage.tsx:124
 msgid "All"
 msgstr "Alle"
@@ -994,7 +994,7 @@ msgid "ALL"
 msgstr "ALLE"
 
 #. placeholder {0}: progressStats.enqueuedCount.toLocaleString()
-#: src/pages/BroadcastsPage.tsx:195
+#: src/pages/BroadcastsPage.tsx:196
 msgid "All {0} emails have been processed."
 msgstr ""
 
@@ -1018,7 +1018,7 @@ msgstr "Alle Kontaktfelder sind optional außer E-Mail."
 msgid "All dimensions selected"
 msgstr ""
 
-#: src/pages/BroadcastsPage.tsx:196
+#: src/pages/BroadcastsPage.tsx:197
 msgid "All emails have been sent."
 msgstr ""
 
@@ -1188,7 +1188,7 @@ msgid "anytime"
 msgstr "jederzeit"
 
 #: src/components/transactional/ApiCommandModal.tsx:976
-#: src/pages/TransactionalNotificationsPage.tsx:179
+#: src/pages/TransactionalNotificationsPage.tsx:181
 msgid "API Command"
 msgstr "API-Befehl"
 
@@ -1249,7 +1249,7 @@ msgstr "API-Token"
 msgid "Apply"
 msgstr "Anwenden"
 
-#: src/components/email_builder/MjmlCodeEditor.tsx:806
+#: src/components/email_builder/MjmlCodeEditor.tsx:822
 msgid "Apply & Recompile"
 msgstr ""
 
@@ -1276,7 +1276,7 @@ msgid "Are you sure you want to delete \"{0}\"?"
 msgstr "Sind Sie sicher, dass Sie \\\"{0}\\\" löschen möchten?"
 
 #. placeholder {0}: broadcastToDelete.name
-#: src/pages/BroadcastsPage.tsx:1687
+#: src/pages/BroadcastsPage.tsx:1708
 msgid "Are you sure you want to delete the broadcast \"{0}\"?"
 msgstr "Sind Sie sicher, dass Sie die Kampagne \\\"{0}\\\" löschen möchten?"
 
@@ -1352,7 +1352,7 @@ msgid "Are you sure you want to remove this variation?"
 msgstr "Sind Sie sicher, dass Sie diese Variante entfernen möchten?"
 
 #. placeholder {0}: record.templateName
-#: src/pages/BroadcastsPage.tsx:952
+#: src/pages/BroadcastsPage.tsx:973
 msgid "Are you sure you want to select \"{0}\" as the winner? The broadcast will be sent to the remaining recipients."
 msgstr "Sind Sie sicher, dass Sie \\\"{0}\\\" als Gewinner auswählen möchten? Die Kampagne wird an die verbleibenden Empfänger gesendet."
 
@@ -1376,7 +1376,7 @@ msgstr ""
 msgid "Ask me to fix these issues."
 msgstr ""
 
-#: src/components/blog/BlogAIAssistant.tsx:41
+#: src/components/blog/BlogAIAssistant.tsx:61
 msgid "Ask me to help write your blog..."
 msgstr "Fragen Sie mich, um beim Schreiben Ihres Blogs zu helfen..."
 
@@ -1426,7 +1426,7 @@ msgstr ""
 #~ msgid "Attribution rules saved. Run a backfill to rewrite historical data."
 #~ msgstr ""
 
-#: src/pages/BroadcastsPage.tsx:999
+#: src/pages/BroadcastsPage.tsx:1020
 msgid "Audience"
 msgstr "Zielgruppe"
 
@@ -1464,7 +1464,7 @@ msgstr "Autorenname ist erforderlich"
 msgid "Authorization Secret"
 msgstr "Autorisierungsgeheimnis"
 
-#: src/components/blog/PostDrawer.tsx:884
+#: src/components/blog/PostDrawer.tsx:895
 msgid "Authors"
 msgstr "Autoren"
 
@@ -1493,7 +1493,7 @@ msgstr ""
 msgid "Auto-reply"
 msgstr ""
 
-#: src/pages/BroadcastsPage.tsx:1141
+#: src/pages/BroadcastsPage.tsx:1162
 msgid "Auto-send Winner"
 msgstr "Gewinner automatisch senden"
 
@@ -1517,7 +1517,7 @@ msgstr "Automatisierung"
 msgid "Automation activated successfully"
 msgstr "Automatisierung erfolgreich aktiviert"
 
-#: src/components/automations/context/AutomationContext.tsx:249
+#: src/components/automations/context/AutomationContext.tsx:257
 msgid "Automation created successfully"
 msgstr "Automatisierung erfolgreich erstellt"
 
@@ -1529,7 +1529,7 @@ msgstr "Automatisierung erfolgreich gelöscht"
 msgid "Automation paused successfully"
 msgstr "Automatisierung erfolgreich pausiert"
 
-#: src/components/automations/context/AutomationContext.tsx:264
+#: src/components/automations/context/AutomationContext.tsx:272
 msgid "Automation updated successfully"
 msgstr "Automatisierung erfolgreich aktualisiert"
 
@@ -1550,7 +1550,7 @@ msgstr "Verfügbare Blöcke"
 #~ msgid "Available once you connect an email provider that supports inbound replies (currently Mailgun — more providers coming soon). It stops this automation for a contact as soon as they reply to one of its emails."
 #~ msgstr ""
 
-#: src/components/automations/UpsertAutomationDrawer.tsx:213
+#: src/components/automations/UpsertAutomationDrawer.tsx:215
 msgid "Available once you connect an email provider that supports inbound replies (currently Mailgun and Amazon SES — more providers coming soon). It stops this automation for a contact as soon as they reply to one of its emails."
 msgstr ""
 
@@ -1742,7 +1742,7 @@ msgstr "Blockname"
 msgid "Block saved as \"{0}\""
 msgstr "Block gespeichert als \\\"{0}\\\""
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1233
+#: src/components/templates/CreateTemplateDrawer.tsx:1243
 msgid "Block Settings Panel"
 msgstr "Block-Einstellungen"
 
@@ -1919,12 +1919,12 @@ msgstr "Rückläufer-Typ"
 #: src/components/messages/MessageHistoryTab.tsx:171
 #: src/components/messages/MessageHistoryTable.tsx:298
 #: src/pages/ContactsPage.tsx:395
-#: src/pages/TransactionalNotificationsPage.tsx:249
+#: src/pages/TransactionalNotificationsPage.tsx:251
 msgid "Bounced"
 msgstr "Zurückgewiesen"
 
 #: src/components/automations/AddNodeButton.tsx:84
-#: src/components/automations/nodes/StatNode.tsx:77
+#: src/components/automations/nodes/StatNode.tsx:83
 msgid "Branch"
 msgstr "Verzweigung"
 
@@ -1964,11 +1964,11 @@ msgstr "Kurze Beschreibung für Suchergebnisse"
 msgid "Brief description of this category"
 msgstr "Kurze Beschreibung dieser Kategorie"
 
-#: src/components/blog/PostDrawer.tsx:905
+#: src/components/blog/PostDrawer.tsx:916
 msgid "Brief summary of the post"
 msgstr "Kurze Zusammenfassung des Beitrags"
 
-#: src/components/blog/PostDrawer.tsx:901
+#: src/components/blog/PostDrawer.tsx:912
 msgid "Brief summary shown in post listings and previews"
 msgstr "Kurze Zusammenfassung in Beitragslisten und Vorschauen"
 
@@ -1986,27 +1986,27 @@ msgid "Broadcast"
 msgstr "Kampagne"
 
 #. placeholder {0}: broadcast.name
-#: src/pages/BroadcastsPage.tsx:1434
+#: src/pages/BroadcastsPage.tsx:1455
 msgid "Broadcast \"{0}\" cancelled successfully"
 msgstr "Kampagne \\\"{0}\\\" erfolgreich abgebrochen"
 
 #. placeholder {0}: broadcastToDelete.name
-#: src/pages/BroadcastsPage.tsx:1376
+#: src/pages/BroadcastsPage.tsx:1397
 msgid "Broadcast \"{0}\" deleted successfully"
 msgstr "Kampagne \\\"{0}\\\" erfolgreich gelöscht"
 
 #. placeholder {0}: broadcast.name
-#: src/pages/BroadcastsPage.tsx:1402
+#: src/pages/BroadcastsPage.tsx:1423
 msgid "Broadcast \"{0}\" paused successfully"
 msgstr "Kampagne \\\"{0}\\\" erfolgreich pausiert"
 
 #. placeholder {0}: broadcast.name
-#: src/pages/BroadcastsPage.tsx:1472
+#: src/pages/BroadcastsPage.tsx:1493
 msgid "Broadcast \"{0}\" refreshed"
 msgstr "Kampagne \\\"{0}\\\" aktualisiert"
 
 #. placeholder {0}: broadcast.name
-#: src/pages/BroadcastsPage.tsx:1418
+#: src/pages/BroadcastsPage.tsx:1439
 msgid "Broadcast \"{0}\" resumed successfully"
 msgstr "Kampagne \\\"{0}\\\" erfolgreich fortgesetzt"
 
@@ -2029,7 +2029,7 @@ msgstr "Kampagne erfolgreich erstellt"
 msgid "Broadcast ID"
 msgstr "Kampagnen-ID"
 
-#: src/pages/BroadcastsPage.tsx:1698
+#: src/pages/BroadcastsPage.tsx:1719
 msgid "Broadcast ID copied to clipboard"
 msgstr "Kampagnen-ID in Zwischenablage kopiert"
 
@@ -2043,7 +2043,7 @@ msgstr "Kampagne erfolgreich aktualisiert"
 
 #: src/components/analytics/EmailMetricsChart.tsx:285
 #: src/layouts/WorkspaceLayout.tsx:434
-#: src/pages/BroadcastsPage.tsx:1487
+#: src/pages/BroadcastsPage.tsx:1508
 msgid "Broadcasts"
 msgstr "Kampagnen"
 
@@ -2131,11 +2131,11 @@ msgstr ""
 #: src/components/automations/AutomationCard.tsx:237
 #: src/components/automations/config/ConditionsField.tsx:120
 #: src/components/automations/nodes/BaseNode.tsx:52
-#: src/components/automations/UpsertAutomationDrawer.tsx:100
-#: src/components/automations/UpsertAutomationDrawer.tsx:127
-#: src/components/automations/UpsertAutomationDrawer.tsx:165
+#: src/components/automations/UpsertAutomationDrawer.tsx:102
+#: src/components/automations/UpsertAutomationDrawer.tsx:129
+#: src/components/automations/UpsertAutomationDrawer.tsx:167
 #: src/components/blog_editor/toolbars/components/LinkPopover.tsx:115
-#: src/components/blog/PostDrawer.tsx:671
+#: src/components/blog/PostDrawer.tsx:682
 #: src/components/blog/PublishModal.tsx:205
 #: src/components/blog/RecentThemesTable.tsx:102
 #: src/components/blog/ThemeEditorDrawer.tsx:280
@@ -2187,7 +2187,7 @@ msgstr ""
 #: src/components/settings/WebhooksSettings.tsx:213
 #: src/components/settings/WorkspaceMembers.tsx:552
 #: src/components/settings/WorkspaceMembers.tsx:597
-#: src/components/templates/CreateTemplateDrawer.tsx:619
+#: src/components/templates/CreateTemplateDrawer.tsx:629
 #: src/components/templates/SendTemplateModal.tsx:268
 #: src/components/templates/TemplateTranslationsTab.tsx:255
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:179
@@ -2200,13 +2200,13 @@ msgstr ""
 #: src/components/web_analytics/filters/FilterTable.tsx:292
 #: src/components/web_analytics/filters/OperationsBuilder.tsx:105
 #: src/components/web_analytics/toolbar.tsx:119
-#: src/pages/BroadcastsPage.tsx:579
-#: src/pages/BroadcastsPage.tsx:601
-#: src/pages/BroadcastsPage.tsx:955
-#: src/pages/BroadcastsPage.tsx:1671
+#: src/pages/BroadcastsPage.tsx:590
+#: src/pages/BroadcastsPage.tsx:612
+#: src/pages/BroadcastsPage.tsx:976
+#: src/pages/BroadcastsPage.tsx:1692
 #: src/pages/ListsPage.tsx:318
 #: src/pages/TemplatesPage.tsx:366
-#: src/pages/TransactionalNotificationsPage.tsx:147
+#: src/pages/TransactionalNotificationsPage.tsx:149
 msgid "Cancel"
 msgstr "Abbrechen"
 
@@ -2214,11 +2214,11 @@ msgstr "Abbrechen"
 msgid "Cancel backfill?"
 msgstr ""
 
-#: src/pages/BroadcastsPage.tsx:618
+#: src/pages/BroadcastsPage.tsx:629
 msgid "Cancel Broadcast"
 msgstr "Kampagne abbrechen"
 
-#: src/pages/BroadcastsPage.tsx:622
+#: src/pages/BroadcastsPage.tsx:633
 msgid "Cancel broadcast?"
 msgstr ""
 
@@ -2230,9 +2230,9 @@ msgstr "Vorgang abbrechen?"
 msgid "Cancel Upload?"
 msgstr "Upload abbrechen?"
 
-#: src/pages/BroadcastsPage.tsx:209
-#: src/pages/BroadcastsPage.tsx:396
-#: src/pages/BroadcastsPage.tsx:1089
+#: src/pages/BroadcastsPage.tsx:210
+#: src/pages/BroadcastsPage.tsx:397
+#: src/pages/BroadcastsPage.tsx:1110
 msgid "Cancelled"
 msgstr "Abgebrochen"
 
@@ -2261,11 +2261,11 @@ msgstr "Großschreiben"
 msgid "Categories"
 msgstr "Kategorien"
 
-#: src/components/blog/PostDrawer.tsx:859
+#: src/components/blog/PostDrawer.tsx:870
 #: src/components/blog/PostsTable.tsx:236
 #: src/components/blog/ThemeEditorDrawer.tsx:428
 #: src/components/blog/ThemePresetPreviewDrawer.tsx:75
-#: src/components/templates/CreateTemplateDrawer.tsx:841
+#: src/components/templates/CreateTemplateDrawer.tsx:851
 #: src/pages/TemplatesPage.tsx:231
 msgid "Category"
 msgstr "Kategorie"
@@ -2410,7 +2410,7 @@ msgstr "Alles löschen"
 msgid "Clear field"
 msgstr "Feld leeren"
 
-#: src/pages/BroadcastsPage.tsx:1617
+#: src/pages/BroadcastsPage.tsx:1638
 msgid "Clear filters"
 msgstr ""
 
@@ -2479,14 +2479,14 @@ msgstr "Geklickt"
 msgid "clicked link contains"
 msgstr ""
 
-#: src/pages/BroadcastsPage.tsx:1150
+#: src/pages/BroadcastsPage.tsx:1171
 msgid "clicks"
 msgstr "Klicks"
 
 #: src/components/analytics/EmailMetricsChart.tsx:269
 #: src/components/analytics/EmailMetricsChart.tsx:402
 #: src/components/broadcasts/BroadcastStats.tsx:225
-#: src/pages/BroadcastsPage.tsx:850
+#: src/pages/BroadcastsPage.tsx:861
 msgid "Clicks"
 msgstr "Klicks"
 
@@ -2522,11 +2522,11 @@ msgstr "Klonen"
 msgid "Clone Block"
 msgstr "Block klonen"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:604
+#: src/components/templates/CreateTemplateDrawer.tsx:614
 msgid "Clone email template"
 msgstr "E-Mail-Vorlage klonen"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:595
+#: src/components/templates/CreateTemplateDrawer.tsx:605
 #: src/pages/TemplatesPage.tsx:322
 msgid "Clone Template"
 msgstr "Vorlage klonen"
@@ -2542,7 +2542,7 @@ msgstr "Vorlage klonen"
 msgid "Close"
 msgstr "Schließen"
 
-#: src/components/automations/UpsertAutomationDrawer.tsx:99
+#: src/components/automations/UpsertAutomationDrawer.tsx:101
 msgid "Close without saving"
 msgstr "Schließen ohne Speichern"
 
@@ -2550,12 +2550,12 @@ msgstr "Schließen ohne Speichern"
 msgid "Closed Captions (CC)"
 msgstr "Untertitel (CC)"
 
-#: src/components/email_builder/MjmlCodeEditor.tsx:662
+#: src/components/email_builder/MjmlCodeEditor.tsx:678
 #: src/pages/TemplatesPage.tsx:224
 msgid "Code"
 msgstr ""
 
-#: src/components/templates/CreateTemplateDrawer.tsx:889
+#: src/components/templates/CreateTemplateDrawer.tsx:899
 msgid "Code (MJML)"
 msgstr ""
 
@@ -2627,11 +2627,11 @@ msgstr ""
 msgid "Compilation Results"
 msgstr "Kompilierungsergebnisse"
 
-#: src/components/email_builder/MjmlCodeEditor.tsx:573
+#: src/components/email_builder/MjmlCodeEditor.tsx:589
 msgid "Compile the template first"
 msgstr ""
 
-#: src/components/email_builder/MjmlCodeEditor.tsx:706
+#: src/components/email_builder/MjmlCodeEditor.tsx:722
 msgid "Compiling..."
 msgstr ""
 
@@ -2670,7 +2670,7 @@ msgstr "Beschwerden"
 msgid "Complement, don't repeat the subject line"
 msgstr "Ergänzen, nicht die Betreffzeile wiederholen"
 
-#: src/pages/BroadcastsPage.tsx:200
+#: src/pages/BroadcastsPage.tsx:201
 msgid "Complete"
 msgstr ""
 
@@ -2687,12 +2687,12 @@ msgid "completed"
 msgstr "abgeschlossen"
 
 #: src/components/automations/AutomationCard.tsx:267
-#: src/components/automations/nodes/StatNode.tsx:130
-#: src/components/automations/nodes/StatNode.tsx:193
-#: src/components/automations/nodes/StatNode.tsx:262
-#: src/components/automations/nodes/StatNode.tsx:351
-#: src/pages/BroadcastsPage.tsx:392
-#: src/pages/BroadcastsPage.tsx:1070
+#: src/components/automations/nodes/StatNode.tsx:132
+#: src/components/automations/nodes/StatNode.tsx:195
+#: src/components/automations/nodes/StatNode.tsx:264
+#: src/components/automations/nodes/StatNode.tsx:353
+#: src/pages/BroadcastsPage.tsx:393
+#: src/pages/BroadcastsPage.tsx:1091
 msgid "Completed"
 msgstr "Abgeschlossen"
 
@@ -2719,7 +2719,7 @@ msgstr ""
 #~ msgid "Conditions (all must match; none = always match)"
 #~ msgstr ""
 
-#: src/components/automations/NodeConfigPanel.tsx:133
+#: src/components/automations/NodeConfigPanel.tsx:165
 msgid "Configuration for {nodeType} is not available in Phase 2"
 msgstr "Konfiguration für {nodeType} ist in Phase 2 nicht verfügbar"
 
@@ -2730,12 +2730,12 @@ msgstr ""
 
 #: src/components/analytics/AnalyticsDashboard.tsx:166
 #: src/components/analytics/AnalyticsDashboard.tsx:190
-#: src/components/automations/NodeConfigPanel.tsx:144
+#: src/components/automations/NodeConfigPanel.tsx:176
 #: src/components/automations/nodes/ABTestNode.tsx:60
 #: src/components/automations/nodes/AddToListNode.tsx:54
 #: src/components/automations/nodes/DelayNode.tsx:20
 #: src/components/automations/nodes/RemoveFromListNode.tsx:52
-#: src/components/automations/nodes/TriggerNode.tsx:75
+#: src/components/automations/nodes/TriggerNode.tsx:72
 #: src/components/automations/nodes/WebhookNode.tsx:55
 #: src/components/settings/Integrations.tsx:1191
 #: src/components/settings/Integrations.tsx:1239
@@ -2767,7 +2767,7 @@ msgid "Configure outgoing webhooks to receive real-time notifications when event
 msgstr "Konfigurieren Sie ausgehende Webhooks, um Echtzeit-Benachrichtigungen zu erhalten, wenn Ereignisse in Ihrem Arbeitsbereich auftreten."
 
 #: src/components/broadcasts/SendOrScheduleModal.tsx:187
-#: src/pages/BroadcastsPage.tsx:1556
+#: src/pages/BroadcastsPage.tsx:1577
 msgid "Configure Provider"
 msgstr "Anbieter konfigurieren"
 
@@ -2947,7 +2947,7 @@ msgstr ""
 msgid "Content quality by traffic source"
 msgstr ""
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1219
+#: src/components/templates/CreateTemplateDrawer.tsx:1229
 msgid "Content Structure Tree"
 msgstr "Inhaltsstrukturbaum"
 
@@ -3005,7 +3005,7 @@ msgstr "{0}-Code kopieren"
 #~ msgid "Copy code"
 #~ msgstr ""
 
-#: src/pages/BroadcastsPage.tsx:1691
+#: src/pages/BroadcastsPage.tsx:1712
 msgid "Copy to clipboard"
 msgstr "In Zwischenablage kopieren"
 
@@ -3039,8 +3039,8 @@ msgstr ""
 msgid "Could not load the goals"
 msgstr ""
 
-#: src/components/blog/PostDrawer.tsx:365
-#: src/components/templates/CreateTemplateDrawer.tsx:434
+#: src/components/blog/PostDrawer.tsx:376
+#: src/components/templates/CreateTemplateDrawer.tsx:444
 msgid "Could not load the latest version. Please try again."
 msgstr ""
 
@@ -3095,9 +3095,9 @@ msgstr ""
 msgid "Cover"
 msgstr "Abdecken"
 
-#: src/components/automations/UpsertAutomationDrawer.tsx:171
+#: src/components/automations/UpsertAutomationDrawer.tsx:173
 #: src/components/blog/CategoryDrawer.tsx:114
-#: src/components/blog/PostDrawer.tsx:680
+#: src/components/blog/PostDrawer.tsx:691
 #: src/components/file_manager/fileManager.tsx:1029
 #: src/components/lists/ListDrawer.tsx:170
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:109
@@ -3116,7 +3116,7 @@ msgstr ""
 msgid "Create a notification"
 msgstr "Benachrichtigung erstellen"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:605
+#: src/components/templates/CreateTemplateDrawer.tsx:615
 msgid "Create an email template"
 msgstr "E-Mail-Vorlage erstellen"
 
@@ -3134,15 +3134,15 @@ msgstr "Blog-Inhalte erstellen und verwalten"
 msgid "Create API Key"
 msgstr "API-Schlüssel erstellen"
 
-#: src/components/automations/UpsertAutomationDrawer.tsx:142
-#: src/components/automations/UpsertAutomationDrawer.tsx:286
+#: src/components/automations/UpsertAutomationDrawer.tsx:144
+#: src/components/automations/UpsertAutomationDrawer.tsx:288
 #: src/pages/AutomationsPage.tsx:178
 msgid "Create Automation"
 msgstr "Automatisierung erstellen"
 
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:383
-#: src/pages/BroadcastsPage.tsx:1502
-#: src/pages/BroadcastsPage.tsx:1640
+#: src/pages/BroadcastsPage.tsx:1523
+#: src/pages/BroadcastsPage.tsx:1661
 msgid "Create Broadcast"
 msgstr "Kampagne erstellen"
 
@@ -3175,7 +3175,7 @@ msgstr "Neuen Ordner erstellen"
 msgid "Create New List"
 msgstr "Neue Liste erstellen"
 
-#: src/components/blog/PostDrawer.tsx:644
+#: src/components/blog/PostDrawer.tsx:655
 msgid "Create New Post"
 msgstr "Neuen Beitrag erstellen"
 
@@ -3194,8 +3194,8 @@ msgid "Create New Theme - {0}"
 msgstr "Neues Theme erstellen - {0}"
 
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:198
-#: src/pages/TransactionalNotificationsPage.tsx:405
-#: src/pages/TransactionalNotificationsPage.tsx:457
+#: src/pages/TransactionalNotificationsPage.tsx:407
+#: src/pages/TransactionalNotificationsPage.tsx:459
 msgid "Create Notification"
 msgstr "Benachrichtigung erstellen"
 
@@ -3204,7 +3204,7 @@ msgstr "Benachrichtigung erstellen"
 msgid "Create rule"
 msgstr ""
 
-#: src/components/templates/CreateTemplateDrawer.tsx:595
+#: src/components/templates/CreateTemplateDrawer.tsx:605
 msgid "Create Template"
 msgstr "Vorlage erstellen"
 
@@ -3237,7 +3237,7 @@ msgstr "Erstellen Sie Ihre erste Automatisierung"
 msgid "Create your first blog post to get started"
 msgstr "Erstellen Sie Ihren ersten Blog-Beitrag, um loszulegen"
 
-#: src/pages/BroadcastsPage.tsx:1625
+#: src/pages/BroadcastsPage.tsx:1646
 msgid "Create your first broadcast to get started"
 msgstr "Erstellen Sie Ihre erste Kampagne, um loszulegen"
 
@@ -3249,7 +3249,7 @@ msgstr "Erste Kategorie erstellen"
 msgid "Create your first list to get started"
 msgstr "Erstellen Sie Ihre erste Liste, um loszulegen"
 
-#: src/pages/TransactionalNotificationsPage.tsx:444
+#: src/pages/TransactionalNotificationsPage.tsx:446
 msgid "Create your first notification to get started"
 msgstr "Erstellen Sie Ihre erste Benachrichtigung, um loszulegen"
 
@@ -3393,7 +3393,7 @@ msgid "Custom Endpoint URL"
 msgstr "Benutzerdefinierte Endpunkt-URL"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:106
-#: src/components/automations/nodes/TriggerNode.tsx:29
+#: src/components/automations/nodes/TriggerNode.tsx:26
 msgid "Custom Event"
 msgstr "Benutzerdefiniertes Ereignis"
 
@@ -3402,7 +3402,7 @@ msgid "Custom Event Filters (optional)"
 msgstr "Benutzerdefinierte Ereignisfilter (optional)"
 
 #. placeholder {0}: config.custom_event_name
-#: src/components/automations/nodes/TriggerNode.tsx:54
+#: src/components/automations/nodes/TriggerNode.tsx:51
 msgid "Custom Event: {0}"
 msgstr "Benutzerdefiniertes Ereignis: {0}"
 
@@ -3498,11 +3498,11 @@ msgstr ""
 msgid "Custom report"
 msgstr ""
 
-#: src/components/templates/CreateTemplateDrawer.tsx:949
+#: src/components/templates/CreateTemplateDrawer.tsx:959
 msgid "Custom sender (marketing email provider)"
 msgstr "Benutzerdefinierter Absender (Marketing-E-Mail-Anbieter)"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:949
+#: src/components/templates/CreateTemplateDrawer.tsx:959
 msgid "Custom sender (transactional email provider)"
 msgstr "Benutzerdefinierter Absender (Transaktions-E-Mail-Anbieter)"
 
@@ -3618,7 +3618,7 @@ msgstr "Standard-Attribute"
 msgid "Default Language"
 msgstr ""
 
-#: src/pages/BroadcastsPage.tsx:757
+#: src/pages/BroadcastsPage.tsx:768
 msgid "Default sender"
 msgstr "Standard-Absender"
 
@@ -3651,7 +3651,7 @@ msgstr "Definieren Sie UTM-Parameter für Links in Ihrer E-Mail für besseres Ka
 
 #: src/components/automations/AddNodeButton.tsx:76
 #: src/components/automations/nodes/DelayNode.tsx:45
-#: src/components/automations/nodes/StatNode.tsx:75
+#: src/components/automations/nodes/StatNode.tsx:81
 msgid "Delay"
 msgstr "Verzögerung"
 
@@ -3681,7 +3681,7 @@ msgstr "Verzögerung"
 #: src/components/web_analytics/filters/FilterTable.tsx:136
 #: src/components/web_analytics/filters/FilterTable.tsx:291
 #: src/components/web_analytics/filters/OperationsBuilder.tsx:104
-#: src/pages/BroadcastsPage.tsx:1681
+#: src/pages/BroadcastsPage.tsx:1702
 #: src/pages/ContactsPage.tsx:946
 #: src/pages/ListsPage.tsx:328
 msgid "Delete"
@@ -3717,8 +3717,8 @@ msgstr "Block löschen"
 msgid "Delete Block"
 msgstr "Block löschen"
 
-#: src/pages/BroadcastsPage.tsx:641
-#: src/pages/BroadcastsPage.tsx:1666
+#: src/pages/BroadcastsPage.tsx:652
+#: src/pages/BroadcastsPage.tsx:1687
 msgid "Delete Broadcast"
 msgstr "Kampagne löschen"
 
@@ -3736,7 +3736,7 @@ msgstr "Kontakt löschen"
 msgid "Delete contacts"
 msgstr "Kontakte löschen"
 
-#: src/components/automations/edges/AutomationEdge.tsx:69
+#: src/components/automations/edges/AutomationEdge.tsx:75
 msgid "Delete edge"
 msgstr "Kante löschen"
 
@@ -3788,7 +3788,7 @@ msgstr "Vorlage löschen"
 msgid "Delete template?"
 msgstr "Vorlage löschen?"
 
-#: src/pages/TransactionalNotificationsPage.tsx:143
+#: src/pages/TransactionalNotificationsPage.tsx:145
 msgid "Delete the notification?"
 msgstr "Benachrichtigung löschen?"
 
@@ -3857,7 +3857,7 @@ msgstr "zugestellt"
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:67
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:78
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:230
-#: src/pages/TransactionalNotificationsPage.tsx:215
+#: src/pages/TransactionalNotificationsPage.tsx:217
 msgid "Delivered"
 msgstr "Zugestellt"
 
@@ -3869,13 +3869,13 @@ msgstr "Zustellungs-ID:"
 msgid "Describe this image..."
 msgstr "Beschreiben Sie dieses Bild..."
 
-#: src/components/automations/NodeConfigPanel.tsx:163
+#: src/components/automations/NodeConfigPanel.tsx:195
 #: src/components/blog/CategoryDrawer.tsx:155
 #: src/components/lists/ListDrawer.tsx:206
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:308
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:193
 #: src/pages/ListsPage.tsx:269
-#: src/pages/TransactionalNotificationsPage.tsx:264
+#: src/pages/TransactionalNotificationsPage.tsx:266
 msgid "Description"
 msgstr "Beschreibung"
 
@@ -4095,8 +4095,8 @@ msgstr "{0} Datei(en) heruntergeladen"
 
 #: src/components/automations/AutomationCard.tsx:63
 #: src/components/blog/PostStatusTag.tsx:33
-#: src/pages/BroadcastsPage.tsx:143
-#: src/pages/BroadcastsPage.tsx:1520
+#: src/pages/BroadcastsPage.tsx:144
+#: src/pages/BroadcastsPage.tsx:1541
 msgid "Draft"
 msgstr "Entwurf"
 
@@ -4205,7 +4205,7 @@ msgstr "z.B. Kauf"
 msgid "e.g., Raleway, Open Sans"
 msgstr "z.B. Raleway, Open Sans"
 
-#: src/components/automations/NodeConfigPanel.tsx:177
+#: src/components/automations/NodeConfigPanel.tsx:209
 msgid "e.g., Welcome — day 1"
 msgstr ""
 
@@ -4218,7 +4218,7 @@ msgid "edit"
 msgstr "bearbeiten"
 
 #: src/components/automations/config/ConditionsField.tsx:108
-#: src/components/automations/UpsertAutomationDrawer.tsx:286
+#: src/components/automations/UpsertAutomationDrawer.tsx:288
 #: src/components/blog/PostsTable.tsx:349
 #: src/components/email_builder/ui/ImportFontInput.tsx:209
 #: src/components/settings/Integrations.tsx:340
@@ -4230,7 +4230,7 @@ msgstr "bearbeiten"
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:154
 #: src/components/web_analytics/filters/FilterTable.tsx:140
 #: src/pages/ContactsPage.tsx:940
-#: src/pages/TransactionalNotificationsPage.tsx:155
+#: src/pages/TransactionalNotificationsPage.tsx:157
 msgid "Edit"
 msgstr "Bearbeiten"
 
@@ -4252,7 +4252,7 @@ msgid "Edit Author"
 msgstr "Autor bearbeiten"
 
 #: src/components/automations/AutomationCard.tsx:176
-#: src/components/automations/UpsertAutomationDrawer.tsx:142
+#: src/components/automations/UpsertAutomationDrawer.tsx:144
 msgid "Edit Automation"
 msgstr "Automatisierung bearbeiten"
 
@@ -4261,7 +4261,7 @@ msgid "Edit broadcast"
 msgstr "Kampagne bearbeiten"
 
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:383
-#: src/pages/BroadcastsPage.tsx:544
+#: src/pages/BroadcastsPage.tsx:555
 msgid "Edit Broadcast"
 msgstr "Kampagne bearbeiten"
 
@@ -4281,7 +4281,7 @@ msgstr "CSS bearbeiten"
 msgid "Edit Custom Field Label"
 msgstr "Benutzerdefiniertes Feldlabel bearbeiten"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:602
+#: src/components/templates/CreateTemplateDrawer.tsx:612
 msgid "Edit email template"
 msgstr "E-Mail-Vorlage bearbeiten"
 
@@ -4320,7 +4320,7 @@ msgstr "Berechtigungen bearbeiten"
 msgid "Edit Permissions for {0}"
 msgstr "Berechtigungen bearbeiten für {0}"
 
-#: src/components/blog/PostDrawer.tsx:644
+#: src/components/blog/PostDrawer.tsx:655
 msgid "Edit Post"
 msgstr "Beitrag bearbeiten"
 
@@ -4336,7 +4336,7 @@ msgstr "Segment bearbeiten"
 msgid "Edit Sender"
 msgstr "Absender bearbeiten"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:595
+#: src/components/templates/CreateTemplateDrawer.tsx:605
 #: src/pages/TemplatesPage.tsx:300
 msgid "Edit Template"
 msgstr "Vorlage bearbeiten"
@@ -4371,7 +4371,7 @@ msgstr "Webhook bearbeiten"
 msgid "Editable markup"
 msgstr "Bearbeitbarer Markup"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:881
+#: src/components/templates/CreateTemplateDrawer.tsx:891
 msgid "Editor mode"
 msgstr ""
 
@@ -4398,7 +4398,7 @@ msgstr "E-Mail"
 #: src/components/automations/AddNodeButton.tsx:77
 #: src/components/automations/config/TriggerConfigForm.tsx:97
 #: src/components/automations/nodes/EmailNode.tsx:39
-#: src/components/automations/nodes/StatNode.tsx:76
+#: src/components/automations/nodes/StatNode.tsx:82
 #: src/components/contacts/BulkUpdateDrawer.tsx:665
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:89
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:920
@@ -4487,7 +4487,7 @@ msgstr "E-Mail-Öffnungen und Klicks-Tracking"
 msgid "Email Options:"
 msgstr "E-Mail-Optionen:"
 
-#: src/components/email_builder/MjmlCodeEditor.tsx:856
+#: src/components/email_builder/MjmlCodeEditor.tsx:872
 #: src/components/email_builder/panels/Preview.tsx:470
 msgid "Email Preview"
 msgstr "E-Mail-Vorschau"
@@ -4496,22 +4496,22 @@ msgstr "E-Mail-Vorschau"
 msgid "Email Provider Configuration Needed"
 msgstr "E-Mail-Anbieter-Konfiguration erforderlich"
 
-#: src/pages/BroadcastsPage.tsx:1545
+#: src/pages/BroadcastsPage.tsx:1566
 msgid "Email Provider Required"
 msgstr "E-Mail-Anbieter erforderlich"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:901
+#: src/components/templates/CreateTemplateDrawer.tsx:911
 #: src/components/templates/TemplateTranslationsTab.tsx:216
 msgid "Email subject"
 msgstr "E-Mail-Betreff"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:967
+#: src/components/templates/CreateTemplateDrawer.tsx:977
 #: src/components/templates/TemplateTranslationsTab.tsx:273
 msgid "Email Subject"
 msgstr "E-Mail-Betreff"
 
 #. placeholder {0}: workspace.settings.default_language
-#: src/components/templates/CreateTemplateDrawer.tsx:901
+#: src/components/templates/CreateTemplateDrawer.tsx:911
 msgid "Email subject ({0})"
 msgstr ""
 
@@ -4534,7 +4534,7 @@ msgstr "E-Mail:"
 
 #. placeholder {0}: progressStats.processed.toLocaleString()
 #. placeholder {1}: progressStats.remaining.toLocaleString()
-#: src/pages/BroadcastsPage.tsx:182
+#: src/pages/BroadcastsPage.tsx:183
 msgid "Emails are being delivered. {0} sent, {1} remaining."
 msgstr ""
 
@@ -4678,7 +4678,7 @@ msgstr "E-Mail-Adresse eingeben, um eine Test-E-Mail zu erhalten:"
 msgid "Enter author name"
 msgstr "Autorennamen eingeben"
 
-#: src/components/automations/UpsertAutomationDrawer.tsx:185
+#: src/components/automations/UpsertAutomationDrawer.tsx:187
 msgid "Enter automation name"
 msgstr "Automatisierungsnamen eingeben"
 
@@ -4694,7 +4694,7 @@ msgstr "Hintergrundbild-URL eingeben"
 msgid "Enter BCC email addresses"
 msgstr "BCC-E-Mail-Adressen eingeben"
 
-#: src/pages/BroadcastsPage.tsx:1704
+#: src/pages/BroadcastsPage.tsx:1725
 msgid "Enter broadcast ID to confirm"
 msgstr "Kampagnen-ID zur Bestätigung eingeben"
 
@@ -4854,7 +4854,7 @@ msgstr ""
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:930
 #: src/components/messages/MessageHistoryTable.tsx:134
 #: src/components/messages/MessageHistoryTable.tsx:322
-#: src/pages/BroadcastsPage.tsx:468
+#: src/pages/BroadcastsPage.tsx:469
 msgid "Error"
 msgstr "Fehler"
 
@@ -4865,7 +4865,7 @@ msgstr "Fehler beim Laden der Automatisierungen"
 #: src/components/messages/MessageHistoryTab.tsx:603
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:492
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:433
-#: src/pages/TransactionalNotificationsPage.tsx:371
+#: src/pages/TransactionalNotificationsPage.tsx:373
 msgid "Error loading data"
 msgstr "Fehler beim Laden der Daten"
 
@@ -4873,8 +4873,8 @@ msgstr "Fehler beim Laden der Daten"
 msgid "Error loading preview"
 msgstr "Fehler beim Laden der Vorschau"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:237
-#: src/components/templates/CreateTemplateDrawer.tsx:499
+#: src/components/templates/CreateTemplateDrawer.tsx:247
+#: src/components/templates/CreateTemplateDrawer.tsx:509
 msgid "Error loading template: Invalid template data"
 msgstr "Fehler beim Laden der Vorlage: Ungültige Vorlagendaten"
 
@@ -4900,7 +4900,7 @@ msgstr "Fehler: {0}"
 msgid "Error: {errorMessage}"
 msgstr "Fehler: {errorMessage}"
 
-#: src/components/email_builder/MjmlCodeEditor.tsx:667
+#: src/components/email_builder/MjmlCodeEditor.tsx:683
 msgid "Errors"
 msgstr ""
 
@@ -4959,7 +4959,7 @@ msgstr ""
 
 #: src/components/automations/AutomationCard.tsx:308
 #: src/components/automations/config/TriggerConfigForm.tsx:357
-#: src/components/automations/nodes/TriggerNode.tsx:25
+#: src/components/automations/nodes/TriggerNode.tsx:22
 msgid "Every time"
 msgstr "Jedes Mal"
 
@@ -4968,7 +4968,7 @@ msgstr "Jedes Mal"
 msgid "exactly"
 msgstr "genau"
 
-#: src/components/blog/PostDrawer.tsx:900
+#: src/components/blog/PostDrawer.tsx:911
 msgid "Excerpt"
 msgstr "Auszug"
 
@@ -4976,7 +4976,7 @@ msgstr "Auszug"
 msgid "Excerpt only"
 msgstr ""
 
-#: src/pages/BroadcastsPage.tsx:1031
+#: src/pages/BroadcastsPage.tsx:1052
 msgid "Exclude Unsubscribed"
 msgstr "Abgemeldete ausschließen"
 
@@ -4984,7 +4984,7 @@ msgstr "Abgemeldete ausschließen"
 msgid "Exclude unsubscribed, bounced & complained recipients"
 msgstr ""
 
-#: src/components/automations/UpsertAutomationDrawer.tsx:208
+#: src/components/automations/UpsertAutomationDrawer.tsx:210
 msgid "Exit on reply"
 msgstr ""
 
@@ -5028,7 +5028,7 @@ msgid "Explore"
 msgstr ""
 
 #: src/components/contacts/ExportContactsModal.tsx:323
-#: src/components/email_builder/MjmlCodeEditor.tsx:627
+#: src/components/email_builder/MjmlCodeEditor.tsx:643
 #: src/components/templates/ImportExportButton.tsx:416
 #: src/pages/ContactsPage.tsx:1023
 msgid "Export"
@@ -5038,11 +5038,11 @@ msgstr "Exportieren"
 msgid "Export Contacts to CSV"
 msgstr "Kontakte als CSV exportieren"
 
-#: src/components/email_builder/MjmlCodeEditor.tsx:636
+#: src/components/email_builder/MjmlCodeEditor.tsx:652
 msgid "Export HTML"
 msgstr ""
 
-#: src/components/email_builder/MjmlCodeEditor.tsx:631
+#: src/components/email_builder/MjmlCodeEditor.tsx:647
 msgid "Export MJML"
 msgstr ""
 
@@ -5077,9 +5077,9 @@ msgstr "fehlgeschlagen"
 #: src/components/analytics/EmailMetricsChart.tsx:273
 #: src/components/analytics/EmailMetricsChart.tsx:510
 #: src/components/automations/AutomationCard.tsx:281
-#: src/components/automations/nodes/StatNode.tsx:136
-#: src/components/automations/nodes/StatNode.tsx:198
-#: src/components/automations/nodes/StatNode.tsx:357
+#: src/components/automations/nodes/StatNode.tsx:138
+#: src/components/automations/nodes/StatNode.tsx:200
+#: src/components/automations/nodes/StatNode.tsx:359
 #: src/components/broadcasts/BroadcastStats.tsx:249
 #: src/components/contacts/BulkActionProgressModal.tsx:106
 #: src/components/contacts/BulkActionProgressModal.tsx:146
@@ -5091,11 +5091,11 @@ msgstr "fehlgeschlagen"
 #: src/components/settings/WebhookCard.tsx:317
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:80
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:242
-#: src/pages/BroadcastsPage.tsx:217
-#: src/pages/BroadcastsPage.tsx:394
-#: src/pages/BroadcastsPage.tsx:461
-#: src/pages/BroadcastsPage.tsx:1524
-#: src/pages/TransactionalNotificationsPage.tsx:232
+#: src/pages/BroadcastsPage.tsx:218
+#: src/pages/BroadcastsPage.tsx:395
+#: src/pages/BroadcastsPage.tsx:462
+#: src/pages/BroadcastsPage.tsx:1545
+#: src/pages/TransactionalNotificationsPage.tsx:234
 msgid "Failed"
 msgstr "Fehlgeschlagen"
 
@@ -5111,7 +5111,7 @@ msgstr "Aktivieren der Automatisierung fehlgeschlagen"
 msgid "Failed to add to list: {error}"
 msgstr "Zur Liste hinzufügen fehlgeschlagen: {error}"
 
-#: src/pages/BroadcastsPage.tsx:1439
+#: src/pages/BroadcastsPage.tsx:1460
 msgid "Failed to cancel broadcast"
 msgstr "Abbrechen der Kampagne fehlgeschlagen"
 
@@ -5137,7 +5137,7 @@ msgid "Failed to create API key"
 msgstr "Erstellen des API-Schlüssels fehlgeschlagen"
 
 #. placeholder {0}: error.message
-#: src/components/automations/context/AutomationContext.tsx:254
+#: src/components/automations/context/AutomationContext.tsx:262
 msgid "Failed to create automation: {0}"
 msgstr "Erstellen der Automatisierung fehlgeschlagen: {0}"
 
@@ -5166,7 +5166,7 @@ msgid "Failed to create notification: {0}"
 msgstr "Erstellen der Benachrichtigung fehlgeschlagen: {0}"
 
 #. placeholder {0}: error.message
-#: src/components/blog/PostDrawer.tsx:414
+#: src/components/blog/PostDrawer.tsx:425
 msgid "Failed to create post: {0}"
 msgstr "Erstellen des Beitrags fehlgeschlagen: {0}"
 
@@ -5175,7 +5175,7 @@ msgid "Failed to create segment"
 msgstr "Erstellen des Segments fehlgeschlagen"
 
 #. placeholder {0}: error.message
-#: src/components/templates/CreateTemplateDrawer.tsx:327
+#: src/components/templates/CreateTemplateDrawer.tsx:337
 msgid "Failed to create template: {0}"
 msgstr "Erstellen der Vorlage fehlgeschlagen: {0}"
 
@@ -5187,7 +5187,7 @@ msgstr "Erstellen des Arbeitsbereichs fehlgeschlagen"
 msgid "Failed to delete automation"
 msgstr "Löschen der Automatisierung fehlgeschlagen"
 
-#: src/pages/BroadcastsPage.tsx:1389
+#: src/pages/BroadcastsPage.tsx:1410
 msgid "Failed to delete broadcast"
 msgstr "Löschen der Kampagne fehlgeschlagen"
 
@@ -5216,7 +5216,7 @@ msgstr "Löschen der Einladung fehlgeschlagen"
 msgid "Failed to delete list"
 msgstr "Löschen der Liste fehlgeschlagen"
 
-#: src/pages/TransactionalNotificationsPage.tsx:354
+#: src/pages/TransactionalNotificationsPage.tsx:356
 msgid "Failed to delete notification"
 msgstr "Löschen der Benachrichtigung fehlgeschlagen"
 
@@ -5330,7 +5330,7 @@ msgstr "Laden der Webhook-Abonnements fehlgeschlagen"
 msgid "Failed to pause automation"
 msgstr "Pausieren der Automatisierung fehlgeschlagen"
 
-#: src/pages/BroadcastsPage.tsx:1407
+#: src/pages/BroadcastsPage.tsx:1428
 msgid "Failed to pause broadcast"
 msgstr "Pausieren der Kampagne fehlgeschlagen"
 
@@ -5356,7 +5356,7 @@ msgstr "Veröffentlichung des Beitrags fehlgeschlagen"
 msgid "Failed to publish theme"
 msgstr "Veröffentlichung des Themes fehlgeschlagen"
 
-#: src/components/email_builder/MjmlCodeEditor.tsx:553
+#: src/components/email_builder/MjmlCodeEditor.tsx:569
 #: src/components/templates/ImportExportButton.tsx:197
 msgid "Failed to read the file"
 msgstr "Lesen der Datei fehlgeschlagen"
@@ -5398,7 +5398,7 @@ msgstr "Erneutes Senden der Einladung fehlgeschlagen"
 msgid "Failed to resend magic code"
 msgstr "Magic-Code konnte nicht erneut gesendet werden"
 
-#: src/pages/BroadcastsPage.tsx:1423
+#: src/pages/BroadcastsPage.tsx:1444
 msgid "Failed to resume broadcast"
 msgstr "Fortsetzen der Kampagne fehlgeschlagen"
 
@@ -5437,7 +5437,7 @@ msgstr ""
 msgid "Failed to save Supabase integration"
 msgstr "Speichern der Supabase-Integration fehlgeschlagen"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:579
+#: src/components/templates/CreateTemplateDrawer.tsx:589
 msgid "Failed to save template block"
 msgstr "Speichern des Vorlagenblocks fehlgeschlagen"
 
@@ -5453,7 +5453,7 @@ msgstr "Speichern des Webhook-Abonnements fehlgeschlagen"
 msgid "Failed to schedule broadcast"
 msgstr "Planen der Kampagne fehlgeschlagen"
 
-#: src/pages/BroadcastsPage.tsx:373
+#: src/pages/BroadcastsPage.tsx:374
 msgid "Failed to select winner"
 msgstr "Auswahl des Gewinners fehlgeschlagen"
 
@@ -5502,7 +5502,7 @@ msgid "Failed to unpublish post"
 msgstr "Zurückziehen des Beitrags fehlgeschlagen"
 
 #. placeholder {0}: error.message
-#: src/components/automations/context/AutomationContext.tsx:269
+#: src/components/automations/context/AutomationContext.tsx:277
 msgid "Failed to update automation: {0}"
 msgstr "Aktualisieren der Automatisierung fehlgeschlagen: {0}"
 
@@ -5546,7 +5546,7 @@ msgid "Failed to update permissions"
 msgstr "Aktualisieren der Berechtigungen fehlgeschlagen"
 
 #. placeholder {0}: error.message
-#: src/components/blog/PostDrawer.tsx:502
+#: src/components/blog/PostDrawer.tsx:513
 msgid "Failed to update post: {0}"
 msgstr "Aktualisieren des Beitrags fehlgeschlagen: {0}"
 
@@ -5559,7 +5559,7 @@ msgid "Failed to update status: {error}"
 msgstr "Aktualisieren des Status fehlgeschlagen: {error}"
 
 #. placeholder {0}: error.message
-#: src/components/templates/CreateTemplateDrawer.tsx:327
+#: src/components/templates/CreateTemplateDrawer.tsx:337
 msgid "Failed to update template: {0}"
 msgstr "Aktualisieren der Vorlage fehlgeschlagen: {0}"
 
@@ -5583,7 +5583,7 @@ msgstr "Code konnte nicht verifiziert werden"
 msgid "Favicon for your blog. Recommended: 32x32px or 192x192px PNG"
 msgstr "Favicon für Ihren Blog. Empfohlen: 32x32px oder 192x192px PNG"
 
-#: src/components/blog/PostDrawer.tsx:911
+#: src/components/blog/PostDrawer.tsx:922
 msgid "Featured Image URL"
 msgstr "Beitragsbild-URL"
 
@@ -5644,7 +5644,7 @@ msgstr "Datei {0} überschreitet 3MB-Limit"
 msgid "File deleted successfully."
 msgstr "Datei erfolgreich gelöscht."
 
-#: src/components/email_builder/MjmlCodeEditor.tsx:540
+#: src/components/email_builder/MjmlCodeEditor.tsx:556
 msgid "File is too large. Maximum size is 1MB."
 msgstr ""
 
@@ -5680,8 +5680,8 @@ msgstr ""
 
 #: src/components/automations/AddNodeButton.tsx:78
 #: src/components/automations/nodes/FilterNode.tsx:48
-#: src/components/automations/nodes/StatNode.tsx:78
-#: src/components/automations/nodes/StatNode.tsx:180
+#: src/components/automations/nodes/StatNode.tsx:84
+#: src/components/automations/nodes/StatNode.tsx:182
 msgid "Filter"
 msgstr "Filtern"
 
@@ -5849,7 +5849,7 @@ msgstr "für Tracking (nicht in Vorlagen verfügbar)."
 #~ msgid "Forever"
 #~ msgstr ""
 
-#: src/components/email_builder/MjmlCodeEditor.tsx:730
+#: src/components/email_builder/MjmlCodeEditor.tsx:746
 msgid "Format"
 msgstr ""
 
@@ -5867,7 +5867,7 @@ msgid "Found {0} email addresses"
 msgstr "{0} E-Mail-Adressen gefunden"
 
 #. placeholder {0}: new Date(savedAt).toLocaleString()
-#: src/components/blog/PostDrawer.tsx:280
+#: src/components/blog/PostDrawer.tsx:291
 msgid "Found unsaved changes from {0}"
 msgstr "Nicht gespeicherte Änderungen von {0} gefunden"
 
@@ -5898,7 +5898,7 @@ msgstr "Von Name"
 msgid "From Name (override)"
 msgstr "Von Name (überschreiben)"
 
-#: src/pages/BroadcastsPage.tsx:805
+#: src/pages/BroadcastsPage.tsx:816
 msgid "From:"
 msgstr "Von:"
 
@@ -5968,7 +5968,7 @@ msgstr ""
 msgid "Generate this key in Supabase Auth Hooks settings"
 msgstr "Generieren Sie diesen Schlüssel in den Supabase Auth Hooks-Einstellungen"
 
-#: src/components/email_builder/MjmlCodeEditor.tsx:675
+#: src/components/email_builder/MjmlCodeEditor.tsx:691
 msgid "Generated HTML"
 msgstr ""
 
@@ -6155,13 +6155,13 @@ msgstr ""
 msgid "Height"
 msgstr "Höhe"
 
-#: src/components/email_builder/MjmlCodeEditor.tsx:702
-#: src/components/templates/CreateTemplateDrawer.tsx:138
+#: src/components/email_builder/MjmlCodeEditor.tsx:718
+#: src/components/templates/CreateTemplateDrawer.tsx:148
 #: src/layouts/WorkspaceLayout.tsx:706
 msgid "Help"
 msgstr "Hilfe"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:133
+#: src/components/templates/CreateTemplateDrawer.tsx:143
 msgid "Help & Support"
 msgstr "Hilfe & Support"
 
@@ -6177,7 +6177,7 @@ msgstr "Hilft Screenreadern, das Bild zu beschreiben"
 msgid "Hide"
 msgstr "Ausblenden"
 
-#: src/pages/BroadcastsPage.tsx:709
+#: src/pages/BroadcastsPage.tsx:720
 msgid "Hide Details"
 msgstr "Details ausblenden"
 
@@ -6284,11 +6284,11 @@ msgstr ""
 msgid "i.e: Big spenders..."
 msgstr "z.B.: Großkunden..."
 
-#: src/components/templates/CreateTemplateDrawer.tsx:793
+#: src/components/templates/CreateTemplateDrawer.tsx:803
 msgid "i.e: Welcome Email"
 msgstr "z.B.: Willkommens-E-Mail"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:834
+#: src/components/templates/CreateTemplateDrawer.tsx:844
 msgid "i.e: welcome-email"
 msgstr "z.B.: willkommens-email"
 
@@ -6316,7 +6316,7 @@ msgstr "Symbol/Favicon-URL"
 #: src/components/messages/MessageHistoryTable.tsx:211
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:355
 #: src/pages/ListsPage.tsx:267
-#: src/pages/TransactionalNotificationsPage.tsx:262
+#: src/pages/TransactionalNotificationsPage.tsx:264
 msgid "ID"
 msgstr "ID"
 
@@ -6328,7 +6328,7 @@ msgstr "ID kann nur Kleinbuchstaben und Zahlen enthalten"
 msgid "ID can only contain lowercase letters, numbers, and underscores"
 msgstr "ID kann nur Kleinbuchstaben, Zahlen und Unterstriche enthalten"
 
-#: src/pages/BroadcastsPage.tsx:1712
+#: src/pages/BroadcastsPage.tsx:1733
 #: src/pages/ListsPage.tsx:346
 msgid "ID doesn't match"
 msgstr "ID stimmt nicht überein"
@@ -6349,7 +6349,7 @@ msgstr "ID muss alphanumerisch sein"
 msgid "ID must be less than 32 characters"
 msgstr "ID muss weniger als 32 Zeichen haben"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:815
+#: src/components/templates/CreateTemplateDrawer.tsx:825
 msgid "ID must contain only lowercase letters, numbers, underscores, and hyphens"
 msgstr "ID darf nur Kleinbuchstaben, Zahlen, Unterstriche und Bindestriche enthalten"
 
@@ -6438,18 +6438,18 @@ msgstr ""
 msgid "Implicit TLS (SMTPS)"
 msgstr ""
 
-#: src/components/email_builder/MjmlCodeEditor.tsx:615
+#: src/components/email_builder/MjmlCodeEditor.tsx:631
 #: src/components/templates/ImportExportButton.tsx:387
 #: src/pages/ContactsPage.tsx:1016
 msgid "Import"
 msgstr "Importieren"
 
-#: src/components/email_builder/MjmlCodeEditor.tsx:691
+#: src/components/email_builder/MjmlCodeEditor.tsx:707
 #: src/components/templates/ImportExportButton.tsx:456
 msgid "Import / Export"
 msgstr "Import / Export"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1262
+#: src/components/templates/CreateTemplateDrawer.tsx:1272
 msgid "Import & Export Templates"
 msgstr "Vorlagen importieren & exportieren"
 
@@ -6484,7 +6484,7 @@ msgstr "Importieren Sie Schriften aus gehosteten CSS-Dateien (wie Google Fonts) 
 msgid "Import from CSV"
 msgstr "Aus CSV importieren"
 
-#: src/components/email_builder/MjmlCodeEditor.tsx:619
+#: src/components/email_builder/MjmlCodeEditor.tsx:635
 msgid "Import MJML"
 msgstr ""
 
@@ -6526,7 +6526,7 @@ msgid "in"
 msgstr ""
 
 #. placeholder {0}: broadcast.schedule.timezone
-#: src/pages/BroadcastsPage.tsx:1057
+#: src/pages/BroadcastsPage.tsx:1078
 msgid "in {0}"
 msgstr "in {0}"
 
@@ -6535,7 +6535,7 @@ msgstr "in {0}"
 msgid "in date range"
 msgstr "im Datumsbereich"
 
-#: src/pages/BroadcastsPage.tsx:1056
+#: src/pages/BroadcastsPage.tsx:1077
 msgid "in recipients timezone"
 msgstr "in Empfänger-Zeitzone"
 
@@ -6576,14 +6576,14 @@ msgstr "Indizieren und Links folgen"
 msgid "Index, but don't follow links"
 msgstr "Indizieren, aber Links nicht folgen"
 
-#: src/components/automations/nodes/StatNode.tsx:125
-#: src/components/automations/nodes/StatNode.tsx:188
-#: src/components/automations/nodes/StatNode.tsx:257
-#: src/components/automations/nodes/StatNode.tsx:346
+#: src/components/automations/nodes/StatNode.tsx:127
+#: src/components/automations/nodes/StatNode.tsx:190
+#: src/components/automations/nodes/StatNode.tsx:259
+#: src/components/automations/nodes/StatNode.tsx:348
 msgid "Inflight"
 msgstr "In Bearbeitung"
 
-#: src/pages/BroadcastsPage.tsx:800
+#: src/pages/BroadcastsPage.tsx:811
 msgid "Info"
 msgstr "Info"
 
@@ -6694,7 +6694,7 @@ msgid "Invalid invitation link: missing token"
 msgstr "Ungültiger Einladungslink: Token fehlt"
 
 #: src/components/contacts/InlineEditableField.tsx:94
-#: src/components/email_builder/MjmlCodeEditor.tsx:593
+#: src/components/email_builder/MjmlCodeEditor.tsx:609
 msgid "Invalid JSON format"
 msgstr "Ungültiges JSON-Format"
 
@@ -7027,7 +7027,7 @@ msgstr "Links nach rechts"
 msgid "Let users sign in with an external identity provider (Google Workspace, Keycloak, Okta, …) alongside magic codes."
 msgstr ""
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1215
+#: src/components/templates/CreateTemplateDrawer.tsx:1225
 msgid "Let's take a quick tour to help you get started with building beautiful emails using MJML."
 msgstr "Machen wir eine kurze Tour, um Ihnen den Einstieg in die Erstellung schöner E-Mails mit MJML zu erleichtern."
 
@@ -7106,7 +7106,7 @@ msgstr ""
 #: src/components/automations/config/RemoveFromListConfigForm.tsx:26
 #: src/components/automations/config/TriggerConfigForm.tsx:75
 #: src/components/automations/config/TriggerConfigForm.tsx:273
-#: src/components/automations/UpsertAutomationDrawer.tsx:191
+#: src/components/automations/UpsertAutomationDrawer.tsx:193
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:519
 #: src/components/contacts/BulkUpdateDrawer.tsx:602
 #: src/components/contacts/ExportContactsModal.tsx:73
@@ -7115,7 +7115,7 @@ msgstr ""
 #: src/components/messages/MessageHistoryTable.tsx:229
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:231
 #: src/components/web_analytics/tabs/DashboardTab.tsx:220
-#: src/pages/BroadcastsPage.tsx:1023
+#: src/pages/BroadcastsPage.tsx:1044
 #: src/pages/ContactsPage.tsx:379
 msgid "List"
 msgstr "Liste"
@@ -7145,8 +7145,8 @@ msgstr "Listen-ID: {0}"
 
 #: src/components/automations/AddNodeButton.tsx:80
 #: src/components/automations/nodes/ListStatusBranchNode.tsx:38
-#: src/components/automations/nodes/StatNode.tsx:83
-#: src/components/automations/nodes/StatNode.tsx:249
+#: src/components/automations/nodes/StatNode.tsx:89
+#: src/components/automations/nodes/StatNode.tsx:251
 #: src/components/contacts/ExportContactsModal.tsx:80
 #: src/pages/ContactsPage.tsx:389
 msgid "List Status"
@@ -7215,7 +7215,7 @@ msgid "Load saved template"
 msgstr "Gespeicherte Vorlage laden"
 
 #. placeholder {0}: latest.version
-#: src/components/templates/CreateTemplateDrawer.tsx:426
+#: src/components/templates/CreateTemplateDrawer.tsx:436
 msgid "Loaded the latest version of this template (v{0})."
 msgstr ""
 
@@ -7231,11 +7231,11 @@ msgstr "Nachrichtenverlauf wird geladen..."
 msgid "Loading setup..."
 msgstr "Einrichtung wird geladen..."
 
-#: src/components/automations/AutomationFlowViewer.tsx:232
+#: src/components/automations/AutomationFlowViewer.tsx:237
 msgid "Loading stats..."
 msgstr "Statistiken werden geladen..."
 
-#: src/components/blog/PostDrawer.tsx:803
+#: src/components/blog/PostDrawer.tsx:814
 msgid "Loading template..."
 msgstr "Vorlage wird geladen..."
 
@@ -7251,7 +7251,7 @@ msgstr "Webhook-Ereignisse werden geladen..."
 msgid "Loading webhook status..."
 msgstr "Webhook-Status wird geladen..."
 
-#: src/components/blog_editor/NotifuseEditor.tsx:478
+#: src/components/blog_editor/NotifuseEditor.tsx:480
 #: src/components/messages/MessageHistoryTab.tsx:610
 #: src/components/templates/TemplateSelectorInput.tsx:145
 #: src/components/timeline/ContactTimeline.tsx:1039
@@ -7263,7 +7263,7 @@ msgstr "Webhook-Status wird geladen..."
 #: src/pages/ListsPage.tsx:149
 #: src/pages/LogsPage.tsx:18
 #: src/pages/TemplatesPage.tsx:203
-#: src/pages/TransactionalNotificationsPage.tsx:381
+#: src/pages/TransactionalNotificationsPage.tsx:383
 msgid "Loading..."
 msgstr "Laden..."
 
@@ -7343,7 +7343,7 @@ msgstr ""
 
 #. placeholder {0}: integration.name
 #. placeholder {1}: integration.type
-#: src/pages/TransactionalNotificationsPage.tsx:132
+#: src/pages/TransactionalNotificationsPage.tsx:134
 msgid "Managed by {0} ({1} integration)"
 msgstr "Verwaltet von {0} ({1}-Integration)"
 
@@ -7479,7 +7479,7 @@ msgstr ""
 msgid "Member removed successfully"
 msgstr "Mitglied erfolgreich entfernt"
 
-#: src/pages/BroadcastsPage.tsx:454
+#: src/pages/BroadcastsPage.tsx:455
 msgid "Message"
 msgstr "Nachricht"
 
@@ -7539,7 +7539,7 @@ msgstr "Microsoft 365 / Office 365"
 msgid "Middle"
 msgstr "Mitte"
 
-#: src/components/blog/PostDrawer.tsx:877
+#: src/components/blog/PostDrawer.tsx:888
 msgid "min"
 msgstr "min"
 
@@ -7547,7 +7547,7 @@ msgstr "min"
 msgid "Minimal"
 msgstr ""
 
-#: src/components/automations/AutomationFlowEditor.tsx:409
+#: src/components/automations/AutomationFlowEditor.tsx:436
 msgid "Minimap"
 msgstr "Minimap"
 
@@ -7598,7 +7598,7 @@ msgstr "MJML-Kompilierungsfehler: {0}"
 msgid "MJML Compilation Warnings"
 msgstr "MJML-Kompilierungswarnungen"
 
-#: src/components/email_builder/MjmlCodeEditor.tsx:648
+#: src/components/email_builder/MjmlCodeEditor.tsx:664
 msgid "MJML Documentation"
 msgstr ""
 
@@ -7610,7 +7610,7 @@ msgstr "MJML-Export fehlgeschlagen"
 msgid "MJML exported successfully"
 msgstr "MJML erfolgreich exportiert"
 
-#: src/components/email_builder/MjmlCodeEditor.tsx:549
+#: src/components/email_builder/MjmlCodeEditor.tsx:565
 msgid "MJML file imported"
 msgstr ""
 
@@ -7638,7 +7638,7 @@ msgstr "MJML-Vorlage erfolgreich importiert und konvertiert"
 msgid "MJML Validation Failed"
 msgstr "MJML-Validierung fehlgeschlagen"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1247
+#: src/components/templates/CreateTemplateDrawer.tsx:1257
 msgid "Mobile & Desktop Preview"
 msgstr "Mobile & Desktop-Vorschau"
 
@@ -7721,14 +7721,14 @@ msgstr "meine-benutzerdefinierte-klasse"
 msgid "my-tenant"
 msgstr ""
 
-#: src/pages/BroadcastsPage.tsx:758
-#: src/pages/BroadcastsPage.tsx:829
-#: src/pages/BroadcastsPage.tsx:864
+#: src/pages/BroadcastsPage.tsx:769
+#: src/pages/BroadcastsPage.tsx:840
+#: src/pages/BroadcastsPage.tsx:875
 msgid "N/A"
 msgstr "N/V"
 
 #: src/components/analytics/NewContactsTable.tsx:158
-#: src/components/automations/UpsertAutomationDrawer.tsx:180
+#: src/components/automations/UpsertAutomationDrawer.tsx:182
 #: src/components/blog/AuthorsTable.tsx:143
 #: src/components/blog/CategoryDrawer.tsx:130
 #: src/components/file_manager/fileManager.tsx:868
@@ -7820,19 +7820,19 @@ msgstr "Neuer Arbeitsbereich"
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:333
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:343
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:354
-#: src/components/templates/CreateTemplateDrawer.tsx:624
-#: src/components/templates/CreateTemplateDrawer.tsx:645
+#: src/components/templates/CreateTemplateDrawer.tsx:634
+#: src/components/templates/CreateTemplateDrawer.tsx:655
 msgid "Next"
 msgstr "Weiter"
 
-#: src/pages/BroadcastsPage.tsx:417
+#: src/pages/BroadcastsPage.tsx:418
 msgid "Next Run"
 msgstr "Nächste Ausführung"
 
 #: src/components/automations/nodes/FilterNode.tsx:72
 #: src/components/blog/AuthorsTable.tsx:107
-#: src/components/blog/PostDrawer.tsx:282
-#: src/components/blog/PostDrawer.tsx:550
+#: src/components/blog/PostDrawer.tsx:293
+#: src/components/blog/PostDrawer.tsx:561
 #: src/components/blog/PostsTable.tsx:319
 #: src/components/broadcasts/HeadersEditor.tsx:66
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:250
@@ -7866,7 +7866,7 @@ msgstr "Nächste Ausführung"
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:154
 #: src/components/web_analytics/filters/BackfillStatus.tsx:84
 #: src/components/web_analytics/filters/FilterTable.tsx:272
-#: src/pages/BroadcastsPage.tsx:626
+#: src/pages/BroadcastsPage.tsx:637
 msgid "No"
 msgstr "Nein"
 
@@ -7900,11 +7900,11 @@ msgstr "Noch keine Automatisierungen"
 msgid "No backfill has run yet. Run one to apply these rules to historical sessions and goals."
 msgstr ""
 
-#: src/pages/BroadcastsPage.tsx:1623
+#: src/pages/BroadcastsPage.tsx:1644
 msgid "No broadcasts found"
 msgstr "Keine Kampagnen gefunden"
 
-#: src/pages/BroadcastsPage.tsx:1611
+#: src/pages/BroadcastsPage.tsx:1632
 msgid "No broadcasts match your filters"
 msgstr ""
 
@@ -8013,7 +8013,7 @@ msgstr "Keine E-Mail-Integrationen verfügbar. Bitte konfigurieren Sie eine in d
 msgid "No error message was recorded."
 msgstr ""
 
-#: src/components/email_builder/MjmlCodeEditor.tsx:787
+#: src/components/email_builder/MjmlCodeEditor.tsx:803
 msgid "No errors"
 msgstr ""
 
@@ -8089,7 +8089,7 @@ msgstr "Kein MJML-Inhalt zum Exportieren"
 msgid "No name"
 msgstr "Kein Name"
 
-#: src/components/automations/AutomationFlowViewer.tsx:240
+#: src/components/automations/AutomationFlowViewer.tsx:245
 msgid "No nodes in this automation"
 msgstr "Keine Knoten in dieser Automatisierung"
 
@@ -8215,7 +8215,7 @@ msgstr "Keine Zeitleisten-Ereignisse für diesen Kontakt gefunden"
 msgid "No traffic in the last 24 hours"
 msgstr ""
 
-#: src/pages/TransactionalNotificationsPage.tsx:442
+#: src/pages/TransactionalNotificationsPage.tsx:444
 msgid "No transactional notifications found"
 msgstr "Keine transaktionalen Benachrichtigungen gefunden"
 
@@ -8245,7 +8245,7 @@ msgstr "Knoten"
 
 #: src/components/automations/config/ListStatusBranchConfigForm.tsx:51
 #: src/components/automations/nodes/ListStatusBranchNode.tsx:61
-#: src/components/automations/nodes/StatNode.tsx:273
+#: src/components/automations/nodes/StatNode.tsx:275
 msgid "Non-Active"
 msgstr "Nicht aktiv"
 
@@ -8311,7 +8311,7 @@ msgstr ""
 
 #: src/components/automations/config/ListStatusBranchConfigForm.tsx:45
 #: src/components/automations/nodes/ListStatusBranchNode.tsx:59
-#: src/components/automations/nodes/StatNode.tsx:271
+#: src/components/automations/nodes/StatNode.tsx:273
 msgid "Not in List"
 msgstr "Nicht in Liste"
 
@@ -8379,7 +8379,7 @@ msgstr ""
 msgid "notifuse-…"
 msgstr ""
 
-#: src/components/templates/CreateTemplateDrawer.tsx:969
+#: src/components/templates/CreateTemplateDrawer.tsx:979
 #: src/components/templates/TemplateTranslationsTab.tsx:275
 msgid "Now"
 msgstr "Jetzt"
@@ -8451,7 +8451,7 @@ msgstr ""
 msgid "OK"
 msgstr "OK"
 
-#: src/components/automations/nodes/TriggerNode.tsx:25
+#: src/components/automations/nodes/TriggerNode.tsx:22
 msgid "Once"
 msgstr "Einmal"
 
@@ -8566,14 +8566,14 @@ msgstr "Geöffnet"
 #~ msgid "Opened the {section} section"
 #~ msgstr ""
 
-#: src/pages/BroadcastsPage.tsx:1150
+#: src/pages/BroadcastsPage.tsx:1171
 msgid "opens"
 msgstr "Öffnungen"
 
 #: src/components/analytics/EmailMetricsChart.tsx:268
 #: src/components/analytics/EmailMetricsChart.tsx:375
 #: src/components/broadcasts/BroadcastStats.tsx:201
-#: src/pages/BroadcastsPage.tsx:819
+#: src/pages/BroadcastsPage.tsx:830
 msgid "Opens"
 msgstr "Öffnungen"
 
@@ -8765,18 +8765,18 @@ msgstr "Automatisierung pausieren"
 msgid "Pause automation?"
 msgstr "Automatisierung pausieren?"
 
-#: src/pages/BroadcastsPage.tsx:571
+#: src/pages/BroadcastsPage.tsx:582
 msgid "Pause Broadcast"
 msgstr "Kampagne pausieren"
 
-#: src/pages/BroadcastsPage.tsx:575
+#: src/pages/BroadcastsPage.tsx:586
 msgid "Pause broadcast?"
 msgstr "Kampagne pausieren?"
 
 #: src/components/automations/AutomationCard.tsx:67
-#: src/pages/BroadcastsPage.tsx:169
-#: src/pages/BroadcastsPage.tsx:398
-#: src/pages/BroadcastsPage.tsx:1076
+#: src/pages/BroadcastsPage.tsx:170
+#: src/pages/BroadcastsPage.tsx:399
+#: src/pages/BroadcastsPage.tsx:1097
 msgid "Paused"
 msgstr "Pausiert"
 
@@ -8792,7 +8792,7 @@ msgstr "Nutzlast:"
 #: src/components/settings/WorkspaceMembers.tsx:117
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:79
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:236
-#: src/pages/BroadcastsPage.tsx:388
+#: src/pages/BroadcastsPage.tsx:389
 #: src/pages/ContactsPage.tsx:393
 msgid "Pending"
 msgstr "Ausstehend"
@@ -8895,7 +8895,7 @@ msgstr "Wiedergabeoptionen"
 msgid "Playback Options"
 msgstr "Wiedergabeoptionen"
 
-#: src/components/blog/PostDrawer.tsx:889
+#: src/components/blog/PostDrawer.tsx:900
 msgid "Please add at least one author"
 msgstr "Bitte fügen Sie mindestens einen Autor hinzu"
 
@@ -8907,7 +8907,7 @@ msgstr "Bitte fügen Sie mindestens einen Absender hinzu, bevor Sie speichern"
 msgid "Please check the form for errors"
 msgstr "Bitte überprüfen Sie das Formular auf Fehler"
 
-#: src/components/blog/PostDrawer.tsx:692
+#: src/components/blog/PostDrawer.tsx:703
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:472
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:253
 msgid "Please check the form for errors."
@@ -8957,7 +8957,7 @@ msgstr "Bitte geben Sie einen Namen ein"
 msgid "Please enter a notification name"
 msgstr "Bitte geben Sie einen Benachrichtigungsnamen ein"
 
-#: src/components/blog/PostDrawer.tsx:792
+#: src/components/blog/PostDrawer.tsx:803
 msgid "Please enter a post title"
 msgstr "Bitte geben Sie einen Beitragstitel ein"
 
@@ -8970,7 +8970,7 @@ msgstr ""
 #~ msgstr ""
 
 #: src/components/blog/CategoryDrawer.tsx:143
-#: src/components/blog/PostDrawer.tsx:843
+#: src/components/blog/PostDrawer.tsx:854
 msgid "Please enter a slug"
 msgstr "Bitte geben Sie einen Slug ein"
 
@@ -9023,8 +9023,8 @@ msgstr "Bitte geben Sie einen API-Bezeichner ein"
 msgid "Please enter an API key name"
 msgstr "Bitte geben Sie einen API-Schlüsselnamen ein"
 
-#: src/components/automations/context/AutomationContext.tsx:278
-#: src/components/automations/UpsertAutomationDrawer.tsx:113
+#: src/components/automations/context/AutomationContext.tsx:286
+#: src/components/automations/UpsertAutomationDrawer.tsx:115
 msgid "Please enter an automation name"
 msgstr "Bitte geben Sie einen Automatisierungsnamen ein"
 
@@ -9039,7 +9039,7 @@ msgstr "Bitte geben Sie eine E-Mail-Adresse ein"
 msgid "Please enter integration name"
 msgstr "Bitte geben Sie den Integrationsnamen ein"
 
-#: src/components/blog/PostDrawer.tsx:875
+#: src/components/blog/PostDrawer.tsx:886
 msgid "Please enter reading time"
 msgstr "Bitte geben Sie die Lesezeit ein"
 
@@ -9060,7 +9060,7 @@ msgstr "Bitte geben Sie den Magic-Code ein!"
 msgid "Please input your email!"
 msgstr "Bitte geben Sie Ihre E-Mail-Adresse ein!"
 
-#: src/components/blog/PostDrawer.tsx:860
+#: src/components/blog/PostDrawer.tsx:871
 msgid "Please select a category"
 msgstr "Bitte wählen Sie eine Kategorie"
 
@@ -9187,7 +9187,7 @@ msgstr ""
 msgid "Post"
 msgstr "Beitrag"
 
-#: src/components/blog/PostDrawer.tsx:408
+#: src/components/blog/PostDrawer.tsx:419
 msgid "Post created successfully"
 msgstr "Beitrag erfolgreich erstellt"
 
@@ -9199,7 +9199,7 @@ msgstr "Beitrag erfolgreich gelöscht"
 msgid "Post published successfully"
 msgstr "Beitrag erfolgreich veröffentlicht"
 
-#: src/components/blog/PostDrawer.tsx:797
+#: src/components/blog/PostDrawer.tsx:808
 msgid "Post title"
 msgstr "Beitragstitel"
 
@@ -9207,7 +9207,7 @@ msgstr "Beitragstitel"
 msgid "Post unpublished successfully"
 msgstr "Beitrag erfolgreich zurückgezogen"
 
-#: src/components/blog/PostDrawer.tsx:473
+#: src/components/blog/PostDrawer.tsx:484
 msgid "Post updated successfully"
 msgstr "Beitrag erfolgreich aktualisiert"
 
@@ -9243,11 +9243,11 @@ msgstr "Bevorzugte URL für diesen Inhalt (erweitert)"
 msgid "Preparing backfill..."
 msgstr ""
 
-#: src/pages/BroadcastsPage.tsx:157
+#: src/pages/BroadcastsPage.tsx:158
 msgid "Preparing emails for delivery. Contacts are being added to the sending queue."
 msgstr ""
 
-#: src/pages/BroadcastsPage.tsx:159
+#: src/pages/BroadcastsPage.tsx:160
 msgid "Preparing..."
 msgstr ""
 
@@ -9299,7 +9299,7 @@ msgstr "Vorschau-Ergebnisse"
 msgid "Preview template"
 msgstr "Vorlage vorschauen"
 
-#: src/pages/BroadcastsPage.tsx:919
+#: src/pages/BroadcastsPage.tsx:940
 #: src/pages/TemplatesPage.tsx:386
 msgid "Preview Template"
 msgstr "Vorlage vorschauen"
@@ -9312,7 +9312,7 @@ msgstr ""
 msgid "Preview Text Settings"
 msgstr "Vorschautext-Einstellungen"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:968
+#: src/components/templates/CreateTemplateDrawer.tsx:978
 #: src/components/templates/TemplateTranslationsTab.tsx:274
 msgid "Preview text will appear here..."
 msgstr "Vorschautext erscheint hier..."
@@ -9321,19 +9321,19 @@ msgstr "Vorschautext erscheint hier..."
 msgid "Preview this theme in a new tab"
 msgstr "Dieses Theme in einem neuen Tab vorschauen"
 
-#: src/components/email_builder/MjmlCodeEditor.tsx:847
+#: src/components/email_builder/MjmlCodeEditor.tsx:863
 msgid "Preview will appear here after compilation"
 msgstr ""
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1240
+#: src/components/templates/CreateTemplateDrawer.tsx:1250
 msgid "Preview Your Email"
 msgstr "Ihre E-Mail vorschauen"
 
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:340
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:351
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:362
-#: src/components/templates/CreateTemplateDrawer.tsx:629
-#: src/components/templates/CreateTemplateDrawer.tsx:650
+#: src/components/templates/CreateTemplateDrawer.tsx:639
+#: src/components/templates/CreateTemplateDrawer.tsx:660
 msgid "Previous"
 msgstr "Vorherige"
 
@@ -9454,7 +9454,7 @@ msgstr "Verarbeitung pausiert"
 msgid "Processing was stopped before completion."
 msgstr ""
 
-#: src/pages/BroadcastsPage.tsx:438
+#: src/pages/BroadcastsPage.tsx:439
 msgid "Progress"
 msgstr "Fortschritt"
 
@@ -9526,7 +9526,7 @@ msgstr "Push"
 #~ msgid "Querying {what}"
 #~ msgstr ""
 
-#: src/pages/BroadcastsPage.tsx:623
+#: src/pages/BroadcastsPage.tsx:634
 msgid "Queued emails will not be sent. In-flight sends will complete."
 msgstr ""
 
@@ -9576,7 +9576,7 @@ msgstr "Lesen Sie den neuesten Beitrag aus dieser Kampagne."
 #~ msgid "Reading the available metrics"
 #~ msgstr ""
 
-#: src/components/blog/PostDrawer.tsx:874
+#: src/components/blog/PostDrawer.tsx:885
 msgid "Reading Time"
 msgstr "Lesezeit"
 
@@ -9588,7 +9588,7 @@ msgstr "Bereit zum Senden"
 msgid "Ready to use"
 msgstr "Einsatzbereit"
 
-#: src/pages/BroadcastsPage.tsx:1081
+#: src/pages/BroadcastsPage.tsx:1102
 msgid "Reason:"
 msgstr "Grund:"
 
@@ -9635,11 +9635,11 @@ msgid "recipient@example.com"
 msgstr "empfaenger@beispiel.de"
 
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:98
-#: src/pages/BroadcastsPage.tsx:1159
+#: src/pages/BroadcastsPage.tsx:1180
 msgid "Recommended"
 msgstr "Empfohlen"
 
-#: src/pages/BroadcastsPage.tsx:1157
+#: src/pages/BroadcastsPage.tsx:1178
 msgid "Recommended Winner"
 msgstr "Empfohlener Gewinner"
 
@@ -9674,12 +9674,12 @@ msgstr ""
 #~ msgstr ""
 
 #: src/components/blog_editor/components/EditorHeader.tsx:69
-#: src/components/blog/PostDrawer.tsx:666
+#: src/components/blog/PostDrawer.tsx:677
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:505
 msgid "Redo"
 msgstr "Wiederholen"
 
-#: src/components/automations/UpsertAutomationDrawer.tsx:157
+#: src/components/automations/UpsertAutomationDrawer.tsx:159
 msgid "Redo (Ctrl+Shift+Z)"
 msgstr "Wiederholen (Strg+Umschalt+Z)"
 
@@ -9712,7 +9712,7 @@ msgstr ""
 msgid "Refresh"
 msgstr "Aktualisieren"
 
-#: src/pages/BroadcastsPage.tsx:530
+#: src/pages/BroadcastsPage.tsx:541
 msgid "Refresh Broadcast"
 msgstr "Kampagne aktualisieren"
 
@@ -9801,7 +9801,7 @@ msgstr ""
 
 #: src/components/automations/AddNodeButton.tsx:82
 #: src/components/automations/nodes/RemoveFromListNode.tsx:39
-#: src/components/automations/nodes/StatNode.tsx:80
+#: src/components/automations/nodes/StatNode.tsx:86
 msgid "Remove from List"
 msgstr "Aus Liste entfernen"
 
@@ -9834,7 +9834,7 @@ msgstr "Entfernt"
 msgid "Rendering preview..."
 msgstr "Vorschau wird gerendert..."
 
-#: src/components/automations/AutomationFlowEditor.tsx:397
+#: src/components/automations/AutomationFlowEditor.tsx:424
 msgid "Reorganize layout"
 msgstr "Layout neu organisieren"
 
@@ -9866,12 +9866,12 @@ msgstr ""
 #~ msgid "Reply forwarding route is set up. Inbound replies also require your domain's MX records to point at Mailgun."
 #~ msgstr ""
 
-#: src/components/templates/CreateTemplateDrawer.tsx:940
+#: src/components/templates/CreateTemplateDrawer.tsx:950
 #: src/components/templates/TemplatePreviewDrawer.tsx:289
 msgid "Reply to"
 msgstr "Antwort an"
 
-#: src/pages/BroadcastsPage.tsx:809
+#: src/pages/BroadcastsPage.tsx:820
 msgid "Reply To:"
 msgstr "Antwort an:"
 
@@ -9986,7 +9986,7 @@ msgstr "Antwort-Body:"
 msgid "Restart Server?"
 msgstr ""
 
-#: src/components/email_builder/MjmlCodeEditor.tsx:371
+#: src/components/email_builder/MjmlCodeEditor.tsx:374
 msgid "Restore"
 msgstr ""
 
@@ -9994,7 +9994,7 @@ msgstr ""
 msgid "Restore Draft"
 msgstr "Entwurf wiederherstellen"
 
-#: src/components/blog/PostDrawer.tsx:279
+#: src/components/blog/PostDrawer.tsx:290
 #: src/components/blog/ThemeEditorDrawer.tsx:452
 msgid "Restore Draft?"
 msgstr "Entwurf wiederherstellen?"
@@ -10028,11 +10028,11 @@ msgstr ""
 msgid "Resume"
 msgstr "Fortsetzen"
 
-#: src/pages/BroadcastsPage.tsx:593
+#: src/pages/BroadcastsPage.tsx:604
 msgid "Resume Broadcast"
 msgstr "Kampagne fortsetzen"
 
-#: src/pages/BroadcastsPage.tsx:597
+#: src/pages/BroadcastsPage.tsx:608
 msgid "Resume broadcast?"
 msgstr "Kampagne fortsetzen?"
 
@@ -10136,7 +10136,7 @@ msgstr ""
 msgid "Run Test"
 msgstr ""
 
-#: src/pages/BroadcastsPage.tsx:390
+#: src/pages/BroadcastsPage.tsx:391
 msgid "Running"
 msgstr "Läuft"
 
@@ -10171,7 +10171,7 @@ msgstr "S3-Geheimschlüssel"
 msgid "Same Window"
 msgstr "Gleiches Fenster"
 
-#: src/pages/BroadcastsPage.tsx:1134
+#: src/pages/BroadcastsPage.tsx:1155
 msgid "Sample Percentage"
 msgstr "Stichprobenprozentsatz"
 
@@ -10188,7 +10188,7 @@ msgstr "Sandbox-Modus"
 
 #: src/components/blog/AuthorsTable.tsx:138
 #: src/components/blog/CategoryDrawer.tsx:114
-#: src/components/blog/PostDrawer.tsx:680
+#: src/components/blog/PostDrawer.tsx:691
 #: src/components/blog/ThemeEditorDrawer.tsx:318
 #: src/components/blog/ThemeEditorDrawer.tsx:468
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:371
@@ -10207,8 +10207,8 @@ msgstr "Sandbox-Modus"
 #: src/components/settings/Integrations.tsx:2701
 #: src/components/settings/SystemSettingsDrawer.tsx:239
 #: src/components/settings/WebhooksSettings.tsx:215
-#: src/components/templates/CreateTemplateDrawer.tsx:640
-#: src/components/templates/CreateTemplateDrawer.tsx:661
+#: src/components/templates/CreateTemplateDrawer.tsx:650
+#: src/components/templates/CreateTemplateDrawer.tsx:671
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:188
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:136
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:109
@@ -10219,7 +10219,7 @@ msgstr "Speichern"
 msgid "Save & Restart"
 msgstr ""
 
-#: src/components/automations/UpsertAutomationDrawer.tsx:126
+#: src/components/automations/UpsertAutomationDrawer.tsx:128
 msgid "Save Anyway"
 msgstr "Trotzdem speichern"
 
@@ -10232,7 +10232,7 @@ msgstr "Als neuen Block speichern"
 msgid "Save Block"
 msgstr "Block speichern"
 
-#: src/components/automations/UpsertAutomationDrawer.tsx:171
+#: src/components/automations/UpsertAutomationDrawer.tsx:173
 #: src/components/email_builder/blocks/MjStyleBlock.tsx:158
 #: src/components/email_builder/ui/CodeDrawerInput.tsx:142
 #: src/components/email_builder/ui/CodeDrawerInput.tsx:182
@@ -10287,9 +10287,9 @@ msgid "Schedule for later delivery"
 msgstr "Für spätere Zustellung planen"
 
 #: src/components/blog/PostStatusTag.tsx:20
-#: src/pages/BroadcastsPage.tsx:151
-#: src/pages/BroadcastsPage.tsx:1050
-#: src/pages/BroadcastsPage.tsx:1521
+#: src/pages/BroadcastsPage.tsx:152
+#: src/pages/BroadcastsPage.tsx:1071
+#: src/pages/BroadcastsPage.tsx:1542
 msgid "Scheduled"
 msgstr "Geplant"
 
@@ -10318,7 +10318,7 @@ msgstr "Bildschirmbreite, unter der das mobile Layout aktiviert wird. Gängige W
 msgid "Search"
 msgstr ""
 
-#: src/pages/BroadcastsPage.tsx:1529
+#: src/pages/BroadcastsPage.tsx:1550
 #: src/pages/TemplatesPage.tsx:435
 msgid "Search by name"
 msgstr ""
@@ -10413,7 +10413,7 @@ msgid "Segment tree reset"
 msgstr "Segmentbaum zurückgesetzt"
 
 #: src/components/contacts/SegmentsFilter.tsx:230
-#: src/pages/BroadcastsPage.tsx:1004
+#: src/pages/BroadcastsPage.tsx:1025
 #: src/pages/ContactsPage.tsx:425
 #: src/pages/ContactsPage.tsx:625
 msgid "Segments"
@@ -10425,7 +10425,7 @@ msgstr "Segmente"
 #: src/components/settings/BlogSettings.tsx:381
 #: src/components/templates/TemplateSelectorInput.tsx:238
 #: src/components/web_analytics/explore/ExploreTemplates.tsx:153
-#: src/pages/BroadcastsPage.tsx:962
+#: src/pages/BroadcastsPage.tsx:983
 msgid "Select"
 msgstr "Auswählen"
 
@@ -10443,7 +10443,7 @@ msgstr "Block auswählen, um seine Attribute zu bearbeiten"
 msgid "Select a broadcast"
 msgstr ""
 
-#: src/components/blog/PostDrawer.tsx:863
+#: src/components/blog/PostDrawer.tsx:874
 msgid "Select a category"
 msgstr "Kategorie auswählen"
 
@@ -10532,7 +10532,7 @@ msgstr "AWS-Region auswählen"
 msgid "Select Block to Update"
 msgstr "Block zum Aktualisieren auswählen"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:845
+#: src/components/templates/CreateTemplateDrawer.tsx:855
 msgid "Select category"
 msgstr "Kategorie auswählen"
 
@@ -10622,7 +10622,7 @@ msgstr "Sprache auswählen"
 msgid "Select language..."
 msgstr "Sprache auswählen..."
 
-#: src/components/automations/UpsertAutomationDrawer.tsx:195
+#: src/components/automations/UpsertAutomationDrawer.tsx:197
 #: src/components/contacts/BulkUpdateDrawer.tsx:604
 msgid "Select list"
 msgstr "Liste auswählen"
@@ -10722,7 +10722,7 @@ msgstr "Liste auswählen, aus der der Kontakt entfernt werden soll"
 msgid "Select which segment this trigger applies to"
 msgstr "Segment auswählen, für das dieser Auslöser gilt"
 
-#: src/pages/BroadcastsPage.tsx:951
+#: src/pages/BroadcastsPage.tsx:972
 msgid "Select Winner"
 msgstr "Gewinner auswählen"
 
@@ -10739,7 +10739,7 @@ msgstr "Wählen Sie Ihren Speicheranbieter, um die Konfiguration vorzufüllen:"
 msgid "Selected dimensions, in order:"
 msgstr ""
 
-#: src/pages/BroadcastsPage.tsx:1168
+#: src/pages/BroadcastsPage.tsx:1189
 msgid "Selected Winner"
 msgstr "Ausgewählter Gewinner"
 
@@ -10782,7 +10782,7 @@ msgstr "Magic-Code senden"
 msgid "Send Now"
 msgstr "Jetzt senden"
 
-#: src/pages/BroadcastsPage.tsx:670
+#: src/pages/BroadcastsPage.tsx:681
 msgid "Send or Schedule"
 msgstr "Senden oder planen"
 
@@ -10798,7 +10798,7 @@ msgstr "Test senden"
 #: src/components/settings/Integrations.tsx:2560
 #: src/components/templates/SendTemplateModal.tsx:263
 #: src/components/templates/SendTemplateModal.tsx:277
-#: src/pages/BroadcastsPage.tsx:903
+#: src/pages/BroadcastsPage.tsx:924
 #: src/pages/TemplatesPage.tsx:376
 msgid "Send Test Email"
 msgstr "Test-E-Mail senden"
@@ -10807,13 +10807,13 @@ msgstr "Test-E-Mail senden"
 msgid "Send transactional notifications using SMTP bridge. Perfect for integrating with existing email systems or applications that support SMTP."
 msgstr "Senden Sie transaktionale Benachrichtigungen über SMTP-Relay. Perfekt für die Integration mit bestehenden E-Mail-Systemen oder Anwendungen, die SMTP unterstützen."
 
-#: src/components/templates/CreateTemplateDrawer.tsx:896
+#: src/components/templates/CreateTemplateDrawer.tsx:906
 #: src/components/templates/SendTemplateModal.tsx:303
 #: src/pages/TemplatesPage.tsx:237
 msgid "Sender"
 msgstr "Absender"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:966
+#: src/components/templates/CreateTemplateDrawer.tsx:976
 #: src/components/templates/TemplateTranslationsTab.tsx:272
 msgid "Sender Name"
 msgstr "Absendername"
@@ -10823,20 +10823,20 @@ msgstr "Absendername"
 msgid "Senders"
 msgstr "Absender"
 
-#: src/pages/BroadcastsPage.tsx:1522
+#: src/pages/BroadcastsPage.tsx:1543
 msgid "Sending"
 msgstr ""
 
 #. placeholder {0}: progressStats.remaining.toLocaleString()
-#: src/pages/BroadcastsPage.tsx:188
+#: src/pages/BroadcastsPage.tsx:189
 msgid "Sending {0} remaining"
 msgstr ""
 
-#: src/components/broadcasts/SendingProgress.tsx:56
+#: src/components/broadcasts/SendingProgress.tsx:55
 msgid "Sending emails..."
 msgstr "E-Mails werden gesendet..."
 
-#: src/pages/BroadcastsPage.tsx:166
+#: src/pages/BroadcastsPage.tsx:167
 msgid "Sending has been paused. You can resume at any time."
 msgstr ""
 
@@ -10854,8 +10854,8 @@ msgstr "gesendet"
 #: src/components/messages/MessageHistoryTab.tsx:101
 #: src/components/messages/MessageHistoryTab.tsx:103
 #: src/components/messages/MessageHistoryTable.tsx:258
-#: src/pages/BroadcastsPage.tsx:1523
-#: src/pages/TransactionalNotificationsPage.tsx:198
+#: src/pages/BroadcastsPage.tsx:1544
+#: src/pages/TransactionalNotificationsPage.tsx:200
 msgid "Sent"
 msgstr "Gesendet"
 
@@ -11107,7 +11107,7 @@ msgstr "Anzeigen"
 msgid "Show Controls"
 msgstr "Steuerung anzeigen"
 
-#: src/pages/BroadcastsPage.tsx:714
+#: src/pages/BroadcastsPage.tsx:725
 msgid "Show Details"
 msgstr "Details anzeigen"
 
@@ -11177,17 +11177,17 @@ msgid "Slash Commands"
 msgstr "Slash-Befehle"
 
 #: src/components/blog/CategoryDrawer.tsx:141
-#: src/components/blog/PostDrawer.tsx:841
+#: src/components/blog/PostDrawer.tsx:852
 msgid "Slug"
 msgstr "Slug"
 
 #: src/components/blog/CategoryDrawer.tsx:148
-#: src/components/blog/PostDrawer.tsx:848
+#: src/components/blog/PostDrawer.tsx:859
 msgid "Slug must be less than 100 characters"
 msgstr "Slug muss weniger als 100 Zeichen haben"
 
 #: src/components/blog/CategoryDrawer.tsx:146
-#: src/components/blog/PostDrawer.tsx:846
+#: src/components/blog/PostDrawer.tsx:857
 msgid "Slug must contain only lowercase letters, numbers, and hyphens"
 msgstr "Slug darf nur Kleinbuchstaben, Zahlen und Bindestriche enthalten"
 
@@ -11416,11 +11416,11 @@ msgstr "Beginnen Sie zu tippen..."
 msgid "Start Upload"
 msgstr "Upload starten"
 
-#: src/components/blog/PostDrawer.tsx:810
+#: src/components/blog/PostDrawer.tsx:821
 msgid "Start writing your blog post..."
 msgstr "Beginnen Sie, Ihren Blog-Beitrag zu schreiben..."
 
-#: src/components/blog_editor/NotifuseEditor.tsx:367
+#: src/components/blog_editor/NotifuseEditor.tsx:369
 #: src/components/email_builder/ui/tiptap/TiptapRichEditor.tsx:21
 msgid "Start writing..."
 msgstr "Beginnen Sie zu schreiben..."
@@ -11429,7 +11429,7 @@ msgstr "Beginnen Sie zu schreiben..."
 msgid "started"
 msgstr "gestartet"
 
-#: src/pages/BroadcastsPage.tsx:1064
+#: src/pages/BroadcastsPage.tsx:1085
 msgid "Started"
 msgstr "Gestartet"
 
@@ -11454,7 +11454,7 @@ msgstr "Bundesland"
 #: src/components/web_analytics/filters/FilterTable.tsx:264
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:76
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:363
-#: src/pages/BroadcastsPage.tsx:411
+#: src/pages/BroadcastsPage.tsx:412
 msgid "Status"
 msgstr "Status"
 
@@ -11467,7 +11467,7 @@ msgstr "Status geändert"
 msgid "Status unknown"
 msgstr "Status unbekannt"
 
-#: src/components/automations/UpsertAutomationDrawer.tsx:212
+#: src/components/automations/UpsertAutomationDrawer.tsx:214
 msgid "Stops this automation for a contact as soon as they reply to one of its emails. This requires inbound reply forwarding to be configured at your email provider (ESP): replies to your sending domain must be routed to the provider, which forwards them to Notifuse. Without that setup, replies aren't detected and the sequence won't stop."
 msgstr ""
 
@@ -11519,20 +11519,20 @@ msgstr "Stil-Attribute"
 
 #: src/components/templates/TemplatePreviewDrawer.tsx:305
 #: src/components/templates/TemplateTranslationsTab.tsx:212
-#: src/pages/BroadcastsPage.tsx:787
+#: src/pages/BroadcastsPage.tsx:798
 #: src/pages/TemplatesPage.tsx:258
 msgid "Subject"
 msgstr "Betreff"
 
 #: src/components/email_builder/blocks/MjPreviewBlock.tsx:33
-#: src/components/templates/CreateTemplateDrawer.tsx:919
+#: src/components/templates/CreateTemplateDrawer.tsx:929
 #: src/components/templates/TemplatePreviewDrawer.tsx:310
 #: src/components/templates/TemplateTranslationsTab.tsx:220
 msgid "Subject preview"
 msgstr "Betreff-Vorschau"
 
 #. placeholder {0}: workspace.settings.default_language
-#: src/components/templates/CreateTemplateDrawer.tsx:919
+#: src/components/templates/CreateTemplateDrawer.tsx:929
 msgid "Subject preview ({0})"
 msgstr ""
 
@@ -11667,7 +11667,7 @@ msgstr ""
 msgid "Supports reply_to, cc, bcc, and attachments"
 msgstr "Unterstützt reply_to, cc, bcc und Anhänge"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1242
+#: src/components/templates/CreateTemplateDrawer.tsx:1252
 msgid "Switch to Preview mode to see how your email will look to recipients. This shows the final rendered version with all styling applied."
 msgstr "Wechseln Sie in den Vorschaumodus, um zu sehen, wie Ihre E-Mail für Empfänger aussehen wird. Dies zeigt die endgültige gerenderte Version mit allen angewendeten Stilen."
 
@@ -11688,7 +11688,7 @@ msgstr ""
 msgid "System SMTP"
 msgstr ""
 
-#: src/components/blog/PostDrawer.tsx:733
+#: src/components/blog/PostDrawer.tsx:744
 msgid "Table of Contents"
 msgstr "Inhaltsverzeichnis"
 
@@ -11697,7 +11697,7 @@ msgstr "Inhaltsverzeichnis"
 msgid "Tags"
 msgstr ""
 
-#: src/components/templates/CreateTemplateDrawer.tsx:123
+#: src/components/templates/CreateTemplateDrawer.tsx:133
 msgid "Take a Tour"
 msgstr "Tour machen"
 
@@ -11709,11 +11709,11 @@ msgstr "Ziel"
 msgid "Target list:"
 msgstr ""
 
-#: src/pages/BroadcastsPage.tsx:492
+#: src/pages/BroadcastsPage.tsx:493
 msgid "Task Status"
 msgstr "Aufgabenstatus"
 
-#: src/pages/BroadcastsPage.tsx:473
+#: src/pages/BroadcastsPage.tsx:474
 msgid "Task type:"
 msgstr "Aufgabentyp:"
 
@@ -11742,8 +11742,8 @@ msgstr ""
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:824
 #: src/components/messages/MessageHistoryTable.tsx:130
 #: src/components/messages/MessageHistoryTable.tsx:172
-#: src/pages/BroadcastsPage.tsx:782
-#: src/pages/BroadcastsPage.tsx:784
+#: src/pages/BroadcastsPage.tsx:793
+#: src/pages/BroadcastsPage.tsx:795
 #: src/pages/TemplatesPage.tsx:208
 msgid "Template"
 msgstr "Vorlage"
@@ -11754,20 +11754,20 @@ msgid "Template {0}"
 msgstr "Vorlage {0}"
 
 #. placeholder {0}: existingBlock?.name || nameOrId
-#: src/components/templates/CreateTemplateDrawer.tsx:565
+#: src/components/templates/CreateTemplateDrawer.tsx:575
 msgid "Template block \"{0}\" deleted successfully"
 msgstr "Vorlagenblock \\\"{0}\\\" erfolgreich gelöscht"
 
 #. placeholder {0}: existingBlock.name
-#: src/components/templates/CreateTemplateDrawer.tsx:557
+#: src/components/templates/CreateTemplateDrawer.tsx:567
 msgid "Template block \"{0}\" updated successfully"
 msgstr "Vorlagenblock \\\"{0}\\\" erfolgreich aktualisiert"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:543
+#: src/components/templates/CreateTemplateDrawer.tsx:553
 msgid "Template block \"{nameOrId}\" saved successfully"
 msgstr "Vorlagenblock \\\"{nameOrId}\\\" erfolgreich gespeichert"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:548
+#: src/components/templates/CreateTemplateDrawer.tsx:558
 msgid "Template block not found"
 msgstr "Vorlagenblock nicht gefunden"
 
@@ -11775,7 +11775,7 @@ msgstr "Vorlagenblock nicht gefunden"
 msgid "Template changed by someone else"
 msgstr ""
 
-#: src/components/templates/CreateTemplateDrawer.tsx:295
+#: src/components/templates/CreateTemplateDrawer.tsx:305
 msgid "Template created successfully"
 msgstr "Vorlage erfolgreich erstellt"
 
@@ -11784,7 +11784,7 @@ msgstr "Vorlage erfolgreich erstellt"
 msgid "Template Data"
 msgstr "Vorlagendaten"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1254
+#: src/components/templates/CreateTemplateDrawer.tsx:1264
 msgid "Template Data & Liquid Templating"
 msgstr "Vorlagendaten & Liquid-Templating"
 
@@ -11800,11 +11800,11 @@ msgstr "Vorlagenfehler"
 msgid "Template ID"
 msgstr "Vorlagen-ID"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:807
+#: src/components/templates/CreateTemplateDrawer.tsx:817
 msgid "Template ID (utm_content)"
 msgstr "Vorlagen-ID (utm_content)"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:822
+#: src/components/templates/CreateTemplateDrawer.tsx:832
 msgid "Template ID already exists"
 msgstr "Vorlagen-ID existiert bereits"
 
@@ -11812,7 +11812,7 @@ msgstr "Vorlagen-ID existiert bereits"
 msgid "Template imported successfully"
 msgstr "Vorlage erfolgreich importiert"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:791
+#: src/components/templates/CreateTemplateDrawer.tsx:801
 msgid "Template name"
 msgstr "Vorlagenname"
 
@@ -11824,7 +11824,7 @@ msgstr "Vorlagensatz"
 msgid "Template structure data is missing or invalid."
 msgstr "Vorlagenstrukturdaten fehlen oder sind ungültig."
 
-#: src/components/templates/CreateTemplateDrawer.tsx:295
+#: src/components/templates/CreateTemplateDrawer.tsx:305
 msgid "Template updated successfully"
 msgstr "Vorlage erfolgreich aktualisiert"
 
@@ -11846,8 +11846,8 @@ msgstr "Vorlagen"
 msgid "Templates using this sender will need to be updated to use a different sender."
 msgstr "Vorlagen, die diesen Absender verwenden, müssen aktualisiert werden, um einen anderen Absender zu verwenden."
 
-#: src/components/templates/CreateTemplateDrawer.tsx:915
-#: src/components/templates/CreateTemplateDrawer.tsx:933
+#: src/components/templates/CreateTemplateDrawer.tsx:925
+#: src/components/templates/CreateTemplateDrawer.tsx:943
 msgid "Templating markup allowed"
 msgstr "Templating-Markup erlaubt"
 
@@ -11871,7 +11871,7 @@ msgstr ""
 #: src/components/settings/Integrations.tsx:363
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:104
 #: src/components/web_analytics/tabs/FiltersTab.tsx:127
-#: src/pages/TransactionalNotificationsPage.tsx:173
+#: src/pages/TransactionalNotificationsPage.tsx:175
 msgid "Test"
 msgstr "Testen"
 
@@ -11879,7 +11879,7 @@ msgstr "Testen"
 msgid "Test all rules"
 msgstr ""
 
-#: src/pages/BroadcastsPage.tsx:238
+#: src/pages/BroadcastsPage.tsx:239
 msgid "Test Completed"
 msgstr ""
 
@@ -11888,11 +11888,11 @@ msgstr ""
 msgid "Test Connection"
 msgstr "Verbindung testen"
 
-#: src/components/email_builder/MjmlCodeEditor.tsx:674
+#: src/components/email_builder/MjmlCodeEditor.tsx:690
 msgid "Test Data"
 msgstr ""
 
-#: src/components/email_builder/MjmlCodeEditor.tsx:591
+#: src/components/email_builder/MjmlCodeEditor.tsx:607
 msgid "Test data updated"
 msgstr ""
 
@@ -12039,11 +12039,11 @@ msgstr "Die Automatisierung stoppt die Verarbeitung neuer Kontakte."
 msgid "The best-performing combination could not be loaded."
 msgstr ""
 
-#: src/pages/BroadcastsPage.tsx:598
+#: src/pages/BroadcastsPage.tsx:609
 msgid "The broadcast will continue sending from where it was paused."
 msgstr "Die Kampagne wird dort fortgesetzt, wo sie pausiert wurde."
 
-#: src/pages/BroadcastsPage.tsx:576
+#: src/pages/BroadcastsPage.tsx:587
 msgid "The broadcast will stop sending and can be resumed later."
 msgstr "Die Kampagne stoppt das Senden und kann später fortgesetzt werden."
 
@@ -12229,7 +12229,7 @@ msgstr ""
 msgid "This action cannot be undone."
 msgstr "Diese Aktion kann nicht rückgängig gemacht werden."
 
-#: src/pages/BroadcastsPage.tsx:1689
+#: src/pages/BroadcastsPage.tsx:1710
 msgid "This action cannot be undone. To confirm, please enter the broadcast ID:"
 msgstr "Diese Aktion kann nicht rückgängig gemacht werden. Zur Bestätigung geben Sie bitte die Kampagnen-ID ein:"
 
@@ -12255,23 +12255,31 @@ msgstr ""
 msgid "This appears in browser tabs when viewing the email in a web browser and in some email clients. It's typically the same as or related to your email subject line."
 msgstr "Dies erscheint in Browser-Tabs beim Anzeigen der E-Mail in einem Webbrowser und in einigen E-Mail-Clients. Es ist typischerweise identisch mit oder verwandt mit Ihrer E-Mail-Betreffzeile."
 
-#: src/pages/BroadcastsPage.tsx:215
+#: src/pages/BroadcastsPage.tsx:216
 msgid "This broadcast failed due to an error. Check the logs for details."
 msgstr ""
 
-#: src/pages/BroadcastsPage.tsx:141
+#: src/components/broadcasts/BroadcastAnalyticsLinks.tsx:80
+msgid "This broadcast has no UTM campaign, so its website traffic can't be identified"
+msgstr ""
+
+#: src/pages/BroadcastsPage.tsx:142
 msgid "This broadcast is a draft and has not been scheduled or sent yet."
 msgstr ""
 
-#: src/pages/BroadcastsPage.tsx:149
+#: src/pages/BroadcastsPage.tsx:150
 msgid "This broadcast is scheduled and will start sending at the specified time."
 msgstr ""
 
-#: src/pages/BroadcastsPage.tsx:207
+#: src/components/broadcasts/BroadcastAnalyticsLinks.tsx:81
+msgid "This broadcast sets a fixed UTM content, so its variations can't be told apart in web analytics"
+msgstr ""
+
+#: src/pages/BroadcastsPage.tsx:208
 msgid "This broadcast was cancelled before completion."
 msgstr ""
 
-#: src/pages/TransactionalNotificationsPage.tsx:144
+#: src/pages/TransactionalNotificationsPage.tsx:146
 msgid "This cannot be undone."
 msgstr "Dies kann nicht rückgängig gemacht werden."
 
@@ -12307,15 +12315,15 @@ msgstr "Diese ID wird beim Auslösen der Benachrichtigung über die API verwende
 msgid "This invitation link is invalid or has expired."
 msgstr "Dieser Einladungslink ist ungültig oder abgelaufen."
 
-#: src/components/templates/CreateTemplateDrawer.tsx:808
+#: src/components/templates/CreateTemplateDrawer.tsx:818
 msgid "This is the ID that will be used as the utm_content parameter in the links URL to track the template"
 msgstr "Dies ist die ID, die als utm_content-Parameter in der Link-URL verwendet wird, um die Vorlage zu verfolgen"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1221
+#: src/components/templates/CreateTemplateDrawer.tsx:1231
 msgid "This is your content structure tree. You can drag and drop blocks to reorganize your email layout. Click the + buttons to add new blocks, or drag blocks from one section to another."
 msgstr "Dies ist Ihr Inhaltsstrukturbaum. Sie können Blöcke per Drag & Drop ziehen, um Ihr E-Mail-Layout neu zu organisieren. Klicken Sie auf die +-Schaltflächen, um neue Blöcke hinzuzufügen, oder ziehen Sie Blöcke von einem Abschnitt in einen anderen."
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1228
+#: src/components/templates/CreateTemplateDrawer.tsx:1238
 msgid "This is your visual email editor. Click on any element in your email to select it. Selected elements will be highlighted with a blue border and show editing options."
 msgstr "Dies ist Ihr visueller E-Mail-Editor. Klicken Sie auf ein beliebiges Element in Ihrer E-Mail, um es auszuwählen. Ausgewählte Elemente werden mit einem blauen Rahmen hervorgehoben und zeigen Bearbeitungsoptionen."
 
@@ -12534,7 +12542,7 @@ msgstr "Tipps für effektiven Vorschautext:"
 msgid "Tips for fixing these errors:"
 msgstr "Tipps zur Behebung dieser Fehler:"
 
-#: src/components/blog/PostDrawer.tsx:790
+#: src/components/blog/PostDrawer.tsx:801
 #: src/components/blog/PostsTable.tsx:193
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:407
 #: src/components/email_builder/blocks/MjTitleBlock.tsx:34
@@ -12551,7 +12559,7 @@ msgstr ""
 msgid "Title must be {MAX_TITLE_LENGTH} characters or less"
 msgstr ""
 
-#: src/components/blog/PostDrawer.tsx:793
+#: src/components/blog/PostDrawer.tsx:804
 msgid "Title must be less than 500 characters"
 msgstr "Titel muss weniger als 500 Zeichen haben"
 
@@ -12614,7 +12622,7 @@ msgstr ""
 msgid "TODO"
 msgstr "TODO"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1249
+#: src/components/templates/CreateTemplateDrawer.tsx:1259
 msgid "Toggle between mobile and desktop views to see how your email appears on different devices. Mobile view shows a 400px width while desktop shows the full width."
 msgstr "Wechseln Sie zwischen mobiler und Desktop-Ansicht, um zu sehen, wie Ihre E-Mail auf verschiedenen Geräten aussieht. Die mobile Ansicht zeigt eine Breite von 400px, während die Desktop-Ansicht die volle Breite zeigt."
 
@@ -12761,11 +12769,11 @@ msgstr "Transaktionale E-Mails"
 msgid "Transactional ID"
 msgstr "Transaktions-ID"
 
-#: src/pages/TransactionalNotificationsPage.tsx:348
+#: src/pages/TransactionalNotificationsPage.tsx:350
 msgid "Transactional notification deleted successfully"
 msgstr "Transaktionale Benachrichtigung erfolgreich gelöscht"
 
-#: src/pages/TransactionalNotificationsPage.tsx:387
+#: src/pages/TransactionalNotificationsPage.tsx:389
 msgid "Transactional Notifications"
 msgstr "Transaktionale Benachrichtigungen"
 
@@ -12784,8 +12792,8 @@ msgstr "Testversion"
 
 #: src/components/automations/AddNodeButton.tsx:75
 #: src/components/automations/AutomationCard.tsx:294
-#: src/components/automations/nodes/StatNode.tsx:74
-#: src/components/automations/nodes/TriggerNode.tsx:63
+#: src/components/automations/nodes/StatNode.tsx:80
+#: src/components/automations/nodes/TriggerNode.tsx:60
 msgid "Trigger"
 msgstr "Auslöser"
 
@@ -12797,7 +12805,7 @@ msgstr "Auslöserereignis"
 msgid "Trigger on specific field changes"
 msgstr "Bei bestimmten Feldänderungen auslösen"
 
-#: src/pages/BroadcastsPage.tsx:1614
+#: src/pages/BroadcastsPage.tsx:1635
 msgid "Try adjusting your search or status filter"
 msgstr ""
 
@@ -12866,12 +12874,12 @@ msgid "Understand the quality of referrals"
 msgstr ""
 
 #: src/components/blog_editor/components/EditorHeader.tsx:55
-#: src/components/blog/PostDrawer.tsx:659
+#: src/components/blog/PostDrawer.tsx:670
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:496
 msgid "Undo"
 msgstr "Rückgängig"
 
-#: src/components/automations/UpsertAutomationDrawer.tsx:149
+#: src/components/automations/UpsertAutomationDrawer.tsx:151
 msgid "Undo (Ctrl+Z)"
 msgstr "Rückgängig (Strg+Z)"
 
@@ -12899,8 +12907,8 @@ msgstr ""
 #: src/components/contacts/SegmentsFilter.tsx:89
 #: src/components/timeline/ContactTimeline.tsx:969
 #: src/components/web_analytics/LiveSessionMap.tsx:49
-#: src/pages/BroadcastsPage.tsx:1162
-#: src/pages/BroadcastsPage.tsx:1173
+#: src/pages/BroadcastsPage.tsx:1183
+#: src/pages/BroadcastsPage.tsx:1194
 msgid "Unknown"
 msgstr "Unbekannt"
 
@@ -12916,7 +12924,7 @@ msgstr "Unbekannter Fehler"
 
 #: src/components/automations/nodes/AddToListNode.tsx:57
 #: src/components/automations/nodes/RemoveFromListNode.tsx:54
-#: src/pages/BroadcastsPage.tsx:1026
+#: src/pages/BroadcastsPage.tsx:1047
 msgid "Unknown list"
 msgstr "Unbekannte Liste"
 
@@ -12928,7 +12936,7 @@ msgstr "Unbekannte Liste"
 msgid "Unknown page"
 msgstr ""
 
-#: src/pages/BroadcastsPage.tsx:1014
+#: src/pages/BroadcastsPage.tsx:1035
 msgid "Unknown segment"
 msgstr "Unbekanntes Segment"
 
@@ -12948,19 +12956,19 @@ msgstr "Veröffentlichung aufheben"
 msgid "Unpublish post"
 msgstr "Beitrag zurückziehen"
 
-#: src/components/automations/UpsertAutomationDrawer.tsx:145
-#: src/components/blog/PostDrawer.tsx:547
+#: src/components/automations/UpsertAutomationDrawer.tsx:147
+#: src/components/blog/PostDrawer.tsx:558
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:247
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:151
 msgid "Unsaved changes"
 msgstr "Nicht gespeicherte Änderungen"
 
-#: src/components/automations/UpsertAutomationDrawer.tsx:97
+#: src/components/automations/UpsertAutomationDrawer.tsx:99
 #: src/components/blog/ThemeEditorDrawer.tsx:275
 msgid "Unsaved Changes"
 msgstr "Nicht gespeicherte Änderungen"
 
-#: src/components/email_builder/MjmlCodeEditor.tsx:361
+#: src/components/email_builder/MjmlCodeEditor.tsx:364
 msgid "Unsaved draft found."
 msgstr ""
 
@@ -13013,7 +13021,7 @@ msgstr "Von Liste abgemeldet"
 msgid "Unsubscribes"
 msgstr "Abmeldungen"
 
-#: src/pages/BroadcastsPage.tsx:753
+#: src/pages/BroadcastsPage.tsx:764
 msgid "Untitled"
 msgstr "Unbenannt"
 
@@ -13176,11 +13184,11 @@ msgstr "Den Schriftnamen in Textelementen verwenden:"
 msgid "Use the save button in the block toolbar to save blocks"
 msgstr "Verwenden Sie die Speichern-Schaltfläche in der Block-Werkzeugleiste, um Blöcke zu speichern"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1256
+#: src/components/templates/CreateTemplateDrawer.tsx:1266
 msgid "Use the Template Data tab to define dynamic content for your emails. Add variables like {{ name }} or {{ company }} in your email content, then define their values here. The Liquid templating engine supports conditionals, loops, and filters for powerful personalization."
 msgstr "Verwenden Sie die Registerkarte Vorlagendaten, um dynamische Inhalte für Ihre E-Mails zu definieren. Fügen Sie Variablen wie {{ name }} oder {{ company }} in Ihren E-Mail-Inhalt ein und definieren Sie dann hier deren Werte. Die Liquid-Template-Engine unterstützt Bedingungen, Schleifen und Filter für leistungsstarke Personalisierung."
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1264
+#: src/components/templates/CreateTemplateDrawer.tsx:1274
 msgid "Use this button to import saved email templates or export your finished emails. You can import JSON/MJML templates or export as HTML, MJML, or JSON for future use."
 msgstr "Verwenden Sie diese Schaltfläche, um gespeicherte E-Mail-Vorlagen zu importieren oder Ihre fertigen E-Mails zu exportieren. Sie können JSON/MJML-Vorlagen importieren oder als HTML, MJML oder JSON für zukünftige Verwendung exportieren."
 
@@ -13256,7 +13264,7 @@ msgstr ""
 msgid "UTM campaign"
 msgstr ""
 
-#: src/pages/BroadcastsPage.tsx:1111
+#: src/pages/BroadcastsPage.tsx:1132
 msgid "UTM Campaign"
 msgstr "UTM-Kampagne"
 
@@ -13268,7 +13276,7 @@ msgstr ""
 msgid "UTM content"
 msgstr ""
 
-#: src/pages/BroadcastsPage.tsx:1123
+#: src/pages/BroadcastsPage.tsx:1144
 msgid "UTM Content"
 msgstr "UTM-Inhalt"
 
@@ -13276,7 +13284,7 @@ msgstr "UTM-Inhalt"
 msgid "UTM medium"
 msgstr ""
 
-#: src/pages/BroadcastsPage.tsx:1105
+#: src/pages/BroadcastsPage.tsx:1126
 msgid "UTM Medium"
 msgstr "UTM-Medium"
 
@@ -13284,15 +13292,15 @@ msgstr "UTM-Medium"
 msgid "UTM source"
 msgstr ""
 
-#: src/pages/BroadcastsPage.tsx:1099
+#: src/pages/BroadcastsPage.tsx:1120
 msgid "UTM Source"
 msgstr "UTM-Quelle"
 
-#: src/pages/BroadcastsPage.tsx:1117
+#: src/pages/BroadcastsPage.tsx:1138
 msgid "UTM Term"
 msgstr "UTM-Begriff"
 
-#: src/components/automations/UpsertAutomationDrawer.tsx:112
+#: src/components/automations/UpsertAutomationDrawer.tsx:114
 msgid "Validation Error"
 msgstr "Validierungsfehler"
 
@@ -13325,7 +13333,7 @@ msgid "Variant name"
 msgstr "Variantenname"
 
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:720
-#: src/pages/BroadcastsPage.tsx:723
+#: src/pages/BroadcastsPage.tsx:734
 msgid "Variations"
 msgstr "Variationen"
 
@@ -13445,11 +13453,11 @@ msgstr ""
 msgid "Visitors are being tracked by more than one SDK version ({0} alongside {newest}). A cached copy of the tracking snippet is probably still being served."
 msgstr ""
 
-#: src/components/templates/CreateTemplateDrawer.tsx:888
+#: src/components/templates/CreateTemplateDrawer.tsx:898
 msgid "Visual"
 msgstr ""
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1226
+#: src/components/templates/CreateTemplateDrawer.tsx:1236
 msgid "Visual Email Editor"
 msgstr "Visueller E-Mail-Editor"
 
@@ -13465,7 +13473,7 @@ msgstr "Wartezeit"
 msgid "Waiting for server restart..."
 msgstr "Warte auf Server-Neustart..."
 
-#: src/components/automations/UpsertAutomationDrawer.tsx:124
+#: src/components/automations/UpsertAutomationDrawer.tsx:126
 msgid "Warning"
 msgstr "Warnung"
 
@@ -13479,7 +13487,7 @@ msgstr "Wir erkennen automatisch das Favicon Ihrer Website und verwenden es"
 #: src/components/settings/WebAnalyticsSettings.tsx:291
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:370
 #: src/layouts/WorkspaceLayout.tsx:325
-#: src/pages/BroadcastsPage.tsx:1096
+#: src/pages/BroadcastsPage.tsx:1117
 #: src/pages/WebAnalyticsPage.tsx:94
 msgid "Web Analytics"
 msgstr "Web-Analyse"
@@ -13517,7 +13525,7 @@ msgid "Web session"
 msgstr ""
 
 #: src/components/automations/AddNodeButton.tsx:83
-#: src/components/automations/nodes/StatNode.tsx:82
+#: src/components/automations/nodes/StatNode.tsx:88
 #: src/components/automations/nodes/WebhookNode.tsx:43
 #: src/components/timeline/ContactTimeline.tsx:667
 msgid "Webhook"
@@ -13577,8 +13585,24 @@ msgstr "Webhooks erfolgreich registriert"
 msgid "Website"
 msgstr "Website"
 
+#: src/components/broadcasts/BroadcastAnalyticsLinks.tsx:88
+msgid "Website conversions from this broadcast"
+msgstr ""
+
+#: src/components/broadcasts/BroadcastAnalyticsLinks.tsx:87
+msgid "Website conversions from this variation"
+msgstr ""
+
 #: src/components/timeline/WebPageDrawer.tsx:101
 msgid "Website preview"
+msgstr ""
+
+#: src/components/broadcasts/BroadcastAnalyticsLinks.tsx:85
+msgid "Website traffic from this broadcast"
+msgstr ""
+
+#: src/components/broadcasts/BroadcastAnalyticsLinks.tsx:84
+msgid "Website traffic from this variation"
 msgstr ""
 
 #: src/components/settings/WebAnalyticsSettings.tsx:233
@@ -13604,7 +13628,7 @@ msgstr "Gewicht"
 msgid "Welcome"
 msgstr "Willkommen"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1213
+#: src/components/templates/CreateTemplateDrawer.tsx:1223
 msgid "Welcome to Email Builder!"
 msgstr "Willkommen im E-Mail-Builder!"
 
@@ -13664,7 +13688,7 @@ msgstr ""
 msgid "When off (recommended), only already-invited users can sign in via SSO. When on, a verified email in an allowed domain creates an account automatically."
 msgstr ""
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1235
+#: src/components/templates/CreateTemplateDrawer.tsx:1245
 msgid "When you select a block, its settings appear here. Modify colors, text, spacing, alignment, and other properties to customize your email design."
 msgstr "Wenn Sie einen Block auswählen, erscheinen seine Einstellungen hier. Ändern Sie Farben, Text, Abstände, Ausrichtung und andere Eigenschaften, um Ihr E-Mail-Design anzupassen."
 
@@ -13698,15 +13722,15 @@ msgstr "Wird entfernt"
 msgid "Will resume from row {0}"
 msgstr "Wird ab Zeile {0} fortgesetzt"
 
-#: src/pages/BroadcastsPage.tsx:1170
+#: src/pages/BroadcastsPage.tsx:1191
 msgid "Winner"
 msgstr "Gewinner"
 
-#: src/pages/BroadcastsPage.tsx:246
+#: src/pages/BroadcastsPage.tsx:247
 msgid "Winner Selected"
 msgstr ""
 
-#: src/pages/BroadcastsPage.tsx:366
+#: src/pages/BroadcastsPage.tsx:367
 msgid "Winner selected successfully! The broadcast will be sent to remaining recipients."
 msgstr "Gewinner erfolgreich ausgewählt! Die Kampagne wird an die verbleibenden Empfänger gesendet."
 
@@ -13819,8 +13843,8 @@ msgstr ""
 
 #: src/components/automations/nodes/FilterNode.tsx:71
 #: src/components/blog/AuthorsTable.tsx:106
-#: src/components/blog/PostDrawer.tsx:281
-#: src/components/blog/PostDrawer.tsx:549
+#: src/components/blog/PostDrawer.tsx:292
+#: src/components/blog/PostDrawer.tsx:560
 #: src/components/blog/PostsTable.tsx:318
 #: src/components/broadcasts/HeadersEditor.tsx:65
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:249
@@ -13859,7 +13883,7 @@ msgid "Yes, activate"
 msgstr "Ja, aktivieren"
 
 #: src/components/web_analytics/filters/BackfillStatus.tsx:83
-#: src/pages/BroadcastsPage.tsx:625
+#: src/pages/BroadcastsPage.tsx:636
 msgid "Yes, cancel"
 msgstr ""
 
@@ -13872,20 +13896,20 @@ msgid "Yes, delete"
 msgstr "Ja, löschen"
 
 #: src/pages/TemplatesPage.tsx:364
-#: src/pages/TransactionalNotificationsPage.tsx:146
+#: src/pages/TransactionalNotificationsPage.tsx:148
 msgid "Yes, Delete"
 msgstr "Ja, löschen"
 
 #: src/components/automations/AutomationCard.tsx:236
-#: src/pages/BroadcastsPage.tsx:578
+#: src/pages/BroadcastsPage.tsx:589
 msgid "Yes, pause"
 msgstr "Ja, pausieren"
 
-#: src/pages/BroadcastsPage.tsx:600
+#: src/pages/BroadcastsPage.tsx:611
 msgid "Yes, resume"
 msgstr "Ja, fortsetzen"
 
-#: src/pages/BroadcastsPage.tsx:954
+#: src/pages/BroadcastsPage.tsx:975
 msgid "Yes, Select Winner"
 msgstr "Ja, Gewinner auswählen"
 
@@ -13898,7 +13922,7 @@ msgid "You can only upload CSV files!"
 msgstr "Sie können nur CSV-Dateien hochladen!"
 
 #: src/components/broadcasts/SendOrScheduleModal.tsx:177
-#: src/pages/BroadcastsPage.tsx:1546
+#: src/pages/BroadcastsPage.tsx:1567
 msgid "You don't have a marketing email provider configured. Please set up an email provider in your workspace settings to send broadcasts."
 msgstr "Sie haben keinen Marketing-E-Mail-Anbieter konfiguriert. Bitte richten Sie einen E-Mail-Anbieter in Ihren Arbeitsbereich-Einstellungen ein, um Kampagnen zu senden."
 
@@ -13915,15 +13939,15 @@ msgstr ""
 msgid "You don't have write permission for automations"
 msgstr "Sie haben keine Schreibberechtigung für Automatisierungen"
 
-#: src/pages/BroadcastsPage.tsx:543
-#: src/pages/BroadcastsPage.tsx:570
-#: src/pages/BroadcastsPage.tsx:592
-#: src/pages/BroadcastsPage.tsx:617
-#: src/pages/BroadcastsPage.tsx:640
-#: src/pages/BroadcastsPage.tsx:656
-#: src/pages/BroadcastsPage.tsx:946
-#: src/pages/BroadcastsPage.tsx:1493
-#: src/pages/BroadcastsPage.tsx:1631
+#: src/pages/BroadcastsPage.tsx:554
+#: src/pages/BroadcastsPage.tsx:581
+#: src/pages/BroadcastsPage.tsx:603
+#: src/pages/BroadcastsPage.tsx:628
+#: src/pages/BroadcastsPage.tsx:651
+#: src/pages/BroadcastsPage.tsx:667
+#: src/pages/BroadcastsPage.tsx:967
+#: src/pages/BroadcastsPage.tsx:1514
+#: src/pages/BroadcastsPage.tsx:1652
 msgid "You don't have write permission for broadcasts"
 msgstr "Sie haben keine Schreibberechtigung für Kampagnen"
 
@@ -13948,8 +13972,8 @@ msgstr "Sie haben keine Schreibberechtigung für Listen"
 msgid "You don't have write permission for templates"
 msgstr "Sie haben keine Schreibberechtigung für Vorlagen"
 
-#: src/pages/TransactionalNotificationsPage.tsx:398
-#: src/pages/TransactionalNotificationsPage.tsx:450
+#: src/pages/TransactionalNotificationsPage.tsx:400
+#: src/pages/TransactionalNotificationsPage.tsx:452
 msgid "You don't have write permission for transactional notifications"
 msgstr "Sie haben keine Schreibberechtigung für transaktionale Benachrichtigungen"
 
@@ -13957,13 +13981,13 @@ msgstr "Sie haben keine Schreibberechtigung für transaktionale Benachrichtigung
 msgid "You have unsaved changes"
 msgstr ""
 
-#: src/components/blog/PostDrawer.tsx:548
+#: src/components/blog/PostDrawer.tsx:559
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:248
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:152
 msgid "You have unsaved changes. Are you sure you want to close this drawer?"
 msgstr "Sie haben nicht gespeicherte Änderungen. Sind Sie sicher, dass Sie dieses Drawer schließen möchten?"
 
-#: src/components/automations/UpsertAutomationDrawer.tsx:98
+#: src/components/automations/UpsertAutomationDrawer.tsx:100
 msgid "You have unsaved changes. Are you sure you want to close?"
 msgstr "Sie haben nicht gespeicherte Änderungen. Sind Sie sicher, dass Sie schließen möchten?"
 
@@ -13975,7 +13999,7 @@ msgstr "Sie haben nicht gespeicherte Änderungen. Sind Sie sicher, dass Sie schl
 msgid "You must configure a Custom Endpoint URL in General Settings above before enabling the blog."
 msgstr "Sie müssen eine benutzerdefinierte Endpunkt-URL in den allgemeinen Einstellungen oben konfigurieren, bevor Sie den Blog aktivieren."
 
-#: src/pages/BroadcastsPage.tsx:902
+#: src/pages/BroadcastsPage.tsx:923
 #: src/pages/TemplatesPage.tsx:375
 msgid "You need read template and write contact permissions to send test emails"
 msgstr "Sie benötigen Lese-Vorlagen- und Schreib-Kontakt-Berechtigungen, um Test-E-Mails zu senden"

@@ -2,8 +2,10 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"sync"
 	"testing"
 	"time"
 
@@ -23,10 +25,18 @@ func TestTelemetryService_SendMetricsForAllWorkspaces(t *testing.T) {
 	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
 	mockTelemetryRepo := mocks.NewMockTelemetryRepository(ctrl)
 
-	// Create a test HTTP server
-	var receivedRequests int
+	// Create a test HTTP server that keeps the payloads it is sent, so the
+	// assertions below cover what actually goes over the wire rather than the
+	// struct that was filled in — a field can be set on TelemetryMetrics and
+	// still never be marshalled.
+	var mu sync.Mutex
+	var receivedPayloads []map[string]interface{}
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		receivedRequests++
+		var payload map[string]interface{}
+		_ = json.NewDecoder(r.Body).Decode(&payload)
+		mu.Lock()
+		receivedPayloads = append(receivedPayloads, payload)
+		mu.Unlock()
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer server.Close()
@@ -68,6 +78,8 @@ func TestTelemetryService_SendMetricsForAllWorkspaces(t *testing.T) {
 	mockWorkspaceRepo.EXPECT().List(gomock.Any()).Return(workspaces, nil)
 
 	// Mock telemetry repository calls
+	// workspace1 recorded a web session yesterday; workspace2 last recorded one
+	// well outside the active window.
 	mockTelemetryRepo.EXPECT().GetWorkspaceMetrics(gomock.Any(), "workspace1").Return(&domain.TelemetryMetrics{
 		ContactsCount:      10,
 		BroadcastsCount:    5,
@@ -77,6 +89,7 @@ func TestTelemetryService_SendMetricsForAllWorkspaces(t *testing.T) {
 		SegmentsCount:      4,
 		UsersCount:         1,
 		LastMessageAt:      "2023-01-01T00:00:00Z",
+		LastWebSessionAt:   time.Now().UTC().AddDate(0, 0, -1).Format(time.RFC3339),
 	}, nil)
 	mockTelemetryRepo.EXPECT().GetWorkspaceMetrics(gomock.Any(), "workspace2").Return(&domain.TelemetryMetrics{
 		ContactsCount:      15,
@@ -87,6 +100,7 @@ func TestTelemetryService_SendMetricsForAllWorkspaces(t *testing.T) {
 		SegmentsCount:      6,
 		UsersCount:         2,
 		LastMessageAt:      "2023-01-02T00:00:00Z",
+		LastWebSessionAt:   time.Now().UTC().AddDate(0, 0, -90).Format(time.RFC3339),
 	}, nil)
 
 	// Execute
@@ -95,7 +109,22 @@ func TestTelemetryService_SendMetricsForAllWorkspaces(t *testing.T) {
 
 	// Verify - should succeed even with database errors
 	require.NoError(t, err)
-	assert.Equal(t, 2, receivedRequests, "Should have sent metrics for 2 workspaces")
+
+	mu.Lock()
+	defer mu.Unlock()
+	require.Len(t, receivedPayloads, 2, "Should have sent metrics for 2 workspaces")
+
+	// Workspaces are sent in list order, so the first payload is workspace1's.
+	assert.Equal(t, true, receivedPayloads[0]["web_analytics"],
+		"a session recorded yesterday counts as using web analytics")
+	assert.Equal(t, false, receivedPayloads[1]["web_analytics"],
+		"a session recorded 90 days ago does not")
+
+	// The session date itself must never leave the installation.
+	for i, payload := range receivedPayloads {
+		assert.NotContains(t, payload, "last_web_session_at",
+			"payload %d must carry the boolean only", i)
+	}
 }
 
 // testTransport is a custom HTTP transport for testing that redirects requests
@@ -161,6 +190,57 @@ func TestTelemetryService_StartDailyScheduler(t *testing.T) {
 func TestTelemetryService_HardcodedEndpoint(t *testing.T) {
 	// Verify that the hardcoded endpoint is used
 	assert.Equal(t, "https://telemetry.notifuse.com", TelemetryEndpoint)
+}
+
+func TestIsWebAnalyticsActive(t *testing.T) {
+	// Late in the UTC day, so a bug that measures the window from "now" rather
+	// than from the start of the day shifts the boundary by 22 hours and fails.
+	now := time.Date(2026, 8, 16, 22, 30, 0, 0, time.UTC)
+
+	// Dates are written out rather than derived from WebAnalyticsActiveDays: a
+	// case computed from the constant it is meant to protect moves with it, and
+	// would keep passing if the window were widened to 60 days. session_date is
+	// a DATE column, so every value the repository produces is midnight UTC.
+	//
+	// The window is the 30 days ending today, i.e. 2026-07-18 .. 2026-08-16.
+	tests := []struct {
+		name             string
+		lastWebSessionAt string
+		want             bool
+	}{
+		{"session today", "2026-08-16T00:00:00Z", true},
+		{"session yesterday", "2026-08-15T00:00:00Z", true},
+		{"session one day inside the window", "2026-07-19T00:00:00Z", true},
+		{"session on the oldest day in the window", "2026-07-18T00:00:00Z", true},
+		{"session one day older than the window", "2026-07-17T00:00:00Z", false},
+		{"session long past the window", "2025-08-16T00:00:00Z", false},
+		{"never recorded a session", "", false},
+		{"unparseable date", "not-a-date", false},
+		// A workspace whose clock or partition ran ahead still counts as active.
+		{"session dated in the future", "2026-08-17T00:00:00Z", true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, isWebAnalyticsActive(tt.lastWebSessionAt, now))
+		})
+	}
+}
+
+func TestIsWebAnalyticsActive_UsesUTCDayRegardlessOfLocalZone(t *testing.T) {
+	// 2026-08-17 01:00 +09:00 is still 2026-08-16 in UTC, and session_date is
+	// stored in UTC — so the window must be measured there, not in whatever zone
+	// the daily scheduler happens to fire in.
+	tokyo := time.FixedZone("JST", 9*60*60)
+	now := time.Date(2026, 8, 17, 1, 0, 0, 0, tokyo)
+
+	// 01:00 +09:00 on the 17th is 16:00 UTC on the 16th, so the window is the 30
+	// days ending 2026-08-16 — not the one ending 2026-08-17.
+	oldestInWindow := time.Date(2026, 7, 18, 0, 0, 0, 0, time.UTC).Format(time.RFC3339)
+	justOutside := time.Date(2026, 7, 17, 0, 0, 0, 0, time.UTC).Format(time.RFC3339)
+
+	assert.True(t, isWebAnalyticsActive(oldestInWindow, now), "the 30th UTC day back is inside the window")
+	assert.False(t, isWebAnalyticsActive(justOutside, now), "the 31st UTC day back is outside it")
 }
 
 func TestTelemetryService_SetIntegrationFlags(t *testing.T) {

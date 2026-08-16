@@ -178,47 +178,72 @@ type demoCampaign struct {
 	Weight                                  int
 }
 
-var demoCampaigns = []demoCampaign{
-	// Source, Medium, Campaign, Content, Term, ClickIDParam, DurationMultiplier, Weight
+var demoCampaigns = func() []demoCampaign {
+	campaigns := []demoCampaign{
+		// Source, Medium, Campaign, Content, Term, ClickIDParam, DurationMultiplier, Weight
 
-	// Holiday sale, with four creatives so the demo has an A/B result to read:
-	// the video hero doubles engagement, the static banner halves it.
-	{"google", "cpc", "holiday-sale", "video-hero-v2", "", "gclid", 2.2, 5},
-	{"google", "cpc", "holiday-sale", "carousel-products", "", "gclid", 1.5, 4},
-	{"google", "cpc", "holiday-sale", "static-banner-v1", "", "gclid", 0.7, 3},
-	{"google", "cpc", "holiday-sale", "static-banner-v2", "", "gclid", 0.8, 3},
+		// Holiday sale, with four creatives so the demo has an A/B result to read:
+		// the video hero doubles engagement, the static banner halves it.
+		{"google", "cpc", "holiday-sale", "video-hero-v2", "", "gclid", 2.2, 5},
+		{"google", "cpc", "holiday-sale", "carousel-products", "", "gclid", 1.5, 4},
+		{"google", "cpc", "holiday-sale", "static-banner-v1", "", "gclid", 0.7, 3},
+		{"google", "cpc", "holiday-sale", "static-banner-v2", "", "gclid", 0.8, 3},
 
-	// iPhone launch
-	{"google", "cpc", "iphone-launch-2024", "hands-on-demo", "", "gclid", 2.5, 6},
-	{"google", "cpc", "iphone-launch-2024", "spec-comparison", "", "gclid", 1.8, 4},
-	{"google", "cpc", "iphone-launch-2024", "price-focus", "", "gclid", 0.6, 3},
+		// iPhone launch
+		{"google", "cpc", "iphone-launch-2024", "hands-on-demo", "", "gclid", 2.5, 6},
+		{"google", "cpc", "iphone-launch-2024", "spec-comparison", "", "gclid", 1.8, 4},
+		{"google", "cpc", "iphone-launch-2024", "price-focus", "", "gclid", 0.6, 3},
 
-	// Paid social
-	{"facebook", "social", "holiday-sale", "lifestyle-video", "", "fbclid", 1.3, 4},
-	{"instagram", "social", "holiday-sale", "story-carousel", "", "", 0.9, 4},
-	{"instagram", "social", "iphone-launch-2024", "reel-unboxing", "", "", 1.4, 3},
+		// Paid social
+		{"facebook", "social", "holiday-sale", "lifestyle-video", "", "fbclid", 1.3, 4},
+		{"instagram", "social", "holiday-sale", "story-carousel", "", "", 0.9, 4},
+		{"instagram", "social", "iphone-launch-2024", "reel-unboxing", "", "", 1.4, 3},
 
-	// Email
-	{"email", "email", "newsletter-weekly", "", "", "", 1.5, 5},
-	{"email", "email", "holiday-promo", "gift-guide", "", "", 1.6, 3},
-	{"email", "email", "iphone-announcement", "", "", "", 1.8, 2},
+		// Email is seeded from demoBroadcastCampaigns below, so the sessions carry
+		// the same campaign names the sample broadcasts tag their links with.
 
-	// Display
-	{"display", "display", "retargeting", "", "", "", 1.1, 3},
-	{"display", "display", "awareness", "", "", "", 0.7, 2},
+		// Display
+		{"display", "display", "retargeting", "", "", "", 1.1, 3},
+		{"display", "display", "awareness", "", "", "", 0.7, 2},
 
-	// Affiliate
-	{"affiliate", "referral", "tech-reviewers", "", "", "", 1.4, 2},
+		// Affiliate
+		{"affiliate", "referral", "tech-reviewers", "", "", "", 1.4, 2},
 
-	// Back to school
-	{"google", "cpc", "back-to-school", "student-discount", "macbook student", "gclid", 1.3, 3},
+		// Back to school
+		{"google", "cpc", "back-to-school", "student-discount", "macbook student", "gclid", 1.3, 3},
 
-	// WWDC
-	{"twitter", "social", "wwdc-2024", "", "", "", 1.6, 2},
+		// WWDC
+		{"twitter", "social", "wwdc-2024", "", "", "", 1.6, 2},
 
-	// AirPods promo
-	{"facebook", "social", "airpods-promo", "comparison-ad", "", "fbclid", 1.2, 2},
-}
+		// AirPods promo
+		{"facebook", "social", "airpods-promo", "comparison-ad", "", "fbclid", 1.2, 2},
+	}
+
+	// One email row per sample broadcast variation, tagged exactly as that
+	// variation's send tags its own links — campaign from the broadcast, content
+	// from the variation's template — so neither a broadcast's report nor a
+	// single variation's opens empty. Multipliers vary so the A/B test has a
+	// winner to read; the weights total the 10 the three hand-written email rows
+	// they replaced carried between them.
+	multipliers := []float64{1.5, 1.4, 1.6, 1.9, 0.8}
+	emailWeight := 2
+	i := 0
+	for _, broadcast := range demoBroadcastCampaigns {
+		for _, templateID := range broadcast.Templates {
+			campaigns = append(campaigns, demoCampaign{
+				Source:             demoBroadcastUTMSource,
+				Medium:             "email",
+				Campaign:           broadcast.Campaign,
+				Content:            templateID,
+				DurationMultiplier: multipliers[i%len(multipliers)],
+				Weight:             emailWeight,
+			})
+			i++
+		}
+	}
+
+	return campaigns
+}()
 
 var demoLaunchCampaigns = func() []demoCampaign {
 	campaigns := make([]demoCampaign, 0, 4)

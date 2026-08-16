@@ -37,6 +37,11 @@ type TelemetryMetrics struct {
 	Postmark  bool `json:"postmark"`
 	SMTP      bool `json:"smtp"`
 	S3        bool `json:"s3"`
+
+	// WebAnalytics reports whether the workspace recorded a web analytics
+	// session recently, i.e. that it is collecting traffic — not merely that the
+	// feature is switched on.
+	WebAnalytics bool `json:"web_analytics"`
 }
 
 // LogEntry represents the structured log entry for Google Cloud Logging
@@ -66,6 +71,8 @@ type LogEntry struct {
 	Postmark  bool `json:"postmark"`
 	SMTP      bool `json:"smtp"`
 	S3        bool `json:"s3"`
+
+	WebAnalytics bool `json:"web_analytics"`
 }
 
 var (
@@ -139,6 +146,9 @@ func receiveTelemetry(w http.ResponseWriter, r *http.Request) {
 	logEntry := LogEntry{
 		Timestamp:          time.Now(),
 		WorkspaceIDSHA1:    metrics.WorkspaceIDSHA1,
+		WorkspaceCreatedAt: metrics.WorkspaceCreatedAt,
+		WorkspaceUpdatedAt: metrics.WorkspaceUpdatedAt,
+		LastMessageAt:      metrics.LastMessageAt,
 		ContactsCount:      metrics.ContactsCount,
 		BroadcastsCount:    metrics.BroadcastsCount,
 		TransactionalCount: metrics.TransactionalCount,
@@ -157,6 +167,7 @@ func receiveTelemetry(w http.ResponseWriter, r *http.Request) {
 		Postmark:           metrics.Postmark,
 		SMTP:               metrics.SMTP,
 		S3:                 metrics.S3,
+		WebAnalytics:       metrics.WebAnalytics,
 	}
 
 	// Log to Google Cloud Logging with structured data

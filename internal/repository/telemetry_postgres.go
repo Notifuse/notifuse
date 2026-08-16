@@ -81,6 +81,11 @@ func (r *telemetryRepository) GetWorkspaceMetrics(ctx context.Context, workspace
 		metrics.LastMessageAt = lastMessageAt
 	}
 
+	// Get last web analytics session date
+	if lastWebSessionAt, err := r.GetLastWebSessionAt(ctx, db); err == nil {
+		metrics.LastWebSessionAt = lastWebSessionAt
+	}
+
 	return metrics, nil
 }
 
@@ -195,6 +200,42 @@ func (r *telemetryRepository) GetLastMessageAt(ctx context.Context, db *sql.DB) 
 	}
 
 	return lastMessageAt.Time.Format(time.RFC3339), nil
+}
+
+// GetLastWebSessionAt gets the date of the most recent web analytics session
+// recorded in the workspace.
+//
+// MAX() on the partition key rather than a filtered EXISTS. web_sessions is
+// RANGE partitioned by month on session_date with PRIMARY KEY (session_date,
+// id), so MAX plans as an ordered Append of backward index-only scans that
+// stops at the first non-empty partition — measured on 400k rows across 14
+// monthly partitions: 14 shared buffer hits, and every partition below the
+// newest non-empty one reported "never executed".
+//
+// A cutoff predicate would answer the same question, but its plan depends on
+// the planner believing the range is selective, and it can only ever answer
+// "recent". MAX answers both "ever" and "recent" from one round trip and leaves
+// the window a decision the caller makes, without a second query when it moves.
+//
+// A workspace database that predates the web analytics tables has no
+// web_sessions relation and errors here; GetWorkspaceMetrics swallows that the
+// same way it swallows every other per-metric failure.
+func (r *telemetryRepository) GetLastWebSessionAt(ctx context.Context, db *sql.DB) (string, error) {
+	query := `SELECT MAX(session_date) FROM web_sessions`
+
+	// An aggregate over no rows still returns one row, holding NULL — so the
+	// empty case arrives as an invalid NullTime, never as sql.ErrNoRows.
+	var lastWebSessionAt sql.NullTime
+	err := db.QueryRowContext(ctx, query).Scan(&lastWebSessionAt)
+	if err != nil {
+		return "", fmt.Errorf("failed to get last web session date: %w", err)
+	}
+
+	if !lastWebSessionAt.Valid {
+		return "", nil // No web analytics sessions recorded
+	}
+
+	return lastWebSessionAt.Time.Format(time.RFC3339), nil
 }
 
 // getSystemConnection is a helper method to get the system database connection

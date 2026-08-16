@@ -66,6 +66,7 @@ import TemplatePreviewDrawer from '../components/templates/TemplatePreviewDrawer
 import { BroadcastStats, ProgressStats } from '../components/broadcasts/BroadcastStats'
 import { BroadcastLinkStats } from '../components/broadcasts/BroadcastLinkStats'
 import { SendingProgress } from '../components/broadcasts/SendingProgress'
+import { BroadcastAnalyticsLinks } from '../components/broadcasts/BroadcastAnalyticsLinks'
 import { Integration, List, Sender } from '../services/api/types'
 import SendTemplateModal from '../components/templates/SendTemplateModal'
 import { Workspace, UserPermissions } from '../services/api/types'
@@ -527,6 +528,16 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
       }
       extra={
         <Space>
+          {/* Leftmost: the action buttons after it come and go with the
+              broadcast's status, so anchoring the reports here keeps them in
+              one place across every status. */}
+          <BroadcastAnalyticsLinks
+            workspaceId={workspaceId}
+            workspace={currentWorkspace}
+            broadcast={broadcast}
+            permissions={permissions}
+            withDivider
+          />
           <Tooltip title={t`Refresh Broadcast`}>
             <Button
               type="text"
@@ -895,6 +906,16 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
                       return (
                         // Stop clicks here from toggling the row's expand-on-click.
                         <Space size="small" onClick={(e) => e.stopPropagation()}>
+                          {/* Scoped to this variation's utm_content, so an A/B
+                              test's two creatives are read apart. */}
+                          <BroadcastAnalyticsLinks
+                            workspaceId={workspaceId}
+                            workspace={currentWorkspace}
+                            broadcast={broadcast}
+                            permissions={permissions}
+                            variationTemplateId={record.templateId ?? ''}
+                            withDivider
+                          />
                           {record.template && (
                             <Tooltip
                               title={

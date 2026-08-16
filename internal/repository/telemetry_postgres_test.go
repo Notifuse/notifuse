@@ -82,6 +82,10 @@ func TestGetWorkspaceMetrics_Success(t *testing.T) {
 	workspaceMock.ExpectQuery(`SELECT created_at FROM message_history\s+WHERE created_at IS NOT NULL\s+ORDER BY created_at DESC, id DESC\s+LIMIT 1`).
 		WillReturnRows(sqlmock.NewRows([]string{"created_at"}).AddRow(lastMessageTime))
 
+	lastWebSessionDate := time.Now().UTC().Truncate(24 * time.Hour)
+	workspaceMock.ExpectQuery(`SELECT MAX\(session_date\) FROM web_sessions`).
+		WillReturnRows(sqlmock.NewRows([]string{"max"}).AddRow(lastWebSessionDate))
+
 	ctx := context.Background()
 	metrics, err := repo.GetWorkspaceMetrics(ctx, "workspace123")
 
@@ -95,6 +99,7 @@ func TestGetWorkspaceMetrics_Success(t *testing.T) {
 	assert.Equal(t, 8, metrics.SegmentsCount)
 	assert.Equal(t, 3, metrics.UsersCount)
 	assert.Equal(t, lastMessageTime.Format(time.RFC3339), metrics.LastMessageAt)
+	assert.Equal(t, lastWebSessionDate.Format(time.RFC3339), metrics.LastWebSessionAt)
 
 	// Verify all expectations were met
 	require.NoError(t, workspaceMock.ExpectationsWereMet())
@@ -183,6 +188,11 @@ func TestGetWorkspaceMetrics_PartialFailures(t *testing.T) {
 	workspaceMock.ExpectQuery(`SELECT created_at FROM message_history\s+WHERE created_at IS NOT NULL\s+ORDER BY created_at DESC, id DESC\s+LIMIT 1`).
 		WillReturnRows(sqlmock.NewRows([]string{"created_at"}).AddRow(time.Now().UTC()))
 
+	// A workspace database that predates the web analytics tables answers with
+	// "relation does not exist"; the payload must survive it.
+	workspaceMock.ExpectQuery(`SELECT MAX\(session_date\) FROM web_sessions`).
+		WillReturnError(errors.New(`pq: relation "web_sessions" does not exist`))
+
 	ctx := context.Background()
 	metrics, err := repo.GetWorkspaceMetrics(ctx, "workspace123")
 
@@ -196,8 +206,15 @@ func TestGetWorkspaceMetrics_PartialFailures(t *testing.T) {
 	assert.Equal(t, 50, metrics.TransactionalCount)
 	assert.Equal(t, 0, metrics.MessagesCount) // Failed query, should be 0
 	assert.Equal(t, 10, metrics.ListsCount)
-	assert.Equal(t, 0, metrics.SegmentsCount) // Failed query, should be 0
-	assert.Equal(t, 0, metrics.UsersCount)    // Failed query, should be 0
+	assert.Equal(t, 0, metrics.SegmentsCount)     // Failed query, should be 0
+	assert.Equal(t, 0, metrics.UsersCount)        // Failed query, should be 0
+	assert.Equal(t, "", metrics.LastWebSessionAt) // Failed query, should be empty
+
+	// Without this, the expectations above are decorative: the assertions on
+	// failed queries all read back a zero value, which a query that was never
+	// issued produces just as well.
+	require.NoError(t, workspaceMock.ExpectationsWereMet())
+	require.NoError(t, systemMock.ExpectationsWereMet())
 }
 
 func TestCountContacts_Success(t *testing.T) {
@@ -591,6 +608,73 @@ func TestGetLastMessageAt_DatabaseError(t *testing.T) {
 	assert.Contains(t, err.Error(), "failed to get last message timestamp")
 }
 
+func TestGetLastWebSessionAt_Success(t *testing.T) {
+	db, mock, cleanup := setupTelemetryMockDB(t)
+	defer cleanup()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	workspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	repo := NewTelemetryRepository(workspaceRepo)
+
+	// session_date is a DATE, so the driver hands back a midnight UTC instant.
+	expectedDate := time.Date(2026, 8, 14, 0, 0, 0, 0, time.UTC)
+	mock.ExpectQuery(`SELECT MAX\(session_date\) FROM web_sessions`).
+		WillReturnRows(sqlmock.NewRows([]string{"max"}).AddRow(expectedDate))
+
+	ctx := context.Background()
+	lastWebSessionAt, err := repo.GetLastWebSessionAt(ctx, db)
+
+	require.NoError(t, err)
+	assert.Equal(t, "2026-08-14T00:00:00Z", lastWebSessionAt)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestGetLastWebSessionAt_NoSessions(t *testing.T) {
+	db, mock, cleanup := setupTelemetryMockDB(t)
+	defer cleanup()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	workspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	repo := NewTelemetryRepository(workspaceRepo)
+
+	// MAX() over an empty table returns one row holding NULL, never ErrNoRows.
+	mock.ExpectQuery(`SELECT MAX\(session_date\) FROM web_sessions`).
+		WillReturnRows(sqlmock.NewRows([]string{"max"}).AddRow(nil))
+
+	ctx := context.Background()
+	lastWebSessionAt, err := repo.GetLastWebSessionAt(ctx, db)
+
+	require.NoError(t, err)
+	assert.Equal(t, "", lastWebSessionAt)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestGetLastWebSessionAt_MissingTable(t *testing.T) {
+	db, mock, cleanup := setupTelemetryMockDB(t)
+	defer cleanup()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	workspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	repo := NewTelemetryRepository(workspaceRepo)
+
+	// A workspace database created before the web analytics tables existed.
+	mock.ExpectQuery(`SELECT MAX\(session_date\) FROM web_sessions`).
+		WillReturnError(errors.New(`pq: relation "web_sessions" does not exist`))
+
+	ctx := context.Background()
+	lastWebSessionAt, err := repo.GetLastWebSessionAt(ctx, db)
+
+	assert.Error(t, err)
+	assert.Equal(t, "", lastWebSessionAt)
+	assert.Contains(t, err.Error(), "failed to get last web session date")
+}
+
 func TestGetSystemConnection(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -672,6 +756,10 @@ func TestGetWorkspaceMetrics_EmptyDatabase(t *testing.T) {
 	workspaceMock.ExpectQuery(`SELECT created_at FROM message_history\s+WHERE created_at IS NOT NULL\s+ORDER BY created_at DESC, id DESC\s+LIMIT 1`).
 		WillReturnError(sql.ErrNoRows)
 
+	// The tables exist but hold no sessions: MAX over no rows is one NULL row.
+	workspaceMock.ExpectQuery(`SELECT MAX\(session_date\) FROM web_sessions`).
+		WillReturnRows(sqlmock.NewRows([]string{"max"}).AddRow(nil))
+
 	ctx := context.Background()
 	metrics, err := repo.GetWorkspaceMetrics(ctx, "workspace123")
 
@@ -685,6 +773,7 @@ func TestGetWorkspaceMetrics_EmptyDatabase(t *testing.T) {
 	assert.Equal(t, 0, metrics.SegmentsCount)
 	assert.Equal(t, 0, metrics.UsersCount)
 	assert.Equal(t, "", metrics.LastMessageAt)
+	assert.Equal(t, "", metrics.LastWebSessionAt)
 
 	// Verify all expectations were met
 	require.NoError(t, workspaceMock.ExpectationsWereMet())

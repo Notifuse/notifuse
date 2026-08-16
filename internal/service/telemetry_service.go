@@ -38,11 +38,27 @@ type TelemetryMetrics struct {
 	Postmark  bool `json:"postmark"`
 	SMTP      bool `json:"smtp"`
 	S3        bool `json:"s3"`
+
+	// WebAnalytics reports whether the workspace is actually collecting web
+	// analytics, not whether the feature is switched on: a workspace can enable
+	// it and never install the snippet, and one that collected traffic for
+	// months can clear its settings without the data going anywhere.
+	//
+	// Only the boolean is sent, never the date it derives from. The question
+	// this payload asks is whether the feature is used, and a date answers more
+	// than that.
+	WebAnalytics bool `json:"web_analytics"`
 }
 
 const (
 	// TelemetryEndpoint is the hardcoded endpoint for sending telemetry data
 	TelemetryEndpoint = "https://telemetry.notifuse.com"
+
+	// WebAnalyticsActiveDays is how recently a workspace must have recorded a
+	// web analytics session to count as using the feature. Wide enough that a
+	// low-traffic site does not flicker between reports, narrow enough that a
+	// workspace which stopped months ago is not still counted as an adopter.
+	WebAnalyticsActiveDays = 30
 )
 
 // TelemetryServiceConfig contains configuration for the telemetry service
@@ -135,6 +151,7 @@ func (t *TelemetryService) sendMetricsForWorkspace(ctx context.Context, workspac
 		metrics.UsersCount = telemetryMetrics.UsersCount
 		metrics.BlogPostsCount = telemetryMetrics.BlogPostsCount
 		metrics.LastMessageAt = telemetryMetrics.LastMessageAt
+		metrics.WebAnalytics = isWebAnalyticsActive(telemetryMetrics.LastWebSessionAt, time.Now())
 	}
 
 	// Send metrics to telemetry endpoint
@@ -167,6 +184,35 @@ func (t *TelemetryService) setIntegrationFlagsFromWorkspace(workspace *domain.Wo
 	if t.isS3FileStorageConfigured(&workspace.Settings.FileManager) {
 		metrics.S3 = true
 	}
+}
+
+// isWebAnalyticsActive reports whether the last recorded web analytics session
+// is recent enough for the workspace to count as using the feature.
+//
+// lastWebSessionAt is a session_date: a UTC calendar day, not an instant. The
+// cutoff is therefore taken from the start of the current UTC day, so the answer
+// does not depend on what time of day the daily telemetry run happens to fire.
+// An unparseable or absent date means no usage rather than an error, because a
+// workspace database without the web analytics tables must still produce a
+// payload.
+func isWebAnalyticsActive(lastWebSessionAt string, now time.Time) bool {
+	if lastWebSessionAt == "" {
+		return false
+	}
+
+	sessionDate, err := time.Parse(time.RFC3339, lastWebSessionAt)
+	if err != nil {
+		return false
+	}
+
+	// The window is WebAnalyticsActiveDays calendar days counted inclusively:
+	// today plus the days before it. Stepping a full WebAnalyticsActiveDays back
+	// and then accepting that day too would make the window one day wider than
+	// the field claims to mean.
+	today := now.UTC().Truncate(24 * time.Hour)
+	cutoff := today.AddDate(0, 0, -(WebAnalyticsActiveDays - 1))
+
+	return !sessionDate.Before(cutoff)
 }
 
 // isS3FileStorageConfigured checks if S3-compatible file storage is configured in workspace settings

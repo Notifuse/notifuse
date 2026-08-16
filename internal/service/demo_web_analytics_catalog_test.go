@@ -21,7 +21,7 @@ func TestDemoWebAnalyticsCatalogWeights(t *testing.T) {
 	t.Run("catalogue sizes", func(t *testing.T) {
 		assert.Len(t, demoPages, 34)
 		assert.Len(t, demoReferrers, 30)
-		assert.Len(t, demoCampaigns, 19)
+		assert.Len(t, demoCampaigns, 21)
 		assert.Len(t, demoDevices, 17)
 		assert.Len(t, demoGeos, 13)
 	})
@@ -189,6 +189,37 @@ func TestDemoWebAnalyticsCatalogPages(t *testing.T) {
 		_, ok := demoPriceForPath("/newsroom/")
 		assert.False(t, ok)
 	})
+}
+
+// The broadcast seeder and the web analytics seeder used to name their
+// campaigns independently, which left every demo broadcast pointing at an empty
+// traffic report — the two sets did not share a single name.
+func TestDemoBroadcastCampaignsAreSeededAsTraffic(t *testing.T) {
+	require.NotEmpty(t, demoBroadcastCampaigns)
+
+	type scope struct{ campaign, content string }
+	seeded := make(map[scope]demoCampaign, len(demoCampaigns))
+	for _, campaign := range demoCampaigns {
+		seeded[scope{campaign.Campaign, campaign.Content}] = campaign
+	}
+
+	for _, broadcast := range demoBroadcastCampaigns {
+		require.NotEmpty(t, broadcast.Templates,
+			"broadcast %q has no variation to seed traffic for", broadcast.Name)
+
+		for _, templateID := range broadcast.Templates {
+			// A send stamps utm_content with the variation's template id, so the
+			// per-variation report filters on exactly this pair.
+			campaign, ok := seeded[scope{broadcast.Campaign, templateID}]
+			require.True(t, ok,
+				"broadcast %q variation %q sends utm_campaign=%q utm_content=%q, which no demo session carries",
+				broadcast.Name, templateID, broadcast.Campaign, templateID)
+			// A source or medium that disagrees with the broadcast's would still
+			// read as someone else's traffic in every breakdown beside it.
+			assert.Equal(t, demoBroadcastUTMSource, campaign.Source)
+			assert.Equal(t, "email", campaign.Medium)
+		}
+	}
 }
 
 func TestDemoWebAnalyticsCatalogCampaigns(t *testing.T) {

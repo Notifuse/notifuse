@@ -10,6 +10,7 @@
   "lists_count": 7,
   "segments_count": 14,
   "users_count": 5,
+  "blog_posts_count": 12,
   "api_endpoint": "https://api.notifuse.com",
   "mailgun": true,
   "amazonses": true,
@@ -17,5 +18,6 @@
   "sparkpost": false,
   "postmark": false,
   "smtp": false,
-  "s3": false
+  "s3": false,
+  "web_analytics": true
 }

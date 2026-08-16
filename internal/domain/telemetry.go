@@ -18,6 +18,7 @@ type TelemetryMetrics struct {
 	UsersCount         int    `json:"users_count"`
 	BlogPostsCount     int    `json:"blog_posts_count"`
 	LastMessageAt      string `json:"last_message_at"`
+	LastWebSessionAt   string `json:"last_web_session_at"`
 }
 
 // TelemetryRepository defines the interface for telemetry data operations
@@ -51,4 +52,8 @@ type TelemetryRepository interface {
 
 	// GetLastMessageAt gets the timestamp of the last message sent from the workspace
 	GetLastMessageAt(ctx context.Context, db *sql.DB) (string, error)
+
+	// GetLastWebSessionAt gets the date of the most recent web analytics session
+	// recorded in a workspace, or an empty string if it has never recorded one.
+	GetLastWebSessionAt(ctx context.Context, db *sql.DB) (string, error)
 }

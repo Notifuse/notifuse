@@ -12,7 +12,7 @@ The telemetry function is designed to:
 - Provide CORS support for web-based requests
 - Return appropriate HTTP responses
 
-The telemetry data includes integration usage as boolean flags for each email provider, extracted directly from workspace configuration rather than database queries for improved performance.
+The telemetry data includes integration usage as boolean flags for each email provider, extracted directly from workspace configuration rather than database queries for improved performance. `web_analytics` is the exception: it reports whether the workspace actually recorded a web analytics session in the last 30 days, since the feature can be switched on and never wired up. Only the boolean is sent, never the date.
 
 ## Telemetry Data Structure
 
@@ -21,12 +21,16 @@ The function expects JSON payloads matching the following structure:
 ```json
 {
   "workspace_id_sha1": "a1b2c3d4e5f6...",
+  "workspace_created_at": "2023-01-15T10:30:00Z",
+  "workspace_updated_at": "2025-08-15T14:22:30Z",
+  "last_message_at": "2025-08-20T09:45:12Z",
   "contacts_count": 1500,
   "broadcasts_count": 25,
   "transactional_count": 150,
   "messages_count": 5000,
   "lists_count": 10,
   "segments_count": 8,
+  "users_count": 5,
   "blog_posts_count": 12,
   "api_endpoint": "https://api.example.com",
   "mailgun": true,
@@ -34,7 +38,9 @@ The function expects JSON payloads matching the following structure:
   "mailjet": false,
   "sparkpost": false,
   "postmark": false,
-  "smtp": false
+  "smtp": false,
+  "s3": false,
+  "web_analytics": true
 }
 ```
 
@@ -98,6 +104,7 @@ curl -X POST "$FUNCTION_URL" \
     "messages_count": 500,
     "lists_count": 3,
     "segments_count": 6,
+    "users_count": 2,
     "blog_posts_count": 8,
     "api_endpoint": "https://api.test.com",
     "mailgun": true,
@@ -105,7 +112,9 @@ curl -X POST "$FUNCTION_URL" \
     "mailjet": false,
     "sparkpost": false,
     "postmark": false,
-    "smtp": false
+    "smtp": false,
+    "s3": false,
+    "web_analytics": true
   }'
 ```
 
@@ -169,6 +178,11 @@ jsonPayload.mailgun=true
 resource.type="cloud_function"
 logName="projects/YOUR_PROJECT_ID/logs/telemetry"
 (jsonPayload.mailgun=true OR jsonPayload.amazonses=true OR jsonPayload.mailjet=true)
+
+-- Find workspaces actively collecting web analytics
+resource.type="cloud_function"
+logName="projects/YOUR_PROJECT_ID/logs/telemetry"
+jsonPayload.web_analytics=true
 ```
 
 ## Security

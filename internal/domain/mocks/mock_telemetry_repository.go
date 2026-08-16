@@ -171,6 +171,21 @@ func (mr *MockTelemetryRepositoryMockRecorder) GetLastMessageAt(arg0, arg1 inter
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLastMessageAt", reflect.TypeOf((*MockTelemetryRepository)(nil).GetLastMessageAt), arg0, arg1)
 }
 
+// GetLastWebSessionAt mocks base method.
+func (m *MockTelemetryRepository) GetLastWebSessionAt(arg0 context.Context, arg1 *sql.DB) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetLastWebSessionAt", arg0, arg1)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetLastWebSessionAt indicates an expected call of GetLastWebSessionAt.
+func (mr *MockTelemetryRepositoryMockRecorder) GetLastWebSessionAt(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLastWebSessionAt", reflect.TypeOf((*MockTelemetryRepository)(nil).GetLastWebSessionAt), arg0, arg1)
+}
+
 // GetWorkspaceMetrics mocks base method.
 func (m *MockTelemetryRepository) GetWorkspaceMetrics(arg0 context.Context, arg1 string) (*domain.TelemetryMetrics, error) {
 	m.ctrl.T.Helper()

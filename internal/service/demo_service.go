@@ -1477,71 +1477,70 @@ func (s *DemoService) createWelcomeMJMLStructure(c welcomeContent) notifuse_mjml
 	return &notifuse_mjml.MJMLBlock{BaseBlock: rootBase7}
 }
 
+// demoBroadcastUTMSource is the utm_source the sample broadcasts tag their
+// links with.
+const demoBroadcastUTMSource = "demo.notifuse.com"
+
+// demoBroadcastCampaigns are the sample broadcasts, the utm_campaign each one
+// tags its links with, and the template behind each of its variations.
+//
+// The web analytics seeder emits sessions under these same campaign names, one
+// per variation carrying the template id as utm_content, exactly as a real send
+// stamps it (demo_web_analytics_catalog.go). The two seeders ran independently
+// and each picked its own names, which left every broadcast pointing at an
+// empty report.
+var demoBroadcastCampaigns = []struct {
+	Name     string
+	Campaign string
+	// One template id per variation. A send writes utm_content from it, so
+	// these are what a per-variation report filters on.
+	Templates []string
+}{
+	{"Weekly Newsletter #1", "weekly_newsletter_1", []string{"newsletter-weekly"}},
+	{"Weekly Newsletter #2", "weekly_newsletter_2", []string{"newsletter-weekly-v2"}},
+	{"Weekly Newsletter #3", "weekly_newsletter_3", []string{"newsletter-weekly"}},
+	{"Weekly Newsletter #4 - A/B Test", "weekly_newsletter_4",
+		[]string{"newsletter-weekly", "newsletter-weekly-v2"}},
+}
+
 // createSampleBroadcasts creates multiple sample broadcast campaigns and returns their IDs
 func (s *DemoService) createSampleBroadcasts(ctx context.Context, workspaceID string) ([]string, error) {
 	s.logger.WithField("workspace_id", workspaceID).Info("Creating sample broadcasts")
 
 	var broadcastIDs []string
 
-	// Create 4 newsletter broadcasts to simulate recent campaigns
-	broadcasts := []struct {
-		name     string
-		campaign string
-	}{
-		{"Weekly Newsletter #1", "weekly_newsletter_1"},
-		{"Weekly Newsletter #2", "weekly_newsletter_2"},
-		{"Weekly Newsletter #3", "weekly_newsletter_3"},
-		{"Weekly Newsletter #4 - A/B Test", "weekly_newsletter_4"},
-	}
+	broadcasts := demoBroadcastCampaigns
 
 	for i, bc := range broadcasts {
-		var variations []domain.BroadcastVariation
-
-		// Last broadcast has A/B test enabled
-		if i == len(broadcasts)-1 {
-			variations = []domain.BroadcastVariation{
-				{
-					VariationName: "variation-a",
-					TemplateID:    "newsletter-weekly",
-				},
-				{
-					VariationName: "variation-b",
-					TemplateID:    "newsletter-weekly-v2",
-				},
-			}
-		} else {
-			// Alternate between templates for other broadcasts
-			templateID := "newsletter-weekly"
-			if i%2 == 1 {
-				templateID = "newsletter-weekly-v2"
-			}
-			variations = []domain.BroadcastVariation{
-				{
-					VariationName: "variation-a",
-					TemplateID:    templateID,
-				},
-			}
+		// Variations follow the templates declared alongside the campaign, so the
+		// utm_content a send stamps stays in step with the seeded sessions.
+		variations := make([]domain.BroadcastVariation, 0, len(bc.Templates))
+		for v, templateID := range bc.Templates {
+			variations = append(variations, domain.BroadcastVariation{
+				VariationName: fmt.Sprintf("variation-%c", 'a'+rune(v)),
+				TemplateID:    templateID,
+			})
 		}
 
 		broadcastReq := &domain.CreateBroadcastRequest{
 			WorkspaceID: workspaceID,
-			Name:        bc.name,
+			Name:        bc.Name,
 			Audience: domain.AudienceSettings{
 				List:                "newsletter",
 				Segments:            []string{},
 				ExcludeUnsubscribed: true,
 			},
 			TestSettings: domain.BroadcastTestSettings{
-				Enabled:          i == len(broadcasts)-1, // Only enable A/B test for last broadcast
+				Enabled:          len(bc.Templates) > 1, // A broadcast with more than one template is the A/B test
 				SamplePercentage: 10,
 				AutoSendWinner:   false,
 				Variations:       variations,
 			},
 			TrackingEnabled: true,
 			UTMParameters: &domain.UTMParameters{
-				Source:   "demo.notifuse.com",
+				Source:   demoBroadcastUTMSource,
 				Medium:   "email",
-				Campaign: bc.campaign,
+				Campaign: bc.Campaign,
 				Term:     "",
 				Content:  "",
 			},
@@ -1573,7 +1572,7 @@ func (s *DemoService) createSampleBroadcasts(ctx context.Context, workspaceID st
 		// hardcoding it, and set the test/winner phase timestamps so the record matches a
 		// genuine winner selection. WinningTemplate/*SentAt are top-level columns
 		// persisted by UpdateBroadcast below.
-		if i == len(broadcasts)-1 && len(variations) > 0 {
+		if len(variations) > 1 {
 			winner := variations[len(variations)-1].TemplateID
 			winnerSentTime := sentTime.Add(1 * time.Hour)
 			broadcast.WinningTemplate = &winner
@@ -1588,7 +1587,7 @@ func (s *DemoService) createSampleBroadcasts(ctx context.Context, workspaceID st
 		}
 
 		broadcastIDs = append(broadcastIDs, broadcast.ID)
-		s.logger.WithField("broadcast_id", broadcast.ID).WithField("name", bc.name).WithField("status", "sent").Info("Sample broadcast created and marked as sent")
+		s.logger.WithField("broadcast_id", broadcast.ID).WithField("name", bc.Name).WithField("status", "sent").Info("Sample broadcast created and marked as sent")
 	}
 
 	if len(broadcastIDs) == 0 {

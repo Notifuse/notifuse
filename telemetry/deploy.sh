@@ -19,7 +19,7 @@ echo "Function Name: $FUNCTION_NAME"
 # Deploy the function
 gcloud functions deploy $FUNCTION_NAME \
   --gen2 \
-  --runtime=go124 \
+  --runtime=go125 \
   --region=$REGION \
   --source=. \
   --entry-point=$ENTRY_POINT \

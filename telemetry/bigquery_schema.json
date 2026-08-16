@@ -136,5 +136,11 @@
     "type": "BOOLEAN",
     "mode": "NULLABLE",
     "description": "Whether S3 file storage is active"
+  },
+  {
+    "name": "web_analytics",
+    "type": "BOOLEAN",
+    "mode": "NULLABLE",
+    "description": "Whether the workspace recorded a web analytics session in the last 30 days"
   }
 ]
