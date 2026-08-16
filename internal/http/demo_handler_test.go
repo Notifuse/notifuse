@@ -132,33 +132,129 @@ func TestDemoHandler_InvalidHMAC(t *testing.T) {
 	assert.Equal(t, "Invalid authentication", response["error"])
 }
 
-func TestDemoHandler_RateLimiting(t *testing.T) {
+// A reset that ran moments ago is skipped, but reported as success: the caller
+// is a scheduler with at-least-once delivery, and the demo is in the state it
+// asked for. Returning an error here marked a whole scheduled run failed.
+func TestDemoHandler_RecentResetIsSkippedNotRejected(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
-	mockLogger.EXPECT().Warn("Reset request rejected due to rate limiting")
+	mockLogger.EXPECT().Warn("Demo reset skipped, previous reset was too recent")
 
 	cfg := &config.Config{RootEmail: "test@example.com", Security: config.SecurityConfig{SecretKey: "test-secret"}}
 	svc := createTestDemoService(cfg, mockLogger)
 	h := NewDemoHandler(svc, mockLogger)
 
-	// Set lastReset to recent time to trigger rate limiting
-	h.lastReset = time.Now().Add(-2 * time.Minute) // 2 minutes ago (less than 5 minute limit)
+	// Well inside the debounce window, whatever that window is set to.
+	h.lastReset = time.Now().Add(-minTimeBetweenResets / 2)
 
 	// Generate valid HMAC
 	validHMAC := domain.ComputeEmailHMAC("test@example.com", "test-secret")
 	req := httptest.NewRequest(http.MethodGet, "/api/demo.reset?hmac="+validHMAC, nil)
 	w := httptest.NewRecorder()
+
+	// The service is built with nil dependencies, so reaching ResetDemo would
+	// panic — surviving this call is itself the proof that no reset was run.
 	h.handleResetDemo(w, req)
 
-	assert.Equal(t, http.StatusTooManyRequests, w.Code)
+	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, "application/json", w.Header().Get("Content-Type"))
 
 	var response map[string]string
 	err := json.NewDecoder(w.Body).Decode(&response)
 	require.NoError(t, err)
-	assert.Equal(t, "Reset too frequent. Please wait 5 minutes between resets.", response["error"])
+	assert.Equal(t, "skipped", response["status"])
+	assert.Empty(t, response["error"])
+	// The debounce must not have been mistaken for a completed reset.
+	assert.NotEqual(t, "reset", response["status"])
+}
+
+// A duplicate dispatch landing while a reset is in flight must be answered
+// immediately, not held on the mutex for the length of the reset.
+func TestDemoHandler_ResetInProgressAnswersImmediately(t *testing.T) {
+	cfg := &config.Config{RootEmail: "test@example.com", Security: config.SecurityConfig{SecretKey: "test-secret"}}
+	mockLogger := logger.NewLoggerWithLevel("disabled")
+	svc := createTestDemoService(cfg, mockLogger)
+	h := NewDemoHandler(svc, mockLogger)
+
+	// Stand in for a reset already running.
+	h.resetMutex.Lock()
+	defer h.resetMutex.Unlock()
+
+	validHMAC := domain.ComputeEmailHMAC("test@example.com", "test-secret")
+	req := httptest.NewRequest(http.MethodGet, "/api/demo.reset?hmac="+validHMAC, nil)
+	w := httptest.NewRecorder()
+
+	done := make(chan struct{})
+	go func() {
+		h.handleResetDemo(w, req)
+		close(done)
+	}()
+
+	select {
+	case <-done:
+	case <-time.After(2 * time.Second):
+		t.Fatal("handler blocked on the reset lock instead of answering the duplicate request")
+	}
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var response map[string]string
+	err := json.NewDecoder(w.Body).Decode(&response)
+	require.NoError(t, err)
+	assert.Equal(t, "in_progress", response["status"])
+	assert.Empty(t, response["error"])
+}
+
+// Authentication is checked before the reset lock, so an unauthenticated
+// request arriving mid-reset cannot park on it.
+func TestDemoHandler_AuthCheckedBeforeResetLock(t *testing.T) {
+	cfg := &config.Config{RootEmail: "test@example.com", Security: config.SecurityConfig{SecretKey: "test-secret"}}
+
+	testCases := []struct {
+		name         string
+		query        string
+		expectedCode int
+		expectedErr  string
+	}{
+		{"invalid hmac", "?hmac=invalid_hmac", http.StatusUnauthorized, "Invalid authentication"},
+		{"missing hmac", "", http.StatusBadRequest, "Missing HMAC parameter"},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			mockLogger := logger.NewLoggerWithLevel("disabled")
+			svc := createTestDemoService(cfg, mockLogger)
+			h := NewDemoHandler(svc, mockLogger)
+
+			// Stand in for a reset already running.
+			h.resetMutex.Lock()
+			defer h.resetMutex.Unlock()
+
+			req := httptest.NewRequest(http.MethodGet, "/api/demo.reset"+tc.query, nil)
+			w := httptest.NewRecorder()
+
+			done := make(chan struct{})
+			go func() {
+				h.handleResetDemo(w, req)
+				close(done)
+			}()
+
+			select {
+			case <-done:
+			case <-time.After(2 * time.Second):
+				t.Fatal("handler blocked on the reset lock before authenticating the request")
+			}
+
+			assert.Equal(t, tc.expectedCode, w.Code)
+
+			var response map[string]string
+			err := json.NewDecoder(w.Body).Decode(&response)
+			require.NoError(t, err)
+			assert.Equal(t, tc.expectedErr, response["error"])
+		})
+	}
 }
 
 // Test to improve coverage - test that lastReset is updated on successful HMAC validation
@@ -199,20 +295,13 @@ func TestDemoHandler_DirectLastResetUpdate(t *testing.T) {
 	assert.False(t, h.lastReset.IsZero())
 }
 
-// TestDemoHandler_CoverageNote documents the achieved coverage
+// TestDemoHandler_CoverageNote records what these tests deliberately leave out.
 func TestDemoHandler_CoverageNote(t *testing.T) {
-	// This test documents that we have achieved significant coverage:
-	// - NewDemoHandler: 100%
-	// - RegisterRoutes: 100%
-	// - handleResetDemo: 73.9%
-	//
-	// The uncovered lines in handleResetDemo are:
-	// - Line 72: h.lastReset = time.Now() (success path)
-	// - Lines 74-76: Success response (success path)
-	//
-	// These lines require a successful service.ResetDemo() call, which needs
-	// complex mocking of all DemoService dependencies (UserService, WorkspaceService, etc.)
-	// The current tests provide excellent coverage of all error paths and validation logic.
+	// Every branch of handleResetDemo is covered here except the one that runs a
+	// reset through to completion: the stamping of lastReset and the success
+	// response. Reaching it needs a DemoService with all of its dependencies
+	// mocked (UserService, WorkspaceService, and the rest), which the
+	// integration suite exercises instead.
 
 	// This test just verifies our test structure is working
 	assert.True(t, true)
