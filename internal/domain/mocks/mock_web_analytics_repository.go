@@ -107,6 +107,21 @@ func (mr *MockWebAnalyticsRepositoryMockRecorder) FlushBatch(arg0, arg1, arg2, a
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FlushBatch", reflect.TypeOf((*MockWebAnalyticsRepository)(nil).FlushBatch), arg0, arg1, arg2, arg3, arg4)
 }
 
+// GetUsage mocks base method.
+func (m *MockWebAnalyticsRepository) GetUsage(arg0 context.Context, arg1 string, arg2 []time.Time) ([]*domain.MonthlyUsage, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetUsage", arg0, arg1, arg2)
+	ret0, _ := ret[0].([]*domain.MonthlyUsage)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetUsage indicates an expected call of GetUsage.
+func (mr *MockWebAnalyticsRepositoryMockRecorder) GetUsage(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUsage", reflect.TypeOf((*MockWebAnalyticsRepository)(nil).GetUsage), arg0, arg1, arg2)
+}
+
 // ListPartitions mocks base method.
 func (m *MockWebAnalyticsRepository) ListPartitions(arg0 context.Context, arg1, arg2 string) ([]string, error) {
 	m.ctrl.T.Helper()
@@ -134,6 +149,20 @@ func (m *MockWebAnalyticsRepository) ProjectContactNavigation(arg0 context.Conte
 func (mr *MockWebAnalyticsRepositoryMockRecorder) ProjectContactNavigation(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ProjectContactNavigation", reflect.TypeOf((*MockWebAnalyticsRepository)(nil).ProjectContactNavigation), arg0, arg1, arg2)
+}
+
+// RecomputeUsage mocks base method.
+func (m *MockWebAnalyticsRepository) RecomputeUsage(arg0 context.Context, arg1 string, arg2 time.Time, arg3 bool) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RecomputeUsage", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RecomputeUsage indicates an expected call of RecomputeUsage.
+func (mr *MockWebAnalyticsRepositoryMockRecorder) RecomputeUsage(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RecomputeUsage", reflect.TypeOf((*MockWebAnalyticsRepository)(nil).RecomputeUsage), arg0, arg1, arg2, arg3)
 }
 
 // SetPartitionAutovacuum mocks base method.

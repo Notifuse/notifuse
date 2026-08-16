@@ -679,6 +679,145 @@ func (r *webAnalyticsRepository) SetPartitionAutovacuum(ctx context.Context, wor
 	return nil
 }
 
+// Usage metering. The counts are recomputed from the data rather than
+// incremented as it lands, which is what keeps the flush path unchanged: a
+// running total would have to tell an INSERT apart from the fortieth heartbeat
+// UPDATE of the same page, and `RETURNING (xmax = 0)` is unavailable on a
+// partitioned parent while MERGE gives up ON CONFLICT's speculative-insertion
+// protection and raises 23505 when two flushes race the same new key.
+//
+// Recounting also costs nothing to get right: COUNT(*) over web_pages *is* the
+// billable definition, so the meter cannot drift from it.
+const (
+	// Bounded to the requested month so range partitioning prunes to the single
+	// web_pages partition. Both bounds are cast to date: session_date is a DATE
+	// column, and comparing it against a bound lib/pq sends as a timestamptz
+	// would resolve the date through the session's TimeZone.
+	monthlyUsagePageviewCount = `
+		SELECT COUNT(*) FROM web_pages
+		WHERE session_date >= $1::date AND session_date < $2::date`
+
+	// The exclusion is on entity_type, matching the literals
+	// web_analytics_timeline_projection.go writes and the predicate of
+	// idx_contact_timeline_billable. Without it every pageview would be metered
+	// twice, once as a pageview and once as an event.
+	monthlyUsageTimelineCount = `
+		SELECT COUNT(*) FROM contact_timeline
+		WHERE created_at >= $1 AND created_at < $2
+		AND entity_type NOT IN ('web_page', 'web_session')`
+
+	// The open month, where a lower count is legitimate: deleting a contact
+	// removes its timeline rows.
+	monthlyUsageUpsertLive = `
+		INSERT INTO monthly_usage (period_month, pageviews, timeline_entries, computed_at, updated_at)
+		VALUES ($1::date, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+		ON CONFLICT (period_month) DO UPDATE SET
+			pageviews = EXCLUDED.pageviews,
+			timeline_entries = EXCLUDED.timeline_entries,
+			computed_at = EXCLUDED.computed_at,
+			updated_at = EXCLUDED.updated_at`
+
+	// A closed month. GREATEST is the whole retention guard: once history is
+	// dropped the counts come back as 0 and the stored, already-reported value
+	// has to win. It subsumes checking pg_inherits for the partition, and also
+	// covers partial loss, which that check would not.
+	monthlyUsageUpsertClosed = `
+		INSERT INTO monthly_usage (period_month, pageviews, timeline_entries, computed_at, updated_at)
+		VALUES ($1::date, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+		ON CONFLICT (period_month) DO UPDATE SET
+			pageviews = GREATEST(monthly_usage.pageviews, EXCLUDED.pageviews),
+			timeline_entries = GREATEST(monthly_usage.timeline_entries, EXCLUDED.timeline_entries),
+			computed_at = EXCLUDED.computed_at,
+			updated_at = EXCLUDED.updated_at`
+
+	// period_month is read back through to_char rather than scanned as a date:
+	// lib/pq resolves a DATE into a time.Time at the connection's location, and
+	// a non-UTC location would shift the first of the month into the previous
+	// one. DateStyle cannot affect to_char.
+	monthlyUsageSelect = `
+		SELECT to_char(period_month, 'YYYY-MM-DD'), pageviews, timeline_entries, computed_at
+		FROM monthly_usage
+		WHERE period_month = ANY($1::date[])
+		ORDER BY period_month`
+)
+
+// utcMonthStart returns the first instant of the UTC month containing t.
+func utcMonthStart(t time.Time) time.Time {
+	t = t.UTC()
+	return time.Date(t.Year(), t.Month(), 1, 0, 0, 0, 0, time.UTC)
+}
+
+// RecomputeUsage recounts one UTC month of metered usage and stores the
+// snapshot. See the domain interface for the meaning of live.
+func (r *webAnalyticsRepository) RecomputeUsage(ctx context.Context, workspaceID string, month time.Time, live bool) error {
+	start := utcMonthStart(month)
+	end := start.AddDate(0, 1, 0)
+	label := start.Format("2006-01")
+
+	db, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
+	if err != nil {
+		return fmt.Errorf("failed to get workspace connection: %w", err)
+	}
+
+	var pageviews int64
+	if err := db.QueryRowContext(ctx, monthlyUsagePageviewCount, start, end).Scan(&pageviews); err != nil {
+		return fmt.Errorf("failed to count pageviews for %s: %w", label, err)
+	}
+
+	var timelineEntries int64
+	if err := db.QueryRowContext(ctx, monthlyUsageTimelineCount, start, end).Scan(&timelineEntries); err != nil {
+		return fmt.Errorf("failed to count timeline entries for %s: %w", label, err)
+	}
+
+	stmt := monthlyUsageUpsertClosed
+	if live {
+		stmt = monthlyUsageUpsertLive
+	}
+	if _, err := db.ExecContext(ctx, stmt, start, pageviews, timelineEntries); err != nil {
+		return fmt.Errorf("failed to store usage snapshot for %s: %w", label, err)
+	}
+	return nil
+}
+
+// GetUsage returns the stored snapshots for the given UTC months.
+func (r *webAnalyticsRepository) GetUsage(ctx context.Context, workspaceID string, months []time.Time) ([]*domain.MonthlyUsage, error) {
+	if len(months) == 0 {
+		return nil, nil
+	}
+	db, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get workspace connection: %w", err)
+	}
+
+	starts := make([]string, 0, len(months))
+	for _, m := range months {
+		starts = append(starts, utcMonthStart(m).Format("2006-01-02"))
+	}
+
+	rows, err := db.QueryContext(ctx, monthlyUsageSelect, pq.Array(starts))
+	if err != nil {
+		return nil, fmt.Errorf("failed to query usage snapshots: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	var usage []*domain.MonthlyUsage
+	for rows.Next() {
+		var periodMonth string
+		u := &domain.MonthlyUsage{}
+		if err := rows.Scan(&periodMonth, &u.Pageviews, &u.TimelineEntries, &u.ComputedAt); err != nil {
+			return nil, fmt.Errorf("failed to scan usage snapshot: %w", err)
+		}
+		parsed, err := time.Parse("2006-01-02", periodMonth)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse usage period month %q: %w", periodMonth, err)
+		}
+		u.PeriodMonth = parsed.UTC()
+		u.ComputedAt = u.ComputedAt.UTC()
+		usage = append(usage, u)
+	}
+	return usage, rows.Err()
+}
+
 func isWebAnalyticsTable(table string) bool {
 	for _, t := range schema.WebAnalyticsTableNames {
 		if t == table {

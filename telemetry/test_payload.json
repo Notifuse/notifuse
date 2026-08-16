@@ -19,5 +19,10 @@
   "postmark": false,
   "smtp": false,
   "s3": false,
+  "anthropic": true,
+  "openai": false,
+  "gemini": false,
+  "supabase": false,
+  "firecrawl": true,
   "web_analytics": true
 }

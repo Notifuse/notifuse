@@ -29,6 +29,7 @@ type Config struct {
 	Broadcast           BroadcastConfig
 	TaskScheduler       TaskSchedulerConfig
 	AutomationScheduler AutomationSchedulerConfig
+	Plan                PlanLimitsConfig
 	Telemetry           bool
 	CheckForUpdates     bool
 	RootEmail           string
@@ -201,6 +202,17 @@ type AutomationSchedulerConfig struct {
 	Delay     time.Duration // Delay before scheduler starts (default: 30s)
 	Interval  time.Duration // Polling interval (default: 10s)
 	BatchSize int           // Contacts per batch (default: 50)
+}
+
+// PlanLimitsConfig holds the quotas of the subscribed plan. Notifuse Cloud sets
+// these on every tenant container; self-hosted installs leave them unset, which
+// keeps every limit at 0 = unlimited.
+type PlanLimitsConfig struct {
+	MaxActiveContacts   int // 0 = unlimited
+	MaxStoredContacts   int // 0 = unlimited
+	MaxMonthlyEvents    int // 0 = unlimited
+	MaxMonthlyPageviews int // 0 = unlimited
+	DataRetentionMonths int // 0 = unlimited (data is never expired)
 }
 
 // LoadOptions contains options for loading configuration
@@ -491,6 +503,15 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 	v.SetDefault("AUTOMATION_SCHEDULER_DELAY", "30s")
 	v.SetDefault("AUTOMATION_SCHEDULER_INTERVAL", "10s")
 	v.SetDefault("AUTOMATION_SCHEDULER_BATCH_SIZE", 50)
+
+	// Plan limit defaults: 0 = unlimited, so a self-hosted install that sets none
+	// of them is unaffected. Unlike SMTP_BRIDGE_ENABLED/OIDC_*, these have no
+	// database fallback, so a viper default shadows nothing.
+	v.SetDefault("PLAN_MAX_ACTIVE_CONTACTS", 0)
+	v.SetDefault("PLAN_MAX_STORED_CONTACTS", 0)
+	v.SetDefault("PLAN_MAX_MONTHLY_EVENTS", 0)
+	v.SetDefault("PLAN_MAX_MONTHLY_PAGEVIEWS", 0)
+	v.SetDefault("PLAN_DATA_RETENTION_MONTHS", 0)
 
 	// Load environment file if specified
 	if opts.EnvFile != "" {
@@ -851,6 +872,35 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 		return nil, err
 	}
 
+	// Plan limits, as pushed by the Notifuse Cloud control plane. Unset means 0,
+	// which means unlimited.
+	planConfig := PlanLimitsConfig{
+		MaxActiveContacts:   v.GetInt("PLAN_MAX_ACTIVE_CONTACTS"),
+		MaxStoredContacts:   v.GetInt("PLAN_MAX_STORED_CONTACTS"),
+		MaxMonthlyEvents:    v.GetInt("PLAN_MAX_MONTHLY_EVENTS"),
+		MaxMonthlyPageviews: v.GetInt("PLAN_MAX_MONTHLY_PAGEVIEWS"),
+		DataRetentionMonths: v.GetInt("PLAN_DATA_RETENTION_MONTHS"),
+	}
+
+	// Validate plan limits. v.GetInt returns 0 on a value it cannot parse and 0
+	// means unlimited, so without this a typo would silently remove the quota
+	// instead of failing the boot.
+	if planConfig.MaxActiveContacts < 0 {
+		return nil, fmt.Errorf("PLAN_MAX_ACTIVE_CONTACTS cannot be negative (got %d)", planConfig.MaxActiveContacts)
+	}
+	if planConfig.MaxStoredContacts < 0 {
+		return nil, fmt.Errorf("PLAN_MAX_STORED_CONTACTS cannot be negative (got %d)", planConfig.MaxStoredContacts)
+	}
+	if planConfig.MaxMonthlyEvents < 0 {
+		return nil, fmt.Errorf("PLAN_MAX_MONTHLY_EVENTS cannot be negative (got %d)", planConfig.MaxMonthlyEvents)
+	}
+	if planConfig.MaxMonthlyPageviews < 0 {
+		return nil, fmt.Errorf("PLAN_MAX_MONTHLY_PAGEVIEWS cannot be negative (got %d)", planConfig.MaxMonthlyPageviews)
+	}
+	if planConfig.DataRetentionMonths < 0 {
+		return nil, fmt.Errorf("PLAN_DATA_RETENTION_MONTHS cannot be negative (got %d)", planConfig.DataRetentionMonths)
+	}
+
 	config := &Config{
 		Server: ServerConfig{
 			Port: v.GetInt("SERVER_PORT"),
@@ -925,6 +975,7 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 			Interval:  v.GetDuration("AUTOMATION_SCHEDULER_INTERVAL"),
 			BatchSize: v.GetInt("AUTOMATION_SCHEDULER_BATCH_SIZE"),
 		},
+		Plan: planConfig,
 
 		RootEmail:        rootEmail,
 		Environment:      v.GetString("ENVIRONMENT"),

@@ -98,10 +98,25 @@ func expectV38WorkspaceDDL(mock sqlmock.Sqlmock) {
 }
 
 // expectV38SchemaDDL expects every DDL statement UpdateWorkspace issues, in the
-// order it issues them: annotations first, then web analytics.
+// order it issues them: annotations, then the web analytics parents, then the
+// usage meter, then the shared functions and the monthly partitions.
 func expectV38SchemaDDL(mock sqlmock.Sqlmock) {
 	expectV38AnnotationsDDL(mock)
 	expectV38WebAnalyticsDDL(mock)
+	expectV38UsageDDL(mock)
+	expectV38WebAnalyticsFunctionsDDL(mock)
+	expectV38WebAnalyticsPartitionDDL(mock)
+}
+
+// Pinned by name rather than by the generic shape, for the same reason as the
+// annotations statements: the monthly_usage table and the partial index the
+// timeline meter counts through must each fail here individually if dropped.
+// The index predicate is pinned too — losing it does not break the meter's
+// query, it just silently degrades it to a seq scan of contact_timeline.
+func expectV38UsageDDL(mock sqlmock.Sqlmock) {
+	mock.ExpectExec("CREATE TABLE IF NOT EXISTS monthly_usage").WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectExec("(?s)CREATE INDEX IF NOT EXISTS idx_contact_timeline_billable.*WHERE entity_type NOT IN").
+		WillReturnResult(sqlmock.NewResult(0, 0))
 }
 
 // The annotations statements are pinned by name rather than by the generic
@@ -121,6 +136,9 @@ func expectV38WebAnalyticsDDL(mock sqlmock.Sqlmock) {
 	for range schema.WebAnalyticsTableDefinitions() {
 		mock.ExpectExec("(?s)CREATE (TABLE|INDEX) IF NOT EXISTS").WillReturnResult(sqlmock.NewResult(0, 0))
 	}
+}
+
+func expectV38WebAnalyticsFunctionsDDL(mock sqlmock.Sqlmock) {
 	// Upgrading workspaces must also pick up the webhook trigger body that keeps
 	// bridged web goals from fanning out to third-party subscribers — the
 	// new-workspace path installs the same function from the same source.
@@ -134,6 +152,9 @@ func expectV38WebAnalyticsDDL(mock sqlmock.Sqlmock) {
 	// on the name alone.
 	mock.ExpectExec("(?s)CREATE OR REPLACE FUNCTION automation_enroll_contact.*status = 'live'").
 		WillReturnResult(sqlmock.NewResult(0, 0))
+}
+
+func expectV38WebAnalyticsPartitionDDL(mock sqlmock.Sqlmock) {
 	now := time.Now().UTC()
 	for _, month := range []time.Time{now, now.AddDate(0, 1, 0)} {
 		for _, table := range schema.WebAnalyticsTableNames {
@@ -165,9 +186,14 @@ func TestV38Migration_UpdateWorkspace(t *testing.T) {
 		for _, stmt := range schema.AnnotationsTableDefinitions() {
 			assert.Contains(t, stmt, "IF NOT EXISTS")
 		}
-		// expectV38AnnotationsDDL names each annotations statement individually,
-		// so a fourth definition would arrive there unexpected.
+		for _, stmt := range schema.UsageTableDefinitions() {
+			assert.Contains(t, stmt, "IF NOT EXISTS")
+		}
+		// expectV38AnnotationsDDL and expectV38UsageDDL name each of their
+		// statements individually, so an extra definition would arrive there
+		// unexpected.
 		require.Len(t, schema.AnnotationsTableDefinitions(), 3)
+		require.Len(t, schema.UsageTableDefinitions(), 2)
 		assert.Contains(t, schema.WebAnalyticsPartitionDDL("web_sessions", time.Now()), "IF NOT EXISTS")
 
 		// And executing twice issues the same idempotent statements again.

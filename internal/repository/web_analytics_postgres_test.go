@@ -439,3 +439,187 @@ func TestSetPartitionAutovacuum(t *testing.T) {
 		assert.NoError(t, mock.ExpectationsWereMet())
 	})
 }
+
+// --- usage metering ------------------------------------------------------
+
+func TestUsageMeterStatements(t *testing.T) {
+	t.Run("pageview count is bounded to one month and cast to date", func(t *testing.T) {
+		assert.Contains(t, monthlyUsagePageviewCount, "COUNT(*) FROM web_pages")
+		// Bounded so range partitioning prunes to the single month's partition,
+		// and both bounds cast to date: session_date is a DATE column, so a bound
+		// lib/pq sends as a timestamptz would be resolved through the session's
+		// TimeZone rather than compared as a plain date.
+		assert.Contains(t, monthlyUsagePageviewCount, "session_date >= $1::date AND session_date < $2::date")
+	})
+
+	t.Run("timeline count excludes exactly the rows the web projection writes", func(t *testing.T) {
+		assert.Contains(t, monthlyUsageTimelineCount, "created_at >= $1 AND created_at < $2")
+		assert.Contains(t, monthlyUsageTimelineCount, "entity_type NOT IN ('web_page', 'web_session')")
+
+		// The two literals above are not free-standing: they are what the timeline
+		// projection writes. Asserted against the projection statements themselves
+		// so renaming an entity_type there fails here rather than silently metering
+		// every pageview twice, once as a pageview and once as an event.
+		assert.Contains(t, webNavigationPageProjection, "'web_page'")
+		assert.Contains(t, webNavigationSessionProjection, "'web_session'")
+	})
+
+	t.Run("a closed month never lowers a stored count, the live month does", func(t *testing.T) {
+		// GREATEST is the retention guard: once history is dropped the counts come
+		// back as 0 and the already-reported value has to win.
+		assert.Contains(t, monthlyUsageUpsertClosed, "pageviews = GREATEST(monthly_usage.pageviews, EXCLUDED.pageviews)")
+		assert.Contains(t, monthlyUsageUpsertClosed, "timeline_entries = GREATEST(monthly_usage.timeline_entries, EXCLUDED.timeline_entries)")
+
+		// The open month must be free to fall: deleting a contact removes its
+		// timeline rows, and that is a real decrease, not data loss.
+		assert.NotContains(t, monthlyUsageUpsertLive, "GREATEST")
+		assert.Contains(t, monthlyUsageUpsertLive, "pageviews = EXCLUDED.pageviews")
+	})
+}
+
+func expectUsageCounts(mock sqlmock.Sqlmock, start, end time.Time, pageviews, timelineEntries int64) {
+	mock.ExpectQuery("COUNT\\(\\*\\) FROM web_pages").
+		WithArgs(start, end).
+		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(pageviews))
+	mock.ExpectQuery("COUNT\\(\\*\\) FROM contact_timeline").
+		WithArgs(start, end).
+		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(timelineEntries))
+}
+
+func TestRecomputeUsage(t *testing.T) {
+	// Deliberately mid-month: every bound the meter uses must be derived, not
+	// taken from the caller's instant.
+	midMonth := time.Date(2026, 8, 17, 13, 45, 6, 0, time.UTC)
+	start := time.Date(2026, 8, 1, 0, 0, 0, 0, time.UTC)
+	end := time.Date(2026, 9, 1, 0, 0, 0, 0, time.UTC)
+
+	t.Run("live month overwrites, and bounds are normalised to the UTC month", func(t *testing.T) {
+		repo, mock, cleanup := newWebAnalyticsRepoForTest(t)
+		defer cleanup()
+
+		expectUsageCounts(mock, start, end, 1200, 340)
+		mock.ExpectExec("INSERT INTO monthly_usage").
+			WithArgs(start, int64(1200), int64(340)).
+			WillReturnResult(sqlmock.NewResult(0, 1))
+
+		require.NoError(t, repo.RecomputeUsage(context.Background(), waTestWorkspace, midMonth, true))
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("a non-UTC instant still lands on the UTC month", func(t *testing.T) {
+		repo, mock, cleanup := newWebAnalyticsRepoForTest(t)
+		defer cleanup()
+
+		// 2026-09-01 01:30 +09:00 is still August in UTC. Taking the caller's
+		// calendar month instead of the UTC one would meter it as September.
+		tokyo := time.FixedZone("JST", 9*3600)
+		lateAugustUTC := time.Date(2026, 9, 1, 1, 30, 0, 0, tokyo)
+
+		expectUsageCounts(mock, start, end, 7, 3)
+		mock.ExpectExec("INSERT INTO monthly_usage").
+			WithArgs(start, int64(7), int64(3)).
+			WillReturnResult(sqlmock.NewResult(0, 1))
+
+		require.NoError(t, repo.RecomputeUsage(context.Background(), waTestWorkspace, lateAugustUTC, true))
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("closed month uses the never-lower statement", func(t *testing.T) {
+		repo, mock, cleanup := newWebAnalyticsRepoForTest(t)
+		defer cleanup()
+
+		expectUsageCounts(mock, start, end, 0, 0)
+		mock.ExpectExec("GREATEST\\(monthly_usage.pageviews, EXCLUDED.pageviews\\)").
+			WithArgs(start, int64(0), int64(0)).
+			WillReturnResult(sqlmock.NewResult(0, 1))
+
+		require.NoError(t, repo.RecomputeUsage(context.Background(), waTestWorkspace, midMonth, false))
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("a failed count is never stored as zero usage", func(t *testing.T) {
+		repo, mock, cleanup := newWebAnalyticsRepoForTest(t)
+		defer cleanup()
+
+		mock.ExpectQuery("COUNT\\(\\*\\) FROM web_pages").
+			WillReturnError(errors.New("connection reset"))
+		// No ExpectExec: reaching the upsert at all would write a zero over a real
+		// month. A quota that silently reads as unused is worse than one that errors.
+
+		err := repo.RecomputeUsage(context.Background(), waTestWorkspace, midMonth, true)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "2026-08")
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("a failed timeline count does not store the pageview count either", func(t *testing.T) {
+		repo, mock, cleanup := newWebAnalyticsRepoForTest(t)
+		defer cleanup()
+
+		mock.ExpectQuery("COUNT\\(\\*\\) FROM web_pages").
+			WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(int64(99)))
+		mock.ExpectQuery("COUNT\\(\\*\\) FROM contact_timeline").
+			WillReturnError(errors.New("connection reset"))
+
+		require.Error(t, repo.RecomputeUsage(context.Background(), waTestWorkspace, midMonth, true))
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+}
+
+func TestGetUsage(t *testing.T) {
+	t.Run("no months asks the database nothing", func(t *testing.T) {
+		repo, mock, cleanup := newWebAnalyticsRepoForTest(t)
+		defer cleanup()
+
+		usage, err := repo.GetUsage(context.Background(), waTestWorkspace, nil)
+		require.NoError(t, err)
+		assert.Nil(t, usage)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("period months come back at midnight UTC regardless of connection location", func(t *testing.T) {
+		repo, mock, cleanup := newWebAnalyticsRepoForTest(t)
+		defer cleanup()
+
+		computedAt := time.Date(2026, 8, 17, 2, 0, 0, 0, time.UTC)
+		mock.ExpectQuery("FROM monthly_usage").
+			WillReturnRows(sqlmock.NewRows([]string{"period_month", "pageviews", "timeline_entries", "computed_at"}).
+				AddRow("2026-07-01", int64(400), int64(90), computedAt).
+				AddRow("2026-08-01", int64(1200), int64(340), computedAt))
+
+		usage, err := repo.GetUsage(context.Background(), waTestWorkspace, []time.Time{
+			time.Date(2026, 7, 14, 9, 0, 0, 0, time.UTC),
+			time.Date(2026, 8, 17, 9, 0, 0, 0, time.UTC),
+		})
+		require.NoError(t, err)
+		require.Len(t, usage, 2)
+
+		// The month is read back through to_char rather than scanned as a DATE:
+		// lib/pq resolves a date at the connection's location, and a non-UTC one
+		// would shift the first of the month into the previous month.
+		assert.Equal(t, time.Date(2026, 7, 1, 0, 0, 0, 0, time.UTC), usage[0].PeriodMonth)
+		assert.Equal(t, time.Date(2026, 8, 1, 0, 0, 0, 0, time.UTC), usage[1].PeriodMonth)
+		assert.Equal(t, int64(1200), usage[1].Pageviews)
+		assert.Equal(t, int64(340), usage[1].TimelineEntries)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("a month with no snapshot is omitted rather than returned as zero", func(t *testing.T) {
+		repo, mock, cleanup := newWebAnalyticsRepoForTest(t)
+		defer cleanup()
+
+		mock.ExpectQuery("FROM monthly_usage").
+			WillReturnRows(sqlmock.NewRows([]string{"period_month", "pageviews", "timeline_entries", "computed_at"}).
+				AddRow("2026-08-01", int64(5), int64(2), time.Now().UTC()))
+
+		usage, err := repo.GetUsage(context.Background(), waTestWorkspace, []time.Time{
+			time.Date(2026, 7, 1, 0, 0, 0, 0, time.UTC),
+			time.Date(2026, 8, 1, 0, 0, 0, 0, time.UTC),
+		})
+		require.NoError(t, err)
+		// Never metered and metered zero are different answers for a quota.
+		require.Len(t, usage, 1)
+		assert.Equal(t, time.Date(2026, 8, 1, 0, 0, 0, 0, time.UTC), usage[0].PeriodMonth)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+}

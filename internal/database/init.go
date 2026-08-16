@@ -512,6 +512,14 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 			return fmt.Errorf("failed to create annotations table: %w", err)
 		}
 	}
+	// Monthly usage snapshots and the index the timeline meter counts through
+	// (shared DDL with the v38 migration). Must run after contact_timeline
+	// above, since the index is on it.
+	for _, query := range schema.UsageTableDefinitions() {
+		if _, err := db.Exec(query); err != nil {
+			return fmt.Errorf("failed to create usage table: %w", err)
+		}
+	}
 
 	currentMonth := time.Now().UTC()
 	for _, month := range []time.Time{currentMonth, currentMonth.AddDate(0, 1, 0)} {

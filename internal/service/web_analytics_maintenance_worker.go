@@ -93,6 +93,13 @@ func (w *WebAnalyticsMaintenanceWorker) RunOnce(ctx context.Context) {
 		if ctx.Err() != nil {
 			return
 		}
+
+		// Metered before the web analytics check, not after: the timeline meter
+		// counts events that exist whether or not the tracking snippet is
+		// installed, and a workspace whose analytics settings are cleared must
+		// not silently stop being metered and freeze its usage history.
+		w.recomputeUsage(ctx, workspace.ID, currentMonth, previousMonth)
+
 		if workspace.Settings.WebAnalytics == nil {
 			continue
 		}
@@ -100,6 +107,36 @@ func (w *WebAnalyticsMaintenanceWorker) RunOnce(ctx context.Context) {
 		if err := w.maintainWorkspace(ctx, workspace.ID, currentMonth, nextMonth, previousMonth); err != nil {
 			w.logger.WithField("workspace_id", workspace.ID).WithField("error", err.Error()).
 				Error("Web analytics maintenance failed for workspace")
+		}
+	}
+}
+
+// recomputeUsage refreshes the usage snapshot for the open month and the one
+// before it.
+//
+// Two months, because a month keeps moving for a while after it ends: Validate
+// rejects a session id whose embedded timestamp is older than
+// WebSessionIDMaxAge (48h), so nothing can land in a month once it is 48h past,
+// and the early passes of a new month are what settle the previous one's final
+// value. Only the open month is written as live; a closed month's stored counts
+// can never be lowered.
+//
+// Failures are logged per month and never returned: usage metering must not be
+// able to stop partition maintenance for a workspace, which is what actually
+// keeps ingestion working.
+func (w *WebAnalyticsMaintenanceWorker) recomputeUsage(ctx context.Context, workspaceID string, currentMonth, previousMonth time.Time) {
+	for _, period := range []struct {
+		month time.Time
+		live  bool
+	}{
+		{previousMonth, false},
+		{currentMonth, true},
+	} {
+		if err := w.webAnalyticsRepo.RecomputeUsage(ctx, workspaceID, period.month, period.live); err != nil {
+			w.logger.WithField("workspace_id", workspaceID).
+				WithField("period_month", period.month.Format("2006-01")).
+				WithField("error", err.Error()).
+				Error("Web analytics maintenance: usage recompute failed")
 		}
 	}
 }

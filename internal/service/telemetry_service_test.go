@@ -192,6 +192,111 @@ func TestTelemetryService_HardcodedEndpoint(t *testing.T) {
 	assert.Equal(t, "https://telemetry.notifuse.com", TelemetryEndpoint)
 }
 
+func TestTelemetryService_SetNonEmailIntegrationFlags(t *testing.T) {
+	service := NewTelemetryService(TelemetryServiceConfig{
+		Enabled:     true,
+		APIEndpoint: "https://api.example.com",
+		Logger:      logger.NewLoggerWithLevel("debug"),
+	})
+
+	workspace := &domain.Workspace{
+		ID: "test-workspace",
+		Integrations: domain.Integrations{
+			{ID: "llm-1", Type: domain.IntegrationTypeLLM,
+				LLMProvider: &domain.LLMProvider{Kind: domain.LLMProviderKindAnthropic}},
+			{ID: "llm-2", Type: domain.IntegrationTypeLLM,
+				LLMProvider: &domain.LLMProvider{Kind: domain.LLMProviderKindGemini}},
+			{ID: "firecrawl-1", Type: domain.IntegrationTypeFirecrawl},
+		},
+	}
+
+	metrics := TelemetryMetrics{}
+	service.setIntegrationFlagsFromWorkspace(workspace, &metrics)
+
+	assert.True(t, metrics.Anthropic, "Anthropic LLM integration should be reported")
+	assert.True(t, metrics.Gemini, "Gemini LLM integration should be reported")
+	assert.True(t, metrics.Firecrawl, "Firecrawl integration should be reported")
+	assert.False(t, metrics.OpenAI, "no OpenAI integration is configured")
+	assert.False(t, metrics.Supabase, "no Supabase integration is configured")
+
+	// An email flag must not be raised by a non-email integration.
+	assert.False(t, metrics.SMTP)
+	assert.False(t, metrics.Mailgun)
+}
+
+func TestTelemetryService_SetIntegrationFlags_SupabaseAndOpenAI(t *testing.T) {
+	service := NewTelemetryService(TelemetryServiceConfig{
+		Enabled: true, Logger: logger.NewLoggerWithLevel("debug"),
+	})
+
+	workspace := &domain.Workspace{
+		ID: "test-workspace",
+		Integrations: domain.Integrations{
+			{ID: "supabase-1", Type: domain.IntegrationTypeSupabase},
+			{ID: "llm-1", Type: domain.IntegrationTypeLLM,
+				LLMProvider: &domain.LLMProvider{Kind: domain.LLMProviderKindOpenAI}},
+		},
+	}
+
+	metrics := TelemetryMetrics{}
+	service.setIntegrationFlagsFromWorkspace(workspace, &metrics)
+
+	assert.True(t, metrics.Supabase)
+	assert.True(t, metrics.OpenAI)
+	assert.False(t, metrics.Anthropic)
+	assert.False(t, metrics.Gemini)
+}
+
+func TestTelemetryService_SetIntegrationFlags_NilLLMProviderDoesNotPanic(t *testing.T) {
+	service := NewTelemetryService(TelemetryServiceConfig{
+		Enabled: true, Logger: logger.NewLoggerWithLevel("debug"),
+	})
+
+	// LLMProvider is a pointer, so an integration row whose settings never
+	// loaded reaches this code as nil. It must yield no flag, not a panic.
+	workspace := &domain.Workspace{
+		ID: "test-workspace",
+		Integrations: domain.Integrations{
+			{ID: "llm-broken", Type: domain.IntegrationTypeLLM, LLMProvider: nil},
+			{ID: "firecrawl-1", Type: domain.IntegrationTypeFirecrawl},
+		},
+	}
+
+	metrics := TelemetryMetrics{}
+	require.NotPanics(t, func() {
+		service.setIntegrationFlagsFromWorkspace(workspace, &metrics)
+	})
+
+	assert.False(t, metrics.Anthropic)
+	assert.False(t, metrics.OpenAI)
+	assert.False(t, metrics.Gemini)
+	// The loop must carry on past the broken integration.
+	assert.True(t, metrics.Firecrawl, "a nil LLMProvider must not abort the loop")
+}
+
+func TestTelemetryService_SendGridIsNotReported(t *testing.T) {
+	service := NewTelemetryService(TelemetryServiceConfig{
+		Enabled: true, Logger: logger.NewLoggerWithLevel("debug"),
+	})
+
+	// SendGrid is still a supported email provider but was deliberately
+	// removed from the telemetry payload in October 2025. A SendGrid
+	// integration must raise no flag at all, and must not be mistaken for
+	// another provider.
+	workspace := &domain.Workspace{
+		ID: "test-workspace",
+		Integrations: domain.Integrations{
+			{ID: "sendgrid-1", Type: domain.IntegrationTypeEmail,
+				EmailProvider: domain.EmailProvider{Kind: domain.EmailProviderKindSendGrid}},
+		},
+	}
+
+	metrics := TelemetryMetrics{}
+	service.setIntegrationFlagsFromWorkspace(workspace, &metrics)
+
+	assert.Equal(t, TelemetryMetrics{}, metrics, "a SendGrid-only workspace reports no integration flag")
+}
+
 func TestIsWebAnalyticsActive(t *testing.T) {
 	// Late in the UTC day, so a bug that measures the window from "now" rather
 	// than from the start of the day shifts the boundary by 22 hours and fails.

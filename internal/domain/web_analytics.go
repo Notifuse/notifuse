@@ -1125,6 +1125,36 @@ type WebAnalyticsRepository interface {
 	// BackfillPartition recompiles the attribution rules to SQL and rewrites
 	// one partition of web_sessions or web_goals. Returns rows updated.
 	BackfillPartition(ctx context.Context, workspaceID string, partition string, filters []WebFilter) (int64, error)
+
+	// RecomputeUsage recounts one UTC month of metered usage — pageviews and
+	// billable timeline entries — and stores the snapshot in monthly_usage.
+	//
+	// live must be true only for the month still being written to. A closed
+	// month's stored counts are never lowered, so retention dropping a
+	// web_pages partition, or a contact deletion removing timeline rows, cannot
+	// rewrite a month that has already been reported.
+	RecomputeUsage(ctx context.Context, workspaceID string, month time.Time, live bool) error
+
+	// GetUsage returns the stored snapshots for the given UTC months in
+	// ascending order. Months with no snapshot are omitted rather than returned
+	// as zero, so a caller can tell "nothing metered yet" from "metered zero".
+	GetUsage(ctx context.Context, workspaceID string, months []time.Time) ([]*MonthlyUsage, error)
+}
+
+// MonthlyUsage is one UTC month of metered usage for a workspace: the counts a
+// plan quota is measured against.
+//
+// Both counters are recomputed snapshots rather than running totals — see
+// schema.UsageTableDefinitions. Pageviews are COUNT(*) over web_pages, one row
+// per page a visitor opened, which is the unit the pricing page publishes.
+// TimelineEntries excludes the rows the web analytics projection writes, so a
+// pageview is never metered as an event as well.
+type MonthlyUsage struct {
+	// PeriodMonth is the first day of the UTC month, at midnight UTC.
+	PeriodMonth     time.Time `json:"period_month"`
+	Pageviews       int64     `json:"pageviews"`
+	TimelineEntries int64     `json:"timeline_entries"`
+	ComputedAt      time.Time `json:"computed_at"`
 }
 
 // WebAnalyticsBackfillTaskType is the task-system type of attribution

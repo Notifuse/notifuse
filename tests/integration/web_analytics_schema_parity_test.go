@@ -79,6 +79,15 @@ func TestWebAnalyticsSchemaParity(t *testing.T) {
 		_, err := initDB.Exec(query)
 		require.NoError(t, err, query)
 	}
+	// The usage definitions index contact_timeline, so the table has to exist
+	// first — exactly as it does in init.go, which creates it hundreds of lines
+	// before the shared-DDL block, and in every workspace database that reaches
+	// v38.
+	createContactTimelineFixture(t, initDB)
+	for _, query := range schema.UsageTableDefinitions() {
+		_, err := initDB.Exec(query)
+		require.NoError(t, err, query)
+	}
 	now := time.Now().UTC()
 	for _, month := range []time.Time{now, now.AddDate(0, 1, 0)} {
 		for _, table := range schema.WebAnalyticsTableNames {
@@ -117,6 +126,8 @@ func TestWebAnalyticsSchemaParity(t *testing.T) {
 		)`)
 	require.NoError(t, err)
 
+	createContactTimelineFixture(t, migrDB)
+
 	migration := &migrations.V38Migration{}
 	require.NoError(t, migration.UpdateWorkspace(context.Background(), &config.Config{}, &domain.Workspace{ID: "ws"}, migrDB))
 	// Idempotency: re-running the migration must change nothing.
@@ -145,6 +156,21 @@ func TestWebAnalyticsSchemaParity(t *testing.T) {
 	assertAnnotationConflictTargetResolves(t, initDB)
 	assertAnnotationConflictTargetResolves(t, migrDB)
 
+	// The usage meter's index must be partial in both databases, and its
+	// predicate must match the meter's WHERE clause exactly or PostgreSQL will
+	// not use it and the meter seq-scans contact_timeline on every pass.
+	const billableTimelineIndex = "CREATE INDEX idx_contact_timeline_billable ON public.contact_timeline " +
+		"USING btree (created_at) WHERE ((entity_type)::text <> ALL " +
+		"((ARRAY['web_page'::character varying, 'web_session'::character varying])::text[]))"
+	assert.Contains(t, initSchema, billableTimelineIndex)
+	assert.Contains(t, migrSchema, billableTimelineIndex)
+	assert.Contains(t, initSchema, "monthly_usage.period_month date notnull=true")
+	// BIGINT, not the SMALLINT that web_sessions.pageview_count has to clamp.
+	assert.Contains(t, initSchema, "monthly_usage.pageviews bigint notnull=true")
+	assert.Contains(t, initSchema, "monthly_usage.timeline_entries bigint notnull=true")
+
+	assertBillableTimelineIndexIsUsed(t, initDB)
+
 	// Partitioned parents hold no rows themselves; the monthly children do.
 	var partitionCount int
 	require.NoError(t, initDB.QueryRow(`
@@ -152,6 +178,69 @@ func TestWebAnalyticsSchemaParity(t *testing.T) {
 		JOIN pg_class p ON p.oid = i.inhparent
 		WHERE p.relname IN ('web_sessions','web_pages','web_goals')`).Scan(&partitionCount))
 	assert.Equal(t, 6, partitionCount, "current + next month partitions for all three tables")
+}
+
+// createContactTimelineFixture mirrors the contact_timeline DDL that
+// internal/database/init.go creates long before the shared-DDL block, and that
+// every workspace database reaching v38 already carries. Both parity paths need
+// it because the usage definitions put an index on it. Kept to the columns that
+// index and the timeline meter touch; the rest of the table is not compared.
+func createContactTimelineFixture(t *testing.T, db *sql.DB) {
+	t.Helper()
+	_, err := db.Exec(`
+		CREATE TABLE IF NOT EXISTS contact_timeline (
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			email VARCHAR(255) NOT NULL,
+			operation VARCHAR(20) NOT NULL,
+			entity_type VARCHAR(50) NOT NULL,
+			kind VARCHAR(150) NOT NULL DEFAULT '',
+			changes JSONB,
+			entity_id VARCHAR(255),
+			created_at TIMESTAMP WITH TIME ZONE NOT NULL,
+			db_created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+		)`)
+	require.NoError(t, err)
+}
+
+// assertBillableTimelineIndexIsUsed proves the meter's WHERE clause still
+// implies the predicate of idx_contact_timeline_billable.
+//
+// This is the failure the index has: a mismatch does not break the query, it
+// makes the index unusable, and the meter quietly degrades to a full scan of
+// contact_timeline on every maintenance pass. Nothing else would ever notice.
+//
+// enable_seqscan=off is a preference, not a force — PostgreSQL still seq-scans
+// when no index can serve the query — so the plan choosing this index is real
+// evidence, even on an empty table.
+//
+// Keep the statement byte-identical to monthlyUsageTimelineCount in
+// internal/repository/web_analytics_postgres.go.
+func assertBillableTimelineIndexIsUsed(t *testing.T, db *sql.DB) {
+	t.Helper()
+
+	_, err := db.Exec(`SET enable_seqscan = off`)
+	require.NoError(t, err)
+	defer func() { _, _ = db.Exec(`RESET enable_seqscan`) }()
+
+	rows, err := db.Query(`EXPLAIN
+		SELECT COUNT(*) FROM contact_timeline
+		WHERE created_at >= $1 AND created_at < $2
+		AND entity_type NOT IN ('web_page', 'web_session')`,
+		time.Date(2026, 8, 1, 0, 0, 0, 0, time.UTC),
+		time.Date(2026, 9, 1, 0, 0, 0, 0, time.UTC))
+	require.NoError(t, err)
+	defer func() { _ = rows.Close() }()
+
+	var plan string
+	for rows.Next() {
+		var line string
+		require.NoError(t, rows.Scan(&line))
+		plan += line + "\n"
+	}
+	require.NoError(t, rows.Err())
+
+	assert.Contains(t, plan, "idx_contact_timeline_billable",
+		"the meter's WHERE clause must keep implying the index predicate; plan was:\n%s", plan)
 }
 
 // assertAnnotationConflictTargetResolves executes the insert that
@@ -215,7 +304,7 @@ func dumpWebAnalyticsSchema(t *testing.T, db *sql.DB) string {
 		FROM pg_class c
 		JOIN pg_namespace n ON n.oid = c.relnamespace
 		JOIN pg_attribute a ON a.attrelid = c.oid
-		WHERE n.nspname = 'public' AND (c.relname LIKE 'web\_%' OR c.relname = 'annotations')
+		WHERE n.nspname = 'public' AND (c.relname LIKE 'web\_%' OR c.relname IN ('annotations', 'monthly_usage', 'contact_timeline'))
 		  AND a.attnum > 0 AND NOT a.attisdropped
 		ORDER BY c.relname, a.attname`)
 	require.NoError(t, err)
@@ -230,7 +319,7 @@ func dumpWebAnalyticsSchema(t *testing.T, db *sql.DB) string {
 
 	indexes, err := db.Query(`
 		SELECT indexdef FROM pg_indexes
-		WHERE schemaname = 'public' AND (tablename LIKE 'web\_%' OR tablename = 'annotations')
+		WHERE schemaname = 'public' AND (tablename LIKE 'web\_%' OR tablename IN ('annotations', 'monthly_usage', 'contact_timeline'))
 		ORDER BY indexdef`)
 	require.NoError(t, err)
 	defer func() { _ = indexes.Close() }()
@@ -245,7 +334,7 @@ func dumpWebAnalyticsSchema(t *testing.T, db *sql.DB) string {
 		SELECT c.relname, COALESCE(array_to_string(c.reloptions, ','), '')
 		FROM pg_class c
 		JOIN pg_namespace n ON n.oid = c.relnamespace
-		WHERE n.nspname = 'public' AND (c.relname LIKE 'web\_%' OR c.relname = 'annotations')
+		WHERE n.nspname = 'public' AND (c.relname LIKE 'web\_%' OR c.relname IN ('annotations', 'monthly_usage', 'contact_timeline'))
 		  AND c.relkind = 'r'
 		ORDER BY c.relname`)
 	require.NoError(t, err)

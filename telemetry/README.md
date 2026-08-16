@@ -40,6 +40,11 @@ The function expects JSON payloads matching the following structure:
   "postmark": false,
   "smtp": false,
   "s3": false,
+  "anthropic": true,
+  "openai": false,
+  "gemini": false,
+  "supabase": false,
+  "firecrawl": true,
   "web_analytics": true
 }
 ```
@@ -114,6 +119,11 @@ curl -X POST "$FUNCTION_URL" \
     "postmark": false,
     "smtp": false,
     "s3": false,
+    "anthropic": true,
+    "openai": false,
+    "gemini": false,
+    "supabase": false,
+    "firecrawl": true,
     "web_analytics": true
   }'
 ```

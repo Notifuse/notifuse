@@ -38,6 +38,13 @@ type TelemetryMetrics struct {
 	SMTP      bool `json:"smtp"`
 	S3        bool `json:"s3"`
 
+	// Non-email integrations; the LLM one is reported per provider.
+	Anthropic bool `json:"anthropic"`
+	OpenAI    bool `json:"openai"`
+	Gemini    bool `json:"gemini"`
+	Supabase  bool `json:"supabase"`
+	Firecrawl bool `json:"firecrawl"`
+
 	// WebAnalytics reports whether the workspace recorded a web analytics
 	// session recently, i.e. that it is collecting traffic — not merely that the
 	// feature is switched on.
@@ -71,6 +78,12 @@ type LogEntry struct {
 	Postmark  bool `json:"postmark"`
 	SMTP      bool `json:"smtp"`
 	S3        bool `json:"s3"`
+
+	Anthropic bool `json:"anthropic"`
+	OpenAI    bool `json:"openai"`
+	Gemini    bool `json:"gemini"`
+	Supabase  bool `json:"supabase"`
+	Firecrawl bool `json:"firecrawl"`
 
 	WebAnalytics bool `json:"web_analytics"`
 }
@@ -167,6 +180,11 @@ func receiveTelemetry(w http.ResponseWriter, r *http.Request) {
 		Postmark:           metrics.Postmark,
 		SMTP:               metrics.SMTP,
 		S3:                 metrics.S3,
+		Anthropic:          metrics.Anthropic,
+		OpenAI:             metrics.OpenAI,
+		Gemini:             metrics.Gemini,
+		Supabase:           metrics.Supabase,
+		Firecrawl:          metrics.Firecrawl,
 		WebAnalytics:       metrics.WebAnalytics,
 	}
 

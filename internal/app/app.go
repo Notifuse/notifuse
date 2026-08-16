@@ -172,6 +172,7 @@ type App struct {
 	webAnalyticsService              *service.WebAnalyticsService
 	webAnalyticsBuffer               *service.WebAnalyticsBuffer
 	webAnalyticsMaintenanceWorker    *service.WebAnalyticsMaintenanceWorker
+	usageService                     *service.UsageService
 	// providers
 	postmarkService     *service.PostmarkService
 	mailgunService      *service.MailgunService
@@ -1079,8 +1080,17 @@ func (a *App) InitServices() error {
 		a.logger,
 	)
 
-	// Partition maintenance for the web analytics tables (daily).
+	// Partition maintenance for the web analytics tables (daily). The same pass
+	// refreshes each workspace's monthly usage snapshot.
 	a.webAnalyticsMaintenanceWorker = service.NewWebAnalyticsMaintenanceWorker(
+		a.workspaceRepo,
+		a.webAnalyticsRepo,
+		a.logger,
+	)
+
+	// Sums those snapshots across workspaces for the signed usage read. Reads
+	// only — the recount belongs to the worker above.
+	a.usageService = service.NewUsageService(
 		a.workspaceRepo,
 		a.webAnalyticsRepo,
 		a.logger,
@@ -1314,6 +1324,11 @@ func (a *App) InitHandlers() error {
 		a.logger,
 		webanalyticssdk.JS,
 	)
+	usageHandler := httpHandler.NewUsageHandler(
+		a.usageService,
+		a.config.Security.SecretKey,
+		a.logger,
+	)
 	contactTimelineHandler := httpHandler.NewContactTimelineHandler(
 		a.contactTimelineService,
 		a.authService,
@@ -1383,6 +1398,7 @@ func (a *App) InitHandlers() error {
 	notificationCenterHandler.RegisterRoutes(a.mux)
 	analyticsHandler.RegisterRoutes(a.mux)
 	webAnalyticsHandler.RegisterRoutes(a.mux)
+	usageHandler.RegisterRoutes(a.mux)
 	contactTimelineHandler.RegisterRoutes(a.mux)
 	segmentHandler.RegisterRoutes(a.mux)
 	customEventHandler.RegisterRoutes(a.mux)
@@ -1825,9 +1841,27 @@ func (a *App) WaitForServerStart(ctx context.Context) bool {
 	}
 }
 
+// formatPlanLimit renders a plan limit for the startup log, where 0 = unlimited
+func formatPlanLimit(value int) string {
+	if value == 0 {
+		return "unlimited"
+	}
+	return fmt.Sprintf("%d", value)
+}
+
 // Initialize sets up all components of the application
 func (a *App) Initialize() error {
 	a.logger.WithField("version", a.config.Version).Info("Starting Notifuse application")
+
+	// Plan limits arrive as environment variables. Logging the resolved values is
+	// the only way to confirm that a redeploy actually delivered a quota change.
+	a.logger.WithFields(map[string]interface{}{
+		"max_active_contacts":   formatPlanLimit(a.config.Plan.MaxActiveContacts),
+		"max_stored_contacts":   formatPlanLimit(a.config.Plan.MaxStoredContacts),
+		"max_monthly_events":    formatPlanLimit(a.config.Plan.MaxMonthlyEvents),
+		"max_monthly_pageviews": formatPlanLimit(a.config.Plan.MaxMonthlyPageviews),
+		"data_retention_months": formatPlanLimit(a.config.Plan.DataRetentionMonths),
+	}).Info("Plan limits resolved")
 
 	if err := a.InitTracing(); err != nil {
 		return err

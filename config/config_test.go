@@ -287,6 +287,63 @@ func TestDatabaseConnectionConfig_ValidationPerDBMaximum(t *testing.T) {
 	assert.Contains(t, err.Error(), "DB_MAX_CONNECTIONS_PER_DB cannot exceed 50")
 }
 
+func TestLoadWithOptions_PlanLimits(t *testing.T) {
+	// SECRET_KEY is required for the config to load successfully.
+	_ = os.Setenv("SECRET_KEY", "test-secret-key-1234567890123456")
+	defer func() { _ = os.Unsetenv("SECRET_KEY") }()
+
+	t.Run("all limits set", func(t *testing.T) {
+		// Distinct values so a field wired to the wrong variable is caught.
+		_ = os.Setenv("PLAN_MAX_ACTIVE_CONTACTS", "10000")
+		_ = os.Setenv("PLAN_MAX_STORED_CONTACTS", "20000")
+		_ = os.Setenv("PLAN_MAX_MONTHLY_EVENTS", "200000")
+		_ = os.Setenv("PLAN_MAX_MONTHLY_PAGEVIEWS", "500000")
+		_ = os.Setenv("PLAN_DATA_RETENTION_MONTHS", "12")
+
+		defer func() {
+			_ = os.Unsetenv("PLAN_MAX_ACTIVE_CONTACTS")
+			_ = os.Unsetenv("PLAN_MAX_STORED_CONTACTS")
+			_ = os.Unsetenv("PLAN_MAX_MONTHLY_EVENTS")
+			_ = os.Unsetenv("PLAN_MAX_MONTHLY_PAGEVIEWS")
+			_ = os.Unsetenv("PLAN_DATA_RETENTION_MONTHS")
+		}()
+
+		cfg, err := LoadWithOptions(LoadOptions{})
+		require.NoError(t, err)
+		assert.Equal(t, 10000, cfg.Plan.MaxActiveContacts)
+		assert.Equal(t, 20000, cfg.Plan.MaxStoredContacts)
+		assert.Equal(t, 200000, cfg.Plan.MaxMonthlyEvents)
+		assert.Equal(t, 500000, cfg.Plan.MaxMonthlyPageviews)
+		assert.Equal(t, 12, cfg.Plan.DataRetentionMonths)
+	})
+
+	t.Run("unset means unlimited", func(t *testing.T) {
+		_ = os.Unsetenv("PLAN_MAX_ACTIVE_CONTACTS")
+		_ = os.Unsetenv("PLAN_MAX_STORED_CONTACTS")
+		_ = os.Unsetenv("PLAN_MAX_MONTHLY_EVENTS")
+		_ = os.Unsetenv("PLAN_MAX_MONTHLY_PAGEVIEWS")
+		_ = os.Unsetenv("PLAN_DATA_RETENTION_MONTHS")
+
+		cfg, err := LoadWithOptions(LoadOptions{})
+		require.NoError(t, err)
+		// Self-hosted installations set none of these: 0 = unlimited.
+		assert.Equal(t, 0, cfg.Plan.MaxActiveContacts)
+		assert.Equal(t, 0, cfg.Plan.MaxStoredContacts)
+		assert.Equal(t, 0, cfg.Plan.MaxMonthlyEvents)
+		assert.Equal(t, 0, cfg.Plan.MaxMonthlyPageviews)
+		assert.Equal(t, 0, cfg.Plan.DataRetentionMonths)
+	})
+
+	t.Run("negative limit fails and names the variable", func(t *testing.T) {
+		_ = os.Setenv("PLAN_MAX_MONTHLY_PAGEVIEWS", "-1")
+		defer func() { _ = os.Unsetenv("PLAN_MAX_MONTHLY_PAGEVIEWS") }()
+
+		_, err := LoadWithOptions(LoadOptions{})
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "PLAN_MAX_MONTHLY_PAGEVIEWS cannot be negative")
+	})
+}
+
 func TestAPIEndpointTrailingSlashStripped(t *testing.T) {
 	_ = os.Setenv("SECRET_KEY", "test-secret-key-1234567890123456")
 	_ = os.Setenv("API_ENDPOINT", "http://localhost:8081/")

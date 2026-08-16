@@ -39,6 +39,18 @@ type TelemetryMetrics struct {
 	SMTP      bool `json:"smtp"`
 	S3        bool `json:"s3"`
 
+	// Non-email integrations. The LLM integration is reported per provider,
+	// like email, because which model vendor a workspace connects is the
+	// actionable part; the other two have nothing to sub-divide.
+	//
+	// SendGrid is deliberately absent: it was dropped from this payload in
+	// October 2025 and stays dropped.
+	Anthropic bool `json:"anthropic"`
+	OpenAI    bool `json:"openai"`
+	Gemini    bool `json:"gemini"`
+	Supabase  bool `json:"supabase"`
+	Firecrawl bool `json:"firecrawl"`
+
 	// WebAnalytics reports whether the workspace is actually collecting web
 	// analytics, not whether the feature is switched on: a workspace can enable
 	// it and never install the snippet, and one that collected traffic for
@@ -160,9 +172,13 @@ func (t *TelemetryService) sendMetricsForWorkspace(ctx context.Context, workspac
 
 // setIntegrationFlagsFromWorkspace sets boolean flags for each integration type from workspace integrations
 func (t *TelemetryService) setIntegrationFlagsFromWorkspace(workspace *domain.Workspace, metrics *TelemetryMetrics) {
-	// Iterate through workspace integrations and set flags based on email provider kind
+	// Iterate through workspace integrations and set a flag per configured
+	// provider. EmailProviderKindSendGrid is intentionally unhandled: SendGrid
+	// is still a supported provider, but it was removed from the telemetry
+	// payload in October 2025 and is not reported.
 	for _, integration := range workspace.Integrations {
-		if integration.Type == domain.IntegrationTypeEmail {
+		switch integration.Type {
+		case domain.IntegrationTypeEmail:
 			switch integration.EmailProvider.Kind {
 			case domain.EmailProviderKindMailgun:
 				metrics.Mailgun = true
@@ -177,6 +193,28 @@ func (t *TelemetryService) setIntegrationFlagsFromWorkspace(workspace *domain.Wo
 			case domain.EmailProviderKindSparkPost:
 				metrics.SparkPost = true
 			}
+
+		case domain.IntegrationTypeLLM:
+			// LLMProvider is a pointer where EmailProvider is a value, so an
+			// integration whose settings failed to load nil-panics on .Kind
+			// rather than falling through to no flag.
+			if integration.LLMProvider == nil {
+				continue
+			}
+			switch integration.LLMProvider.Kind {
+			case domain.LLMProviderKindAnthropic:
+				metrics.Anthropic = true
+			case domain.LLMProviderKindOpenAI:
+				metrics.OpenAI = true
+			case domain.LLMProviderKindGemini:
+				metrics.Gemini = true
+			}
+
+		case domain.IntegrationTypeSupabase:
+			metrics.Supabase = true
+
+		case domain.IntegrationTypeFirecrawl:
+			metrics.Firecrawl = true
 		}
 	}
 

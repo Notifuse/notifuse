@@ -138,6 +138,36 @@
     "description": "Whether S3 file storage is active"
   },
   {
+    "name": "anthropic",
+    "type": "BOOLEAN",
+    "mode": "NULLABLE",
+    "description": "Whether an Anthropic LLM integration is configured"
+  },
+  {
+    "name": "openai",
+    "type": "BOOLEAN",
+    "mode": "NULLABLE",
+    "description": "Whether an OpenAI LLM integration is configured"
+  },
+  {
+    "name": "gemini",
+    "type": "BOOLEAN",
+    "mode": "NULLABLE",
+    "description": "Whether a Gemini LLM integration is configured"
+  },
+  {
+    "name": "supabase",
+    "type": "BOOLEAN",
+    "mode": "NULLABLE",
+    "description": "Whether a Supabase integration is configured"
+  },
+  {
+    "name": "firecrawl",
+    "type": "BOOLEAN",
+    "mode": "NULLABLE",
+    "description": "Whether a Firecrawl integration is configured"
+  },
+  {
     "name": "web_analytics",
     "type": "BOOLEAN",
     "mode": "NULLABLE",

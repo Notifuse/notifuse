@@ -110,6 +110,12 @@ func (m *V38Migration) UpdateWorkspace(ctx context.Context, cfg *config.Config, 
 		}
 	}
 
+	for _, query := range schema.UsageTableDefinitions() {
+		if _, err := db.ExecContext(ctx, query); err != nil {
+			return fmt.Errorf("v38: failed to create usage table for workspace %s: %w", workspace.ID, err)
+		}
+	}
+
 	// Keep the webhook trigger in step with internal/database/init.go: bridged
 	// web goals must not fan out to third-party subscribers. Both paths have to
 	// carry the same function body or a fresh install and an upgraded one behave
