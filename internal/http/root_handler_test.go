@@ -1840,6 +1840,22 @@ func TestRootHandler_serveBlogFeed(t *testing.T) {
 		assert.Contains(t, string(decompressed), "<rss")
 	})
 
+	t.Run("identity response when gzip is explicitly refused", func(t *testing.T) {
+		mockBlogService, _, _, workspace, handler := setupBlogHandlerTest(t)
+
+		mockBlogService.EXPECT().GetFeedFingerprint(gomock.Any(), workspace.ID, nil).Return(now, etag, nil)
+		mockBlogService.EXPECT().BuildFeed(gomock.Any(), workspace.ID, nil).Return(feedPayload, nil)
+
+		req := httptest.NewRequest("GET", "/feed.xml", nil)
+		req.Header.Set("Accept-Encoding", "gzip;q=0")
+		w := httptest.NewRecorder()
+		handler.serveBlogFeed(w, req, workspace, nil, feedFormatRSS)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+		assert.Empty(t, w.Header().Get("Content-Encoding"))
+		assert.Contains(t, w.Body.String(), "<rss")
+	})
+
 	t.Run("GetFeedFingerprint error returns 500", func(t *testing.T) {
 		mockBlogService, _, _, workspace, handler := setupBlogHandlerTest(t)
 

@@ -1,11 +1,14 @@
 package http
 
 import (
+	"bytes"
+	"compress/gzip"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
@@ -29,6 +32,15 @@ type WebAnalyticsHandler struct {
 
 	sdkJS   []byte
 	sdkHash string
+
+	// Encodings and validators are precomputed: the bundle is fixed for the
+	// process lifetime, so compressing per request would burn CPU on the
+	// busiest public route for an identical result. The ETags are strong and
+	// distinct per coding — one tag naming two byte sequences is what lets a
+	// cache hand a client the representation it did not ask for.
+	sdkGzip     []byte
+	sdkETag     string
+	sdkGzipETag string
 }
 
 // NewWebAnalyticsHandler creates the handler. sdkJS may be nil until the SDK
@@ -38,8 +50,36 @@ func NewWebAnalyticsHandler(svc domain.WebAnalyticsService, getJWTSecret func() 
 	if len(sdkJS) > 0 {
 		sum := sha256.Sum256(sdkJS)
 		h.sdkHash = hex.EncodeToString(sum[:])[:12]
+		h.sdkETag = `"` + h.sdkHash + `"`
+		h.sdkGzipETag = `"` + h.sdkHash + `-gzip"`
+		h.sdkGzip = gzipBytes(sdkJS)
 	}
 	return h
+}
+
+// gzipBytes compresses b once, at construction. It returns nil when
+// compression fails or does not shrink the input, in which case the SDK is
+// served identity-only — a "compressed" body larger than the original is worse
+// than none. Compressing here rather than per request also rules out the two
+// classic streaming bugs: a forgotten Close leaves off the CRC32/ISIZE trailer
+// and browsers reject the script outright, and an unknown length forces
+// chunked encoding on a response whose size we know exactly.
+func gzipBytes(b []byte) []byte {
+	var buf bytes.Buffer
+	zw, err := gzip.NewWriterLevel(&buf, gzip.BestCompression)
+	if err != nil {
+		return nil
+	}
+	if _, err := zw.Write(b); err != nil {
+		return nil
+	}
+	if err := zw.Close(); err != nil {
+		return nil
+	}
+	if buf.Len() >= len(b) {
+		return nil
+	}
+	return buf.Bytes()
 }
 
 // SDKHash returns the content hash used in the immutable SDK URL (empty when
@@ -226,17 +266,56 @@ func (h *WebAnalyticsHandler) handleSDKImmutable(w http.ResponseWriter, r *http.
 	h.serveSDK(w, r, "public, max-age=31536000, immutable")
 }
 
+// serveSDK writes the precomputed bundle in the encoding the client accepts.
+//
+// It deliberately does not use http.ServeContent. That would advertise
+// Accept-Ranges: bytes unconditionally, exposing 206/416/412 responses this URL
+// has never served, and it refuses to set Content-Length once the handler has
+// set Content-Encoding. Leaving ranges unadvertised means net/http can never
+// return a 206 here, so a slice of the compressed body cannot be spliced into a
+// client's identity buffer — the per-coding ETags below close the same hole a
+// second time.
 func (h *WebAnalyticsHandler) serveSDK(w http.ResponseWriter, r *http.Request, cacheControl string) {
 	if r.Method != http.MethodGet && r.Method != http.MethodHead {
 		WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
+
+	// Negotiate before anything is written, so a HEAD reports the length of the
+	// encoding it would actually have sent rather than the identity length.
+	body, etag, encoding := h.sdkJS, h.sdkETag, ""
+	if h.sdkGzip != nil && acceptsGzip(r.Header.Get("Accept-Encoding")) {
+		body, etag, encoding = h.sdkGzip, h.sdkGzipETag, "gzip"
+	}
+
+	// Everything a 304 must still carry goes here, ahead of the conditional
+	// return. The ACAO/credentials pair overrides the global CORS middleware,
+	// whose origin may be pinned to the console while this script loads from
+	// customer sites; an exit path that skipped this block would ship that
+	// pinned origin plus Allow-Credentials: true to a third party. Vary is
+	// added rather than set so a future Vary: Origin in the middleware is not
+	// silently erased.
 	w.Header().Set("Content-Type", "application/javascript; charset=utf-8")
 	w.Header().Set("Cache-Control", cacheControl)
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Del("Access-Control-Allow-Credentials")
+	w.Header().Add("Vary", "Accept-Encoding")
+	w.Header().Set("ETag", etag)
+
+	if etagMatches(r.Header.Get("If-None-Match"), etag) {
+		w.WriteHeader(http.StatusNotModified)
+		return
+	}
+
+	// After the 304 check: net/http strips Content-Type and Content-Length from
+	// a 304 but leaves Content-Encoding alone, and a 304 has no body to encode.
+	if encoding != "" {
+		w.Header().Set("Content-Encoding", encoding)
+	}
+	w.Header().Set("Content-Length", strconv.Itoa(len(body)))
+
 	if r.Method == http.MethodHead {
 		return
 	}
-	_, _ = w.Write(h.sdkJS)
+	_, _ = w.Write(body)
 }

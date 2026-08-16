@@ -3224,7 +3224,7 @@ class NotifuseAnalyticsSDK {
  *   action: 'purchase',
  *   type: 'purchase',
  *   value: 99.99,
- *   currency: 'USD',
+ *   properties: { currency: 'USD', order_id: 'A-1234' },
  * });
  * ```
  *

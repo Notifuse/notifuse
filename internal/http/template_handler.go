@@ -2,9 +2,9 @@ package http
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/http/middleware"
@@ -114,7 +114,11 @@ func (h *TemplateHandler) handleCreate(w http.ResponseWriter, r *http.Request) {
 	if err := h.service.CreateTemplate(r.Context(), workspaceID, template); err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to create template")
 
-		if strings.Contains(err.Error(), "duplicate key value violates unique constraint") {
+		// errors.As, not a text match: PostgreSQL translates its message per lc_messages,
+		// so on a non-English server the old substring check never fired and a taken id
+		// surfaced as a 500.
+		var exists *domain.ErrTemplateExists
+		if errors.As(err, &exists) {
 			WriteJSONError(w, "Template id already exists", http.StatusBadRequest)
 			return
 		}

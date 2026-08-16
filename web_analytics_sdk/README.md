@@ -46,7 +46,8 @@ This package is **not published to npm** on purpose. Bundling the SDK into an
 application would let a pinned copy drift away from the server that receives its
 payloads, and a payload contract mismatch is silent — sessions simply stop
 updating. If you need to serve the bundle from your own CDN, fetch `/na.js` from
-your instance and host that file.
+your instance and host that file — request it with `Accept-Encoding: identity`,
+or you will save the gzipped bytes without the header that describes them.
 
 ## API
 
@@ -64,8 +65,9 @@ NotifuseAnalytics.debug();                    // Get debug info
 
 // Manual tracking (async)
 await NotifuseAnalytics.trackPageView(url?);  // Track SPA navigation
-await NotifuseAnalytics.trackGoal({ action, type, value?, currency?, properties? });
+await NotifuseAnalytics.trackGoal({ action, type, value?, properties? });
 // type is REQUIRED: 'purchase' | 'subscription' | 'lead' | 'signup' | 'booking' | 'trial' | 'other'
+// a currency or order id goes in properties: { currency: 'EUR', order_id: 'A-1234' }
 
 // Custom Dimensions (async)
 await NotifuseAnalytics.setDimension(1, 'premium');    // Set custom_1 = 'premium'

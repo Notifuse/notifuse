@@ -94,7 +94,7 @@
     }
 
     async function trackGoal() {
-      await NotifuseAnalytics.trackGoal({ action: 'signup', type: 'signup', value: 99.99, currency: 'USD' });
+      await NotifuseAnalytics.trackGoal({ action: 'signup', type: 'signup', value: 99.99, properties: { currency: 'USD' } });
       updateStatus('Tracked: goal (signup, $99.99)');
     }
 

@@ -154,7 +154,13 @@ func runBrowserVisit(t *testing.T, suite *testutil.IntegrationTestSuite, chrome,
   setTimeout(function () {
     var sdk = window.NotifuseAnalytics;
     if (sdk && typeof sdk.trackGoal === 'function') {
-      sdk.trackGoal({ action: 'browser_e2e', value: 42 });
+      // trackGoal rejects an untyped goal. The catch is not decoration: the SDK
+      // loads cross-origin without crossorigin="anonymous", exactly as a
+      // customer's snippet does, so Chrome mutes its rejections from the
+      // window 'unhandledrejection' hook above and the failure would otherwise
+      // reach the assertions as an unexplained goals=0.
+      sdk.trackGoal({ action: 'browser_e2e', type: 'other', value: 42 })
+        .catch(function (e) { window.__errs.push('trackGoal: ' + (e && (e.stack || e.message) || e)); });
     }
   }, 3000);
   // Report state back to this page's own origin so a failure explains itself.

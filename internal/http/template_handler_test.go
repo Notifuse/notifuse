@@ -423,6 +423,55 @@ func TestTemplateHandler_HandleCreate(t *testing.T) {
 	}
 }
 
+// A taken template id must answer 400 and say so. The repository reports it as a typed
+// *domain.ErrTemplateExists rather than as PostgreSQL's English message, which the server
+// translates per lc_messages - matching that text meant a French or Japanese server sent
+// the author a bare 500 with no indication the id was the problem.
+func TestTemplateHandler_HandleCreate_DuplicateID(t *testing.T) {
+	validRequest := domain.CreateTemplateRequest{
+		WorkspaceID: "workspace123",
+		ID:          "template123",
+		Name:        "Test Template",
+		Channel:     "email",
+		Category:    "transactional",
+		Email:       createTestEmailTemplate(),
+	}
+
+	t.Run("taken id answers 400 naming the id", func(t *testing.T) {
+		mockService, _, serverURL, secretKey, cleanup := setupTemplateHandlerTest(t)
+		defer cleanup()
+
+		mockService.EXPECT().CreateTemplate(gomock.Any(), "workspace123", gomock.Any()).
+			Return(fmt.Errorf("failed to create template: %w", &domain.ErrTemplateExists{Message: "template id already exists"}))
+
+		resp := sendRequest(t, http.MethodPost, fmt.Sprintf("%s/api/templates.create", serverURL), createTestToken(secretKey), validRequest)
+		defer func() { _ = resp.Body.Close() }()
+
+		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+		var body map[string]string
+		require.NoError(t, json.NewDecoder(resp.Body).Decode(&body))
+		assert.Equal(t, "Template id already exists", body["error"])
+	})
+
+	// The contrast that gives the test its teeth: anything else is still an outage, so the
+	// author is not told to rename a template when the database was unreachable.
+	t.Run("any other failure stays a 500", func(t *testing.T) {
+		mockService, _, serverURL, secretKey, cleanup := setupTemplateHandlerTest(t)
+		defer cleanup()
+
+		mockService.EXPECT().CreateTemplate(gomock.Any(), "workspace123", gomock.Any()).
+			Return(errors.New("sorry, too many clients already"))
+
+		resp := sendRequest(t, http.MethodPost, fmt.Sprintf("%s/api/templates.create", serverURL), createTestToken(secretKey), validRequest)
+		defer func() { _ = resp.Body.Close() }()
+
+		assert.Equal(t, http.StatusInternalServerError, resp.StatusCode)
+		var body map[string]string
+		require.NoError(t, json.NewDecoder(resp.Body).Decode(&body))
+		assert.Equal(t, "Failed to create template", body["error"])
+	})
+}
+
 func TestTemplateHandler_HandleCreate_WithTranslations(t *testing.T) {
 	mockService, _, serverURL, secretKey, cleanup := setupTemplateHandlerTest(t)
 	defer cleanup()

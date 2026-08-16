@@ -1688,6 +1688,11 @@ func TestErrTemplateNotFound_Error(t *testing.T) {
 	assert.Equal(t, "template not found", err.Error())
 }
 
+func TestErrTemplateExists_Error(t *testing.T) {
+	err := &ErrTemplateExists{Message: "template id already exists"}
+	assert.Equal(t, "template id already exists", err.Error())
+}
+
 func TestBuildTemplateData(t *testing.T) {
 	t.Run("with complete data", func(t *testing.T) {
 		// Setup test data

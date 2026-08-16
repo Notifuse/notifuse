@@ -129,7 +129,7 @@ func runBrowserIdentifyCall(t *testing.T, suite *testutil.IntegrationTestSuite, 
   var EMAIL = %q, HMAC = %q;
   whenReady(function (sdk) {
     sdk.identify(EMAIL, HMAC)
-      .then(function () { return sdk.trackGoal({ action: 'browser_identify', value: 12.5 }); })
+      .then(function () { return sdk.trackGoal({ action: 'browser_identify', type: 'other', value: 12.5 }); })
       .catch(function (e) {
         window.__errs.push('identify/trackGoal: ' + (e && (e.stack || e.message) || e));
       })

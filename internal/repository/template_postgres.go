@@ -89,6 +89,16 @@ func (r *templateRepository) CreateTemplate(ctx context.Context, workspaceID str
 	)
 
 	if err != nil {
+		// Match the SQLSTATE, never the message: PostgreSQL translates error text per
+		// lc_messages, so a non-English server renders this same 23505 in its own locale
+		// and no text match survives it. The INSERT fails either way; what a missed match
+		// costs is the diagnosis - template.create answers 500 "Failed to create template"
+		// instead of 400 "Template id already exists", so the console shows a generic
+		// server error and the author never learns the id is taken.
+		var pqErr *pq.Error
+		if errors.As(err, &pqErr) && pqErr.Code == "23505" {
+			return &domain.ErrTemplateExists{Message: "template id already exists"}
+		}
 		return fmt.Errorf("failed to create template: %w", err)
 	}
 	return nil

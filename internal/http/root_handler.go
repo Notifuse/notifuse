@@ -700,7 +700,7 @@ func (h *RootHandler) serveBlogFeed(w http.ResponseWriter, r *http.Request, work
 		return
 	}
 
-	if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
+	if acceptsGzip(r.Header.Get("Accept-Encoding")) {
 		w.Header().Set("Content-Encoding", "gzip")
 		gz := gzip.NewWriter(w)
 		defer gz.Close()

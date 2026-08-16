@@ -186,7 +186,6 @@ export const VALID_GOAL_TYPES = [
 export type GoalType = (typeof VALID_GOAL_TYPES)[number];
 
 export interface GoalData {
-  id?: string;
   action: string;
   /**
    * What kind of conversion this is. Required: only your site knows whether a
@@ -200,7 +199,13 @@ export interface GoalData {
   // be optional, with the server supplying the default.
   type: GoalType;
   value?: number;
-  currency?: string;
+  /**
+   * Anything else the conversion carries — a currency, an order id, a plan
+   * name. These reach the server and are stored on the goal, which is why
+   * there are no dedicated fields for them: a declared field that nothing
+   * forwards, sends or stores is worse than no field, because callers set it
+   * and are never told it went nowhere.
+   */
   properties?: Record<string, string>;
 }
 

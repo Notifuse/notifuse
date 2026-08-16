@@ -2,11 +2,14 @@ package http
 
 import (
 	"bytes"
+	"compress/gzip"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -194,6 +197,183 @@ func TestWebAnalyticsHandlerSDK(t *testing.T) {
 		rec := httptest.NewRecorder()
 		mux.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/na.js", nil))
 		assert.Equal(t, http.StatusMethodNotAllowed, rec.Code)
+	})
+}
+
+// compressibleSDK stands in for the real bundle in the encoding tests. The
+// fixture TestWebAnalyticsHandlerSDK uses is 41 bytes and gzips to 61, so the
+// handler keeps no compressed variant for it — every assertion below would
+// pass vacuously against it while covering nothing.
+func compressibleSDK() []byte {
+	return bytes.Repeat([]byte("/* notifuse analytics */(function(){window.na=1;})();\n"), 40)
+}
+
+func sdkRequest(t *testing.T, mux *http.ServeMux, method, target string, headers map[string]string) *httptest.ResponseRecorder {
+	t.Helper()
+	req := httptest.NewRequest(method, target, nil)
+	for k, v := range headers {
+		req.Header.Set(k, v)
+	}
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+	return rec
+}
+
+func gunzip(t *testing.T, b []byte) []byte {
+	t.Helper()
+	zr, err := gzip.NewReader(bytes.NewReader(b))
+	require.NoError(t, err)
+	defer zr.Close()
+	out, err := io.ReadAll(zr)
+	require.NoError(t, err)
+	return out
+}
+
+func TestWebAnalyticsHandlerSDKEncoding(t *testing.T) {
+	sdk := compressibleSDK()
+
+	t.Run("identity when the client does not accept gzip", func(t *testing.T) {
+		handler, _, mux := newWebAnalyticsHandlerForTest(t, sdk)
+		rec := sdkRequest(t, mux, http.MethodGet, "/na.js", nil)
+
+		assert.Equal(t, http.StatusOK, rec.Code)
+		assert.True(t, bytes.Equal(sdk, rec.Body.Bytes()))
+		assert.Empty(t, rec.Header().Get("Content-Encoding"))
+		assert.Equal(t, `"`+handler.SDKHash()+`"`, rec.Header().Get("ETag"))
+		assert.Equal(t, strconv.Itoa(len(sdk)), rec.Header().Get("Content-Length"))
+		assert.Contains(t, rec.Header().Values("Vary"), "Accept-Encoding")
+	})
+
+	t.Run("gzip when accepted", func(t *testing.T) {
+		handler, _, mux := newWebAnalyticsHandlerForTest(t, sdk)
+		rec := sdkRequest(t, mux, http.MethodGet, "/na.js", map[string]string{
+			"Accept-Encoding": "gzip, deflate, br, zstd",
+		})
+
+		assert.Equal(t, http.StatusOK, rec.Code)
+		assert.Equal(t, "gzip", rec.Header().Get("Content-Encoding"))
+		assert.True(t, bytes.Equal(sdk, gunzip(t, rec.Body.Bytes())), "gzip body must inflate to the bundle")
+		assert.Less(t, rec.Body.Len(), len(sdk))
+		assert.Equal(t, strconv.Itoa(rec.Body.Len()), rec.Header().Get("Content-Length"))
+		assert.Equal(t, `"`+handler.SDKHash()+`-gzip"`, rec.Header().Get("ETag"))
+		assert.Contains(t, rec.Header().Values("Vary"), "Accept-Encoding")
+	})
+
+	t.Run("an explicit gzip refusal is honoured", func(t *testing.T) {
+		_, _, mux := newWebAnalyticsHandlerForTest(t, sdk)
+		rec := sdkRequest(t, mux, http.MethodGet, "/na.js", map[string]string{
+			"Accept-Encoding": "gzip;q=0",
+		})
+
+		assert.Equal(t, http.StatusOK, rec.Code)
+		assert.Empty(t, rec.Header().Get("Content-Encoding"))
+		assert.True(t, bytes.Equal(sdk, rec.Body.Bytes()))
+	})
+
+	t.Run("a bundle gzip cannot shrink is served identity", func(t *testing.T) {
+		tiny := []byte("(function(){/* notifuse analytics */})();")
+		_, _, mux := newWebAnalyticsHandlerForTest(t, tiny)
+		rec := sdkRequest(t, mux, http.MethodGet, "/na.js", map[string]string{"Accept-Encoding": "gzip"})
+
+		assert.Equal(t, http.StatusOK, rec.Code)
+		assert.Empty(t, rec.Header().Get("Content-Encoding"))
+		assert.True(t, bytes.Equal(tiny, rec.Body.Bytes()))
+	})
+
+	t.Run("matching validator returns 304 without a body", func(t *testing.T) {
+		handler, _, mux := newWebAnalyticsHandlerForTest(t, sdk)
+		etag := `"` + handler.SDKHash() + `"`
+		rec := sdkRequest(t, mux, http.MethodGet, "/na.js", map[string]string{"If-None-Match": etag})
+
+		assert.Equal(t, http.StatusNotModified, rec.Code)
+		assert.Empty(t, rec.Body.Bytes())
+		assert.Equal(t, etag, rec.Header().Get("ETag"))
+		assert.Contains(t, rec.Header().Values("Vary"), "Accept-Encoding")
+		assert.Empty(t, rec.Header().Get("Content-Encoding"))
+		assert.Empty(t, rec.Header().Get("Content-Length"))
+		// A 304 leaving before the CORS override would ship the global
+		// middleware's pinned origin and Allow-Credentials to a customer site.
+		assert.Equal(t, "*", rec.Header().Get("Access-Control-Allow-Origin"))
+		assert.Empty(t, rec.Header().Get("Access-Control-Allow-Credentials"))
+	})
+
+	t.Run("the two codings have separate validators", func(t *testing.T) {
+		handler, _, mux := newWebAnalyticsHandlerForTest(t, sdk)
+		identity := `"` + handler.SDKHash() + `"`
+		compressed := `"` + handler.SDKHash() + `-gzip"`
+
+		// The identity tag must not satisfy a request that will be answered
+		// with gzip, or a cache hands a client the wrong representation.
+		rec := sdkRequest(t, mux, http.MethodGet, "/na.js", map[string]string{
+			"Accept-Encoding": "gzip",
+			"If-None-Match":   identity,
+		})
+		assert.Equal(t, http.StatusOK, rec.Code)
+		assert.Equal(t, "gzip", rec.Header().Get("Content-Encoding"))
+
+		rec = sdkRequest(t, mux, http.MethodGet, "/na.js", map[string]string{
+			"Accept-Encoding": "gzip",
+			"If-None-Match":   compressed,
+		})
+		assert.Equal(t, http.StatusNotModified, rec.Code)
+		assert.Equal(t, compressed, rec.Header().Get("ETag"))
+	})
+
+	t.Run("wildcard and weak validators match", func(t *testing.T) {
+		handler, _, mux := newWebAnalyticsHandlerForTest(t, sdk)
+
+		rec := sdkRequest(t, mux, http.MethodGet, "/na.js", map[string]string{"If-None-Match": "*"})
+		assert.Equal(t, http.StatusNotModified, rec.Code)
+
+		rec = sdkRequest(t, mux, http.MethodGet, "/na.js", map[string]string{
+			"If-None-Match": `W/"` + handler.SDKHash() + `"`,
+		})
+		assert.Equal(t, http.StatusNotModified, rec.Code)
+	})
+
+	t.Run("HEAD reports the length of the negotiated encoding", func(t *testing.T) {
+		_, _, mux := newWebAnalyticsHandlerForTest(t, sdk)
+
+		rec := sdkRequest(t, mux, http.MethodHead, "/na.js", nil)
+		assert.Equal(t, http.StatusOK, rec.Code)
+		assert.Empty(t, rec.Body.Bytes())
+		assert.Equal(t, strconv.Itoa(len(sdk)), rec.Header().Get("Content-Length"))
+
+		gzipped := sdkRequest(t, mux, http.MethodGet, "/na.js", map[string]string{"Accept-Encoding": "gzip"})
+		rec = sdkRequest(t, mux, http.MethodHead, "/na.js", map[string]string{"Accept-Encoding": "gzip"})
+		assert.Equal(t, http.StatusOK, rec.Code)
+		assert.Empty(t, rec.Body.Bytes())
+		assert.Equal(t, "gzip", rec.Header().Get("Content-Encoding"))
+		assert.Equal(t, strconv.Itoa(gzipped.Body.Len()), rec.Header().Get("Content-Length"))
+	})
+
+	t.Run("both routes serve the same bytes under different cache policies", func(t *testing.T) {
+		handler, _, mux := newWebAnalyticsHandlerForTest(t, sdk)
+		headers := map[string]string{"Accept-Encoding": "gzip"}
+
+		stable := sdkRequest(t, mux, http.MethodGet, "/na.js", headers)
+		immutable := sdkRequest(t, mux, http.MethodGet, "/na."+handler.SDKHash()+".js", headers)
+
+		// The SDK's double-install guard assumes a page loading both URLs
+		// evaluates one and the same bundle.
+		assert.True(t, bytes.Equal(stable.Body.Bytes(), immutable.Body.Bytes()))
+		assert.Equal(t, stable.Header().Get("ETag"), immutable.Header().Get("ETag"))
+		assert.Equal(t, "public, max-age=3600", stable.Header().Get("Cache-Control"))
+		assert.Contains(t, immutable.Header().Get("Cache-Control"), "immutable")
+	})
+
+	t.Run("ranges are neither advertised nor served", func(t *testing.T) {
+		_, _, mux := newWebAnalyticsHandlerForTest(t, sdk)
+		rec := sdkRequest(t, mux, http.MethodGet, "/na.js", map[string]string{
+			"Range":           "bytes=0-99",
+			"Accept-Encoding": "gzip",
+		})
+
+		// A 206 slice of the compressed body could be spliced into a client's
+		// identity buffer, so this route answers the full body or nothing.
+		assert.Equal(t, http.StatusOK, rec.Code)
+		assert.Empty(t, rec.Header().Get("Accept-Ranges"))
+		assert.True(t, bytes.Equal(sdk, gunzip(t, rec.Body.Bytes())))
 	})
 }
 

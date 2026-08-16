@@ -251,6 +251,66 @@ func mustMarshal(t *testing.T, v interface{}) []byte {
 	return data
 }
 
+// A unique violation on templates_pkey (id, version) must reach the handler as a typed
+// error, not as text. PostgreSQL renders the message in the server's lc_messages locale,
+// so the substring match this replaced silently stopped working on a non-English server
+// and a taken template id surfaced as a 500 instead of a 400 naming the id.
+func TestTemplateRepository_CreateTemplate_UniqueViolation(t *testing.T) {
+	insert := regexp.QuoteMeta(`INSERT INTO templates`)
+
+	newRepo := func(t *testing.T) (domain.TemplateRepository, sqlmock.Sqlmock, *MockWorkspaceRepository, func()) {
+		t.Helper()
+		db, mockSQL, cleanup := testutil.SetupMockDB(t)
+		mockWorkspaceRepo := new(MockWorkspaceRepository)
+		mockWorkspaceRepo.On("GetConnection", mock.Anything, "ws-1").Return(db, nil)
+		return NewTemplateRepository(mockWorkspaceRepo), mockSQL, mockWorkspaceRepo, cleanup
+	}
+
+	t.Run("unique violation maps to ErrTemplateExists", func(t *testing.T) {
+		repo, mockSQL, _, cleanup := newRepo(t)
+		defer cleanup()
+		mockSQL.ExpectExec(insert).WillReturnError(&pq.Error{
+			Code:       "23505",
+			Constraint: "templates_pkey",
+			Message:    `duplicate key value violates unique constraint "templates_pkey"`,
+		})
+
+		err := repo.CreateTemplate(context.Background(), "ws-1", createTestTemplate())
+		var exists *domain.ErrTemplateExists
+		assert.True(t, errors.As(err, &exists), "expected *ErrTemplateExists, got %v", err)
+	})
+
+	// Verbatim what PostgreSQL 17 emits with lc_messages=fr_FR. This is the case the old
+	// strings.Contains check could never match.
+	t.Run("localized unique violation still maps to ErrTemplateExists", func(t *testing.T) {
+		repo, mockSQL, _, cleanup := newRepo(t)
+		defer cleanup()
+		mockSQL.ExpectExec(insert).WillReturnError(&pq.Error{
+			Code:       "23505",
+			Constraint: "templates_pkey",
+			Message:    "la valeur d'une cl\u00e9 dupliqu\u00e9e rompt la contrainte unique \u00ab templates_pkey \u00bb",
+		})
+
+		err := repo.CreateTemplate(context.Background(), "ws-1", createTestTemplate())
+		var exists *domain.ErrTemplateExists
+		assert.True(t, errors.As(err, &exists), "expected *ErrTemplateExists, got %v", err)
+	})
+
+	// The fall-through: an outage must stay an outage. Reporting it as a taken id would
+	// tell the author to rename a template when the database was merely unreachable.
+	t.Run("non-unique-violation error is not reported as a taken id", func(t *testing.T) {
+		repo, mockSQL, _, cleanup := newRepo(t)
+		defer cleanup()
+		mockSQL.ExpectExec(insert).WillReturnError(&pq.Error{Code: "53300", Message: "sorry, too many clients already"})
+
+		err := repo.CreateTemplate(context.Background(), "ws-1", createTestTemplate())
+		require.Error(t, err)
+		var exists *domain.ErrTemplateExists
+		assert.False(t, errors.As(err, &exists), "an outage must not be reported as a taken template id")
+		assert.Contains(t, err.Error(), "failed to create template")
+	})
+}
+
 func TestTemplateRepository_CreateTemplate(t *testing.T) {
 	db, mockSQL, cleanup := testutil.SetupMockDB(t)
 	defer cleanup()

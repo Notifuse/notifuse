@@ -858,6 +858,18 @@ func (e *ErrTemplateNotFound) Error() string {
 	return e.Message
 }
 
+// ErrTemplateExists is returned on a UNIQUE violation (PG 23505) of the templates
+// primary key (id, version). Creation always writes version 1, so this means the id
+// is taken. The handler turns it into a 400 naming the id; without it the caller gets
+// a 500 and no way to learn the id is already in use.
+type ErrTemplateExists struct {
+	Message string
+}
+
+func (e *ErrTemplateExists) Error() string {
+	return e.Message
+}
+
 // ErrEditorModeChange is returned when attempting to switch a template's editor mode
 type ErrEditorModeChange struct {
 	Message string
