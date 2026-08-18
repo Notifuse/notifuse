@@ -345,7 +345,7 @@ function parseUTMParams(url, adClickIds = DEFAULT_AD_CLICK_IDS) {
  * Session management
  * Handles session creation, persistence, and expiry
  */
-const SDK_VERSION$1 = "38.0";
+const SDK_VERSION$1 = "38.1";
 const CLOCK_SKEW_TOLERANCE$1 = 60; // seconds
 // Absolute lifetime of one session id, independent of activity.
 //
@@ -441,6 +441,36 @@ function identityWithinBounds(identity) {
     if (identity.token && utf8Length(identity.token) > MAX_IDENTITY_TOKEN_BYTES)
         return false;
     return true;
+}
+/**
+ * The referring URL, unless it is a page of the site the visitor is already on.
+ *
+ * A session is minted with document.referrer, and one is minted whenever the
+ * inactivity window has lapsed — rotating in place on a tab left open, or on the
+ * visitor's next internal click. In both cases document.referrer is one of the
+ * site's own pages, and recording it would replace the visit's real acquisition
+ * source with the site itself: the referrers report lists your own domain, and a
+ * session that ought to read as direct reads as a referral instead.
+ *
+ * Exact hostname match, which URL and location both give lowercased. Another
+ * host of the same site (docs.acme.com -> www.acme.com) is a genuine referral
+ * and is kept. The server applies the same rule to referrer_domain against
+ * landing_domain, which is what covers visitors still running an older build.
+ */
+function externalReferrer() {
+    const referrer = document.referrer;
+    if (!referrer)
+        return null;
+    try {
+        if (new URL(referrer).hostname === window.location.hostname)
+            return null;
+    }
+    catch {
+        // Kept rather than dropped: document.referrer is always an absolute URL, so
+        // a parse failure here is an edge case in the parser, not evidence that the
+        // referrer is internal — and dropping it would lose a real source.
+    }
+    return referrer;
 }
 class SessionManager {
     constructor(storage, tabStorage, config) {
@@ -541,7 +571,7 @@ class SessionManager {
             last_active_at: now,
             focus_duration_ms: 0,
             total_duration_ms: 0,
-            referrer: document.referrer || null,
+            referrer: externalReferrer(),
             landing_page: window.location.href,
             utm: this.hasUTMValues(utm) ? utm : null,
             max_scroll_percent: 0,
@@ -572,7 +602,7 @@ class SessionManager {
             last_active_at: now,
             focus_duration_ms: 0,
             total_duration_ms: 0,
-            referrer: document.referrer || null,
+            referrer: externalReferrer(),
             landing_page: window.location.href,
             utm: this.hasUTMValues(utm) ? utm : null,
             max_scroll_percent: 0,
@@ -896,7 +926,7 @@ class SessionManager {
  * - No attributesSent optimization - always include attributes
  */
 const STORAGE_KEY = 'nf_session_state';
-const SDK_VERSION = "38.0";
+const SDK_VERSION = "38.1";
 const MAX_ACTIONS = 1000; // Match server limit from Phase 2
 class SessionState {
     constructor(config) {

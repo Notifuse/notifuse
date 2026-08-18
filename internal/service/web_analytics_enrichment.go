@@ -136,6 +136,34 @@ type webAttribution struct {
 	ContactEmail *string
 }
 
+// dropSelfReferral blanks a referrer that points back at the very host the
+// session landed on, and re-reads the visit as direct.
+//
+// The SDK stamps every new session with document.referrer, and it mints one
+// whenever the inactivity window has lapsed — in place on a tab the visitor
+// left open, or on their next internal click. Both hand it a referrer that is
+// one of the site's OWN pages, so without this the visit's acquisition source
+// is silently replaced by the site itself: a visitor who arrived from Google in
+// the morning and came back to the tab at noon is re-credited to /compare/, and
+// the row escapes the Direct rule (is_direct false) into not-mapped.
+//
+// It also guards the session row's merge. Attribution is sticky per column,
+// first non-empty writer wins (webSessionStickyColumns), so a self-referral beat
+// could otherwise overwrite the empty referrer of a genuinely direct session and
+// flip is_direct with it.
+//
+// Exact host match, both sides already lowercased by webURLParts: docs.acme.com
+// -> www.acme.com is a real referral between two hosts and must survive.
+func (a *webAttribution) dropSelfReferral() {
+	if a.ReferrerDomain == "" || a.ReferrerDomain != a.LandingDomain {
+		return
+	}
+	a.Referrer = ""
+	a.ReferrerDomain = ""
+	a.ReferrerPath = ""
+	a.IsDirect = true
+}
+
 // filterFields builds the source-field map the rules engine reads. path is
 // context-dependent: the landing path for the session-level evaluation, the
 // goal's own path for each goal.
@@ -250,6 +278,9 @@ func BuildWebRows(payload *domain.WebTrackPayload, settings *domain.WebAnalytics
 	}
 	attribution.ReferrerDomain, attribution.ReferrerPath = webURLParts(attrs.Referrer)
 	attribution.LandingDomain, attribution.LandingPath = webURLParts(attrs.LandingPage)
+	// Before the rules run, so they see the corrected is_direct and an empty
+	// referrer_domain rather than classifying the site as its own channel.
+	attribution.dropSelfReferral()
 
 	// Device, browser and OS come from the SDK, which parses the user agent in
 	// the browser with Client Hints available. That is strictly more accurate

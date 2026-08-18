@@ -245,6 +245,57 @@ func TestBuildWebRows(t *testing.T) {
 		assert.InDelta(t, 48.86, *session.Latitude, 1e-9)
 	})
 
+	// A session minted while the visitor is already on the site carries one of
+	// the site's own pages as its referrer — the SDK rotates onto a fresh id
+	// whenever the inactivity window lapses. Recorded as-is, it replaces the
+	// visit's acquisition source with the site itself.
+	t.Run("self-referral is dropped and the visit reads as direct", func(t *testing.T) {
+		payload := basePayload()
+		// Mixed case on purpose: both sides are compared after webURLParts has
+		// lowercased them.
+		payload.Attributes.Referrer = "https://SHOP.example.com/compare/"
+		payload.Attributes.UTMSource = ""
+		payload.Attributes.UTMMedium = ""
+
+		session, _, goals, err := BuildWebRows(payload, webTestSettings(), geoip.Result{}, receivedAt, nil)
+		require.NoError(t, err)
+
+		assert.Empty(t, session.Referrer)
+		assert.Empty(t, session.ReferrerDomain)
+		assert.Empty(t, session.ReferrerPath)
+		assert.True(t, session.IsDirect)
+		assert.Equal(t, "direct", session.Channel, "rules run after the drop, on the corrected is_direct")
+		assert.Equal(t, "shop.example.com", session.LandingDomain, "only the referrer is cleared")
+
+		require.Len(t, goals, 1)
+		assert.Empty(t, goals[0].ReferrerDomain, "the goal snapshot carries the corrected attribution")
+		assert.True(t, goals[0].IsDirect)
+	})
+
+	t.Run("self-referral keeps the campaign it arrived with", func(t *testing.T) {
+		payload := basePayload()
+		payload.Attributes.Referrer = "https://shop.example.com/compare/"
+
+		session, _, _, err := BuildWebRows(payload, webTestSettings(), geoip.Result{}, receivedAt, nil)
+		require.NoError(t, err)
+
+		assert.True(t, session.IsDirect)
+		assert.Equal(t, "google", session.UTMSource)
+		assert.Equal(t, "google-ads", session.Channel, "UTM outranks Direct Traffic, which needs empty UTMs")
+	})
+
+	t.Run("another host of the same site is a real referral", func(t *testing.T) {
+		payload := basePayload()
+		payload.Attributes.Referrer = "https://docs.shop.example.com/guide"
+
+		session, _, _, err := BuildWebRows(payload, webTestSettings(), geoip.Result{}, receivedAt, nil)
+		require.NoError(t, err)
+
+		assert.Equal(t, "docs.shop.example.com", session.ReferrerDomain)
+		assert.Equal(t, "/guide", session.ReferrerPath)
+		assert.False(t, session.IsDirect)
+	})
+
 	t.Run("nil settings: no filters, defaults still sane", func(t *testing.T) {
 		session, _, _, err := BuildWebRows(basePayload(), nil, geoip.Result{}, receivedAt, nil)
 		require.NoError(t, err)

@@ -67,6 +67,7 @@ describe('SessionManager', () => {
     vi.stubGlobal('location', {
       href: 'https://example.com/page?utm_source=google',
       pathname: '/page',
+      hostname: 'example.com',
     });
 
     // Mock document.referrer
@@ -133,6 +134,67 @@ describe('SessionManager', () => {
     it('captures document.referrer', () => {
       const session = sessionManager.getOrCreateSession();
       expect(session.referrer).toBe('https://google.com/search');
+    });
+
+    // A session is minted whenever the inactivity window has lapsed, including
+    // in place on a tab the visitor left open — where document.referrer is
+    // whichever of the site's own pages linked them here. Recording it would
+    // credit the visit to the site itself.
+    it('drops a referrer from the page the visitor is already on', () => {
+      Object.defineProperty(document, 'referrer', {
+        value: 'https://example.com/compare/',
+        writable: true,
+        configurable: true,
+      });
+
+      const session = sessionManager.getOrCreateSession();
+      expect(session.referrer).toBeNull();
+    });
+
+    it('keeps a referrer from another host of the same site', () => {
+      Object.defineProperty(document, 'referrer', {
+        value: 'https://docs.example.com/guide',
+        writable: true,
+        configurable: true,
+      });
+
+      const session = sessionManager.getOrCreateSession();
+      expect(session.referrer).toBe('https://docs.example.com/guide');
+    });
+
+    it('drops a self-referral whatever the case of its host', () => {
+      Object.defineProperty(document, 'referrer', {
+        value: 'https://EXAMPLE.com/compare/',
+        writable: true,
+        configurable: true,
+      });
+
+      const session = sessionManager.getOrCreateSession();
+      expect(session.referrer).toBeNull();
+    });
+
+    // The Android Google Search app: a non-http referrer that the default
+    // channel rules match on, so the scheme must not cost it its place.
+    it('keeps a non-http referrer', () => {
+      Object.defineProperty(document, 'referrer', {
+        value: 'android-app://com.google.android.googlequicksearchbox/',
+        writable: true,
+        configurable: true,
+      });
+
+      const session = sessionManager.getOrCreateSession();
+      expect(session.referrer).toBe('android-app://com.google.android.googlequicksearchbox/');
+    });
+
+    it('keeps a referrer it cannot parse', () => {
+      Object.defineProperty(document, 'referrer', {
+        value: 'not a url',
+        writable: true,
+        configurable: true,
+      });
+
+      const session = sessionManager.getOrCreateSession();
+      expect(session.referrer).toBe('not a url');
     });
 
     it('captures window.location.href as landing_page', () => {
@@ -627,6 +689,21 @@ describe('SessionManager', () => {
       const session = sessionManager.getOrCreateSession();
 
       expect(session.id).toBe(input.sessionId);
+    });
+
+    it('drops a self-referral on the cross-domain path too', () => {
+      Object.defineProperty(document, 'referrer', {
+        value: 'https://example.com/compare/',
+        writable: true,
+        configurable: true,
+      });
+
+      const input = getValidCrossDomainInput();
+      sessionManager.setCrossDomainInput(input);
+      const session = sessionManager.getOrCreateSession();
+
+      expect(session.id).toBe(input.sessionId);
+      expect(session.referrer).toBeNull();
     });
 
     it('should ignore expired cross-domain input', () => {
