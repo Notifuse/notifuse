@@ -23,7 +23,7 @@ msgstr " - Fallito"
 
 #: src/components/ai-assistant/useAIAssistant.tsx:263
 msgid " · {seconds}s"
-msgstr ""
+msgstr " · {seconds}s"
 
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:868
 msgid " (Paused)"
@@ -31,7 +31,7 @@ msgstr " (In pausa)"
 
 #: src/components/ai-assistant/useAIAssistant.tsx:211
 msgid "- cancelled"
-msgstr ""
+msgstr "- annullato"
 
 #. placeholder {0}: csvData.emails.length - 10
 #: src/components/contacts/BulkUpdateDrawer.tsx:671
@@ -42,7 +42,7 @@ msgstr "... e altre {0} email"
 #: src/components/web_analytics/filters/FilterTable.tsx:204
 #: src/components/web_analytics/filters/TestFilterModal.tsx:79
 msgid "(always matches)"
-msgstr ""
+msgstr "(corrisponde sempre)"
 
 #: src/components/ai-assistant/useAIAssistant.tsx:212
 msgid "(Cancelled)"
@@ -57,12 +57,12 @@ msgstr "(Annullato)"
 #: src/components/web_analytics/explore/ExploreSummary.tsx:75
 #: src/components/web_analytics/explore/ExploreTable.tsx:62
 msgid "(empty)"
-msgstr ""
+msgstr "vuoto"
 
 #: src/components/web_analytics/shared.tsx:143
 #: src/pages/WebAnalyticsGoalsPage.tsx:86
 #~ msgid "(none)"
-#~ msgstr ""
+#~ msgstr "(nessuno)"
 
 #. placeholder {0}: record.email.reply_to
 #. placeholder {0}: templateSender?.name || defaultSender?.name
@@ -74,16 +74,16 @@ msgstr "(originale: {0})"
 #. placeholder {0}: progress.total
 #: src/components/contacts/BulkActionProgressModal.tsx:79
 msgid "{0, plural, one {# contact} other {# contacts}}"
-msgstr ""
+msgstr "{0, plural, one {# contatto} other {# contatti}}"
 
 #. placeholder {0}: rows.length
 #: src/components/web_analytics/explore/CsvExportModal.tsx:116
 msgid "{0, plural, one {Exported # row} other {Exported # rows}}"
-msgstr ""
+msgstr "{0, plural, one {# riga esportata} other {# righe esportate}}"
 
 #: src/components/contacts/BulkActionProgressModal.tsx:78
 #~ msgid "{0} contact(s)"
-#~ msgstr ""
+#~ msgstr "{0} contatto(i)"
 
 #. placeholder {0}: previewResponse!.total_count
 #: src/components/segment/button_upsert.tsx:638
@@ -93,7 +93,7 @@ msgstr "{0} contatti"
 #. placeholder {0}: filter.field_name
 #: src/components/segment/input_dimension_filters.tsx:73
 msgid "{0} does not apply to this event"
-msgstr ""
+msgstr "{0} non si applica a questo evento"
 
 #. placeholder {0}: stats.count_bounced
 #: src/components/analytics/EmailMetricsChart.tsx:414
@@ -149,7 +149,7 @@ msgstr "{0} in {1}"
 
 #: src/components/settings/WebAnalyticsSettings.tsx:180
 #~ msgid "{0} months"
-#~ msgstr ""
+#~ msgstr "{0} mesi"
 
 #. placeholder {0}: processed.toLocaleString()
 #. placeholder {1}: enqueuedCount.toLocaleString()
@@ -161,17 +161,17 @@ msgstr "{0} di {1}"
 #. placeholder {1}: multiResults.length
 #: src/components/web_analytics/filters/TestFilterModal.tsx:215
 msgid "{0} of {1} rules match"
-msgstr ""
+msgstr "{0} di {1} regole corrispondono"
 
 #. placeholder {0}: state.rows_updated.toLocaleString()
 #: src/components/web_analytics/filters/BackfillStatus.tsx:104
 msgid "{0} rows rewritten"
-msgstr ""
+msgstr "{0} righe riscritte"
 
 #. placeholder {0}: stored?.bounce_threshold_seconds ?? DEFAULT_SETTINGS.bounce_threshold_seconds
 #: src/components/settings/WebAnalyticsSettings.tsx:275
 msgid "{0} seconds"
-msgstr ""
+msgstr "{0} secondi"
 
 #. placeholder {0}: stats.count_clicked
 #: src/components/analytics/EmailMetricsChart.tsx:387
@@ -266,19 +266,19 @@ msgstr "{clicks} click su {recipients} destinatari"
 
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:335
 #~ msgid "{count} filters applied"
-#~ msgstr ""
+#~ msgstr "{count} filtri applicati"
 
 #: src/components/timeline/ContactTimeline.tsx:844
 msgid "{goalCount} goals"
-msgstr ""
+msgstr "{goalCount} obiettivi"
 
 #: src/components/timeline/ContactTimeline.tsx:238
 msgid "{hours}h"
-msgstr ""
+msgstr "{hours}h"
 
 #: src/components/timeline/ContactTimeline.tsx:238
 msgid "{hours}h {remainingMinutes}m"
-msgstr ""
+msgstr "{hours}h {remainingMinutes}m"
 
 #: src/components/settings/WebhookCard.tsx:143
 msgid "{label} copied to clipboard"
@@ -286,7 +286,7 @@ msgstr "{label} copiato negli appunti"
 
 #: src/components/templates/CreateTemplateDrawer.tsx:703
 msgid "{langName} translation is missing required fields (subject and preview)"
-msgstr ""
+msgstr "La traduzione in {langName} non contiene i campi obbligatori (oggetto e anteprima)"
 
 #: src/components/transactional/ApiCommandModal.tsx:818
 msgid "{language} code copied to clipboard!"
@@ -294,19 +294,19 @@ msgstr "Codice {language} copiato negli appunti!"
 
 #: src/components/automations/config/ConditionsField.tsx:103
 msgid "{leafCount, plural, one {# condition} other {# conditions}}"
-msgstr ""
+msgstr "{leafCount, plural, one {# condizione} other {# condizioni}}"
 
 #: src/pages/WebAnalyticsLivePage.tsx:134
 msgid "{liveSessions} live now"
-msgstr ""
+msgstr "{liveSessions} in tempo reale ora"
 
 #: src/components/timeline/ContactTimeline.tsx:931
 msgid "{maxScroll}% scrolled"
-msgstr ""
+msgstr "{maxScroll}% scorso"
 
 #: src/components/timeline/ContactTimeline.tsx:232
 msgid "{minutes}m"
-msgstr ""
+msgstr "{minutes}m"
 
 #: src/components/contacts/ExportContactsModal.tsx:119
 msgid "{minutes}m {remainingSeconds}s"
@@ -314,7 +314,7 @@ msgstr "{minutes}m {remainingSeconds}s"
 
 #: src/components/timeline/ContactTimeline.tsx:232
 msgid "{minutes}m {seconds}s"
-msgstr ""
+msgstr "{minutes}m {seconds}s"
 
 #: src/pages/BroadcastsPage.tsx:849
 msgid "{opens} opens out of {recipients} recipients"
@@ -322,7 +322,7 @@ msgstr "{opens} aperture su {recipients} destinatari"
 
 #: src/components/timeline/ContactTimeline.tsx:836
 msgid "{pageviews} pages"
-msgstr ""
+msgstr "{pageviews} pagine"
 
 #: src/components/timeline/ContactTimeline.tsx:414
 msgid "{propertyCount} properties"
@@ -338,67 +338,67 @@ msgstr "{seconds} secondi"
 
 #: src/components/contacts/BulkActionsBar.tsx:117
 msgid "{selectedCount, plural, one {# contact selected} other {# contacts selected}}"
-msgstr ""
+msgstr "{selectedCount, plural, one {# contatto selezionato} other {# contatti selezionati}}"
 
 #: src/components/contacts/BulkActionsBar.tsx:230
 msgid "{selectedCount, plural, one {This will permanently delete # contact. This action cannot be undone.} other {This will permanently delete # contacts. This action cannot be undone.}}"
-msgstr ""
+msgstr "{selectedCount, plural, one {Questo eliminerà in modo permanente # contatto. Questa azione non può essere annullata.} other {Questo eliminerà in modo permanente # contatti. Questa azione non può essere annullata.}}"
 
 #: src/components/contacts/BulkActionsBar.tsx:111
 #~ msgid "{selectedCount} contact(s) selected"
-#~ msgstr ""
+#~ msgstr "{selectedCount} contatto/i selezionato/i"
 
 #: src/components/timeline/ContactTimeline.tsx:228
 msgid "{totalSeconds}s"
-msgstr ""
+msgstr "{totalSeconds}s"
 
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:330
 #~ msgid "{what} - {count} rows"
-#~ msgstr ""
+#~ msgstr "{what} - {count} righe"
 
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:331
 #~ msgid "{what} - cancelled"
-#~ msgstr ""
+#~ msgstr "{what} - annullato"
 
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:332
 #~ msgid "{what} - failed"
-#~ msgstr ""
+#~ msgstr "{what} - fallito"
 
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:382
 msgid "{what} — {count} rows"
-msgstr ""
+msgstr "{what} — {count} righe"
 
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:382
 msgid "{what} — 1 row"
-msgstr ""
+msgstr "{what} — 1 riga"
 
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:383
 msgid "{what} — cancelled"
-msgstr ""
+msgstr "{what} — annullato"
 
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:384
 msgid "{what} — failed"
-msgstr ""
+msgstr "{what} — fallito"
 
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:388
 msgid "{what} per day"
-msgstr ""
+msgstr "{what} al giorno"
 
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:387
 msgid "{what} per hour"
-msgstr ""
+msgstr "{what} all'ora"
 
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:390
 msgid "{what} per month"
-msgstr ""
+msgstr "{what} al mese"
 
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:389
 msgid "{what} per week"
-msgstr ""
+msgstr "{what} alla settimana"
 
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:391
 msgid "{what} per year"
-msgstr ""
+msgstr "{what} all'anno"
 
 #: src/components/email_builder/panels/Preview.tsx:218
 msgid "// No test data yet..."
@@ -430,7 +430,7 @@ msgstr "+ aggiungi nome mittente, CC, BCC, reply-to, allegati"
 
 #: src/components/segment/input_event_property_filters.tsx:122
 msgid "+ Add property filter"
-msgstr ""
+msgstr "+ Aggiungi filtro proprietà"
 
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:809
 msgid "+ Add variation"
@@ -439,11 +439,11 @@ msgstr "+ Aggiungi variante"
 #. placeholder {0}: hidden.length
 #: src/components/web_analytics/filters/FilterTable.tsx:220
 msgid "+{0} more"
-msgstr ""
+msgstr "+ altri {0}"
 
 #: src/components/web_analytics/filters/TestFilterModal.tsx:97
 msgid "+{hiddenCount} more"
-msgstr ""
+msgstr "+ altri {hiddenCount}"
 
 #: src/pages/BroadcastsPage.tsx:868
 msgid "0 clicks out of 0 recipients"
@@ -459,11 +459,11 @@ msgstr "0 aperture su 0 destinatari"
 
 #: src/components/timeline/ContactTimeline.tsx:844
 msgid "1 goal"
-msgstr ""
+msgstr "1 obiettivo"
 
 #: src/components/timeline/ContactTimeline.tsx:836
 msgid "1 page"
-msgstr ""
+msgstr "1 pagina"
 
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:490
 msgid "1. Audience"
@@ -484,7 +484,7 @@ msgstr "2. Template"
 #. placeholder {0}: workspace.settings.default_language
 #: src/components/templates/CreateTemplateDrawer.tsx:782
 msgid "2. Template ({0})"
-msgstr ""
+msgstr "2. Modello ({0})"
 
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:494
 msgid "2. Web Analytics"
@@ -496,11 +496,11 @@ msgstr "200 - Ultra leggero"
 
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:498
 msgid "3. Data Feeds"
-msgstr ""
+msgstr "3. Feed di dati"
 
 #: src/components/templates/CreateTemplateDrawer.tsx:789
 msgid "3. Translations"
-msgstr ""
+msgstr "3. Traduzioni"
 
 #: src/components/email_builder/ui/FontStyleInput.tsx:113
 msgid "300 - Light"
@@ -508,7 +508,7 @@ msgstr "300 - Leggero"
 
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:502
 msgid "4. Content"
-msgstr ""
+msgstr "4. Contenuto"
 
 #: src/components/email_builder/ui/FontStyleInput.tsx:114
 msgid "400 - Normal"
@@ -544,11 +544,11 @@ msgstr "Una breve descrizione dello scopo di questa notifica"
 
 #: src/components/contacts/BulkActionsBar.tsx:110
 msgid "A bulk action is already running"
-msgstr ""
+msgstr "Un'azione massiva è già in esecuzione"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:378
 msgid "A count of past activity includes the event that fires the automation, so \"at least 3 opens\" enrolls on the third open."
-msgstr ""
+msgstr "Il conteggio delle attività passate include l'evento che attiva l'automazione, quindi \"almeno 3 aperture\" comporta l'iscrizione alla terza apertura."
 
 #: src/components/blog/ThemeEditorDrawer.tsx:459
 msgid "A newer draft was found in local storage. Would you like to restore it or discard it?"
@@ -567,7 +567,7 @@ msgstr "È stato trovato un caricamento precedente per \"{0}\" ({1}). Vuoi ripre
 
 #: src/components/segment/button_upsert.tsx:161
 msgid "A segment with ID \"{id}\" already exists"
-msgstr ""
+msgstr "Un segmento con ID \"{id}\" esiste già"
 
 #: src/components/segment/button_upsert.tsx:759
 msgid "A tree is required"
@@ -579,7 +579,7 @@ msgstr "È richiesto un valore..."
 
 #: src/pages/BroadcastsPage.tsx:245
 msgid "A winner has been selected. Emails are being sent to the remaining recipients."
-msgstr ""
+msgstr "È stato selezionato un vincitore. Le email sono in fase di invio ai restanti destinatari."
 
 #: src/components/automations/AddNodeButton.tsx:79
 #: src/components/automations/nodes/ABTestNode.tsx:47
@@ -591,15 +591,15 @@ msgstr "A/B Test"
 
 #: src/pages/BroadcastsPage.tsx:237
 msgid "A/B test has completed. Select a winner to send to the remaining recipients."
-msgstr ""
+msgstr "Il test A/B è completato. Seleziona un vincitore per effettuare l'invio ai restanti destinatari."
 
 #: src/pages/BroadcastsPage.tsx:224
 msgid "A/B test is in progress. Emails are being sent to the test group."
-msgstr ""
+msgstr "Il test A/B è in corso. Le email sono in fase di invio al gruppo di test."
 
 #: src/pages/BroadcastsPage.tsx:226
 msgid "A/B Testing"
-msgstr ""
+msgstr "Test A/B"
 
 #: src/pages/AcceptInvitationPage.tsx:168
 msgid "Accept Invitation"
@@ -648,11 +648,11 @@ msgstr "Filtri attivi"
 
 #: src/pages/WebAnalyticsLivePage.tsx:71
 #~ msgid "Active sessions"
-#~ msgstr ""
+#~ msgstr "Sessioni attive"
 
 #: src/pages/WebAnalyticsLivePage.tsx:45
 #~ msgid "Active Sessions"
-#~ msgstr ""
+#~ msgstr "Sessioni attive"
 
 #: src/components/analytics/NewContactsTable.tsx:88
 #: src/pages/ContactsPage.tsx:559
@@ -700,7 +700,7 @@ msgstr "Aggiungi un campo opzionale"
 
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:131
 msgid "Add annotation"
-msgstr ""
+msgstr "Aggiungi annotazioni"
 
 #: src/components/blog/AuthorsTable.tsx:130
 #: src/components/blog/AuthorsTable.tsx:134
@@ -749,7 +749,7 @@ msgstr "Aggiungi colonna nel gruppo"
 
 #: src/components/web_analytics/filters/ConditionsBuilder.tsx:160
 msgid "Add condition"
-msgstr ""
+msgstr "Aggiungi condizioni"
 
 #: src/pages/DebugSegmentPage.tsx:65
 msgid "Add conditions to define your contact segment"
@@ -770,27 +770,27 @@ msgstr "Aggiungi etichetta campo personalizzato"
 
 #: src/components/broadcasts/HeadersEditor.tsx:90
 msgid "Add custom header"
-msgstr ""
+msgstr "Aggiungi intestazione personalizzata"
 
 #: src/components/broadcasts/HeadersEditor.tsx:95
 msgid "Add Custom Header"
-msgstr ""
+msgstr "Aggiungi Intestazione Personalizzata"
 
 #: src/components/web_analytics/explore/DimensionSelector.tsx:230
 msgid "Add dimension"
-msgstr ""
+msgstr "Aggiungi dimensione"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:367
 msgid "Add entry conditions"
-msgstr ""
+msgstr "Aggiungi condizioni di ingresso"
 
 #: src/components/web_analytics/FilterBuilder.tsx:111
 msgid "Add filter"
-msgstr ""
+msgstr "Aggiungi filtro"
 
 #: src/components/automations/config/FilterConfigForm.tsx:30
 msgid "Add filter conditions"
-msgstr ""
+msgstr "Aggiungi condizioni del filtro"
 
 #: src/components/settings/Integrations.tsx:2467
 msgid "Add Integration"
@@ -819,7 +819,7 @@ msgstr "Aggiungi uno o più mittenti email. Il primo mittente sarà utilizzato c
 
 #: src/components/web_analytics/filters/OperationsBuilder.tsx:182
 msgid "Add operation"
-msgstr ""
+msgstr "Aggiungi operazione"
 
 #: src/components/segment/input_json_path.tsx:110
 msgid "Add path"
@@ -827,7 +827,7 @@ msgstr "Aggiungi percorso"
 
 #: src/pages/WebAnalyticsFiltersPage.tsx:118
 #~ msgid "Add rule"
-#~ msgstr ""
+#~ msgstr "Aggiungi regola"
 
 #: src/components/settings/Integrations.tsx:2168
 #: src/components/settings/Integrations.tsx:2224
@@ -845,13 +845,13 @@ msgstr "Aggiungi elementi social a questo blocco social"
 
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:141
 msgid "Add tags..."
-msgstr ""
+msgstr "Aggiungi tag..."
 
 #: src/components/contacts/BulkActionsBar.tsx:92
 #: src/components/contacts/BulkActionsBar.tsx:134
 #: src/pages/ContactsPage.tsx:275
 msgid "Add to list"
-msgstr ""
+msgstr "Aggiungi alla lista"
 
 #: src/components/automations/AddNodeButton.tsx:81
 #: src/components/automations/nodes/AddToListNode.tsx:41
@@ -873,7 +873,7 @@ msgstr "Aggiungi webhook"
 
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:199
 msgid "Additional context about this event"
-msgstr ""
+msgstr "Contesto aggiuntivo su questo evento"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:124
 #: src/pages/ContactsPage.tsx:433
@@ -903,11 +903,7 @@ msgstr "Email amministratore richiesta"
 
 #: src/components/settings/Integrations.tsx:1693
 #~ msgid "Advanced"
-#~ msgstr ""
-
-#: src/pages/SetupWizard.tsx:548
-msgid "Advanced Settings"
-msgstr "Impostazioni avanzate"
+#~ msgstr "Avanzate"
 
 #: src/components/email_builder/blocks/MjBreakpointBlock.tsx:48
 msgid "Affects how columns stack on mobile devices"
@@ -13406,30 +13402,30 @@ msgstr "Visualizza documentazione e guida alla configurazione SMTP Bridge"
 
 #: src/components/web_analytics/SdkVersionWarning.tsx:94
 msgid "View snippet"
-msgstr ""
+msgstr "Visualizza snippet"
 
 #: src/components/segment/form_leaf.tsx:388
 #: src/components/segment/input.tsx:794
 msgid "View web page"
-msgstr ""
+msgstr "Visualizza pagina web"
 
 #: src/components/timeline/ContactTimeline.tsx:914
 #: src/components/timeline/ContactTimeline.tsx:919
 #: src/components/timeline/WebPageDrawer.tsx:54
 msgid "View website"
-msgstr ""
+msgstr "Visualizza sito web"
 
 #: src/components/timeline/ContactTimeline.tsx:877
 #~ msgid "viewed"
-#~ msgstr ""
+#~ msgstr "ha visualizzato"
 
 #: src/components/timeline/ContactTimeline.tsx:842
 #~ msgid "viewed page"
-#~ msgstr ""
+#~ msgstr "ha visualizzato la pagina"
 
 #: src/pages/WebAnalyticsOverviewPage.tsx:129
 #~ msgid "Views"
-#~ msgstr ""
+#~ msgstr "Visualizzazioni"
 
 #: src/pages/ListsPage.tsx:270
 msgid "Visibility"
@@ -13438,24 +13434,24 @@ msgstr "Visibilità"
 #: src/components/segment/form_leaf.tsx:389
 #: src/components/segment/input.tsx:795
 msgid "Visit website"
-msgstr ""
+msgstr "Visita il sito web"
 
 #: src/components/timeline/ContactTimeline.tsx:817
 #~ msgid "visited"
-#~ msgstr ""
+#~ msgstr "ha visitato"
 
 #: src/components/settings/WebAnalyticsSettings.tsx:280
 msgid "Visitor locations"
-msgstr ""
+msgstr "Posizioni dei visitatori"
 
 #. placeholder {0}: older.join( ', ' )
 #: src/components/web_analytics/SdkVersionWarning.tsx:85
 msgid "Visitors are being tracked by more than one SDK version ({0} alongside {newest}). A cached copy of the tracking snippet is probably still being served."
-msgstr ""
+msgstr "I visitatori vengono tracciati da più versioni dell'SDK ({0} insieme a {newest}). Probabilmente viene ancora distribuita una copia memorizzata nella cache dello snippet di tracciamento."
 
 #: src/components/templates/CreateTemplateDrawer.tsx:898
 msgid "Visual"
-msgstr ""
+msgstr "Visuale"
 
 #: src/components/templates/CreateTemplateDrawer.tsx:1236
 msgid "Visual Email Editor"
@@ -13494,35 +13490,35 @@ msgstr "Web Analytics"
 
 #: src/components/web_analytics/InstallOverlay.tsx:75
 msgid "Web analytics is enabled on this workspace, but no visit has been recorded yet. Paste this snippet before the closing </head> tag of your website."
-msgstr ""
+msgstr "La web analytics è abilitata in questo spazio di lavoro, ma non è ancora stata registrata alcuna visita. Incolla questo snippet prima del tag di chiusura </head> del tuo sito web."
 
 #: src/components/web_analytics/InstallOverlay.tsx:71
 msgid "Web analytics is not enabled"
-msgstr ""
+msgstr "La web analytics non è abilitata"
 
 #: src/components/web_analytics/InstallOverlay.tsx:80
 msgid "Web analytics is not set up on this workspace yet."
-msgstr ""
+msgstr "La web analytics non è ancora stata configurata in questo spazio di lavoro."
 
 #: src/components/web_analytics/InstallOverlay.tsx:79
 msgid "Web analytics is turned off for this workspace. Turn it on in the workspace settings to start collecting traffic."
-msgstr ""
+msgstr "La web analytics è disattivata per questo spazio di lavoro. Attivala nelle impostazioni dello spazio di lavoro per iniziare a raccogliere traffico."
 
 #: src/pages/WebAnalyticsSettingsPage.tsx:75
 #~ msgid "Web Analytics Settings"
-#~ msgstr ""
+#~ msgstr "Impostazioni Web Analytics"
 
 #: src/components/web_analytics/tabs/SettingsTab.tsx:58
 #~ msgid "Web analytics settings saved"
-#~ msgstr ""
+#~ msgstr "Impostazioni della web analytics salvate"
 
 #: src/components/settings/WebAnalyticsSettings.tsx:202
 msgid "Web analytics settings updated successfully"
-msgstr ""
+msgstr "Impostazioni della web analytics aggiornate con successo"
 
 #: src/components/timeline/ContactTimeline.tsx:852
 msgid "Web session"
-msgstr ""
+msgstr "Sessione web"
 
 #: src/components/automations/AddNodeButton.tsx:83
 #: src/components/automations/nodes/StatNode.tsx:88
@@ -13587,27 +13583,27 @@ msgstr "Sito web"
 
 #: src/components/broadcasts/BroadcastAnalyticsLinks.tsx:88
 msgid "Website conversions from this broadcast"
-msgstr ""
+msgstr "Conversioni del sito web da questa trasmissione"
 
 #: src/components/broadcasts/BroadcastAnalyticsLinks.tsx:87
 msgid "Website conversions from this variation"
-msgstr ""
+msgstr "Conversioni del sito web da questa variante"
 
 #: src/components/timeline/WebPageDrawer.tsx:101
 msgid "Website preview"
-msgstr ""
+msgstr "Anteprima del sito web"
 
 #: src/components/broadcasts/BroadcastAnalyticsLinks.tsx:85
 msgid "Website traffic from this broadcast"
-msgstr ""
+msgstr "Traffico del sito web da questa trasmissione"
 
 #: src/components/broadcasts/BroadcastAnalyticsLinks.tsx:84
 msgid "Website traffic from this variation"
-msgstr ""
+msgstr "Traffico del sito web da questa variante"
 
 #: src/components/settings/WebAnalyticsSettings.tsx:233
 msgid "Website traffic tracking settings"
-msgstr ""
+msgstr "Impostazioni di tracciamento del traffico del sito web"
 
 #: src/components/settings/GeneralSettings.tsx:133
 #: src/components/settings/GeneralSettings.tsx:201
@@ -13638,19 +13634,19 @@ msgstr "Benvenuto nel mio blog dove condivido approfondimenti su..."
 
 #: src/components/web_analytics/explore/CsvExportModal.tsx:151
 msgid "What gets exported"
-msgstr ""
+msgstr "Cosa viene esportato"
 
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:39
 msgid "When"
-msgstr ""
+msgstr "Quando"
 
 #: src/components/settings/WebAnalyticsSettings.tsx:308
 msgid "When disabled, incoming beats are rejected and the dashboards stop updating."
-msgstr ""
+msgstr "Quando è disattivato, i beat in entrata vengono rifiutati e i pannelli di controllo smettono di aggiornarsi."
 
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:318
 msgid "When disabled, links in this notification are never rewritten: no click and open tracking and no UTM parameters."
-msgstr ""
+msgstr "Quando è disattivato, i link in questa notifica non vengono mai riscritti: nessun tracciamento di clic e aperture e nessun parametro UTM."
 
 #: src/components/settings/GeneralSettings.tsx:256
 msgid "When enabled, links in the email will be tracked for opens and clicks"
@@ -13662,11 +13658,11 @@ msgstr "Quando abilitato, gli iscritti devono confermare l'iscrizione via email 
 
 #: src/components/settings/BlogSettings.tsx:448
 msgid "When enabled, the feed includes only excerpts instead of full article content"
-msgstr ""
+msgstr "Quando è abilitato, il feed include solo estratti invece dell'intero contenuto dell'articolo"
 
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:118
 msgid "When enabled, the link will prompt visitors to share the URL on this social network. When disabled, the link opens directly."
-msgstr ""
+msgstr "Quando è abilitato, il link inviterà i visitatori a condividere l'URL su questo social network. Quando è disattivato, il link si apre direttamente."
 
 #: src/components/email_builder/blocks/MjStyleBlock.tsx:111
 msgid "When enabled, these styles will be added as inline style attributes to every matching HTML element in the email. This is important for maximum email client compatibility since many email clients strip out non-inline styles."
@@ -13678,15 +13674,15 @@ msgstr "Quando abilitato, la creazione dell'utente verrà rifiutata se viene ril
 
 #: src/components/web_analytics/explore/ExploreTemplates.tsx:80
 msgid "When engagement is at its best"
-msgstr ""
+msgstr "Quando il coinvolgimento è al massimo"
 
 #: src/components/web_analytics/filters/OperationsBuilder.tsx:154
 msgid "When matched, execute these operations:"
-msgstr ""
+msgstr "In caso di corrispondenza, esegui queste operazioni:"
 
 #: src/pages/SetupWizard.tsx:754
 msgid "When off (recommended), only already-invited users can sign in via SSO. When on, a verified email in an allowed domain creates an account automatically."
-msgstr ""
+msgstr "Quando è disattivato (scelta consigliata), solo gli utenti già invitati possono accedere tramite SSO. Quando è attivato, un'email verificata in un dominio consentito crea automaticamente un account."
 
 #: src/components/templates/CreateTemplateDrawer.tsx:1245
 msgid "When you select a block, its settings appear here. Modify colors, text, spacing, alignment, and other properties to customize your email design."
@@ -13694,15 +13690,15 @@ msgstr "Quando selezioni un blocco, le sue impostazioni appaiono qui. Modifica c
 
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:497
 msgid "Which acquisition channels and campaigns brought the most sessions this period, and which ones grew or shrank?"
-msgstr ""
+msgstr "Quali canali di acquisizione e campagne hanno generato più sessioni in questo periodo, e quali sono cresciuti o diminuiti?"
 
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:502
 msgid "Which landing pages bring the most sessions, and which ones have the worst bounce rate or engagement?"
-msgstr ""
+msgstr "Quali pagine di atterraggio generano più sessioni, e quali hanno la frequenza di rimbalzo o il coinvolgimento peggiore?"
 
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:491
 msgid "Why did traffic change?"
-msgstr ""
+msgstr "Perché il traffico è cambiato?"
 
 #: src/components/email_builder/blocks/MjBodyBlock.tsx:44
 #: src/components/email_builder/blocks/MjButtonBlock.tsx:344
@@ -13728,7 +13724,7 @@ msgstr "Vincitore"
 
 #: src/pages/BroadcastsPage.tsx:247
 msgid "Winner Selected"
-msgstr ""
+msgstr "Vincitore selezionato"
 
 #: src/pages/BroadcastsPage.tsx:367
 msgid "Winner selected successfully! The broadcast will be sent to remaining recipients."
@@ -13749,7 +13745,7 @@ msgstr "con filtri"
 #: src/components/segment/form_leaf.tsx:998
 #: src/components/segment/input.tsx:732
 msgid "with properties"
-msgstr ""
+msgstr "con proprietà"
 
 #: src/components/segment/form_leaf.tsx:261
 #: src/components/segment/input.tsx:590
@@ -13759,7 +13755,7 @@ msgstr "con stato"
 
 #: src/components/web_analytics/explore/ExploreTemplates.tsx:129
 msgid "With:"
-msgstr ""
+msgstr "Con:"
 
 #. placeholder {0}: values.name
 #: src/pages/CreateWorkspacePage.tsx:78
@@ -13788,7 +13784,7 @@ msgstr "Invito al workspace"
 
 #: src/pages/CreateWorkspacePage.tsx:89
 msgid "Workspace limit reached. Please upgrade your plan to create more workspaces."
-msgstr ""
+msgstr "Limite di spazi di lavoro raggiunto. Aggiorna il tuo piano per creare altri spazi di lavoro."
 
 #: src/components/settings/GeneralSettings.tsx:141
 msgid "Workspace logo"
@@ -13831,15 +13827,15 @@ msgstr "Scrittura"
 
 #: src/components/email_builder/blocks/MjLiquidBlock.tsx:33
 msgid "Write MJML markup with Liquid template tags. This content is injected directly into the email and processed by the Liquid engine before MJML compilation. Use for-loops, conditionals, and variables to generate dynamic structural content."
-msgstr ""
+msgstr "Scrivi markup MJML con tag di template Liquid. Questo contenuto viene iniettato direttamente nell'email ed elaborato dal motore Liquid prima della compilazione MJML. Usa cicli for, condizionali e variabili per generare contenuti strutturali dinamici."
 
 #: src/components/web_analytics/toolbar.tsx:29
 msgid "Year to date"
-msgstr ""
+msgstr "Dall'inizio dell'anno"
 
 #: src/components/web_analytics/toolbar.tsx:173
 msgid "Yearly"
-msgstr ""
+msgstr "Annuale"
 
 #: src/components/automations/nodes/FilterNode.tsx:71
 #: src/components/blog/AuthorsTable.tsx:106
@@ -13885,7 +13881,7 @@ msgstr "Si, attiva"
 #: src/components/web_analytics/filters/BackfillStatus.tsx:83
 #: src/pages/BroadcastsPage.tsx:636
 msgid "Yes, cancel"
-msgstr ""
+msgstr "Si, annulla"
 
 #: src/components/contacts/InlineEditableField.tsx:298
 msgid "Yes, clear it"
@@ -13915,7 +13911,7 @@ msgstr "Si, seleziona vincitore"
 
 #: src/components/web_analytics/toolbar.tsx:16
 msgid "Yesterday"
-msgstr ""
+msgstr "Ieri"
 
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:322
 msgid "You can only upload CSV files!"
@@ -13930,7 +13926,7 @@ msgstr "Non hai configurato un provider email per il marketing. Configura un pro
 #: src/components/settings/CustomFieldsConfiguration.tsx:195
 #: src/components/settings/CustomFieldsConfiguration.tsx:219
 msgid "You don't have permission to manage custom fields"
-msgstr ""
+msgstr "Non hai l'autorizzazione per gestire i campi personalizzati"
 
 #: src/components/automations/AutomationCard.tsx:147
 #: src/components/automations/AutomationCard.tsx:175
@@ -13979,7 +13975,7 @@ msgstr "Non hai i permessi di scrittura per le notifiche transazionali"
 
 #: src/components/settings/SettingsSaveBar.tsx:82
 msgid "You have unsaved changes"
-msgstr ""
+msgstr "Hai modifiche non salvate"
 
 #: src/components/blog/PostDrawer.tsx:559
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:248
@@ -14015,11 +14011,11 @@ msgstr "Sei stato invitato a unirti"
 
 #: src/components/settings/Integrations.tsx:1026
 msgid "Your AWS credentials cannot create SES tenants. Grant ses:CreateTenant and ses:CreateTenantResourceAssociation, then save again."
-msgstr ""
+msgstr "Le tue credenziali AWS non possono creare tenant SES. Concedi i permessi ses:CreateTenant e ses:CreateTenantResourceAssociation, quindi salva di nuovo."
 
 #: src/components/settings/BlogSettings.tsx:499
 msgid "Your blog settings have not been saved. Leaving this page discards them."
-msgstr ""
+msgstr "Le impostazioni del blog non sono state salvate. Lasciando questa pagina verranno scartate."
 
 #: src/components/file_manager/buttonSettings.tsx:215
 msgid "Your files can be uploaded to any S3 compatible storage."
@@ -14027,7 +14023,7 @@ msgstr "I tuoi file possono essere caricati su qualsiasi storage compatibile con
 
 #: src/pages/SignInPage.tsx:99
 msgid "Your identity provider has not verified your email address."
-msgstr ""
+msgstr "Il tuo provider di identità non ha verificato il tuo indirizzo email."
 
 #: src/pages/SetupWizard.tsx:323
 msgid "Your Notifuse instance has been successfully configured."
@@ -14035,7 +14031,7 @@ msgstr "La tua istanza Notifuse è stata configurata con successo."
 
 #: src/components/settings/WebAnalyticsSettings.tsx:466
 msgid "Your web analytics settings have not been saved. Leaving this page discards them."
-msgstr ""
+msgstr "Le impostazioni di web analytics non sono state salvate. Lasciando questa pagina verranno scartate."
 
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:616
 msgid "Your website or company name"
@@ -14051,7 +14047,7 @@ msgstr "La tua chiave API del workspace"
 
 #: src/components/settings/GeneralSettings.tsx:326
 msgid "Your workspace settings have not been saved. Leaving this page discards them."
-msgstr ""
+msgstr "Le impostazioni dello spazio di lavoro non sono state salvate. Lasciando questa pagina verranno scartate."
 
 #: src/components/file_manager/fileManager.tsx:784
 msgid "Zip"
