@@ -56,7 +56,7 @@ func TestAnalyticsService_WebSchemaRequiresWebAnalyticsPermission(t *testing.T) 
 		})
 	}
 
-	t.Run("non-web schemas keep the plain membership model", func(t *testing.T) {
+	t.Run("non-web schemas are gated on their own resource", func(t *testing.T) {
 		svc, mockRepo := newService(t, domain.UserPermissions{
 			domain.PermissionResourceMessageHistory: {Read: true},
 		})

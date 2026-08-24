@@ -324,7 +324,7 @@ function parseUTMParams(url, adClickIds = DEFAULT_AD_CLICK_IDS) {
  * Session management
  * Handles session creation, persistence, and expiry
  */
-const SDK_VERSION$1 = "38.1";
+const SDK_VERSION$1 = "39.0";
 const CLOCK_SKEW_TOLERANCE$1 = 60; // seconds
 // Absolute lifetime of one session id, independent of activity.
 //
@@ -905,7 +905,7 @@ class SessionManager {
  * - No attributesSent optimization - always include attributes
  */
 const STORAGE_KEY = 'nf_session_state';
-const SDK_VERSION = "38.1";
+const SDK_VERSION = "39.0";
 const MAX_ACTIONS = 1000; // Match server limit from Phase 2
 class SessionState {
     constructor(config) {

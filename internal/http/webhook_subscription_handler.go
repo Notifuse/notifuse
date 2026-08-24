@@ -79,6 +79,9 @@ func (h *WebhookSubscriptionHandler) handleCreate(w http.ResponseWriter, r *http
 	sub, err := h.service.Create(r.Context(), req.WorkspaceID, req.Name, req.URL, req.EventTypes, req.CustomEventFilters)
 	if err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to create webhook subscription")
+		if writeServiceError(w, err, "You do not have permission to manage webhook subscriptions") {
+			return
+		}
 		WriteJSONError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -104,6 +107,9 @@ func (h *WebhookSubscriptionHandler) handleList(w http.ResponseWriter, r *http.R
 	subs, err := h.service.List(r.Context(), workspaceID)
 	if err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to list webhook subscriptions")
+		if writeServiceError(w, err, "You do not have permission to read webhook subscriptions") {
+			return
+		}
 		WriteJSONError(w, "Failed to list webhook subscriptions", http.StatusInternalServerError)
 		return
 	}
@@ -135,6 +141,9 @@ func (h *WebhookSubscriptionHandler) handleGet(w http.ResponseWriter, r *http.Re
 	sub, err := h.service.GetByID(r.Context(), workspaceID, id)
 	if err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to get webhook subscription")
+		if writeServiceError(w, err, "You do not have permission to read webhook subscriptions") {
+			return
+		}
 		WriteJSONError(w, "Webhook subscription not found", http.StatusNotFound)
 		return
 	}
@@ -178,6 +187,9 @@ func (h *WebhookSubscriptionHandler) handleUpdate(w http.ResponseWriter, r *http
 	sub, err := h.service.Update(r.Context(), req.WorkspaceID, req.ID, req.Name, req.URL, req.EventTypes, req.CustomEventFilters, req.Enabled)
 	if err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to update webhook subscription")
+		if writeServiceError(w, err, "You do not have permission to manage webhook subscriptions") {
+			return
+		}
 		WriteJSONError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -215,6 +227,9 @@ func (h *WebhookSubscriptionHandler) handleDelete(w http.ResponseWriter, r *http
 
 	if err := h.service.Delete(r.Context(), req.WorkspaceID, req.ID); err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to delete webhook subscription")
+		if writeServiceError(w, err, "You do not have permission to manage webhook subscriptions") {
+			return
+		}
 		WriteJSONError(w, "Failed to delete webhook subscription", http.StatusInternalServerError)
 		return
 	}
@@ -254,6 +269,9 @@ func (h *WebhookSubscriptionHandler) handleToggle(w http.ResponseWriter, r *http
 	sub, err := h.service.Toggle(r.Context(), req.WorkspaceID, req.ID, req.Enabled)
 	if err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to toggle webhook subscription")
+		if writeServiceError(w, err, "You do not have permission to manage webhook subscriptions") {
+			return
+		}
 		WriteJSONError(w, "Failed to toggle webhook subscription", http.StatusInternalServerError)
 		return
 	}
@@ -292,6 +310,11 @@ func (h *WebhookSubscriptionHandler) handleRegenerateSecret(w http.ResponseWrite
 	sub, err := h.service.RegenerateSecret(r.Context(), req.WorkspaceID, req.ID)
 	if err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to regenerate webhook secret")
+		// Rotating a secret is owner-only, and the denial is an ErrUnauthorized: it
+		// belongs to the caller as a 403, not to the operator as a 500.
+		if writeServiceError(w, err, "Only a workspace owner may regenerate a webhook secret") {
+			return
+		}
 		WriteJSONError(w, "Failed to regenerate webhook secret", http.StatusInternalServerError)
 		return
 	}
@@ -340,6 +363,9 @@ func (h *WebhookSubscriptionHandler) handleGetDeliveries(w http.ResponseWriter, 
 	deliveries, total, err := h.service.GetDeliveries(r.Context(), workspaceID, subscriptionIDPtr, limit, offset)
 	if err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to get webhook deliveries")
+		if writeServiceError(w, err, "You do not have permission to read webhook subscriptions") {
+			return
+		}
 		WriteJSONError(w, "Failed to get webhook deliveries", http.StatusInternalServerError)
 		return
 	}
@@ -379,10 +405,15 @@ func (h *WebhookSubscriptionHandler) handleTest(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	// Get the subscription
-	sub, err := h.service.GetByID(r.Context(), req.WorkspaceID, req.ID)
+	// Load the subscription through the write-gated path: sending a test fires a
+	// real request at the subscription's URL, so it is not a read. The secret it
+	// carries is used to sign that request and never leaves this handler.
+	sub, err := h.service.GetForTestDelivery(r.Context(), req.WorkspaceID, req.ID)
 	if err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to get webhook subscription")
+		if writeServiceError(w, err, "You do not have permission to manage webhook subscriptions") {
+			return
+		}
 		WriteJSONError(w, "Webhook subscription not found", http.StatusNotFound)
 		return
 	}

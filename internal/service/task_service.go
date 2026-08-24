@@ -13,6 +13,7 @@ import (
 	"math/rand"
 	"net/http"
 	"runtime/debug"
+	"strconv"
 	"sync"
 	"time"
 
@@ -108,6 +109,19 @@ func (s *TaskService) newDispatchRequest(ctx context.Context, t *domain.Task, bo
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Task-ID", t.ID) // Add task ID for tracing
 
+	// Sign the dispatch. /api/tasks.execute has no session to authenticate — the
+	// caller is this process talking to itself through the ingress — so the
+	// signature is what tells the handler the request came from the scheduler and
+	// not from anyone who learned a task id. The path signed is the one the
+	// handler sees; the body is in the signed content because every dispatch hits
+	// the same path.
+	if secret := s.signingSecret(); secret != "" {
+		timestamp := time.Now().UTC().Unix()
+		req.Header.Set(domain.TaskExecuteTimestampHeader, strconv.FormatInt(timestamp, 10))
+		req.Header.Set(domain.TaskExecuteSignatureHeader,
+			domain.SignTaskExecuteRequest(domain.TaskExecuteSigningKey(secret), timestamp, req.URL.Path, body))
+	}
+
 	return req, cancel, nil
 }
 
@@ -128,6 +142,9 @@ type TaskService struct {
 	// Wired from TaskScheduler.Enabled — an instance running its own scheduler executes its
 	// own tasks directly (no self-call); see SetDirectExecution.
 	directExecution bool
+	// secretKey signs HTTP dispatches to /api/tasks.execute. Set through
+	// SetSecretKey rather than taken by the constructor, which has 37 call sites.
+	secretKey string
 }
 
 // WithTransaction executes a function within a transaction
@@ -182,6 +199,24 @@ func (s *TaskService) SetDirectExecution(enabled bool) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 	s.directExecution = enabled
+}
+
+// SetSecretKey sets the installation's SECRET_KEY, from which the key that signs
+// HTTP dispatches to /api/tasks.execute is derived. A service left without one
+// dispatches unsigned, which the handler rejects — that is the intended failure:
+// an unsigned dispatch is indistinguishable from anyone else's.
+func (s *TaskService) SetSecretKey(secretKey string) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+	s.secretKey = secretKey
+}
+
+// signingSecret reads the dispatch signing secret. Dispatches are built from
+// per-task goroutines, so the read is locked like every other field here.
+func (s *TaskService) signingSecret() string {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+	return s.secretKey
 }
 
 // IsDirectExecution returns whether in-process (direct) task execution is enabled.

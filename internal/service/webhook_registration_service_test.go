@@ -13,6 +13,13 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// ownerOf is the membership the ESP-side registration methods require: they read
+// the workspace's un-redacted provider credentials, so they are owner-only rather
+// than gated on a permission resource.
+func ownerOf(workspaceID, userID string) *domain.UserWorkspace {
+	return &domain.UserWorkspace{UserID: userID, WorkspaceID: workspaceID, Role: "owner"}
+}
+
 func TestWebhookRegistrationService_RegisterWebhooks(t *testing.T) {
 	// Setup
 	ctrl := gomock.NewController(t)
@@ -128,7 +135,7 @@ func TestWebhookRegistrationService_RegisterWebhooks(t *testing.T) {
 			} else {
 				mockAuthService.EXPECT().
 					AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
-					Return(ctx, user, nil, nil).
+					Return(ctx, user, ownerOf(workspaceID, userID), nil).
 					MaxTimes(1)
 
 				if tt.workspaceRepoError != nil {
@@ -236,7 +243,7 @@ func TestWebhookRegistrationService_RegisterWebhooks_RegistersInboundRoute(t *te
 		mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
 		mockAuthService := mocks.NewMockAuthService(ctrl)
 		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
-			Return(ctx, &domain.User{ID: "u"}, nil, nil)
+			Return(ctx, &domain.User{ID: "u"}, ownerOf(workspaceID, "u"), nil)
 		workspace := &domain.Workspace{
 			ID:           workspaceID,
 			Integrations: domain.Integrations{{ID: integrationID, EmailProvider: domain.EmailProvider{Kind: domain.EmailProviderKindMailgun}}},
@@ -423,7 +430,7 @@ func TestWebhookRegistrationService_GetWebhookStatus(t *testing.T) {
 			} else {
 				mockAuthService.EXPECT().
 					AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
-					Return(ctx, user, nil, nil).
+					Return(ctx, user, ownerOf(workspaceID, userID), nil).
 					MaxTimes(1)
 
 				if tt.workspaceRepoError != nil {
@@ -578,7 +585,7 @@ func TestWebhookRegistrationService_UnregisterWebhooks(t *testing.T) {
 			} else {
 				mockAuthService.EXPECT().
 					AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
-					Return(ctx, user, nil, nil).
+					Return(ctx, user, ownerOf(workspaceID, userID), nil).
 					MaxTimes(1)
 
 				if tt.workspaceRepoError != nil {
@@ -794,4 +801,91 @@ func TestNewWebhookRegistrationService(t *testing.T) {
 
 	// The webhook providers map should be empty since our mocks don't implement the WebhookProvider interface
 	assert.Equal(t, 0, len(svc.webhookProviders))
+}
+
+// TestWebhookRegistrationService_OwnerOnly pins decision 8: ESP-side registration
+// gets no permission resource. Every method here reads the workspace's un-redacted
+// provider credentials and calls the ESP with them, so a member is refused however
+// widely they are granted — the caller below holds read and write on all resources.
+// No workspace-repository expectation is set, so gomock also fails if the
+// credentials are loaded before the role is checked.
+func TestWebhookRegistrationService_OwnerOnly(t *testing.T) {
+	const workspaceID = "ws-1"
+	const integrationID = "int-1"
+
+	newService := func(t *testing.T, userWorkspace *domain.UserWorkspace) *WebhookRegistrationService {
+		t.Helper()
+		ctrl := gomock.NewController(t)
+		t.Cleanup(ctrl.Finish)
+
+		mockLogger := pkgmocks.NewMockLogger(ctrl)
+		mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+		mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+		mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
+		mockLogger.EXPECT().Warn(gomock.Any()).AnyTimes()
+		mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+
+		mockAuthService := mocks.NewMockAuthService(ctrl)
+		mockAuthService.EXPECT().
+			AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
+			DoAndReturn(func(ctx context.Context, _ string) (context.Context, *domain.User, *domain.UserWorkspace, error) {
+				return ctx, &domain.User{ID: "u1"}, userWorkspace, nil
+			})
+
+		return &WebhookRegistrationService{
+			workspaceRepo:    mocks.NewMockWorkspaceRepository(ctrl),
+			authService:      mockAuthService,
+			logger:           mockLogger,
+			apiEndpoint:      "https://api.notifuse.com",
+			webhookProviders: map[domain.EmailProviderKind]domain.WebhookProvider{},
+		}
+	}
+
+	fullyGrantedMember := func() *domain.UserWorkspace {
+		return &domain.UserWorkspace{
+			UserID:      "u1",
+			WorkspaceID: workspaceID,
+			Role:        "member",
+			Permissions: domain.NewFullPermissions(),
+		}
+	}
+
+	cases := []struct {
+		name string
+		call func(context.Context, *WebhookRegistrationService) error
+	}{
+		{"RegisterWebhooks", func(ctx context.Context, s *WebhookRegistrationService) error {
+			_, err := s.RegisterWebhooks(ctx, workspaceID, &domain.WebhookRegistrationConfig{
+				IntegrationID: integrationID,
+				EventTypes:    []domain.EmailEventType{domain.EmailEventBounce},
+			})
+			return err
+		}},
+		{"GetWebhookStatus", func(ctx context.Context, s *WebhookRegistrationService) error {
+			_, err := s.GetWebhookStatus(ctx, workspaceID, integrationID)
+			return err
+		}},
+		{"UnregisterWebhooks", func(ctx context.Context, s *WebhookRegistrationService) error {
+			return s.UnregisterWebhooks(ctx, workspaceID, integrationID)
+		}},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name+" rejects a member", func(t *testing.T) {
+			svc := newService(t, fullyGrantedMember())
+
+			err := tc.call(context.Background(), svc)
+			require.Error(t, err)
+			assert.IsType(t, &domain.ErrUnauthorized{}, err)
+			assert.Contains(t, err.Error(), "owner")
+		})
+
+		t.Run(tc.name+" rejects a nil membership", func(t *testing.T) {
+			svc := newService(t, nil)
+
+			err := tc.call(context.Background(), svc)
+			require.Error(t, err)
+			assert.IsType(t, &domain.ErrUnauthorized{}, err)
+		})
+	}
 }

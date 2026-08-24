@@ -29,13 +29,9 @@ function setupConsoleErrorTracking(page: Page): string[] {
 // Helper to wait for page to be fully loaded
 async function waitForPageLoad(page: Page) {
   await page.waitForLoadState('networkidle')
-  // Wait for any Ant Design spinners to disappear
-  const spinner = page.locator('.ant-spin-spinning')
-  if ((await spinner.count()) > 0) {
-    await spinner.first().waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {
-      // Ignore timeout - some pages may not have spinners
-    })
-  }
+  // Wait for any Ant Design spinners to disappear. A page that never shows one
+  // matches nothing and satisfies this straight away.
+  await expect(page.locator('.ant-spin-spinning')).toHaveCount(0)
 }
 
 test.describe('Protected Pages Load', () => {
@@ -48,9 +44,10 @@ test.describe('Protected Pages Load', () => {
     await page.goto('/console/')
     await waitForPageLoad(page)
 
-    // Dashboard should show workspace selection or redirect to a workspace
-    // The body should be visible and contain content
-    await expect(page.locator('body')).toBeVisible()
+    // The selector lists the workspaces the mocked user belongs to
+    await expect(page.getByRole('heading', { name: 'Select workspace' })).toBeVisible()
+    await expect(page.getByText('Test Workspace')).toBeVisible()
+    await expect(page.getByText('ID: test-workspace')).toBeVisible()
 
     // Check for critical console errors
     expect(errors).toHaveLength(0)
@@ -63,8 +60,10 @@ test.describe('Protected Pages Load', () => {
     await page.goto(`/console/workspace/${WORKSPACE_ID}/`)
     await waitForPageLoad(page)
 
-    // Analytics page should show analytics-related content
-    await expect(page.locator('body')).toBeVisible()
+    // Contact counters and the email metrics panel make up the dashboard
+    await expect(page.getByText('Total Contacts')).toBeVisible()
+    await expect(page.getByText('Email Metrics')).toBeVisible()
+    await expect(page.getByText('Recent New Contacts')).toBeVisible()
 
     // Check for critical console errors
     expect(errors).toHaveLength(0)
@@ -77,8 +76,9 @@ test.describe('Protected Pages Load', () => {
     await page.goto(`/console/workspace/${WORKSPACE_ID}/broadcasts`)
     await waitForPageLoad(page)
 
-    // Should show Broadcasts heading or related content
-    await expect(page.locator('body')).toBeVisible()
+    // The fixture serves no broadcasts, so the list shows its empty state
+    await expect(page.getByRole('heading', { name: 'No broadcasts found' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Create Broadcast' })).toBeVisible()
 
     // Check for critical console errors
     expect(errors).toHaveLength(0)
@@ -91,8 +91,12 @@ test.describe('Protected Pages Load', () => {
     await page.goto(`/console/workspace/${WORKSPACE_ID}/contacts`)
     await waitForPageLoad(page)
 
-    // Should show page content
-    await expect(page.locator('body')).toBeVisible()
+    // The table renders with its columns even when the fixture serves no contacts
+    const header = page.locator('.ant-table-thead')
+    await expect(header.getByText('Email', { exact: true })).toBeVisible()
+    await expect(header.getByText('Lists', { exact: true })).toBeVisible()
+    await expect(header.getByText('Segments', { exact: true })).toBeVisible()
+    await expect(page.getByText('No contacts found. Add some contacts to get started.')).toBeVisible()
 
     // Check for critical console errors
     expect(errors).toHaveLength(0)
@@ -105,8 +109,8 @@ test.describe('Protected Pages Load', () => {
     await page.goto(`/console/workspace/${WORKSPACE_ID}/lists`)
     await waitForPageLoad(page)
 
-    // Should show Lists heading or related content
-    await expect(page.locator('body')).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'No lists found' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Create List' })).toBeVisible()
 
     // Check for critical console errors
     expect(errors).toHaveLength(0)
@@ -119,8 +123,8 @@ test.describe('Protected Pages Load', () => {
     await page.goto(`/console/workspace/${WORKSPACE_ID}/templates`)
     await waitForPageLoad(page)
 
-    // Should show Templates heading or related content
-    await expect(page.locator('body')).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'No templates found' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Create Template' })).toBeVisible()
 
     // Check for critical console errors
     expect(errors).toHaveLength(0)
@@ -133,8 +137,8 @@ test.describe('Protected Pages Load', () => {
     await page.goto(`/console/workspace/${WORKSPACE_ID}/transactional-notifications`)
     await waitForPageLoad(page)
 
-    // Should show page content
-    await expect(page.locator('body')).toBeVisible()
+    await expect(page.getByText('No transactional notifications found')).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Create Notification' })).toBeVisible()
 
     // Check for critical console errors
     expect(errors).toHaveLength(0)
@@ -147,8 +151,9 @@ test.describe('Protected Pages Load', () => {
     await page.goto(`/console/workspace/${WORKSPACE_ID}/automations`)
     await waitForPageLoad(page)
 
-    // Should show automations content
-    await expect(page.locator('body')).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Automations' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Create Automation' })).toBeVisible()
+    await expect(page.getByText('No automations yet')).toBeVisible()
 
     // Check for critical console errors
     expect(errors).toHaveLength(0)
@@ -161,18 +166,14 @@ test.describe('Protected Pages Load', () => {
     await page.goto(`/console/workspace/${WORKSPACE_ID}/settings/team`)
     await waitForPageLoad(page)
 
-    // Should show Settings page content
-    await expect(page.locator('body')).toBeVisible()
+    // Settings rail plus the team table, with the signed-in owner in it
+    await expect(page.locator('.ant-layout-sider-dark')).toBeVisible()
+    await expect(page.getByText('Manage your workspace members')).toBeVisible()
+    const memberRow = page.locator('.ant-table-row').filter({ hasText: 'test@example.com' })
+    await expect(memberRow).toContainText('Owner')
 
-    // Check for critical console errors - ignore data fetching errors from mocked APIs
-    const criticalErrors = errors.filter(
-      (e) =>
-        !e.includes('Failed to fetch') &&
-        !e.includes('TypeError') &&
-        !e.includes('error boundary') &&
-        !e.includes('CatchBoundaryImpl')
-    )
-    expect(criticalErrors).toHaveLength(0)
+    // Check for critical console errors
+    expect(errors).toHaveLength(0)
   })
 
   test('LogsPage loads and renders logs content', async ({ authenticatedPage }) => {
@@ -182,8 +183,8 @@ test.describe('Protected Pages Load', () => {
     await page.goto(`/console/workspace/${WORKSPACE_ID}/logs`)
     await waitForPageLoad(page)
 
-    // Should show Logs heading or related content
-    await expect(page.locator('body')).toBeVisible()
+    await expect(page.getByText('Monitor message delivery status and webhook events')).toBeVisible()
+    await expect(page.getByText('No messages found')).toBeVisible()
 
     // Check for critical console errors
     expect(errors).toHaveLength(0)
@@ -196,8 +197,9 @@ test.describe('Protected Pages Load', () => {
     await page.goto(`/console/workspace/${WORKSPACE_ID}/file-manager`)
     await waitForPageLoad(page)
 
-    // Should show file manager content
-    await expect(page.locator('body')).toBeVisible()
+    // The mocked workspace has no storage settings, so it asks to configure them
+    await expect(page.getByText('File storage is not configured.')).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Configure now' })).toBeVisible()
 
     // Check for critical console errors
     expect(errors).toHaveLength(0)
@@ -210,8 +212,8 @@ test.describe('Protected Pages Load', () => {
     await page.goto(`/console/workspace/${WORKSPACE_ID}/debug-segment`)
     await waitForPageLoad(page)
 
-    // Should show debug segment content
-    await expect(page.locator('body')).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Debug Segment Builder' })).toBeVisible()
+    await expect(page.getByText('Segment Conditions')).toBeVisible()
 
     // Check for critical console errors
     expect(errors).toHaveLength(0)
@@ -224,8 +226,10 @@ test.describe('Protected Pages Load', () => {
     await page.goto(`/console/workspace/${WORKSPACE_ID}/blog`)
     await waitForPageLoad(page)
 
-    // Should show blog content
-    await expect(page.locator('body')).toBeVisible()
+    // Category rail on the left, posts on the right
+    await expect(page.getByText('Categories', { exact: true })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'All Posts' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'New Post' })).toBeVisible()
 
     // Check for critical console errors
     expect(errors).toHaveLength(0)
@@ -238,8 +242,9 @@ test.describe('Protected Pages Load', () => {
     await page.goto('/console/workspace/create')
     await waitForPageLoad(page)
 
-    // Should show create workspace form
-    await expect(page.locator('body')).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'New workspace' })).toBeVisible()
+    await expect(page.getByText('Workspace Name')).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Create Workspace' })).toBeVisible()
 
     // Check for critical console errors
     expect(errors).toHaveLength(0)

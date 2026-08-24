@@ -17,7 +17,8 @@ import (
 // See: https://github.com/standard-webhooks/standard-webhooks/blob/main/spec/standard-webhooks.md
 const webhookSecretPrefix = "whsec_"
 
-// authorize confirms the caller is a member of the workspace they named.
+// authorize confirms the caller is a member of the workspace they named and holds
+// the webhook subscriptions permission at the requested level.
 //
 // INVARIANT: every method here takes workspaceID straight from the request, and
 // must call this before touching a repository.
@@ -26,18 +27,45 @@ const webhookSecretPrefix = "whsec_"
 // establish any right to it — workspaceID selects a database and asserts nothing
 // more. This is what establishes the right.
 //
-// Deliberately membership, not a permission level. There is no webhook
-// PermissionResource today, and adding one is not free: a new resource is absent
-// from every existing member's stored permissions, so it denies everyone until a
-// system migration backfills it. Granularity is worth having, but it is a
-// separate change with a migration attached, and it must not hold up closing a
-// cross-tenant hole.
-func (s *WebhookSubscriptionService) authorize(ctx context.Context, workspaceID string) (context.Context, error) {
-	ctx, _, _, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+// Read for the methods that only look, write for the ones that create, change,
+// remove or fire a subscription. The permission is orthogonal to the owner check
+// below and does not replace it: webhook_subscriptions:read reads subscriptions,
+// it never hands out a signing secret.
+func (s *WebhookSubscriptionService) authorize(ctx context.Context, workspaceID string, write bool) (context.Context, error) {
+	ctx, _, err := s.authorizeWithRole(ctx, workspaceID, write)
+	return ctx, err
+}
+
+// authorizeWithRole is authorize, additionally reporting whether the caller owns
+// the workspace. Only the methods that return subscriptions need that: the flag
+// is what redactSecret uses to decide whether to blank the signing secret.
+func (s *WebhookSubscriptionService) authorizeWithRole(ctx context.Context, workspaceID string, write bool) (context.Context, bool, error) {
+	ctx, _, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 	if err != nil {
-		return ctx, fmt.Errorf("failed to authenticate user: %w", err)
+		return ctx, false, fmt.Errorf("failed to authenticate user: %w", err)
 	}
-	return ctx, nil
+	// No membership means no grant. Skipping the check here instead would be a
+	// silent bypass rather than a nil-pointer guard.
+	if userWorkspace == nil {
+		return ctx, false, fmt.Errorf("failed to authenticate user: no workspace membership")
+	}
+
+	permission := domain.PermissionTypeRead
+	access := "read"
+	if write {
+		permission = domain.PermissionTypeWrite
+		access = "write"
+	}
+
+	if !userWorkspace.HasPermission(domain.PermissionResourceWebhookSubscriptions, permission) {
+		return ctx, false, domain.NewPermissionError(
+			domain.PermissionResourceWebhookSubscriptions,
+			permission,
+			fmt.Sprintf("Insufficient permissions: %s access to webhook subscriptions required", access),
+		)
+	}
+
+	return ctx, userWorkspace.Role == "owner", nil
 }
 
 // redactSecret blanks a subscription's signing secret for a non-owner.
@@ -166,7 +194,7 @@ func validateEventTypes(eventTypes []string) error {
 // Create creates a new webhook subscription
 func (s *WebhookSubscriptionService) Create(ctx context.Context, workspaceID string, name, webhookURL string, eventTypes []string, customEventFilters *domain.CustomEventFilters) (*domain.WebhookSubscription, error) {
 	var err error
-	if ctx, err = s.authorize(ctx, workspaceID); err != nil {
+	if ctx, err = s.authorize(ctx, workspaceID, true); err != nil {
 		return nil, err
 	}
 
@@ -216,7 +244,7 @@ func (s *WebhookSubscriptionService) Create(ctx context.Context, workspaceID str
 
 // GetByID retrieves a webhook subscription by ID
 func (s *WebhookSubscriptionService) GetByID(ctx context.Context, workspaceID, id string) (*domain.WebhookSubscription, error) {
-	ctx, isOwner, err := s.authorizeOwner(ctx, workspaceID)
+	ctx, isOwner, err := s.authorizeWithRole(ctx, workspaceID, false)
 	if err != nil {
 		return nil, err
 	}
@@ -231,7 +259,7 @@ func (s *WebhookSubscriptionService) GetByID(ctx context.Context, workspaceID, i
 
 // List retrieves all webhook subscriptions for a workspace
 func (s *WebhookSubscriptionService) List(ctx context.Context, workspaceID string) ([]*domain.WebhookSubscription, error) {
-	ctx, isOwner, err := s.authorizeOwner(ctx, workspaceID)
+	ctx, isOwner, err := s.authorizeWithRole(ctx, workspaceID, false)
 	if err != nil {
 		return nil, err
 	}
@@ -248,7 +276,7 @@ func (s *WebhookSubscriptionService) List(ctx context.Context, workspaceID strin
 
 // Update updates an existing webhook subscription
 func (s *WebhookSubscriptionService) Update(ctx context.Context, workspaceID string, id, name, webhookURL string, eventTypes []string, customEventFilters *domain.CustomEventFilters, enabled bool) (*domain.WebhookSubscription, error) {
-	if authCtx, err := s.authorize(ctx, workspaceID); err != nil {
+	if authCtx, err := s.authorize(ctx, workspaceID, true); err != nil {
 		return nil, err
 	} else {
 		ctx = authCtx
@@ -297,7 +325,7 @@ func (s *WebhookSubscriptionService) Update(ctx context.Context, workspaceID str
 
 // Delete deletes a webhook subscription
 func (s *WebhookSubscriptionService) Delete(ctx context.Context, workspaceID, id string) error {
-	if authCtx, err := s.authorize(ctx, workspaceID); err != nil {
+	if authCtx, err := s.authorize(ctx, workspaceID, true); err != nil {
 		return err
 	} else {
 		ctx = authCtx
@@ -317,7 +345,7 @@ func (s *WebhookSubscriptionService) Delete(ctx context.Context, workspaceID, id
 
 // Toggle enables or disables a webhook subscription
 func (s *WebhookSubscriptionService) Toggle(ctx context.Context, workspaceID, id string, enabled bool) (*domain.WebhookSubscription, error) {
-	if authCtx, err := s.authorize(ctx, workspaceID); err != nil {
+	if authCtx, err := s.authorize(ctx, workspaceID, true); err != nil {
 		return nil, err
 	} else {
 		ctx = authCtx
@@ -384,7 +412,7 @@ func (s *WebhookSubscriptionService) RegenerateSecret(ctx context.Context, works
 
 // GetDeliveries retrieves delivery history, optionally filtered by subscription
 func (s *WebhookSubscriptionService) GetDeliveries(ctx context.Context, workspaceID string, subscriptionID *string, limit, offset int) ([]*domain.WebhookDelivery, int, error) {
-	if authCtx, err := s.authorize(ctx, workspaceID); err != nil {
+	if authCtx, err := s.authorize(ctx, workspaceID, false); err != nil {
 		return nil, 0, err
 	} else {
 		ctx = authCtx
@@ -397,7 +425,32 @@ func (s *WebhookSubscriptionService) GetDeliveries(ctx context.Context, workspac
 	return deliveries, total, nil
 }
 
-// GetEventTypes returns the list of available event types
+// GetForTestDelivery returns a subscription for a test delivery, signing secret
+// included so the caller can sign the test payload. The secret goes to the
+// subscription's own URL in a signature header and must not be written back to
+// the client — no response body built from this value may carry it.
+//
+// Write, not read: a test fires a real outbound request at a caller-chosen host.
+// /api/webhookSubscriptions.test used to authorize by calling GetByID, so under
+// the read/write split a read-only key could have triggered arbitrary deliveries.
+func (s *WebhookSubscriptionService) GetForTestDelivery(ctx context.Context, workspaceID, id string) (*domain.WebhookSubscription, error) {
+	ctx, err := s.authorize(ctx, workspaceID, true)
+	if err != nil {
+		return nil, err
+	}
+
+	sub, err := s.repo.GetByID(ctx, workspaceID, id)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get webhook subscription: %w", err)
+	}
+	return sub, nil
+}
+
+// GetEventTypes returns the list of available event types.
+//
+// Ungated: it takes no context and no workspace because it has neither — the list
+// is a package constant, identical for every caller, and reveals nothing about any
+// tenant. Authentication at the route is the whole of the access control here.
 func (s *WebhookSubscriptionService) GetEventTypes() []string {
 	return domain.WebhookEventTypes
 }

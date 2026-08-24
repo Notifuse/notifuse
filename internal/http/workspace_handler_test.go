@@ -39,6 +39,75 @@ func createTestToken(t *testing.T, jwtSecret []byte, userID string) string {
 	return signed
 }
 
+// demoRestrictedWorkspaceRoutes are the workspace routes closed on a demo
+// instance: everything that mutates, since the demo is publicly writable and its
+// membership, API-key and integration routes hand out durable credentials.
+var demoRestrictedWorkspaceRoutes = []string{
+	"/api/workspaces.create",
+	"/api/workspaces.update",
+	"/api/workspaces.delete",
+	"/api/workspaces.inviteMember",
+	"/api/workspaces.createAPIKey",
+	"/api/workspaces.removeMember",
+	"/api/workspaces.deleteInvitation",
+	"/api/workspaces.setUserPermissions",
+	"/api/workspaces.setCustomFieldLabels",
+	"/api/workspaces.setBlogSettings",
+	"/api/workspaces.setWebAnalyticsSettings",
+	"/api/workspaces.createIntegration",
+	"/api/workspaces.updateIntegration",
+	"/api/workspaces.deleteIntegration",
+}
+
+const demoRestrictedError = "This operation is not allowed in demo mode"
+
+func TestWorkspaceHandler_DemoModeRestrictsMutatingRoutes(t *testing.T) {
+	_, _, demoMux, secretKey, _ := setupDemoTest(t)
+	_, _, defaultMux, _, _ := setupTest(t)
+
+	for _, path := range demoRestrictedWorkspaceRoutes {
+		t.Run(path, func(t *testing.T) {
+			// Authenticated and well-formed: the refusal comes from demo mode, not
+			// from auth or validation. The workspace service mock has no
+			// expectations, so a route that slipped through would fail here.
+			req := httptest.NewRequest(http.MethodPost, path, strings.NewReader("{}"))
+			req.Header.Set("Authorization", "Bearer "+createTestToken(t, secretKey, "test-user"))
+			w := httptest.NewRecorder()
+			demoMux.ServeHTTP(w, req)
+
+			assert.Equal(t, http.StatusBadRequest, w.Code)
+			var response map[string]string
+			require.NoError(t, json.NewDecoder(w.Body).Decode(&response))
+			assert.Equal(t, demoRestrictedError, response["error"])
+
+			// Off a demo instance the same route reaches the auth middleware
+			// instead — the routes' success paths are covered by the per-route
+			// tests below, which all run through this same default mux.
+			req = httptest.NewRequest(http.MethodPost, path, strings.NewReader("{}"))
+			w = httptest.NewRecorder()
+			defaultMux.ServeHTTP(w, req)
+
+			assert.Equal(t, http.StatusUnauthorized, w.Code)
+			response = map[string]string{}
+			require.NoError(t, json.NewDecoder(w.Body).Decode(&response))
+			assert.NotEqual(t, demoRestrictedError, response["error"])
+		})
+	}
+}
+
+func TestWorkspaceHandler_DemoModeKeepsReadsOpen(t *testing.T) {
+	_, workspaceSvc, demoMux, secretKey, _ := setupDemoTest(t)
+
+	workspaceSvc.EXPECT().ListWorkspaces(gomock.Any()).Return([]*domain.Workspace{}, nil)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/workspaces.list", nil)
+	req.Header.Set("Authorization", "Bearer "+createTestToken(t, secretKey, "test-user"))
+	w := httptest.NewRecorder()
+	demoMux.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
 func TestWorkspaceHandler_Create(t *testing.T) {
 	_, workspaceSvc, mux, secretKey, _ := setupTest(t)
 
@@ -1109,6 +1178,8 @@ func TestWorkspaceHandler_HandleInviteMember(t *testing.T) {
 	reqBody := domain.InviteMemberRequest{
 		WorkspaceID: "testworkspace123",
 		Email:       "test@example.com",
+		// InviteMemberRequest.Validate rejects an empty permissions map.
+		Permissions: domain.NewFullPermissions(),
 	}
 	body, err := json.Marshal(reqBody)
 	require.NoError(t, err)
@@ -1151,6 +1222,8 @@ func TestWorkspaceHandler_HandleInviteMember_DirectAdd(t *testing.T) {
 	reqBody := domain.InviteMemberRequest{
 		WorkspaceID: "testworkspace123",
 		Email:       "existing@example.com",
+		// InviteMemberRequest.Validate rejects an empty permissions map.
+		Permissions: domain.NewFullPermissions(),
 	}
 	body, err := json.Marshal(reqBody)
 	require.NoError(t, err)
@@ -1252,6 +1325,8 @@ func TestWorkspaceHandler_HandleInviteMember_ServiceError(t *testing.T) {
 	reqBody := domain.InviteMemberRequest{
 		WorkspaceID: "testworkspace123",
 		Email:       "test@example.com",
+		// InviteMemberRequest.Validate rejects an empty permissions map.
+		Permissions: domain.NewFullPermissions(),
 	}
 	body, err := json.Marshal(reqBody)
 	require.NoError(t, err)
@@ -1280,7 +1355,7 @@ func TestWorkspaceHandler_HandleCreateAPIKey(t *testing.T) {
 	mockEmail := "api-123@example.com"
 
 	workspaceSvc.EXPECT().
-		CreateAPIKey(gomock.Any(), "workspace-123", "api").
+		CreateAPIKey(gomock.Any(), "workspace-123", "api", gomock.Any()).
 		Return(mockToken, mockEmail, nil)
 
 	// Create request
@@ -1383,7 +1458,7 @@ func TestWorkspaceHandler_HandleCreateAPIKey_UnauthorizedError(t *testing.T) {
 	// Mock unauthorized error
 	unauthorizedErr := &domain.ErrUnauthorized{Message: "Unauthorized to create API key"}
 	workspaceSvc.EXPECT().
-		CreateAPIKey(gomock.Any(), gomock.Any(), gomock.Any()).
+		CreateAPIKey(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 		Return("", "", unauthorizedErr)
 
 	// Create request
@@ -1415,7 +1490,7 @@ func TestWorkspaceHandler_HandleCreateAPIKey_ServiceError(t *testing.T) {
 
 	// Mock service error
 	workspaceSvc.EXPECT().
-		CreateAPIKey(gomock.Any(), gomock.Any(), gomock.Any()).
+		CreateAPIKey(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 		Return("", "", fmt.Errorf("service error"))
 
 	// Create request
@@ -1440,6 +1515,134 @@ func TestWorkspaceHandler_HandleCreateAPIKey_ServiceError(t *testing.T) {
 	err = json.NewDecoder(w.Body).Decode(&response)
 	require.NoError(t, err)
 	assert.Equal(t, "service error", response["error"])
+}
+
+func TestWorkspaceHandler_HandleCreateAPIKey_ForwardsPermissions(t *testing.T) {
+	_, workspaceSvc, mux, secretKey, _ := setupTest(t)
+
+	scoped := domain.UserPermissions{
+		domain.PermissionResourceTransactional: {Read: true, Write: true},
+		domain.PermissionResourceContacts:      {Read: true},
+	}
+
+	// setupTest finishes the controller before the test body runs, so the mock's own
+	// verification cannot carry this assertion. Capture the argument instead.
+	var captured domain.UserPermissions
+	workspaceSvc.EXPECT().
+		CreateAPIKey(gomock.Any(), "workspace-123", "ci-bot", gomock.Any()).
+		DoAndReturn(func(_ context.Context, _ string, _ string, permissions domain.UserPermissions) (string, string, error) {
+			captured = permissions
+			return "token-123", "ci-bot@example.com", nil
+		})
+
+	reqBody := domain.CreateAPIKeyRequest{
+		WorkspaceID: "workspace-123",
+		EmailPrefix: "ci-bot",
+		Permissions: scoped,
+	}
+	body, err := json.Marshal(reqBody)
+	require.NoError(t, err)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/workspaces.createAPIKey", bytes.NewReader(body))
+	req.Header.Set("Authorization", "Bearer "+createTestToken(t, secretKey, "test-user"))
+
+	w := httptest.NewRecorder()
+	mux.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, scoped, captured)
+}
+
+func TestWorkspaceHandler_HandleCreateAPIKey_ForwardsNilPermissions(t *testing.T) {
+	_, workspaceSvc, mux, secretKey, _ := setupTest(t)
+
+	// An omitted map must stay nil down to the service, which reads nil as full
+	// access — the contract the endpoint had before it took permissions at all.
+	captured := domain.UserPermissions{}
+	workspaceSvc.EXPECT().
+		CreateAPIKey(gomock.Any(), "workspace-123", "api", gomock.Any()).
+		DoAndReturn(func(_ context.Context, _ string, _ string, permissions domain.UserPermissions) (string, string, error) {
+			captured = permissions
+			return "token-123", "api@example.com", nil
+		})
+
+	req := httptest.NewRequest(http.MethodPost, "/api/workspaces.createAPIKey",
+		strings.NewReader(`{"workspace_id":"workspace-123","email_prefix":"api"}`))
+	req.Header.Set("Authorization", "Bearer "+createTestToken(t, secretKey, "test-user"))
+
+	w := httptest.NewRecorder()
+	mux.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Nil(t, captured)
+}
+
+func TestWorkspaceHandler_HandleCreateAPIKey_WrappedUnauthorizedError(t *testing.T) {
+	_, workspaceSvc, mux, secretKey, _ := setupTest(t)
+
+	// The service wraps the denial on its way up ("failed to authenticate user: %w").
+	// A bare type assertion misses that and answers 500 to what is really a 403.
+	wrapped := fmt.Errorf("failed to create api key: %w",
+		&domain.ErrUnauthorized{Message: "user is not a member of this workspace"})
+	workspaceSvc.EXPECT().
+		CreateAPIKey(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+		Return("", "", wrapped)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/workspaces.createAPIKey",
+		strings.NewReader(`{"workspace_id":"workspace-123","email_prefix":"api"}`))
+	req.Header.Set("Authorization", "Bearer "+createTestToken(t, secretKey, "test-user"))
+
+	w := httptest.NewRecorder()
+	mux.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusForbidden, w.Code)
+
+	var response map[string]string
+	require.NoError(t, json.NewDecoder(w.Body).Decode(&response))
+	assert.Equal(t, "Only workspace owners can create API keys", response["error"])
+}
+
+func TestWorkspaceHandler_HandleCreateAPIKey_DuplicateEmailPrefix(t *testing.T) {
+	_, workspaceSvc, mux, secretKey, _ := setupTest(t)
+
+	// users.email is unique across the deployment: a prefix already taken is a
+	// conflict the caller can act on, not a server failure.
+	wrapped := fmt.Errorf("api key email already in use: %w",
+		&domain.ErrUserExists{Message: "user with this email already exists"})
+	workspaceSvc.EXPECT().
+		CreateAPIKey(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+		Return("", "", wrapped)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/workspaces.createAPIKey",
+		strings.NewReader(`{"workspace_id":"workspace-123","email_prefix":"api"}`))
+	req.Header.Set("Authorization", "Bearer "+createTestToken(t, secretKey, "test-user"))
+
+	w := httptest.NewRecorder()
+	mux.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusConflict, w.Code)
+
+	var response map[string]string
+	require.NoError(t, json.NewDecoder(w.Body).Decode(&response))
+	assert.Contains(t, response["error"], "already in use")
+}
+
+func TestWorkspaceHandler_HandleCreateAPIKey_UnknownPermissionResource(t *testing.T) {
+	_, _, mux, secretKey, _ := setupTest(t)
+
+	// No service call at all: an unknown resource is rejected by request validation.
+	req := httptest.NewRequest(http.MethodPost, "/api/workspaces.createAPIKey",
+		strings.NewReader(`{"workspace_id":"workspace-123","email_prefix":"api","permissions":{"nope":{"read":true,"write":true}}}`))
+	req.Header.Set("Authorization", "Bearer "+createTestToken(t, secretKey, "test-user"))
+
+	w := httptest.NewRecorder()
+	mux.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+
+	var response map[string]string
+	require.NoError(t, json.NewDecoder(w.Body).Decode(&response))
+	assert.Contains(t, response["error"], "nope")
 }
 
 func TestWorkspaceHandler_HandleRemoveMember(t *testing.T) {
@@ -3090,12 +3293,12 @@ func TestWorkspaceHandler_HandleSetUserPermissions(t *testing.T) {
 	t.Run("successful permission update", func(t *testing.T) {
 		// Mock successful permission update
 		workspaceSvc.EXPECT().
-			SetUserPermissions(gomock.Any(), "workspace-123", "user-123", gomock.Any()).
+			SetUserPermissions(gomock.Any(), "workspace123", "user-123", gomock.Any()).
 			Return(nil)
 
 		// Create request
 		reqBody := domain.SetUserPermissionsRequest{
-			WorkspaceID: "workspace-123",
+			WorkspaceID: "workspace123",
 			UserID:      "user-123",
 			Permissions: domain.UserPermissions{
 				domain.PermissionResourceContacts: domain.ResourcePermissions{
@@ -3185,19 +3388,42 @@ func TestWorkspaceHandler_HandleSetUserPermissions(t *testing.T) {
 		var response map[string]string
 		err = json.NewDecoder(w.Body).Decode(&response)
 		require.NoError(t, err)
-		assert.Contains(t, response["error"], "Missing workspace_id")
+		assert.Contains(t, response["error"], "workspace_id is required")
+	})
+
+	t.Run("unknown permission resource is a bad request", func(t *testing.T) {
+		// The workspace service mock has no expectation here: an unknown resource
+		// key must be refused by the handler, not carried into the service.
+		body, err := json.Marshal(map[string]interface{}{
+			"workspace_id": "workspace123",
+			"user_id":      "user-123",
+			"permissions":  map[string]interface{}{"not_a_resource": map[string]bool{"read": true}},
+		})
+		require.NoError(t, err)
+
+		req := httptest.NewRequest(http.MethodPost, "/api/workspaces.setUserPermissions", bytes.NewReader(body))
+		req.Header.Set("Authorization", "Bearer "+createTestToken(t, secretKey, "test-user"))
+
+		w := httptest.NewRecorder()
+		mux.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+
+		var response map[string]string
+		require.NoError(t, json.NewDecoder(w.Body).Decode(&response))
+		assert.Contains(t, response["error"], "not_a_resource")
 	})
 
 	t.Run("unauthorized error", func(t *testing.T) {
 		// Mock unauthorized error
 		unauthorizedErr := &domain.ErrUnauthorized{Message: "Only workspace owners can manage user permissions"}
 		workspaceSvc.EXPECT().
-			SetUserPermissions(gomock.Any(), "workspace-123", "user-123", gomock.Any()).
+			SetUserPermissions(gomock.Any(), "workspace123", "user-123", gomock.Any()).
 			Return(unauthorizedErr)
 
 		// Create request
 		reqBody := domain.SetUserPermissionsRequest{
-			WorkspaceID: "workspace-123",
+			WorkspaceID: "workspace123",
 			UserID:      "user-123",
 			Permissions: domain.UserPermissions{
 				domain.PermissionResourceContacts: domain.ResourcePermissions{
@@ -3226,12 +3452,12 @@ func TestWorkspaceHandler_HandleSetUserPermissions(t *testing.T) {
 	t.Run("service error", func(t *testing.T) {
 		// Mock service error
 		workspaceSvc.EXPECT().
-			SetUserPermissions(gomock.Any(), "workspace-123", "user-123", gomock.Any()).
+			SetUserPermissions(gomock.Any(), "workspace123", "user-123", gomock.Any()).
 			Return(fmt.Errorf("service error"))
 
 		// Create request
 		reqBody := domain.SetUserPermissionsRequest{
-			WorkspaceID: "workspace-123",
+			WorkspaceID: "workspace123",
 			UserID:      "user-123",
 			Permissions: domain.UserPermissions{
 				domain.PermissionResourceContacts: domain.ResourcePermissions{
@@ -3327,4 +3553,76 @@ func TestWorkspaceHandler_HandleMembers_Forbidden(t *testing.T) {
 	handler.handleMembers(w, req)
 
 	assert.Equal(t, http.StatusForbidden, w.Code)
+}
+
+func TestWorkspaceHandler_HandleInviteMember_Forbidden(t *testing.T) {
+	handler, workspaceService, _, secretKey, _ := setupTest(t)
+
+	// Inviting is owner-only; the denial arrives wrapped, as InviteMember wraps it
+	// in production.
+	workspaceService.EXPECT().
+		InviteMember(gomock.Any(), "workspace123", "invitee@example.com", gomock.Any()).
+		Return(nil, "", fmt.Errorf("failed to invite member: %w", &domain.ErrUnauthorized{Message: "user is not an owner of the workspace"}))
+
+	reqBody := domain.InviteMemberRequest{
+		WorkspaceID: "workspace123",
+		Email:       "invitee@example.com",
+		Permissions: domain.NewFullPermissions(),
+	}
+	body, err := json.Marshal(reqBody)
+	require.NoError(t, err)
+	req := httptest.NewRequest(http.MethodPost, "/api/workspaces.inviteMember", bytes.NewReader(body))
+	req.Header.Set("Authorization", "Bearer "+createTestToken(t, secretKey, "test-user"))
+	w := httptest.NewRecorder()
+	handler.handleInviteMember(w, req)
+
+	assert.Equal(t, http.StatusForbidden, w.Code)
+
+	var response map[string]string
+	require.NoError(t, json.NewDecoder(w.Body).Decode(&response))
+	assert.Equal(t, "user is not an owner of the workspace", response["error"])
+}
+
+func TestWorkspaceHandler_HandleInviteMember_UnknownPermissionResource(t *testing.T) {
+	handler, _, _, secretKey, _ := setupTest(t)
+
+	// No service expectation: an unknown resource key must be refused here rather
+	// than carried into the service.
+	req := httptest.NewRequest(http.MethodPost, "/api/workspaces.inviteMember",
+		strings.NewReader(`{"workspace_id":"workspace123","email":"invitee@example.com","permissions":{"not_a_resource":{"read":true}}}`))
+	req.Header.Set("Authorization", "Bearer "+createTestToken(t, secretKey, "test-user"))
+	w := httptest.NewRecorder()
+	handler.handleInviteMember(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+
+	var response map[string]string
+	require.NoError(t, json.NewDecoder(w.Body).Decode(&response))
+	assert.Contains(t, response["error"], "not_a_resource")
+}
+
+func TestWorkspaceHandler_HandleSetUserPermissions_Forbidden(t *testing.T) {
+	handler, workspaceService, _, secretKey, _ := setupTest(t)
+
+	workspaceService.EXPECT().
+		SetUserPermissions(gomock.Any(), "workspace123", "user-123", gomock.Any()).
+		Return(&domain.ErrUnauthorized{Message: "only workspace owners can manage user permissions"})
+
+	reqBody := domain.SetUserPermissionsRequest{
+		WorkspaceID: "workspace123",
+		UserID:      "user-123",
+		Permissions: domain.NewFullPermissions(),
+	}
+	body, err := json.Marshal(reqBody)
+	require.NoError(t, err)
+	req := httptest.NewRequest(http.MethodPost, "/api/workspaces.setUserPermissions", bytes.NewReader(body))
+	req.Header.Set("Authorization", "Bearer "+createTestToken(t, secretKey, "test-user"))
+	w := httptest.NewRecorder()
+	handler.handleSetUserPermissions(w, req)
+
+	assert.Equal(t, http.StatusForbidden, w.Code)
+
+	var response map[string]string
+	require.NoError(t, json.NewDecoder(w.Body).Decode(&response))
+	assert.Equal(t, "only workspace owners can manage user permissions", response["error"])
 }

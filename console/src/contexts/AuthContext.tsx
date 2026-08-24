@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react'
 import { authService } from '../services/api/auth'
 import { workspaceService } from '../services/api/workspace'
+import { createEmptyPermissions, createFullPermissions } from '../services/api/permissions'
 import { Workspace, UserPermissions } from '../services/api/types'
 import { isRootUser } from '../services/api/auth'
 
@@ -128,37 +129,12 @@ export function useAuth() {
 }
 
 // Fallback permission sets used when there is no member record to read from: a root user (who
-// has everything) and a non-member or failed lookup (who has nothing). Both are annotated as
-// UserPermissions on purpose — that is what makes the compiler reject the set the moment a new
-// resource is added to the type, instead of leaving that resource silently absent here, which
-// every permission gate reads as "denied".
-const ROOT_USER_PERMISSIONS: UserPermissions = {
-  contacts: { read: true, write: true },
-  lists: { read: true, write: true },
-  templates: { read: true, write: true },
-  broadcasts: { read: true, write: true },
-  transactional: { read: true, write: true },
-  workspace: { read: true, write: true },
-  message_history: { read: true, write: true },
-  blog: { read: true, write: true },
-  automations: { read: true, write: true },
-  llm: { read: true, write: true },
-  web_analytics: { read: true, write: true }
-}
+// has everything) and a non-member or failed lookup (who has nothing). Both are built from
+// ALL_PERMISSION_RESOURCES, so a resource added to the type cannot end up silently absent here,
+// which every permission gate reads as "denied".
+const ROOT_USER_PERMISSIONS: UserPermissions = createFullPermissions()
 
-const NO_PERMISSIONS: UserPermissions = {
-  contacts: { read: false, write: false },
-  lists: { read: false, write: false },
-  templates: { read: false, write: false },
-  broadcasts: { read: false, write: false },
-  transactional: { read: false, write: false },
-  workspace: { read: false, write: false },
-  message_history: { read: false, write: false },
-  blog: { read: false, write: false },
-  automations: { read: false, write: false },
-  llm: { read: false, write: false },
-  web_analytics: { read: false, write: false }
-}
+const NO_PERMISSIONS: UserPermissions = createEmptyPermissions()
 
 // Custom hook to get user permissions for a specific workspace
 // eslint-disable-next-line react-refresh/only-export-components -- Hook co-located with context
@@ -186,7 +162,9 @@ export function useWorkspacePermissions(workspaceId: string) {
         const currentUserMember = response.members.find((member) => member.user_id === user.id)
 
         if (currentUserMember) {
-          setPermissions(currentUserMember.permissions)
+          // The stored map may be partial or null; a resource it does not mention is denied,
+          // which is what the empty base spells out.
+          setPermissions({ ...createEmptyPermissions(), ...currentUserMember.permissions })
         } else {
           // User is not a member of this workspace, set empty permissions
           setPermissions(NO_PERMISSIONS)

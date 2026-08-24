@@ -1,9 +1,35 @@
+import type { Locator, Page } from '@playwright/test'
 import { test, expect, requestCapture } from '../fixtures/auth'
-import { waitForDrawer, waitForLoading } from '../fixtures/test-utils'
+import { waitForLoading } from '../fixtures/test-utils'
+import { API_PATTERNS } from '../fixtures/request-capture'
 import { testTemplateData } from '../fixtures/form-data'
 import { logCapturedRequests } from '../fixtures/payload-assertions'
 
 const WORKSPACE_ID = 'test-workspace'
+
+// antd 6 dropped .ant-drawer-content: the drawer's role="dialog" now sits on div.ant-drawer-section
+// and takes its accessible name from the drawer title, so role+name is the stable handle and it
+// pins which of the template drawers (create / edit / clone / preview) is on screen.
+const templateDrawer = (page: Page, title: string) =>
+  page.getByRole('dialog', { name: title, exact: true })
+
+const openCreateDrawer = async (page: Page) => {
+  await page.getByRole('button', { name: 'Create Template', exact: true }).click()
+  const drawer = templateDrawer(page, 'Create an email template')
+  await expect(drawer).toBeVisible()
+  return drawer
+}
+
+// The row actions are icon-only buttons, so they are addressed by the icon they carry.
+const rowAction = (page: Page, icon: string): Locator =>
+  page.locator('.ant-table-row').first().locator(`button:has(svg[data-icon="${icon}"])`)
+
+const openEditDrawer = async (page: Page) => {
+  await rowAction(page, 'pen-to-square').click()
+  const drawer = templateDrawer(page, 'Edit email template')
+  await expect(drawer).toBeVisible()
+  return drawer
+}
 
 test.describe('Templates Feature', () => {
   test.describe('Page Load & Empty State', () => {
@@ -13,8 +39,10 @@ test.describe('Templates Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/templates`)
       await waitForLoading(page)
 
-      // Page should load
-      await expect(page.locator('body')).toBeVisible()
+      const content = page.locator('.ant-layout-content')
+      await expect(content.getByText('No templates found')).toBeVisible()
+      await expect(content.getByText('Create your first template to get started')).toBeVisible()
+      await expect(page.getByRole('button', { name: 'Create Template', exact: true })).toBeVisible()
     })
 
     test('loads templates page with data', async ({ authenticatedPageWithData }) => {
@@ -23,12 +51,19 @@ test.describe('Templates Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/templates`)
       await waitForLoading(page)
 
-      // Should show templates in table or cards
-      const hasTable = (await page.locator('.ant-table').count()) > 0
-      const hasCards = (await page.locator('.ant-card').count()) > 0
-      const hasContent = (await page.locator('[class*="template"]').count()) > 0
+      // The mocked workspace owns three templates, all listed in the table
+      const rows = page.locator('.ant-table-row')
+      await expect(rows).toHaveCount(3)
+      for (const name of ['Welcome Email', 'Monthly Newsletter', 'Unsubscribe Confirmation']) {
+        await expect(page.locator('.ant-table').getByText(name, { exact: true })).toBeVisible()
+      }
 
-      expect(hasTable || hasCards || hasContent).toBe(true)
+      // The Subject column reads template.email.subject, with the subject preview under it
+      const welcomeRow = rows.filter({ hasText: 'Welcome Email' })
+      await expect(
+        welcomeRow.getByText('Welcome to {{workspace.name}}!', { exact: true })
+      ).toBeVisible()
+      await expect(welcomeRow.getByText('Your account is ready', { exact: true })).toBeVisible()
     })
   })
 
@@ -39,19 +74,14 @@ test.describe('Templates Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/templates`)
       await waitForLoading(page)
 
-      // Click add/create button
-      const addButton = page.getByRole('button', { name: /add|create|new/i })
-      await addButton.click()
+      const drawer = await openCreateDrawer(page)
 
-      // Wait for drawer, modal, or navigation
-      await page.waitForTimeout(500)
-
-      // Should show form or navigate to editor
-      const hasDrawer = (await page.locator('.ant-drawer-content').count()) > 0
-      const hasModal = (await page.locator('.ant-modal-content').count()) > 0
-      const urlChanged = page.url().includes('new') || page.url().includes('create')
-
-      expect(hasDrawer || hasModal || urlChanged).toBe(true)
+      // The creation wizard opens on its first step
+      await expect(drawer.getByRole('tab', { name: '1. Settings' })).toHaveAttribute(
+        'aria-selected',
+        'true'
+      )
+      await expect(drawer.getByRole('tab', { name: '2. Template' })).toBeVisible()
     })
 
     test('fills template form fields', async ({ authenticatedPage }) => {
@@ -60,36 +90,24 @@ test.describe('Templates Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/templates`)
       await waitForLoading(page)
 
-      // Click add button
-      const addButton = page.getByRole('button', { name: /add|create|new/i })
-      await addButton.click()
+      const drawer = await openCreateDrawer(page)
 
-      // Wait for drawer to open
-      await waitForDrawer(page)
-
-      // Step 1: Settings tab - fill required fields
-      // Fill template name (required) - find visible text input
-      const nameInput = page.locator('.ant-drawer-content input:visible').first()
+      // Naming a new template derives its API id
+      const nameInput = drawer.getByLabel('Template name')
       await nameInput.fill('Test Email Template')
-
-      // Verify name input has the value
       await expect(nameInput).toHaveValue('Test Email Template')
+      await expect(drawer.getByLabel('Template ID (utm_content)')).toHaveValue(
+        'test-email-template'
+      )
 
-      // Select category (required) - find the category select
-      const categorySelect = page.locator('.ant-drawer-content .ant-select').first()
-      await categorySelect.click()
-      await page.waitForTimeout(300)
+      // Category is a required choice, and picking one shows it back
+      await drawer.getByLabel('Category').click()
+      await page.locator('.ant-select-item-option').filter({ hasText: 'Marketing' }).click()
+      await expect(
+        drawer.locator('.ant-form-item').filter({ hasText: 'Category' }).locator('.ant-select-content')
+      ).toHaveText('Marketing')
 
-      // Check if category options are visible
-      const categoryOptions = page.locator('.ant-select-item-option')
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const _optionCount = await categoryOptions.count()
-
-      // Verify drawer is still open and form is interactive
-      await expect(page.locator('.ant-drawer-content')).toBeVisible()
-
-      // Verify Next button is visible
-      await expect(page.getByRole('button', { name: 'Next' })).toBeVisible()
+      await expect(drawer.getByRole('button', { name: 'Next', exact: true })).toBeVisible()
     })
 
     test('views template details', async ({ authenticatedPageWithData }) => {
@@ -98,15 +116,20 @@ test.describe('Templates Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/templates`)
       await waitForLoading(page)
 
-      // Click on a template
-      const templateItem = page.locator('.ant-table-row, .ant-card').first()
-      if ((await templateItem.count()) > 0) {
-        await templateItem.click()
+      // The row's preview action opens the template's own drawer, titled after it
+      await rowAction(page, 'eye').click()
 
-        // Should show template details or editor
-        await page.waitForTimeout(500)
-        await expect(page.locator('body')).toBeVisible()
-      }
+      const preview = templateDrawer(page, 'Welcome Email')
+      await expect(preview).toBeVisible()
+      await expect(preview.getByText('From', { exact: true })).toBeVisible()
+      // The compile mock returns no rendered subject, so the drawer falls back to the
+      // template's own email payload for both the subject and its preview line
+      await expect(preview.getByText('Subject', { exact: true })).toBeVisible()
+      await expect(
+        preview.getByText('Welcome to {{workspace.name}}!', { exact: true })
+      ).toBeVisible()
+      await expect(preview.getByText('Subject preview', { exact: true })).toBeVisible()
+      await expect(preview.getByText('Your account is ready', { exact: true })).toBeVisible()
     })
   })
 
@@ -117,18 +140,12 @@ test.describe('Templates Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/templates`)
       await waitForLoading(page)
 
-      // Open create form
-      const addButton = page.getByRole('button', { name: /add|create|new/i })
-      await addButton.click()
+      const drawer = await openCreateDrawer(page)
 
-      await page.waitForTimeout(500)
-
-      // Form/editor should be visible
-      const hasDrawer = (await page.locator('.ant-drawer-content').count()) > 0
-      const hasModal = (await page.locator('.ant-modal-content').count()) > 0
-      const urlChanged = page.url().includes('new') || page.url().includes('create')
-
-      expect(hasDrawer || hasModal || urlChanged).toBe(true)
+      const nameInput = drawer.getByLabel('Template name')
+      await expect(nameInput).toBeVisible()
+      await expect(nameInput).toHaveValue('')
+      await expect(nameInput).toHaveAttribute('placeholder', 'i.e: Welcome Email')
     })
 
     test('shows subject field', async ({ authenticatedPage }) => {
@@ -137,17 +154,11 @@ test.describe('Templates Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/templates`)
       await waitForLoading(page)
 
-      // Open create form
-      const addButton = page.getByRole('button', { name: /add|create|new/i })
-      await addButton.click()
+      const drawer = await openCreateDrawer(page)
 
-      await page.waitForTimeout(500)
-
-      // Subject field might be visible - locator created for potential future assertions
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const _subjectInput = page.locator('input[name="subject"], input[placeholder*="subject" i]')
-      // Either subject exists or we're on a simpler form
-      await expect(page.locator('body')).toBeVisible()
+      // Both subject lines of the sender section are part of the settings step
+      await expect(drawer.getByLabel('Email subject', { exact: true })).toBeVisible()
+      await expect(drawer.getByLabel('Subject preview', { exact: true })).toBeVisible()
     })
   })
 
@@ -158,53 +169,42 @@ test.describe('Templates Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/templates`)
       await waitForLoading(page)
 
-      // Open create form
-      const addButton = page.getByRole('button', { name: /add|create|new/i })
-      await addButton.click()
+      const drawer = await openCreateDrawer(page)
 
-      await page.waitForTimeout(500)
+      await drawer.getByLabel('Category').click()
 
-      // Category select might be visible - locator created for potential future assertions
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const _categorySelect = page.locator('.ant-select').filter({
-        has: page.locator('text=category, text=Category, text=Type')
-      })
-
-      // Form should be visible regardless
-      await expect(page.locator('.ant-drawer-content, .ant-modal-content, form').first()).toBeVisible()
+      // The full list of template categories is offered
+      const options = page.locator('.ant-select-item-option')
+      await expect(options).toHaveCount(7)
+      for (const category of [
+        'Marketing',
+        'Transactional',
+        'Welcome',
+        'Opt-in',
+        'Unsubscribe',
+        'Bounce',
+        'Blocklist'
+      ]) {
+        await expect(options.filter({ hasText: category })).toBeVisible()
+      }
     })
   })
 
   test.describe('Edit Form Prefill', () => {
-    test('edit template drawer shows existing template name', async ({ authenticatedPageWithData }) => {
+    test('edit template drawer shows existing template name', async ({
+      authenticatedPageWithData
+    }) => {
       const page = authenticatedPageWithData
 
       await page.goto(`/console/workspace/${WORKSPACE_ID}/templates`)
       await waitForLoading(page)
 
-      // Templates page has action buttons in each row
-      // Find the first row and click the edit (pencil) button - it's typically the second button
-      const templateRow = page.locator('.ant-table-row').first()
-      if ((await templateRow.count()) > 0) {
-        // Look for action buttons in the row - usually icons for preview, edit, duplicate, delete
-        const actionButtons = templateRow.locator('button')
-        const buttonCount = await actionButtons.count()
+      const drawer = await openEditDrawer(page)
 
-        if (buttonCount >= 2) {
-          // The edit button is typically the second one (after preview)
-          await actionButtons.nth(1).click()
-
-          // Wait for drawer to open
-          await waitForDrawer(page)
-
-          // Verify the name input is prefilled with the existing template name
-          const nameInput = page.locator('.ant-drawer-content input:visible').first()
-          const inputValue = await nameInput.inputValue()
-
-          // Name should not be empty - should be prefilled (e.g., "Welcome Email")
-          expect(inputValue.length).toBeGreaterThan(0)
-        }
-      }
+      await expect(drawer.getByLabel('Template name')).toHaveValue('Welcome Email')
+      // An existing template keeps its id, which is why the field is locked
+      await expect(drawer.getByLabel('Template ID (utm_content)')).toHaveValue('tpl-1')
+      await expect(drawer.getByLabel('Template ID (utm_content)')).toBeDisabled()
     })
 
     test('edit template preserves category selection', async ({ authenticatedPageWithData }) => {
@@ -213,25 +213,11 @@ test.describe('Templates Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/templates`)
       await waitForLoading(page)
 
-      const templateRow = page.locator('.ant-table-row').first()
-      if ((await templateRow.count()) > 0) {
-        const actionButtons = templateRow.locator('button')
-        const buttonCount = await actionButtons.count()
+      const drawer = await openEditDrawer(page)
 
-        if (buttonCount >= 2) {
-          await actionButtons.nth(1).click()
-          await waitForDrawer(page)
-
-          // Category select should have a value selected
-          const categorySelect = page.locator('.ant-drawer-content .ant-select').first()
-          if ((await categorySelect.count()) > 0) {
-            await expect(categorySelect).toBeVisible()
-            // The select should show a selected value (not empty placeholder)
-            const selectText = await categorySelect.textContent()
-            expect(selectText?.length).toBeGreaterThan(0)
-          }
-        }
-      }
+      await expect(
+        drawer.locator('.ant-form-item').filter({ hasText: 'Category' }).locator('.ant-select-content')
+      ).toHaveText('Welcome')
     })
 
     test('edit template preserves subject line', async ({ authenticatedPageWithData }) => {
@@ -240,23 +226,12 @@ test.describe('Templates Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/templates`)
       await waitForLoading(page)
 
-      const templateRow = page.locator('.ant-table-row').first()
-      if ((await templateRow.count()) > 0) {
-        const actionButtons = templateRow.locator('button')
-        const buttonCount = await actionButtons.count()
+      const drawer = await openEditDrawer(page)
 
-        if (buttonCount >= 2) {
-          await actionButtons.nth(1).click()
-          await waitForDrawer(page)
-
-          // Look for subject input - may need to navigate to second step or be on first page
-          const subjectInput = page.locator('.ant-drawer-content input[placeholder*="subject" i], .ant-drawer-content input[name="subject"]')
-          if ((await subjectInput.count()) > 0) {
-            // Subject might be empty for some templates, but field should be accessible
-            await expect(subjectInput).toBeVisible()
-          }
-        }
-      }
+      // The drawer seeds the subject from template.email.subject
+      await expect(drawer.getByLabel('Email subject', { exact: true })).toHaveValue(
+        'Welcome to {{workspace.name}}!'
+      )
     })
 
     test('edit template preserves from email', async ({ authenticatedPageWithData }) => {
@@ -265,22 +240,15 @@ test.describe('Templates Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/templates`)
       await waitForLoading(page)
 
-      const templateRow = page.locator('.ant-table-row').first()
-      if ((await templateRow.count()) > 0) {
-        const actionButtons = templateRow.locator('button')
-        const buttonCount = await actionButtons.count()
+      const drawer = await openEditDrawer(page)
 
-        if (buttonCount >= 2) {
-          await actionButtons.nth(1).click()
-          await waitForDrawer(page)
-
-          // Look for from email input
-          const fromEmailInput = page.locator('.ant-drawer-content input[placeholder*="from" i], .ant-drawer-content input[name*="from"]')
-          if ((await fromEmailInput.count()) > 0) {
-            await expect(fromEmailInput.first()).toBeVisible()
-          }
-        }
-      }
+      // There is no from-address field: the sender comes from the workspace email provider, so
+      // the editable half of the sender is the reply-to and the provider's custom sender.
+      await expect(drawer.getByText('Sender', { exact: true })).toBeVisible()
+      await expect(drawer.getByLabel('Reply to', { exact: true })).toBeVisible()
+      await expect(
+        drawer.getByLabel('Custom sender (transactional email provider)', { exact: true })
+      ).toBeVisible()
     })
   })
 
@@ -291,20 +259,25 @@ test.describe('Templates Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/templates`)
       await waitForLoading(page)
 
-      // Open create form
-      const addButton = page.getByRole('button', { name: /add|create|new/i })
-      await addButton.click()
+      const drawer = await openCreateDrawer(page)
 
-      // Wait for drawer to open
-      await waitForDrawer(page)
+      // Saving an untouched wizard reports every required field of the settings step and
+      // switches back to it, and nothing is sent.
+      await drawer.getByRole('button', { name: 'Next', exact: true }).click()
+      await drawer.getByRole('button', { name: 'Save', exact: true }).click()
 
-      // Verify drawer is visible with form elements
-      await expect(page.locator('.ant-drawer-content')).toBeVisible()
-
-      // The form should have a Next button visible
-      await expect(page.getByRole('button', { name: 'Next' })).toBeVisible()
-
-      // Test passes - form is interactive and ready for validation testing
+      await expect(drawer.getByRole('tab', { name: '1. Settings' })).toHaveAttribute(
+        'aria-selected',
+        'true'
+      )
+      await expect(drawer.locator('.ant-form-item-explain-error')).toHaveText([
+        'Please enter Template name',
+        'ID must contain only lowercase letters, numbers, underscores, and hyphens',
+        'Please enter Category',
+        'Please enter Email subject',
+        'Please enter Subject preview'
+      ])
+      expect(requestCapture.getRequestCount(API_PATTERNS.TEMPLATE_CREATE)).toBe(0)
     })
 
     test('shows form with required subject field', async ({ authenticatedPage }) => {
@@ -313,20 +286,12 @@ test.describe('Templates Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/templates`)
       await waitForLoading(page)
 
-      // Click add button or "Create Template" button
-      const addButton = page.getByRole('button', { name: /add|create|new|template/i })
-      await addButton.first().click()
+      const drawer = await openCreateDrawer(page)
 
-      // Wait for drawer to open
-      await waitForDrawer(page)
-
-      // Verify drawer is visible with form elements
-      await expect(page.locator('.ant-drawer-content')).toBeVisible()
-
-      // The form should have fields visible
-      const visibleInputs = page.locator('.ant-drawer-content input:visible')
-      const inputCount = await visibleInputs.count()
-      expect(inputCount).toBeGreaterThan(0)
+      // The subject is marked required and starts empty
+      const subjectItem = drawer.locator('.ant-form-item').filter({ hasText: 'Email subject' })
+      await expect(subjectItem.locator('.ant-form-item-required')).toBeVisible()
+      await expect(drawer.getByLabel('Email subject', { exact: true })).toHaveValue('')
     })
   })
 
@@ -338,12 +303,13 @@ test.describe('Templates Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/`)
       await waitForLoading(page)
 
-      // Click templates link in sidebar
-      const templatesLink = page.locator('a[href*="templates"], [data-menu-id*="templates"]').first()
-      await templatesLink.click()
+      // Templates lives under the collapsed "Content" group of the sidebar
+      await page.getByRole('menuitem', { name: 'Content' }).click()
+      await page.getByRole('link', { name: 'Templates' }).click()
 
       // Should be on templates page
       await expect(page).toHaveURL(/templates/)
+      await expect(page.getByRole('button', { name: 'Create Template', exact: true })).toBeVisible()
     })
 
     test('can close create form', async ({ authenticatedPage }) => {
@@ -352,21 +318,11 @@ test.describe('Templates Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/templates`)
       await waitForLoading(page)
 
-      // Open create form
-      const addButton = page.getByRole('button', { name: /add|create|new/i })
-      await addButton.click()
+      const drawer = await openCreateDrawer(page)
 
-      await page.waitForTimeout(500)
-
-      // Close it
-      const closeButton = page.locator('.ant-drawer-close, .ant-modal-close')
-      if ((await closeButton.count()) > 0) {
-        await closeButton.first().click()
-      } else {
-        await page.keyboard.press('Escape')
-      }
-
-      await page.waitForTimeout(500)
+      // The drawer is deliberately not dismissible by mask or keyboard, only by its own controls
+      await drawer.getByRole('button', { name: 'Close' }).click()
+      await expect(drawer).toBeHidden()
     })
   })
 
@@ -377,80 +333,51 @@ test.describe('Templates Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/templates`)
       await waitForLoading(page)
 
-      // Open create form
-      const addButton = page.getByRole('button', { name: /add|create|new/i })
-      if ((await addButton.count()) === 0) return
+      const drawer = await openCreateDrawer(page)
 
-      await addButton.click()
+      // Step 1: settings
+      await drawer.getByLabel('Template name').fill(testTemplateData.name)
+      await drawer.getByLabel('Template ID (utm_content)').fill(testTemplateData.id)
+      await drawer.getByLabel('Category').click()
+      await page.locator('.ant-select-item-option').filter({ hasText: 'Marketing' }).click()
+      await drawer.getByLabel('Email subject', { exact: true }).fill(testTemplateData.subject)
+      await drawer
+        .getByLabel('Subject preview', { exact: true })
+        .fill(testTemplateData.subject_preview!)
 
-      // Wait for drawer/modal to open
-      await page.waitForTimeout(500)
-      const drawer = page.locator('.ant-drawer-content, .ant-modal-content').first()
-      if ((await drawer.count()) === 0) return
+      // Step 2: the email itself, which starts from the default blocks
+      await drawer.getByRole('button', { name: 'Next', exact: true }).click()
+      await expect(drawer.getByRole('tab', { name: '2. Template' })).toHaveAttribute(
+        'aria-selected',
+        'true'
+      )
+      await drawer.getByRole('button', { name: 'Save', exact: true }).click()
 
-      // Fill template name - use label to find the correct input
-      const nameInput = page.getByLabel('Template name', { exact: false })
-      if ((await nameInput.count()) > 0) {
-        await nameInput.fill(testTemplateData.name)
-      } else {
-        // Fallback: find the first text input in the drawer that's not readonly
-        const drawerInputs = page.locator('.ant-drawer-content input[type="text"]:not([readonly])')
-        if ((await drawerInputs.count()) > 0) {
-          await drawerInputs.first().fill(testTemplateData.name)
-        }
-      }
-
-      // Select category - find the category form item specifically
-      const categoryFormItem = page.locator('.ant-form-item').filter({ hasText: 'Category' }).first()
-      if ((await categoryFormItem.count()) > 0) {
-        const categorySelect = categoryFormItem.locator('.ant-select')
-        if ((await categorySelect.count()) > 0) {
-          await categorySelect.click()
-          await page.locator('.ant-select-dropdown').waitFor({ state: 'visible' })
-          const option = page.locator('.ant-select-item-option').filter({ hasText: /marketing|transactional/i }).first()
-          if ((await option.count()) > 0) {
-            await option.click()
-          } else {
-            await page.keyboard.press('Escape')
-          }
-        }
-      }
-
-      // Wait for validation to pass (ID check)
-      await page.waitForTimeout(500)
-
-      // Verify form data is filled correctly before proceeding
-      await expect(nameInput).toHaveValue(testTemplateData.name)
-
-      // The template drawer is a multi-step wizard
-      // Click Next to proceed to step 2 (this triggers validation)
-      const nextButton = page.getByRole('button', { name: 'Next' })
-      if ((await nextButton.count()) > 0 && (await nextButton.isEnabled())) {
-        await nextButton.click()
-        await page.waitForTimeout(500)
-
-        // If we're on step 2, the form is valid and we've verified the settings tab works
-        const step2 = page.locator('text=2. Template')
-        if ((await step2.count()) > 0) {
-          // Step 2 is the template editor - we can verify settings were accepted
-          // The actual template create API call happens when the full form is submitted
-          // For this test, we just verify the form data was accepted
-
-          // Go back to verify our data is preserved
-          const prevButton = page.locator('.ant-tabs-tab').filter({ hasText: '1. Settings' })
-          if ((await prevButton.count()) > 0) {
-            await prevButton.click()
-            await page.waitForTimeout(300)
-            await expect(nameInput).toHaveValue(testTemplateData.name)
-          }
-        }
-      }
-
-      // Log captured requests for debugging
+      await expect
+        .poll(() => requestCapture.getRequestCount(API_PATTERNS.TEMPLATE_CREATE))
+        .toBeGreaterThan(0)
       logCapturedRequests(requestCapture)
 
-      // Note: Template creation requires completing the multi-step wizard
-      // This test verifies the settings form is filled correctly
+      // Verify the create request carried what was typed in
+      const request = requestCapture.getLastRequest(API_PATTERNS.TEMPLATE_CREATE)
+      expect(request?.body, 'Template create body should not be empty').toBeTruthy()
+      const body = request!.body as {
+        name?: string
+        id?: string
+        category?: string
+        channel?: string
+        email?: { subject?: string; subject_preview?: string; editor_mode?: string }
+      }
+      expect(body.name).toBe(testTemplateData.name)
+      expect(body.id).toBe(testTemplateData.id)
+      expect(body.category).toBe(testTemplateData.category)
+      expect(body.channel).toBe('email')
+      expect(body.email?.subject).toBe(testTemplateData.subject)
+      expect(body.email?.subject_preview).toBe(testTemplateData.subject_preview)
+      expect(body.email?.editor_mode).toBe('visual')
+
+      // And the drawer closes on success
+      await expect(drawer).toBeHidden()
     })
   })
 })

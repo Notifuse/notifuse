@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net"
+	"net/http"
 	"net/smtp"
 	"path/filepath"
 	"testing"
@@ -162,6 +163,21 @@ func TestSMTPBridgeE2E(t *testing.T) {
 	authService := appInstance.GetAuthService().(*service.AuthService)
 	apiKey := authService.GenerateAPIAuthToken(apiUser)
 	require.NotEmpty(t, apiKey)
+
+	// Scoped keys for the parity subtests below. The bridge seeds the identity it
+	// resolved instead of stamping SystemCallKey, so SendNotification runs the same
+	// transactional:write gate it runs on /api/transactional.send.
+	sendOnlyUser, err := factory.CreateAPIKey(workspace.ID, testutil.WithAPIKeyPermissions(domain.UserPermissions{
+		domain.PermissionResourceTransactional: {Write: true},
+	}))
+	require.NoError(t, err)
+	sendOnlyKey := authService.GenerateAPIAuthToken(sendOnlyUser)
+	require.NotEmpty(t, sendOnlyKey)
+
+	zeroScopeUser, err := factory.CreateAPIKey(workspace.ID, testutil.WithAPIKeyPermissions(domain.UserPermissions{}))
+	require.NoError(t, err)
+	zeroScopeKey := authService.GenerateAPIAuthToken(zeroScopeUser)
+	require.NotEmpty(t, zeroScopeKey)
 
 	jwtSecret := suite.Config.Security.JWTSecret
 
@@ -405,6 +421,126 @@ Content-Type: text/plain
 			require.NoError(t, err)
 			assert.GreaterOrEqual(t, len(messages), 3, "At least three messages should be recorded")
 		})
+
+		// The bridge is the second send path for the same notification. It must apply
+		// the same permission gate as /api/transactional.send, or a scoped key would
+		// be narrowed over HTTP and unlimited over SMTP.
+		t.Run("ScopedKey", func(t *testing.T) {
+			// sendAs runs one MAIL/RCPT/DATA exchange with the given key and returns
+			// the error the bridge reports at end-of-DATA, which is where a
+			// permission denial surfaces — AUTH succeeds for any valid key.
+			// contactJSON is the notification's contact object verbatim, and
+			// extraHeaders are added to the message head — the bridge fills CC and BCC
+			// from Cc:/Bcc: there.
+			sendBodyAs := func(t *testing.T, email, key, contactJSON string, extraHeaders ...string) error {
+				t.Helper()
+				smtpClient := smtpBridgeDialAndAuth(t, addr, email, key)
+				defer func() { _ = smtpClient.Close() }()
+
+				require.NoError(t, smtpClient.Mail("sender@example.com"))
+				require.NoError(t, smtpClient.Rcpt("recipient@example.com"))
+
+				wc, err := smtpClient.Data()
+				require.NoError(t, err)
+
+				head := ""
+				for _, header := range extraHeaders {
+					head += header + "\n"
+				}
+
+				emailMessage := fmt.Sprintf(`From: sender@example.com
+To: recipient@example.com
+%sSubject: Scoped Key Test
+Content-Type: text/plain
+
+{
+  "workspace_id": "%s",
+  "notification": {
+    "id": "password_reset",
+    "contact": %s
+  }
+}`, head, workspace.ID, contactJSON)
+
+				_, err = wc.Write([]byte(emailMessage))
+				require.NoError(t, err)
+
+				return wc.Close()
+			}
+
+			sendAs := func(t *testing.T, email, key, contactEmail string) error {
+				t.Helper()
+				return sendBodyAs(t, email, key, fmt.Sprintf(`{"email": %q}`, contactEmail))
+			}
+
+			t.Run("transactional write only key sends", func(t *testing.T) {
+				// The send path's nested contact upsert runs under a system subcontext,
+				// so this key needs no contacts grant to create its recipient.
+				require.NoError(t, sendAs(t, sendOnlyUser.Email, sendOnlyKey, "send-only-user@example.com"))
+
+				time.Sleep(500 * time.Millisecond)
+
+				contact, err := appInstance.GetContactRepository().GetContactByEmail(
+					context.Background(),
+					workspace.ID,
+					"send-only-user@example.com",
+				)
+				require.NoError(t, err)
+				assert.Equal(t, "send-only-user@example.com", contact.Email)
+			})
+
+			t.Run("zero permission key is rejected", func(t *testing.T) {
+				err := sendAs(t, zeroScopeUser.Email, zeroScopeKey, "zero-scope-user@example.com")
+				require.Error(t, err, "a key with an empty permissions map must not send over the bridge")
+				assert.Contains(t, err.Error(), "Insufficient permissions",
+					"the rejection must come from the permission gate, not from an unrelated failure")
+
+				time.Sleep(500 * time.Millisecond)
+
+				_, err = appInstance.GetContactRepository().GetContactByEmail(
+					context.Background(),
+					workspace.ID,
+					"zero-scope-user@example.com",
+				)
+				assert.Error(t, err, "a rejected send must not create its recipient contact")
+			})
+
+			// The nested upsert runs under a system subcontext, so these two subtests
+			// are the only thing standing between a send-only credential and every
+			// field of an arbitrary contact record.
+			t.Run("send only key cannot rewrite an existing contact", func(t *testing.T) {
+				const victim = "bridge-victim@example.com"
+
+				// Seed the record with the full-access key, the way a real integration
+				// would have created it.
+				require.NoError(t, sendBodyAs(t, apiUser.Email, apiKey,
+					fmt.Sprintf(`{"email": %q, "first_name": "Original"}`, victim)))
+				time.Sleep(500 * time.Millisecond)
+
+				require.NoError(t, sendBodyAs(t, sendOnlyUser.Email, sendOnlyKey,
+					fmt.Sprintf(`{"email": %q, "first_name": "Overwritten"}`, victim)))
+				time.Sleep(500 * time.Millisecond)
+
+				contact, err := appInstance.GetContactRepository().GetContactByEmail(
+					context.Background(), workspace.ID, victim)
+				require.NoError(t, err)
+				require.NotNil(t, contact.FirstName)
+				assert.Equal(t, "Original", contact.FirstName.String,
+					"a key without contacts:write must not merge its posted fields onto a stored contact")
+			})
+
+			t.Run("send only key cannot set bcc", func(t *testing.T) {
+				err := sendBodyAs(t, sendOnlyUser.Email, sendOnlyKey,
+					`{"email": "bridge-bcc@example.com"}`, "Bcc: attacker@example.com")
+				require.Error(t, err, "the rendered subject is evaluated against the contact, so an extra recipient is a contact read")
+				assert.Contains(t, err.Error(), "Insufficient permissions")
+
+				time.Sleep(500 * time.Millisecond)
+
+				_, err = appInstance.GetContactRepository().GetContactByEmail(
+					context.Background(), workspace.ID, "bridge-bcc@example.com")
+				assert.Error(t, err, "a rejected send must not create its recipient contact")
+			})
+		})
 	})
 
 	// --- Mode=off: plaintext AUTH + DATA over an unencrypted TCP socket ---
@@ -507,5 +643,31 @@ Content-Type: text/plain
 		)
 		require.NoError(t, err)
 		assert.Equal(t, "implicit-user@example.com", contact.Email)
+	})
+
+	// --- The same two keys over /api/transactional.send, for the parity claim ---
+	t.Run("HTTPParity", func(t *testing.T) {
+		client := suite.APIClient
+
+		sendOverHTTP := func(t *testing.T, key, contactEmail string) int {
+			t.Helper()
+			client.SetToken(key)
+			resp, err := client.Post("/api/transactional.send", map[string]interface{}{
+				"workspace_id": workspace.ID,
+				"notification": map[string]interface{}{
+					"id":       "password_reset",
+					"contact":  map[string]interface{}{"email": contactEmail},
+					"channels": []string{string(domain.TransactionalChannelEmail)},
+				},
+			})
+			require.NoError(t, err)
+			defer resp.Body.Close()
+			return resp.StatusCode
+		}
+
+		assert.Equal(t, http.StatusOK, sendOverHTTP(t, sendOnlyKey, "http-send-only@example.com"),
+			"a transactional:write key sends over HTTP as it does over the bridge")
+		assert.Equal(t, http.StatusForbidden, sendOverHTTP(t, zeroScopeKey, "http-zero-scope@example.com"),
+			"a zero-permission key is refused over HTTP as it is over the bridge")
 	})
 }

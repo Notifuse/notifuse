@@ -216,6 +216,38 @@ func TestUserService_SignIn(t *testing.T) {
 	})
 }
 
+func TestUserService_SignIn_RefusesAPIKeyIdentity(t *testing.T) {
+	mockRepo, _, service, mockSender := setupUserTest(t)
+
+	// Non-production is where the plain magic code comes back in the response
+	// body, so that is the configuration the refusal has to hold in.
+	service.isProduction = false
+	mockSender.shouldError = false
+
+	apiKeyEmail := "zapier@api.example.com"
+	mockRepo.EXPECT().
+		GetUserByEmail(gomock.Any(), apiKeyEmail).
+		Return(&domain.User{ID: "apikey123", Email: apiKeyEmail, Type: domain.UserTypeAPIKey}, nil)
+	// No CreateSession expectation: minting a session for an API key fails the test.
+
+	code, err := service.SignIn(context.Background(), domain.SignInInput{Email: apiKeyEmail})
+	require.Error(t, err)
+	require.Empty(t, code, "no magic code may be handed back for an API key address")
+
+	var notFound *domain.ErrUserNotFound
+	require.ErrorAs(t, err, &notFound)
+
+	// The refusal must be indistinguishable from an address nobody holds.
+	unknownEmail := "nobody@example.com"
+	mockRepo.EXPECT().
+		GetUserByEmail(gomock.Any(), unknownEmail).
+		Return(nil, &domain.ErrUserNotFound{Message: "user not found"})
+
+	_, unknownErr := service.SignIn(context.Background(), domain.SignInInput{Email: unknownEmail})
+	require.Error(t, unknownErr)
+	require.Equal(t, unknownErr.Error(), err.Error())
+}
+
 func TestUserService_VerifyCode(t *testing.T) {
 	mockRepo, mockAuthService, service, _ := setupUserTest(t)
 

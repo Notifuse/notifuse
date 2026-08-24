@@ -372,6 +372,16 @@ func (s *OIDCService) resolveOrProvisionUser(
 		if uerr != nil {
 			return nil, fmt.Errorf("oidc linked user load: %w", uerr)
 		}
+		// The bridge below refuses to link an api_key identity in the first place, so
+		// a link to one can only predate that guard. Re-check here rather than let a
+		// stale row keep minting sessions.
+		if u.Type == domain.UserTypeAPIKey {
+			if s.logger != nil {
+				s.logger.WithField("user_id", u.ID).WithField("oidc_sub", sub).WithField("issuer", issuer).
+					Error("OIDC refused: linked identity belongs to an API key")
+			}
+			return nil, domain.ErrOIDCAccountNotProvisioned
+		}
 		return u, nil
 	}
 	var fiNotFound *domain.ErrFederatedIdentityNotFound
@@ -406,6 +416,19 @@ func (s *OIDCService) resolveOrProvisionUser(
 	// (2) Existing Notifuse user by email (invited-user bridge) — CASE-INSENSITIVE.
 	existing, uerr := s.userRepo.GetUserByEmailInsensitive(ctx, email)
 	if uerr == nil {
+		// API-KEY guard: an api_key is a users row with a real email, so an IdP
+		// asserting that address would otherwise bridge a machine credential onto a
+		// human session. An API key authenticates with its own long-lived token and
+		// has no business holding a session, so the bridge refuses before it links.
+		// The generic not-provisioned error keeps the response from singling the
+		// address out.
+		if existing.Type == domain.UserTypeAPIKey {
+			if s.logger != nil {
+				s.logger.WithField("user_id", existing.ID).WithField("oidc_sub", sub).WithField("issuer", issuer).
+					Error("OIDC refused: email belongs to an API key identity")
+			}
+			return nil, domain.ErrOIDCAccountNotProvisioned
+		}
 		linked, lerr := s.fedRepo.GetByUserAndIssuer(ctx, existing.ID, issuer)
 		if lerr == nil {
 			// Deterministic by UNIQUE(user_id, idp_issuer): at most one row.

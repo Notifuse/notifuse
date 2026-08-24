@@ -102,6 +102,19 @@ func (s *UserService) SignIn(ctx context.Context, input domain.SignInInput) (str
 		return "", err
 	}
 
+	// An API key is a users row with a real, unique email, so without this check
+	// /api/user.signin mints a human session for it — and on a non-production
+	// instance hands the magic code straight back in the response body. The
+	// refusal reuses the not-found error verbatim so the endpoint cannot be used
+	// to tell an API-key address apart from an unknown one.
+	if user.Type == domain.UserTypeAPIKey {
+		notFound := &domain.ErrUserNotFound{Message: "user does not exist"}
+		s.logger.WithField("email", input.Email).Warn("Sign-in refused for an API key identity")
+		s.tracer.AddAttribute(ctx, "error", "api_key_signin_refused")
+		s.tracer.MarkSpanError(ctx, notFound)
+		return "", notFound
+	}
+
 	s.tracer.AddAttribute(ctx, "user.id", user.ID)
 	s.tracer.AddAttribute(ctx, "action", "use_existing_user")
 

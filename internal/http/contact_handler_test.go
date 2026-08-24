@@ -18,6 +18,7 @@ import (
 	"github.com/golang/mock/gomock"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // setupContactHandlerTest prepares test dependencies and creates a contact handler
@@ -901,4 +902,211 @@ func TestContactHandler_HandleUpsert(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestContactHandler_PermissionDenied covers every contacts route: a scoped key
+// refused on the contacts resource must get a 403 naming the missing grant, not
+// the opaque 500 (or, on upsert, the 400) each handler otherwise falls back to.
+// The methods returning an error carry a wrapped denial, because the service
+// wraps on its way up; import and upsert report through their result struct, so
+// the typed denial travels on its Err field instead.
+func TestContactHandler_PermissionDenied(t *testing.T) {
+	denial := func(resource domain.PermissionResource, permission domain.PermissionType) *domain.PermissionError {
+		return domain.NewPermissionError(resource, permission, "Insufficient permissions")
+	}
+	wrapped := func(resource domain.PermissionResource, permission domain.PermissionType) error {
+		return fmt.Errorf("failed to authenticate user: %w", denial(resource, permission))
+	}
+
+	tests := []struct {
+		name               string
+		setupMock          func(*mocks.MockContactService)
+		serve              func(*ContactHandler, http.ResponseWriter)
+		expectedResource   domain.PermissionResource
+		expectedPermission domain.PermissionType
+	}{
+		{
+			name: "List",
+			setupMock: func(m *mocks.MockContactService) {
+				m.EXPECT().GetContacts(gomock.Any(), gomock.Any()).
+					Return(nil, wrapped(domain.PermissionResourceContacts, domain.PermissionTypeRead))
+			},
+			serve: func(h *ContactHandler, w http.ResponseWriter) {
+				req := httptest.NewRequest(http.MethodGet, "/api/contacts.list?workspace_id=workspace123", nil)
+				h.handleList(w, req)
+			},
+			expectedResource:   domain.PermissionResourceContacts,
+			expectedPermission: domain.PermissionTypeRead,
+		},
+		{
+			name: "Count",
+			setupMock: func(m *mocks.MockContactService) {
+				m.EXPECT().CountContacts(gomock.Any(), "workspace123").
+					Return(0, wrapped(domain.PermissionResourceContacts, domain.PermissionTypeRead))
+			},
+			serve: func(h *ContactHandler, w http.ResponseWriter) {
+				req := httptest.NewRequest(http.MethodGet, "/api/contacts.count?workspace_id=workspace123", nil)
+				h.handleCount(w, req)
+			},
+			expectedResource:   domain.PermissionResourceContacts,
+			expectedPermission: domain.PermissionTypeRead,
+		},
+		{
+			name: "GetByEmail",
+			setupMock: func(m *mocks.MockContactService) {
+				m.EXPECT().GetContactByEmail(gomock.Any(), "workspace123", "test@example.com").
+					Return(nil, wrapped(domain.PermissionResourceContacts, domain.PermissionTypeRead))
+			},
+			serve: func(h *ContactHandler, w http.ResponseWriter) {
+				req := httptest.NewRequest(http.MethodGet, "/api/contacts.getByEmail?workspace_id=workspace123&email=test@example.com", nil)
+				h.handleGetByEmail(w, req)
+			},
+			expectedResource:   domain.PermissionResourceContacts,
+			expectedPermission: domain.PermissionTypeRead,
+		},
+		{
+			name: "GetByExternalID",
+			setupMock: func(m *mocks.MockContactService) {
+				m.EXPECT().GetContactByExternalID(gomock.Any(), "workspace123", "ext1").
+					Return(nil, wrapped(domain.PermissionResourceContacts, domain.PermissionTypeRead))
+			},
+			serve: func(h *ContactHandler, w http.ResponseWriter) {
+				req := httptest.NewRequest(http.MethodGet, "/api/contacts.getByExternalID?workspace_id=workspace123&external_id=ext1", nil)
+				h.handleGetByExternalID(w, req)
+			},
+			expectedResource:   domain.PermissionResourceContacts,
+			expectedPermission: domain.PermissionTypeRead,
+		},
+		{
+			name: "Delete",
+			setupMock: func(m *mocks.MockContactService) {
+				m.EXPECT().DeleteContact(gomock.Any(), "workspace123", "test@example.com").
+					Return(wrapped(domain.PermissionResourceContacts, domain.PermissionTypeWrite))
+			},
+			serve: func(h *ContactHandler, w http.ResponseWriter) {
+				body, _ := json.Marshal(domain.DeleteContactRequest{
+					WorkspaceID: "workspace123",
+					Email:       "test@example.com",
+				})
+				req := httptest.NewRequest(http.MethodPost, "/api/contacts.delete", bytes.NewReader(body))
+				req.Header.Set("Content-Type", "application/json")
+				h.handleDelete(w, req)
+			},
+			expectedResource:   domain.PermissionResourceContacts,
+			expectedPermission: domain.PermissionTypeWrite,
+		},
+		{
+			name: "Import",
+			setupMock: func(m *mocks.MockContactService) {
+				permErr := denial(domain.PermissionResourceContacts, domain.PermissionTypeWrite)
+				m.EXPECT().BatchImportContacts(gomock.Any(), "workspace123", gomock.Any(), gomock.Any()).
+					Return(&domain.BatchImportContactsResponse{Error: permErr.Error(), Err: permErr})
+			},
+			serve: func(h *ContactHandler, w http.ResponseWriter) {
+				body, _ := json.Marshal(map[string]interface{}{
+					"workspace_id": "workspace123",
+					"contacts": []map[string]interface{}{
+						{"email": "contact1@example.com"},
+					},
+				})
+				req := httptest.NewRequest(http.MethodPost, "/api/contacts.import", bytes.NewReader(body))
+				req.Header.Set("Content-Type", "application/json")
+				h.handleImport(w, req)
+			},
+			expectedResource:   domain.PermissionResourceContacts,
+			expectedPermission: domain.PermissionTypeWrite,
+		},
+		{
+			name: "ImportToLists",
+			setupMock: func(m *mocks.MockContactService) {
+				permErr := denial(domain.PermissionResourceLists, domain.PermissionTypeWrite)
+				m.EXPECT().BatchImportContacts(gomock.Any(), "workspace123", gomock.Any(), []string{"list123"}).
+					Return(&domain.BatchImportContactsResponse{Error: permErr.Error(), Err: permErr})
+			},
+			serve: func(h *ContactHandler, w http.ResponseWriter) {
+				body, _ := json.Marshal(map[string]interface{}{
+					"workspace_id": "workspace123",
+					"contacts": []map[string]interface{}{
+						{"email": "contact1@example.com"},
+					},
+					"subscribe_to_lists": []string{"list123"},
+				})
+				req := httptest.NewRequest(http.MethodPost, "/api/contacts.import", bytes.NewReader(body))
+				req.Header.Set("Content-Type", "application/json")
+				h.handleImport(w, req)
+			},
+			expectedResource:   domain.PermissionResourceLists,
+			expectedPermission: domain.PermissionTypeWrite,
+		},
+		{
+			name: "Upsert",
+			setupMock: func(m *mocks.MockContactService) {
+				permErr := denial(domain.PermissionResourceContacts, domain.PermissionTypeWrite)
+				m.EXPECT().UpsertContact(gomock.Any(), "workspace123", gomock.Any()).
+					Return(domain.UpsertContactOperation{
+						Email:  "contact1@example.com",
+						Action: domain.UpsertContactOperationError,
+						Error:  permErr.Error(),
+						Err:    permErr,
+					})
+			},
+			serve: func(h *ContactHandler, w http.ResponseWriter) {
+				body, _ := json.Marshal(map[string]interface{}{
+					"workspace_id": "workspace123",
+					"contact":      map[string]interface{}{"email": "contact1@example.com"},
+				})
+				req := httptest.NewRequest(http.MethodPost, "/api/contacts.upsert", bytes.NewReader(body))
+				req.Header.Set("Content-Type", "application/json")
+				h.handleUpsert(w, req)
+			},
+			expectedResource:   domain.PermissionResourceContacts,
+			expectedPermission: domain.PermissionTypeWrite,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockService, _, handler := setupContactHandlerTest(t)
+			tt.setupMock(mockService)
+
+			rr := httptest.NewRecorder()
+			tt.serve(handler, rr)
+
+			assert.Equal(t, http.StatusForbidden, rr.Code)
+
+			var response map[string]interface{}
+			require.NoError(t, json.NewDecoder(rr.Body).Decode(&response))
+			assert.Equal(t, string(tt.expectedResource), response["resource"])
+			assert.Equal(t, string(tt.expectedPermission), response["permission"])
+		})
+	}
+}
+
+// TestContactHandler_NonPermissionErrorKeepsItsStatus pins the other half of the
+// change: only a permission denial is rerouted. A genuine per-contact failure
+// still reports through the response string with the status it had before.
+func TestContactHandler_NonPermissionErrorKeepsItsStatus(t *testing.T) {
+	mockService, _, handler := setupContactHandlerTest(t)
+	mockService.EXPECT().UpsertContact(gomock.Any(), "workspace123", gomock.Any()).
+		Return(domain.UpsertContactOperation{
+			Email:  "contact1@example.com",
+			Action: domain.UpsertContactOperationError,
+			Error:  "invalid contact: email is required",
+		})
+
+	body, _ := json.Marshal(map[string]interface{}{
+		"workspace_id": "workspace123",
+		"contact":      map[string]interface{}{"email": "contact1@example.com"},
+	})
+	req := httptest.NewRequest(http.MethodPost, "/api/contacts.upsert", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+
+	rr := httptest.NewRecorder()
+	handler.handleUpsert(rr, req)
+
+	assert.Equal(t, http.StatusBadRequest, rr.Code)
+
+	var response map[string]interface{}
+	require.NoError(t, json.NewDecoder(rr.Body).Decode(&response))
+	assert.Equal(t, "invalid contact: email is required", response["error"])
 }

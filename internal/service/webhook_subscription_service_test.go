@@ -1500,6 +1500,12 @@ func TestWebhookSubscriptionSecretIsOwnerOnly(t *testing.T) {
 			DoAndReturn(func(ctx context.Context, id string) (context.Context, *domain.User, *domain.UserWorkspace, error) {
 				return ctx, &domain.User{ID: "u1"}, &domain.UserWorkspace{
 					UserID: "u1", WorkspaceID: id, Role: role,
+					// Both verbs granted: this test is about the signing secret, which
+					// no permission confers. Redaction is what withholds it, and it
+					// answers to the role alone.
+					Permissions: domain.UserPermissions{
+						domain.PermissionResourceWebhookSubscriptions: {Read: true, Write: true},
+					},
 				}, nil
 			}).AnyTimes()
 
@@ -1583,5 +1589,203 @@ func TestWebhookSubscriptionSecretIsOwnerOnly(t *testing.T) {
 			[]string{"contact.created"}, nil)
 		require.NoError(t, err)
 		assert.NotEmpty(t, sub.Secret)
+	})
+}
+
+// newPermissionScopedSubscriptionService builds the service around a member row
+// carrying exactly the grants a case wants to prove something about. Role is
+// "member", not "owner", so HasPermission actually consults the map.
+func newPermissionScopedSubscriptionService(t *testing.T, workspaceID string, permissions domain.UserPermissions) (
+	*WebhookSubscriptionService,
+	*mocks.MockWebhookSubscriptionRepository,
+	*mocks.MockWebhookDeliveryRepository,
+) {
+	t.Helper()
+	ctrl := gomock.NewController(t)
+	t.Cleanup(ctrl.Finish)
+
+	repo := mocks.NewMockWebhookSubscriptionRepository(ctrl)
+	deliveryRepo := mocks.NewMockWebhookDeliveryRepository(ctrl)
+
+	logger := pkgmocks.NewMockLogger(ctrl)
+	logger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(logger).AnyTimes()
+	logger.EXPECT().WithFields(gomock.Any()).Return(logger).AnyTimes()
+	logger.EXPECT().Info(gomock.Any()).AnyTimes()
+	logger.EXPECT().Debug(gomock.Any()).AnyTimes()
+	logger.EXPECT().Warn(gomock.Any()).AnyTimes()
+	logger.EXPECT().Error(gomock.Any()).AnyTimes()
+
+	auth := mocks.NewMockAuthService(ctrl)
+	auth.EXPECT().
+		AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
+		DoAndReturn(func(ctx context.Context, id string) (context.Context, *domain.User, *domain.UserWorkspace, error) {
+			return ctx, &domain.User{ID: "u1"}, &domain.UserWorkspace{
+				UserID:      "u1",
+				WorkspaceID: id,
+				Role:        "member",
+				Permissions: permissions,
+			}, nil
+		}).AnyTimes()
+
+	return NewWebhookSubscriptionService(repo, deliveryRepo, auth, logger), repo, deliveryRepo
+}
+
+// TestWebhookSubscriptionService_PermissionEnforcement verifies that every
+// subscription operation enforces the correct webhook_subscriptions permission.
+// Each method is exercised by a workspace member who has been granted the OPPOSITE
+// permission (a write operation is tested with a read-only member), so the test
+// fails both if a check is missing AND if a method is gated on the wrong permission
+// type. No repository expectations are set, so gomock also fails if anything beyond
+// the permission gate runs.
+func TestWebhookSubscriptionService_PermissionEnforcement(t *testing.T) {
+	const workspaceID = "ws-1"
+
+	grant := func(read, write bool) domain.UserPermissions {
+		return domain.UserPermissions{
+			domain.PermissionResourceWebhookSubscriptions: {Read: read, Write: write},
+		}
+	}
+
+	cases := []struct {
+		name string
+		perm domain.PermissionType
+		call func(context.Context, *WebhookSubscriptionService) error
+	}{
+		{"Create", domain.PermissionTypeWrite, func(ctx context.Context, s *WebhookSubscriptionService) error {
+			_, err := s.Create(ctx, workspaceID, "crm", "https://x/h", []string{"contact.created"}, nil)
+			return err
+		}},
+		{"GetByID", domain.PermissionTypeRead, func(ctx context.Context, s *WebhookSubscriptionService) error {
+			_, err := s.GetByID(ctx, workspaceID, "sub-1")
+			return err
+		}},
+		{"List", domain.PermissionTypeRead, func(ctx context.Context, s *WebhookSubscriptionService) error {
+			_, err := s.List(ctx, workspaceID)
+			return err
+		}},
+		{"Update", domain.PermissionTypeWrite, func(ctx context.Context, s *WebhookSubscriptionService) error {
+			_, err := s.Update(ctx, workspaceID, "sub-1", "crm", "https://x/h", []string{"contact.created"}, nil, true)
+			return err
+		}},
+		{"Delete", domain.PermissionTypeWrite, func(ctx context.Context, s *WebhookSubscriptionService) error {
+			return s.Delete(ctx, workspaceID, "sub-1")
+		}},
+		{"Toggle", domain.PermissionTypeWrite, func(ctx context.Context, s *WebhookSubscriptionService) error {
+			_, err := s.Toggle(ctx, workspaceID, "sub-1", false)
+			return err
+		}},
+		{"GetDeliveries", domain.PermissionTypeRead, func(ctx context.Context, s *WebhookSubscriptionService) error {
+			_, _, err := s.GetDeliveries(ctx, workspaceID, nil, 10, 0)
+			return err
+		}},
+		{"GetForTestDelivery", domain.PermissionTypeWrite, func(ctx context.Context, s *WebhookSubscriptionService) error {
+			_, err := s.GetForTestDelivery(ctx, workspaceID, "sub-1")
+			return err
+		}},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			// Grant only the OPPOSITE permission, so the case proves the exact
+			// permission type is required and catches a read/write swap.
+			permissions := grant(true, false)
+			if tc.perm == domain.PermissionTypeRead {
+				permissions = grant(false, true)
+			}
+
+			svc, _, _ := newPermissionScopedSubscriptionService(t, workspaceID, permissions)
+
+			err := tc.call(context.Background(), svc)
+			require.Error(t, err)
+			assert.IsType(t, &domain.PermissionError{}, err)
+
+			var permErr *domain.PermissionError
+			require.True(t, errors.As(err, &permErr))
+			assert.Equal(t, domain.PermissionResourceWebhookSubscriptions, permErr.Resource)
+			assert.Equal(t, tc.perm, permErr.Permission)
+		})
+	}
+}
+
+// A read grant reads subscriptions; it does not hand out signing secrets. The
+// permission and the owner-only secret rules are orthogonal, and this pins that
+// the first does not quietly relax the second.
+func TestWebhookSubscriptionService_ReadGrantDoesNotRevealSecret(t *testing.T) {
+	const workspaceID = "ws-1"
+	const secret = "whsec_SENTINEL"
+
+	readOnly := domain.UserPermissions{
+		domain.PermissionResourceWebhookSubscriptions: {Read: true},
+	}
+	stored := func() *domain.WebhookSubscription {
+		return &domain.WebhookSubscription{ID: "sub-1", Name: "crm", URL: "https://x/h", Secret: secret}
+	}
+
+	t.Run("GetByID", func(t *testing.T) {
+		svc, repo, _ := newPermissionScopedSubscriptionService(t, workspaceID, readOnly)
+		repo.EXPECT().GetByID(gomock.Any(), workspaceID, "sub-1").Return(stored(), nil)
+
+		sub, err := svc.GetByID(context.Background(), workspaceID, "sub-1")
+		require.NoError(t, err)
+		assert.Empty(t, sub.Secret)
+		assert.Equal(t, "crm", sub.Name, "everything else is still readable")
+	})
+
+	t.Run("List", func(t *testing.T) {
+		svc, repo, _ := newPermissionScopedSubscriptionService(t, workspaceID, readOnly)
+		repo.EXPECT().List(gomock.Any(), workspaceID).Return([]*domain.WebhookSubscription{stored()}, nil)
+
+		subs, err := svc.List(context.Background(), workspaceID)
+		require.NoError(t, err)
+		require.Len(t, subs, 1)
+		assert.Empty(t, subs[0].Secret)
+	})
+}
+
+// Rotating a secret is owner-only and stays that way: the new resource is not a
+// second route to it. A member holding both verbs is rejected, and the repository
+// is never reached.
+func TestWebhookSubscriptionService_RegenerateSecretStaysOwnerOnly(t *testing.T) {
+	const workspaceID = "ws-1"
+
+	svc, _, _ := newPermissionScopedSubscriptionService(t, workspaceID, domain.UserPermissions{
+		domain.PermissionResourceWebhookSubscriptions: {Read: true, Write: true},
+	})
+
+	_, err := svc.RegenerateSecret(context.Background(), workspaceID, "sub-1")
+	require.Error(t, err)
+	assert.IsType(t, &domain.ErrUnauthorized{}, err)
+	assert.Contains(t, err.Error(), "owner")
+}
+
+// A test delivery fires a real outbound request, so it answers to the write grant.
+// The handler used to authorize it by calling GetByID, which would have let a
+// read-only key trigger arbitrary deliveries.
+func TestWebhookSubscriptionService_TestDeliveryRequiresWrite(t *testing.T) {
+	const workspaceID = "ws-1"
+	const secret = "whsec_SENTINEL"
+
+	t.Run("a read-only member is denied and the repository is untouched", func(t *testing.T) {
+		svc, _, _ := newPermissionScopedSubscriptionService(t, workspaceID, domain.UserPermissions{
+			domain.PermissionResourceWebhookSubscriptions: {Read: true},
+		})
+
+		_, err := svc.GetForTestDelivery(context.Background(), workspaceID, "sub-1")
+		require.Error(t, err)
+		assert.IsType(t, &domain.PermissionError{}, err)
+	})
+
+	// The secret comes back un-redacted for a non-owner: it signs the test payload
+	// on its way to the subscription's own URL and is never written to the client.
+	t.Run("a member holding write receives the signing secret", func(t *testing.T) {
+		svc, repo, _ := newPermissionScopedSubscriptionService(t, workspaceID, domain.UserPermissions{
+			domain.PermissionResourceWebhookSubscriptions: {Write: true},
+		})
+		repo.EXPECT().GetByID(gomock.Any(), workspaceID, "sub-1").
+			Return(&domain.WebhookSubscription{ID: "sub-1", URL: "https://x/h", Secret: secret}, nil)
+
+		sub, err := svc.GetForTestDelivery(context.Background(), workspaceID, "sub-1")
+		require.NoError(t, err)
+		assert.Equal(t, secret, sub.Secret)
 	})
 }

@@ -1,10 +1,61 @@
 import { test, expect, requestCapture } from '../fixtures/auth'
-import { waitForDrawer, waitForLoading } from '../fixtures/test-utils'
+import { waitForLoading } from '../fixtures/test-utils'
 import { API_PATTERNS } from '../fixtures/request-capture'
 import { testBroadcastData } from '../fixtures/form-data'
 import { logCapturedRequests } from '../fixtures/payload-assertions'
+import type { Locator, Page } from '@playwright/test'
 
 const WORKSPACE_ID = 'test-workspace'
+
+// antd 6 puts role="dialog" on the drawer section itself and names it after the
+// drawer title, so the title is what the dialog is looked up by.
+const CREATE_DRAWER = 'Create a broadcast'
+const EDIT_DRAWER = 'Edit broadcast'
+
+// The card header of a given broadcast: it carries the status badge and the
+// icon-only action buttons.
+const cardHead = (page: Page, broadcastName: string): Locator =>
+  page.locator('.ant-card-head').filter({ hasText: broadcastName })
+
+// The whole card of a given broadcast, header plus body.
+const card = (page: Page, broadcastName: string): Locator =>
+  page.locator('.ant-card').filter({ hasText: broadcastName })
+
+// Opens the creation drawer and returns it.
+const openCreateDrawer = async (page: Page): Promise<Locator> => {
+  await page.getByRole('button', { name: 'Create Broadcast', exact: true }).click()
+  const drawer = page.getByRole('dialog', { name: CREATE_DRAWER })
+  await expect(drawer).toBeVisible()
+  return drawer
+}
+
+// Opens the edit drawer of an existing broadcast and returns it. The edit action is
+// an icon-only button, and FontAwesome stamps the icon name onto the svg, which is
+// the only stable handle it exposes.
+const openEditDrawer = async (page: Page, broadcastName: string): Promise<Locator> => {
+  await cardHead(page, broadcastName).locator('button:has(svg[data-icon="pen-to-square"])').click()
+  const drawer = page.getByRole('dialog', { name: EDIT_DRAWER })
+  await expect(drawer).toBeVisible()
+  return drawer
+}
+
+// Picks an option in an antd Select rendered inside `drawer`, identified by the
+// label of its form item.
+const selectOption = async (
+  page: Page,
+  drawer: Locator,
+  fieldLabel: string,
+  optionText: string
+): Promise<void> => {
+  await drawer.getByLabel(fieldLabel, { exact: true }).click()
+  await page.locator('.ant-select-dropdown').waitFor({ state: 'visible' })
+  await page.locator('.ant-select-item-option').filter({ hasText: optionText }).click()
+}
+
+// The text antd 6 shows for the current value of a Select (v5 named it
+// .ant-select-selection-item).
+const selectValue = (drawer: Locator, fieldLabel: string): Locator =>
+  drawer.locator('.ant-form-item').filter({ hasText: fieldLabel }).locator('.ant-select-content')
 
 test.describe('Broadcasts Feature', () => {
   test.describe('Page Load & Empty State', () => {
@@ -14,8 +65,8 @@ test.describe('Broadcasts Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/broadcasts`)
       await waitForLoading(page)
 
-      // Page should load
-      await expect(page.locator('body')).toBeVisible()
+      await expect(page.getByText('No broadcasts found')).toBeVisible()
+      await expect(page.getByRole('button', { name: 'Create Broadcast', exact: true })).toBeVisible()
     })
 
     test('loads broadcasts page with data', async ({ authenticatedPageWithData }) => {
@@ -24,10 +75,12 @@ test.describe('Broadcasts Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/broadcasts`)
       await waitForLoading(page)
 
-      // Page should load successfully
-      await expect(page.locator('body')).toBeVisible()
-      // URL should be correct
       await expect(page).toHaveURL(/broadcasts/)
+
+      // One card per broadcast returned by the API
+      await expect(cardHead(page, 'January Newsletter')).toBeVisible()
+      await expect(cardHead(page, 'Product Launch')).toBeVisible()
+      await expect(cardHead(page, 'A/B Test Campaign')).toBeVisible()
     })
   })
 
@@ -38,54 +91,30 @@ test.describe('Broadcasts Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/broadcasts`)
       await waitForLoading(page)
 
-      // Click add/create button
-      const addButton = page.getByRole('button', { name: /add|create|new/i })
-      await addButton.click()
+      const drawer = await openCreateDrawer(page)
 
-      // Wait for drawer, modal, or navigation
-      await page.waitForTimeout(500)
-
-      const hasDrawer = (await page.locator('.ant-drawer-content').count()) > 0
-      const hasModal = (await page.locator('.ant-modal-content').count()) > 0
-      const urlChanged = page.url().includes('new') || page.url().includes('create')
-
-      expect(hasDrawer || hasModal || urlChanged).toBe(true)
+      await expect(drawer.getByLabel('Broadcast name')).toBeVisible()
+      await expect(drawer.getByLabel('List', { exact: true })).toBeVisible()
+      await expect(drawer.getByRole('button', { name: 'Next', exact: true })).toBeVisible()
     })
 
-    test('fills broadcast form', async ({ authenticatedPage }) => {
-      const page = authenticatedPage
+    test('fills broadcast form', async ({ authenticatedPageWithData }) => {
+      const page = authenticatedPageWithData
 
       await page.goto(`/console/workspace/${WORKSPACE_ID}/broadcasts`)
       await waitForLoading(page)
 
-      // Click add button
-      const addButton = page.getByRole('button', { name: /add|create|new/i })
-      await addButton.click()
+      const drawer = await openCreateDrawer(page)
 
-      // Wait for drawer to open
-      await waitForDrawer(page)
-
-      // Tab 1: Audience - fill required fields
-      // Fill broadcast name (required) - first input in drawer
-      const nameInput = page.locator('.ant-drawer-content input').first()
+      // Tab 1: Audience - the two required fields
+      const nameInput = drawer.getByLabel('Broadcast name')
       await nameInput.fill('Test Marketing Broadcast')
-
-      // Select list (required) - find the list select
-      const listSelect = page.locator('.ant-drawer-content .ant-select').first()
-      if ((await listSelect.count()) > 0) {
-        await listSelect.click()
-        await page.waitForTimeout(300)
-        const listOption = page.locator('.ant-select-item-option').first()
-        if ((await listOption.count()) > 0) {
-          await listOption.click()
-        }
-      }
-
-      // Verify Next button is visible
-      await expect(page.getByRole('button', { name: 'Next' })).toBeVisible()
-
-      // Verify form filled correctly
       await expect(nameInput).toHaveValue('Test Marketing Broadcast')
+
+      await selectOption(page, drawer, 'List', 'Newsletter')
+      await expect(selectValue(drawer, 'List')).toHaveText('Newsletter')
+
+      await expect(drawer.getByRole('button', { name: 'Next', exact: true })).toBeVisible()
     })
 
     test('views broadcast details', async ({ authenticatedPageWithData }) => {
@@ -94,55 +123,58 @@ test.describe('Broadcasts Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/broadcasts`)
       await waitForLoading(page)
 
-      // Click on a broadcast
-      const broadcastItem = page.locator('.ant-table-row, .ant-card').first()
-      if ((await broadcastItem.count()) > 0) {
-        await broadcastItem.click()
+      // Only the first card is expanded by default
+      const productLaunch = card(page, 'Product Launch')
+      await productLaunch.getByRole('button', { name: 'Show Details' }).click()
 
-        // Should show broadcast details
-        await page.waitForTimeout(500)
-        await expect(page.locator('body')).toBeVisible()
-      }
+      // The audience the broadcast targets
+      await expect(productLaunch.getByText('Marketing Updates')).toBeVisible()
+      await expect(productLaunch.getByText('Active Users')).toBeVisible()
     })
   })
 
   test.describe('Audience Selection', () => {
-    test('shows audience selection options', async ({ authenticatedPage }) => {
-      const page = authenticatedPage
+    test('shows audience selection options', async ({ authenticatedPageWithData }) => {
+      const page = authenticatedPageWithData
 
       await page.goto(`/console/workspace/${WORKSPACE_ID}/broadcasts`)
       await waitForLoading(page)
 
-      // Open create form
-      const addButton = page.getByRole('button', { name: /add|create|new/i })
-      await addButton.click()
+      const drawer = await openCreateDrawer(page)
 
-      await page.waitForTimeout(500)
+      await expect(drawer.getByLabel('List', { exact: true })).toBeVisible()
+      await expect(drawer.getByText('Belonging to at least one of the following segments')).toBeVisible()
+      await expect(
+        drawer.getByText('Exclude unsubscribed, bounced & complained recipients')
+      ).toBeVisible()
 
-      // Form should be visible with audience options
-      await expect(page.locator('.ant-drawer-content, .ant-modal-content, form').first()).toBeVisible()
+      // The list options are the workspace lists
+      await drawer.getByLabel('List', { exact: true }).click()
+      await page.locator('.ant-select-dropdown').waitFor({ state: 'visible' })
+      await expect(page.locator('.ant-select-item-option').filter({ hasText: 'Newsletter' })).toBeVisible()
+      await expect(
+        page.locator('.ant-select-item-option').filter({ hasText: 'Marketing Updates' })
+      ).toBeVisible()
+      await expect(
+        page.locator('.ant-select-item-option').filter({ hasText: 'Beta Testers' })
+      ).toBeVisible()
     })
   })
 
   test.describe('Scheduling', () => {
-    test('shows scheduling options', async ({ authenticatedPage }) => {
-      const page = authenticatedPage
+    test('shows the scheduled delivery of a scheduled broadcast', async ({
+      authenticatedPageWithData
+    }) => {
+      const page = authenticatedPageWithData
 
       await page.goto(`/console/workspace/${WORKSPACE_ID}/broadcasts`)
       await waitForLoading(page)
 
-      // Open create form
-      const addButton = page.getByRole('button', { name: /add|create|new/i })
-      await addButton.click()
+      const abTest = card(page, 'A/B Test Campaign')
+      await abTest.getByRole('button', { name: 'Show Details' }).click()
 
-      await page.waitForTimeout(500)
-
-      // Scheduling options might be available - locator created for potential future assertions
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const _scheduleOption = page.locator('text=Schedule, text=schedule, text=Send later')
-
-      // Form should be visible regardless
-      await expect(page.locator('.ant-drawer-content, .ant-modal-content, form').first()).toBeVisible()
+      // schedule.scheduled_date 2024-02-01 at 09:00 in UTC
+      await expect(abTest.getByText('Feb 1, 2024 9:00 AM in UTC')).toBeVisible()
     })
   })
 
@@ -153,8 +185,9 @@ test.describe('Broadcasts Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/broadcasts`)
       await waitForLoading(page)
 
-      // Page should load successfully
-      await expect(page).toHaveURL(/broadcasts/)
+      await expect(cardHead(page, 'January Newsletter').getByText('Draft')).toBeVisible()
+      await expect(cardHead(page, 'Product Launch').getByText('Complete')).toBeVisible()
+      await expect(cardHead(page, 'A/B Test Campaign').getByText('Scheduled')).toBeVisible()
     })
 
     test('shows draft broadcasts', async ({ authenticatedPageWithData }) => {
@@ -163,8 +196,15 @@ test.describe('Broadcasts Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/broadcasts`)
       await waitForLoading(page)
 
-      // Page should load successfully
-      await expect(page).toHaveURL(/broadcasts/)
+      // A draft is the only status that offers both editing and sending
+      const draft = cardHead(page, 'January Newsletter')
+      await expect(draft.locator('button:has(svg[data-icon="pen-to-square"])')).toBeVisible()
+      await expect(draft.getByRole('button', { name: 'Send or Schedule' })).toBeVisible()
+
+      // A completed broadcast offers neither
+      const sent = cardHead(page, 'Product Launch')
+      await expect(sent.locator('button:has(svg[data-icon="pen-to-square"])')).toHaveCount(0)
+      await expect(sent.getByRole('button', { name: 'Send or Schedule' })).toHaveCount(0)
     })
   })
 
@@ -175,39 +215,34 @@ test.describe('Broadcasts Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/broadcasts`)
       await waitForLoading(page)
 
-      // Page should load successfully
-      await expect(page).toHaveURL(/broadcasts/)
+      const stats = card(page, 'January Newsletter')
+      for (const label of [
+        'Sent',
+        'Delivered',
+        'Opens',
+        'Clicks',
+        'Failed',
+        'Bounced',
+        'Complaints',
+        'Unsub.'
+      ]) {
+        await expect(stats.getByText(label, { exact: true })).toBeVisible()
+      }
     })
   })
 
   test.describe('Edit Form Prefill', () => {
-    test('edit broadcast drawer shows existing broadcast name', async ({ authenticatedPageWithData }) => {
+    test('edit broadcast drawer shows existing broadcast name', async ({
+      authenticatedPageWithData
+    }) => {
       const page = authenticatedPageWithData
 
       await page.goto(`/console/workspace/${WORKSPACE_ID}/broadcasts`)
       await waitForLoading(page)
 
-      // Click on a broadcast row to open edit drawer
-      const broadcastRow = page.locator('.ant-table-row').first()
-      if ((await broadcastRow.count()) > 0) {
-        // Look for edit button in the row
-        const editButton = broadcastRow.getByRole('button', { name: /edit/i })
-        if ((await editButton.count()) > 0) {
-          await editButton.click()
-        } else {
-          await broadcastRow.click()
-        }
+      const drawer = await openEditDrawer(page, 'January Newsletter')
 
-        // Wait for drawer to open
-        await waitForDrawer(page)
-
-        // Verify the name input is prefilled with the existing broadcast name
-        const nameInput = page.locator('.ant-drawer-content input').first()
-        const inputValue = await nameInput.inputValue()
-
-        // Name should not be empty - should be prefilled (e.g., "January Newsletter")
-        expect(inputValue.length).toBeGreaterThan(0)
-      }
+      await expect(drawer.getByLabel('Broadcast name')).toHaveValue('January Newsletter')
     })
 
     test('edit broadcast preserves list selection', async ({ authenticatedPageWithData }) => {
@@ -216,23 +251,10 @@ test.describe('Broadcasts Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/broadcasts`)
       await waitForLoading(page)
 
-      const broadcastRow = page.locator('.ant-table-row').first()
-      if ((await broadcastRow.count()) > 0) {
-        const editButton = broadcastRow.getByRole('button', { name: /edit/i })
-        if ((await editButton.count()) > 0) {
-          await editButton.click()
-        } else {
-          await broadcastRow.click()
-        }
+      const drawer = await openEditDrawer(page, 'January Newsletter')
 
-        await waitForDrawer(page)
-
-        // List select should have a value selected
-        const listSelect = page.locator('.ant-drawer-content .ant-select').first()
-        if ((await listSelect.count()) > 0) {
-          await expect(listSelect).toBeVisible()
-        }
-      }
+      // audience.list is list-1, whose name the select displays
+      await expect(selectValue(drawer, 'List')).toHaveText('Newsletter')
     })
 
     test('edit broadcast preserves template selection', async ({ authenticatedPageWithData }) => {
@@ -241,26 +263,13 @@ test.describe('Broadcasts Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/broadcasts`)
       await waitForLoading(page)
 
-      const broadcastRow = page.locator('.ant-table-row').first()
-      if ((await broadcastRow.count()) > 0) {
-        const editButton = broadcastRow.getByRole('button', { name: /edit/i })
-        if ((await editButton.count()) > 0) {
-          await editButton.click()
-        } else {
-          await broadcastRow.click()
-        }
+      const drawer = await openEditDrawer(page, 'January Newsletter')
 
-        await waitForDrawer(page)
+      // The template lives on the last tab
+      await drawer.getByRole('tab', { name: '4. Content' }).click()
 
-        // Navigate through tabs if needed to find template selection
-        // Template selection might be on a different step
-        const nextButton = page.getByRole('button', { name: 'Next' })
-        if ((await nextButton.count()) > 0 && (await nextButton.isEnabled())) {
-          // If there's a Next button and it's enabled, we might need to navigate
-          // For now, just verify the drawer is open and has form fields
-          await expect(page.locator('.ant-drawer-content')).toBeVisible()
-        }
-      }
+      // test_settings.variations[0].template_id is tpl-2
+      await expect(drawer.getByPlaceholder('Select template')).toHaveValue('Monthly Newsletter')
     })
 
     test('edit draft broadcast shows correct status', async ({ authenticatedPageWithData }) => {
@@ -269,24 +278,12 @@ test.describe('Broadcasts Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/broadcasts`)
       await waitForLoading(page)
 
-      // Look for a draft broadcast specifically
-      const draftRow = page.locator('.ant-table-row').filter({ hasText: /draft/i }).first()
-      if ((await draftRow.count()) > 0) {
-        const editButton = draftRow.getByRole('button', { name: /edit/i })
-        if ((await editButton.count()) > 0) {
-          await editButton.click()
-        } else {
-          await draftRow.click()
-        }
+      const drawer = await openEditDrawer(page, 'January Newsletter')
 
-        await waitForDrawer(page)
-
-        // Drawer should open with editable form (draft broadcasts are editable)
-        await expect(page.locator('.ant-drawer-content')).toBeVisible()
-        // The name input should be enabled/editable for drafts
-        const nameInput = page.locator('.ant-drawer-content input').first()
-        await expect(nameInput).toBeEnabled()
-      }
+      // A draft stays fully editable
+      await expect(drawer.getByLabel('Broadcast name')).toBeEnabled()
+      await expect(drawer.getByLabel('List', { exact: true })).toBeEnabled()
+      await expect(drawer.getByRole('button', { name: 'Next', exact: true })).toBeVisible()
     })
   })
 
@@ -297,19 +294,13 @@ test.describe('Broadcasts Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/broadcasts`)
       await waitForLoading(page)
 
-      // Open create form
-      const addButton = page.getByRole('button', { name: /add|create|new/i })
-      await addButton.click()
+      const drawer = await openCreateDrawer(page)
 
-      // Wait for drawer to open
-      await waitForDrawer(page)
+      await drawer.getByRole('button', { name: 'Next', exact: true }).click()
 
-      // Try to click Next without filling required name field
-      await page.getByRole('button', { name: 'Next' }).click()
-
-      // Should show validation error
-      const errorMessage = page.locator('.ant-form-item-explain-error')
-      await expect(errorMessage.first()).toBeVisible({ timeout: 5000 })
+      await expect(drawer.getByText('Please enter a broadcast name')).toBeVisible()
+      // The step must not advance while the audience tab is invalid
+      await expect(drawer.getByLabel('Broadcast name')).toBeVisible()
     })
 
     test('requires list selection', async ({ authenticatedPage }) => {
@@ -318,23 +309,14 @@ test.describe('Broadcasts Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/broadcasts`)
       await waitForLoading(page)
 
-      // Open create form
-      const addButton = page.getByRole('button', { name: /add|create|new/i })
-      await addButton.click()
+      const drawer = await openCreateDrawer(page)
 
-      // Wait for drawer to open
-      await waitForDrawer(page)
+      await drawer.getByLabel('Broadcast name').fill('Test Broadcast')
 
-      // Fill name but not list
-      const nameInput = page.locator('.ant-drawer-content input').first()
-      await nameInput.fill('Test Broadcast')
+      await drawer.getByRole('button', { name: 'Next', exact: true }).click()
 
-      // Try to click Next without selecting a list
-      await page.getByRole('button', { name: 'Next' }).click()
-
-      // Should show validation error for list selection
-      const errorMessage = page.locator('.ant-form-item-explain-error')
-      await expect(errorMessage.first()).toBeVisible({ timeout: 5000 })
+      await expect(drawer.getByText('Please select a list')).toBeVisible()
+      await expect(drawer.getByText('Please enter a broadcast name')).toHaveCount(0)
     })
   })
 
@@ -360,102 +342,77 @@ test.describe('Broadcasts Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/broadcasts`)
       await waitForLoading(page)
 
-      // Open create form
-      const addButton = page.getByRole('button', { name: /add|create|new/i })
-      await addButton.click()
+      const drawer = await openCreateDrawer(page)
 
-      await page.waitForTimeout(500)
+      // An untouched form closes without the unsaved-changes confirmation
+      await drawer.getByRole('button', { name: 'Close' }).click()
 
-      // Close it
-      const closeButton = page.locator('.ant-drawer-close, .ant-modal-close')
-      if ((await closeButton.count()) > 0) {
-        await closeButton.first().click()
-      } else {
-        await page.keyboard.press('Escape')
-      }
-
-      await page.waitForTimeout(500)
+      await expect(drawer).toBeHidden()
     })
   })
 
   test.describe('Full Form Submission with Payload Verification', () => {
-    test('creates broadcast with all fields and verifies payload', async ({ authenticatedPageWithData }) => {
+    test('creates broadcast with all fields and verifies payload', async ({
+      authenticatedPageWithData
+    }) => {
       const page = authenticatedPageWithData
 
       await page.goto(`/console/workspace/${WORKSPACE_ID}/broadcasts`)
       await waitForLoading(page)
 
-      // Open create form
-      const addButton = page.getByRole('button', { name: /add|create|new/i })
-      if ((await addButton.count()) === 0) return
+      const drawer = await openCreateDrawer(page)
 
-      await addButton.click()
+      // Tab 1: Audience
+      await drawer.getByLabel('Broadcast name').fill(testBroadcastData.name)
+      await selectOption(page, drawer, 'List', 'Newsletter')
+      await drawer.getByRole('button', { name: 'Next', exact: true }).click()
 
-      // Wait for drawer/modal
-      await page.waitForTimeout(500)
-      const drawer = page.locator('.ant-drawer-content, .ant-modal-content').first()
-      if ((await drawer.count()) === 0) return
+      // Tab 2: Web Analytics
+      await drawer.getByLabel('utm_source').fill(testBroadcastData.utm_source!)
+      await drawer.getByLabel('utm_medium').fill(testBroadcastData.utm_medium!)
+      await drawer.getByLabel('utm_campaign').fill(testBroadcastData.utm_campaign!)
+      await drawer.getByRole('button', { name: 'Next', exact: true }).click()
 
-      // Fill broadcast name
-      const nameInput = page.getByLabel('Name', { exact: false }).first()
-      if ((await nameInput.count()) > 0) {
-        await nameInput.fill(testBroadcastData.name)
-      } else {
-        const input = page.locator('input').first()
-        await input.fill(testBroadcastData.name)
-      }
+      // Tab 3: Data Feeds - left at its defaults
+      await drawer.getByRole('button', { name: 'Next', exact: true }).click()
 
-      // Select list if available
-      const listSelect = page.locator('.ant-form-item').filter({ hasText: /list/i }).first().locator('.ant-select')
-      if ((await listSelect.count()) > 0) {
-        await listSelect.click()
-        await page.locator('.ant-select-dropdown').waitFor({ state: 'visible' })
-        const option = page.locator('.ant-select-item-option').first()
-        if ((await option.count()) > 0) {
-          await option.click()
-        } else {
-          await page.keyboard.press('Escape')
-        }
-      }
+      // Tab 4: Content
+      await drawer.getByPlaceholder('Select template').click()
+      const picker = page.getByRole('dialog', { name: 'Select Template' })
+      await picker
+        .getByRole('listitem')
+        .filter({ hasText: 'Monthly Newsletter' })
+        .getByRole('button', { name: 'Select', exact: true })
+        .click()
+      await expect(drawer.getByPlaceholder('Select template')).toHaveValue('Monthly Newsletter')
 
-      // Fill UTM fields
-      const utmSource = page.getByLabel('UTM Source', { exact: false })
-      if ((await utmSource.count()) > 0) {
-        await utmSource.fill(testBroadcastData.utm_source || '')
-      }
+      await drawer.getByRole('button', { name: 'Save', exact: true }).click()
 
-      const utmMedium = page.getByLabel('UTM Medium', { exact: false })
-      if ((await utmMedium.count()) > 0) {
-        await utmMedium.fill(testBroadcastData.utm_medium || '')
-      }
-
-      const utmCampaign = page.getByLabel('UTM Campaign', { exact: false })
-      if ((await utmCampaign.count()) > 0) {
-        await utmCampaign.fill(testBroadcastData.utm_campaign || '')
-      }
-
-      // Submit
-      await page.getByRole('button', { name: /create|save/i }).first().click()
-      await page.waitForTimeout(1000)
-
-      // Log captured requests
+      await expect
+        .poll(() => requestCapture.getRequestCount(API_PATTERNS.BROADCAST_CREATE))
+        .toBeGreaterThan(0)
       logCapturedRequests(requestCapture)
 
-      // Verify broadcast data was sent
       const request = requestCapture.getLastRequest(API_PATTERNS.BROADCAST_CREATE)
+      expect(request?.body, 'Broadcast create body should not be empty').toBeTruthy()
 
-      if (request && request.body) {
-        const body = request.body as Record<string, unknown>
-        expect(body.name).toBe(testBroadcastData.name)
-
-        // Verify UTM parameters if present
-        if (body.utm_parameters) {
-          const utm = body.utm_parameters as Record<string, unknown>
-          if (testBroadcastData.utm_source) {
-            expect(utm.source).toBe(testBroadcastData.utm_source)
-          }
-        }
+      const body = request!.body as {
+        workspace_id?: string
+        name?: string
+        audience?: { list?: string; exclude_unsubscribed?: boolean }
+        utm_parameters?: Record<string, unknown>
+        test_settings?: { enabled?: boolean; variations?: Array<{ template_id?: string }> }
       }
+
+      expect(body.workspace_id).toBe(WORKSPACE_ID)
+      expect(body.name).toBe(testBroadcastData.name)
+      expect(body.audience?.list).toBe('list-1')
+      expect(body.audience?.exclude_unsubscribed).toBe(testBroadcastData.exclude_unsubscribed)
+      expect(body.utm_parameters?.source).toBe(testBroadcastData.utm_source)
+      expect(body.utm_parameters?.medium).toBe(testBroadcastData.utm_medium)
+      expect(body.utm_parameters?.campaign).toBe(testBroadcastData.utm_campaign)
+      expect(body.test_settings?.enabled).toBe(testBroadcastData.test_enabled)
+      expect(body.test_settings?.variations?.[0]?.template_id).toBe('tpl-2')
     })
   })
 })

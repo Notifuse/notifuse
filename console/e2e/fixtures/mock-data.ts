@@ -31,6 +31,9 @@ export const mockUserMeResponse = {
 // CONTACTS
 // ============================================
 
+// Shaped after the Contact interface in src/services/api/contacts.ts: `contact_lists`
+// is a required field there, and the contacts table reads `record.contact_lists.map`
+// unconditionally, so a contact without it crashes the whole table.
 export const mockContacts = [
   {
     id: 'contact-1',
@@ -50,7 +53,16 @@ export const mockContacts = [
     custom_string_1: 'Acme Corp',
     custom_string_2: 'Pro',
     created_at: '2024-01-15T10:30:00Z',
-    updated_at: '2024-01-20T14:00:00Z'
+    updated_at: '2024-01-20T14:00:00Z',
+    contact_lists: [
+      {
+        email: 'john@example.com',
+        list_id: 'list-1',
+        status: 'active',
+        created_at: '2024-01-15T10:30:00Z',
+        updated_at: '2024-01-15T10:30:00Z'
+      }
+    ]
   },
   {
     id: 'contact-2',
@@ -70,7 +82,23 @@ export const mockContacts = [
     custom_string_1: 'TechCo',
     custom_string_2: 'Enterprise',
     created_at: '2024-01-10T08:00:00Z',
-    updated_at: '2024-01-18T09:30:00Z'
+    updated_at: '2024-01-18T09:30:00Z',
+    contact_lists: [
+      {
+        email: 'jane@example.com',
+        list_id: 'list-1',
+        status: 'active',
+        created_at: '2024-01-10T08:00:00Z',
+        updated_at: '2024-01-10T08:00:00Z'
+      },
+      {
+        email: 'jane@example.com',
+        list_id: 'list-2',
+        status: 'unsubscribed',
+        created_at: '2024-01-10T08:00:00Z',
+        updated_at: '2024-01-18T09:30:00Z'
+      }
+    ]
   },
   {
     id: 'contact-3',
@@ -90,7 +118,8 @@ export const mockContacts = [
     custom_string_1: 'StartupInc',
     custom_string_2: 'Free',
     created_at: '2024-01-05T12:00:00Z',
-    updated_at: '2024-01-16T16:45:00Z'
+    updated_at: '2024-01-16T16:45:00Z',
+    contact_lists: []
   }
 ]
 
@@ -167,30 +196,98 @@ export const mockEmptyLists = {
   lists: []
 }
 
+// Per-list subscriber counts served by /api/lists.stats, which the list cards query
+// separately from /api/lists.list.
+export const mockListStats: Record<string, Record<string, number>> = {
+  'list-1': {
+    total_active: 150,
+    total_pending: 25,
+    total_unsubscribed: 10,
+    total_bounced: 3,
+    total_complained: 1
+  },
+  'list-2': {
+    total_active: 320,
+    total_pending: 0,
+    total_unsubscribed: 45,
+    total_bounced: 8,
+    total_complained: 2
+  },
+  'list-3': {
+    total_active: 50,
+    total_pending: 5,
+    total_unsubscribed: 2,
+    total_bounced: 0,
+    total_complained: 0
+  }
+}
+
+export const emptyListStats = {
+  total_active: 0,
+  total_pending: 0,
+  total_unsubscribed: 0,
+  total_bounced: 0,
+  total_complained: 0
+}
+
 // ============================================
 // TEMPLATES
 // ============================================
 
+// The smallest tree the email builder accepts: an mjml root wrapping a single text
+// block, mirroring the EmailBlock union in src/components/email_builder/types.ts.
+// EmailTemplate.visual_editor_tree is required, and the drawer reads it to seed the
+// editor, so every mocked email carries a real one instead of a placeholder.
+const mockEmailTree = (slug: string, text: string) => ({
+  id: `mjml-${slug}`,
+  type: 'mjml',
+  children: [
+    {
+      id: `body-${slug}`,
+      type: 'mj-body',
+      children: [
+        {
+          id: `section-${slug}`,
+          type: 'mj-section',
+          children: [
+            {
+              id: `column-${slug}`,
+              type: 'mj-column',
+              children: [
+                {
+                  id: `text-${slug}`,
+                  type: 'mj-text',
+                  content: text
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+})
+
+// Shaped after the Template interface in src/services/api/template.ts: the email payload
+// is nested under `email` (subject, subject_preview, reply_to, compiled_preview,
+// visual_editor_tree, editor_mode), which is what the templates table's Subject column and
+// CreateTemplateDrawer.showDrawer() read. A template carrying a top-level `subject` lists
+// with an empty Subject column and edits as if it had no email at all.
 export const mockTemplates = [
   {
     id: 'tpl-1',
     name: 'Welcome Email',
-    description: 'Sent when a new subscriber joins',
+    version: 1,
+    channel: 'email',
     category: 'welcome',
-    subject: 'Welcome to {{workspace.name}}!',
-    mjml: `<mjml>
-  <mj-body>
-    <mj-section>
-      <mj-column>
-        <mj-text>Welcome, {{contact.first_name}}!</mj-text>
-      </mj-column>
-    </mj-section>
-  </mj-body>
-</mjml>`,
-    html: '<html><body><p>Welcome!</p></body></html>',
-    from_email: 'hello@example.com',
-    from_name: 'Test Workspace',
-    reply_to: 'support@example.com',
+    email: {
+      editor_mode: 'visual',
+      subject: 'Welcome to {{workspace.name}}!',
+      subject_preview: 'Your account is ready',
+      reply_to: 'support@example.com',
+      compiled_preview: '<html><body><p>Welcome!</p></body></html>',
+      visual_editor_tree: mockEmailTree('welcome', 'Welcome, {{contact.first_name}}!')
+    },
     utm_source: 'email',
     utm_medium: 'newsletter',
     utm_campaign: 'welcome',
@@ -200,22 +297,19 @@ export const mockTemplates = [
   {
     id: 'tpl-2',
     name: 'Monthly Newsletter',
-    description: 'Monthly product updates',
+    version: 1,
+    channel: 'email',
     category: 'marketing',
-    subject: '{{workspace.name}} Newsletter - {{date}}',
-    mjml: `<mjml>
-  <mj-body>
-    <mj-section>
-      <mj-column>
-        <mj-text>Hello {{contact.first_name}}, here are our updates!</mj-text>
-      </mj-column>
-    </mj-section>
-  </mj-body>
-</mjml>`,
-    html: '<html><body><p>Newsletter</p></body></html>',
-    from_email: 'newsletter@example.com',
-    from_name: 'Test Workspace',
-    reply_to: null,
+    email: {
+      editor_mode: 'visual',
+      subject: '{{workspace.name}} Newsletter - {{date}}',
+      subject_preview: 'This month at a glance',
+      compiled_preview: '<html><body><p>Newsletter</p></body></html>',
+      visual_editor_tree: mockEmailTree(
+        'newsletter',
+        'Hello {{contact.first_name}}, here are our updates!'
+      )
+    },
     utm_source: 'email',
     utm_medium: 'newsletter',
     utm_campaign: 'monthly',
@@ -225,25 +319,16 @@ export const mockTemplates = [
   {
     id: 'tpl-3',
     name: 'Unsubscribe Confirmation',
-    description: 'Confirms unsubscription',
+    version: 1,
+    channel: 'email',
     category: 'transactional',
-    subject: "You've been unsubscribed",
-    mjml: `<mjml>
-  <mj-body>
-    <mj-section>
-      <mj-column>
-        <mj-text>We're sorry to see you go!</mj-text>
-      </mj-column>
-    </mj-section>
-  </mj-body>
-</mjml>`,
-    html: '<html><body><p>Unsubscribed</p></body></html>',
-    from_email: 'hello@example.com',
-    from_name: 'Test Workspace',
-    reply_to: null,
-    utm_source: null,
-    utm_medium: null,
-    utm_campaign: null,
+    email: {
+      editor_mode: 'visual',
+      subject: "You've been unsubscribed",
+      subject_preview: 'You will not hear from us again',
+      compiled_preview: '<html><body><p>Unsubscribed</p></body></html>',
+      visual_editor_tree: mockEmailTree('unsubscribe', "We're sorry to see you go!")
+    },
     created_at: '2024-01-08T00:00:00Z',
     updated_at: '2024-01-12T00:00:00Z'
   }
@@ -265,92 +350,103 @@ export const mockCompiledTemplate = {
 // BROADCASTS
 // ============================================
 
+// Shaped after the Broadcast interface in src/services/api/broadcast.ts: the page
+// reads test_settings.variations unconditionally, so a broadcast without
+// test_settings crashes the whole list.
 export const mockBroadcasts = [
   {
     id: 'bc-1',
+    workspace_id: 'test-workspace',
     name: 'January Newsletter',
-    description: 'Monthly newsletter for January',
+    channel_type: 'email',
     status: 'draft',
-    template_id: 'tpl-2',
     audience: {
-      type: 'list',
-      list_ids: ['list-1']
+      list: 'list-1',
+      segments: [],
+      exclude_unsubscribed: true
     },
-    schedule: null,
-    ab_test: null,
-    stats: {
-      recipients: 0,
-      sent: 0,
-      delivered: 0,
-      opened: 0,
-      clicked: 0,
-      bounced: 0,
-      unsubscribed: 0
+    schedule: {
+      is_scheduled: false,
+      use_recipient_timezone: false
     },
+    test_settings: {
+      enabled: false,
+      sample_percentage: 0,
+      auto_send_winner: false,
+      variations: [{ variation_name: 'A', template_id: 'tpl-2' }]
+    },
+    utm_parameters: {
+      source: 'notifuse',
+      medium: 'email',
+      campaign: 'january-newsletter'
+    },
+    test_phase_recipient_count: 0,
+    winner_phase_recipient_count: 0,
     created_at: '2024-01-20T00:00:00Z',
     updated_at: '2024-01-20T00:00:00Z'
   },
   {
     id: 'bc-2',
+    workspace_id: 'test-workspace',
     name: 'Product Launch',
-    description: 'New feature announcement',
-    status: 'sent',
-    template_id: 'tpl-2',
+    channel_type: 'email',
+    status: 'processed',
     audience: {
-      type: 'segment',
-      segment_ids: ['seg-1']
+      list: 'list-2',
+      segments: ['seg-1'],
+      exclude_unsubscribed: true
     },
     schedule: {
-      scheduled_at: '2024-01-15T10:00:00Z',
-      timezone: 'UTC'
+      is_scheduled: true,
+      scheduled_date: '2024-01-15',
+      scheduled_time: '10:00',
+      timezone: 'UTC',
+      use_recipient_timezone: false
     },
-    ab_test: null,
-    stats: {
-      recipients: 500,
-      sent: 500,
-      delivered: 485,
-      opened: 250,
-      clicked: 75,
-      bounced: 15,
-      unsubscribed: 3
+    test_settings: {
+      enabled: false,
+      sample_percentage: 0,
+      auto_send_winner: false,
+      variations: [{ variation_name: 'A', template_id: 'tpl-2' }]
     },
-    sent_at: '2024-01-15T10:00:00Z',
+    test_phase_recipient_count: 0,
+    winner_phase_recipient_count: 500,
     created_at: '2024-01-10T00:00:00Z',
-    updated_at: '2024-01-15T10:30:00Z'
+    updated_at: '2024-01-15T10:30:00Z',
+    started_at: '2024-01-15T10:00:00Z',
+    completed_at: '2024-01-15T10:30:00Z'
   },
   {
     id: 'bc-3',
+    workspace_id: 'test-workspace',
     name: 'A/B Test Campaign',
-    description: 'Testing subject lines',
+    channel_type: 'email',
     status: 'scheduled',
-    template_id: 'tpl-2',
     audience: {
-      type: 'list',
-      list_ids: ['list-2']
+      list: 'list-2',
+      segments: [],
+      exclude_unsubscribed: true
     },
     schedule: {
-      scheduled_at: '2024-02-01T09:00:00Z',
-      timezone: 'UTC'
+      is_scheduled: true,
+      scheduled_date: '2024-02-01',
+      scheduled_time: '09:00',
+      timezone: 'UTC',
+      use_recipient_timezone: false
     },
-    ab_test: {
+    test_settings: {
       enabled: true,
-      test_percentage: 20,
+      sample_percentage: 20,
+      auto_send_winner: true,
+      auto_send_winner_metric: 'open_rate',
+      test_duration_hours: 4,
       variations: [
-        { id: 'var-a', subject: 'Check out our new features!', weight: 50 },
-        { id: 'var-b', subject: 'You wont believe what we just launched', weight: 50 }
-      ],
-      winner_criteria: 'open_rate',
-      winner_wait_hours: 4
+        { variation_name: 'A', template_id: 'tpl-1' },
+        { variation_name: 'B', template_id: 'tpl-2' }
+      ]
     },
-    stats: {
-      recipients: 0,
-      sent: 0,
-      delivered: 0,
-      opened: 0,
-      clicked: 0,
-      bounced: 0,
-      unsubscribed: 0
-    },
+    test_phase_recipient_count: 0,
+    winner_phase_recipient_count: 0,
     created_at: '2024-01-25T00:00:00Z',
     updated_at: '2024-01-25T00:00:00Z'
   }
@@ -358,31 +454,37 @@ export const mockBroadcasts = [
 
 export const mockBroadcastsResponse = {
   broadcasts: mockBroadcasts,
-  total: 3
+  total_count: 3
 }
 
 export const mockEmptyBroadcasts = {
   broadcasts: [],
-  total: 0
+  total_count: 0
 }
 
 // ============================================
 // TRANSACTIONAL NOTIFICATIONS
 // ============================================
 
+// Shaped after the TransactionalNotification interface in
+// src/services/api/transactional_notifications.ts: the template lives under
+// channels.email.template_id and the UTM/tracking fields under tracking_settings.
 export const mockTransactionalNotifications = [
   {
     id: 'transactional-1',
     name: 'Password Reset',
     description: 'Sent when user requests password reset',
-    template_id: 'tpl-1',
-    tracking: {
-      opens: true,
-      clicks: true
+    channels: {
+      email: { template_id: 'tpl-1' }
     },
-    utm_source: 'email',
-    utm_medium: 'transactional',
-    utm_campaign: 'password-reset',
+    tracking_settings: {
+      enable_tracking: true,
+      tracking_mode: 'inherit',
+      utm_source: 'notifuse',
+      utm_medium: 'email',
+      utm_campaign: 'transactional',
+      utm_content: 'password_reset'
+    },
     created_at: '2024-01-01T00:00:00Z',
     updated_at: '2024-01-01T00:00:00Z'
   },
@@ -390,14 +492,17 @@ export const mockTransactionalNotifications = [
     id: 'transactional-2',
     name: 'Order Confirmation',
     description: 'Sent after successful order',
-    template_id: 'tpl-2',
-    tracking: {
-      opens: true,
-      clicks: false
+    channels: {
+      email: { template_id: 'tpl-2' }
     },
-    utm_source: 'email',
-    utm_medium: 'transactional',
-    utm_campaign: 'order-confirmation',
+    tracking_settings: {
+      enable_tracking: true,
+      tracking_mode: 'inherit',
+      utm_source: 'notifuse',
+      utm_medium: 'email',
+      utm_campaign: 'transactional',
+      utm_content: 'order_confirmation'
+    },
     created_at: '2024-01-05T00:00:00Z',
     updated_at: '2024-01-10T00:00:00Z'
   },
@@ -405,14 +510,13 @@ export const mockTransactionalNotifications = [
     id: 'transactional-3',
     name: 'Account Verification',
     description: 'Email verification for new accounts',
-    template_id: 'tpl-1',
-    tracking: {
-      opens: false,
-      clicks: true
+    channels: {
+      email: { template_id: 'tpl-1' }
     },
-    utm_source: null,
-    utm_medium: null,
-    utm_campaign: null,
+    tracking_settings: {
+      enable_tracking: false,
+      tracking_mode: 'disabled'
+    },
     created_at: '2024-01-08T00:00:00Z',
     updated_at: '2024-01-08T00:00:00Z'
   }
@@ -641,12 +745,14 @@ export const mockBlogCategoriesResponse = {
 
 export const mockBlogPostsResponse = {
   posts: mockBlogPosts,
-  total: 4
+  // The blog list endpoint names its count `total_count` (internal/http/blog_handler.go),
+  // and BlogPage reads that key to decide between the empty state and the posts table.
+  total_count: 4
 }
 
 export const mockEmptyBlogPosts = {
   posts: [],
-  total: 0
+  total_count: 0
 }
 
 export const mockBlogThemes = [

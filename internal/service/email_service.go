@@ -90,10 +90,20 @@ func (s *EmailService) TestEmailProvider(ctx context.Context, workspaceID string
 	defer tracing.EndSpan(span, nil)
 
 	// Authenticate user
-	ctx, _, _, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	ctx, _, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 	if err != nil {
 		tracing.MarkSpanError(ctx, err)
 		return err
+	}
+
+	// This sends a real email through the workspace's stored provider credentials,
+	// so it is a send and gated like one.
+	if !userWorkspace.HasPermission(domain.PermissionResourceTransactional, domain.PermissionTypeWrite) {
+		return domain.NewPermissionError(
+			domain.PermissionResourceTransactional,
+			domain.PermissionTypeWrite,
+			"Insufficient permissions: write access to transactional required",
+		)
 	}
 
 	// Fill in credentials the client could not send. Workspaces do not serve

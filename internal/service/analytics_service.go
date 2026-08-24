@@ -41,15 +41,27 @@ func (s *AnalyticsService) Query(ctx context.Context, workspaceID string, query 
 		return nil, fmt.Errorf("failed to authenticate user: %w", err)
 	}
 
-	// Web analytics carries visitor-level data (paths, geo, user ids) and has
-	// its own permission, which the console uses to hide the section. Workspace
-	// membership alone must not be enough to read it through this endpoint.
-	if domain.IsWebAnalyticsSchema(query.Schema) &&
-		!userWorkspace.HasPermission(domain.PermissionResourceWebAnalytics, domain.PermissionTypeRead) {
+	// A query reads a table, so it costs the read grant on the resource that owns
+	// that table — web analytics carries visitor-level data, message_history
+	// carries recipient identities, and so on. Workspace membership alone must not
+	// be enough to read any of them through this endpoint.
+	//
+	// An unmapped schema is refused rather than served: falling through would make
+	// a schema added later readable by every member, which is the exact gap this
+	// mapping closes.
+	resource, mapped := domain.AnalyticsSchemaResource(query.Schema)
+	if !mapped {
 		return nil, domain.NewPermissionError(
-			domain.PermissionResourceWebAnalytics,
+			"",
 			domain.PermissionTypeRead,
-			"Insufficient permissions: read access to web_analytics required",
+			fmt.Sprintf("Insufficient permissions: schema %s cannot be queried", query.Schema),
+		)
+	}
+	if !userWorkspace.HasPermission(resource, domain.PermissionTypeRead) {
+		return nil, domain.NewPermissionError(
+			resource,
+			domain.PermissionTypeRead,
+			fmt.Sprintf("Insufficient permissions: read access to %s required", resource),
 		)
 	}
 
@@ -90,7 +102,7 @@ func (s *AnalyticsService) Query(ctx context.Context, workspaceID string, query 
 // GetSchemas returns the available analytics schemas for a workspace
 func (s *AnalyticsService) GetSchemas(ctx context.Context, workspaceID string) (map[string]analytics.SchemaDefinition, error) {
 	// Authenticate user and verify they have access to the workspace
-	ctx, user, _, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	ctx, user, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 	if err != nil {
 		s.logger.WithField("workspace_id", workspaceID).WithField("error", err.Error()).Error("Failed to authenticate user for schemas request")
 		return nil, fmt.Errorf("failed to authenticate user: %w", err)
@@ -106,5 +118,18 @@ func (s *AnalyticsService) GetSchemas(ctx context.Context, workspaceID string) (
 		return nil, fmt.Errorf("failed to get schemas: %w", err)
 	}
 
-	return schemas, nil
+	// The catalogue answers with what the caller could actually query, using the
+	// same mapping Query gates on — an unmapped schema is listed to nobody. This
+	// degrades rather than refusing: the metadata is a measure and dimension
+	// listing, so a caller holding one resource still gets a usable catalogue
+	// instead of a 403 it cannot act on.
+	readable := make(map[string]analytics.SchemaDefinition, len(schemas))
+	for name, schema := range schemas {
+		resource, mapped := domain.AnalyticsSchemaResource(name)
+		if mapped && userWorkspace.HasPermission(resource, domain.PermissionTypeRead) {
+			readable[name] = schema
+		}
+	}
+
+	return readable, nil
 }

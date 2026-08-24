@@ -132,26 +132,39 @@ describe('i18n utility functions', () => {
     it('loads and activates English locale', async () => {
       await loadLocale('en')
       expect(i18n.locale).toBe('en')
-      expect(localStorageMock.setItem).toHaveBeenCalledWith('locale', 'en')
     })
 
     it('loads and activates French locale', async () => {
       await loadLocale('fr')
       expect(i18n.locale).toBe('fr')
-      expect(localStorageMock.setItem).toHaveBeenCalledWith('locale', 'fr')
     })
 
     it('loads and activates all supported locales', async () => {
       for (const locale of locales) {
         await loadLocale(locale)
         expect(i18n.locale).toBe(locale)
-        expect(localStorageMock.setItem).toHaveBeenCalledWith('locale', locale)
       }
     })
 
-    it('persists locale to localStorage', async () => {
-      await loadLocale('es')
+    it('returns the locale it activated', async () => {
+      await expect(loadLocale('es')).resolves.toBe('es')
+    })
+
+    it('persists locale to localStorage when asked to', async () => {
+      await loadLocale('es', { persist: true })
       expect(localStorageMock.setItem).toHaveBeenCalledWith('locale', 'es')
+    })
+
+    // Persisting is opt-in because the bootstrap load re-reads the stored value:
+    // writing it back on every load is what let a stale locale re-pin itself.
+    it('does not persist by default', async () => {
+      localStorageMock.setItem('locale', 'fr')
+      localStorageMock.setItem.mockClear()
+
+      await loadLocale('es')
+
+      expect(localStorageMock.setItem).not.toHaveBeenCalled()
+      expect(localStorageMock.getItem('locale')).toBe('fr')
     })
   })
 

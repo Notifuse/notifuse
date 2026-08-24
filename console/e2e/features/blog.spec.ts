@@ -1,11 +1,104 @@
-import { test, expect, requestCapture } from '../fixtures/auth'
-import { waitForDrawer, waitForLoading } from '../fixtures/test-utils'
-import { API_PATTERNS } from '../fixtures/request-capture'
-import { fillSEOSettings } from '../fixtures/form-fillers'
+import { test, expect } from '../fixtures/auth'
+import type { Locator, Page } from '@playwright/test'
+import { waitForLoading } from '../fixtures/test-utils'
 import { testBlogPostData, testSEOData } from '../fixtures/form-data'
-import { assertFieldInPayload, logCapturedRequests } from '../fixtures/payload-assertions'
 
 const WORKSPACE_ID = 'test-workspace'
+
+// antd 6 renamed the inner wrapper of both overlays (.ant-drawer-content became
+// .ant-drawer-section, .ant-modal-content became .ant-modal-container), so they are
+// addressed here by role and accessible name - which is their title - instead.
+function drawer(page: Page, title: string): Locator {
+  return page.getByRole('dialog', { name: title, exact: true })
+}
+
+async function openCreatePostDrawer(page: Page): Promise<Locator> {
+  // The button carries a plus icon whose aria-label joins the accessible name,
+  // so the match is on the substring rather than the exact string.
+  await page.getByRole('button', { name: 'New Post' }).click()
+  const postDrawer = drawer(page, 'Create New Post')
+  await expect(postDrawer).toBeVisible()
+  return postDrawer
+}
+
+/**
+ * Pick an option in an antd Select. The role="option" nodes live in a zero-sized
+ * a11y-only listbox; the clickable ones are the .ant-select-item-option rows of the
+ * visible dropdown, so those are what gets clicked.
+ */
+async function selectOption(
+  page: Page,
+  scope: Locator,
+  fieldId: string,
+  optionText: string
+): Promise<void> {
+  await scope
+    .locator('.ant-form-item')
+    .filter({ has: page.locator(`#${fieldId}`) })
+    .locator('.ant-select')
+    .click()
+  // Each dropdown carries the a11y listbox of its own field, which tells them apart
+  // when a previously opened one is still on screen.
+  const dropdown = page.locator('.ant-select-dropdown').filter({
+    has: page.locator(`#${fieldId}_list`)
+  })
+  await dropdown.waitFor({ state: 'visible' })
+  await dropdown.locator('.ant-select-item-option').filter({ hasText: optionText }).click()
+}
+
+/** Fill every field the post form requires, so the form validates and submits. */
+async function fillRequiredPostFields(
+  page: Page,
+  postDrawer: Locator,
+  title: string,
+  authorName: string
+): Promise<void> {
+  await postDrawer.locator('input[placeholder="Post title"]').fill(title)
+  await selectOption(page, postDrawer, 'category_id', 'Engineering')
+  await postDrawer.locator('#reading_time_minutes').fill('7')
+
+  await postDrawer.getByRole('button', { name: 'Add Author' }).click()
+  const authorModal = drawer(page, 'Add Author')
+  await expect(authorModal).toBeVisible()
+  await authorModal.locator('#name').fill(authorName)
+  await authorModal.getByRole('button', { name: 'Add', exact: true }).click()
+  await expect(authorModal).toBeHidden()
+}
+
+/** Fill the whole SEO block. Ids come from the form path, e.g. seo -> meta_title. */
+async function fillSEOFields(
+  page: Page,
+  postDrawer: Locator,
+  seo: {
+    meta_title: string
+    meta_description: string
+    keywords: string[]
+    canonical_url: string
+    og_title: string
+    og_description: string
+    og_image: string
+  }
+): Promise<void> {
+  await postDrawer.locator('#seo_meta_title').fill(seo.meta_title)
+  await postDrawer.locator('#seo_meta_description').fill(seo.meta_description)
+  for (const keyword of seo.keywords) {
+    await postDrawer.locator('#seo_keywords').fill(keyword)
+    await postDrawer.locator('#seo_keywords').press('Enter')
+  }
+  // Close the keyword dropdown so it stops covering the fields below it
+  await postDrawer.locator('#seo_keywords').press('Escape')
+  await selectOption(page, postDrawer, 'seo_meta_robots', 'Index and follow links')
+  await postDrawer.locator('#seo_canonical_url').fill(seo.canonical_url)
+  await postDrawer.locator('#seo_og_title').fill(seo.og_title)
+  await postDrawer.locator('#seo_og_description').fill(seo.og_description)
+  // ImageURLInput does not forward the Form.Item id to its Input, so this one is
+  // reached through its form item instead.
+  await postDrawer
+    .locator('.ant-form-item')
+    .filter({ hasText: 'Social Share Image URL' })
+    .locator('input')
+    .fill(seo.og_image)
+}
 
 test.describe('Blog Feature', () => {
   test.describe('Page Load', () => {
@@ -15,8 +108,11 @@ test.describe('Blog Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/blog`)
       await waitForLoading(page)
 
-      // Page should load
-      await expect(page.locator('body')).toBeVisible()
+      await expect(page).toHaveURL(/blog/)
+      // Category rail on the left, posts on the right.
+      await expect(page.getByText('Categories', { exact: true })).toBeVisible()
+      await expect(page.getByRole('heading', { name: 'All Posts' })).toBeVisible()
+      await expect(page.getByRole('button', { name: 'New Post' })).toBeVisible()
     })
 
     test('loads blog page with posts', async ({ authenticatedPageWithData }) => {
@@ -25,10 +121,15 @@ test.describe('Blog Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/blog`)
       await waitForLoading(page)
 
-      // Page should load successfully
-      await expect(page.locator('body')).toBeVisible()
-      // URL should be correct
       await expect(page).toHaveURL(/blog/)
+      // The four mocked posts, with their slugs and categories.
+      await expect(page.locator('.ant-table-row')).toHaveCount(4)
+      await expect(
+        page.locator('.ant-table-row').filter({ hasText: 'Getting Started with Email Marketing' })
+      ).toContainText('getting-started-email-marketing')
+      await expect(
+        page.locator('.ant-table-row').filter({ hasText: 'New Feature: A/B Testing' })
+      ).toContainText('Product Updates')
     })
   })
 
@@ -39,20 +140,10 @@ test.describe('Blog Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/blog`)
       await waitForLoading(page)
 
-      // Click add/create button
-      const addButton = page.getByRole('button', { name: /add|create|new|post/i })
-      if ((await addButton.count()) > 0) {
-        await addButton.first().click()
+      const postDrawer = await openCreatePostDrawer(page)
 
-        // Wait for form
-        await page.waitForTimeout(500)
-
-        const hasDrawer = (await page.locator('.ant-drawer-content').count()) > 0
-        const hasModal = (await page.locator('.ant-modal-content').count()) > 0
-        const urlChanged = page.url().includes('new') || page.url().includes('create')
-
-        expect(hasDrawer || hasModal || urlChanged).toBe(true)
-      }
+      await expect(postDrawer.locator('input[placeholder="Post title"]')).toBeVisible()
+      await expect(postDrawer.getByRole('button', { name: 'Create', exact: true })).toBeVisible()
     })
 
     test('fills blog post form', async ({ authenticatedPage }) => {
@@ -61,37 +152,24 @@ test.describe('Blog Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/blog`)
       await waitForLoading(page)
 
-      // Click add button
-      const addButton = page.getByRole('button', { name: /add|create|new|post/i })
-      if ((await addButton.count()) > 0) {
-        await addButton.first().click()
+      const postDrawer = await openCreatePostDrawer(page)
 
-        // Wait for drawer to open
-        await waitForDrawer(page)
+      // Fill post title (required)
+      const titleInput = postDrawer.locator('input[placeholder="Post title"]')
+      await titleInput.fill('Test Blog Post Title')
+      await expect(titleInput).toHaveValue('Test Blog Post Title')
 
-        // Fill post title (required) - first input in drawer
-        const titleInput = page.locator('.ant-drawer-content input').first()
-        await titleInput.fill('Test Blog Post Title')
+      // Slug is derived from the title
+      await expect(postDrawer.locator('input[placeholder="post-slug"]')).toHaveValue(
+        'test-blog-post-title'
+      )
 
-        // Slug is auto-generated from title - second input
-        const slugInput = page.locator('.ant-drawer-content input').nth(1)
-        await expect(slugInput).toBeVisible()
+      // Fill excerpt (optional)
+      const excerptInput = postDrawer.locator('#excerpt')
+      await excerptInput.fill('This is a test blog post excerpt')
+      await expect(excerptInput).toHaveValue('This is a test blog post excerpt')
 
-        // Fill excerpt (optional)
-        const excerptInput = page.locator('.ant-drawer-content textarea')
-        if ((await excerptInput.count()) > 0) {
-          await excerptInput.first().fill('This is a test blog post excerpt')
-        }
-
-        // Verify form filled correctly
-        await expect(titleInput).toHaveValue('Test Blog Post Title')
-
-        // Verify Create button is visible
-        await expect(page.getByRole('button', { name: 'Create', exact: true })).toBeVisible()
-      } else {
-        // No add button found, just verify page loaded
-        await expect(page).toHaveURL(/blog/)
-      }
+      await expect(postDrawer.getByRole('button', { name: 'Create', exact: true })).toBeVisible()
     })
 
     test('views post details', async ({ authenticatedPageWithData }) => {
@@ -100,15 +178,17 @@ test.describe('Blog Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/blog`)
       await waitForLoading(page)
 
-      // Click on a post
-      const postItem = page.locator('.ant-table-row, .ant-card').first()
-      if ((await postItem.count()) > 0) {
-        await postItem.click()
+      // The row actions are icon-only buttons; the pencil is the edit one.
+      const row = page.locator('.ant-table-row').filter({ hasText: 'Draft Post' })
+      await row
+        .getByRole('button')
+        .filter({ has: page.locator('[data-icon="pen-to-square"]') })
+        .click()
 
-        // Should show post details or editor
-        await page.waitForTimeout(500)
-        await expect(page.locator('body')).toBeVisible()
-      }
+      const editDrawer = drawer(page, 'Edit Post')
+      await expect(editDrawer).toBeVisible()
+      await expect(editDrawer.locator('input[placeholder="Post title"]')).toHaveValue('Draft Post')
+      await expect(editDrawer.locator('input[placeholder="post-slug"]')).toHaveValue('draft-post')
     })
   })
 
@@ -119,12 +199,19 @@ test.describe('Blog Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/blog`)
       await waitForLoading(page)
 
-      // Look for categories tab or section - locator created for potential future assertions
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const _categoriesTab = page.locator('text=Categories, text=categories')
+      // Every mocked category is listed in the rail, next to the create entry point.
+      const rail = page.locator('.ant-menu').filter({ hasText: 'All Posts' })
+      await expect(rail.locator('.ant-menu-item').filter({ hasText: 'Engineering' })).toBeVisible()
+      await expect(
+        rail.locator('.ant-menu-item').filter({ hasText: 'Product Updates' })
+      ).toBeVisible()
+      await expect(rail.locator('.ant-menu-item').filter({ hasText: 'Company News' })).toBeVisible()
+      await expect(page.getByRole('button', { name: 'New Category' })).toBeVisible()
 
-      // Page should load regardless
-      await expect(page.locator('body')).toBeVisible()
+      // Picking a category scopes the list to it
+      await rail.locator('.ant-menu-item').filter({ hasText: 'Engineering' }).click()
+      await expect(page).toHaveURL(/category_id=cat-1/)
+      await expect(page.getByRole('heading', { name: 'Engineering' })).toBeVisible()
     })
   })
 
@@ -135,10 +222,16 @@ test.describe('Blog Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/blog`)
       await waitForLoading(page)
 
-      // Page should load successfully
-      await expect(page.locator('body')).toBeVisible()
-      // URL should be correct
-      await expect(page).toHaveURL(/blog/)
+      // A post with a past published_at reads as published, one without as a draft.
+      await expect(
+        page
+          .locator('.ant-table-row')
+          .filter({ hasText: 'Getting Started with Email Marketing' })
+          .locator('.ant-tag')
+      ).toHaveText('Published')
+      await expect(
+        page.locator('.ant-table-row').filter({ hasText: 'Draft Post' }).locator('.ant-tag')
+      ).toHaveText('Draft')
     })
 
     test('shows draft posts', async ({ authenticatedPageWithData }) => {
@@ -147,11 +240,18 @@ test.describe('Blog Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/blog`)
       await waitForLoading(page)
 
-      // Look for draft status - locator created for potential future assertions
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const _draftTag = page.locator('text=draft, text=Draft')
-      // Page should load regardless of whether drafts exist
-      await expect(page.locator('body')).toBeVisible()
+      // The filter is what the page owns: it re-queries with the status and records it
+      // in the URL. The mocked backend answers every status with the same four posts,
+      // so the rows themselves prove nothing here.
+      const listRequest = page.waitForRequest(
+        (request) =>
+          request.url().includes('/api/blogPosts.list') && request.url().includes('status=draft')
+      )
+      await page.locator('.ant-segmented-item').filter({ hasText: 'Drafts' }).click()
+      await listRequest
+
+      await expect(page).toHaveURL(/status=draft/)
+      await expect(page.locator('.ant-segmented-item-selected')).toHaveText('Drafts')
     })
 
     test('shows published posts', async ({ authenticatedPageWithData }) => {
@@ -160,11 +260,15 @@ test.describe('Blog Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/blog`)
       await waitForLoading(page)
 
-      // Look for published status - locator created for potential future assertions
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const _publishedTag = page.locator('text=published, text=Published')
-      // Page should load regardless
-      await expect(page.locator('body')).toBeVisible()
+      const listRequest = page.waitForRequest(
+        (request) =>
+          request.url().includes('/api/blogPosts.list') && request.url().includes('status=published')
+      )
+      await page.locator('.ant-segmented-item').filter({ hasText: 'Published' }).click()
+      await listRequest
+
+      await expect(page).toHaveURL(/status=published/)
+      await expect(page.locator('.ant-segmented-item-selected')).toHaveText('Published')
     })
   })
 
@@ -175,22 +279,11 @@ test.describe('Blog Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/blog`)
       await waitForLoading(page)
 
-      // Open create form
-      const addButton = page.getByRole('button', { name: /add|create|new|post/i })
-      if ((await addButton.count()) > 0) {
-        await addButton.first().click()
+      const postDrawer = await openCreatePostDrawer(page)
 
-        await page.waitForTimeout(500)
-
-        // Look for editor - locator created for potential future assertions
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const _editor = page.locator(
-          '.tiptap, .ProseMirror, [class*="editor"], textarea[name="content"]'
-        )
-
-        // Form should be visible
-        await expect(page.locator('body')).toBeVisible()
-      }
+      const editor = postDrawer.locator('.ProseMirror')
+      await expect(editor).toBeVisible()
+      await expect(editor).toHaveAttribute('contenteditable', 'true')
     })
   })
 
@@ -201,24 +294,12 @@ test.describe('Blog Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/blog`)
       await waitForLoading(page)
 
-      // Open create form
-      const addButton = page.getByRole('button', { name: /add|create|new|post/i })
-      if ((await addButton.count()) > 0) {
-        await addButton.first().click()
+      const postDrawer = await openCreatePostDrawer(page)
 
-        // Wait for drawer to open
-        await waitForDrawer(page)
+      // Submit an untouched form
+      await postDrawer.getByRole('button', { name: 'Create', exact: true }).click()
 
-        // Try to submit without filling required fields - use exact match
-        await page.getByRole('button', { name: 'Create', exact: true }).click()
-
-        // Should show validation error
-        const errorMessage = page.locator('.ant-form-item-explain-error')
-        await expect(errorMessage.first()).toBeVisible({ timeout: 5000 })
-      } else {
-        // No add button found, just verify page loaded
-        await expect(page).toHaveURL(/blog/)
-      }
+      await expect(postDrawer.getByText('Please enter a post title')).toBeVisible()
     })
 
     test('shows form with required fields', async ({ authenticatedPage }) => {
@@ -227,25 +308,18 @@ test.describe('Blog Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/blog`)
       await waitForLoading(page)
 
-      // Open create form
-      const addButton = page.getByRole('button', { name: /add|create|new|post/i })
-      if ((await addButton.count()) > 0) {
-        await addButton.first().click()
+      const postDrawer = await openCreatePostDrawer(page)
 
-        // Wait for drawer to open
-        await waitForDrawer(page)
-
-        // Verify drawer is visible
-        await expect(page.locator('.ant-drawer-content')).toBeVisible()
-
-        // Verify Create button is visible
-        await expect(page.getByRole('button', { name: 'Create', exact: true })).toBeVisible()
-
-        // Test passes - form is interactive and ready for validation testing
-      } else {
-        // No add button found, just verify page loaded
-        await expect(page).toHaveURL(/blog/)
+      // The fields a post cannot be created without are marked as required
+      for (const label of ['Title', 'Slug', 'Category', 'Reading Time', 'Authors']) {
+        await expect(
+          postDrawer.locator('.ant-form-item-label label.ant-form-item-required', {
+            hasText: label
+          })
+        ).toBeVisible()
       }
+
+      await expect(postDrawer.getByRole('button', { name: 'Create', exact: true })).toBeVisible()
     })
   })
 
@@ -257,12 +331,12 @@ test.describe('Blog Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/`)
       await waitForLoading(page)
 
-      // Click blog link in sidebar
-      const blogLink = page.locator('a[href*="blog"], [data-menu-id*="blog"]').first()
-      await blogLink.click()
+      // Blog sits inside the collapsed "Content" group, which has to be opened first
+      await page.locator('.ant-menu-submenu-title').filter({ hasText: 'Content' }).click()
+      await page.locator('.ant-menu-item').filter({ hasText: 'Blog' }).click()
 
-      // Should be on blog page
-      await expect(page).toHaveURL(/blog/)
+      await expect(page).toHaveURL(/\/blog/)
+      await expect(page.getByRole('heading', { name: 'All Posts' })).toBeVisible()
     })
 
     test('can close create form', async ({ authenticatedPage }) => {
@@ -271,23 +345,16 @@ test.describe('Blog Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/blog`)
       await waitForLoading(page)
 
-      // Open create form
-      const addButton = page.getByRole('button', { name: /add|create|new|post/i })
-      if ((await addButton.count()) > 0) {
-        await addButton.first().click()
+      const postDrawer = await openCreatePostDrawer(page)
 
-        await page.waitForTimeout(500)
+      await postDrawer.getByRole('button', { name: 'Close' }).click()
 
-        // Close it
-        const closeButton = page.locator('.ant-drawer-close, .ant-modal-close')
-        if ((await closeButton.count()) > 0) {
-          await closeButton.first().click()
-        } else {
-          await page.keyboard.press('Escape')
-        }
+      // A new post starts with editor content, so the drawer asks before dropping it
+      const confirm = page.getByRole('dialog').filter({ hasText: 'Unsaved changes' })
+      await expect(confirm).toBeVisible()
+      await confirm.getByRole('button', { name: 'Yes', exact: true }).click()
 
-        await page.waitForTimeout(500)
-      }
+      await expect(postDrawer).toBeHidden()
     })
   })
 
@@ -300,130 +367,54 @@ test.describe('Blog Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/blog`)
       await waitForLoading(page)
 
-      // Open create post form - specifically target the "Create Your First Post" button in main content
-      // NOT the "New Category" button in the sidebar
-      const createPostButton = page.getByRole('button', { name: /create.*post|add.*post/i })
-      if ((await createPostButton.count()) === 0) {
-        // Fallback to any add button if specific post button not found
-        const addButton = page.getByRole('button', { name: /add|create|new/i })
-        if ((await addButton.count()) === 0) return
-        // Use last() to get the main content button, not sidebar
-        await addButton.last().click()
-      } else {
-        await createPostButton.first().click()
-      }
-      await waitForDrawer(page)
+      const postDrawer = await openCreatePostDrawer(page)
 
-      // Fill the post title - use placeholder to avoid SEO title fields
-      const titleInput = page.locator('input[placeholder="Post title"]')
-      if ((await titleInput.count()) > 0) {
-        await titleInput.fill(testBlogPostData.title)
-      } else {
-        // Fallback: find Title form item and fill its input
-        const titleFormItem = page.locator('.ant-form-item').filter({ hasText: 'Title' }).first()
-        const input = titleFormItem.locator('input').first()
-        await input.fill(testBlogPostData.title)
-      }
+      await fillRequiredPostFields(
+        page,
+        postDrawer,
+        testBlogPostData.title,
+        testBlogPostData.authors[0].name
+      )
+      await postDrawer.locator('#excerpt').fill(testBlogPostData.excerpt!)
+      await postDrawer
+        .locator('.ant-form-item')
+        .filter({ hasText: 'Featured Image URL' })
+        .locator('input')
+        .fill(testBlogPostData.featured_image_url!)
+      await fillSEOFields(page, postDrawer, {
+        meta_title: testSEOData.meta_title!,
+        meta_description: testSEOData.meta_description!,
+        keywords: testSEOData.keywords!,
+        canonical_url: testSEOData.canonical_url!,
+        og_title: testSEOData.og_title!,
+        og_description: testSEOData.og_description!,
+        og_image: testSEOData.og_image!
+      })
 
-      // Wait for slug to auto-generate
-      await page.waitForTimeout(300)
+      // The shared request-capture fixture only knows the blog.post.* URL spelling, so the
+      // real one the client calls is awaited directly.
+      const createRequest = page.waitForRequest((request) =>
+        request.url().includes('/api/blogPosts.create')
+      )
+      await postDrawer.getByRole('button', { name: 'Create', exact: true }).click()
+      const body = (await createRequest).postDataJSON()
 
-      // Fill reading time
-      const readingTimeInput = page.getByLabel('Reading Time', { exact: false })
-      if ((await readingTimeInput.count()) > 0) {
-        await readingTimeInput.fill(testBlogPostData.reading_time_minutes.toString())
-      }
+      expect(body.title).toBe(testBlogPostData.title)
+      expect(body.slug).toBe('e2e-test-blog-post-with-full-seo-settings')
+      expect(body.category_id).toBe('cat-1')
+      expect(body.reading_time_minutes).toBe(7)
+      expect(body.excerpt).toBe(testBlogPostData.excerpt)
+      expect(body.featured_image_url).toBe(testBlogPostData.featured_image_url)
+      expect(body.authors).toEqual([
+        { name: testBlogPostData.authors[0].name, avatar_url: '' }
+      ])
 
-      // Fill excerpt
-      const excerptInput = page.getByLabel('Excerpt', { exact: false })
-      if ((await excerptInput.count()) > 0) {
-        await excerptInput.fill(testBlogPostData.excerpt || '')
-      }
+      // SEO has to travel under `seo`, not at the top level - that was the bug this
+      // covers, and namePrefix={['seo']} on SEOSettingsForm is what keeps it there.
+      expect(body.seo.meta_title).toBe(testSEOData.meta_title)
+      expect(body.seo.meta_description).toBe(testSEOData.meta_description)
 
-      // Fill featured image URL
-      const featuredImageInput = page.getByLabel('Featured Image', { exact: false })
-      if ((await featuredImageInput.count()) > 0) {
-        await featuredImageInput.fill(testBlogPostData.featured_image_url || '')
-      }
-
-      // Fill SEO fields - THIS IS THE CRITICAL PART that was broken!
-      await fillSEOSettings(page, testSEOData)
-
-      // Select a category if available
-      const categorySelect = page.locator('.ant-form-item').filter({ hasText: 'Category' }).first()
-      if ((await categorySelect.count()) > 0) {
-        const select = categorySelect.locator('.ant-select')
-        if ((await select.count()) > 0) {
-          await select.click()
-          await page.locator('.ant-select-dropdown').waitFor({ state: 'visible' })
-          const firstOption = page.locator('.ant-select-item-option').first()
-          if ((await firstOption.count()) > 0) {
-            await firstOption.click()
-          } else {
-            await page.keyboard.press('Escape')
-          }
-        }
-      }
-
-      // Add an author - this opens a modal in some versions
-      const addAuthorBtn = page.getByRole('button', { name: /add author/i })
-      if ((await addAuthorBtn.count()) > 0) {
-        await addAuthorBtn.click()
-        await page.waitForTimeout(300)
-
-        // Check if a modal opened (Add Author modal)
-        const authorModal = page.locator('.ant-modal-content')
-        if ((await authorModal.count()) > 0 && (await authorModal.isVisible())) {
-          // Fill the Name field in the modal
-          const modalNameInput = authorModal.locator('input').first()
-          if ((await modalNameInput.count()) > 0) {
-            await modalNameInput.fill(testBlogPostData.authors[0].name)
-          }
-          // Click Add button in the modal
-          const addBtn = authorModal.getByRole('button', { name: 'Add' })
-          if ((await addBtn.count()) > 0) {
-            await addBtn.click()
-            await page.waitForTimeout(200)
-          }
-        } else {
-          // Fill author name in the first row (inline editing)
-          const authorNameInput = page.locator('.ant-table-row input, [data-testid="author-name"]').first()
-          if ((await authorNameInput.count()) > 0) {
-            await authorNameInput.fill(testBlogPostData.authors[0].name)
-          }
-        }
-      }
-
-      // Submit the form
-      await page.getByRole('button', { name: 'Create', exact: true }).click()
-
-      // Wait for the request to be captured
-      await page.waitForTimeout(1000)
-
-      // Log captured requests for debugging
-      logCapturedRequests(requestCapture)
-
-      // VERIFY: The SEO fields should be in the API payload
-      // This would have caught the bug where SEO fields were not persisted
-      const lastRequest = requestCapture.getLastRequest(API_PATTERNS.BLOG_POST_CREATE)
-
-      if (lastRequest && lastRequest.body) {
-        // Verify basic fields
-        assertFieldInPayload(requestCapture, API_PATTERNS.BLOG_POST_CREATE, 'title')
-
-        // CRITICAL: Verify SEO fields are present in payload
-        // This is what was broken - SEO fields were at wrong path due to namePrefix={[]}
-        assertFieldInPayload(requestCapture, API_PATTERNS.BLOG_POST_CREATE, 'seo')
-
-        // Verify specific SEO fields
-        if ((lastRequest.body as Record<string, unknown>).seo) {
-          const seo = (lastRequest.body as Record<string, unknown>).seo as Record<string, unknown>
-
-          // These assertions would have failed before the fix!
-          expect(seo.meta_title, 'SEO meta_title should be in payload').toBeDefined()
-          expect(seo.meta_description, 'SEO meta_description should be in payload').toBeDefined()
-        }
-      }
+      await expect(postDrawer).toBeHidden()
     })
 
     test('fills all SEO fields and verifies they appear in request', async ({
@@ -434,59 +425,10 @@ test.describe('Blog Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/blog`)
       await waitForLoading(page)
 
-      // Open create post form - specifically target the "Create Your First Post" button in main content
-      // NOT the "New Category" button in the sidebar
-      const createPostButton = page.getByRole('button', { name: /create.*post|add.*post/i })
-      if ((await createPostButton.count()) === 0) {
-        // Fallback to any add button if specific post button not found
-        const addButton = page.getByRole('button', { name: /add|create|new/i })
-        if ((await addButton.count()) === 0) return
-        // Use last() to get the main content button, not sidebar
-        await addButton.last().click()
-      } else {
-        await createPostButton.first().click()
-      }
-      await waitForDrawer(page)
+      const postDrawer = await openCreatePostDrawer(page)
 
-      // Fill minimal required fields - use placeholder to avoid SEO title fields
-      const titleInput = page.locator('input[placeholder="Post title"]')
-      if ((await titleInput.count()) > 0) {
-        await titleInput.fill('SEO Test Post')
-      } else {
-        // Fallback: find Title form item and fill its input
-        const titleFormItem = page.locator('.ant-form-item').filter({ hasText: 'Title' }).first()
-        const input = titleFormItem.locator('input').first()
-        await input.fill('SEO Test Post')
-      }
+      await fillRequiredPostFields(page, postDrawer, 'SEO Test Post', 'Test Author')
 
-      // Select category
-      const categorySelect = page.locator('.ant-form-item').filter({ hasText: 'Category' }).first()
-      if ((await categorySelect.count()) > 0) {
-        const select = categorySelect.locator('.ant-select')
-        if ((await select.count()) > 0) {
-          await select.click()
-          await page.locator('.ant-select-dropdown').waitFor({ state: 'visible' })
-          const firstOption = page.locator('.ant-select-item-option').first()
-          if ((await firstOption.count()) > 0) {
-            await firstOption.click()
-          } else {
-            await page.keyboard.press('Escape')
-          }
-        }
-      }
-
-      // Add author
-      const addAuthorBtn = page.getByRole('button', { name: /add author/i })
-      if ((await addAuthorBtn.count()) > 0) {
-        await addAuthorBtn.click()
-        await page.waitForTimeout(200)
-        const authorNameInput = page.locator('.ant-table-row input').first()
-        if ((await authorNameInput.count()) > 0) {
-          await authorNameInput.fill('Test Author')
-        }
-      }
-
-      // Fill ALL SEO fields with test data
       const seoTestData = {
         meta_title: 'SEO Meta Title Test',
         meta_description: 'This is a test meta description for SEO verification',
@@ -497,31 +439,16 @@ test.describe('Blog Feature', () => {
         og_description: 'Open Graph Description for social sharing',
         og_image: 'https://example.com/og-image.png'
       }
+      await fillSEOFields(page, postDrawer, seoTestData)
 
-      await fillSEOSettings(page, seoTestData)
+      const createRequest = page.waitForRequest((request) =>
+        request.url().includes('/api/blogPosts.create')
+      )
+      await postDrawer.getByRole('button', { name: 'Create', exact: true }).click()
+      const body = (await createRequest).postDataJSON()
 
-      // Submit
-      await page.getByRole('button', { name: 'Create', exact: true }).click()
-      await page.waitForTimeout(1000)
-
-      // Verify SEO is in the payload
-      const request = requestCapture.getLastRequest(API_PATTERNS.BLOG_POST_CREATE)
-
-      if (request && request.body) {
-        const body = request.body as Record<string, unknown>
-
-        // The fix ensures SEO is at the correct path
-        expect(body.seo, 'SEO object should exist in request body').toBeDefined()
-
-        if (body.seo) {
-          const seo = body.seo as Record<string, unknown>
-
-          // Verify each SEO field that was filled appears in payload
-          // Before the fix, these would be at top level instead of under 'seo'
-          expect(seo.meta_title).toBe(seoTestData.meta_title)
-          expect(seo.meta_description).toBe(seoTestData.meta_description)
-        }
-      }
+      // Every SEO field that was typed has to come back out of the form, under `seo`
+      expect(body.seo).toEqual(seoTestData)
     })
   })
 })

@@ -441,3 +441,29 @@ func TestInboundWebhookEventHandler_handleIncomingReply_RateLimited(t *testing.T
 	assert.Equal(t, http.StatusOK, doReq())
 	assert.Equal(t, http.StatusTooManyRequests, doReq(), "second request from the same IP must be rate-limited")
 }
+
+// A missing webhook_events grant is the caller's problem, so it answers 403 with
+// the resource and verb it wanted rather than an opaque 500.
+func TestInboundWebhookEventHandler_handleList_PermissionDenied(t *testing.T) {
+	handler, mockService, _ := setupInboundWebhookEventHandlerTest(t)
+
+	mockService.EXPECT().
+		ListEvents(gomock.Any(), "ws123", gomock.Any()).
+		Return(nil, domain.NewPermissionError(
+			domain.PermissionResourceWebhookEvents,
+			domain.PermissionTypeRead,
+			"Insufficient permissions: read access to webhook events required",
+		))
+
+	req := httptest.NewRequest(http.MethodGet, "/api/inboundWebhookEvents.list?workspace_id=ws123", nil)
+	w := httptest.NewRecorder()
+
+	handler.handleList(w, req)
+
+	assert.Equal(t, http.StatusForbidden, w.Code)
+
+	var response map[string]interface{}
+	require.NoError(t, json.NewDecoder(w.Body).Decode(&response))
+	assert.Equal(t, string(domain.PermissionResourceWebhookEvents), response["resource"])
+	assert.Equal(t, string(domain.PermissionTypeRead), response["permission"])
+}

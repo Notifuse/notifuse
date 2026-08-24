@@ -42,6 +42,18 @@ func setupTest(t *testing.T) (
 	return mockRepo, mockAuthService, mockContactRepo, mockListRepo, service, ctrl
 }
 
+// contactListFullAccess builds a member row — role "member", not "owner", so
+// HasPermission actually consults the grants — holding read+write on every
+// resource, for the cases that exercise the code past the permission gates.
+func contactListFullAccess() *domain.UserWorkspace {
+	return &domain.UserWorkspace{
+		UserID:      "user1",
+		WorkspaceID: "workspace123",
+		Role:        "member",
+		Permissions: domain.NewFullPermissions(),
+	}
+}
+
 func TestContactListService_GetContactListByIDs(t *testing.T) {
 	mockRepo, mockAuthService, _, _, service, ctrl := setupTest(t)
 	defer ctrl.Finish()
@@ -60,7 +72,7 @@ func TestContactListService_GetContactListByIDs(t *testing.T) {
 
 		mockAuthService.EXPECT().
 			AuthenticateUserForWorkspace(ctx, workspaceID).
-			Return(ctx, &domain.User{}, nil, nil)
+			Return(ctx, &domain.User{}, contactListFullAccess(), nil)
 
 		mockRepo.EXPECT().
 			GetContactListByIDs(gomock.Any(), workspaceID, email, listID).
@@ -84,7 +96,7 @@ func TestContactListService_GetContactListByIDs(t *testing.T) {
 	t.Run("not found error", func(t *testing.T) {
 		mockAuthService.EXPECT().
 			AuthenticateUserForWorkspace(ctx, workspaceID).
-			Return(ctx, &domain.User{}, nil, nil)
+			Return(ctx, &domain.User{}, contactListFullAccess(), nil)
 
 		mockRepo.EXPECT().
 			GetContactListByIDs(gomock.Any(), workspaceID, email, listID).
@@ -120,7 +132,7 @@ func TestContactListService_GetContactsByListID(t *testing.T) {
 
 		mockAuthService.EXPECT().
 			AuthenticateUserForWorkspace(ctx, workspaceID).
-			Return(ctx, &domain.User{}, nil, nil)
+			Return(ctx, &domain.User{}, contactListFullAccess(), nil)
 
 		mockListRepo.EXPECT().
 			GetListByID(gomock.Any(), workspaceID, listID).
@@ -148,7 +160,7 @@ func TestContactListService_GetContactsByListID(t *testing.T) {
 	t.Run("list not found", func(t *testing.T) {
 		mockAuthService.EXPECT().
 			AuthenticateUserForWorkspace(ctx, workspaceID).
-			Return(ctx, &domain.User{}, nil, nil)
+			Return(ctx, &domain.User{}, contactListFullAccess(), nil)
 
 		mockListRepo.EXPECT().
 			GetListByID(gomock.Any(), workspaceID, listID).
@@ -184,7 +196,7 @@ func TestContactListService_GetListsByEmail(t *testing.T) {
 
 		mockAuthService.EXPECT().
 			AuthenticateUserForWorkspace(ctx, workspaceID).
-			Return(ctx, &domain.User{}, nil, nil)
+			Return(ctx, &domain.User{}, contactListFullAccess(), nil)
 
 		mockContactRepo.EXPECT().
 			GetContactByEmail(gomock.Any(), workspaceID, email).
@@ -212,7 +224,7 @@ func TestContactListService_GetListsByEmail(t *testing.T) {
 	t.Run("contact not found", func(t *testing.T) {
 		mockAuthService.EXPECT().
 			AuthenticateUserForWorkspace(ctx, workspaceID).
-			Return(ctx, &domain.User{}, nil, nil)
+			Return(ctx, &domain.User{}, contactListFullAccess(), nil)
 
 		mockContactRepo.EXPECT().
 			GetContactByEmail(gomock.Any(), workspaceID, email).
@@ -237,7 +249,7 @@ func TestContactListService_UpdateContactListStatus(t *testing.T) {
 	t.Run("successful update", func(t *testing.T) {
 		mockAuthService.EXPECT().
 			AuthenticateUserForWorkspace(ctx, workspaceID).
-			Return(ctx, &domain.User{}, nil, nil)
+			Return(ctx, &domain.User{}, contactListFullAccess(), nil)
 
 		mockRepo.EXPECT().
 			GetContactListByIDs(gomock.Any(), workspaceID, email, listID).
@@ -272,7 +284,7 @@ func TestContactListService_UpdateContactListStatus(t *testing.T) {
 	t.Run("contact list not found - returns success with message", func(t *testing.T) {
 		mockAuthService.EXPECT().
 			AuthenticateUserForWorkspace(ctx, workspaceID).
-			Return(ctx, &domain.User{}, nil, nil)
+			Return(ctx, &domain.User{}, contactListFullAccess(), nil)
 
 		mockRepo.EXPECT().
 			GetContactListByIDs(gomock.Any(), workspaceID, email, listID).
@@ -289,7 +301,7 @@ func TestContactListService_UpdateContactListStatus(t *testing.T) {
 	t.Run("update error", func(t *testing.T) {
 		mockAuthService.EXPECT().
 			AuthenticateUserForWorkspace(ctx, workspaceID).
-			Return(ctx, &domain.User{}, nil, nil)
+			Return(ctx, &domain.User{}, contactListFullAccess(), nil)
 
 		mockRepo.EXPECT().
 			GetContactListByIDs(gomock.Any(), workspaceID, email, listID).
@@ -321,7 +333,7 @@ func TestContactListService_RemoveContactFromList(t *testing.T) {
 	t.Run("successful removal", func(t *testing.T) {
 		mockAuthService.EXPECT().
 			AuthenticateUserForWorkspace(ctx, workspaceID).
-			Return(ctx, &domain.User{}, nil, nil)
+			Return(ctx, &domain.User{}, contactListFullAccess(), nil)
 
 		mockRepo.EXPECT().
 			RemoveContactFromList(gomock.Any(), workspaceID, email, listID).
@@ -343,7 +355,7 @@ func TestContactListService_RemoveContactFromList(t *testing.T) {
 	t.Run("not found error", func(t *testing.T) {
 		mockAuthService.EXPECT().
 			AuthenticateUserForWorkspace(ctx, workspaceID).
-			Return(ctx, &domain.User{}, nil, nil)
+			Return(ctx, &domain.User{}, contactListFullAccess(), nil)
 
 		mockRepo.EXPECT().
 			RemoveContactFromList(gomock.Any(), workspaceID, email, listID).
@@ -352,4 +364,120 @@ func TestContactListService_RemoveContactFromList(t *testing.T) {
 		err := service.RemoveContactFromList(ctx, workspaceID, email, listID)
 		require.Error(t, err)
 	})
+}
+
+// TestContactListService_PermissionEnforcement verifies that every contact-list
+// operation enforces the permissions it needs. Each case grants everything the
+// method requires except one, so the test fails both if a check is missing AND if
+// a method is gated on the wrong permission type (a read/write swap). No repo
+// expectations are set, so gomock also fails if anything beyond the gate runs.
+//
+// Each case also pins WHICH resource and verb the refusal names. The fixture
+// holds two resources, so a gate on the wrong one still denies and a
+// type-only assertion would pass; and both fields reach the client, since
+// writePermissionError puts them on the wire.
+//
+// The two enumerating reads and both writes require a contacts grant on top of
+// the lists one: they read or edit subscriber identities, not just list metadata.
+func TestContactListService_PermissionEnforcement(t *testing.T) {
+	// role "member" (not "owner") so HasPermission actually consults the grants.
+	member := func(lists, contacts domain.ResourcePermissions) *domain.UserWorkspace {
+		return &domain.UserWorkspace{
+			UserID:      "user1",
+			WorkspaceID: "workspace123",
+			Role:        "member",
+			Permissions: domain.UserPermissions{
+				domain.PermissionResourceLists:    lists,
+				domain.PermissionResourceContacts: contacts,
+			},
+		}
+	}
+	readOnly := domain.ResourcePermissions{Read: true}
+	writeOnly := domain.ResourcePermissions{Write: true}
+	full := domain.ResourcePermissions{Read: true, Write: true}
+
+	ctx := context.Background()
+	workspaceID := "workspace123"
+	email := "test@example.com"
+	listID := "list123"
+
+	cases := []struct {
+		name          string
+		userWorkspace *domain.UserWorkspace
+		resource      domain.PermissionResource
+		permission    domain.PermissionType
+		call          func(s *ContactListService, ctx context.Context) error
+	}{
+		{"GetContactListByIDs without lists read", member(writeOnly, full),
+			domain.PermissionResourceLists, domain.PermissionTypeRead,
+			func(s *ContactListService, ctx context.Context) error {
+				_, err := s.GetContactListByIDs(ctx, workspaceID, email, listID)
+				return err
+			}},
+		{"GetContactsByListID without lists read", member(writeOnly, full),
+			domain.PermissionResourceLists, domain.PermissionTypeRead,
+			func(s *ContactListService, ctx context.Context) error {
+				_, err := s.GetContactsByListID(ctx, workspaceID, listID)
+				return err
+			}},
+		{"GetContactsByListID with lists read but without contacts read", member(readOnly, writeOnly),
+			domain.PermissionResourceContacts, domain.PermissionTypeRead,
+			func(s *ContactListService, ctx context.Context) error {
+				_, err := s.GetContactsByListID(ctx, workspaceID, listID)
+				return err
+			}},
+		{"GetListsByEmail without lists read", member(writeOnly, full),
+			domain.PermissionResourceLists, domain.PermissionTypeRead,
+			func(s *ContactListService, ctx context.Context) error {
+				_, err := s.GetListsByEmail(ctx, workspaceID, email)
+				return err
+			}},
+		{"GetListsByEmail with lists read but without contacts read", member(readOnly, writeOnly),
+			domain.PermissionResourceContacts, domain.PermissionTypeRead,
+			func(s *ContactListService, ctx context.Context) error {
+				_, err := s.GetListsByEmail(ctx, workspaceID, email)
+				return err
+			}},
+		{"UpdateContactListStatus without lists write", member(readOnly, full),
+			domain.PermissionResourceLists, domain.PermissionTypeWrite,
+			func(s *ContactListService, ctx context.Context) error {
+				_, err := s.UpdateContactListStatus(ctx, workspaceID, email, listID, domain.ContactListStatusActive)
+				return err
+			}},
+		{"UpdateContactListStatus with lists write but without contacts write", member(writeOnly, readOnly),
+			domain.PermissionResourceContacts, domain.PermissionTypeWrite,
+			func(s *ContactListService, ctx context.Context) error {
+				_, err := s.UpdateContactListStatus(ctx, workspaceID, email, listID, domain.ContactListStatusActive)
+				return err
+			}},
+		{"RemoveContactFromList without lists write", member(readOnly, full),
+			domain.PermissionResourceLists, domain.PermissionTypeWrite,
+			func(s *ContactListService, ctx context.Context) error {
+				return s.RemoveContactFromList(ctx, workspaceID, email, listID)
+			}},
+		{"RemoveContactFromList with lists write but without contacts write", member(writeOnly, readOnly),
+			domain.PermissionResourceContacts, domain.PermissionTypeWrite,
+			func(s *ContactListService, ctx context.Context) error {
+				return s.RemoveContactFromList(ctx, workspaceID, email, listID)
+			}},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			_, mockAuthService, _, _, service, ctrl := setupTest(t)
+			defer ctrl.Finish()
+
+			mockAuthService.EXPECT().
+				AuthenticateUserForWorkspace(ctx, workspaceID).
+				Return(ctx, &domain.User{ID: "user1"}, tc.userWorkspace, nil)
+
+			err := tc.call(service, ctx)
+			require.Error(t, err)
+
+			var permErr *domain.PermissionError
+			require.True(t, errors.As(err, &permErr), "expected a *domain.PermissionError, got %T: %v", err, err)
+			require.Equal(t, tc.resource, permErr.Resource)
+			require.Equal(t, tc.permission, permErr.Permission)
+		})
+	}
 }

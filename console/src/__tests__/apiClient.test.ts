@@ -23,6 +23,12 @@ function goTo(url: string) {
   window.history.replaceState(null, '', url)
 }
 
+async function rejection(promise: Promise<unknown>): Promise<ApiError> {
+  const error = await promise.catch((e: unknown) => e)
+  expect(error).toBeInstanceOf(ApiError)
+  return error as ApiError
+}
+
 describe('api client 401 handling', () => {
   beforeEach(() => {
     navigate.mockClear()
@@ -91,5 +97,70 @@ describe('api client 401 handling', () => {
 
     expect(navigate).toHaveBeenCalledWith({ to: '/console/signin' })
     expect(localStorage.getItem('auth_token')).toBeNull()
+  })
+})
+
+describe('api client permission denials', () => {
+  beforeEach(() => {
+    navigate.mockClear()
+    localStorage.clear()
+    localStorage.setItem('auth_token', 'valid-token')
+    goTo('/console/workspace/demo/contacts')
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    goTo('/')
+  })
+
+  it('replaces the server prose with a translated message, keeping the body on the error', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        jsonResponse(403, {
+          error: 'user does not have write permission on contacts',
+          resource: 'contacts',
+          permission: 'write'
+        })
+      )
+    )
+
+    const error = await rejection(api.post('/api/contacts.import', {}))
+
+    expect(error.message).toBe('You do not have write access to Contacts.')
+    expect(error.data).toEqual({
+      error: 'user does not have write permission on contacts',
+      resource: 'contacts',
+      permission: 'write'
+    })
+    expect(localStorage.getItem('auth_token')).toBe('valid-token')
+  })
+
+  // The quota errors answer 403 too, and CreateWorkspacePage and WorkspaceMembers match on their
+  // message to offer an upgrade instead of a generic failure. Their bodies carry no resource, so
+  // the rewrite must not reach them.
+  it('leaves a quota 403 message untouched', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        jsonResponse(403, { error: 'team member limit reached for your plan' })
+      )
+    )
+
+    const error = await rejection(api.post('/api/workspaces.inviteMember', {}))
+
+    expect(error.message).toBe('team member limit reached for your plan')
+    expect(error.message).toContain('team member limit')
+  })
+
+  it('leaves a workspace-access 403 message untouched', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(jsonResponse(403, { error: 'user is not a member of workspace' }))
+    )
+
+    const error = await rejection(api.get('/api/contacts.list'))
+
+    expect(error.message).toBe('user is not a member of workspace')
   })
 })

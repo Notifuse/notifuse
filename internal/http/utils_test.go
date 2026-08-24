@@ -21,6 +21,16 @@ import (
 
 // Test setup helper
 func setupTest(t *testing.T) (*WorkspaceHandler, *mocks.MockWorkspaceServiceInterface, *http.ServeMux, []byte, *mocks.MockAuthService) {
+	return setupWorkspaceTest(t, false)
+}
+
+// setupDemoTest builds the handler the way app.go builds it on a demo instance:
+// the flag goes through the constructor, so the routes are wired from it.
+func setupDemoTest(t *testing.T) (*WorkspaceHandler, *mocks.MockWorkspaceServiceInterface, *http.ServeMux, []byte, *mocks.MockAuthService) {
+	return setupWorkspaceTest(t, true)
+}
+
+func setupWorkspaceTest(t *testing.T, isDemo bool) (*WorkspaceHandler, *mocks.MockWorkspaceServiceInterface, *http.ServeMux, []byte, *mocks.MockAuthService) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	workspaceSvc := mocks.NewMockWorkspaceServiceInterface(ctrl)
@@ -40,7 +50,7 @@ func setupTest(t *testing.T) (*WorkspaceHandler, *mocks.MockWorkspaceServiceInte
 	mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
 	mockLogger.EXPECT().Warn(gomock.Any()).AnyTimes()
 
-	handler := NewWorkspaceHandler(workspaceSvc, authSvc, func() ([]byte, error) { return jwtSecret, nil }, mockLogger, passphrase)
+	handler := NewWorkspaceHandler(workspaceSvc, authSvc, func() ([]byte, error) { return jwtSecret, nil }, mockLogger, passphrase, isDemo)
 
 	mux := http.NewServeMux()
 	handler.RegisterRoutes(mux)
@@ -231,6 +241,108 @@ func TestWritePermissionError(t *testing.T) {
 			var response map[string]string
 			require.NoError(t, json.NewDecoder(w.Body).Decode(&response))
 			// The permission message itself, not the wrapping prose around it.
+			assert.Equal(t, tc.expectedMessage, response["error"])
+			// The missing grant, named rather than left to prose parsing.
+			assert.Equal(t, string(domain.PermissionResourceAutomations), response["resource"])
+			assert.Equal(t, string(domain.PermissionTypeWrite), response["permission"])
+		})
+	}
+}
+
+func TestWriteServiceError(t *testing.T) {
+	denial := domain.NewPermissionError(
+		domain.PermissionResourceWorkspace,
+		domain.PermissionTypeRead,
+		"Insufficient permissions: read access to workspace required",
+	)
+
+	testCases := []struct {
+		name            string
+		err             error
+		expectedHandled bool
+		expectedStatus  int
+		expectedMessage string
+	}{
+		{
+			name:            "permission error",
+			err:             denial,
+			expectedHandled: true,
+			expectedStatus:  http.StatusForbidden,
+			expectedMessage: denial.Message,
+		},
+		{
+			name:            "wrapped permission error",
+			err:             fmt.Errorf("failed to get workspace: %w", denial),
+			expectedHandled: true,
+			expectedStatus:  http.StatusForbidden,
+			expectedMessage: denial.Message,
+		},
+		{
+			name:            "workspace not found",
+			err:             &domain.ErrWorkspaceNotFound{WorkspaceID: "workspace-123"},
+			expectedHandled: true,
+			expectedStatus:  http.StatusNotFound,
+			expectedMessage: "Workspace not found",
+		},
+		{
+			name:            "unauthorized",
+			err:             &domain.ErrUnauthorized{Message: "only owners may do that"},
+			expectedHandled: true,
+			expectedStatus:  http.StatusForbidden,
+			expectedMessage: "only owners may do that",
+		},
+		{
+			// The authenticate step that precedes every check wraps on the way up.
+			name:            "wrapped unauthorized",
+			err:             fmt.Errorf("failed to authenticate user: %w", &domain.ErrUnauthorized{Message: "only owners may do that"}),
+			expectedHandled: true,
+			expectedStatus:  http.StatusForbidden,
+			expectedMessage: "only owners may do that",
+		},
+		{
+			name:            "unauthorized without a message of its own",
+			err:             &domain.ErrUnauthorized{},
+			expectedHandled: true,
+			expectedStatus:  http.StatusForbidden,
+			expectedMessage: "You are not allowed to do that",
+		},
+		{
+			name:            "user not in workspace",
+			err:             fmt.Errorf("failed to authenticate user: %w", domain.ErrUserNotInWorkspace),
+			expectedHandled: true,
+			expectedStatus:  http.StatusForbidden,
+			expectedMessage: "You do not have access to this workspace",
+		},
+		{
+			name:            "unrelated error is left to the caller",
+			err:             errors.New("database connection lost"),
+			expectedHandled: false,
+		},
+		{
+			name:            "nil error is left to the caller",
+			err:             nil,
+			expectedHandled: false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			w := httptest.NewRecorder()
+
+			handled := writeServiceError(w, tc.err, "You are not allowed to do that")
+
+			assert.Equal(t, tc.expectedHandled, handled)
+			if !tc.expectedHandled {
+				// Nothing written, so the caller's own mapping still applies.
+				assert.Equal(t, http.StatusOK, w.Code)
+				assert.Empty(t, w.Body.String())
+				return
+			}
+
+			assert.Equal(t, tc.expectedStatus, w.Code)
+
+			var response map[string]string
+			require.NoError(t, json.NewDecoder(w.Body).Decode(&response))
 			assert.Equal(t, tc.expectedMessage, response["error"])
 		})
 	}

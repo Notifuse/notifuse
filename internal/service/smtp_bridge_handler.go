@@ -224,12 +224,18 @@ func (s *SMTPBridgeHandlerService) HandleMessage(userID string, from string, to 
 		return fmt.Errorf("notification.contact.email is required")
 	}
 
-	// Set SystemCallKey in context to skip authentication in SendNotification
-	// since we've already authenticated the user via JWT token in the SMTP bridge
-	systemCtx := context.WithValue(ctx, domain.SystemCallKey, true)
+	// Seed the identity we already resolved instead of stamping SystemCallKey, so
+	// AuthenticateUserForWorkspace short-circuits onto it and SendNotification runs the
+	// same permission gate as the HTTP path rather than skipping authorization entirely.
+	// The workspace ID seeded into WorkspaceUserKey must be the one passed to
+	// SendNotification below: the key is workspace-scoped, and a mismatch silently falls
+	// through to a full authentication that this context cannot satisfy.
+	authCtx := context.WithValue(ctx, domain.WorkspaceUserKey(workspaceID),
+		&domain.User{ID: userID, Type: domain.UserTypeAPIKey})
+	authCtx = context.WithValue(authCtx, domain.UserWorkspaceKey, userWorkspace)
 
 	// Send the transactional notification
-	sentMessageID, err := s.transactionalNotificationService.SendNotification(systemCtx, workspaceID, payload.Notification)
+	sentMessageID, err := s.transactionalNotificationService.SendNotification(authCtx, workspaceID, payload.Notification)
 	if err != nil {
 		s.logger.WithFields(map[string]interface{}{
 			"workspace_id":    workspaceID,

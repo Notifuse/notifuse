@@ -2,9 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
-## [38.1] - 2026-08-18
+## [39.0] - 2026-08-18
+
+- **Feature**: API keys can be scoped. When you create a key you can now choose which resources it may read and write, instead of every key holding the run of the workspace. Leave the permissions out and the key gets full access as before, and you can change a key's scope at any time without re-issuing it. Two to know before narrowing one: sending transactional email needs Transactional write, and Contacts write is also what permits deleting contacts.
+
+- **Change**: Several endpoints now enforce the permission they always implied — contact timelines, list membership, analytics queries, provider tests and workspace details. Members invited before permissions existed hold read-only grants, so a few write actions they could perform will now be refused; an owner can restore them from the members screen.
+
+- **Change**: Sending transactional email requires Transactional write, over the API and the SMTP bridge alike. Registering webhooks with an email provider is now restricted to owners, like the integration it belongs to. The task endpoints require the permission belonging to the task's own feature, and tasks can no longer be created directly.
+
+- **Change**: New Segments and Webhooks permissions. The v39 migration grants them to existing members, API keys and pending invitations, so nothing loses access on upgrade — re-narrow a key if that is not what you want.
+
+- **Fix**: Closed several ways to gain access you were not granted. Any member could invite someone with any permissions they chose, an API key's address could be used to sign in as a person, and removing a key reported success even when the key had not actually been revoked.
+
+- **Improvement**: A refused request now answers "forbidden" and names the missing permission, instead of a server error.
 
 - **Improvement**: Web Analytics no longer credits a visit to your own domain. A session that starts mid-visit — when the 30-minute inactivity window lapses on a tab left open, or on the visitor's next internal click — took whichever of your pages they arrived from as its referrer, so your own hostname appeared in the referrers report and the visit's real acquisition source was lost. A referrer on the same host as the landing page is now dropped and the session reads as direct; another host, such as a docs subdomain, is still a real referral. Rows already recorded keep their values.
+
+- **Fix**: The console no longer opens in the wrong language. Every time you opened it, the language remembered in your browser and the one saved on your account were fetched at the same time, and whichever arrived second decided the interface — so it could come up in a language you had only ever tried out, intermittently, with the language button still naming the right one. Your saved language now always wins, and a language is only remembered when you actually pick one.
 
 ## [38.0] - 2026-08-17
 

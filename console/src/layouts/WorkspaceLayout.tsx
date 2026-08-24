@@ -25,6 +25,7 @@ import { useState, useEffect } from 'react'
 import { FileManagerProvider } from '../components/file_manager/context'
 import { FileManagerSettings } from '../components/file_manager/interfaces'
 import { workspaceService } from '../services/api/workspace'
+import { createEmptyPermissions, createFullPermissions } from '../services/api/permissions'
 import { isRootUser } from '../services/api/auth'
 import {
   AppstoreOutlined,
@@ -100,19 +101,7 @@ export function WorkspaceLayout() {
 
       // If user is root, they have full permissions
       if (isRootUser(user.email)) {
-        setUserPermissions({
-          contacts: { read: true, write: true },
-          lists: { read: true, write: true },
-          templates: { read: true, write: true },
-          broadcasts: { read: true, write: true },
-          transactional: { read: true, write: true },
-          workspace: { read: true, write: true },
-          message_history: { read: true, write: true },
-          blog: { read: true, write: true },
-          automations: { read: true, write: true },
-          llm: { read: true, write: true },
-          web_analytics: { read: true, write: true }
-        })
+        setUserPermissions(createFullPermissions())
         setLoadingPermissions(false)
         return
       }
@@ -122,39 +111,17 @@ export function WorkspaceLayout() {
         const currentUserMember = response.members.find((member) => member.user_id === user.id)
 
         if (currentUserMember) {
-          setUserPermissions(currentUserMember.permissions)
+          // The stored map may be partial or null; a resource it does not mention is denied,
+          // which is what the empty base spells out.
+          setUserPermissions({ ...createEmptyPermissions(), ...currentUserMember.permissions })
         } else {
           // User is not a member of this workspace, set empty permissions
-          setUserPermissions({
-            contacts: { read: false, write: false },
-            lists: { read: false, write: false },
-            templates: { read: false, write: false },
-            broadcasts: { read: false, write: false },
-            transactional: { read: false, write: false },
-            workspace: { read: false, write: false },
-            message_history: { read: false, write: false },
-            blog: { read: false, write: false },
-            automations: { read: false, write: false },
-            llm: { read: false, write: false },
-            web_analytics: { read: false, write: false }
-          })
+          setUserPermissions(createEmptyPermissions())
         }
       } catch (error) {
         console.error('Failed to fetch user permissions', error)
         // On error, assume no permissions
-        setUserPermissions({
-          contacts: { read: false, write: false },
-          lists: { read: false, write: false },
-          templates: { read: false, write: false },
-          broadcasts: { read: false, write: false },
-          transactional: { read: false, write: false },
-          workspace: { read: false, write: false },
-          message_history: { read: false, write: false },
-          blog: { read: false, write: false },
-          automations: { read: false, write: false },
-          llm: { read: false, write: false },
-          web_analytics: { read: false, write: false }
-        })
+        setUserPermissions(createEmptyPermissions())
       } finally {
         setLoadingPermissions(false)
       }

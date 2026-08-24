@@ -3,9 +3,12 @@ package http
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/Notifuse/notifuse/internal/domain"
 
 	"github.com/Notifuse/notifuse/internal/domain/mocks"
 
@@ -493,4 +496,80 @@ func TestAnalyticsHandler_Integration(t *testing.T) {
 	assert.Contains(t, meta["query"].(string), "message_history")
 
 	// Expectations are automatically verified by gomock
+}
+
+// Denials must reach the client as 403. The handler previously mapped every
+// service error to 500, so a scoped key could not tell a missing grant from an
+// outage — and the console had nothing to key an "ask an owner" message on.
+func TestAnalyticsHandler_DenialsAnswer403(t *testing.T) {
+	newHandler := func(t *testing.T) (*AnalyticsHandler, *mocks.MockAnalyticsService) {
+		t.Helper()
+		ctrl := gomock.NewController(t)
+		t.Cleanup(ctrl.Finish)
+
+		mockService := mocks.NewMockAnalyticsService(ctrl)
+		handler := NewAnalyticsHandler(mockService, func() ([]byte, error) {
+			return []byte("test-jwt-secret-key-for-testing-32bytes"), nil
+		}, logger.NewLogger())
+		return handler, mockService
+	}
+
+	post := func(t *testing.T, path string, payload interface{}) *http.Request {
+		t.Helper()
+		body, err := json.Marshal(payload)
+		require.NoError(t, err)
+		req := httptest.NewRequest(http.MethodPost, path, bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		return req
+	}
+
+	t.Run("a query permission error carries the missing grant", func(t *testing.T) {
+		handler, mockService := newHandler(t)
+		// Wrapped, as a service wraps on its way up: a bare type assertion here
+		// would degrade the denial into a 500.
+		denial := fmt.Errorf("query rejected: %w", domain.NewPermissionError(
+			domain.PermissionResourceContacts, domain.PermissionTypeRead, "Insufficient permissions: read access to contacts required"))
+		mockService.EXPECT().Query(gomock.Any(), "test-workspace", gomock.Any()).
+			Return((*analytics.Response)(nil), denial)
+
+		w := httptest.NewRecorder()
+		handler.handleQuery(w, post(t, "/api/analytics.query", AnalyticsQueryRequest{
+			WorkspaceID: "test-workspace",
+			Query:       analytics.Query{Schema: "contacts", Measures: []string{"count"}},
+		}))
+
+		assert.Equal(t, http.StatusForbidden, w.Code)
+
+		var response map[string]interface{}
+		require.NoError(t, json.Unmarshal(w.Body.Bytes(), &response))
+		assert.Equal(t, string(domain.PermissionResourceContacts), response["resource"])
+		assert.Equal(t, string(domain.PermissionTypeRead), response["permission"])
+	})
+
+	t.Run("a non-member asking for schemas gets 403 rather than 500", func(t *testing.T) {
+		handler, mockService := newHandler(t)
+		mockService.EXPECT().GetSchemas(gomock.Any(), "test-workspace").
+			Return(nil, fmt.Errorf("failed to authenticate user: %w", domain.ErrUserNotInWorkspace))
+
+		w := httptest.NewRecorder()
+		handler.handleGetSchemas(w, post(t, "/api/analytics.schemas", AnalyticsSchemasRequest{
+			WorkspaceID: "test-workspace",
+		}))
+
+		assert.Equal(t, http.StatusForbidden, w.Code)
+	})
+
+	t.Run("an unrecognized error keeps the 500 mapping", func(t *testing.T) {
+		handler, mockService := newHandler(t)
+		mockService.EXPECT().Query(gomock.Any(), "test-workspace", gomock.Any()).
+			Return((*analytics.Response)(nil), assert.AnError)
+
+		w := httptest.NewRecorder()
+		handler.handleQuery(w, post(t, "/api/analytics.query", AnalyticsQueryRequest{
+			WorkspaceID: "test-workspace",
+			Query:       analytics.Query{Schema: "contacts", Measures: []string{"count"}},
+		}))
+
+		assert.Equal(t, http.StatusInternalServerError, w.Code)
+	})
 }

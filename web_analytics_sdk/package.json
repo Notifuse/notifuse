@@ -1,6 +1,6 @@
 {
   "name": "@notifuse/web-analytics-sdk",
-  "version": "38.1.0",
+  "version": "39.0.0",
   "private": true,
   "type": "module",
   "description": "Ultra-reliable web analytics SDK for tracking TimeScore metrics with millisecond precision",

@@ -12,6 +12,8 @@ import {
   mockEmptyContacts,
   mockListsResponse,
   mockEmptyLists,
+  mockListStats,
+  emptyListStats,
   mockSegmentsResponse,
   mockEmptySegments,
   mockBroadcastsResponse,
@@ -154,6 +156,12 @@ async function setupApiMocks(page: Page, config: MockConfig = {}) {
     if (url.includes('/api/list.list') || url.includes('/api/lists.list')) {
       return route.fulfill(jsonResponse(withData ? mockListsResponse : mockEmptyLists))
     }
+    if (url.includes('/api/list.stats') || url.includes('/api/lists.stats')) {
+      const listId = new URL(url).searchParams.get('list_id') || ''
+      return route.fulfill(
+        jsonResponse({ list_id: listId, stats: mockListStats[listId] || emptyListStats })
+      )
+    }
     if (url.includes('/api/list.get') || url.includes('/api/lists.get')) {
       return route.fulfill(jsonResponse({ list: mockListsResponse.lists[0] }))
     }
@@ -174,7 +182,19 @@ async function setupApiMocks(page: Page, config: MockConfig = {}) {
       return route.fulfill(jsonResponse(withData ? mockSegmentsResponse : mockEmptySegments))
     }
     if (url.includes('/api/segment.get') || url.includes('/api/segments.get')) {
-      return route.fulfill(jsonResponse({ segment: mockSegmentsResponse.segments[0] }))
+      // The segment form calls this to check whether the id derived from the name is free, so
+      // answering with a segment whatever the id is makes every new name look taken. Same
+      // treatment as template.get below: known ids resolve, unknown ones 404.
+      const segmentId = new URL(url).searchParams.get('id')
+      const knownSegment = mockSegmentsResponse.segments.find((s) => s.id === segmentId)
+      if (knownSegment) {
+        return route.fulfill(jsonResponse({ segment: knownSegment }))
+      }
+      return route.fulfill({
+        status: 404,
+        contentType: 'application/json',
+        body: JSON.stringify({ error: 'Segment not found' })
+      })
     }
     if (url.includes('/api/segment.create') || url.includes('/api/segments.create')) {
       return route.fulfill(jsonResponse(mockSegmentCreateResponse))
@@ -207,8 +227,9 @@ async function setupApiMocks(page: Page, config: MockConfig = {}) {
       const templateId = urlObj.searchParams.get('id')
 
       // Return existing template only for known IDs (from mock data)
-      if (templateId && mockTemplatesResponse.templates.some(t => t.id === templateId)) {
-        return route.fulfill(jsonResponse({ template: mockTemplatesResponse.templates[0] }))
+      const knownTemplate = mockTemplatesResponse.templates.find((t) => t.id === templateId)
+      if (knownTemplate) {
+        return route.fulfill(jsonResponse({ template: knownTemplate }))
       }
 
       // For unknown IDs (new templates), return 404 so validation passes

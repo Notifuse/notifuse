@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 
@@ -30,6 +31,10 @@ const (
 	PermissionResourceAutomations    PermissionResource = "automations"
 	PermissionResourceLLM            PermissionResource = "llm"
 	PermissionResourceWebAnalytics   PermissionResource = "web_analytics"
+
+	PermissionResourceSegments             PermissionResource = "segments"
+	PermissionResourceWebhookSubscriptions PermissionResource = "webhook_subscriptions"
+	PermissionResourceWebhookEvents        PermissionResource = "webhook_events"
 )
 
 // PermissionType defines the types of permissions (read/write)
@@ -40,19 +45,52 @@ const (
 	PermissionTypeWrite PermissionType = "write"
 )
 
-var FullPermissions = UserPermissions{
-	PermissionResourceContacts:       ResourcePermissions{Read: true, Write: true},
-	PermissionResourceLists:          ResourcePermissions{Read: true, Write: true},
-	PermissionResourceTemplates:      ResourcePermissions{Read: true, Write: true},
-	PermissionResourceBroadcasts:     ResourcePermissions{Read: true, Write: true},
-	PermissionResourceTransactional:  ResourcePermissions{Read: true, Write: true},
-	PermissionResourceWorkspace:      ResourcePermissions{Read: true, Write: true},
-	PermissionResourceMessageHistory: ResourcePermissions{Read: true, Write: true},
-	PermissionResourceBlog:           ResourcePermissions{Read: true, Write: true},
-	PermissionResourceAutomations:    ResourcePermissions{Read: true, Write: true},
-	PermissionResourceLLM:            ResourcePermissions{Read: true, Write: true},
-	PermissionResourceWebAnalytics:   ResourcePermissions{Read: true, Write: true},
+// AllPermissionResources is the canonical list of permission resources.
+// FullPermissions and UserPermissions.Validate both derive from it.
+var AllPermissionResources = []PermissionResource{
+	// Audience
+	PermissionResourceContacts,
+	PermissionResourceSegments,
+	PermissionResourceLists,
+	// Content
+	PermissionResourceTemplates,
+	PermissionResourceBlog,
+	// Sending
+	PermissionResourceBroadcasts,
+	PermissionResourceTransactional,
+	PermissionResourceAutomations,
+	// Reporting
+	PermissionResourceMessageHistory,
+	PermissionResourceWebAnalytics,
+	// Integrations
+	PermissionResourceWebhookSubscriptions,
+	PermissionResourceWebhookEvents,
+	PermissionResourceLLM,
+	// Workspace
+	PermissionResourceWorkspace,
 }
+
+// knownPermissionResources is the lookup set behind UserPermissions.Validate
+var knownPermissionResources = func() map[PermissionResource]struct{} {
+	set := make(map[PermissionResource]struct{}, len(AllPermissionResources))
+	for _, resource := range AllPermissionResources {
+		set[resource] = struct{}{}
+	}
+	return set
+}()
+
+// NewFullPermissions returns a fresh map granting read and write on every resource.
+// Callers must never share FullPermissions by reference: it is a package-level map
+// and mutating it corrupts the global for the whole process.
+func NewFullPermissions() UserPermissions {
+	permissions := make(UserPermissions, len(AllPermissionResources))
+	for _, resource := range AllPermissionResources {
+		permissions[resource] = ResourcePermissions{Read: true, Write: true}
+	}
+	return permissions
+}
+
+var FullPermissions = NewFullPermissions()
 
 // ResourcePermissions defines read/write permissions for a specific resource
 type ResourcePermissions struct {
@@ -63,9 +101,22 @@ type ResourcePermissions struct {
 // UserPermissions maps resources to their permission settings
 type UserPermissions map[PermissionResource]ResourcePermissions
 
-// Value implements the driver.Valuer interface for database serialization
+// Validate rejects unknown resource keys. A nil or empty map is valid: it means
+// no permissions at all.
+func (up UserPermissions) Validate() error {
+	for resource := range up {
+		if _, ok := knownPermissionResources[resource]; !ok {
+			return fmt.Errorf("unknown permission resource: %s", resource)
+		}
+	}
+	return nil
+}
+
+// Value implements the driver.Valuer interface for database serialization.
+// Only a nil map becomes SQL NULL: an explicitly empty map persists as '{}' so
+// it stays visible to the permission backfills, which skip NULL rows.
 func (up UserPermissions) Value() (driver.Value, error) {
-	if len(up) == 0 {
+	if up == nil {
 		return nil, nil
 	}
 	return json.Marshal(up)
@@ -889,7 +940,7 @@ type UserWorkspace struct {
 	UserID      string          `json:"user_id" db:"user_id"`
 	WorkspaceID string          `json:"workspace_id" db:"workspace_id"`
 	Role        string          `json:"role" db:"role"`
-	Permissions UserPermissions `json:"permissions,omitempty" db:"permissions"`
+	Permissions UserPermissions `json:"permissions" db:"permissions"`
 	CreatedAt   time.Time       `json:"created_at" db:"created_at"`
 	UpdatedAt   time.Time       `json:"updated_at" db:"updated_at"`
 }
@@ -1063,7 +1114,7 @@ type WorkspaceServiceInterface interface {
 	AddUserToWorkspace(ctx context.Context, workspaceID string, userID string, role string, permissions UserPermissions) error
 	RemoveUserFromWorkspace(ctx context.Context, workspaceID string, userID string) error
 	TransferOwnership(ctx context.Context, workspaceID string, newOwnerID string, currentOwnerID string) error
-	CreateAPIKey(ctx context.Context, workspaceID string, emailPrefix string) (string, string, error)
+	CreateAPIKey(ctx context.Context, workspaceID string, emailPrefix string, permissions UserPermissions) (string, string, error)
 	RemoveMember(ctx context.Context, workspaceID string, userIDToRemove string) error
 
 	// Invitation management
@@ -1092,10 +1143,14 @@ type WorkspaceServiceInterface interface {
 
 // Request/Response types
 
+// apiKeyEmailPrefixRegex constrains the local part of the generated api key email
+var apiKeyEmailPrefixRegex = regexp.MustCompile(`^[a-z0-9_-]{1,64}$`)
+
 // CreateAPIKeyRequest defines the request structure for creating an API key
 type CreateAPIKeyRequest struct {
-	WorkspaceID string `json:"workspace_id"`
-	EmailPrefix string `json:"email_prefix"`
+	WorkspaceID string          `json:"workspace_id"`
+	EmailPrefix string          `json:"email_prefix"`
+	Permissions UserPermissions `json:"permissions,omitempty"` // absent or null means full access
 }
 
 // Validate validates the create API key request
@@ -1105,6 +1160,14 @@ func (r *CreateAPIKeyRequest) Validate() error {
 	}
 	if r.EmailPrefix == "" {
 		return errors.New("email prefix is required")
+	}
+	if !apiKeyEmailPrefixRegex.MatchString(r.EmailPrefix) {
+		return errors.New("email prefix must match ^[a-z0-9_-]{1,64}$")
+	}
+	if r.Permissions != nil {
+		if err := r.Permissions.Validate(); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -1422,7 +1485,8 @@ type SetUserPermissionsRequest struct {
 	Permissions UserPermissions `json:"permissions"`
 }
 
-// Validate validates the set user permissions request
+// Validate validates the set user permissions request. An empty map is allowed
+// here: this is the deliberate path for zeroing an existing member's permissions.
 func (r *SetUserPermissionsRequest) Validate() error {
 	if r.WorkspaceID == "" {
 		return fmt.Errorf("workspace_id is required")
@@ -1439,9 +1503,15 @@ func (r *SetUserPermissionsRequest) Validate() error {
 	if r.Permissions == nil {
 		return fmt.Errorf("permissions is required")
 	}
+	if err := r.Permissions.Validate(); err != nil {
+		return err
+	}
 	return nil
 }
 
+// Validate validates the invite member request. Unlike SetUserPermissionsRequest,
+// an empty map is rejected here: an invitation with no permissions produces a
+// member who can do nothing, which is never what the caller meant.
 func (r *InviteMemberRequest) Validate() error {
 	if r.WorkspaceID == "" {
 		return fmt.Errorf("invalid invite member request: workspace_id is required")
@@ -1458,6 +1528,13 @@ func (r *InviteMemberRequest) Validate() error {
 	}
 	if !govalidator.IsEmail(r.Email) {
 		return fmt.Errorf("invalid invite member request: email is not valid")
+	}
+
+	if len(r.Permissions) == 0 {
+		return fmt.Errorf("invalid invite member request: permissions is required and must grant at least one resource")
+	}
+	if err := r.Permissions.Validate(); err != nil {
+		return fmt.Errorf("invalid invite member request: %w", err)
 	}
 
 	return nil

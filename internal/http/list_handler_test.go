@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -17,6 +18,7 @@ import (
 	"github.com/golang/mock/gomock"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // Test setup helper
@@ -876,4 +878,147 @@ func TestListHandler_HandleSubscribe(t *testing.T) {
 		handler.handleSubscribe(rr, httpReq)
 		assert.Equal(t, http.StatusMethodNotAllowed, rr.Code)
 	})
+}
+
+// TestListHandler_PermissionDenied covers every lists route: a scoped key refused
+// on the lists resource must get a 403 naming the missing grant rather than the
+// generic 500 each handler falls back to. The denial arrives wrapped, because the
+// service wraps its errors on the way up.
+func TestListHandler_PermissionDenied(t *testing.T) {
+	denial := func(permission domain.PermissionType) error {
+		return fmt.Errorf("failed to authenticate user: %w",
+			domain.NewPermissionError(domain.PermissionResourceLists, permission, "Insufficient permissions"))
+	}
+
+	tests := []struct {
+		name               string
+		setupMock          func(*mocks.MockListService)
+		serve              func(*ListHandler, http.ResponseWriter)
+		expectedPermission domain.PermissionType
+	}{
+		{
+			name: "List",
+			setupMock: func(m *mocks.MockListService) {
+				m.EXPECT().GetLists(gomock.Any(), "workspace123").
+					Return(nil, denial(domain.PermissionTypeRead))
+			},
+			serve: func(h *ListHandler, w http.ResponseWriter) {
+				req := httptest.NewRequest(http.MethodGet, "/api/lists.list?workspace_id=workspace123", nil)
+				h.handleList(w, req)
+			},
+			expectedPermission: domain.PermissionTypeRead,
+		},
+		{
+			name: "Get",
+			setupMock: func(m *mocks.MockListService) {
+				m.EXPECT().GetListByID(gomock.Any(), "workspace123", "list123").
+					Return(nil, denial(domain.PermissionTypeRead))
+			},
+			serve: func(h *ListHandler, w http.ResponseWriter) {
+				req := httptest.NewRequest(http.MethodGet, "/api/lists.get?workspace_id=workspace123&id=list123", nil)
+				h.handleGet(w, req)
+			},
+			expectedPermission: domain.PermissionTypeRead,
+		},
+		{
+			name: "Stats",
+			setupMock: func(m *mocks.MockListService) {
+				m.EXPECT().GetListStats(gomock.Any(), "workspace123", "list123").
+					Return(nil, denial(domain.PermissionTypeRead))
+			},
+			serve: func(h *ListHandler, w http.ResponseWriter) {
+				req := httptest.NewRequest(http.MethodGet, "/api/lists.stats?workspace_id=workspace123&list_id=list123", nil)
+				h.handleStats(w, req)
+			},
+			expectedPermission: domain.PermissionTypeRead,
+		},
+		{
+			name: "Create",
+			setupMock: func(m *mocks.MockListService) {
+				m.EXPECT().CreateList(gomock.Any(), "workspace123", gomock.Any()).
+					Return(denial(domain.PermissionTypeWrite))
+			},
+			serve: func(h *ListHandler, w http.ResponseWriter) {
+				body, _ := json.Marshal(domain.CreateListRequest{
+					WorkspaceID: "workspace123",
+					ID:          "list123",
+					Name:        "My list",
+				})
+				req := httptest.NewRequest(http.MethodPost, "/api/lists.create", bytes.NewReader(body))
+				req.Header.Set("Content-Type", "application/json")
+				h.handleCreate(w, req)
+			},
+			expectedPermission: domain.PermissionTypeWrite,
+		},
+		{
+			name: "Update",
+			setupMock: func(m *mocks.MockListService) {
+				m.EXPECT().UpdateList(gomock.Any(), "workspace123", gomock.Any()).
+					Return(denial(domain.PermissionTypeWrite))
+			},
+			serve: func(h *ListHandler, w http.ResponseWriter) {
+				body, _ := json.Marshal(domain.UpdateListRequest{
+					WorkspaceID: "workspace123",
+					ID:          "list123",
+					Name:        "My list",
+				})
+				req := httptest.NewRequest(http.MethodPost, "/api/lists.update", bytes.NewReader(body))
+				req.Header.Set("Content-Type", "application/json")
+				h.handleUpdate(w, req)
+			},
+			expectedPermission: domain.PermissionTypeWrite,
+		},
+		{
+			name: "Delete",
+			setupMock: func(m *mocks.MockListService) {
+				m.EXPECT().DeleteList(gomock.Any(), "workspace123", "list123").
+					Return(denial(domain.PermissionTypeWrite))
+			},
+			serve: func(h *ListHandler, w http.ResponseWriter) {
+				body, _ := json.Marshal(domain.DeleteListRequest{
+					WorkspaceID: "workspace123",
+					ID:          "list123",
+				})
+				req := httptest.NewRequest(http.MethodPost, "/api/lists.delete", bytes.NewReader(body))
+				req.Header.Set("Content-Type", "application/json")
+				h.handleDelete(w, req)
+			},
+			expectedPermission: domain.PermissionTypeWrite,
+		},
+		{
+			name: "Subscribe",
+			setupMock: func(m *mocks.MockListService) {
+				m.EXPECT().SubscribeToLists(gomock.Any(), gomock.Any(), true).
+					Return(denial(domain.PermissionTypeWrite))
+			},
+			serve: func(h *ListHandler, w http.ResponseWriter) {
+				body, _ := json.Marshal(domain.SubscribeToListsRequest{
+					WorkspaceID: "workspace123",
+					Contact:     domain.Contact{Email: "user@example.com"},
+					ListIDs:     []string{"list123"},
+				})
+				req := httptest.NewRequest(http.MethodPost, "/api/lists.subscribe", bytes.NewReader(body))
+				req.Header.Set("Content-Type", "application/json")
+				h.handleSubscribe(w, req)
+			},
+			expectedPermission: domain.PermissionTypeWrite,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockService, _, handler := setupListHandlerTest(t)
+			tt.setupMock(mockService)
+
+			rr := httptest.NewRecorder()
+			tt.serve(handler, rr)
+
+			assert.Equal(t, http.StatusForbidden, rr.Code)
+
+			var response map[string]interface{}
+			require.NoError(t, json.NewDecoder(rr.Body).Decode(&response))
+			assert.Equal(t, string(domain.PermissionResourceLists), response["resource"])
+			assert.Equal(t, string(tt.expectedPermission), response["permission"])
+		})
+	}
 }

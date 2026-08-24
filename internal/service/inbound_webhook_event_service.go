@@ -1299,12 +1299,27 @@ func (s *InboundWebhookEventService) ListEvents(ctx context.Context, workspaceID
 	// codecov:ignore:end
 
 	// Authenticate user for workspace
-	ctx, _, _, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	ctx, _, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 	if err != nil {
 		// codecov:ignore:start
 		tracing.MarkSpanError(ctx, err)
 		// codecov:ignore:end
 		return nil, fmt.Errorf("failed to authenticate user: %w", err)
+	}
+
+	// These rows carry recipient addresses and provider diagnostics, so membership
+	// alone is not enough. A nil membership denies: skipping the check on nil would
+	// be a silent bypass rather than a nil-pointer guard.
+	if userWorkspace == nil || !userWorkspace.HasPermission(domain.PermissionResourceWebhookEvents, domain.PermissionTypeRead) {
+		permErr := domain.NewPermissionError(
+			domain.PermissionResourceWebhookEvents,
+			domain.PermissionTypeRead,
+			"Insufficient permissions: read access to webhook events required",
+		)
+		// codecov:ignore:start
+		tracing.MarkSpanError(ctx, permErr)
+		// codecov:ignore:end
+		return nil, permErr
 	}
 
 	// Validate params

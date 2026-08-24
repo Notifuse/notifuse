@@ -224,6 +224,9 @@ func (h *InboundWebhookEventHandler) handleList(w http.ResponseWriter, r *http.R
 		h.logger.WithField("error", err.Error()).
 			WithField("workspace_id", params.WorkspaceID).
 			Error("Failed to list inbound webhook events")
+		if writeServiceError(w, err, "You do not have permission to read webhook events") {
+			return
+		}
 		WriteJSONError(w, "Failed to list inbound webhook events", http.StatusInternalServerError)
 		return
 	}

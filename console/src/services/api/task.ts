@@ -54,27 +54,12 @@ export interface Task {
 }
 
 // API request interfaces
-export interface CreateTaskRequest {
-  workspace_id: string
-  type: string
-  state?: TaskState
-  max_runtime?: number
-  max_retries?: number
-  retry_interval?: number
-  next_run_after?: string
-}
-
 export interface GetTaskRequest {
   workspace_id: string
   id: string
 }
 
 export interface DeleteTaskRequest {
-  workspace_id: string
-  id: string
-}
-
-export interface ExecuteTaskRequest {
   workspace_id: string
   id: string
 }
@@ -94,10 +79,6 @@ export interface GetTaskResponse {
   task: Task
 }
 
-export interface CreateTaskResponse {
-  task: Task
-}
-
 export interface ListTasksResponse {
   tasks: Task[]
   total_count: number
@@ -110,18 +91,8 @@ export interface DeleteTaskResponse {
   success: boolean
 }
 
-export interface ExecuteTaskResponse {
-  success: boolean
-  message: string
-}
-
 // Task API client
 export const taskApi = {
-  // Create a new task
-  create: async (params: CreateTaskRequest): Promise<CreateTaskResponse> => {
-    return api.post<CreateTaskResponse>('/api/tasks.create', params)
-  },
-
   // Get task by ID
   get: async (params: GetTaskRequest): Promise<GetTaskResponse> => {
     const searchParams = new URLSearchParams()
@@ -161,11 +132,6 @@ export const taskApi = {
     searchParams.append('id', params.id)
 
     return api.post<DeleteTaskResponse>(`/api/tasks.delete?${searchParams.toString()}`, {})
-  },
-
-  // Execute a task
-  execute: async (params: ExecuteTaskRequest): Promise<ExecuteTaskResponse> => {
-    return api.post<ExecuteTaskResponse>('/api/tasks.execute', params)
   },
 
   // Utility method to find a task by broadcast ID (uses list with filter)

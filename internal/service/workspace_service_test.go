@@ -187,12 +187,72 @@ func TestWorkspaceService_GetWorkspace(t *testing.T) {
 
 		// GetWorkspace relies on AuthenticateUserForWorkspace for access; it no longer
 		// re-reads GetUserWorkspace (platform admins pass via the override).
-		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, expectedUser, nil, nil)
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).
+			Return(ctx, expectedUser, &domain.UserWorkspace{UserID: userID, WorkspaceID: workspaceID, Role: "owner"}, nil)
 		mockRepo.EXPECT().GetByID(ctx, workspaceID).Return(expectedWorkspace, nil)
 
 		workspace, err := service.GetWorkspace(ctx, workspaceID)
 		require.NoError(t, err)
 		assert.Equal(t, expectedWorkspace, workspace)
+	})
+
+	t.Run("member with workspace read permission", func(t *testing.T) {
+		expectedWorkspace := &domain.Workspace{ID: workspaceID, Name: "Test Workspace"}
+
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).
+			Return(ctx, &domain.User{ID: userID}, &domain.UserWorkspace{
+				UserID:      userID,
+				WorkspaceID: workspaceID,
+				Role:        "member",
+				Permissions: domain.UserPermissions{
+					domain.PermissionResourceWorkspace: {Read: true},
+				},
+			}, nil)
+		mockRepo.EXPECT().GetByID(ctx, workspaceID).Return(expectedWorkspace, nil)
+
+		workspace, err := service.GetWorkspace(ctx, workspaceID)
+		require.NoError(t, err)
+		assert.Equal(t, expectedWorkspace, workspace)
+	})
+
+	t.Run("member with workspace write permission only", func(t *testing.T) {
+		// The console treats access as read || write, so a write-only member reaches
+		// Settings and must be able to load the workspace it is allowed to edit.
+		expectedWorkspace := &domain.Workspace{ID: workspaceID, Name: "Test Workspace"}
+
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).
+			Return(ctx, &domain.User{ID: userID}, &domain.UserWorkspace{
+				UserID:      userID,
+				WorkspaceID: workspaceID,
+				Role:        "member",
+				Permissions: domain.UserPermissions{
+					domain.PermissionResourceWorkspace: {Write: true},
+				},
+			}, nil)
+		mockRepo.EXPECT().GetByID(ctx, workspaceID).Return(expectedWorkspace, nil)
+
+		workspace, err := service.GetWorkspace(ctx, workspaceID)
+		require.NoError(t, err)
+		assert.Equal(t, expectedWorkspace, workspace)
+	})
+
+	t.Run("member without workspace permission is denied", func(t *testing.T) {
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).
+			Return(ctx, &domain.User{ID: userID}, &domain.UserWorkspace{
+				UserID:      userID,
+				WorkspaceID: workspaceID,
+				Role:        "member",
+				Permissions: domain.UserPermissions{
+					domain.PermissionResourceContacts: {Read: true, Write: true},
+				},
+			}, nil)
+
+		workspace, err := service.GetWorkspace(ctx, workspaceID)
+		require.Error(t, err)
+		assert.Nil(t, workspace)
+		var permErr *domain.PermissionError
+		require.True(t, errors.As(err, &permErr))
+		assert.Equal(t, domain.PermissionResourceWorkspace, permErr.Resource)
 	})
 
 	t.Run("error authenticating user", func(t *testing.T) {
@@ -209,7 +269,8 @@ func TestWorkspaceService_GetWorkspace(t *testing.T) {
 			ID: userID,
 		}
 
-		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, expectedUser, nil, nil)
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).
+			Return(ctx, expectedUser, &domain.UserWorkspace{UserID: userID, WorkspaceID: workspaceID, Role: "owner"}, nil)
 		mockRepo.EXPECT().GetByID(ctx, workspaceID).Return(nil, assert.AnError)
 
 		workspace, err := service.GetWorkspace(ctx, workspaceID)
@@ -2990,7 +3051,9 @@ func TestWorkspaceService_RemoveMember(t *testing.T) {
 		assert.Contains(t, err.Error(), "remove error")
 	})
 
-	t.Run("API key deletion fails but removal succeeds", func(t *testing.T) {
+	t.Run("failed API key deletion is reported", func(t *testing.T) {
+		// Deleting the user row is the only thing that revokes the key's ten-year token,
+		// so a failure here must not be reported as a successful revocation.
 		owner := &domain.User{ID: ownerID, Type: domain.UserTypeUser}
 		apiKeyUser := &domain.User{ID: apiKeyID, Type: domain.UserTypeAPIKey}
 		ownerWorkspace := &domain.UserWorkspace{
@@ -3008,7 +3071,8 @@ func TestWorkspaceService_RemoveMember(t *testing.T) {
 		mockLogger.EXPECT().Error("Failed to delete API key user")
 
 		err := service.RemoveMember(ctx, workspaceID, apiKeyID)
-		assert.NoError(t, err) // Should not return error even if API key deletion fails
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "delete error")
 	})
 }
 
@@ -3846,7 +3910,60 @@ func TestWorkspaceService_SetUserPermissions(t *testing.T) {
 
 		err := service.SetUserPermissions(ctx, workspaceID, targetUserID, permissions)
 		require.Error(t, err)
+		// Typed, so the handler answers 403 instead of a generic 500.
+		var unauthorized *domain.ErrUnauthorized
+		require.ErrorAs(t, err, &unauthorized)
 		assert.Contains(t, err.Error(), "only workspace owners can manage user permissions")
+	})
+
+	t.Run("unknown permission resource is rejected", func(t *testing.T) {
+		owner := &domain.User{ID: ownerID}
+		ownerWorkspace := &domain.UserWorkspace{
+			UserID:      ownerID,
+			WorkspaceID: workspaceID,
+			Role:        "owner",
+		}
+
+		// Rejected before the target row is even read.
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, owner, ownerWorkspace, nil)
+
+		err := service.SetUserPermissions(ctx, workspaceID, targetUserID, domain.UserPermissions{
+			"not_a_resource": {Read: true},
+		})
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "unknown permission resource")
+	})
+
+	t.Run("stored permissions do not alias the caller's map", func(t *testing.T) {
+		owner := &domain.User{ID: ownerID}
+		ownerWorkspace := &domain.UserWorkspace{
+			UserID:      ownerID,
+			WorkspaceID: workspaceID,
+			Role:        "owner",
+		}
+		targetUserWorkspace := &domain.UserWorkspace{
+			UserID:      targetUserID,
+			WorkspaceID: workspaceID,
+			Role:        "member",
+		}
+		callerPermissions := domain.UserPermissions{
+			domain.PermissionResourceContacts: {Read: true},
+		}
+
+		var stored domain.UserPermissions
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, owner, ownerWorkspace, nil)
+		mockRepo.EXPECT().GetUserWorkspace(ctx, targetUserID, workspaceID).Return(targetUserWorkspace, nil)
+		mockRepo.EXPECT().UpdateUserWorkspacePermissions(ctx, gomock.Any()).DoAndReturn(func(ctx context.Context, userWorkspace *domain.UserWorkspace) error {
+			stored = userWorkspace.Permissions
+			return nil
+		})
+		mockUserRepo.EXPECT().GetSessionsByUserID(ctx, targetUserID).Return(nil, nil)
+
+		err := service.SetUserPermissions(ctx, workspaceID, targetUserID, callerPermissions)
+		require.NoError(t, err)
+
+		callerPermissions[domain.PermissionResourceBroadcasts] = domain.ResourcePermissions{Read: true, Write: true}
+		assert.NotContains(t, stored, domain.PermissionResourceBroadcasts)
 	})
 
 	t.Run("target user not member", func(t *testing.T) {
@@ -4048,7 +4165,7 @@ func TestWorkspaceService_InviteMember_TeamMemberLimit(t *testing.T) {
 		inviter := &domain.User{ID: inviterID}
 		mockAuthService.EXPECT().
 			AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
-			Return(context.Background(), inviter, nil, nil)
+			Return(context.Background(), inviter, &domain.UserWorkspace{UserID: inviterID, WorkspaceID: workspaceID, Role: "owner"}, nil)
 		mockRepo.EXPECT().
 			GetByID(gomock.Any(), workspaceID).
 			Return(&domain.Workspace{ID: workspaceID}, nil)
@@ -4071,7 +4188,7 @@ func TestWorkspaceService_InviteMember_TeamMemberLimit(t *testing.T) {
 		inviter := &domain.User{ID: inviterID}
 		mockAuthService.EXPECT().
 			AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
-			Return(context.Background(), inviter, nil, nil)
+			Return(context.Background(), inviter, &domain.UserWorkspace{UserID: inviterID, WorkspaceID: workspaceID, Role: "owner"}, nil)
 		mockRepo.EXPECT().
 			GetByID(gomock.Any(), workspaceID).
 			Return(&domain.Workspace{ID: workspaceID}, nil)
@@ -4105,7 +4222,7 @@ func TestWorkspaceService_InviteMember_TeamMemberLimit(t *testing.T) {
 		inviter := &domain.User{ID: inviterID}
 		mockAuthService.EXPECT().
 			AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
-			Return(context.Background(), inviter, nil, nil)
+			Return(context.Background(), inviter, &domain.UserWorkspace{UserID: inviterID, WorkspaceID: workspaceID, Role: "owner"}, nil)
 		mockRepo.EXPECT().
 			GetByID(gomock.Any(), workspaceID).
 			Return(&domain.Workspace{ID: workspaceID}, nil)

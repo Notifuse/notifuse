@@ -1,5 +1,6 @@
 import { api } from './client'
 import type { EmailBlock } from '../../components/email_builder/types'
+import type { UserPermissions, StoredPermissions } from './permissions'
 
 // Template Block type
 export interface TemplateBlock {
@@ -285,6 +286,8 @@ export interface UpdateWorkspaceResponse {
 export interface CreateAPIKeyRequest {
   workspace_id: string
   email_prefix: string
+  // Omitted means full access, mirroring the server default.
+  permissions?: UserPermissions
 }
 
 export interface CreateAPIKeyResponse {
@@ -360,7 +363,9 @@ export interface WorkspaceMember {
   updated_at: string
   invitation_expires_at?: string
   invitation_id?: string
-  permissions: UserPermissions
+  // Received, not constructed: the stored map may be partial, and synthesised invitation rows
+  // carry null. Read it through `?? createEmptyPermissions()`.
+  permissions: StoredPermissions | undefined
 }
 
 export interface GetWorkspaceMembersResponse {
@@ -379,25 +384,15 @@ export interface InviteMemberResponse {
   message: string
 }
 
-// Permission types
-export interface ResourcePermissions {
-  read: boolean
-  write: boolean
-}
-
-export interface UserPermissions {
-  contacts: ResourcePermissions
-  lists: ResourcePermissions
-  templates: ResourcePermissions
-  broadcasts: ResourcePermissions
-  transactional: ResourcePermissions
-  workspace: ResourcePermissions
-  message_history: ResourcePermissions
-  blog: ResourcePermissions
-  automations: ResourcePermissions
-  llm: ResourcePermissions
-  web_analytics: ResourcePermissions
-}
+// Permission types live in ./permissions, which imports nothing — the constructors are called at
+// module scope by consumers that sit in an import cycle with ./client. Only the types are
+// re-exported here, because most call sites already import them from this module.
+export type {
+  ResourcePermissions,
+  PermissionResource,
+  UserPermissions,
+  StoredPermissions
+} from './permissions'
 
 // Set User Permissions types
 export interface SetUserPermissionsRequest {

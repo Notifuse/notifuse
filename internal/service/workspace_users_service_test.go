@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -115,6 +116,22 @@ func TestWorkspaceService_AddUserToWorkspace(t *testing.T) {
 		err := service.AddUserToWorkspace(ctx, workspaceID, userID, "member", domain.UserPermissions{})
 		require.Error(t, err)
 		assert.Equal(t, "user is not an owner of the workspace", err.Error())
+	})
+
+	t.Run("unknown_permission_resource", func(t *testing.T) {
+		mockAuthSvc.EXPECT().
+			AuthenticateUserForWorkspace(ctx, workspaceID).
+			Return(ctx, &domain.User{ID: requesterID}, &domain.UserWorkspace{
+				UserID:      requesterID,
+				WorkspaceID: workspaceID,
+				Role:        "owner",
+			}, nil)
+
+		err := service.AddUserToWorkspace(ctx, workspaceID, userID, "member", domain.UserPermissions{
+			"not_a_resource": {Read: true},
+		})
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "unknown permission resource")
 	})
 
 	t.Run("invalid_role", func(t *testing.T) {
@@ -511,6 +528,8 @@ func TestWorkspaceService_GetWorkspaceMembersWithEmail(t *testing.T) {
 		GetWorkspaceInvitations(ctx, workspaceID).
 		Return([]*domain.WorkspaceInvitation{}, nil).AnyTimes()
 
+	ownerWorkspace := &domain.UserWorkspace{UserID: userID, WorkspaceID: workspaceID, Role: "owner"}
+
 	t.Run("successful get members with email", func(t *testing.T) {
 		expectedUser := &domain.User{
 			ID: userID,
@@ -541,7 +560,7 @@ func TestWorkspaceService_GetWorkspaceMembersWithEmail(t *testing.T) {
 
 		mockAuthSvc.EXPECT().
 			AuthenticateUserForWorkspace(ctx, workspaceID).
-			Return(ctx, expectedUser, nil, nil)
+			Return(ctx, expectedUser, ownerWorkspace, nil)
 
 		mockRepo.EXPECT().
 			GetWorkspaceUsersWithEmail(ctx, workspaceID).
@@ -550,6 +569,101 @@ func TestWorkspaceService_GetWorkspaceMembersWithEmail(t *testing.T) {
 		members, err := service.GetWorkspaceMembersWithEmail(ctx, workspaceID)
 		require.NoError(t, err)
 		assert.Equal(t, expectedMembers, members)
+	})
+
+	t.Run("member with workspace read gets the full roster", func(t *testing.T) {
+		allMembers := []*domain.UserWorkspaceWithEmail{
+			{
+				UserWorkspace: domain.UserWorkspace{UserID: "owner1", WorkspaceID: workspaceID, Role: "owner"},
+				Email:         "owner1@example.com",
+			},
+			{
+				UserWorkspace: domain.UserWorkspace{UserID: userID, WorkspaceID: workspaceID, Role: "member"},
+				Email:         "user1@example.com",
+			},
+		}
+
+		mockAuthSvc.EXPECT().
+			AuthenticateUserForWorkspace(ctx, workspaceID).
+			Return(ctx, &domain.User{ID: userID}, &domain.UserWorkspace{
+				UserID:      userID,
+				WorkspaceID: workspaceID,
+				Role:        "member",
+				Permissions: domain.UserPermissions{
+					domain.PermissionResourceWorkspace: {Read: true},
+				},
+			}, nil)
+
+		mockRepo.EXPECT().
+			GetWorkspaceUsersWithEmail(ctx, workspaceID).
+			Return(allMembers, nil)
+
+		members, err := service.GetWorkspaceMembersWithEmail(ctx, workspaceID)
+		require.NoError(t, err)
+		assert.Equal(t, allMembers, members)
+	})
+
+	t.Run("member without workspace read is degraded to its own row", func(t *testing.T) {
+		// A denial here would blank the console (this is its only source of the signed-in
+		// user's permission map), so the roster is narrowed instead of refused.
+		allMembers := []*domain.UserWorkspaceWithEmail{
+			{
+				UserWorkspace: domain.UserWorkspace{UserID: "owner1", WorkspaceID: workspaceID, Role: "owner"},
+				Email:         "owner1@example.com",
+			},
+			{
+				UserWorkspace: domain.UserWorkspace{UserID: userID, WorkspaceID: workspaceID, Role: "member"},
+				Email:         "user1@example.com",
+			},
+			{
+				UserWorkspace: domain.UserWorkspace{UserID: "user2", WorkspaceID: workspaceID, Role: "member"},
+				Email:         "user2@example.com",
+			},
+		}
+
+		mockAuthSvc.EXPECT().
+			AuthenticateUserForWorkspace(ctx, workspaceID).
+			Return(ctx, &domain.User{ID: userID}, &domain.UserWorkspace{
+				UserID:      userID,
+				WorkspaceID: workspaceID,
+				Role:        "member",
+				Permissions: domain.UserPermissions{
+					domain.PermissionResourceContacts: {Read: true},
+				},
+			}, nil)
+
+		mockRepo.EXPECT().
+			GetWorkspaceUsersWithEmail(ctx, workspaceID).
+			Return(allMembers, nil)
+
+		members, err := service.GetWorkspaceMembersWithEmail(ctx, workspaceID)
+		require.NoError(t, err)
+		assert.Equal(t, []*domain.UserWorkspaceWithEmail{allMembers[1]}, members)
+	})
+
+	t.Run("nil requester workspace is degraded, not bypassed", func(t *testing.T) {
+		allMembers := []*domain.UserWorkspaceWithEmail{
+			{
+				UserWorkspace: domain.UserWorkspace{UserID: "owner1", WorkspaceID: workspaceID, Role: "owner"},
+				Email:         "owner1@example.com",
+			},
+			{
+				UserWorkspace: domain.UserWorkspace{UserID: userID, WorkspaceID: workspaceID, Role: "member"},
+				Email:         "user1@example.com",
+			},
+		}
+
+		mockAuthSvc.EXPECT().
+			AuthenticateUserForWorkspace(ctx, workspaceID).
+			Return(ctx, &domain.User{ID: userID}, nil, nil)
+
+		mockRepo.EXPECT().
+			GetWorkspaceUsersWithEmail(ctx, workspaceID).
+			Return(allMembers, nil)
+
+		members, err := service.GetWorkspaceMembersWithEmail(ctx, workspaceID)
+		require.NoError(t, err)
+		assert.Equal(t, []*domain.UserWorkspaceWithEmail{allMembers[1]}, members)
 	})
 
 	t.Run("authentication error", func(t *testing.T) {
@@ -570,7 +684,7 @@ func TestWorkspaceService_GetWorkspaceMembersWithEmail(t *testing.T) {
 
 		mockAuthSvc.EXPECT().
 			AuthenticateUserForWorkspace(ctx, workspaceID).
-			Return(ctx, expectedUser, nil, nil)
+			Return(ctx, expectedUser, ownerWorkspace, nil)
 
 		mockRepo.EXPECT().
 			GetWorkspaceUsersWithEmail(ctx, workspaceID).
@@ -640,7 +754,7 @@ func TestWorkspaceService_InviteMember(t *testing.T) {
 
 		mockAuthSvc.EXPECT().
 			AuthenticateUserForWorkspace(ctx, workspaceID).
-			Return(ctx, &domain.User{ID: inviterID}, nil, nil)
+			Return(ctx, &domain.User{ID: inviterID}, &domain.UserWorkspace{UserID: inviterID, WorkspaceID: workspaceID, Role: "owner"}, nil)
 
 		mockRepo.EXPECT().
 			GetByID(ctx, workspaceID).
@@ -711,7 +825,7 @@ func TestWorkspaceService_InviteMember(t *testing.T) {
 
 		mockAuthSvc.EXPECT().
 			AuthenticateUserForWorkspace(ctx, workspaceID).
-			Return(ctx, &domain.User{ID: inviterID}, nil, nil)
+			Return(ctx, &domain.User{ID: inviterID}, &domain.UserWorkspace{UserID: inviterID, WorkspaceID: workspaceID, Role: "owner"}, nil)
 
 		mockRepo.EXPECT().
 			GetByID(ctx, workspaceID).
@@ -755,7 +869,7 @@ func TestWorkspaceService_InviteMember(t *testing.T) {
 		// Mock authentication - this should be called before email validation
 		mockAuthSvc.EXPECT().
 			AuthenticateUserForWorkspace(ctx, workspaceID).
-			Return(ctx, &domain.User{ID: inviterID}, nil, nil)
+			Return(ctx, &domain.User{ID: inviterID}, &domain.UserWorkspace{UserID: inviterID, WorkspaceID: workspaceID, Role: "owner"}, nil)
 
 		invitation, token, err := service.InviteMember(ctx, workspaceID, "invalid-email", domain.UserPermissions{})
 		require.Error(t, err)
@@ -779,7 +893,7 @@ func TestWorkspaceService_InviteMember(t *testing.T) {
 	t.Run("workspace not found", func(t *testing.T) {
 		mockAuthSvc.EXPECT().
 			AuthenticateUserForWorkspace(ctx, workspaceID).
-			Return(ctx, &domain.User{ID: inviterID}, nil, nil)
+			Return(ctx, &domain.User{ID: inviterID}, &domain.UserWorkspace{UserID: inviterID, WorkspaceID: workspaceID, Role: "owner"}, nil)
 
 		mockRepo.EXPECT().
 			GetByID(ctx, workspaceID).
@@ -807,6 +921,44 @@ func TestWorkspaceService_InviteMember(t *testing.T) {
 		assert.Contains(t, err.Error(), "failed to authenticate user")
 	})
 
+	t.Run("inviter is not an owner", func(t *testing.T) {
+		// An invitation carries an arbitrary permission map, so a scoped member — or a
+		// scoped API key, which is a member row — must not be able to issue one.
+		mockAuthSvc.EXPECT().
+			AuthenticateUserForWorkspace(ctx, workspaceID).
+			Return(ctx, &domain.User{ID: inviterID}, &domain.UserWorkspace{
+				UserID:      inviterID,
+				WorkspaceID: workspaceID,
+				Role:        "member",
+				Permissions: domain.NewFullPermissions(),
+			}, nil)
+
+		invitation, token, err := service.InviteMember(ctx, workspaceID, email, domain.NewFullPermissions())
+		require.Error(t, err)
+		assert.Nil(t, invitation)
+		assert.Empty(t, token)
+		assert.IsType(t, &domain.ErrUnauthorized{}, err)
+		assert.Equal(t, "user is not an owner of the workspace", err.Error())
+	})
+
+	t.Run("unknown permission resource is rejected", func(t *testing.T) {
+		mockAuthSvc.EXPECT().
+			AuthenticateUserForWorkspace(ctx, workspaceID).
+			Return(ctx, &domain.User{ID: inviterID}, &domain.UserWorkspace{
+				UserID:      inviterID,
+				WorkspaceID: workspaceID,
+				Role:        "owner",
+			}, nil)
+
+		invitation, token, err := service.InviteMember(ctx, workspaceID, email, domain.UserPermissions{
+			"not_a_resource": {Read: true},
+		})
+		require.Error(t, err)
+		assert.Nil(t, invitation)
+		assert.Empty(t, token)
+		assert.Contains(t, err.Error(), "unknown permission resource")
+	})
+
 	t.Run("user already a member", func(t *testing.T) {
 		existingUser := &domain.User{
 			ID:    "existing-user",
@@ -815,7 +967,7 @@ func TestWorkspaceService_InviteMember(t *testing.T) {
 
 		mockAuthSvc.EXPECT().
 			AuthenticateUserForWorkspace(ctx, workspaceID).
-			Return(ctx, &domain.User{ID: inviterID}, nil, nil)
+			Return(ctx, &domain.User{ID: inviterID}, &domain.UserWorkspace{UserID: inviterID, WorkspaceID: workspaceID, Role: "owner"}, nil)
 
 		mockRepo.EXPECT().
 			GetByID(ctx, workspaceID).
@@ -930,6 +1082,7 @@ func TestWorkspaceService_CreateAPIKey(t *testing.T) {
 			DoAndReturn(func(_ context.Context, userWorkspace *domain.UserWorkspace) error {
 				assert.Equal(t, workspaceID, userWorkspace.WorkspaceID)
 				assert.Equal(t, "member", userWorkspace.Role)
+				assert.Equal(t, domain.NewFullPermissions(), userWorkspace.Permissions)
 				return nil
 			})
 
@@ -938,7 +1091,7 @@ func TestWorkspaceService_CreateAPIKey(t *testing.T) {
 			GenerateAPIAuthToken(gomock.Any()).
 			Return(expectedToken)
 
-		token, email, err := subService.CreateAPIKey(ctx, workspaceID, emailPrefix)
+		token, email, err := subService.CreateAPIKey(ctx, workspaceID, emailPrefix, nil)
 		require.NoError(t, err)
 		assert.Equal(t, expectedToken, token)
 		assert.Equal(t, expectedEmail, email)
@@ -976,7 +1129,7 @@ func TestWorkspaceService_CreateAPIKey(t *testing.T) {
 			AuthenticateUserForWorkspace(ctx, workspaceID).
 			Return(ctx, nil, nil, fmt.Errorf("authentication failed"))
 
-		token, email, err := subService.CreateAPIKey(ctx, workspaceID, emailPrefix)
+		token, email, err := subService.CreateAPIKey(ctx, workspaceID, emailPrefix, nil)
 		require.Error(t, err)
 		assert.Equal(t, "", token)
 		assert.Equal(t, "", email)
@@ -1019,7 +1172,7 @@ func TestWorkspaceService_CreateAPIKey(t *testing.T) {
 				Role:        "member", // Not an owner
 			}, nil)
 
-		token, email, err := subService.CreateAPIKey(ctx, workspaceID, emailPrefix)
+		token, email, err := subService.CreateAPIKey(ctx, workspaceID, emailPrefix, nil)
 		require.Error(t, err)
 		assert.Equal(t, "", token)
 		assert.Equal(t, "", email)
@@ -1068,7 +1221,7 @@ func TestWorkspaceService_CreateAPIKey(t *testing.T) {
 			CreateUser(ctx, gomock.Any()).
 			Return(fmt.Errorf("user creation failed"))
 
-		token, email, err := subService.CreateAPIKey(ctx, workspaceID, emailPrefix)
+		token, email, err := subService.CreateAPIKey(ctx, workspaceID, emailPrefix, nil)
 		require.Error(t, err)
 		assert.Equal(t, "", token)
 		assert.Equal(t, "", email)
@@ -1119,11 +1272,363 @@ func TestWorkspaceService_CreateAPIKey(t *testing.T) {
 			AddUserToWorkspace(ctx, gomock.Any()).
 			Return(fmt.Errorf("add to workspace failed"))
 
-		token, email, err := subService.CreateAPIKey(ctx, workspaceID, emailPrefix)
+		token, email, err := subService.CreateAPIKey(ctx, workspaceID, emailPrefix, nil)
 		require.Error(t, err)
 		assert.Equal(t, "", token)
 		assert.Equal(t, "", email)
 		assert.Equal(t, "add to workspace failed", err.Error())
+	})
+
+	t.Run("stored_permissions", func(t *testing.T) {
+		scoped := domain.UserPermissions{
+			domain.PermissionResourceTransactional: {Write: true},
+		}
+
+		testCases := []struct {
+			name     string
+			given    domain.UserPermissions
+			expected domain.UserPermissions
+		}{
+			{"nil grants full access", nil, domain.NewFullPermissions()},
+			{"scoped map is stored verbatim", scoped, scoped},
+			{"empty map is stored empty", domain.UserPermissions{}, domain.UserPermissions{}},
+		}
+
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				subCtrl := gomock.NewController(t)
+				defer subCtrl.Finish()
+
+				mockRepo := mocks.NewMockWorkspaceRepository(subCtrl)
+				mockUserRepo := mocks.NewMockUserRepository(subCtrl)
+				mockAuthSvc := mocks.NewMockAuthService(subCtrl)
+
+				subService := NewWorkspaceService(
+					mockRepo,
+					mockUserRepo,
+					mocks.NewMockTaskRepository(ctrl),
+					mockLogger,
+					mockUserSvc,
+					mockAuthSvc,
+					mockMailer,
+					cfg,
+					mockContactService,
+					mockListService,
+					mockContactListService,
+					mockTemplateService,
+					mockWebhookRegService,
+					"secret_key",
+					&SupabaseService{},
+					&DNSVerificationService{},
+					&BlogService{},
+				)
+
+				mockAuthSvc.EXPECT().
+					AuthenticateUserForWorkspace(ctx, workspaceID).
+					Return(ctx, &domain.User{ID: userID}, &domain.UserWorkspace{
+						UserID:      userID,
+						WorkspaceID: workspaceID,
+						Role:        "owner",
+					}, nil)
+
+				mockUserRepo.EXPECT().CreateUser(ctx, gomock.Any()).Return(nil)
+
+				var stored domain.UserPermissions
+				mockRepo.EXPECT().
+					AddUserToWorkspace(ctx, gomock.Any()).
+					DoAndReturn(func(_ context.Context, userWorkspace *domain.UserWorkspace) error {
+						stored = userWorkspace.Permissions
+						return nil
+					})
+
+				mockAuthSvc.EXPECT().GenerateAPIAuthToken(gomock.Any()).Return(expectedToken)
+
+				_, _, err := subService.CreateAPIKey(ctx, workspaceID, emailPrefix, tc.given)
+				require.NoError(t, err)
+				assert.Equal(t, tc.expected, stored)
+			})
+		}
+	})
+
+	t.Run("stored_permissions_are_copies", func(t *testing.T) {
+		// The membership row must own its map: sharing domain.FullPermissions, or the
+		// caller's map, would let one mutation rewrite the permissions of other rows.
+		newSubService := func(subCtrl *gomock.Controller) (*WorkspaceService, *mocks.MockWorkspaceRepository, *mocks.MockUserRepository, *mocks.MockAuthService) {
+			mockRepo := mocks.NewMockWorkspaceRepository(subCtrl)
+			mockUserRepo := mocks.NewMockUserRepository(subCtrl)
+			mockAuthSvc := mocks.NewMockAuthService(subCtrl)
+
+			return NewWorkspaceService(
+				mockRepo,
+				mockUserRepo,
+				mocks.NewMockTaskRepository(ctrl),
+				mockLogger,
+				mockUserSvc,
+				mockAuthSvc,
+				mockMailer,
+				cfg,
+				mockContactService,
+				mockListService,
+				mockContactListService,
+				mockTemplateService,
+				mockWebhookRegService,
+				"secret_key",
+				&SupabaseService{},
+				&DNSVerificationService{},
+				&BlogService{},
+			), mockRepo, mockUserRepo, mockAuthSvc
+		}
+
+		t.Run("not the global full permissions map", func(t *testing.T) {
+			subCtrl := gomock.NewController(t)
+			defer subCtrl.Finish()
+
+			subService, mockRepo, mockUserRepo, mockAuthSvc := newSubService(subCtrl)
+
+			mockAuthSvc.EXPECT().
+				AuthenticateUserForWorkspace(ctx, workspaceID).
+				Return(ctx, &domain.User{ID: userID}, &domain.UserWorkspace{
+					UserID:      userID,
+					WorkspaceID: workspaceID,
+					Role:        "owner",
+				}, nil)
+			mockUserRepo.EXPECT().CreateUser(ctx, gomock.Any()).Return(nil)
+
+			var stored domain.UserPermissions
+			mockRepo.EXPECT().
+				AddUserToWorkspace(ctx, gomock.Any()).
+				DoAndReturn(func(_ context.Context, userWorkspace *domain.UserWorkspace) error {
+					stored = userWorkspace.Permissions
+					return nil
+				})
+			mockAuthSvc.EXPECT().GenerateAPIAuthToken(gomock.Any()).Return(expectedToken)
+
+			_, _, err := subService.CreateAPIKey(ctx, workspaceID, emailPrefix, nil)
+			require.NoError(t, err)
+
+			stored[domain.PermissionResourceContacts] = domain.ResourcePermissions{}
+			assert.Equal(t,
+				domain.ResourcePermissions{Read: true, Write: true},
+				domain.FullPermissions[domain.PermissionResourceContacts])
+		})
+
+		t.Run("not the caller's map", func(t *testing.T) {
+			subCtrl := gomock.NewController(t)
+			defer subCtrl.Finish()
+
+			subService, mockRepo, mockUserRepo, mockAuthSvc := newSubService(subCtrl)
+
+			mockAuthSvc.EXPECT().
+				AuthenticateUserForWorkspace(ctx, workspaceID).
+				Return(ctx, &domain.User{ID: userID}, &domain.UserWorkspace{
+					UserID:      userID,
+					WorkspaceID: workspaceID,
+					Role:        "owner",
+				}, nil)
+			mockUserRepo.EXPECT().CreateUser(ctx, gomock.Any()).Return(nil)
+
+			var stored domain.UserPermissions
+			mockRepo.EXPECT().
+				AddUserToWorkspace(ctx, gomock.Any()).
+				DoAndReturn(func(_ context.Context, userWorkspace *domain.UserWorkspace) error {
+					stored = userWorkspace.Permissions
+					return nil
+				})
+			mockAuthSvc.EXPECT().GenerateAPIAuthToken(gomock.Any()).Return(expectedToken)
+
+			callerPermissions := domain.UserPermissions{
+				domain.PermissionResourceTransactional: {Write: true},
+			}
+			_, _, err := subService.CreateAPIKey(ctx, workspaceID, emailPrefix, callerPermissions)
+			require.NoError(t, err)
+
+			callerPermissions[domain.PermissionResourceContacts] = domain.ResourcePermissions{Read: true, Write: true}
+			assert.NotContains(t, stored, domain.PermissionResourceContacts)
+		})
+	})
+
+	t.Run("root_email_prefix_is_rejected", func(t *testing.T) {
+		subCtrl := gomock.NewController(t)
+		defer subCtrl.Finish()
+
+		mockRepo := mocks.NewMockWorkspaceRepository(subCtrl)
+		mockUserRepo := mocks.NewMockUserRepository(subCtrl)
+		mockAuthSvc := mocks.NewMockAuthService(subCtrl)
+
+		// A prefix that lands on a configured ROOT_EMAIL would mint a platform-admin key.
+		rootCfg := &config.Config{APIEndpoint: "https://api.example.com/v1", RootEmail: "root@api.example.com"}
+
+		subService := NewWorkspaceService(
+			mockRepo,
+			mockUserRepo,
+			mocks.NewMockTaskRepository(ctrl),
+			mockLogger,
+			mockUserSvc,
+			mockAuthSvc,
+			mockMailer,
+			rootCfg,
+			mockContactService,
+			mockListService,
+			mockContactListService,
+			mockTemplateService,
+			mockWebhookRegService,
+			"secret_key",
+			&SupabaseService{},
+			&DNSVerificationService{},
+			&BlogService{},
+		)
+
+		mockAuthSvc.EXPECT().
+			AuthenticateUserForWorkspace(ctx, workspaceID).
+			Return(ctx, &domain.User{ID: userID}, &domain.UserWorkspace{
+				UserID:      userID,
+				WorkspaceID: workspaceID,
+				Role:        "owner",
+			}, nil)
+
+		token, email, err := subService.CreateAPIKey(ctx, workspaceID, "root", nil)
+		require.Error(t, err)
+		assert.Equal(t, "", token)
+		assert.Equal(t, "", email)
+		assert.IsType(t, &domain.ErrUnauthorized{}, err)
+		assert.Contains(t, err.Error(), "platform admin")
+	})
+
+	t.Run("non_member_requester", func(t *testing.T) {
+		subCtrl := gomock.NewController(t)
+		defer subCtrl.Finish()
+
+		mockRepo := mocks.NewMockWorkspaceRepository(subCtrl)
+		mockUserRepo := mocks.NewMockUserRepository(subCtrl)
+		mockAuthSvc := mocks.NewMockAuthService(subCtrl)
+
+		subService := NewWorkspaceService(
+			mockRepo,
+			mockUserRepo,
+			mocks.NewMockTaskRepository(ctrl),
+			mockLogger,
+			mockUserSvc,
+			mockAuthSvc,
+			mockMailer,
+			cfg,
+			mockContactService,
+			mockListService,
+			mockContactListService,
+			mockTemplateService,
+			mockWebhookRegService,
+			"secret_key",
+			&SupabaseService{},
+			&DNSVerificationService{},
+			&BlogService{},
+		)
+
+		// The sentinel is a plain error, so it has to be translated for the handler to
+		// answer 403 instead of 500.
+		mockAuthSvc.EXPECT().
+			AuthenticateUserForWorkspace(ctx, workspaceID).
+			Return(ctx, nil, nil, domain.ErrUserNotInWorkspace)
+
+		token, email, err := subService.CreateAPIKey(ctx, workspaceID, emailPrefix, nil)
+		require.Error(t, err)
+		assert.Equal(t, "", token)
+		assert.Equal(t, "", email)
+		var unauthorizedErr *domain.ErrUnauthorized
+		assert.True(t, errors.As(err, &unauthorizedErr))
+	})
+
+	t.Run("duplicate_api_key_email", func(t *testing.T) {
+		subCtrl := gomock.NewController(t)
+		defer subCtrl.Finish()
+
+		mockRepo := mocks.NewMockWorkspaceRepository(subCtrl)
+		mockUserRepo := mocks.NewMockUserRepository(subCtrl)
+		mockAuthSvc := mocks.NewMockAuthService(subCtrl)
+
+		subService := NewWorkspaceService(
+			mockRepo,
+			mockUserRepo,
+			mocks.NewMockTaskRepository(ctrl),
+			mockLogger,
+			mockUserSvc,
+			mockAuthSvc,
+			mockMailer,
+			cfg,
+			mockContactService,
+			mockListService,
+			mockContactListService,
+			mockTemplateService,
+			mockWebhookRegService,
+			"secret_key",
+			&SupabaseService{},
+			&DNSVerificationService{},
+			&BlogService{},
+		)
+
+		mockAuthSvc.EXPECT().
+			AuthenticateUserForWorkspace(ctx, workspaceID).
+			Return(ctx, &domain.User{ID: userID}, &domain.UserWorkspace{
+				UserID:      userID,
+				WorkspaceID: workspaceID,
+				Role:        "owner",
+			}, nil)
+
+		mockUserRepo.EXPECT().
+			CreateUser(ctx, gomock.Any()).
+			Return(&domain.ErrUserExists{Message: "user already exists"})
+
+		// The typed error must survive the wrap: the handler maps it to 409.
+		token, email, err := subService.CreateAPIKey(ctx, workspaceID, emailPrefix, nil)
+		require.Error(t, err)
+		assert.Equal(t, "", token)
+		assert.Equal(t, "", email)
+		var userExistsErr *domain.ErrUserExists
+		assert.True(t, errors.As(err, &userExistsErr))
+	})
+
+	t.Run("unknown_permission_resource", func(t *testing.T) {
+		subCtrl := gomock.NewController(t)
+		defer subCtrl.Finish()
+
+		mockRepo := mocks.NewMockWorkspaceRepository(subCtrl)
+		mockUserRepo := mocks.NewMockUserRepository(subCtrl)
+		mockAuthSvc := mocks.NewMockAuthService(subCtrl)
+
+		subService := NewWorkspaceService(
+			mockRepo,
+			mockUserRepo,
+			mocks.NewMockTaskRepository(ctrl),
+			mockLogger,
+			mockUserSvc,
+			mockAuthSvc,
+			mockMailer,
+			cfg,
+			mockContactService,
+			mockListService,
+			mockContactListService,
+			mockTemplateService,
+			mockWebhookRegService,
+			"secret_key",
+			&SupabaseService{},
+			&DNSVerificationService{},
+			&BlogService{},
+		)
+
+		mockAuthSvc.EXPECT().
+			AuthenticateUserForWorkspace(ctx, workspaceID).
+			Return(ctx, &domain.User{ID: userID}, &domain.UserWorkspace{
+				UserID:      userID,
+				WorkspaceID: workspaceID,
+				Role:        "owner",
+			}, nil)
+
+		// No repo expectations: an unknown resource is rejected before anything is created.
+		token, email, err := subService.CreateAPIKey(ctx, workspaceID, emailPrefix, domain.UserPermissions{
+			"not_a_resource": {Read: true},
+		})
+		require.Error(t, err)
+		assert.Equal(t, "", token)
+		assert.Equal(t, "", email)
+		assert.Contains(t, err.Error(), "unknown permission resource")
 	})
 }
 

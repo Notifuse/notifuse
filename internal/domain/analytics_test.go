@@ -331,3 +331,48 @@ func TestPredefinedSchemasWithFilters(t *testing.T) {
 func intPtr(i int) *int {
 	return &i
 }
+
+func TestAnalyticsSchemaResource(t *testing.T) {
+	t.Run("every predefined schema is owned by a resource", func(t *testing.T) {
+		// A schema without an entry is refused by the query path, so this
+		// assertion is what turns "someone added a schema and forgot the
+		// mapping" into a failing build rather than a silently ungated table.
+		for name := range PredefinedSchemas {
+			_, ok := AnalyticsSchemaResource(name)
+			assert.True(t, ok, "schema %q has no owning resource", name)
+		}
+	})
+
+	t.Run("each schema maps to the resource that owns its rows", func(t *testing.T) {
+		expected := map[string]PermissionResource{
+			"message_history":            PermissionResourceMessageHistory,
+			"contacts":                   PermissionResourceContacts,
+			"broadcasts":                 PermissionResourceBroadcasts,
+			"webhook_deliveries":         PermissionResourceWebhookSubscriptions,
+			"email_queue":                PermissionResourceMessageHistory,
+			"automation_node_executions": PermissionResourceAutomations,
+			"web_sessions":               PermissionResourceWebAnalytics,
+			"web_pages":                  PermissionResourceWebAnalytics,
+			"web_goals":                  PermissionResourceWebAnalytics,
+		}
+
+		for name, resource := range expected {
+			actual, ok := AnalyticsSchemaResource(name)
+			require.True(t, ok, "schema %q has no owning resource", name)
+			assert.Equal(t, resource, actual, "schema %q", name)
+		}
+	})
+
+	t.Run("every owning resource is a known permission resource", func(t *testing.T) {
+		for name := range analyticsSchemaResources {
+			resource, _ := AnalyticsSchemaResource(name)
+			assert.NoError(t, UserPermissions{resource: {Read: true}}.Validate(), "schema %q", name)
+		}
+	})
+
+	t.Run("an unmapped schema reports no owner", func(t *testing.T) {
+		resource, ok := AnalyticsSchemaResource("schema_added_without_a_mapping")
+		assert.False(t, ok)
+		assert.Empty(t, resource)
+	})
+}

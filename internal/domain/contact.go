@@ -557,6 +557,12 @@ func (r *UpsertContactRequest) Validate() (contact *Contact, workspaceID string,
 type BatchImportContactsResponse struct {
 	Operations []*UpsertContactOperation `json:"operations"`
 	Error      string                    `json:"error,omitempty"`
+
+	// Err carries the typed error behind Error when the import was refused for
+	// lack of a permission. Error is prose, so a *PermissionError set there alone
+	// cannot be reached by errors.As and the handler has nothing to answer 403
+	// with. Not serialized: Error stays the wire form every client already reads.
+	Err error `json:"-"`
 }
 
 const (
@@ -577,6 +583,12 @@ type UpsertContactOperation struct {
 	Email  string `json:"email"`
 	Action string `json:"action"` // create or update or error
 	Error  string `json:"error,omitempty"`
+
+	// Err carries the typed error behind Error when the upsert was refused for
+	// lack of a permission, for the same reason as on BatchImportContactsResponse.
+	// A genuine per-contact failure (invalid contact, repository error) leaves it
+	// nil and keeps reporting through Error alone.
+	Err error `json:"-"`
 }
 
 // ContactService provides operations for managing contacts

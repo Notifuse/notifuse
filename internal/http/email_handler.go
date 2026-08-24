@@ -135,6 +135,12 @@ func (h *EmailHandler) handleTestEmailProvider(w http.ResponseWriter, r *http.Re
 	}
 
 	err := h.emailService.TestEmailProvider(r.Context(), req.WorkspaceID, req.IntegrationID, req.Provider, req.To)
+	// A denial is answered with the status, not folded into the success payload:
+	// the provider was never contacted, so reporting it as a failed test would
+	// point the caller at their credentials instead of their permissions.
+	if err != nil && writeServiceError(w, err, "You do not have access to this workspace") {
+		return
+	}
 	resp := domain.TestEmailProviderResponse{Success: err == nil}
 	if err != nil {
 		resp.Error = err.Error()

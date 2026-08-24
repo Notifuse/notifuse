@@ -65,9 +65,9 @@ func (mr *MockWorkspaceServiceInterfaceMockRecorder) AddUserToWorkspace(arg0, ar
 }
 
 // CreateAPIKey mocks base method.
-func (m *MockWorkspaceServiceInterface) CreateAPIKey(arg0 context.Context, arg1, arg2 string) (string, string, error) {
+func (m *MockWorkspaceServiceInterface) CreateAPIKey(arg0 context.Context, arg1, arg2 string, arg3 domain.UserPermissions) (string, string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateAPIKey", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "CreateAPIKey", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(string)
 	ret2, _ := ret[2].(error)
@@ -75,9 +75,9 @@ func (m *MockWorkspaceServiceInterface) CreateAPIKey(arg0 context.Context, arg1,
 }
 
 // CreateAPIKey indicates an expected call of CreateAPIKey.
-func (mr *MockWorkspaceServiceInterfaceMockRecorder) CreateAPIKey(arg0, arg1, arg2 interface{}) *gomock.Call {
+func (mr *MockWorkspaceServiceInterfaceMockRecorder) CreateAPIKey(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateAPIKey", reflect.TypeOf((*MockWorkspaceServiceInterface)(nil).CreateAPIKey), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateAPIKey", reflect.TypeOf((*MockWorkspaceServiceInterface)(nil).CreateAPIKey), arg0, arg1, arg2, arg3)
 }
 
 // CreateIntegration mocks base method.

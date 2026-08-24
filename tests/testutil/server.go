@@ -58,6 +58,11 @@ type AppInterface interface {
 	GetCustomEventRepository() domain.CustomEventRepository
 }
 
+// TestSecretKey is the installation SECRET_KEY every test server runs with. It
+// encrypts workspace settings and derives the key that signs /api/tasks.execute,
+// so the client and the database seeder both have to agree with it.
+const TestSecretKey = "test-secret-key-for-integration-tests-only"
+
 // NewServerManager creates a new server manager for testing
 func NewServerManager(appFactory func(*config.Config) AppInterface, dbManager *DatabaseManager) *ServerManager {
 	// Create test JWT secret (32+ bytes for HS256)
@@ -76,7 +81,7 @@ func NewServerManager(appFactory func(*config.Config) AppInterface, dbManager *D
 		},
 		Database: *dbManager.GetConfig(),
 		Security: config.SecurityConfig{
-			SecretKey: "test-secret-key-for-integration-tests-only",
+			SecretKey: TestSecretKey,
 			JWTSecret: jwtSecret,
 		},
 		SMTP: config.SMTPConfig{

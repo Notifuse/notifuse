@@ -784,6 +784,18 @@ type MessageHistoryOption func(*domain.MessageHistory)
 type ContactListOption func(*domain.ContactList)
 type IntegrationOption func(*domain.Integration)
 
+// APIKeyOption customizes the membership row an API key is created with. Permissions
+// live on domain.UserWorkspace, not domain.User, so UserOption cannot carry them.
+type APIKeyOption func(*domain.UserWorkspace)
+
+// WithAPIKeyPermissions scopes the API key's membership row, mirroring a key created
+// through workspaces.createAPIKey with an explicit permissions map.
+func WithAPIKeyPermissions(permissions domain.UserPermissions) APIKeyOption {
+	return func(uw *domain.UserWorkspace) {
+		uw.Permissions = permissions
+	}
+}
+
 // User options
 func WithUserEmail(email string) UserOption {
 	return func(u *domain.User) {
@@ -1773,8 +1785,10 @@ func WithNotificationID(id string) TransactionalNotificationOption {
 	return WithTransactionalNotificationID(id)
 }
 
-// CreateAPIKey creates an API key user for a workspace
-func (tdf *TestDataFactory) CreateAPIKey(workspaceID string, opts ...UserOption) (*domain.User, error) {
+// CreateAPIKey creates an API key user for a workspace. The membership row defaults to
+// full permissions, matching what workspaces.createAPIKey grants when the request omits
+// the permissions map; pass WithAPIKeyPermissions to build a scoped key.
+func (tdf *TestDataFactory) CreateAPIKey(workspaceID string, opts ...APIKeyOption) (*domain.User, error) {
 	apiUser := &domain.User{
 		ID:        uuid.New().String(),
 		Email:     fmt.Sprintf("api-%s@example.com", uuid.New().String()[:8]),
@@ -1782,11 +1796,6 @@ func (tdf *TestDataFactory) CreateAPIKey(workspaceID string, opts ...UserOption)
 		Type:      domain.UserTypeAPIKey,
 		CreatedAt: time.Now().UTC(),
 		UpdatedAt: time.Now().UTC(),
-	}
-
-	// Apply options
-	for _, opt := range opts {
-		opt(apiUser)
 	}
 
 	err := tdf.userRepo.CreateUser(context.Background(), apiUser)
@@ -1799,8 +1808,14 @@ func (tdf *TestDataFactory) CreateAPIKey(workspaceID string, opts ...UserOption)
 		UserID:      apiUser.ID,
 		WorkspaceID: workspaceID,
 		Role:        "member",
+		Permissions: domain.NewFullPermissions(),
 		CreatedAt:   time.Now().UTC(),
 		UpdatedAt:   time.Now().UTC(),
+	}
+
+	// Apply options
+	for _, opt := range opts {
+		opt(userWorkspace)
 	}
 
 	err = tdf.workspaceRepo.AddUserToWorkspace(context.Background(), userWorkspace)

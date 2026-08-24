@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Notifuse/notifuse/tests/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -23,10 +24,26 @@ import (
 //
 // Plan: plans/task-orchestrator-test-coverage-plan.md
 
+// taskExecutePath is the one endpoint these helpers have to sign.
+const taskExecutePath = "/api/tasks.execute"
+
 // postJSON issues a request without testify assertions, so it is safe to call
 // from a goroutine (require.FailNow outside the test goroutine is undefined).
+// A dispatch to taskExecutePath carries the signature that endpoint is
+// authenticated by, since it has no session to authenticate against.
 func postJSON(url, body string) (int, error) {
-	resp, err := http.Post(url, "application/json", strings.NewReader(body))
+	req, err := http.NewRequest(http.MethodPost, url, strings.NewReader(body))
+	if err != nil {
+		return 0, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	if strings.HasSuffix(url, taskExecutePath) {
+		for name, value := range testutil.TaskExecuteHeaders(taskExecutePath, []byte(body), testutil.TestSecretKey) {
+			req.Header.Set(name, value)
+		}
+	}
+
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return 0, err
 	}

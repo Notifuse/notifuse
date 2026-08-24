@@ -252,13 +252,14 @@ func testEmailHandlerOpens(t *testing.T, suite *testutil.IntegrationTestSuite) {
 func testEmailHandlerTestProvider(t *testing.T, suite *testutil.IntegrationTestSuite) {
 	client := suite.APIClient
 
-	// Create and authenticate a user, then create a workspace
-	// Use a pre-seeded test user instead of generating a random email
-	email := "testuser@example.com"
+	// Sign in as the root operator: only it may create a workspace, and the
+	// creator has to be the caller here — email.testProvider is gated on
+	// transactional:write, which a non-member of the workspace does not hold.
+	email := "test@example.com"
 	token := performCompleteSignInFlow(t, client, email)
 	client.SetToken(token)
 
-	workspaceID := createTestWorkspace(t, client, "Email Test Workspace")
+	workspaceID := createTestWorkspaceWithToken(t, client, token, "Email Test Workspace")
 	client.SetWorkspaceID(workspaceID)
 
 	t.Run("successful test email provider", func(t *testing.T) {

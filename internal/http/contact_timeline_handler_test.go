@@ -216,6 +216,34 @@ func TestContactTimelineHandler_handleList(t *testing.T) {
 		assert.Equal(t, http.StatusInternalServerError, w.Code)
 		assert.Contains(t, w.Body.String(), "Failed to list timeline entries")
 	})
+
+	t.Run("Error - Permission denied", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/api/timeline.list?workspace_id=ws1&email=user@example.com", nil)
+		w := httptest.NewRecorder()
+
+		mockAuthService.EXPECT().
+			AuthenticateUserForWorkspace(gomock.Any(), "ws1").
+			Return(context.Background(), &domain.User{ID: "user1"}, &domain.UserWorkspace{WorkspaceID: "ws1"}, nil)
+
+		mockService.EXPECT().
+			List(gomock.Any(), "ws1", "user@example.com", 50, (*string)(nil)).
+			Return(nil, nil, domain.NewPermissionError(
+				domain.PermissionResourceContacts,
+				domain.PermissionTypeRead,
+				"Insufficient permissions: read access to contacts required",
+			))
+
+		mockLogger.EXPECT().Error(gomock.Any())
+
+		handler.handleList(w, req)
+
+		assert.Equal(t, http.StatusForbidden, w.Code)
+
+		var body map[string]interface{}
+		require.NoError(t, json.NewDecoder(w.Body).Decode(&body))
+		assert.Equal(t, string(domain.PermissionResourceContacts), body["resource"])
+		assert.Equal(t, string(domain.PermissionTypeRead), body["permission"])
+	})
 }
 
 func TestContactTimelineHandler_RegisterRoutes(t *testing.T) {

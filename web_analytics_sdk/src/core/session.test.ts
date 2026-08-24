@@ -212,7 +212,7 @@ describe('SessionManager', () => {
 
     it('sets sdk_version to the build version', () => {
       const session = sessionManager.getOrCreateSession();
-      expect(session.sdk_version).toBe('38.0');
+      expect(session.sdk_version).toBe('39.0');
     });
 
     it('sets sequence to 0', () => {
@@ -245,7 +245,7 @@ describe('SessionManager', () => {
         utm: null,
         max_scroll_percent: 50,
         interaction_count: 5,
-        sdk_version: '38.0',
+        sdk_version: '39.0',
         sequence: 3,
         dimensions: {},
       identity: null,
@@ -273,7 +273,7 @@ describe('SessionManager', () => {
         utm: null,
         max_scroll_percent: 0,
         interaction_count: 0,
-        sdk_version: '38.0',
+        sdk_version: '39.0',
         sequence: 3,
         dimensions: {},
       identity: null,
@@ -302,7 +302,7 @@ describe('SessionManager', () => {
         utm: null,
         max_scroll_percent: 0,
         interaction_count: 0,
-        sdk_version: '38.0',
+        sdk_version: '39.0',
         sequence: 0,
         dimensions: {},
       identity: null,
@@ -331,7 +331,7 @@ describe('SessionManager', () => {
         utm: null,
         max_scroll_percent: 0,
         interaction_count: 0,
-        sdk_version: '38.0',
+        sdk_version: '39.0',
         sequence: 5,
         dimensions: {},
       identity: null,
@@ -586,7 +586,7 @@ describe('SessionManager', () => {
       utm: null,
       max_scroll_percent: 0,
       interaction_count: 0,
-      sdk_version: '38.0',
+      sdk_version: '39.0',
       sequence: 1,
       dimensions: {},
       identity: null,
@@ -761,7 +761,7 @@ describe('SessionManager', () => {
         utm: null,
         max_scroll_percent: 0,
         interaction_count: 0,
-        sdk_version: '38.0',
+        sdk_version: '39.0',
         sequence: 3,
         dimensions: {},
       identity: null,
@@ -799,7 +799,7 @@ describe('SessionManager', () => {
         utm: null,
         max_scroll_percent: 0,
         interaction_count: 0,
-        sdk_version: '38.0',
+        sdk_version: '39.0',
         sequence: 3,
         dimensions: {},
       identity: null,

@@ -748,6 +748,10 @@ func (a *App) InitServices() error {
 	// disabled (scale-out + external cron), HTTP dispatch is kept for fan-out across replicas.
 	a.taskService.SetDirectExecution(a.config.TaskScheduler.Enabled)
 
+	// The dispatcher signs its calls to /api/tasks.execute, which the handler
+	// verifies with the same key — the endpoint has no session to authenticate.
+	a.taskService.SetSecretKey(a.config.Security.SecretKey)
+
 	// Initialize transactional notification service
 	a.transactionalNotificationService = service.NewTransactionalNotificationService(
 		a.transactionalNotificationRepo,
@@ -1032,7 +1036,7 @@ func (a *App) InitServices() error {
 	)
 
 	// Initialize contact timeline service
-	a.contactTimelineService = service.NewContactTimelineService(a.contactTimelineRepo)
+	a.contactTimelineService = service.NewContactTimelineService(a.contactTimelineRepo, a.authService)
 
 	// Initialize task scheduler
 	a.taskScheduler = service.NewTaskScheduler(
@@ -1280,6 +1284,7 @@ func (a *App) InitHandlers() error {
 		getJWTSecret,
 		a.logger,
 		a.config.Security.SecretKey,
+		a.config.IsDemo(),
 	).WithWebAnalyticsCacheInvalidator(a.webAnalyticsService.InvalidateWorkspaceCache)
 	contactHandler := httpHandler.NewContactHandler(a.contactService, getJWTSecret, a.logger)
 	listHandler := httpHandler.NewListHandler(a.listService, getJWTSecret, a.logger)
@@ -1292,9 +1297,15 @@ func (a *App) InitHandlers() error {
 	blogThemeHandler := httpHandler.NewBlogThemeHandler(a.blogService, getJWTSecret, a.logger)
 	taskHandler := httpHandler.NewTaskHandler(
 		a.taskService,
+		a.authService,
 		getJWTSecret,
 		a.logger,
 		a.config.Security.SecretKey,
+		// /api/tasks.execute only executes on an instance that dispatches over
+		// HTTP, i.e. one whose internal scheduler is off; elsewhere it answers
+		// 404. The same flag drives SetDirectExecution above, so the endpoint
+		// works exactly when something calls it.
+		!a.config.TaskScheduler.Enabled,
 	)
 	transactionalHandler := httpHandler.NewTransactionalNotificationHandler(a.transactionalNotificationService, getJWTSecret, a.logger, a.config.IsDemo())
 	inboundWebhookEventHandler := httpHandler.NewInboundWebhookEventHandler(a.inboundWebhookEventService, getJWTSecret, a.rateLimiter, a.logger)

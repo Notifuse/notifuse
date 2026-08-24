@@ -7,8 +7,11 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
+
+	"github.com/Notifuse/notifuse/internal/domain"
 )
 
 // APIClient provides HTTP client functionality for integration tests
@@ -17,6 +20,10 @@ type APIClient struct {
 	client      *http.Client
 	token       string
 	workspaceID string
+	// signingSecret is the installation SECRET_KEY the server was configured
+	// with. /api/tasks.execute is authenticated by signature rather than by a
+	// session, so the client signs it the way the scheduler does.
+	signingSecret string
 }
 
 // NewAPIClient creates a new API client for testing
@@ -26,6 +33,7 @@ func NewAPIClient(baseURL string) *APIClient {
 		client: &http.Client{
 			Timeout: 120 * time.Second, // Increased for long-running operations like task execution with rate limiting
 		},
+		signingSecret: TestSecretKey,
 	}
 }
 
@@ -40,7 +48,14 @@ func NewAPIClientNoRedirect(baseURL string) *APIClient {
 				return http.ErrUseLastResponse // Don't follow redirects
 			},
 		},
+		signingSecret: TestSecretKey,
 	}
+}
+
+// SetSigningSecret overrides the secret the client signs /api/tasks.execute
+// with, for tests that assert an unsigned or wrongly-signed dispatch is refused.
+func (c *APIClient) SetSigningSecret(secret string) {
+	c.signingSecret = secret
 }
 
 // SetToken sets the authentication token
@@ -134,6 +149,12 @@ func (c *APIClient) Post(endpoint string, body interface{}, params ...map[string
 	return c.request(http.MethodPost, endpoint, body, params...)
 }
 
+// PostWithHeaders makes a POST request carrying extra headers. Used for the
+// endpoints authenticated by signature rather than by a session token.
+func (c *APIClient) PostWithHeaders(endpoint string, body interface{}, headers map[string]string, params ...map[string]string) (*http.Response, error) {
+	return c.requestWithHeaders(http.MethodPost, endpoint, body, headers, params...)
+}
+
 // Put makes a PUT request
 func (c *APIClient) Put(endpoint string, body interface{}, params ...map[string]string) (*http.Response, error) {
 	return c.request(http.MethodPut, endpoint, body, params...)
@@ -170,6 +191,11 @@ func (c *APIClient) PostRaw(endpoint string, rawBody string) (*http.Response, er
 
 // request makes an HTTP request
 func (c *APIClient) request(method, endpoint string, body interface{}, params ...map[string]string) (*http.Response, error) {
+	return c.requestWithHeaders(method, endpoint, body, nil, params...)
+}
+
+// requestWithHeaders makes an HTTP request with optional extra headers
+func (c *APIClient) requestWithHeaders(method, endpoint string, body interface{}, headers map[string]string, params ...map[string]string) (*http.Response, error) {
 	// Build URL with query parameters
 	reqURL := c.baseURL + endpoint
 	if len(params) > 0 && params[0] != nil {
@@ -205,6 +231,10 @@ func (c *APIClient) request(method, endpoint string, body interface{}, params ..
 	// Add authentication token if available
 	if c.token != "" {
 		req.Header.Set("Authorization", "Bearer "+c.token)
+	}
+
+	for name, value := range headers {
+		req.Header.Set(name, value)
 	}
 
 	// Add workspace ID if available and not already in params
@@ -540,11 +570,6 @@ func (c *APIClient) RemoveContactFromList(workspaceID, email, listID string) (*h
 
 // Task-related API methods
 
-// CreateTask creates a new task
-func (c *APIClient) CreateTask(request map[string]interface{}) (*http.Response, error) {
-	return c.Post("/api/tasks.create", request)
-}
-
 // GetTask retrieves a task by ID
 func (c *APIClient) GetTask(workspaceID, taskID string) (*http.Response, error) {
 	params := map[string]string{
@@ -568,9 +593,30 @@ func (c *APIClient) DeleteTask(workspaceID, taskID string) (*http.Response, erro
 	return c.Post("/api/tasks.delete", nil, params)
 }
 
-// ExecuteTask executes a specific task
+// ExecuteTask executes a specific task.
+//
+// The dispatch endpoint has no session to authenticate against, so it is signed
+// with the installation's SECRET_KEY the way TaskService signs it: over
+// {timestamp}.{path}.{sha256(body)}, which is why the body is marshalled here
+// rather than left to the request builder.
 func (c *APIClient) ExecuteTask(request map[string]interface{}) (*http.Response, error) {
-	return c.Post("/api/tasks.execute", request)
+	body, err := json.Marshal(request)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal task execution request: %w", err)
+	}
+	return c.PostWithHeaders("/api/tasks.execute", request,
+		TaskExecuteHeaders("/api/tasks.execute", body, c.signingSecret))
+}
+
+// TaskExecuteHeaders returns the signature headers for a dispatch of
+// /api/tasks.execute, for the few tests that build the request themselves.
+func TaskExecuteHeaders(path string, body []byte, secret string) map[string]string {
+	timestamp := time.Now().UTC().Unix()
+	return map[string]string{
+		domain.TaskExecuteTimestampHeader: strconv.FormatInt(timestamp, 10),
+		domain.TaskExecuteSignatureHeader: domain.SignTaskExecuteRequest(
+			domain.TaskExecuteSigningKey(secret), timestamp, path, body),
+	}
 }
 
 // ExecutePendingTasks executes pending tasks
@@ -597,20 +643,6 @@ func (c *APIClient) ResetTask(workspaceID, taskID string) (*http.Response, error
 		"id":           taskID,
 	}
 	return c.Post("/api/tasks.reset", request)
-}
-
-// CreateRecurringTask creates a recurring task for integration testing
-func (c *APIClient) CreateRecurringTask(workspaceID, taskType string, interval int64, integrationID string, state map[string]interface{}) (*http.Response, error) {
-	request := map[string]interface{}{
-		"workspace_id":       workspaceID,
-		"type":               taskType,
-		"recurring_interval": interval,
-		"integration_id":     integrationID,
-	}
-	if state != nil {
-		request["state"] = state
-	}
-	return c.Post("/api/tasks.create", request)
 }
 
 // Webhook registration API methods

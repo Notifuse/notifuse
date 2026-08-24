@@ -52,6 +52,9 @@ func (h *ContactListHandler) handleGetByIDs(w http.ResponseWriter, r *http.Reque
 
 	contactList, err := h.service.GetContactListByIDs(r.Context(), req.WorkspaceID, req.Email, req.ListID)
 	if err != nil {
+		if writeServiceError(w, err, "You do not have access to this workspace") {
+			return
+		}
 		if _, ok := err.(*domain.ErrContactListNotFound); ok {
 			WriteJSONError(w, "Contact list relationship not found", http.StatusNotFound)
 			return
@@ -81,6 +84,9 @@ func (h *ContactListHandler) handleGetContactsByList(w http.ResponseWriter, r *h
 
 	contactLists, err := h.service.GetContactsByListID(r.Context(), req.WorkspaceID, req.ListID)
 	if err != nil {
+		if writeServiceError(w, err, "You do not have access to this workspace") {
+			return
+		}
 		h.logger.WithField("error", err.Error()).Error("Failed to get contacts by list")
 		WriteJSONError(w, "Failed to get contacts by list", http.StatusInternalServerError)
 		return
@@ -106,6 +112,9 @@ func (h *ContactListHandler) handleGetListsByContact(w http.ResponseWriter, r *h
 
 	contactLists, err := h.service.GetListsByEmail(r.Context(), req.WorkspaceID, req.Email)
 	if err != nil {
+		if writeServiceError(w, err, "You do not have access to this workspace") {
+			return
+		}
 		h.logger.WithField("error", err.Error()).Error("Failed to get lists by contact")
 		WriteJSONError(w, "Failed to get lists by contact", http.StatusInternalServerError)
 		return
@@ -138,6 +147,9 @@ func (h *ContactListHandler) handleUpdateStatus(w http.ResponseWriter, r *http.R
 
 	result, err := h.service.UpdateContactListStatus(r.Context(), workspaceID, contactList.Email, contactList.ListID, contactList.Status)
 	if err != nil {
+		if writeServiceError(w, err, "You do not have access to this workspace") {
+			return
+		}
 		if _, ok := err.(*domain.ErrContactListNotFound); ok {
 			WriteJSONError(w, err.Error(), http.StatusNotFound)
 			return
@@ -171,6 +183,9 @@ func (h *ContactListHandler) handleRemoveContact(w http.ResponseWriter, r *http.
 
 	err := h.service.RemoveContactFromList(r.Context(), req.WorkspaceID, req.Email, req.ListID)
 	if err != nil {
+		if writeServiceError(w, err, "You do not have access to this workspace") {
+			return
+		}
 		h.logger.WithField("error", err.Error()).Error("Failed to remove contact from list")
 		// Surface "not in list" as 404 with the canonical error text so callers
 		// (notably the contacts bulk remove flow) can map it to a "Skipped"

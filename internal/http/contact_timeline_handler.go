@@ -85,7 +85,9 @@ func (h *ContactTimelineHandler) handleList(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	// Authenticate user for the workspace
+	// Authenticate user for the workspace, so a caller who is not a member gets a
+	// 401 rather than the service's generic failure. The service authenticates
+	// again and owns the permission check; this call seeds the context it reuses.
 	var err error
 	ctx, _, _, err = h.authService.AuthenticateUserForWorkspace(ctx, req.WorkspaceID)
 	if err != nil {
@@ -108,6 +110,9 @@ func (h *ContactTimelineHandler) handleList(w http.ResponseWriter, r *http.Reque
 			h.tracer.MarkSpanError(ctx, err)
 		}
 		// codecov:ignore:end
+		if writePermissionError(w, err) {
+			return
+		}
 		WriteJSONError(w, "Failed to list timeline entries", http.StatusInternalServerError)
 		return
 	}

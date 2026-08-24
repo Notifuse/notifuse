@@ -48,12 +48,17 @@ func TestWorkspacePlatformAdminOverrideSuite(t *testing.T) {
 	workspaceID := createTestWorkspaceWithToken(t, client, firstRootToken, "Platform Admin Override WS")
 
 	// Add a real non-owner member to the workspace (used by the misuse checks).
+	// It holds workspace:read and nothing else: workspaces.get is gated on that
+	// permission, so a zero-permission row would be denied the read this suite
+	// expects a member to have, and the owner-action checks below would pass for
+	// the wrong reason.
 	var memberID string
 	require.NoError(t, db.QueryRow(`SELECT id FROM users WHERE email = $1`, memberEmail).Scan(&memberID))
 	_, err := db.Exec(`
 		INSERT INTO user_workspaces (user_id, workspace_id, role, permissions, created_at, updated_at)
-		VALUES ($1, $2, 'member', '{}'::jsonb, NOW(), NOW())
-		ON CONFLICT (user_id, workspace_id) DO UPDATE SET role = 'member'`, memberID, workspaceID)
+		VALUES ($1, $2, 'member', '{"workspace": {"read": true, "write": false}}'::jsonb, NOW(), NOW())
+		ON CONFLICT (user_id, workspace_id) DO UPDATE SET role = 'member', permissions = EXCLUDED.permissions`,
+		memberID, workspaceID)
 	require.NoError(t, err)
 
 	// Promote a SECOND, distinct identity to platform admin at runtime — i.e. as if

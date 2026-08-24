@@ -36,9 +36,18 @@ func NewContactListService(
 
 func (s *ContactListService) GetContactListByIDs(ctx context.Context, workspaceID string, email, listID string) (*domain.ContactList, error) {
 	var err error
-	ctx, _, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	var userWorkspace *domain.UserWorkspace
+	ctx, _, userWorkspace, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to authenticate user: %w", err)
+	}
+
+	if !userWorkspace.HasPermission(domain.PermissionResourceLists, domain.PermissionTypeRead) {
+		return nil, domain.NewPermissionError(
+			domain.PermissionResourceLists,
+			domain.PermissionTypeRead,
+			"Insufficient permissions: read access to lists required",
+		)
 	}
 
 	contactList, err := s.repo.GetContactListByIDs(ctx, workspaceID, email, listID)
@@ -57,9 +66,28 @@ func (s *ContactListService) GetContactListByIDs(ctx context.Context, workspaceI
 
 func (s *ContactListService) GetContactsByListID(ctx context.Context, workspaceID string, listID string) ([]*domain.ContactList, error) {
 	var err error
-	ctx, _, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	var userWorkspace *domain.UserWorkspace
+	ctx, _, userWorkspace, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to authenticate user: %w", err)
+	}
+
+	if !userWorkspace.HasPermission(domain.PermissionResourceLists, domain.PermissionTypeRead) {
+		return nil, domain.NewPermissionError(
+			domain.PermissionResourceLists,
+			domain.PermissionTypeRead,
+			"Insufficient permissions: read access to lists required",
+		)
+	}
+
+	// The response enumerates every subscriber address on the list, so lists:read
+	// alone would be a full contact dump to a caller granted no contact access.
+	if !userWorkspace.HasPermission(domain.PermissionResourceContacts, domain.PermissionTypeRead) {
+		return nil, domain.NewPermissionError(
+			domain.PermissionResourceContacts,
+			domain.PermissionTypeRead,
+			"Insufficient permissions: read access to contacts required",
+		)
 	}
 
 	// Verify list exists
@@ -81,9 +109,28 @@ func (s *ContactListService) GetContactsByListID(ctx context.Context, workspaceI
 func (s *ContactListService) GetListsByEmail(ctx context.Context, workspaceID string, email string) ([]*domain.ContactList, error) {
 	// Verify contact exists by email
 	var err error
-	ctx, _, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	var userWorkspace *domain.UserWorkspace
+	ctx, _, userWorkspace, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to authenticate user: %w", err)
+	}
+
+	if !userWorkspace.HasPermission(domain.PermissionResourceLists, domain.PermissionTypeRead) {
+		return nil, domain.NewPermissionError(
+			domain.PermissionResourceLists,
+			domain.PermissionTypeRead,
+			"Insufficient permissions: read access to lists required",
+		)
+	}
+
+	// Answering for an arbitrary address confirms which contacts exist and what
+	// they are subscribed to, so it needs contact access as well as list access.
+	if !userWorkspace.HasPermission(domain.PermissionResourceContacts, domain.PermissionTypeRead) {
+		return nil, domain.NewPermissionError(
+			domain.PermissionResourceContacts,
+			domain.PermissionTypeRead,
+			"Insufficient permissions: read access to contacts required",
+		)
 	}
 
 	_, err = s.contactRepo.GetContactByEmail(ctx, workspaceID, email)
@@ -104,9 +151,28 @@ func (s *ContactListService) GetListsByEmail(ctx context.Context, workspaceID st
 func (s *ContactListService) UpdateContactListStatus(ctx context.Context, workspaceID string, email, listID string, status domain.ContactListStatus) (*domain.UpdateContactListStatusResult, error) {
 	// Verify contact list exists
 	var err error
-	ctx, _, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	var userWorkspace *domain.UserWorkspace
+	ctx, _, userWorkspace, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to authenticate user: %w", err)
+	}
+
+	if !userWorkspace.HasPermission(domain.PermissionResourceLists, domain.PermissionTypeWrite) {
+		return nil, domain.NewPermissionError(
+			domain.PermissionResourceLists,
+			domain.PermissionTypeWrite,
+			"Insufficient permissions: write access to lists required",
+		)
+	}
+
+	// The subscription status lives on the contact as much as on the list, so
+	// changing it requires write access to both.
+	if !userWorkspace.HasPermission(domain.PermissionResourceContacts, domain.PermissionTypeWrite) {
+		return nil, domain.NewPermissionError(
+			domain.PermissionResourceContacts,
+			domain.PermissionTypeWrite,
+			"Insufficient permissions: write access to contacts required",
+		)
 	}
 
 	_, err = s.repo.GetContactListByIDs(ctx, workspaceID, email, listID)
@@ -141,9 +207,28 @@ func (s *ContactListService) UpdateContactListStatus(ctx context.Context, worksp
 
 func (s *ContactListService) RemoveContactFromList(ctx context.Context, workspaceID string, email, listID string) error {
 	var err error
-	ctx, _, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	var userWorkspace *domain.UserWorkspace
+	ctx, _, userWorkspace, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 	if err != nil {
 		return fmt.Errorf("failed to authenticate user: %w", err)
+	}
+
+	if !userWorkspace.HasPermission(domain.PermissionResourceLists, domain.PermissionTypeWrite) {
+		return domain.NewPermissionError(
+			domain.PermissionResourceLists,
+			domain.PermissionTypeWrite,
+			"Insufficient permissions: write access to lists required",
+		)
+	}
+
+	// Removing the membership row edits the contact's subscriptions, so it
+	// requires write access to both resources.
+	if !userWorkspace.HasPermission(domain.PermissionResourceContacts, domain.PermissionTypeWrite) {
+		return domain.NewPermissionError(
+			domain.PermissionResourceContacts,
+			domain.PermissionTypeWrite,
+			"Insufficient permissions: write access to contacts required",
+		)
 	}
 
 	if err := s.repo.RemoveContactFromList(ctx, workspaceID, email, listID); err != nil {

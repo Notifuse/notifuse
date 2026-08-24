@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -17,12 +18,26 @@ func TestContactTimelineService_List(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockRepo := mocks.NewMockContactTimelineRepository(ctrl)
-	service := NewContactTimelineService(mockRepo)
+	mockAuthService := mocks.NewMockAuthService(ctrl)
+	service := NewContactTimelineService(mockRepo, mockAuthService)
 
 	ctx := context.Background()
 	workspaceID := "ws123"
 	email := "user@example.com"
 	limit := 50
+
+	// role "member" (not "owner") so HasPermission actually consults the grants.
+	mockAuthService.EXPECT().
+		AuthenticateUserForWorkspace(ctx, workspaceID).
+		Return(ctx, &domain.User{ID: "user1"}, &domain.UserWorkspace{
+			UserID:      "user1",
+			WorkspaceID: workspaceID,
+			Role:        "member",
+			Permissions: domain.UserPermissions{
+				domain.PermissionResourceContacts: {Read: true},
+			},
+		}, nil).
+		AnyTimes()
 
 	t.Run("Success - List timeline entries", func(t *testing.T) {
 		cursor := "cursor123"
@@ -193,9 +208,75 @@ func TestNewContactTimelineService(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockRepo := mocks.NewMockContactTimelineRepository(ctrl)
+	mockAuthService := mocks.NewMockAuthService(ctrl)
 
-	service := NewContactTimelineService(mockRepo)
+	service := NewContactTimelineService(mockRepo, mockAuthService)
 
 	assert.NotNil(t, service)
 	assert.IsType(t, &ContactTimelineService{}, service)
+}
+
+// TestContactTimelineService_PermissionEnforcement verifies that List enforces
+// contacts:read. The member is granted the OPPOSITE permission (write, not read),
+// so the test fails both if the check is missing AND if it is gated on the wrong
+// permission type. No repo expectation is set, so gomock also fails if anything
+// beyond the permission gate runs.
+//
+// The refusal has to name contacts:read specifically. The fixture grants a single
+// resource, so a gate on any OTHER resource denies this member too and the error
+// type alone cannot tell them apart — and the resource and verb are client-visible,
+// since writePermissionError puts both on the wire.
+func TestContactTimelineService_PermissionEnforcement(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockRepo := mocks.NewMockContactTimelineRepository(ctrl)
+	mockAuthService := mocks.NewMockAuthService(ctrl)
+	service := NewContactTimelineService(mockRepo, mockAuthService)
+
+	ctx := context.Background()
+
+	// role "member" (not "owner") so HasPermission actually consults the grants.
+	mockAuthService.EXPECT().
+		AuthenticateUserForWorkspace(ctx, "ws123").
+		Return(ctx, &domain.User{ID: "user1"}, &domain.UserWorkspace{
+			UserID:      "user1",
+			WorkspaceID: "ws123",
+			Role:        "member",
+			Permissions: domain.UserPermissions{
+				domain.PermissionResourceContacts: {Write: true},
+			},
+		}, nil)
+
+	entries, nextCursor, err := service.List(ctx, "ws123", "user@example.com", 50, nil)
+
+	require.Error(t, err)
+
+	var permErr *domain.PermissionError
+	require.True(t, errors.As(err, &permErr), "expected a *domain.PermissionError, got %T: %v", err, err)
+	assert.Equal(t, domain.PermissionResourceContacts, permErr.Resource)
+	assert.Equal(t, domain.PermissionTypeRead, permErr.Permission)
+	assert.Nil(t, entries)
+	assert.Nil(t, nextCursor)
+}
+
+func TestContactTimelineService_List_AuthenticationError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockRepo := mocks.NewMockContactTimelineRepository(ctrl)
+	mockAuthService := mocks.NewMockAuthService(ctrl)
+	service := NewContactTimelineService(mockRepo, mockAuthService)
+
+	ctx := context.Background()
+
+	mockAuthService.EXPECT().
+		AuthenticateUserForWorkspace(ctx, "ws123").
+		Return(ctx, nil, nil, assert.AnError)
+
+	entries, nextCursor, err := service.List(ctx, "ws123", "user@example.com", 50, nil)
+
+	assert.Error(t, err)
+	assert.Nil(t, entries)
+	assert.Nil(t, nextCursor)
 }

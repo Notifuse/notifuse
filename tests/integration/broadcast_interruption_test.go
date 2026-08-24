@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"testing"
 	"time"
 
@@ -48,6 +49,14 @@ func callWithClientTimeout(t *testing.T, method, url, body string, timeout time.
 	require.NoError(t, err)
 	if body != "" {
 		req.Header.Set("Content-Type", "application/json")
+	}
+
+	// The dispatch endpoint has no session to authenticate against: it is
+	// signed with the installation's SECRET_KEY, the way the scheduler signs it.
+	if strings.HasSuffix(url, taskExecutePath) {
+		for name, value := range testutil.TaskExecuteHeaders(taskExecutePath, []byte(body), testutil.TestSecretKey) {
+			req.Header.Set(name, value)
+		}
 	}
 
 	client := &http.Client{Timeout: timeout}
@@ -622,16 +631,33 @@ func TestBroadcastInterrupted_ResumesAndCompletes(t *testing.T) {
 	waitForTaskStatus(t, h, "pending", 30*time.Second)
 
 	// The scheduler is gone with the context, but the server still serves, so
-	// the task can be driven to completion by hand.
+	// the task can be driven to completion by hand — through /api/cron, not
+	// /api/tasks.execute. This harness runs with the internal scheduler ON, and
+	// that is exactly the shape in which the dispatch endpoint answers 404
+	// (pinned by TestTaskExecute_SchedulerEnabledAnswers404); /api/cron is always
+	// live and detaches from the request, so it runs the pending task in-process.
 	dropSlowEnqueue()
-	for i := 0; i < 25; i++ {
-		if runTask(t, h) != http.StatusOK {
-			break
-		}
+
+	// The interrupted run left the task in its retry backoff. /api/tasks.execute
+	// used to ignore next_run_after, so this test could drive the task straight
+	// away; cron only picks up what is due, so bring the task forward instead of
+	// waiting out the backoff.
+	_, err := h.suite.DBManager.GetDB().Exec(
+		`UPDATE tasks SET next_run_after = NOW() - INTERVAL '1 minute' WHERE id = $1`, h.taskID)
+	require.NoError(t, err)
+
+	cronDeadline := time.Now().Add(30 * time.Second)
+	for time.Now().Before(cronDeadline) {
+		resp, err := http.Get(h.suite.ServerManager.GetURL() + "/api/cron?max_tasks=10")
+		require.NoError(t, err)
+		_ = resp.Body.Close()
+		require.Equal(t, http.StatusAccepted, resp.StatusCode, "cron should accept the trigger")
+
 		bd := h.getBroadcast(t)
 		if status, _ := bd["status"].(string); status == "processed" {
 			break
 		}
+		time.Sleep(500 * time.Millisecond)
 	}
 
 	finalStatus := h.waitForBroadcastStatus(t, []string{"processed"}, 30*time.Second)
@@ -720,10 +746,11 @@ func TestBroadcastInterruptedOnLastRetry_PausesWithReason(t *testing.T) {
 	require.NoError(t, err)
 	resumeResp2.Body.Close()
 
+	// The resume triggers a run of its own on a detached context, so there is
+	// nothing to dispatch here — and nothing this harness could dispatch with:
+	// /api/tasks.execute answers 404 on an instance whose internal scheduler is
+	// on. Poll the broadcast.
 	for i := 0; i < 30; i++ {
-		// The resume also triggers a run of its own, so a 409 here is expected
-		// rather than a failure; poll the broadcast instead of the status code.
-		_ = runTask(t, h)
 		if bd := h.getBroadcast(t); bd["status"] == "processed" {
 			break
 		}

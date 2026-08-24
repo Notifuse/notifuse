@@ -500,13 +500,46 @@ func (s *TransactionalNotificationService) SendNotification(
 		trace.StringAttribute("notification_id", params.ID),
 	)
 
+	// The nested contact upsert and lookup below run under a system subcontext, which skips
+	// their own gates. These two flags are what keeps that subcontext from turning a
+	// send-only key into a read/write primitive over arbitrary contact records, so they must
+	// be captured here, before the context switch. A genuine system call (Supabase) gets
+	// both, exactly as it does today.
+	hasContactsRead := true
+	hasContactsWrite := true
+
 	// Authenticate user for workspace (skip for system calls)
 	var err error
 	if ctx.Value(domain.SystemCallKey) == nil {
-		ctx, _, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+		var userWorkspace *domain.UserWorkspace
+		ctx, _, userWorkspace, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 		if err != nil {
 			return "", fmt.Errorf("failed to authenticate user for workspace: %w", err)
 		}
+
+		// The permission check belongs inside this branch: a system call never obtains a
+		// UserWorkspace, so a check outside it would dereference a nil pointer.
+		if !userWorkspace.HasPermission(domain.PermissionResourceTransactional, domain.PermissionTypeWrite) {
+			return "", domain.NewPermissionError(
+				domain.PermissionResourceTransactional,
+				domain.PermissionTypeWrite,
+				"Insufficient permissions: write access to transactional notifications required",
+			)
+		}
+
+		hasContactsRead = userWorkspace.HasPermission(domain.PermissionResourceContacts, domain.PermissionTypeRead)
+		hasContactsWrite = userWorkspace.HasPermission(domain.PermissionResourceContacts, domain.PermissionTypeWrite)
+	}
+
+	// The rendered subject is Liquid-evaluated against the whole contact record, so any
+	// extra recipient turns a send into a contact read. Without CC or BCC the only reader
+	// is the contact itself, which also keeps its notification_center_url HMAC to itself.
+	if !hasContactsRead && (len(params.EmailOptions.CC) > 0 || len(params.EmailOptions.BCC) > 0) {
+		return "", domain.NewPermissionError(
+			domain.PermissionResourceContacts,
+			domain.PermissionTypeRead,
+			"Insufficient permissions: read access to contacts required to set cc or bcc",
+		)
 	}
 
 	// Add contact info to span if available
@@ -550,7 +583,20 @@ func (s *TransactionalNotificationService) SendNotification(
 		return "", err
 	}
 
-	contactOperation := s.contactService.UpsertContact(ctx, workspaceID, params.Contact)
+	// The recipient upsert and lookup are an implementation detail of sending, not a
+	// separate contacts operation the caller asked for. Running them as system calls is
+	// what lets a key holding only transactional:write send.
+	contactCtx := context.WithValue(ctx, domain.SystemCallKey, true)
+
+	// Without contacts:write the send may still create the recipient, but it must not carry
+	// the caller's fields into an existing record: the repository merges every non-nil
+	// pointer, so the full request body would overwrite an unrelated stored contact.
+	upsertTarget := params.Contact
+	if !hasContactsWrite {
+		upsertTarget = &domain.Contact{Email: params.Contact.Email}
+	}
+
+	contactOperation := s.contactService.UpsertContact(contactCtx, workspaceID, upsertTarget)
 	if contactOperation.Action == domain.UpsertContactOperationError {
 		err := fmt.Errorf("failed to upsert contact: %s", contactOperation.Error)
 		tracing.MarkSpanError(ctx, err)
@@ -560,7 +606,7 @@ func (s *TransactionalNotificationService) SendNotification(
 	tracing.AddAttribute(ctx, "contact.operation", string(contactOperation.Action))
 
 	// Get the contact with complete information
-	contact, err := s.contactService.GetContactByEmail(ctx, workspaceID, params.Contact.Email)
+	contact, err := s.contactService.GetContactByEmail(contactCtx, workspaceID, params.Contact.Email)
 	if err != nil {
 		tracing.MarkSpanError(ctx, err)
 		return "", fmt.Errorf("contact not found after upsert: %w", err)
@@ -750,9 +796,32 @@ func (s *TransactionalNotificationService) SendNotification(
 func (s *TransactionalNotificationService) TestTemplate(ctx context.Context, workspaceID string, templateID string, integrationID string, senderID string, recipientEmail string, language string, emailOptions domain.EmailOptions) error {
 	// Authenticate user
 	var err error
-	ctx, _, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	var userWorkspace *domain.UserWorkspace
+	ctx, _, userWorkspace, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 	if err != nil {
 		return fmt.Errorf("failed to authenticate user for workspace: %w", err)
+	}
+
+	// This sends a real email through the workspace's provider
+	if !userWorkspace.HasPermission(domain.PermissionResourceTransactional, domain.PermissionTypeWrite) {
+		return domain.NewPermissionError(
+			domain.PermissionResourceTransactional,
+			domain.PermissionTypeWrite,
+			"Insufficient permissions: write access to transactional notifications required",
+		)
+	}
+
+	// Same reasoning as SendNotification: the lookup below is system-scoped, and the
+	// subject is Liquid-evaluated against the recipient's whole record, so an extra
+	// recipient would make this a contact read. The upsert here already carries nothing
+	// but the email, so there is no write primitive to close.
+	if !userWorkspace.HasPermission(domain.PermissionResourceContacts, domain.PermissionTypeRead) &&
+		(len(emailOptions.CC) > 0 || len(emailOptions.BCC) > 0) {
+		return domain.NewPermissionError(
+			domain.PermissionResourceContacts,
+			domain.PermissionTypeRead,
+			"Insufficient permissions: read access to contacts required to set cc or bcc",
+		)
 	}
 
 	// Get the template
@@ -795,8 +864,11 @@ func (s *TransactionalNotificationService) TestTemplate(ctx context.Context, wor
 		return fmt.Errorf("sender not found: %s", senderID)
 	}
 
-	// upsert the contact
-	contactOperation := s.contactService.UpsertContact(ctx, workspaceID, &domain.Contact{
+	// upsert the contact — system-scoped for the same reason as SendNotification, so
+	// transactional:write alone is enough to send a test
+	contactCtx := context.WithValue(ctx, domain.SystemCallKey, true)
+
+	contactOperation := s.contactService.UpsertContact(contactCtx, workspaceID, &domain.Contact{
 		Email: recipientEmail,
 	})
 
@@ -805,7 +877,7 @@ func (s *TransactionalNotificationService) TestTemplate(ctx context.Context, wor
 	}
 
 	// Get the full contact record (same pattern as SendNotification)
-	contact, err := s.contactService.GetContactByEmail(ctx, workspaceID, recipientEmail)
+	contact, err := s.contactService.GetContactByEmail(contactCtx, workspaceID, recipientEmail)
 	if err != nil {
 		// Fallback to minimal contact - test emails should still work
 		contact = &domain.Contact{

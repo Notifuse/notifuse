@@ -322,14 +322,26 @@ func (s *ContactService) BatchImportContacts(ctx context.Context, workspaceID st
 
 	// Check permission for writing contacts
 	if !userWorkspace.HasPermission(domain.PermissionResourceContacts, domain.PermissionTypeWrite) {
-		response.Error = "Insufficient permissions: write access to contacts required"
+		permErr := domain.NewPermissionError(
+			domain.PermissionResourceContacts,
+			domain.PermissionTypeWrite,
+			"Insufficient permissions: write access to contacts required",
+		)
+		response.Error = permErr.Error()
+		response.Err = permErr
 		return response
 	}
 
 	// If listIDs are provided, also check permission for writing lists
 	if len(listIDs) > 0 {
 		if !userWorkspace.HasPermission(domain.PermissionResourceLists, domain.PermissionTypeWrite) {
-			response.Error = "Insufficient permissions: write access to lists required"
+			permErr := domain.NewPermissionError(
+				domain.PermissionResourceLists,
+				domain.PermissionTypeWrite,
+				"Insufficient permissions: write access to lists required",
+			)
+			response.Error = permErr.Error()
+			response.Err = permErr
 			return response
 		}
 	}
@@ -461,9 +473,15 @@ func (s *ContactService) UpsertContact(ctx context.Context, workspaceID string, 
 
 		// Check permission for writing contacts
 		if !userWorkspace.HasPermission(domain.PermissionResourceContacts, domain.PermissionTypeWrite) {
+			permErr := domain.NewPermissionError(
+				domain.PermissionResourceContacts,
+				domain.PermissionTypeWrite,
+				"Insufficient permissions: write access to contacts required",
+			)
 			operation.Action = domain.UpsertContactOperationError
-			operation.Error = "Insufficient permissions: write access to contacts required"
-			s.logger.WithField("email", contact.Email).Error("Insufficient permissions: write access to contacts required")
+			operation.Error = permErr.Error()
+			operation.Err = permErr
+			s.logger.WithField("email", contact.Email).Error(permErr.Error())
 			return operation
 		}
 	}

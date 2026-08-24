@@ -753,6 +753,44 @@ var PredefinedSchemas = map[string]analytics.SchemaDefinition{
 	},
 }
 
+// analyticsSchemaResources maps a predefined schema to the permission resource
+// that owns the rows it exposes. A cube query is a read of the underlying table,
+// so it must cost the same grant as reading that table anywhere else.
+//
+// The three non-obvious ones:
+//   - webhook_deliveries is the delivery log of the outbound webhook
+//     subscriptions, keyed by subscription_id — the same data the subscription
+//     service serves under webhook_subscriptions:read.
+//   - email_queue rows carry contact_email, template_id and the originating
+//     broadcast or automation: the outbound message log before it is sent, which
+//     is what message_history holds after.
+//   - automation_node_executions is per-node automation telemetry, keyed by
+//     automation_id.
+//
+// Web analytics schemas are not listed here — they are per-workspace and
+// resolved through IsWebAnalyticsSchema in AnalyticsSchemaResource.
+var analyticsSchemaResources = map[string]PermissionResource{
+	"message_history":            PermissionResourceMessageHistory,
+	"contacts":                   PermissionResourceContacts,
+	"broadcasts":                 PermissionResourceBroadcasts,
+	"webhook_deliveries":         PermissionResourceWebhookSubscriptions,
+	"email_queue":                PermissionResourceMessageHistory,
+	"automation_node_executions": PermissionResourceAutomations,
+}
+
+// AnalyticsSchemaResource returns the resource whose read grant gates a schema,
+// and false when the schema has no mapping. Callers must treat the false case as
+// a denial: a schema added to PredefinedSchemas without an entry here would
+// otherwise be readable by any workspace member, silently making the analytics
+// endpoint a bypass for every resource permission.
+func AnalyticsSchemaResource(schema string) (PermissionResource, bool) {
+	if IsWebAnalyticsSchema(schema) {
+		return PermissionResourceWebAnalytics, true
+	}
+	resource, ok := analyticsSchemaResources[schema]
+	return resource, ok
+}
+
 // AnalyticsService defines the analytics business logic interface
 type AnalyticsService interface {
 	Query(ctx context.Context, workspaceID string, query analytics.Query) (*analytics.Response, error)

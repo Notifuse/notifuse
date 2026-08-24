@@ -38,6 +38,32 @@ vi.mock('@lingui/react/macro', () => ({
   },
 }))
 
+// Mock @lingui/core/macro for the same reason as the JSX macro above: nothing in the vitest
+// pipeline runs the Babel plugin, so the package resolves to its runtime stub, which throws on
+// any call. The real macro turns msg`…` into a message descriptor, naming each placeholder after
+// the label in `${{ name: value }}`; reproduce enough of one that i18n._() renders it.
+vi.mock('@lingui/core/macro', () => ({
+  msg: (strings: TemplateStringsArray, ...placeholders: unknown[]) => {
+    const names = placeholders.map((placeholder, idx) =>
+      placeholder && typeof placeholder === 'object'
+        ? Object.keys(placeholder)[0]
+        : String(idx)
+    )
+    const message = strings.reduce(
+      (result, str, idx) => result + str + (idx < names.length ? `{${names[idx]}}` : ''),
+      ''
+    )
+    const values = placeholders.reduce<Record<string, unknown>>((acc, placeholder, idx) => {
+      acc[names[idx]] =
+        placeholder && typeof placeholder === 'object'
+          ? Object.values(placeholder)[0]
+          : placeholder
+      return acc
+    }, {})
+    return { id: message, message, values }
+  },
+}))
+
 // Test wrapper with i18n support
 export function TestI18nWrapper({ children }: { children: ReactNode }) {
   return <I18nProvider i18n={i18n}>{children}</I18nProvider>

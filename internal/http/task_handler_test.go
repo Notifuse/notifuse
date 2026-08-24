@@ -7,6 +7,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -17,13 +18,88 @@ import (
 	"github.com/golang/mock/gomock"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
+
+// allowOwner authenticates every workspace as an owner, whose HasPermission
+// short-circuits to true. Tests that care about a specific grant stub the auth
+// service themselves.
+func allowOwner(mockAuth *mocks.MockAuthService) {
+	mockAuth.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, workspaceID string) (context.Context, *domain.User, *domain.UserWorkspace, error) {
+			return ctx, &domain.User{ID: "user-1"},
+				&domain.UserWorkspace{UserID: "user-1", WorkspaceID: workspaceID, Role: "owner"}, nil
+		}).AnyTimes()
+}
+
+// memberWith builds a non-owner membership holding exactly the given grants.
+func memberWith(workspaceID string, permissions domain.UserPermissions) *domain.UserWorkspace {
+	return &domain.UserWorkspace{
+		UserID:      "user-1",
+		WorkspaceID: workspaceID,
+		Role:        "member",
+		Permissions: permissions,
+	}
+}
+
+// allowMember authenticates one workspace as the given membership, and refuses
+// every other workspace the way AuthenticateUserForWorkspace does.
+func allowMember(mockAuth *mocks.MockAuthService, userWorkspace *domain.UserWorkspace) {
+	mockAuth.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, workspaceID string) (context.Context, *domain.User, *domain.UserWorkspace, error) {
+			if workspaceID != userWorkspace.WorkspaceID {
+				return ctx, nil, nil, domain.ErrUserNotInWorkspace
+			}
+			return ctx, &domain.User{ID: userWorkspace.UserID}, userWorkspace, nil
+		}).AnyTimes()
+}
+
+// signExecuteRequest stamps the headers a dispatch of /api/tasks.execute carries.
+func signExecuteRequest(req *http.Request, secretKey string, body []byte, at time.Time) {
+	timestamp := at.UTC().Unix()
+	req.Header.Set(domain.TaskExecuteTimestampHeader, strconv.FormatInt(timestamp, 10))
+	req.Header.Set(domain.TaskExecuteSignatureHeader,
+		domain.SignTaskExecuteRequest(domain.TaskExecuteSigningKey(secretKey), timestamp, req.URL.Path, body))
+}
+
+// newSignedExecuteRequest builds a dispatch signed over its own body, as the
+// scheduler emits it.
+func newSignedExecuteRequest(secretKey string, body []byte) *http.Request {
+	req := httptest.NewRequest(http.MethodPost, "/api/tasks.execute", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	signExecuteRequest(req, secretKey, body, time.Now())
+	return req
+}
+
+// newTaskHandlerForAuth builds a handler whose logger accepts anything, for the
+// authorization tests.
+func newTaskHandlerForAuth(t *testing.T, ctrl *gomock.Controller) (*TaskHandler, *mocks.MockTaskService, *mocks.MockAuthService) {
+	t.Helper()
+
+	mockTaskService := mocks.NewMockTaskService(ctrl)
+	mockAuth := mocks.NewMockAuthService(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Warn(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+
+	handler := NewTaskHandler(mockTaskService, mockAuth,
+		func() ([]byte, error) { return []byte("test-jwt-secret-key-for-testing-32bytes"), nil },
+		mockLogger, "test-secret-key", true)
+
+	return handler, mockTaskService, mockAuth
+}
 
 func TestTaskHandler_ExecuteTask(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
 	mockTaskService := mocks.NewMockTaskService(ctrl)
+	mockAuth := mocks.NewMockAuthService(ctrl)
+	allowOwner(mockAuth)
 	// For tests we don't need the actual key, we can use a mock or nil since we're not validating auth
 	var jwtSecret []byte
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
@@ -39,7 +115,7 @@ func TestTaskHandler_ExecuteTask(t *testing.T) {
 
 	secretKey := "test-secret-key"
 
-	handler := NewTaskHandler(mockTaskService, func() ([]byte, error) { return jwtSecret, nil }, mockLogger, secretKey)
+	handler := NewTaskHandler(mockTaskService, mockAuth, func() ([]byte, error) { return jwtSecret, nil }, mockLogger, secretKey, true)
 
 	t.Run("Successful execution", func(t *testing.T) {
 		// Setup
@@ -59,8 +135,7 @@ func TestTaskHandler_ExecuteTask(t *testing.T) {
 			Return(nil)
 
 		// Call handler
-		req := httptest.NewRequest(http.MethodPost, "/api/tasks.execute", bytes.NewBuffer(reqJSON))
-		req.Header.Set("Content-Type", "application/json")
+		req := newSignedExecuteRequest(secretKey, reqJSON)
 		rec := httptest.NewRecorder()
 
 		handler.ExecuteTask(rec, req)
@@ -87,8 +162,7 @@ func TestTaskHandler_ExecuteTask(t *testing.T) {
 
 	t.Run("Invalid request body", func(t *testing.T) {
 		// Call handler with invalid JSON
-		req := httptest.NewRequest(http.MethodPost, "/api/tasks.execute", bytes.NewBuffer([]byte("invalid json")))
-		req.Header.Set("Content-Type", "application/json")
+		req := newSignedExecuteRequest(secretKey, []byte("invalid json"))
 		rec := httptest.NewRecorder()
 
 		handler.ExecuteTask(rec, req)
@@ -107,8 +181,7 @@ func TestTaskHandler_ExecuteTask(t *testing.T) {
 		reqJSON, _ := json.Marshal(reqBody)
 
 		// Call handler
-		req := httptest.NewRequest(http.MethodPost, "/api/tasks.execute", bytes.NewBuffer(reqJSON))
-		req.Header.Set("Content-Type", "application/json")
+		req := newSignedExecuteRequest(secretKey, reqJSON)
 		rec := httptest.NewRecorder()
 
 		handler.ExecuteTask(rec, req)
@@ -136,8 +209,7 @@ func TestTaskHandler_ExecuteTask(t *testing.T) {
 			Return(nil, notFoundErr)
 
 		// Call handler
-		req := httptest.NewRequest(http.MethodPost, "/api/tasks.execute", bytes.NewBuffer(reqJSON))
-		req.Header.Set("Content-Type", "application/json")
+		req := newSignedExecuteRequest(secretKey, reqJSON)
 		rec := httptest.NewRecorder()
 
 		handler.ExecuteTask(rec, req)
@@ -169,8 +241,7 @@ func TestTaskHandler_ExecuteTask(t *testing.T) {
 			Return(execErr)
 
 		// Call handler
-		req := httptest.NewRequest(http.MethodPost, "/api/tasks.execute", bytes.NewBuffer(reqJSON))
-		req.Header.Set("Content-Type", "application/json")
+		req := newSignedExecuteRequest(secretKey, reqJSON)
 		rec := httptest.NewRecorder()
 
 		handler.ExecuteTask(rec, req)
@@ -202,8 +273,7 @@ func TestTaskHandler_ExecuteTask(t *testing.T) {
 			Return(execErr)
 
 		// Call handler
-		req := httptest.NewRequest(http.MethodPost, "/api/tasks.execute", bytes.NewBuffer(reqJSON))
-		req.Header.Set("Content-Type", "application/json")
+		req := newSignedExecuteRequest(secretKey, reqJSON)
 		rec := httptest.NewRecorder()
 
 		handler.ExecuteTask(rec, req)
@@ -234,8 +304,7 @@ func TestTaskHandler_ExecuteTask(t *testing.T) {
 			Return(timeoutErr)
 
 		// Call handler
-		req := httptest.NewRequest(http.MethodPost, "/api/tasks.execute", bytes.NewBuffer(reqJSON))
-		req.Header.Set("Content-Type", "application/json")
+		req := newSignedExecuteRequest(secretKey, reqJSON)
 		rec := httptest.NewRecorder()
 
 		handler.ExecuteTask(rec, req)
@@ -250,12 +319,14 @@ func TestTaskHandler_RegisterRoutes(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockTaskService := mocks.NewMockTaskService(ctrl)
+	mockAuth := mocks.NewMockAuthService(ctrl)
+	allowOwner(mockAuth)
 	// For tests we don't need the actual key, we can use a generated one
 	jwtSecret := []byte("test-jwt-secret-key-for-testing-32bytes")
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 	secretKey := "test-secret-key"
 
-	handler := NewTaskHandler(mockTaskService, func() ([]byte, error) { return jwtSecret, nil }, mockLogger, secretKey)
+	handler := NewTaskHandler(mockTaskService, mockAuth, func() ([]byte, error) { return jwtSecret, nil }, mockLogger, secretKey, true)
 
 	// Create a new mux
 	mux := http.NewServeMux()
@@ -263,142 +334,168 @@ func TestTaskHandler_RegisterRoutes(t *testing.T) {
 	// Register routes
 	handler.RegisterRoutes(mux)
 
-	// Test routes by checking if mux can match all expected patterns
-	routes := []string{
-		"/api/tasks.create",
+	// mux.Handler returns a non-nil handler for anything (the 404 handler), so
+	// the pattern is what says whether a route exists.
+	registered := []string{
 		"/api/tasks.list",
 		"/api/tasks.get",
 		"/api/tasks.delete",
-		"/api/tasks.executePending",
+		"/api/tasks.reset",
+		"/api/tasks.trigger",
 		"/api/tasks.execute",
+		// tasks.create is retired but still routed, so it can answer 410 instead of
+		// falling through to the SPA catch-all's empty 200.
+		"/api/tasks.create",
+		"/api/cron",
+		"/api/cron.status",
 	}
 
-	for _, route := range routes {
+	for _, route := range registered {
 		req := httptest.NewRequest(http.MethodGet, route, nil)
-		match, _ := mux.Handler(req)
-		assert.NotNil(t, match, "Route should be registered: "+route)
+		_, pattern := mux.Handler(req)
+		assert.Equal(t, route, pattern, "Route should be registered: "+route)
 	}
 }
 
-func TestTaskHandler_CreateTask(t *testing.T) {
+func TestTaskHandler_CreateTaskGone(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
+	handler, _, _ := newTaskHandlerWithDispatch(t, ctrl, true)
+	mux := http.NewServeMux()
+	handler.RegisterRoutes(mux)
+
+	// Whatever the caller sends, and whether or not it is authenticated: the
+	// endpoint is gone, and the body has to say so — an empty 200 would read as a
+	// created task.
+	for _, method := range []string{http.MethodPost, http.MethodGet} {
+		t.Run(method, func(t *testing.T) {
+			req := httptest.NewRequest(method, "/api/tasks.create",
+				strings.NewReader(`{"workspace_id":"workspace123","type":"send_broadcast"}`))
+			w := httptest.NewRecorder()
+			mux.ServeHTTP(w, req)
+
+			assert.Equal(t, http.StatusGone, w.Code)
+
+			var response map[string]string
+			require.NoError(t, json.NewDecoder(w.Body).Decode(&response))
+			assert.NotEmpty(t, response["error"])
+			assert.Contains(t, response["error"], "tasks.create")
+		})
+	}
+}
+
+// newTaskHandlerWithDispatch builds a handler with the HTTP-dispatch flag set
+// either way, over a logger that accepts anything.
+func newTaskHandlerWithDispatch(t *testing.T, ctrl *gomock.Controller, httpDispatchEnabled bool) (*TaskHandler, *mocks.MockTaskService, *mocks.MockAuthService) {
+	t.Helper()
+
 	mockTaskService := mocks.NewMockTaskService(ctrl)
-	var jwtSecret []byte
+	mockAuth := mocks.NewMockAuthService(ctrl)
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
+	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Warn(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
 
-	// Set up common logger expectations
-	mockLoggerWithField := pkgmocks.NewMockLogger(ctrl)
-	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLoggerWithField).AnyTimes()
-	mockLoggerWithField.EXPECT().Error(gomock.Any()).AnyTimes()
+	handler := NewTaskHandler(mockTaskService, mockAuth,
+		func() ([]byte, error) { return []byte("test-jwt-secret-key-for-testing-32bytes"), nil },
+		mockLogger, "test-secret-key", httpDispatchEnabled)
 
-	secretKey := "test-secret-key"
+	return handler, mockTaskService, mockAuth
+}
 
-	handler := NewTaskHandler(mockTaskService, func() ([]byte, error) { return jwtSecret, nil }, mockLogger, secretKey)
+// TestTaskHandler_ExecuteTask_SchedulerEnabled pins what a default install — one
+// running its own scheduler, which executes tasks in-process — answers on the
+// dispatch endpoint.
+//
+// The route is registered either way. Leaving it unregistered handed the request
+// to the console SPA catch-all, which answers 200 with an empty body for any
+// unrouted /api path, so a dispatcher aimed at the wrong instance saw success and
+// dropped the execution. Owning the path is what makes the misconfiguration loud.
+func TestTaskHandler_ExecuteTask_SchedulerEnabled(t *testing.T) {
+	body := []byte(`{"workspace_id":"ws-1","id":"task-1"}`)
 
-	t.Run("Successful creation", func(t *testing.T) {
-		// Setup
-		taskRequest := domain.CreateTaskRequest{
-			WorkspaceID:   "workspace1",
-			Type:          "email_broadcast",
-			MaxRuntime:    300,
-			MaxRetries:    3,
-			RetryInterval: 300,
-		}
+	t.Run("the route is registered so nothing falls through to the SPA", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
 
-		reqJSON, _ := json.Marshal(taskRequest)
+		handler, _, _ := newTaskHandlerWithDispatch(t, ctrl, false)
 
-		// Configure service mock to return success
-		mockTaskService.EXPECT().
-			CreateTask(gomock.Any(), taskRequest.WorkspaceID, gomock.Any()).
-			Return(nil)
+		mux := http.NewServeMux()
+		handler.RegisterRoutes(mux)
 
-		// Call handler
-		req := httptest.NewRequest(http.MethodPost, "/api/tasks.create", bytes.NewBuffer(reqJSON))
-		req.Header.Set("Content-Type", "application/json")
-		rec := httptest.NewRecorder()
+		_, pattern := mux.Handler(httptest.NewRequest(http.MethodPost, "/api/tasks.execute", nil))
+		assert.Equal(t, "/api/tasks.execute", pattern)
 
-		handler.CreateTask(rec, req)
-
-		// Verify response
-		assert.Equal(t, http.StatusCreated, rec.Code)
-
-		var resp map[string]interface{}
-		err := json.NewDecoder(rec.Body).Decode(&resp)
-		assert.NoError(t, err)
-		assert.NotNil(t, resp["task"])
+		// The cron endpoints stay public either way — external crontabs rely on them.
+		_, cronPattern := mux.Handler(httptest.NewRequest(http.MethodGet, "/api/cron", nil))
+		assert.Equal(t, "/api/cron", cronPattern)
 	})
 
-	t.Run("Method not allowed", func(t *testing.T) {
-		// Call handler with wrong method
-		req := httptest.NewRequest(http.MethodGet, "/api/tasks.create", nil)
+	t.Run("a dispatch answers 404 with a JSON body", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		// Nothing reaches the service: the endpoint behaves as if it were absent.
+		handler, mockTaskService, _ := newTaskHandlerWithDispatch(t, ctrl, false)
+		mockTaskService.EXPECT().GetTask(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+		mockTaskService.EXPECT().ExecuteTask(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+
+		mux := http.NewServeMux()
+		handler.RegisterRoutes(mux)
+
 		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, newSignedExecuteRequest("test-secret-key", body))
 
-		handler.CreateTask(rec, req)
-
-		// Verify response
-		assert.Equal(t, http.StatusMethodNotAllowed, rec.Code)
+		assert.Equal(t, http.StatusNotFound, rec.Code)
+		assert.Equal(t, "application/json", rec.Header().Get("Content-Type"))
+		var payload map[string]string
+		require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &payload))
+		assert.NotEmpty(t, payload["error"], "the body has to be a JSON error, not the SPA's empty 200")
 	})
 
-	t.Run("Invalid request body", func(t *testing.T) {
-		// Call handler with invalid JSON
-		req := httptest.NewRequest(http.MethodPost, "/api/tasks.create", bytes.NewBuffer([]byte("invalid json")))
-		req.Header.Set("Content-Type", "application/json")
+	t.Run("a correct signature does not unlock it", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		handler, mockTaskService, _ := newTaskHandlerWithDispatch(t, ctrl, false)
+		mockTaskService.EXPECT().ExecuteTask(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+
 		rec := httptest.NewRecorder()
+		handler.ExecuteTask(rec, newSignedExecuteRequest("test-secret-key", body))
 
-		handler.CreateTask(rec, req)
-
-		// Verify response
-		assert.Equal(t, http.StatusBadRequest, rec.Code)
+		assert.Equal(t, http.StatusNotFound, rec.Code)
 	})
 
-	t.Run("Invalid task data", func(t *testing.T) {
-		// Setup request with invalid task data
-		reqBody := map[string]string{
-			"workspace_id": "workspace1",
-			// Missing Type field which is required
-		}
+	t.Run("an unsigned dispatch gets the same 404, not a 401", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
 
-		reqJSON, _ := json.Marshal(reqBody)
+		// An unauthenticated prober must not be able to tell a disabled endpoint
+		// from a missing one — that is the posture the conditional registration
+		// had, and it is unchanged.
+		handler, _, _ := newTaskHandlerWithDispatch(t, ctrl, false)
 
-		// Call handler
-		req := httptest.NewRequest(http.MethodPost, "/api/tasks.create", bytes.NewBuffer(reqJSON))
-		req.Header.Set("Content-Type", "application/json")
 		rec := httptest.NewRecorder()
+		handler.ExecuteTask(rec, httptest.NewRequest(http.MethodPost, "/api/tasks.execute", bytes.NewReader(body)))
 
-		handler.CreateTask(rec, req)
-
-		// Verify response
-		assert.Equal(t, http.StatusBadRequest, rec.Code)
+		assert.Equal(t, http.StatusNotFound, rec.Code)
 	})
 
-	t.Run("Service error", func(t *testing.T) {
-		// Setup
-		taskRequest := domain.CreateTaskRequest{
-			WorkspaceID:   "workspace1",
-			Type:          "email_broadcast",
-			MaxRuntime:    300,
-			MaxRetries:    3,
-			RetryInterval: 300,
-		}
+	t.Run("signature verification still applies when dispatch is enabled", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
 
-		reqJSON, _ := json.Marshal(taskRequest)
+		handler, mockTaskService, _ := newTaskHandlerWithDispatch(t, ctrl, true)
+		mockTaskService.EXPECT().ExecuteTask(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 
-		// Configure service mock to return an error
-		mockTaskService.EXPECT().
-			CreateTask(gomock.Any(), taskRequest.WorkspaceID, gomock.Any()).
-			Return(errors.New("service error"))
-
-		// Call handler
-		req := httptest.NewRequest(http.MethodPost, "/api/tasks.create", bytes.NewBuffer(reqJSON))
-		req.Header.Set("Content-Type", "application/json")
 		rec := httptest.NewRecorder()
+		handler.ExecuteTask(rec, httptest.NewRequest(http.MethodPost, "/api/tasks.execute", bytes.NewReader(body)))
 
-		handler.CreateTask(rec, req)
-
-		// Verify response
-		assert.Equal(t, http.StatusInternalServerError, rec.Code)
+		assert.Equal(t, http.StatusUnauthorized, rec.Code)
 	})
 }
 
@@ -407,6 +504,8 @@ func TestTaskHandler_GetTask(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockTaskService := mocks.NewMockTaskService(ctrl)
+	mockAuth := mocks.NewMockAuthService(ctrl)
+	allowOwner(mockAuth)
 	var jwtSecret []byte
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 
@@ -417,14 +516,14 @@ func TestTaskHandler_GetTask(t *testing.T) {
 
 	secretKey := "test-secret-key"
 
-	handler := NewTaskHandler(mockTaskService, func() ([]byte, error) { return jwtSecret, nil }, mockLogger, secretKey)
+	handler := NewTaskHandler(mockTaskService, mockAuth, func() ([]byte, error) { return jwtSecret, nil }, mockLogger, secretKey, true)
 
 	t.Run("Successful retrieval", func(t *testing.T) {
 		// Setup expected task
 		now := time.Now()
 		task := &domain.Task{
 			ID:          "task123",
-			Type:        "email_broadcast",
+			Type:        "send_broadcast",
 			Status:      domain.TaskStatusPending,
 			WorkspaceID: "workspace1",
 			CreatedAt:   now,
@@ -511,6 +610,8 @@ func TestTaskHandler_ListTasks(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockTaskService := mocks.NewMockTaskService(ctrl)
+	mockAuth := mocks.NewMockAuthService(ctrl)
+	allowOwner(mockAuth)
 	var jwtSecret []byte
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 
@@ -521,7 +622,7 @@ func TestTaskHandler_ListTasks(t *testing.T) {
 
 	secretKey := "test-secret-key"
 
-	handler := NewTaskHandler(mockTaskService, func() ([]byte, error) { return jwtSecret, nil }, mockLogger, secretKey)
+	handler := NewTaskHandler(mockTaskService, mockAuth, func() ([]byte, error) { return jwtSecret, nil }, mockLogger, secretKey, true)
 
 	t.Run("Successful list", func(t *testing.T) {
 		// Setup expected response
@@ -530,7 +631,7 @@ func TestTaskHandler_ListTasks(t *testing.T) {
 			Tasks: []*domain.Task{
 				{
 					ID:          "task123",
-					Type:        "email_broadcast",
+					Type:        "send_broadcast",
 					Status:      domain.TaskStatusPending,
 					WorkspaceID: "workspace1",
 					CreatedAt:   now,
@@ -538,7 +639,7 @@ func TestTaskHandler_ListTasks(t *testing.T) {
 				},
 				{
 					ID:          "task456",
-					Type:        "sms_broadcast",
+					Type:        "build_segment",
 					Status:      domain.TaskStatusCompleted,
 					WorkspaceID: "workspace1",
 					CreatedAt:   now,
@@ -553,14 +654,14 @@ func TestTaskHandler_ListTasks(t *testing.T) {
 			ListTasks(gomock.Any(), "workspace1", gomock.Any()).
 			DoAndReturn(func(_ context.Context, workspaceID string, filter domain.TaskFilter) (*domain.TaskListResponse, error) {
 				assert.Contains(t, filter.Status, domain.TaskStatusPending)
-				assert.Contains(t, filter.Type, "email_broadcast")
+				assert.Contains(t, filter.Type, "send_broadcast")
 				assert.Equal(t, 10, filter.Limit)
 				assert.Equal(t, 0, filter.Offset)
 				return response, nil
 			})
 
 		// Call handler
-		req := httptest.NewRequest(http.MethodGet, "/api/tasks.list?workspace_id=workspace1&status=pending&type=email_broadcast&limit=10", nil)
+		req := httptest.NewRequest(http.MethodGet, "/api/tasks.list?workspace_id=workspace1&status=pending&type=send_broadcast&limit=10", nil)
 		rec := httptest.NewRecorder()
 
 		handler.ListTasks(rec, req)
@@ -613,7 +714,11 @@ func TestTaskHandler_ListTasks(t *testing.T) {
 		// Configure service mock to return an error
 		mockTaskService.EXPECT().
 			ListTasks(gomock.Any(), "workspace1", gomock.Any()).
-			Return(nil, errors.New("service error"))
+			DoAndReturn(func(_ context.Context, _ string, filter domain.TaskFilter) (*domain.TaskListResponse, error) {
+				// No type named, so the filter carries the types the caller can read.
+				assert.Contains(t, filter.Type, "send_broadcast")
+				return nil, errors.New("service error")
+			})
 
 		// Call handler
 		req := httptest.NewRequest(http.MethodGet, "/api/tasks.list?workspace_id=workspace1", nil)
@@ -631,6 +736,8 @@ func TestTaskHandler_DeleteTask(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockTaskService := mocks.NewMockTaskService(ctrl)
+	mockAuth := mocks.NewMockAuthService(ctrl)
+	allowOwner(mockAuth)
 	var jwtSecret []byte
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 
@@ -641,10 +748,13 @@ func TestTaskHandler_DeleteTask(t *testing.T) {
 
 	secretKey := "test-secret-key"
 
-	handler := NewTaskHandler(mockTaskService, func() ([]byte, error) { return jwtSecret, nil }, mockLogger, secretKey)
+	handler := NewTaskHandler(mockTaskService, mockAuth, func() ([]byte, error) { return jwtSecret, nil }, mockLogger, secretKey, true)
 
 	t.Run("Successful deletion", func(t *testing.T) {
 		// Configure service mock to return success
+		mockTaskService.EXPECT().
+			GetTask(gomock.Any(), "workspace1", "task123").
+			Return(&domain.Task{ID: "task123", Type: "send_broadcast"}, nil)
 		mockTaskService.EXPECT().
 			DeleteTask(gomock.Any(), "workspace1", "task123").
 			Return(nil)
@@ -687,10 +797,11 @@ func TestTaskHandler_DeleteTask(t *testing.T) {
 	})
 
 	t.Run("Task not found", func(t *testing.T) {
-		// Configure service mock to return a not found error
+		// The authorization read is what discovers the task is gone, so the
+		// delete never runs.
 		mockTaskService.EXPECT().
-			DeleteTask(gomock.Any(), "workspace1", "nonexistent").
-			Return(errors.New("task not found"))
+			GetTask(gomock.Any(), "workspace1", "nonexistent").
+			Return(nil, errors.New("task not found"))
 
 		// Call handler
 		req := httptest.NewRequest(http.MethodPost, "/api/tasks.delete?workspace_id=workspace1&id=nonexistent", nil)
@@ -704,6 +815,9 @@ func TestTaskHandler_DeleteTask(t *testing.T) {
 
 	t.Run("Service error (not not-found)", func(t *testing.T) {
 		// Configure service mock to return a service error
+		mockTaskService.EXPECT().
+			GetTask(gomock.Any(), "workspace1", "task123").
+			Return(&domain.Task{ID: "task123", Type: "send_broadcast"}, nil)
 		mockTaskService.EXPECT().
 			DeleteTask(gomock.Any(), "workspace1", "task123").
 			Return(errors.New("database error"))
@@ -724,6 +838,8 @@ func TestTaskHandler_ExecutePendingTasks(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockTaskService := mocks.NewMockTaskService(ctrl)
+	mockAuth := mocks.NewMockAuthService(ctrl)
+	allowOwner(mockAuth)
 	var jwtSecret []byte
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 
@@ -735,7 +851,7 @@ func TestTaskHandler_ExecutePendingTasks(t *testing.T) {
 
 	secretKey := "test-secret-key"
 
-	handler := NewTaskHandler(mockTaskService, func() ([]byte, error) { return jwtSecret, nil }, mockLogger, secretKey)
+	handler := NewTaskHandler(mockTaskService, mockAuth, func() ([]byte, error) { return jwtSecret, nil }, mockLogger, secretKey, true)
 
 	// waitForCronIdle waits until the background run has finished, so the
 	// single-flight guard is clear before the next subtest runs.
@@ -935,6 +1051,8 @@ func TestTaskHandler_GetCronStatus(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockTaskService := mocks.NewMockTaskService(ctrl)
+	mockAuth := mocks.NewMockAuthService(ctrl)
+	allowOwner(mockAuth)
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 
 	// Configure logger expectations
@@ -946,9 +1064,11 @@ func TestTaskHandler_GetCronStatus(t *testing.T) {
 
 	handler := NewTaskHandler(
 		mockTaskService,
+		mockAuth,
 		func() ([]byte, error) { return jwtSecret, nil },
 		mockLogger,
 		"test-secret",
+		true,
 	)
 
 	t.Run("Returns last cron run when available", func(t *testing.T) {
@@ -1049,6 +1169,8 @@ func TestTaskHandler_GetCronStatus_Integration(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockTaskService := mocks.NewMockTaskService(ctrl)
+	mockAuth := mocks.NewMockAuthService(ctrl)
+	allowOwner(mockAuth)
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 
 	// Configure logger expectations
@@ -1059,9 +1181,11 @@ func TestTaskHandler_GetCronStatus_Integration(t *testing.T) {
 
 	handler := NewTaskHandler(
 		mockTaskService,
+		mockAuth,
 		func() ([]byte, error) { return jwtSecret, nil },
 		mockLogger,
 		"test-secret",
+		true,
 	)
 
 	// Test the endpoint is properly registered
@@ -1095,6 +1219,8 @@ func TestTaskHandler_ResetTask(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockTaskService := mocks.NewMockTaskService(ctrl)
+	mockAuth := mocks.NewMockAuthService(ctrl)
+	allowOwner(mockAuth)
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 
 	// Configure logger
@@ -1106,12 +1232,17 @@ func TestTaskHandler_ResetTask(t *testing.T) {
 	jwtSecret := []byte("test-jwt-secret-key-for-testing-32bytes")
 	handler := NewTaskHandler(
 		mockTaskService,
+		mockAuth,
 		func() ([]byte, error) { return jwtSecret, nil },
 		mockLogger,
 		"test-secret",
+		true,
 	)
 
 	t.Run("Success", func(t *testing.T) {
+		mockTaskService.EXPECT().
+			GetTask(gomock.Any(), "ws-1", "task-1").
+			Return(&domain.Task{ID: "task-1", Type: "sync_integration"}, nil)
 		mockTaskService.EXPECT().
 			ResetTask(gomock.Any(), "ws-1", "task-1").
 			Return(nil)
@@ -1157,8 +1288,8 @@ func TestTaskHandler_ResetTask(t *testing.T) {
 
 	t.Run("Task not found", func(t *testing.T) {
 		mockTaskService.EXPECT().
-			ResetTask(gomock.Any(), "ws-1", "task-not-found").
-			Return(domain.ErrTaskNotFound)
+			GetTask(gomock.Any(), "ws-1", "task-not-found").
+			Return(nil, domain.ErrTaskNotFound)
 
 		body := `{"workspace_id": "ws-1", "id": "task-not-found"}`
 		req := httptest.NewRequest(http.MethodPost, "/api/tasks.reset", strings.NewReader(body))
@@ -1175,6 +1306,8 @@ func TestTaskHandler_TriggerTask(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockTaskService := mocks.NewMockTaskService(ctrl)
+	mockAuth := mocks.NewMockAuthService(ctrl)
+	allowOwner(mockAuth)
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 
 	// Configure logger
@@ -1186,12 +1319,17 @@ func TestTaskHandler_TriggerTask(t *testing.T) {
 	jwtSecret := []byte("test-jwt-secret-key-for-testing-32bytes")
 	handler := NewTaskHandler(
 		mockTaskService,
+		mockAuth,
 		func() ([]byte, error) { return jwtSecret, nil },
 		mockLogger,
 		"test-secret",
+		true,
 	)
 
 	t.Run("Success", func(t *testing.T) {
+		mockTaskService.EXPECT().
+			GetTask(gomock.Any(), "ws-1", "task-1").
+			Return(&domain.Task{ID: "task-1", Type: "send_broadcast"}, nil)
 		mockTaskService.EXPECT().
 			TriggerTask(gomock.Any(), "ws-1", "task-1").
 			Return(nil)
@@ -1237,8 +1375,8 @@ func TestTaskHandler_TriggerTask(t *testing.T) {
 
 	t.Run("Task not found", func(t *testing.T) {
 		mockTaskService.EXPECT().
-			TriggerTask(gomock.Any(), "ws-1", "task-not-found").
-			Return(domain.ErrTaskNotFound)
+			GetTask(gomock.Any(), "ws-1", "task-not-found").
+			Return(nil, domain.ErrTaskNotFound)
 
 		body := `{"workspace_id": "ws-1", "id": "task-not-found"}`
 		req := httptest.NewRequest(http.MethodPost, "/api/tasks.trigger", strings.NewReader(body))
@@ -1250,6 +1388,9 @@ func TestTaskHandler_TriggerTask(t *testing.T) {
 	})
 
 	t.Run("Task already running", func(t *testing.T) {
+		mockTaskService.EXPECT().
+			GetTask(gomock.Any(), "ws-1", "task-running").
+			Return(&domain.Task{ID: "task-running", Type: "send_broadcast"}, nil)
 		mockTaskService.EXPECT().
 			TriggerTask(gomock.Any(), "ws-1", "task-running").
 			Return(&domain.ErrTaskAlreadyRunning{TaskID: "task-running"})
@@ -1274,6 +1415,8 @@ func TestTaskHandler_ExecuteTask_DetachedFromRequestContext(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockTaskService := mocks.NewMockTaskService(ctrl)
+	mockAuth := mocks.NewMockAuthService(ctrl)
+	allowOwner(mockAuth)
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 	mockLoggerWithFields := pkgmocks.NewMockLogger(ctrl)
 	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLoggerWithFields).AnyTimes()
@@ -1283,7 +1426,7 @@ func TestTaskHandler_ExecuteTask_DetachedFromRequestContext(t *testing.T) {
 	mockLoggerWithFields.EXPECT().Debug(gomock.Any()).AnyTimes()
 	mockLoggerWithFields.EXPECT().Error(gomock.Any()).AnyTimes()
 
-	handler := NewTaskHandler(mockTaskService, func() ([]byte, error) { return nil, nil }, mockLogger, "test-secret")
+	handler := NewTaskHandler(mockTaskService, mockAuth, func() ([]byte, error) { return nil, nil }, mockLogger, "test-secret", true)
 
 	task := &domain.Task{ID: "task-1", WorkspaceID: "ws-1", MaxRuntime: 50}
 	mockTaskService.EXPECT().GetTask(gomock.Any(), "ws-1", "task-1").Return(task, nil)
@@ -1300,8 +1443,8 @@ func TestTaskHandler_ExecuteTask_DetachedFromRequestContext(t *testing.T) {
 	reqCtx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	body := bytes.NewBufferString(`{"workspace_id":"ws-1","id":"task-1"}`)
-	req := httptest.NewRequest(http.MethodPost, "/api/tasks.execute", body).WithContext(reqCtx)
+	body := []byte(`{"workspace_id":"ws-1","id":"task-1"}`)
+	req := newSignedExecuteRequest("test-secret", body).WithContext(reqCtx)
 	rec := httptest.NewRecorder()
 
 	handler.ExecuteTask(rec, req)
@@ -1309,4 +1452,377 @@ func TestTaskHandler_ExecuteTask_DetachedFromRequestContext(t *testing.T) {
 	execCtx := <-captured
 	assert.NoError(t, execCtx.Err(),
 		"task execution must outlive the dispatcher's connection; it is bounded by the task's own deadline")
+}
+
+// TestTaskHandler_TaskTypeResourceMapping pins the type→resource table the five
+// authenticated routes authorize against. Tasks have no resource of their own,
+// so this table is the whole gate: get the mapping wrong and triggering a
+// broadcast send needs a segment grant.
+func TestTaskHandler_TaskTypeResourceMapping(t *testing.T) {
+	cases := []struct {
+		taskType string
+		resource domain.PermissionResource
+	}{
+		{"send_broadcast", domain.PermissionResourceBroadcasts},
+		{"build_segment", domain.PermissionResourceSegments},
+		{"check_segment_recompute", domain.PermissionResourceSegments},
+		{"process_contact_segment_queue", domain.PermissionResourceSegments},
+		{"sync_integration", domain.PermissionResourceWorkspace},
+		{domain.WebAnalyticsBackfillTaskType, domain.PermissionResourceWebAnalytics},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.taskType, func(t *testing.T) {
+			resource, ok := taskTypeResource(tc.taskType)
+			assert.True(t, ok)
+			assert.Equal(t, tc.resource, resource)
+
+			// The owning grant authorizes it...
+			granted := memberWith("ws-1", domain.UserPermissions{
+				tc.resource: domain.ResourcePermissions{Read: true, Write: true},
+			})
+			assert.NoError(t, authorizeTaskType(granted, tc.taskType, domain.PermissionTypeRead))
+			assert.NoError(t, authorizeTaskType(granted, tc.taskType, domain.PermissionTypeWrite))
+
+			// ...and every other grant does not.
+			for _, other := range domain.AllPermissionResources {
+				if other == tc.resource {
+					continue
+				}
+				denied := memberWith("ws-1", domain.UserPermissions{
+					other: domain.ResourcePermissions{Read: true, Write: true},
+				})
+				err := authorizeTaskType(denied, tc.taskType, domain.PermissionTypeRead)
+				assert.IsType(t, &domain.PermissionError{}, err, "%s must not authorize %s", other, tc.taskType)
+			}
+		})
+	}
+}
+
+// TestTaskHandler_UnknownTaskTypeFailsClosed pins that a type with no owning
+// resource is denied for everyone, the workspace owner included: there is no
+// grant that describes it, and consulting HasPermission would hand it to the
+// role that short-circuits to true.
+func TestTaskHandler_UnknownTaskTypeFailsClosed(t *testing.T) {
+	_, ok := taskTypeResource("import_contacts")
+	assert.False(t, ok, "a type with no processor and no mapping must not resolve")
+
+	owner := &domain.UserWorkspace{UserID: "user-1", WorkspaceID: "ws-1", Role: "owner"}
+	full := memberWith("ws-1", domain.NewFullPermissions())
+
+	for _, uw := range []*domain.UserWorkspace{owner, full} {
+		for _, permission := range []domain.PermissionType{domain.PermissionTypeRead, domain.PermissionTypeWrite} {
+			err := authorizeTaskType(uw, "import_contacts", permission)
+			assert.IsType(t, &domain.PermissionError{}, err)
+		}
+	}
+
+	// And it reaches the routes: a get on an unmapped task is 403, not 200.
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	handler, mockTaskService, mockAuth := newTaskHandlerForAuth(t, ctrl)
+	allowOwner(mockAuth)
+	mockTaskService.EXPECT().GetTask(gomock.Any(), "ws-1", "task-1").
+		Return(&domain.Task{ID: "task-1", Type: "import_contacts"}, nil)
+
+	rec := httptest.NewRecorder()
+	handler.GetTask(rec, httptest.NewRequest(http.MethodGet, "/api/tasks.get?workspace_id=ws-1&id=task-1", nil))
+
+	assert.Equal(t, http.StatusForbidden, rec.Code)
+}
+
+// TestTaskHandler_PermissionEnforcement grants the OPPOSITE permission per case
+// and asserts the route denies. read for get/list, write for delete/reset/trigger.
+func TestTaskHandler_PermissionEnforcement(t *testing.T) {
+	sendBroadcast := &domain.Task{ID: "task-1", WorkspaceID: "ws-1", Type: "send_broadcast"}
+
+	testCases := []struct {
+		name string
+		// granted is what the caller holds — never what the route needs.
+		granted domain.UserPermissions
+		expect  func(*mocks.MockTaskService)
+		call    func(*TaskHandler, *httptest.ResponseRecorder)
+	}{
+		{
+			name:    "get needs broadcasts read",
+			granted: domain.UserPermissions{domain.PermissionResourceBroadcasts: {Write: true}},
+			expect: func(m *mocks.MockTaskService) {
+				m.EXPECT().GetTask(gomock.Any(), "ws-1", "task-1").Return(sendBroadcast, nil)
+			},
+			call: func(h *TaskHandler, rec *httptest.ResponseRecorder) {
+				h.GetTask(rec, httptest.NewRequest(http.MethodGet, "/api/tasks.get?workspace_id=ws-1&id=task-1", nil))
+			},
+		},
+		{
+			name:    "delete needs broadcasts write",
+			granted: domain.UserPermissions{domain.PermissionResourceBroadcasts: {Read: true}},
+			expect: func(m *mocks.MockTaskService) {
+				m.EXPECT().GetTask(gomock.Any(), "ws-1", "task-1").Return(sendBroadcast, nil)
+			},
+			call: func(h *TaskHandler, rec *httptest.ResponseRecorder) {
+				h.DeleteTask(rec, httptest.NewRequest(http.MethodPost, "/api/tasks.delete?workspace_id=ws-1&id=task-1", nil))
+			},
+		},
+		{
+			name:    "reset needs broadcasts write",
+			granted: domain.UserPermissions{domain.PermissionResourceBroadcasts: {Read: true}},
+			expect: func(m *mocks.MockTaskService) {
+				m.EXPECT().GetTask(gomock.Any(), "ws-1", "task-1").Return(sendBroadcast, nil)
+			},
+			call: func(h *TaskHandler, rec *httptest.ResponseRecorder) {
+				h.ResetTask(rec, httptest.NewRequest(http.MethodPost, "/api/tasks.reset",
+					strings.NewReader(`{"workspace_id":"ws-1","id":"task-1"}`)))
+			},
+		},
+		{
+			name:    "trigger needs broadcasts write",
+			granted: domain.UserPermissions{domain.PermissionResourceBroadcasts: {Read: true}},
+			expect: func(m *mocks.MockTaskService) {
+				m.EXPECT().GetTask(gomock.Any(), "ws-1", "task-1").Return(sendBroadcast, nil)
+			},
+			call: func(h *TaskHandler, rec *httptest.ResponseRecorder) {
+				h.TriggerTask(rec, httptest.NewRequest(http.MethodPost, "/api/tasks.trigger",
+					strings.NewReader(`{"workspace_id":"ws-1","id":"task-1"}`)))
+			},
+		},
+		{
+			name:    "list of a named type needs that type's read",
+			granted: domain.UserPermissions{domain.PermissionResourceBroadcasts: {Write: true}},
+			expect:  func(m *mocks.MockTaskService) {},
+			call: func(h *TaskHandler, rec *httptest.ResponseRecorder) {
+				h.ListTasks(rec, httptest.NewRequest(http.MethodGet,
+					"/api/tasks.list?workspace_id=ws-1&type=send_broadcast", nil))
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			handler, mockTaskService, mockAuth := newTaskHandlerForAuth(t, ctrl)
+			allowMember(mockAuth, memberWith("ws-1", tc.granted))
+			tc.expect(mockTaskService)
+
+			rec := httptest.NewRecorder()
+			tc.call(handler, rec)
+
+			assert.Equal(t, http.StatusForbidden, rec.Code)
+
+			var body map[string]interface{}
+			assert.NoError(t, json.Unmarshal(rec.Body.Bytes(), &body))
+			assert.Equal(t, string(domain.PermissionResourceBroadcasts), body["resource"])
+		})
+	}
+}
+
+// TestTaskHandler_CrossTenantDenied pins the hole this closes: the workspace is
+// named in the request, so before these gates any valid token reached any
+// workspace's tasks by asking for it.
+func TestTaskHandler_CrossTenantDenied(t *testing.T) {
+	routes := []struct {
+		name string
+		call func(*TaskHandler, *httptest.ResponseRecorder)
+	}{
+		{"list", func(h *TaskHandler, rec *httptest.ResponseRecorder) {
+			h.ListTasks(rec, httptest.NewRequest(http.MethodGet, "/api/tasks.list?workspace_id=ws-b", nil))
+		}},
+		{"get", func(h *TaskHandler, rec *httptest.ResponseRecorder) {
+			h.GetTask(rec, httptest.NewRequest(http.MethodGet, "/api/tasks.get?workspace_id=ws-b&id=task-1", nil))
+		}},
+		{"delete", func(h *TaskHandler, rec *httptest.ResponseRecorder) {
+			h.DeleteTask(rec, httptest.NewRequest(http.MethodPost, "/api/tasks.delete?workspace_id=ws-b&id=task-1", nil))
+		}},
+		{"reset", func(h *TaskHandler, rec *httptest.ResponseRecorder) {
+			h.ResetTask(rec, httptest.NewRequest(http.MethodPost, "/api/tasks.reset",
+				strings.NewReader(`{"workspace_id":"ws-b","id":"task-1"}`)))
+		}},
+		{"trigger", func(h *TaskHandler, rec *httptest.ResponseRecorder) {
+			h.TriggerTask(rec, httptest.NewRequest(http.MethodPost, "/api/tasks.trigger",
+				strings.NewReader(`{"workspace_id":"ws-b","id":"task-1"}`)))
+		}},
+	}
+
+	for _, route := range routes {
+		t.Run(route.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			handler, _, mockAuth := newTaskHandlerForAuth(t, ctrl)
+			// A full-access membership — of the other workspace.
+			allowMember(mockAuth, memberWith("ws-a", domain.NewFullPermissions()))
+
+			rec := httptest.NewRecorder()
+			route.call(handler, rec)
+
+			assert.Equal(t, http.StatusForbidden, rec.Code)
+		})
+	}
+}
+
+// TestTaskHandler_ListTasks_NarrowsToReadableTypes pins how a listing that names
+// no type is answered: the filter is narrowed to what the caller can read, so
+// total_count stays honest, and a caller that can read nothing gets nothing.
+func TestTaskHandler_ListTasks_NarrowsToReadableTypes(t *testing.T) {
+	t.Run("filter carries only the readable types", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		handler, mockTaskService, mockAuth := newTaskHandlerForAuth(t, ctrl)
+		allowMember(mockAuth, memberWith("ws-1", domain.UserPermissions{
+			domain.PermissionResourceSegments: {Read: true},
+		}))
+
+		mockTaskService.EXPECT().ListTasks(gomock.Any(), "ws-1", gomock.Any()).
+			DoAndReturn(func(_ context.Context, _ string, filter domain.TaskFilter) (*domain.TaskListResponse, error) {
+				assert.Equal(t, []string{"build_segment", "check_segment_recompute", "process_contact_segment_queue"}, filter.Type)
+				return &domain.TaskListResponse{Tasks: []*domain.Task{}}, nil
+			})
+
+		rec := httptest.NewRecorder()
+		handler.ListTasks(rec, httptest.NewRequest(http.MethodGet, "/api/tasks.list?workspace_id=ws-1", nil))
+
+		assert.Equal(t, http.StatusOK, rec.Code)
+	})
+
+	t.Run("a caller that can read no type is answered with nothing", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		handler, _, mockAuth := newTaskHandlerForAuth(t, ctrl)
+		allowMember(mockAuth, memberWith("ws-1", domain.UserPermissions{
+			domain.PermissionResourceContacts: {Read: true},
+		}))
+
+		rec := httptest.NewRecorder()
+		handler.ListTasks(rec, httptest.NewRequest(http.MethodGet, "/api/tasks.list?workspace_id=ws-1", nil))
+
+		// The service is never called: an empty type filter would have meant
+		// "every type".
+		assert.Equal(t, http.StatusOK, rec.Code)
+
+		var response domain.TaskListResponse
+		assert.NoError(t, json.Unmarshal(rec.Body.Bytes(), &response))
+		assert.Empty(t, response.Tasks)
+		assert.Equal(t, 0, response.TotalCount)
+	})
+}
+
+// TestTaskHandler_ExecuteTaskSignature covers the dispatch endpoint's only
+// authentication.
+func TestTaskHandler_ExecuteTaskSignature(t *testing.T) {
+	const secretKey = "test-secret-key"
+	body := []byte(`{"workspace_id":"ws-1","id":"task-1"}`)
+
+	t.Run("a correctly signed dispatch runs the task", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		handler, mockTaskService, _ := newTaskHandlerForAuth(t, ctrl)
+		mockTaskService.EXPECT().GetTask(gomock.Any(), "ws-1", "task-1").
+			Return(&domain.Task{ID: "task-1", MaxRuntime: 60}, nil)
+		mockTaskService.EXPECT().ExecuteTask(gomock.Any(), "ws-1", "task-1", gomock.Any()).Return(nil)
+
+		rec := httptest.NewRecorder()
+		handler.ExecuteTask(rec, newSignedExecuteRequest(secretKey, body))
+
+		assert.Equal(t, http.StatusOK, rec.Code)
+	})
+
+	t.Run("an unsigned dispatch is rejected", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		handler, _, _ := newTaskHandlerForAuth(t, ctrl)
+
+		req := httptest.NewRequest(http.MethodPost, "/api/tasks.execute", bytes.NewReader(body))
+		rec := httptest.NewRecorder()
+		handler.ExecuteTask(rec, req)
+
+		assert.Equal(t, http.StatusUnauthorized, rec.Code)
+	})
+
+	t.Run("a stale timestamp is rejected", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		handler, _, _ := newTaskHandlerForAuth(t, ctrl)
+
+		req := httptest.NewRequest(http.MethodPost, "/api/tasks.execute", bytes.NewReader(body))
+		signExecuteRequest(req, secretKey, body,
+			time.Now().Add(-domain.TaskExecuteSignatureMaxSkew-time.Minute))
+		rec := httptest.NewRecorder()
+		handler.ExecuteTask(rec, req)
+
+		assert.Equal(t, http.StatusUnauthorized, rec.Code)
+	})
+
+	t.Run("a signature for another task id is rejected", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		handler, _, _ := newTaskHandlerForAuth(t, ctrl)
+
+		// The captured dispatch's headers, replayed over a different body. This
+		// is what the bare-path signature form would have allowed for five
+		// minutes: same path, any task id.
+		captured := newSignedExecuteRequest(secretKey, body)
+		other := []byte(`{"workspace_id":"ws-1","id":"task-2"}`)
+		req := httptest.NewRequest(http.MethodPost, "/api/tasks.execute", bytes.NewReader(other))
+		req.Header.Set(domain.TaskExecuteTimestampHeader, captured.Header.Get(domain.TaskExecuteTimestampHeader))
+		req.Header.Set(domain.TaskExecuteSignatureHeader, captured.Header.Get(domain.TaskExecuteSignatureHeader))
+
+		rec := httptest.NewRecorder()
+		handler.ExecuteTask(rec, req)
+
+		assert.Equal(t, http.StatusUnauthorized, rec.Code)
+	})
+
+	t.Run("a signature under another key is rejected", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		handler, _, _ := newTaskHandlerForAuth(t, ctrl)
+
+		req := httptest.NewRequest(http.MethodPost, "/api/tasks.execute", bytes.NewReader(body))
+		signExecuteRequest(req, "some-other-installations-secret", body, time.Now())
+		rec := httptest.NewRecorder()
+		handler.ExecuteTask(rec, req)
+
+		assert.Equal(t, http.StatusUnauthorized, rec.Code)
+	})
+
+	t.Run("an installation with no secret key refuses every dispatch", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		handler, _, _ := newTaskHandlerForAuth(t, ctrl)
+		handler.secretKey = ""
+
+		rec := httptest.NewRecorder()
+		handler.ExecuteTask(rec, newSignedExecuteRequest("", body))
+
+		assert.Equal(t, http.StatusUnauthorized, rec.Code)
+	})
+
+	t.Run("execution carries no user context", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		// The auth service is never consulted: the dispatcher has no session,
+		// which is the whole reason the five gates above live in the handler.
+		handler, mockTaskService, mockAuth := newTaskHandlerForAuth(t, ctrl)
+		mockAuth.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), gomock.Any()).Times(0)
+
+		mockTaskService.EXPECT().GetTask(gomock.Any(), "ws-1", "task-1").
+			Return(&domain.Task{ID: "task-1", MaxRuntime: 60, Type: "send_broadcast"}, nil)
+		mockTaskService.EXPECT().ExecuteTask(gomock.Any(), "ws-1", "task-1", gomock.Any()).Return(nil)
+
+		rec := httptest.NewRecorder()
+		handler.ExecuteTask(rec, newSignedExecuteRequest(secretKey, body))
+
+		assert.Equal(t, http.StatusOK, rec.Code)
+	})
 }

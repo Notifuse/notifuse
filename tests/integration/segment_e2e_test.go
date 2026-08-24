@@ -192,7 +192,7 @@ func testSimpleContactSegment(t *testing.T, client *testutil.APIClient, factory 
 		assert.Equal(t, http.StatusOK, rebuildResp.StatusCode)
 
 		// Step 5: Execute pending tasks to process segment build
-		execResp, err := client.Post("/api/tasks.execute", map[string]interface{}{
+		execResp, err := client.ExecuteTask(map[string]interface{}{
 			"limit": 10,
 		})
 		require.NoError(t, err)

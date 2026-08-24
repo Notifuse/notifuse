@@ -545,7 +545,7 @@ export function ContactsPage() {
       key: 'lists',
       render: (_: unknown, record: Contact) => (
         <Space orientation="vertical" size={2}>
-          {record.contact_lists.map(
+          {record.contact_lists?.map(
             (list: { list_id: string; status?: string; created_at?: string }) => {
               let color = 'blue'
               let icon = null

@@ -569,6 +569,10 @@ msgstr "A previous upload for \"{0}\" was found ({1}). Would you like to resume 
 msgid "A segment with ID \"{id}\" already exists"
 msgstr "A segment with ID \"{id}\" already exists"
 
+#: src/services/api/permissions.ts:629
+msgid "A send-only key really is send-only, and this is new in 39.0: /api/transactional.send still creates the recipient contact, but without Contacts write it stores nothing beyond the email address, and without Contacts read it refuses cc and bcc outright — the subject line is rendered against each recipient's whole record. The SMTP bridge is a second front door to the same switch, so this is also exactly what the SMTP username can do. Note that the write verb sends real mail from three separate endpoints, including one that only claims to \"test\" a provider."
+msgstr "A send-only key really is send-only, and this is new in 39.0: /api/transactional.send still creates the recipient contact, but without Contacts write it stores nothing beyond the email address, and without Contacts read it refuses cc and bcc outright — the subject line is rendered against each recipient's whole record. The SMTP bridge is a second front door to the same switch, so this is also exactly what the SMTP username can do. Note that the write verb sends real mail from three separate endpoints, including one that only claims to \"test\" a provider."
+
 #: src/components/segment/button_upsert.tsx:759
 msgid "A tree is required"
 msgstr "A tree is required"
@@ -693,6 +697,10 @@ msgstr "Add a caption..."
 #: src/components/segment/input_dimension_filters.tsx:176
 msgid "Add a filter"
 msgstr "Add a filter"
+
+#: src/services/api/permissions.ts:768
+msgid "Add an annotation to the analytics timeline"
+msgstr "Add an annotation to the analytics timeline"
 
 #: src/components/contacts/ContactUpsertDrawer.tsx:555
 msgid "Add an optional field"
@@ -1151,10 +1159,14 @@ msgstr "Annotation updated"
 
 #: src/components/web_analytics/tabs/AnnotationsTab.tsx:109
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:374
-#: src/layouts/WorkspaceLayout.tsx:386
+#: src/layouts/WorkspaceLayout.tsx:353
 #: src/pages/WebAnalyticsPage.tsx:98
 msgid "Annotations"
 msgstr "Annotations"
+
+#: src/services/api/permissions.ts:796
+msgid "Annotations have no permission of their own: they deliberately answer to this switch, so a Web Analytics grant is also the right to write on the shared timeline everyone reads. Write reaches workspace configuration too — /api/workspaces.setWebAnalyticsSettings answers to Web Analytics write rather than Workspace write, including the email-link identification setting that ties recipients to their browsing. The public /track collector is governed by nothing at all: it accepts data without any authentication, and no grant here changes that."
+msgstr "Annotations have no permission of their own: they deliberately answer to this switch, so a Web Analytics grant is also the right to write on the shared timeline everyone reads. Write reaches workspace configuration too — /api/workspaces.setWebAnalyticsSettings answers to Web Analytics write rather than Workspace write, including the email-link identification setting that ties recipients to their browsing. The public /track collector is governed by nothing at all: it accepts data without any authentication, and no grant here changes that."
 
 #: src/components/segment/input.tsx:959
 msgid "ANY"
@@ -1217,7 +1229,7 @@ msgstr "API Identifier"
 #: src/components/settings/Integrations.tsx:1999
 #: src/components/settings/Integrations.tsx:2000
 #: src/components/settings/Integrations.tsx:2021
-#: src/components/settings/WorkspaceMembers.tsx:94
+#: src/components/settings/WorkspaceMembers.tsx:91
 msgid "API Key"
 msgstr "API Key"
 
@@ -1229,15 +1241,15 @@ msgstr "API Key (starts with SG.)"
 msgid "API key created successfully"
 msgstr "API key created successfully"
 
-#: src/components/settings/WorkspaceMembers.tsx:639
+#: src/components/settings/WorkspaceMembers.tsx:538
 msgid "API Key Created Successfully"
 msgstr "API Key Created Successfully"
 
-#: src/components/settings/WorkspaceMembers.tsx:613
+#: src/components/settings/WorkspaceMembers.tsx:507
 msgid "API Key Name"
 msgstr "API Key Name"
 
-#: src/components/settings/WorkspaceMembers.tsx:646
+#: src/components/settings/WorkspaceMembers.tsx:545
 msgid "API Token"
 msgstr "API Token"
 
@@ -1285,7 +1297,7 @@ msgid "Are you sure you want to delete the category"
 msgstr "Are you sure you want to delete the category"
 
 #. placeholder {0}: record.email
-#: src/components/settings/WorkspaceMembers.tsx:212
+#: src/components/settings/WorkspaceMembers.tsx:211
 msgid "Are you sure you want to delete the invitation for {0}?"
 msgstr "Are you sure you want to delete the invitation for {0}?"
 
@@ -1331,7 +1343,7 @@ msgstr "Are you sure you want to rebuild \"{0}\"? This will recalculate segment 
 
 #. placeholder {0}: record.email
 #. placeholder {1}: record.type === 'api_key' ? ' This API key will be permanently deleted.' : ''
-#: src/components/settings/WorkspaceMembers.tsx:192
+#: src/components/settings/WorkspaceMembers.tsx:191
 msgid "Are you sure you want to remove {0}?{1}"
 msgstr "Are you sure you want to remove {0}?{1}"
 
@@ -1525,6 +1537,10 @@ msgstr "Automation created successfully"
 msgid "Automation deleted successfully"
 msgstr "Automation deleted successfully"
 
+#: src/services/api/permissions.ts:633
+msgid "Automation flows — their triggers, nodes and per-contact execution history."
+msgstr "Automation flows — their triggers, nodes and per-contact execution history."
+
 #: src/pages/AutomationsPage.tsx:108
 msgid "Automation paused successfully"
 msgstr "Automation paused successfully"
@@ -1537,10 +1553,16 @@ msgstr "Automation updated successfully"
 msgid "Automation:"
 msgstr "Automation:"
 
-#: src/layouts/WorkspaceLayout.tsx:460
+#: src/components/settings/PermissionsMatrix.tsx:126
+#: src/layouts/WorkspaceLayout.tsx:427
 #: src/pages/AutomationsPage.tsx:162
+#: src/services/api/errors.ts:61
 msgid "Automations"
 msgstr "Automations"
+
+#: src/services/api/permissions.ts:682
+msgid "Automations write is an indirect contact read that Contacts read cannot restrain: a webhook node sends the complete contact record to any URL the automation names, and nothing checks permissions while an automation runs. The same nodes add contacts to and remove them from lists, and send email, so this switch changes list membership and sends mail with no Lists or Transactional grant at all. Automations read returns a webhook node's full configuration, including the bearer secret saved on it."
+msgstr "Automations write is an indirect contact read that Contacts read cannot restrain: a webhook node sends the complete contact record to any URL the automation names, and nothing checks permissions while an automation runs. The same nodes add contacts to and remove them from lists, and send email, so this switch changes list membership and sends mail with no Lists or Transactional grant at all. Automations read returns a webhook node's full configuration, including the bearer secret saved on it."
 
 #: src/components/email_builder/ui/AddBlockPopover.tsx:271
 msgid "Available Blocks"
@@ -1761,10 +1783,16 @@ msgstr "Blocks"
 #: src/components/settings/BlogSettings.tsx:223
 #: src/components/settings/BlogSettings.tsx:231
 #: src/components/settings/BlogSettings.tsx:264
+#: src/components/settings/PermissionsMatrix.tsx:125
 #: src/components/settings/SettingsSidebar.tsx:100
-#: src/layouts/WorkspaceLayout.tsx:294
+#: src/layouts/WorkspaceLayout.tsx:261
+#: src/services/api/errors.ts:60
 msgid "Blog"
 msgstr "Blog"
+
+#: src/services/api/permissions.ts:410
+msgid "Blog categories, posts and themes, plus the workspace-level blog configuration."
+msgstr "Blog categories, posts and themes, plus the workspace-level blog configuration."
 
 #: src/components/blog/RecentThemesTable.tsx:77
 msgid "Blog custom endpoint URL is not configured"
@@ -1785,6 +1813,10 @@ msgstr "Blog styling and SEO settings"
 #: src/components/settings/BlogSettings.tsx:348
 msgid "Blog Title"
 msgstr "Blog Title"
+
+#: src/services/api/permissions.ts:486
+msgid "Blog write publishes JavaScript on your own domain. A theme carries its own `scripts.js`, and /api/blogThemes.publish makes it live for every visitor of the blog's custom domain — so this switch is the right to run any script on your site, not just to edit content. It also reaches workspace configuration: /api/workspaces.setBlogSettings answers to Blog write rather than Workspace write, so whoever you hand the blog to can also switch the blog feature itself on or off."
+msgstr "Blog write publishes JavaScript on your own domain. A theme carries its own `scripts.js`, and /api/blogThemes.publish makes it live for every visitor of the blog's custom domain — so this switch is the right to run any script on your site, not just to edit content. It also reaches workspace configuration: /api/workspaces.setBlogSettings answers to Blog write rather than Workspace write, so whoever you hand the blog to can also switch the blog feature itself on or off."
 
 #: src/components/email_builder/blocks/MjBodyBlock.tsx:43
 msgid "Body Attributes"
@@ -2042,10 +2074,16 @@ msgid "Broadcast updated successfully"
 msgstr "Broadcast updated successfully"
 
 #: src/components/analytics/EmailMetricsChart.tsx:285
-#: src/layouts/WorkspaceLayout.tsx:434
+#: src/components/settings/PermissionsMatrix.tsx:121
+#: src/layouts/WorkspaceLayout.tsx:401
 #: src/pages/BroadcastsPage.tsx:1508
+#: src/services/api/errors.ts:56
 msgid "Broadcasts"
 msgstr "Broadcasts"
+
+#: src/services/api/permissions.ts:580
+msgid "Broadcasts write sends. The same switch that lets someone draft a campaign lets them push it to the entire audience — through /api/broadcasts.schedule, and again through /api/tasks.trigger and /api/tasks.reset on the underlying send task. Note that Broadcasts read does NOT give delivery statistics: open/click/bounce numbers come from /api/messages.broadcastStats and siblings, which are gated on Message History read. It also does not grant the recipient list — that is Contacts read."
+msgstr "Broadcasts write sends. The same switch that lets someone draft a campaign lets them push it to the entire audience — through /api/broadcasts.schedule, and again through /api/tasks.trigger and /api/tasks.reset on the underlying send task. Note that Broadcasts read does NOT give delivery statistics: open/click/bounce numbers come from /api/messages.broadcastStats and siblings, which are gated on Message History read. It also does not grant the recipient list — that is Contacts read."
 
 #: src/components/email_builder/ui/FileSrc.tsx:30
 msgid "Browse Files"
@@ -2081,6 +2119,14 @@ msgstr "Building"
 #: src/components/contacts/SegmentsFilter.tsx:60
 msgid "Building segment"
 msgstr "Building segment"
+
+#: src/services/api/permissions.ts:203
+msgid "Bulk create contacts and overwrite every field of every contact in the payload"
+msgstr "Bulk create contacts and overwrite every field of every contact in the payload"
+
+#: src/services/api/permissions.ts:215
+msgid "Bulk record custom events against contacts"
+msgstr "Bulk record custom events against contacts"
 
 #: src/pages/ContactsPage.tsx:1045
 msgid "Bulk Update"
@@ -2175,7 +2221,7 @@ msgstr "Campaigns"
 #: src/components/segment/input.tsx:403
 #: src/components/settings/BlogSettings.tsx:211
 #: src/components/settings/CustomFieldsConfiguration.tsx:291
-#: src/components/settings/EditPermissionsModal.tsx:121
+#: src/components/settings/EditPermissionsDrawer.tsx:80
 #: src/components/settings/Integrations.tsx:2393
 #: src/components/settings/Integrations.tsx:2516
 #: src/components/settings/Integrations.tsx:2551
@@ -2185,8 +2231,8 @@ msgstr "Campaigns"
 #: src/components/settings/SystemSettingsDrawer.tsx:170
 #: src/components/settings/WebhookCard.tsx:354
 #: src/components/settings/WebhooksSettings.tsx:213
-#: src/components/settings/WorkspaceMembers.tsx:552
-#: src/components/settings/WorkspaceMembers.tsx:597
+#: src/components/settings/WorkspaceMembers.tsx:450
+#: src/components/settings/WorkspaceMembers.tsx:495
 #: src/components/templates/CreateTemplateDrawer.tsx:629
 #: src/components/templates/SendTemplateModal.tsx:268
 #: src/components/templates/TemplateTranslationsTab.tsx:255
@@ -2209,6 +2255,14 @@ msgstr "Campaigns"
 #: src/pages/TransactionalNotificationsPage.tsx:149
 msgid "Cancel"
 msgstr "Cancel"
+
+#: src/services/api/permissions.ts:547
+msgid "Cancel a broadcast"
+msgstr "Cancel a broadcast"
+
+#: src/services/api/permissions.ts:764
+msgid "Cancel a running backfill"
+msgstr "Cancel a running backfill"
 
 #: src/components/web_analytics/filters/BackfillStatus.tsx:80
 msgid "Cancel backfill?"
@@ -2314,6 +2368,34 @@ msgstr "Center Left"
 #: src/components/email_builder/ui/BackgroundInput.tsx:109
 msgid "Center Right"
 msgstr "Center Right"
+
+#: src/services/api/permissions.ts:343
+msgid "Change a contact's subscription status on a list (also needs Contacts write)"
+msgstr "Change a contact's subscription status on a list (also needs Contacts write)"
+
+#: src/services/api/permissions.ts:219
+msgid "Change a contact's subscription status on a list (also needs Lists write)"
+msgstr "Change a contact's subscription status on a list (also needs Lists write)"
+
+#: src/services/api/permissions.ts:334
+msgid "Change a list's settings, including its double opt-in and public flag"
+msgstr "Change a list's settings, including its double opt-in and public flag"
+
+#: src/services/api/permissions.ts:398
+msgid "Change a reusable template block, which changes every template that embeds it"
+msgstr "Change a reusable template block, which changes every template that embeds it"
+
+#: src/services/api/permissions.ts:272
+msgid "Change a segment's definition"
+msgstr "Change a segment's definition"
+
+#: src/services/api/permissions.ts:833
+msgid "Change a subscription, including where it posts and which events it carries"
+msgstr "Change a subscription, including where it posts and which events it carries"
+
+#: src/services/api/permissions.ts:389
+msgid "Change a template's content, in any language"
+msgstr "Change a template's content, in any language"
 
 #: src/components/file_manager/buttonSettings.tsx:192
 msgid "Change provider"
@@ -2537,7 +2619,7 @@ msgstr "Clone Template"
 #: src/components/contacts/BulkActionProgressModal.tsx:65
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:825
 #: src/components/settings/WebhookCard.tsx:351
-#: src/components/settings/WorkspaceMembers.tsx:592
+#: src/components/settings/WorkspaceMembers.tsx:491
 #: src/components/transactional/ApiCommandModal.tsx:990
 msgid "Close"
 msgstr "Close"
@@ -2564,7 +2646,7 @@ msgid "Code Editor"
 msgstr "Code Editor"
 
 #: src/components/email_builder/ui/CodePreview.tsx:61
-#: src/layouts/WorkspaceLayout.tsx:604
+#: src/layouts/WorkspaceLayout.tsx:571
 msgid "Collapse"
 msgstr "Collapse"
 
@@ -2626,6 +2708,10 @@ msgstr "Comparison — {detail}"
 #: src/components/email_builder/panels/Preview.tsx:318
 msgid "Compilation Results"
 msgstr "Compilation Results"
+
+#: src/services/api/permissions.ts:372
+msgid "Compile MJML to HTML with test data"
+msgstr "Compile MJML to HTML with test data"
 
 #: src/components/email_builder/MjmlCodeEditor.tsx:589
 msgid "Compile the template first"
@@ -2800,6 +2886,10 @@ msgstr "Configuring {0}"
 msgid "Confirm"
 msgstr "Confirm"
 
+#: src/services/api/permissions.ts:175
+msgid "Confirm a contact exists and list everything it is subscribed to (also needs Lists read)"
+msgstr "Confirm a contact exists and list everything it is subscribed to (also needs Lists read)"
+
 #: src/components/automations/config/TriggerConfigForm.tsx:79
 msgid "Confirmed"
 msgstr "Confirmed"
@@ -2886,6 +2976,10 @@ msgstr "Contact property"
 msgid "Contact re-enters each time the event occurs"
 msgstr "Contact re-enters each time the event occurs"
 
+#: src/services/api/permissions.ts:130
+msgid "Contact records and their fields, contact timelines, and custom events recorded against contacts."
+msgstr "Contact records and their fields, contact timelines, and custom events recorded against contacts."
+
 #: src/components/settings/WebAnalyticsSettings.tsx:317
 #~ msgid "Contact timeline"
 #~ msgstr "Contact timeline"
@@ -2894,8 +2988,10 @@ msgstr "Contact re-enters each time the event occurs"
 msgid "Contact updated successfully"
 msgstr "Contact updated successfully"
 
-#: src/layouts/WorkspaceLayout.tsx:415
+#: src/components/settings/PermissionsMatrix.tsx:118
+#: src/layouts/WorkspaceLayout.tsx:382
 #: src/pages/ContactsPage.tsx:1000
+#: src/services/api/errors.ts:53
 msgid "Contacts"
 msgstr "Contacts"
 
@@ -2939,7 +3035,7 @@ msgstr "Container Padding"
 msgid "contains"
 msgstr "contains"
 
-#: src/layouts/WorkspaceLayout.tsx:496
+#: src/layouts/WorkspaceLayout.tsx:463
 msgid "Content"
 msgstr "Content"
 
@@ -3063,6 +3159,18 @@ msgstr "Could not load this report"
 msgid "Count"
 msgstr "Count"
 
+#: src/services/api/permissions.ts:139
+msgid "Count every contact in the workspace"
+msgstr "Count every contact in the workspace"
+
+#: src/services/api/permissions.ts:248
+msgid "Count the contacts an arbitrary, unsaved segment tree would match (also needs Contacts read)"
+msgstr "Count the contacts an arbitrary, unsaved segment tree would match (also needs Contacts read)"
+
+#: src/services/api/permissions.ts:163
+msgid "Count the contacts matching an arbitrary segment definition (also needs Segments read)"
+msgstr "Count the contacts matching an arbitrary segment definition (also needs Segments read)"
+
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:216
 #: src/components/web_analytics/tabs/DashboardTab.tsx:207
 msgid "Countries"
@@ -3095,6 +3203,10 @@ msgstr "Counts may include automated security-scanner and Apple Mail prefetch cl
 msgid "Cover"
 msgstr "Cover"
 
+#: src/services/api/permissions.ts:406
+msgid "Covers more than templates: reusable blocks answer to the same switch, and editing a block edits every template that embeds it. Blocks are kept with the workspace's own settings, so their content also comes back from /api/workspaces.get and from /api/workspaces.list, which needs no permission at all — Templates read is not the only way to see block content. And /api/templates.compile only checks this grant for calls arriving over the API; when the workspace compiles a template for itself, nothing is checked."
+msgstr "Covers more than templates: reusable blocks answer to the same switch, and editing a block edits every template that embeds it. Blocks are kept with the workspace's own settings, so their content also comes back from /api/workspaces.get and from /api/workspaces.list, which needs no permission at all — Templates read is not the only way to see block content. And /api/templates.compile only checks this grant for calls arriving over the API; when the workspace compiles a template for itself, nothing is checked."
+
 #: src/components/automations/UpsertAutomationDrawer.tsx:173
 #: src/components/blog/CategoryDrawer.tsx:114
 #: src/components/blog/PostDrawer.tsx:691
@@ -3104,17 +3216,62 @@ msgstr "Cover"
 msgid "Create"
 msgstr "Create"
 
+#: src/services/api/permissions.ts:447
+msgid "Create a blog category"
+msgstr "Create a blog category"
+
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:387
+#: src/services/api/permissions.ts:527
 msgid "Create a broadcast"
 msgstr "Create a broadcast"
+
+#: src/services/api/permissions.ts:199
+msgid "Create a contact or overwrite its fields"
+msgstr "Create a contact or overwrite its fields"
 
 #: src/components/web_analytics/explore/ExploreTemplates.tsx:161
 msgid "Create a custom report"
 msgstr "Create a custom report"
 
+#: src/services/api/permissions.ts:331
+msgid "Create a list"
+msgstr "Create a list"
+
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:202
 msgid "Create a notification"
 msgstr "Create a notification"
+
+#: src/services/api/permissions.ts:457
+msgid "Create a post"
+msgstr "Create a post"
+
+#: src/services/api/permissions.ts:394
+msgid "Create a reusable template block"
+msgstr "Create a reusable template block"
+
+#: src/services/api/permissions.ts:268
+msgid "Create a segment and start its first build"
+msgstr "Create a segment and start its first build"
+
+#: src/services/api/permissions.ts:829
+msgid "Create a subscription that POSTs the workspace's events to any URL"
+msgstr "Create a subscription that POSTs the workspace's events to any URL"
+
+#: src/services/api/permissions.ts:386
+msgid "Create a template"
+msgstr "Create a template"
+
+#: src/services/api/permissions.ts:470
+msgid "Create a theme version"
+msgstr "Create a theme version"
+
+#: src/services/api/permissions.ts:601
+msgid "Create a transactional notification"
+msgstr "Create a transactional notification"
+
+#: src/services/api/permissions.ts:662
+msgid "Create an automation, including webhook, email and list nodes"
+msgstr "Create an automation, including webhook, email and list nodes"
 
 #: src/components/templates/CreateTemplateDrawer.tsx:615
 msgid "Create an email template"
@@ -3128,9 +3285,9 @@ msgstr "Create an SES tenant for this integration?"
 msgid "Create and manage your blog content"
 msgstr "Create and manage your blog content"
 
-#: src/components/settings/WorkspaceMembers.tsx:521
-#: src/components/settings/WorkspaceMembers.tsx:585
-#: src/components/settings/WorkspaceMembers.tsx:605
+#: src/components/settings/WorkspaceMembers.tsx:414
+#: src/components/settings/WorkspaceMembers.tsx:478
+#: src/components/settings/WorkspaceMembers.tsx:497
 msgid "Create API Key"
 msgstr "Create API Key"
 
@@ -3545,8 +3702,8 @@ msgstr "Daily"
 msgid "Danger Zone"
 msgstr "Danger Zone"
 
-#: src/layouts/WorkspaceLayout.tsx:316
-#: src/layouts/WorkspaceLayout.tsx:334
+#: src/layouts/WorkspaceLayout.tsx:283
+#: src/layouts/WorkspaceLayout.tsx:301
 #: src/pages/AnalyticsPage.tsx:77
 #: src/pages/WebAnalyticsLivePage.tsx:126
 msgid "Dashboard"
@@ -3696,6 +3853,66 @@ msgstr "DELETE"
 msgid "Delete {0} selected item(s)?"
 msgstr "Delete {0} selected item(s)?"
 
+#: src/services/api/permissions.ts:792
+msgid "Delete a backfill task"
+msgstr "Delete a backfill task"
+
+#: src/services/api/permissions.ts:551
+msgid "Delete a broadcast"
+msgstr "Delete a broadcast"
+
+#: src/services/api/permissions.ts:455
+msgid "Delete a category"
+msgstr "Delete a category"
+
+#: src/services/api/permissions.ts:336
+msgid "Delete a list"
+msgstr "Delete a list"
+
+#: src/services/api/permissions.ts:459
+msgid "Delete a post"
+msgstr "Delete a post"
+
+#: src/services/api/permissions.ts:402
+msgid "Delete a reusable template block"
+msgstr "Delete a reusable template block"
+
+#: src/services/api/permissions.ts:276
+msgid "Delete a segment"
+msgstr "Delete a segment"
+
+#: src/services/api/permissions.ts:292
+msgid "Delete a segment build/recompute task"
+msgstr "Delete a segment build/recompute task"
+
+#: src/services/api/permissions.ts:577
+msgid "Delete a send task"
+msgstr "Delete a send task"
+
+#: src/services/api/permissions.ts:837
+msgid "Delete a subscription"
+msgstr "Delete a subscription"
+
+#: src/services/api/permissions.ts:391
+msgid "Delete a template"
+msgstr "Delete a template"
+
+#: src/services/api/permissions.ts:609
+msgid "Delete a transactional notification"
+msgstr "Delete a transactional notification"
+
+#: src/services/api/permissions.ts:776
+msgid "Delete an annotation"
+msgstr "Delete an annotation"
+
+#: src/services/api/permissions.ts:670
+msgid "Delete an automation and exit every contact currently in it"
+msgstr "Delete an automation and exit every contact currently in it"
+
+#: src/services/api/permissions.ts:928
+msgid "Delete an integration sync task"
+msgstr "Delete an integration sync task"
+
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:80
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:138
 msgid "Delete annotation?"
@@ -3757,8 +3974,8 @@ msgstr "Delete folder (Read-only mode)"
 msgid "Delete header"
 msgstr "Delete header"
 
-#: src/components/settings/WorkspaceMembers.tsx:211
-#: src/components/settings/WorkspaceMembers.tsx:218
+#: src/components/settings/WorkspaceMembers.tsx:210
+#: src/components/settings/WorkspaceMembers.tsx:217
 msgid "Delete invitation"
 msgstr "Delete invitation"
 
@@ -4033,7 +4250,7 @@ msgstr "Do you want to permanently delete this file from your storage?"
 msgid "Do you want to send \"{0}\" immediately or schedule it for later?"
 msgstr "Do you want to send \"{0}\" immediately or schedule it for later?"
 
-#: src/layouts/WorkspaceLayout.tsx:680
+#: src/layouts/WorkspaceLayout.tsx:647
 msgid "Documentation"
 msgstr "Documentation"
 
@@ -4115,6 +4332,10 @@ msgstr "Drag to move this block in the tree"
 #: src/components/file_manager/fileManager.tsx:1006
 msgid "Drop files here to upload"
 msgstr "Drop files here to upload"
+
+#: src/services/api/permissions.ts:235
+msgid "Dynamic segment definitions, their compiled queries, and the background tasks that build them."
+msgstr "Dynamic segment definitions, their compiled queries, and the background tasks that build them."
 
 #. placeholder {0}: examples.join(', ')
 #: src/components/web_analytics/explore/DimensionSelector.tsx:193
@@ -4239,6 +4460,18 @@ msgstr "Edit"
 msgid "Edit {0} translation"
 msgstr "Edit {0} translation"
 
+#: src/services/api/permissions.ts:531
+msgid "Edit a broadcast, including its audience and templates"
+msgstr "Edit a broadcast, including its audience and templates"
+
+#: src/services/api/permissions.ts:474
+msgid "Edit a theme version, including its scripts.js"
+msgstr "Edit a theme version, including its scripts.js"
+
+#: src/services/api/permissions.ts:605
+msgid "Edit a transactional notification"
+msgstr "Edit a transactional notification"
+
 #: src/components/blog_editor/components/image/ImageNodeView.tsx:427
 msgid "Edit alt text"
 msgstr "Edit alt text"
@@ -4246,6 +4479,18 @@ msgstr "Edit alt text"
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:131
 msgid "Edit annotation"
 msgstr "Edit annotation"
+
+#: src/services/api/permissions.ts:772
+msgid "Edit any annotation"
+msgstr "Edit any annotation"
+
+#: src/services/api/permissions.ts:666
+msgid "Edit any automation's nodes, including where its webhook nodes post"
+msgstr "Edit any automation's nodes, including where its webhook nodes post"
+
+#: src/services/api/permissions.ts:458
+msgid "Edit any post"
+msgstr "Edit any post"
 
 #: src/components/blog/AuthorsTable.tsx:134
 msgid "Edit Author"
@@ -4311,12 +4556,12 @@ msgstr "Edit notification"
 msgid "Edit Notification"
 msgstr "Edit Notification"
 
-#: src/components/settings/WorkspaceMembers.tsx:180
+#: src/components/settings/WorkspaceMembers.tsx:179
 msgid "Edit permissions"
 msgstr "Edit permissions"
 
 #. placeholder {0}: member?.email
-#: src/components/settings/EditPermissionsModal.tsx:115
+#: src/components/settings/EditPermissionsDrawer.tsx:71
 msgid "Edit Permissions for {0}"
 msgstr "Edit Permissions for {0}"
 
@@ -4409,7 +4654,7 @@ msgstr "email"
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:338
 #: src/components/messages/MessageHistoryTab.tsx:219
 #: src/components/settings/Integrations.tsx:2526
-#: src/components/settings/WorkspaceMembers.tsx:79
+#: src/components/settings/WorkspaceMembers.tsx:76
 #: src/components/timeline/ContactTimeline.tsx:584
 #: src/pages/ContactsPage.tsx:369
 #: src/pages/ContactsPage.tsx:536
@@ -4424,7 +4669,7 @@ msgstr "Email (Required)"
 
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:383
 #: src/components/settings/Integrations.tsx:1774
-#: src/components/settings/WorkspaceMembers.tsx:561
+#: src/components/settings/WorkspaceMembers.tsx:460
 msgid "Email Address"
 msgstr "Email Address"
 
@@ -4520,6 +4765,10 @@ msgstr "Email subject ({0})"
 msgid "Email Template"
 msgstr "Email Template"
 
+#: src/services/api/permissions.ts:359
+msgid "Email templates in every language, and the reusable template blocks stored on the workspace."
+msgstr "Email templates in every language, and the reusable template blocks stored on the workspace."
+
 #: src/components/email_builder/blocks/MjTitleBlock.tsx:32
 msgid "Email Title Settings"
 msgstr "Email Title Settings"
@@ -4576,6 +4825,10 @@ msgstr "Enable closed captions by default"
 #: src/components/settings/WebAnalyticsSettings.tsx:375
 msgid "Enable geo-location tracking"
 msgstr "Enable geo-location tracking"
+
+#: src/services/api/permissions.ts:841
+msgid "Enable or disable a subscription"
+msgstr "Enable or disable a subscription"
 
 #: src/pages/SetupWizard.tsx:687
 msgid "Enable Single Sign-On (OpenID Connect)"
@@ -4636,6 +4889,10 @@ msgstr "ended"
 #: src/components/settings/WebhooksSettings.tsx:232
 msgid "Endpoint URL"
 msgstr "Endpoint URL"
+
+#: src/components/settings/PermissionsMatrix.tsx:209
+msgid "Endpoints gated by {label}"
+msgstr "Endpoints gated by {label}"
 
 #: src/components/web_analytics/explore/ExploreTemplates.tsx:86
 msgid "Engagement by country and region"
@@ -4730,7 +4987,7 @@ msgid "Enter duration"
 msgstr "Enter duration"
 
 #: src/components/contacts/ContactUpsertDrawer.tsx:521
-#: src/components/settings/WorkspaceMembers.tsx:566
+#: src/components/settings/WorkspaceMembers.tsx:465
 msgid "Enter email address"
 msgstr "Enter email address"
 
@@ -4841,6 +5098,14 @@ msgstr "entry page"
 #: src/components/timeline/ContactTimeline.tsx:863
 msgid "Entry:"
 msgstr "Entry:"
+
+#: src/services/api/permissions.ts:321
+msgid "Enumerate every subscriber address on a list (also needs Contacts read)"
+msgstr "Enumerate every subscriber address on a list (also needs Contacts read)"
+
+#: src/services/api/permissions.ts:171
+msgid "Enumerate every subscriber address on a list (also needs Lists read)"
+msgstr "Enumerate every subscriber address on a list (also needs Lists read)"
 
 #: src/components/web_analytics/FilterBuilder.tsx:37
 #: src/components/web_analytics/lib/filterCatalog.ts:216
@@ -5022,7 +5287,7 @@ msgid "Expires:"
 msgstr "Expires:"
 
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:371
-#: src/layouts/WorkspaceLayout.tsx:353
+#: src/layouts/WorkspaceLayout.tsx:320
 #: src/pages/WebAnalyticsPage.tsx:95
 msgid "Explore"
 msgstr "Explore"
@@ -5208,7 +5473,7 @@ msgstr "Failed to delete file: "
 msgid "Failed to delete integration"
 msgstr "Failed to delete integration"
 
-#: src/components/settings/WorkspaceMembers.tsx:355
+#: src/components/settings/WorkspaceMembers.tsx:356
 msgid "Failed to delete invitation"
 msgstr "Failed to delete invitation"
 
@@ -5306,7 +5571,7 @@ msgstr "Failed to import MJML template. Please check the MJML syntax."
 msgid "Failed to import template. Please check the file format."
 msgstr "Failed to import template. Please check the file format."
 
-#: src/components/settings/WorkspaceMembers.tsx:271
+#: src/components/settings/WorkspaceMembers.tsx:270
 msgid "Failed to invite member"
 msgstr "Failed to invite member"
 
@@ -5382,7 +5647,7 @@ msgstr "Failed to register webhooks"
 msgid "Failed to remove custom field label"
 msgstr "Failed to remove custom field label"
 
-#: src/components/settings/WorkspaceMembers.tsx:336
+#: src/components/settings/WorkspaceMembers.tsx:337
 msgid "Failed to remove member"
 msgstr "Failed to remove member"
 
@@ -5390,7 +5655,7 @@ msgstr "Failed to remove member"
 msgid "Failed to render preview"
 msgstr "Failed to render preview"
 
-#: src/components/settings/WorkspaceMembers.tsx:392
+#: src/components/settings/WorkspaceMembers.tsx:386
 msgid "Failed to resend invitation"
 msgstr "Failed to resend invitation"
 
@@ -5541,7 +5806,7 @@ msgstr "Failed to update list: {error}"
 msgid "Failed to update notification: {0}"
 msgstr "Failed to update notification: {0}"
 
-#: src/components/settings/EditPermissionsModal.tsx:51
+#: src/components/settings/EditPermissionsDrawer.tsx:61
 msgid "Failed to update permissions"
 msgstr "Failed to update permissions"
 
@@ -5571,7 +5836,7 @@ msgstr "Failed to update web analytics settings"
 msgid "Failed to update workspace settings"
 msgstr "Failed to update workspace settings"
 
-#: src/layouts/WorkspaceLayout.tsx:269
+#: src/layouts/WorkspaceLayout.tsx:236
 msgid "Failed to update workspace settings: {errorMessage}"
 msgstr "Failed to update workspace settings: {errorMessage}"
 
@@ -5649,7 +5914,7 @@ msgid "File is too large. Maximum size is 1MB."
 msgstr "File is too large. Maximum size is 1MB."
 
 #: src/components/file_manager/context.tsx:155
-#: src/layouts/WorkspaceLayout.tsx:302
+#: src/layouts/WorkspaceLayout.tsx:269
 #: src/pages/FileManagerPage.tsx:119
 msgid "File Manager"
 msgstr "File Manager"
@@ -5712,7 +5977,7 @@ msgstr "Filter on an event property"
 
 #: src/components/messages/MessageHistoryTab.tsx:586
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:373
-#: src/layouts/WorkspaceLayout.tsx:375
+#: src/layouts/WorkspaceLayout.tsx:342
 #: src/pages/WebAnalyticsPage.tsx:97
 msgid "Filters"
 msgstr "Filters"
@@ -5750,6 +6015,14 @@ msgstr "Find this in Azure Portal > Azure Active Directory > Overview"
 #: src/components/settings/Integrations.tsx:1865
 msgid "Find this in Google Cloud Console > APIs & Services > Credentials"
 msgstr "Find this in Google Cloud Console > APIs & Services > Credentials"
+
+#: src/services/api/permissions.ts:567
+msgid "Fire a test data-feed request for a named recipient"
+msgstr "Fire a test data-feed request for a named recipient"
+
+#: src/services/api/permissions.ts:845
+msgid "Fire a test delivery at the subscription's URL — write, not read, because it makes the server call out"
+msgstr "Fire a test delivery at the subscription's URL — write, not read, because it makes the server call out"
 
 #: src/components/settings/Integrations.tsx:953
 msgid "Firecrawl integration saved successfully"
@@ -5845,6 +6118,10 @@ msgstr "for template variables,"
 msgid "for tracking (not available in templates)."
 msgstr "for tracking (not available in templates)."
 
+#: src/services/api/permissions.ts:280
+msgid "Force a full rebuild of a segment"
+msgstr "Force a full rebuild of a segment"
+
 #: src/components/settings/WebAnalyticsSettings.tsx:180
 #~ msgid "Forever"
 #~ msgstr "Forever"
@@ -5902,8 +6179,7 @@ msgstr "From Name (override)"
 msgid "From:"
 msgstr "From:"
 
-#: src/components/settings/WorkspaceMembers.tsx:114
-#: src/components/settings/WorkspaceMembers.tsx:141
+#: src/components/settings/WorkspaceMembers.tsx:140
 msgid "Full Access"
 msgstr "Full Access"
 
@@ -6059,7 +6335,7 @@ msgstr "Goal:"
 #: src/components/web_analytics/tabs/DashboardTab.tsx:246
 #: src/components/web_analytics/tabs/DashboardTab.tsx:256
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:372
-#: src/layouts/WorkspaceLayout.tsx:364
+#: src/layouts/WorkspaceLayout.tsx:331
 #: src/pages/WebAnalyticsPage.tsx:96
 msgid "Goals"
 msgstr "Goals"
@@ -6157,7 +6433,7 @@ msgstr "Height"
 
 #: src/components/email_builder/MjmlCodeEditor.tsx:718
 #: src/components/templates/CreateTemplateDrawer.tsx:148
-#: src/layouts/WorkspaceLayout.tsx:706
+#: src/layouts/WorkspaceLayout.tsx:673
 msgid "Help"
 msgstr "Help"
 
@@ -6200,6 +6476,10 @@ msgstr "Higher priority rules are evaluated first (0-1000)"
 #: src/components/web_analytics/filters/BackfillStatus.tsx:154
 msgid "Historical sessions and goals were written with a different rule set."
 msgstr "Historical sessions and goals were written with a different rule set."
+
+#: src/services/api/permissions.ts:879
+msgid "Hold a streaming conversation with the workspace's configured LLM provider, spending its credits"
+msgstr "Hold a streaming conversation with the workspace's configured LLM provider, spending its credits"
 
 #: src/components/blog_editor/menus/block-actions/BlockActionsMenu.tsx:138
 msgid "Hold for drag"
@@ -6748,24 +7028,24 @@ msgstr "Invalid YouTube URL"
 msgid "Invitation accepted successfully! Welcome to the workspace."
 msgstr "Invitation accepted successfully! Welcome to the workspace."
 
-#: src/components/settings/WorkspaceMembers.tsx:351
+#: src/components/settings/WorkspaceMembers.tsx:352
 msgid "Invitation deleted successfully"
 msgstr "Invitation deleted successfully"
 
-#: src/components/settings/WorkspaceMembers.tsx:388
+#: src/components/settings/WorkspaceMembers.tsx:382
 msgid "Invitation resent to {email}"
 msgstr "Invitation resent to {email}"
 
-#: src/components/settings/WorkspaceMembers.tsx:99
+#: src/components/settings/WorkspaceMembers.tsx:96
 msgid "Invitation sent"
 msgstr "Invitation sent"
 
-#: src/components/settings/WorkspaceMembers.tsx:261
+#: src/components/settings/WorkspaceMembers.tsx:260
 msgid "Invitation sent to {inviteEmail}"
 msgstr "Invitation sent to {inviteEmail}"
 
-#: src/components/settings/WorkspaceMembers.tsx:524
-#: src/components/settings/WorkspaceMembers.tsx:546
+#: src/components/settings/WorkspaceMembers.tsx:417
+#: src/components/settings/WorkspaceMembers.tsx:441
 msgid "Invite Member"
 msgstr "Invite Member"
 
@@ -7129,9 +7409,41 @@ msgstr "List \"{0}\" deleted successfully"
 msgid "List at least one domain to enable web analytics"
 msgstr "List at least one domain to enable web analytics"
 
+#: src/services/api/permissions.ts:638
+msgid "List automations with their complete node graphs"
+msgstr "List automations with their complete node graphs"
+
+#: src/services/api/permissions.ts:415
+msgid "List blog categories"
+msgstr "List blog categories"
+
+#: src/services/api/permissions.ts:423
+msgid "List blog posts, including unpublished drafts"
+msgstr "List blog posts, including unpublished drafts"
+
+#: src/services/api/permissions.ts:495
+msgid "List broadcasts with their audience and schedule"
+msgstr "List broadcasts with their audience and schedule"
+
+#: src/services/api/permissions.ts:135
+msgid "List contacts with their full profile fields"
+msgstr "List contacts with their full profile fields"
+
 #: src/components/lists/ListDrawer.tsx:66
 msgid "List created successfully"
 msgstr "List created successfully"
+
+#: src/services/api/permissions.ts:159
+msgid "List custom events recorded against contacts"
+msgstr "List custom events recorded against contacts"
+
+#: src/services/api/permissions.ts:305
+msgid "List every list and its settings, including double opt-in and template configuration"
+msgstr "List every list and its settings, including double opt-in and template configuration"
+
+#: src/services/api/permissions.ts:325
+msgid "List everything one contact is subscribed to (also needs Contacts read)"
+msgstr "List everything one contact is subscribed to (also needs Contacts read)"
 
 #: src/components/lists/ListDrawer.tsx:196
 #: src/components/messages/MessageHistoryTab.tsx:227
@@ -7142,6 +7454,14 @@ msgstr "List ID"
 #: src/components/contacts/ContactDetailsDrawer.tsx:976
 msgid "List ID: {0}"
 msgstr "List ID: {0}"
+
+#: src/services/api/permissions.ts:240
+msgid "List segments with their full definition trees"
+msgstr "List segments with their full definition trees"
+
+#: src/services/api/permissions.ts:691
+msgid "List sent messages with their recipient address, delivery and engagement timestamps, and the data each was rendered with"
+msgstr "List sent messages with their recipient address, delivery and engagement timestamps, and the data each was rendered with"
 
 #: src/components/automations/AddNodeButton.tsx:80
 #: src/components/automations/nodes/ListStatusBranchNode.tsx:38
@@ -7162,9 +7482,49 @@ msgstr "List subscription"
 msgid "List Subscriptions"
 msgstr "List Subscriptions"
 
+#: src/services/api/permissions.ts:805
+msgid "List subscriptions with their target URL, event types and filters"
+msgstr "List subscriptions with their target URL, event types and filters"
+
+#: src/services/api/permissions.ts:364
+msgid "List templates with their full MJML bodies"
+msgstr "List templates with their full MJML bodies"
+
+#: src/services/api/permissions.ts:736
+msgid "List the annotations drawn on the analytics timeline"
+msgstr "List the annotations drawn on the analytics timeline"
+
+#: src/services/api/permissions.ts:252
+msgid "List the email addresses currently in a segment (also needs Contacts read)"
+msgstr "List the email addresses currently in a segment (also needs Contacts read)"
+
+#: src/services/api/permissions.ts:167
+msgid "List the email addresses inside a segment (also needs Segments read)"
+msgstr "List the email addresses inside a segment (also needs Segments read)"
+
+#: src/services/api/permissions.ts:858
+msgid "List the raw provider callbacks, including recipient addresses and provider diagnostics"
+msgstr "List the raw provider callbacks, including recipient addresses and provider diagnostics"
+
+#: src/services/api/permissions.ts:896
+msgid "List the whole team — members, owners, API keys and pending invitations; without it the answer is degraded to your own row rather than refused"
+msgstr "List the whole team — members, owners, API keys and pending invitations; without it the answer is degraded to your own row rather than refused"
+
+#: src/services/api/permissions.ts:376
+msgid "List the workspace's reusable template blocks"
+msgstr "List the workspace's reusable template blocks"
+
+#: src/services/api/permissions.ts:431
+msgid "List theme versions"
+msgstr "List theme versions"
+
 #: src/components/automations/config/ListStatusBranchConfigForm.tsx:25
 msgid "List to Check"
 msgstr "List to Check"
+
+#: src/services/api/permissions.ts:589
+msgid "List transactional notification definitions"
+msgstr "List transactional notification definitions"
 
 #: src/components/lists/ListDrawer.tsx:81
 msgid "List updated successfully"
@@ -7177,10 +7537,12 @@ msgid "List:"
 msgstr "List:"
 
 #: src/components/analytics/NewContactsTable.tsx:73
-#: src/layouts/WorkspaceLayout.tsx:425
+#: src/components/settings/PermissionsMatrix.tsx:119
+#: src/layouts/WorkspaceLayout.tsx:392
 #: src/pages/ContactsPage.tsx:424
 #: src/pages/ContactsPage.tsx:544
 #: src/pages/ListsPage.tsx:155
+#: src/services/api/errors.ts:54
 msgid "Lists"
 msgstr "Lists"
 
@@ -7188,12 +7550,21 @@ msgstr "Lists"
 msgid "Lists refreshed"
 msgstr "Lists refreshed"
 
+#: src/services/api/permissions.ts:355
+msgid "Lists write also grants contact writing. Subscribing an address through `/api/lists.subscribe` creates or overwrites that contact's whole record, with every field the request carries and without needing Contacts write — so anyone holding only Lists write can still rewrite contact data. It can also subscribe someone to a list that is not public. Read is not confined to list settings either: through /api/contactLists.* it lists the addresses of a list's members, which is why those two endpoints additionally require Contacts read."
+msgstr "Lists write also grants contact writing. Subscribing an address through `/api/lists.subscribe` creates or overwrites that contact's whole record, with every field the request carries and without needing Contacts write — so anyone holding only Lists write can still rewrite contact data. It can also subscribe someone to a list that is not public. Read is not confined to list settings either: through /api/contactLists.* it lists the addresses of a list's members, which is why those two endpoints additionally require Contacts read."
+
 #: src/components/automations/AutomationCard.tsx:65
 #: src/components/blog/RecentThemesTable.tsx:128
 #: src/components/web_analytics/LiveButton.tsx:46
-#: src/layouts/WorkspaceLayout.tsx:342
+#: src/layouts/WorkspaceLayout.tsx:309
 msgid "Live"
 msgstr "Live"
+
+#: src/components/settings/PermissionsMatrix.tsx:127
+#: src/services/api/errors.ts:62
+msgid "LLM"
+msgstr "LLM"
 
 #: src/components/settings/Integrations.tsx:903
 msgid "LLM integration saved successfully"
@@ -7213,6 +7584,10 @@ msgstr "Load More Events"
 #: src/components/templates/ImportExportButton.tsx:394
 msgid "Load saved template"
 msgstr "Load saved template"
+
+#: src/services/api/permissions.ts:916
+msgid "Load the workspace record, which read or write both admit"
+msgstr "Load the workspace record, which read or write both admit"
 
 #. placeholder {0}: latest.version
 #: src/components/templates/CreateTemplateDrawer.tsx:436
@@ -7284,14 +7659,22 @@ msgstr "Logo Preview"
 msgid "Logo URL"
 msgstr "Logo URL"
 
-#: src/layouts/WorkspaceLayout.tsx:718
+#: src/layouts/WorkspaceLayout.tsx:685
 msgid "Logout"
 msgstr "Logout"
 
-#: src/layouts/WorkspaceLayout.tsx:504
+#: src/layouts/WorkspaceLayout.tsx:471
 #: src/pages/LogsPage.tsx:28
 msgid "Logs"
 msgstr "Logs"
+
+#: src/services/api/permissions.ts:143
+msgid "Look up a contact's complete record by email address"
+msgstr "Look up a contact's complete record by email address"
+
+#: src/services/api/permissions.ts:147
+msgid "Look up a contact's complete record by your own external ID"
+msgstr "Look up a contact's complete record by your own external ID"
 
 #: src/components/blog_editor/components/youtube/YoutubeNodeView.tsx:419
 msgid "Loop"
@@ -7317,9 +7700,21 @@ msgstr "Magic code sent to your email"
 msgid "Mailgun (mxa.mailgun.org / mxb.mailgun.org)"
 msgstr "Mailgun (mxa.mailgun.org / mxb.mailgun.org)"
 
+#: src/services/api/permissions.ts:300
+msgid "Mailing lists, their settings and statistics, and contact-to-list membership rows."
+msgstr "Mailing lists, their settings and statistics, and contact-to-list membership rows."
+
 #: src/components/settings/BlogSettings.tsx:357
 msgid "Main logo for your blog. Recommended size: 200x50px or similar aspect ratio"
 msgstr "Main logo for your blog. Recommended size: 200x50px or similar aspect ratio"
+
+#: src/services/api/permissions.ts:478
+msgid "Make a theme version live on the blog's public domain, replacing the current one"
+msgstr "Make a theme version live on the blog's public domain, replacing the current one"
+
+#: src/services/api/permissions.ts:674
+msgid "Make an automation live and install its database trigger, so contacts begin flowing through it"
+msgstr "Make an automation live and install its database trigger, so contacts begin flowing through it"
 
 #: src/components/email_builder/blocks/MjTitleBlock.tsx:52
 msgid "Make it relevant to your email content"
@@ -7333,7 +7728,7 @@ msgstr "Makes the section span the entire email viewport width, ignoring contain
 msgid "Makes the wrapper span the entire email viewport width, ignoring container constraints (typically 600px). Useful for full-bleed backgrounds and hero sections."
 msgstr "Makes the wrapper span the entire email viewport width, ignoring container constraints (typically 600px). Useful for full-bleed backgrounds and hero sections."
 
-#: src/components/settings/WorkspaceMembers.tsx:515
+#: src/components/settings/WorkspaceMembers.tsx:408
 msgid "Manage your workspace members"
 msgstr "Manage your workspace members"
 
@@ -7376,6 +7771,10 @@ msgstr "Marked as spam"
 #: src/pages/TemplatesPage.tsx:125
 msgid "Marketing"
 msgstr "Marketing"
+
+#: src/services/api/permissions.ts:490
+msgid "Marketing campaigns: their drafts, A/B variations, data feeds, schedules and send lifecycle."
+msgstr "Marketing campaigns: their drafts, A/B variations, data feeds, schedules and send lifecycle."
 
 #: src/components/broadcasts/SendOrScheduleModal.tsx:176
 msgid "Marketing Email Provider Required"
@@ -7475,7 +7874,7 @@ msgstr "Medium"
 msgid "Mediums"
 msgstr "Mediums"
 
-#: src/components/settings/WorkspaceMembers.tsx:332
+#: src/components/settings/WorkspaceMembers.tsx:333
 msgid "Member removed successfully"
 msgstr "Member removed successfully"
 
@@ -7483,7 +7882,9 @@ msgstr "Member removed successfully"
 msgid "Message"
 msgstr "Message"
 
+#: src/components/settings/PermissionsMatrix.tsx:124
 #: src/pages/LogsPage.tsx:37
+#: src/services/api/errors.ts:59
 msgid "Message History"
 msgstr "Message History"
 
@@ -7812,7 +8213,7 @@ msgstr "New Theme"
 msgid "New Window"
 msgstr "New Window"
 
-#: src/layouts/WorkspaceLayout.tsx:658
+#: src/layouts/WorkspaceLayout.tsx:625
 #: src/pages/CreateWorkspacePage.tsx:104
 msgid "New workspace"
 msgstr "New workspace"
@@ -7856,13 +8257,12 @@ msgstr "Next Run"
 #: src/components/settings/Integrations.tsx:1349
 #: src/components/settings/Integrations.tsx:1508
 #: src/components/settings/Integrations.tsx:1577
+#: src/components/settings/PermissionsMatrix.tsx:186
 #: src/components/settings/WebhookCard.tsx:193
 #: src/components/settings/WebhookCard.tsx:237
 #: src/components/settings/WebhookCard.tsx:284
-#: src/components/settings/WorkspaceMembers.tsx:195
-#: src/components/settings/WorkspaceMembers.tsx:215
-#: src/components/settings/WorkspaceMembers.tsx:432
-#: src/components/settings/WorkspaceMembers.tsx:440
+#: src/components/settings/WorkspaceMembers.tsx:194
+#: src/components/settings/WorkspaceMembers.tsx:214
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:154
 #: src/components/web_analytics/filters/BackfillStatus.tsx:84
 #: src/components/web_analytics/filters/FilterTable.tsx:272
@@ -7875,7 +8275,7 @@ msgstr "No"
 msgid "No {0} content to preview"
 msgstr "No {0} content to preview"
 
-#: src/components/settings/WorkspaceMembers.tsx:135
+#: src/components/settings/WorkspaceMembers.tsx:134
 msgid "No Access"
 msgstr "No Access"
 
@@ -8073,7 +8473,7 @@ msgstr "No lists found"
 msgid "No match"
 msgstr "No match"
 
-#: src/components/settings/WorkspaceMembers.tsx:540
+#: src/components/settings/WorkspaceMembers.tsx:433
 msgid "No members found"
 msgstr "No members found"
 
@@ -8460,6 +8860,10 @@ msgstr "Once"
 msgid "Once per contact"
 msgstr "Once per contact"
 
+#: src/services/api/permissions.ts:883
+msgid "One endpoint, but it is the whole assistant: /api/llm.chat streams through the workspace's own provider integration, on the workspace's own billing. When a Firecrawl integration is configured it also lets the assistant run the scrape and search tools from the server, so this grant reaches the open web through your credentials."
+msgstr "One endpoint, but it is the whole assistant: /api/llm.chat streams through the workspace's own provider integration, on the workspace's own billing. When a Firecrawl integration is configured it also lets the assistant run the scrape and search tools from the server, so this grant reaches the open web through your credentials."
+
 #: src/components/settings/WebhookCard.tsx:265
 msgid "Only a workspace owner can view or rotate the signing secret"
 msgstr "Only a workspace owner can view or rotate the signing secret"
@@ -8651,6 +9055,10 @@ msgstr "OS"
 msgid "Other"
 msgstr "Other"
 
+#: src/services/api/permissions.ts:800
+msgid "Outbound webhook subscriptions — where the workspace POSTs its own events — and their delivery log."
+msgstr "Outbound webhook subscriptions — where the workspace POSTs its own events — and their delivery log."
+
 #: src/pages/LogsPage.tsx:49
 msgid "Outgoing Webhooks"
 msgstr "Outgoing Webhooks"
@@ -8757,6 +9165,14 @@ msgstr "Path-style access"
 msgid "Pause"
 msgstr "Pause"
 
+#: src/services/api/permissions.ts:539
+msgid "Pause a broadcast mid-send"
+msgstr "Pause a broadcast mid-send"
+
+#: src/services/api/permissions.ts:678
+msgid "Pause a live automation"
+msgstr "Pause a live automation"
+
 #: src/components/automations/AutomationCard.tsx:229
 msgid "Pause Automation"
 msgstr "Pause Automation"
@@ -8789,7 +9205,7 @@ msgstr "Payload:"
 #: src/components/automations/nodes/AddToListNode.tsx:59
 #: src/components/contacts/ContactDetailsDrawer.tsx:583
 #: src/components/lists/ListStats.tsx:90
-#: src/components/settings/WorkspaceMembers.tsx:117
+#: src/components/settings/WorkspaceMembers.tsx:111
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:79
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:236
 #: src/pages/BroadcastsPage.tsx:389
@@ -8834,17 +9250,22 @@ msgstr "Period — {detail}"
 msgid "Periodically check for new Notifuse versions and security updates. A popup will list new versions available."
 msgstr "Periodically check for new Notifuse versions and security updates. A popup will list new versions available."
 
-#: src/components/settings/WorkspaceMembers.tsx:131
-#: src/components/settings/WorkspaceMembers.tsx:146
+#: src/services/api/permissions.ts:207
+msgid "Permanently delete any contact"
+msgstr "Permanently delete any contact"
+
+#: src/components/settings/WorkspaceMembers.tsx:130
+#: src/components/settings/WorkspaceMembers.tsx:145
 msgid "Permission Details"
 msgstr "Permission Details"
 
-#: src/components/settings/WorkspaceMembers.tsx:110
-#: src/components/settings/WorkspaceMembers.tsx:572
+#: src/components/settings/WorkspaceMembers.tsx:107
+#: src/components/settings/WorkspaceMembers.tsx:471
+#: src/components/settings/WorkspaceMembers.tsx:531
 msgid "Permissions"
 msgstr "Permissions"
 
-#: src/components/settings/EditPermissionsModal.tsx:46
+#: src/components/settings/EditPermissionsDrawer.tsx:56
 msgid "Permissions updated successfully"
 msgstr "Permissions updated successfully"
 
@@ -8878,6 +9299,10 @@ msgstr "Pick a dimension below"
 #: src/components/web_analytics/explore/ExploreTemplates.tsx:102
 msgid "Pick a report to start from, or build your own."
 msgstr "Pick a report to start from, or build your own."
+
+#: src/services/api/permissions.ts:559
+msgid "Pick the winning A/B variation and send it to the remaining audience"
+msgstr "Pick the winning A/B variation and send it to the remaining audience"
 
 #: src/components/transactional/ApiCommandModal.tsx:529
 #~ msgid "Plain text (not recommended for production)"
@@ -9018,8 +9443,8 @@ msgstr "Please enter a workspace name"
 msgid "Please enter an API identifier"
 msgstr "Please enter an API identifier"
 
-#: src/components/settings/WorkspaceMembers.tsx:281
-#: src/components/settings/WorkspaceMembers.tsx:615
+#: src/components/settings/WorkspaceMembers.tsx:280
+#: src/components/settings/WorkspaceMembers.tsx:509
 msgid "Please enter an API key name"
 msgstr "Please enter an API key name"
 
@@ -9028,8 +9453,8 @@ msgstr "Please enter an API key name"
 msgid "Please enter an automation name"
 msgstr "Please enter an automation name"
 
-#: src/components/settings/WorkspaceMembers.tsx:248
-#: src/components/settings/WorkspaceMembers.tsx:563
+#: src/components/settings/WorkspaceMembers.tsx:247
+#: src/components/settings/WorkspaceMembers.tsx:462
 msgid "Please enter an email address"
 msgstr "Please enter an email address"
 
@@ -9275,6 +9700,10 @@ msgstr "Preview"
 msgid "Preview (first 10 emails)"
 msgstr "Preview (first 10 emails)"
 
+#: src/services/api/permissions.ts:296
+msgid "Preview accepts any definition sent to it, not just a saved segment, so anyone holding it together with Contacts read can ask counting questions about contact attributes, list membership, custom events and timeline — one count at a time, on any condition they like. Segments read alone cannot reach it. Segment permissions also quietly decide who may run three kinds of background task on the shared /api/tasks.* endpoints."
+msgstr "Preview accepts any definition sent to it, not just a saved segment, so anyone holding it together with Contacts read can ask counting questions about contact attributes, list membership, custom events and timeline — one count at a time, on any condition they like. Segments read alone cannot reach it. Segment permissions also quietly decide who may run three kinds of background task on the shared /api/tasks.* endpoints."
+
 #: src/components/blog/ThemeSelectionModal.tsx:77
 msgid "Preview Coming Soon"
 msgstr "Preview Coming Soon"
@@ -9491,6 +9920,10 @@ msgstr "Publication"
 msgid "Publish"
 msgstr "Publish"
 
+#: src/services/api/permissions.ts:462
+msgid "Publish a post to the live blog"
+msgstr "Publish a post to the live blog"
+
 #: src/components/blog/PublishModal.tsx:119
 #: src/components/blog/PublishModal.tsx:207
 msgid "Publish Now"
@@ -9562,15 +9995,135 @@ msgstr "Raw Payload:"
 msgid "Re-register"
 msgstr "Re-register"
 
-#: src/components/settings/EditPermissionsModal.tsx:86
-#: src/components/settings/WorkspaceMembers.tsx:432
-#: src/components/settings/WorkspaceMembers.tsx:486
+#: src/components/settings/PermissionsMatrix.tsx:91
+#: src/components/settings/PermissionsMatrix.tsx:186
+#: src/components/settings/PermissionsMatrix.tsx:236
 msgid "Read"
 msgstr "Read"
+
+#: src/services/api/permissions.ts:752
+msgid "Read a backfill task's state and progress"
+msgstr "Read a backfill task's state and progress"
+
+#: src/services/api/permissions.ts:695
+msgid "Read a broadcast's delivered, open, click, bounce and complaint counts"
+msgstr "Read a broadcast's delivered, open, click, bounce and complaint counts"
+
+#: src/services/api/permissions.ts:313
+msgid "Read a list's subscriber counts by status"
+msgstr "Read a list's subscriber counts by status"
+
+#: src/services/api/permissions.ts:519
+msgid "Read a send task's progress"
+msgstr "Read a send task's progress"
+
+#: src/services/api/permissions.ts:503
+msgid "Read A/B test results for a broadcast"
+msgstr "Read A/B test results for a broadcast"
+
+#: src/services/api/permissions.ts:904
+msgid "Read an integration sync task's state and progress"
+msgstr "Read an integration sync task's state and progress"
+
+#: src/services/api/permissions.ts:866
+msgid "Read is not a summary: these are the provider's own payloads, so the rows carry recipient addresses and provider diagnostics. That is why membership alone is not enough for them."
+msgstr "Read is not a summary: these are the provider's own payloads, so the rows carry recipient addresses and provider diagnostics. That is why membership alone is not enough for them."
+
+#: src/services/api/permissions.ts:740
+msgid "Read one annotation"
+msgstr "Read one annotation"
+
+#: src/services/api/permissions.ts:642
+msgid "Read one automation's full node configuration, including webhook node URLs and bearer secrets"
+msgstr "Read one automation's full node configuration, including webhook node URLs and bearer secrets"
+
+#: src/services/api/permissions.ts:499
+msgid "Read one broadcast's full configuration"
+msgstr "Read one broadcast's full configuration"
+
+#: src/services/api/permissions.ts:419
+msgid "Read one category by ID or slug"
+msgstr "Read one category by ID or slug"
+
+#: src/services/api/permissions.ts:151
+msgid "Read one contact's full activity timeline"
+msgstr "Read one contact's full activity timeline"
+
+#: src/services/api/permissions.ts:317
+msgid "Read one contact's membership row on one list"
+msgstr "Read one contact's membership row on one list"
+
+#: src/services/api/permissions.ts:155
+msgid "Read one custom event recorded against a contact"
+msgstr "Read one custom event recorded against a contact"
+
+#: src/services/api/permissions.ts:309
+msgid "Read one list's full settings"
+msgstr "Read one list's full settings"
+
+#: src/services/api/permissions.ts:646
+msgid "Read one named contact's journey through an automation, node by node"
+msgstr "Read one named contact's journey through an automation, node by node"
+
+#: src/services/api/permissions.ts:427
+msgid "Read one post, including unpublished drafts"
+msgstr "Read one post, including unpublished drafts"
+
+#: src/services/api/permissions.ts:380
+msgid "Read one reusable template block"
+msgstr "Read one reusable template block"
+
+#: src/services/api/permissions.ts:260
+msgid "Read one segment build/recompute task's state and progress"
+msgstr "Read one segment build/recompute task's state and progress"
+
+#: src/services/api/permissions.ts:244
+msgid "Read one segment's definition and generated SQL"
+msgstr "Read one segment's definition and generated SQL"
+
+#: src/services/api/permissions.ts:809
+msgid "Read one subscription; its signing secret is redacted unless you own the workspace"
+msgstr "Read one subscription; its signing secret is redacted unless you own the workspace"
+
+#: src/services/api/permissions.ts:368
+msgid "Read one template, at any stored version"
+msgstr "Read one template, at any stored version"
+
+#: src/services/api/permissions.ts:435
+msgid "Read one theme version, including its scripts.js"
+msgstr "Read one theme version, including its scripts.js"
+
+#: src/services/api/permissions.ts:593
+msgid "Read one transactional notification's channel and template configuration"
+msgstr "Read one transactional notification's channel and template configuration"
+
+#: src/services/api/permissions.ts:703
+msgid "Read per-link click counts for one broadcast template"
+msgstr "Read per-link click counts for one broadcast template"
+
+#: src/services/api/permissions.ts:439
+msgid "Read the currently published theme"
+msgstr "Read the currently published theme"
+
+#: src/services/api/permissions.ts:813
+msgid "Read the delivery log, including each event payload and the endpoint's response status and body"
+msgstr "Read the delivery log, including each event payload and the endpoint's response status and body"
 
 #: src/components/seo/OpenGraphPreview.tsx:26
 msgid "Read the latest post from this broadcast."
 msgstr "Read the latest post from this broadcast."
+
+#: src/services/api/permissions.ts:744
+msgid "Read the progress of the historical backfill"
+msgstr "Read the progress of the historical backfill"
+
+#: src/services/api/permissions.ts:699
+msgid "Read the same counts for one A/B variation"
+msgstr "Read the same counts for one A/B variation"
+
+#: src/services/api/permissions.ts:892
+msgid "Read the workspace record and its settings; Workspace write alone also passes, so someone who may only edit can still load what they are editing"
+msgstr "Read the workspace record and its settings; Workspace write alone also passes, so someone who may only edit can still load what they are editing"
 
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:339
 #~ msgid "Reading the available metrics"
@@ -9653,6 +10206,10 @@ msgstr "Recommended: 150-160 characters"
 msgid "Recommended: 50-60 characters"
 msgstr "Recommended: 50-60 characters"
 
+#: src/services/api/permissions.ts:211
+msgid "Record or overwrite a custom event on a contact"
+msgstr "Record or overwrite a custom event on a contact"
+
 #: src/components/settings/WebAnalyticsSettings.tsx:384
 msgid "Record the city of visitors"
 msgstr "Record the city of visitors"
@@ -9716,6 +10273,10 @@ msgstr "Refresh"
 msgid "Refresh Broadcast"
 msgstr "Refresh Broadcast"
 
+#: src/services/api/permissions.ts:563
+msgid "Refresh the broadcast's data feed by calling the configured external URL"
+msgstr "Refresh the broadcast's data feed by calling the configured external URL"
+
 #: src/components/file_manager/fileManager.tsx:672
 msgid "Refresh the list"
 msgstr "Refresh the list"
@@ -9776,6 +10337,14 @@ msgstr "Reload latest"
 msgid "Remove"
 msgstr "Remove"
 
+#: src/services/api/permissions.ts:347
+msgid "Remove a contact from a list (also needs Contacts write)"
+msgstr "Remove a contact from a list (also needs Contacts write)"
+
+#: src/services/api/permissions.ts:223
+msgid "Remove a contact from a list (also needs Lists write)"
+msgstr "Remove a contact from a list (also needs Lists write)"
+
 #: src/components/automations/config/ConditionsField.tsx:116
 msgid "Remove conditions"
 msgstr "Remove conditions"
@@ -9809,8 +10378,8 @@ msgstr "Remove from List"
 msgid "Remove Link"
 msgstr "Remove Link"
 
-#: src/components/settings/WorkspaceMembers.tsx:191
-#: src/components/settings/WorkspaceMembers.tsx:198
+#: src/components/settings/WorkspaceMembers.tsx:190
+#: src/components/settings/WorkspaceMembers.tsx:197
 msgid "Remove member"
 msgstr "Remove member"
 
@@ -9829,6 +10398,14 @@ msgstr "removed"
 #: src/components/automations/config/TriggerConfigForm.tsx:84
 msgid "Removed"
 msgstr "Removed"
+
+#: src/services/api/permissions.ts:451
+msgid "Rename or re-slug a category"
+msgstr "Rename or re-slug a category"
+
+#: src/services/api/permissions.ts:912
+msgid "Rename the workspace's custom contact field labels"
+msgstr "Rename the workspace's custom contact field labels"
 
 #: src/components/blog/ThemePreview.tsx:80
 msgid "Rendering preview..."
@@ -9883,7 +10460,7 @@ msgstr "Reply-To"
 msgid "Report — {dimensions}"
 msgstr "Report — {dimensions}"
 
-#: src/layouts/WorkspaceLayout.tsx:693
+#: src/layouts/WorkspaceLayout.tsx:660
 msgid "Report An Issue"
 msgstr "Report An Issue"
 
@@ -9939,7 +10516,7 @@ msgstr "Requires a padding"
 msgid "Resend code"
 msgstr "Resend code"
 
-#: src/components/settings/WorkspaceMembers.tsx:226
+#: src/components/settings/WorkspaceMembers.tsx:225
 msgid "Resend invitation"
 msgstr "Resend invitation"
 
@@ -9948,6 +10525,22 @@ msgstr "Resend invitation"
 #: src/pages/DebugSegmentPage.tsx:83
 msgid "Reset"
 msgstr "Reset"
+
+#: src/services/api/permissions.ts:788
+msgid "Reset a backfill task so it re-runs from the start"
+msgstr "Reset a backfill task so it re-runs from the start"
+
+#: src/services/api/permissions.ts:288
+msgid "Reset a segment task's progress so it re-runs from the start"
+msgstr "Reset a segment task's progress so it re-runs from the start"
+
+#: src/services/api/permissions.ts:575
+msgid "Reset a send task, so a broadcast re-sends from the start"
+msgstr "Reset a send task, so a broadcast re-sends from the start"
+
+#: src/services/api/permissions.ts:924
+msgid "Reset an integration sync task so it re-runs from the start"
+msgstr "Reset an integration sync task so it re-runs from the start"
 
 #: src/components/blog_editor/menus/block-actions/TransformOptionsGroup.tsx:46
 msgid "Reset formatting"
@@ -9969,8 +10562,7 @@ msgstr "Reset translation"
 msgid "Resolved"
 msgstr "Resolved"
 
-#: src/components/settings/EditPermissionsModal.tsx:80
-#: src/components/settings/WorkspaceMembers.tsx:480
+#: src/components/settings/PermissionsMatrix.tsx:229
 msgid "Resource"
 msgstr "Resource"
 
@@ -10028,6 +10620,10 @@ msgstr "Results:"
 msgid "Resume"
 msgstr "Resume"
 
+#: src/services/api/permissions.ts:543
+msgid "Resume a paused broadcast, continuing the send"
+msgstr "Resume a paused broadcast, continuing the send"
+
 #: src/pages/BroadcastsPage.tsx:604
 msgid "Resume Broadcast"
 msgstr "Resume Broadcast"
@@ -10071,7 +10667,7 @@ msgstr "Right"
 msgid "Right to Left"
 msgstr "Right to Left"
 
-#: src/components/settings/WorkspaceMembers.tsx:87
+#: src/components/settings/WorkspaceMembers.tsx:84
 msgid "Role"
 msgstr "Role"
 
@@ -10119,6 +10715,42 @@ msgstr "Rule enabled"
 #: src/components/web_analytics/tabs/FiltersTab.tsx:83
 msgid "Rule updated"
 msgstr "Rule updated"
+
+#: src/services/api/permissions.ts:784
+msgid "Run a backfill task immediately"
+msgstr "Run a backfill task immediately"
+
+#: src/services/api/permissions.ts:284
+msgid "Run a segment build/recompute task immediately"
+msgstr "Run a segment build/recompute task immediately"
+
+#: src/services/api/permissions.ts:650
+msgid "Run aggregate queries over the `automation_node_executions` schema"
+msgstr "Run aggregate queries over the `automation_node_executions` schema"
+
+#: src/services/api/permissions.ts:507
+msgid "Run aggregate queries over the `broadcasts` schema"
+msgstr "Run aggregate queries over the `broadcasts` schema"
+
+#: src/services/api/permissions.ts:179
+msgid "Run aggregate queries over the `contacts` schema"
+msgstr "Run aggregate queries over the `contacts` schema"
+
+#: src/services/api/permissions.ts:707
+msgid "Run aggregate queries over the `message_history` and `email_queue` schemas"
+msgstr "Run aggregate queries over the `message_history` and `email_queue` schemas"
+
+#: src/services/api/permissions.ts:728
+msgid "Run aggregate queries over the `web_sessions`, `web_pages` and `web_goals` schemas"
+msgstr "Run aggregate queries over the `web_sessions`, `web_pages` and `web_goals` schemas"
+
+#: src/services/api/permissions.ts:817
+msgid "Run aggregate queries over the `webhook_deliveries` schema"
+msgstr "Run aggregate queries over the `webhook_deliveries` schema"
+
+#: src/services/api/permissions.ts:920
+msgid "Run an integration sync task immediately"
+msgstr "Run an integration sync task immediately"
 
 #: src/components/web_analytics/filters/BackfillStatus.tsx:163
 msgid "Run backfill"
@@ -10248,7 +10880,7 @@ msgstr "Save for later import"
 msgid "Save Mode"
 msgstr "Save Mode"
 
-#: src/components/settings/EditPermissionsModal.tsx:124
+#: src/components/settings/EditPermissionsDrawer.tsx:82
 msgid "Save Permissions"
 msgstr "Save Permissions"
 
@@ -10285,6 +10917,10 @@ msgstr "Schedule"
 #: src/components/broadcasts/SendOrScheduleModal.tsx:197
 msgid "Schedule for later delivery"
 msgstr "Schedule for later delivery"
+
+#: src/services/api/permissions.ts:535
+msgid "Schedule or immediately send a broadcast to its entire audience"
+msgstr "Schedule or immediately send a broadcast to its entire audience"
 
 #: src/components/blog/PostStatusTag.tsx:20
 #: src/pages/BroadcastsPage.tsx:152
@@ -10380,9 +11016,49 @@ msgstr "Section Attributes"
 msgid "Security"
 msgstr "Security"
 
+#: src/services/api/permissions.ts:515
+msgid "See broadcast send tasks; a listing that names no type is narrowed to the types you may read"
+msgstr "See broadcast send tasks; a listing that names no type is narrowed to the types you may read"
+
 #: src/pages/SetupWizard.tsx:412
 msgid "See docs for:"
 msgstr "See docs for:"
+
+#: src/services/api/permissions.ts:900
+msgid "See integration sync tasks; a listing that names no type is narrowed to the types you may read"
+msgstr "See integration sync tasks; a listing that names no type is narrowed to the types you may read"
+
+#: src/services/api/permissions.ts:256
+msgid "See segment build and recompute tasks; a listing that names no type is narrowed to the types you may read"
+msgstr "See segment build and recompute tasks; a listing that names no type is narrowed to the types you may read"
+
+#: src/services/api/permissions.ts:654
+msgid "See the `automation_node_executions` schema listed in the queryable catalogue"
+msgstr "See the `automation_node_executions` schema listed in the queryable catalogue"
+
+#: src/services/api/permissions.ts:511
+msgid "See the `broadcasts` schema listed in the queryable catalogue"
+msgstr "See the `broadcasts` schema listed in the queryable catalogue"
+
+#: src/services/api/permissions.ts:183
+msgid "See the `contacts` schema listed in the queryable catalogue (the listing is filtered to what you may read, never refused)"
+msgstr "See the `contacts` schema listed in the queryable catalogue (the listing is filtered to what you may read, never refused)"
+
+#: src/services/api/permissions.ts:711
+msgid "See the `message_history` and `email_queue` schemas listed in the queryable catalogue"
+msgstr "See the `message_history` and `email_queue` schemas listed in the queryable catalogue"
+
+#: src/services/api/permissions.ts:821
+msgid "See the `webhook_deliveries` schema listed in the queryable catalogue"
+msgstr "See the `webhook_deliveries` schema listed in the queryable catalogue"
+
+#: src/services/api/permissions.ts:732
+msgid "See the web analytics schemas listed in the queryable catalogue"
+msgstr "See the web analytics schemas listed in the queryable catalogue"
+
+#: src/services/api/permissions.ts:748
+msgid "See web analytics backfill tasks; a listing that names no type is narrowed to the types you may read"
+msgstr "See web analytics backfill tasks; a listing that names no type is narrowed to the types you may read"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:89
 #: src/components/automations/config/TriggerConfigForm.tsx:294
@@ -10413,9 +11089,11 @@ msgid "Segment tree reset"
 msgstr "Segment tree reset"
 
 #: src/components/contacts/SegmentsFilter.tsx:230
+#: src/components/settings/PermissionsMatrix.tsx:129
 #: src/pages/BroadcastsPage.tsx:1025
 #: src/pages/ContactsPage.tsx:425
 #: src/pages/ContactsPage.tsx:625
+#: src/services/api/errors.ts:64
 msgid "Segments"
 msgstr "Segments"
 
@@ -10726,7 +11404,7 @@ msgstr "Select which segment this trigger applies to"
 msgid "Select Winner"
 msgstr "Select Winner"
 
-#: src/layouts/WorkspaceLayout.tsx:630
+#: src/layouts/WorkspaceLayout.tsx:597
 #: src/pages/DashboardPage.tsx:31
 msgid "Select workspace"
 msgstr "Select workspace"
@@ -10750,9 +11428,29 @@ msgstr "Selected Winner"
 msgid "Selected: {0}"
 msgstr "Selected: {0}"
 
+#: src/services/api/permissions.ts:555
+msgid "Send a broadcast to one named address"
+msgstr "Send a broadcast to one named address"
+
+#: src/services/api/permissions.ts:617
+msgid "Send a real test email through a chosen integration and sender; cc or bcc additionally needs Contacts read"
+msgstr "Send a real test email through a chosen integration and sender; cc or bcc additionally needs Contacts read"
+
+#: src/services/api/permissions.ts:621
+msgid "Send a real test email through the workspace's stored provider credentials"
+msgstr "Send a real test email through the workspace's stored provider credentials"
+
+#: src/services/api/permissions.ts:613
+msgid "Send a real transactional email to any address; adding cc or bcc additionally needs Contacts read, and writing contact fields beyond the recipient's email additionally needs Contacts write"
+msgstr "Send a real transactional email to any address; adding cc or bcc additionally needs Contacts read, and writing contact fields beyond the recipient's email additionally needs Contacts write"
+
 #: src/components/templates/SendTemplateModal.tsx:284
 msgid "Send a test email using this template to verify how it will look."
 msgstr "Send a test email using this template to verify how it will look."
+
+#: src/services/api/permissions.ts:625
+msgid "Send a transactional notification by SMTP using the key's API email address as the username — the same gate as /api/transactional.send"
+msgstr "Send a transactional notification by SMTP using the key's API email address as the username — the same gate as /api/transactional.send"
 
 #: src/components/transactional/ApiCommandModal.tsx:899
 msgid "Send a transactional notification using Go:"
@@ -10770,7 +11468,7 @@ msgstr "Send a transactional notification using Python:"
 msgid "Send a transactional notification using TypeScript/JavaScript:"
 msgstr "Send a transactional notification using TypeScript/JavaScript:"
 
-#: src/components/settings/WorkspaceMembers.tsx:555
+#: src/components/settings/WorkspaceMembers.tsx:452
 msgid "Send Invitation"
 msgstr "Send Invitation"
 
@@ -10973,6 +11671,14 @@ msgstr "Set as transactional email provider?"
 msgid "Set by environment variable"
 msgstr "Set by environment variable"
 
+#: src/services/api/permissions.ts:191
+msgid "Set cc or bcc on a test send (also needs Transactional write)"
+msgstr "Set cc or bcc on a test send (also needs Transactional write)"
+
+#: src/services/api/permissions.ts:187
+msgid "Set cc or bcc on a transactional send, which renders the subject against those recipients' whole records (also needs Transactional write)"
+msgstr "Set cc or bcc on a transactional send, which renders the subject against those recipients' whole records (also needs Transactional write)"
+
 #: src/components/email_builder/blocks/MjBodyBlock.tsx:75
 msgid "Set class"
 msgstr "Set class"
@@ -11075,7 +11781,7 @@ msgid "Setting up..."
 msgstr "Setting up..."
 
 #: src/components/settings/SettingsSidebar.tsx:135
-#: src/layouts/WorkspaceLayout.tsx:513
+#: src/layouts/WorkspaceLayout.tsx:480
 msgid "Settings"
 msgstr "Settings"
 
@@ -11120,6 +11826,10 @@ msgstr "Show evolution"
 msgid "Show More ({0} remaining)"
 msgstr "Show More ({0} remaining)"
 
+#: src/components/settings/PermissionsMatrix.tsx:202
+#~ msgid "Show the endpoints this permission gates"
+#~ msgstr "Show the endpoints this permission gates"
+
 #: src/components/broadcasts/BroadcastLinkStats.tsx:132
 #~ msgid "Showing the top 200 links by total clicks."
 #~ msgstr "Showing the top 200 links by total clicks."
@@ -11147,7 +11857,7 @@ msgid "Signup"
 msgstr "Signup"
 
 #: src/components/analytics/NewContactsTable.tsx:184
-#: src/components/settings/WorkspaceMembers.tsx:157
+#: src/components/settings/WorkspaceMembers.tsx:156
 msgid "Since"
 msgstr "Since"
 
@@ -11391,6 +12101,14 @@ msgstr "Standard value is 480px for most email clients"
 msgid "Start"
 msgstr "Start"
 
+#: src/services/api/permissions.ts:571
+msgid "Start a broadcast send task immediately"
+msgstr "Start a broadcast send task immediately"
+
+#: src/services/api/permissions.ts:760
+msgid "Start a historical backfill of web analytics data"
+msgstr "Start a historical backfill of web analytics data"
+
 #: src/components/web_analytics/toolbar.tsx:67
 msgid "Start date cannot be in the future"
 msgstr "Start date cannot be in the future"
@@ -11543,6 +12261,14 @@ msgstr "Submitting batch request to the server..."
 #: src/components/contacts/ContactDetailsDrawer.tsx:1144
 msgid "Subscribe"
 msgstr "Subscribe"
+
+#: src/services/api/permissions.ts:339
+msgid "Subscribe an address to any list, public or not — and create or overwrite that contact's record in the same call"
+msgstr "Subscribe an address to any list, public or not — and create or overwrite that contact's record in the same call"
+
+#: src/services/api/permissions.ts:351
+msgid "Subscribe imported contacts to lists — required only when the import names lists (also needs Contacts write)"
+msgstr "Subscribe imported contacts to lists — required only when the import names lists (also needs Contacts write)"
 
 #: src/components/contacts/ContactDetailsDrawer.tsx:959
 #: src/components/contacts/ContactDetailsDrawer.tsx:1039
@@ -11697,6 +12423,10 @@ msgstr "Table of Contents"
 msgid "Tags"
 msgstr "Tags"
 
+#: src/services/api/permissions.ts:466
+msgid "Take a published post off the live blog"
+msgstr "Take a published post off the live blog"
+
 #: src/components/templates/CreateTemplateDrawer.tsx:133
 msgid "Take a Tour"
 msgstr "Take a Tour"
@@ -11718,11 +12448,11 @@ msgid "Task type:"
 msgstr "Task type:"
 
 #: src/components/settings/SettingsSidebar.tsx:36
-#: src/components/settings/WorkspaceMembers.tsx:515
+#: src/components/settings/WorkspaceMembers.tsx:408
 msgid "Team"
 msgstr "Team"
 
-#: src/components/settings/WorkspaceMembers.tsx:269
+#: src/components/settings/WorkspaceMembers.tsx:268
 msgid "Team member limit reached. Please upgrade your plan to add more members."
 msgstr "Team member limit reached. Please upgrade your plan to add more members."
 
@@ -11837,8 +12567,10 @@ msgstr "Template Variables:"
 msgid "Template:"
 msgstr "Template:"
 
-#: src/layouts/WorkspaceLayout.tsx:283
+#: src/components/settings/PermissionsMatrix.tsx:120
+#: src/layouts/WorkspaceLayout.tsx:250
 #: src/pages/TemplatesPage.tsx:404
+#: src/services/api/errors.ts:55
 msgid "Templates"
 msgstr "Templates"
 
@@ -12023,6 +12755,10 @@ msgstr "The"
 #~ msgid "The address must already belong to a contact: identifying someone who is not one records nothing, by design. Visitors arriving from a tracked email link are identified automatically, with no code."
 #~ msgstr "The address must already belong to a contact: identifying someone who is not one records nothing, by design. Visitors arriving from a tracked email link are identified automatically, with no code."
 
+#: src/services/api/permissions.ts:870
+msgid "The AI assistant: chat over the workspace's configured LLM integration, and the server-side tools it may call."
+msgstr "The AI assistant: chat over the workspace's configured LLM integration, and the server-side tools it may call."
+
 #: src/components/settings/SystemSettingsDrawer.tsx:155
 msgid "The API endpoint has changed. After restart, the console will be available at:"
 msgstr "The API endpoint has changed. After restart, the console will be available at:"
@@ -12100,6 +12836,10 @@ msgstr "The generated email has issues that prevent it from rendering:"
 msgid "The hostname your server identifies itself as when connecting to the SMTP server. Defaults to the SMTP host value if empty."
 msgstr "The hostname your server identifies itself as when connecting to the SMTP server. Defaults to the SMTP host value if empty."
 
+#: src/services/api/permissions.ts:853
+msgid "The inbound events email providers send back — bounces, complaints, deliveries and replies — as the raw rows the provider posted."
+msgstr "The inbound events email providers send back — bounces, complaints, deliveries and replies — as the raw rows the provider posted."
+
 #: src/components/web_analytics/filters/BackfillStatus.tsx:118
 msgid "The last backfill failed"
 msgstr "The last backfill failed"
@@ -12107,6 +12847,10 @@ msgstr "The last backfill failed"
 #: src/components/settings/BlogSettings.tsx:349
 msgid "The main title for your blog"
 msgstr "The main title for your blog"
+
+#: src/services/api/permissions.ts:686
+msgid "The outbound message log: every email the workspace sent, its delivery status, and the engagement counted against it."
+msgstr "The outbound message log: every email the workspace sent, its delivery status, and the engagement counted against it."
 
 #: src/components/settings/GeneralSettings.tsx:241
 msgid "The primary language for template content. Translations are stored for other languages."
@@ -12167,6 +12911,10 @@ msgstr "The webhook will stop receiving events."
 #: src/components/automations/config/ConditionsField.tsx:117
 msgid "The whole condition tree will be deleted."
 msgstr "The whole condition tree will be deleted."
+
+#: src/services/api/permissions.ts:887
+msgid "The workspace record itself — its settings and its member roster — plus the custom contact field labels."
+msgstr "The workspace record itself — its settings and its member roster — plus the custom contact field labels."
 
 #: src/components/file_manager/buttonSettings.tsx:138
 msgid "The workspace settings have been updated!"
@@ -12319,6 +13067,10 @@ msgstr "This invitation link is invalid or has expired."
 msgid "This is the ID that will be used as the utm_content parameter in the links URL to track the template"
 msgstr "This is the ID that will be used as the utm_content parameter in the links URL to track the template"
 
+#: src/services/api/permissions.ts:719
+msgid "This is where delivery statistics live, not under Broadcasts: a key that may create and send a broadcast still cannot read its open, click or bounce numbers without Message History read. The log carries recipient addresses and the rendered message data, so it is contact data by another name."
+msgstr "This is where delivery statistics live, not under Broadcasts: a key that may create and send a broadcast still cannot read its open, click or bounce numbers without Message History read. The log carries recipient addresses and the rendered message data, so it is contact data by another name."
+
 #: src/components/templates/CreateTemplateDrawer.tsx:1231
 msgid "This is your content structure tree. You can drag and drop blocks to reorganize your email layout. Click the + buttons to add new blocks, or drag blocks from one section to another."
 msgstr "This is your content structure tree. You can drag and drop blocks to reorganize your email layout. Click the + buttons to add new blocks, or drag blocks from one section to another."
@@ -12346,6 +13098,14 @@ msgstr "This notification is managed by an integration and the template cannot b
 #: src/components/timeline/WebPageDrawer.tsx:86
 msgid "This page cannot be previewed here"
 msgstr "This page cannot be previewed here"
+
+#: src/components/settings/PermissionsMatrix.tsx:73
+msgid "This permission gates no endpoint today."
+msgstr "This permission gates no endpoint today."
+
+#: src/components/settings/PermissionsMatrix.tsx:177
+msgid "This permission is not enforced yet, so it is always granted. It cannot be turned off."
+msgstr "This permission is not enforced yet, so it is always granted. It cannot be turned off."
 
 #: src/components/blog/PostDrawer.tsx:477
 #~ msgid "This post's template was changed by someone else while you were editing. Overwrite it with your changes, or reload the latest version (your changes will be lost)?"
@@ -12391,9 +13151,21 @@ msgstr "This template is managed by an integration and cannot be deleted"
 msgid "This text appears in the email client's preview pane, typically after the subject line. Keep it concise and compelling (100-140 characters recommended)."
 msgstr "This text appears in the email client's preview pane, typically after the subject line. Keep it concise and compelling (100-140 characters recommended)."
 
-#: src/components/settings/WorkspaceMembers.tsx:640
+#: src/components/settings/WorkspaceMembers.tsx:539
 msgid "This token will only be displayed once. Please save it in a secure location. It cannot be retrieved again."
 msgstr "This token will only be displayed once. Please save it in a secure location. It cannot be retrieved again."
+
+#: src/services/api/permissions.ts:873
+msgid "This verb gates nothing today. /api/llm.chat is the only LLM endpoint and it answers to LLM write, so there is nothing left for read to govern. The switch is granted and locked rather than denied, because storing it as \"off\" would be permanent: filling in a missing permission only ever adds what a grant lacks, so nothing would widen it if a later release gives this verb something real to gate."
+msgstr "This verb gates nothing today. /api/llm.chat is the only LLM endpoint and it answers to LLM write, so there is nothing left for read to govern. The switch is granted and locked rather than denied, because storing it as \"off\" would be permanent: filling in a missing permission only ever adds what a grant lacks, so nothing would widen it if a later release gives this verb something real to gate."
+
+#: src/services/api/permissions.ts:717
+msgid "This verb gates nothing today. Every message history call the API offers is a read, and rows are written by the sending pipeline itself, never by anything you can call. The switch is granted and locked rather than denied, because storing it as \"off\" would be permanent: filling in a missing permission only ever adds what a grant lacks, so nothing would widen it if a later release gives this verb something real to gate."
+msgstr "This verb gates nothing today. Every message history call the API offers is a read, and rows are written by the sending pipeline itself, never by anything you can call. The switch is granted and locked rather than denied, because storing it as \"off\" would be permanent: filling in a missing permission only ever adds what a grant lacks, so nothing would widen it if a later release gives this verb something real to gate."
+
+#: src/services/api/permissions.ts:864
+msgid "This verb gates nothing today. Exactly one inbound webhook event call is permission-checked and it is a read; the rows themselves arrive on the provider callback routes /webhooks/email and /webhooks/email/inbound, which carry no workspace session and so consult no grant. Unlike the two verbs the matrix locks on, this one is still yours to switch — turning it off simply changes nothing today."
+msgstr "This verb gates nothing today. Exactly one inbound webhook event call is permission-checked and it is a read; the rows themselves arrive on the provider callback routes /webhooks/email and /webhooks/email/inbound, which carry no workspace session and so consult no grant. Unlike the two verbs the matrix locks on, this one is still yours to switch — turning it off simply changes nothing today."
 
 #: src/components/web_analytics/toolbar.tsx:23
 msgid "This week"
@@ -12755,9 +13527,11 @@ msgid "Traffic no filter rule has classified"
 msgstr "Traffic no filter rule has classified"
 
 #: src/components/analytics/EmailMetricsChart.tsx:286
+#: src/components/settings/PermissionsMatrix.tsx:122
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:408
-#: src/layouts/WorkspaceLayout.tsx:472
+#: src/layouts/WorkspaceLayout.tsx:439
 #: src/pages/TemplatesPage.tsx:126
+#: src/services/api/errors.ts:57
 msgid "Transactional"
 msgstr "Transactional"
 
@@ -12768,6 +13542,10 @@ msgstr "Transactional Emails"
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:103
 msgid "Transactional ID"
 msgstr "Transactional ID"
+
+#: src/services/api/permissions.ts:584
+msgid "Transactional notification definitions and every path that actually sends an email through the workspace's provider credentials."
+msgstr "Transactional notification definitions and every path that actually sends an email through the workspace's provider credentials."
 
 #: src/pages/TransactionalNotificationsPage.tsx:350
 msgid "Transactional notification deleted successfully"
@@ -12825,6 +13603,14 @@ msgstr "Turn Into"
 #: src/components/settings/Integrations.tsx:2110
 msgid "Turn off SES tenant isolation to use your own tenant, or clear this field."
 msgstr "Turn off SES tenant isolation to use your own tenant, or clear this field."
+
+#: src/services/api/permissions.ts:482
+msgid "Turn the blog on or off and change its title, SEO, pagination and feed settings"
+msgstr "Turn the blog on or off and change its title, SEO, pagination and feed settings"
+
+#: src/services/api/permissions.ts:780
+msgid "Turn web analytics on or off and change its allowed domains, filters, custom dimension labels and email-link identification"
+msgstr "Turn web analytics on or off and change its allowed domains, filters, custom dimension labels and email-link identification"
 
 #: src/components/web_analytics/tabs/SettingsTab.tsx:144
 #~ msgid "Two decimals is roughly one kilometer."
@@ -12918,7 +13704,7 @@ msgstr "Unknown"
 msgid "Unknown date"
 msgstr "Unknown date"
 
-#: src/layouts/WorkspaceLayout.tsx:268
+#: src/layouts/WorkspaceLayout.tsx:235
 msgid "Unknown error"
 msgstr "Unknown error"
 
@@ -13477,18 +14263,24 @@ msgstr "Waiting for server restart..."
 msgid "Warning"
 msgstr "Warning"
 
+#: src/components/settings/PermissionsMatrix.tsx:97
+msgid "Watch out"
+msgstr "Watch out"
+
 #: src/pages/CreateWorkspacePage.tsx:172
 msgid "We'll automatically detect and use your website's favicon"
 msgstr "We'll automatically detect and use your website's favicon"
 
+#: src/components/settings/PermissionsMatrix.tsx:128
 #: src/components/settings/SettingsSidebar.tsx:105
 #: src/components/settings/WebAnalyticsSettings.tsx:232
 #: src/components/settings/WebAnalyticsSettings.tsx:242
 #: src/components/settings/WebAnalyticsSettings.tsx:291
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:370
-#: src/layouts/WorkspaceLayout.tsx:325
+#: src/layouts/WorkspaceLayout.tsx:292
 #: src/pages/BroadcastsPage.tsx:1117
 #: src/pages/WebAnalyticsPage.tsx:94
+#: src/services/api/errors.ts:63
 msgid "Web Analytics"
 msgstr "Web Analytics"
 
@@ -13549,6 +14341,11 @@ msgstr "Webhook endpoint copied to clipboard"
 msgid "Webhook endpoint:"
 msgstr "Webhook endpoint:"
 
+#: src/components/settings/PermissionsMatrix.tsx:131
+#: src/services/api/errors.ts:66
+msgid "Webhook Events"
+msgstr "Webhook Events"
+
 #: src/components/settings/WebhookCard.tsx:133
 msgid "Webhook secret regenerated"
 msgstr "Webhook secret regenerated"
@@ -13564,6 +14361,11 @@ msgstr "Webhook subscription deleted"
 #: src/components/settings/WebhooksSettings.tsx:109
 msgid "Webhook subscription updated"
 msgstr "Webhook subscription updated"
+
+#: src/components/settings/PermissionsMatrix.tsx:130
+#: src/services/api/errors.ts:65
+msgid "Webhook Subscriptions"
+msgstr "Webhook Subscriptions"
 
 #: src/components/automations/config/WebhookConfigForm.tsx:31
 msgid "Webhook URL"
@@ -13614,6 +14416,10 @@ msgstr "Website traffic tracking settings"
 #: src/pages/CreateWorkspacePage.tsx:163
 msgid "Website URL"
 msgstr "Website URL"
+
+#: src/services/api/permissions.ts:723
+msgid "Website visitor analytics — sessions, page views and goals — the annotations drawn on those charts, and the historical backfill."
+msgstr "Website visitor analytics — sessions, page views and goals — the annotations drawn on those charts, and the historical backfill."
 
 #: src/components/web_analytics/toolbar.tsx:171
 msgid "Weekly"
@@ -13761,6 +14567,11 @@ msgstr "with status"
 msgid "With:"
 msgstr "With:"
 
+#: src/components/settings/PermissionsMatrix.tsx:123
+#: src/services/api/errors.ts:58
+msgid "Workspace"
+msgstr "Workspace"
+
 #. placeholder {0}: values.name
 #: src/pages/CreateWorkspacePage.tsx:78
 msgid "Workspace \"{0}\" created successfully!"
@@ -13804,16 +14615,20 @@ msgstr "Workspace Name"
 msgid "Workspace name must be at least 3 characters long"
 msgstr "Workspace name must be at least 3 characters long"
 
-#: src/layouts/WorkspaceLayout.tsx:247
+#: src/layouts/WorkspaceLayout.tsx:214
 #: src/pages/AnalyticsPage.tsx:68
 #: src/pages/FileManagerPage.tsx:56
 msgid "Workspace not found"
 msgstr "Workspace not found"
 
 #: src/components/settings/GeneralSettings.tsx:99
-#: src/layouts/WorkspaceLayout.tsx:265
+#: src/layouts/WorkspaceLayout.tsx:232
 msgid "Workspace settings updated successfully"
 msgstr "Workspace settings updated successfully"
+
+#: src/services/api/permissions.ts:932
+msgid "Workspace write is far narrower than its name: the only workspace endpoint it gates is /api/workspaces.setCustomFieldLabels. Renaming or deleting the workspace, and creating, updating or deleting an integration, are owner-only and consult no permission at all — granting this does not confer them, and an owner has them without it. /api/workspaces.list is not gated either: it returns the workspaces you belong to whatever this switch says. Two settings endpoints that look like workspace configuration answer elsewhere — /api/workspaces.setBlogSettings to Blog write, and /api/workspaces.setWebAnalyticsSettings to Web Analytics write."
+msgstr "Workspace write is far narrower than its name: the only workspace endpoint it gates is /api/workspaces.setCustomFieldLabels. Renaming or deleting the workspace, and creating, updating or deleting an integration, are owner-only and consult no permission at all — granting this does not confer them, and an owner has them without it. /api/workspaces.list is not gated either: it returns the workspaces you belong to whatever this switch says. Two settings endpoints that look like workspace configuration answer elsewhere — /api/workspaces.setBlogSettings to Blog write, and /api/workspaces.setWebAnalyticsSettings to Web Analytics write."
 
 #: src/pages/AcceptInvitationPage.tsx:148
 msgid "Workspace:"
@@ -13823,11 +14638,23 @@ msgstr "Workspace:"
 msgid "Wrapper Attributes"
 msgstr "Wrapper Attributes"
 
-#: src/components/settings/EditPermissionsModal.tsx:99
-#: src/components/settings/WorkspaceMembers.tsx:440
-#: src/components/settings/WorkspaceMembers.tsx:499
+#: src/components/settings/PermissionsMatrix.tsx:92
+#: src/components/settings/PermissionsMatrix.tsx:186
+#: src/components/settings/PermissionsMatrix.tsx:243
 msgid "Write"
 msgstr "Write"
+
+#: src/services/api/permissions.ts:227
+msgid "Write contact fields beyond the recipient's email address; without it the send still creates the recipient but carries only the email (also needs Transactional write)"
+msgstr "Write contact fields beyond the recipient's email address; without it the send still creates the recipient but carries only the email (also needs Transactional write)"
+
+#: src/services/api/permissions.ts:849
+msgid "Write decides where the workspace's event stream goes: create and update both accept any URL, and the delivery log that read opens carries the event payloads themselves. Two neighbours on the same routes answer to something else — /api/webhookSubscriptions.regenerateSecret is owner-only whatever this switch says, and /api/webhookSubscriptions.eventTypes is a fixed catalogue that checks nothing at all. Reading a subscription hides its signing secret from everyone but an owner."
+msgstr "Write decides where the workspace's event stream goes: create and update both accept any URL, and the delivery log that read opens carries the event payloads themselves. Two neighbours on the same routes answer to something else — /api/webhookSubscriptions.regenerateSecret is owner-only whatever this switch says, and /api/webhookSubscriptions.eventTypes is a fixed catalogue that checks nothing at all. Reading a subscription hides its signing secret from everyone but an owner."
+
+#: src/services/api/permissions.ts:231
+msgid "Write includes permanent deletion and bulk overwriting: `/api/contacts.import` overwrites every field each row carries, so a single call can rewrite your whole contact database. This is not \"can add contacts\". Read also covers custom events and the contact timeline, which the name does not suggest. Two other grants reach contact data without this one: Lists write on its own lets anyone create or overwrite a complete contact record through `/api/lists.subscribe`, and Automations write can send the complete contact record to any URL through a webhook node."
+msgstr "Write includes permanent deletion and bulk overwriting: `/api/contacts.import` overwrites every field each row carries, so a single call can rewrite your whole contact database. This is not \"can add contacts\". Read also covers custom events and the contact timeline, which the name does not suggest. Two other grants reach contact data without this one: Lists write on its own lets anyone create or overwrite a complete contact record through `/api/lists.subscribe`, and Automations write can send the complete contact record to any URL through a webhook node."
 
 #: src/components/email_builder/blocks/MjLiquidBlock.tsx:33
 msgid "Write MJML markup with Liquid template tags. This content is injected directly into the email and processed by the Liquid engine before MJML compilation. Use for-loops, conditionals, and variables to generate dynamic structural content."
@@ -13871,8 +14698,8 @@ msgstr "Yearly"
 #: src/components/settings/WebhookCard.tsx:192
 #: src/components/settings/WebhookCard.tsx:236
 #: src/components/settings/WebhookCard.tsx:283
-#: src/components/settings/WorkspaceMembers.tsx:194
-#: src/components/settings/WorkspaceMembers.tsx:214
+#: src/components/settings/WorkspaceMembers.tsx:193
+#: src/components/settings/WorkspaceMembers.tsx:213
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:153
 #: src/components/web_analytics/filters/FilterTable.tsx:271
 msgid "Yes"
@@ -13920,6 +14747,14 @@ msgstr "Yesterday"
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:322
 msgid "You can only upload CSV files!"
 msgstr "You can only upload CSV files!"
+
+#: src/services/api/errors.ts:111
+msgid "You do not have read access to {resource}."
+msgstr "You do not have read access to {resource}."
+
+#: src/services/api/errors.ts:112
+msgid "You do not have write access to {resource}."
+msgstr "You do not have write access to {resource}."
 
 #: src/components/broadcasts/SendOrScheduleModal.tsx:177
 #: src/pages/BroadcastsPage.tsx:1567

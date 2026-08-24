@@ -1382,6 +1382,7 @@ func TestTransactionalNotificationService_SendNotification(t *testing.T) {
 				Role:        "member",
 				Permissions: domain.UserPermissions{
 					domain.PermissionResourceTransactional: {Read: true, Write: true},
+					domain.PermissionResourceContacts:      {Read: true, Write: true},
 				},
 			}, nil)
 
@@ -1508,6 +1509,7 @@ func TestTransactionalNotificationService_SendNotification(t *testing.T) {
 				Role:        "member",
 				Permissions: domain.UserPermissions{
 					domain.PermissionResourceTransactional: {Read: true, Write: true},
+					domain.PermissionResourceContacts:      {Read: true, Write: true},
 				},
 			}, nil)
 
@@ -1613,6 +1615,7 @@ func TestTransactionalNotificationService_SendNotification(t *testing.T) {
 				Role:        "member",
 				Permissions: domain.UserPermissions{
 					domain.PermissionResourceTransactional: {Read: true, Write: true},
+					domain.PermissionResourceContacts:      {Read: true, Write: true},
 				},
 			}, nil)
 
@@ -1695,6 +1698,7 @@ func TestTransactionalNotificationService_SendNotification(t *testing.T) {
 				Role:        "member",
 				Permissions: domain.UserPermissions{
 					domain.PermissionResourceTransactional: {Read: true, Write: true},
+					domain.PermissionResourceContacts:      {Read: true, Write: true},
 				},
 			}, nil)
 
@@ -1763,6 +1767,7 @@ func TestTransactionalNotificationService_SendNotification(t *testing.T) {
 				Role:        "member",
 				Permissions: domain.UserPermissions{
 					domain.PermissionResourceTransactional: {Read: true, Write: true},
+					domain.PermissionResourceContacts:      {Read: true, Write: true},
 				},
 			}, nil)
 
@@ -1831,6 +1836,7 @@ func TestTransactionalNotificationService_SendNotification(t *testing.T) {
 				Role:        "member",
 				Permissions: domain.UserPermissions{
 					domain.PermissionResourceTransactional: {Read: true, Write: true},
+					domain.PermissionResourceContacts:      {Read: true, Write: true},
 				},
 			}, nil)
 
@@ -1897,6 +1903,7 @@ func TestTransactionalNotificationService_SendNotification(t *testing.T) {
 				Role:        "member",
 				Permissions: domain.UserPermissions{
 					domain.PermissionResourceTransactional: {Read: true, Write: true},
+					domain.PermissionResourceContacts:      {Read: true, Write: true},
 				},
 			}, nil)
 
@@ -1986,6 +1993,7 @@ func TestTransactionalNotificationService_SendNotification(t *testing.T) {
 				Role:        "member",
 				Permissions: domain.UserPermissions{
 					domain.PermissionResourceTransactional: {Read: true, Write: true},
+					domain.PermissionResourceContacts:      {Read: true, Write: true},
 				},
 			}, nil)
 
@@ -2063,6 +2071,7 @@ func TestTransactionalNotificationService_SendNotification(t *testing.T) {
 				Role:        "member",
 				Permissions: domain.UserPermissions{
 					domain.PermissionResourceTransactional: {Read: true, Write: true},
+					domain.PermissionResourceContacts:      {Read: true, Write: true},
 				},
 			}, nil)
 
@@ -2197,6 +2206,7 @@ func TestTransactionalNotificationService_SendNotification(t *testing.T) {
 				Role:        "member",
 				Permissions: domain.UserPermissions{
 					domain.PermissionResourceTransactional: {Read: true, Write: true},
+					domain.PermissionResourceContacts:      {Read: true, Write: true},
 				},
 			}, nil)
 
@@ -2623,6 +2633,7 @@ func TestTransactionalNotificationService_TestTemplate_WithChannelOptions(t *tes
 			Role:        "member",
 			Permissions: domain.UserPermissions{
 				domain.PermissionResourceTransactional: {Read: true, Write: true},
+				domain.PermissionResourceContacts:      {Read: true, Write: true},
 			},
 		}, nil)
 
@@ -2936,6 +2947,9 @@ func TestTransactionalNotificationService_TestTemplate_ErrorCases(t *testing.T) 
 				UserID:      "user-123",
 				WorkspaceID: workspaceID,
 				Role:        "member",
+				Permissions: domain.UserPermissions{
+					domain.PermissionResourceTransactional: {Read: true, Write: true},
+				},
 			}, nil)
 
 		// Template not found
@@ -2956,6 +2970,9 @@ func TestTransactionalNotificationService_TestTemplate_ErrorCases(t *testing.T) 
 				UserID:      "user-123",
 				WorkspaceID: workspaceID,
 				Role:        "member",
+				Permissions: domain.UserPermissions{
+					domain.PermissionResourceTransactional: {Read: true, Write: true},
+				},
 			}, nil)
 
 		// Template exists but has no email content
@@ -2981,6 +2998,9 @@ func TestTransactionalNotificationService_TestTemplate_ErrorCases(t *testing.T) 
 				UserID:      "user-123",
 				WorkspaceID: workspaceID,
 				Role:        "member",
+				Permissions: domain.UserPermissions{
+					domain.PermissionResourceTransactional: {Read: true, Write: true},
+				},
 			}, nil)
 
 		// Template exists with email content
@@ -3013,6 +3033,9 @@ func TestTransactionalNotificationService_TestTemplate_ErrorCases(t *testing.T) 
 				UserID:      "user-123",
 				WorkspaceID: workspaceID,
 				Role:        "member",
+				Permissions: domain.UserPermissions{
+					domain.PermissionResourceTransactional: {Read: true, Write: true},
+				},
 			}, nil)
 
 		// Template exists with email content
@@ -3050,6 +3073,9 @@ func TestTransactionalNotificationService_TestTemplate_ErrorCases(t *testing.T) 
 				UserID:      "user-123",
 				WorkspaceID: workspaceID,
 				Role:        "member",
+				Permissions: domain.UserPermissions{
+					domain.PermissionResourceTransactional: {Read: true, Write: true},
+				},
 			}, nil)
 
 		// Template exists with email content
@@ -3097,6 +3123,9 @@ func TestTransactionalNotificationService_TestTemplate_ErrorCases(t *testing.T) 
 				UserID:      "user-123",
 				WorkspaceID: workspaceID,
 				Role:        "member",
+				Permissions: domain.UserPermissions{
+					domain.PermissionResourceTransactional: {Read: true, Write: true},
+				},
 			}, nil)
 
 		// Template exists with email content
@@ -3492,6 +3521,30 @@ func TestTransactionalNotificationService_PermissionGates(t *testing.T) {
 			},
 			expectedPermission: domain.PermissionTypeWrite,
 		},
+		{
+			// contacts:write is granted here, so this fails if sending is left to be
+			// gated by the nested contact upsert rather than by transactional itself.
+			name:          "send without transactional write",
+			userWorkspace: noTransactional,
+			call: func(ctx context.Context, s *TransactionalNotificationService) error {
+				_, err := s.SendNotification(ctx, workspace, domain.TransactionalNotificationSendParams{
+					ID:      notificationID,
+					Contact: &domain.Contact{Email: "recipient@example.com"},
+				})
+				return err
+			},
+			expectedPermission: domain.PermissionTypeWrite,
+		},
+		{
+			// testTemplate sends a real email through the workspace's provider.
+			name:          "test template without transactional write",
+			userWorkspace: readOnly,
+			call: func(ctx context.Context, s *TransactionalNotificationService) error {
+				return s.TestTemplate(ctx, workspace, "template-1", "integration-1", "sender-1",
+					"recipient@example.com", "", domain.EmailOptions{})
+			},
+			expectedPermission: domain.PermissionTypeWrite,
+		},
 	}
 
 	for _, tc := range testCases {
@@ -3689,4 +3742,518 @@ func TestTransactionalNotificationService_SendNotification_SystemCallSkipsAuth(t
 
 	require.NoError(t, err)
 	require.NotEmpty(t, messageID)
+}
+
+// TestTransactionalNotificationService_SendOnlyKey pins the send-only key: an API key
+// granted transactional:write and nothing else can send, and can send a test template.
+// The recipient upsert and lookup are run as system calls so they do not silently make
+// contacts:write and contacts:read prerequisites for sending — the ContactService mock
+// asserts the context it receives carries SystemCallKey, which is the flag the real
+// ContactService checks before its own contacts gate.
+func TestTransactionalNotificationService_SendOnlyKey(t *testing.T) {
+	const workspaceID = "test-workspace"
+	const recipientEmail = "recipient@example.com"
+
+	// No contacts grant at all — the point of the test.
+	sendOnly := &domain.UserWorkspace{
+		UserID:      "api-key-user",
+		WorkspaceID: workspaceID,
+		Role:        "member",
+		Permissions: domain.UserPermissions{
+			domain.PermissionResourceTransactional: {Read: false, Write: true},
+		},
+	}
+
+	assertSystemScoped := func(t *testing.T, ctx context.Context) {
+		t.Helper()
+		assert.NotNil(t, ctx.Value(domain.SystemCallKey),
+			"nested contact call must be system-scoped, otherwise sending requires contacts permissions")
+	}
+
+	t.Run("SendNotification", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		service, m := newSendOnlyTestService(t, ctrl)
+
+		notificationID := uuid.New().String()
+		templateID := uuid.New().String()
+		contact := &domain.Contact{Email: recipientEmail}
+
+		ctx := context.Background()
+		m.authService.EXPECT().
+			AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
+			Return(ctx, &domain.User{ID: "api-key-user"}, sendOnly, nil)
+
+		m.workspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(&domain.Workspace{
+			ID: workspaceID,
+			Settings: domain.WorkspaceSettings{
+				TransactionalEmailProviderID: "integration-1",
+				SecretKey:                    "test-secret-key",
+			},
+			Integrations: []domain.Integration{{
+				ID:   "integration-1",
+				Type: "email",
+				EmailProvider: domain.EmailProvider{
+					Kind:      domain.EmailProviderKindSparkPost,
+					Senders:   []domain.EmailSender{domain.NewEmailSender("sender@example.com", "Test Sender")},
+					SparkPost: &domain.SparkPostSettings{EncryptedAPIKey: "encrypted-api-key"},
+				},
+			}},
+		}, nil)
+
+		m.repo.EXPECT().Get(gomock.Any(), workspaceID, notificationID).Return(&domain.TransactionalNotification{
+			ID:   notificationID,
+			Name: "Test Notification",
+			Channels: map[domain.TransactionalChannel]domain.ChannelTemplate{
+				domain.TransactionalChannelEmail: {TemplateID: templateID},
+			},
+		}, nil)
+
+		m.contactService.EXPECT().
+			UpsertContact(gomock.Any(), workspaceID, contact).
+			DoAndReturn(func(ctx context.Context, _ string, _ *domain.Contact) domain.UpsertContactOperation {
+				assertSystemScoped(t, ctx)
+				return domain.UpsertContactOperation{Email: recipientEmail, Action: domain.UpsertContactOperationUpdate}
+			})
+
+		m.contactService.EXPECT().
+			GetContactByEmail(gomock.Any(), workspaceID, recipientEmail).
+			DoAndReturn(func(ctx context.Context, _ string, _ string) (*domain.Contact, error) {
+				assertSystemScoped(t, ctx)
+				return contact, nil
+			})
+
+		m.emailService.EXPECT().SendEmailForTemplate(gomock.Any(), gomock.Any()).Return(nil)
+
+		messageID, err := service.SendNotification(ctx, workspaceID, domain.TransactionalNotificationSendParams{
+			ID:      notificationID,
+			Contact: contact,
+		})
+
+		require.NoError(t, err)
+		require.NotEmpty(t, messageID)
+	})
+
+	t.Run("TestTemplate", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		service, m := newSendOnlyTestService(t, ctrl)
+
+		templateID := uuid.New().String()
+		const integrationID = "integration-1"
+		const senderID = "sender-1"
+
+		ctx := context.Background()
+		m.authService.EXPECT().
+			AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
+			Return(ctx, &domain.User{ID: "api-key-user"}, sendOnly, nil)
+
+		m.templateService.EXPECT().
+			GetTemplateByID(gomock.Any(), workspaceID, templateID, int64(0)).
+			Return(&domain.Template{
+				ID:   templateID,
+				Name: "Test Template",
+				Email: &domain.EmailTemplate{
+					Subject: "Test Subject",
+					VisualEditorTree: &notifuse_mjml.MJMLBlock{
+						BaseBlock: notifuse_mjml.NewBaseBlock("root", notifuse_mjml.MJMLComponentMjml),
+					},
+				},
+			}, nil)
+
+		m.workspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(&domain.Workspace{
+			ID:       workspaceID,
+			Settings: domain.WorkspaceSettings{SecretKey: "test-secret-key"},
+			Integrations: []domain.Integration{{
+				ID:   integrationID,
+				Type: "email",
+				EmailProvider: domain.EmailProvider{
+					Kind: domain.EmailProviderKindSparkPost,
+					Senders: []domain.EmailSender{
+						{ID: senderID, Email: "sender@example.com", Name: "Test Sender"},
+					},
+				},
+			}},
+		}, nil)
+
+		m.contactService.EXPECT().
+			UpsertContact(gomock.Any(), workspaceID, gomock.Any()).
+			DoAndReturn(func(ctx context.Context, _ string, _ *domain.Contact) domain.UpsertContactOperation {
+				assertSystemScoped(t, ctx)
+				return domain.UpsertContactOperation{Email: recipientEmail, Action: domain.UpsertContactOperationUpdate}
+			})
+
+		m.contactService.EXPECT().
+			GetContactByEmail(gomock.Any(), workspaceID, recipientEmail).
+			DoAndReturn(func(ctx context.Context, _ string, _ string) (*domain.Contact, error) {
+				assertSystemScoped(t, ctx)
+				return &domain.Contact{Email: recipientEmail}, nil
+			})
+
+		htmlResult := "<html><body>Test content</body></html>"
+		m.templateService.EXPECT().
+			CompileTemplate(gomock.Any(), gomock.Any()).
+			Return(&domain.CompileTemplateResponse{Success: true, HTML: &htmlResult}, nil)
+
+		m.emailService.EXPECT().SendEmail(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+		m.msgHistoryRepo.EXPECT().Create(gomock.Any(), workspaceID, gomock.Any(), gomock.Any()).Return(nil)
+
+		err := service.TestTemplate(ctx, workspaceID, templateID, integrationID, senderID,
+			recipientEmail, "", domain.EmailOptions{})
+
+		require.NoError(t, err)
+	})
+}
+
+type serviceMocksForSendOnly struct {
+	repo            *mocks.MockTransactionalNotificationRepository
+	msgHistoryRepo  *mocks.MockMessageHistoryRepository
+	templateService *mocks.MockTemplateService
+	contactService  *mocks.MockContactService
+	emailService    *mocks.MockEmailServiceInterface
+	workspaceRepo   *mocks.MockWorkspaceRepository
+	authService     *mocks.MockAuthService
+}
+
+// newSendOnlyTestService builds a transactional service on fully mocked collaborators
+// and a permissive logger. It sets no expectations of its own, so each caller's
+// expectations describe exactly the calls its path is allowed to make.
+func newSendOnlyTestService(t *testing.T, ctrl *gomock.Controller) (*TransactionalNotificationService, *serviceMocksForSendOnly) {
+	t.Helper()
+
+	m := &serviceMocksForSendOnly{
+		repo:            mocks.NewMockTransactionalNotificationRepository(ctrl),
+		msgHistoryRepo:  mocks.NewMockMessageHistoryRepository(ctrl),
+		templateService: mocks.NewMockTemplateService(ctrl),
+		contactService:  mocks.NewMockContactService(ctrl),
+		emailService:    mocks.NewMockEmailServiceInterface(ctrl),
+		workspaceRepo:   mocks.NewMockWorkspaceRepository(ctrl),
+		authService:     mocks.NewMockAuthService(ctrl),
+	}
+
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+
+	return &TransactionalNotificationService{
+		transactionalRepo:  m.repo,
+		messageHistoryRepo: m.msgHistoryRepo,
+		templateService:    m.templateService,
+		contactService:     m.contactService,
+		emailService:       m.emailService,
+		logger:             mockLogger,
+		workspaceRepo:      m.workspaceRepo,
+		apiEndpoint:        "https://api.example.com",
+		authService:        m.authService,
+	}, m
+}
+
+// TestTransactionalNotificationService_ContactScopeContainment pins the blast radius of
+// the system subcontext the send path runs its recipient upsert and lookup under. That
+// subcontext skips the contacts gates by design — it is what lets transactional:write
+// alone send — so the two nested calls otherwise reach every field of an arbitrary
+// contact record:
+//
+//   - write: the repository merges every non-nil pointer of the posted body onto an
+//     existing record, so an unrelated stored contact could be rewritten wholesale;
+//   - read: the full record is put on templateData and the subject is Liquid-evaluated
+//     against it, so naming an extra recipient with cc or bcc exfiltrates any field,
+//     the notification_center_url HMAC included.
+//
+// SendNotification therefore carries the caller's contacts grants across the context
+// switch. A genuine system caller keeps both, so nothing on that path changes.
+func TestTransactionalNotificationService_ContactScopeContainment(t *testing.T) {
+	const workspaceID = "test-workspace"
+	const recipientEmail = "victim@customer.com"
+
+	sendOnly := &domain.UserWorkspace{
+		UserID:      "api-key-user",
+		WorkspaceID: workspaceID,
+		Role:        "member",
+		Permissions: domain.UserPermissions{
+			domain.PermissionResourceTransactional: {Write: true},
+		},
+	}
+
+	sendAndContacts := &domain.UserWorkspace{
+		UserID:      "api-key-user",
+		WorkspaceID: workspaceID,
+		Role:        "member",
+		Permissions: domain.UserPermissions{
+			domain.PermissionResourceTransactional: {Write: true},
+			domain.PermissionResourceContacts:      {Read: true, Write: true},
+		},
+	}
+
+	// The body a caller posts. Every field beyond the email would be merged onto the
+	// stored record for that address.
+	newPostedContact := func() *domain.Contact {
+		return &domain.Contact{
+			Email:         recipientEmail,
+			FirstName:     &domain.NullableString{String: "Overwritten"},
+			Phone:         &domain.NullableString{String: "+15550000000"},
+			CustomString1: &domain.NullableString{String: "injected"},
+		}
+	}
+
+	notificationID := uuid.New().String()
+	templateID := uuid.New().String()
+
+	// expectSendPath sets up everything the send needs either side of the contact calls,
+	// so a subtest only has to describe the contact calls it expects.
+	expectSendPath := func(m *serviceMocksForSendOnly) {
+		m.workspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(&domain.Workspace{
+			ID: workspaceID,
+			Settings: domain.WorkspaceSettings{
+				TransactionalEmailProviderID: "integration-1",
+				SecretKey:                    "test-secret-key",
+			},
+			Integrations: []domain.Integration{{
+				ID:   "integration-1",
+				Type: "email",
+				EmailProvider: domain.EmailProvider{
+					Kind:      domain.EmailProviderKindSparkPost,
+					Senders:   []domain.EmailSender{domain.NewEmailSender("sender@example.com", "Test Sender")},
+					SparkPost: &domain.SparkPostSettings{EncryptedAPIKey: "encrypted-api-key"},
+				},
+			}},
+		}, nil)
+
+		m.repo.EXPECT().Get(gomock.Any(), workspaceID, notificationID).Return(&domain.TransactionalNotification{
+			ID:   notificationID,
+			Name: "Password reset",
+			Channels: map[domain.TransactionalChannel]domain.ChannelTemplate{
+				domain.TransactionalChannelEmail: {TemplateID: templateID},
+			},
+		}, nil)
+
+		m.emailService.EXPECT().SendEmailForTemplate(gomock.Any(), gomock.Any()).Return(nil)
+	}
+
+	// expectContactCalls records the contact the upsert actually received.
+	expectContactCalls := func(m *serviceMocksForSendOnly, upserted **domain.Contact) {
+		m.contactService.EXPECT().
+			UpsertContact(gomock.Any(), workspaceID, gomock.Any()).
+			DoAndReturn(func(_ context.Context, _ string, contact *domain.Contact) domain.UpsertContactOperation {
+				*upserted = contact
+				return domain.UpsertContactOperation{Email: recipientEmail, Action: domain.UpsertContactOperationUpdate}
+			})
+
+		m.contactService.EXPECT().
+			GetContactByEmail(gomock.Any(), workspaceID, recipientEmail).
+			Return(&domain.Contact{Email: recipientEmail}, nil)
+	}
+
+	t.Run("send-only key upserts the email and nothing else", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		service, m := newSendOnlyTestService(t, ctrl)
+
+		ctx := context.Background()
+		m.authService.EXPECT().
+			AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
+			Return(ctx, &domain.User{ID: "api-key-user"}, sendOnly, nil)
+
+		expectSendPath(m)
+
+		var upserted *domain.Contact
+		expectContactCalls(m, &upserted)
+
+		messageID, err := service.SendNotification(ctx, workspaceID, domain.TransactionalNotificationSendParams{
+			ID:      notificationID,
+			Contact: newPostedContact(),
+		})
+		require.NoError(t, err)
+		require.NotEmpty(t, messageID)
+
+		// Merge copies only the non-nil pointers, so leaving them nil is what stops the
+		// send from rewriting an existing contact's fields.
+		require.NotNil(t, upserted)
+		assert.Equal(t, recipientEmail, upserted.Email)
+		assert.Nil(t, upserted.FirstName, "send-only key must not carry first_name into the stored contact")
+		assert.Nil(t, upserted.Phone, "send-only key must not carry phone into the stored contact")
+		assert.Nil(t, upserted.CustomString1, "send-only key must not carry custom fields into the stored contact")
+	})
+
+	t.Run("send-only key cannot name an extra recipient", func(t *testing.T) {
+		extraRecipients := map[string]domain.EmailOptions{
+			"bcc": {BCC: []string{"attacker@evil.example"}},
+			"cc":  {CC: []string{"attacker@evil.example"}},
+		}
+
+		for name, emailOptions := range extraRecipients {
+			t.Run(name, func(t *testing.T) {
+				ctrl := gomock.NewController(t)
+				defer ctrl.Finish()
+
+				service, m := newSendOnlyTestService(t, ctrl)
+
+				ctx := context.Background()
+				m.authService.EXPECT().
+					AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
+					Return(ctx, &domain.User{ID: "api-key-user"}, sendOnly, nil)
+
+				// No other expectation: the refusal must land before the workspace is
+				// even fetched, so gomock fails the test if anything else is touched.
+				_, err := service.SendNotification(ctx, workspaceID, domain.TransactionalNotificationSendParams{
+					ID:           notificationID,
+					Contact:      &domain.Contact{Email: recipientEmail},
+					EmailOptions: emailOptions,
+				})
+
+				require.Error(t, err)
+				var permErr *domain.PermissionError
+				require.ErrorAs(t, err, &permErr)
+				assert.Equal(t, domain.PermissionResourceContacts, permErr.Resource)
+				assert.Equal(t, domain.PermissionTypeRead, permErr.Permission)
+			})
+		}
+	})
+
+	t.Run("key holding contacts read and write keeps both", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		service, m := newSendOnlyTestService(t, ctrl)
+
+		ctx := context.Background()
+		m.authService.EXPECT().
+			AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
+			Return(ctx, &domain.User{ID: "api-key-user"}, sendAndContacts, nil)
+
+		expectSendPath(m)
+
+		var upserted *domain.Contact
+		expectContactCalls(m, &upserted)
+
+		posted := newPostedContact()
+		messageID, err := service.SendNotification(ctx, workspaceID, domain.TransactionalNotificationSendParams{
+			ID:           notificationID,
+			Contact:      posted,
+			EmailOptions: domain.EmailOptions{BCC: []string{"archive@customer.com"}},
+		})
+		require.NoError(t, err)
+		require.NotEmpty(t, messageID)
+
+		assert.Equal(t, posted, upserted, "a key granted contacts:write posts the body verbatim")
+	})
+
+	t.Run("system call is unaffected", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		service, m := newSendOnlyTestService(t, ctrl)
+
+		expectSendPath(m)
+
+		var upserted *domain.Contact
+		expectContactCalls(m, &upserted)
+
+		// The context Supabase and any other system caller build. The auth service mock
+		// carries no expectation, so gomock fails if the bypass is lost.
+		systemCtx := context.WithValue(context.Background(), domain.SystemCallKey, true)
+
+		posted := newPostedContact()
+		messageID, err := service.SendNotification(systemCtx, workspaceID, domain.TransactionalNotificationSendParams{
+			ID:           notificationID,
+			Contact:      posted,
+			EmailOptions: domain.EmailOptions{BCC: []string{"archive@customer.com"}},
+		})
+		require.NoError(t, err)
+		require.NotEmpty(t, messageID)
+
+		assert.Equal(t, posted, upserted, "a system call still posts the body verbatim")
+	})
+
+	// TestTemplate makes the same nested, system-scoped calls. Its upsert already carries
+	// nothing but the email, so only the read side needs closing.
+	t.Run("TestTemplate refuses an extra recipient for a send-only key", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		service, m := newSendOnlyTestService(t, ctrl)
+
+		ctx := context.Background()
+		m.authService.EXPECT().
+			AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
+			Return(ctx, &domain.User{ID: "api-key-user"}, sendOnly, nil)
+
+		// No other expectation: the refusal lands before the template is fetched.
+		err := service.TestTemplate(ctx, workspaceID, templateID, "integration-1", "sender-1",
+			recipientEmail, "", domain.EmailOptions{BCC: []string{"attacker@evil.example"}})
+
+		require.Error(t, err)
+		var permErr *domain.PermissionError
+		require.ErrorAs(t, err, &permErr)
+		assert.Equal(t, domain.PermissionResourceContacts, permErr.Resource)
+		assert.Equal(t, domain.PermissionTypeRead, permErr.Permission)
+	})
+
+	t.Run("TestTemplate allows an extra recipient with contacts read", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		service, m := newSendOnlyTestService(t, ctrl)
+
+		const integrationID = "integration-1"
+		const senderID = "sender-1"
+
+		ctx := context.Background()
+		m.authService.EXPECT().
+			AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
+			Return(ctx, &domain.User{ID: "api-key-user"}, sendAndContacts, nil)
+
+		m.templateService.EXPECT().
+			GetTemplateByID(gomock.Any(), workspaceID, templateID, int64(0)).
+			Return(&domain.Template{
+				ID:   templateID,
+				Name: "Test Template",
+				Email: &domain.EmailTemplate{
+					Subject: "Test Subject",
+					VisualEditorTree: &notifuse_mjml.MJMLBlock{
+						BaseBlock: notifuse_mjml.NewBaseBlock("root", notifuse_mjml.MJMLComponentMjml),
+					},
+				},
+			}, nil)
+
+		m.workspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(&domain.Workspace{
+			ID:       workspaceID,
+			Settings: domain.WorkspaceSettings{SecretKey: "test-secret-key"},
+			Integrations: []domain.Integration{{
+				ID:   integrationID,
+				Type: "email",
+				EmailProvider: domain.EmailProvider{
+					Kind: domain.EmailProviderKindSparkPost,
+					Senders: []domain.EmailSender{
+						{ID: senderID, Email: "sender@example.com", Name: "Test Sender"},
+					},
+				},
+			}},
+		}, nil)
+
+		m.contactService.EXPECT().
+			UpsertContact(gomock.Any(), workspaceID, gomock.Any()).
+			Return(domain.UpsertContactOperation{Email: recipientEmail, Action: domain.UpsertContactOperationUpdate})
+		m.contactService.EXPECT().
+			GetContactByEmail(gomock.Any(), workspaceID, recipientEmail).
+			Return(&domain.Contact{Email: recipientEmail}, nil)
+
+		htmlResult := "<html><body>Test content</body></html>"
+		m.templateService.EXPECT().
+			CompileTemplate(gomock.Any(), gomock.Any()).
+			Return(&domain.CompileTemplateResponse{Success: true, HTML: &htmlResult}, nil)
+		m.emailService.EXPECT().SendEmail(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+		m.msgHistoryRepo.EXPECT().Create(gomock.Any(), workspaceID, gomock.Any(), gomock.Any()).Return(nil)
+
+		err := service.TestTemplate(ctx, workspaceID, templateID, integrationID, senderID,
+			recipientEmail, "", domain.EmailOptions{BCC: []string{"archive@customer.com"}})
+
+		require.NoError(t, err)
+	})
 }

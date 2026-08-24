@@ -246,7 +246,7 @@ export function getPatternFromUrl(url: string): ApiPattern | null {
   }
 
   // Workspace endpoints
-  if (url.includes('/api/workspace.update')) {
+  if (url.includes('/api/workspace.update') || url.includes('/api/workspaces.update')) {
     return API_PATTERNS.WORKSPACE_UPDATE
   }
 

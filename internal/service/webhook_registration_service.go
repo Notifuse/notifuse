@@ -68,16 +68,38 @@ func NewWebhookRegistrationService(
 	return svc
 }
 
+// authorizeOwner confirms the caller owns the workspace they named.
+//
+// ESP-side registration gets no PermissionResource of its own. It reads the
+// workspace's un-redacted provider credentials through getEmailProviderConfig and
+// calls the ESP's API with them, and the integrations those credentials belong to
+// are already owner-only to create or edit — a member-grantable permission here
+// would hand that reach back out.
+func (s *WebhookRegistrationService) authorizeOwner(ctx context.Context, workspaceID string) (context.Context, error) {
+	ctx, user, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	if err != nil {
+		return ctx, fmt.Errorf("failed to authenticate user: %w", err)
+	}
+	if userWorkspace == nil || userWorkspace.Role != "owner" {
+		entry := s.logger.WithField("workspace_id", workspaceID)
+		if user != nil {
+			entry = entry.WithField("user_id", user.ID)
+		}
+		entry.Error("User is not an owner of the workspace")
+		return ctx, &domain.ErrUnauthorized{Message: "user is not an owner of the workspace"}
+	}
+	return ctx, nil
+}
+
 // RegisterWebhooks registers webhook URLs with the email provider
 func (s *WebhookRegistrationService) RegisterWebhooks(
 	ctx context.Context,
 	workspaceID string,
 	config *domain.WebhookRegistrationConfig,
 ) (*domain.WebhookRegistrationStatus, error) {
-	// Authenticate the user for this workspace
-	ctx, _, _, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	ctx, err := s.authorizeOwner(ctx, workspaceID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to authenticate user: %w", err)
+		return nil, err
 	}
 
 	// Get email provider configuration from workspace settings
@@ -249,10 +271,9 @@ func (s *WebhookRegistrationService) GetWebhookStatus(
 	workspaceID string,
 	integrationID string,
 ) (*domain.WebhookRegistrationStatus, error) {
-	// Authenticate the user for this workspace
-	ctx, _, _, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	ctx, err := s.authorizeOwner(ctx, workspaceID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to authenticate user: %w", err)
+		return nil, err
 	}
 
 	// Get email provider configuration from workspace settings
@@ -271,16 +292,19 @@ func (s *WebhookRegistrationService) GetWebhookStatus(
 	return provider.GetWebhookStatus(ctx, workspaceID, integrationID, emailProvider)
 }
 
-// UnregisterWebhooks removes all webhook URLs associated with the integration
+// UnregisterWebhooks removes all webhook URLs associated with the integration.
+//
+// No route registers it and nothing in the repository calls it; the owner check is
+// here so the method cannot become a member-reachable path to the provider
+// credentials if a route is ever added.
 func (s *WebhookRegistrationService) UnregisterWebhooks(
 	ctx context.Context,
 	workspaceID string,
 	integrationID string,
 ) error {
-	// Authenticate the user for this workspace
-	ctx, _, _, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	ctx, err := s.authorizeOwner(ctx, workspaceID)
 	if err != nil {
-		return fmt.Errorf("failed to authenticate user: %w", err)
+		return err
 	}
 
 	// Get email provider configuration from workspace settings

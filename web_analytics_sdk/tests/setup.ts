@@ -7,7 +7,7 @@ import { vi } from 'vitest';
 
 // Mock __SDK_VERSION__ global. Must keep the real shape — vMAJOR.minor, read
 // from config/config.go at build time — so tests cannot assume semver.
-(globalThis as unknown as Record<string, string>).__SDK_VERSION__ = '38.0';
+(globalThis as unknown as Record<string, string>).__SDK_VERSION__ = '39.0';
 
 // Mock navigator.sendBeacon
 Object.defineProperty(navigator, 'sendBeacon', {

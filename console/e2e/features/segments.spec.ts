@@ -1,10 +1,32 @@
+import type { Page } from '@playwright/test'
 import { test, expect, requestCapture } from '../fixtures/auth'
-import { waitForDrawer, waitForModal, waitForLoading } from '../fixtures/test-utils'
+import { waitForLoading } from '../fixtures/test-utils'
 import { API_PATTERNS } from '../fixtures/request-capture'
 import { testSegmentData } from '../fixtures/form-data'
 import { logCapturedRequests } from '../fixtures/payload-assertions'
 
 const WORKSPACE_ID = 'test-workspace'
+
+// antd 6 dropped .ant-drawer-content / .ant-modal-content: the drawer's role="dialog" now sits on
+// div.ant-drawer-section and takes its accessible name from the drawer title. Addressing the
+// dialog by role+name therefore pins both "the drawer is open" and "it is the right drawer".
+const segmentDrawer = (page: Page, title: 'New segment' | 'Update segment') =>
+  page.getByRole('dialog', { name: title, exact: true })
+
+// The drawer footer buttons live in the header "extra" slot, next to the title; the leaf editor
+// has its own Confirm inside the body, so submitting the segment has to be scoped to the header.
+const drawerSubmit = (drawer: ReturnType<typeof segmentDrawer>) =>
+  drawer.locator('.ant-drawer-header').getByRole('button', { name: 'Confirm', exact: true })
+
+const EMPTY_TREE = { kind: 'branch', branch: { operator: 'and', leaves: [] } }
+
+// The debug page keeps the builder state in a <pre>, which is the only place the produced tree is
+// observable, so it doubles as the assertion surface for the builder tests.
+const readTree = async (page: Page) => JSON.parse((await page.locator('pre').innerText()).trim())
+
+// The workspace header carries a select of its own, so the builder assertions are scoped to the
+// debug page's form.
+const builderForm = (page: Page) => page.locator('form')
 
 test.describe('Segments Feature', () => {
   test.describe('Page Load & Empty State', () => {
@@ -14,9 +36,8 @@ test.describe('Segments Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/contacts`)
       await waitForLoading(page)
 
-      // Should show Segment button in the contacts page
-      const segmentButton = page.getByRole('button', { name: /segment/i })
-      await expect(segmentButton.first()).toBeVisible()
+      // The segments filter always offers the create button, even with no segment yet
+      await expect(page.getByRole('button', { name: 'Segment', exact: true })).toBeVisible()
     })
 
     test('loads debug segment page', async ({ authenticatedPage }) => {
@@ -25,8 +46,8 @@ test.describe('Segments Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/debug-segment`)
       await waitForLoading(page)
 
-      // Page should load
-      await expect(page.locator('body')).toBeVisible()
+      await expect(page.getByRole('heading', { name: 'Debug Segment Builder' })).toBeVisible()
+      await expect(page.getByText('Segment Conditions')).toBeVisible()
     })
 
     test('loads segment page with data', async ({ authenticatedPageWithData }) => {
@@ -35,8 +56,9 @@ test.describe('Segments Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/debug-segment`)
       await waitForLoading(page)
 
-      // Should show segment content
-      await expect(page.locator('body')).toBeVisible()
+      // The builder starts on an empty AND branch, and the JSON card mirrors it
+      await expect(page.getByText('Current Segment Tree JSON')).toBeVisible()
+      expect(await readTree(page)).toEqual(EMPTY_TREE)
     })
   })
 
@@ -47,15 +69,15 @@ test.describe('Segments Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/contacts`)
       await waitForLoading(page)
 
-      // Click Segment button to open drawer
-      const segmentButton = page.getByRole('button', { name: /segment/i })
-      await segmentButton.first().click()
+      await page.getByRole('button', { name: 'Segment', exact: true }).click()
 
-      // Wait for drawer to open
-      await waitForDrawer(page)
+      const drawer = segmentDrawer(page, 'New segment')
+      await expect(drawer).toBeVisible()
 
-      // Drawer should show segment form
-      await expect(page.locator('.ant-drawer-content')).toBeVisible()
+      // The creation form: name, colour, timezone and the condition builder
+      await expect(drawer.getByPlaceholder('i.e: Big spenders...')).toBeVisible()
+      await expect(drawer.getByLabel('Timezone used for dates')).toBeVisible()
+      await expect(drawer.getByRole('button', { name: 'Condition', exact: true })).toBeVisible()
     })
 
     test('creates a new segment with required fields', async ({ authenticatedPage }) => {
@@ -64,23 +86,18 @@ test.describe('Segments Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/contacts`)
       await waitForLoading(page)
 
-      // Click Segment button to open drawer
-      const segmentButton = page.getByRole('button', { name: /segment/i })
-      await segmentButton.first().click()
+      await page.getByRole('button', { name: 'Segment', exact: true }).click()
 
-      // Wait for drawer to open
-      await waitForDrawer(page)
+      const drawer = segmentDrawer(page, 'New segment')
+      await expect(drawer).toBeVisible()
 
-      // Fill segment name (required) - find the name input in the drawer
-      const nameInput = page.locator('.ant-drawer-content input').first()
+      const nameInput = drawer.getByPlaceholder('i.e: Big spenders...')
       await nameInput.fill('Active Subscribers')
+      await expect(nameInput).toHaveValue('Active Subscribers')
 
-      // The tree condition builder is complex - for basic test, we verify the form opens and has fields
-      // Note: Submitting without conditions will show a validation error, which is expected behavior
-
-      // Verify the Confirm button exists
-      const confirmButton = page.getByRole('button', { name: 'Confirm' })
-      await expect(confirmButton).toBeVisible()
+      // The tree condition builder is exercised in the builder tests; here we only pin that the
+      // form is complete enough to be submitted from the header.
+      await expect(drawerSubmit(drawer)).toBeVisible()
     })
   })
 
@@ -91,8 +108,10 @@ test.describe('Segments Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/debug-segment`)
       await waitForLoading(page)
 
-      // Should show segment building interface
-      await expect(page.locator('body')).toBeVisible()
+      // The root branch: an operator select reading ALL, its sentence, and the add button
+      await expect(builderForm(page).locator('.ant-select-content')).toHaveText('ALL')
+      await expect(page.getByText('of the following conditions match:')).toBeVisible()
+      await expect(page.getByRole('button', { name: 'Condition', exact: true })).toBeEnabled()
     })
 
     test('displays segment rules', async ({ authenticatedPageWithData }) => {
@@ -101,12 +120,20 @@ test.describe('Segments Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/debug-segment`)
       await waitForLoading(page)
 
-      // Look for rule builder elements - locator created for potential future assertions
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const _ruleBuilder = page.locator('[class*="segment"], [class*="rule"], [class*="condition"]')
+      // Adding a nested AND | OR group is the one cascader entry that needs no further form,
+      // so it shows the builder writing a rule into the tree.
+      await page.getByRole('button', { name: 'Condition', exact: true }).click()
+      await page.locator('.ant-cascader-menu-item').filter({ hasText: 'AND | OR' }).click()
 
-      // Page should be visible
-      await expect(page.locator('body')).toBeVisible()
+      await expect
+        .poll(() => readTree(page))
+        .toEqual({
+          kind: 'branch',
+          branch: { operator: 'and', leaves: [EMPTY_TREE] }
+        })
+
+      // The nested group is drawn too: two branch sentences instead of one
+      await expect(page.getByText('of the following conditions match:')).toHaveCount(2)
     })
   })
 
@@ -117,12 +144,15 @@ test.describe('Segments Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/debug-segment`)
       await waitForLoading(page)
 
-      // Look for condition/field selectors - locator created for potential future assertions
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const _fieldSelect = page.locator('.ant-select, select, [class*="field"]')
+      await page.getByRole('button', { name: 'Condition', exact: true }).click()
 
-      // Page should load
-      await expect(page.locator('body')).toBeVisible()
+      // One entry per table schema the debug page passes in, plus the nested group
+      const items = page.locator('.ant-cascader-menu-item')
+      await expect(items).toHaveCount(4)
+      await expect(items.filter({ hasText: 'AND | OR' })).toBeVisible()
+      await expect(items.filter({ hasText: 'Contact property' })).toBeVisible()
+      await expect(items.filter({ hasText: 'List subscription' })).toBeVisible()
+      await expect(items.filter({ hasText: 'Activity' })).toBeVisible()
     })
 
     test('shows operator selection', async ({ authenticatedPage }) => {
@@ -131,12 +161,15 @@ test.describe('Segments Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/debug-segment`)
       await waitForLoading(page)
 
-      // Look for operator options - locator created for potential future assertions
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const _operatorOption = page.locator('text=equals, text=contains, text=greater, text=less')
+      // Switching the branch operator has to reach the produced tree, not just the label
+      await builderForm(page).getByRole('combobox').click()
+      await page.locator('.ant-select-item-option').filter({ hasText: 'ANY' }).click()
 
-      // Page should load
-      await expect(page.locator('body')).toBeVisible()
+      await expect(builderForm(page).locator('.ant-select-content')).toHaveText('ANY')
+      await expect.poll(() => readTree(page)).toEqual({
+        kind: 'branch',
+        branch: { operator: 'or', leaves: [] }
+      })
     })
   })
 
@@ -144,27 +177,32 @@ test.describe('Segments Feature', () => {
     test('displays segment status', async ({ authenticatedPageWithData }) => {
       const page = authenticatedPageWithData
 
-      await page.goto(`/console/workspace/${WORKSPACE_ID}/debug-segment`)
+      await page.goto(`/console/workspace/${WORKSPACE_ID}/contacts`)
       await waitForLoading(page)
 
-      // Should display some content
-      await expect(page.locator('body')).toBeVisible()
+      // Every segment in the filter bar carries a status dot next to its name
+      const segmentButton = page.getByRole('button').filter({ hasText: 'Active Users' })
+      await expect(segmentButton).toBeVisible()
+      await expect(segmentButton.locator('.ant-badge-status-dot')).toBeVisible()
     })
   })
 
   test.describe('Contact Count', () => {
-    test('shows matching contacts', async ({ authenticatedPageWithData }) => {
-      const page = authenticatedPageWithData
+    test('shows matching contacts', async ({ authenticatedPage }) => {
+      const page = authenticatedPage
 
-      await page.goto(`/console/workspace/${WORKSPACE_ID}/debug-segment`)
+      await page.goto(`/console/workspace/${WORKSPACE_ID}/contacts`)
       await waitForLoading(page)
 
-      // Look for contact count or results - locator created for potential future assertions
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const _countDisplay = page.locator('text=/\\d+/')
+      await page.getByRole('button', { name: 'Segment', exact: true }).click()
+      const drawer = segmentDrawer(page, 'New segment')
+      await expect(drawer).toBeVisible()
 
-      // Page should load
-      await expect(page.locator('body')).toBeVisible()
+      // The matching-contacts circle is offered from the start but cannot be counted until the
+      // tree is queryable, so on a fresh drawer it is present and refuses to run.
+      const previewButton = drawer.getByRole('button', { name: 'Preview', exact: true })
+      await expect(previewButton).toBeVisible()
+      await expect(previewButton).toBeDisabled()
     })
   })
 
@@ -176,12 +214,11 @@ test.describe('Segments Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/contacts`)
       await waitForLoading(page)
 
-      // Look for segment filter - locator created for potential future assertions
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const _segmentFilter = page.locator('text=Segment, text=segment, [class*="segment"]')
-
-      // Page should load
-      await expect(page.locator('body')).toBeVisible()
+      // The segments the workspace owns are listed as filters above the contacts table
+      await expect(page.getByText('Segments:')).toBeVisible()
+      for (const name of ['Active Users', 'US Customers', 'Enterprise Plans']) {
+        await expect(page.getByRole('button').filter({ hasText: name })).toBeVisible()
+      }
     })
   })
 
@@ -199,6 +236,7 @@ test.describe('Segments Feature', () => {
 
       // Should be on debug segment page
       await expect(page).toHaveURL(/debug-segment/)
+      await expect(page.getByRole('heading', { name: 'Debug Segment Builder' })).toBeVisible()
     })
   })
 
@@ -209,12 +247,9 @@ test.describe('Segments Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/debug-segment`)
       await waitForLoading(page)
 
-      // Look for add condition button - locator created for potential future assertions
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const _addButton = page.getByRole('button', { name: /add|condition|rule/i })
-
-      // Page should load
-      await expect(page.locator('body')).toBeVisible()
+      await expect(page.getByRole('button', { name: 'Condition', exact: true })).toBeEnabled()
+      // Nothing is editing yet, so the empty tree offers no delete/confirm controls
+      await expect(page.getByRole('button', { name: 'Confirm', exact: true })).toHaveCount(0)
     })
 
     test('shows logical operators', async ({ authenticatedPage }) => {
@@ -223,50 +258,37 @@ test.describe('Segments Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/debug-segment`)
       await waitForLoading(page)
 
-      // Look for AND/OR operators - locator created for potential future assertions
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const _logicalOp = page.locator('text=AND, text=OR, text=and, text=or')
-
-      // Page should load
-      await expect(page.locator('body')).toBeVisible()
+      // The branch operator offers exactly the two logical operators
+      await builderForm(page).getByRole('combobox').click()
+      const options = page.locator('.ant-select-item-option')
+      await expect(options).toHaveCount(2)
+      await expect(options.nth(0)).toHaveText('ALL')
+      await expect(options.nth(1)).toHaveText('ANY')
     })
   })
 
   test.describe('Edit Form Prefill', () => {
+    // The segment actions hang off the ellipsis button that sits next to each segment filter.
+    const openSegmentEditor = async (page: Page, segmentName: string) => {
+      const segmentGroup = page.locator('.ant-space-compact').filter({ hasText: segmentName })
+      await expect(segmentGroup).toBeVisible()
+      await segmentGroup.getByRole('button').last().click()
+      await page.getByRole('menuitem', { name: 'Update', exact: true }).click()
+
+      const drawer = segmentDrawer(page, 'Update segment')
+      await expect(drawer).toBeVisible()
+      return drawer
+    }
+
     test('edit segment drawer shows existing segment name', async ({ authenticatedPageWithData }) => {
       const page = authenticatedPageWithData
 
       await page.goto(`/console/workspace/${WORKSPACE_ID}/contacts`)
       await waitForLoading(page)
 
-      // Look for an existing segment tag/button that can be clicked to edit
-      // Segments are typically shown as tags or in a dropdown
-      const segmentTag = page.locator('.ant-tag').filter({ hasText: /Active Users|US Customers|Enterprise/i }).first()
+      const drawer = await openSegmentEditor(page, 'Active Users')
 
-      if ((await segmentTag.count()) > 0) {
-        await segmentTag.click()
-
-        // Wait for drawer to open
-        await waitForDrawer(page)
-
-        // Verify the name input is prefilled with the existing segment name
-        const nameInput = page.locator('.ant-drawer-content input').first()
-        const inputValue = await nameInput.inputValue()
-
-        // Name should not be empty - it should be prefilled with existing segment name
-        expect(inputValue.length).toBeGreaterThan(0)
-      } else {
-        // If no segment tags visible, try the Edit segment button approach
-        const editButton = page.getByRole('button', { name: /edit segment/i })
-        if ((await editButton.count()) > 0) {
-          await editButton.first().click()
-          await waitForDrawer(page)
-
-          const nameInput = page.locator('.ant-drawer-content input').first()
-          const inputValue = await nameInput.inputValue()
-          expect(inputValue.length).toBeGreaterThan(0)
-        }
-      }
+      await expect(drawer.getByPlaceholder('i.e: Big spenders...')).toHaveValue('Active Users')
     })
 
     test('edit segment preserves color selection', async ({ authenticatedPageWithData }) => {
@@ -275,17 +297,11 @@ test.describe('Segments Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/contacts`)
       await waitForLoading(page)
 
-      // Look for segment with color tag
-      const segmentTag = page.locator('.ant-tag').filter({ hasText: /Active Users|US Customers|Enterprise/i }).first()
+      const drawer = await openSegmentEditor(page, 'Active Users')
 
-      if ((await segmentTag.count()) > 0) {
-        await segmentTag.click()
-        await waitForDrawer(page)
-
-        // Verify the color select has a value (not empty/default)
-        const colorSelect = page.locator('.ant-drawer-content .ant-select').first()
-        await expect(colorSelect).toBeVisible()
-      }
+      // The colour select sits next to the name; an existing segment opens on its own colour
+      const colorSelect = drawer.locator('.ant-select-content').first()
+      await expect(colorSelect).toHaveText('blue')
     })
 
     test('edit segment preserves timezone selection', async ({ authenticatedPageWithData }) => {
@@ -294,19 +310,13 @@ test.describe('Segments Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/contacts`)
       await waitForLoading(page)
 
-      const segmentTag = page.locator('.ant-tag').filter({ hasText: /Active Users|US Customers|Enterprise/i }).first()
+      const drawer = await openSegmentEditor(page, 'Active Users')
 
-      if ((await segmentTag.count()) > 0) {
-        await segmentTag.click()
-        await waitForDrawer(page)
-
-        // Look for timezone select - it should have a value
-        const timezoneSelect = page.locator('.ant-drawer-content .ant-select').filter({ has: page.locator('text=timezone, text=Timezone') })
-        if ((await timezoneSelect.count()) > 0) {
-          // Timezone should be visible and have a selection
-          await expect(timezoneSelect.first()).toBeVisible()
-        }
-      }
+      // Timezone falls back to the workspace timezone when the segment carries none
+      await expect(drawer.getByLabel('Timezone used for dates')).toBeVisible()
+      await expect(
+        drawer.locator('.ant-form-item').filter({ hasText: 'Timezone used for dates' }).locator('.ant-select-content')
+      ).toHaveText('UTC')
     })
   })
 
@@ -317,19 +327,15 @@ test.describe('Segments Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/contacts`)
       await waitForLoading(page)
 
-      // Click Segment button to open drawer
-      const segmentButton = page.getByRole('button', { name: /segment/i })
-      await segmentButton.first().click()
+      await page.getByRole('button', { name: 'Segment', exact: true }).click()
+      const drawer = segmentDrawer(page, 'New segment')
+      await expect(drawer).toBeVisible()
 
-      // Wait for drawer to open
-      await waitForDrawer(page)
+      // Submitting an untouched form reports the missing name and sends nothing
+      await drawerSubmit(drawer).click()
 
-      // Try to submit without filling required fields
-      await page.getByRole('button', { name: 'Confirm' }).click()
-
-      // Should show validation error
-      const errorMessage = page.locator('.ant-form-item-explain-error')
-      await expect(errorMessage.first()).toBeVisible({ timeout: 5000 })
+      await expect(drawer.locator('.ant-form-item-explain-error')).toHaveText('Please enter name')
+      expect(requestCapture.getRequestCount(API_PATTERNS.SEGMENT_CREATE)).toBe(0)
     })
 
     test('requires tree conditions', async ({ authenticatedPage }) => {
@@ -338,30 +344,20 @@ test.describe('Segments Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/contacts`)
       await waitForLoading(page)
 
-      // Click Segment button to open drawer
-      const segmentButton = page.getByRole('button', { name: /segment/i })
-      await segmentButton.first().click()
+      await page.getByRole('button', { name: 'Segment', exact: true }).click()
+      const drawer = segmentDrawer(page, 'New segment')
+      await expect(drawer).toBeVisible()
 
-      // Wait for drawer to open
-      await waitForDrawer(page)
+      await drawer.getByPlaceholder('i.e: Big spenders...').fill('Test Segment')
 
-      // Fill segment name - use visible input
-      const nameInput = page.locator('.ant-drawer-content input:visible').first()
-      await nameInput.fill('Test Segment')
+      // A named segment with an empty tree is rejected by the tree validator: the drawer stays
+      // open and nothing is sent. The validator is declared noStyle, so the rejection is only
+      // observable through the request that never happens.
+      await drawerSubmit(drawer).click()
+      await page.waitForTimeout(1000)
 
-      // Try to submit without adding conditions (empty tree)
-      await page.getByRole('button', { name: 'Confirm' }).click()
-
-      // Should show validation error for tree conditions or segment stays open
-      // Either error message shows OR the drawer stays open (button still visible)
-      const errorMessage = page.locator('.ant-form-item-explain-error, .ant-message-error')
-      const confirmButton = page.getByRole('button', { name: 'Confirm' })
-
-      // Either validation shows or button still visible (form didn't submit)
-      const hasError = (await errorMessage.count()) > 0
-      const buttonStillVisible = await confirmButton.isVisible()
-
-      expect(hasError || buttonStillVisible).toBe(true)
+      await expect(drawer).toBeVisible()
+      expect(requestCapture.getRequestCount(API_PATTERNS.SEGMENT_CREATE)).toBe(0)
     })
   })
 
@@ -375,89 +371,60 @@ test.describe('Segments Feature', () => {
       await waitForLoading(page)
 
       // Add a contact condition
-      const conditionBtn = page.getByRole('button', { name: /condition/i })
-      await expect(conditionBtn).toBeVisible({ timeout: 5000 })
-      await conditionBtn.click()
-
-      const cascaderMenu = page.locator('.ant-cascader-menu')
-      await expect(cascaderMenu.first()).toBeVisible({ timeout: 3000 })
-
-      const contactsOption = page.locator('.ant-cascader-menu-item').filter({ hasText: /contact/i }).first()
-      await contactsOption.click()
-      await page.waitForTimeout(500)
+      await page.getByRole('button', { name: 'Condition', exact: true }).click()
+      await page.locator('.ant-cascader-menu-item').filter({ hasText: 'Contact property' }).click()
 
       // Click "+ Add filter" button
-      const addFilterBtn = page.getByRole('button', { name: /add filter/i })
-      await expect(addFilterBtn.first()).toBeVisible({ timeout: 5000 })
-      await addFilterBtn.first().click()
-      await waitForModal(page)
+      await page.getByRole('button', { name: '+ Add filter' }).click()
+
+      const modal = page.getByRole('dialog', { name: 'Add a filter', exact: true })
+      await expect(modal).toBeVisible()
 
       // Select Custom JSON 1 field - type to search
-      const fieldSelect = page.locator('.ant-modal .ant-select').first()
-      await fieldSelect.click()
-      await page.waitForTimeout(300)
+      await modal.getByRole('combobox').first().click()
       await page.keyboard.type('json')
-      await page.waitForTimeout(500)
 
-      const jsonFieldOption = page.locator('.ant-select-item-option').filter({ hasText: /Custom JSON 1/i }).first()
-      await expect(jsonFieldOption).toBeVisible({ timeout: 5000 })
+      const jsonFieldOption = page
+        .locator('.ant-select-item-option')
+        .filter({ hasText: 'Custom JSON 1' })
+        .first()
+      await expect(jsonFieldOption).toBeVisible()
       await jsonFieldOption.click()
-      await page.waitForTimeout(800)
 
       // Click "Add path" button
-      const addPathBtn = page.locator('.ant-modal').getByRole('button', { name: /add path/i })
-      await expect(addPathBtn).toBeVisible({ timeout: 5000 })
+      const addPathBtn = modal.getByRole('button', { name: /add path/i })
+      await expect(addPathBtn).toBeVisible()
       await addPathBtn.click()
-      await page.waitForTimeout(300)
 
       // Fill JSON path
-      const jsonPathInput = page.locator('.ant-modal .ant-input').first()
-      await jsonPathInput.fill('test_number')
-      await page.waitForTimeout(200)
+      await modal.locator('.ant-input').first().fill('test_number')
 
       // Select "Number" as the value type - THIS IS THE KEY STEP
-      const numberRadio = page.locator('.ant-modal .ant-radio-button-wrapper').filter({ hasText: /Number/i })
-      await expect(numberRadio).toBeVisible({ timeout: 3000 })
+      const numberRadio = modal.locator('.ant-radio-button-wrapper').filter({ hasText: /Number/i })
+      await expect(numberRadio).toBeVisible()
       await numberRadio.click()
-      await page.waitForTimeout(500)
 
       // Select equals operator
-      const operatorSelect = page.locator('.ant-modal .ant-select').last()
-      await operatorSelect.click()
-      await page.waitForTimeout(300)
-      const equalsOption = page.locator('.ant-select-item-option').filter({ hasText: /^equals$/i }).first()
-      if ((await equalsOption.count()) > 0) {
-        await equalsOption.click()
-        await page.waitForTimeout(300)
-      } else {
-        await page.keyboard.press('Escape')
-      }
+      await modal.locator('.ant-select').last().click()
+      await page.locator('.ant-select-item-option').filter({ hasText: /^equals$/i }).first().click()
 
       // Fill number value
-      const numberInput = page.locator('.ant-modal .ant-input-number input')
-      await expect(numberInput).toBeVisible({ timeout: 5000 })
+      const numberInput = modal.locator('.ant-input-number input')
+      await expect(numberInput).toBeVisible()
       await numberInput.fill('42')
-      await page.waitForTimeout(200)
 
       // Confirm the filter modal
-      const confirmBtn = page.locator('.ant-modal').getByRole('button', { name: /Confirm/i })
-      await confirmBtn.click()
-      await expect(page.locator('.ant-modal-content')).toBeHidden({ timeout: 5000 })
+      await modal.getByRole('button', { name: 'Confirm', exact: true }).click()
+      await expect(modal).toBeHidden()
 
       // Confirm the leaf condition form
-      const leafConfirmBtn = page.getByRole('button', { name: /Confirm/i }).first()
-      await expect(leafConfirmBtn).toBeVisible({ timeout: 5000 })
+      const leafConfirmBtn = page.getByRole('button', { name: 'Confirm', exact: true })
+      await expect(leafConfirmBtn).toBeVisible()
       await leafConfirmBtn.click()
-      await page.waitForTimeout(500)
 
       // Verify the JSON output
-      const jsonPreview = page.locator('pre')
-      await expect(jsonPreview).toBeVisible({ timeout: 5000 })
-      const jsonText = await jsonPreview.textContent()
-      expect(jsonText).toBeTruthy()
-
-      const tree = JSON.parse(jsonText!)
-      const filter = tree?.branch?.leaves?.[0]?.leaf?.contact?.filters?.[0]
+      await expect.poll(async () => (await readTree(page)).branch.leaves.length).toBe(1)
+      const filter = (await readTree(page)).branch.leaves[0].leaf.contact.filters[0]
 
       // KEY ASSERTION: field_type should be "number" (NOT "json")
       // Before the fix, this would be "json" because input_dimension_filters.tsx
@@ -479,43 +446,64 @@ test.describe('Segments Feature', () => {
       await waitForLoading(page)
 
       // Open segment drawer
-      const segmentButton = page.getByRole('button', { name: /segment/i })
-      if ((await segmentButton.count()) === 0) return
-
-      await segmentButton.first().click()
-      await waitForDrawer(page)
+      await page.getByRole('button', { name: 'Segment', exact: true }).click()
+      const drawer = segmentDrawer(page, 'New segment')
+      await expect(drawer).toBeVisible()
 
       // Fill segment name
-      const nameInput = page.locator('.ant-drawer-content input:visible').first()
-      await nameInput.fill(testSegmentData.name)
+      await drawer.getByPlaceholder('i.e: Big spenders...').fill(testSegmentData.name)
 
-      // Fill description if available
-      const descriptionInput = page.locator('.ant-drawer-content textarea')
-      if ((await descriptionInput.count()) > 0 && testSegmentData.description) {
-        await descriptionInput.fill(testSegmentData.description)
-      }
+      // A segment is only submittable with a queryable tree, so build the simplest complete
+      // condition: contact email is set.
+      await drawer.getByRole('button', { name: 'Condition', exact: true }).click()
+      await page.locator('.ant-cascader-menu-item').filter({ hasText: 'Contact property' }).click()
 
-      // Add a simple condition if the UI supports it
-      const addConditionBtn = page.getByRole('button', { name: /add condition|add filter/i })
-      if ((await addConditionBtn.count()) > 0) {
-        await addConditionBtn.first().click()
-        await page.waitForTimeout(300)
-      }
+      await page.getByRole('button', { name: '+ Add filter' }).click()
+      const modal = page.getByRole('dialog', { name: 'Add a filter', exact: true })
+      await expect(modal).toBeVisible()
 
-      // Submit
-      await page.getByRole('button', { name: /confirm|create|save/i }).first().click()
-      await page.waitForTimeout(1000)
+      await modal.getByRole('combobox').first().click()
+      await page.locator('.ant-select-item-option').filter({ hasText: 'Email' }).first().click()
 
-      // Log captured requests
+      await modal.getByRole('combobox').last().click()
+      await page.locator('.ant-select-item-option').filter({ hasText: 'is set' }).first().click()
+
+      await modal.getByRole('button', { name: 'Confirm', exact: true }).click()
+      await expect(modal).toBeHidden()
+
+      // Confirm the condition, then the segment
+      await drawer.locator('.ant-drawer-body').getByRole('button', { name: 'Confirm', exact: true }).click()
+      await drawerSubmit(drawer).click()
+
+      await expect
+        .poll(() => requestCapture.getRequestCount(API_PATTERNS.SEGMENT_CREATE))
+        .toBeGreaterThan(0)
       logCapturedRequests(requestCapture)
 
       // Verify segment data was sent
       const request = requestCapture.getLastRequest(API_PATTERNS.SEGMENT_CREATE)
-
-      if (request && request.body) {
-        const body = request.body as Record<string, unknown>
-        expect(body.name).toBe(testSegmentData.name)
-      }
+      expect(request?.body, 'Segment create body should not be empty').toBeTruthy()
+      const body = request!.body as Record<string, unknown>
+      expect(body.name).toBe(testSegmentData.name)
+      expect(body.id).toBe('e2e_test_segment')
+      expect(body.timezone).toBe('UTC')
+      expect(body.tree).toEqual({
+        kind: 'branch',
+        branch: {
+          operator: 'and',
+          leaves: [
+            {
+              kind: 'leaf',
+              leaf: {
+                source: 'contacts',
+                contact: {
+                  filters: [{ field_name: 'email', field_type: 'string', operator: 'is_set' }]
+                }
+              }
+            }
+          ]
+        }
+      })
     })
   })
 })

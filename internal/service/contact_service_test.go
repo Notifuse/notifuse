@@ -1369,3 +1369,92 @@ func TestContactService_DeleteContactFailsLoudlyOnEachPurge(t *testing.T) {
 		})
 	}
 }
+
+// TestContactService_PermissionDenialsAreTyped pins the typed denial the handler
+// needs. UpsertContact and BatchImportContacts report through a struct rather than
+// an error return, so the *domain.PermissionError has to travel on the struct's Err
+// field: with only the prose in Error, errors.As finds nothing and the route answers
+// 500 instead of 403. A genuine per-contact failure keeps reporting through Error
+// alone and leaves Err nil.
+func TestContactService_PermissionDenialsAreTyped(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	service, _, _, mockAuthService, _, _, _, _, _, _, _, _, mockLogger := createContactServiceWithMocks(ctrl)
+
+	ctx := context.Background()
+	workspaceID := "workspace123"
+
+	userWorkspace := func(permissions domain.UserPermissions) *domain.UserWorkspace {
+		return &domain.UserWorkspace{
+			UserID:      "user123",
+			WorkspaceID: workspaceID,
+			Role:        "member",
+			Permissions: permissions,
+		}
+	}
+	noContactWrite := userWorkspace(domain.UserPermissions{
+		domain.PermissionResourceContacts: {Read: true, Write: false},
+	})
+	noListWrite := userWorkspace(domain.UserPermissions{
+		domain.PermissionResourceContacts: {Read: true, Write: true},
+		domain.PermissionResourceLists:    {Read: true, Write: false},
+	})
+	fullWrite := userWorkspace(domain.UserPermissions{
+		domain.PermissionResourceContacts: {Read: true, Write: true},
+	})
+
+	t.Run("UpsertContact denied on contacts write", func(t *testing.T) {
+		contact := &domain.Contact{Email: "test@example.com"}
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{}, noContactWrite, nil)
+		mockLogger.EXPECT().WithField("email", contact.Email).Return(mockLogger)
+		mockLogger.EXPECT().Error("Insufficient permissions: write access to contacts required")
+
+		result := service.UpsertContact(ctx, workspaceID, contact)
+		assert.Equal(t, domain.UpsertContactOperationError, result.Action)
+		assert.Equal(t, "Insufficient permissions: write access to contacts required", result.Error)
+
+		var permErr *domain.PermissionError
+		require.True(t, errors.As(result.Err, &permErr))
+		assert.Equal(t, domain.PermissionResourceContacts, permErr.Resource)
+		assert.Equal(t, domain.PermissionTypeWrite, permErr.Permission)
+	})
+
+	t.Run("BatchImportContacts denied on contacts write", func(t *testing.T) {
+		contacts := []*domain.Contact{{Email: "contact1@example.com"}}
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{}, noContactWrite, nil)
+
+		response := service.BatchImportContacts(ctx, workspaceID, contacts, nil)
+		assert.Equal(t, "Insufficient permissions: write access to contacts required", response.Error)
+
+		var permErr *domain.PermissionError
+		require.True(t, errors.As(response.Err, &permErr))
+		assert.Equal(t, domain.PermissionResourceContacts, permErr.Resource)
+		assert.Equal(t, domain.PermissionTypeWrite, permErr.Permission)
+	})
+
+	t.Run("BatchImportContacts denied on lists write", func(t *testing.T) {
+		contacts := []*domain.Contact{{Email: "contact1@example.com"}}
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{}, noListWrite, nil)
+
+		response := service.BatchImportContacts(ctx, workspaceID, contacts, []string{"list123"})
+		assert.Equal(t, "Insufficient permissions: write access to lists required", response.Error)
+
+		var permErr *domain.PermissionError
+		require.True(t, errors.As(response.Err, &permErr))
+		assert.Equal(t, domain.PermissionResourceLists, permErr.Resource)
+		assert.Equal(t, domain.PermissionTypeWrite, permErr.Permission)
+	})
+
+	t.Run("UpsertContact validation failure carries no typed error", func(t *testing.T) {
+		invalidContact := &domain.Contact{Email: ""}
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{}, fullWrite, nil)
+		mockLogger.EXPECT().WithField("email", invalidContact.Email).Return(mockLogger)
+		mockLogger.EXPECT().Error(gomock.Any())
+
+		result := service.UpsertContact(ctx, workspaceID, invalidContact)
+		assert.Equal(t, domain.UpsertContactOperationError, result.Action)
+		assert.NotEmpty(t, result.Error)
+		assert.NoError(t, result.Err)
+	})
+}

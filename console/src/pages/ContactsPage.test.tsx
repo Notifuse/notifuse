@@ -6,6 +6,7 @@ import { ReactNode } from 'react'
 import { App, ConfigProvider } from 'antd'
 import { I18nProvider } from '@lingui/react'
 import { i18n } from '@lingui/core'
+import { createFullPermissions } from '../services/api/permissions'
 
 const state = vi.hoisted(() => {
   const makeContact = (email: string) => ({
@@ -16,7 +17,10 @@ const state = vi.hoisted(() => {
   })
   return {
     makeContact,
-    contacts: [] as ReturnType<typeof makeContact>[],
+    // Deliberately loose: the server can send shapes the `Contact` type does not
+    // admit (e.g. `contact_lists: null`), and those shapes are what the null-join
+    // tests below exercise.
+    contacts: [] as { email: string; [key: string]: unknown }[],
     mockWorkspace: {
       id: 'test-workspace',
       name: 'Test Workspace',
@@ -27,17 +31,6 @@ const state = vi.hoisted(() => {
         default_language: 'en',
         languages: ['en']
       }
-    },
-    mockPermissions: {
-      contacts: { read: true, write: true },
-      lists: { read: true, write: true },
-      templates: { read: true, write: true },
-      broadcasts: { read: true, write: true },
-      transactional: { read: true, write: true },
-      workspace: { read: true, write: true },
-      message_history: { read: true, write: true },
-      blog: { read: true, write: true },
-      automations: { read: true, write: true }
     }
   }
 })
@@ -69,7 +62,7 @@ vi.mock('../contexts/AuthContext', () => ({
     refreshWorkspaces: vi.fn()
   }),
   useWorkspacePermissions: () => ({
-    permissions: state.mockPermissions,
+    permissions: createFullPermissions(),
     loading: false
   })
 }))
@@ -231,5 +224,88 @@ describe('ContactsPage row delete and bulk selection', () => {
     await waitFor(() => {
       expect(screen.queryByText('1 contact selected')).toBeNull()
     })
+  })
+})
+
+describe('ContactsPage Lists column with an empty contact_lists join', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    // `ContactLists` is declared without `omitempty` in internal/domain/contact.go,
+    // so a contact whose list join produced no rows arrives as `"contact_lists": null`.
+    // Older payloads (and any handler that skips the join) omit the key entirely.
+    // Both used to throw out of the Lists cell renderer and take the whole route
+    // down with the error boundary.
+    state.contacts = [
+      {
+        email: 'nulljoin@example.com',
+        created_at: '2026-01-01T00:00:00Z',
+        updated_at: '2026-01-01T00:00:00Z',
+        contact_lists: null,
+        first_name: 'Nina',
+        last_name: 'Nullsson',
+        country: 'FR'
+      },
+      {
+        email: 'absentjoin@example.com',
+        created_at: '2026-01-01T00:00:00Z',
+        updated_at: '2026-01-01T00:00:00Z',
+        first_name: 'Abe',
+        last_name: 'Absent',
+        country: 'BE'
+      },
+      {
+        email: 'haslists@example.com',
+        created_at: '2026-01-01T00:00:00Z',
+        updated_at: '2026-01-01T00:00:00Z',
+        contact_lists: [
+          {
+            email: 'haslists@example.com',
+            list_id: 'newsletter',
+            status: 'active',
+            created_at: '2026-01-01T00:00:00Z',
+            updated_at: '2026-01-01T00:00:00Z'
+          }
+        ],
+        first_name: 'Hana',
+        last_name: 'Haslist',
+        country: 'DE'
+      }
+    ]
+  })
+
+  it('renders the row and its other columns when contact_lists is null', async () => {
+    render(<ContactsPage />, { wrapper: createWrapper() })
+
+    const row = (await screen.findByText('nulljoin@example.com')).closest('tr')!
+    expect(within(row).getByText('Nina')).toBeInTheDocument()
+    expect(within(row).getByText('Nullsson')).toBeInTheDocument()
+    expect(within(row).getByText('FR')).toBeInTheDocument()
+  })
+
+  it('renders the row and its other columns when contact_lists is absent', async () => {
+    render(<ContactsPage />, { wrapper: createWrapper() })
+
+    const row = (await screen.findByText('absentjoin@example.com')).closest('tr')!
+    expect(within(row).getByText('Abe')).toBeInTheDocument()
+    expect(within(row).getByText('Absent')).toBeInTheDocument()
+    expect(within(row).getByText('BE')).toBeInTheDocument()
+  })
+
+  it('still renders list tags for contacts whose join returned rows', async () => {
+    render(<ContactsPage />, { wrapper: createWrapper() })
+
+    const row = (await screen.findByText('haslists@example.com')).closest('tr')!
+    // No list metadata is loaded in these tests, so the tag falls back to the id.
+    expect(within(row).getByText('newsletter')).toBeInTheDocument()
+    expect(within(row).getByText('Hana')).toBeInTheDocument()
+  })
+
+  it('keeps the page rendered instead of surfacing the route error boundary', async () => {
+    render(<ContactsPage />, { wrapper: createWrapper() })
+
+    await screen.findByText('nulljoin@example.com')
+    expect(screen.getByText('absentjoin@example.com')).toBeInTheDocument()
+    expect(screen.getByText('haslists@example.com')).toBeInTheDocument()
+    expect(screen.queryByText('Something went wrong!')).toBeNull()
   })
 })

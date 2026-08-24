@@ -71,48 +71,43 @@ test.describe('Workspace Settings Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/settings/team`)
       await waitForLoading(page)
 
-      // Look for invite button - locator created for potential future assertions
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const _inviteButton = page.getByRole('button', { name: /invite/i })
-      // Page should load regardless of user role
-      await expect(page.locator('body')).toBeVisible()
+      // The fixture signs in as a workspace owner, so the button is never optional here.
+      await expect(page.getByRole('button', { name: 'Invite Member', exact: true })).toBeVisible()
     })
 
-    test('opens invite member modal', async ({ authenticatedPageWithData }) => {
+    test('opens invite member drawer', async ({ authenticatedPageWithData }) => {
       const page = authenticatedPageWithData
 
       await page.goto(`/console/workspace/${WORKSPACE_ID}/settings/team`)
       await waitForLoading(page)
 
-      // Try to open invite modal
-      const inviteButton = page.getByRole('button', { name: /invite/i })
-      if ((await inviteButton.count()) > 0) {
-        await inviteButton.click()
+      await page.getByRole('button', { name: 'Invite Member', exact: true }).click()
 
-        // Should show invite modal
-        await expect(page.locator('.ant-modal-content')).toBeVisible()
-        await expect(page.locator('.ant-modal-title')).toContainText(/invite/i)
+      // A drawer panel is a dialog too, labelled by its title, so this pins both the
+      // host being open and the title it carries.
+      const drawer = page.getByRole('dialog', { name: 'Invite Member', exact: true })
+      await expect(drawer).toBeVisible()
+      // The permissions matrix outgrew a centred dialog, so the host is a drawer.
+      await expect(drawer).toHaveClass(/ant-drawer-section/)
 
-        // Should have email input
-        await expect(page.locator('.ant-modal-content input[placeholder*="email" i]')).toBeVisible()
-      }
+      // Should have email input
+      await expect(drawer.locator('input[placeholder*="email" i]')).toBeVisible()
     })
 
-    test('opens create API key modal', async ({ authenticatedPageWithData }) => {
+    test('opens create API key drawer', async ({ authenticatedPageWithData }) => {
       const page = authenticatedPageWithData
 
       await page.goto(`/console/workspace/${WORKSPACE_ID}/settings/team`)
       await waitForLoading(page)
 
-      // Try to open API key modal
-      const apiKeyButton = page.getByRole('button', { name: /api key/i })
-      if ((await apiKeyButton.count()) > 0) {
-        await apiKeyButton.click()
+      await page.getByRole('button', { name: 'Create API Key', exact: true }).click()
 
-        // Should show API key modal
-        await expect(page.locator('.ant-modal-content')).toBeVisible()
-        await expect(page.locator('.ant-modal-title')).toContainText(/api key/i)
-      }
+      const drawer = page.getByRole('dialog', { name: 'Create API Key', exact: true })
+      await expect(drawer).toBeVisible()
+      await expect(drawer).toHaveClass(/ant-drawer-section/)
+
+      // Should have the API key name input (the only textbox in the creation form)
+      await expect(drawer.getByRole('textbox')).toBeVisible()
     })
   })
 
@@ -157,7 +152,8 @@ test.describe('Workspace Settings Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/settings/general`)
       await waitForLoading(page)
 
-      // Check if form exists (owner view) - look in content area
+      // Genuine role fork: owners get the editable form, everyone else the
+      // read-only descriptions. Both branches assert, so neither passes silently.
       const contentArea = page.locator('.ant-layout-content')
       const nameInput = contentArea.locator('input[placeholder*="workspace name" i]')
       if ((await nameInput.count()) > 0) {
@@ -166,11 +162,10 @@ test.describe('Workspace Settings Feature', () => {
         await nameInput.fill('Updated Workspace Name')
         await expect(nameInput).toHaveValue('Updated Workspace Name')
 
-        // Fill website URL (use first matching input - the Website URL field)
+        // Fill website URL - always part of the owner form
         const websiteInput = contentArea.getByRole('textbox', { name: 'Website URL' })
-        if ((await websiteInput.count()) > 0) {
-          await websiteInput.fill('https://example.com')
-        }
+        await websiteInput.fill('https://example.com')
+        await expect(websiteInput).toHaveValue('https://example.com')
 
         // Verify Save button is visible
         const saveButton = contentArea.getByRole('button', { name: /save/i })
@@ -212,11 +207,8 @@ test.describe('Workspace Settings Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/settings/custom-fields`)
       await waitForLoading(page)
 
-      // Look for Add Label button - locator created for potential future assertions
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const _addButton = page.getByRole('button', { name: /add label/i })
-      // Page should load regardless of user role
-      await expect(page.locator('body')).toBeVisible()
+      // The fixture signs in as a workspace owner, so the button is never optional here.
+      await expect(page.getByRole('button', { name: 'Add Label', exact: true })).toBeVisible()
     })
 
     test('opens add custom field label modal', async ({ authenticatedPageWithData }) => {
@@ -225,23 +217,16 @@ test.describe('Workspace Settings Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/settings/custom-fields`)
       await waitForLoading(page)
 
-      // Try to open add label modal
-      const addButton = page.getByRole('button', { name: /add label/i })
-      if ((await addButton.count()) > 0) {
-        await addButton.click()
+      await page.getByRole('button', { name: 'Add Label', exact: true }).click()
 
-        // Should show modal
-        await expect(page.locator('.ant-modal-content')).toBeVisible()
-        await expect(page.locator('.ant-modal-title')).toContainText(/custom field/i)
+      const modal = page.getByRole('dialog', { name: 'Add Custom Field Label', exact: true })
+      await expect(modal).toBeVisible()
 
-        // Should have field selection radio group
-        await expect(page.locator('.ant-radio-group')).toBeVisible()
+      // Should have field selection radio group
+      await expect(modal.locator('.ant-radio-group')).toBeVisible()
 
-        // Should have label input
-        await expect(
-          page.locator('.ant-modal-content input[placeholder*="Company Name" i]')
-        ).toBeVisible()
-      }
+      // Should have label input
+      await expect(modal.locator('input[placeholder*="Company Name" i]')).toBeVisible()
     })
 
     test('fills custom field label form', async ({ authenticatedPageWithData }) => {
@@ -250,27 +235,23 @@ test.describe('Workspace Settings Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/settings/custom-fields`)
       await waitForLoading(page)
 
-      // Try to open add label modal
-      const addButton = page.getByRole('button', { name: /add label/i })
-      if ((await addButton.count()) > 0) {
-        await addButton.click()
+      await page.getByRole('button', { name: 'Add Label', exact: true }).click()
 
-        // Wait for modal
-        await expect(page.locator('.ant-modal-content')).toBeVisible()
+      const modal = page.getByRole('dialog', { name: 'Add Custom Field Label', exact: true })
+      await expect(modal).toBeVisible()
 
-        // Select a custom field (first available radio)
-        const firstRadio = page.locator('.ant-radio-input:not(:disabled)').first()
-        if ((await firstRadio.count()) > 0) {
-          await firstRadio.click()
-        }
+      // Select a custom field (first available radio)
+      const firstRadio = modal.locator('.ant-radio-input:not(:disabled)').first()
+      await firstRadio.check()
+      await expect(firstRadio).toBeChecked()
 
-        // Fill label
-        const labelInput = page.locator('.ant-modal-content input[placeholder*="Company Name" i]')
-        await labelInput.fill('Industry Type')
+      // Fill label
+      const labelInput = modal.locator('input[placeholder*="Company Name" i]')
+      await labelInput.fill('Industry Type')
+      await expect(labelInput).toHaveValue('Industry Type')
 
-        // Verify Save button is visible
-        await expect(page.getByRole('button', { name: 'Save' })).toBeVisible()
-      }
+      // Verify Save button is visible
+      await expect(modal.getByRole('button', { name: 'Save', exact: true })).toBeVisible()
     })
   })
 
@@ -307,14 +288,9 @@ test.describe('Workspace Settings Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/settings/danger-zone`)
       await waitForLoading(page)
 
-      // Page should load
-      await expect(page.locator('body')).toBeVisible()
-
-      // Danger Zone should only be visible for owners
-      // If visible, should show delete workspace option - locator created for potential future assertions
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const _dangerContent = page.locator('text=Delete Workspace, text=delete this workspace')
-      // Just verify page loaded - content depends on user role
+      // The fixture signs in as a workspace owner, so the danger zone is always rendered.
+      await expect(page.locator('.ant-layout-content').getByText('Danger Zone').first()).toBeVisible()
+      await expect(page.getByRole('button', { name: 'Delete Workspace', exact: true })).toBeVisible()
     })
   })
 
@@ -364,49 +340,42 @@ test.describe('Workspace Settings Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/settings/general`)
       await waitForLoading(page)
 
-      // Fill workspace name if editable
+      // Fill workspace name - always editable in the owner form
       const nameInput = page.getByLabel('Workspace Name', { exact: false })
-      if ((await nameInput.count()) > 0 && (await nameInput.isEnabled())) {
-        await nameInput.fill(testWorkspaceSettingsData.name)
-      }
+      await nameInput.fill(testWorkspaceSettingsData.name)
 
-      // Select timezone if available
+      // Select a timezone. The option list is built from window.TIMEZONES, which the
+      // mocked /config.js does not serve, so the dropdown is legitimately empty here -
+      // the fallback closes it again and leaves the field at its stored value.
       const timezoneSelect = page.locator('.ant-form-item').filter({ hasText: /timezone/i }).locator('.ant-select')
-      if ((await timezoneSelect.count()) > 0) {
-        await timezoneSelect.click()
-        await page.locator('.ant-select-dropdown').waitFor({ state: 'visible' })
-        const option = page.locator('.ant-select-item-option').filter({ hasText: /New_York|UTC/i }).first()
-        if ((await option.count()) > 0) {
-          await option.click()
-        } else {
-          await page.keyboard.press('Escape')
-        }
+      await timezoneSelect.click()
+      await page.locator('.ant-select-dropdown').waitFor({ state: 'visible' })
+      const option = page.locator('.ant-select-item-option').filter({ hasText: /New_York|UTC/i }).first()
+      if ((await option.count()) > 0) {
+        await option.click()
+      } else {
+        await page.keyboard.press('Escape')
       }
 
-      // Fill custom endpoint URL if available
+      // Fill custom endpoint URL
       const endpointInput = page.getByLabel('Custom Endpoint', { exact: false })
-      if ((await endpointInput.count()) > 0 && testWorkspaceSettingsData.custom_endpoint_url) {
-        await endpointInput.fill(testWorkspaceSettingsData.custom_endpoint_url)
-      }
+      await endpointInput.fill(testWorkspaceSettingsData.custom_endpoint_url!)
 
-      // Submit form
-      const saveButton = page.getByRole('button', { name: /save|update/i }).first()
-      if ((await saveButton.count()) > 0) {
-        await saveButton.click()
-        await page.waitForTimeout(1000)
+      // Submit form - the save bar shows up as soon as the form is dirty
+      await page.getByRole('button', { name: /save|update/i }).first().click()
 
-        // Log captured requests
-        logCapturedRequests(requestCapture)
+      // Log captured requests
+      await expect
+        .poll(() => requestCapture.getRequestCount(API_PATTERNS.WORKSPACE_UPDATE))
+        .toBeGreaterThan(0)
+      logCapturedRequests(requestCapture)
 
-        // Verify workspace update was sent
-        const request = requestCapture.getLastRequest(API_PATTERNS.WORKSPACE_UPDATE)
-
-        if (request && request.body) {
-          const body = request.body as Record<string, unknown>
-          // Verify settings were included
-          expect(body, 'Workspace update body should not be empty').toBeDefined()
-        }
-      }
+      // Verify workspace update carried the values that were typed in
+      const request = requestCapture.getLastRequest(API_PATTERNS.WORKSPACE_UPDATE)
+      expect(request?.body, 'Workspace update body should not be empty').toBeTruthy()
+      const body = request!.body as { name?: string; settings?: Record<string, unknown> }
+      expect(body.name).toBe(testWorkspaceSettingsData.name)
+      expect(body.settings?.custom_endpoint_url).toBe(testWorkspaceSettingsData.custom_endpoint_url)
     })
   })
 })

@@ -2974,6 +2974,16 @@ func TestListEvents(t *testing.T) {
 	// Create test data
 	workspaceID := "workspace1"
 	user := &domain.User{ID: "user1"}
+	// A member holding the read grant, so these behaviour tests pass the gate on the
+	// permission rather than on the owner short-circuit.
+	member := &domain.UserWorkspace{
+		UserID:      user.ID,
+		WorkspaceID: workspaceID,
+		Role:        "member",
+		Permissions: domain.UserPermissions{
+			domain.PermissionResourceWebhookEvents: {Read: true},
+		},
+	}
 	now := time.Now().UTC()
 
 	t.Run("Success case", func(t *testing.T) {
@@ -3024,7 +3034,7 @@ func TestListEvents(t *testing.T) {
 
 		// Setup mocks for authentication and repository
 		authService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(
-			context.Background(), user, nil, nil)
+			context.Background(), user, member, nil)
 		repo.EXPECT().ListEvents(gomock.Any(), workspaceID, params).Return(expectedResult, nil)
 
 		// Call method
@@ -3067,7 +3077,7 @@ func TestListEvents(t *testing.T) {
 
 		// Setup mock for successful authentication but failed validation
 		authService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(
-			context.Background(), user, nil, nil)
+			context.Background(), user, member, nil)
 
 		// Call method
 		result, err := service.ListEvents(context.Background(), workspaceID, params)
@@ -3086,7 +3096,7 @@ func TestListEvents(t *testing.T) {
 
 		// Setup mocks for successful authentication but repository error
 		authService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(
-			context.Background(), user, nil, nil)
+			context.Background(), user, member, nil)
 
 		repoErr := errors.New("database error")
 		repo.EXPECT().ListEvents(gomock.Any(), workspaceID, params).Return(nil, repoErr)
@@ -3108,7 +3118,7 @@ func TestListEvents(t *testing.T) {
 
 		// Setup mocks for successful authentication with empty result
 		authService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(
-			context.Background(), user, nil, nil)
+			context.Background(), user, member, nil)
 
 		emptyResult := &domain.InboundWebhookEventListResult{
 			Events:     []*domain.InboundWebhookEvent{},
@@ -3176,4 +3186,71 @@ func TestProcessSESWebhook_RefusesHostileSubscribeURL(t *testing.T) {
 
 	assert.Zero(t, atomic.LoadInt32(&hits),
 		"a refused SubscribeURL must not be fetched at all, not merely ignored")
+}
+
+// TestInboundWebhookEventService_PermissionEnforcement pins the webhook_events
+// gate on the one authenticated read this service exposes. The caller is a member
+// granted the OPPOSITE permission, so the case fails both if the check is missing
+// and if it asks for the wrong verb; the nil-membership case fails if the guard
+// ever skips the check instead of denying. No repository expectation is set, so
+// gomock also fails if anything past the gate runs.
+func TestInboundWebhookEventService_PermissionEnforcement(t *testing.T) {
+	const workspaceID = "ws-1"
+
+	newService := func(t *testing.T, userWorkspace *domain.UserWorkspace) *InboundWebhookEventService {
+		t.Helper()
+		ctrl := gomock.NewController(t)
+		t.Cleanup(ctrl.Finish)
+
+		log := pkgmocks.NewMockLogger(ctrl)
+		log.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(log).AnyTimes()
+		log.EXPECT().WithFields(gomock.Any()).Return(log).AnyTimes()
+		log.EXPECT().Info(gomock.Any()).AnyTimes()
+		log.EXPECT().Error(gomock.Any()).AnyTimes()
+
+		authService := mocks.NewMockAuthService(ctrl)
+		authService.EXPECT().
+			AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
+			DoAndReturn(func(ctx context.Context, _ string) (context.Context, *domain.User, *domain.UserWorkspace, error) {
+				return ctx, &domain.User{ID: "u1"}, userWorkspace, nil
+			})
+
+		return &InboundWebhookEventService{
+			repo:        mocks.NewMockInboundWebhookEventRepository(ctrl),
+			authService: authService,
+			logger:      log,
+		}
+	}
+
+	params := domain.InboundWebhookEventListParams{Limit: 10, WorkspaceID: workspaceID}
+
+	t.Run("a member granted only write cannot read", func(t *testing.T) {
+		svc := newService(t, &domain.UserWorkspace{
+			UserID:      "u1",
+			WorkspaceID: workspaceID,
+			Role:        "member",
+			Permissions: domain.UserPermissions{
+				domain.PermissionResourceWebhookEvents: {Write: true},
+			},
+		})
+
+		result, err := svc.ListEvents(context.Background(), workspaceID, params)
+		require.Error(t, err)
+		assert.Nil(t, result)
+		assert.IsType(t, &domain.PermissionError{}, err)
+
+		var permErr *domain.PermissionError
+		require.True(t, errors.As(err, &permErr))
+		assert.Equal(t, domain.PermissionResourceWebhookEvents, permErr.Resource)
+		assert.Equal(t, domain.PermissionTypeRead, permErr.Permission)
+	})
+
+	t.Run("a nil membership is denied, not waved through", func(t *testing.T) {
+		svc := newService(t, nil)
+
+		result, err := svc.ListEvents(context.Background(), workspaceID, params)
+		require.Error(t, err)
+		assert.Nil(t, result)
+		assert.IsType(t, &domain.PermissionError{}, err)
+	})
 }

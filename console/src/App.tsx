@@ -6,6 +6,7 @@ import { router } from './router'
 import { AuthProvider } from './contexts/AuthContext'
 import { LocaleProvider, useLocale, i18n } from './contexts/LocaleContext'
 import { initializeAnalytics } from './utils/analytics-config'
+import { shouldRetryQuery } from './services/api/errors'
 import enUS from 'antd/locale/en_US'
 import frFR from 'antd/locale/fr_FR'
 import esES from 'antd/locale/es_ES'
@@ -34,7 +35,7 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       refetchOnWindowFocus: false,
-      retry: 1
+      retry: shouldRetryQuery
     }
   }
 })

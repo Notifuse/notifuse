@@ -1,10 +1,40 @@
 import { test, expect, requestCapture } from '../fixtures/auth'
-import { waitForDrawer, waitForLoading } from '../fixtures/test-utils'
+import { waitForLoading } from '../fixtures/test-utils'
 import { API_PATTERNS } from '../fixtures/request-capture'
 import { testTransactionalData } from '../fixtures/form-data'
 import { logCapturedRequests } from '../fixtures/payload-assertions'
+import type { Locator, Page } from '@playwright/test'
 
 const WORKSPACE_ID = 'test-workspace'
+
+// antd 6 puts role="dialog" on the drawer section itself and names it after the
+// drawer title, so the title is what the dialog is looked up by.
+const CREATE_DRAWER = 'Create a notification'
+const EDIT_DRAWER = 'Edit notification'
+
+// The per-notification card actions are icon-only buttons. FontAwesome stamps the
+// icon name onto the svg, which is the only stable handle they expose.
+const cardAction = (page: Page, notificationName: string, icon: string): Locator =>
+  page
+    .locator('.ant-card-head')
+    .filter({ hasText: notificationName })
+    .locator(`button:has(svg[data-icon="${icon}"])`)
+
+// Opens the edit drawer of an existing notification and returns it.
+const openEditDrawer = async (page: Page, notificationName: string): Promise<Locator> => {
+  await cardAction(page, notificationName, 'pen-to-square').click()
+  const drawer = page.getByRole('dialog', { name: EDIT_DRAWER })
+  await expect(drawer).toBeVisible()
+  return drawer
+}
+
+// Opens the creation drawer and returns it.
+const openCreateDrawer = async (page: Page): Promise<Locator> => {
+  await page.getByRole('button', { name: 'Create Notification', exact: true }).click()
+  const drawer = page.getByRole('dialog', { name: CREATE_DRAWER })
+  await expect(drawer).toBeVisible()
+  return drawer
+}
 
 test.describe('Transactional Notifications Feature', () => {
   test.describe('Page Load & Empty State', () => {
@@ -14,8 +44,10 @@ test.describe('Transactional Notifications Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/transactional-notifications`)
       await waitForLoading(page)
 
-      // Page should load
-      await expect(page.locator('body')).toBeVisible()
+      await expect(page.getByText('No transactional notifications found')).toBeVisible()
+      await expect(
+        page.getByRole('button', { name: 'Create Notification', exact: true })
+      ).toBeVisible()
     })
 
     test('loads transactional page with data', async ({ authenticatedPageWithData }) => {
@@ -24,8 +56,16 @@ test.describe('Transactional Notifications Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/transactional-notifications`)
       await waitForLoading(page)
 
-      // Page should load successfully
       await expect(page).toHaveURL(/transactional/)
+
+      // One card per notification returned by the API
+      await expect(page.locator('.ant-card-head').filter({ hasText: 'Password Reset' })).toBeVisible()
+      await expect(
+        page.locator('.ant-card-head').filter({ hasText: 'Order Confirmation' })
+      ).toBeVisible()
+      await expect(
+        page.locator('.ant-card-head').filter({ hasText: 'Account Verification' })
+      ).toBeVisible()
     })
   })
 
@@ -36,18 +76,11 @@ test.describe('Transactional Notifications Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/transactional-notifications`)
       await waitForLoading(page)
 
-      // Click add/create button
-      const addButton = page.getByRole('button', { name: /add|create|new/i })
-      await addButton.click()
+      const drawer = await openCreateDrawer(page)
 
-      // Wait for drawer, modal, or navigation
-      await page.waitForTimeout(500)
-
-      const hasDrawer = (await page.locator('.ant-drawer-content').count()) > 0
-      const hasModal = (await page.locator('.ant-modal-content').count()) > 0
-      const urlChanged = page.url().includes('new') || page.url().includes('create')
-
-      expect(hasDrawer || hasModal || urlChanged).toBe(true)
+      await expect(drawer.getByLabel('Notification name')).toBeVisible()
+      await expect(drawer.getByLabel('API Identifier')).toBeVisible()
+      await expect(drawer.getByPlaceholder('Select email template')).toBeVisible()
     })
 
     test('fills transactional notification form', async ({ authenticatedPage }) => {
@@ -56,32 +89,20 @@ test.describe('Transactional Notifications Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/transactional-notifications`)
       await waitForLoading(page)
 
-      // Click add button
-      const addButton = page.getByRole('button', { name: /add|create|new/i })
-      await addButton.click()
+      const drawer = await openCreateDrawer(page)
 
-      // Wait for drawer to open
-      await waitForDrawer(page)
-
-      // Fill notification name (required) - first input
-      const nameInput = page.locator('.ant-drawer-content input').first()
+      const nameInput = drawer.getByLabel('Notification name')
       await nameInput.fill('Password Reset Email')
-
-      // API Identifier is auto-generated from name, verify second input has value
-      const idInput = page.locator('.ant-drawer-content input').nth(1)
-      await expect(idInput).toBeVisible()
-
-      // Fill description (optional)
-      const descriptionInput = page.locator('.ant-drawer-content textarea')
-      if ((await descriptionInput.count()) > 0) {
-        await descriptionInput.fill('Sends a password reset email to users')
-      }
-
-      // Verify Save button is visible
-      await expect(page.getByRole('button', { name: 'Save' })).toBeVisible()
-
-      // Verify form filled correctly
       await expect(nameInput).toHaveValue('Password Reset Email')
+
+      // The API identifier is derived from the name for a new notification
+      await expect(drawer.getByLabel('API Identifier')).toHaveValue('password_reset_email')
+
+      const descriptionInput = drawer.getByLabel('Description')
+      await descriptionInput.fill('Sends a password reset email to users')
+      await expect(descriptionInput).toHaveValue('Sends a password reset email to users')
+
+      await expect(drawer.getByRole('button', { name: 'Save', exact: true })).toBeVisible()
     })
 
     test('views notification details', async ({ authenticatedPageWithData }) => {
@@ -90,33 +111,28 @@ test.describe('Transactional Notifications Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/transactional-notifications`)
       await waitForLoading(page)
 
-      // Click on a notification
-      const notificationItem = page.locator('.ant-table-row, .ant-card').first()
-      if ((await notificationItem.count()) > 0) {
-        await notificationItem.click()
-
-        // Should show details
-        await page.waitForTimeout(500)
-        await expect(page.locator('body')).toBeVisible()
-      }
+      // Each card carries the notification's API id and description
+      const card = page.locator('.ant-card').filter({ hasText: 'Password Reset' })
+      await expect(card.getByText('transactional-1', { exact: true })).toBeVisible()
+      await expect(card.getByText('Sent when user requests password reset')).toBeVisible()
     })
   })
 
   test.describe('Configuration', () => {
-    test('shows template selection', async ({ authenticatedPage }) => {
-      const page = authenticatedPage
+    test('shows template selection', async ({ authenticatedPageWithData }) => {
+      const page = authenticatedPageWithData
 
       await page.goto(`/console/workspace/${WORKSPACE_ID}/transactional-notifications`)
       await waitForLoading(page)
 
-      // Open create form
-      const addButton = page.getByRole('button', { name: /add|create|new/i })
-      await addButton.click()
+      const drawer = await openCreateDrawer(page)
 
-      await page.waitForTimeout(500)
+      // The template field opens a picker listing the workspace templates
+      await drawer.getByPlaceholder('Select email template').click()
 
-      // Form should be visible
-      await expect(page.locator('.ant-drawer-content, .ant-modal-content, form').first()).toBeVisible()
+      const picker = page.getByRole('dialog', { name: 'Select Template' })
+      await expect(picker).toBeVisible()
+      await expect(picker.getByRole('listitem').filter({ hasText: 'Welcome Email' })).toBeVisible()
     })
 
     test('shows tracking settings', async ({ authenticatedPage }) => {
@@ -125,61 +141,47 @@ test.describe('Transactional Notifications Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/transactional-notifications`)
       await waitForLoading(page)
 
-      // Open create form
-      const addButton = page.getByRole('button', { name: /add|create|new/i })
-      await addButton.click()
+      const drawer = await openCreateDrawer(page)
 
-      await page.waitForTimeout(500)
+      // Tracking defaults to following the workspace setting
+      await expect(drawer.getByText('Follow workspace setting')).toBeVisible()
 
-      // Look for tracking options - locator created for potential future assertions
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const _trackingOption = page.locator('text=tracking, text=Tracking, text=opens, text=clicks')
-
-      // Form should be visible regardless
-      await expect(page.locator('.ant-drawer-content, .ant-modal-content, form').first()).toBeVisible()
+      // UTM defaults a new notification starts with
+      await expect(drawer.getByLabel('utm_medium')).toHaveValue('email')
+      await expect(drawer.getByLabel('utm_campaign')).toHaveValue('transactional')
     })
   })
 
   test.describe('API Integration Display', () => {
-    test('page loads without errors', async ({ authenticatedPageWithData }) => {
+    test('shows the API command of a notification', async ({ authenticatedPageWithData }) => {
       const page = authenticatedPageWithData
 
       await page.goto(`/console/workspace/${WORKSPACE_ID}/transactional-notifications`)
       await waitForLoading(page)
 
-      // Page should load successfully
-      await expect(page.locator('body')).toBeVisible()
+      await cardAction(page, 'Password Reset', 'terminal').click()
+
+      const modal = page.getByRole('dialog', { name: 'API Command' })
+      await expect(modal).toBeVisible()
+
+      // The snippet targets the send endpoint with this notification's id
+      await expect(modal).toContainText('/api/transactional.send')
+      await expect(modal).toContainText('transactional-1')
     })
   })
 
   test.describe('Edit Form Prefill', () => {
-    test('edit notification drawer shows existing notification name', async ({ authenticatedPageWithData }) => {
+    test('edit notification drawer shows existing notification name', async ({
+      authenticatedPageWithData
+    }) => {
       const page = authenticatedPageWithData
 
       await page.goto(`/console/workspace/${WORKSPACE_ID}/transactional-notifications`)
       await waitForLoading(page)
 
-      // Click on a notification row to open edit drawer
-      const notificationRow = page.locator('.ant-table-row').first()
-      if ((await notificationRow.count()) > 0) {
-        // Look for edit button in the row
-        const editButton = notificationRow.getByRole('button', { name: /edit/i })
-        if ((await editButton.count()) > 0) {
-          await editButton.click()
-        } else {
-          await notificationRow.click()
-        }
+      const drawer = await openEditDrawer(page, 'Password Reset')
 
-        // Wait for drawer to open
-        await waitForDrawer(page)
-
-        // Verify the name input is prefilled with the existing notification name
-        const nameInput = page.locator('.ant-drawer-content input').first()
-        const inputValue = await nameInput.inputValue()
-
-        // Name should not be empty - should be prefilled (e.g., "Password Reset")
-        expect(inputValue.length).toBeGreaterThan(0)
-      }
+      await expect(drawer.getByLabel('Notification name')).toHaveValue('Password Reset')
     })
 
     test('edit notification preserves API identifier', async ({ authenticatedPageWithData }) => {
@@ -188,24 +190,12 @@ test.describe('Transactional Notifications Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/transactional-notifications`)
       await waitForLoading(page)
 
-      const notificationRow = page.locator('.ant-table-row').first()
-      if ((await notificationRow.count()) > 0) {
-        const editButton = notificationRow.getByRole('button', { name: /edit/i })
-        if ((await editButton.count()) > 0) {
-          await editButton.click()
-        } else {
-          await notificationRow.click()
-        }
+      const drawer = await openEditDrawer(page, 'Password Reset')
 
-        await waitForDrawer(page)
-
-        // The API identifier input should be prefilled and possibly read-only
-        const idInput = page.locator('.ant-drawer-content input').nth(1)
-        if ((await idInput.count()) > 0) {
-          const idValue = await idInput.inputValue()
-          expect(idValue.length).toBeGreaterThan(0)
-        }
-      }
+      // The identifier is immutable once the notification exists
+      const idInput = drawer.getByLabel('API Identifier')
+      await expect(idInput).toHaveValue('transactional-1')
+      await expect(idInput).toBeDisabled()
     })
 
     test('edit notification preserves description', async ({ authenticatedPageWithData }) => {
@@ -214,24 +204,11 @@ test.describe('Transactional Notifications Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/transactional-notifications`)
       await waitForLoading(page)
 
-      const notificationRow = page.locator('.ant-table-row').first()
-      if ((await notificationRow.count()) > 0) {
-        const editButton = notificationRow.getByRole('button', { name: /edit/i })
-        if ((await editButton.count()) > 0) {
-          await editButton.click()
-        } else {
-          await notificationRow.click()
-        }
+      const drawer = await openEditDrawer(page, 'Password Reset')
 
-        await waitForDrawer(page)
-
-        // Check if description textarea exists
-        const descriptionInput = page.locator('.ant-drawer-content textarea').first()
-        if ((await descriptionInput.count()) > 0) {
-          // Description field should be accessible
-          await expect(descriptionInput).toBeVisible()
-        }
-      }
+      await expect(drawer.getByLabel('Description')).toHaveValue(
+        'Sent when user requests password reset'
+      )
     })
 
     test('edit notification preserves template selection', async ({ authenticatedPageWithData }) => {
@@ -240,23 +217,10 @@ test.describe('Transactional Notifications Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/transactional-notifications`)
       await waitForLoading(page)
 
-      const notificationRow = page.locator('.ant-table-row').first()
-      if ((await notificationRow.count()) > 0) {
-        const editButton = notificationRow.getByRole('button', { name: /edit/i })
-        if ((await editButton.count()) > 0) {
-          await editButton.click()
-        } else {
-          await notificationRow.click()
-        }
+      const drawer = await openEditDrawer(page, 'Password Reset')
 
-        await waitForDrawer(page)
-
-        // Template select/input should have a value
-        const templateInput = page.locator('.ant-drawer-content .ant-select, .ant-drawer-content input[placeholder*="template" i]')
-        if ((await templateInput.count()) > 0) {
-          await expect(templateInput.first()).toBeVisible()
-        }
-      }
+      // channels.email.template_id is tpl-1, whose name the picker input displays
+      await expect(drawer.getByPlaceholder('Select email template')).toHaveValue('Welcome Email')
     })
 
     test('edit notification preserves tracking settings', async ({ authenticatedPageWithData }) => {
@@ -265,23 +229,12 @@ test.describe('Transactional Notifications Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/transactional-notifications`)
       await waitForLoading(page)
 
-      const notificationRow = page.locator('.ant-table-row').first()
-      if ((await notificationRow.count()) > 0) {
-        const editButton = notificationRow.getByRole('button', { name: /edit/i })
-        if ((await editButton.count()) > 0) {
-          await editButton.click()
-        } else {
-          await notificationRow.click()
-        }
+      const drawer = await openEditDrawer(page, 'Password Reset')
 
-        await waitForDrawer(page)
-
-        // Look for tracking switches/checkboxes - they should maintain their state
-        const trackingSwitch = page.locator('.ant-drawer-content .ant-switch, .ant-drawer-content .ant-checkbox')
-        if ((await trackingSwitch.count()) > 0) {
-          await expect(trackingSwitch.first()).toBeVisible()
-        }
-      }
+      // Stored tracking_mode 'inherit' plus the stored UTM parameters
+      await expect(drawer.getByText('Follow workspace setting')).toBeVisible()
+      await expect(drawer.getByLabel('utm_source')).toHaveValue('notifuse')
+      await expect(drawer.getByLabel('utm_content')).toHaveValue('password_reset')
     })
   })
 
@@ -292,19 +245,11 @@ test.describe('Transactional Notifications Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/transactional-notifications`)
       await waitForLoading(page)
 
-      // Open create form
-      const addButton = page.getByRole('button', { name: /add|create|new/i })
-      await addButton.click()
+      const drawer = await openCreateDrawer(page)
 
-      // Wait for drawer to open
-      await waitForDrawer(page)
+      await drawer.getByRole('button', { name: 'Save', exact: true }).click()
 
-      // Try to submit without filling required fields
-      await page.getByRole('button', { name: 'Save' }).click()
-
-      // Should show validation error
-      const errorMessage = page.locator('.ant-form-item-explain-error')
-      await expect(errorMessage.first()).toBeVisible({ timeout: 5000 })
+      await expect(drawer.getByText('Please enter a notification name')).toBeVisible()
     })
 
     test('requires email template selection', async ({ authenticatedPage }) => {
@@ -313,23 +258,15 @@ test.describe('Transactional Notifications Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/transactional-notifications`)
       await waitForLoading(page)
 
-      // Open create form
-      const addButton = page.getByRole('button', { name: /add|create|new/i })
-      await addButton.click()
+      const drawer = await openCreateDrawer(page)
 
-      // Wait for drawer to open
-      await waitForDrawer(page)
+      // Name and identifier satisfied, template still missing
+      await drawer.getByLabel('Notification name').fill('Test Notification')
 
-      // Fill notification name
-      const nameInput = page.locator('.ant-drawer-content input').first()
-      await nameInput.fill('Test Notification')
+      await drawer.getByRole('button', { name: 'Save', exact: true }).click()
 
-      // Try to submit without selecting template
-      await page.getByRole('button', { name: 'Save' }).click()
-
-      // Should show validation error for template selection
-      const errorMessage = page.locator('.ant-form-item-explain-error')
-      await expect(errorMessage.first()).toBeVisible({ timeout: 5000 })
+      await expect(drawer.getByText('Please select an email template')).toBeVisible()
+      await expect(drawer.getByText('Please enter a notification name')).toHaveCount(0)
     })
   })
 
@@ -357,21 +294,12 @@ test.describe('Transactional Notifications Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/transactional-notifications`)
       await waitForLoading(page)
 
-      // Open create form
-      const addButton = page.getByRole('button', { name: /add|create|new/i })
-      await addButton.click()
+      const drawer = await openCreateDrawer(page)
 
-      await page.waitForTimeout(500)
+      // An untouched form closes without the unsaved-changes confirmation
+      await drawer.getByRole('button', { name: 'Close' }).click()
 
-      // Close it
-      const closeButton = page.locator('.ant-drawer-close, .ant-modal-close')
-      if ((await closeButton.count()) > 0) {
-        await closeButton.first().click()
-      } else {
-        await page.keyboard.press('Escape')
-      }
-
-      await page.waitForTimeout(500)
+      await expect(drawer).toBeHidden()
     })
   })
 
@@ -384,67 +312,57 @@ test.describe('Transactional Notifications Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/transactional-notifications`)
       await waitForLoading(page)
 
-      // Open create form
-      const addButton = page.getByRole('button', { name: /add|create|new/i })
-      if ((await addButton.count()) === 0) return
+      const drawer = await openCreateDrawer(page)
 
-      await addButton.click()
+      await drawer.getByLabel('Notification name').fill(testTransactionalData.name)
 
-      // Wait for drawer/modal
-      await page.waitForTimeout(500)
-      const drawer = page.locator('.ant-drawer-content, .ant-modal-content').first()
-      if ((await drawer.count()) === 0) return
+      // testTransactionalData.id contains dashes, which the API identifier rejects;
+      // the value the form derives from the name is what actually gets submitted.
+      const expectedId = 'e2e_test_transactional_notification'
+      await expect(drawer.getByLabel('API Identifier')).toHaveValue(expectedId)
 
-      // Fill notification name
-      const nameInput = page.getByLabel('Name', { exact: false }).first()
-      if ((await nameInput.count()) > 0) {
-        await nameInput.fill(testTransactionalData.name)
-      } else {
-        const input = page.locator('input').first()
-        await input.fill(testTransactionalData.name)
-      }
+      await drawer.getByLabel('Description').fill(testTransactionalData.description!)
 
-      // Fill notification ID if available
-      const idInput = page.getByLabel('Notification ID', { exact: false })
-      if ((await idInput.count()) > 0) {
-        await idInput.fill(testTransactionalData.id)
-      }
+      // Pick the email template through the picker drawer
+      await drawer.getByPlaceholder('Select email template').click()
+      const picker = page.getByRole('dialog', { name: 'Select Template' })
+      await picker
+        .getByRole('listitem')
+        .filter({ hasText: 'Welcome Email' })
+        .getByRole('button', { name: 'Select', exact: true })
+        .click()
+      await expect(drawer.getByPlaceholder('Select email template')).toHaveValue('Welcome Email')
 
-      // Fill description
-      const descriptionInput = page.getByLabel('Description', { exact: false })
-      if ((await descriptionInput.count()) > 0 && testTransactionalData.description) {
-        await descriptionInput.fill(testTransactionalData.description)
-      }
+      await drawer.getByLabel('utm_source').fill('e2e-test')
 
-      // Toggle tracking settings if available
-      const trackingSwitch = page.locator('.ant-form-item').filter({ hasText: /tracking/i }).locator('.ant-switch')
-      if ((await trackingSwitch.count()) > 0) {
-        const isChecked = (await trackingSwitch.getAttribute('aria-checked')) === 'true'
-        if (isChecked !== testTransactionalData.tracking_enabled) {
-          await trackingSwitch.click()
-        }
-      }
+      await drawer.getByRole('button', { name: 'Save', exact: true }).click()
 
-      // Submit
-      await page.getByRole('button', { name: /create|save/i }).first().click()
-      await page.waitForTimeout(1000)
-
-      // Log captured requests
+      await expect
+        .poll(() => requestCapture.getRequestCount(API_PATTERNS.TRANSACTIONAL_CREATE))
+        .toBeGreaterThan(0)
       logCapturedRequests(requestCapture)
 
-      // Verify transactional data was sent
       const request = requestCapture.getLastRequest(API_PATTERNS.TRANSACTIONAL_CREATE)
+      expect(request?.body, 'Transactional create body should not be empty').toBeTruthy()
 
-      if (request && request.body) {
-        const body = request.body as Record<string, unknown>
-
-        // Check for notification object
-        if (body.notification) {
-          const notification = body.notification as Record<string, unknown>
-          expect(notification.name).toBe(testTransactionalData.name)
-          expect(notification.id).toBe(testTransactionalData.id)
+      const body = request!.body as {
+        workspace_id?: string
+        notification?: {
+          id?: string
+          name?: string
+          description?: string
+          channels?: { email?: { template_id?: string } }
+          tracking_settings?: Record<string, unknown>
         }
       }
+
+      expect(body.workspace_id).toBe(WORKSPACE_ID)
+      expect(body.notification?.id).toBe(expectedId)
+      expect(body.notification?.name).toBe(testTransactionalData.name)
+      expect(body.notification?.description).toBe(testTransactionalData.description)
+      expect(body.notification?.channels?.email?.template_id).toBe('tpl-1')
+      expect(body.notification?.tracking_settings?.utm_source).toBe('e2e-test')
+      expect(body.notification?.tracking_settings?.utm_content).toBe(expectedId)
     })
   })
 })

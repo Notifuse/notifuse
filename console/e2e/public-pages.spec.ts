@@ -99,12 +99,10 @@ test.describe('Public Pages Load', () => {
     // Wait for page to be fully loaded
     await page.waitForLoadState('networkidle')
 
-    // The logout page should redirect to signin (or setup if not configured)
-    // After logout, user is typically redirected to sign in
-    await expect(page).toHaveURL(/signin|logout|setup/, { timeout: 10000 })
-
-    // Page should load without crashing
-    await expect(page.locator('body')).toBeVisible()
+    // Logging out drops the session and lands on the sign in form
+    await expect(page).toHaveURL(/\/console\/signin/, { timeout: 10000 })
+    await expect(page.locator('.ant-card-head-title').filter({ hasText: 'Sign In' })).toBeVisible()
+    await expect(page.locator('input[type="email"]')).toBeVisible()
 
     // Check for critical console errors
     const criticalErrors = errors.filter(
@@ -116,23 +114,31 @@ test.describe('Public Pages Load', () => {
   test('AcceptInvitationPage loads correctly', async ({ page }) => {
     const errors = setupConsoleErrorTracking(page)
 
+    // A token the backend refuses, which is what an expired invitation link looks like.
+    // Registered after the catch-all in beforeEach, so it wins.
+    await page.route('**/api/workspaces.verifyInvitationToken', (route: Route) =>
+      route.fulfill({
+        status: 400,
+        contentType: 'application/json',
+        body: JSON.stringify({ error: 'invitation token is invalid or has expired' })
+      })
+    )
+
     await page.goto('/console/accept-invitation?token=test-token')
 
     // Wait for page to be fully loaded
     await page.waitForLoadState('networkidle')
 
-    // The page should load without crashing
-    // It may show an error for invalid token, but that's expected
-    await expect(page.locator('body')).toBeVisible()
+    // The page reports the rejection instead of the invitation, and offers a way out.
+    // Scoped to the card because the same message also pops up as a toast.
+    const card = page.locator('.ant-card')
+    await expect(card.getByRole('heading', { name: 'Invalid Invitation' })).toBeVisible()
+    await expect(card.getByText('invitation token is invalid or has expired')).toBeVisible()
+    await expect(card.getByRole('button', { name: 'Go to Sign In' })).toBeVisible()
 
-    // Check for critical console errors - ignore React boundary errors as the page may error without a valid token
+    // Check for critical console errors
     const criticalErrors = errors.filter(
-      (e) =>
-        !e.includes('401') &&
-        !e.includes('Unauthorized') &&
-        !e.includes('Invalid') &&
-        !e.includes('error boundary') &&
-        !e.includes('AcceptInvitationPage')
+      (e) => !e.includes('401') && !e.includes('Unauthorized') && !e.includes('invitation token')
     )
     expect(criticalErrors).toHaveLength(0)
   })
@@ -150,8 +156,11 @@ test.describe('Public Pages Load', () => {
     // Wait for page to be fully loaded
     await page.waitForLoadState('networkidle')
 
-    // The page should load - either showing setup wizard or redirecting
-    await expect(page.locator('body')).toBeVisible()
+    // The wizard asks for the root account and the SMTP settings it sends mail with
+    await expect(page.getByRole('heading', { name: 'Setup' })).toBeVisible()
+    await expect(page.getByText('Root Email')).toBeVisible()
+    await expect(page.getByText('SMTP Configuration')).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Complete Setup' })).toBeVisible()
 
     // Check for critical console errors
     const criticalErrors = errors.filter(

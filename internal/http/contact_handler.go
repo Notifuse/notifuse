@@ -64,6 +64,9 @@ func (h *ContactHandler) handleList(w http.ResponseWriter, r *http.Request) {
 	response, err := h.service.GetContacts(r.Context(), domainReq)
 	if err != nil {
 		h.logger.Error(fmt.Sprintf("Failed to get contacts: %v", err))
+		if writeServiceError(w, err, "You do not have access to this workspace") {
+			return
+		}
 		http.Error(w, "Failed to get contacts", http.StatusInternalServerError)
 		return
 	}
@@ -93,6 +96,9 @@ func (h *ContactHandler) handleCount(w http.ResponseWriter, r *http.Request) {
 	count, err := h.service.CountContacts(r.Context(), workspaceID)
 	if err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to count contacts")
+		if writeServiceError(w, err, "You do not have access to this workspace") {
+			return
+		}
 		WriteJSONError(w, "Failed to count contacts", http.StatusInternalServerError)
 		return
 	}
@@ -127,6 +133,9 @@ func (h *ContactHandler) handleGetByEmail(w http.ResponseWriter, r *http.Request
 			return
 		}
 		h.logger.WithField("error", err.Error()).Error("Failed to get contact by email")
+		if writeServiceError(w, err, "You do not have access to this workspace") {
+			return
+		}
 		WriteJSONError(w, "Failed to get contact by email", http.StatusInternalServerError)
 		return
 	}
@@ -161,6 +170,9 @@ func (h *ContactHandler) handleGetByExternalID(w http.ResponseWriter, r *http.Re
 			return
 		}
 		h.logger.WithField("error", err.Error()).Error("Failed to get contact by external ID")
+		if writeServiceError(w, err, "You do not have access to this workspace") {
+			return
+		}
 		WriteJSONError(w, "Failed to get contact by external ID", http.StatusInternalServerError)
 		return
 	}
@@ -194,6 +206,9 @@ func (h *ContactHandler) handleDelete(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		h.logger.WithField("error", err.Error()).Error("Failed to delete contact")
+		if writeServiceError(w, err, "You do not have access to this workspace") {
+			return
+		}
 		WriteJSONError(w, "Failed to delete contact", http.StatusInternalServerError)
 		return
 	}
@@ -233,6 +248,12 @@ func (h *ContactHandler) handleImport(w http.ResponseWriter, r *http.Request) {
 	result := h.service.BatchImportContacts(r.Context(), workspaceID, contacts, req.SubscribeToLists)
 	if result.Error != "" {
 		h.logger.WithField("error", result.Error).Error("Failed to import contacts")
+		// The import reports its refusal through the response rather than an error
+		// return, so the denial is read off result.Err — the string in result.Error
+		// carries no type to match on.
+		if writeServiceError(w, result.Err, "You do not have access to this workspace") {
+			return
+		}
 		WriteJSONError(w, result.Error, http.StatusInternalServerError)
 		return
 	}
@@ -284,6 +305,11 @@ func (h *ContactHandler) handleUpsert(w http.ResponseWriter, r *http.Request) {
 	result := h.service.UpsertContact(r.Context(), workspaceID, contact)
 	if result.Action == domain.UpsertContactOperationError {
 		h.logger.WithField("error", result.Error).Error("Failed to upsert contact")
+		// Same as the import route: the operation struct is the only channel the
+		// service has, so the typed denial travels on result.Err.
+		if writeServiceError(w, result.Err, "You do not have access to this workspace") {
+			return
+		}
 		WriteJSONError(w, result.Error, http.StatusBadRequest)
 		return
 	}

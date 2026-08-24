@@ -6,9 +6,10 @@ import { ReactNode } from 'react'
 import { App, ConfigProvider } from 'antd'
 import { I18nProvider } from '@lingui/react'
 import { i18n } from '@lingui/core'
+import { createFullPermissions } from '../services/api/permissions'
 
 // Use vi.hoisted to define mock data before mocks are hoisted
-const { mockWorkspace, mockUser, mockPermissions } = vi.hoisted(() => ({
+const { mockWorkspace, mockUser } = vi.hoisted(() => ({
   mockWorkspace: {
     id: 'test-workspace',
     name: 'Test Workspace',
@@ -23,18 +24,6 @@ const { mockWorkspace, mockUser, mockPermissions } = vi.hoisted(() => ({
   mockUser: {
     id: 'user-123',
     email: 'test@example.com'
-  },
-  mockPermissions: {
-    contacts: { read: true, write: true },
-    lists: { read: true, write: true },
-    templates: { read: true, write: true },
-    broadcasts: { read: true, write: true },
-    transactional: { read: true, write: true },
-    workspace: { read: true, write: true },
-    message_history: { read: true, write: true },
-    blog: { read: true, write: true },
-    automations: { read: true, write: true },
-    web_analytics: { read: true, write: true }
   }
 }))
 
@@ -86,7 +75,7 @@ vi.mock('../contexts/AuthContext', () => ({
     refreshWorkspaces: vi.fn()
   }),
   useWorkspacePermissions: () => ({
-    permissions: mockPermissions,
+    permissions: createFullPermissions(),
     loading: false
   }),
   AuthProvider: ({ children }: { children: ReactNode }) => children

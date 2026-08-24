@@ -3368,3 +3368,58 @@ func TestTaskService_ExecuteTask_InterruptionMaskedByTxDone(t *testing.T) {
 		t.Fatal("the task was never re-queued")
 	}
 }
+
+// TestNewDispatchRequest_IsSigned pins the credential the dispatch carries.
+// /api/tasks.execute has no session to authenticate — the caller is this process
+// talking to itself through the ingress — so an unsigned dispatch is
+// indistinguishable from anyone else's and the handler rejects it.
+func TestNewDispatchRequest_IsSigned(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	newService := func() *TaskService {
+		return NewTaskService(
+			mocks.NewMockTaskRepository(ctrl),
+			mocks.NewMockSettingRepository(ctrl),
+			pkgmocks.NewMockLogger(ctrl),
+			nil,
+			"https://api.example.com",
+		)
+	}
+
+	task := &domain.Task{ID: "task-1", WorkspaceID: "ws-1", MaxRuntime: 50}
+	body := []byte(`{"workspace_id":"ws-1","id":"task-1"}`)
+
+	t.Run("the signature verifies against the path and the body", func(t *testing.T) {
+		svc := newService()
+		svc.SetSecretKey("installation-secret")
+
+		req, cancel, err := svc.newDispatchRequest(context.Background(), task, body)
+		require.NoError(t, err)
+		defer cancel()
+
+		timestamp, err := domain.ParseTaskExecuteTimestamp(req.Header.Get(domain.TaskExecuteTimestampHeader))
+		require.NoError(t, err)
+
+		key := domain.TaskExecuteSigningKey("installation-secret")
+		assert.NoError(t, domain.VerifyTaskExecuteSignature(key, timestamp, req.URL.Path, body,
+			req.Header.Get(domain.TaskExecuteSignatureHeader), time.Now()))
+
+		// The body is inside the signed content, so the same headers do not
+		// authenticate a dispatch for another task.
+		other := []byte(`{"workspace_id":"ws-1","id":"task-2"}`)
+		assert.Error(t, domain.VerifyTaskExecuteSignature(key, timestamp, req.URL.Path, other,
+			req.Header.Get(domain.TaskExecuteSignatureHeader), time.Now()))
+	})
+
+	t.Run("no secret key means no signature headers", func(t *testing.T) {
+		svc := newService()
+
+		req, cancel, err := svc.newDispatchRequest(context.Background(), task, body)
+		require.NoError(t, err)
+		defer cancel()
+
+		assert.Empty(t, req.Header.Get(domain.TaskExecuteTimestampHeader))
+		assert.Empty(t, req.Header.Get(domain.TaskExecuteSignatureHeader))
+	})
+}

@@ -717,7 +717,7 @@ func TestNegatedSegmentBuildsMembership(t *testing.T) {
 	require.Equal(t, http.StatusOK, rebuildResp.StatusCode)
 	_ = rebuildResp.Body.Close()
 
-	execResp, err := client.Post("/api/tasks.execute", map[string]interface{}{"limit": 10})
+	execResp, err := client.ExecuteTask(map[string]interface{}{"limit": 10})
 	require.NoError(t, err)
 	_ = execResp.Body.Close()
 

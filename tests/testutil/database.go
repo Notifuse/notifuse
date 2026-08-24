@@ -154,7 +154,7 @@ func (dm *DatabaseManager) SeedTestData() error {
 	}
 
 	// testGlobalKey is used for encrypting workspace settings
-	testGlobalKey := "test-secret-key-for-integration-tests-only" // Must match server.go SecurityConfig.SecretKey
+	testGlobalKey := TestSecretKey
 
 	// Create test users with valid UUIDs (using different emails to avoid conflict with root user)
 	testUsers := []struct {

@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"database/sql"
 	"encoding/json"
 	"net/http"
 	"testing"
@@ -76,60 +77,36 @@ func TestTaskHandler(t *testing.T) {
 
 func testTaskCRUD(t *testing.T, client *testutil.APIClient, factory *testutil.TestDataFactory, workspaceID string) {
 	t.Run("Create Task", func(t *testing.T) {
-		t.Run("should create task successfully", func(t *testing.T) {
-			createRequest := map[string]interface{}{
-				"workspace_id":   workspaceID,
-				"type":           "test_task",
-				"max_runtime":    600,
-				"max_retries":    5,
-				"retry_interval": 120,
-				"state": map[string]interface{}{
-					"progress": 0.0,
-					"message":  "Task created",
-				},
-			}
-
-			resp, err := client.CreateTask(createRequest)
-			require.NoError(t, err)
-			defer func() { _ = resp.Body.Close() }()
-
-			assert.Equal(t, http.StatusCreated, resp.StatusCode)
-
-			var result map[string]interface{}
-			err = json.NewDecoder(resp.Body).Decode(&result)
-			require.NoError(t, err)
-
-			taskData, ok := result["task"].(map[string]interface{})
-			require.True(t, ok)
-			assert.Equal(t, "test_task", taskData["type"])
-			assert.Equal(t, "pending", taskData["status"])
-			assert.Equal(t, workspaceID, taskData["workspace_id"])
-		})
-
-		t.Run("should fail with invalid request", func(t *testing.T) {
-			createRequest := map[string]interface{}{
+		t.Run("the route is gone", func(t *testing.T) {
+			// Tasks are created by the services that own them. Over HTTP, naming
+			// a type and a state meant naming a draft broadcast and sending it.
+			resp, err := client.Post("/api/tasks.create", map[string]interface{}{
 				"workspace_id": workspaceID,
-				// Missing required type field
-			}
-
-			resp, err := client.CreateTask(createRequest)
+				"type":         "send_broadcast",
+			})
 			require.NoError(t, err)
 			defer func() { _ = resp.Body.Close() }()
 
-			assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
-		})
+			// The path stays routed so the refusal is explicit: left unrouted it
+			// would fall through to the console SPA catch-all, which answers 200
+			// with an empty body — indistinguishable from success.
+			require.Equal(t, http.StatusGone, resp.StatusCode)
 
-		t.Run("should fail with empty workspace_id", func(t *testing.T) {
-			createRequest := map[string]interface{}{
-				"workspace_id": "",
-				"type":         "test_task",
-			}
+			var response map[string]interface{}
+			require.NoError(t, json.NewDecoder(resp.Body).Decode(&response))
+			assert.NotContains(t, response, "task")
+			assert.NotEmpty(t, response["error"])
 
-			resp, err := client.CreateTask(createRequest)
+			listResp, err := client.Get("/api/tasks.list", map[string]string{"workspace_id": workspaceID})
 			require.NoError(t, err)
-			defer func() { _ = resp.Body.Close() }()
+			defer func() { _ = listResp.Body.Close() }()
+			require.Equal(t, http.StatusOK, listResp.StatusCode)
 
-			assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+			var listResponse struct {
+				Tasks []json.RawMessage `json:"tasks"`
+			}
+			require.NoError(t, json.NewDecoder(listResp.Body).Decode(&listResponse))
+			assert.Empty(t, listResponse.Tasks, "the request must not have created a task")
 		})
 	})
 
@@ -137,7 +114,7 @@ func testTaskCRUD(t *testing.T, client *testutil.APIClient, factory *testutil.Te
 		t.Run("should get task successfully", func(t *testing.T) {
 			// Create a task first
 			task, err := factory.CreateTask(workspaceID,
-				testutil.WithTaskType("get_test_task"),
+				testutil.WithTaskType("send_broadcast"),
 				testutil.WithTaskProgress(25.5))
 			require.NoError(t, err)
 
@@ -154,7 +131,7 @@ func testTaskCRUD(t *testing.T, client *testutil.APIClient, factory *testutil.Te
 			taskData, ok := result["task"].(map[string]interface{})
 			require.True(t, ok)
 			assert.Equal(t, task.ID, taskData["id"])
-			assert.Equal(t, "get_test_task", taskData["type"])
+			assert.Equal(t, "send_broadcast", taskData["type"])
 			assert.Equal(t, 25.5, taskData["progress"])
 		})
 
@@ -180,9 +157,9 @@ func testTaskCRUD(t *testing.T, client *testutil.APIClient, factory *testutil.Te
 	t.Run("List Tasks", func(t *testing.T) {
 		t.Run("should list all tasks", func(t *testing.T) {
 			// Create multiple tasks
-			_, err := factory.CreateTask(workspaceID, testutil.WithTaskType("list_test_1"))
+			_, err := factory.CreateTask(workspaceID, testutil.WithTaskType("send_broadcast"))
 			require.NoError(t, err)
-			_, err = factory.CreateTask(workspaceID, testutil.WithTaskType("list_test_2"))
+			_, err = factory.CreateTask(workspaceID, testutil.WithTaskType("build_segment"))
 			require.NoError(t, err)
 
 			params := map[string]string{
@@ -207,12 +184,12 @@ func testTaskCRUD(t *testing.T, client *testutil.APIClient, factory *testutil.Te
 		t.Run("should filter tasks by status", func(t *testing.T) {
 			// Create tasks with different statuses
 			_, err := factory.CreateTask(workspaceID,
-				testutil.WithTaskType("filter_test_pending"),
+				testutil.WithTaskType("send_broadcast"),
 				testutil.WithTaskStatus(domain.TaskStatusPending))
 			require.NoError(t, err)
 
 			_, err = factory.CreateTask(workspaceID,
-				testutil.WithTaskType("filter_test_running"),
+				testutil.WithTaskType("send_broadcast"),
 				testutil.WithTaskStatus(domain.TaskStatusRunning))
 			require.NoError(t, err)
 
@@ -243,12 +220,12 @@ func testTaskCRUD(t *testing.T, client *testutil.APIClient, factory *testutil.Te
 
 		t.Run("should filter tasks by type", func(t *testing.T) {
 			// Create tasks with different types
-			_, err := factory.CreateTask(workspaceID, testutil.WithTaskType("type_filter_test"))
+			_, err := factory.CreateTask(workspaceID, testutil.WithTaskType("sync_integration"))
 			require.NoError(t, err)
 
 			params := map[string]string{
 				"workspace_id": workspaceID,
-				"type":         "type_filter_test",
+				"type":         "sync_integration",
 			}
 
 			resp, err := client.ListTasks(params)
@@ -267,7 +244,7 @@ func testTaskCRUD(t *testing.T, client *testutil.APIClient, factory *testutil.Te
 			// Verify all returned tasks have the correct type
 			for _, taskInterface := range tasks {
 				taskData := taskInterface.(map[string]interface{})
-				assert.Equal(t, "type_filter_test", taskData["type"])
+				assert.Equal(t, "sync_integration", taskData["type"])
 			}
 		})
 
@@ -297,7 +274,7 @@ func testTaskCRUD(t *testing.T, client *testutil.APIClient, factory *testutil.Te
 	t.Run("Delete Task", func(t *testing.T) {
 		t.Run("should delete task successfully", func(t *testing.T) {
 			// Create a task to delete
-			task, err := factory.CreateTask(workspaceID, testutil.WithTaskType("delete_test"))
+			task, err := factory.CreateTask(workspaceID, testutil.WithTaskType("send_broadcast"))
 			require.NoError(t, err)
 
 			resp, err := client.DeleteTask(workspaceID, task.ID)
@@ -449,7 +426,7 @@ func testTaskStateManagement(t *testing.T, client *testutil.APIClient, factory *
 	t.Run("Task Status Transitions", func(t *testing.T) {
 		// Create a task and test various state transitions
 		task, err := factory.CreateTask(workspaceID,
-			testutil.WithTaskType("state_test"),
+			testutil.WithTaskType("send_broadcast"),
 			testutil.WithTaskStatus(domain.TaskStatusPending))
 		require.NoError(t, err)
 
@@ -497,7 +474,7 @@ func testTaskStateManagement(t *testing.T, client *testutil.APIClient, factory *
 
 	t.Run("Task Failure Handling", func(t *testing.T) {
 		failTask, err := factory.CreateTask(workspaceID,
-			testutil.WithTaskType("fail_test"),
+			testutil.WithTaskType("send_broadcast"),
 			testutil.WithTaskMaxRetries(2))
 		require.NoError(t, err)
 
@@ -524,7 +501,7 @@ func testTaskStateManagement(t *testing.T, client *testutil.APIClient, factory *
 
 	t.Run("Task Pause and Resume", func(t *testing.T) {
 		pauseTask, err := factory.CreateTask(workspaceID,
-			testutil.WithTaskType("pause_test"),
+			testutil.WithTaskType("send_broadcast"),
 			testutil.WithTaskStatus(domain.TaskStatusRunning))
 		require.NoError(t, err)
 
@@ -581,7 +558,7 @@ func testTaskRepositoryOperations(t *testing.T, client *testutil.APIClient, fact
 	t.Run("Basic Task Persistence", func(t *testing.T) {
 		// Create simple task
 		task, err := factory.CreateTask(workspaceID,
-			testutil.WithTaskType("persistence_test"))
+			testutil.WithTaskType("sync_integration"))
 		require.NoError(t, err)
 
 		// Retrieve and verify task exists
@@ -597,11 +574,11 @@ func testTaskRepositoryOperations(t *testing.T, client *testutil.APIClient, fact
 
 		taskData := result["task"].(map[string]interface{})
 		assert.Equal(t, task.ID, taskData["id"])
-		assert.Equal(t, "persistence_test", taskData["type"])
+		assert.Equal(t, "sync_integration", taskData["type"])
 	})
 
 	t.Run("Task Status Updates", func(t *testing.T) {
-		task, err := factory.CreateTask(workspaceID, testutil.WithTaskType("status_update_test"))
+		task, err := factory.CreateTask(workspaceID, testutil.WithTaskType("send_broadcast"))
 		require.NoError(t, err)
 
 		// Mark as running
@@ -796,9 +773,6 @@ func TestTaskAuthentication(t *testing.T) {
 			name string
 			fn   func() (*http.Response, error)
 		}{
-			{"create", func() (*http.Response, error) {
-				return client.CreateTask(map[string]interface{}{"workspace_id": workspace.ID, "type": "auth_test"})
-			}},
 			{"get", func() (*http.Response, error) {
 				return client.GetTask(workspace.ID, testTaskID)
 			}},
@@ -825,19 +799,40 @@ func TestTaskAuthentication(t *testing.T) {
 		// Use valid UUID format for test IDs
 		testTaskID := "00000000-0000-0000-0000-000000000000"
 
-		t.Run("execute endpoint", func(t *testing.T) {
+		t.Run("execute endpoint accepts a signed dispatch", func(t *testing.T) {
 			resp, err := client.ExecuteTask(map[string]interface{}{"workspace_id": workspace.ID, "id": testTaskID})
 			require.NoError(t, err)
 			defer func() { _ = resp.Body.Close() }()
 
-			// Should not be unauthorized - may return 404 for non-existent task, but not 401
-			assert.NotEqual(t, http.StatusUnauthorized, resp.StatusCode)
+			// No session is involved, so the signature is what gets it in: 404
+			// for a task that does not exist, never 401.
+			assert.Equal(t, http.StatusNotFound, resp.StatusCode)
+		})
+
+		t.Run("execute endpoint refuses an unsigned dispatch", func(t *testing.T) {
+			resp, err := client.Post("/api/tasks.execute",
+				map[string]interface{}{"workspace_id": workspace.ID, "id": testTaskID})
+			require.NoError(t, err)
+			defer func() { _ = resp.Body.Close() }()
+
+			assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
+		})
+
+		t.Run("execute endpoint refuses another installation's key", func(t *testing.T) {
+			client.SetSigningSecret("some-other-installations-secret")
+			defer client.SetSigningSecret(testutil.TestSecretKey)
+
+			resp, err := client.ExecuteTask(map[string]interface{}{"workspace_id": workspace.ID, "id": testTaskID})
+			require.NoError(t, err)
+			defer func() { _ = resp.Body.Close() }()
+
+			assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
 		})
 
 		t.Run("cron endpoint", func(t *testing.T) {
 			// Create a task to verify execution happens
 			task, err := factory.CreateTask(workspace.ID,
-				testutil.WithTaskType("auth_cron_test"),
+				testutil.WithTaskType("send_broadcast"),
 				testutil.WithTaskStatus(domain.TaskStatusPending))
 			require.NoError(t, err)
 
@@ -870,4 +865,80 @@ func TestTaskAuthentication(t *testing.T) {
 			}
 		})
 	})
+}
+
+// TestTaskExecute_SchedulerEnabledAnswers404 pins that a dispatch to an instance
+// which runs its own scheduler fails loudly.
+//
+// The route used to be registered only when the scheduler was off, so on a
+// default install the dispatch fell through to the console SPA catch-all and came
+// back 200 with an empty body. A dispatcher misconfigured that way read success
+// and dropped every execution silently — which is how an interrupted broadcast
+// could be "resumed" by a request that did nothing at all.
+//
+// The dispatched task EXISTS, and that is what makes the test say anything: a
+// dispatch-enabled instance answers 404 for an unknown id as well (TestTaskAuthentication
+// asserts exactly that), so an unknown id cannot tell the two builds apart. A task
+// the handler could have executed can — the refusal arrives before the handler
+// ever reads the id, so the row is untouched afterwards. The unsigned dispatch
+// covers the other end of the same wiring: on a dispatch-enabled instance it is
+// 401, because the signature check runs; here it must be 404, because nothing
+// downstream of the rejection runs at all.
+func TestTaskExecute_SchedulerEnabledAnswers404(t *testing.T) {
+	testutil.SkipIfShort(t)
+	testutil.SetupTestEnvironment()
+	defer testutil.CleanupTestEnvironment()
+
+	suite := testutil.NewIntegrationTestSuiteWithDirectScheduler(t, func(cfg *config.Config) testutil.AppInterface {
+		return app.NewApp(cfg)
+	})
+	defer func() { suite.Cleanup() }()
+
+	client := suite.APIClient
+	db := suite.DBManager.GetDB()
+	workspace, err := suite.DataFactory.CreateWorkspace()
+	require.NoError(t, err)
+
+	// send_broadcast has a registered processor, so a dispatch-enabled instance
+	// reaching this task would claim it and stamp last_run_at before running
+	// anything. next_run_after keeps the in-process scheduler — which is live in
+	// this suite, that being the point of it — from picking the task up on its own
+	// ticker and confusing the question.
+	task, err := suite.DataFactory.CreateTask(workspace.ID,
+		testutil.WithTaskType("send_broadcast"),
+		testutil.WithTaskNextRunAfter(time.Now().UTC().Add(time.Hour)))
+	require.NoError(t, err)
+
+	resp, err := client.ExecuteTask(map[string]interface{}{
+		"workspace_id": workspace.ID,
+		"id":           task.ID,
+	})
+	require.NoError(t, err)
+	defer func() { _ = resp.Body.Close() }()
+
+	assert.Equal(t, http.StatusNotFound, resp.StatusCode,
+		"a correctly signed dispatch to a scheduler-enabled instance must be refused, not silently accepted")
+
+	var body map[string]interface{}
+	require.NoError(t, json.NewDecoder(resp.Body).Decode(&body))
+	assert.NotEmpty(t, body["error"],
+		"the refusal must carry a JSON error — an empty body is the SPA fall-through this replaces")
+
+	var status string
+	var lastRunAt sql.NullTime
+	require.NoError(t, db.QueryRow(
+		`SELECT status, last_run_at FROM tasks WHERE id = $1`, task.ID).Scan(&status, &lastRunAt))
+	assert.Equal(t, string(domain.TaskStatusPending), status,
+		"the task must still be waiting for the in-process scheduler")
+	assert.False(t, lastRunAt.Valid, "the task must never have been claimed")
+
+	unsigned, err := client.Post("/api/tasks.execute", map[string]interface{}{
+		"workspace_id": workspace.ID,
+		"id":           task.ID,
+	})
+	require.NoError(t, err)
+	defer func() { _ = unsigned.Body.Close() }()
+
+	assert.Equal(t, http.StatusNotFound, unsigned.StatusCode,
+		"the rejection precedes the signature check, so an unsigned dispatch gets 404 here and 401 on a dispatch-enabled instance")
 }

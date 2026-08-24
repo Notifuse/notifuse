@@ -54,6 +54,9 @@ func (h *ListHandler) handleList(w http.ResponseWriter, r *http.Request) {
 	lists, err := h.service.GetLists(r.Context(), req.WorkspaceID)
 	if err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to get lists")
+		if writeServiceError(w, err, "You do not have access to this workspace") {
+			return
+		}
 		WriteJSONError(w, "Failed to get lists", http.StatusInternalServerError)
 		return
 	}
@@ -82,6 +85,9 @@ func (h *ListHandler) handleGet(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		h.logger.WithField("error", err.Error()).Error("Failed to get list")
+		if writeServiceError(w, err, "You do not have access to this workspace") {
+			return
+		}
 		WriteJSONError(w, "Failed to get list", http.StatusInternalServerError)
 		return
 	}
@@ -112,6 +118,9 @@ func (h *ListHandler) handleCreate(w http.ResponseWriter, r *http.Request) {
 
 	if err := h.service.CreateList(r.Context(), workspaceID, list); err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to create list")
+		if writeServiceError(w, err, "You do not have access to this workspace") {
+			return
+		}
 		WriteJSONError(w, "Failed to create list", http.StatusInternalServerError)
 		return
 	}
@@ -146,6 +155,9 @@ func (h *ListHandler) handleUpdate(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		h.logger.WithField("error", err.Error()).Error("Failed to update list")
+		if writeServiceError(w, err, "You do not have access to this workspace") {
+			return
+		}
 		WriteJSONError(w, "Failed to update list", http.StatusInternalServerError)
 		return
 	}
@@ -180,6 +192,9 @@ func (h *ListHandler) handleDelete(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		h.logger.WithField("error", err.Error()).Error("Failed to delete list")
+		if writeServiceError(w, err, "You do not have access to this workspace") {
+			return
+		}
 		WriteJSONError(w, "Failed to delete list", http.StatusInternalServerError)
 		return
 	}
@@ -210,6 +225,9 @@ func (h *ListHandler) handleStats(w http.ResponseWriter, r *http.Request) {
 	stats, err := h.service.GetListStats(r.Context(), workspaceID, listID)
 	if err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to get stats")
+		if writeServiceError(w, err, "You do not have access to this workspace") {
+			return
+		}
 		WriteJSONError(w, "Failed to get stats", http.StatusInternalServerError)
 		return
 	}
@@ -242,6 +260,9 @@ func (h *ListHandler) handleSubscribe(w http.ResponseWriter, r *http.Request) {
 	hasBearerToken := true
 	if err := h.service.SubscribeToLists(r.Context(), &req, hasBearerToken); err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to subscribe to lists")
+		if writeServiceError(w, err, "You do not have access to this workspace") {
+			return
+		}
 		WriteJSONError(w, "Failed to subscribe to lists", http.StatusInternalServerError)
 		return
 	}

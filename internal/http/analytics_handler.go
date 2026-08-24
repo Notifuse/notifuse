@@ -77,6 +77,9 @@ func (h *AnalyticsHandler) handleQuery(w http.ResponseWriter, r *http.Request) {
 	response, err := h.service.Query(r.Context(), req.WorkspaceID, req.Query)
 	if err != nil {
 		h.logger.WithField("workspace_id", req.WorkspaceID).WithField("error", err.Error()).Error("Analytics query failed")
+		if writeServiceError(w, err, "You do not have access to this workspace") {
+			return
+		}
 		h.writeErrorResponse(w, http.StatusInternalServerError, fmt.Sprintf("Query failed: %v", err))
 		return
 	}
@@ -109,6 +112,9 @@ func (h *AnalyticsHandler) handleGetSchemas(w http.ResponseWriter, r *http.Reque
 	schemas, err := h.service.GetSchemas(r.Context(), req.WorkspaceID)
 	if err != nil {
 		h.logger.WithField("workspace_id", req.WorkspaceID).WithField("error", err.Error()).Error("Failed to get analytics schemas")
+		if writeServiceError(w, err, "You do not have access to this workspace") {
+			return
+		}
 		h.writeErrorResponse(w, http.StatusInternalServerError, fmt.Sprintf("Failed to get schemas: %v", err))
 		return
 	}

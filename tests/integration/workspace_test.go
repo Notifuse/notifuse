@@ -497,6 +497,7 @@ func TestWorkspaceMembershipSuite(t *testing.T) {
 			inviteReq := domain.InviteMemberRequest{
 				WorkspaceID: workspaceID,
 				Email:       existingUserEmail,
+				Permissions: domain.NewFullPermissions(),
 			}
 
 			resp, err := client.Post("/api/workspaces.inviteMember", inviteReq)
@@ -530,6 +531,7 @@ func TestWorkspaceMembershipSuite(t *testing.T) {
 			inviteReq := domain.InviteMemberRequest{
 				WorkspaceID: workspaceID,
 				Email:       newUserEmail,
+				Permissions: domain.NewFullPermissions(),
 			}
 
 			resp, err := client.Post("/api/workspaces.inviteMember", inviteReq)
@@ -558,6 +560,7 @@ func TestWorkspaceMembershipSuite(t *testing.T) {
 			inviteReq := domain.InviteMemberRequest{
 				WorkspaceID: workspaceID,
 				Email:       "invalid-email",
+				Permissions: domain.NewFullPermissions(),
 			}
 
 			resp, err := client.Post("/api/workspaces.inviteMember", inviteReq)
@@ -565,6 +568,26 @@ func TestWorkspaceMembershipSuite(t *testing.T) {
 			defer resp.Body.Close()
 
 			assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+		})
+
+		t.Run("invitation without permissions is rejected", func(t *testing.T) {
+			// An API caller that omits the field would otherwise create a member who
+			// can do nothing, stored as a row no permission backfill can ever repair.
+			resp, err := client.Post("/api/workspaces.inviteMember", map[string]interface{}{
+				"workspace_id": workspaceID,
+				"email":        "no-permissions@example.com",
+			})
+			require.NoError(t, err)
+			defer resp.Body.Close()
+
+			assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+
+			var count int
+			require.NoError(t, db.QueryRow(
+				"SELECT COUNT(*) FROM workspace_invitations WHERE workspace_id = $1 AND email = $2",
+				workspaceID, "no-permissions@example.com",
+			).Scan(&count))
+			assert.Equal(t, 0, count)
 		})
 	})
 
@@ -581,6 +604,7 @@ func TestWorkspaceMembershipSuite(t *testing.T) {
 			inviteReq := domain.InviteMemberRequest{
 				WorkspaceID: workspaceID,
 				Email:       newUserEmail,
+				Permissions: domain.NewFullPermissions(),
 			}
 
 			resp, err := client.Post("/api/workspaces.inviteMember", inviteReq)
@@ -745,6 +769,7 @@ func TestWorkspaceMembershipSuite(t *testing.T) {
 		inviteReq := domain.InviteMemberRequest{
 			WorkspaceID: workspaceID,
 			Email:       memberEmail,
+			Permissions: domain.NewFullPermissions(),
 		}
 		inviteResp, err := client.Post("/api/workspaces.inviteMember", inviteReq)
 		require.NoError(t, err)
@@ -1056,6 +1081,57 @@ func TestWorkspaceFeaturesSuite(t *testing.T) {
 	// =========================================================================
 	t.Run("APIKey", func(t *testing.T) {
 		workspaceID := createTestWorkspaceWithToken(t, client, ownerToken, "API Key Test Workspace")
+		db := suite.DBManager.GetDB()
+
+		// createAPIKey posts workspaces.createAPIKey as the owner and returns the
+		// status alongside the decoded body. req is taken as interface{} so a case
+		// can send a raw map: CreateAPIKeyRequest.Permissions is omitempty, so an
+		// explicitly empty map cannot be expressed through the struct.
+		createAPIKey := func(t *testing.T, req interface{}) (int, map[string]interface{}) {
+			t.Helper()
+			client.SetToken(ownerToken)
+			resp, err := client.Post("/api/workspaces.createAPIKey", req)
+			require.NoError(t, err)
+			defer resp.Body.Close()
+
+			var body map[string]interface{}
+			require.NoError(t, json.NewDecoder(resp.Body).Decode(&body))
+			return resp.StatusCode, body
+		}
+
+		// getAs issues a workspace-scoped GET with the given token and restores the
+		// owner's token, so a subtest driving a key cannot leak it to the next one.
+		getAs := func(t *testing.T, token, endpoint string) int {
+			t.Helper()
+			client.SetToken(token)
+			defer client.SetToken(ownerToken)
+
+			resp, err := client.Get(endpoint, map[string]string{"workspace_id": workspaceID})
+			require.NoError(t, err)
+			defer resp.Body.Close()
+			return resp.StatusCode
+		}
+
+		// keyUserID resolves the users row behind an API key email. An API key is a
+		// member row, so its user_id is what workspaces.setUserPermissions targets.
+		keyUserID := func(t *testing.T, email string) string {
+			t.Helper()
+			var userID string
+			require.NoError(t, db.QueryRow("SELECT id FROM users WHERE email = $1", email).Scan(&userID))
+			return userID
+		}
+
+		// storedPermissions returns the membership row's permissions column as text,
+		// so a case can tell SQL NULL apart from '{}'.
+		storedPermissions := func(t *testing.T, userID string) sql.NullString {
+			t.Helper()
+			var raw sql.NullString
+			require.NoError(t, db.QueryRow(
+				`SELECT permissions::text FROM user_workspaces WHERE user_id = $1 AND workspace_id = $2`,
+				userID, workspaceID,
+			).Scan(&raw))
+			return raw
+		}
 
 		t.Run("create API key as owner", func(t *testing.T) {
 			createReq := domain.CreateAPIKeyRequest{
@@ -1095,6 +1171,139 @@ func TestWorkspaceFeaturesSuite(t *testing.T) {
 			defer resp.Body.Close()
 
 			assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+		})
+
+		t.Run("invalid email prefix is rejected", func(t *testing.T) {
+			status, _ := createAPIKey(t, domain.CreateAPIKeyRequest{
+				WorkspaceID: workspaceID,
+				EmailPrefix: "Bad Prefix", // uppercase and a space
+			})
+
+			assert.Equal(t, http.StatusBadRequest, status)
+		})
+
+		t.Run("duplicate email prefix conflicts", func(t *testing.T) {
+			// users.email is unique across the deployment, so a prefix can be claimed once.
+			status, _ := createAPIKey(t, domain.CreateAPIKeyRequest{
+				WorkspaceID: workspaceID,
+				EmailPrefix: "duplicate-prefix",
+			})
+			require.Equal(t, http.StatusOK, status)
+
+			status, _ = createAPIKey(t, domain.CreateAPIKeyRequest{
+				WorkspaceID: workspaceID,
+				EmailPrefix: "duplicate-prefix",
+			})
+
+			assert.Equal(t, http.StatusConflict, status)
+		})
+
+		t.Run("key created without a permissions field keeps full access", func(t *testing.T) {
+			status, body := createAPIKey(t, domain.CreateAPIKeyRequest{
+				WorkspaceID: workspaceID,
+				EmailPrefix: "legacy-shape",
+			})
+			require.Equal(t, http.StatusOK, status)
+
+			keyToken := body["token"].(string)
+			require.NotEmpty(t, keyToken)
+
+			// The pre-39.0 request shape carries no permissions map, and must keep
+			// producing the key it produced before the field existed.
+			assert.Equal(t, http.StatusOK, getAs(t, keyToken, "/api/transactional.list"))
+			assert.Equal(t, http.StatusOK, getAs(t, keyToken, "/api/broadcasts.list"))
+
+			raw := storedPermissions(t, keyUserID(t, body["email"].(string)))
+			require.True(t, raw.Valid)
+			var stored domain.UserPermissions
+			require.NoError(t, json.Unmarshal([]byte(raw.String), &stored))
+			assert.Equal(t, domain.NewFullPermissions(), stored)
+		})
+
+		t.Run("key created with an empty permissions map is denied everywhere", func(t *testing.T) {
+			// Sent as a raw map: the struct field is omitempty, so an explicit {}
+			// would marshal away and be read back as "absent" — i.e. full access.
+			status, body := createAPIKey(t, map[string]interface{}{
+				"workspace_id": workspaceID,
+				"email_prefix": "zero-scope",
+				"permissions":  map[string]interface{}{},
+			})
+			require.Equal(t, http.StatusOK, status)
+
+			keyToken := body["token"].(string)
+			require.NotEmpty(t, keyToken)
+
+			assert.Equal(t, http.StatusForbidden, getAs(t, keyToken, "/api/transactional.list"))
+			assert.Equal(t, http.StatusForbidden, getAs(t, keyToken, "/api/broadcasts.list"))
+
+			// Persisted as '{}' rather than SQL NULL: a NULL row is skipped by every
+			// permission backfill guard and cannot be repaired from the console.
+			raw := storedPermissions(t, keyUserID(t, body["email"].(string)))
+			require.True(t, raw.Valid, "an explicitly empty map must not persist as SQL NULL")
+			assert.Equal(t, "{}", raw.String)
+		})
+
+		t.Run("scoped key is allowed and denied by its permissions map", func(t *testing.T) {
+			status, body := createAPIKey(t, domain.CreateAPIKeyRequest{
+				WorkspaceID: workspaceID,
+				EmailPrefix: "scoped",
+				Permissions: domain.UserPermissions{
+					domain.PermissionResourceTransactional: {Read: true, Write: true},
+				},
+			})
+			require.Equal(t, http.StatusOK, status)
+
+			// The token createAPIKey just returned is the only way to drive a key:
+			// /api/user.signin is the human magic-code flow and refuses api_key
+			// identities, which the subtest below pins.
+			keyToken := body["token"].(string)
+			require.NotEmpty(t, keyToken)
+
+			assert.Equal(t, http.StatusOK, getAs(t, keyToken, "/api/transactional.list"))
+			assert.Equal(t, http.StatusForbidden, getAs(t, keyToken, "/api/broadcasts.list"))
+
+			// Re-scoping an existing key: workspaces.setUserPermissions takes the
+			// key's user_id like any other member's.
+			client.SetToken(ownerToken)
+			resp, err := client.Post("/api/workspaces.setUserPermissions", domain.SetUserPermissionsRequest{
+				WorkspaceID: workspaceID,
+				UserID:      keyUserID(t, body["email"].(string)),
+				Permissions: domain.UserPermissions{
+					domain.PermissionResourceBroadcasts: {Read: true, Write: true},
+				},
+			})
+			require.NoError(t, err)
+			defer resp.Body.Close()
+			require.Equal(t, http.StatusOK, resp.StatusCode)
+
+			// Same token, opposite answers. The JWT carries no permissions claim, so
+			// permissions are read from user_workspaces on every request and editing
+			// a key never requires reissuing or rotating its token.
+			assert.Equal(t, http.StatusOK, getAs(t, keyToken, "/api/broadcasts.list"))
+			assert.Equal(t, http.StatusForbidden, getAs(t, keyToken, "/api/transactional.list"))
+		})
+
+		t.Run("API key identity cannot sign in", func(t *testing.T) {
+			status, body := createAPIKey(t, domain.CreateAPIKeyRequest{
+				WorkspaceID: workspaceID,
+				EmailPrefix: "no-signin",
+			})
+			require.Equal(t, http.StatusOK, status)
+
+			// An API key is a users row with a real, unique email. Without the type
+			// check in SignIn, this mints a human session for it — and hands back the
+			// magic code in the response body on a non-production instance.
+			resp, err := client.Post("/api/user.signin", map[string]string{
+				"email": body["email"].(string),
+			})
+			require.NoError(t, err)
+			defer resp.Body.Close()
+
+			assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+
+			var signinBody map[string]interface{}
+			require.NoError(t, json.NewDecoder(resp.Body).Decode(&signinBody))
+			assert.NotContains(t, signinBody, "code")
 		})
 	})
 }

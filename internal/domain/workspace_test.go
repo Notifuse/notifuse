@@ -811,6 +811,7 @@ func TestInviteMemberRequest_Validate(t *testing.T) {
 			request: InviteMemberRequest{
 				WorkspaceID: "test123",
 				Email:       "test@example.com",
+				Permissions: NewFullPermissions(),
 			},
 			wantErr: false,
 		},
@@ -819,6 +820,7 @@ func TestInviteMemberRequest_Validate(t *testing.T) {
 			request: InviteMemberRequest{
 				WorkspaceID: "",
 				Email:       "test@example.com",
+				Permissions: NewFullPermissions(),
 			},
 			wantErr: true,
 		},
@@ -827,6 +829,7 @@ func TestInviteMemberRequest_Validate(t *testing.T) {
 			request: InviteMemberRequest{
 				WorkspaceID: "test123",
 				Email:       "",
+				Permissions: NewFullPermissions(),
 			},
 			wantErr: true,
 		},
@@ -835,6 +838,36 @@ func TestInviteMemberRequest_Validate(t *testing.T) {
 			request: InviteMemberRequest{
 				WorkspaceID: "test123",
 				Email:       "invalid-email",
+				Permissions: NewFullPermissions(),
+			},
+			wantErr: true,
+		},
+		{
+			name: "nil permissions",
+			request: InviteMemberRequest{
+				WorkspaceID: "test123",
+				Email:       "test@example.com",
+				Permissions: nil,
+			},
+			wantErr: true,
+		},
+		{
+			name: "empty permissions",
+			request: InviteMemberRequest{
+				WorkspaceID: "test123",
+				Email:       "test@example.com",
+				Permissions: UserPermissions{},
+			},
+			wantErr: true,
+		},
+		{
+			name: "unknown resource",
+			request: InviteMemberRequest{
+				WorkspaceID: "test123",
+				Email:       "test@example.com",
+				Permissions: UserPermissions{
+					PermissionResource("nope"): ResourcePermissions{Read: true},
+				},
 			},
 			wantErr: true,
 		},
@@ -2431,6 +2464,85 @@ func TestCreateAPIKeyRequest_Validate(t *testing.T) {
 			request: CreateAPIKeyRequest{
 				WorkspaceID: "",
 				EmailPrefix: "",
+			},
+			wantErr: true,
+		},
+		{
+			name: "email prefix with hyphen",
+			request: CreateAPIKeyRequest{
+				WorkspaceID: "workspace-123",
+				EmailPrefix: "ci-bot_2",
+			},
+			wantErr: false,
+		},
+		{
+			name: "email prefix with uppercase",
+			request: CreateAPIKeyRequest{
+				WorkspaceID: "workspace-123",
+				EmailPrefix: "CiBot",
+			},
+			wantErr: true,
+		},
+		{
+			name: "email prefix with space",
+			request: CreateAPIKeyRequest{
+				WorkspaceID: "workspace-123",
+				EmailPrefix: "ci bot",
+			},
+			wantErr: true,
+		},
+		{
+			name: "email prefix with at sign",
+			request: CreateAPIKeyRequest{
+				WorkspaceID: "workspace-123",
+				EmailPrefix: "ci@bot",
+			},
+			wantErr: true,
+		},
+		{
+			name: "email prefix at the length limit",
+			request: CreateAPIKeyRequest{
+				WorkspaceID: "workspace-123",
+				EmailPrefix: strings.Repeat("a", 64),
+			},
+			wantErr: false,
+		},
+		{
+			name: "email prefix over the length limit",
+			request: CreateAPIKeyRequest{
+				WorkspaceID: "workspace-123",
+				EmailPrefix: strings.Repeat("a", 65),
+			},
+			wantErr: true,
+		},
+		{
+			name: "valid permissions",
+			request: CreateAPIKeyRequest{
+				WorkspaceID: "workspace-123",
+				EmailPrefix: "api",
+				Permissions: UserPermissions{
+					PermissionResourceTransactional: ResourcePermissions{Write: true},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "empty permissions",
+			request: CreateAPIKeyRequest{
+				WorkspaceID: "workspace-123",
+				EmailPrefix: "api",
+				Permissions: UserPermissions{},
+			},
+			wantErr: false,
+		},
+		{
+			name: "unknown permission resource",
+			request: CreateAPIKeyRequest{
+				WorkspaceID: "workspace-123",
+				EmailPrefix: "api",
+				Permissions: UserPermissions{
+					PermissionResource("unicorns"): ResourcePermissions{Read: true},
+				},
 			},
 			wantErr: true,
 		},
@@ -4452,9 +4564,9 @@ func TestUserPermissions_Value(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:    "empty permissions",
+			name:    "empty non-nil permissions",
 			input:   UserPermissions{},
-			wantNil: true,
+			wantNil: false,
 			wantErr: false,
 		},
 		{
@@ -5431,4 +5543,123 @@ func TestWorkspaceSettings_ResolveEndpoint(t *testing.T) {
 			assert.Equal(t, tc.expected, ws.ResolveEndpoint(apiEndpoint))
 		})
 	}
+}
+
+func TestAllPermissionResources(t *testing.T) {
+	assert.Equal(t, []PermissionResource{
+		"contacts",
+		"segments",
+		"lists",
+		"templates",
+		"blog",
+		"broadcasts",
+		"transactional",
+		"automations",
+		"message_history",
+		"web_analytics",
+		"webhook_subscriptions",
+		"webhook_events",
+		"llm",
+		"workspace",
+	}, AllPermissionResources)
+}
+
+func TestNewFullPermissions(t *testing.T) {
+	t.Run("grants read and write on every resource", func(t *testing.T) {
+		permissions := NewFullPermissions()
+
+		for _, resource := range AllPermissionResources {
+			granted, ok := permissions[resource]
+			require.True(t, ok, "resource %s is missing", resource)
+			assert.True(t, granted.Read, "resource %s is missing read", resource)
+			assert.True(t, granted.Write, "resource %s is missing write", resource)
+		}
+		assert.Len(t, permissions, len(AllPermissionResources))
+	})
+
+	t.Run("returns a fresh map on every call", func(t *testing.T) {
+		first := NewFullPermissions()
+		second := NewFullPermissions()
+
+		first[PermissionResourceContacts] = ResourcePermissions{}
+
+		assert.Equal(t, ResourcePermissions{Read: true, Write: true}, second[PermissionResourceContacts])
+	})
+
+	t.Run("does not share the FullPermissions map", func(t *testing.T) {
+		permissions := NewFullPermissions()
+
+		delete(permissions, PermissionResourceContacts)
+		permissions[PermissionResourceWorkspace] = ResourcePermissions{Read: false, Write: false}
+
+		assert.Equal(t, ResourcePermissions{Read: true, Write: true}, FullPermissions[PermissionResourceContacts])
+		assert.Equal(t, ResourcePermissions{Read: true, Write: true}, FullPermissions[PermissionResourceWorkspace])
+	})
+}
+
+func TestUserPermissions_Validate(t *testing.T) {
+	t.Run("accepts every known resource", func(t *testing.T) {
+		for _, resource := range AllPermissionResources {
+			permissions := UserPermissions{resource: ResourcePermissions{Read: true, Write: true}}
+			assert.NoError(t, permissions.Validate(), "resource %s was rejected", resource)
+		}
+	})
+
+	t.Run("accepts the full set", func(t *testing.T) {
+		assert.NoError(t, NewFullPermissions().Validate())
+	})
+
+	t.Run("accepts nil", func(t *testing.T) {
+		var permissions UserPermissions
+		assert.NoError(t, permissions.Validate())
+	})
+
+	t.Run("accepts empty", func(t *testing.T) {
+		assert.NoError(t, UserPermissions{}.Validate())
+	})
+
+	t.Run("rejects an unknown resource and names it", func(t *testing.T) {
+		permissions := UserPermissions{
+			PermissionResourceContacts:       ResourcePermissions{Read: true},
+			PermissionResource("dashboards"): ResourcePermissions{Read: true},
+		}
+
+		err := permissions.Validate()
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "dashboards")
+	})
+}
+
+func TestUserPermissions_ValueNilVersusEmpty(t *testing.T) {
+	t.Run("nil map is SQL NULL", func(t *testing.T) {
+		var permissions UserPermissions
+
+		value, err := permissions.Value()
+
+		require.NoError(t, err)
+		assert.Nil(t, value)
+	})
+
+	t.Run("empty non-nil map marshals to an empty object", func(t *testing.T) {
+		value, err := UserPermissions{}.Value()
+
+		require.NoError(t, err)
+		assert.Equal(t, []byte("{}"), value)
+	})
+
+	t.Run("populated map round-trips through Scan", func(t *testing.T) {
+		original := UserPermissions{
+			PermissionResourceSegments:             ResourcePermissions{Read: true, Write: false},
+			PermissionResourceWebhookSubscriptions: ResourcePermissions{Read: true, Write: true},
+			PermissionResourceWebhookEvents:        ResourcePermissions{Read: true, Write: false},
+		}
+
+		value, err := original.Value()
+		require.NoError(t, err)
+
+		var scanned UserPermissions
+		require.NoError(t, scanned.Scan(value))
+		assert.Equal(t, original, scanned)
+	})
 }

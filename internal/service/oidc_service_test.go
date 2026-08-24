@@ -419,6 +419,39 @@ func TestResolve_FirstLogin_AbsentClaim_FlagOn_EmptyEmail_Rejected(t *testing.T)
 	assert.ErrorIs(t, err, domain.ErrOIDCEmailNotVerified)
 }
 
+func TestResolve_Bridge_APIKeyIdentity_RefusedAndNotLinked(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	svc, m := newTestOIDCService(t, ctrl, enabledCfg(), nil)
+
+	// An api_key row carries a real, unique email, so an IdP asserting it reaches
+	// the invited-user bridge exactly like a human would.
+	m.fedRepo.EXPECT().GetByIssuerSubject(gomock.Any(), testIssuer, "sub-1").Return(nil, notFoundFI())
+	m.userRepo.EXPECT().GetUserByEmailInsensitive(gomock.Any(), "zapier@api.corp.com").
+		Return(&domain.User{ID: "apikey-1", Email: "zapier@api.corp.com", Type: domain.UserTypeAPIKey}, nil)
+	// MUST NOT link: no GetByUserAndIssuer, no fedRepo.Create expected.
+
+	_, err := svc.resolveOrProvisionUser(context.Background(), testIssuer, "sub-1", "zapier@api.corp.com", boolPtr(true), "")
+	assert.ErrorIs(t, err, domain.ErrOIDCAccountNotProvisioned,
+		"an API key identity must never be bridged onto a human session")
+}
+
+func TestResolve_LinkedAPIKeyIdentity_StillRefused(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	svc, m := newTestOIDCService(t, ctrl, enabledCfg(), nil)
+
+	// A link to an api_key can only predate the bridge guard; it must not keep
+	// minting sessions through the (issuer,sub) re-login branch.
+	m.fedRepo.EXPECT().GetByIssuerSubject(gomock.Any(), testIssuer, "sub-1").
+		Return(&domain.FederatedIdentity{UserID: "apikey-1", IDPIssuer: testIssuer, IDPSub: "sub-1"}, nil)
+	m.userRepo.EXPECT().GetUserByID(gomock.Any(), "apikey-1").
+		Return(&domain.User{ID: "apikey-1", Email: "zapier@api.corp.com", Type: domain.UserTypeAPIKey}, nil)
+
+	_, err := svc.resolveOrProvisionUser(context.Background(), testIssuer, "sub-1", "zapier@api.corp.com", boolPtr(true), "")
+	assert.ErrorIs(t, err, domain.ErrOIDCAccountNotProvisioned)
+}
+
 func TestResolve_FirstLogin_LinkConflict_DifferentSubSameIssuer(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()

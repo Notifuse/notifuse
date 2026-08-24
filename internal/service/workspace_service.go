@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"maps"
 	"strings"
 	"time"
 
@@ -119,10 +120,22 @@ func (s *WorkspaceService) GetWorkspace(ctx context.Context, id string) (*domain
 	if ctx.Value(domain.SystemCallKey) == nil {
 		// Validate user has access to the workspace. Platform admins (ROOT_EMAIL) get
 		// owner access to every workspace via the AuthService override.
+		var userWorkspace *domain.UserWorkspace
 		var err error
-		ctx, _, _, err = s.authService.AuthenticateUserForWorkspace(ctx, id)
+		ctx, _, userWorkspace, err = s.authService.AuthenticateUserForWorkspace(ctx, id)
 		if err != nil {
 			return nil, fmt.Errorf("failed to authenticate user: %w", err)
+		}
+
+		// Read or write: the console derives access from read || write, so a member holding
+		// only workspace:write reaches Settings and must be able to load the workspace it edits.
+		if !userWorkspace.HasPermission(domain.PermissionResourceWorkspace, domain.PermissionTypeRead) &&
+			!userWorkspace.HasPermission(domain.PermissionResourceWorkspace, domain.PermissionTypeWrite) {
+			return nil, domain.NewPermissionError(
+				domain.PermissionResourceWorkspace,
+				domain.PermissionTypeRead,
+				"Insufficient permissions: read access to workspace required",
+			)
 		}
 	}
 
@@ -511,6 +524,10 @@ func (s *WorkspaceService) AddUserToWorkspace(ctx context.Context, workspaceID s
 		return &domain.ErrUnauthorized{Message: "user is not an owner of the workspace"}
 	}
 
+	if err := permissions.Validate(); err != nil {
+		return err
+	}
+
 	// Check team member limit
 	if s.config.MaxUsers > 0 {
 		count, err := s.repo.CountWorkspaceMembersAndInvitations(ctx, workspaceID)
@@ -637,15 +654,29 @@ func (s *WorkspaceService) TransferOwnership(ctx context.Context, workspaceID st
 // InviteMember creates an invitation for a user to join a workspace
 func (s *WorkspaceService) InviteMember(ctx context.Context, workspaceID, email string, permissions domain.UserPermissions) (*domain.WorkspaceInvitation, string, error) {
 	var inviter *domain.User
+	var inviterWorkspace *domain.UserWorkspace
 	var err error
-	ctx, inviter, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	ctx, inviter, inviterWorkspace, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to authenticate user: %w", err)
+	}
+
+	// Owner-only (platform admins are synthesized as owners). An invitation carries an
+	// arbitrary permission map, and for an email that already exists it seats the member
+	// directly — so a scoped member, or a scoped API key, could otherwise mint an identity
+	// with more access than its own.
+	if inviterWorkspace.Role != "owner" {
+		s.logger.WithField("workspace_id", workspaceID).WithField("requester_id", inviter.ID).WithField("role", inviterWorkspace.Role).Error("Requester is not an owner of the workspace")
+		return nil, "", &domain.ErrUnauthorized{Message: "user is not an owner of the workspace"}
 	}
 
 	// Validate email format
 	if !govalidator.IsEmail(email) {
 		return nil, "", fmt.Errorf("invalid email format")
+	}
+
+	if err := permissions.Validate(); err != nil {
+		return nil, "", err
 	}
 
 	// Defense-in-depth: a configured platform admin (ROOT_EMAIL) already has owner access to
@@ -666,8 +697,8 @@ func (s *WorkspaceService) InviteMember(ctx context.Context, workspaceID, email 
 		return nil, "", fmt.Errorf("workspace not found")
 	}
 
-	// The inviter's access was already verified by AuthenticateUserForWorkspace above
-	// (members, owners, and platform admins all pass), so no extra membership check is needed.
+	// The inviter's access was already verified by AuthenticateUserForWorkspace and the
+	// owner check above, so no extra membership check is needed.
 
 	// Check team member limit
 	if s.config.MaxUsers > 0 {
@@ -782,7 +813,11 @@ func (s *WorkspaceService) SetUserPermissions(ctx context.Context, workspaceID, 
 
 	// Check if the current user is the owner of the workspace (platform admins are synthesized as owners)
 	if userWorkspace.Role != "owner" {
-		return fmt.Errorf("only workspace owners can manage user permissions")
+		return &domain.ErrUnauthorized{Message: "only workspace owners can manage user permissions"}
+	}
+
+	if err := permissions.Validate(); err != nil {
+		return err
 	}
 
 	// Check if the target user exists in the workspace
@@ -797,8 +832,9 @@ func (s *WorkspaceService) SetUserPermissions(ctx context.Context, workspaceID, 
 		return fmt.Errorf("cannot modify permissions for workspace owners")
 	}
 
-	// Update the user's permissions
-	targetUserWorkspace.SetPermissions(permissions)
+	// Update the user's permissions. SetPermissions is a bare assignment, so store a copy:
+	// a membership row must never share a map with the caller.
+	targetUserWorkspace.SetPermissions(maps.Clone(permissions))
 	targetUserWorkspace.UpdatedAt = time.Now().UTC()
 
 	err = s.repo.UpdateUserWorkspacePermissions(ctx, targetUserWorkspace)
@@ -981,18 +1017,40 @@ func (s *WorkspaceService) SetWebAnalyticsSettings(ctx context.Context, workspac
 // GetWorkspaceMembersWithEmail returns all users with emails for a workspace, verifying the requester has access
 func (s *WorkspaceService) GetWorkspaceMembersWithEmail(ctx context.Context, id string) ([]*domain.UserWorkspaceWithEmail, error) {
 	// Check if user has access to the workspace (platform admins get owner access via the override)
+	var requester *domain.User
 	var requesterWorkspace *domain.UserWorkspace
 	var err error
-	ctx, _, requesterWorkspace, err = s.authService.AuthenticateUserForWorkspace(ctx, id)
+	ctx, requester, requesterWorkspace, err = s.authService.AuthenticateUserForWorkspace(ctx, id)
 	if err != nil {
 		return nil, fmt.Errorf("failed to authenticate user: %w", err)
 	}
+
+	// This endpoint is the console's only source of the signed-in user's own permission map:
+	// every navigation entry is derived from it and any error is caught into an all-false
+	// set, so denying it outright empties the console instead of narrowing it. A requester
+	// without workspace:read is degraded to its own row below rather than rejected.
+	// The nil check must DENY: a nil-guard that skipped the check would hand the whole
+	// roster to a caller with no membership row at all.
+	fullRoster := requesterWorkspace != nil &&
+		requesterWorkspace.HasPermission(domain.PermissionResourceWorkspace, domain.PermissionTypeRead)
 
 	// Get all workspace users with emails
 	members, err := s.repo.GetWorkspaceUsersWithEmail(ctx, id)
 	if err != nil {
 		s.logger.WithField("workspace_id", id).WithField("error", err.Error()).Error("Failed to get workspace users with email")
 		return nil, err
+	}
+
+	// Degraded response: the requester's own row only. No owner rows, no pending invitations
+	// and no platform admins — a zero-scope key has no business enumerating the team.
+	if !fullRoster {
+		own := make([]*domain.UserWorkspaceWithEmail, 0, 1)
+		for _, member := range members {
+			if requester != nil && member.UserID == requester.ID {
+				own = append(own, member)
+			}
+		}
+		return own, nil
 	}
 
 	// force all permissions to owners
@@ -1072,14 +1130,20 @@ func (s *WorkspaceService) GetWorkspaceMembersWithEmail(ctx context.Context, id 
 	return members, nil
 }
 
-// CreateAPIKey creates an API key for a workspace
-func (s *WorkspaceService) CreateAPIKey(ctx context.Context, workspaceID string, emailPrefix string) (string, string, error) {
+// CreateAPIKey creates an API key for a workspace. A nil permissions map grants the key
+// full access, which is the pre-scoping contract for callers that omit the field.
+func (s *WorkspaceService) CreateAPIKey(ctx context.Context, workspaceID string, emailPrefix string, permissions domain.UserPermissions) (string, string, error) {
 	// Validate user is a member of the workspace and has owner role
 	var user *domain.User
 	var userWorkspace *domain.UserWorkspace
 	var err error
 	ctx, user, userWorkspace, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 	if err != nil {
+		// A non-member is an authorization failure, not a server error: the sentinel is a
+		// plain error, so translate it into the typed error handlers map to 403.
+		if errors.Is(err, domain.ErrUserNotInWorkspace) {
+			return "", "", &domain.ErrUnauthorized{Message: "user is not a member of the workspace"}
+		}
 		return "", "", fmt.Errorf("failed to authenticate user: %w", err)
 	}
 
@@ -1087,6 +1151,10 @@ func (s *WorkspaceService) CreateAPIKey(ctx context.Context, workspaceID string,
 	if userWorkspace.Role != "owner" {
 		s.logger.WithField("workspace_id", workspaceID).WithField("user_id", user.ID).WithField("role", userWorkspace.Role).Error("User is not an owner of the workspace")
 		return "", "", &domain.ErrUnauthorized{Message: "user is not an owner of the workspace"}
+	}
+
+	if err := permissions.Validate(); err != nil {
+		return "", "", err
 	}
 
 	// Generate an API email using the prefix
@@ -1101,6 +1169,13 @@ func (s *WorkspaceService) CreateAPIKey(ctx context.Context, workspaceID string,
 		domainName = domainName[:idx]
 	}
 	apiEmail := emailPrefix + "@" + domainName
+
+	// Defense-in-depth, mirroring InviteMember: a configured platform admin (ROOT_EMAIL) has
+	// owner access to every workspace, so a prefix that lands on a root address would mint a
+	// platform-admin key rather than a workspace-scoped one.
+	if s.config.IsRootEmail(apiEmail) {
+		return "", "", &domain.ErrUnauthorized{Message: "cannot create an API key for a platform admin email"}
+	}
 
 	// Create a user object for the API key
 	apiUser := &domain.User{
@@ -1117,19 +1192,25 @@ func (s *WorkspaceService) CreateAPIKey(ctx context.Context, workspaceID string,
 		var userExistsErr *domain.ErrUserExists
 		if errors.As(err, &userExistsErr) {
 			s.logger.WithField("workspace_id", workspaceID).WithField("user_email", apiUser.Email).Error("API user already exists")
-			return "", "", fmt.Errorf("this user already exists")
+			return "", "", fmt.Errorf("api key email already in use: %w", userExistsErr)
 		}
 		s.logger.WithField("workspace_id", workspaceID).WithField("user_id", apiUser.ID).WithField("error", err.Error()).Error("Failed to create API user")
 		return "", "", err
 	}
 
-	// Create full permissions for API key
+	// Store a copy: domain.FullPermissions is a package-level map, and a membership row
+	// holding a reference to it — or to the caller's map — would let a later mutation
+	// rewrite the permissions of every key that shares it.
+	keyPermissions := domain.NewFullPermissions()
+	if permissions != nil {
+		keyPermissions = maps.Clone(permissions)
+	}
 
 	newUserWorkspace := &domain.UserWorkspace{
 		UserID:      apiUser.ID,
 		WorkspaceID: workspaceID,
 		Role:        "member",
-		Permissions: domain.FullPermissions,
+		Permissions: keyPermissions,
 		CreatedAt:   time.Now().UTC(),
 		UpdatedAt:   time.Now().UTC(),
 	}
@@ -1344,14 +1425,15 @@ func (s *WorkspaceService) RemoveMember(ctx context.Context, workspaceID string,
 		return err
 	}
 
-	// If it's an API key, delete the user completely
+	// If it's an API key, delete the user completely. Its token lives ten years, carries no
+	// jti and has no denylist, so this delete is the only thing that revokes the key —
+	// reporting success on a failed delete would report a revocation that never happened.
 	if userDetails.Type == domain.UserTypeAPIKey {
 		if err := s.userRepo.Delete(ctx, userIDToRemove); err != nil {
 			s.logger.WithField("user_id", userIDToRemove).WithField("error", err.Error()).Error("Failed to delete API key user")
-			// Continue even if delete fails - the user is already removed from workspace
-		} else {
-			s.logger.WithField("user_id", userIDToRemove).Info("API key user deleted successfully")
+			return err
 		}
+		s.logger.WithField("user_id", userIDToRemove).Info("API key user deleted successfully")
 	}
 
 	return nil

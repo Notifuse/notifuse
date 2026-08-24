@@ -55,6 +55,9 @@ func (h *SegmentHandler) handleList(w http.ResponseWriter, r *http.Request) {
 	segments, err := h.service.ListSegments(r.Context(), &req)
 	if err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to get segments")
+		if writeServiceError(w, err, "Failed to get segments") {
+			return
+		}
 		WriteJSONError(w, "Failed to get segments", http.StatusInternalServerError)
 		return
 	}
@@ -83,6 +86,9 @@ func (h *SegmentHandler) handleGet(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		h.logger.WithField("error", err.Error()).Error("Failed to get segment")
+		if writeServiceError(w, err, "Failed to get segment") {
+			return
+		}
 		WriteJSONError(w, "Failed to get segment", http.StatusInternalServerError)
 		return
 	}
@@ -108,6 +114,9 @@ func (h *SegmentHandler) handleCreate(w http.ResponseWriter, r *http.Request) {
 	segment, err := h.service.CreateSegment(r.Context(), &req)
 	if err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to create segment")
+		if writeServiceError(w, err, "Failed to create segment") {
+			return
+		}
 		WriteJSONError(w, "Failed to create segment", http.StatusInternalServerError)
 		return
 	}
@@ -137,6 +146,9 @@ func (h *SegmentHandler) handleUpdate(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		h.logger.WithField("error", err.Error()).Error("Failed to update segment")
+		if writeServiceError(w, err, "Failed to update segment") {
+			return
+		}
 		WriteJSONError(w, "Failed to update segment", http.StatusInternalServerError)
 		return
 	}
@@ -165,6 +177,9 @@ func (h *SegmentHandler) handleDelete(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		h.logger.WithField("error", err.Error()).Error("Failed to delete segment")
+		if writeServiceError(w, err, "Failed to delete segment") {
+			return
+		}
 		WriteJSONError(w, "Failed to delete segment", http.StatusInternalServerError)
 		return
 	}
@@ -207,6 +222,9 @@ func (h *SegmentHandler) handleRebuild(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		h.logger.WithField("error", err.Error()).Error("Failed to rebuild segment")
+		if writeServiceError(w, err, "Failed to rebuild segment") {
+			return
+		}
 		WriteJSONError(w, "Failed to rebuild segment", http.StatusInternalServerError)
 		return
 	}
@@ -253,6 +271,9 @@ func (h *SegmentHandler) handlePreview(w http.ResponseWriter, r *http.Request) {
 	response, err := h.service.PreviewSegment(r.Context(), req.WorkspaceID, req.Tree, req.Limit)
 	if err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to preview segment")
+		if writeServiceError(w, err, "Failed to preview segment") {
+			return
+		}
 		WriteJSONError(w, "Failed to preview segment", http.StatusInternalServerError)
 		return
 	}
@@ -299,6 +320,9 @@ func (h *SegmentHandler) handleGetContacts(w http.ResponseWriter, r *http.Reques
 			return
 		}
 		h.logger.WithField("error", err.Error()).Error("Failed to get segment contacts")
+		if writeServiceError(w, err, "Failed to get segment contacts") {
+			return
+		}
 		WriteJSONError(w, "Failed to get segment contacts", http.StatusInternalServerError)
 		return
 	}

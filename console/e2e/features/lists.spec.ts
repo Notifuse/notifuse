@@ -1,10 +1,47 @@
+import type { Locator, Page } from '@playwright/test'
 import { test, expect, requestCapture } from '../fixtures/auth'
-import { waitForDrawer, waitForLoading } from '../fixtures/test-utils'
+import { waitForLoading, waitForSuccessMessage } from '../fixtures/test-utils'
 import { API_PATTERNS } from '../fixtures/request-capture'
 import { testListData } from '../fixtures/form-data'
 import { logCapturedRequests } from '../fixtures/payload-assertions'
 
 const WORKSPACE_ID = 'test-workspace'
+
+// antd 6 renamed `.ant-drawer-content` out of existence; the drawer's `role="dialog"`
+// node now carries the title as its accessible name, so every drawer is addressed by
+// role + name instead of by class.
+const createListDrawer = (page: Page) =>
+  page.getByRole('dialog', { name: 'Create New List', exact: true })
+
+const editListDrawer = (page: Page) => page.getByRole('dialog', { name: 'Edit List', exact: true })
+
+/** Open the create drawer from the page-level "Create List" button. */
+async function openCreateDrawer(page: Page): Promise<Locator> {
+  await page.getByRole('button', { name: 'Create List', exact: true }).click()
+  const drawer = createListDrawer(page)
+  await expect(drawer).toBeVisible()
+  return drawer
+}
+
+/**
+ * Open the edit drawer of a list card. The card is picked by its title so the
+ * locator only resolves once the list has loaded, and the card's edit control is
+ * an icon-only button, so it is identified by the icon it renders.
+ */
+async function openEditDrawer(page: Page, listName = 'Newsletter'): Promise<Locator> {
+  const card = page
+    .locator('.ant-card')
+    .filter({ has: page.locator('.ant-card-head-title', { hasText: listName }) })
+
+  await card
+    .locator('button')
+    .filter({ has: page.locator('svg[data-icon="pen-to-square"]') })
+    .click()
+
+  const drawer = editListDrawer(page)
+  await expect(drawer).toBeVisible()
+  return drawer
+}
 
 test.describe('Lists Feature', () => {
   test.describe('Page Load & Empty State', () => {
@@ -14,8 +51,9 @@ test.describe('Lists Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/lists`)
       await waitForLoading(page)
 
-      // Should show Lists heading or empty state
-      await expect(page.locator('body')).toBeVisible()
+      await expect(page.getByText('No lists found')).toBeVisible()
+      await expect(page.getByText('Create your first list to get started')).toBeVisible()
+      await expect(page.getByRole('button', { name: 'Create List', exact: true })).toBeVisible()
     })
 
     test('loads lists page with data', async ({ authenticatedPageWithData }) => {
@@ -24,11 +62,13 @@ test.describe('Lists Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/lists`)
       await waitForLoading(page)
 
-      // Should show lists in table or cards
-      const hasTable = (await page.locator('.ant-table').count()) > 0
-      const hasCards = (await page.locator('.ant-card').count()) > 0
-
-      expect(hasTable || hasCards).toBe(true)
+      // One card per mocked list, titled with the list name
+      await expect(page.locator('.ant-card')).toHaveCount(3)
+      await expect(page.locator('.ant-card-head-title')).toHaveText([
+        'Newsletter',
+        'Marketing Updates',
+        'Beta Testers'
+      ])
     })
   })
 
@@ -39,15 +79,10 @@ test.describe('Lists Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/lists`)
       await waitForLoading(page)
 
-      // Click add/create button
-      const addButton = page.getByRole('button', { name: /add|create|new/i })
-      await addButton.click()
+      const drawer = await openCreateDrawer(page)
 
-      // Wait for drawer or modal
-      const hasDrawer = (await page.locator('.ant-drawer-content').count()) > 0
-      const hasModal = (await page.locator('.ant-modal-content').count()) > 0
-
-      expect(hasDrawer || hasModal).toBe(true)
+      await expect(drawer.getByLabel('Name', { exact: true })).toBeVisible()
+      await expect(drawer.getByLabel('List ID', { exact: true })).toBeVisible()
     })
 
     test('fills and submits list form', async ({ authenticatedPage }) => {
@@ -56,33 +91,21 @@ test.describe('Lists Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/lists`)
       await waitForLoading(page)
 
-      // Click add button
-      const addButton = page.getByRole('button', { name: /add|create|new/i })
-      await addButton.click()
+      const drawer = await openCreateDrawer(page)
 
-      // Wait for drawer to open
-      await waitForDrawer(page)
+      await drawer.getByLabel('Name', { exact: true }).fill('Test Newsletter List')
 
-      // Fill list name (required) - Ant Design uses id from form item name
-      const nameInput = page.locator('.ant-drawer-content input').first()
-      await nameInput.fill('Test Newsletter List')
+      // The ID is derived from the name: lowercased, non-alphanumerics stripped
+      await expect(drawer.getByLabel('List ID', { exact: true })).toHaveValue('testnewsletterlist')
 
-      // The ID field is auto-generated from name, verify it has a value
-      const idInput = page.locator('.ant-drawer-content input').nth(1)
-      await expect(idInput).toHaveValue(/[a-z]+/)
+      await drawer
+        .getByLabel('Description', { exact: true })
+        .fill('A test newsletter list with all fields')
 
-      // Fill description (optional)
-      const descriptionInput = page.locator('.ant-drawer-content textarea')
-      if ((await descriptionInput.count()) > 0) {
-        await descriptionInput.fill('A test newsletter list with all fields')
-      }
+      await drawer.getByRole('button', { name: 'Create', exact: true }).click()
 
-      // Submit form - use exact match to avoid ambiguity
-      await page.getByRole('button', { name: 'Create', exact: true }).click()
-
-      // Verify submit was triggered (either success message or drawer closes)
-      // Note: In mock environment, API may return error, but form submission logic is tested
-      await page.waitForTimeout(500)
+      await waitForSuccessMessage(page)
+      await expect(drawer).toBeHidden()
     })
 
     test('views list details', async ({ authenticatedPageWithData }) => {
@@ -91,13 +114,11 @@ test.describe('Lists Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/lists`)
       await waitForLoading(page)
 
-      // Click on a list to view details
-      const listItem = page.locator('.ant-table-row, .ant-card').first()
-      await listItem.click()
-
-      // Should show list details (drawer, modal, or page)
-      await page.waitForTimeout(500) // Allow for navigation/animation
-      await expect(page.locator('body')).toBeVisible()
+      // The card body carries the list's descriptions rather than opening a detail view
+      const details = page.locator('.ant-card').first().locator('.ant-descriptions')
+      await expect(details).toContainText('list-1')
+      await expect(details).toContainText('Monthly newsletter subscribers')
+      await expect(details).toContainText('Public')
     })
   })
 
@@ -108,32 +129,36 @@ test.describe('Lists Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/lists`)
       await waitForLoading(page)
 
-      // Open create form
-      const addButton = page.getByRole('button', { name: /add|create|new/i })
-      await addButton.click()
+      const drawer = await openCreateDrawer(page)
 
-      // Look for double opt-in toggle/checkbox - locator created for potential future assertions
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const _doubleOptIn = page.locator('[class*="switch"], [class*="checkbox"]').filter({
-        has: page.locator('text=double opt-in, text=Double Opt-in, text=Confirm')
-      })
+      const doubleOptIn = drawer.getByRole('switch', { name: 'Double Opt-in' })
+      await expect(doubleOptIn).toBeVisible()
+      await expect(doubleOptIn).not.toBeChecked()
 
-      // The setting might exist in the form
-      await expect(page.locator('.ant-drawer-content, .ant-modal-content').first()).toBeVisible()
+      // Turning it on is what pulls in the confirmation template field
+      await doubleOptIn.click()
+      await expect(doubleOptIn).toBeChecked()
+      await expect(drawer.getByPlaceholder('Select confirmation email template')).toBeVisible()
     })
 
-    test('shows template selection options', async ({ authenticatedPage }) => {
-      const page = authenticatedPage
+    // The template picker only has something to show when the workspace has
+    // templates, so this case runs against the populated fixture.
+    test('shows template selection options', async ({ authenticatedPageWithData }) => {
+      const page = authenticatedPageWithData
 
       await page.goto(`/console/workspace/${WORKSPACE_ID}/lists`)
       await waitForLoading(page)
 
-      // Open create form
-      const addButton = page.getByRole('button', { name: /add|create|new/i })
-      await addButton.click()
+      const drawer = await openCreateDrawer(page)
+      await drawer.getByRole('switch', { name: 'Double Opt-in' }).click()
 
-      // Form should be visible
-      await expect(page.locator('.ant-drawer-content, .ant-modal-content').first()).toBeVisible()
+      // The template field opens a picker listing the workspace templates
+      await drawer.getByPlaceholder('Select confirmation email template').click()
+
+      const picker = page.getByRole('dialog', { name: 'Select Template', exact: true })
+      await expect(picker).toBeVisible()
+      await expect(picker.getByText('Welcome Email')).toBeVisible()
+      await expect(picker.getByRole('button', { name: 'Select', exact: true })).toHaveCount(3)
     })
   })
 
@@ -144,10 +169,11 @@ test.describe('Lists Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/lists`)
       await waitForLoading(page)
 
-      // Should display some statistics (counts, numbers)
-      // Look for any numeric display
-      const stats = page.locator('text=/\\d+/')
-      await expect(stats.first()).toBeVisible({ timeout: 10000 })
+      // Each card pulls its own counters from /api/lists.stats
+      const stats = page.locator('.ant-card').first().locator('.ant-statistic')
+      await expect(stats.filter({ hasText: 'Active' })).toContainText('150')
+      await expect(stats.filter({ hasText: 'Pending' })).toContainText('25')
+      await expect(stats.filter({ hasText: 'Unsub' })).toContainText('10')
     })
   })
 
@@ -158,28 +184,9 @@ test.describe('Lists Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/lists`)
       await waitForLoading(page)
 
-      // Click on a list row to open edit drawer
-      const listRow = page.locator('.ant-table-row').first()
-      if ((await listRow.count()) > 0) {
-        // Look for edit button in the row or click the row
-        const editButton = listRow.getByRole('button', { name: /edit/i })
-        if ((await editButton.count()) > 0) {
-          await editButton.click()
-        } else {
-          // Try clicking on the list name or the row itself
-          await listRow.click()
-        }
+      const drawer = await openEditDrawer(page)
 
-        // Wait for drawer to open
-        await waitForDrawer(page)
-
-        // Verify the name input is prefilled with the existing list name
-        const nameInput = page.locator('.ant-drawer-content input').first()
-        const inputValue = await nameInput.inputValue()
-
-        // Name should not be empty - should be prefilled with existing list name (e.g., "Newsletter")
-        expect(inputValue.length).toBeGreaterThan(0)
-      }
+      await expect(drawer.getByLabel('Name', { exact: true })).toHaveValue('Newsletter')
     })
 
     test('edit list preserves list ID', async ({ authenticatedPageWithData }) => {
@@ -188,24 +195,12 @@ test.describe('Lists Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/lists`)
       await waitForLoading(page)
 
-      const listRow = page.locator('.ant-table-row').first()
-      if ((await listRow.count()) > 0) {
-        const editButton = listRow.getByRole('button', { name: /edit/i })
-        if ((await editButton.count()) > 0) {
-          await editButton.click()
-        } else {
-          await listRow.click()
-        }
+      const drawer = await openEditDrawer(page)
 
-        await waitForDrawer(page)
-
-        // The ID input should be prefilled and possibly read-only for existing lists
-        const idInput = page.locator('.ant-drawer-content input').nth(1)
-        if ((await idInput.count()) > 0) {
-          const idValue = await idInput.inputValue()
-          expect(idValue.length).toBeGreaterThan(0)
-        }
-      }
+      const idInput = drawer.getByLabel('List ID', { exact: true })
+      await expect(idInput).toHaveValue('list-1')
+      // The ID is the list's key, so editing an existing list cannot change it
+      await expect(idInput).toBeDisabled()
     })
 
     test('edit list preserves description', async ({ authenticatedPageWithData }) => {
@@ -214,24 +209,11 @@ test.describe('Lists Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/lists`)
       await waitForLoading(page)
 
-      const listRow = page.locator('.ant-table-row').first()
-      if ((await listRow.count()) > 0) {
-        const editButton = listRow.getByRole('button', { name: /edit/i })
-        if ((await editButton.count()) > 0) {
-          await editButton.click()
-        } else {
-          await listRow.click()
-        }
+      const drawer = await openEditDrawer(page)
 
-        await waitForDrawer(page)
-
-        // Check if description textarea exists and has content
-        const descriptionInput = page.locator('.ant-drawer-content textarea').first()
-        if ((await descriptionInput.count()) > 0) {
-          // Description may or may not be filled, but the field should be accessible
-          await expect(descriptionInput).toBeVisible()
-        }
-      }
+      await expect(drawer.getByLabel('Description', { exact: true })).toHaveValue(
+        'Monthly newsletter subscribers'
+      )
     })
 
     test('edit list preserves double opt-in setting', async ({ authenticatedPageWithData }) => {
@@ -240,23 +222,11 @@ test.describe('Lists Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/lists`)
       await waitForLoading(page)
 
-      const listRow = page.locator('.ant-table-row').first()
-      if ((await listRow.count()) > 0) {
-        const editButton = listRow.getByRole('button', { name: /edit/i })
-        if ((await editButton.count()) > 0) {
-          await editButton.click()
-        } else {
-          await listRow.click()
-        }
+      const drawer = await openEditDrawer(page)
 
-        await waitForDrawer(page)
-
-        // Look for double opt-in switch/toggle - it should maintain its state
-        const optInSwitch = page.locator('.ant-drawer-content .ant-switch')
-        if ((await optInSwitch.count()) > 0) {
-          await expect(optInSwitch.first()).toBeVisible()
-        }
-      }
+      // The first mocked list is both public and double opt-in
+      await expect(drawer.getByRole('switch', { name: 'Double Opt-in' })).toBeChecked()
+      await expect(drawer.getByRole('switch', { name: 'Public' })).toBeChecked()
     })
   })
 
@@ -267,20 +237,13 @@ test.describe('Lists Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/lists`)
       await waitForLoading(page)
 
-      // Open create form
-      const addButton = page.getByRole('button', { name: /add|create|new/i })
-      await addButton.click()
+      const drawer = await openCreateDrawer(page)
 
-      // Wait for drawer to open
-      await waitForDrawer(page)
+      await drawer.getByRole('button', { name: 'Create', exact: true }).click()
 
-      // Try to submit without filling required fields
-      await page.getByRole('button', { name: 'Create', exact: true }).click()
-
-      // Should show validation error - check if any error exists in DOM
-      await page.waitForTimeout(500)
-      const errorMessages = await page.locator('.ant-form-item-explain-error').all()
-      expect(errorMessages.length).toBeGreaterThan(0)
+      await expect(drawer.getByText('Please enter a list name')).toBeVisible()
+      await expect(drawer.getByText('Please enter a list ID')).toBeVisible()
+      expect(requestCapture.getRequestCount(API_PATTERNS.LIST_CREATE)).toBe(0)
     })
 
     test('validates list ID format', async ({ authenticatedPage }) => {
@@ -289,29 +252,17 @@ test.describe('Lists Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/lists`)
       await waitForLoading(page)
 
-      // Open create form
-      const addButton = page.getByRole('button', { name: /add|create|new/i })
-      await addButton.click()
+      const drawer = await openCreateDrawer(page)
 
-      // Wait for drawer to open
-      await waitForDrawer(page)
+      await drawer.getByLabel('Name', { exact: true }).fill('Test List')
 
-      // Fill name - use visible input
-      const nameInput = page.locator('.ant-drawer-content input:visible').first()
-      await nameInput.fill('Test List')
-
-      // Clear and fill invalid ID with special characters
-      const idInput = page.locator('.ant-drawer-content input:visible').nth(1)
-      await idInput.clear()
+      const idInput = drawer.getByLabel('List ID', { exact: true })
       await idInput.fill('invalid@id!')
 
-      // Try to submit
-      await page.getByRole('button', { name: 'Create', exact: true }).click()
+      await drawer.getByRole('button', { name: 'Create', exact: true }).click()
 
-      // Should show validation error for ID format - check if any error exists in DOM
-      await page.waitForTimeout(500)
-      const errorMessages = await page.locator('.ant-form-item-explain-error').all()
-      expect(errorMessages.length).toBeGreaterThan(0)
+      await expect(drawer.getByText('ID must be alphanumeric')).toBeVisible()
+      expect(requestCapture.getRequestCount(API_PATTERNS.LIST_CREATE)).toBe(0)
     })
   })
 
@@ -337,93 +288,71 @@ test.describe('Lists Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/lists`)
       await waitForLoading(page)
 
-      // Open create form
-      const addButton = page.getByRole('button', { name: /add|create|new/i })
-      await addButton.click()
+      const drawer = await openCreateDrawer(page)
 
-      // Close it
-      const closeButton = page.locator('.ant-drawer-close, .ant-modal-close')
-      if ((await closeButton.count()) > 0) {
-        await closeButton.first().click()
-      } else {
-        await page.keyboard.press('Escape')
-      }
+      await drawer.getByRole('button', { name: 'Close', exact: true }).click()
 
-      // Form should be closed
-      await page.waitForTimeout(500)
+      await expect(drawer).toBeHidden()
     })
   })
 
   test.describe('Full Form Submission with Payload Verification', () => {
-    test('creates list with all fields and verifies payload', async ({ authenticatedPage }) => {
-      const page = authenticatedPage
+    // Uses the populated fixture: double opt-in requires picking a real template.
+    test('creates list with all fields and verifies payload', async ({
+      authenticatedPageWithData
+    }) => {
+      const page = authenticatedPageWithData
 
       await page.goto(`/console/workspace/${WORKSPACE_ID}/lists`)
       await waitForLoading(page)
 
-      // Open create form
-      const addButton = page.getByRole('button', { name: /add|create|new/i })
-      await addButton.click()
-      await waitForDrawer(page)
+      const drawer = await openCreateDrawer(page)
 
-      // Fill list name
-      const nameInput = page.locator('.ant-drawer-content input').first()
-      await nameInput.fill(testListData.name)
+      await drawer.getByLabel('Name', { exact: true }).fill(testListData.name)
+      await drawer.getByLabel('Description', { exact: true }).fill(testListData.description || '')
 
-      // Wait for ID to auto-generate
-      await page.waitForTimeout(300)
-
-      // Fill description if textarea exists
-      const descriptionInput = page.locator('.ant-drawer-content textarea')
-      if ((await descriptionInput.count()) > 0) {
-        await descriptionInput.fill(testListData.description || '')
+      const publicSwitch = drawer.getByRole('switch', { name: 'Public' })
+      if (testListData.is_public) {
+        await publicSwitch.click()
       }
+      await expect(publicSwitch).toBeChecked({ checked: !!testListData.is_public })
 
-      // Toggle double opt-in switch if available
-      const doubleOptInSwitch = page.locator('.ant-drawer-content .ant-switch').first()
-      if ((await doubleOptInSwitch.count()) > 0) {
-        const isChecked = (await doubleOptInSwitch.getAttribute('aria-checked')) === 'true'
-        if (isChecked !== testListData.is_double_optin) {
-          await doubleOptInSwitch.click()
-        }
+      const doubleOptInSwitch = drawer.getByRole('switch', { name: 'Double Opt-in' })
+      if (testListData.is_double_optin) {
+        await doubleOptInSwitch.click()
       }
+      await expect(doubleOptInSwitch).toBeChecked({ checked: !!testListData.is_double_optin })
 
-      // Toggle public switch if available
-      const publicSwitch = page.locator('.ant-drawer-content').getByText('Public', { exact: false }).locator('..').locator('.ant-switch')
-      if ((await publicSwitch.count()) > 0) {
-        const isChecked = (await publicSwitch.getAttribute('aria-checked')) === 'true'
-        if (isChecked !== testListData.is_public) {
-          await publicSwitch.click()
-        }
-      }
+      // Double opt-in makes the confirmation template a required field
+      await drawer.getByPlaceholder('Select confirmation email template').click()
+      const picker = page.getByRole('dialog', { name: 'Select Template', exact: true })
+      await picker
+        .getByRole('listitem')
+        .filter({ hasText: 'Welcome Email' })
+        .getByRole('button', { name: 'Select', exact: true })
+        .click()
+      await expect(drawer.getByPlaceholder('Select confirmation email template')).toHaveValue(
+        'Welcome Email'
+      )
 
-      // Submit form
-      await page.getByRole('button', { name: 'Create', exact: true }).click()
+      await drawer.getByRole('button', { name: 'Create', exact: true }).click()
 
-      // Wait for request to be captured
-      await page.waitForTimeout(1000)
-
-      // Log captured requests for debugging
+      await expect
+        .poll(() => requestCapture.getRequestCount(API_PATTERNS.LIST_CREATE))
+        .toBeGreaterThan(0)
       logCapturedRequests(requestCapture)
 
-      // Verify the list data was sent correctly
       const request = requestCapture.getLastRequest(API_PATTERNS.LIST_CREATE)
+      expect(request?.body, 'List create body should not be empty').toBeTruthy()
+      const body = request!.body as Record<string, unknown>
 
-      if (request && request.body) {
-        const body = request.body as Record<string, unknown>
-
-        // Verify required fields
-        expect(body.name, 'List name should be in payload').toBeDefined()
-
-        // Verify optional fields
-        if (testListData.description) {
-          expect(body.description).toBe(testListData.description)
-        }
-
-        // Verify boolean settings
-        expect(body.is_double_optin, 'is_double_optin should be in payload').toBeDefined()
-        expect(body.is_public, 'is_public should be in payload').toBeDefined()
-      }
+      expect(body.workspace_id).toBe(WORKSPACE_ID)
+      expect(body.name).toBe(testListData.name)
+      expect(body.id).toBe('e2etestlist')
+      expect(body.description).toBe(testListData.description)
+      expect(body.is_double_optin).toBe(testListData.is_double_optin)
+      expect(body.is_public).toBe(testListData.is_public)
+      expect(body.double_optin_template).toEqual({ id: 'tpl-1', version: 1 })
     })
 
     test('verifies list configuration settings in payload', async ({ authenticatedPage }) => {
@@ -432,34 +361,25 @@ test.describe('Lists Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/lists`)
       await waitForLoading(page)
 
-      const addButton = page.getByRole('button', { name: /add|create|new/i })
-      await addButton.click()
-      await waitForDrawer(page)
+      const drawer = await openCreateDrawer(page)
 
-      // Fill required name
-      const nameInput = page.locator('.ant-drawer-content input').first()
-      await nameInput.fill('Configuration Test List')
+      await drawer.getByLabel('Name', { exact: true }).fill('Configuration Test List')
 
-      // Enable double opt-in
-      const switches = page.locator('.ant-drawer-content .ant-switch')
-      if ((await switches.count()) > 0) {
-        await switches.first().click()
-      }
+      // Both toggles left at their defaults: the payload must spell them out as false
+      await drawer.getByRole('button', { name: 'Create', exact: true }).click()
 
-      // Submit
-      await page.getByRole('button', { name: 'Create', exact: true }).click()
-      await page.waitForTimeout(1000)
+      await expect
+        .poll(() => requestCapture.getRequestCount(API_PATTERNS.LIST_CREATE))
+        .toBeGreaterThan(0)
 
       const request = requestCapture.getLastRequest(API_PATTERNS.LIST_CREATE)
+      expect(request?.body, 'List create body should not be empty').toBeTruthy()
+      const body = request!.body as Record<string, unknown>
 
-      if (request && request.body) {
-        const body = request.body as Record<string, unknown>
-
-        // Verify the toggle state was captured
-        expect(body.name).toBe('Configuration Test List')
-        // The is_double_optin should reflect what we toggled
-        expect(typeof body.is_double_optin).toBe('boolean')
-      }
+      expect(body.name).toBe('Configuration Test List')
+      expect(body.id).toBe('configurationtestlist')
+      expect(body.is_double_optin).toBe(false)
+      expect(body.is_public).toBe(false)
     })
   })
 })

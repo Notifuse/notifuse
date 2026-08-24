@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -1107,6 +1108,149 @@ func TestSegmentHandler_HandleGetContacts(t *testing.T) {
 				assert.NoError(t, err)
 				tc.validateResponse(t, response)
 			}
+		})
+	}
+}
+
+// TestSegmentHandler_PermissionDenied pins the 403 on every segment endpoint. The
+// service wraps its denial the way the authenticate step above the gate does, so a
+// bare type assertion would degrade it into an opaque 500.
+func TestSegmentHandler_PermissionDenied(t *testing.T) {
+	denial := func(resource domain.PermissionResource, permission domain.PermissionType) error {
+		return fmt.Errorf("failed to authenticate user: %w",
+			domain.NewPermissionError(resource, permission, "Insufficient permissions"))
+	}
+
+	testCases := []struct {
+		name       string
+		resource   domain.PermissionResource
+		permission domain.PermissionType
+		request    func() *http.Request
+		expect     func(*mocks.MockSegmentService, error)
+		handle     func(*SegmentHandler, http.ResponseWriter, *http.Request)
+	}{
+		{
+			name:       "list",
+			resource:   domain.PermissionResourceSegments,
+			permission: domain.PermissionTypeRead,
+			request: func() *http.Request {
+				return httptest.NewRequest(http.MethodGet, "/api/segments.list?workspace_id=workspace1", nil)
+			},
+			expect: func(s *mocks.MockSegmentService, err error) {
+				s.EXPECT().ListSegments(gomock.Any(), gomock.Any()).Return(nil, err)
+			},
+			handle: func(h *SegmentHandler, w http.ResponseWriter, r *http.Request) { h.handleList(w, r) },
+		},
+		{
+			name:       "get",
+			resource:   domain.PermissionResourceSegments,
+			permission: domain.PermissionTypeRead,
+			request: func() *http.Request {
+				return httptest.NewRequest(http.MethodGet, "/api/segments.get?workspace_id=workspace1&id=segment1", nil)
+			},
+			expect: func(s *mocks.MockSegmentService, err error) {
+				s.EXPECT().GetSegment(gomock.Any(), gomock.Any()).Return(nil, err)
+			},
+			handle: func(h *SegmentHandler, w http.ResponseWriter, r *http.Request) { h.handleGet(w, r) },
+		},
+		{
+			name:       "create",
+			resource:   domain.PermissionResourceSegments,
+			permission: domain.PermissionTypeWrite,
+			request: func() *http.Request {
+				body, _ := json.Marshal(map[string]interface{}{"workspace_id": "workspace1", "id": "segment1"})
+				return httptest.NewRequest(http.MethodPost, "/api/segments.create", bytes.NewReader(body))
+			},
+			expect: func(s *mocks.MockSegmentService, err error) {
+				s.EXPECT().CreateSegment(gomock.Any(), gomock.Any()).Return(nil, err)
+			},
+			handle: func(h *SegmentHandler, w http.ResponseWriter, r *http.Request) { h.handleCreate(w, r) },
+		},
+		{
+			name:       "update",
+			resource:   domain.PermissionResourceSegments,
+			permission: domain.PermissionTypeWrite,
+			request: func() *http.Request {
+				body, _ := json.Marshal(map[string]interface{}{"workspace_id": "workspace1", "id": "segment1"})
+				return httptest.NewRequest(http.MethodPost, "/api/segments.update", bytes.NewReader(body))
+			},
+			expect: func(s *mocks.MockSegmentService, err error) {
+				s.EXPECT().UpdateSegment(gomock.Any(), gomock.Any()).Return(nil, err)
+			},
+			handle: func(h *SegmentHandler, w http.ResponseWriter, r *http.Request) { h.handleUpdate(w, r) },
+		},
+		{
+			name:       "delete",
+			resource:   domain.PermissionResourceSegments,
+			permission: domain.PermissionTypeWrite,
+			request: func() *http.Request {
+				body, _ := json.Marshal(map[string]interface{}{"workspace_id": "workspace1", "id": "segment1"})
+				return httptest.NewRequest(http.MethodPost, "/api/segments.delete", bytes.NewReader(body))
+			},
+			expect: func(s *mocks.MockSegmentService, err error) {
+				s.EXPECT().DeleteSegment(gomock.Any(), gomock.Any()).Return(err)
+			},
+			handle: func(h *SegmentHandler, w http.ResponseWriter, r *http.Request) { h.handleDelete(w, r) },
+		},
+		{
+			name:       "rebuild",
+			resource:   domain.PermissionResourceSegments,
+			permission: domain.PermissionTypeWrite,
+			request: func() *http.Request {
+				body, _ := json.Marshal(map[string]interface{}{"workspace_id": "workspace1", "segment_id": "segment1"})
+				return httptest.NewRequest(http.MethodPost, "/api/segments.rebuild", bytes.NewReader(body))
+			},
+			expect: func(s *mocks.MockSegmentService, err error) {
+				s.EXPECT().RebuildSegment(gomock.Any(), "workspace1", "segment1").Return(err)
+			},
+			handle: func(h *SegmentHandler, w http.ResponseWriter, r *http.Request) { h.handleRebuild(w, r) },
+		},
+		{
+			// preview and contacts are denied on contacts:read, not on segments.
+			name:       "preview",
+			resource:   domain.PermissionResourceContacts,
+			permission: domain.PermissionTypeRead,
+			request: func() *http.Request {
+				body, _ := json.Marshal(map[string]interface{}{
+					"workspace_id": "workspace1",
+					"tree":         createTestSegment().Tree,
+				})
+				return httptest.NewRequest(http.MethodPost, "/api/segments.preview", bytes.NewReader(body))
+			},
+			expect: func(s *mocks.MockSegmentService, err error) {
+				s.EXPECT().PreviewSegment(gomock.Any(), "workspace1", gomock.Any(), gomock.Any()).Return(nil, err)
+			},
+			handle: func(h *SegmentHandler, w http.ResponseWriter, r *http.Request) { h.handlePreview(w, r) },
+		},
+		{
+			name:       "contacts",
+			resource:   domain.PermissionResourceContacts,
+			permission: domain.PermissionTypeRead,
+			request: func() *http.Request {
+				return httptest.NewRequest(http.MethodGet, "/api/segments.contacts?workspace_id=workspace1&segment_id=segment1", nil)
+			},
+			expect: func(s *mocks.MockSegmentService, err error) {
+				s.EXPECT().GetSegmentContacts(gomock.Any(), "workspace1", "segment1", gomock.Any(), gomock.Any()).Return(nil, err)
+			},
+			handle: func(h *SegmentHandler, w http.ResponseWriter, r *http.Request) { h.handleGetContacts(w, r) },
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			mockService, _, handler := setupSegmentHandlerTest(t)
+			tc.expect(mockService, denial(tc.resource, tc.permission))
+
+			w := httptest.NewRecorder()
+			tc.handle(handler, w, tc.request())
+
+			assert.Equal(t, http.StatusForbidden, w.Code)
+
+			var body map[string]interface{}
+			assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
+			assert.Equal(t, "Insufficient permissions", body["error"])
+			assert.Equal(t, string(tc.resource), body["resource"])
+			assert.Equal(t, string(tc.permission), body["permission"])
 		})
 	}
 }

@@ -14,6 +14,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestSMTPBridgeHandlerService_Authenticate_Success(t *testing.T) {
@@ -542,4 +543,432 @@ Content-Type: text/plain
 	jsonPayload, err := service.extractJSONPayload(msg)
 	assert.NoError(t, err)
 	assert.Contains(t, string(jsonPayload), `"id": "test"`)
+}
+
+// TestSMTPBridgeHandlerService_HandleMessage_SeedsAuthContext pins the shape of the
+// context the bridge hands to SendNotification. The bridge seeds the identity it has
+// already resolved rather than stamping SystemCallKey, which is what makes the send run
+// the same permission gate as the HTTP path instead of skipping authorization. The
+// workspace-scoped user key must be keyed on the workspace the send is for: keyed on
+// anything else the short-circuit misses and authentication falls through to a context
+// built from context.Background(), which carries no user at all.
+func TestSMTPBridgeHandlerService_HandleMessage_SeedsAuthContext(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	jwtSecret := []byte("test-secret-key-for-jwt-signing-minimum-32-chars")
+	userID := "api-user-123"
+	workspaceID := "workspace123"
+
+	emailBody := `From: sender@example.com
+To: test@example.com
+Subject: Test Email
+Content-Type: text/plain
+
+{
+  "workspace_id": "workspace123",
+  "notification": {
+    "id": "password_reset",
+    "contact": {"email": "user@example.com"}
+  }
+}`
+
+	userWorkspace := &domain.UserWorkspace{
+		UserID:      userID,
+		WorkspaceID: workspaceID,
+		Role:        "member",
+		Permissions: domain.UserPermissions{
+			domain.PermissionResourceTransactional: {Write: true},
+		},
+	}
+
+	mockRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	mockRepo.EXPECT().
+		GetUserWorkspace(gomock.Any(), userID, workspaceID).
+		Return(userWorkspace, nil)
+
+	mockTransactionalService := mocks.NewMockTransactionalNotificationService(ctrl)
+	mockTransactionalService.EXPECT().
+		SendNotification(gomock.Any(), workspaceID, gomock.Any()).
+		DoAndReturn(func(ctx context.Context, _ string, _ domain.TransactionalNotificationSendParams) (string, error) {
+			assert.Nil(t, ctx.Value(domain.SystemCallKey),
+				"stamping SystemCallKey would disable every downstream permission check")
+
+			seededUser, ok := ctx.Value(domain.WorkspaceUserKey(workspaceID)).(*domain.User)
+			if assert.True(t, ok, "context must carry the workspace-scoped user for the workspace being sent to") {
+				assert.Equal(t, userID, seededUser.ID)
+				assert.Equal(t, domain.UserTypeAPIKey, seededUser.Type)
+			}
+
+			seededWorkspace, ok := ctx.Value(domain.UserWorkspaceKey).(*domain.UserWorkspace)
+			if assert.True(t, ok, "context must carry the membership row the gate reads") {
+				assert.Same(t, userWorkspace, seededWorkspace)
+			}
+			return "msg-123", nil
+		})
+
+	log := logger.NewLogger()
+	rl := ratelimiter.NewRateLimiter()
+	rl.SetPolicy("smtp", 5, 1*time.Minute)
+	defer rl.Stop()
+	service := NewSMTPBridgeHandlerService(nil, mockTransactionalService, mockRepo, log, jwtSecret, rl)
+
+	err := service.HandleMessage(userID, "sender@example.com", []string{"test@example.com"}, []byte(emailBody))
+
+	assert.NoError(t, err)
+}
+
+// TestSMTPBridgeHandlerService_HandleMessage_PermissionParity drives a real
+// TransactionalNotificationService and a real AuthService behind the bridge, and asserts
+// the SMTP path reaches the same verdict as the HTTP path for the same membership row.
+// The bridge used to stamp SystemCallKey, which made every SMTP send unconditional
+// regardless of the key's permissions; a mocked transactional service cannot catch a
+// regression to that, because the gate lives in the service the mock replaces.
+func TestSMTPBridgeHandlerService_HandleMessage_PermissionParity(t *testing.T) {
+	const (
+		userID         = "api-user-123"
+		workspaceID    = "workspace123"
+		notificationID = "password_reset"
+		recipientEmail = "user@example.com"
+		templateID     = "template-1"
+	)
+
+	emailBody := `From: sender@example.com
+To: test@example.com
+Subject: Test Email
+Content-Type: text/plain
+
+{
+  "workspace_id": "workspace123",
+  "notification": {
+    "id": "password_reset",
+    "contact": {"email": "user@example.com"}
+  }
+}`
+
+	apiKeyUser := &domain.User{ID: userID, Email: "key@api.example.com", Type: domain.UserTypeAPIKey}
+
+	workspace := &domain.Workspace{
+		ID: workspaceID,
+		Settings: domain.WorkspaceSettings{
+			TransactionalEmailProviderID: "integration-1",
+			SecretKey:                    "test-secret-key",
+		},
+		Integrations: []domain.Integration{{
+			ID:   "integration-1",
+			Type: "email",
+			EmailProvider: domain.EmailProvider{
+				Kind:      domain.EmailProviderKindSparkPost,
+				Senders:   []domain.EmailSender{domain.NewEmailSender("sender@example.com", "Test Sender")},
+				SparkPost: &domain.SparkPostSettings{EncryptedAPIKey: "encrypted-api-key"},
+			},
+		}},
+	}
+
+	notification := &domain.TransactionalNotification{
+		ID:   notificationID,
+		Name: "Password reset",
+		Channels: map[domain.TransactionalChannel]domain.ChannelTemplate{
+			domain.TransactionalChannelEmail: {TemplateID: templateID},
+		},
+	}
+
+	cases := []struct {
+		name        string
+		permissions domain.UserPermissions
+		allowed     bool
+	}{
+		{
+			name:        "zero permission key",
+			permissions: domain.UserPermissions{},
+			allowed:     false,
+		},
+		{
+			// The key a customer would build to send and nothing else.
+			name: "send only key",
+			permissions: domain.UserPermissions{
+				domain.PermissionResourceTransactional: {Write: true},
+			},
+			allowed: true,
+		},
+		{
+			// Everything but transactional: the resource that owns the send.
+			name: "contacts only key",
+			permissions: domain.UserPermissions{
+				domain.PermissionResourceContacts: {Read: true, Write: true},
+			},
+			allowed: false,
+		},
+	}
+
+	// sendViaSMTP and sendViaHTTP drive the same service through the two entry points.
+	// Both set up their own mocks so the expectations describe exactly the calls their
+	// path makes.
+	sendViaSMTP := func(t *testing.T, permissions domain.UserPermissions, allowed bool) error {
+		t.Helper()
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		deps := newParityDeps(t, ctrl, workspace, notification, allowed)
+		deps.workspaceRepo.EXPECT().
+			GetUserWorkspace(gomock.Any(), userID, workspaceID).
+			Return(&domain.UserWorkspace{
+				UserID:      userID,
+				WorkspaceID: workspaceID,
+				Role:        "member",
+				Permissions: permissions,
+			}, nil)
+
+		rl := ratelimiter.NewRateLimiter()
+		rl.SetPolicy("smtp", 5, 1*time.Minute)
+		defer rl.Stop()
+
+		bridge := NewSMTPBridgeHandlerService(nil, deps.transactionalService, deps.workspaceRepo,
+			logger.NewLogger(), []byte("test-secret-key-for-jwt-signing-minimum-32-chars"), rl)
+
+		return bridge.HandleMessage(userID, "sender@example.com", []string{"test@example.com"}, []byte(emailBody))
+	}
+
+	sendViaHTTP := func(t *testing.T, permissions domain.UserPermissions, allowed bool) error {
+		t.Helper()
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		deps := newParityDeps(t, ctrl, workspace, notification, allowed)
+		deps.authRepo.EXPECT().GetUserByID(gomock.Any(), userID).Return(apiKeyUser, nil)
+		// AuthenticateUserForWorkspace resolves the workspace and the membership row,
+		// then the send fetches the workspace again for its provider settings.
+		deps.workspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(workspace, nil)
+		deps.workspaceRepo.EXPECT().
+			GetUserWorkspace(gomock.Any(), userID, workspaceID).
+			Return(&domain.UserWorkspace{
+				UserID:      userID,
+				WorkspaceID: workspaceID,
+				Role:        "member",
+				Permissions: permissions,
+			}, nil)
+
+		// The context the auth middleware builds for an API key.
+		ctx := context.WithValue(context.Background(), domain.UserIDKey, userID)
+		ctx = context.WithValue(ctx, domain.UserTypeKey, string(domain.UserTypeAPIKey))
+
+		_, err := deps.transactionalService.SendNotification(ctx, workspaceID, domain.TransactionalNotificationSendParams{
+			ID:      notificationID,
+			Contact: &domain.Contact{Email: recipientEmail},
+		})
+		return err
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			transports := map[string]func(*testing.T, domain.UserPermissions, bool) error{
+				"smtp": sendViaSMTP,
+				"http": sendViaHTTP,
+			}
+
+			for transport, send := range transports {
+				t.Run(transport, func(t *testing.T) {
+					err := send(t, tc.permissions, tc.allowed)
+
+					if tc.allowed {
+						assert.NoError(t, err)
+						return
+					}
+
+					require.Error(t, err)
+					var permErr *domain.PermissionError
+					require.ErrorAs(t, err, &permErr)
+					assert.Equal(t, domain.PermissionResourceTransactional, permErr.Resource)
+					assert.Equal(t, domain.PermissionTypeWrite, permErr.Permission)
+				})
+			}
+		})
+	}
+}
+
+type parityDeps struct {
+	transactionalService *TransactionalNotificationService
+	workspaceRepo        *mocks.MockWorkspaceRepository
+	authRepo             *mocks.MockAuthRepository
+	// upsertedContact is what the send actually handed the contact service, which is
+	// where the caller's posted body is either passed through or reduced to the email.
+	upsertedContact *domain.Contact
+}
+
+// newParityDeps builds a real transactional service on a real auth service, with
+// repository expectations for the send only when it is expected to get past the gate.
+func newParityDeps(t *testing.T, ctrl *gomock.Controller, workspace *domain.Workspace, notification *domain.TransactionalNotification, allowed bool) *parityDeps {
+	t.Helper()
+
+	workspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	authRepo := mocks.NewMockAuthRepository(ctrl)
+	transactionalRepo := mocks.NewMockTransactionalNotificationRepository(ctrl)
+	contactService := mocks.NewMockContactService(ctrl)
+	emailService := mocks.NewMockEmailServiceInterface(ctrl)
+	log := logger.NewLogger()
+
+	deps := &parityDeps{workspaceRepo: workspaceRepo, authRepo: authRepo}
+
+	authService := NewAuthService(AuthServiceConfig{
+		Repository:          authRepo,
+		WorkspaceRepository: workspaceRepo,
+		GetSecret:           func() ([]byte, error) { return []byte("test-secret-key-for-jwt-signing-minimum-32-chars"), nil },
+		Logger:              log,
+	})
+
+	if allowed {
+		workspaceRepo.EXPECT().GetByID(gomock.Any(), workspace.ID).Return(workspace, nil)
+		transactionalRepo.EXPECT().Get(gomock.Any(), workspace.ID, notification.ID).Return(notification, nil)
+		contactService.EXPECT().
+			UpsertContact(gomock.Any(), workspace.ID, gomock.Any()).
+			DoAndReturn(func(_ context.Context, _ string, contact *domain.Contact) domain.UpsertContactOperation {
+				deps.upsertedContact = contact
+				return domain.UpsertContactOperation{Action: domain.UpsertContactOperationUpdate}
+			})
+		contactService.EXPECT().
+			GetContactByEmail(gomock.Any(), workspace.ID, gomock.Any()).
+			DoAndReturn(func(_ context.Context, _ string, email string) (*domain.Contact, error) {
+				return &domain.Contact{Email: email}, nil
+			})
+		emailService.EXPECT().SendEmailForTemplate(gomock.Any(), gomock.Any()).Return(nil)
+	}
+
+	deps.transactionalService = NewTransactionalNotificationService(
+		transactionalRepo,
+		mocks.NewMockMessageHistoryRepository(ctrl),
+		mocks.NewMockTemplateService(ctrl),
+		contactService,
+		emailService,
+		authService,
+		log,
+		workspaceRepo,
+		"https://api.example.com",
+	)
+
+	return deps
+}
+
+// TestSMTPBridgeHandlerService_HandleMessage_ContactScope drives the bridge through a
+// real transactional service to pin the SMTP half of the send-only key's contact
+// containment. The bridge is the wider of the two entry points: it fills CC and BCC from
+// the raw Cc:/Bcc: headers, so a credential that could name an extra recipient would get
+// the rendered subject — Liquid-evaluated against the whole contact record — delivered
+// somewhere the contact is not. A send-only credential setting those headers is refused;
+// one that also holds contacts:read is not.
+func TestSMTPBridgeHandlerService_HandleMessage_ContactScope(t *testing.T) {
+	const (
+		userID         = "api-user-123"
+		workspaceID    = "workspace123"
+		notificationID = "password_reset"
+		recipientEmail = "victim@customer.com"
+		templateID     = "template-1"
+	)
+
+	sendOnly := domain.UserPermissions{
+		domain.PermissionResourceTransactional: {Write: true},
+	}
+	sendAndContacts := domain.UserPermissions{
+		domain.PermissionResourceTransactional: {Write: true},
+		domain.PermissionResourceContacts:      {Read: true, Write: true},
+	}
+
+	workspace := &domain.Workspace{
+		ID: workspaceID,
+		Settings: domain.WorkspaceSettings{
+			TransactionalEmailProviderID: "integration-1",
+			SecretKey:                    "test-secret-key",
+		},
+		Integrations: []domain.Integration{{
+			ID:   "integration-1",
+			Type: "email",
+			EmailProvider: domain.EmailProvider{
+				Kind:      domain.EmailProviderKindSparkPost,
+				Senders:   []domain.EmailSender{domain.NewEmailSender("sender@example.com", "Test Sender")},
+				SparkPost: &domain.SparkPostSettings{EncryptedAPIKey: "encrypted-api-key"},
+			},
+		}},
+	}
+
+	notification := &domain.TransactionalNotification{
+		ID:   notificationID,
+		Name: "Password reset",
+		Channels: map[domain.TransactionalChannel]domain.ChannelTemplate{
+			domain.TransactionalChannelEmail: {TemplateID: templateID},
+		},
+	}
+
+	// A body carrying fields beyond the email, and a header naming a second reader.
+	emailBody := func(bcc string) []byte {
+		bccHeader := ""
+		if bcc != "" {
+			bccHeader = "Bcc: " + bcc + "\n"
+		}
+		return []byte("From: sender@example.com\n" +
+			"To: test@example.com\n" +
+			bccHeader +
+			"Subject: Test Email\n" +
+			"Content-Type: text/plain\n" +
+			"\n" +
+			`{
+  "workspace_id": "workspace123",
+  "notification": {
+    "id": "password_reset",
+    "contact": {"email": "victim@customer.com", "first_name": "Overwritten", "custom_string_1": "injected"}
+  }
+}`)
+	}
+
+	send := func(t *testing.T, permissions domain.UserPermissions, allowed bool, bcc string) (*parityDeps, error) {
+		t.Helper()
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		deps := newParityDeps(t, ctrl, workspace, notification, allowed)
+		deps.workspaceRepo.EXPECT().
+			GetUserWorkspace(gomock.Any(), userID, workspaceID).
+			Return(&domain.UserWorkspace{
+				UserID:      userID,
+				WorkspaceID: workspaceID,
+				Role:        "member",
+				Permissions: permissions,
+			}, nil)
+
+		rl := ratelimiter.NewRateLimiter()
+		rl.SetPolicy("smtp", 5, 1*time.Minute)
+		defer rl.Stop()
+
+		bridge := NewSMTPBridgeHandlerService(nil, deps.transactionalService, deps.workspaceRepo,
+			logger.NewLogger(), []byte("test-secret-key-for-jwt-signing-minimum-32-chars"), rl)
+
+		return deps, bridge.HandleMessage(userID, "sender@example.com", []string{"test@example.com"}, emailBody(bcc))
+	}
+
+	t.Run("send-only credential upserts the email and nothing else", func(t *testing.T) {
+		deps, err := send(t, sendOnly, true, "")
+		require.NoError(t, err)
+
+		require.NotNil(t, deps.upsertedContact)
+		assert.Equal(t, recipientEmail, deps.upsertedContact.Email)
+		assert.Nil(t, deps.upsertedContact.FirstName)
+		assert.Nil(t, deps.upsertedContact.CustomString1)
+	})
+
+	t.Run("send-only credential cannot set bcc", func(t *testing.T) {
+		_, err := send(t, sendOnly, false, "attacker@evil.example")
+
+		require.Error(t, err)
+		var permErr *domain.PermissionError
+		require.ErrorAs(t, err, &permErr)
+		assert.Equal(t, domain.PermissionResourceContacts, permErr.Resource)
+		assert.Equal(t, domain.PermissionTypeRead, permErr.Permission)
+	})
+
+	t.Run("credential holding contacts read and write keeps both", func(t *testing.T) {
+		deps, err := send(t, sendAndContacts, true, "archive@customer.com")
+		require.NoError(t, err)
+
+		require.NotNil(t, deps.upsertedContact)
+		require.NotNil(t, deps.upsertedContact.FirstName)
+		assert.Equal(t, "Overwritten", deps.upsertedContact.FirstName.String)
+	})
 }

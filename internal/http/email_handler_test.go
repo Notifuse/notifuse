@@ -520,3 +520,41 @@ func TestEmailHandler_HandleOpens(t *testing.T) {
 		})
 	}
 }
+
+// TestEmailHandler_HandleTestEmailProvider_PermissionDenied pins that a denial
+// answers 403 naming the missing grant, rather than the 200 {success:false}
+// envelope a provider failure gets — nothing was sent, so it is not a test result.
+func TestEmailHandler_HandleTestEmailProvider_PermissionDenied(t *testing.T) {
+	mockService, _, handler, _ := setupEmailHandlerTest(t)
+
+	mockService.EXPECT().
+		TestEmailProvider(gomock.Any(), "workspace123", gomock.Any(), gomock.Any(), "test@example.com").
+		Return(domain.NewPermissionError(
+			domain.PermissionResourceTransactional,
+			domain.PermissionTypeWrite,
+			"Insufficient permissions: write access to transactional required",
+		))
+
+	reqBody, err := json.Marshal(domain.TestEmailProviderRequest{
+		WorkspaceID: "workspace123",
+		To:          "test@example.com",
+		Provider: domain.EmailProvider{
+			Kind:    domain.EmailProviderKindSMTP,
+			Senders: []domain.EmailSender{domain.NewEmailSender("sender@example.com", "Test Sender")},
+		},
+	})
+	require.NoError(t, err)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/email.testProvider", bytes.NewReader(reqBody))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	handler.handleTestEmailProvider(w, req)
+
+	assert.Equal(t, http.StatusForbidden, w.Code)
+
+	var response map[string]interface{}
+	require.NoError(t, json.NewDecoder(w.Body).Decode(&response))
+	assert.Equal(t, string(domain.PermissionResourceTransactional), response["resource"])
+	assert.Equal(t, string(domain.PermissionTypeWrite), response["permission"])
+}

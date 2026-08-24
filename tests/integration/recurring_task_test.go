@@ -76,23 +76,26 @@ func TestRecurringTask(t *testing.T) {
 }
 
 func testRecurringTaskCreateAndExecute(t *testing.T, client *testutil.APIClient, factory *testutil.TestDataFactory, workspaceID string) {
+	// Tasks are created by the services that own them — /api/tasks.create is
+	// gone — so the fixtures here are built through the factory and read back
+	// over the API.
 	t.Run("should create recurring task with interval and integration_id", func(t *testing.T) {
 		interval := int64(60)
 		integrationID := "test-int-" + testutil.GenerateRandomString(8)
 
-		state := map[string]interface{}{
-			"integration_sync": map[string]interface{}{
-				"integration_id":   integrationID,
-				"integration_type": "test",
-				"consec_errors":    0,
-			},
-		}
+		task, err := factory.CreateTask(workspaceID,
+			testutil.WithTaskType("sync_integration"),
+			testutil.WithTaskRecurringInterval(interval),
+			testutil.WithTaskIntegrationID(integrationID),
+			testutil.WithTaskStatus(domain.TaskStatusPending),
+		)
+		require.NoError(t, err)
 
-		resp, err := client.CreateRecurringTask(workspaceID, "sync_integration", interval, integrationID, state)
+		resp, err := client.GetTask(workspaceID, task.ID)
 		require.NoError(t, err)
 		defer func() { _ = resp.Body.Close() }()
 
-		assert.Equal(t, http.StatusCreated, resp.StatusCode)
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
 		var result map[string]interface{}
 		err = json.NewDecoder(resp.Body).Decode(&result)
@@ -111,26 +114,23 @@ func testRecurringTaskCreateAndExecute(t *testing.T, client *testutil.APIClient,
 		interval := int64(60)
 		integrationID := "test-reschedule-" + testutil.GenerateRandomString(8)
 
-		state := map[string]interface{}{
-			"integration_sync": map[string]interface{}{
-				"integration_id":   integrationID,
-				"integration_type": "test",
-				"consec_errors":    0,
-			},
-		}
-
-		// Create recurring task
-		resp, err := client.CreateRecurringTask(workspaceID, "sync_integration", interval, integrationID, state)
+		// Create recurring task. The sync_integration processor reads its own
+		// state on entry and fails the run without it, so the state the removed
+		// tasks.create route used to carry in its body is seeded here instead.
+		task, err := factory.CreateTask(workspaceID,
+			testutil.WithTaskType("sync_integration"),
+			testutil.WithTaskRecurringInterval(interval),
+			testutil.WithTaskIntegrationID(integrationID),
+			testutil.WithTaskStatus(domain.TaskStatusPending),
+			testutil.WithTaskState(&domain.TaskState{
+				IntegrationSync: &domain.IntegrationSyncState{
+					IntegrationID:   integrationID,
+					IntegrationType: "test",
+				},
+			}),
+		)
 		require.NoError(t, err)
-		defer func() { _ = resp.Body.Close() }()
-		require.Equal(t, http.StatusCreated, resp.StatusCode)
-
-		var createResult map[string]interface{}
-		err = json.NewDecoder(resp.Body).Decode(&createResult)
-		require.NoError(t, err)
-
-		taskData := createResult["task"].(map[string]interface{})
-		taskID := taskData["id"].(string)
+		taskID := task.ID
 
 		// Execute the task
 		execResp, err := client.ExecuteTask(map[string]interface{}{
@@ -310,26 +310,25 @@ func testRecurringTaskUniqueConstraint(t *testing.T, client *testutil.APIClient,
 		interval := int64(60)
 		integrationID := "test-unique-" + testutil.GenerateRandomString(8)
 
-		state := map[string]interface{}{
-			"integration_sync": map[string]interface{}{
-				"integration_id":   integrationID,
-				"integration_type": "test",
-			},
-		}
-
 		// Create first recurring task
-		resp1, err := client.CreateRecurringTask(workspaceID, "sync_integration", interval, integrationID, state)
+		_, err := factory.CreateTask(workspaceID,
+			testutil.WithTaskType("sync_integration"),
+			testutil.WithTaskRecurringInterval(interval),
+			testutil.WithTaskIntegrationID(integrationID),
+			testutil.WithTaskStatus(domain.TaskStatusPending),
+		)
 		require.NoError(t, err)
-		defer func() { _ = resp1.Body.Close() }()
-		require.Equal(t, http.StatusCreated, resp1.StatusCode)
 
 		// Attempt to create second task with same integration_id
-		resp2, err := client.CreateRecurringTask(workspaceID, "sync_integration", interval, integrationID, state)
-		require.NoError(t, err)
-		defer func() { _ = resp2.Body.Close() }()
+		_, err = factory.CreateTask(workspaceID,
+			testutil.WithTaskType("sync_integration"),
+			testutil.WithTaskRecurringInterval(interval),
+			testutil.WithTaskIntegrationID(integrationID),
+			testutil.WithTaskStatus(domain.TaskStatusPending),
+		)
 
 		// Should fail due to unique constraint
-		assert.Equal(t, http.StatusInternalServerError, resp2.StatusCode)
+		assert.Error(t, err)
 	})
 
 	t.Run("should allow creating task with same integration_id after completion", func(t *testing.T) {
@@ -347,18 +346,14 @@ func testRecurringTaskUniqueConstraint(t *testing.T, client *testutil.APIClient,
 		require.NotNil(t, task)
 
 		// Create second task with same integration_id - should succeed since first is completed
-		state := map[string]interface{}{
-			"integration_sync": map[string]interface{}{
-				"integration_id":   integrationID,
-				"integration_type": "test",
-			},
-		}
-
-		resp, err := client.CreateRecurringTask(workspaceID, "sync_integration", interval, integrationID, state)
+		second, err := factory.CreateTask(workspaceID,
+			testutil.WithTaskType("sync_integration"),
+			testutil.WithTaskRecurringInterval(interval),
+			testutil.WithTaskIntegrationID(integrationID),
+			testutil.WithTaskStatus(domain.TaskStatusPending),
+		)
 		require.NoError(t, err)
-		defer func() { _ = resp.Body.Close() }()
-
-		assert.Equal(t, http.StatusCreated, resp.StatusCode)
+		assert.NotNil(t, second)
 	})
 }
 
@@ -410,7 +405,7 @@ func testRecurringTaskResetNonFailedTask(t *testing.T, client *testutil.APIClien
 	t.Run("should return 400 when resetting non-recurring task", func(t *testing.T) {
 		// Create a failed but non-recurring task
 		task, err := factory.CreateTask(workspaceID,
-			testutil.WithTaskType("test_task"),
+			testutil.WithTaskType("sync_integration"),
 			testutil.WithTaskStatus(domain.TaskStatusFailed),
 		)
 		require.NoError(t, err)
