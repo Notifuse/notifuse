@@ -13,6 +13,7 @@ import (
 	"github.com/Notifuse/notifuse/internal/service"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestWebhookSubscriptionHandler_HandleCreate_ValidationErrors(t *testing.T) {
@@ -729,4 +730,342 @@ func TestWebhookSubscriptionHandler_HandleList_UngrantedIsForbidden(t *testing.T
 	_ = json.NewDecoder(rr.Body).Decode(&response)
 	assert.Equal(t, string(domain.PermissionResourceWebhookSubscriptions), response["resource"])
 	assert.Equal(t, string(domain.PermissionTypeRead), response["permission"])
+}
+
+// webhookWriteAuth admits a member holding webhook_subscriptions:write, which is
+// what create and update authorize against.
+func webhookWriteAuth(ctrl *gomock.Controller, workspaceID string) *mocks.MockAuthService {
+	authSvc := mocks.NewMockAuthService(ctrl)
+	authSvc.EXPECT().
+		AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
+		DoAndReturn(func(ctx context.Context, _ string) (context.Context, *domain.User, *domain.UserWorkspace, error) {
+			return ctx, &domain.User{ID: "user123"}, &domain.UserWorkspace{
+				UserID:      "user123",
+				WorkspaceID: workspaceID,
+				Role:        "member",
+				Permissions: domain.UserPermissions{
+					domain.PermissionResourceWebhookSubscriptions: {Read: true, Write: true},
+				},
+			}, nil
+		}).AnyTimes()
+	return authSvc
+}
+
+// The bodies here are raw JSON rather than struct literals on purpose: the cases
+// that matter are an absent "source" and an absent "list_ids", and a typed
+// literal cannot express a key that was never sent.
+func TestWebhookSubscriptionHandler_HandleCreate_SourceAndIDFilters(t *testing.T) {
+	testCases := []struct {
+		name               string
+		body               string
+		expectedSource     string
+		expectedListIDs    []string
+		expectedSegmentIDs []string
+	}{
+		{
+			name:           "zapier source is accepted and persisted",
+			body:           `{"workspace_id":"ws123","name":"Zap","url":"https://hooks.zapier.com/hooks/standard/1/abc/","event_types":["contact.created"],"source":"zapier"}`,
+			expectedSource: "zapier",
+		},
+		{
+			// A body from any pre-existing client, which never sends the field.
+			name:           "an absent source stores the user-created value",
+			body:           `{"workspace_id":"ws123","name":"Mine","url":"https://example.com/hook","event_types":["contact.created"]}`,
+			expectedSource: "",
+		},
+		{
+			name:               "list_ids and segment_ids reach the stored settings",
+			body:               `{"workspace_id":"ws123","name":"Filtered","url":"https://example.com/hook","event_types":["list.subscribed","segment.joined"],"list_ids":["list-a"],"segment_ids":["seg-a","seg-b"]}`,
+			expectedListIDs:    []string{"list-a"},
+			expectedSegmentIDs: []string{"seg-a", "seg-b"},
+		},
+		{
+			// Absent and empty must be indistinguishable downstream — both mean
+			// "every list, every segment". Storing a present-but-empty array invites
+			// a filter predicate that keys off presence to match nothing at all.
+			name:               "an empty array is no filter, not an empty filter",
+			body:               `{"workspace_id":"ws123","name":"Unfiltered","url":"https://example.com/hook","event_types":["list.subscribed"],"list_ids":[],"segment_ids":[]}`,
+			expectedListIDs:    nil,
+			expectedSegmentIDs: nil,
+		},
+		{
+			name:               "absent id filters are stored as no filter",
+			body:               `{"workspace_id":"ws123","name":"Unfiltered","url":"https://example.com/hook","event_types":["list.subscribed"]}`,
+			expectedListIDs:    nil,
+			expectedSegmentIDs: nil,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			var stored *domain.WebhookSubscription
+			repo := mocks.NewMockWebhookSubscriptionRepository(ctrl)
+			repo.EXPECT().
+				Create(gomock.Any(), "ws123", gomock.Any()).
+				DoAndReturn(func(_ context.Context, _ string, sub *domain.WebhookSubscription) error {
+					stored = sub
+					return nil
+				})
+
+			handler := &WebhookSubscriptionHandler{
+				service:      service.NewWebhookSubscriptionService(repo, nil, webhookWriteAuth(ctrl, "ws123"), &mockLogger{}),
+				worker:       nil,
+				logger:       &mockLogger{},
+				getJWTSecret: func() ([]byte, error) { return []byte("test"), nil },
+			}
+
+			req := httptest.NewRequest(http.MethodPost, "/api/webhookSubscriptions.create", bytes.NewBufferString(tc.body))
+			rr := httptest.NewRecorder()
+
+			handler.handleCreate(rr, req)
+
+			assert.Equal(t, http.StatusCreated, rr.Code, rr.Body.String())
+			if assert.NotNil(t, stored) {
+				assert.Equal(t, tc.expectedSource, stored.Source)
+				assert.Equal(t, tc.expectedListIDs, stored.Settings.ListIDs)
+				assert.Equal(t, tc.expectedSegmentIDs, stored.Settings.SegmentIDs)
+			}
+		})
+	}
+}
+
+// An unrecognised source is refused before the service is reached — the handler
+// here has no service at all, so a nil dereference is the failure mode if the
+// check ever moves below the call.
+func TestWebhookSubscriptionHandler_HandleCreate_RejectsUnknownSource(t *testing.T) {
+	handler := &WebhookSubscriptionHandler{
+		service:      nil,
+		worker:       nil,
+		logger:       &mockLogger{},
+		getJWTSecret: func() ([]byte, error) { return []byte("test"), nil },
+	}
+
+	body := map[string]interface{}{
+		"workspace_id": "ws123",
+		"name":         "Evil",
+		"url":          "https://example.com/hook",
+		"event_types":  []string{"contact.created"},
+		"source":       "evil",
+	}
+	var reqBody bytes.Buffer
+	_ = json.NewEncoder(&reqBody).Encode(body)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/webhookSubscriptions.create", &reqBody)
+	rr := httptest.NewRecorder()
+
+	handler.handleCreate(rr, req)
+
+	assert.Equal(t, http.StatusBadRequest, rr.Code)
+
+	var response map[string]string
+	_ = json.NewDecoder(rr.Body).Decode(&response)
+	assert.Contains(t, response["error"], "invalid webhook subscription source")
+}
+
+// webhookSubscriptions.update is a full replace, so the source has to survive a
+// body that does not carry it — and must not be settable by one that does.
+func TestWebhookSubscriptionHandler_HandleUpdate_LeavesSourceUnchanged(t *testing.T) {
+	testCases := []struct {
+		name           string
+		storedSource   string
+		body           string
+		expectedSource string
+	}{
+		{
+			name:           "a body claiming a different source cannot re-attribute the subscription",
+			storedSource:   domain.WebhookSubscriptionSourceUser,
+			body:           `{"workspace_id":"ws123","id":"sub123","name":"Renamed","url":"https://example.com/hook","event_types":["contact.created"],"enabled":true,"source":"zapier"}`,
+			expectedSource: domain.WebhookSubscriptionSourceUser,
+		},
+		{
+			// The console sends exactly this body when a user edits a Zapier-created
+			// subscription; it must not silently strip the attribution.
+			name:           "an absent source keeps the stored zapier attribution",
+			storedSource:   domain.WebhookSubscriptionSourceZapier,
+			body:           `{"workspace_id":"ws123","id":"sub123","name":"Renamed","url":"https://example.com/hook","event_types":["contact.created"],"enabled":true}`,
+			expectedSource: domain.WebhookSubscriptionSourceZapier,
+		},
+		{
+			name:           "an explicitly empty source does not clear the stored attribution",
+			storedSource:   domain.WebhookSubscriptionSourceZapier,
+			body:           `{"workspace_id":"ws123","id":"sub123","name":"Renamed","url":"https://example.com/hook","event_types":["contact.created"],"enabled":true,"source":""}`,
+			expectedSource: domain.WebhookSubscriptionSourceZapier,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			repo := mocks.NewMockWebhookSubscriptionRepository(ctrl)
+			repo.EXPECT().
+				GetByID(gomock.Any(), "ws123", "sub123").
+				Return(&domain.WebhookSubscription{
+					ID:      "sub123",
+					Name:    "Original",
+					URL:     "https://example.com/hook",
+					Secret:  "whsec_abc",
+					Source:  tc.storedSource,
+					Enabled: true,
+					Settings: domain.WebhookSubscriptionSettings{
+						EventTypes: []string{"contact.created"},
+					},
+				}, nil)
+
+			var stored *domain.WebhookSubscription
+			repo.EXPECT().
+				Update(gomock.Any(), "ws123", gomock.Any()).
+				DoAndReturn(func(_ context.Context, _ string, sub *domain.WebhookSubscription) error {
+					stored = sub
+					return nil
+				})
+
+			handler := &WebhookSubscriptionHandler{
+				service:      service.NewWebhookSubscriptionService(repo, nil, webhookWriteAuth(ctrl, "ws123"), &mockLogger{}),
+				worker:       nil,
+				logger:       &mockLogger{},
+				getJWTSecret: func() ([]byte, error) { return []byte("test"), nil },
+			}
+
+			req := httptest.NewRequest(http.MethodPost, "/api/webhookSubscriptions.update", bytes.NewBufferString(tc.body))
+			rr := httptest.NewRecorder()
+
+			handler.handleUpdate(rr, req)
+
+			assert.Equal(t, http.StatusOK, rr.Code, rr.Body.String())
+			if assert.NotNil(t, stored) {
+				assert.Equal(t, tc.expectedSource, stored.Source)
+				// The rest of the replace still applies, so the test cannot pass by
+				// the update having been dropped altogether.
+				assert.Equal(t, "Renamed", stored.Name)
+			}
+		})
+	}
+}
+
+func TestWebhookSubscriptionHandler_HandleUpdate_IDFilters(t *testing.T) {
+	testCases := []struct {
+		name               string
+		body               string
+		expectedListIDs    []string
+		expectedSegmentIDs []string
+	}{
+		{
+			name:               "populated arrays replace the stored filter",
+			body:               `{"workspace_id":"ws123","id":"sub123","name":"Filtered","url":"https://example.com/hook","event_types":["list.subscribed"],"enabled":true,"list_ids":["list-b"],"segment_ids":["seg-b"]}`,
+			expectedListIDs:    []string{"list-b"},
+			expectedSegmentIDs: []string{"seg-b"},
+		},
+		{
+			name:               "an empty array clears the filter rather than matching nothing",
+			body:               `{"workspace_id":"ws123","id":"sub123","name":"Filtered","url":"https://example.com/hook","event_types":["list.subscribed"],"enabled":true,"list_ids":[],"segment_ids":[]}`,
+			expectedListIDs:    nil,
+			expectedSegmentIDs: nil,
+		},
+		{
+			name:               "absent arrays clear the filter, since update is a full replace",
+			body:               `{"workspace_id":"ws123","id":"sub123","name":"Filtered","url":"https://example.com/hook","event_types":["list.subscribed"],"enabled":true}`,
+			expectedListIDs:    nil,
+			expectedSegmentIDs: nil,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			repo := mocks.NewMockWebhookSubscriptionRepository(ctrl)
+			repo.EXPECT().
+				GetByID(gomock.Any(), "ws123", "sub123").
+				Return(&domain.WebhookSubscription{
+					ID:      "sub123",
+					Name:    "Original",
+					URL:     "https://example.com/hook",
+					Enabled: true,
+					Settings: domain.WebhookSubscriptionSettings{
+						EventTypes: []string{"list.subscribed"},
+						ListIDs:    []string{"list-a"},
+						SegmentIDs: []string{"seg-a"},
+					},
+				}, nil)
+
+			var stored *domain.WebhookSubscription
+			repo.EXPECT().
+				Update(gomock.Any(), "ws123", gomock.Any()).
+				DoAndReturn(func(_ context.Context, _ string, sub *domain.WebhookSubscription) error {
+					stored = sub
+					return nil
+				})
+
+			handler := &WebhookSubscriptionHandler{
+				service:      service.NewWebhookSubscriptionService(repo, nil, webhookWriteAuth(ctrl, "ws123"), &mockLogger{}),
+				worker:       nil,
+				logger:       &mockLogger{},
+				getJWTSecret: func() ([]byte, error) { return []byte("test"), nil },
+			}
+
+			req := httptest.NewRequest(http.MethodPost, "/api/webhookSubscriptions.update", bytes.NewBufferString(tc.body))
+			rr := httptest.NewRecorder()
+
+			handler.handleUpdate(rr, req)
+
+			assert.Equal(t, http.StatusOK, rr.Code, rr.Body.String())
+			if assert.NotNil(t, stored) {
+				assert.Equal(t, tc.expectedListIDs, stored.Settings.ListIDs)
+				assert.Equal(t, tc.expectedSegmentIDs, stored.Settings.SegmentIDs)
+			}
+		})
+	}
+}
+
+// The console can only badge a Zapier subscription, or explain an automatic
+// disable, if these fields survive the response encoding.
+func TestWebhookSubscriptionHandler_HandleGet_SurfacesAttributionAndFailureState(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	reason := "endpoint returned 410 Gone"
+	repo := mocks.NewMockWebhookSubscriptionRepository(ctrl)
+	repo.EXPECT().
+		GetByID(gomock.Any(), "ws123", "sub123").
+		Return(&domain.WebhookSubscription{
+			ID:                  "sub123",
+			Name:                "Zap",
+			URL:                 "https://hooks.zapier.com/hooks/standard/1/abc/",
+			Source:              domain.WebhookSubscriptionSourceZapier,
+			ConsecutiveFailures: 7,
+			DisabledReason:      &reason,
+			Settings: domain.WebhookSubscriptionSettings{
+				EventTypes: []string{"list.subscribed"},
+				ListIDs:    []string{"list-a"},
+			},
+		}, nil)
+
+	handler := &WebhookSubscriptionHandler{
+		service:      service.NewWebhookSubscriptionService(repo, nil, webhookWriteAuth(ctrl, "ws123"), &mockLogger{}),
+		worker:       nil,
+		logger:       &mockLogger{},
+		getJWTSecret: func() ([]byte, error) { return []byte("test"), nil },
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/api/webhookSubscriptions.get?workspace_id=ws123&id=sub123", nil)
+	rr := httptest.NewRecorder()
+
+	handler.handleGet(rr, req)
+
+	assert.Equal(t, http.StatusOK, rr.Code, rr.Body.String())
+
+	var response struct {
+		Subscription map[string]interface{} `json:"subscription"`
+	}
+	require.NoError(t, json.NewDecoder(rr.Body).Decode(&response))
+	assert.Equal(t, "zapier", response.Subscription["source"])
+	assert.Equal(t, float64(7), response.Subscription["consecutive_failures"])
+	assert.Equal(t, reason, response.Subscription["disabled_reason"])
+	assert.Equal(t, []interface{}{"list-a"}, response.Subscription["list_ids"])
 }

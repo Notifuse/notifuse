@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"database/sql/driver"
 	"errors"
 	"regexp"
 	"testing"
@@ -1057,5 +1058,166 @@ func TestSegmentRepository_UpdateRecomputeAfter(t *testing.T) {
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to update recompute_after")
 		assert.NoError(t, sqlMock.ExpectationsWereMet())
+	})
+}
+
+// segmentContactDetailRow builds one result row for GetSegmentContactDetails: the
+// contact columns in contactColumns order, followed by the membership's matched_at.
+// Nullable contact fields are left NULL because this query is exercised for its
+// join, ordering and paging — the field-by-field mapping is ScanContact's contract
+// and is pinned by the contact repository tests.
+func segmentContactDetailRow(rows *sqlmock.Rows, email string, ts time.Time, matchedAt time.Time) *sqlmock.Rows {
+	values := make([]driver.Value, 0, len(contactColumns)+1)
+	values = append(values, email)
+	// Everything between the email and the four trailing timestamps is nullable.
+	for i := 1; i < len(contactColumns)-4; i++ {
+		values = append(values, nil)
+	}
+	values = append(values, ts, ts, ts, ts, matchedAt)
+	return rows.AddRow(values...)
+}
+
+func TestSegmentRepository_GetSegmentContactDetails(t *testing.T) {
+	repo, _, mockWorkspaceRepo := setupSegmentRepositoryTest(t)
+	ctx := context.Background()
+	now := time.Now().UTC().Truncate(time.Microsecond)
+
+	newRows := func() *sqlmock.Rows {
+		return sqlmock.NewRows(append(append([]string{}, contactColumns...), "matched_at"))
+	}
+
+	t.Run("returns contacts ordered by join time descending", func(t *testing.T) {
+		db, sqlMock, err := sqlmock.New()
+		require.NoError(t, err)
+		defer func() { _ = db.Close() }()
+
+		mockWorkspaceRepo.EXPECT().GetConnection(ctx, "workspace123").Return(db, nil)
+
+		newest := now
+		middle := now.Add(-time.Hour)
+		oldest := now.Add(-48 * time.Hour)
+
+		rows := newRows()
+		segmentContactDetailRow(rows, "newest@example.com", now, newest)
+		segmentContactDetailRow(rows, "middle@example.com", now, middle)
+		segmentContactDetailRow(rows, "oldest@example.com", now, oldest)
+
+		// The ORDER BY is what makes this endpoint answer "who joined lately", and
+		// the email tiebreaker is what keeps a limit/offset walk stable across pages
+		// when a segment build stamps many rows with the same matched_at.
+		sqlMock.ExpectQuery(regexp.QuoteMeta(`ORDER BY cs.matched_at DESC, cs.email ASC`)).
+			WithArgs("seg123", 50, 0).
+			WillReturnRows(rows)
+
+		details, err := repo.GetSegmentContactDetails(ctx, "workspace123", "seg123", 50, 0)
+		require.NoError(t, err)
+		require.Len(t, details, 3)
+
+		assert.Equal(t, "newest@example.com", details[0].Contact.Email)
+		assert.Equal(t, "middle@example.com", details[1].Contact.Email)
+		assert.Equal(t, "oldest@example.com", details[2].Contact.Email)
+
+		assert.Equal(t, newest, details[0].MatchedAt)
+		assert.Equal(t, middle, details[1].MatchedAt)
+		assert.Equal(t, oldest, details[2].MatchedAt)
+
+		assert.NoError(t, sqlMock.ExpectationsWereMet())
+	})
+
+	t.Run("joins the contact record onto the membership", func(t *testing.T) {
+		db, sqlMock, err := sqlmock.New()
+		require.NoError(t, err)
+		defer func() { _ = db.Close() }()
+
+		mockWorkspaceRepo.EXPECT().GetConnection(ctx, "workspace123").Return(db, nil)
+
+		rows := newRows()
+		segmentContactDetailRow(rows, "joined@example.com", now, now)
+
+		sqlMock.ExpectQuery(regexp.QuoteMeta(`FROM contact_segments cs
+		JOIN contacts c ON c.email = cs.email
+		WHERE cs.segment_id = $1`)).
+			WithArgs("seg123", 50, 0).
+			WillReturnRows(rows)
+
+		details, err := repo.GetSegmentContactDetails(ctx, "workspace123", "seg123", 50, 0)
+		require.NoError(t, err)
+		require.Len(t, details, 1)
+		require.NotNil(t, details[0].Contact)
+		assert.Equal(t, "joined@example.com", details[0].Contact.Email)
+		assert.Equal(t, now, details[0].Contact.CreatedAt)
+		assert.NoError(t, sqlMock.ExpectationsWereMet())
+	})
+
+	t.Run("honours limit and offset", func(t *testing.T) {
+		db, sqlMock, err := sqlmock.New()
+		require.NoError(t, err)
+		defer func() { _ = db.Close() }()
+
+		mockWorkspaceRepo.EXPECT().GetConnection(ctx, "workspace123").Return(db, nil)
+
+		sqlMock.ExpectQuery(regexp.QuoteMeta(`LIMIT $2 OFFSET $3`)).
+			WithArgs("seg123", 10, 20).
+			WillReturnRows(newRows())
+
+		details, err := repo.GetSegmentContactDetails(ctx, "workspace123", "seg123", 10, 20)
+		require.NoError(t, err)
+		assert.Empty(t, details)
+		assert.NoError(t, sqlMock.ExpectationsWereMet())
+	})
+
+	t.Run("workspace connection error", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().
+			GetConnection(ctx, "workspace123").
+			Return(nil, errors.New("connection failed"))
+
+		details, err := repo.GetSegmentContactDetails(ctx, "workspace123", "seg123", 50, 0)
+		require.Error(t, err)
+		assert.Nil(t, details)
+		assert.Contains(t, err.Error(), "failed to get workspace connection")
+	})
+
+	t.Run("query error", func(t *testing.T) {
+		db, sqlMock, err := sqlmock.New()
+		require.NoError(t, err)
+		defer func() { _ = db.Close() }()
+
+		mockWorkspaceRepo.EXPECT().GetConnection(ctx, "workspace123").Return(db, nil)
+
+		sqlMock.ExpectQuery(regexp.QuoteMeta(`FROM contact_segments cs`)).
+			WillReturnError(errors.New("database error"))
+
+		details, err := repo.GetSegmentContactDetails(ctx, "workspace123", "seg123", 50, 0)
+		require.Error(t, err)
+		assert.Nil(t, details)
+		assert.Contains(t, err.Error(), "failed to query segment contact details")
+	})
+
+	t.Run("scan error", func(t *testing.T) {
+		db, sqlMock, err := sqlmock.New()
+		require.NoError(t, err)
+		defer func() { _ = db.Close() }()
+
+		mockWorkspaceRepo.EXPECT().GetConnection(ctx, "workspace123").Return(db, nil)
+
+		// One column short of what the scan expects: the trailing matched_at is
+		// missing, which is exactly what a mismatch between the SELECT list and the
+		// scan destinations would look like.
+		short := sqlmock.NewRows(contactColumns)
+		values := make([]driver.Value, 0, len(contactColumns))
+		values = append(values, "broken@example.com")
+		for i := 1; i < len(contactColumns)-4; i++ {
+			values = append(values, nil)
+		}
+		values = append(values, now, now, now, now)
+		short.AddRow(values...)
+
+		sqlMock.ExpectQuery(regexp.QuoteMeta(`FROM contact_segments cs`)).
+			WillReturnRows(short)
+
+		details, err := repo.GetSegmentContactDetails(ctx, "workspace123", "seg123", 50, 0)
+		require.Error(t, err)
+		assert.Nil(t, details)
+		assert.Contains(t, err.Error(), "failed to scan segment contact detail")
 	})
 }

@@ -1,6 +1,7 @@
 package http
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 
@@ -9,13 +10,28 @@ import (
 	"github.com/Notifuse/notifuse/pkg/logger"
 )
 
+// ListServiceWithSubscriptionResults is the list service as this handler needs it.
+// lists.subscribe answers with the membership each requested list ended up in, and
+// domain.ListService.SubscribeToLists returns an error alone. The richer call is
+// declared here, in the package that consumes it, rather than widened on the domain
+// interface: the service's other callers — the notification center, workspace
+// onboarding, the demo seeder — have no use for the statuses, and every mock of
+// domain.ListService would have to grow the method to satisfy them.
+type ListServiceWithSubscriptionResults interface {
+	domain.ListService
+
+	// SubscribeToListsWithResults subscribes and reports one membership per
+	// requested list, including the lists it deliberately left untouched.
+	SubscribeToListsWithResults(ctx context.Context, payload *domain.SubscribeToListsRequest, hasBearerToken bool) ([]*domain.ContactList, error)
+}
+
 type ListHandler struct {
-	service      domain.ListService
+	service      ListServiceWithSubscriptionResults
 	logger       logger.Logger
 	getJWTSecret func() ([]byte, error)
 }
 
-func NewListHandler(service domain.ListService, getJWTSecret func() ([]byte, error), logger logger.Logger) *ListHandler {
+func NewListHandler(service ListServiceWithSubscriptionResults, getJWTSecret func() ([]byte, error), logger logger.Logger) *ListHandler {
 	return &ListHandler{
 		service:      service,
 		logger:       logger,
@@ -258,7 +274,8 @@ func (h *ListHandler) handleSubscribe(w http.ResponseWriter, r *http.Request) {
 	}
 
 	hasBearerToken := true
-	if err := h.service.SubscribeToLists(r.Context(), &req, hasBearerToken); err != nil {
+	contactLists, err := h.service.SubscribeToListsWithResults(r.Context(), &req, hasBearerToken)
+	if err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to subscribe to lists")
 		if writeServiceError(w, err, "You do not have access to this workspace") {
 			return
@@ -267,7 +284,12 @@ func (h *ListHandler) handleSubscribe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// contact_lists is additive — "success" stays the key an existing client reads.
+	// It carries the status each membership ended up in, which the request cannot
+	// predict: double opt-in, a prior unsubscribe and a bounced address each decide
+	// it server-side.
 	writeJSON(w, http.StatusOK, map[string]interface{}{
-		"success": true,
+		"success":       true,
+		"contact_lists": contactLists,
 	})
 }

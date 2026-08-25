@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"testing"
+	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
 
@@ -1109,4 +1110,198 @@ func TestContactHandler_NonPermissionErrorKeepsItsStatus(t *testing.T) {
 	var response map[string]interface{}
 	require.NoError(t, json.NewDecoder(rr.Body).Decode(&response))
 	assert.Equal(t, "invalid contact: email is required", response["error"])
+}
+
+// TestContactHandler_HandleUpsert_ReturnsStoredContact covers the field an
+// integration maps its next step from. The contact in the response is the stored
+// row, which is not the one the request described: the merge and the database
+// between them decide the external_id, the custom fields and the timestamps.
+func TestContactHandler_HandleUpsert_ReturnsStoredContact(t *testing.T) {
+	storedAt := time.Date(2026, 8, 24, 10, 30, 0, 0, time.UTC)
+
+	testCases := []struct {
+		name   string
+		action string
+		stored *domain.Contact
+	}{
+		{
+			name:   "create",
+			action: domain.UpsertContactOperationCreate,
+			stored: &domain.Contact{
+				Email:       "new@example.com",
+				ExternalID:  &domain.NullableString{String: "crm-42"},
+				Timezone:    &domain.NullableString{String: "Europe/Paris"},
+				DBCreatedAt: storedAt,
+				DBUpdatedAt: storedAt,
+			},
+		},
+		{
+			name:   "update",
+			action: domain.UpsertContactOperationUpdate,
+			stored: &domain.Contact{
+				Email: "existing@example.com",
+				// Set by an earlier write and untouched by this request: only the
+				// stored row can report it.
+				FirstName:   &domain.NullableString{String: "Ada"},
+				ExternalID:  &domain.NullableString{String: "crm-7"},
+				DBCreatedAt: storedAt.Add(-24 * time.Hour),
+				DBUpdatedAt: storedAt,
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			mockService, _, handler := setupContactHandlerTest(t)
+			mockService.EXPECT().UpsertContact(gomock.Any(), "workspace123", gomock.Any()).
+				Return(domain.UpsertContactOperation{
+					Email:   tc.stored.Email,
+					Action:  tc.action,
+					Contact: tc.stored,
+				})
+
+			body := []byte(`{
+				"workspace_id": "workspace123",
+				"contact": {"email": "` + tc.stored.Email + `"}
+			}`)
+			req := httptest.NewRequest(http.MethodPost, "/api/contacts.upsert", bytes.NewReader(body))
+			req.Header.Set("Content-Type", "application/json")
+
+			rr := httptest.NewRecorder()
+			handler.handleUpsert(rr, req)
+			require.Equal(t, http.StatusOK, rr.Code)
+
+			var response domain.UpsertContactOperation
+			require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+			assert.Equal(t, tc.action, response.Action)
+			require.NotNil(t, response.Contact)
+			assert.Equal(t, tc.stored.Email, response.Contact.Email)
+			require.NotNil(t, response.Contact.ExternalID)
+			assert.Equal(t, tc.stored.ExternalID.String, response.Contact.ExternalID.String)
+		})
+	}
+}
+
+// TestContactHandler_HandleUpsert_OldClientShape pins the additive half: a client
+// written against the previous response reads the same fields, and a response
+// without a read-back contact carries no contact key at all rather than a null.
+func TestContactHandler_HandleUpsert_OldClientShape(t *testing.T) {
+	t.Run("existing keys are untouched", func(t *testing.T) {
+		mockService, _, handler := setupContactHandlerTest(t)
+		mockService.EXPECT().UpsertContact(gomock.Any(), "workspace123", gomock.Any()).
+			Return(domain.UpsertContactOperation{
+				Email:   "new@example.com",
+				Action:  domain.UpsertContactOperationCreate,
+				Contact: &domain.Contact{Email: "new@example.com"},
+			})
+
+		body := []byte(`{"workspace_id":"workspace123","contact":{"email":"new@example.com"}}`)
+		req := httptest.NewRequest(http.MethodPost, "/api/contacts.upsert", bytes.NewReader(body))
+		rr := httptest.NewRecorder()
+		handler.handleUpsert(rr, req)
+		require.Equal(t, http.StatusOK, rr.Code)
+
+		// The shape a client that predates the contact field declares.
+		var legacy struct {
+			Email  string `json:"email"`
+			Action string `json:"action"`
+			Error  string `json:"error,omitempty"`
+		}
+		require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &legacy))
+		assert.Equal(t, "new@example.com", legacy.Email)
+		assert.Equal(t, domain.UpsertContactOperationCreate, legacy.Action)
+		assert.Empty(t, legacy.Error)
+	})
+
+	t.Run("no read-back leaves the key absent", func(t *testing.T) {
+		mockService, _, handler := setupContactHandlerTest(t)
+		mockService.EXPECT().UpsertContact(gomock.Any(), "workspace123", gomock.Any()).
+			Return(domain.UpsertContactOperation{
+				Email:  "new@example.com",
+				Action: domain.UpsertContactOperationCreate,
+			})
+
+		body := []byte(`{"workspace_id":"workspace123","contact":{"email":"new@example.com"}}`)
+		req := httptest.NewRequest(http.MethodPost, "/api/contacts.upsert", bytes.NewReader(body))
+		rr := httptest.NewRecorder()
+		handler.handleUpsert(rr, req)
+		require.Equal(t, http.StatusOK, rr.Code)
+
+		var response map[string]interface{}
+		require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+		_, present := response["contact"]
+		assert.False(t, present)
+	})
+}
+
+// TestContactHandler_HandleList_ErrorsAreJSON pins that every exit from
+// contacts.list is JSON. It used to answer plain text through http.Error, which an
+// API client parsing the body has no way to read: it gets a status it can act on
+// and a body that fails to decode.
+func TestContactHandler_HandleList_ErrorsAreJSON(t *testing.T) {
+	testCases := []struct {
+		name           string
+		setupMock      func(*mocks.MockContactService)
+		request        func() *http.Request
+		expectedStatus int
+	}{
+		{
+			name: "method not allowed",
+			setupMock: func(m *mocks.MockContactService) {
+				m.EXPECT().GetContacts(gomock.Any(), gomock.Any()).Times(0)
+			},
+			request: func() *http.Request {
+				return httptest.NewRequest(http.MethodPost, "/api/contacts.list", nil)
+			},
+			expectedStatus: http.StatusMethodNotAllowed,
+		},
+		{
+			name: "invalid request parameters",
+			setupMock: func(m *mocks.MockContactService) {
+				m.EXPECT().GetContacts(gomock.Any(), gomock.Any()).Times(0)
+			},
+			request: func() *http.Request {
+				return httptest.NewRequest(http.MethodGet, "/api/contacts.list?workspace_id=workspace123&limit=not-a-number", nil)
+			},
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name: "validation failure",
+			setupMock: func(m *mocks.MockContactService) {
+				m.EXPECT().GetContacts(gomock.Any(), gomock.Any()).Times(0)
+			},
+			request: func() *http.Request {
+				return httptest.NewRequest(http.MethodGet, "/api/contacts.list", nil)
+			},
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name: "service failure",
+			setupMock: func(m *mocks.MockContactService) {
+				m.EXPECT().GetContacts(gomock.Any(), gomock.Any()).
+					Return(nil, errors.New("database unreachable"))
+			},
+			request: func() *http.Request {
+				return httptest.NewRequest(http.MethodGet, "/api/contacts.list?workspace_id=workspace123", nil)
+			},
+			expectedStatus: http.StatusInternalServerError,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			mockService, _, handler := setupContactHandlerTest(t)
+			tc.setupMock(mockService)
+
+			rr := httptest.NewRecorder()
+			handler.handleList(rr, tc.request())
+
+			assert.Equal(t, tc.expectedStatus, rr.Code)
+			assert.Equal(t, "application/json", rr.Header().Get("Content-Type"))
+
+			var response map[string]interface{}
+			require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+			assert.NotEmpty(t, response["error"])
+		})
+	}
 }

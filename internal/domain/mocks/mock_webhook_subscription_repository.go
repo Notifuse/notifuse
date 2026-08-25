@@ -64,6 +64,20 @@ func (mr *MockWebhookSubscriptionRepositoryMockRecorder) Delete(arg0, arg1, arg2
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockWebhookSubscriptionRepository)(nil).Delete), arg0, arg1, arg2)
 }
 
+// DisableWithReason mocks base method.
+func (m *MockWebhookSubscriptionRepository) DisableWithReason(arg0 context.Context, arg1, arg2, arg3 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DisableWithReason", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DisableWithReason indicates an expected call of DisableWithReason.
+func (mr *MockWebhookSubscriptionRepositoryMockRecorder) DisableWithReason(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DisableWithReason", reflect.TypeOf((*MockWebhookSubscriptionRepository)(nil).DisableWithReason), arg0, arg1, arg2, arg3)
+}
+
 // GetByID mocks base method.
 func (m *MockWebhookSubscriptionRepository) GetByID(arg0 context.Context, arg1, arg2 string) (*domain.WebhookSubscription, error) {
 	m.ctrl.T.Helper()
@@ -79,6 +93,20 @@ func (mr *MockWebhookSubscriptionRepositoryMockRecorder) GetByID(arg0, arg1, arg
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetByID", reflect.TypeOf((*MockWebhookSubscriptionRepository)(nil).GetByID), arg0, arg1, arg2)
 }
 
+// IncrementFailures mocks base method.
+func (m *MockWebhookSubscriptionRepository) IncrementFailures(arg0 context.Context, arg1, arg2 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IncrementFailures", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// IncrementFailures indicates an expected call of IncrementFailures.
+func (mr *MockWebhookSubscriptionRepositoryMockRecorder) IncrementFailures(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IncrementFailures", reflect.TypeOf((*MockWebhookSubscriptionRepository)(nil).IncrementFailures), arg0, arg1, arg2)
+}
+
 // List mocks base method.
 func (m *MockWebhookSubscriptionRepository) List(arg0 context.Context, arg1 string) ([]*domain.WebhookSubscription, error) {
 	m.ctrl.T.Helper()
@@ -92,6 +120,20 @@ func (m *MockWebhookSubscriptionRepository) List(arg0 context.Context, arg1 stri
 func (mr *MockWebhookSubscriptionRepositoryMockRecorder) List(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "List", reflect.TypeOf((*MockWebhookSubscriptionRepository)(nil).List), arg0, arg1)
+}
+
+// ResetFailures mocks base method.
+func (m *MockWebhookSubscriptionRepository) ResetFailures(arg0 context.Context, arg1, arg2 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ResetFailures", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ResetFailures indicates an expected call of ResetFailures.
+func (mr *MockWebhookSubscriptionRepositoryMockRecorder) ResetFailures(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResetFailures", reflect.TypeOf((*MockWebhookSubscriptionRepository)(nil).ResetFailures), arg0, arg1, arg2)
 }
 
 // Update mocks base method.

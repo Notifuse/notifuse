@@ -999,6 +999,118 @@ func TestSegmentService_GetSegmentContacts(t *testing.T) {
 	})
 }
 
+func TestSegmentService_GetSegmentContactDetails(t *testing.T) {
+	ctx := context.Background()
+	now := time.Now().UTC()
+
+	newService := func(t *testing.T) (*SegmentService, *mocks.MockSegmentRepository) {
+		ctrl := gomock.NewController(t)
+		t.Cleanup(ctrl.Finish)
+
+		mockRepo := mocks.NewMockSegmentRepository(ctrl)
+		svc := NewSegmentService(
+			mockRepo,
+			mocks.NewMockWorkspaceRepository(ctrl),
+			mocks.NewMockTaskService(ctrl),
+			newPermissiveAuthService(ctrl),
+			pkgmocks.NewMockLogger(ctrl),
+		)
+		return svc, mockRepo
+	}
+
+	t.Run("returns the expanded records the repository produced", func(t *testing.T) {
+		svc, mockRepo := newService(t)
+
+		expected := []*domain.SegmentContactDetail{
+			{Contact: &domain.Contact{Email: "recent@example.com"}, MatchedAt: now},
+			{Contact: &domain.Contact{Email: "older@example.com"}, MatchedAt: now.Add(-time.Hour)},
+		}
+
+		mockRepo.EXPECT().
+			GetSegmentContactDetails(gomock.Any(), "workspace123", "segment1", 50, 10).
+			Return(expected, nil)
+
+		details, err := svc.GetSegmentContactDetails(ctx, "workspace123", "segment1", 50, 10)
+		require.NoError(t, err)
+		assert.Equal(t, expected, details)
+	})
+
+	t.Run("validation errors", func(t *testing.T) {
+		testCases := []struct {
+			name        string
+			workspaceID string
+			segmentID   string
+			errContains string
+		}{
+			{
+				name:        "missing workspace ID",
+				workspaceID: "",
+				segmentID:   "segment1",
+				errContains: "workspace_id is required",
+			},
+			{
+				name:        "missing segment ID",
+				workspaceID: "workspace123",
+				segmentID:   "",
+				errContains: "segment_id is required",
+			},
+		}
+
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				svc, _ := newService(t)
+
+				details, err := svc.GetSegmentContactDetails(ctx, tc.workspaceID, tc.segmentID, 50, 0)
+				require.Error(t, err)
+				assert.Nil(t, details)
+				assert.Contains(t, err.Error(), tc.errContains)
+			})
+		}
+	})
+
+	t.Run("clamps the page size", func(t *testing.T) {
+		testCases := []struct {
+			name          string
+			limit         int
+			offset        int
+			expectedLimit int
+			expectedOff   int
+		}{
+			{name: "absent limit falls back to a page", limit: 0, expectedLimit: 20},
+			{name: "negative limit falls back to a page", limit: -5, expectedLimit: 20},
+			{name: "oversized limit is capped", limit: 5000, expectedLimit: 100},
+			{name: "negative offset starts at the first page", limit: 10, offset: -3, expectedLimit: 10, expectedOff: 0},
+		}
+
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				svc, mockRepo := newService(t)
+
+				mockRepo.EXPECT().
+					GetSegmentContactDetails(gomock.Any(), "workspace123", "segment1", tc.expectedLimit, tc.expectedOff).
+					Return(nil, nil)
+
+				_, err := svc.GetSegmentContactDetails(ctx, "workspace123", "segment1", tc.limit, tc.offset)
+				require.NoError(t, err)
+			})
+		}
+	})
+
+	t.Run("repository error is wrapped", func(t *testing.T) {
+		svc, mockRepo := newService(t)
+
+		mockRepo.EXPECT().
+			GetSegmentContactDetails(gomock.Any(), "workspace123", "segment1", 20, 0).
+			Return(nil, errors.New("query failed"))
+
+		details, err := svc.GetSegmentContactDetails(ctx, "workspace123", "segment1", 0, 0)
+		require.Error(t, err)
+		assert.Nil(t, details)
+		assert.Contains(t, err.Error(), "failed to get segment contact details")
+		assert.Contains(t, err.Error(), "query failed")
+	})
+}
+
 func TestNewSegmentService(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -1157,6 +1269,10 @@ func segmentPermissionCases() []segmentPermissionCase {
 			_, err := d.svc.GetSegmentContacts(ctx, "w1", "seg-1", 50, 0)
 			return err
 		}},
+		{"GetSegmentContactDetails", domain.PermissionTypeRead, func(d *segmentPermissionDeps, ctx context.Context) error {
+			_, err := d.svc.GetSegmentContactDetails(ctx, "w1", "seg-1", 50, 0)
+			return err
+		}},
 	}
 }
 
@@ -1196,7 +1312,7 @@ func TestSegmentService_PermissionEnforcement(t *testing.T) {
 }
 
 // TestSegmentService_PreviewAndContactsRequireContactsRead pins the second gate on
-// the two methods that answer questions about contacts through a segment query:
+// every method that answers questions about contacts through a segment query:
 // segments:read alone is a count oracle over contact attributes, list membership,
 // custom events and message history, so contacts:read is required on top of it.
 func TestSegmentService_PreviewAndContactsRequireContactsRead(t *testing.T) {
@@ -1220,6 +1336,10 @@ func TestSegmentService_PreviewAndContactsRequireContactsRead(t *testing.T) {
 		}},
 		{"GetSegmentContacts", func(d *segmentPermissionDeps, ctx context.Context) error {
 			_, err := d.svc.GetSegmentContacts(ctx, "w1", "seg-1", 50, 0)
+			return err
+		}},
+		{"GetSegmentContactDetails", func(d *segmentPermissionDeps, ctx context.Context) error {
+			_, err := d.svc.GetSegmentContactDetails(ctx, "w1", "seg-1", 50, 0)
 			return err
 		}},
 	}

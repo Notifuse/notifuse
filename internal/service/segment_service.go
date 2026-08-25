@@ -76,7 +76,7 @@ func (s *SegmentService) authorize(ctx context.Context, workspaceID string, writ
 	return ctx, userWorkspace, nil
 }
 
-// requireContactsRead gates the two methods that answer questions about contacts
+// requireContactsRead gates the methods that answer questions about contacts
 // rather than about segments.
 //
 // A segment tree compiles against contacts, contact_lists, custom_events_goals and
@@ -607,6 +607,47 @@ func (s *SegmentService) GetSegmentContacts(ctx context.Context, workspaceID, se
 	}
 
 	return emails, nil
+}
+
+// GetSegmentContactDetails retrieves the contacts belonging to a segment as whole
+// records, most recently joined first.
+//
+// It reads more about each contact than GetSegmentContacts does, so it carries the
+// same two gates: segments:read to look through the segment, contacts:read for the
+// contact fields it hands back.
+func (s *SegmentService) GetSegmentContactDetails(ctx context.Context, workspaceID, segmentID string, limit, offset int) ([]*domain.SegmentContactDetail, error) {
+	ctx, userWorkspace, err := s.authorize(ctx, workspaceID, false)
+	if err != nil {
+		return nil, err
+	}
+	if err := s.requireContactsRead(userWorkspace); err != nil {
+		return nil, err
+	}
+
+	if workspaceID == "" {
+		return nil, fmt.Errorf("workspace_id is required")
+	}
+	if segmentID == "" {
+		return nil, fmt.Errorf("segment_id is required")
+	}
+	// Same clamps as GetSegmentContacts: a caller that omits a limit gets a page,
+	// and no caller can pull the whole segment in one request.
+	if limit <= 0 {
+		limit = 20
+	}
+	if limit > 100 {
+		limit = 100
+	}
+	if offset < 0 {
+		offset = 0
+	}
+
+	details, err := s.segmentRepo.GetSegmentContactDetails(ctx, workspaceID, segmentID, limit, offset)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get segment contact details: %w", err)
+	}
+
+	return details, nil
 }
 
 // calculateNext5AMInTimezone calculates the next occurrence of 5:00 AM in the given timezone

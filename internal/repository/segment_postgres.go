@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
@@ -431,6 +432,79 @@ func (r *segmentRepository) GetSegmentContactCount(ctx context.Context, workspac
 	}
 
 	return count, nil
+}
+
+// trailingColumnScanner adapts a row that carries the contact columns followed by
+// extra columns to domain.ScanContact, which scans the contact columns and nothing
+// else. Appending the extra destinations keeps the contact column list defined in
+// exactly one place (contactColumns) instead of a second hand-written scan here
+// that would silently mis-map the day a contact column is added.
+type trailingColumnScanner struct {
+	scanner interface {
+		Scan(dest ...interface{}) error
+	}
+	extra []interface{}
+}
+
+func (s trailingColumnScanner) Scan(dest ...interface{}) error {
+	return s.scanner.Scan(append(dest, s.extra...)...)
+}
+
+// GetSegmentContactDetails retrieves segment members joined to their contact
+// records, most recently joined first.
+//
+// matched_at is the moment the contact entered the segment, so ordering on it
+// answers "who joined this segment lately" — which the email-only listing cannot,
+// having no timestamp to sort on at all. email breaks ties because a segment build
+// stamps every member it inserts with the same matched_at, and without a tiebreaker
+// PostgreSQL is free to return those rows in a different order per page, which
+// silently duplicates and drops contacts across a limit/offset walk.
+func (r *segmentRepository) GetSegmentContactDetails(ctx context.Context, workspaceID string, segmentID string, limit, offset int) ([]*domain.SegmentContactDetail, error) {
+	// Get the workspace database connection
+	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get workspace connection: %w", err)
+	}
+
+	// An inner join: a membership whose contact was deleted is not a contact anyone
+	// can act on, so it is dropped rather than returned as a hollow record.
+	query := fmt.Sprintf(`
+		SELECT %s, cs.matched_at
+		FROM contact_segments cs
+		JOIN contacts c ON c.email = cs.email
+		WHERE cs.segment_id = $1
+		ORDER BY cs.matched_at DESC, cs.email ASC
+		LIMIT $2 OFFSET $3
+	`, strings.Join(contactColumnsWithPrefix("c"), ", "))
+
+	rows, err := workspaceDB.QueryContext(ctx, query, segmentID, limit, offset)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query segment contact details: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	details := []*domain.SegmentContactDetail{}
+	for rows.Next() {
+		var matchedAt time.Time
+		contact, err := domain.ScanContact(trailingColumnScanner{
+			scanner: rows,
+			extra:   []interface{}{&matchedAt},
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan segment contact detail: %w", err)
+		}
+
+		details = append(details, &domain.SegmentContactDetail{
+			Contact:   contact,
+			MatchedAt: matchedAt,
+		})
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating segment contact details: %w", err)
+	}
+
+	return details, nil
 }
 
 // PreviewSegment executes a segment query and returns the count of matching contacts

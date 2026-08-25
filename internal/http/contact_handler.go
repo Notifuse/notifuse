@@ -43,20 +43,20 @@ func (h *ContactHandler) RegisterRoutes(mux *http.ServeMux) {
 
 func (h *ContactHandler) handleList(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
 	// Convert to domain request
 	domainReq := &domain.GetContactsRequest{}
 	if err := domainReq.FromQueryParams(r.URL.Query()); err != nil {
-		http.Error(w, fmt.Sprintf("Invalid request: %v", err), http.StatusBadRequest)
+		WriteJSONError(w, fmt.Sprintf("Invalid request: %v", err), http.StatusBadRequest)
 		return
 	}
 
 	// Validate and set defaults (e.g. default limit)
 	if err := domainReq.Validate(); err != nil {
-		http.Error(w, fmt.Sprintf("Invalid request: %v", err), http.StatusBadRequest)
+		WriteJSONError(w, fmt.Sprintf("Invalid request: %v", err), http.StatusBadRequest)
 		return
 	}
 
@@ -67,16 +67,17 @@ func (h *ContactHandler) handleList(w http.ResponseWriter, r *http.Request) {
 		if writeServiceError(w, err, "You do not have access to this workspace") {
 			return
 		}
-		http.Error(w, "Failed to get contacts", http.StatusInternalServerError)
+		WriteJSONError(w, "Failed to get contacts", http.StatusInternalServerError)
 		return
 	}
 
 	// Write response
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(response); err != nil {
+		// The status line and part of the body are already on the wire, so this
+		// cannot answer with an error status — log it and let the truncated body
+		// fail the client's parse.
 		h.logger.Error(fmt.Sprintf("Failed to encode response: %v", err))
-		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
-		return
 	}
 }
 

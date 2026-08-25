@@ -508,6 +508,19 @@ func (s *ContactService) UpsertContact(ctx context.Context, workspaceID string, 
 		operation.Action = domain.UpsertContactOperationUpdate
 	}
 
+	// Read the row back so the caller learns what was actually stored. The
+	// repository merges an update field by field and the database fills in the
+	// timestamps, so the struct passed in describes the request, not the result.
+	// Best effort on purpose: the write is committed by now, and turning a failed
+	// read into an error would report a successful upsert as a failure and invite
+	// the caller to retry it.
+	stored, err := s.repo.GetContactByEmail(ctx, workspaceID, contact.Email)
+	if err != nil {
+		s.logger.WithField("email", contact.Email).Error(fmt.Sprintf("Failed to read back upserted contact: %v", err))
+	} else {
+		operation.Contact = stored
+	}
+
 	return operation
 }
 

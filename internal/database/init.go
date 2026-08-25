@@ -375,12 +375,23 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 			secret VARCHAR(64) NOT NULL,
 			settings JSONB NOT NULL DEFAULT '{}'::jsonb,
 			enabled BOOLEAN DEFAULT true,
+			-- NULL means a user created this by hand; a value names the
+			-- integration that created it, so the console can label the row and
+			-- a dead endpoint can be deleted rather than merely disabled.
+			source VARCHAR(32),
+			-- Back-to-back delivery failures, reset by the first success. The
+			-- only garbage collector for a dead endpoint that does not depend on
+			-- that endpoint telling us it is dead.
+			consecutive_failures INT NOT NULL DEFAULT 0,
+			disabled_reason TEXT,
 			created_at TIMESTAMPTZ DEFAULT NOW(),
 			updated_at TIMESTAMPTZ DEFAULT NOW(),
 			last_delivery_at TIMESTAMPTZ
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_webhook_subscriptions_enabled ON webhook_subscriptions(enabled) WHERE enabled = true`,
-		// Webhook deliveries table
+		// Webhook deliveries table. Declared after webhook_subscriptions because
+		// the foreign key below needs the referenced table to already exist, and
+		// these statements run in slice order.
 		`CREATE TABLE IF NOT EXISTS webhook_deliveries (
 			id VARCHAR(36) PRIMARY KEY,
 			subscription_id VARCHAR(32) NOT NULL,
@@ -395,11 +406,28 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 			last_response_status INT,
 			last_response_body TEXT,
 			last_error TEXT,
-			created_at TIMESTAMPTZ DEFAULT NOW()
+			-- When a worker took the row. Doubles as the lease clock: a row still
+			-- in 'delivering' well past the HTTP timeout belongs to a worker that
+			-- died mid-flight and must be returned to 'pending'.
+			claimed_at TIMESTAMPTZ,
+			created_at TIMESTAMPTZ DEFAULT NOW(),
+			-- Named explicitly rather than left to PostgreSQL's auto-naming: the
+			-- v40 migration adds the same constraint to existing workspaces and
+			-- looks it up by name to stay idempotent, so the two must agree.
+			-- Without the cascade, deleting a subscription strands its queued
+			-- deliveries, and every one of them keeps matching the pending
+			-- predicate for the whole retention window.
+			CONSTRAINT webhook_deliveries_subscription_id_fkey
+				FOREIGN KEY (subscription_id) REFERENCES webhook_subscriptions(id) ON DELETE CASCADE
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_webhook_deliveries_pending ON webhook_deliveries(next_attempt_at) WHERE status IN ('pending', 'failed') AND attempts < max_attempts`,
 		`CREATE INDEX IF NOT EXISTS idx_webhook_deliveries_subscription ON webhook_deliveries(subscription_id, created_at DESC)`,
 		`CREATE INDEX IF NOT EXISTS idx_webhook_deliveries_status ON webhook_deliveries(status)`,
+		// Claimed rows leave the partial index above (their status becomes
+		// 'delivering'), so the reclaim sweep needs its own entry point. Kept
+		// partial so it stays roughly the size of the in-flight batch rather
+		// than the size of the retention window.
+		`CREATE INDEX IF NOT EXISTS idx_webhook_deliveries_claimed ON webhook_deliveries(claimed_at) WHERE status = 'delivering'`,
 		// Automation tables (nodes embedded as JSONB in automations)
 		`CREATE TABLE IF NOT EXISTS automations (
 			id VARCHAR(36) PRIMARY KEY,
@@ -912,260 +940,19 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 		`CREATE TRIGGER custom_event_timeline_trigger AFTER INSERT OR UPDATE ON custom_events FOR EACH ROW EXECUTE FUNCTION track_custom_event_timeline()`,
 		// Webhook trigger functions for outgoing webhooks
 		// Trigger 1: contacts table - contact.created, contact.updated, contact.deleted
-		`CREATE OR REPLACE FUNCTION webhook_contacts_trigger()
-		RETURNS TRIGGER AS $$
-		DECLARE
-			sub RECORD;
-			event_kind VARCHAR(50);
-			payload JSONB;
-			contact_record RECORD;
-		BEGIN
-			-- Determine event kind and which record to use
-			IF TG_OP = 'INSERT' THEN
-				event_kind := 'contact.created';
-				contact_record := NEW;
-			ELSIF TG_OP = 'UPDATE' THEN
-				event_kind := 'contact.updated';
-				contact_record := NEW;
-				-- Skip if nothing changed (compare all relevant fields)
-				IF NEW.external_id IS NOT DISTINCT FROM OLD.external_id AND
-				   NEW.timezone IS NOT DISTINCT FROM OLD.timezone AND
-				   NEW.language IS NOT DISTINCT FROM OLD.language AND
-				   NEW.first_name IS NOT DISTINCT FROM OLD.first_name AND
-				   NEW.last_name IS NOT DISTINCT FROM OLD.last_name AND
-				   NEW.full_name IS NOT DISTINCT FROM OLD.full_name AND
-				   NEW.phone IS NOT DISTINCT FROM OLD.phone AND
-				   NEW.address_line_1 IS NOT DISTINCT FROM OLD.address_line_1 AND
-				   NEW.address_line_2 IS NOT DISTINCT FROM OLD.address_line_2 AND
-				   NEW.country IS NOT DISTINCT FROM OLD.country AND
-				   NEW.postcode IS NOT DISTINCT FROM OLD.postcode AND
-				   NEW.state IS NOT DISTINCT FROM OLD.state AND
-				   NEW.job_title IS NOT DISTINCT FROM OLD.job_title AND
-				   NEW.custom_string_1 IS NOT DISTINCT FROM OLD.custom_string_1 AND
-				   NEW.custom_string_2 IS NOT DISTINCT FROM OLD.custom_string_2 AND
-				   NEW.custom_string_3 IS NOT DISTINCT FROM OLD.custom_string_3 AND
-				   NEW.custom_string_4 IS NOT DISTINCT FROM OLD.custom_string_4 AND
-				   NEW.custom_string_5 IS NOT DISTINCT FROM OLD.custom_string_5 AND
-				   NEW.custom_number_1 IS NOT DISTINCT FROM OLD.custom_number_1 AND
-				   NEW.custom_number_2 IS NOT DISTINCT FROM OLD.custom_number_2 AND
-				   NEW.custom_number_3 IS NOT DISTINCT FROM OLD.custom_number_3 AND
-				   NEW.custom_number_4 IS NOT DISTINCT FROM OLD.custom_number_4 AND
-				   NEW.custom_number_5 IS NOT DISTINCT FROM OLD.custom_number_5 AND
-				   NEW.custom_datetime_1 IS NOT DISTINCT FROM OLD.custom_datetime_1 AND
-				   NEW.custom_datetime_2 IS NOT DISTINCT FROM OLD.custom_datetime_2 AND
-				   NEW.custom_datetime_3 IS NOT DISTINCT FROM OLD.custom_datetime_3 AND
-				   NEW.custom_datetime_4 IS NOT DISTINCT FROM OLD.custom_datetime_4 AND
-				   NEW.custom_datetime_5 IS NOT DISTINCT FROM OLD.custom_datetime_5 AND
-				   NEW.custom_json_1 IS NOT DISTINCT FROM OLD.custom_json_1 AND
-				   NEW.custom_json_2 IS NOT DISTINCT FROM OLD.custom_json_2 AND
-				   NEW.custom_json_3 IS NOT DISTINCT FROM OLD.custom_json_3 AND
-				   NEW.custom_json_4 IS NOT DISTINCT FROM OLD.custom_json_4 AND
-				   NEW.custom_json_5 IS NOT DISTINCT FROM OLD.custom_json_5 THEN
-					RETURN NEW;
-				END IF;
-			ELSIF TG_OP = 'DELETE' THEN
-				event_kind := 'contact.deleted';
-				contact_record := OLD;
-			ELSE
-				RETURN COALESCE(NEW, OLD);
-			END IF;
-
-			-- Build payload with full contact object
-			payload := jsonb_build_object(
-				'contact', to_jsonb(contact_record)
-			);
-
-			-- Insert webhook deliveries for matching subscriptions
-			FOR sub IN
-				SELECT id FROM webhook_subscriptions
-				WHERE enabled = true AND event_kind = ANY(ARRAY(SELECT jsonb_array_elements_text(settings->'event_types')))
-			LOOP
-				INSERT INTO webhook_deliveries (id, subscription_id, event_type, payload, status, attempts, max_attempts, next_attempt_at)
-				VALUES (gen_random_uuid()::text, sub.id, event_kind, payload, 'pending', 0, 10, NOW());
-			END LOOP;
-			RETURN COALESCE(NEW, OLD);
-		END;
-		$$ LANGUAGE plpgsql`,
+		schema.WebhookContactsTriggerFunction(),
 		`DROP TRIGGER IF EXISTS webhook_contacts ON contacts`,
 		`CREATE TRIGGER webhook_contacts AFTER INSERT OR UPDATE OR DELETE ON contacts FOR EACH ROW EXECUTE FUNCTION webhook_contacts_trigger()`,
 		// Trigger 2: contact_lists table - list events
-		`CREATE OR REPLACE FUNCTION webhook_contact_lists_trigger()
-		RETURNS TRIGGER AS $$
-		DECLARE
-			sub RECORD;
-			event_kind VARCHAR(50);
-			payload JSONB;
-			list_name VARCHAR(255);
-		BEGIN
-			-- Get list name for payload enrichment
-			SELECT name INTO list_name FROM lists WHERE id = NEW.list_id;
-
-			-- Determine event kind based on status transitions
-			IF TG_OP = 'INSERT' THEN
-				CASE NEW.status
-					WHEN 'active' THEN event_kind := 'list.subscribed';
-					WHEN 'pending' THEN event_kind := 'list.pending';
-					WHEN 'unsubscribed' THEN event_kind := 'list.unsubscribed';
-					WHEN 'bounced' THEN event_kind := 'list.bounced';
-					WHEN 'complained' THEN event_kind := 'list.complained';
-					ELSE RETURN NEW;
-				END CASE;
-			ELSIF TG_OP = 'UPDATE' THEN
-				-- Detect status transitions
-				IF NEW.status IS DISTINCT FROM OLD.status THEN
-					IF OLD.status = 'pending' AND NEW.status = 'active' THEN
-						event_kind := 'list.confirmed';
-					ELSIF OLD.status IN ('unsubscribed', 'bounced', 'complained') AND NEW.status = 'active' THEN
-						event_kind := 'list.resubscribed';
-					ELSIF NEW.status = 'unsubscribed' THEN
-						event_kind := 'list.unsubscribed';
-					ELSIF NEW.status = 'bounced' THEN
-						event_kind := 'list.bounced';
-					ELSIF NEW.status = 'complained' THEN
-						event_kind := 'list.complained';
-					ELSE
-						RETURN NEW;
-					END IF;
-				ELSIF NEW.deleted_at IS NOT NULL AND OLD.deleted_at IS NULL THEN
-					event_kind := 'list.removed';
-				ELSE
-					RETURN NEW;
-				END IF;
-			ELSE
-				RETURN NEW;
-			END IF;
-
-			-- Build payload
-			payload := jsonb_build_object(
-				'email', NEW.email,
-				'list_id', NEW.list_id,
-				'list_name', list_name,
-				'status', NEW.status,
-				'previous_status', CASE WHEN TG_OP = 'UPDATE' THEN OLD.status ELSE NULL END
-			);
-
-			-- Insert webhook deliveries for matching subscriptions
-			FOR sub IN
-				SELECT id FROM webhook_subscriptions
-				WHERE enabled = true AND event_kind = ANY(ARRAY(SELECT jsonb_array_elements_text(settings->'event_types')))
-			LOOP
-				INSERT INTO webhook_deliveries (id, subscription_id, event_type, payload, status, attempts, max_attempts, next_attempt_at)
-				VALUES (gen_random_uuid()::text, sub.id, event_kind, payload, 'pending', 0, 10, NOW());
-			END LOOP;
-			RETURN NEW;
-		END;
-		$$ LANGUAGE plpgsql`,
+		schema.WebhookContactListsTriggerFunction(),
 		`DROP TRIGGER IF EXISTS webhook_contact_lists ON contact_lists`,
 		`CREATE TRIGGER webhook_contact_lists AFTER INSERT OR UPDATE ON contact_lists FOR EACH ROW EXECUTE FUNCTION webhook_contact_lists_trigger()`,
 		// Trigger 3: contact_segments table - segment events
-		`CREATE OR REPLACE FUNCTION webhook_contact_segments_trigger()
-		RETURNS TRIGGER AS $$
-		DECLARE
-			sub RECORD;
-			event_kind VARCHAR(50);
-			payload JSONB;
-			segment_name VARCHAR(255);
-			contact_email VARCHAR(255);
-		BEGIN
-			-- Get segment name for payload
-			SELECT name INTO segment_name FROM segments WHERE id = COALESCE(NEW.segment_id, OLD.segment_id);
-			-- contact_segments uses email directly as the key
-			contact_email := COALESCE(NEW.email, OLD.email);
-
-			-- Determine event kind
-			IF TG_OP = 'INSERT' THEN
-				event_kind := 'segment.joined';
-			ELSIF TG_OP = 'DELETE' THEN
-				event_kind := 'segment.left';
-			ELSE
-				RETURN NEW;
-			END IF;
-
-			-- Build payload
-			payload := jsonb_build_object(
-				'email', contact_email,
-				'segment_id', COALESCE(NEW.segment_id, OLD.segment_id),
-				'segment_name', segment_name
-			);
-
-			-- Insert webhook deliveries for matching subscriptions
-			FOR sub IN
-				SELECT id FROM webhook_subscriptions
-				WHERE enabled = true AND event_kind = ANY(ARRAY(SELECT jsonb_array_elements_text(settings->'event_types')))
-			LOOP
-				INSERT INTO webhook_deliveries (id, subscription_id, event_type, payload, status, attempts, max_attempts, next_attempt_at)
-				VALUES (gen_random_uuid()::text, sub.id, event_kind, payload, 'pending', 0, 10, NOW());
-			END LOOP;
-
-			IF TG_OP = 'DELETE' THEN
-				RETURN OLD;
-			END IF;
-			RETURN NEW;
-		END;
-		$$ LANGUAGE plpgsql`,
+		schema.WebhookContactSegmentsTriggerFunction(),
 		`DROP TRIGGER IF EXISTS webhook_contact_segments ON contact_segments`,
 		`CREATE TRIGGER webhook_contact_segments AFTER INSERT OR DELETE ON contact_segments FOR EACH ROW EXECUTE FUNCTION webhook_contact_segments_trigger()`,
 		// Trigger 4: message_history table - email events
-		`CREATE OR REPLACE FUNCTION webhook_message_history_trigger()
-		RETURNS TRIGGER AS $$
-		DECLARE
-			sub RECORD;
-			event_kind VARCHAR(50);
-			event_timestamp TIMESTAMPTZ;
-			payload JSONB;
-		BEGIN
-			-- Detect which email event occurred
-			IF TG_OP = 'INSERT' THEN
-				event_kind := 'email.sent';
-				event_timestamp := NEW.sent_at;
-			ELSIF TG_OP = 'UPDATE' THEN
-				IF NEW.delivered_at IS NOT NULL AND OLD.delivered_at IS NULL THEN
-					event_kind := 'email.delivered';
-					event_timestamp := NEW.delivered_at;
-				ELSIF NEW.opened_at IS NOT NULL AND OLD.opened_at IS NULL THEN
-					event_kind := 'email.opened';
-					event_timestamp := NEW.opened_at;
-				ELSIF NEW.clicked_at IS NOT NULL AND OLD.clicked_at IS NULL THEN
-					event_kind := 'email.clicked';
-					event_timestamp := NEW.clicked_at;
-				ELSIF NEW.bounced_at IS NOT NULL AND OLD.bounced_at IS NULL THEN
-					event_kind := 'email.bounced';
-					event_timestamp := NEW.bounced_at;
-				ELSIF NEW.complained_at IS NOT NULL AND OLD.complained_at IS NULL THEN
-					event_kind := 'email.complained';
-					event_timestamp := NEW.complained_at;
-				ELSIF NEW.unsubscribed_at IS NOT NULL AND OLD.unsubscribed_at IS NULL THEN
-					event_kind := 'email.unsubscribed';
-					event_timestamp := NEW.unsubscribed_at;
-				ELSE
-					RETURN NEW;
-				END IF;
-			ELSE
-				RETURN NEW;
-			END IF;
-
-			-- Build rich payload with full message context
-			payload := jsonb_build_object(
-				'email', NEW.contact_email,
-				'message_id', NEW.id,
-				'template_id', NEW.template_id,
-				'broadcast_id', NEW.broadcast_id,
-				'list_id', NEW.list_id,
-				'channel', NEW.channel,
-				'event_timestamp', event_timestamp
-			);
-
-			-- Insert webhook deliveries for matching subscriptions
-			FOR sub IN
-				SELECT id FROM webhook_subscriptions
-				WHERE enabled = true AND event_kind = ANY(ARRAY(SELECT jsonb_array_elements_text(settings->'event_types')))
-			LOOP
-				INSERT INTO webhook_deliveries (id, subscription_id, event_type, payload, status, attempts, max_attempts, next_attempt_at)
-				VALUES (gen_random_uuid()::text, sub.id, event_kind, payload, 'pending', 0, 10, NOW());
-			END LOOP;
-			RETURN NEW;
-		END;
-		$$ LANGUAGE plpgsql`,
+		schema.WebhookMessageHistoryTriggerFunction(),
 		`DROP TRIGGER IF EXISTS webhook_message_history ON message_history`,
 		`CREATE TRIGGER webhook_message_history AFTER INSERT OR UPDATE ON message_history FOR EACH ROW EXECUTE FUNCTION webhook_message_history_trigger()`,
 		// Trigger 5: custom_events table - custom events with filtering

@@ -65,6 +65,20 @@ func (mr *MockWebhookDeliveryRepositoryMockRecorder) Create(arg0, arg1, arg2 int
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockWebhookDeliveryRepository)(nil).Create), arg0, arg1, arg2)
 }
 
+// DeleteBySubscriptionID mocks base method.
+func (m *MockWebhookDeliveryRepository) DeleteBySubscriptionID(arg0 context.Context, arg1, arg2 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteBySubscriptionID", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteBySubscriptionID indicates an expected call of DeleteBySubscriptionID.
+func (mr *MockWebhookDeliveryRepositoryMockRecorder) DeleteBySubscriptionID(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteBySubscriptionID", reflect.TypeOf((*MockWebhookDeliveryRepository)(nil).DeleteBySubscriptionID), arg0, arg1, arg2)
+}
+
 // GetPendingForWorkspace mocks base method.
 func (m *MockWebhookDeliveryRepository) GetPendingForWorkspace(arg0 context.Context, arg1 string, arg2 int) ([]*domain.WebhookDelivery, error) {
 	m.ctrl.T.Helper()
@@ -122,6 +136,21 @@ func (m *MockWebhookDeliveryRepository) MarkFailed(arg0 context.Context, arg1, a
 func (mr *MockWebhookDeliveryRepositoryMockRecorder) MarkFailed(arg0, arg1, arg2, arg3, arg4, arg5, arg6 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MarkFailed", reflect.TypeOf((*MockWebhookDeliveryRepository)(nil).MarkFailed), arg0, arg1, arg2, arg3, arg4, arg5, arg6)
+}
+
+// ReclaimStale mocks base method.
+func (m *MockWebhookDeliveryRepository) ReclaimStale(arg0 context.Context, arg1 string, arg2 time.Duration) (int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ReclaimStale", arg0, arg1, arg2)
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ReclaimStale indicates an expected call of ReclaimStale.
+func (mr *MockWebhookDeliveryRepositoryMockRecorder) ReclaimStale(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReclaimStale", reflect.TypeOf((*MockWebhookDeliveryRepository)(nil).ReclaimStale), arg0, arg1, arg2)
 }
 
 // ScheduleRetry mocks base method.

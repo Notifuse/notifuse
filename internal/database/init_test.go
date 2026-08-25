@@ -2,6 +2,7 @@ package database
 
 import (
 	"database/sql"
+	"strings"
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
@@ -314,4 +315,106 @@ func TestInitializeWorkspaceDatabase_Comprehensive(t *testing.T) {
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to create workspace table")
 	})
+}
+
+// workspaceStatementRecorder is the default regexp matcher plus a log of every
+// statement InitializeWorkspaceDatabase issued. The workspace DDL is a local
+// slice of string literals, so capturing what actually reached the driver is the
+// only way to assert anything about it.
+type workspaceStatementRecorder struct {
+	issued []string
+}
+
+func (r *workspaceStatementRecorder) Match(expectedSQL, actualSQL string) error {
+	if len(r.issued) == 0 || r.issued[len(r.issued)-1] != actualSQL {
+		r.issued = append(r.issued, actualSQL)
+	}
+	return sqlmock.QueryMatcherRegexp.Match(expectedSQL, actualSQL)
+}
+
+func (r *workspaceStatementRecorder) indexOfStatementContaining(t *testing.T, needle string) int {
+	t.Helper()
+	for i, stmt := range r.issued {
+		if strings.Contains(stmt, needle) {
+			return i
+		}
+	}
+	require.FailNowf(t, "statement not issued", "no statement containing %q", needle)
+	return -1
+}
+
+func (r *workspaceStatementRecorder) statementContaining(t *testing.T, needle string) string {
+	t.Helper()
+	return r.issued[r.indexOfStatementContaining(t, needle)]
+}
+
+// recordWorkspaceSchema runs the workspace initializer against a mock that
+// accepts everything, and returns what it issued.
+func recordWorkspaceSchema(t *testing.T) *workspaceStatementRecorder {
+	t.Helper()
+
+	rec := &workspaceStatementRecorder{}
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(rec))
+	require.NoError(t, err)
+	defer func() { _ = db.Close() }()
+
+	// Generously more expectations than the initializer has statements; the
+	// unused ones are never asserted on.
+	for i := 0; i < 500; i++ {
+		mock.ExpectExec(".+").WillReturnResult(sqlmock.NewResult(0, 0))
+	}
+
+	require.NoError(t, InitializeWorkspaceDatabase(db))
+	return rec
+}
+
+func TestInitializeWorkspaceDatabase_WebhookSubscriptionColumns(t *testing.T) {
+	subscriptions := recordWorkspaceSchema(t).statementContaining(t, "CREATE TABLE IF NOT EXISTS webhook_subscriptions")
+
+	// A fresh install has to land on the same schema an upgraded workspace does,
+	// or the two diverge silently: the migration is guarded with IF NOT EXISTS
+	// and never runs against a database created after it shipped.
+	//
+	// source is nullable because NULL is the user-created case. consecutive_failures
+	// is NOT NULL DEFAULT 0 so the auto-disable threshold never has to coalesce.
+	assert.Contains(t, subscriptions, "source VARCHAR(32),")
+	assert.Contains(t, subscriptions, "consecutive_failures INT NOT NULL DEFAULT 0")
+	assert.Contains(t, subscriptions, "disabled_reason TEXT")
+}
+
+func TestInitializeWorkspaceDatabase_WebhookDeliveryClaimSchema(t *testing.T) {
+	rec := recordWorkspaceSchema(t)
+	deliveries := rec.statementContaining(t, "CREATE TABLE IF NOT EXISTS webhook_deliveries")
+
+	assert.Contains(t, deliveries, "claimed_at TIMESTAMPTZ")
+
+	// Deleting a subscription has to take its queued deliveries with it. Without
+	// the cascade they keep matching the pending predicate for the whole
+	// retention window while their subscription no longer exists, so each one
+	// occupies a slot in every batch and is never delivered.
+	assert.Contains(t, deliveries, "REFERENCES webhook_subscriptions(id) ON DELETE CASCADE")
+
+	// The constraint is named here rather than left to PostgreSQL's auto-naming
+	// because the v40 migration adds the same constraint to existing workspaces
+	// and looks it up by name to stay re-runnable. If the two names drift, that
+	// migration adds a second, duplicate foreign key on every re-run.
+	assert.Contains(t, deliveries, "CONSTRAINT webhook_deliveries_subscription_id_fkey")
+
+	// A claimed row's status becomes 'delivering' and leaves the pending partial
+	// index, so the reclaim sweep needs its own entry point.
+	claimedIndex := rec.statementContaining(t, "idx_webhook_deliveries_claimed")
+	assert.Contains(t, claimedIndex, "webhook_deliveries(claimed_at)")
+	assert.Contains(t, claimedIndex, "WHERE status = 'delivering'")
+}
+
+func TestInitializeWorkspaceDatabase_SubscriptionsPrecedeDeliveries(t *testing.T) {
+	// The foreign key is declared inline, so the referenced table has to exist by
+	// the time webhook_deliveries is created. These statements run in slice
+	// order, which makes the order of two string literals load-bearing and
+	// invisible: reordering them fails only on a fresh install.
+	rec := recordWorkspaceSchema(t)
+	assert.Less(t,
+		rec.indexOfStatementContaining(t, "CREATE TABLE IF NOT EXISTS webhook_subscriptions"),
+		rec.indexOfStatementContaining(t, "CREATE TABLE IF NOT EXISTS webhook_deliveries"),
+	)
 }

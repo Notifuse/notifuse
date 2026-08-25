@@ -584,6 +584,18 @@ type UpsertContactOperation struct {
 	Action string `json:"action"` // create or update or error
 	Error  string `json:"error,omitempty"`
 
+	// Contact is the stored row read back after the write. An upsert merges field
+	// by field, so what the caller sent is not what the database now holds: the
+	// resolved external_id, the timezone, the custom fields as merged and the
+	// timestamps the database assigned are all unknowable from the request alone,
+	// and an automation step chaining off this response has nothing else to map.
+	//
+	// omitempty because this is additive: a client that predates the field sees
+	// the exact wire shape it saw before. It is also why a failed read-back leaves
+	// this nil rather than failing the operation — the write has already committed,
+	// and reporting an error there would invite a retry of a successful upsert.
+	Contact *Contact `json:"contact,omitempty"`
+
 	// Err carries the typed error behind Error when the upsert was refused for
 	// lack of a permission, for the same reason as on BatchImportContactsResponse.
 	// A genuine per-contact failure (invalid contact, repository error) leaves it

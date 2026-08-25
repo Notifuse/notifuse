@@ -742,7 +742,12 @@ func TestWebhookPayloadAndSignatureVerification(t *testing.T) {
 			// Verify data contains expected test contact fields
 			data, ok := payload["data"].(map[string]interface{})
 			require.True(t, ok, "Data should be an object")
-			assert.NotEmpty(t, data["email"], "Data should contain email field")
+			// contact.* deliveries carry the whole contacts row under "contact",
+			// mirroring the to_jsonb(contact_record) the database trigger builds.
+			// There is no top-level email on this event family.
+			contact, ok := data["contact"].(map[string]interface{})
+			require.True(t, ok, "contact.created data should carry a contact object")
+			assert.NotEmpty(t, contact["email"], "Contact should contain email field")
 		})
 
 		// === VERIFY SIGNATURE (RECEIVER'S PERSPECTIVE) ===
@@ -943,4 +948,137 @@ func verifyWebhookSignature(webhookID, timestampStr, signatureHeader, secret str
 	decodedExpected, _ := base64.StdEncoding.DecodeString(expectedSig)
 
 	return hmac.Equal(decodedReceived, decodedExpected), nil
+}
+
+// TestWebhookSubscriptionServerSideFiltering covers the list_id / segment_id
+// filters applied inside the trigger bodies.
+//
+// Without them the fan-out matches on event type alone, so a subscription
+// watching one list receives a delivery row and an outbound HTTPS request for
+// every list in the workspace and discards the rest at the far end. That is
+// invisible to the subscriber and expensive here: importing a hundred thousand
+// contacts into one list sends a hundred thousand POSTs to an endpoint that cares
+// about a different one.
+//
+// Every case runs against two subscriptions — one filtered, one not — because
+// "the filtered subscription received nothing" is worthless on its own: it is
+// exactly what a trigger that failed to fire, a write that rolled back or a
+// mistyped event type would also produce. The unfiltered control is what
+// separates "the filter dropped it" from "there was nothing to drop".
+func TestWebhookSubscriptionServerSideFiltering(t *testing.T) {
+	testutil.SkipIfShort(t)
+	testutil.SetupTestEnvironment()
+	defer testutil.CleanupTestEnvironment()
+
+	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
+		return app.NewApp(cfg)
+	})
+	defer func() { suite.Cleanup() }()
+
+	client := suite.APIClient
+	factory := suite.DataFactory
+
+	user, err := factory.CreateUser()
+	require.NoError(t, err)
+	workspace, err := factory.CreateWorkspace()
+	require.NoError(t, err)
+	require.NoError(t, factory.AddUserToWorkspace(user.ID, workspace.ID, "owner"))
+	require.NoError(t, client.Login(user.Email, "password"))
+	client.SetWorkspaceID(workspace.ID)
+
+	db, err := factory.GetWorkspaceDB(workspace.ID)
+	require.NoError(t, err)
+
+	exec := func(query string, args ...interface{}) {
+		t.Helper()
+		_, err := db.Exec(query, args...)
+		require.NoError(t, err, "statement failed: %s", query)
+	}
+
+	// The delivery worker does not run under this harness, so a queued row stays
+	// queued: counting rows is counting deliveries the subscriber would receive.
+	countDeliveries := func(subscriptionID string) int {
+		t.Helper()
+		var count int
+		require.NoError(t, db.QueryRow(
+			`SELECT count(*) FROM webhook_deliveries WHERE subscription_id = $1`, subscriptionID).Scan(&count))
+		return count
+	}
+
+	createSubscription := func(name string, eventTypes []string, filterKey string, filterIDs []string) string {
+		t.Helper()
+
+		body := map[string]interface{}{
+			"workspace_id": workspace.ID,
+			"name":         name,
+			"url":          "https://hooks.example.com/notifuse",
+			"event_types":  eventTypes,
+		}
+		if len(filterIDs) > 0 {
+			body[filterKey] = filterIDs
+		}
+
+		resp, err := client.Post("/api/webhookSubscriptions.create", body)
+		require.NoError(t, err)
+		defer resp.Body.Close()
+		require.Equal(t, http.StatusCreated, resp.StatusCode)
+
+		var created struct {
+			Subscription struct {
+				ID string `json:"id"`
+			} `json:"subscription"`
+		}
+		require.NoError(t, json.NewDecoder(resp.Body).Decode(&created))
+		require.NotEmpty(t, created.Subscription.ID)
+		return created.Subscription.ID
+	}
+
+	contactEmail := "filtered.subscriber@example.com"
+	exec(`INSERT INTO contacts (email, first_name) VALUES ($1, 'Filtered')`, contactEmail)
+
+	t.Run("List Filter Only Delivers The Watched List", func(t *testing.T) {
+		exec(`INSERT INTO lists (id, name) VALUES ('filterListA', 'Watched List')`)
+		exec(`INSERT INTO lists (id, name) VALUES ('filterListB', 'Ignored List')`)
+
+		watching := createSubscription("Watching list A", []string{"list.subscribed"}, "list_ids", []string{"filterListA"})
+		everything := createSubscription("Watching every list", []string{"list.subscribed"}, "list_ids", nil)
+
+		exec(`INSERT INTO contact_lists (email, list_id, status) VALUES ($1, 'filterListB', 'active')`, contactEmail)
+
+		require.Equal(t, 1, countDeliveries(everything),
+			"an unfiltered subscription must still receive every list the workspace has")
+		assert.Equal(t, 0, countDeliveries(watching),
+			"a subscription filtered to one list received an event for a different list")
+
+		exec(`INSERT INTO contact_lists (email, list_id, status) VALUES ($1, 'filterListA', 'active')`, contactEmail)
+
+		assert.Equal(t, 1, countDeliveries(watching),
+			"a subscription filtered to one list missed an event for that very list")
+		require.Equal(t, 2, countDeliveries(everything))
+	})
+
+	t.Run("Segment Filter Only Delivers The Watched Segment", func(t *testing.T) {
+		exec(`INSERT INTO segments (id, name, color, tree, timezone, version, status)
+			VALUES ('filterSegA', 'Watched Segment', '#4F46E5', '{}'::jsonb, 'UTC', 1, 'active')`)
+		exec(`INSERT INTO segments (id, name, color, tree, timezone, version, status)
+			VALUES ('filterSegB', 'Ignored Segment', '#4F46E5', '{}'::jsonb, 'UTC', 1, 'active')`)
+
+		watching := createSubscription("Watching segment A", []string{"segment.joined"}, "segment_ids", []string{"filterSegA"})
+		everything := createSubscription("Watching every segment", []string{"segment.joined"}, "segment_ids", nil)
+
+		exec(`INSERT INTO contact_segments (email, segment_id, version, matched_at)
+			VALUES ($1, 'filterSegB', 1, NOW())`, contactEmail)
+
+		require.Equal(t, 1, countDeliveries(everything),
+			"an unfiltered subscription must still receive every segment the workspace has")
+		assert.Equal(t, 0, countDeliveries(watching),
+			"a subscription filtered to one segment received an event for a different segment")
+
+		exec(`INSERT INTO contact_segments (email, segment_id, version, matched_at)
+			VALUES ($1, 'filterSegA', 1, NOW())`, contactEmail)
+
+		assert.Equal(t, 1, countDeliveries(watching),
+			"a subscription filtered to one segment missed an event for that very segment")
+		require.Equal(t, 2, countDeliveries(everything))
+	})
 }

@@ -1133,11 +1133,18 @@ func TestCreateDemoWebhookSubscription_IsSwitchedOff(t *testing.T) {
 				}, nil
 			}).AnyTimes()
 
+		// Removing a subscription takes its queued deliveries with it, or they
+		// go on matching the delivery worker's pending predicate for a
+		// subscription that no longer exists.
+		deliveryRepo := domainmocks.NewMockWebhookDeliveryRepository(ctrl)
+		deliveryRepo.EXPECT().DeleteBySubscriptionID(gomock.Any(), "demo", gomock.Any()).
+			Return(nil).AnyTimes()
+
 		log := logger.NewLoggerWithLevel("disabled")
 		return &DemoService{
 			logger: log,
 			webhookSubscriptionService: NewWebhookSubscriptionService(
-				repo, domainmocks.NewMockWebhookDeliveryRepository(ctrl), auth, log),
+				repo, deliveryRepo, auth, log),
 		}, repo
 	}
 

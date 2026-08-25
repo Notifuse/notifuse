@@ -2883,3 +2883,75 @@ func TestTrimUnicodeSpace(t *testing.T) {
 		})
 	}
 }
+
+// TestUpsertContactOperation_ContactIsAdditive pins the wire contract of the
+// upsert response. The contact is what an integration maps its next step from, so
+// it has to be there on a real upsert — and absent, not null, when the read-back
+// did not happen, because clients written against the older shape parse this same
+// payload.
+func TestUpsertContactOperation_ContactIsAdditive(t *testing.T) {
+	t.Run("omitted entirely when no contact was read back", func(t *testing.T) {
+		encoded, err := json.Marshal(UpsertContactOperation{
+			Email:  "test@example.com",
+			Action: UpsertContactOperationCreate,
+		})
+		require.NoError(t, err)
+
+		// Byte-for-byte, not "does not contain a contact": a null under the key
+		// would already break a client that assumes the key means a contact.
+		assert.JSONEq(t, `{"email":"test@example.com","action":"create"}`, string(encoded))
+
+		var decoded map[string]interface{}
+		require.NoError(t, json.Unmarshal(encoded, &decoded))
+		_, present := decoded["contact"]
+		assert.False(t, present)
+	})
+
+	t.Run("marshals the contact when set", func(t *testing.T) {
+		encoded, err := json.Marshal(UpsertContactOperation{
+			Email:  "test@example.com",
+			Action: UpsertContactOperationUpdate,
+			Contact: &Contact{
+				Email:      "test@example.com",
+				ExternalID: &NullableString{String: "crm-42"},
+				Timezone:   &NullableString{String: "Europe/Paris"},
+			},
+		})
+		require.NoError(t, err)
+
+		assert.Equal(t, "test@example.com", gjson.GetBytes(encoded, "contact.email").String())
+		assert.Equal(t, "crm-42", gjson.GetBytes(encoded, "contact.external_id").String())
+		assert.Equal(t, "Europe/Paris", gjson.GetBytes(encoded, "contact.timezone").String())
+	})
+
+	t.Run("an old client still reads the fields it always read", func(t *testing.T) {
+		encoded, err := json.Marshal(UpsertContactOperation{
+			Email:   "test@example.com",
+			Action:  UpsertContactOperationCreate,
+			Contact: &Contact{Email: "test@example.com"},
+		})
+		require.NoError(t, err)
+
+		// The shape a client that predates the contact field declares.
+		var legacy struct {
+			Email  string `json:"email"`
+			Action string `json:"action"`
+			Error  string `json:"error,omitempty"`
+		}
+		require.NoError(t, json.Unmarshal(encoded, &legacy))
+		assert.Equal(t, "test@example.com", legacy.Email)
+		assert.Equal(t, UpsertContactOperationCreate, legacy.Action)
+		assert.Empty(t, legacy.Error)
+	})
+
+	t.Run("Err stays off the wire", func(t *testing.T) {
+		encoded, err := json.Marshal(UpsertContactOperation{
+			Email:  "test@example.com",
+			Action: UpsertContactOperationError,
+			Error:  "Insufficient permissions",
+			Err:    NewPermissionError(PermissionResourceContacts, PermissionTypeWrite, "Insufficient permissions"),
+		})
+		require.NoError(t, err)
+		assert.False(t, gjson.GetBytes(encoded, "Err").Exists())
+	})
+}

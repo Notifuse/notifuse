@@ -79,6 +79,21 @@ func (mr *MockSegmentServiceMockRecorder) GetSegment(arg0, arg1 interface{}) *go
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSegment", reflect.TypeOf((*MockSegmentService)(nil).GetSegment), arg0, arg1)
 }
 
+// GetSegmentContactDetails mocks base method.
+func (m *MockSegmentService) GetSegmentContactDetails(arg0 context.Context, arg1, arg2 string, arg3, arg4 int) ([]*domain.SegmentContactDetail, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetSegmentContactDetails", arg0, arg1, arg2, arg3, arg4)
+	ret0, _ := ret[0].([]*domain.SegmentContactDetail)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetSegmentContactDetails indicates an expected call of GetSegmentContactDetails.
+func (mr *MockSegmentServiceMockRecorder) GetSegmentContactDetails(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSegmentContactDetails", reflect.TypeOf((*MockSegmentService)(nil).GetSegmentContactDetails), arg0, arg1, arg2, arg3, arg4)
+}
+
 // GetSegmentContacts mocks base method.
 func (m *MockSegmentService) GetSegmentContacts(arg0 context.Context, arg1, arg2 string, arg3, arg4 int) ([]string, error) {
 	m.ctrl.T.Helper()

@@ -2,6 +2,7 @@ package http
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -313,23 +314,54 @@ func (h *SegmentHandler) handleGetContacts(w http.ResponseWriter, r *http.Reques
 		}
 	}
 
-	emails, err := h.service.GetSegmentContacts(r.Context(), workspaceID, segmentID, limit, offset)
-	if err != nil {
-		if _, ok := err.(*domain.ErrSegmentNotFound); ok {
-			WriteJSONError(w, "Segment not found", http.StatusNotFound)
+	// expand is opt-in: absent, the response stays the bare email list every
+	// existing caller reads. An unrecognized value is rejected rather than ignored,
+	// so a typo cannot silently hand back the smaller shape.
+	switch expand := r.URL.Query().Get("expand"); expand {
+	case "":
+		emails, err := h.service.GetSegmentContacts(r.Context(), workspaceID, segmentID, limit, offset)
+		if err != nil {
+			h.writeGetContactsError(w, err)
 			return
 		}
-		h.logger.WithField("error", err.Error()).Error("Failed to get segment contacts")
-		if writeServiceError(w, err, "Failed to get segment contacts") {
+
+		writeJSON(w, http.StatusOK, map[string]interface{}{
+			"emails": emails,
+			"limit":  limit,
+			"offset": offset,
+		})
+	case "contact":
+		contacts, err := h.service.GetSegmentContactDetails(r.Context(), workspaceID, segmentID, limit, offset)
+		if err != nil {
+			h.writeGetContactsError(w, err)
 			return
 		}
-		WriteJSONError(w, "Failed to get segment contacts", http.StatusInternalServerError)
+
+		writeJSON(w, http.StatusOK, map[string]interface{}{
+			"contacts": contacts,
+			"limit":    limit,
+			"offset":   offset,
+		})
+	default:
+		WriteJSONError(w, "invalid expand value, supported: contact", http.StatusBadRequest)
+	}
+}
+
+// writeGetContactsError maps a segment-contacts failure to its response, shared by
+// both response shapes so a denial answers 403 and a missing segment 404 whichever
+// one the caller asked for.
+func (h *SegmentHandler) writeGetContactsError(w http.ResponseWriter, err error) {
+	// errors.As rather than a bare type assertion: the service wraps repository
+	// errors on their way up, and a wrapped not-found would otherwise degrade into
+	// an opaque 500 that a client cannot tell apart from an outage.
+	var notFound *domain.ErrSegmentNotFound
+	if errors.As(err, &notFound) {
+		WriteJSONError(w, "Segment not found", http.StatusNotFound)
 		return
 	}
-
-	writeJSON(w, http.StatusOK, map[string]interface{}{
-		"emails": emails,
-		"limit":  limit,
-		"offset": offset,
-	})
+	h.logger.WithField("error", err.Error()).Error("Failed to get segment contacts")
+	if writeServiceError(w, err, "Failed to get segment contacts") {
+		return
+	}
+	WriteJSONError(w, "Failed to get segment contacts", http.StatusInternalServerError)
 }

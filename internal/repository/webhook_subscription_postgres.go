@@ -4,11 +4,21 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
 )
+
+// webhookSubscriptionColumns is the read projection shared by GetByID and List.
+// Both scan positionally into the same helper, so keeping one column list is
+// what stops a column added to a single query from turning into a runtime scan
+// error that no compiler would catch.
+const webhookSubscriptionColumns = `
+		id, name, url, secret, settings,
+		enabled, source, consecutive_failures, disabled_reason,
+		created_at, updated_at, last_delivery_at`
 
 // webhookSubscriptionRepository implements domain.WebhookSubscriptionRepository for PostgreSQL
 type webhookSubscriptionRepository struct {
@@ -42,9 +52,10 @@ func (r *webhookSubscriptionRepository) Create(ctx context.Context, workspaceID 
 	query := `
 		INSERT INTO webhook_subscriptions (
 			id, name, url, secret, settings,
-			enabled, created_at, updated_at
+			enabled, source, consecutive_failures, disabled_reason,
+			created_at, updated_at
 		) VALUES (
-			$1, $2, $3, $4, $5, $6, $7, $8
+			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
 		)
 	`
 
@@ -55,6 +66,9 @@ func (r *webhookSubscriptionRepository) Create(ctx context.Context, workspaceID 
 		sub.Secret,
 		settingsJSON,
 		sub.Enabled,
+		nullableSource(sub.Source),
+		sub.ConsecutiveFailures,
+		sub.DisabledReason,
 		sub.CreatedAt,
 		sub.UpdatedAt,
 	)
@@ -66,7 +80,10 @@ func (r *webhookSubscriptionRepository) Create(ctx context.Context, workspaceID 
 	return nil
 }
 
-// GetByID retrieves a webhook subscription by ID
+// GetByID retrieves a webhook subscription by ID. A row that does not exist is
+// reported as an error wrapping domain.ErrWebhookSubscriptionNotFound; every
+// other failure keeps its own cause, because the delivery worker decides
+// whether to destroy a queued delivery on exactly that distinction.
 func (r *webhookSubscriptionRepository) GetByID(ctx context.Context, workspaceID, id string) (*WebhookSubscription, error) {
 	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
 	if err != nil {
@@ -74,16 +91,13 @@ func (r *webhookSubscriptionRepository) GetByID(ctx context.Context, workspaceID
 	}
 
 	query := `
-		SELECT
-			id, name, url, secret, settings,
-			enabled, created_at, updated_at,
-			last_delivery_at
+		SELECT ` + webhookSubscriptionColumns + `
 		FROM webhook_subscriptions
 		WHERE id = $1
 	`
 
 	row := workspaceDB.QueryRowContext(ctx, query, id)
-	return scanWebhookSubscription(row)
+	return scanWebhookSubscription(row, id)
 }
 
 // List retrieves all webhook subscriptions for a workspace
@@ -94,10 +108,7 @@ func (r *webhookSubscriptionRepository) List(ctx context.Context, workspaceID st
 	}
 
 	query := `
-		SELECT
-			id, name, url, secret, settings,
-			enabled, created_at, updated_at,
-			last_delivery_at
+		SELECT ` + webhookSubscriptionColumns + `
 		FROM webhook_subscriptions
 		ORDER BY created_at DESC
 	`
@@ -139,10 +150,15 @@ func (r *webhookSubscriptionRepository) Update(ctx context.Context, workspaceID 
 		return fmt.Errorf("failed to marshal settings: %w", err)
 	}
 
+	// source is deliberately missing from this SET list. It records who created
+	// the subscription and is written once, by Create: letting an edit change it
+	// would let a Zapier-created row be relabelled as hand-made, which is what
+	// the console badge and the delete-versus-disable branch on a dead endpoint
+	// both key off.
 	query := `
 		UPDATE webhook_subscriptions
 		SET name = $2, url = $3, secret = $4, settings = $5,
-			enabled = $6, updated_at = $7
+			enabled = $6, consecutive_failures = $7, disabled_reason = $8, updated_at = $9
 		WHERE id = $1
 	`
 
@@ -153,6 +169,8 @@ func (r *webhookSubscriptionRepository) Update(ctx context.Context, workspaceID 
 		sub.Secret,
 		settingsJSON,
 		sub.Enabled,
+		sub.ConsecutiveFailures,
+		sub.DisabledReason,
 		sub.UpdatedAt,
 	)
 
@@ -166,7 +184,7 @@ func (r *webhookSubscriptionRepository) Update(ctx context.Context, workspaceID 
 	}
 
 	if rowsAffected == 0 {
-		return fmt.Errorf("webhook subscription not found: %s", sub.ID)
+		return fmt.Errorf("webhook subscription %s: %w", sub.ID, domain.ErrWebhookSubscriptionNotFound)
 	}
 
 	return nil
@@ -192,7 +210,7 @@ func (r *webhookSubscriptionRepository) Delete(ctx context.Context, workspaceID,
 	}
 
 	if rowsAffected == 0 {
-		return fmt.Errorf("webhook subscription not found: %s", id)
+		return fmt.Errorf("webhook subscription %s: %w", id, domain.ErrWebhookSubscriptionNotFound)
 	}
 
 	return nil
@@ -215,60 +233,136 @@ func (r *webhookSubscriptionRepository) UpdateLastDeliveryAt(ctx context.Context
 	return nil
 }
 
+// IncrementFailures bumps the consecutive-failure counter by one.
+//
+// The increment is computed by the database rather than in Go on purpose:
+// several deliveries for one subscription can be in flight at once, and a
+// counter written back from a value the worker read earlier would lose every
+// increment but the last — which is the whole signal the auto-disable threshold
+// rests on.
+//
+// Like the other bookkeeping writes here, a subscription that no longer exists
+// is not an error: it means the row was deleted while a delivery was in flight,
+// and the delivery it belonged to is already on its way out with it.
+func (r *webhookSubscriptionRepository) IncrementFailures(ctx context.Context, workspaceID, id string) error {
+	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
+	if err != nil {
+		return fmt.Errorf("failed to get workspace connection: %w", err)
+	}
+
+	query := `UPDATE webhook_subscriptions SET consecutive_failures = consecutive_failures + 1 WHERE id = $1`
+
+	_, err = workspaceDB.ExecContext(ctx, query, id)
+	if err != nil {
+		return fmt.Errorf("failed to increment webhook subscription failures: %w", err)
+	}
+
+	return nil
+}
+
+// ResetFailures returns the counter to zero after a successful delivery.
+//
+// The counter is almost always already zero — a healthy subscription succeeds
+// on every delivery — so the write is guarded to skip those rows. Without the
+// guard every successful delivery on a busy workspace writes a new row version
+// of the same subscription, purely to store the value it already held.
+func (r *webhookSubscriptionRepository) ResetFailures(ctx context.Context, workspaceID, id string) error {
+	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
+	if err != nil {
+		return fmt.Errorf("failed to get workspace connection: %w", err)
+	}
+
+	query := `UPDATE webhook_subscriptions SET consecutive_failures = 0 WHERE id = $1 AND consecutive_failures <> 0`
+
+	_, err = workspaceDB.ExecContext(ctx, query, id)
+	if err != nil {
+		return fmt.Errorf("failed to reset webhook subscription failures: %w", err)
+	}
+
+	return nil
+}
+
+// DisableWithReason switches the subscription off and records why in the same
+// statement, so a reader can never observe a subscription that has been
+// disabled automatically without the explanation that goes with it — the only
+// thing that tells a user this was us and not them.
+func (r *webhookSubscriptionRepository) DisableWithReason(ctx context.Context, workspaceID, id, reason string) error {
+	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
+	if err != nil {
+		return fmt.Errorf("failed to get workspace connection: %w", err)
+	}
+
+	query := `UPDATE webhook_subscriptions SET enabled = false, disabled_reason = $2, updated_at = $3 WHERE id = $1`
+
+	_, err = workspaceDB.ExecContext(ctx, query, id, reason, time.Now().UTC())
+	if err != nil {
+		return fmt.Errorf("failed to disable webhook subscription: %w", err)
+	}
+
+	return nil
+}
+
 // WebhookSubscription alias for domain type
 type WebhookSubscription = domain.WebhookSubscription
 
-// scanWebhookSubscription scans a single row into a WebhookSubscription
-func scanWebhookSubscription(row *sql.Row) (*WebhookSubscription, error) {
-	var sub WebhookSubscription
-	var settingsJSON []byte
-	var lastDeliveryAt sql.NullTime
-
-	err := row.Scan(
-		&sub.ID,
-		&sub.Name,
-		&sub.URL,
-		&sub.Secret,
-		&settingsJSON,
-		&sub.Enabled,
-		&sub.CreatedAt,
-		&sub.UpdatedAt,
-		&lastDeliveryAt,
-	)
-
-	if err == sql.ErrNoRows {
-		return nil, fmt.Errorf("webhook subscription not found")
+// nullableSource maps the empty source — a subscription a user created by hand
+// — onto SQL NULL. Storing ” instead would give the column two spellings of
+// "nobody created this on the user's behalf", and every query that asks for
+// hand-made subscriptions would have to know about both.
+func nullableSource(source string) interface{} {
+	if source == "" {
+		return nil
 	}
+	return source
+}
+
+// webhookSubscriptionRowScanner is satisfied by both *sql.Row and *sql.Rows, so
+// the single-row and multi-row reads share one scan body and cannot drift into
+// disagreeing about the column order.
+type webhookSubscriptionRowScanner interface {
+	Scan(dest ...interface{}) error
+}
+
+// scanWebhookSubscription scans a single row into a WebhookSubscription,
+// translating a missing row into domain.ErrWebhookSubscriptionNotFound. The
+// sentinel is wrapped rather than returned bare so the id stays in the message,
+// and a scan failure is wrapped by scanWebhookSubscriptionInto instead — the
+// two must stay distinguishable by errors.Is, because a caller that cannot tell
+// them apart has to treat a momentary database failure as a deletion.
+func scanWebhookSubscription(row *sql.Row, id string) (*WebhookSubscription, error) {
+	sub, err := scanWebhookSubscriptionInto(row)
 	if err != nil {
-		return nil, fmt.Errorf("failed to scan webhook subscription: %w", err)
-	}
-
-	if lastDeliveryAt.Valid {
-		sub.LastDeliveryAt = &lastDeliveryAt.Time
-	}
-
-	if len(settingsJSON) > 0 {
-		if err := json.Unmarshal(settingsJSON, &sub.Settings); err != nil {
-			return nil, fmt.Errorf("failed to unmarshal settings: %w", err)
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, fmt.Errorf("webhook subscription %s: %w", id, domain.ErrWebhookSubscriptionNotFound)
 		}
+		return nil, err
 	}
 
-	return &sub, nil
+	return sub, nil
 }
 
 // scanWebhookSubscriptionFromRows scans a row from sql.Rows into a WebhookSubscription
 func scanWebhookSubscriptionFromRows(rows *sql.Rows) (*WebhookSubscription, error) {
+	return scanWebhookSubscriptionInto(rows)
+}
+
+func scanWebhookSubscriptionInto(scanner webhookSubscriptionRowScanner) (*WebhookSubscription, error) {
 	var sub WebhookSubscription
 	var settingsJSON []byte
+	var source sql.NullString
+	var disabledReason sql.NullString
 	var lastDeliveryAt sql.NullTime
 
-	err := rows.Scan(
+	err := scanner.Scan(
 		&sub.ID,
 		&sub.Name,
 		&sub.URL,
 		&sub.Secret,
 		&settingsJSON,
 		&sub.Enabled,
+		&source,
+		&sub.ConsecutiveFailures,
+		&disabledReason,
 		&sub.CreatedAt,
 		&sub.UpdatedAt,
 		&lastDeliveryAt,
@@ -276,6 +370,14 @@ func scanWebhookSubscriptionFromRows(rows *sql.Rows) (*WebhookSubscription, erro
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to scan webhook subscription: %w", err)
+	}
+
+	// NULL and '' are the same thing to a caller: nobody created this on the
+	// user's behalf. See nullableSource for the write side.
+	sub.Source = source.String
+
+	if disabledReason.Valid {
+		sub.DisabledReason = &disabledReason.String
 	}
 
 	if lastDeliveryAt.Valid {

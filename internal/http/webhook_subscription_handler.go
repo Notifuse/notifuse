@@ -51,6 +51,23 @@ func (h *WebhookSubscriptionHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.Handle("/api/webhookSubscriptions.eventTypes", requireAuth(http.HandlerFunc(h.handleGetEventTypes)))
 }
 
+// normalizeIDFilter collapses an empty list_ids / segment_ids array to nil so
+// that "the key was absent" and "the key was an empty array" cannot be told
+// apart anywhere downstream.
+//
+// Both mean "no filter — every list, every segment", which is the behaviour of
+// every subscription written before these fields existed. The distinction is
+// worth erasing here because the opposite reading is available and catastrophic:
+// a filter predicate that only tests whether the key is present would treat a
+// stored [] as "match nothing" and the subscription would silently stop
+// delivering, with a settings blob that looks unfiltered to anyone reading it.
+func normalizeIDFilter(ids []string) []string {
+	if len(ids) == 0 {
+		return nil
+	}
+	return ids
+}
+
 // handleCreate handles POST /api/webhookSubscriptions.create
 func (h *WebhookSubscriptionHandler) handleCreate(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
@@ -64,6 +81,13 @@ func (h *WebhookSubscriptionHandler) handleCreate(w http.ResponseWriter, r *http
 		URL                string                     `json:"url"`
 		EventTypes         []string                   `json:"event_types"`
 		CustomEventFilters *domain.CustomEventFilters `json:"custom_event_filters,omitempty"`
+		ListIDs            []string                   `json:"list_ids,omitempty"`
+		SegmentIDs         []string                   `json:"segment_ids,omitempty"`
+		// Source attributes the subscription to whoever created it, and it can only
+		// be set here: a row written without it can never be attributed afterwards,
+		// because nothing else records who asked for it. Optional, so every existing
+		// client keeps working and lands as user-created.
+		Source string `json:"source,omitempty"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -76,7 +100,17 @@ func (h *WebhookSubscriptionHandler) handleCreate(w http.ResponseWriter, r *http
 		return
 	}
 
-	sub, err := h.service.Create(r.Context(), req.WorkspaceID, req.Name, req.URL, req.EventTypes, req.CustomEventFilters)
+	// Reject an unrecognised source at the edge rather than storing it. The column
+	// drives behaviour — the console badge, the delete-versus-disable branch on a
+	// dead endpoint — and an unknown value satisfies none of those branches while
+	// still reading as "not user-created", which is worse than no attribution.
+	if err := domain.ValidateWebhookSubscriptionSource(req.Source); err != nil {
+		WriteJSONError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	sub, err := h.service.Create(r.Context(), req.WorkspaceID, req.Name, req.URL, req.EventTypes, req.CustomEventFilters,
+		req.Source, normalizeIDFilter(req.ListIDs), normalizeIDFilter(req.SegmentIDs))
 	if err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to create webhook subscription")
 		if writeServiceError(w, err, "You do not have permission to manage webhook subscriptions") {
@@ -160,6 +194,10 @@ func (h *WebhookSubscriptionHandler) handleUpdate(w http.ResponseWriter, r *http
 		return
 	}
 
+	// Deliberately no source field: this endpoint is a full replace, not a patch,
+	// so a source read from the request would let any caller re-attribute an
+	// existing subscription — or silently clear the attribution of a Zapier one by
+	// sending the same body the console sends. The service keeps the stored value.
 	var req struct {
 		WorkspaceID        string                     `json:"workspace_id"`
 		ID                 string                     `json:"id"`
@@ -167,6 +205,8 @@ func (h *WebhookSubscriptionHandler) handleUpdate(w http.ResponseWriter, r *http
 		URL                string                     `json:"url"`
 		EventTypes         []string                   `json:"event_types"`
 		CustomEventFilters *domain.CustomEventFilters `json:"custom_event_filters,omitempty"`
+		ListIDs            []string                   `json:"list_ids,omitempty"`
+		SegmentIDs         []string                   `json:"segment_ids,omitempty"`
 		Enabled            bool                       `json:"enabled"`
 	}
 
@@ -184,7 +224,8 @@ func (h *WebhookSubscriptionHandler) handleUpdate(w http.ResponseWriter, r *http
 		return
 	}
 
-	sub, err := h.service.Update(r.Context(), req.WorkspaceID, req.ID, req.Name, req.URL, req.EventTypes, req.CustomEventFilters, req.Enabled)
+	sub, err := h.service.Update(r.Context(), req.WorkspaceID, req.ID, req.Name, req.URL, req.EventTypes, req.CustomEventFilters,
+		req.Enabled, normalizeIDFilter(req.ListIDs), normalizeIDFilter(req.SegmentIDs))
 	if err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to update webhook subscription")
 		if writeServiceError(w, err, "You do not have permission to manage webhook subscriptions") {

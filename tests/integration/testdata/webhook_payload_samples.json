@@ -1,0 +1,182 @@
+{
+  "events": {
+    "contact.created": {
+      "data": {
+        "contact": {
+          "address_line_1": null,
+          "address_line_2": null,
+          "country": "FR",
+          "created_at": "2024-01-15T09:30:00Z",
+          "custom_datetime_1": "2024-01-15T09:30:00Z",
+          "custom_datetime_2": null,
+          "custom_datetime_3": null,
+          "custom_datetime_4": null,
+          "custom_datetime_5": null,
+          "custom_json_1": {
+            "plan": "pro",
+            "seats": 3
+          },
+          "custom_json_2": null,
+          "custom_json_3": null,
+          "custom_json_4": null,
+          "custom_json_5": null,
+          "custom_number_1": 149.5,
+          "custom_number_2": null,
+          "custom_number_3": null,
+          "custom_number_4": null,
+          "custom_number_5": null,
+          "custom_string_1": "gold",
+          "custom_string_2": null,
+          "custom_string_3": null,
+          "custom_string_4": null,
+          "custom_string_5": null,
+          "db_created_at": "2024-01-15T09:30:00Z",
+          "db_updated_at": "2024-01-15T09:30:00Z",
+          "email": "bob.sample@example.com",
+          "external_id": "crm-4815",
+          "first_name": "Bob",
+          "full_name": "Bob Sample",
+          "job_title": "Head of Coffee",
+          "language": "en",
+          "last_name": "Sample",
+          "phone": "+33123456789",
+          "postcode": null,
+          "state": null,
+          "timezone": "Europe/Paris",
+          "updated_at": "2024-01-15T09:30:00Z"
+        }
+      },
+      "id": "00000000-0000-0000-0000-000000000000",
+      "timestamp": "2024-01-15T09:30:00Z",
+      "type": "contact.created",
+      "workspace_id": "sampleworkspace"
+    },
+    "contact.updated": {
+      "data": {
+        "contact": {
+          "address_line_1": null,
+          "address_line_2": null,
+          "country": "FR",
+          "created_at": "2024-01-15T09:30:00Z",
+          "custom_datetime_1": "2024-01-15T09:30:00Z",
+          "custom_datetime_2": null,
+          "custom_datetime_3": null,
+          "custom_datetime_4": null,
+          "custom_datetime_5": null,
+          "custom_json_1": {
+            "plan": "pro",
+            "seats": 3
+          },
+          "custom_json_2": null,
+          "custom_json_3": null,
+          "custom_json_4": null,
+          "custom_json_5": null,
+          "custom_number_1": 149.5,
+          "custom_number_2": null,
+          "custom_number_3": null,
+          "custom_number_4": null,
+          "custom_number_5": null,
+          "custom_string_1": "gold",
+          "custom_string_2": null,
+          "custom_string_3": null,
+          "custom_string_4": null,
+          "custom_string_5": null,
+          "db_created_at": "2024-01-15T09:30:00Z",
+          "db_updated_at": "2024-01-15T09:30:00Z",
+          "email": "bob.sample@example.com",
+          "external_id": "crm-4815",
+          "first_name": "Bob",
+          "full_name": "Bob Sample",
+          "job_title": "VP of Coffee",
+          "language": "en",
+          "last_name": "Sample",
+          "phone": "+33123456789",
+          "postcode": null,
+          "state": null,
+          "timezone": "Europe/Paris",
+          "updated_at": "2024-01-15T09:30:00Z"
+        }
+      },
+      "id": "00000000-0000-0000-0000-000000000000",
+      "timestamp": "2024-01-15T09:30:00Z",
+      "type": "contact.updated",
+      "workspace_id": "sampleworkspace"
+    },
+    "list.confirmed": {
+      "data": {
+        "email": "bob.sample@example.com",
+        "list_id": "zapsamplelist",
+        "list_name": "Product Updates",
+        "previous_status": "pending",
+        "status": "active"
+      },
+      "id": "00000000-0000-0000-0000-000000000000",
+      "timestamp": "2024-01-15T09:30:00Z",
+      "type": "list.confirmed",
+      "workspace_id": "sampleworkspace"
+    },
+    "list.resubscribed": {
+      "data": {
+        "email": "bob.sample@example.com",
+        "list_id": "zapsamplelist",
+        "list_name": "Product Updates",
+        "previous_status": "unsubscribed",
+        "status": "active"
+      },
+      "id": "00000000-0000-0000-0000-000000000000",
+      "timestamp": "2024-01-15T09:30:00Z",
+      "type": "list.resubscribed",
+      "workspace_id": "sampleworkspace"
+    },
+    "list.subscribed": {
+      "data": {
+        "email": "bob.sample@example.com",
+        "list_id": "zapsamplelist",
+        "list_name": "Product Updates",
+        "previous_status": null,
+        "status": "active"
+      },
+      "id": "00000000-0000-0000-0000-000000000000",
+      "timestamp": "2024-01-15T09:30:00Z",
+      "type": "list.subscribed",
+      "workspace_id": "sampleworkspace"
+    },
+    "list.unsubscribed": {
+      "data": {
+        "email": "bob.sample@example.com",
+        "list_id": "zapsamplelist",
+        "list_name": "Product Updates",
+        "previous_status": "active",
+        "status": "unsubscribed"
+      },
+      "id": "00000000-0000-0000-0000-000000000000",
+      "timestamp": "2024-01-15T09:30:00Z",
+      "type": "list.unsubscribed",
+      "workspace_id": "sampleworkspace"
+    },
+    "segment.joined": {
+      "data": {
+        "email": "bob.sample@example.com",
+        "segment_id": "zapsampleseg",
+        "segment_name": "Recent Buyers"
+      },
+      "id": "00000000-0000-0000-0000-000000000000",
+      "timestamp": "2024-01-15T09:30:00Z",
+      "type": "segment.joined",
+      "workspace_id": "sampleworkspace"
+    },
+    "segment.left": {
+      "data": {
+        "email": "bob.sample@example.com",
+        "segment_id": "zapsampleseg",
+        "segment_name": "Recent Buyers"
+      },
+      "id": "00000000-0000-0000-0000-000000000000",
+      "timestamp": "2024-01-15T09:30:00Z",
+      "type": "segment.left",
+      "workspace_id": "sampleworkspace"
+    }
+  },
+  "generator": "tests/integration/webhook_payload_samples_test.go",
+  "readme": "Generated from real webhook deliveries by tests/integration/webhook_payload_samples_test.go — do not edit by hand. Each entry is the JSON body Notifuse POSTs to a subscribed endpoint for that event type. The envelope id, workspace_id and timestamp are placeholders: a real delivery carries a fresh uuid, the workspace the event happened in, and the moment it was sent. Regenerate with UPDATE_WEBHOOK_SAMPLES=1 make test-integration."
+}

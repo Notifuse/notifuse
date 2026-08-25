@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/domain/mocks"
@@ -402,21 +403,52 @@ func TestContactService_UpsertContact(t *testing.T) {
 	}
 
 	t.Run("successful create", func(t *testing.T) {
+		// Deliberately not the struct that was passed in: the response has to carry
+		// the row as stored, which is the only place the assigned timestamps and the
+		// merged fields exist.
+		stored := &domain.Contact{
+			Email:       "test@example.com",
+			ExternalID:  &domain.NullableString{String: "crm-42"},
+			DBCreatedAt: time.Now().UTC(),
+		}
 		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{}, userWorkspace, nil)
 		mockRepo.EXPECT().UpsertContact(ctx, workspaceID, contact).Return(true, nil)
+		mockRepo.EXPECT().GetContactByEmail(ctx, workspaceID, contact.Email).Return(stored, nil)
 
 		result := service.UpsertContact(ctx, workspaceID, contact)
 		assert.Equal(t, domain.UpsertContactOperationCreate, result.Action)
 		assert.Empty(t, result.Error)
+		assert.Same(t, stored, result.Contact)
 	})
 
 	t.Run("successful update", func(t *testing.T) {
+		stored := &domain.Contact{
+			Email:     "test@example.com",
+			FirstName: &domain.NullableString{String: "Kept from an earlier write"},
+		}
 		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{}, userWorkspace, nil)
 		mockRepo.EXPECT().UpsertContact(ctx, workspaceID, contact).Return(false, nil)
+		mockRepo.EXPECT().GetContactByEmail(ctx, workspaceID, contact.Email).Return(stored, nil)
 
 		result := service.UpsertContact(ctx, workspaceID, contact)
 		assert.Equal(t, domain.UpsertContactOperationUpdate, result.Action)
 		assert.Empty(t, result.Error)
+		assert.Same(t, stored, result.Contact)
+	})
+
+	t.Run("read-back failure leaves the successful write reported as a success", func(t *testing.T) {
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{}, userWorkspace, nil)
+		mockRepo.EXPECT().UpsertContact(ctx, workspaceID, contact).Return(true, nil)
+		mockRepo.EXPECT().GetContactByEmail(ctx, workspaceID, contact.Email).Return(nil, errors.New("read error"))
+		mockLogger.EXPECT().WithField("email", contact.Email).Return(mockLogger)
+		mockLogger.EXPECT().Error("Failed to read back upserted contact: read error")
+
+		result := service.UpsertContact(ctx, workspaceID, contact)
+		// The row is written; degrading that to an error would have the caller
+		// retry a write that already landed.
+		assert.Equal(t, domain.UpsertContactOperationCreate, result.Action)
+		assert.Empty(t, result.Error)
+		assert.Nil(t, result.Contact)
 	})
 
 	t.Run("authentication error", func(t *testing.T) {
@@ -489,6 +521,8 @@ func TestContactService_UpsertContactWithPartialUpdates(t *testing.T) {
 				return true, nil
 			})
 
+		mockRepo.EXPECT().GetContactByEmail(ctx, workspaceID, "minimal@example.com").Return(&domain.Contact{Email: "minimal@example.com"}, nil)
+
 		result := service.UpsertContact(ctx, workspaceID, minimalContact)
 		assert.Equal(t, domain.UpsertContactOperationCreate, result.Action)
 		assert.Empty(t, result.Error)
@@ -519,6 +553,8 @@ func TestContactService_UpsertContactWithPartialUpdates(t *testing.T) {
 				assert.Nil(t, contact.CustomJSON1)
 				return false, nil
 			})
+
+		mockRepo.EXPECT().GetContactByEmail(ctx, workspaceID, "partial@example.com").Return(&domain.Contact{Email: "partial@example.com"}, nil)
 
 		result := service.UpsertContact(ctx, workspaceID, partialContact)
 		assert.Equal(t, domain.UpsertContactOperationUpdate, result.Action)
@@ -552,6 +588,8 @@ func TestContactService_UpsertContactWithPartialUpdates(t *testing.T) {
 				return true, nil
 			})
 
+		mockRepo.EXPECT().GetContactByEmail(ctx, workspaceID, "json@example.com").Return(&domain.Contact{Email: "json@example.com"}, nil)
+
 		result := service.UpsertContact(ctx, workspaceID, jsonContact)
 		assert.Equal(t, domain.UpsertContactOperationCreate, result.Action)
 		assert.Empty(t, result.Error)
@@ -581,6 +619,8 @@ func TestContactService_UpsertContactWithPartialUpdates(t *testing.T) {
 				assert.Nil(t, contact.LastName)
 				return false, nil
 			})
+
+		mockRepo.EXPECT().GetContactByEmail(ctx, workspaceID, "null@example.com").Return(&domain.Contact{Email: "null@example.com"}, nil)
 
 		result := service.UpsertContact(ctx, workspaceID, contactWithNulls)
 		assert.Equal(t, domain.UpsertContactOperationUpdate, result.Action)

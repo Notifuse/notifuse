@@ -213,23 +213,57 @@ func (s *ListService) GetListStats(ctx context.Context, workspaceID string, id s
 	return stats, nil
 }
 
-// this method is used to subscribe a contact to a list
+// SubscribeToLists satisfies domain.ListService for the callers that only need to
+// know whether the subscription succeeded — the notification center, workspace
+// onboarding and the demo seeder all discard the memberships.
+func (s *ListService) SubscribeToLists(ctx context.Context, payload *domain.SubscribeToListsRequest, hasBearerToken bool) error {
+	_, err := s.SubscribeToListsWithResults(ctx, payload, hasBearerToken)
+	return err
+}
+
+// membershipResult copies a membership row for the subscribe response. A copy
+// because the rows reported come from two places — the struct just written and the
+// row read before it — and neither should be aliased into a slice that outlives the
+// loop iteration. list_name is filled from the list being processed: contact_lists
+// has no name column, so a stored row read by (email, list_id) carries none.
+func membershipResult(contactList *domain.ContactList, listName string) *domain.ContactList {
+	result := *contactList
+	result.ListName = listName
+	return &result
+}
+
+// SubscribeToListsWithResults subscribes a contact to lists and reports the
+// membership each request left behind.
+//
+// The resulting status is the part a caller cannot predict: a list in double
+// opt-in lands an unauthenticated subscriber on 'pending', a contact who had
+// unsubscribed is forced back through double opt-in whatever the list's setting,
+// and a bounced or complained address is refused outright. A caller told only
+// that the request succeeded cannot tell any of those apart from a contact who is
+// now reachable.
+//
+// Every requested list gets exactly one entry, including the paths that write
+// nothing — being already active, or bounced, is an outcome the caller has to be
+// able to read.
+//
 // request can come from 3 different sources:
 // 1. API
 // 2. Frontend (authenticated with email and email_hmac)
 // 3. Frontend (unauthenticated with email)
-func (s *ListService) SubscribeToLists(ctx context.Context, payload *domain.SubscribeToListsRequest, hasBearerToken bool) error {
+func (s *ListService) SubscribeToListsWithResults(ctx context.Context, payload *domain.SubscribeToListsRequest, hasBearerToken bool) ([]*domain.ContactList, error) {
 	var err error
 
 	// fail silently if the email is disposable
 	if disposable_emails.IsDisposableEmail(payload.Contact.Email) {
-		return nil
+		// Silently dropped, so there is no membership to report — an empty slice
+		// rather than a nil one, so the response shape does not change with it.
+		return []*domain.ContactList{}, nil
 	}
 
 	workspace, err := s.workspaceRepo.GetByID(ctx, payload.WorkspaceID)
 	if err != nil {
 		s.logger.Error(fmt.Sprintf("Failed to get workspace: %v", err))
-		return fmt.Errorf("failed to get workspace: %w", err)
+		return nil, fmt.Errorf("failed to get workspace: %w", err)
 	}
 
 	isAuthenticated := false
@@ -239,12 +273,12 @@ func (s *ListService) SubscribeToLists(ctx context.Context, payload *domain.Subs
 	if hasBearerToken {
 		ctx, _, userWorkspace, err = s.authService.AuthenticateUserForWorkspace(ctx, workspace.ID)
 		if err != nil {
-			return fmt.Errorf("failed to authenticate user: %w", err)
+			return nil, fmt.Errorf("failed to authenticate user: %w", err)
 		}
 
 		// Check permission for writing lists
 		if !userWorkspace.HasPermission(domain.PermissionResourceLists, domain.PermissionTypeWrite) {
-			return domain.NewPermissionError(
+			return nil, domain.NewPermissionError(
 				domain.PermissionResourceLists,
 				domain.PermissionTypeWrite,
 				"Insufficient permissions: write access to lists required",
@@ -256,7 +290,7 @@ func (s *ListService) SubscribeToLists(ctx context.Context, payload *domain.Subs
 
 		secretKey := workspace.Settings.SecretKey
 		if !domain.VerifyEmailHMAC(payload.Contact.Email, payload.Contact.EmailHMAC, secretKey) {
-			return fmt.Errorf("invalid email verification")
+			return nil, fmt.Errorf("invalid email verification")
 		}
 
 		isAuthenticated = true
@@ -276,7 +310,7 @@ func (s *ListService) SubscribeToLists(ctx context.Context, payload *domain.Subs
 		_, err = s.contactRepo.UpsertContact(ctx, workspace.ID, &payload.Contact)
 		if err != nil {
 			s.logger.WithField("email", payload.Contact.Email).Error(fmt.Sprintf("Failed to upsert contact: %v", err))
-			return fmt.Errorf("failed to upsert contact: %w", err)
+			return nil, fmt.Errorf("failed to upsert contact: %w", err)
 		}
 	}
 
@@ -284,8 +318,11 @@ func (s *ListService) SubscribeToLists(ctx context.Context, payload *domain.Subs
 	lists, err := s.repo.GetLists(ctx, workspace.ID)
 	if err != nil {
 		s.logger.WithField("list_ids", payload.ListIDs).Error(fmt.Sprintf("Failed to get lists: %v", err))
-		return fmt.Errorf("failed to get lists: %w", err)
+		return nil, fmt.Errorf("failed to get lists: %w", err)
 	}
+
+	// One entry per requested list, in the order they were asked for.
+	results := make([]*domain.ContactList, 0, len(payload.ListIDs))
 
 	// get the list
 	for _, listID := range payload.ListIDs {
@@ -300,20 +337,20 @@ func (s *ListService) SubscribeToLists(ctx context.Context, payload *domain.Subs
 
 		if list == nil {
 			s.logger.WithField("list_id", listID).Error("List not found")
-			return fmt.Errorf("list not found")
+			return nil, fmt.Errorf("list not found")
 		}
 
 		// reject if the list is not public and the request is not authenticated
 		// (authenticated = bearer token OR valid HMAC from notification center)
 		if !list.IsPublic && !isAuthenticated {
-			return fmt.Errorf("list is not public")
+			return nil, fmt.Errorf("list is not public")
 		}
 
 		// Check existing subscription status to prevent overwriting
 		existingCL, err := s.contactListRepo.GetContactListByIDs(ctx, workspace.ID, payload.Contact.Email, listID)
 		if err != nil {
 			if _, ok := err.(*domain.ErrContactListNotFound); !ok {
-				return fmt.Errorf("failed to check existing subscription: %w", err)
+				return nil, fmt.Errorf("failed to check existing subscription: %w", err)
 			}
 			// Not found — proceed as new subscription
 		}
@@ -324,7 +361,10 @@ func (s *ListService) SubscribeToLists(ctx context.Context, payload *domain.Subs
 		if existingCL != nil {
 			switch existingCL.Status {
 			case domain.ContactListStatusActive:
-				// Idempotent no-op — already subscribed
+				// Idempotent no-op — already subscribed. Still reported: "already
+				// active" is the outcome of this subscribe, and a caller that only
+				// saw success would have no way to tell it apart from a new one.
+				results = append(results, membershipResult(existingCL, list.Name))
 				continue
 			case domain.ContactListStatusPending:
 				if !isAuthenticated {
@@ -336,7 +376,11 @@ func (s *ListService) SubscribeToLists(ctx context.Context, payload *domain.Subs
 				// fall through so the upsert below transitions Pending → Active and the
 				// DOI email logic is NOT re-triggered. (Issue #313)
 			case domain.ContactListStatusBounced, domain.ContactListStatusComplained:
-				// Hard block — do not send email to bounced/complained addresses
+				// Hard block — do not send email to bounced/complained addresses.
+				// Reported too, so the refusal is visible rather than silent: this
+				// is the one path where a "successful" subscribe leaves the contact
+				// permanently unmailable on that list.
+				results = append(results, membershipResult(existingCL, list.Name))
 				continue
 			case domain.ContactListStatusUnsubscribed:
 				// Allow re-subscribe — force double opt-in for compliance
@@ -368,7 +412,7 @@ func (s *ListService) SubscribeToLists(ctx context.Context, payload *domain.Subs
 					WithField("list_id", contactList.ListID).
 					Error(fmt.Sprintf("Failed to subscribe to list: %v", err))
 				// codecov:ignore:end
-				return fmt.Errorf("failed to subscribe to list: %w", err)
+				return nil, fmt.Errorf("failed to subscribe to list: %w", err)
 			}
 		}
 
@@ -377,10 +421,19 @@ func (s *ListService) SubscribeToLists(ctx context.Context, payload *domain.Subs
 			contactList.Status = domain.ContactListStatusPending
 		}
 
+		// A pending resend wrote nothing, so the stored row — not the struct
+		// assembled above, whose timestamps are this instant — is what the caller
+		// should be told about.
+		stored := contactList
+		if skipDBWrite {
+			stored = existingCL
+		}
+		results = append(results, membershipResult(stored, list.Name))
+
 		marketingEmailProvider, integrationID, err := workspace.GetEmailProviderWithIntegrationID(true)
 		if err != nil {
 			s.logger.WithField("workspace_id", workspace.ID).Error(fmt.Sprintf("Failed to get marketing email provider: %v", err))
-			return fmt.Errorf("failed to get marketing email provider: %w", err)
+			return nil, fmt.Errorf("failed to get marketing email provider: %w", err)
 		}
 
 		// if the marketing email provider is not set, we don't need to send the welcome email
@@ -392,7 +445,7 @@ func (s *ListService) SubscribeToLists(ctx context.Context, payload *domain.Subs
 		contact, err := s.contactRepo.GetContactByEmail(ctx, workspace.ID, contactList.Email)
 		if err != nil {
 			s.logger.WithField("email", contactList.Email).Error(fmt.Sprintf("Failed to get contact: %v", err))
-			return fmt.Errorf("failed to get contact: %w", err)
+			return nil, fmt.Errorf("failed to get contact: %w", err)
 		}
 
 		messageID := uuid.New().String()
@@ -428,7 +481,7 @@ func (s *ListService) SubscribeToLists(ctx context.Context, payload *domain.Subs
 
 		if err != nil {
 			s.logger.WithField("email", contactList.Email).Error(fmt.Sprintf("Failed to build template data: %v", err))
-			return fmt.Errorf("failed to build template data: %w", err)
+			return nil, fmt.Errorf("failed to build template data: %w", err)
 		}
 
 		// double optin
@@ -450,12 +503,12 @@ func (s *ListService) SubscribeToLists(ctx context.Context, payload *domain.Subs
 
 			if err != nil {
 				s.logger.WithField("email", contactList.Email).Error(fmt.Sprintf("Failed to send double optin email: %v", err))
-				return fmt.Errorf("failed to send double optin email: %w", err)
+				return nil, fmt.Errorf("failed to send double optin email: %w", err)
 			}
 		}
 	}
 
-	return nil
+	return results, nil
 }
 
 // this method is used to unsubscribe a contact from a list

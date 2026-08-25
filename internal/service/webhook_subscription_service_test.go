@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -261,6 +262,9 @@ func TestWebhookSubscriptionService_Create(t *testing.T) {
 				tc.webhookURL,
 				tc.eventTypes,
 				tc.customEventFilters,
+				domain.WebhookSubscriptionSourceUser,
+				nil,
+				nil,
 			)
 
 			if tc.expectError {
@@ -587,6 +591,8 @@ func TestWebhookSubscriptionService_Update(t *testing.T) {
 				tc.eventTypes,
 				tc.customEventFilters,
 				tc.enabled,
+				nil,
+				nil,
 			)
 
 			if tc.expectError {
@@ -607,14 +613,17 @@ func TestWebhookSubscriptionService_Delete(t *testing.T) {
 		name        string
 		workspaceID string
 		subID       string
-		setupMocks  func(*mocks.MockWebhookSubscriptionRepository)
+		setupMocks  func(*mocks.MockWebhookSubscriptionRepository, *mocks.MockWebhookDeliveryRepository)
 		expectError bool
 	}{
 		{
 			name:        "successful deletion",
 			workspaceID: "workspace123",
 			subID:       "sub123",
-			setupMocks: func(mockRepo *mocks.MockWebhookSubscriptionRepository) {
+			setupMocks: func(mockRepo *mocks.MockWebhookSubscriptionRepository, mockDeliveryRepo *mocks.MockWebhookDeliveryRepository) {
+				mockDeliveryRepo.EXPECT().
+					DeleteBySubscriptionID(gomock.Any(), "workspace123", "sub123").
+					Return(nil)
 				mockRepo.EXPECT().
 					Delete(gomock.Any(), "workspace123", "sub123").
 					Return(nil)
@@ -625,7 +634,10 @@ func TestWebhookSubscriptionService_Delete(t *testing.T) {
 			name:        "subscription not found",
 			workspaceID: "workspace123",
 			subID:       "nonexistent",
-			setupMocks: func(mockRepo *mocks.MockWebhookSubscriptionRepository) {
+			setupMocks: func(mockRepo *mocks.MockWebhookSubscriptionRepository, mockDeliveryRepo *mocks.MockWebhookDeliveryRepository) {
+				mockDeliveryRepo.EXPECT().
+					DeleteBySubscriptionID(gomock.Any(), "workspace123", "nonexistent").
+					Return(nil)
 				mockRepo.EXPECT().
 					Delete(gomock.Any(), "workspace123", "nonexistent").
 					Return(errors.New("not found"))
@@ -636,10 +648,28 @@ func TestWebhookSubscriptionService_Delete(t *testing.T) {
 			name:        "repository error",
 			workspaceID: "workspace123",
 			subID:       "sub123",
-			setupMocks: func(mockRepo *mocks.MockWebhookSubscriptionRepository) {
+			setupMocks: func(mockRepo *mocks.MockWebhookSubscriptionRepository, mockDeliveryRepo *mocks.MockWebhookDeliveryRepository) {
+				mockDeliveryRepo.EXPECT().
+					DeleteBySubscriptionID(gomock.Any(), "workspace123", "sub123").
+					Return(nil)
 				mockRepo.EXPECT().
 					Delete(gomock.Any(), "workspace123", "sub123").
 					Return(errors.New("database error"))
+			},
+			expectError: true,
+		},
+		{
+			// The subscription row has to survive a failed sweep, or the caller
+			// is left with a live subscription whose queue is half gone and no
+			// error to act on.
+			name:        "delivery sweep failure aborts the delete",
+			workspaceID: "workspace123",
+			subID:       "sub123",
+			setupMocks: func(mockRepo *mocks.MockWebhookSubscriptionRepository, mockDeliveryRepo *mocks.MockWebhookDeliveryRepository) {
+				mockDeliveryRepo.EXPECT().
+					DeleteBySubscriptionID(gomock.Any(), "workspace123", "sub123").
+					Return(errors.New("database error"))
+				// No EXPECT on the subscription repository: it must not be reached.
 			},
 			expectError: true,
 		},
@@ -647,10 +677,10 @@ func TestWebhookSubscriptionService_Delete(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			mockRepo, _, _, service, ctrl := setupWebhookSubscriptionTest(t)
+			mockRepo, mockDeliveryRepo, _, service, ctrl := setupWebhookSubscriptionTest(t)
 			defer ctrl.Finish()
 
-			tc.setupMocks(mockRepo)
+			tc.setupMocks(mockRepo, mockDeliveryRepo)
 
 			err := service.Delete(context.Background(), tc.workspaceID, tc.subID)
 
@@ -1278,6 +1308,9 @@ func TestWebhookSubscriptionService_Create_SecretGeneration(t *testing.T) {
 			"https://example.com/webhook",
 			[]string{"contact.created"},
 			nil,
+			domain.WebhookSubscriptionSourceUser,
+			nil,
+			nil,
 		)
 		require.NoError(t, err)
 	}
@@ -1311,6 +1344,9 @@ func TestWebhookSubscriptionService_Create_IDGeneration(t *testing.T) {
 			fmt.Sprintf("Webhook %d", i),
 			"https://example.com/webhook",
 			[]string{"contact.created"},
+			nil,
+			domain.WebhookSubscriptionSourceUser,
+			nil,
 			nil,
 		)
 		require.NoError(t, err)
@@ -1347,6 +1383,9 @@ func TestWebhookSubscriptionService_Create_DefaultValues(t *testing.T) {
 		"https://example.com/webhook",
 		[]string{"contact.created"},
 		nil,
+		domain.WebhookSubscriptionSourceUser,
+		nil,
+		nil,
 	)
 	require.NoError(t, err)
 }
@@ -1382,6 +1421,8 @@ func TestWebhookSubscriptionService_Update_PreservesSecret(t *testing.T) {
 		[]string{"contact.updated"},
 		nil,
 		true,
+		nil,
+		nil,
 	)
 	require.NoError(t, err)
 }
@@ -1405,7 +1446,7 @@ func TestWebhookSubscriptionService_RejectsNonMembers(t *testing.T) {
 		call func(context.Context, *WebhookSubscriptionService) error
 	}{
 		{"Create", func(ctx context.Context, s *WebhookSubscriptionService) error {
-			_, err := s.Create(ctx, victimWorkspace, "n", "https://example.com/h", []string{"contact.created"}, nil)
+			_, err := s.Create(ctx, victimWorkspace, "n", "https://example.com/h", []string{"contact.created"}, nil, domain.WebhookSubscriptionSourceUser, nil, nil)
 			return err
 		}},
 		{"GetByID", func(ctx context.Context, s *WebhookSubscriptionService) error {
@@ -1417,7 +1458,7 @@ func TestWebhookSubscriptionService_RejectsNonMembers(t *testing.T) {
 			return err
 		}},
 		{"Update", func(ctx context.Context, s *WebhookSubscriptionService) error {
-			_, err := s.Update(ctx, victimWorkspace, "sub-1", "n", "https://attacker.example.com/h", []string{"contact.created"}, nil, true)
+			_, err := s.Update(ctx, victimWorkspace, "sub-1", "n", "https://attacker.example.com/h", []string{"contact.created"}, nil, true, nil, nil)
 			return err
 		}},
 		{"Delete", func(ctx context.Context, s *WebhookSubscriptionService) error {
@@ -1586,7 +1627,7 @@ func TestWebhookSubscriptionSecretIsOwnerOnly(t *testing.T) {
 		repo.EXPECT().Create(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
 
 		sub, err := svc.Create(context.Background(), workspaceID, "mine", "https://mine/h",
-			[]string{"contact.created"}, nil)
+			[]string{"contact.created"}, nil, domain.WebhookSubscriptionSourceUser, nil, nil)
 		require.NoError(t, err)
 		assert.NotEmpty(t, sub.Secret)
 	})
@@ -1652,7 +1693,7 @@ func TestWebhookSubscriptionService_PermissionEnforcement(t *testing.T) {
 		call func(context.Context, *WebhookSubscriptionService) error
 	}{
 		{"Create", domain.PermissionTypeWrite, func(ctx context.Context, s *WebhookSubscriptionService) error {
-			_, err := s.Create(ctx, workspaceID, "crm", "https://x/h", []string{"contact.created"}, nil)
+			_, err := s.Create(ctx, workspaceID, "crm", "https://x/h", []string{"contact.created"}, nil, domain.WebhookSubscriptionSourceUser, nil, nil)
 			return err
 		}},
 		{"GetByID", domain.PermissionTypeRead, func(ctx context.Context, s *WebhookSubscriptionService) error {
@@ -1664,7 +1705,7 @@ func TestWebhookSubscriptionService_PermissionEnforcement(t *testing.T) {
 			return err
 		}},
 		{"Update", domain.PermissionTypeWrite, func(ctx context.Context, s *WebhookSubscriptionService) error {
-			_, err := s.Update(ctx, workspaceID, "sub-1", "crm", "https://x/h", []string{"contact.created"}, nil, true)
+			_, err := s.Update(ctx, workspaceID, "sub-1", "crm", "https://x/h", []string{"contact.created"}, nil, true, nil, nil)
 			return err
 		}},
 		{"Delete", domain.PermissionTypeWrite, func(ctx context.Context, s *WebhookSubscriptionService) error {
@@ -1787,5 +1828,360 @@ func TestWebhookSubscriptionService_TestDeliveryRequiresWrite(t *testing.T) {
 		sub, err := svc.GetForTestDelivery(context.Background(), workspaceID, "sub-1")
 		require.NoError(t, err)
 		assert.Equal(t, secret, sub.Secret)
+	})
+}
+
+// TestWebhookSubscriptionService_SecretRedactionPerMethod records, one row per
+// method, whether the signing secret survives the trip back to the caller.
+//
+// Every method here that returns a subscription needs such a row, because the
+// handlers serialise the whole object and Secret carries no `omitempty`. That is
+// how `.toggle` came to be a no-op route to any subscription's plaintext key for
+// anyone holding webhook_subscriptions:write, while the two read methods were
+// carefully redacted — the decision was made twice and then never again. The
+// reflection guard below fails when a method is added without a row, so the
+// third time cannot be silent.
+func TestWebhookSubscriptionService_SecretRedactionPerMethod(t *testing.T) {
+	const workspaceID = "ws-1"
+	const storedSecret = "whsec_SENTINEL"
+
+	stored := func() *domain.WebhookSubscription {
+		return &domain.WebhookSubscription{ID: "sub-1", Name: "crm", URL: "https://x/h", Secret: storedSecret}
+	}
+
+	newService := func(t *testing.T, role string) (*WebhookSubscriptionService, *mocks.MockWebhookSubscriptionRepository) {
+		t.Helper()
+		ctrl := gomock.NewController(t)
+		t.Cleanup(ctrl.Finish)
+
+		repo := mocks.NewMockWebhookSubscriptionRepository(ctrl)
+		logger := pkgmocks.NewMockLogger(ctrl)
+		logger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(logger).AnyTimes()
+		logger.EXPECT().WithFields(gomock.Any()).Return(logger).AnyTimes()
+		logger.EXPECT().Info(gomock.Any()).AnyTimes()
+		logger.EXPECT().Debug(gomock.Any()).AnyTimes()
+		logger.EXPECT().Warn(gomock.Any()).AnyTimes()
+		logger.EXPECT().Error(gomock.Any()).AnyTimes()
+
+		auth := mocks.NewMockAuthService(ctrl)
+		auth.EXPECT().
+			AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
+			DoAndReturn(func(ctx context.Context, id string) (context.Context, *domain.User, *domain.UserWorkspace, error) {
+				return ctx, &domain.User{ID: "u1"}, &domain.UserWorkspace{
+					UserID: "u1", WorkspaceID: id, Role: role,
+					// Both verbs, deliberately: no permission confers the signing
+					// secret, so redaction has to answer to the role alone.
+					Permissions: domain.UserPermissions{
+						domain.PermissionResourceWebhookSubscriptions: {Read: true, Write: true},
+					},
+				}, nil
+			}).AnyTimes()
+
+		return NewWebhookSubscriptionService(repo, mocks.NewMockWebhookDeliveryRepository(ctrl), auth, logger), repo
+	}
+
+	type decision struct {
+		// memberSeesSecret is the recorded decision for a workspace member.
+		memberSeesSecret bool
+		// memberIsRejected marks a method that refuses a non-owner outright, so
+		// there is no subscription for it to redact.
+		memberIsRejected bool
+		why              string
+		arrange          func(repo *mocks.MockWebhookSubscriptionRepository, isOwner bool)
+		call             func(context.Context, *WebhookSubscriptionService) (*domain.WebhookSubscription, error)
+	}
+
+	decisions := map[string]decision{
+		"Create": {
+			memberSeesSecret: true,
+			why:              "the secret was minted for a row that did not exist a moment ago, and this response is the only place its creator can read it",
+			arrange: func(repo *mocks.MockWebhookSubscriptionRepository, _ bool) {
+				repo.EXPECT().Create(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
+			},
+			call: func(ctx context.Context, s *WebhookSubscriptionService) (*domain.WebhookSubscription, error) {
+				return s.Create(ctx, workspaceID, "crm", "https://x/h", []string{"contact.created"}, nil, domain.WebhookSubscriptionSourceUser, nil, nil)
+			},
+		},
+		"GetByID": {
+			why: "reading a subscription is not being handed its key",
+			arrange: func(repo *mocks.MockWebhookSubscriptionRepository, _ bool) {
+				repo.EXPECT().GetByID(gomock.Any(), workspaceID, "sub-1").Return(stored(), nil)
+			},
+			call: func(ctx context.Context, s *WebhookSubscriptionService) (*domain.WebhookSubscription, error) {
+				return s.GetByID(ctx, workspaceID, "sub-1")
+			},
+		},
+		"List": {
+			why: "same as GetByID, once per row",
+			arrange: func(repo *mocks.MockWebhookSubscriptionRepository, _ bool) {
+				repo.EXPECT().List(gomock.Any(), workspaceID).Return([]*domain.WebhookSubscription{stored()}, nil)
+			},
+			call: func(ctx context.Context, s *WebhookSubscriptionService) (*domain.WebhookSubscription, error) {
+				subs, err := s.List(ctx, workspaceID)
+				if err != nil {
+					return nil, err
+				}
+				if len(subs) == 0 {
+					return nil, fmt.Errorf("expected one subscription")
+				}
+				return subs[0], nil
+			},
+		},
+		"Update": {
+			why: "editing a name must not be a way to read a key",
+			arrange: func(repo *mocks.MockWebhookSubscriptionRepository, _ bool) {
+				repo.EXPECT().GetByID(gomock.Any(), workspaceID, "sub-1").Return(stored(), nil)
+				repo.EXPECT().Update(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
+			},
+			call: func(ctx context.Context, s *WebhookSubscriptionService) (*domain.WebhookSubscription, error) {
+				return s.Update(ctx, workspaceID, "sub-1", "crm", "https://x/h", []string{"contact.created"}, nil, true, nil, nil)
+			},
+		},
+		"Toggle": {
+			why: "the cheapest write there is, and so the easiest route to somebody else's key",
+			arrange: func(repo *mocks.MockWebhookSubscriptionRepository, _ bool) {
+				repo.EXPECT().GetByID(gomock.Any(), workspaceID, "sub-1").Return(stored(), nil)
+				repo.EXPECT().Update(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
+			},
+			call: func(ctx context.Context, s *WebhookSubscriptionService) (*domain.WebhookSubscription, error) {
+				return s.Toggle(ctx, workspaceID, "sub-1", false)
+			},
+		},
+		"RegenerateSecret": {
+			memberSeesSecret: true,
+			memberIsRejected: true,
+			why:              "owner-only at the gate, and rotating a secret is pointless unless the owner receives the new one",
+			arrange: func(repo *mocks.MockWebhookSubscriptionRepository, isOwner bool) {
+				if !isOwner {
+					// Nothing armed: the guard must reject before the repository.
+					return
+				}
+				repo.EXPECT().GetByID(gomock.Any(), workspaceID, "sub-1").Return(stored(), nil)
+				repo.EXPECT().Update(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
+			},
+			call: func(ctx context.Context, s *WebhookSubscriptionService) (*domain.WebhookSubscription, error) {
+				return s.RegenerateSecret(ctx, workspaceID, "sub-1")
+			},
+		},
+		"GetForTestDelivery": {
+			memberSeesSecret: true,
+			why:              "an internal accessor: the caller signs the outbound test request with this and answers the client with the receiver's status code, never with the subscription",
+			arrange: func(repo *mocks.MockWebhookSubscriptionRepository, _ bool) {
+				repo.EXPECT().GetByID(gomock.Any(), workspaceID, "sub-1").Return(stored(), nil)
+			},
+			call: func(ctx context.Context, s *WebhookSubscriptionService) (*domain.WebhookSubscription, error) {
+				return s.GetForTestDelivery(ctx, workspaceID, "sub-1")
+			},
+		},
+	}
+
+	t.Run("every method returning a subscription has a recorded decision", func(t *testing.T) {
+		subscriptionType := reflect.TypeOf(&domain.WebhookSubscription{})
+		serviceType := reflect.TypeOf(&WebhookSubscriptionService{})
+
+		var covered int
+		for i := 0; i < serviceType.NumMethod(); i++ {
+			method := serviceType.Method(i)
+
+			returnsSubscription := false
+			for out := 0; out < method.Type.NumOut(); out++ {
+				result := method.Type.Out(out)
+				if result == subscriptionType ||
+					(result.Kind() == reflect.Slice && result.Elem() == subscriptionType) {
+					returnsSubscription = true
+					break
+				}
+			}
+			if !returnsSubscription {
+				continue
+			}
+
+			covered++
+			assert.Containsf(t, decisions, method.Name,
+				"%s hands a subscription back to a handler but this table says nothing about its signing secret", method.Name)
+		}
+
+		assert.Equal(t, len(decisions), covered,
+			"the table lists a method that no longer returns a subscription")
+	})
+
+	for name, tc := range decisions {
+		t.Run("member/"+name, func(t *testing.T) {
+			svc, repo := newService(t, "member")
+			tc.arrange(repo, false)
+
+			sub, err := tc.call(context.Background(), svc)
+
+			if tc.memberIsRejected {
+				require.Error(t, err, tc.why)
+				return
+			}
+			require.NoError(t, err)
+			require.NotNil(t, sub)
+			assert.Equal(t, "crm", sub.Name, "everything but the secret stays readable")
+
+			if tc.memberSeesSecret {
+				assert.NotEmpty(t, sub.Secret, tc.why)
+				return
+			}
+			assert.Empty(t, sub.Secret, tc.why)
+		})
+
+		t.Run("owner/"+name, func(t *testing.T) {
+			svc, repo := newService(t, "owner")
+			tc.arrange(repo, true)
+
+			sub, err := tc.call(context.Background(), svc)
+			require.NoError(t, err)
+			require.NotNil(t, sub)
+
+			// An owner is never redacted anywhere: the console reveals the
+			// secret from these payloads.
+			assert.NotEmpty(t, sub.Secret)
+		})
+	}
+}
+
+// Deleting a subscription without taking its queue is what turns a normal
+// integration turn-off into a permanent head-of-line block: the orphaned rows go
+// on matching the worker's pending predicate for the whole retention window
+// while they can never be delivered.
+func TestWebhookSubscriptionService_DeleteTakesTheQueueWithIt(t *testing.T) {
+	mockRepo, mockDeliveryRepo, _, service, ctrl := setupWebhookSubscriptionTest(t)
+	defer ctrl.Finish()
+
+	gomock.InOrder(
+		// Deliveries first, so the subscription row can never disappear while
+		// its queue survives.
+		mockDeliveryRepo.EXPECT().DeleteBySubscriptionID(gomock.Any(), "ws-1", "sub-1").Return(nil),
+		mockRepo.EXPECT().Delete(gomock.Any(), "ws-1", "sub-1").Return(nil),
+	)
+
+	require.NoError(t, service.Delete(context.Background(), "ws-1", "sub-1"))
+}
+
+// Source is write-once, and these are the two halves of that claim: Create is
+// the only place it can be set, and Update — which is otherwise a full replace
+// of the row — must leave it exactly as it was found.
+func TestWebhookSubscriptionService_SourceIsWriteOnce(t *testing.T) {
+	t.Run("Create stores the source it was given", func(t *testing.T) {
+		mockRepo, _, _, service, ctrl := setupWebhookSubscriptionTest(t)
+		defer ctrl.Finish()
+
+		var stored *domain.WebhookSubscription
+		mockRepo.EXPECT().
+			Create(gomock.Any(), "ws-1", gomock.Any()).
+			DoAndReturn(func(_ context.Context, _ string, sub *domain.WebhookSubscription) error {
+				stored = sub
+				return nil
+			})
+
+		_, err := service.Create(context.Background(), "ws-1", "Zap", "https://example.com/h",
+			[]string{"contact.created"}, nil, domain.WebhookSubscriptionSourceZapier, nil, nil)
+		require.NoError(t, err)
+		require.NotNil(t, stored)
+		assert.Equal(t, domain.WebhookSubscriptionSourceZapier, stored.Source)
+	})
+
+	t.Run("Update cannot re-attribute an existing subscription", func(t *testing.T) {
+		mockRepo, _, _, service, ctrl := setupWebhookSubscriptionTest(t)
+		defer ctrl.Finish()
+
+		existing := &domain.WebhookSubscription{
+			ID:     "sub-1",
+			Name:   "Zap",
+			URL:    "https://example.com/h",
+			Secret: "whsec_" + strings.Repeat("a", 8),
+			Source: domain.WebhookSubscriptionSourceZapier,
+		}
+
+		var written *domain.WebhookSubscription
+		mockRepo.EXPECT().GetByID(gomock.Any(), "ws-1", "sub-1").Return(existing, nil)
+		mockRepo.EXPECT().
+			Update(gomock.Any(), "ws-1", gomock.Any()).
+			DoAndReturn(func(_ context.Context, _ string, sub *domain.WebhookSubscription) error {
+				written = sub
+				return nil
+			})
+
+		_, err := service.Update(context.Background(), "ws-1", "sub-1", "Renamed", "https://example.com/h",
+			[]string{"contact.created"}, nil, true, nil, nil)
+		require.NoError(t, err)
+		require.NotNil(t, written)
+		assert.Equal(t, "Renamed", written.Name, "the rename should have gone through")
+		assert.Equal(t, domain.WebhookSubscriptionSourceZapier, written.Source)
+	})
+
+	// An unrecognised value reads as "not user-created" everywhere while matching
+	// none of the integration branches, and the column cannot be corrected after
+	// the fact, so it has to be refused before the row is written.
+	t.Run("Create refuses an unrecognised source without writing", func(t *testing.T) {
+		mockRepo, _, _, service, ctrl := setupWebhookSubscriptionTest(t)
+		defer ctrl.Finish()
+
+		mockRepo.EXPECT().Create(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+
+		_, err := service.Create(context.Background(), "ws-1", "Evil", "https://example.com/h",
+			[]string{"contact.created"}, nil, "evil", nil, nil)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "invalid webhook subscription source")
+	})
+}
+
+// The id filters have to survive the trip into stored settings on both write
+// paths, because a filter that is accepted and silently dropped is worse than
+// one that was refused: the subscription reads as narrowed and is not.
+func TestWebhookSubscriptionService_IDFiltersReachTheStoredSettings(t *testing.T) {
+	t.Run("Create", func(t *testing.T) {
+		mockRepo, _, _, service, ctrl := setupWebhookSubscriptionTest(t)
+		defer ctrl.Finish()
+
+		var stored *domain.WebhookSubscription
+		mockRepo.EXPECT().
+			Create(gomock.Any(), "ws-1", gomock.Any()).
+			DoAndReturn(func(_ context.Context, _ string, sub *domain.WebhookSubscription) error {
+				stored = sub
+				return nil
+			})
+
+		_, err := service.Create(context.Background(), "ws-1", "Filtered", "https://example.com/h",
+			[]string{"list.subscribed"}, nil, domain.WebhookSubscriptionSourceUser,
+			[]string{"list-a"}, []string{"seg-a"})
+		require.NoError(t, err)
+		require.NotNil(t, stored)
+		assert.Equal(t, []string{"list-a"}, stored.Settings.ListIDs)
+		assert.Equal(t, []string{"seg-a"}, stored.Settings.SegmentIDs)
+	})
+
+	// Update is a full replace, so clearing the filters has to actually clear
+	// them rather than leave the previous narrowing in place.
+	t.Run("Update replaces the stored filters", func(t *testing.T) {
+		mockRepo, _, _, service, ctrl := setupWebhookSubscriptionTest(t)
+		defer ctrl.Finish()
+
+		existing := &domain.WebhookSubscription{
+			ID: "sub-1",
+			Settings: domain.WebhookSubscriptionSettings{
+				EventTypes: []string{"list.subscribed"},
+				ListIDs:    []string{"list-a"},
+				SegmentIDs: []string{"seg-a"},
+			},
+		}
+
+		var written *domain.WebhookSubscription
+		mockRepo.EXPECT().GetByID(gomock.Any(), "ws-1", "sub-1").Return(existing, nil)
+		mockRepo.EXPECT().
+			Update(gomock.Any(), "ws-1", gomock.Any()).
+			DoAndReturn(func(_ context.Context, _ string, sub *domain.WebhookSubscription) error {
+				written = sub
+				return nil
+			})
+
+		_, err := service.Update(context.Background(), "ws-1", "sub-1", "Unfiltered", "https://example.com/h",
+			[]string{"list.subscribed"}, nil, true, nil, nil)
+		require.NoError(t, err)
+		require.NotNil(t, written)
+		assert.Nil(t, written.Settings.ListIDs)
+		assert.Nil(t, written.Settings.SegmentIDs)
 	})
 }

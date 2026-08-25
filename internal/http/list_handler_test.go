@@ -2,6 +2,7 @@ package http
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -9,6 +10,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"testing"
+	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
 
@@ -20,6 +22,28 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+// listServiceStub adapts the generated domain.ListService mock to the interface the
+// handler takes. Only the subscribe call is richer, and it delegates to the mock so
+// that every expectation set on SubscribeToLists keeps applying; the memberships the
+// handler renders are supplied per test through subscribeResults.
+type listServiceStub struct {
+	*mocks.MockListService
+	results []*domain.ContactList
+}
+
+func (s *listServiceStub) SubscribeToListsWithResults(ctx context.Context, payload *domain.SubscribeToListsRequest, hasBearerToken bool) ([]*domain.ContactList, error) {
+	if err := s.MockListService.SubscribeToLists(ctx, payload, hasBearerToken); err != nil {
+		return nil, err
+	}
+	return s.results, nil
+}
+
+// subscribeResults points the handler's stub at the memberships lists.subscribe
+// should answer with.
+func subscribeResults(handler *ListHandler, contactLists []*domain.ContactList) {
+	handler.service.(*listServiceStub).results = contactLists
+}
 
 // Test setup helper
 func setupListHandlerTest(t *testing.T) (*mocks.MockListService, *pkgmocks.MockLogger, *ListHandler) {
@@ -40,7 +64,7 @@ func setupListHandlerTest(t *testing.T) (*mocks.MockListService, *pkgmocks.MockL
 
 	// Create key pair for testing
 	jwtSecret := []byte("test-jwt-secret-key-for-testing-32bytes")
-	handler := NewListHandler(mockService, func() ([]byte, error) { return jwtSecret, nil }, mockLogger)
+	handler := NewListHandler(&listServiceStub{MockListService: mockService}, func() ([]byte, error) { return jwtSecret, nil }, mockLogger)
 	return mockService, mockLogger, handler
 }
 
@@ -1021,4 +1045,91 @@ func TestListHandler_PermissionDenied(t *testing.T) {
 			assert.Equal(t, string(tt.expectedPermission), response["permission"])
 		})
 	}
+}
+
+// TestListHandler_HandleSubscribe_ReturnsMemberships covers what makes this
+// endpoint usable as an integration step: the response names the status each
+// requested list ended up in. Two of the three below were decided server-side and
+// are unknowable from the request — which is the whole reason for returning them.
+func TestListHandler_HandleSubscribe_ReturnsMemberships(t *testing.T) {
+	mockService, _, handler := setupListHandlerTest(t)
+
+	subscribedAt := time.Date(2026, 8, 24, 10, 30, 0, 0, time.UTC)
+	subscribeResults(handler, []*domain.ContactList{
+		{Email: "user@example.com", ListID: "news", ListName: "Newsletter", Status: domain.ContactListStatusActive, CreatedAt: subscribedAt, UpdatedAt: subscribedAt},
+		{Email: "user@example.com", ListID: "promos", ListName: "Promotions", Status: domain.ContactListStatusPending, CreatedAt: subscribedAt, UpdatedAt: subscribedAt},
+		{Email: "user@example.com", ListID: "alerts", ListName: "Alerts", Status: domain.ContactListStatusBounced, CreatedAt: subscribedAt, UpdatedAt: subscribedAt},
+	})
+	mockService.EXPECT().SubscribeToLists(gomock.Any(), gomock.Any(), true).Return(nil)
+
+	body := []byte(`{
+		"workspace_id": "workspace123",
+		"contact": {"email": "user@example.com"},
+		"list_ids": ["news", "promos", "alerts"]
+	}`)
+	httpReq := httptest.NewRequest(http.MethodPost, "/api/lists.subscribe", bytes.NewReader(body))
+	httpReq.Header.Set("Content-Type", "application/json")
+
+	rr := httptest.NewRecorder()
+	handler.handleSubscribe(rr, httpReq)
+	require.Equal(t, http.StatusOK, rr.Code)
+
+	var response struct {
+		Success      bool                  `json:"success"`
+		ContactLists []*domain.ContactList `json:"contact_lists"`
+	}
+	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+	assert.True(t, response.Success)
+	require.Len(t, response.ContactLists, 3)
+
+	assert.Equal(t, "news", response.ContactLists[0].ListID)
+	assert.Equal(t, domain.ContactListStatusActive, response.ContactLists[0].Status)
+	assert.Equal(t, "Newsletter", response.ContactLists[0].ListName)
+	assert.Equal(t, "user@example.com", response.ContactLists[0].Email)
+
+	assert.Equal(t, "promos", response.ContactLists[1].ListID)
+	assert.Equal(t, domain.ContactListStatusPending, response.ContactLists[1].Status)
+
+	assert.Equal(t, "alerts", response.ContactLists[2].ListID)
+	assert.Equal(t, domain.ContactListStatusBounced, response.ContactLists[2].Status)
+}
+
+// TestListHandler_HandleSubscribe_OldClientShape pins the additive half: a client
+// written against the previous response reads exactly what it read before, and an
+// empty membership set is an array rather than null so the key never changes type.
+func TestListHandler_HandleSubscribe_OldClientShape(t *testing.T) {
+	t.Run("existing success key is untouched", func(t *testing.T) {
+		mockService, _, handler := setupListHandlerTest(t)
+		subscribeResults(handler, []*domain.ContactList{
+			{Email: "user@example.com", ListID: "news", ListName: "Newsletter", Status: domain.ContactListStatusActive},
+		})
+		mockService.EXPECT().SubscribeToLists(gomock.Any(), gomock.Any(), true).Return(nil)
+
+		body := []byte(`{"workspace_id":"workspace123","contact":{"email":"user@example.com"},"list_ids":["news"]}`)
+		httpReq := httptest.NewRequest(http.MethodPost, "/api/lists.subscribe", bytes.NewReader(body))
+		rr := httptest.NewRecorder()
+		handler.handleSubscribe(rr, httpReq)
+		require.Equal(t, http.StatusOK, rr.Code)
+
+		// The shape a client that predates contact_lists declares.
+		var legacy struct {
+			Success bool `json:"success"`
+		}
+		require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &legacy))
+		assert.True(t, legacy.Success)
+	})
+
+	t.Run("no memberships renders an empty array, not null", func(t *testing.T) {
+		mockService, _, handler := setupListHandlerTest(t)
+		subscribeResults(handler, []*domain.ContactList{})
+		mockService.EXPECT().SubscribeToLists(gomock.Any(), gomock.Any(), true).Return(nil)
+
+		body := []byte(`{"workspace_id":"workspace123","contact":{"email":"user@example.com"},"list_ids":["news"]}`)
+		httpReq := httptest.NewRequest(http.MethodPost, "/api/lists.subscribe", bytes.NewReader(body))
+		rr := httptest.NewRecorder()
+		handler.handleSubscribe(rr, httpReq)
+		require.Equal(t, http.StatusOK, rr.Code)
+
+		assert.JSONEq(t, `{"success":true,"contact_lists":[]}`, rr.Body.String())
+	})
 }

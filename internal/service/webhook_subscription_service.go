@@ -72,6 +72,16 @@ func (s *WebhookSubscriptionService) authorizeWithRole(ctx context.Context, work
 //
 // In place, on the objects the repository just built: they are freshly scanned
 // per call and shared with nothing, so there is no cached instance to corrupt.
+//
+// Every method that hands a subscription back to a handler has to make a
+// deliberate decision about this call, because the handlers serialise the whole
+// object and Secret carries no omitempty. Redacting only the two read methods
+// left `.toggle` as a no-op route to any subscription's plaintext signing key
+// for anyone holding webhook_subscriptions:write — against this file's own
+// stated rule that a secret is owner-only key material. The exceptions are
+// narrow and each is argued at its call site: Create and RegenerateSecret mint a
+// brand-new secret and are the one moment it can be copied, and
+// GetForTestDelivery is an internal accessor whose result is never serialised.
 func redactSecret(sub *domain.WebhookSubscription, isOwner bool) {
 	if sub != nil && !isOwner {
 		sub.Secret = ""
@@ -191,8 +201,14 @@ func validateEventTypes(eventTypes []string) error {
 	return nil
 }
 
-// Create creates a new webhook subscription
-func (s *WebhookSubscriptionService) Create(ctx context.Context, workspaceID string, name, webhookURL string, eventTypes []string, customEventFilters *domain.CustomEventFilters) (*domain.WebhookSubscription, error) {
+// Create creates a new webhook subscription.
+//
+// source attributes the subscription to whatever created it and is write-once:
+// this is the only method that sets it, because nothing else records who asked
+// for the row and an attribution that can be changed later is not an
+// attribution. listIDs and segmentIDs narrow the fan-out for the list.* and
+// segment.* events; nil or empty means no filter.
+func (s *WebhookSubscriptionService) Create(ctx context.Context, workspaceID string, name, webhookURL string, eventTypes []string, customEventFilters *domain.CustomEventFilters, source string, listIDs, segmentIDs []string) (*domain.WebhookSubscription, error) {
 	var err error
 	if ctx, err = s.authorize(ctx, workspaceID, true); err != nil {
 		return nil, err
@@ -211,6 +227,14 @@ func (s *WebhookSubscriptionService) Create(ctx context.Context, workspaceID str
 		return nil, err
 	}
 
+	// Re-checked here even though the handler already rejects it: the column is
+	// write-once, so a bad value that reaches the repository can never be
+	// corrected through the API, and this service is reachable from any future
+	// in-process caller that has no HTTP layer in front of it.
+	if err := domain.ValidateWebhookSubscriptionSource(source); err != nil {
+		return nil, err
+	}
+
 	// Generate secret
 	secret, err := generateSecret()
 	if err != nil {
@@ -225,8 +249,11 @@ func (s *WebhookSubscriptionService) Create(ctx context.Context, workspaceID str
 		Settings: domain.WebhookSubscriptionSettings{
 			EventTypes:         eventTypes,
 			CustomEventFilters: customEventFilters,
+			ListIDs:            listIDs,
+			SegmentIDs:         segmentIDs,
 		},
 		Enabled: true,
+		Source:  source,
 	}
 
 	if err := s.repo.Create(ctx, workspaceID, sub); err != nil {
@@ -239,6 +266,11 @@ func (s *WebhookSubscriptionService) Create(ctx context.Context, workspaceID str
 		"event_types":     eventTypes,
 	}).Info("Created webhook subscription")
 
+	// Deliberately not redacted, for whoever created it. The secret was minted a
+	// few lines up for a row that did not exist a moment ago, so returning it
+	// discloses nothing about any other subscription — and this response is the
+	// only place it is ever readable by a non-owner. Blanking it here would leave
+	// a member able to create a webhook and unable to configure its receiver.
 	return sub, nil
 }
 
@@ -274,12 +306,18 @@ func (s *WebhookSubscriptionService) List(ctx context.Context, workspaceID strin
 	return subs, nil
 }
 
-// Update updates an existing webhook subscription
-func (s *WebhookSubscriptionService) Update(ctx context.Context, workspaceID string, id, name, webhookURL string, eventTypes []string, customEventFilters *domain.CustomEventFilters, enabled bool) (*domain.WebhookSubscription, error) {
-	if authCtx, err := s.authorize(ctx, workspaceID, true); err != nil {
+// Update updates an existing webhook subscription.
+//
+// There is deliberately no source parameter. Update is a full replace of
+// everything a user can edit, and attribution is not one of those things: a
+// caller able to rewrite it could take over a Zapier-created subscription, or
+// disown its own, and the console badge and the delete-versus-disable branch
+// would follow the lie. The stored value survives because it is only ever read
+// back off the existing row.
+func (s *WebhookSubscriptionService) Update(ctx context.Context, workspaceID string, id, name, webhookURL string, eventTypes []string, customEventFilters *domain.CustomEventFilters, enabled bool, listIDs, segmentIDs []string) (*domain.WebhookSubscription, error) {
+	ctx, isOwner, err := s.authorizeWithRole(ctx, workspaceID, true)
+	if err != nil {
 		return nil, err
-	} else {
-		ctx = authCtx
 	}
 
 	// Get existing subscription
@@ -307,6 +345,8 @@ func (s *WebhookSubscriptionService) Update(ctx context.Context, workspaceID str
 	existing.Settings = domain.WebhookSubscriptionSettings{
 		EventTypes:         eventTypes,
 		CustomEventFilters: customEventFilters,
+		ListIDs:            listIDs,
+		SegmentIDs:         segmentIDs,
 	}
 	existing.Enabled = enabled
 
@@ -320,6 +360,10 @@ func (s *WebhookSubscriptionService) Update(ctx context.Context, workspaceID str
 		"enabled":         enabled,
 	}).Info("Updated webhook subscription")
 
+	// The row round-tripped through the repository still carries the stored
+	// secret, and the handler writes this object straight to the client. Editing
+	// a name must not be a way to read a key.
+	redactSecret(existing, isOwner)
 	return existing, nil
 }
 
@@ -329,6 +373,20 @@ func (s *WebhookSubscriptionService) Delete(ctx context.Context, workspaceID, id
 		return err
 	} else {
 		ctx = authCtx
+	}
+
+	// Queued deliveries go first, and a failure here aborts the whole delete.
+	//
+	// A delivery row whose subscription no longer exists keeps matching the
+	// worker's pending predicate for the full retention window while it can
+	// never be sent, so it occupies a slot in every batch until it ages out —
+	// one abandoned subscription is a permanent head-of-line block. Deleting
+	// them first means the subscription row never disappears while its queue
+	// survives; if the sweep fails, the caller gets an error and the
+	// subscription is still there to retry against. The deliveries being
+	// discarded were bound for an endpoint the caller is deleting anyway.
+	if err := s.deliveryRepo.DeleteBySubscriptionID(ctx, workspaceID, id); err != nil {
+		return fmt.Errorf("failed to delete webhook deliveries: %w", err)
 	}
 
 	if err := s.repo.Delete(ctx, workspaceID, id); err != nil {
@@ -345,10 +403,9 @@ func (s *WebhookSubscriptionService) Delete(ctx context.Context, workspaceID, id
 
 // Toggle enables or disables a webhook subscription
 func (s *WebhookSubscriptionService) Toggle(ctx context.Context, workspaceID, id string, enabled bool) (*domain.WebhookSubscription, error) {
-	if authCtx, err := s.authorize(ctx, workspaceID, true); err != nil {
+	ctx, isOwner, err := s.authorizeWithRole(ctx, workspaceID, true)
+	if err != nil {
 		return nil, err
-	} else {
-		ctx = authCtx
 	}
 
 	// Get existing subscription
@@ -369,6 +426,10 @@ func (s *WebhookSubscriptionService) Toggle(ctx context.Context, workspaceID, id
 		"enabled":         enabled,
 	}).Info("Toggled webhook subscription")
 
+	// Toggling is the cheapest possible write, which is exactly what made it the
+	// easiest route to somebody else's signing key: flip a subscription off and
+	// on and read the secret out of the response.
+	redactSecret(existing, isOwner)
 	return existing, nil
 }
 
@@ -407,6 +468,10 @@ func (s *WebhookSubscriptionService) RegenerateSecret(ctx context.Context, works
 		"subscription_id": id,
 	}).Info("Regenerated webhook secret")
 
+	// Deliberately not redacted. Only an owner reaches this line — the guard
+	// above rejects everyone else before the repository is touched — and the
+	// point of rotating a secret is to receive the new one so the receiver can
+	// be reconfigured. This response is the only place it is ever shown.
 	return existing, nil
 }
 
@@ -443,6 +508,11 @@ func (s *WebhookSubscriptionService) GetForTestDelivery(ctx context.Context, wor
 	if err != nil {
 		return nil, fmt.Errorf("failed to get webhook subscription: %w", err)
 	}
+	// Deliberately not redacted, and the one method here where that is not a
+	// disclosure: the caller signs the outbound test request with this value and
+	// answers the client with the receiver's status code and body, never with
+	// the subscription object. Redacting it would not protect anything — it
+	// would only make every test delivery fail to sign for a non-owner.
 	return sub, nil
 }
 
