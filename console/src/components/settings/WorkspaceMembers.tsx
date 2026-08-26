@@ -24,7 +24,8 @@ import { workspaceService } from '../../services/api/workspace'
 import {
   ALL_PERMISSION_RESOURCES,
   createEmptyPermissions,
-  createFullPermissions
+  createFullPermissions,
+  grantUnenforcedPermissions
 } from '../../services/api/permissions'
 import { ApiError } from '../../services/api/client'
 import { EditPermissionsDrawer } from './EditPermissionsDrawer'
@@ -32,6 +33,30 @@ import { PermissionsMatrix } from './PermissionsMatrix'
 import { SettingsSectionHeader } from './SettingsSectionHeader'
 
 const { Text } = Typography
+
+// Narrowly scoped keys are the common case for an integration — the Zapier onboarding asks for
+// three resources out of the canonical list — and reaching one from the full-access default meant
+// flipping every other switch by hand. These two set the floor the owner then edits.
+function PermissionScopePresets({ onChange }: { onChange: (value: UserPermissions) => void }) {
+  const { t } = useLingui()
+
+  return (
+    <div className="flex justify-end gap-1 mb-2">
+      <Button size="small" type="link" onClick={() => onChange(createFullPermissions())}>
+        {t`Grant all`}
+      </Button>
+      {/* Revoking still hands back the unenforceable verbs granted: a stored `false` there would
+          never be widened by a backfill, which only ever adds the keys a row is missing. */}
+      <Button
+        size="small"
+        type="link"
+        onClick={() => onChange(grantUnenforcedPermissions(createEmptyPermissions()))}
+      >
+        {t`Revoke all`}
+      </Button>
+    </div>
+  )
+}
 
 interface WorkspaceMembersProps {
   workspaceId: string
@@ -316,9 +341,10 @@ export function WorkspaceMembers({
     setApiKeyPermissions(createFullPermissions())
   }
 
-  const domainName = `${workspaceId}.${
+  // The server mints the address as `prefix@{apiHost}` — the workspace id is not part of it, so
+  // prefixing one here advertised an address that does not exist and cannot receive anything.
+  const domainName =
     window.API_ENDPOINT?.replace(/^https?:\/\//, '').split('/')[0] || 'api.example.com'
-  }`
 
   const handleRemoveMember = async (userId: string) => {
     if (!userId) return
@@ -469,6 +495,7 @@ export function WorkspaceMembers({
           </Form.Item>
 
           <Form.Item label={t`Permissions`}>
+            <PermissionScopePresets onChange={setInvitePermissions} />
             <PermissionsMatrix value={invitePermissions} onChange={setInvitePermissions} />
           </Form.Item>
         </Form>
@@ -529,6 +556,7 @@ export function WorkspaceMembers({
             </Form.Item>
 
             <Form.Item label={t`Permissions`}>
+              <PermissionScopePresets onChange={setApiKeyPermissions} />
               <PermissionsMatrix value={apiKeyPermissions} onChange={setApiKeyPermissions} />
             </Form.Item>
           </Form>

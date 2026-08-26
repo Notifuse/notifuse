@@ -8,6 +8,11 @@ export interface CustomEventFilters {
 export interface WebhookSubscriptionSettings {
   event_types: string[]
   custom_event_filters?: CustomEventFilters
+  // Narrow the fan-out of the list.* and segment.* event types to specific ids. Absent or empty
+  // means no filter — every list, every segment. Zapier sets these when it registers a Zap; the
+  // console offers no UI for them, which is exactly why an update has to echo them back.
+  list_ids?: string[]
+  segment_ids?: string[]
 }
 
 export interface WebhookSubscription {
@@ -19,7 +24,22 @@ export interface WebhookSubscription {
   // Flattened from settings by backend MarshalJSON
   event_types?: string[]
   custom_event_filters?: CustomEventFilters
+  list_ids?: string[]
+  segment_ids?: string[]
   enabled: boolean
+  // Attribution for whatever created the subscription: absent or empty means a user made it by
+  // hand, 'zapier' means a Zap registered it. Typed as a plain string rather than a union so a
+  // value from a newer server is a value the console can still render, not a type error.
+  source?: string
+  // Delivery attempts that have failed back to back, reset to zero by the first success.
+  consecutive_failures?: number
+  // When the current run of failures started, cleared by the first success. The count alone
+  // does not retire an endpoint: a burst can fail twenty deliveries in one poll, so the
+  // threshold only acts once this shows the failures have persisted.
+  failing_since?: string
+  // Present only on a subscription Notifuse switched off itself after sustained delivery
+  // failure, which is what tells it apart from one the user switched off.
+  disabled_reason?: string
   last_delivery_at?: string
   created_at: string
   updated_at: string
@@ -30,7 +50,11 @@ export interface WebhookDelivery {
   subscription_id: string
   event_type: string
   payload: Record<string, unknown>
-  status: 'pending' | 'delivered' | 'failed'
+  // 'delivering' is a durable status, not a transient in-memory one: claiming a delivery is a
+  // status change written to the row, so a batch in flight is visible to anyone reading the
+  // table. A union that omits it makes those rows render as an untranslated raw literal and
+  // silently excludes them from the Pending count.
+  status: 'pending' | 'delivering' | 'delivered' | 'failed'
   attempts: number
   max_attempts: number
   next_attempt_at: string
@@ -50,6 +74,9 @@ export interface CreateWebhookSubscriptionRequest {
   custom_event_filters?: CustomEventFilters
 }
 
+// webhookSubscriptions.update replaces the whole settings object rather than patching it, so
+// every filter the caller wants to keep has to be present in the request. A field left out is
+// cleared, not preserved.
 export interface UpdateWebhookSubscriptionRequest {
   workspace_id: string
   id: string
@@ -57,6 +84,8 @@ export interface UpdateWebhookSubscriptionRequest {
   url: string
   event_types: string[]
   custom_event_filters?: CustomEventFilters
+  list_ids?: string[]
+  segment_ids?: string[]
   enabled: boolean
 }
 

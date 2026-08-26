@@ -266,11 +266,26 @@ func (s *WebhookSubscriptionService) Create(ctx context.Context, workspaceID str
 		"event_types":     eventTypes,
 	}).Info("Created webhook subscription")
 
-	// Deliberately not redacted, for whoever created it. The secret was minted a
-	// few lines up for a row that did not exist a moment ago, so returning it
-	// discloses nothing about any other subscription — and this response is the
-	// only place it is ever readable by a non-owner. Blanking it here would leave
-	// a member able to create a webhook and unable to configure its receiver.
+	// Deliberately not redacted, for whoever created it BY HAND. The secret was
+	// minted a few lines up for a row that did not exist a moment ago, so
+	// returning it discloses nothing about any other subscription — and this
+	// response is the only place it is ever readable by a non-owner. Blanking it
+	// here would leave a member able to create a webhook and unable to configure
+	// its receiver.
+	//
+	// An integration is the opposite case on every count: there is nobody on the
+	// other end of that call to copy the key, a REST Hook target URL verifies no
+	// signature so the integration has no use for it, and the response body
+	// travels wherever that platform logs bodies — Zapier's core middleware logs
+	// every response body it receives, so answering with the secret writes a live
+	// signing key into a third party's log store on every Zap turn-on. The row
+	// keeps its real secret either way; only the answer changes.
+	if source != domain.WebhookSubscriptionSourceUser {
+		returned := *sub
+		returned.Secret = ""
+		return &returned, nil
+	}
+
 	return sub, nil
 }
 
@@ -339,6 +354,22 @@ func (s *WebhookSubscriptionService) Update(ctx context.Context, workspaceID str
 		return nil, err
 	}
 
+	// An edit may not switch on a subscription Notifuse switched off.
+	//
+	// enabled arrives as a plain bool on every update, filled in from whatever the
+	// console last read, so a form loaded while the subscription was healthy still
+	// carries `true` after the delivery worker has retired the endpoint — and
+	// saving a renamed webhook silently undid the retirement, cleared the reason
+	// that explained it, and pointed the whole queue at a dead URL again. A
+	// disabled_reason is the worker's signature: DisableWithReason writes it in
+	// the same statement that switches the subscription off, and nothing a user
+	// does sets it. Turning such a subscription back on is a claim that the
+	// endpoint has been fixed, so it has to be made deliberately, through the
+	// toggle endpoint, rather than as a side effect of an unrelated save.
+	if enabled && !existing.Enabled && existing.DisabledReason != nil && *existing.DisabledReason != "" {
+		return nil, fmt.Errorf("webhook subscription was disabled automatically (%s); re-enable it explicitly before editing it", *existing.DisabledReason)
+	}
+
 	// Update fields
 	existing.Name = name
 	existing.URL = webhookURL
@@ -347,6 +378,9 @@ func (s *WebhookSubscriptionService) Update(ctx context.Context, workspaceID str
 		CustomEventFilters: customEventFilters,
 		ListIDs:            listIDs,
 		SegmentIDs:         segmentIDs,
+	}
+	if enabled && !existing.Enabled {
+		clearFailureState(existing)
 	}
 	existing.Enabled = enabled
 
@@ -365,6 +399,20 @@ func (s *WebhookSubscriptionService) Update(ctx context.Context, workspaceID str
 	// a name must not be a way to read a key.
 	redactSecret(existing, isOwner)
 	return existing, nil
+}
+
+// clearFailureState gives a subscription a clean slate when it is switched on.
+//
+// Without it, re-enabling an auto-disabled subscription is pointless: the
+// counter that retired it is still at the threshold and failing_since still
+// points at the old outage, so the very next failed delivery switches it off
+// again. Turning a webhook back on is a statement that the endpoint has been
+// fixed, and the failure history is what has to be forgotten for that to mean
+// anything.
+func clearFailureState(sub *domain.WebhookSubscription) {
+	sub.ConsecutiveFailures = 0
+	sub.FailingSince = nil
+	sub.DisabledReason = nil
 }
 
 // Delete deletes a webhook subscription
@@ -414,6 +462,9 @@ func (s *WebhookSubscriptionService) Toggle(ctx context.Context, workspaceID, id
 		return nil, fmt.Errorf("failed to get webhook subscription: %w", err)
 	}
 
+	if enabled && !existing.Enabled {
+		clearFailureState(existing)
+	}
 	existing.Enabled = enabled
 
 	if err := s.repo.Update(ctx, workspaceID, existing); err != nil {

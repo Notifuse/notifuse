@@ -153,6 +153,36 @@ func (mr *MockWebhookDeliveryRepositoryMockRecorder) ReclaimStale(arg0, arg1, ar
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReclaimStale", reflect.TypeOf((*MockWebhookDeliveryRepository)(nil).ReclaimStale), arg0, arg1, arg2)
 }
 
+// ReleaseClaim mocks base method.
+func (m *MockWebhookDeliveryRepository) ReleaseClaim(arg0 context.Context, arg1, arg2 string, arg3 *time.Time, arg4 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ReleaseClaim", arg0, arg1, arg2, arg3, arg4)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ReleaseClaim indicates an expected call of ReleaseClaim.
+func (mr *MockWebhookDeliveryRepositoryMockRecorder) ReleaseClaim(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReleaseClaim", reflect.TypeOf((*MockWebhookDeliveryRepository)(nil).ReleaseClaim), arg0, arg1, arg2, arg3, arg4)
+}
+
+// RenewClaim mocks base method.
+func (m *MockWebhookDeliveryRepository) RenewClaim(arg0 context.Context, arg1, arg2 string, arg3 *time.Time) (bool, *time.Time, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RenewClaim", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(*time.Time)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// RenewClaim indicates an expected call of RenewClaim.
+func (mr *MockWebhookDeliveryRepositoryMockRecorder) RenewClaim(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RenewClaim", reflect.TypeOf((*MockWebhookDeliveryRepository)(nil).RenewClaim), arg0, arg1, arg2, arg3)
+}
+
 // ScheduleRetry mocks base method.
 func (m *MockWebhookDeliveryRepository) ScheduleRetry(arg0 context.Context, arg1, arg2 string, arg3 time.Time, arg4 int, arg5 *int, arg6, arg7 *string) error {
 	m.ctrl.T.Helper()

@@ -306,6 +306,26 @@ func TestSegmentHandler_HandleGet(t *testing.T) {
 			expectedStatus: http.StatusNotFound,
 		},
 		{
+			// The shape the service actually returns. SegmentService.GetSegment
+			// wraps the repository's typed error in "failed to get segment: %w",
+			// and a bare type assertion does not see through a wrap — so this
+			// handler answered 500 for every missing segment while the case
+			// above went on passing.
+			name:   "Segment Not Found, wrapped the way the service wraps it",
+			method: http.MethodGet,
+			queryParams: url.Values{
+				"workspace_id": []string{"workspace123"},
+				"id":           []string{"nonexistent"},
+			},
+			setupMock: func(m *mocks.MockSegmentService) {
+				m.EXPECT().GetSegment(gomock.Any(), gomock.Any()).Return(
+					nil,
+					fmt.Errorf("failed to get segment: %w", &domain.ErrSegmentNotFound{Message: "segment not found"}),
+				)
+			},
+			expectedStatus: http.StatusNotFound,
+		},
+		{
 			name:   "Service Error",
 			method: http.MethodGet,
 			queryParams: url.Values{
@@ -563,6 +583,38 @@ func TestSegmentHandler_HandleUpdate(t *testing.T) {
 			expectedStatus: http.StatusNotFound,
 		},
 		{
+			// The shape the service actually returns: UpdateSegment loads the row
+			// first and wraps the repository's typed error in "failed to get
+			// segment: %w". A bare type assertion sees nothing through that wrap,
+			// so editing a segment someone else had deleted answered 500 while the
+			// unwrapped case above went on passing.
+			name:   "Update Segment Not Found, wrapped the way the service wraps it",
+			method: http.MethodPost,
+			requestBody: &domain.UpdateSegmentRequest{
+				WorkspaceID: "workspace123",
+				ID:          "nonexistent",
+				Name:        "Updated Segment",
+				Color:       "#33FF57",
+				Timezone:    "UTC",
+				Tree: &domain.TreeNode{
+					Kind: "leaf",
+					Leaf: &domain.TreeNodeLeaf{
+						Source: "contacts",
+						Contact: &domain.ContactCondition{
+							Filters: []*domain.DimensionFilter{},
+						},
+					},
+				},
+			},
+			setupMock: func(m *mocks.MockSegmentService) {
+				m.EXPECT().UpdateSegment(gomock.Any(), gomock.Any()).Return(
+					nil,
+					fmt.Errorf("failed to get segment: %w", &domain.ErrSegmentNotFound{Message: "segment not found"}),
+				)
+			},
+			expectedStatus: http.StatusNotFound,
+		},
+		{
 			name:   "Update Segment Service Error",
 			method: http.MethodPost,
 			requestBody: &domain.UpdateSegmentRequest{
@@ -674,6 +726,23 @@ func TestSegmentHandler_HandleDelete(t *testing.T) {
 			expectedStatus: http.StatusNotFound,
 		},
 		{
+			// "failed to delete segment: %w" is what the service returns, and a
+			// type assertion does not see through it — so deleting a segment twice,
+			// which the console lets two open tabs do, answered 500.
+			name:   "Delete Segment Not Found, wrapped the way the service wraps it",
+			method: http.MethodPost,
+			requestBody: &domain.DeleteSegmentRequest{
+				WorkspaceID: "workspace123",
+				ID:          "nonexistent",
+			},
+			setupMock: func(m *mocks.MockSegmentService) {
+				m.EXPECT().DeleteSegment(gomock.Any(), gomock.Any()).Return(
+					fmt.Errorf("failed to delete segment: %w", &domain.ErrSegmentNotFound{Message: "segment not found"}),
+				)
+			},
+			expectedStatus: http.StatusNotFound,
+		},
+		{
 			name:   "Delete Segment Service Error",
 			method: http.MethodPost,
 			requestBody: &domain.DeleteSegmentRequest{
@@ -762,6 +831,24 @@ func TestSegmentHandler_HandleRebuild(t *testing.T) {
 			setupMock: func(m *mocks.MockSegmentService) {
 				m.EXPECT().RebuildSegment(gomock.Any(), "workspace123", "nonexistent").Return(
 					&domain.ErrSegmentNotFound{Message: "segment not found"},
+				)
+			},
+			expectedStatus: http.StatusNotFound,
+		},
+		{
+			// RebuildSegment loads the row first and wraps in "failed to get
+			// segment: %w", the same shape handleGet was fixed for. Nothing about
+			// the wrap is specific to one endpoint, which is why the mapping now
+			// lives in writeServiceError instead of in each handler.
+			name:   "Rebuild Segment Not Found, wrapped the way the service wraps it",
+			method: http.MethodPost,
+			requestBody: map[string]string{
+				"workspace_id": "workspace123",
+				"segment_id":   "nonexistent",
+			},
+			setupMock: func(m *mocks.MockSegmentService) {
+				m.EXPECT().RebuildSegment(gomock.Any(), "workspace123", "nonexistent").Return(
+					fmt.Errorf("failed to get segment: %w", &domain.ErrSegmentNotFound{Message: "segment not found"}),
 				)
 			},
 			expectedStatus: http.StatusNotFound,

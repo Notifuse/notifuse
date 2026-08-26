@@ -224,17 +224,24 @@ func seedZapierSampleEvents(t *testing.T, db *sql.DB) {
 
 	// Every timestamp column is written explicitly, including the db_* pair that
 	// would otherwise default to now(), so the captured payload holds no
-	// wall-clock value at all. A representative spread of fields is populated and
-	// the rest left NULL: to_jsonb emits every column of the row, so the sample
-	// has to show a reader which keys arrive filled and which arrive null.
+	// wall-clock value at all.
+	//
+	// Every field a Zap author can map from a contact is populated. to_jsonb emits
+	// every column of the row, so an unpopulated column reaches the Zapier app's
+	// static sample as null — and a null in a sample is a key with no preview in
+	// the field picker, which is where a Zap is built before any real delivery has
+	// arrived. The custom slots are left NULL deliberately and separately: the app
+	// strips them from its contact samples, because their labels are per-workspace.
 	exec(`INSERT INTO contacts (
 			email, external_id, timezone, language,
 			first_name, last_name, full_name, phone, country, job_title,
+			address_line_1, address_line_2, postcode, state,
 			custom_string_1, custom_number_1, custom_datetime_1, custom_json_1,
 			created_at, updated_at, db_created_at, db_updated_at
 		) VALUES (
 			$1, 'crm-4815', 'Europe/Paris', 'en',
 			'Bob', 'Sample', 'Bob Sample', '+33123456789', 'FR', 'Head of Coffee',
+			'12 Rue du Café', 'Apt 4', '75011', 'Île-de-France',
 			'gold', 149.5, $2::timestamptz, '{"plan":"pro","seats":3}'::jsonb,
 			$2::timestamptz, $2::timestamptz, $2::timestamptz, $2::timestamptz
 		)`, zapierSampleEmail, zapierSampleInstant)

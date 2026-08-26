@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import {
+  Alert,
   Card,
   Button,
   Tag,
@@ -64,6 +65,13 @@ export function WebhookCard({
   const [selectedEventType, setSelectedEventType] = useState<string>('')
   const [testLoading, setTestLoading] = useState(false)
   const [testResult, setTestResult] = useState<TestResult | null>(null)
+  const [zapierDeleteVisible, setZapierDeleteVisible] = useState(false)
+
+  const isZapier = webhook.source === 'zapier'
+  // A subscription Notifuse switched off after sustained delivery failure carries
+  // a reason; one the user switched off never does.
+  const autoDisabled = !webhook.enabled && Boolean(webhook.disabled_reason)
+  const consecutiveFailures = webhook.consecutive_failures ?? 0
 
   useEffect(() => {
     let cancelled = false
@@ -178,12 +186,29 @@ export function WebhookCard({
     setTestModalVisible(true)
   }
 
+  const confirmZapierDelete = () => {
+    setZapierDeleteVisible(false)
+    onDelete(webhook.id)
+  }
+
   return (
     <Card
       styles={{ body: { padding: 0 } }}
       title={
         <Space size="large">
           <span className="font-medium">{webhook.name}</span>
+          {isZapier && (
+            <Tooltip title={t`Zapier created this webhook for one of your Zaps.`}>
+              <Tag variant="filled" color="orange">
+                {t`Zapier`}
+              </Tag>
+            </Tooltip>
+          )}
+          {autoDisabled && (
+            <Tag variant="filled" color="red">
+              {t`Auto-disabled`}
+            </Tag>
+          )}
           {webhook.enabled ? (
             <Popconfirm
               title={t`Disable this webhook?`}
@@ -209,11 +234,16 @@ export function WebhookCard({
       }
       extra={
         <Space>
-          <Tooltip title={t`Test Webhook`}>
-            <Button type="text" size="small" onClick={openTestModal}>
-              {t`Send Test`}
-            </Button>
-          </Tooltip>
+          {/* Zapier's hook URLs answer 2xx unconditionally, so a test against a
+              deleted Zap still reports success — a green tick that means nothing
+              is worse than no button at all. */}
+          {!isZapier && (
+            <Tooltip title={t`Test Webhook`}>
+              <Button type="text" size="small" onClick={openTestModal}>
+                {t`Send Test`}
+              </Button>
+            </Tooltip>
+          )}
           <Tooltip title={t`View Logs`}>
             <Button
               type="text"
@@ -229,19 +259,27 @@ export function WebhookCard({
               <FontAwesomeIcon icon={faBarsStaggered} />
             </Button>
           </Tooltip>
-          <Popconfirm
-            title={t`Delete this webhook?`}
-            description={t`This action cannot be undone.`}
-            onConfirm={() => onDelete(webhook.id)}
-            okText={t`Yes`}
-            cancelText={t`No`}
-          >
+          {isZapier ? (
             <Tooltip title={t`Delete`}>
-              <Button type="text" size="small">
+              <Button type="text" size="small" onClick={() => setZapierDeleteVisible(true)}>
                 <FontAwesomeIcon icon={faTrashCan} />
               </Button>
             </Tooltip>
-          </Popconfirm>
+          ) : (
+            <Popconfirm
+              title={t`Delete this webhook?`}
+              description={t`This action cannot be undone.`}
+              onConfirm={() => onDelete(webhook.id)}
+              okText={t`Yes`}
+              cancelText={t`No`}
+            >
+              <Tooltip title={t`Delete`}>
+                <Button type="text" size="small">
+                  <FontAwesomeIcon icon={faTrashCan} />
+                </Button>
+              </Tooltip>
+            </Popconfirm>
+          )}
           <Tooltip title={t`Edit`}>
             <Button type="text" size="small" onClick={() => onEdit(webhook)}>
               <FontAwesomeIcon icon={faPenToSquare} />
@@ -252,6 +290,45 @@ export function WebhookCard({
       className="mb-4"
     >
       <div className="p-4">
+        {autoDisabled && (
+          <Alert
+            type="error"
+            showIcon
+            className="mb-4"
+            title={t`Notifuse disabled this webhook automatically`}
+            description={
+              <>
+                <div>{webhook.disabled_reason}</div>
+                {consecutiveFailures > 0 && (
+                  <div className="mt-1">
+                    {t`Consecutive delivery failures: ${consecutiveFailures}`}
+                  </div>
+                )}
+                <div className="mt-1">
+                  {isZapier
+                    ? t`Fix the Zap in Zapier, then switch this webhook back on to resume deliveries.`
+                    : t`Fix the endpoint, then switch this webhook back on to resume deliveries.`}
+                </div>
+              </>
+            }
+          />
+        )}
+
+        {isZapier && (
+          <Alert
+            type="info"
+            showIcon
+            className="mb-4"
+            title={t`Created by Zapier`}
+            description={
+              <>
+                <div>{t`This webhook belongs to a Zap. Turn that Zap off in Zapier and Zapier removes the webhook for you.`}</div>
+                <div className="mt-1">{t`Test deliveries are unavailable here: Zapier's hook URLs always answer with success, so a test would report a green tick even for a Zap that no longer exists.`}</div>
+              </>
+            }
+          />
+        )}
+
         <div className="flex items-center gap-2 mb-3">
           <span className="text-gray-500 text-sm">{t`URL:`}</span>
           <code className="text-sm bg-gray-100 px-2 py-1 rounded truncate flex-1">
@@ -340,6 +417,25 @@ export function WebhookCard({
           ))}
         </div>
       </div>
+
+      {/* Deleting a Zapier subscription breaks its Zap silently — Zapier keeps
+          the Zap on and simply never fires it — so it gets its own dialog. */}
+      <Modal
+        title={t`Delete this Zapier webhook?`}
+        open={zapierDeleteVisible}
+        onCancel={() => setZapierDeleteVisible(false)}
+        onOk={confirmZapierDelete}
+        okText={t`Delete anyway`}
+        okButtonProps={{ danger: true }}
+        cancelText={t`Cancel`}
+      >
+        <p className="mb-3">
+          {t`Deleting this webhook breaks the Zap that created it. The Zap stays switched on in Zapier and reports no error — it simply stops receiving events.`}
+        </p>
+        <p>
+          {t`To stop these events, turn the Zap off in Zapier instead. Zapier then removes this webhook for you.`}
+        </p>
+      </Modal>
 
       {/* Test Webhook Modal */}
       <Modal

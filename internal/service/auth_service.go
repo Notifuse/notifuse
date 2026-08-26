@@ -113,7 +113,18 @@ func (s *AuthService) AuthenticateUserFromContext(ctx context.Context) (*domain.
 		}
 		return s.VerifyUserSession(ctx, userID, sessionID)
 	} else if userType == string(domain.UserTypeAPIKey) {
-		return s.GetUserByID(ctx, userID)
+		user, err := s.GetUserByID(ctx, userID)
+		if errors.Is(err, ErrUserNotFound) {
+			// Revoking an API key deletes its user row, and that delete is the
+			// whole of the revocation — the token itself stays signed and valid
+			// for ten years. So "the user this key names is gone" means "this key
+			// was revoked", and it has to reach the client as an authentication
+			// failure. Untyped it collapsed to 500 at every handler, which tells
+			// an API client its server is broken rather than that its credential
+			// is dead.
+			return nil, fmt.Errorf("%w: %w", domain.ErrAPIKeyRevoked, err)
+		}
+		return user, err
 	}
 	return nil, ErrUserNotFound
 }

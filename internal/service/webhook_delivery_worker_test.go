@@ -48,6 +48,12 @@ func TestNewWebhookDeliveryWorker(t *testing.T) {
 		assert.Equal(t, 1*time.Hour, worker.cleanupInterval)
 		assert.Equal(t, 7, worker.retentionDays)
 		assert.Equal(t, 20, worker.failureThreshold)
+		// Both auto-disable durations, because an unassigned one is not an
+		// obviously broken worker: a zero failureRunMaxAge makes every failure
+		// look like the start of a new run, so the counter never climbs and no
+		// endpoint is ever retired.
+		assert.Equal(t, webhookFailureWindow, worker.failureWindow)
+		assert.Equal(t, webhookFailureRunMaxAge, worker.failureRunMaxAge)
 		// Derived from the client that was passed, so raising the timeout cannot
 		// leave the reclaim sweep short of it.
 		assert.Equal(t, 50*time.Second, worker.claimLease)
@@ -192,6 +198,7 @@ func TestWebhookDeliveryWorker_processWorkspaceDeliveries(t *testing.T) {
 
 	mockDeliveryRepo.EXPECT().ReclaimStale(gomock.Any(), gomock.Any(), gomock.Any()).
 		Return(int64(0), nil).AnyTimes()
+	expectClaimRenewal(mockDeliveryRepo)
 
 	ctx := context.Background()
 	workspaceID := "workspace1"
@@ -260,10 +267,21 @@ func TestWebhookDeliveryWorker_processWorkspaceDeliveries(t *testing.T) {
 		mockSubRepo.EXPECT().GetByID(ctx, workspaceID, "sub1").
 			Return(nil, errors.New("pq: sorry, too many clients already"))
 
-		// Back to pending with the attempt count untouched: a pool exhaustion
-		// says nothing about the endpoint, so it must not spend an attempt.
-		mockDeliveryRepo.EXPECT().UpdateStatus(ctx, workspaceID, "delivery1",
-			domain.WebhookDeliveryStatusPending, 3, nil, nil, gomock.Any()).Return(nil)
+		// Back to pending through ReleaseClaim, never UpdateStatus: a pool
+		// exhaustion says nothing about the endpoint, so it must spend no
+		// attempt AND leave the delivery log alone. UpdateStatus writes
+		// last_attempt_at, last_response_status and last_response_body on every
+		// call, so releasing through it stamped an attempt that never happened
+		// and erased the receiver's last real status and body.
+		mockDeliveryRepo.EXPECT().ReleaseClaim(ctx, workspaceID, "delivery1",
+			gomock.Any(), gomock.Any()).
+			DoAndReturn(func(_ context.Context, _, _ string, claimedAt *time.Time, lastError string) error {
+				assert.Contains(t, lastError, "too many clients")
+				// The release carries the claim it is giving back, so it cannot
+				// land on a row this worker no longer holds.
+				assert.NotNil(t, claimedAt, "a release without its claim token releases nothing")
+				return nil
+			})
 
 		err := worker.processWorkspaceDeliveries(ctx, workspaceID)
 		assert.NoError(t, err)
@@ -1310,6 +1328,47 @@ func (f *fakeDeliveryStore) GetPendingForWorkspace(_ context.Context, _ string, 
 	return claimed, nil
 }
 
+// RenewClaim mirrors the repository's renewal, token and all: it matches on the
+// claimed_at the caller was handed, so a row the sweep returned and someone else
+// re-claimed answers false instead of being quietly stolen back.
+func (f *fakeDeliveryStore) RenewClaim(_ context.Context, _, id string, claimedAt *time.Time) (bool, *time.Time, error) {
+	row, ok := f.rows[id]
+	if !ok || claimedAt == nil {
+		return false, nil, nil
+	}
+	if row.Status != domain.WebhookDeliveryStatusDelivering {
+		return false, nil, nil
+	}
+	if row.ClaimedAt == nil || !row.ClaimedAt.Equal(*claimedAt) {
+		return false, nil, nil
+	}
+	renewed := f.now
+	row.ClaimedAt = &renewed
+	return true, &renewed, nil
+}
+
+// ReleaseClaim mirrors the repository's release, ownership predicate included:
+// status and claimed_at move, last_error is recorded, the delivery log's own
+// fields are left alone — and a row this caller no longer holds is left exactly
+// as its owner left it. Without the predicate here the fake would happily
+// resurrect a delivered row, which is the bug this mirrors away.
+func (f *fakeDeliveryStore) ReleaseClaim(_ context.Context, _, id string, claimedAt *time.Time, lastError string) error {
+	row, ok := f.rows[id]
+	if !ok || claimedAt == nil {
+		return nil
+	}
+	if row.Status != domain.WebhookDeliveryStatusDelivering {
+		return nil
+	}
+	if row.ClaimedAt == nil || !row.ClaimedAt.Equal(*claimedAt) {
+		return nil
+	}
+	row.Status = domain.WebhookDeliveryStatusPending
+	row.ClaimedAt = nil
+	row.LastError = &lastError
+	return nil
+}
+
 func (f *fakeDeliveryStore) UpdateStatus(_ context.Context, _, id string, status string, attempts int, _ *int, _, lastError *string) error {
 	row, ok := f.rows[id]
 	if !ok {
@@ -1410,6 +1469,52 @@ func (f *fakeDeliveryStore) ListAll(_ context.Context, _ string, _ *string, _, _
 
 func (f *fakeDeliveryStore) CleanupOldDeliveries(_ context.Context, _ string, _ int) (int64, error) {
 	return 0, nil
+}
+
+// failingFor builds the FailingSince a subscription would carry after `d` of
+// back-to-back failures. Every auto-disable case needs one: the threshold is
+// only half the rule, and a run of failures that started a moment ago never
+// retires an endpoint however many deliveries it swallowed.
+func failingFor(d time.Duration) *time.Time {
+	started := time.Now().UTC().Add(-d)
+	return &started
+}
+
+// failingLongEnoughToRetire dates a run that is old enough to have opened the
+// window and young enough to still be the same run. That interval is the ONLY
+// one in which a subscription can be retired at all, and it is bounded at both
+// ends by constants that have moved: these cases used to name a literal thirteen
+// hours, which sat inside the old window and outside the run's maximum age, so
+// the same literal would have quietly stopped meaning "retirable" the moment
+// either number changed. Derived from both, it cannot.
+func failingLongEnoughToRetire() *time.Time {
+	return failingFor(retirableRunAge)
+}
+
+// retirableRunAge is the midpoint of that interval.
+var retirableRunAge = webhookFailureWindow + (webhookFailureRunMaxAge-webhookFailureWindow)/2
+
+// expectClaimRenewal arms the per-row lease renewal the loop now performs before
+// it writes to a row or puts bytes on the wire for it. Tests whose subject IS
+// the renewal arm it themselves and assert on it; this is for the many whose
+// subject is elsewhere.
+func expectClaimRenewal(repo *mocks.MockWebhookDeliveryRepository) {
+	repo.EXPECT().RenewClaim(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, _, _ string, _ *time.Time) (bool, *time.Time, error) {
+			renewed := time.Now().UTC()
+			return true, &renewed, nil
+		}).AnyTimes()
+}
+
+// respondWith serves one fixed status to every request.
+func respondWith(t *testing.T, status int) *httptest.Server {
+	t.Helper()
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(status)
+		_, _ = w.Write([]byte("body"))
+	}))
+	t.Cleanup(server.Close)
+	return server
 }
 
 // permissiveWebhookLogger is the logger every worker test wants: it records
@@ -1681,17 +1786,6 @@ func TestWebhookDeliveryWorker_responsePolicy(t *testing.T) {
 		}
 	}
 
-	// respondWith serves one fixed status to every request.
-	respondWith := func(t *testing.T, status int) *httptest.Server {
-		t.Helper()
-		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-			w.WriteHeader(status)
-			_, _ = w.Write([]byte("body"))
-		}))
-		t.Cleanup(server.Close)
-		return server
-	}
-
 	t.Run("410 deletes a Zapier subscription and its queue", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
@@ -1806,6 +1900,9 @@ func TestWebhookDeliveryWorker_responsePolicy(t *testing.T) {
 		sub := &domain.WebhookSubscription{
 			ID: "sub-1", URL: server.URL, Secret: testWebhookSecret, Enabled: true,
 			ConsecutiveFailures: 2,
+			// Sustained means sustained: this endpoint has been answering 404
+			// for longer than a delivery's whole retry ladder can run.
+			FailingSince: failingLongEnoughToRetire(),
 		}
 
 		subRepo.EXPECT().IncrementFailures(gomock.Any(), workspaceID, "sub-1").Return(nil)
@@ -1906,6 +2003,7 @@ func TestWebhookDeliveryWorker_responsePolicy(t *testing.T) {
 		sub := &domain.WebhookSubscription{
 			ID: "sub-1", URL: server.URL, Secret: testWebhookSecret, Enabled: true,
 			ConsecutiveFailures: 1,
+			FailingSince:        failingLongEnoughToRetire(),
 		}
 
 		subRepo.EXPECT().IncrementFailures(gomock.Any(), workspaceID, "sub-1").Return(nil)
@@ -1929,7 +2027,10 @@ func TestWebhookDeliveryWorker_responsePolicy(t *testing.T) {
 		worker := NewWebhookDeliveryWorker(subRepo, deliveryRepo, mocks.NewMockWorkspaceRepository(ctrl), permissiveWebhookLogger(ctrl), nil)
 		worker.failureThreshold = 1
 
-		sub := &domain.WebhookSubscription{ID: "sub-1", URL: server.URL, Secret: testWebhookSecret, Enabled: true}
+		sub := &domain.WebhookSubscription{
+			ID: "sub-1", URL: server.URL, Secret: testWebhookSecret, Enabled: true,
+			FailingSince: failingLongEnoughToRetire(),
+		}
 
 		subRepo.EXPECT().IncrementFailures(gomock.Any(), workspaceID, "sub-1").Return(nil)
 		subRepo.EXPECT().DisableWithReason(gomock.Any(), workspaceID, "sub-1", gomock.Any()).
@@ -2158,4 +2259,662 @@ func TestBuildTestPayload(t *testing.T) {
 		payload := buildTestPayload("test")
 		assert.ElementsMatch(t, []string{"message", "event_type", "created_at"}, keysOf(payload))
 	})
+}
+
+// TestWebhookDeliveryWorker_neverDeliversARowItNoLongerHolds is the duplicate
+// the claim exists to prevent, arriving through the claim's own reaper.
+//
+// The claim stamps claimed_at ONCE, for a whole batch of up to a hundred rows,
+// and the worker then walks them serially with a ten-second ceiling per POST. So
+// the binding constraint on the lease is batchSize x httpTimeout, not
+// httpTimeout — and against a fifteen-second lease the sweep starts returning
+// rows this worker is still holding within the first two deliveries. Whoever
+// picks them up delivers them, and then this worker reaches them and delivers
+// them again: a second Salesforce record, a second Slack message, a second
+// charge.
+//
+// The fix is to renew the claim on each row immediately before its POST, keyed
+// on the claimed_at this worker was handed, so a row that has moved on is left
+// to its new owner. This drives exactly that: the receiver reclaims the second
+// row while the first is being delivered.
+func TestWebhookDeliveryWorker_neverDeliversARowItNoLongerHolds(t *testing.T) {
+	const workspaceID = "ws-1"
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	pending := func(id string) *domain.WebhookDelivery {
+		return &domain.WebhookDelivery{
+			ID:             id,
+			SubscriptionID: "sub-1",
+			EventType:      "contact.created",
+			Payload:        map[string]interface{}{"email": "a@b.c"},
+			Status:         domain.WebhookDeliveryStatusPending,
+			MaxAttempts:    10,
+			NextAttemptAt:  time.Now().UTC().Add(-time.Minute),
+		}
+	}
+
+	store := newFakeDeliveryStore(pending("delivery-1"), pending("delivery-2"))
+
+	var delivered []string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		delivered = append(delivered, r.Header.Get("webhook-id"))
+
+		// While this delivery is in flight, the lease on the rest of the batch
+		// runs out: the sweep returns delivery-2 to 'pending' and a second
+		// worker claims it. Its claimed_at has moved, so the token this worker
+		// holds is stale.
+		if row, ok := store.rows["delivery-2"]; ok && row.Status == domain.WebhookDeliveryStatusDelivering {
+			stolen := store.now.Add(time.Second)
+			row.ClaimedAt = &stolen
+		}
+
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("ok"))
+	}))
+	defer server.Close()
+
+	subRepo := mocks.NewMockWebhookSubscriptionRepository(ctrl)
+	subRepo.EXPECT().GetByID(gomock.Any(), workspaceID, "sub-1").
+		Return(&domain.WebhookSubscription{
+			ID: "sub-1", URL: server.URL, Secret: testWebhookSecret, Enabled: true,
+		}, nil).AnyTimes()
+	subRepo.EXPECT().UpdateLastDeliveryAt(gomock.Any(), workspaceID, "sub-1", gomock.Any()).
+		Return(nil).AnyTimes()
+
+	worker := NewWebhookDeliveryWorker(subRepo, store, mocks.NewMockWorkspaceRepository(ctrl),
+		permissiveWebhookLogger(ctrl), &http.Client{Timeout: 10 * time.Second})
+
+	require.NoError(t, worker.processWorkspaceDeliveries(context.Background(), workspaceID))
+
+	require.Equal(t, []string{"delivery-1"}, delivered,
+		"a row whose claim was reclaimed mid-batch must not be POSTed by the worker that lost it")
+
+	// And the row is left exactly as its new owner found it: no status write, no
+	// attempt spent, no terminal state. Writing to it here would stamp over
+	// whatever the worker that now holds it is doing.
+	stolen := store.row(t, "delivery-2")
+	assert.Equal(t, domain.WebhookDeliveryStatusDelivering, stolen.Status)
+	assert.Equal(t, 0, stolen.Attempts)
+	assert.Nil(t, stolen.LastError)
+}
+
+// TestWebhookDeliveryWorker_aBurstDoesNotRetireAHealthyEndpoint is the other half
+// of the auto-disable rule: the threshold counts deliveries, and deliveries are
+// not time.
+//
+// A hundred rows go out per poll, so a receiver that is restarting for thirty
+// seconds during an import fails twenty of them inside one ten-second poll. On
+// the count alone that clears the threshold, the subscription is switched off,
+// and — because a disabled subscription drains its queue — every remaining
+// delivery is marked terminally failed and never retried, for an endpoint that
+// is healthy again a minute later.
+func TestWebhookDeliveryWorker_aBurstDoesNotRetireAHealthyEndpoint(t *testing.T) {
+	const workspaceID = "ws-1"
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	const queued = 25
+
+	rows := make([]*domain.WebhookDelivery, 0, queued)
+	for i := 0; i < queued; i++ {
+		rows = append(rows, &domain.WebhookDelivery{
+			ID:             fmt.Sprintf("delivery-%02d", i),
+			SubscriptionID: "sub-1",
+			EventType:      "contact.created",
+			Payload:        map[string]interface{}{"email": "a@b.c"},
+			Status:         domain.WebhookDeliveryStatusPending,
+			MaxAttempts:    10,
+			NextAttemptAt:  time.Now().UTC().Add(-time.Minute),
+		})
+	}
+	store := newFakeDeliveryStore(rows...)
+
+	// The receiver is mid-restart: every delivery in this burst fails.
+	server := respondWith(t, http.StatusInternalServerError)
+
+	sub := &domain.WebhookSubscription{
+		ID: "sub-1", URL: server.URL, Secret: testWebhookSecret, Enabled: true,
+	}
+
+	subRepo := mocks.NewMockWebhookSubscriptionRepository(ctrl)
+	subRepo.EXPECT().GetByID(gomock.Any(), workspaceID, "sub-1").Return(sub, nil).AnyTimes()
+	subRepo.EXPECT().IncrementFailures(gomock.Any(), workspaceID, "sub-1").Return(nil).AnyTimes()
+	// Nothing arms DisableWithReason. Reaching it in a single poll is the bug.
+
+	worker := NewWebhookDeliveryWorker(subRepo, store, mocks.NewMockWorkspaceRepository(ctrl),
+		permissiveWebhookLogger(ctrl), &http.Client{Timeout: 10 * time.Second})
+	// Production's threshold, unmodified: the point is that twenty failures are
+	// reachable inside one batch, which is why the count cannot be the whole rule.
+	require.Equal(t, 20, worker.failureThreshold)
+	require.Equal(t, 2*time.Hour, worker.failureWindow)
+
+	require.NoError(t, worker.processWorkspaceDeliveries(context.Background(), workspaceID))
+
+	assert.True(t, sub.Enabled,
+		"twenty failures inside one ten-second poll are not a sustained outage")
+
+	// Every row is rescheduled rather than drained, so the endpoint coming back
+	// a minute later delivers all of them.
+	for _, row := range rows {
+		stored := store.row(t, row.ID)
+		assert.Equal(t, domain.WebhookDeliveryStatusFailed, stored.Status, row.ID)
+		assert.Less(t, stored.Attempts, stored.MaxAttempts,
+			"%s was drained: it can never be retried", row.ID)
+		assert.True(t, stored.NextAttemptAt.After(time.Now().UTC()),
+			"%s must be scheduled for a later attempt", row.ID)
+	}
+
+	// And the counter did start running: the same endpoint still failing twelve
+	// hours from now is retired, which is what the sweep is for.
+	require.NotNil(t, sub.FailingSince, "the run of failures has to be dated for the window to mean anything")
+	assert.WithinDuration(t, time.Now().UTC(), *sub.FailingSince, time.Minute)
+}
+
+// The window is the only thing between the two outcomes: identical counts,
+// identical responses, different answers.
+func TestWebhookDeliveryWorker_retiresAnEndpointOnlyOnceTheFailuresPersist(t *testing.T) {
+	const workspaceID = "ws-1"
+
+	run := func(t *testing.T, failingFor time.Duration) (*domain.WebhookSubscription, bool) {
+		t.Helper()
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		server := respondWith(t, http.StatusInternalServerError)
+		subRepo := mocks.NewMockWebhookSubscriptionRepository(ctrl)
+		deliveryRepo := mocks.NewMockWebhookDeliveryRepository(ctrl)
+		worker := NewWebhookDeliveryWorker(subRepo, deliveryRepo,
+			mocks.NewMockWorkspaceRepository(ctrl), permissiveWebhookLogger(ctrl), nil)
+		worker.failureThreshold = 3
+
+		startedAt := time.Now().UTC().Add(-failingFor)
+		sub := &domain.WebhookSubscription{
+			ID: "sub-1", URL: server.URL, Secret: testWebhookSecret, Enabled: true,
+			ConsecutiveFailures: 2,
+			FailingSince:        &startedAt,
+		}
+
+		subRepo.EXPECT().IncrementFailures(gomock.Any(), workspaceID, "sub-1").Return(nil)
+
+		disabled := false
+		subRepo.EXPECT().DisableWithReason(gomock.Any(), workspaceID, "sub-1", gomock.Any()).
+			DoAndReturn(func(_ context.Context, _, _, _ string) error {
+				disabled = true
+				return nil
+			}).AnyTimes()
+		deliveryRepo.EXPECT().MarkFailed(gomock.Any(), workspaceID, "delivery-1", 10,
+			gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+		deliveryRepo.EXPECT().ScheduleRetry(gomock.Any(), workspaceID, "delivery-1",
+			gomock.Any(), 1, gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+
+		worker.processDelivery(context.Background(), workspaceID, &domain.WebhookDelivery{
+			ID: "delivery-1", SubscriptionID: "sub-1", EventType: "contact.created",
+			Payload: map[string]interface{}{"email": "a@b.c"}, MaxAttempts: 10,
+		}, sub)
+
+		return sub, disabled
+	}
+
+	t.Run("an hour of failures is a bad hour, not a dead endpoint", func(t *testing.T) {
+		sub, disabled := run(t, time.Hour)
+		assert.False(t, disabled)
+		assert.True(t, sub.Enabled)
+		assert.Equal(t, 3, sub.ConsecutiveFailures, "the count still moves; only the action waits")
+	})
+
+	t.Run("past the window the same count retires it", func(t *testing.T) {
+		sub, disabled := run(t, retirableRunAge)
+		assert.True(t, disabled)
+		assert.False(t, sub.Enabled)
+	})
+}
+
+// The reason describes the run of failures, not whichever response happened to
+// land last. Attributing the cause to the final status labelled a subscription
+// retired by nineteen 500s as a 404 problem, pointing the user at a URL that was
+// never wrong.
+func TestWebhookDeliveryWorker_disableReasonDoesNotBlameTheLastStatus(t *testing.T) {
+	const workspaceID = "ws-1"
+
+	reasonFor := func(t *testing.T, status int) string {
+		t.Helper()
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		server := respondWith(t, status)
+		subRepo := mocks.NewMockWebhookSubscriptionRepository(ctrl)
+		deliveryRepo := mocks.NewMockWebhookDeliveryRepository(ctrl)
+		worker := NewWebhookDeliveryWorker(subRepo, deliveryRepo,
+			mocks.NewMockWorkspaceRepository(ctrl), permissiveWebhookLogger(ctrl), nil)
+		worker.failureThreshold = 1
+
+		sub := &domain.WebhookSubscription{
+			ID: "sub-1", URL: server.URL, Secret: testWebhookSecret, Enabled: true,
+			FailingSince: failingLongEnoughToRetire(),
+		}
+
+		var reason string
+		subRepo.EXPECT().IncrementFailures(gomock.Any(), workspaceID, "sub-1").Return(nil)
+		subRepo.EXPECT().DisableWithReason(gomock.Any(), workspaceID, "sub-1", gomock.Any()).
+			DoAndReturn(func(_ context.Context, _, _, r string) error {
+				reason = r
+				return nil
+			})
+		deliveryRepo.EXPECT().MarkFailed(gomock.Any(), workspaceID, "delivery-1", 10,
+			gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+
+		worker.processDelivery(context.Background(), workspaceID, &domain.WebhookDelivery{
+			ID: "delivery-1", SubscriptionID: "sub-1", EventType: "contact.created",
+			Payload: map[string]interface{}{"email": "a@b.c"}, MaxAttempts: 10,
+		}, sub)
+		return reason
+	}
+
+	notFound := reasonFor(t, http.StatusNotFound)
+	serverError := reasonFor(t, http.StatusInternalServerError)
+
+	// Both name the persistence that actually retired the subscription...
+	for _, reason := range []string{notFound, serverError} {
+		assert.Contains(t, reason, "consecutive delivery failures")
+		assert.Contains(t, reason, "more than 2 hours", "the reason has to say over what period")
+	}
+
+	// ...and report the last response as an observation rather than a diagnosis.
+	assert.Contains(t, notFound, "most recent response: HTTP 404")
+	assert.Contains(t, serverError, "most recent response: HTTP 500")
+	assert.NotContains(t, notFound, "sustained HTTP 404",
+		"one 404 at the end of a run of 500s is not evidence the URL is wrong")
+}
+
+// The two auto-disable numbers are not independent of the retry ladder, and the
+// ladder is the thing that moves: a rung added or a delay lengthened silently
+// re-decides both of them.
+//
+// webhookFailureWindow above the ladder is the failure that actually shipped. At
+// twelve hours it exceeded the roughly 9h53m a queued delivery can be retried
+// for, so every delivery waiting when an endpoint died was permanently failed
+// before the window could open, and the only mechanism that retires a dead
+// endpoint without being told it is dead depended entirely on new events still
+// arriving two hours later — from a workspace that had usually gone quiet at the
+// same moment the receiver was torn down.
+//
+// webhookFailureRunMaxAge below the ladder is the mirror mistake: it would end a
+// genuine outage's run mid-ladder and restart the count from one while the
+// endpoint was still dead.
+func TestWebhookAutoDisableNumbersBracketTheRetryLadder(t *testing.T) {
+	// What the PL/pgSQL webhook triggers insert into max_attempts.
+	const maxAttempts = 10
+
+	ladder := reachableRetryWindow(maxAttempts)
+	assert.Equal(t, 9*time.Hour+53*time.Minute+30*time.Second, ladder,
+		"the reachable ladder is nine rungs, not the ten the table lists")
+
+	assert.Less(t, webhookFailureWindow, ladder,
+		"a window longer than the ladder can only open after the whole backlog has been given up on")
+	assert.Greater(t, webhookFailureRunMaxAge, ladder,
+		"a run that expires before the ladder ends cuts a real outage in half and restarts its count")
+
+	// The last attempt is followed by MarkFailed rather than by a delay, so a
+	// one-attempt row waits for nothing, and a ceiling past the end of the table
+	// cannot walk off it.
+	assert.Zero(t, reachableRetryWindow(1))
+	assert.Equal(t, reachableRetryWindow(len(retryDelays)+1), reachableRetryWindow(len(retryDelays)+50))
+}
+
+// A success clears the run of failures, and clearing it has to reach the copy
+// the batch is holding.
+//
+// One *sub is cached for up to a hundred deliveries, so zeroing only the counter
+// left that copy carrying a FailingSince from hours ago. The next failure then
+// found it already set, left it alone, and the window it measured was the age of
+// an outage that had ended — so a receiver that had just proved it was alive was
+// retired by twenty seconds of a transient blip, and the disabled branch drained
+// everything it still had queued.
+func TestWebhookDeliveryWorker_aSuccessEndsTheRunForTheCachedSubscription(t *testing.T) {
+	const workspaceID = "ws-1"
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	var requests int
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		requests++
+		if requests == 1 {
+			w.WriteHeader(http.StatusOK)
+		} else {
+			w.WriteHeader(http.StatusInternalServerError)
+		}
+		_, _ = w.Write([]byte("body"))
+	}))
+	defer server.Close()
+
+	subRepo := mocks.NewMockWebhookSubscriptionRepository(ctrl)
+	deliveryRepo := mocks.NewMockWebhookDeliveryRepository(ctrl)
+	worker := NewWebhookDeliveryWorker(subRepo, deliveryRepo,
+		mocks.NewMockWorkspaceRepository(ctrl), permissiveWebhookLogger(ctrl), nil)
+	// One failure is enough, so the only thing standing between this endpoint
+	// and retirement is the window.
+	worker.failureThreshold = 1
+
+	// The subscription arrives carrying a run old enough to retire it.
+	sub := &domain.WebhookSubscription{
+		ID: "sub-1", URL: server.URL, Secret: testWebhookSecret, Enabled: true,
+		ConsecutiveFailures: 5,
+		FailingSince:        failingLongEnoughToRetire(),
+	}
+
+	subRepo.EXPECT().ResetFailures(gomock.Any(), workspaceID, "sub-1").Return(nil)
+	subRepo.EXPECT().UpdateLastDeliveryAt(gomock.Any(), workspaceID, "sub-1", gomock.Any()).Return(nil)
+	subRepo.EXPECT().IncrementFailures(gomock.Any(), workspaceID, "sub-1").Return(nil)
+	deliveryRepo.EXPECT().MarkDelivered(gomock.Any(), workspaceID, "delivery-1", http.StatusOK, gomock.Any()).Return(nil)
+	deliveryRepo.EXPECT().ScheduleRetry(gomock.Any(), workspaceID, "delivery-2",
+		gomock.Any(), 1, gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+	deliveryRepo.EXPECT().MarkFailed(gomock.Any(), workspaceID, "delivery-2",
+		gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+
+	disabled := false
+	subRepo.EXPECT().DisableWithReason(gomock.Any(), workspaceID, "sub-1", gomock.Any()).
+		DoAndReturn(func(_ context.Context, _, _, _ string) error {
+			disabled = true
+			return nil
+		}).AnyTimes()
+
+	delivery := func(id string) *domain.WebhookDelivery {
+		return &domain.WebhookDelivery{
+			ID: id, SubscriptionID: "sub-1", EventType: "contact.created",
+			Payload: map[string]interface{}{"email": "a@b.c"}, MaxAttempts: 10,
+		}
+	}
+
+	// The endpoint answers, which ends the run...
+	worker.processDelivery(context.Background(), workspaceID, delivery("delivery-1"), sub)
+	require.Nil(t, sub.FailingSince, "a success has to clear the cached window as well as the cached count")
+
+	// ...and the blip that follows starts a new one, on the same cached object.
+	worker.processDelivery(context.Background(), workspaceID, delivery("delivery-2"), sub)
+
+	assert.False(t, disabled,
+		"an endpoint that answered a moment ago must not be retired by the next failure")
+	assert.True(t, sub.Enabled)
+	require.NotNil(t, sub.FailingSince)
+	assert.WithinDuration(t, time.Now().UTC(), *sub.FailingSince, time.Minute,
+		"the new run is dated from this failure, not from the outage that ended")
+}
+
+// A run of failures that nothing has touched for longer than the whole retry
+// ladder is over, whatever the counter still says.
+//
+// failing_since was only ever cleared by a success or a manual re-enable, so a
+// run never ended, it only got older. A ten-hour outage that fell short of the
+// threshold left the counter high and failing_since pointing at the start of it;
+// once the workspace went quiet — exactly what happens when someone tears a
+// receiver down — a single transient 500 days later satisfied the count and the
+// window at once and retired the subscription, under a reason describing a
+// sustained outage that was three days of silence.
+func TestWebhookDeliveryWorker_aFailureLongAfterTheLastOneStartsANewRun(t *testing.T) {
+	const workspaceID = "ws-1"
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	server := respondWith(t, http.StatusInternalServerError)
+
+	subRepo := mocks.NewMockWebhookSubscriptionRepository(ctrl)
+	deliveryRepo := mocks.NewMockWebhookDeliveryRepository(ctrl)
+	worker := NewWebhookDeliveryWorker(subRepo, deliveryRepo,
+		mocks.NewMockWorkspaceRepository(ctrl), permissiveWebhookLogger(ctrl), nil)
+
+	// Everything the old run left behind is still on the row: one more failure
+	// crosses the threshold, and the window it inherits is days wide.
+	sub := &domain.WebhookSubscription{
+		ID: "sub-1", URL: server.URL, Secret: testWebhookSecret, Enabled: true,
+		ConsecutiveFailures: worker.failureThreshold - 1,
+		FailingSince:        failingFor(3 * 24 * time.Hour),
+	}
+
+	// The expiry is a real write, not just a fix-up of the cached copy: the row
+	// carries the same dead run and every other worker reads it.
+	reset := false
+	subRepo.EXPECT().ResetFailures(gomock.Any(), workspaceID, "sub-1").
+		DoAndReturn(func(_ context.Context, _, _ string) error {
+			reset = true
+			return nil
+		})
+	subRepo.EXPECT().IncrementFailures(gomock.Any(), workspaceID, "sub-1").Return(nil)
+	deliveryRepo.EXPECT().ScheduleRetry(gomock.Any(), workspaceID, "delivery-1",
+		gomock.Any(), 1, gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+	deliveryRepo.EXPECT().MarkFailed(gomock.Any(), workspaceID, "delivery-1",
+		gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+
+	disabled := false
+	subRepo.EXPECT().DisableWithReason(gomock.Any(), workspaceID, "sub-1", gomock.Any()).
+		DoAndReturn(func(_ context.Context, _, _, _ string) error {
+			disabled = true
+			return nil
+		}).AnyTimes()
+
+	worker.processDelivery(context.Background(), workspaceID, &domain.WebhookDelivery{
+		ID: "delivery-1", SubscriptionID: "sub-1", EventType: "contact.created",
+		Payload: map[string]interface{}{"email": "a@b.c"}, MaxAttempts: 10,
+	}, sub)
+
+	assert.True(t, reset, "the expired run has to be cleared on the row, not only in the cache")
+	assert.False(t, disabled,
+		"one failure days after the last one is not twenty consecutive failures over a sustained period")
+	assert.True(t, sub.Enabled)
+	assert.Equal(t, 1, sub.ConsecutiveFailures, "this failure is the first of the new run")
+	require.NotNil(t, sub.FailingSince)
+	assert.WithinDuration(t, time.Now().UTC(), *sub.FailingSince, time.Minute)
+}
+
+// A run still inside its maximum age keeps counting, which is the other half of
+// the rule above: the expiry must not become a way for a genuinely dead endpoint
+// to dodge retirement forever.
+func TestWebhookDeliveryWorker_aRunInsideItsMaximumAgeStillRetires(t *testing.T) {
+	const workspaceID = "ws-1"
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	server := respondWith(t, http.StatusInternalServerError)
+
+	subRepo := mocks.NewMockWebhookSubscriptionRepository(ctrl)
+	deliveryRepo := mocks.NewMockWebhookDeliveryRepository(ctrl)
+	worker := NewWebhookDeliveryWorker(subRepo, deliveryRepo,
+		mocks.NewMockWorkspaceRepository(ctrl), permissiveWebhookLogger(ctrl), nil)
+
+	sub := &domain.WebhookSubscription{
+		ID: "sub-1", URL: server.URL, Secret: testWebhookSecret, Enabled: true,
+		ConsecutiveFailures: worker.failureThreshold - 1,
+		FailingSince:        failingLongEnoughToRetire(),
+	}
+
+	subRepo.EXPECT().IncrementFailures(gomock.Any(), workspaceID, "sub-1").Return(nil)
+	// Nothing arms ResetFailures: expiring this run would be the bug.
+	subRepo.EXPECT().DisableWithReason(gomock.Any(), workspaceID, "sub-1", gomock.Any()).Return(nil)
+	deliveryRepo.EXPECT().MarkFailed(gomock.Any(), workspaceID, "delivery-1", 10,
+		gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+
+	worker.processDelivery(context.Background(), workspaceID, &domain.WebhookDelivery{
+		ID: "delivery-1", SubscriptionID: "sub-1", EventType: "contact.created",
+		Payload: map[string]interface{}{"email": "a@b.c"}, MaxAttempts: 10,
+	}, sub)
+
+	assert.False(t, sub.Enabled)
+}
+
+// A panic after the delivery has been marked delivered must not send it again.
+//
+// deliverOne's recover releases the claim unconditionally — a panic is a bug in
+// us, not a verdict on the delivery — and on `id` alone that release moved a row
+// already marked delivered back to 'pending', with attempts under its ceiling
+// and next_attempt_at in the past. The next poll claimed it and POSTed it a
+// second time: a duplicate side effect in whatever consumes the webhook,
+// manufactured by the guard that exists to prevent duplicates.
+func TestWebhookDeliveryWorker_aPanicAfterDeliveryDoesNotSendItTwice(t *testing.T) {
+	const workspaceID = "ws-1"
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	store := newFakeDeliveryStore(&domain.WebhookDelivery{
+		ID: "delivery-1", SubscriptionID: "sub-1", EventType: "contact.created",
+		Payload: map[string]interface{}{"email": "a@b.c"},
+		Status:  domain.WebhookDeliveryStatusPending,
+		// Nowhere near the ceiling, so a row handed back to 'pending' is
+		// immediately claimable again.
+		MaxAttempts:   10,
+		NextAttemptAt: time.Now().UTC().Add(-time.Minute),
+	})
+
+	var posted int
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		posted++
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("ok"))
+	}))
+	defer server.Close()
+
+	subRepo := mocks.NewMockWebhookSubscriptionRepository(ctrl)
+	subRepo.EXPECT().GetByID(gomock.Any(), workspaceID, "sub-1").
+		Return(&domain.WebhookSubscription{
+			ID: "sub-1", URL: server.URL, Secret: testWebhookSecret, Enabled: true,
+		}, nil).AnyTimes()
+	// The bookkeeping write that follows MarkDelivered blows up. Anything after
+	// the commit would do; this is the one that is actually there.
+	subRepo.EXPECT().UpdateLastDeliveryAt(gomock.Any(), workspaceID, "sub-1", gomock.Any()).
+		DoAndReturn(func(_ context.Context, _, _ string, _ time.Time) error {
+			panic("boom")
+		}).AnyTimes()
+
+	worker := NewWebhookDeliveryWorker(subRepo, store, mocks.NewMockWorkspaceRepository(ctrl),
+		permissiveWebhookLogger(ctrl), &http.Client{Timeout: 10 * time.Second})
+
+	require.NoError(t, worker.processWorkspaceDeliveries(context.Background(), workspaceID))
+
+	delivered := store.row(t, "delivery-1")
+	assert.Equal(t, domain.WebhookDeliveryStatusDelivered, delivered.Status,
+		"a panic in our own bookkeeping does not un-deliver a delivered webhook")
+
+	// The proof, rather than the symptom: poll again and see whether the endpoint
+	// is asked to accept the same event twice.
+	require.NoError(t, worker.processWorkspaceDeliveries(context.Background(), workspaceID))
+	assert.Equal(t, 1, posted, "the same event must not be POSTed a second time")
+}
+
+// The cross-worker shape of the same write: this worker stalls past its lease,
+// the sweep hands the row to another, and the late release must not yank it back
+// out from under a POST already in flight.
+func TestWebhookDeliveryWorker_aLateReleaseDoesNotStealBackAReclaimedRow(t *testing.T) {
+	const workspaceID = "ws-1"
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	store := newFakeDeliveryStore(&domain.WebhookDelivery{
+		ID: "delivery-1", SubscriptionID: "sub-1", EventType: "contact.created",
+		Payload: map[string]interface{}{"email": "a@b.c"},
+		Status:  domain.WebhookDeliveryStatusPending,
+		// Enough attempts spent that a row handed back to 'pending' would still
+		// be claimable, which is what makes the theft observable.
+		Attempts: 2, MaxAttempts: 10,
+		NextAttemptAt: time.Now().UTC().Add(-time.Minute),
+	})
+
+	subRepo := mocks.NewMockWebhookSubscriptionRepository(ctrl)
+	subRepo.EXPECT().GetByID(gomock.Any(), workspaceID, "sub-1").
+		DoAndReturn(func(_ context.Context, _, _ string) (*domain.WebhookSubscription, error) {
+			// While we were looking the row up, our lease expired: the sweep
+			// returned the row and a second worker claimed it. Its claimed_at has
+			// moved, so the token we are still holding is stale.
+			stolen := store.now.Add(time.Minute)
+			row := store.rows["delivery-1"]
+			row.Status = domain.WebhookDeliveryStatusDelivering
+			row.ClaimedAt = &stolen
+			// And the lookup fails transiently, which is what sends us down the
+			// release path rather than a terminal one.
+			return nil, errors.New("pq: sorry, too many clients already")
+		})
+
+	worker := NewWebhookDeliveryWorker(subRepo, store, mocks.NewMockWorkspaceRepository(ctrl),
+		permissiveWebhookLogger(ctrl), &http.Client{Timeout: 10 * time.Second})
+
+	require.NoError(t, worker.processWorkspaceDeliveries(context.Background(), workspaceID))
+
+	row := store.row(t, "delivery-1")
+	assert.Equal(t, domain.WebhookDeliveryStatusDelivering, row.Status,
+		"the row belongs to the worker that reclaimed it; releasing it here puts it back in the queue mid-flight")
+	require.NotNil(t, row.ClaimedAt)
+	assert.Nil(t, row.LastError, "and its owner's delivery log is not ours to write to")
+}
+
+// Every naked path on the worker's goroutine, not just the one delivery.
+//
+// Start is launched by internal/app/app.go with a plain `go func()` and no
+// recover of its own, so a panic that escapes the poll takes the entire server
+// down: every in-flight HTTP request, every other worker. deliverOne guards one
+// call inside the batch loop and nothing else — listing workspaces, the loop
+// itself, the reclaim sweep and the retention cleanup all ran bare.
+func TestWebhookDeliveryWorker_aPanicAnywhereInThePollIsContained(t *testing.T) {
+	ctx := context.Background()
+
+	cases := map[string]func(t *testing.T) *WebhookDeliveryWorker{
+		"listing the workspaces": func(t *testing.T) *WebhookDeliveryWorker {
+			ctrl := gomock.NewController(t)
+			workspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+			workspaceRepo.EXPECT().List(gomock.Any()).
+				DoAndReturn(func(_ context.Context) ([]*domain.Workspace, error) {
+					panic("boom")
+				}).AnyTimes()
+			worker := NewWebhookDeliveryWorker(mocks.NewMockWebhookSubscriptionRepository(ctrl),
+				mocks.NewMockWebhookDeliveryRepository(ctrl), workspaceRepo,
+				permissiveWebhookLogger(ctrl), nil)
+			// Skip the retention sweep, so this case exercises one naked path.
+			worker.lastCleanupTime = time.Now()
+			return worker
+		},
+		"the reclaim sweep": func(t *testing.T) *WebhookDeliveryWorker {
+			ctrl := gomock.NewController(t)
+			workspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+			workspaceRepo.EXPECT().List(gomock.Any()).
+				Return([]*domain.Workspace{{ID: "ws-1"}}, nil).AnyTimes()
+			deliveryRepo := mocks.NewMockWebhookDeliveryRepository(ctrl)
+			deliveryRepo.EXPECT().ReclaimStale(gomock.Any(), "ws-1", gomock.Any()).
+				DoAndReturn(func(_ context.Context, _ string, _ time.Duration) (int64, error) {
+					panic("boom")
+				}).AnyTimes()
+			worker := NewWebhookDeliveryWorker(mocks.NewMockWebhookSubscriptionRepository(ctrl),
+				deliveryRepo, workspaceRepo, permissiveWebhookLogger(ctrl), nil)
+			worker.lastCleanupTime = time.Now()
+			return worker
+		},
+		"the retention cleanup": func(t *testing.T) *WebhookDeliveryWorker {
+			ctrl := gomock.NewController(t)
+			workspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+			workspaceRepo.EXPECT().List(gomock.Any()).
+				Return([]*domain.Workspace{{ID: "ws-1"}}, nil).AnyTimes()
+			deliveryRepo := mocks.NewMockWebhookDeliveryRepository(ctrl)
+			deliveryRepo.EXPECT().CleanupOldDeliveries(gomock.Any(), "ws-1", gomock.Any()).
+				DoAndReturn(func(_ context.Context, _ string, _ int) (int64, error) {
+					panic("boom")
+				}).AnyTimes()
+			return NewWebhookDeliveryWorker(mocks.NewMockWebhookSubscriptionRepository(ctrl),
+				deliveryRepo, workspaceRepo, permissiveWebhookLogger(ctrl), nil)
+		},
+	}
+
+	for name, build := range cases {
+		t.Run(name, func(t *testing.T) {
+			// The boundary, stated rather than assumed: the poll itself is not
+			// protected, so the recover has to sit outside it.
+			assert.Panics(t, func() { build(t).processDeliveries(ctx) })
+
+			worker := build(t)
+			assert.NotPanics(t, func() { worker.processDeliveriesGuarded(ctx) },
+				"a panic here would take the whole server down with it")
+		})
+	}
 }

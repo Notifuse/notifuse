@@ -76,6 +76,17 @@ type WebhookSubscription struct {
 	// reset to zero by the first success. It is the only garbage collector for a
 	// dead endpoint that does not depend on that endpoint telling us it is dead.
 	ConsecutiveFailures int `json:"consecutive_failures"`
+	// FailingSince is when the current run of failures started, set by the first
+	// failure after a success and cleared by the next success.
+	//
+	// It exists because a count of failures is not a measure of time. Deliveries
+	// are processed in batches of a hundred, so an endpoint that is down for
+	// thirty seconds during an import can fail twenty of them inside one ten-
+	// second poll — which would retire a perfectly healthy integration on the
+	// strength of one restart. The threshold is only allowed to act once this
+	// says the endpoint has been failing for longer than a delivery's own retry
+	// ladder can run.
+	FailingSince *time.Time `json:"failing_since,omitempty"`
 	// DisabledReason records why the subscription was disabled automatically, so
 	// a user who finds a switched-off webhook can tell it from one they switched
 	// off themselves. Nil for a subscription that was never auto-disabled.
@@ -213,6 +224,22 @@ type WebhookDeliveryRepository interface {
 	// caller that returns early without writing strands the row until the
 	// reclaim sweep picks it up; see ReclaimStale.
 	GetPendingForWorkspace(ctx context.Context, workspaceID string, limit int) ([]*WebhookDelivery, error)
+	// RenewClaim re-stamps one claimed row's lease and reports whether the caller
+	// still owns it. It takes the claimed_at the caller was handed and matches on
+	// it, so "someone else has this row now" is answered false rather than
+	// silently stolen back.
+	//
+	// It exists because the claim is stamped once for a whole batch. A batch of a
+	// hundred rows walked serially can outlive the lease many times over — the
+	// binding constraint is lease > batchSize x httpTimeout, not lease >
+	// httpTimeout — so the reclaim sweep would hand later rows to a second worker
+	// while the first is still holding them, manufacturing the duplicate delivery
+	// the claim exists to prevent. Renewing per row keeps the lease short (fast
+	// recovery from a crash) while making it mean what it says.
+	//
+	// The returned time is the new claimed_at, which the caller must carry into
+	// its next renewal of the same row.
+	RenewClaim(ctx context.Context, workspaceID, id string, claimedAt *time.Time) (bool, *time.Time, error)
 	ListAll(ctx context.Context, workspaceID string, subscriptionID *string, limit, offset int) ([]*WebhookDelivery, int, error)
 	UpdateStatus(ctx context.Context, workspaceID, id string, status string, attempts int, responseStatus *int, responseBody, lastError *string) error
 	MarkDelivered(ctx context.Context, workspaceID, id string, responseStatus int, responseBody string) error
@@ -234,6 +261,24 @@ type WebhookDeliveryRepository interface {
 	// one measured in minutes would quietly override the first rungs of the
 	// retry ladder.
 	ReclaimStale(ctx context.Context, workspaceID string, lease time.Duration) (int64, error)
+	// ReleaseClaim hands a claimed row back to WebhookDeliveryStatusPending
+	// without recording an attempt, for the case where nothing was sent.
+	//
+	// It exists so the release does not have to go through UpdateStatus, which
+	// writes last_attempt_at, last_response_status and last_response_body on
+	// every call: releasing through it stamped an attempt that never happened and
+	// erased the status and body of the last one that did, leaving the delivery
+	// log describing our database instead of the user's endpoint.
+	//
+	// It takes the same claim token RenewClaim does, and for the same reason: a
+	// release is only ever a release of OUR claim. Matching on the id alone let
+	// it write to a row this caller no longer held — a panic after the delivery
+	// had been marked delivered pushed it back to pending to be sent again, and a
+	// caller that stalled past its lease could yank a row back from the worker
+	// the sweep had legitimately given it to. A nil claimedAt is not a claim and
+	// releases nothing; the row is left for ReclaimStale, which treats a
+	// claimless 'delivering' row as infinitely stale.
+	ReleaseClaim(ctx context.Context, workspaceID, id string, claimedAt *time.Time, lastError string) error
 }
 
 // WebhookDeliveryWithSubscription contains a delivery with its associated subscription

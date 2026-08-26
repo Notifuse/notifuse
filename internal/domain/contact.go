@@ -825,11 +825,20 @@ func FromJSON(data interface{}) (*Contact, error) {
 				continue
 			}
 
-			// make sure the value is a valid JSON object or array
-			if !value.IsObject() && !value.IsArray() {
-				return nil, fmt.Errorf("invalid JSON value for custom_json_%d, got %s", i, value.Type)
-			}
-
+			// Any JSON value is stored, not objects and arrays alone.
+			//
+			// The column is jsonb, which holds a scalar perfectly well, and the
+			// other endpoint that writes these slots already did: lists.subscribe
+			// decodes its contact through encoding/json into NullableJSON, whose
+			// UnmarshalJSON takes whatever parses. So the two endpoints disagreed
+			// about the same five columns — the same body storing "gold" through
+			// lists.subscribe and answering 400 through contacts.upsert or
+			// contacts.import — and only this branch made them differ.
+			//
+			// Widening rather than tightening the other side because the strict
+			// reading was never enforceable: the value is only ever read back with
+			// jsonb subscripting and ->>, which answer NULL on a scalar rather
+			// than raising.
 			// Set the custom JSON field
 			switch i {
 			case 1:

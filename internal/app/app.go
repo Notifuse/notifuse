@@ -448,7 +448,7 @@ func (a *App) InitRepositories() error {
 	a.customEventRepo = repository.NewCustomEventRepository(a.workspaceRepo)
 	a.annotationRepo = repository.NewAnnotationRepository(a.workspaceRepo)
 	a.webhookSubscriptionRepo = repository.NewWebhookSubscriptionRepository(a.workspaceRepo)
-	a.webhookDeliveryRepo = repository.NewWebhookDeliveryRepository(a.workspaceRepo)
+	a.webhookDeliveryRepo = repository.NewWebhookDeliveryRepository(a.workspaceRepo, a.logger)
 
 	// Create trigger generator for automation repository
 	queryBuilder := service.NewQueryBuilder()

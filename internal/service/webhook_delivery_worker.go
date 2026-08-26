@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"runtime/debug"
 	"strconv"
 	"strings"
 	"time"
@@ -36,6 +37,11 @@ const (
 	// shorter than the timeout would let the sweep reclaim a row whose POST is
 	// still in flight and deliver it a second time, which is exactly the
 	// duplicate the claim exists to prevent.
+	//
+	// The lease only has to cover ONE delivery because processWorkspaceDeliveries
+	// renews the claim row by row. Covering a whole batch instead would mean a
+	// lease of batchSize x httpTimeout — a quarter of an hour — and a crashed
+	// worker's rows would sit stranded for all of it.
 	webhookClaimLeaseBuffer = 5 * time.Second
 
 	// webhookFailureThreshold is how many back-to-back failures retire an
@@ -45,6 +51,62 @@ const (
 	// accepted and nothing more. High enough that an afternoon of 500s from a
 	// healthy receiver does not switch a customer's integration off.
 	webhookFailureThreshold = 20
+
+	// webhookFailureWindow is how long the endpoint has to have been failing
+	// before the count above is allowed to retire it.
+	//
+	// Both conditions are needed because the count on its own measures volume,
+	// not persistence. A batch is a hundred deliveries walked serially, so a
+	// receiver that is restarting for thirty seconds during an import fails
+	// twenty of them inside a single ten-second poll and clears the threshold
+	// before it has finished rebooting — which is the opposite of what the
+	// comment above promises. The REST Hooks specification asks for "a
+	// consistent 404 over time"; this is the "over time" half.
+	//
+	// Two hours, and the ceiling is what fixes it rather than the floor. This was
+	// twelve hours, which is LONGER than the retry ladder a queued delivery can
+	// actually walk (reachableRetryWindow, about 9h53m at the max_attempts = 10
+	// the triggers write). Every delivery queued when an endpoint died was
+	// therefore permanently failed before the window could ever open, and the
+	// auto-disable depended entirely on new events still arriving two hours after
+	// the trouble started. When someone tears a receiver down the workspace
+	// usually goes quiet at the same moment, so the one mechanism that retires a
+	// dead endpoint without being told it is dead retired nothing at all.
+	//
+	// Under the ladder, the backlog alone can satisfy it: a delivery queued when
+	// the endpoint died reaches its eighth attempt at 1h53m30s and its ninth at
+	// 3h53m30s, so the window opens with two rungs still to run and the failures
+	// that open it are the same ones that reach the threshold. Two hours is also
+	// far longer than the restart or deploy this rule exists to survive — the
+	// burst that clears twenty failures inside one ten-second poll is measured in
+	// seconds, not hours.
+	webhookFailureWindow = 2 * time.Hour
+
+	// webhookFailureRunMaxAge is how long a run of failures may go on being the
+	// same run. A failure arriving later than this after the run began opens a
+	// new one instead of joining it.
+	//
+	// Without an expiry a run never ended, it only got older: failing_since was
+	// cleared by a success or a manual re-enable and by nothing else. A ten-hour
+	// outage on Monday that fell short of the threshold left the counter at 40
+	// and failing_since at Monday; if the workspace then went quiet — which is
+	// exactly what happens when someone tears a receiver down — a single
+	// transient 500 on Thursday satisfied both gates at once and retired the
+	// subscription, under a reason claiming twenty consecutive failures over a
+	// sustained period while describing failures three days apart. The count and
+	// the window have to describe the same episode or neither of them means
+	// anything.
+	//
+	// Twelve hours, which is the number webhookFailureWindow used to be, and it
+	// was always the right number for this job rather than for that one. It has
+	// to EXCEED the reachable retry ladder (reachableRetryWindow, about 9h53m at
+	// max_attempts = 10): past that point every delivery queued when the trouble
+	// started has walked its whole ladder and been given up on, so a failure
+	// arriving later cannot be one of theirs and has no claim to their run.
+	// Shorter than the ladder, it would cut a genuine outage's backlog in half
+	// mid-ladder and restart the count from one while the endpoint was still
+	// dead.
+	webhookFailureRunMaxAge = 12 * time.Hour
 
 	// webhookResponseBodyLimit is how much of the receiver's response is kept for
 	// the delivery log. Enough for an error message, small enough that a receiver
@@ -66,6 +128,8 @@ type WebhookDeliveryWorker struct {
 	retentionDays    int
 	claimLease       time.Duration
 	failureThreshold int
+	failureWindow    time.Duration
+	failureRunMaxAge time.Duration
 }
 
 // retryDelays is the backoff ladder, aggressive early as per the Standard
@@ -90,6 +154,26 @@ var retryDelays = []time.Duration{
 	2 * time.Hour,
 	6 * time.Hour,
 	24 * time.Hour,
+}
+
+// reachableRetryWindow is how long a delivery with the given ceiling keeps being
+// retried before it is given up on: the sum of the rungs handleDeliveryFailure
+// can actually pick, which is one fewer than maxAttempts because the last
+// attempt is followed by MarkFailed rather than by a delay.
+//
+// It is the bound both auto-disable numbers are placed against, and they sit on
+// opposite sides of it. webhookFailureWindow must be SHORTER, or the window only
+// opens once the whole backlog has already been abandoned and nothing is left to
+// retire the endpoint with. webhookFailureRunMaxAge must be LONGER, or it cuts a
+// genuine outage's backlog in half mid-ladder and restarts the count from one.
+// Deriving it here is what lets both be asserted against the ladder itself
+// rather than against a duration copied out of the table above.
+func reachableRetryWindow(maxAttempts int) time.Duration {
+	var total time.Duration
+	for i := 0; i < maxAttempts-1 && i < len(retryDelays); i++ {
+		total += retryDelays[i]
+	}
+	return total
 }
 
 // NewWebhookDeliveryWorker creates a new webhook delivery worker
@@ -118,6 +202,8 @@ func NewWebhookDeliveryWorker(
 		retentionDays:    7,
 		claimLease:       claimLeaseFor(httpClient.Timeout),
 		failureThreshold: webhookFailureThreshold,
+		failureWindow:    webhookFailureWindow,
+		failureRunMaxAge: webhookFailureRunMaxAge,
 	}
 }
 
@@ -149,9 +235,38 @@ func (w *WebhookDeliveryWorker) Start(ctx context.Context) {
 			w.logger.Info("Webhook delivery worker stopping...")
 			return
 		case <-ticker.C:
-			w.processDeliveries(ctx)
+			w.processDeliveriesGuarded(ctx)
 		}
 	}
+}
+
+// processDeliveriesGuarded is this goroutine's outermost recover.
+//
+// Start runs on a bare goroutine — internal/app/app.go launches it with a plain
+// `go func()` and no recover of its own — so any panic that escapes here takes
+// the whole server down with it: every in-flight HTTP request, every other
+// worker. deliverOne guards the one call most likely to panic, but that call is
+// a single statement of the poll. Listing workspaces, the batch loop itself, the
+// drain and release paths, handleSubscriptionLookupFailure, the reclaim sweep
+// and the retention cleanup all run naked on this same goroutine, and a nil map
+// or a short slice in any of them is just as fatal. The task service guards its
+// whole processor goroutine for exactly this reason.
+//
+// A poll is the right unit to lose. The next tick is ten seconds away, nothing
+// here is transactional, and rows this poll had claimed are handed back by the
+// reclaim sweep — whereas losing the process strands every claimed row in every
+// workspace until a restarted worker's first sweep.
+func (w *WebhookDeliveryWorker) processDeliveriesGuarded(ctx context.Context) {
+	defer func() {
+		if r := recover(); r != nil {
+			w.logger.WithFields(map[string]interface{}{
+				"panic": fmt.Sprintf("%v", r),
+				"stack": string(debug.Stack()),
+			}).Error("Panic in webhook delivery poll")
+		}
+	}()
+
+	w.processDeliveries(ctx)
 }
 
 // processDeliveries processes pending deliveries across all workspaces
@@ -217,6 +332,37 @@ func (w *WebhookDeliveryWorker) processWorkspaceDeliveries(ctx context.Context, 
 		default:
 		}
 
+		// Renew the claim before doing anything that writes to this row or puts
+		// bytes on the wire for it.
+		//
+		// The claim was stamped once, for the whole batch. Walking a hundred rows
+		// serially with a ten-second-per-row ceiling can outrun a fifteen-second
+		// lease a hundred times over, so without this the sweep hands rows still
+		// held here to a second worker and both POST them — the duplicate
+		// delivery the claim exists to prevent, manufactured by its own reaper.
+		// Renewing per row keeps the lease short, which is what makes recovery
+		// from a crashed worker fast.
+		owned, renewedAt, renewErr := w.deliveryRepo.RenewClaim(ctx, workspaceID, delivery.ID, delivery.ClaimedAt)
+		if renewErr != nil {
+			// We cannot prove we still own the row, so we must not write to it.
+			// Leaving it claimed hands it to the sweep, which is the one path
+			// that is safe when the database is the thing that is unwell.
+			w.logger.WithFields(map[string]interface{}{
+				"delivery_id": delivery.ID,
+				"error":       renewErr.Error(),
+			}).Error("Failed to renew webhook delivery claim")
+			continue
+		}
+		if !owned {
+			// The sweep returned this row and someone else has it. Anything we
+			// wrote now would be written over its new owner's work.
+			w.logger.WithFields(map[string]interface{}{
+				"delivery_id": delivery.ID,
+			}).Warn("Skipping webhook delivery whose claim was reclaimed")
+			continue
+		}
+		delivery.ClaimedAt = renewedAt
+
 		// Get or cache subscription
 		sub, ok := subscriptionCache[delivery.SubscriptionID]
 		if !ok {
@@ -240,10 +386,40 @@ func (w *WebhookDeliveryWorker) processWorkspaceDeliveries(ctx context.Context, 
 		}
 
 		// Process the delivery
-		w.processDelivery(ctx, workspaceID, delivery, sub)
+		w.deliverOne(ctx, workspaceID, delivery, sub)
 	}
 
 	return nil
+}
+
+// deliverOne wraps one delivery in a recover, so a panic costs that delivery
+// rather than the rest of the batch.
+//
+// This is the inner of two guards and it is about scope, not survival:
+// processDeliveriesGuarded is what keeps the process alive, and losing a whole
+// poll there means abandoning up to batchSize rows still in 'delivering' per
+// workspace, which nothing can touch until a sweep returns them. Recovering here
+// as well confines the ordinary case — a bug in one delivery — to that one
+// delivery, and the batch walks on. The segment queue processor guards each
+// contact inside its loop for the same reason.
+//
+// The row is released rather than drained: a panic is a bug in us, not a verdict
+// on the delivery, and draining would discard a webhook the next build delivers
+// perfectly well.
+func (w *WebhookDeliveryWorker) deliverOne(ctx context.Context, workspaceID string, delivery *domain.WebhookDelivery, sub *domain.WebhookSubscription) {
+	defer func() {
+		if r := recover(); r != nil {
+			w.logger.WithFields(map[string]interface{}{
+				"delivery_id":     delivery.ID,
+				"subscription_id": delivery.SubscriptionID,
+				"panic":           fmt.Sprintf("%v", r),
+				"stack":           string(debug.Stack()),
+			}).Error("Panic while delivering webhook")
+			w.releaseDelivery(ctx, workspaceID, delivery, fmt.Errorf("panic while delivering: %v", r))
+		}
+	}()
+
+	w.processDelivery(ctx, workspaceID, delivery, sub)
 }
 
 // handleSubscriptionLookupFailure decides whether a failed subscription lookup
@@ -299,12 +475,23 @@ func (w *WebhookDeliveryWorker) drainDelivery(ctx context.Context, workspaceID s
 func (w *WebhookDeliveryWorker) releaseDelivery(ctx context.Context, workspaceID string, delivery *domain.WebhookDelivery, cause error) {
 	message := cause.Error()
 
-	// The attempt count does not move: nothing was sent, so nothing was
-	// attempted, and spending one of ten attempts on our own database having a
-	// bad minute is how a transient outage turns into lost deliveries.
-	// next_attempt_at is already in the past, so the row rejoins the next batch.
-	if err := w.deliveryRepo.UpdateStatus(ctx, workspaceID, delivery.ID,
-		domain.WebhookDeliveryStatusPending, delivery.Attempts, nil, nil, &message); err != nil {
+	// ReleaseClaim rather than UpdateStatus, and the difference is the delivery
+	// log. UpdateStatus writes last_attempt_at, last_response_status and
+	// last_response_body on every call, so releasing through it stamped an
+	// attempt that never left the process and erased the receiver's last real
+	// status and body — leaving a user debugging their webhook with a Postgres
+	// pool message where the endpoint's own 500 used to be.
+	//
+	// The claim token goes with it. Releasing on the id alone let this write
+	// outlive the claim that justified it: deliverOne's recover releases
+	// unconditionally, so a panic AFTER MarkDelivered committed pushed a
+	// delivered row back to 'pending' with attempts below its ceiling and
+	// next_attempt_at in the past — claimed again on the next poll and POSTed a
+	// second time, a duplicate manufactured by the guard that exists to prevent
+	// them. The cross-worker shape is the same write from the other side: this
+	// worker stalls past its lease, the sweep hands the row to another, and the
+	// release yanks it back out from under a POST already in flight.
+	if err := w.deliveryRepo.ReleaseClaim(ctx, workspaceID, delivery.ID, delivery.ClaimedAt, message); err != nil {
 		// The release failed for the same reason the lookup did. The row stays
 		// claimed and the reclaim sweep returns it once the lease expires —
 		// which is precisely what the sweep is for.
@@ -496,10 +683,14 @@ func (w *WebhookDeliveryWorker) handleResponseStatus(ctx context.Context, worksp
 		w.handleDeliveryFailure(ctx, workspaceID, delivery, sub, &statusCode, responseBody, errorMsg)
 
 	default:
-		reason := fmt.Sprintf("automatically disabled after repeated delivery failures (last response: %s)", errorMsg)
-		if statusCode == http.StatusNotFound {
-			reason = "automatically disabled after a sustained HTTP 404 from the endpoint"
-		}
+		// The reason describes the run of failures, not the one response that
+		// happened to arrive last. Naming a cause from the final status alone
+		// labelled a subscription retired by nineteen 500s and one 404 as a URL
+		// problem — and, the other way round, hid the 404 that is a Catch Hook's
+		// death code behind whichever 500 landed on top of it.
+		reason := fmt.Sprintf(
+			"automatically disabled after %d consecutive delivery failures over more than %d hours (most recent response: %s)",
+			w.failureThreshold, int(w.failureWindow.Hours()), errorMsg)
 		w.failDelivery(ctx, workspaceID, delivery, sub, &statusCode, responseBody, errorMsg, reason)
 	}
 }
@@ -523,6 +714,10 @@ func (w *WebhookDeliveryWorker) failDelivery(ctx context.Context, workspaceID st
 // recordSubscriptionFailure bumps the consecutive-failure counter and reports
 // whether that retired the subscription.
 func (w *WebhookDeliveryWorker) recordSubscriptionFailure(ctx context.Context, workspaceID string, sub *domain.WebhookSubscription, reason string) bool {
+	// Before this failure joins the run in progress, decide whether there still
+	// is one to join.
+	w.expireStaleFailureRun(ctx, workspaceID, sub)
+
 	if err := w.subscriptionRepo.IncrementFailures(ctx, workspaceID, sub.ID); err != nil {
 		w.logger.WithFields(map[string]interface{}{
 			"subscription_id": sub.ID,
@@ -538,7 +733,25 @@ func (w *WebhookDeliveryWorker) recordSubscriptionFailure(ctx context.Context, w
 	// delivery would need one poll per failure to reach the threshold.
 	sub.ConsecutiveFailures++
 
+	// Mirror failing_since the same way, and only when it is unset: the SQL is a
+	// COALESCE, so the row records the first failure of the run and no later one.
+	if sub.FailingSince == nil {
+		startedAt := time.Now().UTC()
+		sub.FailingSince = &startedAt
+	}
+
 	if sub.ConsecutiveFailures < w.failureThreshold {
+		return false
+	}
+
+	// Volume is not persistence. Twenty failures prove the endpoint refused
+	// twenty deliveries; they say nothing about how long it has been refusing
+	// them, and a hundred deliveries go out per poll — so an import against a
+	// receiver that is restarting clears the threshold in ten seconds and would
+	// retire an integration that is healthy again a minute later, discarding
+	// every queued delivery with it. The window is what makes "sustained" mean
+	// sustained.
+	if time.Since(*sub.FailingSince) < w.failureWindow {
 		return false
 	}
 
@@ -560,6 +773,46 @@ func (w *WebhookDeliveryWorker) recordSubscriptionFailure(ctx context.Context, w
 	return true
 }
 
+// expireStaleFailureRun ends a run of failures that has grown too old for this
+// failure to belong to it, so the count and the window keep describing one
+// episode. See webhookFailureRunMaxAge for what goes wrong when they do not.
+//
+// It reuses ResetFailures rather than folding the expiry into IncrementFailures'
+// SQL, which would need the run's maximum age — and, through it, the failure
+// window and the retry ladder it is derived from — duplicated in the repository
+// package, where nothing else would ever keep the copies in step. Two statements
+// instead of one is affordable here in a way it is not for the increment itself:
+// this fires once at the head of a stale run rather than on every failure, and
+// two workers racing it both clear and both increment, which lands the counter
+// at one or two instead of one. The increment stays atomic, which is the part
+// concurrent failures can actually corrupt.
+func (w *WebhookDeliveryWorker) expireStaleFailureRun(ctx context.Context, workspaceID string, sub *domain.WebhookSubscription) {
+	if sub.FailingSince == nil || time.Since(*sub.FailingSince) < w.failureRunMaxAge {
+		return
+	}
+
+	if err := w.subscriptionRepo.ResetFailures(ctx, workspaceID, sub.ID); err != nil {
+		// The old run stands. That is the safe direction to fail in — it delays a
+		// retirement rather than causing one — and the next failure tries again.
+		w.logger.WithFields(map[string]interface{}{
+			"subscription_id": sub.ID,
+			"error":           err.Error(),
+		}).Error("Failed to expire a stale webhook subscription failure run")
+		return
+	}
+
+	// Cleared here, re-opened by the COALESCE in the IncrementFailures that
+	// follows: this failure becomes the first of the new run rather than the
+	// twenty-first of one that ended days ago.
+	sub.ConsecutiveFailures = 0
+	sub.FailingSince = nil
+
+	w.logger.WithFields(map[string]interface{}{
+		"subscription_id": sub.ID,
+		"workspace_id":    workspaceID,
+	}).Info("Started a new webhook failure run after the previous one expired")
+}
+
 // resetSubscriptionFailures clears the counter after a delivery gets through.
 func (w *WebhookDeliveryWorker) resetSubscriptionFailures(ctx context.Context, workspaceID string, sub *domain.WebhookSubscription) {
 	// Nothing to clear, and skipping the write is worth the branch: every
@@ -568,7 +821,12 @@ func (w *WebhookDeliveryWorker) resetSubscriptionFailures(ctx context.Context, w
 	// per-delivery write on that table for the healthy case, which is nearly all
 	// of them. The cached counter is at most one batch stale, because the top of
 	// each batch re-reads the subscription.
-	if sub.ConsecutiveFailures == 0 {
+	//
+	// The condition mirrors the repository's own guard, which skips on
+	// `consecutive_failures <> 0 OR failing_since IS NOT NULL`: a row can carry a
+	// window with a zero count, and returning early on the count alone would
+	// leave the window standing.
+	if sub.ConsecutiveFailures == 0 && sub.FailingSince == nil {
 		return
 	}
 
@@ -580,6 +838,14 @@ func (w *WebhookDeliveryWorker) resetSubscriptionFailures(ctx context.Context, w
 		return
 	}
 	sub.ConsecutiveFailures = 0
+
+	// Both columns, because the SQL clears both. Zeroing only the counter left
+	// the cached copy — one *sub shared by a whole hundred-row batch — carrying a
+	// FailingSince from hours ago, so recordSubscriptionFailure's `if
+	// sub.FailingSince == nil` guard never re-dated the run. A receiver that had
+	// just proved it was alive was then retired by twenty seconds of a transient
+	// blip, and the disabled branch drained everything it still had queued.
+	sub.FailingSince = nil
 }
 
 // handleGoneEndpoint retires a subscription whose endpoint answered 410 Gone.

@@ -149,29 +149,28 @@ ContactInput:
       nullable: true
       description: Custom datetime field 5
     custom_json_1:
-      type: object
-      nullable: true
-      description: Custom JSON field 1 (must be a JSON object or array)
+      # Deliberately untyped: the column is jsonb and takes any JSON value, so any
+      # `type` here would be narrower than what the endpoint accepts. An untyped
+      # schema already permits null, which is how a slot is cleared.
+      description: >-
+        Custom JSON field 1. Any JSON value the jsonb column can hold — an object,
+        an array, a string, a number, a boolean, or null to clear it.
       example:
         preferences:
           theme: dark
           notifications: true
     custom_json_2:
-      type: object
-      nullable: true
-      description: Custom JSON field 2 (must be a JSON object or array)
+      description: >-
+        Custom JSON field 2. Any JSON value the jsonb column can hold.
     custom_json_3:
-      type: object
-      nullable: true
-      description: Custom JSON field 3 (must be a JSON object or array)
+      description: >-
+        Custom JSON field 3. Any JSON value the jsonb column can hold.
     custom_json_4:
-      type: object
-      nullable: true
-      description: Custom JSON field 4 (must be a JSON object or array)
+      description: >-
+        Custom JSON field 4. Any JSON value the jsonb column can hold.
     custom_json_5:
-      type: object
-      nullable: true
-      description: Custom JSON field 5 (must be a JSON object or array)
+      description: >-
+        Custom JSON field 5. Any JSON value the jsonb column can hold.
 
 # Contact is used for response objects (GET requests)
 # It includes read-only fields like timestamps, contact_lists, and contact_segments
@@ -324,29 +323,19 @@ Contact:
       nullable: true
       description: Custom datetime field 5
     custom_json_1:
-      type: object
-      nullable: true
-      description: Custom JSON field 1
+      description: Custom JSON field 1. Any JSON value, or null.
       example:
         preferences:
           theme: dark
           notifications: true
     custom_json_2:
-      type: object
-      nullable: true
-      description: Custom JSON field 2
+      description: Custom JSON field 2. Any JSON value, or null.
     custom_json_3:
-      type: object
-      nullable: true
-      description: Custom JSON field 3
+      description: Custom JSON field 3. Any JSON value, or null.
     custom_json_4:
-      type: object
-      nullable: true
-      description: Custom JSON field 4
+      description: Custom JSON field 4. Any JSON value, or null.
     custom_json_5:
-      type: object
-      nullable: true
-      description: Custom JSON field 5
+      description: Custom JSON field 5. Any JSON value, or null.
     created_at:
       type: string
       format: date-time

@@ -383,6 +383,12 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 			-- only garbage collector for a dead endpoint that does not depend on
 			-- that endpoint telling us it is dead.
 			consecutive_failures INT NOT NULL DEFAULT 0,
+			-- When the current run of failures started. The counter alone cannot
+			-- retire an endpoint: a hundred deliveries go out per poll, so a
+			-- receiver that is restarting can fail twenty of them in ten seconds.
+			-- The threshold is only allowed to act once this shows the endpoint
+			-- has been failing for longer than one delivery's own retry ladder.
+			failing_since TIMESTAMPTZ,
 			disabled_reason TEXT,
 			created_at TIMESTAMPTZ DEFAULT NOW(),
 			updated_at TIMESTAMPTZ DEFAULT NOW(),
@@ -412,7 +418,7 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 			claimed_at TIMESTAMPTZ,
 			created_at TIMESTAMPTZ DEFAULT NOW(),
 			-- Named explicitly rather than left to PostgreSQL's auto-naming: the
-			-- v40 migration adds the same constraint to existing workspaces and
+			-- v39 migration adds the same constraint to existing workspaces and
 			-- looks it up by name to stay idempotent, so the two must agree.
 			-- Without the cascade, deleting a subscription strands its queued
 			-- deliveries, and every one of them keeps matching the pending

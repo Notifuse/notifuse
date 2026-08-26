@@ -102,14 +102,21 @@ func (h *WorkspaceHandler) handleList(w http.ResponseWriter, r *http.Request) {
 
 	workspaces, err := h.workspaceService.ListWorkspaces(r.Context())
 	if err != nil {
+		if writeServiceError(w, err, "Failed to list workspaces") {
+			return
+		}
 		WriteJSONError(w, "Failed to list workspaces", http.StatusInternalServerError)
 		return
 	}
 
-	// Credentials are decrypted on load for the sending path; they must not
-	// leave the process. See domain.Workspace.Redact.
+	// Credentials are decrypted on load for the sending path; they must not leave
+	// the process. See redactWorkspaceForCaller.
+	//
+	// This endpoint is the one an integration reaches for first — it is the only
+	// workspace endpoint no permission gates, so it is how a key discovers what it
+	// is attached to.
 	for _, ws := range workspaces {
-		ws.Redact()
+		redactWorkspaceForCaller(r.Context(), ws)
 	}
 	writeJSON(w, http.StatusOK, workspaces)
 }
@@ -140,7 +147,7 @@ func (h *WorkspaceHandler) handleGet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	workspace.Redact()
+	redactWorkspaceForCaller(r.Context(), workspace)
 
 	// Wrap the workspace in a response object with a workspace field to match frontend expectations
 	writeJSON(w, http.StatusOK, map[string]interface{}{
@@ -191,7 +198,7 @@ func (h *WorkspaceHandler) handleCreate(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	workspace.Redact()
+	redactWorkspaceForCaller(r.Context(), workspace)
 	writeJSON(w, http.StatusCreated, workspace)
 }
 
@@ -243,7 +250,7 @@ func (h *WorkspaceHandler) handleUpdate(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	workspace.Redact()
+	redactWorkspaceForCaller(r.Context(), workspace)
 	writeJSON(w, http.StatusOK, workspace)
 }
 

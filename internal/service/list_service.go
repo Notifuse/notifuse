@@ -337,7 +337,10 @@ func (s *ListService) SubscribeToListsWithResults(ctx context.Context, payload *
 
 		if list == nil {
 			s.logger.WithField("list_id", listID).Error("List not found")
-			return nil, fmt.Errorf("list not found")
+			// Typed, so the handler can answer 404 and name the list. A Zap or a
+			// script outliving the list it points at is the ordinary way here, and
+			// an untyped error made that an unexplained 500.
+			return nil, &domain.ErrListNotFound{Message: fmt.Sprintf("list %s not found", listID)}
 		}
 
 		// reject if the list is not public and the request is not authenticated

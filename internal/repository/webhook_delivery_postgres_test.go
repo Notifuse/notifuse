@@ -10,10 +10,25 @@ import (
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/domain/mocks"
+	"github.com/Notifuse/notifuse/pkg/logger"
+	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+// permissiveRepoLogger records nothing and accepts everything, for the many
+// cases here whose subject is the SQL rather than what gets logged about it.
+func permissiveRepoLogger(ctrl *gomock.Controller) *pkgmocks.MockLogger {
+	l := pkgmocks.NewMockLogger(ctrl)
+	l.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(l).AnyTimes()
+	l.EXPECT().WithFields(gomock.Any()).Return(l).AnyTimes()
+	l.EXPECT().Info(gomock.Any()).AnyTimes()
+	l.EXPECT().Debug(gomock.Any()).AnyTimes()
+	l.EXPECT().Warn(gomock.Any()).AnyTimes()
+	l.EXPECT().Error(gomock.Any()).AnyTimes()
+	return l
+}
 
 // TestWebhookDeliveryRepository_Create tests the Create method
 func TestWebhookDeliveryRepository_Create(t *testing.T) {
@@ -21,7 +36,7 @@ func TestWebhookDeliveryRepository_Create(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
-	repo := NewWebhookDeliveryRepository(mockWorkspaceRepo)
+	repo := NewWebhookDeliveryRepository(mockWorkspaceRepo, permissiveRepoLogger(ctrl))
 
 	ctx := context.Background()
 	workspaceID := "ws-123"
@@ -131,7 +146,7 @@ func TestWebhookDeliveryRepository_GetPendingForWorkspace(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
-	repo := NewWebhookDeliveryRepository(mockWorkspaceRepo)
+	repo := NewWebhookDeliveryRepository(mockWorkspaceRepo, permissiveRepoLogger(ctrl))
 
 	ctx := context.Background()
 	workspaceID := "ws-123"
@@ -314,7 +329,7 @@ func TestWebhookDeliveryRepository_ListAll(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
-	repo := NewWebhookDeliveryRepository(mockWorkspaceRepo)
+	repo := NewWebhookDeliveryRepository(mockWorkspaceRepo, permissiveRepoLogger(ctrl))
 
 	ctx := context.Background()
 	workspaceID := "ws-123"
@@ -448,7 +463,7 @@ func TestWebhookDeliveryRepository_UpdateStatus(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
-	repo := NewWebhookDeliveryRepository(mockWorkspaceRepo)
+	repo := NewWebhookDeliveryRepository(mockWorkspaceRepo, permissiveRepoLogger(ctrl))
 
 	ctx := context.Background()
 	workspaceID := "ws-123"
@@ -548,7 +563,7 @@ func TestWebhookDeliveryRepository_MarkDelivered(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
-	repo := NewWebhookDeliveryRepository(mockWorkspaceRepo)
+	repo := NewWebhookDeliveryRepository(mockWorkspaceRepo, permissiveRepoLogger(ctrl))
 
 	ctx := context.Background()
 	workspaceID := "ws-123"
@@ -645,7 +660,7 @@ func TestWebhookDeliveryRepository_ScheduleRetry(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
-	repo := NewWebhookDeliveryRepository(mockWorkspaceRepo)
+	repo := NewWebhookDeliveryRepository(mockWorkspaceRepo, permissiveRepoLogger(ctrl))
 
 	ctx := context.Background()
 	workspaceID := "ws-123"
@@ -779,7 +794,7 @@ func TestWebhookDeliveryRepository_MarkFailed(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
-	repo := NewWebhookDeliveryRepository(mockWorkspaceRepo)
+	repo := NewWebhookDeliveryRepository(mockWorkspaceRepo, permissiveRepoLogger(ctrl))
 
 	ctx := context.Background()
 	workspaceID := "ws-123"
@@ -958,7 +973,7 @@ func TestWebhookDeliveryRepository_GetPendingForWorkspace_Claims(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
-	repo := NewWebhookDeliveryRepository(mockWorkspaceRepo)
+	repo := NewWebhookDeliveryRepository(mockWorkspaceRepo, permissiveRepoLogger(ctrl))
 
 	ctx := context.Background()
 	workspaceID := "ws-123"
@@ -1028,7 +1043,7 @@ func TestWebhookDeliveryRepository_GetPendingForWorkspace_ConcurrentClaimsAreDis
 	defer ctrl.Finish()
 
 	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
-	repo := NewWebhookDeliveryRepository(mockWorkspaceRepo)
+	repo := NewWebhookDeliveryRepository(mockWorkspaceRepo, permissiveRepoLogger(ctrl))
 
 	ctx := context.Background()
 	workspaceID := "ws-123"
@@ -1095,7 +1110,7 @@ func TestWebhookDeliveryRepository_StatusWritersReleaseTheClaim(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
-	repo := NewWebhookDeliveryRepository(mockWorkspaceRepo)
+	repo := NewWebhookDeliveryRepository(mockWorkspaceRepo, permissiveRepoLogger(ctrl))
 
 	ctx := context.Background()
 	workspaceID := "ws-123"
@@ -1175,7 +1190,7 @@ func TestWebhookDeliveryRepository_DeleteBySubscriptionID(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
-	repo := NewWebhookDeliveryRepository(mockWorkspaceRepo)
+	repo := NewWebhookDeliveryRepository(mockWorkspaceRepo, permissiveRepoLogger(ctrl))
 
 	ctx := context.Background()
 	workspaceID := "ws-123"
@@ -1255,7 +1270,7 @@ func TestWebhookDeliveryRepository_ReclaimStale(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
-	repo := NewWebhookDeliveryRepository(mockWorkspaceRepo)
+	repo := NewWebhookDeliveryRepository(mockWorkspaceRepo, permissiveRepoLogger(ctrl))
 
 	ctx := context.Background()
 	workspaceID := "ws-123"
@@ -1352,4 +1367,411 @@ func TestWebhookDeliveryRepository_ReclaimStale(t *testing.T) {
 		assert.Zero(t, count)
 		assert.Contains(t, err.Error(), "failed to get rows affected")
 	})
+}
+
+// TestWebhookDeliveryRepository_GetPendingForWorkspace_OneBadRowDoesNotSinkTheBatch
+// covers the exit the claim's own contract missed.
+//
+// The claim runs in autocommit, so every row the UPDATE matched is durably in
+// 'delivering' the moment the statement executes — before a single one has been
+// scanned. Returning an error from the scan loop therefore undoes nothing: it
+// discards rows that are already claimed, and if the row that will not scan is
+// permanently unscannable it does so on every poll, forever, taking the
+// workspace's entire webhook queue with it. That is precisely the poison pill
+// the claim work exists to eliminate, arrived at from the other side.
+func TestWebhookDeliveryRepository_GetPendingForWorkspace_OneBadRowDoesNotSinkTheBatch(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	repo := NewWebhookDeliveryRepository(mockWorkspaceRepo, permissiveRepoLogger(ctrl))
+
+	ctx := context.Background()
+	workspaceID := "ws-123"
+	now := time.Now().UTC()
+
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer func() { _ = db.Close() }()
+
+	mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), workspaceID).Return(db, nil)
+
+	rows := sqlmock.NewRows([]string{
+		"id", "subscription_id", "event_type", "payload", "status",
+		"attempts", "max_attempts", "next_attempt_at", "last_attempt_at",
+		"delivered_at", "last_response_status", "last_response_body", "last_error",
+		"claimed_at", "created_at",
+	}).AddRow(
+		"delivery-1", "sub-1", "contact.created", `{"ok": true}`, domain.WebhookDeliveryStatusDelivering,
+		0, 5, now, nil, nil, nil, nil, nil, now, now,
+	).AddRow(
+		// Unscannable: the payload column is not JSON, so the helper fails after
+		// the row has already been claimed.
+		"delivery-2", "sub-1", "contact.created", `{not json`, domain.WebhookDeliveryStatusDelivering,
+		0, 5, now, nil, nil, nil, nil, nil, now, now,
+	).AddRow(
+		"delivery-3", "sub-1", "contact.created", `{"ok": true}`, domain.WebhookDeliveryStatusDelivering,
+		0, 5, now, nil, nil, nil, nil, nil, now, now,
+	)
+
+	mock.ExpectQuery(`UPDATE webhook_deliveries SET status = 'delivering', claimed_at = NOW\(\)`).
+		WithArgs(100).
+		WillReturnRows(rows)
+
+	deliveries, err := repo.GetPendingForWorkspace(ctx, workspaceID, 100)
+	require.NoError(t, err, "one unreadable row must not fail the whole claimed batch")
+	require.Len(t, deliveries, 2)
+	assert.Equal(t, "delivery-1", deliveries[0].ID)
+	assert.Equal(t, "delivery-3", deliveries[1].ID,
+		"the rows after the bad one must still be delivered")
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+// With nothing to hand back, the failure is the only thing there is to report.
+func TestWebhookDeliveryRepository_GetPendingForWorkspace_ReportsAWhollyUnreadableBatch(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	repo := NewWebhookDeliveryRepository(mockWorkspaceRepo, permissiveRepoLogger(ctrl))
+
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer func() { _ = db.Close() }()
+
+	mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), "ws-123").Return(db, nil)
+
+	now := time.Now().UTC()
+	rows := sqlmock.NewRows([]string{
+		"id", "subscription_id", "event_type", "payload", "status",
+		"attempts", "max_attempts", "next_attempt_at", "last_attempt_at",
+		"delivered_at", "last_response_status", "last_response_body", "last_error",
+		"claimed_at", "created_at",
+	}).AddRow(
+		"delivery-1", "sub-1", "contact.created", `{not json`, domain.WebhookDeliveryStatusDelivering,
+		0, 5, now, nil, nil, nil, nil, nil, now, now,
+	)
+
+	mock.ExpectQuery(`UPDATE webhook_deliveries`).WithArgs(100).WillReturnRows(rows)
+
+	deliveries, err := repo.GetPendingForWorkspace(context.Background(), "ws-123", 100)
+	require.Error(t, err)
+	assert.Nil(t, deliveries)
+	assert.Contains(t, err.Error(), "failed to scan delivery")
+}
+
+// TestWebhookDeliveryRepository_RenewClaim pins the optimistic predicate that
+// makes a renewal a renewal rather than a theft.
+func TestWebhookDeliveryRepository_RenewClaim(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	repo := NewWebhookDeliveryRepository(mockWorkspaceRepo, permissiveRepoLogger(ctrl))
+
+	ctx := context.Background()
+	workspaceID := "ws-123"
+	claimedAt := time.Now().UTC().Add(-3 * time.Second)
+
+	t.Run("renews a row we still hold, matching on the claim we were handed", func(t *testing.T) {
+		var actualSQL string
+		db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(captureWebhookSQL(&actualSQL)))
+		require.NoError(t, err)
+		defer func() { _ = db.Close() }()
+
+		mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), workspaceID).Return(db, nil)
+
+		renewed := time.Now().UTC()
+		mock.ExpectQuery(`UPDATE webhook_deliveries\s+SET claimed_at = NOW\(\)`).
+			WithArgs("delivery-1", claimedAt).
+			WillReturnRows(sqlmock.NewRows([]string{"claimed_at"}).AddRow(renewed))
+
+		owned, at, err := repo.RenewClaim(ctx, workspaceID, "delivery-1", &claimedAt)
+		require.NoError(t, err)
+		assert.True(t, owned)
+		require.NotNil(t, at)
+		assert.WithinDuration(t, renewed, *at, time.Millisecond)
+
+		normalized := normalizeWebhookSQL(actualSQL)
+		// Both halves of the predicate are load-bearing. status = 'delivering'
+		// catches a row the sweep returned to 'pending'; claimed_at = $2 catches
+		// the worse case, where the sweep returned it AND another worker took it,
+		// which is the one that produces two POSTs of the same event.
+		assert.Contains(t, normalized, "status = 'delivering'")
+		assert.Contains(t, normalized, "claimed_at = $2")
+		assert.Contains(t, normalized, "RETURNING claimed_at")
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("reports a row whose claim has moved on rather than stealing it back", func(t *testing.T) {
+		db, mock, err := sqlmock.New()
+		require.NoError(t, err)
+		defer func() { _ = db.Close() }()
+
+		mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), workspaceID).Return(db, nil)
+
+		mock.ExpectQuery(`UPDATE webhook_deliveries`).
+			WithArgs("delivery-1", claimedAt).
+			WillReturnRows(sqlmock.NewRows([]string{"claimed_at"}))
+
+		owned, at, err := repo.RenewClaim(ctx, workspaceID, "delivery-1", &claimedAt)
+		require.NoError(t, err, "losing a claim is an outcome, not a failure")
+		assert.False(t, owned)
+		assert.Nil(t, at)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("a row with no claim is not renewable and issues no statement", func(t *testing.T) {
+		db, mock, err := sqlmock.New()
+		require.NoError(t, err)
+		defer func() { _ = db.Close() }()
+
+		mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), workspaceID).Return(db, nil)
+
+		owned, at, err := repo.RenewClaim(ctx, workspaceID, "delivery-1", nil)
+		require.NoError(t, err)
+		assert.False(t, owned)
+		assert.Nil(t, at)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+}
+
+// TestWebhookDeliveryRepository_ReleaseClaim pins what a release must NOT write.
+//
+// Releasing through UpdateStatus stamped last_attempt_at with a moment nothing
+// was sent and set last_response_status and last_response_body to NULL — so a
+// delivery that had failed with the receiver's own 500 and body came back from a
+// transient database blip showing neither. The user is then debugging their
+// webhook with a Postgres pool message where the endpoint's answer used to be.
+func TestWebhookDeliveryRepository_ReleaseClaim(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	repo := NewWebhookDeliveryRepository(mockWorkspaceRepo, permissiveRepoLogger(ctrl))
+	claimedAt := time.Now().UTC().Add(-3 * time.Second)
+
+	t.Run("writes only what a release may write", func(t *testing.T) {
+		var actualSQL string
+		db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(captureWebhookSQL(&actualSQL)))
+		require.NoError(t, err)
+		defer func() { _ = db.Close() }()
+
+		mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), "ws-123").Return(db, nil)
+
+		mock.ExpectExec(`UPDATE webhook_deliveries\s+SET status = 'pending', claimed_at = NULL, last_error = \$2`).
+			WithArgs("delivery-1", "pq: sorry, too many clients already", claimedAt).
+			WillReturnResult(sqlmock.NewResult(0, 1))
+
+		require.NoError(t, repo.ReleaseClaim(context.Background(), "ws-123", "delivery-1",
+			&claimedAt, "pq: sorry, too many clients already"))
+
+		normalized := normalizeWebhookSQL(actualSQL)
+		assert.Contains(t, normalized, "status = 'pending'")
+		assert.Contains(t, normalized, "claimed_at = NULL")
+		// The delivery log belongs to the endpoint, not to us.
+		assert.NotContains(t, normalized, "last_attempt_at",
+			"a release records no attempt, because none was made")
+		assert.NotContains(t, normalized, "last_response_status",
+			"the receiver's last real status must survive a release")
+		assert.NotContains(t, normalized, "last_response_body")
+		assert.NotContains(t, normalized, "attempts =",
+			"a database blip must not spend one of the delivery's ten attempts")
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	// The other half of what a release must not do: land on a row it no longer
+	// owns. On `id` alone this UPDATE matched a row in ANY state, so the worker's
+	// recover — which releases unconditionally — pushed a row that had already
+	// been marked delivered back to 'pending' with attempts under its ceiling and
+	// next_attempt_at in the past, and the next poll re-sent it. The predicate is
+	// RenewClaim's, for the same reason RenewClaim has it.
+	t.Run("releases our claim rather than whatever state the row is in", func(t *testing.T) {
+		var actualSQL string
+		db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(captureWebhookSQL(&actualSQL)))
+		require.NoError(t, err)
+		defer func() { _ = db.Close() }()
+
+		mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), "ws-123").Return(db, nil)
+
+		mock.ExpectExec(`UPDATE webhook_deliveries`).
+			WithArgs("delivery-1", "boom", claimedAt).
+			WillReturnResult(sqlmock.NewResult(0, 0))
+
+		require.NoError(t, repo.ReleaseClaim(context.Background(), "ws-123", "delivery-1",
+			&claimedAt, "boom"), "matching no row is the correct outcome, not a failure")
+
+		normalized := normalizeWebhookSQL(actualSQL)
+		// status catches a row already marked delivered or failed; claimed_at
+		// catches the worse case, where the sweep returned the row AND another
+		// worker took it — which is the one that produces two POSTs.
+		assert.Contains(t, normalized, "status = 'delivering'")
+		assert.Contains(t, normalized, "claimed_at = $3")
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	// No token, no release — and specifically not a predicate-free release as the
+	// fallback, which would be the very statement the predicate exists to stop.
+	// The row keeps its claimless 'delivering' state, which ReclaimStale reads as
+	// infinitely stale and returns on its next sweep.
+	t.Run("a caller with no claim token issues no statement", func(t *testing.T) {
+		db, mock, err := sqlmock.New()
+		require.NoError(t, err)
+		defer func() { _ = db.Close() }()
+
+		mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), "ws-123").Return(db, nil)
+
+		require.NoError(t, repo.ReleaseClaim(context.Background(), "ws-123", "delivery-1", nil, "boom"))
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+}
+
+// A row skipped inside a claimed batch has to leave a trace somewhere.
+//
+// Skipping is right — one unreadable row must not fail a batch that is already
+// claimed and durable — but the skip was silent: the error was assigned and then
+// returned only if the batch happened to be empty, and the repository had no
+// logger. So a deterministically unscannable row cycled claim, skip, reclaim,
+// skip, every ten seconds for the whole seven-day retention window, holding one
+// of the batch's hundred slots, while an operator saw a delivery wedged in the
+// console's Delivering filter with nothing anywhere to correlate it to.
+func TestWebhookDeliveryRepository_GetPendingForWorkspace_LogsTheRowsItSkips(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+
+	log := pkgmocks.NewMockLogger(ctrl)
+	var fields map[string]interface{}
+	log.EXPECT().WithFields(gomock.Any()).
+		DoAndReturn(func(f map[string]interface{}) logger.Logger {
+			fields = f
+			return log
+		})
+	log.EXPECT().Error(gomock.Any())
+
+	repo := NewWebhookDeliveryRepository(mockWorkspaceRepo, log)
+
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer func() { _ = db.Close() }()
+
+	mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), "ws-123").Return(db, nil)
+
+	now := time.Now().UTC()
+	rows := sqlmock.NewRows([]string{
+		"id", "subscription_id", "event_type", "payload", "status",
+		"attempts", "max_attempts", "next_attempt_at", "last_attempt_at",
+		"delivered_at", "last_response_status", "last_response_body", "last_error",
+		"claimed_at", "created_at",
+	}).AddRow(
+		"delivery-1", "sub-1", "contact.created", `{"ok": true}`, domain.WebhookDeliveryStatusDelivering,
+		0, 5, now, nil, nil, nil, nil, nil, now, now,
+	).AddRow(
+		"delivery-2", "sub-1", "contact.created", `{not json`, domain.WebhookDeliveryStatusDelivering,
+		0, 5, now, nil, nil, nil, nil, nil, now, now,
+	)
+
+	mock.ExpectQuery(`UPDATE webhook_deliveries`).WithArgs(100).WillReturnRows(rows)
+
+	deliveries, err := repo.GetPendingForWorkspace(context.Background(), "ws-123", 100)
+	require.NoError(t, err, "the rest of the batch still goes out")
+	require.Len(t, deliveries, 1)
+
+	// The workspace is what makes the log actionable: it names the database the
+	// wedged row is in.
+	require.NotNil(t, fields)
+	assert.Equal(t, "ws-123", fields["workspace_id"])
+	assert.Equal(t, 1, fields["skipped"])
+	assert.Contains(t, fields["error"], "failed to scan delivery")
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+// A batch cut short mid-iteration is not a poison row at all — it is a
+// connection that died — and it went down the same silent path.
+func TestWebhookDeliveryRepository_GetPendingForWorkspace_LogsAnInterruptedIteration(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+
+	log := pkgmocks.NewMockLogger(ctrl)
+	var fields map[string]interface{}
+	log.EXPECT().WithFields(gomock.Any()).
+		DoAndReturn(func(f map[string]interface{}) logger.Logger {
+			fields = f
+			return log
+		})
+	log.EXPECT().Error(gomock.Any())
+
+	repo := NewWebhookDeliveryRepository(mockWorkspaceRepo, log)
+
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer func() { _ = db.Close() }()
+
+	mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), "ws-123").Return(db, nil)
+
+	now := time.Now().UTC()
+	rows := sqlmock.NewRows([]string{
+		"id", "subscription_id", "event_type", "payload", "status",
+		"attempts", "max_attempts", "next_attempt_at", "last_attempt_at",
+		"delivered_at", "last_response_status", "last_response_body", "last_error",
+		"claimed_at", "created_at",
+	}).AddRow(
+		"delivery-1", "sub-1", "contact.created", `{"ok": true}`, domain.WebhookDeliveryStatusDelivering,
+		0, 5, now, nil, nil, nil, nil, nil, now, now,
+	).AddRow(
+		// Perfectly scannable; the iteration never reaches it.
+		"delivery-2", "sub-1", "contact.created", `{"ok": true}`, domain.WebhookDeliveryStatusDelivering,
+		0, 5, now, nil, nil, nil, nil, nil, now, now,
+	).RowError(1, errors.New("driver: bad connection"))
+
+	mock.ExpectQuery(`UPDATE webhook_deliveries`).WithArgs(100).WillReturnRows(rows)
+
+	deliveries, err := repo.GetPendingForWorkspace(context.Background(), "ws-123", 100)
+	require.NoError(t, err)
+	require.Len(t, deliveries, 1)
+
+	require.NotNil(t, fields)
+	assert.Contains(t, fields["error"], "error iterating deliveries")
+	// No row failed to scan; the batch simply stopped. Reporting a skipped row
+	// here would send whoever reads this hunting for one.
+	assert.Equal(t, 0, fields["skipped"])
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+// The healthy path stays silent. Logging every poll would bury the two cases
+// above under a workspace's worth of noise.
+func TestWebhookDeliveryRepository_GetPendingForWorkspace_LogsNothingOnACleanBatch(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	// Nothing is armed on this logger: any call at all fails the test.
+	repo := NewWebhookDeliveryRepository(mockWorkspaceRepo, pkgmocks.NewMockLogger(ctrl))
+
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer func() { _ = db.Close() }()
+
+	mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), "ws-123").Return(db, nil)
+
+	now := time.Now().UTC()
+	rows := sqlmock.NewRows([]string{
+		"id", "subscription_id", "event_type", "payload", "status",
+		"attempts", "max_attempts", "next_attempt_at", "last_attempt_at",
+		"delivered_at", "last_response_status", "last_response_body", "last_error",
+		"claimed_at", "created_at",
+	}).AddRow(
+		"delivery-1", "sub-1", "contact.created", `{"ok": true}`, domain.WebhookDeliveryStatusDelivering,
+		0, 5, now, nil, nil, nil, nil, nil, now, now,
+	)
+
+	mock.ExpectQuery(`UPDATE webhook_deliveries`).WithArgs(100).WillReturnRows(rows)
+
+	deliveries, err := repo.GetPendingForWorkspace(context.Background(), "ws-123", 100)
+	require.NoError(t, err)
+	assert.Len(t, deliveries, 1)
+	assert.NoError(t, mock.ExpectationsWereMet())
 }

@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
+	"github.com/Notifuse/notifuse/internal/domain/mocks"
 	"github.com/Notifuse/notifuse/internal/service"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/golang/mock/gomock"
@@ -26,6 +27,29 @@ func createTestToken(t *testing.T, jwtSecret []byte, userID string) string {
 		UserID:    userID,
 		Type:      string(domain.UserTypeUser),
 		SessionID: "test-session",
+		RegisteredClaims: jwt.RegisteredClaims{
+			Audience:  jwt.ClaimStrings{"test"},
+			Issuer:    "test",
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
+		},
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	signed, err := token.SignedString(jwtSecret)
+	require.NoError(t, err)
+	return signed
+}
+
+// createTestAPIKeyToken mints the token an integration holds: type api_key, and
+// no session id, because a key has no session to expire.
+//
+// RequireAuth accepts it on every route a console session can reach — same
+// middleware, same context — which is why what a response may contain has to be
+// decided from the caller and not from the endpoint.
+func createTestAPIKeyToken(t *testing.T, jwtSecret []byte, userID string) string {
+	claims := &service.UserClaims{
+		UserID: userID,
+		Type:   string(domain.UserTypeAPIKey),
 		RegisteredClaims: jwt.RegisteredClaims{
 			Audience:  jwt.ClaimStrings{"test"},
 			Issuer:    "test",
@@ -3625,4 +3649,152 @@ func TestWorkspaceHandler_HandleSetUserPermissions_Forbidden(t *testing.T) {
 	var response map[string]string
 	require.NoError(t, json.NewDecoder(w.Body).Decode(&response))
 	assert.Equal(t, "only workspace owners can manage user permissions", response["error"])
+}
+
+// TestWorkspaceHandler_List_RevokedKeyIsAnAuthFailure pins the status code a
+// revoked API key gets.
+//
+// Revoking a key deletes its user row, and that delete is the whole of the
+// revocation: the token itself carries no jti, has no denylist, and stays signed
+// and valid for ten years. So "the user this key names is gone" means "this key
+// was revoked" — and answering 500 told every API client its server was broken
+// rather than that its credential was dead. Zapier in particular raises its
+// "reconnect this account" prompt on 401 and on nothing else, so a 500 left
+// every Zap failing with an error its owner could not act on.
+func TestWorkspaceHandler_List_RevokedKeyIsAnAuthFailure(t *testing.T) {
+	handler, workspaceService, _, _, _ := setupTest(t)
+
+	workspaceService.EXPECT().
+		ListWorkspaces(gomock.Any()).
+		Return(nil, fmt.Errorf("failed to authenticate user: %w", domain.ErrAPIKeyRevoked))
+
+	w := httptest.NewRecorder()
+	handler.handleList(w, httptest.NewRequest(http.MethodGet, "/api/workspaces.list", nil))
+
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
+
+	var response map[string]string
+	require.NoError(t, json.NewDecoder(w.Body).Decode(&response))
+	assert.Equal(t, "API key has been revoked", response["error"])
+}
+
+// TestWorkspaceHandler_FileManagerSecretDependsOnTheCaller covers a credential
+// leak that lives in the transport rather than in any one caller.
+//
+// Workspace.Redact deliberately keeps the S3 secret: the console builds an S3
+// client in the browser from that exact field and talks to the bucket directly,
+// so blanking it for everyone breaks the file manager rather than hardening
+// anything. An API key, though, authenticates every endpoint below exactly as a
+// session does — workspaces.list needs no permission at all, which is how an
+// integration discovers what it is attached to — and no integration has any use
+// for a live bucket credential, in a body those platforms routinely log whole.
+//
+// Driven through the mux with a real signed token so the caller's identity comes
+// from the JWT claim the way it does in production, and asserted against the raw
+// bytes rather than a decoded struct, because the leak is what goes on the wire.
+func TestWorkspaceHandler_FileManagerSecretDependsOnTheCaller(t *testing.T) {
+	const fileManagerSecret = "SENTINEL-live-bucket-secret"
+	const fileManagerCiphertext = "SENTINEL-bucket-ciphertext"
+
+	// A body that passes validation without configuring a file manager: the
+	// secret under test comes back from the service, not from the request.
+	const writeBody = `{"id":"workspace123","name":"Test Workspace","settings":{"timezone":"UTC","default_language":"en","languages":["en"]}}`
+
+	newWorkspace := func() *domain.Workspace {
+		workspace := &domain.Workspace{ID: "workspace123", Name: "Test Workspace"}
+		workspace.Settings.FileManager = domain.FileManagerSettings{
+			Provider:           "s3",
+			Bucket:             "assets",
+			AccessKey:          "AKIAEXAMPLE",
+			SecretKey:          fileManagerSecret,
+			EncryptedSecretKey: fileManagerCiphertext,
+		}
+		return workspace
+	}
+
+	endpoints := []struct {
+		name           string
+		expectedStatus int
+		expect         func(svc *mocks.MockWorkspaceServiceInterface)
+		request        func() *http.Request
+	}{
+		{
+			name:           "workspaces.list",
+			expectedStatus: http.StatusOK,
+			expect: func(svc *mocks.MockWorkspaceServiceInterface) {
+				svc.EXPECT().ListWorkspaces(gomock.Any()).Return([]*domain.Workspace{newWorkspace()}, nil)
+			},
+			request: func() *http.Request {
+				return httptest.NewRequest(http.MethodGet, "/api/workspaces.list", nil)
+			},
+		},
+		{
+			name:           "workspaces.get",
+			expectedStatus: http.StatusOK,
+			expect: func(svc *mocks.MockWorkspaceServiceInterface) {
+				svc.EXPECT().GetWorkspace(gomock.Any(), "workspace123").Return(newWorkspace(), nil)
+			},
+			request: func() *http.Request {
+				return httptest.NewRequest(http.MethodGet, "/api/workspaces.get?id=workspace123", nil)
+			},
+		},
+		{
+			name:           "workspaces.create",
+			expectedStatus: http.StatusCreated,
+			expect: func(svc *mocks.MockWorkspaceServiceInterface) {
+				svc.EXPECT().CreateWorkspace(
+					gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
+					gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
+				).Return(newWorkspace(), nil)
+			},
+			request: func() *http.Request {
+				return httptest.NewRequest(http.MethodPost, "/api/workspaces.create", strings.NewReader(writeBody))
+			},
+		},
+		{
+			name:           "workspaces.update",
+			expectedStatus: http.StatusOK,
+			expect: func(svc *mocks.MockWorkspaceServiceInterface) {
+				svc.EXPECT().UpdateWorkspace(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					Return(newWorkspace(), nil)
+			},
+			request: func() *http.Request {
+				return httptest.NewRequest(http.MethodPost, "/api/workspaces.update", strings.NewReader(writeBody))
+			},
+		},
+	}
+
+	for _, endpoint := range endpoints {
+		t.Run(endpoint.name+" withholds it from an API key", func(t *testing.T) {
+			_, workspaceService, mux, secretKey, _ := setupTest(t)
+			endpoint.expect(workspaceService)
+
+			req := endpoint.request()
+			req.Header.Set("Authorization", "Bearer "+createTestAPIKeyToken(t, secretKey, "api-key-user"))
+			w := httptest.NewRecorder()
+			mux.ServeHTTP(w, req)
+
+			require.Equal(t, endpoint.expectedStatus, w.Code)
+			body := w.Body.String()
+			assert.NotContains(t, body, fileManagerSecret)
+			assert.NotContains(t, body, fileManagerCiphertext)
+			// Everything an integration actually reads still goes out.
+			assert.Contains(t, body, "workspace123")
+			assert.Contains(t, body, "assets")
+		})
+
+		t.Run(endpoint.name+" still serves it to a console session", func(t *testing.T) {
+			_, workspaceService, mux, secretKey, _ := setupTest(t)
+			endpoint.expect(workspaceService)
+
+			req := endpoint.request()
+			req.Header.Set("Authorization", "Bearer "+createTestToken(t, secretKey, "test-user"))
+			w := httptest.NewRecorder()
+			mux.ServeHTTP(w, req)
+
+			require.Equal(t, endpoint.expectedStatus, w.Code)
+			assert.Contains(t, w.Body.String(), fileManagerSecret,
+				"withholding this from the console breaks the browser file manager")
+		})
+	}
 }

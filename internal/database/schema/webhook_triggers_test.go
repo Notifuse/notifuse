@@ -409,9 +409,17 @@ func TestWebhookCustomEventsTriggerFunction_FiltersAreUnchanged(t *testing.T) {
 	assert.Contains(t, sql, "custom_filters := sub.settings->'custom_event_filters';")
 
 	for _, key := range []string{"goal_types", "event_names"} {
+		// jsonb_typeof, not a key-exists test. Both guards read a free-form jsonb
+		// column, and `settings ? 'goal_types'` is true for a key whose value is
+		// JSON null — at which point jsonb_array_length raises "cannot get array
+		// length of a scalar". This trigger runs inside the customer's write
+		// transaction, so that raise fails their INSERT into custom_events: the
+		// events.track call 500s, and no webhook is involved in the damage.
 		assert.Regexpf(t,
-			fmt.Sprintf(`custom_filters IS NOT NULL AND custom_filters \? '%s'\s+AND jsonb_array_length\(custom_filters->'%s'\) > 0 THEN`, key, key),
-			sql, "the %s filter must stay guarded on a non-empty array", key)
+			fmt.Sprintf(`jsonb_typeof\(custom_filters->'%s'\) = 'array'\s+AND jsonb_array_length\(custom_filters->'%s'\) > 0 THEN`, key, key),
+			sql, "the %s filter must be guarded on the type, not on the key", key)
+		assert.NotContainsf(t, sql, fmt.Sprintf(`custom_filters ? '%s'`, key),
+			"a key-exists test lets a JSON null through to jsonb_array_length, which raises")
 		assert.Contains(t, sql, fmt.Sprintf("SELECT jsonb_array_elements_text(custom_filters->'%s')", key))
 	}
 

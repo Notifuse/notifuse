@@ -2185,3 +2185,230 @@ func TestWebhookSubscriptionService_IDFiltersReachTheStoredSettings(t *testing.T
 		assert.Nil(t, written.Settings.SegmentIDs)
 	})
 }
+
+// TestWebhookSubscriptionService_SwitchingOnClearsTheFailureHistory covers the
+// half of the auto-disable feature the user gets to act on.
+//
+// Without it, re-enabling a subscription the sweep retired is a no-op with extra
+// steps: the counter that retired it is still at the threshold and the window it
+// was failing in still points at the old outage, so the very next failed
+// delivery — a single 500 from a healthy endpoint — switches it straight back
+// off. Turning a webhook back on is a statement that the endpoint has been
+// fixed; the failure history is exactly what has to be forgotten for that to
+// mean anything.
+func TestWebhookSubscriptionService_SwitchingOnClearsTheFailureHistory(t *testing.T) {
+	retired := func() *domain.WebhookSubscription {
+		startedAt := time.Now().UTC().Add(-30 * time.Hour)
+		reason := "automatically disabled after 20 consecutive delivery failures over 12h0m0s"
+		return &domain.WebhookSubscription{
+			ID:                  "sub123",
+			Name:                "Zapier — New Contact",
+			URL:                 "https://hooks.zapier.com/hooks/standard/1/2/",
+			Secret:              "secret",
+			Enabled:             false,
+			ConsecutiveFailures: 20,
+			FailingSince:        &startedAt,
+			DisabledReason:      &reason,
+		}
+	}
+
+	t.Run("toggling it on", func(t *testing.T) {
+		mockRepo, _, _, service, ctrl := setupWebhookSubscriptionTest(t)
+		defer ctrl.Finish()
+
+		mockRepo.EXPECT().GetByID(gomock.Any(), "workspace123", "sub123").Return(retired(), nil)
+
+		var written *domain.WebhookSubscription
+		mockRepo.EXPECT().Update(gomock.Any(), "workspace123", gomock.Any()).
+			DoAndReturn(func(_ context.Context, _ string, sub *domain.WebhookSubscription) error {
+				written = sub
+				return nil
+			})
+
+		_, err := service.Toggle(context.Background(), "workspace123", "sub123", true)
+		require.NoError(t, err)
+
+		require.NotNil(t, written)
+		assert.True(t, written.Enabled)
+		assert.Equal(t, 0, written.ConsecutiveFailures)
+		assert.Nil(t, written.FailingSince, "a fresh start needs a fresh window")
+		assert.Nil(t, written.DisabledReason)
+	})
+
+	t.Run("switching it off leaves the history to read", func(t *testing.T) {
+		mockRepo, _, _, service, ctrl := setupWebhookSubscriptionTest(t)
+		defer ctrl.Finish()
+
+		enabled := retired()
+		enabled.Enabled = true
+
+		mockRepo.EXPECT().GetByID(gomock.Any(), "workspace123", "sub123").Return(enabled, nil)
+
+		var written *domain.WebhookSubscription
+		mockRepo.EXPECT().Update(gomock.Any(), "workspace123", gomock.Any()).
+			DoAndReturn(func(_ context.Context, _ string, sub *domain.WebhookSubscription) error {
+				written = sub
+				return nil
+			})
+
+		_, err := service.Toggle(context.Background(), "workspace123", "sub123", false)
+		require.NoError(t, err)
+
+		require.NotNil(t, written)
+		assert.False(t, written.Enabled)
+		assert.Equal(t, 20, written.ConsecutiveFailures)
+		assert.NotNil(t, written.FailingSince)
+		assert.NotNil(t, written.DisabledReason)
+	})
+}
+
+// TestWebhookSubscriptionService_Create_SecretGoesOnlyToAPerson pins who the freshly
+// minted signing secret is returned to.
+//
+// It is returned to whoever created a subscription by hand, because that response is the
+// one place they can read it and they need it to configure their receiver. It is withheld
+// from an integration, because there is nobody on the other end of that call to copy it,
+// a REST Hook target URL verifies no signature so the integration has no use for it — and
+// the response body travels wherever that platform logs bodies. Zapier's core middleware
+// logs every response body it receives, so returning the secret writes a live signing key
+// into a third party's log store on every Zap turn-on.
+func TestWebhookSubscriptionService_Create_SecretGoesOnlyToAPerson(t *testing.T) {
+	create := func(t *testing.T, source string) *domain.WebhookSubscription {
+		t.Helper()
+		mockRepo, _, _, service, ctrl := setupWebhookSubscriptionTest(t)
+		defer ctrl.Finish()
+
+		// Copied by value at the moment of the write: the service hands the
+		// repository the same pointer it returns, so reading Secret afterwards
+		// would read whatever the response was left holding rather than what was
+		// stored.
+		var storedSecret string
+		mockRepo.EXPECT().Create(gomock.Any(), "workspace123", gomock.Any()).
+			DoAndReturn(func(_ context.Context, _ string, sub *domain.WebhookSubscription) error {
+				storedSecret = sub.Secret
+				return nil
+			})
+
+		created, err := service.Create(context.Background(), "workspace123", "Hook",
+			"https://example.com/webhook", []string{"contact.created"}, nil, source, nil, nil)
+		require.NoError(t, err)
+
+		// Whatever the response shows, the row always keeps a real secret: it is
+		// what every delivery is signed with.
+		require.NotEmpty(t, storedSecret)
+		return created
+	}
+
+	t.Run("a subscription a person created answers with its secret", func(t *testing.T) {
+		created := create(t, domain.WebhookSubscriptionSourceUser)
+		assert.NotEmpty(t, created.Secret)
+	})
+
+	t.Run("a subscription an integration created does not", func(t *testing.T) {
+		created := create(t, domain.WebhookSubscriptionSourceZapier)
+		assert.Empty(t, created.Secret,
+			"an integration has no use for the key and its platform logs the response body")
+	})
+}
+
+// An edit must not undo a retirement Notifuse decided on.
+//
+// enabled arrives as a plain bool on every update, filled in from whatever the
+// console last read, so a form loaded while the subscription was healthy still
+// carries true after the delivery worker has retired the endpoint. Saving a
+// renamed webhook then switched it back on, cleared the reason that explained
+// why it was off, and pointed the whole queue at a dead URL again — none of
+// which the person renaming it asked for or was told about. Turning it back on
+// is a claim that the endpoint has been fixed, so it goes through the toggle
+// endpoint, deliberately.
+func TestWebhookSubscriptionService_Update_WillNotResurrectAnAutoDisabledSubscription(t *testing.T) {
+	mockRepo, _, _, service, ctrl := setupWebhookSubscriptionTest(t)
+	defer ctrl.Finish()
+
+	reason := "automatically disabled after 20 consecutive delivery failures over more than 2 hours (most recent response: HTTP 500)"
+	mockRepo.EXPECT().
+		GetByID(gomock.Any(), "workspace123", "sub123").
+		Return(&domain.WebhookSubscription{
+			ID:                  "sub123",
+			Name:                "Old Name",
+			URL:                 "https://example.com/webhook",
+			Enabled:             false,
+			ConsecutiveFailures: 20,
+			DisabledReason:      &reason,
+		}, nil)
+	// Nothing arms Update: reaching the write at all is the bug.
+
+	sub, err := service.Update(context.Background(), "workspace123", "sub123",
+		"Renamed", "https://example.com/webhook", []string{"contact.created"}, nil,
+		true, nil, nil)
+
+	require.Error(t, err)
+	assert.Nil(t, sub)
+	// The message has to carry the reason, or the user is told no and not why.
+	assert.Contains(t, err.Error(), "disabled automatically")
+	assert.Contains(t, err.Error(), "HTTP 500")
+}
+
+// A subscription a person switched off carries no reason, and editing it back on
+// is exactly what it looks like. The guard above must not turn every disabled
+// webhook into one that can only be re-enabled from a second screen.
+func TestWebhookSubscriptionService_Update_StillEnablesAUserDisabledSubscription(t *testing.T) {
+	mockRepo, _, _, service, ctrl := setupWebhookSubscriptionTest(t)
+	defer ctrl.Finish()
+
+	mockRepo.EXPECT().
+		GetByID(gomock.Any(), "workspace123", "sub123").
+		Return(&domain.WebhookSubscription{
+			ID:      "sub123",
+			Name:    "Old Name",
+			URL:     "https://example.com/webhook",
+			Enabled: false,
+		}, nil)
+	mockRepo.EXPECT().
+		Update(gomock.Any(), "workspace123", gomock.Any()).
+		DoAndReturn(func(_ context.Context, _ string, sub *domain.WebhookSubscription) error {
+			require.True(t, sub.Enabled)
+			return nil
+		})
+
+	sub, err := service.Update(context.Background(), "workspace123", "sub123",
+		"Renamed", "https://example.com/webhook", []string{"contact.created"}, nil,
+		true, nil, nil)
+
+	require.NoError(t, err)
+	require.NotNil(t, sub)
+	assert.True(t, sub.Enabled)
+}
+
+// And the guard is about re-enabling, not about editing: an auto-disabled
+// subscription can still be renamed or repointed while it stays off, which is
+// how a user fixes the URL that killed it before turning it back on.
+func TestWebhookSubscriptionService_Update_StillEditsAnAutoDisabledSubscription(t *testing.T) {
+	mockRepo, _, _, service, ctrl := setupWebhookSubscriptionTest(t)
+	defer ctrl.Finish()
+
+	reason := "automatically disabled after repeated delivery failures"
+	mockRepo.EXPECT().
+		GetByID(gomock.Any(), "workspace123", "sub123").
+		Return(&domain.WebhookSubscription{
+			ID:             "sub123",
+			Name:           "Old Name",
+			URL:            "https://old.example.com/webhook",
+			Enabled:        false,
+			DisabledReason: &reason,
+		}, nil)
+	mockRepo.EXPECT().
+		Update(gomock.Any(), "workspace123", gomock.Any()).
+		DoAndReturn(func(_ context.Context, _ string, sub *domain.WebhookSubscription) error {
+			require.Equal(t, "https://new.example.com/webhook", sub.URL)
+			require.False(t, sub.Enabled)
+			return nil
+		})
+
+	sub, err := service.Update(context.Background(), "workspace123", "sub123",
+		"Renamed", "https://new.example.com/webhook", []string{"contact.created"}, nil,
+		false, nil, nil)
+
+	require.NoError(t, err)
+	require.NotNil(t, sub)
+}

@@ -2,7 +2,13 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState, useMemo, useEffect } from 'react'
 import { Table, Tag, Space, Button, Tooltip, Empty, Spin, Select, Popover } from 'antd'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faCheck, faTimes, faRefresh, faClock } from '@fortawesome/free-solid-svg-icons'
+import {
+  faCheck,
+  faTimes,
+  faRefresh,
+  faClock,
+  faPaperPlane
+} from '@fortawesome/free-solid-svg-icons'
 import dayjs from '../../lib/dayjs'
 import { useAuth } from '../../contexts/AuthContext'
 import {
@@ -77,6 +83,9 @@ export function OutgoingWebhooksTab({ workspaceId }: OutgoingWebhooksTabProps) {
         options: [
           { value: 'delivered', label: t`Delivered` },
           { value: 'pending', label: t`Pending` },
+          // A worker claims a delivery by writing this status to the row, so an operator
+          // investigating a slow endpoint needs a way to isolate what is in flight right now.
+          { value: 'delivering', label: t`Delivering` },
           { value: 'failed', label: t`Failed` }
         ]
       }
@@ -234,6 +243,12 @@ export function OutgoingWebhooksTab({ workspaceId }: OutgoingWebhooksTabProps) {
         return (
           <Tag color="blue" variant="filled">
             <FontAwesomeIcon icon={faClock} className="mr-1 opacity-70" /> {t`Pending`}
+          </Tag>
+        )
+      case 'delivering':
+        return (
+          <Tag color="cyan" variant="filled">
+            <FontAwesomeIcon icon={faPaperPlane} className="mr-1 opacity-70" /> {t`Delivering`}
           </Tag>
         )
       case 'failed':

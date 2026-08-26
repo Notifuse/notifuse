@@ -162,3 +162,18 @@ func (e *ErrSessionNotFound) Error() string {
 // token and leaves the current page on any 401, so reporting a transient database
 // failure that way signs the user out and throws away the URL they were on.
 var ErrSessionAuthFailed = errors.New("session authentication failed")
+
+// ErrAPIKeyRevoked reports that a bearer token authenticated, but the API-key
+// user it names no longer exists.
+//
+// It is the only shape a revoked key can take. An API key's token lives ten
+// years, carries no jti and has no denylist, so revoking one deletes its user
+// row and nothing else — the signature keeps verifying forever. Without a typed
+// error for it, every endpoint answered a revoked key with 500, which reads as
+// "the server is broken" to any client and specifically stops Zapier raising the
+// reconnect prompt that a 401 triggers.
+//
+// Distinct from ErrSessionAuthFailed for the same reason that one exists: only a
+// proven authentication failure may answer 401, never a database that could not
+// answer the lookup.
+var ErrAPIKeyRevoked = errors.New("api key has been revoked")

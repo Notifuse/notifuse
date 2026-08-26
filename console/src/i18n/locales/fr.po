@@ -143,7 +143,7 @@ msgstr "{0} emails livrés avec succès (masqués du graphique)"
 #. placeholder {0}: dayjs(dateString).format('lll')
 #. placeholder {1}: currentWorkspace?.settings.timezone || 'UTC'
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:338
-#: src/components/webhooks/OutgoingWebhooksTab.tsx:259
+#: src/components/webhooks/OutgoingWebhooksTab.tsx:274
 msgid "{0} in {1}"
 msgstr "{0} dans {1}"
 
@@ -280,7 +280,8 @@ msgstr "{hours}h"
 msgid "{hours}h {remainingMinutes}m"
 msgstr "{hours}h {remainingMinutes}m"
 
-#: src/components/settings/WebhookCard.tsx:143
+#: src/components/settings/WebhookCard.tsx:151
+#: src/components/settings/ZapierSettings.tsx:110
 msgid "{label} copied to clipboard"
 msgstr "{label} copié dans le presse-papiers"
 
@@ -875,7 +876,7 @@ msgstr "Ajouter aux listes"
 msgid "Add Variant"
 msgstr "Ajouter une variante"
 
-#: src/components/settings/WebhooksSettings.tsx:186
+#: src/components/settings/WebhooksSettings.tsx:209
 msgid "Add Webhook"
 msgstr "Ajouter un webhook"
 
@@ -1219,6 +1220,10 @@ msgstr "Le point d accès API est requis"
 msgid "API Identifier"
 msgstr "Identifiant API"
 
+#: src/components/settings/ZapierSettings.tsx:190
+msgid "API key"
+msgstr "Clé API"
+
 #: src/components/integrations/FirecrawlIntegration.tsx:84
 #: src/components/integrations/LLMIntegration.tsx:175
 #: src/components/settings/Integrations.tsx:1543
@@ -1229,7 +1234,7 @@ msgstr "Identifiant API"
 #: src/components/settings/Integrations.tsx:1999
 #: src/components/settings/Integrations.tsx:2000
 #: src/components/settings/Integrations.tsx:2021
-#: src/components/settings/WorkspaceMembers.tsx:91
+#: src/components/settings/WorkspaceMembers.tsx:116
 msgid "API Key"
 msgstr "Clé API"
 
@@ -1237,27 +1242,45 @@ msgstr "Clé API"
 msgid "API Key (starts with SG.)"
 msgstr "Clé API (commence par SG.)"
 
-#: src/components/settings/WorkspaceMembers.tsx:300
+#: src/components/settings/ZapierSettings.tsx:175
+msgid "API key created"
+msgstr "Clé API créée"
+
+#: src/components/settings/WorkspaceMembers.tsx:325
 msgid "API key created successfully"
 msgstr "Clé API créée avec succès"
 
-#: src/components/settings/WorkspaceMembers.tsx:538
+#: src/components/settings/WorkspaceMembers.tsx:566
 msgid "API Key Created Successfully"
 msgstr "Clé API créée avec succès"
 
-#: src/components/settings/WorkspaceMembers.tsx:507
+#: src/components/settings/ZapierSettings.tsx:207
+msgid "API key name"
+msgstr "Nom de la clé API"
+
+#: src/components/settings/WorkspaceMembers.tsx:534
 msgid "API Key Name"
 msgstr "Nom de la clé API"
 
-#: src/components/settings/WorkspaceMembers.tsx:545
+#: src/components/settings/ZapierSettings.tsx:185
+msgid "API key token"
+msgstr "Jeton de la clé API"
+
+#: src/components/settings/WorkspaceMembers.tsx:573
 msgid "API Token"
 msgstr "Jeton API"
+
+#: src/components/settings/ZapierSettings.tsx:156
+#: src/components/settings/ZapierSettings.tsx:161
+#: src/components/settings/ZapierSettings.tsx:164
+msgid "API URL"
+msgstr "URL de l'API"
 
 #: src/components/messages/MessageHistoryTab.tsx:548
 #: src/components/web_analytics/explore/MinSessionsInput.tsx:47
 #: src/components/web_analytics/toolbar.tsx:118
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:307
-#: src/components/webhooks/OutgoingWebhooksTab.tsx:317
+#: src/components/webhooks/OutgoingWebhooksTab.tsx:332
 msgid "Apply"
 msgstr "Appliquer"
 
@@ -1297,7 +1320,7 @@ msgid "Are you sure you want to delete the category"
 msgstr "Êtes-vous sûr de vouloir supprimer la catégorie"
 
 #. placeholder {0}: record.email
-#: src/components/settings/WorkspaceMembers.tsx:211
+#: src/components/settings/WorkspaceMembers.tsx:236
 msgid "Are you sure you want to delete the invitation for {0}?"
 msgstr "Êtes-vous sûr de vouloir supprimer l invitation pour {0} ?"
 
@@ -1343,7 +1366,7 @@ msgstr "Êtes-vous sûr de vouloir reconstruire \"{0}\" ? L appartenance au segm
 
 #. placeholder {0}: record.email
 #. placeholder {1}: record.type === 'api_key' ? ' This API key will be permanently deleted.' : ''
-#: src/components/settings/WorkspaceMembers.tsx:191
+#: src/components/settings/WorkspaceMembers.tsx:216
 msgid "Are you sure you want to remove {0}?{1}"
 msgstr "Êtes-vous sûr de vouloir supprimer {0} ?{1}"
 
@@ -1422,7 +1445,7 @@ msgstr "au plus"
 msgid "Attachments"
 msgstr "Pièces jointes"
 
-#: src/components/webhooks/OutgoingWebhooksTab.tsx:369
+#: src/components/webhooks/OutgoingWebhooksTab.tsx:384
 msgid "Attempts"
 msgstr "Tentatives"
 
@@ -1500,6 +1523,10 @@ msgstr "Créer automatiquement les comptes à la première connexion"
 #: src/components/settings/SystemSettingsDrawer.tsx:625
 msgid "Auto-create users"
 msgstr "Création automatique des utilisateurs"
+
+#: src/components/settings/WebhookCard.tsx:209
+msgid "Auto-disabled"
+msgstr "Désactivé automatiquement"
 
 #: src/components/timeline/ContactTimeline.tsx:656
 msgid "Auto-reply"
@@ -1822,7 +1849,7 @@ msgstr "L'écriture Blog publie du JavaScript sur votre propre domaine. Un thèm
 msgid "Body Attributes"
 msgstr "Attributs du corps"
 
-#: src/components/settings/WebhookCard.tsx:383
+#: src/components/settings/WebhookCard.tsx:479
 msgid "Body:"
 msgstr "Corps :"
 
@@ -1832,7 +1859,7 @@ msgstr "Corps :"
 msgid "Bold"
 msgstr "Gras"
 
-#: src/components/settings/WebhooksSettings.tsx:303
+#: src/components/settings/WebhooksSettings.tsx:336
 msgid "Booking"
 msgstr "Réservation"
 
@@ -2229,10 +2256,11 @@ msgstr "Campagnes"
 #: src/components/settings/Integrations.tsx:2646
 #: src/components/settings/Integrations.tsx:2693
 #: src/components/settings/SystemSettingsDrawer.tsx:170
-#: src/components/settings/WebhookCard.tsx:354
-#: src/components/settings/WebhooksSettings.tsx:213
-#: src/components/settings/WorkspaceMembers.tsx:450
-#: src/components/settings/WorkspaceMembers.tsx:495
+#: src/components/settings/WebhookCard.tsx:430
+#: src/components/settings/WebhookCard.tsx:450
+#: src/components/settings/WebhooksSettings.tsx:236
+#: src/components/settings/WorkspaceMembers.tsx:476
+#: src/components/settings/WorkspaceMembers.tsx:522
 #: src/components/templates/CreateTemplateDrawer.tsx:629
 #: src/components/templates/SendTemplateModal.tsx:268
 #: src/components/templates/TemplateTranslationsTab.tsx:255
@@ -2478,13 +2506,13 @@ msgstr "Niveau ville (précision ~1 km)"
 #: src/components/filters/Filter.tsx:193
 #: src/components/messages/MessageHistoryTab.tsx:553
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:312
-#: src/components/webhooks/OutgoingWebhooksTab.tsx:322
+#: src/components/webhooks/OutgoingWebhooksTab.tsx:337
 msgid "Clear"
 msgstr "Effacer"
 
 #: src/components/messages/MessageHistoryTab.tsx:591
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:328
-#: src/components/webhooks/OutgoingWebhooksTab.tsx:338
+#: src/components/webhooks/OutgoingWebhooksTab.tsx:353
 msgid "Clear All"
 msgstr "Tout effacer"
 
@@ -2618,8 +2646,8 @@ msgstr "Cloner le modèle"
 #: src/components/broadcasts/GlobalFeedSettings.tsx:137
 #: src/components/contacts/BulkActionProgressModal.tsx:65
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:825
-#: src/components/settings/WebhookCard.tsx:351
-#: src/components/settings/WorkspaceMembers.tsx:491
+#: src/components/settings/WebhookCard.tsx:447
+#: src/components/settings/WorkspaceMembers.tsx:518
 #: src/components/transactional/ApiCommandModal.tsx:990
 msgid "Close"
 msgstr "Fermer"
@@ -2848,7 +2876,7 @@ msgstr "Configurer l intégration"
 msgid "Configure now"
 msgstr "Configurer maintenant"
 
-#: src/components/settings/WebhooksSettings.tsx:170
+#: src/components/settings/WebhooksSettings.tsx:193
 msgid "Configure outgoing webhooks to receive real-time notifications when events occur in your workspace."
 msgstr "Configurez les webhooks sortants pour recevoir des notifications en temps réel lorsque des événements se produisent dans votre espace de travail."
 
@@ -2898,9 +2926,21 @@ msgstr "Confirmé"
 msgid "Connect and manage external services"
 msgstr "Connecter et gérer les services externes"
 
+#: src/components/settings/ZapierSettings.tsx:140
+msgid "Connect Notifuse to more than 8,000 apps with Zapier"
+msgstr "Connectez Notifuse à plus de 8 000 applications avec Zapier"
+
+#: src/components/settings/ZapierSettings.tsx:145
+msgid "Connecting Zapier lets a Zap react to Notifuse events — a new contact, a list subscription, a segment a contact joined — and lets a Zap create or update contacts and subscribe them to your lists. Each Zap you turn on registers its own webhook subscription, which you can see in Settings → Webhooks."
+msgstr "Connecter Zapier permet à un Zap de réagir aux événements Notifuse — un nouveau contact, une inscription à une liste, un segment qu'un contact vient de rejoindre — et de créer ou mettre à jour des contacts puis de les abonner à vos listes. Chaque Zap que vous activez enregistre son propre abonnement webhook, visible dans Paramètres → Webhooks."
+
 #: src/components/transactional/ApiCommandModal.tsx:530
 msgid "Connection Details"
 msgstr "Détails de connexion"
+
+#: src/components/settings/WebhookCard.tsx:304
+msgid "Consecutive delivery failures: {consecutiveFailures}"
+msgstr "Échecs de livraison consécutifs : {consecutiveFailures}"
 
 #: src/components/settings/Integrations.tsx:2489
 msgid "Consider connecting a marketing email provider to send newsletters, promotional campaigns, and announcements to engage with your audience."
@@ -3088,7 +3128,9 @@ msgstr "Copié"
 #: src/components/common/CodeSnippet.tsx:93
 #: src/components/settings/Integrations.tsx:1393
 #: src/components/settings/Integrations.tsx:1430
-#: src/components/settings/WebhookCard.tsx:292
+#: src/components/settings/WebhookCard.tsx:369
+#: src/components/settings/ZapierSettings.tsx:166
+#: src/components/settings/ZapierSettings.tsx:192
 msgid "Copy"
 msgstr "Copier"
 
@@ -3269,6 +3311,10 @@ msgstr "Créer une version de thème"
 msgid "Create a transactional notification"
 msgstr "Créer une notification transactionnelle"
 
+#: src/components/settings/ZapierSettings.tsx:228
+msgid "Create a Zapier API key"
+msgstr "Créer une clé API Zapier"
+
 #: src/services/api/permissions.ts:662
 msgid "Create an automation, including webhook, email and list nodes"
 msgstr "Créer une automation, y compris des nœuds webhook, email et liste"
@@ -3285,9 +3331,9 @@ msgstr "Créer un tenant SES pour cette intégration ?"
 msgid "Create and manage your blog content"
 msgstr "Créez et gérez le contenu de votre blog"
 
-#: src/components/settings/WorkspaceMembers.tsx:414
-#: src/components/settings/WorkspaceMembers.tsx:478
-#: src/components/settings/WorkspaceMembers.tsx:497
+#: src/components/settings/WorkspaceMembers.tsx:440
+#: src/components/settings/WorkspaceMembers.tsx:505
+#: src/components/settings/WorkspaceMembers.tsx:524
 msgid "Create API Key"
 msgstr "Créer une clé API"
 
@@ -3377,8 +3423,8 @@ msgstr "Créez ceci dans Azure Portal > Inscriptions d applications > Votre appl
 msgid "Create urgency or curiosity"
 msgstr "Créez de l urgence ou de la curiosité"
 
-#: src/components/settings/WebhooksSettings.tsx:178
-#: src/components/settings/WebhooksSettings.tsx:206
+#: src/components/settings/WebhooksSettings.tsx:201
+#: src/components/settings/WebhooksSettings.tsx:229
 msgid "Create Webhook"
 msgstr "Créer un webhook"
 
@@ -3423,7 +3469,7 @@ msgid "created"
 msgstr "créé"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:68
-#: src/components/webhooks/OutgoingWebhooksTab.tsx:403
+#: src/components/webhooks/OutgoingWebhooksTab.tsx:418
 #: src/pages/TemplatesPage.tsx:275
 msgid "Created"
 msgstr "Créé"
@@ -3436,10 +3482,22 @@ msgstr "Créé"
 msgid "Created At"
 msgstr "Créé le"
 
+#: src/components/settings/WebhookCard.tsx:322
+msgid "Created by Zapier"
+msgstr "Créé par Zapier"
+
 #. placeholder {0}: data.theme.version
 #: src/components/blog/ThemeEditorDrawer.tsx:246
 msgid "Created new version v{0}"
 msgstr "Nouvelle version v{0} créée"
+
+#: src/components/settings/ZapierSettings.tsx:187
+#~ msgid "Creates a key limited to the permissions Zapier needs: contacts, lists and webhook subscriptions."
+#~ msgstr ""
+
+#: src/components/settings/ZapierSettings.tsx:202
+msgid "Creates a key limited to the permissions Zapier needs: contacts, lists, segments and webhook subscriptions."
+msgstr "Crée une clé limitée aux permissions dont Zapier a besoin : contacts, listes, segments et abonnements webhook."
 
 #: src/components/email_builder/blocks/MjBodyBlock.tsx:70
 #: src/components/email_builder/blocks/MjButtonBlock.tsx:383
@@ -3554,7 +3612,7 @@ msgstr "URL du point d accès personnalisé"
 msgid "Custom Event"
 msgstr "Événement personnalisé"
 
-#: src/components/settings/WebhooksSettings.tsx:292
+#: src/components/settings/WebhooksSettings.tsx:325
 msgid "Custom Event Filters (optional)"
 msgstr "Filtres d événements personnalisés (optionnel)"
 
@@ -3828,7 +3886,8 @@ msgstr "Délai"
 #: src/components/settings/Integrations.tsx:1351
 #: src/components/settings/Integrations.tsx:1510
 #: src/components/settings/Integrations.tsx:1579
-#: src/components/settings/WebhookCard.tsx:239
+#: src/components/settings/WebhookCard.tsx:263
+#: src/components/settings/WebhookCard.tsx:276
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:83
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:86
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:141
@@ -3918,6 +3977,10 @@ msgstr "Supprimer une tâche de synchronisation d'intégration"
 msgid "Delete annotation?"
 msgstr "Supprimer l'annotation ?"
 
+#: src/components/settings/WebhookCard.tsx:428
+msgid "Delete anyway"
+msgstr "Supprimer quand même"
+
 #: src/components/automations/AutomationCard.tsx:148
 msgid "Delete Automation"
 msgstr "Supprimer l automation"
@@ -3974,8 +4037,8 @@ msgstr "Supprimer le dossier (mode lecture seule)"
 msgid "Delete header"
 msgstr "Supprimer le header"
 
-#: src/components/settings/WorkspaceMembers.tsx:210
-#: src/components/settings/WorkspaceMembers.tsx:217
+#: src/components/settings/WorkspaceMembers.tsx:235
+#: src/components/settings/WorkspaceMembers.tsx:242
 msgid "Delete invitation"
 msgstr "Supprimer l invitation"
 
@@ -4033,9 +4096,13 @@ msgstr "Supprimer cette règle ?"
 msgid "Delete this sender?"
 msgstr "Supprimer cet expéditeur ?"
 
-#: src/components/settings/WebhookCard.tsx:233
+#: src/components/settings/WebhookCard.tsx:270
 msgid "Delete this webhook?"
 msgstr "Supprimer ce webhook ?"
+
+#: src/components/settings/WebhookCard.tsx:424
+msgid "Delete this Zapier webhook?"
+msgstr "Supprimer ce webhook Zapier ?"
 
 #: src/components/settings/DeleteWorkspace.tsx:66
 msgid "Delete Workspace"
@@ -4058,6 +4125,10 @@ msgstr "{deletedCount} élément(s) supprimé(s)"
 msgid "Deleted {deletedCount}, failed {failedCount}"
 msgstr "{deletedCount} supprimé(s), {failedCount} échoué(s)"
 
+#: src/components/settings/WebhookCard.tsx:433
+msgid "Deleting this webhook breaks the Zap that created it. The Zap stays switched on in Zapier and reports no error — it simply stops receiving events."
+msgstr "Supprimer ce webhook casse le Zap qui l'a créé. Le Zap reste activé dans Zapier et ne signale aucune erreur : il cesse simplement de recevoir des événements."
+
 #: src/components/settings/Integrations.tsx:251
 #: src/components/timeline/ContactTimeline.tsx:575
 msgid "delivered"
@@ -4069,16 +4140,21 @@ msgstr "livré"
 #: src/components/messages/MessageHistoryTab.tsx:114
 #: src/components/messages/MessageHistoryTab.tsx:116
 #: src/components/messages/MessageHistoryTable.tsx:266
-#: src/components/settings/WebhookCard.tsx:314
+#: src/components/settings/WebhookCard.tsx:391
 #: src/components/timeline/ContactTimeline.tsx:652
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:67
-#: src/components/webhooks/OutgoingWebhooksTab.tsx:78
-#: src/components/webhooks/OutgoingWebhooksTab.tsx:230
+#: src/components/webhooks/OutgoingWebhooksTab.tsx:84
+#: src/components/webhooks/OutgoingWebhooksTab.tsx:239
 #: src/pages/TransactionalNotificationsPage.tsx:217
 msgid "Delivered"
 msgstr "Livré"
 
-#: src/components/webhooks/OutgoingWebhooksTab.tsx:473
+#: src/components/webhooks/OutgoingWebhooksTab.tsx:88
+#: src/components/webhooks/OutgoingWebhooksTab.tsx:251
+msgid "Delivering"
+msgstr "Livraison en cours"
+
+#: src/components/webhooks/OutgoingWebhooksTab.tsx:488
 msgid "Delivery ID:"
 msgstr "ID de livraison :"
 
@@ -4160,11 +4236,11 @@ msgstr "Désactiver le blog ?"
 msgid "Disable this rule?"
 msgstr "Désactiver cette règle ?"
 
-#: src/components/settings/WebhookCard.tsx:189
+#: src/components/settings/WebhookCard.tsx:214
 msgid "Disable this webhook?"
 msgstr "Désactiver ce webhook ?"
 
-#: src/components/settings/WebhookCard.tsx:195
+#: src/components/settings/WebhookCard.tsx:220
 msgid "Disable webhook"
 msgstr "Désactiver le webhook"
 
@@ -4275,6 +4351,7 @@ msgid "Don't index, but follow links"
 msgstr "Ne pas indexer, mais suivre les liens"
 
 #: src/components/automations/config/ConditionsField.tsx:137
+#: src/components/settings/ZapierSettings.tsx:195
 #: src/components/templates/TemplateTranslationsTab.tsx:298
 msgid "Done"
 msgstr "Terminé"
@@ -4434,6 +4511,10 @@ msgstr "ex. Bienvenue — jour 1"
 msgid "Each contact enters the automation only once"
 msgstr "Chaque contact entre dans l automation une seule fois"
 
+#: src/components/settings/ZapierSettings.tsx:225
+msgid "Each Zapier connection needs its own key, so give a second one a different name."
+msgstr "Chaque connexion Zapier nécessite sa propre clé : donnez un nom différent à la seconde."
+
 #: src/pages/ListsPage.tsx:80
 msgid "edit"
 msgstr "modifier"
@@ -4446,7 +4527,7 @@ msgstr "modifier"
 #: src/components/settings/Integrations.tsx:1335
 #: src/components/settings/Integrations.tsx:1494
 #: src/components/settings/Integrations.tsx:1563
-#: src/components/settings/WebhookCard.tsx:245
+#: src/components/settings/WebhookCard.tsx:283
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:91
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:154
 #: src/components/web_analytics/filters/FilterTable.tsx:140
@@ -4556,7 +4637,7 @@ msgstr "Modifier la notification"
 msgid "Edit Notification"
 msgstr "Modifier la notification"
 
-#: src/components/settings/WorkspaceMembers.tsx:179
+#: src/components/settings/WorkspaceMembers.tsx:204
 msgid "Edit permissions"
 msgstr "Modifier les permissions"
 
@@ -4608,7 +4689,7 @@ msgstr "Modifier le thème v{0}"
 msgid "Edit value"
 msgstr "Modifier la valeur"
 
-#: src/components/settings/WebhooksSettings.tsx:206
+#: src/components/settings/WebhooksSettings.tsx:229
 msgid "Edit Webhook"
 msgstr "Modifier le webhook"
 
@@ -4654,7 +4735,7 @@ msgstr "email"
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:338
 #: src/components/messages/MessageHistoryTab.tsx:219
 #: src/components/settings/Integrations.tsx:2526
-#: src/components/settings/WorkspaceMembers.tsx:76
+#: src/components/settings/WorkspaceMembers.tsx:101
 #: src/components/timeline/ContactTimeline.tsx:584
 #: src/pages/ContactsPage.tsx:369
 #: src/pages/ContactsPage.tsx:536
@@ -4669,7 +4750,7 @@ msgstr "Email (requis)"
 
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:383
 #: src/components/settings/Integrations.tsx:1774
-#: src/components/settings/WorkspaceMembers.tsx:460
+#: src/components/settings/WorkspaceMembers.tsx:486
 msgid "Email Address"
 msgstr "Adresse email"
 
@@ -4863,7 +4944,7 @@ msgstr "Activer pour récupérer des données personnalisées pour chaque destin
 msgid "Enable web analytics"
 msgstr "Activer l'analyse web"
 
-#: src/components/settings/WebhookCard.tsx:200
+#: src/components/settings/WebhookCard.tsx:225
 msgid "Enable webhook"
 msgstr "Activer le webhook"
 
@@ -4886,7 +4967,7 @@ msgstr "La date de fin doit être postérieure à la date de début"
 msgid "ended"
 msgstr "terminé"
 
-#: src/components/settings/WebhooksSettings.tsx:232
+#: src/components/settings/WebhooksSettings.tsx:265
 msgid "Endpoint URL"
 msgstr "URL du point d accès"
 
@@ -4987,7 +5068,7 @@ msgid "Enter duration"
 msgstr "Entrez la durée"
 
 #: src/components/contacts/ContactUpsertDrawer.tsx:521
-#: src/components/settings/WorkspaceMembers.tsx:465
+#: src/components/settings/WorkspaceMembers.tsx:491
 msgid "Enter email address"
 msgstr "Entrez l adresse email"
 
@@ -4995,7 +5076,7 @@ msgstr "Entrez l adresse email"
 msgid "Enter email title..."
 msgstr "Entrez le titre de l email..."
 
-#: src/components/settings/WebhooksSettings.tsx:312
+#: src/components/settings/WebhooksSettings.tsx:345
 msgid "Enter event names to filter"
 msgstr "Entrez les noms d événements à filtrer"
 
@@ -5129,7 +5210,7 @@ msgstr "Erreur lors du chargement des automations"
 
 #: src/components/messages/MessageHistoryTab.tsx:603
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:492
-#: src/components/webhooks/OutgoingWebhooksTab.tsx:433
+#: src/components/webhooks/OutgoingWebhooksTab.tsx:448
 #: src/pages/TransactionalNotificationsPage.tsx:373
 msgid "Error loading data"
 msgstr "Erreur lors du chargement des données"
@@ -5148,8 +5229,8 @@ msgstr "Erreur lors du chargement du modèle : données de modèle invalides"
 msgid "Error parsing CSV: {0}"
 msgstr "Erreur lors de l analyse du CSV : {0}"
 
-#: src/components/settings/WebhookCard.tsx:377
-#: src/components/webhooks/OutgoingWebhooksTab.tsx:480
+#: src/components/settings/WebhookCard.tsx:473
+#: src/components/webhooks/OutgoingWebhooksTab.tsx:495
 msgid "Error:"
 msgstr "Erreur :"
 
@@ -5180,7 +5261,7 @@ msgid "event"
 msgstr "événement"
 
 #: src/components/timeline/ContactTimeline.tsx:660
-#: src/components/webhooks/OutgoingWebhooksTab.tsx:347
+#: src/components/webhooks/OutgoingWebhooksTab.tsx:362
 msgid "Event"
 msgstr "Événement"
 
@@ -5192,7 +5273,7 @@ msgstr "nom de l'événement"
 msgid "Event Name"
 msgstr "Nom de l événement"
 
-#: src/components/settings/WebhooksSettings.tsx:309
+#: src/components/settings/WebhooksSettings.tsx:342
 msgid "Event Names"
 msgstr "Noms des événements"
 
@@ -5200,7 +5281,7 @@ msgstr "Noms des événements"
 msgid "Event Type"
 msgstr "Type d événement"
 
-#: src/components/settings/WebhooksSettings.tsx:245
+#: src/components/settings/WebhooksSettings.tsx:278
 msgid "Event Types"
 msgstr "Types d événements"
 
@@ -5353,9 +5434,9 @@ msgstr "échoué"
 #: src/components/messages/MessageHistoryTab.tsx:127
 #: src/components/messages/MessageHistoryTab.tsx:129
 #: src/components/messages/MessageHistoryTable.tsx:274
-#: src/components/settings/WebhookCard.tsx:317
-#: src/components/webhooks/OutgoingWebhooksTab.tsx:80
-#: src/components/webhooks/OutgoingWebhooksTab.tsx:242
+#: src/components/settings/WebhookCard.tsx:394
+#: src/components/webhooks/OutgoingWebhooksTab.tsx:89
+#: src/components/webhooks/OutgoingWebhooksTab.tsx:257
 #: src/pages/BroadcastsPage.tsx:218
 #: src/pages/BroadcastsPage.tsx:395
 #: src/pages/BroadcastsPage.tsx:462
@@ -5397,7 +5478,7 @@ msgstr "Échec de la finalisation de la configuration"
 msgid "Failed to copy to clipboard"
 msgstr "Échec de la copie dans le presse-papiers"
 
-#: src/components/settings/WorkspaceMembers.tsx:306
+#: src/components/settings/WorkspaceMembers.tsx:331
 msgid "Failed to create API key"
 msgstr "Échec de la création de la clé API"
 
@@ -5444,6 +5525,10 @@ msgstr "Échec de la création du segment"
 msgid "Failed to create template: {0}"
 msgstr "Échec de la création du modèle : {0}"
 
+#: src/components/settings/ZapierSettings.tsx:129
+msgid "Failed to create the Zapier API key"
+msgstr "Impossible de créer la clé API Zapier"
+
 #: src/pages/CreateWorkspacePage.tsx:91
 msgid "Failed to create workspace"
 msgstr "Échec de la création de l espace de travail"
@@ -5473,7 +5558,7 @@ msgstr "Échec de la suppression du fichier : "
 msgid "Failed to delete integration"
 msgstr "Échec de la suppression de l intégration"
 
-#: src/components/settings/WorkspaceMembers.tsx:356
+#: src/components/settings/WorkspaceMembers.tsx:382
 msgid "Failed to delete invitation"
 msgstr "Échec de la suppression de l invitation"
 
@@ -5497,7 +5582,7 @@ msgstr "Échec de la suppression du segment"
 msgid "Failed to delete template: {errorMsg}"
 msgstr "Échec de la suppression du modèle : {errorMsg}"
 
-#: src/components/settings/WebhooksSettings.tsx:138
+#: src/components/settings/WebhooksSettings.tsx:157
 msgid "Failed to delete webhook subscription"
 msgstr "Échec de la suppression de l abonnement webhook"
 
@@ -5559,7 +5644,7 @@ msgstr "Échec de la récupération des objets : "
 msgid "Failed to fetch setup status"
 msgstr "Échec de la récupération du statut de configuration"
 
-#: src/pages/WorkspaceSettingsPage.tsx:106
+#: src/pages/WorkspaceSettingsPage.tsx:113
 msgid "Failed to fetch workspace members"
 msgstr "Échec de la récupération des membres de l espace de travail"
 
@@ -5571,7 +5656,7 @@ msgstr "Échec de l importation du modèle MJML. Veuillez vérifier la syntaxe M
 msgid "Failed to import template. Please check the file format."
 msgstr "Échec de l importation du modèle. Veuillez vérifier le format du fichier."
 
-#: src/components/settings/WorkspaceMembers.tsx:270
+#: src/components/settings/WorkspaceMembers.tsx:295
 msgid "Failed to invite member"
 msgstr "Échec de l invitation du membre"
 
@@ -5587,7 +5672,7 @@ msgstr "Échec du chargement des listes de contacts"
 msgid "Failed to load settings"
 msgstr "Échec du chargement des paramètres"
 
-#: src/components/settings/WebhooksSettings.tsx:42
+#: src/components/settings/WebhooksSettings.tsx:55
 msgid "Failed to load webhook subscriptions"
 msgstr "Échec du chargement des abonnements webhook"
 
@@ -5635,7 +5720,7 @@ msgstr "Échec de la reconstruction du segment"
 msgid "Failed to refresh global feed: {0}"
 msgstr "Échec de l'actualisation du flux global : {0}"
 
-#: src/components/settings/WebhookCard.tsx:137
+#: src/components/settings/WebhookCard.tsx:145
 msgid "Failed to regenerate webhook secret"
 msgstr "Échec de la régénération du secret webhook"
 
@@ -5647,7 +5732,7 @@ msgstr "Échec de l enregistrement des webhooks"
 msgid "Failed to remove custom field label"
 msgstr "Échec de la suppression de l étiquette de champ personnalisé"
 
-#: src/components/settings/WorkspaceMembers.tsx:337
+#: src/components/settings/WorkspaceMembers.tsx:363
 msgid "Failed to remove member"
 msgstr "Échec de la suppression du membre"
 
@@ -5655,7 +5740,7 @@ msgstr "Échec de la suppression du membre"
 msgid "Failed to render preview"
 msgstr "Échec du rendu de l aperçu"
 
-#: src/components/settings/WorkspaceMembers.tsx:386
+#: src/components/settings/WorkspaceMembers.tsx:412
 msgid "Failed to resend invitation"
 msgstr "Échec du renvoi de l invitation"
 
@@ -5710,7 +5795,7 @@ msgstr "Échec de l enregistrement du bloc de modèle"
 msgid "Failed to save theme"
 msgstr "Échec de l enregistrement du thème"
 
-#: src/components/settings/WebhooksSettings.tsx:125
+#: src/components/settings/WebhooksSettings.tsx:144
 msgid "Failed to save webhook subscription"
 msgstr "Échec de l enregistrement de l abonnement webhook"
 
@@ -5737,7 +5822,7 @@ msgstr "Échec de l'envoi du code magique"
 msgid "Failed to send test email: {0}"
 msgstr "Échec de l envoi de l email de test : {0}"
 
-#: src/components/settings/WebhookCard.tsx:168
+#: src/components/settings/WebhookCard.tsx:176
 msgid "Failed to send test webhook"
 msgstr "Échec de l envoi du webhook de test"
 
@@ -5758,7 +5843,7 @@ msgstr "Échec du test du flux destinataire : {0}"
 msgid "Failed to test SMTP connection"
 msgstr "Échec du test de la connexion SMTP"
 
-#: src/components/settings/WebhooksSettings.tsx:153
+#: src/components/settings/WebhooksSettings.tsx:172
 msgid "Failed to toggle webhook subscription"
 msgstr "Échec du basculement de l abonnement webhook"
 
@@ -6038,6 +6123,14 @@ msgstr "Intégration Firecrawl enregistrée avec succès"
 msgid "First Name"
 msgstr "Prénom"
 
+#: src/components/settings/WebhookCard.tsx:310
+msgid "Fix the endpoint, then switch this webhook back on to resume deliveries."
+msgstr "Corrigez le point d'accès, puis réactivez ce webhook pour reprendre les livraisons."
+
+#: src/components/settings/WebhookCard.tsx:309
+msgid "Fix the Zap in Zapier, then switch this webhook back on to resume deliveries."
+msgstr "Corrigez le Zap dans Zapier, puis réactivez ce webhook pour reprendre les livraisons."
+
 #. placeholder {0}: automation.name
 #: src/components/automations/AutomationCard.tsx:316
 msgid "Flow Stats: {0}"
@@ -6179,7 +6272,7 @@ msgstr "Nom de l expéditeur (remplacement)"
 msgid "From:"
 msgstr "De :"
 
-#: src/components/settings/WorkspaceMembers.tsx:140
+#: src/components/settings/WorkspaceMembers.tsx:165
 msgid "Full Access"
 msgstr "Accès complet"
 
@@ -6322,7 +6415,7 @@ msgstr "nom de l'objectif"
 msgid "goal type"
 msgstr "type d'objectif"
 
-#: src/components/settings/WebhooksSettings.tsx:294
+#: src/components/settings/WebhooksSettings.tsx:327
 msgid "Goal Types"
 msgstr "Types d objectifs"
 
@@ -6359,6 +6452,10 @@ msgstr "gpt-4.1, gpt-5.4, o4-mini, ou un nom de modèle personnalisé"
 #: src/components/integrations/LLMIntegration.tsx:166
 #~ msgid "gpt-4o, gpt-4.1, o4-mini, or custom model name"
 #~ msgstr ""
+
+#: src/components/settings/WorkspaceMembers.tsx:46
+msgid "Grant all"
+msgstr "Tout accorder"
 
 #: src/components/email_builder/ui/BorderInput.tsx:60
 msgid "Groove"
@@ -6449,7 +6546,7 @@ msgstr "Aidez-nous à améliorer Notifuse en envoyant des statistiques d utilisa
 msgid "Helps screen readers describe the image"
 msgstr "Aide les lecteurs d écran à décrire l image"
 
-#: src/components/settings/WebhookCard.tsx:274
+#: src/components/settings/WebhookCard.tsx:351
 msgid "Hide"
 msgstr "Masquer"
 
@@ -7028,24 +7125,24 @@ msgstr "URL YouTube invalide"
 msgid "Invitation accepted successfully! Welcome to the workspace."
 msgstr "Invitation acceptée avec succès ! Bienvenue dans l espace de travail."
 
-#: src/components/settings/WorkspaceMembers.tsx:352
+#: src/components/settings/WorkspaceMembers.tsx:378
 msgid "Invitation deleted successfully"
 msgstr "Invitation supprimée avec succès"
 
-#: src/components/settings/WorkspaceMembers.tsx:382
+#: src/components/settings/WorkspaceMembers.tsx:408
 msgid "Invitation resent to {email}"
 msgstr "Invitation renvoyée à {email}"
 
-#: src/components/settings/WorkspaceMembers.tsx:96
+#: src/components/settings/WorkspaceMembers.tsx:121
 msgid "Invitation sent"
 msgstr "Invitation envoyée"
 
-#: src/components/settings/WorkspaceMembers.tsx:260
+#: src/components/settings/WorkspaceMembers.tsx:285
 msgid "Invitation sent to {inviteEmail}"
 msgstr "Invitation envoyée à {inviteEmail}"
 
-#: src/components/settings/WorkspaceMembers.tsx:417
-#: src/components/settings/WorkspaceMembers.tsx:441
+#: src/components/settings/WorkspaceMembers.tsx:443
+#: src/components/settings/WorkspaceMembers.tsx:467
 msgid "Invite Member"
 msgstr "Inviter un membre"
 
@@ -7212,7 +7309,7 @@ msgstr "Les grandes images peuvent ralentir considérablement le chargement des 
 #~ msgid "Last {WINDOW_MINUTES} minutes"
 #~ msgstr ""
 
-#: src/components/settings/WebhookCard.tsx:303
+#: src/components/settings/WebhookCard.tsx:380
 msgid "Last 24 hours"
 msgstr "Dernières 24 heures"
 
@@ -7220,7 +7317,7 @@ msgstr "Dernières 24 heures"
 #~ msgid "last 30 minutes"
 #~ msgstr ""
 
-#: src/components/settings/WebhookCard.tsx:303
+#: src/components/settings/WebhookCard.tsx:380
 msgid "Last 7 days"
 msgstr "7 derniers jours"
 
@@ -7250,7 +7347,7 @@ msgstr "Dernière modification"
 msgid "Last Name"
 msgstr "Nom de famille"
 
-#: src/components/settings/WebhooksSettings.tsx:301
+#: src/components/settings/WebhooksSettings.tsx:334
 msgid "Lead"
 msgstr "Prospect"
 
@@ -7572,7 +7669,7 @@ msgstr "Intégration LLM enregistrée avec succès"
 
 #: src/components/messages/MessageHistoryTable.tsx:445
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:554
-#: src/components/webhooks/OutgoingWebhooksTab.tsx:506
+#: src/components/webhooks/OutgoingWebhooksTab.tsx:521
 #: src/pages/ContactsPage.tsx:1169
 msgid "Load More"
 msgstr "Charger plus"
@@ -7614,7 +7711,7 @@ msgstr "Chargement des statistiques..."
 msgid "Loading template..."
 msgstr "Chargement du modèle..."
 
-#: src/components/webhooks/OutgoingWebhooksTab.tsx:452
+#: src/components/webhooks/OutgoingWebhooksTab.tsx:467
 msgid "Loading webhook deliveries..."
 msgstr "Chargement des livraisons webhook..."
 
@@ -7631,7 +7728,7 @@ msgstr "Chargement du statut webhook..."
 #: src/components/templates/TemplateSelectorInput.tsx:145
 #: src/components/timeline/ContactTimeline.tsx:1039
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:499
-#: src/components/webhooks/OutgoingWebhooksTab.tsx:440
+#: src/components/webhooks/OutgoingWebhooksTab.tsx:455
 #: src/layouts/RootLayout.tsx:90
 #: src/pages/ContactsPage.tsx:531
 #: src/pages/ContactsPage.tsx:1161
@@ -7728,7 +7825,7 @@ msgstr "Fait en sorte que la section s étende sur toute la largeur de la fenêt
 msgid "Makes the wrapper span the entire email viewport width, ignoring container constraints (typically 600px). Useful for full-bleed backgrounds and hero sections."
 msgstr "Fait en sorte que le wrapper s étende sur toute la largeur de la fenêtre email, ignorant les contraintes du conteneur (généralement 600px). Utile pour les arrière-plans pleine largeur et les sections hero."
 
-#: src/components/settings/WorkspaceMembers.tsx:408
+#: src/components/settings/WorkspaceMembers.tsx:434
 msgid "Manage your workspace members"
 msgstr "Gérer les membres de votre espace de travail"
 
@@ -7741,6 +7838,10 @@ msgstr "géré"
 #: src/pages/TransactionalNotificationsPage.tsx:134
 msgid "Managed by {0} ({1} integration)"
 msgstr "Géré par {0} (intégration {1})"
+
+#: src/components/settings/WebhooksSettings.tsx:250
+msgid "Managed by Zapier"
+msgstr "Géré par Zapier"
 
 #: src/components/web_analytics/tabs/AnnotationsTab.tsx:125
 msgid "Manual"
@@ -7874,7 +7975,7 @@ msgstr "Moyen"
 msgid "Mediums"
 msgstr "Supports"
 
-#: src/components/settings/WorkspaceMembers.tsx:333
+#: src/components/settings/WorkspaceMembers.tsx:359
 msgid "Member removed successfully"
 msgstr "Membre supprimé avec succès"
 
@@ -8106,7 +8207,7 @@ msgstr "Doit correspondre à la façon dont la valeur est stockée sur l'événe
 msgid "My Amazing Blog"
 msgstr "Mon super blog"
 
-#: src/components/settings/WebhooksSettings.tsx:227
+#: src/components/settings/WebhooksSettings.tsx:260
 msgid "My Webhook"
 msgstr "Mon webhook"
 
@@ -8140,7 +8241,7 @@ msgstr "N/A"
 #: src/components/settings/Integrations.tsx:1526
 #: src/components/settings/Integrations.tsx:1593
 #: src/components/settings/Integrations.tsx:2536
-#: src/components/settings/WebhooksSettings.tsx:224
+#: src/components/settings/WebhooksSettings.tsx:257
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:119
 #: src/components/web_analytics/filters/FilterTable.tsx:192
 #: src/components/web_analytics/filters/TestFilterModal.tsx:230
@@ -8258,11 +8359,11 @@ msgstr "Prochaine exécution"
 #: src/components/settings/Integrations.tsx:1508
 #: src/components/settings/Integrations.tsx:1577
 #: src/components/settings/PermissionsMatrix.tsx:186
-#: src/components/settings/WebhookCard.tsx:193
-#: src/components/settings/WebhookCard.tsx:237
-#: src/components/settings/WebhookCard.tsx:284
-#: src/components/settings/WorkspaceMembers.tsx:194
-#: src/components/settings/WorkspaceMembers.tsx:214
+#: src/components/settings/WebhookCard.tsx:218
+#: src/components/settings/WebhookCard.tsx:274
+#: src/components/settings/WebhookCard.tsx:361
+#: src/components/settings/WorkspaceMembers.tsx:219
+#: src/components/settings/WorkspaceMembers.tsx:239
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:154
 #: src/components/web_analytics/filters/BackfillStatus.tsx:84
 #: src/components/web_analytics/filters/FilterTable.tsx:272
@@ -8275,7 +8376,7 @@ msgstr "Non"
 msgid "No {0} content to preview"
 msgstr "Pas de contenu {0} à prévisualiser"
 
-#: src/components/settings/WorkspaceMembers.tsx:134
+#: src/components/settings/WorkspaceMembers.tsx:159
 msgid "No Access"
 msgstr "Pas d accès"
 
@@ -8473,7 +8574,7 @@ msgstr "Aucune liste trouvée"
 msgid "No match"
 msgstr "Aucune correspondance"
 
-#: src/components/settings/WorkspaceMembers.tsx:433
+#: src/components/settings/WorkspaceMembers.tsx:459
 msgid "No members found"
 msgstr "Aucun membre trouvé"
 
@@ -8623,7 +8724,7 @@ msgstr "Aucune notification transactionnelle trouvée"
 msgid "No trigger configured"
 msgstr "Aucun déclencheur configuré"
 
-#: src/components/webhooks/OutgoingWebhooksTab.tsx:457
+#: src/components/webhooks/OutgoingWebhooksTab.tsx:472
 msgid "No webhook deliveries found"
 msgstr "Aucune livraison webhook trouvée"
 
@@ -8631,7 +8732,7 @@ msgstr "Aucune livraison webhook trouvée"
 msgid "No webhook events found"
 msgstr "Aucun événement webhook trouvé"
 
-#: src/components/settings/WebhooksSettings.tsx:175
+#: src/components/settings/WebhooksSettings.tsx:198
 msgid "No webhook subscriptions configured"
 msgstr "Aucun abonnement webhook configuré"
 
@@ -8771,6 +8872,10 @@ msgstr "Nom de la notification"
 msgid "Notification updated successfully"
 msgstr "Notification mise à jour avec succès"
 
+#: src/components/settings/WebhookCard.tsx:298
+msgid "Notifuse disabled this webhook automatically"
+msgstr "Notifuse a désactivé ce webhook automatiquement"
+
 #: src/components/settings/Integrations.tsx:991
 msgid "Notifuse will create a tenant in your AWS account, give it its own suppression list, and associate this integration's configuration set and sender identities with it. AWS bills per tenant per month, based on volume."
 msgstr "Notifuse créera un tenant dans votre compte AWS, lui donnera sa propre liste de suppression et y associera le configuration set et les identités d'expéditeur de cette intégration. AWS facture par tenant et par mois, en fonction du volume."
@@ -8864,7 +8969,7 @@ msgstr "Une fois par contact"
 msgid "One endpoint, but it is the whole assistant: /api/llm.chat streams through the workspace's own provider integration, on the workspace's own billing. When a Firecrawl integration is configured it also lets the assistant run the scrape and search tools from the server, so this grant reaches the open web through your credentials."
 msgstr "Un seul endpoint, mais c'est tout l'assistant : /api/llm.chat diffuse via l'intégration fournisseur propre à l'espace de travail, sur la facturation propre à l'espace de travail. Lorsqu'une intégration Firecrawl est configurée, il permet en outre à l'assistant d'exécuter les outils de scraping et de recherche depuis le serveur : cette permission atteint donc le web ouvert avec vos identifiants."
 
-#: src/components/settings/WebhookCard.tsx:265
+#: src/components/settings/WebhookCard.tsx:342
 msgid "Only a workspace owner can view or rotate the signing secret"
 msgstr "Seul un propriétaire de l'espace de travail peut voir ou renouveler le secret de signature"
 
@@ -9050,7 +9155,7 @@ msgid "OS"
 msgstr "OS"
 
 #: src/components/blog_editor/menus/suggestion/SlashPopoverContent.tsx:74
-#: src/components/settings/WebhooksSettings.tsx:305
+#: src/components/settings/WebhooksSettings.tsx:338
 #: src/pages/TemplatesPage.tsx:132
 msgid "Other"
 msgstr "Autre"
@@ -9151,6 +9256,10 @@ msgstr "Mot de passe (optionnel)"
 msgid "Paste this snippet before the closing </head> tag of your website."
 msgstr "Collez ce snippet avant la balise </head> fermante de votre site web."
 
+#: src/components/settings/ZapierSettings.tsx:158
+msgid "Paste this URL into the API URL field when you connect your Notifuse account in Zapier."
+msgstr "Collez cette URL dans le champ URL de l'API lorsque vous connectez votre compte Notifuse dans Zapier."
+
 #: src/components/blog_editor/components/youtube/YoutubeNodeView.tsx:340
 msgid "Paste YouTube URL..."
 msgstr "Collez l URL YouTube..."
@@ -9196,7 +9305,7 @@ msgstr "Mettre en pause la diffusion ?"
 msgid "Paused"
 msgstr "En pause"
 
-#: src/components/webhooks/OutgoingWebhooksTab.tsx:493
+#: src/components/webhooks/OutgoingWebhooksTab.tsx:508
 msgid "Payload:"
 msgstr "Payload :"
 
@@ -9205,9 +9314,9 @@ msgstr "Payload :"
 #: src/components/automations/nodes/AddToListNode.tsx:59
 #: src/components/contacts/ContactDetailsDrawer.tsx:583
 #: src/components/lists/ListStats.tsx:90
-#: src/components/settings/WorkspaceMembers.tsx:111
-#: src/components/webhooks/OutgoingWebhooksTab.tsx:79
-#: src/components/webhooks/OutgoingWebhooksTab.tsx:236
+#: src/components/settings/WorkspaceMembers.tsx:136
+#: src/components/webhooks/OutgoingWebhooksTab.tsx:85
+#: src/components/webhooks/OutgoingWebhooksTab.tsx:245
 #: src/pages/BroadcastsPage.tsx:389
 #: src/pages/ContactsPage.tsx:393
 msgid "Pending"
@@ -9254,14 +9363,14 @@ msgstr "Vérifier périodiquement les nouvelles versions de Notifuse et les mise
 msgid "Permanently delete any contact"
 msgstr "Supprimer définitivement n'importe quel contact"
 
-#: src/components/settings/WorkspaceMembers.tsx:130
-#: src/components/settings/WorkspaceMembers.tsx:145
+#: src/components/settings/WorkspaceMembers.tsx:155
+#: src/components/settings/WorkspaceMembers.tsx:170
 msgid "Permission Details"
 msgstr "Détails des permissions"
 
-#: src/components/settings/WorkspaceMembers.tsx:107
-#: src/components/settings/WorkspaceMembers.tsx:471
-#: src/components/settings/WorkspaceMembers.tsx:531
+#: src/components/settings/WorkspaceMembers.tsx:132
+#: src/components/settings/WorkspaceMembers.tsx:497
+#: src/components/settings/WorkspaceMembers.tsx:558
 msgid "Permissions"
 msgstr "Permissions"
 
@@ -9374,9 +9483,13 @@ msgstr "Veuillez entrer un nom de liste"
 msgid "Please enter a model name"
 msgstr "Veuillez saisir un nom de modèle"
 
-#: src/components/settings/WebhooksSettings.tsx:225
+#: src/components/settings/WebhooksSettings.tsx:258
 msgid "Please enter a name"
 msgstr "Veuillez entrer un nom"
+
+#: src/components/settings/ZapierSettings.tsx:116
+msgid "Please enter a name for the API key"
+msgstr "Veuillez entrer un nom pour la clé API"
 
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:265
 msgid "Please enter a notification name"
@@ -9399,7 +9512,7 @@ msgstr "Veuillez saisir un nom de propriété"
 msgid "Please enter a slug"
 msgstr "Veuillez entrer un slug"
 
-#: src/components/settings/WebhooksSettings.tsx:234
+#: src/components/settings/WebhooksSettings.tsx:267
 msgid "Please enter a URL"
 msgstr "Veuillez entrer une URL"
 
@@ -9422,7 +9535,7 @@ msgstr "Veuillez entrer une URL d image valide"
 #: src/components/settings/GeneralSettings.tsx:202
 #: src/components/settings/GeneralSettings.tsx:266
 #: src/components/settings/LogoInput.tsx:27
-#: src/components/settings/WebhooksSettings.tsx:235
+#: src/components/settings/WebhooksSettings.tsx:268
 #: src/pages/CreateWorkspacePage.tsx:168
 msgid "Please enter a valid URL"
 msgstr "Veuillez entrer une URL valide"
@@ -9443,8 +9556,8 @@ msgstr "Veuillez entrer un nom d espace de travail"
 msgid "Please enter an API identifier"
 msgstr "Veuillez entrer un identifiant API"
 
-#: src/components/settings/WorkspaceMembers.tsx:280
-#: src/components/settings/WorkspaceMembers.tsx:509
+#: src/components/settings/WorkspaceMembers.tsx:305
+#: src/components/settings/WorkspaceMembers.tsx:536
 msgid "Please enter an API key name"
 msgstr "Veuillez entrer un nom de clé API"
 
@@ -9453,8 +9566,8 @@ msgstr "Veuillez entrer un nom de clé API"
 msgid "Please enter an automation name"
 msgstr "Veuillez entrer un nom d automation"
 
-#: src/components/settings/WorkspaceMembers.tsx:247
-#: src/components/settings/WorkspaceMembers.tsx:462
+#: src/components/settings/WorkspaceMembers.tsx:272
+#: src/components/settings/WorkspaceMembers.tsx:488
 msgid "Please enter an email address"
 msgstr "Veuillez entrer une adresse email"
 
@@ -9577,7 +9690,7 @@ msgstr "Veuillez sélectionner un fournisseur OAuth2"
 msgid "Please select an operation"
 msgstr "Veuillez sélectionner une opération"
 
-#: src/components/settings/WebhooksSettings.tsx:256
+#: src/components/settings/WebhooksSettings.tsx:289
 msgid "Please select at least one event type"
 msgstr "Veuillez sélectionner au moins un type d événement"
 
@@ -9947,7 +10060,7 @@ msgstr "Publier ce thème"
 msgid "Published"
 msgstr "Publié"
 
-#: src/components/settings/WebhooksSettings.tsx:299
+#: src/components/settings/WebhooksSettings.tsx:332
 msgid "Purchase"
 msgstr "Achat"
 
@@ -10125,6 +10238,10 @@ msgstr "Lire les mêmes décomptes pour une variation A/B"
 msgid "Read the workspace record and its settings; Workspace write alone also passes, so someone who may only edit can still load what they are editing"
 msgstr "Lire la fiche de l'espace de travail et ses paramètres ; l'écriture Espace de travail seule passe également, si bien que quelqu'un qui n'a le droit que de modifier peut tout de même charger ce qu'il modifie"
 
+#: src/components/settings/ZapierSettings.tsx:152
+msgid "Read the Zapier setup guide"
+msgstr "Lire le guide de configuration Zapier"
+
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:339
 #~ msgid "Reading the available metrics"
 #~ msgstr ""
@@ -10263,7 +10380,7 @@ msgstr "Référents"
 #: src/components/contacts/ContactDetailsDrawer.tsx:630
 #: src/components/messages/MessageHistoryTable.tsx:360
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:429
-#: src/components/webhooks/OutgoingWebhooksTab.tsx:414
+#: src/components/webhooks/OutgoingWebhooksTab.tsx:429
 #: src/pages/ContactsPage.tsx:910
 #: src/pages/ListsPage.tsx:158
 msgid "Refresh"
@@ -10285,11 +10402,11 @@ msgstr "Actualiser la liste"
 msgid "Refreshing contact data..."
 msgstr "Actualisation des données du contact..."
 
-#: src/components/settings/WebhookCard.tsx:286
+#: src/components/settings/WebhookCard.tsx:363
 msgid "Regenerate"
 msgstr "Régénérer"
 
-#: src/components/settings/WebhookCard.tsx:280
+#: src/components/settings/WebhookCard.tsx:357
 msgid "Regenerate secret?"
 msgstr "Régénérer le secret ?"
 
@@ -10378,8 +10495,8 @@ msgstr "Retirer de la liste"
 msgid "Remove Link"
 msgstr "Supprimer le lien"
 
-#: src/components/settings/WorkspaceMembers.tsx:190
-#: src/components/settings/WorkspaceMembers.tsx:197
+#: src/components/settings/WorkspaceMembers.tsx:215
+#: src/components/settings/WorkspaceMembers.tsx:222
 msgid "Remove member"
 msgstr "Retirer le membre"
 
@@ -10516,7 +10633,7 @@ msgstr "Nécessite un espacement"
 msgid "Resend code"
 msgstr "Renvoyer le code"
 
-#: src/components/settings/WorkspaceMembers.tsx:225
+#: src/components/settings/WorkspaceMembers.tsx:250
 msgid "Resend invitation"
 msgstr "Renvoyer l invitation"
 
@@ -10566,11 +10683,11 @@ msgstr "Résolu"
 msgid "Resource"
 msgstr "Ressource"
 
-#: src/components/webhooks/OutgoingWebhooksTab.tsx:378
+#: src/components/webhooks/OutgoingWebhooksTab.tsx:393
 msgid "Response"
 msgstr "Réponse"
 
-#: src/components/webhooks/OutgoingWebhooksTab.tsx:486
+#: src/components/webhooks/OutgoingWebhooksTab.tsx:501
 msgid "Response Body:"
 msgstr "Corps de la réponse :"
 
@@ -10652,6 +10769,10 @@ msgstr "Reprendre le téléversement"
 #~ msgid "Retention (months)"
 #~ msgstr ""
 
+#: src/components/settings/WorkspaceMembers.tsx:55
+msgid "Revoke all"
+msgstr "Tout révoquer"
+
 #: src/components/email_builder/ui/BorderInput.tsx:61
 msgid "Ridge"
 msgstr "Crête"
@@ -10667,7 +10788,7 @@ msgstr "Droite"
 msgid "Right to Left"
 msgstr "De droite à gauche"
 
-#: src/components/settings/WorkspaceMembers.tsx:84
+#: src/components/settings/WorkspaceMembers.tsx:109
 msgid "Role"
 msgstr "Rôle"
 
@@ -10838,7 +10959,7 @@ msgstr "Mode bac à sable"
 #: src/components/settings/Integrations.tsx:2654
 #: src/components/settings/Integrations.tsx:2701
 #: src/components/settings/SystemSettingsDrawer.tsx:239
-#: src/components/settings/WebhooksSettings.tsx:215
+#: src/components/settings/WebhooksSettings.tsx:238
 #: src/components/templates/CreateTemplateDrawer.tsx:650
 #: src/components/templates/CreateTemplateDrawer.tsx:671
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:188
@@ -10989,7 +11110,7 @@ msgstr "Recherche : \"{0}\""
 msgid "Second value must be greater than first value"
 msgstr "La seconde valeur doit être supérieure à la première"
 
-#: src/components/settings/WebhookCard.tsx:293
+#: src/components/settings/WebhookCard.tsx:370
 msgid "Secret"
 msgstr "Secret"
 
@@ -10999,7 +11120,7 @@ msgstr "Secret"
 msgid "Secret Key"
 msgstr "Clé secrète"
 
-#: src/components/settings/WebhookCard.tsx:262
+#: src/components/settings/WebhookCard.tsx:339
 msgid "Secret:"
 msgstr "Secret :"
 
@@ -11109,7 +11230,7 @@ msgstr "Sélectionner"
 
 #. placeholder {0}: option.label
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:275
-#: src/components/webhooks/OutgoingWebhooksTab.tsx:298
+#: src/components/webhooks/OutgoingWebhooksTab.tsx:313
 msgid "Select {0}"
 msgstr "Sélectionner {0}"
 
@@ -11178,7 +11299,7 @@ msgstr "Sélectionner un modèle"
 msgid "Select a time zone"
 msgstr "Sélectionner un fuseau horaire"
 
-#: src/components/settings/WebhooksSettings.tsx:252
+#: src/components/settings/WebhooksSettings.tsx:285
 msgid "Select all"
 msgstr "Tout sélectionner"
 
@@ -11186,7 +11307,7 @@ msgstr "Tout sélectionner"
 msgid "Select an email integration"
 msgstr "Sélectionner une intégration email"
 
-#: src/components/settings/WebhookCard.tsx:401
+#: src/components/settings/WebhookCard.tsx:497
 msgid "Select an event type"
 msgstr "Sélectionner un type d événement"
 
@@ -11259,7 +11380,7 @@ msgstr "Sélectionner un modèle d email..."
 msgid "Select event"
 msgstr "Sélectionner un événement"
 
-#: src/components/settings/WebhookCard.tsx:395
+#: src/components/settings/WebhookCard.tsx:491
 msgid "Select event type to test:"
 msgstr "Sélectionner le type d événement à tester :"
 
@@ -11275,7 +11396,7 @@ msgstr "Sélectionner un champ"
 msgid "Select field to map to"
 msgstr "Sélectionner le champ à mapper"
 
-#: src/components/settings/WebhooksSettings.tsx:297
+#: src/components/settings/WebhooksSettings.tsx:330
 msgid "Select goal types to filter"
 msgstr "Sélectionner les types d objectifs à filtrer"
 
@@ -11468,7 +11589,7 @@ msgstr "Envoyer une notification transactionnelle avec Python :"
 msgid "Send a transactional notification using TypeScript/JavaScript:"
 msgstr "Envoyer une notification transactionnelle avec TypeScript/JavaScript :"
 
-#: src/components/settings/WorkspaceMembers.tsx:452
+#: src/components/settings/WorkspaceMembers.tsx:478
 msgid "Send Invitation"
 msgstr "Envoyer l invitation"
 
@@ -11488,8 +11609,8 @@ msgstr "Envoyer ou programmer"
 msgid "Send or Schedule Broadcast"
 msgstr "Envoyer ou programmer la diffusion"
 
-#: src/components/settings/WebhookCard.tsx:214
-#: src/components/settings/WebhookCard.tsx:361
+#: src/components/settings/WebhookCard.tsx:243
+#: src/components/settings/WebhookCard.tsx:457
 msgid "Send Test"
 msgstr "Envoyer un test"
 
@@ -11538,7 +11659,7 @@ msgstr "Envoi des emails..."
 msgid "Sending has been paused. You can resume at any time."
 msgstr "L'envoi a été mis en pause. Vous pouvez le reprendre à tout moment."
 
-#: src/components/settings/WebhookCard.tsx:391
+#: src/components/settings/WebhookCard.tsx:487
 msgid "Sending test webhook..."
 msgstr "Envoi du webhook de test..."
 
@@ -11801,7 +11922,7 @@ msgstr "Lien de partage"
 msgid "shared with the rest of this AWS account"
 msgstr "partagé avec le reste de ce compte AWS"
 
-#: src/components/settings/WebhookCard.tsx:274
+#: src/components/settings/WebhookCard.tsx:351
 msgid "Show"
 msgstr "Afficher"
 
@@ -11852,12 +11973,12 @@ msgstr "Se connecter avec le SSO"
 msgid "Signing out..."
 msgstr "Déconnexion en cours..."
 
-#: src/components/settings/WebhooksSettings.tsx:302
+#: src/components/settings/WebhooksSettings.tsx:335
 msgid "Signup"
 msgstr "Inscription"
 
 #: src/components/analytics/NewContactsTable.tsx:184
-#: src/components/settings/WorkspaceMembers.tsx:156
+#: src/components/settings/WorkspaceMembers.tsx:181
 msgid "Since"
 msgstr "Depuis"
 
@@ -12170,8 +12291,8 @@ msgstr "État"
 #: src/components/contacts/ContactDetailsDrawer.tsx:982
 #: src/components/messages/MessageHistoryTab.tsx:580
 #: src/components/web_analytics/filters/FilterTable.tsx:264
-#: src/components/webhooks/OutgoingWebhooksTab.tsx:76
-#: src/components/webhooks/OutgoingWebhooksTab.tsx:363
+#: src/components/webhooks/OutgoingWebhooksTab.tsx:82
+#: src/components/webhooks/OutgoingWebhooksTab.tsx:378
 #: src/pages/BroadcastsPage.tsx:412
 msgid "Status"
 msgstr "Statut"
@@ -12307,16 +12428,16 @@ msgstr "Abonné le :"
 msgid "Subscript"
 msgstr "Indice"
 
-#: src/components/settings/WebhooksSettings.tsx:300
+#: src/components/settings/WebhooksSettings.tsx:333
 #: src/components/timeline/ContactTimeline.tsx:311
 #: src/components/timeline/ContactTimeline.tsx:324
 #: src/components/timeline/ContactTimeline.tsx:350
-#: src/components/webhooks/OutgoingWebhooksTab.tsx:68
-#: src/components/webhooks/OutgoingWebhooksTab.tsx:353
+#: src/components/webhooks/OutgoingWebhooksTab.tsx:74
+#: src/components/webhooks/OutgoingWebhooksTab.tsx:368
 msgid "Subscription"
 msgstr "Abonnement"
 
-#: src/components/webhooks/OutgoingWebhooksTab.tsx:476
+#: src/components/webhooks/OutgoingWebhooksTab.tsx:491
 msgid "Subscription ID:"
 msgstr "ID d'abonnement :"
 
@@ -12338,7 +12459,7 @@ msgstr "Statut d'abonnement mis à jour avec succès"
 msgid "Success"
 msgstr "Succès"
 
-#: src/components/settings/WebhookCard.tsx:321
+#: src/components/settings/WebhookCard.tsx:398
 msgid "Success Rate"
 msgstr "Taux de réussite"
 
@@ -12448,11 +12569,11 @@ msgid "Task type:"
 msgstr "Type de tâche :"
 
 #: src/components/settings/SettingsSidebar.tsx:36
-#: src/components/settings/WorkspaceMembers.tsx:408
+#: src/components/settings/WorkspaceMembers.tsx:434
 msgid "Team"
 msgstr "Équipe"
 
-#: src/components/settings/WorkspaceMembers.tsx:268
+#: src/components/settings/WorkspaceMembers.tsx:293
 msgid "Team member limit reached. Please upgrade your plan to add more members."
 msgstr "Limite de membres de l'équipe atteinte. Veuillez passer à une offre supérieure pour ajouter d'autres membres."
 
@@ -12632,6 +12753,10 @@ msgstr "Données de test mises à jour"
 msgid "Test data updated successfully"
 msgstr "Données de test mises à jour avec succès"
 
+#: src/components/settings/WebhookCard.tsx:326
+msgid "Test deliveries are unavailable here: Zapier's hook URLs always answer with success, so a test would report a green tick even for a Zap that no longer exists."
+msgstr "Les livraisons de test ne sont pas disponibles ici : les URL de hook de Zapier répondent toujours par un succès, si bien qu'un test afficherait une coche verte même pour un Zap qui n'existe plus."
+
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:63
 msgid "Test duration (hours)"
 msgstr "Durée du test (heures)"
@@ -12678,8 +12803,8 @@ msgstr "Taille de l'échantillon de test (%)"
 msgid "Test Variants"
 msgstr "Variantes de test"
 
-#: src/components/settings/WebhookCard.tsx:212
-#: src/components/settings/WebhookCard.tsx:346
+#: src/components/settings/WebhookCard.tsx:241
+#: src/components/settings/WebhookCard.tsx:442
 msgid "Test Webhook"
 msgstr "Tester le webhook"
 
@@ -12904,7 +13029,7 @@ msgstr "L'URL vers laquelle envoyer la requête POST"
 msgid "The user_metadata field in Supabase will be saved to this custom JSON field"
 msgstr "Le champ user_metadata dans Supabase sera enregistré dans ce champ JSON personnalisé"
 
-#: src/components/settings/WebhookCard.tsx:190
+#: src/components/settings/WebhookCard.tsx:215
 msgid "The webhook will stop receiving events."
 msgstr "Le webhook cessera de recevoir des événements."
 
@@ -12972,7 +13097,7 @@ msgstr "Ce compte est déjà lié à une autre identité d'authentification uniq
 #: src/components/settings/Integrations.tsx:1346
 #: src/components/settings/Integrations.tsx:1505
 #: src/components/settings/Integrations.tsx:1574
-#: src/components/settings/WebhookCard.tsx:234
+#: src/components/settings/WebhookCard.tsx:271
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:29
 msgid "This action cannot be undone."
 msgstr "Cette action est irréversible."
@@ -13151,7 +13276,11 @@ msgstr "Ce modèle est géré par une intégration et ne peut pas être supprim�
 msgid "This text appears in the email client's preview pane, typically after the subject line. Keep it concise and compelling (100-140 characters recommended)."
 msgstr "Ce texte apparaît dans le volet d'aperçu du client email, généralement après la ligne d'objet. Gardez-le concis et accrocheur (100-140 caractères recommandés)."
 
-#: src/components/settings/WorkspaceMembers.tsx:539
+#: src/components/settings/ZapierSettings.tsx:176
+msgid "This token is displayed once and cannot be retrieved again. Copy it now and paste it into Zapier."
+msgstr "Ce jeton n'est affiché qu'une seule fois et ne pourra pas être récupéré à nouveau. Copiez-le maintenant et collez-le dans Zapier."
+
+#: src/components/settings/WorkspaceMembers.tsx:567
 msgid "This token will only be displayed once. Please save it in a secure location. It cannot be retrieved again."
 msgstr "Ce jeton ne sera affiché qu'une seule fois. Veuillez le sauvegarder dans un endroit sécurisé. Il ne pourra pas être récupéré à nouveau."
 
@@ -13167,11 +13296,15 @@ msgstr "Ce verbe ne contrôle rien aujourd'hui. Chaque appel d'historique des me
 msgid "This verb gates nothing today. Exactly one inbound webhook event call is permission-checked and it is a read; the rows themselves arrive on the provider callback routes /webhooks/email and /webhooks/email/inbound, which carry no workspace session and so consult no grant. Unlike the two verbs the matrix locks on, this one is still yours to switch — turning it off simply changes nothing today."
 msgstr "Ce verbe ne contrôle rien aujourd'hui. Un seul appel d'événement webhook entrant fait l'objet d'une vérification de permission, et c'est une lecture ; les lignes elles-mêmes arrivent sur les routes de callback du fournisseur /webhooks/email et /webhooks/email/inbound, qui ne portent aucune session d'espace de travail et ne consultent donc aucune permission. Contrairement aux deux verbes que la matrice verrouille, celui-ci reste à votre main — le désactiver ne change simplement rien aujourd'hui."
 
+#: src/components/settings/WebhookCard.tsx:325
+msgid "This webhook belongs to a Zap. Turn that Zap off in Zapier and Zapier removes the webhook for you."
+msgstr "Ce webhook appartient à un Zap. Désactivez ce Zap dans Zapier et Zapier supprimera le webhook pour vous."
+
 #: src/components/web_analytics/toolbar.tsx:23
 msgid "This week"
 msgstr "Cette semaine"
 
-#: src/components/settings/WebhookCard.tsx:281
+#: src/components/settings/WebhookCard.tsx:358
 msgid "This will invalidate the current secret. You'll need to update your webhook receiver."
 msgstr "Cela invalidera le secret actuel. Vous devrez mettre à jour votre récepteur de webhook."
 
@@ -13381,6 +13514,10 @@ msgstr "pour éviter les envois en double"
 #~ msgid "To rewrite historical sessions and goals with the current rules, run a backfill."
 #~ msgstr ""
 
+#: src/components/settings/WebhookCard.tsx:436
+msgid "To stop these events, turn the Zap off in Zapier instead. Zapier then removes this webhook for you."
+msgstr "Pour arrêter ces événements, désactivez plutôt le Zap dans Zapier. Zapier supprimera alors ce webhook pour vous."
+
 #. placeholder {0}: config.title
 #: src/components/ai-assistant/AIAssistantChat.tsx:140
 msgid "To use the {0}, you need to configure the Anthropic integration in your workspace settings."
@@ -13564,7 +13701,7 @@ msgstr "Fournisseur transactionnel"
 msgid "Transparent"
 msgstr "Transparent"
 
-#: src/components/settings/WebhooksSettings.tsx:304
+#: src/components/settings/WebhooksSettings.tsx:337
 msgid "Trial"
 msgstr "Essai"
 
@@ -13923,7 +14060,7 @@ msgstr "URL du CDN qui met en cache vos fichiers"
 msgid "URL-friendly identifier (lowercase, hyphens only)"
 msgstr "Identifiant compatible URL (minuscules, tirets uniquement)"
 
-#: src/components/settings/WebhookCard.tsx:256
+#: src/components/settings/WebhookCard.tsx:333
 msgid "URL:"
 msgstr "URL :"
 
@@ -14173,7 +14310,7 @@ msgstr "Voir les statistiques du flux"
 msgid "View full dashboard"
 msgstr "Voir le tableau de bord complet"
 
-#: src/components/settings/WebhookCard.tsx:217
+#: src/components/settings/WebhookCard.tsx:247
 msgid "View Logs"
 msgstr "Voir les logs"
 
@@ -14323,11 +14460,11 @@ msgstr "Session web"
 msgid "Webhook"
 msgstr "Webhook"
 
-#: src/components/settings/WebhooksSettings.tsx:149
+#: src/components/settings/WebhooksSettings.tsx:168
 msgid "Webhook disabled"
 msgstr "Webhook désactivé"
 
-#: src/components/settings/WebhooksSettings.tsx:149
+#: src/components/settings/WebhooksSettings.tsx:168
 msgid "Webhook enabled"
 msgstr "Webhook activé"
 
@@ -14346,19 +14483,19 @@ msgstr "Endpoint du webhook :"
 msgid "Webhook Events"
 msgstr "Événements webhook"
 
-#: src/components/settings/WebhookCard.tsx:133
+#: src/components/settings/WebhookCard.tsx:141
 msgid "Webhook secret regenerated"
 msgstr "Secret du webhook régénéré"
 
-#: src/components/settings/WebhooksSettings.tsx:118
+#: src/components/settings/WebhooksSettings.tsx:137
 msgid "Webhook subscription created"
 msgstr "Abonnement webhook créé"
 
-#: src/components/settings/WebhooksSettings.tsx:134
+#: src/components/settings/WebhooksSettings.tsx:153
 msgid "Webhook subscription deleted"
 msgstr "Abonnement webhook supprimé"
 
-#: src/components/settings/WebhooksSettings.tsx:109
+#: src/components/settings/WebhooksSettings.tsx:128
 msgid "Webhook subscription updated"
 msgstr "Abonnement webhook mis à jour"
 
@@ -14375,7 +14512,7 @@ msgstr "URL du webhook"
 #: src/components/settings/Integrations.tsx:247
 #: src/components/settings/Integrations.tsx:279
 #: src/components/settings/SettingsSidebar.tsx:79
-#: src/components/settings/WebhooksSettings.tsx:169
+#: src/components/settings/WebhooksSettings.tsx:192
 msgid "Webhooks"
 msgstr "Webhooks"
 
@@ -14695,11 +14832,11 @@ msgstr "Annuel"
 #: src/components/settings/Integrations.tsx:1348
 #: src/components/settings/Integrations.tsx:1507
 #: src/components/settings/Integrations.tsx:1576
-#: src/components/settings/WebhookCard.tsx:192
-#: src/components/settings/WebhookCard.tsx:236
-#: src/components/settings/WebhookCard.tsx:283
-#: src/components/settings/WorkspaceMembers.tsx:193
-#: src/components/settings/WorkspaceMembers.tsx:213
+#: src/components/settings/WebhookCard.tsx:217
+#: src/components/settings/WebhookCard.tsx:273
+#: src/components/settings/WebhookCard.tsx:360
+#: src/components/settings/WorkspaceMembers.tsx:218
+#: src/components/settings/WorkspaceMembers.tsx:238
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:153
 #: src/components/web_analytics/filters/FilterTable.tsx:271
 msgid "Yes"
@@ -14887,6 +15024,23 @@ msgstr "Votre clé API d'espace de travail"
 #: src/components/settings/GeneralSettings.tsx:326
 msgid "Your workspace settings have not been saved. Leaving this page discards them."
 msgstr "Vos paramètres d'espace de travail n'ont pas été enregistrés. Quitter cette page les abandonnera."
+
+#: src/components/settings/WebhookCard.tsx:203
+#: src/components/settings/ZapierSettings.tsx:139
+msgid "Zapier"
+msgstr "Zapier"
+
+#: src/components/settings/ZapierSettings.tsx:171
+msgid "Zapier API key"
+msgstr "Clé API Zapier"
+
+#: src/components/settings/WebhookCard.tsx:201
+msgid "Zapier created this webhook for one of your Zaps."
+msgstr "Zapier a créé ce webhook pour l'un de vos Zaps."
+
+#: src/components/settings/WebhooksSettings.tsx:251
+msgid "Zapier owns this webhook's endpoint URL, so it cannot be changed here. Changing the event types breaks the Zap that created this webhook without reporting any error in Zapier."
+msgstr "L'URL du point d'accès de ce webhook appartient à Zapier et ne peut donc pas être modifiée ici. Modifier les types d'événements casse le Zap qui a créé ce webhook, sans qu'aucune erreur ne soit signalée dans Zapier."
 
 #: src/components/file_manager/fileManager.tsx:784
 msgid "Zip"

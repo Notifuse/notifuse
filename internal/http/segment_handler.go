@@ -2,7 +2,6 @@ package http
 
 import (
 	"encoding/json"
-	"errors"
 	"net/http"
 	"strconv"
 
@@ -82,14 +81,13 @@ func (h *SegmentHandler) handleGet(w http.ResponseWriter, r *http.Request) {
 
 	segment, err := h.service.GetSegment(r.Context(), &req)
 	if err != nil {
-		if _, ok := err.(*domain.ErrSegmentNotFound); ok {
-			WriteJSONError(w, "Segment not found", http.StatusNotFound)
-			return
-		}
-		h.logger.WithField("error", err.Error()).Error("Failed to get segment")
+		// Mapped before logging, not after: a missing segment and a denial are the
+		// caller's answer, not a fault of ours, and logging them at error level
+		// buries the failures that are.
 		if writeServiceError(w, err, "Failed to get segment") {
 			return
 		}
+		h.logger.WithField("error", err.Error()).Error("Failed to get segment")
 		WriteJSONError(w, "Failed to get segment", http.StatusInternalServerError)
 		return
 	}
@@ -142,14 +140,10 @@ func (h *SegmentHandler) handleUpdate(w http.ResponseWriter, r *http.Request) {
 
 	segment, err := h.service.UpdateSegment(r.Context(), &req)
 	if err != nil {
-		if _, ok := err.(*domain.ErrSegmentNotFound); ok {
-			WriteJSONError(w, "Segment not found", http.StatusNotFound)
-			return
-		}
-		h.logger.WithField("error", err.Error()).Error("Failed to update segment")
 		if writeServiceError(w, err, "Failed to update segment") {
 			return
 		}
+		h.logger.WithField("error", err.Error()).Error("Failed to update segment")
 		WriteJSONError(w, "Failed to update segment", http.StatusInternalServerError)
 		return
 	}
@@ -173,14 +167,10 @@ func (h *SegmentHandler) handleDelete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.service.DeleteSegment(r.Context(), &req); err != nil {
-		if _, ok := err.(*domain.ErrSegmentNotFound); ok {
-			WriteJSONError(w, "Segment not found", http.StatusNotFound)
-			return
-		}
-		h.logger.WithField("error", err.Error()).Error("Failed to delete segment")
 		if writeServiceError(w, err, "Failed to delete segment") {
 			return
 		}
+		h.logger.WithField("error", err.Error()).Error("Failed to delete segment")
 		WriteJSONError(w, "Failed to delete segment", http.StatusInternalServerError)
 		return
 	}
@@ -218,14 +208,10 @@ func (h *SegmentHandler) handleRebuild(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.service.RebuildSegment(r.Context(), req.WorkspaceID, req.SegmentID); err != nil {
-		if _, ok := err.(*domain.ErrSegmentNotFound); ok {
-			WriteJSONError(w, "Segment not found", http.StatusNotFound)
-			return
-		}
-		h.logger.WithField("error", err.Error()).Error("Failed to rebuild segment")
 		if writeServiceError(w, err, "Failed to rebuild segment") {
 			return
 		}
+		h.logger.WithField("error", err.Error()).Error("Failed to rebuild segment")
 		WriteJSONError(w, "Failed to rebuild segment", http.StatusInternalServerError)
 		return
 	}
@@ -351,17 +337,9 @@ func (h *SegmentHandler) handleGetContacts(w http.ResponseWriter, r *http.Reques
 // both response shapes so a denial answers 403 and a missing segment 404 whichever
 // one the caller asked for.
 func (h *SegmentHandler) writeGetContactsError(w http.ResponseWriter, err error) {
-	// errors.As rather than a bare type assertion: the service wraps repository
-	// errors on their way up, and a wrapped not-found would otherwise degrade into
-	// an opaque 500 that a client cannot tell apart from an outage.
-	var notFound *domain.ErrSegmentNotFound
-	if errors.As(err, &notFound) {
-		WriteJSONError(w, "Segment not found", http.StatusNotFound)
-		return
-	}
-	h.logger.WithField("error", err.Error()).Error("Failed to get segment contacts")
 	if writeServiceError(w, err, "Failed to get segment contacts") {
 		return
 	}
+	h.logger.WithField("error", err.Error()).Error("Failed to get segment contacts")
 	WriteJSONError(w, "Failed to get segment contacts", http.StatusInternalServerError)
 }

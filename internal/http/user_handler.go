@@ -281,10 +281,15 @@ func (h *UserHandler) GetCurrentUser(w http.ResponseWriter, r *http.Request) {
 	// Add workspace count to span for context
 	span.AddAttributes(trace.Int64Attribute("workspaces.count", int64(len(workspaces))))
 
-	// Credentials are decrypted on load for the sending path; they must not
-	// leave the process. See domain.Workspace.Redact.
+	// Credentials are decrypted on load for the sending path; they must not leave
+	// the process. See redactWorkspaceForCaller.
+	//
+	// This is the widest of the workspace-serialising endpoints — one call, every
+	// workspace the caller belongs to — and an API-key token passes RequireAuth
+	// here exactly as a session does, so it is where the S3 secret walked out
+	// after workspaces.list stopped serving it.
 	for _, ws := range workspaces {
-		ws.Redact()
+		redactWorkspaceForCaller(ctx, ws)
 	}
 
 	// Combine user and workspaces in response

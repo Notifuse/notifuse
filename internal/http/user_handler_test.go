@@ -908,3 +908,74 @@ func TestUserHandler_GetCurrentUserRedactsCredentials(t *testing.T) {
 	assert.Contains(t, body, "ciphertext", "the encrypted form still goes out, so the console can tell configured from unset")
 	assert.Contains(t, body, "smtp.example.com", "non-secret context survives")
 }
+
+// TestUserHandler_GetCurrentUserFileManagerSecretDependsOnTheCaller closes the
+// door that redacting workspaces.list alone left open.
+//
+// user.me returns the same workspaces, and an API-key token passes RequireAuth
+// here exactly as a session does — so a key that could no longer read the S3
+// secret from workspaces.list simply read it from this endpoint, one call later.
+// It is also where the console gets its workspaces: AuthContext fills them from
+// this response and the file manager builds its browser S3 client out of them, so
+// the session half has to keep working or the feature breaks.
+//
+// Asserted against the raw bytes, not a decoded struct: what leaks is what goes
+// on the wire, and the whole body is what an integration platform logs.
+func TestUserHandler_GetCurrentUserFileManagerSecretDependsOnTheCaller(t *testing.T) {
+	const fileManagerSecret = "SENTINEL-live-bucket-secret"
+	const userID = "test-user"
+	const sessionID = "test-session"
+
+	user := &domain.User{ID: userID, Email: "u@example.com"}
+
+	newWorkspace := func() *domain.Workspace {
+		workspace := &domain.Workspace{ID: "ws1", Name: "Acme"}
+		workspace.Settings.FileManager = domain.FileManagerSettings{
+			Bucket:    "assets",
+			AccessKey: "AKIAEXAMPLE",
+			SecretKey: fileManagerSecret,
+		}
+		return workspace
+	}
+
+	t.Run("an API key does not get it", func(t *testing.T) {
+		handler, mockUserSvc, mockWorkspaceSvc, _ := setupUserHandlerTest(t)
+		mockUserSvc.EXPECT().GetUserByID(gomock.Any(), userID).Return(user, nil)
+		mockWorkspaceSvc.EXPECT().ListWorkspaces(gomock.Any()).Return([]*domain.Workspace{newWorkspace()}, nil)
+
+		req := httptest.NewRequest(http.MethodGet, "/api/user.me", nil)
+		ctx := context.WithValue(req.Context(), domain.UserIDKey, userID)
+		// A key carries no session id, and the handler's session check skips it for
+		// exactly that reason — which is how it reaches the workspace listing at all.
+		ctx = context.WithValue(ctx, domain.UserTypeKey, string(domain.UserTypeAPIKey))
+		rec := httptest.NewRecorder()
+
+		handler.GetCurrentUser(rec, req.WithContext(ctx))
+
+		require.Equal(t, http.StatusOK, rec.Code)
+		body := rec.Body.String()
+		assert.NotContains(t, body, fileManagerSecret)
+		// The workspace itself still comes back whole; only the credential goes.
+		assert.Contains(t, body, "ws1")
+		assert.Contains(t, body, "assets")
+	})
+
+	t.Run("a console session does", func(t *testing.T) {
+		handler, mockUserSvc, mockWorkspaceSvc, _ := setupUserHandlerTest(t)
+		mockUserSvc.EXPECT().VerifyUserSession(gomock.Any(), userID, sessionID).Return(user, nil)
+		mockUserSvc.EXPECT().GetUserByID(gomock.Any(), userID).Return(user, nil)
+		mockWorkspaceSvc.EXPECT().ListWorkspaces(gomock.Any()).Return([]*domain.Workspace{newWorkspace()}, nil)
+
+		req := httptest.NewRequest(http.MethodGet, "/api/user.me", nil)
+		ctx := context.WithValue(req.Context(), domain.UserIDKey, userID)
+		ctx = context.WithValue(ctx, domain.UserTypeKey, string(domain.UserTypeUser))
+		ctx = context.WithValue(ctx, domain.SessionIDKey, sessionID)
+		rec := httptest.NewRecorder()
+
+		handler.GetCurrentUser(rec, req.WithContext(ctx))
+
+		require.Equal(t, http.StatusOK, rec.Code)
+		assert.Contains(t, rec.Body.String(), fileManagerSecret,
+			"withholding this from the console breaks the browser file manager")
+	})
+}

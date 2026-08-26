@@ -1,11 +1,13 @@
 package http
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/Notifuse/notifuse/internal/domain"
@@ -314,6 +316,47 @@ func TestWriteServiceError(t *testing.T) {
 			expectedMessage: "You do not have access to this workspace",
 		},
 		{
+			// Revoking an API key deletes its user row and nothing else: the
+			// token stays signed and valid for ten years, so a deleted user is
+			// the only shape a revoked key ever takes. Untyped, it collapsed to
+			// 500 at every handler — which tells an API client its server is
+			// broken rather than that its credential is dead, and specifically
+			// stops Zapier raising the reconnect prompt only a 401 triggers.
+			name:            "revoked api key",
+			err:             domain.ErrAPIKeyRevoked,
+			expectedHandled: true,
+			expectedStatus:  http.StatusUnauthorized,
+			expectedMessage: "API key has been revoked",
+		},
+		{
+			name:            "wrapped revoked api key",
+			err:             fmt.Errorf("failed to authenticate user: %w", domain.ErrAPIKeyRevoked),
+			expectedHandled: true,
+			expectedStatus:  http.StatusUnauthorized,
+			expectedMessage: "API key has been revoked",
+		},
+		{
+			// Deleting a row that is already gone has reached the state the
+			// caller asked for. The Zapier app deletes its subscription on every
+			// Zap turn-off and the console lets a user delete it by hand first,
+			// so a 500 here made turning a Zap off fail permanently.
+			name:            "webhook subscription already deleted",
+			err:             fmt.Errorf("webhook subscription sub-1: %w", domain.ErrWebhookSubscriptionNotFound),
+			expectedHandled: true,
+			expectedStatus:  http.StatusNotFound,
+			expectedMessage: "Webhook subscription not found",
+		},
+		{
+			// A Zap outliving the list it points at is the ordinary case, not an
+			// exotic one: the dropdown value is stored in the Zap and never
+			// re-resolved.
+			name:            "list not found names the list",
+			err:             fmt.Errorf("subscribing: %w", &domain.ErrListNotFound{Message: "list list123 not found"}),
+			expectedHandled: true,
+			expectedStatus:  http.StatusNotFound,
+			expectedMessage: "list list123 not found",
+		},
+		{
 			name:            "unrelated error is left to the caller",
 			err:             errors.New("database connection lost"),
 			expectedHandled: false,
@@ -346,4 +389,169 @@ func TestWriteServiceError(t *testing.T) {
 			assert.Equal(t, tc.expectedMessage, response["error"])
 		})
 	}
+}
+
+// TestWritePermissionError_RevokedAPIKey pins WHERE the revoked-key mapping
+// lives, not merely that it exists.
+//
+// Most handlers call writePermissionError and never writeServiceError —
+// transactional notifications, custom events, broadcasts, automations, the
+// contact timeline, message history, blog themes and web analytics all do. While
+// the mapping sat one level up in writeServiceError, every one of them still
+// answered a dead credential with a 500, which is the case that matters: those
+// are the endpoints an API key actually calls. Asserting through this helper is
+// what keeps the mapping at the level all of them share.
+func TestWritePermissionError_RevokedAPIKey(t *testing.T) {
+	// The shape AuthenticateUserFromContext really produces: revoking a key deletes
+	// its user row, so the lookup failure it wraps is a plain "user not found".
+	authFailure := fmt.Errorf("%w: %w", domain.ErrAPIKeyRevoked, errors.New("user not found"))
+
+	testCases := []struct {
+		name string
+		err  error
+	}{
+		{name: "bare sentinel", err: domain.ErrAPIKeyRevoked},
+		{name: "as the auth service builds it", err: authFailure},
+		{
+			name: "wrapped again on the way up",
+			err:  fmt.Errorf("failed to authenticate user: %w", authFailure),
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			w := httptest.NewRecorder()
+
+			require.True(t, writePermissionError(w, tc.err))
+
+			// 401 and nothing else: a client cannot tell a 403 from a permission it
+			// might be granted, and Zapier raises its reconnect prompt on 401 alone.
+			assert.Equal(t, http.StatusUnauthorized, w.Code)
+
+			body := w.Body.String()
+			var response map[string]string
+			require.NoError(t, json.Unmarshal([]byte(body), &response))
+			assert.Equal(t, "API key has been revoked", response["error"])
+
+			// The wrapped internal wording stays inside the process — it names how
+			// revocation is implemented, and it is what a substring-matching handler
+			// misread as a client mistake.
+			assert.NotContains(t, body, "user not found")
+		})
+	}
+}
+
+// TestTransactionalSendRevokedKeyIsAnAuthFailure exercises the worst-affected of
+// the handlers that reach for writePermissionError and nothing else.
+//
+// handleSend classifies whatever that helper declines by substring, and a revoked
+// key arrives as "api key has been revoked: user not found" — so the "not found"
+// arm caught it and answered 400 with that internal string in the response body.
+// 400 is the one answer a Zap can act on least: it raises no reconnect prompt,
+// triggers no retry, and reports the account's own request as malformed.
+//
+// The logger mock carries no expectations on purpose: the revoked key must be
+// answered before the error-level logging further down, so any call to it fails
+// this test.
+func TestTransactionalSendRevokedKeyIsAnAuthFailure(t *testing.T) {
+	mockService, _, handler := setupTransactionalHandlerTest(t)
+
+	mockService.EXPECT().
+		SendNotification(gomock.Any(), "ws1", gomock.Any()).
+		Return("", fmt.Errorf("%w: %w", domain.ErrAPIKeyRevoked, errors.New("user not found")))
+
+	// Raw JSON rather than a typed literal: this is what an integration puts on
+	// the wire, and the request has to survive Validate to reach the service at all.
+	body := `{"workspace_id":"ws1","notification":{"id":"welcome","contact":{"email":"user@example.com"},"channels":["email"]}}`
+	req := httptest.NewRequest(http.MethodPost, "/api/transactional.send", strings.NewReader(body))
+	w := httptest.NewRecorder()
+
+	handler.handleSend(w, req)
+
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
+
+	responseBody := w.Body.String()
+	var response map[string]string
+	require.NoError(t, json.Unmarshal([]byte(responseBody), &response))
+	assert.Equal(t, "API key has been revoked", response["error"])
+	assert.NotContains(t, responseBody, "user not found", "an internal error string reached the caller")
+}
+
+// TestRedactWorkspaceForCaller covers the one credential Workspace.Redact
+// deliberately keeps.
+//
+// The console builds an S3 client in the browser from Settings.FileManager
+// .SecretKey and talks to the bucket directly, so blanking it for everyone breaks
+// the file manager rather than hardening anything. But an API key authenticates
+// the very same endpoints a session does, and no integration has any use for a
+// live bucket credential — while the platforms they run on log whole response
+// bodies. The caller decides, so the console keeps working and the key gets
+// nothing.
+//
+// Asserted against marshalled bytes, not fields: what leaks is what goes on the
+// wire.
+func TestRedactWorkspaceForCaller(t *testing.T) {
+	const fileManagerSecret = "SENTINEL-live-bucket-secret"
+	const smtpPassword = "SENTINEL-smtp-password"
+
+	newWorkspace := func() *domain.Workspace {
+		ws := &domain.Workspace{
+			ID:   "ws1",
+			Name: "Acme",
+			Integrations: domain.Integrations{{
+				ID:   "int-1",
+				Type: domain.IntegrationTypeEmail,
+				EmailProvider: domain.EmailProvider{
+					Kind: domain.EmailProviderKindSMTP,
+					SMTP: &domain.SMTPSettings{Host: "smtp.example.com", Password: smtpPassword},
+				},
+			}},
+		}
+		ws.Settings.FileManager = domain.FileManagerSettings{
+			Bucket:    "assets",
+			AccessKey: "AKIAEXAMPLE",
+			SecretKey: fileManagerSecret,
+		}
+		return ws
+	}
+
+	serialise := func(t *testing.T, ctx context.Context) string {
+		t.Helper()
+		ws := newWorkspace()
+		redactWorkspaceForCaller(ctx, ws)
+		encoded, err := json.Marshal(ws)
+		require.NoError(t, err)
+		return string(encoded)
+	}
+
+	consoleSession := context.WithValue(context.Background(), domain.UserTypeKey, string(domain.UserTypeUser))
+	apiKey := context.WithValue(context.Background(), domain.UserTypeKey, string(domain.UserTypeAPIKey))
+
+	t.Run("a console session still gets the S3 secret", func(t *testing.T) {
+		body := serialise(t, consoleSession)
+		assert.Contains(t, body, fileManagerSecret, "blanking this breaks the browser file manager")
+		assert.Contains(t, body, "assets")
+	})
+
+	t.Run("an API key does not", func(t *testing.T) {
+		body := serialise(t, apiKey)
+		assert.NotContains(t, body, fileManagerSecret)
+		// Everything an integration reads from a workspace survives.
+		assert.Contains(t, body, "assets")
+		assert.Contains(t, body, "AKIAEXAMPLE")
+	})
+
+	t.Run("a context that proves nothing fails closed", func(t *testing.T) {
+		body := serialise(t, context.Background())
+		assert.NotContains(t, body, fileManagerSecret)
+	})
+
+	t.Run("integration credentials go for both", func(t *testing.T) {
+		assert.NotContains(t, serialise(t, consoleSession), smtpPassword)
+		assert.NotContains(t, serialise(t, apiKey), smtpPassword)
+	})
+
+	t.Run("a nil workspace is not a panic", func(t *testing.T) {
+		assert.NotPanics(t, func() { redactWorkspaceForCaller(apiKey, nil) })
+	})
 }

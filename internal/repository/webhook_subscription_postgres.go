@@ -18,7 +18,7 @@ import (
 const webhookSubscriptionColumns = `
 		id, name, url, secret, settings,
 		enabled, source, consecutive_failures, disabled_reason,
-		created_at, updated_at, last_delivery_at`
+		created_at, updated_at, last_delivery_at, failing_since`
 
 // webhookSubscriptionRepository implements domain.WebhookSubscriptionRepository for PostgreSQL
 type webhookSubscriptionRepository struct {
@@ -155,10 +155,31 @@ func (r *webhookSubscriptionRepository) Update(ctx context.Context, workspaceID 
 	// would let a Zapier-created row be relabelled as hand-made, which is what
 	// the console badge and the delete-versus-disable branch on a dead endpoint
 	// both key off.
+	//
+	// consecutive_failures, failing_since and disabled_reason are missing for a
+	// sharper reason: they do not belong to the caller at all. The delivery
+	// worker owns them and writes them one column at a time, in SQL, precisely so
+	// concurrent failures cannot lose counts (see IncrementFailures). This
+	// statement carries a snapshot read at the top of somebody's request, so
+	// writing them here published a value that was already stale — an owner
+	// rotating a secret while the worker was retiring the endpoint restored the
+	// counter it had reached and erased the reason it had recorded, and any
+	// client that touches its subscriptions on a timer re-armed failing_since
+	// forever, so the endpoint could never be retired at all.
+	//
+	// The one legitimate user write to those three is clearing them when the
+	// subscription is switched back ON, which is a statement that the endpoint
+	// has been fixed. That is expressed here as a CASE against the row's own
+	// current `enabled`, so it fires on the real off-to-on transition rather than
+	// on whatever the caller happened to read a moment earlier.
 	query := `
 		UPDATE webhook_subscriptions
 		SET name = $2, url = $3, secret = $4, settings = $5,
-			enabled = $6, consecutive_failures = $7, disabled_reason = $8, updated_at = $9
+			enabled = $6,
+			consecutive_failures = CASE WHEN $6 AND NOT enabled THEN 0 ELSE consecutive_failures END,
+			failing_since = CASE WHEN $6 AND NOT enabled THEN NULL ELSE failing_since END,
+			disabled_reason = CASE WHEN $6 AND NOT enabled THEN NULL ELSE disabled_reason END,
+			updated_at = $7
 		WHERE id = $1
 	`
 
@@ -169,8 +190,6 @@ func (r *webhookSubscriptionRepository) Update(ctx context.Context, workspaceID 
 		sub.Secret,
 		settingsJSON,
 		sub.Enabled,
-		sub.ConsecutiveFailures,
-		sub.DisabledReason,
 		sub.UpdatedAt,
 	)
 
@@ -250,7 +269,22 @@ func (r *webhookSubscriptionRepository) IncrementFailures(ctx context.Context, w
 		return fmt.Errorf("failed to get workspace connection: %w", err)
 	}
 
-	query := `UPDATE webhook_subscriptions SET consecutive_failures = consecutive_failures + 1 WHERE id = $1`
+	// COALESCE, not NOW(): failing_since marks the START of the current run of
+	// failures, so only the first failure after a success may set it. Re-stamping
+	// it on every failure would make the window it measures permanently zero and
+	// give the threshold nothing to wait for.
+	//
+	// Ending a run that has grown too old to still be one is deliberately NOT
+	// done here. It needs the run's maximum age, which only makes sense beside
+	// the failure window and the retry ladder it is derived from — all of which
+	// live in the delivery worker. The worker clears the run through
+	// ResetFailures before this increment, so the COALESCE below opens the new
+	// one. See expireStaleFailureRun.
+	query := `
+		UPDATE webhook_subscriptions
+		SET consecutive_failures = consecutive_failures + 1,
+			failing_since = COALESCE(failing_since, NOW())
+		WHERE id = $1`
 
 	_, err = workspaceDB.ExecContext(ctx, query, id)
 	if err != nil {
@@ -272,7 +306,10 @@ func (r *webhookSubscriptionRepository) ResetFailures(ctx context.Context, works
 		return fmt.Errorf("failed to get workspace connection: %w", err)
 	}
 
-	query := `UPDATE webhook_subscriptions SET consecutive_failures = 0 WHERE id = $1 AND consecutive_failures <> 0`
+	query := `
+		UPDATE webhook_subscriptions
+		SET consecutive_failures = 0, failing_since = NULL
+		WHERE id = $1 AND (consecutive_failures <> 0 OR failing_since IS NOT NULL)`
 
 	_, err = workspaceDB.ExecContext(ctx, query, id)
 	if err != nil {
@@ -352,6 +389,7 @@ func scanWebhookSubscriptionInto(scanner webhookSubscriptionRowScanner) (*Webhoo
 	var source sql.NullString
 	var disabledReason sql.NullString
 	var lastDeliveryAt sql.NullTime
+	var failingSince sql.NullTime
 
 	err := scanner.Scan(
 		&sub.ID,
@@ -366,6 +404,7 @@ func scanWebhookSubscriptionInto(scanner webhookSubscriptionRowScanner) (*Webhoo
 		&sub.CreatedAt,
 		&sub.UpdatedAt,
 		&lastDeliveryAt,
+		&failingSince,
 	)
 
 	if err != nil {
@@ -382,6 +421,10 @@ func scanWebhookSubscriptionInto(scanner webhookSubscriptionRowScanner) (*Webhoo
 
 	if lastDeliveryAt.Valid {
 		sub.LastDeliveryAt = &lastDeliveryAt.Time
+	}
+
+	if failingSince.Valid {
+		sub.FailingSince = &failingSince.Time
 	}
 
 	if len(settingsJSON) > 0 {

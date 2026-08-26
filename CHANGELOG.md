@@ -2,13 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
-## [41.0] - 2026-08-25
+## [39.0] - 2026-08-18
 
 - **Feature**: A webhook subscription can be scoped to particular lists or segments. List and segment events previously reached every subscription watching that event type, whichever list or segment they concerned, leaving the filtering to whatever received them. Naming the lists or segments you care about now keeps the rest from being sent at all. Leave it unset and the subscription keeps receiving everything, exactly as before.
 
 - **Fix**: A webhook subscription's signing secret is no longer handed out by editing it. The secret is owner-only, but renaming a subscription — or simply switching it off and back on — answered with the whole subscription, secret included, to any member holding webhook write permission. It is now returned only when a subscription is created or its secret deliberately rotated, which remain the two moments you are meant to copy it.
 
-- **Improvement**: Outbound webhooks stop hammering an endpoint that has stopped answering. A subscription whose deliveries keep failing is now switched off automatically and records why, so a webhook you find disabled can be told apart from one you disabled yourself, and an endpoint replying "410 Gone" is retired at once. Deleting a subscription now also clears the deliveries still queued for it, which previously lingered for the whole retention window and crowded out live traffic.
+- **Improvement**: Outbound webhooks stop hammering an endpoint that has stopped answering. A subscription whose deliveries keep failing is now switched off automatically and records why, so a webhook you find disabled can be told apart from one you disabled yourself, and an endpoint replying "410 Gone" is retired at once. Retiring one takes sustained failure rather than a burst: a receiver that is briefly unreachable during an import is retried, not switched off, however many deliveries it refuses in that moment. Switching a subscription back on clears its failure history. Deleting a subscription now also clears the deliveries still queued for it, which previously lingered for the whole retention window and crowded out live traffic.
 
 - **Improvement**: `contacts.upsert` and `lists.subscribe` now report what they did. Upsert returns the stored contact as it ended up after the merge, and subscribe returns one entry per requested list with the membership status it landed in — which double opt-in, an earlier unsubscribe or a bounced address can each decide for you. Both are additions; the fields existing clients already read are unchanged.
 
@@ -16,7 +16,11 @@ All notable changes to this project will be documented in this file.
 
 - **Improvement**: The contact, list, segment and webhook endpoints that still refused a request with a server error now answer "forbidden" and name the missing permission, finishing what 39.0 began.
 
-## [39.0] - 2026-08-18
+- **Fix**: `contacts.upsert` and `contacts.import` accept any JSON value in a `custom_json_*` field. They refused anything that was not an object or an array, while `lists.subscribe` stored the same value happily — so the same contact body succeeded through one endpoint and failed with a 400 through another.
+
+- **Fix**: A revoked API key is now reported as an authentication failure rather than a server error. Deleting a key is what revokes it, and every endpoint answered the deleted key with a 500, which reads to any client as "this instance is broken" rather than "this credential is dead" — so integrations kept retrying instead of asking to be reconnected.
+
+- **Fix**: Endpoints answer "not found" instead of a server error when what you named is gone. Subscribing to a deleted list, reading a deleted segment and deleting a webhook subscription twice each returned a 500; the first now names the list it could not find, and deleting a subscription that is already gone succeeds.
 
 - **Feature**: API keys can be scoped. When you create a key you can now choose which resources it may read and write, instead of every key holding the run of the workspace. Leave the permissions out and the key gets full access as before, and you can change a key's scope at any time without re-issuing it. Two to know before narrowing one: sending transactional email needs Transactional write, and Contacts write is also what permits deleting contacts.
 

@@ -395,7 +395,7 @@ func TestInitializeWorkspaceDatabase_WebhookDeliveryClaimSchema(t *testing.T) {
 	assert.Contains(t, deliveries, "REFERENCES webhook_subscriptions(id) ON DELETE CASCADE")
 
 	// The constraint is named here rather than left to PostgreSQL's auto-naming
-	// because the v40 migration adds the same constraint to existing workspaces
+	// because the v39 migration adds the same constraint to existing workspaces
 	// and looks it up by name to stay re-runnable. If the two names drift, that
 	// migration adds a second, duplicate foreign key on every re-run.
 	assert.Contains(t, deliveries, "CONSTRAINT webhook_deliveries_subscription_id_fkey")

@@ -194,6 +194,7 @@ func TestWebhookSubscriptionRepository_GetByID(t *testing.T) {
 
 	now := time.Now().UTC()
 	lastDelivery := now.Add(-1 * time.Hour)
+	failingSince := now.Add(-13 * time.Hour)
 
 	settings := domain.WebhookSubscriptionSettings{
 		EventTypes: []string{"email.delivered", "email.bounced"},
@@ -216,7 +217,7 @@ func TestWebhookSubscriptionRepository_GetByID(t *testing.T) {
 		rows := sqlmock.NewRows([]string{
 			"id", "name", "url", "secret", "settings",
 			"enabled", "source", "consecutive_failures", "disabled_reason",
-			"created_at", "updated_at", "last_delivery_at",
+			"created_at", "updated_at", "last_delivery_at", "failing_since",
 		}).AddRow(
 			subscriptionID,
 			"Test Subscription",
@@ -230,6 +231,7 @@ func TestWebhookSubscriptionRepository_GetByID(t *testing.T) {
 			now,
 			now,
 			lastDelivery,
+			failingSince,
 		)
 
 		mock.ExpectQuery(`SELECT .+ FROM webhook_subscriptions WHERE id = \$1`).
@@ -275,7 +277,7 @@ func TestWebhookSubscriptionRepository_GetByID(t *testing.T) {
 		rows := sqlmock.NewRows([]string{
 			"id", "name", "url", "secret", "settings",
 			"enabled", "source", "consecutive_failures", "disabled_reason",
-			"created_at", "updated_at", "last_delivery_at",
+			"created_at", "updated_at", "last_delivery_at", "failing_since",
 		}).AddRow(
 			subscriptionID,
 			"Simple Subscription",
@@ -289,6 +291,7 @@ func TestWebhookSubscriptionRepository_GetByID(t *testing.T) {
 			now,
 			now,
 			nil, // no last delivery
+			nil, // not currently failing
 		)
 
 		mock.ExpectQuery(`SELECT .+ FROM webhook_subscriptions WHERE id = \$1`).
@@ -350,7 +353,7 @@ func TestWebhookSubscriptionRepository_GetByID(t *testing.T) {
 		rows := sqlmock.NewRows([]string{
 			"id", "name", "url", "secret", "settings",
 			"enabled", "source", "consecutive_failures", "disabled_reason",
-			"created_at", "updated_at", "last_delivery_at",
+			"created_at", "updated_at", "last_delivery_at", "failing_since",
 		}).AddRow(
 			subscriptionID,
 			"Test",
@@ -363,6 +366,7 @@ func TestWebhookSubscriptionRepository_GetByID(t *testing.T) {
 			nil,
 			now,
 			now,
+			nil,
 			nil,
 		)
 
@@ -400,6 +404,7 @@ func TestWebhookSubscriptionRepository_List(t *testing.T) {
 		EventTypes: []string{"email.bounced"},
 	}
 	settings2JSON, _ := json.Marshal(settings2)
+	failingSince := now.Add(-13 * time.Hour)
 
 	t.Run("Success - multiple subscriptions", func(t *testing.T) {
 		db, mock, err := sqlmock.New()
@@ -413,7 +418,7 @@ func TestWebhookSubscriptionRepository_List(t *testing.T) {
 		rows := sqlmock.NewRows([]string{
 			"id", "name", "url", "secret", "settings",
 			"enabled", "source", "consecutive_failures", "disabled_reason",
-			"created_at", "updated_at", "last_delivery_at",
+			"created_at", "updated_at", "last_delivery_at", "failing_since",
 		}).
 			AddRow(
 				"sub-1",
@@ -428,6 +433,7 @@ func TestWebhookSubscriptionRepository_List(t *testing.T) {
 				now,
 				now,
 				now,
+				nil, // healthy: no run of failures in progress
 			).
 			AddRow(
 				"sub-2",
@@ -442,6 +448,7 @@ func TestWebhookSubscriptionRepository_List(t *testing.T) {
 				now,
 				now,
 				nil,
+				failingSince,
 			)
 
 		mock.ExpectQuery(`SELECT .+ FROM webhook_subscriptions ORDER BY created_at DESC`).
@@ -486,7 +493,7 @@ func TestWebhookSubscriptionRepository_List(t *testing.T) {
 		rows := sqlmock.NewRows([]string{
 			"id", "name", "url", "secret", "settings",
 			"enabled", "source", "consecutive_failures", "disabled_reason",
-			"created_at", "updated_at", "last_delivery_at",
+			"created_at", "updated_at", "last_delivery_at", "failing_since",
 		})
 
 		mock.ExpectQuery(`SELECT .+ FROM webhook_subscriptions ORDER BY created_at DESC`).
@@ -562,13 +569,13 @@ func TestWebhookSubscriptionRepository_List(t *testing.T) {
 		rows := sqlmock.NewRows([]string{
 			"id", "name", "url", "secret", "settings",
 			"enabled", "source", "consecutive_failures", "disabled_reason",
-			"created_at", "updated_at", "last_delivery_at",
+			"created_at", "updated_at", "last_delivery_at", "failing_since",
 		}).
 			AddRow(
 				"sub-1", "Test", "https://example.com", "secret",
 				settings1JSON, true,
 				nil, 0, nil,
-				now, now, nil,
+				now, now, nil, nil,
 			).
 			RowError(0, errors.New("rows iteration error"))
 
@@ -621,7 +628,7 @@ func TestWebhookSubscriptionRepository_Update(t *testing.T) {
 			GetConnection(gomock.Any(), workspaceID).
 			Return(db, nil)
 
-		mock.ExpectExec(`UPDATE webhook_subscriptions SET name = \$2, url = \$3, secret = \$4, settings = \$5, enabled = \$6, consecutive_failures = \$7, disabled_reason = \$8, updated_at = \$9 WHERE id = \$1`).
+		mock.ExpectExec(`UPDATE webhook_subscriptions SET name = \$2, url = \$3, secret = \$4, settings = \$5, enabled = \$6, consecutive_failures = CASE WHEN \$6 AND NOT enabled THEN 0 ELSE consecutive_failures END, failing_since = CASE WHEN \$6 AND NOT enabled THEN NULL ELSE failing_since END, disabled_reason = CASE WHEN \$6 AND NOT enabled THEN NULL ELSE disabled_reason END, updated_at = \$7 WHERE id = \$1`).
 			WithArgs(
 				"sub-1",
 				"Updated Subscription",
@@ -629,9 +636,7 @@ func TestWebhookSubscriptionRepository_Update(t *testing.T) {
 				"new-secret",
 				sqlmock.AnyArg(), // settings JSON
 				false,
-				0,   // consecutive_failures
-				nil, // disabled_reason
-				sqlmock.AnyArg(),
+				sqlmock.AnyArg(), // updated_at
 			).
 			WillReturnResult(sqlmock.NewResult(0, 1))
 
@@ -664,7 +669,7 @@ func TestWebhookSubscriptionRepository_Update(t *testing.T) {
 			Enabled: true,
 		}
 
-		mock.ExpectExec(`UPDATE webhook_subscriptions SET name = \$2, url = \$3, secret = \$4, settings = \$5, enabled = \$6, consecutive_failures = \$7, disabled_reason = \$8, updated_at = \$9 WHERE id = \$1`).
+		mock.ExpectExec(`UPDATE webhook_subscriptions SET name = \$2, url = \$3, secret = \$4, settings = \$5, enabled = \$6, consecutive_failures = CASE WHEN \$6 AND NOT enabled THEN 0 ELSE consecutive_failures END, failing_since = CASE WHEN \$6 AND NOT enabled THEN NULL ELSE failing_since END, disabled_reason = CASE WHEN \$6 AND NOT enabled THEN NULL ELSE disabled_reason END, updated_at = \$7 WHERE id = \$1`).
 			WithArgs(
 				"sub-2",
 				"Simple Update",
@@ -672,9 +677,7 @@ func TestWebhookSubscriptionRepository_Update(t *testing.T) {
 				"secret",
 				sqlmock.AnyArg(), // settings JSON
 				true,
-				0,
-				nil,
-				sqlmock.AnyArg(),
+				sqlmock.AnyArg(), // updated_at
 			).
 			WillReturnResult(sqlmock.NewResult(0, 1))
 
@@ -1025,7 +1028,7 @@ func TestWebhookSubscriptionRepository_Source(t *testing.T) {
 
 		// The argument list is pinned as well as the statement text: sqlmock
 		// rejects a call whose argument count differs, so a source smuggled in
-		// as a tenth parameter would fail here too.
+		// as an extra parameter would fail here too.
 		mock.ExpectExec(`UPDATE webhook_subscriptions SET`).
 			WithArgs(
 				"sub-zap",
@@ -1034,8 +1037,6 @@ func TestWebhookSubscriptionRepository_Source(t *testing.T) {
 				"secret",
 				sqlmock.AnyArg(),
 				true,
-				0,
-				nil,
 				sqlmock.AnyArg(),
 			).
 			WillReturnResult(sqlmock.NewResult(0, 1))
@@ -1153,12 +1154,12 @@ func TestWebhookSubscriptionRepository_GetByID_NotFoundIsTyped(t *testing.T) {
 		rows := sqlmock.NewRows([]string{
 			"id", "name", "url", "secret", "settings",
 			"enabled", "source", "consecutive_failures", "disabled_reason",
-			"created_at", "updated_at", "last_delivery_at",
+			"created_at", "updated_at", "last_delivery_at", "failing_since",
 		}).AddRow(
 			subscriptionID, "Test", "https://example.com", "secret",
 			[]byte("{invalid json}"), true,
 			nil, 0, nil,
-			now, now, nil,
+			now, now, nil, nil,
 		)
 
 		mock.ExpectQuery(`SELECT .+ FROM webhook_subscriptions WHERE id = \$1`).
@@ -1196,7 +1197,7 @@ func TestWebhookSubscriptionRepository_FailureCounter(t *testing.T) {
 			GetConnection(gomock.Any(), workspaceID).
 			Return(db, nil)
 
-		mock.ExpectExec(`UPDATE webhook_subscriptions SET consecutive_failures = consecutive_failures \+ 1 WHERE id = \$1$`).
+		mock.ExpectExec(`UPDATE webhook_subscriptions SET consecutive_failures = consecutive_failures \+ 1, failing_since = COALESCE\(failing_since, NOW\(\)\) WHERE id = \$1$`).
 			WithArgs(subscriptionID).
 			WillReturnResult(sqlmock.NewResult(0, 1))
 
@@ -1205,6 +1206,11 @@ func TestWebhookSubscriptionRepository_FailureCounter(t *testing.T) {
 		// Deliveries for one subscription fail concurrently; a count read into
 		// Go and written back would lose every increment but the last.
 		assert.Contains(t, normalizeWebhookSQL(actualSQL), "consecutive_failures = consecutive_failures + 1")
+		// COALESCE, never a bare NOW(): failing_since marks the START of the run
+		// of failures, so only the first failure after a success may set it.
+		// Re-stamping it on every failure would keep the window it measures
+		// permanently at zero and give the threshold nothing to wait for.
+		assert.Contains(t, normalizeWebhookSQL(actualSQL), "failing_since = COALESCE(failing_since, NOW())")
 		assert.NoError(t, mock.ExpectationsWereMet())
 	})
 
@@ -1246,7 +1252,7 @@ func TestWebhookSubscriptionRepository_FailureCounter(t *testing.T) {
 			GetConnection(gomock.Any(), workspaceID).
 			Return(db, nil)
 
-		mock.ExpectExec(`UPDATE webhook_subscriptions SET consecutive_failures = 0 WHERE id = \$1`).
+		mock.ExpectExec(`UPDATE webhook_subscriptions SET consecutive_failures = 0, failing_since = NULL WHERE id = \$1`).
 			WithArgs(subscriptionID).
 			WillReturnResult(sqlmock.NewResult(0, 0))
 
@@ -1256,6 +1262,11 @@ func TestWebhookSubscriptionRepository_FailureCounter(t *testing.T) {
 		// without this guard each success writes a new row version to store the
 		// value the row already held.
 		assert.Contains(t, normalizeWebhookSQL(actualSQL), "consecutive_failures <> 0")
+		// A success ends the run of failures, so the window has to be cleared
+		// with the count. Leaving it set would have the next failure inherit a
+		// window hours old and retire a subscription that just delivered.
+		assert.Contains(t, normalizeWebhookSQL(actualSQL), "failing_since = NULL")
+		assert.Contains(t, normalizeWebhookSQL(actualSQL), "failing_since IS NOT NULL")
 		assert.NoError(t, mock.ExpectationsWereMet())
 	})
 
@@ -1360,4 +1371,75 @@ func TestWebhookSubscriptionRepository_FailureCounter(t *testing.T) {
 		assert.NoError(t, repo.DisableWithReason(ctx, workspaceID, subscriptionID, "reason"))
 		assert.NoError(t, mock.ExpectationsWereMet())
 	})
+}
+
+// TestWebhookSubscriptionRepository_Update_LeavesTheFailureStateToTheWorker pins
+// which columns an edit is allowed to carry.
+//
+// consecutive_failures, failing_since and disabled_reason belong to the delivery
+// worker, which writes them one at a time in SQL precisely so concurrent
+// failures cannot lose counts. This statement carries a snapshot read at the top
+// of somebody's request, so writing them here published a value that was already
+// stale: an owner rotating a secret while the endpoint was being retired put
+// back the counter it had reached and erased the reason it had recorded, and any
+// client that touches its subscriptions on a timer re-armed failing_since
+// forever — so an endpoint that was never coming back was never retired.
+func TestWebhookSubscriptionRepository_Update_LeavesTheFailureStateToTheWorker(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	repo := NewWebhookSubscriptionRepository(mockWorkspaceRepo)
+
+	var actualSQL string
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(captureWebhookSQL(&actualSQL)))
+	require.NoError(t, err)
+	defer func() { _ = db.Close() }()
+
+	mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), "ws-123").Return(db, nil)
+
+	reason := "automatically disabled after repeated delivery failures"
+	failingSince := time.Now().UTC().Add(-9 * time.Hour)
+
+	// A stale snapshot: the caller read this row before the worker touched it,
+	// and every one of these three values is now wrong.
+	sub := &domain.WebhookSubscription{
+		ID: "sub-1", Name: "Renamed", URL: "https://example.com/hook", Secret: "s",
+		Enabled:             true,
+		ConsecutiveFailures: 3,
+		FailingSince:        &failingSince,
+		DisabledReason:      &reason,
+	}
+
+	// sqlmock rejects a call whose argument count differs, so this list is the
+	// assertion that the three stale values are not sent at all.
+	mock.ExpectExec(`UPDATE webhook_subscriptions SET`).
+		WithArgs(
+			"sub-1",
+			"Renamed",
+			"https://example.com/hook",
+			"s",
+			sqlmock.AnyArg(), // settings JSON
+			true,
+			sqlmock.AnyArg(), // updated_at
+		).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+
+	require.NoError(t, repo.Update(context.Background(), "ws-123", sub))
+
+	normalized := normalizeWebhookSQL(actualSQL)
+	for _, column := range []string{"consecutive_failures", "failing_since", "disabled_reason"} {
+		assert.NotContains(t, normalized, column+" = $",
+			"%s is the worker's to write, never the caller's snapshot", column)
+	}
+
+	// They are not simply dropped, though: the one legitimate user write to them
+	// is clearing them when the subscription is switched back ON, which is a
+	// statement that the endpoint has been fixed. That is expressed against the
+	// row's own current `enabled` rather than against whatever the caller read,
+	// so it fires on the real off-to-on transition and on nothing else.
+	assert.Contains(t, normalized, "consecutive_failures = CASE WHEN $6 AND NOT enabled THEN 0 ELSE consecutive_failures END")
+	assert.Contains(t, normalized, "failing_since = CASE WHEN $6 AND NOT enabled THEN NULL ELSE failing_since END")
+	assert.Contains(t, normalized, "disabled_reason = CASE WHEN $6 AND NOT enabled THEN NULL ELSE disabled_reason END")
+	assert.NoError(t, mock.ExpectationsWereMet())
 }

@@ -42,7 +42,7 @@ func setupAuthTest(t *testing.T) (
 }
 
 func TestAuthService_AuthenticateUserFromContext(t *testing.T) {
-	mockAuthRepo, _, _, service := setupAuthTest(t)
+	mockAuthRepo, _, mockLogger, service := setupAuthTest(t)
 
 	userID := "user123"
 	sessionID := "session123"
@@ -109,6 +109,65 @@ func TestAuthService_AuthenticateUserFromContext(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, result)
 		require.Equal(t, userID, result.ID)
+	})
+
+	// Revoking an API key deletes its user row, and that delete is the whole of
+	// the revocation: the token carries no jti, has no denylist, and stays signed
+	// and valid for ten years. So a missing user row on the API-key branch means
+	// "this key was revoked", and it has to be typed for a handler to answer 401
+	// instead of collapsing it into a 500 that reads as "our server is broken".
+	t.Run("a deleted API key user is a revoked key, not an unclassifiable error", func(t *testing.T) {
+		ctx := context.WithValue(
+			context.WithValue(
+				context.Background(),
+				domain.UserIDKey,
+				userID,
+			),
+			domain.UserTypeKey,
+			string(domain.UserTypeAPIKey),
+		)
+
+		mockAuthRepo.EXPECT().
+			GetUserByID(ctx, userID).
+			Return(nil, sql.ErrNoRows)
+
+		result, err := service.AuthenticateUserFromContext(ctx)
+
+		require.Error(t, err)
+		require.Nil(t, result)
+		require.ErrorIs(t, err, domain.ErrAPIKeyRevoked)
+		// The underlying cause survives for logs and for anything still matching
+		// on it.
+		require.ErrorIs(t, err, ErrUserNotFound)
+	})
+
+	// A database that could not answer is not a revoked key. Only a proven
+	// authentication failure may reach the client as 401: the console discards
+	// its stored token on any 401, and an API client is told to re-issue a
+	// credential that is perfectly good.
+	t.Run("a failed lookup is not reported as a revoked key", func(t *testing.T) {
+		mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+		mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+
+		ctx := context.WithValue(
+			context.WithValue(
+				context.Background(),
+				domain.UserIDKey,
+				userID,
+			),
+			domain.UserTypeKey,
+			string(domain.UserTypeAPIKey),
+		)
+
+		mockAuthRepo.EXPECT().
+			GetUserByID(ctx, userID).
+			Return(nil, errors.New("pq: sorry, too many clients already"))
+
+		result, err := service.AuthenticateUserFromContext(ctx)
+
+		require.Error(t, err)
+		require.Nil(t, result)
+		require.NotErrorIs(t, err, domain.ErrAPIKeyRevoked)
 	})
 
 	t.Run("missing user_id in context", func(t *testing.T) {

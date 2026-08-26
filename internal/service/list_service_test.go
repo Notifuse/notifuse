@@ -938,7 +938,11 @@ func TestListService_SubscribeToLists(t *testing.T) {
 
 		err := service.SubscribeToLists(ctx, payload, false)
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "list not found")
+		// Typed, so the handler answers 404 rather than an unexplained 500, and
+		// the message names the list the caller asked for.
+		var notFound *domain.ErrListNotFound
+		assert.ErrorAs(t, err, &notFound)
+		assert.Contains(t, err.Error(), "list123")
 	})
 
 	t.Run("error - GetEmailProvider failure", func(t *testing.T) {

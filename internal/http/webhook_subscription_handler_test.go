@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -1068,4 +1069,60 @@ func TestWebhookSubscriptionHandler_HandleGet_SurfacesAttributionAndFailureState
 	assert.Equal(t, float64(7), response.Subscription["consecutive_failures"])
 	assert.Equal(t, reason, response.Subscription["disabled_reason"])
 	assert.Equal(t, []interface{}{"list-a"}, response.Subscription["list_ids"])
+}
+
+// TestWebhookSubscriptionHandler_HandleDelete_AlreadyGoneIsNotFound pins the
+// status code for deleting a subscription that no longer exists.
+//
+// The repository already reports it as a typed sentinel, but writeServiceError
+// did not know that sentinel, so it fell through to 500. That made the one
+// recovery the console's own delete dialog recommends — turn the Zap off and on
+// again — the action that errors: performUnsubscribe posts the stored id, gets
+// 500, and Zapier reports the unsubscribe as failed forever. Zapier's
+// at-least-once retry of a delete whose response was lost lands in the same
+// place. Deleting a row that is already gone has reached the state the caller
+// asked for; it is not a server fault.
+//
+// Driven through the real service and a mocked repository rather than a mocked
+// service, because the wrapping between the two is the thing that used to
+// defeat the mapping.
+func TestWebhookSubscriptionHandler_HandleDelete_AlreadyGoneIsNotFound(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	authSvc := mocks.NewMockAuthService(ctrl)
+	authSvc.EXPECT().
+		AuthenticateUserForWorkspace(gomock.Any(), "ws123").
+		DoAndReturn(func(ctx context.Context, _ string) (context.Context, *domain.User, *domain.UserWorkspace, error) {
+			return ctx, &domain.User{ID: "user123"}, &domain.UserWorkspace{
+				UserID:      "user123",
+				WorkspaceID: "ws123",
+				Role:        "owner",
+			}, nil
+		})
+
+	subRepo := mocks.NewMockWebhookSubscriptionRepository(ctrl)
+	subRepo.EXPECT().Delete(gomock.Any(), "ws123", "sub123").
+		Return(fmt.Errorf("webhook subscription sub123: %w", domain.ErrWebhookSubscriptionNotFound))
+
+	deliveryRepo := mocks.NewMockWebhookDeliveryRepository(ctrl)
+	deliveryRepo.EXPECT().DeleteBySubscriptionID(gomock.Any(), "ws123", "sub123").Return(nil)
+
+	handler := &WebhookSubscriptionHandler{
+		service:      service.NewWebhookSubscriptionService(subRepo, deliveryRepo, authSvc, &mockLogger{}),
+		logger:       &mockLogger{},
+		getJWTSecret: func() ([]byte, error) { return []byte("test"), nil },
+	}
+
+	req := httptest.NewRequest(http.MethodPost, "/api/webhookSubscriptions.delete",
+		bytes.NewBufferString(`{"workspace_id":"ws123","id":"sub123"}`))
+	rr := httptest.NewRecorder()
+
+	handler.handleDelete(rr, req)
+
+	assert.Equal(t, http.StatusNotFound, rr.Code)
+
+	var response map[string]string
+	require.NoError(t, json.NewDecoder(rr.Body).Decode(&response))
+	assert.Equal(t, "Webhook subscription not found", response["error"])
 }

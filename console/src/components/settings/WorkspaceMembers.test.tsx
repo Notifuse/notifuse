@@ -3,9 +3,9 @@ import { render, screen, fireEvent, waitFor, within } from '@testing-library/rea
 import { App } from 'antd'
 import { i18n } from '@lingui/core'
 import { I18nProvider } from '@lingui/react'
-import { WorkspaceMembers } from '../WorkspaceMembers'
-import type { PermissionResource, WorkspaceMember } from '../../../services/api/types'
-import { ALL_PERMISSION_RESOURCES } from '../../../services/api/permissions'
+import { WorkspaceMembers } from './WorkspaceMembers'
+import type { PermissionResource, WorkspaceMember } from '../../services/api/types'
+import { ALL_PERMISSION_RESOURCES, isPermissionEnforced } from '../../services/api/permissions'
 
 const api = vi.hoisted(() => ({
   createAPIKey: vi.fn(),
@@ -15,21 +15,24 @@ const api = vi.hoisted(() => ({
   deleteInvitation: vi.fn()
 }))
 
-vi.mock('../../../services/api/workspace', () => ({ workspaceService: api }))
+vi.mock('../../services/api/workspace', () => ({ workspaceService: api }))
 
 i18n.loadAndActivate({ locale: 'en', messages: {} })
 
 beforeEach(() => {
   vi.clearAllMocks()
-  api.createAPIKey.mockResolvedValue({ token: 'tok', email: 'sender@ws1.api.example.com' })
+  api.createAPIKey.mockResolvedValue({ token: 'tok', email: 'sender@api.example.com' })
   api.setUserPermissions.mockResolvedValue({ status: 'ok', message: '' })
+  api.inviteMember.mockResolvedValue({ status: 'ok', message: '' })
+  // Carries a trailing path segment so the normalisation is exercised, not just the host.
+  window.API_ENDPOINT = 'https://api.example.com/'
 })
 
 const apiKeyRow = (permissions: WorkspaceMember['permissions']): WorkspaceMember => ({
   user_id: 'key-1',
   workspace_id: 'ws1',
   role: 'member',
-  email: 'sender@ws1.api.example.com',
+  email: 'sender@api.example.com',
   type: 'api_key',
   created_at: '2026-01-01T00:00:00Z',
   updated_at: '2026-01-01T00:00:00Z',
@@ -281,6 +284,65 @@ describe('create API key drawer', () => {
     expect(Object.keys(request.permissions).sort()).toEqual([...ALL_PERMISSION_RESOURCES].sort())
   })
 
+  it('offers a switch for every resource in the canonical list', async () => {
+    const drawer = await openCreateApiKey()
+
+    expect(matrixRows(drawer)).toHaveLength(ALL_PERMISSION_RESOURCES.length)
+    for (const resource of ALL_PERMISSION_RESOURCES) {
+      expect(drawer.querySelector(`tr[data-row-key="${resource}"]`)).not.toBeNull()
+    }
+  })
+
+  it('scopes a key down to the integration resources without touching every other switch', async () => {
+    const drawer = await openCreateApiKey()
+    const scoped: PermissionResource[] = ['webhook_subscriptions', 'contacts', 'lists']
+
+    fireEvent.change(within(drawer).getByRole('textbox'), { target: { value: 'zapier' } })
+    fireEvent.click(within(drawer).getByRole('button', { name: 'Revoke all' }))
+    for (const resource of scoped) {
+      fireEvent.click(switchesFor(drawer, resource).read)
+      fireEvent.click(switchesFor(drawer, resource).write)
+    }
+    fireEvent.click(within(footerOf(drawer)).getByRole('button', { name: 'Create API Key' }))
+
+    await waitFor(() => expect(api.createAPIKey).toHaveBeenCalled())
+    const { permissions } = api.createAPIKey.mock.calls[0][0]
+    for (const resource of scoped) {
+      expect(permissions[resource]).toEqual({ read: true, write: true })
+    }
+    // Everything else is denied, except the verbs no gate can enforce — those stay granted so a
+    // stored `false` no backfill would widen never reaches the row.
+    for (const resource of ALL_PERMISSION_RESOURCES) {
+      if (scoped.includes(resource)) continue
+      const granted = permissions[resource]
+      expect(granted.read).toBe(!isPermissionEnforced(resource, 'read'))
+      expect(granted.write).toBe(!isPermissionEnforced(resource, 'write'))
+    }
+  })
+
+  it('restores the full grant from the revoked state', async () => {
+    const drawer = await openCreateApiKey()
+
+    fireEvent.change(within(drawer).getByRole('textbox'), { target: { value: 'sender' } })
+    fireEvent.click(within(drawer).getByRole('button', { name: 'Revoke all' }))
+    fireEvent.click(within(drawer).getByRole('button', { name: 'Grant all' }))
+    fireEvent.click(within(footerOf(drawer)).getByRole('button', { name: 'Create API Key' }))
+
+    await waitFor(() => expect(api.createAPIKey).toHaveBeenCalled())
+    const { permissions } = api.createAPIKey.mock.calls[0][0]
+    for (const resource of ALL_PERMISSION_RESOURCES) {
+      expect(permissions[resource]).toEqual({ read: true, write: true })
+    }
+  })
+
+  it('advertises the address the server actually mints, without a workspace id in it', async () => {
+    const drawer = await openCreateApiKey()
+
+    // The suffix sits in a disabled button beside the prefix field.
+    expect(within(drawer).getByText('@api.example.com')).toBeInTheDocument()
+    expect(drawer.textContent).not.toContain('ws1.api.example.com')
+  })
+
   it('swaps the drawer footer for a single Close once the one-time token is shown', async () => {
     const drawer = await openCreateApiKey()
 
@@ -296,5 +358,41 @@ describe('create API key drawer', () => {
     expect(within(footer).getAllByRole('button')).toHaveLength(1)
     expect(within(footer).getByRole('button', { name: 'Close' })).toBeInTheDocument()
     expect(within(drawer).queryByRole('table')).toBeNull()
+  })
+})
+
+describe('invite member drawer', () => {
+  const openInvite = async () => {
+    renderMembers([])
+    fireEvent.click(screen.getByRole('button', { name: 'Invite Member' }))
+    return openDrawer('Invite Member')
+  }
+
+  it('sends a grant naming every canonical resource', async () => {
+    const drawer = await openInvite()
+
+    fireEvent.change(within(drawer).getByRole('textbox'), {
+      target: { value: 'member@example.com' }
+    })
+    fireEvent.click(switchesFor(drawer, 'webhook_subscriptions').write)
+    fireEvent.click(within(footerOf(drawer)).getByRole('button', { name: 'Send Invitation' }))
+
+    await waitFor(() => expect(api.inviteMember).toHaveBeenCalled())
+    const { permissions } = api.inviteMember.mock.calls[0][0]
+    // A resource the map omits is denied on the server, so an invite that never names segments,
+    // webhook_subscriptions or webhook_events silently strips them.
+    expect(Object.keys(permissions).sort()).toEqual([...ALL_PERMISSION_RESOURCES].sort())
+    expect(permissions.segments).toEqual({ read: true, write: true })
+    expect(permissions.webhook_events).toEqual({ read: true, write: true })
+    expect(permissions.webhook_subscriptions).toEqual({ read: true, write: false })
+  })
+
+  it('offers a switch for every resource in the canonical list', async () => {
+    const drawer = await openInvite()
+
+    expect(matrixRows(drawer)).toHaveLength(ALL_PERMISSION_RESOURCES.length)
+    for (const resource of ALL_PERMISSION_RESOURCES) {
+      expect(drawer.querySelector(`tr[data-row-key="${resource}"]`)).not.toBeNull()
+    }
   })
 })

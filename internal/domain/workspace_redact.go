@@ -60,6 +60,22 @@ func (w *Workspace) RedactForPublic() {
 	}
 	w.Redact()
 	w.Integrations = nil
+	w.RedactFileManagerSecret()
+}
+
+// RedactFileManagerSecret blanks the S3 credential Redact deliberately keeps.
+//
+// Separate from Redact because the two answer different questions. Redact asks
+// "may this leave the process at all", and for the S3 secret the answer is yes:
+// the console's file manager talks to the bucket from the browser with it.
+// This asks "does THIS response need it", and for a listing that exists to tell
+// a caller which workspaces it can reach, the answer is no.
+//
+// Safe on a nil receiver so boundary call sites need no guard.
+func (w *Workspace) RedactFileManagerSecret() {
+	if w == nil {
+		return
+	}
 	w.Settings.FileManager.SecretKey = ""
 	w.Settings.FileManager.EncryptedSecretKey = ""
 }

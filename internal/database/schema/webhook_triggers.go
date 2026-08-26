@@ -437,8 +437,17 @@ func WebhookCustomEventsTriggerFunction() string {
 				should_deliver := true;
 				custom_filters := sub.settings->'custom_event_filters';
 
-				-- Apply goal_types filter if specified
-				IF custom_filters IS NOT NULL AND custom_filters ? 'goal_types'
+				-- jsonb_typeof rather than a key-exists test, for the same reason
+				-- the id filters in the other triggers use it: jsonb_array_length
+				-- raises on a scalar, and a key-exists test is true for a key
+				-- whose value is JSON null. This runs inside the customer's own
+				-- write transaction, so a raise here fails their INSERT into
+				-- custom_events — their events.track call 500s, not just the
+				-- webhook. Reproduced on PostgreSQL 17 with a goal_types of JSON
+				-- null: the old shape answered "cannot get array length of a
+				-- scalar" and rolled the INSERT back. settings is a free-form
+				-- jsonb column, so nothing upstream guarantees the shape.
+				IF jsonb_typeof(custom_filters->'goal_types') = 'array'
 				   AND jsonb_array_length(custom_filters->'goal_types') > 0 THEN
 					IF NEW.goal_type IS NULL OR NOT (NEW.goal_type = ANY(
 						SELECT jsonb_array_elements_text(custom_filters->'goal_types')
@@ -448,7 +457,7 @@ func WebhookCustomEventsTriggerFunction() string {
 				END IF;
 
 				-- Apply event_names filter if specified
-				IF should_deliver AND custom_filters IS NOT NULL AND custom_filters ? 'event_names'
+				IF should_deliver AND jsonb_typeof(custom_filters->'event_names') = 'array'
 				   AND jsonb_array_length(custom_filters->'event_names') > 0 THEN
 					IF NOT (NEW.event_name = ANY(
 						SELECT jsonb_array_elements_text(custom_filters->'event_names')

@@ -3,8 +3,8 @@
     "contact.created": {
       "data": {
         "contact": {
-          "address_line_1": null,
-          "address_line_2": null,
+          "address_line_1": "12 Rue du Café",
+          "address_line_2": "Apt 4",
           "country": "FR",
           "created_at": "2024-01-15T09:30:00Z",
           "custom_datetime_1": "2024-01-15T09:30:00Z",
@@ -40,8 +40,8 @@
           "language": "en",
           "last_name": "Sample",
           "phone": "+33123456789",
-          "postcode": null,
-          "state": null,
+          "postcode": "75011",
+          "state": "Île-de-France",
           "timezone": "Europe/Paris",
           "updated_at": "2024-01-15T09:30:00Z"
         }
@@ -54,8 +54,8 @@
     "contact.updated": {
       "data": {
         "contact": {
-          "address_line_1": null,
-          "address_line_2": null,
+          "address_line_1": "12 Rue du Café",
+          "address_line_2": "Apt 4",
           "country": "FR",
           "created_at": "2024-01-15T09:30:00Z",
           "custom_datetime_1": "2024-01-15T09:30:00Z",
@@ -91,8 +91,8 @@
           "language": "en",
           "last_name": "Sample",
           "phone": "+33123456789",
-          "postcode": null,
-          "state": null,
+          "postcode": "75011",
+          "state": "Île-de-France",
           "timezone": "Europe/Paris",
           "updated_at": "2024-01-15T09:30:00Z"
         }

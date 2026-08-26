@@ -1,5 +1,18 @@
 import { useState, useEffect } from 'react'
-import { Card, Button, Space, Form, Input, Select, Checkbox, message, Drawer, Row, Col } from 'antd'
+import {
+  Alert,
+  Card,
+  Button,
+  Space,
+  Form,
+  Input,
+  Select,
+  Checkbox,
+  message,
+  Drawer,
+  Row,
+  Col
+} from 'antd'
 import { faPlus } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { useLingui } from '@lingui/react/macro'
@@ -104,6 +117,12 @@ export function WebhooksSettings({ workspaceId }: WebhooksSettingsProps) {
           url: values.url,
           event_types: values.event_types,
           custom_event_filters: customEventFilters,
+          // The endpoint replaces the settings object wholesale, so a filter this body omits is
+          // cleared. The drawer has no UI for the list and segment filters — Zapier writes them
+          // when it registers a Zap — so they are echoed back untouched. Dropping them would
+          // widen a Zap watching one list to every list in the workspace, silently.
+          list_ids: editingSubscription.settings.list_ids,
+          segment_ids: editingSubscription.settings.segment_ids,
           enabled: values.enabled
         })
         message.success(t`Webhook subscription updated`)
@@ -157,6 +176,10 @@ export function WebhooksSettings({ workspaceId }: WebhooksSettingsProps) {
   const formatEventType = (eventType: string) => {
     return eventType
   }
+
+  // Zapier owns the endpoint URL of the subscriptions it creates: repointing it
+  // here leaves the Zap switched on in Zapier while it silently stops firing.
+  const editingZapierSubscription = editingSubscription?.source === 'zapier'
 
   const selectedEventTypes = Form.useWatch('event_types', form)
   const showCustomEventFilters = selectedEventTypes?.some((t: string) =>
@@ -219,6 +242,16 @@ export function WebhooksSettings({ workspaceId }: WebhooksSettingsProps) {
         }
       >
         <Form form={form} layout="vertical">
+          {editingZapierSubscription && (
+            <Alert
+              type="warning"
+              showIcon
+              className="mb-4"
+              title={t`Managed by Zapier`}
+              description={t`Zapier owns this webhook's endpoint URL, so it cannot be changed here. Changing the event types breaks the Zap that created this webhook without reporting any error in Zapier.`}
+            />
+          )}
+
           <Form.Item
             name="name"
             label={t`Name`}
@@ -235,7 +268,7 @@ export function WebhooksSettings({ workspaceId }: WebhooksSettingsProps) {
               { type: 'url', message: t`Please enter a valid URL` }
             ]}
           >
-            <Input placeholder="https://example.com/webhook" />
+            <Input placeholder="https://example.com/webhook" disabled={editingZapierSubscription} />
           </Form.Item>
 
           <Form.Item

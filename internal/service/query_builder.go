@@ -636,6 +636,31 @@ func castNumeric(textExpr string, mode castMode) string {
 	return fmt.Sprintf("(%s)::numeric", textExpr)
 }
 
+// guardWholeColumnCast keeps a scalar stored in a custom_json column out of a numeric or date
+// comparison that addresses the column itself rather than a value inside it.
+//
+// Those five columns used to hold nothing but an object or an array — contacts.upsert answered 400
+// for anything else — so (custom_json_1::text)::numeric raised on every non-null row and such a
+// filter failed loudly and always. A scalar is now stored as-is, matching what lists.subscribe had
+// always accepted, and PostgreSQL converts one without complaint: ('42'::jsonb)::text::numeric is
+// 42, and ('"2024-01-01"'::jsonb)::text::timestamptz is a real timestamp. The filter therefore
+// started matching some rows and raising on others, and which of the two a customer saw depended on
+// the rows the planner happened to reach first.
+//
+// Only the whole-column form needs this. With a path, the subscript already answers NULL on a
+// scalar, and a typeof guard there would break an array index such as custom_json_1[0].
+//
+// CASE rather than a conjunct: PostgreSQL does not promise to evaluate AND left to right, so
+// `jsonb_typeof(col) = 'object' AND (col::text)::numeric > $1` can still be reordered behind the
+// cast it is meant to protect. An object keeps raising, which is what the segment path chose for
+// values it cannot convert.
+func guardWholeColumnCast(castExpr string, dbColumn string, hasJSONPath bool) string {
+	if hasJSONPath {
+		return castExpr
+	}
+	return fmt.Sprintf("CASE WHEN jsonb_typeof(%s) = 'object' THEN %s END", dbColumn, castExpr)
+}
+
 // castTimestamp renders the timestamp conversion of a text expression under the given mode.
 func castTimestamp(textExpr string, mode castMode) string {
 	if mode == castDefensively {
@@ -836,20 +861,33 @@ func (qb *QueryBuilder) buildJSONCondition(dbColumn string, filter *domain.Dimen
 			condition := fmt.Sprintf("%s %s", dbColumn, sqlOp.sql)
 			return condition, nil, argIndex, nil
 		}
-		// Check if a specific key exists in the JSON
-		// Use the ? operator for existence check
+		// A key belongs to an object, so require one before looking the key up.
+		//
+		// jsonb's ? operator does not require that: it matches a top-level scalar string as
+		// readily as an object key, so on PostgreSQL 17 '"gold"'::jsonb ? 'gold' is true. That
+		// was unreachable while contacts.upsert refused anything but an object or an array in
+		// these five columns, and stopped being unreachable when the endpoint widened to accept
+		// a scalar (matching what lists.subscribe had always stored). Unguarded, importing
+		// contacts whose custom_json_1 is the bare string "tier" drops every one of them into
+		// any segment carrying `custom_json_1.tier is_set`, though they hold no such key and no
+		// object at all — and the only symptom is the wrong recipients on the next broadcast.
+		//
+		// A plain conjunct is enough here because ? cannot raise, so it does not matter whether
+		// the planner reaches it before jsonb_typeof. The casts further down need a CASE.
 		key := filter.JSONPath[0]
 		args = append(args, key)
-		if filter.Operator == "is_set" {
-			condition := fmt.Sprintf("%s ? $%d", dbColumn, argIndex)
-			return condition, args, argIndex + 1, nil
+		condition := fmt.Sprintf("(jsonb_typeof(%s) = 'object' AND %s ? $%d)", dbColumn, dbColumn, argIndex)
+		if filter.Operator == "is_not_set" {
+			condition = "NOT " + condition
 		}
-		condition := fmt.Sprintf("NOT (%s ? $%d)", dbColumn, argIndex)
 		return condition, args, argIndex + 1, nil
 	}
 
 	// Build the JSON path using PostgreSQL subscript notation
 	jsonPath := qb.buildJSONPath(dbColumn, filter.JSONPath)
+	// An empty path addresses the column itself, which is the one shape a stored scalar can reach
+	// through a cast. See guardWholeColumnCast.
+	hasJSONPath := len(filter.JSONPath) > 0
 
 	// Relative-day operators need the same treatment as elsewhere: a day count for a value and a
 	// timestamp to compare it against. They carry no SQL operator of their own, so falling
@@ -864,7 +902,8 @@ func (qb *QueryBuilder) buildJSONCondition(dbColumn string, filter *domain.Dimen
 			return "", nil, argIndex, err
 		}
 		return qb.buildCondition(
-			castTimestamp(fmt.Sprintf("%s::text", jsonPath), mode), filter.Operator, sqlOp, values, argIndex)
+			guardWholeColumnCast(castTimestamp(fmt.Sprintf("%s::text", jsonPath), mode), dbColumn, hasJSONPath),
+			filter.Operator, sqlOp, values, argIndex)
 	}
 
 	// Handle array-specific operators
@@ -874,7 +913,15 @@ func (qb *QueryBuilder) buildJSONCondition(dbColumn string, filter *domain.Dimen
 			return "", nil, argIndex, fmt.Errorf("in_array requires string_values")
 		}
 		args = append(args, filter.StringValues[0])
-		condition := fmt.Sprintf("%s ? $%d", jsonPath, argIndex)
+		// The same ? quirk as the existence check above, reached through a different operator: a
+		// stored scalar string satisfies `in_array "gold"` simply by being "gold".
+		//
+		// This guard keeps objects as well as arrays, unlike the one above, because is_set reads
+		// only JSONPath[0] and so can only ask about a top-level key. A nested key can be asked
+		// about through in_array alone, and that has worked since long before a scalar could be
+		// stored here, so narrowing to 'array' would take a capability away rather than close a
+		// hole the widening opened.
+		condition := fmt.Sprintf("(jsonb_typeof(%s) IN ('object', 'array') AND %s ? $%d)", jsonPath, jsonPath, argIndex)
 		return condition, args, argIndex + 1, nil
 	}
 
@@ -887,10 +934,10 @@ func (qb *QueryBuilder) buildJSONCondition(dbColumn string, filter *domain.Dimen
 		fieldExpr = fmt.Sprintf("%s::text", jsonPath)
 	case "number":
 		// Extract as text, then cast to numeric
-		fieldExpr = castNumeric(fmt.Sprintf("%s::text", jsonPath), mode)
+		fieldExpr = guardWholeColumnCast(castNumeric(fmt.Sprintf("%s::text", jsonPath), mode), dbColumn, hasJSONPath)
 	case "time":
 		// Extract as text, then cast to timestamptz
-		fieldExpr = castTimestamp(fmt.Sprintf("%s::text", jsonPath), mode)
+		fieldExpr = guardWholeColumnCast(castTimestamp(fmt.Sprintf("%s::text", jsonPath), mode), dbColumn, hasJSONPath)
 	default:
 		return "", nil, argIndex, fmt.Errorf("invalid field_type for JSON field: %s", filter.FieldType)
 	}

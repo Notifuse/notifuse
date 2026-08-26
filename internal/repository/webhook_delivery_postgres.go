@@ -4,10 +4,12 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
+	"github.com/Notifuse/notifuse/pkg/logger"
 )
 
 // webhookDeliveryColumns is the read projection shared by every delivery query,
@@ -23,12 +25,19 @@ const webhookDeliveryColumns = `
 // webhookDeliveryRepository implements domain.WebhookDeliveryRepository for PostgreSQL
 type webhookDeliveryRepository struct {
 	workspaceRepo domain.WorkspaceRepository
+	// logger exists for one case that has no other way out: a claimed row this
+	// repository decides to skip. Skipping is right — see GetPendingForWorkspace
+	// — but it is a decision taken here, about a row only this layer can name,
+	// and returning it as an error would throw away the rest of the batch. The
+	// analytics repositories take a logger for the same reason.
+	logger logger.Logger
 }
 
 // NewWebhookDeliveryRepository creates a new PostgreSQL webhook delivery repository
-func NewWebhookDeliveryRepository(workspaceRepo domain.WorkspaceRepository) domain.WebhookDeliveryRepository {
+func NewWebhookDeliveryRepository(workspaceRepo domain.WorkspaceRepository, log logger.Logger) domain.WebhookDeliveryRepository {
 	return &webhookDeliveryRepository{
 		workspaceRepo: workspaceRepo,
+		logger:        log,
 	}
 }
 
@@ -82,20 +91,100 @@ func (r *webhookDeliveryRepository) GetPendingForWorkspace(ctx context.Context, 
 	}
 	defer rows.Close()
 
+	// From here the claim is already durable: the UPDATE ran in autocommit, so
+	// every row this statement matched is in 'delivering' whether or not it makes
+	// it back through this loop. Returning an error therefore does not undo
+	// anything — it only discards rows that are already claimed. That makes a
+	// single unscannable row the worst kind of poison pill: it would fail the
+	// whole batch, on every poll, forever, and take the workspace's entire
+	// webhook queue with it. So a row that will not scan is skipped and the rest
+	// of the batch goes out; the skipped row stays 'delivering' until the reclaim
+	// sweep returns it, which bounds the damage to one row per lease instead of
+	// the workspace.
 	var deliveries []*WebhookDelivery
+	var scanErr error
+	var skipped int
 	for rows.Next() {
 		delivery, err := scanWebhookDeliveryFromRows(rows)
 		if err != nil {
-			return nil, fmt.Errorf("failed to scan delivery: %w", err)
+			scanErr = fmt.Errorf("failed to scan delivery: %w", err)
+			skipped++
+			continue
 		}
 		deliveries = append(deliveries, delivery)
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("error iterating deliveries: %w", err)
+		scanErr = fmt.Errorf("error iterating deliveries: %w", err)
+	}
+
+	// Log before deciding whether to return it, because on the common path it is
+	// never returned at all. A row that cannot be scanned cannot be scanned on
+	// the next poll either: it is claimed, skipped, reclaimed by the sweep and
+	// skipped again, every ten seconds for the whole retention window, occupying
+	// one of the batch's hundred slots the entire time. Silently, before this —
+	// no log, no metric, no error — while an operator watching the console sees a
+	// delivery wedged in Delivering with nothing anywhere to correlate it to.
+	// Same silence swallowed a mid-iteration rows.Err(), which is not a poison
+	// row at all but a batch cut short by a connection that died.
+	if scanErr != nil {
+		r.logger.WithFields(map[string]interface{}{
+			"workspace_id": workspaceID,
+			"skipped":      skipped,
+			"claimed":      len(deliveries),
+			"error":        scanErr.Error(),
+		}).Error("Skipped unreadable rows in a claimed webhook delivery batch")
+	}
+
+	// Only report the failure when it cost the caller everything. With rows in
+	// hand, surfacing it would throw away deliveries that are claimed, valid and
+	// ready to send, to describe a row the sweep will pick up anyway.
+	if scanErr != nil && len(deliveries) == 0 {
+		return nil, scanErr
 	}
 
 	return deliveries, nil
+}
+
+// RenewClaim re-stamps one row's lease, and reports whether we still hold it.
+//
+// The claimed_at we were handed is the claim token. Matching on it is what makes
+// this a renewal rather than a theft: if the sweep returned the row and another
+// worker took it, its claimed_at has moved and this updates nothing, so the
+// caller learns to leave the row alone instead of POSTing it a second time
+// alongside its new owner. Matching on status = 'delivering' covers the other
+// half — a row the sweep returned to 'pending' that nobody has taken yet.
+func (r *webhookDeliveryRepository) RenewClaim(ctx context.Context, workspaceID, id string, claimedAt *time.Time) (bool, *time.Time, error) {
+	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
+	if err != nil {
+		return false, nil, fmt.Errorf("failed to get workspace connection: %w", err)
+	}
+
+	// A NULL claimed_at is not a claim anyone can renew: rows written before the
+	// claim existed carry one, and ReclaimStale treats them as stale for exactly
+	// that reason. Refusing here rather than in SQL keeps the predicate a plain
+	// equality, which an index can use.
+	if claimedAt == nil {
+		return false, nil, nil
+	}
+
+	query := `
+		UPDATE webhook_deliveries
+		SET claimed_at = NOW()
+		WHERE id = $1 AND status = 'delivering' AND claimed_at = $2
+		RETURNING claimed_at
+	`
+
+	var renewed time.Time
+	err = workspaceDB.QueryRowContext(ctx, query, id, *claimedAt).Scan(&renewed)
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, nil, nil
+	}
+	if err != nil {
+		return false, nil, fmt.Errorf("failed to renew delivery claim: %w", err)
+	}
+
+	return true, &renewed, nil
 }
 
 // ListAll retrieves all deliveries for a workspace with optional subscription filter and pagination
@@ -427,6 +516,65 @@ func (r *webhookDeliveryRepository) ReclaimStale(ctx context.Context, workspaceI
 	}
 
 	return rowsAffected, nil
+}
+
+// ReleaseClaim returns a claimed row to 'pending' without touching the delivery log.
+//
+// Deliberately not UpdateStatus. That statement writes last_attempt_at,
+// last_response_status and last_response_body unconditionally, so releasing a
+// row through it recorded an attempt that never left the process and wiped the
+// receiver's last real status and body — exactly the two fields a user needs to
+// debug the endpoint. attempts is untouched for the same reason: nothing was
+// sent, so nothing was attempted, and spending one of ten attempts on our own
+// database having a bad minute is how a transient outage turns into lost
+// deliveries. next_attempt_at is already in the past, so the row rejoins the
+// next batch.
+//
+// The predicate is RenewClaim's, and it is not optional. On `id` alone this
+// statement released whatever state the row happened to be in rather than this
+// caller's claim, and both ways that goes wrong end in the same duplicate POST
+// the claim exists to prevent:
+//
+//   - the worker's recover releases unconditionally, so a panic AFTER
+//     MarkDelivered had committed moved a delivered row back to 'pending' —
+//     attempts below max_attempts, next_attempt_at already past — and the next
+//     poll claimed and re-sent an event that had been delivered;
+//   - a worker that stalls past its lease has its row reclaimed and handed to
+//     another, and its late release then yanks that row out from under a POST
+//     already in flight.
+//
+// Matching `status = 'delivering' AND claimed_at = $3` makes both of those match
+// zero rows and change nothing, which is the right outcome for a claim that is
+// no longer ours.
+func (r *webhookDeliveryRepository) ReleaseClaim(ctx context.Context, workspaceID, id string, claimedAt *time.Time, lastError string) error {
+	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
+	if err != nil {
+		return fmt.Errorf("failed to get workspace connection: %w", err)
+	}
+
+	// No token, no release — and deliberately never a predicate-free one as the
+	// fallback. A caller that cannot name the claim it is handing back cannot
+	// prove it holds one, so the row is better left in 'delivering' with a NULL
+	// claimed_at: ReclaimStale reads exactly that as infinitely stale and returns
+	// it on its very next sweep, which is strictly safer than an UPDATE that
+	// could land on a row another worker is delivering right now. Refusing here
+	// rather than in SQL also keeps the predicate a plain equality, as RenewClaim
+	// does.
+	if claimedAt == nil {
+		return nil
+	}
+
+	query := `
+		UPDATE webhook_deliveries
+		SET status = 'pending', claimed_at = NULL, last_error = $2
+		WHERE id = $1 AND status = 'delivering' AND claimed_at = $3
+	`
+
+	if _, err := workspaceDB.ExecContext(ctx, query, id, lastError, *claimedAt); err != nil {
+		return fmt.Errorf("failed to release delivery claim: %w", err)
+	}
+
+	return nil
 }
 
 // scanWebhookDeliveryFromRows scans a row from sql.Rows into a WebhookDelivery
