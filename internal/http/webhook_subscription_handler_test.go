@@ -866,8 +866,9 @@ func TestWebhookSubscriptionHandler_HandleCreate_RejectsUnknownSource(t *testing
 	assert.Contains(t, response["error"], "invalid webhook subscription source")
 }
 
-// webhookSubscriptions.update is a full replace, so the source has to survive a
-// body that does not carry it — and must not be settable by one that does.
+// Source is not one of the fields webhookSubscriptions.update accepts at all, so it
+// has to survive a body that does not carry it — and must not be settable by one
+// that does.
 func TestWebhookSubscriptionHandler_HandleUpdate_LeavesSourceUnchanged(t *testing.T) {
 	testCases := []struct {
 		name           string
@@ -943,82 +944,6 @@ func TestWebhookSubscriptionHandler_HandleUpdate_LeavesSourceUnchanged(t *testin
 				// The rest of the replace still applies, so the test cannot pass by
 				// the update having been dropped altogether.
 				assert.Equal(t, "Renamed", stored.Name)
-			}
-		})
-	}
-}
-
-func TestWebhookSubscriptionHandler_HandleUpdate_IDFilters(t *testing.T) {
-	testCases := []struct {
-		name               string
-		body               string
-		expectedListIDs    []string
-		expectedSegmentIDs []string
-	}{
-		{
-			name:               "populated arrays replace the stored filter",
-			body:               `{"workspace_id":"ws123","id":"sub123","name":"Filtered","url":"https://example.com/hook","event_types":["list.subscribed"],"enabled":true,"list_ids":["list-b"],"segment_ids":["seg-b"]}`,
-			expectedListIDs:    []string{"list-b"},
-			expectedSegmentIDs: []string{"seg-b"},
-		},
-		{
-			name:               "an empty array clears the filter rather than matching nothing",
-			body:               `{"workspace_id":"ws123","id":"sub123","name":"Filtered","url":"https://example.com/hook","event_types":["list.subscribed"],"enabled":true,"list_ids":[],"segment_ids":[]}`,
-			expectedListIDs:    nil,
-			expectedSegmentIDs: nil,
-		},
-		{
-			name:               "absent arrays clear the filter, since update is a full replace",
-			body:               `{"workspace_id":"ws123","id":"sub123","name":"Filtered","url":"https://example.com/hook","event_types":["list.subscribed"],"enabled":true}`,
-			expectedListIDs:    nil,
-			expectedSegmentIDs: nil,
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			ctrl := gomock.NewController(t)
-			defer ctrl.Finish()
-
-			repo := mocks.NewMockWebhookSubscriptionRepository(ctrl)
-			repo.EXPECT().
-				GetByID(gomock.Any(), "ws123", "sub123").
-				Return(&domain.WebhookSubscription{
-					ID:      "sub123",
-					Name:    "Original",
-					URL:     "https://example.com/hook",
-					Enabled: true,
-					Settings: domain.WebhookSubscriptionSettings{
-						EventTypes: []string{"list.subscribed"},
-						ListIDs:    []string{"list-a"},
-						SegmentIDs: []string{"seg-a"},
-					},
-				}, nil)
-
-			var stored *domain.WebhookSubscription
-			repo.EXPECT().
-				Update(gomock.Any(), "ws123", gomock.Any()).
-				DoAndReturn(func(_ context.Context, _ string, sub *domain.WebhookSubscription) error {
-					stored = sub
-					return nil
-				})
-
-			handler := &WebhookSubscriptionHandler{
-				service:      service.NewWebhookSubscriptionService(repo, nil, webhookWriteAuth(ctrl, "ws123"), &mockLogger{}),
-				worker:       nil,
-				logger:       &mockLogger{},
-				getJWTSecret: func() ([]byte, error) { return []byte("test"), nil },
-			}
-
-			req := httptest.NewRequest(http.MethodPost, "/api/webhookSubscriptions.update", bytes.NewBufferString(tc.body))
-			rr := httptest.NewRecorder()
-
-			handler.handleUpdate(rr, req)
-
-			assert.Equal(t, http.StatusOK, rr.Code, rr.Body.String())
-			if assert.NotNil(t, stored) {
-				assert.Equal(t, tc.expectedListIDs, stored.Settings.ListIDs)
-				assert.Equal(t, tc.expectedSegmentIDs, stored.Settings.SegmentIDs)
 			}
 		})
 	}
@@ -1125,4 +1050,210 @@ func TestWebhookSubscriptionHandler_HandleDelete_AlreadyGoneIsNotFound(t *testin
 	var response map[string]string
 	require.NoError(t, json.NewDecoder(rr.Body).Decode(&response))
 	assert.Equal(t, "Webhook subscription not found", response["error"])
+}
+
+// The enabled flag is patched, not replaced. A body that omits it decoded as false
+// and disabled the subscription, which the console reported as a successful save —
+// and disabling one drains its queued deliveries into a state the worker will never
+// claim again, so nothing about that is recoverable by switching it back on.
+func TestWebhookSubscriptionHandler_HandleUpdate_EnabledIsOptional(t *testing.T) {
+	testCases := []struct {
+		name          string
+		storedEnabled bool
+		body          string
+		expected      bool
+	}{
+		{
+			name:          "a body without the key leaves an enabled subscription enabled",
+			storedEnabled: true,
+			body:          `{"workspace_id":"ws123","id":"sub123","name":"Renamed","url":"https://example.com/hook","event_types":["contact.created"]}`,
+			expected:      true,
+		},
+		{
+			name:          "a body without the key leaves a disabled subscription disabled",
+			storedEnabled: false,
+			body:          `{"workspace_id":"ws123","id":"sub123","name":"Renamed","url":"https://example.com/hook","event_types":["contact.created"]}`,
+			expected:      false,
+		},
+		{
+			name:          "an explicit false still disables",
+			storedEnabled: true,
+			body:          `{"workspace_id":"ws123","id":"sub123","name":"Renamed","url":"https://example.com/hook","event_types":["contact.created"],"enabled":false}`,
+			expected:      false,
+		},
+		{
+			name:          "an explicit true still enables",
+			storedEnabled: false,
+			body:          `{"workspace_id":"ws123","id":"sub123","name":"Renamed","url":"https://example.com/hook","event_types":["contact.created"],"enabled":true}`,
+			expected:      true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			repo := mocks.NewMockWebhookSubscriptionRepository(ctrl)
+			repo.EXPECT().
+				GetByID(gomock.Any(), "ws123", "sub123").
+				Return(&domain.WebhookSubscription{
+					ID:      "sub123",
+					Name:    "Original",
+					URL:     "https://example.com/hook",
+					Enabled: tc.storedEnabled,
+					Settings: domain.WebhookSubscriptionSettings{
+						EventTypes: []string{"contact.created"},
+					},
+				}, nil)
+
+			var stored *domain.WebhookSubscription
+			repo.EXPECT().
+				Update(gomock.Any(), "ws123", gomock.Any()).
+				DoAndReturn(func(_ context.Context, _ string, sub *domain.WebhookSubscription) error {
+					stored = sub
+					return nil
+				})
+
+			handler := &WebhookSubscriptionHandler{
+				service:      service.NewWebhookSubscriptionService(repo, nil, webhookWriteAuth(ctrl, "ws123"), &mockLogger{}),
+				worker:       nil,
+				logger:       &mockLogger{},
+				getJWTSecret: func() ([]byte, error) { return []byte("test"), nil },
+			}
+
+			req := httptest.NewRequest(http.MethodPost, "/api/webhookSubscriptions.update", bytes.NewBufferString(tc.body))
+			rr := httptest.NewRecorder()
+
+			handler.handleUpdate(rr, req)
+
+			assert.Equal(t, http.StatusOK, rr.Code, rr.Body.String())
+			if assert.NotNil(t, stored) {
+				assert.Equal(t, tc.expected, stored.Enabled)
+				// The replace itself still has to land, so a dropped update cannot
+				// pass for a preserved flag.
+				assert.Equal(t, "Renamed", stored.Name)
+			}
+		})
+	}
+}
+
+// TestWebhookSubscriptionHandler_HandleUpdate_FiltersArePatched pins what the wire
+// means for the three narrowing filters.
+//
+// Naming a filter replaces it, an explicitly empty one clears it, and saying nothing
+// about it — an absent key or a JSON null — leaves the stored one alone. The stored
+// value has to win the tie because the two readings are not equally wrong: reading
+// silence as "clear it" widens the subscription, and a widened subscription delivers
+// events its owner never asked for without anything reporting the change.
+//
+// Raw JSON bodies rather than typed literals, deliberately: a Go struct literal cannot
+// express a key that was never sent, which is the entire distinction under test.
+func TestWebhookSubscriptionHandler_HandleUpdate_FiltersArePatched(t *testing.T) {
+	const head = `{"workspace_id":"ws123","id":"sub123","name":"Renamed","url":"https://example.com/hook","event_types":["list.subscribed"]`
+
+	testCases := []struct {
+		name               string
+		body               string
+		expectedListIDs    []string
+		expectedSegmentIDs []string
+		expectedCustom     *domain.CustomEventFilters
+	}{
+		{
+			name:               "a body that names no filter keeps every stored one",
+			body:               head + `}`,
+			expectedListIDs:    []string{"list-a"},
+			expectedSegmentIDs: []string{"seg-a"},
+			expectedCustom:     &domain.CustomEventFilters{GoalTypes: []string{"purchase"}},
+		},
+		{
+			name:               "a null filter is silence too, and never widens",
+			body:               head + `,"list_ids":null,"segment_ids":null,"custom_event_filters":null}`,
+			expectedListIDs:    []string{"list-a"},
+			expectedSegmentIDs: []string{"seg-a"},
+			expectedCustom:     &domain.CustomEventFilters{GoalTypes: []string{"purchase"}},
+		},
+		{
+			// A caller that knows about the switch and not about the filters, which is
+			// the shape of every client written before the filters existed. Naming
+			// enabled must not drag the settings along with it.
+			name:               "naming the switch says nothing about the filters",
+			body:               head + `,"enabled":true}`,
+			expectedListIDs:    []string{"list-a"},
+			expectedSegmentIDs: []string{"seg-a"},
+			expectedCustom:     &domain.CustomEventFilters{GoalTypes: []string{"purchase"}},
+		},
+		{
+			name:               "an explicitly empty filter is how a caller clears one",
+			body:               head + `,"list_ids":[],"segment_ids":[],"custom_event_filters":{}}`,
+			expectedListIDs:    nil,
+			expectedSegmentIDs: nil,
+			expectedCustom:     &domain.CustomEventFilters{},
+		},
+		{
+			name:               "a populated filter replaces the stored one",
+			body:               head + `,"list_ids":["list-b"],"segment_ids":["seg-b"],"custom_event_filters":{"event_names":["orders/fulfilled"]}}`,
+			expectedListIDs:    []string{"list-b"},
+			expectedSegmentIDs: []string{"seg-b"},
+			expectedCustom:     &domain.CustomEventFilters{EventNames: []string{"orders/fulfilled"}},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			repo := mocks.NewMockWebhookSubscriptionRepository(ctrl)
+			// Seeded with all three filters populated: against a blank subscription a
+			// wipe and a correct merge look exactly the same.
+			repo.EXPECT().
+				GetByID(gomock.Any(), "ws123", "sub123").
+				Return(&domain.WebhookSubscription{
+					ID:      "sub123",
+					Name:    "Zap: new contact to Slack",
+					URL:     "https://example.com/hook",
+					Enabled: true,
+					Source:  domain.WebhookSubscriptionSourceZapier,
+					Settings: domain.WebhookSubscriptionSettings{
+						EventTypes:         []string{"list.subscribed"},
+						ListIDs:            []string{"list-a"},
+						SegmentIDs:         []string{"seg-a"},
+						CustomEventFilters: &domain.CustomEventFilters{GoalTypes: []string{"purchase"}},
+					},
+				}, nil)
+
+			var stored *domain.WebhookSubscription
+			repo.EXPECT().
+				Update(gomock.Any(), "ws123", gomock.Any()).
+				DoAndReturn(func(_ context.Context, _ string, sub *domain.WebhookSubscription) error {
+					stored = sub
+					return nil
+				})
+
+			handler := &WebhookSubscriptionHandler{
+				service:      service.NewWebhookSubscriptionService(repo, nil, webhookWriteAuth(ctrl, "ws123"), &mockLogger{}),
+				worker:       nil,
+				logger:       &mockLogger{},
+				getJWTSecret: func() ([]byte, error) { return []byte("test"), nil },
+			}
+
+			req := httptest.NewRequest(http.MethodPost, "/api/webhookSubscriptions.update", bytes.NewBufferString(tc.body))
+			rr := httptest.NewRecorder()
+
+			handler.handleUpdate(rr, req)
+
+			assert.Equal(t, http.StatusOK, rr.Code, rr.Body.String())
+			require.NotNil(t, stored)
+			// Literals throughout: the repository hands the service the very object it
+			// mutates, so an assertion written against the fixture would compare a field
+			// with itself and pass no matter what the handler did.
+			assert.Equal(t, tc.expectedListIDs, stored.Settings.ListIDs)
+			assert.Equal(t, tc.expectedSegmentIDs, stored.Settings.SegmentIDs)
+			assert.Equal(t, tc.expectedCustom, stored.Settings.CustomEventFilters)
+			// The replace half of the endpoint still has to land, so a dropped update
+			// cannot pass for a preserved filter.
+			assert.Equal(t, "Renamed", stored.Name)
+		})
+	}
 }

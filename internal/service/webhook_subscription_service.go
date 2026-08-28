@@ -181,6 +181,27 @@ func validateURL(rawURL string) error {
 	return nil
 }
 
+// normalizeIDFilter collapses an empty list_ids / segment_ids filter to nil so that
+// "the caller named no filter" and "the caller named an empty one" cannot be told
+// apart in anything that reads the stored settings.
+//
+// Both mean "no filter — every list, every segment", which is the behaviour of every
+// subscription written before these fields existed. The distinction is worth erasing
+// because the opposite reading is available and catastrophic: a filter predicate that
+// only tests whether the key is present would treat a stored [] as "match nothing",
+// and the subscription would silently stop delivering with a settings blob that looks
+// unfiltered to anyone reading it.
+//
+// It lives with the writes rather than at the HTTP edge because it is the stored shape
+// it is protecting, and the edge is not the only way in — the demo workspace builds its
+// subscription through this service directly.
+func normalizeIDFilter(ids []string) []string {
+	if len(ids) == 0 {
+		return nil
+	}
+	return ids
+}
+
 // validateEventTypes validates that all event types are valid
 func validateEventTypes(eventTypes []string) error {
 	if len(eventTypes) == 0 {
@@ -249,8 +270,8 @@ func (s *WebhookSubscriptionService) Create(ctx context.Context, workspaceID str
 		Settings: domain.WebhookSubscriptionSettings{
 			EventTypes:         eventTypes,
 			CustomEventFilters: customEventFilters,
-			ListIDs:            listIDs,
-			SegmentIDs:         segmentIDs,
+			ListIDs:            normalizeIDFilter(listIDs),
+			SegmentIDs:         normalizeIDFilter(segmentIDs),
 		},
 		Enabled: true,
 		Source:  source,
@@ -323,13 +344,26 @@ func (s *WebhookSubscriptionService) List(ctx context.Context, workspaceID strin
 
 // Update updates an existing webhook subscription.
 //
-// There is deliberately no source parameter. Update is a full replace of
-// everything a user can edit, and attribution is not one of those things: a
-// caller able to rewrite it could take over a Zapier-created subscription, or
-// disown its own, and the console badge and the delete-versus-disable branch
+// Name, URL and the event types are replaced from the arguments. The switch and the
+// three narrowing filters are patched instead: a nil enabled, customEventFilters,
+// listIDs or segmentIDs is a caller with nothing to say about that setting, and the
+// stored one stands. Removing a filter stays available — pass a non-nil pointer to
+// an empty one — which is the whole reason these are pointers rather than the plain
+// values the fields hold.
+//
+// The split follows what an empty value means for each. An empty name or URL is
+// rejected a few lines down, so replacing them costs nothing; an empty filter is a
+// legitimate setting that means "no filter at all", so silence and removal arrive
+// looking identical and the difference has to be carried in the type. Guessing
+// removal widens the subscription to every list, segment and custom event in the
+// workspace, which the owner discovers only as deliveries they never asked for.
+//
+// There is deliberately no source parameter. Attribution is not something a user
+// edits: a caller able to rewrite it could take over a Zapier-created subscription,
+// or disown its own, and the console badge and the delete-versus-disable branch
 // would follow the lie. The stored value survives because it is only ever read
 // back off the existing row.
-func (s *WebhookSubscriptionService) Update(ctx context.Context, workspaceID string, id, name, webhookURL string, eventTypes []string, customEventFilters *domain.CustomEventFilters, enabled bool, listIDs, segmentIDs []string) (*domain.WebhookSubscription, error) {
+func (s *WebhookSubscriptionService) Update(ctx context.Context, workspaceID string, id, name, webhookURL string, eventTypes []string, customEventFilters *domain.CustomEventFilters, enabled *bool, listIDs, segmentIDs *[]string) (*domain.WebhookSubscription, error) {
 	ctx, isOwner, err := s.authorizeWithRole(ctx, workspaceID, true)
 	if err != nil {
 		return nil, err
@@ -356,33 +390,42 @@ func (s *WebhookSubscriptionService) Update(ctx context.Context, workspaceID str
 
 	// An edit may not switch on a subscription Notifuse switched off.
 	//
-	// enabled arrives as a plain bool on every update, filled in from whatever the
-	// console last read, so a form loaded while the subscription was healthy still
-	// carries `true` after the delivery worker has retired the endpoint — and
-	// saving a renamed webhook silently undid the retirement, cleared the reason
-	// that explained it, and pointed the whole queue at a dead URL again. A
+	// Only an explicit true is a request to switch one on: a nil enabled says
+	// nothing about the switch and must never trip this guard, or every caller
+	// that leaves the field out is refused an edit it never asked to make. A
 	// disabled_reason is the worker's signature: DisableWithReason writes it in
 	// the same statement that switches the subscription off, and nothing a user
 	// does sets it. Turning such a subscription back on is a claim that the
 	// endpoint has been fixed, so it has to be made deliberately, through the
-	// toggle endpoint, rather than as a side effect of an unrelated save.
-	if enabled && !existing.Enabled && existing.DisabledReason != nil && *existing.DisabledReason != "" {
+	// toggle endpoint, rather than as a side effect of an unrelated save — a
+	// renamed webhook that quietly undid the retirement would clear the reason
+	// that explained it and point the whole queue at a dead URL again.
+	switchingOn := enabled != nil && *enabled
+	if switchingOn && !existing.Enabled && existing.DisabledReason != nil && *existing.DisabledReason != "" {
 		return nil, fmt.Errorf("webhook subscription was disabled automatically (%s); re-enable it explicitly before editing it", *existing.DisabledReason)
 	}
 
-	// Update fields
+	// Field by field rather than a fresh Settings value: assembling one from the
+	// arguments writes a zero into every setting the caller did not supply, and for
+	// the filters the zero is not "unset", it is "deliver everything".
 	existing.Name = name
 	existing.URL = webhookURL
-	existing.Settings = domain.WebhookSubscriptionSettings{
-		EventTypes:         eventTypes,
-		CustomEventFilters: customEventFilters,
-		ListIDs:            listIDs,
-		SegmentIDs:         segmentIDs,
+	existing.Settings.EventTypes = eventTypes
+	if customEventFilters != nil {
+		existing.Settings.CustomEventFilters = customEventFilters
 	}
-	if enabled && !existing.Enabled {
+	if listIDs != nil {
+		existing.Settings.ListIDs = normalizeIDFilter(*listIDs)
+	}
+	if segmentIDs != nil {
+		existing.Settings.SegmentIDs = normalizeIDFilter(*segmentIDs)
+	}
+	if switchingOn && !existing.Enabled {
 		clearFailureState(existing)
 	}
-	existing.Enabled = enabled
+	if enabled != nil {
+		existing.Enabled = *enabled
+	}
 
 	if err := s.repo.Update(ctx, workspaceID, existing); err != nil {
 		return nil, fmt.Errorf("failed to update webhook subscription: %w", err)
@@ -391,7 +434,7 @@ func (s *WebhookSubscriptionService) Update(ctx context.Context, workspaceID str
 	s.logger.WithFields(map[string]interface{}{
 		"workspace_id":    workspaceID,
 		"subscription_id": id,
-		"enabled":         enabled,
+		"enabled":         existing.Enabled,
 	}).Info("Updated webhook subscription")
 
 	// The row round-tripped through the repository still carries the stored

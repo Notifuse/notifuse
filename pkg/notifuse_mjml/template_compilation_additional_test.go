@@ -102,7 +102,7 @@ func TestGenerateEmailRedirectionAndPixel(t *testing.T) {
 		t.Fatalf("expected encrypted /t/ path in pixel URL, got: %s", pixel)
 	}
 	// Should use new styling without width/height
-	if !strings.Contains(pixel, `style="border:0;margin:0;padding:0;"`) {
+	if !strings.Contains(pixel, `style="border:0;display:block;outline:none;text-decoration:none;"`) {
 		t.Fatalf("expected new styling in pixel, got: %s", pixel)
 	}
 	// Should be wrapped in a table

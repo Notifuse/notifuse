@@ -77,6 +77,12 @@ func TestCustomEventAPIEndpoints(t *testing.T) {
 		require.NoError(t, err, "Failed to get workspace database")
 		testTimelineIntegration(t, client, workspace.ID, workspaceDB)
 	})
+
+	t.Run("Partial Upsert", func(t *testing.T) {
+		workspaceDB, err := suite.DBManager.GetWorkspaceDB(workspace.ID)
+		require.NoError(t, err, "Failed to get workspace database")
+		testPartialUpsert(t, client, workspace.ID, workspaceDB)
+	})
 }
 
 func testUpsertCustomEvent(t *testing.T, client *testutil.APIClient, workspaceID string) {
@@ -938,4 +944,263 @@ func testValidationErrors(t *testing.T, client *testutil.APIClient, workspaceID 
 
 		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 	})
+}
+
+// customEvents.upsert names a resource by (event_name, external_id) and rewrites
+// its row. Bodies here are raw maps with keys deliberately left out: a typed
+// request cannot express a missing key, which is how the omission came to mean
+// "empty it". The wipe lands as an UPDATE, so it also reaches contact_timeline and
+// from there segment recomputation and automation enrolment.
+func testPartialUpsert(t *testing.T, client *testutil.APIClient, workspaceID string, db *sql.DB) {
+	t.Run("omitting properties leaves the stored ones alone", func(t *testing.T) {
+		email := testutil.GenerateTestEmail()
+		externalID := "partial_" + testutil.GenerateRandomString(8)
+		eventName := "subscription.updated"
+		integrationID := "shopify_" + testutil.GenerateRandomString(6)
+
+		created, err := client.Post("/api/customEvents.upsert", map[string]interface{}{
+			"workspace_id":   workspaceID,
+			"email":          email,
+			"event_name":     eventName,
+			"external_id":    externalID,
+			"properties":     map[string]interface{}{"plan": "premium", "seats": float64(5)},
+			"integration_id": integrationID,
+			"occurred_at":    time.Now().Add(-3 * time.Hour).Format(time.RFC3339),
+		})
+		require.NoError(t, err)
+		created.Body.Close()
+		require.Equal(t, http.StatusOK, created.StatusCode)
+
+		// A goal-only correction: nothing about properties, nothing about the
+		// integration that owns the event.
+		patched, err := client.Post("/api/customEvents.upsert", map[string]interface{}{
+			"workspace_id": workspaceID,
+			"email":        email,
+			"event_name":   eventName,
+			"external_id":  externalID,
+			"goal_type":    domain.GoalTypeSubscription,
+			"goal_value":   49.0,
+			"occurred_at":  time.Now().Add(-2 * time.Hour).Format(time.RFC3339),
+		})
+		require.NoError(t, err)
+		patched.Body.Close()
+		require.Equal(t, http.StatusOK, patched.StatusCode)
+
+		stored := getCustomEvent(t, client, workspaceID, eventName, externalID)
+		props, ok := stored["properties"].(map[string]interface{})
+		require.True(t, ok, "properties should still be an object, got %#v", stored["properties"])
+		assert.Equal(t, "premium", props["plan"], "an omitted properties key must not empty the stored state")
+		assert.Equal(t, float64(5), props["seats"])
+		assert.Equal(t, integrationID, stored["integration_id"], "an omitted integration_id must not unlink the event")
+		assert.Equal(t, domain.GoalTypeSubscription, stored["goal_type"], "the fields the body did carry still apply")
+
+		// The trigger diffs OLD against NEW property by property, so a wipe would
+		// have written one {"old": ..., "new": null} entry per key.
+		time.Sleep(100 * time.Millisecond)
+		var propertyDiff string
+		err = db.QueryRow(`
+			SELECT changes->'properties'
+			FROM contact_timeline
+			WHERE email = $1 AND entity_type = 'custom_event' AND entity_id = $2 AND operation = 'update'
+			ORDER BY created_at DESC
+			LIMIT 1
+		`, email, externalID).Scan(&propertyDiff)
+		require.NoError(t, err, "the upsert should still have written an update timeline row")
+		assert.JSONEq(t, `{}`, propertyDiff, "no property changed, so the timeline diff must be empty")
+	})
+
+	t.Run("an explicit empty object still clears the properties", func(t *testing.T) {
+		email := testutil.GenerateTestEmail()
+		externalID := "cleared_" + testutil.GenerateRandomString(8)
+		eventName := "subscription.updated"
+
+		created, err := client.Post("/api/customEvents.upsert", map[string]interface{}{
+			"workspace_id": workspaceID,
+			"email":        email,
+			"event_name":   eventName,
+			"external_id":  externalID,
+			"properties":   map[string]interface{}{"plan": "premium"},
+			"occurred_at":  time.Now().Add(-3 * time.Hour).Format(time.RFC3339),
+		})
+		require.NoError(t, err)
+		created.Body.Close()
+		require.Equal(t, http.StatusOK, created.StatusCode)
+
+		cleared, err := client.Post("/api/customEvents.upsert", map[string]interface{}{
+			"workspace_id": workspaceID,
+			"email":        email,
+			"event_name":   eventName,
+			"external_id":  externalID,
+			"properties":   map[string]interface{}{},
+			"occurred_at":  time.Now().Add(-2 * time.Hour).Format(time.RFC3339),
+		})
+		require.NoError(t, err)
+		cleared.Body.Close()
+		require.Equal(t, http.StatusOK, cleared.StatusCode)
+
+		stored := getCustomEvent(t, client, workspaceID, eventName, externalID)
+		props, ok := stored["properties"].(map[string]interface{})
+		require.True(t, ok, "properties should still be an object, got %#v", stored["properties"])
+		assert.Empty(t, props, "an explicit {} must stay expressible")
+	})
+
+	// The row keeping its properties is only half the contract: the endpoint answers
+	// with the event, and echoing the request back reports "properties": null over a
+	// row that still holds them. null is also how this endpoint reads "say nothing
+	// about properties", so a client cannot even send the response back to reconcile.
+	t.Run("the response describes the stored row rather than the request", func(t *testing.T) {
+		email := testutil.GenerateTestEmail()
+		externalID := "echoed_" + testutil.GenerateRandomString(8)
+		eventName := "subscription.updated"
+
+		created := upsertCustomEvent(t, client, map[string]interface{}{
+			"workspace_id": workspaceID,
+			"email":        email,
+			"event_name":   eventName,
+			"external_id":  externalID,
+			"properties":   map[string]interface{}{"plan": "premium", "seats": float64(5)},
+			"occurred_at":  time.Now().Add(-3 * time.Hour).Format(time.RFC3339),
+		})
+		createdProps, ok := created["properties"].(map[string]interface{})
+		require.True(t, ok, "properties should be an object, got %#v", created["properties"])
+		assert.Equal(t, "premium", createdProps["plan"])
+
+		patched := upsertCustomEvent(t, client, map[string]interface{}{
+			"workspace_id": workspaceID,
+			"email":        email,
+			"event_name":   eventName,
+			"external_id":  externalID,
+			"goal_type":    domain.GoalTypeLead,
+			"occurred_at":  time.Now().Add(-2 * time.Hour).Format(time.RFC3339),
+		})
+		patchedProps, ok := patched["properties"].(map[string]interface{})
+		require.True(t, ok, "properties should be an object, got %#v", patched["properties"])
+		assert.Equal(t, "premium", patchedProps["plan"], "the write kept the stored properties, so the response has to report them")
+		assert.Equal(t, float64(5), patchedProps["seats"])
+	})
+
+	// Web analytics goals are bridged into custom_events, and
+	// webhook_custom_events_trigger gates its whole exclusion of them on
+	// NEW.source. Relabelling a bridged row 'api' starts fanning pageview-scale
+	// conversions — client-supplied properties included — out to subscribers who
+	// asked for commerce events.
+	t.Run("an api upsert leaves a bridged event's origin alone", func(t *testing.T) {
+		email := testutil.GenerateTestEmail()
+		externalID := "bridged_" + testutil.GenerateRandomString(8)
+		eventName := "signup.completed"
+
+		// Give the contact the same start the bridge would have.
+		seed, err := client.Post("/api/customEvents.upsert", map[string]interface{}{
+			"workspace_id": workspaceID,
+			"email":        email,
+			"event_name":   eventName,
+			"external_id":  "seed_" + externalID,
+			"occurred_at":  time.Now().Add(-4 * time.Hour).Format(time.RFC3339),
+		})
+		require.NoError(t, err)
+		seed.Body.Close()
+		require.Equal(t, http.StatusOK, seed.StatusCode)
+
+		_, err = db.Exec(`
+			INSERT INTO custom_events (event_name, external_id, email, properties, occurred_at, source)
+			VALUES ($1, $2, $3, $4, $5, 'web_analytics')
+		`, eventName, externalID, email, `{"page":"/pricing"}`, time.Now().Add(-3*time.Hour))
+		require.NoError(t, err)
+
+		patched := upsertCustomEvent(t, client, map[string]interface{}{
+			"workspace_id": workspaceID,
+			"email":        email,
+			"event_name":   eventName,
+			"external_id":  externalID,
+			"goal_type":    domain.GoalTypeLead,
+			"occurred_at":  time.Now().Add(-2 * time.Hour).Format(time.RFC3339),
+		})
+
+		var source string
+		require.NoError(t, db.QueryRow(
+			`SELECT source FROM custom_events WHERE event_name = $1 AND external_id = $2`,
+			eventName, externalID,
+		).Scan(&source))
+		assert.Equal(t, "web_analytics", source, "an upsert must not move a row's origin")
+		assert.Equal(t, "web_analytics", patched["source"], "and the response must not claim it did")
+		assert.Equal(t, domain.GoalTypeLead, patched["goal_type"], "the field the body did carry still applies")
+	})
+
+	t.Run("importing without properties leaves the stored ones alone", func(t *testing.T) {
+		email := testutil.GenerateTestEmail()
+		externalID := "imported_" + testutil.GenerateRandomString(8)
+		eventName := "orders/fulfilled"
+
+		created, err := client.Post("/api/customEvents.upsert", map[string]interface{}{
+			"workspace_id": workspaceID,
+			"email":        email,
+			"event_name":   eventName,
+			"external_id":  externalID,
+			"properties":   map[string]interface{}{"total": 129.99},
+			"occurred_at":  time.Now().Add(-3 * time.Hour).Format(time.RFC3339),
+		})
+		require.NoError(t, err)
+		created.Body.Close()
+		require.Equal(t, http.StatusOK, created.StatusCode)
+
+		// The published batch-import examples omit properties exactly like this.
+		imported, err := client.Post("/api/customEvents.import", map[string]interface{}{
+			"workspace_id": workspaceID,
+			"events": []map[string]interface{}{
+				{
+					"event_name":  eventName,
+					"external_id": externalID,
+					"email":       email,
+					"occurred_at": time.Now().Add(-2 * time.Hour).Format(time.RFC3339),
+				},
+			},
+		})
+		require.NoError(t, err)
+		imported.Body.Close()
+		require.Equal(t, http.StatusCreated, imported.StatusCode)
+
+		stored := getCustomEvent(t, client, workspaceID, eventName, externalID)
+		props, ok := stored["properties"].(map[string]interface{})
+		require.True(t, ok, "properties should still be an object, got %#v", stored["properties"])
+		assert.Equal(t, 129.99, props["total"], "a batch import that says nothing about properties must not empty them")
+	})
+}
+
+func getCustomEvent(t *testing.T, client *testutil.APIClient, workspaceID, eventName, externalID string) map[string]interface{} {
+	t.Helper()
+
+	resp, err := client.Get("/api/customEvents.get", map[string]string{
+		"workspace_id": workspaceID,
+		"event_name":   eventName,
+		"external_id":  externalID,
+	})
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+
+	var result map[string]interface{}
+	require.NoError(t, json.NewDecoder(resp.Body).Decode(&result))
+
+	event, ok := result["event"].(map[string]interface{})
+	require.True(t, ok, "response should contain event, got %#v", result)
+	return event
+}
+
+// upsertCustomEvent posts a body to customEvents.upsert and returns the event the
+// endpoint answers with. The response is the row the write left behind, which on a
+// partial write is not the row the body described.
+func upsertCustomEvent(t *testing.T, client *testutil.APIClient, body map[string]interface{}) map[string]interface{} {
+	t.Helper()
+
+	resp, err := client.Post("/api/customEvents.upsert", body)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+
+	var result map[string]interface{}
+	require.NoError(t, json.NewDecoder(resp.Body).Decode(&result))
+
+	event, ok := result["event"].(map[string]interface{})
+	require.True(t, ok, "response should contain event, got %#v", result)
+	return event
 }

@@ -105,6 +105,46 @@ type TransactionalNotificationUpdateParams struct {
 	Channels         ChannelTemplates               `json:"channels,omitempty"`
 	TrackingSettings notifuse_mjml.TrackingSettings `json:"tracking_settings,omitempty"`
 	Metadata         MapOfAny                       `json:"metadata,omitempty"`
+
+	trackingSettingsOmitted bool
+}
+
+// UnmarshalJSON decodes update parameters and records whether the body named
+// tracking_settings.
+//
+// Every other field here is a string, a map or a slice, so a body that left it out is
+// still visible in the decoded value. TrackingSettings is a struct of plain fields whose
+// zero value is itself an instruction — tracking off, no UTMs — so the decode is the last
+// place that can tell an absent block from one the caller deliberately emptied. Reading
+// the zero as "absent" turns switching tracking off into a no-op that still answers 200,
+// and these notifications carry password resets and magic links whose links keep going
+// out carrying the campaign the caller was trying to strip.
+//
+// A null counts as omitted: there are no tracking settings a null could have meant, so it
+// can only be a serializer writing out an absent optional. Emptying them stays expressible
+// as {}.
+func (p *TransactionalNotificationUpdateParams) UnmarshalJSON(data []byte) error {
+	type wire TransactionalNotificationUpdateParams // sheds this method, so the decode does not recurse
+	var decoded wire
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return err
+	}
+
+	var keys map[string]json.RawMessage
+	if err := json.Unmarshal(data, &keys); err != nil {
+		return err
+	}
+
+	*p = TransactionalNotificationUpdateParams(decoded)
+	p.trackingSettingsOmitted = jsonKeyOmitted(keys, "tracking_settings")
+	return nil
+}
+
+// TrackingSettingsSpecified reports whether these parameters carry an opinion about
+// tracking_settings. It is false only for parameters decoded from a body that never named
+// the key; parameters assembled in Go mean exactly what their fields say.
+func (p TransactionalNotificationUpdateParams) TrackingSettingsSpecified() bool {
+	return !p.trackingSettingsOmitted
 }
 
 // TransactionalNotificationSendParams contains the parameters for sending a transactional notification
@@ -305,6 +345,32 @@ type UpdateTransactionalRequest struct {
 	Updates     TransactionalNotificationUpdateParams `json:"updates"`
 }
 
+// UnmarshalJSON decodes an update request and carries the absence of the updates block
+// down into the block itself.
+//
+// Without this, a body that never sent updates would leave the zero
+// TransactionalNotificationUpdateParams behind — and a zero one assembled in Go means
+// "these are the settings I want", so an updates-less body would read as an instruction
+// to strip the notification's tracking settings.
+func (req *UpdateTransactionalRequest) UnmarshalJSON(data []byte) error {
+	type wire UpdateTransactionalRequest // sheds this method, so the decode does not recurse
+	var decoded wire
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return err
+	}
+
+	var keys map[string]json.RawMessage
+	if err := json.Unmarshal(data, &keys); err != nil {
+		return err
+	}
+
+	*req = UpdateTransactionalRequest(decoded)
+	if jsonKeyOmitted(keys, "updates") {
+		req.Updates.trackingSettingsOmitted = true
+	}
+	return nil
+}
+
 // Validate validates the update request
 func (req *UpdateTransactionalRequest) Validate() error {
 	if req.WorkspaceID == "" {
@@ -319,12 +385,14 @@ func (req *UpdateTransactionalRequest) Validate() error {
 		return NewValidationError(err.Error())
 	}
 
-	// At least one field must be updated
+	// At least one field must be updated. Tracking settings count on presence rather
+	// than on content: a body that sends them emptied is asking for a change, and
+	// rejecting it as an empty update is the same blind spot as ignoring it.
 	if req.Updates.Name == "" &&
 		req.Updates.Description == "" &&
 		req.Updates.Channels == nil &&
 		req.Updates.Metadata == nil &&
-		req.Updates.TrackingSettings.IsZero() {
+		!req.Updates.TrackingSettingsSpecified() {
 		return NewValidationError("at least one field must be updated")
 	}
 

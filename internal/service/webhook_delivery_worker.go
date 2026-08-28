@@ -127,6 +127,7 @@ type WebhookDeliveryWorker struct {
 	cleanupInterval  time.Duration
 	retentionDays    int
 	claimLease       time.Duration
+	requestTimeout   time.Duration
 	failureThreshold int
 	failureWindow    time.Duration
 	failureRunMaxAge time.Duration
@@ -176,6 +177,64 @@ func reachableRetryWindow(maxAttempts int) time.Duration {
 	return total
 }
 
+// WebhookDeliveryWorkerOption overrides one of the worker's timings at
+// construction.
+//
+// A functional option rather than an exported field or a setter, because both of
+// these are read by a loop that is already running: the ticker reads the poll
+// interval once, at the top of Start, and never looks at it again, so a setter
+// would appear to work and change nothing — while the lease is read on every
+// sweep, from the worker's own goroutine, which makes writing it from anywhere
+// else a data race in production for the sake of a test. Fixing both at
+// construction leaves nothing to write later.
+type WebhookDeliveryWorkerOption func(*WebhookDeliveryWorker)
+
+// WithWebhookPollInterval sets how often the worker looks for work.
+//
+// It exists so a test can drive the real loop — ticker, recover, claim, POST,
+// release — at a speed a test can wait for. The alternative on offer was an
+// exported entry point into the middle of the loop, which would have proven that
+// the middle works when called directly and nothing about the loop that calls
+// it in production.
+//
+// A non-positive interval is ignored rather than honoured: time.NewTicker panics
+// on one, and Start runs on a bare goroutine, so that panic would land at boot
+// with no caller to catch it.
+func WithWebhookPollInterval(interval time.Duration) WebhookDeliveryWorkerOption {
+	return func(w *WebhookDeliveryWorker) {
+		if interval <= 0 {
+			return
+		}
+		w.pollInterval = interval
+	}
+}
+
+// WithWebhookClaimLease overrides how long a claimed delivery may sit in
+// 'delivering' before the sweep decides the worker holding it died.
+//
+// Production keeps the derived default (see claimLeaseFor). This exists so a
+// test can prove the reclaim path in seconds instead of waiting out a real
+// lease.
+//
+// Shortening the lease is safe to expose only because normaliseTimings shortens
+// the request to match it: the invariant is "the POST cannot outlive the claim",
+// and it is enforced there rather than here. An option cannot see the client it
+// is being applied next to, so this function is structurally incapable of
+// checking the lease against anything — which is exactly why the check does not
+// live in it.
+//
+// A non-positive lease is ignored, for the same reason the interval is: it would
+// make every claimed row instantly stale, so every delivery in flight would be
+// reclaimed and sent again.
+func WithWebhookClaimLease(lease time.Duration) WebhookDeliveryWorkerOption {
+	return func(w *WebhookDeliveryWorker) {
+		if lease <= 0 {
+			return
+		}
+		w.claimLease = lease
+	}
+}
+
 // NewWebhookDeliveryWorker creates a new webhook delivery worker
 func NewWebhookDeliveryWorker(
 	subscriptionRepo domain.WebhookSubscriptionRepository,
@@ -183,6 +242,7 @@ func NewWebhookDeliveryWorker(
 	workspaceRepo domain.WorkspaceRepository,
 	logger logger.Logger,
 	httpClient *http.Client,
+	opts ...WebhookDeliveryWorkerOption,
 ) *WebhookDeliveryWorker {
 	if httpClient == nil {
 		httpClient = &http.Client{
@@ -190,7 +250,7 @@ func NewWebhookDeliveryWorker(
 		}
 	}
 
-	return &WebhookDeliveryWorker{
+	worker := &WebhookDeliveryWorker{
 		subscriptionRepo: subscriptionRepo,
 		deliveryRepo:     deliveryRepo,
 		workspaceRepo:    workspaceRepo,
@@ -200,11 +260,102 @@ func NewWebhookDeliveryWorker(
 		batchSize:        100,
 		cleanupInterval:  1 * time.Hour,
 		retentionDays:    7,
-		claimLease:       claimLeaseFor(httpClient.Timeout),
 		failureThreshold: webhookFailureThreshold,
 		failureWindow:    webhookFailureWindow,
 		failureRunMaxAge: webhookFailureRunMaxAge,
 	}
+
+	// After the defaults, so an explicit lease wins over the one derived from the
+	// client's timeout rather than racing it.
+	for _, opt := range opts {
+		opt(worker)
+	}
+
+	// And after the options, because it is the only step that sees the client and
+	// every override at once. See normaliseTimings.
+	worker.normaliseTimings(httpClient.Timeout)
+
+	return worker
+}
+
+// normaliseTimings settles the two timings that have to agree with each other,
+// once, in the only place that can see both the client and whatever the options
+// did.
+//
+// This is the cross-field step the options cannot perform. An option receives
+// the worker mid-construction and nothing else — not the http.Client, not its
+// siblings — so WithWebhookClaimLease could accept any positive duration and did
+// not, and could not, know it had just installed a lease shorter than the
+// request it is supposed to outlast. Everything that needs two knobs at once
+// belongs here.
+//
+// The invariant it enforces: THE POST CANNOT OUTLIVE THE CLAIM. Break it and the
+// reclaim sweep returns a row to 'pending' while its request is still open, a
+// second worker claims and delivers it, and the subscriber gets the webhook
+// twice — invisibly, because MarkDelivered's UPDATE carries no claim predicate,
+// so the row still ends 'delivered' with one attempt and nothing in the delivery
+// log says it went out twice.
+//
+// It is enforced by shortening the request to fit the lease, not by lengthening
+// the lease to clear the request, and the direction is a deliberate choice:
+//
+//   - It is the only direction that also covers a client with Timeout: 0. In
+//     net/http that means no timeout at all, and no lease can be long enough to
+//     cover a request that never ends. Reading the timeout and clamping the
+//     lease up against it silently does nothing in exactly the case where an
+//     unbounded request is running under a bounded lease.
+//   - Lengthening the lease is not the cheap direction it looks like. A lease is
+//     also the recovery time for a crashed worker's rows, and one long enough to
+//     matter silently overrides the first rungs of retryDelays — a lease clamped
+//     to minutes turns a 30-second retry into a five-minute one with nothing in
+//     the ladder saying so. Shortening a request costs one attempt of one
+//     delivery, which the ladder already handles.
+//   - It keeps the seam usable. A lease clamped up to httpTimeout +
+//     webhookClaimLeaseBuffer can never be shorter than that buffer, so no test
+//     could drive the reclaim path in under five seconds and the option would
+//     exist without being able to do its job.
+func (w *WebhookDeliveryWorker) normaliseTimings(httpTimeout time.Duration) {
+	if w.claimLease <= 0 {
+		w.claimLease = claimLeaseFor(httpTimeout)
+	}
+	w.requestTimeout = requestBudgetFor(w.claimLease, httpTimeout)
+}
+
+// requestBudgetFor is how long one delivery's HTTP request may run, given the
+// lease that authorises it and the client it will run on.
+//
+// Strictly shorter than the lease, always, and the slack is not decoration: the
+// write that records the outcome — MarkDelivered, ScheduleRetry, MarkFailed —
+// happens after the response and still has to land inside the claim. A request
+// allowed to consume the whole lease would finish just as the sweep decided the
+// worker was dead.
+//
+// It is a budget for the whole claim, not for the POST alone. processDelivery
+// spends it from the renewal, so the round-trips between the two — the
+// subscription lookup above all — come out of this number rather than out of
+// the slack that pays for the outcome write.
+//
+// The slack is webhookClaimLeaseBuffer, or a third of the lease when the lease
+// is shorter than three of them. A flat buffer cannot be subtracted from a
+// one-second test lease, and scaling it is what lets the same rule serve a lease
+// of seconds and one of minutes.
+func requestBudgetFor(lease, httpTimeout time.Duration) time.Duration {
+	slack := webhookClaimLeaseBuffer
+	if lease/3 < slack {
+		slack = lease / 3
+	}
+
+	budget := lease - slack
+
+	// A client timeout that is already tighter wins: it is the operator's own
+	// ceiling on how long a receiver may hold a connection, and this must not
+	// raise it. A zero timeout is not a tighter ceiling, it is the absence of
+	// one, which is the case the lease-derived budget exists to cover.
+	if httpTimeout > 0 && httpTimeout < budget {
+		budget = httpTimeout
+	}
+
+	return budget
 }
 
 // claimLeaseFor derives the reclaim lease from the client actually in use.
@@ -214,6 +365,15 @@ func NewWebhookDeliveryWorker(
 // the nil fallback above is 30s. Reading the timeout instead of hard-coding
 // against it means raising the timeout cannot quietly turn the reaper into a
 // source of duplicate deliveries.
+//
+// A zero timeout falls back to the floor rather than being treated as a very
+// long one, and that is deliberate rather than an oversight. In net/http a zero
+// Timeout means no timeout at all, so there is no duration to derive a lease
+// from — any number picked here would be a guess dressed as a derivation, and a
+// large one would also become this worker's recovery time for a crashed peer's
+// rows. The unbounded request is handled where it can actually be handled, by
+// requestBudgetFor bounding the request itself; this function is left saying
+// only what it can know.
 func claimLeaseFor(httpTimeout time.Duration) time.Duration {
 	lease := webhookClaimLease
 	if httpTimeout > 0 && httpTimeout+webhookClaimLeaseBuffer > lease {
@@ -342,6 +502,14 @@ func (w *WebhookDeliveryWorker) processWorkspaceDeliveries(ctx context.Context, 
 		// delivery the claim exists to prevent, manufactured by its own reaper.
 		// Renewing per row keeps the lease short, which is what makes recovery
 		// from a crashed worker fast.
+		//
+		// The renewal also restarts the clock the request is budgeted against, and
+		// claimStart is this process's own reading of it — taken before the call
+		// rather than after, because the UPDATE stamps claimed_at at or after
+		// this line, so a budget anchored here can only run out early. Late is
+		// the direction that duplicates. What it is spent on is processDelivery's
+		// business.
+		claimStart := time.Now()
 		owned, renewedAt, renewErr := w.deliveryRepo.RenewClaim(ctx, workspaceID, delivery.ID, delivery.ClaimedAt)
 		if renewErr != nil {
 			// We cannot prove we still own the row, so we must not write to it.
@@ -386,7 +554,7 @@ func (w *WebhookDeliveryWorker) processWorkspaceDeliveries(ctx context.Context, 
 		}
 
 		// Process the delivery
-		w.deliverOne(ctx, workspaceID, delivery, sub)
+		w.deliverOne(ctx, workspaceID, delivery, sub, claimStart)
 	}
 
 	return nil
@@ -406,7 +574,16 @@ func (w *WebhookDeliveryWorker) processWorkspaceDeliveries(ctx context.Context, 
 // The row is released rather than drained: a panic is a bug in us, not a verdict
 // on the delivery, and draining would discard a webhook the next build delivers
 // perfectly well.
-func (w *WebhookDeliveryWorker) deliverOne(ctx context.Context, workspaceID string, delivery *domain.WebhookDelivery, sub *domain.WebhookSubscription) {
+//
+// claimStart travels down from the renewal because the request's budget is
+// anchored to it rather than to the moment the request is built; see
+// processDelivery.
+//
+// The release below runs after recover() has returned, so it is outside this
+// guard no matter how it is indented — a panic there is a new panic on a normal
+// unwind and would escape with the rest of the batch. releaseDelivery carries
+// its own recover for that reason; see the comment on it.
+func (w *WebhookDeliveryWorker) deliverOne(ctx context.Context, workspaceID string, delivery *domain.WebhookDelivery, sub *domain.WebhookSubscription, claimStart time.Time) {
 	defer func() {
 		if r := recover(); r != nil {
 			w.logger.WithFields(map[string]interface{}{
@@ -419,7 +596,7 @@ func (w *WebhookDeliveryWorker) deliverOne(ctx context.Context, workspaceID stri
 		}
 	}()
 
-	w.processDelivery(ctx, workspaceID, delivery, sub)
+	w.processDelivery(ctx, workspaceID, delivery, sub, claimStart)
 }
 
 // handleSubscriptionLookupFailure decides whether a failed subscription lookup
@@ -472,7 +649,33 @@ func (w *WebhookDeliveryWorker) drainDelivery(ctx context.Context, workspaceID s
 
 // releaseDelivery hands a claimed row back to 'pending' untouched, for the case
 // where nothing is wrong with the delivery — only with us.
+//
+// It carries its own recover, and the reason is a Go rule rather than a taste in
+// defensiveness: its most important caller is deliverOne's deferred function,
+// which runs it AFTER recover() has already returned. At that point the original
+// panic is finished, so a fresh one raised here is a new panic on a normal
+// unwind — it does not reach the recover it appears to be standing inside. It
+// would leave deliverOne, abandon every remaining row of the batch in
+// 'delivering' with a live claim, leave the workspace loop, and be caught only
+// by processDeliveriesGuarded, which drops the whole poll. That is precisely the
+// outcome deliverOne's own comment promises it prevents. The other caller,
+// handleSubscriptionLookupFailure, runs bare in the batch loop and needs the
+// same protection for the same reason.
+//
+// Swallowing the panic loses nothing the failure path did not already accept:
+// the error branch below leaves the row claimed for the sweep to return, and so
+// does this.
 func (w *WebhookDeliveryWorker) releaseDelivery(ctx context.Context, workspaceID string, delivery *domain.WebhookDelivery, cause error) {
+	defer func() {
+		if r := recover(); r != nil {
+			w.logger.WithFields(map[string]interface{}{
+				"delivery_id": delivery.ID,
+				"panic":       fmt.Sprintf("%v", r),
+				"stack":       string(debug.Stack()),
+			}).Error("Panic while releasing a webhook delivery claim")
+		}
+	}()
+
 	message := cause.Error()
 
 	// ReleaseClaim rather than UpdateStatus, and the difference is the delivery
@@ -561,7 +764,7 @@ func (w *WebhookDeliveryWorker) cleanupOldDeliveries(ctx context.Context) {
 }
 
 // processDelivery sends a single webhook delivery
-func (w *WebhookDeliveryWorker) processDelivery(ctx context.Context, workspaceID string, delivery *domain.WebhookDelivery, sub *domain.WebhookSubscription) {
+func (w *WebhookDeliveryWorker) processDelivery(ctx context.Context, workspaceID string, delivery *domain.WebhookDelivery, sub *domain.WebhookSubscription, claimStart time.Time) {
 	// Build the full payload envelope
 	envelope := map[string]interface{}{
 		"id":           delivery.ID,
@@ -603,8 +806,57 @@ func (w *WebhookDeliveryWorker) processDelivery(ctx context.Context, workspaceID
 	}
 	signature := signPayload(delivery.ID, timestamp, payloadBytes, key)
 
+	// The request runs under a deadline derived from the claim this row is held
+	// by, so it cannot still be open when the sweep decides this worker died. See
+	// normaliseTimings for why the request is bounded by the lease rather than
+	// the other way round.
+	//
+	// Anchored at claimStart, not measured from this line, and that is the whole
+	// invariant rather than a refinement of it. The claim's clock started at the
+	// renewal, several database round-trips ago, and everything since has been
+	// spent on it: the renewal itself, the subscription lookup above all — a real
+	// query, on a pool sql.DB will block on for as long as it takes — then the
+	// marshal and the signature. A budget measured from here would hand out the
+	// full lease-minus-slack a second time on top of those, so one slow lookup
+	// puts the end of the POST past the lease with the request still open, which
+	// is the duplicate the budget exists to prevent. Nor is the slack a reserve
+	// they may draw on: it is what pays for the outcome write below.
+	//
+	// Deliberately a separate context from ctx, not a shadow of it: everything
+	// after the response — MarkDelivered, ScheduleRetry, MarkFailed — has to run
+	// on the caller's context. A POST that used most of its budget would leave a
+	// shadowed ctx with nothing on it, the outcome write would fail with a
+	// deadline error, and the row would stay claimed and be delivered again by
+	// the next sweep. Reusing the request's deadline for the write that records
+	// the request is how you build the duplicate you were bounding the request to
+	// avoid.
+	if spent := time.Since(claimStart); spent >= w.requestTimeout {
+		// There is no budget left to send under, so this is not a request that
+		// gets cut short — it is one that must not start. Releasing rather than
+		// attempting keeps the cost to what it actually is: nothing left the
+		// process, so nothing was attempted, and spending one of ten attempts on
+		// our own database having a bad minute is how a transient outage turns
+		// into lost deliveries. The row goes back to 'pending' with its ladder
+		// intact and the next poll sends it under a claim of its own. ReleaseClaim
+		// carries the claim token, so if the sweep has already taken this row the
+		// write lands on nothing rather than on its new owner.
+		w.logger.WithFields(map[string]interface{}{
+			"delivery_id":     delivery.ID,
+			"subscription_id": sub.ID,
+			"spent":           spent.String(),
+			"request_budget":  w.requestTimeout.String(),
+		}).Warn("Releasing webhook delivery whose claim budget was spent before the request")
+		w.releaseDelivery(ctx, workspaceID, delivery, fmt.Errorf(
+			"delivery claim ran out of time before the request could be sent: %s of a %s budget was already spent",
+			spent.Round(time.Millisecond), w.requestTimeout))
+		return
+	}
+
+	reqCtx, cancelRequest := context.WithDeadline(ctx, claimStart.Add(w.requestTimeout))
+	defer cancelRequest()
+
 	// Create HTTP request
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, sub.URL, bytes.NewReader(payloadBytes))
+	req, err := http.NewRequestWithContext(reqCtx, http.MethodPost, sub.URL, bytes.NewReader(payloadBytes))
 	if err != nil {
 		w.logger.WithFields(map[string]interface{}{
 			"delivery_id": delivery.ID,

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 import { App, ConfigProvider } from 'antd'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { i18n } from '@lingui/core'
@@ -209,12 +209,58 @@ describe('BlogSettings', () => {
 
     await waitFor(() => {
       expect(workspaceService.setBlogSettings).toHaveBeenCalledWith(
-        expect.objectContaining({
-          workspace_id: 'ws1',
-          blog_enabled: true
-        })
+        expect.objectContaining({ workspace_id: 'ws1' })
       )
     })
     expect(workspaceService.update).not.toHaveBeenCalled()
+  })
+
+  // The save endpoint leaves the stored flag alone when the body names no
+  // blog_enabled, so editing the title must not carry an opinion about whether
+  // the blog is on. Only the two controls that exist to toggle it may say so.
+  it('leaves blog_enabled out of the payload on an ordinary settings save', async () => {
+    renderComponent(true)
+
+    fireEvent.change(screen.getByPlaceholderText('My Blog WS'), {
+      target: { value: 'New Blog Title' }
+    })
+    fireEvent.click(screen.getByRole('button', { name: /Save Changes/i }))
+
+    await waitFor(() => expect(workspaceService.setBlogSettings).toHaveBeenCalled())
+    const payload = vi.mocked(workspaceService.setBlogSettings).mock.calls[0][0]
+    expect(payload).not.toHaveProperty('blog_enabled')
+    expect(payload.blog_settings).toEqual(
+      expect.objectContaining({ title: 'New Blog Title' })
+    )
+  })
+
+  it('sends blog_enabled false when the blog is disabled from the confirmation', async () => {
+    renderComponent(true)
+
+    fireEvent.click(screen.getByRole('button', { name: /Disable Blog/i }))
+    // okText repeats the trigger's label, so scope the confirm click to the dialog.
+    const dialog = await screen.findByRole('dialog')
+    fireEvent.click(within(dialog).getByRole('button', { name: /Disable Blog/i }))
+
+    await waitFor(() =>
+      expect(workspaceService.setBlogSettings).toHaveBeenCalledWith(
+        expect.objectContaining({ blog_enabled: false })
+      )
+    )
+  })
+
+  it('sends blog_enabled true from the Enable Blog button', async () => {
+    renderComponent(true, makeWorkspace({ blog_enabled: false }))
+
+    const enable = screen.getByRole('button', { name: /Enable Blog/i })
+    // The button stays disabled until the themes query settles.
+    await waitFor(() => expect(enable).toBeEnabled())
+    fireEvent.click(enable)
+
+    await waitFor(() =>
+      expect(workspaceService.setBlogSettings).toHaveBeenCalledWith(
+        expect.objectContaining({ blog_enabled: true })
+      )
+    )
   })
 })

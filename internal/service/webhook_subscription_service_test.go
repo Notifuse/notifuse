@@ -431,7 +431,7 @@ func TestWebhookSubscriptionService_Update(t *testing.T) {
 		webhookURL         string
 		eventTypes         []string
 		customEventFilters *domain.CustomEventFilters
-		enabled            bool
+		enabled            *bool
 		setupMocks         func(*mocks.MockWebhookSubscriptionRepository)
 		expectError        bool
 		validateResult     func(*testing.T, *domain.WebhookSubscription)
@@ -443,7 +443,7 @@ func TestWebhookSubscriptionService_Update(t *testing.T) {
 			webhookName: "Updated Webhook",
 			webhookURL:  "https://updated.example.com/webhook",
 			eventTypes:  []string{"contact.updated", "contact.deleted"},
-			enabled:     true,
+			enabled:     boolPtr(true),
 			setupMocks: func(mockRepo *mocks.MockWebhookSubscriptionRepository) {
 				mockRepo.EXPECT().
 					GetByID(gomock.Any(), "workspace123", "sub123").
@@ -478,7 +478,7 @@ func TestWebhookSubscriptionService_Update(t *testing.T) {
 			webhookName: "Webhook",
 			webhookURL:  "https://example.com/webhook",
 			eventTypes:  []string{"contact.created"},
-			enabled:     false,
+			enabled:     boolPtr(false),
 			setupMocks: func(mockRepo *mocks.MockWebhookSubscriptionRepository) {
 				mockRepo.EXPECT().
 					GetByID(gomock.Any(), "workspace123", "sub123").
@@ -1420,7 +1420,7 @@ func TestWebhookSubscriptionService_Update_PreservesSecret(t *testing.T) {
 		"https://new.example.com/webhook",
 		[]string{"contact.updated"},
 		nil,
-		true,
+		boolPtr(true),
 		nil,
 		nil,
 	)
@@ -1458,7 +1458,7 @@ func TestWebhookSubscriptionService_RejectsNonMembers(t *testing.T) {
 			return err
 		}},
 		{"Update", func(ctx context.Context, s *WebhookSubscriptionService) error {
-			_, err := s.Update(ctx, victimWorkspace, "sub-1", "n", "https://attacker.example.com/h", []string{"contact.created"}, nil, true, nil, nil)
+			_, err := s.Update(ctx, victimWorkspace, "sub-1", "n", "https://attacker.example.com/h", []string{"contact.created"}, nil, boolPtr(true), nil, nil)
 			return err
 		}},
 		{"Delete", func(ctx context.Context, s *WebhookSubscriptionService) error {
@@ -1705,7 +1705,7 @@ func TestWebhookSubscriptionService_PermissionEnforcement(t *testing.T) {
 			return err
 		}},
 		{"Update", domain.PermissionTypeWrite, func(ctx context.Context, s *WebhookSubscriptionService) error {
-			_, err := s.Update(ctx, workspaceID, "sub-1", "crm", "https://x/h", []string{"contact.created"}, nil, true, nil, nil)
+			_, err := s.Update(ctx, workspaceID, "sub-1", "crm", "https://x/h", []string{"contact.created"}, nil, boolPtr(true), nil, nil)
 			return err
 		}},
 		{"Delete", domain.PermissionTypeWrite, func(ctx context.Context, s *WebhookSubscriptionService) error {
@@ -1934,7 +1934,7 @@ func TestWebhookSubscriptionService_SecretRedactionPerMethod(t *testing.T) {
 				repo.EXPECT().Update(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
 			},
 			call: func(ctx context.Context, s *WebhookSubscriptionService) (*domain.WebhookSubscription, error) {
-				return s.Update(ctx, workspaceID, "sub-1", "crm", "https://x/h", []string{"contact.created"}, nil, true, nil, nil)
+				return s.Update(ctx, workspaceID, "sub-1", "crm", "https://x/h", []string{"contact.created"}, nil, boolPtr(true), nil, nil)
 			},
 		},
 		"Toggle": {
@@ -2061,8 +2061,8 @@ func TestWebhookSubscriptionService_DeleteTakesTheQueueWithIt(t *testing.T) {
 }
 
 // Source is write-once, and these are the two halves of that claim: Create is
-// the only place it can be set, and Update — which is otherwise a full replace
-// of the row — must leave it exactly as it was found.
+// the only place it can be set, and Update — which takes no source at all — must
+// leave it exactly as it was found.
 func TestWebhookSubscriptionService_SourceIsWriteOnce(t *testing.T) {
 	t.Run("Create stores the source it was given", func(t *testing.T) {
 		mockRepo, _, _, service, ctrl := setupWebhookSubscriptionTest(t)
@@ -2105,7 +2105,7 @@ func TestWebhookSubscriptionService_SourceIsWriteOnce(t *testing.T) {
 			})
 
 		_, err := service.Update(context.Background(), "ws-1", "sub-1", "Renamed", "https://example.com/h",
-			[]string{"contact.created"}, nil, true, nil, nil)
+			[]string{"contact.created"}, nil, boolPtr(true), nil, nil)
 		require.NoError(t, err)
 		require.NotNil(t, written)
 		assert.Equal(t, "Renamed", written.Name, "the rename should have gone through")
@@ -2153,9 +2153,10 @@ func TestWebhookSubscriptionService_IDFiltersReachTheStoredSettings(t *testing.T
 		assert.Equal(t, []string{"seg-a"}, stored.Settings.SegmentIDs)
 	})
 
-	// Update is a full replace, so clearing the filters has to actually clear
-	// them rather than leave the previous narrowing in place.
-	t.Run("Update replaces the stored filters", func(t *testing.T) {
+	// Update patches the filters, so a caller that names them empty has to actually
+	// clear them rather than have the omission-preserving path keep the previous
+	// narrowing in place. This is the half that makes a filter removable at all.
+	t.Run("Update clears the stored filters when the caller names them empty", func(t *testing.T) {
 		mockRepo, _, _, service, ctrl := setupWebhookSubscriptionTest(t)
 		defer ctrl.Finish()
 
@@ -2177,10 +2178,13 @@ func TestWebhookSubscriptionService_IDFiltersReachTheStoredSettings(t *testing.T
 				return nil
 			})
 
+		cleared := []string{}
 		_, err := service.Update(context.Background(), "ws-1", "sub-1", "Unfiltered", "https://example.com/h",
-			[]string{"list.subscribed"}, nil, true, nil, nil)
+			[]string{"list.subscribed"}, nil, boolPtr(true), &cleared, &cleared)
 		require.NoError(t, err)
 		require.NotNil(t, written)
+		// Nil, not empty: an empty filter is normalized away so that nothing reading
+		// the stored settings can mistake a stored [] for "match nothing".
 		assert.Nil(t, written.Settings.ListIDs)
 		assert.Nil(t, written.Settings.SegmentIDs)
 	})
@@ -2313,9 +2317,8 @@ func TestWebhookSubscriptionService_Create_SecretGoesOnlyToAPerson(t *testing.T)
 
 // An edit must not undo a retirement Notifuse decided on.
 //
-// enabled arrives as a plain bool on every update, filled in from whatever the
-// console last read, so a form loaded while the subscription was healthy still
-// carries true after the delivery worker has retired the endpoint. Saving a
+// A console form loaded while the subscription was healthy still carries an
+// explicit true after the delivery worker has retired the endpoint. Saving a
 // renamed webhook then switched it back on, cleared the reason that explained
 // why it was off, and pointed the whole queue at a dead URL again — none of
 // which the person renaming it asked for or was told about. Turning it back on
@@ -2340,7 +2343,7 @@ func TestWebhookSubscriptionService_Update_WillNotResurrectAnAutoDisabledSubscri
 
 	sub, err := service.Update(context.Background(), "workspace123", "sub123",
 		"Renamed", "https://example.com/webhook", []string{"contact.created"}, nil,
-		true, nil, nil)
+		boolPtr(true), nil, nil)
 
 	require.Error(t, err)
 	assert.Nil(t, sub)
@@ -2373,7 +2376,7 @@ func TestWebhookSubscriptionService_Update_StillEnablesAUserDisabledSubscription
 
 	sub, err := service.Update(context.Background(), "workspace123", "sub123",
 		"Renamed", "https://example.com/webhook", []string{"contact.created"}, nil,
-		true, nil, nil)
+		boolPtr(true), nil, nil)
 
 	require.NoError(t, err)
 	require.NotNil(t, sub)
@@ -2407,8 +2410,154 @@ func TestWebhookSubscriptionService_Update_StillEditsAnAutoDisabledSubscription(
 
 	sub, err := service.Update(context.Background(), "workspace123", "sub123",
 		"Renamed", "https://new.example.com/webhook", []string{"contact.created"}, nil,
-		false, nil, nil)
+		boolPtr(false), nil, nil)
 
 	require.NoError(t, err)
 	require.NotNil(t, sub)
+}
+
+// An update that says nothing about the switch must not throw it.
+//
+// The console drawer renders no enabled control, so the value it sends is only
+// ever an echo of what it last read — and when it sent nothing at all, the
+// field decoded as false and every save disabled the subscription. That is not
+// a cosmetic mistake: switching a subscription off drains its queued
+// deliveries, and a drained delivery is pinned at max_attempts, outside the
+// worker's claim predicate for good, so re-enabling never brings it back.
+func TestWebhookSubscriptionService_Update_OmittedEnabledLeavesTheSwitchAlone(t *testing.T) {
+	t.Run("an enabled subscription stays enabled", func(t *testing.T) {
+		mockRepo, _, _, service, ctrl := setupWebhookSubscriptionTest(t)
+		defer ctrl.Finish()
+
+		mockRepo.EXPECT().
+			GetByID(gomock.Any(), "workspace123", "sub123").
+			Return(&domain.WebhookSubscription{
+				ID:      "sub123",
+				Name:    "Old Name",
+				URL:     "https://example.com/webhook",
+				Enabled: true,
+			}, nil)
+
+		var written *domain.WebhookSubscription
+		mockRepo.EXPECT().
+			Update(gomock.Any(), "workspace123", gomock.Any()).
+			DoAndReturn(func(_ context.Context, _ string, sub *domain.WebhookSubscription) error {
+				written = sub
+				return nil
+			})
+
+		sub, err := service.Update(context.Background(), "workspace123", "sub123",
+			"Renamed", "https://example.com/webhook", []string{"contact.created"}, nil,
+			nil, nil, nil)
+
+		require.NoError(t, err)
+		require.NotNil(t, written)
+		assert.True(t, written.Enabled, "a rename must not switch the subscription off")
+		assert.Equal(t, "Renamed", written.Name, "the rest of the edit still has to land")
+		require.NotNil(t, sub)
+		assert.True(t, sub.Enabled)
+	})
+
+	// The mirror case: nil is "leave it alone", not "switch it on". It must
+	// neither enable the subscription nor trip the guard that refuses to
+	// resurrect one the delivery worker retired.
+	t.Run("an auto-disabled subscription stays disabled and is still editable", func(t *testing.T) {
+		mockRepo, _, _, service, ctrl := setupWebhookSubscriptionTest(t)
+		defer ctrl.Finish()
+
+		failingSince := time.Now().UTC().Add(-30 * time.Hour)
+		reason := "automatically disabled after repeated delivery failures"
+		mockRepo.EXPECT().
+			GetByID(gomock.Any(), "workspace123", "sub123").
+			Return(&domain.WebhookSubscription{
+				ID:                  "sub123",
+				Name:                "Old Name",
+				URL:                 "https://old.example.com/webhook",
+				Enabled:             false,
+				ConsecutiveFailures: 20,
+				FailingSince:        &failingSince,
+				DisabledReason:      &reason,
+			}, nil)
+
+		var written *domain.WebhookSubscription
+		mockRepo.EXPECT().
+			Update(gomock.Any(), "workspace123", gomock.Any()).
+			DoAndReturn(func(_ context.Context, _ string, sub *domain.WebhookSubscription) error {
+				written = sub
+				return nil
+			})
+
+		sub, err := service.Update(context.Background(), "workspace123", "sub123",
+			"Renamed", "https://new.example.com/webhook", []string{"contact.created"}, nil,
+			nil, nil, nil)
+
+		require.NoError(t, err, "an edit that never mentions the switch is not a re-enable")
+		require.NotNil(t, written)
+		assert.False(t, written.Enabled)
+		assert.Equal(t, "https://new.example.com/webhook", written.URL)
+		// The failure history explains the retirement, and nothing here has
+		// claimed the endpoint is fixed.
+		assert.Equal(t, 20, written.ConsecutiveFailures)
+		assert.NotNil(t, written.FailingSince)
+		assert.NotNil(t, written.DisabledReason)
+		require.NotNil(t, sub)
+	})
+}
+
+// TestWebhookSubscriptionService_Update_OmittedFiltersLeaveTheStoredOnesAlone is the
+// three narrowing filters' version of the omitted-enabled test above.
+//
+// Their zero value is not "unset", it is "no filter at all", so replacing them from a
+// body that never mentioned them widens the subscription instead of leaving it alone:
+// a Zap registered against one list starts receiving a delivery for every list and
+// every segment in the workspace, and its custom-event narrowing disappears too.
+// Nothing reports the change — the deliveries simply arrive.
+func TestWebhookSubscriptionService_Update_OmittedFiltersLeaveTheStoredOnesAlone(t *testing.T) {
+	mockRepo, _, _, svc, ctrl := setupWebhookSubscriptionTest(t)
+	defer ctrl.Finish()
+
+	// Seeded with every filter populated: a stored blank would make a wipe
+	// indistinguishable from a correct merge.
+	mockRepo.EXPECT().
+		GetByID(gomock.Any(), "ws-1", "sub-1").
+		Return(&domain.WebhookSubscription{
+			ID:      "sub-1",
+			Name:    "Zap: new contact to Slack",
+			URL:     "https://hooks.zapier.com/hook",
+			Enabled: true,
+			Source:  domain.WebhookSubscriptionSourceZapier,
+			Settings: domain.WebhookSubscriptionSettings{
+				EventTypes:         []string{"list.subscribed"},
+				ListIDs:            []string{"list-a"},
+				SegmentIDs:         []string{"seg-a"},
+				CustomEventFilters: &domain.CustomEventFilters{GoalTypes: []string{"purchase"}},
+			},
+		}, nil)
+
+	var written *domain.WebhookSubscription
+	mockRepo.EXPECT().
+		Update(gomock.Any(), "ws-1", gomock.Any()).
+		DoAndReturn(func(_ context.Context, _ string, sub *domain.WebhookSubscription) error {
+			written = sub
+			return nil
+		})
+
+	_, err := svc.Update(context.Background(), "ws-1", "sub-1",
+		"Renamed", "https://hooks.zapier.com/hook",
+		[]string{"list.subscribed"}, nil, nil, nil, nil)
+
+	require.NoError(t, err)
+	require.NotNil(t, written)
+	// Literals, not fields read off the fixture: the repository hands the service the
+	// very object it mutates, so comparing against the fixture would compare a field
+	// with itself and pass whatever happened.
+	assert.Equal(t, []string{"list-a"}, written.Settings.ListIDs,
+		"a rename that named no list filter must not widen the subscription to every list")
+	assert.Equal(t, []string{"seg-a"}, written.Settings.SegmentIDs,
+		"a rename that named no segment filter must not widen the subscription to every segment")
+	assert.Equal(t, &domain.CustomEventFilters{GoalTypes: []string{"purchase"}}, written.Settings.CustomEventFilters,
+		"a rename that named no custom event filter must not widen the subscription to every custom event")
+	// The edit itself still has to land, so a dropped update cannot pass for a merge.
+	assert.Equal(t, "Renamed", written.Name)
+	assert.Equal(t, []string{"list.subscribed"}, written.Settings.EventTypes)
 }

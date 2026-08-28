@@ -249,21 +249,35 @@ func (s *TransactionalNotificationService) UpdateNotification(
 					return nil, fmt.Errorf("invalid template for channel %s: %w", channel, err)
 				}
 			}
+			notification.Channels = params.Channels
 		}
-		notification.Channels = params.Channels
 	}
 
-	// tracking_mode is tri-state; an absent field (console UTM-only edits, API
-	// clients that don't know it) must not wipe a stored opt-out, while an
-	// explicit "inherit" is the deliberate reset (stored canonically as "").
-	switch params.TrackingSettings.TrackingMode {
-	case "":
-		params.TrackingSettings.TrackingMode = notification.TrackingSettings.TrackingMode
-	case notifuse_mjml.TrackingModeInherit:
-		params.TrackingSettings.TrackingMode = ""
+	// The whole params struct is a patch: a client that submits only the field it
+	// edited must not have the blocks it left out overwritten with their zero
+	// value. Channels especially — stripping them leaves the notification
+	// unsendable, and these carry password resets and magic links.
+	//
+	// Tracking settings turn on what the body said rather than on what it contains.
+	// Their zero value is a real instruction — tracking off, no UTMs — so treating
+	// an empty block as "nothing to do" would answer 200 to a caller switching
+	// tracking off and leave every link still rewritten with the old campaign, with
+	// nothing in the response to say so.
+	if params.TrackingSettingsSpecified() {
+		// tracking_mode is tri-state; an absent field (console UTM-only edits, API
+		// clients that don't know it) must not wipe a stored opt-out, while an
+		// explicit "inherit" is the deliberate reset (stored canonically as "").
+		switch params.TrackingSettings.TrackingMode {
+		case "":
+			params.TrackingSettings.TrackingMode = notification.TrackingSettings.TrackingMode
+		case notifuse_mjml.TrackingModeInherit:
+			params.TrackingSettings.TrackingMode = ""
+		}
+		notification.TrackingSettings = params.TrackingSettings
 	}
-	notification.TrackingSettings = params.TrackingSettings
-	notification.Metadata = params.Metadata
+	if params.Metadata != nil {
+		notification.Metadata = params.Metadata
+	}
 
 	// Save the updated notification
 	if err := s.transactionalRepo.Update(ctx, workspace, notification); err != nil {

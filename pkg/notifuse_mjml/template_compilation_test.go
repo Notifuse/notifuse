@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/Notifuse/notifuse/pkg/crypto"
+	"github.com/preslavrachev/gomjml/mjml"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -580,7 +581,7 @@ func TestTrackingPixelPlacement(t *testing.T) {
 
 	// Check that the tracking pixel uses encrypted /t/ format and new styling
 	hasPixelPattern := strings.Contains(result, `/t/`) &&
-		strings.Contains(result, `alt="" style="border:0;margin:0;padding:0;">`)
+		strings.Contains(result, `alt="" style="border:0;display:block;outline:none;text-decoration:none;">`)
 	if !hasPixelPattern {
 		t.Errorf("Expected encrypted tracking pixel with /t/ path and new styling. Result: %s", result)
 	}
@@ -620,7 +621,7 @@ func TestTrackingPixelWithoutBodyTag(t *testing.T) {
 
 	// Check that the tracking pixel uses encrypted /t/ format
 	hasPixelPattern := strings.Contains(result, `/t/`) &&
-		strings.Contains(result, `alt="" style="border:0;margin:0;padding:0;">`)
+		strings.Contains(result, `alt="" style="border:0;display:block;outline:none;text-decoration:none;">`)
 	if !hasPixelPattern {
 		t.Error("Expected encrypted tracking pixel with /t/ path and new styling")
 	}
@@ -629,6 +630,64 @@ func TestTrackingPixelWithoutBodyTag(t *testing.T) {
 	if !strings.HasSuffix(strings.TrimSpace(result), `</td></tr></table>`) {
 		t.Error("Expected table-wrapped tracking pixel to be at the end when no body tag is present")
 	}
+}
+
+// TestTrackingPixelCollapsesLineBox pins the markup that keeps the open-tracking
+// pixel from adding a visible row to the email.
+//
+// An <img> is inline by default, so it sits on a text baseline and the cell holding
+// it takes a whole line box — around 19px at the default font size — no matter how
+// small the image is. width="1" height="1" does not help, because it describes the
+// image and not the line the image sits on. That is why the pixel used to leave an
+// empty row under the footer, and why Outlook scrolled a few millimetres past it.
+//
+// display:block takes the image off the baseline, the zeroed line-height and
+// font-size collapse the line box for clients that honour only one of the two, and
+// mso-line-height-rule makes the Word engine behind Outlook treat the zero
+// line-height as exact rather than as a minimum.
+func TestTrackingPixelCollapsesLineBox(t *testing.T) {
+	pixel := GenerateHTMLOpenTrackingPixel("ws", "msg", "https://api.example.com", 1700000000)
+
+	assert.Contains(t, pixel, `<td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;">`,
+		"the pixel cell must zero its line box, or it reserves a full line of text below the email")
+	assert.Regexp(t, `<img [^>]*style="[^"]*display:block[^"]*"`, pixel,
+		"the pixel image must leave the text baseline, or the cell takes a full line box anyway")
+}
+
+// TestTrackingPixelCellStyleMatchesMJMLSpacerRow pins why the cell carries that
+// exact declaration list: it is the one gomjml already emits for its own spacer
+// rows, so the pixel row reads as ordinary structural markup rather than as
+// something written only for a tracking pixel.
+//
+// A gomjml upgrade that changes its spacer markup fails this test. Copy the new
+// string across rather than dropping the assertion — matching MJML byte for byte
+// is the point.
+func TestTrackingPixelCellStyleMatchesMJMLSpacerRow(t *testing.T) {
+	const cellStyle = `line-height:0px;font-size:0px;mso-line-height-rule:exactly;`
+
+	pixel := GenerateHTMLOpenTrackingPixel("ws", "msg", "https://api.example.com", 1700000000)
+	require.Contains(t, pixel, cellStyle)
+
+	rendered, err := mjml.Render(`<mjml><mj-body><mj-section><mj-column><mj-text>x</mj-text></mj-column></mj-section></mj-body></mjml>`)
+	require.NoError(t, err)
+	assert.Contains(t, rendered, cellStyle,
+		"the pixel cell style must stay a string MJML itself emits")
+}
+
+// TestTrackingPixelCarriesNoDimensionAttributes guards the anti-blocker property
+// the collapse fix must not undo: the classic width="1" height="1" pair is the
+// fingerprint pixel blockers match on, so the collapse is done in CSS instead.
+//
+// SpamAssassin gives the same pair a second reason to stay away: it accumulates
+// image area only when both attributes are present, and coerces a zero to 200,
+// so width="0" height="0" would bill the pixel as 40000px of image.
+func TestTrackingPixelCarriesNoDimensionAttributes(t *testing.T) {
+	pixel := GenerateHTMLOpenTrackingPixel("ws", "msg", "https://api.example.com", 1700000000)
+
+	imgTag := regexp.MustCompile(`<img [^>]*>`).FindString(pixel)
+	require.NotEmpty(t, imgTag, "expected an img tag in the pixel markup")
+	assert.NotRegexp(t, `\swidth=`, imgTag, "a width attribute is the pixel-blocker fingerprint")
+	assert.NotRegexp(t, `\sheight=`, imgTag, "a height attribute is the pixel-blocker fingerprint")
 }
 
 func TestIsNonTrackableURL(t *testing.T) {
@@ -3454,11 +3513,15 @@ func TestTrackingSettings_ValueOmitsIdentityCredentials(t *testing.T) {
 // TestTrackingSettings_IsZero walks the struct by reflection instead of listing
 // the fields by hand: a hand-written list is a copy of the very enumeration
 // IsZero makes, so both can be forgotten together. A field added to
-// TrackingSettings and missed in IsZero fails here, which is what
-// UpdateTransactionalRequest.Validate depends on: it reads IsZero as "the
-// caller sent no tracking settings", so a field IsZero cannot see makes an
-// update that sets only that field come back as "at least one field must be
-// updated".
+// TrackingSettings and missed in IsZero fails here.
+//
+// IsZero has no production caller left. UpdateTransactionalRequest.Validate
+// used to read it as "the caller sent no tracking settings", which cannot tell
+// an absent block from one the caller deliberately emptied — so switching
+// tracking off came back as "at least one field must be updated" and the write
+// was silently dropped. Presence is recorded at decode now. The helper and this
+// test stay because IsZero is exported and an enumeration that quietly falls
+// behind its struct is worth catching wherever it is reached for next.
 func TestTrackingSettings_IsZero(t *testing.T) {
 	assert.True(t, TrackingSettings{}.IsZero())
 

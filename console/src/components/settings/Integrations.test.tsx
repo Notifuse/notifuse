@@ -1,10 +1,13 @@
+import type React from 'react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { App } from 'antd'
 import { i18n } from '@lingui/core'
 import { I18nProvider } from '@lingui/react'
 import { Integrations } from './Integrations'
-import type { Workspace } from '../../services/api/types'
+import type { Integration, Workspace } from '../../services/api/types'
+import { workspaceService } from '../../services/api/workspace'
 
 i18n.loadAndActivate({ locale: 'en', messages: {} })
 
@@ -20,26 +23,86 @@ vi.mock('./useSESDiscovery', () => ({
     loading: false
   })
 }))
+// These are the names Integrations.tsx actually imports. An earlier version of this mock stubbed
+// getEmailProviderWebhookStatus/registerEmailProviderWebhooks, which the module has not exported
+// for some time: the stub was inert and the real functions would have run on the first test that
+// opened a provider drawer.
 vi.mock('../../services/api/webhook_registration', () => ({
-  getEmailProviderWebhookStatus: vi.fn().mockResolvedValue({ status: 'unregistered' }),
-  registerEmailProviderWebhooks: vi.fn(),
-  unregisterEmailProviderWebhooks: vi.fn(),
-  EmailProviderWebhookStatus: {}
+  getWebhookStatus: vi.fn().mockResolvedValue({ status: { endpoints: [] } }),
+  registerWebhook: vi.fn(),
+  WebhookRegistrationStatus: {}
+}))
+vi.mock('../../services/api/workspace', () => ({
+  workspaceService: {
+    get: vi.fn(),
+    connectZapier: vi.fn(),
+    createIntegration: vi.fn(),
+    updateIntegration: vi.fn(),
+    deleteIntegration: vi.fn(),
+    update: vi.fn()
+  }
 }))
 
-const workspace = {
-  id: 'ws1',
-  name: 'Acme',
-  settings: { integrations: [] },
-  integrations: []
-} as unknown as Workspace
+const ZAPIER_KEY_EMAIL = 'zapier-marketing-3f9a1c02@api.notifuse.com'
 
-const renderIntegrations = () =>
-  render(
+const zapierIntegration = {
+  id: 'int_zapier_1',
+  name: 'Marketing',
+  type: 'zapier',
+  zapier_settings: { api_key_email: ZAPIER_KEY_EMAIL },
+  created_at: '2026-08-01T10:00:00Z',
+  updated_at: '2026-08-01T10:00:00Z'
+} as unknown as Integration
+
+const makeWorkspace = (integrations: Integration[]) =>
+  ({
+    id: 'ws1',
+    name: 'Acme',
+    settings: { integrations: [] },
+    integrations
+  }) as unknown as Workspace
+
+interface RenderOptions {
+  integrations?: Integration[]
+  isOwner?: boolean
+}
+
+// The <App> wrapper is load-bearing, not decoration. ZapierSettings reads `message` from
+// App.useApp(), whose default context is an empty object, and calls it from an async handler
+// invoked as a floating promise — so without a provider the TypeError surfaces as an
+// unattributed unhandled rejection and the test still reports green.
+const renderIntegrations = ({ integrations = [], isOwner = true }: RenderOptions = {}) => {
+  let rerender: (ui: React.ReactElement) => void = () => {}
+  const tree = (workspace: Workspace) => (
     <I18nProvider i18n={i18n}>
-      <Integrations workspace={workspace} onSave={vi.fn()} loading={false} isOwner={true} />
+      <App>
+        <Integrations workspace={workspace} onSave={onSave} loading={false} isOwner={isOwner} />
+      </App>
     </I18nProvider>
   )
+  // Mirrors WorkspaceSettingsPage: onSave swaps the workspace prop, which re-renders Integrations.
+  // A bare vi.fn() here would mean the refresh never re-enters the component, so any test claiming
+  // to survive one would assert nothing about the render it is named after.
+  const onSave = vi.fn(async (workspace: Workspace) => {
+    rerender(tree(workspace))
+  })
+  const utils = render(tree(makeWorkspace(integrations)))
+  rerender = utils.rerender
+  return { ...utils, onSave }
+}
+
+beforeEach(() => {
+  vi.clearAllMocks()
+  vi.mocked(workspaceService.get).mockResolvedValue({
+    workspace: makeWorkspace([zapierIntegration])
+  } as unknown as Awaited<ReturnType<typeof workspaceService.get>>)
+  vi.mocked(workspaceService.connectZapier).mockResolvedValue({
+    status: 'success',
+    token: 'tok_secret_value',
+    email: ZAPIER_KEY_EMAIL,
+    integration_id: 'int_zapier_1'
+  })
+})
 
 // openSESDrawer walks the path an operator takes: pick Amazon SES from the available providers.
 // The tenant fields only exist once that drawer is open, so every test starts here.
@@ -58,10 +121,6 @@ const isolationSwitch = () =>
   )
 
 describe('Integrations — SES tenant isolation', () => {
-  beforeEach(() => {
-    vi.clearAllMocks()
-  })
-
   it('shows the tenant fields without expanding anything', async () => {
     // They used to live behind an "Advanced" collapse; the collapse is gone, so both must be on
     // screen as soon as the SES form is.
@@ -141,5 +200,87 @@ describe('Integrations — SES tenant isolation', () => {
     expect(
       screen.queryByText('Up to 64 letters, numbers, hyphens or underscores.')
     ).not.toBeInTheDocument()
+  })
+})
+
+describe('Integrations — Zapier', () => {
+  it('offers Zapier in the empty-state catalogue', async () => {
+    // The Add Integration dropdown is hidden until the workspace has at least one integration,
+    // so on a fresh workspace the catalogue is the only way in.
+    renderIntegrations()
+
+    expect(await screen.findByText('Zapier')).toBeInTheDocument()
+  })
+
+  it('offers Zapier in the Add Integration dropdown once an integration exists', async () => {
+    const user = userEvent.setup()
+    renderIntegrations({ integrations: [zapierIntegration] })
+
+    await user.click(screen.getByRole('button', { name: /Add Integration/ }))
+
+    expect(await screen.findByRole('menuitem', { name: /Zapier/ })).toBeInTheDocument()
+  })
+
+  it('renders a connected Zapier card with its label and key address', async () => {
+    renderIntegrations({ integrations: [zapierIntegration] })
+
+    expect(await screen.findByText('Marketing')).toBeInTheDocument()
+    expect(screen.getByText(ZAPIER_KEY_EMAIL)).toBeInTheDocument()
+  })
+
+  it('falls back to the generic card when a Zapier record carries no settings', async () => {
+    // Reachable: a rollback to a build without the type, or a record written by hand. Reading
+    // api_key_email off it unguarded would take the whole Integrations screen down.
+    const settingsless = { ...zapierIntegration, zapier_settings: undefined }
+    renderIntegrations({ integrations: [settingsless] })
+
+    expect(await screen.findByText('Type: zapier')).toBeInTheDocument()
+    expect(screen.queryByText(ZAPIER_KEY_EMAIL)).not.toBeInTheDocument()
+  })
+
+  it('connects Zapier and refreshes the workspace without closing the token panel', async () => {
+    const user = userEvent.setup()
+    const { onSave } = renderIntegrations()
+
+    await user.click(await screen.findByText('Zapier'))
+    const label = await screen.findByLabelText('Label')
+    await user.clear(label)
+    await user.type(label, 'Marketing')
+    await user.click(screen.getByRole('button', { name: /Connect Zapier/ }))
+
+    await waitFor(() =>
+      expect(workspaceService.connectZapier).toHaveBeenCalledWith({
+        workspace_id: 'ws1',
+        label: 'Marketing'
+      })
+    )
+    await waitFor(() => expect(onSave).toHaveBeenCalled())
+    expect(workspaceService.get).toHaveBeenCalledWith('ws1')
+    // The token exists in exactly one response. A refresh that closed the drawer would discard
+    // the only copy the user will ever be shown.
+    expect(screen.getByLabelText('API key token')).toHaveValue('tok_secret_value')
+  })
+
+  it('shows a member the Zapier card without Edit or Delete', async () => {
+    const { container } = renderIntegrations({
+      integrations: [zapierIntegration],
+      isOwner: false
+    })
+
+    expect(await screen.findByText(ZAPIER_KEY_EMAIL)).toBeInTheDocument()
+    expect(container.querySelector('[data-icon="pen-to-square"]')).toBeNull()
+    expect(container.querySelector('[data-icon="trash-can"]')).toBeNull()
+  })
+
+  it('warns that deleting a Zapier connection revokes its key', async () => {
+    const user = userEvent.setup()
+    const { container } = renderIntegrations({ integrations: [zapierIntegration] })
+
+    await user.click(
+      container.querySelector('[data-icon="trash-can"]')?.closest('button') as HTMLElement
+    )
+
+    const warning = await screen.findByText(/revokes the API key/)
+    expect(warning).toHaveTextContent(/stops working/)
   })
 })

@@ -70,6 +70,8 @@ import { LLMIntegration } from '../integrations/LLMIntegration'
 import { llmProviders, getLLMProviderIcon, getLLMProviderName } from '../integrations/LLMProviders'
 import { FirecrawlIntegration } from '../integrations/FirecrawlIntegration'
 import { firecrawlProvider } from '../integrations/FirecrawlProviders'
+import { ZapierSettings } from './ZapierSettings'
+import { zapierProvider } from '../integrations/ZapierProviders'
 import { LLMProviderKind } from '../../services/api/types'
 import { v4 as uuidv4 } from 'uuid'
 import { SettingsSectionHeader } from './SettingsSectionHeader'
@@ -90,6 +92,14 @@ const generateSupabaseWebhookURL = (
   const apiEndpoint = window.API_ENDPOINT?.trim() || defaultOrigin
 
   return `${apiEndpoint}/webhooks/supabase/${hookType}?workspace_id=${workspaceID}&integration_id=${integrationID}`
+}
+
+// The zapier card guards on zapier_settings because a record can be hand-written into the
+// integrations column; the same record can carry no usable created_at, and `new Date(undefined)`
+// stringifies to the literal "Invalid Date" rather than throwing.
+const formatConnectedOn = (value?: string): string => {
+  const at = value ? new Date(value) : null
+  return at && !Number.isNaN(at.getTime()) ? at.toLocaleDateString() : '\u2014'
 }
 
 // Component Props
@@ -550,6 +560,13 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
   const [firecrawlSaving, setFirecrawlSaving] = useState(false)
   const firecrawlFormRef = React.useRef<{ submit: () => void } | null>(null)
 
+  // Zapier Integration state. `zapierSaving` is the rename only — the connect action lives in the
+  // drawer body and owns its own in-flight state, because it is the one that must not fire twice.
+  const [zapierDrawerVisible, setZapierDrawerVisible] = useState(false)
+  const [editingZapierIntegration, setEditingZapierIntegration] = useState<Integration | null>(null)
+  const [zapierSaving, setZapierSaving] = useState(false)
+  const zapierFormRef = React.useRef<{ submit: () => void } | null>(null)
+
   // Test email modal state
   const [testModalVisible, setTestModalVisible] = useState(false)
   const [testEmailAddress, setTestEmailAddress] = useState('')
@@ -960,6 +977,65 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
     }
   }
 
+  // Handle Zapier selection
+  const handleSelectZapier = () => {
+    setEditingZapierIntegration(null)
+    setZapierDrawerVisible(true)
+  }
+
+  // Start editing a Zapier integration
+  const startEditZapierIntegration = (integration: Integration) => {
+    setEditingZapierIntegration(integration)
+    setZapierDrawerVisible(true)
+  }
+
+  const closeZapierDrawer = () => {
+    setZapierDrawerVisible(false)
+    setEditingZapierIntegration(null)
+  }
+
+  // Connecting writes the card server-side, so all this does is pull the new list. It must not
+  // close the drawer: the token comes back in exactly one response and nothing can reissue it, so
+  // the panel showing it stands until the user dismisses it. Failures are swallowed on purpose —
+  // the connection succeeded whatever the refetch did, and rethrowing would reach the drawer body
+  // as a failed connect.
+  const refreshAfterZapierConnect = async () => {
+    try {
+      const response = await workspaceService.get(workspace.id)
+      await onSave(response.workspace)
+    } catch (error) {
+      console.error('Error refreshing workspace after connecting Zapier:', error)
+      message.error(t`Zapier is connected, but the integration list could not be refreshed`)
+    }
+  }
+
+  // Renames only. The minted address is server-owned and the update request carries no settings
+  // field, so a rename cannot disturb it — which is why a renamed card and its key address can
+  // read differently, and why the card shows both.
+  const saveZapierIntegration = async (integration: Integration) => {
+    setZapierSaving(true)
+    try {
+      await workspaceService.updateIntegration({
+        workspace_id: workspace.id,
+        integration_id: integration.id,
+        name: integration.name
+      })
+
+      // Refresh workspace data
+      const response = await workspaceService.get(workspace.id)
+      await onSave(response.workspace)
+
+      closeZapierDrawer()
+      message.success(t`Zapier integration saved successfully`)
+    } catch (error) {
+      console.error('Error saving Zapier integration:', error)
+      message.error(t`Failed to save Zapier integration`)
+      throw error
+    } finally {
+      setZapierSaving(false)
+    }
+  }
+
   // Close provider drawer
   const closeProviderDrawer = () => {
     setProviderDrawerVisible(false)
@@ -1260,6 +1336,28 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
             }}
           >
             Configure
+          </Button>
+        </div>
+
+        {/* Zapier */}
+        <div
+          onClick={() => handleSelectZapier()}
+          className="flex justify-between items-center p-4 border border-gray-200 rounded-lg hover:border-gray-300 transition-all cursor-pointer mb-4 relative"
+        >
+          <div className="flex items-center">
+            {zapierProvider.getIcon('', 'large')}
+            <span className="ml-3 font-medium">{zapierProvider.name}</span>
+          </div>
+          <Button
+            type="primary"
+            ghost
+            size="small"
+            onClick={(e) => {
+              e.stopPropagation()
+              handleSelectZapier()
+            }}
+          >
+            {t`Connect`}
           </Button>
         </div>
       </>
@@ -1605,6 +1703,66 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
                           search_web
                         </Tag>
                       </Space>
+                    </Descriptions.Item>
+                  </Descriptions>
+                </Card>
+              </div>
+            )
+          }
+
+          // Guarded on the settings object, not on the type alone: a record written before this
+          // release, or by a build that has been rolled back, has none, and reading
+          // api_key_email off it would take the whole screen down. It degrades to the card below.
+          if (integration.type === 'zapier' && integration.zapier_settings) {
+            return (
+              <div key={integration.id} className="mb-4">
+                <Card
+                  title={
+                    <>
+                      <div className="float-right">
+                        {isOwner && (
+                          <Space>
+                            <Tooltip title={t`Edit`}>
+                              <Button
+                                type="text"
+                                onClick={() => startEditZapierIntegration(integration)}
+                                size="small"
+                              >
+                                <FontAwesomeIcon icon={faPenToSquare} />
+                              </Button>
+                            </Tooltip>
+                            <Popconfirm
+                              title={t`Delete this connection?`}
+                              description={t`Deleting revokes the API key this connection minted, so any Zap still using it stops working. This action cannot be undone.`}
+                              onConfirm={() => deleteIntegration(integration.id)}
+                              okText={t`Yes`}
+                              cancelText={t`No`}
+                            >
+                              <Tooltip title={t`Delete`}>
+                                <Button size="small" type="text">
+                                  <FontAwesomeIcon icon={faTrashCan} />
+                                </Button>
+                              </Tooltip>
+                            </Popconfirm>
+                          </Space>
+                        )}
+                      </div>
+                      <Tooltip title={integration.id}>{zapierProvider.getIcon('', 14)}</Tooltip>
+                    </>
+                  }
+                >
+                  <Descriptions bordered size="small" column={1} className="mt-2">
+                    <Descriptions.Item label={t`Name`}>{integration.name}</Descriptions.Item>
+                    {/* Shown alongside the name because the two can disagree: renaming the card
+                        never re-mints the key, so the address keeps the label it was created
+                        under, and this is where an owner matches it to Settings → Team. */}
+                    <Descriptions.Item label={t`API key address`}>
+                      <Tag variant="filled" color="blue">
+                        {integration.zapier_settings.api_key_email}
+                      </Tag>
+                    </Descriptions.Item>
+                    <Descriptions.Item label={t`Connected`}>
+                      {formatConnectedOn(integration.created_at)}
                     </Descriptions.Item>
                   </Descriptions>
                 </Card>
@@ -2450,6 +2608,14 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
         firecrawlProvider.getIcon('h-6 w-12 object-contain mr-1') as React.ReactElement
       ),
       onClick: () => handleSelectFirecrawl()
+    },
+    {
+      key: 'zapier',
+      label: zapierProvider.name,
+      icon: React.cloneElement(
+        zapierProvider.getIcon('h-6 w-12 object-contain mr-1') as React.ReactElement
+      ),
+      onClick: () => handleSelectZapier()
     }
   ]
 
@@ -2711,6 +2877,45 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
           onSave={saveFirecrawlIntegration}
           isOwner={isOwner}
           formRef={firecrawlFormRef}
+        />
+      </Drawer>
+
+      {/* Zapier Integration Drawer */}
+      <Drawer
+        title={editingZapierIntegration ? t`Edit Zapier connection` : t`Connect Zapier`}
+        size={600}
+        open={zapierDrawerVisible}
+        onClose={closeZapierDrawer}
+        footer={
+          // Edit mode only. The connect action stays in the body, where it can disable itself
+          // while in flight; a footer Save submitting the same form would be a second, always
+          // enabled way to mint a key, and nothing server-side refuses the second one.
+          editingZapierIntegration ? (
+            <div style={{ textAlign: 'right' }}>
+              <Space>
+                <Button onClick={closeZapierDrawer}>{t`Cancel`}</Button>
+                <Button
+                  type="primary"
+                  onClick={() => zapierFormRef.current?.submit()}
+                  loading={zapierSaving}
+                  disabled={!isOwner}
+                >
+                  {t`Save`}
+                </Button>
+              </Space>
+            </div>
+          ) : null
+        }
+        destroyOnHidden
+      >
+        <ZapierSettings
+          workspaceId={workspace.id}
+          integration={editingZapierIntegration || undefined}
+          onSave={saveZapierIntegration}
+          onConnected={refreshAfterZapierConnect}
+          onDone={closeZapierDrawer}
+          isOwner={isOwner}
+          formRef={zapierFormRef}
         />
       </Drawer>
     </>

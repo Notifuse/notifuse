@@ -199,6 +199,16 @@ func (r *GetListRequest) FromURLParams(queryParams url.Values) (err error) {
 	return nil
 }
 
+// UpdateListRequest replaces the stored list wholesale: ListRepository.UpdateList
+// writes every column from the List that Validate builds, so a field the body left
+// out is written as its zero value rather than left alone.
+//
+// For the two booleans that is not survivable. is_double_optin off means new
+// subscribers are activated without a confirmation email — a consent decision — and
+// is_public off drops the list from the public subscription surfaces. Neither can be
+// read out of silence, and the layer that could merge them with the stored row (the
+// service) is not on this path, so the request records which of them the wire
+// actually carried and Validate refuses the ones it did not.
 type UpdateListRequest struct {
 	WorkspaceID         string             `json:"workspace_id"`
 	ID                  string             `json:"id"`
@@ -207,6 +217,33 @@ type UpdateListRequest struct {
 	IsPublic            bool               `json:"is_public"`
 	Description         string             `json:"description,omitempty"`
 	DoubleOptInTemplate *TemplateReference `json:"double_optin_template,omitempty"`
+
+	// Named for omission so that the zero value means "present": a request
+	// assembled in Go has no body to read presence from, and a caller filling the
+	// struct in by hand has stated every field.
+	isDoubleOptinOmitted bool
+	isPublicOmitted      bool
+}
+
+func (r *UpdateListRequest) UnmarshalJSON(data []byte) error {
+	// The alias drops the methods, so this does not recurse.
+	type alias UpdateListRequest
+	if err := json.Unmarshal(data, (*alias)(r)); err != nil {
+		return err
+	}
+
+	var sent map[string]json.RawMessage
+	if err := json.Unmarshal(data, &sent); err != nil {
+		return err
+	}
+
+	// A null counts as omitted: there is no bool a null could have meant, so it can only be a
+	// serializer writing out an absent optional — and reading it as false is the silent "off"
+	// this record exists to refuse.
+	r.isDoubleOptinOmitted = jsonKeyOmitted(sent, "is_double_optin")
+	r.isPublicOmitted = jsonKeyOmitted(sent, "is_public")
+
+	return nil
 }
 
 func (r *UpdateListRequest) Validate() (list *List, workspaceID string, err error) {
@@ -228,6 +265,14 @@ func (r *UpdateListRequest) Validate() (list *List, workspaceID string, err erro
 	}
 	if len(r.Name) > 255 {
 		return nil, "", fmt.Errorf("invalid update list request: name length must be between 1 and 255")
+	}
+
+	// An explicit false still turns either flag off; only silence is refused.
+	if r.isDoubleOptinOmitted {
+		return nil, "", fmt.Errorf("invalid update list request: is_double_optin is required; omitting it would turn off confirmed opt-in and activate new subscribers without a confirmation email")
+	}
+	if r.isPublicOmitted {
+		return nil, "", fmt.Errorf("invalid update list request: is_public is required; omitting it would hide the list from the public subscription pages")
 	}
 
 	// Validate optional template references if they exist

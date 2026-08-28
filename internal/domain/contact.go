@@ -558,10 +558,12 @@ type BatchImportContactsResponse struct {
 	Operations []*UpsertContactOperation `json:"operations"`
 	Error      string                    `json:"error,omitempty"`
 
-	// Err carries the typed error behind Error when the import was refused for
-	// lack of a permission. Error is prose, so a *PermissionError set there alone
-	// cannot be reached by errors.As and the handler has nothing to answer 403
-	// with. Not serialized: Error stays the wire form every client already reads.
+	// Err carries the typed error behind Error when the import was refused — for
+	// lack of a permission, or because the credential could not be authenticated
+	// at all. Error is prose, so a typed error set there alone cannot be reached
+	// by errors.As and the handler has nothing to answer 401 or 403 with, leaving
+	// a revoked key reported as a client mistake. Not serialized: Error stays the
+	// wire form every client already reads.
 	Err error `json:"-"`
 }
 
@@ -596,10 +598,11 @@ type UpsertContactOperation struct {
 	// and reporting an error there would invite a retry of a successful upsert.
 	Contact *Contact `json:"contact,omitempty"`
 
-	// Err carries the typed error behind Error when the upsert was refused for
-	// lack of a permission, for the same reason as on BatchImportContactsResponse.
-	// A genuine per-contact failure (invalid contact, repository error) leaves it
-	// nil and keeps reporting through Error alone.
+	// Err carries the typed error behind Error when the upsert was refused — for
+	// lack of a permission or for a failed authentication — for the same reason as
+	// on BatchImportContactsResponse. A genuine per-contact failure (invalid
+	// contact, repository error) leaves it nil and keeps reporting through Error
+	// alone.
 	Err error `json:"-"`
 }
 

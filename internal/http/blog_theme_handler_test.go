@@ -2,6 +2,7 @@ package http_test
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -332,10 +333,13 @@ func TestBlogThemeHandler_HandleUpdate(t *testing.T) {
 
 	t.Run("Success", func(t *testing.T) {
 		workspaceID := "ws-123"
+		// The file keys are the theme's real tags. A body keyed "home" instead of
+		// "home.liquid" decodes to an empty file set, so it asserts a 200 over a
+		// request that names no file at all.
 		reqBody := map[string]interface{}{
 			"version": 1,
 			"files": map[string]interface{}{
-				"home": "updated home",
+				"home.liquid": "updated home",
 			},
 		}
 
@@ -348,9 +352,13 @@ func TestBlogThemeHandler_HandleUpdate(t *testing.T) {
 			UpdatedAt: time.Now(),
 		}
 
+		var received *domain.UpdateBlogThemeRequest
 		mockService.EXPECT().
 			UpdateTheme(gomock.Any(), gomock.Any()).
-			Return(theme, nil)
+			DoAndReturn(func(ctx context.Context, req *domain.UpdateBlogThemeRequest) (*domain.BlogTheme, error) {
+				received = req
+				return theme, nil
+			})
 
 		body, _ := json.Marshal(reqBody)
 		req := httptest.NewRequest(http.MethodPost, "/api/blogThemes.update?workspace_id="+workspaceID, bytes.NewBuffer(body))
@@ -364,6 +372,20 @@ func TestBlogThemeHandler_HandleUpdate(t *testing.T) {
 		err := json.Unmarshal(w.Body.Bytes(), &response)
 		require.NoError(t, err)
 		assert.NotNil(t, response["theme"])
+
+		// Which files the body named has to survive the handler's decode, or the service
+		// cannot tell a file left out from one emptied — and a one-file edit blanks the
+		// other seven.
+		require.NotNil(t, received)
+		merged, err := received.FilesFor(domain.BlogThemeFiles{
+			HomeLiquid: "stored home",
+			PostLiquid: "stored post",
+			StylesCSS:  "stored css",
+		})
+		require.NoError(t, err)
+		assert.Equal(t, "updated home", merged.HomeLiquid)
+		assert.Equal(t, "stored post", merged.PostLiquid)
+		assert.Equal(t, "stored css", merged.StylesCSS)
 	})
 
 	t.Run("Cannot update published theme", func(t *testing.T) {

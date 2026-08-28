@@ -124,6 +124,34 @@ describe('GeneralSettings', () => {
     )
   })
 
+  // The settings the update actually puts on the wire. A value of undefined survives in the
+  // mock argument but not in the request body, and workspaces.update restores every setting
+  // its body leaves out - which is how an emptied field came back filled.
+  const sentSettings = (): Record<string, unknown> =>
+    JSON.parse(JSON.stringify(vi.mocked(workspaceService.update).mock.calls[0][0].settings))
+
+  it('clears the custom endpoint URL when the field is emptied', async () => {
+    renderComponent(true, makeWorkspace({ custom_endpoint_url: 'https://old.example.com' }))
+
+    const endpoint = screen.getByLabelText(/Custom Endpoint URL/i)
+    expect(endpoint).toHaveValue('https://old.example.com')
+    fireEvent.change(endpoint, { target: { value: '' } })
+    fireEvent.click(screen.getByRole('button', { name: /Save Changes/i }))
+
+    await waitFor(() => expect(workspaceService.update).toHaveBeenCalled())
+    expect(sentSettings().custom_endpoint_url).toBe('')
+  })
+
+  it('keeps a custom endpoint URL the operator did not touch', async () => {
+    renderComponent(true, makeWorkspace({ custom_endpoint_url: 'https://track.example.com' }))
+
+    fireEvent.change(screen.getByLabelText(/Workspace Name/i), { target: { value: 'Renamed WS' } })
+    fireEvent.click(screen.getByRole('button', { name: /Save Changes/i }))
+
+    await waitFor(() => expect(workspaceService.update).toHaveBeenCalled())
+    expect(sentSettings().custom_endpoint_url).toBe('https://track.example.com')
+  })
+
   it('refuses to save an empty workspace name', async () => {
     renderComponent(true)
 

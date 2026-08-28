@@ -2001,6 +2001,61 @@ func TestBuildTemplateData(t *testing.T) {
 	// We'll skip other test cases since they would require mocking
 }
 
+// TestBuildTemplateData_GlobalFeed pins that the global feed payload reaches template data on the
+// strength of the data being there, and nothing else. A broadcast may carry data with the feed
+// switched off — that is how a client supplies its own payload instead of having Notifuse fetch
+// one at scheduling time — so gating the injection on Enabled would silently drop a supported
+// mode. Clearing a payload the client no longer wants is UpdateBroadcastRequest.Validate's job,
+// on the save that switches a live feed off.
+func TestBuildTemplateData_GlobalFeed(t *testing.T) {
+	const secretKey = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+
+	payload := MapOfAny{"headline": "Yesterday's deal"}
+
+	newReq := func(feed *GlobalFeedSettings, data MapOfAny) TemplateDataRequest {
+		return TemplateDataRequest{
+			WorkspaceID:        "ws-123",
+			WorkspaceSecretKey: secretKey,
+			MessageID:          "msg-456",
+			TrackingSettings:   notifuse_mjml.TrackingSettings{Endpoint: "https://api.example.com"},
+			Broadcast: &Broadcast{
+				ID:   "broadcast-001",
+				Name: "Test Broadcast",
+				DataFeed: &DataFeedSettings{
+					GlobalFeed:     feed,
+					GlobalFeedData: data,
+				},
+			},
+		}
+	}
+
+	t.Run("enabled feed renders its fetched payload", func(t *testing.T) {
+		data, err := BuildTemplateData(newReq(&GlobalFeedSettings{Enabled: true, URL: "https://feed.example.com"}, payload))
+		require.NoError(t, err)
+		assert.Equal(t, payload, data["global_feed"])
+	})
+
+	t.Run("disabled feed renders the payload supplied with it", func(t *testing.T) {
+		data, err := BuildTemplateData(newReq(&GlobalFeedSettings{Enabled: false, URL: "https://feed.example.com"}, payload))
+		require.NoError(t, err)
+		assert.Equal(t, payload, data["global_feed"],
+			"a client that supplies its own payload asks for no fetch, not for no data")
+	})
+
+	t.Run("payload supplied without any feed configuration is rendered", func(t *testing.T) {
+		data, err := BuildTemplateData(newReq(nil, payload))
+		require.NoError(t, err)
+		assert.Equal(t, payload, data["global_feed"])
+	})
+
+	t.Run("no payload leaves global_feed unset", func(t *testing.T) {
+		data, err := BuildTemplateData(newReq(&GlobalFeedSettings{Enabled: true, URL: "https://feed.example.com"}, nil))
+		require.NoError(t, err)
+		_, exists := data["global_feed"]
+		assert.False(t, exists)
+	})
+}
+
 // TestGenerateEmailRedirectionEndpoint tests the generation of the URL for tracking email redirections
 func TestGenerateEmailRedirectionEndpoint(t *testing.T) {
 	testTimestamp := int64(1699564800)

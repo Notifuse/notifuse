@@ -281,7 +281,7 @@ msgid "{hours}h {remainingMinutes}m"
 msgstr "{hours}h {remainingMinutes}m"
 
 #: src/components/settings/WebhookCard.tsx:151
-#: src/components/settings/ZapierSettings.tsx:110
+#: src/components/settings/ZapierSettings.tsx:96
 msgid "{label} copied to clipboard"
 msgstr "{label} copied to clipboard"
 
@@ -433,7 +433,7 @@ msgstr "+ add from name, CC, BCC, reply-to, attachments"
 msgid "+ Add property filter"
 msgstr "+ Add property filter"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:809
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:800
 msgid "+ Add variation"
 msgstr "+ Add variation"
 
@@ -466,7 +466,7 @@ msgstr "1 goal"
 msgid "1 page"
 msgstr "1 page"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:490
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:481
 msgid "1. Audience"
 msgstr "1. Audience"
 
@@ -487,7 +487,7 @@ msgstr "2. Template"
 msgid "2. Template ({0})"
 msgstr "2. Template ({0})"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:494
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:485
 msgid "2. Web Analytics"
 msgstr "2. Web Analytics"
 
@@ -495,7 +495,7 @@ msgstr "2. Web Analytics"
 msgid "200 - Extra Light"
 msgstr "200 - Extra Light"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:498
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:489
 msgid "3. Data Feeds"
 msgstr "3. Data Feeds"
 
@@ -507,7 +507,7 @@ msgstr "3. Translations"
 msgid "300 - Light"
 msgstr "300 - Light"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:502
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:493
 msgid "4. Content"
 msgstr "4. Content"
 
@@ -610,7 +610,7 @@ msgstr "A/B Testing"
 msgid "Accept Invitation"
 msgstr "Accept Invitation"
 
-#: src/components/settings/Integrations.tsx:1698
+#: src/components/settings/Integrations.tsx:1848
 msgid "Access Key"
 msgstr "Access Key"
 
@@ -801,7 +801,7 @@ msgstr "Add filter"
 msgid "Add filter conditions"
 msgstr "Add filter conditions"
 
-#: src/components/settings/Integrations.tsx:2467
+#: src/components/settings/Integrations.tsx:2625
 msgid "Add Integration"
 msgstr "Add Integration"
 
@@ -822,7 +822,7 @@ msgstr "Add node"
 msgid "Add notes about this version..."
 msgstr "Add notes about this version..."
 
-#: src/components/settings/Integrations.tsx:2209
+#: src/components/settings/Integrations.tsx:2359
 msgid "Add one or more email senders. The first sender will be used as the default."
 msgstr "Add one or more email senders. The first sender will be used as the default."
 
@@ -838,9 +838,9 @@ msgstr "Add path"
 #~ msgid "Add rule"
 #~ msgstr "Add rule"
 
-#: src/components/settings/Integrations.tsx:2168
-#: src/components/settings/Integrations.tsx:2224
-#: src/components/settings/Integrations.tsx:2511
+#: src/components/settings/Integrations.tsx:2318
+#: src/components/settings/Integrations.tsx:2374
+#: src/components/settings/Integrations.tsx:2669
 msgid "Add Sender"
 msgstr "Add Sender"
 
@@ -876,7 +876,7 @@ msgstr "Add to Lists"
 msgid "Add Variant"
 msgstr "Add Variant"
 
-#: src/components/settings/WebhooksSettings.tsx:209
+#: src/components/settings/WebhooksSettings.tsx:219
 msgid "Add Webhook"
 msgstr "Add Webhook"
 
@@ -1031,7 +1031,7 @@ msgstr "All dimensions selected"
 msgid "All emails have been sent."
 msgstr "All emails have been sent."
 
-#: src/components/settings/Integrations.tsx:427
+#: src/components/settings/Integrations.tsx:429
 msgid "All marketing emails (broadcasts, campaigns) will be sent through this provider from now on."
 msgstr "All marketing emails (broadcasts, campaigns) will be sent through this provider from now on."
 
@@ -1049,7 +1049,7 @@ msgstr "All sides"
 msgid "All time"
 msgstr "All time"
 
-#: src/components/settings/Integrations.tsx:446
+#: src/components/settings/Integrations.tsx:448
 msgid "All transactional emails (notifications, password resets, etc.) will be sent through this provider from now on."
 msgstr "All transactional emails (notifications, password resets, etc.) will be sent through this provider from now on."
 
@@ -1062,7 +1062,7 @@ msgstr "Allow receiving emails to trigger transactional notifications. Requires 
 msgid "Allowed domains"
 msgstr "Allowed domains"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:635
+#: src/components/settings/SystemSettingsDrawer.tsx:657
 #: src/pages/SetupWizard.tsx:761
 msgid "Allowed email domains"
 msgstr "Allowed email domains"
@@ -1100,7 +1100,7 @@ msgstr "Always provide fallback fonts for better compatibility"
 msgid "Always set to the specified value"
 msgstr "Always set to the specified value"
 
-#: src/components/settings/Integrations.tsx:210
+#: src/components/settings/Integrations.tsx:212
 msgid "Amazon SES (inbound-smtp.<region>.amazonaws.com, in a region that supports email receiving)"
 msgstr "Amazon SES (inbound-smtp.<region>.amazonaws.com, in a region that supports email receiving)"
 
@@ -1205,8 +1205,8 @@ msgstr "anytime"
 msgid "API Command"
 msgstr "API Command"
 
-#: src/components/settings/Integrations.tsx:1930
-#: src/components/settings/Integrations.tsx:2312
+#: src/components/settings/Integrations.tsx:2080
+#: src/components/settings/Integrations.tsx:2462
 #: src/components/settings/SystemSettingsDrawer.tsx:277
 #: src/pages/SetupWizard.tsx:379
 msgid "API Endpoint"
@@ -1220,29 +1220,33 @@ msgstr "API endpoint is required"
 msgid "API Identifier"
 msgstr "API Identifier"
 
-#: src/components/settings/ZapierSettings.tsx:190
+#: src/components/settings/ZapierSettings.tsx:221
 msgid "API key"
 msgstr "API key"
 
 #: src/components/integrations/FirecrawlIntegration.tsx:84
 #: src/components/integrations/LLMIntegration.tsx:175
-#: src/components/settings/Integrations.tsx:1543
-#: src/components/settings/Integrations.tsx:1594
-#: src/components/settings/Integrations.tsx:1943
-#: src/components/settings/Integrations.tsx:1981
-#: src/components/settings/Integrations.tsx:1982
-#: src/components/settings/Integrations.tsx:1999
-#: src/components/settings/Integrations.tsx:2000
-#: src/components/settings/Integrations.tsx:2021
+#: src/components/settings/Integrations.tsx:1633
+#: src/components/settings/Integrations.tsx:1684
+#: src/components/settings/Integrations.tsx:2093
+#: src/components/settings/Integrations.tsx:2131
+#: src/components/settings/Integrations.tsx:2132
+#: src/components/settings/Integrations.tsx:2149
+#: src/components/settings/Integrations.tsx:2150
+#: src/components/settings/Integrations.tsx:2171
 #: src/components/settings/WorkspaceMembers.tsx:116
 msgid "API Key"
 msgstr "API Key"
 
-#: src/components/settings/Integrations.tsx:2022
+#: src/components/settings/Integrations.tsx:2172
 msgid "API Key (starts with SG.)"
 msgstr "API Key (starts with SG.)"
 
-#: src/components/settings/ZapierSettings.tsx:175
+#: src/components/settings/Integrations.tsx:1751
+msgid "API key address"
+msgstr "API key address"
+
+#: src/components/settings/ZapierSettings.tsx:203
 msgid "API key created"
 msgstr "API key created"
 
@@ -1254,15 +1258,15 @@ msgstr "API key created successfully"
 msgid "API Key Created Successfully"
 msgstr "API Key Created Successfully"
 
-#: src/components/settings/ZapierSettings.tsx:207
-msgid "API key name"
-msgstr "API key name"
+#: src/components/settings/ZapierSettings.tsx:170
+#~ msgid "API key name"
+#~ msgstr "API key name"
 
 #: src/components/settings/WorkspaceMembers.tsx:534
 msgid "API Key Name"
 msgstr "API Key Name"
 
-#: src/components/settings/ZapierSettings.tsx:185
+#: src/components/settings/ZapierSettings.tsx:213
 msgid "API key token"
 msgstr "API key token"
 
@@ -1270,9 +1274,9 @@ msgstr "API key token"
 msgid "API Token"
 msgstr "API Token"
 
-#: src/components/settings/ZapierSettings.tsx:156
-#: src/components/settings/ZapierSettings.tsx:161
-#: src/components/settings/ZapierSettings.tsx:164
+#: src/components/settings/ZapierSettings.tsx:182
+#: src/components/settings/ZapierSettings.tsx:187
+#: src/components/settings/ZapierSettings.tsx:190
 msgid "API URL"
 msgstr "API URL"
 
@@ -1350,7 +1354,7 @@ msgstr "Are you sure you want to delete this node?"
 msgid "Are you sure you want to delete this template?"
 msgstr "Are you sure you want to delete this template?"
 
-#: src/components/settings/BlogSettings.tsx:208
+#: src/components/settings/BlogSettings.tsx:203
 msgid "Are you sure you want to disable the blog? All SEO settings and blog visibility will be lost. This action cannot be undone."
 msgstr "Are you sure you want to disable the blog? All SEO settings and blog visibility will be lost. This action cannot be undone."
 
@@ -1382,7 +1386,7 @@ msgstr "Are you sure you want to remove this custom field label?"
 msgid "Are you sure you want to remove this field?"
 msgstr "Are you sure you want to remove this field?"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:779
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:770
 msgid "Are you sure you want to remove this variation?"
 msgstr "Are you sure you want to remove this variation?"
 
@@ -1471,7 +1475,7 @@ msgid "Auth Email"
 msgstr "Auth Email"
 
 #: src/components/integrations/SupabaseIntegration.tsx:139
-#: src/components/settings/Integrations.tsx:1368
+#: src/components/settings/Integrations.tsx:1458
 msgid "Auth Email Hook"
 msgstr "Auth Email Hook"
 
@@ -1479,7 +1483,7 @@ msgstr "Auth Email Hook"
 msgid "Auth Email Hook Secret"
 msgstr "Auth Email Hook Secret"
 
-#: src/components/settings/Integrations.tsx:2250
+#: src/components/settings/Integrations.tsx:2400
 msgid "Authentication"
 msgstr "Authentication"
 
@@ -1487,7 +1491,7 @@ msgstr "Authentication"
 msgid "Authentication email sent via Supabase"
 msgstr "Authentication email sent via Supabase"
 
-#: src/components/settings/Integrations.tsx:1738
+#: src/components/settings/Integrations.tsx:1888
 msgid "Authentication Type"
 msgstr "Authentication Type"
 
@@ -1520,7 +1524,7 @@ msgstr "Auto"
 msgid "Auto-create accounts on first sign-in"
 msgstr "Auto-create accounts on first sign-in"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:625
+#: src/components/settings/SystemSettingsDrawer.tsx:647
 msgid "Auto-create users"
 msgstr "Auto-create users"
 
@@ -1536,7 +1540,7 @@ msgstr "Auto-reply"
 msgid "Auto-send Winner"
 msgstr "Auto-send Winner"
 
-#: src/components/settings/Integrations.tsx:1443
+#: src/components/settings/Integrations.tsx:1533
 msgid "Auto-subscribe to Lists"
 msgstr "Auto-subscribe to Lists"
 
@@ -1544,7 +1548,7 @@ msgstr "Auto-subscribe to Lists"
 msgid "Automatically add new users to the selected lists"
 msgstr "Automatically add new users to the selected lists"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:698
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:689
 msgid "Automatically send winner"
 msgstr "Automatically send winner"
 
@@ -1615,16 +1619,16 @@ msgstr "Avatar URL"
 msgid "Avoid special characters that might not display properly"
 msgstr "Avoid special characters that might not display properly"
 
-#: src/components/settings/Integrations.tsx:1695
+#: src/components/settings/Integrations.tsx:1845
 msgid "AWS Access Key"
 msgstr "AWS Access Key"
 
-#: src/components/settings/Integrations.tsx:1636
-#: src/components/settings/Integrations.tsx:2273
+#: src/components/settings/Integrations.tsx:1786
+#: src/components/settings/Integrations.tsx:2423
 msgid "AWS Region"
 msgstr "AWS Region"
 
-#: src/components/settings/Integrations.tsx:1700
+#: src/components/settings/Integrations.tsx:1850
 msgid "AWS Secret Key"
 msgstr "AWS Secret Key"
 
@@ -1694,7 +1698,7 @@ msgid "Background Type"
 msgstr "Background Type"
 
 #: src/components/integrations/LLMIntegration.tsx:214
-#: src/components/settings/Integrations.tsx:1537
+#: src/components/settings/Integrations.tsx:1627
 msgid "Base URL"
 msgstr "Base URL"
 
@@ -1718,7 +1722,7 @@ msgstr "Base64 encoded TLS private key"
 msgid "Base64 encoded TLS private key. Run: cat privkey.pem | base64 -w 0"
 msgstr "Base64 encoded TLS private key. Run: cat privkey.pem | base64 -w 0"
 
-#: src/components/settings/Integrations.tsx:1743
+#: src/components/settings/Integrations.tsx:1893
 msgid "Basic Authentication (Username/Password)"
 msgstr "Basic Authentication (Username/Password)"
 
@@ -1748,11 +1752,11 @@ msgstr "before"
 msgid "before date"
 msgstr "before date"
 
-#: src/components/settings/Integrations.tsx:1405
+#: src/components/settings/Integrations.tsx:1495
 msgid "Before User Created Hook"
 msgstr "Before User Created Hook"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:541
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:532
 msgid "Belonging to at least one of the following segments"
 msgstr "Belonging to at least one of the following segments"
 
@@ -1807,11 +1811,11 @@ msgstr "Blocklist"
 msgid "Blocks"
 msgstr "Blocks"
 
-#: src/components/settings/BlogSettings.tsx:223
-#: src/components/settings/BlogSettings.tsx:231
-#: src/components/settings/BlogSettings.tsx:264
+#: src/components/settings/BlogSettings.tsx:218
+#: src/components/settings/BlogSettings.tsx:226
+#: src/components/settings/BlogSettings.tsx:259
 #: src/components/settings/PermissionsMatrix.tsx:125
-#: src/components/settings/SettingsSidebar.tsx:100
+#: src/components/settings/SettingsSidebar.tsx:106
 #: src/layouts/WorkspaceLayout.tsx:261
 #: src/services/api/errors.ts:60
 msgid "Blog"
@@ -1829,15 +1833,15 @@ msgstr "Blog custom endpoint URL is not configured"
 msgid "Blog enabled but theme creation failed. Please create a theme manually."
 msgstr "Blog enabled but theme creation failed. Please create a theme manually."
 
-#: src/components/settings/BlogSettings.tsx:181
+#: src/components/settings/BlogSettings.tsx:176
 msgid "Blog settings updated successfully"
 msgstr "Blog settings updated successfully"
 
-#: src/components/settings/BlogSettings.tsx:223
+#: src/components/settings/BlogSettings.tsx:218
 msgid "Blog styling and SEO settings"
 msgstr "Blog styling and SEO settings"
 
-#: src/components/settings/BlogSettings.tsx:348
+#: src/components/settings/BlogSettings.tsx:343
 msgid "Blog Title"
 msgstr "Blog Title"
 
@@ -1859,7 +1863,7 @@ msgstr "Body:"
 msgid "Bold"
 msgstr "Bold"
 
-#: src/components/settings/WebhooksSettings.tsx:336
+#: src/components/settings/WebhooksSettings.tsx:346
 msgid "Booking"
 msgstr "Booking"
 
@@ -1911,7 +1915,7 @@ msgstr "Bottom Left"
 msgid "Bottom Right"
 msgstr "Bottom Right"
 
-#: src/components/settings/Integrations.tsx:255
+#: src/components/settings/Integrations.tsx:257
 msgid "bounce"
 msgstr "bounce"
 
@@ -2079,7 +2083,7 @@ msgstr "Broadcast \"{0}\" scheduled successfully"
 msgid "Broadcast \"{0}\" sending started"
 msgstr "Broadcast \"{0}\" sending started"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:158
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:140
 msgid "Broadcast created successfully"
 msgstr "Broadcast created successfully"
 
@@ -2092,11 +2096,11 @@ msgstr "Broadcast ID"
 msgid "Broadcast ID copied to clipboard"
 msgstr "Broadcast ID copied to clipboard"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:511
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:502
 msgid "Broadcast name"
 msgstr "Broadcast name"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:158
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:140
 msgid "Broadcast updated successfully"
 msgstr "Broadcast updated successfully"
 
@@ -2171,7 +2175,7 @@ msgstr "Button Align"
 msgid "Button Attributes"
 msgstr "Button Attributes"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:597
+#: src/components/settings/SystemSettingsDrawer.tsx:619
 #: src/pages/SetupWizard.tsx:743
 msgid "Button Label"
 msgstr "Button Label"
@@ -2216,7 +2220,7 @@ msgstr "Campaigns"
 #: src/components/blog/ThemeEditorDrawer.tsx:469
 #: src/components/broadcasts/HeadersEditor.tsx:103
 #: src/components/broadcasts/SendOrScheduleModal.tsx:301
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:328
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:312
 #: src/components/contacts/BulkActionProgressModal.tsx:60
 #: src/components/contacts/BulkUpdateDrawer.tsx:576
 #: src/components/contacts/ContactDetailsDrawer.tsx:1114
@@ -2246,25 +2250,26 @@ msgstr "Campaigns"
 #: src/components/segment/input_dimension_filters.tsx:179
 #: src/components/segment/input_event_property_filters.tsx:130
 #: src/components/segment/input.tsx:403
-#: src/components/settings/BlogSettings.tsx:211
+#: src/components/settings/BlogSettings.tsx:206
 #: src/components/settings/CustomFieldsConfiguration.tsx:291
 #: src/components/settings/EditPermissionsDrawer.tsx:80
-#: src/components/settings/Integrations.tsx:2393
-#: src/components/settings/Integrations.tsx:2516
-#: src/components/settings/Integrations.tsx:2551
-#: src/components/settings/Integrations.tsx:2598
-#: src/components/settings/Integrations.tsx:2646
-#: src/components/settings/Integrations.tsx:2693
+#: src/components/settings/Integrations.tsx:2543
+#: src/components/settings/Integrations.tsx:2674
+#: src/components/settings/Integrations.tsx:2709
+#: src/components/settings/Integrations.tsx:2756
+#: src/components/settings/Integrations.tsx:2804
+#: src/components/settings/Integrations.tsx:2851
+#: src/components/settings/Integrations.tsx:2888
 #: src/components/settings/SystemSettingsDrawer.tsx:170
 #: src/components/settings/WebhookCard.tsx:430
 #: src/components/settings/WebhookCard.tsx:450
-#: src/components/settings/WebhooksSettings.tsx:236
+#: src/components/settings/WebhooksSettings.tsx:246
 #: src/components/settings/WorkspaceMembers.tsx:476
 #: src/components/settings/WorkspaceMembers.tsx:522
 #: src/components/templates/CreateTemplateDrawer.tsx:629
 #: src/components/templates/SendTemplateModal.tsx:268
 #: src/components/templates/TemplateTranslationsTab.tsx:255
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:179
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:178
 #: src/components/web_analytics/explore/BreakdownModal.tsx:108
 #: src/components/web_analytics/explore/CsvExportModal.tsx:134
 #: src/components/web_analytics/filters/BackfillStatus.tsx:87
@@ -2470,7 +2475,7 @@ msgstr "Channels"
 msgid "Check"
 msgstr "Check"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:676
+#: src/components/settings/SystemSettingsDrawer.tsx:698
 #: src/pages/SetupWizard.tsx:566
 msgid "Check for Updates"
 msgstr "Check for Updates"
@@ -2550,7 +2555,7 @@ msgstr "Click rate"
 msgid "Click Rate"
 msgstr "Click Rate"
 
-#: src/components/settings/Integrations.tsx:230
+#: src/components/settings/Integrations.tsx:232
 msgid "Click Register Webhooks to set up reply forwarding, then point your domain's MX records at {mxTarget}."
 msgstr "Click Register Webhooks to set up reply forwarding, then point your domain's MX records at {mxTarget}."
 
@@ -2609,7 +2614,7 @@ msgstr "Client ID"
 msgid "Client ID is required"
 msgstr "Client ID is required"
 
-#: src/components/settings/Integrations.tsx:1870
+#: src/components/settings/Integrations.tsx:2020
 #: src/components/settings/SystemSettingsDrawer.tsx:582
 #: src/pages/SetupWizard.tsx:733
 msgid "Client Secret"
@@ -2619,7 +2624,7 @@ msgstr "Client Secret"
 msgid "Client Secret is required"
 msgstr "Client Secret is required"
 
-#: src/components/settings/Integrations.tsx:1836
+#: src/components/settings/Integrations.tsx:1986
 msgid "Client Secret Value"
 msgstr "Client Secret Value"
 
@@ -2707,11 +2712,11 @@ msgstr "Comma-separated list of email domains permitted to auto-create accounts"
 msgid "Comma-separated values"
 msgstr "Comma-separated values"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:646
+#: src/components/settings/SystemSettingsDrawer.tsx:668
 msgid "Comma-separated. Only these domains may auto-create accounts."
 msgstr "Comma-separated. Only these domains may auto-create accounts."
 
-#: src/components/settings/Integrations.tsx:1719
+#: src/components/settings/Integrations.tsx:1869
 #: src/components/settings/SystemSettingsDrawer.tsx:341
 #: src/pages/SetupWizard.tsx:466
 msgid "Common ports: 587 (TLS), 465 (SSL), 25 (unencrypted)"
@@ -2764,7 +2769,7 @@ msgstr "Complain email"
 msgid "Complained"
 msgstr "Complained"
 
-#: src/components/settings/Integrations.tsx:259
+#: src/components/settings/Integrations.tsx:261
 msgid "complaint"
 msgstr "complaint"
 
@@ -2837,8 +2842,8 @@ msgstr "Conditions"
 msgid "Configuration for {nodeType} is not available in Phase 2"
 msgstr "Configuration for {nodeType} is not available in Phase 2"
 
-#: src/components/settings/Integrations.tsx:2065
-#: src/components/settings/Integrations.tsx:2276
+#: src/components/settings/Integrations.tsx:2215
+#: src/components/settings/Integrations.tsx:2426
 msgid "Configuration set"
 msgstr "Configuration set"
 
@@ -2851,12 +2856,12 @@ msgstr "Configuration set"
 #: src/components/automations/nodes/RemoveFromListNode.tsx:52
 #: src/components/automations/nodes/TriggerNode.tsx:72
 #: src/components/automations/nodes/WebhookNode.tsx:55
-#: src/components/settings/Integrations.tsx:1191
-#: src/components/settings/Integrations.tsx:1239
+#: src/components/settings/Integrations.tsx:1259
+#: src/components/settings/Integrations.tsx:1307
 msgid "Configure"
 msgstr "Configure"
 
-#: src/components/settings/GeneralSettings.tsx:270
+#: src/components/settings/GeneralSettings.tsx:274
 msgid "Configure a custom domain for email links, notification center, and web publications. DNS verification will be performed before saving to ensure you control this domain."
 msgstr "Configure a custom domain for email links, notification center, and web publications. DNS verification will be performed before saving to ensure you control this domain."
 
@@ -2864,7 +2869,7 @@ msgstr "Configure a custom domain for email links, notification center, and web 
 msgid "Configure both the font name and CSS file URL together"
 msgstr "Configure both the font name and CSS file URL together"
 
-#: src/components/settings/BlogSettings.tsx:424
+#: src/components/settings/BlogSettings.tsx:419
 msgid "Configure how your blog's RSS and JSON feeds are generated."
 msgstr "Configure how your blog's RSS and JSON feeds are generated."
 
@@ -2876,7 +2881,7 @@ msgstr "Configure Integration"
 msgid "Configure now"
 msgstr "Configure now"
 
-#: src/components/settings/WebhooksSettings.tsx:193
+#: src/components/settings/WebhooksSettings.tsx:203
 msgid "Configure outgoing webhooks to receive real-time notifications when events occur in your workspace."
 msgstr "Configure outgoing webhooks to receive real-time notifications when events occur in your workspace."
 
@@ -2885,14 +2890,14 @@ msgstr "Configure outgoing webhooks to receive real-time notifications when even
 msgid "Configure Provider"
 msgstr "Configure Provider"
 
-#: src/components/settings/BlogSettings.tsx:265
+#: src/components/settings/BlogSettings.tsx:260
 msgid "Configure styling and SEO settings for your blog. These settings will be applied to all blog pages."
 msgstr "Configure styling and SEO settings for your blog. These settings will be applied to all blog pages."
 
-#: src/components/settings/Integrations.tsx:1372
-#: src/components/settings/Integrations.tsx:1409
-#: src/components/settings/Integrations.tsx:1545
-#: src/components/settings/Integrations.tsx:1596
+#: src/components/settings/Integrations.tsx:1462
+#: src/components/settings/Integrations.tsx:1499
+#: src/components/settings/Integrations.tsx:1635
+#: src/components/settings/Integrations.tsx:1686
 msgid "Configured"
 msgstr "Configured"
 
@@ -2922,15 +2927,28 @@ msgstr "Confirm a contact exists and list everything it is subscribed to (also n
 msgid "Confirmed"
 msgstr "Confirmed"
 
-#: src/components/settings/Integrations.tsx:2460
+#: src/components/settings/Integrations.tsx:1352
+msgid "Connect"
+msgstr "Connect"
+
+#: src/components/settings/Integrations.tsx:2618
 msgid "Connect and manage external services"
 msgstr "Connect and manage external services"
 
-#: src/components/settings/ZapierSettings.tsx:140
-msgid "Connect Notifuse to more than 8,000 apps with Zapier"
-msgstr "Connect Notifuse to more than 8,000 apps with Zapier"
+#: src/components/settings/ZapierSettings.tsx:103
+#~ msgid "Connect Notifuse to more than 8,000 apps with Zapier"
+#~ msgstr "Connect Notifuse to more than 8,000 apps with Zapier"
 
-#: src/components/settings/ZapierSettings.tsx:145
+#: src/components/settings/Integrations.tsx:2877
+#: src/components/settings/ZapierSettings.tsx:247
+msgid "Connect Zapier"
+msgstr "Connect Zapier"
+
+#: src/components/settings/Integrations.tsx:1756
+msgid "Connected"
+msgstr "Connected"
+
+#: src/components/settings/ZapierSettings.tsx:171
 msgid "Connecting Zapier lets a Zap react to Notifuse events — a new contact, a list subscription, a segment a contact joined — and lets a Zap create or update contacts and subscribe them to your lists. Each Zap you turn on registers its own webhook subscription, which you can see in Settings → Webhooks."
 msgstr "Connecting Zapier lets a Zap react to Notifuse events — a new contact, a list subscription, a segment a contact joined — and lets a Zap create or update contacts and subscribe them to your lists. Each Zap you turn on registers its own webhook subscription, which you can see in Settings → Webhooks."
 
@@ -2942,11 +2960,11 @@ msgstr "Connection Details"
 msgid "Consecutive delivery failures: {consecutiveFailures}"
 msgstr "Consecutive delivery failures: {consecutiveFailures}"
 
-#: src/components/settings/Integrations.tsx:2489
+#: src/components/settings/Integrations.tsx:2647
 msgid "Consider connecting a marketing email provider to send newsletters, promotional campaigns, and announcements to engage with your audience."
 msgstr "Consider connecting a marketing email provider to send newsletters, promotional campaigns, and announcements to engage with your audience."
 
-#: src/components/settings/Integrations.tsx:2484
+#: src/components/settings/Integrations.tsx:2642
 msgid "Consider connecting a transactional email provider to be able to use transactional emails for account notifications, password resets, and other important system messages."
 msgstr "Consider connecting a transactional email provider to be able to use transactional emails for account notifications, password resets, and other important system messages."
 
@@ -3126,11 +3144,11 @@ msgid "Copied"
 msgstr "Copied"
 
 #: src/components/common/CodeSnippet.tsx:93
-#: src/components/settings/Integrations.tsx:1393
-#: src/components/settings/Integrations.tsx:1430
+#: src/components/settings/Integrations.tsx:1483
+#: src/components/settings/Integrations.tsx:1520
 #: src/components/settings/WebhookCard.tsx:369
-#: src/components/settings/ZapierSettings.tsx:166
 #: src/components/settings/ZapierSettings.tsx:192
+#: src/components/settings/ZapierSettings.tsx:223
 msgid "Copy"
 msgstr "Copy"
 
@@ -3152,8 +3170,8 @@ msgstr "Copy to clipboard"
 msgid "Copy URL"
 msgstr "Copy URL"
 
-#: src/components/settings/Integrations.tsx:1382
-#: src/components/settings/Integrations.tsx:1419
+#: src/components/settings/Integrations.tsx:1472
+#: src/components/settings/Integrations.tsx:1509
 msgid "Copy Webhook endpoint"
 msgstr "Copy Webhook endpoint"
 
@@ -3262,7 +3280,7 @@ msgstr "Create"
 msgid "Create a blog category"
 msgstr "Create a blog category"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:387
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:371
 #: src/services/api/permissions.ts:527
 msgid "Create a broadcast"
 msgstr "Create a broadcast"
@@ -3279,7 +3297,7 @@ msgstr "Create a custom report"
 msgid "Create a list"
 msgstr "Create a list"
 
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:202
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:201
 msgid "Create a notification"
 msgstr "Create a notification"
 
@@ -3311,9 +3329,9 @@ msgstr "Create a theme version"
 msgid "Create a transactional notification"
 msgstr "Create a transactional notification"
 
-#: src/components/settings/ZapierSettings.tsx:228
-msgid "Create a Zapier API key"
-msgstr "Create a Zapier API key"
+#: src/components/settings/ZapierSettings.tsx:191
+#~ msgid "Create a Zapier API key"
+#~ msgstr "Create a Zapier API key"
 
 #: src/services/api/permissions.ts:662
 msgid "Create an automation, including webhook, email and list nodes"
@@ -3323,7 +3341,7 @@ msgstr "Create an automation, including webhook, email and list nodes"
 msgid "Create an email template"
 msgstr "Create an email template"
 
-#: src/components/settings/Integrations.tsx:990
+#: src/components/settings/Integrations.tsx:1058
 msgid "Create an SES tenant for this integration?"
 msgstr "Create an SES tenant for this integration?"
 
@@ -3343,7 +3361,7 @@ msgstr "Create API Key"
 msgid "Create Automation"
 msgstr "Create Automation"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:383
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:367
 #: src/pages/BroadcastsPage.tsx:1523
 #: src/pages/BroadcastsPage.tsx:1661
 msgid "Create Broadcast"
@@ -3396,7 +3414,7 @@ msgstr "Create New Theme"
 msgid "Create New Theme - {0}"
 msgstr "Create New Theme - {0}"
 
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:198
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:197
 #: src/pages/TransactionalNotificationsPage.tsx:407
 #: src/pages/TransactionalNotificationsPage.tsx:459
 msgid "Create Notification"
@@ -3411,11 +3429,11 @@ msgstr "Create rule"
 msgid "Create Template"
 msgstr "Create Template"
 
-#: src/components/settings/Integrations.tsx:992
+#: src/components/settings/Integrations.tsx:1060
 msgid "Create tenant"
 msgstr "Create tenant"
 
-#: src/components/settings/Integrations.tsx:1831
+#: src/components/settings/Integrations.tsx:1981
 msgid "Create this in Azure Portal > App registrations > Your App > Certificates & secrets"
 msgstr "Create this in Azure Portal > App registrations > Your App > Certificates & secrets"
 
@@ -3423,8 +3441,8 @@ msgstr "Create this in Azure Portal > App registrations > Your App > Certificate
 msgid "Create urgency or curiosity"
 msgstr "Create urgency or curiosity"
 
-#: src/components/settings/WebhooksSettings.tsx:201
-#: src/components/settings/WebhooksSettings.tsx:229
+#: src/components/settings/WebhooksSettings.tsx:211
+#: src/components/settings/WebhooksSettings.tsx:239
 msgid "Create Webhook"
 msgstr "Create Webhook"
 
@@ -3495,9 +3513,9 @@ msgstr "Created new version v{0}"
 #~ msgid "Creates a key limited to the permissions Zapier needs: contacts, lists and webhook subscriptions."
 #~ msgstr "Creates a key limited to the permissions Zapier needs: contacts, lists and webhook subscriptions."
 
-#: src/components/settings/ZapierSettings.tsx:202
-msgid "Creates a key limited to the permissions Zapier needs: contacts, lists, segments and webhook subscriptions."
-msgstr "Creates a key limited to the permissions Zapier needs: contacts, lists, segments and webhook subscriptions."
+#: src/components/settings/ZapierSettings.tsx:165
+#~ msgid "Creates a key limited to the permissions Zapier needs: contacts, lists, segments and webhook subscriptions."
+#~ msgstr "Creates a key limited to the permissions Zapier needs: contacts, lists, segments and webhook subscriptions."
 
 #: src/components/email_builder/blocks/MjBodyBlock.tsx:70
 #: src/components/email_builder/blocks/MjButtonBlock.tsx:383
@@ -3535,7 +3553,7 @@ msgstr "CSV must have at least a header row and one data row"
 msgid "Current Segment Tree JSON"
 msgstr "Current Segment Tree JSON"
 
-#: src/components/settings/Integrations.tsx:2281
+#: src/components/settings/Integrations.tsx:2431
 msgid "custom"
 msgstr "custom"
 
@@ -3598,12 +3616,12 @@ msgstr "Custom dimension labels"
 msgid "Custom dimensions"
 msgstr "Custom dimensions"
 
-#: src/components/settings/GeneralSettings.tsx:265
+#: src/components/settings/GeneralSettings.tsx:269
 msgid "Custom domain for email links (unsubscribe, tracking, notification center). By default, the config API endpoint is used. Leave empty to use the default."
 msgstr "Custom domain for email links (unsubscribe, tracking, notification center). By default, the config API endpoint is used. Leave empty to use the default."
 
-#: src/components/settings/GeneralSettings.tsx:167
-#: src/components/settings/GeneralSettings.tsx:264
+#: src/components/settings/GeneralSettings.tsx:171
+#: src/components/settings/GeneralSettings.tsx:268
 msgid "Custom Endpoint URL"
 msgstr "Custom Endpoint URL"
 
@@ -3612,7 +3630,7 @@ msgstr "Custom Endpoint URL"
 msgid "Custom Event"
 msgstr "Custom Event"
 
-#: src/components/settings/WebhooksSettings.tsx:325
+#: src/components/settings/WebhooksSettings.tsx:335
 msgid "Custom Event Filters (optional)"
 msgstr "Custom Event Filters (optional)"
 
@@ -3631,7 +3649,7 @@ msgstr "Custom field label saved successfully"
 
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:1136
 #: src/components/settings/CustomFieldsConfiguration.tsx:156
-#: src/components/settings/SettingsSidebar.tsx:110
+#: src/components/settings/SettingsSidebar.tsx:116
 msgid "Custom Fields"
 msgstr "Custom Fields"
 
@@ -3754,9 +3772,9 @@ msgstr "Custom String Fields"
 msgid "Daily"
 msgstr "Daily"
 
-#: src/components/settings/BlogSettings.tsx:482
+#: src/components/settings/BlogSettings.tsx:477
 #: src/components/settings/DeleteWorkspace.tsx:45
-#: src/components/settings/SettingsSidebar.tsx:129
+#: src/components/settings/SettingsSidebar.tsx:135
 msgid "Danger Zone"
 msgstr "Danger Zone"
 
@@ -3817,11 +3835,11 @@ msgstr "default"
 
 #: src/components/email_builder/ui/FontStyleInput.tsx:232
 #: src/components/integrations/LLMIntegration.tsx:228
-#: src/components/settings/Integrations.tsx:386
+#: src/components/settings/Integrations.tsx:388
 msgid "Default"
 msgstr "Default"
 
-#: src/components/settings/GeneralSettings.tsx:168
+#: src/components/settings/GeneralSettings.tsx:172
 msgid "Default (API endpoint)"
 msgstr "Default (API endpoint)"
 
@@ -3829,7 +3847,7 @@ msgstr "Default (API endpoint)"
 msgid "Default Attributes"
 msgstr "Default Attributes"
 
-#: src/components/settings/GeneralSettings.tsx:240
+#: src/components/settings/GeneralSettings.tsx:244
 msgid "Default Language"
 msgstr "Default Language"
 
@@ -3855,7 +3873,7 @@ msgstr "Defaults to meta description"
 msgid "Defaults to meta title"
 msgstr "Defaults to meta title"
 
-#: src/components/settings/Integrations.tsx:1921
+#: src/components/settings/Integrations.tsx:2071
 #: src/pages/SetupWizard.tsx:526
 msgid "Defaults to SMTP host"
 msgstr "Defaults to SMTP host"
@@ -3882,10 +3900,11 @@ msgstr "Delay"
 #: src/components/file_manager/fileManager.tsx:778
 #: src/components/file_manager/fileManager.tsx:951
 #: src/components/segment/input.tsx:401
-#: src/components/settings/Integrations.tsx:356
-#: src/components/settings/Integrations.tsx:1351
-#: src/components/settings/Integrations.tsx:1510
-#: src/components/settings/Integrations.tsx:1579
+#: src/components/settings/Integrations.tsx:358
+#: src/components/settings/Integrations.tsx:1441
+#: src/components/settings/Integrations.tsx:1600
+#: src/components/settings/Integrations.tsx:1669
+#: src/components/settings/Integrations.tsx:1733
 #: src/components/settings/WebhookCard.tsx:263
 #: src/components/settings/WebhookCard.tsx:276
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:83
@@ -4076,10 +4095,14 @@ msgstr "Delete the notification?"
 msgid "Delete this condition?"
 msgstr "Delete this condition?"
 
-#: src/components/settings/Integrations.tsx:350
-#: src/components/settings/Integrations.tsx:1345
-#: src/components/settings/Integrations.tsx:1504
-#: src/components/settings/Integrations.tsx:1573
+#: src/components/settings/Integrations.tsx:1727
+msgid "Delete this connection?"
+msgstr "Delete this connection?"
+
+#: src/components/settings/Integrations.tsx:352
+#: src/components/settings/Integrations.tsx:1435
+#: src/components/settings/Integrations.tsx:1594
+#: src/components/settings/Integrations.tsx:1663
 msgid "Delete this integration?"
 msgstr "Delete this integration?"
 
@@ -4092,7 +4115,7 @@ msgstr "Delete this operation?"
 msgid "Delete this rule?"
 msgstr "Delete this rule?"
 
-#: src/components/settings/Integrations.tsx:2188
+#: src/components/settings/Integrations.tsx:2338
 msgid "Delete this sender?"
 msgstr "Delete this sender?"
 
@@ -4125,11 +4148,15 @@ msgstr "Deleted {deletedCount} item(s)"
 msgid "Deleted {deletedCount}, failed {failedCount}"
 msgstr "Deleted {deletedCount}, failed {failedCount}"
 
+#: src/components/settings/Integrations.tsx:1728
+msgid "Deleting revokes the API key this connection minted, so any Zap still using it stops working. This action cannot be undone."
+msgstr "Deleting revokes the API key this connection minted, so any Zap still using it stops working. This action cannot be undone."
+
 #: src/components/settings/WebhookCard.tsx:433
 msgid "Deleting this webhook breaks the Zap that created it. The Zap stays switched on in Zapier and reports no error — it simply stops receiving events."
 msgstr "Deleting this webhook breaks the Zap that created it. The Zap stays switched on in Zapier and reports no error — it simply stops receiving events."
 
-#: src/components/settings/Integrations.tsx:251
+#: src/components/settings/Integrations.tsx:253
 #: src/components/timeline/ContactTimeline.tsx:575
 msgid "delivered"
 msgstr "delivered"
@@ -4223,12 +4250,12 @@ msgstr "Dimension"
 msgid "Dimensions:"
 msgstr "Dimensions:"
 
-#: src/components/settings/BlogSettings.tsx:209
-#: src/components/settings/BlogSettings.tsx:487
+#: src/components/settings/BlogSettings.tsx:204
+#: src/components/settings/BlogSettings.tsx:482
 msgid "Disable Blog"
 msgstr "Disable Blog"
 
-#: src/components/settings/BlogSettings.tsx:206
+#: src/components/settings/BlogSettings.tsx:201
 msgid "Disable Blog?"
 msgstr "Disable Blog?"
 
@@ -4244,9 +4271,9 @@ msgstr "Disable this webhook?"
 msgid "Disable webhook"
 msgstr "Disable webhook"
 
-#: src/components/settings/BlogSettings.tsx:240
-#: src/components/settings/GeneralSettings.tsx:162
-#: src/components/settings/Integrations.tsx:1471
+#: src/components/settings/BlogSettings.tsx:235
+#: src/components/settings/GeneralSettings.tsx:166
+#: src/components/settings/Integrations.tsx:1561
 #: src/components/settings/WebAnalyticsSettings.tsx:251
 #: src/components/templates/TemplateTranslationsTab.tsx:204
 msgid "Disabled"
@@ -4256,7 +4283,7 @@ msgstr "Disabled"
 msgid "Disabled for this notification"
 msgstr "Disabled for this notification"
 
-#: src/components/settings/BlogSettings.tsx:484
+#: src/components/settings/BlogSettings.tsx:479
 msgid "Disabling the blog will remove all SEO settings and make your blog inaccessible to visitors. This action will affect your blog's visibility and search engine rankings."
 msgstr "Disabling the blog will remove all SEO settings and make your blog inaccessible to visitors. This action will affect your blog's visibility and search engine rankings."
 
@@ -4292,11 +4319,11 @@ msgstr "Divider Attributes"
 msgid "Divider Width"
 msgstr "Divider Width"
 
-#: src/components/settings/GeneralSettings.tsx:282
+#: src/components/settings/GeneralSettings.tsx:286
 msgid "DNS Record Required:"
 msgstr "DNS Record Required:"
 
-#: src/components/settings/GeneralSettings.tsx:310
+#: src/components/settings/GeneralSettings.tsx:314
 msgid "DNS verification prevents domain squatting"
 msgstr "DNS verification prevents domain squatting"
 
@@ -4330,8 +4357,8 @@ msgstr "Do you want to send \"{0}\" immediately or schedule it for later?"
 msgid "Documentation"
 msgstr "Documentation"
 
-#: src/components/settings/Integrations.tsx:1978
-#: src/components/settings/Integrations.tsx:2321
+#: src/components/settings/Integrations.tsx:2128
+#: src/components/settings/Integrations.tsx:2471
 #: src/pages/SetupWizard.tsx:605
 msgid "Domain"
 msgstr "Domain"
@@ -4351,7 +4378,7 @@ msgid "Don't index, but follow links"
 msgstr "Don't index, but follow links"
 
 #: src/components/automations/config/ConditionsField.tsx:137
-#: src/components/settings/ZapierSettings.tsx:195
+#: src/components/settings/ZapierSettings.tsx:232
 #: src/components/templates/TemplateTranslationsTab.tsx:298
 msgid "Done"
 msgstr "Done"
@@ -4431,6 +4458,10 @@ msgstr "e.g. cta_button"
 msgid "e.g. email"
 msgstr "e.g. email"
 
+#: src/components/settings/ZapierSettings.tsx:156
+msgid "e.g. Marketing"
+msgstr "e.g. Marketing"
+
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:339
 msgid "e.g. notifuse"
 msgstr "e.g. notifuse"
@@ -4455,7 +4486,7 @@ msgstr "e.g. Set channel for Google Ads"
 msgid "e.g. sku"
 msgstr "e.g. sku"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:514
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:505
 msgid "E.g. Weekly Newsletter - May 2023"
 msgstr "E.g. Weekly Newsletter - May 2023"
 
@@ -4511,9 +4542,13 @@ msgstr "e.g., Welcome — day 1"
 msgid "Each contact enters the automation only once"
 msgstr "Each contact enters the automation only once"
 
+#: src/components/settings/ZapierSettings.tsx:188
+#~ msgid "Each Zapier connection needs its own key, and names are unique across this whole Notifuse installation, not just this workspace."
+#~ msgstr "Each Zapier connection needs its own key, and names are unique across this whole Notifuse installation, not just this workspace."
+
 #: src/components/settings/ZapierSettings.tsx:225
-msgid "Each Zapier connection needs its own key, so give a second one a different name."
-msgstr "Each Zapier connection needs its own key, so give a second one a different name."
+#~ msgid "Each Zapier connection needs its own key, so give a second one a different name."
+#~ msgstr "Each Zapier connection needs its own key, so give a second one a different name."
 
 #: src/pages/ListsPage.tsx:80
 msgid "edit"
@@ -4523,10 +4558,11 @@ msgstr "edit"
 #: src/components/automations/UpsertAutomationDrawer.tsx:288
 #: src/components/blog/PostsTable.tsx:349
 #: src/components/email_builder/ui/ImportFontInput.tsx:209
-#: src/components/settings/Integrations.tsx:340
-#: src/components/settings/Integrations.tsx:1335
-#: src/components/settings/Integrations.tsx:1494
-#: src/components/settings/Integrations.tsx:1563
+#: src/components/settings/Integrations.tsx:342
+#: src/components/settings/Integrations.tsx:1425
+#: src/components/settings/Integrations.tsx:1584
+#: src/components/settings/Integrations.tsx:1653
+#: src/components/settings/Integrations.tsx:1717
 #: src/components/settings/WebhookCard.tsx:283
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:91
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:154
@@ -4582,11 +4618,11 @@ msgstr "Edit Author"
 msgid "Edit Automation"
 msgstr "Edit Automation"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:387
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:371
 msgid "Edit broadcast"
 msgstr "Edit broadcast"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:383
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:367
 #: src/pages/BroadcastsPage.tsx:555
 msgid "Edit Broadcast"
 msgstr "Edit Broadcast"
@@ -4629,11 +4665,11 @@ msgstr "Edit Liquid Content"
 msgid "Edit List"
 msgstr "Edit List"
 
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:202
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:201
 msgid "Edit notification"
 msgstr "Edit notification"
 
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:198
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:197
 msgid "Edit Notification"
 msgstr "Edit Notification"
 
@@ -4658,7 +4694,7 @@ msgstr "Edit rule"
 msgid "Edit segment"
 msgstr "Edit segment"
 
-#: src/components/settings/Integrations.tsx:2511
+#: src/components/settings/Integrations.tsx:2669
 msgid "Edit Sender"
 msgstr "Edit Sender"
 
@@ -4689,9 +4725,13 @@ msgstr "Edit Theme v{0}"
 msgid "Edit value"
 msgstr "Edit value"
 
-#: src/components/settings/WebhooksSettings.tsx:229
+#: src/components/settings/WebhooksSettings.tsx:239
 msgid "Edit Webhook"
 msgstr "Edit Webhook"
+
+#: src/components/settings/Integrations.tsx:2877
+msgid "Edit Zapier connection"
+msgstr "Edit Zapier connection"
 
 #: src/components/templates/ImportExportButton.tsx:433
 msgid "Editable markup"
@@ -4701,8 +4741,8 @@ msgstr "Editable markup"
 msgid "Editor mode"
 msgstr "Editor mode"
 
-#: src/components/settings/Integrations.tsx:1918
-#: src/components/settings/Integrations.tsx:2262
+#: src/components/settings/Integrations.tsx:2068
+#: src/components/settings/Integrations.tsx:2412
 #: src/components/settings/SystemSettingsDrawer.tsx:432
 #: src/pages/SetupWizard.tsx:523
 msgid "EHLO Hostname"
@@ -4716,7 +4756,7 @@ msgstr "Elapsed"
 msgid "Element Padding"
 msgstr "Element Padding"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:623
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:614
 msgid "email"
 msgstr "email"
 
@@ -4734,7 +4774,7 @@ msgstr "email"
 #: src/components/contacts/ExportContactsModal.tsx:50
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:338
 #: src/components/messages/MessageHistoryTab.tsx:219
-#: src/components/settings/Integrations.tsx:2526
+#: src/components/settings/Integrations.tsx:2684
 #: src/components/settings/WorkspaceMembers.tsx:101
 #: src/components/timeline/ContactTimeline.tsx:584
 #: src/pages/ContactsPage.tsx:369
@@ -4749,12 +4789,12 @@ msgid "Email (Required)"
 msgstr "Email (Required)"
 
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:383
-#: src/components/settings/Integrations.tsx:1774
+#: src/components/settings/Integrations.tsx:1924
 #: src/components/settings/WorkspaceMembers.tsx:486
 msgid "Email Address"
 msgstr "Email Address"
 
-#: src/components/settings/Integrations.tsx:1776
+#: src/components/settings/Integrations.tsx:1926
 msgid "Email address is required for OAuth2"
 msgstr "Email address is required for OAuth2"
 
@@ -4804,8 +4844,8 @@ msgstr "Email mapping required"
 msgid "Email Metrics"
 msgstr "Email Metrics"
 
-#: src/components/settings/GeneralSettings.tsx:153
-#: src/components/settings/GeneralSettings.tsx:255
+#: src/components/settings/GeneralSettings.tsx:157
+#: src/components/settings/GeneralSettings.tsx:259
 msgid "Email Opens and Clicks Tracking"
 msgstr "Email Opens and Clicks Tracking"
 
@@ -4818,7 +4858,7 @@ msgstr "Email Options:"
 msgid "Email Preview"
 msgstr "Email Preview"
 
-#: src/components/settings/Integrations.tsx:2479
+#: src/components/settings/Integrations.tsx:2637
 msgid "Email Provider Configuration Needed"
 msgstr "Email Provider Configuration Needed"
 
@@ -4868,13 +4908,13 @@ msgstr "Email:"
 msgid "Emails are being delivered. {0} sent, {1} remaining."
 msgstr "Emails are being delivered. {0} sent, {1} remaining."
 
-#: src/components/settings/Integrations.tsx:2041
-#: src/components/settings/Integrations.tsx:2348
+#: src/components/settings/Integrations.tsx:2191
+#: src/components/settings/Integrations.tsx:2498
 msgid "emails per day"
 msgstr "emails per day"
 
-#: src/components/settings/Integrations.tsx:2040
-#: src/components/settings/Integrations.tsx:2347
+#: src/components/settings/Integrations.tsx:2190
+#: src/components/settings/Integrations.tsx:2497
 msgid "emails per hour"
 msgstr "emails per hour"
 
@@ -4886,7 +4926,7 @@ msgstr "Emoji Suggestions"
 msgid "Empty column. Add text, button, or image content."
 msgstr "Empty column. Add text, button, or image content."
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:665
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:656
 msgid "Enable A/B Testing"
 msgstr "Enable A/B Testing"
 
@@ -4894,8 +4934,8 @@ msgstr "Enable A/B Testing"
 msgid "Enable Anonymous Telemetry"
 msgstr "Enable Anonymous Telemetry"
 
-#: src/components/settings/BlogSettings.tsx:309
-#: src/components/settings/BlogSettings.tsx:336
+#: src/components/settings/BlogSettings.tsx:304
+#: src/components/settings/BlogSettings.tsx:331
 msgid "Enable Blog"
 msgstr "Enable Blog"
 
@@ -4919,7 +4959,7 @@ msgstr "Enable Single Sign-On (OpenID Connect)"
 msgid "Enable SMTP Bridge Server"
 msgstr "Enable SMTP Bridge Server"
 
-#: src/components/settings/BlogSettings.tsx:311
+#: src/components/settings/BlogSettings.tsx:306
 msgid "Enable the blog feature to publish articles and content on your custom domain homepage. Your blog will be accessible at"
 msgstr "Enable the blog feature to publish articles and content on your custom domain homepage. Your blog will be accessible at"
 
@@ -4948,9 +4988,9 @@ msgstr "Enable web analytics"
 msgid "Enable webhook"
 msgstr "Enable webhook"
 
-#: src/components/settings/BlogSettings.tsx:235
-#: src/components/settings/GeneralSettings.tsx:157
-#: src/components/settings/Integrations.tsx:1467
+#: src/components/settings/BlogSettings.tsx:230
+#: src/components/settings/GeneralSettings.tsx:161
+#: src/components/settings/Integrations.tsx:1557
 #: src/components/settings/SystemSettingsDrawer.tsx:459
 #: src/components/settings/SystemSettingsDrawer.tsx:543
 #: src/components/settings/WebAnalyticsSettings.tsx:246
@@ -4967,7 +5007,7 @@ msgstr "End date must be after the start date"
 msgid "ended"
 msgstr "ended"
 
-#: src/components/settings/WebhooksSettings.tsx:265
+#: src/components/settings/WebhooksSettings.tsx:275
 msgid "Endpoint URL"
 msgstr "Endpoint URL"
 
@@ -4996,7 +5036,7 @@ msgstr "Enter {0}"
 msgid "Enter a name for this block"
 msgstr "Enter a name for this block"
 
-#: src/components/settings/Integrations.tsx:1631
+#: src/components/settings/Integrations.tsx:1781
 msgid "Enter a name for this integration"
 msgstr "Enter a name for this integration"
 
@@ -5008,7 +5048,7 @@ msgstr "Enter a name for your workspace"
 msgid "Enter a unique alphanumeric ID"
 msgstr "Enter a unique alphanumeric ID"
 
-#: src/components/settings/Integrations.tsx:2564
+#: src/components/settings/Integrations.tsx:2722
 msgid "Enter an email address to receive a test email:"
 msgstr "Enter an email address to receive a test email:"
 
@@ -5076,7 +5116,7 @@ msgstr "Enter email address"
 msgid "Enter email title..."
 msgstr "Enter email title..."
 
-#: src/components/settings/WebhooksSettings.tsx:345
+#: src/components/settings/WebhooksSettings.tsx:355
 msgid "Enter event names to filter"
 msgstr "Enter event names to filter"
 
@@ -5088,7 +5128,7 @@ msgstr "Enter file URL or use file manager"
 msgid "Enter height"
 msgstr "Enter height"
 
-#: src/components/settings/BlogSettings.tsx:376
+#: src/components/settings/BlogSettings.tsx:371
 msgid "Enter icon URL or select image"
 msgstr "Enter icon URL or select image"
 
@@ -5120,7 +5160,7 @@ msgstr "Enter list ID to confirm"
 msgid "Enter list name"
 msgstr "Enter list name"
 
-#: src/components/settings/BlogSettings.tsx:360
+#: src/components/settings/BlogSettings.tsx:355
 msgid "Enter logo URL or select image"
 msgstr "Enter logo URL or select image"
 
@@ -5160,7 +5200,7 @@ msgstr "Enter width"
 msgid "Enter workspace ID"
 msgstr "Enter workspace ID"
 
-#: src/components/settings/GeneralSettings.tsx:196
+#: src/components/settings/GeneralSettings.tsx:200
 msgid "Enter workspace name"
 msgstr "Enter workspace name"
 
@@ -5273,7 +5313,7 @@ msgstr "event name"
 msgid "Event Name"
 msgstr "Event Name"
 
-#: src/components/settings/WebhooksSettings.tsx:342
+#: src/components/settings/WebhooksSettings.tsx:352
 msgid "Event Names"
 msgstr "Event Names"
 
@@ -5281,7 +5321,7 @@ msgstr "Event Names"
 msgid "Event Type"
 msgstr "Event Type"
 
-#: src/components/settings/WebhooksSettings.tsx:278
+#: src/components/settings/WebhooksSettings.tsx:288
 msgid "Event Types"
 msgstr "Event Types"
 
@@ -5318,7 +5358,7 @@ msgstr "exactly"
 msgid "Excerpt"
 msgstr "Excerpt"
 
-#: src/components/settings/BlogSettings.tsx:452
+#: src/components/settings/BlogSettings.tsx:447
 msgid "Excerpt only"
 msgstr "Excerpt only"
 
@@ -5326,7 +5366,7 @@ msgstr "Excerpt only"
 msgid "Exclude Unsubscribed"
 msgstr "Exclude Unsubscribed"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:599
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:590
 msgid "Exclude unsubscribed, bounced & complained recipients"
 msgstr "Exclude unsubscribed, bounced & complained recipients"
 
@@ -5473,6 +5513,10 @@ msgstr "Failed to compile template preview."
 msgid "Failed to complete setup"
 msgstr "Failed to complete setup"
 
+#: src/components/settings/ZapierSettings.tsx:127
+msgid "Failed to connect Zapier"
+msgstr "Failed to connect Zapier"
+
 #: src/components/common/CodeSnippet.tsx:82
 #: src/components/transactional/ApiCommandModal.tsx:821
 msgid "Failed to copy to clipboard"
@@ -5488,7 +5532,7 @@ msgid "Failed to create automation: {0}"
 msgstr "Failed to create automation: {0}"
 
 #. placeholder {0}: error.message
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:164
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:146
 msgid "Failed to create broadcast: {0}"
 msgstr "Failed to create broadcast: {0}"
 
@@ -5525,9 +5569,9 @@ msgstr "Failed to create segment"
 msgid "Failed to create template: {0}"
 msgstr "Failed to create template: {0}"
 
-#: src/components/settings/ZapierSettings.tsx:129
-msgid "Failed to create the Zapier API key"
-msgstr "Failed to create the Zapier API key"
+#: src/components/settings/ZapierSettings.tsx:91
+#~ msgid "Failed to create the Zapier API key"
+#~ msgstr "Failed to create the Zapier API key"
 
 #: src/pages/CreateWorkspacePage.tsx:91
 msgid "Failed to create workspace"
@@ -5554,7 +5598,7 @@ msgstr "Failed to delete contact"
 msgid "Failed to delete file: "
 msgstr "Failed to delete file: "
 
-#: src/components/settings/Integrations.tsx:1117
+#: src/components/settings/Integrations.tsx:1185
 msgid "Failed to delete integration"
 msgstr "Failed to delete integration"
 
@@ -5582,7 +5626,7 @@ msgstr "Failed to delete segment"
 msgid "Failed to delete template: {errorMsg}"
 msgstr "Failed to delete template: {errorMsg}"
 
-#: src/components/settings/WebhooksSettings.tsx:157
+#: src/components/settings/WebhooksSettings.tsx:167
 msgid "Failed to delete webhook subscription"
 msgstr "Failed to delete webhook subscription"
 
@@ -5603,7 +5647,7 @@ msgstr "Failed to download file"
 msgid "Failed to download files"
 msgstr "Failed to download files"
 
-#: src/components/settings/Integrations.tsx:1031
+#: src/components/settings/Integrations.tsx:1099
 msgid "Failed to enable reputation isolation"
 msgstr "Failed to enable reputation isolation"
 
@@ -5644,7 +5688,7 @@ msgstr "Failed to fetch objects: "
 msgid "Failed to fetch setup status"
 msgstr "Failed to fetch setup status"
 
-#: src/pages/WorkspaceSettingsPage.tsx:113
+#: src/pages/WorkspaceSettingsPage.tsx:96
 msgid "Failed to fetch workspace members"
 msgstr "Failed to fetch workspace members"
 
@@ -5672,7 +5716,7 @@ msgstr "Failed to load contact lists"
 msgid "Failed to load settings"
 msgstr "Failed to load settings"
 
-#: src/components/settings/WebhooksSettings.tsx:55
+#: src/components/settings/WebhooksSettings.tsx:56
 msgid "Failed to load webhook subscriptions"
 msgstr "Failed to load webhook subscriptions"
 
@@ -5724,7 +5768,7 @@ msgstr "Failed to refresh global feed: {0}"
 msgid "Failed to regenerate webhook secret"
 msgstr "Failed to regenerate webhook secret"
 
-#: src/components/settings/Integrations.tsx:191
+#: src/components/settings/Integrations.tsx:193
 msgid "Failed to register webhooks"
 msgstr "Failed to register webhooks"
 
@@ -5764,18 +5808,18 @@ msgstr "Failed to save contact. Please try again."
 msgid "Failed to save field"
 msgstr "Failed to save field"
 
-#: src/components/settings/Integrations.tsx:956
+#: src/components/settings/Integrations.tsx:965
 msgid "Failed to save Firecrawl integration"
 msgstr "Failed to save Firecrawl integration"
 
 #: src/components/integrations/FirecrawlIntegration.tsx:69
 #: src/components/integrations/LLMIntegration.tsx:152
 #: src/components/integrations/SupabaseIntegration.tsx:123
-#: src/components/settings/Integrations.tsx:1094
+#: src/components/settings/Integrations.tsx:1162
 msgid "Failed to save integration"
 msgstr "Failed to save integration"
 
-#: src/components/settings/Integrations.tsx:906
+#: src/components/settings/Integrations.tsx:915
 msgid "Failed to save LLM integration"
 msgstr "Failed to save LLM integration"
 
@@ -5783,7 +5827,7 @@ msgstr "Failed to save LLM integration"
 msgid "Failed to save settings"
 msgstr "Failed to save settings"
 
-#: src/components/settings/Integrations.tsx:853
+#: src/components/settings/Integrations.tsx:862
 msgid "Failed to save Supabase integration"
 msgstr "Failed to save Supabase integration"
 
@@ -5795,9 +5839,13 @@ msgstr "Failed to save template block"
 msgid "Failed to save theme"
 msgstr "Failed to save theme"
 
-#: src/components/settings/WebhooksSettings.tsx:144
+#: src/components/settings/WebhooksSettings.tsx:154
 msgid "Failed to save webhook subscription"
 msgstr "Failed to save webhook subscription"
+
+#: src/components/settings/Integrations.tsx:1024
+msgid "Failed to save Zapier integration"
+msgstr "Failed to save Zapier integration"
 
 #: src/components/broadcasts/SendOrScheduleModal.tsx:149
 msgid "Failed to schedule broadcast"
@@ -5817,7 +5865,7 @@ msgstr "Failed to send magic code"
 
 #. placeholder {0}: response.error
 #. placeholder {0}: response.error || 'Unknown error'
-#: src/components/settings/Integrations.tsx:1158
+#: src/components/settings/Integrations.tsx:1226
 #: src/components/templates/SendTemplateModal.tsx:140
 msgid "Failed to send test email: {0}"
 msgstr "Failed to send test email: {0}"
@@ -5826,11 +5874,11 @@ msgstr "Failed to send test email: {0}"
 msgid "Failed to send test webhook"
 msgstr "Failed to send test webhook"
 
-#: src/components/settings/Integrations.tsx:670
+#: src/components/settings/Integrations.tsx:679
 msgid "Failed to set default provider"
 msgstr "Failed to set default provider"
 
-#: src/components/settings/Integrations.tsx:1162
+#: src/components/settings/Integrations.tsx:1230
 msgid "Failed to test email provider"
 msgstr "Failed to test email provider"
 
@@ -5843,7 +5891,7 @@ msgstr "Failed to test recipient feed: {0}"
 msgid "Failed to test SMTP connection"
 msgstr "Failed to test SMTP connection"
 
-#: src/components/settings/WebhooksSettings.tsx:172
+#: src/components/settings/WebhooksSettings.tsx:182
 msgid "Failed to toggle webhook subscription"
 msgstr "Failed to toggle webhook subscription"
 
@@ -5856,12 +5904,12 @@ msgstr "Failed to unpublish post"
 msgid "Failed to update automation: {0}"
 msgstr "Failed to update automation: {0}"
 
-#: src/components/settings/BlogSettings.tsx:185
+#: src/components/settings/BlogSettings.tsx:180
 msgid "Failed to update blog settings"
 msgstr "Failed to update blog settings"
 
 #. placeholder {0}: error.message
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:164
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:146
 msgid "Failed to update broadcast: {0}"
 msgstr "Failed to update broadcast: {0}"
 
@@ -5917,7 +5965,7 @@ msgstr "Failed to update template: {0}"
 msgid "Failed to update web analytics settings"
 msgstr "Failed to update web analytics settings"
 
-#: src/components/settings/GeneralSettings.tsx:103
+#: src/components/settings/GeneralSettings.tsx:107
 msgid "Failed to update workspace settings"
 msgstr "Failed to update workspace settings"
 
@@ -5929,7 +5977,7 @@ msgstr "Failed to update workspace settings: {errorMessage}"
 msgid "Failed to verify code"
 msgstr "Failed to verify code"
 
-#: src/components/settings/BlogSettings.tsx:373
+#: src/components/settings/BlogSettings.tsx:368
 msgid "Favicon for your blog. Recommended: 32x32px or 192x192px PNG"
 msgstr "Favicon for your blog. Recommended: 32x32px or 192x192px PNG"
 
@@ -5937,7 +5985,7 @@ msgstr "Favicon for your blog. Recommended: 32x32px or 192x192px PNG"
 msgid "Featured Image URL"
 msgstr "Featured Image URL"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:663
+#: src/components/settings/SystemSettingsDrawer.tsx:685
 msgid "Features"
 msgstr "Features"
 
@@ -6088,16 +6136,16 @@ msgstr "Filters — cleared"
 msgid "Filters:"
 msgstr "Filters:"
 
-#: src/components/settings/Integrations.tsx:1815
+#: src/components/settings/Integrations.tsx:1965
 msgid "Find this in Azure Portal > App registrations > Your App > Overview"
 msgstr "Find this in Azure Portal > App registrations > Your App > Overview"
 
-#: src/components/settings/Integrations.tsx:1804
+#: src/components/settings/Integrations.tsx:1954
 msgid "Find this in Azure Portal > Azure Active Directory > Overview"
 msgstr "Find this in Azure Portal > Azure Active Directory > Overview"
 
-#: src/components/settings/Integrations.tsx:1852
-#: src/components/settings/Integrations.tsx:1865
+#: src/components/settings/Integrations.tsx:2002
+#: src/components/settings/Integrations.tsx:2015
 msgid "Find this in Google Cloud Console > APIs & Services > Credentials"
 msgstr "Find this in Google Cloud Console > APIs & Services > Credentials"
 
@@ -6109,7 +6157,7 @@ msgstr "Fire a test data-feed request for a named recipient"
 msgid "Fire a test delivery at the subscription's URL — write, not read, because it makes the server call out"
 msgstr "Fire a test delivery at the subscription's URL — write, not read, because it makes the server call out"
 
-#: src/components/settings/Integrations.tsx:953
+#: src/components/settings/Integrations.tsx:962
 msgid "Firecrawl integration saved successfully"
 msgstr "Firecrawl integration saved successfully"
 
@@ -6227,7 +6275,7 @@ msgstr "Format"
 #~ msgid "Forwards inbound replies to Notifuse so automations can stop when a contact replies (Exit on reply). Registering webhooks creates the Mailgun route; you must also point your domain's MX records at Mailgun."
 #~ msgstr "Forwards inbound replies to Notifuse so automations can stop when a contact replies (Exit on reply). Registering webhooks creates the Mailgun route; you must also point your domain's MX records at Mailgun."
 
-#: src/components/settings/Integrations.tsx:216
+#: src/components/settings/Integrations.tsx:218
 msgid "Forwards inbound replies to Notifuse so automations can stop when a contact replies (Exit on reply). Registering webhooks creates the provider-side route; you must also point your domain's MX records at your email provider."
 msgstr "Forwards inbound replies to Notifuse so automations can stop when a contact replies (Exit on reply). Registering webhooks creates the provider-side route; you must also point your domain's MX records at your email provider."
 
@@ -6276,7 +6324,7 @@ msgstr "From:"
 msgid "Full Access"
 msgstr "Full Access"
 
-#: src/components/settings/BlogSettings.tsx:451
+#: src/components/settings/BlogSettings.tsx:446
 msgid "Full content"
 msgstr "Full content"
 
@@ -6312,19 +6360,19 @@ msgstr "gemini-3.1-pro-preview or a custom model ID"
 #~ msgid "gemini-3.5-flash, gemini-3.1-pro-preview, or a custom model ID"
 #~ msgstr "gemini-3.5-flash, gemini-3.1-pro-preview, or a custom model ID"
 
-#: src/components/settings/SettingsSidebar.tsx:120
+#: src/components/settings/SettingsSidebar.tsx:126
 #: src/components/settings/SystemSettingsDrawer.tsx:250
 msgid "General"
 msgstr "General"
 
-#: src/components/settings/BlogSettings.tsx:344
-#: src/components/settings/GeneralSettings.tsx:119
-#: src/components/settings/GeneralSettings.tsx:178
+#: src/components/settings/BlogSettings.tsx:339
+#: src/components/settings/GeneralSettings.tsx:123
+#: src/components/settings/GeneralSettings.tsx:182
 msgid "General Settings"
 msgstr "General Settings"
 
-#: src/components/settings/GeneralSettings.tsx:120
-#: src/components/settings/GeneralSettings.tsx:179
+#: src/components/settings/GeneralSettings.tsx:124
+#: src/components/settings/GeneralSettings.tsx:183
 msgid "General settings for your workspace"
 msgstr "General settings for your workspace"
 
@@ -6363,7 +6411,7 @@ msgstr "Geography"
 #~ msgid "Geolocation privacy"
 #~ msgstr "Geolocation privacy"
 
-#: src/components/settings/Integrations.tsx:2053
+#: src/components/settings/Integrations.tsx:2203
 msgid "Gives this integration its own SES reputation profile and its own suppression list, so another workspace's bounces can't pause or suppress this one. AWS bills per tenant per month, based on volume."
 msgstr "Gives this integration its own SES reputation profile and its own suppression list, so another workspace's bounces can't pause or suppress this one. AWS bills per tenant per month, based on volume."
 
@@ -6379,7 +6427,7 @@ msgstr "Global Feed Response"
 msgid "Global feed URL"
 msgstr "Global feed URL"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:403
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:387
 msgid "Global feed URL is required when enabled"
 msgstr "Global feed URL is required when enabled"
 
@@ -6415,7 +6463,7 @@ msgstr "goal name"
 msgid "goal type"
 msgstr "goal type"
 
-#: src/components/settings/WebhooksSettings.tsx:327
+#: src/components/settings/WebhooksSettings.tsx:337
 msgid "Goal Types"
 msgstr "Goal Types"
 
@@ -6441,7 +6489,7 @@ msgstr "Goals"
 msgid "Goals by day and hour"
 msgstr "Goals by day and hour"
 
-#: src/components/settings/Integrations.tsx:1768
+#: src/components/settings/Integrations.tsx:1918
 msgid "Google Workspace / Gmail"
 msgstr "Google Workspace / Gmail"
 
@@ -6685,7 +6733,7 @@ msgstr "Icon Settings"
 msgid "Icon Styling"
 msgstr "Icon Styling"
 
-#: src/components/settings/BlogSettings.tsx:372
+#: src/components/settings/BlogSettings.tsx:367
 msgid "Icon/Favicon URL"
 msgstr "Icon/Favicon URL"
 
@@ -6927,7 +6975,7 @@ msgstr "in the last"
 msgid "in the payload."
 msgstr "in the payload."
 
-#: src/components/settings/Integrations.tsx:224
+#: src/components/settings/Integrations.tsx:226
 msgid "inbound replies"
 msgstr "inbound replies"
 
@@ -7011,11 +7059,11 @@ msgstr "Install"
 msgid "Install the tracking snippet"
 msgstr "Install the tracking snippet"
 
-#: src/components/settings/Integrations.tsx:1079
+#: src/components/settings/Integrations.tsx:1147
 msgid "Integration created successfully"
 msgstr "Integration created successfully"
 
-#: src/components/settings/Integrations.tsx:1114
+#: src/components/settings/Integrations.tsx:1182
 msgid "Integration deleted successfully"
 msgstr "Integration deleted successfully"
 
@@ -7026,21 +7074,21 @@ msgstr "Integration ID:"
 #: src/components/integrations/FirecrawlIntegration.tsx:76
 #: src/components/integrations/LLMIntegration.tsx:159
 #: src/components/integrations/SupabaseIntegration.tsx:130
-#: src/components/settings/Integrations.tsx:1630
+#: src/components/settings/Integrations.tsx:1780
 msgid "Integration Name"
 msgstr "Integration Name"
 
-#: src/components/settings/Integrations.tsx:777
-#: src/components/settings/Integrations.tsx:1134
+#: src/components/settings/Integrations.tsx:786
+#: src/components/settings/Integrations.tsx:1202
 msgid "Integration not found or not an email provider"
 msgstr "Integration not found or not an email provider"
 
-#: src/components/settings/Integrations.tsx:1065
+#: src/components/settings/Integrations.tsx:1133
 msgid "Integration updated successfully"
 msgstr "Integration updated successfully"
 
-#: src/components/settings/Integrations.tsx:2459
-#: src/components/settings/SettingsSidebar.tsx:57
+#: src/components/settings/Integrations.tsx:2617
+#: src/components/settings/SettingsSidebar.tsx:63
 msgid "Integrations"
 msgstr "Integrations"
 
@@ -7176,11 +7224,11 @@ msgstr "is not empty"
 msgid "is not in"
 msgstr "is not in"
 
-#: src/components/settings/Integrations.tsx:2295
+#: src/components/settings/Integrations.tsx:2445
 msgid "isolated"
 msgstr "isolated"
 
-#: src/components/settings/Integrations.tsx:2303
+#: src/components/settings/Integrations.tsx:2453
 msgid "isolation requested but not provisioned"
 msgstr "isolation requested but not provisioned"
 
@@ -7199,7 +7247,7 @@ msgstr "Issuer URL is required"
 msgid "Italic"
 msgstr "Italic"
 
-#: src/components/settings/BlogSettings.tsx:432
+#: src/components/settings/BlogSettings.tsx:427
 msgid "Items per feed"
 msgstr "Items per feed"
 
@@ -7262,6 +7310,7 @@ msgid "Keywords"
 msgstr "Keywords"
 
 #: src/components/settings/WebAnalyticsSettings.tsx:435
+#: src/components/settings/ZapierSettings.tsx:141
 msgid "Label"
 msgstr "Label"
 
@@ -7293,7 +7342,7 @@ msgstr "Landing pages"
 msgid "Language"
 msgstr "Language"
 
-#: src/components/settings/GeneralSettings.tsx:220
+#: src/components/settings/GeneralSettings.tsx:224
 msgid "Languages available for template translations in this workspace"
 msgstr "Languages available for template translations in this workspace"
 
@@ -7347,7 +7396,7 @@ msgstr "Last modified"
 msgid "Last Name"
 msgstr "Last Name"
 
-#: src/components/settings/WebhooksSettings.tsx:334
+#: src/components/settings/WebhooksSettings.tsx:344
 msgid "Lead"
 msgstr "Lead"
 
@@ -7355,7 +7404,7 @@ msgstr "Lead"
 msgid "Learn how to enable SMTP bridge"
 msgstr "Learn how to enable SMTP bridge"
 
-#: src/components/settings/Integrations.tsx:622
+#: src/components/settings/Integrations.tsx:631
 msgid "Leave blank to keep the current value"
 msgstr "Leave blank to keep the current value"
 
@@ -7372,6 +7421,10 @@ msgstr "Leave blank to use the default Firecrawl API (api.firecrawl.dev)"
 msgid "Leave empty for full container width"
 msgstr "Leave empty for full container width"
 
+#: src/components/settings/SystemSettingsDrawer.tsx:603
+msgid "Leave empty to derive it from the API endpoint. Set it when the callback is reached through a proxy or a vanity domain."
+msgstr "Leave empty to derive it from the API endpoint. Set it when the callback is reached through a proxy or a vanity domain."
+
 #: src/components/automations/config/TriggerConfigForm.tsx:331
 msgid "Leave empty to trigger on any field change"
 msgstr "Leave empty to trigger on any field change"
@@ -7380,7 +7433,7 @@ msgstr "Leave empty to trigger on any field change"
 msgid "Leave empty to use a random contact from the broadcast audience."
 msgstr "Leave empty to use a random contact from the broadcast audience."
 
-#: src/components/settings/Integrations.tsx:2068
+#: src/components/settings/Integrations.tsx:2218
 msgid "Leave empty to use the one Notifuse manages for this integration."
 msgstr "Leave empty to use the one Notifuse manages for this integration."
 
@@ -7484,7 +7537,7 @@ msgstr "Liquid block - Click to add MJML + Liquid content"
 #: src/components/automations/config/TriggerConfigForm.tsx:75
 #: src/components/automations/config/TriggerConfigForm.tsx:273
 #: src/components/automations/UpsertAutomationDrawer.tsx:193
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:519
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:510
 #: src/components/contacts/BulkUpdateDrawer.tsx:602
 #: src/components/contacts/ExportContactsModal.tsx:73
 #: src/components/messages/MessageHistoryTable.tsx:132
@@ -7663,7 +7716,7 @@ msgstr "Live"
 msgid "LLM"
 msgstr "LLM"
 
-#: src/components/settings/Integrations.tsx:903
+#: src/components/settings/Integrations.tsx:912
 msgid "LLM integration saved successfully"
 msgstr "LLM integration saved successfully"
 
@@ -7719,7 +7772,7 @@ msgstr "Loading webhook deliveries..."
 msgid "Loading webhook events..."
 msgstr "Loading webhook events..."
 
-#: src/components/settings/Integrations.tsx:240
+#: src/components/settings/Integrations.tsx:242
 msgid "Loading webhook status..."
 msgstr "Loading webhook status..."
 
@@ -7743,7 +7796,7 @@ msgstr "Loading..."
 #~ msgid "Locations are resolved from the IP address on the server; the IP itself is never stored."
 #~ msgstr "Locations are resolved from the IP address on the server; the IP itself is never stored."
 
-#: src/components/settings/GeneralSettings.tsx:137
+#: src/components/settings/GeneralSettings.tsx:141
 msgid "Logo"
 msgstr "Logo"
 
@@ -7751,7 +7804,7 @@ msgstr "Logo"
 msgid "Logo Preview"
 msgstr "Logo Preview"
 
-#: src/components/settings/BlogSettings.tsx:356
+#: src/components/settings/BlogSettings.tsx:351
 #: src/components/settings/LogoInput.tsx:25
 msgid "Logo URL"
 msgstr "Logo URL"
@@ -7793,7 +7846,7 @@ msgstr "lowercase"
 msgid "Magic code sent to your email"
 msgstr "Magic code sent to your email"
 
-#: src/components/settings/Integrations.tsx:211
+#: src/components/settings/Integrations.tsx:213
 msgid "Mailgun (mxa.mailgun.org / mxb.mailgun.org)"
 msgstr "Mailgun (mxa.mailgun.org / mxb.mailgun.org)"
 
@@ -7801,7 +7854,7 @@ msgstr "Mailgun (mxa.mailgun.org / mxb.mailgun.org)"
 msgid "Mailing lists, their settings and statistics, and contact-to-list membership rows."
 msgstr "Mailing lists, their settings and statistics, and contact-to-list membership rows."
 
-#: src/components/settings/BlogSettings.tsx:357
+#: src/components/settings/BlogSettings.tsx:352
 msgid "Main logo for your blog. Recommended size: 200x50px or similar aspect ratio"
 msgstr "Main logo for your blog. Recommended size: 200x50px or similar aspect ratio"
 
@@ -7829,7 +7882,7 @@ msgstr "Makes the wrapper span the entire email viewport width, ignoring contain
 msgid "Manage your workspace members"
 msgstr "Manage your workspace members"
 
-#: src/components/settings/Integrations.tsx:2281
+#: src/components/settings/Integrations.tsx:2431
 msgid "managed"
 msgstr "managed"
 
@@ -7839,7 +7892,7 @@ msgstr "managed"
 msgid "Managed by {0} ({1} integration)"
 msgstr "Managed by {0} ({1} integration)"
 
-#: src/components/settings/WebhooksSettings.tsx:250
+#: src/components/settings/WebhooksSettings.tsx:260
 msgid "Managed by Zapier"
 msgstr "Managed by Zapier"
 
@@ -7881,7 +7934,7 @@ msgstr "Marketing campaigns: their drafts, A/B variations, data feeds, schedules
 msgid "Marketing Email Provider Required"
 msgstr "Marketing Email Provider Required"
 
-#: src/components/settings/Integrations.tsx:402
+#: src/components/settings/Integrations.tsx:404
 msgid "Marketing Emails"
 msgstr "Marketing Emails"
 
@@ -7917,7 +7970,7 @@ msgstr "Max 3MB per file, 10MB total, 20 files maximum"
 msgid "Maximum 20 attachments allowed"
 msgstr "Maximum 20 attachments allowed"
 
-#: src/components/settings/BlogSettings.tsx:433
+#: src/components/settings/BlogSettings.tsx:428
 msgid "Maximum number of posts to include in the RSS/JSON feed (1–20)"
 msgstr "Maximum number of posts to include in the RSS/JSON feed (1–20)"
 
@@ -8001,8 +8054,8 @@ msgstr "Message history and webhook events will be anonymized (email addresses r
 msgid "Message ID"
 msgstr "Message ID"
 
-#: src/components/settings/Integrations.tsx:1967
-#: src/components/settings/Integrations.tsx:2330
+#: src/components/settings/Integrations.tsx:2117
+#: src/components/settings/Integrations.tsx:2480
 msgid "Message Stream"
 msgstr "Message Stream"
 
@@ -8019,7 +8072,7 @@ msgstr "Meta Description"
 #: src/components/seo/MissingMetaTagsWarning.tsx:26
 #: src/components/seo/SEOSettingsForm.tsx:36
 #: src/components/seo/SEOSettingsForm.tsx:150
-#: src/components/settings/BlogSettings.tsx:251
+#: src/components/settings/BlogSettings.tsx:246
 msgid "Meta Title"
 msgstr "Meta Title"
 
@@ -8031,7 +8084,7 @@ msgstr "Metrics"
 msgid "Metrics and dimensions"
 msgstr "Metrics and dimensions"
 
-#: src/components/settings/Integrations.tsx:1766
+#: src/components/settings/Integrations.tsx:1916
 msgid "Microsoft 365 / Office 365"
 msgstr "Microsoft 365 / Office 365"
 
@@ -8155,7 +8208,7 @@ msgstr "Mobile view (400px)"
 #: src/components/integrations/LLMIntegration.tsx:195
 #: src/components/integrations/LLMIntegration.tsx:206
 #: src/components/integrations/LLMIntegration.tsx:243
-#: src/components/settings/Integrations.tsx:1527
+#: src/components/settings/Integrations.tsx:1617
 msgid "Model"
 msgstr "Model"
 
@@ -8194,6 +8247,7 @@ msgstr "More options"
 #~ msgstr "Move later"
 
 #: src/components/settings/SystemSettingsDrawer.tsx:557
+#: src/components/settings/SystemSettingsDrawer.tsx:599
 #: src/pages/SetupWizard.tsx:715
 msgid "Must be a valid https URL"
 msgstr "Must be a valid https URL"
@@ -8202,12 +8256,12 @@ msgstr "Must be a valid https URL"
 msgid "Must match how the value is stored on the event. Dates are compared as ISO-8601."
 msgstr "Must match how the value is stored on the event. Dates are compared as ISO-8601."
 
-#: src/components/settings/BlogSettings.tsx:351
-#: src/components/settings/BlogSettings.tsx:462
+#: src/components/settings/BlogSettings.tsx:346
+#: src/components/settings/BlogSettings.tsx:457
 msgid "My Amazing Blog"
 msgstr "My Amazing Blog"
 
-#: src/components/settings/WebhooksSettings.tsx:260
+#: src/components/settings/WebhooksSettings.tsx:270
 msgid "My Webhook"
 msgstr "My Webhook"
 
@@ -8219,7 +8273,7 @@ msgstr "My Webhook"
 msgid "my-custom-class"
 msgstr "my-custom-class"
 
-#: src/components/settings/Integrations.tsx:2121
+#: src/components/settings/Integrations.tsx:2271
 msgid "my-tenant"
 msgstr "my-tenant"
 
@@ -8236,12 +8290,13 @@ msgstr "N/A"
 #: src/components/file_manager/fileManager.tsx:868
 #: src/components/lists/ListDrawer.tsx:185
 #: src/components/segment/button_upsert.tsx:442
-#: src/components/settings/Integrations.tsx:377
-#: src/components/settings/Integrations.tsx:1367
-#: src/components/settings/Integrations.tsx:1526
-#: src/components/settings/Integrations.tsx:1593
-#: src/components/settings/Integrations.tsx:2536
-#: src/components/settings/WebhooksSettings.tsx:257
+#: src/components/settings/Integrations.tsx:379
+#: src/components/settings/Integrations.tsx:1457
+#: src/components/settings/Integrations.tsx:1616
+#: src/components/settings/Integrations.tsx:1683
+#: src/components/settings/Integrations.tsx:1747
+#: src/components/settings/Integrations.tsx:2694
+#: src/components/settings/WebhooksSettings.tsx:267
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:119
 #: src/components/web_analytics/filters/FilterTable.tsx:192
 #: src/components/web_analytics/filters/TestFilterModal.tsx:230
@@ -8257,15 +8312,19 @@ msgstr "Name is required"
 msgid "Name must be less than 255 characters"
 msgstr "Name must be less than 255 characters"
 
-#: src/components/settings/GeneralSettings.tsx:286
+#: src/components/settings/GeneralSettings.tsx:290
 msgid "Name:"
 msgstr "Name:"
+
+#: src/components/settings/ZapierSettings.tsx:153
+msgid "Names this connection in Notifuse, and the API key it creates in Settings → Team."
+msgstr "Names this connection in Notifuse, and the API key it creates in Settings → Team."
 
 #: src/components/settings/WebAnalyticsSettings.tsx:425
 msgid "Naming a slot renames it everywhere it appears: dashboards, the explore picker and attribution rules."
 msgstr "Naming a slot renames it everywhere it appears: dashboards, the explore picker and attribution rules."
 
-#: src/components/settings/Integrations.tsx:2056
+#: src/components/settings/Integrations.tsx:2206
 msgid "Needs these extra IAM permissions: ses:CreateTenant, ses:CreateTenantResourceAssociation, ses:GetTenant, ses:PutTenantSuppressionAttributes, ses:ListEmailIdentities. Add ses:ListTenants and ses:ListTenantResources for the pickers below, and ses:DeleteTenant plus ses:DeleteTenantResourceAssociation so the tenant is removed with the integration instead of billing forever."
 msgstr "Needs these extra IAM permissions: ses:CreateTenant, ses:CreateTenantResourceAssociation, ses:GetTenant, ses:PutTenantSuppressionAttributes, ses:ListEmailIdentities. Add ses:ListTenants and ses:ListTenantResources for the pickers below, and ses:DeleteTenant plus ses:DeleteTenantResourceAssociation so the tenant is removed with the integration instead of billing forever."
 
@@ -8319,9 +8378,9 @@ msgstr "New Window"
 msgid "New workspace"
 msgstr "New workspace"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:333
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:343
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:354
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:317
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:327
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:338
 #: src/components/templates/CreateTemplateDrawer.tsx:634
 #: src/components/templates/CreateTemplateDrawer.tsx:655
 msgid "Next"
@@ -8337,8 +8396,8 @@ msgstr "Next Run"
 #: src/components/blog/PostDrawer.tsx:561
 #: src/components/blog/PostsTable.tsx:319
 #: src/components/broadcasts/HeadersEditor.tsx:66
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:250
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:782
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:234
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:773
 #: src/components/contacts/ContactUpsertDrawer.tsx:540
 #: src/components/contacts/SegmentsFilter.tsx:150
 #: src/components/contacts/SegmentsFilter.tsx:165
@@ -8351,20 +8410,21 @@ msgstr "Next Run"
 #: src/components/messages/MessageHistoryTab.tsx:189
 #: src/components/messages/MessageHistoryTab.tsx:205
 #: src/components/settings/CustomFieldsConfiguration.tsx:214
-#: src/components/settings/Integrations.tsx:312
-#: src/components/settings/Integrations.tsx:354
-#: src/components/settings/Integrations.tsx:430
-#: src/components/settings/Integrations.tsx:449
-#: src/components/settings/Integrations.tsx:1349
-#: src/components/settings/Integrations.tsx:1508
-#: src/components/settings/Integrations.tsx:1577
+#: src/components/settings/Integrations.tsx:314
+#: src/components/settings/Integrations.tsx:356
+#: src/components/settings/Integrations.tsx:432
+#: src/components/settings/Integrations.tsx:451
+#: src/components/settings/Integrations.tsx:1439
+#: src/components/settings/Integrations.tsx:1598
+#: src/components/settings/Integrations.tsx:1667
+#: src/components/settings/Integrations.tsx:1731
 #: src/components/settings/PermissionsMatrix.tsx:186
 #: src/components/settings/WebhookCard.tsx:218
 #: src/components/settings/WebhookCard.tsx:274
 #: src/components/settings/WebhookCard.tsx:361
 #: src/components/settings/WorkspaceMembers.tsx:219
 #: src/components/settings/WorkspaceMembers.tsx:239
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:154
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:153
 #: src/components/web_analytics/filters/BackfillStatus.tsx:84
 #: src/components/web_analytics/filters/FilterTable.tsx:272
 #: src/pages/BroadcastsPage.tsx:637
@@ -8630,7 +8690,7 @@ msgstr "No preview available or template is empty."
 msgid "No properties"
 msgstr "No properties"
 
-#: src/components/settings/Integrations.tsx:1141
+#: src/components/settings/Integrations.tsx:1209
 msgid "No provider configured for testing"
 msgstr "No provider configured for testing"
 
@@ -8666,7 +8726,7 @@ msgstr "No sample values available"
 msgid "No saved blocks yet"
 msgstr "No saved blocks yet"
 
-#: src/components/settings/Integrations.tsx:393
+#: src/components/settings/Integrations.tsx:395
 msgid "No senders configured"
 msgstr "No senders configured"
 
@@ -8732,7 +8792,7 @@ msgstr "No webhook deliveries found"
 msgid "No webhook events found"
 msgstr "No webhook events found"
 
-#: src/components/settings/WebhooksSettings.tsx:198
+#: src/components/settings/WebhooksSettings.tsx:208
 msgid "No webhook subscriptions configured"
 msgstr "No webhook subscriptions configured"
 
@@ -8776,15 +8836,15 @@ msgstr "Normal"
 msgid "Not all visitors come with the same intent. This rate should be interpreted with caution as it includes all traffic regardless of purpose."
 msgstr "Not all visitors come with the same intent. This rate should be interpreted with caution as it includes all traffic regardless of purpose."
 
-#: src/components/settings/Integrations.tsx:412
-#: src/components/settings/Integrations.tsx:418
+#: src/components/settings/Integrations.tsx:414
+#: src/components/settings/Integrations.tsx:420
 msgid "Not assigned"
 msgstr "Not assigned"
 
 #: src/components/analytics/AnalyticsDashboard.tsx:164
 #: src/components/analytics/AnalyticsDashboard.tsx:188
-#: src/components/settings/Integrations.tsx:1401
-#: src/components/settings/Integrations.tsx:1438
+#: src/components/settings/Integrations.tsx:1491
+#: src/components/settings/Integrations.tsx:1528
 msgid "Not configured"
 msgstr "Not configured"
 
@@ -8797,7 +8857,7 @@ msgstr "Not connected"
 msgid "not contains"
 msgstr "not contains"
 
-#: src/components/settings/Integrations.tsx:2287
+#: src/components/settings/Integrations.tsx:2437
 msgid "not created yet — register webhooks"
 msgstr "not created yet — register webhooks"
 
@@ -8816,7 +8876,7 @@ msgstr "not in"
 msgid "Not in List"
 msgstr "Not in List"
 
-#: src/components/settings/Integrations.tsx:993
+#: src/components/settings/Integrations.tsx:1061
 msgid "Not now"
 msgstr "Not now"
 
@@ -8825,11 +8885,11 @@ msgid "Not resolved"
 msgstr "Not resolved"
 
 #: src/components/contacts/InlineEditableField.tsx:144
-#: src/components/settings/BlogSettings.tsx:248
-#: src/components/settings/BlogSettings.tsx:252
-#: src/components/settings/GeneralSettings.tsx:130
+#: src/components/settings/BlogSettings.tsx:243
+#: src/components/settings/BlogSettings.tsx:247
 #: src/components/settings/GeneralSettings.tsx:134
-#: src/components/settings/GeneralSettings.tsx:145
+#: src/components/settings/GeneralSettings.tsx:138
+#: src/components/settings/GeneralSettings.tsx:149
 #: src/components/settings/SMTPBridgeSettings.tsx:42
 #: src/components/settings/SMTPBridgeSettings.tsx:46
 #: src/components/templates/TemplatePreviewDrawer.tsx:300
@@ -8876,11 +8936,11 @@ msgstr "Notification updated successfully"
 msgid "Notifuse disabled this webhook automatically"
 msgstr "Notifuse disabled this webhook automatically"
 
-#: src/components/settings/Integrations.tsx:991
+#: src/components/settings/Integrations.tsx:1059
 msgid "Notifuse will create a tenant in your AWS account, give it its own suppression list, and associate this integration's configuration set and sender identities with it. AWS bills per tenant per month, based on volume."
 msgstr "Notifuse will create a tenant in your AWS account, give it its own suppression list, and associate this integration's configuration set and sender identities with it. AWS bills per tenant per month, based on volume."
 
-#: src/components/settings/Integrations.tsx:2080
+#: src/components/settings/Integrations.tsx:2230
 msgid "notifuse-…"
 msgstr "notifuse-…"
 
@@ -8907,19 +8967,19 @@ msgstr "Number"
 #~ msgid "Number of decimals kept. Two decimals is roughly one kilometer."
 #~ msgstr "Number of decimals kept. Two decimals is roughly one kilometer."
 
-#: src/components/settings/BlogSettings.tsx:407
+#: src/components/settings/BlogSettings.tsx:402
 msgid "Number of posts to display per page on category pages"
 msgstr "Number of posts to display per page on category pages"
 
-#: src/components/settings/BlogSettings.tsx:391
+#: src/components/settings/BlogSettings.tsx:386
 msgid "Number of posts to display per page on the homepage"
 msgstr "Number of posts to display per page on the homepage"
 
-#: src/components/settings/Integrations.tsx:1745
+#: src/components/settings/Integrations.tsx:1895
 msgid "OAuth2 (Microsoft 365 / Google)"
 msgstr "OAuth2 (Microsoft 365 / Google)"
 
-#: src/components/settings/Integrations.tsx:1761
+#: src/components/settings/Integrations.tsx:1911
 msgid "OAuth2 Provider"
 msgstr "OAuth2 Provider"
 
@@ -8932,7 +8992,7 @@ msgstr "Object key: {segment}"
 msgid "Oblique"
 msgstr "Oblique"
 
-#: src/components/settings/Integrations.tsx:1884
+#: src/components/settings/Integrations.tsx:2034
 msgid "Obtain this using the OAuth2 playground or your own OAuth flow"
 msgstr "Obtain this using the OAuth2 playground or your own OAuth flow"
 
@@ -9135,7 +9195,7 @@ msgstr "Optional. For OpenAI-compatible providers (Ollama, vLLM, LiteLLM, Azure,
 msgid "Optional. If provided, sent as Authorization: Bearer <secret>"
 msgstr "Optional. If provided, sent as Authorization: Bearer <secret>"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:543
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:534
 msgid "Optionally filter contacts by segments within the selected lists"
 msgstr "Optionally filter contacts by segments within the selected lists"
 
@@ -9155,7 +9215,7 @@ msgid "OS"
 msgstr "OS"
 
 #: src/components/blog_editor/menus/suggestion/SlashPopoverContent.tsx:74
-#: src/components/settings/WebhooksSettings.tsx:338
+#: src/components/settings/WebhooksSettings.tsx:348
 #: src/pages/TemplatesPage.tsx:132
 msgid "Other"
 msgstr "Other"
@@ -9248,7 +9308,7 @@ msgstr "Partitions already rewritten keep their new values."
 msgid "Password"
 msgstr "Password"
 
-#: src/components/settings/Integrations.tsx:1909
+#: src/components/settings/Integrations.tsx:2059
 msgid "Password (optional)"
 msgstr "Password (optional)"
 
@@ -9256,7 +9316,7 @@ msgstr "Password (optional)"
 msgid "Paste this snippet before the closing </head> tag of your website."
 msgstr "Paste this snippet before the closing </head> tag of your website."
 
-#: src/components/settings/ZapierSettings.tsx:158
+#: src/components/settings/ZapierSettings.tsx:184
 msgid "Paste this URL into the API URL field when you connect your Notifuse account in Zapier."
 msgstr "Paste this URL into the API URL field when you connect your Notifuse account in Zapier."
 
@@ -9343,7 +9403,7 @@ msgstr "Per-Recipient Data Feed"
 msgid "Per-recipient feed URL"
 msgstr "Per-recipient feed URL"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:408
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:392
 msgid "Per-recipient feed URL is required when enabled"
 msgstr "Per-recipient feed URL is required when enabled"
 
@@ -9433,7 +9493,7 @@ msgstr "Playback Options"
 msgid "Please add at least one author"
 msgstr "Please add at least one author"
 
-#: src/components/settings/Integrations.tsx:1041
+#: src/components/settings/Integrations.tsx:1109
 msgid "Please add at least one sender before saving"
 msgstr "Please add at least one sender before saving"
 
@@ -9442,7 +9502,7 @@ msgid "Please check the form for errors"
 msgstr "Please check the form for errors"
 
 #: src/components/blog/PostDrawer.tsx:703
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:472
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:463
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:253
 msgid "Please check the form for errors."
 msgstr "Please check the form for errors."
@@ -9455,7 +9515,7 @@ msgstr "Please choose a different segment name"
 msgid "Please enter a bounce threshold"
 msgstr "Please enter a bounce threshold"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:512
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:503
 msgid "Please enter a broadcast name"
 msgstr "Please enter a broadcast name"
 
@@ -9471,6 +9531,10 @@ msgstr "Please enter a category name"
 msgid "Please enter a custom label"
 msgstr "Please enter a custom label"
 
+#: src/components/settings/ZapierSettings.tsx:147
+msgid "Please enter a label for this connection"
+msgstr "Please enter a label for this connection"
+
 #: src/components/lists/ListDrawer.tsx:198
 msgid "Please enter a list ID"
 msgstr "Please enter a list ID"
@@ -9483,13 +9547,13 @@ msgstr "Please enter a list name"
 msgid "Please enter a model name"
 msgstr "Please enter a model name"
 
-#: src/components/settings/WebhooksSettings.tsx:258
+#: src/components/settings/WebhooksSettings.tsx:268
 msgid "Please enter a name"
 msgstr "Please enter a name"
 
-#: src/components/settings/ZapierSettings.tsx:116
-msgid "Please enter a name for the API key"
-msgstr "Please enter a name for the API key"
+#: src/components/settings/ZapierSettings.tsx:71
+#~ msgid "Please enter a name for the API key"
+#~ msgstr "Please enter a name for the API key"
 
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:265
 msgid "Please enter a notification name"
@@ -9512,7 +9576,7 @@ msgstr "Please enter a property name"
 msgid "Please enter a slug"
 msgstr "Please enter a slug"
 
-#: src/components/settings/WebhooksSettings.tsx:267
+#: src/components/settings/WebhooksSettings.tsx:277
 msgid "Please enter a URL"
 msgstr "Please enter a URL"
 
@@ -9532,10 +9596,10 @@ msgstr "Please enter a valid email!"
 msgid "Please enter a valid image URL"
 msgstr "Please enter a valid image URL"
 
-#: src/components/settings/GeneralSettings.tsx:202
-#: src/components/settings/GeneralSettings.tsx:266
+#: src/components/settings/GeneralSettings.tsx:206
+#: src/components/settings/GeneralSettings.tsx:270
 #: src/components/settings/LogoInput.tsx:27
-#: src/components/settings/WebhooksSettings.tsx:268
+#: src/components/settings/WebhooksSettings.tsx:278
 #: src/pages/CreateWorkspacePage.tsx:168
 msgid "Please enter a valid URL"
 msgstr "Please enter a valid URL"
@@ -9581,7 +9645,7 @@ msgstr "Please enter integration name"
 msgid "Please enter reading time"
 msgstr "Please enter reading time"
 
-#: src/components/settings/GeneralSettings.tsx:194
+#: src/components/settings/GeneralSettings.tsx:198
 msgid "Please enter workspace name"
 msgstr "Please enter workspace name"
 
@@ -9623,7 +9687,7 @@ msgstr "Please select a goal type"
 msgid "Please select a JSON file"
 msgstr "Please select a JSON file"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:524
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:515
 #: src/components/contacts/ContactDetailsDrawer.tsx:1131
 #: src/components/segment/form_leaf.tsx:238
 msgid "Please select a list"
@@ -9637,8 +9701,8 @@ msgstr "Please select a list for unsubscribe operation"
 msgid "Please select a model"
 msgstr "Please select a model"
 
-#: src/components/settings/BlogSettings.tsx:392
-#: src/components/settings/BlogSettings.tsx:408
+#: src/components/settings/BlogSettings.tsx:387
+#: src/components/settings/BlogSettings.tsx:403
 msgid "Please select a page size"
 msgstr "Please select a page size"
 
@@ -9662,7 +9726,7 @@ msgstr "Please select a time"
 
 #: src/components/blog/PublishModal.tsx:188
 #: src/components/broadcasts/SendOrScheduleModal.tsx:269
-#: src/components/settings/GeneralSettings.tsx:212
+#: src/components/settings/GeneralSettings.tsx:216
 msgid "Please select a timezone"
 msgstr "Please select a timezone"
 
@@ -9682,7 +9746,7 @@ msgstr "Please select an event type"
 msgid "Please select an MJML file"
 msgstr "Please select an MJML file"
 
-#: src/components/settings/Integrations.tsx:1762
+#: src/components/settings/Integrations.tsx:1912
 msgid "Please select an OAuth2 provider"
 msgstr "Please select an OAuth2 provider"
 
@@ -9690,7 +9754,7 @@ msgstr "Please select an OAuth2 provider"
 msgid "Please select an operation"
 msgstr "Please select an operation"
 
-#: src/components/settings/WebhooksSettings.tsx:289
+#: src/components/settings/WebhooksSettings.tsx:299
 msgid "Please select at least one event type"
 msgstr "Please select at least one event type"
 
@@ -9755,7 +9819,7 @@ msgstr "Post updated successfully"
 msgid "Postcode"
 msgstr "Postcode"
 
-#: src/components/settings/Integrations.tsx:1969
+#: src/components/settings/Integrations.tsx:2119
 msgid "Postmark Message Stream ID (e.g. \"outbound\" for transactional, \"broadcast\" for marketing)"
 msgstr "Postmark Message Stream ID (e.g. \"outbound\" for transactional, \"broadcast\" for marketing)"
 
@@ -9764,11 +9828,11 @@ msgstr "Postmark Message Stream ID (e.g. \"outbound\" for transactional, \"broad
 msgid "Posts in {0}"
 msgstr "Posts in {0}"
 
-#: src/components/settings/BlogSettings.tsx:406
+#: src/components/settings/BlogSettings.tsx:401
 msgid "Posts on category pages"
 msgstr "Posts on category pages"
 
-#: src/components/settings/BlogSettings.tsx:390
+#: src/components/settings/BlogSettings.tsx:385
 msgid "Posts on homepage"
 msgstr "Posts on homepage"
 
@@ -9871,9 +9935,9 @@ msgstr "Preview will appear here after compilation"
 msgid "Preview Your Email"
 msgstr "Preview Your Email"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:340
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:351
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:362
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:324
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:335
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:346
 #: src/components/templates/CreateTemplateDrawer.tsx:639
 #: src/components/templates/CreateTemplateDrawer.tsx:660
 msgid "Previous"
@@ -10060,7 +10124,7 @@ msgstr "Publish this theme"
 msgid "Published"
 msgstr "Published"
 
-#: src/components/settings/WebhooksSettings.tsx:332
+#: src/components/settings/WebhooksSettings.tsx:342
 msgid "Purchase"
 msgstr "Purchase"
 
@@ -10076,11 +10140,11 @@ msgstr "Push"
 msgid "Queued emails will not be sent. In-flight sends will complete."
 msgstr "Queued emails will not be sent. In-flight sends will complete."
 
-#: src/components/settings/Integrations.tsx:2344
+#: src/components/settings/Integrations.tsx:2494
 msgid "Rate Limit for Marketing"
 msgstr "Rate Limit for Marketing"
 
-#: src/components/settings/Integrations.tsx:2028
+#: src/components/settings/Integrations.tsx:2178
 msgid "Rate limit for marketing emails (emails per minute)"
 msgstr "Rate limit for marketing emails (emails per minute)"
 
@@ -10104,7 +10168,7 @@ msgstr "Raw JSON"
 msgid "Raw Payload:"
 msgstr "Raw Payload:"
 
-#: src/components/settings/Integrations.tsx:320
+#: src/components/settings/Integrations.tsx:322
 msgid "Re-register"
 msgstr "Re-register"
 
@@ -10238,7 +10302,7 @@ msgstr "Read the same counts for one A/B variation"
 msgid "Read the workspace record and its settings; Workspace write alone also passes, so someone who may only edit can still load what they are editing"
 msgstr "Read the workspace record and its settings; Workspace write alone also passes, so someone who may only edit can still load what they are editing"
 
-#: src/components/settings/ZapierSettings.tsx:152
+#: src/components/settings/ZapierSettings.tsx:178
 msgid "Read the Zapier setup guide"
 msgstr "Read the Zapier setup guide"
 
@@ -10347,6 +10411,10 @@ msgstr "Record the region or state of visitors"
 #~ msgid "Records each session and pageview of visitors identified with identify() as contact timeline entries. Unlike goals, navigation never triggers automations. A busy visit can add dozens of entries to a contact's timeline. Obtaining consent to store browsing history against a contact is your responsibility."
 #~ msgstr "Records each session and pageview of visitors identified with identify() as contact timeline entries. Unlike goals, navigation never triggers automations. A busy visit can add dozens of entries to a contact's timeline. Obtaining consent to store browsing history against a contact is your responsibility."
 
+#: src/components/settings/SystemSettingsDrawer.tsx:597
+msgid "Redirect URI"
+msgstr "Redirect URI"
+
 #: src/components/blog_editor/components/EditorHeader.tsx:69
 #: src/components/blog/PostDrawer.tsx:677
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:505
@@ -10410,8 +10478,8 @@ msgstr "Regenerate"
 msgid "Regenerate secret?"
 msgstr "Regenerate secret?"
 
-#: src/components/settings/Integrations.tsx:1984
-#: src/components/settings/Integrations.tsx:2324
+#: src/components/settings/Integrations.tsx:2134
+#: src/components/settings/Integrations.tsx:2474
 msgid "Region"
 msgstr "Region"
 
@@ -10419,12 +10487,12 @@ msgstr "Region"
 msgid "Regional (~11km precision)"
 msgstr "Regional (~11km precision)"
 
-#: src/components/settings/Integrations.tsx:271
-#: src/components/settings/Integrations.tsx:320
+#: src/components/settings/Integrations.tsx:273
+#: src/components/settings/Integrations.tsx:322
 msgid "Register Webhooks"
 msgstr "Register Webhooks"
 
-#: src/components/settings/Integrations.tsx:308
+#: src/components/settings/Integrations.tsx:310
 msgid "Register webhooks?"
 msgstr "Register webhooks?"
 
@@ -10432,7 +10500,7 @@ msgstr "Register webhooks?"
 msgid "Regular expression"
 msgstr "Regular expression"
 
-#: src/components/settings/Integrations.tsx:1463
+#: src/components/settings/Integrations.tsx:1553
 msgid "Reject Disposable Email"
 msgstr "Reject Disposable Email"
 
@@ -10504,7 +10572,7 @@ msgstr "Remove member"
 msgid "Remove this author?"
 msgstr "Remove this author?"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:778
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:769
 msgid "Remove variation"
 msgstr "Remove variation"
 
@@ -10523,6 +10591,10 @@ msgstr "Rename or re-slug a category"
 #: src/services/api/permissions.ts:912
 msgid "Rename the workspace's custom contact field labels"
 msgstr "Rename the workspace's custom contact field labels"
+
+#: src/components/settings/ZapierSettings.tsx:152
+msgid "Renaming this connection does not change the address of the API key it already minted."
+msgstr "Renaming this connection does not change the address of the API key it already minted."
 
 #: src/components/blog/ThemePreview.tsx:80
 msgid "Rendering preview..."
@@ -10552,7 +10624,7 @@ msgstr "Repeat Y"
 msgid "Replied"
 msgstr "Replied"
 
-#: src/components/settings/Integrations.tsx:229
+#: src/components/settings/Integrations.tsx:231
 msgid "Reply forwarding is set up. Inbound replies also require your domain's MX records to point at {mxTarget}."
 msgstr "Reply forwarding is set up. Inbound replies also require your domain's MX records to point at {mxTarget}."
 
@@ -10585,16 +10657,16 @@ msgstr "Report An Issue"
 #~ msgid "Report grouped by {dimensions}"
 #~ msgstr "Report grouped by {dimensions}"
 
-#: src/components/settings/Integrations.tsx:2291
+#: src/components/settings/Integrations.tsx:2441
 msgid "Reputation"
 msgstr "Reputation"
 
-#: src/components/settings/Integrations.tsx:1021
+#: src/components/settings/Integrations.tsx:1089
 msgid "Reputation isolation is active for this integration"
 msgstr "Reputation isolation is active for this integration"
 
 #. placeholder {0}: result.unverified_senders.join(', ')
-#: src/components/settings/Integrations.tsx:1018
+#: src/components/settings/Integrations.tsx:1086
 msgid "Reputation isolation is on. These senders have no verified identity and will fail to send: {0}"
 msgstr "Reputation isolation is on. These senders have no verified identity and will fail to send: {0}"
 
@@ -10609,7 +10681,7 @@ msgstr "Required"
 msgid "Required Fields"
 msgstr "Required Fields"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:640
+#: src/components/settings/SystemSettingsDrawer.tsx:662
 msgid "Required when auto-create is enabled"
 msgstr "Required when auto-create is enabled"
 
@@ -10805,7 +10877,7 @@ msgstr "Round"
 msgid "rows"
 msgstr "rows"
 
-#: src/components/settings/BlogSettings.tsx:423
+#: src/components/settings/BlogSettings.tsx:418
 msgid "RSS / Feeds"
 msgstr "RSS / Feeds"
 
@@ -10932,10 +11004,10 @@ msgstr "Sample Percentage"
 msgid "Sample values"
 msgstr "Sample values"
 
-#: src/components/settings/Integrations.tsx:1948
-#: src/components/settings/Integrations.tsx:2012
-#: src/components/settings/Integrations.tsx:2315
-#: src/components/settings/Integrations.tsx:2336
+#: src/components/settings/Integrations.tsx:2098
+#: src/components/settings/Integrations.tsx:2162
+#: src/components/settings/Integrations.tsx:2465
+#: src/components/settings/Integrations.tsx:2486
 msgid "Sandbox Mode"
 msgstr "Sandbox Mode"
 
@@ -10944,7 +11016,7 @@ msgstr "Sandbox Mode"
 #: src/components/blog/PostDrawer.tsx:691
 #: src/components/blog/ThemeEditorDrawer.tsx:318
 #: src/components/blog/ThemeEditorDrawer.tsx:468
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:371
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:355
 #: src/components/contacts/ContactUpsertDrawer.tsx:502
 #: src/components/contacts/InlineEditableField.tsx:318
 #: src/components/email_builder/panels/Preview.tsx:185
@@ -10953,16 +11025,17 @@ msgstr "Sandbox Mode"
 #: src/components/file_manager/buttonSettings.tsx:312
 #: src/components/lists/ListDrawer.tsx:170
 #: src/components/settings/CustomFieldsConfiguration.tsx:293
-#: src/components/settings/Integrations.tsx:2396
-#: src/components/settings/Integrations.tsx:2519
-#: src/components/settings/Integrations.tsx:2606
-#: src/components/settings/Integrations.tsx:2654
-#: src/components/settings/Integrations.tsx:2701
+#: src/components/settings/Integrations.tsx:2546
+#: src/components/settings/Integrations.tsx:2677
+#: src/components/settings/Integrations.tsx:2764
+#: src/components/settings/Integrations.tsx:2812
+#: src/components/settings/Integrations.tsx:2859
+#: src/components/settings/Integrations.tsx:2895
 #: src/components/settings/SystemSettingsDrawer.tsx:239
-#: src/components/settings/WebhooksSettings.tsx:238
+#: src/components/settings/WebhooksSettings.tsx:248
 #: src/components/templates/CreateTemplateDrawer.tsx:650
 #: src/components/templates/CreateTemplateDrawer.tsx:671
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:188
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:187
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:136
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:109
 msgid "Save"
@@ -11059,7 +11132,7 @@ msgstr "Scheduled in {daysUntil} {0}"
 msgid "Scheduled today"
 msgstr "Scheduled today"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:610
+#: src/components/settings/SystemSettingsDrawer.tsx:632
 msgid "Scopes"
 msgstr "Scopes"
 
@@ -11114,9 +11187,9 @@ msgstr "Second value must be greater than first value"
 msgid "Secret"
 msgstr "Secret"
 
-#: src/components/settings/Integrations.tsx:1701
-#: src/components/settings/Integrations.tsx:2004
-#: src/components/settings/Integrations.tsx:2007
+#: src/components/settings/Integrations.tsx:1851
+#: src/components/settings/Integrations.tsx:2154
+#: src/components/settings/Integrations.tsx:2157
 msgid "Secret Key"
 msgstr "Secret Key"
 
@@ -11220,8 +11293,8 @@ msgstr "Segments"
 
 #: src/components/automations/nodes/EmailNode.tsx:49
 #: src/components/file_manager/fileManager.tsx:976
-#: src/components/settings/BlogSettings.tsx:365
-#: src/components/settings/BlogSettings.tsx:381
+#: src/components/settings/BlogSettings.tsx:360
+#: src/components/settings/BlogSettings.tsx:376
 #: src/components/templates/TemplateSelectorInput.tsx:238
 #: src/components/web_analytics/explore/ExploreTemplates.tsx:153
 #: src/pages/BroadcastsPage.tsx:983
@@ -11256,7 +11329,7 @@ msgid "Select a field"
 msgstr "Select a field"
 
 #: src/components/automations/nodes/ListStatusBranchNode.tsx:51
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:529
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:520
 #: src/components/contacts/BulkActionsBar.tsx:203
 #: src/components/contacts/ContactDetailsDrawer.tsx:1138
 #: src/components/segment/form_leaf.tsx:240
@@ -11299,7 +11372,7 @@ msgstr "Select a template"
 msgid "Select a time zone"
 msgstr "Select a time zone"
 
-#: src/components/settings/WebhooksSettings.tsx:285
+#: src/components/settings/WebhooksSettings.tsx:295
 msgid "Select all"
 msgstr "Select all"
 
@@ -11323,7 +11396,7 @@ msgstr "Select another metric to view chart"
 msgid "Select Avatar"
 msgstr "Select Avatar"
 
-#: src/components/settings/Integrations.tsx:1637
+#: src/components/settings/Integrations.tsx:1787
 msgid "Select AWS Region"
 msgstr "Select AWS Region"
 
@@ -11344,7 +11417,7 @@ msgstr "Select columns"
 msgid "Select confirmation email template"
 msgstr "Select confirmation email template"
 
-#: src/components/settings/BlogSettings.tsx:450
+#: src/components/settings/BlogSettings.tsx:445
 msgid "Select content mode"
 msgstr "Select content mode"
 
@@ -11384,7 +11457,7 @@ msgstr "Select event"
 msgid "Select event type to test:"
 msgstr "Select event type to test:"
 
-#: src/components/settings/BlogSettings.tsx:435
+#: src/components/settings/BlogSettings.tsx:430
 msgid "Select feed size"
 msgstr "Select feed size"
 
@@ -11396,7 +11469,7 @@ msgstr "Select field"
 msgid "Select field to map to"
 msgstr "Select field to map to"
 
-#: src/components/settings/WebhooksSettings.tsx:330
+#: src/components/settings/WebhooksSettings.tsx:340
 msgid "Select goal types to filter"
 msgstr "Select goal types to filter"
 
@@ -11438,16 +11511,16 @@ msgstr "Select lists (optional)"
 msgid "Select lists to add contacts to"
 msgstr "Select lists to add contacts to"
 
-#: src/components/settings/Integrations.tsx:1764
+#: src/components/settings/Integrations.tsx:1914
 msgid "Select OAuth2 Provider"
 msgstr "Select OAuth2 Provider"
 
-#: src/components/settings/BlogSettings.tsx:394
-#: src/components/settings/BlogSettings.tsx:410
+#: src/components/settings/BlogSettings.tsx:389
+#: src/components/settings/BlogSettings.tsx:405
 msgid "Select page size"
 msgstr "Select page size"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:553
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:544
 msgid "Select segments (optional)"
 msgstr "Select segments (optional)"
 
@@ -11459,12 +11532,12 @@ msgstr "Select status"
 msgid "Select storage provider"
 msgstr "Select storage provider"
 
-#: src/components/settings/GeneralSettings.tsx:227
+#: src/components/settings/GeneralSettings.tsx:231
 msgid "Select supported languages"
 msgstr "Select supported languages"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:766
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:829
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:757
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:820
 msgid "Select template"
 msgstr "Select template"
 
@@ -11614,7 +11687,7 @@ msgstr "Send or Schedule Broadcast"
 msgid "Send Test"
 msgstr "Send Test"
 
-#: src/components/settings/Integrations.tsx:2560
+#: src/components/settings/Integrations.tsx:2718
 #: src/components/templates/SendTemplateModal.tsx:263
 #: src/components/templates/SendTemplateModal.tsx:277
 #: src/pages/BroadcastsPage.tsx:924
@@ -11637,8 +11710,8 @@ msgstr "Sender"
 msgid "Sender Name"
 msgstr "Sender Name"
 
-#: src/components/settings/Integrations.tsx:378
-#: src/components/settings/Integrations.tsx:2207
+#: src/components/settings/Integrations.tsx:380
+#: src/components/settings/Integrations.tsx:2357
 msgid "Senders"
 msgstr "Senders"
 
@@ -11720,16 +11793,16 @@ msgstr "Server restarted successfully!"
 msgid "Server restarted successfully! You can now sign in."
 msgstr "Server restarted successfully! You can now sign in."
 
-#: src/components/settings/Integrations.tsx:1960
-#: src/components/settings/Integrations.tsx:1963
+#: src/components/settings/Integrations.tsx:2110
+#: src/components/settings/Integrations.tsx:2113
 msgid "Server Token"
 msgstr "Server Token"
 
-#: src/components/settings/Integrations.tsx:2091
+#: src/components/settings/Integrations.tsx:2241
 msgid "SES tenant"
 msgstr "SES tenant"
 
-#: src/components/settings/Integrations.tsx:2051
+#: src/components/settings/Integrations.tsx:2201
 msgid "SES tenant isolation"
 msgstr "SES tenant isolation"
 
@@ -11768,23 +11841,23 @@ msgstr "Sessions (previous)"
 msgid "Sessions with less engaged time than this count as bounces."
 msgstr "Sessions with less engaged time than this count as bounces."
 
-#: src/components/settings/Integrations.tsx:667
+#: src/components/settings/Integrations.tsx:676
 msgid "Set as default marketing email provider"
 msgstr "Set as default marketing email provider"
 
-#: src/components/settings/Integrations.tsx:2177
+#: src/components/settings/Integrations.tsx:2327
 msgid "Set as default sender"
 msgstr "Set as default sender"
 
-#: src/components/settings/Integrations.tsx:667
+#: src/components/settings/Integrations.tsx:676
 msgid "Set as default transactional email provider"
 msgstr "Set as default transactional email provider"
 
-#: src/components/settings/Integrations.tsx:426
+#: src/components/settings/Integrations.tsx:428
 msgid "Set as marketing email provider?"
 msgstr "Set as marketing email provider?"
 
-#: src/components/settings/Integrations.tsx:445
+#: src/components/settings/Integrations.tsx:447
 msgid "Set as transactional email provider?"
 msgstr "Set as transactional email provider?"
 
@@ -11901,7 +11974,7 @@ msgstr "Sets the screen width below which the email will switch to mobile layout
 msgid "Setting up..."
 msgstr "Setting up..."
 
-#: src/components/settings/SettingsSidebar.tsx:135
+#: src/components/settings/SettingsSidebar.tsx:141
 #: src/layouts/WorkspaceLayout.tsx:480
 msgid "Settings"
 msgstr "Settings"
@@ -11918,7 +11991,7 @@ msgstr "Setup Complete!"
 msgid "Share link"
 msgstr "Share link"
 
-#: src/components/settings/Integrations.tsx:2306
+#: src/components/settings/Integrations.tsx:2456
 msgid "shared with the rest of this AWS account"
 msgstr "shared with the rest of this AWS account"
 
@@ -11963,7 +12036,7 @@ msgstr "Showing the top 200 links by unique clicks."
 msgid "Sign In"
 msgstr "Sign In"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:603
+#: src/components/settings/SystemSettingsDrawer.tsx:625
 #: src/pages/SetupWizard.tsx:747
 #: src/pages/SignInPage.tsx:248
 msgid "Sign in with SSO"
@@ -11973,7 +12046,7 @@ msgstr "Sign in with SSO"
 msgid "Signing out..."
 msgstr "Signing out..."
 
-#: src/components/settings/WebhooksSettings.tsx:335
+#: src/components/settings/WebhooksSettings.tsx:345
 msgid "Signup"
 msgstr "Signup"
 
@@ -12026,7 +12099,7 @@ msgstr "Slug must contain only lowercase letters, numbers, and hyphens"
 msgid "SMS"
 msgstr "SMS"
 
-#: src/components/settings/SettingsSidebar.tsx:115
+#: src/components/settings/SettingsSidebar.tsx:121
 #: src/components/settings/SMTPBridgeSettings.tsx:20
 #: src/components/settings/SystemSettingsDrawer.tsx:455
 msgid "SMTP Bridge"
@@ -12068,8 +12141,8 @@ msgstr "SMTP connection test successful"
 msgid "SMTP domain"
 msgstr "SMTP domain"
 
-#: src/components/settings/Integrations.tsx:1710
-#: src/components/settings/Integrations.tsx:2241
+#: src/components/settings/Integrations.tsx:1860
+#: src/components/settings/Integrations.tsx:2391
 #: src/components/settings/SystemSettingsDrawer.tsx:316
 #: src/pages/SetupWizard.tsx:454
 msgid "SMTP Host"
@@ -12079,7 +12152,7 @@ msgstr "SMTP Host"
 msgid "SMTP host is required"
 msgstr "SMTP host is required"
 
-#: src/components/settings/Integrations.tsx:1908
+#: src/components/settings/Integrations.tsx:2058
 #: src/components/settings/SystemSettingsDrawer.tsx:384
 #: src/pages/SetupWizard.tsx:495
 msgid "SMTP Password"
@@ -12089,7 +12162,7 @@ msgstr "SMTP Password"
 msgid "SMTP port"
 msgstr "SMTP port"
 
-#: src/components/settings/Integrations.tsx:1717
+#: src/components/settings/Integrations.tsx:1867
 #: src/components/settings/SystemSettingsDrawer.tsx:329
 #: src/pages/SetupWizard.tsx:463
 msgid "SMTP Port"
@@ -12111,11 +12184,11 @@ msgstr "SMTP provider doesn't support complaint webhooks, so spam complaints can
 msgid "SMTP provider doesn't support delivery webhooks, so delivery status cannot be tracked"
 msgstr "SMTP provider doesn't support delivery webhooks, so delivery status cannot be tracked"
 
-#: src/components/settings/Integrations.tsx:2244
+#: src/components/settings/Integrations.tsx:2394
 msgid "SMTP User"
 msgstr "SMTP User"
 
-#: src/components/settings/Integrations.tsx:1903
+#: src/components/settings/Integrations.tsx:2053
 #: src/components/settings/SystemSettingsDrawer.tsx:371
 #: src/pages/SetupWizard.tsx:490
 msgid "SMTP Username"
@@ -12198,7 +12271,7 @@ msgstr "Space"
 msgid "Spacer Attributes"
 msgstr "Spacer Attributes"
 
-#: src/components/settings/Integrations.tsx:1942
+#: src/components/settings/Integrations.tsx:2092
 msgid "SparkPost API Key"
 msgstr "SparkPost API Key"
 
@@ -12428,7 +12501,7 @@ msgstr "Subscribed on:"
 msgid "Subscript"
 msgstr "Subscript"
 
-#: src/components/settings/WebhooksSettings.tsx:333
+#: src/components/settings/WebhooksSettings.tsx:343
 #: src/components/timeline/ContactTimeline.tsx:311
 #: src/components/timeline/ContactTimeline.tsx:324
 #: src/components/timeline/ContactTimeline.tsx:350
@@ -12494,11 +12567,11 @@ msgstr "Summarise this period"
 msgid "Summary of {0}"
 msgstr "Summary of {0}"
 
-#: src/components/settings/BlogSettings.tsx:447
+#: src/components/settings/BlogSettings.tsx:442
 msgid "Summary-only feed"
 msgstr "Summary-only feed"
 
-#: src/components/settings/Integrations.tsx:850
+#: src/components/settings/Integrations.tsx:859
 msgid "Supabase integration saved successfully"
 msgstr "Supabase integration saved successfully"
 
@@ -12506,7 +12579,7 @@ msgstr "Supabase integration saved successfully"
 msgid "Superscript"
 msgstr "Superscript"
 
-#: src/components/settings/GeneralSettings.tsx:219
+#: src/components/settings/GeneralSettings.tsx:223
 msgid "Supported Languages"
 msgstr "Supported Languages"
 
@@ -12568,7 +12641,7 @@ msgstr "Task Status"
 msgid "Task type:"
 msgstr "Task type:"
 
-#: src/components/settings/SettingsSidebar.tsx:36
+#: src/components/settings/SettingsSidebar.tsx:42
 #: src/components/settings/WorkspaceMembers.tsx:434
 msgid "Team"
 msgstr "Team"
@@ -12581,7 +12654,7 @@ msgstr "Team member limit reached. Please upgrade your plan to add more members.
 msgid "Technical performance insights"
 msgstr "Technical performance insights"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:667
+#: src/components/settings/SystemSettingsDrawer.tsx:689
 msgid "Telemetry"
 msgstr "Telemetry"
 
@@ -12590,7 +12663,7 @@ msgstr "Telemetry"
 msgid "template"
 msgstr "template"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:824
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:815
 #: src/components/messages/MessageHistoryTable.tsx:130
 #: src/components/messages/MessageHistoryTable.tsx:172
 #: src/pages/BroadcastsPage.tsx:793
@@ -12600,7 +12673,7 @@ msgid "Template"
 msgstr "Template"
 
 #. placeholder {0}: field.key + 1
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:733
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:724
 msgid "Template {0}"
 msgstr "Template {0}"
 
@@ -12695,7 +12768,7 @@ msgstr "Template:"
 msgid "Templates"
 msgstr "Templates"
 
-#: src/components/settings/Integrations.tsx:2189
+#: src/components/settings/Integrations.tsx:2339
 msgid "Templates using this sender will need to be updated to use a different sender."
 msgstr "Templates using this sender will need to be updated to use a different sender."
 
@@ -12705,13 +12778,13 @@ msgid "Templating markup allowed"
 msgstr "Templating markup allowed"
 
 #. placeholder {0}: result.tenant_name
-#: src/components/settings/Integrations.tsx:1009
+#: src/components/settings/Integrations.tsx:1077
 msgid "Tenant {0} exists in AWS but could not be saved here. Save again to finish — you are already being billed for it."
 msgstr "Tenant {0} exists in AWS but could not be saved here. Save again to finish — you are already being billed for it."
 
 #. placeholder {0}: result.tenant_name
 #. placeholder {1}: (result.missing_permissions ?? []).join(', ') || 'none reported'
-#: src/components/settings/Integrations.tsx:1014
+#: src/components/settings/Integrations.tsx:1082
 msgid "Tenant {0} was created but its configuration set is not associated, so it is not in use yet. Missing permissions: {1}"
 msgstr "Tenant {0} was created but its configuration set is not associated, so it is not in use yet. Missing permissions: {1}"
 
@@ -12721,7 +12794,7 @@ msgstr "Terms"
 
 #: src/components/broadcasts/GlobalFeedSettings.tsx:122
 #: src/components/broadcasts/RecipientFeedSettings.tsx:130
-#: src/components/settings/Integrations.tsx:363
+#: src/components/settings/Integrations.tsx:365
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:104
 #: src/components/web_analytics/tabs/FiltersTab.tsx:127
 #: src/pages/TransactionalNotificationsPage.tsx:175
@@ -12761,11 +12834,11 @@ msgstr "Test deliveries are unavailable here: Zapier's hook URLs always answer w
 msgid "Test duration (hours)"
 msgstr "Test duration (hours)"
 
-#: src/components/settings/Integrations.tsx:2546
+#: src/components/settings/Integrations.tsx:2704
 msgid "Test Email Provider"
 msgstr "Test Email Provider"
 
-#: src/components/settings/Integrations.tsx:1155
+#: src/components/settings/Integrations.tsx:1223
 #: src/components/templates/SendTemplateModal.tsx:137
 msgid "Test email sent successfully"
 msgstr "Test email sent successfully"
@@ -12783,7 +12856,7 @@ msgstr "Test failed: {0}"
 msgid "Test in different email clients as support varies"
 msgstr "Test in different email clients as support varies"
 
-#: src/components/settings/Integrations.tsx:2394
+#: src/components/settings/Integrations.tsx:2544
 msgid "Test Integration"
 msgstr "Test Integration"
 
@@ -12795,7 +12868,7 @@ msgstr "Test Recipient Feed"
 msgid "Test rule"
 msgstr "Test rule"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:689
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:680
 msgid "Test sample size (%)"
 msgstr "Test sample size (%)"
 
@@ -12932,7 +13005,7 @@ msgstr "The current date range, filters and session threshold"
 msgid "The currently published theme will be unpublished automatically."
 msgstr "The currently published theme will be unpublished automatically."
 
-#: src/components/settings/Integrations.tsx:1778
+#: src/components/settings/Integrations.tsx:1928
 msgid "The email address that will be used as the SMTP user for authentication"
 msgstr "The email address that will be used as the SMTP user for authentication"
 
@@ -12956,7 +13029,7 @@ msgstr "The following validation errors were found in your import:"
 msgid "The generated email has issues that prevent it from rendering:"
 msgstr "The generated email has issues that prevent it from rendering:"
 
-#: src/components/settings/Integrations.tsx:1919
+#: src/components/settings/Integrations.tsx:2069
 #: src/pages/SetupWizard.tsx:524
 msgid "The hostname your server identifies itself as when connecting to the SMTP server. Defaults to the SMTP host value if empty."
 msgstr "The hostname your server identifies itself as when connecting to the SMTP server. Defaults to the SMTP host value if empty."
@@ -12965,19 +13038,28 @@ msgstr "The hostname your server identifies itself as when connecting to the SMT
 msgid "The inbound events email providers send back — bounces, complaints, deliveries and replies — as the raw rows the provider posted."
 msgstr "The inbound events email providers send back — bounces, complaints, deliveries and replies — as the raw rows the provider posted."
 
+#. placeholder {0}: connected.email
+#: src/components/settings/ZapierSettings.tsx:216
+msgid "The key is listed in Settings → Team as {0}, where its permissions can be widened."
+msgstr "The key is listed in Settings → Team as {0}, where its permissions can be widened."
+
 #: src/components/web_analytics/filters/BackfillStatus.tsx:118
 msgid "The last backfill failed"
 msgstr "The last backfill failed"
 
-#: src/components/settings/BlogSettings.tsx:349
+#: src/components/settings/BlogSettings.tsx:344
 msgid "The main title for your blog"
 msgstr "The main title for your blog"
+
+#: src/components/settings/ZapierSettings.tsx:88
+#~ msgid "The name {prefix} is already taken on this Notifuse installation. Please pick another one."
+#~ msgstr "The name {prefix} is already taken on this Notifuse installation. Please pick another one."
 
 #: src/services/api/permissions.ts:686
 msgid "The outbound message log: every email the workspace sent, its delivery status, and the engagement counted against it."
 msgstr "The outbound message log: every email the workspace sent, its delivery status, and the engagement counted against it."
 
-#: src/components/settings/GeneralSettings.tsx:241
+#: src/components/settings/GeneralSettings.tsx:245
 msgid "The primary language for template content. Translations are stored for other languages."
 msgstr "The primary language for template content. Translations are stored for other languages."
 
@@ -13061,7 +13143,7 @@ msgstr "Theme updated successfully"
 msgid "Theme Versions"
 msgstr "Theme Versions"
 
-#: src/components/settings/Integrations.tsx:2132
+#: src/components/settings/Integrations.tsx:2282
 msgid "These AWS credentials can't list tenants or configuration sets (needs ses:ListTenants). Type the names instead."
 msgstr "These AWS credentials can't list tenants or configuration sets (needs ses:ListTenants). Type the names instead."
 
@@ -13077,7 +13159,7 @@ msgstr "These contacts will be removed from the selected list. This is a true re
 msgid "These contacts will be subscribed to the selected list (status: active)."
 msgstr "These contacts will be subscribed to the selected list (status: active)."
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:611
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:602
 msgid "These parameters are automatically added to the URL of the broadcast. They are used by web analytics tools to analyze the performance of your campaign."
 msgstr "These parameters are automatically added to the URL of the broadcast. They are used by web analytics tools to analyze the performance of your campaign."
 
@@ -13093,10 +13175,10 @@ msgstr "This account is already linked to a different single sign-on identity."
 #: src/components/blog/DeletePostModal.tsx:36
 #: src/components/contacts/DeleteContactModal.tsx:54
 #: src/components/settings/DeleteWorkspace.tsx:45
-#: src/components/settings/Integrations.tsx:351
-#: src/components/settings/Integrations.tsx:1346
-#: src/components/settings/Integrations.tsx:1505
-#: src/components/settings/Integrations.tsx:1574
+#: src/components/settings/Integrations.tsx:353
+#: src/components/settings/Integrations.tsx:1436
+#: src/components/settings/Integrations.tsx:1595
+#: src/components/settings/Integrations.tsx:1664
 #: src/components/settings/WebhookCard.tsx:271
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:29
 msgid "This action cannot be undone."
@@ -13256,7 +13338,7 @@ msgstr "This section is empty. Add columns or groups to display content."
 msgid "This segment uses relative date filters and will be automatically recomputed daily at 5:00 AM ({timezone})"
 msgstr "This segment uses relative date filters and will be automatically recomputed daily at 5:00 AM ({timezone})"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:754
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:745
 msgid "This template is already used in another variation"
 msgstr "This template is already used in another variation"
 
@@ -13276,7 +13358,7 @@ msgstr "This template is managed by an integration and cannot be deleted"
 msgid "This text appears in the email client's preview pane, typically after the subject line. Keep it concise and compelling (100-140 characters recommended)."
 msgstr "This text appears in the email client's preview pane, typically after the subject line. Keep it concise and compelling (100-140 characters recommended)."
 
-#: src/components/settings/ZapierSettings.tsx:176
+#: src/components/settings/ZapierSettings.tsx:204
 msgid "This token is displayed once and cannot be retrieved again. Copy it now and paste it into Zapier."
 msgstr "This token is displayed once and cannot be retrieved again. Copy it now and paste it into Zapier."
 
@@ -13321,7 +13403,7 @@ msgstr "This will permanently delete the workspace \"{0}\" and all of its data. 
 msgid "This will permanently remove the contact and their subscriptions."
 msgstr "This will permanently remove the contact and their subscriptions."
 
-#: src/components/settings/Integrations.tsx:309
+#: src/components/settings/Integrations.tsx:311
 msgid "This will register or update webhook endpoints for this email provider."
 msgstr "This will register or update webhook endpoints for this email provider."
 
@@ -13329,7 +13411,7 @@ msgstr "This will register or update webhook endpoints for this email provider."
 msgid "This will replace all content with the default language template. Continue?"
 msgstr "This will replace all content with the default language template. Continue?"
 
-#: src/components/settings/Integrations.tsx:2572
+#: src/components/settings/Integrations.tsx:2730
 msgid "This will send a real test email to the address provided."
 msgstr "This will send a real test email to the address provided."
 
@@ -13413,8 +13495,8 @@ msgstr "Timestamp"
 #: src/components/broadcasts/SendOrScheduleModal.tsx:265
 #: src/components/contacts/ContactDetailsDrawer.tsx:451
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:95
-#: src/components/settings/GeneralSettings.tsx:149
-#: src/components/settings/GeneralSettings.tsx:211
+#: src/components/settings/GeneralSettings.tsx:153
+#: src/components/settings/GeneralSettings.tsx:215
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:169
 #: src/components/web_analytics/toolbar.tsx:92
 #: src/pages/ContactsPage.tsx:432
@@ -13451,7 +13533,7 @@ msgstr "Tips for fixing these errors:"
 #: src/components/blog/PostsTable.tsx:193
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:407
 #: src/components/email_builder/blocks/MjTitleBlock.tsx:34
-#: src/components/settings/BlogSettings.tsx:247
+#: src/components/settings/BlogSettings.tsx:242
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:182
 msgid "Title"
 msgstr "Title"
@@ -13490,7 +13572,7 @@ msgstr "TLS Certificate (Base64)"
 msgid "TLS certificate is required"
 msgstr "TLS certificate is required"
 
-#: src/components/settings/Integrations.tsx:2247
+#: src/components/settings/Integrations.tsx:2397
 msgid "TLS Enabled"
 msgstr "TLS Enabled"
 
@@ -13545,7 +13627,7 @@ msgstr "Toggle caption"
 msgid "Too many sign-in attempts. Please wait a moment and try again."
 msgstr "Too many sign-in attempts. Please wait a moment and try again."
 
-#: src/components/settings/Integrations.tsx:1599
+#: src/components/settings/Integrations.tsx:1689
 msgid "Tools"
 msgstr "Tools"
 
@@ -13641,11 +13723,11 @@ msgstr "Track website traffic with a first-party script. Beats are stored in thi
 msgid "Tracking"
 msgstr "Tracking"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:656
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:647
 msgid "Tracking (opens & clicks) must be enabled in workspace settings to use A/B testing features."
 msgstr "Tracking (opens & clicks) must be enabled in workspace settings to use A/B testing features."
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:702
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:693
 msgid "Tracking (opens & clicks) should be enabled in your workspace settings to use this feature"
 msgstr "Tracking (opens & clicks) should be enabled in your workspace settings to use this feature"
 
@@ -13672,7 +13754,7 @@ msgstr "Traffic no filter rule has classified"
 msgid "Transactional"
 msgstr "Transactional"
 
-#: src/components/settings/Integrations.tsx:407
+#: src/components/settings/Integrations.tsx:409
 msgid "Transactional Emails"
 msgstr "Transactional Emails"
 
@@ -13701,7 +13783,7 @@ msgstr "Transactional Provider"
 msgid "Transparent"
 msgstr "Transparent"
 
-#: src/components/settings/WebhooksSettings.tsx:337
+#: src/components/settings/WebhooksSettings.tsx:347
 msgid "Trial"
 msgstr "Trial"
 
@@ -13737,7 +13819,7 @@ msgstr "Turn into"
 msgid "Turn Into"
 msgstr "Turn Into"
 
-#: src/components/settings/Integrations.tsx:2110
+#: src/components/settings/Integrations.tsx:2260
 msgid "Turn off SES tenant isolation to use your own tenant, or clear this field."
 msgstr "Turn off SES tenant isolation to use your own tenant, or clear this field."
 
@@ -13777,7 +13859,7 @@ msgstr "type {rendererType} is not implemented"
 msgid "Type {selectedCount} to confirm:"
 msgstr "Type {selectedCount} to confirm:"
 
-#: src/components/settings/GeneralSettings.tsx:284
+#: src/components/settings/GeneralSettings.tsx:288
 #: src/components/timeline/ContactTimeline.tsx:698
 msgid "Type:"
 msgstr "Type:"
@@ -13881,8 +13963,8 @@ msgstr "Unpublish post"
 
 #: src/components/automations/UpsertAutomationDrawer.tsx:147
 #: src/components/blog/PostDrawer.tsx:558
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:247
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:151
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:231
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:150
 msgid "Unsaved changes"
 msgstr "Unsaved changes"
 
@@ -13948,8 +14030,8 @@ msgstr "Unsubscribes"
 msgid "Untitled"
 msgstr "Untitled"
 
-#: src/components/settings/Integrations.tsx:2072
-#: src/components/settings/Integrations.tsx:2099
+#: src/components/settings/Integrations.tsx:2222
+#: src/components/settings/Integrations.tsx:2249
 msgid "Up to 64 letters, numbers, hyphens or underscores."
 msgstr "Up to 64 letters, numbers, hyphens or underscores."
 
@@ -14075,7 +14157,7 @@ msgstr "Use"
 msgid "Use a different email"
 msgstr "Use a different email"
 
-#: src/components/settings/Integrations.tsx:2095
+#: src/components/settings/Integrations.tsx:2245
 msgid "Use a tenant you manage yourself. Requires a configuration set associated with it in AWS."
 msgstr "Use a tenant you manage yourself. Requires a configuration set associated with it in AWS."
 
@@ -14083,11 +14165,11 @@ msgstr "Use a tenant you manage yourself. Requires a configuration set associate
 msgid "Use Anyway"
 msgstr "Use Anyway"
 
-#: src/components/settings/Integrations.tsx:439
+#: src/components/settings/Integrations.tsx:441
 msgid "Use for Marketing"
 msgstr "Use for Marketing"
 
-#: src/components/settings/Integrations.tsx:458
+#: src/components/settings/Integrations.tsx:460
 msgid "Use for Transactional"
 msgstr "Use for Transactional"
 
@@ -14123,7 +14205,7 @@ msgstr "Use this curl command to send a transactional notification via API:"
 msgid "Use This Theme"
 msgstr "Use This Theme"
 
-#: src/components/settings/Integrations.tsx:1728
+#: src/components/settings/Integrations.tsx:1878
 #: src/components/settings/SystemSettingsDrawer.tsx:354
 #: src/pages/SetupWizard.tsx:480
 msgid "Use TLS"
@@ -14133,7 +14215,7 @@ msgstr "Use TLS"
 msgid "Use workspace default"
 msgstr "Use workspace default"
 
-#: src/components/settings/Integrations.tsx:396
+#: src/components/settings/Integrations.tsx:398
 msgid "Used for"
 msgstr "Used for"
 
@@ -14160,7 +14242,7 @@ msgstr "User Created Hook"
 msgid "User Created Hook Secret"
 msgstr "User Created Hook Secret"
 
-#: src/components/settings/Integrations.tsx:1455
+#: src/components/settings/Integrations.tsx:1545
 msgid "User Metadata Field"
 msgstr "User Metadata Field"
 
@@ -14247,7 +14329,7 @@ msgstr "Value 2"
 msgid "Value type"
 msgstr "Value type"
 
-#: src/components/settings/GeneralSettings.tsx:299
+#: src/components/settings/GeneralSettings.tsx:303
 msgid "Value:"
 msgstr "Value:"
 
@@ -14255,7 +14337,7 @@ msgstr "Value:"
 msgid "Variant name"
 msgstr "Variant name"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:720
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:711
 #: src/pages/BroadcastsPage.tsx:734
 msgid "Variations"
 msgstr "Variations"
@@ -14409,7 +14491,7 @@ msgid "We'll automatically detect and use your website's favicon"
 msgstr "We'll automatically detect and use your website's favicon"
 
 #: src/components/settings/PermissionsMatrix.tsx:128
-#: src/components/settings/SettingsSidebar.tsx:105
+#: src/components/settings/SettingsSidebar.tsx:111
 #: src/components/settings/WebAnalyticsSettings.tsx:232
 #: src/components/settings/WebAnalyticsSettings.tsx:242
 #: src/components/settings/WebAnalyticsSettings.tsx:291
@@ -14460,21 +14542,21 @@ msgstr "Web session"
 msgid "Webhook"
 msgstr "Webhook"
 
-#: src/components/settings/WebhooksSettings.tsx:168
+#: src/components/settings/WebhooksSettings.tsx:178
 msgid "Webhook disabled"
 msgstr "Webhook disabled"
 
-#: src/components/settings/WebhooksSettings.tsx:168
+#: src/components/settings/WebhooksSettings.tsx:178
 msgid "Webhook enabled"
 msgstr "Webhook enabled"
 
-#: src/components/settings/Integrations.tsx:1388
-#: src/components/settings/Integrations.tsx:1425
+#: src/components/settings/Integrations.tsx:1478
+#: src/components/settings/Integrations.tsx:1515
 msgid "Webhook endpoint copied to clipboard"
 msgstr "Webhook endpoint copied to clipboard"
 
-#: src/components/settings/Integrations.tsx:1374
-#: src/components/settings/Integrations.tsx:1411
+#: src/components/settings/Integrations.tsx:1464
+#: src/components/settings/Integrations.tsx:1501
 msgid "Webhook endpoint:"
 msgstr "Webhook endpoint:"
 
@@ -14487,15 +14569,15 @@ msgstr "Webhook Events"
 msgid "Webhook secret regenerated"
 msgstr "Webhook secret regenerated"
 
-#: src/components/settings/WebhooksSettings.tsx:137
+#: src/components/settings/WebhooksSettings.tsx:147
 msgid "Webhook subscription created"
 msgstr "Webhook subscription created"
 
-#: src/components/settings/WebhooksSettings.tsx:153
+#: src/components/settings/WebhooksSettings.tsx:163
 msgid "Webhook subscription deleted"
 msgstr "Webhook subscription deleted"
 
-#: src/components/settings/WebhooksSettings.tsx:128
+#: src/components/settings/WebhooksSettings.tsx:138
 msgid "Webhook subscription updated"
 msgstr "Webhook subscription updated"
 
@@ -14508,15 +14590,15 @@ msgstr "Webhook Subscriptions"
 msgid "Webhook URL"
 msgstr "Webhook URL"
 
-#: src/components/settings/Integrations.tsx:239
-#: src/components/settings/Integrations.tsx:247
-#: src/components/settings/Integrations.tsx:279
-#: src/components/settings/SettingsSidebar.tsx:79
-#: src/components/settings/WebhooksSettings.tsx:192
+#: src/components/settings/Integrations.tsx:241
+#: src/components/settings/Integrations.tsx:249
+#: src/components/settings/Integrations.tsx:281
+#: src/components/settings/SettingsSidebar.tsx:85
+#: src/components/settings/WebhooksSettings.tsx:202
 msgid "Webhooks"
 msgstr "Webhooks"
 
-#: src/components/settings/Integrations.tsx:188
+#: src/components/settings/Integrations.tsx:190
 msgid "Webhooks registered successfully"
 msgstr "Webhooks registered successfully"
 
@@ -14548,8 +14630,8 @@ msgstr "Website traffic from this variation"
 msgid "Website traffic tracking settings"
 msgstr "Website traffic tracking settings"
 
-#: src/components/settings/GeneralSettings.tsx:133
-#: src/components/settings/GeneralSettings.tsx:201
+#: src/components/settings/GeneralSettings.tsx:137
+#: src/components/settings/GeneralSettings.tsx:205
 #: src/pages/CreateWorkspacePage.tsx:163
 msgid "Website URL"
 msgstr "Website URL"
@@ -14575,7 +14657,7 @@ msgstr "Welcome"
 msgid "Welcome to Email Builder!"
 msgstr "Welcome to Email Builder!"
 
-#: src/components/settings/BlogSettings.tsx:463
+#: src/components/settings/BlogSettings.tsx:458
 msgid "Welcome to my blog where I share insights about..."
 msgstr "Welcome to my blog where I share insights about..."
 
@@ -14595,7 +14677,7 @@ msgstr "When disabled, incoming beats are rejected and the dashboards stop updat
 msgid "When disabled, links in this notification are never rewritten: no click and open tracking and no UTM parameters."
 msgstr "When disabled, links in this notification are never rewritten: no click and open tracking and no UTM parameters."
 
-#: src/components/settings/GeneralSettings.tsx:256
+#: src/components/settings/GeneralSettings.tsx:260
 msgid "When enabled, links in the email will be tracked for opens and clicks"
 msgstr "When enabled, links in the email will be tracked for opens and clicks"
 
@@ -14603,7 +14685,7 @@ msgstr "When enabled, links in the email will be tracked for opens and clicks"
 msgid "When enabled, subscribers must confirm their subscription via email before being added to the list"
 msgstr "When enabled, subscribers must confirm their subscription via email before being added to the list"
 
-#: src/components/settings/BlogSettings.tsx:448
+#: src/components/settings/BlogSettings.tsx:443
 msgid "When enabled, the feed includes only excerpts instead of full article content"
 msgstr "When enabled, the feed includes only excerpts instead of full article content"
 
@@ -14738,12 +14820,12 @@ msgstr "Workspace Invitation"
 msgid "Workspace limit reached. Please upgrade your plan to create more workspaces."
 msgstr "Workspace limit reached. Please upgrade your plan to create more workspaces."
 
-#: src/components/settings/GeneralSettings.tsx:141
+#: src/components/settings/GeneralSettings.tsx:145
 msgid "Workspace logo"
 msgstr "Workspace logo"
 
-#: src/components/settings/GeneralSettings.tsx:129
-#: src/components/settings/GeneralSettings.tsx:193
+#: src/components/settings/GeneralSettings.tsx:133
+#: src/components/settings/GeneralSettings.tsx:197
 #: src/pages/CreateWorkspacePage.tsx:124
 msgid "Workspace Name"
 msgstr "Workspace Name"
@@ -14758,7 +14840,7 @@ msgstr "Workspace name must be at least 3 characters long"
 msgid "Workspace not found"
 msgstr "Workspace not found"
 
-#: src/components/settings/GeneralSettings.tsx:99
+#: src/components/settings/GeneralSettings.tsx:103
 #: src/layouts/WorkspaceLayout.tsx:232
 msgid "Workspace settings updated successfully"
 msgstr "Workspace settings updated successfully"
@@ -14811,8 +14893,8 @@ msgstr "Yearly"
 #: src/components/blog/PostDrawer.tsx:560
 #: src/components/blog/PostsTable.tsx:318
 #: src/components/broadcasts/HeadersEditor.tsx:65
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:249
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:781
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:233
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:772
 #: src/components/contacts/ContactUpsertDrawer.tsx:539
 #: src/components/contacts/SegmentsFilter.tsx:149
 #: src/components/contacts/SegmentsFilter.tsx:164
@@ -14825,19 +14907,20 @@ msgstr "Yearly"
 #: src/components/messages/MessageHistoryTab.tsx:188
 #: src/components/messages/MessageHistoryTab.tsx:204
 #: src/components/settings/CustomFieldsConfiguration.tsx:213
-#: src/components/settings/Integrations.tsx:311
-#: src/components/settings/Integrations.tsx:353
-#: src/components/settings/Integrations.tsx:429
-#: src/components/settings/Integrations.tsx:448
-#: src/components/settings/Integrations.tsx:1348
-#: src/components/settings/Integrations.tsx:1507
-#: src/components/settings/Integrations.tsx:1576
+#: src/components/settings/Integrations.tsx:313
+#: src/components/settings/Integrations.tsx:355
+#: src/components/settings/Integrations.tsx:431
+#: src/components/settings/Integrations.tsx:450
+#: src/components/settings/Integrations.tsx:1438
+#: src/components/settings/Integrations.tsx:1597
+#: src/components/settings/Integrations.tsx:1666
+#: src/components/settings/Integrations.tsx:1730
 #: src/components/settings/WebhookCard.tsx:217
 #: src/components/settings/WebhookCard.tsx:273
 #: src/components/settings/WebhookCard.tsx:360
 #: src/components/settings/WorkspaceMembers.tsx:218
 #: src/components/settings/WorkspaceMembers.tsx:238
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:153
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:152
 #: src/components/web_analytics/filters/FilterTable.tsx:271
 msgid "Yes"
 msgstr "Yes"
@@ -14954,8 +15037,8 @@ msgid "You have unsaved changes"
 msgstr "You have unsaved changes"
 
 #: src/components/blog/PostDrawer.tsx:559
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:248
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:152
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:232
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:151
 msgid "You have unsaved changes. Are you sure you want to close this drawer?"
 msgstr "You have unsaved changes. Are you sure you want to close this drawer?"
 
@@ -14967,7 +15050,7 @@ msgstr "You have unsaved changes. Are you sure you want to close?"
 msgid "You have unsaved changes. Are you sure you want to close? Your changes will be lost."
 msgstr "You have unsaved changes. Are you sure you want to close? Your changes will be lost."
 
-#: src/components/settings/BlogSettings.tsx:278
+#: src/components/settings/BlogSettings.tsx:273
 msgid "You must configure a Custom Endpoint URL in General Settings above before enabling the blog."
 msgstr "You must configure a Custom Endpoint URL in General Settings above before enabling the blog."
 
@@ -14985,11 +15068,11 @@ msgstr "You're continuing a previous upload session of \"{fileName}\". The uploa
 msgid "You've been invited to join"
 msgstr "You've been invited to join"
 
-#: src/components/settings/Integrations.tsx:1026
+#: src/components/settings/Integrations.tsx:1094
 msgid "Your AWS credentials cannot create SES tenants. Grant ses:CreateTenant and ses:CreateTenantResourceAssociation, then save again."
 msgstr "Your AWS credentials cannot create SES tenants. Grant ses:CreateTenant and ses:CreateTenantResourceAssociation, then save again."
 
-#: src/components/settings/BlogSettings.tsx:499
+#: src/components/settings/BlogSettings.tsx:494
 msgid "Your blog settings have not been saved. Leaving this page discards them."
 msgstr "Your blog settings have not been saved. Leaving this page discards them."
 
@@ -15009,7 +15092,7 @@ msgstr "Your Notifuse instance has been successfully configured."
 msgid "Your web analytics settings have not been saved. Leaving this page discards them."
 msgstr "Your web analytics settings have not been saved. Leaving this page discards them."
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:616
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:607
 msgid "Your website or company name"
 msgstr "Your website or company name"
 
@@ -15021,16 +15104,15 @@ msgstr "Your workspace API email (the email associated with your API key)"
 msgid "Your workspace API key"
 msgstr "Your workspace API key"
 
-#: src/components/settings/GeneralSettings.tsx:326
+#: src/components/settings/GeneralSettings.tsx:330
 msgid "Your workspace settings have not been saved. Leaving this page discards them."
 msgstr "Your workspace settings have not been saved. Leaving this page discards them."
 
 #: src/components/settings/WebhookCard.tsx:203
-#: src/components/settings/ZapierSettings.tsx:139
 msgid "Zapier"
 msgstr "Zapier"
 
-#: src/components/settings/ZapierSettings.tsx:171
+#: src/components/settings/ZapierSettings.tsx:201
 msgid "Zapier API key"
 msgstr "Zapier API key"
 
@@ -15038,7 +15120,15 @@ msgstr "Zapier API key"
 msgid "Zapier created this webhook for one of your Zaps."
 msgstr "Zapier created this webhook for one of your Zaps."
 
-#: src/components/settings/WebhooksSettings.tsx:251
+#: src/components/settings/Integrations.tsx:1021
+msgid "Zapier integration saved successfully"
+msgstr "Zapier integration saved successfully"
+
+#: src/components/settings/Integrations.tsx:1000
+msgid "Zapier is connected, but the integration list could not be refreshed"
+msgstr "Zapier is connected, but the integration list could not be refreshed"
+
+#: src/components/settings/WebhooksSettings.tsx:261
 msgid "Zapier owns this webhook's endpoint URL, so it cannot be changed here. Changing the event types breaks the Zap that created this webhook without reporting any error in Zapier."
 msgstr "Zapier owns this webhook's endpoint URL, so it cannot be changed here. Changing the event types breaks the Zap that created this webhook without reporting any error in Zapier."
 

@@ -124,10 +124,51 @@ describe('WebhooksSettings', () => {
     expect(screen.queryByText('Managed by Zapier')).toBeNull()
   })
 
-  // webhookSubscriptions.update replaces the settings object rather than patching it, and the
-  // drawer renders no control for the list and segment filters. Saving without echoing them back
-  // therefore clears them on the server, widening a Zap that watched one list to every list in
-  // the workspace — with nothing in Zapier reporting the change.
+  // The drawer owns the custom event filters outright — it renders the controls and rebuilds
+  // the whole filter from them on every save — so "the controls are empty" is a removal and
+  // has to be sent as one. webhookSubscriptions.update keeps any filter the body does not
+  // name, and this drawer is the only place a user can remove these, so an absent key would
+  // leave the filter the user just cleared in place with nothing able to shift it.
+  it('sends an empty custom event filter when the user clears the last one', async () => {
+    vi.mocked(webhookSubscriptionApi.list).mockResolvedValue({
+      subscriptions: [
+        {
+          ...subscriptions[0],
+          settings: {
+            event_types: ['custom_event.created'],
+            custom_event_filters: { goal_types: ['purchase'] }
+          },
+          // The drawer seeds its controls from the flattened field, not from settings.
+          custom_event_filters: { goal_types: ['purchase'] }
+        }
+      ]
+    })
+    await renderSettings()
+
+    fireEvent.click(editButton(cardOf('My Own Webhook')))
+    // The two filter controls are the drawer's only antd Selects — event types are a
+    // Checkbox.Group — so the one removable tag on screen is the stored goal type.
+    const remove = await waitFor(() => {
+      const found = document.querySelectorAll('.ant-select-selection-item-remove')
+      expect(found).toHaveLength(1)
+      return found[0]
+    })
+    fireEvent.click(remove)
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+    await waitFor(() => expect(webhookSubscriptionApi.update).toHaveBeenCalled())
+    const sent = vi.mocked(webhookSubscriptionApi.update).mock.calls[0][0]
+    expect(sent.custom_event_filters).toEqual({})
+    // The value matters more than the key: an undefined survives `in` but not
+    // JSON.stringify, and the request body is what the server reads as silence.
+    expect(JSON.stringify(sent)).toContain('"custom_event_filters":{}')
+  })
+
+  // webhookSubscriptions.update patches the list and segment filters rather than replacing
+  // them, so omitting them is safe now — but the drawer renders no control for either, which
+  // means it has no value of its own to send and echoing back what it read is the honest
+  // request. It is also the second line of defence if that contract ever regresses: this is
+  // the save that would widen a Zap watching one list to every list in the workspace.
   it('preserves the list filter when a Zapier subscription is saved', async () => {
     await renderSettings()
 
@@ -155,5 +196,40 @@ describe('WebhooksSettings', () => {
     const sent = vi.mocked(webhookSubscriptionApi.update).mock.calls[0][0]
     expect(sent.list_ids).toBeUndefined()
     expect(sent.segment_ids).toBeUndefined()
+  })
+
+  // enabled is the one key webhookSubscriptions.update patches rather than replaces: an absent
+  // one keeps whatever the subscription is currently set to. The drawer renders no switch, so
+  // anything it sends is the value read when the drawer opened - and toMatchObject cannot tell
+  // an absent key from a matching one, which is why these assert on the key itself.
+  it('sends no enabled flag when an enabled subscription is saved', async () => {
+    await renderSettings()
+
+    fireEvent.click(editButton(cardOf('My Own Webhook')))
+    await waitFor(() =>
+      expect(screen.getByPlaceholderText('https://example.com/webhook')).toBeEnabled()
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+    await waitFor(() => expect(webhookSubscriptionApi.update).toHaveBeenCalled())
+    // Echoing the snapshot back re-enables a subscription somebody switched off from the card
+    // while the drawer sat open, and a re-enable wipes the failure counters on the way through.
+    expect('enabled' in vi.mocked(webhookSubscriptionApi.update).mock.calls[0][0]).toBe(false)
+  })
+
+  it('sends no enabled flag when a disabled subscription is saved', async () => {
+    vi.mocked(webhookSubscriptionApi.list).mockResolvedValue({
+      subscriptions: [{ ...subscriptions[0], enabled: false }]
+    })
+    await renderSettings()
+
+    fireEvent.click(editButton(cardOf('My Own Webhook')))
+    await waitFor(() =>
+      expect(screen.getByPlaceholderText('https://example.com/webhook')).toBeEnabled()
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+    await waitFor(() => expect(webhookSubscriptionApi.update).toHaveBeenCalled())
+    expect('enabled' in vi.mocked(webhookSubscriptionApi.update).mock.calls[0][0]).toBe(false)
   })
 })

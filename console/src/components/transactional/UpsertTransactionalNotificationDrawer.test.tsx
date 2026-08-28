@@ -211,6 +211,38 @@ describe('UpsertTransactionalNotificationDrawer tracking mode', () => {
     expect(payload.updates.tracking_settings.tracking_mode).toBe('disabled')
   })
 
+  it('leaves metadata out of the payload entirely', async () => {
+    // Metadata is not editable in this drawer, and the server preserves what it
+    // already stores when the key is absent. Sending the key - even holding
+    // undefined - claims the drawer has a value for it, which it never has.
+    renderDrawer(
+      <UpsertTransactionalNotificationDrawer
+        workspace={workspace}
+        notification={makeNotification(undefined, { metadata: { campaign_id: 'welcome-series' } })}
+      />
+    )
+    await userEvent.click(screen.getByRole('button', { name: /Edit Notification/i }))
+
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+    await waitFor(() => expect(transactionalNotificationsApi.update).toHaveBeenCalled())
+    const payload = (transactionalNotificationsApi.update as ReturnType<typeof vi.fn>).mock
+      .calls[0][0]
+    expect('metadata' in payload.updates).toBe(false)
+  })
+
+  it('leaves metadata out of the create payload entirely', async () => {
+    await openCreateDrawer()
+    await fillRequiredFields()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+    await waitFor(() => expect(transactionalNotificationsApi.create).toHaveBeenCalled())
+    const payload = (transactionalNotificationsApi.create as ReturnType<typeof vi.fn>).mock
+      .calls[0][0]
+    expect('metadata' in payload.notification).toBe(false)
+  })
+
   it('omits channels from updates of integration-managed notifications', async () => {
     // The server rejects any channels value on integration-managed notifications,
     // so the drawer must leave it out while still sending the tracking preference.

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { api } from './client'
+import { ApiError } from './errors'
 import { workspaceService, type CreateAPIKeyRequest } from './workspace'
 import {
   ALL_PERMISSION_RESOURCES,
@@ -60,9 +61,12 @@ describe('workspaceService.createAPIKey', () => {
   })
 
   it('carries a narrow integration scope through untouched', async () => {
-    // A narrow grant is still a complete map with three resources switched on — exactly what the
-    // Zapier screen builds. Naming only the three would be a different request: the server denies
-    // whatever a scope leaves out, so a short map is indistinguishable from a deliberate denial.
+    // A narrow grant is still a complete map with only a few resources switched on. The scope
+    // below is an illustration, not a copy of anything canonical: the one grant the console used
+    // to build here — a Zapier key's — is chosen server-side now by domain.ZapierKeyPermissions
+    // and never travels through this request at all. Naming only the granted resources would be
+    // a different request: the server denies whatever a scope leaves out, so a short map is
+    // indistinguishable from a deliberate denial.
     const permissions = createEmptyPermissions()
     permissions.contacts = { read: true, write: true }
     permissions.lists = { read: true, write: true }
@@ -79,6 +83,60 @@ describe('workspaceService.createAPIKey', () => {
     // Nothing is trimmed on the way out: a denied resource has to reach the wire as an explicit
     // `false`, not by being dropped from the body.
     expect(Object.keys(sent).sort()).toEqual([...ALL_PERMISSION_RESOURCES].sort())
+  })
+})
+
+describe('workspaceService.connectZapier', () => {
+  const connected = {
+    status: 'success',
+    token: 'tok',
+    email: 'zapier-marketing-3f9a1c02@api.example.com',
+    integration_id: '11111111-2222-3333-4444-555555555555'
+  }
+
+  it('posts the workspace and label, and hands back the one-time token', async () => {
+    vi.mocked(api.post).mockResolvedValue(connected)
+
+    const response = await workspaceService.connectZapier({
+      workspace_id: 'ws1',
+      label: 'Marketing'
+    })
+
+    expect(vi.mocked(api.post).mock.calls[0][0]).toBe('/api/workspaces.connectZapier')
+    expect(sentBody()).toEqual({ workspace_id: 'ws1', label: 'Marketing' })
+    expect(response).toEqual(connected)
+  })
+
+  it('sends no permission scope, because the grant is the server to choose', async () => {
+    vi.mocked(api.post).mockResolvedValue(connected)
+
+    await workspaceService.connectZapier({ workspace_id: 'ws1', label: 'Marketing' })
+
+    // The console used to mint the key itself through createAPIKey and hand it a scope it built
+    // locally. It cannot any more: an extra key in this body is ignored, so a scope smuggled in
+    // here would silently look like it applied.
+    expect('permissions' in sentBody()).toBe(false)
+  })
+
+  it('trims the label before sending it', async () => {
+    vi.mocked(api.post).mockResolvedValue(connected)
+
+    await workspaceService.connectZapier({ workspace_id: 'ws1', label: '  Marketing  ' })
+
+    // The server takes the label verbatim as the card's name and accepts a blank-looking one,
+    // so an untrimmed "   " persists as a card with nothing to read.
+    expect(sentBody().label).toBe('Marketing')
+  })
+
+  it('lets an address collision reach the caller', async () => {
+    // users.email is unique deployment-wide, so the server can still 409 after its own retries.
+    // The screen has to say so; swallowing it here would leave the drawer looking successful.
+    const conflict = new ApiError('api key email already in use', 409)
+    vi.mocked(api.post).mockRejectedValue(conflict)
+
+    await expect(
+      workspaceService.connectZapier({ workspace_id: 'ws1', label: 'Marketing' })
+    ).rejects.toBe(conflict)
   })
 })
 

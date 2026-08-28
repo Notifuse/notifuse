@@ -1305,3 +1305,99 @@ func TestContactHandler_HandleList_ErrorsAreJSON(t *testing.T) {
 		})
 	}
 }
+
+// TestContactHandler_AuthenticationFailureStatus pins the status codes an
+// integration reads to decide what to do next. contacts.upsert and contacts.import
+// both report a refusal inside their response struct rather than through an error
+// return, so the typed error rides on Err and only Err can be matched — the string
+// in Error carries no type.
+//
+// The 401 is the one that matters most: an integration platform prompts its user to
+// reconnect on 401 and gives up on anything else, so a revoked key answering with
+// the handler's catch-all status stopped the automation with a generic failure and
+// never surfaced the reconnect. The wrapped errors mirror how the service reports
+// them, which also pins that the mapping still matches through the wrap.
+func TestContactHandler_AuthenticationFailureStatus(t *testing.T) {
+	const workspaceID = "workspace123"
+
+	authErrors := []struct {
+		name            string
+		err             error
+		expectedStatus  int
+		expectedMessage string
+	}{
+		{
+			name:            "revoked api key",
+			err:             fmt.Errorf("api key has been revoked: %w", domain.ErrAPIKeyRevoked),
+			expectedStatus:  http.StatusUnauthorized,
+			expectedMessage: "API key has been revoked",
+		},
+		{
+			name:            "not a member",
+			err:             fmt.Errorf("failed to get user workspace: %w", domain.ErrUserNotInWorkspace),
+			expectedStatus:  http.StatusForbidden,
+			expectedMessage: "You do not have access to this workspace",
+		},
+		{
+			name:            "unknown workspace",
+			err:             fmt.Errorf("failed to get workspace: %w", &domain.ErrWorkspaceNotFound{WorkspaceID: workspaceID}),
+			expectedStatus:  http.StatusNotFound,
+			expectedMessage: "Workspace not found",
+		},
+	}
+
+	endpoints := []struct {
+		name      string
+		body      string
+		setupMock func(m *mocks.MockContactService, authErr error)
+		serve     func(h *ContactHandler, w http.ResponseWriter, r *http.Request)
+	}{
+		{
+			name: "contacts.upsert",
+			body: `{"workspace_id":"workspace123","contact":{"email":"contact1@example.com"}}`,
+			setupMock: func(m *mocks.MockContactService, authErr error) {
+				m.EXPECT().UpsertContact(gomock.Any(), workspaceID, gomock.Any()).
+					Return(domain.UpsertContactOperation{
+						Email:  "contact1@example.com",
+						Action: domain.UpsertContactOperationError,
+						Error:  authErr.Error(),
+						Err:    authErr,
+					})
+			},
+			serve: func(h *ContactHandler, w http.ResponseWriter, r *http.Request) { h.handleUpsert(w, r) },
+		},
+		{
+			name: "contacts.import",
+			body: `{"workspace_id":"workspace123","contacts":[{"email":"contact1@example.com"}]}`,
+			setupMock: func(m *mocks.MockContactService, authErr error) {
+				m.EXPECT().BatchImportContacts(gomock.Any(), workspaceID, gomock.Any(), gomock.Any()).
+					Return(&domain.BatchImportContactsResponse{
+						Error: fmt.Sprintf("failed to authenticate user: %v", authErr),
+						Err:   authErr,
+					})
+			},
+			serve: func(h *ContactHandler, w http.ResponseWriter, r *http.Request) { h.handleImport(w, r) },
+		},
+	}
+
+	for _, endpoint := range endpoints {
+		for _, authErr := range authErrors {
+			t.Run(endpoint.name+"/"+authErr.name, func(t *testing.T) {
+				mockService, _, handler := setupContactHandlerTest(t)
+				endpoint.setupMock(mockService, authErr.err)
+
+				req := httptest.NewRequest(http.MethodPost, "/api/"+endpoint.name, bytes.NewReader([]byte(endpoint.body)))
+				req.Header.Set("Content-Type", "application/json")
+
+				rr := httptest.NewRecorder()
+				endpoint.serve(handler, rr, req)
+
+				assert.Equal(t, authErr.expectedStatus, rr.Code)
+
+				var response map[string]interface{}
+				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				assert.Equal(t, authErr.expectedMessage, response["error"])
+			})
+		}
+	}
+}

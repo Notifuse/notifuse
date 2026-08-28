@@ -9,16 +9,22 @@ import {
 } from '@ant-design/icons'
 import { useLingui } from '@lingui/react/macro'
 
-export type SettingsSection =
-  | 'team'
-  | 'integrations'
-  | 'webhooks'
-  | 'custom-fields'
-  | 'smtp-bridge'
-  | 'general'
-  | 'blog'
-  | 'web-analytics'
-  | 'danger-zone'
+// The menu keys are cast to SettingsSection on click, so a stale key here reaches the router
+// unchallenged. Keeping the sections as a runtime value lets a test walk the rendered menu and
+// catch that; the type is derived from it so the two can never drift.
+export const SETTINGS_SECTIONS = [
+  'team',
+  'integrations',
+  'webhooks',
+  'custom-fields',
+  'smtp-bridge',
+  'general',
+  'blog',
+  'web-analytics',
+  'danger-zone'
+] as const
+
+export type SettingsSection = (typeof SETTINGS_SECTIONS)[number]
 
 interface SettingsSidebarProps {
   activeSection: SettingsSection

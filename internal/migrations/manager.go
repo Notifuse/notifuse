@@ -17,6 +17,10 @@ import (
 // ErrRestartRequired is returned when a migration requires a server restart
 var ErrRestartRequired = errors.New("migration completed successfully - server restart required")
 
+// ErrDatabaseAheadOfCode is returned when the database carries a version stamp
+// higher than the running build's, i.e. it was migrated by a newer build.
+var ErrDatabaseAheadOfCode = errors.New("database was migrated by a newer build")
+
 // workspaceConnector interface for connecting to workspace databases
 type workspaceConnector interface {
 	connectToWorkspace(cfg *config.DatabaseConfig, workspaceID string) (*sql.DB, error)
@@ -136,8 +140,35 @@ func (m *Manager) RunMigrations(ctx context.Context, cfg *config.Config, db *sql
 		WithField("code_version", fmt.Sprintf("%.0f", currentCodeVersion)).
 		Info("Version comparison")
 
+	// The database is stamped HIGHER than this build. Deploys go backwards more
+	// often than anyone plans for: a rollback to the previous image, a standby
+	// promoted while it still carries the newer schema, a dump restored into an
+	// older install. This used to fall into the >= check below and be reported
+	// "up to date", which is the one answer that is certainly wrong — the newer
+	// build's migrations have run here and this build does not contain them, so
+	// it would serve traffic against a schema it was never compiled against.
+	//
+	// And the damage outlives the mistake. The stamp is a single scalar and the
+	// dispatcher below only ever selects migrationVersion > currentDBVersion, so
+	// every migration between the two numbers is skipped forever — including
+	// once the code catches up, at which point the gap is invisible and the
+	// database reports itself fully migrated while missing schema it never ran.
+	//
+	// Fatal rather than a logged refusal, deliberately: this error reaches
+	// app.InitDB -> app.Initialize -> runServer, which calls logger.Fatal, so
+	// the process refuses to start. There is no down-migration to recover with,
+	// which means the only fixes are human — redeploy the newer build, or
+	// restore a database matching this one — and a server that booted anyway
+	// would be writing to the mismatched schema for as long as the operator
+	// takes to find them. Refusing to start costs an outage that is already
+	// underway; booting costs data nobody can un-write.
+	if currentDBVersion > currentCodeVersion {
+		return fmt.Errorf("%w: database is at version %.0f, this build is version %.0f - refusing to start; deploy a build at version %.0f or newer, or restore a database stamped %.0f or lower",
+			ErrDatabaseAheadOfCode, currentDBVersion, currentCodeVersion, currentDBVersion, currentCodeVersion)
+	}
+
 	// Check if migrations are needed
-	if currentDBVersion >= currentCodeVersion {
+	if currentDBVersion == currentCodeVersion {
 		m.logger.Info("Database is up to date, no migrations needed")
 		return nil
 	}

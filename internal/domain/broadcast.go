@@ -438,14 +438,13 @@ func (b *Broadcast) Validate() error {
 // CreateBroadcastRequest defines the request to create a new broadcast.
 // Note: Scheduling must be done via the ScheduleBroadcastRequest after creation.
 type CreateBroadcastRequest struct {
-	WorkspaceID     string                `json:"workspace_id"`
-	Name            string                `json:"name"`
-	Audience        AudienceSettings      `json:"audience"`
-	TestSettings    BroadcastTestSettings `json:"test_settings"`
-	TrackingEnabled bool                  `json:"tracking_enabled"`
-	UTMParameters   *UTMParameters        `json:"utm_parameters,omitempty"`
-	Metadata        MapOfAny              `json:"metadata,omitempty"`
-	DataFeed        *DataFeedSettings     `json:"data_feed,omitempty"`
+	WorkspaceID   string                `json:"workspace_id"`
+	Name          string                `json:"name"`
+	Audience      AudienceSettings      `json:"audience"`
+	TestSettings  BroadcastTestSettings `json:"test_settings"`
+	UTMParameters *UTMParameters        `json:"utm_parameters,omitempty"`
+	Metadata      MapOfAny              `json:"metadata,omitempty"`
+	DataFeed      *DataFeedSettings     `json:"data_feed,omitempty"`
 }
 
 // Validate validates the create broadcast request
@@ -471,18 +470,86 @@ func (r *CreateBroadcastRequest) Validate() (*Broadcast, error) {
 	return broadcast, nil
 }
 
-// UpdateBroadcastRequest defines the request to update an existing broadcast
+// UpdateBroadcastRequest defines the request to update an existing broadcast.
+//
+// The endpoint is a patch: a body that omits a key leaves the stored value alone. That
+// matters because every optional field here has a meaningful zero value. An absent
+// test_settings would unhook the variations that carry the broadcast's templates, and
+// Broadcast.Validate only inspects variations when the A/B test is enabled, so nothing
+// would object. An absent schedule would clear is_scheduled, which a resume reads to
+// choose between restoring the schedule and sending right now.
+//
+// The audience is a patch too, key by key rather than as a whole. Broadcast.Validate
+// looks only at its list, so a body naming just that one — a supported way to retarget a
+// broadcast — passes while dropping the stored segments and resetting
+// exclude_unsubscribed, which widens the next send to the whole list, unsubscribed
+// contacts included.
+//
+// A nil pointer or map is already a faithful "absent" for utm_parameters and metadata,
+// but AudienceSettings, ScheduleSettings and BroadcastTestSettings are plain structs
+// whose zero value is itself a legitimate payload, so their presence is recorded at
+// decode time instead.
 type UpdateBroadcastRequest struct {
-	WorkspaceID     string                `json:"workspace_id"`
-	ID              string                `json:"id"`
-	Name            string                `json:"name"`
-	Audience        AudienceSettings      `json:"audience"`
-	Schedule        ScheduleSettings      `json:"schedule"`
-	TestSettings    BroadcastTestSettings `json:"test_settings"`
-	TrackingEnabled bool                  `json:"tracking_enabled"`
-	UTMParameters   *UTMParameters        `json:"utm_parameters,omitempty"`
-	Metadata        MapOfAny              `json:"metadata,omitempty"`
-	DataFeed        *DataFeedSettings     `json:"data_feed,omitempty"`
+	WorkspaceID   string                `json:"workspace_id"`
+	ID            string                `json:"id"`
+	Name          string                `json:"name"`
+	Audience      AudienceSettings      `json:"audience"`
+	Schedule      ScheduleSettings      `json:"schedule"`
+	TestSettings  BroadcastTestSettings `json:"test_settings"`
+	UTMParameters *UTMParameters        `json:"utm_parameters,omitempty"`
+	Metadata      MapOfAny              `json:"metadata,omitempty"`
+	DataFeed      *DataFeedSettings     `json:"data_feed,omitempty"`
+
+	// Written by UnmarshalJSON only. A request assembled in Go has no wire body to read
+	// presence from, so these stay false and every field is applied — what a caller
+	// filling the struct in by hand means.
+	scheduleOmitted     bool
+	testSettingsOmitted bool
+
+	// The audience is recorded one key at a time: its own keys are what a client patches,
+	// and each carries a separate decision about who the send reaches.
+	audienceListOmitted                bool
+	audienceSegmentsOmitted            bool
+	audienceExcludeUnsubscribedOmitted bool
+}
+
+// UnmarshalJSON decodes the request and records which patch keys the body actually
+// carried, so Validate can tell an omitted schedule, test_settings or audience key from
+// one the client deliberately sent as zero.
+//
+// A null counts as omitted throughout: there is no schedule, no set of test settings and
+// no audience key a null could have meant, so it can only be a serializer writing out an
+// absent optional.
+func (r *UpdateBroadcastRequest) UnmarshalJSON(data []byte) error {
+	// The alias drops the methods, so this does not recurse.
+	type alias UpdateBroadcastRequest
+	if err := json.Unmarshal(data, (*alias)(r)); err != nil {
+		return err
+	}
+
+	var sent map[string]json.RawMessage
+	if err := json.Unmarshal(data, &sent); err != nil {
+		return err
+	}
+
+	r.scheduleOmitted = jsonKeyOmitted(sent, "schedule")
+	r.testSettingsOmitted = jsonKeyOmitted(sent, "test_settings")
+
+	// An absent or null audience leaves no keys behind, so every one of them reads as
+	// omitted and the stored audience stands whole. The decode above has already accepted
+	// the value as an object or a null, so nothing else can be in there.
+	var audience map[string]json.RawMessage
+	if !jsonKeyOmitted(sent, "audience") {
+		if err := json.Unmarshal(sent["audience"], &audience); err != nil {
+			return err
+		}
+	}
+
+	r.audienceListOmitted = jsonKeyOmitted(audience, "list")
+	r.audienceSegmentsOmitted = jsonKeyOmitted(audience, "segments")
+	r.audienceExcludeUnsubscribedOmitted = jsonKeyOmitted(audience, "exclude_unsubscribed")
+
+	return nil
 }
 
 // Validate validates the update broadcast request
@@ -502,22 +569,67 @@ func (r *UpdateBroadcastRequest) Validate(existingBroadcast *Broadcast) (*Broadc
 		return nil, fmt.Errorf("cannot update broadcast with status: %s", existingBroadcast.Status)
 	}
 
-	// Update the existing broadcast
+	// Update the existing broadcast. Name is required by Broadcast.Validate below, so an
+	// omitted one is rejected rather than written through; the rest are optional and keep
+	// their stored value when the request left them out — see the type comment for what
+	// each zero value would otherwise destroy.
 	existingBroadcast.Name = r.Name
-	existingBroadcast.Audience = r.Audience
-	existingBroadcast.Schedule = r.Schedule
-	existingBroadcast.TestSettings = r.TestSettings
-	existingBroadcast.UTMParameters = r.UTMParameters
-	existingBroadcast.Metadata = r.Metadata
+
+	// The audience is merged a key at a time, because each of its keys is a separate
+	// decision about who the next send reaches and only the list is one Validate would
+	// object to losing. Every key stays writable: a list retargets, an empty segments
+	// array widens back to the whole list, and an explicit false switches the
+	// unsubscribed exclusion off.
+	if !r.audienceListOmitted {
+		existingBroadcast.Audience.List = r.Audience.List
+	}
+	if !r.audienceSegmentsOmitted {
+		existingBroadcast.Audience.Segments = r.Audience.Segments
+	}
+	if !r.audienceExcludeUnsubscribedOmitted {
+		existingBroadcast.Audience.ExcludeUnsubscribed = r.Audience.ExcludeUnsubscribed
+	}
+
+	if !r.scheduleOmitted {
+		existingBroadcast.Schedule = r.Schedule
+	}
+
+	if !r.testSettingsOmitted {
+		existingBroadcast.TestSettings = r.TestSettings
+	}
+
+	if r.UTMParameters != nil {
+		existingBroadcast.UTMParameters = r.UTMParameters
+	}
+
+	if r.Metadata != nil {
+		existingBroadcast.Metadata = r.Metadata
+	}
 
 	// Handle data_feed update - preserve fetched data if only updating settings
 	if r.DataFeed != nil {
 		if existingBroadcast.DataFeed == nil {
 			existingBroadcast.DataFeed = r.DataFeed
 		} else {
-			// Preserve GlobalFeedData and GlobalFeedFetchedAt from existing broadcast
+			// Preserve GlobalFeedData and GlobalFeedFetchedAt from existing broadcast:
+			// the payload belongs to the broadcast, and a client editing feed settings
+			// never sends it back.
 			existingGlobalFeedData := existingBroadcast.DataFeed.GlobalFeedData
 			existingGlobalFeedFetchedAt := existingBroadcast.DataFeed.GlobalFeedFetchedAt
+
+			// Except on the save that switches a live feed off. A disabled feed carrying
+			// data is a supported shape — that is how a client supplies its own payload
+			// instead of asking for a fetch — so the send path injects the payload on the
+			// strength of the data alone, and no further fetch will ever replace it. This
+			// transition is the only moment the response left behind can be dropped;
+			// keying on the incoming Enabled alone would instead wipe the payload of a
+			// broadcast that was already in supply-your-own-data mode.
+			globalFeedWasEnabled := existingBroadcast.DataFeed.GlobalFeed != nil &&
+				existingBroadcast.DataFeed.GlobalFeed.Enabled
+			if globalFeedWasEnabled && r.DataFeed.GlobalFeed != nil && !r.DataFeed.GlobalFeed.Enabled {
+				existingGlobalFeedData = nil
+				existingGlobalFeedFetchedAt = nil
+			}
 
 			// Update feed settings from request
 			if r.DataFeed.GlobalFeed != nil {

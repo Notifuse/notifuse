@@ -96,6 +96,13 @@ func (s *CustomEventService) UpsertEvent(ctx context.Context, req *domain.Upsert
 		return nil, domain.NewValidationError(fmt.Sprintf("invalid custom event: %s", err.Error()))
 	}
 
+	// A soft-delete has to read the row before hiding it: GetByID filters deleted
+	// rows out, so once the write lands there is nothing left to describe.
+	var rowBeforeDeletion *domain.CustomEvent
+	if req.DeletedAt != nil {
+		rowBeforeDeletion, _ = s.repo.GetByID(ctx, req.WorkspaceID, req.EventName, req.ExternalID)
+	}
+
 	if err := s.repo.Upsert(ctx, req.WorkspaceID, event); err != nil {
 		s.logger.WithFields(map[string]interface{}{
 			"error":      err.Error(),
@@ -117,7 +124,49 @@ func (s *CustomEventService) UpsertEvent(ctx context.Context, req *domain.Upsert
 		"action":       action,
 	}).Info("Custom event " + action + " successfully")
 
-	return event, nil
+	return s.describeStoredEvent(ctx, req, event, rowBeforeDeletion), nil
+}
+
+// describeStoredEvent answers with the row the upsert left behind rather than with
+// the request that produced it. The two part company on any partial write: the
+// ON CONFLICT clause keeps the properties, integration link and goal fields a body
+// left out, never moves a row's source, and discards a write whose occurred_at is
+// not newer than the stored one — equal counts as not newer, so a body repeating
+// the stored timestamp changes nothing while still answering 200. Echoing the request would put "properties": null in a
+// 200 body over a row that still holds them — and null is also how this endpoint
+// reads "say nothing about properties", so the caller could not even send the
+// response back to reconcile.
+func (s *CustomEventService) describeStoredEvent(
+	ctx context.Context,
+	req *domain.UpsertCustomEventRequest,
+	written *domain.CustomEvent,
+	rowBeforeDeletion *domain.CustomEvent,
+) *domain.CustomEvent {
+	if req.DeletedAt == nil {
+		stored, err := s.repo.GetByID(ctx, req.WorkspaceID, req.EventName, req.ExternalID)
+		if err == nil && stored != nil {
+			return stored
+		}
+		s.logger.WithFields(map[string]interface{}{
+			"event_name":  req.EventName,
+			"external_id": req.ExternalID,
+		}).Warn("Custom event written but not readable back; answering from the request")
+	}
+
+	// The write succeeded, so what is left is describing it without the row in
+	// hand. Only the two things a caller cannot state come from the read taken
+	// beforehand; everything else is what the request said it was.
+	if rowBeforeDeletion != nil {
+		if written.Properties == nil {
+			written.Properties = rowBeforeDeletion.Properties
+		}
+		written.Source = rowBeforeDeletion.Source
+	}
+	if written.Properties == nil {
+		// Nothing stored to preserve, so the row went in carrying an empty object.
+		written.Properties = map[string]interface{}{}
+	}
+	return written
 }
 
 func (s *CustomEventService) ImportEvents(ctx context.Context, req *domain.ImportCustomEventsRequest) ([]string, error) {
@@ -158,9 +207,10 @@ func (s *CustomEventService) ImportEvents(ctx context.Context, req *domain.Impor
 		if event.Source == "" {
 			event.Source = "api"
 		}
-		if event.Properties == nil {
-			event.Properties = make(map[string]interface{})
-		}
+		// Properties stays nil when the import entry omitted it: the batch writes
+		// through the same ON CONFLICT clause as the single upsert, so filling in
+		// an empty map here would empty the state of every event the import
+		// re-mentions without restating its properties.
 
 		if err := event.Validate(); err != nil {
 			return nil, domain.NewValidationError(fmt.Sprintf("invalid event at index %d: %s", i, err.Error()))

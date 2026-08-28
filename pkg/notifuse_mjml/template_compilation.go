@@ -655,6 +655,27 @@ func GenerateEmailRedirectionEndpoint(workspaceID string, messageID string, apiE
 // GenerateHTMLOpenTrackingPixel generates the HTML for the open tracking pixel.
 // Uses encrypted path tokens (/t/{token}) to avoid pixel blocker detection.
 // Falls back to legacy query params (/opens?mid=...) if encryption fails.
+//
+// The markup has to collapse to nothing, and that takes more than a small image.
+// An <img> is inline, so it sits on a text baseline and the cell holding it takes
+// a whole line box — around 19px at the default font size — however small the
+// image is. width="1" height="1" never helped: it describes the image, not the
+// line the image sits on. So the pixel left an empty row under the footer, which
+// is what Outlook scrolls a few millimetres past.
+//
+// display:block takes the image off the baseline; the zeroed line-height and
+// font-size collapse the line box for clients that honour only one of the two;
+// mso-line-height-rule makes the Word engine behind Outlook read the zero
+// line-height as exact rather than as a minimum.
+//
+// Both declaration lists are copied from gomjml's own output rather than invented
+// — the cell matches an MJML spacer row and the image matches an mj-image, minus
+// its sizing, so the row reads as ordinary structural markup. Copying mj-image's
+// sizing too would be a mistake: width:100%;height:auto on a 1x1 source keeps the
+// aspect ratio and blows the pixel up to the full body width, squared.
+//
+// The collapse stays in CSS because width/height attributes are the fingerprint
+// pixel blockers match on.
 func GenerateHTMLOpenTrackingPixel(workspaceID string, messageID string, apiEndpoint string, sentTimestamp int64) string {
 	// Try encrypted format: /t/{token}
 	plaintext := fmt.Sprintf("%s\n%s\n%d", messageID, workspaceID, sentTimestamp)
@@ -669,7 +690,7 @@ func GenerateHTMLOpenTrackingPixel(workspaceID string, messageID string, apiEndp
 		pixelURL = fmt.Sprintf("%s/opens?mid=%s&wid=%s&ts=%d",
 			apiEndpoint, encodedMID, encodedWID, sentTimestamp)
 	}
-	return fmt.Sprintf(`<table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%%"><tr><td><img src="%s" alt="" style="border:0;margin:0;padding:0;"></td></tr></table>`, pixelURL)
+	return fmt.Sprintf(`<table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%%"><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><img src="%s" alt="" style="border:0;display:block;outline:none;text-decoration:none;"></td></tr></table>`, pixelURL)
 }
 
 // CompileTemplate compiles a visual editor tree to MJML and HTML

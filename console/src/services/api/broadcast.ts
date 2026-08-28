@@ -157,20 +157,25 @@ export interface CreateBroadcastRequest {
   audience: AudienceSettings
   schedule: ScheduleSettings
   test_settings: BroadcastTestSettings
-  tracking_enabled?: boolean
   utm_parameters?: UTMParameters
   metadata?: Record<string, unknown>
   data_feed?: DataFeedSettings
 }
 
+// broadcasts.update is a patch: a key this request does not carry leaves the stored value
+// alone, which is why schedule is optional here and required on the create above.
 export interface UpdateBroadcastRequest {
   workspace_id: string
   id: string
   name: string
   audience: AudienceSettings
-  schedule: ScheduleSettings
+  // Optional because the edit drawer deliberately never sends it: it renders no date control,
+  // so the only schedule it could build is the empty default — and that unbooks a scheduled
+  // broadcast, after which resuming it sends at once. Booking is done from the send-or-schedule
+  // modal, through broadcasts.schedule. Typing it as required only forced the drawer to cast
+  // the key away, which is how a required field ends up being the one nobody sends.
+  schedule?: ScheduleSettings
   test_settings: BroadcastTestSettings
-  tracking_enabled?: boolean
   utm_parameters?: UTMParameters
   metadata?: Record<string, unknown>
   data_feed?: DataFeedSettings

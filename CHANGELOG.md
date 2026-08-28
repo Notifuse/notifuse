@@ -4,23 +4,33 @@ All notable changes to this project will be documented in this file.
 
 ## [39.0] - 2026-08-18
 
+- **Feature**: Zapier. Settings → Integrations lists Zapier beside your other connectors, and connecting it creates an API key scoped to just what a Zap needs. From there a Zap can react to what happens in Notifuse — a contact created, a list subscribed to, a segment a contact entered — or reach the other way and create contacts, update them and subscribe them to your lists. Each Zap you switch on registers its own webhook subscription, which appears in Settings → Webhooks marked as Zapier's; switching the Zap off in Zapier removes it for you. Deleting the Zapier integration revokes the key it created, so the Zaps using it stop.
+
+- **Fix** (direct API usage only — the console sends every field its forms own): Endpoints no longer clear the fields your request left out. A call naming only a name could blank a broadcast's schedule and audience targeting, an integration's credentials, a notification's channels, an automation's workflow, a blog theme's files or a workspace's file-storage settings. They patch now: omit and the stored value stands, send and it replaces, send empty and it clears. `lists.update` is the exception — an omitted or null `is_double_optin` or `is_public` answers 400 instead of guessing, because turning off confirmed opt-in is a consent change.
+
+- **Fix**: Four fields the console dropped on save. Editing a webhook subscription switched it off and deliveries stopped silently; saving system settings blanked the OIDC redirect URI, breaking proxied SSO callbacks; saving a template detached the integration that owned it, which no API call could undo; and unchecking a broadcast's data feed left it running.
+
 - **Feature**: A webhook subscription can be scoped to particular lists or segments. List and segment events previously reached every subscription watching that event type, whichever list or segment they concerned, leaving the filtering to whatever received them. Naming the lists or segments you care about now keeps the rest from being sent at all. Leave it unset and the subscription keeps receiving everything, exactly as before.
 
 - **Fix**: A webhook subscription's signing secret is no longer handed out by editing it. The secret is owner-only, but renaming a subscription — or simply switching it off and back on — answered with the whole subscription, secret included, to any member holding webhook write permission. It is now returned only when a subscription is created or its secret deliberately rotated, which remain the two moments you are meant to copy it.
+
+- **Improvement**: Outbound webhooks are now safe on more than one instance. Notifuse is designed to run as a single instance, and a second one would pick up the same queued deliveries independently, so a receiver saw the same event two or three times with nothing to tell the copies apart. A delivery is now claimed by one instance before it is sent, so running several no longer duplicates them. Receivers that built their own duplicate filtering can keep it; it will simply stop firing.
+
+- **Improvement**: `tracking_enabled` has been removed from the broadcast create and update endpoints. Nothing ever read it — email tracking is a workspace-level setting — so clients sending it were being answered with success and no effect. Drop it from your requests; tracking itself is unchanged.
 
 - **Improvement**: Outbound webhooks stop hammering an endpoint that has stopped answering. A subscription whose deliveries keep failing is now switched off automatically and records why, so a webhook you find disabled can be told apart from one you disabled yourself, and an endpoint replying "410 Gone" is retired at once. Retiring one takes sustained failure rather than a burst: a receiver that is briefly unreachable during an import is retried, not switched off, however many deliveries it refuses in that moment. Switching a subscription back on clears its failure history. Deleting a subscription now also clears the deliveries still queued for it, which previously lingered for the whole retention window and crowded out live traffic.
 
 - **Improvement**: `contacts.upsert` and `lists.subscribe` now report what they did. Upsert returns the stored contact as it ended up after the merge, and subscribe returns one entry per requested list with the membership status it landed in — which double opt-in, an earlier unsubscribe or a bounced address can each decide for you. Both are additions; the fields existing clients already read are unchanged.
 
+- **Fix**: `customEvents.upsert` no longer relabels an event's origin. A later write always stamped its own source over the stored one, so an event bridged in from Web Analytics became API-sourced the first time any call touched it — and because the outbound-webhook trigger excludes analytics events by reading that same field, those rows then started fanning out to third-party webhook subscribers. A write now leaves an origin it was not asked to change.
+
+- **Improvement**: `customEvents.upsert` answers with the event as stored rather than with the request you sent. The write keeps the fields your body left out and discards a write whose `occurred_at` is not newer than the one already recorded, so the request was never a reliable description of what the row ended up holding.
+
 - **Improvement**: `segments.contacts` can return whole contact records instead of email addresses alone, most recently joined first, so building on a segment no longer costs a lookup per address. Pass `expand=contact` to ask for it; without it the endpoint answers exactly as before.
 
-- **Improvement**: The contact, list, segment and webhook endpoints that still refused a request with a server error now answer "forbidden" and name the missing permission, finishing what 39.0 began.
+- **Improvement**: `contacts.upsert` and `contacts.import` accept any JSON value in a `custom_json_*` field. They refused anything that was not an object or an array, while `lists.subscribe` stored the same value happily — so the same contact body succeeded through one endpoint and failed with a 400 through another.
 
-- **Fix**: `contacts.upsert` and `contacts.import` accept any JSON value in a `custom_json_*` field. They refused anything that was not an object or an array, while `lists.subscribe` stored the same value happily — so the same contact body succeeded through one endpoint and failed with a 400 through another.
-
-- **Fix**: A revoked API key is now reported as an authentication failure rather than a server error. Deleting a key is what revokes it, and every endpoint answered the deleted key with a 500, which reads to any client as "this instance is broken" rather than "this credential is dead" — so integrations kept retrying instead of asking to be reconnected.
-
-- **Fix**: Endpoints answer "not found" instead of a server error when what you named is gone. Subscribing to a deleted list, reading a deleted segment and deleting a webhook subscription twice each returned a 500; the first now names the list it could not find, and deleting a subscription that is already gone succeeds.
+- **Fix**: Endpoints answer with the right status when a request cannot be served. A revoked API key and a resource that no longer exists both came back as a server error, which reads to any client as "this instance is broken" rather than "this credential is dead" or "that list is gone" — so integrations retried instead of reconnecting or moving on. Revoked keys now answer 401, missing resources 404 naming what was not found, and deleting a webhook subscription that is already gone succeeds.
 
 - **Feature**: API keys can be scoped. When you create a key you can now choose which resources it may read and write, instead of every key holding the run of the workspace. Leave the permissions out and the key gets full access as before, and you can change a key's scope at any time without re-issuing it. Two to know before narrowing one: sending transactional email needs Transactional write, and Contacts write is also what permits deleting contacts.
 
@@ -30,13 +40,17 @@ All notable changes to this project will be documented in this file.
 
 - **Change**: New Segments and Webhooks permissions. The v39 migration grants them to existing members, API keys and pending invitations, so nothing loses access on upgrade — re-narrow a key if that is not what you want.
 
+- **Improvement**: Notifuse refuses to start when its database has been migrated by a newer build than the one starting. Such a database used to be reported as up to date and the build served traffic against a schema it was never compiled against; startup now stops instead, naming both versions and the two ways out — deploy a build at least as new as the database, or restore a database stamped no higher. Plan upgrades around it: a rolling deploy has to replace every replica before the first one migrates, because an older replica restarting afterwards will not come back up, and rolling back to a previous image needs a database from before the upgrade, since there is no down-migration and nothing lowers the recorded version for you.
+
 - **Fix**: Closed several ways to gain access you were not granted. Any member could invite someone with any permissions they chose, an API key's address could be used to sign in as a person, and removing a key reported success even when the key had not actually been revoked.
 
-- **Improvement**: A refused request now answers "forbidden" and names the missing permission, instead of a server error.
+- **Improvement**: A refused request now answers "forbidden" and names the missing permission, instead of a server error. This reaches the contact, list, segment and webhook endpoints too, which previously answered a permission refusal with a server error.
 
 - **Improvement**: Web Analytics no longer credits a visit to your own domain. A session that starts mid-visit — when the 30-minute inactivity window lapses on a tab left open, or on the visitor's next internal click — took whichever of your pages they arrived from as its referrer, so your own hostname appeared in the referrers report and the visit's real acquisition source was lost. A referrer on the same host as the landing page is now dropped and the session reads as direct; another host, such as a docs subdomain, is still a real referral. Rows already recorded keep their values.
 
 - **Fix**: The console no longer opens in the wrong language. Every time you opened it, the language remembered in your browser and the one saved on your account were fetched at the same time, and whichever arrived second decided the interface — so it could come up in a language you had only ever tried out, intermittently, with the language button still naming the right one. Your saved language now always wins, and a language is only remembered when you actually pick one.
+
+- **Improvement**: Open tracking no longer leaves an empty row at the bottom of your emails. The tracking image sat on a line of text, so every tracked email ended about eighteen pixels taller than its own layout — in Outlook, a sliver of blank space you could still scroll into below the footer. The row now takes no height at all. Nothing changes about how opens are counted.
 
 ## [38.0] - 2026-08-17
 

@@ -334,8 +334,9 @@ func (s *DemoService) createDemoWebhookSubscription(ctx context.Context, workspa
 		return err
 	}
 
+	disabled := false
 	if _, err := s.webhookSubscriptionService.Update(
-		ctx, workspaceID, subscription.ID, name, url, domain.WebhookEventTypes, nil, false, nil, nil,
+		ctx, workspaceID, subscription.ID, name, url, domain.WebhookEventTypes, nil, &disabled, nil, nil,
 	); err != nil {
 		if deleteErr := s.webhookSubscriptionService.Delete(ctx, workspaceID, subscription.ID); deleteErr != nil {
 			s.logger.WithField("workspace_id", workspaceID).
@@ -1540,7 +1541,6 @@ func (s *DemoService) createSampleBroadcasts(ctx context.Context, workspaceID st
 				AutoSendWinner:   false,
 				Variations:       variations,
 			},
-			TrackingEnabled: true,
 			UTMParameters: &domain.UTMParameters{
 				Source:   demoBroadcastUTMSource,
 				Medium:   "email",

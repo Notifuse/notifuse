@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"testing"
 	"time"
@@ -70,6 +71,19 @@ func TestCustomEventService_UpsertEvent(t *testing.T) {
 		OccurredAt: &now,
 	}
 
+	// The response is read back from the row the write left behind; see
+	// TestCustomEventService_UpsertEvent_AnswersWithTheStoredRow for why.
+	storedAfterWrite := func() *domain.CustomEvent {
+		return &domain.CustomEvent{
+			EventName:  req.EventName,
+			ExternalID: req.ExternalID,
+			Email:      req.Email,
+			Properties: map[string]interface{}{"total": 99.99},
+			OccurredAt: now,
+			Source:     "api",
+		}
+	}
+
 	t.Run("successful creation with existing contact", func(t *testing.T) {
 		mockAuthService.EXPECT().
 			AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
@@ -83,6 +97,10 @@ func TestCustomEventService_UpsertEvent(t *testing.T) {
 		mockRepo.EXPECT().
 			Upsert(gomock.Any(), workspaceID, gomock.Any()).
 			Return(nil)
+
+		mockRepo.EXPECT().
+			GetByID(gomock.Any(), workspaceID, req.EventName, req.ExternalID).
+			Return(storedAfterWrite(), nil)
 
 		result, err := service.UpsertEvent(ctx, req)
 		require.NoError(t, err)
@@ -108,6 +126,10 @@ func TestCustomEventService_UpsertEvent(t *testing.T) {
 		mockRepo.EXPECT().
 			Upsert(gomock.Any(), workspaceID, gomock.Any()).
 			Return(nil)
+
+		mockRepo.EXPECT().
+			GetByID(gomock.Any(), workspaceID, req.EventName, req.ExternalID).
+			Return(storedAfterWrite(), nil)
 
 		result, err := service.UpsertEvent(ctx, req)
 		require.NoError(t, err)
@@ -324,5 +346,186 @@ func TestCustomEventService_ListEvents(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, result, 1)
 		assert.Equal(t, expectedEvents, result)
+	})
+}
+
+// customEvents.upsert is a patch on the (event_name, external_id) pair, so the row
+// that exists afterwards is not the row the request describes: every field the body
+// left out kept the value already stored, and source is never rewritten at all.
+// Echoing the request back therefore puts "properties": null in a 200 body over a
+// row that still holds its properties — and null is also how this endpoint reads
+// "say nothing about properties", so the caller cannot even send the response back
+// to reconcile. openapi declares properties as a non-nullable object.
+func TestCustomEventService_UpsertEvent_AnswersWithTheStoredRow(t *testing.T) {
+	ctx := context.Background()
+	workspaceID := "workspace123"
+	email := "user@example.com"
+	eventName := "subscription.updated"
+	externalID := "sub_12345"
+	integrationID := "shopify_integration_123"
+
+	userWorkspace := &domain.UserWorkspace{
+		WorkspaceID: workspaceID,
+		UserID:      "user123",
+		Permissions: domain.UserPermissions{
+			domain.PermissionResourceContacts: domain.ResourcePermissions{Read: true, Write: true},
+		},
+	}
+
+	// Seeded richly on purpose: against an empty stored row a wipe and a correct
+	// merge look identical.
+	newStoredEvent := func() *domain.CustomEvent {
+		occurred := time.Now().Add(-3 * time.Hour)
+		return &domain.CustomEvent{
+			EventName:     eventName,
+			ExternalID:    externalID,
+			Email:         email,
+			Properties:    map[string]interface{}{"plan": "premium", "seats": float64(5)},
+			OccurredAt:    occurred,
+			Source:        "web_analytics",
+			IntegrationID: &integrationID,
+			CreatedAt:     occurred,
+			UpdatedAt:     occurred,
+		}
+	}
+
+	t.Run("a body that omits properties answers with the stored ones", func(t *testing.T) {
+		mockRepo, mockContactRepo, mockAuthService, service, ctrl := setupCustomEventServiceTest(t)
+		defer ctrl.Finish()
+
+		mockAuthService.EXPECT().
+			AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
+			Return(ctx, &domain.User{ID: "user123"}, userWorkspace, nil)
+		mockContactRepo.EXPECT().
+			GetContactByEmail(gomock.Any(), workspaceID, email).
+			Return(&domain.Contact{Email: email}, nil)
+
+		mockRepo.EXPECT().
+			GetByID(gomock.Any(), workspaceID, eventName, externalID).
+			Return(newStoredEvent(), nil).
+			AnyTimes()
+
+		mockRepo.EXPECT().
+			Upsert(gomock.Any(), workspaceID, gomock.Any()).
+			DoAndReturn(func(_ context.Context, _ string, written *domain.CustomEvent) error {
+				assert.Nil(t, written.Properties,
+					"the write itself must still say nothing about properties, or the SQL cannot preserve them")
+				return nil
+			})
+
+		goalType := domain.GoalTypeSubscription
+		goalValue := 49.0
+		result, err := service.UpsertEvent(ctx, &domain.UpsertCustomEventRequest{
+			WorkspaceID: workspaceID,
+			Email:       email,
+			EventName:   eventName,
+			ExternalID:  externalID,
+			GoalType:    &goalType,
+			GoalValue:   &goalValue,
+		})
+		require.NoError(t, err)
+		require.NotNil(t, result)
+
+		// Compared against literals, never against the fixture: the repository mock
+		// hands the service the very object the response may be built from.
+		assert.Equal(t, map[string]interface{}{"plan": "premium", "seats": float64(5)}, result.Properties,
+			"the response must describe the row that now exists, not the request")
+		assert.Equal(t, "web_analytics", result.Source,
+			"an upsert never rewrites a row's origin, so the response must not claim it did")
+		require.NotNil(t, result.IntegrationID)
+		assert.Equal(t, integrationID, *result.IntegrationID)
+	})
+
+	t.Run("the encoded response carries an object, never null", func(t *testing.T) {
+		mockRepo, mockContactRepo, mockAuthService, service, ctrl := setupCustomEventServiceTest(t)
+		defer ctrl.Finish()
+
+		mockAuthService.EXPECT().
+			AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
+			Return(ctx, &domain.User{ID: "user123"}, userWorkspace, nil)
+		mockContactRepo.EXPECT().
+			GetContactByEmail(gomock.Any(), workspaceID, email).
+			Return(&domain.Contact{Email: email}, nil)
+		mockRepo.EXPECT().
+			GetByID(gomock.Any(), workspaceID, eventName, externalID).
+			Return(newStoredEvent(), nil).
+			AnyTimes()
+		mockRepo.EXPECT().Upsert(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
+
+		result, err := service.UpsertEvent(ctx, &domain.UpsertCustomEventRequest{
+			WorkspaceID: workspaceID,
+			Email:       email,
+			EventName:   eventName,
+			ExternalID:  externalID,
+		})
+		require.NoError(t, err)
+
+		body, err := json.Marshal(result)
+		require.NoError(t, err)
+		assert.NotContains(t, string(body), `"properties":null`,
+			"a JS client reading event.properties.plan throws on null, and null re-POSTed reads as an omission")
+		assert.Contains(t, string(body), `"properties":{"plan":"premium","seats":5}`)
+	})
+
+	t.Run("a row that cannot be read back still answers with an object", func(t *testing.T) {
+		mockRepo, mockContactRepo, mockAuthService, service, ctrl := setupCustomEventServiceTest(t)
+		defer ctrl.Finish()
+
+		mockAuthService.EXPECT().
+			AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
+			Return(ctx, &domain.User{ID: "user123"}, userWorkspace, nil)
+		mockContactRepo.EXPECT().
+			GetContactByEmail(gomock.Any(), workspaceID, email).
+			Return(&domain.Contact{Email: email}, nil)
+
+		// The write landed and the row is gone or unreadable. There is nothing left
+		// to preserve, so an empty object is the honest floor — and the 200 body has
+		// to carry one either way.
+		mockRepo.EXPECT().
+			GetByID(gomock.Any(), workspaceID, eventName, "brand_new").
+			Return(nil, errors.New("custom event not found")).
+			AnyTimes()
+		mockRepo.EXPECT().Upsert(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
+
+		result, err := service.UpsertEvent(ctx, &domain.UpsertCustomEventRequest{
+			WorkspaceID: workspaceID,
+			Email:       email,
+			EventName:   eventName,
+			ExternalID:  "brand_new",
+		})
+		require.NoError(t, err)
+		require.NotNil(t, result)
+		assert.Equal(t, map[string]interface{}{}, result.Properties)
+	})
+
+	t.Run("a soft-delete answers with the row it deleted", func(t *testing.T) {
+		mockRepo, _, mockAuthService, service, ctrl := setupCustomEventServiceTest(t)
+		defer ctrl.Finish()
+
+		mockAuthService.EXPECT().
+			AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
+			Return(ctx, &domain.User{ID: "user123"}, userWorkspace, nil)
+
+		// GetByID hides deleted rows, so a delete has nothing to read afterwards.
+		mockRepo.EXPECT().
+			GetByID(gomock.Any(), workspaceID, eventName, externalID).
+			Return(newStoredEvent(), nil).
+			AnyTimes()
+		mockRepo.EXPECT().Upsert(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
+
+		deletedAt := time.Now()
+		result, err := service.UpsertEvent(ctx, &domain.UpsertCustomEventRequest{
+			WorkspaceID: workspaceID,
+			Email:       email,
+			EventName:   eventName,
+			ExternalID:  externalID,
+			DeletedAt:   &deletedAt,
+		})
+		require.NoError(t, err)
+		require.NotNil(t, result)
+		assert.Equal(t, map[string]interface{}{"plan": "premium", "seats": float64(5)}, result.Properties)
+		assert.Equal(t, "web_analytics", result.Source)
+		require.NotNil(t, result.DeletedAt)
+		assert.Equal(t, deletedAt, *result.DeletedAt, "the deletion the caller asked for still applies")
 	})
 }

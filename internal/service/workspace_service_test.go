@@ -3,8 +3,10 @@ package service
 import (
 	"context"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"regexp"
 	"testing"
 	"time"
 
@@ -1095,7 +1097,7 @@ func TestWorkspaceService_SetBlogSettings(t *testing.T) {
 			return nil
 		})
 
-		err := service.SetBlogSettings(ctx, workspaceID, true, settings)
+		err := service.SetBlogSettings(ctx, workspaceID, boolPtr(true), settings, true)
 		require.NoError(t, err)
 	})
 
@@ -1118,7 +1120,7 @@ func TestWorkspaceService_SetBlogSettings(t *testing.T) {
 			return nil
 		})
 
-		err := service.SetBlogSettings(ctx, workspaceID, true, settings)
+		err := service.SetBlogSettings(ctx, workspaceID, boolPtr(true), settings, true)
 		require.NoError(t, err)
 	})
 
@@ -1135,7 +1137,7 @@ func TestWorkspaceService_SetBlogSettings(t *testing.T) {
 		mockRepo.EXPECT().GetByID(ctx, workspaceID).Return(existing, nil)
 		mockRepo.EXPECT().Update(ctx, gomock.Any()).Return(nil)
 
-		err := service.SetBlogSettings(ctx, workspaceID, true, settings)
+		err := service.SetBlogSettings(ctx, workspaceID, boolPtr(true), settings, true)
 		require.NoError(t, err)
 	})
 
@@ -1152,7 +1154,7 @@ func TestWorkspaceService_SetBlogSettings(t *testing.T) {
 		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, memberWorkspace, nil)
 		// No GetByID / Update expected.
 
-		err := service.SetBlogSettings(ctx, workspaceID, true, settings)
+		err := service.SetBlogSettings(ctx, workspaceID, boolPtr(true), settings, true)
 		require.Error(t, err)
 		var permErr *domain.PermissionError
 		assert.ErrorAs(t, err, &permErr)
@@ -1170,7 +1172,7 @@ func TestWorkspaceService_SetBlogSettings(t *testing.T) {
 
 		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, memberWorkspace, nil)
 
-		err := service.SetBlogSettings(ctx, workspaceID, true, settings)
+		err := service.SetBlogSettings(ctx, workspaceID, boolPtr(true), settings, true)
 		require.Error(t, err)
 		var permErr *domain.PermissionError
 		assert.ErrorAs(t, err, &permErr)
@@ -1186,7 +1188,7 @@ func TestWorkspaceService_SetBlogSettings(t *testing.T) {
 
 		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, memberWorkspace, nil)
 
-		err := service.SetBlogSettings(ctx, workspaceID, true, settings)
+		err := service.SetBlogSettings(ctx, workspaceID, boolPtr(true), settings, true)
 		require.Error(t, err)
 		var permErr *domain.PermissionError
 		assert.ErrorAs(t, err, &permErr)
@@ -1195,7 +1197,7 @@ func TestWorkspaceService_SetBlogSettings(t *testing.T) {
 	t.Run("authentication failure returns error", func(t *testing.T) {
 		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, nil, nil, assert.AnError)
 
-		err := service.SetBlogSettings(ctx, workspaceID, true, settings)
+		err := service.SetBlogSettings(ctx, workspaceID, boolPtr(true), settings, true)
 		require.Error(t, err)
 	})
 
@@ -1205,7 +1207,7 @@ func TestWorkspaceService_SetBlogSettings(t *testing.T) {
 		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, ownerWorkspace, nil)
 		mockRepo.EXPECT().GetByID(ctx, workspaceID).Return(nil, assert.AnError)
 
-		err := service.SetBlogSettings(ctx, workspaceID, true, settings)
+		err := service.SetBlogSettings(ctx, workspaceID, boolPtr(true), settings, true)
 		require.Error(t, err)
 	})
 
@@ -1217,7 +1219,7 @@ func TestWorkspaceService_SetBlogSettings(t *testing.T) {
 		mockRepo.EXPECT().GetByID(ctx, workspaceID).Return(existing, nil)
 		mockRepo.EXPECT().Update(ctx, gomock.Any()).Return(assert.AnError)
 
-		err := service.SetBlogSettings(ctx, workspaceID, true, settings)
+		err := service.SetBlogSettings(ctx, workspaceID, boolPtr(true), settings, true)
 		require.Error(t, err)
 	})
 
@@ -1229,7 +1231,7 @@ func TestWorkspaceService_SetBlogSettings(t *testing.T) {
 		mockRepo.EXPECT().GetByID(ctx, workspaceID).Return(existing, nil)
 		// No Update expected — validation fails first.
 
-		err := service.SetBlogSettings(ctx, workspaceID, true, &domain.BlogSettings{HomePageSize: 999})
+		err := service.SetBlogSettings(ctx, workspaceID, boolPtr(true), &domain.BlogSettings{HomePageSize: 999}, true)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "home_page_size must be between 1 and 100")
 	})
@@ -1264,7 +1266,7 @@ func TestWorkspaceService_SetBlogSettings(t *testing.T) {
 			return nil
 		})
 
-		err := service.SetBlogSettings(ctx, workspaceID, false, nil)
+		err := service.SetBlogSettings(ctx, workspaceID, boolPtr(false), nil, true)
 		require.NoError(t, err)
 	})
 }
@@ -2228,6 +2230,31 @@ func TestWorkspaceService_CreateIntegration(t *testing.T) {
 		require.NoError(t, err)
 		require.NotEmpty(t, integrationID)
 	})
+
+	t.Run("service level create rejects a zapier integration", func(t *testing.T) {
+		// The HTTP boundary rejects the type in CreateIntegrationRequest.Validate, which this
+		// path never calls: the demo seeder and anything else in the service layer go straight
+		// through here. What closes it is the create switch having no zapier case, so the
+		// settings stay nil and Integration.Validate refuses the record.
+		expectedWorkspace := &domain.Workspace{ID: workspaceID, Name: "Test Workspace"}
+
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, &domain.UserWorkspace{
+			UserID:      userID,
+			WorkspaceID: workspaceID,
+			Role:        "owner",
+		}, nil)
+		mockRepo.EXPECT().GetByID(ctx, workspaceID).Return(expectedWorkspace, nil)
+		// No Update expectation: writing the record would be the failure.
+
+		integrationID, err := service.CreateIntegration(ctx, domain.CreateIntegrationRequest{
+			WorkspaceID: workspaceID,
+			Name:        "Zapier",
+			Type:        domain.IntegrationTypeZapier,
+		})
+		require.Error(t, err)
+		assert.Empty(t, integrationID)
+		assert.Contains(t, err.Error(), "zapier settings are required")
+	})
 }
 
 func TestWorkspaceService_UpdateIntegration(t *testing.T) {
@@ -2641,6 +2668,134 @@ func TestWorkspaceService_UpdateIntegration(t *testing.T) {
 		})
 		require.NoError(t, err)
 	})
+
+	t.Run("renaming a zapier integration keeps its minted address", func(t *testing.T) {
+		zapierIntegrationID := "zapier789"
+		expectedUser := &domain.User{ID: userID}
+		expectedUserWorkspace := &domain.UserWorkspace{
+			UserID:      userID,
+			WorkspaceID: workspaceID,
+			Role:        "owner",
+		}
+
+		existingIntegration := domain.Integration{
+			ID:   zapierIntegrationID,
+			Name: "Support Zaps",
+			Type: domain.IntegrationTypeZapier,
+			ZapierSettings: &domain.ZapierSettings{
+				APIKeyEmail: "zapier-support-3f9a1c02@api.example.com",
+			},
+			CreatedAt: time.Now().Add(-24 * time.Hour),
+			UpdatedAt: time.Now().Add(-24 * time.Hour),
+		}
+
+		expectedWorkspace := &domain.Workspace{
+			ID:           workspaceID,
+			Name:         "Test Workspace",
+			Integrations: []domain.Integration{existingIntegration},
+		}
+
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, expectedUser, expectedUserWorkspace, nil)
+		mockRepo.EXPECT().GetByID(ctx, workspaceID).Return(expectedWorkspace, nil)
+		mockRepo.EXPECT().Update(ctx, gomock.Any()).DoAndReturn(func(ctx context.Context, workspace *domain.Workspace) error {
+			require.Equal(t, 1, len(workspace.Integrations))
+			updated := workspace.Integrations[0]
+			require.Equal(t, "Marketing Zaps", updated.Name)
+			require.NotNil(t, updated.ZapierSettings)
+			// The address is server-owned and immutable, so a renamed card keeps the address
+			// it was minted with and the two diverge by design.
+			require.Equal(t, "zapier-support-3f9a1c02@api.example.com", updated.ZapierSettings.APIKeyEmail)
+			return nil
+		})
+
+		// No settings on the request, because UpdateIntegrationRequest has no field to put
+		// them in. This is what every zapier update looks like.
+		err := service.UpdateIntegration(ctx, domain.UpdateIntegrationRequest{
+			WorkspaceID:   workspaceID,
+			IntegrationID: zapierIntegrationID,
+			Name:          "Marketing Zaps",
+		})
+		require.NoError(t, err)
+	})
+
+	t.Run("update firecrawl integration with no settings preserves existing", func(t *testing.T) {
+		// The else branch of the firecrawl case, which the preserve-on-blank sibling above
+		// never reaches: an omitted settings object rather than a blank key.
+		firecrawlIntegrationID := "firecrawl-nil-settings"
+		existingIntegration := domain.Integration{
+			ID:                firecrawlIntegrationID,
+			Name:              "Original Firecrawl",
+			Type:              domain.IntegrationTypeFirecrawl,
+			FirecrawlSettings: &domain.FirecrawlSettings{EncryptedAPIKey: "encrypted-kept-key"},
+			CreatedAt:         time.Now().Add(-24 * time.Hour),
+			UpdatedAt:         time.Now().Add(-24 * time.Hour),
+		}
+
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, &domain.UserWorkspace{
+			UserID:      userID,
+			WorkspaceID: workspaceID,
+			Role:        "owner",
+		}, nil)
+		mockRepo.EXPECT().GetByID(ctx, workspaceID).Return(&domain.Workspace{
+			ID:           workspaceID,
+			Name:         "Test Workspace",
+			Integrations: []domain.Integration{existingIntegration},
+		}, nil)
+		mockRepo.EXPECT().Update(ctx, gomock.Any()).DoAndReturn(func(ctx context.Context, workspace *domain.Workspace) error {
+			require.NotNil(t, workspace.Integrations[0].FirecrawlSettings)
+			require.Equal(t, "encrypted-kept-key", workspace.Integrations[0].FirecrawlSettings.EncryptedAPIKey)
+			return nil
+		})
+
+		err := service.UpdateIntegration(ctx, domain.UpdateIntegrationRequest{
+			WorkspaceID:   workspaceID,
+			IntegrationID: firecrawlIntegrationID,
+			Name:          "Renamed Firecrawl",
+		})
+		require.NoError(t, err)
+	})
+
+	t.Run("update llm integration with no settings preserves existing", func(t *testing.T) {
+		llmIntegrationID := "llm-nil-settings"
+		existingIntegration := domain.Integration{
+			ID:   llmIntegrationID,
+			Name: "Original Gemini",
+			Type: domain.IntegrationTypeLLM,
+			LLMProvider: &domain.LLMProvider{
+				Kind: domain.LLMProviderKindGemini,
+				Gemini: &domain.GeminiSettings{
+					EncryptedAPIKey: "encrypted-kept-gemini-key",
+					Model:           "gemini-2.5-flash",
+				},
+			},
+			CreatedAt: time.Now().Add(-24 * time.Hour),
+			UpdatedAt: time.Now().Add(-24 * time.Hour),
+		}
+
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, &domain.UserWorkspace{
+			UserID:      userID,
+			WorkspaceID: workspaceID,
+			Role:        "owner",
+		}, nil)
+		mockRepo.EXPECT().GetByID(ctx, workspaceID).Return(&domain.Workspace{
+			ID:           workspaceID,
+			Name:         "Test Workspace",
+			Integrations: []domain.Integration{existingIntegration},
+		}, nil)
+		mockRepo.EXPECT().Update(ctx, gomock.Any()).DoAndReturn(func(ctx context.Context, workspace *domain.Workspace) error {
+			require.NotNil(t, workspace.Integrations[0].LLMProvider)
+			require.NotNil(t, workspace.Integrations[0].LLMProvider.Gemini)
+			require.Equal(t, "encrypted-kept-gemini-key", workspace.Integrations[0].LLMProvider.Gemini.EncryptedAPIKey)
+			return nil
+		})
+
+		err := service.UpdateIntegration(ctx, domain.UpdateIntegrationRequest{
+			WorkspaceID:   workspaceID,
+			IntegrationID: llmIntegrationID,
+			Name:          "Renamed Gemini",
+		})
+		require.NoError(t, err)
+	})
 }
 
 func TestWorkspaceService_DeleteIntegration(t *testing.T) {
@@ -2881,6 +3036,184 @@ func TestWorkspaceService_DeleteIntegration(t *testing.T) {
 
 		err := service.DeleteIntegration(ctx, workspaceID, integrationID)
 		require.NoError(t, err)
+	})
+
+	t.Run("deleting a zapier integration revokes its API key", func(t *testing.T) {
+		zapierIntegrationID := "zapier-delete"
+		apiKeyEmail := "zapier-support-3f9a1c02@api.example.com"
+		apiKeyUserID := "api-key-user-1"
+
+		existingIntegration := domain.Integration{
+			ID:             zapierIntegrationID,
+			Name:           "Support Zaps",
+			Type:           domain.IntegrationTypeZapier,
+			ZapierSettings: &domain.ZapierSettings{APIKeyEmail: apiKeyEmail},
+		}
+
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, &domain.UserWorkspace{
+			UserID:      userID,
+			WorkspaceID: workspaceID,
+			Role:        "owner",
+		}, nil)
+		mockRepo.EXPECT().GetByID(ctx, workspaceID).Return(&domain.Workspace{
+			ID:           workspaceID,
+			Name:         "Test Workspace",
+			Integrations: []domain.Integration{existingIntegration},
+		}, nil)
+
+		// The address is the only handle the record keeps on the key.
+		mockUserRepo.EXPECT().GetUserByEmail(ctx, apiKeyEmail).Return(&domain.User{
+			ID:    apiKeyUserID,
+			Email: apiKeyEmail,
+			Type:  domain.UserTypeAPIKey,
+		}, nil)
+
+		removed := false
+		mockRepo.EXPECT().RemoveUserFromWorkspace(ctx, apiKeyUserID, workspaceID).DoAndReturn(func(_ context.Context, _ string, _ string) error {
+			removed = true
+			return nil
+		})
+		deleted := false
+		mockUserRepo.EXPECT().Delete(ctx, apiKeyUserID).DoAndReturn(func(_ context.Context, _ string) error {
+			// Both halves, in this order: deleting the user is the whole of the revocation,
+			// and a membership row left behind would be unremovable afterwards.
+			assert.True(t, removed, "the membership must be removed before the user")
+			deleted = true
+			return nil
+		})
+
+		mockRepo.EXPECT().Update(ctx, gomock.Any()).DoAndReturn(func(ctx context.Context, workspace *domain.Workspace) error {
+			require.Empty(t, workspace.Integrations)
+			return nil
+		})
+
+		err := service.DeleteIntegration(ctx, workspaceID, zapierIntegrationID)
+		require.NoError(t, err)
+		assert.True(t, removed)
+		assert.True(t, deleted)
+	})
+
+	t.Run("a zapier integration survives a failed revocation", func(t *testing.T) {
+		// Unlike its neighbours in the same switch, this one refuses to remove the card: the
+		// confirmation the user answered promises the key is revoked, and deleting the card
+		// anyway would report a revocation that never happened with nothing left to retry from.
+		zapierIntegrationID := "zapier-revoke-fails"
+		apiKeyEmail := "zapier-ops-11223344@api.example.com"
+
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, &domain.UserWorkspace{
+			UserID:      userID,
+			WorkspaceID: workspaceID,
+			Role:        "owner",
+		}, nil)
+		mockRepo.EXPECT().GetByID(ctx, workspaceID).Return(&domain.Workspace{
+			ID:   workspaceID,
+			Name: "Test Workspace",
+			Integrations: []domain.Integration{{
+				ID:             zapierIntegrationID,
+				Name:           "Ops Zaps",
+				Type:           domain.IntegrationTypeZapier,
+				ZapierSettings: &domain.ZapierSettings{APIKeyEmail: apiKeyEmail},
+			}},
+		}, nil)
+		mockUserRepo.EXPECT().GetUserByEmail(ctx, apiKeyEmail).Return(&domain.User{ID: "api-key-user-2", Email: apiKeyEmail}, nil)
+		mockRepo.EXPECT().RemoveUserFromWorkspace(ctx, "api-key-user-2", workspaceID).Return(fmt.Errorf("membership removal failed"))
+		// The row is still there, so the failure was a real one and not the half-finished
+		// revocation the tolerance below it exists for.
+		mockRepo.EXPECT().IsUserWorkspaceMember(ctx, "api-key-user-2", workspaceID).Return(true, nil).AnyTimes()
+		// No Update expectation: writing the workspace back would be the defect.
+
+		err := service.DeleteIntegration(ctx, workspaceID, zapierIntegrationID)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "membership removal failed")
+	})
+
+	t.Run("a zapier integration whose key is already gone still deletes", func(t *testing.T) {
+		// An owner may revoke the key from Settings → Team, which leaves the card pointing at
+		// an address no user row answers to. That card has to stay deletable.
+		zapierIntegrationID := "zapier-orphan"
+		apiKeyEmail := "zapier-stale-99887766@api.example.com"
+
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, &domain.UserWorkspace{
+			UserID:      userID,
+			WorkspaceID: workspaceID,
+			Role:        "owner",
+		}, nil)
+		mockRepo.EXPECT().GetByID(ctx, workspaceID).Return(&domain.Workspace{
+			ID:   workspaceID,
+			Name: "Test Workspace",
+			Integrations: []domain.Integration{{
+				ID:             zapierIntegrationID,
+				Name:           "Stale Zaps",
+				Type:           domain.IntegrationTypeZapier,
+				ZapierSettings: &domain.ZapierSettings{APIKeyEmail: apiKeyEmail},
+			}},
+		}, nil)
+		mockUserRepo.EXPECT().GetUserByEmail(ctx, apiKeyEmail).Return(nil, &domain.ErrUserNotFound{Message: "user not found"})
+		mockRepo.EXPECT().Update(ctx, gomock.Any()).DoAndReturn(func(ctx context.Context, workspace *domain.Workspace) error {
+			require.Empty(t, workspace.Integrations)
+			return nil
+		})
+
+		err := service.DeleteIntegration(ctx, workspaceID, zapierIntegrationID)
+		require.NoError(t, err)
+	})
+
+	// The revocation is two writes with no transaction around them, so it can stop in the
+	// middle: the membership goes first, and a failure on the delete that follows leaves the
+	// user row behind with its membership already gone. Every later attempt re-enters the
+	// revocation, and the user it now finds has no membership left to remove — so refusing
+	// there would wedge the card permanently, together with the live key it points at, which
+	// the roster cannot show either because it inner-joins user_workspaces.
+	t.Run("a revocation interrupted between its two writes can still be finished", func(t *testing.T) {
+		zapierIntegrationID := "zapier-half-revoked"
+		apiKeyEmail := "zapier-half-55667788@api.example.com"
+		apiKeyUserID := "api-key-user-3"
+
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, &domain.UserWorkspace{
+			UserID:      userID,
+			WorkspaceID: workspaceID,
+			Role:        "owner",
+		}, nil)
+		mockRepo.EXPECT().GetByID(ctx, workspaceID).Return(&domain.Workspace{
+			ID:   workspaceID,
+			Name: "Test Workspace",
+			Integrations: []domain.Integration{{
+				ID:             zapierIntegrationID,
+				Name:           "Half Zaps",
+				Type:           domain.IntegrationTypeZapier,
+				ZapierSettings: &domain.ZapierSettings{APIKeyEmail: apiKeyEmail},
+			}},
+		}, nil)
+
+		// The user row outlived the interrupted attempt, so the ErrUserNotFound tolerance
+		// that covers the opposite drift never fires.
+		mockUserRepo.EXPECT().GetUserByEmail(ctx, apiKeyEmail).Return(&domain.User{
+			ID:    apiKeyUserID,
+			Email: apiKeyEmail,
+			Type:  domain.UserTypeAPIKey,
+		}, nil).AnyTimes()
+		// What the DELETE reports when it matches no row.
+		mockRepo.EXPECT().RemoveUserFromWorkspace(ctx, apiKeyUserID, workspaceID).
+			Return(fmt.Errorf("user is not a member of the workspace")).AnyTimes()
+		mockRepo.EXPECT().IsUserWorkspaceMember(ctx, apiKeyUserID, workspaceID).Return(false, nil).AnyTimes()
+
+		deleted := false
+		mockUserRepo.EXPECT().Delete(ctx, apiKeyUserID).DoAndReturn(func(_ context.Context, _ string) error {
+			deleted = true
+			return nil
+		}).AnyTimes()
+
+		var written *domain.Workspace
+		mockRepo.EXPECT().Update(ctx, gomock.Any()).DoAndReturn(func(_ context.Context, workspace *domain.Workspace) error {
+			written = workspace
+			return nil
+		}).AnyTimes()
+
+		err := service.DeleteIntegration(ctx, workspaceID, zapierIntegrationID)
+		require.NoError(t, err)
+		assert.True(t, deleted, "the key the card points at is still live, and deleting the user is the whole of the revocation")
+		require.NotNil(t, written, "the card has to become removable again")
+		assert.Empty(t, written.Integrations)
 	})
 }
 
@@ -4555,5 +4888,897 @@ func TestWorkspaceService_DeleteInvitation_PlatformAdmin(t *testing.T) {
 
 		err := service.DeleteInvitation(ctx, invitationID)
 		require.Error(t, err)
+	})
+}
+
+// zapierTestCtxKey marks the context AuthenticateUserForWorkspace hands back, so a test can tell
+// the enriched context from the one the caller came in with.
+type zapierTestCtxKey struct{}
+
+// newZapierTestService wires a WorkspaceService whose repositories and auth service are the
+// mocks it returns, with an API endpoint the minted address can be matched against.
+func newZapierTestService(t *testing.T, ctrl *gomock.Controller) (*WorkspaceService, *mocks.MockWorkspaceRepository, *mocks.MockUserRepository, *mocks.MockAuthService) {
+	t.Helper()
+
+	mockRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	mockUserRepo := mocks.NewMockUserRepository(ctrl)
+	mockAuthService := mocks.NewMockAuthService(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Warn(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
+
+	service := NewWorkspaceService(
+		mockRepo,
+		mockUserRepo,
+		mocks.NewMockTaskRepository(ctrl),
+		mockLogger,
+		mocks.NewMockUserServiceInterface(ctrl),
+		mockAuthService,
+		pkgmocks.NewMockMailer(ctrl),
+		&config.Config{RootEmail: "root@example.com", APIEndpoint: "https://api.example.com/v1"},
+		mocks.NewMockContactService(ctrl),
+		mocks.NewMockListService(ctrl),
+		mocks.NewMockContactListService(ctrl),
+		mocks.NewMockTemplateService(ctrl),
+		mocks.NewMockWebhookRegistrationService(ctrl),
+		"secret_key",
+		&SupabaseService{},
+		&DNSVerificationService{},
+		&BlogService{},
+	)
+
+	return service, mockRepo, mockUserRepo, mockAuthService
+}
+
+func TestWorkspaceService_ConnectZapier(t *testing.T) {
+	const (
+		workspaceID = "testworkspace"
+		userID      = "testuser"
+		label       = "Marketing Ops"
+	)
+
+	// The shape ZapierKeyPrefix mints, anchored to the API endpoint the test service carries.
+	mintedAddress := regexp.MustCompile(`^zapier-[a-z0-9_-]*-?[0-9a-f]{8}@api\.example\.com$`)
+
+	ownerAuth := func(mockAuthService *mocks.MockAuthService, times int) {
+		mockAuthService.EXPECT().
+			AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
+			DoAndReturn(func(c context.Context, _ string) (context.Context, *domain.User, *domain.UserWorkspace, error) {
+				return c, &domain.User{ID: userID}, &domain.UserWorkspace{
+					UserID:      userID,
+					WorkspaceID: workspaceID,
+					Role:        "owner",
+				}, nil
+			}).
+			Times(times)
+	}
+
+	t.Run("rejects a non-member with an authorization error", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		service, _, _, mockAuthService := newZapierTestService(t, ctrl)
+
+		// Modelled on CreateAPIKey rather than CreateIntegration: that one wraps this sentinel
+		// in a bare fmt.Errorf and the caller gets a 500 for what is a 403.
+		mockAuthService.EXPECT().
+			AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
+			Return(context.Background(), nil, nil, domain.ErrUserNotInWorkspace)
+
+		token, email, integrationID, err := service.ConnectZapier(context.Background(), workspaceID, label)
+		require.Error(t, err)
+		assert.IsType(t, &domain.ErrUnauthorized{}, err)
+		assert.Empty(t, token)
+		assert.Empty(t, email)
+		assert.Empty(t, integrationID)
+	})
+
+	t.Run("rejects a non-owner before any write", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		// No repository expectations at all: any user row, membership or workspace write
+		// before the gate fails the subtest.
+		service, _, _, mockAuthService := newZapierTestService(t, ctrl)
+
+		mockAuthService.EXPECT().
+			AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
+			Return(context.Background(), &domain.User{ID: userID}, &domain.UserWorkspace{
+				UserID:      userID,
+				WorkspaceID: workspaceID,
+				Role:        "member",
+			}, nil)
+
+		token, email, integrationID, err := service.ConnectZapier(context.Background(), workspaceID, label)
+		require.Error(t, err)
+		assert.IsType(t, &domain.ErrUnauthorized{}, err)
+		assert.Equal(t, "user is not an owner of the workspace", err.Error())
+		assert.Empty(t, token)
+		assert.Empty(t, email)
+		assert.Empty(t, integrationID)
+	})
+
+	t.Run("mints a key and records the integration", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		service, mockRepo, mockUserRepo, mockAuthService := newZapierTestService(t, ctrl)
+
+		ownerAuth(mockAuthService, 2)
+
+		var createdEmail string
+		mockUserRepo.EXPECT().CreateUser(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, user *domain.User) error {
+			createdEmail = user.Email
+			assert.Equal(t, domain.UserTypeAPIKey, user.Type)
+			return nil
+		})
+		mockRepo.EXPECT().AddUserToWorkspace(gomock.Any(), gomock.Any()).Return(nil)
+		mockAuthService.EXPECT().GenerateAPIAuthToken(gomock.Any()).Return("zapier-token")
+		mockRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(&domain.Workspace{ID: workspaceID, Name: "Test Workspace"}, nil)
+
+		var written domain.Integration
+		mockRepo.EXPECT().Update(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, workspace *domain.Workspace) error {
+			require.Equal(t, 1, len(workspace.Integrations))
+			written = workspace.Integrations[0]
+			return nil
+		})
+
+		token, email, integrationID, err := service.ConnectZapier(context.Background(), workspaceID, label)
+		require.NoError(t, err)
+		assert.Equal(t, "zapier-token", token)
+		assert.Regexp(t, mintedAddress, email)
+		assert.Equal(t, createdEmail, email)
+		assert.NotEmpty(t, integrationID)
+
+		assert.Equal(t, integrationID, written.ID)
+		assert.Equal(t, domain.IntegrationTypeZapier, written.Type)
+		// The label names the card; the address is what Settings → Team shows.
+		assert.Equal(t, label, written.Name)
+		require.NotNil(t, written.ZapierSettings)
+		assert.Equal(t, email, written.ZapierSettings.APIKeyEmail)
+	})
+
+	t.Run("threads the authenticated context into CreateAPIKey", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		service, mockRepo, mockUserRepo, mockAuthService := newZapierTestService(t, ctrl)
+
+		// Dropping the returned context would defeat the auth cache and make CreateAPIKey
+		// re-run the queries behind AuthenticateUserForWorkspace on every attempt.
+		var seen []context.Context
+		mockAuthService.EXPECT().
+			AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
+			DoAndReturn(func(c context.Context, _ string) (context.Context, *domain.User, *domain.UserWorkspace, error) {
+				seen = append(seen, c)
+				return context.WithValue(c, zapierTestCtxKey{}, "authenticated"), &domain.User{ID: userID}, &domain.UserWorkspace{
+					UserID:      userID,
+					WorkspaceID: workspaceID,
+					Role:        "owner",
+				}, nil
+			}).
+			Times(2)
+
+		mockUserRepo.EXPECT().CreateUser(gomock.Any(), gomock.Any()).Return(nil)
+		mockRepo.EXPECT().AddUserToWorkspace(gomock.Any(), gomock.Any()).Return(nil)
+		mockAuthService.EXPECT().GenerateAPIAuthToken(gomock.Any()).Return("zapier-token")
+		mockRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(&domain.Workspace{ID: workspaceID}, nil)
+		mockRepo.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil)
+
+		_, _, _, err := service.ConnectZapier(context.Background(), workspaceID, label)
+		require.NoError(t, err)
+
+		require.Equal(t, 2, len(seen))
+		assert.Nil(t, seen[0].Value(zapierTestCtxKey{}), "ConnectZapier authenticates with the caller context")
+		assert.Equal(t, "authenticated", seen[1].Value(zapierTestCtxKey{}), "CreateAPIKey must receive the enriched context")
+	})
+
+	t.Run("mints a scoped key rather than a full-access one", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		service, mockRepo, mockUserRepo, mockAuthService := newZapierTestService(t, ctrl)
+
+		ownerAuth(mockAuthService, 2)
+		mockUserRepo.EXPECT().CreateUser(gomock.Any(), gomock.Any()).Return(nil)
+
+		var stored domain.UserPermissions
+		mockRepo.EXPECT().AddUserToWorkspace(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, userWorkspace *domain.UserWorkspace) error {
+			stored = userWorkspace.Permissions
+			return nil
+		})
+		mockAuthService.EXPECT().GenerateAPIAuthToken(gomock.Any()).Return("zapier-token")
+		mockRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(&domain.Workspace{ID: workspaceID}, nil)
+		mockRepo.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil)
+
+		_, _, _, err := service.ConnectZapier(context.Background(), workspaceID, label)
+		require.NoError(t, err)
+
+		// Deliberately not compared against ZapierKeyPermissions(), which would assert the
+		// function against itself. What matters here is that a grant was passed at all:
+		// CreateAPIKey reads nil as full workspace access, so an omitted argument would mint
+		// a key that can do everything.
+		require.NotNil(t, stored)
+		assert.NotEmpty(t, stored)
+		assert.NotEqual(t, domain.NewFullPermissions(), stored)
+	})
+
+	t.Run("retries with fresh randomness when the address is taken", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		service, mockRepo, mockUserRepo, mockAuthService := newZapierTestService(t, ctrl)
+
+		ownerAuth(mockAuthService, 4)
+
+		// Driven through CreateUser so the error ConnectZapier sees is the one CreateAPIKey
+		// really returns: *ErrUserExists wrapped in a fmt.Errorf. A retry written with
+		// errors.Is against a sentinel would never fire on it.
+		var attempted []string
+		gomock.InOrder(
+			mockUserRepo.EXPECT().CreateUser(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, user *domain.User) error {
+				attempted = append(attempted, user.Email)
+				return &domain.ErrUserExists{Message: "user already exists"}
+			}),
+			mockUserRepo.EXPECT().CreateUser(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, user *domain.User) error {
+				attempted = append(attempted, user.Email)
+				return &domain.ErrUserExists{Message: "user already exists"}
+			}),
+			mockUserRepo.EXPECT().CreateUser(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, user *domain.User) error {
+				attempted = append(attempted, user.Email)
+				return nil
+			}),
+		)
+
+		mockRepo.EXPECT().AddUserToWorkspace(gomock.Any(), gomock.Any()).Return(nil)
+		mockAuthService.EXPECT().GenerateAPIAuthToken(gomock.Any()).Return("zapier-token")
+		mockRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(&domain.Workspace{ID: workspaceID}, nil)
+		mockRepo.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil)
+
+		token, email, integrationID, err := service.ConnectZapier(context.Background(), workspaceID, label)
+		require.NoError(t, err)
+		assert.Equal(t, "zapier-token", token)
+		assert.NotEmpty(t, integrationID)
+
+		require.Equal(t, 3, len(attempted))
+		assert.Equal(t, attempted[2], email)
+		distinct := map[string]struct{}{}
+		for _, address := range attempted {
+			assert.Regexp(t, mintedAddress, address)
+			distinct[address] = struct{}{}
+		}
+		assert.Equal(t, len(attempted), len(distinct), "each attempt must draw fresh randomness")
+	})
+
+	t.Run("gives up on a permanent collision without writing an integration", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		// mockRepo is left unnamed on purpose: with no expectations on it, a GetByID or an
+		// Update from an exhausted retry fails the subtest.
+		service, _, mockUserRepo, mockAuthService := newZapierTestService(t, ctrl)
+
+		mockAuthService.EXPECT().
+			AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
+			DoAndReturn(func(c context.Context, _ string) (context.Context, *domain.User, *domain.UserWorkspace, error) {
+				return c, &domain.User{ID: userID}, &domain.UserWorkspace{
+					UserID:      userID,
+					WorkspaceID: workspaceID,
+					Role:        "owner",
+				}, nil
+			}).
+			AnyTimes()
+
+		attempts := 0
+		mockUserRepo.EXPECT().CreateUser(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, _ *domain.User) error {
+			attempts++
+			return &domain.ErrUserExists{Message: "user already exists"}
+		}).AnyTimes()
+
+		token, email, integrationID, err := service.ConnectZapier(context.Background(), workspaceID, label)
+		require.Error(t, err)
+		assert.Empty(t, token)
+		assert.Empty(t, email)
+		assert.Empty(t, integrationID)
+		// A literal rather than the constant it protects: comparing against
+		// zapierConnectAttempts would pass however the loop is bounded, including at one.
+		assert.Equal(t, 5, attempts)
+
+		// Still wrapping the struct error, so the handler maps an exhausted retry to 409 the
+		// same way it maps the first collision.
+		var userExistsErr *domain.ErrUserExists
+		assert.True(t, errors.As(err, &userExistsErr), "the exhausted error must still carry *domain.ErrUserExists")
+	})
+
+	t.Run("revokes the key when the integration cannot be saved", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		service, mockRepo, mockUserRepo, mockAuthService := newZapierTestService(t, ctrl)
+
+		ownerAuth(mockAuthService, 2)
+
+		apiKeyUserID := "api-key-user"
+		var mintedEmail string
+		mockUserRepo.EXPECT().CreateUser(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, user *domain.User) error {
+			mintedEmail = user.Email
+			return nil
+		})
+		mockRepo.EXPECT().AddUserToWorkspace(gomock.Any(), gomock.Any()).Return(nil)
+		mockAuthService.EXPECT().GenerateAPIAuthToken(gomock.Any()).Return("zapier-token")
+		mockRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(&domain.Workspace{ID: workspaceID}, nil)
+		mockRepo.EXPECT().Update(gomock.Any(), gomock.Any()).Return(fmt.Errorf("workspace update failed"))
+
+		// The key is live and no card points at it, so both halves of the revocation have to
+		// run: deleting the user is the only revocation there is, and a membership row left
+		// pointing at a deleted user can never be removed afterwards.
+		mockUserRepo.EXPECT().GetUserByEmail(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, email string) (*domain.User, error) {
+			assert.Equal(t, mintedEmail, email)
+			return &domain.User{ID: apiKeyUserID, Email: email, Type: domain.UserTypeAPIKey}, nil
+		})
+		removed := false
+		mockRepo.EXPECT().RemoveUserFromWorkspace(gomock.Any(), apiKeyUserID, workspaceID).DoAndReturn(func(_ context.Context, _ string, _ string) error {
+			removed = true
+			return nil
+		})
+		deleted := false
+		mockUserRepo.EXPECT().Delete(gomock.Any(), apiKeyUserID).DoAndReturn(func(_ context.Context, _ string) error {
+			assert.True(t, removed, "the membership must be removed before the user")
+			deleted = true
+			return nil
+		})
+
+		token, email, integrationID, err := service.ConnectZapier(context.Background(), workspaceID, label)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "workspace update failed")
+		assert.Empty(t, token)
+		assert.Empty(t, email)
+		assert.Empty(t, integrationID)
+		assert.True(t, removed)
+		assert.True(t, deleted)
+	})
+
+	t.Run("revokes the key even when the request context is already cancelled", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		service, mockRepo, mockUserRepo, mockAuthService := newZapierTestService(t, ctrl)
+
+		ownerAuth(mockAuthService, 2)
+
+		// A client disconnect is one of the ways the workspace write fails, so the
+		// compensation cannot run on the context that just died.
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		mockUserRepo.EXPECT().CreateUser(gomock.Any(), gomock.Any()).Return(nil)
+		mockRepo.EXPECT().AddUserToWorkspace(gomock.Any(), gomock.Any()).Return(nil)
+		mockAuthService.EXPECT().GenerateAPIAuthToken(gomock.Any()).Return("zapier-token")
+		mockRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(&domain.Workspace{ID: workspaceID}, nil)
+		mockRepo.EXPECT().Update(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, _ *domain.Workspace) error {
+			cancel()
+			return context.Canceled
+		})
+
+		mockUserRepo.EXPECT().GetUserByEmail(gomock.Any(), gomock.Any()).DoAndReturn(func(c context.Context, email string) (*domain.User, error) {
+			require.NoError(t, c.Err(), "the compensation must not inherit the cancelled context")
+			return &domain.User{ID: "api-key-user", Email: email, Type: domain.UserTypeAPIKey}, nil
+		})
+		mockRepo.EXPECT().RemoveUserFromWorkspace(gomock.Any(), "api-key-user", workspaceID).DoAndReturn(func(c context.Context, _ string, _ string) error {
+			require.NoError(t, c.Err())
+			return nil
+		})
+		deleted := false
+		mockUserRepo.EXPECT().Delete(gomock.Any(), "api-key-user").DoAndReturn(func(c context.Context, _ string) error {
+			require.NoError(t, c.Err())
+			deleted = true
+			return nil
+		})
+
+		_, _, _, err := service.ConnectZapier(ctx, workspaceID, label)
+		require.Error(t, err)
+		assert.True(t, deleted, "the key must still be revoked after the request context is cancelled")
+	})
+}
+
+// Updating an integration with a body that says nothing about the provider.
+//
+// The wholesale assignment in UpdateIntegration used to overwrite the stored
+// provider with the zero EmailProvider, which validates clean (an empty Kind
+// reads as "not configured") and takes kind, senders, rate limit and the
+// encrypted credential with it. Neither rescue helper could see it: both key
+// off the incoming provider's own pointers, and with no provider sent they are
+// all nil. A workspace never serves its credentials back, so nothing could put
+// them back and the workspace stopped sending.
+//
+// Decoded from a raw body on purpose: a struct literal cannot express a key
+// that is not there, which is exactly how this shipped.
+func TestUpdateIntegration_OmittedProviderKeepsStoredEmailProvider(t *testing.T) {
+	const workspaceID = "testworkspace"
+	const integrationID = "integration123"
+
+	// Rebuilt per call so the expectation never aliases the pointers the
+	// service mutates — comparing a field against itself always passes.
+	storedEmailProvider := func() domain.EmailProvider {
+		return domain.EmailProvider{
+			Kind:               domain.EmailProviderKindSES,
+			RateLimitPerMinute: 42,
+			Senders: []domain.EmailSender{
+				// A real UUID: EmailProvider.Validate regenerates any sender id that
+				// is not one, which would show up here as a spurious difference.
+				{ID: "11111111-1111-4111-8111-111111111111", Email: "stored@example.com", Name: "Stored", IsDefault: true},
+			},
+			SES: &domain.AmazonSESSettings{
+				Region:                  "eu-west-3",
+				AccessKey:               "AKIASTORED",
+				EncryptedSecretKey:      "STORED-CIPHERTEXT",
+				ManagedTenantName:       "tenant-1",
+				ManagedConfigurationSet: "config-set-1",
+				InboundTopicARN:         "arn:aws:sns:eu-west-3:1:inbound",
+			},
+		}
+	}
+
+	run := func(t *testing.T, body string) *domain.Integration {
+		t.Helper()
+
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		mockRepo := mocks.NewMockWorkspaceRepository(ctrl)
+		mockAuthService := mocks.NewMockAuthService(ctrl)
+		mockLogger := pkgmocks.NewMockLogger(ctrl)
+		mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+		mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+		mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
+
+		service := NewWorkspaceService(
+			mockRepo,
+			mocks.NewMockUserRepository(ctrl),
+			mocks.NewMockTaskRepository(ctrl),
+			mockLogger,
+			mocks.NewMockUserServiceInterface(ctrl),
+			mockAuthService,
+			pkgmocks.NewMockMailer(ctrl),
+			&config.Config{RootEmail: "root@example.com"},
+			mocks.NewMockContactService(ctrl),
+			mocks.NewMockListService(ctrl),
+			mocks.NewMockContactListService(ctrl),
+			mocks.NewMockTemplateService(ctrl),
+			mocks.NewMockWebhookRegistrationService(ctrl),
+			"secret_key",
+			&SupabaseService{},
+			&DNSVerificationService{},
+			&BlogService{},
+		)
+
+		ctx := context.Background()
+		mockAuthService.EXPECT().
+			AuthenticateUserForWorkspace(ctx, workspaceID).
+			Return(ctx, &domain.User{ID: "u1"}, &domain.UserWorkspace{
+				UserID: "u1", WorkspaceID: workspaceID, Role: "owner",
+			}, nil)
+
+		mockRepo.EXPECT().GetByID(ctx, workspaceID).Return(&domain.Workspace{
+			ID:   workspaceID,
+			Name: "Test",
+			Integrations: domain.Integrations{{
+				ID:            integrationID,
+				Name:          "Original",
+				Type:          domain.IntegrationTypeEmail,
+				EmailProvider: storedEmailProvider(),
+			}},
+		}, nil)
+
+		var saved *domain.Workspace
+		mockRepo.EXPECT().Update(ctx, gomock.Any()).
+			DoAndReturn(func(_ context.Context, w *domain.Workspace) error {
+				saved = w
+				return nil
+			})
+
+		var req domain.UpdateIntegrationRequest
+		require.NoError(t, json.Unmarshal([]byte(body), &req))
+
+		require.NoError(t, service.UpdateIntegration(ctx, req))
+		require.NotNil(t, saved)
+		got := saved.GetIntegrationByID(integrationID)
+		require.NotNil(t, got)
+		return got
+	}
+
+	t.Run("rename only - stored provider survives", func(t *testing.T) {
+		got := run(t, `{
+			"workspace_id": "testworkspace",
+			"integration_id": "integration123",
+			"name": "Renamed"
+		}`)
+
+		assert.Equal(t, "Renamed", got.Name, "the edit itself must still apply")
+		assert.Equal(t, storedEmailProvider(), got.EmailProvider,
+			"an absent provider must leave the stored one untouched, credential included: "+
+				"workspaces never serve credentials back, so a wipe is unrecoverable")
+	})
+
+	t.Run("provider sent - replaces the stored one", func(t *testing.T) {
+		got := run(t, `{
+			"workspace_id": "testworkspace",
+			"integration_id": "integration123",
+			"name": "Renamed",
+			"provider": {
+				"kind": "smtp",
+				"rate_limit_per_minute": 10,
+				"senders": [{"id": "s1", "email": "new@example.com", "name": "New", "is_default": true}],
+				"smtp": {"host": "smtp.example.com", "port": 587, "username": "u", "password": "p", "use_tls": true}
+			}
+		}`)
+
+		assert.Equal(t, domain.EmailProviderKindSMTP, got.EmailProvider.Kind)
+		assert.Equal(t, 10, got.EmailProvider.RateLimitPerMinute)
+		require.Len(t, got.EmailProvider.Senders, 1)
+		assert.Equal(t, "new@example.com", got.EmailProvider.Senders[0].Email)
+	})
+}
+
+// Settings an update body never names must keep the value the workspace already
+// has. The assignment block used to copy the whole request over the stored
+// settings, so a body that mentioned only the timezone turned email tracking off,
+// unassigned both sending providers and emptied the file manager — the S3 secret
+// with it, which no client can restore because a workspace does not serve it back
+// to anything but a console session.
+//
+// The settings come from a decoded body, not a struct literal: a literal cannot
+// express a key that is not there, which is the whole defect.
+func TestUpdateWorkspace_OmittedSettingsKeepStoredValues(t *testing.T) {
+	const workspaceID = "testworkspace"
+
+	storedEndpoint := "https://track.example.com"
+
+	storedSettings := func() domain.WorkspaceSettings {
+		return domain.WorkspaceSettings{
+			WebsiteURL:      "https://stored.example.com",
+			LogoURL:         "https://stored.example.com/logo.png",
+			CoverURL:        "https://stored.example.com/cover.png",
+			Timezone:        "UTC",
+			DefaultLanguage: "en",
+			Languages:       []string{"en"},
+			FileManager: domain.FileManagerSettings{
+				Endpoint:           "https://s3.example.com",
+				Bucket:             "stored-bucket",
+				AccessKey:          "AKIASTORED",
+				EncryptedSecretKey: "STORED-CIPHERTEXT",
+			},
+			TransactionalEmailProviderID: "provider-transactional",
+			MarketingEmailProviderID:     "provider-marketing",
+			EmailTrackingEnabled:         true,
+			CustomEndpointURL:            &storedEndpoint,
+		}
+	}
+
+	run := func(t *testing.T, body string) *domain.Workspace {
+		t.Helper()
+
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		mockRepo := mocks.NewMockWorkspaceRepository(ctrl)
+		mockAuthService := mocks.NewMockAuthService(ctrl)
+		mockLogger := pkgmocks.NewMockLogger(ctrl)
+		mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+		mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+		mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
+
+		service := NewWorkspaceService(
+			mockRepo,
+			mocks.NewMockUserRepository(ctrl),
+			mocks.NewMockTaskRepository(ctrl),
+			mockLogger,
+			mocks.NewMockUserServiceInterface(ctrl),
+			mockAuthService,
+			pkgmocks.NewMockMailer(ctrl),
+			&config.Config{RootEmail: "root@example.com"},
+			mocks.NewMockContactService(ctrl),
+			mocks.NewMockListService(ctrl),
+			mocks.NewMockContactListService(ctrl),
+			mocks.NewMockTemplateService(ctrl),
+			mocks.NewMockWebhookRegistrationService(ctrl),
+			"secret_key",
+			&SupabaseService{},
+			&DNSVerificationService{},
+			&BlogService{},
+		)
+
+		ctx := context.Background()
+		mockAuthService.EXPECT().
+			AuthenticateUserForWorkspace(ctx, workspaceID).
+			Return(ctx, &domain.User{ID: "u1"}, &domain.UserWorkspace{
+				UserID: "u1", WorkspaceID: workspaceID, Role: "owner",
+			}, nil)
+
+		mockRepo.EXPECT().GetByID(ctx, workspaceID).Return(&domain.Workspace{
+			ID:       workspaceID,
+			Name:     "Original",
+			Settings: storedSettings(),
+		}, nil)
+
+		var saved *domain.Workspace
+		mockRepo.EXPECT().Update(ctx, gomock.Any()).
+			DoAndReturn(func(_ context.Context, w *domain.Workspace) error {
+				saved = w
+				return nil
+			})
+
+		var req domain.UpdateWorkspaceRequest
+		require.NoError(t, json.Unmarshal([]byte(body), &req))
+
+		// Exactly what the handler does with the decoded request.
+		_, err := service.UpdateWorkspace(ctx, req.ID, req.Name, req.Settings)
+		require.NoError(t, err)
+		require.NotNil(t, saved)
+		return saved
+	}
+
+	t.Run("a minimal body changes only the name", func(t *testing.T) {
+		saved := run(t, `{
+			"id": "testworkspace",
+			"name": "Renamed",
+			"settings": {"timezone": "UTC", "default_language": "en", "languages": ["en"]}
+		}`)
+
+		assert.Equal(t, "Renamed", saved.Name, "the edit itself must still apply")
+		assert.Equal(t, storedSettings(), saved.Settings,
+			"every setting the body did not name must survive the save")
+	})
+
+	t.Run("file manager sent without its secret keeps the stored one", func(t *testing.T) {
+		// The shape any API client sends back: reads never carry the S3 secret to a
+		// machine caller, so an echo of the settings object has nothing to put there.
+		saved := run(t, `{
+			"id": "testworkspace",
+			"name": "Renamed",
+			"settings": {
+				"timezone": "UTC", "default_language": "en", "languages": ["en"],
+				"file_manager": {
+					"endpoint": "https://s3.example.com",
+					"bucket": "new-bucket",
+					"access_key": "AKIASTORED"
+				}
+			}
+		}`)
+
+		assert.Equal(t, "new-bucket", saved.Settings.FileManager.Bucket, "the edit itself must still apply")
+		assert.Equal(t, "STORED-CIPHERTEXT", saved.Settings.FileManager.EncryptedSecretKey,
+			"a caller with no secret to send must not blank the stored one")
+	})
+
+	t.Run("values the body does name still apply", func(t *testing.T) {
+		// The counterpart: preserving on absence must not cost the ability to change
+		// or clear anything. null clears a URL, which is how the console clears one.
+		saved := run(t, `{
+			"id": "testworkspace",
+			"name": "Renamed",
+			"settings": {
+				"timezone": "UTC", "default_language": "en", "languages": ["en"],
+				"email_tracking_enabled": false,
+				"logo_url": null,
+				"transactional_email_provider_id": "",
+				"file_manager": {}
+			}
+		}`)
+
+		assert.False(t, saved.Settings.EmailTrackingEnabled, "an explicit false must still turn tracking off")
+		assert.Empty(t, saved.Settings.LogoURL, "a null must still clear the logo")
+		assert.Empty(t, saved.Settings.TransactionalEmailProviderID, "an explicit empty string must still unassign")
+		assert.Empty(t, saved.Settings.FileManager.EncryptedSecretKey,
+			"clearing the file manager outright must take its credential with it")
+		assert.Equal(t, "provider-marketing", saved.Settings.MarketingEmailProviderID,
+			"the sibling the body did not name is untouched")
+	})
+}
+
+// setBlogSettings writes both fields on every call, so a body that says nothing
+// about blog_enabled used to take the blog offline as a side effect of editing its
+// title. The console papers over it by recomputing the flag from the workspace it
+// holds; nothing else can, and the service is the only place that knows the stored
+// value.
+func TestSetBlogSettings_OmittedEnabledFlagKeepsStoredValue(t *testing.T) {
+	const workspaceID = "testworkspace"
+
+	run := func(t *testing.T, enabled *bool) *domain.Workspace {
+		t.Helper()
+
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		mockRepo := mocks.NewMockWorkspaceRepository(ctrl)
+		mockAuthService := mocks.NewMockAuthService(ctrl)
+		mockLogger := pkgmocks.NewMockLogger(ctrl)
+		mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+		mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+		mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
+
+		service := NewWorkspaceService(
+			mockRepo,
+			mocks.NewMockUserRepository(ctrl),
+			mocks.NewMockTaskRepository(ctrl),
+			mockLogger,
+			mocks.NewMockUserServiceInterface(ctrl),
+			mockAuthService,
+			pkgmocks.NewMockMailer(ctrl),
+			&config.Config{RootEmail: "root@example.com"},
+			mocks.NewMockContactService(ctrl),
+			mocks.NewMockListService(ctrl),
+			mocks.NewMockContactListService(ctrl),
+			mocks.NewMockTemplateService(ctrl),
+			mocks.NewMockWebhookRegistrationService(ctrl),
+			"secret_key",
+			&SupabaseService{},
+			&DNSVerificationService{},
+			&BlogService{},
+		)
+
+		ctx := context.Background()
+		mockAuthService.EXPECT().
+			AuthenticateUserForWorkspace(ctx, workspaceID).
+			Return(ctx, &domain.User{ID: "u1"}, &domain.UserWorkspace{
+				UserID: "u1", WorkspaceID: workspaceID, Role: "owner",
+			}, nil)
+
+		mockRepo.EXPECT().GetByID(ctx, workspaceID).Return(&domain.Workspace{
+			ID:   workspaceID,
+			Name: "Test",
+			Settings: domain.WorkspaceSettings{
+				Timezone:     "UTC",
+				BlogEnabled:  true,
+				BlogSettings: &domain.BlogSettings{Title: "Stored Blog"},
+			},
+		}, nil)
+
+		var saved *domain.Workspace
+		mockRepo.EXPECT().Update(ctx, gomock.Any()).
+			DoAndReturn(func(_ context.Context, w *domain.Workspace) error {
+				saved = w
+				return nil
+			})
+
+		require.NoError(t, service.SetBlogSettings(ctx, workspaceID, enabled, &domain.BlogSettings{Title: "Edited"}, true))
+		require.NotNil(t, saved)
+		return saved
+	}
+
+	t.Run("no flag in the body leaves a live blog live", func(t *testing.T) {
+		saved := run(t, nil)
+
+		assert.True(t, saved.Settings.BlogEnabled,
+			"editing the blog's settings must not take it offline")
+		require.NotNil(t, saved.Settings.BlogSettings)
+		assert.Equal(t, "Edited", saved.Settings.BlogSettings.Title, "the edit itself must still apply")
+	})
+
+	t.Run("an explicit false still disables the blog", func(t *testing.T) {
+		saved := run(t, boolPtr(false))
+
+		assert.False(t, saved.Settings.BlogEnabled)
+	})
+}
+
+// The settings block needs its own presence answer, because unlike the flag above it cannot
+// be read off the pointer: nil is already how a caller asks for the configuration to be
+// cleared. Merging it here rather than in the handler is what lets the write use the very
+// workspace it has just loaded and is about to save, instead of a second read taken through
+// a different lookup with a different answer to who may see the workspace.
+func TestSetBlogSettings_UnspecifiedSettingsKeepTheStoredConfiguration(t *testing.T) {
+	const workspaceID = "testworkspace"
+
+	// Richly seeded on purpose: against an empty stored value a wipe and a correct merge
+	// look the same.
+	storedSettings := func() *domain.BlogSettings {
+		return &domain.BlogSettings{
+			Title:            "Stored Blog",
+			HomePageSize:     12,
+			CategoryPageSize: 7,
+			FeedSummaryOnly:  true,
+			FeedMaxItems:     5,
+			SEO: &domain.SEOSettings{
+				MetaTitle:       "Stored meta title",
+				MetaDescription: "Stored meta description",
+				Keywords:        []string{"stored", "keywords"},
+			},
+		}
+	}
+
+	run := func(t *testing.T, settings *domain.BlogSettings, settingsSpecified bool) *domain.Workspace {
+		t.Helper()
+
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		mockRepo := mocks.NewMockWorkspaceRepository(ctrl)
+		mockAuthService := mocks.NewMockAuthService(ctrl)
+		mockLogger := pkgmocks.NewMockLogger(ctrl)
+		mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+		mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+		mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
+
+		service := NewWorkspaceService(
+			mockRepo,
+			mocks.NewMockUserRepository(ctrl),
+			mocks.NewMockTaskRepository(ctrl),
+			mockLogger,
+			mocks.NewMockUserServiceInterface(ctrl),
+			mockAuthService,
+			pkgmocks.NewMockMailer(ctrl),
+			&config.Config{RootEmail: "root@example.com"},
+			mocks.NewMockContactService(ctrl),
+			mocks.NewMockListService(ctrl),
+			mocks.NewMockContactListService(ctrl),
+			mocks.NewMockTemplateService(ctrl),
+			mocks.NewMockWebhookRegistrationService(ctrl),
+			"secret_key",
+			&SupabaseService{},
+			&DNSVerificationService{},
+			&BlogService{},
+		)
+
+		ctx := context.Background()
+		mockAuthService.EXPECT().
+			AuthenticateUserForWorkspace(ctx, workspaceID).
+			Return(ctx, &domain.User{ID: "u1"}, &domain.UserWorkspace{
+				UserID: "u1", WorkspaceID: workspaceID, Role: "owner",
+			}, nil)
+
+		mockRepo.EXPECT().GetByID(ctx, workspaceID).Return(&domain.Workspace{
+			ID:   workspaceID,
+			Name: "Test",
+			Settings: domain.WorkspaceSettings{
+				Timezone:     "UTC",
+				WebsiteURL:   "https://example.com",
+				BlogEnabled:  true,
+				BlogSettings: storedSettings(),
+			},
+		}, nil)
+
+		var saved *domain.Workspace
+		mockRepo.EXPECT().Update(ctx, gomock.Any()).
+			DoAndReturn(func(_ context.Context, w *domain.Workspace) error {
+				saved = w
+				return nil
+			}).AnyTimes()
+
+		require.NoError(t, service.SetBlogSettings(ctx, workspaceID, boolPtr(false), settings, settingsSpecified))
+		require.NotNil(t, saved)
+		return saved
+	}
+
+	t.Run("a body that named no blog_settings leaves the whole configuration standing", func(t *testing.T) {
+		saved := run(t, nil, false)
+
+		// Against literals rather than the fixture: the settings the write keeps are the very
+		// pointer the read handed it, so comparing them to the fixture would risk comparing
+		// them to themselves.
+		require.NotNil(t, saved.Settings.BlogSettings,
+			"switching the blog off must not erase how it is configured")
+		assert.Equal(t, "Stored Blog", saved.Settings.BlogSettings.Title)
+		assert.Equal(t, 12, saved.Settings.BlogSettings.HomePageSize)
+		assert.Equal(t, 7, saved.Settings.BlogSettings.CategoryPageSize)
+		assert.True(t, saved.Settings.BlogSettings.FeedSummaryOnly)
+		assert.Equal(t, 5, saved.Settings.BlogSettings.FeedMaxItems)
+		require.NotNil(t, saved.Settings.BlogSettings.SEO)
+		assert.Equal(t, "Stored meta title", saved.Settings.BlogSettings.SEO.MetaTitle)
+		assert.Equal(t, []string{"stored", "keywords"}, saved.Settings.BlogSettings.SEO.Keywords)
+
+		// The switch the caller did flip still lands, and nothing else moves.
+		assert.False(t, saved.Settings.BlogEnabled)
+		assert.Equal(t, "https://example.com", saved.Settings.WebsiteURL)
+	})
+
+	t.Run("an explicit null still clears the configuration", func(t *testing.T) {
+		saved := run(t, nil, true)
+
+		assert.Nil(t, saved.Settings.BlogSettings,
+			"an object has a null that means something: wiping the configuration stays expressible")
+	})
+
+	t.Run("a settings block that was sent replaces the stored one wholesale", func(t *testing.T) {
+		saved := run(t, &domain.BlogSettings{Title: "Replaced"}, true)
+
+		require.NotNil(t, saved.Settings.BlogSettings)
+		assert.Equal(t, "Replaced", saved.Settings.BlogSettings.Title)
+		assert.Zero(t, saved.Settings.BlogSettings.HomePageSize,
+			"the block is a replacement, not a per-field merge")
+		assert.Nil(t, saved.Settings.BlogSettings.SEO)
 	})
 }

@@ -356,3 +356,22 @@ func TestWorkspaceRedactForPublic_IsSafeOnNilAndEmpty(t *testing.T) {
 	assert.NotPanics(t, func() { (*Workspace)(nil).RedactForPublic() })
 	assert.NotPanics(t, func() { (&Workspace{}).RedactForPublic() })
 }
+
+// The minted address is display-only and the integrations screen prints it on the card, so
+// Redact leaves it whole and records no hint for it. A hint would be pointless anyway: the
+// address is not a credential, and the token it belongs to is never persisted to hint at.
+func TestWorkspaceRedact_KeepsZapierAPIKeyEmail(t *testing.T) {
+	const address = "zapier-marketing-3f9a1c02@v3.notifuse.com"
+	w := &Workspace{Integrations: Integrations{{
+		ID: "i", Name: "Marketing", Type: IntegrationTypeZapier,
+		ZapierSettings: &ZapierSettings{APIKeyEmail: address},
+	}}}
+	w.Redact()
+
+	assert.Equal(t, address, w.Integrations[0].ZapierSettings.APIKeyEmail)
+	assert.Empty(t, w.Integrations[0].CredentialHints)
+
+	out, err := json.Marshal(w)
+	require.NoError(t, err)
+	assert.Contains(t, string(out), address)
+}

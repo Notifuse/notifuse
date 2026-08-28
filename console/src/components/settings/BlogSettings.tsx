@@ -156,18 +156,13 @@ export function BlogSettings({ workspace, onWorkspaceUpdate, canManage }: BlogSe
       }
 
       // Blog settings are saved via a dedicated, blog:write-gated endpoint (not the
-      // owner-only workspaces.update). The endpoint always sets both fields, so resolve
-      // the intended enabled state explicitly: honor an explicit form value, otherwise
-      // keep the workspace's current state (preserves "don't toggle when only editing
-      // settings").
-      const intendedEnabled =
-        values.blog_enabled !== undefined
-          ? values.blog_enabled === true
-          : (workspace.settings.blog_enabled ?? false)
-
+      // owner-only workspaces.update). That endpoint leaves the stored flag alone when
+      // the body names no blog_enabled, so an ordinary save omits the key instead of
+      // re-asserting a state nobody touched. The Enable button and the disable
+      // confirmation each pass their boolean explicitly.
       await workspaceService.setBlogSettings({
         workspace_id: workspace.id,
-        blog_enabled: intendedEnabled,
+        ...(values.blog_enabled !== undefined ? { blog_enabled: values.blog_enabled } : {}),
         blog_settings: values.blog_settings
       })
 

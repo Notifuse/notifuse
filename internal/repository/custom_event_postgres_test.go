@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"regexp"
+	"strings"
 	"testing"
 	"time"
 
@@ -78,6 +80,7 @@ func TestCustomEventRepository_Upsert(t *testing.T) {
 				event.DeletedAt,
 				sqlmock.AnyArg(),
 				sqlmock.AnyArg(),
+				true,
 			).
 			WillReturnResult(sqlmock.NewResult(1, 1))
 
@@ -119,6 +122,7 @@ func TestCustomEventRepository_Upsert(t *testing.T) {
 				eventWithIntegration.DeletedAt,
 				sqlmock.AnyArg(),
 				sqlmock.AnyArg(),
+				true,
 			).
 			WillReturnResult(sqlmock.NewResult(1, 1))
 
@@ -159,6 +163,7 @@ func TestCustomEventRepository_Upsert(t *testing.T) {
 				event.DeletedAt,
 				sqlmock.AnyArg(),
 				sqlmock.AnyArg(),
+				true,
 			).
 			WillReturnError(errors.New("execution error"))
 
@@ -220,6 +225,7 @@ func TestCustomEventRepository_BatchUpsert(t *testing.T) {
 					event.DeletedAt,
 					sqlmock.AnyArg(),
 					sqlmock.AnyArg(),
+					true,
 				).
 				WillReturnResult(sqlmock.NewResult(1, 1))
 		}
@@ -278,6 +284,7 @@ func TestCustomEventRepository_BatchUpsert(t *testing.T) {
 				events[0].DeletedAt,
 				sqlmock.AnyArg(),
 				sqlmock.AnyArg(),
+				true,
 			).
 			WillReturnResult(sqlmock.NewResult(1, 1))
 
@@ -298,6 +305,7 @@ func TestCustomEventRepository_BatchUpsert(t *testing.T) {
 				events[1].DeletedAt,
 				sqlmock.AnyArg(),
 				sqlmock.AnyArg(),
+				true,
 			).
 			WillReturnError(errors.New("execution error"))
 
@@ -571,4 +579,221 @@ func TestCustomEventRepository_DeleteForEmail(t *testing.T) {
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to delete custom events")
 	})
+}
+
+// A nil Properties map is the caller saying nothing about properties; an empty map
+// is the caller emptying them. json.Marshal flattens the first into the literal
+// null and the second into {}, so the distinction has to travel as its own
+// parameter rather than inside the payload.
+func TestCustomEventRepository_Upsert_OmittedPropertiesPreserveTheStoredRow(t *testing.T) {
+	mockWorkspaceRepo, repo, mock, db, cleanup := setupCustomEventTest(t)
+	defer cleanup()
+
+	ctx := context.Background()
+	workspaceID := "workspace123"
+	now := time.Now()
+
+	t.Run("nil properties send an inert payload and do not claim the column", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().GetConnection(ctx, workspaceID).Return(db, nil)
+
+		event := &domain.CustomEvent{
+			ExternalID: "order_12345",
+			Email:      "user@example.com",
+			EventName:  "orders/fulfilled",
+			OccurredAt: now,
+			Source:     "api",
+		}
+
+		mock.ExpectExec(`properties = CASE WHEN`).
+			WithArgs(
+				event.EventName,
+				event.ExternalID,
+				event.Email,
+				[]byte("{}"),
+				event.OccurredAt,
+				event.Source,
+				event.IntegrationID,
+				event.GoalName,
+				event.GoalType,
+				event.GoalValue,
+				event.DeletedAt,
+				sqlmock.AnyArg(),
+				sqlmock.AnyArg(),
+				false,
+			).
+			WillReturnResult(sqlmock.NewResult(1, 1))
+
+		require.NoError(t, repo.Upsert(ctx, workspaceID, event))
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("an explicit empty map still claims the column", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().GetConnection(ctx, workspaceID).Return(db, nil)
+
+		event := &domain.CustomEvent{
+			ExternalID: "order_12345",
+			Email:      "user@example.com",
+			EventName:  "orders/fulfilled",
+			Properties: map[string]interface{}{},
+			OccurredAt: now,
+			Source:     "api",
+		}
+
+		mock.ExpectExec(`properties = CASE WHEN`).
+			WithArgs(
+				event.EventName,
+				event.ExternalID,
+				event.Email,
+				[]byte("{}"),
+				event.OccurredAt,
+				event.Source,
+				event.IntegrationID,
+				event.GoalName,
+				event.GoalType,
+				event.GoalValue,
+				event.DeletedAt,
+				sqlmock.AnyArg(),
+				sqlmock.AnyArg(),
+				true,
+			).
+			WillReturnResult(sqlmock.NewResult(1, 1))
+
+		require.NoError(t, repo.Upsert(ctx, workspaceID, event))
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+}
+
+// integration_id already arrives as a faithful *string, so it only needs the
+// COALESCE its goal_* neighbours in the same clause already have: an API upsert
+// that never mentions the integration must not unlink the event from it.
+func TestCustomEventRepository_Upsert_OmittedIntegrationIDIsCoalesced(t *testing.T) {
+	mockWorkspaceRepo, repo, mock, db, cleanup := setupCustomEventTest(t)
+	defer cleanup()
+
+	ctx := context.Background()
+	workspaceID := "workspace123"
+
+	mockWorkspaceRepo.EXPECT().GetConnection(ctx, workspaceID).Return(db, nil)
+
+	event := &domain.CustomEvent{
+		ExternalID: "order_12345",
+		Email:      "user@example.com",
+		EventName:  "orders/fulfilled",
+		Properties: map[string]interface{}{"total": 1},
+		OccurredAt: time.Now(),
+		Source:     "api",
+	}
+
+	mock.ExpectExec(`integration_id = COALESCE\(EXCLUDED\.integration_id, custom_events\.integration_id\)`).
+		WillReturnResult(sqlmock.NewResult(1, 1))
+
+	require.NoError(t, repo.Upsert(ctx, workspaceID, event))
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+// The batch import path writes through the same ON CONFLICT clause, and the public
+// batch-import examples omit properties entirely.
+func TestCustomEventRepository_BatchUpsert_OmittedPropertiesPreserveTheStoredRow(t *testing.T) {
+	mockWorkspaceRepo, repo, mock, db, cleanup := setupCustomEventTest(t)
+	defer cleanup()
+
+	ctx := context.Background()
+	workspaceID := "workspace123"
+	now := time.Now()
+
+	mockWorkspaceRepo.EXPECT().GetConnection(ctx, workspaceID).Return(db, nil)
+
+	events := []*domain.CustomEvent{
+		{
+			ExternalID: "order_1",
+			Email:      "user@example.com",
+			EventName:  "orders/fulfilled",
+			OccurredAt: now,
+			Source:     "import",
+		},
+		{
+			ExternalID: "order_2",
+			Email:      "user@example.com",
+			EventName:  "orders/fulfilled",
+			Properties: map[string]interface{}{"total": 12},
+			OccurredAt: now,
+			Source:     "import",
+		},
+	}
+
+	mock.ExpectBegin()
+	mock.ExpectPrepare(`properties = CASE WHEN`)
+	mock.ExpectExec(`properties = CASE WHEN`).
+		WithArgs(
+			events[0].EventName, events[0].ExternalID, events[0].Email, []byte("{}"), events[0].OccurredAt,
+			events[0].Source, events[0].IntegrationID, events[0].GoalName, events[0].GoalType, events[0].GoalValue,
+			events[0].DeletedAt, sqlmock.AnyArg(), sqlmock.AnyArg(), false,
+		).
+		WillReturnResult(sqlmock.NewResult(1, 1))
+
+	propertiesJSON, err := json.Marshal(events[1].Properties)
+	require.NoError(t, err)
+	mock.ExpectExec(`properties = CASE WHEN`).
+		WithArgs(
+			events[1].EventName, events[1].ExternalID, events[1].Email, propertiesJSON, events[1].OccurredAt,
+			events[1].Source, events[1].IntegrationID, events[1].GoalName, events[1].GoalType, events[1].GoalValue,
+			events[1].DeletedAt, sqlmock.AnyArg(), sqlmock.AnyArg(), true,
+		).
+		WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectCommit()
+
+	require.NoError(t, repo.BatchUpsert(ctx, workspaceID, events))
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+// conflictAssignedColumns returns, in order, the columns the ON CONFLICT clause of
+// a custom-events upsert rewrites. It reads the statement rather than a database
+// because sqlmock never runs the SQL, and which columns a second write is allowed
+// to touch is the whole substance of the clause.
+func conflictAssignedColumns(t *testing.T, query string) []string {
+	t.Helper()
+
+	_, conflict, found := strings.Cut(query, "DO UPDATE SET")
+	require.True(t, found, "the upsert must still be an ON CONFLICT ... DO UPDATE")
+
+	assignment := regexp.MustCompile(`^([a-z_]+) =`)
+	columns := []string{}
+	for _, line := range strings.Split(conflict, "\n") {
+		line = strings.TrimSpace(line)
+		if strings.HasPrefix(line, "WHERE ") {
+			// The clause's own guard; the assignments end here.
+			break
+		}
+		if match := assignment.FindStringSubmatch(line); match != nil {
+			columns = append(columns, match[1])
+		}
+	}
+	return columns
+}
+
+// source records where a row came from, and webhook_custom_events_trigger gates
+// its entire web-analytics exclusion on it: flip a bridged row's source to 'api'
+// and it starts fanning pageview-scale conversions — client-supplied properties
+// included — out to third-party subscribers that asked for commerce events.
+// Nothing a caller sends is meant to move a row's origin: UpsertCustomEventRequest
+// has no source field at all and the service stamps "api" for the insert, while an
+// import entry's source describes the entry rather than the resource it names. So
+// a conflict leaves the stored origin alone, and this pins the exact set of
+// columns a second write may rewrite.
+func TestCustomEventRepository_UpsertQuery_ConflictLeavesTheStoredOriginAlone(t *testing.T) {
+	assert.Equal(t, []string{
+		"email",
+		"properties",
+		"occurred_at",
+		"integration_id",
+		"goal_name",
+		"goal_type",
+		"goal_value",
+		"deleted_at",
+		"updated_at",
+	}, conflictAssignedColumns(t, upsertCustomEventQuery))
+
+	// A first write still has to record where the row came from.
+	insert, _, _ := strings.Cut(upsertCustomEventQuery, "ON CONFLICT")
+	assert.Contains(t, insert, "source", "a brand-new row must still record its origin")
 }

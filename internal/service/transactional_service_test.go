@@ -2,7 +2,9 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/Notifuse/notifuse/internal/domain"
@@ -268,9 +270,13 @@ func TestTransactionalNotificationService_UpdateNotification(t *testing.T) {
 	mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
 
 	type testCase struct {
-		name           string
-		id             string
+		name string
+		id   string
+		// input builds the parameters directly. Parameters assembled in Go mean
+		// exactly what their fields say, so a case whose subject is a key the body
+		// never carried has to set body instead and go through the decoder.
 		input          domain.TransactionalNotificationUpdateParams
+		body           string
 		mockSetup      func()
 		expectedError  bool
 		expectedResult *domain.TransactionalNotification
@@ -281,20 +287,28 @@ func TestTransactionalNotificationService_UpdateNotification(t *testing.T) {
 	notificationID := uuid.New().String()
 	templateID := uuid.New().String()
 	newTemplateID := uuid.New().String()
+	integrationID := "supabase-integration"
 
-	existingNotification := &domain.TransactionalNotification{
-		ID:          notificationID,
-		Name:        "Original Name",
-		Description: "Original Description",
-		Channels: map[domain.TransactionalChannel]domain.ChannelTemplate{
-			domain.TransactionalChannelEmail: {
-				TemplateID: templateID,
+	// UpdateNotification mutates the notification the repository hands back, so
+	// every Get must return its own copy. Sharing one pointer with the assertions
+	// below turns assert.Equal(existingNotification.X, notif.X) into a comparison
+	// of a field with itself, which holds no matter what the service did to it.
+	newExistingNotification := func() *domain.TransactionalNotification {
+		return &domain.TransactionalNotification{
+			ID:          notificationID,
+			Name:        "Original Name",
+			Description: "Original Description",
+			Channels: map[domain.TransactionalChannel]domain.ChannelTemplate{
+				domain.TransactionalChannelEmail: {
+					TemplateID: templateID,
+				},
 			},
-		},
-		Metadata: map[string]interface{}{
-			"original": "value",
-		},
+			Metadata: map[string]interface{}{
+				"original": "value",
+			},
+		}
 	}
+	existingNotification := newExistingNotification()
 
 	tests := []testCase{
 		{
@@ -319,7 +333,7 @@ func TestTransactionalNotificationService_UpdateNotification(t *testing.T) {
 				// Get existing notification
 				mockRepo.EXPECT().
 					Get(gomock.Any(), workspace, notificationID).
-					Return(existingNotification, nil)
+					Return(newExistingNotification(), nil)
 
 				// Update notification
 				mockRepo.EXPECT().
@@ -378,7 +392,7 @@ func TestTransactionalNotificationService_UpdateNotification(t *testing.T) {
 				// Get existing notification
 				mockRepo.EXPECT().
 					Get(gomock.Any(), workspace, notificationID).
-					Return(existingNotification, nil)
+					Return(newExistingNotification(), nil)
 
 				// Expect template service to validate the template exists
 				mockTemplateService.EXPECT().
@@ -408,6 +422,84 @@ func TestTransactionalNotificationService_UpdateNotification(t *testing.T) {
 				},
 				Metadata: map[string]interface{}{
 					"new": "metadata",
+				},
+			},
+		},
+		{
+			// The shape that took down password resets: the console submits only
+			// the field it edited, and every block the client did not mention has
+			// to survive untouched.
+			name: "Success_AbsentBlocksKeepStoredChannelsMetadataAndTracking",
+			id:   notificationID,
+			// Raw JSON: a struct literal cannot express a tracking_settings key that
+			// was never sent, which is exactly the shape under test.
+			body: `{"name":"Password Reset"}`,
+			mockSetup: func() {
+				mockAuthService.EXPECT().
+					AuthenticateUserForWorkspace(gomock.Any(), workspace).
+					Return(ctx, &domain.User{ID: "user-123"}, &domain.UserWorkspace{
+						UserID:      "user-123",
+						WorkspaceID: workspace,
+						Role:        "member",
+						Permissions: domain.UserPermissions{
+							domain.PermissionResourceTransactional: {Read: true, Write: true},
+						},
+					}, nil)
+
+				mockRepo.EXPECT().
+					Get(gomock.Any(), workspace, notificationID).
+					Return(&domain.TransactionalNotification{
+						ID:          notificationID,
+						Name:        "Original Name",
+						Description: "Original Description",
+						Channels: map[domain.TransactionalChannel]domain.ChannelTemplate{
+							domain.TransactionalChannelEmail: {
+								TemplateID: templateID,
+							},
+						},
+						Metadata: map[string]interface{}{
+							"original": "value",
+						},
+						TrackingSettings: notifuse_mjml.TrackingSettings{
+							TrackingMode: notifuse_mjml.TrackingModeDisabled,
+							UTMSource:    "stored-source",
+						},
+					}, nil)
+
+				// Assert against literals rather than the stored notification: the
+				// service mutates that same struct in place.
+				mockRepo.EXPECT().
+					Update(gomock.Any(), workspace, gomock.Any()).
+					DoAndReturn(func(_ context.Context, _ string, notif *domain.TransactionalNotification) error {
+						assert.Equal(t, "Password Reset", notif.Name)
+						assert.Equal(t, "Original Description", notif.Description)
+						assert.Equal(t, domain.ChannelTemplates{
+							domain.TransactionalChannelEmail: {TemplateID: templateID},
+						}, notif.Channels)
+						assert.Equal(t, domain.MapOfAny{"original": "value"}, notif.Metadata)
+						assert.Equal(t, notifuse_mjml.TrackingSettings{
+							TrackingMode: notifuse_mjml.TrackingModeDisabled,
+							UTMSource:    "stored-source",
+						}, notif.TrackingSettings)
+						return nil
+					})
+			},
+			expectedError: false,
+			expectedResult: &domain.TransactionalNotification{
+				ID:          notificationID,
+				Name:        "Password Reset",
+				Description: "Original Description",
+				Channels: map[domain.TransactionalChannel]domain.ChannelTemplate{
+					domain.TransactionalChannelEmail: {
+						TemplateID: templateID,
+					},
+				},
+				Metadata: map[string]interface{}{
+					"original": "value",
+				},
+				TrackingSettings: notifuse_mjml.TrackingSettings{
+					TrackingMode: notifuse_mjml.TrackingModeDisabled,
+					UTMSource:    "stored-source",
 				},
 			},
 		},
@@ -484,7 +576,6 @@ func TestTransactionalNotificationService_UpdateNotification(t *testing.T) {
 					}, nil)
 
 				// Integration-managed notification (e.g. Supabase auth email) with the opt-out set
-				integrationID := "supabase-integration"
 				mockRepo.EXPECT().
 					Get(gomock.Any(), workspace, notificationID).
 					Return(&domain.TransactionalNotification{
@@ -507,9 +598,10 @@ func TestTransactionalNotificationService_UpdateNotification(t *testing.T) {
 			},
 			expectedError: false,
 			expectedResult: &domain.TransactionalNotification{
-				ID:          notificationID,
-				Name:        "Magic Link",
-				Description: "Updated Description",
+				ID:            notificationID,
+				Name:          "Magic Link",
+				Description:   "Updated Description",
+				IntegrationID: &integrationID,
 				TrackingSettings: notifuse_mjml.TrackingSettings{
 					TrackingMode: notifuse_mjml.TrackingModeDisabled,
 					UTMSource:    "newsletter",
@@ -661,7 +753,7 @@ func TestTransactionalNotificationService_UpdateNotification(t *testing.T) {
 				// Get existing notification
 				mockRepo.EXPECT().
 					Get(gomock.Any(), workspace, notificationID).
-					Return(existingNotification, nil)
+					Return(newExistingNotification(), nil)
 
 				// Template validation fails
 				mockTemplateService.EXPECT().
@@ -693,7 +785,7 @@ func TestTransactionalNotificationService_UpdateNotification(t *testing.T) {
 				// Get existing notification
 				mockRepo.EXPECT().
 					Get(gomock.Any(), workspace, notificationID).
-					Return(existingNotification, nil)
+					Return(newExistingNotification(), nil)
 
 				// Update notification fails
 				mockRepo.EXPECT().
@@ -723,8 +815,13 @@ func TestTransactionalNotificationService_UpdateNotification(t *testing.T) {
 				authService:        mockAuthService,
 			}
 
+			params := tc.input
+			if tc.body != "" {
+				require.NoError(t, json.Unmarshal([]byte(tc.body), &params))
+			}
+
 			// Call the method being tested
-			result, err := service.UpdateNotification(ctx, workspace, tc.id, tc.input)
+			result, err := service.UpdateNotification(ctx, workspace, tc.id, params)
 
 			// Check results
 			if tc.expectedError {
@@ -732,19 +829,7 @@ func TestTransactionalNotificationService_UpdateNotification(t *testing.T) {
 				assert.Nil(t, result)
 			} else {
 				assert.NoError(t, err)
-				assert.NotNil(t, result)
-				if tc.input.Name != "" {
-					assert.Equal(t, tc.input.Name, result.Name)
-				}
-				if tc.input.Description != "" {
-					assert.Equal(t, tc.input.Description, result.Description)
-				}
-				if tc.input.Channels != nil {
-					assert.Equal(t, tc.input.Channels, result.Channels)
-				}
-				if tc.input.Metadata != nil {
-					assert.Equal(t, tc.input.Metadata, result.Metadata)
-				}
+				assert.Equal(t, tc.expectedResult, result)
 			}
 		})
 	}
@@ -4256,4 +4341,143 @@ func TestTransactionalNotificationService_ContactScopeContainment(t *testing.T) 
 
 		require.NoError(t, err)
 	})
+}
+
+// An update body is a patch, so tracking_settings has to tell a body that never
+// mentioned it from one that explicitly emptied it. Both decode to a zero-valued
+// struct, and reading the zero as "absent" turns switching tracking off — or
+// stripping the UTMs a finished campaign left behind — into a no-op that still
+// answers 200, with nothing in the response to say so. These notifications carry
+// password resets and magic links, whose links keep being rewritten with the old
+// campaign until someone notices.
+//
+// Raw JSON bodies throughout: a Go struct literal cannot express a key that was
+// never sent, which is the whole distinction under test.
+func TestTransactionalNotificationService_UpdateNotification_TrackingSettingsPresence(t *testing.T) {
+	ctx := context.Background()
+	workspace := "test-workspace"
+	notificationID := uuid.New().String()
+
+	// Seeded richly: against an empty stored value a wipe and a preserve look the
+	// same.
+	newStoredNotification := func() *domain.TransactionalNotification {
+		return &domain.TransactionalNotification{
+			ID:          notificationID,
+			Name:        "Password Reset",
+			Description: "Original Description",
+			TrackingSettings: notifuse_mjml.TrackingSettings{
+				EnableTracking: true,
+				TrackingMode:   notifuse_mjml.TrackingModeDisabled,
+				UTMSource:      "newsletter",
+				UTMCampaign:    "spring-sale",
+			},
+		}
+	}
+
+	tests := []struct {
+		name     string
+		body     string
+		expected notifuse_mjml.TrackingSettings
+	}{
+		{
+			// tracking_mode is absent from the object, so the tri-state rule still
+			// keeps the stored opt-out; "inherit" is how that one is reset.
+			name: "an explicitly disabled object switches tracking off",
+			body: `{"workspace_id":"test-workspace","id":"%s","updates":{"name":"Renamed","tracking_settings":{"enable_tracking":false}}}`,
+			expected: notifuse_mjml.TrackingSettings{
+				TrackingMode: notifuse_mjml.TrackingModeDisabled,
+			},
+		},
+		{
+			name: "an empty object strips the stored utms",
+			body: `{"workspace_id":"test-workspace","id":"%s","updates":{"name":"Renamed","tracking_settings":{}}}`,
+			expected: notifuse_mjml.TrackingSettings{
+				TrackingMode: notifuse_mjml.TrackingModeDisabled,
+			},
+		},
+		{
+			name: "an absent key leaves the stored settings alone",
+			body: `{"workspace_id":"test-workspace","id":"%s","updates":{"name":"Renamed"}}`,
+			expected: notifuse_mjml.TrackingSettings{
+				EnableTracking: true,
+				TrackingMode:   notifuse_mjml.TrackingModeDisabled,
+				UTMSource:      "newsletter",
+				UTMCampaign:    "spring-sale",
+			},
+		},
+		{
+			// Nothing else in the body: the request has to count as an update on the
+			// strength of the tracking settings alone.
+			name: "a tracking-settings-only body is a valid update",
+			body: `{"workspace_id":"test-workspace","id":"%s","updates":{"tracking_settings":{"enable_tracking":false}}}`,
+			expected: notifuse_mjml.TrackingSettings{
+				TrackingMode: notifuse_mjml.TrackingModeDisabled,
+			},
+		},
+		{
+			name: "an explicit inherit still clears the stored opt-out",
+			body: `{"workspace_id":"test-workspace","id":"%s","updates":{"tracking_settings":{"enable_tracking":true,"tracking_mode":"inherit","utm_source":"welcome"}}}`,
+			expected: notifuse_mjml.TrackingSettings{
+				EnableTracking: true,
+				UTMSource:      "welcome",
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			mockRepo := mocks.NewMockTransactionalNotificationRepository(ctrl)
+			mockAuthService := mocks.NewMockAuthService(ctrl)
+			mockLogger := pkgmocks.NewMockLogger(ctrl)
+			mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+			mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+			mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
+			mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
+			mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+
+			var req domain.UpdateTransactionalRequest
+			require.NoError(t, json.Unmarshal([]byte(fmt.Sprintf(tc.body, notificationID)), &req))
+			require.NoError(t, req.Validate())
+
+			mockAuthService.EXPECT().
+				AuthenticateUserForWorkspace(gomock.Any(), workspace).
+				Return(ctx, &domain.User{ID: "user-123"}, &domain.UserWorkspace{
+					UserID:      "user-123",
+					WorkspaceID: workspace,
+					Role:        "member",
+					Permissions: domain.UserPermissions{
+						domain.PermissionResourceTransactional: {Read: true, Write: true},
+					},
+				}, nil)
+			mockRepo.EXPECT().
+				Get(gomock.Any(), workspace, notificationID).
+				Return(newStoredNotification(), nil)
+
+			// Asserted against the case's own literal rather than the fixture: the
+			// service mutates the very notification the repository handed it.
+			mockRepo.EXPECT().
+				Update(gomock.Any(), workspace, gomock.Any()).
+				DoAndReturn(func(_ context.Context, _ string, notif *domain.TransactionalNotification) error {
+					assert.Equal(t, tc.expected, notif.TrackingSettings)
+					assert.Equal(t, "Original Description", notif.Description,
+						"a field the body never mentioned still stands")
+					return nil
+				})
+
+			service := &TransactionalNotificationService{
+				transactionalRepo: mockRepo,
+				logger:            mockLogger,
+				apiEndpoint:       "https://api.example.com",
+				authService:       mockAuthService,
+			}
+
+			result, err := service.UpdateNotification(ctx, workspace, req.ID, req.Updates)
+			require.NoError(t, err)
+			require.NotNil(t, result)
+			assert.Equal(t, tc.expected, result.TrackingSettings)
+		})
+	}
 }

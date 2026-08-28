@@ -586,31 +586,6 @@ func TestManager_RunMigrations_AdditionalCoverage(t *testing.T) {
 		assert.NoError(t, mock.ExpectationsWereMet())
 	})
 
-	t.Run("No migrations to run", func(t *testing.T) {
-		db, mock, err := sqlmock.New()
-		require.NoError(t, err)
-		defer func() { _ = db.Close() }()
-
-		logger := &mockLogger{}
-		manager := NewManager(logger)
-
-		cfg := &config.Config{
-			Database: config.DatabaseConfig{
-				Host: "localhost",
-				Port: 5432,
-			},
-		}
-
-		// Mock current version to be higher than available migrations
-		mock.ExpectQuery("SELECT value FROM settings WHERE key = 'db_version'").
-			WillReturnRows(sqlmock.NewRows([]string{"value"}).AddRow("100"))
-
-		err = manager.RunMigrations(context.Background(), cfg, db)
-
-		assert.NoError(t, err)
-		assert.NoError(t, mock.ExpectationsWereMet())
-	})
-
 	t.Run("Error - Invalid version format in database", func(t *testing.T) {
 		db, mock, err := sqlmock.New()
 		require.NoError(t, err)
@@ -637,6 +612,49 @@ func TestManager_RunMigrations_AdditionalCoverage(t *testing.T) {
 		assert.NoError(t, mock.ExpectationsWereMet())
 	})
 
+}
+
+// A database stamped higher than the running build means the deploy went
+// backwards: a rollback to the previous image, a standby promoted while it still
+// carries the newer schema, a dump restored into an older install. It used to
+// satisfy the >= comparison and be reported "up to date", which is the one
+// answer that is certainly wrong — and not transiently wrong, because the
+// dispatcher only ever selects migrationVersion > db_version, so every migration
+// between the two numbers stays skipped even after the code catches up, with the
+// database claiming all along to be fully migrated.
+//
+// This test replaces one that fed the same comparison a db_version of 100 and
+// asserted success under the name "No migrations to run". It never reached the
+// no-migrations branch; it pinned the wrong answer to this exact scenario.
+func TestManager_RunMigrations_RefusesADatabaseAheadOfTheCode(t *testing.T) {
+	codeVersion, err := GetCurrentCodeVersion()
+	require.NoError(t, err)
+	// Derived, not hardcoded: a literal here would stop being "ahead" at the
+	// version bump that passes it.
+	aheadVersion := codeVersion + 1
+
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer func() { _ = db.Close() }()
+
+	// The version lookup is the ONLY expectation, and sqlmock is ordered, so
+	// anything the manager does afterwards — a BeginTx to execute a migration,
+	// the INSERT that re-stamps the version — fails the run as unexpected. That
+	// is the assertion that nothing ran: mis-reporting this database is bad, but
+	// migrating one whose schema this build has never seen is worse.
+	mock.ExpectQuery("SELECT value FROM settings WHERE key = 'db_version'").
+		WillReturnRows(sqlmock.NewRows([]string{"value"}).AddRow(fmt.Sprintf("%.0f", aheadVersion)))
+
+	err = NewManager(&mockLogger{}).RunMigrations(context.Background(), &config.Config{}, db)
+
+	require.Error(t, err, "reporting success is how a rolled-back deploy skips a migration forever")
+	assert.ErrorIs(t, err, ErrDatabaseAheadOfCode)
+	// Both numbers have to survive into the message, because this error is read
+	// once, at boot, by someone who has to decide which way to move: without them
+	// the refusal says a mismatch exists without saying which side is behind.
+	assert.Contains(t, err.Error(), fmt.Sprintf("%.0f", aheadVersion))
+	assert.Contains(t, err.Error(), fmt.Sprintf("%.0f", codeVersion))
+	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestManager_ExecuteMigration_AdditionalCoverage(t *testing.T) {

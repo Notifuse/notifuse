@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/Notifuse/notifuse/internal/domain"
@@ -895,4 +896,132 @@ func TestSettingsHandler_Update_OIDCCustomScopes_ForcesOpenID(t *testing.T) {
 
 func TestSettingsHandler_Update_OIDCDisabled_ScopesUntouched(t *testing.T) {
 	assert.Equal(t, "", oidcScopesUpdate(t, false, ""))
+}
+
+// consoleSettingsSaveBody is the body the console actually posts: its form library submits
+// only the fields it registered, and every registered field carries a value. Secrets come
+// back as the mask sentinel because the operator did not retype them.
+//
+// It is raw JSON, not a marshalled SystemSettingsData, on purpose: no field on that struct
+// carries omitempty, so a Go literal always emits every key and cannot express a key the
+// wire never carried — which is the whole defect.
+const consoleSettingsSaveBody = `{
+	"root_email": "root@example.com",
+	"api_endpoint": "https://app.example.com",
+	"smtp_host": "smtp.example.com",
+	"smtp_port": 587,
+	"smtp_username": "smtp-user",
+	"smtp_password": "` + passwordMask + `",
+	"smtp_from_email": "noreply@example.com",
+	"smtp_from_name": "Acme",
+	"smtp_use_tls": true,
+	"smtp_ehlo_hostname": "",
+	"telemetry_enabled": true,
+	"check_for_updates": true,
+	"smtp_bridge_enabled": false,
+	"smtp_bridge_domain": "",
+	"smtp_bridge_port": 0,
+	"smtp_bridge_tls_cert_base64": "",
+	"smtp_bridge_tls_key_base64": "",
+	"oidc_enabled": true,
+	"oidc_issuer_url": "https://idp.example.com",
+	"oidc_client_id": "cid",
+	"oidc_client_secret": "` + passwordMask + `",
+	"oidc_scopes": "openid email profile",
+	"oidc_button_label": "Sign in with Acme",
+	"oidc_auto_create_users": false,
+	"oidc_allowed_domains": ""
+}`
+
+const storedOIDCRedirectURI = "https://sso.acme.example/api/user.oidc.callback"
+
+// seedOIDCSettings installs a working OIDC configuration whose callback is a vanity URL
+// that api_endpoint cannot derive — exactly the deployment the omitted key breaks.
+func seedOIDCSettings(t *testing.T, settingRepo *mockSettingRepository) {
+	t.Helper()
+	ctx := context.Background()
+
+	encryptedSecret, err := crypto.EncryptString("real-oidc-secret", testSecretKey)
+	require.NoError(t, err)
+
+	_ = settingRepo.Set(ctx, "is_installed", "true")
+	_ = settingRepo.Set(ctx, "root_email", testRootEmail)
+	_ = settingRepo.Set(ctx, "api_endpoint", "https://app.example.com")
+	_ = settingRepo.Set(ctx, "oidc_enabled", "true")
+	_ = settingRepo.Set(ctx, "oidc_issuer_url", "https://idp.example.com")
+	_ = settingRepo.Set(ctx, "oidc_client_id", "cid")
+	_ = settingRepo.Set(ctx, "encrypted_oidc_client_secret", encryptedSecret)
+	_ = settingRepo.Set(ctx, "oidc_redirect_uri", storedOIDCRedirectURI)
+	_ = settingRepo.Set(ctx, "oidc_scopes", "openid email profile")
+	_ = settingRepo.Set(ctx, "oidc_button_label", "Sign in")
+}
+
+// postSettingsUpdate posts a raw settings.update body as the root user.
+func postSettingsUpdate(t *testing.T, handler *SettingsHandler, body string) *httptest.ResponseRecorder {
+	t.Helper()
+	req := httptest.NewRequest(http.MethodPost, "/api/settings.update", bytes.NewBufferString(body))
+	req = reqWithUserContext(req, "root-user-id")
+	w := httptest.NewRecorder()
+	handler.handleUpdate(w, req)
+	return w
+}
+
+// TestSettingsHandler_Update_OmittedFieldsKeepStoredValues covers the redirect URI the
+// console never sends. No <Form.Item name="oidc_redirect_uri"> exists in the console, so
+// the key is absent from every save; decoded into a non-pointer string it arrives as "",
+// which the handler cannot tell apart from an operator clearing the field. The stored
+// callback is blanked on the first save of any unrelated setting, and SSO breaks wherever
+// the callback is not derivable from api_endpoint — a reverse proxy or a vanity SSO domain.
+func TestSettingsHandler_Update_OmittedFieldsKeepStoredValues(t *testing.T) {
+	t.Run("a save that omits oidc_redirect_uri keeps the stored one", func(t *testing.T) {
+		handler, settingRepo, _, _ := setupSettingsHandler(t)
+		seedOIDCSettings(t, settingRepo)
+
+		w := postSettingsUpdate(t, handler, consoleSettingsSaveBody)
+		require.Equal(t, http.StatusOK, w.Code)
+
+		assert.Equal(t, storedOIDCRedirectURI, settingRepo.settings["oidc_redirect_uri"],
+			"a key the body never carried must leave the stored value alone")
+		// The save itself must still have happened, or the assertion above proves nothing.
+		assert.Equal(t, "Sign in with Acme", settingRepo.settings["oidc_button_label"])
+	})
+
+	// The same decode protects every other field, which matters for the API clients the
+	// endpoint also serves: a body naming one setting used to blank the twenty-five it did
+	// not name, SSO included.
+	t.Run("a body naming one setting leaves the rest of the OIDC config alone", func(t *testing.T) {
+		handler, settingRepo, _, _ := setupSettingsHandler(t)
+		seedOIDCSettings(t, settingRepo)
+
+		w := postSettingsUpdate(t, handler, `{"api_endpoint": "https://new.example.com"}`)
+		require.Equal(t, http.StatusOK, w.Code)
+
+		assert.Equal(t, "https://new.example.com", settingRepo.settings["api_endpoint"])
+		assert.Equal(t, "true", settingRepo.settings["oidc_enabled"])
+		assert.Equal(t, "https://idp.example.com", settingRepo.settings["oidc_issuer_url"])
+		assert.Equal(t, "cid", settingRepo.settings["oidc_client_id"])
+		assert.Equal(t, storedOIDCRedirectURI, settingRepo.settings["oidc_redirect_uri"])
+
+		// Decrypted, not compared as ciphertext: AES-GCM re-encrypts with a fresh nonce, so
+		// the stored bytes change even when the secret is kept.
+		secret, err := crypto.DecryptFromHexString(settingRepo.settings["encrypted_oidc_client_secret"], testSecretKey)
+		require.NoError(t, err)
+		assert.Equal(t, "real-oidc-secret", secret)
+	})
+
+	t.Run("an explicitly empty oidc_redirect_uri still clears it", func(t *testing.T) {
+		handler, settingRepo, _, _ := setupSettingsHandler(t)
+		seedOIDCSettings(t, settingRepo)
+
+		body := strings.Replace(consoleSettingsSaveBody,
+			`"oidc_button_label": "Sign in with Acme",`,
+			`"oidc_button_label": "Sign in with Acme",`+"\n\t"+`"oidc_redirect_uri": "",`, 1)
+		require.Contains(t, body, `"oidc_redirect_uri": ""`)
+
+		w := postSettingsUpdate(t, handler, body)
+		require.Equal(t, http.StatusOK, w.Code)
+
+		assert.Equal(t, "", settingRepo.settings["oidc_redirect_uri"],
+			"clearing the field must stay expressible: the key is present, carrying an empty string")
+	})
 }

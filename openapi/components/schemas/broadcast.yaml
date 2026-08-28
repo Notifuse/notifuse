@@ -209,6 +209,33 @@ AudienceSettings:
       description: Whether to exclude unsubscribed contacts
       example: true
 
+AudienceSettingsPatch:
+  type: object
+  description: >-
+    The audience keys a broadcasts.update body carries. Same fields as
+    AudienceSettings, but none of them is required: each key the body names replaces the
+    stored value and each key it leaves out keeps it.
+  properties:
+    list:
+      type: string
+      description: List ID to send to. Omit to keep the stored list.
+      example: newsletter
+    segments:
+      type: array
+      description: >-
+        Segment IDs to filter recipients. Omit to keep the stored segments; send an empty
+        array to remove segment targeting and send to the whole list.
+      items:
+        type: string
+      example:
+        - premium_users
+    exclude_unsubscribed:
+      type: boolean
+      description: >-
+        Whether to exclude unsubscribed contacts. Omit to keep the stored value; send
+        false to mail them too.
+      example: true
+
 ScheduleSettings:
   type: object
   description: |
@@ -281,10 +308,6 @@ CreateBroadcastRequest:
       $ref: '#/AudienceSettings'
     test_settings:
       $ref: '#/BroadcastTestSettings'
-    tracking_enabled:
-      type: boolean
-      description: Enable click and open tracking
-      example: true
     utm_parameters:
       $ref: '#/UTMParameters'
     data_feed:
@@ -296,11 +319,15 @@ CreateBroadcastRequest:
 
 UpdateBroadcastRequest:
   type: object
+  description: >-
+    Partial update of a broadcast. workspace_id, id and name are always applied; audience
+    is merged one key at a time, and schedule, test_settings, utm_parameters, metadata and
+    data_feed keep their stored value when the key is left out of the body. Send the key to
+    change it — including an explicitly empty object to clear it.
   required:
     - workspace_id
     - id
     - name
-    - audience
   properties:
     workspace_id:
       type: string
@@ -316,23 +343,39 @@ UpdateBroadcastRequest:
       example: Spring Newsletter 2024
       maxLength: 255
     audience:
-      $ref: '#/AudienceSettings'
+      allOf:
+        - $ref: '#/AudienceSettingsPatch'
+      description: >-
+        Merged into the stored audience one key at a time, so a body naming only list
+        retargets the broadcast without dropping its segments or its exclusion of
+        unsubscribed contacts. Omit the whole object to leave the audience untouched.
     schedule:
-      $ref: '#/ScheduleSettings'
+      allOf:
+        - $ref: '#/ScheduleSettings'
+      description: >-
+        Omit to keep the stored schedule. Sending it replaces the schedule wholesale,
+        so a body carrying an empty or partial object clears is_scheduled — which a
+        later resume reads to decide between restoring the schedule and sending now.
     test_settings:
-      $ref: '#/BroadcastTestSettings'
-    tracking_enabled:
-      type: boolean
-      description: Enable click and open tracking
-      example: true
+      allOf:
+        - $ref: '#/BroadcastTestSettings'
+      description: >-
+        Omit to keep the stored test settings. These hold the broadcast's template
+        variations, so sending a partial object detaches its templates.
     utm_parameters:
-      $ref: '#/UTMParameters'
+      allOf:
+        - $ref: '#/UTMParameters'
+      description: Omit to keep the stored UTM parameters; send an empty object to clear them.
     data_feed:
-      $ref: '#/DataFeedSettings'
+      allOf:
+        - $ref: '#/DataFeedSettings'
+      description: Omit to keep the stored data feed settings and their last fetched data.
     metadata:
       type: object
       additionalProperties: true
-      description: Custom metadata for the broadcast
+      description: >-
+        Custom metadata for the broadcast. Omit to keep the stored metadata; send an
+        empty object to clear it.
 
 ScheduleBroadcastRequest:
   type: object

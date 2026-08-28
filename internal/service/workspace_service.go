@@ -322,6 +322,27 @@ func (s *WorkspaceService) CreateWorkspace(ctx context.Context, id string, name 
 	return workspace, nil
 }
 
+// preserveFileManagerSecret keeps the stored S3 credential when the caller's file
+// manager block carries none.
+//
+// The sibling of preserveEmailProviderSecrets, and for the same reason: reads do
+// not carry the secret to a machine caller (redactWorkspaceForCaller), so an API
+// client echoing the settings object back has nothing to put in the field, and
+// FileManagerSettings.Validate is happy without one — the wipe saved clean and was
+// unrecoverable.
+//
+// An empty block is left alone: that is a file manager being switched off, and its
+// credential goes with it.
+func preserveFileManagerSecret(updated *domain.FileManagerSettings, stored domain.FileManagerSettings) {
+	if updated.SecretKey != "" || updated.EncryptedSecretKey != "" {
+		return // the caller is rotating it deliberately
+	}
+	if updated.Endpoint == "" && updated.Bucket == "" && updated.AccessKey == "" {
+		return
+	}
+	updated.EncryptedSecretKey = stored.EncryptedSecretKey
+}
+
 // UpdateWorkspace updates a workspace if the user is an owner
 func (s *WorkspaceService) UpdateWorkspace(ctx context.Context, id string, name string, settings domain.WorkspaceSettings) (*domain.Workspace, error) {
 	// Check if user can access this workspace and is an owner. Platform admins (ROOT_EMAIL)
@@ -345,6 +366,13 @@ func (s *WorkspaceService) UpdateWorkspace(ctx context.Context, id string, name 
 		s.logger.WithField("workspace_id", id).WithField("error", err.Error()).Error("Failed to get existing workspace")
 		return nil, err
 	}
+
+	// Every field the assignment list below copies has a meaningful zero, so an
+	// absent key and a deliberate blank arrive identical unless the decode said
+	// which was which. Restore the stored value for each setting the body never
+	// named, before anything reads settings.
+	settings.PreserveOmitted(existingWorkspace.Settings)
+	preserveFileManagerSecret(&settings.FileManager, existingWorkspace.Settings.FileManager)
 
 	// This assignment list is an allowlist, and the omissions are deliberate. Blog
 	// and web analytics settings are absent because each has its own endpoint gated
@@ -922,7 +950,7 @@ func (s *WorkspaceService) SetCustomFieldLabels(ctx context.Context, workspaceID
 // through this service's repository. Moving it to BlogService for feature cohesion
 // would split those writes across two services; the permission gate is orthogonal
 // and works from either home.
-func (s *WorkspaceService) SetBlogSettings(ctx context.Context, workspaceID string, enabled bool, settings *domain.BlogSettings) error {
+func (s *WorkspaceService) SetBlogSettings(ctx context.Context, workspaceID string, enabled *bool, settings *domain.BlogSettings, settingsSpecified bool) error {
 	var userWorkspace *domain.UserWorkspace
 	var err error
 	ctx, _, userWorkspace, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
@@ -947,8 +975,21 @@ func (s *WorkspaceService) SetBlogSettings(ctx context.Context, workspaceID stri
 		return err
 	}
 
-	existingWorkspace.Settings.BlogEnabled = enabled
-	existingWorkspace.Settings.BlogSettings = settings
+	// A nil flag is a body that named no blog_enabled. Both of its values are
+	// meaningful, so writing the zero one here would read "say nothing" as "turn the
+	// blog off" — which is what the console's fallback exists to work around.
+	if enabled != nil {
+		existingWorkspace.Settings.BlogEnabled = *enabled
+	}
+
+	// The same reasoning one field down, with one twist: absence cannot be read off the
+	// pointer here, because nil is already the deliberate "clear it". So a body that named no
+	// blog_settings says so separately, and the stored title, SEO block, pagination and feed
+	// configuration stand — which is what the console's disable button sends whenever the
+	// settings fields are not on screen.
+	if settingsSpecified {
+		existingWorkspace.Settings.BlogSettings = settings
+	}
 
 	// Canonical validation (covers non-console API consumers too). Validate has a
 	// nil-receiver guard, so a nil settings (disable/clear) is fine.
@@ -1217,6 +1258,22 @@ func (s *WorkspaceService) CreateAPIKey(ctx context.Context, workspaceID string,
 	err = s.repo.AddUserToWorkspace(ctx, newUserWorkspace)
 	if err != nil {
 		s.logger.WithField("workspace_id", workspaceID).WithField("user_id", apiUser.ID).WithField("error", err.Error()).Error("Failed to add API user to workspace")
+
+		// The users row is already written and users.email is unique across the whole
+		// deployment, so leaving it behind burns the address for every workspace on this
+		// installation and for good: with no membership row the key never appears on
+		// Settings → Team, whose roster joins user_workspaces, and RemoveMember can never
+		// reach it. Detached from ctx, which may be the very thing that just failed.
+		cleanupCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
+		defer cancel()
+
+		if deleteErr := s.userRepo.Delete(cleanupCtx, apiUser.ID); deleteErr != nil {
+			s.logger.WithField("workspace_id", workspaceID).
+				WithField("user_id", apiUser.ID).
+				WithField("user_email", apiUser.Email).
+				Error(fmt.Sprintf("failed to delete the API user after it could not be added to the workspace, its address is now unusable installation-wide: %v", deleteErr))
+		}
+
 		return "", "", err
 	}
 
@@ -1439,6 +1496,34 @@ func (s *WorkspaceService) RemoveMember(ctx context.Context, workspaceID string,
 	return nil
 }
 
+// addIntegration validates an integration and writes it onto the workspace row. It is the tail
+// CreateIntegration and ConnectZapier share: repo.Update rewrites the workspace wholesale, so
+// every integration write is a read-modify-write of the whole row rather than an insert.
+//
+// The caller has already authenticated and built the integration; this does no authorization of
+// its own and must not be reached before an owner check.
+func (s *WorkspaceService) addIntegration(ctx context.Context, workspaceID string, integration domain.Integration) error {
+	workspace, err := s.repo.GetByID(ctx, workspaceID)
+	if err != nil {
+		s.logger.WithField("workspace_id", workspaceID).WithField("error", err.Error()).Error("Failed to get workspace")
+		return err
+	}
+
+	if err := integration.Validate(s.secretKey); err != nil {
+		s.logger.WithField("workspace_id", workspaceID).WithField("integration_id", integration.ID).WithField("error", err.Error()).Error("Failed to validate integration")
+		return err
+	}
+
+	workspace.AddIntegration(integration)
+
+	if err := s.repo.Update(ctx, workspace); err != nil {
+		s.logger.WithField("workspace_id", workspaceID).WithField("integration_id", integration.ID).WithField("error", err.Error()).Error("Failed to update workspace with new integration")
+		return err
+	}
+
+	return nil
+}
+
 // CreateIntegration creates a new integration for a workspace
 func (s *WorkspaceService) CreateIntegration(ctx context.Context, req domain.CreateIntegrationRequest) (string, error) {
 	// Authenticate user and verify they are an owner of the workspace
@@ -1453,13 +1538,6 @@ func (s *WorkspaceService) CreateIntegration(ctx context.Context, req domain.Cre
 		return "", &domain.ErrUnauthorized{Message: "user is not an owner of the workspace"}
 	}
 
-	// Get the workspace
-	workspace, err := s.repo.GetByID(ctx, req.WorkspaceID)
-	if err != nil {
-		s.logger.WithField("workspace_id", req.WorkspaceID).WithField("error", err.Error()).Error("Failed to get workspace")
-		return "", err
-	}
-
 	// Create a unique ID for the integration
 	integrationID := uuid.New().String()
 
@@ -1472,6 +1550,10 @@ func (s *WorkspaceService) CreateIntegration(ctx context.Context, req domain.Cre
 		UpdatedAt: time.Now().UTC(),
 	}
 
+	// No zapier case, deliberately. The settings hold an address only ConnectZapier can mint,
+	// so leaving the type unmatched here leaves ZapierSettings nil and Integration.Validate
+	// rejects the record below. That second layer is what closes the service-level callers,
+	// such as the demo seeder, which never reach CreateIntegrationRequest.Validate at all.
 	switch req.Type {
 	case domain.IntegrationTypeEmail:
 		integration.EmailProvider = req.Provider
@@ -1483,18 +1565,7 @@ func (s *WorkspaceService) CreateIntegration(ctx context.Context, req domain.Cre
 		integration.FirecrawlSettings = req.FirecrawlSettings
 	}
 
-	// Validate the integration
-	if err := integration.Validate(s.secretKey); err != nil {
-		s.logger.WithField("workspace_id", req.WorkspaceID).WithField("integration_id", integrationID).WithField("error", err.Error()).Error("Failed to validate integration")
-		return "", err
-	}
-
-	// Add the integration to the workspace
-	workspace.AddIntegration(integration)
-
-	// Save the updated workspace
-	if err := s.repo.Update(ctx, workspace); err != nil {
-		s.logger.WithField("workspace_id", req.WorkspaceID).WithField("integration_id", integrationID).WithField("error", err.Error()).Error("Failed to update workspace with new integration")
+	if err := s.addIntegration(ctx, req.WorkspaceID, integration); err != nil {
 		return "", err
 	}
 
@@ -1547,6 +1618,161 @@ func (s *WorkspaceService) CreateIntegration(ctx context.Context, req domain.Cre
 	}
 
 	return integrationID, nil
+}
+
+// zapierConnectAttempts caps how many addresses ConnectZapier tries before it gives up. Each
+// attempt draws fresh randomness, so a collision on users.email costs a retry rather than the
+// connection; five is far past the point where a collision stops being a coincidence.
+const zapierConnectAttempts = 5
+
+// ConnectZapier mints an API key for a Zapier connection and records it on the workspace as a
+// zapier integration. The token is returned once and never stored anywhere; the address is the
+// only thing the integration persists.
+//
+// It cannot delegate to CreateIntegration, and both reasons are deliberate rather than
+// oversights: that path has no zapier case, so a record made through it arrives settings-less
+// and Integration.Validate rejects it, and CreateIntegrationRequest carries no zapier settings
+// field because the address is derived here, from randomness the client never sees. Together
+// they are what stops a caller from inventing a connection whose address belongs to no key.
+// What the two paths do share is addIntegration, the read-modify-write tail.
+func (s *WorkspaceService) ConnectZapier(ctx context.Context, workspaceID string, label string) (string, string, string, error) {
+	// Owner gate modelled on CreateAPIKey, not on CreateIntegration: that one wraps
+	// ErrUserNotInWorkspace in a bare fmt.Errorf and a non-member comes back as a 500. Minting
+	// a credential is CreateAPIKey's job, so it maps the same way here.
+	var user *domain.User
+	var userWorkspace *domain.UserWorkspace
+	var err error
+	// The enriched context is threaded into CreateAPIKey below on purpose: it carries the
+	// authenticated user, and passing the original would make every attempt re-run the queries
+	// behind AuthenticateUserForWorkspace instead of hitting its context cache.
+	ctx, user, userWorkspace, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	if err != nil {
+		if errors.Is(err, domain.ErrUserNotInWorkspace) {
+			return "", "", "", &domain.ErrUnauthorized{Message: "user is not a member of the workspace"}
+		}
+		return "", "", "", fmt.Errorf("failed to authenticate user: %w", err)
+	}
+
+	if userWorkspace.Role != "owner" {
+		s.logger.WithField("workspace_id", workspaceID).WithField("user_id", user.ID).WithField("role", userWorkspace.Role).Error("User is not an owner of the workspace")
+		return "", "", "", &domain.ErrUnauthorized{Message: "user is not an owner of the workspace"}
+	}
+
+	var token, email string
+	for attempt := 1; ; attempt++ {
+		randomHex, genErr := GenerateSecureKey(4)
+		if genErr != nil {
+			return "", "", "", fmt.Errorf("failed to generate zapier api key suffix: %w", genErr)
+		}
+
+		prefix, prefixErr := domain.ZapierKeyPrefix(label, randomHex)
+		if prefixErr != nil {
+			return "", "", "", prefixErr
+		}
+
+		var createErr error
+		token, email, createErr = s.CreateAPIKey(ctx, workspaceID, prefix, domain.ZapierKeyPermissions())
+		if createErr == nil {
+			break
+		}
+
+		// CreateAPIKey wraps ErrUserExists rather than returning it, and ErrUserExists is a
+		// struct type, not a sentinel: a retry written as errors.Is against a sentinel would
+		// match nothing and never fire, without ever saying so.
+		var userExistsErr *domain.ErrUserExists
+		if !errors.As(createErr, &userExistsErr) {
+			return "", "", "", createErr
+		}
+
+		if attempt == zapierConnectAttempts {
+			// Still wrapping *ErrUserExists, so the handler maps an exhausted retry the same
+			// way it maps the first collision.
+			return "", "", "", fmt.Errorf("failed to mint a unique zapier api key address after %d attempts: %w", zapierConnectAttempts, createErr)
+		}
+
+		s.logger.WithField("workspace_id", workspaceID).
+			WithField("api_key_prefix", prefix).
+			Warn("Zapier API key address is already in use, retrying with fresh randomness")
+	}
+
+	integrationID := uuid.New().String()
+	integration := domain.Integration{
+		ID:   integrationID,
+		Name: label,
+		Type: domain.IntegrationTypeZapier,
+		ZapierSettings: &domain.ZapierSettings{
+			APIKeyEmail: email,
+		},
+		CreatedAt: time.Now().UTC(),
+		UpdatedAt: time.Now().UTC(),
+	}
+
+	if err := s.addIntegration(ctx, workspaceID, integration); err != nil {
+		// The key is live and the card that would let anyone find it again was never written.
+		// Detached from ctx: a client disconnect is one of the ways the write above fails, and
+		// the compensation would then be cancelled by the very thing it exists to compensate.
+		cleanupCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
+		defer cancel()
+
+		if revokeErr := s.revokeZapierAPIKey(cleanupCtx, workspaceID, email); revokeErr != nil {
+			s.logger.WithField("workspace_id", workspaceID).
+				WithField("user_email", email).
+				Error(fmt.Sprintf("failed to revoke the Zapier API key after its integration could not be saved, the key is live with nothing in the console pointing at it: %v", revokeErr))
+		}
+
+		return "", "", "", err
+	}
+
+	return token, email, integrationID, nil
+}
+
+// revokeZapierAPIKey deletes the API key a Zapier connection was minted with, found by the
+// address the integration stores, which is the only handle on it: the user id is never persisted.
+//
+// Both halves run, in this order, exactly as RemoveMember does them. The token lives ten years
+// and has no denylist, so deleting the user is the whole of the revocation, while a membership
+// row left pointing at a deleted user is invisible in the console and permanently unremovable,
+// since RemoveMember looks the user up first and errors on precisely those rows.
+//
+// Neither half being there already is an error, and for the same reason in both directions:
+// nothing ties the two writes together, so an attempt that stops between them leaves one row
+// behind, and every later attempt starts over from the top. A key that is already gone is the
+// familiar case — the address outlives the user row whenever an owner revokes the key from
+// Settings → Team. A membership that is already gone is the rarer one, and refusing it would
+// wedge the card, and the live key it points at, for good.
+func (s *WorkspaceService) revokeZapierAPIKey(ctx context.Context, workspaceID string, apiKeyEmail string) error {
+	apiUser, err := s.userRepo.GetUserByEmail(ctx, apiKeyEmail)
+	if err != nil {
+		var notFoundErr *domain.ErrUserNotFound
+		if errors.As(err, &notFoundErr) {
+			s.logger.WithField("workspace_id", workspaceID).
+				WithField("user_email", apiKeyEmail).
+				Info("Zapier API key user no longer exists, nothing to revoke")
+			return nil
+		}
+		return fmt.Errorf("failed to find the Zapier API key user: %w", err)
+	}
+
+	if err := s.repo.RemoveUserFromWorkspace(ctx, apiUser.ID, workspaceID); err != nil {
+		// The removal reports a row it did not match the same way it reports a database that
+		// is down, so ask which one this was rather than tolerate both. Only an absence we
+		// can confirm is passed over; anything else still aborts, because the delete below
+		// is the revocation the caller was promised.
+		stillMember, memberErr := s.repo.IsUserWorkspaceMember(ctx, apiUser.ID, workspaceID)
+		if memberErr != nil || stillMember {
+			return fmt.Errorf("failed to remove the Zapier API key user from the workspace: %w", err)
+		}
+
+		s.logger.WithField("workspace_id", workspaceID).
+			WithField("user_email", apiKeyEmail).
+			Info("Zapier API key user has no membership left to remove, finishing the revocation")
+	}
+
+	if err := s.userRepo.Delete(ctx, apiUser.ID); err != nil {
+		return fmt.Errorf("failed to delete the Zapier API key user: %w", err)
+	}
+
+	return nil
 }
 
 // UpdateIntegration updates an existing integration in a workspace
@@ -1714,6 +1940,16 @@ func (s *WorkspaceService) UpdateIntegration(ctx context.Context, req domain.Upd
 	// Update type-specific settings
 	switch existingIntegration.Type {
 	case domain.IntegrationTypeEmail:
+		if !req.ProviderSpecified() {
+			// The same preserve-on-absence the three branches below get for free from
+			// their pointers. Neither helper below can stand in for it: both key off the
+			// incoming provider's own blocks, and a body that sent no provider has none.
+			// The wholesale assignment therefore used to store an empty provider, which
+			// validates clean — an empty Kind reads as "not configured" — and takes the
+			// senders, the rate limit and the encrypted credential with it.
+			updatedIntegration.EmailProvider = existingIntegration.EmailProvider
+			break
+		}
 		updatedIntegration.EmailProvider = req.Provider
 		preserveEmailProviderSecrets(&updatedIntegration, existingIntegration)
 		// Derived state belongs to the server, not the client. Without this, any caller whose
@@ -1805,6 +2041,16 @@ func (s *WorkspaceService) UpdateIntegration(ctx context.Context, req domain.Upd
 			// If no settings provided, preserve existing
 			updatedIntegration.FirecrawlSettings = existingIntegration.FirecrawlSettings
 		}
+	case domain.IntegrationTypeZapier:
+		// Server-owned, the same category as preserveDerivedSESFields above: the address was
+		// minted by ConnectZapier and UpdateIntegrationRequest has no field that could carry
+		// it, so the stored value is the only source there is. Without this line every rename
+		// would leave the record settings-less and Validate would reject it.
+		//
+		// A rename therefore changes the label alone: the address is immutable, so a card
+		// renamed to "Marketing" may keep zapier-support-3f9a1c02@host, which is why the
+		// console shows both.
+		updatedIntegration.ZapierSettings = existingIntegration.ZapierSettings
 	}
 
 	// Validate the updated integration
@@ -1883,6 +2129,26 @@ func (s *WorkspaceService) DeleteIntegration(ctx context.Context, workspaceID, i
 				WithField("integration_id", integrationID).
 				WithField("error", err.Error()).
 				Warn("Failed to delete Supabase integration resources, continuing with deletion anyway")
+		}
+
+	case domain.IntegrationTypeZapier:
+		// Revoke the key this card minted, on the same principle as the two cases above:
+		// deleting a connector tears down what it owns. Leaving the key alive would strand a
+		// live credential whose only remaining trace anywhere is a row on Settings → Team.
+		// DeleteWorkspace funnels every integration through here, so deleting a workspace
+		// revokes its Zapier keys too.
+		//
+		// Unlike its neighbours this one aborts the deletion rather than warning past it. The
+		// confirmation the user answered says the key is revoked; removing the card anyway
+		// would report a revocation that did not happen and leave nothing to retry from.
+		if integration.ZapierSettings != nil {
+			if err := s.revokeZapierAPIKey(ctx, workspaceID, integration.ZapierSettings.APIKeyEmail); err != nil {
+				s.logger.WithField("workspace_id", workspaceID).
+					WithField("integration_id", integrationID).
+					WithField("error", err.Error()).
+					Error("Failed to revoke the Zapier API key, leaving the integration in place")
+				return err
+			}
 		}
 	}
 

@@ -273,6 +273,41 @@ func (h *SettingsHandler) handleGet(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(response)
 }
 
+// systemSettingsFromConfig projects the stored config onto the wire shape, so an update
+// body can be decoded over it and only the keys it carries take effect. Secrets are
+// included in the clear because the result is the base of a write path that stays in
+// memory — unlike handleGet's response struct, this one is never serialized back out.
+func systemSettingsFromConfig(c *service.SystemConfig) SystemSettingsData {
+	return SystemSettingsData{
+		RootEmail:               c.RootEmail,
+		APIEndpoint:             c.APIEndpoint,
+		SMTPHost:                c.SMTPHost,
+		SMTPPort:                c.SMTPPort,
+		SMTPUsername:            c.SMTPUsername,
+		SMTPPassword:            c.SMTPPassword,
+		SMTPFromEmail:           c.SMTPFromEmail,
+		SMTPFromName:            c.SMTPFromName,
+		SMTPUseTLS:              c.SMTPUseTLS,
+		SMTPEHLOHostname:        c.SMTPEHLOHostname,
+		TelemetryEnabled:        c.TelemetryEnabled,
+		CheckForUpdates:         c.CheckForUpdates,
+		SMTPBridgeEnabled:       c.SMTPBridgeEnabled,
+		SMTPBridgeDomain:        c.SMTPBridgeDomain,
+		SMTPBridgePort:          c.SMTPBridgePort,
+		SMTPBridgeTLSCertBase64: c.SMTPBridgeTLSCertBase64,
+		SMTPBridgeTLSKeyBase64:  c.SMTPBridgeTLSKeyBase64,
+		OIDCEnabled:             c.OIDCEnabled,
+		OIDCIssuerURL:           c.OIDCIssuerURL,
+		OIDCClientID:            c.OIDCClientID,
+		OIDCClientSecret:        c.OIDCClientSecret,
+		OIDCRedirectURI:         c.OIDCRedirectURI,
+		OIDCScopes:              c.OIDCScopes,
+		OIDCButtonLabel:         c.OIDCButtonLabel,
+		OIDCAutoCreateUsers:     c.OIDCAutoCreateUsers,
+		OIDCAllowedDomains:      c.OIDCAllowedDomains,
+	}
+}
+
 // handleUpdate updates system settings and triggers a server restart
 func (h *SettingsHandler) handleUpdate(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
@@ -286,17 +321,26 @@ func (h *SettingsHandler) handleUpdate(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
 
-	var reqData SystemSettingsData
-	if err := json.NewDecoder(r.Body).Decode(&reqData); err != nil {
-		WriteJSONError(w, "Invalid request body", http.StatusBadRequest)
-		return
-	}
-
-	// Load current config to handle masked field round-trip
+	// Load current config to handle masked field round-trip, and to seed the request below
 	currentConfig, err := h.settingService.GetSystemConfig(ctx, h.secretKey)
 	if err != nil {
 		h.logger.WithField("error", err).Error("Failed to load current system config")
 		WriteJSONError(w, "Failed to load current settings", http.StatusInternalServerError)
+		return
+	}
+
+	// Decode ONTO the stored settings rather than into a zero struct: json.Decode only
+	// touches the keys the body actually carries, so an absent key keeps its stored value
+	// instead of arriving as "" or false. No field here is optional-looking — every one has
+	// a meaningful zero — and the console's form library submits only the fields it
+	// registered, so a key it never registers is absent from every save. That is how
+	// oidc_redirect_uri got blanked on each save, breaking SSO wherever the callback is not
+	// derivable from api_endpoint (a reverse proxy, or a vanity SSO domain).
+	//
+	// Clearing a field stays expressible: the key is present, carrying the empty value.
+	reqData := systemSettingsFromConfig(currentConfig)
+	if err := json.NewDecoder(r.Body).Decode(&reqData); err != nil {
+		WriteJSONError(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 

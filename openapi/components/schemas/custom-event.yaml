@@ -1,5 +1,8 @@
 CustomEvent:
   type: object
+  description: >-
+    The current state of an external resource, identified by the (event_name, external_id) pair rather than by a
+    server-generated id. Writing the same pair again updates the stored resource instead of appending a new event.
   required:
     - event_name
     - external_id
@@ -24,7 +27,11 @@ CustomEvent:
     properties:
       type: object
       additionalProperties: true
-      description: JSONB event data with arbitrary structure
+      description: >-
+        The complete current state of the resource, as arbitrary JSON. Replaced wholesale by any write that includes
+        it, so send every property you want kept, not only the ones that changed. Omit the field to leave the stored
+        properties untouched; send an empty object to clear them all. Always an object on the way back, never null:
+        a write answers with the properties the row holds afterwards, not with the ones the request carried.
       example:
         order_total: 129.99
         product_name: Premium Subscription
@@ -33,7 +40,11 @@ CustomEvent:
       type: string
       format: date-time
       nullable: true
-      description: When the event occurred (allows backdating)
+      description: >-
+        When this version of the resource was produced (allows backdating). Also acts as the ordering guard on an
+        existing resource: unless deleted_at also changes, a write whose occurred_at is not strictly newer than the
+        stored one is discarded in full — including its goal fields — and still answers success. Omitting the field
+        defaults it to the time of the request, which always passes the guard.
       example: '2023-05-15T14:30:00Z'
     source:
       type: string
@@ -41,13 +52,18 @@ CustomEvent:
         - api
         - integration
         - import
-      description: Origin of the event (set automatically by server)
+        - web_analytics
+      description: >-
+        Origin of the event, set by the server on the write that creates it and never moved afterwards, so a later
+        write from another channel cannot relabel where a resource came from. Read-only.
       example: api
       default: api
     integration_id:
       type: string
       nullable: true
-      description: Optional reference to integration that created the event
+      description: >-
+        Optional reference to the integration that created the event. Preserved when a later write omits it, so an
+        API call cannot accidentally unlink a resource from the integration that owns it.
       example: shopify_integration_123
     goal_type:
       type: string
@@ -60,19 +76,25 @@ CustomEvent:
         - trial
         - other
       nullable: true
-      description: Type of goal for conversion tracking. Required for goal_value to have meaning.
+      description: >-
+        Type of goal for conversion tracking. Required for goal_value to have meaning. Kept when a later write omits
+        it, so a resource can be promoted to a goal after the fact; once set it can be changed but not cleared.
       example: purchase
     goal_name:
       type: string
       nullable: true
       maxLength: 100
-      description: Optional goal name for categorization (e.g., 'first_purchase', 'monthly_subscription')
+      description: >-
+        Optional goal name for categorization (e.g., 'first_purchase', 'monthly_subscription'). Kept when a later
+        write omits it; once set it can be changed but not cleared.
       example: first_purchase
     goal_value:
       type: number
       format: double
       nullable: true
-      description: Monetary value of the goal. Required for 'purchase' and 'subscription' goal types. Can be negative for refunds/chargebacks.
+      description: >-
+        Monetary value of the goal. Required for 'purchase' and 'subscription' goal types. Can be negative for
+        refunds/chargebacks. Kept when a later write omits it; once set it can be changed but not cleared.
       example: 99.99
     deleted_at:
       type: string
@@ -108,6 +130,11 @@ ImportCustomEventsRequest:
       maxItems: 50
       items:
         type: object
+        description: >-
+          Each entry is an upsert on the (event_name, external_id) pair, not an append: an entry naming a resource
+          that already exists updates it. Fields the entry leaves out keep the value already stored, so a partial
+          entry is a safe way to correct one attribute. The exception is properties, which is replaced wholesale
+          whenever the entry includes it.
         required:
           - event_name
           - external_id
@@ -132,14 +159,20 @@ ImportCustomEventsRequest:
           properties:
             type: object
             additionalProperties: true
-            description: Event data
+            description: >-
+              The complete state of the resource. Omit the field to leave the stored properties untouched; send an
+              empty object to clear them all. Including it replaces the stored set rather than merging into it, so
+              restate every property you want kept.
             example:
               order_total: 129.99
               product_name: Premium Subscription
           occurred_at:
             type: string
             format: date-time
-            description: When the event occurred
+            description: >-
+              When this version of the resource was produced. On an entry naming an existing resource it is also the
+              ordering guard: unless deleted_at also changes, an entry whose occurred_at is not strictly newer than
+              the stored one is discarded in full and still counted as imported. Defaults to the time of the request.
             example: '2023-05-15T14:30:00Z'
           source:
             type: string
@@ -147,11 +180,16 @@ ImportCustomEventsRequest:
               - api
               - integration
               - import
-            description: Origin of the event
+            description: >-
+              Origin to record, defaulting to 'api' when the entry omits it. It applies only where the entry creates
+              the resource: an entry naming one that already exists leaves the stored origin alone, so re-importing
+              cannot relabel a resource an integration created.
             example: api
           integration_id:
             type: string
-            description: Integration reference
+            description: >-
+              Integration reference. Preserved when the entry omits it, so re-importing does not unlink a resource
+              from the integration that owns it.
             example: shopify_integration_123
           goal_type:
             type: string
@@ -163,17 +201,19 @@ ImportCustomEventsRequest:
               - booking
               - trial
               - other
-            description: Type of goal for conversion tracking
+            description: Type of goal for conversion tracking. Kept when the entry omits it; once set it can be changed but not cleared.
             example: purchase
           goal_name:
             type: string
             maxLength: 100
-            description: Optional goal name for categorization
+            description: Optional goal name for categorization. Kept when the entry omits it; once set it can be changed but not cleared.
             example: first_purchase
           goal_value:
             type: number
             format: double
-            description: Monetary value (required for purchase/subscription, can be negative for refunds)
+            description: >-
+              Monetary value (required for purchase/subscription, can be negative for refunds). Kept when the entry
+              omits it; once set it can be changed but not cleared.
             example: 99.99
           deleted_at:
             type: string

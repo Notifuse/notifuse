@@ -1133,3 +1133,42 @@ func TestListHandler_HandleSubscribe_OldClientShape(t *testing.T) {
 		assert.JSONEq(t, `{"success":true,"contact_lists":[]}`, rr.Body.String())
 	})
 }
+
+// The console registers both flags on every save, so this only ever bites API
+// clients — and it bites them with a consent change, not a config one. The bodies
+// are raw JSON because a domain.UpdateListRequest literal cannot leave a key out,
+// which is why the endpoint's own tests never saw it.
+func TestListHandler_HandleUpdate_OmittedFlagsNeverReachTheService(t *testing.T) {
+	testCases := []struct {
+		name string
+		body string
+	}{
+		{
+			name: "is_double_optin omitted",
+			body: `{"workspace_id":"workspace123","id":"list1","name":"Renamed","is_public":true}`,
+		},
+		{
+			name: "is_public omitted",
+			body: `{"workspace_id":"workspace123","id":"list1","name":"Renamed","is_double_optin":true,"double_optin_template":{"id":"template123","version":1}}`,
+		},
+		{
+			name: "rename only",
+			body: `{"workspace_id":"workspace123","id":"list1","name":"Renamed"}`,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// No UpdateList expectation: reaching the service at all is the failure.
+			_, _, handler := setupListHandlerTest(t)
+
+			req := httptest.NewRequest(http.MethodPost, "/api/lists.update", bytes.NewBufferString(tc.body))
+			rr := httptest.NewRecorder()
+
+			handler.handleUpdate(rr, req)
+
+			assert.Equal(t, http.StatusBadRequest, rr.Code)
+			assert.Contains(t, rr.Body.String(), "is required")
+		})
+	}
+}

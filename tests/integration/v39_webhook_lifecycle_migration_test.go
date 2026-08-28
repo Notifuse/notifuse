@@ -28,9 +28,9 @@ import (
 // trigger bodies do when a real row is written. Those failures land inside the
 // transaction that migrates a customer's workspace, on their startup.
 //
-// A fresh workspace already carries the post-v39 schema, so this reverts one to
-// its pre-v39 shape first and then migrates it forward — inside a transaction,
-// the way the migration manager runs it.
+// A fresh workspace already carries the post-v39 schema, so this rebuilds its two
+// webhook tables in their pre-v39 shape first and then migrates it forward —
+// inside a transaction, the way the migration manager runs it.
 func TestV39WebhookLifecycleMigration(t *testing.T) {
 	testutil.SkipIfShort(t)
 	testutil.SetupTestEnvironment()
@@ -52,16 +52,57 @@ func TestV39WebhookLifecycleMigration(t *testing.T) {
 
 	// ---------------------------------------------------------------------
 	// Put the workspace back to its pre-v39 shape.
+	//
+	// The two tables are rebuilt from frozen history rather than reverted column
+	// by column out of today's schema. Reverting would define the old shape as
+	// "the current DDL minus what I remembered to drop", which is exactly the
+	// shape that cannot detect a column added to the current DDL alone: it would
+	// be present on both sides of the convergence check below and prove nothing.
+	//
+	// This DDL is verbatim from v19, the migration that created these tables, and
+	// git confirms it is character-for-character the fresh-install DDL of every
+	// release from v19 through v38 — v30 rotated secrets and changed no shape.
+	// So it is what a real upgrading workspace has, however it was created. It
+	// must never be updated to follow internal/database/init.go: the gap between
+	// the two is the thing under test.
 	// ---------------------------------------------------------------------
 	for _, stmt := range []string{
-		`ALTER TABLE webhook_deliveries DROP CONSTRAINT IF EXISTS webhook_deliveries_subscription_id_fkey`,
-		`DROP INDEX IF EXISTS idx_webhook_deliveries_claimed`,
-		`ALTER TABLE webhook_deliveries DROP COLUMN IF EXISTS claimed_at`,
-		`ALTER TABLE webhook_subscriptions
-			DROP COLUMN IF EXISTS source,
-			DROP COLUMN IF EXISTS consecutive_failures,
-			DROP COLUMN IF EXISTS failing_since,
-			DROP COLUMN IF EXISTS disabled_reason`,
+		// Deliveries first: it is the side that holds the foreign key.
+		`DROP TABLE IF EXISTS webhook_deliveries`,
+		`DROP TABLE IF EXISTS webhook_subscriptions`,
+		`CREATE TABLE webhook_subscriptions (
+			id VARCHAR(32) PRIMARY KEY,
+			name VARCHAR(255) NOT NULL,
+			url TEXT NOT NULL,
+			secret VARCHAR(64) NOT NULL,
+			settings JSONB NOT NULL DEFAULT '{}'::jsonb,
+			enabled BOOLEAN DEFAULT true,
+			created_at TIMESTAMPTZ DEFAULT NOW(),
+			updated_at TIMESTAMPTZ DEFAULT NOW(),
+			last_delivery_at TIMESTAMPTZ
+		)`,
+		`CREATE INDEX idx_webhook_subscriptions_enabled ON webhook_subscriptions(enabled) WHERE enabled = true`,
+		// No foreign key on subscription_id, and no claimed_at: adding both is
+		// v39's job, and the orphan rows below exist because of their absence.
+		`CREATE TABLE webhook_deliveries (
+			id VARCHAR(36) PRIMARY KEY,
+			subscription_id VARCHAR(32) NOT NULL,
+			event_type VARCHAR(100) NOT NULL,
+			payload JSONB NOT NULL,
+			status VARCHAR(20) DEFAULT 'pending',
+			attempts INT DEFAULT 0,
+			max_attempts INT DEFAULT 10,
+			next_attempt_at TIMESTAMPTZ DEFAULT NOW(),
+			last_attempt_at TIMESTAMPTZ,
+			delivered_at TIMESTAMPTZ,
+			last_response_status INT,
+			last_response_body TEXT,
+			last_error TEXT,
+			created_at TIMESTAMPTZ DEFAULT NOW()
+		)`,
+		`CREATE INDEX idx_webhook_deliveries_pending ON webhook_deliveries(next_attempt_at) WHERE status IN ('pending', 'failed') AND attempts < max_attempts`,
+		`CREATE INDEX idx_webhook_deliveries_subscription ON webhook_deliveries(subscription_id, created_at DESC)`,
+		`CREATE INDEX idx_webhook_deliveries_status ON webhook_deliveries(status)`,
 	} {
 		_, err := db.ExecContext(ctx, stmt)
 		require.NoError(t, err, stmt)
@@ -91,13 +132,65 @@ func TestV39WebhookLifecycleMigration(t *testing.T) {
 	insertDelivery("d-orphan", "sub-deleted-long-ago", "pending")
 
 	// ---------------------------------------------------------------------
-	// Migrate, in one transaction, exactly as the migration manager does.
+	// Migrate forward, one transaction per migration, exactly as the migration
+	// manager does.
+	//
+	// Every registered workspace migration from v39 up, rather than v39 alone.
+	// The claim under test is that an upgraded workspace lands on the schema a
+	// new one is created with, and that claim is about the whole path: once a
+	// v40 exists, a workspace stopped at v39 is not upgraded, and comparing it
+	// against a fresh install would report a divergence that no real database
+	// has. Registered migrations arrive sorted by version, so this is the real
+	// path in the real order.
 	// ---------------------------------------------------------------------
-	tx, err := db.BeginTx(ctx, nil)
-	require.NoError(t, err)
-	require.NoError(t, (&migrations.V39Migration{}).UpdateWorkspace(ctx, &config.Config{}, workspace, tx),
-		"the migration must apply against a real PostgreSQL, not merely issue the right strings")
-	require.NoError(t, tx.Commit())
+	const firstWebhookLifecycleVersion = 39.0
+
+	var applied []float64
+	for _, migration := range migrations.GetRegisteredMigrations() {
+		if migration.GetMajorVersion() < firstWebhookLifecycleVersion || !migration.HasWorkspaceUpdate() {
+			continue
+		}
+		tx, err := db.BeginTx(ctx, nil)
+		require.NoError(t, err)
+		require.NoError(t, migration.UpdateWorkspace(ctx, &config.Config{}, workspace, tx),
+			"v%.0f must apply against a real PostgreSQL, not merely issue the right strings",
+			migration.GetMajorVersion())
+		require.NoError(t, tx.Commit())
+		applied = append(applied, migration.GetMajorVersion())
+	}
+	// An unregistered v39 would leave the loop empty and every assertion below
+	// testing the pre-v39 fixture against itself.
+	require.Contains(t, applied, firstWebhookLifecycleVersion,
+		"v39 must be registered, or this test migrates nothing")
+
+	// Every other subtest checks something v39 was written to do. None of them
+	// notices what v39 fails to do: add a column to the workspace DDL, forget the
+	// matching ADD COLUMN in the migration, and every upgraded database is one
+	// column short of every new one — permanently, since nothing re-runs a
+	// migration whose version is already stamped — with every other assertion in
+	// this file still green. This is the one that fails, and it can only fail
+	// because the shape it starts from is frozen history rather than today's DDL.
+	t.Run("an upgraded workspace converges on the fresh schema", func(t *testing.T) {
+		// A second workspace, created from the current DDL and never migrated.
+		// This is the schema new installs get, and therefore the one the upgraded
+		// workspace has to arrive at.
+		fresh, err := factory.CreateWorkspace()
+		require.NoError(t, err)
+		freshDB, err := factory.GetWorkspaceDB(fresh.ID)
+		require.NoError(t, err)
+
+		for _, table := range []string{"webhook_subscriptions", "webhook_deliveries"} {
+			// Both sides are read out of PostgreSQL. Writing the expected columns
+			// into this test instead would prove only that the test agrees with
+			// itself: the DDL and the migration would stay free to diverge from
+			// each other, so long as whoever changed one of them also updated the
+			// literal here.
+			assert.Equal(t,
+				columnCatalogue(t, ctx, freshDB, table),
+				columnCatalogue(t, ctx, db, table),
+				"%s: an upgraded workspace and a fresh one must end up with the same columns", table)
+		}
+	})
 
 	t.Run("the foreign key exists and is validated, not merely declared", func(t *testing.T) {
 		var convalidated bool
@@ -162,6 +255,43 @@ func TestV39WebhookLifecycleMigration(t *testing.T) {
 				AND conrelid = to_regclass('webhook_deliveries')`).Scan(&convalidated))
 		assert.True(t, convalidated)
 	})
+}
+
+// columnCatalogue is one table's columns as PostgreSQL itself describes them:
+// name, type, length, nullability and default. Names alone would miss a column
+// that arrived with the wrong type or without its NOT NULL, which diverges just
+// as permanently and is harder to see from the outside.
+//
+// Ordinal position is left out on purpose. The migrated tables are rebuilt from
+// the pre-v39 DDL and then extended, so the columns v39 adds sit at the end of
+// them while the fresh tables declare the same columns mid-list — a difference
+// no query can observe, and not the one being hunted here.
+func columnCatalogue(t *testing.T, ctx context.Context, db *sql.DB, table string) []string {
+	t.Helper()
+
+	rows, err := db.QueryContext(ctx, `
+		SELECT column_name
+			|| ' ' || data_type
+			|| COALESCE('(' || character_maximum_length || ')', '')
+			|| ' null=' || is_nullable
+			|| ' default=' || COALESCE(column_default, '-')
+		FROM information_schema.columns
+		WHERE table_schema = 'public' AND table_name = $1
+		ORDER BY column_name`, table)
+	require.NoError(t, err)
+	defer func() { _ = rows.Close() }()
+
+	var columns []string
+	for rows.Next() {
+		var column string
+		require.NoError(t, rows.Scan(&column))
+		columns = append(columns, column)
+	}
+	require.NoError(t, rows.Err())
+	// Two empty catalogues compare equal, so a table this cannot see would turn
+	// the comparison above into a test that passes on nothing at all.
+	require.NotEmpty(t, columns, "%s does not exist in this database", table)
+	return columns
 }
 
 // TestV39WebhookTriggerFiltersAgainstRealPostgres fires real writes at the

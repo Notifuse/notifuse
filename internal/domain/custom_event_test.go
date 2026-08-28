@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"encoding/json"
 	"testing"
 	"time"
 
@@ -58,7 +59,7 @@ func TestCustomEvent_Validate(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "valid event with nil properties (should auto-initialize)",
+			name: "valid event with nil properties",
 			event: CustomEvent{
 				ExternalID: "event_123",
 				Email:      "user@example.com",
@@ -189,14 +190,20 @@ func TestCustomEvent_Validate(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// Whether the caller supplied properties is the signal the upsert
+			// reads to decide between rewriting the column and leaving it alone,
+			// so validation must carry it through rather than fill it in.
+			// Compared as nil-ness, not by value: an in-place mutation would make
+			// a captured map compare against itself.
+			wasProvided := tt.event.Properties != nil
+
 			err := tt.event.Validate()
 			if tt.wantErr {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), tt.errMsg)
 			} else {
 				require.NoError(t, err)
-				// Verify properties is initialized even if it was nil
-				assert.NotNil(t, tt.event.Properties)
+				assert.Equal(t, wasProvided, tt.event.Properties != nil)
 			}
 		})
 	}
@@ -236,7 +243,7 @@ func TestUpsertCustomEventRequest_Validate(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "valid request with nil properties (should auto-initialize)",
+			name: "valid request with nil properties",
 			req: UpsertCustomEventRequest{
 				WorkspaceID: "workspace_123",
 				Email:       "user@example.com",
@@ -290,14 +297,17 @@ func TestUpsertCustomEventRequest_Validate(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// Same contract as CustomEvent.Validate above: a body that said
+			// nothing about properties has to still look that way afterwards.
+			wasProvided := tt.req.Properties != nil
+
 			err := tt.req.Validate()
 			if tt.wantErr {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), tt.errMsg)
 			} else {
 				require.NoError(t, err)
-				// Verify properties is initialized even if it was nil
-				assert.NotNil(t, tt.req.Properties)
+				assert.Equal(t, wasProvided, tt.req.Properties != nil)
 			}
 		})
 	}
@@ -597,4 +607,68 @@ func TestIsValidEventName(t *testing.T) {
 			assert.Equal(t, tt.want, got, "isValidEventName(%q) = %v, want %v", tt.eventName, got, tt.want)
 		})
 	}
+}
+
+// properties carries the whole state of the external resource, and the upsert
+// writes it over the stored row. Coercing an absent key to an empty map here
+// destroys the only signal that separates "I am not touching properties" from
+// "empty them", before any layer downstream can act on it. The bodies are raw
+// JSON because a struct literal cannot leave a key out.
+func TestUpsertCustomEventRequest_ValidateKeepsPropertiesAbsenceIntact(t *testing.T) {
+	const base = `"workspace_id":"ws1","email":"user@example.com","event_name":"order.completed","external_id":"order_1"`
+
+	t.Run("omitted properties stay nil", func(t *testing.T) {
+		var req UpsertCustomEventRequest
+		require.NoError(t, json.Unmarshal([]byte(`{`+base+`}`), &req))
+
+		require.NoError(t, req.Validate())
+		assert.Nil(t, req.Properties, "an absent properties key must not become an empty map")
+	})
+
+	t.Run("explicit empty object still clears", func(t *testing.T) {
+		var req UpsertCustomEventRequest
+		require.NoError(t, json.Unmarshal([]byte(`{`+base+`,"properties":{}}`), &req))
+
+		require.NoError(t, req.Validate())
+		require.NotNil(t, req.Properties, "an explicit {} must stay expressible")
+		assert.Empty(t, req.Properties)
+	})
+
+	t.Run("explicit null clears nothing", func(t *testing.T) {
+		var req UpsertCustomEventRequest
+		require.NoError(t, json.Unmarshal([]byte(`{`+base+`,"properties":null}`), &req))
+
+		require.NoError(t, req.Validate())
+		assert.Nil(t, req.Properties)
+	})
+}
+
+// CustomEvent.Validate sits between the request and the repository on both the
+// upsert and the import paths, so it has to preserve the same distinction.
+func TestCustomEvent_ValidateKeepsPropertiesAbsenceIntact(t *testing.T) {
+	t.Run("nil properties stay nil", func(t *testing.T) {
+		event := CustomEvent{
+			ExternalID: "order_1",
+			Email:      "user@example.com",
+			EventName:  "order.completed",
+			OccurredAt: time.Now(),
+		}
+
+		require.NoError(t, event.Validate())
+		assert.Nil(t, event.Properties)
+	})
+
+	t.Run("empty properties stay empty", func(t *testing.T) {
+		event := CustomEvent{
+			ExternalID: "order_1",
+			Email:      "user@example.com",
+			EventName:  "order.completed",
+			OccurredAt: time.Now(),
+			Properties: map[string]interface{}{},
+		}
+
+		require.NoError(t, event.Validate())
+		require.NotNil(t, event.Properties)
+		assert.Empty(t, event.Properties)
+	})
 }

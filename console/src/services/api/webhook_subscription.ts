@@ -10,7 +10,7 @@ export interface WebhookSubscriptionSettings {
   custom_event_filters?: CustomEventFilters
   // Narrow the fan-out of the list.* and segment.* event types to specific ids. Absent or empty
   // means no filter — every list, every segment. Zapier sets these when it registers a Zap; the
-  // console offers no UI for them, which is exactly why an update has to echo them back.
+  // console offers no UI for them, so it never has a value of its own to send for either.
   list_ids?: string[]
   segment_ids?: string[]
 }
@@ -74,9 +74,14 @@ export interface CreateWebhookSubscriptionRequest {
   custom_event_filters?: CustomEventFilters
 }
 
-// webhookSubscriptions.update replaces the whole settings object rather than patching it, so
-// every filter the caller wants to keep has to be present in the request. A field left out is
-// cleared, not preserved.
+// webhookSubscriptions.update replaces name, url and event_types, and patches everything else:
+// a key this request does not carry leaves the stored value alone. That is why the optional
+// fields below are optional in the type as well as on the wire — omitting one is a statement
+// the endpoint understands ("say nothing about it"), not a hole a caller has to plug.
+//
+// To clear a filter, name it as empty: [] for the id filters, {} for the custom event ones.
+// Omitting it would keep whatever is stored, which for a Zap registered against one list is
+// the difference between the events it asked for and every list event in the workspace.
 export interface UpdateWebhookSubscriptionRequest {
   workspace_id: string
   id: string
@@ -86,7 +91,11 @@ export interface UpdateWebhookSubscriptionRequest {
   custom_event_filters?: CustomEventFilters
   list_ids?: string[]
   segment_ids?: string[]
-  enabled: boolean
+  // Optional because the console deliberately never sends it: the drawer has no switch, and a
+  // flag echoed back from the value read when the drawer opened would re-enable a subscription
+  // somebody disabled meanwhile. Typing it as required only forced the one caller to cast the
+  // key away, which is how a required field ends up being the one nobody sends.
+  enabled?: boolean
 }
 
 export interface ToggleWebhookSubscriptionRequest {
@@ -139,6 +148,10 @@ export const webhookSubscriptionApi = {
   update: async (
     params: UpdateWebhookSubscriptionRequest
   ): Promise<{ subscription: WebhookSubscription }> => {
+    // Deliberately a pass-through. Which filters a save means to remove is a statement about
+    // what the user just did to a form, and only the caller holding that form knows it — a
+    // default applied here would be inherited invisibly by every future caller, including
+    // ones with no UI behind them.
     return api.post('/api/webhookSubscriptions.update', params)
   },
 

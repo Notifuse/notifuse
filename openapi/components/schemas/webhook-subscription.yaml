@@ -33,6 +33,25 @@ WebhookSubscription:
     custom_event_filters:
       $ref: '#/CustomEventFilters'
       description: Optional filters for custom_event.* event types (flattened from settings for convenience)
+    list_ids:
+      type: array
+      description: >-
+        Lists the list.* events are narrowed to (flattened from settings for
+        convenience). Absent or empty means every list.
+      items:
+        type: string
+      example:
+        - newsletter
+        - product_updates
+    segment_ids:
+      type: array
+      description: >-
+        Segments the segment.* events are narrowed to (flattened from settings for
+        convenience). Absent or empty means every segment.
+      items:
+        type: string
+      example:
+        - vip_customers
     enabled:
       type: boolean
       description: Whether the subscription is currently active
@@ -69,6 +88,21 @@ WebhookSubscriptionSettings:
         - email.sent
     custom_event_filters:
       $ref: '#/CustomEventFilters'
+    list_ids:
+      type: array
+      description: Lists the list.* events are narrowed to. Absent or empty means every list.
+      items:
+        type: string
+      example:
+        - newsletter
+        - product_updates
+    segment_ids:
+      type: array
+      description: Segments the segment.* events are narrowed to. Absent or empty means every segment.
+      items:
+        type: string
+      example:
+        - vip_customers
 
 CustomEventFilters:
   type: object
@@ -239,6 +273,25 @@ CreateWebhookSubscriptionRequest:
         - contact.updated
     custom_event_filters:
       $ref: '#/CustomEventFilters'
+    list_ids:
+      type: array
+      description: >-
+        Narrow the list.* events to these lists. Omit it, or send an empty array,
+        to receive an event for every list in the workspace.
+      items:
+        type: string
+      example:
+        - newsletter
+        - product_updates
+    segment_ids:
+      type: array
+      description: >-
+        Narrow the segment.* events to these segments. Omit it, or send an empty
+        array, to receive an event for every segment in the workspace.
+      items:
+        type: string
+      example:
+        - vip_customers
 
 CreateWebhookSubscriptionResponse:
   type: object
@@ -248,6 +301,12 @@ CreateWebhookSubscriptionResponse:
 
 UpdateWebhookSubscriptionRequest:
   type: object
+  description: >-
+    A replace for what identifies the subscription — name, url and event_types are
+    required and are written as sent — and a patch for everything that narrows it.
+    Omitting enabled, custom_event_filters, list_ids or segment_ids leaves the stored
+    value alone; a JSON null reads the same way. Send an explicitly empty array or
+    object to remove a filter.
   required:
     - workspace_id
     - id
@@ -282,10 +341,38 @@ UpdateWebhookSubscriptionRequest:
         - contact.updated
         - contact.deleted
     custom_event_filters:
-      $ref: '#/CustomEventFilters'
+      allOf:
+        - $ref: '#/CustomEventFilters'
+      description: >-
+        Filters for the custom_event.* events. Omit it to leave the stored filters
+        unchanged; send an empty object to stop filtering custom events.
+    list_ids:
+      type: array
+      nullable: true
+      description: >-
+        Lists the list.* events are narrowed to. Omit it to leave the stored filter
+        unchanged — a body that never mentions it cannot widen the subscription —
+        and send an empty array to remove the narrowing.
+      items:
+        type: string
+      example:
+        - newsletter
+        - product_updates
+    segment_ids:
+      type: array
+      nullable: true
+      description: >-
+        Segments the segment.* events are narrowed to. Omit it to leave the stored
+        filter unchanged; send an empty array to remove the narrowing.
+      items:
+        type: string
+      example:
+        - vip_customers
     enabled:
       type: boolean
-      description: Whether the subscription is enabled
+      description: >-
+        Whether the subscription is enabled. Omit it to leave the stored value
+        unchanged; send it only to switch the subscription on or off.
       example: true
 
 UpdateWebhookSubscriptionResponse:

@@ -863,6 +863,59 @@ type UpdateBlogThemeRequest struct {
 	Version int            `json:"version"`
 	Files   BlogThemeFiles `json:"files"`
 	Notes   *string        `json:"notes,omitempty"`
+
+	// rawFiles is the "files" object exactly as it arrived. BlogThemeFiles is a struct of
+	// non-pointer strings, so decoding into it destroys the only thing that separates a
+	// file the caller left out from one it emptied — see FilesFor.
+	rawFiles json.RawMessage
+}
+
+// UnmarshalJSON decodes the request and keeps the raw "files" object alongside it, so
+// FilesFor can tell which files the body actually named.
+func (r *UpdateBlogThemeRequest) UnmarshalJSON(data []byte) error {
+	type wire UpdateBlogThemeRequest // sheds this method, and with it the recursion
+	var decoded wire
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return err
+	}
+
+	var keys struct {
+		Files json.RawMessage `json:"files"`
+	}
+	if err := json.Unmarshal(data, &keys); err != nil {
+		return err
+	}
+
+	*r = UpdateBlogThemeRequest(decoded)
+	r.rawFiles = keys.Files
+	return nil
+}
+
+// FilesFor returns the files to store, given the ones stored today.
+//
+// Only the files the body actually named are replaced. Everything else keeps its stored
+// content: a body of {"version":3} used to decode as a full set of empty strings and blank
+// every Liquid template, the CSS and the JS in a single call, and a draft theme is not
+// versioned, so there was no earlier copy to restore from. A file stays clearable by
+// sending it as "".
+//
+// A request built in Go rather than decoded from a body has no key information to go on, so
+// a filled-in Files is taken as the complete set — the only thing such a caller can mean —
+// while a zero one changes nothing.
+func (r *UpdateBlogThemeRequest) FilesFor(stored BlogThemeFiles) (BlogThemeFiles, error) {
+	if len(r.rawFiles) == 0 {
+		if r.Files != (BlogThemeFiles{}) {
+			return r.Files, nil
+		}
+		return stored, nil
+	}
+
+	// Decoding onto the stored files leaves the keys the body omitted untouched. A null
+	// "files" is a no-op for the same reason, which folds it into the preserving reading.
+	if err := json.Unmarshal(r.rawFiles, &stored); err != nil {
+		return stored, fmt.Errorf("invalid files: %w", err)
+	}
+	return stored, nil
 }
 
 // Validate validates the update blog theme request

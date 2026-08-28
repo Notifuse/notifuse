@@ -83,7 +83,11 @@ export function GeneralSettings({ workspace, onWorkspaceUpdate, isOwner }: Gener
           cover_url: workspace?.settings.cover_url || null,
           timezone: values.timezone,
           email_tracking_enabled: values.email_tracking_enabled,
-          custom_endpoint_url: (values.custom_endpoint_url as string | undefined) || undefined,
+          // Emptied means emptied. workspaces.update keeps every setting its body leaves
+          // out, and undefined is dropped by JSON.stringify — so sending it restored the
+          // very domain the operator was migrating off. An empty string is a value the
+          // body carries, and both the server and every reader here treat it as unset.
+          custom_endpoint_url: values.custom_endpoint_url || '',
           languages: values.languages || ['en'],
           default_language: values.default_language || 'en'
         }

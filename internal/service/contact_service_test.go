@@ -1498,3 +1498,89 @@ func TestContactService_PermissionDenialsAreTyped(t *testing.T) {
 		assert.NoError(t, result.Err)
 	})
 }
+
+// TestContactService_AuthenticationFailureCarriesTypedError pins the companion to
+// the permission cases above: an authentication failure must travel on Err too,
+// not only on the display string.
+//
+// Both methods report through a response struct instead of returning an error, so
+// Err is the sole channel that survives with a type attached. Setting only Error
+// left the handler with a nil to match on, and every authentication failure —
+// revoked key, non-member, unknown workspace — collapsed into the handler's
+// catch-all status. A revoked key answering anything but 401 is the expensive one:
+// integrations key off that status to prompt for re-authentication, so the Zap
+// stops with a generic failure and nobody is ever asked to reconnect.
+func TestContactService_AuthenticationFailureCarriesTypedError(t *testing.T) {
+	ctx := context.Background()
+	workspaceID := "workspace123"
+
+	testCases := []struct {
+		name string
+		// authErr is wrapped the way AuthenticateUserForWorkspace wraps on its way
+		// up, so the assertions also pin that Err stays unwrappable through it.
+		authErr error
+		assert  func(t *testing.T, err error)
+	}{
+		{
+			name:    "revoked api key",
+			authErr: fmt.Errorf("api key has been revoked: %w", domain.ErrAPIKeyRevoked),
+			assert: func(t *testing.T, err error) {
+				assert.True(t, errors.Is(err, domain.ErrAPIKeyRevoked))
+			},
+		},
+		{
+			name:    "not a member",
+			authErr: fmt.Errorf("failed to get user workspace: %w", domain.ErrUserNotInWorkspace),
+			assert: func(t *testing.T, err error) {
+				assert.True(t, errors.Is(err, domain.ErrUserNotInWorkspace))
+			},
+		},
+		{
+			name:    "unknown workspace",
+			authErr: fmt.Errorf("failed to get workspace: %w", &domain.ErrWorkspaceNotFound{WorkspaceID: workspaceID}),
+			assert: func(t *testing.T, err error) {
+				var notFound *domain.ErrWorkspaceNotFound
+				require.True(t, errors.As(err, &notFound))
+				assert.Equal(t, workspaceID, notFound.WorkspaceID)
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run("UpsertContact/"+tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			service, _, _, mockAuthService, _, _, _, _, _, _, _, _, mockLogger := createContactServiceWithMocks(ctrl)
+			mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+			mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+
+			mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).
+				Return(ctx, nil, nil, tc.authErr)
+
+			result := service.UpsertContact(ctx, workspaceID, &domain.Contact{Email: "test@example.com"})
+			assert.Equal(t, domain.UpsertContactOperationError, result.Action)
+			assert.NotEmpty(t, result.Error)
+			require.Error(t, result.Err)
+			tc.assert(t, result.Err)
+		})
+
+		t.Run("BatchImportContacts/"+tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			service, _, _, mockAuthService, _, _, _, _, _, _, _, _, mockLogger := createContactServiceWithMocks(ctrl)
+			mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+			mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+
+			mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).
+				Return(ctx, nil, nil, tc.authErr)
+
+			response := service.BatchImportContacts(ctx, workspaceID, []*domain.Contact{{Email: "contact1@example.com"}}, nil)
+			require.NotNil(t, response)
+			assert.Contains(t, response.Error, "failed to authenticate user")
+			require.Error(t, response.Err)
+			tc.assert(t, response.Err)
+		})
+	}
+}

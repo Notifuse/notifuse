@@ -1038,7 +1038,10 @@ func BuildTemplateData(req TemplateDataRequest) (MapOfAny, error) {
 		templateData["confirm_subscription_url"] = confirmURL
 	}
 
-	// Add global feed data if broadcast has pre-fetched data
+	// Add global feed data if the broadcast carries a payload. Presence is the only condition:
+	// a disabled feed with data is the client supplying its own payload rather than asking for a
+	// fetch, and dropping a payload the client no longer wants happens on the broadcast save that
+	// switches the feed off, not here.
 	if req.Broadcast != nil && req.Broadcast.DataFeed != nil && req.Broadcast.DataFeed.GlobalFeedData != nil {
 		templateData["global_feed"] = req.Broadcast.DataFeed.GlobalFeedData
 	}

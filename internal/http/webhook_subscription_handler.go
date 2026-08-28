@@ -51,23 +51,6 @@ func (h *WebhookSubscriptionHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.Handle("/api/webhookSubscriptions.eventTypes", requireAuth(http.HandlerFunc(h.handleGetEventTypes)))
 }
 
-// normalizeIDFilter collapses an empty list_ids / segment_ids array to nil so
-// that "the key was absent" and "the key was an empty array" cannot be told
-// apart anywhere downstream.
-//
-// Both mean "no filter — every list, every segment", which is the behaviour of
-// every subscription written before these fields existed. The distinction is
-// worth erasing here because the opposite reading is available and catastrophic:
-// a filter predicate that only tests whether the key is present would treat a
-// stored [] as "match nothing" and the subscription would silently stop
-// delivering, with a settings blob that looks unfiltered to anyone reading it.
-func normalizeIDFilter(ids []string) []string {
-	if len(ids) == 0 {
-		return nil
-	}
-	return ids
-}
-
 // handleCreate handles POST /api/webhookSubscriptions.create
 func (h *WebhookSubscriptionHandler) handleCreate(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
@@ -110,7 +93,7 @@ func (h *WebhookSubscriptionHandler) handleCreate(w http.ResponseWriter, r *http
 	}
 
 	sub, err := h.service.Create(r.Context(), req.WorkspaceID, req.Name, req.URL, req.EventTypes, req.CustomEventFilters,
-		req.Source, normalizeIDFilter(req.ListIDs), normalizeIDFilter(req.SegmentIDs))
+		req.Source, req.ListIDs, req.SegmentIDs)
 	if err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to create webhook subscription")
 		if writeServiceError(w, err, "You do not have permission to manage webhook subscriptions") {
@@ -188,26 +171,55 @@ func (h *WebhookSubscriptionHandler) handleGet(w http.ResponseWriter, r *http.Re
 }
 
 // handleUpdate handles POST /api/webhookSubscriptions.update
+//
+// The endpoint is a replace for what identifies a subscription — its name, its URL and
+// the event types it asked for — and a patch for everything that narrows it: the switch
+// and the three filters keep their stored value unless the body names them.
+//
+// The two halves are split on what their empty value means. An empty name or URL is
+// nonsense and the service rejects it, so nothing is lost by replacing them. An empty
+// filter is a valid, meaningful setting — "no filter, every list" — which makes a body
+// with nothing to say about one indistinguishable from a body asking to remove it. That
+// tie has to go to the stored value, because the two wrong answers are not equally
+// wrong: reading silence as "remove it" widens the subscription to every list, every
+// segment and every custom event in the workspace, and the only symptom is deliveries
+// nobody asked for.
+//
+// Deliberately no source field: a source read from the request would let any caller
+// re-attribute an existing subscription — or silently clear the attribution of a Zapier
+// one by sending the same body the console sends. The service keeps the stored value.
 func (h *WebhookSubscriptionHandler) handleUpdate(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	// Deliberately no source field: this endpoint is a full replace, not a patch,
-	// so a source read from the request would let any caller re-attribute an
-	// existing subscription — or silently clear the attribution of a Zapier one by
-	// sending the same body the console sends. The service keeps the stored value.
 	var req struct {
-		WorkspaceID        string                     `json:"workspace_id"`
-		ID                 string                     `json:"id"`
-		Name               string                     `json:"name"`
-		URL                string                     `json:"url"`
-		EventTypes         []string                   `json:"event_types"`
-		CustomEventFilters *domain.CustomEventFilters `json:"custom_event_filters,omitempty"`
-		ListIDs            []string                   `json:"list_ids,omitempty"`
-		SegmentIDs         []string                   `json:"segment_ids,omitempty"`
-		Enabled            bool                       `json:"enabled"`
+		WorkspaceID string   `json:"workspace_id"`
+		ID          string   `json:"id"`
+		Name        string   `json:"name"`
+		URL         string   `json:"url"`
+		EventTypes  []string `json:"event_types"`
+		// Pointers, so that "the body did not mention this" stays distinguishable
+		// from "the body asked for the empty value". Nil leaves the stored setting
+		// alone; a non-nil one replaces it, an explicitly empty array or object
+		// being how a caller removes a filter.
+		//
+		// A JSON null decodes to nil and so reads as silence rather than as a
+		// removal. Clearing is expressible without it, so the safer of the two
+		// readings wins — a client library that serialises its absent optionals as
+		// null cannot widen a subscription by accident.
+		//
+		// Decoding enabled as a plain bool made every body that omitted it switch
+		// the subscription off, and switching one off drains its queued deliveries,
+		// which no later re-enable brings back. The filters are the same defect
+		// three fields over. The console renders controls for the custom event
+		// filters only, so it is no protection either: the list and segment filters
+		// are Zapier's, written when a Zap registers and edited by nothing.
+		CustomEventFilters *domain.CustomEventFilters `json:"custom_event_filters"`
+		ListIDs            *[]string                  `json:"list_ids"`
+		SegmentIDs         *[]string                  `json:"segment_ids"`
+		Enabled            *bool                      `json:"enabled"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -225,7 +237,7 @@ func (h *WebhookSubscriptionHandler) handleUpdate(w http.ResponseWriter, r *http
 	}
 
 	sub, err := h.service.Update(r.Context(), req.WorkspaceID, req.ID, req.Name, req.URL, req.EventTypes, req.CustomEventFilters,
-		req.Enabled, normalizeIDFilter(req.ListIDs), normalizeIDFilter(req.SegmentIDs))
+		req.Enabled, req.ListIDs, req.SegmentIDs)
 	if err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to update webhook subscription")
 		if writeServiceError(w, err, "You do not have permission to manage webhook subscriptions") {

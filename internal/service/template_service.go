@@ -333,6 +333,22 @@ func (s *TemplateService) UpdateTemplate(ctx context.Context, workspaceID string
 	// Set version from existing template *before* validation to satisfy the check
 	template.Version = existingTemplate.Version
 
+	// integration_id is server-owned: UpdateTemplateRequest has no field for it, so it is nil on
+	// every save. Carry it over from the stored row — nothing else can put it back, and losing it
+	// disarms the delete guard below and leaves the template orphaned when its integration goes.
+	template.IntegrationID = existingTemplate.IntegrationID
+
+	// Translations are far more often absent than deliberately cleared: the console sends them
+	// only while its translations tab is mounted. A nil map means "not part of this edit" and
+	// keeps what is stored; an explicit empty object still clears. requestedTranslations keeps
+	// what the caller actually asked for so the workspace-language check below stays a check on
+	// the caller's intent — re-running it over preserved translations would refuse every save on
+	// a template whose language was later dropped from the workspace.
+	requestedTranslations := template.Translations
+	if template.Translations == nil {
+		template.Translations = existingTemplate.Translations
+	}
+
 	// Verify editor_mode hasn't changed (prevent switching between visual and code)
 	if template.Email != nil && existingTemplate.Email != nil {
 		existingMode := existingTemplate.Email.EditorMode
@@ -357,7 +373,7 @@ func (s *TemplateService) UpdateTemplate(ctx context.Context, workspaceID string
 	}
 
 	// Cross-validate translation languages against workspace languages
-	if err := s.validateTranslationLanguages(ctx, workspaceID, template.Translations); err != nil {
+	if err := s.validateTranslationLanguages(ctx, workspaceID, requestedTranslations); err != nil {
 		return err
 	}
 

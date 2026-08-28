@@ -115,8 +115,7 @@ export function UpsertTransactionalNotificationDrawer({
           // A stored absent mode means inherit; only an explicit opt-out shows as disabled
           tracking_mode:
             notification.tracking_settings?.tracking_mode === 'disabled' ? 'disabled' : 'inherit'
-        },
-        metadata: notification.metadata || undefined
+        }
       })
     } else {
       // Extract domain from website_url
@@ -215,6 +214,9 @@ export function UpsertTransactionalNotificationDrawer({
             onFinish={(values) => {
               setLoading(true)
 
+              // metadata is never edited here - no field registers it, so the form has
+              // no value to send and reading values.metadata would only ever yield
+              // undefined. The server keeps the stored metadata when the key is absent.
               if (notification) {
                 // Update notification
                 const payload: UpdateTransactionalNotificationRequest = {
@@ -227,8 +229,7 @@ export function UpsertTransactionalNotificationDrawer({
                     // notifications (only description and tracking settings are
                     // editable), so the field must be omitted for them.
                     channels: notification.integration_id ? undefined : values.channels,
-                    tracking_settings: values.tracking_settings,
-                    metadata: values.metadata
+                    tracking_settings: values.tracking_settings
                   }
                 }
                 upsertNotificationMutation.mutate(payload)
@@ -241,8 +242,7 @@ export function UpsertTransactionalNotificationDrawer({
                     name: values.name,
                     description: values.description,
                     channels: values.channels,
-                    tracking_settings: values.tracking_settings,
-                    metadata: values.metadata
+                    tracking_settings: values.tracking_settings
                   }
                 }
                 upsertNotificationMutation.mutate(payload)

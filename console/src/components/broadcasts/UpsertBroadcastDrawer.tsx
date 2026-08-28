@@ -110,14 +110,6 @@ export function UpsertBroadcastDrawer({
 
   // Watch campaign name changes using Form.useWatch
   const campaignName = Form.useWatch('name', form)
-  const abTestingEnabled = Form.useWatch(['test_settings', 'enabled'], form)
-
-  // Enable tracking when A/B testing is enabled
-  useEffect(() => {
-    if (abTestingEnabled) {
-      form.setFieldValue('tracking_enabled', true)
-    }
-  }, [abTestingEnabled, form])
 
   // Update utm_campaign when campaign name changes
   useEffect(() => {
@@ -135,24 +127,18 @@ export function UpsertBroadcastDrawer({
   }, [campaignName, form, isOpen])
 
   const upsertBroadcastMutation = useMutation({
+    // The payload arrives fully built from onFinish. Stamping a schedule here as well
+    // overwrote the one the caller chose to send — or not to send — on every save, which
+    // put an empty schedule on an already-booked broadcast whose owner only fixed a typo.
+    // Both casts narrow the union to the branch `broadcast` has already chosen; neither
+    // papers over a field the payload is missing. Nothing about the request types makes
+    // them removable — schedule being optional on an update does not help — so deleting
+    // one means giving the union a discriminant, which buys no safety here.
     mutationFn: (values: CreateBroadcastRequest | UpdateBroadcastRequest) => {
-      // Clone the values to avoid modifying the original
-      const payload = { ...values }
-
-      // Make sure schedule is set to not scheduled by default
-      payload.schedule = {
-        is_scheduled: false,
-        use_recipient_timezone: false
-      }
-
-      // For logging or debugging
-      // console.log('Submitting broadcast:', payload);
-
       if (broadcast) {
-        return broadcastApi.update(payload as UpdateBroadcastRequest)
-      } else {
-        return broadcastApi.create(payload as CreateBroadcastRequest)
+        return broadcastApi.update(values as UpdateBroadcastRequest)
       }
+      return broadcastApi.create(values as CreateBroadcastRequest)
     },
     onSuccess: () => {
       message.success(broadcast ? t`Broadcast updated successfully` : t`Broadcast created successfully`)
@@ -177,8 +163,10 @@ export function UpsertBroadcastDrawer({
           ...broadcast.audience
         },
         test_settings: broadcast.test_settings,
-        utm_parameters: broadcast.utm_parameters || undefined,
-        metadata: broadcast.metadata || undefined
+        utm_parameters: broadcast.utm_parameters || undefined
+        // metadata is deliberately not seeded: no field registers it, so the form
+        // would hold a value nothing can edit and nothing reads back. The server
+        // keeps the stored metadata when the key is absent from the payload.
       })
       // Set data feed settings from broadcast
       setGlobalFeed(
@@ -416,24 +404,31 @@ export function UpsertBroadcastDrawer({
               const payload = {
                 ...values,
                 workspace_id: workspace.id,
-                // Set default schedule
-                schedule: {
-                  is_scheduled: false,
-                  use_recipient_timezone: false
-                },
-                // Include data feed settings (consolidated)
-                data_feed:
-                  globalFeed.enabled || recipientFeed.enabled
-                    ? {
-                        global_feed: globalFeed.enabled ? globalFeed : undefined,
-                        recipient_feed: recipientFeed.enabled ? recipientFeed : undefined
-                      }
-                    : undefined
+                // Include data feed settings (consolidated). Both sub-feeds are always
+                // sent, disabled ones included: the server reads an absent data_feed -
+                // and an absent sub-feed inside it - as "keep what is stored", so
+                // omitting a feed the user just switched off would leave the broadcast
+                // calling its URL on every send.
+                data_feed: {
+                  global_feed: globalFeed,
+                  recipient_feed: recipientFeed
+                }
               }
 
-              // Add ID for updates
               if (broadcast) {
                 payload.id = broadcast.id
+                // No schedule key on an edit. The drawer has no date control — sending is
+                // arranged from the send-or-schedule modal — so anything it put here would
+                // be a guess, and the empty default is the worst one: it unbooks a
+                // scheduled broadcast, and resuming an unbooked broadcast sends it at once.
+                // Absent is the server's "leave the stored schedule alone".
+              } else {
+                // A new broadcast is always created unscheduled; broadcasts.schedule is
+                // what books one afterwards.
+                payload.schedule = {
+                  is_scheduled: false,
+                  use_recipient_timezone: false
+                }
               }
 
               // Normalize list to always be a string (single select)

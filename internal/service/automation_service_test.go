@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"testing"
 	"time"
@@ -11,6 +12,7 @@ import (
 	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // Helper function to create test automation
@@ -322,6 +324,9 @@ func TestAutomationService_Update(t *testing.T) {
 			Permissions: domain.FullPermissions,
 		}
 		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, userWorkspace, nil)
+		// The check now runs on the nodes that would actually be stored, which is known
+		// only after the stored row has been read.
+		mockRepo.EXPECT().GetByID(ctx, workspaceID, automation.ID).Return(createTestAutomationService("auto-123", workspaceID), nil)
 
 		err := service.Update(ctx, workspaceID, automation)
 		assert.Error(t, err)
@@ -585,6 +590,159 @@ func TestAutomationService_Update(t *testing.T) {
 
 		var conditionErr *domain.TriggerConditionError
 		assert.True(t, errors.As(err, &conditionErr), "the condition error must survive wrapping so the handler can answer 400")
+	})
+}
+
+// decodeUpdateAutomationRequest builds the request the handler builds, from a body, so the
+// tests can express a key the caller never sent. A Go literal cannot: Nodes is a plain
+// slice on a struct with no optional fields, so "not part of this edit" and "delete every
+// node" are the same value once it is built by hand.
+func decodeUpdateAutomationRequest(t *testing.T, body string) *domain.UpdateAutomationRequest {
+	t.Helper()
+	var req domain.UpdateAutomationRequest
+	require.NoError(t, json.Unmarshal([]byte(body), &req))
+	return &req
+}
+
+// TestAutomationService_Update_OmittedNodesKeepTheStoredWorkflow covers a body that says
+// nothing about the workflow. automations.update rewrites the whole row, and Validate skips
+// the root-node check when the set is empty, so such a body is accepted and stores an
+// automation with no steps — while a live one keeps enrolling contacts into a journey that
+// has nothing to run. Nodes live only in that row, so nothing can put them back.
+func TestAutomationService_Update_OmittedNodesKeepTheStoredWorkflow(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockRepo := mocks.NewMockAutomationRepository(ctrl)
+	mockAuthService := mocks.NewMockAuthService(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+
+	service := NewAutomationService(mockRepo, mockAuthService, mockLogger)
+
+	ctx := context.Background()
+	workspaceID := "workspace-123"
+
+	// A rename, hand-written against the documented shape. Everything Validate insists on
+	// is here — id, name, status, trigger — which is why it reaches the write at all.
+	const renameBody = `{
+		"workspace_id": "workspace-123",
+		"automation": {
+			"id": "auto-123",
+			"workspace_id": "workspace-123",
+			"name": "Renamed from a script",
+			"status": "draft",
+			"list_id": "list-123",
+			"trigger": {"event_kind": "email.opened", "frequency": "once"}
+		}
+	}`
+
+	storedWithWorkflow := func() *domain.Automation {
+		stored := createTestAutomationService("auto-123", workspaceID)
+		stored.Nodes = []*domain.AutomationNode{
+			createTestAutomationNodeService("node-root", "auto-123", domain.NodeTypeEmail),
+			createTestAutomationNodeService("node-2", "auto-123", domain.NodeTypeDelay),
+		}
+		stored.RootNodeID = "node-root"
+		return stored
+	}
+
+	userWorkspace := func() *domain.UserWorkspace {
+		return &domain.UserWorkspace{
+			UserID:      "user-123",
+			WorkspaceID: workspaceID,
+			Role:        "admin",
+			Permissions: domain.FullPermissions,
+		}
+	}
+
+	t.Run("a body with no nodes key keeps the stored workflow", func(t *testing.T) {
+		req := decodeUpdateAutomationRequest(t, renameBody)
+		require.NoError(t, req.Validate(), "the body is accepted as it stands: the root-node check is skipped for an empty set")
+		require.Nil(t, req.Automation.Nodes, "the request must carry no nodes, or this proves nothing")
+
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, userWorkspace(), nil)
+		mockRepo.EXPECT().GetByID(ctx, workspaceID, "auto-123").Return(storedWithWorkflow(), nil)
+
+		var persisted *domain.Automation
+		mockRepo.EXPECT().
+			UpdateIfStatus(ctx, workspaceID, gomock.Any(), domain.AutomationStatusDraft).
+			DoAndReturn(func(_ context.Context, _ string, a *domain.Automation, _ domain.AutomationStatus) (bool, error) {
+				persisted = a
+				return true, nil
+			})
+
+		require.NoError(t, service.Update(ctx, workspaceID, req.Automation))
+
+		// Against literals, not against the fixture: the preserved slice is the stored
+		// one, so comparing it to the fixture's would compare it to itself.
+		require.NotNil(t, persisted)
+		require.Len(t, persisted.Nodes, 2)
+		assert.Equal(t, "node-root", persisted.Nodes[0].ID)
+		assert.Equal(t, "node-2", persisted.Nodes[1].ID)
+		assert.Equal(t, "node-root", persisted.RootNodeID)
+		assert.Equal(t, "Renamed from a script", persisted.Name, "the edit the caller did ask for must still land")
+	})
+
+	t.Run("an explicitly empty nodes array still clears the workflow", func(t *testing.T) {
+		body := `{
+			"workspace_id": "workspace-123",
+			"automation": {
+				"id": "auto-123",
+				"workspace_id": "workspace-123",
+				"name": "Emptied on purpose",
+				"status": "draft",
+				"list_id": "list-123",
+				"root_node_id": "",
+				"nodes": [],
+				"trigger": {"event_kind": "email.opened", "frequency": "once"}
+			}
+		}`
+		req := decodeUpdateAutomationRequest(t, body)
+		require.NoError(t, req.Validate())
+		require.NotNil(t, req.Automation.Nodes, "an empty array must decode to a non-nil slice, which is what separates it from an absent key")
+
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, userWorkspace(), nil)
+		mockRepo.EXPECT().GetByID(ctx, workspaceID, "auto-123").Return(storedWithWorkflow(), nil)
+
+		var persisted *domain.Automation
+		mockRepo.EXPECT().
+			UpdateIfStatus(ctx, workspaceID, gomock.Any(), domain.AutomationStatusDraft).
+			DoAndReturn(func(_ context.Context, _ string, a *domain.Automation, _ domain.AutomationStatus) (bool, error) {
+				persisted = a
+				return true, nil
+			})
+
+		require.NoError(t, service.Update(ctx, workspaceID, req.Automation))
+
+		require.NotNil(t, persisted)
+		assert.Empty(t, persisted.Nodes, "deleting the whole workflow stays expressible")
+	})
+
+	// The list-less check ran against the request's own (empty) node set, so preserving the
+	// stored nodes afterwards could slip email nodes into an automation with no list —
+	// exactly what that check exists to prevent.
+	t.Run("preserved email nodes are still checked against a removed list_id", func(t *testing.T) {
+		body := `{
+			"workspace_id": "workspace-123",
+			"automation": {
+				"id": "auto-123",
+				"workspace_id": "workspace-123",
+				"name": "List removed from a script",
+				"status": "draft",
+				"list_id": "",
+				"trigger": {"event_kind": "email.opened", "frequency": "once"}
+			}
+		}`
+		req := decodeUpdateAutomationRequest(t, body)
+		require.NoError(t, req.Validate())
+
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, userWorkspace(), nil)
+		mockRepo.EXPECT().GetByID(ctx, workspaceID, "auto-123").Return(storedWithWorkflow(), nil)
+		mockRepo.EXPECT().UpdateIfStatus(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+
+		err := service.Update(ctx, workspaceID, req.Automation)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "cannot remove list_id from automation with email nodes")
 	})
 }
 
@@ -1267,5 +1425,264 @@ func TestAutomationService_TransitionsRejectStaleStatus(t *testing.T) {
 		repo.EXPECT().DropAutomationTrigger(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 
 		assertConflict(t, svc.Pause(ctx, workspaceID, automationID))
+	})
+}
+
+// TestAutomationService_Update_OmittedExitOnReplyKeepsTheStoredSetting covers a body that
+// says nothing about exit_on_reply. The field is a plain bool and automations.update
+// rewrites the whole row, so an absent key decodes as false and switches the setting off —
+// on a live automation that silently ends the only thing that stops a journey from mailing
+// a contact who has already answered.
+func TestAutomationService_Update_OmittedExitOnReplyKeepsTheStoredSetting(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockRepo := mocks.NewMockAutomationRepository(ctrl)
+	mockAuthService := mocks.NewMockAuthService(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+
+	service := NewAutomationService(mockRepo, mockAuthService, mockLogger)
+
+	ctx := context.Background()
+	workspaceID := "workspace-123"
+
+	storedWithExitOnReply := func(exitOnReply bool) *domain.Automation {
+		stored := createTestAutomationService("auto-123", workspaceID)
+		stored.ExitOnReply = exitOnReply
+		return stored
+	}
+
+	userWorkspace := func() *domain.UserWorkspace {
+		return &domain.UserWorkspace{
+			UserID:      "user-123",
+			WorkspaceID: workspaceID,
+			Role:        "admin",
+			Permissions: domain.FullPermissions,
+		}
+	}
+
+	// One body per case, so the only thing that differs between them is the exit_on_reply
+	// key itself.
+	body := func(exitOnReply string) string {
+		return `{
+			"workspace_id": "workspace-123",
+			"automation": {
+				"id": "auto-123",
+				"workspace_id": "workspace-123",
+				"name": "Renamed from a script",
+				"status": "draft",
+				"list_id": "list-123",
+				"trigger": {"event_kind": "email.opened", "frequency": "once"}` + exitOnReply + `
+			}
+		}`
+	}
+
+	updateFrom := func(t *testing.T, requestBody string, stored *domain.Automation) *domain.Automation {
+		t.Helper()
+		req := decodeUpdateAutomationRequest(t, requestBody)
+		require.NoError(t, req.Validate())
+
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, userWorkspace(), nil)
+		mockRepo.EXPECT().GetByID(ctx, workspaceID, "auto-123").Return(stored, nil)
+
+		var persisted *domain.Automation
+		mockRepo.EXPECT().
+			UpdateIfStatus(ctx, workspaceID, gomock.Any(), domain.AutomationStatusDraft).
+			DoAndReturn(func(_ context.Context, _ string, a *domain.Automation, _ domain.AutomationStatus) (bool, error) {
+				persisted = a
+				return true, nil
+			})
+
+		require.NoError(t, service.Update(ctx, workspaceID, req.Automation))
+		require.NotNil(t, persisted)
+		return persisted
+	}
+
+	t.Run("a body with no exit_on_reply key keeps the stored setting", func(t *testing.T) {
+		persisted := updateFrom(t, body(""), storedWithExitOnReply(true))
+
+		assert.True(t, persisted.ExitOnReply, "a rename must not switch off reply detection")
+		assert.Equal(t, "Renamed from a script", persisted.Name, "the edit the caller did ask for must still land")
+	})
+
+	t.Run("a null exit_on_reply is read as absent", func(t *testing.T) {
+		persisted := updateFrom(t, body(`, "exit_on_reply": null`), storedWithExitOnReply(true))
+
+		assert.True(t, persisted.ExitOnReply, "there is no bool a null could have meant")
+	})
+
+	t.Run("an explicit false switches it off", func(t *testing.T) {
+		persisted := updateFrom(t, body(`, "exit_on_reply": false`), storedWithExitOnReply(true))
+
+		assert.False(t, persisted.ExitOnReply, "turning reply detection off must stay expressible")
+	})
+
+	t.Run("an explicit true switches it on", func(t *testing.T) {
+		persisted := updateFrom(t, body(`, "exit_on_reply": true`), storedWithExitOnReply(false))
+
+		assert.True(t, persisted.ExitOnReply)
+	})
+
+	// An automation assembled in Go has no body to have left a key out of, so its fields
+	// are the whole of what it means — otherwise every non-HTTP caller would find its
+	// exit_on_reply quietly replaced by the stored one.
+	t.Run("an automation built in Go applies its own value", func(t *testing.T) {
+		automation := createTestAutomationService("auto-123", workspaceID)
+		automation.ExitOnReply = false
+
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, userWorkspace(), nil)
+		mockRepo.EXPECT().GetByID(ctx, workspaceID, "auto-123").Return(storedWithExitOnReply(true), nil)
+
+		var persisted *domain.Automation
+		mockRepo.EXPECT().
+			UpdateIfStatus(ctx, workspaceID, gomock.Any(), domain.AutomationStatusDraft).
+			DoAndReturn(func(_ context.Context, _ string, a *domain.Automation, _ domain.AutomationStatus) (bool, error) {
+				persisted = a
+				return true, nil
+			})
+
+		require.NoError(t, service.Update(ctx, workspaceID, automation))
+
+		require.NotNil(t, persisted)
+		assert.False(t, persisted.ExitOnReply)
+	})
+}
+
+// TestAutomationService_Update_OmittedListIDKeepsTheStoredList covers a body that says
+// nothing about list_id. The field is a plain string on an update that rewrites the whole
+// row, so an absent key decodes as "" — which is how the automation says it has no list.
+// That decides who gets enrolled, and it is also what the email-node restriction is read
+// from, so the same omission either silently retargets the automation or gets refused for
+// a removal the caller never asked for.
+func TestAutomationService_Update_OmittedListIDKeepsTheStoredList(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockRepo := mocks.NewMockAutomationRepository(ctrl)
+	mockAuthService := mocks.NewMockAuthService(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+
+	service := NewAutomationService(mockRepo, mockAuthService, mockLogger)
+
+	ctx := context.Background()
+	workspaceID := "workspace-123"
+
+	// Two stored shapes, because the omission plays out differently either side of the
+	// email-node restriction: with email nodes it is refused, without them it goes
+	// through and blanks the list.
+	storedWithNodes := func(nodeType domain.NodeType) *domain.Automation {
+		stored := createTestAutomationService("auto-123", workspaceID)
+		stored.Nodes = []*domain.AutomationNode{
+			createTestAutomationNodeService("node-root", "auto-123", nodeType),
+		}
+		stored.RootNodeID = "node-root"
+		return stored
+	}
+
+	userWorkspace := func() *domain.UserWorkspace {
+		return &domain.UserWorkspace{
+			UserID:      "user-123",
+			WorkspaceID: workspaceID,
+			Role:        "admin",
+			Permissions: domain.FullPermissions,
+		}
+	}
+
+	// One body per case, so the only thing that differs between them is the list_id key
+	// itself.
+	body := func(listID string) string {
+		return `{
+			"workspace_id": "workspace-123",
+			"automation": {
+				"id": "auto-123",
+				"workspace_id": "workspace-123",
+				"name": "Renamed from a script",
+				"status": "draft",
+				"trigger": {"event_kind": "email.opened", "frequency": "once"}` + listID + `
+			}
+		}`
+	}
+
+	updateFrom := func(t *testing.T, requestBody string, stored *domain.Automation) *domain.Automation {
+		t.Helper()
+		req := decodeUpdateAutomationRequest(t, requestBody)
+		require.NoError(t, req.Validate())
+
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, userWorkspace(), nil)
+		mockRepo.EXPECT().GetByID(ctx, workspaceID, "auto-123").Return(stored, nil)
+
+		var persisted *domain.Automation
+		mockRepo.EXPECT().
+			UpdateIfStatus(ctx, workspaceID, gomock.Any(), domain.AutomationStatusDraft).
+			DoAndReturn(func(_ context.Context, _ string, a *domain.Automation, _ domain.AutomationStatus) (bool, error) {
+				persisted = a
+				return true, nil
+			})
+
+		require.NoError(t, service.Update(ctx, workspaceID, req.Automation))
+		require.NotNil(t, persisted)
+		return persisted
+	}
+
+	// Against a literal, not against the fixture: the service writes back the stored
+	// list onto the request, and the mock hands it the very automation the fixture
+	// returned, so an expectation read off that fixture would compare the value to
+	// itself.
+	t.Run("a body with no list_id key keeps the stored list", func(t *testing.T) {
+		persisted := updateFrom(t, body(""), storedWithNodes(domain.NodeTypeDelay))
+
+		assert.Equal(t, "list-123", persisted.ListID, "a rename must not change who the automation enrols")
+		assert.Equal(t, "Renamed from a script", persisted.Name, "the edit the caller did ask for must still land")
+	})
+
+	// The same omission on an automation that mails: the preserved nodes make the
+	// restriction fire, so the request is rejected over a removal nobody asked for.
+	t.Run("a body with no list_id key is not read as removing the list from a mailing automation", func(t *testing.T) {
+		persisted := updateFrom(t, body(""), storedWithNodes(domain.NodeTypeEmail))
+
+		assert.Equal(t, "list-123", persisted.ListID)
+		assert.Equal(t, "Renamed from a script", persisted.Name)
+	})
+
+	t.Run("a null list_id is read as absent", func(t *testing.T) {
+		persisted := updateFrom(t, body(`, "list_id": null`), storedWithNodes(domain.NodeTypeEmail))
+
+		assert.Equal(t, "list-123", persisted.ListID, "a null is a serializer writing out an absent optional")
+	})
+
+	t.Run("an explicit list_id replaces the stored one", func(t *testing.T) {
+		persisted := updateFrom(t, body(`, "list_id": "list-456"`), storedWithNodes(domain.NodeTypeEmail))
+
+		assert.Equal(t, "list-456", persisted.ListID)
+	})
+
+	t.Run("an explicitly empty list_id still removes the list", func(t *testing.T) {
+		persisted := updateFrom(t, body(`, "list_id": ""`), storedWithNodes(domain.NodeTypeDelay))
+
+		assert.Empty(t, persisted.ListID, "detaching an automation from its list must stay expressible")
+	})
+
+	// An automation assembled in Go has no body to have left a key out of, so its fields
+	// are the whole of what it means — otherwise every non-HTTP caller would find its
+	// list_id quietly replaced by the stored one.
+	t.Run("an automation built in Go applies its own value", func(t *testing.T) {
+		automation := createTestAutomationService("auto-123", workspaceID)
+		automation.ListID = ""
+
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, userWorkspace(), nil)
+		mockRepo.EXPECT().GetByID(ctx, workspaceID, "auto-123").Return(storedWithNodes(domain.NodeTypeDelay), nil)
+
+		var persisted *domain.Automation
+		mockRepo.EXPECT().
+			UpdateIfStatus(ctx, workspaceID, gomock.Any(), domain.AutomationStatusDraft).
+			DoAndReturn(func(_ context.Context, _ string, a *domain.Automation, _ domain.AutomationStatus) (bool, error) {
+				persisted = a
+				return true, nil
+			})
+
+		require.NoError(t, service.Update(ctx, workspaceID, automation))
+
+		require.NotNil(t, persisted)
+		assert.Empty(t, persisted.ListID)
 	})
 }

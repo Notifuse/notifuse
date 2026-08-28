@@ -1,8 +1,10 @@
 package domain
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"regexp"
 	"strings"
@@ -238,6 +240,62 @@ type Automation struct {
 	CreatedAt   time.Time              `json:"created_at"`
 	UpdatedAt   time.Time              `json:"updated_at"`
 	DeletedAt   *time.Time             `json:"deleted_at,omitempty"` // Soft-delete timestamp
+
+	// These record that the body this automation was decoded from named no exit_on_reply,
+	// and no list_id. Both fields have a meaningful zero — reply detection off, and no list
+	// at all — so without this an update reads "the caller said nothing" as an instruction
+	// to switch reply detection off and to detach the automation from its list.
+	//
+	// Zero means SPECIFIED, so an automation assembled in Go — which has no body to read a
+	// key set from — keeps meaning exactly what its fields say.
+	exitOnReplyOmitted bool
+	listIDOmitted      bool
+}
+
+// UnmarshalJSON decodes an automation and records whether the body named exit_on_reply and
+// list_id.
+//
+// Every other field an update replaces is either something Validate insists on, or shaped
+// so that its absence is visible in the decoded value; these two are a plain bool and a
+// plain string, so the decode is the last place that can tell an absent key from a
+// deliberate "off" or a deliberate removal.
+//
+// A null counts as omitted for both: there is no bool and no list id a null could have
+// meant, so it can only be a serializer writing out an absent optional.
+func (a *Automation) UnmarshalJSON(data []byte) error {
+	type wire Automation // sheds this method, so the decode does not recurse
+	var decoded wire
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return err
+	}
+
+	var keys map[string]json.RawMessage
+	if err := json.Unmarshal(data, &keys); err != nil {
+		return err
+	}
+
+	*a = Automation(decoded)
+	a.exitOnReplyOmitted = jsonKeyOmitted(keys, "exit_on_reply")
+	a.listIDOmitted = jsonKeyOmitted(keys, "list_id")
+	return nil
+}
+
+// jsonKeyOmitted reports whether a decoded body left key out, a null counting as left out.
+func jsonKeyOmitted(keys map[string]json.RawMessage, key string) bool {
+	raw, present := keys[key]
+	return !present || bytes.Equal(bytes.TrimSpace(raw), []byte("null"))
+}
+
+// ExitOnReplySpecified reports whether this automation carries an opinion about
+// exit_on_reply. It is false only for one decoded from a body that never named the key.
+func (a *Automation) ExitOnReplySpecified() bool {
+	return !a.exitOnReplyOmitted
+}
+
+// ListIDSpecified reports whether this automation carries an opinion about list_id. It is
+// false only for one decoded from a body that never named the key.
+func (a *Automation) ListIDSpecified() bool {
+	return !a.listIDOmitted
 }
 
 // GetNodeByID finds a node in the automation's Nodes array by ID

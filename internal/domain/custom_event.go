@@ -87,9 +87,12 @@ func (e *CustomEvent) Validate() error {
 	if e.OccurredAt.IsZero() {
 		return fmt.Errorf("occurred_at is required")
 	}
-	if e.Properties == nil {
-		e.Properties = make(map[string]interface{})
-	}
+
+	// Properties is deliberately left alone when nil. The upsert keys on
+	// (event_name, external_id) and rewrites the stored row, so nil has to keep
+	// meaning "this write says nothing about properties" all the way down to the
+	// SQL; an empty map here would be indistinguishable from an explicit clear and
+	// would empty the resource's whole recorded state.
 
 	// Validate goal fields
 	if e.GoalType != nil {
@@ -136,6 +139,11 @@ func (e *CustomEvent) IsDeleted() bool {
 
 // UpsertCustomEventRequest represents the API request to create or update a custom event
 // Soft-delete by setting deleted_at, restore by setting deleted_at to null
+//
+// The upsert is a patch, not a replacement: a field the body leaves out keeps the
+// value already stored. properties is the one that needs care, because its "absent"
+// and its "explicitly emptied" both arrive as a map — nil for the first, empty for
+// the second — and only the nil must be allowed to reach the repository untouched.
 type UpsertCustomEventRequest struct {
 	WorkspaceID   string                 `json:"workspace_id"`
 	Email         string                 `json:"email"`
@@ -170,9 +178,9 @@ func (r *UpsertCustomEventRequest) Validate() error {
 	if len(r.ExternalID) > 255 {
 		return fmt.Errorf("external_id must be 255 characters or less")
 	}
-	if r.Properties == nil {
-		r.Properties = make(map[string]interface{})
-	}
+
+	// A body that omitted properties leaves the map nil, and it stays nil: see
+	// CustomEvent.Validate. Send an empty object to actually empty them.
 
 	// Validate goal fields
 	if r.GoalType != nil {

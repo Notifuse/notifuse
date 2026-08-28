@@ -48,10 +48,15 @@ type v39StatementRecorder struct {
 }
 
 func (r *v39StatementRecorder) Match(expectedSQL, actualSQL string) error {
-	// One statement can be offered to more than one expectation; record it once.
-	if len(r.issued) == 0 || r.issued[len(r.issued)-1] != actualSQL {
-		r.issued = append(r.issued, actualSQL)
-	}
+	// Every call is recorded, with no de-duplication, because an ordered mock
+	// calls this exactly once per statement: sqlmock.New sets ordered, and an
+	// ordered mock takes the next unfulfilled expectation and matches against
+	// that one alone — it never walks the list looking for a pattern that fits.
+	// (Only an unordered mock offers a statement to several expectations.) So
+	// the recorded slice is the statements the migration issued, in order, one
+	// entry each, and a statement issued twice shows up twice rather than being
+	// folded away by a de-duplication step.
+	r.issued = append(r.issued, actualSQL)
 	return sqlmock.QueryMatcherRegexp.Match(expectedSQL, actualSQL)
 }
 
@@ -201,10 +206,17 @@ func TestV39Migration_UpdateSystem(t *testing.T) {
 // turn every SQL-NULL permissions column into '{}', which jsonb_typeof reports as
 // 'object' — offering a zero-permission member to the grants. The '{}' exclusion
 // pinned above refuses that row too, so this order is the second defence against
-// the same escalation, not the only one. Every expectation above is satisfied
-// either way, since
-// each statement matches its own regex whatever position it is issued in, so the
-// order is recorded and asserted separately.
+// the same escalation, not the only one.
+//
+// The expectations above already pin this order rather than merely tolerating
+// it: sqlmock.New returns an ordered mock, which matches each statement against
+// the next unfulfilled expectation and nothing else, so a normalisation issued
+// before a grant fails there instead of finding its own pattern further down the
+// list. Two things follow. MatchExpectationsInOrder(false) must not be added to
+// those tests — it would unpin the order silently, leaving this test as the only
+// check. And this test is not redundant with them: it says the requirement out
+// loud instead of leaving it resting on a library default, and adds what the
+// default cannot — that these four statements are the only four issued.
 func TestV39Migration_UpdateSystem_StatementOrder(t *testing.T) {
 	rec := v39RecordedSystemRun(t)
 

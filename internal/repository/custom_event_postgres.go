@@ -27,37 +27,14 @@ func (r *customEventRepository) Upsert(ctx context.Context, workspaceID string, 
 		return fmt.Errorf("failed to get workspace connection: %w", err)
 	}
 
-	propertiesJSON, err := json.Marshal(event.Properties)
+	propertiesJSON, propertiesProvided, err := encodeEventProperties(event)
 	if err != nil {
-		return fmt.Errorf("failed to marshal properties: %w", err)
+		return err
 	}
 
 	// UPSERT: Insert new event or update if (event_name, external_id) exists
 	// Updates when: new occurred_at is more recent OR deleted_at changed
-	query := `
-		INSERT INTO custom_events (
-			event_name, external_id, email, properties, occurred_at,
-			source, integration_id, goal_name, goal_type, goal_value,
-			deleted_at, created_at, updated_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-		ON CONFLICT (event_name, external_id) DO UPDATE SET
-			email = EXCLUDED.email,
-			properties = EXCLUDED.properties,
-			occurred_at = CASE
-				WHEN EXCLUDED.occurred_at > custom_events.occurred_at
-				THEN EXCLUDED.occurred_at
-				ELSE custom_events.occurred_at
-			END,
-			source = EXCLUDED.source,
-			integration_id = EXCLUDED.integration_id,
-			goal_name = COALESCE(EXCLUDED.goal_name, custom_events.goal_name),
-			goal_type = COALESCE(EXCLUDED.goal_type, custom_events.goal_type),
-			goal_value = COALESCE(EXCLUDED.goal_value, custom_events.goal_value),
-			deleted_at = EXCLUDED.deleted_at,
-			updated_at = NOW()
-		WHERE EXCLUDED.occurred_at > custom_events.occurred_at
-		   OR EXCLUDED.deleted_at IS DISTINCT FROM custom_events.deleted_at
-	`
+	query := upsertCustomEventQuery
 
 	_, err = db.ExecContext(ctx, query,
 		event.EventName,
@@ -73,12 +50,82 @@ func (r *customEventRepository) Upsert(ctx context.Context, workspaceID string, 
 		event.DeletedAt,
 		event.CreatedAt,
 		event.UpdatedAt,
+		propertiesProvided,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to upsert custom event: %w", err)
 	}
 
 	return nil
+}
+
+// upsertCustomEventQuery is shared by Upsert and BatchUpsert so the two paths
+// cannot drift on which columns a partial write is allowed to overwrite.
+//
+// properties holds the entire current state of the external resource, and $14 says
+// whether the caller mentioned it at all. EXCLUDED.properties cannot answer that
+// on its own: an absent key and an explicit {} both arrive as an empty object, and
+// the column is NOT NULL so a proposed row cannot carry a NULL to COALESCE away.
+// Overwriting on absence is not a lost edit but a wipe — it clears every property
+// at once, and because it lands as an UPDATE the timeline trigger records each one
+// going null, which feeds segment recomputation and automation enrolment.
+//
+// integration_id needs no such flag: it is already a nullable pointer, so it joins
+// the goal_* columns on COALESCE. An event created by an integration keeps that
+// link when a later API call says nothing about it.
+//
+// source is missing from the DO UPDATE SET list on purpose. It records where a row
+// came from, and webhook_custom_events_trigger gates its whole web-analytics
+// exclusion on it, so rewriting it turns a bridged analytics row into an API row
+// and starts fanning pageview-scale conversions — client-supplied properties
+// included — out to third-party subscribers that asked for commerce events. No
+// caller is asking for that either: UpsertCustomEventRequest has no source field at
+// all, the service stamps "api" only so a first write records an origin, and an
+// import entry's source describes the entry rather than the resource it names. A
+// row's origin is set by the write that created it and never moved afterwards.
+const upsertCustomEventQuery = `
+		INSERT INTO custom_events (
+			event_name, external_id, email, properties, occurred_at,
+			source, integration_id, goal_name, goal_type, goal_value,
+			deleted_at, created_at, updated_at
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+		ON CONFLICT (event_name, external_id) DO UPDATE SET
+			email = EXCLUDED.email,
+			properties = CASE WHEN $14::boolean
+				THEN EXCLUDED.properties
+				ELSE custom_events.properties
+			END,
+			occurred_at = CASE
+				WHEN EXCLUDED.occurred_at > custom_events.occurred_at
+				THEN EXCLUDED.occurred_at
+				ELSE custom_events.occurred_at
+			END,
+			-- source is not assigned here; see the comment above the constant.
+			integration_id = COALESCE(EXCLUDED.integration_id, custom_events.integration_id),
+			goal_name = COALESCE(EXCLUDED.goal_name, custom_events.goal_name),
+			goal_type = COALESCE(EXCLUDED.goal_type, custom_events.goal_type),
+			goal_value = COALESCE(EXCLUDED.goal_value, custom_events.goal_value),
+			deleted_at = EXCLUDED.deleted_at,
+			updated_at = NOW()
+		WHERE EXCLUDED.occurred_at > custom_events.occurred_at
+		   OR EXCLUDED.deleted_at IS DISTINCT FROM custom_events.deleted_at
+	`
+
+// encodeEventProperties reports whether the write claims the properties column,
+// and hands back a payload that is safe to insert either way. A nil map means the
+// caller said nothing, so the row proposed for insertion carries an empty object —
+// right for a brand-new event, and ignored by the ON CONFLICT clause for an
+// existing one.
+func encodeEventProperties(event *domain.CustomEvent) (payload []byte, provided bool, err error) {
+	if event.Properties == nil {
+		return []byte("{}"), false, nil
+	}
+
+	payload, err = json.Marshal(event.Properties)
+	if err != nil {
+		return nil, false, fmt.Errorf("failed to marshal properties: %w", err)
+	}
+	return payload, true, nil
 }
 
 // BatchInsertNew inserts events that do not already exist and leaves existing
@@ -126,9 +173,11 @@ func (r *customEventRepository) BatchInsertNew(ctx context.Context, workspaceID 
 
 	now := time.Now()
 	for _, event := range events {
-		properties, err := json.Marshal(event.Properties)
+		// The provided flag has nothing to decide here: DO NOTHING never touches
+		// an existing row, so a nil map only ever inserts an empty object.
+		properties, _, err := encodeEventProperties(event)
 		if err != nil {
-			return fmt.Errorf("failed to marshal properties: %w", err)
+			return err
 		}
 		if _, err := stmt.ExecContext(ctx,
 			event.EventName, event.ExternalID, event.Email, properties, event.OccurredAt,
@@ -163,39 +212,16 @@ func (r *customEventRepository) BatchUpsert(ctx context.Context, workspaceID str
 	}
 	defer tx.Rollback()
 
-	stmt, err := tx.PrepareContext(ctx, `
-		INSERT INTO custom_events (
-			event_name, external_id, email, properties, occurred_at,
-			source, integration_id, goal_name, goal_type, goal_value,
-			deleted_at, created_at, updated_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-		ON CONFLICT (event_name, external_id) DO UPDATE SET
-			email = EXCLUDED.email,
-			properties = EXCLUDED.properties,
-			occurred_at = CASE
-				WHEN EXCLUDED.occurred_at > custom_events.occurred_at
-				THEN EXCLUDED.occurred_at
-				ELSE custom_events.occurred_at
-			END,
-			source = EXCLUDED.source,
-			integration_id = EXCLUDED.integration_id,
-			goal_name = COALESCE(EXCLUDED.goal_name, custom_events.goal_name),
-			goal_type = COALESCE(EXCLUDED.goal_type, custom_events.goal_type),
-			goal_value = COALESCE(EXCLUDED.goal_value, custom_events.goal_value),
-			deleted_at = EXCLUDED.deleted_at,
-			updated_at = NOW()
-		WHERE EXCLUDED.occurred_at > custom_events.occurred_at
-		   OR EXCLUDED.deleted_at IS DISTINCT FROM custom_events.deleted_at
-	`)
+	stmt, err := tx.PrepareContext(ctx, upsertCustomEventQuery)
 	if err != nil {
 		return fmt.Errorf("failed to prepare statement: %w", err)
 	}
 	defer stmt.Close()
 
 	for _, event := range events {
-		propertiesJSON, err := json.Marshal(event.Properties)
+		propertiesJSON, propertiesProvided, err := encodeEventProperties(event)
 		if err != nil {
-			return fmt.Errorf("failed to marshal properties for event %s: %w", event.ExternalID, err)
+			return fmt.Errorf("event %s: %w", event.ExternalID, err)
 		}
 
 		_, err = stmt.ExecContext(ctx,
@@ -212,6 +238,7 @@ func (r *customEventRepository) BatchUpsert(ctx context.Context, workspaceID str
 			event.DeletedAt,
 			event.CreatedAt,
 			event.UpdatedAt,
+			propertiesProvided,
 		)
 		if err != nil {
 			return fmt.Errorf("failed to upsert event %s: %w", event.ExternalID, err)

@@ -50,7 +50,10 @@ Template:
     integration_id:
       type: string
       nullable: true
-      description: ID of the integration managing this template (e.g., Supabase)
+      readOnly: true
+      description: >-
+        ID of the integration managing this template (e.g., Supabase). Server-owned: it is set
+        when the integration creates the template and cannot be set or changed through the API.
     test_data:
       type: object
       additionalProperties: true
@@ -62,6 +65,15 @@ Template:
       type: object
       additionalProperties: true
       description: Channel-specific third-party settings
+    translations:
+      type: object
+      additionalProperties:
+        $ref: '#/TemplateTranslation'
+      description: Per-language content variants, keyed by language code
+      example:
+        fr:
+          email:
+            subject: Bienvenue
     created_at:
       type: string
       format: date-time
@@ -136,6 +148,17 @@ WebTemplate:
   required:
     - content
 
+TemplateTranslation:
+  type: object
+  description: >-
+    Content for one language. Carries the field matching the template's channel: email for an
+    email template, web for a web template.
+  properties:
+    email:
+      $ref: '#/EmailTemplate'
+    web:
+      $ref: '#/WebTemplate'
+
 CreateTemplateRequest:
   type: object
   required:
@@ -197,9 +220,20 @@ CreateTemplateRequest:
       type: object
       additionalProperties: true
       description: Channel-specific settings
+    translations:
+      type: object
+      additionalProperties:
+        $ref: '#/TemplateTranslation'
+      description: >-
+        Per-language content variants, keyed by language code. Every key must be one of the
+        workspace's configured languages.
 
 UpdateTemplateRequest:
   type: object
+  description: >-
+    Replaces the template's content, creating a new version. Fields the body omits are not
+    cleared: translations are carried over from the stored template, and integration_id is
+    server-owned and always preserved.
   required:
     - workspace_id
     - id
@@ -258,6 +292,14 @@ UpdateTemplateRequest:
       type: object
       additionalProperties: true
       description: Channel-specific settings
+    translations:
+      type: object
+      additionalProperties:
+        $ref: '#/TemplateTranslation'
+      description: >-
+        Per-language content variants, keyed by language code. Every key must be one of the
+        workspace's configured languages. Omit the property to keep the stored translations
+        untouched; send an empty object to delete all of them.
 
 DeleteTemplateRequest:
   type: object

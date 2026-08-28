@@ -968,9 +968,18 @@ func (s *BlogService) UpdateTheme(ctx context.Context, request *domain.UpdateBlo
 		return nil, fmt.Errorf("cannot update published theme")
 	}
 
-	// Update the theme fields
-	theme.Files = request.Files
-	theme.Notes = request.Notes
+	// Update the theme fields. Files the request did not name keep what is stored, and so
+	// do the notes when the body carried none — the console only sends notes once the
+	// operator has typed some. Both stay clearable by sending them empty.
+	files, err := request.FilesFor(theme.Files)
+	if err != nil {
+		s.logger.Error("Failed to apply theme files")
+		return nil, err
+	}
+	theme.Files = files
+	if request.Notes != nil {
+		theme.Notes = request.Notes
+	}
 	theme.UpdatedAt = time.Now().UTC()
 
 	// Validate the updated theme

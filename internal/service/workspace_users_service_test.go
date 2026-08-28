@@ -1264,19 +1264,37 @@ func TestWorkspaceService_CreateAPIKey(t *testing.T) {
 				Role:        "owner",
 			}, nil)
 
+		var createdUserID string
 		mockUserRepo.EXPECT().
 			CreateUser(ctx, gomock.Any()).
-			Return(nil)
+			DoAndReturn(func(_ context.Context, user *domain.User) error {
+				createdUserID = user.ID
+				return nil
+			})
 
 		mockRepo.EXPECT().
 			AddUserToWorkspace(ctx, gomock.Any()).
 			Return(fmt.Errorf("add to workspace failed"))
+
+		// The half-written users row has to go: users.email is unique installation-wide, so a
+		// row with no membership behind it burns the address for every workspace on the
+		// deployment while showing up on no Team screen. It runs on a detached context, hence
+		// gomock.Any() rather than ctx. Failing it must not change what the caller is told.
+		deleted := false
+		mockUserRepo.EXPECT().
+			Delete(gomock.Any(), gomock.Any()).
+			DoAndReturn(func(_ context.Context, id string) error {
+				deleted = true
+				assert.Equal(t, createdUserID, id)
+				return fmt.Errorf("delete failed too")
+			})
 
 		token, email, err := subService.CreateAPIKey(ctx, workspaceID, emailPrefix, nil)
 		require.Error(t, err)
 		assert.Equal(t, "", token)
 		assert.Equal(t, "", email)
 		assert.Equal(t, "add to workspace failed", err.Error())
+		assert.True(t, deleted, "the API user must be deleted when it could not be added to the workspace")
 	})
 
 	t.Run("stored_permissions", func(t *testing.T) {

@@ -64,6 +64,23 @@ func (mr *MockWorkspaceServiceInterfaceMockRecorder) AddUserToWorkspace(arg0, ar
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddUserToWorkspace", reflect.TypeOf((*MockWorkspaceServiceInterface)(nil).AddUserToWorkspace), arg0, arg1, arg2, arg3, arg4)
 }
 
+// ConnectZapier mocks base method.
+func (m *MockWorkspaceServiceInterface) ConnectZapier(arg0 context.Context, arg1, arg2 string) (string, string, string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ConnectZapier", arg0, arg1, arg2)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(string)
+	ret2, _ := ret[2].(string)
+	ret3, _ := ret[3].(error)
+	return ret0, ret1, ret2, ret3
+}
+
+// ConnectZapier indicates an expected call of ConnectZapier.
+func (mr *MockWorkspaceServiceInterfaceMockRecorder) ConnectZapier(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ConnectZapier", reflect.TypeOf((*MockWorkspaceServiceInterface)(nil).ConnectZapier), arg0, arg1, arg2)
+}
+
 // CreateAPIKey mocks base method.
 func (m *MockWorkspaceServiceInterface) CreateAPIKey(arg0 context.Context, arg1, arg2 string, arg3 domain.UserPermissions) (string, string, error) {
 	m.ctrl.T.Helper()
@@ -257,17 +274,17 @@ func (mr *MockWorkspaceServiceInterfaceMockRecorder) RemoveUserFromWorkspace(arg
 }
 
 // SetBlogSettings mocks base method.
-func (m *MockWorkspaceServiceInterface) SetBlogSettings(arg0 context.Context, arg1 string, arg2 bool, arg3 *domain.BlogSettings) error {
+func (m *MockWorkspaceServiceInterface) SetBlogSettings(arg0 context.Context, arg1 string, arg2 *bool, arg3 *domain.BlogSettings, arg4 bool) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SetBlogSettings", arg0, arg1, arg2, arg3)
+	ret := m.ctrl.Call(m, "SetBlogSettings", arg0, arg1, arg2, arg3, arg4)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // SetBlogSettings indicates an expected call of SetBlogSettings.
-func (mr *MockWorkspaceServiceInterfaceMockRecorder) SetBlogSettings(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+func (mr *MockWorkspaceServiceInterfaceMockRecorder) SetBlogSettings(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetBlogSettings", reflect.TypeOf((*MockWorkspaceServiceInterface)(nil).SetBlogSettings), arg0, arg1, arg2, arg3)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetBlogSettings", reflect.TypeOf((*MockWorkspaceServiceInterface)(nil).SetBlogSettings), arg0, arg1, arg2, arg3, arg4)
 }
 
 // SetCustomFieldLabels mocks base method.

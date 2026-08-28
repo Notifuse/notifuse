@@ -316,7 +316,14 @@ func (s *ContactService) BatchImportContacts(ctx context.Context, workspaceID st
 	var err error
 	ctx, _, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 	if err != nil {
+		// Err as well as Error: the handler matches the typed error to pick a status
+		// code, and a revoked key, a non-member and an unknown workspace are all
+		// indistinguishable once flattened to prose. Setting only the string made
+		// every authentication failure answer with the handler's generic fallback
+		// status, so an integration whose key was revoked never saw the 401 that
+		// tells it to re-authenticate.
 		response.Error = fmt.Sprintf("failed to authenticate user: %v", err)
+		response.Err = err
 		return response
 	}
 
@@ -467,6 +474,10 @@ func (s *ContactService) UpsertContact(ctx context.Context, workspaceID string, 
 		if err != nil {
 			operation.Action = domain.UpsertContactOperationError
 			operation.Error = err.Error()
+			// See BatchImportContacts: the string alone cannot be matched by
+			// errors.Is/As, so the handler fell through to its catch-all status and
+			// reported a revoked key as a bad request.
+			operation.Err = err
 			s.logger.WithField("email", contact.Email).Error(fmt.Sprintf("Failed to authenticate user: %v", err))
 			return operation
 		}

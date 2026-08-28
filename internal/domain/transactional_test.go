@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Notifuse/notifuse/pkg/notifuse_mjml"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -466,8 +465,12 @@ func TestCreateTransactionalRequest_Validate(t *testing.T) {
 
 func TestUpdateTransactionalRequest_Validate(t *testing.T) {
 	tests := []struct {
-		name    string
+		name string
+		// req builds the request directly. A request assembled in Go means exactly
+		// what its fields say, so a case whose subject is a key the body never
+		// carried has to set body instead and go through the decoder.
 		req     UpdateTransactionalRequest
+		body    string
 		wantErr bool
 		errMsg  string
 	}{
@@ -532,12 +535,17 @@ func TestUpdateTransactionalRequest_Validate(t *testing.T) {
 			errMsg:  "id is required",
 		},
 		{
-			name: "no updates provided",
-			req: UpdateTransactionalRequest{
-				WorkspaceID: "workspace-123",
-				ID:          "notification-456",
-				Updates:     TransactionalNotificationUpdateParams{},
-			},
+			// Raw JSON: a struct literal cannot express an updates block whose keys
+			// were never sent, and an empty tracking_settings object is a real
+			// instruction rather than an absence.
+			name:    "no updates provided",
+			body:    `{"workspace_id":"workspace-123","id":"notification-456","updates":{}}`,
+			wantErr: true,
+			errMsg:  "at least one field must be updated",
+		},
+		{
+			name:    "updates block missing entirely",
+			body:    `{"workspace_id":"workspace-123","id":"notification-456"}`,
 			wantErr: true,
 			errMsg:  "at least one field must be updated",
 		},
@@ -545,7 +553,12 @@ func TestUpdateTransactionalRequest_Validate(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := tt.req.Validate()
+			req := tt.req
+			if tt.body != "" {
+				require.NoError(t, json.Unmarshal([]byte(tt.body), &req))
+			}
+
+			err := req.Validate()
 
 			if tt.wantErr {
 				assert.Error(t, err)
@@ -1807,17 +1820,21 @@ func TestUpdateTransactionalRequest_Validate_TrackingModeOnlyUpdate(t *testing.T
 	req.Updates.TrackingSettings.TrackingMode = "disabled"
 	assert.NoError(t, req.Validate())
 
-	// An entirely empty update is still rejected.
-	empty := &UpdateTransactionalRequest{WorkspaceID: "ws1", ID: "notif-1"}
+	// A body that mentioned nothing at all is still rejected. It has to be decoded:
+	// the same struct built in Go carries an opinion about tracking settings, which
+	// is what makes an emptied block a real update rather than an absent one.
+	var empty UpdateTransactionalRequest
+	require.NoError(t, json.Unmarshal([]byte(`{"workspace_id":"ws1","id":"notif-1","updates":{}}`), &empty))
 	err := empty.Validate()
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "at least one field")
 }
 
 func TestUpdateTransactionalRequest_Validate_IdentityOnlyTrackingSettings(t *testing.T) {
-	// TrackingSettings carries a slice since the web identity token landed, so
-	// the at-least-one-field gate compares with IsZero() instead of ==. A
-	// request whose only content is an identity token is still a real update.
+	// The at-least-one-field gate turns on whether the body named tracking_settings,
+	// not on what the block contains, so a request assembled in Go always carries an
+	// opinion about them — including one whose only content is an identity token,
+	// which is request-scoped and never reaches the wire.
 	req := &UpdateTransactionalRequest{
 		WorkspaceID: "ws1",
 		ID:          "notif-1",
@@ -1825,15 +1842,83 @@ func TestUpdateTransactionalRequest_Validate_IdentityOnlyTrackingSettings(t *tes
 	req.Updates.TrackingSettings.IdentifyToken = "tok-abc123"
 	assert.NoError(t, req.Validate())
 
-	// And the genuinely empty struct still counts as "nothing to update".
-	empty := &UpdateTransactionalRequest{
-		WorkspaceID: "ws1",
-		ID:          "notif-1",
-		Updates: TransactionalNotificationUpdateParams{
-			TrackingSettings: notifuse_mjml.TrackingSettings{},
-		},
-	}
+	// A decoded body that named nothing is the one that counts as "nothing to
+	// update", and an emptied block is not that.
+	var empty UpdateTransactionalRequest
+	require.NoError(t, json.Unmarshal([]byte(`{"workspace_id":"ws1","id":"notif-1","updates":{"metadata":null}}`), &empty))
 	err := empty.Validate()
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "at least one field")
+
+	var emptied UpdateTransactionalRequest
+	require.NoError(t, json.Unmarshal([]byte(`{"workspace_id":"ws1","id":"notif-1","updates":{"tracking_settings":{}}}`), &emptied))
+	assert.NoError(t, emptied.Validate(), "an emptied tracking_settings block is a real update")
+}
+
+// tracking_settings is a struct of plain fields, so its zero value and its absence
+// are the same decoded value. Only the decoder can tell them apart, and getting it
+// wrong costs in both directions: read the zero as absent and switching tracking off
+// is a silent no-op, read the absence as zero and a name-only edit strips the UTMs a
+// live campaign is built on.
+func TestTransactionalNotificationUpdateParams_TrackingSettingsSpecified(t *testing.T) {
+	tests := []struct {
+		name      string
+		body      string
+		specified bool
+	}{
+		{
+			name:      "absent",
+			body:      `{"workspace_id":"ws1","id":"n1","updates":{"name":"Renamed"}}`,
+			specified: false,
+		},
+		{
+			// Nothing a null could have meant here; it is a serializer writing out an
+			// optional it had no value for.
+			name:      "null",
+			body:      `{"workspace_id":"ws1","id":"n1","updates":{"tracking_settings":null}}`,
+			specified: false,
+		},
+		{
+			name:      "the updates block itself is missing",
+			body:      `{"workspace_id":"ws1","id":"n1"}`,
+			specified: false,
+		},
+		{
+			name:      "an empty object",
+			body:      `{"workspace_id":"ws1","id":"n1","updates":{"tracking_settings":{}}}`,
+			specified: true,
+		},
+		{
+			name:      "explicitly switched off",
+			body:      `{"workspace_id":"ws1","id":"n1","updates":{"tracking_settings":{"enable_tracking":false}}}`,
+			specified: true,
+		},
+		{
+			name:      "populated",
+			body:      `{"workspace_id":"ws1","id":"n1","updates":{"tracking_settings":{"enable_tracking":true,"utm_source":"newsletter"}}}`,
+			specified: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var req UpdateTransactionalRequest
+			require.NoError(t, json.Unmarshal([]byte(tt.body), &req))
+			assert.Equal(t, tt.specified, req.Updates.TrackingSettingsSpecified())
+		})
+	}
+
+	t.Run("parameters assembled in Go carry an opinion", func(t *testing.T) {
+		assert.True(t, TransactionalNotificationUpdateParams{}.TrackingSettingsSpecified(),
+			"nothing decoded a body, so the fields are the whole instruction")
+	})
+
+	t.Run("the decoded fields still arrive", func(t *testing.T) {
+		var req UpdateTransactionalRequest
+		require.NoError(t, json.Unmarshal([]byte(
+			`{"workspace_id":"ws1","id":"n1","updates":{"name":"Renamed","tracking_settings":{"utm_source":"newsletter"}}}`,
+		), &req))
+		assert.Equal(t, "Renamed", req.Updates.Name)
+		assert.Equal(t, "newsletter", req.Updates.TrackingSettings.UTMSource)
+	})
 }

@@ -1998,3 +1998,122 @@ func TestFilterNodeConfig_DescriptionWithConditions(t *testing.T) {
 	assert.Equal(t, "node-yes", config.ContinueNodeID)
 	assert.Equal(t, "node-no", config.ExitNodeID)
 }
+
+// The wire contract behind a live automation losing its reply detection: exit_on_reply has
+// two meaningful values and an update replaces the whole row, so the decode is the last
+// place that can tell an absent key from a deliberate "off".
+func TestAutomation_ExitOnReplySpecified(t *testing.T) {
+	decode := func(t *testing.T, body string) *Automation {
+		t.Helper()
+		var automation Automation
+		require.NoError(t, json.Unmarshal([]byte(body), &automation))
+		return &automation
+	}
+
+	t.Run("key absent", func(t *testing.T) {
+		automation := decode(t, `{"id":"auto-1","name":"Welcome"}`)
+		assert.False(t, automation.ExitOnReplySpecified())
+		assert.False(t, automation.ExitOnReply, "an absent key still decodes to the zero value; what changes is that it is now known to be one")
+	})
+
+	t.Run("key null - read as absent", func(t *testing.T) {
+		automation := decode(t, `{"id":"auto-1","exit_on_reply":null}`)
+		assert.False(t, automation.ExitOnReplySpecified(), "there is no bool a null could have meant")
+	})
+
+	t.Run("explicit false", func(t *testing.T) {
+		automation := decode(t, `{"id":"auto-1","exit_on_reply":false}`)
+		assert.True(t, automation.ExitOnReplySpecified(), "switching reply detection off must stay expressible")
+		assert.False(t, automation.ExitOnReply)
+	})
+
+	t.Run("explicit true", func(t *testing.T) {
+		automation := decode(t, `{"id":"auto-1","exit_on_reply":true}`)
+		assert.True(t, automation.ExitOnReplySpecified())
+		assert.True(t, automation.ExitOnReply)
+	})
+
+	t.Run("built in Go - counts as specified", func(t *testing.T) {
+		automation := &Automation{ID: "auto-1"}
+		assert.True(t, automation.ExitOnReplySpecified(), "an automation with no body to have left a key out of means what its fields say")
+	})
+
+	// The rest of the automation has to survive the decode the record is taken from — the
+	// nested types keep their own unmarshalers, and nothing is dropped on the way through.
+	t.Run("the rest of the automation still decodes", func(t *testing.T) {
+		automation := decode(t, `{
+			"id": "auto-1",
+			"workspace_id": "ws-1",
+			"name": "Welcome",
+			"status": "live",
+			"list_id": "list-1",
+			"root_node_id": "node-1",
+			"exit_on_reply": true,
+			"trigger": {"event_kind": "email.opened", "frequency": "once"},
+			"nodes": [{"id": "node-1", "automation_id": "auto-1", "type": "email"}]
+		}`)
+
+		assert.Equal(t, "auto-1", automation.ID)
+		assert.Equal(t, "ws-1", automation.WorkspaceID)
+		assert.Equal(t, "Welcome", automation.Name)
+		assert.Equal(t, AutomationStatusLive, automation.Status)
+		assert.Equal(t, "list-1", automation.ListID)
+		assert.Equal(t, "node-1", automation.RootNodeID)
+		require.NotNil(t, automation.Trigger)
+		assert.Equal(t, "email.opened", automation.Trigger.EventKind)
+		require.Len(t, automation.Nodes, 1)
+		assert.Equal(t, "node-1", automation.Nodes[0].ID)
+	})
+}
+
+// list_id sits beside exit_on_reply on the same wholesale-replace update and has the same
+// meaningful zero: an empty one means "no list", which decides who the automation enrols
+// and whether email nodes are allowed at all. So the decode has to tell an absent key from
+// a deliberate removal here too.
+func TestAutomation_ListIDSpecified(t *testing.T) {
+	decode := func(t *testing.T, body string) *Automation {
+		t.Helper()
+		var automation Automation
+		require.NoError(t, json.Unmarshal([]byte(body), &automation))
+		return &automation
+	}
+
+	t.Run("key absent", func(t *testing.T) {
+		automation := decode(t, `{"id":"auto-1","name":"Welcome"}`)
+		assert.False(t, automation.ListIDSpecified())
+		assert.Empty(t, automation.ListID, "an absent key still decodes to the zero value; what changes is that it is now known to be one")
+	})
+
+	t.Run("key null - read as absent", func(t *testing.T) {
+		automation := decode(t, `{"id":"auto-1","list_id":null}`)
+		assert.False(t, automation.ListIDSpecified(), "a null is a serializer writing out an absent optional, not a list being removed")
+	})
+
+	t.Run("explicit empty string", func(t *testing.T) {
+		automation := decode(t, `{"id":"auto-1","list_id":""}`)
+		assert.True(t, automation.ListIDSpecified(), "removing the list must stay expressible")
+		assert.Empty(t, automation.ListID)
+	})
+
+	t.Run("explicit list", func(t *testing.T) {
+		automation := decode(t, `{"id":"auto-1","list_id":"list-1"}`)
+		assert.True(t, automation.ListIDSpecified())
+		assert.Equal(t, "list-1", automation.ListID)
+	})
+
+	t.Run("built in Go - counts as specified", func(t *testing.T) {
+		automation := &Automation{ID: "auto-1"}
+		assert.True(t, automation.ListIDSpecified(), "an automation with no body to have left a key out of means what its fields say")
+	})
+
+	// The two records are independent: naming one key must not make the other look named.
+	t.Run("each key is recorded on its own", func(t *testing.T) {
+		automation := decode(t, `{"id":"auto-1","exit_on_reply":true}`)
+		assert.True(t, automation.ExitOnReplySpecified())
+		assert.False(t, automation.ListIDSpecified())
+
+		automation = decode(t, `{"id":"auto-1","list_id":"list-1"}`)
+		assert.True(t, automation.ListIDSpecified())
+		assert.False(t, automation.ExitOnReplySpecified())
+	})
+}

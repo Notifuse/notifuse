@@ -2352,3 +2352,253 @@ func TestTemplateService_UpdateEmailMetadataBlocks_Translations(t *testing.T) {
 		require.NoError(t, err)
 	})
 }
+
+// TestTemplateService_UpdateTemplate_AbsentFields covers the two fields an ordinary
+// templates.update cannot express. integration_id has no place in UpdateTemplateRequest at all —
+// a struct literal here cannot even name it — and translations are absent from the published
+// schema, so both reach the service as the zero value on a perfectly normal save. Writing that
+// zero through is destructive, and for integration_id it is unrecoverable: no endpoint puts it
+// back, and losing it disarms the delete guard and orphans the template on integration teardown.
+func TestTemplateService_UpdateTemplate_AbsentFields(t *testing.T) {
+	ctx := context.Background()
+	const workspaceID = "ws-123"
+	const userID = "user-456"
+	const templateID = "tmpl-abc"
+	storedCreatedAt := time.Now().Add(-time.Hour).UTC()
+
+	writePerms := &domain.UserWorkspace{
+		UserID:      userID,
+		WorkspaceID: workspaceID,
+		Role:        "member",
+		Permissions: domain.UserPermissions{
+			domain.PermissionResourceTemplates: {Read: true, Write: true},
+		},
+	}
+
+	// Builds an mjml tree whose head carries an mj-title, so a restamp of the template name is
+	// observable in the rendered MJML.
+	treeWithTitle := func(title string) notifuse_mjml.EmailBlock {
+		titleBase := notifuse_mjml.NewBaseBlock("title", notifuse_mjml.MJMLComponentMjTitle)
+		titleBase.Content = &title
+		titleBlock := &notifuse_mjml.MJTitleBlock{BaseBlock: titleBase}
+		headBase := notifuse_mjml.NewBaseBlock("head", notifuse_mjml.MJMLComponentMjHead)
+		headBase.Children = []notifuse_mjml.EmailBlock{titleBlock}
+		headBlock := &notifuse_mjml.MJHeadBlock{BaseBlock: headBase}
+		bodyBase := notifuse_mjml.NewBaseBlock("body", notifuse_mjml.MJMLComponentMjBody)
+		bodyBlock := &notifuse_mjml.MJBodyBlock{BaseBlock: bodyBase}
+		rootBase := notifuse_mjml.NewBaseBlock("root", notifuse_mjml.MJMLComponentMjml)
+		rootBase.Children = []notifuse_mjml.EmailBlock{headBlock, bodyBlock}
+		return &notifuse_mjml.MJMLBlock{BaseBlock: rootBase}
+	}
+
+	newTranslation := func(subject string) domain.TemplateTranslation {
+		return domain.TemplateTranslation{Email: &domain.EmailTemplate{
+			SenderID:         "sender-123",
+			Subject:          subject,
+			CompiledPreview:  "<p>" + subject + "</p>",
+			VisualEditorTree: treeWithTitle("Old Name"),
+		}}
+	}
+
+	// Every subtest gets its own stored template: UpdateTemplate stamps metadata into the email
+	// pointers it preserves, so a shared literal would carry one subtest's mutation into the next
+	// and leave the assertions comparing a value to itself.
+	newStored := func(integrationID *string, langs ...string) *domain.Template {
+		var translations map[string]domain.TemplateTranslation
+		if len(langs) > 0 {
+			translations = make(map[string]domain.TemplateTranslation, len(langs))
+			for _, lang := range langs {
+				translations[lang] = newTranslation("Stored " + lang + " subject")
+			}
+		}
+		return &domain.Template{
+			ID:            templateID,
+			Name:          "Old Name",
+			Version:       3,
+			Channel:       "email",
+			Category:      "transactional",
+			CreatedAt:     storedCreatedAt,
+			IntegrationID: integrationID,
+			Translations:  translations,
+			Email: &domain.EmailTemplate{
+				SenderID:         "sender-123",
+				Subject:          "Old Subject",
+				CompiledPreview:  "<p>Old</p>",
+				VisualEditorTree: treeWithTitle("Old Name"),
+			},
+		}
+	}
+
+	// What UpdateTemplateRequest.Validate hands the service for a routine "rename the template"
+	// save: a brand new entity with no integration_id and no translations.
+	newIncoming := func() *domain.Template {
+		return &domain.Template{
+			ID:       templateID,
+			Name:     "New Name",
+			Channel:  "email",
+			Category: "transactional",
+			Email: &domain.EmailTemplate{
+				SenderID:         "sender-123",
+				Subject:          "New Subject",
+				CompiledPreview:  "<h1>New</h1>",
+				VisualEditorTree: treeWithTitle("Old Name"),
+			},
+		}
+	}
+
+	t.Run("integration_id is preserved from the stored template", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		svc, mockRepo, _, mockAuthService, _ := setupTemplateServiceTest(ctrl)
+
+		// Captured before the call: the service mutates the template it is handed, and the mock
+		// returns the very pointer it reads the stored value from.
+		const wantIntegrationID = "supabase-int-1"
+		integrationID := wantIntegrationID
+
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, writePerms, nil)
+		mockRepo.EXPECT().GetTemplateByID(ctx, workspaceID, templateID, int64(0)).Return(newStored(&integrationID), nil)
+		mockRepo.EXPECT().UpdateTemplate(ctx, workspaceID, gomock.Any(), gomock.Any()).DoAndReturn(
+			func(_ context.Context, _ string, tmpl *domain.Template, _ int64) error {
+				require.NotNil(t, tmpl.IntegrationID, "an update that cannot carry integration_id must not clear it")
+				assert.Equal(t, wantIntegrationID, *tmpl.IntegrationID)
+				return nil
+			},
+		)
+
+		require.NoError(t, svc.UpdateTemplate(ctx, workspaceID, newIncoming()))
+	})
+
+	t.Run("a template with no integration keeps none", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		svc, mockRepo, _, mockAuthService, _ := setupTemplateServiceTest(ctrl)
+
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, writePerms, nil)
+		mockRepo.EXPECT().GetTemplateByID(ctx, workspaceID, templateID, int64(0)).Return(newStored(nil), nil)
+		mockRepo.EXPECT().UpdateTemplate(ctx, workspaceID, gomock.Any(), gomock.Any()).DoAndReturn(
+			func(_ context.Context, _ string, tmpl *domain.Template, _ int64) error {
+				assert.Nil(t, tmpl.IntegrationID)
+				return nil
+			},
+		)
+
+		require.NoError(t, svc.UpdateTemplate(ctx, workspaceID, newIncoming()))
+	})
+
+	t.Run("omitted translations are preserved and restamped with the new name", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		svc, mockRepo, _, mockAuthService, _ := setupTemplateServiceTest(ctrl)
+
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, writePerms, nil)
+		mockRepo.EXPECT().GetTemplateByID(ctx, workspaceID, templateID, int64(0)).Return(newStored(nil, "fr", "es"), nil)
+		// The workspace is never fetched: language checking applies to what the client asked for,
+		// and this client asked for nothing.
+		mockRepo.EXPECT().UpdateTemplate(ctx, workspaceID, gomock.Any(), gomock.Any()).DoAndReturn(
+			func(_ context.Context, _ string, tmpl *domain.Template, _ int64) error {
+				require.Len(t, tmpl.Translations, 2)
+				fr, ok := tmpl.Translations["fr"]
+				require.True(t, ok, "expected the stored fr translation to survive")
+				require.NotNil(t, fr.Email)
+				assert.Equal(t, "Stored fr subject", fr.Email.Subject)
+				_, ok = tmpl.Translations["es"]
+				assert.True(t, ok, "expected the stored es translation to survive")
+				// Preserved variants still travel through the metadata stamping, so a rename
+				// reaches every language rather than only the default one.
+				assert.Contains(t, notifuse_mjml.ConvertJSONToMJML(fr.Email.VisualEditorTree), "<mj-title>New Name</mj-title>")
+				return nil
+			},
+		)
+
+		require.NoError(t, svc.UpdateTemplate(ctx, workspaceID, newIncoming()))
+	})
+
+	t.Run("preserved translations are not re-checked against workspace languages", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		svc, mockRepo, _, mockAuthService, _ := setupTemplateServiceTest(ctrl)
+
+		// The workspace has since dropped "de" from its languages. Refusing the save would lock
+		// the user out of editing the template at all, so a translation nobody touched rides
+		// along untouched; clearing it stays an explicit act.
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, writePerms, nil)
+		mockRepo.EXPECT().GetTemplateByID(ctx, workspaceID, templateID, int64(0)).Return(newStored(nil, "de"), nil)
+		mockRepo.EXPECT().UpdateTemplate(ctx, workspaceID, gomock.Any(), gomock.Any()).DoAndReturn(
+			func(_ context.Context, _ string, tmpl *domain.Template, _ int64) error {
+				_, ok := tmpl.Translations["de"]
+				assert.True(t, ok)
+				return nil
+			},
+		)
+
+		require.NoError(t, svc.UpdateTemplate(ctx, workspaceID, newIncoming()))
+	})
+
+	t.Run("an explicit empty object clears the stored translations", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		svc, mockRepo, _, mockAuthService, _ := setupTemplateServiceTest(ctrl)
+
+		incoming := newIncoming()
+		// {"translations": {}} on the wire: a non-nil empty map, the deliberate clear.
+		incoming.Translations = map[string]domain.TemplateTranslation{}
+
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, writePerms, nil)
+		mockRepo.EXPECT().GetTemplateByID(ctx, workspaceID, templateID, int64(0)).Return(newStored(nil, "fr"), nil)
+		mockRepo.EXPECT().UpdateTemplate(ctx, workspaceID, gomock.Any(), gomock.Any()).DoAndReturn(
+			func(_ context.Context, _ string, tmpl *domain.Template, _ int64) error {
+				assert.Empty(t, tmpl.Translations)
+				return nil
+			},
+		)
+
+		require.NoError(t, svc.UpdateTemplate(ctx, workspaceID, incoming))
+	})
+
+	t.Run("supplied translations replace the stored ones and are still language-checked", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		svc, mockRepo, mockWorkspaceRepo, mockAuthService, _ := setupTemplateServiceTest(ctrl)
+
+		incoming := newIncoming()
+		incoming.Translations = map[string]domain.TemplateTranslation{"fr": newTranslation("Sujet FR")}
+
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, writePerms, nil)
+		mockRepo.EXPECT().GetTemplateByID(ctx, workspaceID, templateID, int64(0)).Return(newStored(nil, "fr", "es"), nil)
+		mockWorkspaceRepo.EXPECT().GetByID(ctx, workspaceID).Return(&domain.Workspace{
+			ID:       workspaceID,
+			Settings: domain.WorkspaceSettings{DefaultLanguage: "en", Languages: []string{"en", "fr"}},
+		}, nil)
+		mockRepo.EXPECT().UpdateTemplate(ctx, workspaceID, gomock.Any(), gomock.Any()).DoAndReturn(
+			func(_ context.Context, _ string, tmpl *domain.Template, _ int64) error {
+				require.Len(t, tmpl.Translations, 1)
+				assert.Equal(t, "Sujet FR", tmpl.Translations["fr"].Email.Subject)
+				return nil
+			},
+		)
+
+		require.NoError(t, svc.UpdateTemplate(ctx, workspaceID, incoming))
+	})
+
+	t.Run("a supplied translation in an unconfigured language is still rejected", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		svc, mockRepo, mockWorkspaceRepo, mockAuthService, _ := setupTemplateServiceTest(ctrl)
+
+		incoming := newIncoming()
+		incoming.Translations = map[string]domain.TemplateTranslation{"de": newTranslation("Betreff DE")}
+
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, writePerms, nil)
+		mockRepo.EXPECT().GetTemplateByID(ctx, workspaceID, templateID, int64(0)).Return(newStored(nil, "fr"), nil)
+		mockWorkspaceRepo.EXPECT().GetByID(ctx, workspaceID).Return(&domain.Workspace{
+			ID:       workspaceID,
+			Settings: domain.WorkspaceSettings{DefaultLanguage: "en", Languages: []string{"en", "fr"}},
+		}, nil)
+
+		err := svc.UpdateTemplate(ctx, workspaceID, incoming)
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "translation language 'de' is not in workspace's configured languages")
+	})
+}

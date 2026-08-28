@@ -176,6 +176,8 @@ components:
       $ref: './components/schemas/broadcast.yaml#/VariationMetrics'
     AudienceSettings:
       $ref: './components/schemas/broadcast.yaml#/AudienceSettings'
+    AudienceSettingsPatch:
+      $ref: './components/schemas/broadcast.yaml#/AudienceSettingsPatch'
     ScheduleSettings:
       $ref: './components/schemas/broadcast.yaml#/ScheduleSettings'
     UTMParameters:

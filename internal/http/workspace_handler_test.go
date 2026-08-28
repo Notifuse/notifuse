@@ -81,6 +81,7 @@ var demoRestrictedWorkspaceRoutes = []string{
 	"/api/workspaces.createIntegration",
 	"/api/workspaces.updateIntegration",
 	"/api/workspaces.deleteIntegration",
+	"/api/workspaces.connectZapier",
 }
 
 const demoRestrictedError = "This operation is not allowed in demo mode"
@@ -2468,6 +2469,194 @@ func TestWorkspaceHandler_HandleDeleteIntegration_ServiceError(t *testing.T) {
 	assert.Equal(t, "Failed to delete integration", response["error"])
 }
 
+func TestWorkspaceHandler_HandleConnectZapier(t *testing.T) {
+	_, workspaceSvc, mux, secretKey, _ := setupTest(t)
+
+	// The address is derived server-side from the label, so the handler forwards the
+	// label and hands back whatever was minted.
+	workspaceSvc.EXPECT().
+		ConnectZapier(gomock.Any(), "workspace-123", "Marketing").
+		Return("zapier-token-123", "zapier-marketing-3f9a1c02@example.com", "integration-123", nil)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/workspaces.connectZapier",
+		strings.NewReader(`{"workspace_id":"workspace-123","label":"Marketing"}`))
+	req.Header.Set("Authorization", "Bearer "+createTestToken(t, secretKey, "test-user"))
+
+	w := httptest.NewRecorder()
+	mux.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var response map[string]interface{}
+	require.NoError(t, json.NewDecoder(w.Body).Decode(&response))
+	assert.Equal(t, "success", response["status"])
+	assert.Equal(t, "zapier-token-123", response["token"])
+	assert.Equal(t, "zapier-marketing-3f9a1c02@example.com", response["email"])
+	assert.Equal(t, "integration-123", response["integration_id"])
+}
+
+func TestWorkspaceHandler_HandleConnectZapier_MethodNotAllowed(t *testing.T) {
+	handler, _, _, secretKey, _ := setupTest(t)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/workspaces.connectZapier", nil)
+	req.Header.Set("Authorization", "Bearer "+createTestToken(t, secretKey, "test-user"))
+
+	w := httptest.NewRecorder()
+	handler.handleConnectZapier(w, req)
+
+	assert.Equal(t, http.StatusMethodNotAllowed, w.Code)
+
+	var response map[string]string
+	require.NoError(t, json.NewDecoder(w.Body).Decode(&response))
+	assert.Equal(t, "Method not allowed", response["error"])
+}
+
+func TestWorkspaceHandler_HandleConnectZapier_InvalidBody(t *testing.T) {
+	handler, _, _, secretKey, _ := setupTest(t)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/workspaces.connectZapier", strings.NewReader("invalid json"))
+	req.Header.Set("Authorization", "Bearer "+createTestToken(t, secretKey, "test-user"))
+
+	w := httptest.NewRecorder()
+	handler.handleConnectZapier(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+
+	var response map[string]string
+	require.NoError(t, json.NewDecoder(w.Body).Decode(&response))
+	assert.Equal(t, "Invalid request body", response["error"])
+}
+
+func TestWorkspaceHandler_HandleConnectZapier_ValidationError(t *testing.T) {
+	// Raw bodies, because a field the client omitted is the case under test and a
+	// typed literal cannot express one. The service mock carries no expectation, so
+	// a body that reached it would fail here.
+	testCases := []struct {
+		name     string
+		body     string
+		contains string
+	}{
+		{
+			name:     "missing_workspace_id",
+			body:     `{"label":"Marketing"}`,
+			contains: "workspace_id",
+		},
+		{
+			// The service mints the key before it names the integration and accepts an
+			// empty label without complaint, so nothing downstream would catch this.
+			name:     "missing_label",
+			body:     `{"workspace_id":"workspace-123"}`,
+			contains: "label",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			_, _, mux, secretKey, _ := setupTest(t)
+
+			req := httptest.NewRequest(http.MethodPost, "/api/workspaces.connectZapier", strings.NewReader(tc.body))
+			req.Header.Set("Authorization", "Bearer "+createTestToken(t, secretKey, "test-user"))
+
+			w := httptest.NewRecorder()
+			mux.ServeHTTP(w, req)
+
+			assert.Equal(t, http.StatusBadRequest, w.Code)
+
+			var response map[string]string
+			require.NoError(t, json.NewDecoder(w.Body).Decode(&response))
+			assert.Contains(t, response["error"], tc.contains)
+		})
+	}
+}
+
+func TestWorkspaceHandler_HandleConnectZapier_UnauthorizedError(t *testing.T) {
+	_, workspaceSvc, mux, secretKey, _ := setupTest(t)
+
+	workspaceSvc.EXPECT().
+		ConnectZapier(gomock.Any(), gomock.Any(), gomock.Any()).
+		Return("", "", "", &domain.ErrUnauthorized{Message: "user is not an owner of the workspace"})
+
+	req := httptest.NewRequest(http.MethodPost, "/api/workspaces.connectZapier",
+		strings.NewReader(`{"workspace_id":"workspace-123","label":"Marketing"}`))
+	req.Header.Set("Authorization", "Bearer "+createTestToken(t, secretKey, "test-user"))
+
+	w := httptest.NewRecorder()
+	mux.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusForbidden, w.Code)
+
+	var response map[string]string
+	require.NoError(t, json.NewDecoder(w.Body).Decode(&response))
+	assert.Equal(t, "user is not an owner of the workspace", response["error"])
+}
+
+func TestWorkspaceHandler_HandleConnectZapier_DuplicateAddress(t *testing.T) {
+	_, workspaceSvc, mux, secretKey, _ := setupTest(t)
+
+	// What an exhausted retry looks like: still wrapping *ErrUserExists, two layers
+	// deep, so the mapping has to reach for it with errors.As rather than compare.
+	wrapped := fmt.Errorf("failed to mint a unique zapier api key address after 5 attempts: %w",
+		fmt.Errorf("api key email already in use: %w",
+			&domain.ErrUserExists{Message: "user with this email already exists"}))
+	workspaceSvc.EXPECT().
+		ConnectZapier(gomock.Any(), gomock.Any(), gomock.Any()).
+		Return("", "", "", wrapped)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/workspaces.connectZapier",
+		strings.NewReader(`{"workspace_id":"workspace-123","label":"Marketing"}`))
+	req.Header.Set("Authorization", "Bearer "+createTestToken(t, secretKey, "test-user"))
+
+	w := httptest.NewRecorder()
+	mux.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusConflict, w.Code)
+
+	var response map[string]string
+	require.NoError(t, json.NewDecoder(w.Body).Decode(&response))
+	assert.Contains(t, response["error"], "already in use")
+}
+
+func TestWorkspaceHandler_HandleConnectZapier_ServiceError(t *testing.T) {
+	_, workspaceSvc, mux, secretKey, _ := setupTest(t)
+
+	workspaceSvc.EXPECT().
+		ConnectZapier(gomock.Any(), gomock.Any(), gomock.Any()).
+		Return("", "", "", fmt.Errorf("service error"))
+
+	req := httptest.NewRequest(http.MethodPost, "/api/workspaces.connectZapier",
+		strings.NewReader(`{"workspace_id":"workspace-123","label":"Marketing"}`))
+	req.Header.Set("Authorization", "Bearer "+createTestToken(t, secretKey, "test-user"))
+
+	w := httptest.NewRecorder()
+	mux.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
+
+	var response map[string]string
+	require.NoError(t, json.NewDecoder(w.Body).Decode(&response))
+	assert.Equal(t, "Failed to connect Zapier", response["error"])
+}
+
+func TestWorkspaceHandler_HandleConnectZapier_RestrictedInDemo(t *testing.T) {
+	_, _, demoMux, secretKey, _ := setupDemoTest(t)
+
+	// Authenticated, and the body is the one the success test uses: the refusal has to
+	// come from the middleware, not from auth or validation. No expectation on the
+	// service mock, so a route that lost its wrapper would mint a key here and fail.
+	req := httptest.NewRequest(http.MethodPost, "/api/workspaces.connectZapier",
+		strings.NewReader(`{"workspace_id":"workspace-123","label":"Marketing"}`))
+	req.Header.Set("Authorization", "Bearer "+createTestToken(t, secretKey, "test-user"))
+
+	w := httptest.NewRecorder()
+	demoMux.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+
+	var response map[string]string
+	require.NoError(t, json.NewDecoder(w.Body).Decode(&response))
+	assert.Equal(t, demoRestrictedError, response["error"])
+}
+
 func TestWriteJSON(t *testing.T) {
 	// Create a response recorder
 	w := httptest.NewRecorder()
@@ -3191,9 +3380,10 @@ func TestWorkspaceHandler_HandleSetBlogSettings(t *testing.T) {
 
 	t.Run("successful update", func(t *testing.T) {
 		workspaceSvc.EXPECT().
-			SetBlogSettings(gomock.Any(), "workspace123", true, gomock.Any()).
-			DoAndReturn(func(_ context.Context, _ string, enabled bool, settings *domain.BlogSettings) error {
-				assert.True(t, enabled)
+			SetBlogSettings(gomock.Any(), "workspace123", gomock.Any(), gomock.Any(), gomock.Any()).
+			DoAndReturn(func(_ context.Context, _ string, enabled *bool, settings *domain.BlogSettings, _ bool) error {
+				require.NotNil(t, enabled, "a body that carries blog_enabled must reach the service as a definite value")
+				assert.True(t, *enabled)
 				assert.Equal(t, "My Blog", settings.Title)
 				return nil
 			})
@@ -3278,7 +3468,7 @@ func TestWorkspaceHandler_HandleSetBlogSettings(t *testing.T) {
 	t.Run("permission denied returns 403", func(t *testing.T) {
 		permErr := domain.NewPermissionError(domain.PermissionResourceBlog, domain.PermissionTypeWrite, "Insufficient permissions: write access to blog required")
 		workspaceSvc.EXPECT().
-			SetBlogSettings(gomock.Any(), "workspace123", true, gomock.Any()).
+			SetBlogSettings(gomock.Any(), "workspace123", gomock.Any(), gomock.Any(), gomock.Any()).
 			Return(permErr)
 
 		body, err := json.Marshal(validBody)
@@ -3295,7 +3485,7 @@ func TestWorkspaceHandler_HandleSetBlogSettings(t *testing.T) {
 
 	t.Run("internal error returns 500", func(t *testing.T) {
 		workspaceSvc.EXPECT().
-			SetBlogSettings(gomock.Any(), "workspace123", true, gomock.Any()).
+			SetBlogSettings(gomock.Any(), "workspace123", gomock.Any(), gomock.Any(), gomock.Any()).
 			Return(assert.AnError)
 
 		body, err := json.Marshal(validBody)
@@ -3797,4 +3987,194 @@ func TestWorkspaceHandler_FileManagerSecretDependsOnTheCaller(t *testing.T) {
 				"withholding this from the console breaks the browser file manager")
 		})
 	}
+}
+
+// The handler is where the body stops being a body, so it is where an absent key
+// has to survive: UpdateWorkspace is handed the settings alone, and a settings
+// value that has forgotten what the caller left out cannot preserve anything.
+func TestWorkspaceHandler_HandleUpdate_OmittedSettingsSurviveTheDecode(t *testing.T) {
+	_, workspaceSvc, mux, secretKey, _ := setupTest(t)
+
+	storedEndpoint := "https://track.example.com"
+	stored := domain.WorkspaceSettings{
+		FileManager: domain.FileManagerSettings{
+			Endpoint:           "https://s3.example.com",
+			Bucket:             "stored-bucket",
+			AccessKey:          "AKIASTORED",
+			EncryptedSecretKey: "STORED-CIPHERTEXT",
+		},
+		TransactionalEmailProviderID: "provider-transactional",
+		MarketingEmailProviderID:     "provider-marketing",
+		EmailTrackingEnabled:         true,
+		CustomEndpointURL:            &storedEndpoint,
+	}
+
+	var got domain.WorkspaceSettings
+	workspaceSvc.EXPECT().
+		UpdateWorkspace(gomock.Any(), "testworkspace1", "Renamed", gomock.Any()).
+		DoAndReturn(func(_ context.Context, id, name string, settings domain.WorkspaceSettings) (*domain.Workspace, error) {
+			got = settings
+			return &domain.Workspace{ID: id, Name: name, Settings: settings}, nil
+		})
+
+	// A raw body, because a struct literal cannot express a missing key — which is
+	// how the wipe shipped. The console sends the whole settings object; every other
+	// client sends what it means to change.
+	body := `{"id":"testworkspace1","name":"Renamed","settings":{"timezone":"UTC","default_language":"en","languages":["en"]}}`
+
+	req := httptest.NewRequest(http.MethodPost, "/api/workspaces.update", strings.NewReader(body))
+	req.Header.Set("Authorization", "Bearer "+createTestToken(t, secretKey, "test-user"))
+
+	w := httptest.NewRecorder()
+	mux.ServeHTTP(w, req)
+	require.Equal(t, http.StatusOK, w.Code)
+
+	got.PreserveOmitted(stored)
+	assert.True(t, got.EmailTrackingEnabled, "tracking must not be switched off by a body that never mentions it")
+	assert.Equal(t, "STORED-CIPHERTEXT", got.FileManager.EncryptedSecretKey)
+	assert.Equal(t, "provider-transactional", got.TransactionalEmailProviderID)
+	assert.Equal(t, "provider-marketing", got.MarketingEmailProviderID)
+	assert.Equal(t, stored.CustomEndpointURL, got.CustomEndpointURL)
+}
+
+// The same for an integration rename: the provider block a body never carried must
+// still be recognisable as absent by the time the service sees the request.
+func TestWorkspaceHandler_HandleUpdateIntegration_OmittedProviderSurvivesTheDecode(t *testing.T) {
+	_, workspaceSvc, mux, secretKey, _ := setupTest(t)
+
+	var got domain.UpdateIntegrationRequest
+	workspaceSvc.EXPECT().
+		UpdateIntegration(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, req domain.UpdateIntegrationRequest) error {
+			got = req
+			return nil
+		})
+
+	body := `{"workspace_id":"workspace-123","integration_id":"integration-123","name":"Renamed"}`
+
+	req := httptest.NewRequest(http.MethodPost, "/api/workspaces.updateIntegration", strings.NewReader(body))
+	req.Header.Set("Authorization", "Bearer "+createTestToken(t, secretKey, "test-user"))
+
+	w := httptest.NewRecorder()
+	mux.ServeHTTP(w, req)
+	require.Equal(t, http.StatusOK, w.Code)
+
+	assert.False(t, got.ProviderSpecified(),
+		"a rename must not reach the service looking like a request to clear the provider")
+	assert.Equal(t, "Renamed", got.Name)
+}
+
+// A body that says nothing about blog_enabled must not reach the service as a
+// definite "off". The console already works around this by recomputing the flag
+// from the workspace it happens to hold, which only works because the console is
+// the one caller that always holds one.
+func TestWorkspaceHandler_HandleSetBlogSettings_OmittedEnabledFlagStaysAbsent(t *testing.T) {
+	_, workspaceSvc, mux, secretKey, _ := setupTest(t)
+
+	workspaceSvc.EXPECT().
+		SetBlogSettings(gomock.Any(), "workspace123", gomock.Nil(), gomock.Any(), gomock.Any()).
+		Return(nil)
+
+	// Raw body: a struct literal cannot express the missing key.
+	body := `{"workspace_id":"workspace123","blog_settings":{"title":"My Blog"}}`
+
+	req := httptest.NewRequest(http.MethodPost, "/api/workspaces.setBlogSettings", strings.NewReader(body))
+	req.Header.Set("Authorization", "Bearer "+createTestToken(t, secretKey, "test-user"))
+
+	w := httptest.NewRecorder()
+	mux.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+// A body that names blog_enabled and nothing else must not reach the write looking like a
+// request to clear the blog's configuration. SetBlogSettings stores whatever it is told
+// about, so an absent blog_settings erased the title, the SEO block, the pagination and the
+// feed settings — and the console's own disable button sends exactly that body whenever the
+// settings fields are not on screen.
+//
+// The handler answers only "did the body mention it"; the merge itself belongs to the write,
+// which already holds the workspace it is about to save. Reading the stored settings here
+// instead meant a second lookup, with its own answer to who may see a workspace, standing in
+// front of every blog save.
+func TestWorkspaceHandler_HandleSetBlogSettings_SettingsPresenceReachesTheWrite(t *testing.T) {
+	_, workspaceSvc, mux, secretKey, _ := setupTest(t)
+
+	post := func(t *testing.T, body string) *httptest.ResponseRecorder {
+		t.Helper()
+		req := httptest.NewRequest(http.MethodPost, "/api/workspaces.setBlogSettings", strings.NewReader(body))
+		req.Header.Set("Authorization", "Bearer "+createTestToken(t, secretKey, "test-user"))
+
+		w := httptest.NewRecorder()
+		mux.ServeHTTP(w, req)
+		return w
+	}
+
+	// Raw bodies throughout: a struct literal cannot express the missing key this is about.
+	t.Run("a body with no blog_settings key says so, and costs no read", func(t *testing.T) {
+		workspaceSvc.EXPECT().ListWorkspaces(gomock.Any()).Times(0)
+
+		var specified bool
+		var received *domain.BlogSettings
+		workspaceSvc.EXPECT().
+			SetBlogSettings(gomock.Any(), "workspace123", gomock.Any(), gomock.Any(), gomock.Any()).
+			DoAndReturn(func(_ context.Context, _ string, enabled *bool, settings *domain.BlogSettings, settingsSpecified bool) error {
+				specified = settingsSpecified
+				received = settings
+				require.NotNil(t, enabled)
+				assert.False(t, *enabled, "the switch the caller did flip must still land")
+				return nil
+			})
+
+		w := post(t, `{"workspace_id":"workspace123","blog_enabled":false}`)
+		assert.Equal(t, http.StatusOK, w.Code)
+		assert.False(t, specified, "switching the blog off must not read as a request to erase how it is configured")
+		assert.Nil(t, received)
+	})
+
+	t.Run("an explicit null is a clear, not a silence", func(t *testing.T) {
+		workspaceSvc.EXPECT().ListWorkspaces(gomock.Any()).Times(0)
+
+		workspaceSvc.EXPECT().
+			SetBlogSettings(gomock.Any(), "workspace123", gomock.Any(), gomock.Any(), gomock.Any()).
+			DoAndReturn(func(_ context.Context, _ string, _ *bool, settings *domain.BlogSettings, settingsSpecified bool) error {
+				assert.True(t, settingsSpecified, "an object has a null that means something: wiping the configuration stays expressible")
+				assert.Nil(t, settings)
+				return nil
+			})
+
+		w := post(t, `{"workspace_id":"workspace123","blog_enabled":true,"blog_settings":null}`)
+		assert.Equal(t, http.StatusOK, w.Code)
+	})
+
+	t.Run("a body that carries blog_settings hands them over as a replacement", func(t *testing.T) {
+		workspaceSvc.EXPECT().ListWorkspaces(gomock.Any()).Times(0)
+
+		workspaceSvc.EXPECT().
+			SetBlogSettings(gomock.Any(), "workspace123", gomock.Any(), gomock.Any(), gomock.Any()).
+			DoAndReturn(func(_ context.Context, _ string, _ *bool, settings *domain.BlogSettings, settingsSpecified bool) error {
+				assert.True(t, settingsSpecified)
+				require.NotNil(t, settings)
+				assert.Equal(t, "Replaced", settings.Title)
+				return nil
+			})
+
+		w := post(t, `{"workspace_id":"workspace123","blog_enabled":true,"blog_settings":{"title":"Replaced"}}`)
+		assert.Equal(t, http.StatusOK, w.Code)
+	})
+
+	// A workspace the caller is not a member of is not this handler's to rule on: the write
+	// owns the authorization answer, and short-circuiting here would tell an authenticated
+	// stranger which workspace ids exist.
+	t.Run("a workspace the caller cannot see is left to the write to refuse", func(t *testing.T) {
+		workspaceSvc.EXPECT().ListWorkspaces(gomock.Any()).Times(0)
+
+		permErr := domain.NewPermissionError(domain.PermissionResourceBlog, domain.PermissionTypeWrite, "Insufficient permissions: write access to blog required")
+		workspaceSvc.EXPECT().
+			SetBlogSettings(gomock.Any(), "workspace123", gomock.Any(), gomock.Any(), gomock.Any()).
+			Return(permErr)
+
+		w := post(t, `{"workspace_id":"workspace123","blog_enabled":false}`)
+		assert.Equal(t, http.StatusForbidden, w.Code)
+	})
 }

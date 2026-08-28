@@ -129,16 +129,68 @@ func (s *AutomationService) Update(ctx context.Context, workspaceID string, auto
 		return fmt.Errorf("invalid automation: %w", err)
 	}
 
-	// If list_id is being removed/empty, check that there are no email nodes in the embedded nodes
+	existing, err := s.repo.GetByID(ctx, workspaceID, automation.ID)
+	if err != nil {
+		return fmt.Errorf("failed to get automation: %w", err)
+	}
+
+	// A request that carries no nodes at all is a partial update, not an instruction to
+	// delete the workflow. Validate skips the root-node check when the set is empty, so such
+	// a request is accepted as it stands, and this update rewrites the whole row: the
+	// automation is left with no steps, while a live one keeps enrolling contacts into a
+	// journey that has nothing to run. The nodes live only in that row, so nothing can put
+	// them back.
+	//
+	// Emptying it stays expressible, through an explicit empty array — nil against non-nil
+	// is the only thing separating "not part of this edit" from "delete every node".
+	//
+	// The root node names one of the nodes, so it comes along; a caller that named its own
+	// is taken at its word, and Validate below is what holds it to a node that exists.
+	if automation.Nodes == nil && len(existing.Nodes) > 0 {
+		automation.Nodes = existing.Nodes
+		if automation.RootNodeID == "" {
+			automation.RootNodeID = existing.RootNodeID
+		}
+		// The pair has not been checked together yet: the check above ran against an empty
+		// set, which is precisely the case Validate lets through.
+		if err := automation.Validate(); err != nil {
+			return fmt.Errorf("invalid automation: %w", err)
+		}
+	}
+
+	// exit_on_reply is not part of what this update replaces unless the body says so. It is
+	// a plain bool on a request that rewrites the whole row, so a body that never names it
+	// decodes as false and switches reply detection off — for any client that patches a
+	// name or a node without echoing the whole automation back. What that switch controls
+	// is the only thing that stops a live journey from mailing a contact who has already
+	// answered, and nothing about the automation afterwards shows that it was turned off.
+	//
+	// Switching it off stays expressible, through an explicit false.
+	if !automation.ExitOnReplySpecified() {
+		automation.ExitOnReply = existing.ExitOnReply
+	}
+
+	// Nor is list_id, on the same grounds: it is a plain string that Validate treats as
+	// optional, so a body that never names it decodes as "" — which is how an automation
+	// says it has no list. That decides who gets enrolled, so the omission would quietly
+	// retarget the automation; and because the restriction below is read from the same
+	// field, on one that mails it would instead be refused for a removal the caller never
+	// asked for.
+	//
+	// Detaching an automation from its list stays expressible, through an explicit "".
+	if !automation.ListIDSpecified() {
+		automation.ListID = existing.ListID
+	}
+
+	// If list_id is being removed/empty, check that there are no email nodes in the embedded
+	// nodes. Against the nodes that will actually be stored, preserved ones included — an
+	// email node needs the contact data list membership provides, whether or not this
+	// request is the one that sent it. It runs after the preservation above, so only a
+	// removal the caller actually asked for reaches it.
 	if automation.HasEmailNodeRestriction() {
 		if domain.HasEmailNodes(automation.Nodes) {
 			return fmt.Errorf("cannot remove list_id from automation with email nodes - remove email nodes first")
 		}
-	}
-
-	existing, err := s.repo.GetByID(ctx, workspaceID, automation.ID)
-	if err != nil {
-		return fmt.Errorf("failed to get automation: %w", err)
 	}
 
 	// Status is not the caller's to set here. Transitions belong to activate and pause,

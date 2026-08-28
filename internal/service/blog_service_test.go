@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"strings"
 	"testing"
@@ -1263,28 +1264,51 @@ func TestBlogService_GetPublishedTheme(t *testing.T) {
 	})
 }
 
+// storedThemeFiles returns a full set of theme files, fresh each call: the GetTheme mock
+// hands the service the very struct it then mutates, so a shared fixture would let one
+// subtest's edits leak into the next.
+func storedThemeFiles() domain.BlogThemeFiles {
+	return domain.BlogThemeFiles{
+		HomeLiquid:     "stored home",
+		CategoryLiquid: "stored category",
+		PostLiquid:     "stored post",
+		HeaderLiquid:   "stored header",
+		FooterLiquid:   "stored footer",
+		SharedLiquid:   "stored shared",
+		StylesCSS:      "stored css",
+		ScriptsJS:      "stored js",
+	}
+}
+
+// decodeUpdateThemeRequest builds the request the way the handler does — from a body — so
+// the tests can express a key the caller never sent. A Go literal cannot: BlogThemeFiles
+// has no optional fields, so an unset one is identical to one explicitly emptied.
+func decodeUpdateThemeRequest(t *testing.T, body string) *domain.UpdateBlogThemeRequest {
+	t.Helper()
+	var req domain.UpdateBlogThemeRequest
+	require.NoError(t, json.Unmarshal([]byte(body), &req))
+	return &req
+}
+
 func TestBlogService_UpdateTheme(t *testing.T) {
 	service, _, _, mockThemeRepo, _, _, _, mockAuthService := setupBlogServiceTest(t)
 
 	t.Run("successful update", func(t *testing.T) {
 		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, true)
-		req := &domain.UpdateBlogThemeRequest{
-			Version: 1,
-			Files: domain.BlogThemeFiles{
-				HomeLiquid: "updated home",
-			},
-		}
+		req := decodeUpdateThemeRequest(t, `{"version":1,"files":{"home.liquid":"updated home"}}`)
 
-		// GetTheme to check if it's not published
+		// The stored draft carries a full set of files. A fixture with none would make a
+		// wipe invisible: every assertion below would hold against an emptied theme.
 		mockThemeRepo.EXPECT().
 			GetTheme(ctx, 1).
-			Return(&domain.BlogTheme{Version: 1, PublishedAt: nil}, nil)
+			Return(&domain.BlogTheme{Version: 1, PublishedAt: nil, Files: storedThemeFiles()}, nil)
 
 		mockThemeRepo.EXPECT().
 			UpdateTheme(ctx, gomock.Any()).
 			DoAndReturn(func(ctx context.Context, theme *domain.BlogTheme) error {
 				assert.Equal(t, 1, theme.Version)
 				assert.Equal(t, "updated home", theme.Files.HomeLiquid)
+				assert.Equal(t, "stored post", theme.Files.PostLiquid)
 				return nil
 			})
 
@@ -1292,6 +1316,157 @@ func TestBlogService_UpdateTheme(t *testing.T) {
 		require.NoError(t, err)
 		assert.NotNil(t, theme)
 		assert.Equal(t, "updated home", theme.Files.HomeLiquid)
+	})
+
+	// blogThemes.update decodes into BlogThemeFiles, a struct of non-pointer strings. Every
+	// file the body leaves out arrives as "", indistinguishable from one the caller emptied,
+	// so {"version":3} returned 200 and blanked every Liquid template, the CSS and the JS in
+	// a single call. Draft themes are not versioned, so there is no earlier copy to restore.
+	t.Run("files the body does not name keep their stored content", func(t *testing.T) {
+		cases := []struct {
+			name          string
+			body          string
+			wantHome      string
+			wantStyles    string
+			wantShared    string
+			wantScriptsJS string
+		}{
+			{
+				name:          "no files key at all",
+				body:          `{"version":1}`,
+				wantHome:      "stored home",
+				wantStyles:    "stored css",
+				wantShared:    "stored shared",
+				wantScriptsJS: "stored js",
+			},
+			{
+				name:          "a null files key",
+				body:          `{"version":1,"files":null}`,
+				wantHome:      "stored home",
+				wantStyles:    "stored css",
+				wantShared:    "stored shared",
+				wantScriptsJS: "stored js",
+			},
+			{
+				name:          "one file named, the rest untouched",
+				body:          `{"version":1,"files":{"styles.css":"body{color:red}"}}`,
+				wantHome:      "stored home",
+				wantStyles:    "body{color:red}",
+				wantShared:    "stored shared",
+				wantScriptsJS: "stored js",
+			},
+			{
+				name:          "an empty string still clears just that file",
+				body:          `{"version":1,"files":{"scripts.js":""}}`,
+				wantHome:      "stored home",
+				wantStyles:    "stored css",
+				wantShared:    "stored shared",
+				wantScriptsJS: "",
+			},
+		}
+
+		for _, tc := range cases {
+			t.Run(tc.name, func(t *testing.T) {
+				ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, true)
+				req := decodeUpdateThemeRequest(t, tc.body)
+
+				mockThemeRepo.EXPECT().
+					GetTheme(ctx, 1).
+					Return(&domain.BlogTheme{Version: 1, PublishedAt: nil, Files: storedThemeFiles()}, nil)
+
+				var persisted domain.BlogThemeFiles
+				mockThemeRepo.EXPECT().
+					UpdateTheme(ctx, gomock.Any()).
+					DoAndReturn(func(ctx context.Context, theme *domain.BlogTheme) error {
+						persisted = theme.Files
+						return nil
+					})
+
+				_, err := service.UpdateTheme(ctx, req)
+				require.NoError(t, err)
+
+				// Asserted against literals, not against the fixture: the mock hands the
+				// service the very theme it mutates, so comparing to the fixture's fields
+				// would compare them to themselves.
+				assert.Equal(t, tc.wantHome, persisted.HomeLiquid)
+				assert.Equal(t, tc.wantStyles, persisted.StylesCSS)
+				assert.Equal(t, tc.wantShared, persisted.SharedLiquid)
+				assert.Equal(t, tc.wantScriptsJS, persisted.ScriptsJS)
+				assert.Equal(t, "stored category", persisted.CategoryLiquid)
+				assert.Equal(t, "stored post", persisted.PostLiquid)
+				assert.Equal(t, "stored header", persisted.HeaderLiquid)
+				assert.Equal(t, "stored footer", persisted.FooterLiquid)
+			})
+		}
+	})
+
+	// Notes is a *string with omitempty, so an omitted key and an explicit null both arrive
+	// as nil — and the console only sends notes when the operator typed some.
+	t.Run("omitted notes keep the stored notes", func(t *testing.T) {
+		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, true)
+		req := decodeUpdateThemeRequest(t, `{"version":1,"files":{"home.liquid":"edited"}}`)
+
+		storedNotes := "reviewed by design"
+		mockThemeRepo.EXPECT().
+			GetTheme(ctx, 1).
+			Return(&domain.BlogTheme{Version: 1, PublishedAt: nil, Files: storedThemeFiles(), Notes: &storedNotes}, nil)
+
+		mockThemeRepo.EXPECT().
+			UpdateTheme(ctx, gomock.Any()).
+			DoAndReturn(func(ctx context.Context, theme *domain.BlogTheme) error {
+				require.NotNil(t, theme.Notes)
+				assert.Equal(t, "reviewed by design", *theme.Notes)
+				return nil
+			})
+
+		_, err := service.UpdateTheme(ctx, req)
+		require.NoError(t, err)
+	})
+
+	t.Run("an empty string clears the notes", func(t *testing.T) {
+		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, true)
+		req := decodeUpdateThemeRequest(t, `{"version":1,"notes":""}`)
+
+		storedNotes := "reviewed by design"
+		mockThemeRepo.EXPECT().
+			GetTheme(ctx, 1).
+			Return(&domain.BlogTheme{Version: 1, PublishedAt: nil, Files: storedThemeFiles(), Notes: &storedNotes}, nil)
+
+		mockThemeRepo.EXPECT().
+			UpdateTheme(ctx, gomock.Any()).
+			DoAndReturn(func(ctx context.Context, theme *domain.BlogTheme) error {
+				require.NotNil(t, theme.Notes)
+				assert.Equal(t, "", *theme.Notes)
+				return nil
+			})
+
+		_, err := service.UpdateTheme(ctx, req)
+		require.NoError(t, err)
+	})
+
+	// A request built in Go carries no key information at all, so a filled-in Files is the
+	// only statement such a caller can make: it is the complete set.
+	t.Run("a request built in Go replaces the whole set", func(t *testing.T) {
+		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, true)
+		req := &domain.UpdateBlogThemeRequest{
+			Version: 1,
+			Files:   domain.BlogThemeFiles{HomeLiquid: "only home"},
+		}
+
+		mockThemeRepo.EXPECT().
+			GetTheme(ctx, 1).
+			Return(&domain.BlogTheme{Version: 1, PublishedAt: nil, Files: storedThemeFiles()}, nil)
+
+		mockThemeRepo.EXPECT().
+			UpdateTheme(ctx, gomock.Any()).
+			DoAndReturn(func(ctx context.Context, theme *domain.BlogTheme) error {
+				assert.Equal(t, "only home", theme.Files.HomeLiquid)
+				assert.Equal(t, "", theme.Files.PostLiquid)
+				return nil
+			})
+
+		_, err := service.UpdateTheme(ctx, req)
+		require.NoError(t, err)
 	})
 
 	t.Run("validation error - zero version", func(t *testing.T) {

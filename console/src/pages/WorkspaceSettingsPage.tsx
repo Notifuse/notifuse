@@ -12,16 +12,15 @@ import { CustomFieldsConfiguration } from '../components/settings/CustomFieldsCo
 import { BlogSettings } from '../components/settings/BlogSettings'
 import { WebAnalyticsSettings } from '../components/settings/WebAnalyticsSettings'
 import { WebhooksSettings } from '../components/settings/WebhooksSettings'
-import { ZapierSettings, ZAPIER_SETTINGS_ENABLED } from '../components/settings/ZapierSettings'
 import { useAuth } from '../contexts/AuthContext'
 import { DeleteWorkspaceSection } from '../components/settings/DeleteWorkspace'
-import { SettingsSidebar, SettingsSection } from '../components/settings/SettingsSidebar'
+import {
+  SettingsSidebar,
+  SETTINGS_SECTIONS,
+  SettingsSection
+} from '../components/settings/SettingsSidebar'
 
 const { Sider, Content } = Layout
-
-// The Zapier screen is routable before it is listed in the sidebar, so the page tracks a slightly
-// wider set of sections than the sidebar can render.
-type RoutableSection = SettingsSection | 'zapier'
 
 export function WorkspaceSettingsPage() {
   const { t } = useLingui()
@@ -38,36 +37,20 @@ export function WorkspaceSettingsPage() {
   const { refreshWorkspaces, user, workspaces } = useAuth()
   const navigate = useNavigate()
 
-  // Valid settings sections. 'zapier' is not part of SettingsSidebar's union: the screen ships
-  // behind ZAPIER_SETTINGS_ENABLED and has no menu entry until the Zapier app is published.
-  const validSections: RoutableSection[] = [
-    'team',
-    'integrations',
-    'webhooks',
-    'custom-fields',
-    'smtp-bridge',
-    'general',
-    'blog',
-    'web-analytics',
-    'danger-zone',
-    ...(ZAPIER_SETTINGS_ENABLED ? (['zapier'] as const) : [])
-  ]
-
   // Get active section from URL or default to 'team'
-  const activeSection: RoutableSection = validSections.includes(section as RoutableSection)
-    ? (section as RoutableSection)
+  const activeSection: SettingsSection = SETTINGS_SECTIONS.includes(section as SettingsSection)
+    ? (section as SettingsSection)
     : 'team'
 
   useEffect(() => {
     // Redirect to team section if invalid section is provided
-    if (!validSections.includes(section as SettingsSection)) {
+    if (!SETTINGS_SECTIONS.includes(section as SettingsSection)) {
       navigate({
         to: '/console/workspace/$workspaceId/settings/$section',
         params: { workspaceId, section: 'team' },
         replace: true
       })
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- validSections is static
   }, [section, workspaceId, navigate])
 
   useEffect(() => {
@@ -157,8 +140,6 @@ export function WorkspaceSettingsPage() {
         )
       case 'webhooks':
         return workspace ? <WebhooksSettings workspaceId={workspace.id} /> : null
-      case 'zapier':
-        return workspace ? <ZapierSettings workspaceId={workspace.id} /> : null
       case 'custom-fields':
         return (
           <CustomFieldsConfiguration
@@ -212,8 +193,7 @@ export function WorkspaceSettingsPage() {
         }}
       >
         <SettingsSidebar
-          // 'zapier' matches no menu key, so the sidebar simply highlights nothing for it.
-          activeSection={activeSection as SettingsSection}
+          activeSection={activeSection}
           onSectionChange={handleSectionChange}
           isOwner={isOwner}
         />

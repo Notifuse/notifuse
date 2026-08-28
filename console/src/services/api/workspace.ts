@@ -171,7 +171,14 @@ export interface SendGridSettings {
   encrypted_api_key?: string
 }
 
-export type IntegrationType = 'email' | 'sms' | 'whatsapp' | 'supabase' | 'llm' | 'firecrawl'
+export type IntegrationType =
+  | 'email'
+  | 'sms'
+  | 'whatsapp'
+  | 'supabase'
+  | 'llm'
+  | 'firecrawl'
+  | 'zapier'
 
 // LLM Provider types
 export type LLMProviderKind = 'anthropic' | 'openai' | 'gemini'
@@ -210,6 +217,18 @@ export interface FirecrawlSettings {
   base_url?: string
 }
 
+/**
+ * Everything a Zapier connection records: the address of the API key minted for it when the
+ * card was added.
+ *
+ * Display only — nothing on either side reads it to make a decision — and immutable, so a card
+ * renamed later keeps the address its key was minted under, and the two can read differently.
+ * Not a credential: the token exists once, in the response to workspaces.connectZapier.
+ */
+export interface ZapierSettings {
+  api_key_email: string
+}
+
 export interface SupabaseAuthEmailHookSettings {
   signature_key?: string
   encrypted_signature_key?: string
@@ -236,6 +255,7 @@ export interface Integration {
   supabase_settings?: SupabaseIntegrationSettings
   llm_provider?: LLMProvider
   firecrawl_settings?: FirecrawlSettings
+  zapier_settings?: ZapierSettings
   /**
    * Last few characters of each configured credential, keyed like
    * "smtp.password" or "mailjet.secret_key". Read-only: the server computes it
@@ -317,7 +337,13 @@ export interface DeleteWorkspaceResponse {
 export interface CreateIntegrationRequest {
   workspace_id: string
   name: string
-  type: IntegrationType
+  /**
+   * Zapier is excluded because the server rejects it here at two layers: a Zapier record only
+   * exists alongside the API key that workspaces.connectZapier mints for it, and this request
+   * cannot mint one. Widening IntegrationType without this would make the call compile and fail
+   * at runtime with a 400.
+   */
+  type: Exclude<IntegrationType, 'zapier'>
   provider?: EmailProvider
   supabase_settings?: SupabaseIntegrationSettings
   llm_provider?: LLMProvider
@@ -332,6 +358,9 @@ export interface UpdateIntegrationRequest {
   supabase_settings?: SupabaseIntegrationSettings
   llm_provider?: LLMProvider
   firecrawl_settings?: FirecrawlSettings
+  // No zapier_settings, deliberately. The server rebuilds the integration from scratch on every
+  // update and refills the settings from the stored record, so a field here could only express a
+  // wipe of the minted address. Renaming a card is the whole of what an update does to one.
 }
 
 export interface DeleteIntegrationRequest {
@@ -350,6 +379,28 @@ export interface UpdateIntegrationResponse {
 
 export interface DeleteIntegrationResponse {
   status: string
+}
+
+/**
+ * Connecting Zapier mints an API key and records it as an integration, in one call.
+ *
+ * The label is all the caller chooses. It names the card and seeds the address of the key, which
+ * the server derives itself so no client can claim an address belonging to a key it did not
+ * create — and it carries no permission scope, because the grant is domain.ZapierKeyPermissions'
+ * to choose.
+ */
+export interface ConnectZapierRequest {
+  workspace_id: string
+  label: string
+}
+
+export interface ConnectZapierResponse {
+  status: string
+  /** Shown once. Nothing stores it, so a caller that drops it cannot ask for it again. */
+  token: string
+  /** Address of the key just minted, also recorded on the integration as api_key_email. */
+  email: string
+  integration_id: string
 }
 
 // Workspace Member types
@@ -418,7 +469,9 @@ export interface SetCustomFieldLabelsResponse {
 
 export interface SetBlogSettingsRequest {
   workspace_id: string
-  blog_enabled: boolean
+  // Absent leaves the stored flag as it is; only the controls that exist to turn
+  // the blog on or off send one.
+  blog_enabled?: boolean
   blog_settings?: BlogSettings
 }
 
@@ -515,6 +568,15 @@ export const workspaceService = {
 
   deleteIntegration: (data: DeleteIntegrationRequest) =>
     api.post<DeleteIntegrationResponse>('/api/workspaces.deleteIntegration', data),
+
+  // The label is trimmed here rather than at the one screen that calls this, because the server
+  // takes it verbatim as the card's name and accepts a blank-looking one: "   " would mint a real
+  // key and leave a card with nothing to read on it.
+  connectZapier: (data: ConnectZapierRequest) =>
+    api.post<ConnectZapierResponse>('/api/workspaces.connectZapier', {
+      ...data,
+      label: data.label.trim()
+    }),
 
   // Invitation endpoints
   verifyInvitationToken: (token: string) =>

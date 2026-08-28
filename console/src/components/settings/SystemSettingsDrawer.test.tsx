@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { describe, it, expect, afterEach, beforeEach, vi } from 'vitest'
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 import { i18n } from '@lingui/core'
 import { I18nProvider } from '@lingui/react'
-import { App } from 'antd'
+import { App, Modal } from 'antd'
 import { SystemSettingsDrawer } from './SystemSettingsDrawer'
 import { settingsApi } from '../../services/api/settings'
 import type { SystemSettingsData, SystemSettingsResponse } from '../../types/settings'
@@ -69,9 +69,11 @@ const renderDrawer = () =>
     </I18nProvider>
   )
 
-// Opens the drawer (the trigger is the only button before the drawer mounts).
-async function openDrawer() {
-  fireEvent.click(screen.getAllByRole('button')[0])
+// Opens the drawer. The trigger is icon-only, so it is addressed by position —
+// scoped to the render container, because the drawer and any confirmation dialog
+// portal onto document.body where a stray one would come first.
+async function openDrawer(view: ReturnType<typeof renderDrawer>) {
+  fireEvent.click(within(view.container).getAllByRole('button')[0])
   await waitFor(() => expect(settingsApi.get).toHaveBeenCalled())
 }
 
@@ -81,10 +83,16 @@ describe('SystemSettingsDrawer — SSO section', () => {
     window.ROOT_EMAIL = 'root@example.com'
   })
 
+  // The restart confirmation is a static Modal.confirm: it mounts its own node on
+  // document.body, which RTL's cleanup never owns, so a leftover dialog would put
+  // its buttons in front of the drawer trigger for every test that follows.
+  afterEach(() => {
+    Modal.destroyAll()
+  })
+
   it('renders the SSO fields populated from the loaded settings', async () => {
     mockGet()
-    renderDrawer()
-    await openDrawer()
+    await openDrawer(renderDrawer())
 
     expect(await screen.findByText('SSO (OpenID Connect)')).toBeInTheDocument()
     // antd links Form.Item name -> input id -> label htmlFor, so getByLabelText works.
@@ -95,8 +103,7 @@ describe('SystemSettingsDrawer — SSO section', () => {
 
   it('disables OIDC fields and shows an env hint when they are env-overridden', async () => {
     mockGet({ oidc_issuer_url: true, oidc_client_secret: true })
-    renderDrawer()
-    await openDrawer()
+    await openDrawer(renderDrawer())
 
     await screen.findByText('SSO (OpenID Connect)')
     // The env-overridden issuer field must be read-only in the UI.
@@ -109,8 +116,7 @@ describe('SystemSettingsDrawer — SSO section', () => {
 
   it('renders the client secret as a masked password input', async () => {
     mockGet()
-    renderDrawer()
-    await openDrawer()
+    await openDrawer(renderDrawer())
 
     await screen.findByText('SSO (OpenID Connect)')
     const secret = screen.getByLabelText('Client Secret') as HTMLInputElement
@@ -119,10 +125,35 @@ describe('SystemSettingsDrawer — SSO section', () => {
     expect(secret).toHaveValue('••••••••')
   })
 
+  it('carries a redirect URI typed in the SSO section into the saved payload', async () => {
+    mockGet()
+    // A resolved save runs on into a server-restart poll that outlives the test;
+    // a pending promise stops the flow right where the payload is handed over.
+    // Once, not for the file: the describe clears call history with vi.clearAllMocks(), which
+    // leaves implementations in place, so a permanent stub here would hang the next test that
+    // saves.
+    vi.mocked(settingsApi.update).mockImplementationOnce(() => new Promise(() => {}))
+    await openDrawer(renderDrawer())
+
+    await screen.findByText('SSO (OpenID Connect)')
+    fireEvent.change(screen.getByLabelText('Redirect URI'), {
+      target: { value: 'https://sso.acme.com/oidc/callback' }
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    // The save is gated behind a restart confirmation.
+    fireEvent.click(await screen.findByRole('button', { name: /Save & Restart/ }))
+
+    await waitFor(() =>
+      expect(settingsApi.update).toHaveBeenCalledWith(
+        expect.objectContaining({ oidc_redirect_uri: 'https://sso.acme.com/oidc/callback' })
+      )
+    )
+  })
+
   it('marks allowed-domains required only when auto-create is on', async () => {
     mockGet({}, { oidc_auto_create_users: true, oidc_allowed_domains: 'corp.com' })
-    renderDrawer()
-    await openDrawer()
+    await openDrawer(renderDrawer())
 
     await screen.findByText('SSO (OpenID Connect)')
     const domains = screen.getByLabelText(/Allowed email domains/)
