@@ -261,9 +261,20 @@ func (h *TransactionalNotificationHandler) handleSend(w http.ResponseWriter, r *
 
 		h.logger.WithField("error", err.Error()).Error("Failed to send transactional notification")
 
+		// A workspace with no email provider belongs with the other four: it is a setup the
+		// caller has to change, it is never transient, and it names itself — where the 500 it
+		// used to fall into answered a bare "Failed to send notification" with the cause only
+		// in our logs.
+		//
+		// "failed to send notification through any channel" deliberately does NOT join them.
+		// It is the catch-all for every SendEmailForTemplate failure — provider outage, rate
+		// limit, timeout, template error — with the real cause logged and dropped, so it names
+		// nothing a 400 would help the caller fix, and telling a client not to retry a
+		// provider that was briefly down loses a send that would have gone out.
 		if strings.Contains(err.Error(), "not found") ||
 			strings.Contains(err.Error(), "not active") ||
-			strings.Contains(err.Error(), "no valid channels") {
+			strings.Contains(err.Error(), "no valid channels") ||
+			strings.Contains(err.Error(), "no email provider configured") {
 			WriteJSONError(w, err.Error(), http.StatusBadRequest)
 			return
 		}

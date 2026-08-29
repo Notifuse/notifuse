@@ -44,7 +44,7 @@ func TestZapierKeyPermissions(t *testing.T) {
 		PermissionResourceTemplates:            {Read: false, Write: false},
 		PermissionResourceBlog:                 {Read: false, Write: false},
 		PermissionResourceBroadcasts:           {Read: false, Write: false},
-		PermissionResourceTransactional:        {Read: false, Write: false},
+		PermissionResourceTransactional:        {Read: true, Write: true},
 		PermissionResourceAutomations:          {Read: false, Write: false},
 		PermissionResourceMessageHistory:       {Read: false, Write: true},
 		PermissionResourceWebAnalytics:         {Read: false, Write: false},
@@ -60,6 +60,7 @@ func TestZapierKeyPermissions(t *testing.T) {
 
 	t.Run("denies every enforced verb outside the resources it grants", func(t *testing.T) {
 		grantedResources := []PermissionResource{
+			PermissionResourceTransactional,
 			PermissionResourceWebhookSubscriptions,
 			PermissionResourceContacts,
 			PermissionResourceLists,

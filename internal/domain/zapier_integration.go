@@ -26,16 +26,26 @@ func (z *ZapierSettings) Validate() error {
 
 // ZapierKeyPermissions is the grant a Zapier connection's API key is minted with, verb by verb:
 //
+//   - transactional read and write: sending is what the integration is for. Write performs the
+//     send; read backs the notification picker, and without it that required field answers 403
+//     and the step cannot be saved at all.
 //   - webhook_subscriptions read and write: every trigger registers and removes its own REST
 //     hook when the Zap is turned on and off.
-//   - contacts read and write: the two actions upsert contacts, and every trigger reads contacts
-//     for the sample data Zapier shows while a Zap is being built.
+//   - contacts read and write: the contact actions upsert contacts, every trigger reads contacts
+//     for the sample data Zapier shows while a Zap is being built, and a send upserts its
+//     recipient.
 //   - lists read and write: the list picker and the subscribe action.
 //   - segments read only: the segment picker, and the member lookup behind both segment
 //     triggers. Read is the whole of it — nothing in the app writes a segment — and the two
 //     segment triggers are unusable without it.
 //
-// Nothing else is granted, so a leaked Zapier token cannot read message history or send.
+// transactional:write is wider than "may send a configured notification", and the trade was
+// made deliberately. The same verb gates transactional.create/.update/.delete,
+// transactional.testTemplate, email.testProvider, and the SMTP bridge — which seeds an identity
+// so SendNotification runs this very check. So a leaked Zapier token can relay arbitrary mail
+// through the workspace's provider credentials over both HTTP and SMTP, and can delete
+// transactional notifications. There is no finer grain to grant: sending is the integration's
+// purpose, and this verb is the only key to it. Message history stays unreadable.
 //
 // This is the key's *initial* grant, not an invariant: /api/workspaces.setUserPermissions is a
 // live endpoint and Settings → Team edits the row freely, so an owner may widen or narrow the
@@ -45,6 +55,7 @@ func (z *ZapierSettings) Validate() error {
 // package-level map has been mutated by a caller once already.
 func ZapierKeyPermissions() UserPermissions {
 	permissions := NewEmptyPermissions()
+	permissions[PermissionResourceTransactional] = ResourcePermissions{Read: true, Write: true}
 	permissions[PermissionResourceWebhookSubscriptions] = ResourcePermissions{Read: true, Write: true}
 	permissions[PermissionResourceContacts] = ResourcePermissions{Read: true, Write: true}
 	permissions[PermissionResourceLists] = ResourcePermissions{Read: true, Write: true}

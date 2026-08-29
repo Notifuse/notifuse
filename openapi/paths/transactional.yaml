@@ -56,6 +56,19 @@
               $ref: '../components/schemas/common.yaml#/ErrorResponse'
             example:
               error: Unauthorized
+      '403':
+        description: |
+          The API key lacks a permission the send requires. `transactional:write` is
+          always required; `contacts:read` is required in addition when the request
+          sets `cc` or `bcc`, because the subject is rendered against the contact.
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+            example:
+              error: 'Insufficient permissions: write access to transactional notifications required'
+              resource: transactional
+              permission: write
       '500':
         description: Internal server error
         content:

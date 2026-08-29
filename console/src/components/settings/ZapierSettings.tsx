@@ -213,8 +213,10 @@ export function ZapierSettings({
     <>
       <div className="text-gray-600 mb-6">
         <Trans>
-          Connecting Zapier lets a Zap react to Notifuse events — a new contact,
-          a list subscription, a segment a contact joined — and lets a Zap
+          Connecting Zapier lets a Zap send your transactional notifications —
+          an order confirmation, a password reset — using your templates and
+          your email provider. A Zap can also react to Notifuse events, such as
+          a new contact, a list subscription or a segment a contact joined, and
           create or update contacts and subscribe them to your lists. Each Zap
           you turn on registers its own webhook subscription, which you can see
           in Settings → Webhooks.

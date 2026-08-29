@@ -1095,6 +1095,46 @@ func TestTransactionalNotificationHandler_HandleSend(t *testing.T) {
 			checkResponse:  nil,
 		},
 		{
+			// The catch-all for every send failure the email service reports, with the real
+			// cause logged and dropped. It stays a 500 on purpose: a provider that was
+			// briefly down is a server-side failure the caller should be free to retry, and
+			// a 400 would name nothing it could act on anyway.
+			name:        "a send no channel accepted stays a server fault",
+			method:      http.MethodPost,
+			requestBody: validReqBody,
+			setupMock: func() {
+				mockService.EXPECT().
+					SendNotification(gomock.Any(), gomock.Eq(workspaceID), gomock.Any()).
+					Return("", errors.New("failed to send notification through any channel"))
+
+				mockLogger.EXPECT().
+					WithField(gomock.Eq("error"), gomock.Any()).
+					Return(mockLogger)
+				mockLogger.EXPECT().
+					Error(gomock.Eq("Failed to send transactional notification"))
+			},
+			expectedStatus: http.StatusInternalServerError,
+			checkResponse:  nil,
+		},
+		{
+			name:        "no email provider configured is reported as a bad request",
+			method:      http.MethodPost,
+			requestBody: validReqBody,
+			setupMock: func() {
+				mockService.EXPECT().
+					SendNotification(gomock.Any(), gomock.Eq(workspaceID), gomock.Any()).
+					Return("", errors.New("no email provider configured for transactional notifications"))
+
+				mockLogger.EXPECT().
+					WithField(gomock.Eq("error"), gomock.Any()).
+					Return(mockLogger)
+				mockLogger.EXPECT().
+					Error(gomock.Eq("Failed to send transactional notification"))
+			},
+			expectedStatus: http.StatusBadRequest,
+			checkResponse:  nil,
+		},
+		{
 			name:        "service error",
 			method:      http.MethodPost,
 			requestBody: validReqBody,

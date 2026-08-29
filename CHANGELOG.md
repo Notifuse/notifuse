@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [39.1] - 2026-08-29
+
+- **Feature**: Zapier can send. A Zap can now send one of your transactional notifications — an order confirmation, a password reset, a shipping update — picking the notification from a list, choosing who receives it, and filling the template's variables from whatever triggered the Zap. The template, the sender and the tracking stay in Notifuse; the Zap only supplies the recipient and the data. Sending creates the contact if the address is new, and updates it with any contact fields the Zap fills in. Giving the step your own message identifier makes it idempotent: sending again with the same one returns the original message instead of a second email, which is what protects a password reset when Zapier retries a step.
+
+  This is why an API key created by connecting Zapier is now granted **Transactional** read and write. That verb is wider than sending a notification you configured: it also permits creating, editing and deleting transactional notifications, testing templates and providers, and relaying through the SMTP bridge. A leaked Zapier token can therefore send mail through your provider. Connections made before this release keep the narrower grant — add Transactional to the key in Settings → Team, which takes effect on its next request and does not change the token, so no Zap needs reconnecting. Message history remains unreadable to the key either way.
+
+- **Fix**: `transactional.send` on a workspace with no email provider configured now answers 400 naming that, instead of a 500 whose body said only "Failed to send notification" with the cause left in the server log. Other send failures — a provider that was down, rate-limited or rejected the message — still answer 500, because those are worth retrying.
+
 ## [39.0] - 2026-08-18
 
 - **Feature**: Zapier. Settings → Integrations lists Zapier beside your other connectors, and connecting it creates an API key scoped to just what a Zap needs. From there a Zap can react to what happens in Notifuse — a contact created, a list subscribed to, a segment a contact entered — or reach the other way and create contacts, update them and subscribe them to your lists. Each Zap you switch on registers its own webhook subscription, which appears in Settings → Webhooks marked as Zapier's; switching the Zap off in Zapier removes it for you. Deleting the Zapier integration revokes the key it created, so the Zaps using it stop.
