@@ -486,6 +486,16 @@ func TestWebAnalyticsNavigationTimeline(t *testing.T) {
 		days := []time.Time{now.AddDate(0, 0, -1), now}
 		var sessions []*domain.WebSession
 
+		// Workspace init only creates the current and next month's partitions,
+		// and the ingest path creates the rest on demand. These rows are written
+		// with raw SQL, so on the first of a month yesterday has nowhere to go
+		// unless the partition is asked for explicitly.
+		months := make([]time.Time, 0, len(days))
+		for _, day := range days {
+			months = append(months, time.Date(day.Year(), day.Month(), 1, 0, 0, 0, 0, time.UTC))
+		}
+		require.NoError(t, repo.EnsureMonthlyPartitions(ctx, workspace.ID, months))
+
 		for dayIndex, day := range days {
 			sessionDate := time.Date(day.Year(), day.Month(), day.Day(), 0, 0, 0, 0, time.UTC)
 			for i := 0; i < perDate; i++ {
