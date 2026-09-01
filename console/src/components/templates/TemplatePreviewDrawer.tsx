@@ -232,6 +232,19 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
     children: <JsonDataViewer data={testData} />
   })
 
+  // Only transactional sends carry metadata, so this tab is pushed only when there is
+  // something in it — an always-present tab reading {} on every broadcast preview is
+  // worse than no tab. The table column, not this, is what guarantees metadata is
+  // reachable: this drawer opens only once a template id resolves to a fetched template.
+  const messageMetadata = messageHistory?.message_data?.metadata
+  if (messageMetadata && Object.keys(messageMetadata).length > 0) {
+    items.push({
+      key: '4',
+      label: t`Metadata`,
+      children: <JsonDataViewer data={messageMetadata} />
+    })
+  }
+
   const emailProvider = workspace.integrations?.find(
     (i) =>
       i.id ===

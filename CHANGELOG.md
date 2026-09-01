@@ -10,6 +10,8 @@ All notable changes to this project will be documented in this file.
 
 - **Fix**: `transactional.send` on a workspace with no email provider configured now answers 400 naming that, instead of a 500 whose body said only "Failed to send notification" with the cause left in the server log. Other send failures — a provider that was down, rate-limited or rejected the message — still answer 500, because those are worth retrying.
 
+- **Improvement**: The metadata you attach to a transactional send is now visible. `transactional.send` has always accepted a `metadata` object and kept it with the message, but nothing ever showed it back to you. Logs gains a Metadata column — hide it from the column picker if you would rather not see it — and previewing a message shows a Metadata tab when that send carried any. Only transactional sends carry metadata; broadcasts and automations never set it, so the column reads empty for those. Filtering the log by metadata is not part of this.
+
 ## [39.0] - 2026-08-18
 
 - **Feature**: Zapier. Settings → Integrations lists Zapier beside your other connectors, and connecting it creates an API key scoped to just what a Zap needs. From there a Zap can react to what happens in Notifuse — a contact created, a list subscribed to, a segment a contact entered — or reach the other way and create contacts, update them and subscribe them to your lists. Each Zap you switch on registers its own webhook subscription, which appears in Settings → Webhooks marked as Zapier's; switching the Zap off in Zapier removes it for you. Deleting the Zapier integration revokes the key it created, so the Zaps using it stop.

@@ -66,8 +66,8 @@ msgstr "(empty)"
 
 #. placeholder {0}: record.email.reply_to
 #. placeholder {0}: templateSender?.name || defaultSender?.name
-#: src/components/templates/TemplatePreviewDrawer.tsx:259
-#: src/components/templates/TemplatePreviewDrawer.tsx:295
+#: src/components/templates/TemplatePreviewDrawer.tsx:272
+#: src/components/templates/TemplatePreviewDrawer.tsx:308
 msgid "(original: {0})"
 msgstr "(original: {0})"
 
@@ -1280,7 +1280,7 @@ msgstr "API Token"
 msgid "API URL"
 msgstr "API URL"
 
-#: src/components/messages/MessageHistoryTab.tsx:548
+#: src/components/messages/MessageHistoryTab.tsx:549
 #: src/components/web_analytics/explore/MinSessionsInput.tsx:47
 #: src/components/web_analytics/toolbar.tsx:118
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:307
@@ -1730,7 +1730,7 @@ msgstr "Basic Authentication (Username/Password)"
 msgid "Basic Information"
 msgstr "Basic Information"
 
-#: src/components/templates/TemplatePreviewDrawer.tsx:329
+#: src/components/templates/TemplatePreviewDrawer.tsx:342
 msgid "BCC"
 msgstr "BCC"
 
@@ -1978,9 +1978,9 @@ msgstr "Bounce Type"
 #: src/components/broadcasts/BroadcastStats.tsx:283
 #: src/components/contacts/ContactDetailsDrawer.tsx:585
 #: src/components/lists/ListStats.tsx:134
-#: src/components/messages/MessageHistoryTab.tsx:166
-#: src/components/messages/MessageHistoryTab.tsx:171
-#: src/components/messages/MessageHistoryTable.tsx:298
+#: src/components/messages/MessageHistoryTab.tsx:167
+#: src/components/messages/MessageHistoryTab.tsx:172
+#: src/components/messages/MessageHistoryTable.tsx:360
 #: src/pages/ContactsPage.tsx:395
 #: src/pages/TransactionalNotificationsPage.tsx:251
 msgid "Bounced"
@@ -2039,8 +2039,8 @@ msgstr "Brief summary shown in post listings and previews"
 msgid "broadcast"
 msgstr "broadcast"
 
-#: src/components/messages/MessageHistoryTable.tsx:131
-#: src/components/messages/MessageHistoryTable.tsx:185
+#: src/components/messages/MessageHistoryTable.tsx:149
+#: src/components/messages/MessageHistoryTable.tsx:247
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:63
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:123
 #: src/components/web_analytics/tabs/AnnotationsTab.tsx:126
@@ -2087,7 +2087,7 @@ msgstr "Broadcast \"{0}\" sending started"
 msgid "Broadcast created successfully"
 msgstr "Broadcast created successfully"
 
-#: src/components/messages/MessageHistoryTab.tsx:229
+#: src/components/messages/MessageHistoryTab.tsx:230
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:104
 msgid "Broadcast ID"
 msgstr "Broadcast ID"
@@ -2374,7 +2374,7 @@ msgstr "Category updated successfully"
 msgid "Category:"
 msgstr "Category:"
 
-#: src/components/templates/TemplatePreviewDrawer.tsx:317
+#: src/components/templates/TemplatePreviewDrawer.tsx:330
 msgid "CC"
 msgstr "CC"
 
@@ -2443,7 +2443,7 @@ msgstr "Change Status"
 msgid "Change Status for {0}"
 msgstr "Change Status for {0}"
 
-#: src/components/messages/MessageHistoryTab.tsx:217
+#: src/components/messages/MessageHistoryTab.tsx:218
 #: src/components/web_analytics/explore/BreakdownModal.tsx:63
 #: src/components/web_analytics/explore/DimensionSelector.tsx:97
 #: src/components/web_analytics/FilterBuilder.tsx:55
@@ -2509,13 +2509,13 @@ msgstr "City level (~1km precision)"
 #: src/components/contacts/InlineEditableField.tsx:308
 #: src/components/email_builder/ui/ImportFontInput.tsx:169
 #: src/components/filters/Filter.tsx:193
-#: src/components/messages/MessageHistoryTab.tsx:553
+#: src/components/messages/MessageHistoryTab.tsx:554
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:312
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:337
 msgid "Clear"
 msgstr "Clear"
 
-#: src/components/messages/MessageHistoryTab.tsx:591
+#: src/components/messages/MessageHistoryTab.tsx:592
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:328
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:353
 msgid "Clear All"
@@ -2584,9 +2584,9 @@ msgid "clicked"
 msgstr "clicked"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:100
-#: src/components/messages/MessageHistoryTab.tsx:153
-#: src/components/messages/MessageHistoryTab.tsx:155
-#: src/components/messages/MessageHistoryTable.tsx:290
+#: src/components/messages/MessageHistoryTab.tsx:154
+#: src/components/messages/MessageHistoryTab.tsx:156
+#: src/components/messages/MessageHistoryTable.tsx:352
 msgid "Clicked"
 msgstr "Clicked"
 
@@ -2762,9 +2762,9 @@ msgstr "Complain email"
 #: src/components/automations/config/TriggerConfigForm.tsx:82
 #: src/components/automations/config/TriggerConfigForm.tsx:102
 #: src/components/contacts/ContactDetailsDrawer.tsx:586
-#: src/components/messages/MessageHistoryTab.tsx:182
-#: src/components/messages/MessageHistoryTab.tsx:184
-#: src/components/messages/MessageHistoryTable.tsx:306
+#: src/components/messages/MessageHistoryTab.tsx:183
+#: src/components/messages/MessageHistoryTab.tsx:185
+#: src/components/messages/MessageHistoryTable.tsx:368
 #: src/pages/ContactsPage.tsx:396
 msgid "Complained"
 msgstr "Complained"
@@ -2998,9 +2998,9 @@ msgstr "Contact deleted successfully"
 msgid "Contact Details"
 msgstr "Contact Details"
 
-#: src/components/messages/MessageHistoryTab.tsx:224
-#: src/components/messages/MessageHistoryTable.tsx:129
-#: src/components/messages/MessageHistoryTable.tsx:348
+#: src/components/messages/MessageHistoryTab.tsx:225
+#: src/components/messages/MessageHistoryTable.tsx:147
+#: src/components/messages/MessageHistoryTable.tsx:410
 msgid "Contact Email"
 msgstr "Contact Email"
 
@@ -3497,8 +3497,8 @@ msgid "Created"
 msgstr "Created"
 
 #: src/components/contacts/ContactDetailsDrawer.tsx:536
-#: src/components/messages/MessageHistoryTable.tsx:135
-#: src/components/messages/MessageHistoryTable.tsx:336
+#: src/components/messages/MessageHistoryTable.tsx:153
+#: src/components/messages/MessageHistoryTable.tsx:398
 #: src/pages/ContactsPage.tsx:435
 #: src/pages/ContactsPage.tsx:738
 msgid "Created At"
@@ -4168,9 +4168,9 @@ msgstr "delivered"
 #: src/components/analytics/EmailMetricsChart.tsx:267
 #: src/components/analytics/EmailMetricsChart.tsx:348
 #: src/components/broadcasts/BroadcastStats.tsx:177
-#: src/components/messages/MessageHistoryTab.tsx:114
-#: src/components/messages/MessageHistoryTab.tsx:116
-#: src/components/messages/MessageHistoryTable.tsx:266
+#: src/components/messages/MessageHistoryTab.tsx:115
+#: src/components/messages/MessageHistoryTab.tsx:117
+#: src/components/messages/MessageHistoryTable.tsx:328
 #: src/components/settings/WebhookCard.tsx:391
 #: src/components/timeline/ContactTimeline.tsx:652
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:67
@@ -4777,7 +4777,7 @@ msgstr "email"
 #: src/components/contacts/ContactUpsertDrawer.tsx:515
 #: src/components/contacts/ExportContactsModal.tsx:50
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:338
-#: src/components/messages/MessageHistoryTab.tsx:219
+#: src/components/messages/MessageHistoryTab.tsx:220
 #: src/components/settings/Integrations.tsx:2692
 #: src/components/settings/WorkspaceMembers.tsx:101
 #: src/components/timeline/ContactTimeline.tsx:584
@@ -5242,8 +5242,8 @@ msgstr "equals"
 #: src/components/analytics/FailedMessagesTable.tsx:68
 #: src/components/analytics/NewContactsTable.tsx:208
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:930
-#: src/components/messages/MessageHistoryTable.tsx:134
-#: src/components/messages/MessageHistoryTable.tsx:322
+#: src/components/messages/MessageHistoryTable.tsx:152
+#: src/components/messages/MessageHistoryTable.tsx:384
 #: src/pages/BroadcastsPage.tsx:469
 msgid "Error"
 msgstr "Error"
@@ -5252,14 +5252,14 @@ msgstr "Error"
 msgid "Error loading automations"
 msgstr "Error loading automations"
 
-#: src/components/messages/MessageHistoryTab.tsx:603
+#: src/components/messages/MessageHistoryTab.tsx:604
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:492
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:448
 #: src/pages/TransactionalNotificationsPage.tsx:373
 msgid "Error loading data"
 msgstr "Error loading data"
 
-#: src/components/templates/TemplatePreviewDrawer.tsx:361
+#: src/components/templates/TemplatePreviewDrawer.tsx:374
 msgid "Error loading preview"
 msgstr "Error loading preview"
 
@@ -5329,8 +5329,8 @@ msgstr "Event Type"
 msgid "Event Types"
 msgstr "Event Types"
 
-#: src/components/messages/MessageHistoryTable.tsx:133
-#: src/components/messages/MessageHistoryTable.tsx:249
+#: src/components/messages/MessageHistoryTable.tsx:151
+#: src/components/messages/MessageHistoryTable.tsx:311
 msgid "Events"
 msgstr "Events"
 
@@ -5449,9 +5449,9 @@ msgstr "Exporting all contacts"
 #: src/components/contacts/ContactDetailsDrawer.tsx:453
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:90
 #: src/components/contacts/ExportContactsModal.tsx:53
-#: src/components/messages/MessageHistoryTab.tsx:226
-#: src/components/messages/MessageHistoryTable.tsx:128
-#: src/components/messages/MessageHistoryTable.tsx:154
+#: src/components/messages/MessageHistoryTab.tsx:227
+#: src/components/messages/MessageHistoryTable.tsx:145
+#: src/components/messages/MessageHistoryTable.tsx:172
 #: src/pages/ContactsPage.tsx:370
 msgid "External ID"
 msgstr "External ID"
@@ -5475,9 +5475,9 @@ msgstr "failed"
 #: src/components/contacts/BulkActionProgressModal.tsx:146
 #: src/components/contacts/BulkUpdateDrawer.tsx:695
 #: src/components/contacts/BulkUpdateDrawer.tsx:734
-#: src/components/messages/MessageHistoryTab.tsx:127
-#: src/components/messages/MessageHistoryTab.tsx:129
-#: src/components/messages/MessageHistoryTable.tsx:274
+#: src/components/messages/MessageHistoryTab.tsx:128
+#: src/components/messages/MessageHistoryTab.tsx:130
+#: src/components/messages/MessageHistoryTable.tsx:336
 #: src/components/settings/WebhookCard.tsx:394
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:89
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:257
@@ -6112,7 +6112,7 @@ msgstr "Filter conditions"
 msgid "Filter on an event property"
 msgstr "Filter on an event property"
 
-#: src/components/messages/MessageHistoryTab.tsx:586
+#: src/components/messages/MessageHistoryTab.tsx:587
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:373
 #: src/layouts/WorkspaceLayout.tsx:342
 #: src/pages/WebAnalyticsPage.tsx:97
@@ -6298,7 +6298,7 @@ msgstr "Found unsaved changes from {0}"
 msgid "Frequency"
 msgstr "Frequency"
 
-#: src/components/templates/TemplatePreviewDrawer.tsx:250
+#: src/components/templates/TemplatePreviewDrawer.tsx:263
 msgid "From"
 msgstr "From"
 
@@ -6535,7 +6535,7 @@ msgstr "happened"
 msgid "has"
 msgstr "has"
 
-#: src/components/messages/MessageHistoryTab.tsx:232
+#: src/components/messages/MessageHistoryTab.tsx:233
 msgid "Has Error"
 msgstr "Has Error"
 
@@ -6742,7 +6742,7 @@ msgid "Icon/Favicon URL"
 msgstr "Icon/Favicon URL"
 
 #: src/components/automations/AutomationCard.tsx:293
-#: src/components/messages/MessageHistoryTable.tsx:211
+#: src/components/messages/MessageHistoryTable.tsx:273
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:355
 #: src/pages/ListsPage.tsx:267
 #: src/pages/TransactionalNotificationsPage.tsx:264
@@ -7339,7 +7339,7 @@ msgstr "Landing pages"
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:96
 #: src/components/contacts/ExportContactsModal.tsx:68
 #: src/components/templates/SendTemplateModal.tsx:326
-#: src/components/templates/TemplatePreviewDrawer.tsx:340
+#: src/components/templates/TemplatePreviewDrawer.tsx:353
 #: src/pages/ContactsPage.tsx:375
 #: src/pages/ContactsPage.tsx:431
 #: src/pages/ContactsPage.tsx:706
@@ -7485,7 +7485,7 @@ msgstr "Line"
 #. placeholder {0}: detail.line
 #. placeholder {1}: detail.tagName
 #. placeholder {2}: detail.message
-#: src/components/templates/TemplatePreviewDrawer.tsx:376
+#: src/components/templates/TemplatePreviewDrawer.tsx:389
 msgid "Line {0} ({1}): {2}"
 msgstr "Line {0} ({1}): {2}"
 
@@ -7544,9 +7544,9 @@ msgstr "Liquid block - Click to add MJML + Liquid content"
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:514
 #: src/components/contacts/BulkUpdateDrawer.tsx:602
 #: src/components/contacts/ExportContactsModal.tsx:73
-#: src/components/messages/MessageHistoryTable.tsx:132
-#: src/components/messages/MessageHistoryTable.tsx:215
-#: src/components/messages/MessageHistoryTable.tsx:229
+#: src/components/messages/MessageHistoryTable.tsx:150
+#: src/components/messages/MessageHistoryTable.tsx:277
+#: src/components/messages/MessageHistoryTable.tsx:291
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:231
 #: src/components/web_analytics/tabs/DashboardTab.tsx:220
 #: src/pages/BroadcastsPage.tsx:1044
@@ -7600,7 +7600,7 @@ msgid "List everything one contact is subscribed to (also needs Contacts read)"
 msgstr "List everything one contact is subscribed to (also needs Contacts read)"
 
 #: src/components/lists/ListDrawer.tsx:196
-#: src/components/messages/MessageHistoryTab.tsx:227
+#: src/components/messages/MessageHistoryTab.tsx:228
 msgid "List ID"
 msgstr "List ID"
 
@@ -7724,7 +7724,7 @@ msgstr "LLM"
 msgid "LLM integration saved successfully"
 msgstr "LLM integration saved successfully"
 
-#: src/components/messages/MessageHistoryTable.tsx:445
+#: src/components/messages/MessageHistoryTable.tsx:507
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:554
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:521
 #: src/pages/ContactsPage.tsx:1169
@@ -7752,7 +7752,7 @@ msgstr "Loaded the latest version of this template (v{0})."
 msgid "Loading automations..."
 msgstr "Loading automations..."
 
-#: src/components/messages/MessageHistoryTable.tsx:416
+#: src/components/messages/MessageHistoryTable.tsx:478
 msgid "Loading message history..."
 msgstr "Loading message history..."
 
@@ -7781,7 +7781,7 @@ msgid "Loading webhook status..."
 msgstr "Loading webhook status..."
 
 #: src/components/blog_editor/NotifuseEditor.tsx:480
-#: src/components/messages/MessageHistoryTab.tsx:610
+#: src/components/messages/MessageHistoryTab.tsx:611
 #: src/components/templates/TemplateSelectorInput.tsx:145
 #: src/components/timeline/ContactTimeline.tsx:1039
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:499
@@ -8050,9 +8050,9 @@ msgstr "Message History"
 msgid "Message history and webhook events will be anonymized (email addresses redacted) but retained for analytics."
 msgstr "Message history and webhook events will be anonymized (email addresses redacted) but retained for analytics."
 
-#: src/components/messages/MessageHistoryTab.tsx:225
-#: src/components/messages/MessageHistoryTable.tsx:127
-#: src/components/messages/MessageHistoryTable.tsx:141
+#: src/components/messages/MessageHistoryTab.tsx:226
+#: src/components/messages/MessageHistoryTable.tsx:144
+#: src/components/messages/MessageHistoryTable.tsx:159
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:102
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:384
 msgid "Message ID"
@@ -8079,6 +8079,12 @@ msgstr "Meta Description"
 #: src/components/settings/BlogSettings.tsx:246
 msgid "Meta Title"
 msgstr "Meta Title"
+
+#: src/components/messages/MessageHistoryTable.tsx:146
+#: src/components/messages/MessageHistoryTable.tsx:190
+#: src/components/templates/TemplatePreviewDrawer.tsx:243
+msgid "Metadata"
+msgstr "Metadata"
 
 #: src/components/web_analytics/FilterBuilder.tsx:361
 msgid "Metrics"
@@ -8149,7 +8155,7 @@ msgid "MJML compilation completed successfully with no warnings or errors."
 msgstr "MJML compilation completed successfully with no warnings or errors."
 
 #. placeholder {0}: mjmlError.message
-#: src/components/templates/TemplatePreviewDrawer.tsx:368
+#: src/components/templates/TemplatePreviewDrawer.tsx:381
 msgid "MJML Compilation Error: {0}"
 msgstr "MJML Compilation Error: {0}"
 
@@ -8405,14 +8411,14 @@ msgstr "Next Run"
 #: src/components/contacts/ContactUpsertDrawer.tsx:540
 #: src/components/contacts/SegmentsFilter.tsx:150
 #: src/components/contacts/SegmentsFilter.tsx:165
-#: src/components/messages/MessageHistoryTab.tsx:108
-#: src/components/messages/MessageHistoryTab.tsx:121
-#: src/components/messages/MessageHistoryTab.tsx:134
-#: src/components/messages/MessageHistoryTab.tsx:147
-#: src/components/messages/MessageHistoryTab.tsx:160
-#: src/components/messages/MessageHistoryTab.tsx:176
-#: src/components/messages/MessageHistoryTab.tsx:189
-#: src/components/messages/MessageHistoryTab.tsx:205
+#: src/components/messages/MessageHistoryTab.tsx:109
+#: src/components/messages/MessageHistoryTab.tsx:122
+#: src/components/messages/MessageHistoryTab.tsx:135
+#: src/components/messages/MessageHistoryTab.tsx:148
+#: src/components/messages/MessageHistoryTab.tsx:161
+#: src/components/messages/MessageHistoryTab.tsx:177
+#: src/components/messages/MessageHistoryTab.tsx:190
+#: src/components/messages/MessageHistoryTab.tsx:206
 #: src/components/settings/CustomFieldsConfiguration.tsx:214
 #: src/components/settings/Integrations.tsx:322
 #: src/components/settings/Integrations.tsx:364
@@ -8544,7 +8550,7 @@ msgstr "No data found"
 msgid "No data returned"
 msgstr "No data returned"
 
-#: src/components/templates/TemplatePreviewDrawer.tsx:280
+#: src/components/templates/TemplatePreviewDrawer.tsx:293
 msgid "No default sender configured"
 msgstr "No default sender configured"
 
@@ -8562,7 +8568,7 @@ msgstr "No dimensions found"
 msgid "No draft posts"
 msgstr "No draft posts"
 
-#: src/components/templates/TemplatePreviewDrawer.tsx:255
+#: src/components/templates/TemplatePreviewDrawer.tsx:268
 msgid "no email"
 msgstr "no email"
 
@@ -8582,7 +8588,7 @@ msgstr "No error message was recorded."
 msgid "No errors"
 msgstr "No errors"
 
-#: src/components/messages/MessageHistoryTab.tsx:235
+#: src/components/messages/MessageHistoryTab.tsx:236
 msgid "No Errors"
 msgstr "No Errors"
 
@@ -8642,7 +8648,7 @@ msgstr "No match"
 msgid "No members found"
 msgstr "No members found"
 
-#: src/components/messages/MessageHistoryTable.tsx:425
+#: src/components/messages/MessageHistoryTable.tsx:487
 msgid "No messages found"
 msgstr "No messages found"
 
@@ -8682,7 +8688,7 @@ msgstr "No posts in this category"
 msgid "No posts yet"
 msgstr "No posts yet"
 
-#: src/components/templates/TemplatePreviewDrawer.tsx:405
+#: src/components/templates/TemplatePreviewDrawer.tsx:418
 msgid "No preview available or template is empty."
 msgstr "No preview available or template is empty."
 
@@ -8746,7 +8752,7 @@ msgstr "No settings available for the head element."
 msgid "No source data"
 msgstr "No source data"
 
-#: src/components/templates/TemplatePreviewDrawer.tsx:381
+#: src/components/templates/TemplatePreviewDrawer.tsx:394
 msgid "No specific details provided."
 msgstr "No specific details provided."
 
@@ -8896,7 +8902,7 @@ msgstr "Not resolved"
 #: src/components/settings/GeneralSettings.tsx:149
 #: src/components/settings/SMTPBridgeSettings.tsx:42
 #: src/components/settings/SMTPBridgeSettings.tsx:46
-#: src/components/templates/TemplatePreviewDrawer.tsx:300
+#: src/components/templates/TemplatePreviewDrawer.tsx:313
 msgid "Not set"
 msgstr "Not set"
 
@@ -9129,9 +9135,9 @@ msgid "opened"
 msgstr "opened"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:99
-#: src/components/messages/MessageHistoryTab.tsx:140
-#: src/components/messages/MessageHistoryTab.tsx:142
-#: src/components/messages/MessageHistoryTable.tsx:282
+#: src/components/messages/MessageHistoryTab.tsx:141
+#: src/components/messages/MessageHistoryTab.tsx:143
+#: src/components/messages/MessageHistoryTable.tsx:344
 msgid "Opened"
 msgstr "Opened"
 
@@ -9893,7 +9899,7 @@ msgstr "Preview Coming Soon"
 msgid "Preview email"
 msgstr "Preview email"
 
-#: src/components/messages/MessageHistoryTable.tsx:77
+#: src/components/messages/MessageHistoryTable.tsx:94
 msgid "Preview message"
 msgstr "Preview message"
 
@@ -10132,7 +10138,7 @@ msgstr "Published"
 msgid "Purchase"
 msgstr "Purchase"
 
-#: src/components/messages/MessageHistoryTab.tsx:221
+#: src/components/messages/MessageHistoryTab.tsx:222
 msgid "Push"
 msgstr "Push"
 
@@ -10450,7 +10456,7 @@ msgid "Referrers"
 msgstr "Referrers"
 
 #: src/components/contacts/ContactDetailsDrawer.tsx:630
-#: src/components/messages/MessageHistoryTable.tsx:360
+#: src/components/messages/MessageHistoryTable.tsx:422
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:429
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:429
 #: src/pages/ContactsPage.tsx:910
@@ -10637,7 +10643,7 @@ msgstr "Reply forwarding is set up. Inbound replies also require your domain's M
 #~ msgstr "Reply forwarding route is set up. Inbound replies also require your domain's MX records to point at Mailgun."
 
 #: src/components/templates/CreateTemplateDrawer.tsx:950
-#: src/components/templates/TemplatePreviewDrawer.tsx:289
+#: src/components/templates/TemplatePreviewDrawer.tsx:302
 msgid "Reply to"
 msgstr "Reply to"
 
@@ -11747,9 +11753,9 @@ msgstr "sent"
 #: src/components/analytics/EmailMetricsChart.tsx:266
 #: src/components/analytics/EmailMetricsChart.tsx:321
 #: src/components/broadcasts/BroadcastStats.tsx:143
-#: src/components/messages/MessageHistoryTab.tsx:101
-#: src/components/messages/MessageHistoryTab.tsx:103
-#: src/components/messages/MessageHistoryTable.tsx:258
+#: src/components/messages/MessageHistoryTab.tsx:102
+#: src/components/messages/MessageHistoryTab.tsx:104
+#: src/components/messages/MessageHistoryTable.tsx:320
 #: src/pages/BroadcastsPage.tsx:1544
 #: src/pages/TransactionalNotificationsPage.tsx:200
 msgid "Sent"
@@ -12099,7 +12105,7 @@ msgstr "Slug must be less than 100 characters"
 msgid "Slug must contain only lowercase letters, numbers, and hyphens"
 msgstr "Slug must contain only lowercase letters, numbers, and hyphens"
 
-#: src/components/messages/MessageHistoryTab.tsx:220
+#: src/components/messages/MessageHistoryTab.tsx:221
 msgid "SMS"
 msgstr "SMS"
 
@@ -12366,7 +12372,7 @@ msgstr "State"
 #: src/components/blog/PostsTable.tsx:245
 #: src/components/blog/RecentThemesTable.tsx:122
 #: src/components/contacts/ContactDetailsDrawer.tsx:982
-#: src/components/messages/MessageHistoryTab.tsx:580
+#: src/components/messages/MessageHistoryTab.tsx:581
 #: src/components/web_analytics/filters/FilterTable.tsx:264
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:82
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:378
@@ -12433,7 +12439,7 @@ msgstr "Style"
 msgid "Style Attributes"
 msgstr "Style Attributes"
 
-#: src/components/templates/TemplatePreviewDrawer.tsx:305
+#: src/components/templates/TemplatePreviewDrawer.tsx:318
 #: src/components/templates/TemplateTranslationsTab.tsx:212
 #: src/pages/BroadcastsPage.tsx:798
 #: src/pages/TemplatesPage.tsx:258
@@ -12442,7 +12448,7 @@ msgstr "Subject"
 
 #: src/components/email_builder/blocks/MjPreviewBlock.tsx:33
 #: src/components/templates/CreateTemplateDrawer.tsx:929
-#: src/components/templates/TemplatePreviewDrawer.tsx:310
+#: src/components/templates/TemplatePreviewDrawer.tsx:323
 #: src/components/templates/TemplateTranslationsTab.tsx:220
 msgid "Subject preview"
 msgstr "Subject preview"
@@ -12668,8 +12674,8 @@ msgid "template"
 msgstr "template"
 
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:819
-#: src/components/messages/MessageHistoryTable.tsx:130
-#: src/components/messages/MessageHistoryTable.tsx:172
+#: src/components/messages/MessageHistoryTable.tsx:148
+#: src/components/messages/MessageHistoryTable.tsx:234
 #: src/pages/BroadcastsPage.tsx:793
 #: src/pages/BroadcastsPage.tsx:795
 #: src/pages/TemplatesPage.tsx:208
@@ -12724,7 +12730,7 @@ msgstr "Template deleted successfully"
 msgid "Template Error"
 msgstr "Template Error"
 
-#: src/components/messages/MessageHistoryTab.tsx:228
+#: src/components/messages/MessageHistoryTab.tsx:229
 msgid "Template ID"
 msgstr "Template ID"
 
@@ -14014,9 +14020,9 @@ msgstr "Unsubscribe from list"
 #: src/components/automations/config/TriggerConfigForm.tsx:78
 #: src/components/automations/config/TriggerConfigForm.tsx:103
 #: src/components/contacts/ContactDetailsDrawer.tsx:584
-#: src/components/messages/MessageHistoryTab.tsx:195
-#: src/components/messages/MessageHistoryTab.tsx:200
-#: src/components/messages/MessageHistoryTable.tsx:314
+#: src/components/messages/MessageHistoryTab.tsx:196
+#: src/components/messages/MessageHistoryTab.tsx:201
+#: src/components/messages/MessageHistoryTable.tsx:376
 #: src/pages/ContactsPage.tsx:394
 msgid "Unsubscribed"
 msgstr "Unsubscribed"
@@ -14767,7 +14773,7 @@ msgstr "Winner selected successfully! The broadcast will be sent to remaining re
 msgid "Winning metric"
 msgstr "Winning metric"
 
-#: src/components/messages/MessageHistoryTab.tsx:234
+#: src/components/messages/MessageHistoryTab.tsx:235
 msgid "With Errors"
 msgstr "With Errors"
 
@@ -14902,14 +14908,14 @@ msgstr "Yearly"
 #: src/components/contacts/ContactUpsertDrawer.tsx:539
 #: src/components/contacts/SegmentsFilter.tsx:149
 #: src/components/contacts/SegmentsFilter.tsx:164
-#: src/components/messages/MessageHistoryTab.tsx:107
-#: src/components/messages/MessageHistoryTab.tsx:120
-#: src/components/messages/MessageHistoryTab.tsx:133
-#: src/components/messages/MessageHistoryTab.tsx:146
-#: src/components/messages/MessageHistoryTab.tsx:159
-#: src/components/messages/MessageHistoryTab.tsx:175
-#: src/components/messages/MessageHistoryTab.tsx:188
-#: src/components/messages/MessageHistoryTab.tsx:204
+#: src/components/messages/MessageHistoryTab.tsx:108
+#: src/components/messages/MessageHistoryTab.tsx:121
+#: src/components/messages/MessageHistoryTab.tsx:134
+#: src/components/messages/MessageHistoryTab.tsx:147
+#: src/components/messages/MessageHistoryTab.tsx:160
+#: src/components/messages/MessageHistoryTab.tsx:176
+#: src/components/messages/MessageHistoryTab.tsx:189
+#: src/components/messages/MessageHistoryTab.tsx:205
 #: src/components/settings/CustomFieldsConfiguration.tsx:213
 #: src/components/settings/Integrations.tsx:321
 #: src/components/settings/Integrations.tsx:363
