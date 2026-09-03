@@ -1,0 +1,39 @@
+Notifuse Web Analytics SDK
+Copyright (c) Notifuse
+
+This directory is licensed under the GNU Affero General Public License,
+version 3 or later. See LICENSE in this directory for the full text.
+
+    SPDX-License-Identifier: AGPL-3.0-or-later
+
+The licence of this directory is deliberately independent of the licence of
+the rest of the repository. The built bundle links ua-parser-js, which is
+AGPL-3.0-or-later, so this directory and everything built from it must be
+distributed under that licence too.
+
+Corresponding Source for the bundle served at /na.js is this directory:
+
+    https://github.com/Notifuse/notifuse/tree/main/web_analytics_sdk
+
+Two consequences that outlive whoever last edited this file:
+
+  1. Nothing that is not intended to be AGPL may be moved into this directory.
+     In particular no licence check, no key verification, and no gated logic:
+     the AGPL grants every recipient the right to redistribute a modified copy,
+     which would make publishing such code here equivalent to publishing its
+     own bypass.
+
+  2. This directory must remain publicly readable. The bundle is conveyed to
+     the browser of every visitor of every site that installs it, and each of
+     them is entitled to the Corresponding Source.
+
+THIRD-PARTY COMPONENTS
+
+  ua-parser-js
+  Copyright (c) Faisal Salman <f@faisalman.com>
+  SPDX-License-Identifier: AGPL-3.0-or-later
+  https://github.com/faisalman/ua-parser-js
+  Compiled into dist/notifuse-analytics.min.js.
+
+  detect-europe-js, is-standalone-pwa, ua-is-frozen
+  SPDX-License-Identifier: MIT

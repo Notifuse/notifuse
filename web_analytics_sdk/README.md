@@ -173,3 +173,21 @@ Includes ua-parser-js for accurate device/OS detection with Client Hints support
 ## Documentation
 
 See [SPECS.md](./SPECS.md) for detailed technical specifications.
+
+## License
+
+This directory is licensed under the **GNU Affero General Public License, version 3
+or later** (`AGPL-3.0-or-later`) — see [`LICENSE`](LICENSE) and [`NOTICE`](NOTICE).
+
+The licence of this directory is independent of the licence of the rest of the
+repository. The built bundle links [ua-parser-js](https://github.com/faisalman/ua-parser-js),
+which is AGPL-3.0-or-later, so everything built here inherits that licence. Two
+rules follow, and they are not optional:
+
+- **Nothing that is not meant to be AGPL goes in this directory** — in particular no
+  licence check and no gated logic. The AGPL grants every recipient the right to
+  redistribute a modified copy, so publishing such code here would amount to
+  publishing its own bypass.
+- **This directory stays publicly readable.** The bundle is delivered to the browser
+  of every visitor of every site that installs it, and each of them is entitled to
+  the Corresponding Source.

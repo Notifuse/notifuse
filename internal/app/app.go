@@ -31,7 +31,6 @@ import (
 	"github.com/Notifuse/notifuse/pkg/ratelimiter"
 	"github.com/Notifuse/notifuse/pkg/smtp_bridge"
 	"github.com/Notifuse/notifuse/pkg/tracing"
-	webanalyticssdk "github.com/Notifuse/notifuse/web_analytics_sdk"
 
 	"contrib.go.opencensus.io/integrations/ocsql"
 )
@@ -1352,7 +1351,7 @@ func (a *App) InitHandlers() error {
 		a.webAnalyticsService,
 		getJWTSecret,
 		a.logger,
-		webanalyticssdk.JS,
+		loadWebAnalyticsSDK(a.logger),
 	)
 	usageHandler := httpHandler.NewUsageHandler(
 		a.usageService,

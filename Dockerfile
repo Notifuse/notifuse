@@ -81,11 +81,6 @@ COPY config/ config/
 COPY internal/ internal/
 COPY pkg/ pkg/
 
-# Web analytics SDK: Go embeds the built bundle, freshly compiled in its own
-# stage (the committed dist is only a fallback for bare `go build`).
-COPY web_analytics_sdk/embed.go web_analytics_sdk/embed.go
-COPY --from=web-analytics-sdk-builder /build/web_analytics_sdk/dist/ web_analytics_sdk/dist/
-
 # Build the application with CGO disabled (pure Go)
 ENV CGO_ENABLED=0
 ENV GOOS=linux
@@ -102,7 +97,7 @@ RUN apk add --no-cache \
 
 # Create application directory structure
 WORKDIR /app
-RUN mkdir -p /app/console/dist /app/notification_center/dist /app/data /app/geoip
+RUN mkdir -p /app/console/dist /app/notification_center/dist /app/web_analytics_sdk/dist /app/data /app/geoip
 
 # Copy the binary from the builder stage
 COPY --from=backend-builder /tmp/server /app/server
@@ -112,6 +107,16 @@ COPY --from=console-frontend-builder /build/console/dist/ /app/console/dist/
 
 # Copy the built notification center files
 COPY --from=notification-center-builder /build/notification_center/dist/ /app/notification_center/dist/
+
+# Ship the web analytics browser SDK as a static asset, not inside the binary.
+# The bundle links ua-parser-js (AGPL-3.0-or-later), so embedding it would
+# carry that code into the server binary itself; served from disk, the licence
+# boundary stays at web_analytics_sdk/, which carries its own LICENSE and
+# NOTICE. The server looks it up relative to its working directory (/app) and
+# simply does not register /na.js if it is missing.
+COPY --from=web-analytics-sdk-builder /build/web_analytics_sdk/dist/notifuse-analytics.min.js /app/web_analytics_sdk/dist/notifuse-analytics.min.js
+COPY web_analytics_sdk/LICENSE /app/web_analytics_sdk/LICENSE
+COPY web_analytics_sdk/NOTICE /app/web_analytics_sdk/NOTICE
 
 # Ship the MaxMind GeoLite2 City database so web analytics resolves locations
 # with no configuration. NOT under /app/data: compose bind-mounts the host's

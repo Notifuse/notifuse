@@ -58,14 +58,14 @@ jobs:
       - name: Unit tests
         run: npx vitest run
 
-      # The Go binary serves dist/notifuse-analytics.min.js through //go:embed
-      # (web_analytics_sdk/embed.go), so the COMMITTED bundle is what every
-      # local run, every test and every fresh clone actually executes. Source
-      # changes are invisible to `go build` until the bundle is rebuilt and
-      # committed. The Dockerfile rebuilds from source at image build time,
-      # which means a stale bundle makes CI and production run different SDKs —
-      # the worst shape for this bug, since it hides in exactly the place tests
-      # look. Rebuilding and diffing is the whole check.
+      # The server reads dist/notifuse-analytics.min.js from disk at startup,
+      # so the COMMITTED bundle is what every local run, every test and every
+      # fresh clone actually serves on /na.js. Source changes are invisible
+      # until the bundle is rebuilt and committed. The Dockerfile rebuilds from
+      # source at image build time, which means a stale bundle makes CI and
+      # production run different SDKs — the worst shape for this bug, since it
+      # hides in exactly the place tests look. Rebuilding and diffing is the
+      # whole check.
       - name: Bundle is in sync with source
         run: |
           npm run build
