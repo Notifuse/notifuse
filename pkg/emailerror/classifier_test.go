@@ -582,3 +582,87 @@ func TestClassifyByHTTPStatus(t *testing.T) {
 		})
 	}
 }
+
+// TestClassifier_SMTPCodesTheServiceActuallyEmits pins the classification of the four
+// error strings the built-in SMTP client produces. They matter more than the phrase
+// lists because they are the only shapes a generic-SMTP send can fail with, and the
+// pattern lists never matched them: every one classified as unknown, which
+// IsProviderError treats as a provider fault. A hard 550 was therefore retried three
+// times and counted toward the circuit breaker, so five dead addresses in a row
+// throttled the whole workspace.
+//
+// Type and circuit-breaker exemption are asserted, not just Retryable: for the 4xx
+// codes the expected Retryable is true and the old answer was already true, so a test
+// checking that flag alone passes on three of the four cases and hides the defect.
+func TestClassifier_SMTPCodesTheServiceActuallyEmits(t *testing.T) {
+	classifier := NewClassifier()
+
+	tests := []struct {
+		name          string
+		err           error
+		expectedType  ErrorType
+		retryable     bool
+		countsToBreak bool // does IntegrationCircuitBreaker count it?
+	}{
+		{
+			// smtp_service.go, response to DATA
+			name:          "quota exceeded after DATA",
+			err:           errors.New("message rejected with code 452: 4.3.1 Daily sending quota exceeded"),
+			expectedType:  ErrorTypeProvider,
+			retryable:     true,
+			countsToBreak: true,
+		},
+		{
+			// smtp_service.go, RCPT TO rejection — a dead mailbox
+			name:          "unknown mailbox on RCPT TO",
+			err:           errors.New("RCPT TO rejected for dead@example.com with code 550: 5.1.1 User unknown"),
+			expectedType:  ErrorTypeRecipient,
+			retryable:     false,
+			countsToBreak: false,
+		},
+		{
+			// smtp_service.go, MAIL FROM rejection
+			name:          "service unavailable on MAIL FROM",
+			err:           errors.New("MAIL FROM rejected with code 421: Service not available"),
+			expectedType:  ErrorTypeProvider,
+			retryable:     true,
+			countsToBreak: true,
+		},
+		{
+			// smtp_service.go, DATA command rejection
+			name:          "local error on DATA",
+			err:           errors.New("DATA rejected with code 451: Local error in processing"),
+			expectedType:  ErrorTypeProvider,
+			retryable:     true,
+			countsToBreak: true,
+		},
+		{
+			// The server answered with a bare code and no text.
+			name:          "bare code with no server text",
+			err:           errors.New("message rejected with code: 550"),
+			expectedType:  ErrorTypeRecipient,
+			retryable:     false,
+			countsToBreak: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := classifier.Classify(tt.err, domain.EmailProviderKindSMTP)
+			assert.Equal(t, tt.expectedType, result.Type)
+			assert.Equal(t, tt.retryable, result.Retryable)
+			assert.Equal(t, !tt.countsToBreak, result.IsRecipientError(),
+				"a recipient error must be exempt from the circuit breaker")
+		})
+	}
+}
+
+// TestClassifier_SMTPUnparsableFallsBackToUnknown keeps the conservative default for
+// anything with no recognisable code and no known phrase.
+func TestClassifier_SMTPUnparsableFallsBackToUnknown(t *testing.T) {
+	classifier := NewClassifier()
+
+	result := classifier.Classify(errors.New("something went sideways"), domain.EmailProviderKindSMTP)
+	assert.Equal(t, ErrorTypeUnknown, result.Type)
+	assert.True(t, result.Retryable)
+}

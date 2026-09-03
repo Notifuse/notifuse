@@ -104,3 +104,36 @@ describe('MessageHistoryTab metadata column default', () => {
     expect(screen.queryByText(/order_id/)).not.toBeInTheDocument()
   })
 })
+
+// The Error column is where a send failure explains itself, so it is on by default.
+// It is keyed on `status_info` — the field it renders — rather than on `error`, which
+// is the name of the column that never worked: every stored map written before this
+// carries `error: false`, and that value records the old default, not a choice.
+describe('MessageHistoryTab error column default', () => {
+  beforeEach(() => {
+    localStorage.clear()
+  })
+
+  it('shows the error column on a first visit', async () => {
+    renderTab()
+
+    await waitFor(() => expect(screen.getByText('bob@example.com')).toBeInTheDocument())
+    expect(screen.getByText('Error')).toBeInTheDocument()
+  })
+
+  it('ignores the stale preference left by the column that never worked', async () => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ id: true, error: false }))
+    renderTab()
+
+    await waitFor(() => expect(screen.getByText('bob@example.com')).toBeInTheDocument())
+    expect(screen.getByText('Error')).toBeInTheDocument()
+  })
+
+  it('hides the column once the user turns it off', async () => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ status_info: false }))
+    renderTab()
+
+    await waitFor(() => expect(screen.getByText('bob@example.com')).toBeInTheDocument())
+    expect(screen.queryByText('Error')).not.toBeInTheDocument()
+  })
+})

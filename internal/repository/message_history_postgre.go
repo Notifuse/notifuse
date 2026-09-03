@@ -907,7 +907,7 @@ func (r *MessageHistoryRepository) GetBroadcastStats(ctx context.Context, worksp
 
 	query := `
 		SELECT 
-			SUM(CASE WHEN sent_at IS NOT NULL THEN 1 ELSE 0 END) as total_sent,
+			SUM(CASE WHEN sent_at IS NOT NULL AND failed_at IS NULL THEN 1 ELSE 0 END) as total_sent,
 			SUM(CASE WHEN delivered_at IS NOT NULL THEN 1 ELSE 0 END) as total_delivered,
 			SUM(CASE WHEN failed_at IS NOT NULL THEN 1 ELSE 0 END) as total_failed,
 			SUM(CASE WHEN opened_at IS NOT NULL THEN 1 ELSE 0 END) as total_opened,
@@ -997,7 +997,7 @@ func (r *MessageHistoryRepository) GetBroadcastVariationStats(ctx context.Contex
 
 	query := `
 		SELECT 
-			SUM(CASE WHEN sent_at IS NOT NULL THEN 1 ELSE 0 END) as total_sent,
+			SUM(CASE WHEN sent_at IS NOT NULL AND failed_at IS NULL THEN 1 ELSE 0 END) as total_sent,
 			SUM(CASE WHEN delivered_at IS NOT NULL THEN 1 ELSE 0 END) as total_delivered,
 			SUM(CASE WHEN failed_at IS NOT NULL THEN 1 ELSE 0 END) as total_failed,
 			SUM(CASE WHEN opened_at IS NOT NULL THEN 1 ELSE 0 END) as total_opened,

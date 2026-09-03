@@ -137,3 +137,44 @@ describe('MessageHistoryTable metadata column', () => {
     expect(screen.getByText(/order_id/)).toBeInTheDocument()
   })
 })
+
+// The Error column is the only place a send failure explains itself. It rendered blank
+// for every message because it read `record.error`, a field the API has never returned
+// — the wire name is `status_info`.
+describe('MessageHistoryTable error column', () => {
+  const failed = (id: string, statusInfo?: string): MessageHistory =>
+    ({
+      ...message(id, { data: {} }),
+      failed_at: '2026-08-01T10:00:05Z',
+      status_info: statusInfo
+    }) as MessageHistory
+
+  it("shows the provider's own explanation", () => {
+    renderTable([failed('m1', '452 4.3.1 quota exceeded')])
+
+    expect(screen.getByText('452 4.3.1 quota exceeded')).toBeInTheDocument()
+  })
+
+  it('truncates a long explanation, keeping the code that leads it', () => {
+    const long = `550 5.1.1 ${'x'.repeat(120)}`
+    renderTable([failed('m1', long)])
+
+    const cell = screen.getByText(/^550 5\.1\.1 x+…$/)
+    expect(cell.textContent!.length).toBeLessThan(long.length)
+  })
+
+  it('reveals the whole explanation on hover', async () => {
+    const long = `452 4.3.1 ${'x'.repeat(60)} buried-tail`
+    renderTable([failed('m1', long)])
+
+    fireEvent.mouseEnter(screen.getByText(/^452 4\.3\.1 x+…$/))
+
+    await waitFor(() => expect(screen.getByText(long)).toBeInTheDocument())
+  })
+
+  it('renders nothing when the send carried no explanation', () => {
+    renderTable([failed('m1', undefined)])
+
+    expect(screen.queryByText(/rejected with code/)).not.toBeInTheDocument()
+  })
+})

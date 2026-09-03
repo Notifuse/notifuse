@@ -166,6 +166,21 @@ func (mr *MockBroadcastServiceMockRecorder) ResumeBroadcast(arg0, arg1 interface
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResumeBroadcast", reflect.TypeOf((*MockBroadcastService)(nil).ResumeBroadcast), arg0, arg1)
 }
 
+// RetryFailedRecipients mocks base method.
+func (m *MockBroadcastService) RetryFailedRecipients(arg0 context.Context, arg1 *domain.RetryFailedBroadcastRequest) (int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RetryFailedRecipients", arg0, arg1)
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// RetryFailedRecipients indicates an expected call of RetryFailedRecipients.
+func (mr *MockBroadcastServiceMockRecorder) RetryFailedRecipients(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RetryFailedRecipients", reflect.TypeOf((*MockBroadcastService)(nil).RetryFailedRecipients), arg0, arg1)
+}
+
 // ScheduleBroadcast mocks base method.
 func (m *MockBroadcastService) ScheduleBroadcast(arg0 context.Context, arg1 *domain.ScheduleBroadcastRequest) error {
 	m.ctrl.T.Helper()

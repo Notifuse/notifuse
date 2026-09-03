@@ -26,7 +26,10 @@ export interface MessageHistory {
   template_id: string
   template_version: number
   channel: string
-  error?: string
+  // The provider's own explanation of a failure. Named status_info because
+  // that is the field the API returns; nothing was ever sent under the name
+  // `error`, which is why this column read blank for every message.
+  status_info?: string
   message_data: MessageData
   channel_options?: ChannelOptions
 
@@ -57,7 +60,6 @@ export interface MessageListParams {
   contact_email?: string
   broadcast_id?: string
   template_id?: string
-  has_error?: boolean
   is_sent?: boolean
   is_delivered?: boolean
   is_failed?: boolean
@@ -101,7 +103,6 @@ export function listMessages(
   if (params.contact_email) queryParams.append('contact_email', params.contact_email)
   if (params.broadcast_id) queryParams.append('broadcast_id', params.broadcast_id)
   if (params.template_id) queryParams.append('template_id', params.template_id)
-  if (params.has_error !== undefined) queryParams.append('has_error', String(params.has_error))
   if (params.is_sent !== undefined) queryParams.append('is_sent', String(params.is_sent))
   if (params.is_delivered !== undefined)
     queryParams.append('is_delivered', String(params.is_delivered))
@@ -139,9 +140,22 @@ export interface MessageHistoryStatusSum {
 /**
  * Response from the broadcast stats endpoint
  */
+// What the queue is still holding for one broadcast. Absent when the queue could not
+// be read, which the caller must treat as "unknown" rather than as "nothing left".
+export interface BroadcastQueueCounts {
+  pending: number
+  processing: number
+  paused: number
+  /** Still has attempts left; it will be picked up again on its own. */
+  failed_retrying: number
+  /** Has spent every attempt. Only an explicit retry revives it. */
+  failed_terminal: number
+}
+
 export interface BroadcastStatsResult {
   broadcast_id: string
   stats: MessageHistoryStatusSum
+  queue?: BroadcastQueueCounts
 }
 
 /**

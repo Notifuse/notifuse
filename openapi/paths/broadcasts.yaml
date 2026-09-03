@@ -414,6 +414,67 @@
             schema:
               $ref: '../components/schemas/common.yaml#/ErrorResponse'
 
+/api/broadcasts.retryFailed:
+  post:
+    summary: Retry the recipients a broadcast failed to reach
+    description: >
+      Requeues the recipients whose delivery attempts were all refused by the email
+      provider, so the same message is sent to them again. Only accepted once the
+      broadcast has finished sending: a broadcast still working through its queue, or
+      one that is paused, is refused. Failed recipients are kept for seven days, after
+      which they can no longer be retried. Fix whatever the provider objected to before
+      calling this, or the recipients will simply fail again.
+    operationId: retryFailedBroadcastRecipients
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/broadcast.yaml#/RetryFailedBroadcastRequest'
+    responses:
+      '200':
+        description: Recipients requeued
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  example: success
+                requeued:
+                  type: integer
+                  description: How many recipients were put back in the queue. Zero when there were none to retry.
+                  example: 23
+      '400':
+        description: >
+          Bad request - the broadcast has not finished sending, is paused, the workspace
+          has no marketing email provider, or the body failed validation
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '401':
+        description: Unauthorized - invalid or missing authentication token
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '403':
+        description: Forbidden - write access to broadcasts required
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '404':
+        description: Broadcast not found
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+
 /api/broadcasts.cancel:
   post:
     summary: Cancel a broadcast

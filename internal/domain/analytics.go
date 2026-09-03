@@ -24,9 +24,17 @@ var PredefinedSchemas = map[string]analytics.SchemaDefinition{
 				Type:        "count",
 				Title:       "Sent",
 				SQL:         "*",
-				Description: "Total number of sent messages",
+				Description: "Total number of messages accepted by the email provider",
 				Filters: []analytics.MeasureFilter{
 					{SQL: "sent_at IS NOT NULL"},
+					// A message the provider refused is not a message that was sent.
+					// sent_at is stamped on the first attempt whatever its outcome, so
+					// without this a permanently failed recipient counted as both sent
+					// and failed, and every rate below used an inflated denominator.
+					// failed_at is written only by our own send paths and is cleared by
+					// a later success, so a bounce stays counted as sent — it was sent,
+					// then it bounced.
+					{SQL: "failed_at IS NULL"},
 				},
 			},
 			"count_delivered": {
@@ -96,9 +104,10 @@ var PredefinedSchemas = map[string]analytics.SchemaDefinition{
 				Type:        "count",
 				Title:       "Sent Emails",
 				SQL:         "*",
-				Description: "Total number of sent email messages",
+				Description: "Total number of email messages accepted by the email provider",
 				Filters: []analytics.MeasureFilter{
 					{SQL: "sent_at IS NOT NULL"},
+					{SQL: "failed_at IS NULL"},
 					{SQL: "channel = 'email'"},
 				},
 			},

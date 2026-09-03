@@ -69,6 +69,8 @@ paths:
     $ref: './paths/broadcasts.yaml#/~1api~1broadcasts.resume'
   /api/broadcasts.cancel:
     $ref: './paths/broadcasts.yaml#/~1api~1broadcasts.cancel'
+  /api/broadcasts.retryFailed:
+    $ref: './paths/broadcasts.yaml#/~1api~1broadcasts.retryFailed'
   /api/broadcasts.sendToIndividual:
     $ref: './paths/broadcasts.yaml#/~1api~1broadcasts.sendToIndividual'
   /api/broadcasts.delete:

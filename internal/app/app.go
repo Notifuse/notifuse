@@ -24,6 +24,7 @@ import (
 	"github.com/Notifuse/notifuse/internal/service/queue"
 	"github.com/Notifuse/notifuse/pkg/cache"
 	pkgDatabase "github.com/Notifuse/notifuse/pkg/database"
+	"github.com/Notifuse/notifuse/pkg/emailerror"
 	"github.com/Notifuse/notifuse/pkg/geoip"
 	"github.com/Notifuse/notifuse/pkg/logger"
 	"github.com/Notifuse/notifuse/pkg/mailer"
@@ -851,7 +852,7 @@ func (a *App) InitServices() error {
 	a.broadcastService.SetTaskService(a.taskService)
 
 	// Initialize message history service
-	a.messageHistoryService = service.NewMessageHistoryService(a.messageHistoryRepo, a.workspaceRepo, a.logger, a.authService)
+	a.messageHistoryService = service.NewMessageHistoryService(a.messageHistoryRepo, a.workspaceRepo, a.logger, a.authService, a.emailQueueRepo)
 
 	// Initialize notification center service
 	a.notificationCenterService = service.NewNotificationCenterService(
@@ -1121,6 +1122,24 @@ func (a *App) InitServices() error {
 	)
 	// Enable the stop-on-reply just-in-time guard for automation sends.
 	a.emailQueueWorker.SetAutomationRepo(a.automationRepo)
+
+	// An open circuit means the provider is refusing everything, so stop the
+	// campaigns riding on it and tell their owners. Without this the breaker only
+	// throttles: it resets after each cooldown and lets five more real attempts
+	// through, quietly spending a campaign's retries until its recipients are lost.
+	a.emailQueueWorker.SetCircuitOpenCallback(func(workspaceID, integrationID string, lastErr *emailerror.ClassifiedError) {
+		reason := "provider errors"
+		if lastErr != nil && lastErr.Original != nil {
+			reason = lastErr.Original.Error()
+		}
+		if err := a.broadcastService.PauseForCircuitBreaker(context.Background(), workspaceID, integrationID, reason); err != nil {
+			a.logger.WithFields(map[string]interface{}{
+				"workspace_id":   workspaceID,
+				"integration_id": integrationID,
+				"error":          err.Error(),
+			}).Error("Failed to pause broadcasts after the provider circuit opened")
+		}
+	})
 
 	// Initialize Firecrawl service
 	firecrawlService := service.NewFirecrawlService(a.logger)

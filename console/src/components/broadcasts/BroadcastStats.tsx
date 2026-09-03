@@ -21,6 +21,14 @@ export interface ProgressStats {
   enqueuedCount: number
   sentCount: number
   failedCount: number
+  /**
+   * Rows still on their way out: pending, processing, paused, or failed with
+   * attempts left. Undefined when the queue could not be read — callers fall back
+   * to the message-history arithmetic rather than claiming the campaign is done.
+   */
+  inFlight?: number
+  /** Rows that spent every attempt. These recipients were given up on. */
+  failedTerminal?: number
 }
 
 interface BroadcastStatsProps {
@@ -64,6 +72,10 @@ export function BroadcastStats({
     total_unsubscribed: 0
   }
 
+  // The queue is the authority on whether the campaign has finished; the stats
+  // below only describe the attempts message history recorded.
+  const queue = data?.queue
+
   // Calculate remaining
   const processed = stats.total_sent + stats.total_failed
   const remaining = enqueuedCount ? Math.max(0, enqueuedCount - processed) : 0
@@ -81,10 +93,26 @@ export function BroadcastStats({
         processed,
         enqueuedCount,
         sentCount: stats.total_sent,
-        failedCount: stats.total_failed
+        failedCount: stats.total_failed,
+        inFlight: queue && queue.pending + queue.processing + queue.paused + queue.failed_retrying,
+        failedTerminal: queue?.failed_terminal
       })
     }
-  }, [remaining, processed, enqueuedCount, stats.total_sent, stats.total_failed])
+    // Every dependency is a number on purpose: `queue` is a freshly parsed object on
+    // each 5s poll, so depending on it re-ran this effect — and re-rendered every
+    // broadcast card — even when nothing had changed.
+  }, [
+    remaining,
+    processed,
+    enqueuedCount,
+    stats.total_sent,
+    stats.total_failed,
+    queue?.pending,
+    queue?.processing,
+    queue?.paused,
+    queue?.failed_retrying,
+    queue?.failed_terminal
+  ])
 
   // Check if marketing provider is SMTP
   const isSmtpProvider = (() => {
@@ -249,7 +277,14 @@ export function BroadcastStats({
                   {t`Failed`}
                 </Space>
               }
-              value={getRate(stats.total_failed, stats.total_sent)}
+              value={stats.total_failed}
+              suffix={
+                stats.total_sent > 0 ? (
+                  <span className="text-xs text-gray-400">
+                    {getRate(stats.total_failed, stats.total_sent + stats.total_failed)}
+                  </span>
+                ) : undefined
+              }
               styles={{ content: { fontSize: '16px' } }}
               formatter={formatStat}
             />

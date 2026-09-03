@@ -376,6 +376,17 @@ export const broadcastApi = {
     return api.post<{ success: boolean }>('/api/broadcasts.cancel', params)
   },
 
+  /**
+   * Requeues the recipients this broadcast gave up on, and reports how many.
+   * Only accepted once the broadcast has finished sending.
+   */
+  retryFailed: async (params: {
+    workspace_id: string
+    id: string
+  }): Promise<{ status: string; requeued: number }> => {
+    return api.post<{ status: string; requeued: number }>('/api/broadcasts.retryFailed', params)
+  },
+
   sendToIndividual: async (params: SendToIndividualRequest): Promise<{ success: boolean }> => {
     return api.post<{ success: boolean }>('/api/broadcasts.sendToIndividual', params)
   },

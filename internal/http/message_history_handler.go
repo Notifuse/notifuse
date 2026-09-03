@@ -166,10 +166,17 @@ func (h *MessageHistoryHandler) handleBroadcastStats(w http.ResponseWriter, r *h
 		return
 	}
 
-	writeJSON(w, http.StatusOK, map[string]interface{}{
+	// The map is built by hand, so the struct's omitempty does not apply: a nil
+	// pointer here would serialise as "queue": null, which the console types as
+	// impossible. Leave the key out instead, so absent stays absent.
+	response := map[string]interface{}{
 		"broadcast_id": broadcastID,
-		"stats":        stats,
-	})
+		"stats":        stats.Stats,
+	}
+	if stats.Queue != nil {
+		response["queue"] = stats.Queue
+	}
+	writeJSON(w, http.StatusOK, response)
 }
 
 func (h *MessageHistoryHandler) handleBroadcastVariationStats(w http.ResponseWriter, r *http.Request) {

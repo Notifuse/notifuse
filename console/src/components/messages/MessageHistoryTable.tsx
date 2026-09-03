@@ -149,7 +149,7 @@ export function MessageHistoryTable({
     { key: 'broadcast_id', title: t`Broadcast` },
     { key: 'list_id', title: t`List` },
     { key: 'events', title: t`Events` },
-    { key: 'error', title: t`Error` },
+    { key: 'status_info', title: t`Error` },
     { key: 'created_at', title: t`Created At` }
   ]
 
@@ -382,13 +382,17 @@ export function MessageHistoryTable({
     },
     {
       title: t`Error`,
-      key: 'error',
-      hidden: visibleColumns.error === false,
+      key: 'status_info',
+      hidden: visibleColumns.status_info === false,
       render: (record: MessageHistory) => {
         return (
           <div className="text-xs">
-            {record.error && (
-              <Tooltip title={record.error}>{record.error.substring(0, 50)}...</Tooltip>
+            {record.status_info && (
+              <Tooltip title={record.status_info}>
+                {record.status_info.length > 50
+                  ? `${record.status_info.substring(0, 50)}…`
+                  : record.status_info}
+              </Tooltip>
             )}
           </div>
         )

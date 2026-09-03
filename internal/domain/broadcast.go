@@ -722,6 +722,38 @@ func (r *PauseBroadcastRequest) Validate() error {
 	return nil
 }
 
+// ErrBroadcastRetryNotAllowed is returned when a retry is refused because of the
+// broadcast's own state rather than because anything went wrong. It exists so the
+// handler can tell "you asked for something that does not apply" (400, and the reason
+// is worth showing) from "we could not do it" (500, and the reason is ours to log).
+type ErrBroadcastRetryNotAllowed struct {
+	Reason string
+}
+
+func (e *ErrBroadcastRetryNotAllowed) Error() string {
+	return e.Reason
+}
+
+// RetryFailedBroadcastRequest defines the request to requeue the recipients a
+// broadcast gave up on.
+type RetryFailedBroadcastRequest struct {
+	WorkspaceID string `json:"workspace_id"`
+	ID          string `json:"id"`
+}
+
+// Validate validates the retry request
+func (r *RetryFailedBroadcastRequest) Validate() error {
+	if r.WorkspaceID == "" {
+		return fmt.Errorf("workspace_id is required")
+	}
+
+	if r.ID == "" {
+		return fmt.Errorf("broadcast id is required")
+	}
+
+	return nil
+}
+
 // ResumeBroadcastRequest defines the request to resume a paused broadcast
 type ResumeBroadcastRequest struct {
 	WorkspaceID string `json:"workspace_id"`
@@ -1160,6 +1192,10 @@ type BroadcastService interface {
 
 	// PauseBroadcast pauses a sending broadcast
 	PauseBroadcast(ctx context.Context, request *PauseBroadcastRequest) error
+
+	// RetryFailedRecipients requeues the recipients a broadcast gave up on, and
+	// returns how many were requeued.
+	RetryFailedRecipients(ctx context.Context, request *RetryFailedBroadcastRequest) (int64, error)
 
 	// ResumeBroadcast resumes a paused broadcast
 	ResumeBroadcast(ctx context.Context, request *ResumeBroadcastRequest) error

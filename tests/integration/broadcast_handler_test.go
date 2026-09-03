@@ -1088,6 +1088,7 @@ func TestBroadcastMethodValidation(t *testing.T) {
 			"/api/broadcasts.cancel",
 			"/api/broadcasts.delete",
 			"/api/broadcasts.sendToIndividual",
+			"/api/broadcasts.retryFailed",
 			"/api/broadcasts.selectWinner",
 		}
 

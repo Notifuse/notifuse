@@ -51,10 +51,10 @@ func (mr *MockMessageHistoryServiceMockRecorder) GetBroadcastLinkStats(arg0, arg
 }
 
 // GetBroadcastStats mocks base method.
-func (m *MockMessageHistoryService) GetBroadcastStats(arg0 context.Context, arg1, arg2 string) (*domain.MessageHistoryStatusSum, error) {
+func (m *MockMessageHistoryService) GetBroadcastStats(arg0 context.Context, arg1, arg2 string) (*domain.BroadcastDeliveryStats, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetBroadcastStats", arg0, arg1, arg2)
-	ret0, _ := ret[0].(*domain.MessageHistoryStatusSum)
+	ret0, _ := ret[0].(*domain.BroadcastDeliveryStats)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

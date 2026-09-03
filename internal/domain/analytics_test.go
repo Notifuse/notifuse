@@ -253,13 +253,13 @@ func TestPredefinedSchemasWithFilters(t *testing.T) {
 			name:     "message history - count sent",
 			schema:   "message_history",
 			measure:  "count_sent",
-			expected: "COUNT(*) FILTER (WHERE sent_at IS NOT NULL)",
+			expected: "COUNT(*) FILTER (WHERE sent_at IS NOT NULL AND failed_at IS NULL)",
 		},
 		{
 			name:     "message history - count sent emails",
 			schema:   "message_history",
 			measure:  "count_sent_emails",
-			expected: "COUNT(*) FILTER (WHERE sent_at IS NOT NULL AND channel = 'email')",
+			expected: "COUNT(*) FILTER (WHERE sent_at IS NOT NULL AND failed_at IS NULL AND channel = 'email')",
 		},
 		{
 			name:     "contacts - count active",
@@ -375,4 +375,35 @@ func TestAnalyticsSchemaResource(t *testing.T) {
 		assert.False(t, ok)
 		assert.Empty(t, resource)
 	})
+}
+
+// TestSentMeasuresExcludeFailures pins the meaning of "sent" across the analytics
+// catalogue. sent_at is stamped on the first send attempt whatever its outcome, so a
+// measure filtering on sent_at alone counted a permanently failed recipient as sent —
+// and every rate built on it, in the dashboard and on the broadcast page alike, used
+// an inflated denominator. count_failed is deliberately untouched: a message can be
+// both attempted and failed, and that is what it counts.
+func TestSentMeasuresExcludeFailures(t *testing.T) {
+	schema, ok := PredefinedSchemas["message_history"]
+	require.True(t, ok)
+
+	filterSQL := func(measure string) []string {
+		m, exists := schema.Measures[measure]
+		require.True(t, exists, "measure %s should exist", measure)
+		sql := make([]string, 0, len(m.Filters))
+		for _, f := range m.Filters {
+			sql = append(sql, f.SQL)
+		}
+		return sql
+	}
+
+	assert.Contains(t, filterSQL("count_sent"), "sent_at IS NOT NULL")
+	assert.Contains(t, filterSQL("count_sent"), "failed_at IS NULL")
+
+	assert.Contains(t, filterSQL("count_sent_emails"), "sent_at IS NOT NULL")
+	assert.Contains(t, filterSQL("count_sent_emails"), "failed_at IS NULL")
+	assert.Contains(t, filterSQL("count_sent_emails"), "channel = 'email'")
+
+	assert.Contains(t, filterSQL("count_failed"), "failed_at IS NOT NULL")
+	assert.NotContains(t, filterSQL("count_failed"), "sent_at IS NOT NULL")
 }

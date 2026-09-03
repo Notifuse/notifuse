@@ -7,6 +7,7 @@ import (
 
 	"github.com/Notifuse/notifuse/pkg/emailerror"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCircuitBreaker_OpenAfterThreshold(t *testing.T) {
@@ -117,20 +118,20 @@ func TestIntegrationCircuitBreaker_IgnoresRecipientErrors(t *testing.T) {
 	providerErr := &emailerror.ClassifiedError{Type: emailerror.ErrorTypeProvider}
 
 	// Recipient errors should not count
-	counted := icb.RecordFailure("integration1", recipientErr)
+	counted, _ := icb.RecordFailure("integration1", recipientErr)
 	assert.False(t, counted)
 
-	counted = icb.RecordFailure("integration1", recipientErr)
+	counted, _ = icb.RecordFailure("integration1", recipientErr)
 	assert.False(t, counted)
 
 	// Circuit should still be closed
 	assert.False(t, icb.IsOpen("integration1"))
 
 	// But provider errors should count
-	counted = icb.RecordFailure("integration1", providerErr)
+	counted, _ = icb.RecordFailure("integration1", providerErr)
 	assert.True(t, counted)
 
-	counted = icb.RecordFailure("integration1", providerErr)
+	counted, _ = icb.RecordFailure("integration1", providerErr)
 	assert.True(t, counted)
 
 	// Now circuit should be open
@@ -145,7 +146,7 @@ func TestIntegrationCircuitBreaker_NilError(t *testing.T) {
 	icb := NewIntegrationCircuitBreaker(config)
 
 	// Nil error should not count
-	counted := icb.RecordFailure("integration1", nil)
+	counted, _ := icb.RecordFailure("integration1", nil)
 	assert.False(t, counted)
 
 	// Circuit should still be closed
@@ -323,5 +324,69 @@ func TestGetCircuitBreakerCooldown(t *testing.T) {
 		os.Setenv("CIRCUIT_BREAKER_COOLDOWN", "")
 		defer os.Unsetenv("CIRCUIT_BREAKER_COOLDOWN")
 		assert.Equal(t, 1*time.Minute, getCircuitBreakerCooldown())
+	})
+}
+
+// TestCircuitBreaker_ReportsTheOpenTransition covers the signal the broadcast pause
+// hangs on. The breaker is checked per entry and a large queue can skip thousands of
+// them while it is open, so "the circuit is open" is not usable as a trigger — only
+// the moment it flips is. And it flips more than once per outage: the breaker does not
+// latch, so it resets after its cooldown and opens again, which is why whatever acts
+// on this has to be idempotent.
+func TestCircuitBreaker_ReportsTheOpenTransition(t *testing.T) {
+	providerErr := &emailerror.ClassifiedError{Type: emailerror.ErrorTypeProvider}
+
+	t.Run("only the failure that reaches the threshold reports it", func(t *testing.T) {
+		cb := NewCircuitBreaker(5, time.Minute)
+
+		for i := 1; i < 5; i++ {
+			assert.False(t, cb.RecordFailure(providerErr), "failure %d is below the threshold", i)
+		}
+		assert.True(t, cb.RecordFailure(providerErr), "the fifth failure opens the circuit")
+	})
+
+	t.Run("does not report again while already open", func(t *testing.T) {
+		cb := NewCircuitBreaker(2, time.Minute)
+
+		cb.RecordFailure(providerErr)
+		assert.True(t, cb.RecordFailure(providerErr))
+		assert.False(t, cb.RecordFailure(providerErr), "already open is not a transition")
+	})
+
+	t.Run("reports again after a cooldown reset", func(t *testing.T) {
+		// The breaker restores a full failure budget once its cooldown elapses, so a
+		// provider that stays down opens it once per cooldown period, not once.
+		cb := NewCircuitBreaker(2, 20*time.Millisecond)
+
+		cb.RecordFailure(providerErr)
+		require.True(t, cb.RecordFailure(providerErr))
+
+		time.Sleep(30 * time.Millisecond)
+		require.False(t, cb.IsOpen(), "the cooldown resets it rather than latching")
+
+		cb.RecordFailure(providerErr)
+		assert.True(t, cb.RecordFailure(providerErr), "it opens again on the next run of failures")
+	})
+
+	t.Run("a recipient error neither counts nor reports", func(t *testing.T) {
+		icb := NewIntegrationCircuitBreaker(CircuitBreakerConfig{Threshold: 1, CooldownPeriod: time.Minute})
+		recipientErr := &emailerror.ClassifiedError{Type: emailerror.ErrorTypeRecipient}
+
+		counted, opened := icb.RecordFailure("integration1", recipientErr)
+		assert.False(t, counted)
+		assert.False(t, opened)
+		assert.False(t, icb.IsOpen("integration1"))
+	})
+
+	t.Run("the per-integration wrapper passes the transition through", func(t *testing.T) {
+		icb := NewIntegrationCircuitBreaker(CircuitBreakerConfig{Threshold: 2, CooldownPeriod: time.Minute})
+
+		counted, opened := icb.RecordFailure("integration1", providerErr)
+		assert.True(t, counted)
+		assert.False(t, opened)
+
+		counted, opened = icb.RecordFailure("integration1", providerErr)
+		assert.True(t, counted)
+		assert.True(t, opened)
 	})
 }

@@ -16,15 +16,20 @@ type MessageHistoryService struct {
 	workspaceRepo domain.WorkspaceRepository
 	logger        logger.Logger
 	authService   domain.AuthService
+	// emailQueueRepo is read-only here, for the broadcast delivery counts. Message
+	// history does not own the queue; it is the only place the console asks about a
+	// broadcast often enough to answer "is this finished?" without a second poll.
+	emailQueueRepo domain.EmailQueueRepository
 }
 
 // NewMessageHistoryService creates a new message history service
-func NewMessageHistoryService(repo domain.MessageHistoryRepository, workspaceRepo domain.WorkspaceRepository, logger logger.Logger, authService domain.AuthService) *MessageHistoryService {
+func NewMessageHistoryService(repo domain.MessageHistoryRepository, workspaceRepo domain.WorkspaceRepository, logger logger.Logger, authService domain.AuthService, emailQueueRepo domain.EmailQueueRepository) *MessageHistoryService {
 	return &MessageHistoryService{
-		repo:          repo,
-		workspaceRepo: workspaceRepo,
-		logger:        logger,
-		authService:   authService,
+		repo:           repo,
+		workspaceRepo:  workspaceRepo,
+		logger:         logger,
+		authService:    authService,
+		emailQueueRepo: emailQueueRepo,
 	}
 }
 
@@ -76,7 +81,7 @@ func (s *MessageHistoryService) ListMessages(ctx context.Context, workspaceID st
 	}, nil
 }
 
-func (s *MessageHistoryService) GetBroadcastStats(ctx context.Context, workspaceID string, id string) (*domain.MessageHistoryStatusSum, error) {
+func (s *MessageHistoryService) GetBroadcastStats(ctx context.Context, workspaceID string, id string) (*domain.BroadcastDeliveryStats, error) {
 	var err error
 	ctx, _, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 	if err != nil {
@@ -97,7 +102,26 @@ func (s *MessageHistoryService) GetBroadcastStats(ctx context.Context, workspace
 		return nil, fmt.Errorf("failed to get broadcast stats: %w", err)
 	}
 
-	return stats, nil
+	result := &domain.BroadcastDeliveryStats{Stats: stats}
+
+	// The queue counts are what tell a finished campaign from one still working, and
+	// a campaign that gave up on people from one that reached everyone. They are not
+	// worth failing the whole call for: without them the page loses the completion
+	// badge, with them missing entirely it loses the numbers too.
+	if s.emailQueueRepo != nil {
+		counts, countErr := s.emailQueueRepo.GetSourceCounts(ctx, workspaceID, domain.EmailQueueSourceBroadcast, id)
+		if countErr != nil {
+			s.logger.WithFields(map[string]interface{}{
+				"workspace_id": workspaceID,
+				"broadcast_id": id,
+				"error":        countErr.Error(),
+			}).Warn("Failed to read broadcast queue counts; returning stats without them")
+		} else {
+			result.Queue = counts
+		}
+	}
+
+	return result, nil
 }
 
 // GetBroadcastLinkStats retrieves per-URL click statistics for a broadcast

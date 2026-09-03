@@ -50,6 +50,7 @@ import {
   faPaperPlane
 } from '@fortawesome/free-regular-svg-icons'
 import {
+  faRotateRight,
   faArrowPointer,
   faBan,
   faChevronDown,
@@ -130,11 +131,42 @@ interface StatusBadgeProps {
   progressStats?: ProgressStats
 }
 
+// Whether a campaign has finished, and whether it reached everyone, is a question for
+// the queue. Message history cannot answer it: sent_at is stamped on the first attempt
+// whatever its outcome, so `remaining` reached zero for a campaign whose provider had
+// refused a third of its recipients, and the badge went green over it.
+//
+// The counts are undefined when the queue could not be read. That is "unknown", not
+// "finished", so the old arithmetic stands in rather than claiming success.
+type DeliveryVerdict =
+  | { kind: 'sending'; remaining: number }
+  | { kind: 'complete' }
+  | { kind: 'completedWithFailures'; failed: number }
+
+const deliveryVerdict = (progressStats?: ProgressStats): DeliveryVerdict => {
+  if (progressStats?.inFlight === undefined) {
+    const remaining = progressStats?.remaining ?? 0
+    return remaining > 0 ? { kind: 'sending', remaining } : { kind: 'complete' }
+  }
+  if (progressStats.inFlight > 0) {
+    return { kind: 'sending', remaining: progressStats.inFlight }
+  }
+  // The queue has stopped. How many were given up on comes from message history, not
+  // from the queue: abandoned rows are swept after their retention window, and reading
+  // the verdict from them alone would repaint a campaign green a week later — the very
+  // thing this is here to stop. failedTerminal is only about whether a retry is still
+  // possible, which is a different question and a shorter-lived one.
+  if (progressStats.failedCount > 0) {
+    return { kind: 'completedWithFailures', failed: progressStats.failedCount }
+  }
+  return { kind: 'complete' }
+}
+
 // A component rather than a helper handed `t`: the Lingui macro only rewrites t`…` where
 // `t` resolves to the useLingui() binding, so threaded in as a parameter every message
 // below stayed untransformed. What the parameter actually received at runtime is i18n._,
 // which answers "" to a tagged template — so each badge and tooltip here rendered blank.
-const StatusBadge = ({ broadcast, remainingTime, progressStats }: StatusBadgeProps) => {
+export const StatusBadge = ({ broadcast, remainingTime, progressStats }: StatusBadgeProps) => {
   const { t } = useLingui()
   switch (broadcast.status) {
     case 'draft':
@@ -178,20 +210,45 @@ const StatusBadge = ({ broadcast, remainingTime, progressStats }: StatusBadgePro
           </Space>
         </Tooltip>
       )
+    case 'winner_selected':
+      return (
+        <Tooltip title={t`A winner has been selected. Emails are being sent to the remaining recipients.`}>
+          <span>
+            <Badge status="success" text={t`Winner Selected`} />
+          </span>
+        </Tooltip>
+      )
     case 'processed': {
-      if (progressStats && progressStats.remaining > 0) {
-        const tooltipText = t`Emails are being delivered. ${progressStats.processed.toLocaleString()} sent, ${progressStats.remaining.toLocaleString()} remaining.`
+      const verdict = deliveryVerdict(progressStats)
+
+      if (verdict.kind === 'sending') {
+        const tooltipText = t`Emails are being delivered. ${verdict.remaining.toLocaleString()} still to go.`
         return (
           <Tooltip title={tooltipText}>
             <span>
               <Badge
                 status="warning"
-                text={t`Sending ${progressStats.remaining.toLocaleString()} remaining`}
+                text={t`Sending ${verdict.remaining.toLocaleString()} remaining`}
               />
             </span>
           </Tooltip>
         )
       }
+
+      if (verdict.kind === 'completedWithFailures') {
+        const failedTooltip = t`The provider refused ${verdict.failed.toLocaleString()} recipients and every retry was used up. Open the logs to see why, then retry them.`
+        return (
+          <Tooltip title={failedTooltip}>
+            <span>
+              <Badge
+                status="warning"
+                text={t`Completed — ${verdict.failed.toLocaleString()} failed`}
+              />
+            </span>
+          </Tooltip>
+        )
+      }
+
       const completeTooltip = progressStats
         ? t`All ${progressStats.enqueuedCount.toLocaleString()} emails have been processed.`
         : t`All emails have been sent.`
@@ -240,14 +297,6 @@ const StatusBadge = ({ broadcast, remainingTime, progressStats }: StatusBadgePro
           </span>
         </Tooltip>
       )
-    case 'winner_selected':
-      return (
-        <Tooltip title={t`A winner has been selected. Emails are being sent to the remaining recipients.`}>
-          <span>
-            <Badge status="success" text={t`Winner Selected`} />
-          </span>
-        </Tooltip>
-      )
     default:
       return <Badge status="default" text={broadcast.status} />
   }
@@ -261,6 +310,7 @@ interface BroadcastCardProps {
   workspaceId: string
   onDelete: (broadcast: Broadcast) => void
   onPause: (broadcast: Broadcast) => void
+  onRetryFailed: (broadcast: Broadcast) => void
   onResume: (broadcast: Broadcast) => void
   onCancel: (broadcast: Broadcast) => void
   onSchedule: (broadcast: Broadcast) => void
@@ -279,6 +329,7 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
   workspaceId,
   onDelete,
   onPause,
+  onRetryFailed,
   onResume,
   onCancel,
   onSchedule,
@@ -573,8 +624,33 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
               </div>
             </Tooltip>
           )}
+          {(broadcast.status === 'processed' || broadcast.status === 'failed') &&
+            (progressStats?.failedTerminal ?? 0) > 0 &&
+            deliveryVerdict(progressStats).kind === 'completedWithFailures' && (
+            <Tooltip
+              title={
+                !permissions?.broadcasts?.write
+                  ? t`You don't have write permission for broadcasts`
+                  : t`Retry the recipients the provider refused`
+              }
+            >
+              <Popconfirm
+                title={t`Retry the failed recipients?`}
+                description={t`They will be sent the same email again. Fix whatever the provider objected to first, or they will fail a second time.`}
+                onConfirm={() => onRetryFailed(broadcast)}
+                okText={t`Yes, retry`}
+                cancelText={t`Cancel`}
+                disabled={!permissions?.broadcasts?.write}
+              >
+                <Button type="text" size="small" disabled={!permissions?.broadcasts?.write}>
+                  <FontAwesomeIcon icon={faRotateRight} style={{ opacity: 0.7 }} />
+                </Button>
+              </Popconfirm>
+            </Tooltip>
+          )}
           {(broadcast.status === 'processing' ||
-            (broadcast.status === 'processed' && (progressStats?.remaining ?? 0) > 0)) && (
+            (broadcast.status === 'processed' &&
+              deliveryVerdict(progressStats).kind === 'sending')) && (
             <Tooltip
               title={
                 !permissions?.broadcasts?.write
@@ -621,7 +697,8 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
           {(broadcast.status === 'scheduled' ||
             broadcast.status === 'paused' ||
             broadcast.status === 'processing' ||
-            (broadcast.status === 'processed' && (progressStats?.remaining ?? 0) > 0)) && (
+            (broadcast.status === 'processed' &&
+              deliveryVerdict(progressStats).kind === 'sending')) && (
             <Tooltip
               title={
                 !permissions?.broadcasts?.write
@@ -693,12 +770,13 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
         {broadcast.status === 'processed' &&
           enqueuedCount &&
           progressStats &&
-          progressStats.remaining > 0 && (
+          deliveryVerdict(progressStats).kind === 'sending' && (
             <SendingProgress
               enqueuedCount={enqueuedCount}
               sentCount={progressStats.sentCount}
               failedCount={progressStats.failedCount}
               startedAt={broadcast.started_at}
+              remainingOverride={progressStats.inFlight}
             />
           )}
         <BroadcastStats
@@ -1430,6 +1508,24 @@ export function BroadcastsPage() {
     }
   }
 
+  const handleRetryFailedBroadcast = async (broadcast: Broadcast) => {
+    try {
+      const { requeued } = await broadcastApi.retryFailed({
+        workspace_id: workspaceId,
+        id: broadcast.id
+      })
+      message.success(t`${requeued.toLocaleString()} recipients queued for another attempt`)
+      // The badge and the failed count both come from these two queries.
+      queryClient.invalidateQueries({ queryKey: ['broadcast-stats', workspaceId, broadcast.id] })
+      queryClient.invalidateQueries({
+        queryKey: ['broadcasts', workspaceId, currentPage, pageSize]
+      })
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : t`Failed to retry the recipients`)
+      console.error(error)
+    }
+  }
+
   const handleResumeBroadcast = async (broadcast: Broadcast) => {
     try {
       await broadcastApi.resume({
@@ -1599,6 +1695,7 @@ export function BroadcastsPage() {
               workspaceId={workspaceId}
               onDelete={openDeleteModal}
               onPause={handlePauseBroadcast}
+              onRetryFailed={handleRetryFailedBroadcast}
               onResume={handleResumeBroadcast}
               onCancel={handleCancelBroadcast}
               onSchedule={handleScheduleBroadcast}

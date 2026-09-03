@@ -900,3 +900,168 @@ func TestEmailQueueRepository_DeleteForEmail(t *testing.T) {
 		assert.Contains(t, err.Error(), "failed to delete queue entries for contact")
 	})
 }
+
+// TestEmailQueueRepository_GetSourceCounts pins the split that the completion badge
+// rests on. What matters and cannot rot silently is the boundary inside 'failed':
+// a row with attempts left is still coming back on its own, a row without is inert
+// until something revives it deliberately, and only the second kind means a campaign
+// gave up on someone. sqlmock does not execute the SQL, so the arithmetic is proved
+// by the integration test; this pins the shape and the scan order.
+func TestEmailQueueRepository_GetSourceCounts(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("splits failed rows on the attempt budget", func(t *testing.T) {
+		db, mock, cleanup := testutil.SetupMockDB(t)
+		defer cleanup()
+
+		repo := NewEmailQueueRepositoryWithDB(db)
+
+		mock.ExpectQuery(`next_retry_at IS NOT NULL.*next_retry_at IS NULL`).
+			WithArgs(domain.EmailQueueSourceBroadcast, "bcast-123").
+			WillReturnRows(sqlmock.NewRows([]string{
+				"pending", "processing", "paused", "failed_retrying", "failed_terminal",
+			}).AddRow(5, 1, 0, 2, 23))
+
+		counts, err := repo.GetSourceCounts(ctx, "workspace-123", domain.EmailQueueSourceBroadcast, "bcast-123")
+		require.NoError(t, err)
+		assert.Equal(t, int64(5), counts.Pending)
+		assert.Equal(t, int64(1), counts.Processing)
+		assert.Equal(t, int64(0), counts.Paused)
+		assert.Equal(t, int64(2), counts.FailedRetrying)
+		assert.Equal(t, int64(23), counts.FailedTerminal)
+		assert.Equal(t, int64(8), counts.InFlight(), "a row still retrying has not been given up on")
+	})
+
+	t.Run("a source with no rows is finished, not unknown", func(t *testing.T) {
+		db, mock, cleanup := testutil.SetupMockDB(t)
+		defer cleanup()
+
+		repo := NewEmailQueueRepositoryWithDB(db)
+
+		mock.ExpectQuery(`FROM email_queue`).
+			WillReturnRows(sqlmock.NewRows([]string{
+				"pending", "processing", "paused", "failed_retrying", "failed_terminal",
+			}).AddRow(0, 0, 0, 0, 0))
+
+		counts, err := repo.GetSourceCounts(ctx, "workspace-123", domain.EmailQueueSourceBroadcast, "bcast-123")
+		require.NoError(t, err)
+		assert.Equal(t, int64(0), counts.InFlight())
+		assert.Equal(t, int64(0), counts.FailedTerminal)
+	})
+
+	t.Run("handles database error", func(t *testing.T) {
+		db, mock, cleanup := testutil.SetupMockDB(t)
+		defer cleanup()
+
+		repo := NewEmailQueueRepositoryWithDB(db)
+
+		mock.ExpectQuery(`FROM email_queue`).WillReturnError(errors.New("database error"))
+
+		counts, err := repo.GetSourceCounts(ctx, "workspace-123", domain.EmailQueueSourceBroadcast, "bcast-123")
+		assert.Error(t, err)
+		assert.Nil(t, counts)
+	})
+}
+
+// TestEmailQueueRepository_TerminalRowsSurvive covers the rows that used to be deleted
+// the moment their attempts ran out, taking the recipient's only trace with them.
+// Keeping them is what makes a retry possible, but it also arms a trap: pausing a
+// broadcast sweeps 'pending' and 'failed' without looking at attempts, and the pending
+// branch of FetchPending has no attempt guard at all. Both were harmless while a
+// terminal row was deleted. Without the guards below, pausing and resuming a broadcast
+// would quietly revive every abandoned recipient, and the count behind
+// "Completed — N failed" would fall to zero on its own.
+func TestEmailQueueRepository_TerminalRowsSurvive(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("MarkAsPermanentlyFailed leaves nothing that would fetch it again", func(t *testing.T) {
+		db, mock, cleanup := testutil.SetupMockDB(t)
+		defer cleanup()
+
+		repo := NewEmailQueueRepositoryWithDB(db)
+
+		// next_retry_at must be cleared, or the row keeps a date that reads as due.
+		// processed_at records when it was given up on, which is what the retention
+		// sweep filters on.
+		mock.ExpectExec(`UPDATE email_queue.*next_retry_at = NULL.*processed_at = NOW\(\)`).
+			WithArgs("entry-1", "message rejected with code 452: quota exceeded").
+			WillReturnResult(sqlmock.NewResult(0, 1))
+
+		err := repo.MarkAsPermanentlyFailed(ctx, "workspace-123", "entry-1",
+			"message rejected with code 452: quota exceeded")
+		require.NoError(t, err)
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("PauseBySource leaves a terminal row alone", func(t *testing.T) {
+		db, mock, cleanup := testutil.SetupMockDB(t)
+		defer cleanup()
+
+		repo := NewEmailQueueRepositoryWithDB(db)
+
+		mock.ExpectExec(`UPDATE email_queue.*NOT .status = 'failed' AND next_retry_at IS NULL.`).
+			WithArgs(domain.EmailQueueSourceBroadcast, "bcast-123").
+			WillReturnResult(sqlmock.NewResult(0, 7))
+
+		paused, err := repo.PauseBySource(ctx, "workspace-123", domain.EmailQueueSourceBroadcast, "bcast-123")
+		require.NoError(t, err)
+		assert.Equal(t, int64(7), paused)
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("FetchPending guards the pending branch on attempts too", func(t *testing.T) {
+		// The backstop. A terminal row should never reach 'pending', but if anything
+		// ever puts it there — a resume, a hand-written UPDATE — the worker must not
+		// pick it up and send to someone the campaign already reported as failed.
+		db, mock, cleanup := testutil.SetupMockDB(t)
+		defer cleanup()
+
+		repo := NewEmailQueueRepositoryWithDB(db)
+
+		mock.ExpectQuery(`status = 'pending' AND attempts < max_attempts`).
+			WithArgs(10).
+			WillReturnRows(sqlmock.NewRows([]string{
+				"id", "status", "priority", "source_type", "source_id", "integration_id",
+				"provider_kind", "contact_email", "message_id", "template_id", "payload",
+				"attempts", "max_attempts", "last_error", "next_retry_at", "created_at",
+				"updated_at", "processed_at",
+			}))
+
+		_, err := repo.FetchPending(ctx, "workspace-123", 10)
+		require.NoError(t, err)
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("ResetTerminallyFailedBySource revives only what was given up on", func(t *testing.T) {
+		db, mock, cleanup := testutil.SetupMockDB(t)
+		defer cleanup()
+
+		repo := NewEmailQueueRepositoryWithDB(db)
+
+		// A row still retrying is on its way back by itself; requeueing it would
+		// reset an attempt counter mid-flight.
+		mock.ExpectExec(`UPDATE email_queue.*attempts = 0.*integration_id = .3.*next_retry_at IS NULL`).
+			WithArgs(domain.EmailQueueSourceBroadcast, "bcast-123", "integration-1").
+			WillReturnResult(sqlmock.NewResult(0, 23))
+
+		requeued, err := repo.ResetTerminallyFailedBySource(ctx, "workspace-123", domain.EmailQueueSourceBroadcast, "bcast-123", "integration-1")
+		require.NoError(t, err)
+		assert.Equal(t, int64(23), requeued)
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("DeleteTerminallyFailedOlderThan spares recent and non-terminal rows", func(t *testing.T) {
+		db, mock, cleanup := testutil.SetupMockDB(t)
+		defer cleanup()
+
+		repo := NewEmailQueueRepositoryWithDB(db)
+
+		mock.ExpectExec(`DELETE FROM email_queue.*next_retry_at IS NULL.*processed_at <`).
+			WillReturnResult(sqlmock.NewResult(0, 4))
+
+		deleted, err := repo.DeleteTerminallyFailedOlderThan(ctx, "workspace-123", 7)
+		require.NoError(t, err)
+		assert.Equal(t, int64(4), deleted)
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+}

@@ -13,6 +13,7 @@ import (
 	"sort"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/pkg/logger"
@@ -314,7 +315,7 @@ func sendRawEmailWithSettings(settings *domain.SMTPSettings, from string, to []s
 		return fmt.Errorf("EHLO failed: %w", err)
 	}
 	if code != 250 {
-		return fmt.Errorf("EHLO rejected with code: %d", code)
+		return fmt.Errorf("EHLO rejected with code %s", smtpReplyDetail(code, strings.Join(ehloLines, " ")))
 	}
 	// Advertised AUTH mechanisms. On STARTTLS connections this is replaced by the
 	// post-TLS EHLO below, since many servers only advertise AUTH after STARTTLS.
@@ -322,12 +323,13 @@ func sendRawEmailWithSettings(settings *domain.SMTPSettings, from string, to []s
 
 	// STARTTLS if enabled (implicit-TLS connections are already encrypted)
 	if settings.UseTLS && !implicitTLS {
-		code, _, err = smtpConn.sendCommand("STARTTLS")
+		var startTLSResp string
+		code, startTLSResp, err = smtpConn.sendCommand("STARTTLS")
 		if err != nil {
 			return fmt.Errorf("STARTTLS command failed: %w", err)
 		}
 		if code != 220 {
-			return fmt.Errorf("STARTTLS rejected with code: %d", code)
+			return fmt.Errorf("STARTTLS rejected with code %s", smtpReplyDetail(code, startTLSResp))
 		}
 
 		// Upgrade connection to TLS, bounding the handshake like the dial
@@ -351,7 +353,7 @@ func sendRawEmailWithSettings(settings *domain.SMTPSettings, from string, to []s
 			return fmt.Errorf("EHLO after TLS failed: %w", err)
 		}
 		if code != 250 {
-			return fmt.Errorf("EHLO after TLS rejected with code: %d", code)
+			return fmt.Errorf("EHLO after TLS rejected with code %s", smtpReplyDetail(code, strings.Join(tlsEhloLines, " ")))
 		}
 		authMechs = parseAuthMechanisms(tlsEhloLines)
 	}
@@ -431,12 +433,12 @@ func sendRawEmailWithSettings(settings *domain.SMTPSettings, from string, to []s
 	}
 
 	// MAIL FROM - without any extensions (this is the key fix for issue #172)
-	code, _, err = smtpConn.sendCommand(fmt.Sprintf("MAIL FROM:<%s>", from))
+	code, mailFromResp, err := smtpConn.sendCommand(fmt.Sprintf("MAIL FROM:<%s>", from))
 	if err != nil {
 		return fmt.Errorf("MAIL FROM failed: %w", err)
 	}
 	if code != 250 {
-		return fmt.Errorf("MAIL FROM rejected with code: %d", code)
+		return fmt.Errorf("MAIL FROM rejected with code %s", smtpReplyDetail(code, mailFromResp))
 	}
 
 	// RCPT TO for each recipient
@@ -444,22 +446,24 @@ func sendRawEmailWithSettings(settings *domain.SMTPSettings, from string, to []s
 		if recipient == "" {
 			continue
 		}
-		code, _, err = smtpConn.sendCommand(fmt.Sprintf("RCPT TO:<%s>", recipient))
+		var rcptResp string
+		code, rcptResp, err = smtpConn.sendCommand(fmt.Sprintf("RCPT TO:<%s>", recipient))
 		if err != nil {
 			return fmt.Errorf("RCPT TO failed for %s: %w", recipient, err)
 		}
 		if code != 250 && code != 251 {
-			return fmt.Errorf("RCPT TO rejected for %s with code: %d", recipient, code)
+			return fmt.Errorf("RCPT TO rejected for %s with code %s", recipient, smtpReplyDetail(code, rcptResp))
 		}
 	}
 
 	// DATA
-	code, _, err = smtpConn.sendCommand("DATA")
+	var dataResp string
+	code, dataResp, err = smtpConn.sendCommand("DATA")
 	if err != nil {
 		return fmt.Errorf("DATA command failed: %w", err)
 	}
 	if code != 354 {
-		return fmt.Errorf("DATA rejected with code: %d", code)
+		return fmt.Errorf("DATA rejected with code %s", smtpReplyDetail(code, dataResp))
 	}
 
 	// Send message body using textproto.DotWriter for automatic dot-stuffing
@@ -480,18 +484,39 @@ func sendRawEmailWithSettings(settings *domain.SMTPSettings, from string, to []s
 	}
 
 	// Read response after DATA
-	code, _, err = smtpConn.readResponse()
+	var sendResp string
+	code, sendResp, err = smtpConn.readResponse()
 	if err != nil {
 		return fmt.Errorf("failed to read DATA response: %w", err)
 	}
 	if code != 250 {
-		return fmt.Errorf("message rejected with code: %d", code)
+		return fmt.Errorf("message rejected with code %s", smtpReplyDetail(code, sendResp))
 	}
 
 	// QUIT
 	_, _, _ = smtpConn.sendCommand("QUIT")
 
 	return nil
+}
+
+// smtpReplyDetail formats a rejection so the server's own explanation survives.
+// The code comes first because status_info is stored truncated at 255 characters:
+// whatever else is lost, the code has to reach the log. The text is bounded so one
+// verbose server cannot crowd out the rest of the message.
+func smtpReplyDetail(code int, response string) string {
+	response = strings.TrimSpace(response)
+	if response == "" {
+		return fmt.Sprintf("%d", code)
+	}
+	// Cut on runes, not bytes. An SMTPUTF8 server answers in its own language, and a
+	// byte slice through a multi-byte character yields invalid UTF-8 — which Postgres
+	// refuses as a bind parameter, so the message-history upsert fails and the failed
+	// recipient disappears from the logs entirely. The upsert only logs its errors.
+	const maxDetail = 180
+	if utf8.RuneCountInString(response) > maxDetail {
+		response = string([]rune(response)[:maxDetail])
+	}
+	return fmt.Sprintf("%d: %s", code, response)
 }
 
 // SMTPService implements the domain.EmailProviderService interface for SMTP

@@ -444,6 +444,21 @@ ResumeBroadcastRequest:
       description: ID of the broadcast to resume
       example: broadcast_12345
 
+RetryFailedBroadcastRequest:
+  type: object
+  required:
+    - workspace_id
+    - id
+  properties:
+    workspace_id:
+      type: string
+      description: The ID of the workspace
+      example: ws_1234567890
+    id:
+      type: string
+      description: ID of the broadcast whose failed recipients should be retried
+      example: broadcast_12345
+
 CancelBroadcastRequest:
   type: object
   required:

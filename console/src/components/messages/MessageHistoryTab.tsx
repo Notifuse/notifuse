@@ -33,7 +33,6 @@ const DEFAULT_VISIBLE_COLUMNS = {
   broadcast_id: true,
   list_id: true,
   events: true,
-  error: false,
   created_at: true
 }
 
@@ -60,8 +59,7 @@ const filterKeys = [
   'external_id',
   'list_id',
   'template_id',
-  'broadcast_id',
-  'has_error'
+  'broadcast_id'
 ]
 
 // Simple filter interface
@@ -226,15 +224,7 @@ export const MessageHistoryTab: React.FC<MessageHistoryTabProps> = ({ workspaceI
       { key: 'external_id', label: t`External ID` },
       { key: 'list_id', label: t`List ID` },
       { key: 'template_id', label: t`Template ID` },
-      { key: 'broadcast_id', label: t`Broadcast ID` },
-      {
-        key: 'has_error',
-        label: t`Has Error`,
-        options: [
-          { value: 'true', label: t`With Errors` },
-          { value: 'false', label: t`No Errors` }
-        ]
-      }
+      { key: 'broadcast_id', label: t`Broadcast ID` }
     ],
     [t]
   )
@@ -283,10 +273,7 @@ export const MessageHistoryTab: React.FC<MessageHistoryTabProps> = ({ workspaceI
       (filters, filter) => {
         const { field, value } = filter
 
-        // Special case for has_error which needs to be converted to boolean
-        if (field === 'has_error') {
-          filters[field] = value === 'true'
-        } else if (field === 'is_sent') {
+        if (field === 'is_sent') {
           filters[field] = value === 'true'
         } else if (field === 'is_delivered') {
           filters[field] = value === 'true'

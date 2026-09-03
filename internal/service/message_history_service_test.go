@@ -11,6 +11,7 @@ import (
 	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMessageHistoryService_ListMessages(t *testing.T) {
@@ -497,7 +498,7 @@ func TestMessageHistoryService_ListMessages(t *testing.T) {
 			tc.setupMocks(mockRepo, mockWorkspaceRepo, mockLogger, mockAuthService)
 
 			// Create service with mocks
-			service := NewMessageHistoryService(mockRepo, mockWorkspaceRepo, mockLogger, mockAuthService)
+			service := NewMessageHistoryService(mockRepo, mockWorkspaceRepo, mockLogger, mockAuthService, nil)
 
 			// Call the method under test
 			result, err := service.ListMessages(context.Background(), tc.workspaceID, tc.params)
@@ -615,7 +616,7 @@ func TestMessageHistoryService_GetBroadcastStats(t *testing.T) {
 			tc.setupMocks(mockRepo, mockAuthService)
 
 			// Create service with mocks
-			service := NewMessageHistoryService(mockRepo, mockWorkspaceRepo, mockLogger, mockAuthService)
+			service := NewMessageHistoryService(mockRepo, mockWorkspaceRepo, mockLogger, mockAuthService, nil)
 
 			// Call the method under test
 			stats, err := service.GetBroadcastStats(context.Background(), tc.workspaceID, tc.broadcastID)
@@ -626,7 +627,11 @@ func TestMessageHistoryService_GetBroadcastStats(t *testing.T) {
 				assert.Equal(t, tc.expectedError.Error(), err.Error())
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, tc.expectedStats, stats)
+				require.NotNil(t, stats)
+				assert.Equal(t, tc.expectedStats, stats.Stats)
+				// No queue repository is wired in these cases, so the counts are
+				// absent rather than zeroed — the page keeps the history numbers.
+				assert.Nil(t, stats.Queue)
 			}
 		})
 	}
@@ -761,7 +766,7 @@ func TestMessageHistoryService_GetBroadcastLinkStats(t *testing.T) {
 			tc.setupMocks(mockRepo, mockAuthService)
 
 			// Create service with mocks
-			service := NewMessageHistoryService(mockRepo, mockWorkspaceRepo, mockLogger, mockAuthService)
+			service := NewMessageHistoryService(mockRepo, mockWorkspaceRepo, mockLogger, mockAuthService, nil)
 
 			// Call the method under test
 			stats, err := service.GetBroadcastLinkStats(context.Background(), tc.workspaceID, tc.broadcastID, tc.templateID)
@@ -904,7 +909,7 @@ func TestMessageHistoryService_GetBroadcastVariationStats(t *testing.T) {
 			tc.setupMocks(mockRepo, mockAuthService)
 
 			// Create service with mocks
-			service := NewMessageHistoryService(mockRepo, mockWorkspaceRepo, mockLogger, mockAuthService)
+			service := NewMessageHistoryService(mockRepo, mockWorkspaceRepo, mockLogger, mockAuthService, nil)
 
 			// Call the method under test
 			stats, err := service.GetBroadcastVariationStats(context.Background(), tc.workspaceID, tc.broadcastID, tc.templateID)
@@ -923,4 +928,79 @@ func TestMessageHistoryService_GetBroadcastVariationStats(t *testing.T) {
 
 func boolPtr(b bool) *bool {
 	return &b
+}
+
+// TestMessageHistoryService_GetBroadcastStats_QueueCounts covers the counts that ride
+// on the stats response. They are what tell a campaign that has finished from one
+// still working: message history cannot answer that, because sent_at is stamped on
+// the first attempt whatever its outcome.
+func TestMessageHistoryService_GetBroadcastStats_QueueCounts(t *testing.T) {
+	setup := func(t *testing.T) (*MessageHistoryService, *mocks.MockMessageHistoryRepository, *mocks.MockEmailQueueRepository, *gomock.Controller) {
+		ctrl := gomock.NewController(t)
+		repo := mocks.NewMockMessageHistoryRepository(ctrl)
+		queueRepo := mocks.NewMockEmailQueueRepository(ctrl)
+		workspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+		authService := mocks.NewMockAuthService(ctrl)
+		log := pkgmocks.NewMockLogger(ctrl)
+		log.EXPECT().WithFields(gomock.Any()).Return(log).AnyTimes()
+		log.EXPECT().Warn(gomock.Any()).AnyTimes()
+
+		authService.EXPECT().
+			AuthenticateUserForWorkspace(gomock.Any(), "ws1").
+			Return(context.Background(), &domain.User{ID: "u1"}, &domain.UserWorkspace{
+				UserID: "u1", WorkspaceID: "ws1", Role: "owner",
+			}, nil)
+		repo.EXPECT().
+			GetBroadcastStats(gomock.Any(), "ws1", "bc1").
+			Return(&domain.MessageHistoryStatusSum{TotalSent: 45, TotalFailed: 23}, nil)
+
+		return NewMessageHistoryService(repo, workspaceRepo, log, authService, queueRepo), repo, queueRepo, ctrl
+	}
+
+	t.Run("carries the counts alongside the stats", func(t *testing.T) {
+		svc, _, queueRepo, ctrl := setup(t)
+		defer ctrl.Finish()
+
+		queueRepo.EXPECT().
+			GetSourceCounts(gomock.Any(), "ws1", domain.EmailQueueSourceBroadcast, "bc1").
+			Return(&domain.EmailQueueSourceCounts{FailedTerminal: 23}, nil)
+
+		result, err := svc.GetBroadcastStats(context.Background(), "ws1", "bc1")
+
+		require.NoError(t, err)
+		assert.Equal(t, 45, result.Stats.TotalSent)
+		require.NotNil(t, result.Queue)
+		assert.Equal(t, int64(23), result.Queue.FailedTerminal)
+		assert.Equal(t, int64(0), result.Queue.InFlight(), "nothing left on its way out")
+	})
+
+	t.Run("a drained queue reports zeroes rather than nothing", func(t *testing.T) {
+		svc, _, queueRepo, ctrl := setup(t)
+		defer ctrl.Finish()
+
+		queueRepo.EXPECT().
+			GetSourceCounts(gomock.Any(), "ws1", domain.EmailQueueSourceBroadcast, "bc1").
+			Return(&domain.EmailQueueSourceCounts{}, nil)
+
+		result, err := svc.GetBroadcastStats(context.Background(), "ws1", "bc1")
+
+		require.NoError(t, err)
+		require.NotNil(t, result.Queue, "an empty queue is an answer, not a missing one")
+		assert.Equal(t, int64(0), result.Queue.InFlight())
+	})
+
+	t.Run("a queue that cannot be read does not take the stats down with it", func(t *testing.T) {
+		svc, _, queueRepo, ctrl := setup(t)
+		defer ctrl.Finish()
+
+		queueRepo.EXPECT().
+			GetSourceCounts(gomock.Any(), "ws1", domain.EmailQueueSourceBroadcast, "bc1").
+			Return(nil, errors.New("connection refused"))
+
+		result, err := svc.GetBroadcastStats(context.Background(), "ws1", "bc1")
+
+		require.NoError(t, err)
+		assert.Equal(t, 45, result.Stats.TotalSent)
+		assert.Nil(t, result.Queue)
+	})
 }

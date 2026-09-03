@@ -10,6 +10,12 @@ interface SendingProgressProps {
   sentCount: number
   failedCount: number
   startedAt?: string
+  /**
+   * How many rows the queue still holds. Given, it replaces the count derived from
+   * message history, which cannot tell a message that was delivered from one the
+   * provider refused — both stamp sent_at.
+   */
+  remainingOverride?: number
 }
 
 function formatDuration(ms: number): string {
@@ -35,11 +41,16 @@ export function SendingProgress({
   enqueuedCount,
   sentCount,
   failedCount,
-  startedAt
+  startedAt,
+  remainingOverride
 }: SendingProgressProps) {
   const { t } = useLingui()
-  const processed = sentCount + failedCount
-  const remaining = Math.max(0, enqueuedCount - processed)
+  // When the queue tells us what is left, everything else follows from it. Derived
+  // from message history instead, `processed` counts a refused message as both sent
+  // and failed, so the bar reached 100% and read "68 of 68" beside a badge saying 23
+  // were still to go.
+  const remaining = remainingOverride ?? Math.max(0, enqueuedCount - (sentCount + failedCount))
+  const processed = Math.max(0, enqueuedCount - remaining)
   const percent = enqueuedCount > 0 ? Math.round((processed / enqueuedCount) * 100) : 0
 
   // Calculate ETA - updates on each render since dependencies change frequently

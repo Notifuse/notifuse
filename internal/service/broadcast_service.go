@@ -918,6 +918,192 @@ func (s *BroadcastService) DeleteBroadcast(ctx context.Context, request *domain.
 	return nil
 }
 
+// PauseForCircuitBreaker stops the broadcasts riding on an integration whose circuit
+// has just opened, and tells the workspace owners why.
+//
+// This restores a behaviour the documentation still described but which stopped
+// happening when broadcasts moved to the queue: the orchestrator's own breaker is
+// unreachable now, and the queue worker's only rescheduled entries, silently. Left
+// alone it is not a breaker at all — it resets after its cooldown and lets five more
+// real attempts through every minute, so a provider that is down or over quota eats a
+// campaign's retries a few at a time until there are none left.
+//
+// There is no user behind this call, so it authenticates nobody. It is idempotent by
+// design: the breaker re-opens once per cooldown for as long as the outage lasts, and
+// a broadcast already paused is left exactly as it is, pause reason included.
+func (s *BroadcastService) PauseForCircuitBreaker(ctx context.Context, workspaceID, integrationID, reason string) error {
+	sourceIDs, err := s.emailQueueRepo.ListActiveSourcesByIntegration(ctx, workspaceID, domain.EmailQueueSourceBroadcast, integrationID)
+	if err != nil {
+		return fmt.Errorf("failed to list broadcasts affected by the open circuit: %w", err)
+	}
+
+	for _, broadcastID := range sourceIDs {
+		broadcast, err := s.repo.GetBroadcast(ctx, workspaceID, broadcastID)
+		if err != nil {
+			s.logger.WithFields(map[string]interface{}{
+				"broadcast_id": broadcastID,
+				"workspace_id": workspaceID,
+				"error":        err.Error(),
+			}).Error("Failed to load broadcast for circuit breaker pause")
+			continue
+		}
+
+		// Only a broadcast that is actually going out can be stopped. Anything else
+		// either has not started or has already been dealt with.
+		if broadcast.Status != domain.BroadcastStatusProcessing && broadcast.Status != domain.BroadcastStatusProcessed {
+			continue
+		}
+
+		now := time.Now().UTC()
+		pauseReason := fmt.Sprintf("Circuit breaker triggered: %s", reason)
+		broadcast.Status = domain.BroadcastStatusPaused
+		broadcast.PausedAt = &now
+		broadcast.PauseReason = &pauseReason
+		broadcast.UpdatedAt = now
+
+		err = s.repo.WithTransaction(ctx, workspaceID, func(tx *sql.Tx) error {
+			if err := s.repo.UpdateBroadcastStatusTx(ctx, tx, broadcast); err != nil {
+				return err
+			}
+			// Stop the queue too, or the worker keeps grinding through the same
+			// integration and spending attempts the pause is meant to protect.
+			_, err := s.emailQueueRepo.PauseBySourceTx(ctx, tx, domain.EmailQueueSourceBroadcast, broadcastID)
+			return err
+		})
+		if err != nil {
+			s.logger.WithFields(map[string]interface{}{
+				"broadcast_id": broadcastID,
+				"workspace_id": workspaceID,
+				"error":        err.Error(),
+			}).Error("Failed to pause broadcast for circuit breaker")
+			continue
+		}
+
+		s.logger.WithFields(map[string]interface{}{
+			"broadcast_id": broadcastID,
+			"workspace_id": workspaceID,
+			"pause_reason": pauseReason,
+		}).Warn("Broadcast paused because the provider circuit opened")
+
+		if s.eventBus != nil {
+			// The alert to the workspace owners hangs off this event; the handler and
+			// its email template already exist and were simply never reached.
+			s.eventBus.Publish(ctx, domain.EventPayload{
+				Type:        domain.EventBroadcastCircuitBreaker,
+				WorkspaceID: workspaceID,
+				EntityID:    broadcastID,
+				Data: map[string]interface{}{
+					"broadcast_id": broadcastID,
+					"reason":       pauseReason,
+					"error":        reason,
+				},
+			})
+			s.eventBus.Publish(ctx, domain.EventPayload{
+				Type:        domain.EventBroadcastPaused,
+				WorkspaceID: workspaceID,
+				EntityID:    broadcastID,
+				Data: map[string]interface{}{
+					"broadcast_id": broadcastID,
+					"reason":       "circuit_breaker",
+				},
+			})
+		}
+	}
+
+	return nil
+}
+
+// RetryFailedRecipients requeues the recipients this broadcast gave up on.
+//
+// It exists because the alternative was nothing: an entry that spent its attempts used
+// to be deleted, so a campaign a provider had refused mid-flight simply reported itself
+// complete, with no list of who had missed it and no way to try again. Those entries
+// are now kept in a terminal state, and this is the only thing that revives them.
+func (s *BroadcastService) RetryFailedRecipients(ctx context.Context, request *domain.RetryFailedBroadcastRequest) (int64, error) {
+	ctx, _, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, request.WorkspaceID)
+	if err != nil {
+		return 0, fmt.Errorf("failed to authenticate user: %w", err)
+	}
+
+	if !userWorkspace.HasPermission(domain.PermissionResourceBroadcasts, domain.PermissionTypeWrite) {
+		return 0, domain.NewPermissionError(
+			domain.PermissionResourceBroadcasts,
+			domain.PermissionTypeWrite,
+			"Insufficient permissions: write access to broadcasts required",
+		)
+	}
+
+	if err := request.Validate(); err != nil {
+		return 0, err
+	}
+
+	broadcast, err := s.repo.GetBroadcast(ctx, request.WorkspaceID, request.ID)
+	if err != nil {
+		s.logger.WithField("broadcast_id", request.ID).Error("Failed to get broadcast for retry")
+		return 0, err
+	}
+
+	// A paused broadcast is resumed, not retried: resetting entries underneath a pause
+	// would start sending again while the operator believes it is stopped. Every other
+	// state either has not finished enqueueing or was deliberately abandoned.
+	if broadcast.Status != domain.BroadcastStatusProcessed && broadcast.Status != domain.BroadcastStatusFailed {
+		return 0, &domain.ErrBroadcastRetryNotAllowed{
+			Reason: fmt.Sprintf("only a broadcast that has finished sending can be retried, current status: %s", broadcast.Status),
+		}
+	}
+
+	// Retrying is for a queue that has stopped, not one still working. Requeueing
+	// mid-flight would reset attempt counters underneath the worker and could send to
+	// recipients it is about to reach anyway.
+	counts, err := s.emailQueueRepo.GetSourceCounts(ctx, request.WorkspaceID, domain.EmailQueueSourceBroadcast, request.ID)
+	if err != nil {
+		return 0, fmt.Errorf("failed to read broadcast queue counts: %w", err)
+	}
+	if counts.InFlight() > 0 {
+		return 0, &domain.ErrBroadcastRetryNotAllowed{
+			Reason: fmt.Sprintf("this broadcast is still sending: %d messages are still queued", counts.InFlight()),
+		}
+	}
+	if counts.FailedTerminal == 0 {
+		return 0, nil
+	}
+
+	// The provider has to be there to retry into. Same guard as the send path: a
+	// workspace that lost its marketing provider would requeue into nothing.
+	workspace, err := s.workspaceRepo.GetByID(ctx, request.WorkspaceID)
+	if err != nil {
+		return 0, err
+	}
+	emailProvider, integrationID, err := workspace.GetEmailProviderWithIntegrationID(true)
+	if err != nil {
+		return 0, fmt.Errorf("failed to get email provider: %w", err)
+	}
+	if emailProvider == nil {
+		return 0, &domain.ErrBroadcastRetryNotAllowed{
+			Reason: "no marketing email provider configured for this workspace",
+		}
+	}
+
+	// Rebind the requeued rows to the marketing provider as it stands now. They carry
+	// the integration they were enqueued with, and the reason a retry is being asked
+	// for is often that the old provider is the thing that broke — swapping it out is
+	// the fix, and without this the retry would go straight back to an integration
+	// that may no longer exist, spend all three fresh attempts on
+	// "integration not found" and abandon the recipients a second time.
+	requeued, err := s.emailQueueRepo.ResetTerminallyFailedBySource(ctx, request.WorkspaceID, domain.EmailQueueSourceBroadcast, request.ID, integrationID)
+	if err != nil {
+		return 0, fmt.Errorf("failed to requeue failed recipients: %w", err)
+	}
+
+	s.logger.WithFields(map[string]interface{}{
+		"broadcast_id": request.ID,
+		"workspace_id": request.WorkspaceID,
+		"requeued":     requeued,
+	}).Info("Requeued failed broadcast recipients")
+
+	return requeued, nil
+}
+
 // SendToIndividual sends a broadcast to an individual recipient
 func (s *BroadcastService) SendToIndividual(ctx context.Context, request *domain.SendToIndividualRequest) error {
 	// Authenticate user for workspace

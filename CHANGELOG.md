@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [WIP]
+
+- **Fix**: A broadcast could lose recipients without saying so. Sent counted the messages a provider had refused, so a campaign that missed a third of its audience still reported itself Complete, and the reason sat in a Logs column that read a field the API has never returned, over an SMTP client that had already thrown the server's explanation away. Sent now counts only what the provider accepted, a campaign reads "Completed — N failed", Logs shows the provider's own words, and a provider that starts refusing everything pauses the campaign and emails the workspace owners instead of quietly spending the remaining recipients' retries. Figures for past broadcasts shift accordingly, and the same correction applies to the Sent measure in analytics.
+
+- **Fix**: A rejection that names the recipient — a mailbox that does not exist, a full mailbox — is no longer retried three times over generic SMTP, and no longer counts toward the circuit breaker that throttles the whole workspace. None of these were being recognised, so an imported list carrying a few dead addresses in a row slowed every other send.
+
+- **Improvement**: Failed recipients are kept and can be retried. When every delivery attempt for a recipient was refused, the queue entry used to be deleted and there was no way to find who had missed the email, let alone send it to them. Those recipients are now held for seven days and a Retry button on the broadcast sends them the same message again — fix whatever the provider objected to first. Also available as `broadcasts.retryFailed`.
+
 ## [39.1] - 2026-08-29
 
 - **Feature**: Zapier can send. A Zap can now send one of your transactional notifications — an order confirmation, a password reset, a shipping update — picking the notification from a list, choosing who receives it, and filling the template's variables from whatever triggered the Zap. The template, the sender and the tracking stay in Notifuse; the Zap only supplies the recipient and the data. Sending creates the contact if the address is new, and updates it with any contact fields the Zap fills in. Giving the step your own message identifier makes it idempotent: sending again with the same one returns the original message instead of a second email, which is what protects a password reset when Zapier retries a step.

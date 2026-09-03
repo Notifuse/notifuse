@@ -94,8 +94,15 @@ func (cb *CircuitBreaker) RecordSuccess() {
 	cb.isOpen = false
 }
 
-// RecordFailure records a failed call and opens the circuit if threshold is reached
-func (cb *CircuitBreaker) RecordFailure(classifiedErr *emailerror.ClassifiedError) {
+// RecordFailure records a failed call and opens the circuit if threshold is reached.
+// It returns true only on the failure that opens it — the transition, not the state.
+//
+// The distinction matters to anything acting on an open circuit. The breaker is
+// checked once per queue entry, so a large queue observes "open" thousands of times
+// for one outage. And because the breaker does not latch — it restores a full failure
+// budget once the cooldown elapses — a provider that stays down produces one of these
+// transitions per cooldown period, so acting on it has to be idempotent.
+func (cb *CircuitBreaker) RecordFailure(classifiedErr *emailerror.ClassifiedError) bool {
 	cb.mutex.Lock()
 	defer cb.mutex.Unlock()
 
@@ -103,9 +110,12 @@ func (cb *CircuitBreaker) RecordFailure(classifiedErr *emailerror.ClassifiedErro
 	cb.lastFailure = time.Now()
 	cb.lastError = classifiedErr
 
+	wasOpen := cb.isOpen
 	if cb.failures >= cb.threshold {
 		cb.isOpen = true
 	}
+
+	return cb.isOpen && !wasOpen
 }
 
 // GetLastError returns the last error that caused a failure
@@ -167,18 +177,21 @@ func (icb *IntegrationCircuitBreaker) RecordSuccess(integrationID string) {
 	cb.RecordSuccess()
 }
 
-// RecordFailure records a failure for an integration
-// Only counts provider errors toward the circuit breaker threshold
-// Returns true if the error was counted (provider error), false if ignored (recipient error)
-func (icb *IntegrationCircuitBreaker) RecordFailure(integrationID string, classifiedErr *emailerror.ClassifiedError) bool {
-	// Only count provider errors toward circuit breaker
+// RecordFailure records a failure for an integration.
+// Only provider errors count toward the threshold: a rejection that blames the
+// recipient says nothing about the provider's health, and letting those open the
+// circuit would let a handful of dead addresses throttle a whole workspace.
+//
+// counted reports whether the error was attributed to the provider at all; opened
+// reports the moment the circuit flipped, which is the only usable trigger for acting
+// on an outage.
+func (icb *IntegrationCircuitBreaker) RecordFailure(integrationID string, classifiedErr *emailerror.ClassifiedError) (counted bool, opened bool) {
 	if classifiedErr == nil || classifiedErr.IsRecipientError() {
-		return false
+		return false, false
 	}
 
 	cb := icb.getOrCreateBreaker(integrationID)
-	cb.RecordFailure(classifiedErr)
-	return true
+	return true, cb.RecordFailure(classifiedErr)
 }
 
 // GetLastError returns the last error for an integration

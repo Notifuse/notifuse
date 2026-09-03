@@ -333,8 +333,8 @@ func TestBroadcastService_SendToIndividual_NeverMintsIdentityToken(t *testing.T)
 	// token is actually mintable from them. Without it an empty token below could
 	// equally mean a mint that failed, which pins nothing.
 	webAnalytics := &domain.WebAnalyticsSettings{
-		Enabled:              true,
-		AllowedDomains:       []string{"example.com", "*.example.com"},
+		Enabled:        true,
+		AllowedDomains: []string{"example.com", "*.example.com"},
 	}
 	probe, err := domain.BuildWebIdentifyToken(recipient, secretKey, domain.WebIdentifyTokenTTL, time.Now().UTC())
 	require.NoError(t, err, "these settings must be able to mint, or this test pins nothing")
@@ -3462,4 +3462,247 @@ func TestBroadcastService_PermissionEnforcement(t *testing.T) {
 			assert.IsType(t, &domain.PermissionError{}, err)
 		})
 	}
+}
+
+// retryWorkspace is a workspace whose marketing provider is configured, which the
+// retry path requires for the same reason the send path does: requeueing into a
+// workspace with no provider would only reproduce the failure.
+func retryWorkspace(id string) *domain.Workspace {
+	return &domain.Workspace{
+		ID: id,
+		Settings: domain.WorkspaceSettings{
+			MarketingEmailProviderID: "integration-1",
+		},
+		Integrations: []domain.Integration{{
+			ID:   "integration-1",
+			Type: domain.IntegrationTypeEmail,
+			EmailProvider: domain.EmailProvider{
+				Kind:               domain.EmailProviderKindSMTP,
+				RateLimitPerMinute: 60,
+				Senders:            []domain.EmailSender{domain.NewEmailSender("a@b.com", "A")},
+			},
+		}},
+	}
+}
+
+// TestBroadcastService_RetryFailedRecipients covers the action that exists because a
+// campaign used to lose recipients silently: entries that spent their attempts were
+// deleted, so nobody could see who had missed the email, let alone send it to them.
+func TestBroadcastService_RetryFailedRecipients(t *testing.T) {
+	processedBroadcast := func(wsID, id string) *domain.Broadcast {
+		b := testBroadcast(wsID, id)
+		b.Status = domain.BroadcastStatusProcessed
+		return b
+	}
+
+	t.Run("requeues the recipients that were given up on", func(t *testing.T) {
+		d := setupBroadcastSvc(t)
+		defer d.ctrl.Finish()
+
+		ctx := context.Background()
+		req := &domain.RetryFailedBroadcastRequest{WorkspaceID: "w1", ID: "b1"}
+		authOK(d.authService, ctx, req.WorkspaceID)
+
+		d.repo.EXPECT().GetBroadcast(gomock.Any(), req.WorkspaceID, req.ID).Return(processedBroadcast("w1", "b1"), nil)
+		d.emailQueueRepo.EXPECT().GetSourceCounts(gomock.Any(), req.WorkspaceID, domain.EmailQueueSourceBroadcast, req.ID).
+			Return(&domain.EmailQueueSourceCounts{FailedTerminal: 23}, nil)
+		d.workspaceRepo.EXPECT().GetByID(gomock.Any(), req.WorkspaceID).Return(retryWorkspace("w1"), nil)
+		d.emailQueueRepo.EXPECT().ResetTerminallyFailedBySource(gomock.Any(), req.WorkspaceID, domain.EmailQueueSourceBroadcast, req.ID, "integration-1").
+			Return(int64(23), nil)
+
+		requeued, err := d.svc.RetryFailedRecipients(ctx, req)
+		require.NoError(t, err)
+		assert.Equal(t, int64(23), requeued)
+	})
+
+	t.Run("refuses while the queue is still working", func(t *testing.T) {
+		// Requeueing mid-flight would reset attempt counters underneath the worker
+		// and could mail recipients it is about to reach anyway.
+		d := setupBroadcastSvc(t)
+		defer d.ctrl.Finish()
+
+		ctx := context.Background()
+		req := &domain.RetryFailedBroadcastRequest{WorkspaceID: "w1", ID: "b1"}
+		authOK(d.authService, ctx, req.WorkspaceID)
+
+		d.repo.EXPECT().GetBroadcast(gomock.Any(), req.WorkspaceID, req.ID).Return(processedBroadcast("w1", "b1"), nil)
+		d.emailQueueRepo.EXPECT().GetSourceCounts(gomock.Any(), req.WorkspaceID, domain.EmailQueueSourceBroadcast, req.ID).
+			Return(&domain.EmailQueueSourceCounts{Pending: 4, FailedTerminal: 23}, nil)
+
+		_, err := d.svc.RetryFailedRecipients(ctx, req)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "still sending")
+	})
+
+	t.Run("nothing to retry is not an error", func(t *testing.T) {
+		d := setupBroadcastSvc(t)
+		defer d.ctrl.Finish()
+
+		ctx := context.Background()
+		req := &domain.RetryFailedBroadcastRequest{WorkspaceID: "w1", ID: "b1"}
+		authOK(d.authService, ctx, req.WorkspaceID)
+
+		d.repo.EXPECT().GetBroadcast(gomock.Any(), req.WorkspaceID, req.ID).Return(processedBroadcast("w1", "b1"), nil)
+		d.emailQueueRepo.EXPECT().GetSourceCounts(gomock.Any(), req.WorkspaceID, domain.EmailQueueSourceBroadcast, req.ID).
+			Return(&domain.EmailQueueSourceCounts{}, nil)
+
+		requeued, err := d.svc.RetryFailedRecipients(ctx, req)
+		require.NoError(t, err)
+		assert.Equal(t, int64(0), requeued)
+	})
+
+	t.Run("a paused broadcast is resumed, not retried", func(t *testing.T) {
+		// Resetting entries underneath a pause would start sending again while the
+		// operator believes the campaign is stopped.
+		d := setupBroadcastSvc(t)
+		defer d.ctrl.Finish()
+
+		ctx := context.Background()
+		req := &domain.RetryFailedBroadcastRequest{WorkspaceID: "w1", ID: "b1"}
+		authOK(d.authService, ctx, req.WorkspaceID)
+
+		paused := testBroadcast("w1", "b1")
+		paused.Status = domain.BroadcastStatusPaused
+		d.repo.EXPECT().GetBroadcast(gomock.Any(), req.WorkspaceID, req.ID).Return(paused, nil)
+
+		_, err := d.svc.RetryFailedRecipients(ctx, req)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "paused")
+	})
+
+	t.Run("refuses when the workspace has no marketing provider", func(t *testing.T) {
+		d := setupBroadcastSvc(t)
+		defer d.ctrl.Finish()
+
+		ctx := context.Background()
+		req := &domain.RetryFailedBroadcastRequest{WorkspaceID: "w1", ID: "b1"}
+		authOK(d.authService, ctx, req.WorkspaceID)
+
+		d.repo.EXPECT().GetBroadcast(gomock.Any(), req.WorkspaceID, req.ID).Return(processedBroadcast("w1", "b1"), nil)
+		d.emailQueueRepo.EXPECT().GetSourceCounts(gomock.Any(), req.WorkspaceID, domain.EmailQueueSourceBroadcast, req.ID).
+			Return(&domain.EmailQueueSourceCounts{FailedTerminal: 5}, nil)
+		d.workspaceRepo.EXPECT().GetByID(gomock.Any(), req.WorkspaceID).Return(&domain.Workspace{ID: "w1"}, nil)
+
+		_, err := d.svc.RetryFailedRecipients(ctx, req)
+		require.Error(t, err)
+	})
+
+	t.Run("refuses without write permission", func(t *testing.T) {
+		d := setupBroadcastSvc(t)
+		defer d.ctrl.Finish()
+
+		ctx := context.Background()
+		req := &domain.RetryFailedBroadcastRequest{WorkspaceID: "w1", ID: "b1"}
+		readOnly := &domain.UserWorkspace{
+			UserID: "user1", WorkspaceID: "w1", Role: "member",
+			Permissions: domain.UserPermissions{
+				domain.PermissionResourceBroadcasts: {Read: true, Write: false},
+			},
+		}
+		d.authService.EXPECT().AuthenticateUserForWorkspace(ctx, "w1").
+			Return(ctx, &domain.User{ID: "user1"}, readOnly, nil)
+
+		_, err := d.svc.RetryFailedRecipients(ctx, req)
+		require.Error(t, err)
+		assert.IsType(t, &domain.PermissionError{}, err)
+	})
+}
+
+// TestBroadcastService_PauseForCircuitBreaker covers what happens when a provider
+// starts refusing everything. Before this the breaker only rescheduled entries and told
+// nobody, so a campaign kept spending its retries a few a minute until its recipients
+// were gone.
+func TestBroadcastService_PauseForCircuitBreaker(t *testing.T) {
+	t.Run("pauses the campaign, stops its queue and raises the alert", func(t *testing.T) {
+		d := setupBroadcastSvc(t)
+		defer d.ctrl.Finish()
+
+		ctx := context.Background()
+		sending := testBroadcast("w1", "b1")
+		sending.Status = domain.BroadcastStatusProcessing
+
+		d.emailQueueRepo.EXPECT().
+			ListActiveSourcesByIntegration(gomock.Any(), "w1", domain.EmailQueueSourceBroadcast, "intg-1").
+			Return([]string{"b1"}, nil)
+		d.repo.EXPECT().GetBroadcast(gomock.Any(), "w1", "b1").Return(sending, nil)
+		d.repo.EXPECT().WithTransaction(gomock.Any(), "w1", gomock.Any()).DoAndReturn(
+			func(_ context.Context, _ string, fn func(*sql.Tx) error) error { return fn(nil) },
+		)
+		d.repo.EXPECT().UpdateBroadcastStatusTx(gomock.Any(), gomock.Any(), gomock.Any()).
+			DoAndReturn(func(_ context.Context, _ *sql.Tx, b *domain.Broadcast) error {
+				assert.Equal(t, domain.BroadcastStatusPaused, b.Status)
+				require.NotNil(t, b.PauseReason)
+				assert.Contains(t, *b.PauseReason, "Circuit breaker triggered")
+				assert.Contains(t, *b.PauseReason, "quota exceeded")
+				return nil
+			})
+		// The queue has to stop too, or the worker keeps spending attempts the pause
+		// exists to protect.
+		d.emailQueueRepo.EXPECT().
+			PauseBySourceTx(gomock.Any(), gomock.Any(), domain.EmailQueueSourceBroadcast, "b1").
+			Return(int64(23), nil)
+
+		var published []domain.EventType
+		d.eventBus.EXPECT().Publish(gomock.Any(), gomock.Any()).Times(2).
+			Do(func(_ context.Context, p domain.EventPayload) { published = append(published, p.Type) })
+
+		err := d.svc.PauseForCircuitBreaker(ctx, "w1", "intg-1", "message rejected with code 452: quota exceeded")
+		require.NoError(t, err)
+		assert.Contains(t, published, domain.EventBroadcastCircuitBreaker)
+		assert.Contains(t, published, domain.EventBroadcastPaused)
+	})
+
+	t.Run("leaves a broadcast that is already paused alone", func(t *testing.T) {
+		// The breaker does not latch: it re-opens once per cooldown for as long as the
+		// outage lasts, so this runs repeatedly and must not rewrite the pause reason
+		// or re-alert the owners each minute.
+		d := setupBroadcastSvc(t)
+		defer d.ctrl.Finish()
+
+		alreadyPaused := testBroadcast("w1", "b1")
+		alreadyPaused.Status = domain.BroadcastStatusPaused
+
+		d.emailQueueRepo.EXPECT().
+			ListActiveSourcesByIntegration(gomock.Any(), "w1", domain.EmailQueueSourceBroadcast, "intg-1").
+			Return([]string{"b1"}, nil)
+		d.repo.EXPECT().GetBroadcast(gomock.Any(), "w1", "b1").Return(alreadyPaused, nil)
+
+		err := d.svc.PauseForCircuitBreaker(context.Background(), "w1", "intg-1", "still down")
+		require.NoError(t, err)
+	})
+
+	t.Run("nothing riding on the integration is not an error", func(t *testing.T) {
+		d := setupBroadcastSvc(t)
+		defer d.ctrl.Finish()
+
+		d.emailQueueRepo.EXPECT().
+			ListActiveSourcesByIntegration(gomock.Any(), "w1", domain.EmailQueueSourceBroadcast, "intg-1").
+			Return(nil, nil)
+
+		err := d.svc.PauseForCircuitBreaker(context.Background(), "w1", "intg-1", "down")
+		require.NoError(t, err)
+	})
+
+	t.Run("one broadcast that cannot be paused does not stop the others", func(t *testing.T) {
+		d := setupBroadcastSvc(t)
+		defer d.ctrl.Finish()
+
+		sending := testBroadcast("w1", "b2")
+		sending.Status = domain.BroadcastStatusProcessed
+
+		d.emailQueueRepo.EXPECT().
+			ListActiveSourcesByIntegration(gomock.Any(), "w1", domain.EmailQueueSourceBroadcast, "intg-1").
+			Return([]string{"b1", "b2"}, nil)
+		d.repo.EXPECT().GetBroadcast(gomock.Any(), "w1", "b1").Return(nil, errors.New("gone"))
+		d.repo.EXPECT().GetBroadcast(gomock.Any(), "w1", "b2").Return(sending, nil)
+		d.repo.EXPECT().WithTransaction(gomock.Any(), "w1", gomock.Any()).DoAndReturn(
+			func(_ context.Context, _ string, fn func(*sql.Tx) error) error { return fn(nil) },
+		)
+		d.repo.EXPECT().UpdateBroadcastStatusTx(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+		d.emailQueueRepo.EXPECT().PauseBySourceTx(gomock.Any(), gomock.Any(), domain.EmailQueueSourceBroadcast, "b2").Return(int64(1), nil)
+		d.eventBus.EXPECT().Publish(gomock.Any(), gomock.Any()).Times(2)
+
+		err := d.svc.PauseForCircuitBreaker(context.Background(), "w1", "intg-1", "down")
+		require.NoError(t, err)
+	})
 }

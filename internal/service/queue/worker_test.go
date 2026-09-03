@@ -3,6 +3,8 @@ package queue
 import (
 	"context"
 	"errors"
+	"fmt"
+	"github.com/Notifuse/notifuse/pkg/emailerror"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -439,7 +441,7 @@ func TestEmailQueueWorker_ProcessEntry_MaxAttemptsExceeded(t *testing.T) {
 			RateLimitPerMinute: 100,
 		},
 		Attempts:    2, // Already 2 attempts
-		MaxAttempts: 3, // Max is 3, so after this attempt it should be deleted
+		MaxAttempts: 3, // Max is 3, so this attempt exhausts the budget
 	}
 
 	sendErr := errors.New("SMTP connection failed")
@@ -448,8 +450,11 @@ func TestEmailQueueWorker_ProcessEntry_MaxAttemptsExceeded(t *testing.T) {
 	mockQueueRepo.EXPECT().MarkAsProcessing(gomock.Any(), workspaceID, entryID).Return(nil)
 	mockEmailService.EXPECT().SendEmail(gomock.Any(), gomock.Any(), true).Return(sendErr)
 	mockMessageHistoryRepo.EXPECT().Upsert(gomock.Any(), workspaceID, gomock.Any(), gomock.Any()).Return(nil)
-	// Should delete the entry since attempts >= maxAttempts after increment (message_history tracks failure)
-	mockQueueRepo.EXPECT().Delete(gomock.Any(), workspaceID, entryID).Return(nil)
+	// The entry is held in a terminal state rather than deleted. Deleting it left no
+	// record of who the campaign failed to reach and nothing a retry could revive.
+	mockQueueRepo.EXPECT().
+		MarkAsPermanentlyFailed(gomock.Any(), workspaceID, entryID, sendErr.Error()).
+		Return(nil)
 
 	worker := NewEmailQueueWorker(
 		mockQueueRepo,
@@ -1605,4 +1610,222 @@ func TestEmailQueueWorker_ProcessEntry_JITGuardLookupErrorFailsOpen(t *testing.T
 	mockMessageHistoryRepo.EXPECT().Upsert(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
 	worker.processEntry(workspace, entry)
+}
+
+// TestEmailQueueWorker_DeadMailboxIsTerminalOnTheFirstAttempt joins the classifier to
+// the worker. A mailbox that does not exist will not start existing, so retrying it
+// twice more only delays the campaign and — while every SMTP rejection classified as
+// unknown — pushed the workspace's circuit breaker toward opening on ordinary bounces.
+func TestEmailQueueWorker_DeadMailboxIsTerminalOnTheFirstAttempt(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockQueueRepo := mocks.NewMockEmailQueueRepository(ctrl)
+	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	mockEmailService := mocks.NewMockEmailServiceInterface(ctrl)
+	mockMessageHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Warn(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+
+	workspace := &domain.Workspace{
+		ID: "workspace-1",
+		Integrations: []domain.Integration{{
+			ID: "integration-1",
+			EmailProvider: domain.EmailProvider{
+				Kind:               domain.EmailProviderKindSMTP,
+				RateLimitPerMinute: 100,
+			},
+		}},
+	}
+
+	entry := &domain.EmailQueueEntry{
+		ID:            "entry-1",
+		Status:        domain.EmailQueueStatusPending,
+		SourceType:    domain.EmailQueueSourceBroadcast,
+		SourceID:      "broadcast-1",
+		IntegrationID: "integration-1",
+		ContactEmail:  "dead@example.com",
+		MessageID:     "msg-1",
+		Attempts:      0,
+		MaxAttempts:   3,
+	}
+
+	sendErr := errors.New("RCPT TO rejected for dead@example.com with code 550: 5.1.1 User unknown")
+
+	mockQueueRepo.EXPECT().MarkAsProcessing(gomock.Any(), "workspace-1", "entry-1").Return(nil)
+	mockEmailService.EXPECT().SendEmail(gomock.Any(), gomock.Any(), true).Return(sendErr)
+	mockMessageHistoryRepo.EXPECT().Upsert(gomock.Any(), "workspace-1", gomock.Any(), gomock.Any()).Return(nil)
+	mockQueueRepo.EXPECT().
+		MarkAsPermanentlyFailed(gomock.Any(), "workspace-1", "entry-1", sendErr.Error()).
+		Return(nil)
+
+	worker := NewEmailQueueWorker(mockQueueRepo, mockWorkspaceRepo, mockEmailService,
+		mockMessageHistoryRepo, DefaultWorkerConfig(), mockLogger)
+	worker.ctx = context.Background()
+
+	worker.processEntry(workspace, entry)
+
+	// A recipient rejection is the recipient's problem, not the provider's, so it must
+	// leave the breaker alone: five dead addresses in a row must not throttle a whole
+	// workspace, and once a breaker opens it pauses the campaign.
+	assert.False(t, worker.circuitBreaker.IsOpen("integration-1"))
+	assert.Equal(t, 0, worker.GetCircuitBreakerStats()["integration-1"].Failures)
+}
+
+// TestEmailQueueWorker_RetentionSweep covers the cost of keeping abandoned entries:
+// each holds one recipient's compiled email, so the sweep has to run — but it walks
+// every workspace, so it must not run on every one-second poll.
+func TestEmailQueueWorker_RetentionSweep(t *testing.T) {
+	newWorker := func(t *testing.T, cfg *EmailQueueWorkerConfig) (*EmailQueueWorker, *mocks.MockEmailQueueRepository, *mocks.MockWorkspaceRepository) {
+		ctrl := gomock.NewController(t)
+		t.Cleanup(ctrl.Finish)
+
+		queueRepo := mocks.NewMockEmailQueueRepository(ctrl)
+		workspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+		log := pkgmocks.NewMockLogger(ctrl)
+		log.EXPECT().WithFields(gomock.Any()).Return(log).AnyTimes()
+		log.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(log).AnyTimes()
+		log.EXPECT().Info(gomock.Any()).AnyTimes()
+		log.EXPECT().Error(gomock.Any()).AnyTimes()
+
+		w := NewEmailQueueWorker(queueRepo, workspaceRepo,
+			mocks.NewMockEmailServiceInterface(ctrl), mocks.NewMockMessageHistoryRepository(ctrl),
+			cfg, log)
+		w.ctx = context.Background()
+		// The worker seeds lastCleanupTime so the sweep does not fire during startup;
+		// wind it back so these cases can exercise the sweep itself.
+		w.lastCleanupTime = time.Time{}
+		return w, queueRepo, workspaceRepo
+	}
+
+	t.Run("sweeps each workspace past the retention window", func(t *testing.T) {
+		cfg := DefaultWorkerConfig()
+		w, queueRepo, workspaceRepo := newWorker(t, cfg)
+
+		workspaceRepo.EXPECT().List(gomock.Any()).
+			Return([]*domain.Workspace{{ID: "ws-1"}, {ID: "ws-2"}}, nil)
+		queueRepo.EXPECT().DeleteTerminallyFailedOlderThan(gomock.Any(), "ws-1", 7).Return(int64(4), nil)
+		queueRepo.EXPECT().DeleteTerminallyFailedOlderThan(gomock.Any(), "ws-2", 7).Return(int64(0), nil)
+
+		w.cleanupTerminallyFailed()
+	})
+
+	t.Run("does not sweep during startup", func(t *testing.T) {
+		// Left at the zero time it would DELETE across every workspace database on the
+		// first poll tick, a second after boot, when nothing can have aged out yet.
+		cfg := DefaultWorkerConfig()
+		w, _, _ := newWorker(t, cfg)
+		w.lastCleanupTime = time.Now()
+
+		w.cleanupTerminallyFailed()
+	})
+
+	t.Run("does not run again inside the interval", func(t *testing.T) {
+		cfg := DefaultWorkerConfig()
+		w, queueRepo, workspaceRepo := newWorker(t, cfg)
+
+		workspaceRepo.EXPECT().List(gomock.Any()).Return([]*domain.Workspace{{ID: "ws-1"}}, nil).Times(1)
+		queueRepo.EXPECT().DeleteTerminallyFailedOlderThan(gomock.Any(), "ws-1", 7).Return(int64(1), nil).Times(1)
+
+		w.cleanupTerminallyFailed()
+		w.cleanupTerminallyFailed()
+		w.cleanupTerminallyFailed()
+	})
+
+	t.Run("retention switched off means nothing is ever swept", func(t *testing.T) {
+		cfg := DefaultWorkerConfig()
+		cfg.TerminalRetentionDays = 0
+		w, _, _ := newWorker(t, cfg)
+
+		w.cleanupTerminallyFailed()
+	})
+}
+
+// TestEmailQueueWorker_CircuitOpenCallback covers the signal that stops a campaign when
+// a provider starts refusing everything. It has to fire on the transition, not on the
+// state: the breaker is consulted once per entry, so a large queue would otherwise
+// trigger a pause storm for a single outage.
+func TestEmailQueueWorker_CircuitOpenCallback(t *testing.T) {
+	newWorker := func(t *testing.T, threshold int) (*EmailQueueWorker, *[]string) {
+		ctrl := gomock.NewController(t)
+		t.Cleanup(ctrl.Finish)
+
+		log := pkgmocks.NewMockLogger(ctrl)
+		log.EXPECT().WithFields(gomock.Any()).Return(log).AnyTimes()
+		log.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(log).AnyTimes()
+		log.EXPECT().Debug(gomock.Any()).AnyTimes()
+		log.EXPECT().Info(gomock.Any()).AnyTimes()
+		log.EXPECT().Warn(gomock.Any()).AnyTimes()
+		log.EXPECT().Error(gomock.Any()).AnyTimes()
+
+		cfg := DefaultWorkerConfig()
+		cfg.CircuitBreakerThreshold = threshold
+
+		queueRepo := mocks.NewMockEmailQueueRepository(ctrl)
+		queueRepo.EXPECT().MarkAsProcessing(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+		queueRepo.EXPECT().MarkAsFailed(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+		queueRepo.EXPECT().MarkAsPermanentlyFailed(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+		queueRepo.EXPECT().SetNextRetry(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+
+		emailSvc := mocks.NewMockEmailServiceInterface(ctrl)
+		emailSvc.EXPECT().SendEmail(gomock.Any(), gomock.Any(), true).
+			Return(errors.New("message rejected with code 452: 4.3.1 quota exceeded")).AnyTimes()
+
+		historyRepo := mocks.NewMockMessageHistoryRepository(ctrl)
+		historyRepo.EXPECT().Upsert(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+
+		w := NewEmailQueueWorker(queueRepo, mocks.NewMockWorkspaceRepository(ctrl), emailSvc, historyRepo, cfg, log)
+		w.ctx = context.Background()
+
+		var opened []string
+		w.SetCircuitOpenCallback(func(workspaceID, integrationID string, _ *emailerror.ClassifiedError) {
+			opened = append(opened, workspaceID+"/"+integrationID)
+		})
+		return w, &opened
+	}
+
+	workspace := &domain.Workspace{
+		ID: "ws-1",
+		Integrations: []domain.Integration{{
+			ID: "intg-1",
+			EmailProvider: domain.EmailProvider{
+				Kind:               domain.EmailProviderKindSMTP,
+				RateLimitPerMinute: 6000,
+			},
+		}},
+	}
+	entry := func(id string) *domain.EmailQueueEntry {
+		return &domain.EmailQueueEntry{
+			ID: id, Status: domain.EmailQueueStatusPending,
+			SourceType: domain.EmailQueueSourceBroadcast, SourceID: "bc-1",
+			IntegrationID: "intg-1", ContactEmail: "a@b.com", MessageID: "m-" + id,
+			Attempts: 0, MaxAttempts: 3,
+		}
+	}
+
+	t.Run("fires once when the circuit opens, not per entry", func(t *testing.T) {
+		w, opened := newWorker(t, 3)
+
+		for i := 0; i < 8; i++ {
+			w.processEntry(workspace, entry(fmt.Sprintf("e-%d", i)))
+		}
+
+		// Entries after the third are skipped by the open breaker, so they never
+		// reach the provider and never record another failure.
+		assert.Equal(t, []string{"ws-1/intg-1"}, *opened)
+	})
+
+	t.Run("an unset callback leaves the breaker throttling silently", func(t *testing.T) {
+		w, _ := newWorker(t, 2)
+		w.SetCircuitOpenCallback(nil)
+
+		for i := 0; i < 4; i++ {
+			w.processEntry(workspace, entry(fmt.Sprintf("e-%d", i)))
+		}
+
+		assert.True(t, w.circuitBreaker.IsOpen("intg-1"))
+	})
 }

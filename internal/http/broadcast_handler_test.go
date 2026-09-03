@@ -2402,3 +2402,95 @@ func TestBroadcastHandlers_PermissionDenied(t *testing.T) {
 		assert.Equal(t, http.StatusForbidden, w.Code)
 	})
 }
+
+// TestHandleRetryFailed drives the endpoint the way an API client does: raw JSON,
+// not a typed literal. A struct literal cannot express a body that omitted a field,
+// which is exactly the shape that gets past validation unnoticed.
+func TestHandleRetryFailed(t *testing.T) {
+	handler, mockService, _, mockLogger, ctrl := setupBroadcastHandler(t)
+	defer ctrl.Finish()
+
+	post := func(body map[string]interface{}) *httptest.ResponseRecorder {
+		raw, _ := json.Marshal(body)
+		req := httptest.NewRequest(http.MethodPost, "/api/broadcasts.retryFailed", bytes.NewBuffer(raw))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		handler.HandleRetryFailed(w, req)
+		return w
+	}
+
+	t.Run("reports how many recipients were requeued", func(t *testing.T) {
+		mockService.EXPECT().
+			RetryFailedRecipients(gomock.Any(), gomock.Any()).
+			DoAndReturn(func(_ context.Context, req *domain.RetryFailedBroadcastRequest) (int64, error) {
+				assert.Equal(t, "workspace123", req.WorkspaceID)
+				assert.Equal(t, "broadcast123", req.ID)
+				return 23, nil
+			})
+
+		w := post(map[string]interface{}{"workspace_id": "workspace123", "id": "broadcast123"})
+
+		assert.Equal(t, http.StatusOK, w.Code)
+		var response map[string]interface{}
+		assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &response))
+		assert.Equal(t, float64(23), response["requeued"])
+	})
+
+	t.Run("a body missing the broadcast id is refused", func(t *testing.T) {
+		w := post(map[string]interface{}{"workspace_id": "workspace123"})
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+	})
+
+	t.Run("a body missing the workspace is refused", func(t *testing.T) {
+		w := post(map[string]interface{}{"id": "broadcast123"})
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+	})
+
+	t.Run("GET is not allowed", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/api/broadcasts.retryFailed", nil)
+		w := httptest.NewRecorder()
+		handler.HandleRetryFailed(w, req)
+		assert.Equal(t, http.StatusMethodNotAllowed, w.Code)
+	})
+
+	t.Run("a refusal about the broadcast's own state reaches the caller", func(t *testing.T) {
+		mockService.EXPECT().
+			RetryFailedRecipients(gomock.Any(), gomock.Any()).
+			Return(int64(0), &domain.ErrBroadcastRetryNotAllowed{
+				Reason: "this broadcast is still sending: 4 messages are still queued",
+			})
+
+		w := post(map[string]interface{}{"workspace_id": "workspace123", "id": "broadcast123"})
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+		assert.Contains(t, w.Body.String(), "still sending")
+	})
+
+	t.Run("a failure of ours is a 500 and does not leak its cause", func(t *testing.T) {
+		// Answering 400 for an unreachable database tells an API client its request
+		// was wrong, so it fixes the request forever instead of retrying.
+		mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+		mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+		mockService.EXPECT().
+			RetryFailedRecipients(gomock.Any(), gomock.Any()).
+			Return(int64(0), errors.New("failed to read broadcast queue counts: pq: connection refused"))
+
+		w := post(map[string]interface{}{"workspace_id": "workspace123", "id": "broadcast123"})
+
+		assert.Equal(t, http.StatusInternalServerError, w.Code)
+		assert.NotContains(t, w.Body.String(), "connection refused")
+	})
+
+	t.Run("a permission refusal answers 403", func(t *testing.T) {
+		mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+		mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+		mockService.EXPECT().
+			RetryFailedRecipients(gomock.Any(), gomock.Any()).
+			Return(int64(0), domain.NewPermissionError(
+				domain.PermissionResourceBroadcasts, domain.PermissionTypeWrite, "nope"))
+
+		w := post(map[string]interface{}{"workspace_id": "workspace123", "id": "broadcast123"})
+
+		assert.Equal(t, http.StatusForbidden, w.Code)
+	})
+}

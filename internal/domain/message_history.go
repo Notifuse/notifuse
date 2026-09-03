@@ -184,6 +184,7 @@ type MessageHistoryRepository interface {
 	SetOpened(ctx context.Context, workspaceID, id string, timestamp time.Time) error
 
 	// GetBroadcastStats retrieves statistics for a broadcast
+	// (message history only; the queue is not this repository's concern)
 	GetBroadcastStats(ctx context.Context, workspaceID, broadcastID string) (*MessageHistoryStatusSum, error)
 
 	// GetBroadcastVariationStats retrieves statistics for a specific variation of a broadcast
@@ -198,13 +199,26 @@ type MessageHistoryRepository interface {
 	DeleteForEmail(ctx context.Context, workspaceID, email string) error
 }
 
+// BroadcastDeliveryStats pairs what message history knows about a broadcast with
+// what its queue is still holding. The two answer different questions and only
+// together say whether a campaign is finished: history records the outcome of each
+// attempt, while the queue is the only thing that knows whether anything is still
+// on its way out, or has been given up on.
+type BroadcastDeliveryStats struct {
+	Stats *MessageHistoryStatusSum `json:"stats"`
+	// Queue is nil when the counts could not be read. The stats still stand on
+	// their own, so a queue that cannot be reached degrades the page rather than
+	// emptying it.
+	Queue *EmailQueueSourceCounts `json:"queue,omitempty"`
+}
+
 // MessageHistoryService defines methods for interacting with message history
 type MessageHistoryService interface {
 	// ListMessages retrieves messages for a workspace with cursor-based pagination and filters
 	ListMessages(ctx context.Context, workspaceID string, params MessageListParams) (*MessageListResult, error)
 
-	// GetBroadcastStats retrieves statistics for a broadcast
-	GetBroadcastStats(ctx context.Context, workspaceID, broadcastID string) (*MessageHistoryStatusSum, error)
+	// GetBroadcastStats retrieves statistics for a broadcast, together with what its queue is still holding
+	GetBroadcastStats(ctx context.Context, workspaceID, broadcastID string) (*BroadcastDeliveryStats, error)
 
 	// GetBroadcastVariationStats retrieves statistics for a specific variation of a broadcast
 	GetBroadcastVariationStats(ctx context.Context, workspaceID, broadcastID, templateID string) (*MessageHistoryStatusSum, error)

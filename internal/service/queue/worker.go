@@ -21,6 +21,14 @@ type EmailQueueWorkerConfig struct {
 	// Circuit breaker settings
 	CircuitBreakerThreshold int           // Provider errors before opening circuit (default: 5)
 	CircuitBreakerCooldown  time.Duration // Time before auto-reset attempt (default: 1 minute)
+
+	// Retention for entries that spent every attempt. They are kept so the
+	// recipients they name can be retried, and they hold one compiled email each,
+	// so they cannot be kept indefinitely. Seven days matches the lifetime of the
+	// web-identify token baked into that email: nothing recoverable is discarded,
+	// and no live credential outlives its own validity.
+	TerminalRetentionDays int           // default: 7
+	CleanupInterval       time.Duration // how often the sweep may run (default: 1 hour)
 }
 
 // DefaultWorkerConfig returns sensible default configuration
@@ -32,11 +40,20 @@ func DefaultWorkerConfig() *EmailQueueWorkerConfig {
 		MaxRetries:              3,
 		CircuitBreakerThreshold: 5,
 		CircuitBreakerCooldown:  getCircuitBreakerCooldown(),
+		TerminalRetentionDays:   7,
+		CleanupInterval:         time.Hour,
 	}
 }
 
 // EmailSentCallback is called when an email is successfully sent
 type EmailSentCallback func(workspaceID string, sourceType domain.EmailQueueSourceType, sourceID string, messageID string)
+
+// CircuitOpenCallback is called the moment an integration's circuit breaker opens.
+// The transition is the signal, not the state: the breaker is consulted once per queue
+// entry, so an open circuit is observed thousands of times for one outage. It fires
+// again each time the breaker re-opens after a cooldown, so whatever it triggers has
+// to be idempotent.
+type CircuitOpenCallback func(workspaceID string, integrationID string, lastErr *emailerror.ClassifiedError)
 
 // EmailFailedCallback is called when an email fails to send
 type EmailFailedCallback func(workspaceID string, sourceType domain.EmailQueueSourceType, sourceID string, messageID string, err error, isPermanent bool)
@@ -58,6 +75,9 @@ type EmailQueueWorker struct {
 	config          *EmailQueueWorkerConfig
 	logger          logger.Logger
 
+	// lastCleanupTime throttles the retention sweep, which walks every workspace.
+	lastCleanupTime time.Time
+
 	// Control
 	ctx     context.Context
 	cancel  context.CancelFunc
@@ -68,6 +88,9 @@ type EmailQueueWorker struct {
 	// Callbacks for progress tracking
 	onEmailSent   EmailSentCallback
 	onEmailFailed EmailFailedCallback
+
+	// onCircuitOpen is optional; when unset an opening circuit only throttles.
+	onCircuitOpen CircuitOpenCallback
 }
 
 // NewEmailQueueWorker creates a new EmailQueueWorker
@@ -100,11 +123,15 @@ func NewEmailQueueWorker(
 		workspaceRepo:      workspaceRepo,
 		emailService:       emailService,
 		messageHistoryRepo: messageHistoryRepo,
-		rateLimiter:        NewIntegrationRateLimiter(),
-		circuitBreaker:     NewIntegrationCircuitBreaker(cbConfig),
-		errorClassifier:    emailerror.NewClassifier(),
-		config:             config,
-		logger:             log,
+		// Seeded so the first sweep happens one interval from now. Left at the zero
+		// time it would DELETE across every workspace database on the first poll tick,
+		// during startup, for no reason — nothing has aged out in the meantime.
+		lastCleanupTime: time.Now(),
+		rateLimiter:     NewIntegrationRateLimiter(),
+		circuitBreaker:  NewIntegrationCircuitBreaker(cbConfig),
+		errorClassifier: emailerror.NewClassifier(),
+		config:          config,
+		logger:          log,
 	}
 }
 
@@ -112,6 +139,13 @@ func NewEmailQueueWorker(
 func (w *EmailQueueWorker) SetCallbacks(onSent EmailSentCallback, onFailed EmailFailedCallback) {
 	w.onEmailSent = onSent
 	w.onEmailFailed = onFailed
+}
+
+// SetCircuitOpenCallback registers what happens when an integration's circuit opens.
+// Without one the breaker only slows the queue down and tells nobody, which is how a
+// provider refusing every message could burn through a campaign's retries unnoticed.
+func (w *EmailQueueWorker) SetCircuitOpenCallback(cb CircuitOpenCallback) {
+	w.onCircuitOpen = cb
 }
 
 // Start begins processing queued emails
@@ -174,6 +208,7 @@ func (w *EmailQueueWorker) processLoop() {
 			return
 		case <-ticker.C:
 			w.processAllWorkspaces()
+			w.cleanupTerminallyFailed()
 		}
 	}
 }
@@ -404,7 +439,15 @@ func (w *EmailQueueWorker) processEntry(workspace *domain.Workspace, entry *doma
 		}).Debug("Classified send error")
 
 		// Record failure to circuit breaker (only counts provider errors)
-		w.circuitBreaker.RecordFailure(entry.IntegrationID, classifiedErr)
+		_, opened := w.circuitBreaker.RecordFailure(entry.IntegrationID, classifiedErr)
+		if opened && w.onCircuitOpen != nil {
+			w.logger.WithFields(map[string]interface{}{
+				"integration_id": entry.IntegrationID,
+				"workspace_id":   workspace.ID,
+				"error":          err.Error(),
+			}).Warn("Circuit breaker opened for integration")
+			w.onCircuitOpen(workspace.ID, entry.IntegrationID, classifiedErr)
+		}
 
 		w.handleError(workspace, entry, err, classifiedErr)
 		return
@@ -470,19 +513,22 @@ func (w *EmailQueueWorker) handleError(workspace *domain.Workspace, entry *domai
 	w.upsertMessageHistory(w.ctx, workspace.ID, workspace.Settings.SecretKey, entry, "", sendErr)
 
 	if isPermanent {
-		// Permanent failure - delete the queue entry
-		// Message history already tracks this permanent failure via upsertMessageHistory above
+		// The entry is kept, not deleted. Deleting it was what made the recipient
+		// unrecoverable: nothing downstream knew the campaign had given up on anyone,
+		// and there was nothing left to retry. Held in a terminal state it is inert —
+		// FetchPending skips a row with no attempts left — until a retry revives it or
+		// the retention sweep collects it.
 		w.logger.WithFields(map[string]interface{}{
 			"entry_id":   entry.ID,
 			"message_id": entry.MessageID,
 			"attempts":   entry.Attempts,
 		}).Warn("Email permanently failed")
 
-		if err := w.queueRepo.Delete(w.ctx, workspace.ID, entry.ID); err != nil {
+		if err := w.queueRepo.MarkAsPermanentlyFailed(w.ctx, workspace.ID, entry.ID, sendErr.Error()); err != nil {
 			w.logger.WithFields(map[string]interface{}{
 				"entry_id": entry.ID,
 				"error":    err.Error(),
-			}).Error("Failed to delete permanently failed queue entry")
+			}).Error("Failed to record permanently failed queue entry")
 		}
 
 		// Call failure callback (isPermanent = true)
@@ -577,6 +623,48 @@ func (w *EmailQueueWorker) upsertMessageHistory(
 			"message_id": entry.MessageID,
 			"error":      err.Error(),
 		}).Warn("Failed to upsert message history")
+	}
+}
+
+// cleanupTerminallyFailed sweeps abandoned entries past the retention window. It runs
+// on the poll loop but no more often than CleanupInterval, because it walks every
+// workspace and nothing here is urgent.
+func (w *EmailQueueWorker) cleanupTerminallyFailed() {
+	retentionDays := w.config.TerminalRetentionDays
+	if retentionDays <= 0 {
+		return
+	}
+
+	interval := w.config.CleanupInterval
+	if interval <= 0 {
+		interval = time.Hour
+	}
+	if time.Since(w.lastCleanupTime) < interval {
+		return
+	}
+	w.lastCleanupTime = time.Now()
+
+	workspaces, err := w.workspaceRepo.List(w.ctx)
+	if err != nil {
+		w.logger.WithField("error", err.Error()).Error("Failed to list workspaces for queue retention sweep")
+		return
+	}
+
+	for _, workspace := range workspaces {
+		deleted, err := w.queueRepo.DeleteTerminallyFailedOlderThan(w.ctx, workspace.ID, retentionDays)
+		if err != nil {
+			w.logger.WithFields(map[string]interface{}{
+				"workspace_id": workspace.ID,
+				"error":        err.Error(),
+			}).Error("Failed to sweep expired failed queue entries")
+			continue
+		}
+		if deleted > 0 {
+			w.logger.WithFields(map[string]interface{}{
+				"workspace_id": workspace.ID,
+				"deleted":      deleted,
+			}).Info("Swept expired failed queue entries")
+		}
 	}
 }
 

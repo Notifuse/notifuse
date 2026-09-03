@@ -54,6 +54,7 @@ func (h *BroadcastHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.Handle("/api/broadcasts.pause", requireAuth(http.HandlerFunc(h.HandlePause)))
 	mux.Handle("/api/broadcasts.resume", requireAuth(http.HandlerFunc(h.HandleResume)))
 	mux.Handle("/api/broadcasts.cancel", requireAuth(http.HandlerFunc(h.HandleCancel)))
+	mux.Handle("/api/broadcasts.retryFailed", restrictedInDemo(requireAuth(http.HandlerFunc(h.HandleRetryFailed))))
 	mux.Handle("/api/broadcasts.sendToIndividual", requireAuth(http.HandlerFunc(h.HandleSendToIndividual)))
 	mux.Handle("/api/broadcasts.delete", requireAuth(http.HandlerFunc(h.HandleDelete)))
 	// A/B Testing endpoints
@@ -287,6 +288,53 @@ func (h *BroadcastHandler) HandleSchedule(w http.ResponseWriter, r *http.Request
 
 	writeJSON(w, http.StatusOK, map[string]interface{}{
 		"success": true,
+	})
+}
+
+// HandleRetryFailed handles the POST /api/broadcasts.retryFailed request
+func (h *BroadcastHandler) HandleRetryFailed(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req domain.RetryFailedBroadcastRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.logger.WithField("error", err.Error()).Error("Failed to decode request body")
+		WriteJSONError(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if err := req.Validate(); err != nil {
+		WriteJSONError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	requeued, err := h.service.RetryFailedRecipients(r.Context(), &req)
+	if err != nil {
+		if writePermissionError(w, err) {
+			return
+		}
+		if _, ok := err.(*domain.ErrBroadcastNotFound); ok {
+			WriteJSONError(w, "Broadcast not found", http.StatusNotFound)
+			return
+		}
+		// Only a refusal about the broadcast's own state is the caller's to fix, and
+		// only its reason is safe to echo back. Anything else is ours, and answering
+		// 400 for it would tell an API client its request was wrong when the database
+		// was simply unreachable.
+		if notAllowed, ok := err.(*domain.ErrBroadcastRetryNotAllowed); ok {
+			WriteJSONError(w, notAllowed.Reason, http.StatusBadRequest)
+			return
+		}
+		h.logger.WithField("error", err.Error()).Error("Failed to retry failed recipients")
+		WriteJSONError(w, "Failed to retry failed recipients", http.StatusInternalServerError)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"status":   "success",
+		"requeued": requeued,
 	})
 }
 

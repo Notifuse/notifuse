@@ -146,12 +146,17 @@ func (r *EmailQueueRepository) FetchPending(ctx context.Context, workspaceID str
 	// Fetch pending emails ordered by priority (lower = higher priority), then by creation time
 	// Include failed emails that are ready for retry
 	// Include stuck processing entries (>2 minutes old) for recovery after worker crash
+	//
+	// The attempt guard on the pending branch is a backstop. An entry that has spent
+	// its budget should never be 'pending', but anything that put it there would
+	// otherwise hand it straight back to the worker and mail someone the campaign has
+	// already reported as failed.
 	query := `
 		SELECT id, status, priority, source_type, source_id, integration_id, provider_kind,
 		       contact_email, message_id, template_id, payload, attempts, max_attempts,
 		       last_error, next_retry_at, created_at, updated_at, processed_at
 		FROM email_queue
-		WHERE (status = 'pending' AND (next_retry_at IS NULL OR next_retry_at <= NOW()))
+		WHERE (status = 'pending' AND attempts < max_attempts AND (next_retry_at IS NULL OR next_retry_at <= NOW()))
 		   OR (status = 'failed' AND attempts < max_attempts AND next_retry_at <= NOW())
 		   OR (status = 'processing' AND updated_at < NOW() - INTERVAL '2 minutes')
 		ORDER BY priority ASC, created_at ASC
@@ -269,6 +274,123 @@ func (r *EmailQueueRepository) Delete(ctx context.Context, workspaceID string, e
 	return nil
 }
 
+// ListActiveSourcesByIntegration returns the sources still riding on one integration.
+// Covered by idx_email_queue_integration (integration_id, status).
+func (r *EmailQueueRepository) ListActiveSourcesByIntegration(ctx context.Context, workspaceID string, sourceType domain.EmailQueueSourceType, integrationID string) ([]string, error) {
+	db, err := r.getDB(ctx, workspaceID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get database connection: %w", err)
+	}
+
+	// 'paused' is excluded on purpose: a source already stopped needs nothing done
+	// to it, and including it would make a flapping breaker rewrite its pause reason.
+	query := `
+		SELECT DISTINCT source_id
+		FROM email_queue
+		WHERE source_type = $1 AND integration_id = $2
+		  AND status IN ('pending', 'processing', 'failed')
+	`
+
+	rows, err := db.QueryContext(ctx, query, sourceType, integrationID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list active sources by integration: %w", err)
+	}
+	defer rows.Close()
+
+	var sourceIDs []string
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, fmt.Errorf("failed to scan source id: %w", err)
+		}
+		sourceIDs = append(sourceIDs, id)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating source ids: %w", err)
+	}
+
+	return sourceIDs, nil
+}
+
+// MarkAsPermanentlyFailed records that an entry has spent every attempt.
+// The row stays: deleting it was what made the recipient unrecoverable and left the
+// broadcast reading as complete. processed_at is stamped here — this is its first
+// writer — because the retention sweep needs to know when the entry was given up on.
+func (r *EmailQueueRepository) MarkAsPermanentlyFailed(ctx context.Context, workspaceID string, entryID string, errorMsg string) error {
+	db, err := r.getDB(ctx, workspaceID)
+	if err != nil {
+		return fmt.Errorf("failed to get database connection: %w", err)
+	}
+
+	query := `
+		UPDATE email_queue
+		SET status = 'failed',
+		    last_error = $2,
+		    next_retry_at = NULL,
+		    processed_at = NOW(),
+		    updated_at = NOW()
+		WHERE id = $1
+	`
+
+	if _, err := db.ExecContext(ctx, query, entryID, errorMsg); err != nil {
+		return fmt.Errorf("failed to mark entry as permanently failed: %w", err)
+	}
+
+	return nil
+}
+
+// ResetTerminallyFailedBySource requeues the entries a source gave up on.
+func (r *EmailQueueRepository) ResetTerminallyFailedBySource(ctx context.Context, workspaceID string, sourceType domain.EmailQueueSourceType, sourceID string, integrationID string) (int64, error) {
+	db, err := r.getDB(ctx, workspaceID)
+	if err != nil {
+		return 0, fmt.Errorf("failed to get database connection: %w", err)
+	}
+
+	query := `
+		UPDATE email_queue
+		SET status = 'pending',
+		    attempts = 0,
+		    next_retry_at = NULL,
+		    last_error = NULL,
+		    processed_at = NULL,
+		    integration_id = $3,
+		    updated_at = NOW()
+		WHERE source_type = $1 AND source_id = $2
+		  AND status = 'failed' AND next_retry_at IS NULL
+	`
+
+	result, err := db.ExecContext(ctx, query, sourceType, sourceID, integrationID)
+	if err != nil {
+		return 0, fmt.Errorf("failed to requeue terminally failed entries: %w", err)
+	}
+
+	return result.RowsAffected()
+}
+
+// DeleteTerminallyFailedOlderThan sweeps abandoned entries past the retention window.
+func (r *EmailQueueRepository) DeleteTerminallyFailedOlderThan(ctx context.Context, workspaceID string, days int) (int64, error) {
+	db, err := r.getDB(ctx, workspaceID)
+	if err != nil {
+		return 0, fmt.Errorf("failed to get database connection: %w", err)
+	}
+
+	query := `
+		DELETE FROM email_queue
+		WHERE status = 'failed'
+		  AND next_retry_at IS NULL
+		  AND processed_at IS NOT NULL
+		  AND processed_at < NOW() - make_interval(days => $1)
+	`
+
+	result, err := db.ExecContext(ctx, query, days)
+	if err != nil {
+		return 0, fmt.Errorf("failed to delete expired terminally failed entries: %w", err)
+	}
+
+	return result.RowsAffected()
+}
+
 // SetNextRetry updates next_retry_at WITHOUT incrementing attempts
 // Used by circuit breaker to schedule retry without burning retry attempts
 func (r *EmailQueueRepository) SetNextRetry(ctx context.Context, workspaceID string, entryID string, nextRetry time.Time) error {
@@ -277,10 +399,15 @@ func (r *EmailQueueRepository) SetNextRetry(ctx context.Context, workspaceID str
 		return fmt.Errorf("failed to get database connection: %w", err)
 	}
 
+	// Never resurrect a paused entry. This runs when the circuit breaker skips a row
+	// the worker had already fetched, and the broadcast may have been paused in the
+	// meantime — by that same open circuit. Without the guard the skip writes the row
+	// back as 'pending' and it escapes the pause, spending on its own the attempts the
+	// pause exists to protect.
 	query := `
 		UPDATE email_queue
 		SET next_retry_at = $1, status = 'pending', updated_at = NOW()
-		WHERE id = $2
+		WHERE id = $2 AND status <> 'paused'
 	`
 
 	_, err = db.ExecContext(ctx, query, nextRetry, entryID)
@@ -374,16 +501,57 @@ func (r *EmailQueueRepository) CountBySourceAndStatus(ctx context.Context, works
 	return count, nil
 }
 
+// GetSourceCounts breaks a source's rows down by what each one is waiting on.
+// Covered by idx_email_queue_source (source_type, source_id, status).
+func (r *EmailQueueRepository) GetSourceCounts(ctx context.Context, workspaceID string, sourceType domain.EmailQueueSourceType, sourceID string) (*domain.EmailQueueSourceCounts, error) {
+	db, err := r.getDB(ctx, workspaceID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get database connection: %w", err)
+	}
+
+	// 'failed' splits on next_retry_at, not on the attempt count. A row that has been
+	// given up on carries no retry date, and that is true whether it exhausted three
+	// attempts or was refused once by a rejection there is no point repeating — a
+	// mailbox that does not exist gets one attempt, and counting attempts would file
+	// it under "still coming back".
+	query := `
+		SELECT
+			COALESCE(SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END), 0) AS pending,
+			COALESCE(SUM(CASE WHEN status = 'processing' THEN 1 ELSE 0 END), 0) AS processing,
+			COALESCE(SUM(CASE WHEN status = 'paused' THEN 1 ELSE 0 END), 0) AS paused,
+			COALESCE(SUM(CASE WHEN status = 'failed' AND next_retry_at IS NOT NULL THEN 1 ELSE 0 END), 0) AS failed_retrying,
+			COALESCE(SUM(CASE WHEN status = 'failed' AND next_retry_at IS NULL THEN 1 ELSE 0 END), 0) AS failed_terminal
+		FROM email_queue
+		WHERE source_type = $1 AND source_id = $2
+	`
+
+	counts := &domain.EmailQueueSourceCounts{}
+	err = db.QueryRowContext(ctx, query, sourceType, sourceID).Scan(
+		&counts.Pending, &counts.Processing, &counts.Paused,
+		&counts.FailedRetrying, &counts.FailedTerminal,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get source counts: %w", err)
+	}
+
+	return counts, nil
+}
+
 // emailQueueExecutor is satisfied by both *sql.DB and *sql.Tx.
 type emailQueueExecutor interface {
 	ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
 }
 
+// Pausing must not touch an entry that has already been given up on. Sweeping it
+// into 'paused' would make it come back as 'pending' on resume, so a pause and a
+// resume would silently retry recipients nobody asked to retry — and the count
+// behind "Completed — N failed" would fall to zero on its own.
 const pauseBySourceSQL = `
 	UPDATE email_queue
 	SET status = 'paused', updated_at = NOW()
 	WHERE source_type = $1 AND source_id = $2
 	  AND status IN ('pending', 'failed')
+	  AND NOT (status = 'failed' AND next_retry_at IS NULL)
 `
 
 const resumeBySourceSQL = `

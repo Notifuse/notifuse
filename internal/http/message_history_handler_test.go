@@ -1048,7 +1048,10 @@ func TestMessageHistoryHandler_handleBroadcastStats_Success(t *testing.T) {
 	// Mock message history service
 	mockService.EXPECT().
 		GetBroadcastStats(gomock.Any(), "ws123", "bc123").
-		Return(stats, nil)
+		Return(&domain.BroadcastDeliveryStats{
+			Stats: stats,
+			Queue: &domain.EmailQueueSourceCounts{Pending: 3, FailedTerminal: 4},
+		}, nil)
 
 	// Call the handler
 	handler.handleBroadcastStats(w, req)
@@ -1072,4 +1075,12 @@ func TestMessageHistoryHandler_handleBroadcastStats_Success(t *testing.T) {
 	assert.Equal(t, float64(50), statsMap["total_opened"])
 	assert.Equal(t, float64(30), statsMap["total_clicked"])
 	assert.Equal(t, float64(2), statsMap["total_unsubscribed"])
+
+	// The queue counts ride on this same response: they are what separates a
+	// campaign that has finished from one still working, and the console polls
+	// this endpoint per broadcast card already.
+	queueMap, ok := response["queue"].(map[string]interface{})
+	require.True(t, ok, "Queue counts should be a map")
+	assert.Equal(t, float64(3), queueMap["pending"])
+	assert.Equal(t, float64(4), queueMap["failed_terminal"])
 }

@@ -108,6 +108,32 @@ func (p *EmailQueuePayload) ToSendEmailProviderRequest(workspaceID, integrationI
 	}
 }
 
+// EmailQueueSourceCounts breaks one source's queue rows down by what they are
+// waiting on. It answers the question the broadcast page could not: a campaign is
+// finished when nothing here is still in flight, and a campaign that finished with
+// FailedTerminal above zero did not reach everyone.
+//
+// This has to come from the queue rather than from message history. sent_at is
+// stamped on the first attempt whatever happens next, so counting history rows
+// cannot separate "delivered" from "gave up", and history is written after the
+// queue row is deleted, so its row count is not a reliable denominator either.
+type EmailQueueSourceCounts struct {
+	Pending    int64 `json:"pending"`
+	Processing int64 `json:"processing"`
+	Paused     int64 `json:"paused"`
+	// FailedRetrying carries a retry date and will be picked up again on its own.
+	FailedRetrying int64 `json:"failed_retrying"`
+	// FailedTerminal has been given up on: no retry date, nothing will pick it up.
+	// That covers both an entry that spent every attempt and one refused by something
+	// there is no point repeating, such as a mailbox that does not exist.
+	FailedTerminal int64 `json:"failed_terminal"`
+}
+
+// InFlight reports whether anything is still on its way out for this source.
+func (c *EmailQueueSourceCounts) InFlight() int64 {
+	return c.Pending + c.Processing + c.Paused + c.FailedRetrying
+}
+
 // EmailQueueStats provides queue statistics for a workspace
 type EmailQueueStats struct {
 	Pending    int64 `json:"pending"`
@@ -139,8 +165,29 @@ type EmailQueueRepository interface {
 	// MarkAsFailed marks an entry as failed and schedules retry
 	MarkAsFailed(ctx context.Context, workspaceID string, id string, errorMsg string, nextRetryAt *time.Time) error
 
-	// Delete removes a queue entry (used when max retries exhausted)
+	// Delete removes a queue entry
 	Delete(ctx context.Context, workspaceID string, entryID string) error
+
+	// MarkAsPermanentlyFailed records that an entry has spent every attempt and
+	// nothing will retry it on its own. The row is kept rather than deleted: it is
+	// the only record of who was not reached and the only thing a retry can revive.
+	MarkAsPermanentlyFailed(ctx context.Context, workspaceID string, entryID string, errorMsg string) error
+
+	// ResetTerminallyFailedBySource puts every abandoned entry for a source back in
+	// the queue with a fresh attempt budget, rebound to integrationID. Returns how
+	// many were requeued.
+	//
+	// Deliberately narrow: an entry still retrying is on its way back by itself, and
+	// resetting its counter mid-flight would give it more tries than the policy allows.
+	// The rebinding matters because an entry carries the integration it was enqueued
+	// with, and swapping the provider out is often the very fix that makes a retry
+	// worth attempting.
+	ResetTerminallyFailedBySource(ctx context.Context, workspaceID string, sourceType EmailQueueSourceType, sourceID string, integrationID string) (int64, error)
+
+	// DeleteTerminallyFailedOlderThan sweeps abandoned entries past the retention
+	// window. They hold one recipient's compiled email, so they cannot be kept
+	// forever; the window is what a retry has to be used within.
+	DeleteTerminallyFailedOlderThan(ctx context.Context, workspaceID string, days int) (int64, error)
 
 	// SetNextRetry updates next_retry_at WITHOUT incrementing attempts
 	// Used by circuit breaker to schedule retry without burning retry attempts
@@ -155,6 +202,15 @@ type EmailQueueRepository interface {
 
 	// CountBySourceAndStatus counts entries by source and status
 	CountBySourceAndStatus(ctx context.Context, workspaceID string, sourceType EmailQueueSourceType, sourceID string, status EmailQueueStatus) (int64, error)
+
+	// GetSourceCounts breaks a source's rows down by what they are waiting on, in
+	// one round trip. This is the authority on whether a broadcast has finished.
+	GetSourceCounts(ctx context.Context, workspaceID string, sourceType EmailQueueSourceType, sourceID string) (*EmailQueueSourceCounts, error)
+
+	// ListActiveSourcesByIntegration returns the distinct sources that still have
+	// live rows on one integration. Used to find what an outage on that integration
+	// is actually affecting.
+	ListActiveSourcesByIntegration(ctx context.Context, workspaceID string, sourceType EmailQueueSourceType, integrationID string) ([]string, error)
 
 	// PauseBySource marks all pending/failed entries for a source as paused.
 	// Processing entries are untouched (mid-send, will complete naturally).
