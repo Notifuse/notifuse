@@ -1,7 +1,6 @@
-import { Alert } from 'antd'
 import { useLingui } from '@lingui/react/macro'
 import { useLicense } from '../../hooks/useLicense'
-import { LICENSE_PRICING_URL } from '../../types/license'
+import { LicenceBlock } from './LicenceBlock'
 
 /**
  * Told to an operator who has switched single sign-on on without a licence that covers it.
@@ -24,7 +23,14 @@ import { LICENSE_PRICING_URL } from '../../types/license'
  * translating it eight times before it settles pays for it twice. English and French, like the
  * rest of the licence surface.
  */
-export function SsoLicenceNotice({ oidcEnabled }: { oidcEnabled: boolean }) {
+export function SsoLicenceNotice({
+  oidcEnabled,
+  workspaceId
+}: {
+  oidcEnabled: boolean
+  /** Where the block's one button routes; the drawer sits outside any workspace route. */
+  workspaceId?: string
+}) {
   const { t } = useLingui()
   const { has } = useLicense()
 
@@ -34,19 +40,10 @@ export function SsoLicenceNotice({ oidcEnabled }: { oidcEnabled: boolean }) {
   if (!oidcEnabled || has('sso')) return null
 
   return (
-    <Alert
-      className="!mb-4"
-      type="warning"
-      showIcon
+    <LicenceBlock
       title={t`Single sign-on is switched on, and this deployment's licence does not include it.`}
-      description={
-        <>
-          {t`The SSO button stays hidden on the sign-in page until a licence covering it is installed. Everyone signs in with a login code in the meantime — nobody is locked out, and no session was ended.`}{' '}
-          <a href={LICENSE_PRICING_URL} target="_blank" rel="noopener noreferrer">
-            {t`Buy a licence`}
-          </a>
-        </>
-      }
+      description={t`The SSO button stays hidden on the sign-in page until a licence covering it is installed. Everyone signs in with a login code in the meantime — nobody is locked out, and no session was ended.`}
+      workspaceId={workspaceId}
     />
   )
 }

@@ -1497,7 +1497,7 @@ msgstr "Zielgruppe"
 msgid "Audit logs"
 msgstr ""
 
-#: src/components/license/LicenceGateNotice.tsx:62
+#: src/components/license/LicenceGateNotice.tsx:56
 msgid "Audit logs require a Notifuse {tier} licence."
 msgstr ""
 
@@ -2220,8 +2220,7 @@ msgstr "Schaltflächen-Innenabstand"
 msgid "Button Size"
 msgstr "Schaltflächengröße"
 
-#: src/components/license/SsoLicenceNotice.tsx:46
-#: src/components/settings/LicenseSettings.tsx:131
+#: src/components/settings/LicenseSettings.tsx:200
 msgid "Buy a licence"
 msgstr ""
 
@@ -2378,7 +2377,7 @@ msgstr "Upload im Nur-Lese-Modus nicht möglich"
 msgid "Canonical URL"
 msgstr "Kanonische URL"
 
-#: src/components/settings/LicenseSettings.tsx:179
+#: src/components/settings/LicenseSettings.tsx:166
 msgid "Capabilities"
 msgstr ""
 
@@ -2764,7 +2763,7 @@ msgstr "Kommagetrennt. Nur diese Domains dürfen Konten automatisch erstellen."
 msgid "Common ports: 587 (TLS), 465 (SSL), 25 (unencrypted)"
 msgstr "Gängige Ports: 587 (TLS), 465 (SSL), 25 (unverschlüsselt)"
 
-#: src/components/settings/LicenseSettings.tsx:173
+#: src/components/settings/LicenseSettings.tsx:160
 msgid "Community"
 msgstr ""
 
@@ -3794,7 +3793,7 @@ msgstr ""
 msgid "Custom permissions (RBAC)"
 msgstr ""
 
-#: src/components/license/LicenceGateNotice.tsx:59
+#: src/components/license/LicenceGateNotice.tsx:53
 msgid "Custom permissions require a Notifuse {tier} licence."
 msgstr ""
 
@@ -5424,7 +5423,7 @@ msgstr "Jede \"setzen\"-Operation benötigt einen Wert"
 msgid "Every domain"
 msgstr "Jede Domain"
 
-#: src/components/license/LicenceGateNotice.tsx:70
+#: src/components/license/LicenceGateNotice.tsx:64
 msgid "Every member keeps the access they have, and any member can still be given full access. Only a narrower grant needs a licence."
 msgstr ""
 
@@ -5439,7 +5438,7 @@ msgstr "Jedes Unterelement hat weniger als {0} Sitzungen. Senken Sie den Schwell
 msgid "Every time"
 msgstr "Jedes Mal"
 
-#: src/components/license/LicenceGateNotice.tsx:72
+#: src/components/license/LicenceGateNotice.tsx:66
 msgid "Everyone signs in with a login code in the meantime; nobody is locked out."
 msgstr ""
 
@@ -5509,7 +5508,7 @@ msgstr ""
 msgid "Expired, in grace period"
 msgstr ""
 
-#: src/components/settings/LicenseSettings.tsx:175
+#: src/components/settings/LicenseSettings.tsx:162
 msgid "Expires"
 msgstr ""
 
@@ -7173,11 +7172,11 @@ msgstr "Eingerückt"
 msgid "Install"
 msgstr "Installieren"
 
-#: src/components/settings/LicenseSettings.tsx:202
+#: src/components/settings/LicenseSettings.tsx:206
 msgid "Install a licence key"
 msgstr ""
 
-#: src/components/settings/LicenseSettings.tsx:219
+#: src/components/settings/LicenseSettings.tsx:223
 msgid "Install licence key"
 msgstr ""
 
@@ -7600,16 +7599,16 @@ msgstr "Lizenz"
 msgid "Licence key installed"
 msgstr ""
 
-#: src/components/license/LicenceGateNotice.tsx:102
+#: src/components/license/LicenceBlock.tsx:63
 msgid "Licence settings"
 msgstr ""
 
-#: src/components/license/LicenceGateNotice.tsx:94
+#: src/components/license/LicenceBlock.tsx:55
 msgid "Licensed capability"
 msgstr ""
 
 #. placeholder {0}: entitlements.org
-#: src/components/settings/LicenseSettings.tsx:150
+#: src/components/settings/LicenseSettings.tsx:137
 msgid "Licensed to {0}"
 msgstr ""
 
@@ -9486,7 +9485,7 @@ msgstr "Passwort (optional)"
 #~ msgid "Paste a licence key first"
 #~ msgstr ""
 
-#: src/components/settings/LicenseSettings.tsx:205
+#: src/components/settings/LicenseSettings.tsx:209
 msgid "Paste the key from your purchase email. It is verified offline against a signing key built into this binary — nothing is sent anywhere."
 msgstr ""
 
@@ -9659,7 +9658,7 @@ msgstr "Die gewinnende A/B-Variation auswählen und an die verbleibende Zielgrup
 msgid "Plain text (only safe behind a TLS-terminating proxy)"
 msgstr "Klartext (nur hinter einem TLS-terminierenden Proxy sicher)"
 
-#: src/components/settings/LicenseSettings.tsx:172
+#: src/components/settings/LicenseSettings.tsx:159
 msgid "Plan"
 msgstr ""
 
@@ -10641,7 +10640,7 @@ msgstr "Verweisquellen"
 
 #: src/components/contacts/ContactDetailsDrawer.tsx:630
 #: src/components/messages/MessageHistoryTable.tsx:426
-#: src/components/settings/LicenseSettings.tsx:168
+#: src/components/settings/LicenseSettings.tsx:155
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:429
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:429
 #: src/pages/ContactsPage.tsx:910
@@ -11943,7 +11942,7 @@ msgstr "Der Versand wurde pausiert. Sie können ihn jederzeit fortsetzen."
 msgid "Sending test webhook..."
 msgstr "Test-Webhook wird gesendet..."
 
-#: src/components/license/LicenceGateNotice.tsx:71
+#: src/components/license/LicenceGateNotice.tsx:65
 msgid "Sending through this integration is unaffected, and a tenant that already exists keeps being used. Switching isolation on needs a licence."
 msgstr ""
 
@@ -12019,7 +12018,7 @@ msgstr "SES-Mandant"
 msgid "SES tenant isolation"
 msgstr "SES-Mandantenisolierung"
 
-#: src/components/license/LicenceGateNotice.tsx:60
+#: src/components/license/LicenceGateNotice.tsx:54
 msgid "SES tenant isolation requires a Notifuse {tier} licence."
 msgstr ""
 
@@ -12289,7 +12288,7 @@ msgstr ""
 msgid "Single sign-on failed. Please try again or use a magic code."
 msgstr "Single Sign-On fehlgeschlagen. Bitte versuchen Sie es erneut oder verwenden Sie einen Magic Code."
 
-#: src/components/license/SsoLicenceNotice.tsx:41
+#: src/components/license/SsoLicenceNotice.tsx:44
 msgid "Single sign-on is switched on, and this deployment's licence does not include it."
 msgstr ""
 
@@ -12297,7 +12296,7 @@ msgstr ""
 msgid "Single sign-on is temporarily unavailable. Please try a magic code."
 msgstr "Single Sign-On ist vorübergehend nicht verfügbar. Bitte verwenden Sie einen Magic Code."
 
-#: src/components/license/LicenceGateNotice.tsx:61
+#: src/components/license/LicenceGateNotice.tsx:55
 msgid "Single sign-on requires a Notifuse {tier} licence."
 msgstr ""
 
@@ -12600,7 +12599,7 @@ msgstr "Bundesland"
 #: src/components/blog/RecentThemesTable.tsx:122
 #: src/components/contacts/ContactDetailsDrawer.tsx:982
 #: src/components/messages/MessageHistoryTab.tsx:567
-#: src/components/settings/LicenseSettings.tsx:161
+#: src/components/settings/LicenseSettings.tsx:148
 #: src/components/web_analytics/filters/FilterTable.tsx:264
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:82
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:378
@@ -12991,7 +12990,7 @@ msgstr "Vorlagenstrukturdaten fehlen oder sind ungültig."
 msgid "Template translations"
 msgstr ""
 
-#: src/components/license/LicenceGateNotice.tsx:63
+#: src/components/license/LicenceGateNotice.tsx:57
 msgid "Template translations require a Notifuse {tier} licence."
 msgstr ""
 
@@ -13343,7 +13342,7 @@ msgstr "Die ausgewählte Datei"
 msgid "The site refuses to be displayed inside another page, which is a common security setting. Open it in a new tab to see it."
 msgstr "Die Website verweigert die Anzeige innerhalb einer anderen Seite, was eine übliche Sicherheitseinstellung ist. Öffnen Sie sie in einem neuen Tab, um sie zu sehen."
 
-#: src/components/license/SsoLicenceNotice.tsx:44
+#: src/components/license/SsoLicenceNotice.tsx:45
 msgid "The SSO button stays hidden on the sign-in page until a licence covering it is installed. Everyone signs in with a login code in the meantime — nobody is locked out, and no session was ended."
 msgstr ""
 
@@ -13519,7 +13518,7 @@ msgstr ""
 #~ msgid "This deployment is in read-only mode: single sign-on is enabled without a licence that covers it. Turn SSO off, or install a licence, to make changes."
 #~ msgstr ""
 
-#: src/components/license/LicenceGateNotice.tsx:73
+#: src/components/license/LicenceGateNotice.tsx:67
 msgid "This deployment keeps working without them."
 msgstr ""
 
@@ -14075,7 +14074,7 @@ msgstr "Transaktionale Benachrichtigungen"
 msgid "Transactional Provider"
 msgstr "Transaktions-Anbieter"
 
-#: src/components/license/LicenceGateNotice.tsx:74
+#: src/components/license/LicenceGateNotice.tsx:68
 msgid "Translations already saved keep being sent, and switching one off is always allowed. Adding or editing one needs a licence."
 msgstr ""
 
@@ -15167,7 +15166,7 @@ msgstr "Schreibrecht für Arbeitsbereich ist weit enger, als sein Name vermuten 
 msgid "Workspace:"
 msgstr "Arbeitsbereich:"
 
-#: src/components/settings/LicenseSettings.tsx:178
+#: src/components/settings/LicenseSettings.tsx:165
 #: src/services/api/licenseErrors.ts:54
 msgid "Workspaces"
 msgstr ""

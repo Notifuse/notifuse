@@ -17,7 +17,7 @@ const entitlements = (features: Entitlements['features']): Entitlements => ({
 const renderNotice = (oidcEnabled: boolean, value: Partial<LicenseContextValue> = {}) =>
   render(
     <LicenseContext.Provider value={{ ...UNKNOWN_LICENSE, ...value }}>
-      <SsoLicenceNotice oidcEnabled={oidcEnabled} />
+      <SsoLicenceNotice oidcEnabled={oidcEnabled} workspaceId="ws1" />
     </LicenseContext.Provider>
   )
 
@@ -31,7 +31,9 @@ describe('SsoLicenceNotice', () => {
     // What still works comes before what to buy: the failure being described is a missing
     // button, not a broken login, and an operator reading this needs to know that first.
     expect(screen.getByText(/nobody is locked out/i)).toBeInTheDocument()
-    expect(screen.getByText('Buy a licence')).toBeInTheDocument()
+    // The same block, and the same one button, as every other licence message in the console.
+    expect(screen.getByRole('button', { name: 'Licence settings' })).toBeInTheDocument()
+    expect(screen.queryByText('Buy a licence')).not.toBeInTheDocument()
   })
 
   it('says nothing when the licence covers SSO', () => {

@@ -23,6 +23,13 @@ type ServerManager struct {
 	isStarted bool
 	config    *config.Config
 	dbManager *DatabaseManager
+
+	// licenseErr is why the harness could not mint the licence the server runs under —
+	// almost always a build without -tags licdev. Held here rather than failing in
+	// NewServerManager, which has no error to return, and surfaced by every Start
+	// variant so the suite stops at setup with the tag to add instead of running on
+	// the free tier and failing deep inside a workspace or SSO test on a 402.
+	licenseErr error
 }
 
 // AppInterface defines the interface for the App (to avoid circular imports)
@@ -68,6 +75,10 @@ func NewServerManager(appFactory func(*config.Config) AppInterface, dbManager *D
 	// Create test JWT secret (32+ bytes for HS256)
 	jwtSecret := []byte("test-jwt-secret-key-for-integration-tests-only-32bytes")
 
+	// The suite runs on an enterprise licence — see license.go for what it carries and
+	// why. A licence the binary does not trust is recorded and reported from Start.
+	licenseKey, licenseErr := DevLicenseKey()
+
 	// Create test configuration
 	// Use "development" to enable features like returning invitation tokens in responses
 	cfg := &config.Config{
@@ -75,6 +86,7 @@ func NewServerManager(appFactory func(*config.Config) AppInterface, dbManager *D
 		RootEmail:   "test@example.com",
 		APIEndpoint: "",   // Empty to trigger direct task execution instead of HTTP callbacks
 		IsInstalled: true, // Mark as installed for tests
+		LicenseKey:  licenseKey,
 		Server: config.ServerConfig{
 			Host: "127.0.0.1",
 			Port: 0, // Use random available port
@@ -109,9 +121,10 @@ func NewServerManager(appFactory func(*config.Config) AppInterface, dbManager *D
 	app := appFactory(cfg)
 
 	return &ServerManager{
-		app:       app,
-		config:    cfg,
-		dbManager: dbManager,
+		app:        app,
+		config:     cfg,
+		dbManager:  dbManager,
+		licenseErr: licenseErr,
 	}
 }
 
@@ -140,6 +153,9 @@ func NewServerManagerWithLiveScheduler(appFactory func(*config.Config) AppInterf
 func (sm *ServerManager) Start() error {
 	if sm.isStarted {
 		return nil
+	}
+	if sm.licenseErr != nil {
+		return sm.licenseErr
 	}
 
 	// Initialize the app
@@ -200,6 +216,9 @@ func (sm *ServerManager) Start() error {
 func (sm *ServerManager) StartLive(ctx context.Context) error {
 	if sm.isStarted {
 		return nil
+	}
+	if sm.licenseErr != nil {
+		return sm.licenseErr
 	}
 
 	// 1. Bind the listener first to know the port.
@@ -280,6 +299,9 @@ func (sm *ServerManager) StartLive(ctx context.Context) error {
 func (sm *ServerManager) StartLiveDirect(ctx context.Context) error {
 	if sm.isStarted {
 		return nil
+	}
+	if sm.licenseErr != nil {
+		return sm.licenseErr
 	}
 
 	listener, err := net.Listen("tcp", fmt.Sprintf("%s:0", sm.config.Server.Host))

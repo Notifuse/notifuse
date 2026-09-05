@@ -172,7 +172,14 @@ jobs:
           # ~15.7m locally with -race, against ~14m before. At the top of the
           # observed inflation range that lands on ~35m, so the budget goes to
           # 45m to keep the same margin the 35m was chosen for.
-          go test -race -tags integration -coverprofile=coverage-integration.txt -covermode=atomic -timeout=45m ./tests/integration/... -v
+          #
+          # -tags licdev makes the binary trust the committed dev signing key,
+          # so the enterprise licence the harness mints (tests/testutil/
+          # license.go) verifies and the suite runs with every gate open. A
+          # release-keyed build refuses that licence, degrades to the free tier
+          # and fails seven suites on a 402 at the fourth workspace; the harness
+          # detects that build and refuses to start rather than run degraded.
+          go test -race -tags integration,licdev -coverprofile=coverage-integration.txt -covermode=atomic -timeout=45m ./tests/integration/... -v
 
       # - name: Upload integration test coverage to Codecov
       #   uses: codecov/codecov-action@v3

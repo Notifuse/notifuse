@@ -1,7 +1,6 @@
-import { Button } from 'antd'
-import { useNavigate } from '@tanstack/react-router'
 import { useLingui } from '@lingui/react/macro'
 import { useLicense } from '../../hooks/useLicense'
+import { LicenceBlock } from './LicenceBlock'
 import { LICENSE_REQUIRED_TIER, type LicenseFeature } from '../../types/license'
 
 interface LicenceGateNoticeProps {
@@ -37,10 +36,6 @@ interface LicenceGateNoticeProps {
  * from the eight-language gate: licence prose is expected to change once real operators have
  * read it. English and French, like the rest of the licence surface.
  */
-// The same gradient BulkActionsBar draws its border with, anchored on the primary so the block
-// reads as the product's own voice rather than as a warning: this is an offer, not an alarm.
-const GRADIENT = 'bg-gradient-to-r from-primary via-fuchsia-500 to-pink-500'
-
 export function LicenceGateNotice({
   feature,
   workspaceId,
@@ -48,7 +43,6 @@ export function LicenceGateNotice({
 }: LicenceGateNoticeProps) {
   const { t } = useLingui()
   const { has } = useLicense()
-  const navigate = useNavigate()
 
   if (has(feature)) return null
 
@@ -74,37 +68,12 @@ export function LicenceGateNotice({
     template_i18n: t`Translations already saved keep being sent, and switching one off is always allowed. Adding or editing one needs a licence.`
   }
 
-  const openLicenseSettings = () => {
-    if (!workspaceId) return
-    navigate({
-      to: '/console/workspace/$workspaceId/settings/$section',
-      params: { workspaceId, section: 'licence' }
-    })
-  }
-
   return (
-    // A gradient border is a gradient box with a white box inside it; the padding is the
-    // border's width. Drawn this way rather than with border-image so the corners stay round.
-    <div role="note" className={`${GRADIENT} rounded-lg p-[1.5px] ${className}`}>
-      <div className="rounded-[6.5px] bg-white px-5 py-4">
-        <div className="min-w-0">
-          <div
-            className={`${GRADIENT} mb-1 inline-block bg-clip-text text-[11px] font-semibold uppercase tracking-wider text-transparent`}
-          >
-            {t`Licensed capability`}
-          </div>
-          <div className="text-sm font-semibold text-gray-900">{titles[feature]}</div>
-          <div className="mt-1 text-sm text-gray-600">{stillWorks[feature]}</div>
-
-          {workspaceId && (
-            <div className="mt-3">
-              <Button size="small" type="primary" onClick={openLicenseSettings}>
-                {t`Licence settings`}
-              </Button>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
+    <LicenceBlock
+      title={titles[feature]}
+      description={stillWorks[feature]}
+      workspaceId={workspaceId}
+      className={className}
+    />
   )
 }

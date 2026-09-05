@@ -60,11 +60,9 @@ The function expects JSON payloads matching the following structure:
 
 A field has to survive four declarations to reach an analyst — the sender's struct in `internal/service/telemetry_service.go`, `TelemetryMetrics` here, `LogEntry` here, and a column in `bigquery_schema.json` — and nothing links them at compile time. A field missing from either of the last two is discarded in silence: the sender still gets its 200 and the function logs no error. `TestLogEntryMatchesBigQuerySchema` in `main_test.go` compares the struct against the schema file in both directions so that omission is a red test instead of a column of NULLs found months later.
 
-`bigquery_schema.json` is the desired shape of the table, not something applied automatically. Adding columns to an existing BigQuery table is additive and non-destructive, but somebody has to run it:
+`bigquery_schema.json` is the contract the test checks, not something applied to BigQuery — and nothing should be. The tables are not created by this function: the Log Router sink `telemetry-to-bigquery` exports every entry with `event_type="telemetry_metrics"` into date-sharded tables `telemetry.telemetry_YYYYMMDD`, whose `jsonPayload` record grows on its own the first time an entry carries a new field. `bq update --schema` against one of those shards is neither needed nor possible; the shard's schema is the sink's, with `logName`, `resource`, `jsonPayload` and the rest.
 
-```bash
-bq update --schema bigquery_schema.json <project>:<dataset>.<table>
-```
+What does not update itself is the view analysts read, `telemetry.metrics_view`, whose column list is explicit. A new field needs a column there, added by hand, and read through `JSON_EXTRACT_SCALAR(TO_JSON_STRING(jsonPayload), '$.<field>')` rather than as `jsonPayload.<field>`: a shard is created from the first entry of its day and a direct reference to a field the newest shard does not carry yet fails the whole view, whereas the JSON read answers NULL. `consolidated_telemetry` is a `SELECT *` over the shards and needs nothing. The view's definition is kept in `metrics_view.sql` next to this file, with the command that applies it, so that a column added by hand is added in the repository first.
 
 Existing rows keep NULL for the new columns, which is correct — those instances never sent the field. So do the rows that keep arriving from senders older than the column, which is the part that took a fix rather than a sentence: a field absent from the payload has to stay absent from the row.
 

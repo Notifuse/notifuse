@@ -17,10 +17,14 @@ e2e-test-within-cursor-agent:
 	@./run-integration-tests.sh "Test" 2>&1 | grep -E "PASS|FAIL|^ok|===|^---" || true
 	@echo "\n✅ All integration tests completed"
 
-# -tags integration is required: without it the scheduler/dispatch tests are
-# silently excluded, which is exactly the machinery most likely to regress.
+# Both tags are required. Without `integration` the scheduler/dispatch tests are
+# silently excluded, which is exactly the machinery most likely to regress. Without
+# `licdev` the binary trusts only the release signing key, so the enterprise licence
+# the harness mints (tests/testutil/license.go) is refused, the server degrades to the
+# free tier, and every suite that creates a fourth workspace or signs in through SSO
+# fails on a 402. The harness detects that build and refuses to start.
 test-integration:
-	INTEGRATION_TESTS=true go test -race -tags integration -timeout 20m ./tests/integration/ -v
+	INTEGRATION_TESTS=true go test -race -tags integration,licdev -timeout 20m ./tests/integration/ -v
 
 test-domain:
 	go test -race -v ./internal/domain
