@@ -10,6 +10,7 @@ Notifuse manages one system database plus one database per workspace. The migrat
 ## Process
 
 1. **Update version**: increment the major version in `config/config.go` (`VERSION = "N.0"`). Major = schema changes; minor = everything else.
+   Then rebuild the browser SDK: `cd web_analytics_sdk && npm run build`, and commit `dist/` and `package.json` alongside the bump. VERSION is the SDK's single source of truth — rollup injects it into every bundle and `sync-version` writes it to the SDK manifest — so a bump without a rebuild leaves the committed bundle stale and fails the Web Analytics SDK workflow.
 2. **Create migration file**: new file in `internal/migrations/` (e.g. `vN.go`).
 3. **Implement the interface**:
 
