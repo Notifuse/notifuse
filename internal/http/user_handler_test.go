@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"sort"
 	"testing"
 	"time"
 
@@ -34,7 +35,12 @@ func setupUserHandlerTest(t *testing.T) (*UserHandler, *mocks.MockUserServiceInt
 	// Create key pair for testing
 	jwtSecret := []byte("test-jwt-secret-key-for-testing-32bytes")
 	mockLogger := &pkgmocks.MockLogger{}
-	handler := NewUserHandler(mockUserSvc, mockWorkspaceSvc, cfg, func() ([]byte, error) { return jwtSecret, nil }, mockLogger)
+	// An unlicensed deployment, which is what most of this file is about: the licence source
+	// is required by the constructor, and the free tier is the state every failure degrades
+	// to. Tests that care about the licence overwrite handler.licenseService — the field is
+	// unexported and these tests are in-package, the same way the settings handler's licence
+	// tests do it. mockLicenseService is declared in settings_handler_test.go.
+	handler := NewUserHandler(mockUserSvc, mockWorkspaceSvc, newMockLicenseService(), cfg, func() ([]byte, error) { return jwtSecret, nil }, mockLogger)
 
 	return handler, mockUserSvc, mockWorkspaceSvc, jwtSecret
 }
@@ -48,8 +54,8 @@ func TestUserHandler_SignIn(t *testing.T) {
 
 	// Create handlers with different configs
 	getJWTSecret := func() ([]byte, error) { return jwtSecret, nil }
-	devHandler := NewUserHandler(mockUserSvc, mockWorkspaceSvc, devConfig, getJWTSecret, &pkgmocks.MockLogger{})
-	prodHandler := NewUserHandler(mockUserSvc, mockWorkspaceSvc, prodConfig, getJWTSecret, &pkgmocks.MockLogger{})
+	devHandler := NewUserHandler(mockUserSvc, mockWorkspaceSvc, newMockLicenseService(), devConfig, getJWTSecret, &pkgmocks.MockLogger{})
+	prodHandler := NewUserHandler(mockUserSvc, mockWorkspaceSvc, newMockLicenseService(), prodConfig, getJWTSecret, &pkgmocks.MockLogger{})
 
 	tests := []struct {
 		name         string
@@ -978,4 +984,177 @@ func TestUserHandler_GetCurrentUserFileManagerSecretDependsOnTheCaller(t *testin
 		assert.Contains(t, rec.Body.String(), fileManagerSecret,
 			"withholding this from the console breaks the browser file manager")
 	})
+}
+
+// The console's licence state is fed from /api/user.me and from nowhere else.
+//
+// /api/licence.get is the other source and it is root-only, so a non-root session that could
+// not read the licence off this payload would meet each gate as an unexplained refusal.
+// console/src/contexts/LicenseContext.tsx prefers this response precisely because it costs no
+// extra round trip.
+func TestUserHandler_GetCurrentUserCarriesEntitlements(t *testing.T) {
+	const userID = "test-user"
+	const sessionID = "test-session"
+
+	user := &domain.User{ID: userID, Email: "u@example.com"}
+
+	// call drives one request and returns the decoded body. licence is applied to the
+	// handler before the call, so a test states the deployment's licence state and nothing
+	// else. callAs additionally says which address is root; call is callAs with none.
+	var callAs func(t *testing.T, userType, rootEmail string, licence func(*mockLicenseService)) map[string]interface{}
+	call := func(t *testing.T, userType string, licence func(*mockLicenseService)) map[string]interface{} {
+		return callAs(t, userType, "", licence)
+	}
+	callAs = func(t *testing.T, userType, rootEmail string, licence func(*mockLicenseService)) map[string]interface{} {
+		t.Helper()
+
+		handler, mockUserSvc, mockWorkspaceSvc, _ := setupUserHandlerTest(t)
+		handler.config.RootEmail = rootEmail
+		licenseSvc := newMockLicenseService()
+		licence(licenseSvc)
+		handler.licenseService = licenseSvc
+
+		ctx := context.WithValue(context.Background(), domain.UserIDKey, userID)
+		ctx = context.WithValue(ctx, domain.UserTypeKey, userType)
+		if userType == string(domain.UserTypeUser) {
+			ctx = context.WithValue(ctx, domain.SessionIDKey, sessionID)
+			mockUserSvc.EXPECT().VerifyUserSession(gomock.Any(), userID, sessionID).Return(user, nil)
+		}
+		mockUserSvc.EXPECT().GetUserByID(gomock.Any(), userID).Return(user, nil)
+		mockWorkspaceSvc.EXPECT().ListWorkspaces(gomock.Any()).Return([]*domain.Workspace{}, nil)
+
+		req := httptest.NewRequest(http.MethodGet, "/api/user.me", nil).WithContext(ctx)
+		rec := httptest.NewRecorder()
+		handler.GetCurrentUser(rec, req)
+
+		require.Equal(t, http.StatusOK, rec.Code)
+		var body map[string]interface{}
+		require.NoError(t, json.NewDecoder(rec.Body).Decode(&body))
+		return body
+	}
+
+	// Absence is the regression this whole test exists for, so it is reported as a failed
+	// assertion rather than as a nil map assertion panicking three subtests later.
+	entitlementsOf := func(t *testing.T, body map[string]interface{}) map[string]interface{} {
+		t.Helper()
+
+		entitlements, ok := body["entitlements"].(map[string]interface{})
+		require.True(t, ok, "user.me carried no entitlements, so the banner has no state to render")
+		return entitlements
+	}
+
+	t.Run("a console session is told what the deployment is licensed for", func(t *testing.T) {
+		body := call(t, string(domain.UserTypeUser), func(m *mockLicenseService) {
+			m.entitlements = licensedEntitlements()
+		})
+
+		entitlements := entitlementsOf(t, body)
+
+		assert.Equal(t, "agency", entitlements["tier"])
+		// But not who bought it. The licensee's name and billing address are what make
+		// /api/licence.get root-only, and a non-root session is told everything the
+		// banner needs and nothing it does not.
+		assert.Equal(t, "", entitlements["org"])
+		assert.Equal(t, "", entitlements["sub"])
+		assert.Equal(t, float64(15), entitlements["max_workspaces"])
+		assert.Equal(t, []interface{}{"rbac", "ses_tenant"}, entitlements["features"])
+		assert.Equal(t, "grace", entitlements["state"])
+		assert.Equal(t, "2026-03-01T12:00:00Z", entitlements["expires_at"])
+	})
+
+	t.Run("the root session is told who the licensee is, for the settings card", func(t *testing.T) {
+		body := callAs(t, string(domain.UserTypeUser), user.Email, func(m *mockLicenseService) {
+			m.entitlements = licensedEntitlements()
+		})
+
+		entitlements := entitlementsOf(t, body)
+		assert.Equal(t, "ACME SAS", entitlements["org"])
+		assert.Equal(t, "billing@acme.com", entitlements["sub"])
+	})
+
+	// The free tier is a state, not an absence. A console told nothing cannot tell an
+	// unlicensed deployment from a server too old to answer, and treats unknown as licensed.
+	t.Run("an unlicensed deployment reports the community tier rather than nothing", func(t *testing.T) {
+		body := call(t, string(domain.UserTypeUser), func(m *mockLicenseService) {
+			m.entitlements = domain.CommunityEntitlements()
+		})
+
+		entitlements := entitlementsOf(t, body)
+		assert.Equal(t, "none", entitlements["state"])
+		assert.Equal(t, float64(domain.CommunityMaxWorkspaces), entitlements["max_workspaces"])
+		assert.Equal(t, []interface{}{}, entitlements["features"],
+			"null features would crash the console, which iterates the field")
+	})
+
+	// The shape is the contract. console/src/types/license.ts declares Entitlements field for
+	// field against internal/domain/license.go, and this endpoint must not invent a third
+	// shape — a console reading max_workspaces from a payload that spells it maxWorkspaces
+	// silently reads undefined and greys nothing out.
+	t.Run("the entitlements object is exactly the shape the console declares", func(t *testing.T) {
+		body := call(t, string(domain.UserTypeUser), func(m *mockLicenseService) {
+			m.entitlements = licensedEntitlements()
+		})
+
+		entitlements := entitlementsOf(t, body)
+		fields := make([]string, 0, len(entitlements))
+		for field := range entitlements {
+			fields = append(fields, field)
+		}
+		sort.Strings(fields)
+
+		assert.Equal(t,
+			[]string{"expires_at", "features", "max_workspaces", "org", "state", "sub", "tier"},
+			fields,
+			"the payload no longer matches console/src/types/license.ts")
+	})
+
+	// A licence key is a bearer credential: whoever holds it can license their own
+	// deployment with it. Nothing derived from one may carry it back out, and this endpoint
+	// is answered to every signed-in session rather than to root alone.
+	t.Run("the raw key is never in the payload", func(t *testing.T) {
+		body := call(t, string(domain.UserTypeUser), func(m *mockLicenseService) {
+			m.entitlements = licensedEntitlements()
+		})
+
+		entitlements := entitlementsOf(t, body)
+		assert.NotContains(t, entitlements, "key")
+		assert.NotContains(t, entitlements, "license_key")
+	})
+
+	// An API key authenticates this same endpoint — it is how an integration resolves its
+	// workspaces. Withholding the entitlements keeps the licensee's name and billing address
+	// out of bodies that integration platforms log whole, the same rule that keeps the S3
+	// secret away from machine traffic. Absence reads as "not told" on the console side,
+	// which types the field optional.
+	t.Run("an api key is told nothing about the licence", func(t *testing.T) {
+		body := call(t, string(domain.UserTypeAPIKey), func(m *mockLicenseService) {
+			m.entitlements = licensedEntitlements()
+		})
+
+		assert.NotContains(t, body, "entitlements")
+		// The rest of the payload is untouched: this is a redaction, not a refusal.
+		assert.NotNil(t, body["user"])
+	})
+}
+
+// user.me is a read, and it is the call the console makes to find out what the deployment is
+// licensed for. It answers 405 to every other method, in every licence state — a read that
+// behaved differently depending on the licence would be the one endpoint a console could not
+// trust to tell it the truth.
+func TestUserHandler_GetCurrentUserRefusesEveryMethodButGET(t *testing.T) {
+	for _, method := range []string{http.MethodPost, http.MethodPut, http.MethodDelete, http.MethodPatch} {
+		t.Run("refuses "+method, func(t *testing.T) {
+			// No service expectations: the guard must run before anything is looked up.
+			handler, _, _, _ := setupUserHandlerTest(t)
+
+			ctx := context.WithValue(context.Background(), domain.UserIDKey, "test-user")
+			ctx = context.WithValue(ctx, domain.UserTypeKey, string(domain.UserTypeUser))
+			req := httptest.NewRequest(method, "/api/user.me", nil).WithContext(ctx)
+			rec := httptest.NewRecorder()
+
+			handler.GetCurrentUser(rec, req)
+
+			assert.Equal(t, http.StatusMethodNotAllowed, rec.Code)
+		})
+	}
 }

@@ -32,6 +32,9 @@ export function DashboardPage() {
         extra={
           isRootUser(user?.email) ? (
             <div style={{ display: 'flex', gap: '8px' }}>
+              {/* Root only, and no licence gate stands in front of it: system settings is
+                  where SSO is switched on and off, and it is where a deployment running SSO
+                  without a licence for it is told so. */}
               <SystemSettingsDrawer />
               <Button
                 type="primary"

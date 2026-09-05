@@ -4,6 +4,7 @@ import { router } from '../../router'
 // here because most call sites already import it from this module.
 export { ApiError } from './errors'
 import { ApiError, permissionDeniedMessage, permissionDenialFromBody } from './errors'
+import { licenseRefusalFromBody, licenseRefusedMessage } from './licenseErrors'
 
 async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
@@ -35,7 +36,16 @@ async function handleResponse<T>(response: Response): Promise<T> {
     // otherwise show anything but the server's English prose. errorData is passed through
     // untouched, so a handler that wants the resource and verb still reads them off `data`.
     const denial = permissionDenialFromBody(errorData)
-    const message = denial ? permissionDeniedMessage(denial) : errorData?.error
+
+    // A licence refusal gets the same treatment for the same reason: the console names the
+    // capability and the remedy, rather than passing the server's English prose through.
+    const refusal = denial ? null : licenseRefusalFromBody(errorData)
+
+    const message = denial
+      ? permissionDeniedMessage(denial)
+      : refusal
+        ? licenseRefusedMessage(refusal)
+        : errorData?.error
 
     throw new ApiError(message || 'An error occurred', response.status, errorData)
   }

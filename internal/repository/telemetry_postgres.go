@@ -7,17 +7,43 @@ import (
 	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
+	"github.com/Notifuse/notifuse/pkg/logger"
 )
 
 type telemetryRepository struct {
 	workspaceRepo domain.WorkspaceRepository
+	logger        logger.Logger
 }
 
-// NewTelemetryRepository creates a new PostgreSQL telemetry repository
-func NewTelemetryRepository(workspaceRepo domain.WorkspaceRepository) domain.TelemetryRepository {
+// NewTelemetryRepository creates a new PostgreSQL telemetry repository.
+//
+// The logger is required, not optional. Every metric below is collected on a
+// best-effort basis and a failure leaves a zero in the payload; without somewhere
+// to say so, a query that has been broken since it was written reports a
+// plausible-looking zero forever — which is exactly what CountUsers did. A
+// nil-tolerant logger would restore that silence, so omitting it is a compile
+// error.
+func NewTelemetryRepository(workspaceRepo domain.WorkspaceRepository, logger logger.Logger) domain.TelemetryRepository {
 	return &telemetryRepository{
 		workspaceRepo: workspaceRepo,
+		logger:        logger,
 	}
+}
+
+// metricFailed records that one metric could not be collected.
+//
+// It is a warning rather than an error because the payload is still sent and the
+// instance is unaffected: the cost is one missing number in an analytics table.
+// It is not silence, because a metric that is structurally broken — a table that
+// does not exist, a column that was never added — fails on every workspace of
+// every installation, forever, and reports a zero that reads exactly like a real
+// one.
+func (r *telemetryRepository) metricFailed(workspaceID, metric string, err error) {
+	r.logger.WithFields(map[string]interface{}{
+		"workspace_id": workspaceID,
+		"metric":       metric,
+		"error":        err.Error(),
+	}).Warn("telemetry: failed to collect workspace metric")
 }
 
 // GetWorkspaceMetrics retrieves aggregated metrics for a specific workspace
@@ -36,53 +62,68 @@ func (r *telemetryRepository) GetWorkspaceMetrics(ctx context.Context, workspace
 
 	metrics := &domain.TelemetryMetrics{}
 
-	// Count contacts
-	if contactsCount, err := r.CountContacts(ctx, db); err == nil {
+	// Every metric below is best-effort: a workspace database that predates a
+	// feature has no table for it, and one absent table must not cost the whole
+	// payload. What changed is that a failure is now logged instead of collapsing
+	// into an indistinguishable zero.
+	if contactsCount, err := r.CountContacts(ctx, db); err != nil {
+		r.metricFailed(workspaceID, "contacts_count", err)
+	} else {
 		metrics.ContactsCount = contactsCount
 	}
 
-	// Count broadcasts
-	if broadcastsCount, err := r.CountBroadcasts(ctx, db); err == nil {
+	if broadcastsCount, err := r.CountBroadcasts(ctx, db); err != nil {
+		r.metricFailed(workspaceID, "broadcasts_count", err)
+	} else {
 		metrics.BroadcastsCount = broadcastsCount
 	}
 
-	// Count transactional notifications
-	if transactionalCount, err := r.CountTransactional(ctx, db); err == nil {
+	if transactionalCount, err := r.CountTransactional(ctx, db); err != nil {
+		r.metricFailed(workspaceID, "transactional_count", err)
+	} else {
 		metrics.TransactionalCount = transactionalCount
 	}
 
-	// Count messages
-	if messagesCount, err := r.CountMessages(ctx, db); err == nil {
+	if messagesCount, err := r.CountMessages(ctx, db); err != nil {
+		r.metricFailed(workspaceID, "messages_count", err)
+	} else {
 		metrics.MessagesCount = messagesCount
 	}
 
-	// Count lists
-	if listsCount, err := r.CountLists(ctx, db); err == nil {
+	if listsCount, err := r.CountLists(ctx, db); err != nil {
+		r.metricFailed(workspaceID, "lists_count", err)
+	} else {
 		metrics.ListsCount = listsCount
 	}
 
-	// Count segments
-	if segmentsCount, err := r.CountSegments(ctx, db); err == nil {
+	if segmentsCount, err := r.CountSegments(ctx, db); err != nil {
+		r.metricFailed(workspaceID, "segments_count", err)
+	} else {
 		metrics.SegmentsCount = segmentsCount
 	}
 
-	// Count users (from system database)
-	if usersCount, err := r.CountUsers(ctx, systemDB, workspaceID); err == nil {
+	// Users live in the system database, not the workspace one.
+	if usersCount, err := r.CountUsers(ctx, systemDB, workspaceID); err != nil {
+		r.metricFailed(workspaceID, "users_count", err)
+	} else {
 		metrics.UsersCount = usersCount
 	}
 
-	// Count blog posts
-	if blogPostsCount, err := r.CountBlogPosts(ctx, db); err == nil {
+	if blogPostsCount, err := r.CountBlogPosts(ctx, db); err != nil {
+		r.metricFailed(workspaceID, "blog_posts_count", err)
+	} else {
 		metrics.BlogPostsCount = blogPostsCount
 	}
 
-	// Get last message timestamp
-	if lastMessageAt, err := r.GetLastMessageAt(ctx, db); err == nil {
+	if lastMessageAt, err := r.GetLastMessageAt(ctx, db); err != nil {
+		r.metricFailed(workspaceID, "last_message_at", err)
+	} else {
 		metrics.LastMessageAt = lastMessageAt
 	}
 
-	// Get last web analytics session date
-	if lastWebSessionAt, err := r.GetLastWebSessionAt(ctx, db); err == nil {
+	if lastWebSessionAt, err := r.GetLastWebSessionAt(ctx, db); err != nil {
+		r.metricFailed(workspaceID, "last_web_session_at", err)
+	} else {
 		metrics.LastWebSessionAt = lastWebSessionAt
 	}
 
@@ -155,9 +196,25 @@ func (r *telemetryRepository) CountSegments(ctx context.Context, db *sql.DB) (in
 	return count, nil
 }
 
-// CountUsers counts the total number of users in a workspace from the system database
+// CountUsers counts the human members of a workspace, from the system database.
+//
+// The join onto users and the api_key exclusion are the same convention
+// CountWorkspaceMembersAndInvitations uses for seat counting, and for the same
+// reason: CreateAPIKey stores an ordinary user_workspaces row, so counting rows
+// alone would report a workspace with two people and nine integrations as
+// eleven users. This number exists to describe how many humans share an
+// installation, which is one of the two distributions the open-core go/no-go
+// rests on, so it has to mean people.
+//
+// Membership is hard-deleted here — RemoveUserFromWorkspace issues a DELETE and
+// the table carries no deleted_at column — so there is nothing to filter for
+// soft deletion. An earlier version of this query filtered on deleted_at anyway;
+// Postgres rejected it as an undefined column on every run, GetWorkspaceMetrics
+// swallowed the error, and users_count was zero for every workspace ever
+// reported. Both halves of that are fixed: the predicate is gone and the caller
+// now logs.
 func (r *telemetryRepository) CountUsers(ctx context.Context, systemDB *sql.DB, workspaceID string) (int, error) {
-	query := `SELECT COUNT(*) FROM user_workspaces WHERE workspace_id = $1 AND deleted_at IS NULL`
+	query := `SELECT COUNT(*) FROM user_workspaces uw JOIN users u ON uw.user_id = u.id WHERE uw.workspace_id = $1 AND u.type != 'api_key'`
 	var count int
 	err := systemDB.QueryRowContext(ctx, query, workspaceID).Scan(&count)
 	if err != nil {

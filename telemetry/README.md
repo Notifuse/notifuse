@@ -45,9 +45,34 @@ The function expects JSON payloads matching the following structure:
   "gemini": false,
   "supabase": false,
   "firecrawl": true,
-  "web_analytics": true
+  "web_analytics": true,
+  "ses_tenant": true,
+  "rbac_custom": true,
+  "version": "40.0",
+  "oidc_enabled": true,
+  "license_tier": "agency"
 }
 ```
+
+`ses_tenant` and `rbac_custom` describe the workspace; `version`, `oidc_enabled` and `license_tier` describe the sending installation and therefore repeat identically on every row an instance sends, the same way `api_endpoint` already does. None of them carries an identifier: no tenant name, no issuer, no licence key, no organisation.
+
+## Adding a field
+
+A field has to survive four declarations to reach an analyst — the sender's struct in `internal/service/telemetry_service.go`, `TelemetryMetrics` here, `LogEntry` here, and a column in `bigquery_schema.json` — and nothing links them at compile time. A field missing from either of the last two is discarded in silence: the sender still gets its 200 and the function logs no error. `TestLogEntryMatchesBigQuerySchema` in `main_test.go` compares the struct against the schema file in both directions so that omission is a red test instead of a column of NULLs found months later.
+
+`bigquery_schema.json` is the desired shape of the table, not something applied automatically. Adding columns to an existing BigQuery table is additive and non-destructive, but somebody has to run it:
+
+```bash
+bq update --schema bigquery_schema.json <project>:<dataset>.<table>
+```
+
+Existing rows keep NULL for the new columns, which is correct — those instances never sent the field. So do the rows that keep arriving from senders older than the column, which is the part that took a fix rather than a sentence: a field absent from the payload has to stay absent from the row.
+
+That is why the five v40 fields — `ses_tenant`, `rbac_custom`, `version`, `oidc_enabled`, `license_tier` — are pointers with `omitempty` on both structs in `main.go`. As plain `bool`/`string` they decoded to `false`/`""` and were **written** as `false`/`""`, indistinguishable from an upgraded instance that genuinely has SSO off and no custom RBAC. During a rollout most senders are on the old version, so a query like `countif(oidc_enabled)` would have counted every un-upgraded instance — including every one running SSO — in the `false` bucket, and the number would have read as small.
+
+The sender never omits these fields (`internal/service/telemetry_service.go` carries no `omitempty`), so an unlicensed v40 instance still reports `license_tier: ""` explicitly and still lands as an empty string. **NULL means the sender never spoke; a value means it answered.** `TestPreV40PayloadLeavesTheNewColumnsNull` and `TestExplicitFalseFromAV40SenderIsNotDroppedAsAbsent` pin both halves — the second matters because the tempting shortcut, `omitempty` on plain values, would sweep a genuine `false` away with the absent ones.
+
+A new field added later inherits the same rule: pointer, `omitempty`, both structs.
 
 ## Deployment
 

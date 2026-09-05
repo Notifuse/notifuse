@@ -26,13 +26,20 @@ export class ApiError extends Error {
 /**
  * The query client's retry policy.
  *
- * An expired session and a missing permission are not transient: the second attempt is refused
- * exactly like the first, and repeating it only holds the error back by one retryDelay — long
- * enough that a scoped API key's denial looks like a hung page rather than an answer. Everything
- * else keeps the single retry the client had before.
+ * An expired session, a missing permission and a licence refusal are not transient: the second
+ * attempt is refused exactly like the first, and repeating it only holds the error back by one
+ * retryDelay — long enough that a scoped API key's denial looks like a hung page rather than an
+ * answer. Everything else keeps the single retry the client had before.
+ *
+ * 402 is here for the same reason 403 is, and it matters more: a read-only deployment answers 402
+ * on every refused write, so retrying would double every one of those requests and delay the
+ * explanation the banner is trying to give.
  */
 export function shouldRetryQuery(failureCount: number, error: Error): boolean {
-  if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
+  if (
+    error instanceof ApiError &&
+    (error.status === 401 || error.status === 402 || error.status === 403)
+  ) {
     return false
   }
   return failureCount < 1

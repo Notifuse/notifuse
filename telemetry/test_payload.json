@@ -24,5 +24,10 @@
   "gemini": false,
   "supabase": false,
   "firecrawl": true,
-  "web_analytics": true
+  "web_analytics": true,
+  "ses_tenant": true,
+  "rbac_custom": true,
+  "version": "39.2",
+  "oidc_enabled": true,
+  "license_tier": "agency"
 }

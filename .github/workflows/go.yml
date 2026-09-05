@@ -38,6 +38,19 @@ jobs:
           # Run unit tests (exclude integration tests)
           go test -race -coverprofile=coverage-unit.txt -covermode=atomic $(go list ./... | grep -v '/tests/integration') -v
 
+      # pkg/license/pubkey_dev.go is compiled only under this tag. Without this step
+      # nothing in CI ever builds it, so the dev signing key could rot unnoticed — and
+      # the end-to-end licence tests would keep running their fail-safe branch instead
+      # of the one that actually verifies a minted grant.
+      - name: Run the licence tests under the dev signing key
+        run: make test-licence-dev
+
+      # telemetry/ is a second Go module: the step above lists packages from the root
+      # module only, so it never reaches it. Its tests are what keep the receiver's
+      # structs in step with the BigQuery schema.
+      - name: Run the telemetry receiver tests
+        run: make test-telemetry
+
       - name: Upload unit test coverage to Codecov
         uses: codecov/codecov-action@v5
         with:

@@ -40,6 +40,14 @@ func (h *CustomEventHandler) RegisterRoutes(mux *http.ServeMux) {
 // POST /api/customEvents.upsert - creates or updates a custom event
 // Supports goal tracking (goal_name, goal_type, goal_value) and soft-delete (deleted_at)
 func (h *CustomEventHandler) UpsertCustomEvent(w http.ResponseWriter, r *http.Request) {
+	// POST only, like every other write in this package. Without it this handler decodes
+	// its body whatever the verb, so GET performs the upsert — including the soft-delete
+	// path. Nothing upstream stops that: the mux matches on path alone.
+	if r.Method != http.MethodPost {
+		WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
 	var req domain.UpsertCustomEventRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to decode request")
@@ -69,6 +77,12 @@ func (h *CustomEventHandler) UpsertCustomEvent(w http.ResponseWriter, r *http.Re
 
 // POST /api/customEvents.import
 func (h *CustomEventHandler) ImportCustomEvents(w http.ResponseWriter, r *http.Request) {
+	// POST only. See UpsertCustomEvent — this one bulk-imports.
+	if r.Method != http.MethodPost {
+		WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
 	var req domain.ImportCustomEventsRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to decode request")

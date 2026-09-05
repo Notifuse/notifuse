@@ -1,0 +1,8 @@
+{
+  "_what": "The release key-ceremony self-test vector. NOT A SECRET AND NOT A LICENCE.",
+  "_why": "Pasting the wrong thirty-two bytes into a pubkey_prod.go slot is silent. A seed, a truncated paste, the public half of the wrong pair — all of them are the right length and none of them is zero, so every other check in this package stays green while every paying customer's key is refused with ErrBadSignature. This file is what makes that mistake fail at `go test ./pkg/license/` instead of in production. Each envelope below MUST verify against the slot it is named after, and a byte-flipped copy of it MUST NOT: TestReleaseSelfTestVectorMatchesTheCompiledKeys asserts both.",
+  "_how": "Follow the TODO(release) block in pubkey_prod.go, in order. Mint each envelope with the private half of the pair whose public half went into that slot, with --days 1 and no features, so the vector is useless as a licence the moment it is pinned.",
+  "_state": "Empty because the key ceremony has not happened yet: both production slots still hold the placeholder. Filling a field here while the matching slot is still the placeholder is itself a failure, because it means the ceremony was done out of order.",
+  "slot_active": "NFUSE1.eyJ2IjoxLCJsaWQiOiJsaWNfMjgwNzUzY2EiLCJvcmciOiJOb3RpZnVzZSByZWxlYXNlIHNlbGYtdGVzdCAtIG5vdCBhIGxpY2VuY2UiLCJzdWIiOiJzZWxmdGVzdEBub3RpZnVzZS5jb20iLCJ0aWVyIjoic2VsZnRlc3QiLCJmZWF0IjpbXSwibWF4X3dzIjoxLCJpYXQiOjE3ODg1MTI1ODAsImV4cCI6MTc4ODU5ODk4MH0.-MP0PVYFWhAmWfgfGP9Q6kUseRUBa25gzh9-tHkKfOA3iLT18_3Hx6HWDjfMDnS2bwzpwp4mBiWohAF2eoZ6DQ",
+  "slot_next": ""
+}

@@ -169,6 +169,7 @@ func TestUpdateIntegration_SucceedsWithBlankCredential(t *testing.T) {
 				&SupabaseService{},
 				&DNSVerificationService{},
 				&BlogService{},
+				fullyLicensedProvider(ctrl),
 			)
 
 			ctx := context.Background()
@@ -247,6 +248,7 @@ func TestUpdateIntegration_RotatesWhenACredentialIsSupplied(t *testing.T) {
 		&SupabaseService{},
 		&DNSVerificationService{},
 		&BlogService{},
+		fullyLicensedProvider(ctrl),
 	)
 
 	senders := []domain.EmailSender{domain.NewEmailSender("sender@example.com", "Sender")}

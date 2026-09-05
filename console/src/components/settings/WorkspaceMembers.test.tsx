@@ -3,6 +3,8 @@ import { render, screen, fireEvent, waitFor, within } from '@testing-library/rea
 import { App } from 'antd'
 import { i18n } from '@lingui/core'
 import { I18nProvider } from '@lingui/react'
+import { LicenseContext, UNKNOWN_LICENSE } from '../../contexts/licenseState'
+import type { Entitlements } from '../../types/license'
 import { WorkspaceMembers } from './WorkspaceMembers'
 import type { PermissionResource, WorkspaceMember } from '../../services/api/types'
 import { ALL_PERMISSION_RESOURCES, isPermissionEnforced } from '../../services/api/permissions'
@@ -39,17 +41,36 @@ const apiKeyRow = (permissions: WorkspaceMember['permissions']): WorkspaceMember
   permissions
 })
 
-const renderMembers = (members: WorkspaceMember[]) =>
+// `licensedFor` omitted means the console has not been told, and every advisory read answers
+// "licensed" — the state every other test here runs in.
+const renderMembers = (members: WorkspaceMember[], licensedFor?: Entitlements['features']) =>
   render(
     <I18nProvider i18n={i18n}>
       <App>
-        <WorkspaceMembers
-          workspaceId="ws1"
-          members={members}
-          loading={false}
-          onMembersChange={vi.fn()}
-          isOwner={true}
-        />
+        <LicenseContext.Provider
+          value={{
+            ...UNKNOWN_LICENSE,
+            entitlements: licensedFor
+              ? {
+                  tier: 'Studio',
+                  org: 'ACME SAS',
+                  sub: 'billing@acme.com',
+                  max_workspaces: 5,
+                  features: licensedFor,
+                  state: 'active',
+                  expires_at: '2027-01-01T00:00:00Z'
+                }
+              : null
+          }}
+        >
+          <WorkspaceMembers
+            workspaceId="ws1"
+            members={members}
+            loading={false}
+            onMembersChange={vi.fn()}
+            isOwner={true}
+          />
+        </LicenseContext.Provider>
       </App>
     </I18nProvider>
   )
@@ -362,11 +383,25 @@ describe('create API key drawer', () => {
 })
 
 describe('invite member drawer', () => {
-  const openInvite = async () => {
-    renderMembers([])
+  const openInvite = async (licensedFor?: Entitlements['features']) => {
+    renderMembers([], licensedFor)
     fireEvent.click(screen.getByRole('button', { name: 'Invite Member' }))
     return openDrawer('Invite Member')
   }
+
+  // An invite starts from a full grant, which the server never gates, so a locked matrix still
+  // holds a legal invitation. What is locked is narrowing it — the licensed capability — and
+  // it is said here, before Send, rather than as a 402 after it.
+  it('locks the matrix under an unlicensed deployment, and says what to buy', async () => {
+    const drawer = await openInvite(['template_i18n'])
+
+    expect(
+      within(drawer).getByText('Custom permissions require a Notifuse Studio licence.')
+    ).toBeInTheDocument()
+    const switches = within(drawer).getAllByRole('switch')
+    expect(switches.length).toBeGreaterThan(0)
+    expect(switches.every((s) => (s as HTMLButtonElement).disabled)).toBe(true)
+  })
 
   it('sends a grant naming every canonical resource', async () => {
     const drawer = await openInvite()

@@ -186,6 +186,21 @@ func (h *WorkspaceHandler) handleCreate(w http.ResponseWriter, r *http.Request) 
 		req.Settings.Languages,
 	)
 	if err != nil {
+		// Tested before ErrWorkspaceLimitReached, which keeps its 403 untouched. The two
+		// refusals are not the same thing: the older one is the operator's own MAX_WORKSPACES
+		// ceiling, where nothing is for sale, while this one is the licence quota and the
+		// console keys its purchase component off the 402.
+		//
+		// Spelled out here rather than inherited from the shared seam because this handler
+		// does not call writeServiceError — it runs its own error chain and falls through to
+		// a 500. The body itself is the seam's, so the two can never disagree about the shape
+		// the console reads. No required_tier: which plan lifts the ceiling depends on how
+		// many workspaces the deployment already holds.
+		var quotaErr *domain.ErrWorkspaceQuotaReached
+		if errors.As(err, &quotaErr) {
+			writeLicenseRequired(w, licenseQuotaFeature, "", quotaErr.Error())
+			return
+		}
 		var limitErr *domain.ErrWorkspaceLimitReached
 		if errors.As(err, &limitErr) {
 			WriteJSONError(w, limitErr.Error(), http.StatusForbidden)
@@ -559,6 +574,25 @@ func (h *WorkspaceHandler) handleCreateAPIKey(w http.ResponseWriter, r *http.Req
 	token, apiEmail, err := h.workspaceService.CreateAPIKey(r.Context(), req.WorkspaceID, req.EmailPrefix, req.Permissions)
 	if err != nil {
 		h.logger.WithField("workspace_id", req.WorkspaceID).WithField("error", err.Error()).Error("Failed to create API key")
+
+		// The RBAC gate lives inside CreateAPIKey: a key asking for a scope narrower than
+		// FullPermissions is refused on a deployment without the rbac feature. Spelled out
+		// here, and first, because this handler runs its own error chain and calls neither
+		// writeServiceError nor writePermissionError — so the shared 402 seam that reaches
+		// twenty-four other handler files does not reach this one. Without this branch the
+		// refusal fell through to the 500 at the end of the chain, which tells the console
+		// the server is broken rather than that the deployment has something to buy, and
+		// the purchase component keys off the status code alone.
+		//
+		// Ahead of the ErrUnauthorized branch for the same reason the shared seam orders
+		// them that way: 403 says the caller lacks a grant, 402 says the caller's grants
+		// are fine and the deployment has not bought the capability. Nothing on this path
+		// returns both, but the order is what makes that guarantee readable.
+		var notLicensed *domain.ErrFeatureNotLicensed
+		if errors.As(err, &notLicensed) {
+			writeLicenseRequired(w, string(notLicensed.Feature), notLicensed.RequiredTier, notLicensed.Message)
+			return
+		}
 
 		// Check if it's an authorization error
 		var unauthorized *domain.ErrUnauthorized

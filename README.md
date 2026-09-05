@@ -121,11 +121,20 @@ Issues, on the other hand, are very welcome and are the best way to help:
 - **[Report a bug](https://github.com/Notifuse/notifuse/issues)** — steps to reproduce, your version, and what you expected instead
 - **[Request a feature](https://github.com/Notifuse/notifuse/issues)** — describe the problem you're trying to solve rather than a specific implementation
 
-The license grants you every right to fork Notifuse and modify it for your own use. If we ever invite a code contribution directly, we'll agree on the terms with you at that point.
+The licence lets you read, fork and modify Notifuse, and run it in production — including for other people. What it does not let you do is use a licensed feature without a key, or strip out the check. See [LICENSING.md](LICENSING.md).
+
+We do not currently accept pull requests. If we ever invite one, it will be under the [CLA](CLA.md).
 
 ## 📄 License
 
-Notifuse is released under the [GNU Affero General Public License v3.0](LICENSE).
+Notifuse v40.0 and later are released under the [Business Source License 1.1](LICENSE),
+which becomes AGPL-3.0-or-later four years after each version is published.
+**v39.x and every earlier release remain AGPL-3.0, permanently — this change is not
+retroactive and cannot be.** The `web_analytics_sdk/` directory is AGPL-3.0-or-later in
+every version.
+
+Five capabilities need a licence key; everything else does not, and the send path contains
+no licence check of any kind. See [LICENSING.md](LICENSING.md) for the full map.
 
 ## 🆘 Support
 

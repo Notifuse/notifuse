@@ -183,3 +183,13 @@ export type { Contact } from './contacts'
 
 // Re-export from transactional_notifications.ts
 export type { EmailOptions } from './transactional_notifications'
+
+// Re-export from ../../types/license.ts — the licence types live outside services/api because
+// services/api/errors.ts needs them and must stay free of the router graph.
+export type {
+  LicenseFeature,
+  LicenseState,
+  Entitlements,
+  LicenseResponse,
+  SetLicenseRequest
+} from '../../types/license'

@@ -7,6 +7,9 @@ info:
     name: Notifuse Support
     url: https://www.notifuse.com/support
     email: hello@notifuse.com
+  license:
+    name: BUSL-1.1
+    url: https://github.com/Notifuse/notifuse/blob/main/LICENSE
 servers:
   - url: https://{notifuseDomain}
     description: Customer-specific Notifuse API server

@@ -55,6 +55,16 @@ func (f *fakeTenantOperator) EnsureTenantIsolation(_ context.Context, cfg domain
 
 func setupDiscovery(t *testing.T, role string) (*SESDiscoveryService, *fakeTenantOperator, *mocks.MockWorkspaceRepository) {
 	t.Helper()
+	return setupDiscoveryWithEntitlements(t, role, nil)
+}
+
+// setupDiscoveryWithEntitlements builds the service with a stubbed licence.
+//
+// A nil ent wires no provider at all, which leaves the tenant gate inert — that is the shape
+// every test written before licensing relies on, and it is deliberately NOT the same thing as
+// an unlicensed deployment: that one passes domain.CommunityEntitlements() and gets refused.
+func setupDiscoveryWithEntitlements(t *testing.T, role string, ent *domain.Entitlements) (*SESDiscoveryService, *fakeTenantOperator, *mocks.MockWorkspaceRepository) {
+	t.Helper()
 	ctrl := gomock.NewController(t)
 
 	repo := mocks.NewMockWorkspaceRepository(ctrl)
@@ -80,7 +90,15 @@ func setupDiscovery(t *testing.T, role string) (*SESDiscoveryService, *fakeTenan
 		}).AnyTimes()
 
 	operator := &fakeTenantOperator{}
-	return NewSESDiscoveryService(repo, auth, operator, logger), operator, repo
+
+	var provider domain.EntitlementProvider
+	if ent != nil {
+		entitlements := mocks.NewMockEntitlementProvider(ctrl)
+		entitlements.EXPECT().Entitlements().Return(*ent).AnyTimes()
+		provider = entitlements
+	}
+
+	return NewSESDiscoveryService(repo, auth, operator, logger, provider), operator, repo
 }
 
 func workspaceWithSES(settings *domain.AmazonSESSettings) *domain.Workspace {
@@ -301,4 +319,137 @@ func TestSESDiscoveryService_ListConfigurationSets_MapsDenial(t *testing.T) {
 	})
 
 	assert.ErrorIs(t, err, domain.ErrSESAccessDenied)
+}
+
+// TestSESDiscoveryService_EnableTenantIsolation_LicenceGate covers G4. The gate is on
+// PROVISIONING only, and the subtests below pin both halves of that: a new tenant is refused
+// without the licence, and an existing one keeps resolving in the send path with no key at all.
+func TestSESDiscoveryService_EnableTenantIsolation_LicenceGate(t *testing.T) {
+	community := domain.CommunityEntitlements()
+	licensed := domain.Entitlements{
+		Tier:          "studio",
+		MaxWorkspaces: 5,
+		Features:      []domain.Feature{domain.FeatureSESTenant},
+		State:         domain.LicenseStateActive,
+	}
+	// A key that verifies but does not carry ses_tenant refuses exactly like no key at all:
+	// the gate reads the feature list, never the tier and never the state.
+	licensedWithoutTenant := domain.Entitlements{
+		Tier:          "studio",
+		MaxWorkspaces: 5,
+		Features:      []domain.Feature{domain.FeatureRBAC},
+		State:         domain.LicenseStateActive,
+	}
+
+	provision := func(t *testing.T, ent domain.Entitlements) (*domain.SESTenantProvisionResult, error, *fakeTenantOperator) {
+		t.Helper()
+		service, operator, repo := setupDiscoveryWithEntitlements(t, "owner", &ent)
+		repo.EXPECT().GetByID(gomock.Any(), "ws").Return(workspaceWithSES(&domain.AmazonSESSettings{
+			Region: "eu-west-3", AccessKey: "k", SecretKey: "s",
+		}), nil).AnyTimes()
+		repo.EXPECT().PatchIntegrationSESSettings(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+		operator.provisionResult = &domain.SESTenantProvisionResult{
+			TenantName:                 "notifuse-int-1",
+			Created:                    true,
+			SuppressionScoped:          true,
+			ConfigurationSetAssociated: true,
+		}
+
+		result, err := service.EnableTenantIsolation(context.Background(), domain.EnableSESTenantIsolationRequest{
+			WorkspaceID: "ws", IntegrationID: "int-1",
+		})
+		return result, err, operator
+	}
+
+	t.Run("provisioning is refused without a licence, before anything reaches AWS", func(t *testing.T) {
+		_, err, operator := provision(t, community)
+
+		require.Error(t, err)
+		var notLicensed *domain.ErrFeatureNotLicensed
+		require.True(t, errors.As(err, &notLicensed))
+		assert.Equal(t, domain.FeatureSESTenant, notLicensed.Feature)
+		assert.NotEmpty(t, notLicensed.Message)
+		// Nothing is created in AWS, so nothing is billed for a refusal.
+		assert.Equal(t, 0, operator.provisionCall)
+	})
+
+	t.Run("a licence without the ses_tenant feature is refused the same way", func(t *testing.T) {
+		_, err, operator := provision(t, licensedWithoutTenant)
+
+		var notLicensed *domain.ErrFeatureNotLicensed
+		require.True(t, errors.As(err, &notLicensed))
+		assert.Equal(t, 0, operator.provisionCall)
+	})
+
+	t.Run("provisioning proceeds with the ses_tenant feature", func(t *testing.T) {
+		result, err, operator := provision(t, licensed)
+
+		require.NoError(t, err)
+		require.NotNil(t, result)
+		assert.Equal(t, "notifuse-int-1", result.TenantName)
+		assert.Equal(t, 1, operator.provisionCall)
+	})
+
+	t.Run("an unwired provider leaves provisioning exactly as it was", func(t *testing.T) {
+		service, operator, repo := setupDiscovery(t, "owner")
+		repo.EXPECT().GetByID(gomock.Any(), "ws").Return(workspaceWithSES(&domain.AmazonSESSettings{
+			Region: "eu-west-3", AccessKey: "k", SecretKey: "s",
+		}), nil)
+		repo.EXPECT().PatchIntegrationSESSettings(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+		operator.provisionResult = &domain.SESTenantProvisionResult{
+			TenantName: "notifuse-int-1", Created: true, ConfigurationSetAssociated: true,
+		}
+
+		_, err := service.EnableTenantIsolation(context.Background(), domain.EnableSESTenantIsolationRequest{
+			WorkspaceID: "ws", IntegrationID: "int-1",
+		})
+		require.NoError(t, err)
+		assert.Equal(t, 1, operator.provisionCall)
+	})
+
+	t.Run("an already provisioned tenant still resolves for sending with no licence", func(t *testing.T) {
+		// The disaster this prevents: a check on the send path would leave the SendEmailInput's
+		// tenant field nil, silently moving a paying customer's mail from tenant-scoped
+		// suppression to ACCOUNT-WIDE suppression — the exact outcome the feature was bought to
+		// avoid. Licensing stops at provisioning, so an existing tenant sends forever.
+		provisioned := &domain.AmazonSESSettings{
+			Region:                 "eu-west-3",
+			AccessKey:              "k",
+			SecretKey:              "s",
+			TenantIsolationEnabled: true,
+			ManagedTenantName:      "notifuse-int-1",
+		}
+
+		assert.Equal(t, "notifuse-int-1", provisioned.ResolveTenant())
+		assert.Equal(t, "notifuse-int-1", provisioned.KnownTenant())
+
+		// And the same unlicensed deployment refuses to provision a NEW one.
+		service, operator, repo := setupDiscoveryWithEntitlements(t, "owner", &community)
+		repo.EXPECT().GetByID(gomock.Any(), "ws").Return(workspaceWithSES(&domain.AmazonSESSettings{
+			Region: "eu-west-3", AccessKey: "k", SecretKey: "s",
+		}), nil)
+
+		_, err := service.EnableTenantIsolation(context.Background(), domain.EnableSESTenantIsolationRequest{
+			WorkspaceID: "ws", IntegrationID: "int-1",
+		})
+		require.Error(t, err)
+		assert.Equal(t, 0, operator.provisionCall)
+	})
+
+	t.Run("a non-owner is refused as a non-owner, not as an unlicensed deployment", func(t *testing.T) {
+		// Authorization comes first: a caller who may not touch this integration is not told
+		// what the deployment has or has not bought.
+		service, operator, _ := setupDiscoveryWithEntitlements(t, "member", &community)
+
+		_, err := service.EnableTenantIsolation(context.Background(), domain.EnableSESTenantIsolationRequest{
+			WorkspaceID: "ws", IntegrationID: "int-1",
+		})
+
+		require.Error(t, err)
+		var unauthorized *domain.ErrUnauthorized
+		assert.ErrorAs(t, err, &unauthorized)
+		var notLicensed *domain.ErrFeatureNotLicensed
+		assert.False(t, errors.As(err, &notLicensed))
+		assert.Equal(t, 0, operator.provisionCall)
+	})
 }

@@ -16,6 +16,7 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // setupCustomEventHandlerTest prepares test dependencies and creates a custom event handler
@@ -564,5 +565,54 @@ func TestCustomEventHandler_ListCustomEvents(t *testing.T) {
 				tc.checkResponse(t, rr)
 			}
 		})
+	}
+}
+
+// A GET carrying the ordinary JSON body used to perform the write.
+//
+// The mux matches on path alone, and neither handler checked the verb, so `GET
+// /api/customEvents.upsert` decoded the body and upserted — including the soft-delete path —
+// while `GET /api/customEvents.import` bulk-imported. Every other write in this package
+// guards; these two were a plain omission that nothing could see.
+//
+// internal/http/verb_guard_test.go closes the class by walking the parse tree. This is the
+// half that proves the guard actually answers rather than merely existing.
+func TestCustomEventHandler_WritesRefuseEveryMethodButPOST(t *testing.T) {
+	routes := []struct {
+		name    string
+		handler func(*CustomEventHandler) func(http.ResponseWriter, *http.Request)
+	}{
+		{"customEvents.upsert", func(h *CustomEventHandler) func(http.ResponseWriter, *http.Request) {
+			return h.UpsertCustomEvent
+		}},
+		{"customEvents.import", func(h *CustomEventHandler) func(http.ResponseWriter, *http.Request) {
+			return h.ImportCustomEvents
+		}},
+	}
+
+	for _, route := range routes {
+		for _, method := range []string{http.MethodGet, http.MethodPut, http.MethodDelete, http.MethodPatch} {
+			t.Run(route.name+" refuses "+method, func(t *testing.T) {
+				// No service expectation at all: the guard must run before anything is
+				// decoded, so a write that reached the service would fail the mock too.
+				service, _, handler := setupCustomEventHandlerTest(t)
+				service.EXPECT().UpsertEvent(gomock.Any(), gomock.Any()).Times(0)
+				service.EXPECT().ImportEvents(gomock.Any(), gomock.Any()).Times(0)
+
+				body, err := json.Marshal(domain.UpsertCustomEventRequest{
+					WorkspaceID: "workspace123",
+					Email:       "test@example.com",
+					EventName:   "pwned",
+					ExternalID:  "order-123",
+				})
+				require.NoError(t, err)
+
+				req := httptest.NewRequest(method, "/api/"+route.name, bytes.NewReader(body))
+				rec := httptest.NewRecorder()
+				route.handler(handler)(rec, req)
+
+				assert.Equal(t, http.StatusMethodNotAllowed, rec.Code)
+			})
+		}
 	}
 }

@@ -26,19 +26,30 @@ type SESDiscoveryService struct {
 	authService   domain.AuthService
 	sesService    sesTenantOperator
 	logger        logger.Logger
+	entitlements  domain.EntitlementProvider
 }
 
+// NewSESDiscoveryService builds the service. The entitlement provider is a REQUIRED
+// positional parameter, not a trailing variadic: a variadic made forgetting it compile
+// silently, and the G4 gate below then read a nil provider and let every deployment provision
+// SES tenants for free. Omitting the argument must be a compile error, because a licence gate
+// that is inert in production and green in CI is worse than no gate at all.
+//
+// An unlicensed deployment does NOT pass nil here — it passes a provider that answers
+// CommunityEntitlements, and provisioning is refused.
 func NewSESDiscoveryService(
 	workspaceRepo domain.WorkspaceRepository,
 	authService domain.AuthService,
 	sesService sesTenantOperator,
 	logger logger.Logger,
+	entitlements domain.EntitlementProvider,
 ) *SESDiscoveryService {
 	return &SESDiscoveryService{
 		workspaceRepo: workspaceRepo,
 		authService:   authService,
 		sesService:    sesService,
 		logger:        logger,
+		entitlements:  entitlements,
 	}
 }
 
@@ -96,6 +107,20 @@ func (s *SESDiscoveryService) EnableTenantIsolation(ctx context.Context, req dom
 		return nil, err
 	}
 
+	// Provisioning a NEW tenant is what is licensed, and this is the only place it happens.
+	//
+	// The send path is deliberately untouched: AmazonSESSettings.ResolveTenant and
+	// applySESSendingContext build the same SendEmailInput with one field either nil or set, so
+	// a licence check there would silently repoint a paying customer's mail from
+	// tenant-scoped suppression to ACCOUNT-WIDE suppression — the exact outcome the feature was
+	// bought to avoid. A tenant provisioned once keeps resolving forever, with no key.
+	//
+	// Placed after authorizeIntegration so a caller who may not touch this integration is told
+	// that, rather than being told what the deployment has or has not bought.
+	if !s.isLicensedFor(domain.FeatureSESTenant) {
+		return nil, domain.NewFeatureNotLicensedError(domain.FeatureSESTenant)
+	}
+
 	settings := integration.EmailProvider.SES
 	if settings == nil {
 		return nil, fmt.Errorf("integration %s is not an Amazon SES integration", req.IntegrationID)
@@ -134,6 +159,16 @@ func (s *SESDiscoveryService) EnableTenantIsolation(ctx context.Context, req dom
 	}
 
 	return result, nil
+}
+
+// isLicensedFor reports whether this deployment may use a licensed capability. It reads the
+// signed key and nothing else — never the caller's role, which a synthesised platform admin
+// would satisfy on every workspace. A nil provider leaves the gate inert.
+func (s *SESDiscoveryService) isLicensedFor(feature domain.Feature) bool {
+	if s.entitlements == nil {
+		return true
+	}
+	return s.entitlements.Entitlements().Has(feature)
 }
 
 // resolveSettings authenticates the caller and returns the SES settings to use.

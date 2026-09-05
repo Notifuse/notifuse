@@ -4,6 +4,7 @@ import { RouterProvider } from '@tanstack/react-router'
 import { I18nProvider } from '@lingui/react'
 import { router } from './router'
 import { AuthProvider } from './contexts/AuthContext'
+import { LicenseProvider } from './contexts/LicenseContext'
 import { LocaleProvider, useLocale, i18n } from './contexts/LocaleContext'
 import { initializeAnalytics } from './utils/analytics-config'
 import { shouldRetryQuery } from './services/api/errors'
@@ -126,9 +127,14 @@ export function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <LocaleProvider>
-          <AppContent />
-        </LocaleProvider>
+        {/* Inside AuthProvider because it reads the licence state off /api/user.me, and outside
+            everything that renders a workspace because a licence covers the deployment rather
+            than any one workspace. It renders no UI of its own. */}
+        <LicenseProvider>
+          <LocaleProvider>
+            <AppContent />
+          </LocaleProvider>
+        </LicenseProvider>
       </AuthProvider>
     </QueryClientProvider>
   )

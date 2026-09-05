@@ -19,6 +19,32 @@ import (
 	// Keep testify/assert
 )
 
+// licensedForTranslations is what the tests that predate G5 are handed.
+//
+// A licensed provider rather than nil, for the reason entitlements_wiring_test.go states for
+// its own equivalent: nil is the fail-open branch, so twenty tests constructed with nil would
+// all quietly exercise the inert path and a gate added next year would be invisible to every
+// one of them. Enterprise, because that is what these tests used to run under — before the
+// gates existed every capability was ungated, and a provider granting everything is the only
+// substitution that leaves their expectations unchanged.
+func licensedForTranslations(ctrl *gomock.Controller) domain.EntitlementProvider {
+	provider := domainmocks.NewMockEntitlementProvider(ctrl)
+	provider.EXPECT().Entitlements().Return(domain.Entitlements{
+		Tier:          "enterprise",
+		MaxWorkspaces: domain.UnlimitedWorkspaces,
+		Features: []domain.Feature{
+			domain.FeatureRBAC,
+			domain.FeatureSESTenant,
+			domain.FeatureSSO,
+			domain.FeatureAuditLogs,
+			domain.FeatureTemplateI18n,
+		},
+		State:     domain.LicenseStateActive,
+		ExpiresAt: time.Now().UTC().Add(24 * time.Hour),
+	}).AnyTimes()
+	return provider
+}
+
 // Updated setup function to use gomock controller
 func setupTemplateServiceTest(ctrl *gomock.Controller) (*service.TemplateService, *domainmocks.MockTemplateRepository, *domainmocks.MockWorkspaceRepository, *domainmocks.MockAuthService, *pkgmocks.MockLogger) {
 	mockRepo := domainmocks.NewMockTemplateRepository(ctrl)
@@ -26,7 +52,7 @@ func setupTemplateServiceTest(ctrl *gomock.Controller) (*service.TemplateService
 	mockAuthService := domainmocks.NewMockAuthService(ctrl)
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 
-	templateService := service.NewTemplateService(mockRepo, mockWorkspaceRepo, mockAuthService, mockLogger, "https://api.example.com")
+	templateService := service.NewTemplateService(mockRepo, mockWorkspaceRepo, mockAuthService, mockLogger, "https://api.example.com", licensedForTranslations(ctrl))
 	return templateService, mockRepo, mockWorkspaceRepo, mockAuthService, mockLogger
 }
 
@@ -1133,7 +1159,7 @@ func TestCompileTemplate_Success(t *testing.T) {
 	mockLogger := &MockLogger{}
 	mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
 
-	svc := service.NewTemplateService(mockRepo, mockWorkspaceRepo, mockAuthService, mockLogger, "https://api.example.com")
+	svc := service.NewTemplateService(mockRepo, mockWorkspaceRepo, mockAuthService, mockLogger, "https://api.example.com", licensedForTranslations(ctrl))
 
 	ctx := context.Background()
 	workspaceID := "ws_123"
@@ -1194,7 +1220,7 @@ func TestCompileTemplate_TreeToMjmlError(t *testing.T) {
 	mockRepo := domainmocks.NewMockTemplateRepository(ctrl)
 	mockLogger := &MockLogger{}
 	mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
-	svc := service.NewTemplateService(mockRepo, mockWorkspaceRepo, mockAuthService, mockLogger, "https://api.example.com")
+	svc := service.NewTemplateService(mockRepo, mockWorkspaceRepo, mockAuthService, mockLogger, "https://api.example.com", licensedForTranslations(ctrl))
 
 	ctx := context.Background()
 	workspaceID := "ws_123"
@@ -1250,7 +1276,7 @@ func TestCompileTemplate_AuthError(t *testing.T) {
 	mockLogger := &MockLogger{}
 	mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
 
-	svc := service.NewTemplateService(mockRepo, mockWorkspaceRepo, mockAuthService, mockLogger, "https://api.example.com")
+	svc := service.NewTemplateService(mockRepo, mockWorkspaceRepo, mockAuthService, mockLogger, "https://api.example.com", licensedForTranslations(ctrl))
 
 	ctx := context.Background()
 	workspaceID := "ws_123"
@@ -1284,7 +1310,7 @@ func TestCompileTemplate_SystemCallBypassesAuth(t *testing.T) {
 	mockLogger := &MockLogger{}
 	mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
 
-	svc := service.NewTemplateService(mockRepo, mockWorkspaceRepo, mockAuthService, mockLogger, "https://api.example.com")
+	svc := service.NewTemplateService(mockRepo, mockWorkspaceRepo, mockAuthService, mockLogger, "https://api.example.com", licensedForTranslations(ctrl))
 
 	// Create a system context that should bypass authentication
 	ctx := context.WithValue(context.Background(), domain.SystemCallKey, true)
@@ -1322,7 +1348,7 @@ func TestCompileTemplate_InvalidTreeData(t *testing.T) {
 	mockLogger := &MockLogger{}
 	mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
 
-	svc := service.NewTemplateService(mockRepo, mockWorkspaceRepo, mockAuthService, mockLogger, "https://api.example.com")
+	svc := service.NewTemplateService(mockRepo, mockWorkspaceRepo, mockAuthService, mockLogger, "https://api.example.com", licensedForTranslations(ctrl))
 
 	ctx := context.Background()
 	workspaceID := "ws_123"
@@ -1561,7 +1587,7 @@ func TestCompileTemplate_WithMjmlSource(t *testing.T) {
 	mockLogger := &MockLogger{}
 	mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
 
-	svc := service.NewTemplateService(mockRepo, mockWorkspaceRepo, mockAuthService, mockLogger, "https://api.example.com")
+	svc := service.NewTemplateService(mockRepo, mockWorkspaceRepo, mockAuthService, mockLogger, "https://api.example.com", licensedForTranslations(ctrl))
 
 	ctx := context.Background()
 	workspaceID := "ws-123"
@@ -1608,7 +1634,7 @@ func TestCompileTemplate_InjectsWorkspaceData(t *testing.T) {
 	mockRepo := domainmocks.NewMockTemplateRepository(ctrl)
 	mockLogger := &MockLogger{}
 	mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
-	svc := service.NewTemplateService(mockRepo, mockWorkspaceRepo, mockAuthService, mockLogger, "https://api.example.com")
+	svc := service.NewTemplateService(mockRepo, mockWorkspaceRepo, mockAuthService, mockLogger, "https://api.example.com", licensedForTranslations(ctrl))
 
 	ctx := context.Background()
 	workspaceID := "ws_123"
@@ -1664,7 +1690,7 @@ func TestCompileTemplate_WorkspaceBaseURLFallsBackToAPIEndpoint(t *testing.T) {
 	mockRepo := domainmocks.NewMockTemplateRepository(ctrl)
 	mockLogger := &MockLogger{}
 	mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
-	svc := service.NewTemplateService(mockRepo, mockWorkspaceRepo, mockAuthService, mockLogger, "https://api.example.com")
+	svc := service.NewTemplateService(mockRepo, mockWorkspaceRepo, mockAuthService, mockLogger, "https://api.example.com", licensedForTranslations(ctrl))
 
 	ctx := context.Background()
 	workspaceID := "ws_123"
@@ -1714,7 +1740,7 @@ func TestCompileTemplate_PreservesProvidedWorkspaceData(t *testing.T) {
 	mockRepo := domainmocks.NewMockTemplateRepository(ctrl)
 	mockLogger := &MockLogger{}
 	mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
-	svc := service.NewTemplateService(mockRepo, mockWorkspaceRepo, mockAuthService, mockLogger, "https://api.example.com")
+	svc := service.NewTemplateService(mockRepo, mockWorkspaceRepo, mockAuthService, mockLogger, "https://api.example.com", licensedForTranslations(ctrl))
 
 	ctx := context.Background()
 	workspaceID := "ws_123"
@@ -1766,7 +1792,7 @@ func TestCompileTemplate_FillsMissingWorkspaceKeys(t *testing.T) {
 	mockRepo := domainmocks.NewMockTemplateRepository(ctrl)
 	mockLogger := &MockLogger{}
 	mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
-	svc := service.NewTemplateService(mockRepo, mockWorkspaceRepo, mockAuthService, mockLogger, "https://api.example.com")
+	svc := service.NewTemplateService(mockRepo, mockWorkspaceRepo, mockAuthService, mockLogger, "https://api.example.com", licensedForTranslations(ctrl))
 
 	ctx := context.Background()
 	workspaceID := "ws_123"
@@ -1821,7 +1847,7 @@ func TestCompileTemplate_WorkspaceLoadFailureUsesFallback(t *testing.T) {
 	mockRepo := domainmocks.NewMockTemplateRepository(ctrl)
 	mockLogger := &MockLogger{}
 	mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
-	svc := service.NewTemplateService(mockRepo, mockWorkspaceRepo, mockAuthService, mockLogger, "https://api.example.com")
+	svc := service.NewTemplateService(mockRepo, mockWorkspaceRepo, mockAuthService, mockLogger, "https://api.example.com", licensedForTranslations(ctrl))
 
 	ctx := context.Background()
 	workspaceID := "ws_123"
@@ -1865,7 +1891,7 @@ func TestCompileTemplate_FillsMissingWorkspaceKeys_MapOfAny(t *testing.T) {
 	mockRepo := domainmocks.NewMockTemplateRepository(ctrl)
 	mockLogger := &MockLogger{}
 	mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
-	svc := service.NewTemplateService(mockRepo, mockWorkspaceRepo, mockAuthService, mockLogger, "https://api.example.com")
+	svc := service.NewTemplateService(mockRepo, mockWorkspaceRepo, mockAuthService, mockLogger, "https://api.example.com", licensedForTranslations(ctrl))
 
 	ctx := context.Background()
 	workspaceID := "ws_123"
@@ -1919,7 +1945,7 @@ func TestCompileTemplate_InjectsOverNonMapWorkspace(t *testing.T) {
 	mockRepo := domainmocks.NewMockTemplateRepository(ctrl)
 	mockLogger := &MockLogger{}
 	mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
-	svc := service.NewTemplateService(mockRepo, mockWorkspaceRepo, mockAuthService, mockLogger, "https://api.example.com")
+	svc := service.NewTemplateService(mockRepo, mockWorkspaceRepo, mockAuthService, mockLogger, "https://api.example.com", licensedForTranslations(ctrl))
 
 	ctx := context.Background()
 	workspaceID := "ws_123"

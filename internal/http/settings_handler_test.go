@@ -4,15 +4,18 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/service"
 	"github.com/Notifuse/notifuse/pkg/crypto"
+	"github.com/Notifuse/notifuse/pkg/license"
 	"github.com/Notifuse/notifuse/pkg/logger"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -88,6 +91,15 @@ func setupSettingsHandlerWithRootEmail(t *testing.T, rootEmail string) (*Setting
 		envConfig,
 	)
 
+	// The real licence service over the same settings repository the rest of the harness
+	// uses, so a test can assert on what the store actually holds after a refused paste.
+	// With no key anywhere it resolves to Community, which is the state every existing
+	// settings test runs in.
+	licenseSvc := service.NewLicenseService(service.LicenseServiceConfig{
+		SettingRepo: settingRepo,
+		Logger:      logger.NewLogger(),
+	})
+
 	handler := NewSettingsHandler(
 		setupService,
 		settingService,
@@ -97,6 +109,7 @@ func setupSettingsHandlerWithRootEmail(t *testing.T, rootEmail string) (*Setting
 		testSecretKey,
 		rootEmail,
 		shutdowner,
+		licenseSvc,
 	)
 
 	// Add root user to mock
@@ -296,6 +309,7 @@ func TestSettingsHandler_Get_EnvOverrides(t *testing.T) {
 		testSecretKey,
 		testRootEmail,
 		shutdowner,
+		newMockLicenseService(),
 	)
 
 	userSvc.users["root-user-id"] = &domain.User{
@@ -360,6 +374,7 @@ func TestSettingsHandler_Get_EnvOverride_UsesLiveRootEmail(t *testing.T) {
 		testSecretKey,
 		resolvedRootEmails,
 		shutdowner,
+		newMockLicenseService(),
 	)
 
 	userSvc.users["root-user-id"] = &domain.User{ID: "root-user-id", Email: testRootEmail}
@@ -429,6 +444,7 @@ func TestSettingsHandler_Get_EnvOverride_AllFieldsUseLiveValues(t *testing.T) {
 		testSecretKey,
 		envConfig.RootEmail,
 		shutdowner,
+		newMockLicenseService(),
 	)
 	// Root user's email must match the env-configured root for authorization.
 	userSvc.users["root-user-id"] = &domain.User{ID: "root-user-id", Email: "env-root@example.com"}
@@ -1024,4 +1040,415 @@ func TestSettingsHandler_Update_OmittedFieldsKeepStoredValues(t *testing.T) {
 		assert.Equal(t, "", settingRepo.settings["oidc_redirect_uri"],
 			"clearing the field must stay expressible: the key is present, carrying an empty string")
 	})
+}
+
+// ============================================================
+// Tests for GET /api/licence.get and POST /api/licence.set
+// ============================================================
+
+// mockLicenseService is a hand-written LicenseServiceInterface, matching the mocks the rest
+// of this file uses. It exists because a real service.LicenseService cannot be driven into a
+// licensed state from a test: no valid key can be minted without the private half of the
+// signing key, which this build deliberately does not carry. The real service is still used
+// wherever the assertion is about what reaches the settings table.
+type mockLicenseService struct {
+	entitlements domain.Entitlements
+	setErr       error
+	// keysSubmitted records every key SetKey was handed, so a test can assert the guards
+	// refuse before the service is ever consulted.
+	keysSubmitted []string
+}
+
+func newMockLicenseService() *mockLicenseService {
+	return &mockLicenseService{entitlements: domain.CommunityEntitlements()}
+}
+
+func (m *mockLicenseService) Entitlements() domain.Entitlements { return m.entitlements }
+
+func (m *mockLicenseService) SetKey(ctx context.Context, raw string) error {
+	m.keysSubmitted = append(m.keysSubmitted, raw)
+	return m.setErr
+}
+
+// licensedEntitlements is an Agency key in its grace period: every field the console renders
+// is populated and none of them is a zero value, so a field dropped from the response body
+// fails the assertion rather than matching an empty one.
+func licensedEntitlements() domain.Entitlements {
+	return domain.Entitlements{
+		Tier:          "agency",
+		Org:           "ACME SAS",
+		Sub:           "billing@acme.com",
+		MaxWorkspaces: 15,
+		Features:      []domain.Feature{domain.FeatureRBAC, domain.FeatureSESTenant},
+		State:         domain.LicenseStateGrace,
+		ExpiresAt:     time.Date(2026, 3, 1, 12, 0, 0, 0, time.UTC),
+	}
+}
+
+// setupSettingsHandlerWithMockLicense swaps the harness's real licence service for one a test
+// can drive. The field is unexported and these tests are in-package, which is the same reason
+// they call the handler funcs directly.
+func setupSettingsHandlerWithMockLicense(t *testing.T) (*SettingsHandler, *mockSettingRepository, *mockLicenseService) {
+	t.Helper()
+
+	handler, settingRepo, _, _ := setupSettingsHandler(t)
+	licenseSvc := newMockLicenseService()
+	handler.licenseService = licenseSvc
+
+	return handler, settingRepo, licenseSvc
+}
+
+func getLicense(t *testing.T, handler *SettingsHandler, userID string) *httptest.ResponseRecorder {
+	t.Helper()
+
+	req := httptest.NewRequest(http.MethodGet, "/api/licence.get", nil)
+	req = reqWithUserContext(req, userID)
+	w := httptest.NewRecorder()
+
+	handler.handleLicenseGet(w, req)
+
+	return w
+}
+
+func postLicense(t *testing.T, handler *SettingsHandler, userID string, body string) *httptest.ResponseRecorder {
+	t.Helper()
+
+	req := httptest.NewRequest(http.MethodPost, "/api/licence.set", bytes.NewBufferString(body))
+	req.Header.Set("Content-Type", "application/json")
+	req = reqWithUserContext(req, userID)
+	w := httptest.NewRecorder()
+
+	handler.handleLicenseSet(w, req)
+
+	return w
+}
+
+// The guards every root-only endpoint on this handler repeats. They are the whole reason
+// the licence endpoints live here rather than in a file of their own.
+func TestSettingsHandler_License_Guards(t *testing.T) {
+	t.Run("licence.get refuses a method other than GET", func(t *testing.T) {
+		handler, _, _, _ := setupSettingsHandler(t)
+
+		req := httptest.NewRequest(http.MethodPost, "/api/licence.get", nil)
+		req = reqWithUserContext(req, "root-user-id")
+		w := httptest.NewRecorder()
+
+		handler.handleLicenseGet(w, req)
+
+		assert.Equal(t, http.StatusMethodNotAllowed, w.Code)
+	})
+
+	t.Run("licence.set refuses a method other than POST", func(t *testing.T) {
+		handler, _, _, _ := setupSettingsHandler(t)
+
+		req := httptest.NewRequest(http.MethodGet, "/api/licence.set", nil)
+		req = reqWithUserContext(req, "root-user-id")
+		w := httptest.NewRecorder()
+
+		handler.handleLicenseSet(w, req)
+
+		assert.Equal(t, http.StatusMethodNotAllowed, w.Code)
+	})
+
+	t.Run("licence.get refuses a request carrying no user", func(t *testing.T) {
+		handler, _, _, _ := setupSettingsHandler(t)
+
+		req := httptest.NewRequest(http.MethodGet, "/api/licence.get", nil)
+		w := httptest.NewRecorder()
+
+		handler.handleLicenseGet(w, req)
+
+		assert.Equal(t, http.StatusUnauthorized, w.Code)
+	})
+
+	t.Run("licence.set refuses a request carrying no user", func(t *testing.T) {
+		handler, _, license := setupSettingsHandlerWithMockLicense(t)
+
+		req := httptest.NewRequest(http.MethodPost, "/api/licence.set", bytes.NewBufferString(`{"key":"NFUSE1.a.b"}`))
+		w := httptest.NewRecorder()
+
+		handler.handleLicenseSet(w, req)
+
+		assert.Equal(t, http.StatusUnauthorized, w.Code)
+		assert.Empty(t, license.keysSubmitted, "the guard must run before the service is consulted")
+	})
+
+	t.Run("licence.get refuses a signed-in user who is not root", func(t *testing.T) {
+		handler, _, _, _ := setupSettingsHandler(t)
+
+		w := getLicense(t, handler, "other-user-id")
+
+		assert.Equal(t, http.StatusForbidden, w.Code)
+	})
+
+	// Only root can install a key. A member who could paste one could also replace a valid
+	// licence with a key of their own choosing, and the org and billing address on the
+	// current one are not theirs to read either.
+	t.Run("licence.set refuses a signed-in user who is not root", func(t *testing.T) {
+		handler, _, license := setupSettingsHandlerWithMockLicense(t)
+
+		w := postLicense(t, handler, "other-user-id", `{"key":"NFUSE1.a.b"}`)
+
+		assert.Equal(t, http.StatusForbidden, w.Code)
+		assert.Empty(t, license.keysSubmitted, "a non-root paste must never reach the service")
+	})
+}
+
+// The shape the console reads: the resolved grant, whole. Nothing else — the response is the
+// same domain.Entitlements every gate consults, so the console cannot form a view the backend
+// does not share.
+func TestSettingsHandler_LicenseGet_ReportsTheResolvedLicence(t *testing.T) {
+	handler, _, license := setupSettingsHandlerWithMockLicense(t)
+	license.entitlements = licensedEntitlements()
+
+	w := getLicense(t, handler, "root-user-id")
+	require.Equal(t, http.StatusOK, w.Code)
+
+	var resp LicenseResponse
+	require.NoError(t, json.NewDecoder(w.Body).Decode(&resp))
+
+	assert.Equal(t, licensedEntitlements(), resp.Entitlements)
+}
+
+// The JSON key names are a contract with the console, so they are pinned as strings rather
+// than round-tripped through the struct that defines them.
+func TestSettingsHandler_LicenseGet_BodyKeys(t *testing.T) {
+	handler, _, license := setupSettingsHandlerWithMockLicense(t)
+	license.entitlements = licensedEntitlements()
+
+	w := getLicense(t, handler, "root-user-id")
+	require.Equal(t, http.StatusOK, w.Code)
+
+	var body map[string]interface{}
+	require.NoError(t, json.NewDecoder(w.Body).Decode(&body))
+
+	require.Contains(t, body, "entitlements")
+
+	entitlements, ok := body["entitlements"].(map[string]interface{})
+	require.True(t, ok)
+	assert.Equal(t, "agency", entitlements["tier"])
+	assert.Equal(t, "ACME SAS", entitlements["org"])
+	assert.Equal(t, "billing@acme.com", entitlements["sub"])
+	assert.Equal(t, string(domain.LicenseStateGrace), entitlements["state"])
+	assert.Equal(t, float64(15), entitlements["max_workspaces"])
+	assert.Equal(t, []interface{}{"rbac", "ses_tenant"}, entitlements["features"])
+	assert.Equal(t, "2026-03-01T12:00:00Z", entitlements["expires_at"])
+}
+
+// A key is a bearer credential: whoever holds it can license their own deployment with it.
+// An endpoint that echoed it back would copy it into every console session, browser cache and
+// support screenshot, so the response is asserted against the stored value itself rather than
+// against the absence of a field somebody could rename.
+func TestSettingsHandler_LicenseGet_NeverReturnsTheRawKey(t *testing.T) {
+	handler, settingRepo, _, _ := setupSettingsHandler(t)
+
+	const storedKey = "NFUSE1.eyJ2IjoxfQ.c2lnbmF0dXJl"
+	settingRepo.settings[service.LicenseSettingKey] = storedKey
+
+	w := getLicense(t, handler, "root-user-id")
+	require.Equal(t, http.StatusOK, w.Code)
+
+	assert.NotContains(t, w.Body.String(), storedKey)
+	assert.NotContains(t, w.Body.String(), "NFUSE1")
+}
+
+// An unwired licence service is a Community deployment, not a broken one. The settings page
+// is the page an operator opens because something is already wrong; it must not be the second
+// thing that fails.
+func TestSettingsHandler_LicenseGet_WithoutALicenceService(t *testing.T) {
+	handler, _, _, _ := setupSettingsHandler(t)
+	handler.licenseService = nil
+
+	w := getLicense(t, handler, "root-user-id")
+	require.Equal(t, http.StatusOK, w.Code)
+
+	var resp LicenseResponse
+	require.NoError(t, json.NewDecoder(w.Body).Decode(&resp))
+
+	assert.Equal(t, domain.CommunityEntitlements(), resp.Entitlements)
+}
+
+// A deployment with no key at all answers Community: max_workspaces 3, no features, state
+// none. This one runs against the real service, so it also proves the harness wires it.
+func TestSettingsHandler_LicenseGet_UnlicensedDeployment(t *testing.T) {
+	handler, _, _, _ := setupSettingsHandler(t)
+
+	w := getLicense(t, handler, "root-user-id")
+	require.Equal(t, http.StatusOK, w.Code)
+
+	var resp LicenseResponse
+	require.NoError(t, json.NewDecoder(w.Body).Decode(&resp))
+
+	assert.Equal(t, domain.LicenseStateNone, resp.Entitlements.State)
+	assert.Equal(t, domain.CommunityMaxWorkspaces, resp.Entitlements.MaxWorkspaces)
+	assert.Empty(t, resp.Entitlements.Features)
+}
+
+// The refusal that matters most: a bad paste must cost the deployment nothing. The service
+// verifies before it writes, and this pins that the endpoint keeps that ordering — an
+// operator fixing a typo must not discover that the first attempt already erased the licence
+// they were running on.
+func TestSettingsHandler_LicenseSet_MalformedKeyKeepsTheStoredOne(t *testing.T) {
+	handler, settingRepo, _, _ := setupSettingsHandler(t)
+
+	const storedKey = "NFUSE1.eyJ2IjoxfQ.c2lnbmF0dXJl"
+	settingRepo.settings[service.LicenseSettingKey] = storedKey
+
+	w := postLicense(t, handler, "root-user-id", `{"key":"this is not a licence key"}`)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Equal(t, storedKey, settingRepo.settings[service.LicenseSettingKey],
+		"a rejected paste must leave the stored key exactly as it was")
+
+	var body map[string]string
+	require.NoError(t, json.NewDecoder(w.Body).Decode(&body))
+	// The sentinel's own sentence, so an operator can tell a truncated paste apart from a
+	// key minted by a different signing authority.
+	assert.Equal(t, license.ErrMalformedEnvelope.Error(), body["error"])
+}
+
+// Each refusal has a different remedy — fix the paste, edit the environment, call support —
+// and an operator can only tell them apart if the statuses differ.
+func TestSettingsHandler_LicenseSet_ErrorMapping(t *testing.T) {
+	testCases := []struct {
+		name            string
+		setErr          error
+		expectedStatus  int
+		expectedMessage string
+	}{
+		{
+			name:            "an empty key is the operator's mistake",
+			setErr:          service.ErrLicenseKeyEmpty,
+			expectedStatus:  http.StatusBadRequest,
+			expectedMessage: "Licence key is required",
+		},
+		{
+			// 409, not 400: the pasted key may be perfectly valid and simply cannot
+			// win. Answering 400 would send an operator hunting for a typo that is
+			// not there.
+			name:            "a key locked by the environment conflicts with the deployment",
+			setErr:          service.ErrLicenseKeyLockedByEnv,
+			expectedStatus:  http.StatusConflict,
+			expectedMessage: service.ErrLicenseKeyLockedByEnv.Error(),
+		},
+		{
+			name:            "a signature that does not verify is the operator's mistake",
+			setErr:          fmt.Errorf("invalid licence key: %w", license.ErrBadSignature),
+			expectedStatus:  http.StatusBadRequest,
+			expectedMessage: license.ErrBadSignature.Error(),
+		},
+		{
+			name:            "a schema this build does not implement is the operator's mistake",
+			setErr:          fmt.Errorf("invalid licence key: %w", license.ErrUnknownVersion),
+			expectedStatus:  http.StatusBadRequest,
+			expectedMessage: license.ErrUnknownVersion.Error(),
+		},
+		{
+			// A build still carrying the placeholder public key rejects every key
+			// ever minted. Naming it is the only way an operator finds that out.
+			name:            "a binary with no signing key says so",
+			setErr:          fmt.Errorf("invalid licence key: %w", license.ErrNoTrustedKey),
+			expectedStatus:  http.StatusBadRequest,
+			expectedMessage: license.ErrNoTrustedKey.Error(),
+		},
+		{
+			// The settings table refusing the write. The key was already verified, so
+			// this is the server's failure and not the operator's, and the internal
+			// wording stays inside the process.
+			name:            "a storage failure is the server's",
+			setErr:          fmt.Errorf("failed to set %s: %w", service.LicenseSettingKey, errors.New("connection refused")),
+			expectedStatus:  http.StatusInternalServerError,
+			expectedMessage: "Failed to save licence key",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			handler, _, licenseSvc := setupSettingsHandlerWithMockLicense(t)
+			licenseSvc.setErr = tc.setErr
+
+			w := postLicense(t, handler, "root-user-id", `{"key":"NFUSE1.a.b"}`)
+
+			assert.Equal(t, tc.expectedStatus, w.Code)
+
+			var body map[string]string
+			require.NoError(t, json.NewDecoder(w.Body).Decode(&body))
+			assert.Equal(t, tc.expectedMessage, body["error"])
+		})
+	}
+}
+
+// The service refuses rather than storing a key that would silently lose to the environment
+// at the next restart. Run against the real service so the precedence is the real one.
+func TestSettingsHandler_LicenseSet_LockedByEnvironment(t *testing.T) {
+	handler, settingRepo, _, _ := setupSettingsHandler(t)
+	handler.licenseService = service.NewLicenseService(service.LicenseServiceConfig{
+		SettingRepo: settingRepo,
+		EnvKey:      "NFUSE1.eyJ2IjoxfQ.c2lnbmF0dXJl",
+		Logger:      logger.NewLogger(),
+	})
+
+	w := postLicense(t, handler, "root-user-id", `{"key":"NFUSE1.other.key"}`)
+
+	assert.Equal(t, http.StatusConflict, w.Code)
+	assert.NotContains(t, settingRepo.settings, service.LicenseSettingKey,
+		"a key that could not take effect must not be stored")
+}
+
+func TestSettingsHandler_LicenseSet_EmptyKey(t *testing.T) {
+	handler, settingRepo, _, _ := setupSettingsHandler(t)
+
+	w := postLicense(t, handler, "root-user-id", `{"key":"   "}`)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.NotContains(t, settingRepo.settings, service.LicenseSettingKey)
+}
+
+func TestSettingsHandler_LicenseSet_InvalidBody(t *testing.T) {
+	handler, _, licenseSvc := setupSettingsHandlerWithMockLicense(t)
+
+	w := postLicense(t, handler, "root-user-id", `{"key":`)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Empty(t, licenseSvc.keysSubmitted)
+}
+
+// A successful install answers with the new state, so the console repaints its banner from
+// the same round trip rather than from a follow-up read that could race the swap.
+func TestSettingsHandler_LicenseSet_Success(t *testing.T) {
+	handler, _, licenseSvc := setupSettingsHandlerWithMockLicense(t)
+
+	w := postLicense(t, handler, "root-user-id", `{"key":"  NFUSE1.a.b  "}`)
+	require.Equal(t, http.StatusOK, w.Code)
+
+	// Passed through untouched: trimming, and every other judgement about the envelope,
+	// belongs to the code that verifies the signature.
+	require.Equal(t, []string{"  NFUSE1.a.b  "}, licenseSvc.keysSubmitted)
+
+	// The state the service reports after the swap, not the state it had before it.
+	licenseSvc.entitlements = licensedEntitlements()
+	w = postLicense(t, handler, "root-user-id", `{"key":"NFUSE1.a.b"}`)
+	require.Equal(t, http.StatusOK, w.Code)
+
+	var resp LicenseResponse
+	require.NoError(t, json.NewDecoder(w.Body).Decode(&resp))
+	assert.Equal(t, licensedEntitlements(), resp.Entitlements)
+}
+
+// Both routes are registered, and both under the same auth middleware as the rest of this
+// handler. Everything a deployment buys is bought by pasting a key into /api/licence.set, so
+// a route that failed to register would leave a paying customer unable to install what they
+// paid for.
+func TestSettingsHandler_RegistersTheLicenceRoutes(t *testing.T) {
+	handler, _, _, _ := setupSettingsHandler(t)
+
+	mux := http.NewServeMux()
+	handler.RegisterRoutes(mux)
+
+	for _, route := range []string{"/api/licence.get", "/api/licence.set"} {
+		t.Run(route, func(t *testing.T) {
+			_, pattern := mux.Handler(httptest.NewRequest(http.MethodGet, route, nil))
+			assert.Equal(t, route, pattern)
+		})
+	}
 }

@@ -698,6 +698,10 @@ func (s *DemoService) subscribeContactsToList(ctx context.Context, workspaceID, 
 }
 
 // createSampleTemplates creates the demo email templates
+// A refused template is an error, not a warning. The demo must show everything, including
+// translations, so a demo deployment runs LICENSED — and a demo that is not licensed must say
+// so loudly rather than seed broadcasts, notifications and message history against
+// template IDs that were never created. That is what the previous Warn-and-continue did.
 func (s *DemoService) createSampleTemplates(ctx context.Context, workspaceID string) error {
 	s.logger.WithField("workspace_id", workspaceID).Info("Creating sample templates")
 
@@ -741,7 +745,7 @@ func (s *DemoService) createSampleTemplates(ctx context.Context, workspaceID str
 	}
 
 	if err := s.templateService.CreateTemplate(ctx, workspaceID, newsletterTemplate); err != nil {
-		s.logger.WithField("error", err.Error()).Warn("Failed to create newsletter template")
+		return fmt.Errorf("demo: newsletter template: %w", err)
 	}
 
 	// Create newsletter template v2
@@ -784,7 +788,7 @@ func (s *DemoService) createSampleTemplates(ctx context.Context, workspaceID str
 	}
 
 	if err := s.templateService.CreateTemplate(ctx, workspaceID, newsletterV2Template); err != nil {
-		s.logger.WithField("error", err.Error()).Warn("Failed to create newsletter v2 template")
+		return fmt.Errorf("demo: newsletter v2 template: %w", err)
 	}
 
 	// Create welcome email template
@@ -827,7 +831,7 @@ func (s *DemoService) createSampleTemplates(ctx context.Context, workspaceID str
 	}
 
 	if err := s.templateService.CreateTemplate(ctx, workspaceID, welcomeTemplate); err != nil {
-		s.logger.WithField("error", err.Error()).Warn("Failed to create welcome template")
+		return fmt.Errorf("demo: welcome template: %w", err)
 	}
 
 	// Create password reset template
@@ -871,7 +875,7 @@ func (s *DemoService) createSampleTemplates(ctx context.Context, workspaceID str
 	}
 
 	if err := s.templateService.CreateTemplate(ctx, workspaceID, passwordResetTemplate); err != nil {
-		s.logger.WithField("error", err.Error()).Warn("Failed to create password reset template")
+		return fmt.Errorf("demo: password reset template: %w", err)
 	}
 
 	// The templates the showcase automations send. They live in their own file because they share one

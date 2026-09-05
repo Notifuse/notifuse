@@ -5,7 +5,8 @@ import {
   SettingOutlined,
   ExclamationCircleOutlined,
   LineChartOutlined,
-  MailOutlined
+  MailOutlined,
+  SafetyCertificateOutlined
 } from '@ant-design/icons'
 import { useLingui } from '@lingui/react/macro'
 
@@ -21,6 +22,10 @@ export const SETTINGS_SECTIONS = [
   'general',
   'blog',
   'web-analytics',
+  // Deployment-wide rather than workspace-wide, and rendered only for a root user — but listed
+  // here unconditionally, because this array is what makes a URL valid and a root user must be
+  // able to reach /settings/licence from the banner whatever workspace they are in.
+  'licence',
   'danger-zone'
 ] as const
 
@@ -30,9 +35,17 @@ interface SettingsSidebarProps {
   activeSection: SettingsSection
   onSectionChange: (section: SettingsSection) => void
   isOwner: boolean
+  // Root, not owner: the licence covers the deployment, and the server's own licence endpoints
+  // are gated on requireRootUser rather than on workspace ownership.
+  isRoot: boolean
 }
 
-export function SettingsSidebar({ activeSection, onSectionChange, isOwner }: SettingsSidebarProps) {
+export function SettingsSidebar({
+  activeSection,
+  onSectionChange,
+  isOwner,
+  isRoot
+}: SettingsSidebarProps) {
   const { t } = useLingui()
 
   const menuItems = [
@@ -126,6 +139,16 @@ export function SettingsSidebar({ activeSection, onSectionChange, isOwner }: Set
       label: t`General`
     }
   ]
+
+  // The licence panel names the licensee and takes a key, so it follows the server's root gate
+  // rather than workspace ownership.
+  if (isRoot) {
+    menuItems.push({
+      key: 'licence',
+      icon: <SafetyCertificateOutlined />,
+      label: t`Licence`
+    })
+  }
 
   // Add danger zone only for owners
   if (isOwner) {

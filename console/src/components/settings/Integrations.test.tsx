@@ -6,6 +6,8 @@ import { App } from 'antd'
 import { i18n } from '@lingui/core'
 import { I18nProvider } from '@lingui/react'
 import { Integrations } from './Integrations'
+import { LicenseContext, UNKNOWN_LICENSE } from '../../contexts/licenseState'
+import type { Entitlements } from '../../types/license'
 import type { Integration, Workspace } from '../../services/api/types'
 import { workspaceService } from '../../services/api/workspace'
 
@@ -65,18 +67,42 @@ const makeWorkspace = (integrations: Integration[]) =>
 interface RenderOptions {
   integrations?: Integration[]
   isOwner?: boolean
+  // What the deployment is licensed for. Omitted, the console has not been told and every
+  // advisory read answers "licensed", which is the state every other test here runs in.
+  licensedFor?: Entitlements['features']
 }
+
+const entitlementsFor = (features: Entitlements['features']): Entitlements => ({
+  tier: 'Studio',
+  org: 'ACME SAS',
+  sub: 'billing@acme.com',
+  max_workspaces: 5,
+  features,
+  state: 'active',
+  expires_at: '2027-01-01T00:00:00Z'
+})
 
 // The <App> wrapper is load-bearing, not decoration. ZapierSettings reads `message` from
 // App.useApp(), whose default context is an empty object, and calls it from an async handler
 // invoked as a floating promise — so without a provider the TypeError surfaces as an
 // unattributed unhandled rejection and the test still reports green.
-const renderIntegrations = ({ integrations = [], isOwner = true }: RenderOptions = {}) => {
+const renderIntegrations = ({
+  integrations = [],
+  isOwner = true,
+  licensedFor
+}: RenderOptions = {}) => {
   let rerender: (ui: React.ReactElement) => void = () => {}
   const tree = (workspace: Workspace) => (
     <I18nProvider i18n={i18n}>
       <App>
-        <Integrations workspace={workspace} onSave={onSave} loading={false} isOwner={isOwner} />
+        <LicenseContext.Provider
+          value={{
+            ...UNKNOWN_LICENSE,
+            entitlements: licensedFor ? entitlementsFor(licensedFor) : null
+          }}
+        >
+          <Integrations workspace={workspace} onSave={onSave} loading={false} isOwner={isOwner} />
+        </LicenseContext.Provider>
       </App>
     </I18nProvider>
   )
@@ -106,9 +132,9 @@ beforeEach(() => {
 
 // openSESDrawer walks the path an operator takes: pick Amazon SES from the available providers.
 // The tenant fields only exist once that drawer is open, so every test starts here.
-const openSESDrawer = async () => {
+const openSESDrawer = async (options: RenderOptions = {}) => {
   const user = userEvent.setup()
-  renderIntegrations()
+  renderIntegrations(options)
   await user.click(await screen.findByText('Amazon SES'))
   await waitFor(() => expect(screen.getByText('SES tenant isolation')).toBeInTheDocument())
   return user
@@ -121,6 +147,25 @@ const isolationSwitch = () =>
   )
 
 describe('Integrations — SES tenant isolation', () => {
+  // The gate is EnsureTenantIsolation's, and it still answers 402. What this pins is the order
+  // of events: an owner on an unlicensed deployment meets a locked switch that names the plan,
+  // not a live one that refuses on Save.
+  it('locks switching isolation on when the deployment is not licensed for it', async () => {
+    await openSESDrawer({ licensedFor: ['rbac'] })
+
+    expect(
+      screen.getByText('SES tenant isolation requires a Notifuse Studio licence.')
+    ).toBeInTheDocument()
+    expect(isolationSwitch()).toBeDisabled()
+  })
+
+  it('leaves the switch live when the licence covers tenant isolation', async () => {
+    await openSESDrawer({ licensedFor: ['ses_tenant'] })
+
+    expect(screen.queryByText(/requires? a Notifuse/i)).not.toBeInTheDocument()
+    expect(isolationSwitch()).toBeEnabled()
+  })
+
   it('shows the tenant fields without expanding anything', async () => {
     // They used to live behind an "Advanced" collapse; the collapse is gone, so both must be on
     // screen as soon as the SES form is.

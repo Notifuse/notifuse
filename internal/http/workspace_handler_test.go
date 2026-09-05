@@ -4178,3 +4178,158 @@ func TestWorkspaceHandler_HandleSetBlogSettings_SettingsPresenceReachesTheWrite(
 		assert.Equal(t, http.StatusForbidden, w.Code)
 	})
 }
+
+// A licence refusal from CreateAPIKey has to arrive as 402.
+//
+// This handler runs its own error chain and calls neither writeServiceError nor
+// writePermissionError, so the shared 402 seam — the one branch that carries licence
+// refusals through twenty-four other handler files without editing any of them — does not
+// reach it. Before the branch was added, asking for a scoped key on an unlicensed deployment
+// fell through to the chain's closing 500: the console showed "something went wrong" for a
+// refusal that a purchase fixes, and its purchase component keys off the status code alone.
+//
+// Asserted on the body as well as the status because the body is a contract: the console
+// switches on "error": "license_required" and renders the feature and tier from the payload.
+func TestWorkspaceHandler_HandleCreateAPIKey_LicenceRefusalIs402(t *testing.T) {
+	postCreateAPIKey := func(t *testing.T, serviceErr error) *httptest.ResponseRecorder {
+		t.Helper()
+
+		_, workspaceSvc, mux, secretKey, _ := setupTest(t)
+		workspaceSvc.EXPECT().
+			CreateAPIKey(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+			Return("", "", serviceErr)
+
+		body, err := json.Marshal(domain.CreateAPIKeyRequest{
+			WorkspaceID: "workspace-123",
+			EmailPrefix: "ci-bot",
+		})
+		require.NoError(t, err)
+
+		req := httptest.NewRequest(http.MethodPost, "/api/workspaces.createAPIKey", bytes.NewReader(body))
+		req.Header.Set("Authorization", "Bearer "+createTestToken(t, secretKey, "test-user"))
+
+		w := httptest.NewRecorder()
+		mux.ServeHTTP(w, req)
+		return w
+	}
+
+	t.Run("a scoped key on an unlicensed deployment answers 402, not 500", func(t *testing.T) {
+		w := postCreateAPIKey(t, domain.NewFeatureNotLicensedError(domain.FeatureRBAC))
+
+		require.Equal(t, http.StatusPaymentRequired, w.Code)
+
+		var response map[string]string
+		require.NoError(t, json.NewDecoder(w.Body).Decode(&response))
+		assert.Equal(t, "license_required", response["error"])
+		assert.Equal(t, string(domain.FeatureRBAC), response["feature"])
+		assert.Equal(t, "Studio", response["required_tier"])
+		assert.NotEmpty(t, response["message"])
+		assert.Equal(t, "https://notifuse.com/licence-features", response["docs"])
+	})
+
+	// Services wrap on the way up, and a bare type assertion here would have degraded a
+	// wrapped refusal back into the 500 this branch exists to remove.
+	t.Run("it still matches when the service wrapped the refusal", func(t *testing.T) {
+		wrapped := fmt.Errorf("failed to create api key: %w", domain.NewFeatureNotLicensedError(domain.FeatureRBAC))
+		w := postCreateAPIKey(t, wrapped)
+
+		assert.Equal(t, http.StatusPaymentRequired, w.Code)
+	})
+
+	// The 402 branch sits ahead of the 403 one, and the two must not blur: 403 says this
+	// caller lacks a grant, which no amount of money fixes, while 402 says the grants are
+	// fine and the deployment has not bought the capability.
+	t.Run("an authorization failure is still 403", func(t *testing.T) {
+		w := postCreateAPIKey(t, &domain.ErrUnauthorized{Message: "user is not an owner of the workspace"})
+
+		assert.Equal(t, http.StatusForbidden, w.Code)
+	})
+}
+
+// The workspace ceiling is the only gate whose refusal is a quota rather than a capability,
+// and handleCreate is the only thing that turns it into something a purchase can fix.
+//
+// This handler runs its own error chain — quota, then the operator's own limit, then "already
+// exists", then 500 — and never calls writeServiceError, so nothing shared would catch a
+// dropped or reordered branch. Without it a customer at their ceiling gets HTTP 500 and
+// "Failed to create workspace": no status the console can key a purchase off, and no mention
+// of a quota at all, so the operator files a bug about a broken server instead of buying the
+// plan that lifts it.
+func TestWorkspaceHandler_HandleCreate_QuotaRefusalIs402(t *testing.T) {
+	postCreate := func(t *testing.T, serviceErr error) *httptest.ResponseRecorder {
+		t.Helper()
+
+		_, workspaceSvc, mux, secretKey, _ := setupTest(t)
+		workspaceSvc.EXPECT().
+			CreateWorkspace(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
+				gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+			Return(nil, serviceErr)
+
+		body, err := json.Marshal(domain.CreateWorkspaceRequest{
+			ID:   "testworkspace1",
+			Name: "Test Workspace",
+			Settings: domain.WorkspaceSettings{
+				WebsiteURL:      "https://example.com",
+				LogoURL:         "https://example.com/logo.png",
+				CoverURL:        "https://example.com/cover.png",
+				Timezone:        "UTC",
+				DefaultLanguage: "en",
+				Languages:       []string{"en"},
+				FileManager: domain.FileManagerSettings{
+					Endpoint:  "https://s3.amazonaws.com",
+					Bucket:    "my-bucket",
+					AccessKey: "AKIAIOSFODNN7EXAMPLE",
+				},
+			},
+		})
+		require.NoError(t, err)
+
+		req := httptest.NewRequest(http.MethodPost, "/api/workspaces.create", bytes.NewReader(body))
+		req.Header.Set("Authorization", "Bearer "+createTestToken(t, secretKey, "test-user"))
+
+		w := httptest.NewRecorder()
+		mux.ServeHTTP(w, req)
+		return w
+	}
+
+	t.Run("the licence ceiling answers 402, not 500", func(t *testing.T) {
+		w := postCreate(t, &domain.ErrWorkspaceQuotaReached{Limit: 3, Current: 3})
+
+		require.Equal(t, http.StatusPaymentRequired, w.Code)
+
+		var response map[string]string
+		require.NoError(t, json.NewDecoder(w.Body).Decode(&response))
+		assert.Equal(t, "license_required", response["error"])
+		assert.Equal(t, "workspaces", response["feature"])
+		// No required_tier on purpose: which plan lifts the ceiling depends on how many
+		// workspaces the deployment already holds, so naming the cheapest would advertise
+		// a licence that still would not let them create the next one.
+		assert.Empty(t, response["required_tier"])
+		// The number is what makes the refusal actionable rather than a slogan.
+		assert.Contains(t, response["message"], "3")
+		assert.Equal(t, "https://notifuse.com/licence-features", response["docs"])
+	})
+
+	// The contrast that gives the test its teeth, and the distinction the whole 402/403 split
+	// rests on. PLAN_MAX_WORKSPACES is the operator's own ceiling: nothing is for sale, so it
+	// stays a 403 and the console must not offer a purchase for it. Two errors that read
+	// almost identically, deliberately answered differently.
+	t.Run("the operator's own ceiling stays 403 with nothing for sale", func(t *testing.T) {
+		w := postCreate(t, &domain.ErrWorkspaceLimitReached{Limit: 5, Current: 5})
+
+		require.Equal(t, http.StatusForbidden, w.Code)
+
+		var response map[string]string
+		require.NoError(t, json.NewDecoder(w.Body).Decode(&response))
+		assert.NotEqual(t, "license_required", response["error"])
+		assert.Contains(t, response["error"], "workspace limit reached")
+	})
+
+	// Services wrap on the way up, so a bare type assertion would have degraded a wrapped
+	// refusal back into the 500 this branch exists to remove.
+	t.Run("it still matches when the service wrapped the refusal", func(t *testing.T) {
+		wrapped := fmt.Errorf("failed to create workspace: %w",
+			&domain.ErrWorkspaceQuotaReached{Limit: 3, Current: 3})
+		assert.Equal(t, http.StatusPaymentRequired, postCreate(t, wrapped).Code)
+	})
+}

@@ -15,7 +15,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-const VERSION = "39.2"
+const VERSION = "40.0"
 
 type Config struct {
 	Server              ServerConfig
@@ -43,6 +43,21 @@ type Config struct {
 	IsInstalled         bool // NEW: Indicates if setup wizard has been completed
 	MaxUsers            int  // 0 = unlimited (backward compat for self-hosted)
 	MaxWorkspaces       int  // 0 = unlimited (backward compat for self-hosted)
+
+	// LicenseKey is the raw NOTIFUSE_LICENSE_KEY envelope, unverified. It is carried
+	// verbatim because verifying it needs the public key compiled into the binary, which
+	// this package must not import: config is imported by pkg/database and pkg/tracing, so
+	// its own import set has to stay small. The service layer parses it.
+	//
+	// Empty is the ordinary state of every Community installation and means exactly that:
+	// the free tier. A key may also be stored in the settings table, and the environment
+	// wins over it — see internal/service/license_service.go, which owns that precedence
+	// rather than splitting it across two packages the way OIDC's resolution is.
+	//
+	// The name carries the NOTIFUSE_ prefix that no other variable here does, deliberately:
+	// it pairs with NOTIFUSE_LICENSE_SIGNING_KEY, which the licensegen CLI in the private cloud repository reads, and a bare
+	// LICENSE_KEY in an operator's environment is a name almost anything could have set.
+	LicenseKey string
 
 	// Track which values came from actual environment variables (not database, not generated)
 	EnvValues EnvValues
@@ -988,7 +1003,12 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 		IsInstalled:      isInstalled,
 		MaxUsers:         v.GetInt("MAX_USERS"),
 		MaxWorkspaces:    v.GetInt("MAX_WORKSPACES"),
-		EnvValues:        envVals, // Store env values for setup service
+		// Read with no viper default and no validation. A default would make the key
+		// look present when it is not, and a malformed key must degrade the deployment
+		// to the free tier at the service layer, never refuse to boot: an installation
+		// that will not start is a worse outcome than one that starts unlicensed.
+		LicenseKey: v.GetString("NOTIFUSE_LICENSE_KEY"),
+		EnvValues:  envVals, // Store env values for setup service
 	}
 
 	if config.WebhookEndpoint == "" {

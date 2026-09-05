@@ -3,6 +3,7 @@ package http
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -163,6 +164,48 @@ func TestSESHandler_EnableTenantIsolation(t *testing.T) {
 		require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &got))
 		assert.True(t, got.Created)
 		assert.True(t, got.SuppressionScoped)
+	})
+
+	// The one branch in this handler that a purchase can fix, and the only thing standing
+	// between G4's refusal and a 502.
+	//
+	// SESHandler runs its own error mapping and calls neither writeServiceError nor
+	// writePermissionError, so the shared 402 seam does not reach it. Without the local
+	// branch, writeError's default answers 502 Bad Gateway carrying the refusal as prose:
+	// the console keys its purchase component off the status, so it offers nothing to buy,
+	// and 5xx is retried by the query client — the deployment looks broken rather than
+	// unlicensed.
+	t.Run("an unlicensed deployment is refused with 402, not 502", func(t *testing.T) {
+		handler, service := setupSESHandler(t)
+
+		service.EXPECT().EnableTenantIsolation(gomock.Any(), gomock.Any()).
+			Return(nil, domain.NewFeatureNotLicensedError(domain.FeatureSESTenant))
+
+		rec := post(t, handler.handleEnableTenantIsolation, `{"workspace_id":"ws","integration_id":"int-1"}`)
+
+		require.Equal(t, http.StatusPaymentRequired, rec.Code)
+
+		var body map[string]string
+		require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &body))
+		assert.Equal(t, "license_required", body["error"])
+		assert.Equal(t, string(domain.FeatureSESTenant), body["feature"])
+		assert.Equal(t, "Studio", body["required_tier"])
+		assert.NotEmpty(t, body["message"])
+		assert.Equal(t, "https://notifuse.com/licence-features", body["docs"])
+	})
+
+	// Services wrap on the way up, and a bare type assertion here would degrade a wrapped
+	// refusal back into the 502 the branch above exists to remove.
+	t.Run("it still matches when the service wrapped the refusal", func(t *testing.T) {
+		handler, service := setupSESHandler(t)
+
+		service.EXPECT().EnableTenantIsolation(gomock.Any(), gomock.Any()).
+			Return(nil, fmt.Errorf("provision tenant: %w",
+				domain.NewFeatureNotLicensedError(domain.FeatureSESTenant)))
+
+		rec := post(t, handler.handleEnableTenantIsolation, `{"workspace_id":"ws","integration_id":"int-1"}`)
+
+		assert.Equal(t, http.StatusPaymentRequired, rec.Code)
 	})
 
 	// Provisioning creates a billable AWS resource and writes derived state back onto a stored

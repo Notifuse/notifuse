@@ -8,14 +8,22 @@ import { SettingsSidebar, SETTINGS_SECTIONS, SettingsSection } from './SettingsS
 // exercised rather than trusted.
 const renderSidebar = () => {
   const onSectionChange = vi.fn<(section: SettingsSection) => void>()
-  render(<SettingsSidebar activeSection="team" onSectionChange={onSectionChange} isOwner={true} />)
+  // isOwner and isRoot both true so the two conditional entries (danger zone, licence) are in
+  // the menu and get walked like the rest.
+  render(
+    <SettingsSidebar
+      activeSection="team"
+      onSectionChange={onSectionChange}
+      isOwner={true}
+      isRoot={true}
+    />
+  )
   return onSectionChange
 }
 
 describe('SettingsSidebar', () => {
   it('reports a valid section for every entry it renders', () => {
     const onSectionChange = renderSidebar()
-    // isOwner={true} so the conditional danger-zone entry is in the menu too.
     const entries = screen.getAllByRole('menuitem')
 
     entries.forEach((entry) => fireEvent.click(entry))

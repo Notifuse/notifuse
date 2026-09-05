@@ -4,6 +4,7 @@ import { workspaceService } from '../services/api/workspace'
 import { createEmptyPermissions, createFullPermissions } from '../services/api/permissions'
 import { Workspace, UserPermissions } from '../services/api/types'
 import { isRootUser } from '../services/api/auth'
+import type { Entitlements } from '../types/license'
 
 export interface User {
   id: string
@@ -19,6 +20,10 @@ interface AuthContextType {
   signout: () => Promise<void>
   loading: boolean
   refreshWorkspaces: () => Promise<void>
+  // Licence state as /api/user.me reported it, or null when it said nothing — a server older
+  // than this bundle, or one that keeps the licence on its root-only endpoint. Null is "not
+  // told", not "unlicensed"; LicenseProvider is what turns either into an answer.
+  licenseEntitlements: Entitlements | null
 }
 
 // eslint-disable-next-line react-refresh/only-export-components -- Context co-located with provider
@@ -28,6 +33,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [workspaces, setWorkspaces] = useState<Workspace[]>([])
   const [loading, setLoading] = useState(true)
+  const [licenseEntitlements, setLicenseEntitlements] = useState<Entitlements | null>(null)
+
+  // Kept next to the setter it always accompanies, so a fourth call site of getCurrentUser()
+  // cannot pick up the workspaces and forget the licence — which is precisely how
+  // refreshWorkspaces() would have gone stale.
+  const adoptLicense = (payload: { entitlements?: Entitlements }) => {
+    setLicenseEntitlements(payload.entitlements ?? null)
+  }
 
   const checkAuth = useCallback(async () => {
     // console.log('checkAuth')
@@ -40,15 +53,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       // Token exists, fetch current user data
-      const { user, workspaces } = await authService.getCurrentUser()
-      setUser(user)
-      setWorkspaces(workspaces ?? [])
+      const response = await authService.getCurrentUser()
+      setUser(response.user)
+      setWorkspaces(response.workspaces ?? [])
+      adoptLicense(response)
       setLoading(false)
     } catch {
       // If there's an error (like an expired token), clear the storage
       localStorage.removeItem('auth_token')
       setUser(null)
       setWorkspaces([])
+      adoptLicense({})
       setLoading(false)
     }
   }, [])
@@ -66,9 +81,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.setItem('auth_token', token)
 
       // Fetch current user data using the token
-      const { user, workspaces } = await authService.getCurrentUser()
-      setUser(user)
-      setWorkspaces(workspaces ?? [])
+      const response = await authService.getCurrentUser()
+      setUser(response.user)
+      setWorkspaces(response.workspaces ?? [])
+      adoptLicense(response)
     } catch (error) {
       // If there's an error, clear the storage
       localStorage.removeItem('auth_token')
@@ -91,13 +107,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Clear user data
     setUser(null)
     setWorkspaces([])
+    adoptLicense({})
   }
 
   const refreshWorkspaces = async () => {
-    const { workspaces } = await authService.getCurrentUser()
+    const response = await authService.getCurrentUser()
     // getCurrentUser declares workspaces as Workspace[] | null; normalize before it reaches
     // state that consumers index and map over.
-    setWorkspaces(workspaces ?? [])
+    setWorkspaces(response.workspaces ?? [])
+    adoptLicense(response)
   }
 
   // console.log('user', user)
@@ -111,7 +129,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signin,
         signout,
         loading,
-        refreshWorkspaces
+        refreshWorkspaces,
+        licenseEntitlements
       }}
     >
       {children}

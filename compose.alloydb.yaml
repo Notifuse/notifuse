@@ -41,6 +41,12 @@ services:
 
       - SECRET_KEY=${SECRET_KEY:?set SECRET_KEY in your environment}
 
+      # Notifuse licence key (Optional). Leaving it unset is the ordinary state
+      # of a self-hosted installation and means the free tier. It overrides any
+      # key pasted in the console under Settings > Licence. See env.example for
+      # what a licence covers and where a key comes from.
+      # - NOTIFUSE_LICENSE_KEY=${NOTIFUSE_LICENSE_KEY}
+
       # Web analytics geo dimensions use the GeoLite2 City database shipped in
       # the image. Override it with a fresher copy by dropping it in ./data as
       # GeoLite2-City.mmdb, or by setting an explicit path here.

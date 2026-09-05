@@ -29,16 +29,20 @@ func writeJSON(w http.ResponseWriter, status int, v interface{}) {
 }
 
 // writePermissionError answers a caller that may not do what it asked, reporting
-// whether it wrote the response: 401 when the credential itself is dead, 403 when
-// it is alive but lacks the grant.
+// whether it wrote the response: 401 when the credential itself is dead, 402 when
+// the deployment has not bought the capability, 403 when the credential is alive
+// and the deployment is licensed but the caller lacks the grant.
 //
-// The revoked-key mapping lives here rather than one level up in writeServiceError
-// because most handlers reach for this helper and nothing else — transactional
-// notifications, custom events, broadcasts, automations, the contact timeline,
-// message history, blog themes and web analytics all do. Mapping it only in
-// writeServiceError left every one of those answering a dead credential with a
-// 500, which is the case that matters most: those are the endpoints an API key
-// actually calls.
+// The revoked-key and licence mappings live here rather than one level up in
+// writeServiceError because most handlers reach for this helper and nothing else —
+// transactional notifications, custom events, broadcasts, automations, the contact
+// timeline, message history, blog themes and web analytics all do. Mapping the
+// revoked key only in writeServiceError left every one of those answering a dead
+// credential with a 500, which is the case that matters most: those are the
+// endpoints an API key actually calls. The licence refusals are placed at the same
+// level for the same reason, and because writeServiceError delegates here on its
+// first line, one branch covers both helpers — which is what lets the licence gates
+// reach twenty-four handler files without a single handler being edited.
 //
 // errors.Is/errors.As rather than type assertions: services wrap errors on their
 // way up — the authenticate step that sits one line above every permission check
@@ -64,6 +68,34 @@ func writePermissionError(w http.ResponseWriter, err error) bool {
 		WriteJSONError(w, "API key has been revoked", http.StatusUnauthorized)
 		return true
 	}
+	// A licence refusal is answered before a permission denial because the two are
+	// different questions and only the status code separates them for a client: 403
+	// says the signed-in user lacks a grant, which no amount of money fixes, while
+	// 402 says the user's permissions are fine and the deployment has not bought the
+	// capability. The console renders one purchase component keyed on 402 alone,
+	// rather than pattern-matching prose out of a 403 body.
+	//
+	// After the revoked-key check and never before it: authentication comes first,
+	// and a dead credential must be told to reconnect, not told to go and buy
+	// something it already paid for.
+	var notLicensed *domain.ErrFeatureNotLicensed
+	if errors.As(err, &notLicensed) {
+		writeLicenseRequired(w, string(notLicensed.Feature), notLicensed.RequiredTier, notLicensed.Message)
+		return true
+	}
+	// The workspace ceiling is a licence refusal too, and deliberately a different
+	// error from ErrWorkspaceLimitReached: that one is the operator's own
+	// PLAN_MAX_WORKSPACES and keeps its 403, because nothing is for sale there.
+	//
+	// It carries no required_tier. Which plan lifts the ceiling depends on how many
+	// workspaces the deployment already holds — one sitting at eight needs the
+	// fifteen-workspace plan, not the five — so naming the cheapest would advertise a
+	// licence that would not actually let them create the next one.
+	var quotaReached *domain.ErrWorkspaceQuotaReached
+	if errors.As(err, &quotaReached) {
+		writeLicenseRequired(w, licenseQuotaFeature, "", quotaReached.Error())
+		return true
+	}
 	var permErr *domain.PermissionError
 	if errors.As(err, &permErr) {
 		writeJSON(w, http.StatusForbidden, map[string]interface{}{
@@ -76,10 +108,50 @@ func writePermissionError(w http.ResponseWriter, err error) bool {
 	return false
 }
 
+// The two values in a 402 body that are contracts rather than prose.
+//
+// licenseRequiredCode is what the console switches on. licenseDocsURL is the page
+// the Additional Use Grant pins by URL and by version, which is also why no
+// endpoint here serves the feature matrix: a second copy would drift from the text
+// that is legally binding.
+//
+// The console renders a single component for every licence refusal, so these are a
+// contract with it as much as with the AUG.
+const (
+	licenseRequiredCode = "license_required"
+	licenseDocsURL      = "https://notifuse.com/licence-features"
+
+	// licenseQuotaFeature stands in for a domain.Feature the workspace ceiling does
+	// not have: the quota travels in the key's max_ws field, not as an entry in its
+	// feature list. The body still needs a name for what was refused.
+	licenseQuotaFeature = "workspaces"
+)
+
+// writeLicenseRequired writes the 402 that a purchase can fix.
+//
+// Machine-readable on purpose. A console that had to recognise licence refusals by
+// their prose would break the day a message is reworded or translated, and the
+// message here is the one thing in the body that is meant to be read by a person.
+func writeLicenseRequired(w http.ResponseWriter, feature, requiredTier, message string) {
+	body := map[string]string{
+		"error":   licenseRequiredCode,
+		"feature": feature,
+		"message": message,
+		"docs":    licenseDocsURL,
+	}
+	// Absent rather than empty when no single plan can be named: a console reading
+	// the key unconditionally would otherwise offer "requires a  licence".
+	if requiredTier != "" {
+		body["required_tier"] = requiredTier
+	}
+	writeJSON(w, http.StatusPaymentRequired, body)
+}
+
 // writeServiceError maps the authorization and lookup errors a service can return
 // to HTTP status codes, writing the response and reporting whether it handled the
-// error. A dead credential answers 401 and a permission denial 403 — both through
-// writePermissionError, so the two helpers can never disagree — an authorization
+// error. A dead credential answers 401, a licence refusal 402 and a permission
+// denial 403 — all three through writePermissionError, so the two helpers can never
+// disagree about which of them a given error is — an authorization
 // failure (not a member / not an owner) answers 403 rather than a generic 500, and
 // a missing row answers 404.
 // It unwraps via errors.As/errors.Is, so it still matches when the service wrapped

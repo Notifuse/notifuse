@@ -1,0 +1,5 @@
+{
+  "_warning": "DEV FIXTURE — NOT A SECRET. This Ed25519 key pair signs licence keys only for builds made with -tags licdev, and is committed on purpose so the test suite can mint and verify a real key. It is useless against a release binary, which trusts the entirely different key in pubkey_prod.go. Never use it to sign anything a customer will receive.",
+  "public": "HN2174FtXW2CpzcNs/QO6xrMbjaQQJdkG/r9q3CZyZA=",
+  "private": "M8bkbKl6MUDyeflTDfL0VLUPm24co7ay478n4BVbGNkc3bXvgW1dbYKnNw2z9A7rGsxuNpBAl2Qb+v2rcJnJkA=="
+}

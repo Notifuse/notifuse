@@ -28,6 +28,12 @@ services:
       # Secret Key (Required) - Generate a secure random string for production
       - SECRET_KEY=${SECRET_KEY:-d04zCk3Fa45oOjDWHpAvc1AZxnLdGffOnNWK+Jt2yXf37+FTfuMMHb8flcfPMqLluRR3rvhbr555r6j1DEigrA==}
 
+      # Notifuse licence key (Optional). Leaving it unset is the ordinary state
+      # of a self-hosted installation and means the free tier. It overrides any
+      # key pasted in the console under Settings > Licence. See env.example for
+      # what a licence covers and where a key comes from.
+      # - NOTIFUSE_LICENSE_KEY=${NOTIFUSE_LICENSE_KEY}
+
       # All other settings (ROOT_EMAIL, API_ENDPOINT, SMTP)
       # can be configured through the Setup Wizard on first launch
       # Or set them here as environment variables if you prefer

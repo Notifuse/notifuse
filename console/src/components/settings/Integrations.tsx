@@ -41,6 +41,8 @@ import { workspaceService } from '../../services/api/workspace'
 import { emailService } from '../../services/api/email'
 import { useSESDiscovery } from './useSESDiscovery'
 import { enableSESTenantIsolation, SESAccessDeniedError } from '../../services/api/ses'
+import { useLicense } from '../../hooks/useLicense'
+import { LicenceGateNotice } from '../license/LicenceGateNotice'
 import { listsApi } from '../../services/api/list'
 import { INBOUND_REPLY_PROVIDER_KINDS } from '../../services/api/automation'
 import {
@@ -526,6 +528,11 @@ const constructProviderFromForm = (formValues: EmailProviderFormValues): EmailPr
 // Main Integrations component
 export function Integrations({ workspace, onSave, loading, isOwner }: IntegrationsProps) {
   const { t } = useLingui()
+  // Advisory only; EnsureTenantIsolation is the gate. A tenant that already exists keeps
+  // resolving with no key at all — the send path is deliberately unlicensed — so an owner
+  // whose licence lapsed can still switch isolation OFF, and only switching it ON is locked.
+  const { has } = useLicense()
+  const tenantIsolationLocked = !has('ses_tenant')
   // State for providers
   const [emailProviderForm] = Form.useForm()
   const rateLimitPerMinute = Form.useWatch('rate_limit_per_minute', emailProviderForm)
@@ -2204,6 +2211,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
 
         {providerType === 'ses' && (
           <>
+            <LicenceGateNotice feature="ses_tenant" workspaceId={workspace?.id} />
             <Form.Item
               name={['ses', 'tenant_isolation_enabled']}
               label={t`SES tenant isolation`}
@@ -2215,7 +2223,9 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
                   : undefined
               }
             >
-              <Switch disabled={!isOwner} />
+              <Switch
+                disabled={!isOwner || (tenantIsolationLocked && !sesTenantIsolationEnabled)}
+              />
             </Form.Item>
 
             <Form.Item

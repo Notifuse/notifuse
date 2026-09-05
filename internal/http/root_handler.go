@@ -11,8 +11,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/blogfeed"
+	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/pkg/cache"
 	"github.com/Notifuse/notifuse/pkg/logger"
 )
@@ -32,8 +32,19 @@ type RootHandler struct {
 	workspaceRepo         domain.WorkspaceRepository
 	blogService           domain.BlogService
 	cache                 cache.Cache
-	oidcEnabled           bool
-	oidcButtonLabel       string
+	// oidcEnabled is asked on every /config.js request rather than snapshotted at
+	// construction, and it is wired to OIDCService.IsEnabled — the same function
+	// /api/user.oidc.start consults. Two reads of one function, so the button the console
+	// paints and the endpoint it leads to cannot disagree.
+	//
+	// A predicate rather than a bool because the answer moves at runtime: config.OIDC is
+	// resolved once at boot, but IsEnabled also asks the licence, and a key pasted into
+	// the console takes effect immediately. A bool here would hide the button an operator
+	// had just paid for until somebody restarted the process.
+	//
+	// nil means disabled. Every caller that has an OIDC service passes its IsEnabled.
+	oidcEnabled     func() bool
+	oidcButtonLabel string
 }
 
 // NewRootHandler creates a root handler that serves both console and notification center static files
@@ -52,7 +63,7 @@ func NewRootHandler(
 	workspaceRepo domain.WorkspaceRepository,
 	blogService domain.BlogService,
 	cache cache.Cache,
-	oidcEnabled bool,
+	oidcEnabled func() bool,
 	oidcButtonLabel string,
 ) *RootHandler {
 	return &RootHandler{
@@ -152,7 +163,7 @@ func (h *RootHandler) serveConfigJS(w http.ResponseWriter, r *http.Request) {
 	}
 
 	oidcEnabledStr := "false"
-	if h.oidcEnabled {
+	if h.oidcEnabled != nil && h.oidcEnabled() {
 		oidcEnabledStr = "true"
 	}
 	// Only flags reach the browser — NEVER the client_id, issuer, or secret. The

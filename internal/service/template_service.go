@@ -19,6 +19,10 @@ type TemplateService struct {
 	authService   domain.AuthService
 	logger        logger.Logger
 	apiEndpoint   string
+	// entitlements answers whether this deployment may author a multilingual variant.
+	// Required at construction, never a trailing variadic: three of the four gates once
+	// shipped dead because the compiler could not see an omitted argument.
+	entitlements domain.EntitlementProvider
 }
 
 // updateEmailMetadataBlocks updates mj-title and mj-preview blocks in the email tree
@@ -140,14 +144,29 @@ func overrideMjmlTag(mjml string, tagName string, content string) string {
 	return mjml
 }
 
-func NewTemplateService(repo domain.TemplateRepository, workspaceRepo domain.WorkspaceRepository, authService domain.AuthService, logger logger.Logger, apiEndpoint string) *TemplateService {
+func NewTemplateService(repo domain.TemplateRepository, workspaceRepo domain.WorkspaceRepository, authService domain.AuthService, logger logger.Logger, apiEndpoint string, entitlements domain.EntitlementProvider) *TemplateService {
 	return &TemplateService{
 		repo:          repo,
 		workspaceRepo: workspaceRepo,
 		authService:   authService,
 		logger:        logger,
 		apiEndpoint:   apiEndpoint,
+		entitlements:  entitlements,
 	}
+}
+
+// isLicensedFor answers the one licence question this service asks.
+//
+// A nil provider leaves the gate inert, which is the state of the many TemplateService
+// constructions that predate licensing — and is NOT the unlicensed state: an unlicensed
+// deployment has a provider, that provider answers CommunityEntitlements, and the gate
+// refuses. Production wiring always passes one, and app_license_wiring_test.go is what says
+// so.
+func (s *TemplateService) isLicensedFor(feature domain.Feature) bool {
+	if s.entitlements == nil {
+		return true
+	}
+	return s.entitlements.Entitlements().Has(feature)
 }
 
 // validateTranslationLanguages checks that all translation language keys are in the workspace's configured languages.
@@ -198,6 +217,18 @@ func (s *TemplateService) CreateTemplate(ctx context.Context, workspaceID string
 			domain.PermissionTypeWrite,
 			"Insufficient permissions: write access to templates required",
 		)
+	}
+
+	// G5. A new template carrying translations is authoring a variant; one without them is
+	// not, and creating templates is never licensed.
+	//
+	// After the permission check, so a user who may not write templates at all is told that
+	// rather than told to buy something — and before every validation below, so an
+	// unlicensed deployment gets the one answer that is actually true of it instead of
+	// "that language is not configured for this workspace", which it would then go and fix
+	// only to be refused again.
+	if len(template.Translations) > 0 && !s.isLicensedFor(domain.FeatureTemplateI18n) {
+		return domain.NewFeatureNotLicensedError(domain.FeatureTemplateI18n)
 	}
 
 	// Set initial version and timestamps
@@ -347,6 +378,25 @@ func (s *TemplateService) UpdateTemplate(ctx context.Context, workspaceID string
 	requestedTranslations := template.Translations
 	if template.Translations == nil {
 		template.Translations = existingTemplate.Translations
+	}
+
+	// G5. Against requestedTranslations, not the merged map: a nil map is "not part of this
+	// edit" and preserves what is stored, so comparing the merged value would refuse a save
+	// that never mentioned translations at all.
+	//
+	// Only a widening refuses. Removing a language passes — it is the free way back inside
+	// the licence — and so does any other edit to a template that merely carries
+	// translations, because the console sends the whole template on every save and otherwise
+	// the first unlicensed subject-line change would be refused for a variant nobody
+	// touched.
+	//
+	// The licence check comes before the comparison on purpose: the comparison marshals
+	// every translation twice, and licensed deployments — the only ones that author
+	// translations — would otherwise pay it on every save for a result thrown away.
+	if requestedTranslations != nil &&
+		!s.isLicensedFor(domain.FeatureTemplateI18n) &&
+		domain.TranslationsWiden(existingTemplate.Translations, requestedTranslations) {
+		return domain.NewFeatureNotLicensedError(domain.FeatureTemplateI18n)
 	}
 
 	// Verify editor_mode hasn't changed (prevent switching between visual and code)

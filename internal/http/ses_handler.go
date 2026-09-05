@@ -107,6 +107,17 @@ func (h *SESHandler) handleEnableTenantIsolation(w http.ResponseWriter, r *http.
 
 	result, err := h.service.EnableTenantIsolation(r.Context(), req)
 	if err != nil {
+		// SESHandler carries its own error mapping and calls neither writeServiceError nor
+		// writePermissionError, so the shared 402 branch never reaches it: without this,
+		// writeError's default would answer 502 Bad Gateway with the refusal text — a gateway
+		// fault for something that is simply not bought. Spelled out on this handler alone
+		// because provisioning is the only SES endpoint that is licensed; discovery reads stay
+		// open so the console can show what an account holds before anyone decides to buy.
+		var notLicensed *domain.ErrFeatureNotLicensed
+		if errors.As(err, &notLicensed) {
+			writeLicenseRequired(w, string(notLicensed.Feature), notLicensed.RequiredTier, notLicensed.Message)
+			return
+		}
 		h.writeError(w, err, "Failed to enable SES tenant isolation")
 		return
 	}

@@ -114,6 +114,14 @@ func (h *TemplateHandler) handleCreate(w http.ResponseWriter, r *http.Request) {
 	if err := h.service.CreateTemplate(r.Context(), workspaceID, template); err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to create template")
 
+		// The licence and permission seam, ahead of everything else. This handler maps its
+		// own errors rather than going through writeServiceError, so without this line the
+		// 402 from the translations gate arrives as a 500 and the console shows "Failed to
+		// create template" — a refusal a purchase would fix, reported as a server fault.
+		if writePermissionError(w, err) {
+			return
+		}
+
 		// errors.As, not a text match: PostgreSQL translates its message per lc_messages,
 		// so on a non-English server the old substring check never fired and a taken id
 		// surfaced as a 500.
@@ -152,6 +160,11 @@ func (h *TemplateHandler) handleUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.service.UpdateTemplate(r.Context(), workspaceID, template); err != nil {
+		// See handleCreate: this handler maps its own errors, so the licence seam has to be
+		// asked here or a 402 arrives as a 500.
+		if writePermissionError(w, err) {
+			return
+		}
 		if _, ok := err.(*domain.ErrTemplateNotFound); ok {
 			WriteJSONError(w, "Template not found", http.StatusNotFound)
 			return

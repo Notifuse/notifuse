@@ -46,3 +46,14 @@ tests/integration/diagnostics/*.json
 
 
 TODO.md
+
+# A stray licensegen binary at the repository root. The tool itself lives in the
+# private cloud repository — it mints production keys, so it has no business in a
+# public one — but `go build` of a checkout that still has it, or a binary copied
+# here to run once, leaves 3.3 MB that `git add -A` would commit without a word.
+#
+# There is deliberately no cmd/licensegen rule any more: that path does not exist
+# in this repository, and a rule for a path nobody has invites the reader to
+# believe the tool is here.
+/licensegen
+

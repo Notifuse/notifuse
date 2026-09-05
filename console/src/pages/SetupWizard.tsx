@@ -353,7 +353,7 @@ export default function SetupWizard() {
                     smtp_port: 587,
                     smtp_use_tls: true,
                     smtp_from_name: 'Notifuse',
-                    subscribe_newsletter: true,
+                    subscribe_newsletter: false,
                     telemetry_enabled: true,
                     check_for_updates: true
                   }}

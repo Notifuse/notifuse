@@ -45,6 +45,7 @@ func newWorkspaceServiceForWebAnalyticsTest(t *testing.T) (*WorkspaceService, *m
 		&SupabaseService{},
 		&DNSVerificationService{},
 		&BlogService{},
+		fullyLicensedProvider(ctrl),
 	)
 
 	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()

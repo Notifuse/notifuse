@@ -27,6 +27,7 @@ import { FileManagerSettings } from '../components/file_manager/interfaces'
 import { workspaceService } from '../services/api/workspace'
 import { createEmptyPermissions, createFullPermissions } from '../services/api/permissions'
 import { isRootUser } from '../services/api/auth'
+import { minusBannerOffset, withBannerOffset } from '../components/license/bannerOffset'
 import {
   AppstoreOutlined,
   FolderOpenOutlined,
@@ -492,9 +493,11 @@ export function WorkspaceLayout() {
             theme="light"
             style={{
               position: 'fixed',
-              height: '100vh',
+              // Both follow the licence banner, which is fixed at the top of the viewport and
+              // mounted above this layout. The variable is 0px when there is no banner.
+              height: minusBannerOffset('100vh'),
               left: 0,
-              top: 0,
+              top: withBannerOffset('0px'),
               // The nav inside owns the scrolling; the panel must not also
               // scroll, or the logo and the collapse button travel with it.
               overflow: 'hidden',
@@ -575,7 +578,7 @@ export function WorkspaceLayout() {
           <Header
             style={{
               position: 'fixed',
-              top: 0,
+              top: withBannerOffset('0px'),
               right: 0,
               width: `calc(100% - ${collapsed ? '80px' : '250px'})`,
               height: '64px',
@@ -620,6 +623,11 @@ export function WorkspaceLayout() {
                 ...(isRootUser(user?.email)
                   ? [
                       {
+                        // Never greyed by the licence. The workspace ceiling is a quota, not a
+                        // capability: how many a deployment already holds decides whether the
+                        // next one is refused, and the server answers that with a 402 naming
+                        // the number. Guessing it here would grey the control out on a
+                        // deployment that has room.
                         label: (
                           <Space className="text-indigo-500">
                             <FontAwesomeIcon icon={faPlus} /> {t`New workspace`}
@@ -705,7 +713,7 @@ export function WorkspaceLayout() {
           <Layout
             style={{
               marginLeft: collapsed ? '80px' : '250px',
-              marginTop: '64px',
+              marginTop: withBannerOffset('64px'),
               padding: isSettingsPage ? '0' : '24px',
               transition: 'margin-left 0.2s',
               backgroundColor: '#F9F9F9'

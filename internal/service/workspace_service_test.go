@@ -56,6 +56,7 @@ func TestWorkspaceService_ListWorkspaces(t *testing.T) {
 		&SupabaseService{},
 		&DNSVerificationService{},
 		&BlogService{},
+		fullyLicensedProvider(ctrl),
 	)
 
 	ctx := context.Background()
@@ -167,6 +168,7 @@ func TestWorkspaceService_GetWorkspace(t *testing.T) {
 		&SupabaseService{},
 		&DNSVerificationService{},
 		&BlogService{},
+		fullyLicensedProvider(ctrl),
 	)
 
 	// Setup common logger expectations
@@ -335,6 +337,7 @@ func TestWorkspaceService_CreateWorkspace(t *testing.T) {
 		&SupabaseService{},
 		&DNSVerificationService{},
 		&BlogService{},
+		fullyLicensedProvider(ctrl),
 	)
 
 	// Setup common logger expectations
@@ -620,6 +623,7 @@ func TestWorkspaceService_CreateWorkspace_MultipleRootEmails(t *testing.T) {
 		&SupabaseService{},
 		&DNSVerificationService{},
 		&BlogService{},
+		fullyLicensedProvider(ctrl),
 	)
 
 	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
@@ -720,6 +724,7 @@ func TestWorkspaceService_CreateWorkspace_CustomLanguageSettings(t *testing.T) {
 		&SupabaseService{},
 		&DNSVerificationService{},
 		&BlogService{},
+		fullyLicensedProvider(ctrl),
 	)
 
 	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
@@ -799,6 +804,7 @@ func TestWorkspaceService_CreateWorkspace_DefaultLanguageNotInList(t *testing.T)
 		&SupabaseService{},
 		&DNSVerificationService{},
 		&BlogService{},
+		fullyLicensedProvider(ctrl),
 	)
 
 	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
@@ -864,6 +870,7 @@ func TestWorkspaceService_SetCustomFieldLabels(t *testing.T) {
 		&SupabaseService{},
 		&DNSVerificationService{},
 		&BlogService{},
+		fullyLicensedProvider(ctrl),
 	)
 
 	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
@@ -1075,6 +1082,7 @@ func TestWorkspaceService_SetBlogSettings(t *testing.T) {
 		&SupabaseService{},
 		&DNSVerificationService{},
 		&BlogService{},
+		fullyLicensedProvider(ctrl),
 	)
 
 	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
@@ -1306,6 +1314,7 @@ func TestWorkspaceService_UpdateWorkspace(t *testing.T) {
 		&SupabaseService{},
 		&DNSVerificationService{},
 		&BlogService{},
+		fullyLicensedProvider(ctrl),
 	)
 
 	// Setup common logger expectations
@@ -1820,6 +1829,7 @@ func TestWorkspaceService_DeleteWorkspace(t *testing.T) {
 		&SupabaseService{},
 		&DNSVerificationService{},
 		&BlogService{},
+		fullyLicensedProvider(ctrl),
 	)
 
 	// Setup common logger expectations
@@ -2042,6 +2052,7 @@ func TestWorkspaceService_CreateIntegration(t *testing.T) {
 		&SupabaseService{},
 		&DNSVerificationService{},
 		&BlogService{},
+		fullyLicensedProvider(ctrl),
 	)
 
 	// Setup common logger expectations
@@ -2292,6 +2303,7 @@ func TestWorkspaceService_UpdateIntegration(t *testing.T) {
 		&SupabaseService{},
 		&DNSVerificationService{},
 		&BlogService{},
+		fullyLicensedProvider(ctrl),
 	)
 
 	// Setup common logger expectations
@@ -2833,6 +2845,7 @@ func TestWorkspaceService_DeleteIntegration(t *testing.T) {
 		&SupabaseService{},
 		&DNSVerificationService{},
 		&BlogService{},
+		fullyLicensedProvider(ctrl),
 	)
 
 	// Set up mockLogger to allow any calls
@@ -3252,6 +3265,7 @@ func TestWorkspaceService_RemoveMember(t *testing.T) {
 		&SupabaseService{},
 		&DNSVerificationService{},
 		&BlogService{},
+		fullyLicensedProvider(ctrl),
 	)
 
 	ctx := context.Background()
@@ -3486,6 +3500,7 @@ func TestWorkspaceService_GetInvitationByID(t *testing.T) {
 		&SupabaseService{},
 		&DNSVerificationService{},
 		&BlogService{},
+		fullyLicensedProvider(ctrl),
 	)
 
 	invitationID := "invitation-123"
@@ -3561,6 +3576,7 @@ func TestWorkspaceService_AcceptInvitation(t *testing.T) {
 		&SupabaseService{},
 		&DNSVerificationService{},
 		&BlogService{},
+		fullyLicensedProvider(ctrl),
 	)
 
 	invitationID := "invitation-123"
@@ -4004,6 +4020,7 @@ func TestWorkspaceService_DeleteInvitation(t *testing.T) {
 		&SupabaseService{},
 		&DNSVerificationService{},
 		&BlogService{},
+		fullyLicensedProvider(ctrl),
 	)
 
 	ctx := context.Background()
@@ -4176,6 +4193,7 @@ func TestWorkspaceService_SetUserPermissions(t *testing.T) {
 		&SupabaseService{},
 		&DNSVerificationService{},
 		&BlogService{},
+		fullyLicensedProvider(ctrl),
 	)
 
 	// Setup common logger expectations
@@ -4420,6 +4438,7 @@ func TestWorkspaceService_deleteSupabaseIntegrationResources(t *testing.T) {
 		supabaseService,
 		&DNSVerificationService{},
 		&BlogService{},
+		fullyLicensedProvider(ctrl),
 	)
 
 	ctx := context.Background()
@@ -4488,6 +4507,7 @@ func TestWorkspaceService_InviteMember_TeamMemberLimit(t *testing.T) {
 			mockConfig, mockContactService, mockListService,
 			mockContactListService, mockTemplateService, mockWebhookRegService,
 			"secret_key", &SupabaseService{}, &DNSVerificationService{}, &BlogService{},
+			fullyLicensedProvider(ctrl),
 		)
 		return service, mockRepo, mockUserService, mockAuthService, mockLogger
 	}
@@ -4618,6 +4638,7 @@ func TestWorkspaceService_AcceptInvitation_TeamMemberLimit(t *testing.T) {
 			mockConfig, mockContactService, mockListService,
 			mockContactListService, mockTemplateService, mockWebhookRegService,
 			"secret_key", &SupabaseService{}, &DNSVerificationService{}, &BlogService{},
+			fullyLicensedProvider(ctrl),
 		)
 		return service, mockRepo, mockUserService, mockUserRepo, mockAuthService
 	}
@@ -4768,6 +4789,7 @@ func TestWorkspaceService_CreateWorkspace_WorkspaceLimit(t *testing.T) {
 			mockConfig, mockContactService, mockListService,
 			mockContactListService, mockTemplateService, mockWebhookRegService,
 			"secret_key", &SupabaseService{}, &DNSVerificationService{}, &BlogService{},
+			fullyLicensedProvider(ctrl),
 		)
 		return service, mockRepo, mockAuthService, mockLogger
 	}
@@ -4860,6 +4882,7 @@ func TestWorkspaceService_DeleteInvitation_PlatformAdmin(t *testing.T) {
 		mocks.NewMockContactListService(ctrl), mocks.NewMockTemplateService(ctrl),
 		mocks.NewMockWebhookRegistrationService(ctrl), "secret_key",
 		&SupabaseService{}, &DNSVerificationService{}, &BlogService{},
+		fullyLicensedProvider(ctrl),
 	)
 
 	ctx := context.Background()
@@ -4927,6 +4950,7 @@ func newZapierTestService(t *testing.T, ctrl *gomock.Controller) (*WorkspaceServ
 		&SupabaseService{},
 		&DNSVerificationService{},
 		&BlogService{},
+		fullyLicensedProvider(ctrl),
 	)
 
 	return service, mockRepo, mockUserRepo, mockAuthService
@@ -5343,6 +5367,7 @@ func TestUpdateIntegration_OmittedProviderKeepsStoredEmailProvider(t *testing.T)
 			&SupabaseService{},
 			&DNSVerificationService{},
 			&BlogService{},
+			fullyLicensedProvider(ctrl),
 		)
 
 		ctx := context.Background()
@@ -5479,6 +5504,7 @@ func TestUpdateWorkspace_OmittedSettingsKeepStoredValues(t *testing.T) {
 			&SupabaseService{},
 			&DNSVerificationService{},
 			&BlogService{},
+			fullyLicensedProvider(ctrl),
 		)
 
 		ctx := context.Background()
@@ -5608,6 +5634,7 @@ func TestSetBlogSettings_OmittedEnabledFlagKeepsStoredValue(t *testing.T) {
 			&SupabaseService{},
 			&DNSVerificationService{},
 			&BlogService{},
+			fullyLicensedProvider(ctrl),
 		)
 
 		ctx := context.Background()
@@ -5711,6 +5738,7 @@ func TestSetBlogSettings_UnspecifiedSettingsKeepTheStoredConfiguration(t *testin
 			&SupabaseService{},
 			&DNSVerificationService{},
 			&BlogService{},
+			fullyLicensedProvider(ctrl),
 		)
 
 		ctx := context.Background()
@@ -5780,5 +5808,837 @@ func TestSetBlogSettings_UnspecifiedSettingsKeepTheStoredConfiguration(t *testin
 		assert.Zero(t, saved.Settings.BlogSettings.HomePageSize,
 			"the block is a replacement, not a per-field merge")
 		assert.Nil(t, saved.Settings.BlogSettings.SEO)
+	})
+}
+
+// ---------------------------------------------------------------------------
+// Licence gates (G1 workspace quota, G3 RBAC)
+//
+// Every subtest below drives the service through a stubbed EntitlementProvider, because that
+// is the only thing a gate is allowed to read. In particular none of them changes the caller's
+// role: a configured ROOT_EMAIL is synthesised as an owner with full permissions on every
+// workspace, so a gate that consulted the role would be invisible to exactly the person being
+// sold to.
+// ---------------------------------------------------------------------------
+
+// stubEntitlements builds a provider that always answers ent. AnyTimes, because what these
+// tests pin is the decision a gate reaches, not how many times it asks.
+func stubEntitlements(ctrl *gomock.Controller, ent domain.Entitlements) *mocks.MockEntitlementProvider {
+	provider := mocks.NewMockEntitlementProvider(ctrl)
+	provider.EXPECT().Entitlements().Return(ent).AnyTimes()
+	return provider
+}
+
+// licensedEntitlements is an active key granting the named features.
+func licensedEntitlements(maxWorkspaces int, features ...domain.Feature) domain.Entitlements {
+	return domain.Entitlements{
+		Tier:          "agency",
+		Org:           "ACME SAS",
+		MaxWorkspaces: maxWorkspaces,
+		Features:      features,
+		State:         domain.LicenseStateActive,
+		ExpiresAt:     time.Now().UTC().Add(24 * time.Hour),
+	}
+}
+
+// licenceGateDeps are the mocks a licence-gate subtest drives.
+type licenceGateDeps struct {
+	repo        *mocks.MockWorkspaceRepository
+	userRepo    *mocks.MockUserRepository
+	userService *mocks.MockUserServiceInterface
+	auth        *mocks.MockAuthService
+}
+
+// newLicenceGatedWorkspaceService builds a WorkspaceService wired to provider. Passing a nil
+// provider is the un-wired state, which leaves the gates inert — distinct from an unlicensed
+// deployment, which passes domain.CommunityEntitlements().
+func newLicenceGatedWorkspaceService(t *testing.T, ctrl *gomock.Controller, cfg *config.Config, provider domain.EntitlementProvider) (*WorkspaceService, licenceGateDeps) {
+	t.Helper()
+
+	deps := licenceGateDeps{
+		repo:        mocks.NewMockWorkspaceRepository(ctrl),
+		userRepo:    mocks.NewMockUserRepository(ctrl),
+		userService: mocks.NewMockUserServiceInterface(ctrl),
+		auth:        mocks.NewMockAuthService(ctrl),
+	}
+
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Warn(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
+
+	service := NewWorkspaceService(
+		deps.repo,
+		deps.userRepo,
+		mocks.NewMockTaskRepository(ctrl),
+		mockLogger,
+		deps.userService,
+		deps.auth,
+		pkgmocks.NewMockMailer(ctrl),
+		cfg,
+		mocks.NewMockContactService(ctrl),
+		mocks.NewMockListService(ctrl),
+		mocks.NewMockContactListService(ctrl),
+		mocks.NewMockTemplateService(ctrl),
+		mocks.NewMockWebhookRegistrationService(ctrl),
+		"secret_key",
+		&SupabaseService{},
+		&DNSVerificationService{},
+		&BlogService{},
+		provider,
+	)
+	return service, deps
+}
+
+// expectOwner stubs authentication as an owner of workspaceID.
+func (d licenceGateDeps) expectOwner(workspaceID, userID string, times int) {
+	d.auth.EXPECT().
+		AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
+		DoAndReturn(func(ctx context.Context, _ string) (context.Context, *domain.User, *domain.UserWorkspace, error) {
+			return ctx, &domain.User{ID: userID}, &domain.UserWorkspace{
+				UserID:      userID,
+				WorkspaceID: workspaceID,
+				Role:        "owner",
+			}, nil
+		}).
+		Times(times)
+}
+
+// restrictedPermissions is a real, narrower-than-full grant: read-only on contacts and
+// nothing else.
+func restrictedPermissions() domain.UserPermissions {
+	permissions := domain.NewEmptyPermissions()
+	permissions[domain.PermissionResourceContacts] = domain.ResourcePermissions{Read: true}
+	return permissions
+}
+
+func TestGrantsFullPermissions(t *testing.T) {
+	t.Run("a nil map grants nothing, so it is not full", func(t *testing.T) {
+		// Stored on a membership row a nil map denies every verb — a granular grant like any
+		// other. CreateAPIKey's "nil means full access" is that method's own contract and is
+		// spelled out at its gate, not here.
+		assert.False(t, grantsFullPermissions(nil))
+	})
+
+	t.Run("a fresh full map is full", func(t *testing.T) {
+		assert.True(t, grantsFullPermissions(domain.NewFullPermissions()))
+	})
+
+	t.Run("an empty but non-nil map is a real restriction", func(t *testing.T) {
+		assert.False(t, grantsFullPermissions(domain.UserPermissions{}))
+	})
+
+	t.Run("dropping a single verb from a full map is not full", func(t *testing.T) {
+		permissions := domain.NewFullPermissions()
+		permissions[domain.PermissionResourceContacts] = domain.ResourcePermissions{Read: true}
+		assert.False(t, grantsFullPermissions(permissions))
+	})
+
+	t.Run("dropping a whole resource from a full map is not full", func(t *testing.T) {
+		permissions := domain.NewFullPermissions()
+		delete(permissions, domain.PermissionResourceBroadcasts)
+		assert.False(t, grantsFullPermissions(permissions))
+	})
+
+	t.Run("the zapier scope is not full", func(t *testing.T) {
+		assert.False(t, grantsFullPermissions(domain.ZapierKeyPermissions()))
+	})
+}
+
+// TestWorkspaceService_CreateWorkspace_LicenceQuota covers G1: the workspace ceiling moves to
+// the licence, while the operator's own MAX_WORKSPACES keeps the 403 it answers today.
+func TestWorkspaceService_CreateWorkspace_LicenceQuota(t *testing.T) {
+	const workspaceID = "newws"
+
+	rootConfig := func(maxWorkspaces int) *config.Config {
+		return &config.Config{RootEmail: "root@example.com", MaxWorkspaces: maxWorkspaces, Environment: "development"}
+	}
+
+	expectRoot := func(deps licenceGateDeps) {
+		deps.auth.EXPECT().
+			AuthenticateUserFromContext(gomock.Any()).
+			Return(&domain.User{ID: "root-user", Email: "root@example.com"}, nil)
+	}
+
+	create := func(service *WorkspaceService) error {
+		_, err := service.CreateWorkspace(context.Background(), workspaceID, "New Workspace", "", "", "", "UTC", domain.FileManagerSettings{}, "en", []string{"en"})
+		return err
+	}
+
+	t.Run("under the community quota the creation proceeds", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		service, deps := newLicenceGatedWorkspaceService(t, ctrl, rootConfig(0), stubEntitlements(ctrl, domain.CommunityEntitlements()))
+
+		expectRoot(deps)
+		deps.repo.EXPECT().CountWorkspaces(gomock.Any()).Return(domain.CommunityMaxWorkspaces-1, nil)
+		// Getting as far as the existence check proves the quota let the call through.
+		deps.repo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(&domain.Workspace{ID: workspaceID}, nil)
+
+		err := create(service)
+		require.Error(t, err)
+		assert.Equal(t, "workspace already exists", err.Error())
+	})
+
+	t.Run("at the community quota the creation is refused with a purchasable error", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		service, deps := newLicenceGatedWorkspaceService(t, ctrl, rootConfig(0), stubEntitlements(ctrl, domain.CommunityEntitlements()))
+
+		expectRoot(deps)
+		deps.repo.EXPECT().CountWorkspaces(gomock.Any()).Return(domain.CommunityMaxWorkspaces, nil)
+
+		err := create(service)
+		require.Error(t, err)
+
+		var quotaErr *domain.ErrWorkspaceQuotaReached
+		require.True(t, errors.As(err, &quotaErr))
+		assert.Equal(t, domain.CommunityMaxWorkspaces, quotaErr.Limit)
+		assert.Equal(t, domain.CommunityMaxWorkspaces, quotaErr.Current)
+
+		// Not the operator's plan error, which maps to 403 and has nothing for sale.
+		var limitErr *domain.ErrWorkspaceLimitReached
+		assert.False(t, errors.As(err, &limitErr))
+	})
+
+	t.Run("a deployment already over its quota is refused only the next creation", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		service, deps := newLicenceGatedWorkspaceService(t, ctrl, rootConfig(0), stubEntitlements(ctrl, domain.CommunityEntitlements()))
+
+		expectRoot(deps)
+		// Eight workspaces on a three-workspace entitlement: nothing is deleted, disabled or
+		// hidden — the ninth simply is not created.
+		deps.repo.EXPECT().CountWorkspaces(gomock.Any()).Return(8, nil)
+
+		err := create(service)
+		require.Error(t, err)
+
+		var quotaErr *domain.ErrWorkspaceQuotaReached
+		require.True(t, errors.As(err, &quotaErr))
+		assert.Equal(t, 8, quotaErr.Current)
+	})
+
+	t.Run("a licence quota above the count lets the creation through", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		service, deps := newLicenceGatedWorkspaceService(t, ctrl, rootConfig(0), stubEntitlements(ctrl, licensedEntitlements(15)))
+
+		expectRoot(deps)
+		deps.repo.EXPECT().CountWorkspaces(gomock.Any()).Return(8, nil)
+		deps.repo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(&domain.Workspace{ID: workspaceID}, nil)
+
+		err := create(service)
+		require.Error(t, err)
+		assert.Equal(t, "workspace already exists", err.Error())
+	})
+
+	t.Run("an unlimited licence quota skips the count entirely", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		service, deps := newLicenceGatedWorkspaceService(t, ctrl, rootConfig(0), stubEntitlements(ctrl, licensedEntitlements(domain.UnlimitedWorkspaces)))
+
+		expectRoot(deps)
+		// No CountWorkspaces expectation: gomock fails the subtest if the query is issued.
+		deps.repo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(&domain.Workspace{ID: workspaceID}, nil)
+
+		err := create(service)
+		require.Error(t, err)
+		assert.Equal(t, "workspace already exists", err.Error())
+	})
+
+	t.Run("the operator's lower limit still answers the plan error", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		// A Cloud deployment: the control plane pushes MAX_WORKSPACES=2 under a 15-workspace
+		// licence. The tighter ceiling wins and the refusal is unchanged, so nothing that
+		// already string-matches "workspace limit" on a 403 breaks.
+		service, deps := newLicenceGatedWorkspaceService(t, ctrl, rootConfig(2), stubEntitlements(ctrl, licensedEntitlements(15)))
+
+		expectRoot(deps)
+		deps.repo.EXPECT().CountWorkspaces(gomock.Any()).Return(2, nil)
+
+		err := create(service)
+		require.Error(t, err)
+
+		var limitErr *domain.ErrWorkspaceLimitReached
+		require.True(t, errors.As(err, &limitErr))
+		assert.Equal(t, 2, limitErr.Limit)
+
+		var quotaErr *domain.ErrWorkspaceQuotaReached
+		assert.False(t, errors.As(err, &quotaErr))
+	})
+
+	t.Run("an unwired provider leaves the quota where the operator's config puts it", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		service, deps := newLicenceGatedWorkspaceService(t, ctrl, rootConfig(0), nil)
+
+		expectRoot(deps)
+		// No CountWorkspaces expectation, exactly as before licensing existed.
+		deps.repo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(&domain.Workspace{ID: workspaceID}, nil)
+
+		err := create(service)
+		require.Error(t, err)
+		assert.Equal(t, "workspace already exists", err.Error())
+	})
+}
+
+// TestWorkspaceService_RBACLicenceGate covers G3. The rule it pins is narrow: without the rbac
+// entitlement the four write paths refuse to STORE a grant other than full permissions. Nothing
+// stored is rewritten, HasPermission is untouched, and the paths that let a team recover from a
+// mistake — accepting an invitation, removing a member — never refuse.
+func TestWorkspaceService_RBACLicenceGate(t *testing.T) {
+	const (
+		workspaceID = "ws-rbac"
+		ownerID     = "owner-1"
+		memberID    = "member-1"
+		inviteEmail = "invitee@example.com"
+	)
+
+	baseConfig := func() *config.Config {
+		return &config.Config{RootEmail: "root@example.com", APIEndpoint: "https://api.example.com/v1", Environment: "development"}
+	}
+
+	unlicensed := func(ctrl *gomock.Controller) *mocks.MockEntitlementProvider {
+		return stubEntitlements(ctrl, domain.CommunityEntitlements())
+	}
+	withRBAC := func(ctrl *gomock.Controller) *mocks.MockEntitlementProvider {
+		return stubEntitlements(ctrl, licensedEntitlements(15, domain.FeatureRBAC, domain.FeatureSESTenant))
+	}
+
+	assertRBACRefusal := func(t *testing.T, err error) {
+		t.Helper()
+		require.Error(t, err)
+		var notLicensed *domain.ErrFeatureNotLicensed
+		require.True(t, errors.As(err, &notLicensed), "expected a licence refusal, got %v", err)
+		assert.Equal(t, domain.FeatureRBAC, notLicensed.Feature)
+		assert.NotEmpty(t, notLicensed.Message)
+	}
+
+	t.Run("SetUserPermissions is refused outright without the licence", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		service, deps := newLicenceGatedWorkspaceService(t, ctrl, baseConfig(), unlicensed(ctrl))
+
+		// No repository expectations: the refusal must land before the membership row is read,
+		// let alone written.
+		deps.expectOwner(workspaceID, ownerID, 1)
+
+		err := service.SetUserPermissions(context.Background(), workspaceID, memberID, restrictedPermissions())
+		assertRBACRefusal(t, err)
+	})
+
+	t.Run("SetUserPermissions is refused even when the map is full", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		service, deps := newLicenceGatedWorkspaceService(t, ctrl, baseConfig(), unlicensed(ctrl))
+
+		// The permission editor exists to hand out a narrower grant; without the licence there
+		// is nothing for it to do, so it refuses rather than silently accepting the one map it
+		// could still write.
+		deps.expectOwner(workspaceID, ownerID, 1)
+
+		err := service.SetUserPermissions(context.Background(), workspaceID, memberID, domain.NewFullPermissions())
+		assertRBACRefusal(t, err)
+	})
+
+	t.Run("SetUserPermissions writes the grant when licensed", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		service, deps := newLicenceGatedWorkspaceService(t, ctrl, baseConfig(), withRBAC(ctrl))
+
+		deps.expectOwner(workspaceID, ownerID, 1)
+		deps.repo.EXPECT().
+			GetUserWorkspace(gomock.Any(), memberID, workspaceID).
+			Return(&domain.UserWorkspace{UserID: memberID, WorkspaceID: workspaceID, Role: "member"}, nil)
+
+		var written domain.UserPermissions
+		deps.repo.EXPECT().
+			UpdateUserWorkspacePermissions(gomock.Any(), gomock.Any()).
+			DoAndReturn(func(_ context.Context, userWorkspace *domain.UserWorkspace) error {
+				written = userWorkspace.Permissions
+				return nil
+			})
+		deps.userRepo.EXPECT().GetSessionsByUserID(gomock.Any(), memberID).Return(nil, nil)
+
+		err := service.SetUserPermissions(context.Background(), workspaceID, memberID, restrictedPermissions())
+		require.NoError(t, err)
+		assert.Equal(t, restrictedPermissions(), written)
+	})
+
+	t.Run("InviteMember with full permissions succeeds without the licence", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		service, deps := newLicenceGatedWorkspaceService(t, ctrl, baseConfig(), unlicensed(ctrl))
+
+		deps.expectOwner(workspaceID, ownerID, 1)
+		deps.repo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(&domain.Workspace{ID: workspaceID, Name: "Test"}, nil)
+		deps.userService.EXPECT().GetUserByID(gomock.Any(), ownerID).Return(&domain.User{ID: ownerID, Name: "Owner", Email: "owner@example.com"}, nil)
+		deps.userService.EXPECT().GetUserByEmail(gomock.Any(), inviteEmail).Return(nil, &domain.ErrUserNotFound{Message: "not found"})
+
+		var stored *domain.WorkspaceInvitation
+		deps.repo.EXPECT().
+			CreateInvitation(gomock.Any(), gomock.Any()).
+			DoAndReturn(func(_ context.Context, invitation *domain.WorkspaceInvitation) error {
+				stored = invitation
+				return nil
+			})
+		deps.auth.EXPECT().GenerateInvitationToken(gomock.Any()).Return("invite-token")
+
+		invitation, token, err := service.InviteMember(context.Background(), workspaceID, inviteEmail, domain.NewFullPermissions())
+		require.NoError(t, err)
+		require.NotNil(t, invitation)
+		assert.Equal(t, "invite-token", token)
+		require.NotNil(t, stored)
+		assert.True(t, grantsFullPermissions(stored.Permissions))
+	})
+
+	t.Run("InviteMember with restricted permissions is refused without the licence", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		service, deps := newLicenceGatedWorkspaceService(t, ctrl, baseConfig(), unlicensed(ctrl))
+
+		// No repository expectations: no invitation row, no membership row.
+		deps.expectOwner(workspaceID, ownerID, 1)
+
+		invitation, token, err := service.InviteMember(context.Background(), workspaceID, inviteEmail, restrictedPermissions())
+		assertRBACRefusal(t, err)
+		assert.Nil(t, invitation)
+		assert.Empty(t, token)
+	})
+
+	t.Run("InviteMember with restricted permissions succeeds when licensed", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		service, deps := newLicenceGatedWorkspaceService(t, ctrl, baseConfig(), withRBAC(ctrl))
+
+		deps.expectOwner(workspaceID, ownerID, 1)
+		deps.repo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(&domain.Workspace{ID: workspaceID, Name: "Test"}, nil)
+		deps.userService.EXPECT().GetUserByID(gomock.Any(), ownerID).Return(&domain.User{ID: ownerID, Name: "Owner", Email: "owner@example.com"}, nil)
+		deps.userService.EXPECT().GetUserByEmail(gomock.Any(), inviteEmail).Return(nil, &domain.ErrUserNotFound{Message: "not found"})
+
+		var stored *domain.WorkspaceInvitation
+		deps.repo.EXPECT().
+			CreateInvitation(gomock.Any(), gomock.Any()).
+			DoAndReturn(func(_ context.Context, invitation *domain.WorkspaceInvitation) error {
+				stored = invitation
+				return nil
+			})
+		deps.auth.EXPECT().GenerateInvitationToken(gomock.Any()).Return("invite-token")
+
+		invitation, _, err := service.InviteMember(context.Background(), workspaceID, inviteEmail, restrictedPermissions())
+		require.NoError(t, err)
+		require.NotNil(t, invitation)
+		require.NotNil(t, stored)
+		assert.Equal(t, restrictedPermissions(), stored.Permissions)
+	})
+
+	t.Run("AddUserToWorkspace with full permissions succeeds without the licence", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		service, deps := newLicenceGatedWorkspaceService(t, ctrl, baseConfig(), unlicensed(ctrl))
+
+		deps.expectOwner(workspaceID, ownerID, 1)
+		var written *domain.UserWorkspace
+		deps.repo.EXPECT().
+			AddUserToWorkspace(gomock.Any(), gomock.Any()).
+			DoAndReturn(func(_ context.Context, userWorkspace *domain.UserWorkspace) error {
+				written = userWorkspace
+				return nil
+			})
+
+		err := service.AddUserToWorkspace(context.Background(), workspaceID, memberID, "member", domain.NewFullPermissions())
+		require.NoError(t, err)
+		require.NotNil(t, written)
+		assert.True(t, grantsFullPermissions(written.Permissions))
+	})
+
+	t.Run("AddUserToWorkspace with restricted permissions is refused without the licence", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		// Defence in depth: no HTTP route reaches this method today, so this pins the gate for
+		// the route somebody adds later.
+		service, deps := newLicenceGatedWorkspaceService(t, ctrl, baseConfig(), unlicensed(ctrl))
+
+		deps.expectOwner(workspaceID, ownerID, 1)
+
+		err := service.AddUserToWorkspace(context.Background(), workspaceID, memberID, "member", restrictedPermissions())
+		assertRBACRefusal(t, err)
+	})
+
+	t.Run("AddUserToWorkspace with restricted permissions succeeds when licensed", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		service, deps := newLicenceGatedWorkspaceService(t, ctrl, baseConfig(), withRBAC(ctrl))
+
+		deps.expectOwner(workspaceID, ownerID, 1)
+		var written *domain.UserWorkspace
+		deps.repo.EXPECT().
+			AddUserToWorkspace(gomock.Any(), gomock.Any()).
+			DoAndReturn(func(_ context.Context, userWorkspace *domain.UserWorkspace) error {
+				written = userWorkspace
+				return nil
+			})
+
+		err := service.AddUserToWorkspace(context.Background(), workspaceID, memberID, "member", restrictedPermissions())
+		require.NoError(t, err)
+		require.NotNil(t, written)
+		assert.Equal(t, restrictedPermissions(), written.Permissions)
+	})
+
+	t.Run("CreateAPIKey with nil permissions succeeds without the licence", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		service, deps := newLicenceGatedWorkspaceService(t, ctrl, baseConfig(), unlicensed(ctrl))
+
+		// nil is this method's documented "full access", which is what keeps every caller that
+		// omits the field working on an unlicensed deployment.
+		deps.expectOwner(workspaceID, ownerID, 1)
+		deps.userRepo.EXPECT().CreateUser(gomock.Any(), gomock.Any()).Return(nil)
+		var written *domain.UserWorkspace
+		deps.repo.EXPECT().
+			AddUserToWorkspace(gomock.Any(), gomock.Any()).
+			DoAndReturn(func(_ context.Context, userWorkspace *domain.UserWorkspace) error {
+				written = userWorkspace
+				return nil
+			})
+		deps.auth.EXPECT().GenerateAPIAuthToken(gomock.Any()).Return("api-token")
+
+		token, email, err := service.CreateAPIKey(context.Background(), workspaceID, "reporting", nil)
+		require.NoError(t, err)
+		assert.Equal(t, "api-token", token)
+		assert.Equal(t, "reporting@api.example.com", email)
+		require.NotNil(t, written)
+		assert.True(t, grantsFullPermissions(written.Permissions))
+	})
+
+	t.Run("CreateAPIKey with a scoped map is refused without the licence", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		service, deps := newLicenceGatedWorkspaceService(t, ctrl, baseConfig(), unlicensed(ctrl))
+
+		// No user row and no membership row: the refusal lands before anything is created, so
+		// no address is burned on a key that was never minted.
+		deps.expectOwner(workspaceID, ownerID, 1)
+
+		token, email, err := service.CreateAPIKey(context.Background(), workspaceID, "reporting", restrictedPermissions())
+		assertRBACRefusal(t, err)
+		assert.Empty(t, token)
+		assert.Empty(t, email)
+	})
+
+	t.Run("CreateAPIKey with a scoped map succeeds when licensed", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		service, deps := newLicenceGatedWorkspaceService(t, ctrl, baseConfig(), withRBAC(ctrl))
+
+		deps.expectOwner(workspaceID, ownerID, 1)
+		deps.userRepo.EXPECT().CreateUser(gomock.Any(), gomock.Any()).Return(nil)
+		var written *domain.UserWorkspace
+		deps.repo.EXPECT().
+			AddUserToWorkspace(gomock.Any(), gomock.Any()).
+			DoAndReturn(func(_ context.Context, userWorkspace *domain.UserWorkspace) error {
+				written = userWorkspace
+				return nil
+			})
+		deps.auth.EXPECT().GenerateAPIAuthToken(gomock.Any()).Return("api-token")
+
+		_, _, err := service.CreateAPIKey(context.Background(), workspaceID, "reporting", restrictedPermissions())
+		require.NoError(t, err)
+		require.NotNil(t, written)
+		assert.Equal(t, restrictedPermissions(), written.Permissions)
+	})
+}
+
+// TestWorkspaceService_RBACLicenceNonRegressions pins the behaviours an unlicensed deployment
+// must keep. Each one is a failure mode that would be delivered BY AN UPGRADE, which is the
+// worst way to ship a regression: nobody changed their own configuration.
+func TestWorkspaceService_RBACLicenceNonRegressions(t *testing.T) {
+	const (
+		workspaceID  = "ws-rbac"
+		ownerID      = "owner-1"
+		memberID     = "member-1"
+		apiKeyID     = "api-key-1"
+		invitationID = "inv-1"
+		inviteEmail  = "invitee@example.com"
+	)
+
+	baseConfig := func() *config.Config {
+		return &config.Config{RootEmail: "root@example.com", APIEndpoint: "https://api.example.com/v1", Environment: "development"}
+	}
+
+	unlicensed := func(ctrl *gomock.Controller) *mocks.MockEntitlementProvider {
+		return stubEntitlements(ctrl, domain.CommunityEntitlements())
+	}
+
+	t.Run("a member with restricted permissions keeps them on an unlicensed deployment", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		service, deps := newLicenceGatedWorkspaceService(t, ctrl, baseConfig(), unlicensed(ctrl))
+
+		// The regression this exists to prevent: "unlicensed means everybody is an owner"
+		// would turn a scoped member into a full admin — ESP credentials, contact export,
+		// sending to the whole list — the day the deployment upgraded. Licensing gates the
+		// permission EDITOR; it never rewrites a stored grant and never touches HasPermission.
+		stored := restrictedPermissions()
+		deps.expectOwner(workspaceID, ownerID, 1)
+		deps.repo.EXPECT().
+			GetWorkspaceUsersWithEmail(gomock.Any(), workspaceID).
+			Return([]*domain.UserWorkspaceWithEmail{{
+				UserWorkspace: domain.UserWorkspace{UserID: memberID, WorkspaceID: workspaceID, Role: "member", Permissions: stored},
+				Email:         "member@example.com",
+				Type:          domain.UserTypeUser,
+			}}, nil)
+		deps.repo.EXPECT().GetWorkspaceInvitations(gomock.Any(), workspaceID).Return(nil, nil)
+		deps.userService.EXPECT().GetUserByEmail(gomock.Any(), "root@example.com").Return(nil, errors.New("root not provisioned")).AnyTimes()
+
+		members, err := service.GetWorkspaceMembersWithEmail(context.Background(), workspaceID)
+		require.NoError(t, err)
+		require.Len(t, members, 1)
+		assert.Equal(t, stored, members[0].Permissions)
+		assert.False(t, grantsFullPermissions(members[0].Permissions))
+
+		// And the stored row still enforces the restriction, which is the part that matters.
+		assert.True(t, members[0].HasPermission(domain.PermissionResourceContacts, domain.PermissionTypeRead))
+		assert.False(t, members[0].HasPermission(domain.PermissionResourceContacts, domain.PermissionTypeWrite))
+		assert.False(t, members[0].HasPermission(domain.PermissionResourceBroadcasts, domain.PermissionTypeWrite))
+	})
+
+	t.Run("an API key with a restricted scope keeps its scope on an unlicensed deployment", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		service, deps := newLicenceGatedWorkspaceService(t, ctrl, baseConfig(), unlicensed(ctrl))
+
+		scoped := domain.ZapierKeyPermissions()
+		deps.expectOwner(workspaceID, ownerID, 1)
+		deps.repo.EXPECT().
+			GetWorkspaceUsersWithEmail(gomock.Any(), workspaceID).
+			Return([]*domain.UserWorkspaceWithEmail{{
+				UserWorkspace: domain.UserWorkspace{UserID: apiKeyID, WorkspaceID: workspaceID, Role: "member", Permissions: scoped},
+				Email:         "zapier-abcd1234@api.example.com",
+				Type:          domain.UserTypeAPIKey,
+			}}, nil)
+		deps.repo.EXPECT().GetWorkspaceInvitations(gomock.Any(), workspaceID).Return(nil, nil)
+		deps.userService.EXPECT().GetUserByEmail(gomock.Any(), "root@example.com").Return(nil, errors.New("root not provisioned")).AnyTimes()
+
+		members, err := service.GetWorkspaceMembersWithEmail(context.Background(), workspaceID)
+		require.NoError(t, err)
+		require.Len(t, members, 1)
+		assert.Equal(t, scoped, members[0].Permissions)
+		assert.False(t, members[0].HasPermission(domain.PermissionResourceMessageHistory, domain.PermissionTypeRead))
+	})
+
+	t.Run("accepting an invitation that carries restricted permissions is never gated", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		service, deps := newLicenceGatedWorkspaceService(t, ctrl, baseConfig(), unlicensed(ctrl))
+
+		// Issued while licensed, accepted after the key lapsed. Gating acceptance would lock
+		// out a colleague invited last week, so only the creation of an invitation is gated.
+		invited := restrictedPermissions()
+		deps.repo.EXPECT().
+			GetInvitationByID(gomock.Any(), invitationID).
+			Return(&domain.WorkspaceInvitation{
+				ID:          invitationID,
+				WorkspaceID: workspaceID,
+				Email:       inviteEmail,
+				Permissions: invited,
+			}, nil)
+		deps.userService.EXPECT().GetUserByEmail(gomock.Any(), inviteEmail).Return(nil, &domain.ErrUserNotFound{Message: "not found"})
+		deps.userRepo.EXPECT().CreateUser(gomock.Any(), gomock.Any()).Return(nil)
+
+		var seated *domain.UserWorkspace
+		deps.repo.EXPECT().
+			AddUserToWorkspace(gomock.Any(), gomock.Any()).
+			DoAndReturn(func(_ context.Context, userWorkspace *domain.UserWorkspace) error {
+				seated = userWorkspace
+				return nil
+			})
+		deps.userRepo.EXPECT().CreateSession(gomock.Any(), gomock.Any()).Return(nil)
+		deps.auth.EXPECT().GenerateUserAuthToken(gomock.Any(), gomock.Any(), gomock.Any()).Return("auth-token")
+		deps.repo.EXPECT().DeleteInvitation(gomock.Any(), invitationID).Return(nil)
+
+		response, err := service.AcceptInvitation(context.Background(), invitationID, workspaceID, inviteEmail)
+		require.NoError(t, err)
+		require.NotNil(t, response)
+		assert.Equal(t, "auth-token", response.Token)
+
+		// The invitation's own grant is seated verbatim — not widened, not refused.
+		require.NotNil(t, seated)
+		assert.Equal(t, invited, seated.Permissions)
+	})
+
+	t.Run("removing a member succeeds on an unlicensed deployment", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		service, deps := newLicenceGatedWorkspaceService(t, ctrl, baseConfig(), unlicensed(ctrl))
+
+		deps.expectOwner(workspaceID, ownerID, 1)
+		deps.userService.EXPECT().GetUserByID(gomock.Any(), memberID).Return(&domain.User{ID: memberID, Type: domain.UserTypeUser}, nil)
+		deps.repo.EXPECT().RemoveUserFromWorkspace(gomock.Any(), memberID, workspaceID).Return(nil)
+
+		require.NoError(t, service.RemoveMember(context.Background(), workspaceID, memberID))
+	})
+
+	t.Run("revoking an API key succeeds on an unlicensed deployment", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		service, deps := newLicenceGatedWorkspaceService(t, ctrl, baseConfig(), unlicensed(ctrl))
+
+		// Removing the member is the ONLY thing that revokes a key: the token lives ten years,
+		// carries no jti and has no denylist. A licence state that could block this would leave
+		// a leaked credential live with no remedy.
+		deps.expectOwner(workspaceID, ownerID, 1)
+		deps.userService.EXPECT().GetUserByID(gomock.Any(), apiKeyID).Return(&domain.User{ID: apiKeyID, Type: domain.UserTypeAPIKey}, nil)
+		deps.repo.EXPECT().RemoveUserFromWorkspace(gomock.Any(), apiKeyID, workspaceID).Return(nil)
+		deps.userRepo.EXPECT().Delete(gomock.Any(), apiKeyID).Return(nil)
+
+		require.NoError(t, service.RemoveMember(context.Background(), workspaceID, apiKeyID))
+	})
+}
+
+// TestWorkspaceService_ConnectZapier_LicenceGate pins that the Zapier key is the same narrow,
+// product-fixed scope in every licence state. It used to widen to full access on an
+// unlicensed deployment to get past the RBAC gate — the one place where the absence of a
+// licence granted MORE — and that is the regression this test exists to catch.
+func TestWorkspaceService_ConnectZapier_LicenceGate(t *testing.T) {
+	const (
+		workspaceID = "testworkspace"
+		userID      = "testuser"
+		label       = "Marketing Ops"
+	)
+
+	connect := func(t *testing.T, ctrl *gomock.Controller, provider domain.EntitlementProvider) *domain.UserWorkspace {
+		t.Helper()
+		cfg := &config.Config{RootEmail: "root@example.com", APIEndpoint: "https://api.example.com/v1", Environment: "development"}
+		service, deps := newLicenceGatedWorkspaceService(t, ctrl, cfg, provider)
+
+		// Twice: ConnectZapier authenticates, then threads the enriched context into CreateAPIKey.
+		deps.expectOwner(workspaceID, userID, 2)
+		deps.userRepo.EXPECT().CreateUser(gomock.Any(), gomock.Any()).Return(nil)
+
+		var minted *domain.UserWorkspace
+		deps.repo.EXPECT().
+			AddUserToWorkspace(gomock.Any(), gomock.Any()).
+			DoAndReturn(func(_ context.Context, userWorkspace *domain.UserWorkspace) error {
+				minted = userWorkspace
+				return nil
+			})
+		deps.auth.EXPECT().GenerateAPIAuthToken(gomock.Any()).Return("zapier-token")
+		deps.repo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(&domain.Workspace{ID: workspaceID, Name: "Test Workspace"}, nil)
+		deps.repo.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil)
+
+		token, email, integrationID, err := service.ConnectZapier(context.Background(), workspaceID, label)
+		require.NoError(t, err)
+		assert.Equal(t, "zapier-token", token)
+		assert.NotEmpty(t, email)
+		assert.NotEmpty(t, integrationID)
+		require.NotNil(t, minted)
+		return minted
+	}
+
+	t.Run("connects on an unlicensed deployment with the narrow zapier scope, never admin", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		minted := connect(t, ctrl, stubEntitlements(ctrl, domain.CommunityEntitlements()))
+
+		// The scope is the product's, not the customer's, so the licence has no say in it —
+		// and an integration platform must never hold an admin credential for a workspace.
+		assert.Equal(t, domain.ZapierKeyPermissions(), minted.Permissions)
+		assert.False(t, grantsFullPermissions(minted.Permissions))
+	})
+
+	t.Run("the customer-facing entry is still gated for a scope the customer chooses", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		cfg := &config.Config{RootEmail: "root@example.com", APIEndpoint: "https://api.example.com/v1", Environment: "development"}
+		service, deps := newLicenceGatedWorkspaceService(t, ctrl, cfg, stubEntitlements(ctrl, domain.CommunityEntitlements()))
+		deps.expectOwner(workspaceID, userID, 1)
+
+		// The very same narrow scope Zapier receives, asked for by a human through the API.
+		_, _, err := service.CreateAPIKey(context.Background(), workspaceID, "custom", domain.ZapierKeyPermissions())
+
+		var refused *domain.ErrFeatureNotLicensed
+		require.ErrorAs(t, err, &refused, "a customer-chosen restricted scope is exactly what the RBAC licence sells")
+		assert.Equal(t, domain.FeatureRBAC, refused.Feature)
+	})
+
+	t.Run("keeps the narrow zapier scope when licensed for rbac", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		minted := connect(t, ctrl, stubEntitlements(ctrl, licensedEntitlements(15, domain.FeatureRBAC)))
+
+		assert.Equal(t, domain.ZapierKeyPermissions(), minted.Permissions)
+		assert.False(t, grantsFullPermissions(minted.Permissions))
+	})
+}
+
+// TestWorkspaceService_RBACLicenceGate_NilPermissions pins the one place where a nil permission
+// map means opposite things, and the licence gate has to follow each path's own contract.
+func TestWorkspaceService_RBACLicenceGate_NilPermissions(t *testing.T) {
+	const (
+		workspaceID = "ws-rbac"
+		ownerID     = "owner-1"
+		memberID    = "member-1"
+		inviteEmail = "invitee@example.com"
+	)
+
+	baseConfig := &config.Config{RootEmail: "root@example.com", APIEndpoint: "https://api.example.com/v1", Environment: "development"}
+
+	t.Run("InviteMember with a nil map is refused without the licence", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		service, deps := newLicenceGatedWorkspaceService(t, ctrl, baseConfig, stubEntitlements(ctrl, domain.CommunityEntitlements()))
+
+		// InviteMember stores the map verbatim, so a nil one seats a member who may do
+		// nothing at all — a granular grant obtained without a licence if it were let through.
+		deps.expectOwner(workspaceID, ownerID, 1)
+
+		invitation, _, err := service.InviteMember(context.Background(), workspaceID, inviteEmail, nil)
+		require.Error(t, err)
+		var notLicensed *domain.ErrFeatureNotLicensed
+		require.True(t, errors.As(err, &notLicensed))
+		assert.Equal(t, domain.FeatureRBAC, notLicensed.Feature)
+		assert.Nil(t, invitation)
+	})
+
+	t.Run("AddUserToWorkspace with a nil map is refused without the licence", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		service, deps := newLicenceGatedWorkspaceService(t, ctrl, baseConfig, stubEntitlements(ctrl, domain.CommunityEntitlements()))
+
+		deps.expectOwner(workspaceID, ownerID, 1)
+
+		err := service.AddUserToWorkspace(context.Background(), workspaceID, memberID, "member", nil)
+		require.Error(t, err)
+		var notLicensed *domain.ErrFeatureNotLicensed
+		assert.True(t, errors.As(err, &notLicensed))
+	})
+
+	t.Run("CreateAPIKey with a nil map is allowed and materialises full access", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		service, deps := newLicenceGatedWorkspaceService(t, ctrl, baseConfig, stubEntitlements(ctrl, domain.CommunityEntitlements()))
+
+		deps.expectOwner(workspaceID, ownerID, 1)
+		deps.userRepo.EXPECT().CreateUser(gomock.Any(), gomock.Any()).Return(nil)
+		var written *domain.UserWorkspace
+		deps.repo.EXPECT().
+			AddUserToWorkspace(gomock.Any(), gomock.Any()).
+			DoAndReturn(func(_ context.Context, userWorkspace *domain.UserWorkspace) error {
+				written = userWorkspace
+				return nil
+			})
+		deps.auth.EXPECT().GenerateAPIAuthToken(gomock.Any()).Return("api-token")
+
+		_, _, err := service.CreateAPIKey(context.Background(), workspaceID, "reporting", nil)
+		require.NoError(t, err)
+		require.NotNil(t, written)
+		assert.True(t, grantsFullPermissions(written.Permissions))
 	})
 }

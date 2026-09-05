@@ -52,6 +52,7 @@ func TestWorkspaceService_AddUserToWorkspace(t *testing.T) {
 		&SupabaseService{},
 		&DNSVerificationService{},
 		&BlogService{},
+		fullyLicensedProvider(ctrl),
 	)
 
 	ctx := context.Background()
@@ -184,6 +185,7 @@ func TestWorkspaceService_RemoveUserFromWorkspace(t *testing.T) {
 		&SupabaseService{},
 		&DNSVerificationService{},
 		&BlogService{},
+		fullyLicensedProvider(ctrl),
 	)
 
 	// Setup common logger expectations
@@ -331,6 +333,7 @@ func TestWorkspaceService_TransferOwnership(t *testing.T) {
 		&SupabaseService{},
 		&DNSVerificationService{},
 		&BlogService{},
+		fullyLicensedProvider(ctrl),
 	)
 
 	ctx := context.Background()
@@ -512,6 +515,7 @@ func TestWorkspaceService_GetWorkspaceMembersWithEmail(t *testing.T) {
 		&SupabaseService{},
 		&DNSVerificationService{},
 		&BlogService{},
+		fullyLicensedProvider(ctrl),
 	)
 
 	ctx := context.Background()
@@ -734,6 +738,7 @@ func TestWorkspaceService_InviteMember(t *testing.T) {
 		&SupabaseService{},
 		&DNSVerificationService{},
 		&BlogService{},
+		fullyLicensedProvider(ctrl),
 	)
 
 	// Set up mockLogger to allow any calls
@@ -1056,6 +1061,7 @@ func TestWorkspaceService_CreateAPIKey(t *testing.T) {
 			&SupabaseService{},
 			&DNSVerificationService{},
 			&BlogService{},
+			fullyLicensedProvider(ctrl),
 		)
 
 		// Set up mock expectations
@@ -1123,6 +1129,7 @@ func TestWorkspaceService_CreateAPIKey(t *testing.T) {
 			&SupabaseService{},
 			&DNSVerificationService{},
 			&BlogService{},
+			fullyLicensedProvider(ctrl),
 		)
 
 		mockAuthSvc.EXPECT().
@@ -1162,6 +1169,7 @@ func TestWorkspaceService_CreateAPIKey(t *testing.T) {
 			&SupabaseService{},
 			&DNSVerificationService{},
 			&BlogService{},
+			fullyLicensedProvider(ctrl),
 		)
 
 		mockAuthSvc.EXPECT().
@@ -1206,6 +1214,7 @@ func TestWorkspaceService_CreateAPIKey(t *testing.T) {
 			&SupabaseService{},
 			&DNSVerificationService{},
 			&BlogService{},
+			fullyLicensedProvider(ctrl),
 		)
 
 		mockAuthSvc.EXPECT().
@@ -1254,6 +1263,7 @@ func TestWorkspaceService_CreateAPIKey(t *testing.T) {
 			&SupabaseService{},
 			&DNSVerificationService{},
 			&BlogService{},
+			fullyLicensedProvider(ctrl),
 		)
 
 		mockAuthSvc.EXPECT().
@@ -1339,6 +1349,7 @@ func TestWorkspaceService_CreateAPIKey(t *testing.T) {
 					&SupabaseService{},
 					&DNSVerificationService{},
 					&BlogService{},
+					fullyLicensedProvider(ctrl),
 				)
 
 				mockAuthSvc.EXPECT().
@@ -1394,6 +1405,7 @@ func TestWorkspaceService_CreateAPIKey(t *testing.T) {
 				&SupabaseService{},
 				&DNSVerificationService{},
 				&BlogService{},
+				fullyLicensedProvider(ctrl),
 			), mockRepo, mockUserRepo, mockAuthSvc
 		}
 
@@ -1494,6 +1506,7 @@ func TestWorkspaceService_CreateAPIKey(t *testing.T) {
 			&SupabaseService{},
 			&DNSVerificationService{},
 			&BlogService{},
+			fullyLicensedProvider(ctrl),
 		)
 
 		mockAuthSvc.EXPECT().
@@ -1538,6 +1551,7 @@ func TestWorkspaceService_CreateAPIKey(t *testing.T) {
 			&SupabaseService{},
 			&DNSVerificationService{},
 			&BlogService{},
+			fullyLicensedProvider(ctrl),
 		)
 
 		// The sentinel is a plain error, so it has to be translated for the handler to
@@ -1580,6 +1594,7 @@ func TestWorkspaceService_CreateAPIKey(t *testing.T) {
 			&SupabaseService{},
 			&DNSVerificationService{},
 			&BlogService{},
+			fullyLicensedProvider(ctrl),
 		)
 
 		mockAuthSvc.EXPECT().
@@ -1629,6 +1644,7 @@ func TestWorkspaceService_CreateAPIKey(t *testing.T) {
 			&SupabaseService{},
 			&DNSVerificationService{},
 			&BlogService{},
+			fullyLicensedProvider(ctrl),
 		)
 
 		mockAuthSvc.EXPECT().
@@ -1673,6 +1689,7 @@ func TestWorkspaceService_GetWorkspaceMembersWithEmail_PlatformAdmins(t *testing
 		mocks.NewMockContactListService(ctrl), mocks.NewMockTemplateService(ctrl),
 		mocks.NewMockWebhookRegistrationService(ctrl), "secret_key",
 		&SupabaseService{}, &DNSVerificationService{}, &BlogService{},
+		fullyLicensedProvider(ctrl),
 	)
 
 	ctx := context.Background()
@@ -1746,6 +1763,7 @@ func TestWorkspaceService_InviteMember_RejectsRootEmail(t *testing.T) {
 		mocks.NewMockContactListService(ctrl), mocks.NewMockTemplateService(ctrl),
 		mocks.NewMockWebhookRegistrationService(ctrl), "secret_key",
 		&SupabaseService{}, &DNSVerificationService{}, &BlogService{},
+		fullyLicensedProvider(ctrl),
 	)
 
 	ctx := context.Background()

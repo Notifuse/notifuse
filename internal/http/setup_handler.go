@@ -45,24 +45,24 @@ type StatusResponse struct {
 	SMTPConfigured        bool `json:"smtp_configured"`
 	APIEndpointConfigured bool `json:"api_endpoint_configured"`
 	RootEmailConfigured   bool `json:"root_email_configured"`
-	SMTPBridgeConfigured   bool `json:"smtp_bridge_configured"`
-	OIDCConfigured         bool `json:"oidc_configured"`
+	SMTPBridgeConfigured  bool `json:"smtp_bridge_configured"`
+	OIDCConfigured        bool `json:"oidc_configured"`
 }
 
 // InitializeRequest represents the setup initialization request
 type InitializeRequest struct {
-	RootEmail              string `json:"root_email"`
-	APIEndpoint            string `json:"api_endpoint"`
-	SMTPHost               string `json:"smtp_host"`
-	SMTPPort               int    `json:"smtp_port"`
-	SMTPUsername           string `json:"smtp_username"`
-	SMTPPassword           string `json:"smtp_password"`
-	SMTPFromEmail          string `json:"smtp_from_email"`
-	SMTPFromName           string `json:"smtp_from_name"`
-	SMTPUseTLS             *bool  `json:"smtp_use_tls"`
-	SMTPEHLOHostname       string `json:"smtp_ehlo_hostname"`
-	TelemetryEnabled       bool   `json:"telemetry_enabled"`
-	CheckForUpdates        bool   `json:"check_for_updates"`
+	RootEmail               string `json:"root_email"`
+	APIEndpoint             string `json:"api_endpoint"`
+	SMTPHost                string `json:"smtp_host"`
+	SMTPPort                int    `json:"smtp_port"`
+	SMTPUsername            string `json:"smtp_username"`
+	SMTPPassword            string `json:"smtp_password"`
+	SMTPFromEmail           string `json:"smtp_from_email"`
+	SMTPFromName            string `json:"smtp_from_name"`
+	SMTPUseTLS              *bool  `json:"smtp_use_tls"`
+	SMTPEHLOHostname        string `json:"smtp_ehlo_hostname"`
+	TelemetryEnabled        bool   `json:"telemetry_enabled"`
+	CheckForUpdates         bool   `json:"check_for_updates"`
 	SMTPBridgeEnabled       bool   `json:"smtp_bridge_enabled"`
 	SMTPBridgeHost          string `json:"smtp_bridge_domain"`
 	SMTPBridgePort          int    `json:"smtp_bridge_port"`
@@ -124,8 +124,8 @@ func (h *SetupHandler) Status(w http.ResponseWriter, r *http.Request) {
 		SMTPConfigured:        configStatus.SMTPConfigured,
 		APIEndpointConfigured: configStatus.APIEndpointConfigured,
 		RootEmailConfigured:   configStatus.RootEmailConfigured,
-		SMTPBridgeConfigured:   configStatus.SMTPBridgeConfigured,
-		OIDCConfigured:         configStatus.OIDCConfigured,
+		SMTPBridgeConfigured:  configStatus.SMTPBridgeConfigured,
+		OIDCConfigured:        configStatus.OIDCConfigured,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -186,18 +186,18 @@ func (h *SetupHandler) Initialize(w http.ResponseWriter, r *http.Request) {
 
 	// Convert request to service config
 	setupConfig := &service.SetupConfig{
-		RootEmail:              req.RootEmail,
-		APIEndpoint:            req.APIEndpoint,
-		SMTPHost:               req.SMTPHost,
-		SMTPPort:               req.SMTPPort,
-		SMTPUsername:           req.SMTPUsername,
-		SMTPPassword:           req.SMTPPassword,
-		SMTPFromEmail:          req.SMTPFromEmail,
-		SMTPFromName:           req.SMTPFromName,
-		SMTPUseTLS:             smtpUseTLS,
-		SMTPEHLOHostname:       req.SMTPEHLOHostname,
-		TelemetryEnabled:       req.TelemetryEnabled,
-		CheckForUpdates:        req.CheckForUpdates,
+		RootEmail:               req.RootEmail,
+		APIEndpoint:             req.APIEndpoint,
+		SMTPHost:                req.SMTPHost,
+		SMTPPort:                req.SMTPPort,
+		SMTPUsername:            req.SMTPUsername,
+		SMTPPassword:            req.SMTPPassword,
+		SMTPFromEmail:           req.SMTPFromEmail,
+		SMTPFromName:            req.SMTPFromName,
+		SMTPUseTLS:              smtpUseTLS,
+		SMTPEHLOHostname:        req.SMTPEHLOHostname,
+		TelemetryEnabled:        req.TelemetryEnabled,
+		CheckForUpdates:         req.CheckForUpdates,
 		SMTPBridgeEnabled:       req.SMTPBridgeEnabled,
 		SMTPBridgeDomain:        req.SMTPBridgeHost,
 		SMTPBridgePort:          req.SMTPBridgePort,

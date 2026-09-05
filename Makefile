@@ -1,4 +1,4 @@
-.PHONY: build test-unit run clean keygen test-service test-repo test-http test-migrations test-database test-pkg dev coverage coverage-report docker-build docker-run docker-stop docker-clean docker-logs docker-buildx-setup docker-publish docker-compose-up docker-compose-down docker-compose-build openapi-bundle openapi-lint openapi-preview demo-hmac
+.PHONY: build test-unit run clean keygen test-service test-repo test-http test-migrations test-database test-pkg test-licence-dev test-telemetry dev coverage coverage-report docker-build docker-run docker-stop docker-clean docker-logs docker-buildx-setup docker-publish docker-compose-up docker-compose-down docker-compose-build openapi-bundle openapi-lint openapi-preview demo-hmac
 
 build:
 	@echo "Building with CGO enabled (required for V8)..."
@@ -42,6 +42,25 @@ test-database:
 
 test-pkg:
 	go test -race -v ./pkg/...
+
+# The licence tests under the dev signing key.
+#
+# pkg/license/pubkey_dev.go is compiled ONLY under this tag, so without a target that
+# sets it the file is never built by anything: it could carry a malformed key, or stop
+# compiling, and the first person to notice would be whoever tried to mint locally. The
+# same run also flips the end-to-end licence tests from their fail-safe branch ("this
+# build does not trust the dev key, so fall back") to the real one ("this build trusts
+# it, so verify the grant"), which is the branch that actually exercises minting.
+test-licence-dev:
+	go test -race -tags licdev -v ./pkg/license/...
+	go test -race -tags licdev -v ./internal/service -run 'Licence|License'
+
+# The telemetry receiver is its own Go module, so `go test ./...` from the repository
+# root does not reach it — it has its own go.mod and lives outside the root module's
+# package graph. Its tests are the only thing standing between a schema drift and a
+# column of silently wrong values, so they need a target of their own and a CI step.
+test-telemetry:
+	cd telemetry && go test -race -v ./...
 
 # Build on Node 24 — matching .github/workflows/web-analytics-sdk.yml, NOT package.json
 # engines (>=18) and not the Dockerfile's node:22. CI diffs the minified output

@@ -30,9 +30,23 @@ type UserServiceInterface interface {
 	Logout(ctx context.Context, userID string) error
 }
 
+// LicenseStateReader is the slice of the licence service /api/user.me needs: what this
+// deployment is licensed for.
+//
+// One method and no more. settings_handler.go declares its own LicenseServiceInterface with a
+// second — SetKey — because installing a key is a settings concern; user.me only ever reads,
+// and an interface that carried SetKey here would put a licence installer one typo away from
+// the endpoint every signed-in session calls.
+//
+// service.LicenseService satisfies both.
+type LicenseStateReader interface {
+	Entitlements() domain.Entitlements
+}
+
 type UserHandler struct {
 	userService      UserServiceInterface
 	workspaceService domain.WorkspaceServiceInterface
+	licenseService   LicenseStateReader
 	config           *config.Config
 	getJWTSecret     func() ([]byte, error)
 	logger           logger.Logger
@@ -49,10 +63,20 @@ func extractEmailDomain(email string) string {
 	return ""
 }
 
-func NewUserHandler(userService UserServiceInterface, workspaceService domain.WorkspaceServiceInterface, cfg *config.Config, getJWTSecret func() ([]byte, error), logger logger.Logger) *UserHandler {
+// NewUserHandler builds the handler serving sign-in, sign-out and /api/user.me.
+//
+// licenseService is a REQUIRED positional parameter, deliberately not variadic and not
+// nil-tolerant. /api/user.me is the only endpoint by which a non-root console session can
+// learn what its deployment is licensed for — /api/licence.get is root-only — so a wiring
+// that forgot to pass one would leave every non-root user discovering each gate from the
+// first refusal, with no explanation attached. Omitting it has to be a compile error, because
+// a silently unwired licence source is exactly the failure this design cannot detect at
+// runtime.
+func NewUserHandler(userService UserServiceInterface, workspaceService domain.WorkspaceServiceInterface, licenseService LicenseStateReader, cfg *config.Config, getJWTSecret func() ([]byte, error), logger logger.Logger) *UserHandler {
 	return &UserHandler{
 		userService:      userService,
 		workspaceService: workspaceService,
+		licenseService:   licenseService,
 		config:           cfg,
 		getJWTSecret:     getJWTSecret,
 		logger:           logger,
@@ -61,6 +85,13 @@ func NewUserHandler(userService UserServiceInterface, workspaceService domain.Wo
 }
 
 func (h *UserHandler) SignIn(w http.ResponseWriter, r *http.Request) {
+	// POST only. This handler SENDS AN EMAIL, so a verb that reaches it by accident is a
+	// message somebody did not ask for.
+	if r.Method != http.MethodPost {
+		WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
 	ctx, span := h.tracer.StartSpan(r.Context(), "UserHandler.SignIn")
 	defer span.End()
 
@@ -109,6 +140,12 @@ func (h *UserHandler) SignIn(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *UserHandler) VerifyCode(w http.ResponseWriter, r *http.Request) {
+	// POST only. This handler mints a session.
+	if r.Method != http.MethodPost {
+		WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
 	ctx, span := h.tracer.StartSpan(r.Context(), "UserHandler.VerifyCode")
 	defer span.End()
 
@@ -197,10 +234,23 @@ func (h *UserHandler) RootSignIn(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(response)
 }
 
-// GetCurrentUser returns the authenticated user and their workspaces
+// GetCurrentUser returns the authenticated user, their workspaces, and — for a console
+// session — what the deployment is licensed for.
 func (h *UserHandler) GetCurrentUser(w http.ResponseWriter, r *http.Request) {
 	ctx, span := h.tracer.StartSpan(r.Context(), "UserHandler.GetCurrentUser")
 	defer span.End()
+
+	// GET only. user.me is a read and answers 405 to everything else, in every licence
+	// state — this is the call the console makes to find out what the deployment is
+	// licensed for, and it must answer the same way whether or not it is licensed.
+	if r.Method != http.MethodGet {
+		WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
+		span.SetStatus(trace.Status{
+			Code:    trace.StatusCodeInvalidArgument,
+			Message: "Method not allowed",
+		})
+		return
+	}
 
 	// Get authenticated user from context
 	userID, ok := ctx.Value(domain.UserIDKey).(string)
@@ -298,6 +348,39 @@ func (h *UserHandler) GetCurrentUser(w http.ResponseWriter, r *http.Request) {
 		"workspaces": workspaces,
 	}
 
+	// The console's licence state is fed from here, not from a second round trip.
+	// /api/licence.get is the other source and it is root-only, so this is the ONLY way a
+	// non-root session can learn what the deployment bought before a gate refuses something —
+	// which is the difference between an explained restriction and a button that mysteriously
+	// stopped working.
+	//
+	// domain.Entitlements verbatim rather than a shape of this endpoint's own: it is the
+	// same value every gate reads and the same value /api/licence.get answers with, so what
+	// the console greys out and what the backend refuses cannot drift apart. It carries no
+	// key and cannot be made to — a licence key is a bearer credential, and the claims hold
+	// everything a console needs anyway.
+	//
+	// Console sessions only. An API key authenticates this same endpoint — it is how an
+	// integration resolves its workspaces — and the entitlements name the licensee and
+	// their billing address, which is why /api/licence.get is root-only in the first
+	// place. The same fail-closed test that keeps the S3 secret away from machine traffic
+	// governs it, for the same reason: absent means "not told", and the console types the
+	// field optional so absence reads as unknown rather than as unlicensed.
+	if isConsoleSession(ctx) {
+		entitlements := h.licenseService.Entitlements()
+		// Org and Sub name the licensee and their billing contact. /api/licence.get is
+		// root-only for exactly that reason, and the "Licensed to" card that shows them
+		// lives in a root-only settings panel — so a non-root session has no use for
+		// them and no right to them. Everything the banner needs (state, features,
+		// quota, expiry, tier) is left intact. Entitlements() returns a value, so
+		// this blanks a copy and nothing shared.
+		if !h.config.IsRootEmail(user.Email) {
+			entitlements.Org = ""
+			entitlements.Sub = ""
+		}
+		response["entitlements"] = entitlements
+	}
+
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(response)
 }
@@ -339,6 +422,12 @@ func (h *UserHandler) Logout(w http.ResponseWriter, r *http.Request) {
 // UpdateLanguage updates the authenticated user's preferred language for the
 // console UI and system emails.
 func (h *UserHandler) UpdateLanguage(w http.ResponseWriter, r *http.Request) {
+	// POST only, like every other write in this package.
+	if r.Method != http.MethodPost {
+		WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
 	ctx, span := h.tracer.StartSpan(r.Context(), "UserHandler.UpdateLanguage")
 	defer span.End()
 

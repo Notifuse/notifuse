@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
@@ -426,8 +427,7 @@ func (s *DemoService) createAutomationTemplates(ctx context.Context, workspaceID
 
 	for _, template := range s.demoAutomationTemplates(workspaceID) {
 		if err := s.templateService.CreateTemplate(ctx, workspaceID, template); err != nil {
-			s.logger.WithField("template_id", template.ID).WithField("error", err.Error()).
-				Warn("Failed to create automation template")
+			return fmt.Errorf("demo: automation template %s: %w", template.ID, err)
 		}
 	}
 

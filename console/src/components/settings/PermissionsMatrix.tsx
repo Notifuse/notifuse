@@ -26,6 +26,9 @@ interface PermissionsMatrixProps {
   value: StoredPermissions | null | undefined
   // Omit to render the grant read-only. The handler always receives a complete map.
   onChange?: (permissions: UserPermissions) => void
+  // Locks every switch while keeping the grant visible: the shape a licence refusal takes,
+  // where the map is still the member's to read but not, for now, to narrow.
+  disabled?: boolean
   className?: string
 }
 
@@ -105,7 +108,7 @@ function PermissionDetails({ descriptor }: { descriptor: PermissionDescriptor })
   )
 }
 
-export function PermissionsMatrix({ value, onChange, className }: PermissionsMatrixProps) {
+export function PermissionsMatrix({ value, onChange, className, disabled = false }: PermissionsMatrixProps) {
   const { t } = useLingui()
   const editable = Boolean(onChange)
 
@@ -162,7 +165,7 @@ export function PermissionsMatrix({ value, onChange, className }: PermissionsMat
       const control = (
         <Switch
           checked={checked}
-          disabled={!isPermissionEnforced(record.key, type)}
+          disabled={disabled || !isPermissionEnforced(record.key, type)}
           onChange={(next) => setPermission(record.key, type, next)}
           size="small"
         />

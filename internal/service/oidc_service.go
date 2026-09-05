@@ -55,6 +55,16 @@ type OIDCServiceConfig struct {
 	// on purpose: an IdP that returns a differently-cased address must not slip past.
 	IsRootEmail  func(string) bool
 	IsProduction bool
+	// Entitlements answers whether this deployment is licensed for SSO. It is read on
+	// every IsEnabled call rather than snapshotted, so a key pasted into the console
+	// brings the sign-in button back without a restart.
+	//
+	// Like IsRootEmail above it is nil-tolerant, and for the same structural reason:
+	// this is a struct literal, so an omitted field is a nil nobody's compiler notices.
+	// Unlike IsRootEmail, nil here WIDENS — see IsEnabled for why that is the right
+	// direction and internal/app/app_license_wiring_test.go for what stops it from
+	// happening in production.
+	Entitlements domain.EntitlementProvider
 	Logger       logger.Logger
 	Tracer       tracing.Tracer
 }
@@ -74,6 +84,7 @@ type OIDCService struct {
 	secretKey     string
 	isRootEmail   func(string) bool
 	isProduction  bool
+	entitlements  domain.EntitlementProvider
 	logger        logger.Logger
 	tracer        tracing.Tracer
 
@@ -107,6 +118,7 @@ func NewOIDCService(cfg OIDCServiceConfig) *OIDCService {
 		secretKey:     cfg.SecretKey,
 		isRootEmail:   cfg.IsRootEmail,
 		isProduction:  cfg.IsProduction,
+		entitlements:  cfg.Entitlements,
 		logger:        cfg.Logger,
 		tracer:        tracer,
 	}
@@ -114,14 +126,50 @@ func NewOIDCService(cfg OIDCServiceConfig) *OIDCService {
 
 var _ domain.OIDCServiceInterface = (*OIDCService)(nil)
 
-// IsEnabled reports config.Enabled without touching the provider.
-func (s *OIDCService) IsEnabled() bool { return s.cfg.Enabled }
+// IsEnabled reports whether SSO may run on this deployment: switched on AND licensed
+// for. It does not touch the provider.
+//
+// This is the ONE definition of "is SSO on". ensureProvider and ExchangeCode call it
+// rather than restating it, and root_handler.go is wired to it so the OIDC_ENABLED flag
+// in config.js cannot disagree with the endpoint the button leads to. The licence half
+// is deliberately live rather than a boot snapshot: cfg.Enabled is resolved once at
+// startup, but a key pasted into the console takes effect immediately, and an operator
+// who has just paid should not have to restart to see the button return.
+//
+// Refusing here rather than walling the console is the whole shape of this gate. It
+// removes exactly the capability that was not bought and nothing else: magic-code login
+// keeps working for every user — resolveOrProvisionUser refuses an identity with no
+// email address, so an SSO account is always an ordinary users row with a reachable
+// address — sessions already minted stay valid, because the JWT does not record which
+// method issued it, and nothing else about the deployment changes.
+//
+// A nil provider answers "licensed". Every gate in this codebase fails that way: the
+// absence of a working licence subsystem must never be what removes a capability, or a
+// deployment that has paid loses its feature to a bug it cannot see. What keeps that
+// tolerance from quietly becoming the production behaviour is
+// internal/app/app_license_wiring_test.go, which asserts this service holds the App's
+// own licence service — this config is a struct literal, so an omitted field is a nil no
+// compiler and no unit test would otherwise notice.
+func (s *OIDCService) IsEnabled() bool {
+	if !s.cfg.Enabled {
+		return false
+	}
+	if s.entitlements == nil {
+		return true
+	}
+	return s.entitlements.Entitlements().Has(domain.FeatureSSO)
+}
 
 // ensureProvider lazily builds (and self-heals) the provider/verifier/oauth2 config.
 // Success is cached forever; a failed init is retried at most once per
 // oidcInitRetryWindow so a transient issuer outage recovers without a restart.
 func (s *OIDCService) ensureProvider(ctx context.Context) error {
-	if !s.cfg.Enabled {
+	// IsEnabled, not cfg.Enabled: every path that talks to the IdP comes through here,
+	// which makes this the one place the licence check cannot be forgotten. Taken before
+	// initMu — IsEnabled takes the licence service's own read lock and the licence
+	// service never calls back into this one, so the two locks are unordered and stay
+	// that way.
+	if !s.IsEnabled() {
 		return domain.ErrOIDCNotConfigured
 	}
 	s.initMu.Lock()
@@ -607,7 +655,10 @@ func (s *OIDCService) ExchangeCode(ctx context.Context, oneTimeCode string) (*do
 	ctx, span := s.tracer.StartServiceSpan(ctx, "OIDCService", "ExchangeCode")
 	defer span.End()
 
-	if !s.cfg.Enabled {
+	// A one-time code minted while the licence was still current must not be redeemable
+	// after it lapsed. The window is 60 seconds wide (oidcExchangeTTL) and costs one map
+	// lookup to close.
+	if !s.IsEnabled() {
 		return nil, domain.ErrOIDCNotConfigured
 	}
 	if oneTimeCode == "" {

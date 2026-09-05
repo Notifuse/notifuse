@@ -1,5 +1,6 @@
 import { api, ApiError } from './client'
 import type { Workspace } from './workspace'
+import type { Entitlements } from '../../types/license'
 
 // Authentication types
 export interface SignInRequest {
@@ -30,6 +31,14 @@ export interface GetCurrentUserResponse {
   // The backend may return null (not []) when the user has no workspaces,
   // e.g. a freshly installed root account. Callers must normalize to [].
   workspaces: Workspace[] | null
+  // What the deployment is licensed for, and whether the console is currently read-only.
+  //
+  // OPTIONAL because a server older than this bundle does not send them, and because
+  // /api/licence.get — the other source — is root-only, so this is the only path by which a
+  // non-root console can learn the deployment's licence state without first being refused a
+  // write. Absent means "not told", never "unlicensed": LicenseProvider falls back to the
+  // root-only endpoint and then to the 402s themselves rather than assuming anything.
+  entitlements?: Entitlements
 }
 
 /**

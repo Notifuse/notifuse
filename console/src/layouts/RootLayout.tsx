@@ -2,6 +2,7 @@ import { Outlet, useNavigate, useMatch } from '@tanstack/react-router'
 import { Spin } from 'antd'
 import { useLingui } from '@lingui/react/macro'
 import { useAuth } from '../contexts/AuthContext'
+import { LicenseBanner } from '../components/license/LicenseBanner'
 import { useEffect } from 'react'
 
 export function RootLayout() {
@@ -92,5 +93,14 @@ export function RootLayout() {
     )
   }
 
-  return <Outlet />
+  // The licence banner is mounted here rather than in WorkspaceLayout because licence-imposed
+  // read-only mode is a property of the deployment — one Postgres database — not of a workspace.
+  // It has to be on screen while a workspace is being picked, or created, or while there is none
+  // at all, which is the state a walled console can most easily end up in.
+  return (
+    <>
+      <LicenseBanner />
+      <Outlet />
+    </>
+  )
 }

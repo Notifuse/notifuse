@@ -84,6 +84,70 @@ type TemplateTranslation struct {
 	Web   *WebTemplate   `json:"web,omitempty"`
 }
 
+// TranslationsWiden reports whether a save ADDS a language or CHANGES the content of one
+// already stored.
+//
+// It is the question the licence gate asks, and the three answers it must give are all
+// deliberate. Adding a language widens. Editing a language that exists widens. Removing one
+// does NOT — a deployment refused this capability has to be able to get back inside the
+// licence, and a gate that also refused the removal would trap it in the very state it is
+// being refused for.
+//
+// It follows that an unlicensed deployment can still edit a template that HAS translations,
+// as long as the translations themselves come back unchanged: the gate is on authoring a
+// variant, never on the template that carries one. The console sends the whole template on
+// every save, so without this comparison the first unlicensed edit to a subject line would
+// be refused for a translation nobody touched.
+//
+// Equality is JSON over the AUTHORED fields only. The content is a nested MJML tree behind
+// two pointers, and encoding/json is deterministic for a given struct shape — map keys
+// sorted, struct fields in declaration order — so two values that marshal alike are alike
+// for this purpose. A marshalling failure answers "widened": refusing a save we cannot prove
+// is unchanged is the safe direction, and it is unreachable for a value that just came off
+// the wire as JSON.
+//
+// Three fields are excluded, and the promise above does not survive without that. They are
+// derived from the authored content by the machine, and they differ between two saves of an
+// untouched translation: the request validator recompiles EmailTemplate.CompiledPreview from
+// the incoming tree before this function ever runs, and the MJML converter that produces it
+// ranges a Go map for attributes, so the same tree compiles to different bytes. The web
+// channel's HTML and PlainText are rendered from Content the same way. Comparing any of
+// them turned "did you touch the translation" into a coin toss, and an unlicensed
+// deployment was refused, at random, for changing the subject line of the default language.
+func TranslationsWiden(prior, next map[string]TemplateTranslation) bool {
+	for lang, incoming := range next {
+		existing, had := prior[lang]
+		if !had {
+			return true
+		}
+		a, aErr := json.Marshal(authoredTranslation(existing))
+		b, bErr := json.Marshal(authoredTranslation(incoming))
+		if aErr != nil || bErr != nil || !bytes.Equal(a, b) {
+			return true
+		}
+	}
+	return false
+}
+
+// authoredTranslation is a copy of t with every machine-derived field zeroed, so that
+// TranslationsWiden compares only what a human typed. See its comment for why each of the
+// three fields is here; add to this list, never to the comparison, when a new derived
+// field is introduced.
+func authoredTranslation(t TemplateTranslation) TemplateTranslation {
+	if t.Email != nil {
+		email := *t.Email
+		email.CompiledPreview = ""
+		t.Email = &email
+	}
+	if t.Web != nil {
+		web := *t.Web
+		web.HTML = ""
+		web.PlainText = ""
+		t.Web = &web
+	}
+	return t
+}
+
 // validateTranslations validates translation language keys, channel match, and content.
 func validateTranslations(translations map[string]TemplateTranslation, channel string, testData MapOfAny) error {
 	for lang, translation := range translations {

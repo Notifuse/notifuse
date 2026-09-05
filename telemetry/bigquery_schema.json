@@ -172,5 +172,35 @@
     "type": "BOOLEAN",
     "mode": "NULLABLE",
     "description": "Whether the workspace recorded a web analytics session in the last 30 days"
+  },
+  {
+    "name": "ses_tenant",
+    "type": "BOOLEAN",
+    "mode": "NULLABLE",
+    "description": "Whether any SES integration in the workspace has Notifuse-managed tenant isolation enabled"
+  },
+  {
+    "name": "rbac_custom",
+    "type": "BOOLEAN",
+    "mode": "NULLABLE",
+    "description": "Whether any member or API key of the workspace holds permissions other than the full set"
+  },
+  {
+    "name": "version",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Release the sending Notifuse binary was built as"
+  },
+  {
+    "name": "oidc_enabled",
+    "type": "BOOLEAN",
+    "mode": "NULLABLE",
+    "description": "Whether single sign-on is enabled on the sending instance, resolved from environment or database"
+  },
+  {
+    "name": "license_tier",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Licence tier of the sending deployment, or empty when it is not licensed"
   }
 ]

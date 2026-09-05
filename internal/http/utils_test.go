@@ -555,3 +555,183 @@ func TestRedactWorkspaceForCaller(t *testing.T) {
 		assert.NotPanics(t, func() { redactWorkspaceForCaller(apiKey, nil) })
 	})
 }
+
+// TestLicenseRefusalIsPaymentRequired pins WHERE the 402 mapping lives, the way
+// TestWritePermissionError_RevokedAPIKey pins the 401.
+//
+// The branch sits in writePermissionError rather than one level up, and every case
+// here is run through both helpers because of it. Most handlers reach for
+// writePermissionError and nothing else — transactional notifications, custom
+// events, broadcasts, automations, the contact timeline, message history, blog
+// themes and web analytics all do — so a mapping placed only in writeServiceError
+// would leave every one of them answering a licence refusal with a 500, and the
+// whole point of the seam is that a gate reaches every handler file without
+// one of them being edited.
+//
+// The wrapped variants are not decoration: a gate lives in a service, and services
+// wrap on the way up. errors.As is what keeps the refusal from arriving as an
+// opaque 500 after two layers of "failed to X: %w".
+func TestLicenseRefusalIsPaymentRequired(t *testing.T) {
+	notLicensed := domain.NewFeatureNotLicensedError(domain.FeatureSESTenant)
+	quotaReached := &domain.ErrWorkspaceQuotaReached{Limit: 3, Current: 3}
+
+	testCases := []struct {
+		name         string
+		err          error
+		feature      string
+		requiredTier string
+		message      string
+		// tierAbsent is for a refusal no single plan fixes: the key must be missing
+		// rather than empty, or a console prints "requires a  licence".
+		tierAbsent bool
+	}{
+		{
+			name:         "a feature the deployment has not bought",
+			err:          notLicensed,
+			feature:      string(domain.FeatureSESTenant),
+			requiredTier: notLicensed.RequiredTier,
+			message:      notLicensed.Message,
+		},
+		{
+			name:         "the same refusal wrapped by the service that raised it",
+			err:          fmt.Errorf("failed to enable SES tenant isolation: %w", notLicensed),
+			feature:      string(domain.FeatureSESTenant),
+			requiredTier: notLicensed.RequiredTier,
+			message:      notLicensed.Message,
+		},
+		{
+			name:         "wrapped twice, as it arrives after an authorize step",
+			err:          fmt.Errorf("failed to create api key: %w", fmt.Errorf("permissions: %w", domain.NewFeatureNotLicensedError(domain.FeatureRBAC))),
+			feature:      string(domain.FeatureRBAC),
+			requiredTier: domain.NewFeatureNotLicensedError(domain.FeatureRBAC).RequiredTier,
+			message:      domain.NewFeatureNotLicensedError(domain.FeatureRBAC).Message,
+		},
+		{
+			name:       "the workspace ceiling",
+			err:        quotaReached,
+			feature:    "workspaces",
+			message:    quotaReached.Error(),
+			tierAbsent: true,
+		},
+		{
+			name:       "the workspace ceiling, wrapped",
+			err:        fmt.Errorf("failed to create workspace: %w", quotaReached),
+			feature:    "workspaces",
+			message:    quotaReached.Error(),
+			tierAbsent: true,
+		},
+	}
+
+	helpers := []struct {
+		name  string
+		write func(http.ResponseWriter, error) bool
+	}{
+		{name: "writePermissionError", write: writePermissionError},
+		{
+			name: "writeServiceError",
+			write: func(w http.ResponseWriter, err error) bool {
+				return writeServiceError(w, err, "You are not allowed to do that")
+			},
+		},
+	}
+
+	for _, helper := range helpers {
+		for _, tc := range testCases {
+			t.Run(helper.name+": "+tc.name, func(t *testing.T) {
+				w := httptest.NewRecorder()
+
+				require.True(t, helper.write(w, tc.err))
+
+				// 402 and not 403: the caller's permissions are fine, the
+				// deployment has not bought the capability, and the console
+				// renders its purchase component off the status code alone
+				// rather than by pattern-matching prose.
+				assert.Equal(t, http.StatusPaymentRequired, w.Code)
+
+				var body map[string]string
+				require.NoError(t, json.NewDecoder(w.Body).Decode(&body))
+
+				assert.Equal(t, "license_required", body["error"])
+				assert.Equal(t, tc.feature, body["feature"])
+				assert.Equal(t, tc.message, body["message"])
+				assert.Equal(t, "https://notifuse.com/licence-features", body["docs"])
+
+				if tc.tierAbsent {
+					assert.NotContains(t, body, "required_tier",
+						"no single plan lifts a ceiling that depends on how many workspaces already exist")
+					return
+				}
+				assert.Equal(t, tc.requiredTier, body["required_tier"])
+			})
+		}
+	}
+}
+
+// The two values in the body that are a contract rather than prose, written out as
+// literals rather than as the constants that produce them — a test that asserts
+// against its own constant pins nothing at all.
+//
+// The console renders one component for every licence refusal, and licenseDocsURL is
+// the page the Additional Use Grant pins by URL and by version. Changing either
+// string is changing a contract, in one case a legal one.
+func TestLicenseRefusalBodyIsMachineReadable(t *testing.T) {
+	w := httptest.NewRecorder()
+	require.True(t, writePermissionError(w, domain.NewFeatureNotLicensedError(domain.FeatureSSO)))
+
+	var body map[string]string
+	require.NoError(t, json.NewDecoder(w.Body).Decode(&body))
+
+	assert.Equal(t, "license_required", body["error"])
+	// Pinned by the Additional Use Grant, which names the licensed capabilities by
+	// URL and by the version of the software being run. It is also why no endpoint
+	// here serves the feature matrix: a second copy would drift from the text that
+	// is legally binding.
+	assert.Equal(t, "https://notifuse.com/licence-features", body["docs"])
+	assert.Equal(t, string(domain.FeatureSSO), body["feature"])
+}
+
+// Ordering inside writePermissionError, which is not cosmetic.
+//
+// A dead credential is answered before anything that can be bought — telling the
+// holder of a revoked key to go and buy a licence is the one answer they cannot act
+// on — and a licence refusal is answered before a permission denial, because 403
+// says the signed-in user lacks a grant, which no amount of money fixes.
+func TestLicenseRefusalOrdering(t *testing.T) {
+	notLicensed := domain.NewFeatureNotLicensedError(domain.FeatureRBAC)
+
+	t.Run("a revoked key still answers 401", func(t *testing.T) {
+		w := httptest.NewRecorder()
+
+		require.True(t, writePermissionError(w, fmt.Errorf("%w: %w", domain.ErrAPIKeyRevoked, notLicensed)))
+
+		assert.Equal(t, http.StatusUnauthorized, w.Code)
+	})
+
+	t.Run("a licence refusal outranks a permission denial", func(t *testing.T) {
+		denial := domain.NewPermissionError(
+			domain.PermissionResourceWorkspace,
+			domain.PermissionTypeWrite,
+			"Insufficient permissions: write access to workspace required",
+		)
+		w := httptest.NewRecorder()
+
+		require.True(t, writePermissionError(w, fmt.Errorf("%w: %w", notLicensed, denial)))
+
+		assert.Equal(t, http.StatusPaymentRequired, w.Code)
+	})
+
+	// The pre-existing mappings must be untouched: an unlicensed deployment may
+	// never answer differently from a licensed one anywhere else.
+	t.Run("an ordinary permission denial still answers 403", func(t *testing.T) {
+		denial := domain.NewPermissionError(
+			domain.PermissionResourceWorkspace,
+			domain.PermissionTypeRead,
+			"Insufficient permissions: read access to workspace required",
+		)
+		w := httptest.NewRecorder()
+
+		require.True(t, writePermissionError(w, denial))
+
+		assert.Equal(t, http.StatusForbidden, w.Code)
+	})
+}

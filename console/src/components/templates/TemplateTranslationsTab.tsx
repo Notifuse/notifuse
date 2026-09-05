@@ -11,6 +11,8 @@ import { templatesApi } from '../../services/api/template'
 import EmailBuilder from '../email_builder/EmailBuilder'
 import MjmlCodeEditor from '../email_builder/MjmlCodeEditor'
 import IphoneEmailPreview from './PhonePreview'
+import { useLicense } from '../../hooks/useLicense'
+import { LicenceGateNotice } from '../license/LicenceGateNotice'
 
 export interface TranslationEditorState {
   enabled: boolean
@@ -51,6 +53,12 @@ const TemplateTranslationsTab: React.FC<TemplateTranslationsTabProps> = ({
 }) => {
   const { t } = useLingui()
   const [editorDrawerLang, setEditorDrawerLang] = useState<string | null>(null)
+  // Advisory only; the server's TranslationsWiden check is the gate. What is locked here
+  // mirrors what that check refuses: switching a language ON and editing what a translation
+  // says. Switching one OFF stays open, because removing a translation never needs a licence
+  // and a lapsed deployment must be able to take back what it made.
+  const { has } = useLicense()
+  const locked = !has('template_i18n')
 
   const translationLanguages = (workspace.settings.languages || []).filter(
     (l) => l !== workspace.settings.default_language
@@ -185,6 +193,11 @@ const TemplateTranslationsTab: React.FC<TemplateTranslationsTabProps> = ({
   return (
     <div className="p-8">
       <div className="flex flex-col gap-6 items-center">
+        <LicenceGateNotice
+          feature="template_i18n"
+          workspaceId={workspace.id}
+          className="mb-0 w-[900px]"
+        />
         {translationLanguages.map((lang) => {
           const langState = translationsState[lang]
           const enabled = langState?.enabled || false
@@ -199,6 +212,7 @@ const TemplateTranslationsTab: React.FC<TemplateTranslationsTabProps> = ({
               extra={
                 <Switch
                   checked={enabled}
+                  disabled={locked && !enabled}
                   onChange={(checked) => handleToggle(lang, checked)}
                   checkedChildren={t`Enabled`}
                   unCheckedChildren={t`Disabled`}
@@ -212,6 +226,7 @@ const TemplateTranslationsTab: React.FC<TemplateTranslationsTabProps> = ({
                       <label className="block text-sm font-medium mb-1">{t`Subject`}</label>
                       <Input
                         value={langState.subject}
+                        disabled={locked}
                         onChange={(e) => updateLangState(lang, { subject: e.target.value })}
                         placeholder={t`Email subject`}
                       />
@@ -220,6 +235,7 @@ const TemplateTranslationsTab: React.FC<TemplateTranslationsTabProps> = ({
                       <label className="block text-sm font-medium mb-1">{t`Subject preview`}</label>
                       <Input
                         value={langState.subjectPreview}
+                        disabled={locked}
                         onChange={(e) =>
                           updateLangState(lang, { subjectPreview: e.target.value })
                         }
@@ -228,7 +244,12 @@ const TemplateTranslationsTab: React.FC<TemplateTranslationsTabProps> = ({
                     </div>
                     {/* display:flex overrides the compact default inline-flex so the block button can fill the row */}
                     <Space.Compact style={{ display: 'flex' }}>
-                      <Button type="primary" block onClick={() => setEditorDrawerLang(lang)}>
+                      <Button
+                        type="primary"
+                        block
+                        disabled={locked}
+                        onClick={() => setEditorDrawerLang(lang)}
+                      >
                         {t`Open email editor`}
                       </Button>
                       <Dropdown
@@ -262,7 +283,7 @@ const TemplateTranslationsTab: React.FC<TemplateTranslationsTabProps> = ({
                         }}
                         trigger={['click']}
                       >
-                        <Button type="primary" icon={<DownOutlined />} />
+                        <Button type="primary" icon={<DownOutlined />} disabled={locked} />
                       </Dropdown>
                     </Space.Compact>
                   </Col>

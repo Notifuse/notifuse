@@ -91,6 +91,15 @@ describe('shouldRetryQuery', () => {
     expect(shouldRetryQuery(0, new ApiError('Session expired', 401, {}))).toBe(false)
   })
 
+  // A read-only deployment answers 402 to every walled write. Retrying doubles each of those
+  // requests and holds the explanation back by a retryDelay, which is what makes a refusal look
+  // like a hung page.
+  it('does not retry a licence refusal', () => {
+    const error = new ApiError('licence required', 402, { error: 'license_required' })
+
+    expect(shouldRetryQuery(0, error)).toBe(false)
+  })
+
   it('still retries a server error once', () => {
     const error = new ApiError('boom', 500, {})
 

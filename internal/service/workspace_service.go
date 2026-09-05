@@ -36,8 +36,17 @@ type WorkspaceService struct {
 	secretKey              string
 	dnsVerificationService *DNSVerificationService
 	blogService            *BlogService
+	entitlements           domain.EntitlementProvider
 }
 
+// NewWorkspaceService builds the service. The entitlement provider is a REQUIRED positional
+// parameter, not a trailing variadic. The variadic saved editing some fifty construction
+// sites and cost the feature: app.go kept calling this with the old argument count, the
+// provider was nil in production, and G1 and G3 below were dead while every test was green.
+// Omitting the argument must be a compile error.
+//
+// An unlicensed deployment does NOT pass nil here — it passes a provider that answers
+// CommunityEntitlements, and the gates refuse.
 func NewWorkspaceService(
 	repo domain.WorkspaceRepository,
 	userRepo domain.UserRepository,
@@ -56,6 +65,7 @@ func NewWorkspaceService(
 	supabaseService *SupabaseService,
 	dnsVerificationService *DNSVerificationService,
 	blogService *BlogService,
+	entitlements domain.EntitlementProvider,
 ) *WorkspaceService {
 	return &WorkspaceService{
 		repo:                   repo,
@@ -75,7 +85,35 @@ func NewWorkspaceService(
 		supabaseService:        supabaseService,
 		dnsVerificationService: dnsVerificationService,
 		blogService:            blogService,
+		entitlements:           entitlements,
 	}
+}
+
+// isLicensedFor reports whether this deployment may use a licensed capability.
+//
+// It reads the signed key and nothing else. In particular it sits ABOVE every owner
+// short-circuit: a configured ROOT_EMAIL is synthesised as an owner with FullPermissions on
+// every workspace, so a gate that consulted the caller's role would be invisible to exactly
+// the person being sold to.
+//
+// A nil provider leaves the gate inert. That is the state of a WorkspaceService built without
+// licensing — the many test constructions that predate it — and it is NOT the unlicensed
+// state: an unlicensed deployment has a provider, that provider answers
+// CommunityEntitlements, and the gates below refuse. Production wiring always passes one.
+func (s *WorkspaceService) isLicensedFor(feature domain.Feature) bool {
+	if s.entitlements == nil {
+		return true
+	}
+	return s.entitlements.Entitlements().Has(feature)
+}
+
+// licensedWorkspaceQuota returns the ceiling the licence puts on workspace creation.
+// domain.UnlimitedWorkspaces means no ceiling, which is also what an unwired provider returns.
+func (s *WorkspaceService) licensedWorkspaceQuota() int {
+	if s.entitlements == nil {
+		return domain.UnlimitedWorkspaces
+	}
+	return s.entitlements.Entitlements().MaxWorkspaces
 }
 
 // ListWorkspaces returns all workspaces for a user
@@ -161,16 +199,40 @@ func (s *WorkspaceService) CreateWorkspace(ctx context.Context, id string, name 
 		return nil, &domain.ErrUnauthorized{Message: "only root user can create workspaces"}
 	}
 
-	// Check workspace limit
-	if s.config.MaxWorkspaces > 0 {
+	// Two independent ceilings, and the tighter one wins.
+	//
+	// s.config.MaxWorkspaces is the operator's own limit, pushed by the Notifuse Cloud control
+	// plane (0 = unlimited, for backward compatibility with self-hosted). The licence quota is
+	// what a self-hosted deployment bought (domain.UnlimitedWorkspaces = -1 = no ceiling,
+	// domain.CommunityMaxWorkspaces when there is no valid key).
+	//
+	// They report different errors on purpose. The plan limit is a 403 with nothing for sale,
+	// so a Cloud deployment configured below its licence quota keeps the refusal it has today,
+	// unchanged. The licence quota is a 402 the console turns into a purchase prompt.
+	//
+	// Enforced at creation and only at creation: a deployment already holding more workspaces
+	// than its quota keeps every one of them. Nothing is deleted, disabled, hidden or made
+	// read-only.
+	//
+	// A negative quota of any magnitude means "no ceiling": only -1 is ever minted, but
+	// comparing a count against -5 is not a behaviour anybody designed.
+	licenseQuota := s.licensedWorkspaceQuota()
+	licenseCapped := licenseQuota >= 0
+	if s.config.MaxWorkspaces > 0 || licenseCapped {
 		count, err := s.repo.CountWorkspaces(ctx)
 		if err != nil {
 			s.logger.WithField("error", err.Error()).Error("Failed to count workspaces")
 			return nil, err
 		}
-		if count >= s.config.MaxWorkspaces {
+		if s.config.MaxWorkspaces > 0 && count >= s.config.MaxWorkspaces {
 			return nil, &domain.ErrWorkspaceLimitReached{
 				Limit:   s.config.MaxWorkspaces,
+				Current: count,
+			}
+		}
+		if licenseCapped && count >= licenseQuota {
+			return nil, &domain.ErrWorkspaceQuotaReached{
+				Limit:   licenseQuota,
 				Current: count,
 			}
 		}
@@ -556,6 +618,14 @@ func (s *WorkspaceService) AddUserToWorkspace(ctx context.Context, workspaceID s
 		return err
 	}
 
+	// Granular permissions are licensed; seating somebody with full ones is not. Defence in
+	// depth: no HTTP route reaches this method today — it is on the service interface and
+	// exercised by tests only — so the gate exists for the route somebody adds later, not for
+	// a path a caller can take now.
+	if !grantsFullPermissions(permissions) && !s.isLicensedFor(domain.FeatureRBAC) {
+		return domain.NewFeatureNotLicensedError(domain.FeatureRBAC)
+	}
+
 	// Check team member limit
 	if s.config.MaxUsers > 0 {
 		count, err := s.repo.CountWorkspaceMembersAndInvitations(ctx, workspaceID)
@@ -707,6 +777,17 @@ func (s *WorkspaceService) InviteMember(ctx context.Context, workspaceID, email 
 		return nil, "", err
 	}
 
+	// Granular permissions are licensed. Inviting somebody with FULL permissions stays
+	// available to every deployment, licensed or not — what is sold is the ability to hand out
+	// a narrower grant, not the ability to grow a team.
+	//
+	// Only the creation of the invitation is gated. AcceptInvitation is deliberately not: an
+	// invitation issued while licensed and accepted after the key lapsed must still let the
+	// colleague in.
+	if !grantsFullPermissions(permissions) && !s.isLicensedFor(domain.FeatureRBAC) {
+		return nil, "", domain.NewFeatureNotLicensedError(domain.FeatureRBAC)
+	}
+
 	// Defense-in-depth: a configured platform admin (ROOT_EMAIL) already has owner access to
 	// every workspace via the override, so inviting one is redundant. Rejecting it also closes a
 	// theoretical path where inviting a not-yet-provisioned root address could create that root
@@ -846,6 +927,14 @@ func (s *WorkspaceService) SetUserPermissions(ctx context.Context, workspaceID, 
 
 	if err := permissions.Validate(); err != nil {
 		return err
+	}
+
+	// The canonical permission editor, and the one write path whose entire purpose is a
+	// granular grant — so it is refused outright without the licence rather than tested
+	// against FullPermissions. Membership rows already carrying restricted permissions keep
+	// them and keep having them enforced: this gates the editor, never HasPermission.
+	if !s.isLicensedFor(domain.FeatureRBAC) {
+		return domain.NewFeatureNotLicensedError(domain.FeatureRBAC)
 	}
 
 	// Check if the target user exists in the workspace
@@ -1171,9 +1260,38 @@ func (s *WorkspaceService) GetWorkspaceMembersWithEmail(ctx context.Context, id 
 	return members, nil
 }
 
+// apiKeyScope says who chose the permissions an API key is minted with, which is what
+// decides whether the RBAC licence gate applies.
+//
+// The licence sells the CUSTOMER the ability to write a permission set of their own. A scope
+// the product fixes for one of its integrations — Zapier's five resources, which the
+// customer neither sees nor edits — is not that, and gating it produced the one place in
+// the codebase where the absence of a licence granted MORE: rather than refuse the Zapier
+// connection, ConnectZapier used to widen the key to full access, handing an integration
+// platform an admin credential on exactly the deployments that had paid nothing.
+type apiKeyScope int
+
+const (
+	// scopeChosenByCustomer: the permissions came from a human through the console or the
+	// API. A restricted set needs the RBAC licence.
+	scopeChosenByCustomer apiKeyScope = iota
+	// scopeFixedByProduct: the permissions are a constant of the product for an integration
+	// it provisions itself. Never widened, never gated, not reachable from the API.
+	scopeFixedByProduct
+)
+
 // CreateAPIKey creates an API key for a workspace. A nil permissions map grants the key
 // full access, which is the pre-scoping contract for callers that omit the field.
+//
+// This is the customer-facing entry, and the only one the API reaches.
 func (s *WorkspaceService) CreateAPIKey(ctx context.Context, workspaceID string, emailPrefix string, permissions domain.UserPermissions) (string, string, error) {
+	return s.createAPIKey(ctx, workspaceID, emailPrefix, permissions, scopeChosenByCustomer)
+}
+
+// createAPIKey is CreateAPIKey with the origin of the scope made explicit. Authentication
+// and the owner check run for both origins and BEFORE the licence gate, so a non-member is
+// answered with 401/403 and never learns the deployment's licence state from a 402.
+func (s *WorkspaceService) createAPIKey(ctx context.Context, workspaceID string, emailPrefix string, permissions domain.UserPermissions, scope apiKeyScope) (string, string, error) {
 	// Validate user is a member of the workspace and has owner role
 	var user *domain.User
 	var userWorkspace *domain.UserWorkspace
@@ -1196,6 +1314,22 @@ func (s *WorkspaceService) CreateAPIKey(ctx context.Context, workspaceID string,
 
 	if err := permissions.Validate(); err != nil {
 		return "", "", err
+	}
+
+	// A scoped key is a granular grant, so it is licensed; a full-access key is not.
+	//
+	// The nil case is spelled out here because it is this method's contract and nowhere else's:
+	// nil means full access and is materialised into a full map below, so a caller that omits
+	// the field keeps working on an unlicensed deployment. On the seating paths the same nil
+	// would store a row that denies everything, which is why the shared predicate refuses it.
+	//
+	// A key that already holds a restricted scope keeps it — nothing here rewrites an existing
+	// membership row, and removing the member (the only way to revoke a key) stays available
+	// in every licence state.
+	//
+	// Only a scope the customer chose is gated. See apiKeyScope.
+	if scope == scopeChosenByCustomer && permissions != nil && !grantsFullPermissions(permissions) && !s.isLicensedFor(domain.FeatureRBAC) {
+		return "", "", domain.NewFeatureNotLicensedError(domain.FeatureRBAC)
 	}
 
 	// Generate an API email using the prefix
@@ -1658,6 +1792,17 @@ func (s *WorkspaceService) ConnectZapier(ctx context.Context, workspaceID string
 		return "", "", "", &domain.ErrUnauthorized{Message: "user is not an owner of the workspace"}
 	}
 
+	// domain.ZapierKeyPermissions() is a RESTRICTED scope fixed by the product: the customer
+	// neither sees nor edits it, so it is not the capability the RBAC licence sells, and it
+	// is minted through the product-scope path, which the licence gate does not apply to.
+	//
+	// It used to be otherwise. The gate sat inside CreateAPIKey, so on an unlicensed
+	// deployment this call would have been refused — and rather than fail the connection,
+	// the scope was WIDENED to full access. That handed Zapier an admin credential on every
+	// deployment that had paid nothing, and nothing ever narrowed it back. Connecting Zapier
+	// now yields the same five-resource key in every licence state.
+	zapierPermissions := domain.ZapierKeyPermissions()
+
 	var token, email string
 	for attempt := 1; ; attempt++ {
 		randomHex, genErr := GenerateSecureKey(4)
@@ -1671,7 +1816,7 @@ func (s *WorkspaceService) ConnectZapier(ctx context.Context, workspaceID string
 		}
 
 		var createErr error
-		token, email, createErr = s.CreateAPIKey(ctx, workspaceID, prefix, domain.ZapierKeyPermissions())
+		token, email, createErr = s.createAPIKey(ctx, workspaceID, prefix, zapierPermissions, scopeFixedByProduct)
 		if createErr == nil {
 			break
 		}

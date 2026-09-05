@@ -907,9 +907,9 @@ func TestHandleCreate_CodeModeTemplate(t *testing.T) {
 		"channel":      "email",
 		"category":     "marketing",
 		"email": map[string]interface{}{
-			"editor_mode":     "code",
-			"mjml_source":     mjmlSrc,
-			"subject":         "Test Subject",
+			"editor_mode":      "code",
+			"mjml_source":      mjmlSrc,
+			"subject":          "Test Subject",
 			"compiled_preview": mjmlSrc,
 		},
 	}
@@ -969,9 +969,9 @@ func TestHandleUpdate_CodeModeTemplate(t *testing.T) {
 		"channel":      "email",
 		"category":     "marketing",
 		"email": map[string]interface{}{
-			"editor_mode":     "code",
-			"mjml_source":     mjmlSrc,
-			"subject":         "Updated Subject",
+			"editor_mode":      "code",
+			"mjml_source":      mjmlSrc,
+			"subject":          "Updated Subject",
 			"compiled_preview": mjmlSrc,
 		},
 	}
@@ -1149,5 +1149,71 @@ func TestTemplateHandler_HandleUpdate_AbsentAndServerOwnedFields(t *testing.T) {
 		assert.Equal(t, "supabase-int-1", *response.Template.IntegrationID)
 		require.Contains(t, response.Template.Translations, "fr")
 		assert.Equal(t, "Sujet FR", response.Template.Translations["fr"].Email.Subject)
+	})
+}
+
+// The 402 seam on the template routes.
+//
+// This handler maps its own errors rather than going through writeServiceError, so the
+// licence refusal has to be asked for explicitly. Without it the translations gate answers
+// 500 with "Failed to create template" — a refusal a purchase would fix, reported as a server
+// fault, on the one screen where the console could have offered the purchase.
+func TestTemplateHandler_LicenceRefusalIsA402(t *testing.T) {
+	validCreate := domain.CreateTemplateRequest{
+		WorkspaceID: "workspace123",
+		ID:          "template123",
+		Name:        "Test Template",
+		Channel:     "email",
+		Category:    "transactional",
+		Email:       createTestEmailTemplate(),
+	}
+
+	assertRefusal := func(t *testing.T, resp *http.Response) {
+		t.Helper()
+		assert.Equal(t, http.StatusPaymentRequired, resp.StatusCode)
+
+		var body map[string]string
+		require.NoError(t, json.NewDecoder(resp.Body).Decode(&body))
+		// The shape the console switches on, identical to every other licence refusal:
+		// it renders one purchase component and must not care which layer refused.
+		assert.Equal(t, "license_required", body["error"])
+		assert.Equal(t, string(domain.FeatureTemplateI18n), body["feature"])
+		assert.Equal(t, "Studio", body["required_tier"])
+		assert.Contains(t, body["message"], "Template translations")
+		assert.Equal(t, "https://notifuse.com/licence-features", body["docs"])
+	}
+
+	t.Run("templates.create", func(t *testing.T) {
+		mockService, _, serverURL, secretKey, cleanup := setupTemplateHandlerTest(t)
+		defer cleanup()
+
+		mockService.EXPECT().CreateTemplate(gomock.Any(), "workspace123", gomock.Any()).
+			Return(domain.NewFeatureNotLicensedError(domain.FeatureTemplateI18n))
+
+		resp := sendRequest(t, http.MethodPost, fmt.Sprintf("%s/api/templates.create", serverURL), createTestToken(secretKey), validCreate)
+		defer func() { _ = resp.Body.Close() }()
+
+		assertRefusal(t, resp)
+	})
+
+	t.Run("templates.update", func(t *testing.T) {
+		mockService, _, serverURL, secretKey, cleanup := setupTemplateHandlerTest(t)
+		defer cleanup()
+
+		mockService.EXPECT().UpdateTemplate(gomock.Any(), "workspace123", gomock.Any()).
+			Return(domain.NewFeatureNotLicensedError(domain.FeatureTemplateI18n))
+
+		update := domain.UpdateTemplateRequest{
+			WorkspaceID: "workspace123",
+			ID:          "template123",
+			Name:        "Test Template",
+			Channel:     "email",
+			Category:    "transactional",
+			Email:       createTestEmailTemplate(),
+		}
+		resp := sendRequest(t, http.MethodPost, fmt.Sprintf("%s/api/templates.update", serverURL), createTestToken(secretKey), update)
+		defer func() { _ = resp.Body.Close() }()
+
+		assertRefusal(t, resp)
 	})
 }

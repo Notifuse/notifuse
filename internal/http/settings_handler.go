@@ -3,6 +3,7 @@ package http
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -12,6 +13,7 @@ import (
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/http/middleware"
 	"github.com/Notifuse/notifuse/internal/service"
+	"github.com/Notifuse/notifuse/pkg/license"
 	"github.com/Notifuse/notifuse/pkg/logger"
 )
 
@@ -56,11 +58,67 @@ type SystemSettingsResponse struct {
 	EnvOverrides map[string]bool    `json:"env_overrides"`
 }
 
+// LicenseServiceInterface is the slice of the licence service the two licence endpoints
+// need, declared here in the consuming package the way UserServiceInterface is.
+//
+// Two methods and no more. The handler reads the resolved grant and installs a pasted key;
+// it has no way to reach the raw key, because the only safe answer to "what is my licence
+// key" over HTTP is that the endpoint cannot say.
+//
+// service.LicenseService satisfies it.
+type LicenseServiceInterface interface {
+	Entitlements() domain.Entitlements
+	SetKey(ctx context.Context, raw string) error
+}
+
+// LicenseResponse is the body of GET /api/licence.get, and of a successful
+// POST /api/licence.set so the console can repaint from one round trip.
+//
+// It never carries the key. A licence key is a bearer credential — whoever holds it can
+// license their own deployment with it — and an endpoint that echoed it back would copy it
+// into every console session, browser cache, proxy log and support screenshot. Everything a
+// console needs is already in the verified claims: who it is licensed to, what it grants,
+// and until when.
+type LicenseResponse struct {
+	// Entitlements is the very value every gate reads, so what the console greys out and
+	// what the backend refuses cannot drift apart.
+	Entitlements domain.Entitlements `json:"entitlements"`
+}
+
+// SetLicenseRequest is the body of POST /api/licence.set: the envelope, verbatim.
+//
+// Nothing else is accepted. Tier, features and quota are read from the signature, never from
+// the request — a body that could set them would be a licence generator with a JSON API.
+type SetLicenseRequest struct {
+	Key string `json:"key"`
+}
+
+// licenseKeyRejections are the pkg/license failures a pasted key can produce. All of them
+// mean the paste is wrong rather than the server broken, so all of them answer 400 carrying
+// the sentence pkg/license already wrote — those sentences are the entire support story for
+// "I pasted a key and nothing happened", which is otherwise indistinguishable from "the key
+// never arrived".
+//
+// Enumerated rather than inferred, because the only way to infer it is from the other side —
+// treating everything that is not a storage failure as a bad key — and a storage failure has
+// no sentinel to match on. A sentinel added to pkg/license and not added here degrades to a
+// 500: the wrong status, but a safe one. Nothing is stored on either path.
+var licenseKeyRejections = []error{
+	license.ErrMalformedEnvelope,
+	license.ErrBadEncoding,
+	license.ErrNoTrustedKey,
+	license.ErrBadSignature,
+	license.ErrMalformedPayload,
+	license.ErrUnknownVersion,
+	license.ErrFutureIssuedAt,
+}
+
 // SettingsHandler handles system settings endpoints (root user only)
 type SettingsHandler struct {
 	setupService   *service.SetupService
 	settingService *service.SettingService
 	userService    UserServiceInterface
+	licenseService LicenseServiceInterface
 	getJWTSecret   func() ([]byte, error)
 	logger         logger.Logger
 	secretKey      string
@@ -69,6 +127,16 @@ type SettingsHandler struct {
 }
 
 // NewSettingsHandler creates a new settings handler
+//
+// The licence service is a REQUIRED positional parameter, not a trailing variadic. It used to
+// be variadic, app.go omitted it, and the result was the worst outcome this design exists to
+// prevent: gates refusing capabilities while /api/licence.set answered 500, so the operator
+// had no way to buy their way out. Omitting the argument must be a compile error.
+//
+// The handler still tolerates a nil interface value at RUNTIME — see licenseResponse — because
+// the settings page is the page an operator opens when something is already wrong and it must
+// not be the second thing that fails. That is a fail-safe for a service that failed to build,
+// not a licence for a caller to skip the argument.
 func NewSettingsHandler(
 	setupService *service.SetupService,
 	settingService *service.SettingService,
@@ -78,11 +146,13 @@ func NewSettingsHandler(
 	secretKey string,
 	rootEmail string,
 	app AppShutdowner,
+	licenseService LicenseServiceInterface,
 ) *SettingsHandler {
 	return &SettingsHandler{
 		setupService:   setupService,
 		settingService: settingService,
 		userService:    userService,
+		licenseService: licenseService,
 		getJWTSecret:   getJWTSecret,
 		logger:         logger,
 		secretKey:      secretKey,
@@ -505,6 +575,123 @@ func (h *SettingsHandler) handleTestSMTP(w http.ResponseWriter, r *http.Request)
 	_ = json.NewEncoder(w).Encode(response)
 }
 
+// handleLicenseGet returns what this deployment is licensed for, and whether the console is
+// currently walled.
+//
+// It lives on the settings handler rather than in a handler of its own because this one is
+// already root-only and already carries requireRootUser: a new file would mean a second root
+// guard to keep correct, and a licence page is a settings page.
+//
+// Root-only although the banner it feeds is shown to everyone. Non-root users learn their
+// deployment is unlicensed from the banner and the 402s, which is all they can act on — the
+// licensee's name and billing address are not theirs to read, and only root can paste a key.
+func (h *SettingsHandler) handleLicenseGet(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	if h.requireRootUser(w, r) == nil {
+		return
+	}
+
+	writeJSON(w, http.StatusOK, h.licenseResponse())
+}
+
+// handleLicenseSet installs a pasted licence key: verify, persist, swap, in that order.
+//
+// The ordering is the service's, and it is what makes a bad paste free: nothing is written
+// and nothing in memory moves until the signature verifies, so a typo, a truncated copy or a
+// key minted by somebody else leaves the deployment on exactly the licence it had a second
+// earlier.
+//
+// No licence gate stands in front of this route, and none ever may: every licensed capability
+// is unlocked by pasting a key here, so an endpoint that refused the unlicensed would be a
+// lock with the key on the inside.
+func (h *SettingsHandler) handleLicenseSet(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	if h.requireRootUser(w, r) == nil {
+		return
+	}
+
+	var req SetLicenseRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		WriteJSONError(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if h.licenseService == nil {
+		h.logger.Error("Licence key submitted but no licence service is wired")
+		WriteJSONError(w, "Licence management is unavailable", http.StatusInternalServerError)
+		return
+	}
+
+	if err := h.licenseService.SetKey(r.Context(), req.Key); err != nil {
+		h.writeLicenseSetError(w, err)
+		return
+	}
+
+	// The new state, so the console repaints its banner from the same round trip that
+	// installed the key rather than from a follow-up read that could race the swap.
+	writeJSON(w, http.StatusOK, h.licenseResponse())
+}
+
+// licenseResponse builds the body both licence endpoints answer with.
+//
+// A nil service reports Community rather than an error. That is the same fail-safe rule the
+// licence service itself follows — every failure degrades to the free tier, none of them
+// breaks the deployment — applied one layer up so that a dependency which failed to wire
+// cannot 500 the page an operator opens precisely because something is wrong.
+func (h *SettingsHandler) licenseResponse() LicenseResponse {
+	if h.licenseService == nil {
+		return LicenseResponse{Entitlements: domain.CommunityEntitlements()}
+	}
+
+	return LicenseResponse{Entitlements: h.licenseService.Entitlements()}
+}
+
+// writeLicenseSetError maps a refused key to a status the console can act on.
+//
+// Three outcomes, three remedies, and the operator can only tell them apart if the statuses
+// differ: fix the paste (400), edit the environment and restart (409), or call support
+// (500). Collapsing them into one 400 would send an operator hunting for a typo in a key
+// that is perfectly good and simply cannot take effect.
+func (h *SettingsHandler) writeLicenseSetError(w http.ResponseWriter, err error) {
+	if errors.Is(err, service.ErrLicenseKeyEmpty) {
+		WriteJSONError(w, "Licence key is required", http.StatusBadRequest)
+		return
+	}
+
+	// 409 rather than 400: the key may well be valid, it just cannot win. The deployment's
+	// own configuration is what conflicts, and the remedy is in NOTIFUSE_LICENSE_KEY rather
+	// than in the box the operator just typed into. The service refuses instead of storing
+	// a row that would silently lose to the environment at the next restart — a discrepancy
+	// that would surface weeks later, to somebody else.
+	if errors.Is(err, service.ErrLicenseKeyLockedByEnv) {
+		WriteJSONError(w, err.Error(), http.StatusConflict)
+		return
+	}
+
+	for _, rejection := range licenseKeyRejections {
+		if errors.Is(err, rejection) {
+			// The sentinel's own sentence, not the wrapping prose: "licence key
+			// signature does not verify" is the difference between a truncated paste
+			// and a key for a different signing authority.
+			WriteJSONError(w, rejection.Error(), http.StatusBadRequest)
+			return
+		}
+	}
+
+	// Anything left is the settings table failing to accept the write. The stored key and
+	// the running licence are both untouched, so the deployment is exactly where it was.
+	h.logger.WithField("error", err.Error()).Error("Failed to store licence key")
+	WriteJSONError(w, "Failed to save licence key", http.StatusInternalServerError)
+}
+
 // RegisterRoutes registers the settings handler routes
 func (h *SettingsHandler) RegisterRoutes(mux *http.ServeMux) {
 	authMiddleware := middleware.NewAuthMiddleware(h.getJWTSecret)
@@ -513,6 +700,12 @@ func (h *SettingsHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.Handle("/api/settings.get", requireAuth(http.HandlerFunc(h.handleGet)))
 	mux.Handle("/api/settings.update", requireAuth(http.HandlerFunc(h.handleUpdate)))
 	mux.Handle("/api/settings.testSmtp", requireAuth(http.HandlerFunc(h.handleTestSMTP)))
+
+	// licence.* rather than settings.licence.*: the console reads the licence on pages that
+	// have nothing to do with settings, so filing it under the settings namespace would name
+	// it after the one screen it is least often read from.
+	mux.Handle("/api/licence.get", requireAuth(http.HandlerFunc(h.handleLicenseGet)))
+	mux.Handle("/api/licence.set", requireAuth(http.HandlerFunc(h.handleLicenseSet)))
 }
 
 // validateOIDCForUpdate runs the canonical config.OIDCConfig.Validate() against a

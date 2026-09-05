@@ -336,7 +336,7 @@ func TestDemoService_CreateSampleTemplates_Smoke(t *testing.T) {
 	mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
 	mockAuth := domainmocks.NewMockAuthService(ctrl)
 
-	tmplSvc := NewTemplateService(mockTemplateRepo, mockWorkspaceRepo, mockAuth, logger.NewLoggerWithLevel("disabled"), "https://api.test")
+	tmplSvc := NewTemplateService(mockTemplateRepo, mockWorkspaceRepo, mockAuth, logger.NewLoggerWithLevel("disabled"), "https://api.test", fullyLicensedProvider(ctrl))
 
 	svc := &DemoService{
 		logger:          logger.NewLoggerWithLevel("disabled"),
@@ -1201,4 +1201,57 @@ func TestCreateDemoWebhookSubscription_IsSwitchedOff(t *testing.T) {
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "disable the demo webhook subscription")
 	})
+}
+
+// The demo must show everything, including translations, so a demo deployment runs
+// licensed — and one that is not must say so, loudly. The seeder used to Warn on a
+// refused template and carry on, seeding broadcasts, notifications and message history
+// against template IDs that were never created; the test suite was then made green by
+// handing the seeder a licensed provider instead of making the seeder honest.
+func TestDemoService_CreateSampleTemplates_RefusesLoudlyWhenUnlicensed(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
+	mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
+	mockAuth := domainmocks.NewMockAuthService(ctrl)
+
+	// A Community deployment: no key, every gate closed. Inline rather than the shared
+	// helper, which lives behind the licdev build tag.
+	unlicensed := domainmocks.NewMockEntitlementProvider(ctrl)
+	unlicensed.EXPECT().Entitlements().Return(domain.CommunityEntitlements()).AnyTimes()
+	tmplSvc := NewTemplateService(mockTemplateRepo, mockWorkspaceRepo, mockAuth, logger.NewLoggerWithLevel("disabled"), "https://api.test", unlicensed)
+	svc := &DemoService{
+		logger:          logger.NewLoggerWithLevel("disabled"),
+		templateService: tmplSvc,
+	}
+	ctx := context.Background()
+	userWorkspace := &domain.UserWorkspace{
+		UserID:      "u1",
+		WorkspaceID: "demo",
+		Role:        "member",
+		Permissions: domain.UserPermissions{
+			domain.PermissionResourceTemplates: {Read: true, Write: true},
+		},
+	}
+	mockAuth.EXPECT().AuthenticateUserForWorkspace(ctx, "demo").Return(ctx, &domain.User{ID: "u1"}, userWorkspace, nil).AnyTimes()
+	mockWorkspaceRepo.EXPECT().GetByID(ctx, "demo").Return(&domain.Workspace{
+		ID:       "demo",
+		Settings: domain.WorkspaceSettings{DefaultLanguage: "en", Languages: []string{"en", "fr", "es"}},
+	}, nil).AnyTimes()
+	// Nothing may reach the repository: the first template carries translations and is
+	// refused before any write.
+	mockTemplateRepo.EXPECT().CreateTemplate(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+
+	err := svc.createSampleTemplates(ctx, "demo")
+
+	require.Error(t, err, "an unlicensed demo must fail, not seed a half-built workspace")
+	// Fail-fast, at the FIRST refused template: a seeder that warned on the first and only
+	// errored on a later one would still return an error, and this is what tells them apart.
+	assert.Contains(t, err.Error(), "newsletter template")
+	var refused *domain.ErrFeatureNotLicensed
+	assert.True(t, errors.As(err, &refused), "the error must name the licence, not a generic failure: %v", err)
+	if refused != nil {
+		assert.Equal(t, domain.FeatureTemplateI18n, refused.Feature)
+	}
 }

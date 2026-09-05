@@ -13,6 +13,8 @@ import { BlogSettings } from '../components/settings/BlogSettings'
 import { WebAnalyticsSettings } from '../components/settings/WebAnalyticsSettings'
 import { WebhooksSettings } from '../components/settings/WebhooksSettings'
 import { useAuth } from '../contexts/AuthContext'
+import { isRootUser } from '../services/api/auth'
+import { LicenseSettings } from '../components/settings/LicenseSettings'
 import { DeleteWorkspaceSection } from '../components/settings/DeleteWorkspace'
 import {
   SettingsSidebar,
@@ -174,6 +176,10 @@ export function WorkspaceSettingsPage() {
             canManage={canManageWebAnalytics}
           />
         )
+      case 'licence':
+        // LicenseSettings renders its own non-root notice rather than nothing: a member who
+        // followed the banner here needs to be told who can act, not shown a blank panel.
+        return <LicenseSettings />
       case 'danger-zone':
         return workspace && isOwner ? (
           <DeleteWorkspaceSection workspace={workspace} onDeleteSuccess={handleWorkspaceDelete} />
@@ -196,6 +202,7 @@ export function WorkspaceSettingsPage() {
           activeSection={activeSection}
           onSectionChange={handleSectionChange}
           isOwner={isOwner}
+          isRoot={isRootUser(user?.email)}
         />
       </Sider>
       <Layout>

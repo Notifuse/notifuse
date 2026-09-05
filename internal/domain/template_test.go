@@ -2823,3 +2823,133 @@ func TestEmailTemplate_Validate_MissingVisualEditorTree(t *testing.T) {
 		assert.Equal(t, mjml, template.Email.CompiledPreview)
 	})
 }
+
+// TranslationsWiden is the question the template-translations gate asks, and its three
+// answers are each load-bearing. Getting the "no" cases wrong is how a gate on authoring a
+// variant becomes a gate on editing any template that has one — or, worse, a gate a
+// deployment cannot get out from under.
+func TestTranslationsWiden(t *testing.T) {
+	en := func(subject string) TemplateTranslation {
+		return TemplateTranslation{Email: &EmailTemplate{Subject: subject}}
+	}
+
+	cases := []struct {
+		name  string
+		prior map[string]TemplateTranslation
+		next  map[string]TemplateTranslation
+		want  bool
+	}{
+		{
+			name: "adding the first language",
+			next: map[string]TemplateTranslation{"nl": en("Hallo")},
+			want: true,
+		},
+		{
+			name:  "adding another language",
+			prior: map[string]TemplateTranslation{"nl": en("Hallo")},
+			next:  map[string]TemplateTranslation{"nl": en("Hallo"), "de": en("Hallo")},
+			want:  true,
+		},
+		{
+			name:  "editing a language already there",
+			prior: map[string]TemplateTranslation{"nl": en("Hallo")},
+			next:  map[string]TemplateTranslation{"nl": en("Goedendag")},
+			want:  true,
+		},
+		{
+			// The gate must not fire on a save that leaves the variants alone. The console
+			// sends the whole template on every save, so without this the first unlicensed
+			// edit to a subject line is refused for a translation nobody touched.
+			name:  "sending back exactly what is stored",
+			prior: map[string]TemplateTranslation{"nl": en("Hallo"), "de": en("Guten Tag")},
+			next:  map[string]TemplateTranslation{"nl": en("Hallo"), "de": en("Guten Tag")},
+			want:  false,
+		},
+		{
+			// The free way back inside the licence. A gate that also refused this would
+			// trap a deployment in the state it is being refused for.
+			name:  "removing a language",
+			prior: map[string]TemplateTranslation{"nl": en("Hallo"), "de": en("Guten Tag")},
+			next:  map[string]TemplateTranslation{"nl": en("Hallo")},
+			want:  false,
+		},
+		{
+			name:  "removing every language",
+			prior: map[string]TemplateTranslation{"nl": en("Hallo")},
+			next:  map[string]TemplateTranslation{},
+			want:  false,
+		},
+		{
+			name:  "a template that never had any and still has none",
+			prior: nil,
+			next:  map[string]TemplateTranslation{},
+			want:  false,
+		},
+		{
+			// Removing one and adding another in the same save is still an addition.
+			name:  "swapping one language for another",
+			prior: map[string]TemplateTranslation{"nl": en("Hallo")},
+			next:  map[string]TemplateTranslation{"de": en("Guten Tag")},
+			want:  true,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, tc.want, TranslationsWiden(tc.prior, tc.next))
+		})
+	}
+}
+
+// The promise TranslationsWiden makes — "an unlicensed deployment can still edit a template
+// that HAS translations, as long as the translations themselves come back unchanged" — held
+// only while the derived fields happened to agree. They do not: the compiled preview is
+// recompiled by the validator before the gate runs and the MJML converter is not
+// deterministic. These pin the distinction between what a human wrote and what a machine
+// derived from it.
+func TestTranslationsWiden_IgnoresDerivedFields(t *testing.T) {
+	stored := map[string]TemplateTranslation{
+		"fr": {
+			Email: &EmailTemplate{Subject: "Bonjour", CompiledPreview: "<html>A</html>"},
+			Web:   &WebTemplate{Content: MapOfAny{"type": "doc"}, HTML: "<p>a</p>", PlainText: "a"},
+		},
+	}
+
+	t.Run("a recompiled preview is not an edit", func(t *testing.T) {
+		incoming := map[string]TemplateTranslation{
+			"fr": {
+				Email: &EmailTemplate{Subject: "Bonjour", CompiledPreview: "<html>B — different bytes, same tree</html>"},
+				Web:   &WebTemplate{Content: MapOfAny{"type": "doc"}, HTML: "<p>rendered again</p>", PlainText: "rendered again"},
+			},
+		}
+		assert.False(t, TranslationsWiden(stored, incoming),
+			"only machine-derived fields differ; refusing this is refusing a subject-line edit on the default language")
+	})
+
+	t.Run("an authored change still widens", func(t *testing.T) {
+		incoming := map[string]TemplateTranslation{
+			"fr": {
+				Email: &EmailTemplate{Subject: "Bonsoir", CompiledPreview: "<html>A</html>"},
+				Web:   &WebTemplate{Content: MapOfAny{"type": "doc"}, HTML: "<p>a</p>", PlainText: "a"},
+			},
+		}
+		assert.True(t, TranslationsWiden(stored, incoming))
+	})
+
+	t.Run("an authored change to web content still widens", func(t *testing.T) {
+		incoming := map[string]TemplateTranslation{
+			"fr": {
+				Email: &EmailTemplate{Subject: "Bonjour", CompiledPreview: "<html>A</html>"},
+				Web:   &WebTemplate{Content: MapOfAny{"type": "doc", "edited": true}, HTML: "<p>a</p>", PlainText: "a"},
+			},
+		}
+		assert.True(t, TranslationsWiden(stored, incoming))
+	})
+
+	t.Run("the comparison does not mutate its inputs", func(t *testing.T) {
+		incoming := map[string]TemplateTranslation{"fr": stored["fr"]}
+		_ = TranslationsWiden(stored, incoming)
+		assert.Equal(t, "<html>A</html>", stored["fr"].Email.CompiledPreview)
+		assert.Equal(t, "<p>a</p>", stored["fr"].Web.HTML)
+	})
+}

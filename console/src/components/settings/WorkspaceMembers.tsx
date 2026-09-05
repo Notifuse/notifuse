@@ -30,6 +30,8 @@ import {
 import { ApiError } from '../../services/api/client'
 import { EditPermissionsDrawer } from './EditPermissionsDrawer'
 import { PermissionsMatrix } from './PermissionsMatrix'
+import { useLicense } from '../../hooks/useLicense'
+import { LicenceGateNotice } from '../license/LicenceGateNotice'
 import { SettingsSectionHeader } from './SettingsSectionHeader'
 
 const { Text } = Typography
@@ -79,6 +81,7 @@ export function WorkspaceMembers({
   const [inviting, setInviting] = useState(false)
   const [invitePermissions, setInvitePermissions] =
     useState<UserPermissions>(createFullPermissions)
+  const { has } = useLicense()
   const { message } = App.useApp()
 
   // API Key drawer states
@@ -409,7 +412,11 @@ export function WorkspaceMembers({
       onMembersChange()
     } catch (error) {
       console.error('Failed to resend invitation', error)
-      message.error(t`Failed to resend invitation`)
+      // The server's sentence, not a fixed one: a resend replays the invitation's stored
+      // permissions through the licence gate, and "this needs a licence" is something to
+      // buy, where "Failed to resend invitation" is a bug report.
+      const msg = error instanceof Error && error.message ? error.message : t`Failed to resend invitation`
+      message.error(msg)
     } finally {
       setResendingInvitation(false)
     }
@@ -495,8 +502,15 @@ export function WorkspaceMembers({
           </Form.Item>
 
           <Form.Item label={t`Permissions`}>
+            {/* An invite starts from a full grant, which is never gated, so a locked matrix
+                still holds a legal invitation; only narrowing it needs the licence. */}
+            <LicenceGateNotice feature="rbac" workspaceId={workspaceId} />
             <PermissionScopePresets onChange={setInvitePermissions} />
-            <PermissionsMatrix value={invitePermissions} onChange={setInvitePermissions} />
+            <PermissionsMatrix
+              value={invitePermissions}
+              onChange={setInvitePermissions}
+              disabled={!has('rbac')}
+            />
           </Form.Item>
         </Form>
       </Drawer>

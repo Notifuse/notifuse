@@ -1,3 +1,6 @@
+import { permissionDenialFromBody, permissionDeniedMessage } from './errors'
+import { licenseRefusalFromBody, licenseRefusedMessage } from './licenseErrors'
+
 // LLM Chat API with SSE Streaming
 
 export interface LLMMessage {
@@ -88,7 +91,22 @@ export const llmApi = {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => null)
-        throw new Error(errorData?.error || `HTTP error: ${response.status}`)
+        // The same two rewrites handleResponse performs, because this call cannot go
+        // through it: a streaming body needs the raw fetch. Without them `errorData.error`
+        // is whatever the server put in the field — for a permission denial that is
+        // English prose, and for a licence refusal it is literally the wire code
+        // `license_required`, rendered into a persistent chat bubble as the error.
+        //
+        // Both helpers are router-free imports, which is what licenseErrors.ts and
+        // errors.ts were split out for.
+        const denial = permissionDenialFromBody(errorData)
+        const refusal = denial ? null : licenseRefusalFromBody(errorData)
+        const message = denial
+          ? permissionDeniedMessage(denial)
+          : refusal
+            ? licenseRefusedMessage(refusal)
+            : errorData?.error
+        throw new Error(message || `HTTP error: ${response.status}`)
       }
 
       if (!response.body) {

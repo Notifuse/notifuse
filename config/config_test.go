@@ -354,3 +354,27 @@ func TestAPIEndpointTrailingSlashStripped(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "http://localhost:8081", cfg.APIEndpoint)
 }
+
+// NOTIFUSE_LICENSE_KEY is the one licence wiring line whose deletion left every test green:
+// nothing at the config layer read it back. It is carried raw and unverified — the licence
+// service is what verifies it — so the only fact to pin here is that the variable reaches
+// the field at all.
+func TestLoadWithOptions_LicenseKey(t *testing.T) {
+	_ = os.Setenv("SECRET_KEY", "test-secret-key-1234567890123456")
+	_ = os.Setenv("ROOT_EMAIL", "test@example.com")
+	_ = os.Setenv("NOTIFUSE_LICENSE_KEY", "NFUSE1.payload.signature")
+	defer func() {
+		_ = os.Unsetenv("SECRET_KEY")
+		_ = os.Unsetenv("ROOT_EMAIL")
+		_ = os.Unsetenv("NOTIFUSE_LICENSE_KEY")
+	}()
+
+	cfg, err := LoadWithOptions(LoadOptions{})
+	require.NoError(t, err)
+	assert.Equal(t, "NFUSE1.payload.signature", cfg.LicenseKey)
+
+	_ = os.Unsetenv("NOTIFUSE_LICENSE_KEY")
+	cfg, err = LoadWithOptions(LoadOptions{})
+	require.NoError(t, err)
+	assert.Equal(t, "", cfg.LicenseKey, "unset means no key, not a stale one")
+}

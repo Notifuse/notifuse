@@ -242,21 +242,22 @@ func TestDemoAutomationTemplates_CreateContinuesAfterFailure(t *testing.T) {
 			mockAuth,
 			logger.NewLoggerWithLevel("disabled"),
 			"https://api.example.com",
+			fullyLicensedProvider(ctrl),
 		),
 	}
 
-	// The seed reports success even though a template was rejected — which is why the assertions
-	// above exist rather than a test that only checks the returned error.
-	require.NoError(t, svc.createAutomationTemplates(context.Background(), "ws1"))
-
+	// A rejected template is the seed's failure, not a footnote: the demo is seeded on top
+	// of these IDs, and a reset that reports success with one missing hands the operator a
+	// workspace whose automations point at nothing. The error names the template.
+	err := svc.createAutomationTemplates(context.Background(), "ws1")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), demoTemplateCartRecoveryA)
+	assert.ErrorContains(t, err, "boom")
 	assert.NotContains(t, created, demoTemplateCartRecoveryA)
-	for _, want := range []string{demoTemplateCartRecoveryB, demoTemplateOrderThankYou, demoTemplateWinbackOffer} {
-		assert.Contains(t, created, want, "%s was skipped after an earlier template failed", want)
-	}
 }
 
 // TestDemoAutomationTemplates_CreatesEveryTemplate asserts the happy path reaches the repository for
-// each definition, since createAutomationTemplates returns nil either way.
+// each definition.
 func TestDemoAutomationTemplates_CreatesEveryTemplate(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -302,6 +303,7 @@ func TestDemoAutomationTemplates_CreatesEveryTemplate(t *testing.T) {
 			mockAuth,
 			logger.NewLoggerWithLevel("disabled"),
 			"https://api.example.com",
+			fullyLicensedProvider(ctrl),
 		),
 	}
 
