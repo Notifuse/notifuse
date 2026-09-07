@@ -60,3 +60,26 @@ func TestGrantsFullPermissions_DerivedFromResourceList(t *testing.T) {
 		assert.True(t, grantsFullPermissions(permissions))
 	})
 }
+
+// An opt-in resource (domain.OptInPermissionResources) is invisible to the predicate in both
+// directions: a map that lacks it is still full access, and a map that carries it — read-only,
+// as the console writes it — is still full access. This is what keeps every pre-v41 stored map
+// "full" on upgrade, and what lets an owner grant audit-log read on an unlicensed deployment
+// without the RBAC gate answering 402.
+func TestGrantsFullPermissions_IgnoresOptInResources(t *testing.T) {
+	require.NotEmpty(t, domain.OptInPermissionResources)
+
+	without := domain.NewFullPermissions()
+	assert.True(t, grantsFullPermissions(without), "a map that predates the opt-in resource is full access")
+
+	with := domain.NewFullPermissions()
+	for _, resource := range domain.OptInPermissionResources {
+		with[resource] = domain.ResourcePermissions{Read: true, Write: false}
+	}
+	assert.True(t, grantsFullPermissions(with), "granting an opt-in resource does not make a set restricted")
+
+	// And the opposite still holds: dropping a real resource is restricted.
+	restricted := domain.NewFullPermissions()
+	restricted[domain.PermissionResourceContacts] = domain.ResourcePermissions{Read: true, Write: false}
+	assert.False(t, grantsFullPermissions(restricted))
+}

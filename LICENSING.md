@@ -24,7 +24,7 @@ available to third parties** — you may host Notifuse for other people, and you
 may charge them for it.
 
 The one thing the grant does not cover is using a **Licensed Feature** in
-production without a valid licence key. There are five, and they are listed in
+production without a valid licence key. There are six, and they are listed in
 the [LICENSE](LICENSE) file itself rather than on a web page, so that the scope
 of the licence is fixed by the version you downloaded and cannot be changed
 under you afterwards:
@@ -34,6 +34,8 @@ under you afterwards:
 3. Provisioning an Amazon SES tenant.
 4. Signing in through Single Sign-On (OpenID Connect).
 5. Creating or editing a multilingual variant of a template.
+6. Recording an audit log of administrative actions. Reading, exporting and
+   configuring the retention of what was recorded is never gated.
 
 Everything else — unlimited emails, unlimited contacts, unlimited team members,
 the whole automation engine, web analytics, the transactional API, every email

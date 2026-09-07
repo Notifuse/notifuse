@@ -414,6 +414,7 @@ func (s *SetupService) Initialize(ctx context.Context, config *SetupConfig) erro
 	// Store system settings
 	systemConfig := &SystemConfig{
 		IsInstalled:             true,
+		AuditLogsRetentionDays:  domain.DefaultAuditLogRetentionDays,
 		RootEmail:               finalConfig.RootEmail,
 		APIEndpoint:             finalConfig.APIEndpoint,
 		SMTPHost:                smtpHost,

@@ -7,6 +7,7 @@ import { faChevronRight } from '@fortawesome/free-solid-svg-icons'
 import { Trans, useLingui } from '@lingui/react/macro'
 import {
   ALL_PERMISSION_RESOURCES,
+  OPT_IN_PERMISSION_RESOURCES,
   createEmptyPermissions,
   grantUnenforcedPermissions,
   isPermissionEnforced,
@@ -131,12 +132,15 @@ export function PermissionsMatrix({ value, onChange, className, disabled = false
     web_analytics: t`Web Analytics`,
     segments: t`Segments`,
     webhook_subscriptions: t`Webhook Subscriptions`,
-    webhook_events: t`Webhook Events`
+    webhook_events: t`Webhook Events`,
+    audit_logs: t`Audit Logs`
   }
 
   // The canonical resource list drives the rows, never the keys of `value`: a resource the stored
   // map omits still gets a row, which is what makes it grantable instead of frozen at denied.
-  const rows: MatrixRow[] = ALL_PERMISSION_RESOURCES.map((resource) => {
+  // Opt-in resources come last: they are never part of full access, so a row of their own
+  // makes the grant a visible decision rather than something a full set implied.
+  const rows: MatrixRow[] = [...ALL_PERMISSION_RESOURCES, ...OPT_IN_PERMISSION_RESOURCES].map((resource) => {
     const granted = value?.[resource] ?? { read: false, write: false }
     return {
       key: resource,

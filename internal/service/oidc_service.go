@@ -262,7 +262,17 @@ func (s *OIDCService) BuildAuthURL(ctx context.Context) (*domain.OIDCAuthRequest
 
 // HandleCallback runs all ID-token checks then the identity state machine, mints a
 // session, stores the AuthResponse under a one-time code, and returns that code.
-func (s *OIDCService) HandleCallback(ctx context.Context, in domain.OIDCCallbackInput) (string, error) {
+func (s *OIDCService) HandleCallback(ctx context.Context, in domain.OIDCCallbackInput) (code string, retErr error) {
+	// The callback answers with a redirect whatever happened, so the audit row
+	// cannot read the outcome off the status: a failure is named here, and the
+	// actor is set once a session was minted.
+	audit := domain.AuditFromContext(ctx)
+	audit.SetAuthMethod(domain.AuditAuthSSO)
+	defer func() {
+		if retErr != nil {
+			audit.Fail("sso_error")
+		}
+	}()
 	ctx, span := s.tracer.StartServiceSpan(ctx, "OIDCService", "HandleCallback")
 	defer span.End()
 
@@ -368,6 +378,7 @@ func (s *OIDCService) HandleCallback(ctx context.Context, in domain.OIDCCallback
 	if err != nil {
 		return "", err
 	}
+	audit.SetActor(user, nil, false)
 	oneTimeCode, err := randToken(32)
 	if err != nil {
 		return "", fmt.Errorf("oidc one-time code gen: %w", err)
@@ -659,19 +670,27 @@ func (s *OIDCService) ExchangeCode(ctx context.Context, oneTimeCode string) (*do
 	// after it lapsed. The window is 60 seconds wide (oidcExchangeTTL) and costs one map
 	// lookup to close.
 	if !s.IsEnabled() {
+		domain.AuditFromContext(ctx).Fail("sso_disabled")
 		return nil, domain.ErrOIDCNotConfigured
 	}
 	if oneTimeCode == "" {
+		domain.AuditFromContext(ctx).Fail("sso_empty_code")
 		return nil, fmt.Errorf("oidc exchange: empty code")
 	}
 	v, ok := s.exchangeCache.GetAndDelete(oidcExchangeKeyPrefix + oneTimeCode)
 	if !ok {
 		s.tracer.AddAttribute(ctx, "error", "code_not_found_or_used")
+		domain.AuditFromContext(ctx).Fail("sso_code_invalid")
 		return nil, fmt.Errorf("oidc exchange: invalid or expired code")
 	}
 	authResp, ok := v.(*domain.AuthResponse)
 	if !ok {
 		return nil, fmt.Errorf("oidc exchange: corrupt cache entry")
+	}
+	if audit := domain.AuditFromContext(ctx); audit != nil {
+		user := authResp.User
+		audit.SetActor(&user, nil, false)
+		audit.SetAuthMethod(domain.AuditAuthSSO)
 	}
 	return authResp, nil
 }

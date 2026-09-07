@@ -133,6 +133,10 @@ func (s *SESDiscoveryService) EnableTenantIsolation(ctx context.Context, req dom
 	if err != nil {
 		return nil, err
 	}
+	if audit := domain.AuditFromContext(ctx); audit != nil {
+		audit.SetTarget(domain.AuditTargetIntegration, req.IntegrationID, integration.Name)
+		audit.AddMetadata("tenant_name", result.TenantName)
+	}
 
 	// Record the tenant only once a send through it would actually succeed. SES rejects any
 	// send whose configuration set is not associated with the tenant, so persisting the name

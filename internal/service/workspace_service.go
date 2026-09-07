@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"maps"
+	"sort"
 	"strings"
 	"time"
 
@@ -381,6 +382,11 @@ func (s *WorkspaceService) CreateWorkspace(ctx context.Context, id string, name 
 		// Don't fail workspace creation if task creation fails - it can be created later
 	}
 
+	if audit := domain.AuditFromContext(ctx); audit != nil {
+		audit.SetWorkspace(id)
+		audit.SetTarget(domain.AuditTargetWorkspace, id, name)
+	}
+
 	return workspace, nil
 }
 
@@ -433,6 +439,12 @@ func (s *WorkspaceService) UpdateWorkspace(ctx context.Context, id string, name 
 	// absent key and a deliberate blank arrive identical unless the decode said
 	// which was which. Restore the stored value for each setting the body never
 	// named, before anything reads settings.
+	// Snapshot for the audit row before anything is overwritten. The struct copy
+	// keeps the old values because the assignments below replace fields rather
+	// than mutating them in place.
+	auditBeforeName := existingWorkspace.Name
+	auditBeforeSettings := existingWorkspace.Settings
+
 	settings.PreserveOmitted(existingWorkspace.Settings)
 	preserveFileManagerSecret(&settings.FileManager, existingWorkspace.Settings.FileManager)
 
@@ -548,6 +560,18 @@ func (s *WorkspaceService) UpdateWorkspace(ctx context.Context, id string, name 
 	// Blog themes are now created by the frontend when enabling the blog
 	// No automatic theme creation in the backend
 
+	if audit := domain.AuditFromContext(ctx); audit != nil {
+		audit.SetTarget(domain.AuditTargetWorkspace, id, name)
+		changes := domain.AuditDiff(auditBeforeSettings, existingWorkspace.Settings)
+		if auditBeforeName != name {
+			if changes == nil {
+				changes = map[string]domain.AuditChange{}
+			}
+			changes["name"] = domain.AuditChange{Old: auditBeforeName, New: name}
+		}
+		audit.SetChanges(changes)
+	}
+
 	return existingWorkspace, nil
 }
 
@@ -589,6 +613,10 @@ func (s *WorkspaceService) DeleteWorkspace(ctx context.Context, id string) error
 		s.logger.WithField("workspace_id", id).WithField("error", err.Error()).Warn("Failed to delete tasks during workspace deletion")
 		// Continue with workspace deletion even if task deletion fails
 	}
+
+	// After the integrations loop: DeleteIntegration names its own target, and
+	// the row for workspaces.delete must name the workspace.
+	domain.AuditFromContext(ctx).SetTarget(domain.AuditTargetWorkspace, id, workspace.Name)
 
 	if err := s.repo.Delete(ctx, id); err != nil {
 		s.logger.WithField("workspace_id", id).WithField("error", err.Error()).Error("Failed to delete workspace")
@@ -662,6 +690,13 @@ func (s *WorkspaceService) AddUserToWorkspace(ctx context.Context, workspaceID s
 		return err
 	}
 
+	if audit := domain.AuditFromContext(ctx); audit != nil {
+		audit.SetTarget(domain.AuditTargetUser, userID, "")
+		audit.AddMetadata("role", role)
+		audit.AddMetadata("scope", auditPermissionScope(permissions))
+		audit.AddMetadata("resources", auditGrantedResources(permissions))
+	}
+
 	return nil
 }
 
@@ -691,6 +726,8 @@ func (s *WorkspaceService) RemoveUserFromWorkspace(ctx context.Context, workspac
 		s.logger.WithField("workspace_id", workspaceID).WithField("user_id", userID).WithField("error", err.Error()).Error("Failed to remove user from workspace")
 		return err
 	}
+
+	domain.AuditFromContext(ctx).SetTarget(domain.AuditTargetUser, userID, "")
 
 	return nil
 }
@@ -890,6 +927,12 @@ func (s *WorkspaceService) InviteMember(ctx context.Context, workspaceID, email 
 	}
 
 	// Generate a JWT token with the invitation details
+	if audit := domain.AuditFromContext(ctx); audit != nil {
+		audit.SetTarget(domain.AuditTargetInvitation, invitation.ID, email)
+		audit.AddMetadata("scope", auditPermissionScope(permissions))
+		audit.AddMetadata("resources", auditGrantedResources(permissions))
+	}
+
 	token := s.authService.GenerateInvitationToken(invitation)
 
 	// Send invitation email in production mode.
@@ -951,6 +994,7 @@ func (s *WorkspaceService) SetUserPermissions(ctx context.Context, workspaceID, 
 
 	// Update the user's permissions. SetPermissions is a bare assignment, so store a copy:
 	// a membership row must never share a map with the caller.
+	auditPrevious := maps.Clone(targetUserWorkspace.Permissions)
 	targetUserWorkspace.SetPermissions(maps.Clone(permissions))
 	targetUserWorkspace.UpdatedAt = time.Now().UTC()
 
@@ -978,6 +1022,14 @@ func (s *WorkspaceService) SetUserPermissions(ctx context.Context, workspaceID, 
 		if len(sessions) > 0 {
 			s.logger.WithField("target_user_id", userID).WithField("sessions_invalidated", len(sessions)).Info("Invalidated user sessions after permission change")
 		}
+	}
+
+	if audit := domain.AuditFromContext(ctx); audit != nil {
+		audit.SetTarget(domain.AuditTargetUser, userID, "")
+		audit.SetChanges(map[string]domain.AuditChange{
+			"permissions": {Old: auditPrevious, New: permissions},
+		})
+		audit.AddMetadata("scope", auditPermissionScope(permissions))
 	}
 
 	return nil
@@ -1013,6 +1065,7 @@ func (s *WorkspaceService) SetCustomFieldLabels(ctx context.Context, workspaceID
 		return err
 	}
 
+	auditPrevious := existingWorkspace.Settings.CustomFieldLabels
 	existingWorkspace.Settings.CustomFieldLabels = labels
 
 	// Canonical validation (covers non-console API consumers too)
@@ -1023,6 +1076,14 @@ func (s *WorkspaceService) SetCustomFieldLabels(ctx context.Context, workspaceID
 	if err := s.repo.Update(ctx, existingWorkspace); err != nil {
 		s.logger.WithField("workspace_id", workspaceID).WithField("error", err.Error()).Error("Failed to update custom field labels")
 		return err
+	}
+
+	if audit := domain.AuditFromContext(ctx); audit != nil {
+		audit.SetTarget(domain.AuditTargetWorkspace, workspaceID, existingWorkspace.Name)
+		audit.SetChanges(domain.AuditDiff(
+			map[string]any{"custom_field_labels": auditPrevious},
+			map[string]any{"custom_field_labels": labels},
+		))
 	}
 
 	return nil
@@ -1067,6 +1128,11 @@ func (s *WorkspaceService) SetBlogSettings(ctx context.Context, workspaceID stri
 	// A nil flag is a body that named no blog_enabled. Both of its values are
 	// meaningful, so writing the zero one here would read "say nothing" as "turn the
 	// blog off" — which is what the console's fallback exists to work around.
+	auditBefore := map[string]any{
+		"blog_enabled":  existingWorkspace.Settings.BlogEnabled,
+		"blog_settings": existingWorkspace.Settings.BlogSettings,
+	}
+
 	if enabled != nil {
 		existingWorkspace.Settings.BlogEnabled = *enabled
 	}
@@ -1089,6 +1155,14 @@ func (s *WorkspaceService) SetBlogSettings(ctx context.Context, workspaceID stri
 	if err := s.repo.Update(ctx, existingWorkspace); err != nil {
 		s.logger.WithField("workspace_id", workspaceID).WithField("error", err.Error()).Error("Failed to update blog settings")
 		return err
+	}
+
+	if audit := domain.AuditFromContext(ctx); audit != nil {
+		audit.SetTarget(domain.AuditTargetWorkspace, workspaceID, existingWorkspace.Name)
+		audit.SetChanges(domain.AuditDiff(auditBefore, map[string]any{
+			"blog_enabled":  existingWorkspace.Settings.BlogEnabled,
+			"blog_settings": existingWorkspace.Settings.BlogSettings,
+		}))
 	}
 
 	return nil
@@ -1134,6 +1208,10 @@ func (s *WorkspaceService) SetWebAnalyticsSettings(ctx context.Context, workspac
 	// identify() is now the opt-in and that decision is made in the customer's
 	// own code with the workspace secret, not in this panel.
 
+	if audit := domain.AuditFromContext(ctx); audit != nil {
+		audit.SetTarget(domain.AuditTargetWorkspace, workspaceID, existingWorkspace.Name)
+		audit.SetChanges(domain.AuditDiff(existingWorkspace.Settings.WebAnalytics, settings))
+	}
 	existingWorkspace.Settings.WebAnalytics = settings
 
 	if err := s.repo.Update(ctx, existingWorkspace); err != nil {
@@ -1141,6 +1219,66 @@ func (s *WorkspaceService) SetWebAnalyticsSettings(ctx context.Context, workspac
 		return err
 	}
 
+	return nil
+}
+
+// auditPermissionScope names a permission set the way the licence does: full
+// access or a restricted set.
+func auditPermissionScope(permissions domain.UserPermissions) string {
+	if grantsFullPermissions(permissions) {
+		return "full"
+	}
+	return "restricted"
+}
+
+// auditGrantedResources lists the resources a permission set grants at all,
+// sorted, for the audit row's metadata.
+func auditGrantedResources(permissions domain.UserPermissions) []string {
+	granted := make([]string, 0, len(permissions))
+	for resource, access := range permissions {
+		if access.Read || access.Write {
+			granted = append(granted, string(resource))
+		}
+	}
+	sort.Strings(granted)
+	return granted
+}
+
+// SetAuditLogSettings replaces the workspace's audit log retention. Owners
+// only — it is the one workspace setting that decides how long the record of
+// the owners' own actions is kept — and it preserves every other setting.
+// Never consults the licence: retention is a storage promise, and the page
+// works in every licence state.
+func (s *WorkspaceService) SetAuditLogSettings(ctx context.Context, workspaceID string, settings *domain.AuditLogSettings) error {
+	var userWorkspace *domain.UserWorkspace
+	var err error
+	ctx, _, userWorkspace, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	if err != nil {
+		return fmt.Errorf("failed to authenticate user: %w", err)
+	}
+	if userWorkspace.Role != "owner" {
+		return &domain.ErrUnauthorized{Message: "Only workspace owners can change the audit log retention"}
+	}
+	if err := settings.ValidateForSave(); err != nil {
+		return err
+	}
+
+	existingWorkspace, err := s.repo.GetByID(ctx, workspaceID)
+	if err != nil {
+		s.logger.WithField("workspace_id", workspaceID).WithField("error", err.Error()).Error("Failed to get existing workspace")
+		return err
+	}
+
+	if audit := domain.AuditFromContext(ctx); audit != nil {
+		audit.SetTarget(domain.AuditTargetWorkspace, workspaceID, existingWorkspace.Name)
+		audit.SetChanges(domain.AuditDiff(existingWorkspace.Settings.AuditLogs, settings))
+	}
+
+	existingWorkspace.Settings.AuditLogs = settings
+	if err := s.repo.Update(ctx, existingWorkspace); err != nil {
+		s.logger.WithField("workspace_id", workspaceID).WithField("error", err.Error()).Error("Failed to update audit log settings")
+		return err
+	}
 	return nil
 }
 
@@ -1414,6 +1552,18 @@ func (s *WorkspaceService) createAPIKey(ctx context.Context, workspaceID string,
 	// Generate the token using the auth service
 	token := s.authService.GenerateAPIAuthToken(apiUser)
 
+	// The token is never written to the log; the key's address and scope are.
+	if audit := domain.AuditFromContext(ctx); audit != nil {
+		audit.SetTarget(domain.AuditTargetAPIKey, apiUser.ID, apiEmail)
+		audit.AddMetadata("scope", auditPermissionScope(permissions))
+		audit.AddMetadata("resources", auditGrantedResources(permissions))
+		source := "customer"
+		if scope != scopeChosenByCustomer {
+			source = "zapier"
+		}
+		audit.AddMetadata("source", source)
+	}
+
 	return token, apiEmail, nil
 }
 
@@ -1534,6 +1684,13 @@ func (s *WorkspaceService) AcceptInvitation(ctx context.Context, invitationID, w
 
 	s.logger.WithField("user_id", user.ID).WithField("workspace_id", workspaceID).WithField("invitation_id", invitationID).Info("Successfully accepted invitation and created session")
 
+	// The invitee is the actor: this request carries no session yet.
+	if audit := domain.AuditFromContext(ctx); audit != nil {
+		audit.SetActor(user, nil, false)
+		audit.SetWorkspace(workspaceID)
+		audit.SetTarget(domain.AuditTargetInvitation, invitationID, email)
+	}
+
 	return &domain.AuthResponse{
 		Token:     token,
 		User:      *user,
@@ -1577,6 +1734,13 @@ func (s *WorkspaceService) DeleteInvitation(ctx context.Context, invitationID st
 	}
 
 	s.logger.WithField("invitation_id", invitationID).WithField("email", invitation.Email).Info("Successfully deleted invitation")
+	if audit := domain.AuditFromContext(ctx); audit != nil {
+		// Authenticated via context rather than the workspace, so nothing upstream
+		// named the workspace.
+		audit.SetWorkspace(invitation.WorkspaceID)
+		audit.SetTarget(domain.AuditTargetInvitation, invitationID, invitation.Email)
+	}
+
 	return nil
 }
 
@@ -1625,6 +1789,17 @@ func (s *WorkspaceService) RemoveMember(ctx context.Context, workspaceID string,
 			return err
 		}
 		s.logger.WithField("user_id", userIDToRemove).Info("API key user deleted successfully")
+	}
+
+	if audit := domain.AuditFromContext(ctx); audit != nil {
+		targetType := domain.AuditTargetUser
+		memberType := "user"
+		if userDetails.Type == domain.UserTypeAPIKey {
+			targetType = domain.AuditTargetAPIKey
+			memberType = "api_key"
+		}
+		audit.SetTarget(targetType, userIDToRemove, userDetails.Email)
+		audit.AddMetadata("member_type", memberType)
 	}
 
 	return nil
@@ -1751,6 +1926,14 @@ func (s *WorkspaceService) CreateIntegration(ctx context.Context, req domain.Cre
 		}
 	}
 
+	if audit := domain.AuditFromContext(ctx); audit != nil {
+		audit.SetTarget(domain.AuditTargetIntegration, integrationID, req.Name)
+		audit.AddMetadata("type", string(req.Type))
+		if req.Provider.Kind != "" {
+			audit.AddMetadata("provider", string(req.Provider.Kind))
+		}
+	}
+
 	return integrationID, nil
 }
 
@@ -1866,6 +2049,12 @@ func (s *WorkspaceService) ConnectZapier(ctx context.Context, workspaceID string
 		}
 
 		return "", "", "", err
+	}
+
+	if audit := domain.AuditFromContext(ctx); audit != nil {
+		audit.SetTarget(domain.AuditTargetIntegration, integrationID, label)
+		audit.AddMetadata("type", "zapier")
+		audit.AddMetadata("api_key_email", email)
 	}
 
 	return token, email, integrationID, nil
@@ -2072,6 +2261,9 @@ func (s *WorkspaceService) UpdateIntegration(ctx context.Context, req domain.Upd
 		s.logger.WithField("workspace_id", req.WorkspaceID).WithField("integration_id", req.IntegrationID).Error("Integration not found")
 		return fmt.Errorf("integration not found")
 	}
+	// Snapshot for the audit row: existingIntegration points into the workspace's
+	// slice, and the slot is overwritten below.
+	auditBefore := *existingIntegration
 
 	// Update the integration
 	updatedIntegration := domain.Integration{
@@ -2208,6 +2400,14 @@ func (s *WorkspaceService) UpdateIntegration(ctx context.Context, req domain.Upd
 	workspace.AddIntegration(updatedIntegration) // This will replace the existing one
 
 	// Save the updated workspace
+	if audit := domain.AuditFromContext(ctx); audit != nil {
+		audit.SetTarget(domain.AuditTargetIntegration, req.IntegrationID, req.Name)
+		audit.AddMetadata("type", string(existingIntegration.Type))
+		// Credentials inside the provider block are redacted by AuditDiff; the
+		// fact that they changed is kept.
+		audit.SetChanges(domain.AuditDiff(auditBefore, updatedIntegration))
+	}
+
 	if err := s.repo.Update(ctx, workspace); err != nil {
 		s.logger.WithField("workspace_id", req.WorkspaceID).WithField("integration_id", req.IntegrationID).WithField("error", err.Error()).Error("Failed to update workspace with updated integration")
 		return err
@@ -2245,6 +2445,11 @@ func (s *WorkspaceService) DeleteIntegration(ctx context.Context, workspaceID, i
 	}
 
 	// Handle type-specific cleanup before removing the integration
+	if audit := domain.AuditFromContext(ctx); audit != nil {
+		audit.SetTarget(domain.AuditTargetIntegration, integrationID, integration.Name)
+		audit.AddMetadata("type", string(integration.Type))
+	}
+
 	switch integration.Type {
 	case domain.IntegrationTypeEmail:
 		// Tear down the provider-side resources this integration owns (except SMTP, which has

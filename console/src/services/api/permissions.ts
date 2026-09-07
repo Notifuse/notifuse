@@ -31,7 +31,8 @@ export type PermissionResource =
   | "web_analytics"
   | "segments"
   | "webhook_subscriptions"
-  | "webhook_events";
+  | "webhook_events"
+  | "audit_logs";
 
 // Mirrors domain.AllPermissionResources, in the same order. Anything that renders or builds a
 // permission set iterates this rather than the keys of a stored map, which may be partial.
@@ -58,6 +59,12 @@ export const ALL_PERMISSION_RESOURCES: PermissionResource[] = [
   "workspace",
 ];
 
+// Mirrors domain.OptInPermissionResources: resources a member holds only when an owner grants
+// them on purpose. Deliberately absent from ALL_PERMISSION_RESOURCES, which is what "full
+// access" means — createFullPermissions builds it, the Full Access tag counts it — so that an
+// existing full-access member is neither widened nor narrowed by a resource added later.
+export const OPT_IN_PERMISSION_RESOURCES: PermissionResource[] = ["audit_logs"];
+
 export type PermissionType = "read" | "write";
 
 /**
@@ -74,6 +81,7 @@ const UNENFORCED_PERMISSIONS: ReadonlyArray<
   ["llm", "read"],
   ["message_history", "write"],
   ["webhook_events", "write"],
+  ["audit_logs", "write"],
 ];
 
 export function isPermissionEnforced(
@@ -847,6 +855,31 @@ export const PERMISSION_DESCRIPTORS: Record<
       ],
     },
     caveat: msg`Write decides where the workspace's event stream goes: create and update both accept any URL, and the delivery log that read opens carries the event payloads themselves. Two neighbours on the same routes answer to something else — /api/webhookSubscriptions.regenerateSecret is owner-only whatever this switch says, and /api/webhookSubscriptions.eventTypes is a fixed catalogue that checks nothing at all. Reading a subscription hides its signing secret from everyone but an owner.`,
+  },
+
+  audit_logs: {
+    scope: msg`The workspace's audit log: who changed what, from where, and whether it was allowed. Owners always read it; a member or an API key reads it only with this grant.`,
+    read: {
+      endpoints: [
+        {
+          endpoint: "/api/auditLogs.list",
+          action: msg`Browse and filter the audit log, including every member's email address and IP address`,
+        },
+        {
+          endpoint: "/api/auditLogs.get",
+          action: msg`Open one audit entry with its before/after changes`,
+        },
+        {
+          endpoint: "/api/auditLogs.export",
+          action: msg`Export the audit log as CSV or NDJSON`,
+        },
+      ],
+    },
+    write: {
+      endpoints: [],
+      note: msg`There is nothing to write: the log is append-only, and the retention setting is owner-only. The switch is granted and locked for the same reason as the other unenforced verbs.`,
+    },
+    caveat: msg`The log names every member's email and IP address and records refused actions. Grant read to the people who need to answer "who did this", not to everyone.`,
   },
 
   webhook_events: {

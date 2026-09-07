@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/Notifuse/notifuse/internal/http/middleware"
 	"io"
 	"net/http"
 	"net/url"
@@ -650,23 +651,5 @@ func parseInt(val string) (int, error) {
 // guessable secret. Where a limit here is the sole control, the secret itself needs
 // enough entropy and a short enough life to survive without it.
 func getClientIP(r *http.Request) string {
-	// Check X-Forwarded-For header (if behind proxy)
-	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
-		// Take first IP in the list
-		ips := strings.Split(xff, ",")
-		return strings.TrimSpace(ips[0])
-	}
-
-	// Check X-Real-IP header
-	if xri := r.Header.Get("X-Real-IP"); xri != "" {
-		return xri
-	}
-
-	// Fall back to RemoteAddr
-	ip := r.RemoteAddr
-	// Remove port if present
-	if colon := strings.LastIndex(ip, ":"); colon != -1 {
-		ip = ip[:colon]
-	}
-	return ip
+	return middleware.ClientIP(r)
 }

@@ -176,6 +176,13 @@ func (s *AuthService) AuthenticateUserForWorkspace(ctx context.Context, workspac
 		return ctx, nil, nil, err
 	}
 
+	// Name the actor and the workspace for the audit log; a no-op outside an
+	// audited request. Root is recorded as such whatever the membership row says.
+	if record := domain.AuditFromContext(ctx); record != nil {
+		record.SetActor(user, userWorkspace, s.isRootEmail != nil && s.isRootEmail(user.Email))
+		record.SetWorkspace(workspaceID)
+	}
+
 	// Store user and user workspace in context for future calls - return the new context to the caller
 	newCtx := context.WithValue(ctx, domain.WorkspaceUserKey(workspaceID), user)
 	newCtx = context.WithValue(newCtx, domain.UserWorkspaceKey, userWorkspace)

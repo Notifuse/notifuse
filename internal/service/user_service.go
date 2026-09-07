@@ -83,6 +83,7 @@ func (s *UserService) SignIn(ctx context.Context, input domain.SignInInput) (str
 		s.logger.WithField("email", input.Email).Warn("Sign-in rate limit exceeded")
 		s.tracer.AddAttribute(ctx, "error", "rate_limit_exceeded")
 		s.tracer.MarkSpanError(ctx, fmt.Errorf("rate limit exceeded"))
+		domain.AuditFromContext(ctx).Fail("rate_limited")
 		return "", fmt.Errorf("too many sign-in attempts, please try again in a few minutes")
 	}
 
@@ -94,6 +95,8 @@ func (s *UserService) SignIn(ctx context.Context, input domain.SignInInput) (str
 			s.logger.WithField("email", input.Email).Error("User does not exist")
 			s.tracer.AddAttribute(ctx, "error", "user_not_found")
 			s.tracer.MarkSpanError(ctx, err)
+			// The response says nothing (no enumeration); the audit log says why.
+			domain.AuditFromContext(ctx).Fail("unknown_email")
 			return "", &domain.ErrUserNotFound{Message: "user does not exist"}
 		}
 
@@ -112,11 +115,19 @@ func (s *UserService) SignIn(ctx context.Context, input domain.SignInInput) (str
 		s.logger.WithField("email", input.Email).Warn("Sign-in refused for an API key identity")
 		s.tracer.AddAttribute(ctx, "error", "api_key_signin_refused")
 		s.tracer.MarkSpanError(ctx, notFound)
+		domain.AuditFromContext(ctx).Fail("api_key_identity")
 		return "", notFound
 	}
 
 	s.tracer.AddAttribute(ctx, "user.id", user.ID)
 	s.tracer.AddAttribute(ctx, "action", "use_existing_user")
+
+	// user.signin is the "code requested" half of a magic-code login.
+	if audit := domain.AuditFromContext(ctx); audit != nil {
+		audit.SetActor(user, nil, false)
+		audit.SetAuthMethod(domain.AuditAuthMagicCode)
+		audit.AddMetadata("stage", "code_sent")
+	}
 
 	// Generate magic code
 	plainCode := s.generateMagicCode()
@@ -173,6 +184,7 @@ func (s *UserService) VerifyCode(ctx context.Context, input domain.VerifyCodeInp
 		s.logger.WithField("email", input.Email).Warn("Verify code rate limit exceeded")
 		s.tracer.AddAttribute(ctx, "error", "rate_limit_exceeded")
 		s.tracer.MarkSpanError(ctx, fmt.Errorf("rate limit exceeded"))
+		domain.AuditFromContext(ctx).Fail("rate_limited")
 		return nil, fmt.Errorf("too many verification attempts, please try again in a few minutes")
 	}
 
@@ -181,6 +193,7 @@ func (s *UserService) VerifyCode(ctx context.Context, input domain.VerifyCodeInp
 	if err != nil {
 		s.logger.WithField("email", input.Email).WithField("error", err.Error()).Error("Failed to get user by email for code verification")
 		s.tracer.MarkSpanError(ctx, err)
+		domain.AuditFromContext(ctx).Fail("unknown_email")
 		return nil, err
 	}
 
@@ -214,6 +227,7 @@ func (s *UserService) VerifyCode(ctx context.Context, input domain.VerifyCodeInp
 		s.logger.WithField("user_id", user.ID).WithField("email", input.Email).Error("Invalid magic code")
 		err := fmt.Errorf("invalid magic code")
 		s.tracer.MarkSpanError(ctx, err)
+		domain.AuditFromContext(ctx).Fail("invalid_code")
 		return nil, err
 	}
 
@@ -224,6 +238,7 @@ func (s *UserService) VerifyCode(ctx context.Context, input domain.VerifyCodeInp
 		s.logger.WithField("user_id", user.ID).WithField("email", input.Email).WithField("session_id", matchingSession.ID).Error("Magic code expired")
 		err := fmt.Errorf("magic code expired")
 		s.tracer.MarkSpanError(ctx, err)
+		domain.AuditFromContext(ctx).Fail("expired_code")
 		return nil, err
 	}
 
@@ -247,6 +262,12 @@ func (s *UserService) VerifyCode(ctx context.Context, input domain.VerifyCodeInp
 		s.rateLimiter.Reset("verify", input.Email)
 	}
 
+	if audit := domain.AuditFromContext(ctx); audit != nil {
+		audit.SetActor(user, nil, false)
+		audit.SetAuthMethod(domain.AuditAuthMagicCode)
+		audit.AddMetadata("session_id", matchingSession.ID)
+	}
+
 	return &domain.AuthResponse{
 		Token:     token,
 		User:      *user,
@@ -267,6 +288,7 @@ func (s *UserService) RootSignin(ctx context.Context, input domain.RootSigninInp
 		s.logger.WithField("email", input.Email).Warn("Root sign-in rate limit exceeded")
 		s.tracer.AddAttribute(ctx, "error", "rate_limit_exceeded")
 		s.tracer.MarkSpanError(ctx, fmt.Errorf("rate limit exceeded"))
+		domain.AuditFromContext(ctx).Fail("rate_limited")
 		return nil, fmt.Errorf("too many sign-in attempts, please try again in a few minutes")
 	}
 
@@ -274,6 +296,7 @@ func (s *UserService) RootSignin(ctx context.Context, input domain.RootSigninInp
 	if !config.IsRootEmail(s.rootEmail, input.Email) {
 		s.logger.WithField("email", input.Email).Warn("Root signin attempted with non-root email")
 		s.tracer.AddAttribute(ctx, "error", "invalid_credentials")
+		domain.AuditFromContext(ctx).Fail("not_root")
 		return nil, fmt.Errorf("unauthorized: invalid credentials")
 	}
 
@@ -282,6 +305,7 @@ func (s *UserService) RootSignin(ctx context.Context, input domain.RootSigninInp
 	if input.Timestamp < now-60 || input.Timestamp > now+60 {
 		s.logger.WithField("email", input.Email).WithField("timestamp", input.Timestamp).Warn("Root signin timestamp out of range")
 		s.tracer.AddAttribute(ctx, "error", "invalid_timestamp")
+		domain.AuditFromContext(ctx).Fail("stale_timestamp")
 		return nil, fmt.Errorf("unauthorized: invalid credentials")
 	}
 
@@ -291,6 +315,7 @@ func (s *UserService) RootSignin(ctx context.Context, input domain.RootSigninInp
 	if !hmac.Equal([]byte(input.Signature), []byte(expectedSig)) {
 		s.logger.WithField("email", input.Email).Warn("Root signin invalid signature")
 		s.tracer.AddAttribute(ctx, "error", "invalid_signature")
+		domain.AuditFromContext(ctx).Fail("bad_signature")
 		return nil, fmt.Errorf("unauthorized: invalid credentials")
 	}
 
@@ -299,6 +324,7 @@ func (s *UserService) RootSignin(ctx context.Context, input domain.RootSigninInp
 	if err != nil {
 		s.logger.WithField("email", input.Email).WithField("error", err.Error()).Error("Root signin user not found")
 		s.tracer.MarkSpanError(ctx, err)
+		domain.AuditFromContext(ctx).Fail("unknown_email")
 		return nil, fmt.Errorf("unauthorized: invalid credentials")
 	}
 
@@ -332,6 +358,12 @@ func (s *UserService) RootSignin(ctx context.Context, input domain.RootSigninInp
 	}
 
 	s.logger.WithField("user_id", user.ID).WithField("email", user.Email).Info("Root user signed in via HMAC")
+
+	if audit := domain.AuditFromContext(ctx); audit != nil {
+		audit.SetActor(user, nil, true)
+		audit.SetAuthMethod(domain.AuditAuthRootPassword)
+		audit.AddMetadata("session_id", session.ID)
+	}
 
 	return &domain.AuthResponse{
 		Token:     token,

@@ -6004,3 +6004,42 @@ func TestSetBlogSettingsRequest_BlogSettingsPresence(t *testing.T) {
 		assert.Nil(t, settings)
 	})
 }
+
+func TestOptInPermissionResources(t *testing.T) {
+	t.Run("is exactly the audit log", func(t *testing.T) {
+		assert.Equal(t, []PermissionResource{"audit_logs"}, OptInPermissionResources)
+	})
+
+	t.Run("is not part of full access", func(t *testing.T) {
+		// AllPermissionResources defines "full access" for grantsFullPermissions,
+		// the console tag and telemetry; every stored map predates any resource
+		// added to it. An opt-in resource must never land there.
+		for _, resource := range OptInPermissionResources {
+			assert.NotContains(t, AllPermissionResources, resource)
+			_, granted := NewFullPermissions()[resource]
+			assert.False(t, granted, "NewFullPermissions must not imply %s", resource)
+		}
+	})
+
+	t.Run("is a known key for Validate", func(t *testing.T) {
+		permissions := UserPermissions{
+			PermissionResourceAuditLogs: {Read: true, Write: false},
+		}
+		assert.NoError(t, permissions.Validate())
+	})
+
+	t.Run("is denied unless granted, and owners bypass", func(t *testing.T) {
+		fullMember := &UserWorkspace{Role: "member", Permissions: NewFullPermissions()}
+		assert.False(t, fullMember.HasPermission(PermissionResourceAuditLogs, PermissionTypeRead),
+			"a full-access member does not read the audit log without an explicit grant")
+
+		granted := NewFullPermissions()
+		granted[PermissionResourceAuditLogs] = ResourcePermissions{Read: true}
+		grantedMember := &UserWorkspace{Role: "member", Permissions: granted}
+		assert.True(t, grantedMember.HasPermission(PermissionResourceAuditLogs, PermissionTypeRead))
+		assert.False(t, grantedMember.HasPermission(PermissionResourceAuditLogs, PermissionTypeWrite))
+
+		owner := &UserWorkspace{Role: "owner"}
+		assert.True(t, owner.HasPermission(PermissionResourceAuditLogs, PermissionTypeRead))
+	})
+}

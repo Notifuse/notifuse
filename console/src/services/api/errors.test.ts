@@ -23,6 +23,13 @@ describe('permissionDenial', () => {
   // The regression that matters: ErrWorkspaceLimitReached and ErrTeamMemberLimitReached also
   // answer 403, and two call sites string-match their message to raise an upgrade prompt.
   // Detecting a denial by status would relabel a billing problem as a permissions problem.
+  it('recognises the opt-in audit_logs resource', () => {
+    expect(permissionDenialFromBody({ error: 'no', resource: 'audit_logs', permission: 'read' })).toEqual({
+      resource: 'audit_logs',
+      permission: 'read'
+    })
+  })
+
   it('does not read a quota 403 as a denial', () => {
     const err = new ApiError('team member limit reached', 403, {
       error: 'team member limit reached'

@@ -2,6 +2,7 @@ package service_test
 
 import (
 	"context"
+	"github.com/Notifuse/notifuse/internal/domain"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -467,4 +468,40 @@ func TestSetupService_GetEnvOverrides(t *testing.T) {
 			}
 		})
 	}
+}
+
+// A fresh install must start on the documented retention, not on the zero
+// value: SetSystemConfig persists the field unconditionally, and a stored "0"
+// reads back as "keep forever".
+func TestSetupService_Initialize_StoresTheDefaultAuditRetention(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	t.Cleanup(ctrl.Finish)
+	stored := make(map[string]string)
+	settingRepo := mocks.NewMockSettingRepository(ctrl)
+	settingRepo.EXPECT().Set(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().
+		DoAndReturn(func(_ context.Context, key, value string) error {
+			stored[key] = value
+			return nil
+		})
+	userRepo := mocks.NewMockUserRepository(ctrl)
+	userRepo.EXPECT().CreateUser(gomock.Any(), gomock.Any()).Return(nil)
+	svc := service.NewSetupService(
+		service.NewSettingService(settingRepo),
+		&service.UserService{},
+		userRepo,
+		&mockLogger{},
+		"test-secret-key-32-bytes-long!!",
+		nil,
+		&service.EnvironmentConfig{},
+	)
+
+	err := svc.Initialize(context.Background(), &service.SetupConfig{
+		RootEmail:     "admin@example.com",
+		APIEndpoint:   "https://app.example.com",
+		SMTPHost:      "smtp.example.com",
+		SMTPPort:      587,
+		SMTPFromEmail: "noreply@example.com",
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "365", stored[domain.AuditLogsRetentionSettingKey])
 }

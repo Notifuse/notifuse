@@ -29,6 +29,14 @@ func InitializeDatabase(db *sql.DB, rootEmails []string) error {
 		}
 	}
 
+	// Audit log: system database only, shared verbatim with the v41 migration
+	// so a fresh install and an upgraded one run identical DDL.
+	for _, query := range schema.AuditLogsTableDefinitions() {
+		if _, err := db.Exec(query); err != nil {
+			return fmt.Errorf("failed to create audit_logs: %w", err)
+		}
+	}
+
 	// Create each root user if it doesn't already exist
 	for _, rootEmail := range rootEmails {
 		if rootEmail == "" {

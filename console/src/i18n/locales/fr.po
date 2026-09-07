@@ -86,6 +86,11 @@ msgstr "{0, plural, one {# contact} other {# contacts}}"
 msgid "{0, plural, one {Exported # row} other {Exported # rows}}"
 msgstr "{0, plural, one {# ligne exportée} other {# lignes exportées}}"
 
+#. placeholder {0}: filters.actions.length
+#: src/components/settings/audit_logs/AuditFilterBuilder.tsx:118
+msgid "{0} actions"
+msgstr "{0} actions"
+
 #: src/components/contacts/BulkActionProgressModal.tsx:78
 #~ msgid "{0} contact(s)"
 #~ msgstr ""
@@ -151,6 +156,11 @@ msgstr "{0} emails livrés avec succès (masqués du graphique)"
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:274
 msgid "{0} in {1}"
 msgstr "{0} dans {1}"
+
+#. placeholder {0}: formatAuditDate(value, timezone)
+#: src/components/settings/audit_logs/AuditLogTable.tsx:176
+msgid "{0} in {timezone}"
+msgstr "{0} à {timezone}"
 
 #: src/components/settings/WebAnalyticsSettings.tsx:180
 #~ msgid "{0} months"
@@ -588,7 +598,7 @@ msgstr "Un envoi précédent pour \"{0}\" a été trouvé ({1}). Voulez-vous rep
 msgid "A segment with ID \"{id}\" already exists"
 msgstr "Un segment avec l'ID « {id} » existe déjà"
 
-#: src/services/api/permissions.ts:629
+#: src/services/api/permissions.ts:637
 msgid "A send-only key really is send-only, and this is new in 39.0: /api/transactional.send still creates the recipient contact, but without Contacts write it stores nothing beyond the email address, and without Contacts read it refuses cc and bcc outright — the subject line is rendered against each recipient's whole record. The SMTP bridge is a second front door to the same switch, so this is also exactly what the SMTP username can do. Note that the write verb sends real mail from three separate endpoints, including one that only claims to \"test\" a provider."
 msgstr "Une clé en envoi seul est vraiment en envoi seul, et c'est nouveau en 39.0 : /api/transactional.send crée toujours le contact destinataire, mais sans l'écriture Contacts il n'enregistre rien de plus que l'adresse email, et sans la lecture Contacts il refuse purement et simplement les cc et bcc — l'objet du message est rendu à partir de la fiche complète de chaque destinataire. Le bridge SMTP est une seconde porte d'entrée vers le même interrupteur : c'est donc aussi exactement ce que peut faire le nom d'utilisateur SMTP. Notez que le verbe d'écriture envoie de vrais emails depuis trois endpoints distincts, dont un qui prétend seulement « tester » un fournisseur."
 
@@ -633,6 +643,8 @@ msgid "Access Key"
 msgstr "Clé d accès"
 
 #: src/components/contacts/BulkUpdateDrawer.tsx:589
+#: src/components/settings/audit_logs/AuditFilterBuilder.tsx:100
+#: src/components/settings/audit_logs/AuditLogTable.tsx:209
 #: src/components/web_analytics/filters/TestFilterModal.tsx:183
 msgid "Action"
 msgstr "Action"
@@ -666,7 +678,7 @@ msgstr "Activer l automation ?"
 msgid "Active"
 msgstr "Actif"
 
-#: src/components/contacts/ExportContactsModal.tsx:330
+#: src/components/contacts/ExportContactsModal.tsx:332
 msgid "Active filters"
 msgstr "Filtres actifs"
 
@@ -689,6 +701,15 @@ msgstr "Abonné actif"
 #: src/components/segment/table_tag.tsx:30
 msgid "Activity"
 msgstr "Activité"
+
+#: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:117
+#: src/components/settings/audit_logs/AuditLogTable.tsx:190
+msgid "Actor"
+msgstr "Acteur"
+
+#: src/components/settings/audit_logs/AuditFilterBuilder.tsx:102
+msgid "Actor email"
+msgstr "Email de l'acteur"
 
 #: src/components/blog/AuthorsTable.tsx:138
 #: src/components/broadcasts/HeadersEditor.tsx:54
@@ -718,7 +739,7 @@ msgstr "Ajouter une légende..."
 msgid "Add a filter"
 msgstr "Ajouter un filtre"
 
-#: src/services/api/permissions.ts:768
+#: src/services/api/permissions.ts:776
 msgid "Add an annotation to the analytics timeline"
 msgstr "Ajouter une annotation à la chronologie de l'analyse web"
 
@@ -1081,7 +1102,7 @@ msgstr "Autoriser la réception d emails pour déclencher des notifications tran
 msgid "Allowed domains"
 msgstr "Domaines autorisés"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:659
+#: src/components/settings/SystemSettingsDrawer.tsx:664
 #: src/pages/SetupWizard.tsx:761
 msgid "Allowed email domains"
 msgstr "Domaines email autorisés"
@@ -1132,7 +1153,7 @@ msgstr "Parmi les combinaisons comptant au moins {0} sessions."
 msgid "An address that is not a contact yet becomes one, carrying the country, language and timezone the visit reported; an existing contact is never modified. Visitors arriving from a tracked email link are identified automatically, with no code."
 msgstr "Une adresse qui n'est pas encore un contact en devient un, avec le pays, la langue et le fuseau horaire signalés par la visite ; un contact existant n'est jamais modifié. Les visiteurs arrivant depuis un lien d'email suivi sont identifiés automatiquement, sans aucun code."
 
-#: src/components/contacts/ExportContactsModal.tsx:283
+#: src/components/contacts/ExportContactsModal.tsx:285
 msgid "An error occurred during export"
 msgstr "Une erreur est survenue pendant l exportation"
 
@@ -1184,7 +1205,7 @@ msgstr "Annotation mise à jour"
 msgid "Annotations"
 msgstr "Annotations"
 
-#: src/services/api/permissions.ts:796
+#: src/services/api/permissions.ts:804
 msgid "Annotations have no permission of their own: they deliberately answer to this switch, so a Web Analytics grant is also the right to write on the shared timeline everyone reads. Write reaches workspace configuration too — /api/workspaces.setWebAnalyticsSettings answers to Web Analytics write rather than Workspace write, including the email-link identification setting that ties recipients to their browsing. The public /track collector is governed by nothing at all: it accepts data without any authentication, and no grant here changes that."
 msgstr "Les annotations n'ont pas de permission propre : elles dépendent délibérément de cet interrupteur, si bien qu'accorder Analyse web donne aussi le droit d'écrire sur la chronologie partagée que tout le monde lit. L'écriture atteint également la configuration de l'espace de travail — /api/workspaces.setWebAnalyticsSettings dépend de l'écriture Analyse web et non de l'écriture Espace de travail, y compris le paramètre d'identification par lien email qui rattache les destinataires à leur navigation. Le collecteur public /track n'est régi par rien du tout : il accepte les données sans aucune authentification, et aucune permission accordée ici n'y change quoi que ce soit."
 
@@ -1226,7 +1247,7 @@ msgstr "Commande API"
 
 #: src/components/settings/Integrations.tsx:2095
 #: src/components/settings/Integrations.tsx:2480
-#: src/components/settings/SystemSettingsDrawer.tsx:278
+#: src/components/settings/SystemSettingsDrawer.tsx:283
 #: src/pages/SetupWizard.tsx:379
 msgid "API Endpoint"
 msgstr "Point d accès API"
@@ -1299,7 +1320,12 @@ msgstr "Jeton API"
 msgid "API URL"
 msgstr "URL de l'API"
 
+#: src/components/settings/SystemSettingsDrawer.tsx:721
+msgid "Applies to every workspace that has not set its own retention, and to deployment-level entries such as sign-ins. 0 keeps every entry forever."
+msgstr "S'applique à chaque workspace qui n'a pas défini sa propre rétention, et aux entrées au niveau du déploiement comme les connexions. 0 conserve chaque entrée pour toujours."
+
 #: src/components/messages/MessageHistoryTab.tsx:535
+#: src/components/settings/audit_logs/AuditFilterBuilder.tsx:244
 #: src/components/web_analytics/explore/MinSessionsInput.tsx:47
 #: src/components/web_analytics/toolbar.tsx:118
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:307
@@ -1459,7 +1485,7 @@ msgstr "Au moins un domaine est requis lorsque la création automatique est acti
 msgid "At least one operation is required"
 msgstr "Au moins une opération est requise"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:83
+#: src/components/settings/SystemSettingsDrawer.tsx:88
 msgid "At least one root email is required"
 msgstr "Au moins un email racine est requis"
 
@@ -1492,9 +1518,33 @@ msgstr "Règles d'attribution"
 msgid "Audience"
 msgstr "Audience"
 
+#: src/pages/LogsPage.tsx:70
+#~ msgid "Audit"
+#~ msgstr "Audit"
+
+#: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:77
+msgid "Audit entry"
+msgstr "Entrée d'audit"
+
+#: src/components/settings/SystemSettingsDrawer.tsx:715
+msgid "Audit log"
+msgstr "Journal d'audit"
+
+#: src/components/settings/audit_logs/AuditLogRetentionCard.tsx:70
+msgid "Audit log retention saved"
+msgstr "Rétention du journal d'audit enregistrée"
+
+#: src/components/settings/audit_logs/AuditLogsSettings.tsx:31
 #: src/components/settings/LicenseSettings.tsx:117
+#: src/components/settings/SettingsSidebar.tsx:150
+#: src/pages/LogsPage.tsx:78
 #: src/services/api/licenseErrors.ts:52
 msgid "Audit logs"
+msgstr "Journaux d'audit"
+
+#: src/components/settings/PermissionsMatrix.tsx:136
+#: src/services/api/errors.ts:77
+msgid "Audit Logs"
 msgstr "Journaux d'audit"
 
 #: src/components/license/LicenceGateNotice.tsx:56
@@ -1556,7 +1606,7 @@ msgstr "Auto"
 msgid "Auto-create accounts on first sign-in"
 msgstr "Créer automatiquement les comptes à la première connexion"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:649
+#: src/components/settings/SystemSettingsDrawer.tsx:654
 msgid "Auto-create users"
 msgstr "Création automatique des utilisateurs"
 
@@ -1600,7 +1650,7 @@ msgstr "Automation créée avec succès"
 msgid "Automation deleted successfully"
 msgstr "Automation supprimée avec succès"
 
-#: src/services/api/permissions.ts:633
+#: src/services/api/permissions.ts:641
 msgid "Automation flows — their triggers, nodes and per-contact execution history."
 msgstr "Les flux d'automation — leurs déclencheurs, leurs nœuds et l'historique d'exécution pour chaque contact."
 
@@ -1616,14 +1666,14 @@ msgstr "Automation mise à jour avec succès"
 msgid "Automation:"
 msgstr "Automation :"
 
-#: src/components/settings/PermissionsMatrix.tsx:129
+#: src/components/settings/PermissionsMatrix.tsx:130
 #: src/layouts/WorkspaceLayout.tsx:428
 #: src/pages/AutomationsPage.tsx:162
-#: src/services/api/errors.ts:68
+#: src/services/api/errors.ts:71
 msgid "Automations"
 msgstr "Automations"
 
-#: src/services/api/permissions.ts:682
+#: src/services/api/permissions.ts:690
 msgid "Automations write is an indirect contact read that Contacts read cannot restrain: a webhook node sends the complete contact record to any URL the automation names, and nothing checks permissions while an automation runs. The same nodes add contacts to and remove them from lists, and send email, so this switch changes list membership and sends mail with no Lists or Transactional grant at all. Automations read returns a webhook node's full configuration, including the bearer secret saved on it."
 msgstr "L'écriture Automations est une lecture indirecte des contacts que la lecture Contacts ne peut pas contenir : un nœud webhook envoie la fiche de contact complète à n'importe quelle URL désignée par l'automation, et rien ne vérifie les permissions pendant l'exécution d'une automation. Ces mêmes nœuds ajoutent des contacts à des listes et les en retirent, et envoient des emails : cet interrupteur modifie donc l'appartenance aux listes et envoie du courrier sans aucune permission Listes ni Transactionnel. La lecture Automations renvoie la configuration complète d'un nœud webhook, y compris le secret bearer qui y est enregistré."
 
@@ -1738,7 +1788,7 @@ msgstr "URL de base"
 msgid "Base URL (Optional)"
 msgstr "URL de base (optionnelle)"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:515
+#: src/components/settings/SystemSettingsDrawer.tsx:520
 msgid "Base64 encoded TLS certificate"
 msgstr "Certificat TLS encodé en Base64"
 
@@ -1746,7 +1796,7 @@ msgstr "Certificat TLS encodé en Base64"
 msgid "Base64 encoded TLS certificate. Run: cat fullchain.pem | base64 -w 0"
 msgstr "Certificat TLS encodé en Base64. Exécutez : cat fullchain.pem | base64 -w 0"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:530
+#: src/components/settings/SystemSettingsDrawer.tsx:535
 msgid "Base64 encoded TLS private key"
 msgstr "Clé privée TLS encodée en Base64"
 
@@ -1846,14 +1896,14 @@ msgstr "Blocs"
 #: src/components/settings/BlogSettings.tsx:218
 #: src/components/settings/BlogSettings.tsx:226
 #: src/components/settings/BlogSettings.tsx:259
-#: src/components/settings/PermissionsMatrix.tsx:128
-#: src/components/settings/SettingsSidebar.tsx:119
+#: src/components/settings/PermissionsMatrix.tsx:129
+#: src/components/settings/SettingsSidebar.tsx:121
 #: src/layouts/WorkspaceLayout.tsx:262
-#: src/services/api/errors.ts:67
+#: src/services/api/errors.ts:70
 msgid "Blog"
 msgstr "Blog"
 
-#: src/services/api/permissions.ts:410
+#: src/services/api/permissions.ts:418
 msgid "Blog categories, posts and themes, plus the workspace-level blog configuration."
 msgstr "Les catégories, articles et thèmes du blog, ainsi que la configuration du blog au niveau de l'espace de travail."
 
@@ -1877,7 +1927,7 @@ msgstr "Style du blog et paramètres SEO"
 msgid "Blog Title"
 msgstr "Titre du blog"
 
-#: src/services/api/permissions.ts:486
+#: src/services/api/permissions.ts:494
 msgid "Blog write publishes JavaScript on your own domain. A theme carries its own `scripts.js`, and /api/blogThemes.publish makes it live for every visitor of the blog's custom domain — so this switch is the right to run any script on your site, not just to edit content. It also reaches workspace configuration: /api/workspaces.setBlogSettings answers to Blog write rather than Workspace write, so whoever you hand the blog to can also switch the blog feature itself on or off."
 msgstr "L'écriture Blog publie du JavaScript sur votre propre domaine. Un thème embarque son propre `scripts.js`, et /api/blogThemes.publish le met en ligne pour chaque visiteur du domaine personnalisé du blog — cet interrupteur est donc le droit d'exécuter n'importe quel script sur votre site, et pas seulement de modifier du contenu. Il atteint aussi la configuration de l'espace de travail : /api/workspaces.setBlogSettings dépend de l'écriture Blog et non de l'écriture Espace de travail, si bien que la personne à qui vous confiez le blog peut aussi activer ou désactiver la fonctionnalité blog elle-même."
 
@@ -2043,11 +2093,11 @@ msgstr "Attributs du point de rupture"
 msgid "Breakpoint Width"
 msgstr "Largeur du point de rupture"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:470
+#: src/components/settings/SystemSettingsDrawer.tsx:475
 msgid "Bridge Domain"
 msgstr "Domaine du bridge"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:484
+#: src/components/settings/SystemSettingsDrawer.tsx:489
 msgid "Bridge Port"
 msgstr "Port du bridge"
 
@@ -2137,16 +2187,20 @@ msgid "Broadcast updated successfully"
 msgstr "Newsletter mise à jour avec succès"
 
 #: src/components/analytics/EmailMetricsChart.tsx:285
-#: src/components/settings/PermissionsMatrix.tsx:124
+#: src/components/settings/PermissionsMatrix.tsx:125
 #: src/layouts/WorkspaceLayout.tsx:402
 #: src/pages/BroadcastsPage.tsx:1604
-#: src/services/api/errors.ts:63
+#: src/services/api/errors.ts:66
 msgid "Broadcasts"
 msgstr "Newsletters"
 
-#: src/services/api/permissions.ts:580
+#: src/services/api/permissions.ts:588
 msgid "Broadcasts write sends. The same switch that lets someone draft a campaign lets them push it to the entire audience — through /api/broadcasts.schedule, and again through /api/tasks.trigger and /api/tasks.reset on the underlying send task. Note that Broadcasts read does NOT give delivery statistics: open/click/bounce numbers come from /api/messages.broadcastStats and siblings, which are gated on Message History read. It also does not grant the recipient list — that is Contacts read."
 msgstr "L'écriture Newsletters envoie. Le même interrupteur qui permet de rédiger une campagne permet de la pousser à toute l'audience — via /api/broadcasts.schedule, puis de nouveau via /api/tasks.trigger et /api/tasks.reset sur la tâche d'envoi sous-jacente. Notez que la lecture Newsletters ne donne PAS les statistiques de livraison : les chiffres d'ouverture, de clic et de rejet proviennent de /api/messages.broadcastStats et de ses endpoints voisins, qui dépendent de la lecture Historique des messages. Elle ne donne pas non plus la liste des destinataires — cela relève de la lecture Contacts."
+
+#: src/services/api/permissions.ts:866
+msgid "Browse and filter the audit log, including every member's email address and IP address"
+msgstr "Parcourir et filtrer le journal d'audit, y compris l'adresse email et l'adresse IP de chaque membre"
 
 #: src/components/email_builder/ui/FileSrc.tsx:30
 msgid "Browse Files"
@@ -2156,6 +2210,14 @@ msgstr "Parcourir les fichiers"
 #: src/components/email_builder/ui/BackgroundInput.tsx:284
 msgid "Browse Images"
 msgstr "Parcourir les images"
+
+#: src/components/settings/audit_logs/AuditLogsSettings.tsx:36
+msgid "Browse, filter and export the log under Logs → Audit logs."
+msgstr "Parcourez, filtrez et exportez le journal dans Logs → Journal d’audit."
+
+#: src/components/settings/audit_logs/AuditLogsSettings.tsx:32
+#~ msgid "Browse, filter and export the log under Logs → Audit."
+#~ msgstr "Parcourez, filtrez et exportez le journal dans Logs → Audit."
 
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:252
 #: src/components/web_analytics/tabs/DashboardTab.tsx:236
@@ -2183,11 +2245,11 @@ msgstr "En construction"
 msgid "Building segment"
 msgstr "Construction du segment"
 
-#: src/services/api/permissions.ts:203
+#: src/services/api/permissions.ts:211
 msgid "Bulk create contacts and overwrite every field of every contact in the payload"
 msgstr "Créer des contacts en masse et écraser tous les champs de chaque contact contenu dans la requête"
 
-#: src/services/api/permissions.ts:215
+#: src/services/api/permissions.ts:223
 msgid "Bulk record custom events against contacts"
 msgstr "Enregistrer en masse des événements personnalisés sur des contacts"
 
@@ -2207,7 +2269,7 @@ msgstr "Alignement du bouton"
 msgid "Button Attributes"
 msgstr "Attributs du bouton"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:621
+#: src/components/settings/SystemSettingsDrawer.tsx:626
 #: src/pages/SetupWizard.tsx:743
 msgid "Button Label"
 msgstr "Libellé du bouton"
@@ -2264,7 +2326,7 @@ msgstr "Campagnes"
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:812
 #: src/components/contacts/ContactUpsertDrawer.tsx:499
 #: src/components/contacts/DeleteContactModal.tsx:30
-#: src/components/contacts/ExportContactsModal.tsx:314
+#: src/components/contacts/ExportContactsModal.tsx:316
 #: src/components/contacts/InlineEditableField.tsx:291
 #: src/components/contacts/InlineEditableField.tsx:299
 #: src/components/email_builder/blocks/MjStyleBlock.tsx:155
@@ -2296,7 +2358,7 @@ msgstr "Campagnes"
 #: src/components/settings/Integrations.tsx:2822
 #: src/components/settings/Integrations.tsx:2869
 #: src/components/settings/Integrations.tsx:2906
-#: src/components/settings/SystemSettingsDrawer.tsx:171
+#: src/components/settings/SystemSettingsDrawer.tsx:176
 #: src/components/settings/WebhookCard.tsx:430
 #: src/components/settings/WebhookCard.tsx:450
 #: src/components/settings/WebhooksSettings.tsx:251
@@ -2326,11 +2388,11 @@ msgstr "Campagnes"
 msgid "Cancel"
 msgstr "Annuler"
 
-#: src/services/api/permissions.ts:547
+#: src/services/api/permissions.ts:555
 msgid "Cancel a broadcast"
 msgstr "Annuler une diffusion"
 
-#: src/services/api/permissions.ts:764
+#: src/services/api/permissions.ts:772
 msgid "Cancel a running backfill"
 msgstr "Annuler un recalcul historique en cours"
 
@@ -2393,6 +2455,7 @@ msgstr "Catégories"
 #: src/components/blog/PostsTable.tsx:236
 #: src/components/blog/ThemeEditorDrawer.tsx:428
 #: src/components/blog/ThemePresetPreviewDrawer.tsx:75
+#: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:105
 #: src/components/templates/CreateTemplateDrawer.tsx:851
 #: src/pages/TemplatesPage.tsx:231
 msgid "Category"
@@ -2443,31 +2506,31 @@ msgstr "Centre gauche"
 msgid "Center Right"
 msgstr "Centre droite"
 
-#: src/services/api/permissions.ts:343
+#: src/services/api/permissions.ts:351
 msgid "Change a contact's subscription status on a list (also needs Contacts write)"
 msgstr "Modifier le statut d'abonnement d'un contact à une liste (nécessite aussi l'écriture Contacts)"
 
-#: src/services/api/permissions.ts:219
+#: src/services/api/permissions.ts:227
 msgid "Change a contact's subscription status on a list (also needs Lists write)"
 msgstr "Modifier le statut d'abonnement d'un contact à une liste (nécessite aussi l'écriture Listes)"
 
-#: src/services/api/permissions.ts:334
+#: src/services/api/permissions.ts:342
 msgid "Change a list's settings, including its double opt-in and public flag"
 msgstr "Modifier les paramètres d'une liste, y compris son double opt-in et son indicateur public"
 
-#: src/services/api/permissions.ts:398
+#: src/services/api/permissions.ts:406
 msgid "Change a reusable template block, which changes every template that embeds it"
 msgstr "Modifier un bloc de modèle réutilisable, ce qui modifie tous les modèles qui l'intègrent"
 
-#: src/services/api/permissions.ts:272
+#: src/services/api/permissions.ts:280
 msgid "Change a segment's definition"
 msgstr "Modifier la définition d'un segment"
 
-#: src/services/api/permissions.ts:833
+#: src/services/api/permissions.ts:841
 msgid "Change a subscription, including where it posts and which events it carries"
 msgstr "Modifier un abonnement, y compris l'URL vers laquelle il poste et les événements qu'il transporte"
 
-#: src/services/api/permissions.ts:389
+#: src/services/api/permissions.ts:397
 msgid "Change a template's content, in any language"
 msgstr "Modifier le contenu d'un modèle, dans n'importe quelle langue"
 
@@ -2483,6 +2546,10 @@ msgstr "Changer le statut"
 #: src/components/contacts/ContactDetailsDrawer.tsx:1096
 msgid "Change Status for {0}"
 msgstr "Changer le statut pour {0}"
+
+#: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:162
+msgid "Changes"
+msgstr "Modifications"
 
 #: src/components/messages/MessageHistoryTab.tsx:215
 #: src/components/web_analytics/explore/BreakdownModal.tsx:63
@@ -2516,7 +2583,7 @@ msgstr "Canaux"
 msgid "Check"
 msgstr "Vérifier"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:700
+#: src/components/settings/SystemSettingsDrawer.tsx:705
 #: src/pages/SetupWizard.tsx:566
 msgid "Check for Updates"
 msgstr "Vérifier les mises à jour"
@@ -2551,12 +2618,14 @@ msgstr "Niveau ville (précision ~1 km)"
 #: src/components/email_builder/ui/ImportFontInput.tsx:169
 #: src/components/filters/Filter.tsx:193
 #: src/components/messages/MessageHistoryTab.tsx:540
+#: src/components/settings/audit_logs/AuditFilterBuilder.tsx:248
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:312
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:337
 msgid "Clear"
 msgstr "Effacer"
 
 #: src/components/messages/MessageHistoryTab.tsx:578
+#: src/components/settings/audit_logs/AuditFilterBuilder.tsx:268
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:328
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:353
 msgid "Clear All"
@@ -2646,7 +2715,7 @@ msgstr "clics"
 msgid "Clicks"
 msgstr "Clics"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:574
+#: src/components/settings/SystemSettingsDrawer.tsx:579
 #: src/pages/SetupWizard.tsx:723
 msgid "Client ID"
 msgstr "Client ID"
@@ -2656,7 +2725,7 @@ msgid "Client ID is required"
 msgstr "Le Client ID est requis"
 
 #: src/components/settings/Integrations.tsx:2035
-#: src/components/settings/SystemSettingsDrawer.tsx:584
+#: src/components/settings/SystemSettingsDrawer.tsx:589
 #: src/pages/SetupWizard.tsx:733
 msgid "Client Secret"
 msgstr "Client Secret"
@@ -2753,12 +2822,12 @@ msgstr "Liste, séparée par des virgules, des domaines email autorisés à cré
 msgid "Comma-separated values"
 msgstr "Valeurs séparées par des virgules"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:670
+#: src/components/settings/SystemSettingsDrawer.tsx:675
 msgid "Comma-separated. Only these domains may auto-create accounts."
 msgstr "Séparés par des virgules. Seuls ces domaines peuvent créer automatiquement des comptes."
 
 #: src/components/settings/Integrations.tsx:1884
-#: src/components/settings/SystemSettingsDrawer.tsx:342
+#: src/components/settings/SystemSettingsDrawer.tsx:347
 #: src/pages/SetupWizard.tsx:466
 msgid "Common ports: 587 (TLS), 465 (SSL), 25 (unencrypted)"
 msgstr "Ports courants : 587 (TLS), 465 (SSL), 25 (non chiffré)"
@@ -2787,7 +2856,7 @@ msgstr "Comparaison — {detail}"
 msgid "Compilation Results"
 msgstr "Résultats de compilation"
 
-#: src/services/api/permissions.ts:372
+#: src/services/api/permissions.ts:380
 msgid "Compile MJML to HTML with test data"
 msgstr "Compiler le MJML en HTML avec des données de test"
 
@@ -2969,7 +3038,7 @@ msgstr "Configuration de {0}"
 msgid "Confirm"
 msgstr "Confirmer"
 
-#: src/services/api/permissions.ts:175
+#: src/services/api/permissions.ts:183
 msgid "Confirm a contact exists and list everything it is subscribed to (also needs Lists read)"
 msgstr "Confirmer qu'un contact existe et lister tout ce à quoi il est abonné (nécessite aussi la lecture Listes)"
 
@@ -3092,7 +3161,7 @@ msgstr "Propriété du contact"
 msgid "Contact re-enters each time the event occurs"
 msgstr "Le contact entre à nouveau à chaque fois que l événement se produit"
 
-#: src/services/api/permissions.ts:130
+#: src/services/api/permissions.ts:138
 msgid "Contact records and their fields, contact timelines, and custom events recorded against contacts."
 msgstr "Les fiches de contact et leurs champs, les chronologies de contact et les événements personnalisés enregistrés sur les contacts."
 
@@ -3104,10 +3173,10 @@ msgstr "Les fiches de contact et leurs champs, les chronologies de contact et le
 msgid "Contact updated successfully"
 msgstr "Contact mis à jour avec succès"
 
-#: src/components/settings/PermissionsMatrix.tsx:121
+#: src/components/settings/PermissionsMatrix.tsx:122
 #: src/layouts/WorkspaceLayout.tsx:383
 #: src/pages/ContactsPage.tsx:1000
-#: src/services/api/errors.ts:60
+#: src/services/api/errors.ts:63
 msgid "Contacts"
 msgstr "Contacts"
 
@@ -3219,6 +3288,10 @@ msgstr "Copier le code {0}"
 #~ msgid "Copy code"
 #~ msgstr ""
 
+#: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:88
+msgid "Copy link"
+msgstr "Copier le lien"
+
 #: src/pages/BroadcastsPage.tsx:1809
 msgid "Copy to clipboard"
 msgstr "Copier dans le presse-papiers"
@@ -3240,6 +3313,10 @@ msgstr "Champs principaux"
 #: src/components/ai-assistant/AIAssistantChat.tsx:387
 msgid "Cost"
 msgstr "Coût"
+
+#: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:68
+msgid "Could not copy the link"
+msgstr "Impossible de copier le lien"
 
 #: src/components/web_analytics/tabs/AnnotationsTab.tsx:132
 msgid "Could not load the annotations"
@@ -3281,15 +3358,15 @@ msgstr "Impossible de lire l'état de la licence"
 msgid "Count"
 msgstr "Nombre"
 
-#: src/services/api/permissions.ts:139
+#: src/services/api/permissions.ts:147
 msgid "Count every contact in the workspace"
 msgstr "Compter tous les contacts de l'espace de travail"
 
-#: src/services/api/permissions.ts:248
+#: src/services/api/permissions.ts:256
 msgid "Count the contacts an arbitrary, unsaved segment tree would match (also needs Contacts read)"
 msgstr "Compter les contacts correspondant à un arbre de segment arbitraire et non enregistré (nécessite aussi la lecture Contacts)"
 
-#: src/services/api/permissions.ts:163
+#: src/services/api/permissions.ts:171
 msgid "Count the contacts matching an arbitrary segment definition (also needs Segments read)"
 msgstr "Compter les contacts correspondant à une définition de segment arbitraire (nécessite aussi la lecture Segments)"
 
@@ -3325,7 +3402,7 @@ msgstr "Ces décomptes peuvent inclure les clics des scanners de sécurité auto
 msgid "Cover"
 msgstr "Couvrir"
 
-#: src/services/api/permissions.ts:406
+#: src/services/api/permissions.ts:414
 msgid "Covers more than templates: reusable blocks answer to the same switch, and editing a block edits every template that embeds it. Blocks are kept with the workspace's own settings, so their content also comes back from /api/workspaces.get and from /api/workspaces.list, which needs no permission at all — Templates read is not the only way to see block content. And /api/templates.compile only checks this grant for calls arriving over the API; when the workspace compiles a template for itself, nothing is checked."
 msgstr "Couvre plus que les modèles : les blocs réutilisables dépendent du même interrupteur, et modifier un bloc modifie tous les modèles qui l'intègrent. Les blocs sont conservés avec les paramètres propres de l'espace de travail, si bien que leur contenu est également renvoyé par /api/workspaces.get et par /api/workspaces.list, qui ne nécessite aucune permission — la lecture Modèles d'email n'est pas le seul moyen de voir le contenu des blocs. Et /api/templates.compile ne vérifie cette permission que pour les appels arrivant par l'API ; lorsque l'espace de travail compile un modèle pour lui-même, rien n'est vérifié."
 
@@ -3338,16 +3415,16 @@ msgstr "Couvre plus que les modèles : les blocs réutilisables dépendent du m�
 msgid "Create"
 msgstr "Créer"
 
-#: src/services/api/permissions.ts:447
+#: src/services/api/permissions.ts:455
 msgid "Create a blog category"
 msgstr "Créer une catégorie de blog"
 
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:375
-#: src/services/api/permissions.ts:527
+#: src/services/api/permissions.ts:535
 msgid "Create a broadcast"
 msgstr "Créer une diffusion"
 
-#: src/services/api/permissions.ts:199
+#: src/services/api/permissions.ts:207
 msgid "Create a contact or overwrite its fields"
 msgstr "Créer un contact ou écraser ses champs"
 
@@ -3355,7 +3432,7 @@ msgstr "Créer un contact ou écraser ses champs"
 msgid "Create a custom report"
 msgstr "Créer un rapport personnalisé"
 
-#: src/services/api/permissions.ts:331
+#: src/services/api/permissions.ts:339
 msgid "Create a list"
 msgstr "Créer une liste"
 
@@ -3363,31 +3440,31 @@ msgstr "Créer une liste"
 msgid "Create a notification"
 msgstr "Créer une notification"
 
-#: src/services/api/permissions.ts:457
+#: src/services/api/permissions.ts:465
 msgid "Create a post"
 msgstr "Créer un article"
 
-#: src/services/api/permissions.ts:394
+#: src/services/api/permissions.ts:402
 msgid "Create a reusable template block"
 msgstr "Créer un bloc de modèle réutilisable"
 
-#: src/services/api/permissions.ts:268
+#: src/services/api/permissions.ts:276
 msgid "Create a segment and start its first build"
 msgstr "Créer un segment et lancer sa première construction"
 
-#: src/services/api/permissions.ts:829
+#: src/services/api/permissions.ts:837
 msgid "Create a subscription that POSTs the workspace's events to any URL"
 msgstr "Créer un abonnement qui poste les événements de l'espace de travail vers n'importe quelle URL"
 
-#: src/services/api/permissions.ts:386
+#: src/services/api/permissions.ts:394
 msgid "Create a template"
 msgstr "Créer un modèle"
 
-#: src/services/api/permissions.ts:470
+#: src/services/api/permissions.ts:478
 msgid "Create a theme version"
 msgstr "Créer une version de thème"
 
-#: src/services/api/permissions.ts:601
+#: src/services/api/permissions.ts:609
 msgid "Create a transactional notification"
 msgstr "Créer une notification transactionnelle"
 
@@ -3395,7 +3472,7 @@ msgstr "Créer une notification transactionnelle"
 #~ msgid "Create a Zapier API key"
 #~ msgstr "Créer une clé API Zapier"
 
-#: src/services/api/permissions.ts:662
+#: src/services/api/permissions.ts:670
 msgid "Create an automation, including webhook, email and list nodes"
 msgstr "Créer une automation, y compris des nœuds webhook, email et liste"
 
@@ -3711,7 +3788,7 @@ msgstr "Étiquette de champ personnalisé enregistrée avec succès"
 
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:1136
 #: src/components/settings/CustomFieldsConfiguration.tsx:156
-#: src/components/settings/SettingsSidebar.tsx:129
+#: src/components/settings/SettingsSidebar.tsx:131
 msgid "Custom Fields"
 msgstr "Champs personnalisés"
 
@@ -3719,7 +3796,7 @@ msgstr "Champs personnalisés"
 msgid "Custom header"
 msgstr "En-tête personnalisé"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:435
+#: src/components/settings/SystemSettingsDrawer.tsx:440
 msgid "Custom hostname used in SMTP EHLO/HELO command. Leave empty to use default."
 msgstr "Nom d'hôte personnalisé utilisé dans la commande SMTP EHLO/HELO. Laissez vide pour utiliser la valeur par défaut."
 
@@ -3848,7 +3925,7 @@ msgstr "Quotidien"
 
 #: src/components/settings/BlogSettings.tsx:477
 #: src/components/settings/DeleteWorkspace.tsx:45
-#: src/components/settings/SettingsSidebar.tsx:158
+#: src/components/settings/SettingsSidebar.tsx:169
 msgid "Danger Zone"
 msgstr "Zone de danger"
 
@@ -3874,6 +3951,10 @@ msgstr "Date"
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:146
 msgid "Date is required"
 msgstr "La date est requise"
+
+#: src/components/settings/audit_logs/AuditFilterBuilder.tsx:105
+msgid "Date range"
+msgstr "Plage de dates"
 
 #: src/components/segment/form_leaf.tsx:556
 #: src/components/segment/form_leaf.tsx:929
@@ -3924,6 +4005,10 @@ msgstr "Attributs par défaut"
 #: src/components/settings/GeneralSettings.tsx:244
 msgid "Default Language"
 msgstr "Langue par défaut"
+
+#: src/components/settings/SystemSettingsDrawer.tsx:719
+msgid "Default retention (days)"
+msgstr "Rétention par défaut (jours)"
 
 #: src/pages/BroadcastsPage.tsx:846
 msgid "Default sender"
@@ -4005,63 +4090,63 @@ msgstr "SUPPRIMER"
 msgid "Delete {0} selected item(s)?"
 msgstr "Supprimer {0} élément(s) sélectionné(s) ?"
 
-#: src/services/api/permissions.ts:792
+#: src/services/api/permissions.ts:800
 msgid "Delete a backfill task"
 msgstr "Supprimer une tâche de recalcul historique"
 
-#: src/services/api/permissions.ts:551
+#: src/services/api/permissions.ts:559
 msgid "Delete a broadcast"
 msgstr "Supprimer une diffusion"
 
-#: src/services/api/permissions.ts:455
+#: src/services/api/permissions.ts:463
 msgid "Delete a category"
 msgstr "Supprimer une catégorie"
 
-#: src/services/api/permissions.ts:336
+#: src/services/api/permissions.ts:344
 msgid "Delete a list"
 msgstr "Supprimer une liste"
 
-#: src/services/api/permissions.ts:459
+#: src/services/api/permissions.ts:467
 msgid "Delete a post"
 msgstr "Supprimer un article"
 
-#: src/services/api/permissions.ts:402
+#: src/services/api/permissions.ts:410
 msgid "Delete a reusable template block"
 msgstr "Supprimer un bloc de modèle réutilisable"
 
-#: src/services/api/permissions.ts:276
+#: src/services/api/permissions.ts:284
 msgid "Delete a segment"
 msgstr "Supprimer un segment"
 
-#: src/services/api/permissions.ts:292
+#: src/services/api/permissions.ts:300
 msgid "Delete a segment build/recompute task"
 msgstr "Supprimer une tâche de construction/recalcul de segment"
 
-#: src/services/api/permissions.ts:577
+#: src/services/api/permissions.ts:585
 msgid "Delete a send task"
 msgstr "Supprimer une tâche d'envoi"
 
-#: src/services/api/permissions.ts:837
+#: src/services/api/permissions.ts:845
 msgid "Delete a subscription"
 msgstr "Supprimer un abonnement"
 
-#: src/services/api/permissions.ts:391
+#: src/services/api/permissions.ts:399
 msgid "Delete a template"
 msgstr "Supprimer un modèle"
 
-#: src/services/api/permissions.ts:609
+#: src/services/api/permissions.ts:617
 msgid "Delete a transactional notification"
 msgstr "Supprimer une notification transactionnelle"
 
-#: src/services/api/permissions.ts:776
+#: src/services/api/permissions.ts:784
 msgid "Delete an annotation"
 msgstr "Supprimer une annotation"
 
-#: src/services/api/permissions.ts:670
+#: src/services/api/permissions.ts:678
 msgid "Delete an automation and exit every contact currently in it"
 msgstr "Supprimer une automation et en faire sortir tous les contacts qui s'y trouvent"
 
-#: src/services/api/permissions.ts:928
+#: src/services/api/permissions.ts:961
 msgid "Delete an integration sync task"
 msgstr "Supprimer une tâche de synchronisation d'intégration"
 
@@ -4263,6 +4348,15 @@ msgstr "Livraison en cours"
 msgid "Delivery ID:"
 msgstr "ID de livraison :"
 
+#: src/components/settings/audit_logs/AuditFilterBuilder.tsx:111
+msgid "Denied"
+msgstr "Refusé"
+
+#: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:111
+#: src/components/settings/audit_logs/AuditLogTable.tsx:252
+msgid "Deployment"
+msgstr "Déploiement"
+
 #: src/components/blog_editor/components/image/ImageNodeView.tsx:320
 msgid "Describe this image..."
 msgstr "Décrivez cette image..."
@@ -4288,6 +4382,10 @@ msgstr "Description lors du partage sur les réseaux sociaux (og:description)"
 #: src/components/email_builder/panels/Preview.tsx:445
 msgid "Desktop view (100%)"
 msgstr "Vue bureau (100%)"
+
+#: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:180
+msgid "Details"
+msgstr "Détails"
 
 #: src/components/settings/LogoInput.tsx:90
 msgid "Detect from website URL"
@@ -4515,7 +4613,7 @@ msgstr "Glissez pour déplacer ce bloc dans l arborescence"
 msgid "Drop files here to upload"
 msgstr "Déposez les fichiers ici pour les envoyer"
 
-#: src/services/api/permissions.ts:235
+#: src/services/api/permissions.ts:243
 msgid "Dynamic segment definitions, their compiled queries, and the background tasks that build them."
 msgstr "Les définitions de segments dynamiques, leurs requêtes compilées et les tâches en arrière-plan qui les construisent."
 
@@ -4655,15 +4753,15 @@ msgstr "Modifier"
 msgid "Edit {0} translation"
 msgstr "Modifier la traduction {0}"
 
-#: src/services/api/permissions.ts:531
+#: src/services/api/permissions.ts:539
 msgid "Edit a broadcast, including its audience and templates"
 msgstr "Modifier une diffusion, y compris son audience et ses modèles"
 
-#: src/services/api/permissions.ts:474
+#: src/services/api/permissions.ts:482
 msgid "Edit a theme version, including its scripts.js"
 msgstr "Modifier une version de thème, y compris son scripts.js"
 
-#: src/services/api/permissions.ts:605
+#: src/services/api/permissions.ts:613
 msgid "Edit a transactional notification"
 msgstr "Modifier une notification transactionnelle"
 
@@ -4675,15 +4773,15 @@ msgstr "Modifier le texte alternatif"
 msgid "Edit annotation"
 msgstr "Modifier l'annotation"
 
-#: src/services/api/permissions.ts:772
+#: src/services/api/permissions.ts:780
 msgid "Edit any annotation"
 msgstr "Modifier n'importe quelle annotation"
 
-#: src/services/api/permissions.ts:666
+#: src/services/api/permissions.ts:674
 msgid "Edit any automation's nodes, including where its webhook nodes post"
 msgstr "Modifier les nœuds de n'importe quelle automation, y compris l'URL vers laquelle ses nœuds webhook postent"
 
-#: src/services/api/permissions.ts:458
+#: src/services/api/permissions.ts:466
 msgid "Edit any post"
 msgstr "Modifier n'importe quel article"
 
@@ -4821,12 +4919,12 @@ msgstr "Mode éditeur"
 
 #: src/components/settings/Integrations.tsx:2083
 #: src/components/settings/Integrations.tsx:2430
-#: src/components/settings/SystemSettingsDrawer.tsx:433
+#: src/components/settings/SystemSettingsDrawer.tsx:438
 #: src/pages/SetupWizard.tsx:523
 msgid "EHLO Hostname"
 msgstr "Nom d'hôte EHLO"
 
-#: src/components/contacts/ExportContactsModal.tsx:353
+#: src/components/contacts/ExportContactsModal.tsx:355
 msgid "Elapsed"
 msgstr "Écoulé"
 
@@ -4852,6 +4950,7 @@ msgstr "email"
 #: src/components/contacts/ExportContactsModal.tsx:50
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:338
 #: src/components/messages/MessageHistoryTab.tsx:217
+#: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:122
 #: src/components/settings/Integrations.tsx:2702
 #: src/components/settings/WorkspaceMembers.tsx:104
 #: src/components/timeline/ContactTimeline.tsx:584
@@ -4964,7 +5063,7 @@ msgstr "Objet de l'email ({0})"
 msgid "Email Template"
 msgstr "Modèle d'email"
 
-#: src/services/api/permissions.ts:359
+#: src/services/api/permissions.ts:367
 msgid "Email templates in every language, and the reusable template blocks stored on the workspace."
 msgstr "Les modèles d'email dans toutes les langues, et les blocs de modèle réutilisables stockés sur l'espace de travail."
 
@@ -5028,7 +5127,7 @@ msgstr "Activer les sous-titres par défaut"
 msgid "Enable geo-location tracking"
 msgstr "Activer le suivi de géolocalisation"
 
-#: src/services/api/permissions.ts:841
+#: src/services/api/permissions.ts:849
 msgid "Enable or disable a subscription"
 msgstr "Activer ou désactiver un abonnement"
 
@@ -5048,7 +5147,7 @@ msgstr "Activez la fonctionnalité blog pour publier des articles et du contenu 
 msgid "Enable this rule?"
 msgstr "Activer cette règle ?"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:356
+#: src/components/settings/SystemSettingsDrawer.tsx:361
 #: src/pages/SetupWizard.tsx:481
 msgid "Enable TLS encryption for SMTP connection"
 msgstr "Activer le chiffrement TLS pour la connexion SMTP"
@@ -5072,8 +5171,8 @@ msgstr "Activer le webhook"
 #: src/components/settings/BlogSettings.tsx:230
 #: src/components/settings/GeneralSettings.tsx:161
 #: src/components/settings/Integrations.tsx:1572
-#: src/components/settings/SystemSettingsDrawer.tsx:460
-#: src/components/settings/SystemSettingsDrawer.tsx:545
+#: src/components/settings/SystemSettingsDrawer.tsx:465
+#: src/components/settings/SystemSettingsDrawer.tsx:550
 #: src/components/settings/WebAnalyticsSettings.tsx:246
 #: src/components/templates/TemplateTranslationsTab.tsx:217
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:146
@@ -5092,7 +5191,7 @@ msgstr "terminé"
 msgid "Endpoint URL"
 msgstr "URL du point d accès"
 
-#: src/components/settings/PermissionsMatrix.tsx:212
+#: src/components/settings/PermissionsMatrix.tsx:216
 msgid "Endpoints gated by {label}"
 msgstr "Endpoints contrôlés par {label}"
 
@@ -5105,10 +5204,12 @@ msgid "Enrolled"
 msgstr "Inscrit"
 
 #. placeholder {0}: fieldInfo.label.toLowerCase()
+#. placeholder {0}: labels[key]
 #. placeholder {0}: option.label
 #: src/components/contacts/ContactUpsertDrawer.tsx:397
 #: src/components/contacts/ContactUpsertDrawer.tsx:411
 #: src/components/contacts/ContactUpsertDrawer.tsx:476
+#: src/components/settings/audit_logs/AuditFilterBuilder.tsx:204
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:288
 msgid "Enter {0}"
 msgstr "Entrez {0}"
@@ -5293,6 +5394,10 @@ msgstr "Entrez le nom de l espace de travail"
 msgid "Entity ID:"
 msgstr "ID de l entité :"
 
+#: src/components/settings/audit_logs/AuditLogRetentionCard.tsx:87
+msgid "Entries older than this are deleted once a day. Leave it empty for the deployment default ({AUDIT_LOG_DEFAULT_RETENTION_DAYS} days unless a root user changed it); 0 keeps every entry forever."
+msgstr "Les entrées plus anciennes sont supprimées une fois par jour. Laissez vide pour la valeur par défaut du déploiement ({AUDIT_LOG_DEFAULT_RETENTION_DAYS} jours sauf si un utilisateur root l'a modifiée) ; 0 conserve chaque entrée pour toujours."
+
 #: src/components/automations/config/TriggerConfigForm.tsx:365
 msgid "Entry conditions"
 msgstr "Conditions d'entrée"
@@ -5305,11 +5410,11 @@ msgstr "page d'entrée"
 msgid "Entry:"
 msgstr "Entrée :"
 
-#: src/services/api/permissions.ts:321
+#: src/services/api/permissions.ts:329
 msgid "Enumerate every subscriber address on a list (also needs Contacts read)"
 msgstr "Énumérer toutes les adresses abonnées à une liste (nécessite aussi la lecture Contacts)"
 
-#: src/services/api/permissions.ts:171
+#: src/services/api/permissions.ts:179
 msgid "Enumerate every subscriber address on a list (also needs Lists read)"
 msgstr "Énumérer toutes les adresses abonnées à une liste (nécessite aussi la lecture Listes)"
 
@@ -5438,6 +5543,10 @@ msgstr "Tous les sous-éléments comptent moins de {0} sessions. Abaissez le seu
 msgid "Every time"
 msgstr "À chaque fois"
 
+#: src/components/logs/AuditLogsTab.tsx:59
+#~ msgid "Every workspace plus deployment-level events — sign-ins, the licence, the system settings. Visible to root users only."
+#~ msgstr "Tous les workspaces plus les événements au niveau du déploiement — connexions, licence, paramètres système. Visible uniquement par les utilisateurs root."
+
 #: src/components/license/LicenceGateNotice.tsx:66
 msgid "Everyone signs in with a login code in the meantime; nobody is locked out."
 msgstr "Chacun se connecte avec un code de connexion en attendant ; personne n'est bloqué."
@@ -5522,16 +5631,21 @@ msgstr "Expire :"
 msgid "Explore"
 msgstr "Explorer"
 
-#: src/components/contacts/ExportContactsModal.tsx:323
+#: src/components/contacts/ExportContactsModal.tsx:325
 #: src/components/email_builder/MjmlCodeEditor.tsx:643
+#: src/components/logs/AuditLogActions.tsx:50
 #: src/components/templates/ImportExportButton.tsx:416
 #: src/pages/ContactsPage.tsx:1023
 msgid "Export"
 msgstr "Exporter"
 
-#: src/components/contacts/ExportContactsModal.tsx:309
+#: src/components/contacts/ExportContactsModal.tsx:311
 msgid "Export Contacts to CSV"
 msgstr "Exporter les contacts vers CSV"
+
+#: src/components/logs/AuditLogActions.tsx:22
+msgid "Export failed"
+msgstr "Échec de l'export"
 
 #: src/components/email_builder/MjmlCodeEditor.tsx:652
 msgid "Export HTML"
@@ -5541,14 +5655,26 @@ msgstr "Exporter le HTML"
 msgid "Export MJML"
 msgstr "Exporter le MJML"
 
+#: src/services/api/permissions.ts:874
+msgid "Export the audit log as CSV or NDJSON"
+msgstr "Exporter le journal d'audit en CSV ou NDJSON"
+
+#: src/components/logs/AuditLogActions.tsx:48
+msgid "Export the current filter as CSV or NDJSON, up to {AUDIT_LOG_EXPORT_MAX_ROWS} rows"
+msgstr "Exporter le filtre actuel en CSV ou NDJSON, jusqu’à {AUDIT_LOG_EXPORT_MAX_ROWS} lignes"
+
 #: src/components/web_analytics/explore/CsvExportModal.tsx:128
 #: src/pages/WebAnalyticsPage.tsx:124
 msgid "Export to CSV"
 msgstr "Exporter en CSV"
 
-#: src/components/contacts/ExportContactsModal.tsx:340
+#: src/components/contacts/ExportContactsModal.tsx:342
 msgid "Exporting all contacts"
 msgstr "Export de tous les contacts"
+
+#: src/components/logs/AuditLogActions.tsx:41
+#~ msgid "Exports the current filter, up to {AUDIT_LOG_EXPORT_MAX_ROWS} rows"
+#~ msgstr "Exporte le filtre actuel, jusqu'à {AUDIT_LOG_EXPORT_MAX_ROWS} lignes"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:118
 #: src/components/contacts/ContactDetailsDrawer.tsx:453
@@ -5797,7 +5923,7 @@ msgstr "Échec de la récupération des objets : "
 msgid "Failed to fetch setup status"
 msgstr "Échec de la récupération du statut de configuration"
 
-#: src/pages/WorkspaceSettingsPage.tsx:98
+#: src/pages/WorkspaceSettingsPage.tsx:99
 msgid "Failed to fetch workspace members"
 msgstr "Échec de la récupération des membres de l espace de travail"
 
@@ -5825,7 +5951,7 @@ msgstr "Échec du chargement des diffusions"
 msgid "Failed to load contact lists"
 msgstr "Échec du chargement des listes de contacts"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:57
+#: src/components/settings/SystemSettingsDrawer.tsx:62
 msgid "Failed to load settings"
 msgstr "Échec du chargement des paramètres"
 
@@ -5940,7 +6066,7 @@ msgstr "Échec de l enregistrement de l intégration"
 msgid "Failed to save LLM integration"
 msgstr "Échec de l enregistrement de l intégration LLM"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:211
+#: src/components/settings/SystemSettingsDrawer.tsx:216
 msgid "Failed to save settings"
 msgstr "Échec de l'enregistrement des paramètres"
 
@@ -5951,6 +6077,10 @@ msgstr "Échec de l enregistrement de l intégration Supabase"
 #: src/components/templates/CreateTemplateDrawer.tsx:589
 msgid "Failed to save template block"
 msgstr "Échec de l enregistrement du bloc de modèle"
+
+#: src/components/settings/audit_logs/AuditLogRetentionCard.tsx:73
+msgid "Failed to save the retention"
+msgstr "Échec de l'enregistrement de la rétention"
 
 #: src/components/blog/ThemeEditorDrawer.tsx:259
 msgid "Failed to save theme"
@@ -6094,6 +6224,10 @@ msgstr "Échec de la mise à jour des paramètres de l espace de travail : {erro
 msgid "Failed to verify code"
 msgstr "Échec de la vérification du code"
 
+#: src/components/settings/audit_logs/AuditFilterBuilder.tsx:110
+msgid "Failure"
+msgstr "Échec"
+
 #: src/components/settings/BlogSettings.tsx:368
 msgid "Favicon for your blog. Recommended: 32x32px or 192x192px PNG"
 msgstr "Favicon pour votre blog. Recommandé : PNG 32x32px ou 192x192px"
@@ -6102,7 +6236,7 @@ msgstr "Favicon pour votre blog. Recommandé : PNG 32x32px ou 192x192px"
 msgid "Featured Image URL"
 msgstr "URL de l image à la une"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:687
+#: src/components/settings/SystemSettingsDrawer.tsx:692
 msgid "Features"
 msgstr "Fonctionnalités"
 
@@ -6115,7 +6249,7 @@ msgid "Feedback:"
 msgstr "Retour :"
 
 #. placeholder {0}: fetchedCount.toLocaleString()
-#: src/components/contacts/ExportContactsModal.tsx:349
+#: src/components/contacts/ExportContactsModal.tsx:351
 msgid "Fetched {0} contacts..."
 msgstr "{0} contacts récupérés..."
 
@@ -6266,11 +6400,11 @@ msgstr "Trouvez ceci dans le portail Azure > Azure Active Directory > Vue d ense
 msgid "Find this in Google Cloud Console > APIs & Services > Credentials"
 msgstr "Trouvez ceci dans Google Cloud Console > API et services > Identifiants"
 
-#: src/services/api/permissions.ts:567
+#: src/services/api/permissions.ts:575
 msgid "Fire a test data-feed request for a named recipient"
 msgstr "Déclencher une requête de test du flux de données pour un destinataire nommé"
 
-#: src/services/api/permissions.ts:845
+#: src/services/api/permissions.ts:853
 msgid "Fire a test delivery at the subscription's URL — write, not read, because it makes the server call out"
 msgstr "Déclencher une livraison de test vers l'URL de l'abonnement — écriture, et non lecture, car cela fait sortir un appel du serveur"
 
@@ -6376,7 +6510,7 @@ msgstr "pour les variables du modèle,"
 msgid "for tracking (not available in templates)."
 msgstr "pour le suivi (non disponible dans les modèles)."
 
-#: src/services/api/permissions.ts:280
+#: src/services/api/permissions.ts:288
 msgid "Force a full rebuild of a segment"
 msgstr "Forcer une reconstruction complète d'un segment"
 
@@ -6415,7 +6549,7 @@ msgstr "Fréquence"
 msgid "From"
 msgstr "De"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:400
+#: src/components/settings/SystemSettingsDrawer.tsx:405
 #: src/pages/SetupWizard.tsx:504
 msgid "From Email"
 msgstr "Email de l expéditeur"
@@ -6424,7 +6558,7 @@ msgstr "Email de l expéditeur"
 msgid "From email is required"
 msgstr "L email de l expéditeur est requis"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:416
+#: src/components/settings/SystemSettingsDrawer.tsx:421
 #: src/pages/SetupWizard.tsx:515
 msgid "From Name"
 msgstr "Nom de l expéditeur"
@@ -6477,8 +6611,8 @@ msgstr "gemini-3.1-pro-preview ou un ID de modèle personnalisé"
 #~ msgid "gemini-3.5-flash, gemini-3.1-pro-preview, or a custom model ID"
 #~ msgstr ""
 
-#: src/components/settings/SettingsSidebar.tsx:139
-#: src/components/settings/SystemSettingsDrawer.tsx:251
+#: src/components/settings/SettingsSidebar.tsx:141
+#: src/components/settings/SystemSettingsDrawer.tsx:256
 msgid "General"
 msgstr "Général"
 
@@ -6739,7 +6873,7 @@ msgstr "Les règles de priorité plus élevée sont évaluées en premier (0-100
 msgid "Historical sessions and goals were written with a different rule set."
 msgstr "Les sessions et objectifs historiques ont été écrits avec un jeu de règles différent."
 
-#: src/services/api/permissions.ts:879
+#: src/services/api/permissions.ts:912
 msgid "Hold a streaming conversation with the workspace's configured LLM provider, spending its credits"
 msgstr "Tenir une conversation en streaming avec le fournisseur LLM configuré sur l'espace de travail, en consommant ses crédits"
 
@@ -6856,6 +6990,7 @@ msgstr "URL de l icône/Favicon"
 
 #: src/components/automations/AutomationCard.tsx:293
 #: src/components/messages/MessageHistoryTable.tsx:273
+#: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:149
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:355
 #: src/pages/ListsPage.tsx:267
 #: src/pages/TransactionalNotificationsPage.tsx:264
@@ -7104,7 +7239,7 @@ msgstr "Boîte de réception"
 msgid "Include a clear call-to-action"
 msgstr "Inclure un appel à l action clair"
 
-#: src/pages/LogsPage.tsx:42
+#: src/pages/LogsPage.tsx:61
 msgid "Incoming Webhooks"
 msgstr "Webhooks entrants"
 
@@ -7213,11 +7348,11 @@ msgid "Integration updated successfully"
 msgstr "Intégration mise à jour avec succès"
 
 #: src/components/settings/Integrations.tsx:2635
-#: src/components/settings/SettingsSidebar.tsx:76
+#: src/components/settings/SettingsSidebar.tsx:78
 msgid "Integrations"
 msgstr "Intégrations"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:404
+#: src/components/settings/SystemSettingsDrawer.tsx:409
 msgid "Invalid email"
 msgstr "Email invalide"
 
@@ -7227,7 +7362,7 @@ msgid "Invalid email format"
 msgstr "Format d email invalide"
 
 #. placeholder {0}: invalid.join(', ')
-#: src/components/settings/SystemSettingsDrawer.tsx:88
+#: src/components/settings/SystemSettingsDrawer.tsx:93
 msgid "Invalid email: {0}"
 msgstr "Email invalide : {0}"
 
@@ -7319,6 +7454,15 @@ msgstr "Invitation envoyée à {inviteEmail}"
 msgid "Invite Member"
 msgstr "Inviter un membre"
 
+#: src/components/settings/audit_logs/AuditLogTable.tsx:266
+msgid "IP"
+msgstr "IP"
+
+#: src/components/settings/audit_logs/AuditFilterBuilder.tsx:104
+#: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:131
+msgid "IP address"
+msgstr "Adresse IP"
+
 #: src/components/settings/WebAnalyticsSettings.tsx:418
 msgid "IP addresses are never stored — only used for geo lookup. Country is always included when geo tracking is enabled."
 msgstr "Les adresses IP ne sont jamais stockées — elles servent uniquement à la recherche géographique. Le pays est toujours inclus lorsque le suivi géographique est activé."
@@ -7357,7 +7501,7 @@ msgstr "isolé"
 msgid "isolation requested but not provisioned"
 msgstr "isolation demandée mais non provisionnée"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:555
+#: src/components/settings/SystemSettingsDrawer.tsx:560
 #: src/pages/SetupWizard.tsx:711
 msgid "Issuer URL"
 msgstr "URL de l'émetteur"
@@ -7416,6 +7560,10 @@ msgstr "Justifié"
 #: src/components/templates/useTemplateConflictModal.tsx:43
 msgid "Keep editing"
 msgstr "Continuer l'édition"
+
+#: src/components/settings/audit_logs/AuditLogRetentionCard.tsx:98
+msgid "Keep entries for (days)"
+msgstr "Conserver les entrées pendant (jours)"
 
 #: src/components/email_builder/blocks/MjPreviewBlock.tsx:52
 msgid "Keep it between 35-140 characters"
@@ -7546,7 +7694,7 @@ msgstr "Laissez vide pour utiliser l API Firecrawl par défaut (api.firecrawl.de
 msgid "Leave empty for full container width"
 msgstr "Laissez vide pour la largeur complète du conteneur"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:605
+#: src/components/settings/SystemSettingsDrawer.tsx:610
 msgid "Leave empty to derive it from the API endpoint. Set it when the callback is reached through a proxy or a vanity domain."
 msgstr "Laissez vide pour la déduire du point d'accès API. Renseignez-la lorsque le callback passe par un proxy ou un domaine personnalisé."
 
@@ -7591,7 +7739,7 @@ msgid "Letter Spacing"
 msgstr "Espacement des lettres"
 
 #: src/components/settings/LicenseSettings.tsx:58
-#: src/components/settings/SettingsSidebar.tsx:149
+#: src/components/settings/SettingsSidebar.tsx:160
 msgid "Licence"
 msgstr "Licence"
 
@@ -7652,6 +7800,10 @@ msgstr "Lien"
 #~ msgid "Link Clicks"
 #~ msgstr ""
 
+#: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:66
+msgid "Link copied"
+msgstr "Lien copié"
+
 #: src/components/broadcasts/BroadcastLinkStats.tsx:80
 #~ msgid "Link performance"
 #~ msgstr ""
@@ -7706,23 +7858,23 @@ msgstr "Liste \"{0}\" supprimée avec succès"
 msgid "List at least one domain to enable web analytics"
 msgstr "Listez au moins un domaine pour activer l'analyse web"
 
-#: src/services/api/permissions.ts:638
+#: src/services/api/permissions.ts:646
 msgid "List automations with their complete node graphs"
 msgstr "Lister les automations avec leurs graphes de nœuds complets"
 
-#: src/services/api/permissions.ts:415
+#: src/services/api/permissions.ts:423
 msgid "List blog categories"
 msgstr "Lister les catégories de blog"
 
-#: src/services/api/permissions.ts:423
+#: src/services/api/permissions.ts:431
 msgid "List blog posts, including unpublished drafts"
 msgstr "Lister les articles de blog, y compris les brouillons non publiés"
 
-#: src/services/api/permissions.ts:495
+#: src/services/api/permissions.ts:503
 msgid "List broadcasts with their audience and schedule"
 msgstr "Lister les diffusions avec leur audience et leur planification"
 
-#: src/services/api/permissions.ts:135
+#: src/services/api/permissions.ts:143
 msgid "List contacts with their full profile fields"
 msgstr "Lister les contacts avec l'intégralité des champs de leur fiche"
 
@@ -7730,15 +7882,15 @@ msgstr "Lister les contacts avec l'intégralité des champs de leur fiche"
 msgid "List created successfully"
 msgstr "Liste créée avec succès"
 
-#: src/services/api/permissions.ts:159
+#: src/services/api/permissions.ts:167
 msgid "List custom events recorded against contacts"
 msgstr "Lister les événements personnalisés enregistrés sur les contacts"
 
-#: src/services/api/permissions.ts:305
+#: src/services/api/permissions.ts:313
 msgid "List every list and its settings, including double opt-in and template configuration"
 msgstr "Lister toutes les listes et leurs paramètres, y compris le double opt-in et la configuration des modèles"
 
-#: src/services/api/permissions.ts:325
+#: src/services/api/permissions.ts:333
 msgid "List everything one contact is subscribed to (also needs Contacts read)"
 msgstr "Lister tout ce à quoi un contact est abonné (nécessite aussi la lecture Contacts)"
 
@@ -7752,11 +7904,11 @@ msgstr "ID de liste"
 msgid "List ID: {0}"
 msgstr "ID de liste : {0}"
 
-#: src/services/api/permissions.ts:240
+#: src/services/api/permissions.ts:248
 msgid "List segments with their full definition trees"
 msgstr "Lister les segments avec l'intégralité de leurs arbres de définition"
 
-#: src/services/api/permissions.ts:691
+#: src/services/api/permissions.ts:699
 msgid "List sent messages with their recipient address, delivery and engagement timestamps, and the data each was rendered with"
 msgstr "Lister les messages envoyés avec l'adresse de leur destinataire, les horodatages de livraison et d'engagement, et les données avec lesquelles chacun a été rendu"
 
@@ -7779,39 +7931,39 @@ msgstr "Abonnement à la liste"
 msgid "List Subscriptions"
 msgstr "Abonnements aux listes"
 
-#: src/services/api/permissions.ts:805
+#: src/services/api/permissions.ts:813
 msgid "List subscriptions with their target URL, event types and filters"
 msgstr "Lister les abonnements avec leur URL cible, leurs types d'événements et leurs filtres"
 
-#: src/services/api/permissions.ts:364
+#: src/services/api/permissions.ts:372
 msgid "List templates with their full MJML bodies"
 msgstr "Lister les modèles avec l'intégralité de leur corps MJML"
 
-#: src/services/api/permissions.ts:736
+#: src/services/api/permissions.ts:744
 msgid "List the annotations drawn on the analytics timeline"
 msgstr "Lister les annotations tracées sur la chronologie de l'analyse web"
 
-#: src/services/api/permissions.ts:252
+#: src/services/api/permissions.ts:260
 msgid "List the email addresses currently in a segment (also needs Contacts read)"
 msgstr "Lister les adresses email actuellement présentes dans un segment (nécessite aussi la lecture Contacts)"
 
-#: src/services/api/permissions.ts:167
+#: src/services/api/permissions.ts:175
 msgid "List the email addresses inside a segment (also needs Segments read)"
 msgstr "Lister les adresses email contenues dans un segment (nécessite aussi la lecture Segments)"
 
-#: src/services/api/permissions.ts:858
+#: src/services/api/permissions.ts:891
 msgid "List the raw provider callbacks, including recipient addresses and provider diagnostics"
 msgstr "Lister les callbacks bruts du fournisseur, y compris les adresses des destinataires et les diagnostics du fournisseur"
 
-#: src/services/api/permissions.ts:896
+#: src/services/api/permissions.ts:929
 msgid "List the whole team — members, owners, API keys and pending invitations; without it the answer is degraded to your own row rather than refused"
 msgstr "Lister toute l'équipe — membres, propriétaires, clés API et invitations en attente ; sans elle, la réponse est réduite à votre propre ligne plutôt que refusée"
 
-#: src/services/api/permissions.ts:376
+#: src/services/api/permissions.ts:384
 msgid "List the workspace's reusable template blocks"
 msgstr "Lister les blocs de modèle réutilisables de l'espace de travail"
 
-#: src/services/api/permissions.ts:431
+#: src/services/api/permissions.ts:439
 msgid "List theme versions"
 msgstr "Lister les versions de thème"
 
@@ -7819,7 +7971,7 @@ msgstr "Lister les versions de thème"
 msgid "List to Check"
 msgstr "Liste à vérifier"
 
-#: src/services/api/permissions.ts:589
+#: src/services/api/permissions.ts:597
 msgid "List transactional notification definitions"
 msgstr "Lister les définitions de notifications transactionnelles"
 
@@ -7834,12 +7986,12 @@ msgid "List:"
 msgstr "Liste :"
 
 #: src/components/analytics/NewContactsTable.tsx:73
-#: src/components/settings/PermissionsMatrix.tsx:122
+#: src/components/settings/PermissionsMatrix.tsx:123
 #: src/layouts/WorkspaceLayout.tsx:393
 #: src/pages/ContactsPage.tsx:424
 #: src/pages/ContactsPage.tsx:544
 #: src/pages/ListsPage.tsx:155
-#: src/services/api/errors.ts:61
+#: src/services/api/errors.ts:64
 msgid "Lists"
 msgstr "Listes"
 
@@ -7847,7 +7999,7 @@ msgstr "Listes"
 msgid "Lists refreshed"
 msgstr "Listes actualisées"
 
-#: src/services/api/permissions.ts:355
+#: src/services/api/permissions.ts:363
 msgid "Lists write also grants contact writing. Subscribing an address through `/api/lists.subscribe` creates or overwrites that contact's whole record, with every field the request carries and without needing Contacts write — so anyone holding only Lists write can still rewrite contact data. It can also subscribe someone to a list that is not public. Read is not confined to list settings either: through /api/contactLists.* it lists the addresses of a list's members, which is why those two endpoints additionally require Contacts read."
 msgstr "L'écriture Listes accorde aussi l'écriture des contacts. Abonner une adresse via `/api/lists.subscribe` crée ou écrase la fiche complète de ce contact, avec tous les champs que porte la requête et sans nécessiter l'écriture Contacts — toute personne ne disposant que de l'écriture Listes peut donc malgré tout réécrire des données de contact. Elle permet aussi d'abonner quelqu'un à une liste qui n'est pas publique. La lecture ne se limite pas non plus aux paramètres des listes : via /api/contactLists.*, elle liste les adresses des membres d'une liste, ce qui explique que ces deux endpoints exigent en plus la lecture Contacts."
 
@@ -7858,8 +8010,8 @@ msgstr "L'écriture Listes accorde aussi l'écriture des contacts. Abonner une a
 msgid "Live"
 msgstr "En direct"
 
-#: src/components/settings/PermissionsMatrix.tsx:130
-#: src/services/api/errors.ts:69
+#: src/components/settings/PermissionsMatrix.tsx:131
+#: src/services/api/errors.ts:72
 msgid "LLM"
 msgstr "LLM"
 
@@ -7868,6 +8020,7 @@ msgid "LLM integration saved successfully"
 msgstr "Intégration LLM enregistrée avec succès"
 
 #: src/components/messages/MessageHistoryTable.tsx:511
+#: src/components/settings/audit_logs/AuditLogTable.tsx:307
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:554
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:521
 #: src/pages/ContactsPage.tsx:1169
@@ -7882,7 +8035,7 @@ msgstr "Charger plus d événements"
 msgid "Load saved template"
 msgstr "Charger un modèle enregistré"
 
-#: src/services/api/permissions.ts:916
+#: src/services/api/permissions.ts:949
 msgid "Load the workspace record, which read or write both admit"
 msgstr "Charger la fiche de l'espace de travail, ce que la lecture comme l'écriture autorisent"
 
@@ -7933,7 +8086,7 @@ msgstr "Chargement du statut webhook..."
 #: src/pages/ContactsPage.tsx:531
 #: src/pages/ContactsPage.tsx:1161
 #: src/pages/ListsPage.tsx:149
-#: src/pages/LogsPage.tsx:18
+#: src/pages/LogsPage.tsx:29
 #: src/pages/TemplatesPage.tsx:203
 #: src/pages/TransactionalNotificationsPage.tsx:383
 msgid "Loading..."
@@ -7961,15 +8114,15 @@ msgid "Logout"
 msgstr "Déconnexion"
 
 #: src/layouts/WorkspaceLayout.tsx:472
-#: src/pages/LogsPage.tsx:28
+#: src/pages/LogsPage.tsx:95
 msgid "Logs"
 msgstr "Logs"
 
-#: src/services/api/permissions.ts:143
+#: src/services/api/permissions.ts:151
 msgid "Look up a contact's complete record by email address"
 msgstr "Rechercher la fiche complète d'un contact par adresse email"
 
-#: src/services/api/permissions.ts:147
+#: src/services/api/permissions.ts:155
 msgid "Look up a contact's complete record by your own external ID"
 msgstr "Rechercher la fiche complète d'un contact par votre propre ID externe"
 
@@ -7997,7 +8150,7 @@ msgstr "Code magique envoyé à votre email"
 msgid "Mailgun (mxa.mailgun.org / mxb.mailgun.org)"
 msgstr "Mailgun (mxa.mailgun.org / mxb.mailgun.org)"
 
-#: src/services/api/permissions.ts:300
+#: src/services/api/permissions.ts:308
 msgid "Mailing lists, their settings and statistics, and contact-to-list membership rows."
 msgstr "Les listes de diffusion, leurs paramètres et statistiques, et les lignes d'appartenance des contacts aux listes."
 
@@ -8005,11 +8158,11 @@ msgstr "Les listes de diffusion, leurs paramètres et statistiques, et les ligne
 msgid "Main logo for your blog. Recommended size: 200x50px or similar aspect ratio"
 msgstr "Logo principal de votre blog. Taille recommandée : 200x50px ou ratio similaire"
 
-#: src/services/api/permissions.ts:478
+#: src/services/api/permissions.ts:486
 msgid "Make a theme version live on the blog's public domain, replacing the current one"
 msgstr "Mettre en ligne une version de thème sur le domaine public du blog, en remplacement de l'actuelle"
 
-#: src/services/api/permissions.ts:674
+#: src/services/api/permissions.ts:682
 msgid "Make an automation live and install its database trigger, so contacts begin flowing through it"
 msgstr "Mettre une automation en ligne et installer son déclencheur en base de données, afin que les contacts commencent à y circuler"
 
@@ -8073,7 +8226,7 @@ msgstr "Marqué comme spam"
 msgid "Marketing"
 msgstr "Marketing"
 
-#: src/services/api/permissions.ts:490
+#: src/services/api/permissions.ts:498
 msgid "Marketing campaigns: their drafts, A/B variations, data feeds, schedules and send lifecycle."
 msgstr "Les campagnes marketing : leurs brouillons, variations A/B, flux de données, planifications et cycle de vie d'envoi."
 
@@ -8183,9 +8336,9 @@ msgstr "Membre supprimé avec succès"
 msgid "Message"
 msgstr "Message"
 
-#: src/components/settings/PermissionsMatrix.tsx:127
-#: src/pages/LogsPage.tsx:37
-#: src/services/api/errors.ts:66
+#: src/components/settings/PermissionsMatrix.tsx:128
+#: src/pages/LogsPage.tsx:56
+#: src/services/api/errors.ts:69
 msgid "Message History"
 msgstr "Historique des messages"
 
@@ -8370,8 +8523,12 @@ msgid "Modest Branding"
 msgstr "Branding discret"
 
 #: src/pages/LogsPage.tsx:29
-msgid "Monitor message delivery status and webhook events"
-msgstr "Surveiller le statut de livraison des messages et les événements webhook"
+#~ msgid "Monitor message delivery status and webhook events"
+#~ msgstr "Surveiller le statut de livraison des messages et les événements webhook"
+
+#: src/pages/LogsPage.tsx:96
+msgid "Monitor message delivery status, webhook events and the audit trail"
+msgstr "Surveillez l'état de livraison des messages, les événements webhook et le journal d'audit"
 
 #: src/components/web_analytics/toolbar.tsx:25
 msgid "Month to date"
@@ -8399,8 +8556,8 @@ msgstr "Plus d options"
 #~ msgid "Move later"
 #~ msgstr ""
 
-#: src/components/settings/SystemSettingsDrawer.tsx:559
-#: src/components/settings/SystemSettingsDrawer.tsx:601
+#: src/components/settings/SystemSettingsDrawer.tsx:564
+#: src/components/settings/SystemSettingsDrawer.tsx:606
 #: src/pages/SetupWizard.tsx:715
 msgid "Must be a valid https URL"
 msgstr "Doit être une URL https valide"
@@ -8443,6 +8600,8 @@ msgstr "N/A"
 #: src/components/file_manager/fileManager.tsx:868
 #: src/components/lists/ListDrawer.tsx:185
 #: src/components/segment/button_upsert.tsx:442
+#: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:125
+#: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:154
 #: src/components/settings/Integrations.tsx:389
 #: src/components/settings/Integrations.tsx:1472
 #: src/components/settings/Integrations.tsx:1631
@@ -8571,7 +8730,7 @@ msgstr "Prochaine exécution"
 #: src/components/settings/Integrations.tsx:1613
 #: src/components/settings/Integrations.tsx:1682
 #: src/components/settings/Integrations.tsx:1746
-#: src/components/settings/PermissionsMatrix.tsx:189
+#: src/components/settings/PermissionsMatrix.tsx:193
 #: src/components/settings/WebhookCard.tsx:218
 #: src/components/settings/WebhookCard.tsx:274
 #: src/components/settings/WebhookCard.tsx:361
@@ -8605,6 +8764,10 @@ msgstr "Aucune réponse n'a été renvoyée. Veuillez réessayer."
 #: src/components/web_analytics/tabs/FiltersTab.tsx:186
 msgid "No attribution rules yet. Create the first one to start shaping your traffic data."
 msgstr "Aucune règle d'attribution pour le moment. Créez la première pour commencer à façonner vos données de trafic."
+
+#: src/components/settings/audit_logs/AuditLogTable.tsx:287
+msgid "No audit entries match"
+msgstr "Aucune entrée d'audit ne correspond"
 
 #: src/pages/AutomationsPage.tsx:189
 msgid "No automations yet"
@@ -8661,7 +8824,7 @@ msgstr "Pas de conditions"
 msgid "No contacts found. Add some contacts to get started."
 msgstr "Aucun contact trouvé. Ajoutez des contacts pour commencer."
 
-#: src/components/contacts/ExportContactsModal.tsx:181
+#: src/components/contacts/ExportContactsModal.tsx:183
 msgid "No contacts match the current filters"
 msgstr "Aucun contact ne correspond aux filtres actuels"
 
@@ -9081,6 +9244,10 @@ msgstr "Notes"
 msgid "Nothing has been recorded over the last 24 hours. Check that this snippet is still installed on your website."
 msgstr "Rien n'a été enregistré au cours des dernières 24 heures. Vérifiez que ce snippet est toujours installé sur votre site web."
 
+#: src/components/license/LicenceGateNotice.tsx:67
+msgid "Nothing is being recorded, and nothing is refused: this page, the export and the retention setting stay available, and entries recorded while a licence covered audit logs stay readable."
+msgstr "Rien n'est enregistré, et rien n'est refusé : cette page, l'export et le réglage de rétention restent disponibles, et les entrées enregistrées pendant qu'une licence couvrait les journaux d'audit restent lisibles."
+
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:89
 msgid "Notification created successfully"
 msgstr "Notification créée avec succès"
@@ -9186,7 +9353,7 @@ msgstr "Une fois"
 msgid "Once per contact"
 msgstr "Une fois par contact"
 
-#: src/services/api/permissions.ts:883
+#: src/services/api/permissions.ts:916
 msgid "One endpoint, but it is the whole assistant: /api/llm.chat streams through the workspace's own provider integration, on the workspace's own billing. When a Firecrawl integration is configured it also lets the assistant run the scrape and search tools from the server, so this grant reaches the open web through your credentials."
 msgstr "Un seul endpoint, mais c'est tout l'assistant : /api/llm.chat diffuse via l'intégration fournisseur propre à l'espace de travail, sur la facturation propre à l'espace de travail. Lorsqu'une intégration Firecrawl est configurée, il permet en outre à l'assistant d'exécuter les outils de scraping et de recherche depuis le serveur : cette permission atteint donc le web ouvert avec vos identifiants."
 
@@ -9273,9 +9440,17 @@ msgstr "Ouvrir dans un nouvel onglet"
 msgid "Open on web"
 msgstr "Ouvrir sur le web"
 
+#: src/services/api/permissions.ts:870
+msgid "Open one audit entry with its before/after changes"
+msgstr "Ouvrir une entrée d'audit avec ses modifications avant/après"
+
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:54
 msgid "Open Rate"
 msgstr "Taux d ouverture"
+
+#: src/components/settings/audit_logs/AuditLogsSettings.tsx:42
+msgid "Open the audit log"
+msgstr "Ouvrir le journal d'audit"
 
 #: src/pages/WebAnalyticsPage.tsx:127
 #~ msgid "Open the settings tab to install the tracking snippet"
@@ -9342,9 +9517,9 @@ msgstr "Opérations"
 msgid "Opt-in"
 msgstr "Opt-in"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:378
-#: src/components/settings/SystemSettingsDrawer.tsx:391
-#: src/components/settings/SystemSettingsDrawer.tsx:446
+#: src/components/settings/SystemSettingsDrawer.tsx:383
+#: src/components/settings/SystemSettingsDrawer.tsx:396
+#: src/components/settings/SystemSettingsDrawer.tsx:451
 msgid "Optional"
 msgstr "Optionnel"
 
@@ -9389,11 +9564,17 @@ msgstr "OS"
 msgid "Other"
 msgstr "Autre"
 
-#: src/services/api/permissions.ts:800
+#: src/services/api/permissions.ts:808
 msgid "Outbound webhook subscriptions — where the workspace POSTs its own events — and their delivery log."
 msgstr "Les abonnements webhook sortants — vers lesquels l'espace de travail poste ses propres événements — et leur journal de livraison."
 
-#: src/pages/LogsPage.tsx:49
+#: src/components/settings/audit_logs/AuditFilterBuilder.tsx:101
+#: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:99
+#: src/components/settings/audit_logs/AuditLogTable.tsx:257
+msgid "Outcome"
+msgstr "Résultat"
+
+#: src/pages/LogsPage.tsx:71
 msgid "Outgoing Webhooks"
 msgstr "Webhooks sortants"
 
@@ -9511,11 +9692,11 @@ msgstr "Accès par chemin"
 msgid "Pause"
 msgstr "Pause"
 
-#: src/services/api/permissions.ts:539
+#: src/services/api/permissions.ts:547
 msgid "Pause a broadcast mid-send"
 msgstr "Mettre en pause une diffusion en cours d'envoi"
 
-#: src/services/api/permissions.ts:678
+#: src/services/api/permissions.ts:686
 msgid "Pause a live automation"
 msgstr "Mettre en pause une automation en ligne"
 
@@ -9596,7 +9777,7 @@ msgstr "Période — {detail}"
 msgid "Periodically check for new Notifuse versions and security updates. A popup will list new versions available."
 msgstr "Vérifier périodiquement les nouvelles versions de Notifuse et les mises à jour de sécurité. Une popup listera les nouvelles versions disponibles."
 
-#: src/services/api/permissions.ts:207
+#: src/services/api/permissions.ts:215
 msgid "Permanently delete any contact"
 msgstr "Supprimer définitivement n'importe quel contact"
 
@@ -9646,7 +9827,7 @@ msgstr "Choisissez une dimension ci-dessous"
 msgid "Pick a report to start from, or build your own."
 msgstr "Choisissez un rapport de départ, ou construisez le vôtre."
 
-#: src/services/api/permissions.ts:559
+#: src/services/api/permissions.ts:567
 msgid "Pick the winning A/B variation and send it to the remaining audience"
 msgstr "Choisir la variation A/B gagnante et l'envoyer au reste de l'audience"
 
@@ -9960,8 +10141,8 @@ msgstr "Port"
 msgid "Port for the SMTP bridge server (default: 587)"
 msgstr "Port pour le serveur relais SMTP (par défaut : 587)"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:338
-#: src/components/settings/SystemSettingsDrawer.tsx:491
+#: src/components/settings/SystemSettingsDrawer.tsx:343
+#: src/components/settings/SystemSettingsDrawer.tsx:496
 msgid "Port must be 1-65535"
 msgstr "Le port doit être compris entre 1 et 65535"
 
@@ -10058,7 +10239,7 @@ msgstr "Aperçu"
 msgid "Preview (first 10 emails)"
 msgstr "Aperçu (10 premiers emails)"
 
-#: src/services/api/permissions.ts:296
+#: src/services/api/permissions.ts:304
 msgid "Preview accepts any definition sent to it, not just a saved segment, so anyone holding it together with Contacts read can ask counting questions about contact attributes, list membership, custom events and timeline — one count at a time, on any condition they like. Segments read alone cannot reach it. Segment permissions also quietly decide who may run three kinds of background task on the shared /api/tasks.* endpoints."
 msgstr "L'aperçu accepte n'importe quelle définition qui lui est envoyée, et pas seulement un segment enregistré : quiconque le détient avec la lecture Contacts peut donc poser des questions de comptage sur les attributs des contacts, l'appartenance aux listes, les événements personnalisés et la chronologie — un décompte à la fois, sur la condition de son choix. La lecture Segments seule n'y donne pas accès. Les permissions Segments décident aussi discrètement de qui peut exécuter trois types de tâches en arrière-plan sur les endpoints partagés /api/tasks.*."
 
@@ -10278,7 +10459,7 @@ msgstr "Publication"
 msgid "Publish"
 msgstr "Publier"
 
-#: src/services/api/permissions.ts:462
+#: src/services/api/permissions.ts:470
 msgid "Publish a post to the live blog"
 msgstr "Publier un article sur le blog en ligne"
 
@@ -10329,6 +10510,10 @@ msgstr "Limite de débit pour le marketing"
 msgid "Rate limit for marketing emails (emails per minute)"
 msgstr "Limite de débit pour les emails marketing (emails par minute)"
 
+#: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:195
+msgid "Raw entry"
+msgstr "Entrée brute"
+
 #: src/components/timeline/ContactTimeline.tsx:1023
 msgid "Raw Entry Data"
 msgstr "Données brutes de l entrée"
@@ -10353,33 +10538,33 @@ msgstr "Payload brut :"
 msgid "Re-register"
 msgstr "Réenregistrer"
 
-#: src/components/settings/PermissionsMatrix.tsx:94
-#: src/components/settings/PermissionsMatrix.tsx:189
-#: src/components/settings/PermissionsMatrix.tsx:239
+#: src/components/settings/PermissionsMatrix.tsx:95
+#: src/components/settings/PermissionsMatrix.tsx:193
+#: src/components/settings/PermissionsMatrix.tsx:243
 msgid "Read"
 msgstr "Lecture"
 
-#: src/services/api/permissions.ts:752
+#: src/services/api/permissions.ts:760
 msgid "Read a backfill task's state and progress"
 msgstr "Lire l'état et la progression d'une tâche de recalcul historique"
 
-#: src/services/api/permissions.ts:695
+#: src/services/api/permissions.ts:703
 msgid "Read a broadcast's delivered, open, click, bounce and complaint counts"
 msgstr "Lire les décomptes de livraisons, ouvertures, clics, rejets et plaintes d'une diffusion"
 
-#: src/services/api/permissions.ts:313
+#: src/services/api/permissions.ts:321
 msgid "Read a list's subscriber counts by status"
 msgstr "Lire le nombre d'abonnés d'une liste par statut"
 
-#: src/services/api/permissions.ts:519
+#: src/services/api/permissions.ts:527
 msgid "Read a send task's progress"
 msgstr "Lire la progression d'une tâche d'envoi"
 
-#: src/services/api/permissions.ts:503
+#: src/services/api/permissions.ts:511
 msgid "Read A/B test results for a broadcast"
 msgstr "Lire les résultats du test A/B d'une diffusion"
 
-#: src/services/api/permissions.ts:904
+#: src/services/api/permissions.ts:937
 msgid "Read an integration sync task's state and progress"
 msgstr "Lire l'état et la progression d'une tâche de synchronisation d'intégration"
 
@@ -10387,87 +10572,87 @@ msgstr "Lire l'état et la progression d'une tâche de synchronisation d'intégr
 #~ msgid "Read and write"
 #~ msgstr "Lecture et écriture"
 
-#: src/services/api/permissions.ts:866
+#: src/services/api/permissions.ts:899
 msgid "Read is not a summary: these are the provider's own payloads, so the rows carry recipient addresses and provider diagnostics. That is why membership alone is not enough for them."
 msgstr "La lecture n'est pas un résumé : il s'agit des charges utiles propres au fournisseur, si bien que les lignes contiennent les adresses des destinataires et les diagnostics du fournisseur. C'est pourquoi la simple appartenance à l'espace de travail ne suffit pas pour y accéder."
 
-#: src/services/api/permissions.ts:740
+#: src/services/api/permissions.ts:748
 msgid "Read one annotation"
 msgstr "Lire une annotation"
 
-#: src/services/api/permissions.ts:642
+#: src/services/api/permissions.ts:650
 msgid "Read one automation's full node configuration, including webhook node URLs and bearer secrets"
 msgstr "Lire la configuration complète des nœuds d'une automation, y compris les URL des nœuds webhook et les secrets bearer"
 
-#: src/services/api/permissions.ts:499
+#: src/services/api/permissions.ts:507
 msgid "Read one broadcast's full configuration"
 msgstr "Lire la configuration complète d'une diffusion"
 
-#: src/services/api/permissions.ts:419
+#: src/services/api/permissions.ts:427
 msgid "Read one category by ID or slug"
 msgstr "Lire une catégorie par ID ou par slug"
 
-#: src/services/api/permissions.ts:151
+#: src/services/api/permissions.ts:159
 msgid "Read one contact's full activity timeline"
 msgstr "Lire la chronologie d'activité complète d'un contact"
 
-#: src/services/api/permissions.ts:317
+#: src/services/api/permissions.ts:325
 msgid "Read one contact's membership row on one list"
 msgstr "Lire la ligne d'appartenance d'un contact à une liste"
 
-#: src/services/api/permissions.ts:155
+#: src/services/api/permissions.ts:163
 msgid "Read one custom event recorded against a contact"
 msgstr "Lire un événement personnalisé enregistré sur un contact"
 
-#: src/services/api/permissions.ts:309
+#: src/services/api/permissions.ts:317
 msgid "Read one list's full settings"
 msgstr "Lire l'intégralité des paramètres d'une liste"
 
-#: src/services/api/permissions.ts:646
+#: src/services/api/permissions.ts:654
 msgid "Read one named contact's journey through an automation, node by node"
 msgstr "Lire le parcours d'un contact nommé dans une automation, nœud par nœud"
 
-#: src/services/api/permissions.ts:427
+#: src/services/api/permissions.ts:435
 msgid "Read one post, including unpublished drafts"
 msgstr "Lire un article, y compris les brouillons non publiés"
 
-#: src/services/api/permissions.ts:380
+#: src/services/api/permissions.ts:388
 msgid "Read one reusable template block"
 msgstr "Lire un bloc de modèle réutilisable"
 
-#: src/services/api/permissions.ts:260
+#: src/services/api/permissions.ts:268
 msgid "Read one segment build/recompute task's state and progress"
 msgstr "Lire l'état et la progression d'une tâche de construction/recalcul de segment"
 
-#: src/services/api/permissions.ts:244
+#: src/services/api/permissions.ts:252
 msgid "Read one segment's definition and generated SQL"
 msgstr "Lire la définition d'un segment et le SQL généré"
 
-#: src/services/api/permissions.ts:809
+#: src/services/api/permissions.ts:817
 msgid "Read one subscription; its signing secret is redacted unless you own the workspace"
 msgstr "Lire un abonnement ; son secret de signature est masqué sauf si vous êtes propriétaire de l'espace de travail"
 
-#: src/services/api/permissions.ts:368
+#: src/services/api/permissions.ts:376
 msgid "Read one template, at any stored version"
 msgstr "Lire un modèle, dans n'importe quelle version stockée"
 
-#: src/services/api/permissions.ts:435
+#: src/services/api/permissions.ts:443
 msgid "Read one theme version, including its scripts.js"
 msgstr "Lire une version de thème, y compris son scripts.js"
 
-#: src/services/api/permissions.ts:593
+#: src/services/api/permissions.ts:601
 msgid "Read one transactional notification's channel and template configuration"
 msgstr "Lire la configuration de canal et de modèle d'une notification transactionnelle"
 
-#: src/services/api/permissions.ts:703
+#: src/services/api/permissions.ts:711
 msgid "Read per-link click counts for one broadcast template"
 msgstr "Lire les décomptes de clics par lien pour un modèle de diffusion"
 
-#: src/services/api/permissions.ts:439
+#: src/services/api/permissions.ts:447
 msgid "Read the currently published theme"
 msgstr "Lire le thème actuellement publié"
 
-#: src/services/api/permissions.ts:813
+#: src/services/api/permissions.ts:821
 msgid "Read the delivery log, including each event payload and the endpoint's response status and body"
 msgstr "Lire le journal de livraison, y compris la charge utile de chaque événement ainsi que le statut et le corps de la réponse de l'endpoint"
 
@@ -10475,15 +10660,15 @@ msgstr "Lire le journal de livraison, y compris la charge utile de chaque évén
 msgid "Read the latest post from this broadcast."
 msgstr "Lisez le dernier article de cette diffusion."
 
-#: src/services/api/permissions.ts:744
+#: src/services/api/permissions.ts:752
 msgid "Read the progress of the historical backfill"
 msgstr "Lire la progression du recalcul historique"
 
-#: src/services/api/permissions.ts:699
+#: src/services/api/permissions.ts:707
 msgid "Read the same counts for one A/B variation"
 msgstr "Lire les mêmes décomptes pour une variation A/B"
 
-#: src/services/api/permissions.ts:892
+#: src/services/api/permissions.ts:925
 msgid "Read the workspace record and its settings; Workspace write alone also passes, so someone who may only edit can still load what they are editing"
 msgstr "Lire la fiche de l'espace de travail et ses paramètres ; l'écriture Espace de travail seule passe également, si bien que quelqu'un qui n'a le droit que de modifier peut tout de même charger ce qu'il modifie"
 
@@ -10580,7 +10765,7 @@ msgstr "Recommandé : 150-160 caractères"
 msgid "Recommended: 50-60 characters"
 msgstr "Recommandé : 50-60 caractères"
 
-#: src/services/api/permissions.ts:211
+#: src/services/api/permissions.ts:219
 msgid "Record or overwrite a custom event on a contact"
 msgstr "Enregistrer ou écraser un événement personnalisé sur un contact"
 
@@ -10604,7 +10789,7 @@ msgstr "Enregistrer la région ou l'État des visiteurs"
 #~ msgid "Records each session and pageview of visitors identified with identify() as contact timeline entries. Unlike goals, navigation never triggers automations. A busy visit can add dozens of entries to a contact's timeline. Obtaining consent to store browsing history against a contact is your responsibility."
 #~ msgstr ""
 
-#: src/components/settings/SystemSettingsDrawer.tsx:599
+#: src/components/settings/SystemSettingsDrawer.tsx:604
 msgid "Redirect URI"
 msgstr "URI de redirection"
 
@@ -10639,6 +10824,8 @@ msgid "Referrers"
 msgstr "Référents"
 
 #: src/components/contacts/ContactDetailsDrawer.tsx:630
+#: src/components/logs/AuditLogActions.tsx:30
+#: src/components/logs/AuditLogActions.tsx:36
 #: src/components/messages/MessageHistoryTable.tsx:426
 #: src/components/settings/LicenseSettings.tsx:155
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:429
@@ -10652,7 +10839,7 @@ msgstr "Actualiser"
 msgid "Refresh Broadcast"
 msgstr "Actualiser la diffusion"
 
-#: src/services/api/permissions.ts:563
+#: src/services/api/permissions.ts:571
 msgid "Refresh the broadcast's data feed by calling the configured external URL"
 msgstr "Actualiser le flux de données de la diffusion en appelant l'URL externe configurée"
 
@@ -10716,11 +10903,11 @@ msgstr "Recharger la dernière version"
 msgid "Remove"
 msgstr "Retirer"
 
-#: src/services/api/permissions.ts:347
+#: src/services/api/permissions.ts:355
 msgid "Remove a contact from a list (also needs Contacts write)"
 msgstr "Retirer un contact d'une liste (nécessite aussi l'écriture Contacts)"
 
-#: src/services/api/permissions.ts:223
+#: src/services/api/permissions.ts:231
 msgid "Remove a contact from a list (also needs Lists write)"
 msgstr "Retirer un contact d'une liste (nécessite aussi l'écriture Listes)"
 
@@ -10778,11 +10965,11 @@ msgstr "retiré"
 msgid "Removed"
 msgstr "Retiré"
 
-#: src/services/api/permissions.ts:451
+#: src/services/api/permissions.ts:459
 msgid "Rename or re-slug a category"
 msgstr "Renommer une catégorie ou modifier son slug"
 
-#: src/services/api/permissions.ts:912
+#: src/services/api/permissions.ts:945
 msgid "Rename the workspace's custom contact field labels"
 msgstr "Renommer les libellés des champs de contact personnalisés de l'espace de travail"
 
@@ -10868,10 +11055,14 @@ msgstr "L'isolation de réputation est active pour cette intégration"
 msgid "Reputation isolation is on. These senders have no verified identity and will fail to send: {0}"
 msgstr "L'isolation de réputation est activée. Ces expéditeurs n'ont pas d'identité vérifiée et échoueront à l'envoi : {0}"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:280
-#: src/components/settings/SystemSettingsDrawer.tsx:319
-#: src/components/settings/SystemSettingsDrawer.tsx:333
-#: src/components/settings/SystemSettingsDrawer.tsx:403
+#: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:137
+msgid "Request ID"
+msgstr "ID de requête"
+
+#: src/components/settings/SystemSettingsDrawer.tsx:285
+#: src/components/settings/SystemSettingsDrawer.tsx:324
+#: src/components/settings/SystemSettingsDrawer.tsx:338
+#: src/components/settings/SystemSettingsDrawer.tsx:408
 msgid "Required"
 msgstr "Requis"
 
@@ -10879,19 +11070,19 @@ msgstr "Requis"
 msgid "Required Fields"
 msgstr "Champs requis"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:664
+#: src/components/settings/SystemSettingsDrawer.tsx:669
 msgid "Required when auto-create is enabled"
 msgstr "Requis lorsque la création automatique est activée"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:472
-#: src/components/settings/SystemSettingsDrawer.tsx:509
-#: src/components/settings/SystemSettingsDrawer.tsx:524
+#: src/components/settings/SystemSettingsDrawer.tsx:477
+#: src/components/settings/SystemSettingsDrawer.tsx:514
+#: src/components/settings/SystemSettingsDrawer.tsx:529
 msgid "Required when bridge is enabled"
 msgstr "Requis lorsque le bridge est activé"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:558
-#: src/components/settings/SystemSettingsDrawer.tsx:576
-#: src/components/settings/SystemSettingsDrawer.tsx:586
+#: src/components/settings/SystemSettingsDrawer.tsx:563
+#: src/components/settings/SystemSettingsDrawer.tsx:581
+#: src/components/settings/SystemSettingsDrawer.tsx:591
 msgid "Required when SSO is enabled"
 msgstr "Requis lorsque le SSO est activé"
 
@@ -10913,19 +11104,19 @@ msgstr "Renvoyer l invitation"
 msgid "Reset"
 msgstr "Réinitialiser"
 
-#: src/services/api/permissions.ts:788
+#: src/services/api/permissions.ts:796
 msgid "Reset a backfill task so it re-runs from the start"
 msgstr "Réinitialiser une tâche de recalcul historique pour qu'elle reparte du début"
 
-#: src/services/api/permissions.ts:288
+#: src/services/api/permissions.ts:296
 msgid "Reset a segment task's progress so it re-runs from the start"
 msgstr "Réinitialiser la progression d'une tâche de segment pour qu'elle reparte du début"
 
-#: src/services/api/permissions.ts:575
+#: src/services/api/permissions.ts:583
 msgid "Reset a send task, so a broadcast re-sends from the start"
 msgstr "Réinitialiser une tâche d'envoi, afin qu'une diffusion soit renvoyée depuis le début"
 
-#: src/services/api/permissions.ts:924
+#: src/services/api/permissions.ts:957
 msgid "Reset an integration sync task so it re-runs from the start"
 msgstr "Réinitialiser une tâche de synchronisation d'intégration pour qu'elle reparte du début"
 
@@ -10949,7 +11140,7 @@ msgstr "Réinitialiser la traduction"
 msgid "Resolved"
 msgstr "Résolu"
 
-#: src/components/settings/PermissionsMatrix.tsx:232
+#: src/components/settings/PermissionsMatrix.tsx:236
 msgid "Resource"
 msgstr "Ressource"
 
@@ -10961,7 +11152,7 @@ msgstr "Réponse"
 msgid "Response Body:"
 msgstr "Corps de la réponse :"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:162
+#: src/components/settings/SystemSettingsDrawer.tsx:167
 msgid "Restart Server?"
 msgstr "Redémarrer le serveur ?"
 
@@ -11007,7 +11198,7 @@ msgstr "Résultats :"
 msgid "Resume"
 msgstr "Reprendre"
 
-#: src/services/api/permissions.ts:543
+#: src/services/api/permissions.ts:551
 msgid "Resume a paused broadcast, continuing the send"
 msgstr "Reprendre une diffusion en pause et poursuivre l'envoi"
 
@@ -11031,9 +11222,9 @@ msgstr "Reprendre le téléversement précédent"
 msgid "Resume Upload"
 msgstr "Reprendre le téléversement"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:179
-#~ msgid "Retention"
-#~ msgstr ""
+#: src/components/settings/audit_logs/AuditLogRetentionCard.tsx:85
+msgid "Retention"
+msgstr "Rétention"
 
 #: src/components/settings/WebAnalyticsSettings.tsx:242
 #~ msgid "Retention (months)"
@@ -11070,7 +11261,7 @@ msgstr "De droite à gauche"
 msgid "Role"
 msgstr "Rôle"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:255
+#: src/components/settings/SystemSettingsDrawer.tsx:260
 #: src/pages/SetupWizard.tsx:366
 msgid "Root Email"
 msgstr "Email administrateur"
@@ -11115,39 +11306,39 @@ msgstr "Règle activée"
 msgid "Rule updated"
 msgstr "Règle mise à jour"
 
-#: src/services/api/permissions.ts:784
+#: src/services/api/permissions.ts:792
 msgid "Run a backfill task immediately"
 msgstr "Exécuter immédiatement une tâche de recalcul historique"
 
-#: src/services/api/permissions.ts:284
+#: src/services/api/permissions.ts:292
 msgid "Run a segment build/recompute task immediately"
 msgstr "Exécuter immédiatement une tâche de construction/recalcul de segment"
 
-#: src/services/api/permissions.ts:650
+#: src/services/api/permissions.ts:658
 msgid "Run aggregate queries over the `automation_node_executions` schema"
 msgstr "Exécuter des requêtes d'agrégation sur le schéma `automation_node_executions`"
 
-#: src/services/api/permissions.ts:507
+#: src/services/api/permissions.ts:515
 msgid "Run aggregate queries over the `broadcasts` schema"
 msgstr "Exécuter des requêtes d'agrégation sur le schéma `broadcasts`"
 
-#: src/services/api/permissions.ts:179
+#: src/services/api/permissions.ts:187
 msgid "Run aggregate queries over the `contacts` schema"
 msgstr "Exécuter des requêtes d'agrégation sur le schéma `contacts`"
 
-#: src/services/api/permissions.ts:707
+#: src/services/api/permissions.ts:715
 msgid "Run aggregate queries over the `message_history` and `email_queue` schemas"
 msgstr "Exécuter des requêtes d'agrégation sur les schémas `message_history` et `email_queue`"
 
-#: src/services/api/permissions.ts:728
+#: src/services/api/permissions.ts:736
 msgid "Run aggregate queries over the `web_sessions`, `web_pages` and `web_goals` schemas"
 msgstr "Exécuter des requêtes d'agrégation sur les schémas `web_sessions`, `web_pages` et `web_goals`"
 
-#: src/services/api/permissions.ts:817
+#: src/services/api/permissions.ts:825
 msgid "Run aggregate queries over the `webhook_deliveries` schema"
 msgstr "Exécuter des requêtes d'agrégation sur le schéma `webhook_deliveries`"
 
-#: src/services/api/permissions.ts:920
+#: src/services/api/permissions.ts:953
 msgid "Run an integration sync task immediately"
 msgstr "Exécuter immédiatement une tâche de synchronisation d'intégration"
 
@@ -11237,7 +11428,7 @@ msgstr "Mode bac à sable"
 #: src/components/settings/Integrations.tsx:2830
 #: src/components/settings/Integrations.tsx:2877
 #: src/components/settings/Integrations.tsx:2913
-#: src/components/settings/SystemSettingsDrawer.tsx:240
+#: src/components/settings/SystemSettingsDrawer.tsx:245
 #: src/components/settings/WebhooksSettings.tsx:253
 #: src/components/templates/CreateTemplateDrawer.tsx:650
 #: src/components/templates/CreateTemplateDrawer.tsx:671
@@ -11247,7 +11438,7 @@ msgstr "Mode bac à sable"
 msgid "Save"
 msgstr "Enregistrer"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:170
+#: src/components/settings/SystemSettingsDrawer.tsx:175
 msgid "Save & Restart"
 msgstr "Enregistrer et redémarrer"
 
@@ -11306,7 +11497,7 @@ msgstr "Enregistrés ({0})"
 msgid "Saved block: {0}"
 msgstr "Bloc enregistré : {0}"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:152
+#: src/components/settings/SystemSettingsDrawer.tsx:157
 msgid "Saving settings will restart the server. You will need to sign in again."
 msgstr "L'enregistrement des paramètres redémarrera le serveur. Vous devrez vous reconnecter."
 
@@ -11318,7 +11509,7 @@ msgstr "Programmer"
 msgid "Schedule for later delivery"
 msgstr "Programmer pour livraison ultérieure"
 
-#: src/services/api/permissions.ts:535
+#: src/services/api/permissions.ts:543
 msgid "Schedule or immediately send a broadcast to its entire audience"
 msgstr "Planifier ou envoyer immédiatement une diffusion à toute son audience"
 
@@ -11338,7 +11529,7 @@ msgstr "Programmé dans {daysUntil} {0}"
 msgid "Scheduled today"
 msgstr "Programmé aujourd hui"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:634
+#: src/components/settings/SystemSettingsDrawer.tsx:639
 msgid "Scopes"
 msgstr "Scopes"
 
@@ -11416,7 +11607,7 @@ msgstr "Attributs de section"
 msgid "Security"
 msgstr "Sécurité"
 
-#: src/services/api/permissions.ts:515
+#: src/services/api/permissions.ts:523
 msgid "See broadcast send tasks; a listing that names no type is narrowed to the types you may read"
 msgstr "Voir les tâches d'envoi de diffusion ; une liste qui ne nomme aucun type est restreinte aux types que vous êtes autorisé à lire"
 
@@ -11424,39 +11615,39 @@ msgstr "Voir les tâches d'envoi de diffusion ; une liste qui ne nomme aucun typ
 msgid "See docs for:"
 msgstr "Voir la doc pour :"
 
-#: src/services/api/permissions.ts:900
+#: src/services/api/permissions.ts:933
 msgid "See integration sync tasks; a listing that names no type is narrowed to the types you may read"
 msgstr "Voir les tâches de synchronisation d'intégration ; une liste qui ne nomme aucun type est restreinte aux types que vous êtes autorisé à lire"
 
-#: src/services/api/permissions.ts:256
+#: src/services/api/permissions.ts:264
 msgid "See segment build and recompute tasks; a listing that names no type is narrowed to the types you may read"
 msgstr "Voir les tâches de construction et de recalcul de segment ; une liste qui ne nomme aucun type est restreinte aux types que vous êtes autorisé à lire"
 
-#: src/services/api/permissions.ts:654
+#: src/services/api/permissions.ts:662
 msgid "See the `automation_node_executions` schema listed in the queryable catalogue"
 msgstr "Voir le schéma `automation_node_executions` listé dans le catalogue interrogeable"
 
-#: src/services/api/permissions.ts:511
+#: src/services/api/permissions.ts:519
 msgid "See the `broadcasts` schema listed in the queryable catalogue"
 msgstr "Voir le schéma `broadcasts` listé dans le catalogue interrogeable"
 
-#: src/services/api/permissions.ts:183
+#: src/services/api/permissions.ts:191
 msgid "See the `contacts` schema listed in the queryable catalogue (the listing is filtered to what you may read, never refused)"
 msgstr "Voir le schéma `contacts` listé dans le catalogue interrogeable (la liste est filtrée selon ce que vous êtes autorisé à lire, jamais refusée)"
 
-#: src/services/api/permissions.ts:711
+#: src/services/api/permissions.ts:719
 msgid "See the `message_history` and `email_queue` schemas listed in the queryable catalogue"
 msgstr "Voir les schémas `message_history` et `email_queue` listés dans le catalogue interrogeable"
 
-#: src/services/api/permissions.ts:821
+#: src/services/api/permissions.ts:829
 msgid "See the `webhook_deliveries` schema listed in the queryable catalogue"
 msgstr "Voir le schéma `webhook_deliveries` listé dans le catalogue interrogeable"
 
-#: src/services/api/permissions.ts:732
+#: src/services/api/permissions.ts:740
 msgid "See the web analytics schemas listed in the queryable catalogue"
 msgstr "Voir les schémas d'analyse web listés dans le catalogue interrogeable"
 
-#: src/services/api/permissions.ts:748
+#: src/services/api/permissions.ts:756
 msgid "See web analytics backfill tasks; a listing that names no type is narrowed to the types you may read"
 msgstr "Voir les tâches de recalcul historique d'analyse web ; une liste qui ne nomme aucun type est restreinte aux types que vous êtes autorisé à lire"
 
@@ -11489,11 +11680,11 @@ msgid "Segment tree reset"
 msgstr "Arbre du segment réinitialisé"
 
 #: src/components/contacts/SegmentsFilter.tsx:230
-#: src/components/settings/PermissionsMatrix.tsx:132
+#: src/components/settings/PermissionsMatrix.tsx:133
 #: src/pages/BroadcastsPage.tsx:1103
 #: src/pages/ContactsPage.tsx:425
 #: src/pages/ContactsPage.tsx:625
-#: src/services/api/errors.ts:71
+#: src/services/api/errors.ts:74
 msgid "Segments"
 msgstr "Segments"
 
@@ -11507,7 +11698,10 @@ msgstr "Segments"
 msgid "Select"
 msgstr "Sélectionner"
 
+#. placeholder {0}: labels[key]
 #. placeholder {0}: option.label
+#: src/components/settings/audit_logs/AuditFilterBuilder.tsx:163
+#: src/components/settings/audit_logs/AuditFilterBuilder.tsx:175
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:275
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:313
 msgid "Select {0}"
@@ -11828,19 +12022,19 @@ msgstr "Gagnant sélectionné"
 msgid "Selected: {0}"
 msgstr "Sélectionné : {0}"
 
-#: src/services/api/permissions.ts:555
+#: src/services/api/permissions.ts:563
 msgid "Send a broadcast to one named address"
 msgstr "Envoyer une diffusion à une adresse nommée"
 
-#: src/services/api/permissions.ts:617
+#: src/services/api/permissions.ts:625
 msgid "Send a real test email through a chosen integration and sender; cc or bcc additionally needs Contacts read"
 msgstr "Envoyer un véritable email de test via une intégration et un expéditeur choisis ; les cc ou bcc nécessitent en plus la lecture Contacts"
 
-#: src/services/api/permissions.ts:621
+#: src/services/api/permissions.ts:629
 msgid "Send a real test email through the workspace's stored provider credentials"
 msgstr "Envoyer un véritable email de test avec les identifiants de fournisseur stockés sur l'espace de travail"
 
-#: src/services/api/permissions.ts:613
+#: src/services/api/permissions.ts:621
 msgid "Send a real transactional email to any address; adding cc or bcc additionally needs Contacts read, and writing contact fields beyond the recipient's email additionally needs Contacts write"
 msgstr "Envoyer un véritable email transactionnel à n'importe quelle adresse ; ajouter des cc ou bcc nécessite en plus la lecture Contacts, et écrire des champs de contact au-delà de l'email du destinataire nécessite en plus l'écriture Contacts"
 
@@ -11848,7 +12042,7 @@ msgstr "Envoyer un véritable email transactionnel à n'importe quelle adresse ;
 msgid "Send a test email using this template to verify how it will look."
 msgstr "Envoyer un email de test avec ce modèle pour vérifier son apparence."
 
-#: src/services/api/permissions.ts:625
+#: src/services/api/permissions.ts:633
 msgid "Send a transactional notification by SMTP using the key's API email address as the username — the same gate as /api/transactional.send"
 msgstr "Envoyer une notification transactionnelle par SMTP en utilisant l'adresse email API de la clé comme nom d'utilisateur — le même contrôle que /api/transactional.send"
 
@@ -11986,16 +12180,16 @@ msgstr "Séparer les côtés"
 msgid "Server is restarting with new configuration..."
 msgstr "Le serveur redémarre avec la nouvelle configuration..."
 
-#: src/components/settings/SystemSettingsDrawer.tsx:178
+#: src/components/settings/SystemSettingsDrawer.tsx:183
 msgid "Server is restarting..."
 msgstr "Le serveur redémarre..."
 
-#: src/components/settings/SystemSettingsDrawer.tsx:203
+#: src/components/settings/SystemSettingsDrawer.tsx:208
 #: src/pages/SetupWizard.tsx:235
 msgid "Server restart timeout. Please refresh the page manually."
 msgstr "Délai de redémarrage du serveur. Veuillez actualiser la page manuellement."
 
-#: src/components/settings/SystemSettingsDrawer.tsx:190
+#: src/components/settings/SystemSettingsDrawer.tsx:195
 msgid "Server restarted successfully!"
 msgstr "Serveur redémarré avec succès !"
 
@@ -12077,15 +12271,15 @@ msgstr "Définir comme fournisseur d email marketing ?"
 msgid "Set as transactional email provider?"
 msgstr "Définir comme fournisseur d email transactionnel ?"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:97
+#: src/components/settings/SystemSettingsDrawer.tsx:102
 msgid "Set by environment variable"
 msgstr "Défini par une variable d'environnement"
 
-#: src/services/api/permissions.ts:191
+#: src/services/api/permissions.ts:199
 msgid "Set cc or bcc on a test send (also needs Transactional write)"
 msgstr "Définir des cc ou bcc sur un envoi de test (nécessite aussi l'écriture Transactionnel)"
 
-#: src/services/api/permissions.ts:187
+#: src/services/api/permissions.ts:195
 msgid "Set cc or bcc on a transactional send, which renders the subject against those recipients' whole records (also needs Transactional write)"
 msgstr "Définir des cc ou bcc sur un envoi transactionnel, ce qui fait rendre l'objet à partir de la fiche complète de ces destinataires (nécessite aussi l'écriture Transactionnel)"
 
@@ -12190,7 +12384,7 @@ msgstr "Définit la largeur d écran en dessous de laquelle l email passera en d
 msgid "Setting up..."
 msgstr "Configuration en cours..."
 
-#: src/components/settings/SettingsSidebar.tsx:164
+#: src/components/settings/SettingsSidebar.tsx:175
 #: src/layouts/WorkspaceLayout.tsx:481
 msgid "Settings"
 msgstr "Paramètres"
@@ -12256,11 +12450,15 @@ msgstr "Affichage des 200 premiers liens par clics uniques."
 msgid "Sign In"
 msgstr "Connexion"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:627
+#: src/components/settings/SystemSettingsDrawer.tsx:632
 #: src/pages/SetupWizard.tsx:747
 #: src/pages/SignInPage.tsx:248
 msgid "Sign in with SSO"
 msgstr "Se connecter avec le SSO"
+
+#: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:128
+msgid "Signed in with"
+msgstr "Connecté via"
 
 #: src/pages/LogoutPage.tsx:29
 msgid "Signing out..."
@@ -12335,9 +12533,9 @@ msgstr "Le slug ne doit contenir que des lettres minuscules, des chiffres et des
 msgid "SMS"
 msgstr "SMS"
 
-#: src/components/settings/SettingsSidebar.tsx:134
+#: src/components/settings/SettingsSidebar.tsx:136
 #: src/components/settings/SMTPBridgeSettings.tsx:20
-#: src/components/settings/SystemSettingsDrawer.tsx:456
+#: src/components/settings/SystemSettingsDrawer.tsx:461
 msgid "SMTP Bridge"
 msgstr "Relais SMTP"
 
@@ -12365,11 +12563,11 @@ msgstr "Configuration SMTP"
 msgid "SMTP connection successful!"
 msgstr "Connexion SMTP réussie !"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:116
+#: src/components/settings/SystemSettingsDrawer.tsx:121
 msgid "SMTP connection test failed"
 msgstr "Échec du test de connexion SMTP"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:114
+#: src/components/settings/SystemSettingsDrawer.tsx:119
 msgid "SMTP connection test successful"
 msgstr "Test de connexion SMTP réussi"
 
@@ -12379,7 +12577,7 @@ msgstr "Domaine SMTP"
 
 #: src/components/settings/Integrations.tsx:1875
 #: src/components/settings/Integrations.tsx:2409
-#: src/components/settings/SystemSettingsDrawer.tsx:317
+#: src/components/settings/SystemSettingsDrawer.tsx:322
 #: src/pages/SetupWizard.tsx:454
 msgid "SMTP Host"
 msgstr "Hôte SMTP"
@@ -12389,7 +12587,7 @@ msgid "SMTP host is required"
 msgstr "L'hôte SMTP est requis"
 
 #: src/components/settings/Integrations.tsx:2073
-#: src/components/settings/SystemSettingsDrawer.tsx:385
+#: src/components/settings/SystemSettingsDrawer.tsx:390
 #: src/pages/SetupWizard.tsx:495
 msgid "SMTP Password"
 msgstr "Mot de passe SMTP"
@@ -12399,7 +12597,7 @@ msgid "SMTP port"
 msgstr "Port SMTP"
 
 #: src/components/settings/Integrations.tsx:1882
-#: src/components/settings/SystemSettingsDrawer.tsx:330
+#: src/components/settings/SystemSettingsDrawer.tsx:335
 #: src/pages/SetupWizard.tsx:463
 msgid "SMTP Port"
 msgstr "Port SMTP"
@@ -12425,7 +12623,7 @@ msgid "SMTP User"
 msgstr "Utilisateur SMTP"
 
 #: src/components/settings/Integrations.tsx:2068
-#: src/components/settings/SystemSettingsDrawer.tsx:372
+#: src/components/settings/SystemSettingsDrawer.tsx:377
 #: src/pages/SetupWizard.tsx:490
 msgid "SMTP Username"
 msgstr "Nom d'utilisateur SMTP"
@@ -12519,7 +12717,7 @@ msgstr "Divisé"
 msgid "SQL Arguments:"
 msgstr "Arguments SQL :"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:540
+#: src/components/settings/SystemSettingsDrawer.tsx:545
 msgid "SSO (OpenID Connect)"
 msgstr "SSO (OpenID Connect)"
 
@@ -12531,11 +12729,11 @@ msgstr "La valeur standard est 480px pour la plupart des clients email"
 msgid "Start"
 msgstr "Démarrer"
 
-#: src/services/api/permissions.ts:571
+#: src/services/api/permissions.ts:579
 msgid "Start a broadcast send task immediately"
 msgstr "Démarrer immédiatement une tâche d'envoi de diffusion"
 
-#: src/services/api/permissions.ts:760
+#: src/services/api/permissions.ts:768
 msgid "Start a historical backfill of web analytics data"
 msgstr "Démarrer un recalcul historique des données d'analyse web"
 
@@ -12693,11 +12891,11 @@ msgstr "Envoi de la requête par lot au serveur..."
 msgid "Subscribe"
 msgstr "S'abonner"
 
-#: src/services/api/permissions.ts:339
+#: src/services/api/permissions.ts:347
 msgid "Subscribe an address to any list, public or not — and create or overwrite that contact's record in the same call"
 msgstr "Abonner une adresse à n'importe quelle liste, publique ou non — et créer ou écraser la fiche de ce contact dans le même appel"
 
-#: src/services/api/permissions.ts:351
+#: src/services/api/permissions.ts:359
 msgid "Subscribe imported contacts to lists — required only when the import names lists (also needs Contacts write)"
 msgstr "Abonner les contacts importés à des listes — requis uniquement lorsque l'import nomme des listes (nécessite aussi l'écriture Contacts)"
 
@@ -12766,6 +12964,7 @@ msgstr "Statut d'abonnement mis à jour avec succès"
 
 #: src/components/contacts/BulkActionProgressModal.tsx:143
 #: src/components/contacts/BulkUpdateDrawer.tsx:730
+#: src/components/settings/audit_logs/AuditFilterBuilder.tsx:109
 msgid "Success"
 msgstr "Succès"
 
@@ -12836,12 +13035,12 @@ msgstr "Passez en mode Aperçu pour voir les effets du point de rupture. Le mode
 msgid "System Fonts"
 msgstr "Polices système"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:222
-#: src/components/settings/SystemSettingsDrawer.tsx:233
+#: src/components/settings/SystemSettingsDrawer.tsx:227
+#: src/components/settings/SystemSettingsDrawer.tsx:238
 msgid "System Settings"
 msgstr "Paramètres système"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:303
+#: src/components/settings/SystemSettingsDrawer.tsx:308
 msgid "System SMTP"
 msgstr "SMTP système"
 
@@ -12854,7 +13053,7 @@ msgstr "Table des matières"
 msgid "Tags"
 msgstr "Tags"
 
-#: src/services/api/permissions.ts:466
+#: src/services/api/permissions.ts:474
 msgid "Take a published post off the live blog"
 msgstr "Retirer un article publié du blog en ligne"
 
@@ -12863,8 +13062,14 @@ msgid "Take a Tour"
 msgstr "Faire une visite guidée"
 
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:374
+#: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:145
+#: src/components/settings/audit_logs/AuditLogTable.tsx:226
 msgid "Target"
 msgstr "Cible"
+
+#: src/components/settings/audit_logs/AuditFilterBuilder.tsx:103
+msgid "Target ID"
+msgstr "ID de la cible"
 
 #: src/components/contacts/BulkActionsBar.tsx:200
 msgid "Target list:"
@@ -12878,7 +13083,7 @@ msgstr "Statut de la tâche"
 msgid "Task type:"
 msgstr "Type de tâche :"
 
-#: src/components/settings/SettingsSidebar.tsx:55
+#: src/components/settings/SettingsSidebar.tsx:57
 #: src/components/settings/WorkspaceMembers.tsx:441
 msgid "Team"
 msgstr "Équipe"
@@ -12891,7 +13096,7 @@ msgstr "Limite de membres de l'équipe atteinte. Veuillez passer à une offre su
 msgid "Technical performance insights"
 msgstr "Analyses de performance technique"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:691
+#: src/components/settings/SystemSettingsDrawer.tsx:696
 msgid "Telemetry"
 msgstr "Télémétrie"
 
@@ -13007,10 +13212,10 @@ msgstr "Variables du modèle :"
 msgid "Template:"
 msgstr "Modèle d'email :"
 
-#: src/components/settings/PermissionsMatrix.tsx:123
+#: src/components/settings/PermissionsMatrix.tsx:124
 #: src/layouts/WorkspaceLayout.tsx:251
 #: src/pages/TemplatesPage.tsx:404
-#: src/services/api/errors.ts:62
+#: src/services/api/errors.ts:65
 msgid "Templates"
 msgstr "Modèles d'email"
 
@@ -13055,7 +13260,7 @@ msgstr "Tester toutes les règles"
 msgid "Test Completed"
 msgstr "Test terminé"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:311
+#: src/components/settings/SystemSettingsDrawer.tsx:316
 #: src/pages/SetupWizard.tsx:535
 msgid "Test Connection"
 msgstr "Tester la connexion"
@@ -13199,11 +13404,11 @@ msgstr "Le"
 #~ msgid "The address must already belong to a contact: identifying someone who is not one records nothing, by design. Visitors arriving from a tracked email link are identified automatically, with no code."
 #~ msgstr ""
 
-#: src/services/api/permissions.ts:870
+#: src/services/api/permissions.ts:903
 msgid "The AI assistant: chat over the workspace's configured LLM integration, and the server-side tools it may call."
 msgstr "L'assistant IA : la conversation via l'intégration LLM configurée sur l'espace de travail, et les outils côté serveur qu'il peut appeler."
 
-#: src/components/settings/SystemSettingsDrawer.tsx:156
+#: src/components/settings/SystemSettingsDrawer.tsx:161
 msgid "The API endpoint has changed. After restart, the console will be available at:"
 msgstr "L'endpoint de l'API a changé. Après le redémarrage, la console sera accessible à :"
 
@@ -13280,7 +13485,7 @@ msgstr "L'email généré présente des problèmes qui empêchent son rendu :"
 msgid "The hostname your server identifies itself as when connecting to the SMTP server. Defaults to the SMTP host value if empty."
 msgstr "Le nom d'hôte sous lequel votre serveur s'identifie lors de la connexion au serveur SMTP. Par défaut, la valeur de l'hôte SMTP si le champ est vide."
 
-#: src/services/api/permissions.ts:853
+#: src/services/api/permissions.ts:886
 msgid "The inbound events email providers send back — bounces, complaints, deliveries and replies — as the raw rows the provider posted."
 msgstr "Les événements entrants renvoyés par les fournisseurs d'email — rejets, plaintes, livraisons et réponses — sous la forme des lignes brutes postées par le fournisseur."
 
@@ -13297,6 +13502,10 @@ msgstr "Le dernier recalcul historique a échoué"
 msgid "The licence covers this whole deployment rather than this workspace. Ask the person who runs this Notifuse instance."
 msgstr "La licence couvre l'ensemble du déploiement et non cet espace de travail. Adressez-vous à la personne qui administre cette instance Notifuse."
 
+#: src/services/api/permissions.ts:882
+msgid "The log names every member's email and IP address and records refused actions. Grant read to the people who need to answer \"who did this\", not to everyone."
+msgstr "Le journal nomme l'email et l'adresse IP de chaque membre et enregistre les actions refusées. Accordez la lecture aux personnes qui doivent répondre à « qui a fait cela », pas à tout le monde."
+
 #: src/components/settings/BlogSettings.tsx:344
 msgid "The main title for your blog"
 msgstr "Le titre principal de votre blog"
@@ -13305,7 +13514,7 @@ msgstr "Le titre principal de votre blog"
 #~ msgid "The name {prefix} is already taken on this Notifuse installation. Please pick another one."
 #~ msgstr "Le nom {prefix} est déjà utilisé sur cette installation Notifuse. Veuillez en choisir un autre."
 
-#: src/services/api/permissions.ts:686
+#: src/services/api/permissions.ts:694
 msgid "The outbound message log: every email the workspace sent, its delivery status, and the engagement counted against it."
 msgstr "Le journal des messages sortants : chaque email envoyé par l'espace de travail, son statut de livraison et l'engagement comptabilisé pour lui."
 
@@ -13378,13 +13587,17 @@ msgstr "Le webhook cessera de recevoir des événements."
 msgid "The whole condition tree will be deleted."
 msgstr "L'ensemble de l'arbre de conditions sera supprimé."
 
-#: src/services/api/permissions.ts:887
+#: src/services/api/permissions.ts:920
 msgid "The workspace record itself — its settings and its member roster — plus the custom contact field labels."
 msgstr "La fiche de l'espace de travail elle-même — ses paramètres et la liste de ses membres — ainsi que les libellés des champs de contact personnalisés."
 
 #: src/components/file_manager/buttonSettings.tsx:138
 msgid "The workspace settings have been updated!"
 msgstr "Les paramètres de l'espace de travail ont été mis à jour !"
+
+#: src/services/api/permissions.ts:861
+msgid "The workspace's audit log: who changed what, from where, and whether it was allowed. Owners always read it; a member or an API key reads it only with this grant."
+msgstr "Le journal d'audit du workspace : qui a modifié quoi, depuis où, et si c'était autorisé. Les propriétaires le lisent toujours ; un membre ou une clé API ne le lit qu'avec cette permission."
 
 #: src/components/blog/ThemeEditorDrawer.tsx:250
 msgid "Theme created successfully"
@@ -13401,6 +13614,10 @@ msgstr "Thème mis à jour avec succès"
 #: src/components/blog/RecentThemesTable.tsx:242
 msgid "Theme Versions"
 msgstr "Versions du thème"
+
+#: src/services/api/permissions.ts:880
+msgid "There is nothing to write: the log is append-only, and the retention setting is owner-only. The switch is granted and locked for the same reason as the other unenforced verbs."
+msgstr "Il n'y a rien à écrire : le journal est en ajout seul, et le réglage de rétention est réservé aux propriétaires. L'interrupteur est accordé et verrouillé pour la même raison que les autres verbes non appliqués."
 
 #: src/components/settings/Integrations.tsx:2300
 msgid "These AWS credentials can't list tenants or configuration sets (needs ses:ListTenants). Type the names instead."
@@ -13473,6 +13690,10 @@ msgstr "Cette annotation a été créée automatiquement au démarrage d'une dif
 msgid "This appears in browser tabs when viewing the email in a web browser and in some email clients. It's typically the same as or related to your email subject line."
 msgstr "Ceci apparaît dans les onglets du navigateur lors de la visualisation de l'email dans un navigateur web et dans certains clients email. C'est généralement identique ou lié à votre ligne d'objet."
 
+#: src/components/settings/audit_logs/AuditLogTable.tsx:145
+msgid "This audit entry could not be found"
+msgstr "Cette entrée d'audit est introuvable"
+
 #: src/pages/BroadcastsPage.tsx:273
 msgid "This broadcast failed due to an error. Check the logs for details."
 msgstr "Cette diffusion a échoué en raison d'une erreur. Consultez les logs pour plus de détails."
@@ -13519,8 +13740,8 @@ msgstr "Ce déploiement a atteint le nombre d'espaces de travail autorisé par s
 #~ msgstr "Ce déploiement est en lecture seule : l'authentification unique (SSO) est activée sans licence qui la couvre. Désactivez le SSO, ou installez une licence, pour pouvoir modifier."
 
 #: src/components/license/LicenceGateNotice.tsx:67
-msgid "This deployment keeps working without them."
-msgstr "Ce déploiement continue de fonctionner sans eux."
+#~ msgid "This deployment keeps working without them."
+#~ msgstr "Ce déploiement continue de fonctionner sans eux."
 
 #: src/pages/SetupWizard.tsx:372
 msgid "This email will be used for the root administrator account"
@@ -13554,7 +13775,7 @@ msgstr "Ce lien d'invitation est invalide ou a expiré."
 msgid "This is the ID that will be used as the utm_content parameter in the links URL to track the template"
 msgstr "C'est l'ID qui sera utilisé comme paramètre utm_content dans l'URL des liens pour suivre le modèle"
 
-#: src/services/api/permissions.ts:719
+#: src/services/api/permissions.ts:727
 msgid "This is where delivery statistics live, not under Broadcasts: a key that may create and send a broadcast still cannot read its open, click or bounce numbers without Message History read. The log carries recipient addresses and the rendered message data, so it is contact data by another name."
 msgstr "C'est ici que résident les statistiques de livraison, et non sous Newsletters : une clé autorisée à créer et envoyer une diffusion ne peut toujours pas lire ses chiffres d'ouverture, de clic ou de rejet sans la lecture Historique des messages. Le journal contient les adresses des destinataires et les données rendues du message : ce sont donc des données de contact sous un autre nom."
 
@@ -13594,11 +13815,11 @@ msgstr "Cette notification est gérée par une intégration et le modèle ne peu
 msgid "This page cannot be previewed here"
 msgstr "Cette page ne peut pas être prévisualisée ici"
 
-#: src/components/settings/PermissionsMatrix.tsx:76
+#: src/components/settings/PermissionsMatrix.tsx:77
 msgid "This permission gates no endpoint today."
 msgstr "Cette permission ne contrôle aucun endpoint aujourd'hui."
 
-#: src/components/settings/PermissionsMatrix.tsx:180
+#: src/components/settings/PermissionsMatrix.tsx:184
 msgid "This permission is not enforced yet, so it is always granted. It cannot be turned off."
 msgstr "Cette permission n'est pas encore appliquée, elle est donc toujours accordée. Elle ne peut pas être désactivée."
 
@@ -13654,15 +13875,15 @@ msgstr "Ce jeton n'est affiché qu'une seule fois et ne pourra pas être récup�
 msgid "This token will only be displayed once. Please save it in a secure location. It cannot be retrieved again."
 msgstr "Ce jeton ne sera affiché qu'une seule fois. Veuillez le sauvegarder dans un endroit sécurisé. Il ne pourra pas être récupéré à nouveau."
 
-#: src/services/api/permissions.ts:873
+#: src/services/api/permissions.ts:906
 msgid "This verb gates nothing today. /api/llm.chat is the only LLM endpoint and it answers to LLM write, so there is nothing left for read to govern. The switch is granted and locked rather than denied, because storing it as \"off\" would be permanent: filling in a missing permission only ever adds what a grant lacks, so nothing would widen it if a later release gives this verb something real to gate."
 msgstr "Ce verbe ne contrôle rien aujourd'hui. /api/llm.chat est le seul endpoint LLM et il dépend de l'écriture LLM : il ne reste donc rien à régir pour la lecture. L'interrupteur est accordé et verrouillé plutôt que refusé, car l'enregistrer sur « désactivé » serait définitif : compléter une permission manquante n'ajoute jamais que ce qui manque à une autorisation, si bien que rien ne l'élargirait si une version ultérieure donnait à ce verbe quelque chose de réel à contrôler."
 
-#: src/services/api/permissions.ts:717
+#: src/services/api/permissions.ts:725
 msgid "This verb gates nothing today. Every message history call the API offers is a read, and rows are written by the sending pipeline itself, never by anything you can call. The switch is granted and locked rather than denied, because storing it as \"off\" would be permanent: filling in a missing permission only ever adds what a grant lacks, so nothing would widen it if a later release gives this verb something real to gate."
 msgstr "Ce verbe ne contrôle rien aujourd'hui. Chaque appel d'historique des messages proposé par l'API est une lecture, et les lignes sont écrites par le pipeline d'envoi lui-même, jamais par quoi que ce soit que vous puissiez appeler. L'interrupteur est accordé et verrouillé plutôt que refusé, car l'enregistrer sur « désactivé » serait définitif : compléter une permission manquante n'ajoute jamais que ce qui manque à une autorisation, si bien que rien ne l'élargirait si une version ultérieure donnait à ce verbe quelque chose de réel à contrôler."
 
-#: src/services/api/permissions.ts:864
+#: src/services/api/permissions.ts:897
 msgid "This verb gates nothing today. Exactly one inbound webhook event call is permission-checked and it is a read; the rows themselves arrive on the provider callback routes /webhooks/email and /webhooks/email/inbound, which carry no workspace session and so consult no grant. Unlike the two verbs the matrix locks on, this one is still yours to switch — turning it off simply changes nothing today."
 msgstr "Ce verbe ne contrôle rien aujourd'hui. Un seul appel d'événement webhook entrant fait l'objet d'une vérification de permission, et c'est une lecture ; les lignes elles-mêmes arrivent sur les routes de callback du fournisseur /webhooks/email et /webhooks/email/inbound, qui ne portent aucune session d'espace de travail et ne consultent donc aucune permission. Contrairement aux deux verbes que la matrice verrouille, celui-ci reste à votre main — le désactiver ne change simplement rien aujourd'hui."
 
@@ -13706,6 +13927,10 @@ msgstr "Cela enverra un vrai email de test à l'adresse fournie."
 #: src/components/contacts/InlineEditableField.tsx:296
 msgid "This will set the value to NULL. Are you sure?"
 msgstr "Cela définira la valeur à NULL. Êtes-vous sûr ?"
+
+#: src/components/logs/AuditLogsTab.tsx:60
+msgid "This workspace"
+msgstr "Ce workspace"
 
 #: src/components/email_builder/blocks/MjWrapperBlock.tsx:173
 msgid "This wrapper has no sections. Add a section to display content."
@@ -13851,7 +14076,7 @@ msgstr "Titre lors du partage sur les réseaux sociaux (optionnel)"
 msgid "TLS"
 msgstr "TLS"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:507
+#: src/components/settings/SystemSettingsDrawer.tsx:512
 #: src/pages/SetupWizard.tsx:638
 msgid "TLS Certificate (Base64)"
 msgstr "Certificat TLS (Base64)"
@@ -13864,7 +14089,7 @@ msgstr "Le certificat TLS est requis"
 msgid "TLS Enabled"
 msgstr "TLS activé"
 
-#: src/components/settings/SystemSettingsDrawer.tsx:522
+#: src/components/settings/SystemSettingsDrawer.tsx:527
 msgid "TLS Key (Base64)"
 msgstr "Clé TLS (Base64)"
 
@@ -14042,11 +14267,11 @@ msgid "Traffic no filter rule has classified"
 msgstr "Trafic qu'aucune règle de filtrage n'a classé"
 
 #: src/components/analytics/EmailMetricsChart.tsx:286
-#: src/components/settings/PermissionsMatrix.tsx:125
+#: src/components/settings/PermissionsMatrix.tsx:126
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:408
 #: src/layouts/WorkspaceLayout.tsx:440
 #: src/pages/TemplatesPage.tsx:126
-#: src/services/api/errors.ts:64
+#: src/services/api/errors.ts:67
 msgid "Transactional"
 msgstr "Transactionnel"
 
@@ -14058,7 +14283,7 @@ msgstr "Emails transactionnels"
 msgid "Transactional ID"
 msgstr "ID transactionnel"
 
-#: src/services/api/permissions.ts:584
+#: src/services/api/permissions.ts:592
 msgid "Transactional notification definitions and every path that actually sends an email through the workspace's provider credentials."
 msgstr "Les définitions de notifications transactionnelles et tous les chemins qui envoient réellement un email avec les identifiants de fournisseur de l'espace de travail."
 
@@ -14123,11 +14348,11 @@ msgstr "Transformer en"
 msgid "Turn off SES tenant isolation to use your own tenant, or clear this field."
 msgstr "Désactivez l'isolation par tenant SES pour utiliser votre propre tenant, ou videz ce champ."
 
-#: src/services/api/permissions.ts:482
+#: src/services/api/permissions.ts:490
 msgid "Turn the blog on or off and change its title, SEO, pagination and feed settings"
 msgstr "Activer ou désactiver le blog et modifier son titre, son SEO, sa pagination et ses paramètres de flux"
 
-#: src/services/api/permissions.ts:780
+#: src/services/api/permissions.ts:788
 msgid "Turn web analytics on or off and change its allowed domains, filters, custom dimension labels and email-link identification"
 msgstr "Activer ou désactiver l'analyse web et modifier ses domaines autorisés, ses filtres, ses libellés de dimensions personnalisées et son identification par lien email"
 
@@ -14140,6 +14365,8 @@ msgstr "Activer ou désactiver l'analyse web et modifier ses domaines autorisés
 msgid "type"
 msgstr "type"
 
+#: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:118
+#: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:146
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:365
 msgid "Type"
 msgstr "Type"
@@ -14461,6 +14688,15 @@ msgstr "URL :"
 msgid "Use"
 msgstr "Utiliser"
 
+#: src/components/settings/audit_logs/AuditLogRetentionCard.tsx:110
+#: src/components/settings/SystemSettingsDrawer.tsx:729
+msgid "Use 0 to keep forever, or a value between {AUDIT_LOG_MIN_RETENTION_DAYS} and {AUDIT_LOG_MAX_RETENTION_DAYS}"
+msgstr "Utilisez 0 pour conserver pour toujours, ou une valeur entre {AUDIT_LOG_MIN_RETENTION_DAYS} et {AUDIT_LOG_MAX_RETENTION_DAYS}"
+
+#: src/components/settings/SystemSettingsDrawer.tsx:722
+#~ msgid "Use 0 to keep forever, or a value between 30 and 3650"
+#~ msgstr "Utilisez 0 pour conserver pour toujours, ou une valeur entre 30 et 3650"
+
 #: src/pages/SignInPage.tsx:286
 msgid "Use a different email"
 msgstr "Utiliser un autre email"
@@ -14514,7 +14750,7 @@ msgid "Use This Theme"
 msgstr "Utiliser ce thème"
 
 #: src/components/settings/Integrations.tsx:1893
-#: src/components/settings/SystemSettingsDrawer.tsx:355
+#: src/components/settings/SystemSettingsDrawer.tsx:360
 #: src/pages/SetupWizard.tsx:480
 msgid "Use TLS"
 msgstr "Utiliser TLS"
@@ -14532,6 +14768,10 @@ msgstr "Utilisé pour"
 #: src/components/web_analytics/FilterBuilder.tsx:64
 msgid "User"
 msgstr "Utilisateur"
+
+#: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:134
+msgid "User agent"
+msgstr "User agent"
 
 #: src/components/timeline/ContactTimeline.tsx:658
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:87
@@ -14790,7 +15030,7 @@ msgstr "En attente du redémarrage du serveur..."
 msgid "Warning"
 msgstr "Avertissement"
 
-#: src/components/settings/PermissionsMatrix.tsx:100
+#: src/components/settings/PermissionsMatrix.tsx:101
 msgid "Watch out"
 msgstr "Attention"
 
@@ -14798,8 +15038,8 @@ msgstr "Attention"
 msgid "We'll automatically detect and use your website's favicon"
 msgstr "Nous détecterons et utiliserons automatiquement le favicon de votre site web"
 
-#: src/components/settings/PermissionsMatrix.tsx:131
-#: src/components/settings/SettingsSidebar.tsx:124
+#: src/components/settings/PermissionsMatrix.tsx:132
+#: src/components/settings/SettingsSidebar.tsx:126
 #: src/components/settings/WebAnalyticsSettings.tsx:232
 #: src/components/settings/WebAnalyticsSettings.tsx:242
 #: src/components/settings/WebAnalyticsSettings.tsx:291
@@ -14807,7 +15047,7 @@ msgstr "Nous détecterons et utiliserons automatiquement le favicon de votre sit
 #: src/layouts/WorkspaceLayout.tsx:293
 #: src/pages/BroadcastsPage.tsx:1195
 #: src/pages/WebAnalyticsPage.tsx:94
-#: src/services/api/errors.ts:70
+#: src/services/api/errors.ts:73
 msgid "Web Analytics"
 msgstr "Analyse web"
 
@@ -14868,8 +15108,8 @@ msgstr "Endpoint du webhook copié dans le presse-papiers"
 msgid "Webhook endpoint:"
 msgstr "Endpoint du webhook :"
 
-#: src/components/settings/PermissionsMatrix.tsx:134
-#: src/services/api/errors.ts:73
+#: src/components/settings/PermissionsMatrix.tsx:135
+#: src/services/api/errors.ts:76
 msgid "Webhook Events"
 msgstr "Événements webhook"
 
@@ -14889,8 +15129,8 @@ msgstr "Abonnement webhook supprimé"
 msgid "Webhook subscription updated"
 msgstr "Abonnement webhook mis à jour"
 
-#: src/components/settings/PermissionsMatrix.tsx:133
-#: src/services/api/errors.ts:72
+#: src/components/settings/PermissionsMatrix.tsx:134
+#: src/services/api/errors.ts:75
 msgid "Webhook Subscriptions"
 msgstr "Abonnements webhook"
 
@@ -14901,7 +15141,7 @@ msgstr "URL du webhook"
 #: src/components/settings/Integrations.tsx:251
 #: src/components/settings/Integrations.tsx:259
 #: src/components/settings/Integrations.tsx:291
-#: src/components/settings/SettingsSidebar.tsx:98
+#: src/components/settings/SettingsSidebar.tsx:100
 #: src/components/settings/WebhooksSettings.tsx:207
 msgid "Webhooks"
 msgstr "Webhooks"
@@ -14944,7 +15184,7 @@ msgstr "Paramètres de suivi du trafic du site web"
 msgid "Website URL"
 msgstr "URL du site web"
 
-#: src/services/api/permissions.ts:723
+#: src/services/api/permissions.ts:731
 msgid "Website visitor analytics — sessions, page views and goals — the annotations drawn on those charts, and the historical backfill."
 msgstr "L'analyse des visiteurs du site web — sessions, pages vues et objectifs —, les annotations tracées sur ces graphiques et le recalcul historique."
 
@@ -14978,6 +15218,8 @@ msgstr "Bienvenue sur mon blog où je partage des réflexions sur..."
 msgid "What gets exported"
 msgstr "Ce qui est exporté"
 
+#: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:95
+#: src/components/settings/audit_logs/AuditLogTable.tsx:181
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:39
 msgid "When"
 msgstr "Quand"
@@ -15037,6 +15279,14 @@ msgstr "Quels canaux d'acquisition et quelles campagnes ont apporté le plus de 
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:502
 msgid "Which landing pages bring the most sessions, and which ones have the worst bounce rate or engagement?"
 msgstr "Quelles pages d'atterrissage apportent le plus de sessions, et lesquelles ont le pire taux de rebond ou le pire engagement ?"
+
+#: src/components/settings/audit_logs/AuditLogsSettings.tsx:32
+msgid "Who did what in this workspace: members, permissions, API keys, integrations, settings and content changes, with the address it came from and whether it was allowed."
+msgstr "Qui a fait quoi dans ce workspace : membres, permissions, clés API, intégrations, paramètres et modifications de contenu, avec l'adresse d'origine et si c'était autorisé."
+
+#: src/components/logs/AuditLogsTab.tsx:61
+msgid "Whole deployment"
+msgstr "Tout le déploiement"
 
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:491
 msgid "Why did traffic change?"
@@ -15099,8 +15349,10 @@ msgstr "avec statut"
 msgid "With:"
 msgstr "Avec :"
 
-#: src/components/settings/PermissionsMatrix.tsx:126
-#: src/services/api/errors.ts:65
+#: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:109
+#: src/components/settings/audit_logs/AuditLogTable.tsx:248
+#: src/components/settings/PermissionsMatrix.tsx:127
+#: src/services/api/errors.ts:68
 msgid "Workspace"
 msgstr "Espace de travail"
 
@@ -15158,7 +15410,7 @@ msgstr "Espace de travail introuvable"
 msgid "Workspace settings updated successfully"
 msgstr "Paramètres de l'espace de travail mis à jour avec succès"
 
-#: src/services/api/permissions.ts:932
+#: src/services/api/permissions.ts:965
 msgid "Workspace write is far narrower than its name: the only workspace endpoint it gates is /api/workspaces.setCustomFieldLabels. Renaming or deleting the workspace, and creating, updating or deleting an integration, are owner-only and consult no permission at all — granting this does not confer them, and an owner has them without it. /api/workspaces.list is not gated either: it returns the workspaces you belong to whatever this switch says. Two settings endpoints that look like workspace configuration answer elsewhere — /api/workspaces.setBlogSettings to Blog write, and /api/workspaces.setWebAnalyticsSettings to Web Analytics write."
 msgstr "L'écriture Espace de travail est bien plus étroite que son nom : le seul endpoint d'espace de travail qu'elle contrôle est /api/workspaces.setCustomFieldLabels. Renommer ou supprimer l'espace de travail, ainsi que créer, mettre à jour ou supprimer une intégration, sont réservés au propriétaire et ne consultent aucune permission — accorder cette permission ne les confère pas, et un propriétaire les possède sans elle. /api/workspaces.list n'est pas contrôlé non plus : il renvoie les espaces de travail auxquels vous appartenez quoi que dise cet interrupteur. Deux endpoints de paramètres qui ressemblent à de la configuration d'espace de travail dépendent en réalité d'ailleurs — /api/workspaces.setBlogSettings de l'écriture Blog, et /api/workspaces.setWebAnalyticsSettings de l'écriture Analyse web."
 
@@ -15175,21 +15427,21 @@ msgstr "Espaces de travail"
 msgid "Wrapper Attributes"
 msgstr "Attributs du wrapper"
 
-#: src/components/settings/PermissionsMatrix.tsx:95
-#: src/components/settings/PermissionsMatrix.tsx:189
-#: src/components/settings/PermissionsMatrix.tsx:246
+#: src/components/settings/PermissionsMatrix.tsx:96
+#: src/components/settings/PermissionsMatrix.tsx:193
+#: src/components/settings/PermissionsMatrix.tsx:250
 msgid "Write"
 msgstr "Écriture"
 
-#: src/services/api/permissions.ts:227
+#: src/services/api/permissions.ts:235
 msgid "Write contact fields beyond the recipient's email address; without it the send still creates the recipient but carries only the email (also needs Transactional write)"
 msgstr "Écrire des champs de contact au-delà de l'adresse email du destinataire ; sans elle, l'envoi crée quand même le destinataire mais ne porte que l'email (nécessite aussi l'écriture Transactionnel)"
 
-#: src/services/api/permissions.ts:849
+#: src/services/api/permissions.ts:857
 msgid "Write decides where the workspace's event stream goes: create and update both accept any URL, and the delivery log that read opens carries the event payloads themselves. Two neighbours on the same routes answer to something else — /api/webhookSubscriptions.regenerateSecret is owner-only whatever this switch says, and /api/webhookSubscriptions.eventTypes is a fixed catalogue that checks nothing at all. Reading a subscription hides its signing secret from everyone but an owner."
 msgstr "L'écriture décide de la destination du flux d'événements de l'espace de travail : la création comme la mise à jour acceptent n'importe quelle URL, et le journal de livraison qu'ouvre la lecture contient les charges utiles des événements elles-mêmes. Deux voisins sur les mêmes routes dépendent d'autre chose — /api/webhookSubscriptions.regenerateSecret est réservé au propriétaire quoi que dise cet interrupteur, et /api/webhookSubscriptions.eventTypes est un catalogue fixe qui ne vérifie rien du tout. La lecture d'un abonnement masque son secret de signature à tout le monde sauf à un propriétaire."
 
-#: src/services/api/permissions.ts:231
+#: src/services/api/permissions.ts:239
 msgid "Write includes permanent deletion and bulk overwriting: `/api/contacts.import` overwrites every field each row carries, so a single call can rewrite your whole contact database. This is not \"can add contacts\". Read also covers custom events and the contact timeline, which the name does not suggest. Two other grants reach contact data without this one: Lists write on its own lets anyone create or overwrite a complete contact record through `/api/lists.subscribe`, and Automations write can send the complete contact record to any URL through a webhook node."
 msgstr "L'écriture inclut la suppression définitive et l'écrasement en masse : `/api/contacts.import` écrase tous les champs que porte chaque ligne, si bien qu'un seul appel peut réécrire l'intégralité de votre base de contacts. Il ne s'agit pas d'un simple « peut ajouter des contacts ». La lecture couvre aussi les événements personnalisés et la chronologie du contact, ce que le nom ne laisse pas deviner. Deux autres permissions atteignent les données de contact sans celle-ci : l'écriture Listes à elle seule permet à quiconque de créer ou d'écraser une fiche de contact complète via `/api/lists.subscribe`, et l'écriture Automations peut envoyer la fiche de contact complète à n'importe quelle URL via un nœud webhook."
 
@@ -15290,11 +15542,11 @@ msgstr "Hier"
 msgid "You can only upload CSV files!"
 msgstr "Vous ne pouvez téléverser que des fichiers CSV !"
 
-#: src/services/api/errors.ts:118
+#: src/services/api/errors.ts:135
 msgid "You do not have read access to {resource}."
 msgstr "Vous n'avez pas d'accès en lecture à {resource}."
 
-#: src/services/api/errors.ts:119
+#: src/services/api/errors.ts:136
 msgid "You do not have write access to {resource}."
 msgstr "Vous n'avez pas d'accès en écriture à {resource}."
 
@@ -15372,6 +15624,10 @@ msgstr "Vous avez des modifications non enregistrées. Êtes-vous sûr de vouloi
 #: src/components/blog/ThemeEditorDrawer.tsx:278
 msgid "You have unsaved changes. Are you sure you want to close? Your changes will be lost."
 msgstr "Vous avez des modifications non enregistrées. Êtes-vous sûr de vouloir fermer ? Vos modifications seront perdues."
+
+#: src/components/settings/audit_logs/AuditLogRetentionCard.tsx:132
+msgid "You have unsaved retention changes. Leave without saving?"
+msgstr "Vous avez des modifications de rétention non enregistrées. Quitter sans enregistrer ?"
 
 #: src/components/settings/BlogSettings.tsx:273
 msgid "You must configure a Custom Endpoint URL in General Settings above before enabling the blog."

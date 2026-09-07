@@ -141,6 +141,8 @@ export function ExportContactsModal({
         const request: ListContactsRequest = {
           workspace_id: workspaceId,
           cursor,
+          // The first page is the export as far as the audit log is concerned.
+          export: cursor === undefined,
           limit: 100,
           email: filters.email,
           external_id: filters.external_id,

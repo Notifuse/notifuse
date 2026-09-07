@@ -2,6 +2,7 @@ package testutil
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"net"
 	"net/http"
@@ -40,9 +41,16 @@ type AppInterface interface {
 	GetConfig() *config.Config
 	GetLogger() logger.Logger
 	GetMux() *http.ServeMux
+	// GetHandler is the mux wrapped in the audit middleware: serving it is
+	// what makes the integration tests record what production records.
+	GetHandler() http.Handler
 
 	// Repository getters for testing
 	GetUserRepository() domain.UserRepository
+	// GetDB is the system database; the audit tests assert its guard trigger.
+	GetDB() *sql.DB
+	// GetAuditLogService runs the retention purge on demand.
+	GetAuditLogService() *service.AuditLogService
 	GetWorkspaceRepository() domain.WorkspaceRepository
 	GetContactRepository() domain.ContactRepository
 	GetListRepository() domain.ListRepository
@@ -177,7 +185,7 @@ func (sm *ServerManager) Start() error {
 
 	// Create HTTP server
 	sm.server = &http.Server{
-		Handler:      sm.app.GetMux(),
+		Handler:      sm.app.GetHandler(),
 		ReadTimeout:  30 * time.Second,
 		WriteTimeout: 30 * time.Second,
 	}
@@ -243,7 +251,7 @@ func (sm *ServerManager) StartLive(ctx context.Context) error {
 
 	// 4. Build HTTP server on the pre-bound listener.
 	sm.server = &http.Server{
-		Handler:      sm.app.GetMux(),
+		Handler:      sm.app.GetHandler(),
 		ReadTimeout:  30 * time.Second,
 		WriteTimeout: 30 * time.Second,
 	}
@@ -323,7 +331,7 @@ func (sm *ServerManager) StartLiveDirect(ctx context.Context) error {
 	}
 
 	sm.server = &http.Server{
-		Handler:      sm.app.GetMux(),
+		Handler:      sm.app.GetHandler(),
 		ReadTimeout:  30 * time.Second,
 		WriteTimeout: 30 * time.Second,
 	}

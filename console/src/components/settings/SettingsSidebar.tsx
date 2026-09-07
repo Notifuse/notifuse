@@ -1,5 +1,6 @@
 import { Menu, Divider } from 'antd'
 import {
+  AuditOutlined,
   TeamOutlined,
   TagsOutlined,
   SettingOutlined,
@@ -22,6 +23,7 @@ export const SETTINGS_SECTIONS = [
   'general',
   'blog',
   'web-analytics',
+  'audit-logs',
   // Deployment-wide rather than workspace-wide, and rendered only for a root user — but listed
   // here unconditionally, because this array is what makes a URL valid and a root user must be
   // able to reach /settings/licence from the banner whatever workspace they are in.
@@ -139,6 +141,15 @@ export function SettingsSidebar({
       label: t`General`
     }
   ]
+
+  // Retention is an owner's decision; the log itself is read under Logs → Audit logs.
+  if (isOwner) {
+    menuItems.push({
+      key: 'audit-logs',
+      icon: <AuditOutlined />,
+      label: t`Audit logs`
+    })
+  }
 
   // The licence panel names the licensee and takes a key, so it follows the server's root gate
   // rather than workspace ownership.

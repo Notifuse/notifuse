@@ -1,0 +1,343 @@
+/api/auditLogs.list:
+  get:
+    summary: List audit logs
+    description: >
+      Returns one page of audit entries, newest first. With scope=workspace (the
+      default) workspace_id is required and the caller must be an owner of that
+      workspace or hold the audit_logs read permission; with scope=deployment the
+      caller must be a root user and every entry is returned, optionally narrowed
+      to one workspace.
+
+
+      Never refused for licence reasons: the page works in every licence state on
+      whatever was recorded while a key covered audit logs.
+    operationId: listAuditLogs
+    tags: [Audit logs]
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: scope
+        in: query
+        required: false
+        schema:
+          type: string
+          enum: [workspace, deployment]
+          default: workspace
+      - name: workspace_id
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Required in workspace scope; optional narrowing in deployment scope.
+        example: ws_1234567890
+      - name: actions
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Comma-separated action names, e.g. templates.update,lists.create.
+      - name: categories
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Comma-separated categories.
+      - name: actor_id
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: actor_email
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Substring match, case-insensitive.
+      - name: actor_type
+        in: query
+        required: false
+        schema:
+          type: string
+          enum: [user, api_key, system, anonymous]
+      - name: outcome
+        in: query
+        required: false
+        schema:
+          type: string
+          enum: [success, failure, denied]
+      - name: target_type
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: target_id
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: ip_address
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: from
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date-time
+        description: Only entries at or after this instant (RFC3339). A malformed value is a 400.
+      - name: to
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date-time
+      - name: cursor
+        in: query
+        required: false
+        schema:
+          type: string
+        description: The next_cursor of the previous page.
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 50
+          maximum: 100
+        description: Clamped to 100.
+    responses:
+      '200':
+        description: One page
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/audit-log.yaml#/AuditLogListResponse'
+      '400':
+        description: Malformed filter
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '403':
+        description: Not an owner, no audit_logs read permission, or not root for the deployment scope
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+
+/api/auditLogs.get:
+  get:
+    summary: Get an audit log entry
+    description: >
+      Returns one entry by id. In workspace scope an entry of another workspace is
+      a 404, never a leak.
+    operationId: getAuditLog
+    tags: [Audit logs]
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: id
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: scope
+        in: query
+        required: false
+        schema:
+          type: string
+          enum: [workspace, deployment]
+          default: workspace
+      - name: workspace_id
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Required in workspace scope.
+    responses:
+      '200':
+        description: The entry
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                log:
+                  $ref: '../components/schemas/audit-log.yaml#/AuditLog'
+      '403':
+        description: Not allowed
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '404':
+        description: No such entry in this scope
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+
+/api/auditLogs.actions:
+  get:
+    summary: List audit actions
+    description: >
+      The catalogue of every action the log can contain, sorted by name, with its
+      category. The console builds its action filter from it.
+    operationId: listAuditActions
+    tags: [Audit logs]
+    security:
+      - BearerAuth: []
+    responses:
+      '200':
+        description: The catalogue
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                actions:
+                  type: array
+                  items:
+                    $ref: '../components/schemas/audit-log.yaml#/AuditActionDescriptor'
+                categories:
+                  type: array
+                  items:
+                    type: string
+      '401':
+        description: Missing or expired credential
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+
+/api/auditLogs.export:
+  post:
+    summary: Export audit logs
+    description: >
+      Streams the entries the filter selects, newest first, as a CSV or NDJSON
+      file download, up to 100 000 rows. When the cap is reached the response
+      ends with an export.truncated marker row; narrow the date range for the
+      rest. The same authorisation as auditLogs.list applies, before the first
+      byte is written. The export is itself recorded as auditLogs.export.
+    operationId: exportAuditLogs
+    tags: [Audit logs]
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              scope:
+                type: string
+                enum: [workspace, deployment]
+                default: workspace
+              workspace_id:
+                type: string
+              format:
+                type: string
+                enum: [csv, ndjson]
+                default: csv
+              actions:
+                type: array
+                items:
+                  type: string
+              categories:
+                type: array
+                items:
+                  type: string
+              actor_id:
+                type: string
+              actor_email:
+                type: string
+              actor_type:
+                type: string
+              outcome:
+                type: string
+                enum: [success, failure, denied]
+              target_type:
+                type: string
+              target_id:
+                type: string
+              ip_address:
+                type: string
+              from:
+                type: string
+                format: date-time
+              to:
+                type: string
+                format: date-time
+    responses:
+      '200':
+        description: The file, as text/csv or application/x-ndjson with a Content-Disposition attachment header
+        content:
+          text/csv:
+            schema:
+              type: string
+          application/x-ndjson:
+            schema:
+              type: string
+      '400':
+        description: Malformed filter or unknown format
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '403':
+        description: Not allowed
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+
+/api/workspaces.setAuditLogSettings:
+  post:
+    summary: Set the workspace audit log retention
+    description: >
+      Owners only. retention_days absent means the deployment default; 0 keeps
+      every entry forever; otherwise 30 to 3650. Works in every licence state.
+    operationId: setAuditLogSettings
+    tags: [Audit logs]
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [workspace_id, settings]
+            properties:
+              workspace_id:
+                type: string
+              settings:
+                $ref: '../components/schemas/audit-log.yaml#/AuditLogSettings'
+    responses:
+      '200':
+        description: Saved
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  example: success
+                message:
+                  type: string
+      '400':
+        description: Invalid retention
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '403':
+        description: Not an owner
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'

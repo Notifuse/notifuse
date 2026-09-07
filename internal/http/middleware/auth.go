@@ -95,6 +95,9 @@ func (ac *AuthConfig) RequireAuth() func(http.Handler) http.Handler {
 			// Set context values
 			ctx := context.WithValue(r.Context(), domain.UserIDKey, claims.UserID)
 			ctx = context.WithValue(ctx, domain.UserTypeKey, claims.Type)
+			// Name the actor for the audit log. The record is a no-op when the
+			// request is not one the audit middleware classified.
+			domain.AuditFromContext(ctx).SetActorClaims(claims.UserID, claims.Type)
 			if claims.Type == string(domain.UserTypeUser) {
 				ctx = context.WithValue(ctx, domain.SessionIDKey, claims.SessionID)
 			}

@@ -11,6 +11,9 @@ export interface SystemSettingsData {
   smtp_ehlo_hostname: string
   telemetry_enabled: boolean
   check_for_updates: boolean
+  // Deployment default retention for the audit log, in days; 0 keeps forever.
+  // Optional so fixtures and older responses still type-check; the server always sends it.
+  audit_logs_retention_days?: number
   smtp_bridge_enabled: boolean
   smtp_bridge_domain: string
   smtp_bridge_port: number

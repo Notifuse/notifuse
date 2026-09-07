@@ -283,3 +283,42 @@ describe('api client licence refusals', () => {
     expect(error.message).toBe('card declined')
   })
 })
+
+// The streaming endpoints answer a file, not JSON: the download path shares the
+// auth header and the error mapping, and hands the body back as a Blob.
+describe('api.download', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    localStorage.setItem('auth_token', 'tok')
+  })
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('posts the body with the bearer token and returns the blob', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      blob: async () => new Blob(['id,action\n'], { type: 'text/csv' }),
+      json: async () => ({})
+    } as unknown as Response)
+    vi.stubGlobal('fetch', fetchMock)
+
+    const blob = await api.download('/api/auditLogs.export', { workspace_id: 'ws1', format: 'csv' })
+    expect(blob).toBeInstanceOf(Blob)
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit]
+    expect(url).toContain('/api/auditLogs.export')
+    expect(init.method).toBe('POST')
+    expect((init.headers as Record<string, string>).Authorization).toBe('Bearer tok')
+    expect(init.body).toBe(JSON.stringify({ workspace_id: 'ws1', format: 'csv' }))
+  })
+
+  it('maps a refusal to the same ApiError a JSON call would throw', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(jsonResponse(403, { error: 'no', resource: 'audit_logs', permission: 'read' }))
+    )
+    const error = await rejection(api.download('/api/auditLogs.export', {}))
+    expect(error.status).toBe(403)
+  })
+})

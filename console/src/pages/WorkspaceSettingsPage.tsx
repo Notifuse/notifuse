@@ -14,6 +14,7 @@ import { WebAnalyticsSettings } from '../components/settings/WebAnalyticsSetting
 import { WebhooksSettings } from '../components/settings/WebhooksSettings'
 import { useAuth } from '../contexts/AuthContext'
 import { isRootUser } from '../services/api/auth'
+import { AuditLogsSettings } from '../components/settings/audit_logs/AuditLogsSettings'
 import { LicenseSettings } from '../components/settings/LicenseSettings'
 import { DeleteWorkspaceSection } from '../components/settings/DeleteWorkspace'
 import {
@@ -176,6 +177,10 @@ export function WorkspaceSettingsPage() {
             canManage={canManageWebAnalytics}
           />
         )
+      case 'audit-logs':
+        return workspace && isOwner ? (
+          <AuditLogsSettings workspace={workspace} isOwner={isOwner} onWorkspaceUpdate={handleWorkspaceUpdate} />
+        ) : null
       case 'licence':
         // LicenseSettings renders its own non-root notice rather than nothing: a member who
         // followed the banner here needs to be told who can act, not shown a blank panel.

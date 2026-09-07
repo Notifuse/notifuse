@@ -454,6 +454,14 @@ func (s *ContactService) BatchImportContacts(ctx context.Context, workspaceID st
 		}
 	}
 
+	if audit := domain.AuditFromContext(ctx); audit != nil {
+		audit.AddMetadata("count", len(contacts))
+		audit.AddMetadata("list_ids", listIDs)
+		if response.Error != "" {
+			audit.Fail("import_refused")
+		}
+	}
+
 	return response
 }
 

@@ -35,6 +35,10 @@ const (
 	PermissionResourceSegments             PermissionResource = "segments"
 	PermissionResourceWebhookSubscriptions PermissionResource = "webhook_subscriptions"
 	PermissionResourceWebhookEvents        PermissionResource = "webhook_events"
+
+	// Opt-in: granted explicitly, never implied by full access. See
+	// OptInPermissionResources.
+	PermissionResourceAuditLogs PermissionResource = "audit_logs"
 )
 
 // PermissionType defines the types of permissions (read/write)
@@ -70,10 +74,34 @@ var AllPermissionResources = []PermissionResource{
 	PermissionResourceWorkspace,
 }
 
-// knownPermissionResources is the lookup set behind UserPermissions.Validate
+// OptInPermissionResources are resources a member holds only when an owner
+// grants them on purpose. They are deliberately absent from
+// AllPermissionResources, because that list is what "full access" means:
+// NewFullPermissions builds it, grantsFullPermissions checks every entry of it,
+// the console's Full Access tag counts it and the telemetry rbac_custom flag is
+// derived from it — and every permission map stored before a resource was added
+// to it lacks that resource. Appending audit_logs there would have turned every
+// existing full-access member into a "restricted" one on upgrade: the RBAC
+// licence gate would refuse to re-save their permissions on an unlicensed
+// deployment, and rbac_custom would report true for every install. Reading the
+// audit log is also not something full access should imply — it is a grant an
+// owner makes per member or per API key.
+//
+// Validate accepts these keys and HasPermission enforces them like any other; a
+// map without the key denies, which is the right default for a log. Owners
+// bypass the map entirely, as they do for every resource.
+var OptInPermissionResources = []PermissionResource{
+	PermissionResourceAuditLogs,
+}
+
+// knownPermissionResources is the lookup set behind UserPermissions.Validate:
+// everything full access grants, plus the opt-in resources.
 var knownPermissionResources = func() map[PermissionResource]struct{} {
-	set := make(map[PermissionResource]struct{}, len(AllPermissionResources))
+	set := make(map[PermissionResource]struct{}, len(AllPermissionResources)+len(OptInPermissionResources))
 	for _, resource := range AllPermissionResources {
+		set[resource] = struct{}{}
+	}
+	for _, resource := range OptInPermissionResources {
 		set[resource] = struct{}{}
 	}
 	return set
@@ -449,8 +477,12 @@ type WorkspaceSettings struct {
 	BlogEnabled       bool                  `json:"blog_enabled"`            // Enable blog feature at workspace level
 	BlogSettings      *BlogSettings         `json:"blog_settings,omitempty"` // Blog styling and SEO settings
 	WebAnalytics      *WebAnalyticsSettings `json:"web_analytics,omitempty"` // Web analytics configuration
-	DefaultLanguage   string                `json:"default_language"`
-	Languages         []string              `json:"languages"`
+	// AuditLogs is the per-workspace audit retention; nil means the deployment
+	// default. Written only through workspaces.setAuditLogSettings and preserved
+	// across a partial workspaces.update like the other owner-only settings.
+	AuditLogs       *AuditLogSettings `json:"audit_logs,omitempty"`
+	DefaultLanguage string            `json:"default_language"`
+	Languages       []string          `json:"languages"`
 
 	// decoded secret key, not stored in the database
 	SecretKey string `json:"-"`
@@ -1173,6 +1205,7 @@ type WorkspaceServiceInterface interface {
 	// SetWebAnalyticsSettings replaces the workspace's web analytics settings
 	// (gated by web_analytics:write; recomputes the filters version).
 	SetWebAnalyticsSettings(ctx context.Context, workspaceID string, settings *WebAnalyticsSettings) error
+	SetAuditLogSettings(ctx context.Context, workspaceID string, settings *AuditLogSettings) error
 }
 
 // Request/Response types
@@ -1445,6 +1478,7 @@ var preservableWorkspaceSettingKeys = []string{
 	"marketing_email_provider_id",
 	"email_tracking_enabled",
 	"custom_endpoint_url",
+	"audit_logs",
 }
 
 // UnmarshalJSON decodes the request and records which settings the body left out.
@@ -1509,6 +1543,7 @@ func (ws *WorkspaceSettings) PreserveOmitted(stored WorkspaceSettings) {
 	keep("marketing_email_provider_id", func() { ws.MarketingEmailProviderID = stored.MarketingEmailProviderID })
 	keep("email_tracking_enabled", func() { ws.EmailTrackingEnabled = stored.EmailTrackingEnabled })
 	keep("custom_endpoint_url", func() { ws.CustomEndpointURL = stored.CustomEndpointURL })
+	keep("audit_logs", func() { ws.AuditLogs = stored.AuditLogs })
 }
 
 func (r *UpdateWorkspaceRequest) Validate(passphrase string) error {

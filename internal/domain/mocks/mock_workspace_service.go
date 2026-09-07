@@ -273,6 +273,20 @@ func (mr *MockWorkspaceServiceInterfaceMockRecorder) RemoveUserFromWorkspace(arg
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveUserFromWorkspace", reflect.TypeOf((*MockWorkspaceServiceInterface)(nil).RemoveUserFromWorkspace), arg0, arg1, arg2)
 }
 
+// SetAuditLogSettings mocks base method.
+func (m *MockWorkspaceServiceInterface) SetAuditLogSettings(arg0 context.Context, arg1 string, arg2 *domain.AuditLogSettings) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetAuditLogSettings", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetAuditLogSettings indicates an expected call of SetAuditLogSettings.
+func (mr *MockWorkspaceServiceInterfaceMockRecorder) SetAuditLogSettings(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetAuditLogSettings", reflect.TypeOf((*MockWorkspaceServiceInterface)(nil).SetAuditLogSettings), arg0, arg1, arg2)
+}
+
 // SetBlogSettings mocks base method.
 func (m *MockWorkspaceServiceInterface) SetBlogSettings(arg0 context.Context, arg1 string, arg2 *bool, arg3 *domain.BlogSettings, arg4 bool) error {
 	m.ctrl.T.Helper()

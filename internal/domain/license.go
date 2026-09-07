@@ -347,6 +347,14 @@ func (e *ErrWorkspaceQuotaReached) Error() string {
 //     one already stored (TranslationsWiden). Removing a language passes, an unrelated edit
 //     to a template that happens to carry translations passes, and the send path is not
 //     touched at all.
+//   - internal/service/audit_log_service.go, Record — FeatureAuditLogs (G6). A gate of a
+//     different shape from the five above: it decides whether an audit row is WRITTEN, and
+//     refuses nothing to anyone. An unlicensed deployment records nothing and is told
+//     nothing; listing, exporting and the retention settings never ask, and work on
+//     whatever was recorded while a key covered audit_logs. The one row an unlicensed
+//     deployment does write is the marker that says recording stopped (and, later,
+//     resumed), so a gap in the log is never silent. The purge worker that deletes rows
+//     past their retention holds no provider and must never be given one.
 //   - internal/service/oidc_service.go, IsEnabled — FeatureSSO (G2). It answers "switched on
 //     AND licensed for", and ensureProvider and ExchangeCode call it rather than restating
 //     it, so every path that reaches the IdP is covered by one expression. This is the
@@ -397,6 +405,11 @@ func (e *ErrWorkspaceQuotaReached) Error() string {
 // blog URL; magic-code login, which stays available unconditionally and is what makes gating
 // SSO survivable; PauseBroadcast or PauseForCircuitBreaker; the MaxUsers seat check, which is
 // never licensed; or any code path that deletes data.
+//
+// The audit recorder (G6) is reached from the HTTP audit middleware after a response is
+// written, and from the retention purge to record that it purged; it is not reached from any
+// of the paths above. PauseForCircuitBreaker in particular stays unrecorded for that reason:
+// it runs on the send path, and recording it would put a licence read there.
 //
 // The OIDC service was on this list until the SSO gate replaced the console read-only wall.
 // The wall is what the exclusion existed to protect: refusing SSO itself was rejected while

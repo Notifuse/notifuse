@@ -168,4 +168,5 @@ var TableNames = []string{
 	"tasks",
 	"settings",
 	"federated_identities",
+	"audit_logs",
 }

@@ -51,6 +51,7 @@ export interface WorkspaceSettings {
   blog_enabled?: boolean
   blog_settings?: BlogSettings
   web_analytics?: import('./web_analytics').WebAnalyticsSettings
+  audit_logs?: import('./audit_log').AuditLogSettings
   default_language: string
   languages: string[]
 }

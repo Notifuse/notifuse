@@ -191,8 +191,8 @@ func TestInitializeDatabase_Comprehensive(t *testing.T) {
 		require.NoError(t, err)
 		defer func() { _ = db.Close() }()
 
-		// Mock all SQL statements to succeed - tables and migrations
-		for i := 0; i < 50; i++ {
+		// Mock all SQL statements to succeed - tables, migrations and the audit log
+		for i := 0; i < 80; i++ {
 			mock.ExpectExec(".+").WillReturnResult(sqlmock.NewResult(0, 0))
 		}
 
@@ -217,7 +217,7 @@ func TestInitializeDatabase_Comprehensive(t *testing.T) {
 
 func TestInitializeDatabase_MultipleRootEmails(t *testing.T) {
 	// Number of table + migration statements run before any root user creation.
-	schemaStatements := len(schema.TableDefinitions) + len(schema.GetMigrationStatements())
+	schemaStatements := len(schema.TableDefinitions) + len(schema.GetMigrationStatements()) + len(schema.AuditLogsTableDefinitions())
 
 	expectSchema := func(mock sqlmock.Sqlmock) {
 		for i := 0; i < schemaStatements; i++ {

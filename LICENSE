@@ -52,7 +52,8 @@ Additional Use Grant: You may make production use of the Licensed Work, includin
                         (4) signing in through Single Sign-On (OpenID
                             Connect);
                         (5) creating or editing a multilingual variant of a
-                            template.
+                            template;
+                        (6) recording an audit log of administrative actions.
 
                       A license key is valid only if it has been issued by
                       Licensor, has been paid for in full, has not been

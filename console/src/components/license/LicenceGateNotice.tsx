@@ -64,7 +64,7 @@ export function LicenceGateNotice({
     rbac: t`Every member keeps the access they have, and any member can still be given full access. Only a narrower grant needs a licence.`,
     ses_tenant: t`Sending through this integration is unaffected, and a tenant that already exists keeps being used. Switching isolation on needs a licence.`,
     sso: t`Everyone signs in with a login code in the meantime; nobody is locked out.`,
-    audit_logs: t`This deployment keeps working without them.`,
+    audit_logs: t`Nothing is being recorded, and nothing is refused: this page, the export and the retention setting stay available, and entries recorded while a licence covered audit logs stay readable.`,
     template_i18n: t`Translations already saved keep being sent, and switching one off is always allowed. Adding or editing one needs a licence.`
   }
 

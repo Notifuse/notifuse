@@ -40,4 +40,19 @@ describe('SettingsSidebar', () => {
 
     expect(onSectionChange).toHaveBeenCalledWith('integrations')
   })
+
+  // Retention is an owner's decision, so the entry is an owner's; everyone else reads the log
+  // under Logs → Audit logs.
+  it('offers Audit logs to owners and to nobody else', () => {
+    const onSectionChange = vi.fn<(section: SettingsSection) => void>()
+    const { unmount } = render(
+      <SettingsSidebar activeSection="team" onSectionChange={onSectionChange} isOwner={false} isRoot={false} />
+    )
+    expect(screen.queryByText('Audit logs')).not.toBeInTheDocument()
+    unmount()
+
+    render(<SettingsSidebar activeSection="team" onSectionChange={onSectionChange} isOwner={true} isRoot={false} />)
+    fireEvent.click(screen.getByText('Audit logs'))
+    expect(onSectionChange).toHaveBeenCalledWith('audit-logs')
+  })
 })

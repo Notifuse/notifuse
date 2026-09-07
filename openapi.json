@@ -8,6 +8,10 @@
       "name": "Notifuse Support",
       "url": "https://www.notifuse.com/support",
       "email": "hello@notifuse.com"
+    },
+    "license": {
+      "name": "BUSL-1.1",
+      "url": "https://github.com/Notifuse/notifuse/blob/main/LICENSE"
     }
   },
   "servers": [
@@ -932,6 +936,21 @@
                 },
                 "example": {
                   "error": "Unauthorized"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The API key lacks a permission the send requires. `transactional:write` is\nalways required; `contacts:read` is required in addition when the request\nsets `cc` or `bcc`, because the subject is rendered against the contact.\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Insufficient permissions: write access to transactional notifications required",
+                  "resource": "transactional",
+                  "permission": "write"
                 }
               }
             }
@@ -2569,6 +2588,91 @@
           },
           "500": {
             "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/broadcasts.retryFailed": {
+      "post": {
+        "summary": "Retry the recipients a broadcast failed to reach",
+        "description": "Requeues the recipients whose delivery attempts were all refused by the email provider, so the same message is sent to them again. Only accepted once the broadcast has finished sending: a broadcast still working through its queue, or one that is paused, is refused. Failed recipients are kept for seven days, after which they can no longer be retried. Fix whatever the provider objected to before calling this, or the recipients will simply fail again.\n",
+        "operationId": "retryFailedBroadcastRecipients",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RetryFailedBroadcastRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Recipients requeued",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "requeued": {
+                      "type": "integer",
+                      "description": "How many recipients were put back in the queue. Zero when there were none to retry.",
+                      "example": 23
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - the broadcast has not finished sending, is paused, the workspace has no marketing email provider, or the body failed validation\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing authentication token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - write access to broadcasts required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Broadcast not found",
             "content": {
               "application/json": {
                 "schema": {
@@ -4550,6 +4654,545 @@
         }
       }
     },
+    "/api/auditLogs.list": {
+      "get": {
+        "summary": "List audit logs",
+        "description": "Returns one page of audit entries, newest first. With scope=workspace (the default) workspace_id is required and the caller must be an owner of that workspace or hold the audit_logs read permission; with scope=deployment the caller must be a root user and every entry is returned, optionally narrowed to one workspace.\n\nNever refused for licence reasons: the page works in every licence state on whatever was recorded while a key covered audit logs.\n",
+        "operationId": "listAuditLogs",
+        "tags": [
+          "Audit logs"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "scope",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "workspace",
+                "deployment"
+              ],
+              "default": "workspace"
+            }
+          },
+          {
+            "name": "workspace_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Required in workspace scope; optional narrowing in deployment scope.",
+            "example": "ws_1234567890"
+          },
+          {
+            "name": "actions",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Comma-separated action names, e.g. templates.update,lists.create."
+          },
+          {
+            "name": "categories",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Comma-separated categories."
+          },
+          {
+            "name": "actor_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "actor_email",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Substring match, case-insensitive."
+          },
+          {
+            "name": "actor_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "user",
+                "api_key",
+                "system",
+                "anonymous"
+              ]
+            }
+          },
+          {
+            "name": "outcome",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "success",
+                "failure",
+                "denied"
+              ]
+            }
+          },
+          {
+            "name": "target_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "target_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ip_address",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "description": "Only entries at or after this instant (RFC3339). A malformed value is a 400."
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The next_cursor of the previous page."
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 50,
+              "maximum": 100
+            },
+            "description": "Clamped to 100."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "One page",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditLogListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed filter",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not an owner, no audit_logs read permission, or not root for the deployment scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auditLogs.get": {
+      "get": {
+        "summary": "Get an audit log entry",
+        "description": "Returns one entry by id. In workspace scope an entry of another workspace is a 404, never a leak.\n",
+        "operationId": "getAuditLog",
+        "tags": [
+          "Audit logs"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "scope",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "workspace",
+                "deployment"
+              ],
+              "default": "workspace"
+            }
+          },
+          {
+            "name": "workspace_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Required in workspace scope."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The entry",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "log": {
+                      "$ref": "#/components/schemas/AuditLog"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such entry in this scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auditLogs.actions": {
+      "get": {
+        "summary": "List audit actions",
+        "description": "The catalogue of every action the log can contain, sorted by name, with its category. The console builds its action filter from it.\n",
+        "operationId": "listAuditActions",
+        "tags": [
+          "Audit logs"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The catalogue",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "actions": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/AuditActionDescriptor"
+                      }
+                    },
+                    "categories": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or expired credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auditLogs.export": {
+      "post": {
+        "summary": "Export audit logs",
+        "description": "Streams the entries the filter selects, newest first, as a CSV or NDJSON file download, up to 100 000 rows. When the cap is reached the response ends with an export.truncated marker row; narrow the date range for the rest. The same authorisation as auditLogs.list applies, before the first byte is written. The export is itself recorded as auditLogs.export.\n",
+        "operationId": "exportAuditLogs",
+        "tags": [
+          "Audit logs"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "scope": {
+                    "type": "string",
+                    "enum": [
+                      "workspace",
+                      "deployment"
+                    ],
+                    "default": "workspace"
+                  },
+                  "workspace_id": {
+                    "type": "string"
+                  },
+                  "format": {
+                    "type": "string",
+                    "enum": [
+                      "csv",
+                      "ndjson"
+                    ],
+                    "default": "csv"
+                  },
+                  "actions": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "categories": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "actor_id": {
+                    "type": "string"
+                  },
+                  "actor_email": {
+                    "type": "string"
+                  },
+                  "actor_type": {
+                    "type": "string"
+                  },
+                  "outcome": {
+                    "type": "string",
+                    "enum": [
+                      "success",
+                      "failure",
+                      "denied"
+                    ]
+                  },
+                  "target_type": {
+                    "type": "string"
+                  },
+                  "target_id": {
+                    "type": "string"
+                  },
+                  "ip_address": {
+                    "type": "string"
+                  },
+                  "from": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "to": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The file, as text/csv or application/x-ndjson with a Content-Disposition attachment header",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "application/x-ndjson": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed filter or unknown format",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/workspaces.setAuditLogSettings": {
+      "post": {
+        "summary": "Set the workspace audit log retention",
+        "description": "Owners only. retention_days absent means the deployment default; 0 keeps every entry forever; otherwise 30 to 3650. Works in every licence state.\n",
+        "operationId": "setAuditLogSettings",
+        "tags": [
+          "Audit logs"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "workspace_id",
+                  "settings"
+                ],
+                "properties": {
+                  "workspace_id": {
+                    "type": "string"
+                  },
+                  "settings": {
+                    "$ref": "#/components/schemas/AuditLogSettings"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Saved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid retention",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not an owner",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/subscribe": {
       "post": {
         "summary": "Subscribe to email lists",
@@ -4854,6 +5497,173 @@
         "required": [
           "error"
         ]
+      },
+      "AuditLog": {
+        "type": "object",
+        "description": "One recorded control-plane action. workspace_id is absent for deployment-level entries (sign-ins, the licence, the system settings).",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "8b8dd285f6874c17b5edcb39ef3e0b8b"
+          },
+          "occurred_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "workspace_id": {
+            "type": "string",
+            "example": "ws_1234567890"
+          },
+          "action": {
+            "type": "string",
+            "description": "The RPC route that performed the action, verbatim.",
+            "example": "workspaces.inviteMember"
+          },
+          "category": {
+            "type": "string",
+            "example": "members"
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "success",
+              "failure",
+              "denied"
+            ]
+          },
+          "status_code": {
+            "type": "integer",
+            "example": 200
+          },
+          "actor_type": {
+            "type": "string",
+            "enum": [
+              "user",
+              "api_key",
+              "system",
+              "anonymous"
+            ]
+          },
+          "actor_id": {
+            "type": "string"
+          },
+          "actor_email": {
+            "type": "string"
+          },
+          "actor_name": {
+            "type": "string"
+          },
+          "actor_role": {
+            "type": "string",
+            "enum": [
+              "owner",
+              "member",
+              "root"
+            ]
+          },
+          "auth_method": {
+            "type": "string",
+            "enum": [
+              "session",
+              "api_key",
+              "magic_code",
+              "sso",
+              "root_password"
+            ]
+          },
+          "target_type": {
+            "type": "string",
+            "example": "invitation"
+          },
+          "target_id": {
+            "type": "string"
+          },
+          "target_name": {
+            "type": "string",
+            "example": "bob@example.com"
+          },
+          "ip_address": {
+            "type": "string",
+            "example": "203.0.113.9"
+          },
+          "user_agent": {
+            "type": "string"
+          },
+          "request_id": {
+            "type": "string",
+            "description": "Echoed on every API response as X-Request-ID."
+          },
+          "changes": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/AuditChange"
+            }
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      },
+      "AuditChange": {
+        "type": "object",
+        "description": "One field's before and after. Secrets are replaced by \"[redacted]\" on both sides.",
+        "properties": {
+          "old": {
+            "description": "The value before the action"
+          },
+          "new": {
+            "description": "The value after the action"
+          }
+        }
+      },
+      "AuditLogListResponse": {
+        "type": "object",
+        "properties": {
+          "logs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AuditLog"
+            }
+          },
+          "next_cursor": {
+            "type": "string",
+            "description": "Present when has_more is true; pass it back as cursor."
+          },
+          "has_more": {
+            "type": "boolean"
+          }
+        }
+      },
+      "AuditActionDescriptor": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "example": "templates.update"
+          },
+          "category": {
+            "type": "string",
+            "example": "templates"
+          },
+          "target_type": {
+            "type": "string",
+            "example": "template"
+          }
+        }
+      },
+      "AuditLogSettings": {
+        "type": "object",
+        "description": "The workspace's retention. retention_days absent means the deployment default (365 days unless a root user changed it); 0 keeps every entry forever.",
+        "properties": {
+          "retention_days": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 3650,
+            "description": "0, or a value between 30 and 3650.",
+            "example": 365
+          }
+        }
       },
       "SendTransactionalRequest": {
         "type": "object",
@@ -5177,9 +5987,7 @@
             "description": "Custom datetime field 5"
           },
           "custom_json_1": {
-            "type": "object",
-            "nullable": true,
-            "description": "Custom JSON field 1",
+            "description": "Custom JSON field 1. Any JSON value, or null.",
             "example": {
               "preferences": {
                 "theme": "dark",
@@ -5188,24 +5996,16 @@
             }
           },
           "custom_json_2": {
-            "type": "object",
-            "nullable": true,
-            "description": "Custom JSON field 2"
+            "description": "Custom JSON field 2. Any JSON value, or null."
           },
           "custom_json_3": {
-            "type": "object",
-            "nullable": true,
-            "description": "Custom JSON field 3"
+            "description": "Custom JSON field 3. Any JSON value, or null."
           },
           "custom_json_4": {
-            "type": "object",
-            "nullable": true,
-            "description": "Custom JSON field 4"
+            "description": "Custom JSON field 4. Any JSON value, or null."
           },
           "custom_json_5": {
-            "type": "object",
-            "nullable": true,
-            "description": "Custom JSON field 5"
+            "description": "Custom JSON field 5. Any JSON value, or null."
           },
           "created_at": {
             "type": "string",
@@ -5429,9 +6229,7 @@
             "description": "Custom datetime field 5"
           },
           "custom_json_1": {
-            "type": "object",
-            "nullable": true,
-            "description": "Custom JSON field 1 (must be a JSON object or array)",
+            "description": "Custom JSON field 1. Any JSON value the jsonb column can hold — an object, an array, a string, a number, a boolean, or null to clear it.",
             "example": {
               "preferences": {
                 "theme": "dark",
@@ -5440,24 +6238,16 @@
             }
           },
           "custom_json_2": {
-            "type": "object",
-            "nullable": true,
-            "description": "Custom JSON field 2 (must be a JSON object or array)"
+            "description": "Custom JSON field 2. Any JSON value the jsonb column can hold."
           },
           "custom_json_3": {
-            "type": "object",
-            "nullable": true,
-            "description": "Custom JSON field 3 (must be a JSON object or array)"
+            "description": "Custom JSON field 3. Any JSON value the jsonb column can hold."
           },
           "custom_json_4": {
-            "type": "object",
-            "nullable": true,
-            "description": "Custom JSON field 4 (must be a JSON object or array)"
+            "description": "Custom JSON field 4. Any JSON value the jsonb column can hold."
           },
           "custom_json_5": {
-            "type": "object",
-            "nullable": true,
-            "description": "Custom JSON field 5 (must be a JSON object or array)"
+            "description": "Custom JSON field 5. Any JSON value the jsonb column can hold."
           }
         }
       },
@@ -6343,6 +7133,32 @@
           }
         }
       },
+      "AudienceSettingsPatch": {
+        "type": "object",
+        "description": "The audience keys a broadcasts.update body carries. Same fields as AudienceSettings, but none of them is required: each key the body names replaces the stored value and each key it leaves out keeps it.",
+        "properties": {
+          "list": {
+            "type": "string",
+            "description": "List ID to send to. Omit to keep the stored list.",
+            "example": "newsletter"
+          },
+          "segments": {
+            "type": "array",
+            "description": "Segment IDs to filter recipients. Omit to keep the stored segments; send an empty array to remove segment targeting and send to the whole list.",
+            "items": {
+              "type": "string"
+            },
+            "example": [
+              "premium_users"
+            ]
+          },
+          "exclude_unsubscribed": {
+            "type": "boolean",
+            "description": "Whether to exclude unsubscribed contacts. Omit to keep the stored value; send false to mail them too.",
+            "example": true
+          }
+        }
+      },
       "ScheduleSettings": {
         "type": "object",
         "description": "Schedule settings for a broadcast. Note: When a broadcast is first created,\nthese fields are empty/false. Use the /api/broadcasts.schedule endpoint to\nconfigure scheduling.\n",
@@ -6429,11 +7245,6 @@
           "test_settings": {
             "$ref": "#/components/schemas/BroadcastTestSettings"
           },
-          "tracking_enabled": {
-            "type": "boolean",
-            "description": "Enable click and open tracking",
-            "example": true
-          },
           "utm_parameters": {
             "$ref": "#/components/schemas/UTMParameters"
           },
@@ -6449,11 +7260,11 @@
       },
       "UpdateBroadcastRequest": {
         "type": "object",
+        "description": "Partial update of a broadcast. workspace_id, id and name are always applied; audience is merged one key at a time, and schedule, test_settings, utm_parameters, metadata and data_feed keep their stored value when the key is left out of the body. Send the key to change it — including an explicitly empty object to clear it.",
         "required": [
           "workspace_id",
           "id",
-          "name",
-          "audience"
+          "name"
         ],
         "properties": {
           "workspace_id": {
@@ -6473,29 +7284,49 @@
             "maxLength": 255
           },
           "audience": {
-            "$ref": "#/components/schemas/AudienceSettings"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AudienceSettingsPatch"
+              }
+            ],
+            "description": "Merged into the stored audience one key at a time, so a body naming only list retargets the broadcast without dropping its segments or its exclusion of unsubscribed contacts. Omit the whole object to leave the audience untouched."
           },
           "schedule": {
-            "$ref": "#/components/schemas/ScheduleSettings"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ScheduleSettings"
+              }
+            ],
+            "description": "Omit to keep the stored schedule. Sending it replaces the schedule wholesale, so a body carrying an empty or partial object clears is_scheduled — which a later resume reads to decide between restoring the schedule and sending now."
           },
           "test_settings": {
-            "$ref": "#/components/schemas/BroadcastTestSettings"
-          },
-          "tracking_enabled": {
-            "type": "boolean",
-            "description": "Enable click and open tracking",
-            "example": true
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BroadcastTestSettings"
+              }
+            ],
+            "description": "Omit to keep the stored test settings. These hold the broadcast's template variations, so sending a partial object detaches its templates."
           },
           "utm_parameters": {
-            "$ref": "#/components/schemas/UTMParameters"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UTMParameters"
+              }
+            ],
+            "description": "Omit to keep the stored UTM parameters; send an empty object to clear them."
           },
           "data_feed": {
-            "$ref": "#/components/schemas/DataFeedSettings"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DataFeedSettings"
+              }
+            ],
+            "description": "Omit to keep the stored data feed settings and their last fetched data."
           },
           "metadata": {
             "type": "object",
             "additionalProperties": true,
-            "description": "Custom metadata for the broadcast"
+            "description": "Custom metadata for the broadcast. Omit to keep the stored metadata; send an empty object to clear it."
           }
         }
       },
@@ -7068,7 +7899,8 @@
           "integration_id": {
             "type": "string",
             "nullable": true,
-            "description": "ID of the integration managing this template (e.g., Supabase)"
+            "readOnly": true,
+            "description": "ID of the integration managing this template (e.g., Supabase). Server-owned: it is set when the integration creates the template and cannot be set or changed through the API."
           },
           "test_data": {
             "type": "object",
@@ -7083,6 +7915,20 @@
             "type": "object",
             "additionalProperties": true,
             "description": "Channel-specific third-party settings"
+          },
+          "translations": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/TemplateTranslation"
+            },
+            "description": "Per-language content variants, keyed by language code",
+            "example": {
+              "fr": {
+                "email": {
+                  "subject": "Bienvenue"
+                }
+              }
+            }
           },
           "created_at": {
             "type": "string",
@@ -7251,11 +8097,19 @@
             "type": "object",
             "additionalProperties": true,
             "description": "Channel-specific settings"
+          },
+          "translations": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/TemplateTranslation"
+            },
+            "description": "Per-language content variants, keyed by language code. Every key must be one of the workspace's configured languages."
           }
         }
       },
       "UpdateTemplateRequest": {
         "type": "object",
+        "description": "Replaces the template's content, creating a new version. Fields the body omits are not cleared: translations are carried over from the stored template, and integration_id is server-owned and always preserved.",
         "required": [
           "workspace_id",
           "id",
@@ -7326,6 +8180,13 @@
             "type": "object",
             "additionalProperties": true,
             "description": "Channel-specific settings"
+          },
+          "translations": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/TemplateTranslation"
+            },
+            "description": "Per-language content variants, keyed by language code. Every key must be one of the workspace's configured languages. Omit the property to keep the stored translations untouched; send an empty object to delete all of them."
           }
         }
       },
@@ -7490,6 +8351,7 @@
       },
       "CustomEvent": {
         "type": "object",
+        "description": "The current state of an external resource, identified by the (event_name, external_id) pair rather than by a server-generated id. Writing the same pair again updates the stored resource instead of appending a new event.",
         "required": [
           "event_name",
           "external_id",
@@ -7518,7 +8380,7 @@
           "properties": {
             "type": "object",
             "additionalProperties": true,
-            "description": "JSONB event data with arbitrary structure",
+            "description": "The complete current state of the resource, as arbitrary JSON. Replaced wholesale by any write that includes it, so send every property you want kept, not only the ones that changed. Omit the field to leave the stored properties untouched; send an empty object to clear them all. Always an object on the way back, never null: a write answers with the properties the row holds afterwards, not with the ones the request carried.",
             "example": {
               "order_total": 129.99,
               "product_name": "Premium Subscription",
@@ -7529,7 +8391,7 @@
             "type": "string",
             "format": "date-time",
             "nullable": true,
-            "description": "When the event occurred (allows backdating)",
+            "description": "When this version of the resource was produced (allows backdating). Also acts as the ordering guard on an existing resource: unless deleted_at also changes, a write whose occurred_at is not strictly newer than the stored one is discarded in full — including its goal fields — and still answers success. Omitting the field defaults it to the time of the request, which always passes the guard.",
             "example": "2023-05-15T14:30:00Z"
           },
           "source": {
@@ -7537,16 +8399,17 @@
             "enum": [
               "api",
               "integration",
-              "import"
+              "import",
+              "web_analytics"
             ],
-            "description": "Origin of the event (set automatically by server)",
+            "description": "Origin of the event, set by the server on the write that creates it and never moved afterwards, so a later write from another channel cannot relabel where a resource came from. Read-only.",
             "example": "api",
             "default": "api"
           },
           "integration_id": {
             "type": "string",
             "nullable": true,
-            "description": "Optional reference to integration that created the event",
+            "description": "Optional reference to the integration that created the event. Preserved when a later write omits it, so an API call cannot accidentally unlink a resource from the integration that owns it.",
             "example": "shopify_integration_123"
           },
           "goal_type": {
@@ -7561,21 +8424,21 @@
               "other"
             ],
             "nullable": true,
-            "description": "Type of goal for conversion tracking. Required for goal_value to have meaning.",
+            "description": "Type of goal for conversion tracking. Required for goal_value to have meaning. Kept when a later write omits it, so a resource can be promoted to a goal after the fact; once set it can be changed but not cleared.",
             "example": "purchase"
           },
           "goal_name": {
             "type": "string",
             "nullable": true,
             "maxLength": 100,
-            "description": "Optional goal name for categorization (e.g., 'first_purchase', 'monthly_subscription')",
+            "description": "Optional goal name for categorization (e.g., 'first_purchase', 'monthly_subscription'). Kept when a later write omits it; once set it can be changed but not cleared.",
             "example": "first_purchase"
           },
           "goal_value": {
             "type": "number",
             "format": "double",
             "nullable": true,
-            "description": "Monetary value of the goal. Required for 'purchase' and 'subscription' goal types. Can be negative for refunds/chargebacks.",
+            "description": "Monetary value of the goal. Required for 'purchase' and 'subscription' goal types. Can be negative for refunds/chargebacks. Kept when a later write omits it; once set it can be changed but not cleared.",
             "example": 99.99
           },
           "deleted_at": {
@@ -7618,6 +8481,7 @@
             "maxItems": 50,
             "items": {
               "type": "object",
+              "description": "Each entry is an upsert on the (event_name, external_id) pair, not an append: an entry naming a resource that already exists updates it. Fields the entry leaves out keep the value already stored, so a partial entry is a safe way to correct one attribute. The exception is properties, which is replaced wholesale whenever the entry includes it.",
               "required": [
                 "event_name",
                 "external_id",
@@ -7646,7 +8510,7 @@
                 "properties": {
                   "type": "object",
                   "additionalProperties": true,
-                  "description": "Event data",
+                  "description": "The complete state of the resource. Omit the field to leave the stored properties untouched; send an empty object to clear them all. Including it replaces the stored set rather than merging into it, so restate every property you want kept.",
                   "example": {
                     "order_total": 129.99,
                     "product_name": "Premium Subscription"
@@ -7655,7 +8519,7 @@
                 "occurred_at": {
                   "type": "string",
                   "format": "date-time",
-                  "description": "When the event occurred",
+                  "description": "When this version of the resource was produced. On an entry naming an existing resource it is also the ordering guard: unless deleted_at also changes, an entry whose occurred_at is not strictly newer than the stored one is discarded in full and still counted as imported. Defaults to the time of the request.",
                   "example": "2023-05-15T14:30:00Z"
                 },
                 "source": {
@@ -7665,12 +8529,12 @@
                     "integration",
                     "import"
                   ],
-                  "description": "Origin of the event",
+                  "description": "Origin to record, defaulting to 'api' when the entry omits it. It applies only where the entry creates the resource: an entry naming one that already exists leaves the stored origin alone, so re-importing cannot relabel a resource an integration created.",
                   "example": "api"
                 },
                 "integration_id": {
                   "type": "string",
-                  "description": "Integration reference",
+                  "description": "Integration reference. Preserved when the entry omits it, so re-importing does not unlink a resource from the integration that owns it.",
                   "example": "shopify_integration_123"
                 },
                 "goal_type": {
@@ -7684,19 +8548,19 @@
                     "trial",
                     "other"
                   ],
-                  "description": "Type of goal for conversion tracking",
+                  "description": "Type of goal for conversion tracking. Kept when the entry omits it; once set it can be changed but not cleared.",
                   "example": "purchase"
                 },
                 "goal_name": {
                   "type": "string",
                   "maxLength": 100,
-                  "description": "Optional goal name for categorization",
+                  "description": "Optional goal name for categorization. Kept when the entry omits it; once set it can be changed but not cleared.",
                   "example": "first_purchase"
                 },
                 "goal_value": {
                   "type": "number",
                   "format": "double",
-                  "description": "Monetary value (required for purchase/subscription, can be negative for refunds)",
+                  "description": "Monetary value (required for purchase/subscription, can be negative for refunds). Kept when the entry omits it; once set it can be changed but not cleared.",
                   "example": 99.99
                 },
                 "deleted_at": {
@@ -7796,6 +8660,27 @@
           "custom_event_filters": {
             "$ref": "#/components/schemas/CustomEventFilters",
             "description": "Optional filters for custom_event.* event types (flattened from settings for convenience)"
+          },
+          "list_ids": {
+            "type": "array",
+            "description": "Lists the list.* events are narrowed to (flattened from settings for convenience). Absent or empty means every list.",
+            "items": {
+              "type": "string"
+            },
+            "example": [
+              "newsletter",
+              "product_updates"
+            ]
+          },
+          "segment_ids": {
+            "type": "array",
+            "description": "Segments the segment.* events are narrowed to (flattened from settings for convenience). Absent or empty means every segment.",
+            "items": {
+              "type": "string"
+            },
+            "example": [
+              "vip_customers"
+            ]
           },
           "enabled": {
             "type": "boolean",
@@ -7993,6 +8878,27 @@
           },
           "custom_event_filters": {
             "$ref": "#/components/schemas/CustomEventFilters"
+          },
+          "list_ids": {
+            "type": "array",
+            "description": "Lists the list.* events are narrowed to. Absent or empty means every list.",
+            "items": {
+              "type": "string"
+            },
+            "example": [
+              "newsletter",
+              "product_updates"
+            ]
+          },
+          "segment_ids": {
+            "type": "array",
+            "description": "Segments the segment.* events are narrowed to. Absent or empty means every segment.",
+            "items": {
+              "type": "string"
+            },
+            "example": [
+              "vip_customers"
+            ]
           }
         }
       },
@@ -8037,6 +8943,27 @@
           },
           "custom_event_filters": {
             "$ref": "#/components/schemas/CustomEventFilters"
+          },
+          "list_ids": {
+            "type": "array",
+            "description": "Narrow the list.* events to these lists. Omit it, or send an empty array, to receive an event for every list in the workspace.",
+            "items": {
+              "type": "string"
+            },
+            "example": [
+              "newsletter",
+              "product_updates"
+            ]
+          },
+          "segment_ids": {
+            "type": "array",
+            "description": "Narrow the segment.* events to these segments. Omit it, or send an empty array, to receive an event for every segment in the workspace.",
+            "items": {
+              "type": "string"
+            },
+            "example": [
+              "vip_customers"
+            ]
           }
         }
       },
@@ -8050,6 +8977,7 @@
       },
       "UpdateWebhookSubscriptionRequest": {
         "type": "object",
+        "description": "A replace for what identifies the subscription — name, url and event_types are required and are written as sent — and a patch for everything that narrows it. Omitting enabled, custom_event_filters, list_ids or segment_ids leaves the stored value alone; a JSON null reads the same way. Send an explicitly empty array or object to remove a filter.",
         "required": [
           "workspace_id",
           "id",
@@ -8092,11 +9020,39 @@
             ]
           },
           "custom_event_filters": {
-            "$ref": "#/components/schemas/CustomEventFilters"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CustomEventFilters"
+              }
+            ],
+            "description": "Filters for the custom_event.* events. Omit it to leave the stored filters unchanged; send an empty object to stop filtering custom events."
+          },
+          "list_ids": {
+            "type": "array",
+            "nullable": true,
+            "description": "Lists the list.* events are narrowed to. Omit it to leave the stored filter unchanged — a body that never mentions it cannot widen the subscription — and send an empty array to remove the narrowing.",
+            "items": {
+              "type": "string"
+            },
+            "example": [
+              "newsletter",
+              "product_updates"
+            ]
+          },
+          "segment_ids": {
+            "type": "array",
+            "nullable": true,
+            "description": "Segments the segment.* events are narrowed to. Omit it to leave the stored filter unchanged; send an empty array to remove the narrowing.",
+            "items": {
+              "type": "string"
+            },
+            "example": [
+              "vip_customers"
+            ]
           },
           "enabled": {
             "type": "boolean",
-            "description": "Whether the subscription is enabled",
+            "description": "Whether the subscription is enabled. Omit it to leave the stored value unchanged; send it only to switch the subscription on or off.",
             "example": true
           }
         }
@@ -9084,6 +10040,37 @@
           "success": {
             "type": "boolean",
             "example": true
+          }
+        }
+      },
+      "RetryFailedBroadcastRequest": {
+        "type": "object",
+        "required": [
+          "workspace_id",
+          "id"
+        ],
+        "properties": {
+          "workspace_id": {
+            "type": "string",
+            "description": "The ID of the workspace",
+            "example": "ws_1234567890"
+          },
+          "id": {
+            "type": "string",
+            "description": "ID of the broadcast whose failed recipients should be retried",
+            "example": "broadcast_12345"
+          }
+        }
+      },
+      "TemplateTranslation": {
+        "type": "object",
+        "description": "Content for one language. Carries the field matching the template's channel: email for an email template, web for a web template.",
+        "properties": {
+          "email": {
+            "$ref": "#/components/schemas/EmailTemplate"
+          },
+          "web": {
+            "$ref": "#/components/schemas/WebTemplate"
           }
         }
       }

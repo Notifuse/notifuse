@@ -18,6 +18,9 @@ export interface ListContactsRequest {
   // Pagination
   limit?: number
   cursor?: string
+  // Set on the first page of an export: the server records contacts.export
+  // once, for the audit log, and answers exactly as it would without it.
+  export?: boolean
 }
 
 export interface Contact {
@@ -135,6 +138,7 @@ export const contactsApi = {
     if (params.cursor) searchParams.append('cursor', params.cursor)
     if (params.with_contact_lists)
       searchParams.append('with_contact_lists', params.with_contact_lists.toString())
+    if (params.export) searchParams.append('export', 'true')
     return api.get<ListContactsResponse>(`/api/contacts.list?${searchParams.toString()}`)
   },
 

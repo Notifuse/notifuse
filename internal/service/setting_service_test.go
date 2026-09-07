@@ -500,3 +500,46 @@ func TestSettingService_SetSetting(t *testing.T) {
 		assert.Equal(t, "new_value", repo.settings["test_key"])
 	})
 }
+
+func TestSettingService_AuditLogsRetention(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("absent means the default, a stored value is read back", func(t *testing.T) {
+		repo := NewMockSettingRepository()
+		repo.settings["is_installed"] = "true"
+		service := NewSettingService(repo)
+		config, err := service.GetSystemConfig(ctx, testSecretKey)
+		require.NoError(t, err)
+		assert.Equal(t, domain.DefaultAuditLogRetentionDays, config.AuditLogsRetentionDays)
+
+		repo.settings[domain.AuditLogsRetentionSettingKey] = "90"
+		config, err = service.GetSystemConfig(ctx, testSecretKey)
+		require.NoError(t, err)
+		assert.Equal(t, 90, config.AuditLogsRetentionDays)
+
+		repo.settings[domain.AuditLogsRetentionSettingKey] = "0"
+		config, err = service.GetSystemConfig(ctx, testSecretKey)
+		require.NoError(t, err)
+		assert.Equal(t, 0, config.AuditLogsRetentionDays, "0 keeps forever")
+
+		// A value the purge could not honour falls back rather than failing the
+		// settings page.
+		repo.settings[domain.AuditLogsRetentionSettingKey] = "7"
+		config, err = service.GetSystemConfig(ctx, testSecretKey)
+		require.NoError(t, err)
+		assert.Equal(t, domain.DefaultAuditLogRetentionDays, config.AuditLogsRetentionDays)
+	})
+
+	t.Run("is written with the rest and validated", func(t *testing.T) {
+		repo := NewMockSettingRepository()
+		service := NewSettingService(repo)
+
+		config := &SystemConfig{IsInstalled: true, RootEmail: "admin@example.com", SMTPPort: 587, AuditLogsRetentionDays: 400}
+		require.NoError(t, service.SetSystemConfig(ctx, config, testSecretKey))
+		assert.Equal(t, "400", repo.settings[domain.AuditLogsRetentionSettingKey])
+
+		config.AuditLogsRetentionDays = 7
+		assert.Error(t, service.SetSystemConfig(ctx, config, testSecretKey))
+		assert.Equal(t, "400", repo.settings[domain.AuditLogsRetentionSettingKey], "a refused value leaves the stored one alone")
+	})
+}

@@ -83,6 +83,7 @@ func (h *WorkspaceHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.Handle("/api/workspaces.setCustomFieldLabels", restrictedInDemo(requireAuth(http.HandlerFunc(h.handleSetCustomFieldLabels))))
 	mux.Handle("/api/workspaces.setBlogSettings", restrictedInDemo(requireAuth(http.HandlerFunc(h.handleSetBlogSettings))))
 	mux.Handle("/api/workspaces.setWebAnalyticsSettings", restrictedInDemo(requireAuth(http.HandlerFunc(h.handleSetWebAnalyticsSettings))))
+	mux.Handle("/api/workspaces.setAuditLogSettings", restrictedInDemo(requireAuth(http.HandlerFunc(h.handleSetAuditLogSettings))))
 
 	// Public invitation routes (no authentication required)
 	mux.Handle("/api/workspaces.verifyInvitationToken", http.HandlerFunc(h.handleVerifyInvitationToken))
@@ -508,6 +509,40 @@ func (h *WorkspaceHandler) handleSetBlogSettings(w http.ResponseWriter, r *http.
 // via the dedicated, web_analytics:write gated endpoint (mirrors the blog
 // settings pattern: members with the feature permission manage it without
 // workspace:write).
+// POST /api/workspaces.setAuditLogSettings — the workspace's audit retention.
+func (h *WorkspaceHandler) handleSetAuditLogSettings(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req domain.SetAuditLogSettingsRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		WriteJSONError(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	workspaceID, settings, err := req.Validate()
+	if err != nil {
+		WriteJSONError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if err := h.workspaceService.SetAuditLogSettings(r.Context(), workspaceID, settings); err != nil {
+		if writeServiceError(w, err, "Failed to set audit log settings") {
+			return
+		}
+		h.logger.WithField("workspace_id", workspaceID).WithField("error", err.Error()).Error("Failed to set audit log settings")
+		WriteJSONError(w, "Failed to set audit log settings", http.StatusInternalServerError)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"status":  "success",
+		"message": "Audit log settings updated successfully",
+	})
+}
+
 func (h *WorkspaceHandler) handleSetWebAnalyticsSettings(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)

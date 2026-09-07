@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/pkg/crypto"
@@ -11,19 +12,22 @@ import (
 
 // SystemConfig holds all system-level configuration
 type SystemConfig struct {
-	IsInstalled            bool
-	RootEmail              string
-	APIEndpoint            string
-	SMTPHost               string
-	SMTPPort               int
-	SMTPUsername           string
-	SMTPPassword           string
-	SMTPFromEmail          string
-	SMTPFromName           string
-	SMTPUseTLS             bool
-	SMTPEHLOHostname       string
-	TelemetryEnabled       bool
-	CheckForUpdates        bool
+	IsInstalled      bool
+	RootEmail        string
+	APIEndpoint      string
+	SMTPHost         string
+	SMTPPort         int
+	SMTPUsername     string
+	SMTPPassword     string
+	SMTPFromEmail    string
+	SMTPFromName     string
+	SMTPUseTLS       bool
+	SMTPEHLOHostname string
+	TelemetryEnabled bool
+	CheckForUpdates  bool
+	// AuditLogsRetentionDays is the deployment default retention for the audit
+	// log: 0 keeps forever, absent means domain.DefaultAuditLogRetentionDays.
+	AuditLogsRetentionDays  int
 	SMTPBridgeEnabled       bool
 	SMTPBridgeDomain        string
 	SMTPBridgePort          int
@@ -57,9 +61,11 @@ func NewSettingService(repo domain.SettingRepository) *SettingService {
 // GetSystemConfig loads all system settings from the database
 func (s *SettingService) GetSystemConfig(ctx context.Context, secretKey string) (*SystemConfig, error) {
 	config := &SystemConfig{
-		IsInstalled: false,
-		SMTPPort:    587,  // Default
-		SMTPUseTLS:  true, // Default to TLS enabled
+		// Absent means the default; the settings row, when present, overrides below.
+		AuditLogsRetentionDays: domain.DefaultAuditLogRetentionDays,
+		IsInstalled:            false,
+		SMTPPort:               587,  // Default
+		SMTPUseTLS:             true, // Default to TLS enabled
 	}
 
 	// Check if system is installed
@@ -142,6 +148,13 @@ func (s *SettingService) GetSystemConfig(ctx context.Context, secretKey string) 
 	// Load check for updates setting
 	if setting, err := s.repo.Get(ctx, "check_for_updates"); err == nil {
 		config.CheckForUpdates = setting.Value == "true"
+	}
+
+	// Audit log retention: absent or unreadable keeps the default set above.
+	if setting, err := s.repo.Get(ctx, domain.AuditLogsRetentionSettingKey); err == nil {
+		if days, err := strconv.Atoi(strings.TrimSpace(setting.Value)); err == nil && domain.ValidateAuditRetentionDays(days) == nil {
+			config.AuditLogsRetentionDays = days
+		}
 	}
 
 	// Load SMTP Bridge settings
@@ -322,6 +335,14 @@ func (s *SettingService) SetSystemConfig(ctx context.Context, config *SystemConf
 	}
 	if err := s.repo.Set(ctx, "check_for_updates", checkUpdatesValue); err != nil {
 		return fmt.Errorf("failed to set check_for_updates: %w", err)
+	}
+
+	// Audit log retention (deployment default)
+	if err := domain.ValidateAuditRetentionDays(config.AuditLogsRetentionDays); err != nil {
+		return err
+	}
+	if err := s.repo.Set(ctx, domain.AuditLogsRetentionSettingKey, strconv.Itoa(config.AuditLogsRetentionDays)); err != nil {
+		return fmt.Errorf("failed to set %s: %w", domain.AuditLogsRetentionSettingKey, err)
 	}
 
 	// Set SMTP Bridge enabled

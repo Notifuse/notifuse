@@ -88,6 +88,10 @@ type AppInterface interface {
 	SetShutdownTimeout(timeout time.Duration)
 	GetActiveRequestCount() int64
 	GetShutdownContext() context.Context
+	// GetHandler is the mux wrapped in the audit middleware; what Start serves.
+	GetHandler() http.Handler
+	// GetAuditLogService exposes the audit recorder for tests.
+	GetAuditLogService() *service.AuditLogService
 }
 
 // App encapsulates the application dependencies and configuration
@@ -129,6 +133,7 @@ type App struct {
 	emailQueueRepo                domain.EmailQueueRepository
 	webAnalyticsRepo              domain.WebAnalyticsRepository
 	annotationRepo                domain.AnnotationRepository
+	auditLogRepo                  domain.AuditLogRepository
 
 	// Services
 	authService                      *service.AuthService
@@ -174,6 +179,10 @@ type App struct {
 	webAnalyticsMaintenanceWorker    *service.WebAnalyticsMaintenanceWorker
 	usageService                     *service.UsageService
 	licenseService                   *service.LicenseService
+	auditLogService                  *service.AuditLogService
+	auditLogPurgeWorker              *service.AuditLogPurgeWorker
+	// handler is the mux wrapped in the audit middleware; see GetHandler.
+	handler http.Handler
 	// providers
 	postmarkService     *service.PostmarkService
 	mailgunService      *service.MailgunService
@@ -434,6 +443,7 @@ func (a *App) InitRepositories() error {
 	a.taskRepo = repository.NewTaskRepository(a.db)
 	a.authRepo = repository.NewSQLAuthRepository(a.db)
 	a.settingRepo = repository.NewSQLSettingRepository(a.db)
+	a.auditLogRepo = repository.NewAuditLogRepository(a.db)
 	a.workspaceRepo = repository.NewWorkspaceRepository(a.db, &a.config.Database, a.config.Security.SecretKey, connManager)
 	a.contactRepo = repository.NewContactRepository(a.workspaceRepo)
 	a.listRepo = repository.NewListRepository(a.workspaceRepo)
@@ -510,6 +520,23 @@ func (a *App) InitServices() error {
 		Logger:      a.logger,
 		IsRootEmail: a.config.IsRootEmail,
 	})
+
+	// The audit recorder, built right after the licence and the auth service:
+	// the middleware records through it, the purge worker deletes through it,
+	// and the licence provider is the one thing that decides whether a row is
+	// written (G6 in the ledger on internal/domain/license.go).
+	a.auditLogService = service.NewAuditLogService(service.AuditLogServiceConfig{
+		Repo:          a.auditLogRepo,
+		AuthService:   a.authService,
+		UserRepo:      a.userRepo,
+		WorkspaceRepo: a.workspaceRepo,
+		SettingRepo:   a.settingRepo,
+		Entitlements:  a.licenseService,
+		IsRootEmail:   a.config.IsRootEmail,
+		Logger:        a.logger,
+	})
+	a.auditLogService.Init(context.Background())
+	a.auditLogPurgeWorker = service.NewAuditLogPurgeWorker(a.auditLogService, a.logger)
 
 	var err error
 
@@ -1478,9 +1505,17 @@ func (a *App) InitHandlers() error {
 	segmentHandler.RegisterRoutes(a.mux)
 	customEventHandler.RegisterRoutes(a.mux)
 	annotationHandler.RegisterRoutes(a.mux)
+	auditLogHandler := httpHandler.NewAuditLogHandler(a.auditLogService, getJWTSecret, a.logger)
+	auditLogHandler.RegisterRoutes(a.mux)
 	webhookSubscriptionHandler.RegisterRoutes(a.mux)
 	automationHandler.RegisterRoutes(a.mux)
 	llmHandler.RegisterRoutes(a.mux)
+
+	// The audit middleware wraps the whole mux. It is applied here, not in the
+	// Start() chain, because the integration harness serves GetHandler() and
+	// never runs Start(): what the tests record must be what production records.
+	// The mux itself stays a plain route table so pattern lookups keep working.
+	a.handler = middleware.NewAuditMiddleware(a.auditLogService)(a.mux)
 
 	return nil
 }
@@ -1488,7 +1523,7 @@ func (a *App) InitHandlers() error {
 // Start starts the HTTP server
 func (a *App) Start() error {
 	// Create server with wrapped handler for CORS and tracing
-	var handler http.Handler = a.mux
+	var handler http.Handler = a.GetHandler()
 
 	// Apply graceful shutdown middleware first (outermost)
 	handler = a.gracefulShutdownMiddleware(handler)
@@ -1542,6 +1577,12 @@ func (a *App) Start() error {
 	// delay keeps it away from the boot path.
 	if a.webAnalyticsMaintenanceWorker != nil {
 		go a.webAnalyticsMaintenanceWorker.Start(a.GetShutdownContext())
+	}
+
+	// Audit retention purge: daily, after its own initial delay. It never
+	// consults the licence, so it runs in every licence state and in demo mode.
+	if a.auditLogPurgeWorker != nil {
+		go a.auditLogPurgeWorker.Start(a.GetShutdownContext())
 	}
 
 	// Start internal task scheduler if enabled (with 30 second delay)
@@ -2008,6 +2049,16 @@ func (a *App) GetMux() *http.ServeMux {
 	return a.mux
 }
 
+// GetHandler returns the mux wrapped in the audit middleware — what Start
+// serves and what the integration harness must serve too. Before InitHandlers
+// it is the bare mux.
+func (a *App) GetHandler() http.Handler {
+	if a.handler == nil {
+		return a.mux
+	}
+	return a.handler
+}
+
 // GetDB returns the app's database connection
 func (a *App) GetDB() *sql.DB {
 	return a.db
@@ -2099,6 +2150,12 @@ func (a *App) GetAutomationScheduler() *service.AutomationScheduler {
 // delayed-start goroutine.
 func (a *App) GetTaskScheduler() *service.TaskScheduler {
 	return a.taskScheduler
+}
+
+// GetAuditLogService exposes the audit recorder (integration tests trigger
+// the retention purge through it instead of waiting a day).
+func (a *App) GetAuditLogService() *service.AuditLogService {
+	return a.auditLogService
 }
 
 // GetWebAnalyticsBuffer exposes the ingest buffer (integration tests flush it

@@ -394,6 +394,14 @@ func (s *LicenseService) SetKey(ctx context.Context, raw string) error {
 	s.markResolved(claims)
 	s.logResolved()
 
+	if audit := domain.AuditFromContext(ctx); audit != nil {
+		audit.SetTarget(domain.AuditTargetLicence, claims.LID, claims.Org)
+		audit.AddMetadata("tier", claims.Tier)
+		audit.AddMetadata("features", claims.Feat)
+		audit.AddMetadata("max_workspaces", claims.MaxWS)
+		audit.AddMetadata("expires_at", claims.Exp)
+	}
+
 	return nil
 }
 
@@ -595,6 +603,8 @@ func (s *LicenseService) logResolved() {
 		// from the console — the other three gates announce themselves with a 402 the
 		// moment somebody presses the control — so it is the one that has to be in the log.
 		"sso_gated": s.oidcEnabled && !ent.Has(domain.FeatureSSO),
+		// Whether audit rows are being written; false is the free tier, not a fault.
+		"audit_logs_recording": ent.Has(domain.FeatureAuditLogs),
 	}).Info("Licence resolved")
 }
 

@@ -7,6 +7,7 @@ import { I18nProvider } from '@lingui/react'
 import { PermissionsMatrix } from '../PermissionsMatrix'
 import {
   ALL_PERMISSION_RESOURCES,
+  OPT_IN_PERMISSION_RESOURCES,
   PERMISSION_DESCRIPTORS,
   createEmptyPermissions
 } from '../../../services/api/permissions'
@@ -68,7 +69,7 @@ const switchesFor = (resource: PermissionResource) => {
 describe('permission descriptors', () => {
   it('describes every resource the matrix renders a row for', () => {
     expect(Object.keys(PERMISSION_DESCRIPTORS).sort()).toEqual(
-      [...ALL_PERMISSION_RESOURCES].sort()
+      [...ALL_PERMISSION_RESOURCES, ...OPT_IN_PERMISSION_RESOURCES].sort()
     )
   })
 })

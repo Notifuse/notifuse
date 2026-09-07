@@ -59,6 +59,13 @@ var licenceConsumers = []struct {
 		holder: func(a *App) interface{} { return a.settingsHandler },
 	},
 	{
+		// G6, the audit recorder: it decides whether a row is written and refuses
+		// nothing. Unwired, it would record on every deployment.
+		name:   "the audit log service",
+		field:  "entitlements",
+		holder: func(a *App) interface{} { return a.auditLogService },
+	},
+	{
 		// G5, the template-translations gate.
 		name:   "the template service",
 		field:  "entitlements",

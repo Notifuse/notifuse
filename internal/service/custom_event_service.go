@@ -234,6 +234,8 @@ func (s *CustomEventService) ImportEvents(ctx context.Context, req *domain.Impor
 		"count":        len(externalIDs),
 	}).Info("Custom events imported successfully")
 
+	domain.AuditFromContext(ctx).AddMetadata("count", len(externalIDs))
+
 	return externalIDs, nil
 }
 

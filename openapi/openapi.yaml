@@ -120,6 +120,16 @@ paths:
     $ref: './paths/webhook-subscriptions.yaml#/~1api~1webhookSubscriptions.test'
   /api/webhookSubscriptions.eventTypes:
     $ref: './paths/webhook-subscriptions.yaml#/~1api~1webhookSubscriptions.eventTypes'
+  /api/auditLogs.list:
+    $ref: './paths/audit-logs.yaml#/~1api~1auditLogs.list'
+  /api/auditLogs.get:
+    $ref: './paths/audit-logs.yaml#/~1api~1auditLogs.get'
+  /api/auditLogs.actions:
+    $ref: './paths/audit-logs.yaml#/~1api~1auditLogs.actions'
+  /api/auditLogs.export:
+    $ref: './paths/audit-logs.yaml#/~1api~1auditLogs.export'
+  /api/workspaces.setAuditLogSettings:
+    $ref: './paths/audit-logs.yaml#/~1api~1workspaces.setAuditLogSettings'
   /subscribe:
     $ref: './paths/subscribe.yaml#/~1subscribe'
   /api/lists.subscribe:
@@ -133,6 +143,16 @@ components:
   schemas:
     ErrorResponse:
       $ref: './components/schemas/common.yaml#/ErrorResponse'
+    AuditLog:
+      $ref: './components/schemas/audit-log.yaml#/AuditLog'
+    AuditChange:
+      $ref: './components/schemas/audit-log.yaml#/AuditChange'
+    AuditLogListResponse:
+      $ref: './components/schemas/audit-log.yaml#/AuditLogListResponse'
+    AuditActionDescriptor:
+      $ref: './components/schemas/audit-log.yaml#/AuditActionDescriptor'
+    AuditLogSettings:
+      $ref: './components/schemas/audit-log.yaml#/AuditLogSettings'
     SendTransactionalRequest:
       $ref: './components/schemas/transactional.yaml#/SendTransactionalRequest'
     TransactionalNotificationSendParams:

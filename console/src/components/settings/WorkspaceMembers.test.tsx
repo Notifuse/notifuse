@@ -7,7 +7,11 @@ import { LicenseContext, UNKNOWN_LICENSE } from '../../contexts/licenseState'
 import type { Entitlements } from '../../types/license'
 import { WorkspaceMembers } from './WorkspaceMembers'
 import type { PermissionResource, WorkspaceMember } from '../../services/api/types'
-import { ALL_PERMISSION_RESOURCES, isPermissionEnforced } from '../../services/api/permissions'
+import {
+  ALL_PERMISSION_RESOURCES,
+  OPT_IN_PERMISSION_RESOURCES,
+  isPermissionEnforced
+} from '../../services/api/permissions'
 
 const api = vi.hoisted(() => ({
   createAPIKey: vi.fn(),
@@ -203,7 +207,9 @@ describe('permissions matrix', () => {
     renderMembers([member])
     const dialog = await openPermissionsEditor(member)
 
-    expect(matrixRows(dialog)).toHaveLength(ALL_PERMISSION_RESOURCES.length)
+    expect(matrixRows(dialog)).toHaveLength(
+      ALL_PERMISSION_RESOURCES.length + OPT_IN_PERMISSION_RESOURCES.length
+    )
     for (const resource of ALL_PERMISSION_RESOURCES) {
       expect(dialog.querySelector(`tr[data-row-key="${resource}"]`)).not.toBeNull()
     }
@@ -214,7 +220,9 @@ describe('permissions matrix', () => {
     renderMembers([member])
     const dialog = await openPermissionsEditor(member)
 
-    expect(matrixRows(dialog)).toHaveLength(ALL_PERMISSION_RESOURCES.length)
+    expect(matrixRows(dialog)).toHaveLength(
+      ALL_PERMISSION_RESOURCES.length + OPT_IN_PERMISSION_RESOURCES.length
+    )
     expect(switchesFor(dialog, 'segments').read).toHaveAttribute('aria-checked', 'false')
   })
 
@@ -223,7 +231,9 @@ describe('permissions matrix', () => {
     renderMembers([member])
     const dialog = await openPermissionsEditor(member)
 
-    expect(matrixRows(dialog)).toHaveLength(ALL_PERMISSION_RESOURCES.length)
+    expect(matrixRows(dialog)).toHaveLength(
+      ALL_PERMISSION_RESOURCES.length + OPT_IN_PERMISSION_RESOURCES.length
+    )
   })
 
   it('grants a resource the stored map does not mention', async () => {
@@ -240,7 +250,7 @@ describe('permissions matrix', () => {
     // The resource the row already held keeps its grant, and nothing else is widened.
     expect(permissions.transactional).toEqual({ read: false, write: true })
     expect(permissions.contacts).toEqual({ read: false, write: false })
-    expect(Object.keys(permissions).sort()).toEqual([...ALL_PERMISSION_RESOURCES].sort())
+    expect(Object.keys(permissions).sort()).toEqual([...ALL_PERMISSION_RESOURCES, ...OPT_IN_PERMISSION_RESOURCES].sort())
   })
 
   it('locks the unenforceable verbs on rather than persisting them off', async () => {
@@ -302,13 +312,13 @@ describe('create API key drawer', () => {
     expect(request.permissions.broadcasts).toEqual({ read: false, write: true })
     // Everything untouched keeps the full access an unscoped key has always had.
     expect(request.permissions.transactional).toEqual({ read: true, write: true })
-    expect(Object.keys(request.permissions).sort()).toEqual([...ALL_PERMISSION_RESOURCES].sort())
+    expect(Object.keys(request.permissions).sort()).toEqual([...ALL_PERMISSION_RESOURCES, ...OPT_IN_PERMISSION_RESOURCES].sort())
   })
 
   it('offers a switch for every resource in the canonical list', async () => {
     const drawer = await openCreateApiKey()
 
-    expect(matrixRows(drawer)).toHaveLength(ALL_PERMISSION_RESOURCES.length)
+    expect(matrixRows(drawer)).toHaveLength(ALL_PERMISSION_RESOURCES.length + OPT_IN_PERMISSION_RESOURCES.length)
     for (const resource of ALL_PERMISSION_RESOURCES) {
       expect(drawer.querySelector(`tr[data-row-key="${resource}"]`)).not.toBeNull()
     }
@@ -416,7 +426,7 @@ describe('invite member drawer', () => {
     const { permissions } = api.inviteMember.mock.calls[0][0]
     // A resource the map omits is denied on the server, so an invite that never names segments,
     // webhook_subscriptions or webhook_events silently strips them.
-    expect(Object.keys(permissions).sort()).toEqual([...ALL_PERMISSION_RESOURCES].sort())
+    expect(Object.keys(permissions).sort()).toEqual([...ALL_PERMISSION_RESOURCES, ...OPT_IN_PERMISSION_RESOURCES].sort())
     expect(permissions.segments).toEqual({ read: true, write: true })
     expect(permissions.webhook_events).toEqual({ read: true, write: true })
     expect(permissions.webhook_subscriptions).toEqual({ read: true, write: false })
@@ -425,7 +435,7 @@ describe('invite member drawer', () => {
   it('offers a switch for every resource in the canonical list', async () => {
     const drawer = await openInvite()
 
-    expect(matrixRows(drawer)).toHaveLength(ALL_PERMISSION_RESOURCES.length)
+    expect(matrixRows(drawer)).toHaveLength(ALL_PERMISSION_RESOURCES.length + OPT_IN_PERMISSION_RESOURCES.length)
     for (const resource of ALL_PERMISSION_RESOURCES) {
       expect(drawer.querySelector(`tr[data-row-key="${resource}"]`)).not.toBeNull()
     }

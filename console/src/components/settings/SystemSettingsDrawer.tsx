@@ -26,6 +26,11 @@ import { useLingui } from '@lingui/react/macro'
 import { settingsApi } from '../../services/api/settings'
 import { SsoLicenceNotice } from '../license/SsoLicenceNotice'
 import { parseRootEmails } from '../../services/api/auth'
+import {
+  AUDIT_LOG_DEFAULT_RETENTION_DAYS,
+  AUDIT_LOG_MAX_RETENTION_DAYS,
+  AUDIT_LOG_MIN_RETENTION_DAYS
+} from '../../services/api/audit_log'
 import type { SystemSettingsData } from '../../types/settings'
 
 const { Text, Title } = Typography
@@ -702,6 +707,40 @@ export function SystemSettingsDrawer({ workspaceId }: { workspaceId?: string } =
                   valuePropName="checked"
                 >
                   <Switch />
+                </Form.Item>
+              </Col>
+            </Row>
+
+            {/* Audit log */}
+            <Title level={5}>{t`Audit log`}</Title>
+            <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item
+                  label={t`Default retention (days)`}
+                  name="audit_logs_retention_days"
+                  tooltip={t`Applies to every workspace that has not set its own retention, and to deployment-level entries such as sign-ins. 0 keeps every entry forever.`}
+                  rules={[
+                    {
+                      validator: (_, value: number | null | undefined) => {
+                        if (value === null || value === undefined || value === 0) return Promise.resolve()
+                        if (value < AUDIT_LOG_MIN_RETENTION_DAYS || value > AUDIT_LOG_MAX_RETENTION_DAYS) {
+                          return Promise.reject(
+                            new Error(
+                              t`Use 0 to keep forever, or a value between ${AUDIT_LOG_MIN_RETENTION_DAYS} and ${AUDIT_LOG_MAX_RETENTION_DAYS}`
+                            )
+                          )
+                        }
+                        return Promise.resolve()
+                      }
+                    }
+                  ]}
+                >
+                  <InputNumber
+                    min={0}
+                    max={AUDIT_LOG_MAX_RETENTION_DAYS}
+                    style={{ width: '100%' }}
+                    placeholder={String(AUDIT_LOG_DEFAULT_RETENTION_DAYS)}
+                  />
                 </Form.Item>
               </Col>
             </Row>

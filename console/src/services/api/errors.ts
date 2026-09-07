@@ -6,20 +6,23 @@
  * would otherwise drag the whole router graph into its test environment, where a shallow
  * router mock cannot satisfy it.
  */
-import { msg } from '@lingui/core/macro'
-import type { MessageDescriptor } from '@lingui/core'
-import { i18n } from '../../i18n'
-import { ALL_PERMISSION_RESOURCES } from './permissions'
-import type { PermissionResource, ResourcePermissions } from './permissions'
+import { msg } from "@lingui/core/macro";
+import type { MessageDescriptor } from "@lingui/core";
+import { i18n } from "../../i18n";
+import {
+  ALL_PERMISSION_RESOURCES,
+  OPT_IN_PERMISSION_RESOURCES,
+} from "./permissions";
+import type { PermissionResource, ResourcePermissions } from "./permissions";
 
 export class ApiError extends Error {
   constructor(
     message: string,
     public status: number,
-    public data?: unknown
+    public data?: unknown,
   ) {
-    super(message)
-    this.name = 'ApiError'
+    super(message);
+    this.name = "ApiError";
   }
 }
 
@@ -40,17 +43,17 @@ export function shouldRetryQuery(failureCount: number, error: Error): boolean {
     error instanceof ApiError &&
     (error.status === 401 || error.status === 402 || error.status === 403)
   ) {
-    return false
+    return false;
   }
-  return failureCount < 1
+  return failureCount < 1;
 }
 
 // The two verbs a grant is made of, taken from the grant itself so the pair cannot drift.
-export type PermissionVerb = keyof ResourcePermissions
+export type PermissionVerb = keyof ResourcePermissions;
 
 export interface PermissionDenial {
-  resource: PermissionResource
-  permission: PermissionVerb
+  resource: PermissionResource;
+  permission: PermissionVerb;
 }
 
 // Wording follows the Read/Write matrix on the Team page, so an owner reading a denial knows
@@ -70,10 +73,11 @@ export const RESOURCE_LABELS: Record<PermissionResource, MessageDescriptor> = {
   web_analytics: msg`Web Analytics`,
   segments: msg`Segments`,
   webhook_subscriptions: msg`Webhook Subscriptions`,
-  webhook_events: msg`Webhook Events`
-}
+  webhook_events: msg`Webhook Events`,
+  audit_logs: msg`Audit Logs`,
+};
 
-const PERMISSION_VERBS: PermissionVerb[] = ['read', 'write']
+const PERMISSION_VERBS: PermissionVerb[] = ["read", "write"];
 
 /**
  * Reads the denial fields off a parsed error body.
@@ -86,18 +90,28 @@ const PERMISSION_VERBS: PermissionVerb[] = ['read', 'write']
  * A resource the console does not know — a backend newer than this bundle — also returns null,
  * which leaves the server's own English sentence in place rather than inventing a label for it.
  */
-export function permissionDenialFromBody(body: unknown): PermissionDenial | null {
-  if (!body || typeof body !== 'object') return null
+export function permissionDenialFromBody(
+  body: unknown,
+): PermissionDenial | null {
+  if (!body || typeof body !== "object") return null;
 
-  const { resource, permission } = body as { resource?: unknown; permission?: unknown }
-  if (typeof resource !== 'string' || typeof permission !== 'string') return null
-  if (!ALL_PERMISSION_RESOURCES.includes(resource as PermissionResource)) return null
-  if (!PERMISSION_VERBS.includes(permission as PermissionVerb)) return null
+  const { resource, permission } = body as {
+    resource?: unknown;
+    permission?: unknown;
+  };
+  if (typeof resource !== "string" || typeof permission !== "string")
+    return null;
+  if (
+    !ALL_PERMISSION_RESOURCES.includes(resource as PermissionResource) &&
+    !OPT_IN_PERMISSION_RESOURCES.includes(resource as PermissionResource)
+  )
+    return null;
+  if (!PERMISSION_VERBS.includes(permission as PermissionVerb)) return null;
 
   return {
     resource: resource as PermissionResource,
-    permission: permission as PermissionVerb
-  }
+    permission: permission as PermissionVerb,
+  };
 }
 
 /**
@@ -105,16 +119,19 @@ export function permissionDenialFromBody(body: unknown): PermissionDenial | null
  * than the sentence — ApiError keeps the parsed body on `data`.
  */
 export function permissionDenial(err: unknown): PermissionDenial | null {
-  return err instanceof ApiError ? permissionDenialFromBody(err.data) : null
+  return err instanceof ApiError ? permissionDenialFromBody(err.data) : null;
 }
 
 /**
  * The console's own sentence for a denial, built from the resource and verb rather than by
  * decorating the server's English string — which is not translatable and would read twice.
  */
-export function permissionDeniedMessage({ resource, permission }: PermissionDenial): string {
-  const label = i18n._(RESOURCE_LABELS[resource])
-  return permission === 'read'
+export function permissionDeniedMessage({
+  resource,
+  permission,
+}: PermissionDenial): string {
+  const label = i18n._(RESOURCE_LABELS[resource]);
+  return permission === "read"
     ? i18n._(msg`You do not have read access to ${{ resource: label }}.`)
-    : i18n._(msg`You do not have write access to ${{ resource: label }}.`)
+    : i18n._(msg`You do not have write access to ${{ resource: label }}.`);
 }

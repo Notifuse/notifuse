@@ -1,0 +1,114 @@
+AuditChange:
+  type: object
+  description: One field's before and after. Secrets are replaced by "[redacted]" on both sides.
+  properties:
+    old:
+      description: The value before the action
+    new:
+      description: The value after the action
+
+AuditLog:
+  type: object
+  description: >-
+    One recorded control-plane action. workspace_id is absent for deployment-level
+    entries (sign-ins, the licence, the system settings).
+  properties:
+    id:
+      type: string
+      example: 8b8dd285f6874c17b5edcb39ef3e0b8b
+    occurred_at:
+      type: string
+      format: date-time
+    workspace_id:
+      type: string
+      example: ws_1234567890
+    action:
+      type: string
+      description: The RPC route that performed the action, verbatim.
+      example: workspaces.inviteMember
+    category:
+      type: string
+      example: members
+    outcome:
+      type: string
+      enum: [success, failure, denied]
+    status_code:
+      type: integer
+      example: 200
+    actor_type:
+      type: string
+      enum: [user, api_key, system, anonymous]
+    actor_id:
+      type: string
+    actor_email:
+      type: string
+    actor_name:
+      type: string
+    actor_role:
+      type: string
+      enum: [owner, member, root]
+    auth_method:
+      type: string
+      enum: [session, api_key, magic_code, sso, root_password]
+    target_type:
+      type: string
+      example: invitation
+    target_id:
+      type: string
+    target_name:
+      type: string
+      example: bob@example.com
+    ip_address:
+      type: string
+      example: 203.0.113.9
+    user_agent:
+      type: string
+    request_id:
+      type: string
+      description: Echoed on every API response as X-Request-ID.
+    changes:
+      type: object
+      additionalProperties:
+        $ref: '#/AuditChange'
+    metadata:
+      type: object
+      additionalProperties: true
+
+AuditLogListResponse:
+  type: object
+  properties:
+    logs:
+      type: array
+      items:
+        $ref: '#/AuditLog'
+    next_cursor:
+      type: string
+      description: Present when has_more is true; pass it back as cursor.
+    has_more:
+      type: boolean
+
+AuditActionDescriptor:
+  type: object
+  properties:
+    action:
+      type: string
+      example: templates.update
+    category:
+      type: string
+      example: templates
+    target_type:
+      type: string
+      example: template
+
+AuditLogSettings:
+  type: object
+  description: >-
+    The workspace's retention. retention_days absent means the deployment default
+    (365 days unless a root user changed it); 0 keeps every entry forever.
+  properties:
+    retention_days:
+      type: integer
+      minimum: 0
+      maximum: 3650
+      description: 0, or a value between 30 and 3650.
+      example: 365

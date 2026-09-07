@@ -24,18 +24,20 @@ const (
 
 // SystemSettingsData represents the editable system settings
 type SystemSettingsData struct {
-	RootEmail               string `json:"root_email"`
-	APIEndpoint             string `json:"api_endpoint"`
-	SMTPHost                string `json:"smtp_host"`
-	SMTPPort                int    `json:"smtp_port"`
-	SMTPUsername            string `json:"smtp_username"`
-	SMTPPassword            string `json:"smtp_password"`
-	SMTPFromEmail           string `json:"smtp_from_email"`
-	SMTPFromName            string `json:"smtp_from_name"`
-	SMTPUseTLS              bool   `json:"smtp_use_tls"`
-	SMTPEHLOHostname        string `json:"smtp_ehlo_hostname"`
-	TelemetryEnabled        bool   `json:"telemetry_enabled"`
-	CheckForUpdates         bool   `json:"check_for_updates"`
+	RootEmail        string `json:"root_email"`
+	APIEndpoint      string `json:"api_endpoint"`
+	SMTPHost         string `json:"smtp_host"`
+	SMTPPort         int    `json:"smtp_port"`
+	SMTPUsername     string `json:"smtp_username"`
+	SMTPPassword     string `json:"smtp_password"`
+	SMTPFromEmail    string `json:"smtp_from_email"`
+	SMTPFromName     string `json:"smtp_from_name"`
+	SMTPUseTLS       bool   `json:"smtp_use_tls"`
+	SMTPEHLOHostname string `json:"smtp_ehlo_hostname"`
+	TelemetryEnabled bool   `json:"telemetry_enabled"`
+	CheckForUpdates  bool   `json:"check_for_updates"`
+	// Deployment default retention for the audit log, in days; 0 keeps forever.
+	AuditLogsRetentionDays  int    `json:"audit_logs_retention_days"`
 	SMTPBridgeEnabled       bool   `json:"smtp_bridge_enabled"`
 	SMTPBridgeDomain        string `json:"smtp_bridge_domain"`
 	SMTPBridgePort          int    `json:"smtp_bridge_port"`
@@ -361,6 +363,7 @@ func systemSettingsFromConfig(c *service.SystemConfig) SystemSettingsData {
 		SMTPEHLOHostname:        c.SMTPEHLOHostname,
 		TelemetryEnabled:        c.TelemetryEnabled,
 		CheckForUpdates:         c.CheckForUpdates,
+		AuditLogsRetentionDays:  c.AuditLogsRetentionDays,
 		SMTPBridgeEnabled:       c.SMTPBridgeEnabled,
 		SMTPBridgeDomain:        c.SMTPBridgeDomain,
 		SMTPBridgePort:          c.SMTPBridgePort,
@@ -460,6 +463,7 @@ func (h *SettingsHandler) handleUpdate(w http.ResponseWriter, r *http.Request) {
 		SMTPEHLOHostname:        reqData.SMTPEHLOHostname,
 		TelemetryEnabled:        reqData.TelemetryEnabled,
 		CheckForUpdates:         reqData.CheckForUpdates,
+		AuditLogsRetentionDays:  reqData.AuditLogsRetentionDays,
 		SMTPBridgeEnabled:       reqData.SMTPBridgeEnabled,
 		SMTPBridgeDomain:        reqData.SMTPBridgeDomain,
 		SMTPBridgePort:          reqData.SMTPBridgePort,
@@ -486,11 +490,23 @@ func (h *SettingsHandler) handleUpdate(w http.ResponseWriter, r *http.Request) {
 		WriteJSONError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+	if err := domain.ValidateAuditRetentionDays(newConfig.AuditLogsRetentionDays); err != nil {
+		WriteJSONError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 
 	if err := h.settingService.SetSystemConfig(ctx, newConfig, h.secretKey); err != nil {
 		h.logger.WithField("error", err).Error("Failed to save system settings")
 		WriteJSONError(w, fmt.Sprintf("Failed to save settings: %v", err), http.StatusInternalServerError)
 		return
+	}
+
+	// The audit row for settings.update carries what changed. AuditDiff marks
+	// every password, secret and key as changed-but-redacted; the values never
+	// reach the log.
+	if audit := domain.AuditFromContext(ctx); audit != nil {
+		audit.SetTarget(domain.AuditTargetSettings, "system", "")
+		audit.SetChanges(domain.AuditDiff(currentConfig, newConfig))
 	}
 
 	response := map[string]interface{}{
