@@ -267,6 +267,8 @@ export function SignInPage() {
                   <Input
                     placeholder="000000"
                     maxLength={6}
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
                     style={{ textAlign: 'center', letterSpacing: '0.5em' }}
                   />
                 </Form.Item>
