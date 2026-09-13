@@ -57,3 +57,8 @@ TODO.md
 # believe the tool is here.
 /licensegen
 
+
+# PostgreSQL data directory created by compose.prod.yaml. That file bind-mounts
+# ./postgres-data so an operator can see where the database lives; running it
+# from a checkout would otherwise put a whole PGDATA in git status.
+/postgres-data/

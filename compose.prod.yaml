@@ -1,0 +1,183 @@
+# Notifuse — production stack. One self-contained file: no clone, no build.
+#
+# Everything Notifuse needs is here, PostgreSQL included. Copy this file onto a
+# server as compose.yaml, write a .env beside it, and start:
+#
+#   curl -fsSL https://raw.githubusercontent.com/Notifuse/notifuse/main/compose.prod.yaml -o compose.yaml
+#
+#   cat > .env <<EOF
+#   SECRET_KEY=$(openssl rand -base64 32)
+#   DB_PASSWORD=$(openssl rand -hex 24)
+#   EOF
+#
+#   docker compose up -d
+#
+# Then open http://<server>:8080 and finish the setup wizard.
+#
+# Upgrading:
+#   docker compose pull && docker compose up -d
+#
+# Backups. Dump the database — copying ./postgres-data while PostgreSQL is
+# running does not produce a restorable backup:
+#   docker compose exec -T postgres sh -c 'pg_dumpall -U "$POSTGRES_USER"' | gzip > notifuse-$(date +%F).sql.gz
+#
+# ⚠️  In a .env file, values containing # must be quoted:
+#     DB_PASSWORD="mypass#word123"
+#     (`openssl rand -hex` never emits one, which is why it is used above.)
+#
+# See https://github.com/Notifuse/notifuse/blob/main/env.example for every
+# setting. Nothing else is required: SMTP, the root account and the public
+# endpoint are all configured in the setup wizard on first launch.
+#
+# This file brings its own PostgreSQL. To point Notifuse at a managed database
+# instead, delete the postgres service and its depends_on, and set DB_HOST,
+# DB_PORT, DB_USER, DB_PASSWORD and DB_SSLMODE in the api environment below.
+
+# Fixes the project name, so container and network names do not change when the
+# directory holding this file is renamed or moved.
+name: notifuse
+
+services:
+  api:
+    # Pin a release in production: NOTIFUSE_VERSION=v41.0 in .env. `latest`
+    # tracks the newest published image, which is convenient to start with and
+    # not what you want a `docker compose pull` to act on unannounced.
+    image: notifuse/notifuse:${NOTIFUSE_VERSION:-latest}
+    ports:
+      # Bind to 127.0.0.1 when a reverse proxy on the host terminates TLS:
+      # HTTP_BIND=127.0.0.1 in .env. Left on 0.0.0.0 so a fresh install is
+      # reachable before a proxy exists — Notifuse serves plain HTTP, so put
+      # TLS in front of it before pointing a domain at this.
+      - '${HTTP_BIND:-0.0.0.0}:${HTTP_PORT:-8080}:8080'
+      # Inbound SMTP bridge (optional, off unless you enable it). Port 587 is
+      # often already taken by a mail transfer agent on the host, and a clash
+      # would fail the whole `up`, so it is not published by default.
+      # - '${SMTP_BRIDGE_HOST_PORT:-587}:587'
+    # Every variable in .env reaches the server, so a setting that is not named
+    # below needs no edit to this file. The explicit values here still win for
+    # the keys they name.
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      - SERVER_PORT=8080
+      - SERVER_HOST=0.0.0.0
+      - ENVIRONMENT=production
+
+      # The database below. DB_PASSWORD is read by both services from the same
+      # .env, so they cannot drift apart.
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=${DB_USER:-notifuse}
+      - 'DB_PASSWORD=${DB_PASSWORD:?DB_PASSWORD is required. Generate one with: openssl rand -hex 24, then add it to .env}'
+      - DB_PREFIX=${DB_PREFIX:-notifuse}
+      - DB_NAME=${DB_NAME:-notifuse_system}
+      - DB_SSLMODE=disable
+
+      # Encrypts the provider credentials Notifuse stores in the database, and
+      # signs sessions. Losing it means losing every stored credential, so back
+      # it up with the database — and never reuse one from a public example.
+      - 'SECRET_KEY=${SECRET_KEY:?SECRET_KEY is required. Generate one with: openssl rand -base64 32, then add it to .env}'
+
+      # Notifuse licence key (Optional). Leaving it unset is the ordinary state
+      # of a self-hosted installation and means the free tier. It overrides any
+      # key pasted in the console under Settings > Licence.
+      # - NOTIFUSE_LICENSE_KEY=${NOTIFUSE_LICENSE_KEY}
+    depends_on:
+      postgres:
+        # Waits for the healthcheck, not merely for the container to exist, so
+        # the first boot does not race the database through its initialisation.
+        condition: service_healthy
+        restart: true
+    volumes:
+      # Optional overrides, read by the server: drop a fresher
+      # GeoLite2-City.mmdb here to replace the one shipped in the image.
+      - ./data:/app/data
+    restart: unless-stopped
+    # cmd/api/main.go asks for 65s of graceful shutdown inside a 70s context:
+    # it drains the web analytics buffer, stops the task and automation
+    # schedulers and the email queue worker. Docker's default grace period is
+    # 10s, which SIGKILLs the server in the middle of all of that.
+    stop_grace_period: 75s
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - notifuse
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -q -O /dev/null http://127.0.0.1:8080/healthz || exit 1']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+      start_interval: 2s
+    logging:
+      # Without a cap, container logs grow until the disk is full — the usual
+      # way a long-running self-hosted install falls over.
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '5'
+
+  postgres:
+    # Pinned to 17 deliberately, and it must stay pinned: PostgreSQL refuses to
+    # start on a data directory written by a different major version, so an
+    # unpinned tag turns an image refresh into an outage. Moving to 18 or later
+    # needs pg_upgrade, and 18 also relocated PGDATA to
+    # /var/lib/postgresql/18/docker. Notifuse requires 17 or newer.
+    image: postgres:17-alpine
+    # Not published. The API reaches it over the private network below, and
+    # nothing else needs to. To connect psql from the server itself, add:
+    #   ports: ['127.0.0.1:5432:5432']
+    environment:
+      - POSTGRES_USER=${DB_USER:-notifuse}
+      - 'POSTGRES_PASSWORD=${DB_PASSWORD:?DB_PASSWORD is required. Generate one with: openssl rand -hex 24, then add it to .env}'
+      # Notifuse creates notifuse_system, and one database per workspace, from
+      # this connection — so it has to be a database that exists before they do.
+      - POSTGRES_DB=postgres
+      # Detects silent corruption on read. Only applied when the directory is
+      # first initialised; PostgreSQL 18 makes it the default.
+      - POSTGRES_INITDB_ARGS=--data-checksums
+    volumes:
+      # A directory next to this file rather than a named volume, so the data
+      # is somewhere you can point a backup at and does not depend on the
+      # Compose project name. (`docker compose down` does not delete named
+      # volumes either — only `down -v` does — but this leaves nothing to
+      # wonder about.)
+      #
+      # PGDATA is deliberately left unset, so the cluster lives directly in
+      # this directory. The commonly recommended
+      # PGDATA=/var/lib/postgresql/data/pgdata is a data-loss trap on the
+      # upgrade path: from PostgreSQL 18 the entrypoint runs its old-cluster
+      # guard only when PGDATA is the default, so an override turns the
+      # explanatory "your data is from an older major" error into a silent
+      # initdb of an empty cluster beside the real one. (If you bind-mount a
+      # dedicated disk *at* ./postgres-data, initdb will refuse its lost+found:
+      # mount the disk one level up and let this stay an ordinary directory.)
+      - ./postgres-data:/var/lib/postgresql/data
+    # Docker gives a container 64 MB of /dev/shm. The parallel workers behind
+    # the web analytics aggregations exhaust that on a busy workspace and fail
+    # with "could not resize shared memory segment".
+    shm_size: 256mb
+    restart: unless-stopped
+    # SIGTERM is a *smart* shutdown in PostgreSQL: it waits for clients to
+    # disconnect. Docker's default 10s grace period is short enough to turn
+    # that into a SIGKILL, and a recovery on the next boot.
+    stop_grace_period: 1m
+    networks:
+      - notifuse
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"']
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+      start_interval: 1s
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '5'
+
+networks:
+  notifuse:
+    driver: bridge

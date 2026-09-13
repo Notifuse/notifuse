@@ -16,6 +16,31 @@ All notable changes to this project will be documented in this file.
 
 - **Change**: The database schema moves to v41: an `audit_logs` table in the system database, with its append-only guard and retention functions. Workspace databases are untouched.
 
+- **Feature**: `compose.prod.yaml` — a self-hosted production install in a single file, with PostgreSQL included. Nothing is cloned and nothing is built: it pulls `notifuse/notifuse` from Docker Hub, so the whole install is
+
+  ```
+  curl -fsSL https://raw.githubusercontent.com/Notifuse/notifuse/main/compose.prod.yaml -o compose.yaml
+  cat > .env <<EOF
+  SECRET_KEY=$(openssl rand -base64 32)
+  DB_PASSWORD=$(openssl rand -hex 24)
+  EOF
+  docker compose up -d
+  ```
+
+  It is a production file rather than the development one with the `build:` removed. PostgreSQL is not published on a host port at all — the server reaches it over the project's private network, and a line in the file says how to add a loopback binding for `psql`. Its data lives in `./postgres-data` beside the compose file rather than in a named volume, so it is somewhere an operator can point a backup at and does not move when the directory is renamed — and `PGDATA` is deliberately left at its default, because overriding it is what disables the PostgreSQL 18 entrypoint's old-cluster guard and turns a future major upgrade into a silent empty `initdb`. The API port binds `0.0.0.0` so a fresh install is reachable before a reverse proxy exists, and `HTTP_BIND=127.0.0.1` closes it once one does. Both services cap their JSON log files, the top-level `name:` fixes the project name, `POSTGRES_INITDB_ARGS=--data-checksums` turns on the corruption detection PostgreSQL 18 makes standard, and the inbound SMTP bridge port is left unpublished because port 587 is usually already taken by a host MTA and the clash would fail the whole `up`. Upgrades are `docker compose pull && docker compose up -d`, and `NOTIFUSE_VERSION` in `.env` pins a release instead of tracking `latest`.
+
+- **Change**: `compose.yaml` is now explicitly the development stack — the file that builds the image from a checkout — and says so at the top. It keeps PostgreSQL on `5433` for `psql` and the integration suite, and gains a `develop.watch` block so `docker compose watch` rebuilds when Go or frontend sources change (`make dev` is still the fast inner loop). Every published host port is now a variable — `HTTP_PORT`, `POSTGRES_HOST_PORT`, `SMTP_BRIDGE_HOST_PORT` — so a port already taken on the host is a line in `.env` rather than an edit to the YAML, and both it and `compose.alloydb.yaml` now pass the whole `.env` through to the server, so a setting the file does not name no longer needs one either. `make docker-compose-up` writes a `.env` with a generated key if none exists.
+
+- **Fix**: The compose files no longer carry a default `SECRET_KEY`. One was committed to `compose.yaml`, which meant every installation that had not set its own shared a key published in a public repository — and that key encrypts the provider credentials stored in the database and signs sessions. It is now required, with an error message that gives the command to generate one. **An existing installation that relied on the default must pin the old value** — `SECRET_KEY=d04zCk3Fa45oOjDWHpAvc1AZxnLdGffOnNWK+Jt2yXf37+FTfuMMHb8flcfPMqLluRR3rvhbr555r6j1DEigrA==` in its `.env` — because credentials already in its database are encrypted with it; rotating to a fresh key means re-entering them. `compose.prod.yaml` additionally requires `DB_PASSWORD`, so a new production install does not start on `postgres`/`postgres`.
+
+- **Fix**: The API container no longer starts before PostgreSQL is ready. `depends_on` used the short form, which waits only for the container to exist, so a first boot raced the database through its initialisation and relied on the restart policy to recover; it now waits for the healthcheck.
+
+- **Fix**: The PostgreSQL healthcheck ran `pg_isready -U postgres` with the user hardcoded, so an install with a custom `DB_USER` had a database that never reported healthy. It follows `POSTGRES_USER` and `POSTGRES_DB` now. The API healthcheck likewise followed a hardcoded `8080` rather than `SERVER_PORT`.
+
+- **Fix**: `docker compose down` and `docker compose restart` no longer kill the server mid-shutdown. It asks for 65 seconds to drain the web analytics buffer, stop the task and automation schedulers and stop the email queue worker; Compose's default grace period is 10 seconds, so everything after that was a `SIGKILL` — up to a minute of un-persisted analytics sessions, and schedulers stopped mid-task. The API container now gets 75 seconds.
+
+- **Fix**: PostgreSQL in the compose files gets 256 MB of `/dev/shm` (512 MB for AlloyDB Omni) instead of Docker's 64 MB default, which the parallel workers behind the web analytics aggregations could exhaust with `could not resize shared memory segment`, and a 1-minute stop grace period of its own — `SIGTERM` is a *smart* shutdown in PostgreSQL, and 10 seconds was short enough to turn one into a `SIGKILL` and a recovery on the next boot.
+
 ## [40.0] - 2026-09-04
 
 - **Licence**: Notifuse v40.0 and every later release are published under the **Business Source License 1.1**, and each one converts to **AGPL-3.0-or-later four years after it ships**. Every version up to and including v39.x stays AGPL-3.0-or-later permanently; the change is not retroactive and cannot be made so.

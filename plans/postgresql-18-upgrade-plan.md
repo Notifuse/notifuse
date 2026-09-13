@@ -1,13 +1,17 @@
 # PostgreSQL 18 upgrade plan
 
-**Status**: proposed — not started
-**Date**: 2026-08-16
+**Status**: proposed — not started, except the two W1 rows marked ✅ below, which
+landed in v41.0 with the compose overhaul (#420). That overhaul also added a third
+compose file, `compose.prod.yaml` — the standalone production install — which this plan
+must carry through the upgrade alongside `compose.yaml`. Line references below were
+replaced with anchors when the compose files were rewritten; do not trust old ones.
+**Date**: 2026-08-16 (revised 2026-09-13)
 **Decisions taken** (confirmed with Pierre before writing):
 
 1. **`compose.yaml` defaults to PostgreSQL 18 for new installs.** 17 stays supported.
 2. **Existing installs migrate through a one-shot `pgautoupgrade` container**, driven by a single command.
 3. **17 remains the DDL compatibility floor.** No PG18-only DDL, ever, while `compose.alloydb.yaml` exists.
-4. **Scope is the shipped product**: `notifuse`, `deploy` and `docs` repos. `cloud/` is out of scope (it already runs PG18 — see §3.5).
+4. **Scope is the shipped product**: `notifuse` (all three compose files — `compose.yaml`, `compose.prod.yaml`, `compose.alloydb.yaml`), `deploy` and `docs` repos. `cloud/` is out of scope (it already runs PG18 — see §3.5).
 
 ---
 
@@ -26,7 +30,7 @@ Verified against the image Dockerfiles and reproduced locally:
 
 Source: [docker-library/postgres#1259](https://github.com/docker-library/postgres/pull/1259) (merged 2025-06-06), `18/alpine3.24/Dockerfile:201-206`. The official docs now say: *"The defined `VOLUME` was changed in 18 and above to `/var/lib/postgresql`. Mounts and volumes should be targeted at the updated location."*
 
-**What a naive tag bump does to a Notifuse install today** (`compose.yaml:74` + `:82`, named volume at `/var/lib/postgresql/data`): the 18 entrypoint's `docker_error_old_databases` guard fires *before* `initdb`, prints a long explanatory error, and exits 1. With `restart: unless-stopped` this is a crash loop. **Data is untouched.** This is the good failure — but it is still a hard outage for anyone who runs `git pull && docker compose up -d`.
+**What a naive tag bump does to a Notifuse install today** (the `postgres` service's `image:` and `volumes:`, mounted at `/var/lib/postgresql/data`): the 18 entrypoint's `docker_error_old_databases` guard fires *before* `initdb`, prints a long explanatory error, and exits 1. With `restart: unless-stopped` this is a crash loop. **Data is untouched.** This is the good failure — but it is still a hard outage for anyone who runs `git pull && docker compose up -d`.
 
 ⚠️ **The widely-blogged "fix" — `PGDATA=/var/lib/postgresql/data/pgdata` — is the silent-data-loss variant.** Overriding `PGDATA` makes the entrypoint's `elif [ "$PGDATA" = "/var/lib/postgresql/$PG_MAJOR/docker" ]` branch false, which disables the *entire* old-database detection block. Reproduced: container starts, exit 0, no warning, `notifuse_system` and every `notifuse_ws_*` gone, old cluster still sitting on disk unreferenced. **The docs must forbid this explicitly.** (Note: `cloud/manager/internal/k8s/postgres.go:204-205` uses exactly this pattern — safe there only because every tenant volume is provisioned fresh. Do not copy it to self-hosted.)
 
@@ -67,8 +71,8 @@ Also verified clean on 18.6: partial-index `ON CONFLICT` inference (`annotation_
 | Deployment | What happens on `git pull && docker compose up -d` after this change | Action needed |
 |---|---|---|
 | Stock `compose.yaml`, named volume | postgres crash-loops with the explanatory error; api healthcheck fails. **No data loss.** | Run the one-shot upgrade |
-| Stock compose, **bind mount** at `/var/lib/postgresql/data` | Same hard error (the entrypoint has a `/proc/self/mountinfo` fallback since [#1409](https://github.com/docker-library/postgres/pull/1409)) | Run the one-shot upgrade |
-| Own compose, user-set `PGDATA` | ⚠️ **Silent re-init.** Old data orphaned on disk. | Docs must warn; W2 guard makes the app refuse |
+| Stock compose, **bind mount** at `/var/lib/postgresql/data` — this is what `compose.prod.yaml` ships, so it is now the common production shape, not an edge case | Same hard error (the entrypoint has a `/proc/self/mountinfo` fallback since [#1409](https://github.com/docker-library/postgres/pull/1409)) | Run the one-shot upgrade |
+| Own compose, user-set `PGDATA` | ⚠️ **Silent re-init.** Old data orphaned on disk. | Docs must warn; W2 guard makes the app refuse. `compose.prod.yaml` deliberately does not set `PGDATA` and carries a comment saying why |
 | External PostgreSQL (`DB_HOST` → RDS/Cloud SQL/…) | Nothing. Notifuse only connects. | Nothing — 18 already works |
 | Coolify one-click (`deploy/coolify/notifuse.yaml`) | Same crash loop. Coolify's `getMountPath` runs on **create only**, so an existing service keeps `/var/lib/postgresql/data` | Update the template + a doc note |
 | Dokploy catalog | Maintained upstream (`Dokploy/templates`) — this repo cannot reach it. Dokploy also mounts the PGDATA leaf `/var/lib/postgresql/18/docker`, which forfeits `pg_upgrade --link` forever | Separate upstream PR |
@@ -127,15 +131,16 @@ It also runs `reindexdb --all --concurrently` and a per-database `VACUUM (ANALYZ
 
 | File | Change |
 |---|---|
-| `compose.yaml:74` | `postgres:17-alpine` → `postgres:18-alpine` |
-| `compose.yaml:82` | `postgres-data:/var/lib/postgresql/data` → `postgres-data:/var/lib/postgresql` |
-| `compose.yaml:66-73` | Rewrite the pin comment. It is now false in two ways: it says the volume "would no longer receive the data at all" (the current image hard-errors instead — that wording predates [#3b6b5fca](https://github.com/docker-library/postgres/commit/3b6b5fca)), and the pin itself is gone. New comment states: the mount is the parent by design; **never set `PGDATA`**; existing installs must run the upgrade profile first |
-| `compose.yaml:50-51` | `depends_on: - postgres` → `depends_on: postgres: condition: service_healthy` (matches `deploy/coolify/notifuse.yaml:34-36`, and stops the api racing a freshly-initdb'd cluster) |
-| `compose.yaml` api service | Add `stop_grace_period: 75s`. `cmd/api/main.go:61-67` asks for 65 s of graceful shutdown inside a 70 s context; Compose's default is 10 s then SIGKILL, which drops up to `SessionFlushInterval = 60s` of un-persisted web-analytics session state (`web_analytics_buffer.go:54`) |
-| `compose.yaml` **new** | `pg-upgrade` service under `profiles: ["pg-upgrade"]` — see below |
-| `compose.alloydb.yaml:64` | `google/alloydbomni:17.5.0` → `17.9.0` |
-| `compose.alloydb.yaml:11-12` | Reword: PG18 Omni exists (18.3.0 GA) but its images require a Google access-registration form, so the public compose path stays on 17 — and **that is why no PG18-only DDL is allowed anywhere in the repo** |
-| `Dockerfile:95` | `alpine:3.19` → `alpine:3.24`. 3.19 is EOL and its `postgresql-client` is 16.11 — already a major behind the server we ship. 3.24 matches `postgres:18-alpine`'s base, so the bundled `psql`/`pg_dump` become 18.6 and actually work against the shipped server. (Alternative considered: drop `postgresql-client` entirely — nothing in non-test Go imports `os/exec`, `CMD` is the binary directly, and it has been unused since the first Docker commit. Bumping the base is the better trade: it also clears an EOL base image, and operators do reach for `docker exec … psql`.) |
+| `compose.yaml` + `compose.prod.yaml`, `postgres` service `image:` | `postgres:17-alpine` → `postgres:18-alpine` |
+| `compose.yaml` + `compose.prod.yaml`, `postgres` service `volumes:` | Retarget the mount at the parent: `postgres-data:/var/lib/postgresql` (named volume, dev) and `./postgres-data:/var/lib/postgresql` (bind mount, prod) |
+| Both files, the pin comment above `image:` | Rewrite it. It is now false in two ways: it says the volume "would no longer receive the data at all" (the current image hard-errors instead — that wording predates [#3b6b5fca](https://github.com/docker-library/postgres/commit/3b6b5fca)), and the pin itself is gone. New comment states: the mount is the parent by design; **never set `PGDATA`**; existing installs must run the upgrade profile first |
+| `compose.prod.yaml`, `POSTGRES_INITDB_ARGS` | Drop `--data-checksums` once the base image is 18 — 18's `initdb` enables checksums by default, so the flag becomes redundant. Note that prod clusters created on 17 by v41.0+ already have checksums **on**, which matches an 18 target and makes `pg_upgrade` easier, not harder (§1.2 describes the off→on case) |
+| ✅ `compose.yaml` (**done in v41.0**) | `depends_on: - postgres` → `depends_on: postgres: {condition: service_healthy}`. Also done in `compose.prod.yaml` and `compose.alloydb.yaml` |
+| ✅ `compose.yaml` api service (**done in v41.0**) | `stop_grace_period: 75s`. `cmd/api/main.go` asks for 65 s of graceful shutdown inside a 70 s context; Compose's default is 10 s then SIGKILL, which drops up to `SessionFlushInterval = 60s` of un-persisted web-analytics session state (`web_analytics_buffer.go:54`). Also done in the other two files |
+| `compose.yaml` **new** | `pg-upgrade` service under `profiles: ["pg-upgrade"]` — see below. `compose.prod.yaml` needs the same service, and its own copy of the run instructions, because it is not layered on `compose.yaml` — it is a standalone file an operator copied to a server |
+| `compose.alloydb.yaml`, `alloydb` service `image:` | `google/alloydbomni:17.5.0` → `17.9.0` |
+| `compose.alloydb.yaml` header | Reword: PG18 Omni exists (18.3.0 GA) but its images require a Google access-registration form, so the public compose path stays on 17 — and **that is why no PG18-only DDL is allowed anywhere in the repo** |
+| `Dockerfile` runtime stage (**already on `alpine:3.24`** — verify before editing) | `alpine:3.19` → `alpine:3.24`. 3.19 is EOL and its `postgresql-client` is 16.11 — already a major behind the server we ship. 3.24 matches `postgres:18-alpine`'s base, so the bundled `psql`/`pg_dump` become 18.6 and actually work against the shipped server. (Alternative considered: drop `postgresql-client` entirely — nothing in non-test Go imports `os/exec`, `CMD` is the binary directly, and it has been unused since the first Docker commit. Bumping the base is the better trade: it also clears an EOL base image, and operators do reach for `docker exec … psql`.) |
 
 The upgrade profile, added to `compose.yaml` rather than a second file so the volume resolves to the same Compose project without any `external:`/naming ambiguity:
 

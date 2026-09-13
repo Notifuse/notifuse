@@ -16,6 +16,9 @@
 #   - Licensing: AlloyDB Omni ships under Google's own terms; review them
 #     before production use. See https://cloud.google.com/alloydb/omni
 #
+# This variant builds from source like compose.yaml. For a production install
+# on vanilla PostgreSQL, use compose.prod.yaml instead.
+#
 # Usage: docker compose -f compose.alloydb.yaml up -d
 
 services:
@@ -24,8 +27,11 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - '8081:8080'
-      - '587:587'
+      - '${HTTP_PORT:-8081}:8080'
+      - '${SMTP_BRIDGE_HOST_PORT:-587}:587'
+    env_file:
+      - path: .env
+        required: false
     environment:
       - SERVER_PORT=${SERVER_PORT:-8080}
       - SERVER_HOST=${SERVER_HOST:-0.0.0.0}
@@ -39,7 +45,7 @@ services:
       - DB_NAME=${DB_NAME:-notifuse_system}
       - DB_SSLMODE=${DB_SSLMODE:-disable}
 
-      - SECRET_KEY=${SECRET_KEY:?set SECRET_KEY in your environment}
+      - 'SECRET_KEY=${SECRET_KEY:?SECRET_KEY is required. Generate one with: openssl rand -base64 32, then add it to .env}'
 
       # Notifuse licence key (Optional). Leaving it unset is the ordinary state
       # of a self-hosted installation and means the free tier. It overrides any
@@ -52,24 +58,31 @@ services:
       # GeoLite2-City.mmdb, or by setting an explicit path here.
       # - GEOIP_DB_PATH=/app/data/GeoLite2-City.mmdb
     depends_on:
-      - alloydb
+      alloydb:
+        condition: service_healthy
+        restart: true
     volumes:
       - ./data:/app/data
     restart: unless-stopped
+    # cmd/api/main.go asks for 65s of graceful shutdown inside a 70s context:
+    # it drains the web analytics buffer, stops the task and automation
+    # schedulers and the email queue worker. Docker's default grace period is
+    # 10s, which SIGKILLs the server in the middle of all of that.
+    stop_grace_period: 75s
     networks:
       - notifuse-network
     healthcheck:
-      test:
-        ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:8080/healthz']
-      interval: 10s
+      test: ['CMD-SHELL', 'wget -q -O /dev/null http://127.0.0.1:$${SERVER_PORT:-8080}/healthz || exit 1']
+      interval: 30s
       timeout: 5s
       retries: 3
-      start_period: 10s
+      start_period: 30s
+      start_interval: 2s
 
   alloydb:
     image: google/alloydbomni:17.5.0
     ports:
-      - '5433:5432'
+      - '${POSTGRES_HOST_PORT:-5433}:5432'
     environment:
       - POSTGRES_USER=${DB_USER:-postgres}
       - POSTGRES_PASSWORD=${DB_PASSWORD:-postgres}
@@ -83,15 +96,24 @@ services:
       - 'google_columnar_engine.memory_size_in_mb=1024'
     volumes:
       - alloydb-data:/var/lib/postgresql/data
+    # The columnar engine scans in parallel; 64 MB of /dev/shm is not enough for
+    # the workload this file exists to speed up.
+    shm_size: 512mb
     restart: unless-stopped
+    # SIGTERM is a *smart* shutdown in PostgreSQL: it waits for clients to
+    # disconnect, and Docker's default 10s grace period turns that into a
+    # SIGKILL and a recovery on next boot.
+    stop_grace_period: 1m
     networks:
       - notifuse-network
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U postgres']
-      interval: 5s
+      # Follows POSTGRES_USER/POSTGRES_DB rather than assuming `postgres`.
+      test: ['CMD-SHELL', 'pg_isready -U "$${POSTGRES_USER:-postgres}" -d "$${POSTGRES_DB:-postgres}"']
+      interval: 30s
       timeout: 5s
       retries: 10
-      start_period: 30s
+      start_period: 60s
+      start_interval: 1s
 
 volumes:
   alloydb-data:

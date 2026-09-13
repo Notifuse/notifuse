@@ -72,6 +72,45 @@ Privacy-first, cookieless web analytics built in — the [Staminads](https://git
 - **Custom Fields**: Flexible contact data management
 - **Workspace Management**: Multi-tenant support for teams and agencies
 
+## 🐳 Install with Docker
+
+Nothing to clone. `compose.prod.yaml` is a single self-contained file that pulls the
+published image from Docker Hub and brings its own PostgreSQL:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Notifuse/notifuse/main/compose.prod.yaml -o compose.yaml
+
+cat > .env <<EOF
+SECRET_KEY=$(openssl rand -base64 32)
+DB_PASSWORD=$(openssl rand -hex 24)
+EOF
+
+docker compose up -d
+```
+
+Open `http://<your-server>:8080` and finish the setup wizard — SMTP, the root account and
+the public endpoint are all configured there. Notifuse speaks plain HTTP, so put a
+TLS-terminating reverse proxy in front of it before pointing a domain at it, and set
+`HTTP_BIND=127.0.0.1` in `.env` once you do.
+
+`SECRET_KEY` encrypts the provider credentials Notifuse stores in the database. Back it up
+with the database; losing it means losing them. Neither it nor `DB_PASSWORD` has a default,
+deliberately — a key published in a repository is a key everyone shares.
+
+| Task | How |
+| --- | --- |
+| Upgrade | `docker compose pull && docker compose up -d` (pin a release with `NOTIFUSE_VERSION=v41.0` in `.env`) |
+| Back up | `docker compose exec -T postgres sh -c 'pg_dumpall -U "$POSTGRES_USER"' \| gzip > notifuse-$(date +%F).sql.gz` |
+| Database files | `./postgres-data`, next to the compose file |
+| Every setting | [env.example](env.example) |
+
+### Running from a checkout
+
+`compose.yaml` in this repository is the development stack: it **builds** the image from
+source instead of pulling it, publishes PostgreSQL on `5433` for `psql` and the integration
+suite, and supports `docker compose watch`. Use it to work on Notifuse, not to run it.
+`compose.alloydb.yaml` is the same thing on [AlloyDB Omni](https://cloud.google.com/alloydb/omni).
+
 ## 🏗️ Architecture
 
 Notifuse follows clean architecture principles with clear separation of concerns:

@@ -1,6 +1,29 @@
-# ⚠️  IMPORTANT: If using a .env file with Docker Compose
-# Values containing # must be quoted: DB_PASSWORD="mypass#word123"
-# See env.example for more details.
+# Notifuse — development stack: builds the image from this checkout.
+#
+# This file needs the repository, because it compiles the image from source.
+# For a production install use compose.prod.yaml instead — a single
+# self-contained file that pulls the published image from Docker Hub, so a
+# server never has to clone anything:
+#
+#   curl -fsSL https://raw.githubusercontent.com/Notifuse/notifuse/main/compose.prod.yaml -o compose.yaml
+#
+# Usage here:
+#   docker compose up -d --build   build from source and start
+#   docker compose watch           same, and rebuild when source files change
+#   docker compose logs -f api     follow the server log
+#   docker compose down            stop; the database volume is KEPT
+#   docker compose down -v         stop and DELETE the database volume
+#
+# `make dev` (air) is the fast inner loop for backend work; this stack exists to
+# run the real image the way a user would.
+#
+# Configuration is read from a .env file next to this one. SECRET_KEY is the
+# only required value — it encrypts provider credentials in the database:
+#
+#   echo "SECRET_KEY=$(openssl rand -base64 32)" >> .env
+#
+# ⚠️  Values containing # must be quoted: DB_PASSWORD="mypass#word123"
+# See env.example for every setting.
 
 services:
   api:
@@ -8,8 +31,15 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - '8081:8080'
-      - '587:587'
+      # host:container. Override the host side in .env when a port is taken.
+      - '${HTTP_PORT:-8081}:8080'
+      - '${SMTP_BRIDGE_HOST_PORT:-587}:587'
+    # Anything else in .env reaches the server too (config reads the
+    # environment directly), so a new setting needs no edit here. The explicit
+    # values below still win for the keys they name.
+    env_file:
+      - path: .env
+        required: false
     environment:
       # Server Configuration
       - SERVER_PORT=${SERVER_PORT:-8080}
@@ -25,8 +55,10 @@ services:
       - DB_NAME=${DB_NAME:-notifuse_system}
       - DB_SSLMODE=${DB_SSLMODE:-disable}
 
-      # Secret Key (Required) - Generate a secure random string for production
-      - SECRET_KEY=${SECRET_KEY:-d04zCk3Fa45oOjDWHpAvc1AZxnLdGffOnNWK+Jt2yXf37+FTfuMMHb8flcfPMqLluRR3rvhbr555r6j1DEigrA==}
+      # Secret Key (Required). Deliberately has no default: a key committed to a
+      # public repository is a key everyone shares, and this one encrypts the
+      # provider credentials stored in the database.
+      - 'SECRET_KEY=${SECRET_KEY:?SECRET_KEY is required. Generate one with: openssl rand -base64 32, then add it to .env}'
 
       # Notifuse licence key (Optional). Leaving it unset is the ordinary state
       # of a self-hosted installation and means the free tier. It overrides any
@@ -54,19 +86,47 @@ services:
       # - SMTP_BRIDGE_TLS_CERT_BASE64=${SMTP_BRIDGE_TLS_CERT_BASE64}
       # - SMTP_BRIDGE_TLS_KEY_BASE64=${SMTP_BRIDGE_TLS_KEY_BASE64}
     depends_on:
-      - postgres
+      postgres:
+        # Not `- postgres`: the short form only waits for the container to
+        # exist, so the server raced an initialising database and needed its
+        # own restart to come up. This waits for the healthcheck.
+        condition: service_healthy
+        restart: true
     volumes:
       - ./data:/app/data
     restart: unless-stopped
+    # cmd/api/main.go asks for 65s of graceful shutdown inside a 70s context:
+    # it drains the web analytics buffer, stops the task and automation
+    # schedulers and the email queue worker. Docker's default grace period is
+    # 10s, which SIGKILLs the server in the middle of all of that.
+    stop_grace_period: 75s
     networks:
       - notifuse-network
     healthcheck:
-      test:
-        ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:8080/healthz']
-      interval: 10s
+      # CMD-SHELL, so the port follows SERVER_PORT instead of being hardcoded.
+      test: ['CMD-SHELL', 'wget -q -O /dev/null http://127.0.0.1:$${SERVER_PORT:-8080}/healthz || exit 1']
+      interval: 30s
       timeout: 5s
       retries: 3
-      start_period: 10s
+      start_period: 30s
+      start_interval: 2s
+    develop:
+      # Opt-in: only `docker compose watch` acts on these. Rebuilding is the
+      # only correct action here — the image compiles Go and bundles the
+      # frontends, so nothing can be synced into a running container.
+      watch:
+        - action: rebuild
+          path: ./cmd
+        - action: rebuild
+          path: ./config
+        - action: rebuild
+          path: ./internal
+        - action: rebuild
+          path: ./pkg
+        - action: rebuild
+          path: ./console/src
+        - action: rebuild
+          path: ./notification_center/src
 
   postgres:
     # Pinned to 17 deliberately. Bumping the major version here would break
@@ -79,21 +139,38 @@ services:
     # compose.alloydb.yaml.
     image: postgres:17-alpine
     ports:
-      - '5433:5432'
+      # Published so psql and the integration suite can reach it from the host.
+      # tests/compose.test.yaml also uses 5433; set POSTGRES_HOST_PORT in .env
+      # to run both at once.
+      - '${POSTGRES_HOST_PORT:-5433}:5432'
     environment:
       - POSTGRES_USER=${DB_USER:-postgres}
       - POSTGRES_PASSWORD=${DB_PASSWORD:-postgres}
+      # Must stay a database the server can connect to before its own exists:
+      # it creates notifuse_system, and every workspace database, from here.
       - POSTGRES_DB=${POSTGRES_DB:-postgres}
+    # Docker gives a container 64 MB of /dev/shm, which the parallel workers
+    # behind the web analytics aggregations can exhaust ("could not resize
+    # shared memory segment").
+    shm_size: 256mb
     volumes:
       - postgres-data:/var/lib/postgresql/data
     restart: unless-stopped
     networks:
       - notifuse-network
+    # SIGTERM is a *smart* shutdown in PostgreSQL: it waits for clients to
+    # disconnect, and Docker's default 10s grace period is short enough to turn
+    # that into a SIGKILL and a recovery on next boot.
+    stop_grace_period: 1m
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U postgres']
-      interval: 5s
+      # Follows POSTGRES_USER/POSTGRES_DB rather than assuming `postgres`, so a
+      # custom DB_USER doesn't leave the service permanently unhealthy.
+      test: ['CMD-SHELL', 'pg_isready -U "$${POSTGRES_USER:-postgres}" -d "$${POSTGRES_DB:-postgres}"']
+      interval: 30s
       timeout: 5s
       retries: 5
+      start_period: 30s
+      start_interval: 1s
 
 volumes:
   postgres-data:
