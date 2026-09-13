@@ -27,7 +27,10 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - '${HTTP_PORT:-8081}:8080'
+      # The container side follows SERVER_PORT: publishing to a fixed port
+      # while the server listens on another yields a healthy container that
+      # nothing can reach.
+      - '${HTTP_PORT:-8081}:${SERVER_PORT:-8080}'
       - '${SMTP_BRIDGE_HOST_PORT:-587}:587'
     env_file:
       - path: .env

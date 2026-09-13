@@ -31,8 +31,11 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      # host:container. Override the host side in .env when a port is taken.
-      - '${HTTP_PORT:-8081}:8080'
+      # host:container. Set HTTP_PORT in .env when the host side is taken. The
+      # container side follows SERVER_PORT: publishing to a fixed port while
+      # the server listens on another yields a healthy container that nothing
+      # can reach.
+      - '${HTTP_PORT:-8081}:${SERVER_PORT:-8080}'
       - '${SMTP_BRIDGE_HOST_PORT:-587}:587'
     # Anything else in .env reaches the server too (config reads the
     # environment directly), so a new setting needs no edit here. The explicit
@@ -127,6 +130,8 @@ services:
           path: ./console/src
         - action: rebuild
           path: ./notification_center/src
+        - action: rebuild
+          path: ./web_analytics_sdk/src
 
   postgres:
     # Pinned to 17 deliberately. Bumping the major version here would break

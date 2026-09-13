@@ -171,11 +171,11 @@ docker-compose-up: .env
 	@echo "Starting services with Docker Compose..."
 	docker compose up -d
 
-docker-compose-down:
+docker-compose-down: .env
 	@echo "Stopping services with Docker Compose (the database volume is kept)..."
 	docker compose down
 
-docker-compose-build:
+docker-compose-build: .env
 	@echo "Building services with Docker Compose..."
 	docker compose build
 

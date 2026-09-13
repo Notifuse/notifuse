@@ -32,9 +32,20 @@
 # This file brings its own PostgreSQL. To point Notifuse at a managed database
 # instead, delete the postgres service and its depends_on, and set DB_HOST,
 # DB_PORT, DB_USER, DB_PASSWORD and DB_SSLMODE in the api environment below.
+#
+# Requires Docker Engine 25.0 and Compose v2.24 or newer (both January 2024),
+# for healthcheck start_interval and the env_file long syntax. On older
+# versions `docker compose up` fails on the schema rather than on anything you
+# did. `docker compose version` reports what you have.
 
 # Fixes the project name, so container and network names do not change when the
 # directory holding this file is renamed or moved.
+#
+# It is also the name Compose derives for compose.yaml inside a clone of the
+# repository. Running this file from a checkout therefore takes over the
+# development stack's containers and points them at ./postgres-data instead of
+# its named volume. Nothing is deleted and `docker compose up -d` on
+# compose.yaml puts it back, but run this one from its own directory.
 name: notifuse
 
 services:
