@@ -45,6 +45,8 @@ const props = (
   onCompile,
   testData: undefined,
   onTestDataChange: vi.fn(),
+  plainText: '',
+  onPlainTextChange: vi.fn(),
   onSaveBlock: vi.fn(),
   forcedViewMode
 })

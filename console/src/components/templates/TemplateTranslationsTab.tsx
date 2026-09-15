@@ -247,16 +247,6 @@ const TemplateTranslationsTab: React.FC<TemplateTranslationsTabProps> = ({
                         placeholder={t`Preview text`}
                       />
                     </div>
-                    <div className="mb-4">
-                      <label className="block text-sm font-medium mb-1">{t`Plain text`}</label>
-                      <Input.TextArea
-                        value={langState.text}
-                        disabled={locked}
-                        onChange={(e) => updateLangState(lang, { text: e.target.value })}
-                        placeholder={t`Optional — plain-text version for this language`}
-                        autoSize={{ minRows: 4, maxRows: 10 }}
-                      />
-                    </div>
                     {/* display:flex overrides the compact default inline-flex so the block button can fill the row */}
                     <Space.Compact style={{ display: 'flex' }}>
                       <Button
@@ -342,6 +332,8 @@ const TemplateTranslationsTab: React.FC<TemplateTranslationsTabProps> = ({
               onMjmlSourceChange={(source) =>
                 updateLangState(editorDrawerLang, { mjmlSource: source })
               }
+              plainText={activeLangState.text || ''}
+              onPlainTextChange={(text) => updateLangState(editorDrawerLang, { text })}
               onCompile={handleCompileCode}
               testData={testData}
               onTestDataChange={onTestDataChange}
@@ -354,6 +346,8 @@ const TemplateTranslationsTab: React.FC<TemplateTranslationsTabProps> = ({
               onTreeChange={(tree) =>
                 updateLangState(editorDrawerLang, { visualEditorTree: tree })
               }
+              plainText={activeLangState.text || ''}
+              onPlainTextChange={(text) => updateLangState(editorDrawerLang, { text })}
               onCompile={handleCompileVisual}
               testData={testData}
               onTestDataChange={onTestDataChange}

@@ -12,6 +12,8 @@ import Editor, { type OnMount, type BeforeMount } from '@monaco-editor/react'
 import type { editor as MonacoEditor } from 'monaco-editor'
 import { useLingui } from '@lingui/react/macro'
 import type { MjmlCompileError } from '../../services/api/template'
+import PlainTextEditorPanel from './PlainTextEditorPanel'
+import { readTextFile, downloadTextFile } from '../../lib/textFile'
 
 interface MjmlCodeEditorProps {
   mjmlSource: string
@@ -26,6 +28,8 @@ interface MjmlCodeEditorProps {
   }>
   testData?: Record<string, unknown>
   onTestDataChange: (testData: Record<string, unknown>) => void
+  plainText: string
+  onPlainTextChange: (text: string) => void
   height?: string | number
   templateId?: string
 }
@@ -223,6 +227,8 @@ const MjmlCodeEditor = forwardRef<MjmlCodeEditorRef, MjmlCodeEditorProps>(({
   onCompile,
   testData,
   onTestDataChange,
+  plainText,
+  onPlainTextChange,
   height = 'calc(100vh - 200px)',
   templateId
 }, ref) => {
@@ -584,6 +590,32 @@ const MjmlCodeEditor = forwardRef<MjmlCodeEditorRef, MjmlCodeEditorProps>(({
     URL.revokeObjectURL(url)
   }, [mjmlSource])
 
+  const handleImportPlainText = useCallback(() => {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = '.txt,text/plain'
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0]
+      if (!file) return
+      if (file.size > 1024 * 1024) {
+        message.error(t`File is too large. Maximum size is 1MB.`)
+        return
+      }
+      try {
+        const content = await readTextFile(file)
+        onPlainTextChange(content)
+        message.success(t`Plain text file imported`)
+      } catch {
+        message.error(t`Failed to read the file`)
+      }
+    }
+    input.click()
+  }, [onPlainTextChange, message, t])
+
+  const handleExportPlainText = useCallback(() => {
+    downloadTextFile(plainText, 'template.txt')
+  }, [plainText])
+
   const handleExportHtml = useCallback(async () => {
     if (!htmlOutput) {
       message.warning(t`Compile the template first`)
@@ -634,6 +666,11 @@ const MjmlCodeEditor = forwardRef<MjmlCodeEditorRef, MjmlCodeEditorProps>(({
           key: 'import-mjml',
           label: t`Import MJML`,
           onClick: handleImportMjml
+        },
+        {
+          key: 'import-plaintext',
+          label: t`Import Plain Text`,
+          onClick: handleImportPlainText
         }
       ]
     },
@@ -651,6 +688,11 @@ const MjmlCodeEditor = forwardRef<MjmlCodeEditorRef, MjmlCodeEditorProps>(({
           key: 'export-html',
           label: t`Export HTML`,
           onClick: handleExportHtml
+        },
+        {
+          key: 'export-plaintext',
+          label: t`Export Plain Text`,
+          onClick: handleExportPlainText
         }
       ]
     }
@@ -688,7 +730,8 @@ const MjmlCodeEditor = forwardRef<MjmlCodeEditorRef, MjmlCodeEditorProps>(({
             )
           },
           { key: 'testdata', label: t`Test Data` },
-          { key: 'html', label: t`Generated HTML` }
+          { key: 'html', label: t`Generated HTML` },
+          { key: 'plaintext', label: t`Plain text` }
         ]}
         tabBarExtraContent={
           <Space size="small">
@@ -847,6 +890,9 @@ const MjmlCodeEditor = forwardRef<MjmlCodeEditorRef, MjmlCodeEditorProps>(({
                   fontSize: 12
                 }}
               />
+            )}
+            {activeTab === 'plaintext' && (
+              <PlainTextEditorPanel value={plainText} onChange={onPlainTextChange} />
             )}
           </div>
         </Splitter.Panel>

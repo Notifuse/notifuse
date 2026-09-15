@@ -7,6 +7,7 @@ import type { EmailBlock } from '../email_builder/types'
 import { EmailBlockClass } from '../email_builder/EmailBlockClass'
 import { convertMjmlToJsonBrowser } from '../mjml-converter/mjml-to-json-browser'
 import { templatesApi } from '../../services/api/template'
+import { readTextFile, downloadTextFile } from '../../lib/textFile'
 
 interface ImportExportButtonProps {
   // Import props
@@ -15,6 +16,9 @@ interface ImportExportButtonProps {
   // Export props
   tree: EmailBlock
   testData?: Record<string, unknown>
+  // Plain-text alternative import/export — optional, only offered when the caller edits one
+  plainText?: string
+  onPlainTextChange?: (text: string) => void
   // Workspace ID for API calls
   workspaceId: string
   // Template name used as the download filename
@@ -43,6 +47,8 @@ export const ImportExportButton: React.FC<ImportExportButtonProps> = ({
   onTestDataImport,
   tree,
   testData,
+  plainText,
+  onPlainTextChange,
   workspaceId,
   templateName
 }) => {
@@ -51,6 +57,7 @@ export const ImportExportButton: React.FC<ImportExportButtonProps> = ({
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const mjmlFileInputRef = useRef<HTMLInputElement>(null)
+  const plainTextFileInputRef = useRef<HTMLInputElement>(null)
   const [isErrorModalVisible, setIsErrorModalVisible] = React.useState(false)
   const [validationErrors, setValidationErrors] = React.useState<string[]>([])
   const [errorTitle, setErrorTitle] = React.useState<string>('')
@@ -255,6 +262,29 @@ export const ImportExportButton: React.FC<ImportExportButtonProps> = ({
     }
   }
 
+  // Handle plain-text import
+  const handleImportPlainText = () => {
+    if (plainTextFileInputRef.current) {
+      plainTextFileInputRef.current.click()
+    }
+  }
+
+  // Handle plain-text file input change
+  const handlePlainTextFileInputChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (file && onPlainTextChange) {
+      try {
+        const content = await readTextFile(file)
+        onPlainTextChange(content)
+        message.success(t`Plain text imported successfully`)
+      } catch {
+        message.error(t`Failed to read the file`)
+      }
+    }
+    // Reset input so same file can be selected again
+    event.target.value = ''
+  }
+
   // Handle file input change
   const handleFileInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -360,6 +390,13 @@ export const ImportExportButton: React.FC<ImportExportButtonProps> = ({
     }
   }
 
+  // Export plain text
+  const handleExportPlainText = () => {
+    const baseName = templateName ? sanitizeFilename(templateName) : 'email-template'
+    downloadTextFile(plainText || '', `${baseName}.txt`)
+    message.success(t`Plain text exported successfully`)
+  }
+
   // Export JSON
   const handleExportJSON = () => {
     try {
@@ -405,7 +442,21 @@ export const ImportExportButton: React.FC<ImportExportButtonProps> = ({
             </div>
           ),
           onClick: handleImportMJML
-        }
+        },
+        ...(onPlainTextChange
+          ? [
+              {
+                key: 'import-plaintext',
+                label: (
+                  <div className="flex flex-col">
+                    <span className="font-medium">{t`Plain text`}</span>
+                    <span className="text-xs text-gray-500">{t`Load a .txt file`}</span>
+                  </div>
+                ),
+                onClick: handleImportPlainText
+              }
+            ]
+          : [])
       ]
     },
     {
@@ -444,7 +495,21 @@ export const ImportExportButton: React.FC<ImportExportButtonProps> = ({
             </div>
           ),
           onClick: handleExportJSON
-        }
+        },
+        ...(onPlainTextChange
+          ? [
+              {
+                key: 'export-plaintext',
+                label: (
+                  <div className="flex flex-col">
+                    <span className="font-medium">{t`Plain text`}</span>
+                    <span className="text-xs text-gray-500">{t`Save as .txt`}</span>
+                  </div>
+                ),
+                onClick: handleExportPlainText
+              }
+            ]
+          : [])
       ]
     }
   ]
@@ -474,6 +539,15 @@ export const ImportExportButton: React.FC<ImportExportButtonProps> = ({
         accept=".mjml,.xml,text/xml,application/xml,text/plain"
         style={{ display: 'none' }}
         onChange={handleMjmlFileInputChange}
+      />
+
+      {/* Hidden file input for plain text */}
+      <input
+        ref={plainTextFileInputRef}
+        type="file"
+        accept=".txt,text/plain"
+        style={{ display: 'none' }}
+        onChange={handlePlainTextFileInputChange}
       />
 
       {/* Error Modal */}

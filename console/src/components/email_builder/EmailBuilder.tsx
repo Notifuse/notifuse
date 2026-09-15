@@ -1,4 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react'
+import { useLingui } from '@lingui/react/macro'
 import { Button, Space, Segmented, Spin } from 'antd'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faRedoAlt, faUndoAlt } from '@fortawesome/free-solid-svg-icons'
@@ -16,6 +17,7 @@ import type {
   MJMLComponentType
 } from './types'
 import { EmailBlockClass } from './EmailBlockClass'
+import PlainTextEditorPanel from './PlainTextEditorPanel'
 
 interface EmailBuilderProps {
   tree: EmailBlock
@@ -26,6 +28,8 @@ interface EmailBuilderProps {
   ) => Promise<{ errors?: Array<Record<string, unknown>>; html: string; mjml: string }>
   testData?: Record<string, unknown>
   onTestDataChange: (testData: Record<string, unknown>) => void
+  plainText: string
+  onPlainTextChange: (text: string) => void
   toolbarActions?: React.ReactNode
   savedBlocks?: SavedBlock[]
   onSaveBlock: (block: EmailBlock, operation: SaveOperation, nameOrId: string) => void
@@ -48,6 +52,8 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
   onCompile,
   testData,
   onTestDataChange,
+  plainText,
+  onPlainTextChange,
   toolbarActions,
   savedBlocks,
   onSaveBlock,
@@ -63,6 +69,8 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
   hiddenBlocks,
   height
 }) => {
+  const { t } = useLingui()
+
   // State for current selection, UI, and history
   const [state, setState] = useState<
     EmailBuilderState & { history: EmailBlock[]; historyIndex: number }
@@ -103,7 +111,7 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
   })
 
   // Local state for view mode and compilation results
-  const [viewMode, setViewMode] = useState<'edit' | 'preview'>('edit')
+  const [viewMode, setViewMode] = useState<'edit' | 'preview' | 'plaintext'>('edit')
 
   // Use forced view mode when provided (for tour), otherwise use local state
   const effectiveViewMode = forcedViewMode || viewMode
@@ -206,7 +214,7 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
   }
 
   const handleModeChange = async (value: string | number) => {
-    const mode = value as 'edit' | 'preview'
+    const mode = value as 'edit' | 'preview' | 'plaintext'
     // Only update local state if not being forced by tour
     if (!forcedViewMode) {
       setViewMode(mode)
@@ -840,6 +848,10 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
               {
                 label: 'Preview',
                 value: 'preview'
+              },
+              {
+                label: t`Plain text`,
+                value: 'plaintext'
               }
             ]}
           />
@@ -862,6 +874,11 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
       )}
       {effectiveViewMode === 'preview' && !compilationResults && (
         <Spin size="large" className="!m-16" />
+      )}
+      {effectiveViewMode === 'plaintext' && (
+        <div className="flex-1 min-h-0 p-4">
+          <PlainTextEditorPanel value={plainText} onChange={onPlainTextChange} />
+        </div>
       )}
       {/* Three Column Layout */}
       {effectiveViewMode === 'edit' && (
