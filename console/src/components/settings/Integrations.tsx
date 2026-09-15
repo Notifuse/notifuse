@@ -94,6 +94,7 @@ interface IntegrationsProps {
   onSave: (updatedWorkspace: Workspace) => Promise<void>
   loading: boolean
   isOwner: boolean
+  canManageSenders?: boolean
 }
 
 // EmailIntegration component props
@@ -107,6 +108,7 @@ interface EmailIntegrationProps {
     updated_at: string
   }
   isOwner: boolean
+  canManageSenders: boolean
   workspace: Workspace
   getIntegrationPurpose: (id: string) => string[]
   isIntegrationInUse: (id: string) => boolean
@@ -121,6 +123,7 @@ interface EmailIntegrationProps {
 const EmailIntegration = ({
   integration,
   isOwner,
+  canManageSenders,
   workspace,
   getIntegrationPurpose,
   isIntegrationInUse,
@@ -291,9 +294,9 @@ const EmailIntegration = ({
       title={
         <>
           <div className="float-right">
-            {isOwner ? (
+            {isOwner || canManageSenders ? (
               <Space>
-                <Tooltip title={t`Edit`}>
+                <Tooltip title={t`Edit senders`}>
                   <Button
                     type="text"
                     onClick={() => startEditEmailProvider(integration)}
@@ -302,22 +305,26 @@ const EmailIntegration = ({
                     <FontAwesomeIcon icon={faPenToSquare} />
                   </Button>
                 </Tooltip>
-                <Popconfirm
-                  title={t`Delete this integration?`}
-                  description={t`This action cannot be undone.`}
-                  onConfirm={() => deleteIntegration(integration.id)}
-                  okText={t`Yes`}
-                  cancelText={t`No`}
-                >
-                  <Tooltip title={t`Delete`}>
-                    <Button size="small" type="text">
-                      <FontAwesomeIcon icon={faTrashCan} />
-                    </Button>
-                  </Tooltip>
-                </Popconfirm>
-                <Button onClick={() => startTestEmailProvider(integration.id)} size="small">
-                  {t`Test`}
-                </Button>
+                {isOwner && (
+                  <Popconfirm
+                    title={t`Delete this integration?`}
+                    description={t`This action cannot be undone.`}
+                    onConfirm={() => deleteIntegration(integration.id)}
+                    okText={t`Yes`}
+                    cancelText={t`No`}
+                  >
+                    <Tooltip title={t`Delete`}>
+                      <Button size="small" type="text">
+                        <FontAwesomeIcon icon={faTrashCan} />
+                      </Button>
+                    </Tooltip>
+                  </Popconfirm>
+                )}
+                {isOwner && (
+                  <Button onClick={() => startTestEmailProvider(integration.id)} size="small">
+                    {t`Test`}
+                  </Button>
+                )}
               </Space>
             ) : null}
           </div>
@@ -470,7 +477,13 @@ const constructProviderFromForm = (formValues: EmailProviderFormValues): EmailPr
 }
 
 // Main Integrations component
-export function Integrations({ workspace, onSave, loading, isOwner }: IntegrationsProps) {
+export function Integrations({
+  workspace,
+  onSave,
+  loading,
+  isOwner,
+  canManageSenders = false
+}: IntegrationsProps) {
   const { t } = useLingui()
   // State for providers
   const [emailProviderForm] = Form.useForm()
@@ -886,23 +899,28 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
   const saveEmailProvider = async (values: EmailProviderFormValues & { name?: string }) => {
     if (!workspace) return
 
+    const nextSenders = values.senders?.length ? values.senders : senders
     // Make sure we have at least one sender
-    if (!values.senders || values.senders.length === 0) {
+    if (!nextSenders || nextSenders.length === 0) {
       message.error(t`Please add at least one sender before saving`)
       return
     }
 
     try {
-      const provider = constructProviderFromForm(values)
-      const name = values.name || provider.kind
       const type: IntegrationType = 'email'
 
       // If editing an existing integration
       if (editingIntegrationId) {
         const integration = getIntegrationById(editingIntegrationId)
-        if (!integration) {
+        if (!integration || !integration.email_provider) {
           throw new Error('Integration not found')
         }
+
+        // Brand members keep the existing SES / SMTP keys and only persist From senders.
+        const provider = !isOwner
+          ? { ...integration.email_provider, senders: nextSenders }
+          : constructProviderFromForm({ ...values, senders: nextSenders })
+        const name = isOwner ? values.name || provider.kind : integration.name
 
         const updateRequest: UpdateIntegrationRequest = {
           workspace_id: workspace.id,
@@ -914,8 +932,14 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
         await workspaceService.updateIntegration(updateRequest)
         message.success(t`Integration updated successfully`)
       }
-      // Creating a new integration
+      // Creating a new integration (owners only)
       else {
+        if (!isOwner) {
+          message.error(t`Only workspace owners can create integrations`)
+          return
+        }
+        const provider = constructProviderFromForm({ ...values, senders: nextSenders })
+        const name = values.name || provider.kind
         const createRequest: CreateIntegrationRequest = {
           workspace_id: workspace.id,
           name,
@@ -1125,6 +1149,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
                   key={integration.id}
                   integration={integration as Integration & { email_provider: EmailProvider }}
                   isOwner={isOwner}
+                  canManageSenders={canManageSenders}
                   workspace={workspace}
                   getIntegrationPurpose={getIntegrationPurpose}
                   isIntegrationInUse={isIntegrationInUse}
@@ -1466,7 +1491,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
           <Input placeholder={t`Enter a name for this integration`} disabled={!isOwner} />
         </Form.Item>
 
-        {providerType === 'ses' && (
+        {isOwner && providerType === 'ses' && (
           <>
             <Form.Item name={['ses', 'region']} label={t`AWS Region`} rules={[{ required: true }]}>
               <Select placeholder={t`Select AWS Region`} disabled={!isOwner}>
@@ -1538,7 +1563,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
           </>
         )}
 
-        {providerType === 'smtp' && (
+        {isOwner && providerType === 'smtp' && (
           <>
             <Row gutter={16}>
               <Col span={12}>
@@ -1734,7 +1759,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
           </>
         )}
 
-        {providerType === 'sparkpost' && (
+        {isOwner && providerType === 'sparkpost' && (
           <>
             <Form.Item
               name={['sparkpost', 'endpoint']}
@@ -1764,7 +1789,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
           </>
         )}
 
-        {providerType === 'postmark' && (
+        {isOwner && providerType === 'postmark' && (
           <>
             <Form.Item
               name={['postmark', 'server_token']}
@@ -1784,7 +1809,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
           </>
         )}
 
-        {providerType === 'mailgun' && (
+        {isOwner && providerType === 'mailgun' && (
           <>
             <Form.Item name={['mailgun', 'domain']} label={t`Domain`} rules={[{ required: true }]}>
               <Input placeholder="mail.yourdomain.com" disabled={!isOwner} />
@@ -1805,7 +1830,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
           </>
         )}
 
-        {providerType === 'mailjet' && (
+        {isOwner && providerType === 'mailjet' && (
           <>
             <Form.Item name={['mailjet', 'api_key']} label={t`API Key`} rules={[{ required: true }]}>
               <Input.Password placeholder="API Key" disabled={!isOwner} />
@@ -1828,29 +1853,33 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
           </>
         )}
 
-        {providerType === 'sendgrid' && (
+        {isOwner && providerType === 'sendgrid' && (
           <Form.Item name={['sendgrid', 'api_key']} label={t`API Key`} rules={[{ required: true }]}>
             <Input.Password placeholder="API Key (starts with SG.)" disabled={!isOwner} />
           </Form.Item>
         )}
 
-        <Form.Item
-          name="rate_limit_per_minute"
-          label={t`Rate limit for marketing emails (emails per minute)`}
-          rules={[
-            { required: true, message: 'Please enter a rate limit' },
-            { type: 'number', min: 1, message: 'Rate limit must be at least 1' }
-          ]}
-          initialValue={25}
-        >
-          <InputNumber min={1} placeholder="25" disabled={!isOwner} style={{ width: '100%' }} />
-        </Form.Item>
+        {isOwner && (
+          <>
+            <Form.Item
+              name="rate_limit_per_minute"
+              label={t`Rate limit for marketing emails (emails per minute)`}
+              rules={[
+                { required: true, message: 'Please enter a rate limit' },
+                { type: 'number', min: 1, message: 'Rate limit must be at least 1' }
+              ]}
+              initialValue={25}
+            >
+              <InputNumber min={1} placeholder="25" disabled={!isOwner} style={{ width: '100%' }} />
+            </Form.Item>
 
-        {(rateLimitPerMinute || 25) > 0 && (
-          <div className="text-xs text-gray-600 -mt-4 mb-4">
-            <div>≈ {((rateLimitPerMinute || 25) * 60).toLocaleString()} {t`emails per hour`}</div>
-            <div>≈ {((rateLimitPerMinute || 25) * 60 * 24).toLocaleString()} {t`emails per day`}</div>
-          </div>
+            {(rateLimitPerMinute || 25) > 0 && (
+              <div className="text-xs text-gray-600 -mt-4 mb-4">
+                <div>≈ {((rateLimitPerMinute || 25) * 60).toLocaleString()} {t`emails per hour`}</div>
+                <div>≈ {((rateLimitPerMinute || 25) * 60 * 24).toLocaleString()} {t`emails per day`}</div>
+              </div>
+            )}
+          </>
         )}
 
         {renderSendersField()}
@@ -1884,7 +1913,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
       {
         title: (
           <div className="flex justify-end">
-            <Button type="primary" ghost size="small" onClick={addSender} disabled={!isOwner}>
+            <Button type="primary" ghost size="small" onClick={addSender} disabled={!canManageSenders}>
               {t`Add Sender`}
             </Button>
           </div>
@@ -1895,12 +1924,22 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
             <Space>
               {!record.is_default && (
                 <Tooltip title={t`Set as default sender`}>
-                  <Button size="small" type="text" onClick={() => setDefaultSender(index)}>
+                  <Button
+                    size="small"
+                    type="text"
+                    onClick={() => setDefaultSender(index)}
+                    disabled={!canManageSenders}
+                  >
                     <span className="text-blue-500">Default</span>
                   </Button>
                 </Tooltip>
               )}
-              <Button size="small" type="text" onClick={() => editSender(index)}>
+              <Button
+                size="small"
+                type="text"
+                onClick={() => editSender(index)}
+                disabled={!canManageSenders}
+              >
                 <FontAwesomeIcon icon={faPenToSquare} />
               </Button>
               {senders.length > 1 && (
@@ -1911,7 +1950,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
                   okText="Yes"
                   cancelText="No"
                 >
-                  <Button size="small" type="text">
+                  <Button size="small" type="text" disabled={!canManageSenders}>
                     <FontAwesomeIcon icon={faTrashCan} />
                   </Button>
                 </Popconfirm>
@@ -1926,7 +1965,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
       <Form.Item
         label={t`Senders`}
         required
-        tooltip={t`Add one or more email senders. The first sender will be used as the default.`}
+        tooltip={t`Add one or more From addresses. The address must already be verified on this workspace's sending domain.`}
       >
         {senders.length > 0 ? (
           <div className="border border-gray-200 rounded-md p-4 mb-4">
@@ -1940,7 +1979,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
           </div>
         ) : (
           <div className="flex justify-center py-6">
-            <Button type="primary" onClick={addSender} disabled={!isOwner}>
+            <Button type="primary" onClick={addSender} disabled={!canManageSenders}>
               <FontAwesomeIcon icon={faPlus} className="mr-1" /> {t`Add Sender`}
             </Button>
           </div>
@@ -2074,8 +2113,15 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
           <div style={{ textAlign: 'right' }}>
             <Space>
               <Button onClick={closeProviderDrawer}>{t`Cancel`}</Button>
-              <Button onClick={handleTestFromDrawer}>{t`Test Integration`}</Button>
-              <Button type="primary" onClick={() => emailProviderForm.submit()} loading={loading}>
+              {isOwner && (
+                <Button onClick={handleTestFromDrawer}>{t`Test Integration`}</Button>
+              )}
+              <Button
+                type="primary"
+                onClick={() => emailProviderForm.submit()}
+                loading={loading}
+                disabled={!(isOwner || (canManageSenders && !!editingIntegrationId))}
+              >
                 {t`Save`}
               </Button>
             </Space>
@@ -2212,14 +2258,14 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
               { type: 'email', message: 'Please enter a valid email' }
             ]}
           >
-            <Input placeholder="sender@example.com" disabled={!isOwner} />
+            <Input placeholder="sender@example.com" disabled={!canManageSenders} />
           </Form.Item>
           <Form.Item
             name="name"
             label={t`Name`}
             rules={[{ required: true, message: 'Name is required' }]}
           >
-            <Input placeholder="Sender Name" disabled={!isOwner} />
+            <Input placeholder="Sender Name" disabled={!canManageSenders} />
           </Form.Item>
         </Form>
       </Modal>

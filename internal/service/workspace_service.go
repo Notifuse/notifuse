@@ -1395,16 +1395,15 @@ func (s *WorkspaceService) UpdateIntegration(ctx context.Context, req domain.Upd
 		return fmt.Errorf("failed to authenticate user: %w", err)
 	}
 
-	// Check if user is an owner
 	userWorkspace, err := s.repo.GetUserWorkspace(ctx, user.ID, req.WorkspaceID)
 	if err != nil {
 		s.logger.WithField("workspace_id", req.WorkspaceID).WithField("user_id", user.ID).WithField("error", err.Error()).Error("Failed to get user workspace")
 		return err
 	}
 
-	if userWorkspace.Role != "owner" {
-		s.logger.WithField("workspace_id", req.WorkspaceID).WithField("user_id", user.ID).WithField("role", userWorkspace.Role).Error("User is not an owner of the workspace")
-		return &domain.ErrUnauthorized{Message: "user is not an owner of the workspace"}
+	if !userWorkspace.CanManageEmailSenders() {
+		s.logger.WithField("workspace_id", req.WorkspaceID).WithField("user_id", user.ID).WithField("role", userWorkspace.Role).Error("User cannot update email senders")
+		return &domain.ErrUnauthorized{Message: "user cannot update email senders"}
 	}
 
 	// Get the workspace
@@ -1419,6 +1418,28 @@ func (s *WorkspaceService) UpdateIntegration(ctx context.Context, req domain.Upd
 	if existingIntegration == nil {
 		s.logger.WithField("workspace_id", req.WorkspaceID).WithField("integration_id", req.IntegrationID).Error("Integration not found")
 		return fmt.Errorf("integration not found")
+	}
+
+	// Brand members may only change From senders. SES / SMTP keys stay owner-only.
+	if userWorkspace.Role != "owner" {
+		if existingIntegration.Type != domain.IntegrationTypeEmail {
+			return &domain.ErrUnauthorized{Message: "user cannot update this integration"}
+		}
+		if len(req.Provider.Senders) == 0 {
+			return fmt.Errorf("at least one sender is required")
+		}
+		updated := *existingIntegration
+		updated.EmailProvider.Senders = req.Provider.Senders
+		updated.UpdatedAt = time.Now().UTC()
+		if err := updated.Validate(s.secretKey); err != nil {
+			return err
+		}
+		workspace.AddIntegration(updated)
+		if err := s.repo.Update(ctx, workspace); err != nil {
+			s.logger.WithField("workspace_id", req.WorkspaceID).WithField("integration_id", req.IntegrationID).WithField("error", err.Error()).Error("Failed to update workspace with updated senders")
+			return err
+		}
+		return nil
 	}
 
 	// Update the integration

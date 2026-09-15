@@ -26,6 +26,7 @@ export function WorkspaceSettingsPage() {
   const [members, setMembers] = useState<WorkspaceMember[]>([])
   const [loadingMembers, setLoadingMembers] = useState(false)
   const [isOwner, setIsOwner] = useState(false)
+  const [canManageSenders, setCanManageSenders] = useState(false)
   const [canManageCustomFields, setCanManageCustomFields] = useState(false)
   const [canManageBlog, setCanManageBlog] = useState(false)
   const { refreshWorkspaces, user, workspaces } = useAuth()
@@ -79,6 +80,11 @@ export function WorkspaceSettingsPage() {
       if (user) {
         const currentUserMember = response.members.find((member) => member.user_id === user.id)
         setIsOwner(currentUserMember?.role === 'owner')
+        // Brand / support accounts are members with workspace:write, not owners.
+        setCanManageSenders(
+          currentUserMember?.role === 'owner' ||
+            currentUserMember?.permissions?.workspace?.write === true
+        )
         // Custom fields can be managed by owners or members with workspace:write permission
         // (mirrors the backend HasPermission(workspace, write) check).
         setCanManageCustomFields(
@@ -136,6 +142,7 @@ export function WorkspaceSettingsPage() {
             loading={false}
             onSave={handleWorkspaceUpdate}
             isOwner={isOwner}
+            canManageSenders={canManageSenders}
           />
         )
       case 'webhooks':

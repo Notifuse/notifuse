@@ -936,6 +936,15 @@ func (uw *UserWorkspace) HasPermission(resource PermissionResource, permissionTy
 	}
 }
 
+// CanManageEmailSenders is true for workspace owners and members with
+// workspace write (brand / support accounts invited with full permissions).
+func (uw *UserWorkspace) CanManageEmailSenders() bool {
+	if uw == nil {
+		return false
+	}
+	return uw.HasPermission(PermissionResourceWorkspace, PermissionTypeWrite)
+}
+
 // SetPermissions replaces all permissions for the user
 func (uw *UserWorkspace) SetPermissions(permissions UserPermissions) {
 	uw.Permissions = permissions

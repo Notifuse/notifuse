@@ -4995,6 +4995,16 @@ func TestUserWorkspace_HasPermission(t *testing.T) {
 	}
 }
 
+func TestUserWorkspace_CanManageEmailSenders(t *testing.T) {
+	assert.True(t, (&UserWorkspace{Role: "owner"}).CanManageEmailSenders())
+	assert.True(t, (&UserWorkspace{
+		Role:        "member",
+		Permissions: FullPermissions,
+	}).CanManageEmailSenders())
+	assert.False(t, (&UserWorkspace{Role: "member"}).CanManageEmailSenders())
+	assert.False(t, (*UserWorkspace)(nil).CanManageEmailSenders())
+}
+
 func TestUserWorkspace_SetPermissions(t *testing.T) {
 	tests := []struct {
 		name          string
